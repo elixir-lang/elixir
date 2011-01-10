@@ -48,3 +48,8 @@ integer_with_unary_test() ->
   ?assertEqual({-3,[]}, elixir:eval("- 1 + - 2")),
   ?assertEqual({2,[]}, elixir:eval("- 1 * - 2")),
   ?assertEqual({-0.5,[]}, elixir:eval("+ 1 / - 2")).
+
+float_with_parens_and_unary_test() ->
+  ?assertEqual({-21.0,[]}, elixir:eval("-3.0 * (5 + 2)")),
+  ?assertEqual({25.0,[]}, elixir:eval("(2 + 3.0) * 5")),
+  ?assertEqual({0.25,[]}, elixir:eval("4 / (11.0 + 5)")).
