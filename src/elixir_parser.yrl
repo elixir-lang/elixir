@@ -2,10 +2,15 @@
 % Copyright (C) 2011 Jose Valim
 
 Nonterminals
-  arithmetic
+  expr
+  add_expr
+  mult_expr
+  unary_expr
+  max_expr
+  number
+  unary_op
   add_op
   mult_op
-  number
   .
 
 Terminals
@@ -13,23 +18,37 @@ Terminals
   '+' '-' '*' '/' '(' ')'
   .
 
-Rootsymbol arithmetic.
+Rootsymbol expr.
 
-Left 100 add_op.
-Left 200 mult_op.
+expr -> add_expr : '$1'.
 
-arithmetic -> arithmetic add_op arithmetic :
+%% Arithmetic operations
+add_expr -> add_expr add_op mult_expr :
   { binary_op, ?line('$1'), ?op('$2'), '$1', '$3' }.
 
-arithmetic -> arithmetic mult_op arithmetic :
+add_expr -> mult_expr : '$1'.
+
+mult_expr -> mult_expr mult_op unary_expr :
   { binary_op, ?line('$1'), ?op('$2'), '$1', '$3' }.
 
-arithmetic -> '(' arithmetic ')' : '$2'.
-arithmetic -> number : '$1'.
+mult_expr -> unary_expr : '$1'.
+
+unary_expr -> unary_op max_expr :
+  { unary_op, ?line('$1'), ?op('$1'), '$2' }.
+
+unary_expr -> max_expr : '$1'.
+
+%% Minimum expressions
+max_expr -> number : '$1'.
+max_expr -> '(' expr ')' : '$2'.
 
 %% Numbers
 number -> float   : '$1'.
 number -> integer : '$1'.
+
+%% Unary operator
+unary_op -> '+' : '$1'.
+unary_op -> '-' : '$1'.
 
 %% Addition operators
 add_op -> '+' : '$1'.
