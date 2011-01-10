@@ -14,27 +14,31 @@ PARSER_BASE_NAME=elixir
 LEXER_NAME=$(PARSER_BASE_NAME)_lexer
 PARSER_NAME=$(PARSER_BASE_NAME)_parser
 
+./SILENT: yes
+
 compile:
-	## COMPILE
-	mkdir -p $(EBIN_DIR)
-	# Generate the lexer
-	$(ERL) -eval 'leex:file("$(SOURCE_DIR)/$(LEXER_NAME)"), halt().'
-	# Generate the parser
-	$(ERL) -eval 'yecc:file("$(SOURCE_DIR)/$(PARSER_NAME)"), halt().'
-	# Compile everything
+	@ echo Compiling ...
+	@ mkdir -p $(EBIN_DIR)
+	@ # Generate the lexer
+	@ $(ERL) -eval 'leex:file("$(SOURCE_DIR)/$(LEXER_NAME)"), halt().'
+	@ # Generate the parser
+	@ $(ERL) -eval 'yecc:file("$(SOURCE_DIR)/$(PARSER_NAME)"), halt().'
+	@ # Compile everything
 	$(ERLC) -o $(EBIN_DIR) $(SOURCE_DIR)/*.erl
+	@ echo
 
 all: compile
 
 test: compile
-	## TEST
-	mkdir -p $(TEST_EBIN_DIR)
-	# Compile test files
-	$(ERLC) -o $(TEST_EBIN_DIR) $(TEST_SOURCE_DIR)/*.erl
-	# Look and execute each file
-	$(foreach file, \
+	@ echo Running tests ...
+	@ mkdir -p $(TEST_EBIN_DIR)
+	@ # Compile test files
+	@ $(ERLC) -o $(TEST_EBIN_DIR) $(TEST_SOURCE_DIR)/*.erl
+	@ # Look and execute each file
+	@ $(foreach file, \
 		$(wildcard $(TEST_SOURCE_DIR)/*.erl), \
-		$(ERL) $(TEST_EBIN_DIR) -eval '$(notdir $(basename $(file))):test(), halt().')
+		echo $(file) && $(ERL) $(TEST_EBIN_DIR) -eval '$(notdir $(basename $(file))):test(), halt().';)
+	@ echo
 
 clean:
 	rm $(SOURCE_DIR)/$(LEXER_NAME).erl

@@ -4,7 +4,7 @@
 % TODO Arithmetic operations are hardcoded.
 % They should instead be implemented using message passing.
 
-% TODO Implement div and res.
+% TODO Implement div, res and pow.
 
 integer_sum_test() ->
   ?assertEqual(3, elixir:eval("1+2")),
