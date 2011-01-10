@@ -1,8 +1,15 @@
 -module(variables_test).
 -include_lib("eunit/include/eunit.hrl").
 
+% TODO Handle parsing of empty strings
+% no_assignment_test() ->
+%   ?assertEqual({[], []}, elixir:eval("")).
+
 assignment_test() ->
   ?assertEqual({1, [{a, 1}]}, elixir:eval("a = 1")).
+
+multiline_assignment_test() ->
+  ?assertEqual({1, [{a, 1}, {b, 1}]}, elixir:eval("a = 1\nb = 1")).
 
 multiple_assignment_test() ->
   ?assertEqual({1, [{a, 1}, {b, 1}]}, elixir:eval("a = b = 1")).

@@ -27,6 +27,10 @@ Rules.
 =     : { token, { '=', TokenLine } }.
 
 %% Skip
+{Comment} : skip_token.
 {Whitespace}+ : skip_token.
+
+%% Newlines (with comment and whitespace checks)
+({Comment}|{Whitespace})*(\n({Comment}|{Whitespace})*)+ : { token, { eol, TokenLine } }.
 
 Erlang code.

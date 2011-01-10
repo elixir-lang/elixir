@@ -1,15 +1,16 @@
 -module(elixir).
--export([eval/1, eval/2, from_elixir/1, from_erlang/1]).
+-export([parse/1, eval/1, eval/2, from_elixir/1, from_erlang/1]).
 
 eval(String) -> eval(String, []).
 
 eval(String, Binding) ->
-  {value, Value, NewBinding} = erl_eval:expr(from_elixir(String), Binding),
+  {value, Value, NewBinding} = erl_eval:exprs(from_elixir(String), Binding),
   {Value, NewBinding}.
 
 % Temporary to aid debugging
 from_elixir(String) ->
-  transform(parse(String)).
+  Transform = fun(X, Acc) -> [transform(X)|Acc] end,
+  lists:foldr(Transform, [], parse(String)).
 
 % Temporary to aid debugging
 from_erlang(String) ->

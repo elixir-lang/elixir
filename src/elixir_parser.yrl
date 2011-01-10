@@ -2,6 +2,8 @@
 % Copyright (C) 2011 Jose Valim
 
 Nonterminals
+  grammar
+  expr_list
   expr
   assign_expr
   add_expr
@@ -15,11 +17,20 @@ Nonterminals
   .
 
 Terminals
-  var float integer
+  var float integer eol
   '=' '+' '-' '*' '/' '(' ')'
   .
 
-Rootsymbol expr.
+Rootsymbol grammar.
+
+grammar -> expr_list : '$1'.
+grammar -> '$empty' : [].
+
+expr_list -> eol : [].
+expr_list -> expr : ['$1'].
+expr_list -> expr eol : ['$1'].
+expr_list -> eol expr_list : '$2'.
+expr_list -> expr eol expr_list : ['$1'|'$3'].
 
 expr -> assign_expr : '$1'.
 
