@@ -6,12 +6,12 @@ Nonterminals
   add_op
   mult_op
   number
-       .
+  .
 
 Terminals
   float integer
   '+' '-' '*' '/' '(' ')'
-       .
+  .
 
 Rootsymbol arithmetic.
 
@@ -43,3 +43,4 @@ Erlang code.
 
 -define(op(Node), element(1, Node)).
 -define(line(Node), element(2, Node)).
+-define(char(Node), element(3, Node)).
