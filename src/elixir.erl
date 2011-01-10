@@ -1,27 +1,28 @@
 -module(elixir).
--export([parse/1, eval/1, eval/2, from_elixir/1, from_erlang/1]).
+-export([parse/1, eval/1, eval/2, throw_elixir/1, throw_erlang/1]).
 
 eval(String) -> eval(String, []).
 
 eval(String, Binding) ->
-  {value, Value, NewBinding} = erl_eval:exprs(from_elixir(String), Binding),
+  {value, Value, NewBinding} = erl_eval:exprs(parse(String), Binding),
   {Value, NewBinding}.
 
 % Temporary to aid debugging
-from_elixir(String) ->
-  Transform = fun(X, Acc) -> [transform(X)|Acc] end,
-  lists:foldr(Transform, [], parse(String)).
+throw_elixir(String) ->
+  erlang:error(io:format("~p~n", [parse(String)])).
 
 % Temporary to aid debugging
-from_erlang(String) ->
+throw_erlang(String) ->
   {ok, Tokens, _} = erl_scan:string(String),
   {ok, [Form]} = erl_parse:parse_exprs(Tokens),
-  Form.
+  erlang:error(io:format("~p~n", [Form])).
 
+% Parse file and transform tree to erlang bytecode
 parse(String) ->
 	{ok, Tokens, _} = elixir_lexer:string(String),
 	{ok, ParseTree} = elixir_parser:parse(Tokens),
-	ParseTree.
+  Transform = fun(X, Acc) -> [transform(X)|Acc] end,
+  lists:foldr(Transform, [], ParseTree).
 
 transform({ binary_op, Line, Op, Left, Right }) ->
   {op, Line, Op, transform(Left), transform(Right)};
@@ -32,7 +33,5 @@ transform({ unary_op, Line, Op, Right }) ->
 transform({ match, Line, Left, Right }) ->
   {match, Line, transform(Left), transform(Right)};
 
-% Match all other expressions. Types:
-%   integer
-%   var
+% Match all other expressions
 transform(Expr) -> Expr.
