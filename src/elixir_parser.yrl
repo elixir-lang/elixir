@@ -9,6 +9,9 @@ Nonterminals
   add_expr
   mult_expr
   unary_expr
+  fun_expr
+  body
+  stabber
   max_expr
   number
   unary_op
@@ -18,7 +21,8 @@ Nonterminals
 
 Terminals
   var float integer eol
-  '=' '+' '-' '*' '/' '(' ')'
+  'do' 'end'
+  '=' '+' '-' '*' '/' '(' ')' '->'
   .
 
 Rootsymbol grammar.
@@ -54,12 +58,33 @@ mult_expr -> unary_expr : '$1'.
 unary_expr -> unary_op max_expr :
   { unary_op, ?line('$1'), ?op('$1'), '$2' }.
 
-unary_expr -> max_expr : '$1'.
+unary_expr -> fun_expr : '$1'.
+
+fun_expr -> stabber expr :
+  { 'fun', ?line('$1'),
+    { clauses, [ { clause, ?line('$1'), [], [], ['$2'] } ] }
+  }.
+
+fun_expr -> stabber eol body 'end' :
+  { 'fun', ?line('$1'),
+    { clauses, [ { clause, ?line('$1'), [], [], '$3' } ] }
+  }.
+
+fun_expr -> max_expr : '$1'.
+
+%% Function bodies
+% TODO We need to handle empty body
+% body -> '$empty'  : [#nil{}].
+body -> expr_list : '$1'.
 
 %% Minimum expressions
 max_expr -> var : '$1'.
 max_expr -> number : '$1'.
 max_expr -> '(' expr ')' : '$2'.
+
+%% Stab syntax
+stabber -> '->' : '$1'.
+stabber -> 'do' : '$1'.
 
 %% Numbers
 number -> float   : '$1'.
