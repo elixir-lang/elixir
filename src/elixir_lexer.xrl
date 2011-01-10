@@ -30,6 +30,7 @@ Rules.
 =     : { token, { '=', TokenLine } }.
 ;     : { token, { eol, TokenLine } }.
 ->    : { token, { '->', TokenLine } }.
+,     : { token, { ',', TokenLine} }.
 
 %% Skip
 {Comment} : skip_token.

@@ -33,14 +33,14 @@ transform({ unary_op, Line, Op, Right }) ->
 transform({ match, Line, Left, Right }) ->
   {match, Line, transform(Left), transform(Right)};
 
-transform({'fun', Line, CLAUSES}) ->
-  {'fun', Line, transform(CLAUSES)};
+transform({'fun', Line, Clauses}) ->
+  {'fun', Line, transform(Clauses)};
 
-transform({clauses, CLAUSES}) ->
-  {clauses, lists:map(fun transform/1, CLAUSES)};
+transform({clauses, Clauses}) ->
+  {clauses, lists:map(fun transform/1, Clauses)};
 
-transform({clause, LINE, ARG1, ARG2, OP}) ->
-  {clause, LINE, ARG1, ARG2, lists:map(fun transform/1, OP) };
+transform({clause, Line, Arg1, Arg2, Expr}) ->
+  {clause, Line, Arg1, Arg2, lists:map(fun transform/1, Expr) };
 
 % Match all other expressions
 transform(Expr) -> Expr.

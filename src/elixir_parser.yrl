@@ -10,6 +10,8 @@ Nonterminals
   mult_expr
   unary_expr
   fun_expr
+  given_args
+  given_args_tail
   body
   stabber
   max_expr
@@ -22,7 +24,7 @@ Nonterminals
 Terminals
   var float integer eol
   'do' 'end'
-  '=' '+' '-' '*' '/' '(' ')' '->'
+  '=' '+' '-' '*' '/' '(' ')' '->' ','
   .
 
 Rootsymbol grammar.
@@ -60,9 +62,20 @@ unary_expr -> unary_op max_expr :
 
 unary_expr -> fun_expr : '$1'.
 
+%% Function definitions
+fun_expr -> stabber given_args expr :
+  { 'fun', ?line('$1'),
+    { clauses, [ { clause, ?line('$1'), '$2', [], ['$3'] } ] }
+  }.
+
 fun_expr -> stabber expr :
   { 'fun', ?line('$1'),
     { clauses, [ { clause, ?line('$1'), [], [], ['$2'] } ] }
+  }.
+
+fun_expr -> stabber given_args eol body 'end' :
+  { 'fun', ?line('$1'),
+    { clauses, [ { clause, ?line('$1'), '$2', [], '$4' } ] }
   }.
 
 fun_expr -> stabber eol body 'end' :
@@ -72,9 +85,22 @@ fun_expr -> stabber eol body 'end' :
 
 fun_expr -> max_expr : '$1'.
 
+%% Args given to function declarations
+given_args -> '(' ')'                     : [].
+given_args -> '(' eol ')'                 : [].
+given_args -> '(' var given_args_tail     : ['$2'|'$3'].
+given_args -> '(' eol var given_args_tail : ['$3'|'$4'].
+
+given_args_tail -> ',' var given_args_tail         : ['$2'|'$3'].
+given_args_tail -> ',' eol var given_args_tail     : ['$3'|'$4'].
+given_args_tail -> eol ',' var given_args_tail     : ['$3'|'$4'].
+given_args_tail -> eol ',' eol var given_args_tail : ['$4'|'$5'].
+
+given_args_tail -> ')'     : [].
+given_args_tail -> eol ')' : [].
+
 %% Function bodies
-% TODO We need to handle empty body
-% body -> '$empty'  : [#nil{}].
+body -> '$empty'  : [].
 body -> expr_list : '$1'.
 
 %% Minimum expressions

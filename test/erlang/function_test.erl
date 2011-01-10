@@ -9,6 +9,24 @@ function_assignment_test() ->
   {_, [{a, Res2}]} = elixir:eval("a = do 1 + 2"),
   ?assertEqual(3, Res2()).
 
+function_assignment_with_empty_args_test() ->
+  {_, [{a, Res1}]} = elixir:eval("a = -> () 1 + 2"),
+  ?assertEqual(3, Res1()),
+  {_, [{a, Res2}]} = elixir:eval("a = do () 1 + 2"),
+  ?assertEqual(3, Res2()),
+  {_, [{a, Res3}]} = elixir:eval("a = -> (\n) (1 + 2)"),
+  ?assertEqual(3, Res3()),
+  {_, [{a, Res4}]} = elixir:eval("a = do () (1 + 2)"),
+  ?assertEqual(3, Res4()).
+
+function_assignment_with_args_test() ->
+  {_, [{a, Res1}]} = elixir:eval("a = -> (x,y) x + y"),
+  ?assertEqual(3, Res1(1,2)),
+  {_, [{a, Res2}]} = elixir:eval("a = do (x,y); x + y; end"),
+  ?assertEqual(3, Res2(1,2)),
+  {_, [{a, Res3}]} = elixir:eval("a = -> (\nx,\ny\n) x + y"),
+  ?assertEqual(3, Res3(1,2)).
+
 function_nested_assignment_test() ->
   {_, [{a, Res1}]} = elixir:eval("a = -> -> 1 + 2"),
   ResF1 = Res1(),
