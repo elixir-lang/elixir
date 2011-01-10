@@ -4,6 +4,7 @@
 Definitions.
 
 Digit = [0-9]
+Whitespace = [\s]
 
 Rules.
 
@@ -12,12 +13,15 @@ Rules.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
 %% Operators
-
 \+    : { token, { '+', TokenLine } }.
 -     : { token, { '-', TokenLine } }.
 \*    : { token, { '*', TokenLine } }.
 /     : { token, { '/', TokenLine } }.
 \(    : { token, { '(', TokenLine } }.
 \)    : { token, { ')', TokenLine } }.
+
+
+%% Skip
+{Whitespace}+ : skip_token.
 
 Erlang code.
