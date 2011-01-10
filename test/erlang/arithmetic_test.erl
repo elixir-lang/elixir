@@ -49,8 +49,10 @@ integer_with_unary_test() ->
   ?assertEqual({2,[]}, elixir:eval("- 1 * - 2")),
   ?assertEqual({-0.5,[]}, elixir:eval("+ 1 / - 2")).
 
-integer_multiline_test() ->
-  ?assertEqual({8,[]}, elixir:eval("1 + 2\n3 + 5")).
+integer_eol_test() ->
+  ?assertEqual({8,[]}, elixir:eval("1 + 2\n3 + 5")),
+  ?assertEqual({8,[]}, elixir:eval("1 + 2\n\n\n3 + 5")),
+  ?assertEqual({8,[]}, elixir:eval("1 + 2;\n;;\n;3 + 5")).
 
 float_with_parens_and_unary_test() ->
   ?assertEqual({-21.0,[]}, elixir:eval("-3.0 * (5 + 2)")),

@@ -25,6 +25,7 @@ Rules.
 \(    : { token, { '(', TokenLine } }.
 \)    : { token, { ')', TokenLine } }.
 =     : { token, { '=', TokenLine } }.
+;     : { token, { eol, TokenLine } }.
 
 %% Skip
 {Comment} : skip_token.
