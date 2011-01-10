@@ -1,9 +1,11 @@
 -module(elixir).
--export([eval/1, from_elixir/1, from_erlang/1]).
+-export([eval/1, eval/2, from_elixir/1, from_erlang/1]).
 
-eval(String) ->
-  {value, Value, _} = erl_eval:expr(from_elixir(String), []),
-  Value.
+eval(String) -> eval(String, []).
+
+eval(String, Binding) ->
+  {value, Value, NewBinding} = erl_eval:expr(from_elixir(String), Binding),
+  {Value, NewBinding}.
 
 % Temporary to aid debugging
 from_elixir(String) ->
@@ -26,5 +28,10 @@ transform({ binary_op, Line, Op, Left, Right }) ->
 transform({ unary_op, Line, Op, Right }) ->
   {op, Line, Op, transform(Right)};
 
+transform({ match, Line, Left, Right }) ->
+  {match, Line, transform(Left), transform(Right)};
 
-transform({ integer, _, _ } = Expr) -> Expr.
+% Match all other expressions. Types:
+%   integer
+%   var
+transform(Expr) -> Expr.
