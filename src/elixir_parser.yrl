@@ -54,9 +54,7 @@ expr_list -> expr eol expr_list : ['$1'|'$3'].
 expr -> assign_expr : '$1'.
 
 %% Assignment
-assign_expr -> assign_expr '=' fun_expr :
-  { match, ?line('$2'), '$1', '$3' }.
-
+assign_expr -> assign_expr '=' fun_expr : build_match('$1', '$2', '$3').
 assign_expr -> fun_expr : '$1'.
 
 %% Function definitions
@@ -64,19 +62,13 @@ fun_expr -> fun_base : '$1'.
 fun_expr -> add_expr : '$1'.
 
 %% Arithmetic operations
-add_expr -> add_expr add_op mult_expr :
-  { binary_op, ?line('$1'), ?op('$2'), '$1', '$3' }.
-
+add_expr -> add_expr add_op mult_expr : build_binary_op('$1', '$2', '$3').
 add_expr -> mult_expr : '$1'.
 
-mult_expr -> mult_expr mult_op unary_expr :
-  { binary_op, ?line('$1'), ?op('$2'), '$1', '$3' }.
-
+mult_expr -> mult_expr mult_op unary_expr : build_binary_op('$1', '$2', '$3').
 mult_expr -> unary_expr : '$1'.
 
-unary_expr -> unary_op min_expr :
-  { unary_op, ?line('$1'), ?op('$1'), '$2' }.
-
+unary_expr -> unary_op min_expr : build_unary_op('$1', '$2').
 unary_expr -> min_expr : '$1'.
 
 %% Minimum expressions
@@ -86,9 +78,7 @@ min_expr -> open_paren expr close_paren : '$2'.
 %%%% COPY OF MAIN FLOW FOR STABBER BUT WITHOUT MIN_EXPR PARENS
 
 %% Assignment
-_assign_expr -> _assign_expr '=' _fun_expr :
-  { match, ?line('$2'), '$1', '$3' }.
-
+_assign_expr -> _assign_expr '=' _fun_expr : build_match('$1', '$2', '$3').
 _assign_expr -> _fun_expr : '$1'.
 
 %% Function definitions
@@ -96,19 +86,13 @@ _fun_expr -> fun_base : '$1'.
 _fun_expr -> _add_expr : '$1'.
 
 %% Arithmetic operations
-_add_expr -> _add_expr add_op _mult_expr :
-  { binary_op, ?line('$1'), ?op('$2'), '$1', '$3' }.
-
+_add_expr -> _add_expr add_op _mult_expr : build_binary_op('$1', '$2', '$3').
 _add_expr -> _mult_expr : '$1'.
 
-_mult_expr -> _mult_expr mult_op _unary_expr :
-  { binary_op, ?line('$1'), ?op('$2'), '$1', '$3' }.
-
+_mult_expr -> _mult_expr mult_op _unary_expr : build_binary_op('$1', '$2', '$3').
 _mult_expr -> _unary_expr : '$1'.
 
-_unary_expr -> unary_op base_expr :
-  { unary_op, ?line('$1'), ?op('$1'), '$2' }.
-
+_unary_expr -> unary_op base_expr : build_unary_op('$1', '$2').
 _unary_expr -> base_expr : '$1'.
 
 %%%% BUILDING BLOCKS
@@ -181,3 +165,12 @@ Erlang code.
 
 build_fun(Stab, Clauses) ->
   { 'fun', ?line(Stab), { clauses, Clauses } }.
+
+build_binary_op(F1, F2, F3) ->
+  { binary_op, ?line(F1), ?op(F2), F1, F3 }.
+
+build_unary_op(F1, F2) ->
+  { unary_op, ?line(F1), ?op(F1), F2 }.
+
+build_match(F1, F2, F3) ->
+  { match, ?line(F2), F1, F3 }.
