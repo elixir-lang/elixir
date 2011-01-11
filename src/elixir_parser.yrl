@@ -112,11 +112,11 @@ fun_base -> stabber eol body 'end' :
 
 %% Args given to function declarations
 given_arg -> var : '$1'.
-given_args -> open_paren ')'                 : [].
+given_args -> open_paren ')' : [].
 given_args -> open_paren given_arg given_args_tail : ['$2'|'$3'].
 
 given_args_tail -> comma_separator given_arg given_args_tail : ['$2'|'$3'].
-given_args_tail -> close_paren                         : [].
+given_args_tail -> close_paren : [].
 
 %% Commas and eol
 comma_separator -> ','         : ','.
