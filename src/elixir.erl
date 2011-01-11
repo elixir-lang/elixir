@@ -42,5 +42,8 @@ transform({clauses, Clauses}) ->
 transform({clause, Line, Arg1, Arg2, Expr}) ->
   {clause, Line, Arg1, Arg2, lists:map(fun transform/1, Expr) };
 
+transform({call, Line, Vars, Args }) ->
+  {call, Line, Vars, lists:map(fun transform/1, Args) };
+
 % Match all other expressions
 transform(Expr) -> Expr.

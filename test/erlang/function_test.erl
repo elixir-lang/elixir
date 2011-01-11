@@ -97,5 +97,12 @@ function_call_inside_another_function_test() ->
 function_calls_with_multiple_args_test() ->
   {5, _} = elixir:eval("a = do (a, b) a + b; a(3, 2)").
 
+function_calls_with_multiple_expressions_test() ->
+  {26, _} = elixir:eval("a = do (a, b) a + b; a((3 + 4 - 1), (2 * 10))").
+
 function_calls_with_multiple_args_with_line_breaks_test() ->
   {5, _} = elixir:eval("a = do (a, b) a + b; a(\n3,\n2\n)").
+
+%% Module functions
+% function_calls_in_modules_test() ->
+%   {5, _} = elixir:throw_erlang("-module(zomg).\na() ->\n1.").
