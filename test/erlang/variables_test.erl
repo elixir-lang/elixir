@@ -1,7 +1,7 @@
 -module(variables_test).
 -include_lib("eunit/include/eunit.hrl").
 
-% TODO Handle parsing of empty strings
+% TODO Handle parsing of empty strings. For example:
 % no_assignment_test() ->
 %   ?assertEqual({[], []}, elixir:eval("")).
 
