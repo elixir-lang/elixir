@@ -2,12 +2,12 @@
 -include_lib("eunit/include/eunit.hrl").
 
 % TODO Allow functions without body
-% TODO Add tests for -> (x) (it is ambiguous, should fail)
+% TODO Add tests for -> (1 + 2) (it is ambiguous, should fail)
 
 function_assignment_test() ->
   {_, [{a, Res1}]} = elixir:eval("a = -> 1 + 2"),
   ?assertEqual(3, Res1()),
-  {_, [{a, Res2}]} = elixir:eval("a = do (1 + 2)"),
+  {_, [{a, Res2}]} = elixir:eval("a = do 1 + 2"),
   ?assertEqual(3, Res2()).
 
 function_assignment_with_assignment_test() ->
