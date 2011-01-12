@@ -109,8 +109,26 @@ function_calls_with_multiple_args_with_line_breaks_test() ->
 %   {5, _} = elixir:throw_elixir(read_fixture("basic.ex")).
 
 module_bodies_are_executable_test() -> 
-  ?assertError({unbound_var, a}, elixir:eval("module Foo; a; end")),
-  elixir:eval("module Foo; 1 + 2; end").
+  F = fun() ->
+    ?assertError({unbound_var, a}, elixir:eval("module Foo; a; end")),
+    elixir:eval("module Bar; 1 + 2; end")
+  end,
+  run_and_purge(F, ['Bar']).
+
+module_declarations_are_convered_into_erlang_modules_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; 1 + 2; end"),
+    {file, "nofile"} = code:is_loaded('Bar')
+  end,
+  run_and_purge(F, ['Bar']).
+
+% Execute a piece of code and purge given modules right after
+run_and_purge(Fun, Modules) ->
+  try
+    Fun()
+  after
+    [code:purge(Module) || Module <- Modules]
+  end.
 
 % Helper to load files
 read_fixture(Filename) ->

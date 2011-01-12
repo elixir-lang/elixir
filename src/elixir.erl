@@ -51,8 +51,17 @@ transform({call, Line, Vars, Args }) ->
 transform({module, Line, Name, Exprs}) ->
   Body = [transform(Expr) || Expr <- Exprs],
   {value, Value, _} = erl_eval:exprs(Body, []),
+  load_module(build_module(Line, Name)),
   {nil, Line};
-  % [{attribute, Line, module, Name}, {attribute, Line, export, [export_all]}, []];
 
 % Match all other expressions
 transform(Expr) -> Expr.
+
+build_module(Line, Name) ->
+  [{attribute, Line, module, Name}, {attribute, Line, export, []}].
+
+load_module(Forms) ->
+  case compile:forms(Forms) of
+     {ok,ModuleName,Binary}           -> code:load_binary(ModuleName, "nofile", Binary);
+     {ok,ModuleName,Binary,_Warnings} -> code:load_binary(ModuleName, "nofile", Binary)
+  end.
