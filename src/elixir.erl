@@ -1,6 +1,7 @@
 -module(elixir).
--export([parse/1, eval/1, eval/2, throw_elixir/1, throw_erlang/1]).
+-export([eval/1, eval/2, throw_elixir/1, throw_erlang/1]).
 
+% Evaluates a string
 eval(String) -> eval(String, []).
 
 eval(String, Binding) ->
@@ -17,33 +18,41 @@ throw_erlang(String) ->
   {ok, [Form]} = erl_parse:parse_exprs(Tokens),
   erlang:error(io:format("~p~n", [Form])).
 
-% Parse file and transform tree to erlang bytecode
+% Parse string and transform tree to Erlang Abstract Form format
 parse(String) ->
 	{ok, Tokens, _} = elixir_lexer:string(String),
-	{ok, ParseTree} = elixir_parser:parse(Tokens),
+	{ok, Forms} = elixir_parser:parse(Tokens),
   Transform = fun(X, Acc) -> [transform(X)|Acc] end,
-  lists:foldr(Transform, [], ParseTree).
+  lists:foldr(Transform, [], Forms).
 
-transform({ binary_op, Line, Op, Left, Right }) ->
+% TODO transformations should contain the filename
+
+transform({match, Line, Left, Right}) ->
+  {match, Line, transform(Left), transform(Right)};
+
+transform({binary_op, Line, Op, Left, Right}) ->
   {op, Line, Op, transform(Left), transform(Right)};
 
-transform({ unary_op, Line, Op, Right }) ->
+transform({unary_op, Line, Op, Right}) ->
   {op, Line, Op, transform(Right)};
-
-transform({ match, Line, Left, Right }) ->
-  {match, Line, transform(Left), transform(Right)};
 
 transform({'fun', Line, Clauses}) ->
   {'fun', Line, transform(Clauses)};
 
 transform({clauses, Clauses}) ->
-  {clauses, lists:map(fun transform/1, Clauses)};
+  {clauses, [transform(Clause) || Clause <- Clauses]};
 
-transform({clause, Line, Arg1, Arg2, Expr}) ->
-  {clause, Line, Arg1, Arg2, lists:map(fun transform/1, Expr) };
+transform({clause, Line, Arg1, Arg2, Exprs}) ->
+  {clause, Line, Arg1, Arg2, [transform(Expr) || Expr <- Exprs]};
 
 transform({call, Line, Vars, Args }) ->
-  {call, Line, Vars, lists:map(fun transform/1, Args) };
+  {call, Line, Vars, [transform(Arg) || Arg <- Args]};
+
+transform({module, Line, Name, Exprs}) ->
+  Body = [transform(Expr) || Expr <- Exprs],
+  {value, Value, _} = erl_eval:exprs(Body, []),
+  {nil, Line};
+  % [{attribute, Line, module, Name}, {attribute, Line, export, [export_all]}, []];
 
 % Match all other expressions
 transform(Expr) -> Expr.

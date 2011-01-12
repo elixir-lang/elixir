@@ -17,8 +17,9 @@ Rules.
 {Digit}+\.{Digit}+ : { token, { float, TokenLine, list_to_float(TokenChars) } }.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
-%% Variable names
-({LowerCase}|_)({UpperCase}|{LowerCase}|{Digit}|_)* : { token, build_id(TokenChars, TokenLine) }.
+%% Modules and Variable names
+{UpperCase}({UpperCase}|{LowerCase}|{Digit}|_)* : build_module(TokenLine, TokenChars).
+({LowerCase}|_)({UpperCase}|{LowerCase}|{Digit}|_)* : build_identifier(TokenLine, TokenChars).
 
 %% Operators
 \+    : { token, { '+', TokenLine } }.
@@ -41,19 +42,22 @@ Rules.
 
 Erlang code.
 
-build_id(Chars, Line) ->
+build_module(Line, Chars) ->
+  { token, { module_name, Line, list_to_atom(Chars) } }.
+
+build_identifier(Line, Chars) ->
   Atom = list_to_atom(Chars),
   case reserved_word(Atom) of
-      true -> {Atom, Line};
-      false -> {var, Line, Atom}
+      true -> {token, {Atom, Line}};
+      false -> {token, {identifier, Line, Atom}}
   end.
 
 reserved_word('end')     -> true;
 reserved_word('do')      -> true;
+reserved_word('module')  -> true;
 % reserved_word('nil')     -> true;
 % reserved_word('true')    -> true;
 % reserved_word('false')   -> true;
-% reserved_word('module')  -> true;
 % reserved_word('class')   -> true;
 % reserved_word('self')    -> true;
 % reserved_word('fun')     -> true;

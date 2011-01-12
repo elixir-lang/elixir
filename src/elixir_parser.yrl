@@ -4,8 +4,9 @@
 Nonterminals
   grammar
   expr_list
+  max_expr
   expr
-  assign_expr _assign_expr
+  match_expr _match_expr
   fun_expr _fun_expr
   add_expr _add_expr
   mult_expr _mult_expr
@@ -26,14 +27,16 @@ Nonterminals
   open_paren
   close_paren
   number
+  var
   unary_op
   add_op
   mult_op
+  module_decl
   .
 
 Terminals
-  var float integer eol
-  'do' 'end'
+  identifier float integer eol module_name
+  module 'do' 'end'
   '=' '+' '-' '*' '/' '(' ')' '->' ','
   .
 
@@ -50,17 +53,21 @@ grammar -> '$empty' : [].
 
 % List of expressions delimited by eol
 expr_list -> eol : [].
-expr_list -> expr : ['$1'].
-expr_list -> expr eol : ['$1'].
+expr_list -> max_expr : ['$1'].
+expr_list -> max_expr eol : ['$1'].
 expr_list -> eol expr_list : '$2'.
-expr_list -> expr eol expr_list : ['$1'|'$3'].
+expr_list -> max_expr eol expr_list : ['$1'|'$3'].
 
-% Expression parent
-expr -> assign_expr : '$1'.
+% Define all expressions that do not mix together
+max_expr -> module_decl : '$1'.
+max_expr -> expr : '$1'.
+
+% Basic expressions construct
+expr -> match_expr : '$1'.
 
 %% Assignment
-assign_expr -> assign_expr '=' fun_expr : build_match('$1', '$2', '$3').
-assign_expr -> fun_expr : '$1'.
+match_expr -> match_expr '=' fun_expr : build_match('$1', '$2', '$3').
+match_expr -> fun_expr : '$1'.
 
 %% Function definitions
 fun_expr -> fun_base : '$1'.
@@ -87,8 +94,8 @@ min_expr -> open_paren expr close_paren : '$2'.
 %%%% COPY OF MAIN FLOW FOR STABBER BUT WITHOUT MIN_EXPR PARENS
 
 %% Assignment
-_assign_expr -> _assign_expr '=' _fun_expr : build_match('$1', '$2', '$3').
-_assign_expr -> _fun_expr : '$1'.
+_match_expr -> _match_expr '=' _fun_expr : build_match('$1', '$2', '$3').
+_match_expr -> _fun_expr : '$1'.
 
 %% Function definitions
 _fun_expr -> fun_base : '$1'.
@@ -111,10 +118,10 @@ _fun_call_expr -> base_expr : '$1'.
 %%%% BUILDING BLOCKS
 
 %% Base function declarations
-fun_base -> stabber match_args assign_expr :
+fun_base -> stabber match_args match_expr :
   build_fun('$1', [ { clause, ?line('$1'), '$2', [], ['$3'] } ]).
 
-fun_base -> stabber _assign_expr :
+fun_base -> stabber _match_expr :
   build_fun('$1', [ { clause, ?line('$1'), [], [], ['$2'] } ]).
 
 fun_base -> stabber match_args eol body 'end' :
@@ -138,6 +145,9 @@ expr_comma -> expr comma_separator expr_comma : ['$1'|'$3'].
 
 call_args -> open_paren ')' : [].
 call_args -> open_paren expr_comma close_paren : '$2'. 
+
+%% Variables
+var -> identifier : { var, ?line('$1'), ?chars('$1') }.
 
 %% Commas and eol
 comma_separator -> ','         : ','.
@@ -177,10 +187,19 @@ add_op -> '-' : '$1'.
 mult_op -> '*' : '$1'.
 mult_op -> '/' : '$1'.
 
+%% Module declaration
+module_decl -> module module_name eol body 'end' : build_module('$2', '$4').
+
+%% Function declarations
+
 Erlang code.
 
 -define(op(Node), element(1, Node)).
 -define(line(Node), element(2, Node)).
+-define(chars(Node), element(3, Node)).
+
+build_module(Name, Body) ->
+  { module, ?line(Name), ?chars(Name), Body }.
 
 build_fun(Stab, Clauses) ->
   { 'fun', ?line(Stab), { clauses, Clauses } }.

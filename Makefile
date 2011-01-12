@@ -14,8 +14,6 @@ PARSER_BASE_NAME=elixir
 LEXER_NAME=$(PARSER_BASE_NAME)_lexer
 PARSER_NAME=$(PARSER_BASE_NAME)_parser
 
-./SILENT: yes
-
 compile:
 	@ echo Compiling ...
 	@ mkdir -p $(EBIN_DIR)

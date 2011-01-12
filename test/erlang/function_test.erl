@@ -104,5 +104,17 @@ function_calls_with_multiple_args_with_line_breaks_test() ->
   {5, _} = elixir:eval("a = do (a, b) a + b; a(\n3,\n2\n)").
 
 %% Module functions
+%% TODO Assert 1 + module Foo or A = module Foo does not work
 % function_calls_in_modules_test() ->
-%   {5, _} = elixir:throw_erlang("-module(zomg).\na() ->\n1.").
+%   {5, _} = elixir:throw_elixir(read_fixture("basic.ex")).
+
+module_bodies_are_executable_test() -> 
+  ?assertError({unbound_var, a}, elixir:eval("module Foo; a; end")),
+  elixir:eval("module Foo; 1 + 2; end").
+
+% Helper to load files
+read_fixture(Filename) ->
+  Dirname = filename:dirname(?FILE),
+  Fullpath = filename:join([Dirname, "fixtures", Filename]),
+  {ok, Bin} = file:read_file(Fullpath),
+  binary_to_list(Bin).
