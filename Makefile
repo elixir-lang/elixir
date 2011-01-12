@@ -5,10 +5,12 @@ INCLUDE_DIR=include
 
 TEST_SOURCE_DIR=$(TEST_DIR)/erlang
 TEST_EBIN_DIR=$(TEST_DIR)/ebin
+TEST_INCLUDE_DIR=$(TEST_SOURCE_DIR)/include
 
 ERLC_FLAGS=-W0 -Ddebug +debug_info
 ERLC=erlc $(ERLC_FLAGS)
 ERL=erl -noshell -pa $(EBIN_DIR)
+ERLT=$(ERL) $(TEST_EBIN_DIR) -I $(TEST_INCLUDE_DIR)
 
 PARSER_BASE_NAME=elixir
 LEXER_NAME=$(PARSER_BASE_NAME)_lexer
@@ -35,7 +37,7 @@ test: compile
 	@ # Look and execute each file
 	@ $(foreach file, \
 		$(wildcard $(TEST_SOURCE_DIR)/*.erl), \
-		echo $(file) && $(ERL) $(TEST_EBIN_DIR) -eval '$(notdir $(basename $(file))):test(), halt().';)
+		echo $(file) && $(ERLT) -eval '$(notdir $(basename $(file))):test(), halt().';)
 	@ echo
 
 clean:
