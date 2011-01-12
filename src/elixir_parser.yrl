@@ -208,6 +208,9 @@ method_list -> method_decl eol : ['$1'].
 method_list -> eol method_list : '$2'.
 method_list -> method_decl eol method_list : ['$1'|'$3'].
 
+method_decl -> def method_name eol body 'end' :
+  build_method('$2', [], build_clause('$2', [], '$4')).
+
 method_decl -> def method_name match_args eol body 'end' :
   build_method('$2', '$3', build_clause('$2', '$3', '$5')).
 
@@ -242,4 +245,4 @@ build_match(Left, Op, Right) ->
   { match, ?line(Op), Left, Right }.
 
 build_method(Name, Args, Clauses) ->
-  { method, ?line(Name), Name, length(Args), [Clauses] }.
+  { method, ?line(Name), ?chars(Name), length(Args), [Clauses] }.

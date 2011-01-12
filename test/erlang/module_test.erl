@@ -3,8 +3,6 @@
 
 %% Module functions
 %% TODO Assert 1 + module Foo or A = module Foo does not work
-% function_calls_in_modules_test() ->
-%   {5, _} = elixir:throw_elixir(read_fixture("basic.ex")).
 
 module_body_is_executable_test() -> 
   F = fun() ->
@@ -13,17 +11,24 @@ module_body_is_executable_test() ->
   end,
   run_and_purge(F, ['Bar']).
 
-module_declarations_are_convered_into_erlang_modules_test() ->
+module_are_converted_into_erlang_modules_test() ->
   F = fun() ->
     elixir:eval("module Bar; 1 + 2; end"),
     {file, "nofile"} = code:is_loaded('Bar')
   end,
   run_and_purge(F, ['Bar']).
 
-module_declarations_preceeded_by_other_expressions_test() ->
+module_preceeded_by_other_expressions_test() ->
   F = fun() ->
     elixir:eval("1 + 2\nmodule Bar; 1 + 2; end"),
     {file, "nofile"} = code:is_loaded('Bar')
+  end,
+  run_and_purge(F, ['Bar']).
+
+module_with_methods_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; def foo(); 1 + 2; end; end"),
+    ?assertEqual(3, 'Bar':foo())
   end,
   run_and_purge(F, ['Bar']).
 
