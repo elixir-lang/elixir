@@ -1,5 +1,5 @@
 -module(elixir).
--export([eval/1, eval/2, throw_elixir/1, throw_erlang/1, store_method_for/3]).
+-export([eval/1, eval/2, throw_elixir/1, throw_erlang/1]).
 
 % Evaluates a string
 eval(String) -> eval(String, []).
@@ -51,14 +51,9 @@ transform({call, Line, Vars, Args }, F, S) ->
   {call, Line, Vars, [transform(Arg, F, S) || Arg <- Args]};
 
 transform({module, Line, Name, Exprs}, F, S) ->
-  Options = [ordered_set, private],
-  CompiledTable = ets:new(prepend_to_atom(c, Name), Options),
-  AddedTable = ets:new(prepend_to_atom(a, Name), Options),
-  Body = [transform(Expr, F, {CompiledTable, AddedTable}) || Expr <- Exprs],
-  {value, Value, _} = erl_eval:exprs(Body, []),
-  load_module(build_module(Line, Name, AddedTable)),
-  ets:delete(CompiledTable),
-  ets:delete(AddedTable),
+  Scope = elixir_module:scope_for(Name),
+  Body = [transform(Expr, F, Scope) || Expr <- Exprs],
+  elixir_module:compile(Line, Name, Body, Scope),
   {nil, Line};
 
 % TODO This cannot be tested, because in theory the parser will never
@@ -70,46 +65,7 @@ transform({method, Line, Name, Arity, Clauses}, F, []) ->
 transform({method, Line, Name, Arity, Clauses}, F, S) ->
   TClauses = [transform(Clause, F, S) || Clause <- Clauses],
   Method = {function, Line, Name, Arity, TClauses},
-  { CompiledTable, AddedTable } = S,
-  Index = append_to_table(CompiledTable, Method),
-  wrap_into_call(elixir, store_method_for,
-    [{integer, 0, Index}, {integer, 0, CompiledTable}, {integer, 0, AddedTable}]
-  );
+  elixir_module:store_method(S, Method);
 
 % Match all other expressions
 transform(Expr, F, S) -> Expr.
-
-prepend_to_atom(Prefix, Atom) ->
-  list_to_atom(lists:concat([Prefix, Atom])).
-
-% Related to module compilation
-append_to_table(Table, Set) ->
-  Last = ets:last(Table),
-  Index = next_table_index(Table),
-  true = ets:insert(Table, {Index, Set}),
-  Index.
-
-next_table_index('$end_of_table') -> 1;
-next_table_index(I) -> I + 1.
-
-store_method_for(Index, CompiledTable, AddedTable) ->
-  [{Index, Function}] = ets:lookup(CompiledTable, Index),
-  append_to_table(AddedTable, Function).
-
-build_module(Line, Name, Table) ->
-  Pairs = ets:tab2list(Table),
-  Functions = [element(2, Pair) || Pair <- Pairs],
-  Export = [{element(3, Function), element(4, Function)} || Function <- Functions],
-  [{attribute, Line, module, Name}, {attribute, Line, export, Export} | Functions].
-
-load_module(Forms) ->
-  case compile:forms(Forms) of
-     {ok,ModuleName,Binary}           -> code:load_binary(ModuleName, "nofile", Binary);
-     {ok,ModuleName,Binary,_Warnings} -> code:load_binary(ModuleName, "nofile", Binary)
-  end.
-
-wrap_into_call(Parent, Method, Args) ->
-  { call, 0,
-    { remote, 0, { atom, 0, Parent }, { atom, 0, Method} },
-    Args
-  }.
