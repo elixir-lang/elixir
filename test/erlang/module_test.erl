@@ -6,7 +6,7 @@
 % function_calls_in_modules_test() ->
 %   {5, _} = elixir:throw_elixir(read_fixture("basic.ex")).
 
-module_bodies_are_executable_test() -> 
+module_body_is_executable_test() -> 
   F = fun() ->
     ?assertError({unbound_var, a}, elixir:eval("module Foo; a; end")),
     elixir:eval("module Bar; 1 + 2; end")

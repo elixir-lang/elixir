@@ -10,6 +10,7 @@ Digit = [0-9]
 UpperCase = [A-Z]
 LowerCase = [a-z]
 Whitespace = [\s]
+IdentifierBase = ({UpperCase}|{LowerCase}|{Digit}|_)
 
 Rules.
 
@@ -18,8 +19,9 @@ Rules.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
 %% Modules and Variable names
-{UpperCase}({UpperCase}|{LowerCase}|{Digit}|_)* : build_module(TokenLine, TokenChars).
-({LowerCase}|_)({UpperCase}|{LowerCase}|{Digit}|_)* : build_identifier(TokenLine, TokenChars).
+{UpperCase}{IdentifierBase}* : build_module(TokenLine, TokenChars).
+({LowerCase}|_){IdentifierBase}* : build_identifier(TokenLine, TokenChars).
+({LowerCase}|_){IdentifierBase}*[?!] : build_punctuated_identifier(TokenLine, TokenChars).
 
 %% Operators
 \+    : { token, { '+', TokenLine } }.
@@ -52,9 +54,13 @@ build_identifier(Line, Chars) ->
       false -> {token, {identifier, Line, Atom}}
   end.
 
+build_punctuated_identifier(Line, Chars) ->
+  {token, {punctuated_identifier, Line, list_to_atom(Chars)}}.
+
 reserved_word('end')     -> true;
 reserved_word('do')      -> true;
 reserved_word('module')  -> true;
+reserved_word('def')     -> true;
 % reserved_word('nil')     -> true;
 % reserved_word('true')    -> true;
 % reserved_word('false')   -> true;

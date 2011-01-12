@@ -33,11 +33,15 @@ Nonterminals
   add_op
   mult_op
   module_decl
+  module_body
+  method_list
+  method_decl
+  method_name
   .
 
 Terminals
-  identifier float integer eol module_name
-  module 'do' 'end'
+  punctuated_identifier identifier float integer module_name
+  module 'do' 'end' def eol 
   '=' '+' '-' '*' '/' '(' ')' '->' ','
   .
 
@@ -91,8 +95,7 @@ mult_expr -> unary_expr : '$1'.
 unary_expr -> unary_op fun_call_expr : build_unary_op('$1', '$2').
 unary_expr -> fun_call_expr : '$1'.
 
-fun_call_expr -> min_expr call_args :
-	{ call, ?line('$1'), '$1', '$2' }.
+fun_call_expr -> min_expr call_args : build_call('$1', '$2').
 fun_call_expr -> min_expr : '$1'.
 
 %% Minimum expressions
@@ -119,24 +122,23 @@ _mult_expr -> _unary_expr : '$1'.
 _unary_expr -> unary_op _fun_call_expr : build_unary_op('$1', '$2').
 _unary_expr -> _fun_call_expr : '$1'.
 
-_fun_call_expr -> base_expr call_args :
-	{ call, ?line('$1'), '$1', '$2' }.
+_fun_call_expr -> base_expr call_args : build_call('$1', '$2').
 _fun_call_expr -> base_expr : '$1'.
 
 %%%% BUILDING BLOCKS
 
 %% Base function declarations
 fun_base -> stabber match_args match_expr :
-  build_fun('$1', [ { clause, ?line('$1'), '$2', [], ['$3'] } ]).
+  build_fun('$1', build_clause('$1', '$2', ['$3'])).
 
 fun_base -> stabber _match_expr :
-  build_fun('$1', [ { clause, ?line('$1'), [], [], ['$2'] } ]).
+  build_fun('$1', build_clause('$1', [], ['$2'])).
 
 fun_base -> stabber match_args eol body 'end' :
-  build_fun('$1', [ { clause, ?line('$1'), '$2', [], '$4' } ]).
+  build_fun('$1', build_clause('$1', '$2', '$4')).
 
 fun_base -> stabber eol body 'end' :
-  build_fun('$1', [ { clause, ?line('$1'), [], [], '$3' } ]).
+  build_fun('$1', build_clause('$1', [], '$3')).
 
 %% Args given to as match criteria.
 %% Used on function declarations and pattern matching.
@@ -196,9 +198,21 @@ mult_op -> '*' : '$1'.
 mult_op -> '/' : '$1'.
 
 %% Module declaration
-module_decl -> module module_name eol body 'end' : build_module('$2', '$4').
+module_decl -> module module_name eol module_body 'end' : build_module('$2', '$4').
+module_body -> body : '$1'.
+module_body -> method_list : '$1'.
 
-%% Function declarations
+%% Method declarations
+method_list -> method_decl : ['$1'].
+method_list -> method_decl eol : ['$1'].
+method_list -> eol method_list : '$2'.
+method_list -> method_decl eol method_list : ['$1'|'$3'].
+
+method_decl -> def method_name match_args eol body 'end' :
+  build_method('$2', '$3', build_clause('$2', '$3', '$5')).
+
+method_name -> identifier : '$1'.
+method_name -> punctuated_identifier : '$1'.
 
 Erlang code.
 
@@ -206,17 +220,26 @@ Erlang code.
 -define(line(Node), element(2, Node)).
 -define(chars(Node), element(3, Node)).
 
+build_call(Target, Args) ->
+  { call, ?line(Target), Target, Args }.
+
+build_clause(Parent, Args, Body) ->
+  { clause, ?line(Parent), Args, [], Body }.
+
 build_module(Name, Body) ->
   { module, ?line(Name), ?chars(Name), Body }.
 
 build_fun(Stab, Clauses) ->
-  { 'fun', ?line(Stab), { clauses, Clauses } }.
+  { 'fun', ?line(Stab), { clauses, [Clauses] } }.
 
-build_binary_op(F1, F2, F3) ->
-  { binary_op, ?line(F1), ?op(F2), F1, F3 }.
+build_binary_op(Left, Op, Right) ->
+  { binary_op, ?line(Op), ?op(Op), Left, Right }.
 
-build_unary_op(F1, F2) ->
-  { unary_op, ?line(F1), ?op(F1), F2 }.
+build_unary_op(Op, Value) ->
+  { unary_op, ?line(Op), ?op(Op), Value }.
 
-build_match(F1, F2, F3) ->
-  { match, ?line(F2), F1, F3 }.
+build_match(Left, Op, Right) ->
+  { match, ?line(Op), Left, Right }.
+
+build_method(Name, Args, Clauses) ->
+  { method, ?line(Name), Name, length(Args), [Clauses] }.
