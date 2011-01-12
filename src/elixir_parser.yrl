@@ -4,7 +4,8 @@
 Nonterminals
   grammar
   expr_list
-  max_expr
+  decl_list
+  decl
   expr
   match_expr _match_expr
   fun_expr _fun_expr
@@ -48,21 +49,28 @@ Left 100 close_paren.
 
 %%%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> expr_list : '$1'.
+grammar -> decl_list : '$1'.
 grammar -> '$empty' : [].
+
+% List of declarations delimited by eol
+decl_list -> eol : ['$1'].
+decl_list -> decl : ['$1'].
+decl_list -> decl eol : ['$1'].
+decl_list -> eol decl_list : '$2'.
+decl_list -> decl eol decl_list : ['$1'|'$3'].
+
+% Basic declarations
+decl -> module_decl : '$1'.
+decl -> expr : '$1'.
 
 % List of expressions delimited by eol
 expr_list -> eol : [].
-expr_list -> max_expr : ['$1'].
-expr_list -> max_expr eol : ['$1'].
+expr_list -> expr : ['$1'].
+expr_list -> expr eol : ['$1'].
 expr_list -> eol expr_list : '$2'.
-expr_list -> max_expr eol expr_list : ['$1'|'$3'].
+expr_list -> expr eol expr_list : ['$1'|'$3'].
 
-% Define all expressions that do not mix together
-max_expr -> module_decl : '$1'.
-max_expr -> expr : '$1'.
-
-% Basic expressions construct
+% Basic expressions
 expr -> match_expr : '$1'.
 
 %% Assignment

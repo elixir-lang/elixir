@@ -122,6 +122,13 @@ module_declarations_are_convered_into_erlang_modules_test() ->
   end,
   run_and_purge(F, ['Bar']).
 
+module_declarations_preceeded_by_other_expressions_test() ->
+  F = fun() ->
+    elixir:eval("1 + 2\nmodule Bar; 1 + 2; end"),
+    {file, "nofile"} = code:is_loaded('Bar')
+  end,
+  run_and_purge(F, ['Bar']).
+
 % Execute a piece of code and purge given modules right after
 run_and_purge(Fun, Modules) ->
   try
