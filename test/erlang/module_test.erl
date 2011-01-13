@@ -32,6 +32,13 @@ module_with_methods_test() ->
   end,
   run_and_purge(F, ['Bar']).
 
+prototype_with_method_invocation_test() ->
+  F = fun() ->
+    elixir:eval("prototype Integer; def some_value(); 23; end; end"),
+    ?assertEqual({23,[]}, elixir:eval("1.some_value"))
+  end,
+  run_and_purge(F, ['@Integer']).
+
 % Execute a piece of code and purge given modules right after
 run_and_purge(Fun, Modules) ->
   try

@@ -46,8 +46,9 @@ parse(String) ->
 % and transforms it to Erlang Abstract Form.
 
 transform({method_call, Line, Name, Args, Expr}, F, S) ->
-  TArgs = [transform(Arg, F, S) || Arg <- Args],
-  ?ELIXIR_WRAP_CALL(Line, elixir, dispatch, [transform(Expr, F, S)|TArgs]);
+  Transform = fun(X, Acc) -> {cons, Line, transform(X, F, S), Acc} end,
+  TransformedArgs = lists:foldr(Transform, {nil, Line}, Args),
+  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [transform(Expr, F, S), {atom, Line, Name}, TransformedArgs]);
 
 transform({match, Line, Left, Right}, F, S) ->
   {match, Line, transform(Left, F, S), transform(Right, F, S)};

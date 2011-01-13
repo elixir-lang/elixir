@@ -37,7 +37,7 @@ test: compile
 	@ # Look and execute each file
 	@ $(foreach file, \
 		$(wildcard $(TEST_SOURCE_DIR)/*.erl), \
-		echo $(file) && $(ERLT) -eval 'elixir:load_core(), $(notdir $(basename $(file))):test(), halt().';)
+		echo $(file) && $(ERLT) -eval '$(notdir $(basename $(file))):test(), halt().';)
 	@ echo
 
 clean:
