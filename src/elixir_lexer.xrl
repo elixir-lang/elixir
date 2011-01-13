@@ -60,10 +60,11 @@ build_identifier(Line, Chars) ->
 build_punctuated_identifier(Line, Chars) ->
   {token, {punctuated_identifier, Line, list_to_atom(Chars)}}.
 
-reserved_word('end')     -> true;
-reserved_word('do')      -> true;
-reserved_word('module')  -> true;
-reserved_word('def')     -> true;
+reserved_word('end')       -> true;
+reserved_word('do')        -> true;
+reserved_word('module')    -> true;
+reserved_word('prototype') -> true;
+reserved_word('def')       -> true;
 % reserved_word('nil')     -> true;
 % reserved_word('true')    -> true;
 % reserved_word('false')   -> true;

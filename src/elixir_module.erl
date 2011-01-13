@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([scope_for/1, compile/4, store_method/2, move_method/3]).
+-export([scope_for/1, compile/4, store_method/3, move_method/3]).
 -include("elixir.hrl").
 
 % Create the scope for the given module.
@@ -8,8 +8,8 @@
 % the ETS tables used to keep the method definitions.
 scope_for(Name) ->
   Options = [ordered_set, private],
-  CompiledTable = ets:new(prepend_to_atom(c, Name), Options),
-  AddedTable = ets:new(prepend_to_atom(a, Name), Options),
+  CompiledTable = ets:new(?ELIXIR_PREPEND(c, Name), Options),
+  AddedTable = ets:new(?ELIXIR_PREPEND(a, Name), Options),
   {CompiledTable, AddedTable}.
 
 % Compile the given module by executing its body and compiling
@@ -20,10 +20,6 @@ compile(Line, Name, Body, Scope) ->
   load_module(build_module(Line, Name, AddedTable)),
   ets:delete(CompiledTable),
   ets:delete(AddedTable).
-
-% Converts a tuple of atoms into a concatenated atom with these tuples.
-prepend_to_atom(Prefix, Atom) ->
-  list_to_atom(lists:concat([Prefix, Atom])).
 
 % Store a method in the compiled table. Returns an Erlang Abstract Form
 % that, when executed, calls elixir_module:add_to_module which will
@@ -43,11 +39,11 @@ prepend_to_atom(Prefix, Atom) ->
 % 
 % If we just analyzed the compiled structure (i.e. the method availables
 % before evaluating the method body), we see both definitions.
-store_method(Scope, Method) ->
+store_method(Scope, Line, Method) ->
   { CompiledTable, AddedTable } = Scope,
   Index = append_to_table(CompiledTable, Method),
-  Content = [{integer, 0, Index}, {integer, 0, CompiledTable}, {integer, 0, AddedTable}],
-  ?ELIXIR_WRAP_CALL(elixir_module, move_method, Content).
+  Content = [{integer, Line, Index}, {integer, Line, CompiledTable}, {integer, Line, AddedTable}],
+  ?ELIXIR_WRAP_CALL(Line, elixir_module, move_method, Content).
 
 % Gets a module stored in the CompiledTable with Index and
 % move it to the AddedTable.

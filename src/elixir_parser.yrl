@@ -43,11 +43,14 @@ Nonterminals
   method_list
   method_decl
   method_name
+  prototype_decl
+  prototype_body
+  prototype_name
   .
 
 Terminals
   punctuated_identifier identifier float integer module_name
-  module 'do' 'end' def eol
+  module prototype 'do' 'end' def eol
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   .
 
@@ -72,6 +75,7 @@ decl_list -> eol decl_list : '$2'.
 decl_list -> decl eol decl_list : ['$1'|'$3'].
 
 % Basic declarations
+decl -> prototype_decl : '$1'.
 decl -> module_decl : '$1'.
 decl -> expr : '$1'.
 
@@ -253,6 +257,11 @@ method_decl -> def method_name match_args eol body 'end' :
 method_name -> identifier : '$1'.
 method_name -> punctuated_identifier : '$1'.
 
+% Prototype declaration
+prototype_decl -> prototype prototype_name eol prototype_body 'end' : build_prototype('$2', '$4').
+prototype_name -> module_name : '$1'.
+prototype_body -> module_body : '$1'.
+
 Erlang code.
 
 -define(op(Node), element(1, Node)).
@@ -267,6 +276,9 @@ build_clause(Parent, Args, Body) ->
 
 build_module(Name, Body) ->
   { module, ?line(Name), ?chars(Name), Body }.
+
+build_prototype(Name, Body) ->
+  { prototype, ?line(Name), ?chars(Name), Body }.
 
 build_fun(Stab, Clauses) ->
   { 'fun', ?line(Stab), { clauses, [Clauses] } }.
@@ -283,5 +295,5 @@ build_match(Left, Op, Right) ->
 build_method(Name, Args, Clauses) ->
   { method, ?line(Name), ?chars(Name), length(Args), [Clauses] }.
 
-build_method_call(Name, Op, Expr) ->
-  {}.
+build_method_call(Expr, Name, Args) ->
+  { method_call, ?line(Name), ?chars(Name), Args, Expr }.

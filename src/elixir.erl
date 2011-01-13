@@ -1,5 +1,20 @@
 -module(elixir).
--export([eval/1, eval/2, throw_elixir/1, throw_erlang/1]).
+-export([eval/1, eval/2, throw_elixir/1, throw_erlang/1, load_core/0]).
+-include("elixir.hrl").
+
+% Load core elixir classes
+load_core() ->
+  Dirname = filename:dirname(?FILE),
+  Basepath = filename:join([Dirname, "..", "lib"]),
+  Loader = fun(Class) -> load_file(filename:join(Basepath, Class)) end,
+  lists:foreach(Loader, [
+    'integer.ex'
+  ]).
+
+% Loads a given file
+load_file(Filepath) ->
+  {ok, Bin} = file:read_file(Filepath),
+  eval(binary_to_list(Bin)).
 
 % Evaluates a string
 eval(String) -> eval(String, []).
@@ -29,6 +44,11 @@ parse(String) ->
 
 % A transformation receives a node with a Filename and a Scope
 % and transforms it to Erlang Abstract Form.
+
+transform({method_call, Line, Name, Args, Expr}, F, S) ->
+  TArgs = [transform(Arg, F, S) || Arg <- Args],
+  ?ELIXIR_WRAP_CALL(Line, elixir, dispatch, [transform(Expr, F, S)|TArgs]);
+
 transform({match, Line, Left, Right}, F, S) ->
   {match, Line, transform(Left, F, S), transform(Right, F, S)};
 
@@ -50,6 +70,10 @@ transform({clause, Line, Args, Guards, Exprs}, F, S) ->
 transform({call, Line, Vars, Args }, F, S) ->
   {call, Line, Vars, [transform(Arg, F, S) || Arg <- Args]};
 
+transform({prototype, Line, Name, Exprs}, F, S) ->
+  ProtoName = ?ELIXIR_PREPEND('@', Name),
+  transform({module, Line, ProtoName, Exprs}, F, S);
+
 transform({module, Line, Name, Exprs}, F, S) ->
   Scope = elixir_module:scope_for(Name),
   Body = [transform(Expr, F, Scope) || Expr <- Exprs],
@@ -65,7 +89,7 @@ transform({method, Line, Name, Arity, Clauses}, F, []) ->
 transform({method, Line, Name, Arity, Clauses}, F, S) ->
   TClauses = [transform(Clause, F, S) || Clause <- Clauses],
   Method = {function, Line, Name, Arity, TClauses},
-  elixir_module:store_method(S, Method);
+  elixir_module:store_method(S, Line, Method);
 
 % Match all other expressions
 transform(Expr, F, S) -> Expr.
