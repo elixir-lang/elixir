@@ -1,5 +1,6 @@
 -module(elixir_module).
 -export([scope_for/1, compile/4, store_method/2, move_method/3]).
+-include("elixir.hrl").
 
 % Create the scope for the given module.
 %
@@ -46,7 +47,7 @@ store_method(Scope, Method) ->
   { CompiledTable, AddedTable } = Scope,
   Index = append_to_table(CompiledTable, Method),
   Content = [{integer, 0, Index}, {integer, 0, CompiledTable}, {integer, 0, AddedTable}],
-  wrap_into_call(elixir_module, move_method, Content).
+  ?ELIXIR_WRAP_CALL(elixir_module, move_method, Content).
 
 % Gets a module stored in the CompiledTable with Index and
 % move it to the AddedTable.
@@ -80,11 +81,3 @@ append_to_table(Table, Set) ->
 % Get next table index.
 next_table_index('$end_of_table') -> 1;
 next_table_index(I) -> I + 1.
-
-% Receive Module, Method, Args and generate Erlang Abstract Syntax
-% to invoke Module:Method(Args).
-wrap_into_call(Module, Method, Args) ->
-  { call, 0,
-    { remote, 0, { atom, 0, Module }, { atom, 0, Method} },
-    Args
-  }.

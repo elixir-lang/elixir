@@ -8,8 +8,8 @@ TEST_EBIN_DIR=$(TEST_DIR)/ebin
 TEST_INCLUDE_DIR=$(TEST_SOURCE_DIR)/include
 
 ERLC_FLAGS=-W0 -Ddebug +debug_info
-ERLC=erlc $(ERLC_FLAGS)
-ERL=erl -noshell -pa $(EBIN_DIR)
+ERLC=erlc -I $(INCLUDE_DIR) $(ERLC_FLAGS)
+ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
 ERLT=$(ERL) $(TEST_EBIN_DIR) -I $(TEST_INCLUDE_DIR)
 
 PARSER_BASE_NAME=elixir
