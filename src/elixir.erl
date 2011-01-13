@@ -88,9 +88,13 @@ transform({method, Line, Name, Arity, Clauses}, F, []) ->
   erlang:error("Method definition outside the scope.");
   
 transform({method, Line, Name, Arity, Clauses}, F, S) ->
-  TClauses = [transform(Clause, F, S) || Clause <- Clauses],
-  Method = {function, Line, Name, Arity, TClauses},
+  TClauses = [transform(add_self_as_arg(Clause), F, S) || Clause <- Clauses],
+  Method = {function, Line, Name, Arity + 1, TClauses},
   elixir_module:store_method(S, Line, Method);
 
 % Match all other expressions
 transform(Expr, F, S) -> Expr.
+
+% Append self to the clauses
+add_self_as_arg({clause, Line, Args, Guards, Exprs}) -> 
+  {clause, Line, [{var, Line, self}|Args], Guards, Exprs}.

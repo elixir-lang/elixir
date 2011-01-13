@@ -28,7 +28,7 @@ module_preceeded_by_other_expressions_test() ->
 module_with_methods_test() ->
   F = fun() ->
     elixir:eval("module Bar; def foo(); 1 + 2; end; end"),
-    ?assertEqual(3, 'Bar':foo())
+    ?assertEqual(3, 'Bar':foo(self))
   end,
   run_and_purge(F, ['Bar']).
 
@@ -36,6 +36,13 @@ prototype_with_method_invocation_test() ->
   F = fun() ->
     elixir:eval("prototype Integer; def some_value(); 23; end; end"),
     ?assertEqual({23,[]}, elixir:eval("1.some_value"))
+  end,
+  run_and_purge(F, ['@Integer']).
+
+prototype_with_self_result_test() ->
+  F = fun() ->
+    elixir:eval("prototype Integer; def some_value(x); self + x; end; end"),
+    ?assertEqual({25,[]}, elixir:eval("23.some_value(2)"))
   end,
   run_and_purge(F, ['@Integer']).
 

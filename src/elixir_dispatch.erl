@@ -3,4 +3,4 @@
 -include("elixir.hrl").
 
 dispatch(Integer, Name, Args) when is_integer(Integer) ->
-  apply('@Integer', Name, Args).
+  apply('@Integer', Name, [Integer|Args]).
