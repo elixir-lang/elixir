@@ -6,7 +6,8 @@ Nonterminals
   expr_list
   decl_list
   decl
-  expr
+  expr _expr
+  method_call_expr _method_call_expr
   match_expr _match_expr
   fun_expr _fun_expr
   add_expr _add_expr
@@ -19,14 +20,19 @@ Nonterminals
   match_arg
   match_args
   match_args_tail
-  expr_comma
   call_args
+  call_args_parens
+  call_args_optional
+  fun_args
+  fun_args_parens
   comma_separator
   body
   stabber
   base_expr
   open_paren
   close_paren
+  open_bracket
+  close_bracket
   number
   var
   unary_op
@@ -41,17 +47,19 @@ Nonterminals
 
 Terminals
   punctuated_identifier identifier float integer module_name
-  module 'do' 'end' def eol 
-  '=' '+' '-' '*' '/' '(' ')' '->' ','
+  module 'do' 'end' def eol
+  '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   .
 
 Rootsymbol grammar.
 
+Left 500 call_args.
+Left 400 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
 Left 300 '='. % Handle a = -> b = 1 as a = (-> b = 1)
 Left 200 open_paren.
 Left 100 close_paren.
 
-%%%% MAIN FLOW OF EXPRESSIONS
+%%% MAIN FLOW OF EXPRESSIONS
 
 grammar -> decl_list : '$1'.
 grammar -> '$empty' : [].
@@ -75,17 +83,22 @@ expr_list -> eol expr_list : '$2'.
 expr_list -> expr eol expr_list : ['$1'|'$3'].
 
 % Basic expressions
-expr -> match_expr : '$1'.
+expr -> method_call_expr : '$1'.
 
-%% Assignment
+% Method call
+method_call_expr -> match_expr '.' method_name call_args_optional : build_method_call('$1', '$3', '$4').
+method_call_expr -> match_expr '.' method_name : build_method_call('$1', '$3', []).
+method_call_expr -> match_expr : '$1'.
+
+% Assignment
 match_expr -> match_expr '=' fun_expr : build_match('$1', '$2', '$3').
 match_expr -> fun_expr : '$1'.
 
-%% Function definitions
+% Function definitions
 fun_expr -> fun_base : '$1'.
 fun_expr -> add_expr : '$1'.
 
-%% Arithmetic operations
+% Arithmetic operations
 add_expr -> add_expr add_op mult_expr : build_binary_op('$1', '$2', '$3').
 add_expr -> mult_expr : '$1'.
 
@@ -95,24 +108,31 @@ mult_expr -> unary_expr : '$1'.
 unary_expr -> unary_op fun_call_expr : build_unary_op('$1', '$2').
 unary_expr -> fun_call_expr : '$1'.
 
-fun_call_expr -> min_expr call_args : build_call('$1', '$2').
+fun_call_expr -> min_expr fun_args_parens : build_call('$1', '$2').
 fun_call_expr -> min_expr : '$1'.
 
-%% Minimum expressions
+% Minimum expressions
 min_expr -> base_expr : '$1'.
 min_expr -> open_paren expr close_paren : '$2'.
 
-%%%% COPY OF MAIN FLOW FOR STABBER BUT WITHOUT MIN_EXPR PARENS
+%%% COPY OF MAIN FLOW FOR STABBER BUT WITHOUT MIN_EXPR PARENS
 
-%% Assignment
+_expr -> _method_call_expr : '$1'.
+
+% Method call
+_method_call_expr -> _match_expr '.' method_name call_args_optional : build_method_call('$1', '$3', '$4').
+_method_call_expr -> _match_expr '.' method_name : build_method_call('$1', '$3', []).
+_method_call_expr -> _match_expr : '$1'.
+
+% Assignment
 _match_expr -> _match_expr '=' _fun_expr : build_match('$1', '$2', '$3').
 _match_expr -> _fun_expr : '$1'.
 
-%% Function definitions
+% Function definitions
 _fun_expr -> fun_base : '$1'.
 _fun_expr -> _add_expr : '$1'.
 
-%% Arithmetic operations
+% Arithmetic operations
 _add_expr -> _add_expr add_op _mult_expr : build_binary_op('$1', '$2', '$3').
 _add_expr -> _mult_expr : '$1'.
 
@@ -122,16 +142,16 @@ _mult_expr -> _unary_expr : '$1'.
 _unary_expr -> unary_op _fun_call_expr : build_unary_op('$1', '$2').
 _unary_expr -> _fun_call_expr : '$1'.
 
-_fun_call_expr -> base_expr call_args : build_call('$1', '$2').
+_fun_call_expr -> base_expr fun_args_parens : build_call('$1', '$2').
 _fun_call_expr -> base_expr : '$1'.
 
-%%%% BUILDING BLOCKS
+%%% BUILDING BLOCKS
 
-%% Base function declarations
+% Base function declarations
 fun_base -> stabber match_args match_expr :
   build_fun('$1', build_clause('$1', '$2', ['$3'])).
 
-fun_base -> stabber _match_expr :
+fun_base -> stabber _expr :
   build_fun('$1', build_clause('$1', [], ['$2'])).
 
 fun_base -> stabber match_args eol body 'end' :
@@ -140,8 +160,8 @@ fun_base -> stabber match_args eol body 'end' :
 fun_base -> stabber eol body 'end' :
   build_fun('$1', build_clause('$1', [], '$3')).
 
-%% Args given to as match criteria.
-%% Used on function declarations and pattern matching.
+% Args given as match criteria.
+% Used on function declarations and pattern matching.
 match_arg -> var : '$1'.
 match_args -> open_paren ')' : [].
 match_args -> open_paren match_arg match_args_tail : ['$2'|'$3'].
@@ -149,60 +169,76 @@ match_args -> open_paren match_arg match_args_tail : ['$2'|'$3'].
 match_args_tail -> comma_separator match_arg match_args_tail : ['$2'|'$3'].
 match_args_tail -> close_paren : [].
 
-%% Args given on function invocations.
-expr_comma -> expr : ['$1'].
-expr_comma -> expr comma_separator expr_comma : ['$1'|'$3'].
+% Args given on method invocations.
+call_args -> expr : ['$1'].
+call_args -> expr comma_separator call_args : ['$1'|'$3'].
 
-call_args -> open_paren ')' : [].
-call_args -> open_paren expr_comma close_paren : '$2'. 
+call_args_parens -> open_paren ')' : [].
+call_args_parens -> open_paren call_args close_paren : '$2'.
 
-%% Variables
+call_args_optional -> call_args : '$1'.
+call_args_optional -> call_args_parens : '$1'.
+
+% Args given on function invocations.
+fun_args -> expr : ['$1'].
+fun_args -> expr comma_separator fun_args : ['$1'|'$3'].
+
+fun_args_parens -> open_paren ')' : [].
+fun_args_parens -> open_paren fun_args close_paren : '$2'.
+
+% Variables
 var -> identifier : { var, ?line('$1'), ?chars('$1') }.
 
-%% Commas and eol
-comma_separator -> ','         : ','.
-comma_separator -> ',' eol     : ','.
+% Commas and eol
+comma_separator -> ','     : ','.
+comma_separator -> ',' eol : ','.
 
-%% Function bodies
+% Function bodies
 body -> '$empty'  : [].
 body -> expr_list : '$1'.
 
-%% Parens handling
+% Parens handling
 open_paren -> '('      : '('.
 open_paren -> '(' eol  : '('.
 close_paren -> ')'     : ')'.
 close_paren -> eol ')' : ')'.
 
-%% Base expressions
+% Bracket handling
+open_bracket -> '['      : '('.
+open_bracket -> '[' eol  : '('.
+close_bracket -> ']'     : ')'.
+close_bracket -> eol ']' : ')'.
+
+% Base expressions
 base_expr -> var : '$1'.
 base_expr -> number : '$1'.
 
-%% Stab syntax
+% Stab syntax
 stabber -> '->' : '$1'.
 stabber -> 'do' : '$1'.
 
-%% Numbers
+% Numbers
 number -> float   : '$1'.
 number -> integer : '$1'.
 
-%% Unary operator
+% Unary operator
 unary_op -> '+' : '$1'.
 unary_op -> '-' : '$1'.
 
-%% Addition operators
+% Addition operators
 add_op -> '+' : '$1'.
 add_op -> '-' : '$1'.
 
-%% Multiplication operators
+% Multiplication operators
 mult_op -> '*' : '$1'.
 mult_op -> '/' : '$1'.
 
-%% Module declaration
+% Module declaration
 module_decl -> module module_name eol module_body 'end' : build_module('$2', '$4').
 module_body -> body : '$1'.
 module_body -> method_list : '$1'.
 
-%% Method declarations
+% Method declarations
 method_list -> method_decl : ['$1'].
 method_list -> method_decl eol : ['$1'].
 method_list -> eol method_list : '$2'.
@@ -246,3 +282,6 @@ build_match(Left, Op, Right) ->
 
 build_method(Name, Args, Clauses) ->
   { method, ?line(Name), ?chars(Name), length(Args), [Clauses] }.
+
+build_method_call(Name, Op, Expr) ->
+  {}.

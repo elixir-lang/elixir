@@ -56,9 +56,9 @@ transform({module, Line, Name, Exprs}, F, S) ->
   elixir_module:compile(Line, Name, Body, Scope),
   {nil, Line};
 
-% TODO This cannot be tested, because in theory the parser will never
-% allow us to have this behavior. In any case, we will need to wrap
-% it in the future by Elixir exception handling.
+% TODO This cannot be tested yet, because in theory the parser will
+% never allow us to have this behavior. In any case, we will need
+% to wrap it in the future by Elixir exception handling.
 transform({method, Line, Name, Arity, Clauses}, F, []) ->
   erlang:error("Method definition outside the scope.");
   
