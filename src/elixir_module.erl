@@ -61,8 +61,7 @@ move_method(Index, CompiledTable, AddedTable) ->
 build_module(Line, Name, Table) ->
   Pairs = ets:tab2list(Table),
   Functions = [element(2, Pair) || Pair <- Pairs],
-  Export = [{element(3, Function), element(4, Function)} || Function <- Functions],
-  [{attribute, Line, module, Name}, {attribute, Line, export, Export} | Functions].
+  [{attribute, Line, module, Name}, {attribute, Line, compile, [export_all]} | Functions].
 
 % Compile and load module.
 % TODO Check warnings?
