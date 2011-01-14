@@ -90,7 +90,7 @@ transform({method, Line, Name, Arity, Clauses}, F, []) ->
 transform({method, Line, Name, Arity, Clauses}, F, S) ->
   TClauses = [transform(pack_method_clause(Clause), F, S) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
-  elixir_module:store_method(S, Line, Method);
+  elixir_module:wrap_method_definition(S, Line, Method);
 
 % Match all other expressions.
 transform(Expr, F, S) -> Expr.
