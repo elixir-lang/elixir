@@ -88,7 +88,7 @@ transform({module, Line, Name, Exprs}, F, S) ->
   elixir_module:compile(Object, Scope, Line, Body),
   {nil, Line};
 
-transform({constant_assign, Line, Left, Right}, F, S) ->
+transform({const_assign, Line, Left, Right}, F, S) ->
   ?ELIXIR_WRAP_CALL(Line, elixir_constants, store, [{atom, Line, Left}, transform(Right, F, S)]);
 
 % TODO This cannot be tested yet, because in theory the parser will

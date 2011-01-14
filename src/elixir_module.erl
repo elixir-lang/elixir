@@ -8,11 +8,11 @@
 % the ETS tables used to keep the method definitions.
 build(PreviousScope, Name) ->
   NewName = scoped_name(PreviousScope, Name),
+  Object = #elixir_object{name=NewName, parent='Object'},
+  elixir_constants:store(NewName, Object),
   Options = [ordered_set, private],
   CompiledTable = ets:new(?ELIXIR_ATOM_CONCAT([aex, NewName]), Options),
   AddedTable = ets:new(?ELIXIR_ATOM_CONCAT([cex, NewName]), Options),
-  Object = #elixir_object{name=NewName, parent='Object'},
-  elixir_constants:store(NewName, Object),
   {Object, {NewName, CompiledTable, AddedTable}}.
 
 % Returns the new module name based on the previous scope.

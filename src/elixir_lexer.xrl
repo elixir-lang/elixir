@@ -64,6 +64,7 @@ reserved_word('end')       -> true;
 reserved_word('do')        -> true;
 reserved_word('module')    -> true;
 reserved_word('prototype') -> true;
+reserved_word('const')     -> true;
 reserved_word('def')       -> true;
 % reserved_word('nil')     -> true;
 % reserved_word('true')    -> true;

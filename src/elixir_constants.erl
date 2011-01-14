@@ -10,7 +10,7 @@ boot() ->
 % an error if the constant does not exist.
 lookup(Name) ->
   case ets:lookup(ex_constants, Name) of
-    []   -> erlang:error("No constant " ++ atom_to_list(Name) ++ " defined");
+    []   -> erlang:error({badarg, "No constant " ++ atom_to_list(Name) ++ " defined"});
     Else -> element(2, hd(Else))
   end.
 
@@ -18,6 +18,6 @@ lookup(Name) ->
 % if the constant was already stored.
 store(Name, Value) ->
   case ets:member(ex_constants, Name) of
-    true  -> erlang:error("Constant " ++ atom_to_list(Name) ++ " is already defined");
+    true  -> erlang:error({badarg, "Constant " ++ atom_to_list(Name) ++ " is already defined"});
     false -> ets:insert(ex_constants, {Name, Value})
   end.

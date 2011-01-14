@@ -38,7 +38,7 @@ Nonterminals
   unary_op
   add_op
   mult_op
-  constant_decl
+  const_decl
   module_decl
   module_body
   method_list
@@ -46,12 +46,11 @@ Nonterminals
   method_name
   prototype_decl
   prototype_body
-  prototype_name
   .
 
 Terminals
   punctuated_identifier identifier float integer constant
-  module prototype 'do' 'end' def eol
+  module prototype const 'do' 'end' def eol
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   .
 
@@ -77,8 +76,8 @@ decl_list -> decl eol decl_list : ['$1'|'$3'].
 
 % Basic declarations
 decl -> prototype_decl : '$1'.
-decl -> constant_decl : '$1'.
 decl -> module_decl : '$1'.
+decl -> const_decl : '$1'.
 decl -> expr : '$1'.
 
 % List of expressions delimited by eol
@@ -262,11 +261,10 @@ method_name -> identifier : '$1'.
 method_name -> punctuated_identifier : '$1'.
 
 % Constant declaration
-constant_decl -> constant '=' expr : build_constant_assign('$1', '$2', '$3').
+const_decl -> const constant '=' expr : build_const_assign('$2', '$3', '$4').
 
 % Prototype declaration
-prototype_decl -> prototype prototype_name eol prototype_body 'end' : build_prototype('$2', '$4').
-prototype_name -> constant : '$1'.
+prototype_decl -> prototype constant eol prototype_body 'end' : build_prototype('$2', '$4').
 prototype_body -> module_body : '$1'.
 
 Erlang code.
@@ -305,5 +303,5 @@ build_method(Name, Args, Clauses) ->
 build_method_call(Expr, Name, Args) ->
   { method_call, ?line(Name), ?chars(Name), Args, Expr }.
 
-build_constant_assign(Left, Op, Right) ->
-  { constant_assign, ?line(Op), ?chars(Left), Right }.
+build_const_assign(Left, Op, Right) ->
+  { const_assign, ?line(Op), ?chars(Left), Right }.
