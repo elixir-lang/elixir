@@ -54,6 +54,12 @@ transform({method_call, Line, Name, Args, Expr}, F, S) ->
   TransformedArgs = lists:foldr(Transform, {nil, Line}, Args),
   ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [transform(Expr, F, S), {atom, Line, Name}, TransformedArgs]);
 
+transform({constant, Line, Name}, F, S) ->
+  ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Name}]);
+
+transform({fun_call, Line, Vars, Args }, F, S) ->
+  {call, Line, Vars, [transform(Arg, F, S) || Arg <- Args]};
+
 transform({match, Line, Left, Right}, F, S) ->
   {match, Line, transform(Left, F, S), transform(Right, F, S)};
 
@@ -72,9 +78,6 @@ transform({clauses, Clauses}, F, S) ->
 transform({clause, Line, Args, Guards, Exprs}, F, S) ->
   {clause, Line, Args, Guards, [transform(Expr, F, S) || Expr <- Exprs]};
 
-transform({call, Line, Vars, Args }, F, S) ->
-  {call, Line, Vars, [transform(Arg, F, S) || Arg <- Args]};
-
 transform({prototype, Line, Name, Exprs}, F, S) ->
   ProtoName = ?ELIXIR_ATOM_CONCAT(['@', Name]),
   transform({module, Line, ProtoName, Exprs}, F, S);
@@ -84,6 +87,9 @@ transform({module, Line, Name, Exprs}, F, S) ->
   Body = [transform(Expr, F, Scope) || Expr <- Exprs],
   elixir_module:compile(Object, Scope, Line, Body),
   {nil, Line};
+
+transform({constant_assign, Line, Left, Right}, F, S) ->
+  ?ELIXIR_WRAP_CALL(Line, elixir_constants, store, [{atom, Line, Left}, transform(Right, F, S)]);
 
 % TODO This cannot be tested yet, because in theory the parser will
 % never allow us to have this behavior. In any case, we will need

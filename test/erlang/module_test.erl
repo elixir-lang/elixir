@@ -1,8 +1,6 @@
 -module(module_test).
 -include_lib("eunit/include/eunit.hrl").
 
-%% Module functions
-
 module_body_is_executable_test() -> 
   F = fun() ->
     ?assertError({unbound_var, a}, elixir:eval("module Foo; a; end")),

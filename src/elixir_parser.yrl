@@ -38,6 +38,7 @@ Nonterminals
   unary_op
   add_op
   mult_op
+  constant_decl
   module_decl
   module_body
   method_list
@@ -76,6 +77,7 @@ decl_list -> decl eol decl_list : ['$1'|'$3'].
 
 % Basic declarations
 decl -> prototype_decl : '$1'.
+decl -> constant_decl : '$1'.
 decl -> module_decl : '$1'.
 decl -> expr : '$1'.
 
@@ -112,7 +114,7 @@ mult_expr -> unary_expr : '$1'.
 unary_expr -> unary_op fun_call_expr : build_unary_op('$1', '$2').
 unary_expr -> fun_call_expr : '$1'.
 
-fun_call_expr -> min_expr fun_args_parens : build_call('$1', '$2').
+fun_call_expr -> min_expr fun_args_parens : build_fun_call('$1', '$2').
 fun_call_expr -> min_expr : '$1'.
 
 % Minimum expressions
@@ -146,7 +148,7 @@ _mult_expr -> _unary_expr : '$1'.
 _unary_expr -> unary_op _fun_call_expr : build_unary_op('$1', '$2').
 _unary_expr -> _fun_call_expr : '$1'.
 
-_fun_call_expr -> base_expr fun_args_parens : build_call('$1', '$2').
+_fun_call_expr -> base_expr fun_args_parens : build_fun_call('$1', '$2').
 _fun_call_expr -> base_expr : '$1'.
 
 %%% BUILDING BLOCKS
@@ -259,6 +261,9 @@ method_decl -> def method_name match_args eol body 'end' :
 method_name -> identifier : '$1'.
 method_name -> punctuated_identifier : '$1'.
 
+% Constant declaration
+constant_decl -> constant '=' expr : build_constant_assign('$1', '$2', '$3').
+
 % Prototype declaration
 prototype_decl -> prototype prototype_name eol prototype_body 'end' : build_prototype('$2', '$4').
 prototype_name -> constant : '$1'.
@@ -270,8 +275,8 @@ Erlang code.
 -define(line(Node), element(2, Node)).
 -define(chars(Node), element(3, Node)).
 
-build_call(Target, Args) ->
-  { call, ?line(Target), Target, Args }.
+build_fun_call(Target, Args) ->
+  { fun_call, ?line(Target), Target, Args }.
 
 build_clause(Parent, Args, Body) ->
   { clause, ?line(Parent), Args, [], Body }.
@@ -299,3 +304,6 @@ build_method(Name, Args, Clauses) ->
 
 build_method_call(Expr, Name, Args) ->
   { method_call, ?line(Name), ?chars(Name), Args, Expr }.
+
+build_constant_assign(Left, Op, Right) ->
+  { constant_assign, ?line(Op), ?chars(Left), Right }.

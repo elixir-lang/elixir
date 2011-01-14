@@ -5,6 +5,7 @@ test() ->
   elixir:boot(),
   eunit:test({inorder, [
     arithmetic_test,
+    constants_test,
     function_test,
     module_test,
     variables_test
