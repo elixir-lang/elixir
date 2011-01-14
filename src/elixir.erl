@@ -1,6 +1,10 @@
 -module(elixir).
--export([eval/1, eval/2, throw_elixir/1, throw_erlang/1, load_core/0]).
+-export([boot/0, eval/1, eval/2, throw_elixir/1, throw_erlang/1, load_core/0]).
 -include("elixir.hrl").
+
+% Boot up Elixir setting up tables and loading main files.
+boot() ->
+  elixir_constants:boot().
 
 % Load core elixir classes
 load_core() ->
@@ -76,9 +80,9 @@ transform({prototype, Line, Name, Exprs}, F, S) ->
   transform({module, Line, ProtoName, Exprs}, F, S);
 
 transform({module, Line, Name, Exprs}, F, S) ->
-  Scope = elixir_module:scope_for(S, Name),
+  { Object, Scope } = elixir_module:build(S, Name),
   Body = [transform(Expr, F, Scope) || Expr <- Exprs],
-  elixir_module:compile(Scope, Line, Body),
+  elixir_module:compile(Object, Scope, Line, Body),
   {nil, Line};
 
 % TODO This cannot be tested yet, because in theory the parser will

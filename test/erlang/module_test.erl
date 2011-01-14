@@ -37,14 +37,14 @@ nested_modules_with_methods_test() ->
     elixir:eval("module Bar; module Baz; def foo(); 1 + 2; end; end; end"),
     ?assertEqual(3, 'Bar::Baz':foo(self))
   end,
-  run_and_purge(F, ['Bar']).
+  run_and_purge(F, ['Bar', 'Bar::Baz']).
 
 nested_module_name_with_methods_test() ->
   F = fun() ->
     elixir:eval("module Bar::Baz; def foo(); 1 + 2; end; end"),
     ?assertEqual(3, 'Bar::Baz':foo(self))
   end,
-  run_and_purge(F, ['Bar']).
+  run_and_purge(F, ['Bar::Baz']).
 
 %% Prototype handling
 %% TODO This is going to be removed as soon as we have the object model in place
@@ -68,8 +68,12 @@ run_and_purge(Fun, Modules) ->
   try
     Fun()
   after
-    [code:purge(Module) || Module <- Modules]
+    [remove_module(Module) || Module <- Modules]
   end.
+
+remove_module(Module) ->
+  code:purge(Module),
+  ets:delete(ex_constants, Module).
 
 % Helper to load files
 read_fixture(Filename) ->

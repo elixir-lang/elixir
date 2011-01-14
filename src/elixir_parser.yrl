@@ -216,6 +216,7 @@ close_bracket -> eol ']' : ')'.
 % Base expressions
 base_expr -> var : '$1'.
 base_expr -> number : '$1'.
+base_expr -> constant : '$1'.
 
 % Stab syntax
 stabber -> '->' : '$1'.
