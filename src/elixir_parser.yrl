@@ -35,6 +35,8 @@ Nonterminals
   close_bracket
   number
   var
+  break
+  match_op
   unary_op
   add_op
   mult_op
@@ -51,14 +53,14 @@ Nonterminals
 Terminals
   punctuated_identifier identifier float integer constant
   module prototype const 'do' 'end' def eol
-  '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
+  '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';'
   .
 
 Rootsymbol grammar.
 
 Left 500 call_args.
 Left 400 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
-Left 300 '='. % Handle a = -> b = 1 as a = (-> b = 1)
+Left 300 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
 Left 200 open_paren.
 Left 100 close_paren.
 
@@ -67,12 +69,12 @@ Left 100 close_paren.
 grammar -> decl_list : '$1'.
 grammar -> '$empty' : [].
 
-% List of declarations delimited by eol
-decl_list -> eol : ['$1'].
+% List of declarations delimited by break
+decl_list -> break : ['$1'].
 decl_list -> decl : ['$1'].
-decl_list -> decl eol : ['$1'].
-decl_list -> eol decl_list : '$2'.
-decl_list -> decl eol decl_list : ['$1'|'$3'].
+decl_list -> decl break : ['$1'].
+decl_list -> break decl_list : '$2'.
+decl_list -> decl break decl_list : ['$1'|'$3'].
 
 % Basic declarations
 decl -> prototype_decl : '$1'.
@@ -80,12 +82,12 @@ decl -> module_decl : '$1'.
 decl -> const_decl : '$1'.
 decl -> expr : '$1'.
 
-% List of expressions delimited by eol
-expr_list -> eol : [].
+% List of expressions delimited by break
+expr_list -> break : [].
 expr_list -> expr : ['$1'].
-expr_list -> expr eol : ['$1'].
-expr_list -> eol expr_list : '$2'.
-expr_list -> expr eol expr_list : ['$1'|'$3'].
+expr_list -> expr break : ['$1'].
+expr_list -> break expr_list : '$2'.
+expr_list -> expr break expr_list : ['$1'|'$3'].
 
 % Basic expressions
 expr -> method_call_expr : '$1'.
@@ -96,7 +98,7 @@ method_call_expr -> match_expr '.' method_name : build_method_call('$1', '$3', [
 method_call_expr -> match_expr : '$1'.
 
 % Assignment
-match_expr -> match_expr '=' fun_expr : build_match('$1', '$2', '$3').
+match_expr -> match_expr match_op fun_expr : build_match('$1', '$2', '$3').
 match_expr -> fun_expr : '$1'.
 
 % Function definitions
@@ -130,7 +132,7 @@ _method_call_expr -> _match_expr '.' method_name : build_method_call('$1', '$3',
 _method_call_expr -> _match_expr : '$1'.
 
 % Assignment
-_match_expr -> _match_expr '=' _fun_expr : build_match('$1', '$2', '$3').
+_match_expr -> _match_expr match_op _fun_expr : build_match('$1', '$2', '$3').
 _match_expr -> _fun_expr : '$1'.
 
 % Function definitions
@@ -159,10 +161,10 @@ fun_base -> stabber match_args match_expr :
 fun_base -> stabber _expr :
   build_fun('$1', build_clause('$1', [], ['$2'])).
 
-fun_base -> stabber match_args eol body 'end' :
+fun_base -> stabber match_args break body 'end' :
   build_fun('$1', build_clause('$1', '$2', '$4')).
 
-fun_base -> stabber eol body 'end' :
+fun_base -> stabber break body 'end' :
   build_fun('$1', build_clause('$1', [], '$3')).
 
 % Args given as match criteria.
@@ -194,9 +196,9 @@ fun_args_parens -> open_paren fun_args close_paren : '$2'.
 % Variables
 var -> identifier : { var, ?line('$1'), ?chars('$1') }.
 
-% Commas and eol
+% Commas and break
 comma_separator -> ','     : ','.
-comma_separator -> ',' eol : ','.
+comma_separator -> ',' break : ','.
 
 % Function bodies
 body -> '$empty'  : [].
@@ -204,15 +206,15 @@ body -> expr_list : '$1'.
 
 % Parens handling
 open_paren -> '('      : '('.
-open_paren -> '(' eol  : '('.
+open_paren -> '(' break  : '('.
 close_paren -> ')'     : ')'.
-close_paren -> eol ')' : ')'.
+close_paren -> break ')' : ')'.
 
 % Bracket handling
 open_bracket -> '['      : '('.
-open_bracket -> '[' eol  : '('.
+open_bracket -> '[' break  : '('.
 close_bracket -> ']'     : ')'.
-close_bracket -> eol ']' : ')'.
+close_bracket -> break ']' : ')'.
 
 % Base expressions
 base_expr -> var : '$1'.
@@ -227,6 +229,14 @@ stabber -> 'do' : '$1'.
 number -> float   : '$1'.
 number -> integer : '$1'.
 
+% Break
+break -> eol : '$1'.
+break -> ';' : { eol, ?line('$1') }.
+
+% Match operator
+match_op -> '=' : '$1'.
+match_op -> '=' eol : '$1'.
+
 % Unary operator
 unary_op -> '+' : '$1'.
 unary_op -> '-' : '$1'.
@@ -240,31 +250,31 @@ mult_op -> '*' : '$1'.
 mult_op -> '/' : '$1'.
 
 % Module declaration
-module_decl -> module constant eol module_body 'end' : build_module('$2', '$4').
+module_decl -> module constant break module_body 'end' : build_module('$2', '$4').
 module_body -> '$empty'  : [].
 module_body -> decl_list : '$1'.
 module_body -> method_list : '$1'.
 
 % Method declarations
 method_list -> method_decl : ['$1'].
-method_list -> method_decl eol : ['$1'].
-method_list -> eol method_list : '$2'.
-method_list -> method_decl eol method_list : ['$1'|'$3'].
+method_list -> method_decl break : ['$1'].
+method_list -> break method_list : '$2'.
+method_list -> method_decl break method_list : ['$1'|'$3'].
 
-method_decl -> def method_name eol body 'end' :
+method_decl -> def method_name break body 'end' :
   build_method('$2', [], build_clause('$2', [], '$4')).
 
-method_decl -> def method_name match_args eol body 'end' :
+method_decl -> def method_name match_args break body 'end' :
   build_method('$2', '$3', build_clause('$2', '$3', '$5')).
 
 method_name -> identifier : '$1'.
 method_name -> punctuated_identifier : '$1'.
 
 % Constant declaration
-const_decl -> const constant '=' expr : build_const_assign('$2', '$3', '$4').
+const_decl -> const constant match_op expr : build_const_assign('$2', '$3', '$4').
 
 % Prototype declaration
-prototype_decl -> prototype constant eol prototype_body 'end' : build_prototype('$2', '$4').
+prototype_decl -> prototype constant break prototype_body 'end' : build_prototype('$2', '$4').
 prototype_body -> module_body : '$1'.
 
 Erlang code.

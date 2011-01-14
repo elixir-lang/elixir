@@ -33,7 +33,7 @@ Rules.
 \[    : { token, { '[', TokenLine } }.
 \]    : { token, { ']', TokenLine } }.
 =     : { token, { '=', TokenLine } }.
-;     : { token, { eol, TokenLine } }.
+;     : { token, { ';', TokenLine } }.
 ->    : { token, { '->', TokenLine } }.
 ,     : { token, { ',', TokenLine} }.
 \.    : { token, { '.', TokenLine} }.

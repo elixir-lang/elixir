@@ -9,6 +9,7 @@ assignment_test() ->
   ?assertEqual({1, [{a, 1}]}, elixir:eval("a = 1")).
 
 multiline_assignment_test() ->
+  ?assertEqual({1, [{a, 1}]}, elixir:eval("a =\n1")),
   ?assertEqual({1, [{a, 1}, {b, 1}]}, elixir:eval("a = 1\nb = 1")).
 
 multiple_assignment_test() ->
