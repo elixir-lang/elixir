@@ -32,6 +32,23 @@ module_with_methods_test() ->
   end,
   run_and_purge(F, ['Bar']).
 
+nested_modules_with_methods_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; module Baz; def foo(); 1 + 2; end; end; end"),
+    ?assertEqual(3, 'Bar::Baz':foo(self))
+  end,
+  run_and_purge(F, ['Bar']).
+
+nested_module_name_with_methods_test() ->
+  F = fun() ->
+    elixir:eval("module Bar::Baz; def foo(); 1 + 2; end; end"),
+    ?assertEqual(3, 'Bar::Baz':foo(self))
+  end,
+  run_and_purge(F, ['Bar']).
+
+%% Prototype handling
+%% TODO This is going to be removed as soon as we have the object model in place
+
 prototype_with_method_invocation_test() ->
   F = fun() ->
     elixir:eval("prototype Integer; def some_value(); 23; end; end"),

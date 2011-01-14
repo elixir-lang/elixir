@@ -239,7 +239,8 @@ mult_op -> '/' : '$1'.
 
 % Module declaration
 module_decl -> module module_name eol module_body 'end' : build_module('$2', '$4').
-module_body -> body : '$1'.
+module_body -> '$empty'  : [].
+module_body -> decl_list : '$1'.
 module_body -> method_list : '$1'.
 
 % Method declarations

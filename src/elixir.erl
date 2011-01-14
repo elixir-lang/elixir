@@ -72,13 +72,13 @@ transform({call, Line, Vars, Args }, F, S) ->
   {call, Line, Vars, [transform(Arg, F, S) || Arg <- Args]};
 
 transform({prototype, Line, Name, Exprs}, F, S) ->
-  ProtoName = ?ELIXIR_PREPEND('@', Name),
+  ProtoName = ?ELIXIR_ATOM_CONCAT(['@', Name]),
   transform({module, Line, ProtoName, Exprs}, F, S);
 
 transform({module, Line, Name, Exprs}, F, S) ->
-  Scope = elixir_module:scope_for(Name),
+  Scope = elixir_module:scope_for(S, Name),
   Body = [transform(Expr, F, Scope) || Expr <- Exprs],
-  elixir_module:compile(Line, Name, Body, Scope),
+  elixir_module:compile(Scope, Line, Body),
   {nil, Line};
 
 % TODO This cannot be tested yet, because in theory the parser will
@@ -88,13 +88,15 @@ transform({method, Line, Name, Arity, Clauses}, F, []) ->
   erlang:error("Method definition outside the scope.");
   
 transform({method, Line, Name, Arity, Clauses}, F, S) ->
-  TClauses = [transform(add_self_as_arg(Clause), F, S) || Clause <- Clauses],
+  TClauses = [transform(pack_method_clause(Clause), F, S) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
   elixir_module:store_method(S, Line, Method);
 
-% Match all other expressions
+% Match all other expressions.
 transform(Expr, F, S) -> Expr.
 
-% Append self to the clauses
-add_self_as_arg({clause, Line, Args, Guards, Exprs}) -> 
+% Pack method clause in a format that receives Elixir metadata
+% as first argument (like self) and annotates __current__ with
+% the current module name (for super)
+pack_method_clause({clause, Line, Args, Guards, Exprs}) -> 
   {clause, Line, [{var, Line, self}|Args], Guards, Exprs}.

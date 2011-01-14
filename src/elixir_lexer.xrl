@@ -19,8 +19,8 @@ Rules.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
 %% Modules and Variable names
-{UpperCase}{IdentifierBase}* : build_module(TokenLine, TokenChars).
-({LowerCase}|_){IdentifierBase}* : build_identifier(TokenLine, TokenChars).
+{UpperCase}({IdentifierBase}|::)* : build_module(TokenLine, TokenChars).
+({LowerCase}|_){IdentifierBase}*  : build_identifier(TokenLine, TokenChars).
 ({LowerCase}|_){IdentifierBase}*[?!] : build_punctuated_identifier(TokenLine, TokenChars).
 
 %% Operators

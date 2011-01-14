@@ -4,4 +4,4 @@
     Args
   }).
 
--define(ELIXIR_PREPEND(Prefix, Atom), list_to_atom(lists:concat([Prefix, Atom]))).
+-define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
