@@ -49,7 +49,7 @@ Nonterminals
   .
 
 Terminals
-  punctuated_identifier identifier float integer module_name
+  punctuated_identifier identifier float integer constant
   module prototype 'do' 'end' def eol
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   .
@@ -238,7 +238,7 @@ mult_op -> '*' : '$1'.
 mult_op -> '/' : '$1'.
 
 % Module declaration
-module_decl -> module module_name eol module_body 'end' : build_module('$2', '$4').
+module_decl -> module constant eol module_body 'end' : build_module('$2', '$4').
 module_body -> '$empty'  : [].
 module_body -> decl_list : '$1'.
 module_body -> method_list : '$1'.
@@ -260,7 +260,7 @@ method_name -> punctuated_identifier : '$1'.
 
 % Prototype declaration
 prototype_decl -> prototype prototype_name eol prototype_body 'end' : build_prototype('$2', '$4').
-prototype_name -> module_name : '$1'.
+prototype_name -> constant : '$1'.
 prototype_body -> module_body : '$1'.
 
 Erlang code.

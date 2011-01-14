@@ -18,8 +18,8 @@ Rules.
 {Digit}+\.{Digit}+ : { token, { float, TokenLine, list_to_float(TokenChars) } }.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
-%% Modules and Variable names
-{UpperCase}({IdentifierBase}|::)* : build_module(TokenLine, TokenChars).
+%% Constant and identifier names
+{UpperCase}({IdentifierBase}|::)* : build_constant(TokenLine, TokenChars).
 ({LowerCase}|_){IdentifierBase}*  : build_identifier(TokenLine, TokenChars).
 ({LowerCase}|_){IdentifierBase}*[?!] : build_punctuated_identifier(TokenLine, TokenChars).
 
@@ -47,8 +47,8 @@ Rules.
 
 Erlang code.
 
-build_module(Line, Chars) ->
-  { token, { module_name, Line, list_to_atom(Chars) } }.
+build_constant(Line, Chars) ->
+  { token, { constant, Line, list_to_atom(Chars) } }.
 
 build_identifier(Line, Chars) ->
   Atom = list_to_atom(Chars),
