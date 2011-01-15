@@ -59,9 +59,12 @@ Terminals
 
 Rootsymbol grammar.
 
-Left 100 call_args.
-Left 100 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
-Left 100 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
+Left     100 call_args.
+Left     200 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
+Left     300 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
+Left     400 add_op.
+Left     500 mult_op.
+Nonassoc 600 unary_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 

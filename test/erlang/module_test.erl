@@ -66,3 +66,10 @@ method_invocation_in_module_with_self_test() ->
     ?assertEqual({6,[]}, elixir:eval("Bar.foo"))
   end,
   test_helper:run_and_remove(F, ['Bar']).
+
+method_invocation_in_module_with_self_without_parens_args_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; def foo(x); x + 1; end; end"),
+    ?assertEqual({7,[]}, elixir:eval("Bar.foo 2 * 3"))
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
