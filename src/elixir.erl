@@ -24,8 +24,12 @@ load_file(Filepath) ->
 eval(String) -> eval(String, []).
 
 eval(String, Binding) ->
-  {value, Value, NewBinding} = erl_eval:exprs(parse(String), Binding),
-  {Value, NewBinding}.
+  try
+    {value, Value, NewBinding} = erl_eval:exprs(parse(String), Binding),
+    {Value, NewBinding}
+  after
+    elixir_module:cleanup()
+  end.
 
 % Temporary to aid debugging
 throw_elixir(String) ->

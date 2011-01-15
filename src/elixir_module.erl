@@ -1,6 +1,21 @@
 -module(elixir_module).
--export([build/1, scope_for/2, transform/3, compile/4, wrap_method_definition/3, store_wrapped_method/3]).
+-export([build/1, scope_for/2, transform/3, compile/4, cleanup/0, wrap_method_definition/3, store_wrapped_method/3]).
 -include("elixir.hrl").
+
+% Cleanup all temporarty tables that were not used.
+% TODO Add a test for it once we have conditionals.
+cleanup() ->
+  lists:foreach(fun cleanup/1, ets:all()).
+
+cleanup(Table) when is_integer(Table) ->
+  [];
+
+cleanup(Table) when is_atom(Table) ->
+  case lists:sublist(atom_to_list(Table), 4) of
+    "aex_" -> ets:delete(Table);
+    "cex_" -> ets:delete(Table);
+    _ -> []
+  end.
 
 % Create the scope for the given module.
 %
@@ -8,9 +23,9 @@
 % the ETS tables used to keep the method definitions.
 scope_for(PreviousScope, Name) ->
   NewName = scoped_name(PreviousScope, Name),
-  Options = [ordered_set, private],
-  CompiledTable = ets:new(?ELIXIR_ATOM_CONCAT([aex, NewName]), Options),
-  AddedTable = ets:new(?ELIXIR_ATOM_CONCAT([cex, NewName]), Options),
+  Options = [ordered_set, named_table, private],
+  CompiledTable = ets:new(?ELIXIR_ATOM_CONCAT([aex_, NewName]), Options),
+  AddedTable = ets:new(?ELIXIR_ATOM_CONCAT([cex_, NewName]), Options),
   {NewName, CompiledTable, AddedTable}.
 
 % Generates module transform. It wraps the module definition into
@@ -23,7 +38,7 @@ transform(Line, Scope, Body) ->
   % This is the hook called at the end of the function
   % that will actually compiled the module.
   Hook = ?ELIXIR_WRAP_CALL(Line, elixir_module, compile,
-    [{ var, Line, self }, {integer, Line, Line}, { integer, Line, CompiledTable }, { integer, Line, AddedTable}]
+    [{ var, Line, self }, {integer, Line, Line}, { atom, Line, CompiledTable }, { atom, Line, AddedTable}]
   ),
 
   % The argument for the module invocation will be the
@@ -39,9 +54,7 @@ transform(Line, Scope, Body) ->
 % Build an object for this module that will be passed as self
 % to the module function invocation.
 build(Name) ->
-  Object = #elixir_object{name=Name, parent='Module'},
-  elixir_constants:store(Name, Object), % TODO We don't need to store this
-  Object.
+  #elixir_object{name=Name, parent='Module'}.
 
 % Returns the new module name based on the previous scope.
 scoped_name([], Name) -> Name;
@@ -76,7 +89,7 @@ compile(Object, Line, CompiledTable, AddedTable) ->
 wrap_method_definition(Scope, Line, Method) ->
   { _, CompiledTable, AddedTable } = Scope,
   Index = append_to_table(CompiledTable, Method),
-  Content = [{integer, Line, Index}, {integer, Line, CompiledTable}, {integer, Line, AddedTable}],
+  Content = [{integer, Line, Index}, {atom, Line, CompiledTable}, {atom, Line, AddedTable}],
   ?ELIXIR_WRAP_CALL(Line, elixir_module, store_wrapped_method, Content).
 
 % Gets a module stored in the CompiledTable with Index and
@@ -103,7 +116,7 @@ compile_module(Forms) ->
 % Append object to the table using last Index + 1.
 append_to_table(Table, Set) ->
   Last = ets:last(Table),
-  Index = next_table_index(Table),
+  Index = next_table_index(Last),
   true = ets:insert(Table, {Index, Set}),
   Index.
 
