@@ -24,12 +24,8 @@ load_file(Filepath) ->
 eval(String) -> eval(String, []).
 
 eval(String, Binding) ->
-  try
-    {value, Value, NewBinding} = erl_eval:exprs(parse(String), Binding),
-    {Value, NewBinding}
-  after
-    elixir_module:cleanup()
-  end.
+  {value, Value, NewBinding} = erl_eval:exprs(parse(String), Binding),
+  {Value, NewBinding}.
 
 % Temporary to aid debugging
 throw_elixir(String) ->
@@ -53,6 +49,8 @@ parse(String) ->
 % A transformation receives a node with a Filename and a Scope
 % and transforms it to Erlang Abstract Form.
 
+% Represents a method call. The arguments need to be packed into
+% an array before sending it to dispatch (which has fixed arity).
 transform({method_call, Line, Name, Args, Expr}, F, S) ->
   Transform = fun(X, Acc) -> {cons, Line, transform(X, F, S), Acc} end,
   TransformedArgs = lists:foldr(Transform, {nil, Line}, Args),
