@@ -1,3 +1,15 @@
+% Handle constants in Elixir. There are two kind of constants:
+%
+%   - Stored constants
+%   - Compiled constants
+%
+% Stored constants are store in an ETS table and are explicitly
+% assigned in the source code:
+%
+%    const Foo = 2
+%
+% Compiled constants are constants that are compiled to erlang
+% modules and consequently are not stored in the ets table.
 -module(elixir_constants).
 -export([boot/0, lookup/1, store/2]).
 -include("elixir.hrl").

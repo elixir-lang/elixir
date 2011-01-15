@@ -83,10 +83,9 @@ transform({prototype, Line, Name, Exprs}, F, S) ->
   transform({module, Line, ProtoName, Exprs}, F, S);
 
 transform({module, Line, Name, Exprs}, F, S) ->
-  { Object, Scope } = elixir_module:build(S, Name),
+  Scope = elixir_module:scope_for(S, Name),
   Body = [transform(Expr, F, Scope) || Expr <- Exprs],
-  elixir_module:compile(Object, Scope, Line, Body),
-  {nil, Line};
+  elixir_module:transform(Line, Scope, Body);
 
 transform({const_assign, Line, Left, Right}, F, S) ->
   ?ELIXIR_WRAP_CALL(Line, elixir_constants, store, [{atom, Line, Left}, transform(Right, F, S)]);
@@ -96,7 +95,10 @@ transform({const_assign, Line, Left, Right}, F, S) ->
 % to wrap it in the future by Elixir exception handling.
 transform({method, Line, Name, Arity, Clauses}, F, []) ->
   erlang:error("Method definition outside the scope.");
-  
+
+% Method definitions are never executed by Elixir runtime. Their
+% abstract form is stored into an ETS table and is just added to
+% an Erlang module when they are compiled.
 transform({method, Line, Name, Arity, Clauses}, F, S) ->
   TClauses = [transform(pack_method_clause(Clause), F, S) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
