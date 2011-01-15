@@ -19,3 +19,6 @@ cannot_store_already_defined_constants_test() ->
       elixir:eval("const Foo = 1 + 2; const Foo = 3"))
   end,
   test_helper:run_and_remove(F, ['Foo']).
+
+cannot_lookup_not_stored_constants_test() ->
+  ?assertError({badarg, "No constant Foo defined" }, elixir:eval("Foo")).

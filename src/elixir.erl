@@ -80,10 +80,6 @@ transform({clauses, Clauses}, F, S) ->
 transform({clause, Line, Args, Guards, Exprs}, F, S) ->
   {clause, Line, Args, Guards, [transform(Expr, F, S) || Expr <- Exprs]};
 
-transform({prototype, Line, Name, Exprs}, F, S) ->
-  ProtoName = ?ELIXIR_ATOM_CONCAT(['@', Name]),
-  transform({module, Line, ProtoName, Exprs}, F, S);
-
 transform({module, Line, Name, Exprs}, F, S) ->
   Scope = elixir_module:scope_for(S, Name),
   Body = [transform(Expr, F, Scope) || Expr <- Exprs],

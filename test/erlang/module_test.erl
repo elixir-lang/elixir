@@ -11,7 +11,7 @@ module_body_is_executable_test() ->
 module_compiler_precedence_test() -> 
   ?assertError({badmatch, _}, elixir:eval("1 + module Foo; end")).
 
-module_are_converted_into_erlang_modules_test() ->
+modules_are_converted_into_erlang_modules_test() ->
   F = fun() ->
     elixir:eval("module Bar; 1 + 2; end"),
     {file, "nofile"} = code:is_loaded('Bar')
@@ -25,10 +25,17 @@ module_preceeded_by_other_expressions_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-module_with_methods_test() ->
+module_with_method_test() ->
   F = fun() ->
     elixir:eval("module Bar; def foo(); 1 + 2; end; end"),
     ?assertEqual(3, 'Bar':foo(self))
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+module_with_several_methods_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; def foo(); 1 + 2; end; def bar(); 2 + 3; end; end"),
+    ?assertEqual(5, 'Bar':bar(self))
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
@@ -45,3 +52,17 @@ nested_module_name_with_methods_test() ->
     ?assertEqual(3, 'Bar::Baz':foo(self))
   end,
   test_helper:run_and_remove(F, ['Bar::Baz']).
+
+method_invocation_in_module_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; def foo(); 1 + 2; end; end"),
+    ?assertEqual({3,[]}, elixir:eval("Bar.foo"))
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+method_invocation_in_module_with_self_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; def foo(); self.bar(1) + 3; end; def bar(x); x + 2; end; end"),
+    ?assertEqual({6,[]}, elixir:eval("Bar.foo"))
+  end,
+  test_helper:run_and_remove(F, ['Bar']).

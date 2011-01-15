@@ -7,13 +7,14 @@ Nonterminals
   decl_list
   decl
   expr _expr
-  method_call_expr _method_call_expr
   match_expr _match_expr
   fun_expr _fun_expr
   add_expr _add_expr
   mult_expr _mult_expr
   unary_expr _unary_expr
+  call_exprs _call_exprs
   fun_call_expr _fun_call_expr
+  method_call_expr _method_call_expr
   min_expr
 
   fun_base
@@ -58,11 +59,9 @@ Terminals
 
 Rootsymbol grammar.
 
-Left 500 call_args.
-Left 400 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
-Left 300 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
-Left 200 open_paren.
-Left 100 close_paren.
+Left 100 call_args.
+Left 100 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
+Left 100 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -90,12 +89,7 @@ expr_list -> break expr_list : '$2'.
 expr_list -> expr break expr_list : ['$1'|'$3'].
 
 % Basic expressions
-expr -> method_call_expr : '$1'.
-
-% Method call
-method_call_expr -> match_expr '.' method_name call_args_optional : build_method_call('$1', '$3', '$4').
-method_call_expr -> match_expr '.' method_name : build_method_call('$1', '$3', []).
-method_call_expr -> match_expr : '$1'.
+expr -> match_expr : '$1'.
 
 % Assignment
 match_expr -> match_expr match_op fun_expr : build_match('$1', '$2', '$3').
@@ -112,11 +106,21 @@ add_expr -> mult_expr : '$1'.
 mult_expr -> mult_expr mult_op unary_expr : build_binary_op('$1', '$2', '$3').
 mult_expr -> unary_expr : '$1'.
 
-unary_expr -> unary_op fun_call_expr : build_unary_op('$1', '$2').
-unary_expr -> fun_call_expr : '$1'.
+unary_expr -> unary_op call_exprs : build_unary_op('$1', '$2').
+unary_expr -> call_exprs : '$1'.
 
+% Calls
+call_exprs -> fun_call_expr : '$1'.
+call_exprs -> method_call_expr : '$1'.
+call_exprs -> min_expr : '$1'.
+
+% Function call
+% TODO This will be ambigous in the future with implicit self.
 fun_call_expr -> min_expr fun_args_parens : build_fun_call('$1', '$2').
-fun_call_expr -> min_expr : '$1'.
+
+% Method call
+method_call_expr -> call_exprs '.' method_name call_args_optional : build_method_call('$1', '$3', '$4').
+method_call_expr -> call_exprs '.' method_name : build_method_call('$1', '$3', []).
 
 % Minimum expressions
 min_expr -> base_expr : '$1'.
@@ -124,12 +128,7 @@ min_expr -> open_paren expr close_paren : '$2'.
 
 %%% COPY OF MAIN FLOW FOR STABBER BUT WITHOUT MIN_EXPR PARENS
 
-_expr -> _method_call_expr : '$1'.
-
-% Method call
-_method_call_expr -> _match_expr '.' method_name call_args_optional : build_method_call('$1', '$3', '$4').
-_method_call_expr -> _match_expr '.' method_name : build_method_call('$1', '$3', []).
-_method_call_expr -> _match_expr : '$1'.
+_expr -> _match_expr : '$1'.
 
 % Assignment
 _match_expr -> _match_expr match_op _fun_expr : build_match('$1', '$2', '$3').
@@ -146,11 +145,22 @@ _add_expr -> _mult_expr : '$1'.
 _mult_expr -> _mult_expr mult_op _unary_expr : build_binary_op('$1', '$2', '$3').
 _mult_expr -> _unary_expr : '$1'.
 
-_unary_expr -> unary_op _fun_call_expr : build_unary_op('$1', '$2').
-_unary_expr -> _fun_call_expr : '$1'.
+_unary_expr -> unary_op _call_exprs : build_unary_op('$1', '$2').
+_unary_expr -> _call_exprs : '$1'.
 
+% Calls
+_call_exprs -> _fun_call_expr : '$1'.
+_call_exprs -> _method_call_expr : '$1'.
+_call_exprs -> base_expr : '$1'.
+
+% Function call
+% TODO This will be ambigous in the future with implicit self.
 _fun_call_expr -> base_expr fun_args_parens : build_fun_call('$1', '$2').
-_fun_call_expr -> base_expr : '$1'.
+
+% Method call
+% TODO Test method calls inside inline functions ->
+_method_call_expr -> _call_exprs '.' method_name call_args_optional : build_method_call('$1', '$3', '$4').
+_method_call_expr -> _call_exprs '.' method_name : build_method_call('$1', '$3', []).
 
 %%% BUILDING BLOCKS
 
