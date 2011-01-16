@@ -4,7 +4,9 @@
 -export([mixin/2, proto/2, mixins/1, protos/1]).
 -include("elixir.hrl").
 
+mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
 mixin(Self, Value) -> prepend_as(Self, mixins, Value).
+proto(Self, Value) when is_list(Value) -> [proto(Self, Item) || Item <- Value];
 proto(Self, Value) -> prepend_as(Self, protos, Value).
 
 mixins(Self) -> Self#elixir_object.mixins.

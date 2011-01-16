@@ -34,7 +34,7 @@ test: compile
 	@ # Compile test files
 	@ $(ERLC) -o $(TEST_EBIN_DIR) $(TEST_SOURCE_DIR)/*.erl
 	@ # Look and execute each file
-	@ $(ERL) $(TEST_EBIN_DIR) -I $(TEST_INCLUDE_DIR) -eval 'test_helper:test(), halt().'
+	@ time $(ERL) $(TEST_EBIN_DIR) -I $(TEST_INCLUDE_DIR) -eval 'test_helper:test(), halt().'
 	@ echo
 
 clean:

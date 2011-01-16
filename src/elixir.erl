@@ -15,7 +15,10 @@ load_core_classes() ->
   Loader = fun(Class) -> load_file(filename:join(Basepath, Class)) end,
   lists:foreach(Loader, [
     'object.ex',
-    'module.ex'
+    'module.ex',
+    'numeric.ex',
+    'integer.ex',
+    'float.ex'
   ]).
 
 % Loads a given file
@@ -69,10 +72,12 @@ transform({match, Line, Left, Right}, F, S) ->
   {match, Line, transform(Left, F, S), transform(Right, F, S)};
 
 transform({binary_op, Line, Op, Left, Right}, F, S) ->
-  {op, Line, Op, transform(Left, F, S), transform(Right, F, S)};
+  Args = { cons, Line, transform(Right, F, S), {nil, Line} },
+  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [transform(Left, F, S), {atom, Line, Op}, Args]);
 
 transform({unary_op, Line, Op, Right}, F, S) ->
-  {op, Line, Op, transform(Right, F, S)};
+  NewOp = ?ELIXIR_ATOM_CONCAT(['@', Op]),
+  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [transform(Right, F, S), {atom, Line, NewOp}, {nil, Line}]);
 
 transform({'fun', Line, Clauses}, F, S) ->
   {'fun', Line, transform(Clauses, F, S)};

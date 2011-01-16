@@ -49,6 +49,7 @@ Nonterminals
   method_list
   method_decl
   method_name
+  method_ops_identifier
   object_decl
   object_body
   .
@@ -56,7 +57,7 @@ Nonterminals
 Terminals
   punctuated_identifier identifier float integer constant
   module object const 'do' 'end' def eol erl
-  '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';'
+  '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';' '@'
   .
 
 Rootsymbol grammar.
@@ -295,6 +296,14 @@ method_decl -> def method_name match_args break body 'end' :
 
 method_name -> base_identifier : '$1'.
 method_name -> punctuated_identifier : '$1'.
+method_name -> method_ops_identifier : { identifier, ?line('$1'), ?op('$1') }.
+
+method_ops_identifier -> '+' : '$1'.
+method_ops_identifier -> '-' : '$1'.
+method_ops_identifier -> '*' : '$1'.
+method_ops_identifier -> '/' : '$1'.
+method_ops_identifier -> '@' '+' : { '@+', ?line('$1') }.
+method_ops_identifier -> '@' '-' : { '@-', ?line('$1') }.
 
 % Constant declaration
 const_decl -> const constant match_op expr : build_const_assign('$2', '$3', '$4').
