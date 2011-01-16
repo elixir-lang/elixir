@@ -1,4 +1,4 @@
--module(variables_test).
+-module(match_test).
 -include_lib("eunit/include/eunit.hrl").
 
 % TODO Handle parsing of empty strings. For example:

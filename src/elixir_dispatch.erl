@@ -7,14 +7,14 @@ dispatch(#elixir_object{} = Object, Method, Args) ->
   Mixins = Object#elixir_object.mixins,
   Arity  = length(Args) + 1,
   case find_module(Mixins, Method, Arity) of
-    []     -> ?ELIXIR_ERROR(nomethod, "No method ~p/~p in mixins ~p", [Method, Arity, Mixins]);
+    []     -> ?ELIXIR_ERROR(nomethod, "No method ~p/~p in mixins ~p", [Method, Arity - 1, Mixins]);
     Module -> apply(Module, Method, [Object|Args])
   end;
 
 dispatch(Else, Method, Args) ->
   ?ELIXIR_ERROR(nomethod, "Unknown type ~p to dispatch method ~p", [Else, Method]).
 
-% Find first module that F() returns true and returns it.
+% Find first module that contains the method with given arity.
 find_module([H|T], Method, Arity) ->
   case erlang:function_exported(H, Method, Arity) of
     true -> H;

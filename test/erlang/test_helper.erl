@@ -3,13 +3,15 @@
 
 test() ->
   elixir:boot(),
-  eunit:test({inorder, [
+  eunit:test([
     arithmetic_test,
     constants_test,
+    elixir_test,
+    erlang_call_test,
     function_test,
-    module_test,
-    variables_test
-  ]}).
+    match_test,
+    module_test
+  ]).
 
 % Execute a piece of code and purge given modules right after
 run_and_remove(Fun, Modules) ->

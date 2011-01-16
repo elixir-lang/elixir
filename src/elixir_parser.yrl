@@ -30,12 +30,14 @@ Nonterminals
   body
   stabber
   base_expr
+  erlang_call_expr
   open_paren
   close_paren
   open_bracket
   close_bracket
   number
   var
+  base_identifier
   break
   match_op
   unary_op
@@ -53,7 +55,7 @@ Nonterminals
 
 Terminals
   punctuated_identifier identifier float integer constant
-  module object const 'do' 'end' def eol
+  module object const 'do' 'end' def eol erl
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';'
   .
 
@@ -115,6 +117,7 @@ unary_expr -> call_exprs : '$1'.
 % Calls
 call_exprs -> fun_call_expr : '$1'.
 call_exprs -> method_call_expr : '$1'.
+call_exprs -> erlang_call_expr : '$1'.
 call_exprs -> min_expr : '$1'.
 
 % Function call
@@ -207,7 +210,13 @@ fun_args_parens -> open_paren ')' : [].
 fun_args_parens -> open_paren fun_args close_paren : '$2'.
 
 % Variables
-var -> identifier : { var, ?line('$1'), ?chars('$1') }.
+var -> base_identifier : { var, ?line('$1'), ?chars('$1') }.
+
+% Base identifiers. Convert keywords to basic words.
+base_identifier -> identifier : '$1'.
+base_identifier -> module : { identifier, ?line('$1'), module }.
+base_identifier -> object : { identifier, ?line('$1'), object }.
+base_identifier -> const  : { identifier, ?line('$1'), const }.
 
 % Commas and break
 comma_separator -> ','     : ','.
@@ -233,6 +242,10 @@ close_bracket -> break ']' : ')'.
 base_expr -> var : '$1'.
 base_expr -> number : '$1'.
 base_expr -> constant : '$1'.
+
+% Erlang calls
+erlang_call_expr -> erl '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
+erlang_call_expr -> erl '.' base_identifier call_args_optional : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
 
 % Stab syntax
 stabber -> '->' : '$1'.
@@ -280,7 +293,7 @@ method_decl -> def method_name break body 'end' :
 method_decl -> def method_name match_args break body 'end' :
   build_method('$2', '$3', build_clause('$2', '$3', '$5')).
 
-method_name -> identifier : '$1'.
+method_name -> base_identifier : '$1'.
 method_name -> punctuated_identifier : '$1'.
 
 % Constant declaration
@@ -326,6 +339,9 @@ build_method(Name, Args, Clauses) ->
 
 build_method_call(Expr, Name, Args) ->
   { method_call, ?line(Name), ?chars(Name), Args, Expr }.
+
+build_erlang_call(Op, Prefix, Suffix, Args) ->
+  { erlang_call, ?line(Op), Prefix, Suffix, Args }.
 
 build_const_assign(Left, Op, Right) ->
   { const_assign, ?line(Op), ?chars(Left), Right }.

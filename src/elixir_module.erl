@@ -7,7 +7,8 @@ build_object(Name) ->
   Module = Name:module_info(attributes),
   Parent = proplists:get_value(parent, Module),
   Mixins = proplists:get_value(mixins, Module),
-  #elixir_object{name=Name, parent=Parent, mixins=Mixins}.
+  Protos = proplists:get_value(protos, Module),
+  #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos}.
 
 % Returns the new module name based on the previous scope.
 scope_for([], Name) -> Name;
@@ -34,9 +35,10 @@ compile(Kind, Line, Name, Fun) ->
 
   Parent = parent(Kind),
   Mixins = default_mixins(Name, Kind),
+  Protos = default_protos(Name, Kind),
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { parent, Parent }),
-  ets:insert(AttributeTable, { protos, [] }),
+  ets:insert(AttributeTable, { protos, Protos }),
 
   try
     Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name, Mixins), data=AttributeTable},
@@ -53,8 +55,15 @@ parent(object) -> 'Object';
 parent(module) -> 'Module'.
 
 % Default mixins based on the declaration type.
-default_mixins(Name, module) -> [Name, 'Module', 'Object'];
-default_mixins(Name, object) -> ['Object'].
+default_mixins('Object', _)  -> [];
+default_mixins('Module', _)  -> ['Module', 'Object::Methods'];
+default_mixins(Name, module) -> [Name, 'Module', 'Object::Methods'];
+default_mixins(Name, object) -> ['Object::Methods'].
+
+% Default prototypes.
+default_protos('Object', _)  -> [];
+default_protos(Name, module) -> [];
+default_protos(Name, object) -> ['Object::Methods'].
 
 % Special case Object to include Bootstrap methods.
 tweak_mixins('Object', _)  -> ['elixir_object_methods'];

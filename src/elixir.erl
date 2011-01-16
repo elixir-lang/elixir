@@ -92,6 +92,9 @@ transform({module, Line, Name, Exprs}, F, S) ->
   Body = [transform(Expr, F, Scope) || Expr <- Exprs],
   elixir_module:transform(module, Line, Scope, Body);
 
+transform({erlang_call, Line, Prefix, Suffix, Args}, F, S) ->
+  ?ELIXIR_WRAP_CALL(Line, transform(Prefix, F, S), transform(Suffix, F, S), [transform(Arg, F, S) || Arg <- Args]);
+
 transform({const_assign, Line, Left, Right}, F, S) ->
   ?ELIXIR_WRAP_CALL(Line, elixir_constants, store, [{atom, Line, Left}, transform(Right, F, S)]);
 
