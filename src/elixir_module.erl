@@ -1,6 +1,13 @@
 -module(elixir_module).
--export([scope_for/2, transform/3, compile/3, wrap_method_definition/3, store_wrapped_method/2]).
+-export([build_object/1, scope_for/2, transform/4, compile/4, wrap_method_definition/3, store_wrapped_method/2]).
 -include("elixir.hrl").
+
+% Build an object from the module name.
+build_object(Name) ->
+  Module = Name:module_info(attributes),
+  Parent = proplists:get_value(parent, Module),
+  Mixins = proplists:get_value(mixins, Module),
+  #elixir_object{name=Name, parent=Parent, mixins=Mixins}.
 
 % Returns the new module name based on the previous scope.
 scope_for([], Name) -> Name;
@@ -10,27 +17,47 @@ scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, '::', Name]).
 % a function that will be invoked by compile passing self as argument.
 % We need to wrap them into anonymous functions so nested module
 % definitions have the variable self shadowed.
-transform(Line, Name, Body) ->
+transform(Kind, Line, Name, Body) ->
   Clause = { clause, Line, [{var, Line, self}], [], Body },
   Fun = { 'fun', Line, { clauses, [Clause] } },
-  Args = [{integer, Line, Line}, {atom, Line, Name}, Fun],
+  Args = [{atom, Line, Kind}, {integer, Line, Line}, {atom, Line, Name}, Fun],
   ?ELIXIR_WRAP_CALL(Line, elixir_module, compile, Args).
 
 % Receive the module function to be invoked, invoke it passing
 % self and then compile the added methods into an Erlang module
 % and loaded it in the VM.
-compile(Line, Name, Fun) ->
-  Table = ?ELIXIR_ATOM_CONCAT([tex_, Name]),
-  ets:new(Table, [bag, named_table, private]),
+compile(Kind, Line, Name, Fun) ->
+  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
+  AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
+  ets:new(MethodTable, [bag, named_table, private]),
+  ets:new(AttributeTable, [set, named_table, private]),
+
+  Parent = parent(Kind),
+  Mixins = default_mixins(Name, Kind),
+  ets:insert(AttributeTable, { mixins, Mixins }),
+  ets:insert(AttributeTable, { parent, Parent }),
 
   try
-    Object = #elixir_object{name=Name, parent='Module'},
+    Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name, Mixins), data=AttributeTable},
     Result = Fun(Object),
-    load_module(build_module_form(Line, Name, Table)),
+    load_module(build_module_form(Line, Object, MethodTable)),
     Result
   after
-    ets:delete(Table)
+    ets:delete(MethodTable),
+    ets:delete(AttributeTable)
   end.
+
+% Returns the parent object based on the declaration.
+parent(object) -> 'Object';
+parent(module) -> 'Module'.
+
+% Default mixins based on the declaration type.
+default_mixins(Name, module) -> [Name, 'Module', 'Object'];
+default_mixins(Name, object) -> ['Object'].
+
+% Special case Object to include Bootstrap methods.
+tweak_mixins('Object', _)  -> ['elixir_object_methods'];
+tweak_mixins(Else, Mixins) -> Mixins.
 
 % Wraps the method into a call that will call store_wrapped_method
 % once the method definition is read. The method is compiled into a
@@ -57,14 +84,18 @@ wrap_method_definition(Name, Line, Method) ->
 % Gets a module stored in the CompiledTable with Index and
 % move it to the AddedTable.
 store_wrapped_method(Name, Method) ->
-  TempTable = ?ELIXIR_ATOM_CONCAT([tex_, Name]),
+  TempTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:insert(TempTable, Method).
 
 % Gets all the functions in the AddedTable and generate Erlang
 % Abstract Form that defines these modules.
-build_module_form(Line, Name, Table) ->
+build_module_form(Line, Object, Table) ->
+  Name = Object#elixir_object.name,
+  Attrs = ets:tab2list(Object#elixir_object.data),
   Functions = ets:tab2list(Table),
-  [{attribute, Line, module, Name}, {attribute, Line, compile, [export_all]} | Functions].
+  Transform = fun(X, Acc) -> [{attribute, Line, element(1, X), element(2, X)}|Acc] end,
+  Base = lists:foldr(Transform, Functions, Attrs),
+  [{attribute, Line, module, Name}, {attribute, Line, compile, [export_all]} | Base].
 
 % Compile and load module.
 % TODO Check warnings?

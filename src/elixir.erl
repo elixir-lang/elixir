@@ -12,7 +12,7 @@ load_core() ->
   Basepath = filename:join([Dirname, "..", "lib"]),
   Loader = fun(Class) -> load_file(filename:join(Basepath, Class)) end,
   lists:foreach(Loader, [
-    'integer.ex'
+    'object.ex'
   ]).
 
 % Loads a given file
@@ -80,10 +80,15 @@ transform({clauses, Clauses}, F, S) ->
 transform({clause, Line, Args, Guards, Exprs}, F, S) ->
   {clause, Line, Args, Guards, [transform(Expr, F, S) || Expr <- Exprs]};
 
+transform({object, Line, Name, Exprs}, F, S) ->
+  Scope = elixir_module:scope_for(S, Name),
+  Body = [transform(Expr, F, Scope) || Expr <- Exprs],
+  elixir_module:transform(object, Line, Scope, Body);
+
 transform({module, Line, Name, Exprs}, F, S) ->
   Scope = elixir_module:scope_for(S, Name),
   Body = [transform(Expr, F, Scope) || Expr <- Exprs],
-  elixir_module:transform(Line, Scope, Body);
+  elixir_module:transform(module, Line, Scope, Body);
 
 transform({const_assign, Line, Left, Right}, F, S) ->
   ?ELIXIR_WRAP_CALL(Line, elixir_constants, store, [{atom, Line, Left}, transform(Right, F, S)]);

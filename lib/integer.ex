@@ -1,2 +1,0 @@
-prototype Integer
-end

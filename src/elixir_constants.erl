@@ -22,10 +22,10 @@ boot() ->
 % an error if the constant does not exist.
 lookup(Name) ->
   case code:ensure_loaded(Name) of
-    {module, Name} -> #elixir_object{name=Name, parent="Module"};
+    {module, Name} -> elixir_module:build_object(Name);
     _ ->
       case ets:lookup(ex_constants, Name) of
-        []   -> erlang:error({badarg, "No constant " ++ atom_to_list(Name) ++ " defined"});
+        []   -> ?ELIXIR_ERROR(badarg, "No constant ~p defined", [Name]);
         Else -> element(2, hd(Else))
       end
   end.
@@ -34,6 +34,6 @@ lookup(Name) ->
 % if the constant was already stored.
 store(Name, Value) ->
   case ets:member(ex_constants, Name) of
-    true  -> erlang:error({badarg, "Constant " ++ atom_to_list(Name) ++ " is already defined"});
+    true  -> ?ELIXIR_ERROR(badarg, "Constant ~p is already defined", [Name]);
     false -> ets:insert(ex_constants, {Name, Value})
   end.

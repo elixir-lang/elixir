@@ -47,13 +47,13 @@ Nonterminals
   method_list
   method_decl
   method_name
-  prototype_decl
-  prototype_body
+  object_decl
+  object_body
   .
 
 Terminals
   punctuated_identifier identifier float integer constant
-  module prototype const 'do' 'end' def eol
+  module object const 'do' 'end' def eol
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';'
   .
 
@@ -79,7 +79,7 @@ decl_list -> break decl_list : '$2'.
 decl_list -> decl break decl_list : ['$1'|'$3'].
 
 % Basic declarations
-decl -> prototype_decl : '$1'.
+decl -> object_decl : '$1'.
 decl -> module_decl : '$1'.
 decl -> const_decl : '$1'.
 decl -> expr : '$1'.
@@ -287,8 +287,9 @@ method_name -> punctuated_identifier : '$1'.
 const_decl -> const constant match_op expr : build_const_assign('$2', '$3', '$4').
 
 % Prototype declaration
-prototype_decl -> prototype constant break prototype_body 'end' : build_prototype('$2', '$4').
-prototype_body -> module_body : '$1'.
+object_decl -> object constant break object_body 'end' : build_object('$2', '$4').
+object_body -> '$empty'  : [].
+object_body -> decl_list : '$1'.
 
 Erlang code.
 
@@ -305,8 +306,8 @@ build_clause(Parent, Args, Body) ->
 build_module(Name, Body) ->
   { module, ?line(Name), ?chars(Name), Body }.
 
-build_prototype(Name, Body) ->
-  { prototype, ?line(Name), ?chars(Name), Body }.
+build_object(Name, Body) ->
+  { object, ?line(Name), ?chars(Name), Body }.
 
 build_fun(Stab, Clauses) ->
   { 'fun', ?line(Stab), { clauses, [Clauses] } }.
