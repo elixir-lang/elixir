@@ -69,7 +69,7 @@ Nonassoc 600 unary_op.
 %%% MAIN FLOW OF EXPRESSIONS
 
 grammar -> decl_list : '$1'.
-grammar -> '$empty' : [].
+grammar -> '$empty' : [{nil, 0}].
 
 % List of declarations delimited by break
 decl_list -> break : ['$1'].
@@ -214,7 +214,7 @@ comma_separator -> ','     : ','.
 comma_separator -> ',' break : ','.
 
 % Function bodies
-body -> '$empty'  : [].
+body -> '$empty'  : [{nil, 0}].
 body -> expr_list : '$1'.
 
 % Parens handling
@@ -264,7 +264,7 @@ mult_op -> '/' : '$1'.
 
 % Module declaration
 module_decl -> module constant break module_body 'end' : build_module('$2', '$4').
-module_body -> '$empty'  : [].
+module_body -> '$empty'  : [{nil, 0}].
 module_body -> decl_list : '$1'.
 module_body -> method_list : '$1'.
 
@@ -288,7 +288,7 @@ const_decl -> const constant match_op expr : build_const_assign('$2', '$3', '$4'
 
 % Prototype declaration
 object_decl -> object constant break object_body 'end' : build_object('$2', '$4').
-object_body -> '$empty'  : [].
+object_body -> '$empty'  : [{nil, 0}].
 object_body -> decl_list : '$1'.
 
 Erlang code.

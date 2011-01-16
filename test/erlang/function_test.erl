@@ -1,11 +1,15 @@
 -module(function_test).
 -include_lib("eunit/include/eunit.hrl").
 
-% TODO Allow functions without body (needs to support nil)
-% TODO Add tests for -> (1 + 2) (it is ambiguous, should fail)
 % TODO Support multiple function
 % TODO Support guards?
-% TODO Support nested function calls? a()()?
+
+function_without_body_test() ->
+  {_, [{a, Res1}]} = elixir:eval("a = ->; end"),
+  ?assertEqual([], Res1()).
+
+invalid_function_test() ->
+  ?assertError({badmatch, _}, elixir:eval("a = -> (1 + 2)")).
 
 function_assignment_test() ->
   {_, [{a, Res1}]} = elixir:eval("a = -> 1 + 2"),

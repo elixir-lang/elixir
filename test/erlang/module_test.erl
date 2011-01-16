@@ -18,6 +18,13 @@ modules_are_converted_into_erlang_modules_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
+blank_modules_are_converted_into_erlang_modules_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; end"),
+    {file, "nofile"} = code:is_loaded('Bar')
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
 module_preceeded_by_other_expressions_test() ->
   F = fun() ->
     elixir:eval("1 + 2\nmodule Bar; 1 + 2; end"),
@@ -29,6 +36,13 @@ module_with_method_test() ->
   F = fun() ->
     elixir:eval("module Bar; def foo(); 1 + 2; end; end"),
     ?assertEqual(3, 'Bar':foo(self))
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+module_with_empty_method_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; def foo(); end; end"),
+    ?assertEqual([], 'Bar':foo(self))
   end,
   test_helper:run_and_remove(F, ['Bar']).
 

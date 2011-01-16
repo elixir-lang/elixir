@@ -9,5 +9,5 @@ proto(Self, Value) -> prepend_as(Self, protos, Value).
 
 prepend_as(Self, Kind, Value) -> 
   Table = Self#elixir_object.data,
-  CurrentData = ets:lookup(Table, Kind),
-  ets:insert(Table, [Value|CurrentData]).
+  [{_, Data}] = ets:lookup(Table, Kind),
+  ets:insert(Table, {Kind, [Value|Data]}).
