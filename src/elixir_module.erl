@@ -36,6 +36,7 @@ compile(Kind, Line, Name, Fun) ->
   Mixins = default_mixins(Name, Kind),
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { parent, Parent }),
+  ets:insert(AttributeTable, { protos, [] }),
 
   try
     Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name, Mixins), data=AttributeTable},

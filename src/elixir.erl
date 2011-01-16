@@ -1,13 +1,15 @@
 -module(elixir).
--export([boot/0, eval/1, eval/2, throw_elixir/1, throw_erlang/1, load_core/0]).
+-export([boot/0, eval/1, eval/2, throw_elixir/1, throw_erlang/1]).
 -include("elixir.hrl").
 
 % Boot up Elixir setting up tables and loading main files.
 boot() ->
-  elixir_constants:boot().
+  elixir_constants:boot(),
+  code:ensure_loaded(elixir_object_methods),
+  load_core_classes().
 
 % Load core elixir classes
-load_core() ->
+load_core_classes() ->
   Dirname = filename:dirname(?FILE),
   Basepath = filename:join([Dirname, "..", "lib"]),
   Loader = fun(Class) -> load_file(filename:join(Basepath, Class)) end,
