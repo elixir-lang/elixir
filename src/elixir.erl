@@ -14,7 +14,8 @@ load_core_classes() ->
   Basepath = filename:join([Dirname, "..", "lib"]),
   Loader = fun(Class) -> load_file(filename:join(Basepath, Class)) end,
   lists:foreach(Loader, [
-    'object.ex'
+    'object.ex',
+    'module.ex'
   ]).
 
 % Loads a given file
