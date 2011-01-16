@@ -11,6 +11,7 @@ UpperCase = [A-Z]
 LowerCase = [a-z]
 Whitespace = [\s]
 IdentifierBase = ({UpperCase}|{LowerCase}|{Digit}|_)
+Comment = %.*
 
 Rules.
 
