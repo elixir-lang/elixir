@@ -1,5 +1,4 @@
-% Implement methods that are VM operations and are not
-% exposed as erlang methods at the VM level.
+% Implement methods that are VM operations and are not exposed as erlang methods.
 -module(elixir_methods).
 -export([add/2, subtract/2, multiply/2, divide/2, unary_plus/1, unary_minus/1]).
 -include("elixir.hrl").

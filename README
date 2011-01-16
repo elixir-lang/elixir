@@ -1,3 +1,17 @@
 # Elixir
 
 Nothing interesting here yet. Try again later.
+
+# Roadmap
+
+* Improve constant lookup
+* Remove ETS constants
+* Add missing types (tuple, list, string, regexp)
+* Add true, false and conditionals
+* Automatically add Mixin and Proto
+* Object instantiation and instance vars
+* Implicit self
+* Mixin/Proto should propagate in the chain
+* Basic inheritance
+* Improve match
+* Improve STDLIB
