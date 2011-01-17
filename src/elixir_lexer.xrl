@@ -11,6 +11,7 @@ UpperCase = [A-Z]
 LowerCase = [a-z]
 Whitespace = [\s]
 IdentifierBase = ({UpperCase}|{LowerCase}|{Digit}|_)
+DoubleQuoted = "[^\"\\n]*"
 Comment = %.*
 
 Rules.
@@ -18,6 +19,10 @@ Rules.
 %% Numbers
 {Digit}+\.{Digit}+ : { token, { float, TokenLine, list_to_float(TokenChars) } }.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
+
+%% Atoms
+\'({UpperCase}|{LowerCase}|_){IdentifierBase}* : build_atom(TokenChars, TokenLine, TokenLen). % '
+\'{DoubleQuoted} : build_quoted_atom(TokenChars, TokenLine, TokenLen). % '
 
 %% Constant and identifier names
 {UpperCase}({IdentifierBase}|::)* : build_constant(TokenLine, TokenChars).
@@ -62,6 +67,14 @@ build_identifier(Line, Chars) ->
 build_punctuated_identifier(Line, Chars) ->
   {token, {punctuated_identifier, Line, list_to_atom(Chars)}}.
 
+build_atom(Chars, Line, Len) ->
+  String = lists:sublist(Chars, 2, Len - 1),
+  {token, {atom, Line, list_to_atom(String)}}.
+
+build_quoted_atom(Chars, Line, Len) ->
+  String = lists:sublist(Chars, 2, Len - 2),
+  build_atom(String, Line, Len - 2).
+
 reserved_word('end')       -> true;
 reserved_word('do')        -> true;
 reserved_word('module')    -> true;
@@ -73,9 +86,6 @@ reserved_word('erl')       -> true;
 % reserved_word('true')    -> true;
 % reserved_word('false')   -> true;
 % reserved_word('class')   -> true;
-% reserved_word('self')    -> true;
-% reserved_word('fun')     -> true;
-% reserved_word('do')      -> true;
 % reserved_word('begin')   -> true;
 % reserved_word('case')    -> true;
 % reserved_word('receive') -> true;
@@ -93,5 +103,4 @@ reserved_word('erl')       -> true;
 % reserved_word('try')     -> true;
 % reserved_word('catch')   -> true;
 % reserved_word('throw')   -> true;
-% reserved_word('erl')     -> true;
-reserved_word(_)         -> false.
+reserved_word(_)           -> false.

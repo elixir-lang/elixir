@@ -55,7 +55,7 @@ Nonterminals
   .
 
 Terminals
-  punctuated_identifier identifier float integer constant
+  punctuated_identifier identifier float integer constant atom
   module object const 'do' 'end' def eol erl
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';' '@'
   .
@@ -187,6 +187,7 @@ fun_base -> stabber break body 'end' :
 % Args given as match criteria.
 % Used on function declarations and pattern matching.
 match_arg -> var : '$1'.
+match_arg -> atom : '$1'.
 match_args -> open_paren ')' : [].
 match_args -> open_paren match_arg match_args_tail : ['$2'|'$3'].
 
@@ -241,6 +242,7 @@ close_bracket -> break ']' : ')'.
 
 % Base expressions
 base_expr -> var : '$1'.
+base_expr -> atom : '$1'.
 base_expr -> number : '$1'.
 base_expr -> constant : '$1'.
 
