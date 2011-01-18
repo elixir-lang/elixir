@@ -15,6 +15,14 @@ object Object
     def protos
       erl.elixir_object_methods.protos(self)
     end
+
+    def ancestors
+      erl.elixir_object_methods.ancestors(self)      
+    end
+
+    def dispatch_chain
+      erl.elixir_object_methods.dispatch_chain(self)      
+    end
   end
 
   self.mixin Object::Methods

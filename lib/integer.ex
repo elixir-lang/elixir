@@ -1,4 +1,6 @@
 object Integer
+  self.proto Numeric
+
   module Mixin
   end
 
@@ -7,5 +9,4 @@ object Integer
 
   self.mixin Integer::Mixin
   self.proto Integer::Proto
-  self.proto Numeric
 end
