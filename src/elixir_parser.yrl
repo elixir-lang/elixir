@@ -46,7 +46,8 @@ Nonterminals
   const_decl
   module_decl
   module_body
-  method_list
+  module_body_list
+  module_body_decl
   method_decl
   method_name
   method_ops_identifier
@@ -280,16 +281,19 @@ mult_op -> '/' : '$1'.
 
 % Module declaration
 module_decl -> module constant break module_body 'end' : build_module('$2', '$4').
-module_body -> '$empty'  : [{nil, 0}].
-module_body -> decl_list : '$1'.
-module_body -> method_list : '$1'.
+module_body -> '$empty' : [{nil, 0}].
+module_body -> module_body_list : '$1'.
+
+module_body_list -> break : [].
+module_body_list -> module_body_decl : ['$1'].
+module_body_list -> module_body_decl break : ['$1'].
+module_body_list -> break module_body_list : '$2'.
+module_body_list -> module_body_decl break module_body_list : ['$1'|'$3'].
+
+module_body_decl -> decl : '$1'.
+module_body_decl -> method_decl : '$1'.
 
 % Method declarations
-method_list -> method_decl : ['$1'].
-method_list -> method_decl break : ['$1'].
-method_list -> break method_list : '$2'.
-method_list -> method_decl break method_list : ['$1'|'$3'].
-
 method_decl -> def method_name break body 'end' :
   build_method('$2', [], build_clause('$2', [], '$4')).
 

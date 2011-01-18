@@ -1,2 +1,2 @@
-module Module
+object Module
 end

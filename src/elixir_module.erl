@@ -5,9 +5,12 @@
 % Build an object from the module name.
 build_object(Name) ->
   Module = Name:module_info(attributes),
-  Parent = proplists:get_value(parent, Module),
   Mixins = proplists:get_value(mixins, Module),
   Protos = proplists:get_value(protos, Module),
+  Parent = case proplists:get_value(parent, Module) of
+    []   -> [];
+    Else -> hd(Else)
+  end,
   #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos}.
 
 % Returns the new module name based on the previous scope.
@@ -33,15 +36,15 @@ compile(Kind, Line, Name, Fun) ->
   ets:new(MethodTable, [bag, named_table, private]),
   ets:new(AttributeTable, [set, named_table, private]),
 
-  Parent = parent(Kind),
+  Parent = default_parent(Name, Kind),
   Mixins = default_mixins(Name, Kind),
   Protos = default_protos(Name, Kind),
-  ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { parent, Parent }),
+  ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
 
   try
-    Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name, Mixins), data=AttributeTable},
+    Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name), protos=Protos, data={def, AttributeTable}},
     Result = Fun(Object),
     load_module(build_module_form(Line, Object, MethodTable)),
     Result
@@ -51,23 +54,21 @@ compile(Kind, Line, Name, Fun) ->
   end.
 
 % Returns the parent object based on the declaration.
-parent(object) -> 'Object';
-parent(module) -> 'Module'.
+default_parent('Object', _)  -> [];
+default_parent(Name, object) -> 'Object';
+default_parent(Name, module) -> 'Module'.
 
 % Default mixins based on the declaration type.
-default_mixins('Object', _)  -> [];
-default_mixins('Module', _)  -> ['Module', 'Object::Methods'];
-default_mixins(Name, module) -> [Name, 'Module', 'Object::Methods'];
-default_mixins(Name, object) -> ['Object::Methods'].
+default_mixins(Name, module) -> [];
+default_mixins(Name, object) -> [].
 
-% Default prototypes.
-default_protos('Object', _)  -> [];
-default_protos(Name, module) -> [];
-default_protos(Name, object) -> ['Object::Methods'].
+% Default prototypes. Modules have themselves as the default prototype.
+default_protos(Name, module) -> [Name];
+default_protos(Name, object) -> [].
 
 % Special case Object to include Bootstrap methods.
-tweak_mixins('Object', _)  -> ['elixir_object_methods'];
-tweak_mixins(Else, Mixins) -> Mixins.
+tweak_mixins('Object') -> ['elixir_object_methods'];
+tweak_mixins(Else)     -> [].
 
 % Wraps the method into a call that will call store_wrapped_method
 % once the method definition is read. The method is compiled into a
@@ -101,7 +102,8 @@ store_wrapped_method(Name, Method) ->
 % Abstract Form that defines these modules.
 build_module_form(Line, Object, Table) ->
   Name = Object#elixir_object.name,
-  Attrs = ets:tab2list(Object#elixir_object.data),
+  {def, AttrTable} = Object#elixir_object.data,
+  Attrs = ets:tab2list(AttrTable),
   Functions = ets:tab2list(Table),
   Transform = fun(X, Acc) -> [{attribute, Line, element(1, X), element(2, X)}|Acc] end,
   Base = lists:foldr(Transform, Functions, Attrs),

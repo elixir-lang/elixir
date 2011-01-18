@@ -14,6 +14,6 @@
 %   2) An #elixir_object record 'parent that represents the parent object (if it can be represented by a constant)
 %   3) A tuple 'mixins containing an ETS table index and a list of mixins
 %   4) A tuple 'protos containing an ETS table index and a list of protos
-%   5) A tuple of pairs containing info for instance variable lookup
+%   5) Data holds the remaining information for the object.
 %
 -record(elixir_object, {name=[], parent=[], mixins=[], protos=[], data=[] }).
