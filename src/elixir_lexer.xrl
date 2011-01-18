@@ -79,7 +79,6 @@ reserved_word('end')       -> true;
 reserved_word('do')        -> true;
 reserved_word('module')    -> true;
 reserved_word('object')    -> true;
-reserved_word('const')     -> true;
 reserved_word('def')       -> true;
 reserved_word('erl')       -> true;
 % reserved_word('nil')     -> true;

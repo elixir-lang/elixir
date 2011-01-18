@@ -4,7 +4,6 @@
 
 % Boot up Elixir setting up tables and loading main files.
 boot() ->
-  elixir_constants:boot(),
   code:ensure_loaded(elixir_object_methods),
   load_core_classes().
 

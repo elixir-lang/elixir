@@ -5,7 +5,6 @@ test() ->
   elixir:boot(),
   eunit:test([
     arithmetic_test,
-    constants_test,
     erlang_call_test,
     function_test,
     match_test,
@@ -18,12 +17,8 @@ run_and_remove(Fun, Modules) ->
   try
     Fun()
   after
-    [remove_module(Module) || Module <- Modules]
+    [code:purge(Module) || Module <- Modules]
   end.
-
-remove_module(Module) ->
-  code:purge(Module),
-  ets:delete(ex_constants, Module).
 
 % Helper to load files
 read_fixture(Filename) ->

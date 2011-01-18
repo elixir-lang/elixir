@@ -5,7 +5,6 @@ Nothing interesting here yet. Try again later.
 # Roadmap
 
 * Improve constant lookup
-* Remove ETS constants
 * Add missing types (tuple, list, string, regexp)
 * Add true, false and conditionals
 * Automatically add Mixin and Proto

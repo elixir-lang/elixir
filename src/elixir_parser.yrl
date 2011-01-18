@@ -43,7 +43,6 @@ Nonterminals
   unary_op
   add_op
   mult_op
-  const_decl
   module_decl
   module_body
   module_body_list
@@ -57,7 +56,7 @@ Nonterminals
 
 Terminals
   punctuated_identifier identifier float integer constant atom
-  module object const 'do' 'end' def eol erl
+  module object 'do' 'end' def eol erl
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';' '@'
   .
 
@@ -85,7 +84,6 @@ decl_list -> decl break decl_list : ['$1'|'$3'].
 % Basic declarations
 decl -> object_decl : '$1'.
 decl -> module_decl : '$1'.
-decl -> const_decl : '$1'.
 decl -> expr : '$1'.
 
 % List of expressions delimited by break
@@ -219,7 +217,6 @@ var -> base_identifier : { var, ?line('$1'), ?chars('$1') }.
 base_identifier -> identifier : '$1'.
 base_identifier -> module : { identifier, ?line('$1'), module }.
 base_identifier -> object : { identifier, ?line('$1'), object }.
-base_identifier -> const  : { identifier, ?line('$1'), const }.
 
 % Commas and break
 comma_separator -> ','     : ','.
@@ -311,10 +308,7 @@ method_ops_identifier -> '/' : '$1'.
 method_ops_identifier -> '@' '+' : { '@+', ?line('$1') }.
 method_ops_identifier -> '@' '-' : { '@-', ?line('$1') }.
 
-% Constant declaration
-const_decl -> const constant match_op expr : build_const_assign('$2', '$3', '$4').
-
-% Prototype declaration
+% Object declaration
 object_decl -> object constant break object_body 'end' : build_object('$2', '$4').
 object_body -> '$empty'  : [{nil, 0}].
 object_body -> decl_list : '$1'.
@@ -357,6 +351,3 @@ build_method_call(Expr, Name, Args) ->
 
 build_erlang_call(Op, Prefix, Suffix, Args) ->
   { erlang_call, ?line(Op), Prefix, Suffix, Args }.
-
-build_const_assign(Left, Op, Right) ->
-  { const_assign, ?line(Op), ?chars(Left), Right }.
