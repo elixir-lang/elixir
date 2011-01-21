@@ -53,4 +53,5 @@ tuple_match_test() ->
   ?assertError({badmatch, _}, elixir:eval("{1, 3, 2} = {1, 2, 3}")).
 
 tuple_match_on_function_test() ->
-  {4, _} = elixir:eval("a = -> ({ 1, 2, x}) x + 1\na({1,2,3})").
+  {4, _} = elixir:eval("a = -> ({ 1, 2, x}) x + 1\na({1,2,3})"),
+  {4, _} = elixir:eval("a = -> ({ -1, 2, x}) x + 1\na({-1,2,3})").

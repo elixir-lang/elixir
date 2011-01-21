@@ -69,8 +69,7 @@ transform({binary_op, Line, Op, Left, Right}, F, S) ->
   ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [transform(Left, F, S), {atom, Line, Op}, Args]);
 
 transform({unary_op, Line, Op, Right}, F, S) ->
-  NewOp = ?ELIXIR_ATOM_CONCAT(['@', Op]),
-  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [transform(Right, F, S), {atom, Line, NewOp}, {nil, Line}]);
+  {op, Line, Op, transform(Right, F, S)};
 
 transform({'fun', Line, Clauses}, F, S) ->
   {'fun', Line, transform(Clauses, F, S)};
