@@ -15,6 +15,7 @@ Nonterminals
   call_exprs _call_exprs
   fun_call_expr _fun_call_expr
   method_call_expr _method_call_expr
+  erlang_call_expr
   min_expr
 
   fun_base
@@ -26,15 +27,18 @@ Nonterminals
   call_args_optional
   fun_args
   fun_args_parens
+  tuple_args
+  tuple
   comma_separator
   body
   stabber
   base_expr
-  erlang_call_expr
   open_paren
   close_paren
   open_bracket
   close_bracket
+  open_curly
+  close_curly
   number
   var
   base_identifier
@@ -57,7 +61,7 @@ Nonterminals
 Terminals
   punctuated_identifier identifier float integer constant atom
   module object 'do' 'end' def eol erl
-  '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';' '@'
+  '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';' '@' '{' '}'
   .
 
 Rootsymbol grammar.
@@ -153,6 +157,7 @@ _unary_expr -> _call_exprs : '$1'.
 % Calls
 _call_exprs -> _fun_call_expr : '$1'.
 _call_exprs -> _method_call_expr : '$1'.
+_call_exprs -> erlang_call_expr : '$1'.
 _call_exprs -> base_expr : '$1'.
 
 % Function call
@@ -167,7 +172,7 @@ _method_call_expr -> _call_exprs '.' method_name : build_method_call('$1', '$3',
 %%% BUILDING BLOCKS
 
 % Base function declarations
-fun_base -> stabber match_args match_expr :
+fun_base -> stabber match_args expr :
   build_fun('$1', build_clause('$1', '$2', ['$3'])).
 
 fun_base -> stabber _expr :
@@ -181,12 +186,10 @@ fun_base -> stabber break body 'end' :
 
 % Args given as match criteria.
 % Used on function declarations and pattern matching.
-match_arg -> var : '$1'.
-match_arg -> atom : '$1'.
 match_args -> open_paren ')' : [].
-match_args -> open_paren match_arg match_args_tail : ['$2'|'$3'].
+match_args -> open_paren expr match_args_tail : ['$2'|'$3'].
 
-match_args_tail -> comma_separator match_arg match_args_tail : ['$2'|'$3'].
+match_args_tail -> comma_separator expr match_args_tail : ['$2'|'$3'].
 match_args_tail -> close_paren : [].
 
 % Args given on method invocations.
@@ -206,6 +209,13 @@ fun_args -> expr comma_separator fun_args : ['$1'|'$3'].
 fun_args_parens -> open_paren ')' : [].
 fun_args_parens -> open_paren fun_args close_paren : '$2'.
 
+% Tuples declaration.
+tuple_args -> expr : ['$1'].
+tuple_args -> expr comma_separator tuple_args : ['$1'|'$3'].
+
+tuple -> open_curly '}' : { tuple, ?line('$1'), [] }.
+tuple -> open_curly tuple_args close_curly : { tuple, ?line('$1'), '$2' }.
+
 % Variables
 var -> base_identifier : { var, ?line('$1'), ?chars('$1') }.
 
@@ -215,30 +225,37 @@ base_identifier -> module : { identifier, ?line('$1'), module }.
 base_identifier -> object : { identifier, ?line('$1'), object }.
 
 % Commas and break
-comma_separator -> ','     : ','.
-comma_separator -> ',' break : ','.
+comma_separator -> ','       : '$1'.
+comma_separator -> ',' break : '$1'.
 
 % Function bodies
 body -> '$empty'  : [{nil, 0}].
 body -> expr_list : '$1'.
 
 % Parens handling
-open_paren -> '('      : '('.
-open_paren -> '(' break  : '('.
-close_paren -> ')'     : ')'.
-close_paren -> break ')' : ')'.
+open_paren -> '('        : '$1'.
+open_paren -> '(' break  : '$1'.
+close_paren -> ')'       : '$1'.
+close_paren -> break ')' : '$2'.
 
 % Bracket handling
-open_bracket -> '['      : '('.
-open_bracket -> '[' break  : '('.
-close_bracket -> ']'     : ')'.
-close_bracket -> break ']' : ')'.
+open_bracket -> '['        : '$1'.
+open_bracket -> '[' break  : '$1'.
+close_bracket -> ']'       : '$1'.
+close_bracket -> break ']' : '$2'.
+
+% Curly brackets handling
+open_curly  -> '{'       : '$1'.
+open_curly  -> '{' break : '$1'.
+close_curly -> '}'       : '$1'.
+close_curly -> break '}' : '$2'.
 
 % Base expressions
 base_expr -> var : '$1'.
 base_expr -> atom : '$1'.
 base_expr -> number : '$1'.
 base_expr -> constant : '$1'.
+base_expr -> tuple : '$1'.
 
 % Erlang calls
 erlang_call_expr -> erl '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').

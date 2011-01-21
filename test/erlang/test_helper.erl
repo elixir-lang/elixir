@@ -1,5 +1,5 @@
 -module(test_helper).
--export([test/0, run_and_remove/2, read_fixture/1]).
+-export([test/0, run_and_remove/2, read_fixture/1, throw_elixir/1, throw_erlang/1]).
 
 test() ->
   elixir:boot(),
@@ -26,3 +26,13 @@ read_fixture(Filename) ->
   Fullpath = filename:join([Dirname, "fixtures", Filename]),
   {ok, Bin} = file:read_file(Fullpath),
   binary_to_list(Bin).
+
+% Throws an error with the Erlang Abstract Form from the Elixir string
+throw_elixir(String) ->
+  erlang:error(io:format("~p~n", [elixir:parse(String)])).
+
+% Throws an error with the Erlang Abstract Form from the Erlang string
+throw_erlang(String) ->
+  {ok, Tokens, _} = erl_scan:string(String),
+  {ok, [Form]} = erl_parse:parse_exprs(Tokens),
+  erlang:error(io:format("~p~n", [Form])).

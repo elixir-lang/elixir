@@ -35,7 +35,21 @@ full_atom_test() ->
   {'foo bar', [{a, 'foo bar'}]} = elixir:eval("a = '\"foo bar\"").
 
 atom_match_test() ->
-  {foo, []} = elixir:eval("'foo = 'foo").
+  {foo, []} = elixir:eval("'foo = 'foo"),
+  ?assertError({badmatch, _}, elixir:eval("'bar = 'foo")).
 
 atom_match_on_function_test() ->
   {3, _} = elixir:eval("a = -> ('foo, x) x + 1\na('foo, 2)").
+
+% Tuples match
+simple_tuple_test() ->
+  {{}, _} = elixir:eval("a = {}"),
+  {{1,2,3}, _} = elixir:eval("a = {1, 2, 3}"),
+  {{1,{2},3}, _} = elixir:eval("a = {1, {2}, 3}").
+
+tuple_match_test() ->
+  {_, _} = elixir:eval("{1,2,3} = {1, 2, 3}"),
+  ?assertError({badmatch, _}, elixir:eval("{1, 3, 2} = {1, 2, 3}")).
+
+tuple_match_on_function_test() ->
+  {4, _} = elixir:eval("a = -> ({ 1, 2, x}) x + 1\na({1,2,3})").

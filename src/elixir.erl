@@ -1,5 +1,5 @@
 -module(elixir).
--export([boot/0, eval/1, eval/2, throw_elixir/1, throw_erlang/1]).
+-export([boot/0, eval/1, eval/2, parse/1]).
 -include("elixir.hrl").
 
 % Boot up Elixir setting up tables and loading main files.
@@ -21,6 +21,7 @@ load_core_classes() ->
   ]).
 
 % Loads a given file
+% TODO Binding here should pass self = Object
 load_file(Filepath) ->
   {ok, Bin} = file:read_file(Filepath),
   eval(binary_to_list(Bin)).
@@ -31,16 +32,6 @@ eval(String) -> eval(String, []).
 eval(String, Binding) ->
   {value, Value, NewBinding} = erl_eval:exprs(parse(String), Binding),
   {Value, NewBinding}.
-
-% Temporary to aid debugging
-throw_elixir(String) ->
-  erlang:error(io:format("~p~n", [parse(String)])).
-
-% Temporary to aid debugging
-throw_erlang(String) ->
-  {ok, Tokens, _} = erl_scan:string(String),
-  {ok, [Form]} = erl_parse:parse_exprs(Tokens),
-  erlang:error(io:format("~p~n", [Form])).
 
 % Parse string and transform tree to Erlang Abstract Form format
 parse(String) ->
@@ -69,6 +60,9 @@ transform({fun_call, Line, Vars, Args }, F, S) ->
 
 transform({match, Line, Left, Right}, F, S) ->
   {match, Line, transform(Left, F, S), transform(Right, F, S)};
+
+transform({tuple, Line, Exprs }, F, S) ->
+  {tuple, Line, [transform(Expr, F, S) || Expr <- Exprs]};
 
 transform({binary_op, Line, Op, Left, Right}, F, S) ->
   Args = { cons, Line, transform(Right, F, S), {nil, Line} },
