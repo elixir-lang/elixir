@@ -55,3 +55,19 @@ tuple_match_test() ->
 tuple_match_on_function_test() ->
   {4, _} = elixir:eval("a = -> ({ 1, 2, x}) x + 1\na({1,2,3})"),
   {4, _} = elixir:eval("a = -> ({ -1, 2, x}) x + 1\na({-1,2,3})").
+
+% Lists match
+simple_list_test() ->
+  {[], _} = elixir:eval("a = []"),
+  {[1,2,3], _} = elixir:eval("a = [1, 2, 3]"),
+  {[1,2,3], _} = elixir:eval("a = [1, 1 + 1, 3]"),
+  {[1,[2],3], _} = elixir:eval("a = [1, [2], 3]"),
+  {[1,{2},3], _} = elixir:eval("a = [1, {2}, 3]").
+
+list_match_test() ->
+  {_, _} = elixir:eval("[1, 2, 3] = [1, 2, 3]"),
+  ?assertError({badmatch, _}, elixir:eval("[1, 3, 2] = [1, 2, 3]")).
+
+list_match_on_function_test() ->
+  {4, _} = elixir:eval("a = -> ([ 1, 2, x]) x + 1\na([1,2,3])"),
+  {4, _} = elixir:eval("a = -> ([ -1, 2, x]) x + 1\na([-1,2,3])").

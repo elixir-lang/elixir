@@ -48,8 +48,7 @@ parse(String) ->
 % Represents a method call. The arguments need to be packed into
 % an array before sending it to dispatch (which has fixed arity).
 transform({method_call, Line, Name, Args, Expr}, F, S) ->
-  Transform = fun(X, Acc) -> {cons, Line, transform(X, F, S), Acc} end,
-  TransformedArgs = lists:foldr(Transform, {nil, Line}, Args),
+  TransformedArgs = transform({list, Line, Args}, F, S),
   ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [transform(Expr, F, S), {atom, Line, Name}, TransformedArgs]);
 
 transform({constant, Line, Name}, F, S) ->
@@ -63,6 +62,10 @@ transform({match, Line, Left, Right}, F, S) ->
 
 transform({tuple, Line, Exprs }, F, S) ->
   {tuple, Line, [transform(Expr, F, S) || Expr <- Exprs]};
+
+transform({list, Line, Exprs }, F, S) ->
+  Transform = fun(X, Acc) -> {cons, Line, transform(X, F, S), Acc} end,
+  lists:foldr(Transform, {nil, Line}, Exprs);
 
 transform({binary_op, Line, Op, Left, Right}, F, S) ->
   Args = { cons, Line, transform(Right, F, S), {nil, Line} },
