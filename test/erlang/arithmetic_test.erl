@@ -52,9 +52,11 @@ integer_with_unary_test() ->
 integer_eol_test() ->
   {8,[]} = elixir:eval("1 + 2\n3 + 5"),
   {8,[]} = elixir:eval("1 + 2\n\n\n3 + 5"),
-  {8,[]} = elixir:eval("1 + 2;\n;;\n;3 + 5"),
+  {8,[]} = elixir:eval("1 + 2;\n\n3 + 5"),
   {8,[]} = elixir:eval("1 + (\n2\n) + 3 + 2"),
-  {8,[]} = elixir:eval("1 + (\n\n  2\n\n) + 3 + 2").
+  {8,[]} = elixir:eval("1 + (\n\n  2\n\n) + 3 + 2"),
+  ?assertError({badmatch, _}, elixir:eval("1 + 2;\n;\n3 + 5")),
+  ?assertError({badmatch, _}, elixir:eval(";1 + 2")).
 
 float_with_parens_and_unary_test() ->
   {-21.0,[]} = elixir:eval("-3.0 * (5 + 2)"),

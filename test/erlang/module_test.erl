@@ -74,6 +74,14 @@ method_invocation_in_module_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
+method_invocation_in_module_with_eol_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; self.mixin self; def foo(); 1 + 2; end; end"),
+    {3,[]} = elixir:eval("Bar.\nfoo")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+
 method_invocation_in_module_with_self_test() ->
   F = fun() ->
     elixir:eval("module Bar; self.mixin self; def foo(); self.bar(1) + 3; end; def bar(x); x + 2; end; end"),
