@@ -40,10 +40,11 @@ Rules.
 \]    : { token, { ']', TokenLine } }.
 =     : { token, { '=', TokenLine } }.
 ;     : { token, { ';', TokenLine } }.
+\:    : { token, { ':', TokenLine } }.
+,     : { token, { ',', TokenLine } }.
+\.    : { token, { '.', TokenLine } }.
+\@    : { token, { '@', TokenLine } }.
 ->    : { token, { '->', TokenLine } }.
-,     : { token, { ',', TokenLine} }.
-\.    : { token, { '.', TokenLine} }.
-\@    : { token, { '@', TokenLine} }.
 
 %% Skip
 {Comment} : skip_token.

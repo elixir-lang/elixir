@@ -5,13 +5,14 @@ Nothing interesting here yet. Try again later.
 # Roadmap
 
 * Improve constant lookup
-* Add missing types (tuple, list, string, regexp)
+* Add missing types (tuple, list, dict, string, regexp)
 * Add true, false and conditionals
 * Automatically add Mixin and Proto
 * Object instantiation and instance vars
-* Implicit self
-* Mixin/Proto should propagate in the chain
+* Implicit self (and then be able to mark methods as private)
+* Allow classes to be reopened
 * Basic inheritance
 * Improve match
 * Improve STDLIB
-* Add nil (or use empty lists?)
+* Extending builtin types (like inheriting from Integer)
+* Allow function declarations inside object but automatically wrap them into a module

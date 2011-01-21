@@ -52,32 +52,14 @@ function_assignment_with_args_test() ->
   3 = Res3(1,2).
 
 function_nested_assignment_test() ->
-  {_, [{a, Res1}]} = elixir:eval("a = -> -> 1 + 2"),
-  ResF1 = Res1(),
-  3 = ResF1(),
-  {_, [{a, Res2}]} = elixir:eval("a = do -> 1 + 2"),
-  ResF2 = Res2(),
-  3 = ResF2(),
-  {_, [{a, Res3}]} = elixir:eval("a = -> do 1 + 2"),
-  ResF3 = Res3(),
-  3 = ResF3(),
-  {_, [{a, Res4}]} = elixir:eval("a = do -> 1 + 2"),
-  ResF4 = Res4(),
-  3 = ResF4().
+  ?assertError({badmatch, _}, elixir:eval("a = -> -> 1 + 2")),
+  ?assertError({badmatch, _}, elixir:eval("a = -> ->\n1 + 2\nend")).
 
 function_assignment_new_line_test() ->
   {_, [{a, Res1}]} = elixir:eval("a = ->\n1 + 2\nend"),
   3 = Res1(),
   {_, [{a, Res2}]} = elixir:eval("a = do\n1 + 2\nend"),
   3 = Res2().
-
-function_nested_assignment_new_line_test() ->
-  {_, [{a, Res1}]} = elixir:eval("a = -> ->\n1 + 2\nend "),
-  ResF1 = Res1(),
-  3 = ResF1(),
-  {_, [{a, Res2}]} = elixir:eval("a = do\n-> 1 + 2\nend "),
-  ResF2 = Res2(),
-  3 = ResF2().
 
 function_as_clojure_test() ->
   {_, [{a, Res1}|_]} = elixir:eval("b = 1; a = -> b + 2"),

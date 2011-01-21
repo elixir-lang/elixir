@@ -6,9 +6,9 @@ Nonterminals
   expr_list
   decl_list
   decl
+  fun_expr
   expr _expr
   match_expr _match_expr
-  fun_expr _fun_expr
   add_expr _add_expr
   mult_expr _mult_expr
   unary_expr _unary_expr
@@ -137,12 +137,8 @@ min_expr -> open_paren expr close_paren : '$2'.
 _expr -> _match_expr : '$1'.
 
 % Assignment
-_match_expr -> _match_expr match_op _fun_expr : build_match('$1', '$2', '$3').
-_match_expr -> _fun_expr : '$1'.
-
-% Function definitions
-_fun_expr -> fun_base : '$1'.
-_fun_expr -> _add_expr : '$1'.
+_match_expr -> _match_expr match_op _add_expr : build_match('$1', '$2', '$3').
+_match_expr -> _add_expr : '$1'.
 
 % Arithmetic operations
 _add_expr -> _add_expr add_op _mult_expr : build_binary_op('$1', '$2', '$3').
