@@ -79,7 +79,7 @@ transform({clauses, Clauses}, F, S) ->
   {clauses, [transform(Clause, F, S) || Clause <- Clauses]};
 
 transform({clause, Line, Args, Guards, Exprs}, F, S) ->
-  {clause, Line, Args, Guards, [transform(Expr, F, S) || Expr <- Exprs]};
+  {clause, Line, [transform(Arg, F, S) || Arg <- Args], Guards, [transform(Expr, F, S) || Expr <- Exprs]};
 
 transform({object, Line, Name, Exprs}, F, S) ->
   Scope = elixir_module:scope_for(S, Name),

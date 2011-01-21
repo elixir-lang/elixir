@@ -45,6 +45,7 @@ atom_match_on_function_test() ->
 simple_tuple_test() ->
   {{}, _} = elixir:eval("a = {}"),
   {{1,2,3}, _} = elixir:eval("a = {1, 2, 3}"),
+  {{1,2,3}, _} = elixir:eval("a = {1, 1 + 1, 3}"),
   {{1,{2},3}, _} = elixir:eval("a = {1, {2}, 3}").
 
 tuple_match_test() ->
