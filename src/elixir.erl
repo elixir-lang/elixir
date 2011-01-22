@@ -88,10 +88,29 @@ transform({constant, Line, Name}, V, S) ->
 %   (a = -> (x) x + 2)(b = 1)
 %
 % So we need to take both into account.
+%
+% Also, there are a few cases where a function may be ambigous with a method call:
+%
+%    module Foo
+%      def bar; 1; end
+%      def baz; bar(); end
+%    end
+%
+% This is parsed as a function call but is properly disambiguated to a method
+% call in this method.
 transform({fun_call, Line, Var, Args }, V, S) ->
-  { TArgs, VA } = transform_tree(Args, V, S),
-  { TVar, VV }  = transform(Var, V, S),
-  { {call, Line, TVar, TArgs}, umerge([V, VA, VV]) };
+  case Var of
+    { identifier, _, Name } -> Method = not lists:member(Name, V);
+    Name -> Method = false
+  end,
+
+  case Method of
+    true -> transform({method_call, Line, Name, Args, {var, Line, self}}, V, S);
+    false ->
+      { TArgs, VA } = transform_tree(Args, V, S),
+      { TVar, VV }  = transform(Var, V, S),
+      { {call, Line, TVar, TArgs}, umerge([V, VA, VV]) }
+  end;
 
 % Handle match declarations.
 %
@@ -247,6 +266,6 @@ transform(Expr, V, S) -> { Expr, V }.
 % It does not accummulate variables because variables in one
 % clause do not affect the other. Each clause starts with an
 % empty variable set as there is no binding.
-pack_method_clause({clause, Line, Args, Guards, Exprs}, V, S) -> 
+pack_method_clause({clause, Line, Args, Guards, Exprs}, V, S) ->
   Clause = {clause, Line, [{var, Line, self}|Args], Guards, Exprs},
   transform(Clause, [self], S).

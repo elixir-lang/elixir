@@ -9,10 +9,9 @@ Nothing interesting here yet. Try again later.
 * Add true, false and conditionals
 * Automatically add Mixin and Proto
 * Object instantiation and instance vars
-* Implicit self (and then be able to mark methods as private)
+* Allow methods to be private
 * Allow classes to be reopened
 * Basic inheritance
-* Improve match
 * Improve STDLIB
 * Extending builtin types (like inheriting from Integer)
 * Allow function declarations inside object but automatically wrap them into a module

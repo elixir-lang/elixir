@@ -134,6 +134,27 @@ implicit_self_gives_higher_preference_to_variables_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
+implicit_self_gives_higher_preference_to_function_calls_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; foo = -> 3; foo(); end\nend"),
+    {3,[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+implicit_self_call_inside_a_function_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; baz = -> foo; baz(); end\nend"),
+    {1,[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+implicit_self_gives_higher_preference_to_function_calls_unless_no_function_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; foo(); end\nend"),
+    {1,[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
 % Module lookup
 % cannot_store_already_defined_constants_test() ->
 %   F = fun() ->

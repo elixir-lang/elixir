@@ -134,7 +134,6 @@ call_exprs -> erlang_call_expr : '$1'.
 call_exprs -> min_expr : '$1'.
 
 % Function call
-% TODO This will be ambigous in the future with implicit self.
 fun_call_expr -> min_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
@@ -175,11 +174,9 @@ _call_exprs -> erlang_call_expr : '$1'.
 _call_exprs -> base_expr : '$1'.
 
 % Function call
-% TODO This will be ambigous in the future with implicit self.
 _fun_call_expr -> base_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
-% TODO Test method calls inside inline functions ->
 _method_call_expr -> _call_exprs '.' method_name call_args_optional : build_method_call('$1', '$3', '$4').
 _method_call_expr -> _call_exprs '.' method_name : build_method_call('$1', '$3', []).
 _method_call_expr -> implicit_method_name comma_expr : build_method_call({var, ?line('$1'), self}, '$1', '$2').
