@@ -106,3 +106,6 @@ function_calls_with_multiple_expressions_test() ->
 
 function_calls_with_multiple_args_with_line_breaks_test() ->
   {5, _} = elixir:eval("a = do (a, b) a + b; a(\n3,\n2\n)").
+
+function_calls_with_parenthesis_test() ->
+  {3, [{a,_},{b,1}]} = elixir:eval("(a = -> (x) x + 2)(b = 1)").

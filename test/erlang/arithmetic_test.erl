@@ -62,3 +62,6 @@ float_with_parens_and_unary_test() ->
   {-21.0,[]} = elixir:eval("-3.0 * (5 + 2)"),
   {25.0,[]}  = elixir:eval("(2 + 3.0) * 5"),
   {0.25,[]}  = elixir:eval("4 / (11.0 + 5)").
+
+sum_as_explicit_method_call_test() ->
+  {3, [{a,1},{b,2}]} = elixir:eval("(a = 1).+(b = 2)").
