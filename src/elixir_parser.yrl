@@ -56,7 +56,7 @@ Nonterminals
 
 Terminals
   punctuated_identifier identifier float integer constant atom
-  module object 'do' 'end' def eol erl
+  module object 'do' 'end' def eol Erlang
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';' '@' '{' '}'
   .
 
@@ -255,8 +255,8 @@ base_expr -> tuple : '$1'.
 base_expr -> list : '$1'.
 
 % Erlang calls
-erlang_call_expr -> erl '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
-erlang_call_expr -> erl '.' base_identifier call_args_optional : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
+erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
+erlang_call_expr -> Erlang '.' base_identifier call_args_optional : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
 
 % Stab syntax
 stabber -> '->' : '$1'.

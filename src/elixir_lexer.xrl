@@ -25,9 +25,9 @@ Rules.
 \'{DoubleQuoted} : build_quoted_atom(TokenChars, TokenLine, TokenLen). % '
 
 %% Constant and identifier names
-{UpperCase}({IdentifierBase}|::)* : build_constant(TokenLine, TokenChars).
-({LowerCase}|_){IdentifierBase}*  : build_identifier(TokenLine, TokenChars).
-({LowerCase}|_){IdentifierBase}*[?!] : build_punctuated_identifier(TokenLine, TokenChars).
+{UpperCase}({IdentifierBase}|::)*    : build(constant, TokenLine, TokenChars).
+({LowerCase}|_){IdentifierBase}*     : build(identifier, TokenLine, TokenChars).
+({LowerCase}|_){IdentifierBase}*[?!] : build(punctuated_identifier, TokenLine, TokenChars).
 
 %% Operators
 \+    : { token, { '+', TokenLine } }.
@@ -57,33 +57,27 @@ Rules.
 
 Erlang code.
 
-build_constant(Line, Chars) ->
-  { token, { constant, Line, list_to_atom(Chars) } }.
-
-build_identifier(Line, Chars) ->
+build(Kind, Line, Chars) ->
   Atom = list_to_atom(Chars),
   case reserved_word(Atom) of
-      true -> {token, {Atom, Line}};
-      false -> {token, {identifier, Line, Atom}}
+    true ->  { token, {Atom, Line} };
+    false -> { token, {Kind, Line, Atom} }
   end.
-
-build_punctuated_identifier(Line, Chars) ->
-  {token, {punctuated_identifier, Line, list_to_atom(Chars)}}.
 
 build_atom(Chars, Line, Len) ->
   String = lists:sublist(Chars, 2, Len - 1),
-  {token, {atom, Line, list_to_atom(String)}}.
+  { token, { atom, Line, list_to_atom(String) } }.
 
 build_quoted_atom(Chars, Line, Len) ->
   String = lists:sublist(Chars, 2, Len - 2),
   build_atom(String, Line, Len - 2).
 
+reserved_word('Erlang')    -> true;
 reserved_word('end')       -> true;
 reserved_word('do')        -> true;
 reserved_word('module')    -> true;
 reserved_word('object')    -> true;
 reserved_word('def')       -> true;
-reserved_word('erl')       -> true;
 % reserved_word('nil')     -> true;
 % reserved_word('true')    -> true;
 % reserved_word('false')   -> true;
