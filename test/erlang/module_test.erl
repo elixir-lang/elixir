@@ -67,6 +67,8 @@ nested_module_name_with_methods_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar::Baz']).
 
+% Method invocation
+
 method_invocation_in_module_test() ->
   F = fun() ->
     elixir:eval("module Bar; self.mixin self; def foo(); 1 + 2; end; end"),
@@ -81,7 +83,6 @@ method_invocation_in_module_with_eol_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-
 method_invocation_in_module_with_self_test() ->
   F = fun() ->
     elixir:eval("module Bar; self.mixin self; def foo(); self.bar(1) + 3; end; def bar(x); x + 2; end; end"),
@@ -93,6 +94,43 @@ method_invocation_in_module_with_self_without_parens_args_test() ->
   F = fun() ->
     elixir:eval("module Bar\n def foo(x)\n x + 1\n end\n self.mixin self\n end"),
     {7,[]} = elixir:eval("Bar.foo 2 * 3")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+% Method invocation with implicit self
+
+implicit_self_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; foo; end\nend"),
+    {1,[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+implicit_self_with_args_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\nmixin self\ndef foo(x);x + 1;end\ndef bar; foo 2; end\nend"),
+    {3,[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+implicit_self_with_method_call_arg_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\nmixin self\ndef foo(x);x + 1;end\ndef bar; foo baz; end\ndef baz; 2; end\nend"),
+    {3,[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+implicit_self_with_method_call_args_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\nmixin self\ndef foo(x,y);x + y;end\ndef bar; foo baz, baz; end\ndef baz; 2; end\nend"),
+    {4,[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+implicit_self_gives_higher_preference_to_variables_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; foo = 3; foo; end\nend"),
+    {3,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
