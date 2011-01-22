@@ -1,5 +1,5 @@
 -module(elixir).
--export([boot/0, eval/1, eval/2, parse/1]).
+-export([boot/0, eval/1, eval/2, parse/2]).
 -include("elixir.hrl").
 -import(lists, [umerge/1, umerge/2]).
 
@@ -31,17 +31,25 @@ load_file(Filepath) ->
 eval(String) -> eval(String, []).
 
 eval(String, Binding) ->
-  {value, Value, NewBinding} = erl_eval:exprs(parse(String), Binding),
+  {value, Value, NewBinding} = erl_eval:exprs(parse(String, Binding), Binding),
   {Value, NewBinding}.
 
 % Parse string and transform tree to Erlang Abstract Form format
-parse(String) ->
+parse(String, Binding) ->
 	{ok, Tokens, _} = elixir_lexer:string(String),
 	{ok, Forms} = elixir_parser:parse(Tokens),
-	{NewForms, _ } = transform_tree(Forms, [self], []),
+	Vars = lists:usort([self|proplists:get_keys(Binding)]),
+	{NewForms, _ } = transform_tree(Forms, Vars, {false,[]}),
 	NewForms.
 
-% Transform a tree given the function.
+% Transform the given tree Forms.
+%
+% V is a list of variables that were bound (used for arranging
+% implicit self) and S is the scope. The scope is a tuple with
+% two elements. The first is a boolean that says if we are in a
+% scope where new variables can be defined (i.e. the left side
+% of a match or function clauses) and the second the nested
+% module name.
 transform_tree(Forms, V, S) ->
   Transform = fun(X, Acc) -> transform(X, Acc, S) end,
   lists:mapfoldl(Transform, V, Forms).
@@ -95,7 +103,8 @@ transform({fun_call, Line, Var, Args }, V, S) ->
 %
 % So we need to take both into account.
 transform({match, Line, Left, Right}, V, S) ->
-  { TLeft, VL } = transform(Left, V, S),
+  { Var, Mod } = S,
+  { TLeft, VL } = transform(Left, V, { true, Mod }),
   { TRight, VR } = transform(Right, V, S),
   { {match, Line, TLeft, TRight }, umerge([V, VL, VR]) };
 
@@ -160,37 +169,10 @@ transform({'fun', Line, {clauses, Clauses}}, V, S) ->
 % into account. Clauses do not return variables list as second argument
 % because variables in one clause should not affect the other.
 transform({clause, Line, Args, Guards, Exprs}, V, S) ->
-  { TArgs, V1 } = transform_tree(Args, V, S),
+  { Var, Mod } = S,
+  { TArgs, V1 } = transform_tree(Args, V, { true, Mod }),
   { TExprs, _ } = transform_tree(Exprs, umerge(V, V1), S),
   { clause, Line, TArgs, Guards, TExprs };
-
-% Handle objects declarations.
-%
-% = Variables
-%
-% Objects do not share binding with the previous context, so
-% previous variable declarations do not affect a module and
-% variables declared in a module do not leak outside its
-% context. The only variable available in the module by default
-% is self.
-transform({object, Line, Name, Exprs}, V, S) ->
-  Scope = elixir_module:scope_for(S, Name),
-  { TExprs, _ } = transform_tree(Exprs, [self], Scope),
-  { elixir_module:transform(object, Line, Scope, TExprs), V };
-
-% Handle module declarations.
-%
-% = Variables
-%
-% Modules do not share binding with the previous context, so
-% previous variable declarations do not affect a module and
-% variables declared in a module do not leak outside its
-% context. The only variable available in the module by default
-% is self.
-transform({module, Line, Name, Exprs}, V, S) ->
-  Scope = elixir_module:scope_for(S, Name),
-  { TExprs, _ } = transform_tree(Exprs, [self], Scope),
-  { elixir_module:transform(module, Line, Scope, TExprs), V };
 
 % Handles erlang function calls in the following format:
 %
@@ -204,12 +186,6 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, V, S) ->
   { TArgs, V1 } = transform_tree(Args, V, S),
   { ?ELIXIR_WRAP_CALL(Line, Prefix, Suffix, TArgs), umerge(V, V1) };
 
-% TODO This cannot be tested yet, because in theory the parser will
-% never allow us to have this behavior. In any case, we will need
-% to wrap it in the future by Elixir exception handling.
-transform({method, Line, Name, Arity, Clauses}, F, []) ->
-  erlang:error("Method definition outside the scope.");
-
 % Method definitions are never executed by Elixir runtime. Their
 % abstract form is stored into an ETS table and is just added to
 % an Erlang module when they are compiled.
@@ -217,12 +193,49 @@ transform({method, Line, Name, Arity, Clauses}, F, []) ->
 % = Variables
 %
 % Variables are handled in each function clause.
+%
+% TODO Test that a method declaration outside a module raises an error.
 transform({method, Line, Name, Arity, Clauses}, V, S) ->
+  {Var, Module} = S,
   TClauses = [pack_method_clause(Clause, V, S) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
-  { elixir_module:wrap_method_definition(S, Line, Method), V };
+  { elixir_module:wrap_method_definition(Module, Line, Method), V };
+
+% Handles identifiers, i.e. method calls or variable calls, allowing
+% implicit self.
+%
+% = Variables
+%
+% If the scope has true for variables, it means new variables can be
+% defined. In such cases, variables are added to the list if they don't
+% exist yet. If we cannot define a variable and it does not belong to
+% the list, make it a method call.
+transform({identifier, Line, Name}, V, S) ->
+  { Var, Mod } = S,
+  case { Var, lists:member(Name, V) } of
+    { _, true }      -> { {var, Line, Name}, V };
+    { true, false }  -> { {var, Line, Name}, lists:sort([Name|V]) };
+    { false, false } -> transform({method_call, Line, Name, [], {var, Line, self}}, V, S)
+  end;
+
+% Handle module/object declarations.
+%
+% = Variables
+%
+% Objects do not share binding with the previous context, so
+% previous variable declarations do not affect a module and
+% variables declared in a module do not leak outside its
+% context. The only variable available in the module by default
+% is self.
+transform({Decl, Line, Name, Exprs}, V, S) when Decl == object; Decl == module ->
+  {Var, Current} = S,
+  NewName = elixir_module:scope_for(Current, Name),
+  Scope = { Var, NewName },
+  { TExprs, _ } = transform_tree(Exprs, [self], Scope),
+  { elixir_module:transform(Decl, Line, NewName, TExprs), V };
 
 % Match all other expressions.
+% TODO Expand instead of catch all.
 transform(Expr, V, S) -> { Expr, V }.
 
 % Pack method clause in a format that receives Elixir metadata
@@ -236,4 +249,4 @@ transform(Expr, V, S) -> { Expr, V }.
 % empty variable set as there is no binding.
 pack_method_clause({clause, Line, Args, Guards, Exprs}, V, S) -> 
   Clause = {clause, Line, [{var, Line, self}|Args], Guards, Exprs},
-  transform(Clause, [], S).
+  transform(Clause, [self], S).

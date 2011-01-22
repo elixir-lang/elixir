@@ -35,7 +35,6 @@ Nonterminals
   open_curly
   close_curly
   number
-  var
   base_identifier
   break
   match_op
@@ -205,9 +204,6 @@ tuple -> open_curly comma_expr close_curly : { tuple, ?line('$1'), '$2' }.
 list -> open_bracket ']' : { list, ?line('$1'), [] }.
 list -> open_bracket comma_expr close_bracket : { list, ?line('$1'), '$2' }.
 
-% Variables
-var -> base_identifier : { var, ?line('$1'), ?chars('$1') }.
-
 % Base identifiers. Convert keywords to basic words.
 base_identifier -> identifier : '$1'.
 base_identifier -> module : { identifier, ?line('$1'), module }.
@@ -240,7 +236,7 @@ close_curly -> '}'     : '$1'.
 close_curly -> eol '}' : '$2'.
 
 % Base expressions
-base_expr -> var : '$1'.
+base_expr -> base_identifier : '$1'.
 base_expr -> atom : '$1'.
 base_expr -> number : '$1'.
 base_expr -> constant : '$1'.
@@ -312,8 +308,6 @@ method_ops_identifier -> '+' : '$1'.
 method_ops_identifier -> '-' : '$1'.
 method_ops_identifier -> '*' : '$1'.
 method_ops_identifier -> '/' : '$1'.
-method_ops_identifier -> '@' '+' : { '@+', ?line('$1') }.
-method_ops_identifier -> '@' '-' : { '@-', ?line('$1') }.
 
 % Object declaration
 object_decl -> object constant break object_body 'end' : build_object('$2', '$4').

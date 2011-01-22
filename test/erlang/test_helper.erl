@@ -29,7 +29,7 @@ read_fixture(Filename) ->
 
 % Throws an error with the Erlang Abstract Form from the Elixir string
 throw_elixir(String) ->
-  erlang:error(io:format("~p~n", [elixir:parse(String)])).
+  erlang:error(io:format("~p~n", [elixir:parse(String, [])])).
 
 % Throws an error with the Erlang Abstract Form from the Erlang string
 throw_erlang(String) ->

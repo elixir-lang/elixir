@@ -3,7 +3,7 @@
 
 module_body_is_executable_test() -> 
   F = fun() ->
-    ?assertError({unbound_var, a}, elixir:eval("module Foo; a; end")),
+    ?assertError({nomethod, _}, elixir:eval("module Foo; a; end")),
     elixir:eval("module Bar; 1 + 2; end")
   end,
   test_helper:run_and_remove(F, ['Bar']).
