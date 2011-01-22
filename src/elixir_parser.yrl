@@ -48,6 +48,7 @@ Nonterminals
   module_body_decl
   method_decl
   method_name
+  implicit_method_name
   method_ops_identifier
   object_decl
   object_body
@@ -61,6 +62,16 @@ Terminals
 
 Rootsymbol grammar.
 
+% Solve implicit self conflicts. Imagine the following:
+%
+%   x + 1
+%
+% It can either be treated as x(+1) or (x) + 1. That said,
+% we give some precedence to base_expr so the second one
+% is chosen.
+Nonassoc 100 base_identifier.
+
+% Solve nested call_args conflicts
 Nonassoc 100 ','.
 Nonassoc 100 ')'.
 Nonassoc 100 eol.
@@ -129,6 +140,7 @@ fun_call_expr -> min_expr call_args_parens : build_fun_call('$1', '$2').
 % Method call
 method_call_expr -> call_exprs dot_eol method_name call_args_optional : build_method_call('$1', '$3', '$4').
 method_call_expr -> call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
+method_call_expr -> implicit_method_name comma_expr : build_method_call({var, ?line('$1'), self}, '$1', '$2').
 
 % Minimum expressions
 min_expr -> base_expr : '$1'.
@@ -170,6 +182,7 @@ _fun_call_expr -> base_expr call_args_parens : build_fun_call('$1', '$2').
 % TODO Test method calls inside inline functions ->
 _method_call_expr -> _call_exprs '.' method_name call_args_optional : build_method_call('$1', '$3', '$4').
 _method_call_expr -> _call_exprs '.' method_name : build_method_call('$1', '$3', []).
+_method_call_expr -> implicit_method_name comma_expr : build_method_call({var, ?line('$1'), self}, '$1', '$2').
 
 %%% BUILDING BLOCKS
 
@@ -204,7 +217,8 @@ tuple -> open_curly comma_expr close_curly : { tuple, ?line('$1'), '$2' }.
 list -> open_bracket ']' : { list, ?line('$1'), [] }.
 list -> open_bracket comma_expr close_bracket : { list, ?line('$1'), '$2' }.
 
-% Base identifiers. Convert keywords to basic words.
+% Base identifiers. Some keywords are converted to base identifier and
+% are used as variable names. Notice they are not used as method names.
 base_identifier -> identifier : '$1'.
 base_identifier -> module : { identifier, ?line('$1'), module }.
 base_identifier -> object : { identifier, ?line('$1'), object }.
@@ -300,8 +314,12 @@ method_decl -> def method_name break body 'end' :
 method_decl -> def method_name call_args_parens break body 'end' :
   build_method('$2', '$3', build_clause('$2', '$3', '$5')).
 
-method_name -> base_identifier : '$1'.
-method_name -> punctuated_identifier : '$1'.
+% Method names do not inherit from base_identifier (which include object/
+% module and other key words) otherwise it cause conflicts.
+implicit_method_name -> identifier : '$1'.
+implicit_method_name -> punctuated_identifier : '$1'.
+
+method_name -> implicit_method_name : '$1'.
 method_name -> method_ops_identifier : { identifier, ?line('$1'), ?op('$1') }.
 
 method_ops_identifier -> '+' : '$1'.

@@ -25,6 +25,6 @@ object Object
     end
   end
 
-  self.mixin Object::Methods
-  self.proto Object::Methods
+  mixin Object::Methods
+  proto Object::Methods
 end

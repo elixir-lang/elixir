@@ -1,11 +1,12 @@
 object Float
+  proto Numeric
+
   module Mixin
   end
 
   module Proto
   end
 
-  self.mixin Float::Mixin
-  self.proto Float::Proto
-  self.proto Numeric
+  mixin Float::Mixin
+  proto Float::Proto
 end
