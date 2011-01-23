@@ -14,6 +14,9 @@ object_ancestors_test() ->
 object_dispatch_chain_test() ->
   {['Object::Methods'], []} = elixir:eval("Object.dispatch_chain").
 
+default_self_is_object_test() ->
+  {['Object::Methods'], []} = elixir:eval("mixins").
+
 integer_mixins_test() ->
   {['Integer::Mixin'], []} = elixir:eval("Integer.mixins").
 

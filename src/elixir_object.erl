@@ -18,7 +18,7 @@ scope_for([], Name) -> Name;
 scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, '::', Name]).
 
 % Generates module transform. It wraps the module definition into
-% a function that will be invoked by compile passing self as argument.
+% a function that will be invoked by compile/4 passing self as argument.
 % We need to wrap them into anonymous functions so nested module
 % definitions have the variable self shadowed.
 transform(Kind, Line, Name, Body) ->
