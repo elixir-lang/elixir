@@ -150,8 +150,13 @@ transform({tuple, Line, Exprs }, V, S) ->
 % Variables defined inside these expressions needs to be added to the var list.
 transform({list, Line, Exprs }, V, S) ->
   { TExprs, VE } = transform_tree(Exprs, V, S),
-  Transform = fun(Expr, Acc) -> {cons, Line, Expr, Acc} end,
-  { lists:foldr(Transform, {nil, Line}, TExprs), umerge(V, VE) };
+  Join = fun(Expr, Acc) -> {cons, Line, Expr, Acc} end,
+  { lists:foldr(Join, {nil, Line}, TExprs), umerge(V, VE) };
+
+% Handle dict declarations.
+transform({dict, Line, Exprs }, V, S) ->
+  { List, NV } = transform({list, Line, Exprs }, V, S),
+  { ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]), NV };
 
 % Handle binary operations.
 %

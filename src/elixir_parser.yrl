@@ -24,6 +24,8 @@ Nonterminals
   call_args_optional
   tuple
   list
+  colon_comma_expr
+  dict
   comma_separator
   body
   stabber
@@ -56,7 +58,8 @@ Nonterminals
 Terminals
   punctuated_identifier identifier float integer constant atom
   module object 'do' 'end' def eol Erlang
-  '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']' ';' '@' '{' '}'
+  '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
+  ':' ';' '@' '{' '}'
   .
 
 Rootsymbol grammar.
@@ -213,6 +216,13 @@ tuple -> open_curly comma_expr close_curly : { tuple, ?line('$1'), '$2' }.
 list -> open_bracket ']' : { list, ?line('$1'), [] }.
 list -> open_bracket comma_expr close_bracket : { list, ?line('$1'), '$2' }.
 
+% Dicts declarations
+colon_comma_expr -> expr ':' expr : [build_dict_tuple('$1', '$3')].
+colon_comma_expr -> expr ':' expr comma_separator colon_comma_expr : [build_dict_tuple('$1', '$3')|'$5'].
+
+dict -> open_curly ':' '}' : { dict, ?line('$1'), [] }.
+dict -> open_curly colon_comma_expr close_curly : { dict, ?line('$1'), '$2' }.
+
 % Base identifiers. Some keywords are converted to base identifier and
 % are used as variable names. Notice they are not used as method names.
 base_identifier -> identifier : '$1'.
@@ -252,6 +262,7 @@ base_expr -> number : '$1'.
 base_expr -> constant : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> list : '$1'.
+base_expr -> dict : '$1'.
 
 % Erlang calls
 erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
@@ -363,3 +374,6 @@ build_method_call(Expr, Name, Args) ->
 
 build_erlang_call(Op, Prefix, Suffix, Args) ->
   { erlang_call, ?line(Op), Prefix, Suffix, Args }.
+
+build_dict_tuple(Key, Value) ->
+  { tuple, ?line(Key), [Key, Value] }.

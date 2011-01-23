@@ -9,7 +9,8 @@ test() ->
     function_test,
     object_test,
     match_test,
-    module_test
+    module_test,
+    structures_test
   ]).
 
 % Execute a piece of code and purge given modules right after
