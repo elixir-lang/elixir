@@ -5,9 +5,8 @@ Nothing interesting here yet. Try again later.
 # Roadmap
 
 * Improve constant lookup
-* Add missing types (tuple, list, dict, string, regexp)
+* Add missing types (dict, string, regexp)
 * Add true, false and conditionals
-* Automatically add Mixin and Proto
 * Object instantiation and instance vars
 * Allow methods to be private
 * Allow classes to be reopened

@@ -6,7 +6,4 @@ object Float
 
   module Proto
   end
-
-  mixin Float::Mixin
-  proto Float::Proto
 end

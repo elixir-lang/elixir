@@ -6,7 +6,4 @@ object Integer
 
   module Proto
   end
-
-  mixin Integer::Mixin
-  proto Integer::Proto
 end

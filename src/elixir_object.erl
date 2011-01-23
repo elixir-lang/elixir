@@ -1,5 +1,5 @@
 -module(elixir_object).
--export([build/1, scope_for/2, transform/4, compile/4, wrap_method_definition/3, store_wrapped_method/2]).
+-export([build/1, scope_for/2, transform/4, compile/5, wrap_method_definition/3, store_wrapped_method/2]).
 -include("elixir.hrl").
 
 % Build an object from the module name.
@@ -18,19 +18,19 @@ scope_for([], Name) -> Name;
 scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, '::', Name]).
 
 % Generates module transform. It wraps the module definition into
-% a function that will be invoked by compile/4 passing self as argument.
+% a function that will be invoked by compile/5 passing self as argument.
 % We need to wrap them into anonymous functions so nested module
 % definitions have the variable self shadowed.
 transform(Kind, Line, Name, Body) ->
   Clause = { clause, Line, [{var, Line, self}], [], Body },
   Fun = { 'fun', Line, { clauses, [Clause] } },
-  Args = [{atom, Line, Kind}, {integer, Line, Line}, {atom, Line, Name}, Fun],
+  Args = [{atom, Line, Kind}, {integer, Line, Line}, {var, Line, self}, {atom, Line, Name}, Fun],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 % Receive the module function to be invoked, invoke it passing
 % self and then compile the added methods into an Erlang module
 % and loaded it in the VM.
-compile(Kind, Line, Name, Fun) ->
+compile(Kind, Line, Current, Name, Fun) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(MethodTable, [bag, named_table, private]),
@@ -47,11 +47,25 @@ compile(Kind, Line, Name, Fun) ->
     Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name), protos=Protos, data={def, AttributeTable}},
     Result = Fun(Object),
     load_module(build_module_form(Line, Object, MethodTable)),
+    add_implicit_mixins(Kind, Current, Name),
     Result
   after
     ets:delete(MethodTable),
     ets:delete(AttributeTable)
   end.
+
+% Check if the module currently defined is inside an object
+% definition an automatically include it.
+add_implicit_mixins(module, #elixir_object{name=Name} = Self, ModuleName) ->
+  Proto = lists:concat([Name, '::', 'Proto']),
+  Mixin = lists:concat([Name, '::', 'Mixin']),
+  case atom_to_list(ModuleName) of
+    Proto -> elixir_object_methods:proto(Self, build(ModuleName));
+    Mixin -> elixir_object_methods:mixin(Self, build(ModuleName));
+    Else  -> []
+  end;
+
+add_implicit_mixins(_, _, _) -> [].
 
 % Returns the parent object based on the declaration.
 default_parent('Object', _)  -> [];
