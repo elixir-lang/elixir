@@ -8,6 +8,6 @@
 % an error if the constant does not exist.
 lookup(Name) ->
   case code:ensure_loaded(Name) of
-    {module, Name} -> elixir_module:build_object(Name);
+    {module, Name} -> elixir_object:build(Name);
     _ -> ?ELIXIR_ERROR(badarg, "No constant ~p defined", [Name])
   end.

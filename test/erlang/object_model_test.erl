@@ -66,4 +66,4 @@ add_a_mixin_protos_to_dispatch_chain_test() ->
 %       elixir:eval("module Foo; end\nmodule Bar; proto Foo; end\nmodule Baz; mixin Bar; end\nBaz.dispatch_chain")
 %   end,
 %   test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
-% 
+%

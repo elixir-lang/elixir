@@ -1,9 +1,9 @@
--module(elixir_module).
--export([build_object/1, scope_for/2, transform/4, compile/4, wrap_method_definition/3, store_wrapped_method/2]).
+-module(elixir_object).
+-export([build/1, scope_for/2, transform/4, compile/4, wrap_method_definition/3, store_wrapped_method/2]).
 -include("elixir.hrl").
 
 % Build an object from the module name.
-build_object(Name) ->
+build(Name) ->
   Module = Name:module_info(attributes),
   Mixins = proplists:get_value(mixins, Module),
   Protos = proplists:get_value(protos, Module),
@@ -25,7 +25,7 @@ transform(Kind, Line, Name, Body) ->
   Clause = { clause, Line, [{var, Line, self}], [], Body },
   Fun = { 'fun', Line, { clauses, [Clause] } },
   Args = [{atom, Line, Kind}, {integer, Line, Line}, {atom, Line, Name}, Fun],
-  ?ELIXIR_WRAP_CALL(Line, elixir_module, compile, Args).
+  ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 % Receive the module function to be invoked, invoke it passing
 % self and then compile the added methods into an Erlang module
@@ -90,7 +90,7 @@ tweak_mixins(Else)     -> [].
 wrap_method_definition(Name, Line, Method) ->
   Meta = erl_syntax:revert(erl_syntax:abstract(Method)),
   Content = [{atom, Line, Name}, Meta],
-  ?ELIXIR_WRAP_CALL(Line, elixir_module, store_wrapped_method, Content).
+  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
 
 % Gets a module stored in the CompiledTable with Index and
 % move it to the AddedTable.

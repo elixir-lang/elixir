@@ -218,7 +218,7 @@ transform({method, Line, Name, Arity, Clauses}, V, S) ->
   {Var, Module} = S,
   TClauses = [pack_method_clause(Clause, V, S) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
-  { elixir_module:wrap_method_definition(Module, Line, Method), V };
+  { elixir_object:wrap_method_definition(Module, Line, Method), V };
 
 % Handles identifiers, i.e. method calls or variable calls, allowing
 % implicit self.
@@ -248,10 +248,10 @@ transform({identifier, Line, Name}, V, S) ->
 % is self.
 transform({Decl, Line, Name, Exprs}, V, S) when Decl == object; Decl == module ->
   {Var, Current} = S,
-  NewName = elixir_module:scope_for(Current, Name),
+  NewName = elixir_object:scope_for(Current, Name),
   Scope = { Var, NewName },
   { TExprs, _ } = transform_tree(Exprs, [self], Scope),
-  { elixir_module:transform(Decl, Line, NewName, TExprs), V };
+  { elixir_object:transform(Decl, Line, NewName, TExprs), V };
 
 % Match all other expressions.
 % TODO Expand instead of catch all.
