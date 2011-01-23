@@ -2,7 +2,10 @@
 -export([build/1, scope_for/2, transform/4, compile/5, wrap_method_definition/3, store_wrapped_method/2]).
 -include("elixir.hrl").
 
-% Build an object from the module name.
+%% EXTERNAL API
+
+% Build an object from the module name. Used by elixir_constants to
+% build objects from their compiled modules.
 build(Name) ->
   Module = Name:module_info(attributes),
   Mixins = proplists:get_value(mixins, Module),
@@ -12,6 +15,42 @@ build(Name) ->
     Else -> hd(Else)
   end,
   #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos}.
+
+%% TEMPLATE BUILDING FOR MODULE COMPILATION
+
+% Build a template of an object or module used on compilation.
+build_template(Kind, Name) ->
+  AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
+  ets:new(AttributeTable, [set, named_table, private]),
+
+  Parent = default_parent(Name, Kind),
+  Mixins = default_mixins(Name, Kind),
+  Protos = default_protos(Name, Kind),
+  ets:insert(AttributeTable, { parent, Parent }),
+  ets:insert(AttributeTable, { mixins, Mixins }),
+  ets:insert(AttributeTable, { protos, Protos }),
+
+  Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name), protos=Protos, data={def, AttributeTable}},
+  { Object, AttributeTable }.
+
+% Returns the parent object based on the declaration.
+default_parent('Object', _)  -> [];
+default_parent(Name, object) -> 'Object';
+default_parent(Name, module) -> 'Module'.
+
+% Default mixins based on the declaration type.
+default_mixins(Name, module) -> [];
+default_mixins(Name, object) -> [].
+
+% Default prototypes. Modules have themselves as the default prototype.
+default_protos(Name, module) -> [Name];
+default_protos(Name, object) -> [].
+
+% Special case Object to include Bootstrap methods.
+tweak_mixins('Object') -> ['elixir_object_methods'];
+tweak_mixins(Else)     -> [].
+
+%% USED ON TRANSFORMATION AND MODULE COMPILATION
 
 % Returns the new module name based on the previous scope.
 scope_for([], Name) -> Name;
@@ -32,31 +71,41 @@ transform(Kind, Line, Name, Body) ->
 % and loaded it in the VM.
 compile(Kind, Line, Current, Name, Fun) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
-  AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(MethodTable, [bag, named_table, private]),
-  ets:new(AttributeTable, [set, named_table, private]),
-
-  Parent = default_parent(Name, Kind),
-  Mixins = default_mixins(Name, Kind),
-  Protos = default_protos(Name, Kind),
-  ets:insert(AttributeTable, { parent, Parent }),
-  ets:insert(AttributeTable, { mixins, Mixins }),
-  ets:insert(AttributeTable, { protos, Protos }),
+  { Object, AttributeTable } = build_template(Kind, Name),
 
   try
-    Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name), protos=Protos, data={def, AttributeTable}},
     Result = Fun(Object),
-    load_module(build_module_form(Line, Object, MethodTable)),
-    add_implicit_mixins(Kind, Current, Name),
+    compile5(Kind, Line, Current, Object, MethodTable),
     Result
   after
     ets:delete(MethodTable),
     ets:delete(AttributeTable)
   end.
 
+% Handle compilation logic specific to objects or modules.
+% TODO Allow object reopening.
+% TODO Do not allow module reopening.
+
+compile5(object, Line, Current, Object, MethodTable) ->
+  case ets:first(MethodTable) of
+    '$end_of_table' -> [];
+    Else ->
+      Name  = Object#elixir_object.name,
+      Proto = build_template(module, ?ELIXIR_ATOM_CONCAT([Name, '::', 'Proto'])),
+      compile5(modile, Line, Object, Proto, MethodTable)
+  end,
+  load_form(build_erlang_form(Line, Object));
+
+compile5(module, Line, Current, Object, MethodTable) ->
+  Name = Object#elixir_object.name,
+  Functions = ets:tab2list(MethodTable),
+  load_form(build_erlang_form(Line, Object, Functions)),
+  add_implicit_mixins(Current, Name).
+
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
-add_implicit_mixins(module, #elixir_object{name=Name} = Self, ModuleName) ->
+add_implicit_mixins(#elixir_object{name=Name} = Self, ModuleName) ->
   Proto = lists:concat([Name, '::', 'Proto']),
   Mixin = lists:concat([Name, '::', 'Mixin']),
   case atom_to_list(ModuleName) of
@@ -65,24 +114,7 @@ add_implicit_mixins(module, #elixir_object{name=Name} = Self, ModuleName) ->
     Else  -> []
   end;
 
-add_implicit_mixins(_, _, _) -> [].
-
-% Returns the parent object based on the declaration.
-default_parent('Object', _)  -> [];
-default_parent(Name, object) -> 'Object';
-default_parent(Name, module) -> 'Module'.
-
-% Default mixins based on the declaration type.
-default_mixins(Name, module) -> [];
-default_mixins(Name, object) -> [].
-
-% Default prototypes. Modules have themselves as the default prototype.
-default_protos(Name, module) -> [Name];
-default_protos(Name, object) -> [].
-
-% Special case Object to include Bootstrap methods.
-tweak_mixins('Object') -> ['elixir_object_methods'];
-tweak_mixins(Else)     -> [].
+add_implicit_mixins(_, _) -> [].
 
 % Wraps the method into a call that will call store_wrapped_method
 % once the method definition is read. The method is compiled into a
@@ -112,20 +144,22 @@ store_wrapped_method(Name, Method) ->
   TempTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:insert(TempTable, Method).
 
-% Gets all the functions in the AddedTable and generate Erlang
-% Abstract Form that defines these modules.
-build_module_form(Line, Object, Table) ->
+% Retrieve all attributes in the attribute table and generate
+% an Erlang Abstract Form that defines an Erlang module.
+build_erlang_form(Line, Object) ->
+  build_erlang_form(Line, Object, []).
+
+build_erlang_form(Line, Object, Functions) ->
   Name = Object#elixir_object.name,
   {def, AttrTable} = Object#elixir_object.data,
   Attrs = ets:tab2list(AttrTable),
-  Functions = ets:tab2list(Table),
   Transform = fun(X, Acc) -> [{attribute, Line, element(1, X), element(2, X)}|Acc] end,
   Base = lists:foldr(Transform, Functions, Attrs),
   [{attribute, Line, module, Name}, {attribute, Line, compile, [export_all]} | Base].
 
-% Compile and load module.
+% Compile and load given forms as an Erlang module.
 % TODO Check warnings?
-load_module(Forms) ->
+load_form(Forms) ->
   case compile:forms(Forms) of
     {ok,ModuleName,Binary}           -> code:load_binary(ModuleName, "nofile", Binary);
     {ok,ModuleName,Binary,_Warnings} -> code:load_binary(ModuleName, "nofile", Binary)
