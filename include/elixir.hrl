@@ -8,15 +8,6 @@
 
 -define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
 
-% Retrieve values from module names.
-
--define(ELIXIR_MOD_PROTOS(Name), proplists:get_value(protos, Name:module_info(attributes))).
--define(ELIXIR_MOD_MIXINS(Name), proplists:get_value(mixins, Name:module_info(attributes))).
--define(ELIXIR_MOD_PARENT(Name), case proplists:get_value(parent, Name:module_info(attributes)) of
-  []   -> Parent = [];
-  Else -> Parent = hd(Else)
-end).
-
 % A representation for Elixir Object. It contains:
 %
 %   1) An Atom 'name that represents the constant assigned to the object
