@@ -71,10 +71,21 @@ transform_tree(Forms, V, S) ->
 %
 %   (a = 1).+(b = 2)
 %
+%
+% = new
+%
+% This method special cases new by wrapping all arguments into an array.
+% This is required so Object.new() implementation can handle all arguments.
+% This case could also be implemented in the dispatcher, but would affect
+% performance.
 transform({method_call, Line, Name, Args, Expr}, V, S) ->
   { TArgs, VA } = transform({list, Line, Args}, V, S),
+  case Name of
+    new -> FArgs = {cons, Line, TArgs, {nil, Line}};
+    _   -> FArgs = TArgs
+  end,
   { TExpr, VE } = transform(Expr, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TExpr, {atom, Line, Name}, TArgs]), umerge3(V,VA,VE) };
+  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TExpr, {atom, Line, Name}, FArgs]), umerge3(V,VA,VE) };
 
 % Reference to a constant (that should then be loaded).
 %

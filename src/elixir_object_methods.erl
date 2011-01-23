@@ -1,13 +1,13 @@
 % Holds all methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, proto/2, new/1, name/1, parent/1, mixins/1, protos/1, ancestors/1, dispatch_chain/1]).
+-export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, ancestors/1, dispatch_chain/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
 
 % TODO Disable .new call on native types
-new(#elixir_object{name=Name, protos=Protos} = Self) ->
+new(#elixir_object{name=Name, protos=Protos} = Self, Args) ->
   Parent = case Name of
     [] -> Self;
     _  -> Name

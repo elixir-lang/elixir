@@ -1,7 +1,7 @@
 object Object
   module Methods
-    def new
-      Erlang.elixir_object_methods.new(self)
+    def new(args)
+      Erlang.elixir_object_methods.new(self, args)
     end
 
     def mixin(module)
