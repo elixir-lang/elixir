@@ -12,7 +12,9 @@ new(#elixir_object{name=Name, protos=Protos} = Self, Args) ->
     [] -> Self;
     _  -> Name
   end,
-  #elixir_object{name=[], parent=Parent, mixins=Protos, protos=[], data={}}.
+  Object = #elixir_object{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
+  Data = elixir_dispatch:dispatch(Object, constructor, Args),
+  Object#elixir_object{data=Data}.
 
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
 mixin(Self, Value) -> prepend_as(Self, mixins, Value).

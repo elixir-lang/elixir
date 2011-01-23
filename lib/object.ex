@@ -35,6 +35,10 @@ object Object
     def __dispatch__
       Erlang.elixir_object_methods.dispatch_chain(self)
     end
+
+    def constructor
+      {:}
+    end
   end
 
   mixin Object::Methods
