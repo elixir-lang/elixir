@@ -42,16 +42,15 @@ Nonterminals
   add_op
   mult_op
   dot_eol
+  object_decl
   module_decl
-  module_body
-  module_body_list
-  module_body_decl
+  objmod_body
+  objmod_body_list
+  objmod_body_decl
   method_decl
   method_name
   implicit_method_name
   method_ops_identifier
-  object_decl
-  object_body
   .
 
 Terminals
@@ -290,19 +289,21 @@ mult_op -> '/' : '$1'.
 dot_eol -> '.'     : '$1'.
 dot_eol -> '.' eol : '$1'.
 
-% Module declaration
-module_decl -> module constant break module_body 'end' : build_module('$2', '$4').
-module_body -> '$empty' : [{nil, 0}].
-module_body -> module_body_list : '$1'.
+% Object/Module declaration
+module_decl -> module constant break objmod_body 'end' : build_module('$2', '$4').
+object_decl -> object constant break objmod_body 'end' : build_object('$2', '$4').
 
-module_body_list -> eol : [].
-module_body_list -> module_body_decl : ['$1'].
-module_body_list -> module_body_decl break : ['$1'].
-module_body_list -> eol module_body_list : '$2'.
-module_body_list -> module_body_decl break module_body_list : ['$1'|'$3'].
+objmod_body -> '$empty' : [{nil, 0}].
+objmod_body -> objmod_body_list : '$1'.
 
-module_body_decl -> decl : '$1'.
-module_body_decl -> method_decl : '$1'.
+objmod_body_list -> eol : [].
+objmod_body_list -> objmod_body_decl : ['$1'].
+objmod_body_list -> objmod_body_decl break : ['$1'].
+objmod_body_list -> eol objmod_body_list : '$2'.
+objmod_body_list -> objmod_body_decl break objmod_body_list : ['$1'|'$3'].
+
+objmod_body_decl -> decl : '$1'.
+objmod_body_decl -> method_decl : '$1'.
 
 % Method declarations
 method_decl -> def method_name break body 'end' :
@@ -323,11 +324,6 @@ method_ops_identifier -> '+' : '$1'.
 method_ops_identifier -> '-' : '$1'.
 method_ops_identifier -> '*' : '$1'.
 method_ops_identifier -> '/' : '$1'.
-
-% Object declaration
-object_decl -> object constant break object_body 'end' : build_object('$2', '$4').
-object_body -> '$empty'  : [{nil, 0}].
-object_body -> decl_list : '$1'.
 
 Erlang code.
 

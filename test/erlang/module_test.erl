@@ -164,4 +164,4 @@ implicit_self_gives_higher_preference_to_function_calls_unless_no_function_test(
 %   test_helper:run_and_remove(F, ['Foo']).
 
 cannot_lookup_not_stored_constants_test() ->
-  ?assertError({badarg, "No constant 'Foo' defined" }, elixir:eval("Foo")).
+  ?assertError({badarg, "No constant 'FooBarBaz' defined" }, elixir:eval("FooBarBaz")).

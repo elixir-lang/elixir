@@ -92,8 +92,8 @@ compile5(object, Line, Current, Object, MethodTable) ->
     '$end_of_table' -> [];
     Else ->
       Name  = Object#elixir_object.name,
-      Proto = build_template(module, ?ELIXIR_ATOM_CONCAT([Name, '::', 'Proto'])),
-      compile5(modile, Line, Object, Proto, MethodTable)
+      { Proto, _ } = build_template(module, ?ELIXIR_ATOM_CONCAT([Name, '::', 'Proto'])),
+      compile5(module, Line, Object, Proto, MethodTable)
   end,
   load_form(build_erlang_form(Line, Object));
 

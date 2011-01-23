@@ -1,5 +1,5 @@
 % Holds all bootstraping assertions.
--module(object_model_test).
+-module(object_test).
 -include_lib("eunit/include/eunit.hrl").
 
 object_mixins_test() ->
@@ -40,6 +40,16 @@ integer_instance_ancestors_test() ->
 
 integer_instance_dispatch_chain_test() ->
   {['Integer::Proto', 'Numeric', 'Object::Methods'], []} = elixir:eval("1.dispatch_chain").
+
+%% Implicit methods
+implicit_methods_are_compiled_to_proto_module_test() ->
+  F = fun() ->
+    elixir:eval("object Bar\ndef foo;1;end\nend"),
+    % TODO We need instantiation to handle this one
+    % {1,[]} = elixir:eval("Bar.new.foo"),
+    {['Bar::Proto'],[]} = elixir:eval("Bar.protos")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
 
 %% Others
 
