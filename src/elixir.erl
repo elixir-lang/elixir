@@ -149,11 +149,15 @@ transform({tuple, Line, Exprs }, V, S) ->
 % Each expression in the list can contain a match expression.
 % Variables defined inside these expressions needs to be added to the var list.
 transform({list, Line, Exprs }, V, S) ->
-  { TExprs, VE } = transform_tree(Exprs, V, S),
-  Join = fun(Expr, Acc) -> {cons, Line, Expr, Acc} end,
-  { lists:foldr(Join, {nil, Line}, TExprs), umerge(V, VE) };
+  { TExprs, VE } = build_list(Exprs, Line, V, S),
+  { TExprs, umerge(V, VE) };
 
-% Handle dict declarations.
+% Handle dict declarations. It simply delegates to list to build a list
+% of args that is dispatched to dict:from_list/1.
+%
+% = Variables
+%
+% See list.
 transform({dict, Line, Exprs }, V, S) ->
   { List, NV } = transform({list, Line, Exprs }, V, S),
   { ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]), NV };
@@ -279,3 +283,15 @@ transform(Expr, V, S) -> { Expr, V }.
 pack_method_clause({clause, Line, Args, Guards, Exprs}, V, S) ->
   Clause = {clause, Line, [{var, Line, self}|Args], Guards, Exprs},
   transform(Clause, [self], S).
+
+% Build a list transforming each expression and accumulating
+% vars in one pass. It uses tail-recursive form.
+build_list(Exprs, Line, V, S) ->
+  build_list(lists:reverse(Exprs), Line, V, S, { nil, Line }).
+
+build_list([], Line, V, S, Acc) ->
+  { Acc, V };
+
+build_list([H|T], Line, V, S, Acc) ->
+  { Expr, NV } = transform(H, V, S),
+  build_list(T, Line, NV, S, { cons, Line, Expr, Acc }).
