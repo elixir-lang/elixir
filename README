@@ -4,14 +4,14 @@ Nothing interesting here yet. Try again later.
 
 # Roadmap
 
-* Improve constant lookup
+* Add instance vars
+* Add true, false, if/else, case/when
 * Add missing types (dict, string, regexp)
-* Add true, false and conditionals
-* Object instantiation and instance vars
-* Allow methods to be private
 * Allow classes to be reopened
 * Add inheritance
 * Improve STDLIB
-* Extending builtin types (like inheriting from Integer)
 * Add JIT on module compilation
+* Allow methods to be private
+* Extending builtin types (like inheriting from Integer)
 * Add method cache table
+* Improve constant lookup

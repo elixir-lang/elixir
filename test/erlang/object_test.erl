@@ -63,8 +63,7 @@ integer_instance_dispatch_chain_test() ->
 implicit_methods_are_compiled_to_proto_module_test() ->
   F = fun() ->
     elixir:eval("object Bar\ndef foo;1;end\nend"),
-    % TODO We need instantiation to handle this one
-    % {1,[]} = elixir:eval("Bar.new.foo"),
+    {1,[]} = elixir:eval("Bar.new.foo"),
     {['Bar::Proto'],[]} = elixir:eval("Bar.__protos__")
   end,
   test_helper:run_and_remove(F, ['Bar']).
