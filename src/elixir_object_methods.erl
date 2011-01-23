@@ -13,9 +13,40 @@ mixins(Self) -> object_mixins(Self).
 protos(Self) -> object_protos(Self).
 
 % TODO Only allow modules to be proto/mixed in.
-prepend_as(#elixir_object{data={def, Table}}, Kind, Value) -> 
-  [{_, Data}] = ets:lookup(Table, Kind),
-  ets:insert(Table, {Kind, lists:append(Value#elixir_object.protos, Data)}).
+prepend_as(#elixir_object{} = Self, Kind, Value) -> 
+  Name         = Self#elixir_object.name,
+  {def, Table} = Self#elixir_object.data,
+  [{_, Data}]  = ets:lookup(Table, Kind),
+  List         = Value#elixir_object.protos,
+
+  % If we are adding prototypes and the current name is
+  % in the list of protos, this means we are adding a
+  % proto to a module and we need to ensure all added modules
+  % will come after the module name in the proto list.
+  case { Kind, lists:member(Name, Data) } of
+    { protos, true } ->
+      { Before, After } = lists:splitwith(fun(X) -> X /= Name end, Data),
+      Final = umerge(List, lists:delete(Name, After)),
+      Updated = umerge(Before, umerge([Name], Final));
+    Else ->
+      Updated = umerge(List, Data)
+  end,
+
+  ets:insert(Table, {Kind, Updated}).
+
+% Merge two lists taking into account uniqueness.
+umerge(List, Data) ->
+  umerge2(lists:reverse(List), Data).
+  
+umerge2([], Data) ->
+  Data;
+
+umerge2([H|T], Data) ->
+  case lists:member(H, Data) of
+    true  -> New = Data;
+    false -> New = [H|Data]
+  end,
+  umerge(T, New).
 
 % Returns all the methods used when dispatching the object.
 % It contains all mixins from the parents and the current object protos.

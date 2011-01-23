@@ -1,7 +1,7 @@
 -module(elixir).
 -export([boot/0, eval/1, eval/2, parse/2]).
 -include("elixir.hrl").
--import(lists, [umerge/1, umerge/2]).
+-import(lists, [umerge/2, umerge3/3]).
 
 % Boot up Elixir setting up tables and loading main files.
 boot() ->
@@ -69,7 +69,7 @@ transform_tree(Forms, V, S) ->
 transform({method_call, Line, Name, Args, Expr}, V, S) ->
   { TArgs, VA } = transform({list, Line, Args}, V, S),
   { TExpr, VE } = transform(Expr, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TExpr, {atom, Line, Name}, TArgs]), umerge([V,VA,VE]) };
+  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TExpr, {atom, Line, Name}, TArgs]), umerge3(V,VA,VE) };
 
 % Reference to a constant (that should then be loaded).
 %
@@ -109,7 +109,7 @@ transform({fun_call, Line, Var, Args }, V, S) ->
     false ->
       { TArgs, VA } = transform_tree(Args, V, S),
       { TVar, VV }  = transform(Var, V, S),
-      { {call, Line, TVar, TArgs}, umerge([V, VA, VV]) }
+      { {call, Line, TVar, TArgs}, umerge3(V, VA, VV) }
   end;
 
 % Handle match declarations.
@@ -125,7 +125,7 @@ transform({match, Line, Left, Right}, V, S) ->
   { Var, Mod } = S,
   { TLeft, VL } = transform(Left, V, { true, Mod }),
   { TRight, VR } = transform(Right, V, S),
-  { {match, Line, TLeft, TRight }, umerge([V, VL, VR]) };
+  { {match, Line, TLeft, TRight }, umerge3(V, VL, VR) };
 
 % Handle tuple declarations.
 %
@@ -158,7 +158,7 @@ transform({binary_op, Line, Op, Left, Right}, V, S) ->
   { TLeft, VL } = transform(Left, V, S),
   { TRight, VR } = transform(Right, V, S),
   Args = { cons, Line, TRight, {nil, Line} },
-  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TLeft, {atom, Line, Op}, Args]), umerge([V, VL, VR]) };
+  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TLeft, {atom, Line, Op}, Args]), umerge3(V, VL, VR) };
 
 % Handle unary operations.
 %
