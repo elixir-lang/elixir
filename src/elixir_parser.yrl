@@ -60,6 +60,7 @@ Nonterminals
 
 Terminals
   punctuated_identifier identifier float integer constant atom
+  string interpolated_string
   module object 'do' 'end' def eol Erlang
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}'
@@ -273,6 +274,8 @@ close_curly -> eol '}' : '$2'.
 
 % Base expressions
 base_expr -> base_identifier : '$1'.
+base_expr -> string : '$1'.
+base_expr -> interpolated_string : '$1'.
 base_expr -> ivar : '$1'.
 base_expr -> atom : '$1'.
 base_expr -> number : '$1'.

@@ -1,0 +1,3 @@
+-module(elixir_string).
+-export([]).
+-include("elixir.hrl").

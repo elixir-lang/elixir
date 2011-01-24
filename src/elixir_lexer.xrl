@@ -11,7 +11,8 @@ UpperCase = [A-Z]
 LowerCase = [a-z]
 Whitespace = [\s]
 IdentifierBase = ({UpperCase}|{LowerCase}|{Digit}|_)
-DoubleQuoted = "[^\"\\n]*"
+InterpolatedString = "[^\"\\n]*#{.*}[^\"\\n]*"
+String = "([^\"\\n]*)"
 Comment = %.*
 
 Rules.
@@ -20,9 +21,14 @@ Rules.
 {Digit}+\.{Digit}+ : { token, { float, TokenLine, list_to_float(TokenChars) } }.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
+%% Strings
+{InterpolatedString} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen).
+{String} : build_string(string, TokenChars, TokenLine, TokenLen).
+
 %% Atoms
+%% TODO Allow interpolated atoms
 \'({UpperCase}|{LowerCase}|_){IdentifierBase}* : build_atom(TokenChars, TokenLine, TokenLen). % '
-\'{DoubleQuoted} : build_quoted_atom(TokenChars, TokenLine, TokenLen). % '
+\'{String} : build_quoted_atom(TokenChars, TokenLine, TokenLen). % '
 
 %% Constant and identifier names
 {UpperCase}({IdentifierBase}|::)*    : build(constant, TokenLine, TokenChars).
@@ -64,6 +70,35 @@ build(Kind, Line, Chars) ->
     true ->  { token, {Atom, Line} };
     false -> { token, {Kind, Line, Atom} }
   end.
+
+build_string(Kind, Chars, Line, Len) ->
+  String = unescape_string(lists:sublist(Chars, 2, Len - 2)), 
+  {token, {Kind, Line, String}}.
+
+unescape_string(String) -> unescape_string(String, []).
+unescape_string([], Output) -> lists:reverse(Output);
+
+unescape_string([$\\, Escaped | Rest], Output) ->
+  Char = case Escaped of
+    $\\ -> $\\;
+    $/  -> $/; 
+    $\" -> $\";
+    $\' -> $\';
+    $b  -> $\b;
+    $d  -> $\d;
+    $e  -> $\e;
+    $f  -> $\f;
+    $n  -> $\n;
+    $r  -> $\r;
+    $s  -> $\s;
+    $t  -> $\t;
+    $v  -> $\v;
+    _   -> throw({error, {"unrecognized escape sequence: ", [$\\, Escaped]}})
+  end,
+  unescape_string(Rest, [Char|Output]);
+
+unescape_string([Char|Rest], Output) ->
+  unescape_string(Rest, [Char|Output]).
 
 build_atom(Chars, Line, Len) ->
   String = lists:sublist(Chars, 2, Len - 1),
