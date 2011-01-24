@@ -58,3 +58,10 @@ string_without_interpolation_and_escaped_test() ->
 
 invalid_string_interpolation_test() ->
   ?assertError({badarg, "Unexpected end of string, expected }"}, elixir:eval("\"f#{{}o\"")).
+
+strings_are_utf8_chars_test() ->
+  F = fun() ->
+    test_helper:load_fixture("utf8.ex"),
+    {10,[]} = elixir:eval("Foo.length")
+  end,
+  test_helper:run_and_remove(F, ['Foo']).

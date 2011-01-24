@@ -1,5 +1,5 @@
 -module(elixir).
--export([boot/0, eval/1, eval/2, parse/2]).
+-export([boot/0, eval/1, eval/2, parse/2, load_file/2]).
 -include("elixir.hrl").
 
 % Boot up Elixir setting up tables and loading main files.
@@ -24,8 +24,16 @@ load_core_classes() ->
 
 % Loads a given file
 load_file(Filepath, Bindings) ->
-  {ok, Bin} = file:read_file(Filepath),
-  eval(binary_to_list(Bin), Bindings).
+  {ok, Device} = file:open(Filepath, [read, unicode]),
+  String = read_line(Device, []),
+  eval(String, Bindings).
+
+% Read each line as UTF8.
+read_line(Device, Accum) ->
+  case io:get_line(Device, []) of
+    eof  -> file:close(Device), lists:flatten(lists:reverse(Accum));
+    Line -> read_line(Device, [Line|Accum])
+  end.
 
 % Evaluates a string
 eval(String) -> eval(String, []).

@@ -4,9 +4,10 @@ Nothing interesting here yet. Try again later.
 
 # Roadmap
 
+* Remove need for mixin self
 * Add true, false, if/else, case/when
 * Add interpolation to regexp and atoms
-* Add missing types (string, regexp)
+* Add missing types (regexp)
 * Allow classes to be reopened
 * Add inheritance
 * Improve STDLIB
