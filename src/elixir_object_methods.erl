@@ -1,7 +1,7 @@
 % Holds all methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, ancestors/1, dispatch_chain/1]).
+-export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, get_ivar/2, ancestors/1, dispatch_chain/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -25,6 +25,15 @@ name(Self)   -> object_name(Self).
 parent(Self) -> object_parent(Self).
 mixins(Self) -> object_mixins(Self).
 protos(Self) -> object_protos(Self).
+
+get_ivar(#elixir_object{data=Data}, Name) -> 
+  case dict:find(Name, Data) of
+    { ok, Value } -> Value;
+    error -> []
+  end;
+
+get_ivar(Self, Name) -> % Native types do not have instance variables.
+  [].
 
 % Returns all the methods used when dispatching the object.
 % It contains all mixins from the parents and the current object protos.

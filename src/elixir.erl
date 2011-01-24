@@ -59,6 +59,23 @@ transform_tree(Forms, V, S) ->
   Transform = fun(X, Acc) -> transform(X, Acc, S) end,
   lists:mapfoldl(Transform, V, Forms).
 
+% Handles identifiers, i.e. method calls or variable calls, allowing
+% implicit self.
+%
+% = Variables
+%
+% If the scope has true for variables, it means new variables can be
+% defined. In such cases, variables are added to the list if they don't
+% exist yet. If we cannot define a variable and it does not belong to
+% the list, make it a method call.
+transform({identifier, Line, Name}, V, S) ->
+  { Var, Mod } = S,
+  case { Var, lists:member(Name, V) } of
+    { _, true }      -> { {var, Line, Name}, V };
+    { true, false }  -> { {var, Line, Name}, lists:sort([Name|V]) };
+    { false, false } -> transform({method_call, Line, Name, [], {var, Line, self}}, V, S)
+  end;
+
 % A transformation receives a node with a variables list (V),
 % a scope (S) and transforms it to Erlang Abstract Form.
 
@@ -95,38 +112,13 @@ transform({method_call, Line, Name, Args, Expr}, V, S) ->
 transform({constant, Line, Name}, V, S) ->
   { ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Name}]), V };
 
-% Handle function calls.
+% Reference to an instance variable (that should then be loaded).
 %
 % = Variables
 %
-% Both the left and right side can contain variable declarations, as below:
-%
-%   (a = -> (x) x + 2)(b = 1)
-%
-% So we need to take both into account.
-%
-% Also, there are a few cases where a function may be ambigous with a method call:
-%
-%    module Foo
-%      def bar; 1; end
-%      def baz; bar(); end
-%    end
-%
-% This is parsed as a function call but is properly disambiguated to a method
-% call in this method.
-transform({fun_call, Line, Var, Args }, V, S) ->
-  case Var of
-    { identifier, _, Name } -> Method = not lists:member(Name, V);
-    Name -> Method = false
-  end,
-
-  case Method of
-    true -> transform({method_call, Line, Name, Args, {var, Line, self}}, V, S);
-    false ->
-      { TArgs, VA } = transform_tree(Args, V, S),
-      { TVar, VV }  = transform(Var, V, S),
-      { {call, Line, TVar, TArgs}, umerge3(V, VA, VV) }
-  end;
+% It has no affect on variables scope.
+transform({ivar, Line, Name}, V, S) ->
+  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, [{var, Line, self}, {atom, Line, Name}]), V };
 
 % Handle match declarations.
 %
@@ -245,21 +237,37 @@ transform({method, Line, Name, Arity, Clauses}, V, S) ->
   Method = {function, Line, Name, Arity + 1, TClauses},
   { elixir_object:wrap_method_definition(Module, Line, Method), V };
 
-% Handles identifiers, i.e. method calls or variable calls, allowing
-% implicit self.
+% Handle function calls.
 %
 % = Variables
 %
-% If the scope has true for variables, it means new variables can be
-% defined. In such cases, variables are added to the list if they don't
-% exist yet. If we cannot define a variable and it does not belong to
-% the list, make it a method call.
-transform({identifier, Line, Name}, V, S) ->
-  { Var, Mod } = S,
-  case { Var, lists:member(Name, V) } of
-    { _, true }      -> { {var, Line, Name}, V };
-    { true, false }  -> { {var, Line, Name}, lists:sort([Name|V]) };
-    { false, false } -> transform({method_call, Line, Name, [], {var, Line, self}}, V, S)
+% Both the left and right side can contain variable declarations, as below:
+%
+%   (a = -> (x) x + 2)(b = 1)
+%
+% So we need to take both into account.
+%
+% Also, there are a few cases where a function may be ambigous with a method call:
+%
+%    module Foo
+%      def bar; 1; end
+%      def baz; bar(); end
+%    end
+%
+% This is parsed as a function call but is properly disambiguated to a method
+% call in this method.
+transform({fun_call, Line, Var, Args }, V, S) ->
+  case Var of
+    { identifier, _, Name } -> Method = not lists:member(Name, V);
+    Name -> Method = false
+  end,
+
+  case Method of
+    true -> transform({method_call, Line, Name, Args, {var, Line, self}}, V, S);
+    false ->
+      { TArgs, VA } = transform_tree(Args, V, S),
+      { TVar, VV }  = transform(Var, V, S),
+      { {call, Line, TVar, TArgs}, umerge3(V, VA, VV) }
   end;
 
 % Handle module/object declarations.

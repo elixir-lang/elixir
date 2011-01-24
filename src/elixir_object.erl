@@ -66,38 +66,48 @@ transform(Kind, Line, Name, Body) ->
   Args = [{atom, Line, Kind}, {integer, Line, Line}, {var, Line, self}, {atom, Line, Name}, Fun],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
-% Receive the module function to be invoked, invoke it passing
-% self and then compile the added methods into an Erlang module
-% and loaded it in the VM.
+% Inicial step of tempalte compilation. Generate a method
+% table and pass it forward to the next compile method.
 compile(Kind, Line, Current, Name, Fun) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:new(MethodTable, [bag, named_table, private]),
+
+  try
+    compile(Kind, Line, Current, Name, Fun, MethodTable)
+  after
+    ets:delete(MethodTable)
+  end.
+
+% Receive the module function to be invoked, invoke it passing
+% self and then compile the added methods into an Erlang module
+% and loaded it in the VM.
+compile(Kind, Line, Current, Name, Fun, MethodTable) ->
   { Object, AttributeTable } = build_template(Kind, Name),
 
   try
-    Result = Fun(Object),
-    compile5(Kind, Line, Current, Object, MethodTable),
+    Result = case Fun of
+      [] -> [];
+      _  -> Fun(Object)
+    end,
+    compile_kind(Kind, Line, Current, Object, MethodTable),
     Result
   after
-    ets:delete(MethodTable),
     ets:delete(AttributeTable)
   end.
 
 % Handle compilation logic specific to objects or modules.
 % TODO Allow object reopening.
 % TODO Do not allow module reopening.
-
-compile5(object, Line, Current, Object, MethodTable) ->
+compile_kind(object, Line, Current, Object, MethodTable) ->
   case ets:first(MethodTable) of
     '$end_of_table' -> [];
-    Else ->
-      Name  = Object#elixir_object.name,
-      { Proto, _ } = build_template(module, ?ELIXIR_ATOM_CONCAT([Name, '::', 'Proto'])),
-      compile5(module, Line, Object, Proto, MethodTable)
+    _ ->
+      Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object.name, '::', 'Proto']),
+      compile(module, Line, Object, Name, [], MethodTable)
   end,
   load_form(build_erlang_form(Line, Object));
 
-compile5(module, Line, Current, Object, MethodTable) ->
+compile_kind(module, Line, Current, Object, MethodTable) ->
   Name = Object#elixir_object.name,
   Functions = ets:tab2list(MethodTable),
   load_form(build_erlang_form(Line, Object, Functions)),

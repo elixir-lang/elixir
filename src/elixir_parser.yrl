@@ -38,6 +38,7 @@ Nonterminals
   close_curly
   number
   base_identifier
+  ivar
   break
   match_op
   unary_op
@@ -229,6 +230,9 @@ base_identifier -> identifier : '$1'.
 base_identifier -> module : { identifier, ?line('$1'), module }.
 base_identifier -> object : { identifier, ?line('$1'), object }.
 
+% ivar
+ivar -> '@' base_identifier : { ivar, ?line('$1'), ?chars('$2') }.
+
 % Commas and eol
 comma_separator -> ','     : '$1'.
 comma_separator -> ',' eol : '$1'.
@@ -257,6 +261,7 @@ close_curly -> eol '}' : '$2'.
 
 % Base expressions
 base_expr -> base_identifier : '$1'.
+base_expr -> ivar : '$1'.
 base_expr -> atom : '$1'.
 base_expr -> number : '$1'.
 base_expr -> constant : '$1'.
