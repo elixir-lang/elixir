@@ -4,8 +4,6 @@ Nothing interesting here yet. Try again later.
 
 # Roadmap
 
-* Add instance vars
-* Allow dict to be passed as args like Ruby
 * Add true, false, if/else, case/when
 * Add missing types (string, regexp)
 * Allow classes to be reopened

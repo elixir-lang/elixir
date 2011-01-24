@@ -19,12 +19,14 @@ Nonterminals
   min_expr
 
   fun_base
+  base_comma_expr
   comma_expr
   call_args_parens
   call_args_optional
   tuple
   list
   colon_comma_expr
+  base_dict
   dict
   comma_separator
   body
@@ -74,16 +76,20 @@ Rootsymbol grammar.
 % is chosen.
 Nonassoc 100 base_identifier.
 
-% Solve nested call_args conflicts
-Nonassoc 100 ','.
-Nonassoc 100 ')'.
-Nonassoc 100 eol.
+% Solve method calls with easy dicts
+Left     100 ':'.
+Nonassoc 100 '}'.
 
-Left     200 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
-Left     300 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
-Left     400 add_op.
-Left     500 mult_op.
-Nonassoc 600 unary_op.
+% Solve nested call_args conflicts
+Nonassoc 200 ','.
+Nonassoc 200 ')'.
+Nonassoc 200 eol.
+
+Left     300 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
+Left     400 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
+Left     500 add_op.
+Left     600 mult_op.
+Nonassoc 700 unary_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -200,8 +206,14 @@ fun_base -> stabber break body 'end' :
   build_fun('$1', build_clause('$1', [], '$3')).
 
 % Args given on method invocations.
-comma_expr -> expr : ['$1'].
-comma_expr -> expr comma_separator comma_expr : ['$1'|'$3'].
+base_comma_expr -> expr : ['$1'].
+base_comma_expr -> expr comma_separator comma_expr : ['$1'|'$3'].
+
+base_dict -> colon_comma_expr : { dict, ?line(lists:nth(1, '$1')), '$1' }.
+
+comma_expr -> base_comma_expr comma_separator base_dict : lists:append('$1', ['$2']).
+comma_expr -> base_comma_expr : '$1'.
+comma_expr -> base_dict : ['$1'].
 
 call_args_parens -> open_paren ')' : [].
 call_args_parens -> open_paren comma_expr close_paren : '$2'.
