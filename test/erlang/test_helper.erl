@@ -5,7 +5,7 @@ test() ->
   elixir:boot(),
   eunit:test([
     arithmetic_test,
-    builtin_test,
+    dict_test,
     erlang_call_test,
     function_test,
     object_test,

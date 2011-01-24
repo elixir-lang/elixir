@@ -1,7 +1,5 @@
--module(builtin_test).
+-module(dict_test).
 -include_lib("eunit/include/eunit.hrl").
-
-%% Dicts
 
 simple_dict_test() ->
   {Dict, _} = elixir:eval("{ 'a: 1 }"),
@@ -42,8 +40,3 @@ dict_in_method_calls_test() ->
     {ok, 1} = dict:find(a, Dict8)
   end,
   test_helper:run_and_remove(F, ['Bar']).
-
-%% String
-
-% simple_string_test() ->
-%   {"foo", _} = elixir:eval("\"f#{'o}o\"").
