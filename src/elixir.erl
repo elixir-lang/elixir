@@ -40,8 +40,5 @@ eval(String, Binding) ->
 
 % Parse string and transform tree to Erlang Abstract Form format
 parse(String, Binding) ->
-	{ok, Tokens, _} = elixir_lexer:string(String),
-	{ok, Forms} = elixir_parser:parse(Tokens),
-	Vars = lists:usort(proplists:get_keys(Binding)),
-	{NewForms, _ } = elixir_transform:transform_tree(Forms, Vars, {false,[]}),
-	NewForms.
+  { NewForms, _ } = elixir_transform:parse(String, Binding),
+  NewForms.

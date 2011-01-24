@@ -1,6 +1,9 @@
 -module(elixir_string).
--export([extract_interpolations/1]).
+-export([stringify/1, extract_interpolations/1]).
 -include("elixir.hrl").
+
+stringify(Arg) ->
+  io_lib:format("~s", [Arg]).
 
 extract_interpolations(String) ->
   extract_interpolations(String, [], [], []).

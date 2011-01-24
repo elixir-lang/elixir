@@ -1,7 +1,16 @@
 -module(elixir_transform).
--export([transform_tree/3]).
+-export([parse/2]).
 -include("elixir.hrl").
 -import(lists, [umerge/2, umerge3/3]).
+
+parse(String, Binding) ->
+  Vars = lists:usort(proplists:get_keys(Binding)),
+  parse(String, 1, Vars, {false, []}).
+  
+parse(String, Line, V, S) ->
+  {ok, Tokens, _} = elixir_lexer:string(String),
+  {ok, Forms} = elixir_parser:parse(Tokens),
+  transform_tree(Forms, V, S).
 
 % Transform the given tree Forms.
 %
@@ -120,6 +129,19 @@ transform({list, Line, Exprs }, V, S) ->
 transform({dict, Line, Exprs }, V, S) ->
   { List, NV } = transform({list, Line, Exprs }, V, S),
   { ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]), NV };
+
+% Handle interpolated strings declarations.
+%
+% = Variables
+%
+% See list.
+transform({interpolated_string, Line, String }, V, S) ->
+  Interpolations = elixir_string:extract_interpolations(String),
+  Mapfoldl = fun(X, Acc) -> handle_string_extractions(X, Line, Acc, S) end,
+  { Mapped, NV } = lists:mapfoldl(Mapfoldl, V, Interpolations),
+  Folder = fun(X, Acc) -> { cons, Line, X, Acc } end,
+  List = lists:foldr(Folder, {nil, Line}, Mapped),
+  { ?ELIXIR_WRAP_CALL(Line, lists, flatten, [List]), NV };
 
 % Handle binary operations.
 %
@@ -270,3 +292,11 @@ build_list([], Line, V, S, Acc) ->
 build_list([H|T], Line, V, S, Acc) ->
   { Expr, NV } = transform(H, V, S),
   build_list(T, Line, NV, S, { cons, Line, Expr, Acc }).
+
+% Handle string extractions for interpolation strings.
+handle_string_extractions({s, String}, Line, V, S) ->
+  { { string, Line, String }, V };
+
+handle_string_extractions({i, Interpolation}, Line, V, S) ->
+  { Tree, NV } = parse(Interpolation, Line, V, S),
+  { ?ELIXIR_WRAP_CALL(Line, elixir_string, stringify, Tree), NV }.

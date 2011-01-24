@@ -29,7 +29,6 @@ Rules.
 {String} : build_string(string, TokenChars, TokenLine, TokenLen).
 
 %% Atoms
-%% TODO Allow interpolated atoms
 \'({UpperCase}|{LowerCase}|_){IdentifierBase}* : build_atom(TokenChars, TokenLine, TokenLen). % '
 \'{String} : build_quoted_atom(TokenChars, TokenLine, TokenLen). % '
 

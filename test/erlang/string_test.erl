@@ -26,3 +26,26 @@ extract_interpolations_with_string_inside_interpolation_test() ->
 
 extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
   [{s, "f"}, {i, "\"f}o\""}, {s, "o"}] = elixir_string:extract_interpolations("f#{\"f}o\"}o").
+
+%% String
+
+simple_string_test() ->
+  {"foo", _} = elixir:eval("\"foo\"").
+
+string_with_double_quotes_test() ->
+  {"f\"o\"o", _} = elixir:eval("\"f\\\"o\\\"o\"").
+
+string_with_newline_test() ->
+  {"f\no", _} = elixir:eval("\"f\no\"").
+
+string_with_slash_test() ->
+  {"f\\o", _} = elixir:eval("\"f\\\\o\"").
+
+string_with_interpolation_test() ->
+  {"foo", _} = elixir:eval("\"f#{'o}o\"").
+
+string_with_another_string_interpolation_test() ->
+  {"foo", _} = elixir:eval("\"f#{\"o\"}o\"").
+
+string_with_another_string_inside_string_interpolation_test() ->
+  {"fbaro", _} = elixir:eval("\"f#{\"b#{'a}r\"}o\"").
