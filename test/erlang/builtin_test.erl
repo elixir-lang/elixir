@@ -1,4 +1,4 @@
--module(structures_test).
+-module(builtin_test).
 -include_lib("eunit/include/eunit.hrl").
 
 simple_dict_test() ->

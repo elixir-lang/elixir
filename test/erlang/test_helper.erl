@@ -5,12 +5,12 @@ test() ->
   elixir:boot(),
   eunit:test([
     arithmetic_test,
+    builtin_test,
     erlang_call_test,
     function_test,
     object_test,
     match_test,
-    module_test,
-    structures_test
+    module_test
   ]).
 
 % Execute a piece of code and purge given modules right after
