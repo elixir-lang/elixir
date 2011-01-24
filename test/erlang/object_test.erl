@@ -104,7 +104,7 @@ module_protos_come_later_than_self_by_default_test() ->
 
 add_a_mixin_protos_to_dispatch_chain_test() ->
   F = fun() ->
-    {['Bar', 'Foo', 'Object::Methods'], []} =
+    {['Baz', 'Bar', 'Foo', 'Object::Methods'], []} =
       elixir:eval("module Foo; end\nmodule Bar; proto Foo; end\nmodule Baz; mixin Bar; end\nBaz.__dispatch__")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).

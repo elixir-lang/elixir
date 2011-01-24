@@ -63,12 +63,12 @@ prepend_as(#elixir_object{} = Self, Kind, Value) ->
   % in the list of protos, this means we are adding a
   % proto to a module and we need to ensure all added modules
   % will come after the module name in the proto list.
-  case { Kind, lists:member(Name, Data) } of
-    { protos, true } ->
+  case lists:member(Name, Data) of
+    true ->
       { Before, After } = lists:splitwith(fun(X) -> X /= Name end, Data),
       Final = umerge(List, lists:delete(Name, After)),
       Updated = umerge(Before, umerge([Name], Final));
-    Else ->
+    _ ->
       Updated = umerge(List, Data)
   end,
 

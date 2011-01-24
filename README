@@ -4,12 +4,17 @@ Nothing interesting here yet. Try again later.
 
 # Roadmap
 
-* Remove need for mixin self
 * Add true, false, if/else, case/when
 * Add interpolation to regexp and atoms
 * Add missing types (regexp)
 * Allow classes to be reopened
+* Add _ to pattern matching
+* Add [H|T] to lists
+* Add generators
 * Add inheritance
+* Add metaprogramming
+* Add partial application, pipeline f1 + f2, and 1#add and Integer##add 
+* Add _.foo
 * Improve STDLIB
 * Add load paths
 * Add JIT on module compilation

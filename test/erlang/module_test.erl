@@ -92,7 +92,7 @@ method_invocation_in_module_with_self_test() ->
 
 method_invocation_in_module_with_self_without_parens_args_test() ->
   F = fun() ->
-    elixir:eval("module Bar\n def foo(x)\n x + 1\n end\n self.mixin self\n end"),
+    elixir:eval("module Bar\n def foo(x)\n x + 1\n end\n  end"),
     {7,[]} = elixir:eval("Bar.foo 2 * 3")
   end,
   test_helper:run_and_remove(F, ['Bar']).
@@ -101,56 +101,56 @@ method_invocation_in_module_with_self_without_parens_args_test() ->
 
 implicit_self_test() ->
   F = fun() ->
-    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; foo; end\nend"),
+    elixir:eval("module Bar\ndef foo;1;end\ndef bar; foo; end\nend"),
     {1,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 implicit_self_with_args_test() ->
   F = fun() ->
-    elixir:eval("module Bar\nmixin self\ndef foo(x);x + 1;end\ndef bar; foo 2; end\nend"),
+    elixir:eval("module Bar\ndef foo(x);x + 1;end\ndef bar; foo 2; end\nend"),
     {3,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 implicit_self_with_method_call_arg_test() ->
   F = fun() ->
-    elixir:eval("module Bar\nmixin self\ndef foo(x);x + 1;end\ndef bar; foo baz; end\ndef baz; 2; end\nend"),
+    elixir:eval("module Bar\ndef foo(x);x + 1;end\ndef bar; foo baz; end\ndef baz; 2; end\nend"),
     {3,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 implicit_self_with_method_call_args_test() ->
   F = fun() ->
-    elixir:eval("module Bar\nmixin self\ndef foo(x,y);x + y;end\ndef bar; foo baz, baz; end\ndef baz; 2; end\nend"),
+    elixir:eval("module Bar\ndef foo(x,y);x + y;end\ndef bar; foo baz, baz; end\ndef baz; 2; end\nend"),
     {4,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 implicit_self_gives_higher_preference_to_variables_test() ->
   F = fun() ->
-    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; foo = 3; foo; end\nend"),
+    elixir:eval("module Bar\ndef foo;1;end\ndef bar; foo = 3; foo; end\nend"),
     {3,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 implicit_self_gives_higher_preference_to_function_calls_test() ->
   F = fun() ->
-    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; foo = -> 3; foo(); end\nend"),
+    elixir:eval("module Bar\ndef foo;1;end\ndef bar; foo = -> 3; foo(); end\nend"),
     {3,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 implicit_self_call_inside_a_function_test() ->
   F = fun() ->
-    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; baz = -> foo; baz(); end\nend"),
+    elixir:eval("module Bar\ndef foo;1;end\ndef bar; baz = -> foo; baz(); end\nend"),
     {1,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 implicit_self_gives_higher_preference_to_function_calls_unless_no_function_test() ->
   F = fun() ->
-    elixir:eval("module Bar\nmixin self\ndef foo;1;end\ndef bar; foo(); end\nend"),
+    elixir:eval("module Bar\ndef foo;1;end\ndef bar; foo(); end\nend"),
     {1,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).

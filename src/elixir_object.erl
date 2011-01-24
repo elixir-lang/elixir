@@ -30,7 +30,7 @@ build_template(Kind, Name) ->
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
 
-  Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name), protos=Protos, data={def, AttributeTable}},
+  Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name, Mixins), protos=Protos, data={def, AttributeTable}},
   { Object, AttributeTable }.
 
 % Returns the parent object based on the declaration.
@@ -39,7 +39,7 @@ default_parent(Name, object) -> 'Object';
 default_parent(Name, module) -> 'Module'.
 
 % Default mixins based on the declaration type.
-default_mixins(Name, module) -> [];
+default_mixins(Name, module) -> [Name];
 default_mixins(Name, object) -> [].
 
 % Default prototypes. Modules have themselves as the default prototype.
@@ -47,8 +47,8 @@ default_protos(Name, module) -> [Name];
 default_protos(Name, object) -> [].
 
 % Special case Object to include Bootstrap methods.
-tweak_mixins('Object') -> ['elixir_object_methods'];
-tweak_mixins(Else)     -> [].
+tweak_mixins('Object', _) -> ['elixir_object_methods'];
+tweak_mixins(_, Mixins)   -> Mixins.
 
 %% USED ON TRANSFORMATION AND MODULE COMPILATION
 
