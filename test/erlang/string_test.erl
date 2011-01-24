@@ -1,2 +1,28 @@
 -module(string_test).
 -include_lib("eunit/include/eunit.hrl").
+
+% Interpolations
+
+extract_interpolations_without_interpolation_test() ->
+  [{s, "foo"}] = elixir_string:extract_interpolations("foo").
+
+extract_interpolations_with_escaped_interpolation_test() ->
+  [{s, "f#{o}o"}] = elixir_string:extract_interpolations("f\\#{o}o").
+
+extract_interpolations_with_interpolation_test() ->
+  [{s, "f"}, {i, "o"}, {s, "o"}] = elixir_string:extract_interpolations("f#{o}o").
+
+extract_interpolations_with_two_interpolations_test() ->
+  [{s, "f"}, {i, "o"}, {i, "o"}, {s, "o"}] = elixir_string:extract_interpolations("f#{o}#{o}o").
+
+extract_interpolations_with_only_two_interpolations_test() ->
+  [{i, "o"}, {i, "o"}] = elixir_string:extract_interpolations("#{o}#{o}").
+
+extract_interpolations_with_tuple_inside_interpolation_test() ->
+  [{s, "f"}, {i, "{1}"}, {s, "o"}] = elixir_string:extract_interpolations("f#{{1}}o").
+
+extract_interpolations_with_string_inside_interpolation_test() ->
+  [{s, "f"}, {i, "\"foo\""}, {s, "o"}] = elixir_string:extract_interpolations("f#{\"foo\"}o").
+
+extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
+  [{s, "f"}, {i, "\"f}o\""}, {s, "o"}] = elixir_string:extract_interpolations("f#{\"f}o\"}o").

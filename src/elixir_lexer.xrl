@@ -11,9 +11,12 @@ UpperCase = [A-Z]
 LowerCase = [a-z]
 Whitespace = [\s]
 IdentifierBase = ({UpperCase}|{LowerCase}|{Digit}|_)
-InterpolatedString = "[^\"\\n]*#{.*}[^\"\\n]*"
-String = "([^\"\\n]*)"
 Comment = %.*
+
+Quoted = (\\\^.|\\.|[^\"])*
+String = "{Quoted}"
+InterpolatedString = "{Quoted}#\{.*\}{Quoted}"
+% "
 
 Rules.
 
