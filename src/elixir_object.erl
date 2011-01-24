@@ -168,9 +168,8 @@ build_erlang_form(Line, Object, Functions) ->
   [{attribute, Line, module, Name}, {attribute, Line, compile, [export_all]} | Base].
 
 % Compile and load given forms as an Erlang module.
-% TODO Check warnings?
 load_form(Forms) ->
-  case compile:forms(Forms) of
+  case compile:forms(Forms, [nowarn_unused_vars]) of
     {ok,ModuleName,Binary}           -> code:load_binary(ModuleName, "nofile", Binary);
     {ok,ModuleName,Binary,_Warnings} -> code:load_binary(ModuleName, "nofile", Binary)
   end.
