@@ -74,18 +74,17 @@ build(Kind, Line, Chars) ->
   end.
 
 build_string(Kind, Chars, Line, Len) ->
-  String = unescape_string(lists:sublist(Chars, 2, Len - 2)), 
+  String = unescape_string(Kind, lists:sublist(Chars, 2, Len - 2)), 
   {token, {Kind, Line, String}}.
 
-unescape_string(String) -> unescape_string(String, []).
-unescape_string([], Output) -> lists:reverse(Output);
+unescape_string(Kind, String) -> unescape_string(Kind, String, []).
+unescape_string(Kind, [], Output) -> lists:reverse(Output);
 
-unescape_string([$\\, Escaped | Rest], Output) ->
+unescape_string(interpolated_string, [$\\, $#|Rest], Output) ->
+  unescape_string(interpolated_string, Rest, [$#, $\\|Output]);
+
+unescape_string(Kind, [$\\, Escaped|Rest], Output) ->
   Char = case Escaped of
-    $\\ -> $\\;
-    $/  -> $/; 
-    $\" -> $\";
-    $\' -> $\';
     $b  -> $\b;
     $d  -> $\d;
     $e  -> $\e;
@@ -95,12 +94,12 @@ unescape_string([$\\, Escaped | Rest], Output) ->
     $s  -> $\s;
     $t  -> $\t;
     $v  -> $\v;
-    _   -> throw({error, {"unrecognized escape sequence: ", [$\\, Escaped]}})
+    _   -> Escaped
   end,
-  unescape_string(Rest, [Char|Output]);
+  unescape_string(Kind, Rest, [Char|Output]);
 
-unescape_string([Char|Rest], Output) ->
-  unescape_string(Rest, [Char|Output]).
+unescape_string(Kind, [Char|Rest], Output) ->
+  unescape_string(Kind, Rest, [Char|Output]).
 
 build_atom(Chars, Line, Len) ->
   String = lists:sublist(Chars, 2, Len - 1),

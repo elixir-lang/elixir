@@ -49,3 +49,12 @@ string_with_another_string_interpolation_test() ->
 
 string_with_another_string_inside_string_interpolation_test() ->
   {"fbaro", _} = elixir:eval("\"f#{\"b#{'a}r\"}o\"").
+
+string_with_escaped_interpolation_test() ->
+  {"f#{'o}o", _} = elixir:eval("\"f\\#{'o}o\"").
+
+string_without_interpolation_and_escaped_test() ->
+  {"f#o", _} = elixir:eval("\"f\\#o\"").
+
+invalid_string_interpolation_test() ->
+  ?assertError({badarg, "Unexpected end of string, expected }"}, elixir:eval("\"f#{{}o\"")).

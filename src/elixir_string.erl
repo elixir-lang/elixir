@@ -12,7 +12,7 @@ extract_interpolations([], Buffer, [], Output) ->
   lists:reverse(build_interpol(s, Buffer, Output));
 
 extract_interpolations([], Buffer, Search, Output) ->
-  ?ELIXIR_ERROR(badarg, "Unexpected end of string. Expected any of ~p~n", [Search]);
+  ?ELIXIR_ERROR(badarg, "Unexpected end of string, expected ~s", [[hd(Search)]]);
 
 extract_interpolations([$\\, $#, ${|Rest], Buffer, [], Output) ->
   extract_interpolations(Rest, [${,$#|Buffer], [], Output);
