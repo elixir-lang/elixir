@@ -4,7 +4,7 @@
 
 % TODO Implement method missing dispatching.
 dispatch(Object, Method, Args) ->
-  Chain = elixir_object_methods:dispatch_chain(Object),
+  Chain = elixir_object_methods:mixins(Object),
   Arity = length(Args) + 1,
   case find_module(Chain, Method, Arity) of
     []     -> ?ELIXIR_ERROR(nomethod, "No method ~p/~p in mixins ~p", [Method, Arity - 1, Chain]);

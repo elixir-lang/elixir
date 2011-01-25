@@ -32,10 +32,6 @@ object Object
       Erlang.elixir_object_methods.ancestors(self)
     end
 
-    def __dispatch__
-      Erlang.elixir_object_methods.dispatch_chain(self)
-    end
-
     def constructor
       {:}
     end

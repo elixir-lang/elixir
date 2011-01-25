@@ -1,7 +1,7 @@
 % Holds all methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, get_ivar/2, ancestors/1, dispatch_chain/1]).
+-export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, get_ivar/2, ancestors/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -23,8 +23,10 @@ proto(Self, Value) -> prepend_as(Self, protos, Value).
 
 name(Self)   -> object_name(Self).
 parent(Self) -> object_parent(Self).
-mixins(Self) -> object_mixins(Self).
-protos(Self) -> object_protos(Self).
+mixins(Self) ->
+  reverse_append(object_mixins(Self), traverse_chain(r_ancestors(Self), [])).
+protos(Self) ->
+  reverse_append(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
 
 get_ivar(#elixir_object{data=Data}, Name) -> 
   case dict:find(Name, Data) of
@@ -34,17 +36,6 @@ get_ivar(#elixir_object{data=Data}, Name) ->
 
 get_ivar(Self, Name) -> % Native types do not have instance variables.
   [].
-
-% Returns all the methods used when dispatching the object.
-% It contains all mixins from the parents and the current object protos.
-dispatch_chain(Object) ->
-  lists:append(object_mixins(Object), dispatch_chain(r_ancestors(Object), [])).
-
-dispatch_chain([], Acc) ->
-  Acc;
-
-dispatch_chain([H|T], Acc) ->
-  dispatch_chain(T, lists:append(abstract_protos(H), Acc)).
 
 % Returns all ancestors for the given object.
 ancestors(Self) ->
@@ -74,7 +65,9 @@ prepend_as(#elixir_object{} = Self, Kind, Value) ->
 
   ets:insert(Table, {Kind, Updated}).
 
-% Merge two lists taking into account uniqueness.
+% Merge two lists taking into account uniqueness. Opposite to
+% lists:umerge2, does not require lists to be merged.
+
 umerge(List, Data) ->
   umerge2(lists:reverse(List), Data).
   
@@ -98,7 +91,9 @@ r_ancestors([], Acc) ->
 r_ancestors(Name, Acc) ->
   r_ancestors(abstract_parent(Name), [Name|Acc]).
 
-% Methods that get values from objects taking into account native types.
+% Methods that get values from objects. Argument can either be an
+% #elixir_object or an erlang native type.
+
 object_name(#elixir_object{name=Name}) ->
   Name;
 
@@ -149,3 +144,20 @@ abstract_protos(#elixir_object{protos=Protos}) ->
 
 abstract_protos(Name) ->
   proplists:get_value(protos, Name:module_info(attributes)).
+
+% Methods that traverses the ancestors chain and append.
+
+traverse_chain([], Acc) ->
+  Acc;
+
+traverse_chain([H|T], Acc) ->
+  traverse_chain(T, reverse_append(abstract_protos(H), Acc)).
+
+reverse_append(List, Acc) ->
+  r_append(lists:reverse(List), Acc).
+
+r_append([], Acc) ->
+  Acc;
+
+r_append([H|T], Acc) ->
+  r_append(T, [H|Acc]).
