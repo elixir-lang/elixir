@@ -5,6 +5,9 @@ no_assignment_test() ->
   {[], []} = elixir:eval("").
 
 % Var/assignment test
+arithmetic_test() ->
+  ?assertError({badmatch, _}, elixir:eval("-1 = 1")).
+
 assignment_test() ->
   {1, [{a, 1}]} = elixir:eval("a = 1").
 

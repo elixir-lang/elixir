@@ -4,6 +4,7 @@ object Integer
   module Mixin
   end
 
-  module Proto
+  def to_s
+    String.new Erlang.integer_to_list(self)
   end
 end

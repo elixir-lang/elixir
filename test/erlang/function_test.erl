@@ -9,7 +9,7 @@ function_without_body_test() ->
   [] = Res1().
 
 invalid_function_test() ->
-  ?assertError({badmatch, _}, elixir:eval("a = -> (1 + 2)")).
+  ?assertError({badsyntax, _}, elixir:eval("a = -> (1 + 2)")).
 
 function_assignment_test() ->
   {_, [{a, Res1}]} = elixir:eval("a = -> 1 + 2"),

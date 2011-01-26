@@ -1,17 +1,10 @@
 -module(elixir_string).
--export([build/1, build_interpolated/1, stringify/1, extract_interpolations/1]).
+-export([stringify/1, extract_interpolations/1]).
 -include("elixir.hrl").
-
-build(List) ->
-  Data = dict:append(list, List, dict:new()),
-  #elixir_object{parent='String', data=Data}.
-
-build_interpolated(List) ->
-  build(lists:flatten(List)).
 
 % TODO Remove stringify once we dispatch contacatenation results to to_s
 stringify(#elixir_object{parent='String', data=Data}) ->
-  io_lib:format("~ts", [dict:fetch(list, Data)]);
+  hd(dict:fetch(list, Data));
 
 stringify(Arg) ->
   io_lib:format("~ts", [Arg]).

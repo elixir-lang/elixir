@@ -1,5 +1,6 @@
 % Holds all bootstraping assertions.
 -module(object_test).
+-include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 object_name_test() ->
@@ -92,6 +93,13 @@ arguments_given_to_new_is_passed_to_constructors_test() ->
     {3,[]}  = elixir:eval("Bar.new(1,2).a"),
     {2,[]}  = elixir:eval("Bar.new(1,2).b"),
     {[],[]} = elixir:eval("Bar.new(1,2).c")
+  end,
+  test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
+
+invalid_hash_on_construction_test() ->
+  F = fun() ->
+    elixir:eval("object Bar\ndef constructor;{1: 2};end\nend"),
+    ?assertError({badarg}, elixir:eval("Bar.new"))
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
 

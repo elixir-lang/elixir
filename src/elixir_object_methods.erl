@@ -15,7 +15,8 @@ new(#elixir_object{name=Name, protos=Protos} = Self, Args) ->
   end,
   Object = #elixir_object{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
   Data = elixir_dispatch:dispatch(Object, constructor, Args),
-  Object#elixir_object{data=Data}.
+  Dict = assert_dict_with_atoms(Data),
+  Object#elixir_object{data=Dict}.
 
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
 mixin(Self, Value) -> prepend_as(Self, mixins, Value).
@@ -49,6 +50,18 @@ ancestors(Self) ->
   lists:reverse(r_ancestors(Self)).
 
 % INTERNAL API
+
+assert_dict_with_atoms(#elixir_object{parent='Dict'} = Data) ->
+  Dict = get_ivar(Data, dict),
+  case lists:all(fun is_atom/1, dict:fetch_keys(Dict)) of
+    true  -> Dict;
+    false ->
+      String = elixir_dispatch:dispatch(Data, to_s, []),
+      ?ELIXIR_ERROR(badarg, "A constructor needs to return a Dict with all keys as symbols, got ~p", String)
+  end;
+
+assert_dict_with_atoms(Data) ->
+  ?ELIXIR_ERROR(badarg, "A constructor needs to return a Dict, got ~p", [Data]).
 
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
@@ -115,7 +128,13 @@ object_parent(Native) when is_integer(Native) ->
   'Integer';
 
 object_parent(Native) when is_float(Native) ->
-  'Float'.
+  'Float';
+
+object_parent(Native) when is_atom(Native) ->
+  'Atom';
+
+object_parent(Native) when is_list(Native) ->
+  'List'.
 
 object_mixins(#elixir_object{mixins=Mixins}) ->
   Mixins;

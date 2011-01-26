@@ -7,11 +7,6 @@ Nonterminals
   decl_list
   decl
   expr _expr
-  match_expr _match_expr
-  fun_expr _fun_expr
-  add_expr _add_expr
-  mult_expr _mult_expr
-  unary_expr _unary_expr
   call_exprs _call_exprs
   fun_call_expr _fun_call_expr
   method_call_expr _method_call_expr
@@ -19,14 +14,14 @@ Nonterminals
   min_expr
 
   fun_base
-  base_comma_expr
   comma_expr
+  call_args
   call_args_parens
   call_args_optional
   tuple
   list
-  colon_comma_expr
-  base_dict
+  colon_comma_expr _colon_comma_expr
+  base_dict _base_dict
   dict
   comma_separator
   body
@@ -77,20 +72,17 @@ Rootsymbol grammar.
 % is chosen.
 Nonassoc 100 base_identifier.
 
-% Solve method calls with easy dicts
-Left     100 ':'.
-Nonassoc 100 '}'.
-
 % Solve nested call_args conflicts
-Nonassoc 200 ','.
-Nonassoc 200 ')'.
-Nonassoc 200 eol.
+Nonassoc 100 ')'.
+Nonassoc 100 eol.
 
-Left     300 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
-Left     400 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
+Left     300 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
+Left     400 ':'.
 Left     500 add_op.
 Left     600 mult_op.
-Nonassoc 700 unary_op.
+Left     700 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
+Left     800 ','.
+Nonassoc 900 unary_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -116,26 +108,17 @@ expr_list -> expr break : ['$1'].
 expr_list -> eol expr_list : '$2'.
 expr_list -> expr break expr_list : ['$1'|'$3'].
 
-% Basic expressions
-expr -> match_expr : '$1'.
-
 % Assignment
-match_expr -> match_expr match_op fun_expr : build_match('$1', '$2', '$3').
-match_expr -> fun_expr : '$1'.
+expr -> expr match_op expr : build_match('$1', '$2', '$3').
 
 % Function definitions
-fun_expr -> fun_base : '$1'.
-fun_expr -> add_expr : '$1'.
+expr -> fun_base : '$1'.
 
 % Arithmetic operations
-add_expr -> add_expr add_op mult_expr : build_binary_op('$1', '$2', '$3').
-add_expr -> mult_expr : '$1'.
-
-mult_expr -> mult_expr mult_op unary_expr : build_binary_op('$1', '$2', '$3').
-mult_expr -> unary_expr : '$1'.
-
-unary_expr -> unary_op call_exprs : build_unary_op('$1', '$2').
-unary_expr -> call_exprs : '$1'.
+expr -> expr add_op expr : build_binary_op('$1', '$2', '$3').
+expr -> expr mult_op expr : build_binary_op('$1', '$2', '$3').
+expr -> unary_op expr : build_unary_op('$1', '$2').
+expr -> call_exprs : '$1'.
 
 % Calls
 call_exprs -> fun_call_expr : '$1'.
@@ -147,9 +130,10 @@ call_exprs -> min_expr : '$1'.
 fun_call_expr -> min_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
-method_call_expr -> call_exprs dot_eol method_name call_args_optional : build_method_call('$1', '$3', '$4').
-method_call_expr -> call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
-method_call_expr -> implicit_method_name comma_expr : build_method_call({var, ?line('$1'), self}, '$1', '$2').
+method_call_expr -> call_exprs dot_eol method_name call_args_parens : build_method_call(true, '$1', '$3', '$4').
+method_call_expr -> call_exprs dot_eol method_name call_args_optional : build_method_call(false, '$1', '$3', '$4').
+method_call_expr -> call_exprs dot_eol method_name : build_method_call(true, '$1', '$3', []).
+method_call_expr -> implicit_method_name call_args_optional : build_method_call(false, {var, ?line('$1'), self}, '$1', '$2').
 
 % Minimum expressions
 min_expr -> base_expr : '$1'.
@@ -157,25 +141,17 @@ min_expr -> open_paren expr close_paren : '$2'.
 
 %%% COPY OF MAIN FLOW FOR STABBER BUT WITHOUT MIN_EXPR PARENS
 
-_expr -> _match_expr : '$1'.
-
 % Assignment
-_match_expr -> _match_expr match_op _fun_expr : build_match('$1', '$2', '$3').
-_match_expr -> _fun_expr : '$1'.
+_expr -> _expr match_op _expr : build_match('$1', '$2', '$3').
 
 % Function definitions
-_fun_expr -> fun_base : '$1'.
-_fun_expr -> _add_expr : '$1'.
+_expr -> fun_base : '$1'.
 
 % Arithmetic operations
-_add_expr -> _add_expr add_op _mult_expr : build_binary_op('$1', '$2', '$3').
-_add_expr -> _mult_expr : '$1'.
-
-_mult_expr -> _mult_expr mult_op _unary_expr : build_binary_op('$1', '$2', '$3').
-_mult_expr -> _unary_expr : '$1'.
-
-_unary_expr -> unary_op _call_exprs : build_unary_op('$1', '$2').
-_unary_expr -> _call_exprs : '$1'.
+_expr -> _expr add_op _expr : build_binary_op('$1', '$2', '$3').
+_expr -> _expr mult_op _expr : build_binary_op('$1', '$2', '$3').
+_expr -> unary_op _expr : build_unary_op('$1', '$2').
+_expr -> _call_exprs : '$1'.
 
 % Calls
 _call_exprs -> _fun_call_expr : '$1'.
@@ -187,9 +163,10 @@ _call_exprs -> base_expr : '$1'.
 _fun_call_expr -> base_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
-_method_call_expr -> _call_exprs '.' method_name call_args_optional : build_method_call('$1', '$3', '$4').
-_method_call_expr -> _call_exprs '.' method_name : build_method_call('$1', '$3', []).
-_method_call_expr -> implicit_method_name comma_expr : build_method_call({var, ?line('$1'), self}, '$1', '$2').
+_method_call_expr -> _call_exprs dot_eol method_name call_args_parens : build_method_call(true, '$1', '$3', '$4').
+_method_call_expr -> _call_exprs dot_eol method_name call_args_optional : build_method_call(false, '$1', '$3', '$4').
+_method_call_expr -> _call_exprs dot_eol method_name : build_method_call(true, '$1', '$3', []).
+_method_call_expr -> implicit_method_name call_args_optional : build_method_call(false, {var, ?line('$1'), self}, '$1', '$2').
 
 %%% BUILDING BLOCKS
 
@@ -207,20 +184,22 @@ fun_base -> stabber break body 'end' :
   build_fun('$1', build_clause('$1', [], '$3')).
 
 % Args given on method invocations.
-base_comma_expr -> expr : ['$1'].
-base_comma_expr -> expr comma_separator comma_expr : ['$1'|'$3'].
+base_dict  -> colon_comma_expr : { dict, ?line(lists:nth(1, '$1')), '$1' }.
+_base_dict -> _colon_comma_expr : { dict, ?line(lists:nth(1, '$1')), '$1' }.
 
-base_dict -> colon_comma_expr : { dict, ?line(lists:nth(1, '$1')), '$1' }.
+comma_expr -> expr : ['$1'].
+comma_expr -> expr comma_separator comma_expr : ['$1'|'$3'].
 
-comma_expr -> base_comma_expr comma_separator base_dict : lists:append('$1', ['$2']).
-comma_expr -> base_comma_expr : '$1'.
-comma_expr -> base_dict : ['$1'].
+call_args -> expr : ['$1'].
+call_args -> base_dict : ['$1'].
+call_args -> expr comma_separator call_args : ['$1'|'$3'].
 
 call_args_parens -> open_paren ')' : [].
-call_args_parens -> open_paren comma_expr close_paren : '$2'.
+call_args_parens -> open_paren call_args close_paren : '$2'.
 
-call_args_optional -> comma_expr : '$1'.
-call_args_optional -> call_args_parens : '$1'.
+call_args_optional -> _expr : ['$1'].
+call_args_optional -> _expr comma_separator call_args : ['$1'|'$3'].
+call_args_optional -> _base_dict : ['$1'].
 
 % Tuples declaration.
 tuple -> open_curly '}' : { tuple, ?line('$1'), [] }.
@@ -233,6 +212,9 @@ list -> open_bracket comma_expr close_bracket : { list, ?line('$1'), '$2' }.
 % Dicts declarations
 colon_comma_expr -> expr ':' expr : [build_dict_tuple('$1', '$3')].
 colon_comma_expr -> expr ':' expr comma_separator colon_comma_expr : [build_dict_tuple('$1', '$3')|'$5'].
+
+_colon_comma_expr -> _expr ':' expr : [build_dict_tuple('$1', '$3')].
+_colon_comma_expr -> _expr ':' expr comma_separator colon_comma_expr : [build_dict_tuple('$1', '$3')|'$5'].
 
 dict -> open_curly ':' '}' : { dict, ?line('$1'), [] }.
 dict -> open_curly colon_comma_expr close_curly : { dict, ?line('$1'), '$2' }.
@@ -285,8 +267,12 @@ base_expr -> list : '$1'.
 base_expr -> dict : '$1'.
 
 % Erlang calls
-erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
-erlang_call_expr -> Erlang '.' base_identifier call_args_optional : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
+erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call(true, '$1', ?chars('$3'), ?chars('$5'), '$6').
+erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call(false, '$1', ?chars('$3'), ?chars('$5'), '$6').
+erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier : build_erlang_call(true, '$1', ?chars('$3'), ?chars('$5'), []).
+erlang_call_expr -> Erlang '.' base_identifier call_args_parens : build_erlang_call(true, '$1', erlang, ?chars('$3'), '$4').
+erlang_call_expr -> Erlang '.' base_identifier call_args_optional : build_erlang_call(false, '$1', erlang, ?chars('$3'), '$4').
+erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call(true, '$1', erlang, ?chars('$3'), []).
 
 % Stab syntax
 stabber -> '->' : '$1'.
@@ -387,11 +373,27 @@ build_match(Left, Op, Right) ->
 build_method(Name, Args, Clauses) ->
   { method, ?line(Name), ?chars(Name), length(Args), [Clauses] }.
 
-build_method_call(Expr, Name, Args) ->
-  { method_call, ?line(Name), ?chars(Name), Args, Expr }.
+build_method_call(true, Expr, Name, Args) ->
+  { method_call, ?line(Name), ?chars(Name), Args, Expr };
 
-build_erlang_call(Op, Prefix, Suffix, Args) ->
-  { erlang_call, ?line(Op), Prefix, Suffix, Args }.
+build_method_call(false, Expr, Name, Args) ->
+  case Args of
+    [{unary_op, Line, Op, Right}|T] ->
+      Left = { method_call, ?line(Name), ?chars(Name), T, Expr },
+      { binary_op, Line, Op, Left, Right };
+    _ -> build_method_call(true, Expr, Name, Args)
+  end.
+
+build_erlang_call(true, Op, Prefix, Suffix, Args) ->
+  { erlang_call, ?line(Op), Prefix, Suffix, Args };
+
+build_erlang_call(false, Op, Prefix, Suffix, Args) ->
+  case Args of
+    [{unary_op, Line, Op, Expr}|T] ->
+      Call = { erlang_call, ?line(Op), Prefix, Suffix, T },
+      { binary_op, Line, Op, Call, Expr };
+    _ -> build_erlang_call(true, Op, Prefix, Suffix, Args)
+  end.
 
 build_dict_tuple(Key, Value) ->
   { tuple, ?line(Key), [Key, Value] }.

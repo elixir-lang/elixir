@@ -15,10 +15,10 @@ dispatch(Else, Method, Args) ->
   ?ELIXIR_ERROR(nomethod, "Unknown type ~p to dispatch method ~p", [Else, Method]).
 
 % Find first module that contains the method with given arity.
+find_module([], Method, Arity) -> [];
+
 find_module([H|T], Method, Arity) ->
   case erlang:function_exported(H, Method, Arity) of
     true -> H;
     Else -> find_module(T, Method, Arity)
-  end;
-
-find_module([], Method, Arity) -> [].
+  end.

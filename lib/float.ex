@@ -4,6 +4,7 @@ object Float
   module Mixin
   end
 
-  module Proto
+  def to_s
+    String.new Erlang.float_to_list(self)
   end
 end

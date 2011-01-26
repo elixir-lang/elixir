@@ -1,16 +1,32 @@
 -module(elixir_transform).
--export([parse/2]).
+-export([parse/3]).
 -include("elixir.hrl").
 -import(lists, [umerge/2, umerge3/3]).
 
-parse(String, Binding) ->
+-define(parse_error(File, Line, Error), 
+  erlang:error(badsyntax, lists:flatten(io_lib:format("~s:~w: ~s", [File, Line, Error])))
+).
+
+parse(String, Binding, Filename) ->
   Vars = lists:usort(proplists:get_keys(Binding)),
-  parse(String, 1, Vars, {false, []}).
-  
-parse(String, Line, V, S) ->
-  {ok, Tokens, _} = elixir_lexer:string(String),
-  {ok, Forms} = elixir_parser:parse(Tokens),
+  parse(String, Filename, 1, Vars, {false, []}).
+
+parse(String, Filename, Line, V, S) ->
+  Forms = forms(String, Line, Filename),
   transform_tree(Forms, V, S).
+
+forms(String, StartLine, Filename) ->
+  case elixir_lexer:string(String, StartLine) of
+    {ok, Tokens, _} -> 
+      case elixir_parser:parse(Tokens) of
+        {ok, Forms} -> Forms;
+        {error, {Line, _, [Error, Token]}} -> parse_error(Line, Filename, Error, Token)
+      end;
+    {error, {Line, _, {Error, Token}}, _} -> parse_error(Line, Filename, Error, Token)
+  end.
+
+parse_error(Line, Filename, Error, Token) ->
+  ?ELIXIR_ERROR(badsyntax, "~s:~w: ~s", [Filename, Line, lists:flatten([Error, Token])]).
 
 % Transform the given tree Forms.
 %
@@ -129,7 +145,8 @@ transform({list, Line, Exprs }, V, S) ->
 % See list.
 transform({dict, Line, Exprs }, V, S) ->
   { List, NV } = transform({list, Line, Exprs }, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]), NV };
+  Dict = ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]),
+  { build_object(Line, 'Dict', dict, Dict), NV };
 
 % Handle interpolated strings declarations.
 %
@@ -143,10 +160,11 @@ transform({interpolated_string, Line, String }, V, S) ->
   Interpolations = elixir_string:extract_interpolations(String),
   Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, Acc, S) end,
   { List, VE } = build_list(Transformer, Interpolations, Line, V),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_string, build_interpolated, [List]), VE };
+  Flattened = ?ELIXIR_WRAP_CALL(Line, lists, flatten, [List]),
+  { build_object(Line, 'String', list, Flattened), VE };
 
 transform({string, Line, String } = Expr, V, S) ->
-  { ?ELIXIR_WRAP_CALL(Line, elixir_string, build, [Expr]), V };
+  { build_object(Line, 'String', list, Expr), V };
 
 % Handle binary operations.
 %
@@ -307,10 +325,32 @@ build_list(Fun, [H|T], Line, V, Acc) ->
   { Expr, NV } = Fun(H, V),
   build_list(Fun, T, Line, NV, { cons, Line, Expr, Acc }).
 
+% Build an #elixir_object using tuples. It expects the parent
+% and a Key, Value as instance variable name and value.
+build_object(Line, Parent, Key, Value) ->
+  {tuple, Line,
+    [
+      {atom, Line, elixir_object},
+      {nil, Line},          % Name
+      {atom, Line, Parent}, % Parent
+      {nil, Line},          % Mixins
+      {nil, Line},          % Protos
+      {call,Line,           % Data
+        {remote,Line,{atom,Line,dict},{atom,Line,append}},
+        [{atom,Line,Key},
+         Value,
+         {call,Line, {remote,Line,{atom,Line,dict},{atom,Line,new}},[]}
+        ]
+      }
+    ]
+  }.
+
 % Handle string extractions for interpolation strings.
 handle_string_extractions({s, String}, Line, V, S) ->
   { { string, Line, String }, V };
 
+% TODO I need the filename here
 handle_string_extractions({i, Interpolation}, Line, V, S) ->
-  { Tree, NV } = parse(Interpolation, Line, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_string, stringify, Tree), NV }.
+  { Tree, NV } = parse(Interpolation, "nofile", Line, V, S),
+  Stringify = ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [hd(Tree), {integer, Line, to_s}, {nil,Line}]),
+  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, [Stringify, {atom, Line, list}]), NV }.

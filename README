@@ -4,13 +4,16 @@ Nothing interesting here yet. Try again later.
 
 # Roadmap
 
+* Add [H|T] to lists
+* Erlang.dict.new tests
+* Refactor STDLIB
+
 * Add true, false, if/else, case/when
 * Add alias_method
 * Add interpolation to regexp and atoms
 * Add missing types (regexp)
 * Allow classes to be reopened
 * Add _ to pattern matching
-* Add [H|T] to lists
 * Add generators
 * Add variables to object declarations and copy them on inheritance
 * Add tail call optimization

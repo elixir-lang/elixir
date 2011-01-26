@@ -17,17 +17,20 @@ load_core_classes() ->
   lists:foreach(Loader, [
     'object.ex',
     'module.ex',
+    'atom.ex',
     'numeric.ex',
     'integer.ex',
     'float.ex',
-    'string.ex'
+    'list.ex',
+    'string.ex',
+    'dict.ex'
   ]).
 
 % Loads a given file
 load_file(Filepath, Bindings) ->
   {ok, Device} = file:open(Filepath, [read, unicode]),
   String = read_line(Device, []),
-  eval(String, Bindings).
+  eval(String, Bindings, Filepath).
 
 % Read each line as UTF8.
 read_line(Device, Accum) ->
@@ -38,16 +41,19 @@ read_line(Device, Accum) ->
 
 % Evaluates a string
 eval(String) -> eval(String, []).
+eval(String, Binding) -> eval(String, Binding, "nofile").
 
-eval(String, Binding) ->
+eval(String, Binding, Filename) ->
   SelfBinding = case proplists:get_value(self, Binding) of
-                  undefined -> lists:append(Binding, [{self,elixir_constants:lookup('Object')}]);
-                  _  -> Binding
-                end,
-  {value, Value, NewBinding} = erl_eval:exprs(parse(String, SelfBinding), SelfBinding),
+    undefined -> lists:append(Binding, [{self,elixir_constants:lookup('Object')}]);
+    _  -> Binding
+  end,
+  {value, Value, NewBinding} = erl_eval:exprs(parse(String, SelfBinding, Filename), SelfBinding),
   {Value, proplists:delete(self, NewBinding)}.
 
 % Parse string and transform tree to Erlang Abstract Form format
-parse(String, Binding) ->
-  { NewForms, _ } = elixir_transform:parse(String, Binding),
+parse(String, Binding) -> parse(String, Binding, "nofile").
+
+parse(String, Binding, Filename) ->
+  { NewForms, _ } = elixir_transform:parse(String, Binding, Filename),
   NewForms.

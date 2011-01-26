@@ -39,15 +39,7 @@ integer_with_parens_test() ->
   {0.25,[]} = elixir:eval("4 / (11 + 5)").
 
 integer_with_unary_test() ->
-  {-1,[]}   = elixir:eval("-1"),
-  {1,[]}    = elixir:eval("+1"),
-  {-1,[]}   = elixir:eval("(-1)"),
-  {1,[]}    = elixir:eval("-(1 - 2)"),
-  {1,[]}    = elixir:eval("+1"),
-  {3,[]}    = elixir:eval("+ 1 + 2"),
-  {-3,[]}   = elixir:eval("- 1 + - 2"),
-  {2,[]}    = elixir:eval("- 1 * - 2"),
-  {-0.5,[]} = elixir:eval("+ 1 / - 2").
+  {2,[]}    = elixir:eval("- 1 * - 2").
 
 integer_eol_test() ->
   {8,[]} = elixir:eval("1 + 2\n3 + 5"),
@@ -55,8 +47,8 @@ integer_eol_test() ->
   {8,[]} = elixir:eval("1 + 2;\n\n3 + 5"),
   {8,[]} = elixir:eval("1 + (\n2\n) + 3 + 2"),
   {8,[]} = elixir:eval("1 + (\n\n  2\n\n) + 3 + 2"),
-  ?assertError({badmatch, _}, elixir:eval("1 + 2;\n;\n3 + 5")),
-  ?assertError({badmatch, _}, elixir:eval(";1 + 2")).
+  ?assertError({badsyntax, _}, elixir:eval("1 + 2;\n;\n3 + 5")),
+  ?assertError({badsyntax, _}, elixir:eval(";1 + 2")).
 
 float_with_parens_and_unary_test() ->
   {-21.0,[]} = elixir:eval("-3.0 * (5 + 2)"),
@@ -65,3 +57,10 @@ float_with_parens_and_unary_test() ->
 
 sum_as_explicit_method_call_test() ->
   {3, [{a,1},{b,2}]} = elixir:eval("(a = 1).+(b = 2)").
+
+operators_precedence_test() ->
+  F = fun() ->
+    {3,[]} = elixir:eval("module Foo; def length; 1; end; end\n1 + Foo.length + 1"),
+    {2,[]} = elixir:eval("module Bar; def length(x); 1; end; end\n1 + Bar.length(+1)")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Bar']).
