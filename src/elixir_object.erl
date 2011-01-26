@@ -4,8 +4,9 @@
 
 %% EXTERNAL API
 
-% Build an object from the module name. Used by elixir_constants to
-% build objects from their compiled modules.
+% Build an object from the given name. Used by elixir_constants to
+% build objects from their compiled modules. Assumes the given name
+% exists.
 build(Name) ->
   Module = Name:module_info(attributes),
   Mixins = proplists:get_value(mixins, Module),
@@ -19,7 +20,7 @@ build(Name) ->
 %% TEMPLATE BUILDING FOR MODULE COMPILATION
 
 % Build a template of an object or module used on compilation.
-% TODO Copy data from parent and ensure parent cannot be a mixin.
+% TODO Copy data from parent
 build_template(Name, BaseParent) ->
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(AttributeTable, [set, named_table, private]),
@@ -35,8 +36,14 @@ build_template(Name, BaseParent) ->
   { Object, AttributeTable }.
 
 % Returns the parent object based on the declaration.
-default_parent('Object', _)  -> [];
-default_parent(Name, Parent) -> Parent.
+default_parent('Object', _)    -> [];
+default_parent(Name, 'Object') -> 'Object'; % No need check if Object really exists.
+default_parent(Name, 'Module') -> 'Module'; % No need check if Module really exists.
+default_parent(Name, Parent) ->
+  case elixir_object_methods:abstract_parent(Parent) of
+    'Module' -> ?ELIXIR_ERROR(badarg, "Cannot inherit from a module ~s", [Parent]);
+    _ -> Parent
+  end.
 
 % Default mixins based on the declaration type.
 default_mixins(Name, [])       -> [];        % object Object

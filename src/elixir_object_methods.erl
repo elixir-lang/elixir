@@ -1,7 +1,8 @@
 % Holds all methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, get_ivar/2, ancestors/1]).
+-export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1,
+  get_ivar/2, ancestors/1, abstract_parent/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -129,7 +130,7 @@ abstract_parent(#elixir_object{parent=Parent}) ->
   Parent;
 
 abstract_parent(Name) ->
-  case proplists:get_value(parent, Name:module_info(attributes)) of
+  case proplists:get_value(parent, elixir_constants:lookup_attributes(Name)) of
     []   -> [];
     Else -> hd(Else)
   end.
@@ -138,13 +139,13 @@ abstract_mixins(#elixir_object{mixins=Mixins}) ->
   Mixins;
 
 abstract_mixins(Name) ->
-  proplists:get_value(mixins, Name:module_info(attributes)).
+  proplists:get_value(mixins, elixir_constants:lookup_attributes(Name)).
 
 abstract_protos(#elixir_object{protos=Protos}) ->
   Protos;
 
 abstract_protos(Name) ->
-  proplists:get_value(protos, Name:module_info(attributes)).
+  proplists:get_value(protos, elixir_constants:lookup_attributes(Name)).
 
 % Methods that traverses the ancestors chain and append.
 
