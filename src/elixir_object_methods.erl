@@ -25,9 +25,9 @@ proto(Self, Value) -> prepend_as(Self, protos, Value).
 name(Self)   -> object_name(Self).
 parent(Self) -> object_parent(Self).
 mixins(Self) ->
-  reverse_append(object_mixins(Self), traverse_chain(r_ancestors(Self), [])).
+  apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), [])).
 protos(Self) ->
-  reverse_append(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
+  apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
 
 get_ivar(#elixir_object{data=Data}, Name) -> 
   case dict:find(Name, Data) of
@@ -159,13 +159,17 @@ traverse_chain([], Acc) ->
   Acc;
 
 traverse_chain([H|T], Acc) ->
-  traverse_chain(T, reverse_append(abstract_protos(H), Acc)).
+  traverse_chain(T, apply_chain(abstract_protos(H), Acc)).
 
-reverse_append(List, Acc) ->
-  r_append(lists:reverse(List), Acc).
+apply_chain(List, Acc) ->
+  apply_each(lists:reverse(List), Acc).
 
-r_append([], Acc) ->
+apply_each([], Acc) ->
   Acc;
 
-r_append([H|T], Acc) ->
-  r_append(T, [H|Acc]).
+apply_each([{object,Object}|T], Acc) ->
+  NewAcc = apply_chain(abstract_mixins(Object), Acc -- abstract_protos(Object)),
+  apply_each(T, NewAcc);
+
+apply_each([Module|T], Acc) ->
+  apply_each(T, [Module|Acc]).

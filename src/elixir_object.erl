@@ -46,10 +46,10 @@ default_parent(Name, Parent) ->
   end.
 
 % Default mixins based on the declaration type.
-default_mixins(Name, [])       -> [];        % object Object
-default_mixins(Name, 'Object') -> [];        % object Post
-default_mixins(Name, 'Module') -> [Name];    % module Numeric
-default_mixins(Name, Parent)   -> [Parent].  % object SimplePost < Post
+default_mixins(Name, [])       -> [];                 % object Object
+default_mixins(Name, 'Object') -> [];                 % object Post
+default_mixins(Name, 'Module') -> [Name];             % module Numeric
+default_mixins(Name, Parent)   -> [{object, Parent}]. % object SimplePost < Post
 
 % Default prototypes. Modules have themselves as the default prototype.
 default_protos(Name, 'Module') -> [Name];

@@ -51,6 +51,7 @@ integer_instance_ancestors_test() ->
   {['Integer', 'Object'], []} = elixir:eval("1.__ancestors__").
 
 %% Implicit methods
+
 implicit_methods_are_compiled_to_proto_module_test() ->
   F = fun() ->
     elixir:eval("object Bar\ndef foo;1;end\nend"),
@@ -58,6 +59,21 @@ implicit_methods_are_compiled_to_proto_module_test() ->
     {['Bar::Proto', 'Object::Methods'],[]} = elixir:eval("Bar.__protos__")
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
+
+%% Inheritance
+
+inheritance_test() ->
+  F = fun() ->
+    elixir:eval("object Foo\nmodule Mixin; def foo; 'mixin; end; end\ndef foo; 'proto ;end\nend\n"
+      "object Bar < Foo\nmodule Mixin; def bar; 'mixin; end; end\ndef bar; 'proto; end\nend"),
+    {mixin,[]} = elixir:eval("Bar.foo"),
+    {proto,[]} = elixir:eval("Bar.new.foo"),
+    {mixin,[]} = elixir:eval("Bar.bar"),
+    {proto,[]} = elixir:eval("Bar.new.bar"),
+    {['Bar::Mixin', 'Foo::Mixin', 'Object::Methods'],[]} = elixir:eval("Bar.__mixins__"),
+    {['Bar::Proto', 'Foo::Proto', 'Object::Methods'],[]} = elixir:eval("Bar.__protos__")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Foo::Mixin', 'Foo::Proto', 'Bar', 'Bar::Mixin', 'Bar::Proto']).
 
 %% Initialization and Ivars
 
