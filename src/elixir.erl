@@ -19,7 +19,8 @@ load_core_classes() ->
     'module.ex',
     'numeric.ex',
     'integer.ex',
-    'float.ex'
+    'float.ex',
+    'string.ex'
   ]).
 
 % Loads a given file

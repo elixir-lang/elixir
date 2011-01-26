@@ -2,6 +2,6 @@ module Foo
   mixin self
 
   def length
-    Erlang.length "Arrow ⇧ up"
+    "Arrow ⇧ up".length
   end
 end

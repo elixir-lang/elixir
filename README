@@ -5,6 +5,7 @@ Nothing interesting here yet. Try again later.
 # Roadmap
 
 * Add true, false, if/else, case/when
+* Add alias_method
 * Add interpolation to regexp and atoms
 * Add missing types (regexp)
 * Allow classes to be reopened

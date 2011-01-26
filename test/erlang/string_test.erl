@@ -1,5 +1,13 @@
 -module(string_test).
+-include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
+
+% Evaluations the expression expecting an #elixir_object{parent=String}
+% and returning the contained list.
+eval_string(Expr) ->
+  { String, Binding } = elixir:eval(Expr),
+  Data = String#elixir_object.data,
+  { hd(dict:fetch(list, Data)), Binding }.
 
 % Interpolations
 
@@ -30,31 +38,31 @@ extract_interpolations_with_right_curly_inside_string_inside_interpolation_test(
 %% String
 
 simple_string_test() ->
-  {"foo", _} = elixir:eval("\"foo\"").
+  {"foo", _} = eval_string("\"foo\"").
 
 string_with_double_quotes_test() ->
-  {"f\"o\"o", _} = elixir:eval("\"f\\\"o\\\"o\"").
+  {"f\"o\"o", _} = eval_string("\"f\\\"o\\\"o\"").
 
 string_with_newline_test() ->
-  {"f\no", _} = elixir:eval("\"f\no\"").
+  {"f\no", _} = eval_string("\"f\no\"").
 
 string_with_slash_test() ->
-  {"f\\o", _} = elixir:eval("\"f\\\\o\"").
+  {"f\\o", _} = eval_string("\"f\\\\o\"").
 
 string_with_interpolation_test() ->
-  {"foo", _} = elixir:eval("\"f#{'o}o\"").
+  {"foo", _} = eval_string("\"f#{'o}o\"").
 
 string_with_another_string_interpolation_test() ->
-  {"foo", _} = elixir:eval("\"f#{\"o\"}o\"").
+  {"foo", _} = eval_string("\"f#{\"o\"}o\"").
 
 string_with_another_string_inside_string_interpolation_test() ->
-  {"fbaro", _} = elixir:eval("\"f#{\"b#{'a}r\"}o\"").
+  {"fbaro", _} = eval_string("\"f#{\"b#{'a}r\"}o\"").
 
 string_with_escaped_interpolation_test() ->
-  {"f#{'o}o", _} = elixir:eval("\"f\\#{'o}o\"").
+  {"f#{'o}o", _} = eval_string("\"f\\#{'o}o\"").
 
 string_without_interpolation_and_escaped_test() ->
-  {"f#o", _} = elixir:eval("\"f\\#o\"").
+  {"f#o", _} = eval_string("\"f\\#o\"").
 
 invalid_string_interpolation_test() ->
   ?assertError({badarg, "Unexpected end of string, expected }"}, elixir:eval("\"f#{{}o\"")).
