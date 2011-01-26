@@ -117,8 +117,9 @@ transform({tuple, Line, Exprs }, V, S) ->
 % Each expression in the list can contain a match expression.
 % Variables defined inside these expressions needs to be added to the var list.
 transform({list, Line, Exprs }, V, S) ->
-  { TExprs, VE } = build_list(Exprs, Line, V, S),
-  { TExprs, umerge(V, VE) };
+  Transformer = fun (X, Acc) -> transform(X, Acc, S) end,
+  { TExprs, VE } = build_list(Transformer, Exprs, Line, V),
+  { TExprs, VE };
 
 % Handle dict declarations. It simply delegates to list to build a list
 % of args that is dispatched to dict:from_list/1.
@@ -137,11 +138,9 @@ transform({dict, Line, Exprs }, V, S) ->
 % See list.
 transform({interpolated_string, Line, String }, V, S) ->
   Interpolations = elixir_string:extract_interpolations(String),
-  Mapfoldl = fun(X, Acc) -> handle_string_extractions(X, Line, Acc, S) end,
-  { Mapped, NV } = lists:mapfoldl(Mapfoldl, V, Interpolations),
-  Folder = fun(X, Acc) -> { cons, Line, X, Acc } end,
-  List = lists:foldr(Folder, {nil, Line}, Mapped),
-  { ?ELIXIR_WRAP_CALL(Line, lists, flatten, [List]), NV };
+  Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, Acc, S) end,
+  { List, VE } = build_list(Transformer, Interpolations, Line, V),
+  { ?ELIXIR_WRAP_CALL(Line, lists, flatten, [List]), VE };
 
 % Handle binary operations.
 %
@@ -284,15 +283,23 @@ pack_method_clause({clause, Line, Args, Guards, Exprs}, V, S) ->
 
 % Build a list transforming each expression and accumulating
 % vars in one pass. It uses tail-recursive form.
-build_list(Exprs, Line, V, S) ->
-  build_list(lists:reverse(Exprs), Line, V, S, { nil, Line }).
+%
+% It receives a function to transform each expression given
+% in Exprs, a Line used to build the List and the variables
+% scope V is passed down item by item.
+%
+% The function needs to return a tuple where the first element
+% is an erlang abstract form and the second is the new variables
+% list.
+build_list(Fun, Exprs, Line, V) ->
+  build_list(Fun, lists:reverse(Exprs), Line, V, { nil, Line }).
 
-build_list([], Line, V, S, Acc) ->
+build_list(Fun, [], Line, V, Acc) ->
   { Acc, V };
 
-build_list([H|T], Line, V, S, Acc) ->
-  { Expr, NV } = transform(H, V, S),
-  build_list(T, Line, NV, S, { cons, Line, Expr, Acc }).
+build_list(Fun, [H|T], Line, V, Acc) ->
+  { Expr, NV } = Fun(H, V),
+  build_list(Fun, T, Line, NV, { cons, Line, Expr, Acc }).
 
 % Handle string extractions for interpolation strings.
 handle_string_extractions({s, String}, Line, V, S) ->
