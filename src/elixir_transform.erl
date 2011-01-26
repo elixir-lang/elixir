@@ -232,7 +232,7 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, V, S) ->
 % Variables are handled in each function clause.
 %
 % TODO Test that a method declaration outside a module raises an error.
-transform({method, Line, Name, Arity, Clauses}, V, S) ->
+transform({def_method, Line, Name, Arity, Clauses}, V, S) ->
   {Var, Module} = S,
   TClauses = [pack_method_clause(Clause, V, S) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},

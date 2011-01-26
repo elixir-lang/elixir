@@ -325,10 +325,10 @@ objmod_body_decl -> method_decl : '$1'.
 
 % Method declarations
 method_decl -> def method_name break body 'end' :
-  build_method('$2', [], build_clause('$2', [], '$4')).
+  build_def_method('$2', [], build_clause('$2', [], '$4')).
 
 method_decl -> def method_name call_args_parens break body 'end' :
-  build_method('$2', '$3', build_clause('$2', '$3', '$5')).
+  build_def_method('$2', '$3', build_clause('$2', '$3', '$5')).
 
 % Method names do not inherit from base_identifier (which include object/
 % module and other key words) otherwise it cause conflicts.
@@ -370,8 +370,8 @@ build_unary_op(Op, Value) ->
 build_match(Left, Op, Right) ->
   { match, ?line(Op), Left, Right }.
 
-build_method(Name, Args, Clauses) ->
-  { method, ?line(Name), ?chars(Name), length(Args), [Clauses] }.
+build_def_method(Name, Args, Clauses) ->
+  { def_method, ?line(Name), ?chars(Name), length(Args), [Clauses] }.
 
 build_method_call(true, Expr, Name, Args) ->
   { method_call, ?line(Name), ?chars(Name), Args, Expr };
