@@ -63,7 +63,7 @@ Terminals
   string interpolated_string
   module object 'do' 'end' def eol Erlang
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}'
+  ':' ';' '@' '{' '}' '<'
   .
 
 Rootsymbol grammar.
@@ -321,8 +321,9 @@ dot_eol -> '.'     : '$1'.
 dot_eol -> '.' eol : '$1'.
 
 % Object/Module declaration
-module_decl -> module constant break objmod_body 'end' : build_module('$2', '$4').
-object_decl -> object constant break objmod_body 'end' : build_object('$2', '$4').
+object_decl -> object constant '<' constant break objmod_body 'end' : build_object('$2', '$6', ?chars('$4')).
+object_decl -> object constant break objmod_body 'end' : build_object('$2', '$4', 'Object').
+module_decl -> module constant break objmod_body 'end' : build_object('$2', '$4', 'Module').
 
 objmod_body -> '$empty' : [{nil, 0}].
 objmod_body -> objmod_body_list : '$1'.
@@ -368,11 +369,8 @@ build_fun_call(Target, Args) ->
 build_clause(Parent, Args, Body) ->
   { clause, ?line(Parent), Args, [], Body }.
 
-build_module(Name, Body) ->
-  { module, ?line(Name), ?chars(Name), Body }.
-
-build_object(Name, Body) ->
-  { object, ?line(Name), ?chars(Name), Body }.
+build_object(Name, Body, Parent) ->
+  { object, ?line(Name), ?chars(Name), Parent, Body }.
 
 build_fun(Stab, Clauses) ->
   { 'fun', ?line(Stab), { clauses, [Clauses] } }.

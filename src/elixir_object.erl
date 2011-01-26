@@ -19,13 +19,14 @@ build(Name) ->
 %% TEMPLATE BUILDING FOR MODULE COMPILATION
 
 % Build a template of an object or module used on compilation.
-build_template(Kind, Name) ->
+% TODO Copy data from parent and ensure parent cannot be a mixin.
+build_template(Name, BaseParent) ->
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(AttributeTable, [set, named_table, private]),
 
-  Parent = default_parent(Name, Kind),
-  Mixins = default_mixins(Name, Kind),
-  Protos = default_protos(Name, Kind),
+  Parent = default_parent(Name, BaseParent),
+  Mixins = default_mixins(Name, Parent),
+  Protos = default_protos(Name, Parent),
   ets:insert(AttributeTable, { parent, Parent }),
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
@@ -35,16 +36,17 @@ build_template(Kind, Name) ->
 
 % Returns the parent object based on the declaration.
 default_parent('Object', _)  -> [];
-default_parent(Name, object) -> 'Object';
-default_parent(Name, module) -> 'Module'.
+default_parent(Name, Parent) -> Parent.
 
 % Default mixins based on the declaration type.
-default_mixins(Name, module) -> [Name];
-default_mixins(Name, object) -> [].
+default_mixins(Name, [])       -> [];        % object Object
+default_mixins(Name, 'Object') -> [];        % object Post
+default_mixins(Name, 'Module') -> [Name];    % module Numeric
+default_mixins(Name, Parent)   -> [Parent].  % object SimplePost < Post
 
 % Default prototypes. Modules have themselves as the default prototype.
-default_protos(Name, module) -> [Name];
-default_protos(Name, object) -> [].
+default_protos(Name, 'Module') -> [Name];
+default_protos(Name, Parent)   -> [].
 
 % Special case Object to include Bootstrap methods.
 tweak_mixins('Object', _) -> ['elixir_object_methods'];
@@ -60,20 +62,20 @@ scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, '::', Name]).
 % a function that will be invoked by compile/5 passing self as argument.
 % We need to wrap them into anonymous functions so nested module
 % definitions have the variable self shadowed.
-transform(Kind, Line, Name, Body) ->
+transform(Line, Name, Parent, Body) ->
   Clause = { clause, Line, [{var, Line, self}], [], Body },
   Fun = { 'fun', Line, { clauses, [Clause] } },
-  Args = [{atom, Line, Kind}, {integer, Line, Line}, {var, Line, self}, {atom, Line, Name}, Fun],
+  Args = [{integer, Line, Line}, {var, Line, self}, {atom, Line, Name}, {atom, Line, Parent}, Fun],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
-% Inicial step of tempalte compilation. Generate a method
+% Initial step of template compilation. Generate a method
 % table and pass it forward to the next compile method.
-compile(Kind, Line, Current, Name, Fun) ->
+compile(Line, Current, Name, Parent, Fun) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:new(MethodTable, [bag, named_table, private]),
 
   try
-    compile(Kind, Line, Current, Name, Fun, MethodTable)
+    compile(Line, Current, Name, Parent, Fun, MethodTable)
   after
     ets:delete(MethodTable)
   end.
@@ -81,15 +83,15 @@ compile(Kind, Line, Current, Name, Fun) ->
 % Receive the module function to be invoked, invoke it passing
 % self and then compile the added methods into an Erlang module
 % and loaded it in the VM.
-compile(Kind, Line, Current, Name, Fun, MethodTable) ->
-  { Object, AttributeTable } = build_template(Kind, Name),
+compile(Line, Current, Name, Parent, Fun, MethodTable) ->
+  { Object, AttributeTable } = build_template(Name, Parent),
 
   try
     Result = case Fun of
       [] -> [];
       _  -> Fun(Object)
     end,
-    compile_kind(Kind, Line, Current, Object, MethodTable),
+    compile_kind(Parent, Line, Current, Object, MethodTable),
     Result
   after
     ets:delete(AttributeTable)
@@ -98,20 +100,20 @@ compile(Kind, Line, Current, Name, Fun, MethodTable) ->
 % Handle compilation logic specific to objects or modules.
 % TODO Allow object reopening.
 % TODO Do not allow module reopening.
-compile_kind(object, Line, Current, Object, MethodTable) ->
+compile_kind('Module', Line, Current, Object, MethodTable) ->
+  Name = Object#elixir_object.name,
+  Functions = ets:tab2list(MethodTable),
+  load_form(build_erlang_form(Line, Object, Functions)),
+  add_implicit_mixins(Current, Name);
+
+compile_kind(Parent, Line, Current, Object, MethodTable) ->
   case ets:first(MethodTable) of
     '$end_of_table' -> [];
     _ ->
       Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object.name, '::', 'Proto']),
-      compile(module, Line, Object, Name, [], MethodTable)
+      compile(Line, Object, Name, 'Module', [], MethodTable)
   end,
-  load_form(build_erlang_form(Line, Object));
-
-compile_kind(module, Line, Current, Object, MethodTable) ->
-  Name = Object#elixir_object.name,
-  Functions = ets:tab2list(MethodTable),
-  load_form(build_erlang_form(Line, Object, Functions)),
-  add_implicit_mixins(Current, Name).
+  load_form(build_erlang_form(Line, Object)).
 
 % Check if the module currently defined is inside an object
 % definition an automatically include it.

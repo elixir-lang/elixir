@@ -38,6 +38,7 @@ Rules.
 ({LowerCase}|_){IdentifierBase}*[?!] : build(punctuated_identifier, TokenLine, TokenChars).
 
 %% Operators
+->    : { token, { '->', TokenLine } }.
 \+    : { token, { '+', TokenLine } }.
 -     : { token, { '-', TokenLine } }.
 \*    : { token, { '*', TokenLine } }.
@@ -55,7 +56,7 @@ Rules.
 \.    : { token, { '.', TokenLine } }.
 \:    : { token, { ':', TokenLine } }.
 \@    : { token, { '@', TokenLine } }.
-->    : { token, { '->', TokenLine } }.
+<     : { token, { '<', TokenLine } }.
 
 %% Skip
 {Comment} : skip_token.

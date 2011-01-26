@@ -248,7 +248,8 @@ transform({fun_call, Line, Var, Args }, V, S) ->
       { {call, Line, TVar, TArgs}, umerge3(V, VA, VV) }
   end;
 
-% Handle module/object declarations.
+% Handle module/object declarations. The difference between
+% them is specified in Parent.
 %
 % = Variables
 %
@@ -257,12 +258,12 @@ transform({fun_call, Line, Var, Args }, V, S) ->
 % variables declared in a module do not leak outside its
 % context. The only variable available in the module by default
 % is self.
-transform({Decl, Line, Name, Exprs}, V, S) when Decl == object; Decl == module ->
+transform({object, Line, Name, Parent, Exprs}, V, S) ->
   {Var, Current} = S,
   NewName = elixir_object:scope_for(Current, Name),
   Scope = { Var, NewName },
   { TExprs, _ } = transform_tree(Exprs, [self], Scope),
-  { elixir_object:transform(Decl, Line, NewName, TExprs), V };
+  { elixir_object:transform(Line, NewName, Parent, TExprs), V };
 
 % Match all other expressions.
 % TODO Expand instead of catch all.

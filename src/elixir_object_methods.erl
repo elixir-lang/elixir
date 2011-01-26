@@ -44,6 +44,7 @@ ancestors(Self) ->
 % INTERNAL API
 
 % TODO Only allow modules to be proto/mixed in.
+% TODO Handle native types
 prepend_as(#elixir_object{} = Self, Kind, Value) -> 
   Name         = Self#elixir_object.name,
   {def, Table} = Self#elixir_object.data,
