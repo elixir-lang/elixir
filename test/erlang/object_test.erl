@@ -104,6 +104,14 @@ invalid_hash_on_construction_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
 
+not_a_hash_on_construction_test() ->
+  F = fun() ->
+    elixir:eval("object Bar\ndef constructor;'a;end\nend"),
+    Error = "A constructor needs to return a Dict, got \"'a\"",
+    ?assertError({badarg, Error}, elixir:eval("Bar.new"))
+  end,
+  test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
+
 %% Others
 
 do_not_mixin_modules_twice_test() ->
@@ -125,11 +133,10 @@ add_a_mixin_protos_to_dispatch_chain_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
 
-% TODO We need inheritance to handle this one
-% do_not_add_protos_twice_to_dispatch_chain_test() ->
-%   F = fun() ->
-%     {['Bar', 'Foo', 'Object::Methods'], []} =
-%       elixir:eval("module Foo; end\nmodule Bar; proto Foo; end\nmodule Baz; mixin Bar; end\nBaz.dispatch_chain")
-%   end,
-%   test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
-%
+do_not_add_protos_twice_to_dispatch_chain_test() ->
+  F = fun() ->
+    {['Foo', 'Object::Methods'], []} =
+      elixir:eval("module Foo; end\nobject Bar; proto Foo; end\nobject Baz < Bar; proto Foo; end\nBaz.__protos__")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
+

@@ -55,7 +55,8 @@ assert_dict_with_atoms(#elixir_object{parent='Dict'} = Data) ->
   end;
 
 assert_dict_with_atoms(Data) ->
-  ?ELIXIR_ERROR(badarg, "A constructor needs to return a Dict, got ~p", [Data]).
+  String = get_ivar(elixir_dispatch:dispatch(Data, inspect, []), list),
+  ?ELIXIR_ERROR(badarg, "A constructor needs to return a Dict, got ~p", [String]).
 
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
@@ -81,7 +82,7 @@ prepend_as(#elixir_object{} = Self, Kind, Value) ->
   ets:insert(Table, {Kind, Updated}).
 
 % Merge two lists taking into account uniqueness. Opposite to
-% lists:umerge2, does not require lists to be merged.
+% lists:umerge2, does not require lists to be sorted.
 
 umerge(List, Data) ->
   umerge2(lists:reverse(List), Data).
@@ -185,4 +186,8 @@ apply_each([{object,Object}|T], Acc) ->
   apply_each(T, NewAcc);
 
 apply_each([Module|T], Acc) ->
-  apply_each(T, [Module|Acc]).
+  case lists:member(Module, Acc) of
+    true  -> apply_each(T, Acc);
+    false -> apply_each(T, [Module|Acc])
+  end.
+  
