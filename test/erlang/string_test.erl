@@ -6,8 +6,7 @@
 % and returning the contained list.
 eval_string(Expr) ->
   { String, Binding } = elixir:eval(Expr),
-  Data = String#elixir_object.data,
-  { hd(dict:fetch(list, Data)), Binding }.
+  { test_helper:unpack_string(String), Binding }.
 
 % Interpolations
 

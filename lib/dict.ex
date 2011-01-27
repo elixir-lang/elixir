@@ -23,11 +23,11 @@ object Dict
     Erlang.dict.fold(function, acc, @dict)
   end
 
-  % Returns this dictionary represented as an String.
+  % Returns this dictionary represented as a String.
   %
   % ## Examples
   %
-  %     { 'a: 1, 'b: 2 } % => "{ a: 1, b: 1 }"
+  %     { 'a: 1, 'b: 2 } % => "{'a: 1, 'b: 1}"
   %
   def to_s
     transformer = -> (key, value, acc) ["#{key}: #{value}"|acc]
