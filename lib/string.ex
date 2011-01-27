@@ -38,6 +38,7 @@ object String
   %
   %     "elixir".inspect % => "\"elixir\""
   %
+  % TODO Which one is better [$"|@list] + [$"] or "\"#{@list}\""?
   def inspect
     String.new [$"|@list] + [$"]
   end
