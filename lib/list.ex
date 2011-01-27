@@ -12,8 +12,10 @@ object List
   end
 
   def join(string)
-    joined = foldl [], -> (x, acc) acc.append(x)
-    Erlang.lists.concat(Erlang.lists.sublist(joined, joined.length - 1))
+    list = string.to_list
+    joined = foldl [], -> (x, acc) acc.append(x.to_list).append(list)
+    sublist = Erlang.lists.sublist(joined, joined.length - 1)
+    String.new [Erlang.lists.flatten(sublist)]
   end
 
   def to_list

@@ -3,10 +3,6 @@
 -include("elixir.hrl").
 -import(lists, [umerge/2, umerge3/3]).
 
--define(parse_error(File, Line, Error), 
-  erlang:error(badsyntax, lists:flatten(io_lib:format("~s:~w: ~s", [File, Line, Error])))
-).
-
 parse(String, Binding, Filename) ->
   Vars = lists:usort(proplists:get_keys(Binding)),
   parse(String, Filename, 1, Vars, {false, []}).
@@ -20,13 +16,10 @@ forms(String, StartLine, Filename) ->
     {ok, Tokens, _} -> 
       case elixir_parser:parse(Tokens) of
         {ok, Forms} -> Forms;
-        {error, {Line, _, [Error, Token]}} -> parse_error(Line, Filename, Error, Token)
+        {error, {Line, _, [Error, Token]}} -> ?ELIXIR_SYNTAX_ERROR(Line, Filename, Error, Token)
       end;
-    {error, {Line, _, {Error, Token}}, _} -> parse_error(Line, Filename, Error, Token)
-  end.
-
-parse_error(Line, Filename, Error, Token) ->
-  ?ELIXIR_ERROR(badsyntax, "~s:~w: ~s", [Filename, Line, lists:flatten([Error, Token])]).
+    {error, {Line, _, {Error, Token}}, _} -> ?ELIXIR_SYNTAX_ERROR(Line, Filename, Error, Token)
+  end.  
 
 % Transform the given tree Forms.
 %
@@ -77,7 +70,7 @@ transform({identifier, Line, Name}, V, S) ->
 % This case could also be implemented in the dispatcher, but would affect
 % performance.
 transform({method_call, Line, Name, Args, Expr}, V, S) ->
-  { TArgs, VA } = transform({list, Line, Args}, V, S),
+  { TArgs, VA } = transform({list, Line, Args, {nil, Line}}, V, S),
   case Name of
     new -> FArgs = {cons, Line, TArgs, {nil, Line}};
     _   -> FArgs = TArgs
@@ -132,9 +125,10 @@ transform({tuple, Line, Exprs }, V, S) ->
 %
 % Each expression in the list can contain a match expression.
 % Variables defined inside these expressions needs to be added to the var list.
-transform({list, Line, Exprs }, V, S) ->
+transform({list, Line, Exprs, Tail }, V, S) ->
   Transformer = fun (X, Acc) -> transform(X, Acc, S) end,
-  { TExprs, VE } = build_list(Transformer, Exprs, Line, V),
+  { TTail, TV }  = transform(Tail, V, S),
+  { TExprs, VE } = build_list(Transformer, Exprs, Line, TV, TTail),
   { TExprs, VE };
 
 % Handle dict declarations. It simply delegates to list to build a list
@@ -144,7 +138,7 @@ transform({list, Line, Exprs }, V, S) ->
 %
 % See list.
 transform({dict, Line, Exprs }, V, S) ->
-  { List, NV } = transform({list, Line, Exprs }, V, S),
+  { List, NV } = transform({list, Line, Exprs, {nil, Line} }, V, S),
   Dict = ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]),
   { build_object(Line, 'Dict', dict, Dict), NV };
 
@@ -316,14 +310,17 @@ pack_method_clause({clause, Line, Args, Guards, Exprs}, V, S) ->
 % is an erlang abstract form and the second is the new variables
 % list.
 build_list(Fun, Exprs, Line, V) ->
-  build_list(Fun, lists:reverse(Exprs), Line, V, { nil, Line }).
+  build_list(Fun, Exprs, Line, V, {nil, Line}).
 
-build_list(Fun, [], Line, V, Acc) ->
+build_list(Fun, Exprs, Line, V, Tail) ->
+  build_list_each(Fun, lists:reverse(Exprs), Line, V, Tail).
+
+build_list_each(Fun, [], Line, V, Acc) ->
   { Acc, V };
 
-build_list(Fun, [H|T], Line, V, Acc) ->
+build_list_each(Fun, [H|T], Line, V, Acc) ->
   { Expr, NV } = Fun(H, V),
-  build_list(Fun, T, Line, NV, { cons, Line, Expr, Acc }).
+  build_list_each(Fun, T, Line, NV, { cons, Line, Expr, Acc }).
 
 % Build an #elixir_object using tuples. It expects the parent
 % and a Key, Value as instance variable name and value.

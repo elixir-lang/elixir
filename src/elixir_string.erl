@@ -1,13 +1,6 @@
 -module(elixir_string).
--export([stringify/1, extract_interpolations/1]).
+-export([extract_interpolations/1]).
 -include("elixir.hrl").
-
-% TODO Remove stringify once we dispatch contacatenation results to to_s
-stringify(#elixir_object{parent='String', data=Data}) ->
-  hd(dict:fetch(list, Data));
-
-stringify(Arg) ->
-  io_lib:format("~ts", [Arg]).
 
 extract_interpolations(String) ->
   extract_interpolations(String, [], [], []).

@@ -39,6 +39,7 @@ Rules.
 
 %% Operators
 ->    : { token, { '->', TokenLine } }.
+\|    : { token, { '|', TokenLine } }.
 \+    : { token, { '+', TokenLine } }.
 -     : { token, { '-', TokenLine } }.
 \*    : { token, { '*', TokenLine } }.

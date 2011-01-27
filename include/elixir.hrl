@@ -4,9 +4,13 @@
     Args
   }).
 
+-define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
+
 -define(ELIXIR_ERROR(Atom, String, Args), erlang:error({Atom, lists:flatten(io_lib:format(String, Args))})).
 
--define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
+-define(ELIXIR_SYNTAX_ERROR(Line, Filename, Error, Token), 
+  ?ELIXIR_ERROR(badsyntax, "~s:~w: ~s", [Filename, Line, lists:flatten([Error, Token])])
+).
 
 % A representation for Elixir Object. It contains:
 %

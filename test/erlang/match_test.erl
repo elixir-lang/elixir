@@ -74,3 +74,10 @@ list_match_test() ->
 list_match_on_function_test() ->
   {4, _} = elixir:eval("a = -> ([ 1, 2, x]) x + 1\na([1,2,3])"),
   {4, _} = elixir:eval("a = -> ([ -1, 2, x]) x + 1\na([-1,2,3])").
+
+head_and_tail_test() ->
+  {_,[{h,1},{t,[2,3]}]} = elixir:eval("[h|t] = [1,2,3]"),
+  {_,[{h,2},{t,[3]}]} = elixir:eval("[1,h|t] = [1,2,3]"),
+  {_,[{t,[3]}]} = elixir:eval("[1,2|t] = [1,2,3]"),
+  {_,[{h,1}]} = elixir:eval("[h|[2,3]] = [1,2,3]"),
+  ?assertError({badmatch, _}, elixir:eval("[2,h|t] = [1,2,3]")).

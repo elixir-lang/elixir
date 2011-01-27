@@ -4,7 +4,7 @@ object String
   end
 
   def +(another)
-    String.new(@list + another.to_list)
+    String.new([@list + another.to_list])
   end
 
   def length

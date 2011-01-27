@@ -58,7 +58,7 @@ Terminals
   string interpolated_string
   module object 'do' 'end' def eol Erlang
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}' '<'
+  ':' ';' '@' '{' '}' '<' '|'
   .
 
 Rootsymbol grammar.
@@ -78,6 +78,7 @@ Nonassoc 100 eol.
 
 Left     300 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
 Left     400 ':'.
+Left     400 '|'.
 Left     500 add_op.
 Left     600 mult_op.
 Left     700 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
@@ -206,8 +207,9 @@ tuple -> open_curly '}' : { tuple, ?line('$1'), [] }.
 tuple -> open_curly comma_expr close_curly : { tuple, ?line('$1'), '$2' }.
 
 % Lists declaration.
-list -> open_bracket ']' : { list, ?line('$1'), [] }.
-list -> open_bracket comma_expr close_bracket : { list, ?line('$1'), '$2' }.
+list -> open_bracket ']' : build_list(?line('$1'), []).
+list -> open_bracket comma_expr close_bracket : build_list(?line('$1'), '$2').
+list -> open_bracket comma_expr '|' expr close_bracket : build_list(?line('$1'), '$2', '$4').
 
 % Dicts declarations
 colon_comma_expr -> expr ':' expr : [build_dict_tuple('$1', '$3')].
@@ -394,6 +396,12 @@ build_erlang_call(false, Op, Prefix, Suffix, Args) ->
       { binary_op, Line, Op, Call, Expr };
     _ -> build_erlang_call(true, Op, Prefix, Suffix, Args)
   end.
+
+build_list(Line, Exprs) ->
+  build_list(Line, Exprs, {nil, Line}).
+
+build_list(Line, Exprs, Tail) ->
+  { list, Line, Exprs, Tail }.
 
 build_dict_tuple(Key, Value) ->
   { tuple, ?line(Key), [Key, Value] }.
