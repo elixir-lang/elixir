@@ -28,7 +28,7 @@ Nothing interesting here yet. Try again later.
 
 # Examples
 
-Imagine that we have a dictionary and we want to print it in the following format:
+Imagine that we have a dictionary and we want to represent it as a string in the following format:
 
     { k1: v1, k2: v2, ... }
     
@@ -46,11 +46,11 @@ In Erlang, we would need the following:
     -module(dict).
 
     to_s(Dict) ->
-      Transformer = fun(Key, Value, Acc) -> [string_format(Key) + ": " + string_format(Value)|Acc] end,
+      Transformer = fun(Key, Value, Acc) -> [string_format(Key) ++ ": " ++ string_format(Value)|Acc] end,
       List = dict:fold(Transformer, [], Dict),
       "{" ++ string:join(List, ", ") ++ "}".
 
     string_format(Thing) ->
       lists:flatten(io_lib:format("~p", [Thing])).
 
-The Object Oriented aspect of Elixir brings several benefits. For example, we don't need to explicitly call *dict:fold()* because the *to_s* method in Elixir is already in the Dictionary scope, so we just call the *fold* method directly. The same applies to calling the function *join*. In Elixir, *join* is a method implemented in the *List* object, which is returned as result of the *fold* call. So we can simply call *join(", ")* in the List object instead of referencing *string:join()* and passing the List as argument.
+The Object Oriented aspect of Elixir brings several benefits. For example, we don't need to explicitly call *dict:fold()* because the *to_s* method in Elixir is already in the Dictionary scope, so we just call the *fold* method directly. The same applies to calling the function *join*. In Elixir, *join* is a method implemented in the List object, which is returned as result of the *fold* call. So we can simply call *join(", ")* in the List object instead of calling *string:join(List, ", ")* passing the List as argument.
