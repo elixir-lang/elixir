@@ -51,8 +51,9 @@ dict_fold_test() ->
   true = lists:member({a,1}, List),
   true = lists:member({b,2}, List).
 
-% dict_to_s_test() ->
-%   { Object, _ } = elixir:eval("{'a: 1, 'b: 2}.to_s"),
-%   List = test_helper:unpack_string(Object),
-%   1 = List.
-%   
+dict_to_s_test() ->
+  { String, _ } = elixir:eval("{'a: 1, 'b: 2}.to_s"),
+  List = test_helper:unpack_string(String),
+  ?assert(0 /= string:str(List, "'a: 1")),
+  ?assert(0 /= string:str(List, "'b: 2")).
+  

@@ -4,8 +4,6 @@ Nothing interesting here yet. Try again later.
 
 # Roadmap
 
-* Refactor STDLIB
-
 * Add true, false, if/else, case/when
 * Add alias_method
 * Add interpolation to regexp and atoms

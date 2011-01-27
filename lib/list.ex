@@ -3,19 +3,13 @@ object List
     Erlang.lists.append(self, another)
   end
 
-  def append(another)
-    Erlang.lists.append(self, [another])
-  end
-
-  def foldl(acc, function)
-    Erlang.lists.foldl(function, acc, self)
+  def map(function)
+    Erlang.lists.map(function, self)
   end
 
   def join(string)
-    list = string.to_list
-    joined = foldl [], -> (x, acc) acc.append(x.to_list).append(list)
-    sublist = Erlang.lists.sublist(joined, joined.length - 1)
-    String.new Erlang.lists.flatten(sublist)
+    strings = map -> (x) x.to_s.to_list
+    String.new Erlang.string.join(strings, string.to_list)
   end
 
   def to_list

@@ -99,7 +99,8 @@ arguments_given_to_new_is_passed_to_constructors_test() ->
 invalid_hash_on_construction_test() ->
   F = fun() ->
     elixir:eval("object Bar\ndef constructor;{1: 2};end\nend"),
-    ?assertError({badarg}, elixir:eval("Bar.new"))
+    Error = "A constructor needs to return a Dict with all keys as symbols, got \"{1: 2}\"",
+    ?assertError({badarg, Error}, elixir:eval("Bar.new"))
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
 

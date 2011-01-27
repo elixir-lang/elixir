@@ -30,7 +30,7 @@ object Dict
   %     { 'a: 1, 'b: 2 } % => "{'a: 1, 'b: 1}"
   %
   def to_s
-    transformer = -> (key, value, acc) ["#{key}: #{value}"|acc]
-    "{" + fold([], transformer).join(", ") + "}"
+    transformer = -> (key, value, acc) ["#{key.inspect}: #{value.inspect}"|acc]
+    "{#{fold([], transformer).join(", ")}}"
   end
 end

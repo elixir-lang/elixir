@@ -50,8 +50,8 @@ assert_dict_with_atoms(#elixir_object{parent='Dict'} = Data) ->
   case lists:all(fun is_atom/1, dict:fetch_keys(Dict)) of
     true  -> Dict;
     false ->
-      String = elixir_dispatch:dispatch(Data, to_s, []),
-      ?ELIXIR_ERROR(badarg, "A constructor needs to return a Dict with all keys as symbols, got ~p", String)
+      String = get_ivar(elixir_dispatch:dispatch(Data, to_s, []), list),
+      ?ELIXIR_ERROR(badarg, "A constructor needs to return a Dict with all keys as symbols, got ~p", [String])
   end;
 
 assert_dict_with_atoms(Data) ->
