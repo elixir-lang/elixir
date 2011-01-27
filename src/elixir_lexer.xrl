@@ -24,6 +24,9 @@ Rules.
 {Digit}+\.{Digit}+ : { token, { float, TokenLine, list_to_float(TokenChars) } }.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
+%% Char
+\$. : build_char(TokenChars, TokenLine).
+
 %% Strings
 {InterpolatedString} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen).
 {String} : build_string(string, TokenChars, TokenLine, TokenLen).
@@ -110,6 +113,9 @@ build_atom(Chars, Line, Len) ->
 build_quoted_atom(Chars, Line, Len) ->
   String = lists:sublist(Chars, 2, Len - 2),
   build_atom(String, Line, Len - 2).
+
+build_char(Chars, Line) ->
+  { token, { integer, Line, lists:nth(2, Chars) } }.
 
 reserved_word('Erlang')    -> true;
 reserved_word('end')       -> true;

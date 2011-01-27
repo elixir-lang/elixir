@@ -351,6 +351,10 @@ Erlang code.
 -define(line(Node), element(2, Node)).
 -define(chars(Node), element(3, Node)).
 
+%% The following directive is needed for (significantly) faster compilation
+%% of the generated .erl file by the HiPE compiler.  Please do not remove.
+-compile([{hipe,[{regalloc,linear_scan}]}]).
+
 build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.
 

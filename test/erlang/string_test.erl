@@ -72,3 +72,6 @@ strings_are_utf8_chars_test() ->
     {10,[]} = elixir:eval("Foo.length")
   end,
   test_helper:run_and_remove(F, ['Foo']).
+
+char_test() ->
+  {99,[]} = elixir:eval("$1 + $2").
