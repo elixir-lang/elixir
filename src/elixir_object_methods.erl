@@ -32,13 +32,7 @@ protos(Self) ->
 
 get_ivar(#elixir_object{data=Data}, Name) -> 
   case dict:find(Name, Data) of
-    { ok, Value } ->
-      % dicts automatically wraps lists in another
-      % list so we need to handle this case here
-      case is_list(Value) of
-        true  -> hd(Value);
-        false -> Value
-      end;
+    { ok, Value } -> Value;
     error -> []
   end;
 

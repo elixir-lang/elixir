@@ -75,3 +75,26 @@ strings_are_utf8_chars_test() ->
 
 char_test() ->
   {99,[]} = elixir:eval("$1 + $2").
+    
+bad_char_test() ->
+  ?assertError({badsyntax, _}, elixir:eval("$foo")).
+
+%% Methods
+
+string_initialized_with_list_test() ->
+  {"elixir", []} = eval_string("String.new([101,108,105,120,105,114])").
+
+string_to_s_returns_self_test() ->
+  {"elixir", []} = eval_string("\"elixir\".to_s").
+
+string_inspect_test() ->
+  {"\"elixir\"", []} = eval_string("\"elixir\".inspect").
+
+string_to_list_test() ->
+  {"elixir", []} = elixir:eval("String.new([101,108,105,120,105,114]).to_list").
+
+string_length_test() ->
+  {6, []} = elixir:eval("\"elixir\".length").
+
+string_add_test() ->
+  {"elixir", []} = eval_string("\"eli\" + \"xir\"").

@@ -6,6 +6,7 @@ test() ->
   elixir:boot(),
   eunit:test([
     arithmetic_test,
+    atom_test,
     dict_test,
     erlang_call_test,
     function_test,
@@ -16,7 +17,7 @@ test() ->
   ]).
 
 unpack_string(String) ->
-  hd(dict:fetch(list, String#elixir_object.data)).
+  dict:fetch(list, String#elixir_object.data).
 
 % Execute a piece of code and purge given modules right after
 run_and_remove(Fun, Modules) ->

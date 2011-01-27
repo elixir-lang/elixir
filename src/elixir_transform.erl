@@ -333,7 +333,7 @@ build_object(Line, Parent, Key, Value) ->
       {nil, Line},          % Mixins
       {nil, Line},          % Protos
       {call,Line,           % Data
-        {remote,Line,{atom,Line,dict},{atom,Line,append}},
+        {remote,Line,{atom,Line,dict},{atom,Line,store}},
         [{atom,Line,Key},
          Value,
          {call,Line, {remote,Line,{atom,Line,dict},{atom,Line,new}},[]}
