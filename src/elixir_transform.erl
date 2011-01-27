@@ -147,11 +147,8 @@ transform({dict, Line, Exprs }, V, S) ->
 % = Variables
 %
 % See list.
-%
-% TODO handle_string_extractions calls stringify to build the string
-% this should actually call an Elixir method.
 transform({interpolated_string, Line, String }, V, S) ->
-  Interpolations = elixir_string:extract_interpolations(String),
+  Interpolations = elixir_string_methods:extract_interpolations(String),
   Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, Acc, S) end,
   { List, VE } = build_list(Transformer, Interpolations, Line, V),
   Flattened = ?ELIXIR_WRAP_CALL(Line, lists, flatten, [List]),

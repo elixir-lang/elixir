@@ -1,4 +1,4 @@
--module(elixir_string).
+-module(elixir_string_methods).
 -export([extract_interpolations/1]).
 -include("elixir.hrl").
 
