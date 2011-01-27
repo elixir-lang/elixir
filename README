@@ -4,8 +4,6 @@ Nothing interesting here yet. Try again later.
 
 # Roadmap
 
-* Add [H|T] to lists
-* Erlang.dict.new tests
 * Refactor STDLIB
 
 * Add true, false, if/else, case/when
