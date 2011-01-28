@@ -134,7 +134,7 @@ fun_call_expr -> min_expr call_args_parens : build_fun_call('$1', '$2').
 method_call_expr -> call_exprs dot_eol method_name call_args_parens : build_method_call(true, '$1', '$3', '$4').
 method_call_expr -> call_exprs dot_eol method_name call_args_optional : build_method_call(false, '$1', '$3', '$4').
 method_call_expr -> call_exprs dot_eol method_name : build_method_call(true, '$1', '$3', []).
-method_call_expr -> implicit_method_name call_args_optional : build_method_call(false, {var, ?line('$1'), self}, '$1', '$2').
+method_call_expr -> implicit_method_name call_args_optional : build_local_call('$1', '$2').
 
 % Minimum expressions
 min_expr -> base_expr : '$1'.
@@ -167,7 +167,7 @@ _fun_call_expr -> base_expr call_args_parens : build_fun_call('$1', '$2').
 _method_call_expr -> _call_exprs dot_eol method_name call_args_parens : build_method_call(true, '$1', '$3', '$4').
 _method_call_expr -> _call_exprs dot_eol method_name call_args_optional : build_method_call(false, '$1', '$3', '$4').
 _method_call_expr -> _call_exprs dot_eol method_name : build_method_call(true, '$1', '$3', []).
-_method_call_expr -> implicit_method_name call_args_optional : build_method_call(false, {var, ?line('$1'), self}, '$1', '$2').
+_method_call_expr -> implicit_method_name call_args_optional : build_local_call('$1', '$2').
 
 %%% BUILDING BLOCKS
 
@@ -398,6 +398,14 @@ build_method_call(false, Expr, Name, Args) ->
       Left = { method_call, ?line(Name), ?chars(Name), T, Expr },
       { binary_op, Line, Op, Left, Right };
     _ -> build_method_call(true, Expr, Name, Args)
+  end.
+
+build_local_call(Name, Args) ->
+  case Args of
+    [{unary_op, Line, Op, Right}|T] ->
+      Left = { local_call, ?line(Name), ?chars(Name), T },
+      { binary_op, Line, Op, Left, Right };
+    _ -> { local_call, ?line(Name), ?chars(Name), Args }
   end.
 
 build_erlang_call(true, Op, Prefix, Suffix, Args) ->

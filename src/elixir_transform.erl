@@ -5,7 +5,7 @@
 
 parse(String, Binding, Filename) ->
   Vars = lists:usort(proplists:get_keys(Binding)),
-  parse(String, Filename, 1, Vars, {false, []}).
+  parse(String, Filename, 1, Vars, {false, false, []}).
 
 parse(String, Filename, Line, V, S) ->
   Forms = forms(String, Line, Filename),
@@ -43,11 +43,11 @@ transform_tree(Forms, V, S) ->
 % exist yet. If we cannot define a variable and it does not belong to
 % the list, make it a method call.
 transform({identifier, Line, Name}, V, S) ->
-  { Var, Mod } = S,
+  Var = element(1, S),
   case { Var, lists:member(Name, V) } of
     { _, true }      -> { {var, Line, Name}, V };
     { true, false }  -> { {var, Line, Name}, lists:sort([Name|V]) };
-    { false, false } -> transform({method_call, Line, Name, [], {var, Line, self}}, V, S)
+    { false, false } -> transform({local_call, Line, Name, []}, V, S)
   end;
 
 % A transformation receives a node with a variables list (V),
@@ -62,7 +62,6 @@ transform({identifier, Line, Name}, V, S) ->
 %
 %   (a = 1).+(b = 2)
 %
-%
 % = new
 %
 % This method special cases new by wrapping all arguments into an array.
@@ -70,13 +69,21 @@ transform({identifier, Line, Name}, V, S) ->
 % This case could also be implemented in the dispatcher, but would affect
 % performance.
 transform({method_call, Line, Name, Args, Expr}, V, S) ->
-  { TArgs, VA } = transform({list, Line, Args, {nil, Line}}, V, S),
-  case Name of
-    new -> FArgs = {cons, Line, TArgs, {nil, Line}};
-    _   -> FArgs = TArgs
-  end,
   { TExpr, VE } = transform(Expr, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TExpr, {atom, Line, Name}, FArgs]), umerge3(V,VA,VE) };
+  { TArgs, VA } = transform({list, Line, Args, {nil, Line}}, VE, S),
+  FArgs = handle_new_call(Name, Line, TArgs),
+  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TExpr, {atom, Line, Name}, FArgs]), VA };
+
+% Makes a local call. Local calls don't go through the method dispatching
+% path and always call functions in the same module.
+transform({local_call, Line, Name, Args}, V, S) ->
+  case element(2, S) of
+    true ->
+      { TArgs, VA } = transform_tree(Args, V, S),
+      FArgs = handle_new_call(Name, Line, [{var, Line, self}|TArgs]),
+      { { call, Line, {atom, Line, Name}, FArgs }, VA };
+    false -> transform({method_call, Line, Name, Args, {var, Line, self}}, V, S)
+  end;
 
 % Reference to a constant (that should then be loaded).
 %
@@ -104,8 +111,8 @@ transform({ivar, Line, Name}, V, S) ->
 %
 % So we need to take both into account.
 transform({match, Line, Left, Right}, V, S) ->
-  { Var, Mod } = S,
-  { TLeft, VL } = transform(Left, V, { true, Mod }),
+  { Var, Def, Mod } = S,
+  { TLeft, VL } = transform(Left, V, { true, Def, Mod }),
   { TRight, VR } = transform(Right, V, S),
   { {match, Line, TLeft, TRight }, umerge3(V, VL, VR) };
 
@@ -197,14 +204,14 @@ transform({'fun', Line, {clauses, Clauses}}, V, S) ->
 % into account. Clauses do not return variables list as second argument
 % because variables in one clause should not affect the other.
 transform({clause, Line, Args, Guards, Exprs}, V, S) ->
-  { Var, Mod } = S,
-  { TArgs, V1 } = transform_tree(Args, V, { true, Mod }),
+  { Var, Def, Mod } = S,
+  { TArgs, V1 } = transform_tree(Args, V, { true, Def, Mod }),
   { TExprs, _ } = transform_tree(Exprs, umerge(V, V1), S),
   { clause, Line, TArgs, Guards, TExprs };
 
 % Handles erlang function calls in the following format:
 %
-%   erl.lists.mapfoldr()
+%   Erlang.lists.mapfoldr()
 %
 % = Variables
 %
@@ -224,8 +231,9 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, V, S) ->
 %
 % TODO Test that a method declaration outside a module raises an error.
 transform({def_method, Line, Name, Arity, Clauses}, V, S) ->
-  {Var, Module} = S,
-  TClauses = [pack_method_clause(Clause, V, S) || Clause <- Clauses],
+  {Var, _, Module} = S,
+  Scope = {Var, true, Module},
+  TClauses = [pack_method_clause(Clause, V, Scope) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
   { elixir_object:wrap_method_definition(Module, Line, Method), V };
 
@@ -255,7 +263,7 @@ transform({fun_call, Line, Var, Args }, V, S) ->
   end,
 
   case Method of
-    true -> transform({method_call, Line, Name, Args, {var, Line, self}}, V, S);
+    true -> transform({local_call, Line, Name, Args}, V, S);
     false ->
       { TArgs, VA } = transform_tree(Args, V, S),
       { TVar, VV }  = transform(Var, V, S),
@@ -273,9 +281,9 @@ transform({fun_call, Line, Var, Args }, V, S) ->
 % context. The only variable available in the module by default
 % is self.
 transform({object, Line, Name, Parent, Exprs}, V, S) ->
-  {Var, Current} = S,
+  {Var, _, Current} = S,
   NewName = elixir_object:scope_for(Current, Name),
-  Scope = { Var, NewName },
+  Scope = { Var, false, NewName },
   { TExprs, _ } = transform_tree(Exprs, [self], Scope),
   { elixir_object:transform(Line, NewName, Parent, TExprs), V };
 
@@ -338,6 +346,14 @@ build_object(Line, Parent, Key, Value) ->
       }
     ]
   }.
+
+% Handle method dispatches to nil by wrapping everything in an array
+% as we don't have a splat operator.
+handle_new_call(new, Line, Args) ->
+  {cons, Line, Args, {nil, Line}};
+
+handle_new_call(_, _, Args) ->
+  Args.
 
 % Handle string extractions for interpolation strings.
 handle_string_extractions({s, String}, Line, V, S) ->

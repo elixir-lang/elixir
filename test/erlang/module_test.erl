@@ -97,63 +97,72 @@ method_invocation_in_module_with_self_without_parens_args_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-% Method invocation with implicit self
+% Local calls
 
-implicit_self_test() ->
+local_call_test() ->
   F = fun() ->
     elixir:eval("module Bar\ndef foo;1;end\ndef bar; foo; end\nend"),
     {1,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-implicit_self_with_args_test() ->
+local_call_with_args_test() ->
   F = fun() ->
     elixir:eval("module Bar\ndef foo(x);x + 1;end\ndef bar; foo 2; end\nend"),
     {3,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-implicit_self_with_method_call_arg_test() ->
+local_call_with_method_call_arg_test() ->
   F = fun() ->
     elixir:eval("module Bar\ndef foo(x);x + 1;end\ndef bar; foo baz; end\ndef baz; 2; end\nend"),
     {3,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-implicit_self_with_method_call_args_test() ->
+local_call_with_method_call_args_test() ->
   F = fun() ->
     elixir:eval("module Bar\ndef foo(x,y);x + y;end\ndef bar; foo baz, baz; end\ndef baz; 2; end\nend"),
     {4,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-implicit_self_gives_higher_preference_to_variables_test() ->
+local_call_gives_higher_preference_to_variables_test() ->
   F = fun() ->
     elixir:eval("module Bar\ndef foo;1;end\ndef bar; foo = 3; foo; end\nend"),
     {3,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-implicit_self_gives_higher_preference_to_function_calls_test() ->
+local_call_gives_higher_preference_to_function_calls_test() ->
   F = fun() ->
     elixir:eval("module Bar\ndef foo;1;end\ndef bar; foo = -> 3; foo(); end\nend"),
     {3,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-implicit_self_call_inside_a_function_test() ->
+local_call_inside_a_function_test() ->
   F = fun() ->
     elixir:eval("module Bar\ndef foo;1;end\ndef bar; baz = -> foo; baz(); end\nend"),
     {1,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-implicit_self_gives_higher_preference_to_function_calls_unless_no_function_test() ->
+local_call_gives_higher_preference_to_function_calls_unless_no_function_test() ->
   F = fun() ->
     elixir:eval("module Bar\ndef foo;1;end\ndef bar; foo(); end\nend"),
     {1,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
+
+local_call_does_not_look_at_outer_modules_test() ->
+  F = fun() ->
+    elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar;mixin Foo;def bar; foo(); end;end"),
+    {1,[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Foo','Bar']).
+
+
 
 % Module lookup
 % cannot_store_already_defined_constants_test() ->
