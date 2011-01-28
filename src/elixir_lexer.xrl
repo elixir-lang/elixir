@@ -144,4 +144,9 @@ reserved_word('def')       -> true;
 % reserved_word('try')     -> true;
 % reserved_word('catch')   -> true;
 % reserved_word('throw')   -> true;
+
+% Special operators
+reserved_word('div')       -> true;
+reserved_word('rem')       -> true;
+
 reserved_word(_)           -> false.

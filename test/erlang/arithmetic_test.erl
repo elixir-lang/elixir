@@ -24,6 +24,18 @@ integer_div_test() ->
   {0.5,[]} = elixir:eval("1 / 2"),
   {2.0,[]} = elixir:eval("4 / 2").
 
+integer_divdiv_test() ->
+  {0,[]} = elixir:eval("1 div 2"),
+  {2,[]} = elixir:eval("4 div 2").
+
+integer_rem_test() ->
+  {1,[]} = elixir:eval("1 rem 2"),
+  {0,[]} = elixir:eval("4 rem 2").
+
+integer_rem_div_variables_test() ->
+  {1,[{'rem',1}]} = elixir:eval("rem = 1\nrem rem 2"),
+  {2,[{'div',4}]} = elixir:eval("div = 4\ndiv div 2").
+
 integer_mult_div_test() ->
   {1.0,[]} = elixir:eval("2*1/2"),
   {6.0,[]} = elixir:eval("3 * 4 / 2").

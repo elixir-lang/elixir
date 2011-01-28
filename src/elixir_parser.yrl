@@ -55,7 +55,7 @@ Nonterminals
 
 Terminals
   punctuated_identifier identifier float integer constant atom
-  string interpolated_string
+  string interpolated_string div rem
   module object 'do' 'end' def eol Erlang
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '<' '|'
@@ -222,10 +222,13 @@ dict -> open_curly ':' '}' : { dict, ?line('$1'), [] }.
 dict -> open_curly colon_comma_expr close_curly : { dict, ?line('$1'), '$2' }.
 
 % Base identifiers. Some keywords are converted to base identifier and
-% are used as variable names. Notice they are not used as method names.
+% are used as variable names. Notice extra_identifiers are not allowed as
+% implicit method call.
 base_identifier -> identifier : '$1'.
 base_identifier -> module : { identifier, ?line('$1'), module }.
 base_identifier -> object : { identifier, ?line('$1'), object }.
+base_identifier -> div : { identifier, ?line('$1'), 'div' }.
+base_identifier -> rem : { identifier, ?line('$1'), 'rem' }.
 
 % ivar
 ivar -> '@' base_identifier : { ivar, ?line('$1'), ?chars('$2') }.
@@ -304,6 +307,9 @@ add_op -> '-' : '$1'.
 mult_op -> '*' : '$1'.
 mult_op -> '/' : '$1'.
 
+mult_op -> div : '$1'.
+mult_op -> rem : '$1'.
+
 % Dot break
 dot_eol -> '.'     : '$1'.
 dot_eol -> '.' eol : '$1'.
@@ -344,6 +350,10 @@ method_ops_identifier -> '+' : '$1'.
 method_ops_identifier -> '-' : '$1'.
 method_ops_identifier -> '*' : '$1'.
 method_ops_identifier -> '/' : '$1'.
+method_ops_identifier -> div : '$1'.
+method_ops_identifier -> rem : '$1'.
+method_ops_identifier -> module : '$1'.
+method_ops_identifier -> object : '$1'.
 
 Erlang code.
 
