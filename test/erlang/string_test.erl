@@ -34,6 +34,9 @@ extract_interpolations_with_string_inside_interpolation_test() ->
 extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
   [{s, "f"}, {i, "\"f}o\""}, {s, "o"}] = elixir_string:extract_interpolations("f#{\"f}o\"}o").
 
+extract_interpolations_with_right_curly_inside_regexp_inside_interpolation_test() ->
+  [{s, "f"}, {i, "#r\"f}o\""}, {s, "o"}] = elixir_string:extract_interpolations("f#{#r\"f}o\"}o").
+
 %% String
 
 simple_string_test() ->
@@ -56,6 +59,9 @@ string_with_another_string_interpolation_test() ->
 
 string_with_another_string_inside_string_interpolation_test() ->
   {"fbaro", _} = eval_string("\"f#{\"b#{'a}r\"}o\"").
+
+string_with_another_string_with_curly_inside_interpolation_test() ->
+  {"fb}ro", _} = eval_string("\"f#{\"b}r\"}o\"").
 
 string_with_escaped_interpolation_test() ->
   {"f#{'o}o", _} = eval_string("\"f\\#{'o}o\"").

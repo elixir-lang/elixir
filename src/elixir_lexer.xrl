@@ -110,6 +110,7 @@ build_atom(Chars, Line, Len) ->
   String = lists:sublist(Chars, 2, Len - 1),
   { token, { atom, Line, list_to_atom(String) } }.
 
+% TODO We need to unescape quoted atoms as well
 build_quoted_atom(Chars, Line, Len) ->
   String = lists:sublist(Chars, 2, Len - 2),
   build_atom(String, Line, Len - 2).

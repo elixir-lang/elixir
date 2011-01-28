@@ -8,12 +8,11 @@ Nothing interesting here yet. Try again later.
 * Check what happens with several method definitions
 * Add alias_method
 * Add interpolation to regexp and atoms
-* Add missing types (regexp)
+* Add missing types (regexp, ranges, bitstream)
 * Add $"foo" as shortcut to create a list of integers
 * Allow classes to be reopened
 * Add generators
 * Add variables to object declarations and copy them on inheritance
-* Add tail call optimization
 * Add metaprogramming
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add 
 * Add _.foo

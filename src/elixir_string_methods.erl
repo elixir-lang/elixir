@@ -28,11 +28,11 @@ extract_interpolations([$}|Rest], Buffer, [$}], Output) ->
 extract_interpolations([$\\,Char|Rest], Buffer, [], Output) ->
   extract_interpolations(Rest, [Char,$\\|Buffer], [], Output);
 
-extract_interpolations([$}|Rest], Buffer, [$}|Search], Output) ->
-  extract_interpolations(Rest, [$}|Buffer], Search, Output);
-
 extract_interpolations([${|Rest], Buffer, Search, Output) ->
   extract_interpolations(Rest, [${|Buffer], [$}|Search], Output);
+
+extract_interpolations([$}|Rest], Buffer, [$}|Search], Output) ->
+  extract_interpolations(Rest, [$}|Buffer], Search, Output);
 
 extract_interpolations([$"|Rest], Buffer, [$"|Search], Output) ->
   extract_interpolations(Rest, [$"|Buffer], Search, Output);
