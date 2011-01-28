@@ -80,7 +80,9 @@ strings_are_utf8_chars_test() ->
   test_helper:run_and_remove(F, ['Foo']).
 
 char_test() ->
-  {99,[]} = elixir:eval("$1 + $2").
+  {99,[]} = elixir:eval("$1 + $2"),
+  {92,[]} = elixir:eval("$\\\n"),
+  {40,[]} = elixir:eval("$\\\(").
     
 bad_char_test() ->
   ?assertError({badsyntax, _}, elixir:eval("$foo")).
