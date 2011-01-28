@@ -51,6 +51,7 @@ Nonterminals
   method_name
   implicit_method_name
   method_ops_identifier
+  implicit_method_ops_identifier
   .
 
 Terminals
@@ -58,7 +59,7 @@ Terminals
   string interpolated_string div rem
   module object 'do' 'end' def eol Erlang
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}' '<' '|'
+  ':' ';' '@' '{' '}' '<' '|' '_'
   .
 
 Rootsymbol grammar.
@@ -229,6 +230,7 @@ base_identifier -> module : { identifier, ?line('$1'), module }.
 base_identifier -> object : { identifier, ?line('$1'), object }.
 base_identifier -> div : { identifier, ?line('$1'), 'div' }.
 base_identifier -> rem : { identifier, ?line('$1'), 'rem' }.
+base_identifier -> '_' : { identifier, ?line('$1'), '_' }.
 
 % ivar
 ivar -> '@' base_identifier : { ivar, ?line('$1'), ?chars('$2') }.
@@ -338,22 +340,22 @@ method_decl -> def method_name break body 'end' :
 method_decl -> def method_name call_args_parens break body 'end' :
   build_def_method('$2', '$3', build_clause('$2', '$3', '$5')).
 
-% Method names do not inherit from base_identifier (which include object/
-% module and other key words) otherwise it cause conflicts.
+% Method names do not inherit from base_identifier, which include object,
+% module and _ as keywords, to avoid conflicts.
 implicit_method_name -> identifier : '$1'.
 implicit_method_name -> punctuated_identifier : '$1'.
+implicit_method_name -> implicit_method_ops_identifier : { identifier, ?line('$1'), ?op('$1') }.
 
 method_name -> implicit_method_name : '$1'.
 method_name -> method_ops_identifier : { identifier, ?line('$1'), ?op('$1') }.
+
+implicit_method_ops_identifier -> div : '$1'.
+implicit_method_ops_identifier -> rem : '$1'.
 
 method_ops_identifier -> '+' : '$1'.
 method_ops_identifier -> '-' : '$1'.
 method_ops_identifier -> '*' : '$1'.
 method_ops_identifier -> '/' : '$1'.
-method_ops_identifier -> div : '$1'.
-method_ops_identifier -> rem : '$1'.
-method_ops_identifier -> module : '$1'.
-method_ops_identifier -> object : '$1'.
 
 Erlang code.
 

@@ -11,7 +11,6 @@ Nothing interesting here yet. Try again later.
 * Add missing types (regexp)
 * Add $"foo" as shortcut to create a list of integers
 * Allow classes to be reopened
-* Add _ to pattern matching
 * Add generators
 * Add variables to object declarations and copy them on inheritance
 * Add tail call optimization

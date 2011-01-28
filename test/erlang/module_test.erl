@@ -97,6 +97,9 @@ method_invocation_in_module_with_self_without_parens_args_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
+cannot_defined_underscore_as_method_test() ->
+  ?assertError({badsyntax, _}, elixir:eval("module Bar; def _(); 1 + 2; end; end")).
+
 % Local calls
 
 local_call_test() ->
@@ -157,7 +160,7 @@ local_call_gives_higher_preference_to_function_calls_unless_no_function_test() -
 
 local_call_does_not_look_at_outer_modules_test() ->
   F = fun() ->
-    ?assertError({undefined_local_method,"nofile:4: undefined local method foo/1"},
+    ?assertError({undefined_local_method,"nofile:4: undefined local method foo/0"},
       elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar\nmixin Foo\ndef bar; foo(); end\nend"))
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).

@@ -117,7 +117,9 @@ build_quoted_atom(Chars, Line, Len) ->
 build_char(Chars, Line) ->
   { token, { integer, Line, lists:nth(2, Chars) } }.
 
+
 reserved_word('Erlang')    -> true;
+reserved_word('_')         -> true;
 reserved_word('end')       -> true;
 reserved_word('do')        -> true;
 reserved_word('module')    -> true;

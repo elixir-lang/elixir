@@ -30,6 +30,10 @@ multiple_assignment_with_expression_test() ->
 multiple_assignment_with_binding_expression_test() ->
   {3, [{a, 3}, {b, 1}]} = elixir:eval("a = (b + 2)", [{b, 1}]).
 
+underscore_assignment_test() -> 
+  {1, []} = elixir:eval("_ = 1"),
+  {_, [{a,1},{c,3}]} = elixir:eval("[a,_,c] = [1,2,3]\n[a,_,c] = [1,4,3]").
+
 % Atoms match
 simple_atom_test() ->
   {foo, [{a, foo}]} = elixir:eval("a = 'foo").

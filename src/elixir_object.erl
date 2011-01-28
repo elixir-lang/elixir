@@ -203,7 +203,7 @@ format_error(false, Filename, [{Line,_,{unused_var,self}}|T]) ->
   format_error(false, Filename, T);
 
 format_error(true, Filename, [{Line,Module,{undefined_function,{Name, Arity}}}|T]) ->
-  Message = io_lib:format("undefined local method ~s/~w", [Name, Arity]),
+  Message = io_lib:format("undefined local method ~s/~w", [Name, Arity-1]),
   elixir_errors:file_error(undefined_local_method, Line, Filename, Message);
 
 % Default warnings and errors.
