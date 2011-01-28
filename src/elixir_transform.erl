@@ -1,7 +1,7 @@
 -module(elixir_transform).
 -export([parse/3]).
 -include("elixir.hrl").
--import(lists, [umerge/2, umerge3/3]).
+-import(lists, [umerge/2]).
 
 parse(String, Binding, Filename) ->
   Vars = lists:usort(proplists:get_keys(Binding)),
@@ -72,7 +72,7 @@ transform({method_call, Line, Name, Args, Expr}, F, V, S) ->
   { TExpr, VE } = transform(Expr, F, V, S),
   { TArgs, VA } = transform({list, Line, Args, {nil, Line}}, F, V, S),
   FArgs = handle_new_call(Name, Line, TArgs),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TExpr, {atom, Line, Name}, FArgs]), umerge3(V,VA,VE) };
+  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TExpr, {atom, Line, Name}, FArgs]), umerge(VA,VE) };
 
 % Makes a local call. Local calls don't go through the method dispatching
 % path and always call functions in the same module.
@@ -114,7 +114,7 @@ transform({match, Line, Left, Right}, F, V, S) ->
   { Var, Def, Mod } = S,
   { TLeft, VL } = transform(Left, F, V, { true, Def, Mod }),
   { TRight, VR } = transform(Right, F, V, S),
-  { {match, Line, TLeft, TRight }, umerge3(V, VL, VR) };
+  { {match, Line, TLeft, TRight }, umerge(VL, VR) };
 
 % Handle tuple declarations.
 %
@@ -124,7 +124,7 @@ transform({match, Line, Left, Right}, F, V, S) ->
 % Variables defined inside these expressions needs to be added to the var list.
 transform({tuple, Line, Exprs }, F, V, S) ->
   { TExprs, VE } = transform_tree(Exprs, F, V, S),
-  { {tuple, Line, TExprs}, umerge(V, VE) };
+  { {tuple, Line, TExprs}, VE };
 
 % Handle list declarations.
 %
@@ -134,9 +134,9 @@ transform({tuple, Line, Exprs }, F, V, S) ->
 % Variables defined inside these expressions needs to be added to the var list.
 transform({list, Line, Exprs, Tail }, F, V, S) ->
   Transformer = fun (X, Acc) -> transform(X, F, Acc, S) end,
-  { TTail, TV }  = transform(Tail, F, V, S),
-  { TExprs, VE } = build_list(Transformer, Exprs, Line, TV, TTail),
-  { TExprs, VE };
+  { TTail, VT }  = transform(Tail, F, V, S),
+  { TExprs, VE } = build_list(Transformer, Exprs, Line, V, TTail),
+  { TExprs, umerge(VE, VT) };
 
 % Handle dict declarations. It simply delegates to list to build a list
 % of args that is dispatched to dict:from_list/1.
@@ -174,7 +174,7 @@ transform({binary_op, Line, Op, Left, Right}, F, V, S) ->
   { TLeft, VL } = transform(Left, F, V, S),
   { TRight, VR } = transform(Right, F, V, S),
   Args = { cons, Line, TRight, {nil, Line} },
-  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TLeft, {atom, Line, Op}, Args]), umerge3(V, VL, VR) };
+  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TLeft, {atom, Line, Op}, Args]), umerge(VL, VR) };
 
 % Handle unary operations.
 %
@@ -184,7 +184,7 @@ transform({binary_op, Line, Op, Left, Right}, F, V, S) ->
 % Variables defined inside these expressions needs to be added to the list.
 transform({unary_op, Line, Op, Right}, F, V, S) ->
   { TRight, V1} = transform(Right, F, V, S),
-  { { op, Line, Op, TRight }, umerge(V, V1) };
+  { { op, Line, Op, TRight }, V1 };
 
 % Handle functions declarations. They preserve the current binding.
 %
@@ -205,8 +205,8 @@ transform({'fun', Line, {clauses, Clauses}}, F, V, S) ->
 % because variables in one clause should not affect the other.
 transform({clause, Line, Args, Guards, Exprs}, F, V, S) ->
   { Var, Def, Mod } = S,
-  { TArgs, V1 } = transform_tree(Args, F, V, { true, Def, Mod }),
-  { TExprs, _ } = transform_tree(Exprs, F, umerge(V, V1), S),
+  { TArgs, NV } = transform_tree(Args, F, V, { true, Def, Mod }),
+  { TExprs, _ } = transform_tree(Exprs, F, NV, S),
   { clause, Line, TArgs, Guards, TExprs };
 
 % Handles erlang function calls in the following format:
@@ -218,8 +218,8 @@ transform({clause, Line, Args, Guards, Exprs}, F, V, S) ->
 % Variables can be set inside the args hash, so they need
 % to be taken into account on the variables list.
 transform({erlang_call, Line, Prefix, Suffix, Args}, F, V, S) ->
-  { TArgs, V1 } = transform_tree(Args, F, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, Prefix, Suffix, TArgs), umerge(V, V1) };
+  { TArgs, VA } = transform_tree(Args, F, V, S),
+  { ?ELIXIR_WRAP_CALL(Line, Prefix, Suffix, TArgs), VA };
 
 % Method definitions are never executed by Elixir runtime. Their
 % abstract form is stored into an ETS table and is just added to
@@ -267,7 +267,7 @@ transform({fun_call, Line, Var, Args }, F, V, S) ->
     false ->
       { TArgs, VA } = transform_tree(Args, F, V, S),
       { TVar, VV }  = transform(Var, F, V, S),
-      { {call, Line, TVar, TArgs}, umerge3(V, VA, VV) }
+      { {call, Line, TVar, TArgs}, umerge(VA, VV) }
   end;
 
 % Handle module/object declarations. The difference between
