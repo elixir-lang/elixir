@@ -64,7 +64,7 @@ string_without_interpolation_and_escaped_test() ->
   {"f#o", _} = eval_string("\"f\\#o\"").
 
 invalid_string_interpolation_test() ->
-  ?assertError({badarg, "Unexpected end of string, expected }"}, elixir:eval("\"f#{{}o\"")).
+  ?assertError({badarg, "unexpected end of string, expected }"}, elixir:eval("\"f#{{}o\"")).
 
 strings_are_utf8_chars_test() ->
   F = fun() ->

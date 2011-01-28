@@ -51,12 +51,12 @@ assert_dict_with_atoms(#elixir_object{parent='Dict'} = Data) ->
     true  -> Dict;
     false ->
       String = get_ivar(elixir_dispatch:dispatch(Data, to_s, []), list),
-      ?ELIXIR_ERROR(badarg, "A constructor needs to return a Dict with all keys as symbols, got ~p", [String])
+      elixir_errors:raise(badarg, "constructor needs to return a Dict with all keys as symbols, got ~p", [String])
   end;
 
 assert_dict_with_atoms(Data) ->
   String = get_ivar(elixir_dispatch:dispatch(Data, inspect, []), list),
-  ?ELIXIR_ERROR(badarg, "A constructor needs to return a Dict, got ~p", [String]).
+  elixir_errors:raise(badarg, "constructor needs to return a Dict, got ~p", [String]).
 
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types

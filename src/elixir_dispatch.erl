@@ -7,12 +7,12 @@ dispatch(Object, Method, Args) ->
   Chain = elixir_object_methods:mixins(Object),
   Arity = length(Args) + 1,
   case find_module(Chain, Method, Arity) of
-    []     -> ?ELIXIR_ERROR(nomethod, "No method ~p/~p in mixins ~p", [Method, Arity - 1, Chain]);
+    []     -> elixir_errors:raise(nomethod, "No method ~p/~p in mixins ~p", [Method, Arity - 1, Chain]);
     Module -> apply(Module, Method, [Object|Args])
   end;
 
 dispatch(Else, Method, Args) ->
-  ?ELIXIR_ERROR(nomethod, "Unknown type ~p to dispatch method ~p", [Else, Method]).
+  elixir_errors:raise(nomethod, "Unknown type ~p to dispatch method ~p", [Else, Method]).
 
 % Find first module that contains the method with given arity.
 find_module([], Method, Arity) -> [];

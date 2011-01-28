@@ -9,11 +9,11 @@
 lookup(Name) ->
   case code:ensure_loaded(Name) of
     {module, Name} -> elixir_object:build(Name);
-    _ -> ?ELIXIR_ERROR(badarg, "No constant ~p defined", [Name])
+    _ -> elixir_errors:raise(badarg, "no constant ~p defined", [Name])
   end.
 
 lookup_attributes(Name) ->
   case code:ensure_loaded(Name) of
     {module, Name} -> Name:module_info(attributes);
-    _ -> ?ELIXIR_ERROR(badarg, "No constant ~p defined", [Name])
+    _ -> elixir_errors:raise(badarg, "no constant ~p defined", [Name])
   end.

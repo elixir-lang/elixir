@@ -157,12 +157,10 @@ local_call_gives_higher_preference_to_function_calls_unless_no_function_test() -
 
 local_call_does_not_look_at_outer_modules_test() ->
   F = fun() ->
-    elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar;mixin Foo;def bar; foo(); end;end"),
-    {1,[]} = elixir:eval("Bar.bar")
+    ?assertError({undefined_local_method,"nofile:4: undefined local method foo/1"},
+      elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar\nmixin Foo\ndef bar; foo(); end\nend"))
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
-
-
 
 % Module lookup
 % cannot_store_already_defined_constants_test() ->
@@ -173,4 +171,4 @@ local_call_does_not_look_at_outer_modules_test() ->
 %   test_helper:run_and_remove(F, ['Foo']).
 
 cannot_lookup_not_stored_constants_test() ->
-  ?assertError({badarg, "No constant 'FooBarBaz' defined" }, elixir:eval("FooBarBaz")).
+  ?assertError({badarg, "no constant 'FooBarBaz' defined" }, elixir:eval("FooBarBaz")).

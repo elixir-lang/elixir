@@ -1,5 +1,5 @@
 -module(elixir_object).
--export([build/1, scope_for/2, transform/4, compile/5, wrap_method_definition/3, store_wrapped_method/2]).
+-export([build/1, scope_for/2, transform/5, compile/6, wrap_method_definition/3, store_wrapped_method/2]).
 -include("elixir.hrl").
 
 %% EXTERNAL API
@@ -41,7 +41,7 @@ default_parent(Name, 'Object') -> 'Object'; % No need check if Object really exi
 default_parent(Name, 'Module') -> 'Module'; % No need check if Module really exists.
 default_parent(Name, Parent) ->
   case elixir_object_methods:abstract_parent(Parent) of
-    'Module' -> ?ELIXIR_ERROR(badarg, "Cannot inherit from a module ~s", [Parent]);
+    'Module' -> elixir_errors:raise(badarg, "cannot inherit from a module ~s", [Parent]);
     _ -> Parent
   end.
 
@@ -69,20 +69,21 @@ scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, '::', Name]).
 % a function that will be invoked by compile/5 passing self as argument.
 % We need to wrap them into anonymous functions so nested module
 % definitions have the variable self shadowed.
-transform(Line, Name, Parent, Body) ->
+transform(Line, Filename, Name, Parent, Body) ->
   Clause = { clause, Line, [{var, Line, self}], [], Body },
   Fun = { 'fun', Line, { clauses, [Clause] } },
-  Args = [{integer, Line, Line}, {var, Line, self}, {atom, Line, Name}, {atom, Line, Parent}, Fun],
+  Args = [{integer, Line, Line}, {string, Line, Filename}, {var, Line, self},
+    {atom, Line, Name}, {atom, Line, Parent}, Fun],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 % Initial step of template compilation. Generate a method
 % table and pass it forward to the next compile method.
-compile(Line, Current, Name, Parent, Fun) ->
+compile(Line, Filename, Current, Name, Parent, Fun) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:new(MethodTable, [bag, named_table, private]),
 
   try
-    compile(Line, Current, Name, Parent, Fun, MethodTable)
+    compile(Line, Filename, Current, Name, Parent, Fun, MethodTable)
   after
     ets:delete(MethodTable)
   end.
@@ -90,7 +91,7 @@ compile(Line, Current, Name, Parent, Fun) ->
 % Receive the module function to be invoked, invoke it passing
 % self and then compile the added methods into an Erlang module
 % and loaded it in the VM.
-compile(Line, Current, Name, Parent, Fun, MethodTable) ->
+compile(Line, Filename, Current, Name, Parent, Fun, MethodTable) ->
   { Object, AttributeTable } = build_template(Name, Parent),
 
   try
@@ -98,7 +99,7 @@ compile(Line, Current, Name, Parent, Fun, MethodTable) ->
       [] -> [];
       _  -> Fun(Object)
     end,
-    compile_kind(Parent, Line, Current, Object, MethodTable),
+    compile_kind(Parent, Line, Filename, Current, Object, MethodTable),
     Result
   after
     ets:delete(AttributeTable)
@@ -107,20 +108,20 @@ compile(Line, Current, Name, Parent, Fun, MethodTable) ->
 % Handle compilation logic specific to objects or modules.
 % TODO Allow object reopening.
 % TODO Do not allow module reopening.
-compile_kind('Module', Line, Current, Object, MethodTable) ->
+compile_kind('Module', Line, Filename, Current, Object, MethodTable) ->
   Name = Object#elixir_object.name,
   Functions = ets:tab2list(MethodTable),
-  load_form(build_erlang_form(Line, Object, Functions)),
+  load_form(build_erlang_form(Line, Object, Functions), Filename),
   add_implicit_mixins(Current, Name);
 
-compile_kind(Parent, Line, Current, Object, MethodTable) ->
+compile_kind(Parent, Line, Filename, Current, Object, MethodTable) ->
   case ets:first(MethodTable) of
     '$end_of_table' -> [];
     _ ->
       Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object.name, '::', 'Proto']),
-      compile(Line, Object, Name, 'Module', [], MethodTable)
+      compile(Line, Filename, Object, Name, 'Module', [], MethodTable)
   end,
-  load_form(build_erlang_form(Line, Object)).
+  load_form(build_erlang_form(Line, Object), Filename).
 
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
@@ -177,8 +178,44 @@ build_erlang_form(Line, Object, Functions) ->
   [{attribute, Line, module, Name}, {attribute, Line, compile, [export_all]} | Base].
 
 % Compile and load given forms as an Erlang module.
-load_form(Forms) ->
+load_form(Forms, Filename) ->
   case compile:forms(Forms, [return]) of
-    {ok, ModuleName, Binary, Warnings} -> code:load_binary(ModuleName, "nofile", Binary);
-    {error, Errors, Warnings}          -> erlang:error(Errors)
+    {ok, ModuleName, Binary, Warnings} ->
+      format_errors(false, Filename, Warnings),
+      code:load_binary(ModuleName, Filename, Binary);
+    {error, Errors, Warnings} ->
+      format_errors(false, Filename, Warnings),
+      format_errors(true, Filename, Errors)
   end.
+
+format_errors(Raise, Filename, []) ->
+  case Raise of 
+    true -> elixir_errors:raise(bad, "compilation failed but no reason was given");
+    false -> []
+  end;
+
+format_errors(Bool, Filename, [{".", Errors}]) ->
+  format_error(Bool, Filename, Errors).
+
+% Overwritten warnings and errors.
+
+format_error(false, Filename, [{Line,_,{unused_var,self}}|T]) ->
+  format_error(false, Filename, T);
+
+format_error(true, Filename, [{Line,Module,{undefined_function,{Name, Arity}}}|T]) ->
+  Message = io_lib:format("undefined local method ~s/~w", [Name, Arity]),
+  elixir_errors:file_error(undefined_local_method, Line, Filename, Message);
+
+% Default warnings and errors.
+
+format_error(false, Filename, [{Line,Module,Desc}|T]) ->
+  Message = Module:format_error(Desc),
+  io:format(elixir_errors:file_format(Line, Filename, Message)),
+  format_error(false, Filename, T);
+
+format_error(true, Filename, [{Line,Module,Desc}|T]) ->
+  Message = Module:format_error(Desc),
+  elixir_errors:file_error(element(1, Desc), Line, Filename, Message);
+
+format_error(_, _, []) ->
+  [].

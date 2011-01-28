@@ -16,9 +16,9 @@ forms(String, StartLine, Filename) ->
     {ok, Tokens, _} -> 
       case elixir_parser:parse(Tokens) of
         {ok, Forms} -> Forms;
-        {error, {Line, _, [Error, Token]}} -> ?ELIXIR_SYNTAX_ERROR(Line, Filename, Error, Token)
+        {error, {Line, _, [Error, Token]}} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
       end;
-    {error, {Line, _, {Error, Token}}, _} -> ?ELIXIR_SYNTAX_ERROR(Line, Filename, Error, Token)
+    {error, {Line, _, {Error, Token}}, _} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
   end.  
 
 % Transform the given tree Forms.
@@ -285,7 +285,7 @@ transform({object, Line, Name, Parent, Exprs}, F, V, S) ->
   NewName = elixir_object:scope_for(Current, Name),
   Scope = { Var, false, NewName },
   { TExprs, _ } = transform_tree(Exprs, F, [self], Scope),
-  { elixir_object:transform(Line, NewName, Parent, TExprs), V };
+  { elixir_object:transform(Line, F, NewName, Parent, TExprs), V };
 
 % Match all other expressions.
 % TODO Expand instead of catch all.
@@ -359,7 +359,6 @@ handle_new_call(_, _, Args) ->
 handle_string_extractions({s, String}, Line, F, V, S) ->
   { { string, Line, String }, V };
 
-% TODO I need the filename here
 handle_string_extractions({i, Interpolation}, Line, F, V, S) ->
   { Tree, NV } = parse(Interpolation, Line, F, V, S),
   Stringify = ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [hd(Tree), {integer, Line, to_s}, {nil,Line}]),
