@@ -93,6 +93,11 @@ char_test() ->
 bad_char_test() ->
   ?assertError({badsyntax, _}, elixir:eval("$foo")).
 
+implicit_string_concatenation_test() ->
+  {"foobar", []} = eval_string("\"foo\" \"bar\""),
+  {"foobar", []} = eval_string("\"foo\"\n\"bar\""),
+  {"foobarbaz", []} = eval_string("\"foo\"\n\"b#{'a}r\"\n\"baz\"").
+
 %% Methods
 
 string_initialized_with_list_test() ->

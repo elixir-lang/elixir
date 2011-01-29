@@ -13,6 +13,8 @@ Nonterminals
   erlang_call_expr
   min_expr
 
+  string_base
+  string_list
   fun_base
   comma_expr
   call_args
@@ -263,8 +265,7 @@ close_curly -> eol '}' : '$2'.
 
 % Base expressions
 base_expr -> base_identifier : '$1'.
-base_expr -> string : '$1'.
-base_expr -> interpolated_string : '$1'.
+base_expr -> string_list : build_string_list('$1').
 base_expr -> ivar : '$1'.
 base_expr -> atom : '$1'.
 base_expr -> interpolated_atom : '$1'.
@@ -273,6 +274,15 @@ base_expr -> constant : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> list : '$1'.
 base_expr -> dict : '$1'.
+
+% String expressions
+string_base -> string : '$1'.
+string_base -> interpolated_string : '$1'.
+
+string_list -> string_base : ['$1'].
+string_list -> string_base eol : ['$1'].
+string_list -> string_base string_list : ['$1'|'$2'].
+string_list -> string_base eol string_list : ['$1'|'$3'].
 
 % Erlang calls
 erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call(true, '$1', ?chars('$3'), ?chars('$5'), '$6').
@@ -421,6 +431,17 @@ build_erlang_call(false, Op, Prefix, Suffix, Args) ->
       { binary_op, Line, Op, Call, Expr };
     _ -> build_erlang_call(true, Op, Prefix, Suffix, Args)
   end.
+
+build_string_list(Collection) ->
+  Line = ?line(hd(Collection)),
+  { Chars, Kind } = lists:mapfoldl(fun build_string_list/2, string, Collection),
+  { Kind, Line, lists:flatten(Chars) }.
+
+build_string_list({interpolated_string, Line, Chars}, _) ->
+  { Chars, interpolated_string };
+
+build_string_list({string, Line, Chars}, Kind) ->
+  { Chars, Kind }.
 
 build_list(Line, Exprs) ->
   build_list(Line, Exprs, {nil, Line}).
