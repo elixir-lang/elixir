@@ -14,9 +14,22 @@ IdentifierBase = ({UpperCase}|{LowerCase}|{Digit}|_)
 Comment = %.*
 
 Interpol = #\{.*\}
+
+Parens = (\\\^.|\\.|[^\)])*
+BaseParens = \({Parens}\)
+InterpolParens = \({Parens}{Interpol}{Parens}\)
+
+Brackets = (\\\^.|\\.|[^\])*
+BaseBrackets = \[{Brackets}\]
+InterpolBrackets = \[{Brackets}{Interpol}{Brackets}\]
+
+Curly = (\\\^.|\\.|[^\}])*
+BaseCurly = \{{Curly}\}
+InterpolCurly = \{{Curly}{Interpol}{Curly}\}
+
 Quoted = (\\\^.|\\.|[^\"])*
-String = "{Quoted}"
-InterpolatedString = "{Quoted}{Interpol}{Quoted}"
+BaseQuoted = "{Quoted}"
+InterpolQuoted = "{Quoted}{Interpol}{Quoted}"
 
 % "
 
@@ -31,12 +44,13 @@ Rules.
 \$\\. : build_char(TokenChars, TokenLine).
 
 %% Strings
-{InterpolatedString} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen).
-{String} : build_string(string, TokenChars, TokenLine, TokenLen).
+{InterpolQuoted} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen).
+{BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen).
 
 %% Atoms
-\'({UpperCase}|{LowerCase}|_){IdentifierBase}* : build_atom(TokenChars, TokenLine, TokenLen). % '
-\'{String} : build_quoted_atom(TokenChars, TokenLine, TokenLen). % '
+\'({UpperCase}|{LowerCase}|_){IdentifierBase}* : build_simple_atom(TokenChars, TokenLine, TokenLen). % '
+\'({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens}) : build_atom(atom, TokenChars, TokenLine, TokenLen). % '
+\'({InterpolQuoted}|{InterpolCurly}|{InterpolBrackets}|{InterpolParens}) : build_atom(interpolated_atom, TokenChars, TokenLine, TokenLen). % '
 
 %% Constant and identifier names
 {UpperCase}({IdentifierBase}|::)*    : build(constant, TokenLine, TokenChars).
@@ -74,6 +88,9 @@ Rules.
 
 Erlang code.
 
+-import(lists, [sublist/3]).
+
+% Generic building block for constants and identifiers.
 build(Kind, Line, Chars) ->
   Atom = list_to_atom(Chars),
   case reserved_word(Atom) of
@@ -81,17 +98,33 @@ build(Kind, Line, Chars) ->
     false -> { token, {Kind, Line, Atom} }
   end.
 
-build_string(Kind, Chars, Line, Len) ->
-  String = unescape_string(Kind, lists:sublist(Chars, 2, Len - 2)), 
-  {token, {Kind, Line, String}}.
+build_chars(Interpol, Chars, Line, Length, Distance) ->
+  unescape_chars(Interpol, sublist(Chars, Distance, Length - Distance)).
 
-unescape_string(Kind, String) -> unescape_string(Kind, String, []).
-unescape_string(Kind, [], Output) -> lists:reverse(Output);
+build_string(Kind, Chars, Line, Length) ->
+  String = build_chars(Kind == interpolated_string, Chars, Line, Length, 2),
+  { token, { Kind, Line, String } }.
 
-unescape_string(interpolated_string, [$\\, $#|Rest], Output) ->
-  unescape_string(interpolated_string, Rest, [$#, $\\|Output]);
+build_simple_atom(Chars, Line, Length) ->
+  String = sublist(Chars, 2, Length - 1),
+  { token, { atom, Line, list_to_atom(String) } }.
 
-unescape_string(Kind, [$\\, Escaped|Rest], Output) ->
+build_atom(Kind, Chars, Line, Length) ->
+  String = build_chars(Kind == interpolated_atom, Chars, Line, Length, 3),
+  { token, { Kind, Line, list_to_atom(String) } }.
+
+build_char(Chars, Line) ->
+  { token, { integer, Line, lists:last(Chars) } }.
+
+% Helpers to unescape all string
+
+unescape_chars(Kind, String) -> unescape_chars(Kind, String, []).
+unescape_chars(Kind, [], Output) -> lists:reverse(Output);
+
+unescape_chars(true, [$\\, $#|Rest], Output) ->
+  unescape_chars(true, Rest, [$#, $\\|Output]);
+
+unescape_chars(Interpol, [$\\, Escaped|Rest], Output) ->
   Char = case Escaped of
     $b  -> $\b;
     $d  -> $\d;
@@ -104,22 +137,10 @@ unescape_string(Kind, [$\\, Escaped|Rest], Output) ->
     $v  -> $\v;
     _   -> Escaped
   end,
-  unescape_string(Kind, Rest, [Char|Output]);
+  unescape_chars(Interpol, Rest, [Char|Output]);
 
-unescape_string(Kind, [Char|Rest], Output) ->
-  unescape_string(Kind, Rest, [Char|Output]).
-
-build_atom(Chars, Line, Len) ->
-  String = lists:sublist(Chars, 2, Len - 1),
-  { token, { atom, Line, list_to_atom(String) } }.
-
-% TODO We need to unescape quoted atoms as well
-build_quoted_atom(Chars, Line, Len) ->
-  String = lists:sublist(Chars, 2, Len - 2),
-  build_atom(String, Line, Len - 2).
-
-build_char(Chars, Line) ->
-  { token, { integer, Line, lists:last(Chars) } }.
+unescape_chars(Interpol, [Char|Rest], Output) ->
+  unescape_chars(Interpol, Rest, [Char|Output]).
 
 reserved_word('Erlang')    -> true;
 reserved_word('_')         -> true;
