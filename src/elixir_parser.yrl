@@ -432,16 +432,33 @@ build_erlang_call(false, Op, Prefix, Suffix, Args) ->
     _ -> build_erlang_call(true, Op, Prefix, Suffix, Args)
   end.
 
+% Build a string list. If we are concatenating a non interpolated
+% string with an interpolated string, we need to escape the interpolation
+% characters of all non-interpolation allowed strings.
+
 build_string_list(Collection) ->
   Line = ?line(hd(Collection)),
-  { Chars, Kind } = lists:mapfoldl(fun build_string_list/2, string, Collection),
-  { Kind, Line, lists:flatten(Chars) }.
+  Interpol = lists:any(fun(X) -> element(1, X) == interpolated_string end, Collection),
+  Chars = build_string_list(Interpol, Collection, []),
+  case Interpol of
+    true  -> { interpolated_string, Line, Chars };
+    false -> { string, Line, Chars }
+  end.
 
-build_string_list({interpolated_string, Line, Chars}, _) ->
-  { Chars, interpolated_string };
+build_string_list(Interpol, [], Acc) ->
+  lists:reverse(Acc);
 
-build_string_list({string, Line, Chars}, Kind) ->
-  { Chars, Kind }.
+build_string_list(Interpol, [{Kind, _, Chars}|T], Acc) ->
+  build_string_list(Interpol, T, build_string_list(Interpol, Kind, Chars, Acc)).
+
+build_string_list(true, string, [$#|T], Acc) ->
+  build_string_list(true, string, T, [$#,$\\|Acc]);
+
+build_string_list(Interpol, Kind, [H|T], Acc) ->
+  build_string_list(Interpol, Kind, T, [H|Acc]);
+
+build_string_list(Interpol, Kind, [], Acc) ->
+  Acc.
 
 build_list(Line, Exprs) ->
   build_list(Line, Exprs, {nil, Line}).

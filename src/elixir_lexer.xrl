@@ -31,6 +31,8 @@ Quoted = (\\\^.|\\.|[^\"])*
 BaseQuoted = "{Quoted}"
 InterpolQuoted = "{Quoted}{Interpol}{Quoted}"
 
+InterpolGroup = ({InterpolQuoted}|{InterpolCurly}|{InterpolBrackets}|{InterpolParens})
+BaseGroup = ({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens})
 % "
 
 Rules.
@@ -44,13 +46,15 @@ Rules.
 \$\\. : build_char(TokenChars, TokenLine).
 
 %% Strings
+~Q{InterpolGroup} : build_interpolated(interpolated_string, TokenChars, TokenLine, TokenLen, 4).
+~q{BaseGroup} : build_string(string, TokenChars, TokenLine, TokenLen, 4).
 {InterpolQuoted} : build_interpolated(interpolated_string, TokenChars, TokenLine, TokenLen, 2).
-{BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen).
+{BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen, 2).
 
 %% Atoms
 \'({UpperCase}|{LowerCase}|_){IdentifierBase}* : build_atom(TokenChars, TokenLine, TokenLen). % '
-\'({InterpolQuoted}|{InterpolCurly}|{InterpolBrackets}|{InterpolParens}) : build_interpolated(interpolated_atom, TokenChars, TokenLine, TokenLen, 3). % '
-\'({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens}) : build_separator_atom(atom, TokenChars, TokenLine, TokenLen). % '
+\'{InterpolGroup} : build_interpolated(interpolated_atom, TokenChars, TokenLine, TokenLen, 3). % '
+\'{BaseGroup} : build_separator_atom(atom, TokenChars, TokenLine, TokenLen). % '
 
 %% Constant and identifier names
 {UpperCase}({IdentifierBase}|::)*    : build(constant, TokenLine, TokenChars).
@@ -103,8 +107,8 @@ build_char(Chars, Line) ->
   { token, { integer, Line, lists:last(Chars) } }.
 
 % Handle strings without interpolation.
-build_string(Kind, Chars, Line, Length) ->
-  String = handle_chars(false, Chars, Line, Length, 2),
+build_string(Kind, Chars, Line, Length, Distance) ->
+  String = handle_chars(false, Chars, Line, Length, Distance),
   { token, { Kind, Line, String } }.
 
 % Handle atoms without separators and without interpolation.

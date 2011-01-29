@@ -84,29 +84,32 @@ Besides these basic types, we also have string pre-operators. Here is one exampl
 
     % Regular expressions
     %% Without interpolation
-    $r(regexp)
-    $r[regexp]
-    $r{regexp}
-    $r"regexp"
+    ~r(regexp)
+    ~r[regexp]
+    ~r{regexp}
+    ~r"regexp"
     
     %% With interpolation
     %% It also accepts [], {} and "" as separators as above
-    $R(regexp #{1 + 1} interpolation)
+    ~R(regexp #{1 + 1} interpolation)
+
+    %% With regexp operators
+    ~r(foo)im
 
 String pre-operators follow the same set of rules. They start with a $ followed by a letter and the string is delimited by a separator. The available separators are (), [], {} and "". If the letter after $ is lowercased, no interpolation is allowed, if uppercased, interpolation is allowed. A couple more examples:
 
     % Another way to create strings
-    $q(string without interpolation)
-    $Q{string without interpolation}
+    ~q(string without interpolation)
+    ~Q{string without interpolation}
 
     % Another way to create atoms
-    $a"atom without interpolation"
-    $A[atom with interpolation]
+    ~a"atom without interpolation"
+    ~A[atom with interpolation]
 
     % Another way to create a list of chars
-    $l(string)
-    $L{string with interpolation}
+    ~l(string)
+    ~L{string with interpolation}
 
     % A list of words
-    $w(foo bar baz)        % => ["foo", "bar", "baz"]
-    $W{foo #{'bar} baz}    % => ["foo", "bar", "baz"]
+    ~w(foo bar baz)        % => ["foo", "bar", "baz"]
+    ~W{foo #{'bar} baz}    % => ["foo", "bar", "baz"]
