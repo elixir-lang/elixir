@@ -63,11 +63,11 @@ string_with_another_string_inside_string_interpolation_test() ->
 string_with_another_string_with_curly_inside_interpolation_test() ->
   {"fb}ro", _} = eval_string("\"f#{\"b}r\"}o\"").
 
-string_with_escaped_interpolation_test() ->
-  {"f#{'o}o", _} = eval_string("\"f\\#{'o}o\"").
-
 string_without_interpolation_and_escaped_test() ->
   {"f#o", _} = eval_string("\"f\\#o\"").
+
+string_with_escaped_interpolation_test() ->
+  {"f#{'o}o", _} = eval_string("\"f\\#{'o}o\"").
 
 invalid_string_interpolation_test() ->
   ?assertError({badarg, "unexpected end of string, expected }"}, elixir:eval("\"f#{{}o\"")).

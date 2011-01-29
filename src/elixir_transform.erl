@@ -154,18 +154,18 @@ transform({dict, Line, Exprs }, F, V, S) ->
 % = Variables
 %
 % See list.
-%
-% TODO Optimize for cases where we thought we had a string interpolation,
-% but we haven't.
 transform({interpolated_string, Line, String }, F, V, S) ->
-  Interpolations = elixir_string_methods:extract_interpolations(String),
-  Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, F, Acc, S) end,
-  { List, VE } = build_list(Transformer, Interpolations, Line, V),
-  Flattened = ?ELIXIR_WRAP_CALL(Line, lists, flatten, [List]),
+  { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
   { build_object(Line, 'String', list, Flattened), VE };
 
+% Handle strings by wrapping them in the String object.
 transform({string, Line, String } = Expr, F, V, S) ->
   { build_object(Line, 'String', list, Expr), V };
+
+% Handle interpolated atoms by converting them to lists and calling atom_to_list.
+transform({interpolated_atom, Line, String}, F, V, S) ->
+  { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
+  { ?ELIXIR_WRAP_CALL(Line, erlang, list_to_atom, [Flattened]), VE };
 
 % Handle binary operations.
 %
@@ -357,6 +357,20 @@ handle_new_call(new, Line, Args) ->
 
 handle_new_call(_, _, Args) ->
   Args.
+
+% Handle interpolation. The final result will be a parse tree that
+% return a flattened list.
+handle_interpolations(String, Line, F, V, S) ->
+  Interpolations = elixir_string_methods:extract_interpolations(String),
+
+  % Optimized cases interpolations actually has no interpolation.
+  case Interpolations of
+    [{s, String}] -> handle_string_extractions(hd(Interpolations), Line, F, V, S);
+    _ ->
+      Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, F, Acc, S) end,
+      { List, VE } = build_list(Transformer, Interpolations, Line, V),
+      { ?ELIXIR_WRAP_CALL(Line, lists, flatten, [List]), VE }
+  end.
 
 % Handle string extractions for interpolation strings.
 handle_string_extractions({s, String}, Line, F, V, S) ->

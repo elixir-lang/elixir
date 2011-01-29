@@ -16,5 +16,11 @@ separators_atom_test() ->
   {foo,[]} = elixir:eval("'(foo)"),
   {foo,[]} = elixir:eval("'{foo}").
 
+separators_atom_with_interpolation_test() ->
+  {foo,[]} = elixir:eval("'\"f#{'o}o\""),
+  {foo,[]} = elixir:eval("'[f#{'o}o]"),
+  {foo,[]} = elixir:eval("'(f#{'o}o)"),
+  {foo,[]} = elixir:eval("'{f#{'o}o}").
+
 quoted_atom_chars_are_escaped_test() ->
   {'"',[]} = elixir:eval("'\"\\\"\"").

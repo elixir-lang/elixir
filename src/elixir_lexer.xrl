@@ -44,13 +44,13 @@ Rules.
 \$\\. : build_char(TokenChars, TokenLine).
 
 %% Strings
-{InterpolQuoted} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen).
+{InterpolQuoted} : build_interpolated(interpolated_string, TokenChars, TokenLine, TokenLen, 2).
 {BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen).
 
 %% Atoms
-\'({UpperCase}|{LowerCase}|_){IdentifierBase}* : build_simple_atom(TokenChars, TokenLine, TokenLen). % '
-\'({InterpolQuoted}|{InterpolCurly}|{InterpolBrackets}|{InterpolParens}) : build_atom(interpolated_atom, TokenChars, TokenLine, TokenLen). % '
-\'({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens}) : build_atom(atom, TokenChars, TokenLine, TokenLen). % '
+\'({UpperCase}|{LowerCase}|_){IdentifierBase}* : build_atom(TokenChars, TokenLine, TokenLen). % '
+\'({InterpolQuoted}|{InterpolCurly}|{InterpolBrackets}|{InterpolParens}) : build_interpolated(interpolated_atom, TokenChars, TokenLine, TokenLen, 3). % '
+\'({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens}) : build_separator_atom(atom, TokenChars, TokenLine, TokenLen). % '
 
 %% Constant and identifier names
 {UpperCase}({IdentifierBase}|::)*    : build(constant, TokenLine, TokenChars).
@@ -98,25 +98,34 @@ build(Kind, Line, Chars) ->
     false -> { token, {Kind, Line, Atom} }
   end.
 
-build_chars(Interpol, Chars, Line, Length, Distance) ->
-  unescape_chars(Interpol, sublist(Chars, Distance, Length - Distance)).
-
-build_string(Kind, Chars, Line, Length) ->
-  String = build_chars(Kind == interpolated_string, Chars, Line, Length, 2),
-  { token, { Kind, Line, String } }.
-
-build_simple_atom(Chars, Line, Length) ->
-  String = sublist(Chars, 2, Length - 1),
-  { token, { atom, Line, list_to_atom(String) } }.
-
-build_atom(Kind, Chars, Line, Length) ->
-  String = build_chars(Kind == interpolated_atom, Chars, Line, Length, 3),
-  { token, { Kind, Line, list_to_atom(String) } }.
-
+% Handle chars.
 build_char(Chars, Line) ->
   { token, { integer, Line, lists:last(Chars) } }.
 
-% Helpers to unescape all string
+% Handle strings without interpolation.
+build_string(Kind, Chars, Line, Length) ->
+  String = handle_chars(false, Chars, Line, Length, 2),
+  { token, { Kind, Line, String } }.
+
+% Handle atoms without separators and without interpolation.
+build_atom(Chars, Line, Length) ->
+  String = sublist(Chars, 2, Length - 1),
+  { token, { atom, Line, list_to_atom(String) } }.
+
+% Handle quoted atoms without interpolation.
+build_separator_atom(Kind, Chars, Line, Length) ->
+  String = handle_chars(false, Chars, Line, Length, 3),
+  { token, { Kind, Line, list_to_atom(String) } }.
+
+% Handle any kind of interpolation piece.
+build_interpolated(Kind, Chars, Line, Length, Distance) ->
+  String = handle_chars(true, Chars, Line, Length, Distance),
+  { token, { Kind, Line, String } }.
+
+% Helpers to unescape and process chars.
+
+handle_chars(Interpol, Chars, Line, Length, Distance) ->
+  unescape_chars(Interpol, sublist(Chars, Distance, Length - Distance)).
 
 unescape_chars(Kind, String) -> unescape_chars(Kind, String, []).
 unescape_chars(Kind, [], Output) -> lists:reverse(Output);
