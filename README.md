@@ -52,3 +52,61 @@ In Erlang, we would need the following:
       lists:flatten(io_lib:format("~p", [Thing])).
 
 The Object Oriented aspect of Elixir brings several benefits. For example, we don't need to explicitly call *dict:fold()* because the *to_s* method in Elixir is already in the Dictionary scope, so we just call the *fold* method directly. The same applies to calling the function *join*. In Elixir, *join* is a method implemented in the List object, which is returned as result of the *fold* call. So we can simply call *join(", ")* in the List object instead of calling *string:join(List, ", ")* passing the List as argument.
+
+# String pre-operators
+
+In Elixir, we have the following basic types composed of a list of characters:
+
+    % Strings (they are utf8 by default)
+    "string"
+    "string #{1 + 1} interpolation"    % => "string 2 interpolation"
+
+    % Integer representation of a character
+    $a    % => 97
+    $b    % => 98
+    $\\   % => 92
+    $\(   % => 40
+
+    % A string represented as a list of chars (all allow interpolation)
+    $"string"    % => [115,116, 114, 105, 110, 103]
+    $(string)    % => [115,116, 114, 105, 110, 103]
+    $[string]    % => [115,116, 114, 105, 110, 103]
+    ${string}    % => [115,116, 114, 105, 110, 103]
+
+    % Erlang Atoms or Ruby Symbols
+    'atom
+    '"atom with space and interpolation"
+    '(atom with space and interpolation)
+    '[atom with space and interpolation]
+    '{atom with space and interpolation}
+
+Besides these basic types, we also have string pre-operators. Here is one example:
+
+    % Regular expressions
+    %% Without interpolation
+    $r(regexp)
+    $r[regexp]
+    $r{regexp}
+    $r"regexp"
+    
+    %% With interpolation
+    %% It also accepts [], {} and "" as separators as above
+    $R(regexp #{1 + 1} interpolation)
+
+String pre-operators follow the same set of rules. They start with a $ followed by a letter and the string is delimited by a separator. The available separators are (), [], {} and "". If the letter after $ is lowercased, no interpolation is allowed, if uppercased, interpolation is allowed. A couple more examples:
+
+    % Another way to create strings
+    $q(string without interpolation)
+    $Q{string without interpolation}
+
+    % Another way to create atoms
+    $a"atom without interpolation"
+    $A[atom with interpolation]
+
+    % Another way to create a list of chars
+    $l(string)
+    $L{string with interpolation}
+
+    % A list of words
+    $w(foo bar baz)        % => ["foo", "bar", "baz"]
+    $W{foo #{'bar} baz}    % => ["foo", "bar", "baz"]

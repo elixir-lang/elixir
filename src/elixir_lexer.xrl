@@ -1,7 +1,7 @@
 % Lexer syntax for the Elixir language done with leex
 % Copyright (C) 2011 Jose Valim
 %
-% Some bits of this lexer were retrieved from from Reia lexer
+% Some bits of this lexer were retrieved from Reia lexer
 % Copyright (C)2008-09 Tony Arcieri
 
 Definitions.
@@ -13,9 +13,11 @@ Whitespace = [\s]
 IdentifierBase = ({UpperCase}|{LowerCase}|{Digit}|_)
 Comment = %.*
 
+Interpol = #\{.*\}
 Quoted = (\\\^.|\\.|[^\"])*
 String = "{Quoted}"
-InterpolatedString = "{Quoted}#\{.*\}{Quoted}"
+InterpolatedString = "{Quoted}{Interpol}{Quoted}"
+
 % "
 
 Rules.

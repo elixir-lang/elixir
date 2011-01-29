@@ -154,6 +154,9 @@ transform({dict, Line, Exprs }, F, V, S) ->
 % = Variables
 %
 % See list.
+%
+% TODO Optimize for cases where we thought we had a string interpolation,
+% but we haven't.
 transform({interpolated_string, Line, String }, F, V, S) ->
   Interpolations = elixir_string_methods:extract_interpolations(String),
   Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, F, Acc, S) end,
