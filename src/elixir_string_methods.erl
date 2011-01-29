@@ -28,17 +28,33 @@ extract_interpolations([$}|Rest], Buffer, [$}], Output) ->
 extract_interpolations([$\\,Char|Rest], Buffer, [], Output) ->
   extract_interpolations(Rest, [Char,$\\|Buffer], [], Output);
 
-extract_interpolations([${|Rest], Buffer, Search, Output) ->
-  extract_interpolations(Rest, [${|Buffer], [$}|Search], Output);
-
-extract_interpolations([$}|Rest], Buffer, [$}|Search], Output) ->
-  extract_interpolations(Rest, [$}|Buffer], Search, Output);
+% Check for available separators: "", {}, [] and ()
 
 extract_interpolations([$"|Rest], Buffer, [$"|Search], Output) ->
   extract_interpolations(Rest, [$"|Buffer], Search, Output);
 
 extract_interpolations([$"|Rest], Buffer, Search, Output) ->
   extract_interpolations(Rest, [$"|Buffer], [$"|Search], Output);
+
+extract_interpolations([${|Rest], Buffer, Search, Output) ->
+  extract_interpolations(Rest, [${|Buffer], [$}|Search], Output);
+
+extract_interpolations([$}|Rest], Buffer, [$}|Search], Output) ->
+  extract_interpolations(Rest, [$}|Buffer], Search, Output);
+
+extract_interpolations([$[|Rest], Buffer, Search, Output) ->
+  extract_interpolations(Rest, [$[|Buffer], [$]|Search], Output);
+
+extract_interpolations([$]|Rest], Buffer, [$]|Search], Output) ->
+  extract_interpolations(Rest, [$]|Buffer], Search, Output);
+
+extract_interpolations([$(|Rest], Buffer, Search, Output) ->
+  extract_interpolations(Rest, [$(|Buffer], [$)|Search], Output);
+
+extract_interpolations([$)|Rest], Buffer, [$)|Search], Output) ->
+  extract_interpolations(Rest, [$)|Buffer], Search, Output);
+
+% Else
 
 extract_interpolations([Char|Rest], Buffer, Search, Output) ->
   extract_interpolations(Rest, [Char|Buffer], Search, Output).
