@@ -10,5 +10,11 @@ atom_to_s_test() ->
   {String,[]} = elixir:eval("'a.to_s"),
   "a" = test_helper:unpack_string(String).
 
+separators_atom_test() ->
+  {foo,[]} = elixir:eval("'\"foo\""),
+  {foo,[]} = elixir:eval("'[foo]"),
+  {foo,[]} = elixir:eval("'(foo)"),
+  {foo,[]} = elixir:eval("'{foo}").
+
 quoted_atom_chars_are_escaped_test() ->
   {'"',[]} = elixir:eval("'\"\\\"\"").

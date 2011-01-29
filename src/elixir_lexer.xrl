@@ -13,19 +13,19 @@ Whitespace = [\s]
 IdentifierBase = ({UpperCase}|{LowerCase}|{Digit}|_)
 Comment = %.*
 
-Interpol = #\{.*\}
+Interpol = #{.*}
 
 Parens = (\\\^.|\\.|[^\)])*
 BaseParens = \({Parens}\)
 InterpolParens = \({Parens}{Interpol}{Parens}\)
 
-Brackets = (\\\^.|\\.|[^\])*
-BaseBrackets = \[{Brackets}\]
-InterpolBrackets = \[{Brackets}{Interpol}{Brackets}\]
-
 Curly = (\\\^.|\\.|[^\}])*
 BaseCurly = \{{Curly}\}
 InterpolCurly = \{{Curly}{Interpol}{Curly}\}
+
+Brackets = (\\\^.|\\.|[^\]])*
+BaseBrackets = \[{Brackets}\]
+InterpolBrackets = \[{Brackets}{Interpol}{Brackets}\]
 
 Quoted = (\\\^.|\\.|[^\"])*
 BaseQuoted = "{Quoted}"
@@ -49,8 +49,8 @@ Rules.
 
 %% Atoms
 \'({UpperCase}|{LowerCase}|_){IdentifierBase}* : build_simple_atom(TokenChars, TokenLine, TokenLen). % '
-\'({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens}) : build_atom(atom, TokenChars, TokenLine, TokenLen). % '
 \'({InterpolQuoted}|{InterpolCurly}|{InterpolBrackets}|{InterpolParens}) : build_atom(interpolated_atom, TokenChars, TokenLine, TokenLen). % '
+\'({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens}) : build_atom(atom, TokenChars, TokenLine, TokenLen). % '
 
 %% Constant and identifier names
 {UpperCase}({IdentifierBase}|::)*    : build(constant, TokenLine, TokenChars).
