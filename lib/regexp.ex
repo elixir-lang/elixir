@@ -33,6 +33,10 @@
 % * firstline (f) - forces the unanchored pattern to match before or at the first
 %   newline, though the matched text may continue over the newline
 % * ungreedy (r) - invert the "greediness" of the regexp
+% * compile (c) - Automatically compiles the given regexp. Useful if you are going
+%   to use the same regexo several times during a method execution. For instance,
+%   if you want to match the same regexp against a list of arrays, the compile
+%   option will be handy.
 %
 % The options not available are:
 %

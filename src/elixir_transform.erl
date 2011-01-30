@@ -147,7 +147,7 @@ transform({list, Line, Exprs, Tail }, F, V, S) ->
 transform({dict, Line, Exprs }, F, V, S) ->
   { List, NV } = transform({list, Line, Exprs, {nil, Line} }, F, V, S),
   Dict = ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]),
-  { build_object(Line, 'Dict', dict, Dict), NV };
+  { build_object(Line, 'Dict', [{dict, Dict}]), NV };
 
 % Handle interpolated strings declarations.
 %
@@ -156,11 +156,11 @@ transform({dict, Line, Exprs }, F, V, S) ->
 % See list.
 transform({interpolated_string, Line, String }, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
-  { build_object(Line, 'String', list, Flattened), VE };
+  { build_object(Line, 'String', [{list, Flattened}]), VE };
 
 % Handle strings by wrapping them in the String object.
 transform({string, Line, String } = Expr, F, V, S) ->
-  { build_object(Line, 'String', list, Expr), V };
+  { build_object(Line, 'String', [{list, Expr}]), V };
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
 transform({interpolated_atom, Line, String}, F, V, S) ->
@@ -332,7 +332,9 @@ build_list_each(Fun, [H|T], Line, V, Acc) ->
 
 % Build an #elixir_object using tuples. It expects the parent
 % and a Key, Value as instance variable name and value.
-build_object(Line, Parent, Key, Value) ->
+build_object(Line, Parent, Ivars) ->
+  Dict = fun ({Key, Value}, Acc) -> ?ELIXIR_WRAP_CALL(Line, dict, store, [{atom, Line, Key}, Value, Acc]) end,
+
   {tuple, Line,
     [
       {atom, Line, elixir_object},
@@ -340,13 +342,7 @@ build_object(Line, Parent, Key, Value) ->
       {atom, Line, Parent}, % Parent
       {nil, Line},          % Mixins
       {nil, Line},          % Protos
-      {call,Line,           % Data
-        {remote,Line,{atom,Line,dict},{atom,Line,store}},
-        [{atom,Line,Key},
-         Value,
-         {call,Line, {remote,Line,{atom,Line,dict},{atom,Line,new}},[]}
-        ]
-      }
+      lists:foldl(Dict, ?ELIXIR_WRAP_CALL(Line, dict, new, []), Ivars)
     ]
   }.
 

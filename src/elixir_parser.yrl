@@ -58,8 +58,8 @@ Nonterminals
 
 Terminals
   punctuated_identifier identifier float integer constant
-  atom interpolated_atom string interpolated_string div rem
-  module object 'do' 'end' def eol Erlang
+  atom interpolated_atom string interpolated_string regexp interpolated_regexp
+  div rem module object 'do' 'end' def eol Erlang
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '<' '|' '_'
   .
@@ -269,6 +269,8 @@ base_expr -> string_list : build_string_list('$1').
 base_expr -> ivar : '$1'.
 base_expr -> atom : '$1'.
 base_expr -> interpolated_atom : '$1'.
+base_expr -> regexp : '$1'.
+base_expr -> interpolated_regexp : '$1'.
 base_expr -> number : '$1'.
 base_expr -> constant : '$1'.
 base_expr -> tuple : '$1'.
