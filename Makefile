@@ -15,7 +15,9 @@ PARSER_BASE_NAME=elixir
 LEXER_NAME=$(PARSER_BASE_NAME)_lexer
 PARSER_NAME=$(PARSER_BASE_NAME)_parser
 
-compile:
+compile: ebin
+
+ebin: src/*.erl
 	@ echo Compiling ...
 	@ mkdir -p $(EBIN_DIR)
 	@ # Generate the lexer
@@ -25,8 +27,6 @@ compile:
 	@ # Compile everything
 	$(ERLC) -o $(EBIN_DIR) $(SOURCE_DIR)/*.erl
 	@ echo
-
-all: compile
 
 test: compile
 	@ echo Running tests ...
