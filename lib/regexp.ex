@@ -18,8 +18,6 @@
 % * multiline - the given string is always considered to be multiline, so
 %   ^ and $ marks the beginning and end of each line. You need to use \A
 %   and \z to match the end or beginning of the string
-% * newline - is set to anycrlf by default, can be overwritten by setting
-%   (*CR) or (*LF) or (*CRLF) or (*ANY) according to re documentation
 %
 % The available options, followed by their shortcut in parenthesis, are:
 %
@@ -47,11 +45,54 @@
 %   or (*ANY) at the beginning of the regexp according to the re documentation
 %
 object Regexp
-  def constructor(name)
-    constructor(name, [])
+  % The same as constructor(regexp, options) but no option is given.
+  def constructor(regexp)
+    constructor(regexp, [])
   end
 
-  def constructor(list, options)
-    { 'list: list.to_list, 'options: options.to_list, 'compiled: [] }
+  % Creates a new regular expression. It expects two arguments,
+  % the regular expression and a set of options. Both should be
+  % a string or a list of chars and, if not, to_char_list is
+  % invoked in order to retrieve the list of chars.
+  %
+  % ## Examples
+  %
+  %     Regexp.new("foo", "iu")
+  %
+  % TODO Add compiled regular expressions
+  def constructor(regexp, options)
+    regexp_list = regexp.to_char_list
+    options_list = options.to_char_list
+
+    parsed_options = options_list.foldl ['multiline], do (x, acc)
+      parse_option(x, acc)
+    end
+
+    { 'list: regexp_list,
+      'options: options_list,
+      'parsed_options: parsed_options,
+      'compiled: []
+    }
+  end
+
+  % private
+
+  def parse_option($u, acc); ['unicode|acc]; end
+  def parse_option($i, acc); ['caseless|acc]; end
+  def parse_option($x, acc); ['extended|acc]; end
+  def parse_option($f, acc); ['firstline|acc]; end
+  def parse_option($r, acc); ['ungreedy|acc]; end
+  def parse_option($m, acc); ['dotall, {'newline, 'anycrlf}|acc]; end
+
+  % TODO Test me
+  % TODO Do not use Erlang.error once Elixir's exception system is working
+  def parse_option(option, _)
+    Erlang.error({'badarg, "unknown option #{option}".to_char_list})
+  end
+
+  def handle_compiled([], _, _); []; end
+  def handle_compiled(_, list, options)
+    { 'ok, compiled } = Erlang.re.compile(list, options)
+    compiled
   end
 end

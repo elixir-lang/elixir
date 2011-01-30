@@ -24,7 +24,7 @@ load_core_classes() ->
     'list.ex',
     'string.ex',
     'dict.ex',
-    'regexp.ex'
+    'regexp.ex' 
   ]).
 
 % Loads a given file

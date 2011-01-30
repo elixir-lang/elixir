@@ -80,7 +80,7 @@ transform(Line, Filename, Name, Parent, Body) ->
 % table and pass it forward to the next compile method.
 compile(Line, Filename, Current, Name, Parent, Fun) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
-  ets:new(MethodTable, [bag, named_table, private]),
+  ets:new(MethodTable, [set, named_table, private]),
 
   try
     compile(Line, Filename, Current, Name, Parent, Fun, MethodTable)
@@ -110,7 +110,7 @@ compile(Line, Filename, Current, Name, Parent, Fun, MethodTable) ->
 % TODO Do not allow module reopening.
 compile_kind('Module', Line, Filename, Current, Object, MethodTable) ->
   Name = Object#elixir_object.name,
-  Functions = ets:tab2list(MethodTable),
+  Functions = unwrap_stored_methods(MethodTable),
   load_form(build_erlang_form(Line, Object, Functions), Filename),
   add_implicit_mixins(Current, Name);
 
@@ -160,9 +160,19 @@ wrap_method_definition(Name, Line, Method) ->
 
 % Gets a module stored in the CompiledTable with Index and
 % move it to the AddedTable.
-store_wrapped_method(Name, Method) ->
-  TempTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
-  ets:insert(TempTable, Method).
+store_wrapped_method(Module, {function, Line, Name, Arity, Clauses}) ->
+  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
+  FinalClauses = case ets:lookup(MethodTable, {Name, Arity}) of
+    [{{Name, Arity}, FinalLine, OtherClauses}] -> [hd(Clauses)|OtherClauses];
+    [] -> FinalLine = Line, Clauses
+  end,
+  ets:insert(MethodTable, {{Name, Arity}, FinalLine, FinalClauses}).
+  
+unwrap_stored_methods(MethodTable) ->
+  ets:foldl(fun unwrap_stored_methods/2, [], MethodTable).
+
+unwrap_stored_methods({{Name, Arity}, Line, Clauses}, Acc) ->
+  [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
 
 % Retrieve all attributes in the attribute table and generate
 % an Erlang Abstract Form that defines an Erlang module.
@@ -194,8 +204,8 @@ format_errors(Raise, Filename, []) ->
     false -> []
   end;
 
-format_errors(Bool, Filename, [{".", Errors}]) ->
-  format_error(Bool, Filename, Errors).
+format_errors(Bool, Filename, Errors) ->
+  lists:foreach(fun ({_, Each}) -> format_error(Bool, Filename, Each) end, Errors).
 
 % Overwritten warnings and errors.
 
@@ -210,7 +220,7 @@ format_error(true, Filename, [{Line,Module,{undefined_function,{Name, Arity}}}|T
 
 format_error(false, Filename, [{Line,Module,Desc}|T]) ->
   Message = Module:format_error(Desc),
-  io:format(elixir_errors:file_format(Line, Filename, Message)),
+  io:format(elixir_errors:file_format(Line, Filename, Message) ++ [$\n]),
   format_error(false, Filename, T);
 
 format_error(true, Filename, [{Line,Module,Desc}|T]) ->
