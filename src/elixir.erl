@@ -23,7 +23,8 @@ load_core_classes() ->
     'float.ex',
     'list.ex',
     'string.ex',
-    'dict.ex'
+    'dict.ex',
+    'regexp.ex'
   ]).
 
 % Loads a given file

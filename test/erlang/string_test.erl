@@ -2,8 +2,7 @@
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
-% Evaluations the expression expecting an #elixir_object{parent=String}
-% and returning the contained list.
+% Evaluate the Expr returning String internal information.
 eval_string(Expr) ->
   { String, Binding } = elixir:eval(Expr),
   { test_helper:unpack_string(String), Binding }.

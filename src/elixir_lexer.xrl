@@ -47,10 +47,12 @@ Rules.
 
 %% Sigils
 ~Q{InterpolGroup} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen, 4).
+~Q{BaseGroup} : build_string(string, TokenChars, TokenLine, TokenLen, 4).
 ~q{BaseGroup} : build_string(string, TokenChars, TokenLine, TokenLen, 4).
 
-~R{InterpolGroup}#{LowerCase}* : build_regexp(interpolated_regexp, TokenChars, TokenLine, TokenLen).
-~r{BaseGroup}#{LowerCase}* : build_regexp(regexp, TokenChars, TokenLine, TokenLen).
+~R{InterpolGroup}{LowerCase}* : build_regexp(interpolated_regexp, TokenChars, TokenLine, TokenLen).
+~R{BaseGroup}{LowerCase}* : build_regexp(regexp, TokenChars, TokenLine, TokenLen).
+~r{BaseGroup}{LowerCase}* : build_regexp(regexp, TokenChars, TokenLine, TokenLen).
 
 %% Strings
 {InterpolQuoted} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen, 2).
@@ -118,7 +120,7 @@ build_string(Kind, Chars, Line, Length, Distance) ->
 
 % Handle regular expressions.
 build_regexp(Kind, Chars, Line, Length) ->
-  { NewLength, Regexp, Options } = extract_regexp_options(Chars),
+  { Regexp, Options, NewLength } = extract_regexp_options(Chars),
   String = handle_chars(Kind == interpolated_regexp, Regexp, Line, NewLength, 4),
   { token, { Kind, Line, String, Options } }.
 
@@ -145,7 +147,7 @@ build_interpolated(Kind, Chars, Line, Length, Distance) ->
 extract_regexp_options(Chars) ->
   Separators = [$", $}, $), $]],
   Max = lists:max(lists:map(fun(X) -> string:rchr(Chars, X) end, Separators)),
-  [Max|lists:split(Chars, Max)].
+  erlang:append_element(lists:split(Max, Chars), Max).
 
 handle_chars(Interpol, Chars, Line, Length, Distance) ->
   unescape_chars(Interpol, sublist(Chars, Distance, Length - Distance)).

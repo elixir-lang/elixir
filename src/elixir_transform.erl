@@ -71,8 +71,7 @@ transform({identifier, Line, Name}, F, V, S) ->
 transform({method_call, Line, Name, Args, Expr}, F, V, S) ->
   { TExpr, VE } = transform(Expr, F, V, S),
   { TArgs, VA } = transform({list, Line, Args, {nil, Line}}, F, V, S),
-  FArgs = handle_new_call(Name, Line, TArgs),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TExpr, {atom, Line, Name}, FArgs]), umerge(VA,VE) };
+  { build_method_call(Name, Line, TArgs, TExpr), umerge(VA,VE) };
 
 % Makes a local call. Local calls don't go through the method dispatching
 % path and always call functions in the same module.
@@ -153,19 +152,44 @@ transform({dict, Line, Exprs }, F, V, S) ->
 %
 % = Variables
 %
-% See list.
+% Variables can be defined inside the interpolation.
 transform({interpolated_string, Line, String }, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
   { build_object(Line, 'String', [{list, Flattened}]), VE };
 
 % Handle strings by wrapping them in the String object.
+%
+% = Variables
+%
+% No variables can be defined in a string without interpolation.
 transform({string, Line, String } = Expr, F, V, S) ->
   { build_object(Line, 'String', [{list, Expr}]), V };
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
+%
+% = Variables
+%
+% Variables can be defined inside the interpolation.
 transform({interpolated_atom, Line, String}, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
   { ?ELIXIR_WRAP_CALL(Line, erlang, list_to_atom, [Flattened]), VE };
+
+% Handle regexps by dispatching a list to Regexp.new.
+%
+% = Variables
+%
+% No variables can be defined in a string without interpolation.
+transform({regexp, Line, String, Operators }, F, V, S) ->
+  build_regexp(Line, {string, Line, String}, Operators, F, V, S);
+
+% Handle interpolated regexps by passing the list as argument to regexp new.
+%
+% = Variables
+%
+% Variables can be defined inside the interpolation.
+transform({interpolated_regexp, Line, String, Operators }, F, V, S) ->
+  { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
+  build_regexp(Line, Flattened, Operators, F, VE, S);
 
 % Handle binary operations.
 %
@@ -331,7 +355,7 @@ build_list_each(Fun, [H|T], Line, V, Acc) ->
   build_list_each(Fun, T, Line, NV, { cons, Line, Expr, Acc }).
 
 % Build an #elixir_object using tuples. It expects the parent
-% and a Key, Value as instance variable name and value.
+% and a proplist of Key/Value pairs to be used as instance variables.
 build_object(Line, Parent, Ivars) ->
   Dict = fun ({Key, Value}, Acc) -> ?ELIXIR_WRAP_CALL(Line, dict, store, [{atom, Line, Key}, Value, Acc]) end,
 
@@ -346,6 +370,19 @@ build_object(Line, Parent, Ivars) ->
     ]
   }.
 
+% Handles method calls. It performs no transformation and assumes
+% all data is already transformed.
+build_method_call(Name, Line, Args, Expr) ->
+  FArgs = handle_new_call(Name, Line, Args),
+  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, Name}, FArgs]).
+
+% Builds a regexp.
+build_regexp(Line, Expr, Operators, F, V, S) ->
+  Args = [Expr, {string, Line, Operators}],
+  { TArgs, _ } = transform({list, Line, Args, {nil, Line}}, F, V, S),
+  { Constant, _ } = transform({constant, Line, 'Regexp'}, F, V, S),
+  { build_method_call(new, Line, TArgs, Constant), V }.
+
 % Handle method dispatches to nil by wrapping everything in an array
 % as we don't have a splat operator.
 handle_new_call(new, Line, Args) ->
@@ -355,7 +392,7 @@ handle_new_call(_, _, Args) ->
   Args.
 
 % Handle interpolation. The final result will be a parse tree that
-% return a flattened list.
+% returns a flattened list.
 handle_interpolations(String, Line, F, V, S) ->
   Interpolations = elixir_string_methods:extract_interpolations(String),
 

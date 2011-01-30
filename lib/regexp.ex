@@ -47,4 +47,11 @@
 %   or (*ANY) at the beginning of the regexp according to the re documentation
 %
 object Regexp
+  def constructor(name)
+    constructor(name, [])
+  end
+
+  def constructor(list, options)
+    { 'list: list.to_list, 'options: options.to_list, 'compiled: [] }
+  end
 end

@@ -53,7 +53,7 @@ In Erlang, we would need the following:
 
 The Object Oriented aspect of Elixir brings several benefits. For example, we don't need to explicitly call *dict:fold()* because the *to_s* method in Elixir is already in the Dictionary scope, so we just call the *fold* method directly. The same applies to calling the function *join*. In Elixir, *join* is a method implemented in the List object, which is returned as result of the *fold* call. So we can simply call *join(", ")* in the List object instead of calling *string:join(List, ", ")* passing the List as argument.
 
-# String pre-operators
+# String and Sigils
 
 In Elixir, we have the following basic types composed of a list of characters:
 
@@ -80,7 +80,7 @@ In Elixir, we have the following basic types composed of a list of characters:
     '[atom with space and interpolation]
     '{atom with space and interpolation}
 
-Besides these basic types, we also have string pre-operators. Here is one example:
+Besides these basic types, we also have string sigils. Here is one example:
 
     % Regular expressions
     %% Without interpolation
@@ -96,7 +96,7 @@ Besides these basic types, we also have string pre-operators. Here is one exampl
     %% With regexp operators
     ~r(foo)im
 
-String pre-operators follow the same set of rules. They start with a $ followed by a letter and the string is delimited by a separator. The available separators are (), [], {} and "". If the letter after $ is lowercased, no interpolation is allowed, if uppercased, interpolation is allowed. A couple more examples:
+All string sigils follow the same set of rules. They start with a ~ followed by a letter and the string is delimited by a separator. The available separators are (), [], {} and "". If the letter after ~ is lowercased, no interpolation is allowed, if uppercased, interpolation is allowed. A couple more examples:
 
     % Another way to create strings
     ~q(string without interpolation)

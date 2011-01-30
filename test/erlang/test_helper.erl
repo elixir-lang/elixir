@@ -1,6 +1,6 @@
 -module(test_helper).
 -include("elixir.hrl").
--export([test/0, unpack_string/1, run_and_remove/2, load_fixture/1, throw_elixir/1, throw_erlang/1]).
+-export([test/0, unpack_string/1, unpack_regexp/1, run_and_remove/2, load_fixture/1, throw_elixir/1, throw_erlang/1]).
 
 test() ->
   elixir:boot(),
@@ -13,11 +13,16 @@ test() ->
     object_test,
     match_test,
     module_test,
+    regexp_test,
     string_test
   ]).
 
 unpack_string(String) ->
   dict:fetch(list, String#elixir_object.data).
+
+unpack_regexp(Regexp) ->
+  Data = Regexp#elixir_object.data,
+  { dict:fetch(list, Data), dict:fetch(options, Data), dict:fetch(compiled, Data) }.
 
 % Execute a piece of code and purge given modules right after
 run_and_remove(Fun, Modules) ->
