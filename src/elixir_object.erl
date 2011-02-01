@@ -22,17 +22,18 @@ build(Name) ->
 % Build a template of an object or module used on compilation.
 % TODO Copy data from parent
 build_template(Name, BaseParent) ->
-  AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
-  ets:new(AttributeTable, [set, named_table, private]),
-
   Parent = default_parent(Name, BaseParent),
   Mixins = default_mixins(Name, Parent),
   Protos = default_protos(Name, Parent),
+
+  AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
+  ets:new(AttributeTable, [set, named_table, private]),
+
   ets:insert(AttributeTable, { parent, Parent }),
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
 
-  Object = #elixir_object{name=Name, parent=Parent, mixins=tweak_mixins(Name, Mixins), protos=Protos, data={def, AttributeTable}},
+  Object = #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos, data=AttributeTable},
   { Object, AttributeTable }.
 
 % Returns the parent object based on the declaration.
@@ -41,23 +42,20 @@ default_parent(Name, 'Object') -> 'Object'; % No need check if Object really exi
 default_parent(Name, 'Module') -> 'Module'; % No need check if Module really exists.
 default_parent(Name, Parent) ->
   case elixir_object_methods:abstract_parent(Parent) of
-    'Module' -> elixir_errors:raise(badarg, "cannot inherit from a module ~s", [Parent]);
+    'Module' -> elixir_errors:raise(badarg, "cannot inherit from module ~s", [Parent]);
     _ -> Parent
   end.
 
 % Default mixins based on the declaration type.
-default_mixins(Name, [])       -> [];                 % object Object
-default_mixins(Name, 'Object') -> [];                 % object Post
-default_mixins(Name, 'Module') -> [Name];             % module Numeric
-default_mixins(Name, Parent)   -> [{object, Parent}]. % object SimplePost < Post
+default_mixins(Name, [])       -> ['Object::Methods']; % object Object
+default_mixins(Name, 'Object') -> [];                  % object Post
+default_mixins(Name, 'Module') -> [Name];              % module Numeric
+default_mixins(Name, Parent)   -> [{object, Parent}].  % object SimplePost < Post
 
 % Default prototypes. Modules have themselves as the default prototype.
+default_protos(Name, [])       -> ['Object::Methods'];
 default_protos(Name, 'Module') -> [Name];
 default_protos(Name, Parent)   -> [].
-
-% Special case Object to include Bootstrap methods.
-tweak_mixins('Object', _) -> ['elixir_object_methods'];
-tweak_mixins(_, Mixins)   -> Mixins.
 
 %% USED ON TRANSFORMATION AND MODULE COMPILATION
 
@@ -181,7 +179,7 @@ build_erlang_form(Line, Object) ->
 
 build_erlang_form(Line, Object, Functions) ->
   Name = Object#elixir_object.name,
-  {def, AttrTable} = Object#elixir_object.data,
+  AttrTable = Object#elixir_object.data,
   Attrs = ets:tab2list(AttrTable),
   Transform = fun(X, Acc) -> [{attribute, Line, element(1, X), element(2, X)}|Acc] end,
   Base = lists:foldr(Transform, Functions, Attrs),

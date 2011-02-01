@@ -61,10 +61,10 @@ assert_dict_with_atoms(Data) ->
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
 prepend_as(#elixir_object{} = Self, Kind, Value) -> 
-  Name         = Self#elixir_object.name,
-  {def, Table} = Self#elixir_object.data,
-  [{_, Data}]  = ets:lookup(Table, Kind),
-  List         = Value#elixir_object.protos,
+  Name        = Self#elixir_object.name,
+  Table       = Self#elixir_object.data,
+  [{_, Data}] = ets:lookup(Table, Kind),
+  List        = Value#elixir_object.protos,
 
   % If we are adding prototypes and the current name is
   % in the list of protos, this means we are adding a
@@ -131,11 +131,19 @@ object_parent(Native) when is_atom(Native) ->
 object_parent(Native) when is_list(Native) ->
   'List'.
 
+object_mixins(#elixir_object{data=Data}) when is_atom(Data) ->
+  [{_, Mixins}] = ets:lookup(Data, mixins),
+  Mixins;
+
 object_mixins(#elixir_object{mixins=Mixins}) ->
   Mixins;
 
 object_mixins(Native) ->
   []. % Native types has all mixins from parents.
+
+object_protos(#elixir_object{data=Data}) when is_atom(Data) ->
+  [{_, Protos}] = ets:lookup(Data, protos),
+  Protos;
 
 object_protos(#elixir_object{protos=Protos}) ->
   Protos;

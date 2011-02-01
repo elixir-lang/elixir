@@ -37,6 +37,8 @@ object Object
     end
   end
 
-  mixin Object::Methods
-  proto Object::Methods
+  % Object::Methods is automatically mixed and proto'd by Elixir
+  % runtime so we can bootstrap the object system.
+  % mixin Object::Methods
+  % proto Object::Methods
 end

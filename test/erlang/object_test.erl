@@ -76,6 +76,12 @@ inheritance_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Mixin', 'Foo::Proto', 'Bar', 'Bar::Mixin', 'Bar::Proto']).
 
+cannot_inherit_from_a_module_test() ->
+  F = fun() ->
+    ?assertError({badarg, "cannot inherit from module Foo"}, elixir:eval("module Foo; end\nobject Bar < Foo; end"))
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Bar']).
+
 %% Initialization and Ivars
 
 hash_given_on_initialization_is_used_as_ivars_test() ->
@@ -140,3 +146,9 @@ do_not_add_protos_twice_to_dispatch_chain_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
 
+returns_correct_mixins_from_inside_the_test() ->
+  F = fun() ->
+    {['Bar','Foo','Object::Methods'], []} =
+      elixir:eval("module Foo; end\nmodule Bar; end\nobject Baz; mixin Foo; mixin Bar; __mixins__; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
