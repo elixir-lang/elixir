@@ -138,7 +138,8 @@ transform({list, Line, Exprs, Tail }, F, V, S) ->
   { TExprs, umerge(VE, VT) };
 
 % Handle dict declarations. It simply delegates to list to build a list
-% of args that is dispatched to dict:from_list/1.
+% of args that is dispatched to dict:from_list/1. The final Dict
+% object is created explicitly and not through Dict.new.
 %
 % = Variables
 %
@@ -148,7 +149,8 @@ transform({dict, Line, Exprs }, F, V, S) ->
   Dict = ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]),
   { build_object(Line, 'Dict', [{dict, Dict}]), NV };
 
-% Handle interpolated strings declarations.
+% Handle interpolated strings declarations. A string is created
+% by explicitly creating an #elixir_object and not through String.new.
 %
 % = Variables
 %
@@ -157,7 +159,8 @@ transform({interpolated_string, Line, String }, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
   { build_object(Line, 'String', [{list, Flattened}]), VE };
 
-% Handle strings by wrapping them in the String object.
+% Handle strings by wrapping them in the String object. A string is created
+% by explicitly creating an #elixir_object and not through String.new.
 %
 % = Variables
 %
@@ -174,7 +177,7 @@ transform({interpolated_atom, Line, String}, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
   { ?ELIXIR_WRAP_CALL(Line, erlang, list_to_atom, [Flattened]), VE };
 
-% Handle regexps by dispatching a list to Regexp.new.
+% Handle regexps by dispatching a list and its options to Regexp.new.
 %
 % = Variables
 %
@@ -182,7 +185,7 @@ transform({interpolated_atom, Line, String}, F, V, S) ->
 transform({regexp, Line, String, Operators }, F, V, S) ->
   build_regexp(Line, {string, Line, String}, Operators, F, V, S);
 
-% Handle interpolated regexps by passing the list as argument to regexp new.
+% Handle interpolated regexps by dispatching a list and its options to Regexp.new.
 %
 % = Variables
 %

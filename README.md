@@ -5,6 +5,7 @@ Nothing interesting here yet. Try again later.
 # Roadmap
 
 * Add true, false, if/else, case/when
+* Add Erlang local calls
 * Check what happens with several method definitions
 * Add alias_method
 * Add interpolation to regexp and atoms

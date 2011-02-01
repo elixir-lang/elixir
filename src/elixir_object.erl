@@ -43,7 +43,8 @@ default_parent('Object', _)    -> [];
 default_parent(Name, 'Object') -> 'Object'; % No need check if Object really exists.
 default_parent(Name, 'Module') -> 'Module'; % No need check if Module really exists.
 default_parent(Name, Parent) ->
-  % abstract_parent will check it constant was defined and its parent.
+  % abstract_parent will check if the constant was defined and then retrieve
+  % its parent so we can assert we are not inheriting from a Module
   case elixir_object_methods:abstract_parent(Parent) of
     'Module' -> elixir_errors:raise(badarg, "cannot inherit from module ~s", [Parent]);
     _ -> Parent
