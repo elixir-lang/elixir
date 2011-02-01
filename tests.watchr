@@ -1,0 +1,1 @@
+watch("(lib|src|test\/erlang)/*") { system("make test") }
