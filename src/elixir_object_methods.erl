@@ -2,7 +2,7 @@
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1,
-  get_ivar/2, ancestors/1, abstract_parent/1]).
+  get_ivar/2, ancestors/1, abstract_parent/1, abstract_data/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -30,18 +30,47 @@ mixins(Self) ->
 protos(Self) ->
   apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
 
-get_ivar(#elixir_object{data=Data}, Name) -> 
-  case dict:find(Name, Data) of
-    { ok, Value } -> Value;
-    error -> []
-  end;
+ancestors(Self) ->
+  lists:reverse(r_ancestors(Self)).
+
+%% PROTECTED API
+get_ivar(Self, Name) when not is_atom(Name) ->
+  elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~p", [stringify(Name)]);
+
+get_ivar(#elixir_object{data=Data}, Name) when is_atom(Data) ->
+  [{_, Dict}] = ets:lookup(Data, data),
+  get_ivar_dict(Name, Dict);
+
+get_ivar(#elixir_object{data=Dict}, Name) ->
+  get_ivar_dict(Name, Dict);
 
 get_ivar(Self, Name) -> % Native types do not have instance variables.
   [].
 
-% Returns all ancestors for the given object.
-ancestors(Self) ->
-  lists:reverse(r_ancestors(Self)).
+set_ivar(Self, Name, Value) when not is_atom(Name) ->
+  elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~p", [stringify(Name)]);
+
+set_ivar(#elixir_object{data=Data} = Self, Name, Value) when is_atom(Data) ->
+  [{_, Dict}] = ets:lookup(Data, data),
+  Object = set_ivar_dict(Self, Name, Value, Dict),
+  ets:insert(Data, { data, Object#elixir_object.data }),
+  Object;
+
+set_ivar(#elixir_object{data=Dict} = Self, Name, Value) ->
+  set_ivar_dict(Self, Name, Value, Dict);
+
+% TODO Cannot set ivar on native types.
+set_ivar(Self, Name, Value) ->
+  Self.
+
+get_ivar_dict(Name, Data) ->
+  case dict:find(Name, Data) of
+    { ok, Value } -> Value;
+    error -> []
+  end.
+
+set_ivar_dict(Self, Name, Value, Dict) ->
+  Self#elixir_object{data=dict:store(Name, Value, Dict)}.
 
 % INTERNAL API
 
@@ -50,13 +79,14 @@ assert_dict_with_atoms(#elixir_object{parent='Dict'} = Data) ->
   case lists:all(fun is_atom/1, dict:fetch_keys(Dict)) of
     true  -> Dict;
     false ->
-      String = get_ivar(elixir_dispatch:dispatch(Data, to_s, []), list),
-      elixir_errors:raise(badarg, "constructor needs to return a Dict with all keys as symbols, got ~p", [String])
+      elixir_errors:raise(badarg, "constructor needs to return a Dict with all keys as symbols, got ~p", [stringify(Data)])
   end;
 
 assert_dict_with_atoms(Data) ->
-  String = get_ivar(elixir_dispatch:dispatch(Data, inspect, []), list),
-  elixir_errors:raise(badarg, "constructor needs to return a Dict, got ~p", [String]).
+  elixir_errors:raise(badarg, "constructor needs to return a Dict, got ~p", [stringify(Data)]).
+
+stringify(Object) ->
+  get_ivar(elixir_dispatch:dispatch(Object, inspect, []), list).
 
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
@@ -174,6 +204,12 @@ abstract_protos(#elixir_object{protos=Protos}) ->
 
 abstract_protos(Name) ->
   proplists:get_value(protos, elixir_constants:lookup_attributes(Name)).
+
+abstract_data(#elixir_object{data=Data}) ->
+  Data;
+
+abstract_data(Name) ->
+  proplists:get_value(data, elixir_constants:lookup_attributes(Name)).
 
 % Methods that traverses the ancestors chain and append.
 

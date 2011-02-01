@@ -1,4 +1,5 @@
 object Object
+  % TODO Implement to_s and inspect.
   module Methods
     def new(args)
       Erlang.elixir_object_methods.new(self, args)

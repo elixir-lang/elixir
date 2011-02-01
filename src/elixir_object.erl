@@ -25,6 +25,7 @@ build_template(Name, BaseParent) ->
   Parent = default_parent(Name, BaseParent),
   Mixins = default_mixins(Name, Parent),
   Protos = default_protos(Name, Parent),
+  Data   = default_data(Parent),
 
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(AttributeTable, [set, named_table, private]),
@@ -32,6 +33,7 @@ build_template(Name, BaseParent) ->
   ets:insert(AttributeTable, { parent, Parent }),
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
+  ets:insert(AttributeTable, { data,   Data }),
 
   Object = #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos, data=AttributeTable},
   { Object, AttributeTable }.
@@ -41,6 +43,7 @@ default_parent('Object', _)    -> [];
 default_parent(Name, 'Object') -> 'Object'; % No need check if Object really exists.
 default_parent(Name, 'Module') -> 'Module'; % No need check if Module really exists.
 default_parent(Name, Parent) ->
+  % abstract_parent will check it constant was defined and its parent.
   case elixir_object_methods:abstract_parent(Parent) of
     'Module' -> elixir_errors:raise(badarg, "cannot inherit from module ~s", [Parent]);
     _ -> Parent
@@ -56,6 +59,12 @@ default_mixins(Name, Parent)   -> [{object, Parent}].  % object SimplePost < Pos
 default_protos(Name, [])       -> ['Object::Methods'];
 default_protos(Name, 'Module') -> [Name];
 default_protos(Name, Parent)   -> [].
+
+% Returns the default data from parents.
+default_data([])       -> dict:new();
+default_data('Object') -> dict:new();
+default_data('Module') -> dict:new();
+default_data(Parent)   -> elixir_object_methods:abstract_data(Parent).
 
 %% USED ON TRANSFORMATION AND MODULE COMPILATION
 
@@ -104,7 +113,7 @@ compile(Line, Filename, Current, Name, Parent, Fun, MethodTable) ->
   end.
 
 % Handle compilation logic specific to objects or modules.
-% TODO Allow object reopening.
+% TODO Allow object reopening but without method definition.
 % TODO Do not allow module reopening.
 compile_kind('Module', Line, Filename, Current, Object, MethodTable) ->
   Name = Object#elixir_object.name,
@@ -112,6 +121,8 @@ compile_kind('Module', Line, Filename, Current, Object, MethodTable) ->
   load_form(build_erlang_form(Line, Object, Functions), Filename),
   add_implicit_mixins(Current, Name);
 
+% Compile an object. If methods were defined in the object scope,
+% we create a Proto module and automatically include it.
 compile_kind(Parent, Line, Filename, Current, Object, MethodTable) ->
   case ets:first(MethodTable) of
     '$end_of_table' -> [];

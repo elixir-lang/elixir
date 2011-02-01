@@ -27,9 +27,9 @@ object Dict
   %
   % ## Examples
   %
-  %     { 'a: 1, 'b: 2 } % => "{'a: 1, 'b: 1}"
+  %     { 'a: 1, 'b: 2 }.inspect % => "{'a: 1, 'b: 1}"
   %
-  def to_s
+  def inspect
     transformer = -> (key, value, acc) ["#{key.inspect}: #{value.inspect}"|acc]
     "{#{fold([], transformer).join(", ")}}"
   end
