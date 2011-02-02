@@ -34,7 +34,6 @@ build_template(Name, BaseParent) ->
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
   ets:insert(AttributeTable, { data, dict:new() }),
-  ets:insert(AttributeTable, { visibility, public }),
 
   Object = #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos, data=AttributeTable},
   { Object, AttributeTable }.
@@ -91,6 +90,10 @@ compile(Line, Filename, Current, Name, Parent, Fun) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:new(MethodTable, [set, named_table, private]),
 
+  ets:insert(MethodTable, { public, [] }),
+  ets:insert(MethodTable, { protected, [] }),
+  ets:insert(MethodTable, { visibility, public }),
+
   try
     compile(Line, Filename, Current, Name, Parent, Fun, MethodTable)
   after
@@ -126,8 +129,8 @@ compile_kind('Module', Line, Filename, Current, Object, MethodTable) ->
 % Compile an object. If methods were defined in the object scope,
 % we create a Proto module and automatically include it.
 compile_kind(Parent, Line, Filename, Current, Object, MethodTable) ->
-  case ets:first(MethodTable) of
-    '$end_of_table' -> [];
+  case ets:info(MethodTable, size) of
+    3 -> [];
     _ ->
       Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object.name, '::', 'Proto']),
       compile(Line, Filename, Object, Name, 'Module', [], MethodTable)
@@ -172,82 +175,116 @@ wrap_method_definition(Name, Line, Filename, Method) ->
 % Gets a module stored in the CompiledTable with Index and
 % move it to the AddedTable.
 store_wrapped_method(Module, Filename, {function, Line, Name, Arity, Clauses}) ->
-  AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Module]),
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
-  [{_, Visibility}] = ets:lookup(AttributeTable, visibility),
+  [{_, Visibility}] = ets:lookup(MethodTable, visibility),
 
   FinalClauses = case ets:lookup(MethodTable, {Name, Arity}) of
-    [{{Name, Arity}, PrevVisibility, FinalLine, OtherClauses}] ->
-      case Visibility == PrevVisibility of
-        false ->
-          Message = io_lib:format("method ~s already defined with visibility ~s", [Name, PrevVisibility]),
-          io:format(elixir_errors:file_format(Line, Filename, Message) ++ [$\n]);
-        true -> []
-      end,
+    [{{Name, Arity}, FinalLine, OtherClauses}] ->
+      check_valid_visibility(Line, Filename, Name, Arity, Visibility, MethodTable),
       [hd(Clauses)|OtherClauses];
-    [] -> FinalLine = Line, PrevVisibility = Visibility, Clauses
+    [] ->
+      add_visibility_entry(Name, Arity, Visibility, MethodTable),
+      FinalLine = Line,
+      Clauses
   end,
-  ets:insert(MethodTable, {{Name, Arity}, PrevVisibility, FinalLine, FinalClauses}).
+  ets:insert(MethodTable, {{Name, Arity}, FinalLine, FinalClauses}).
 
-unwrap_stored_methods(MethodTable) ->
-  ets:foldl(fun unwrap_stored_methods/2, [], MethodTable).
+% Helper to unwrap the methods stored in the methods table. It also returns
+% a list of methods to be exported with all protected methods.
+unwrap_stored_methods(Table) ->
+  [{_,Public}]    = ets:lookup(Table, public),
+  [{_,Protected}] = ets:lookup(Table, protected),
+  ets:delete(Table, visibility),
+  ets:delete(Table, public),
+  ets:delete(Table, protected),
+  { Public ++ Protected, Protected, ets:foldl(fun unwrap_stored_methods/2, [], Table) }.
 
-unwrap_stored_methods({{Name, Arity}, Visibility, Line, Clauses}, Acc) ->
+unwrap_stored_methods({{Name, Arity}, Line, Clauses}, Acc) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
+
+% Check the visibility of the method with the given Name and Arity in the attributes table.
+add_visibility_entry(Name, Arity, private, Table) ->
+  [];
+
+add_visibility_entry(Name, Arity, Visibility, Table) ->
+  [{_, Current}] = ets:lookup(Table, Visibility),
+  ets:insert(Table, {Visibility, [{Name, Arity}|Current]}).
+
+check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
+  Available = [public, protected, private],
+  PrevVisibility = find_visibility(Name, Arity, Available, Table),
+  case Visibility == PrevVisibility of
+    false -> format_warning(Filename, {Line, ?MODULE, {changed_visibility, Name, PrevVisibility}});
+    true -> []
+  end.
+
+find_visibility(Name, Arity, [H|[]], Table) ->
+  H;
+
+find_visibility(Name, Arity, [Visibility|T], Table) ->
+  [{_, List}] = ets:lookup(Table, Visibility),
+  case lists:member({Name, Arity}, List) of
+    true  -> Visibility;
+    false -> find_visibility(Name, Arity, T, Table)
+  end.
 
 % Retrieve all attributes in the attribute table and generate
 % an Erlang Abstract Form that defines an Erlang module.
 build_erlang_form(Line, Object) ->
-  build_erlang_form(Line, Object, []).
+  build_erlang_form(Line, Object, {[],[],[]}).
 
-build_erlang_form(Line, Object, Functions) ->
+build_erlang_form(Line, Object, {Export, Protected, Functions}) ->
   Name = Object#elixir_object.name,
   AttrTable = Object#elixir_object.data,
-  ets:delete(AttrTable, visibility), % Do not convert visibility to a final attribute
   Attrs = ets:tab2list(AttrTable),
   Transform = fun(X, Acc) -> [{attribute, Line, element(1, X), element(2, X)}|Acc] end,
   Base = lists:foldr(Transform, Functions, Attrs),
-  [{attribute, Line, module, Name}, {attribute, Line, compile, [export_all]} | Base].
+  [{attribute, Line, module, Name}, {attribute, Line, export, Export}, {attribute, Line, protected, Protected} | Base].
 
 % Compile and load given forms as an Erlang module.
 load_form(Forms, Filename) ->
   case compile:forms(Forms, [return]) of
     {ok, ModuleName, Binary, Warnings} ->
-      format_errors(false, Filename, Warnings),
+      format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary);
     {error, Errors, Warnings} ->
-      format_errors(false, Filename, Warnings),
-      format_errors(true, Filename, Errors)
+      format_warnings(Filename, Warnings),
+      format_errors(Filename, Errors)
   end.
 
-format_errors(Raise, Filename, []) ->
-  case Raise of
-    true -> elixir_errors:raise(bad, "compilation failed but no reason was given");
-    false -> []
-  end;
+format_errors(Filename, []) ->
+  elixir_errors:raise(bad, "compilation failed but no reason was given");
 
-format_errors(Bool, Filename, Errors) ->
-  lists:foreach(fun ({_, Each}) -> format_error(Bool, Filename, Each) end, Errors).
+format_errors(Filename, Errors) ->
+  lists:foreach(fun ({_, Each}) ->
+    lists:foreach(fun (Error) -> format_error(Filename, Error) end, Each)
+  end, Errors).
 
-% Overwritten warnings and errors.
+format_warnings(Filename, Warnings) ->
+  lists:foreach(fun ({_, Each}) ->
+    lists:foreach(fun (Warning) -> format_warning(Filename, Warning) end, Each)
+  end, Warnings).
 
-format_error(false, Filename, [{Line,_,{unused_var,self}}|T]) ->
-  format_error(false, Filename, T);
 
-format_error(true, Filename, [{Line,Module,{undefined_function,{Name, Arity}}}|T]) ->
+% Handle warnings
+
+format_warning(Filename, {Line,_,{unused_var,self}}) ->
+  [];
+
+format_warning(Filename, {Line,_,{changed_visibility,Name,Visibility}}) ->
+  Message = io_lib:format("method ~s already defined with visibility ~s\n", [Name, Visibility]),
+  io:format(elixir_errors:file_format(Line, Filename, Message));
+
+format_warning(Filename, {Line,Module,Desc}) ->
+  Message = Module:format_error(Desc),
+  io:format(elixir_errors:file_format(Line, Filename, Message) ++ [$\n]).
+
+% Handle errors
+
+format_error(Filename, {Line,Module,{undefined_function,{Name, Arity}}}) ->
   Message = io_lib:format("undefined local method ~s/~w", [Name, Arity-1]),
   elixir_errors:file_error(undefined_local_method, Line, Filename, Message);
 
-% Default warnings and errors.
-
-format_error(false, Filename, [{Line,Module,Desc}|T]) ->
+format_error(Filename, {Line,Module,Desc}) ->
   Message = Module:format_error(Desc),
-  io:format(elixir_errors:file_format(Line, Filename, Message) ++ [$\n]),
-  format_error(false, Filename, T);
-
-format_error(true, Filename, [{Line,Module,Desc}|T]) ->
-  Message = Module:format_error(Desc),
-  elixir_errors:file_error(element(1, Desc), Line, Filename, Message);
-
-format_error(_, _, []) ->
-  [].
+  elixir_errors:file_error(element(1, Desc), Line, Filename, Message).
