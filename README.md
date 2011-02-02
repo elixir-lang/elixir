@@ -8,7 +8,6 @@ Nothing interesting here yet. Try again later.
 * Add alias_method
 * Add missing types (regexp, ranges, bitstream)
 * Add $"foo" as shortcut to create a list of integers
-* Allow classes to be reopened
 * Add generators
 * Add metaprogramming
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add 
@@ -18,6 +17,7 @@ Nothing interesting here yet. Try again later.
 * Add JIT on module compilation
 * Extending builtin types (like inheriting from Integer)
 * Add method cache table
+* Allow classes to be reopened
 * Improve constant lookup
 
 # Examples

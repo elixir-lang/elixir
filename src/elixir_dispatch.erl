@@ -9,8 +9,25 @@ dispatch(Self, Object, Method, Args) ->
   case find_module(Chain, Method, Arity) of
     [] ->
       Mixins = string:join(lists:map(fun atom_to_list/1, Chain), ", "),
-      elixir_errors:raise(nomethod, "No visible method ~s/~w in mixins [~s]", [Method, Arity - 1, Mixins]);
-    Module -> apply(Module, Method, [Object|Args])
+      Message = "No visible method ~s/~w in mixins [~s]",
+      elixir_errors:raise(nomethod, Message, [Method, Arity - 1, Mixins]);
+    Module ->
+      case visibility_matches(Self, Module, Method, Arity) of
+        true  -> apply(Module, Method, [Object|Args]);
+        false ->
+          Message = "Cannot invoke protected method ~s/~w in mixin ~s",
+          elixir_errors:raise(protectedmethod, Message, [Method, Arity - 1, atom_to_list(Module)])
+      end
+  end.
+
+visibility_matches([], Module, Method, Arity) ->
+  true;
+
+visibility_matches(Self, Module, Method, Arity) ->
+  Protected = proplists:get_value(protected, elixir_constants:lookup_attributes(Module)),
+  case lists:member({Method, Arity}, Protected) of
+    true  -> lists:member(Module, elixir_object_methods:mixins(Self));
+    false -> true
   end.
 
 % Find first module that contains the method with given arity.

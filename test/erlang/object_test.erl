@@ -185,3 +185,12 @@ private_methods_cannot_be_invoked_test() ->
     ?assertError({nomethod, "No visible method foo/0 in mixins [Foo::Proto, Object::Methods]"}, elixir:eval("Foo.new.foo"))
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
+
+protected_methods_can_be_invoked_in_their_own_scope_test() ->
+  F = fun() ->
+    elixir:eval("object Foo; def foo(obj); obj.baz; end; def bar; self.baz; end; protected; def baz; 1; end; end"),
+    {1,[]} = elixir:eval("Foo.new.bar"),
+    {1,[]} = elixir:eval("Foo.new.foo(Foo.new)"),
+    ?assertError({protectedmethod, "Cannot invoke protected method baz/0 in mixin Foo::Proto"}, elixir:eval("Foo.new.baz"))
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
