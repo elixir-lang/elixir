@@ -204,7 +204,7 @@ transform({binary_op, Line, Op, Left, Right}, F, V, S) ->
   { TLeft, VL } = transform(Left, F, V, S),
   { TRight, VR } = transform(Right, F, V, S),
   Args = { cons, Line, TRight, {nil, Line} },
-  { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [TLeft, {atom, Line, Op}, Args]), umerge(VL, VR) };
+  { build_method_call(Op, Line, Args, TLeft), umerge(VL, VR) };
 
 % Handle unary operations.
 %
@@ -380,7 +380,7 @@ build_object(Line, Parent, Ivars) ->
 % all data is already transformed.
 build_method_call(Name, Line, Args, Expr) ->
   FArgs = handle_new_call(Name, Line, Args),
-  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, Name}, FArgs]).
+  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [{var, Line, self}, Expr, {atom, Line, Name}, FArgs]).
 
 % Builds a regexp.
 build_regexp(Line, Expr, Operators, F, V, S) ->
@@ -417,5 +417,5 @@ handle_string_extractions({s, String}, Line, F, V, S) ->
 
 handle_string_extractions({i, Interpolation}, Line, F, V, S) ->
   { Tree, NV } = parse(Interpolation, Line, F, V, S),
-  Stringify = ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [hd(Tree), {integer, Line, to_s}, {nil,Line}]),
+  Stringify = build_method_call(to_s, Line, {nil,Line}, hd(Tree)),
   { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, [Stringify, {atom, Line, list}]), NV }.

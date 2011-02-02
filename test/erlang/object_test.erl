@@ -176,3 +176,12 @@ ivars_inheritance_test() ->
     {bar, []} = elixir:eval("object Bar < Foo; get_ivar('foo); end")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar']).
+
+%% Visibility
+
+private_methods_cannot_be_invoked_test() ->
+  F = fun() ->
+    elixir:eval("object Foo; private; def foo; 1; end; end"),
+    ?assertError({nomethod, "No visible method foo/0 in mixins [Foo::Proto, Object::Methods]"}, elixir:eval("Foo.new.foo"))
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).

@@ -15,7 +15,7 @@ new(#elixir_object{name=Name, protos=Protos} = Self, Args) ->
     _  -> Name
   end,
   Object = #elixir_object{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
-  Data = elixir_dispatch:dispatch(Object, constructor, Args),
+  Data = elixir_dispatch:dispatch([], Object, constructor, Args),
   Dict = assert_dict_with_atoms(Data),
   Object#elixir_object{data=Dict}.
 
@@ -102,7 +102,7 @@ assert_dict_with_atoms(Data) ->
   elixir_errors:raise(badarg, "constructor needs to return a Dict, got ~p", [stringify(Data)]).
 
 stringify(Object) ->
-  get_ivar(elixir_dispatch:dispatch(Object, inspect, []), list).
+  get_ivar(elixir_dispatch:dispatch([], Object, inspect, []), list).
 
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
