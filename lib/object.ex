@@ -33,8 +33,10 @@ object Object
       Erlang.elixir_object_methods.ancestors(self)
     end
 
+    % We could mark the methods below as protected, but, as everything
+    % inherits from Object, the visibility would never take effect and
+    % would just affect performance instead.
     % protected
-    Erlang.elixir_object_methods.set_visibility(self, 'protected)
 
     def constructor
       {:}
