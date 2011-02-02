@@ -170,3 +170,9 @@ ivars_at_the_proto_level_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
+ivars_inheritance_test() ->
+  F = fun() ->
+    elixir:eval("object Foo; set_ivar('foo, 'bar); end"),
+    {bar, []} = elixir:eval("object Bar < Foo; get_ivar('foo); end")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Bar']).

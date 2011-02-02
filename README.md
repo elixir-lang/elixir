@@ -10,14 +10,12 @@ Nothing interesting here yet. Try again later.
 * Add $"foo" as shortcut to create a list of integers
 * Allow classes to be reopened
 * Add generators
-* Add variables to object declarations and copy them on inheritance
 * Add metaprogramming
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add 
 * Add _.foo
 * Improve STDLIB
 * Add load paths
 * Add JIT on module compilation
-* Allow methods to be private
 * Extending builtin types (like inheriting from Integer)
 * Add method cache table
 * Improve constant lookup

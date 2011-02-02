@@ -225,7 +225,7 @@ abstract_data(#elixir_object{data=Data}) ->
   Data;
 
 abstract_data(Name) ->
-  proplists:get_value(data, elixir_constants:lookup_attributes(Name)).
+  hd(proplists:get_value(data, elixir_constants:lookup_attributes(Name))).
 
 % Methods that traverses the ancestors chain and append.
 
