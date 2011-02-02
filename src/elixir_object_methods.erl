@@ -2,7 +2,8 @@
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1,
-  get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1]).
+  get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1,
+  get_visibility/1, set_visibility/2]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -34,6 +35,21 @@ ancestors(Self) ->
   lists:reverse(r_ancestors(Self)).
 
 %% PROTECTED API
+
+set_visibility(#elixir_object{name=Name, data=Data}, Visibility) when is_atom(Data) ->
+  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
+  ets:insert(MethodTable, { visibility, Visibility });
+
+set_visibility(Self, Visibility) ->
+  elixir_errors:raise(badarg, "cannot change visibility of defined object").
+  
+get_visibility(#elixir_object{name=Name, data=Data}) when is_atom(Data) ->
+  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
+  ets:lookup_element(MethodTable, visibility, 2);
+
+get_visibility(Self) ->
+  [].
+
 get_ivar(Self, Name) when not is_atom(Name) ->
   elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~p", [stringify(Name)]);
 
@@ -63,6 +79,8 @@ set_ivar(#elixir_object{data=Dict} = Self, Name, Value) ->
 set_ivar(Self, Name, Value) ->
   Self.
 
+% HELPERS
+
 get_ivar_dict(Name, Data) ->
   case dict:find(Name, Data) of
     { ok, Value } -> Value;
@@ -71,8 +89,6 @@ get_ivar_dict(Name, Data) ->
 
 set_ivar_dict(Self, Name, Value, Dict) ->
   Self#elixir_object{data=dict:store(Name, Value, Dict)}.
-
-% INTERNAL API
 
 assert_dict_with_atoms(#elixir_object{parent='Dict'} = Data) ->
   Dict = get_ivar(Data, dict),
@@ -128,6 +144,7 @@ umerge2([H|T], Data) ->
   umerge(T, New).
 
 % Returns the ancestors chain considering only parents, but in reverse order.
+
 r_ancestors(Object) ->
   r_ancestors(object_parent(Object), []).
 

@@ -34,6 +34,7 @@ object Object
     end
 
     % protected
+    Erlang.elixir_object_methods.set_visibility(self, 'protected)
 
     def constructor
       {:}
@@ -45,6 +46,18 @@ object Object
 
     def set_ivar(name, value)
       Erlang.elixir_object_methods.set_ivar(self, name, value)
+    end
+
+    def public
+      Erlang.elixir_object_methods.set_visibility(self, 'public)
+    end
+
+    def protected
+      Erlang.elixir_object_methods.set_visibility(self, 'protected)
+    end
+
+    def private
+      Erlang.elixir_object_methods.set_visibility(self, 'private)
     end
   end
 

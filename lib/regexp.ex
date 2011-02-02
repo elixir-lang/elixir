@@ -75,7 +75,7 @@ object Regexp
     }
   end
 
-  % private
+  private
 
   def parse_option($u, acc); ['unicode|acc]; end
   def parse_option($i, acc); ['caseless|acc]; end
