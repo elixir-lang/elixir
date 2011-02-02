@@ -174,4 +174,4 @@ local_call_does_not_look_at_outer_modules_test() ->
 %   test_helper:run_and_remove(F, ['Foo']).
 
 cannot_lookup_not_stored_constants_test() ->
-  ?assertError({badarg, "no constant 'FooBarBaz' defined" }, elixir:eval("FooBarBaz")).
+  ?assertError({badarg, "no constant FooBarBaz defined" }, elixir:eval("FooBarBaz")).

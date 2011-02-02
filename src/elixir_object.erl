@@ -253,7 +253,7 @@ load_form(Forms, Filename) ->
   end.
 
 format_errors(Filename, []) ->
-  elixir_errors:raise(bad, "compilation failed but no reason was given");
+  elixir_errors:raise(bad, "compilation failed but no error was raised");
 
 format_errors(Filename, Errors) ->
   lists:foreach(fun ({_, Each}) ->
