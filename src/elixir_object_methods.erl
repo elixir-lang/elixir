@@ -2,7 +2,7 @@
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1,
-  get_ivar/2, ancestors/1, abstract_parent/1, abstract_data/1]).
+  get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API

@@ -152,3 +152,21 @@ returns_correct_mixins_from_inside_the_test() ->
       elixir:eval("module Foo; end\nmodule Bar; end\nobject Baz; mixin Foo; mixin Bar; __mixins__; end")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
+
+%% Ivars test
+
+ivars_at_the_mixin_level_test() ->
+  F = fun() ->
+    {[], []} = elixir:eval("module Foo; get_ivar('bar); end"),
+    {bar, []} = elixir:eval("module Bar; set_ivar('foo, 'bar); get_ivar('foo); end")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Bar']).
+
+ivars_at_the_proto_level_test() ->
+  F = fun() ->
+    elixir:eval("object Foo; def get; self.get_ivar('foo); end; def set; self.set_ivar('foo, 'bar); end; end"),
+    {[], []} = elixir:eval("Foo.new.get"),
+    {bar, _} = elixir:eval("Foo.new.set.get")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
+

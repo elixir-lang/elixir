@@ -33,8 +33,18 @@ object Object
       Erlang.elixir_object_methods.ancestors(self)
     end
 
+    % protected
+
     def constructor
       {:}
+    end
+
+    def get_ivar(name)
+      Erlang.elixir_object_methods.get_ivar(self, name)
+    end
+
+    def set_ivar(name, value)
+      Erlang.elixir_object_methods.set_ivar(self, name, value)
     end
   end
 

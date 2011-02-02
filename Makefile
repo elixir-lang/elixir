@@ -17,7 +17,7 @@ PARSER_NAME=$(PARSER_BASE_NAME)_parser
 
 compile: ebin
 
-ebin: src/*.erl
+ebin: src/*
 	@ echo Compiling ...
 	@ mkdir -p $(EBIN_DIR)
 	@ # Generate the lexer

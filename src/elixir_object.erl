@@ -33,7 +33,7 @@ build_template(Name, BaseParent) ->
   ets:insert(AttributeTable, { parent, Parent }),
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
-  ets:insert(AttributeTable, { data,   Data }),
+  ets:insert(AttributeTable, { data, dict:new() }),
 
   Object = #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos, data=AttributeTable},
   { Object, AttributeTable }.
