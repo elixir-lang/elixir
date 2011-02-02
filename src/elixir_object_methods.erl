@@ -54,7 +54,7 @@ get_ivar(Self, Name) when not is_atom(Name) ->
   elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~p", [stringify(Name)]);
 
 get_ivar(#elixir_object{data=Data}, Name) when is_atom(Data) ->
-  [{_, Dict}] = ets:lookup(Data, data),
+  Dict = ets:lookup_element(Data, data, 2),
   get_ivar_dict(Name, Dict);
 
 get_ivar(#elixir_object{data=Dict}, Name) ->
@@ -67,7 +67,7 @@ set_ivar(Self, Name, Value) when not is_atom(Name) ->
   elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~p", [stringify(Name)]);
 
 set_ivar(#elixir_object{data=Data} = Self, Name, Value) when is_atom(Data) ->
-  [{_, Dict}] = ets:lookup(Data, data),
+  Dict = ets:lookup_element(Data, data, 2),
   Object = set_ivar_dict(Self, Name, Value, Dict),
   ets:insert(Data, { data, Object#elixir_object.data }),
   Object;
@@ -106,11 +106,12 @@ stringify(Object) ->
 
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
+% TODO Allow to call mixin outside object definition
 prepend_as(#elixir_object{} = Self, Kind, Value) -> 
-  Name        = Self#elixir_object.name,
-  Table       = Self#elixir_object.data,
-  [{_, Data}] = ets:lookup(Table, Kind),
-  List        = Value#elixir_object.protos,
+  Name  = Self#elixir_object.name,
+  Table = Self#elixir_object.data,
+  Data  = ets:lookup_element(Table, Kind, 2),
+  List  = Value#elixir_object.protos,
 
   % If we are adding prototypes and the current name is
   % in the list of protos, this means we are adding a
@@ -179,8 +180,7 @@ object_parent(Native) when is_list(Native) ->
   'List'.
 
 object_mixins(#elixir_object{data=Data}) when is_atom(Data) ->
-  [{_, Mixins}] = ets:lookup(Data, mixins),
-  Mixins;
+  ets:lookup_element(Data, mixins, 2);
 
 object_mixins(#elixir_object{mixins=Mixins}) ->
   Mixins;
@@ -189,8 +189,7 @@ object_mixins(Native) ->
   []. % Native types has all mixins from parents.
 
 object_protos(#elixir_object{data=Data}) when is_atom(Data) ->
-  [{_, Protos}] = ets:lookup(Data, protos),
-  Protos;
+  ets:lookup_element(Data, protos, 2);
 
 object_protos(#elixir_object{protos=Protos}) ->
   Protos;

@@ -176,7 +176,7 @@ wrap_method_definition(Name, Line, Filename, Method) ->
 % move it to the AddedTable.
 store_wrapped_method(Module, Filename, {function, Line, Name, Arity, Clauses}) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
-  [{_, Visibility}] = ets:lookup(MethodTable, visibility),
+  Visibility = ets:lookup_element(MethodTable, visibility, 2),
 
   FinalClauses = case ets:lookup(MethodTable, {Name, Arity}) of
     [{{Name, Arity}, FinalLine, OtherClauses}] ->
@@ -192,8 +192,8 @@ store_wrapped_method(Module, Filename, {function, Line, Name, Arity, Clauses}) -
 % Helper to unwrap the methods stored in the methods table. It also returns
 % a list of methods to be exported with all protected methods.
 unwrap_stored_methods(Table) ->
-  [{_,Public}]    = ets:lookup(Table, public),
-  [{_,Protected}] = ets:lookup(Table, protected),
+  Public    = ets:lookup_element(Table, public, 2),
+  Protected = ets:lookup_element(Table, protected, 2),
   ets:delete(Table, visibility),
   ets:delete(Table, public),
   ets:delete(Table, protected),
@@ -207,7 +207,7 @@ add_visibility_entry(Name, Arity, private, Table) ->
   [];
 
 add_visibility_entry(Name, Arity, Visibility, Table) ->
-  [{_, Current}] = ets:lookup(Table, Visibility),
+  Current= ets:lookup_element(Table, Visibility, 2),
   ets:insert(Table, {Visibility, [{Name, Arity}|Current]}).
 
 check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
@@ -222,7 +222,7 @@ find_visibility(Name, Arity, [H|[]], Table) ->
   H;
 
 find_visibility(Name, Arity, [Visibility|T], Table) ->
-  [{_, List}] = ets:lookup(Table, Visibility),
+  List = ets:lookup_element(Table, Visibility, 2),
   case lists:member({Name, Arity}, List) of
     true  -> Visibility;
     false -> find_visibility(Name, Arity, T, Table)
@@ -270,6 +270,10 @@ format_warnings(Filename, Warnings) ->
 
 format_warning(Filename, {Line,_,{unused_var,self}}) ->
   [];
+
+format_warning(Filename, {Line, _, {unused_function, {Name, Arity}}}) ->
+  Message = io_lib:format("unused local method ~s/~w\n", [Name, Arity-1]),
+  io:format(elixir_errors:file_format(Line, Filename, Message));
 
 format_warning(Filename, {Line,_,{changed_visibility,Name,Visibility}}) ->
   Message = io_lib:format("method ~s already defined with visibility ~s\n", [Name, Visibility]),
