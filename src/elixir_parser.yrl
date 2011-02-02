@@ -290,9 +290,9 @@ string_list -> string_base eol string_list : ['$1'|'$3'].
 erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call(true, '$1', ?chars('$3'), ?chars('$5'), '$6').
 erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call(false, '$1', ?chars('$3'), ?chars('$5'), '$6').
 erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier : build_erlang_call(true, '$1', ?chars('$3'), ?chars('$5'), []).
-erlang_call_expr -> Erlang '.' base_identifier call_args_parens : build_erlang_call(true, '$1', erlang, ?chars('$3'), '$4').
-erlang_call_expr -> Erlang '.' base_identifier call_args_optional : build_erlang_call(false, '$1', erlang, ?chars('$3'), '$4').
-erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call(true, '$1', erlang, ?chars('$3'), []).
+erlang_call_expr -> Erlang '.' base_identifier call_args_parens : build_erlang_call(true, '$1', [], ?chars('$3'), '$4').
+erlang_call_expr -> Erlang '.' base_identifier call_args_optional : build_erlang_call(false, '$1', [], ?chars('$3'), '$4').
+erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call(true, '$1', [], ?chars('$3'), []).
 
 % Stab syntax
 stabber -> '->' : '$1'.

@@ -249,7 +249,10 @@ transform({clause, Line, Args, Guards, Exprs}, F, V, S) ->
 % to be taken into account on the variables list.
 transform({erlang_call, Line, Prefix, Suffix, Args}, F, V, S) ->
   { TArgs, VA } = transform_tree(Args, F, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, Prefix, Suffix, TArgs), VA };
+  case Prefix of
+    [] -> { { call, Line, {atom, Line, Suffix}, TArgs }, VA };
+    _  -> { ?ELIXIR_WRAP_CALL(Line, Prefix, Suffix, TArgs), VA }
+  end;
 
 % Method definitions are never executed by Elixir runtime. Their
 % abstract form is stored into an ETS table and is just added to

@@ -27,6 +27,6 @@ object List
   end
 
   def length
-    Erlang.length(self)
+    Erlang.erlang.length(self)
   end
 end

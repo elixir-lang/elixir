@@ -40,7 +40,7 @@ object String
   %     "josé".length   % => 4
   %
   def length
-    Erlang.length(@list)
+    Erlang.erlang.length(@list)
   end
 
   % Returns the list representation of this String.
