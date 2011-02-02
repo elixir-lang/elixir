@@ -1,5 +1,5 @@
 -module(elixir_object).
--export([build/1, scope_for/2, transform/5, compile/6, wrap_method_definition/3, store_wrapped_method/2]).
+-export([build/1, scope_for/2, transform/5, compile/6, wrap_method_definition/4, store_wrapped_method/3]).
 -include("elixir.hrl").
 
 %% EXTERNAL API
@@ -34,6 +34,7 @@ build_template(Name, BaseParent) ->
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
   ets:insert(AttributeTable, { data, dict:new() }),
+  ets:insert(AttributeTable, { visibility, public }),
 
   Object = #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos, data=AttributeTable},
   { Object, AttributeTable }.
@@ -160,28 +161,38 @@ add_implicit_mixins(_, _) -> [].
 %       def bar; 2; end
 %     end
 %   end
-% 
+%
 % If we just analyzed the compiled structure (i.e. the method availables
 % before evaluating the method body), we would see both definitions.
-wrap_method_definition(Name, Line, Method) ->
+wrap_method_definition(Name, Line, Filename, Method) ->
   Meta = erl_syntax:revert(erl_syntax:abstract(Method)),
-  Content = [{atom, Line, Name}, Meta],
+  Content = [{atom, Line, Name}, {string, Line, Filename}, Meta],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
 
 % Gets a module stored in the CompiledTable with Index and
 % move it to the AddedTable.
-store_wrapped_method(Module, {function, Line, Name, Arity, Clauses}) ->
+store_wrapped_method(Module, Filename, {function, Line, Name, Arity, Clauses}) ->
+  AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Module]),
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
+  [{_, Visibility}] = ets:lookup(AttributeTable, visibility),
+
   FinalClauses = case ets:lookup(MethodTable, {Name, Arity}) of
-    [{{Name, Arity}, FinalLine, OtherClauses}] -> [hd(Clauses)|OtherClauses];
-    [] -> FinalLine = Line, Clauses
+    [{{Name, Arity}, PrevVisibility, FinalLine, OtherClauses}] ->
+      case Visibility == PrevVisibility of
+        false ->
+          Message = io_lib:format("method ~s already defined with visibility ~s", [Name, PrevVisibility]),
+          io:format(elixir_errors:file_format(Line, Filename, Message) ++ [$\n]);
+        true -> []
+      end,
+      [hd(Clauses)|OtherClauses];
+    [] -> FinalLine = Line, PrevVisibility = Visibility, Clauses
   end,
-  ets:insert(MethodTable, {{Name, Arity}, FinalLine, FinalClauses}).
-  
+  ets:insert(MethodTable, {{Name, Arity}, PrevVisibility, FinalLine, FinalClauses}).
+
 unwrap_stored_methods(MethodTable) ->
   ets:foldl(fun unwrap_stored_methods/2, [], MethodTable).
 
-unwrap_stored_methods({{Name, Arity}, Line, Clauses}, Acc) ->
+unwrap_stored_methods({{Name, Arity}, Visibility, Line, Clauses}, Acc) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
 
 % Retrieve all attributes in the attribute table and generate
@@ -192,6 +203,7 @@ build_erlang_form(Line, Object) ->
 build_erlang_form(Line, Object, Functions) ->
   Name = Object#elixir_object.name,
   AttrTable = Object#elixir_object.data,
+  ets:delete(AttrTable, visibility), % Do not convert visibility to a final attribute
   Attrs = ets:tab2list(AttrTable),
   Transform = fun(X, Acc) -> [{attribute, Line, element(1, X), element(2, X)}|Acc] end,
   Base = lists:foldr(Transform, Functions, Attrs),
@@ -209,7 +221,7 @@ load_form(Forms, Filename) ->
   end.
 
 format_errors(Raise, Filename, []) ->
-  case Raise of 
+  case Raise of
     true -> elixir_errors:raise(bad, "compilation failed but no reason was given");
     false -> []
   end;

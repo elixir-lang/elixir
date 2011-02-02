@@ -265,7 +265,7 @@ transform({def_method, Line, Name, Arity, Clauses}, F, V, S) ->
   Scope = {Var, true, Module},
   TClauses = [pack_method_clause(Clause, F, V, Scope) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
-  { elixir_object:wrap_method_definition(Module, Line, Method), V };
+  { elixir_object:wrap_method_definition(Module, Line, F, Method), V };
 
 % Handle function calls.
 %
