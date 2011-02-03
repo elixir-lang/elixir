@@ -4,7 +4,7 @@ Nothing interesting here yet. Try again later.
 
 # Roadmap
 
-* Add true, false, if/else, case/when
+* Add case/match expressions
 * Add alias_method
 * Add missing types (regexp, ranges, bitstream)
 * Add $"foo" as shortcut to create a list of integers
