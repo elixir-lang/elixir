@@ -51,7 +51,7 @@ get_visibility(Self) ->
   [].
 
 get_ivar(Self, Name) when not is_atom(Name) ->
-  elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~s", [inspect(Name)]);
+  elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~ts", [inspect(Name)]);
 
 get_ivar(#elixir_object{data=Data}, Name) when is_atom(Data) ->
   Dict = ets:lookup_element(Data, data, 2),
@@ -64,7 +64,7 @@ get_ivar(Self, Name) -> % Native types do not have instance variables.
   [].
 
 set_ivar(Self, Name, Value) when not is_atom(Name) ->
-  elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~s", [inspect(Name)]);
+  elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~ts", [inspect(Name)]);
 
 set_ivar(#elixir_object{data=Data} = Self, Name, Value) when is_atom(Data) ->
   Dict = ets:lookup_element(Data, data, 2),
@@ -108,11 +108,11 @@ assert_dict_with_atoms(#elixir_object{parent='Dict'} = Data) ->
   case lists:all(fun is_atom/1, dict:fetch_keys(Dict)) of
     true  -> Dict;
     false ->
-      elixir_errors:raise(badarg, "constructor needs to return a Dict with all keys as symbols, got ~s", [inspect(Data)])
+      elixir_errors:raise(badarg, "constructor needs to return a Dict with all keys as symbols, got ~ts", [inspect(Data)])
   end;
 
 assert_dict_with_atoms(Data) ->
-  elixir_errors:raise(badarg, "constructor needs to return a Dict, got ~s", [inspect(Data)]).
+  elixir_errors:raise(badarg, "constructor needs to return a Dict, got ~ts", [inspect(Data)]).
 
 inspect(Object) ->
   get_ivar(elixir_dispatch:dispatch([], Object, inspect, []), list).
