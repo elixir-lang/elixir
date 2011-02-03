@@ -59,7 +59,7 @@ Nonterminals
 Terminals
   punctuated_identifier identifier float integer constant
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
-  div rem module object 'do' 'end' def eol Erlang
+  div rem module object 'do' 'end' def eol Erlang true false
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '<' '|' '_'
   .
@@ -276,6 +276,8 @@ base_expr -> constant : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> list : '$1'.
 base_expr -> dict : '$1'.
+base_expr -> true : { atom, ?line('$1'), true }.
+base_expr -> false : { atom, ?line('$1'), false }.
 
 % String expressions
 string_base -> string : '$1'.

@@ -1,1 +1,1 @@
-watch("(lib|src|test\/erlang)/*") { system("make test") }
+watch("(lib|src|test/erlang)/*") { system("make test") }
