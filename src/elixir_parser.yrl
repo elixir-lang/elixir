@@ -54,12 +54,14 @@ Nonterminals
   implicit_method_name
   method_ops_identifier
   implicit_method_ops_identifier
+  if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
   .
 
 Terminals
   punctuated_identifier identifier float integer constant
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   div rem module object 'do' 'end' def eol Erlang true false
+  if elsif else unless
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '<' '|' '_'
   .
@@ -278,6 +280,24 @@ base_expr -> list : '$1'.
 base_expr -> dict : '$1'.
 base_expr -> true : { atom, ?line('$1'), true }.
 base_expr -> false : { atom, ?line('$1'), false }.
+base_expr -> if_expr : '$1'.
+
+% Conditionals
+if_expr -> if_elsif_clauses 'end' : build_if_expr('$1').
+if_expr -> if_elsif_clauses else_clause 'end' : build_if_expr('$1', '$2').
+
+if_clause -> 'if' expr break expr_list : { 'if_clause', ?line('$1'), [], '$2', '$4' }.
+if_clause -> 'unless' expr break expr_list : { 'if_clause', ?line('$1'), 'not', '$2', '$4' }.
+
+elsif_clauses -> elsif_clause elsif_clauses : ['$1'|'$2'].
+elsif_clauses -> elsif_clause : ['$1'].
+elsif_clause  -> elsif expr break expr_list : { 'if_clause', ?line('$1'), [], '$2', '$4' }.
+
+if_elsif_clauses -> if_clause : ['$1'].
+if_elsif_clauses -> if_clause elsif_clauses : ['$1'|'$2'].
+
+else_clause -> else expr_list : '$2'.
+else_clause -> else ';' expr_list : '$3'.
 
 % String expressions
 string_base -> string : '$1'.
@@ -472,3 +492,9 @@ build_list(Line, Exprs, Tail) ->
 
 build_dict_tuple(Key, Value) ->
   { tuple, ?line(Key), [Key, Value] }.
+
+build_if_expr(Exprs) ->
+  build_if_expr(Exprs, [{nil, ?line(hd(Exprs))}]).
+
+build_if_expr(Exprs, Else) ->
+  { 'if', ?line(hd(Exprs)), Exprs, Else }.

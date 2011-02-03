@@ -216,6 +216,26 @@ transform({unary_op, Line, Op, Right}, F, V, S) ->
   { TRight, V1} = transform(Right, F, V, S),
   { { op, Line, Op, TRight }, V1 };
 
+
+% Handle if/elsif/else expressions.
+%
+% = Variables
+%
+% The expression to be evaluated by the if expression can create
+% new variables. The expression list after evaluation can also
+% generate new variables but they are limited to that specific
+% scope.
+transform({'if', Line, [If|Elsifs], Else}, F, V, S) ->
+  { TIf, IfV } = transform(If, F, V, S),
+  { TElsifs, ElsifV } = transform_tree(Elsifs, F, IfV, S),
+  { TElse, _ } = transform_tree(Else, F, ElsifV, S),
+  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), IfV };
+
+transform({if_clause, Line, Type, Expr, List}, F, V, S) ->
+  { TExpr, ExprV } = transform(Expr, F, V, S),
+  { TList, _ } = transform_tree(List, F, ExprV, S),
+  { {if_clause, Line, Type, TExpr, TList }, ExprV };
+
 % Handle functions declarations. They preserve the current binding.
 %
 % = Variables
@@ -360,6 +380,17 @@ build_list_each(Fun, [H|T], Line, V, Acc) ->
   { Expr, NV } = Fun(H, V),
   build_list_each(Fun, T, Line, NV, { cons, Line, Expr, Acc }).
 
+% Build if/elsif/else clauses by nesting then one inside the other.
+% Assumes expressions were already converted.
+build_if_clauses({if_clause, Line, Type, Expr, List}, Acc) ->
+  True  = [{atom,Line,true}],
+  False = [{atom,Line,false}],
+
+  [{ 'case', Line, convert_to_boolean(Line, Expr), [
+    { clause, Line, True, [], List },
+    { clause, Line, False, [], Acc }
+  ] }].
+
 % Build an #elixir_object using tuples. It expects the parent
 % and a proplist of Key/Value pairs to be used as instance variables.
 build_object(Line, Parent, Ivars) ->
@@ -389,7 +420,7 @@ build_regexp(Line, Expr, Operators, F, V, S) ->
   { Constant, _ } = transform({constant, Line, 'Regexp'}, F, V, S),
   { build_method_call(new, Line, TArgs, Constant), V }.
 
-% Handle method dispatches to nil by wrapping everything in an array
+% Handle method dispatches to new by wrapping everything in an array
 % as we don't have a splat operator.
 handle_new_call(new, Line, Args) ->
   {cons, Line, Args, {nil, Line}};
@@ -411,7 +442,7 @@ handle_interpolations(String, Line, F, V, S) ->
       { ?ELIXIR_WRAP_CALL(Line, lists, flatten, [List]), VE }
   end.
 
-% Handle string extractions for interpolation strings.
+% Handle string extractions for interpolated strings.
 handle_string_extractions({s, String}, Line, F, V, S) ->
   { { string, Line, String }, V };
 
@@ -419,3 +450,17 @@ handle_string_extractions({i, Interpolation}, Line, F, V, S) ->
   { Tree, NV } = parse(Interpolation, Line, F, V, S),
   Stringify = build_method_call(to_s, Line, {nil,Line}, hd(Tree)),
   { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, [Stringify, {atom, Line, list}]), NV }.
+
+% Convert the given expression to a boolean value: true or false.
+% Assumes the given expressions was already transformed.
+convert_to_boolean(Line, Expr) ->
+  Any   = [{var, Line, '_'}],
+  Nil   = [{nil,Line}],
+  True  = [{atom,Line,true}],
+  False = [{atom,Line,false}],
+
+  { 'case', Line, Expr, [
+      { clause, Line, False, [], False },
+      { clause, Line, Nil, [], False },
+      { clause, Line, Any, [], True }
+  ] }.
