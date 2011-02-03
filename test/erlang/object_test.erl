@@ -194,3 +194,12 @@ protected_methods_can_be_invoked_in_their_own_scope_test() ->
     ?assertError({protectedmethod, "Cannot invoke protected method baz/0 in mixin Foo::Proto"}, elixir:eval("Foo.new.baz"))
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
+
+%% __LINE__ and __FILE__
+
+line_underscore_test() ->
+  {2, _} = elixir:eval("\na = __LINE__\na").
+
+file_underscore_test() ->
+  {"nofile", _} = elixir:eval("__FILE__"),
+  {"another.ex", _} = elixir:eval("__FILE__", [], "another.ex").

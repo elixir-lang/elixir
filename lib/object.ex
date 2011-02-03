@@ -63,7 +63,7 @@ object Object
     end
 
     def alias_local_method(old, new, arity)
-      Erlang.elixir_object_methods.alias_local_method(self, old, new, arity)
+      Erlang.elixir_object_methods.alias_local_method(self, __FILE__, old, new, arity)
     end
   end
 

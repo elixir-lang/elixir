@@ -3,7 +3,7 @@
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1,
   get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1,
-  get_visibility/1, set_visibility/2, alias_local_method/4]).
+  get_visibility/1, set_visibility/2, alias_local_method/5]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -79,17 +79,17 @@ set_ivar(#elixir_object{data=Dict} = Self, Name, Value) ->
 set_ivar(Self, Name, Value) ->
   Self.
 
-alias_local_method(#elixir_object{name=Name, data=Data} = Self, Old, New, ElixirArity) when is_atom(Data) ->
+alias_local_method(#elixir_object{name=Name, data=Data} = Self, Filename, Old, New, ElixirArity) when is_atom(Data) ->
   Arity = ElixirArity + 1,
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   case ets:lookup(MethodTable, { Old, Arity }) of
     [{{Old, Arity}, Line, Clauses}] ->
-      elixir_object:store_wrapped_method(Name, "nofile", {function, Line, New, Arity, Clauses});
+      elixir_object:store_wrapped_method(Name, Filename, {function, Line, New, Arity, Clauses});
     [] -> 
       elixir_errors:raise(nomethod, "No local method ~s/~w in ~s", [Old, Arity, Name])
   end;
 
-alias_local_method(_, _, _, _) ->
+alias_local_method(_, _, _, _, _) ->
   elixir_errors:raise(badarg, "Cannot alias local method outside object definition scope").
 
 % HELPERS

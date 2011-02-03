@@ -1,5 +1,5 @@
 -module(elixir).
--export([boot/0, eval/1, eval/2, parse/2, load_file/2]).
+-export([boot/0, eval/1, eval/2, eval/3, parse/2, load_file/2]).
 -include("elixir.hrl").
 
 % Boot up Elixir setting up tables and loading main files.

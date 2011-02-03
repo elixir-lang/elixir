@@ -340,6 +340,14 @@ transform({object, Line, Name, Parent, Exprs}, F, V, S) ->
   { TExprs, _ } = transform_tree(Exprs, F, [self], Scope),
   { elixir_object:transform(Line, F, NewName, Parent, TExprs), V };
 
+% Handles __FILE__
+%
+% = Variables
+%
+% No variables can be defined.
+transform({filename, Line}, F, V, S) ->
+  { {string, Line, F }, V };
+
 % Match all other expressions.
 % TODO Expand instead of catch all.
 transform(Expr, F, V, S) -> { Expr, V }.

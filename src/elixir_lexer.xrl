@@ -41,6 +41,11 @@ Rules.
 {Digit}+\.{Digit}+ : { token, { float, TokenLine, list_to_float(TokenChars) } }.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
+%% __FILE__ and __LINE__
+
+__FILE__ : { token, { filename, TokenLine } }.
+__LINE__ : { token, { integer, TokenLine, TokenLine } }.
+
 %% Char
 \$.   : build_char(TokenChars, TokenLine).
 \$\\. : build_char(TokenChars, TokenLine).

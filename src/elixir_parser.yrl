@@ -61,7 +61,7 @@ Terminals
   punctuated_identifier identifier float integer constant
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   div rem module object 'do' 'end' def eol Erlang true false
-  if elsif else unless
+  if elsif else unless filename
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '<' '|' '_'
   .
@@ -281,6 +281,7 @@ base_expr -> dict : '$1'.
 base_expr -> true : { atom, ?line('$1'), true }.
 base_expr -> false : { atom, ?line('$1'), false }.
 base_expr -> if_expr : '$1'.
+base_expr -> filename : '$1'.
 
 % Conditionals
 if_expr -> if_elsif_clauses 'end' : build_if_expr('$1').
