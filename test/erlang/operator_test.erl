@@ -18,3 +18,10 @@ if_test() ->
   {2, []} = elixir:eval("if false; 1; else 2; end"),
   {2, []} = elixir:eval("if false; 1; else; 2; end"),
   {3, []} = elixir:eval("if false; 1; elsif true; 3; else; 2; end").
+
+unless_test() ->
+  {1, []} = elixir:eval("unless false; 1; end"),
+  {[], []} = elixir:eval("unless true; 1; end"),
+  {2, []} = elixir:eval("unless true; 1; else 2; end"),
+  {2, []} = elixir:eval("unless true; 1; else; 2; end"),
+  {3, []} = elixir:eval("unless true; 1; elsif true; 3; else; 2; end").

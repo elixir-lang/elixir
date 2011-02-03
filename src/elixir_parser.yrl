@@ -286,12 +286,12 @@ base_expr -> if_expr : '$1'.
 if_expr -> if_elsif_clauses 'end' : build_if_expr('$1').
 if_expr -> if_elsif_clauses else_clause 'end' : build_if_expr('$1', '$2').
 
-if_clause -> 'if' expr break expr_list : { 'if_clause', ?line('$1'), [], '$2', '$4' }.
-if_clause -> 'unless' expr break expr_list : { 'if_clause', ?line('$1'), 'not', '$2', '$4' }.
+if_clause -> 'if' expr break expr_list : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
+if_clause -> 'unless' expr break expr_list : { 'if_clause', ?line('$1'), false, '$2', '$4' }.
 
 elsif_clauses -> elsif_clause elsif_clauses : ['$1'|'$2'].
 elsif_clauses -> elsif_clause : ['$1'].
-elsif_clause  -> elsif expr break expr_list : { 'if_clause', ?line('$1'), [], '$2', '$4' }.
+elsif_clause  -> elsif expr break expr_list : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
 
 if_elsif_clauses -> if_clause : ['$1'].
 if_elsif_clauses -> if_clause elsif_clauses : ['$1'|'$2'].

@@ -231,10 +231,10 @@ transform({'if', Line, [If|Elsifs], Else}, F, V, S) ->
   { TElse, _ } = transform_tree(Else, F, ElsifV, S),
   { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), IfV };
 
-transform({if_clause, Line, Type, Expr, List}, F, V, S) ->
+transform({if_clause, Line, Bool, Expr, List}, F, V, S) ->
   { TExpr, ExprV } = transform(Expr, F, V, S),
   { TList, _ } = transform_tree(List, F, ExprV, S),
-  { {if_clause, Line, Type, TExpr, TList }, ExprV };
+  { {if_clause, Line, Bool, TExpr, TList }, ExprV };
 
 % Handle functions declarations. They preserve the current binding.
 %
@@ -382,11 +382,11 @@ build_list_each(Fun, [H|T], Line, V, Acc) ->
 
 % Build if/elsif/else clauses by nesting then one inside the other.
 % Assumes expressions were already converted.
-build_if_clauses({if_clause, Line, Type, Expr, List}, Acc) ->
+build_if_clauses({if_clause, Line, Bool, Expr, List}, Acc) ->
   True  = [{atom,Line,true}],
   False = [{atom,Line,false}],
 
-  [{ 'case', Line, convert_to_boolean(Line, Expr), [
+  [{ 'case', Line, convert_to_boolean(Line, Expr, Bool), [
     { clause, Line, True, [], List },
     { clause, Line, False, [], Acc }
   ] }].
@@ -453,14 +453,16 @@ handle_string_extractions({i, Interpolation}, Line, F, V, S) ->
 
 % Convert the given expression to a boolean value: true or false.
 % Assumes the given expressions was already transformed.
-convert_to_boolean(Line, Expr) ->
+convert_to_boolean(Line, Expr, Bool) ->
   Any   = [{var, Line, '_'}],
   Nil   = [{nil,Line}],
-  True  = [{atom,Line,true}],
   False = [{atom,Line,false}],
 
+  FalseResult = [{atom,Line,not Bool}],
+  TrueResult  = [{atom,Line,Bool}],
+
   { 'case', Line, Expr, [
-      { clause, Line, False, [], False },
-      { clause, Line, Nil, [], False },
-      { clause, Line, Any, [], True }
+      { clause, Line, False, [], FalseResult },
+      { clause, Line, Nil, [], FalseResult },
+      { clause, Line, Any, [], TrueResult }
   ] }.
