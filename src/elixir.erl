@@ -24,14 +24,14 @@ load_core_classes() ->
     'list.ex',
     'string.ex',
     'dict.ex',
-    'regexp.ex' 
+    'regexp.ex',
+    'binary.ex'
   ]).
 
 % Loads a given file
 load_file(Filepath, Bindings) ->
-  {ok, Device} = file:open(Filepath, [read, unicode]),
-  String = read_line(Device, []),
-  eval(String, Bindings, Filepath).
+  {ok, String} = file:read_file(Filepath),
+  eval(binary_to_list(String), Bindings, Filepath).
 
 % Read each line as UTF8.
 read_line(Device, Accum) ->

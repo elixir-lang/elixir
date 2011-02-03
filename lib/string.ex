@@ -16,8 +16,8 @@
 %
 object String
   % Initializes a string by keeping its internal list representation.
-  def constructor(list)
-    { 'list: list }
+  def constructor(bin)
+    { 'bin: bin.to_bin }
   end
 
   % Concatenate two strings.
@@ -27,7 +27,7 @@ object String
   %     "eli" + "xir" % => "elixir"
   %
   def +(another)
-    String.new(@list + another.to_char_list)
+    String.new Erlang.elixir_string_methods.add(@bin, another.to_bin)
   end
 
   % Returns the length of the string. All strings parsed by the
@@ -40,19 +40,18 @@ object String
   %     "josé".length   % => 4
   %
   def length
-    Erlang.erlang.length(@list)
+    Erlang.erlang.length(Erlang.unicode.characters_to_list(@bin, 'utf8))
   end
 
   % Returns the list representation of this String.
   def to_list
-    @list
+    Erlang.binary_to_list @bin
   end
 
   % Returns the list of chars represantion of this String.
   def to_char_list
-    @list
+    Erlang.binary_to_list @bin
   end
-  alias_local 'to_char_list, 'to_cl, 0
 
   % Returns a string representation of this string.
   %
@@ -62,7 +61,11 @@ object String
   %
   % TODO Which one is better [$"|@list] + [$"] or "\"#{@list}\""?
   def inspect
-    String.new [$"|@list] + [$"]
+    String.new ~Q("#{@bin}")
+  end
+
+  def to_bin
+    @bin
   end
 
   % Returns the string itself.

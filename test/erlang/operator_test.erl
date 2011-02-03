@@ -9,8 +9,8 @@ booleans_test() ->
   {false, []} = elixir:eval("false").
 
 booleans_are_atoms_test() ->
-  {"'true", []} = elixir:eval("true.inspect.to_char_list"),
-  {"'false", []} = elixir:eval("false.inspect.to_char_list").
+  {<<"'true">>, []} = elixir:eval("true.inspect.to_bin"),
+  {<<"'false">>, []} = elixir:eval("false.inspect.to_bin").
 
 if_test() ->
   {1, []} = elixir:eval("if true; 1; end"),

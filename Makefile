@@ -25,6 +25,8 @@ ebin: src/*
 	@ # Generate the parser
 	@ $(ERL) -eval 'yecc:file("$(SOURCE_DIR)/$(PARSER_NAME)"), halt().'
 	@ # Compile everything
+	@ rm -rf $(EBIN_DIR)/*.beam
+	@ rm -rf $(TEST_EBIN_DIR)/*.beam
 	$(ERLC) -o $(EBIN_DIR) $(SOURCE_DIR)/*.erl
 	@ echo
 

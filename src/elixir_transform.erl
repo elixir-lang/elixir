@@ -157,7 +157,7 @@ transform({dict, Line, Exprs }, F, V, S) ->
 % Variables can be defined inside the interpolation.
 transform({interpolated_string, Line, String }, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
-  { build_object(Line, 'String', [{list, Flattened}]), VE };
+  { build_object(Line, 'String', [{bin, Flattened}]), VE };
 
 % Handle strings by wrapping them in the String object. A string is created
 % by explicitly creating an #elixir_object and not through String.new.
@@ -165,8 +165,11 @@ transform({interpolated_string, Line, String }, F, V, S) ->
 % = Variables
 %
 % No variables can be defined in a string without interpolation.
+%
+% TODO create the string directly instead of calling unicode.
 transform({string, Line, String } = Expr, F, V, S) ->
-  { build_object(Line, 'String', [{list, Expr}]), V };
+  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [Expr]),
+  { build_object(Line, 'String', [{bin, Binary}]), V };
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
 %
@@ -175,7 +178,7 @@ transform({string, Line, String } = Expr, F, V, S) ->
 % Variables can be defined inside the interpolation.
 transform({interpolated_atom, Line, String}, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, erlang, list_to_atom, [Flattened]), VE };
+  { ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_atom, [Flattened, {atom, Line, utf8}]), VE };
 
 % Handle regexps by dispatching a list and its options to Regexp.new.
 %
@@ -447,7 +450,7 @@ handle_interpolations(String, Line, F, V, S) ->
     _ ->
       Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, F, Acc, S) end,
       { List, VE } = build_list(Transformer, Interpolations, Line, V),
-      { ?ELIXIR_WRAP_CALL(Line, lists, flatten, [List]), VE }
+      { ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [List]), VE }
   end.
 
 % Handle string extractions for interpolated strings.
@@ -457,7 +460,7 @@ handle_string_extractions({s, String}, Line, F, V, S) ->
 handle_string_extractions({i, Interpolation}, Line, F, V, S) ->
   { Tree, NV } = parse(Interpolation, Line, F, V, S),
   Stringify = build_method_call(to_s, Line, {nil,Line}, hd(Tree)),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, [Stringify, {atom, Line, list}]), NV }.
+  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, [Stringify, {atom, Line, bin}]), NV }.
 
 % Convert the given expression to a boolean value: true or false.
 % Assumes the given expressions was already transformed.

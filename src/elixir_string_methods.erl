@@ -1,6 +1,9 @@
 -module(elixir_string_methods).
--export([extract_interpolations/1]).
+-export([add/2, extract_interpolations/1]).
 -include("elixir.hrl").
+
+add(Left, Right) ->
+  <<Left/binary, Right/binary>>.
 
 extract_interpolations(String) ->
   extract_interpolations(String, [], [], []).

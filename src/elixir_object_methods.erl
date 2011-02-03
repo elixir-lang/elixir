@@ -115,7 +115,7 @@ assert_dict_with_atoms(Data) ->
   elixir_errors:raise(badarg, "constructor needs to return a Dict, got ~ts", [inspect(Data)]).
 
 inspect(Object) ->
-  get_ivar(elixir_dispatch:dispatch([], Object, inspect, []), list).
+  get_ivar(elixir_dispatch:dispatch([], Object, inspect, []), bin).
 
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
@@ -190,7 +190,10 @@ object_parent(Native) when is_atom(Native) ->
   'Atom';
 
 object_parent(Native) when is_list(Native) ->
-  'List'.
+  'List';
+
+object_parent(Native) when is_binary(Native) ->
+  'Binary'.
 
 object_mixins(#elixir_object{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, mixins, 2);

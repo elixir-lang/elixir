@@ -19,11 +19,11 @@ test() ->
   ]).
 
 unpack_string(String) ->
-  dict:fetch(list, String#elixir_object.data).
+  dict:fetch(bin, String#elixir_object.data).
 
 unpack_regexp(Regexp) ->
   Data = Regexp#elixir_object.data,
-  { dict:fetch(list, Data), dict:fetch(options, Data), dict:fetch(compiled, Data) }.
+  { dict:fetch(bin, Data), dict:fetch(options, Data), dict:fetch(compiled, Data) }.
 
 % Execute a piece of code and purge given modules right after
 run_and_remove(Fun, Modules) ->

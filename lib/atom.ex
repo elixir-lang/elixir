@@ -6,8 +6,9 @@ object Atom
   %     'a.inspect % => "'a"
   %     'A.inspect % => "'A"
   %
+  % TODO Use bit syntax here
   def inspect
-    String.new [$'|Erlang.atom_to_list(self)]
+    String.new "#{"'"}#{Erlang.erlang.atom_to_binary(self, 'utf8)}"
   end
 
   % Convert an atom to a string.
@@ -18,6 +19,6 @@ object Atom
   %     'A.to_s % => "A"
   %
   def to_s
-    String.new Erlang.atom_to_list(self)
+    String.new Erlang.erlang.atom_to_binary(self, 'utf8)
   end
 end

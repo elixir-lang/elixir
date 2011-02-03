@@ -53,7 +53,7 @@ dict_fold_test() ->
 
 dict_inspect_test() ->
   { String, _ } = elixir:eval("{'a: 1, 'b: 2}.inspect"),
-  List = test_helper:unpack_string(String),
+  List = binary_to_list(test_helper:unpack_string(String)),
   ?assert(0 /= string:str(List, "'a: 1")),
   ?assert(0 /= string:str(List, "'b: 2")).
   

@@ -8,7 +8,7 @@ eval_regexp(Expr) ->
   { test_helper:unpack_regexp(Regexp), Binding }.
 
 base_regexp_test() ->
-  {{"foo", [], []}, []} = eval_regexp("~r{foo}"),
-  {{"foo", "iu", []}, []} = eval_regexp("~r{foo}iu"),
-  {{"foo", "iu", []}, []} = eval_regexp("~R{foo}iu"),
-  {{"foo", "iu", []}, []} = eval_regexp("~R{f#{'o}o}iu").
+  {{<<"foo">>, [], []}, []} = eval_regexp("~r{foo}"),
+  {{<<"foo">>, "iu", []}, []} = eval_regexp("~r{foo}iu"),
+  {{<<"foo">>, "iu", []}, []} = eval_regexp("~R{foo}iu"),
+  {{<<"foo">>, "iu", []}, []} = eval_regexp("~R{f#{'o}o}iu").

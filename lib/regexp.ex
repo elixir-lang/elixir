@@ -61,14 +61,14 @@ object Regexp
   %
   % TODO Add compiled regular expressions
   def constructor(regexp, options)
-    regexp_list = regexp.to_char_list
+    regexp_bin = regexp.to_bin
     options_list = options.to_char_list
 
     parsed_options = options_list.foldl ['multiline], do (x, acc)
       parse_option(x, acc)
     end
 
-    { 'list: regexp_list,
+    { 'bin: regexp_bin,
       'options: options_list,
       'parsed_options: parsed_options,
       'compiled: []

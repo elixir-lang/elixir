@@ -4,11 +4,11 @@
 
 atom_inspect_test() ->
   {String,[]} = elixir:eval("'a.inspect"),
-  "'a" = test_helper:unpack_string(String).
+  <<"'a">> = test_helper:unpack_string(String).
 
 atom_to_s_test() ->
   {String,[]} = elixir:eval("'a.to_s"),
-  "a" = test_helper:unpack_string(String).
+  <<"a">> = test_helper:unpack_string(String).
 
 separators_atom_test() ->
   {foo,[]} = elixir:eval("'\"foo\""),

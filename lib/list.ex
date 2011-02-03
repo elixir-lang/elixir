@@ -20,12 +20,15 @@ object List
     self
   end
 
+  def to_bin
+    Erlang.list_to_binary(self)
+  end
+
   % Simply returns self. This method does not ensure the current
   % list is really a char list.
   def to_char_list
     self
   end
-  alias_local 'to_char_list, 'to_cl, 0
 
   def length
     Erlang.erlang.length(self)
