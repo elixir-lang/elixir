@@ -33,13 +33,6 @@ load_file(Filepath, Bindings) ->
   {ok, String} = file:read_file(Filepath),
   eval(binary_to_list(String), Bindings, Filepath).
 
-% Read each line as UTF8.
-read_line(Device, Accum) ->
-  case io:get_line(Device, []) of
-    eof  -> file:close(Device), lists:flatten(lists:reverse(Accum));
-    Line -> read_line(Device, [Line|Accum])
-  end.
-
 % Evaluates a string
 eval(String) -> eval(String, []).
 eval(String, Binding) -> eval(String, Binding, "nofile").

@@ -24,13 +24,11 @@ object List
     Erlang.list_to_binary(self)
   end
 
-  % Simply returns self. This method does not ensure the current
-  % list is really a char list.
   def to_char_list
     self
   end
 
   def length
-    Erlang.erlang.length(self)
+    Erlang.length(self)
   end
 end
