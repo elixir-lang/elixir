@@ -21,10 +21,11 @@ object List
   end
 
   % Simply returns self. This method does not ensure the current
-  % list is really a char list (i.e. it contains only integers).
+  % list is really a char list.
   def to_char_list
     self
   end
+  alias_local_method 'to_char_list, 'to_cl, 0
 
   def length
     Erlang.erlang.length(self)

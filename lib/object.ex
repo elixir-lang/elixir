@@ -61,6 +61,10 @@ object Object
     def private
       Erlang.elixir_object_methods.set_visibility(self, 'private)
     end
+
+    def alias_local_method(old, new, arity)
+      Erlang.elixir_object_methods.alias_local_method(self, old, new, arity)
+    end
   end
 
   % Object::Methods is automatically mixed and proto'd by Elixir
