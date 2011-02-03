@@ -62,8 +62,8 @@ object Object
       Erlang.elixir_object_methods.set_visibility(self, 'private)
     end
 
-    def alias_local_method(old, new, arity)
-      Erlang.elixir_object_methods.alias_local_method(self, __FILE__, old, new, arity)
+    def alias_local(old, new, arity)
+      Erlang.elixir_object_methods.alias_local(self, __FILE__, old, new, arity)
     end
   end
 

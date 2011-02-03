@@ -52,6 +52,7 @@ object String
   def to_char_list
     @list
   end
+  alias_local 'to_char_list, 'to_cl, 0
 
   % Returns a string representation of this string.
   %

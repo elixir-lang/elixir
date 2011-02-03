@@ -25,7 +25,7 @@ object List
   def to_char_list
     self
   end
-  alias_local_method 'to_char_list, 'to_cl, 0
+  alias_local 'to_char_list, 'to_cl, 0
 
   def length
     Erlang.erlang.length(self)

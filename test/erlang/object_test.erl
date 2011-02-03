@@ -195,6 +195,24 @@ protected_methods_can_be_invoked_in_their_own_scope_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
+%% alias_local
+alias_local_test() ->
+  F = fun() ->
+    elixir:eval("object Foo; def bar; 1; end; alias_local 'bar, 'baz, 0; end"),
+    {1,[]} = elixir:eval("Foo.new.bar"),
+    {1,[]} = elixir:eval("Foo.new.baz")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
+
+alias_local_keeps_visibility_test() ->
+  F = fun() ->
+    elixir:eval("object Foo; def foo; baz; end; private; def bar; 1; end; alias_local 'bar, 'baz, 0; end"),
+    {1,[]} = elixir:eval("Foo.new.foo"),
+    ?assertError({nomethod, _}, elixir:eval("Foo.new.baz"))
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
+
+
 %% __LINE__ and __FILE__
 
 line_underscore_test() ->
