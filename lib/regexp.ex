@@ -94,6 +94,6 @@ object Regexp
   % TODO Test me
   % TODO Do not use Erlang.error once Elixir's exception system is working
   def parse_option(option, _)
-    Erlang.error({'badarg, "unknown option #{option}".to_char_list})
+    Erlang.error({'badarg, ~Q("unknown option #{option}").to_char_list})
   end
 end

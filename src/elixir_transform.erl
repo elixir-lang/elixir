@@ -459,7 +459,7 @@ handle_new_call(_, _, Args) ->
 % Handle interpolation. The final result will be a parse tree that
 % returns a flattened list.
 handle_interpolations(String, Line, F, V, S) ->
-  Interpolations = elixir_string_methods:extract_interpolations(String),
+  Interpolations = String,
 
   % Optimized cases interpolations actually has no interpolation.
   case Interpolations of
