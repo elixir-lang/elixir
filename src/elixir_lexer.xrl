@@ -107,6 +107,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 Erlang code.
 
 -import(lists, [sublist/3]).
+-export([extract_interpolations/2]).
 
 % Generic building block for constants and identifiers.
 build(Kind, Line, Chars) ->
@@ -225,9 +226,6 @@ extract_interpolations(String, Last) ->
 extract_interpolations([Last], Buffer, [], Output, Last) ->
   { lists:reverse(build_interpol(s, Buffer, Output)), [] };
 
-extract_interpolations([Last|Remaining], Buffer, [], Output, Last) ->
-  { lists:reverse(build_interpol(s, Buffer, Output)), Remaining };
-
 extract_interpolations([Last], Buffer, Search, Output, Last) ->
   elixir_errors:raise(badarg, "unexpected end of string, expected ~ts", [[hd(Search)]]);
 
@@ -238,9 +236,6 @@ extract_interpolations([$#, ${|Rest], Buffer, [], Output, Last) ->
   NewOutput = build_interpol(s, Buffer, Output),
   extract_interpolations(Rest, [], [$}], NewOutput, Last);
 
-extract_interpolations([Char|Rest], Buffer, [], Output, Last) ->
-  extract_interpolations(Rest, [Char|Buffer], [], Output, Last);
-
 extract_interpolations([$}|Rest], Buffer, [$}], Output, Last) ->
   NewOutput = build_interpol(i, Buffer, Output),
   extract_interpolations(Rest, [], [], NewOutput, Last);
@@ -248,7 +243,13 @@ extract_interpolations([$}|Rest], Buffer, [$}], Output, Last) ->
 extract_interpolations([$\\,Char|Rest], Buffer, [], Output, Last) ->
   extract_interpolations(Rest, [Char,$\\|Buffer], [], Output, Last);
 
-% Check for available separators: "", {}, [] and ()
+extract_interpolations([Last|Remaining], Buffer, [], Output, Last) ->
+  { lists:reverse(build_interpol(s, Buffer, Output)), Remaining };
+
+extract_interpolations([Char|Rest], Buffer, [], Output, Last) ->
+  extract_interpolations(Rest, [Char|Buffer], [], Output, Last);
+
+% Check for available separators "", {}, [] and () inside interpolation
 
 extract_interpolations([$"|Rest], Buffer, [$"|Search], Output, Last) ->
   extract_interpolations(Rest, [$"|Buffer], Search, Output, Last);

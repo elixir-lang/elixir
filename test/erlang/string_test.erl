@@ -7,34 +7,37 @@ eval_string(Expr) ->
   { String, Binding } = elixir:eval(Expr),
   { test_helper:unpack_string(String), Binding }.
 
+extract_interpolations(String) ->
+  element(1, elixir_lexer:extract_interpolations(String ++ [$)], $))).
+
 % Interpolations
 
 extract_interpolations_without_interpolation_test() ->
-  [{s, "foo"}] = elixir_string_methods:extract_interpolations("foo").
+  [{s, "foo"}] = extract_interpolations("foo").
 
 extract_interpolations_with_escaped_interpolation_test() ->
-  [{s, "f#{o}o"}] = elixir_string_methods:extract_interpolations("f\\#{o}o").
+  [{s, "f#{o}o"}] = extract_interpolations("f\\#{o}o").
 
 extract_interpolations_with_interpolation_test() ->
-  [{s, "f"}, {i, "o"}, {s, "o"}] = elixir_string_methods:extract_interpolations("f#{o}o").
+  [{s, "f"}, {i, "o"}, {s, "o"}] = extract_interpolations("f#{o}o").
 
 extract_interpolations_with_two_interpolations_test() ->
-  [{s, "f"}, {i, "o"}, {i, "o"}, {s, "o"}] = elixir_string_methods:extract_interpolations("f#{o}#{o}o").
+  [{s, "f"}, {i, "o"}, {i, "o"}, {s, "o"}] = extract_interpolations("f#{o}#{o}o").
 
 extract_interpolations_with_only_two_interpolations_test() ->
-  [{i, "o"}, {i, "o"}] = elixir_string_methods:extract_interpolations("#{o}#{o}").
+  [{i, "o"}, {i, "o"}] = extract_interpolations("#{o}#{o}").
 
 extract_interpolations_with_tuple_inside_interpolation_test() ->
-  [{s, "f"}, {i, "{1}"}, {s, "o"}] = elixir_string_methods:extract_interpolations("f#{{1}}o").
+  [{s, "f"}, {i, "{1}"}, {s, "o"}] = extract_interpolations("f#{{1}}o").
 
 extract_interpolations_with_string_inside_interpolation_test() ->
-  [{s, "f"}, {i, "\"foo\""}, {s, "o"}] = elixir_string_methods:extract_interpolations("f#{\"foo\"}o").
+  [{s, "f"}, {i, "\"foo\""}, {s, "o"}] = extract_interpolations("f#{\"foo\"}o").
 
 extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
-  [{s, "f"}, {i, "\"f}o\""}, {s, "o"}] = elixir_string_methods:extract_interpolations("f#{\"f}o\"}o").
+  [{s, "f"}, {i, "\"f}o\""}, {s, "o"}] = extract_interpolations("f#{\"f}o\"}o").
 
 extract_interpolations_with_right_curly_inside_regexp_inside_interpolation_test() ->
-  [{s, "f"}, {i, "#r\"f}o\""}, {s, "o"}] = elixir_string_methods:extract_interpolations("f#{#r\"f}o\"}o").
+  [{s, "f"}, {i, "#r\"f}o\""}, {s, "o"}] = extract_interpolations("f#{#r\"f}o\"}o").
 
 %% String
 
@@ -91,6 +94,11 @@ char_test() ->
     
 bad_char_test() ->
   ?assertError({badsyntax, _}, elixir:eval("$foo")).
+
+string_sigils_test() ->
+  {<<"f#{o}o">>, []} = eval_string("~q(f#{o}o)"),
+  {<<"bar">>, []} = eval_string("~Q(b#{'a}r)"),
+  {<<"b)r">>, []} = eval_string("~Q(b\\)r)").
 
 % implicit_string_concatenation_test() ->
 %   {<<"foobar">>, []} = eval_string("\"foo\" \"bar\""),

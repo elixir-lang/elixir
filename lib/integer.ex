@@ -16,6 +16,10 @@ object Integer
     Erlang.elixir_numeric_methods.integer_rem(self, other)
   end
 
+  def chr
+    String.new <<self>>
+  end
+
   def to_s
     String.new Erlang.integer_to_list(self)
   end
