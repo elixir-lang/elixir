@@ -59,10 +59,17 @@ object Regexp
   %
   %     Regexp.new("foo", "iu")
   %
-  % TODO Add compiled regular expressions
   def constructor(regexp, options)
     regexp_bin = regexp.to_bin
-    options_list = options.to_char_list
+    temp_options = options.to_char_list
+
+    if temp_options.member?($c)
+      { 'ok, compiled } = Erlang.re.compile(regexp_bin, options)
+    else
+      compiled = []
+    end
+
+    options_list = temp_options.delete($c)
 
     parsed_options = options_list.foldl ['multiline], do (x, acc)
       parse_option(x, acc)
@@ -71,7 +78,7 @@ object Regexp
     { 'bin: regexp_bin,
       'options: options_list,
       'parsed_options: parsed_options,
-      'compiled: []
+      'compiled: compiled
     }
   end
 
@@ -88,11 +95,5 @@ object Regexp
   % TODO Do not use Erlang.error once Elixir's exception system is working
   def parse_option(option, _)
     Erlang.error({'badarg, "unknown option #{option}".to_char_list})
-  end
-
-  def handle_compiled([], _, _); []; end
-  def handle_compiled(_, list, options)
-    { 'ok, compiled } = Erlang.re.compile(list, options)
-    compiled
   end
 end

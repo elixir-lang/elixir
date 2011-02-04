@@ -11,6 +11,15 @@ object List
     Erlang.lists.map(function, self)
   end
 
+  def member?(item)
+    Erlang.lists.member(item, self)
+  end
+  alias_local 'member?, 'include?, 1
+
+  def delete(item)
+    Erlang.lists.delete(item, self)
+  end
+
   def join(string)
     strings = map -> (x) x.to_s.to_char_list
     String.new Erlang.string.join(strings, string.to_char_list)

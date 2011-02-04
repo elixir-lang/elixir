@@ -246,13 +246,13 @@ transform({unary_op, Line, Op, Right}, F, V, S) ->
 transform({'if', Line, [If|Elsifs], Else}, F, V, S) ->
   { TIf, IfV } = transform(If, F, V, S),
   { TElsifs, ElsifV } = transform_tree(Elsifs, F, IfV, S),
-  { TElse, _ } = transform_tree(Else, F, ElsifV, S),
-  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), IfV };
+  { TElse, ElseV } = transform_tree(Else, F, ElsifV, S),
+  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), ElseV };
 
 transform({if_clause, Line, Bool, Expr, List}, F, V, S) ->
   { TExpr, ExprV } = transform(Expr, F, V, S),
-  { TList, _ } = transform_tree(List, F, ExprV, S),
-  { {if_clause, Line, Bool, TExpr, TList }, ExprV };
+  { TList, ListV } = transform_tree(List, F, ExprV, S),
+  { {if_clause, Line, Bool, TExpr, TList }, ListV };
 
 % Handle functions declarations. They preserve the current binding.
 %
