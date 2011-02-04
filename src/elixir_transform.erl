@@ -170,7 +170,8 @@ transform({bin_element, Line, Expr, Type, Specifiers }, F, V, S) ->
 % Variables can be defined inside the interpolation.
 transform({interpolated_string, Line, String }, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
-  { build_object(Line, 'String', [{bin, Flattened}]), VE };
+  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [Flattened]),
+  { build_object(Line, 'String', [{bin, Binary}]), VE };
 
 % Handle strings by wrapping them in the String object. A string is created
 % by explicitly creating an #elixir_object and not through String.new.
@@ -181,8 +182,7 @@ transform({interpolated_string, Line, String }, F, V, S) ->
 %
 % TODO create the string directly instead of calling unicode.
 transform({string, Line, String } = Expr, F, V, S) ->
-  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [Expr]),
-  { build_object(Line, 'String', [{bin, Binary}]), V };
+  { build_object(Line, 'String', [{bin, build_bin(Line, [Expr])}]), V };
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
 %
@@ -191,7 +191,8 @@ transform({string, Line, String } = Expr, F, V, S) ->
 % Variables can be defined inside the interpolation.
 transform({interpolated_atom, Line, String}, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_atom, [Flattened, {atom, Line, utf8}]), VE };
+  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [Flattened]),
+  { ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_atom, [Binary, {atom, Line, utf8}]), VE };
 
 % Handle regexps by dispatching a list and its options to Regexp.new.
 %
@@ -208,7 +209,8 @@ transform({regexp, Line, String, Operators }, F, V, S) ->
 % Variables can be defined inside the interpolation.
 transform({interpolated_regexp, Line, String, Operators }, F, V, S) ->
   { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
-  build_regexp(Line, Flattened, Operators, F, VE, S);
+  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [Flattened]),
+  build_regexp(Line, Binary, Operators, F, VE, S);
 
 % Handle binary operations.
 %
@@ -401,6 +403,11 @@ build_list_each(Fun, [H|T], Line, V, Acc) ->
   { Expr, NV } = Fun(H, V),
   build_list_each(Fun, T, Line, NV, { cons, Line, Expr, Acc }).
 
+% Build binaries
+build_bin(Line, Exprs) ->
+  Transformer = fun (X) -> { bin_element, Line, X, default, default } end,
+  { bin, Line, lists:map(Transformer, Exprs) }.
+
 % Build if/elsif/else clauses by nesting then one inside the other.
 % Assumes expressions were already converted.
 build_if_clauses({if_clause, Line, Bool, Expr, List}, Acc) ->
@@ -459,8 +466,7 @@ handle_interpolations(String, Line, F, V, S) ->
     [{s, String}] -> handle_string_extractions(hd(Interpolations), Line, F, V, S);
     _ ->
       Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, F, Acc, S) end,
-      { List, VE } = build_list(Transformer, Interpolations, Line, V),
-      { ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [List]), VE }
+      build_list(Transformer, Interpolations, Line, V)
   end.
 
 % Handle string extractions for interpolated strings.
