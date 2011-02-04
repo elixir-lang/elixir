@@ -63,16 +63,17 @@ object Regexp
     regexp_bin = regexp.to_bin
     temp_options = options.to_char_list
 
-    if temp_options.member?($c)
-      { 'ok, compiled } = Erlang.re.compile(regexp_bin, options)
-    else
-      compiled = []
-    end
-
+    should_compile = temp_options.member?($c)
     options_list = temp_options.delete($c)
 
     parsed_options = options_list.foldl ['multiline], do (x, acc)
       parse_option(x, acc)
+    end
+
+    if should_compile
+      { 'ok, compiled } = Erlang.re.compile(regexp_bin, parsed_options)
+    else
+      compiled = []
     end
 
     { 'bin: regexp_bin,
@@ -91,7 +92,6 @@ object Regexp
   def parse_option($r, acc); ['ungreedy|acc]; end
   def parse_option($m, acc); ['dotall, {'newline, 'anycrlf}|acc]; end
 
-  % TODO Test me
   % TODO Do not use Erlang.error once Elixir's exception system is working
   def parse_option(option, _)
     Erlang.error({'badarg, ~Q(unknown option "#{option.chr}").to_char_list})
