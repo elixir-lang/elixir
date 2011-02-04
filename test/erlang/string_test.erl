@@ -100,13 +100,13 @@ string_sigils_test() ->
   {<<"bar">>, []} = eval_string("~Q(b#{'a}r)"),
   {<<"b)r">>, []} = eval_string("~Q(b\\)r)").
 
-% implicit_string_concatenation_test() ->
-%   {<<"foobar">>, []} = eval_string("\"foo\" \"bar\""),
-%   {<<"foobar">>, []} = eval_string("\"foo\"\n\"bar\""),
-%   {<<"foobarbaz">>, []} = eval_string("\"foo\"\n\"b#{'a}r\"\n\"baz\"").
-% 
-% string_preprocessors_test() ->
-%   {<<"f#{o}obar">>, []} = eval_string("~q(f#{o}o) ~Q(b#{'a}r)").
+implicit_string_concatenation_test() ->
+  {<<"foobar">>, []} = eval_string("\"foo\" \"bar\""),
+  {<<"foobar">>, []} = eval_string("\"foo\"\n\"bar\""),
+  {<<"foobarbaz">>, []} = eval_string("\"foo\"\n\"b#{'a}r\"\n\"baz\"").
+
+string_preprocessors_test() ->
+  {<<"f#{o}obar">>, []} = eval_string("~q(f#{o}o) ~Q(b#{'a}r)").
 
 %% Methods
 

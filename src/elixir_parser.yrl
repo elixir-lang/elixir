@@ -502,19 +502,18 @@ build_string_list(Collection) ->
   end.
 
 build_string_list(Interpol, [], Acc) ->
-  lists:reverse(Acc);
+  lists:flatten(lists:reverse(Acc));
 
 build_string_list(Interpol, [{Kind, _, Chars}|T], Acc) ->
-  build_string_list(Interpol, T, build_string_list(Interpol, Kind, Chars, Acc)).
+  build_string_list(Interpol, T, [convert_string(Interpol, Kind, Chars)|Acc]).
 
-build_string_list(true, string, [$#|T], Acc) ->
-  build_string_list(true, string, T, [$#,$\\|Acc]);
+% If we have interpolated strings in the mix and this string is not
+% an interpolated one, we need to convert it to the interpolated format.
+convert_string(true, string, Chars) ->
+  {s, Chars};
 
-build_string_list(Interpol, Kind, [H|T], Acc) ->
-  build_string_list(Interpol, Kind, T, [H|Acc]);
-
-build_string_list(Interpol, Kind, [], Acc) ->
-  Acc.
+convert_string(_, _, Chars) ->
+  Chars.
 
 build_list(Line, Exprs) ->
   build_list(Line, Exprs, {nil, Line}).
