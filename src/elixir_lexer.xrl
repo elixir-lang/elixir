@@ -75,6 +75,8 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 
 %% Operators
 ->    : { token, { '->', TokenLine } }.
+<<    : { token, { '<<', TokenLine } }.
+>>    : { token, { '>>', TokenLine } }.
 \|    : { token, { '|', TokenLine } }.
 \+    : { token, { '+', TokenLine } }.
 -     : { token, { '-', TokenLine } }.

@@ -22,6 +22,11 @@ Nonterminals
   call_args_optional
   tuple
   list
+  bin_base_expr
+  bin_specifier
+  bin_specifier_list
+  bin_comma_expr
+  binary
   colon_comma_expr _colon_comma_expr
   base_dict _base_dict
   dict
@@ -35,6 +40,8 @@ Nonterminals
   close_bracket
   open_curly
   close_curly
+  open_lt
+  close_gt
   number
   base_identifier
   ivar
@@ -63,7 +70,7 @@ Terminals
   div rem module object 'do' 'end' def eol Erlang true false
   if elsif else unless filename
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}' '<' '|' '_'
+  ':' ';' '@' '{' '}' '<' '|' '_' '<<' '>>'
   .
 
 Rootsymbol grammar.
@@ -203,6 +210,7 @@ call_args -> expr comma_separator call_args : ['$1'|'$3'].
 call_args_parens -> open_paren ')' : [].
 call_args_parens -> open_paren call_args close_paren : '$2'.
 
+% The first item in call_args_optional cannot start with parens
 call_args_optional -> _expr : ['$1'].
 call_args_optional -> _expr comma_separator call_args : ['$1'|'$3'].
 call_args_optional -> _base_dict : ['$1'].
@@ -215,6 +223,22 @@ tuple -> open_curly comma_expr close_curly : { tuple, ?line('$1'), '$2' }.
 list -> open_bracket ']' : build_list(?line('$1'), []).
 list -> open_bracket comma_expr close_bracket : build_list(?line('$1'), '$2').
 list -> open_bracket comma_expr '|' expr close_bracket : build_list(?line('$1'), '$2', '$4').
+
+% Binaries declaration.
+bin_base_expr -> expr : build_bin_element('$1', default, default).
+bin_base_expr -> expr ':' integer : build_bin_element('$1', '$3', default).
+bin_base_expr -> expr '|' bin_specifier_list : build_bin_element('$1', default, '$3').
+bin_base_expr -> expr ':' integer '|' bin_specifier_list : build_bin_element('$1', '$3', '$5').
+
+bin_specifier -> identifier : ?chars('$1').
+bin_specifier_list -> bin_specifier : ['$1'].
+bin_specifier_list -> bin_specifier '-' bin_specifier_list : ['$1'|'$3'].
+
+bin_comma_expr -> bin_base_expr : ['$1'].
+bin_comma_expr -> bin_base_expr comma_separator bin_comma_expr : ['$1'|'$3'].
+
+binary -> open_lt '>>' : build_bin(?line('$1'), []).
+binary -> open_lt bin_comma_expr close_gt : build_bin(?line('$1'), '$2').
 
 % Dicts declarations
 colon_comma_expr -> expr ':' expr : [build_dict_tuple('$1', '$3')].
@@ -265,6 +289,12 @@ open_curly  -> '{' eol : '$1'.
 close_curly -> '}'     : '$1'.
 close_curly -> eol '}' : '$2'.
 
+% lt and mt handling for binaries
+open_lt  -> '<<'     : '$1'.
+open_lt  -> '<<' eol : '$1'.
+close_gt -> '>>'     : '$1'.
+close_gt -> eol '>>' : '$2'.
+
 % Base expressions
 base_expr -> base_identifier : '$1'.
 base_expr -> string_list : build_string_list('$1').
@@ -278,6 +308,7 @@ base_expr -> constant : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> list : '$1'.
 base_expr -> dict : '$1'.
+base_expr -> binary : '$1'.
 base_expr -> true : { atom, ?line('$1'), true }.
 base_expr -> false : { atom, ?line('$1'), false }.
 base_expr -> if_expr : '$1'.
@@ -499,3 +530,9 @@ build_if_expr(Exprs) ->
 
 build_if_expr(Exprs, Else) ->
   { 'if', ?line(hd(Exprs)), Exprs, Else }.
+
+build_bin(Line, Elements) ->
+  { bin, Line, Elements }.
+
+build_bin_element(Expr, Type, Specifier) ->
+  { bin_element, ?line(Expr), Expr, Type, Specifier }.

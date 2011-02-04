@@ -11,6 +11,11 @@ simple_dict_test() ->
   {ok, 1} = dict_find(a, Dict),
   error = dict_find(b, Dict).
 
+dict_with_expressions_test() ->
+  {Dict, _} = elixir:eval("{ 'a: 1, 1 + 2: 3 + 6 }"),
+  {ok, 1} = dict_find(a, Dict),
+  {ok, 9} = dict_find(3, Dict).
+
 empty_dict_test() ->
   {Dict, _} = elixir:eval("{:}"),
   error = dict_find(b, Dict).

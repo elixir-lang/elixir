@@ -1,18 +1,14 @@
-% ## String and Char lists
+% ## String and Erlang
 %
-% In Elixir, we have both strings and char lists. They are two ways to
-% represent the same thing, the choice is just a matter of which API
-% you want to use. A String will be mapped to the String object while
-% the char list to the List object.
+% In Elixir, we have both strings, binaries and char lists. They are
+% all different ways to represent the same thing, the choice is just
+% a matter of which API you want to use. A String will be mapped to
+% the String object while the others will be mapped respectively to
+% Binary and List objects.
 %
 % It is important to notice that if you need to interact with an Erlang
-% method, you need to pass a to_char_list as Erlang does not understand
-% the string representation from Elixir.
-%
-% For this reason, just String and List implement the to_char_list
-% method to avoid implicit conversion of other data types. General
-% conversion to string happens through the to_s method. Which is
-% implemented in all objects (unless explicitly undefined).
+% method, you need to convert a string either to to_bin or to_char_list,
+% as Erlang does not understand the string representation from Elixir.
 %
 object String
   % Initializes a string by keeping its internal list representation.
@@ -27,7 +23,7 @@ object String
   %     "eli" + "xir" % => "elixir"
   %
   def +(another)
-    String.new Erlang.elixir_string_methods.add(@bin, another.to_bin)
+    String.new <<@bin|binary, another.to_bin|binary>>
   end
 
   % Returns the length of the string. All strings parsed by the
@@ -59,9 +55,8 @@ object String
   %
   %     "elixir".inspect % => "\"elixir\""
   %
-  % TODO Which one is better [$"|@list] + [$"] or "\"#{@list}\""?
   def inspect
-    String.new ~Q("#{@bin}")
+    String.new <<$", @bin|binary, $">>
   end
 
   def to_bin

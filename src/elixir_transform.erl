@@ -149,6 +149,19 @@ transform({dict, Line, Exprs }, F, V, S) ->
   Dict = ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]),
   { build_object(Line, 'Dict', [{dict, Dict}]), NV };
 
+% Handle binaries declarations.
+%
+% = Variables
+%
+% Variables can not be defined inside each bin element.
+transform({bin, Line, Exprs }, F, V, S) ->
+  { TExprs, NV } = transform_tree(Exprs, F, V, S),
+  { { bin, Line, TExprs }, NV };
+
+transform({bin_element, Line, Expr, Type, Specifiers }, F, V, S) ->
+  { TExpr, NV } = transform(Expr, F, V, S),
+  { { bin_element, Line, TExpr, Type, Specifiers }, NV };
+
 % Handle interpolated strings declarations. A string is created
 % by explicitly creating an #elixir_object and not through String.new.
 %

@@ -8,7 +8,7 @@ object Atom
   %
   % TODO Use bit syntax here
   def inspect
-    String.new "#{"'"}#{Erlang.atom_to_binary(self, 'utf8)}"
+    String.new <<$', Erlang.atom_to_binary(self, 'utf8)|binary>>
   end
 
   % Convert an atom to a string.
