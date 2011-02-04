@@ -158,6 +158,13 @@ local_call_gives_higher_preference_to_function_calls_unless_no_function_test() -
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
+local_call_precedence_in_arrays_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\ndef foo(a,b);[a*2,b];end\ndef bar; [foo 2, 6]; end\nend"),
+    {[[4,6]],[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
 local_call_does_not_look_at_outer_modules_test() ->
   F = fun() ->
     ?assertError({undefined_local_method,"nofile:4: undefined local method foo/0"},

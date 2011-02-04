@@ -1,8 +1,4 @@
 object Binary
-  def to_s
-    String.new self
-  end
-
   def to_bin
     self
   end
