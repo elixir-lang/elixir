@@ -5,7 +5,6 @@ INCLUDE_DIR=include
 
 TEST_SOURCE_DIR=$(TEST_DIR)/erlang
 TEST_EBIN_DIR=$(TEST_DIR)/ebin
-TEST_INCLUDE_DIR=$(TEST_SOURCE_DIR)/include
 
 ERLC_FLAGS=-W0 -Ddebug +debug_info
 ERLC=erlc -I $(INCLUDE_DIR) $(ERLC_FLAGS)
@@ -31,12 +30,15 @@ ebin: src/*
 	@ echo
 
 test: compile
-	@ echo Running tests ...
+	@ echo Running Erlang tests ...
 	@ mkdir -p $(TEST_EBIN_DIR)
 	@ # Compile test files
 	@ $(ERLC) -o $(TEST_EBIN_DIR) $(TEST_SOURCE_DIR)/*.erl
 	@ # Look and execute each file
-	@ time $(ERL) $(TEST_EBIN_DIR) -I $(TEST_INCLUDE_DIR) -eval 'test_helper:test(), halt().'
+	@ time $(ERL) $(TEST_EBIN_DIR) -eval 'test_helper:test(), halt().'
+	@ echo 
+	@ echo Running Elixir tests ...
+	@ time $(ERL) -eval 'elixir:boot(), elixir:require_file("test_helper"), halt().'
 	@ echo
 
 clean:

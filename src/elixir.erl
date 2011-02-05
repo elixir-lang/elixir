@@ -1,5 +1,5 @@
 -module(elixir).
--export([boot/0, eval/1, eval/2, eval/3, parse/2, load_file/2]).
+-export([boot/0, eval/1, eval/2, eval/3, parse/2, require_file/1]).
 -include("elixir.hrl").
 
 % Boot up Elixir setting up tables and loading main files.
@@ -13,9 +13,14 @@ boot() ->
 load_core_classes() ->
   Dirname = filename:dirname(?FILE),
   Basepath = filename:join([Dirname, "..", "lib"]),
-  Loader = fun(Class) -> load_file(filename:join(Basepath, Class), [{self, []}]) end,
+  Loader = fun(Class) ->
+    Filepath = filename:join(Basepath, Class),
+    {ok, Binary} = file:read_file(Filepath),
+    eval(binary_to_list(Binary), [{self, []}], Filepath)
+  end,
   lists:foreach(Loader, [
     'object.ex',
+    'code.ex',
     'module.ex',
     'atom.ex',
     'numeric.ex',
@@ -28,10 +33,26 @@ load_core_classes() ->
     'binary.ex'
   ]).
 
-% Loads a given file
-load_file(Filepath, Bindings) ->
-  {ok, String} = file:read_file(Filepath),
-  eval(binary_to_list(String), Bindings, Filepath).
+% Paths are hardcoded here. We need to add support to load paths.
+% TODO This could be done completely with Elixir code.
+require_file(Path) ->
+  Dirname = filename:dirname(?FILE),
+  Paths = [
+    filename:join([Dirname, "..", "lib"]),
+    filename:join([Dirname, "..", "test", "elixir"])
+  ],
+  require_file(Path ++ ".ex", Paths).
+
+require_file(Path, []) ->
+  elixir_errors:raise(enoent, "could not load file ~ts", [Path]);
+
+require_file(Path, [H|T]) ->
+  Filepath = filename:join(H, Path),
+  case file:read_file(Filepath) of
+    { ok, Binary } -> eval(binary_to_list(Binary), [], Filepath);
+    { error, enoent } -> require_file(Path, T);
+    { error, Reason } -> elixir_errors:raise(Reason, "could not load file ~ts", [Filepath])
+  end.
 
 % Evaluates a string
 eval(String) -> eval(String, []).

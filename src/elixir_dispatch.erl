@@ -9,7 +9,7 @@ dispatch(Self, Object, Method, Args) ->
   case find_module(Chain, Method, Arity) of
     [] ->
       Mixins = string:join(lists:map(fun atom_to_list/1, Chain), ", "),
-      Message = "No visible method ~s/~w in mixins [~s]",
+      Message = "No method ~s/~w in mixins [~s]",
       elixir_errors:raise(nomethod, Message, [Method, Arity - 1, Mixins]);
     Module ->
       case visibility_matches(Self, Module, Method, Arity) of

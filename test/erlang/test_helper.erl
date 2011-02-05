@@ -1,6 +1,6 @@
 -module(test_helper).
 -include("elixir.hrl").
--export([test/0, unpack_string/1, unpack_regexp/1, run_and_remove/2, load_fixture/1, throw_elixir/1, throw_erlang/1]).
+-export([test/0, unpack_string/1, unpack_regexp/1, run_and_remove/2, throw_elixir/1, throw_erlang/1]).
 
 test() ->
   elixir:boot(),
@@ -32,12 +32,6 @@ run_and_remove(Fun, Modules) ->
   after
     [code:purge(Module) || Module <- Modules]
   end.
-
-% Helper to load files
-load_fixture(Filename) ->
-  Dirname = filename:dirname(?FILE),
-  Fullpath = filename:join([Dirname, "fixtures", Filename]),
-  elixir:load_file(Fullpath, []).
 
 % Throws an error with the Erlang Abstract Form from the Elixir string
 throw_elixir(String) ->

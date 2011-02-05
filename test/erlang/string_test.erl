@@ -82,7 +82,7 @@ invalid_string_interpolation_test() ->
 
 strings_are_utf8_chars_test() ->
   F = fun() ->
-    test_helper:load_fixture("utf8.ex"),
+    elixir:require_file("../erlang/fixtures/utf8"),
     {10,[]} = elixir:eval("Foo.length")
   end,
   test_helper:run_and_remove(F, ['Foo']).
