@@ -1,6 +1,17 @@
 object Object
   % TODO Implement to_s and inspect.
   module Methods
+    % Create a new object using the current object as parent
+    %
+    % ## Example
+    %
+    %     obj = Object.new
+    %     obj.__parent__ %=> 'Object
+    %
+    % ## Notes
+    %
+    % The new method is special cased by the compiler to receive
+    % all arguments wrapped into a single array.
     def new(args)
       Erlang.elixir_object_methods.new(self, args)
     end
@@ -64,6 +75,18 @@ object Object
 
     def alias_local(old, new, arity)
       Erlang.elixir_object_methods.alias_local(self, __FILE__, old, new, arity)
+    end
+
+    def __public_proto_methods__
+      Erlang.elixir_object_methods.public_proto_methods(self)
+    end
+
+    def send(method)
+      send(method, [])
+    end
+
+    def send(method, args)
+      Erlang.elixir_dispatch.dispatch([], self, method, args)
     end
   end
 

@@ -147,6 +147,7 @@ method_call_expr -> call_exprs dot_eol method_name call_args_parens : build_meth
 method_call_expr -> call_exprs dot_eol method_name call_args_optional : build_method_call(false, '$1', '$3', '$4').
 method_call_expr -> call_exprs dot_eol method_name : build_method_call(true, '$1', '$3', []).
 method_call_expr -> implicit_method_name call_args_optional : build_local_call('$1', '$2').
+method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
 
 % Minimum expressions
 min_expr -> base_expr : '$1'.
@@ -180,6 +181,7 @@ _method_call_expr -> _call_exprs dot_eol method_name call_args_parens : build_me
 _method_call_expr -> _call_exprs dot_eol method_name call_args_optional : build_method_call(false, '$1', '$3', '$4').
 _method_call_expr -> _call_exprs dot_eol method_name : build_method_call(true, '$1', '$3', []).
 _method_call_expr -> implicit_method_name call_args_optional : build_local_call('$1', '$2').
+_method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
 
 %%% BUILDING BLOCKS
 
@@ -405,7 +407,7 @@ method_decl -> def method_name break body 'end' :
 method_decl -> def method_name call_args_parens break body 'end' :
   build_def_method('$2', '$3', build_clause('$2', '$3', '$5')).
 
-% Method names do not inherit from base_identifier, which include object,
+% Method names do not inherit from base_identifier, which includes object,
 % module and _ as keywords, to avoid conflicts.
 implicit_method_name -> identifier : '$1'.
 implicit_method_name -> punctuated_identifier : '$1'.

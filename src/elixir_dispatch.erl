@@ -24,7 +24,7 @@ visibility_matches([], Module, Method, Arity) ->
   true;
 
 visibility_matches(Self, Module, Method, Arity) ->
-  Protected = proplists:get_value(protected, elixir_constants:lookup_attributes(Module)),
+  Protected = elixir_object_methods:abstract_protected_methods(Module),
   case lists:member({Method, Arity}, Protected) of
     true  -> lists:member(Module, elixir_object_methods:mixins(Self));
     false -> true

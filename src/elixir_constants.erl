@@ -1,7 +1,7 @@
 % Handle constants in Elixir. Constants are compiled to erlang
 % modules and consequently are not stored in any table.
 -module(elixir_constants).
--export([lookup/1, lookup_attributes/1]).
+-export([lookup/1, lookup/2]).
 -include("elixir.hrl").
 
 % Lookup a constant with the given name in the ETS table. Raises
@@ -12,8 +12,8 @@ lookup(Name) ->
     _ -> elixir_errors:raise(badarg, "no constant ~s defined", [atom_to_list(Name)])
   end.
 
-lookup_attributes(Name) ->
+lookup(Name, Something) ->
   case code:ensure_loaded(Name) of
-    {module, Name} -> Name:module_info(attributes);
+    {module, Name} -> Name:module_info(Something);
     _ -> elixir_errors:raise(badarg, "no constant ~s defined", [atom_to_list(Name)])
   end.

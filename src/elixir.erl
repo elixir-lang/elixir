@@ -20,8 +20,9 @@ load_core_classes() ->
   end,
   lists:foreach(Loader, [
     'object.ex',
-    'code.ex',
     'module.ex',
+    'code.ex',
+    'io.ex',
     'atom.ex',
     'numeric.ex',
     'integer.ex',

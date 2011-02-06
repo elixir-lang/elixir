@@ -3,7 +3,8 @@
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1,
   get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1,
-  get_visibility/1, set_visibility/2, alias_local/5]).
+  get_visibility/1, set_visibility/2, alias_local/5, abstract_methods/1,
+  abstract_public_methods/1, abstract_protected_methods/1, public_proto_methods/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -92,7 +93,16 @@ alias_local(#elixir_object{name=Name, data=Data} = Self, Filename, Old, New, Eli
 alias_local(_, _, _, _, _) ->
   elixir_errors:raise(badarg, "Cannot alias local method outside object definition scope").
 
+public_proto_methods(Self) ->
+  calculate_methods(fun abstract_public_methods/1, protos(Self), []).
+
 % HELPERS
+
+calculate_methods(Fun, [], Acc) ->
+  Acc;
+
+calculate_methods(Fun, [H|T], Acc) ->
+  calculate_methods(Fun, T, umerge(Acc, Fun(H))).
 
 get_ivar_dict(Name, Data) ->
   case dict:find(Name, Data) of
@@ -220,7 +230,7 @@ abstract_parent(#elixir_object{parent=Parent}) ->
   Parent;
 
 abstract_parent(Name) ->
-  case proplists:get_value(parent, elixir_constants:lookup_attributes(Name)) of
+  case proplists:get_value(parent, elixir_constants:lookup(Name, attributes)) of
     []   -> [];
     Else -> hd(Else)
   end.
@@ -229,19 +239,40 @@ abstract_mixins(#elixir_object{mixins=Mixins}) ->
   Mixins;
 
 abstract_mixins(Name) ->
-  proplists:get_value(mixins, elixir_constants:lookup_attributes(Name)).
+  proplists:get_value(mixins, elixir_constants:lookup(Name, attributes)).
 
 abstract_protos(#elixir_object{protos=Protos}) ->
   Protos;
 
 abstract_protos(Name) ->
-  proplists:get_value(protos, elixir_constants:lookup_attributes(Name)).
+  proplists:get_value(protos, elixir_constants:lookup(Name, attributes)).
 
 abstract_data(#elixir_object{data=Data}) ->
   Data;
 
 abstract_data(Name) ->
-  hd(proplists:get_value(data, elixir_constants:lookup_attributes(Name))).
+  hd(proplists:get_value(data, elixir_constants:lookup(Name, attributes))).
+
+% Get methods from abstract stuff.
+
+abstract_methods(#elixir_object{}) ->
+  [];
+
+abstract_methods(Name) ->
+  Converter = fun({Name, Arity}) -> {Name, Arity - 1} end,
+  lists:map(Converter, elixir_constants:lookup(Name, functions) -- [{module_info,0},{module_info,1}]).
+
+abstract_public_methods(#elixir_object{}) ->
+  [];
+
+abstract_public_methods(Name) ->
+  abstract_methods(Name) -- abstract_protected_methods(Name).
+
+abstract_protected_methods(#elixir_object{}) ->
+  [];
+
+abstract_protected_methods(Name) ->
+  proplists:get_value(protected, elixir_constants:lookup(Name, attributes)).
 
 % Methods that traverses the ancestors chain and append.
 

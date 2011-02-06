@@ -23,7 +23,7 @@ unpack_string(String) ->
 
 unpack_regexp(Regexp) ->
   Data = Regexp#elixir_object.data,
-  { dict:fetch(bin, Data), dict:fetch(options, Data), dict:fetch(compiled, Data) }.
+  { dict:fetch(bin, Data), dict:fetch(parsed_options, Data), dict:fetch(compiled, Data) }.
 
 % Execute a piece of code and purge given modules right after
 run_and_remove(Fun, Modules) ->

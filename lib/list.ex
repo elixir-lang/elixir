@@ -16,6 +16,11 @@ object List
   end
   alias_local 'member?, 'include?, 1
 
+  def filter(function)
+    Erlang.lists.filter(function, self)
+  end
+  alias_local 'filter, 'select, 1
+
   def delete(item)
     Erlang.lists.delete(item, self)
   end

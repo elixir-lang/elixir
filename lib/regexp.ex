@@ -77,13 +77,32 @@ object Regexp
     end
 
     { 'bin: regexp_bin,
-      'options: options_list,
       'parsed_options: parsed_options,
       'compiled: compiled
     }
   end
 
+  def match(target)
+    if @compiled
+      Erlang.re.run(target.to_bin, @compiled)
+    else
+      Erlang.re.run(target.to_bin, @bin, @parsed_options)
+    end
+  end
+
+  def match?(target)
+    match_happened?(match(target))
+  end
+
   private
+
+  def match_happened?('nomatch)
+    false
+  end
+
+  def match_happened?(_)
+    true
+  end
 
   def parse_option($u, acc); ['unicode|acc]; end
   def parse_option($i, acc); ['caseless|acc]; end

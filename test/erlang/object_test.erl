@@ -195,7 +195,17 @@ protected_methods_can_be_invoked_in_their_own_scope_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
+public_proto_methods_test() ->
+  F = fun() ->
+    elixir:eval("object Foo; def foo; end; private; def bar; end; end"),
+    {true, _}  = elixir:eval("Foo.__public_proto_methods__.member?({'foo,0})"),
+    {true, _}  = elixir:eval("Foo.__public_proto_methods__.member?({'new,1})"),
+    {false, _} = elixir:eval("Foo.__public_proto_methods__.member?({'module_info,0})")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
+
 %% alias_local
+
 alias_local_test() ->
   F = fun() ->
     elixir:eval("object Foo; def bar; 1; end; alias_local 'bar, 'baz, 0; end"),
