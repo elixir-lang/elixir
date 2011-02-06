@@ -6,7 +6,6 @@ object Atom
   %     'a.inspect % => "'a"
   %     'A.inspect % => "'A"
   %
-  % TODO Use bit syntax here
   def inspect
     String.new <<$', Erlang.atom_to_binary(self, 'utf8)|binary>>
   end

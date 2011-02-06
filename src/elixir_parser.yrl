@@ -70,7 +70,7 @@ Terminals
   div rem module object 'do' 'end' def eol Erlang true false
   if elsif else unless filename
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}' '<' '|' '_' '<<' '>>'
+  ':' ';' '@' '{' '}' '<' '|' '_' '<<' '>>' '~'
   .
 
 Rootsymbol grammar.
@@ -336,9 +336,7 @@ string_base -> string : '$1'.
 string_base -> interpolated_string : '$1'.
 
 string_list -> string_base : ['$1'].
-string_list -> string_base eol : ['$1'].
-string_list -> string_base string_list : ['$1'|'$2'].
-string_list -> string_base eol string_list : ['$1'|'$3'].
+string_list -> string_base '~' eol string_list : ['$1'|'$4'].
 
 % Erlang calls
 erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call(true, '$1', ?chars('$3'), ?chars('$5'), '$6').

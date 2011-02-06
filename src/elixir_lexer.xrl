@@ -96,6 +96,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 \:    : { token, { ':', TokenLine } }.
 \@    : { token, { '@', TokenLine } }.
 <     : { token, { '<', TokenLine } }.
+\~    : { token, { '~', TokenLine } }.
 
 %% Skip
 {Comment} : skip_token.
