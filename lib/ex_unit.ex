@@ -59,6 +59,7 @@ module ExUnit
     acc + 1
   end
 
+  % Get each item in the backtrace and print them nicely.
   def print_backtrace({module, method, arity})
     IO.puts("    #{module}##{method}/#{arity}")
   end
