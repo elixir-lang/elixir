@@ -4,6 +4,11 @@ object Dict
     { 'dict: Erlang.dict.new }
   end
 
+  % Construct a new Dict receiving an Erlang dictionary.
+  def constructor(dict)
+    { 'dict: dict }
+  end
+
   % Calls the given *function* for each key and value of the dictionary with an
   % extra argumen *acc* (short for accumulator). *function* must return a new
   % accumulator passed to the next call. Returns the last accumulator.
@@ -32,5 +37,10 @@ object Dict
   def inspect
     transformer = -> (key, value, acc) ["#{key.inspect}: #{value.inspect}"|acc]
     "{#{fold([], transformer).join(", ")}}"
+  end
+
+  % The same as inspect.
+  def to_s
+    inspect
   end
 end

@@ -239,3 +239,25 @@ line_underscore_test() ->
 file_underscore_test() ->
   {"nofile", _} = elixir:eval("__FILE__"),
   {"another.ex", _} = elixir:eval("__FILE__", [], "another.ex").
+
+%% to_s and inspect
+
+eval_string(Expr) ->
+  { String, Binding } = elixir:eval(Expr),
+  { test_helper:unpack_string(String), Binding }.
+
+to_s_test() ->
+  F = fun() ->
+    elixir:eval("object Bar\ndef constructor(x);{'a: x};end\nend"),
+    {<<"Bar">>,[]}  = eval_string("Bar.to_s"),
+    {<<"<Bar {'a: 1}>">>,[]}  = eval_string("Bar.new(1).to_s")
+  end,
+  test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
+
+inspect_test() ->
+  F = fun() ->
+    elixir:eval("object Bar\ndef constructor(x);{'a: x};end\nend"),
+    {<<"Bar">>,[]}  = eval_string("Bar.inspect"),
+    {<<"<Bar {'a: 1}>">>,[]}  = eval_string("Bar.new(1).inspect")
+  end,
+  test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).

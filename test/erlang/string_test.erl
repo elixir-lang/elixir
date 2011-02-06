@@ -126,3 +126,14 @@ string_length_test() ->
 
 string_add_test() ->
   {<<"elixir">>, []} = eval_string("\"eli\" + \"xir\"").
+
+%% Inspect in other objects
+
+list_inspect_test() ->
+  {<<"[1, 2, 3]">>, []} = eval_string("[1,2,3].inspect"),
+  {<<"[102, 111, 111]">>, []} = eval_string("\"foo\".to_char_list.inspect"),
+  {<<"[1, 2, 3]">>, []} = eval_string("[1,2,3].to_s"),
+  {<<"[102, 111, 111]">>, []} = eval_string("\"foo\".to_char_list.to_s").
+
+tuple_inspect_test() ->
+  {<<"{'badmatch, true}">>, []} = eval_string("{'badmatch,true}.inspect").

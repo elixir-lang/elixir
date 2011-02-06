@@ -1,7 +1,7 @@
 % Holds all methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1,
+-export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, data/1,
   get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1,
   get_visibility/1, set_visibility/2, alias_local/5, function_catch/1,
   abstract_methods/1, abstract_public_methods/1, abstract_protected_methods/1,
@@ -32,6 +32,7 @@ mixins(Self) ->
   apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), [])).
 protos(Self) ->
   apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
+data(Self) -> object_data(Self).
 
 ancestors(Self) ->
   lists:reverse(r_ancestors(Self)).
@@ -207,7 +208,10 @@ object_parent(Native) when is_list(Native) ->
   'List';
 
 object_parent(Native) when is_binary(Native) ->
-  'Binary'.
+  'Binary';
+
+object_parent(Native) when is_tuple(Native) ->
+  'Tuple'.
 
 object_mixins(#elixir_object{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, mixins, 2);
@@ -226,6 +230,15 @@ object_protos(#elixir_object{protos=Protos}) ->
 
 object_protos(Native) ->
   []. % Native types has no protos.
+
+object_data(#elixir_object{data=Data}) when is_atom(Data) ->
+  ets:lookup_element(Data, data, 2);
+
+object_data(#elixir_object{data=Data}) ->
+  Data;
+
+object_data(Native) ->
+  dict:new(). % Native types has no protos.
 
 % Method that get values from parents. Argument can either be an atom
 % or an #elixir_object.

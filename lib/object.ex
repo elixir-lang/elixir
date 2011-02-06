@@ -1,5 +1,4 @@
 object Object
-  % TODO Implement to_s and inspect.
   module Methods
     % Create a new object using the current object as parent
     %
@@ -40,8 +39,25 @@ object Object
       Erlang.elixir_object_methods.protos(self)
     end
 
+    def __data__
+      Dict.new Erlang.elixir_object_methods.data(self)
+    end
+
     def __ancestors__
       Erlang.elixir_object_methods.ancestors(self)
+    end
+
+    def inspect
+      name = __name__
+      if name
+        name.to_s
+      else
+        "<#{__parent__} #{__data__.inspect}>"
+      end
+    end
+
+    def to_s
+      self.inspect
     end
 
     % We could mark the methods below as protected, but, as everything

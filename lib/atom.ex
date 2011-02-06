@@ -7,7 +7,7 @@ object Atom
   %     'A.inspect % => "'A"
   %
   def inspect
-    String.new <<$', Erlang.atom_to_binary(self, 'utf8)|binary>>
+    inspect(self)
   end
 
   % Convert an atom to a char list.
@@ -41,5 +41,19 @@ object Atom
   %
   def to_bin
     Erlang.atom_to_binary(self, 'utf8)
+  end
+
+  private
+
+  def inspect(true)
+    "true"
+  end
+
+  def inspect(false)
+    "false"
+  end
+
+  def inspect(other)
+    String.new <<$', Erlang.atom_to_binary(other, 'utf8)|binary>>
   end
 end

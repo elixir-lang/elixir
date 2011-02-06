@@ -42,6 +42,15 @@ object List
     self
   end
 
+  def inspect
+    strings = map -> (x) x.inspect
+    "[#{strings.join([$,, $\s])}]"
+  end
+
+  def to_s
+    inspect
+  end
+
   def length
     Erlang.length(self)
   end

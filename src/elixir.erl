@@ -28,6 +28,7 @@ load_core_classes() ->
     'integer.ex',
     'float.ex',
     'list.ex',
+    'tuple.ex',
     'string.ex',
     'dict.ex',
     'regexp.ex',
