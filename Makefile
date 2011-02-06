@@ -17,6 +17,10 @@ PARSER_NAME=$(PARSER_BASE_NAME)_parser
 compile: ebin
 
 ebin: src/*
+	@ # Clean any .beam file
+	@ rm -f $(EBIN_DIR)/*.beam
+	@ rm -f $(TEST_EBIN_DIR)/*.beam
+	@ # Start compiling
 	@ echo Compiling ...
 	@ mkdir -p $(EBIN_DIR)
 	@ # Generate the lexer
@@ -24,12 +28,10 @@ ebin: src/*
 	@ # Generate the parser
 	@ $(ERL) -eval 'yecc:file("$(SOURCE_DIR)/$(PARSER_NAME)"), halt().'
 	@ # Compile everything
-	@ rm -rf $(EBIN_DIR)/*.beam
-	@ rm -rf $(TEST_EBIN_DIR)/*.beam
 	$(ERLC) -o $(EBIN_DIR) $(SOURCE_DIR)/*.erl
 	@ echo
 
-test: compile
+test_erlang: compile
 	@ echo Running Erlang tests ...
 	@ mkdir -p $(TEST_EBIN_DIR)
 	@ # Compile test files
@@ -37,9 +39,15 @@ test: compile
 	@ # Look and execute each file
 	@ time $(ERL) $(TEST_EBIN_DIR) -eval 'test_helper:test(), halt().'
 	@ echo 
+
+test_elixir: compile
 	@ echo Running Elixir tests ...
 	@ time $(ERL) -eval 'elixir:boot(), elixir:require_file("test_helper"), halt().'
 	@ echo
+
+test: compile
+	@ make test_erlang
+	@ make test_elixir
 
 clean:
 	rm $(SOURCE_DIR)/$(LEXER_NAME).erl
