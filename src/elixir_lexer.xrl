@@ -120,7 +120,7 @@ build(Kind, Line, Chars) ->
 
 % Handle chars.
 build_char(Chars, Line) ->
-  { token, { integer, Line, lists:last(Chars) } }.
+  { token, { integer, Line, lists:last(unescape_chars(false, Chars)) } }.
 
 % Handle strings without interpolation.
 build_string(Kind, Chars, Line, Length, Distance) ->

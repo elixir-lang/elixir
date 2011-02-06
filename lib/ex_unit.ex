@@ -42,20 +42,25 @@ module ExUnit
 
   % Prints results after the execution of the test suite.
   def print_results([], counter)
-    IO.puts("  All #{counter} tests passed.\n")
+    IO.puts("  All #{counter} tests passed.")
   end
 
   def print_results(failures, counter)
     failures.foldl 1, -> (x, acc) print_failure(x, acc)
     total_failures = failures.length
     total_passed = counter - total_failures
-    IO.puts("\n  Failed: #{total_failures}.  Passed: #{total_passed}.\n")
+    IO.puts("\n  Failed: #{total_failures}.  Passed: #{total_passed}.")
   end
 
   % Print each failued that occurred.
   def print_failure({object, test, {reason, backtrace}}, acc)
-    IO.puts("#{acc}) #{test}(#{object})\n  Reason: #{reason}\n  Backtrace: #{backtrace}\n")
+    IO.puts("#{acc}) #{test}(#{object})\n  Reason: #{reason}\n  Backtrace:")
+    backtrace.each -> (b) print_backtrace(b)
     acc + 1
+  end
+
+  def print_backtrace({module, method, arity})
+    IO.puts("    #{module}##{method}/#{arity}")
   end
 end
 

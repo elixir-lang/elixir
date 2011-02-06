@@ -7,8 +7,16 @@ object List
     Erlang.lists.foldl(function, acc, self)
   end
 
+  def foldr(acc, function)
+    Erlang.lists.foldr(function, acc, self)
+  end
+
   def map(function)
     Erlang.lists.map(function, self)
+  end
+
+  def each(function)
+    Erlang.lists.foreach(function, self)
   end
 
   def member?(item)

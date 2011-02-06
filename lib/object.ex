@@ -39,7 +39,7 @@ object Object
       Erlang.elixir_object_methods.protos(self)
     end
 
-    def __data__
+    def __ivars__
       Dict.new Erlang.elixir_object_methods.data(self)
     end
 
@@ -52,7 +52,7 @@ object Object
       if name
         name.to_s
       else
-        "<#{__parent__} #{__data__.inspect}>"
+        "<#{__parent__} #{__ivars__.inspect}>"
       end
     end
 
@@ -106,7 +106,26 @@ object Object
     end
 
     def catch(function)
-      Erlang.elixir_object_methods.function_catch(function)
+      filter_stacktrace Erlang.elixir_object_methods.function_catch(function)
+    end
+
+    % Set the following methods to private.
+    Erlang.elixir_object_methods.set_visibility(self, 'private)
+
+    def filter_stacktrace({ 'EXIT, { reason, stacktrace } })
+      regexp = ~r(^[A-Z])
+      newtrace = stacktrace.foldr [], do ({module, function, arity}, acc)
+        if regexp.match?(module)
+          [{module, function, arity - 1}|acc]
+        else
+          acc
+        end
+      end
+      { 'EXIT, { reason, newtrace } }
+    end
+
+    def filter_stacktrace(other)
+      other
     end
   end
 
