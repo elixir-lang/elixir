@@ -31,10 +31,6 @@
 % * firstline (f) - forces the unanchored pattern to match before or at the first
 %   newline, though the matched text may continue over the newline
 % * ungreedy (r) - invert the "greediness" of the regexp
-% * compile (c) - Automatically compiles the given regexp. Useful if you are going
-%   to use the same regexo several times during a method execution. For instance,
-%   if you want to match the same regexp against a list of arrays, the compile
-%   option will be handy.
 %
 % The options not available are:
 %
@@ -61,33 +57,17 @@ object Regexp
   %
   def constructor(regexp, options)
     regexp_bin = regexp.to_bin
-    temp_options = options.to_char_list
 
-    should_compile = temp_options.member?($c)
-    options_list = temp_options.delete($c)
-
-    parsed_options = options_list.foldl ['multiline], do (x, acc)
+    parsed_options = options.to_char_list.foldl ['multiline], do (x, acc)
       parse_option(x, acc)
     end
 
-    if should_compile
-      { 'ok, compiled } = Erlang.re.compile(regexp_bin, parsed_options)
-    else
-      compiled = []
-    end
-
-    { 'bin: regexp_bin,
-      'parsed_options: parsed_options,
-      'compiled: compiled
-    }
+    { 'ok, compiled } = Erlang.re.compile(regexp_bin, parsed_options)
+    { 'bin: regexp_bin, 'parsed_options: parsed_options, 'compiled: compiled }
   end
 
   def match(target)
-    if @compiled
-      Erlang.re.run(target.to_bin, @compiled)
-    else
-      Erlang.re.run(target.to_bin, @bin, @parsed_options)
-    end
+    Erlang.re.run(target.to_bin, @compiled)
   end
 
   def match?(target)
