@@ -20,18 +20,30 @@ dispatch(Self, Object, Method, Args) ->
       end
   end.
 
-visibility_matches([], Module, Method, Arity) ->
+% If self is true, we don't check if it is protected or not
+% and dispatch it right away.
+visibility_matches(true, _Module, _Method, _Arity) ->
   true;
 
+% If self is false, we need to check if the method is protected,
+% if so, don't dispatch.
+visibility_matches(false, Module, Method, Arity) ->
+  not is_protected_method(Module, Method, Arity);
+
+% If self is an object, we need to check if the visibility allows
+% the method invocation.
 visibility_matches(Self, Module, Method, Arity) ->
-  Protected = elixir_object_methods:abstract_protected_methods(Module),
-  case lists:member({Method, Arity}, Protected) of
+  case is_protected_method(Module, Method, Arity) of
     true  -> lists:member(Module, elixir_object_methods:mixins(Self));
     false -> true
   end.
 
+is_protected_method(Module, Method, Arity) ->
+  Protected = elixir_object_methods:abstract_protected_methods(Module),
+  lists:member({Method, Arity}, Protected).
+
 % Find first module that contains the method with given arity.
-find_module([], Method, Arity) -> [];
+find_module([], _Method, _Arity) -> [];
 
 find_module([H|T], Method, Arity) ->
   case erlang:function_exported(H, Method, Arity) of

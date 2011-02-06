@@ -102,7 +102,7 @@ object Object
     end
 
     def send(method, args)
-      Erlang.elixir_dispatch.dispatch([], self, method, args)
+      Erlang.elixir_dispatch.dispatch(false, self, method, args)
     end
 
     def catch(function)

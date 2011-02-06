@@ -17,7 +17,7 @@ new(#elixir_object{name=Name, protos=Protos} = Self, Args) ->
     _  -> Name
   end,
   Object = #elixir_object{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
-  Data = elixir_dispatch:dispatch([], Object, constructor, Args),
+  Data = elixir_dispatch:dispatch(true, Object, constructor, Args),
   Dict = assert_dict_with_atoms(Data),
   Object#elixir_object{data=Dict}.
 
@@ -96,7 +96,7 @@ alias_local(#elixir_object{name=Name, data=Data} = Self, Filename, Old, New, Eli
   end;
 
 alias_local(_, _, _, _, _) ->
-  elixir_errors:raise(badarg, "Cannot alias local method outside object definition scope").
+  elixir_errors:raise(badarg, "cannot alias local method outside object definition scope").
 
 public_proto_methods(Self) ->
   calculate_methods(fun abstract_public_methods/1, protos(Self), []).
@@ -130,7 +130,7 @@ assert_dict_with_atoms(Data) ->
   elixir_errors:raise(badarg, "constructor needs to return a Dict, got ~ts", [inspect(Data)]).
 
 inspect(Object) ->
-  get_ivar(elixir_dispatch:dispatch([], Object, inspect, []), bin).
+  get_ivar(elixir_dispatch:dispatch(false, Object, inspect, []), bin).
 
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
