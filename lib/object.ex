@@ -88,6 +88,10 @@ object Object
     def send(method, args)
       Erlang.elixir_dispatch.dispatch([], self, method, args)
     end
+
+    def catch(function)
+      Erlang.elixir_object_methods.function_catch(function)
+    end
   end
 
   % Object::Methods is automatically mixed and proto'd by Elixir

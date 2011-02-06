@@ -3,8 +3,9 @@
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1,
   get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1,
-  get_visibility/1, set_visibility/2, alias_local/5, abstract_methods/1,
-  abstract_public_methods/1, abstract_protected_methods/1, public_proto_methods/1]).
+  get_visibility/1, set_visibility/2, alias_local/5, function_catch/1,
+  abstract_methods/1, abstract_public_methods/1, abstract_protected_methods/1,
+  public_proto_methods/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -35,6 +36,9 @@ protos(Self) ->
 ancestors(Self) ->
   lists:reverse(r_ancestors(Self)).
 
+function_catch(Function) ->
+  catch Function().
+
 %% PROTECTED API
 
 set_visibility(#elixir_object{name=Name, data=Data}, Visibility) when is_atom(Data) ->
@@ -43,7 +47,7 @@ set_visibility(#elixir_object{name=Name, data=Data}, Visibility) when is_atom(Da
 
 set_visibility(Self, Visibility) ->
   elixir_errors:raise(badarg, "cannot change visibility of defined object").
-  
+
 get_visibility(#elixir_object{name=Name, data=Data}) when is_atom(Data) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:lookup_element(MethodTable, visibility, 2);
@@ -86,7 +90,7 @@ alias_local(#elixir_object{name=Name, data=Data} = Self, Filename, Old, New, Eli
   case ets:lookup(MethodTable, { Old, Arity }) of
     [{{Old, Arity}, Line, Clauses}] ->
       elixir_object:store_wrapped_method(Name, Filename, {function, Line, New, Arity, Clauses});
-    [] -> 
+    [] ->
       elixir_errors:raise(nomethod, "No local method ~s/~w in ~s", [Old, Arity, Name])
   end;
 
@@ -130,7 +134,7 @@ inspect(Object) ->
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
 % TODO Allow to call mixin outside object definition
-prepend_as(#elixir_object{} = Self, Kind, Value) -> 
+prepend_as(#elixir_object{} = Self, Kind, Value) ->
   Name  = Self#elixir_object.name,
   Table = Self#elixir_object.data,
   Data  = ets:lookup_element(Table, Kind, 2),
@@ -156,7 +160,7 @@ prepend_as(#elixir_object{} = Self, Kind, Value) ->
 
 umerge(List, Data) ->
   umerge2(lists:reverse(List), Data).
-  
+
 umerge2([], Data) ->
   Data;
 
@@ -297,4 +301,3 @@ apply_each([Module|T], Acc) ->
     true  -> apply_each(T, Acc);
     false -> apply_each(T, [Module|Acc])
   end.
-  

@@ -291,4 +291,10 @@ format_error(Filename, {Line,Module,{undefined_function,{Name, Arity}}}) ->
 
 format_error(Filename, {Line,Module,Desc}) ->
   Message = Module:format_error(Desc),
-  elixir_errors:file_error(element(1, Desc), Line, Filename, Message).
+  elixir_errors:file_error(reason_from_desc(Desc), Line, Filename, Message).
+
+reason_from_desc(Desc) when is_tuple(Desc) ->
+  element(1, Desc);
+
+reason_from_desc(Desc) ->
+  Desc.
