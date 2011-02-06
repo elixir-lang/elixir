@@ -204,6 +204,14 @@ public_proto_methods_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
+send_method_test() ->
+  F = fun() ->
+    elixir:eval("object Foo; def foo; 1; end; def foo(x); x * 2; end; end"),
+    {1, _}  = elixir:eval("Foo.new.send('foo)"),
+    {2, _}  = elixir:eval("Foo.new.send('foo, [1])")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
+
 %% alias_local
 
 alias_local_test() ->
