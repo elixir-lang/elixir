@@ -1,7 +1,7 @@
 object Tuple
   def inspect
-    strings = to_list.map -> (x) x.inspect
-    "{#{strings.join([$,, $\s])}}"
+    strings = to_list.map -> (x) x.inspect.to_char_list
+    "{#{String.new Erlang.string.join(strings, [$,, $\s])}}"
   end
 
   def to_s

@@ -19,6 +19,13 @@ object List
     Erlang.lists.foreach(function, self)
   end
 
+  % Returns true if the given item exists in the array.
+  %
+  % ## Examples
+  %
+  %     [1,2,3].member?(1) %=> true
+  %     [1,2,3].include?(4) %=> false
+  %
   def member?(item)
     Erlang.lists.member(item, self)
   end
@@ -51,8 +58,8 @@ object List
   end
 
   def inspect
-    strings = map -> (x) x.inspect
-    "[#{strings.join([$,, $\s])}]"
+    strings = map -> (x) x.inspect.to_char_list
+    "[#{String.new Erlang.string.join(strings, [$,, $\s])}]"
   end
 
   def to_s
