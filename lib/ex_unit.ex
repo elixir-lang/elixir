@@ -23,10 +23,10 @@ module ExUnit
   def run_tests(object, instance, [test|t], failures, counter)
     result = self.catch -> instance.send(test)
     new_failures = parse_result(object, test, result, failures)
-    run_tests(instance, t, new_failures, counter + 1)
+    run_tests(object, instance, t, new_failures, counter + 1)
   end
 
-  def run_tests(_, [], failures, counter)
+  def run_tests(_, _, [], failures, counter)
     { failures, counter }
   end
 
