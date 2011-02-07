@@ -170,7 +170,7 @@ umerge2([H|T], Data) ->
     true  -> New = Data;
     false -> New = [H|Data]
   end,
-  umerge(T, New).
+  umerge2(T, New).
 
 % Returns the ancestors chain considering only parents, but in reverse order.
 
@@ -300,17 +300,4 @@ traverse_chain([H|T], Acc) ->
   traverse_chain(T, apply_chain(abstract_protos(H), Acc)).
 
 apply_chain(List, Acc) ->
-  apply_each(lists:reverse(List), Acc).
-
-apply_each([], Acc) ->
-  Acc;
-
-apply_each([{object,Object}|T], Acc) ->
-  NewAcc = apply_chain(abstract_mixins(Object), Acc -- abstract_protos(Object)),
-  apply_each(T, NewAcc);
-
-apply_each([Module|T], Acc) ->
-  case lists:member(Module, Acc) of
-    true  -> apply_each(T, Acc);
-    false -> apply_each(T, [Module|Acc])
-  end.
+  umerge(List, Acc).

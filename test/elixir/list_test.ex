@@ -1,4 +1,5 @@
-object ListTest < ExUnit::Case
+object ListTest
+  proto ExUnit::Case
 
   def include_and_member_test
     list = [1,2,3]

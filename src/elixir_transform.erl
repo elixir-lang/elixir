@@ -348,12 +348,12 @@ transform({fun_call, Line, Var, Args }, F, V, S) ->
 % variables declared in a module do not leak outside its
 % context. The only variable available in the module by default
 % is self.
-transform({object, Line, Name, Parent, Exprs}, F, V, S) ->
+transform({Kind, Line, Name, Parent, Exprs}, F, V, S) when Kind == object; Kind == module->
   {Var, _, Current} = S,
   NewName = elixir_object:scope_for(Current, Name),
   Scope = { Var, false, NewName },
   { TExprs, _ } = transform_tree(Exprs, F, [self], Scope),
-  { elixir_object:transform(Line, F, NewName, Parent, TExprs), V };
+  { elixir_object:transform(Kind, Line, F, NewName, Parent, TExprs), V };
 
 % Handles __FILE__
 %
@@ -361,7 +361,7 @@ transform({object, Line, Name, Parent, Exprs}, F, V, S) ->
 %
 % No variables can be defined.
 transform({filename, Line}, F, V, S) ->
-  { {string, Line, F }, V };
+  transform({string, Line, F}, F, V, S);
 
 % Match all other expressions.
 % TODO Expand instead of catch all.

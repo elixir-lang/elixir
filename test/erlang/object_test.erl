@@ -63,24 +63,31 @@ implicit_methods_are_compiled_to_proto_module_test() ->
 
 %% Inheritance
 
-inheritance_test() ->
-  F = fun() ->
-    elixir:eval("object Foo\nmodule Mixin; def foo; 'mixin; end; end\ndef foo; 'proto ;end\nend\n"
-      "object Bar < Foo\nmodule Mixin; def bar; 'mixin; end; end\ndef bar; 'proto; end\nend"),
-    {mixin,[]} = elixir:eval("Bar.foo"),
-    {proto,[]} = elixir:eval("Bar.new.foo"),
-    {mixin,[]} = elixir:eval("Bar.bar"),
-    {proto,[]} = elixir:eval("Bar.new.bar"),
-    {['Bar::Mixin', 'Foo::Mixin', 'Object::Methods'],[]} = elixir:eval("Bar.__mixins__"),
-    {['Bar::Proto', 'Foo::Proto', 'Object::Methods'],[]} = elixir:eval("Bar.__protos__")
-  end,
-  test_helper:run_and_remove(F, ['Foo', 'Foo::Mixin', 'Foo::Proto', 'Bar', 'Bar::Mixin', 'Bar::Proto']).
-
-cannot_inherit_from_a_module_test() ->
-  F = fun() ->
-    ?assertError({badarg, "cannot inherit from module Foo"}, elixir:eval("module Foo; end\nobject Bar < Foo; end"))
-  end,
-  test_helper:run_and_remove(F, ['Foo', 'Bar']).
+% inheritance_test() ->
+%   F = fun() ->
+%     elixir:eval("object Foo\nmodule Mixin; def foo; 'mixin; end; end\ndef foo; 'proto ;end\nend\n"
+%       "object Bar < Foo\nmodule Mixin; def bar; 'mixin; end; end\ndef bar; 'proto; end\nend"),
+%     {mixin,[]} = elixir:eval("Bar.foo"),
+%     {proto,[]} = elixir:eval("Bar.new.foo"),
+%     {mixin,[]} = elixir:eval("Bar.bar"),
+%     {proto,[]} = elixir:eval("Bar.new.bar"),
+%     {['Bar::Mixin', 'Foo::Mixin', 'Object::Methods'],[]} = elixir:eval("Bar.__mixins__"),
+%     {['Bar::Proto', 'Foo::Proto', 'Object::Methods'],[]} = elixir:eval("Bar.__protos__")
+%   end,
+%   test_helper:run_and_remove(F, ['Foo', 'Foo::Mixin', 'Foo::Proto', 'Bar', 'Bar::Mixin', 'Bar::Proto']).
+% 
+% cannot_inherit_from_a_module_test() ->
+%   F = fun() ->
+%     ?assertError({badarg, "cannot inherit from module Foo"}, elixir:eval("module Foo; end\nobject Bar < Foo; end"))
+%   end,
+%   test_helper:run_and_remove(F, ['Foo', 'Bar']).
+% 
+% ivars_inheritance_test() ->
+%   F = fun() ->
+%     elixir:eval("object Foo; set_ivar('foo, 'bar); end"),
+%     {bar, []} = elixir:eval("object Bar < Foo; get_ivar('foo); end")
+%   end,
+%   test_helper:run_and_remove(F, ['Foo', 'Bar']).
 
 %% Initialization and Ivars
 
@@ -141,8 +148,8 @@ add_a_mixin_protos_to_dispatch_chain_test() ->
 
 do_not_add_protos_twice_to_dispatch_chain_test() ->
   F = fun() ->
-    {['Foo', 'Object::Methods'], []} =
-      elixir:eval("module Foo; end\nobject Bar; proto Foo; end\nobject Baz < Bar; proto Foo; end\nBaz.__protos__")
+    {['Baz', 'Bar', 'Foo', 'Object::Methods'], []} =
+      elixir:eval("module Foo; end\nmodule Bar; proto Foo; end\nmodule Baz; proto Bar; proto Foo; end\nBaz.__protos__")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
 
@@ -169,13 +176,6 @@ ivars_at_the_proto_level_test() ->
     {bar, _} = elixir:eval("Foo.new.set.get")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
-
-ivars_inheritance_test() ->
-  F = fun() ->
-    elixir:eval("object Foo; set_ivar('foo, 'bar); end"),
-    {bar, []} = elixir:eval("object Bar < Foo; get_ivar('foo); end")
-  end,
-  test_helper:run_and_remove(F, ['Foo', 'Bar']).
 
 %% Visibility
 
@@ -245,8 +245,8 @@ line_underscore_test() ->
   {2, _} = elixir:eval("\na = __LINE__\na").
 
 file_underscore_test() ->
-  {"nofile", _} = elixir:eval("__FILE__"),
-  {"another.ex", _} = elixir:eval("__FILE__", [], "another.ex").
+  {"nofile", _} = elixir:eval("__FILE__.to_char_list"),
+  {"another.ex", _} = elixir:eval("__FILE__.to_char_list", [], "another.ex").
 
 %% to_s and inspect
 

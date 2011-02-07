@@ -70,7 +70,7 @@ Terminals
   div rem module object 'do' 'end' def eol Erlang true false
   if elsif else unless filename
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}' '<' '|' '_' '<<' '>>' '~'
+  ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '~'
   .
 
 Rootsymbol grammar.
@@ -384,9 +384,8 @@ dot_eol -> '.'     : '$1'.
 dot_eol -> '.' eol : '$1'.
 
 % Object/Module declaration
-object_decl -> object constant '<' constant break objmod_body 'end' : build_object('$2', '$6', ?chars('$4')).
-object_decl -> object constant break objmod_body 'end' : build_object('$2', '$4', 'Object').
-module_decl -> module constant break objmod_body 'end' : build_object('$2', '$4', 'Module').
+object_decl -> object constant break objmod_body 'end' : build_object(object, '$2', '$4', []).
+module_decl -> module constant break objmod_body 'end' : build_object(module, '$2', '$4', []).
 
 objmod_body -> '$empty' : [{nil, 0}].
 objmod_body -> objmod_body_list : '$1'.
@@ -440,8 +439,8 @@ build_fun_call(Target, Args) ->
 build_clause(Parent, Args, Body) ->
   { clause, ?line(Parent), Args, [], Body }.
 
-build_object(Name, Body, Parent) ->
-  { object, ?line(Name), ?chars(Name), Parent, Body }.
+build_object(Kind, Name, Body, Parent) ->
+  { Kind, ?line(Name), ?chars(Name), Parent, Body }.
 
 build_fun(Stab, Clauses) ->
   { 'fun', ?line(Stab), { clauses, [Clauses] } }.
