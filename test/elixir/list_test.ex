@@ -15,4 +15,16 @@ object ListTest < ExUnit::Case
     [1,2,3,1,2,3] = list_one + list_one
   end
 
+  def head_test
+    1  = [1,2,3].head
+    1  = [1].head
+    [] = [].head
+  end
+
+  def tail_test
+    [2,3] = [1,2,3].tail
+    [2] = [1,2].tail
+    [] = [1].tail
+    [] = [].tail
+  end
 end

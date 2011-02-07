@@ -33,6 +33,16 @@ This is a basic introduction into Elixir basic objects and object model. Some se
 
 This introduction borrowed its guidelines from [Learn You Some Erlang](http://learnyousomeerlang.com/), a great resource to learn Erlang which will be referenced several times during this introduction.
 
+## Some notation
+
+Comments in Elixir are, as in Erlang, done with %.
+
+    % This is a commented line
+
+Throughout this introduction, `% =>` represents the result of an expression:
+
+    1 + 1 % => 2
+
 ## Basic Types
 
 ### Numbers
@@ -63,7 +73,13 @@ As in Ruby, everything is an object, so we can call methods numbers:
 
 It comes as no surprise that + is also a method:
 
-    1.+(2)  % => 3 
+    1.+(2)  % => 3
+
+#### Documentation:
+
+* https://github.com/josevalim/elixir/tree/master/lib/integer.ex
+* https://github.com/josevalim/elixir/tree/master/lib/float.ex
+* https://github.com/josevalim/elixir/tree/master/lib/numeric.ex
 
 > #### To be implemented
 >
@@ -72,6 +88,10 @@ It comes as no surprise that + is also a method:
 >     2#101010.  % => 42
 >     8#0677.    % => 447
 >     16#AE.     % => 174
+>
+> Another feature that will likely be included is the ability to include "_" in numbers as in Ruby. This improves the readability when working with large numbers:
+>
+>     1_052_672
 
 ### Atoms
 
@@ -86,6 +106,113 @@ Atoms are literals, with their own value as name. An atom 'symbol is an atom 'sy
     '"Atom with Spaces"
 
 As in Erlang and Ruby, Atoms are not garbage collected, so remember to not generate atoms dynamically, otherwise you will run out of memory sooner than later.
+
+#### Documentation:
+
+* https://github.com/josevalim/elixir/tree/master/lib/atom.ex
+
+### Booleans
+
+As in Erlang, the boolean values are simply atoms named true and false. However, to avoid writing 'true and 'false, Elixir also allows you to simply write true or false. The following are all equivalent and will yield `1` as result:
+
+    if 'true
+      1
+    else
+      2
+    end
+
+    if true
+      1
+    else
+      2
+    end
+
+    if 'false
+      2
+    else
+      1
+    end
+
+    if false
+      2
+    else
+      1
+    end
+
+> #### To be implemented
+>
+> Elixir currently lacks much of boolean algebra. None of the boolean operators were implemented yet:  `and`, `or`, `xor` nor `not`.
+> Equality and match operators were not implemented as well: `==`, `/=`, `=:=`, `>`, `<`, etc.
+
+### Tuples
+
+Tuples are used to organize many terms together when you know how many terms there are. As in Erlang, a tuple is written in the following form:
+
+    % A tuple containing all boolean values
+    { true, false }
+
+    % A tuple that may represent a point with coordinates X and Y
+    { 10, 20 }
+
+#### Documentation:
+
+* https://github.com/josevalim/elixir/tree/master/lib/tuple.ex
+
+> #### To be implemented
+>
+> Currently there is no way to interact with tuples elements. The following API is proposed:
+>
+>   { 'a, 'b, 'c }[0]  % => 'a
+>   { 'a, 'b, 'c }[1]  % => 'b
+>   { 'a, 'b, 'c }[2]  % => 'c
+>
+> Setting an element will be done through the set method:
+>
+>   { 'a, 'b, 'c }.set(0, 'd)  % => { 'd, 'b, 'c }
+>
+> This same note is also valid for lists (which we are going to see next).
+
+### Lists
+
+Lists are the main object in Elixir (as in any other functional language) and can contain anything:
+
+    ['atom, 1, 2, 3, { 'some, 'tuple }]
+
+Elixir Standard Library has a bunch of methods to interact with lists:
+
+    [1, 2, 3].head    % => 1
+    [1, 2, 3].tail    % => [2,3]
+    [1, 2, 3].length  % => 3
+
+Although, most of the power in lists comes when used together with functions:
+
+    [1, 2, 3].map do (x)
+      x * 2
+    end  % => [2, 4, 6]
+
+    [1, 2, 3].foldl 0, do (x, acc)
+      acc + x
+    end  % => 6
+
+The examples above uses functions using the `do/end` syntax. Don't worry about them now, we are going to take a better look at them later.
+
+#### Documentation:
+
+* https://github.com/josevalim/elixir/tree/master/lib/tuple.ex
+
+> #### To be implemented
+>
+> Currently there is no way to interact with tuples elements. The following API is proposed:
+>
+>   { 'a, 'b, 'c }[0]  % => 'a
+>   { 'a, 'b, 'c }[1]  % => 'b
+>   { 'a, 'b, 'c }[2]  % => 'c
+>
+> Setting an element will be done through the set method:
+>
+>   { 'a, 'b, 'c }.set(0, 'd)  % => { 'd, 'b, 'c }
+>
+
 
 # Examples
 

@@ -27,6 +27,36 @@ object List
     Erlang.lists.foreach(function, self)
   end
 
+  % Returns the head of the list:
+  %
+  % ## Examples
+  %
+  %     [1,2].head % => 1
+  %     [].head    % => []
+  %
+  def head
+    if self
+      Erlang.hd(self)
+    else
+      self
+    end
+  end
+
+  % Returns the tail of the list:
+  %
+  % ## Examples
+  %
+  %     [1,2].tail % => [2]
+  %     [].tail    % => []
+  %
+  def tail
+    if self
+      Erlang.tl(self)
+    else
+      self
+    end
+  end
+
   % Returns true if the given item exists in the array.
   %
   % ## Examples
