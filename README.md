@@ -413,11 +413,16 @@ To be written.
 
 ## The Object Model
 
-To be written.
+This section will discuss Elixir's Object Model. Its main aspects are:
 
-### Why Object Orientation?
+* Dynamic Dispatch - when a method is invoked on an object, the object itself determines which code gets executed
+* Mixins - an object does not contain methods, all methods are packed into modules that are mixed into objects
+* Encapsulation - methods can either be public, protected or private
+* Open recursion - Elixir's has a special variable called `self` that allows a method body to invoke another method body of the same object, passing through the ancestors chain
 
-Imagine that we have a dictionary and we want to represent it as a string in the following format:
+### Why Objects?
+
+Elixir's Object Model focus on method dispatching. Imagine that we have a dictionary and we want to represent it as a string in the following format:
 
     { k1: v1, k2: v2, ... }
     
@@ -445,3 +450,7 @@ In Erlang, we would need the following:
 The Object Oriented aspect brings several benefits. For example, we don't need to explicitly call `dict:fold()` because the `to_s` method in Elixir is in the `Dict` scope, where the `fold` method is implemented, allowing us to call `fold` directly.
 
 The same applies to calling the function `join`. In Elixir, `join` is a method implemented in the List object, which is returned as result of the `fold` call. So we can simply call `join(", ")` in the List object instead of calling `string:join(List, ", ")` passing the list as argument.
+
+### How does it work?
+
+To be written.
