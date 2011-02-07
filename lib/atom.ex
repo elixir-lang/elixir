@@ -14,8 +14,8 @@ object Atom
   %
   % ## Examples
   %
-  %     'a.to_s % => [97]
-  %     'A.to_s % => [65]
+  %     'a.to_char_list % => [97]
+  %     'A.to_char_list % => [65]
   %
   def to_char_list
     Erlang.atom_to_list(self)
