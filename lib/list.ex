@@ -19,9 +19,16 @@ object List
     Erlang.lists.foldr(function, acc, self)
   end
 
+  % Calls the function once for each element in the list.
+  %
+  % Returns a new list containing the values returned by the function.
+  %
+  %     [1,2,3].map -> (x) x + 1 %=> [2,3,4]
+  %
   def map(function)
     Erlang.lists.map(function, self)
   end
+  alias_local 'map, 'collect, 1
 
   % Calls function once for each element in the list, passing that
   % element as a parameter.

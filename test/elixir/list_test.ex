@@ -37,6 +37,14 @@ object ListTest < ExUnit::Case
     list = each_returns
   end
 
+  def map_and_collect_test
+    map_result = [1,2,3].map -> (x) x + 1
+    [2,3,4] = map_result
+
+    collect_result = [1,2,3].collect -> (x) x + 1
+    [2,3,4] = collect_result
+  end
+
   def head_test
     1  = [1,2,3].head
     1  = [1].head
