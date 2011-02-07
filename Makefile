@@ -18,8 +18,7 @@ compile: ebin
 
 ebin: src/*
 	@ # Clean any .beam file
-	@ rm -f $(EBIN_DIR)/*.beam
-	@ rm -f $(TEST_EBIN_DIR)/*.beam
+	@ make clean
 	@ # Start compiling
 	@ echo Compiling ...
 	@ mkdir -p $(EBIN_DIR)
@@ -50,7 +49,7 @@ test: compile
 	@ make test_elixir
 
 clean:
-	rm $(SOURCE_DIR)/$(LEXER_NAME).erl
-	rm $(SOURCE_DIR)/$(PARSER_NAME).erl
-	rm $(EBIN_DIR)/*.beam
-	rm $(TEST_EBIN_DIR)/*.beam
+	rm -f $(SOURCE_DIR)/$(LEXER_NAME).erl
+	rm -f $(SOURCE_DIR)/$(PARSER_NAME).erl
+	rm -f $(EBIN_DIR)/*.beam
+	rm -f $(TEST_EBIN_DIR)/*.beam
