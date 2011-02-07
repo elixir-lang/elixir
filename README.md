@@ -77,9 +77,9 @@ It comes as no surprise that + is also a method:
 
 #### Documentation:
 
-* https://github.com/josevalim/elixir/tree/master/lib/integer.ex
-* https://github.com/josevalim/elixir/tree/master/lib/float.ex
-* https://github.com/josevalim/elixir/tree/master/lib/numeric.ex
+* <https://github.com/josevalim/elixir/tree/master/lib/integer.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/float.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/numeric.ex>
 
 > #### To be implemented
 >
@@ -109,7 +109,7 @@ As in Erlang and Ruby, Atoms are not garbage collected, so remember to not gener
 
 #### Documentation:
 
-* https://github.com/josevalim/elixir/tree/master/lib/atom.ex
+* <https://github.com/josevalim/elixir/tree/master/lib/atom.ex>
 
 ### Booleans
 
@@ -154,9 +154,12 @@ Tuples are used to organize many terms together when you know how many terms the
     % A tuple that may represent a point with coordinates X and Y
     { 10, 20 }
 
+    % An empty tuple
+    { }
+
 #### Documentation:
 
-* https://github.com/josevalim/elixir/tree/master/lib/tuple.ex
+* <https://github.com/josevalim/elixir/tree/master/lib/tuple.ex>
 
 > #### To be implemented
 >
@@ -170,21 +173,29 @@ Tuples are used to organize many terms together when you know how many terms the
 >
 >   { 'a, 'b, 'c }.set(0, 'd)  % => { 'd, 'b, 'c }
 >
-> This same note is also valid for lists (which we are going to see next).
+> This same note is also valid for lists and dicts (which we are going to see next).
 
 ### Lists
 
 Lists are the main object in Elixir (as in any other functional language) and can contain anything:
 
+    % Some list with elements
     ['atom, 1, 2, 3, { 'some, 'tuple }]
+
+    % An empty list
+    []
 
 Elixir Standard Library has a bunch of methods to interact with lists:
 
-    [1, 2, 3].head    % => 1
-    [1, 2, 3].tail    % => [2,3]
-    [1, 2, 3].length  % => 3
+    [1, 2, 3].head         % => 1
+    [1, 2, 3].tail         % => [2,3]
+    [1, 2, 3].length       % => 3
 
-Although, most of the power in lists comes when used together with functions:
+As in Elixir `+` is simply a method like any other (and not an arithmetic operator as in Erlang), it can also be used to add arrays:
+
+    [1, 2, 3] + [4, 5, 6]  % => [1,2,3,4,5,6]
+
+Most of the power in lists comes when used together with functions:
 
     [1, 2, 3].map do (x)
       x * 2
@@ -196,60 +207,143 @@ Although, most of the power in lists comes when used together with functions:
 
 The examples above uses functions using the `do/end` syntax. Don't worry about them now, we are going to take a better look at them later.
 
-#### Documentation:
+#### Nil value
 
-* https://github.com/josevalim/elixir/tree/master/lib/tuple.ex
+A nil value in Elixir is represented by an empty list. In if expressions (that we briefly saw above), everything evaluates to `true`, except empty lists `[]` and `false`. Both examples below will return 1 as result:
 
-> #### To be implemented
->
-> Currently there is no way to interact with tuples elements. The following API is proposed:
->
->   { 'a, 'b, 'c }[0]  % => 'a
->   { 'a, 'b, 'c }[1]  % => 'b
->   { 'a, 'b, 'c }[2]  % => 'c
->
-> Setting an element will be done through the set method:
->
->   { 'a, 'b, 'c }.set(0, 'd)  % => { 'd, 'b, 'c }
->
-
-
-# Examples
-
-Imagine that we have a dictionary and we want to represent it as a string in the following format:
-
-    { k1: v1, k2: v2, ... }
-    
-In Elixir, the implementation would be as follow:
-
-    object Dict
-      def to_s
-        transformer = -> (key, value, acc) ["#{key.inspect}: #{value.inspect}"|acc]
-        "{" + fold([], transformer).join(", ") + "}"
-      end
+    if 'any_symbol
+      1
+    else
+      2
     end
 
-In Erlang, we would need the following:
+    if []
+      2
+    else
+      1
+    end
 
-    -module(dict).
+#### Documentation:
 
-    to_s(Dict) ->
-      Transformer = fun(Key, Value, Acc) -> [string_format(Key) ++ ": " ++ string_format(Value)|Acc] end,
-      List = dict:fold(Transformer, [], Dict),
-      "{" ++ string:join(List, ", ") ++ "}".
+* <https://github.com/josevalim/elixir/tree/master/lib/list.ex>
 
-    string_format(Thing) ->
-      lists:flatten(io_lib:format("~p", [Thing])).
+### Dicts
 
-The Object Oriented aspect of Elixir brings several benefits. For example, we don't need to explicitly call *dict:fold()* because the *to_s* method in Elixir is already in the Dictionary scope, so we just call the *fold* method directly. The same applies to calling the function *join*. In Elixir, *join* is a method implemented in the List object, which is returned as result of the *fold* call. So we can simply call *join(", ")* in the List object instead of calling *string:join(List, ", ")* passing the List as argument.
+Elixir provides a first-class syntax to deal with dictionaries (called Hash in Ruby).
 
-# String and Sigils
+    % A dict with 'a and 'b as keys and 1 and 2 as their respective values
+    { 'a: 1, 'b: 2 }
 
-In Elixir, we have the following basic types composed of a list of characters:
+    % An empty dict
+    {:}
 
-    % Strings (they are utf8 by default)
+Elixir dictionary implementation is backed up by [the dict module](http://www.erlang.org/doc/man/dict.html) in OTP.
+
+#### Documentation:
+
+* <https://github.com/josevalim/elixir/tree/master/lib/dict.ex>
+
+### Binaries
+
+Elixir has a similar syntax to Erlang for handling binaries:
+
+    % A binary with three elements
+    <<1, 17, 42>>
+
+    % Converting a binary to a list
+    <<1, 17, 42>>.to_list  % => [1, 17, 42]
+
+Elixir also allows to specify the size for binaries, using the asme syntax as Erlang:
+
+    % A binary with size 4, because we specify that 42 is a 16-bits segment
+    <<1, 17, 42:16>>
+
+By default, the binary type in both Elixir and Erlang is integer. That said, the following is invalid:
+
+    <<3.14>>
+
+Instead, you need explicitly specify it as a float:
+
+    <<3.14|float>>
+
+Notice the syntax above is a bit different from Erlang. Erlang uses `/` to specify the type, Elixir uses `|`. This allows Elixir, differently from Erlang, to have expressions inside binaries:
+
+    <<1+2>>
+
+In general, everything that applies to Erlang binaries applies to Elixir binaries. You can [read more about them on Erlang's documentation](http://www.erlang.org/doc/programming_examples/bit_syntax.html).
+
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/binary.ex>
+* <http://www.erlang.org/doc/programming_examples/bit_syntax.html>
+
+### Strings
+
+In Erlang, strings are a list of chars:
+
+    "hello" == [104, 101, 108, 108, 111]
+
+This is expensive because each character uses 8 bytes of memory, not 8 bits! Erlang stores each character as a 32-bit integer, with a 32-bit pointer for the next item in the list.
+
+Elixir takes a different approach to strings. Strings in Elixir are handled as UTF-8 binaries.
+
+    % The famous "hello world" string
+    "hello world"
+
+    % A string converted to its underlying binary:
+    "hello".to_bin  % => <<[104, 101, 108, 108, 111]>>
+
+    % A string converted to a char list:
+    "hello".to_char_list  % => [104, 101, 108, 108, 111]
+
+    % Strings are UTF-8
+    "Arrow ⇧ up".length  % => 10
+
+This difference is important because strings are the only object that needs conversion between Elixir and Erlang. Erlang methods that expect Strings, actually expect a binary or a list of characters, so you need to convert any Elixir string before passing them to Erlang.
+
+On the other hand, if you receive a String from an Erlang method, you are actually receiving a binary or a list of characters, so you may want to typecast to Elixir's string. Summing up, here are the conversions you need to know:
+
+    % Converting a string_from_erlang to Elixir's String
+    String.new string_from_erlang
+
+    % Where string_from_erlang is either a binary:
+    <<[104, 101, 108, 108, 111]>>
+
+    % Or a char_list:
+    [104, 101, 108, 108, 111]
+
+    % Converting a string_from_elixir to Erlang
+    "string_from_elixir".to_bin
+    "string_from_elixir".to_char_list
+
+Finally, strings also support interpolation:
+
+    "string #{'with} interpolation"  % => "string with interpolation"
+    "1 + 1 = #{1 + 1}"               % => "1 + 1 = 2"
+
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/string.ex>
+
+### Functions
+
+To be written.
+
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/function.ex>
+
+## Variables and Pattern Matching
+
+To be written.
+
+## Strings, Atoms, Regular Expressions, Interpolation and Sigils
+
+In Elixir, we have the following basic types related to Strings:
+
+    % Strings (they are utf8 by default and represented as binaries)
     "string"
-    "string #{1 + 1} interpolation"    % => "string 2 interpolation"
+    "string #{'with} interpolation"    % => "string with interpolation"
 
     % Integer representation of a character
     $a    % => 97
@@ -257,11 +351,14 @@ In Elixir, we have the following basic types composed of a list of characters:
     $\\   % => 92
     $\(   % => 40
 
-    % A string represented as a list of chars (all allow interpolation)
+    % A string represented as a list of chars (all expressions below allow interpolation)
     $"string"    % => [115,116, 114, 105, 110, 103]
     $(string)    % => [115,116, 114, 105, 110, 103]
     $[string]    % => [115,116, 114, 105, 110, 103]
     ${string}    % => [115,116, 114, 105, 110, 103]
+
+    % A binary representing the list of chars above
+    <<[115,116, 114, 105, 110, 103]>>
 
     % Erlang Atoms or Ruby Symbols
     'atom
@@ -296,10 +393,55 @@ All string sigils follow the same set of rules. They start with a ~ followed by 
     ~a"atom without interpolation"
     ~A[atom with interpolation]
 
-    % Another way to create a list of chars
+    % Another way to create a list of chars (to be implemented)
     ~l(string)
     ~L{string with interpolation}
 
-    % A list of words
+    % A list of words (to be implemented)
     ~w(foo bar baz)        % => ["foo", "bar", "baz"]
     ~W{foo #{'bar} baz}    % => ["foo", "bar", "baz"]
+
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/string.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/atom.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/regexp.ex>
+
+## Invoking Erlang Methods
+
+To be written.
+
+## The Object Model
+
+To be written.
+
+### Why Object Orientation?
+
+Imagine that we have a dictionary and we want to represent it as a string in the following format:
+
+    { k1: v1, k2: v2, ... }
+    
+In Elixir, the implementation would be as follow:
+
+    object Dict
+      def to_s
+        transformer = -> (key, value, acc) ["#{key.inspect}: #{value.inspect}"|acc]
+        "{" + fold([], transformer).join(", ") + "}"
+      end
+    end
+
+In Erlang, we would need the following:
+
+    -module(dict).
+
+    to_s(Dict) ->
+      Transformer = fun(Key, Value, Acc) -> [string_format(Key) ++ ": " ++ string_format(Value)|Acc] end,
+      List = dict:fold(Transformer, [], Dict),
+      "{" ++ string:join(List, ", ") ++ "}".
+
+    string_format(Thing) ->
+      lists:flatten(io_lib:format("~p", [Thing])).
+
+The Object Oriented aspect brings several benefits. For example, we don't need to explicitly call `dict:fold()` because the `to_s` method in Elixir is in the `Dict` scope, where the `fold` method is implemented, allowing us to call `fold` directly.
+
+The same applies to calling the function `join`. In Elixir, `join` is a method implemented in the List object, which is returned as result of the `fold` call. So we can simply call `join(", ")` in the List object instead of calling `string:join(List, ", ")` passing the list as argument.
