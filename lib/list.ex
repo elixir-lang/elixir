@@ -4,8 +4,8 @@ object List
   %
   % ## Examples
   %
-  %     [1,2,3] + [4,5,6] %=> [1,2,3,4,5,6]
-  %     [1,2,3] + [1,2,3] %=> [1,2,3,1,2,3]
+  %     [1,2,3] + [4,5,6] % => [1,2,3,4,5,6]
+  %     [1,2,3] + [1,2,3] % => [1,2,3,1,2,3]
   %
   def +(another)
     Erlang.lists.append(self, another)
@@ -23,7 +23,7 @@ object List
   %
   % Returns a new list containing the values returned by the function.
   %
-  %     [1,2,3].map -> (x) x + 1 %=> [2,3,4]
+  %     [1,2,3].map -> (x) x + 1 % => [2,3,4]
   %
   def map(function)
     Erlang.lists.map(function, self)
@@ -81,8 +81,8 @@ object List
   %
   % ## Examples
   %
-  %     [1,2,3].member?(1) %=> true
-  %     [1,2,3].include?(4) %=> false
+  %     [1,2,3].member?(1) % => true
+  %     [1,2,3].include?(4) % => false
   %
   def member?(item)
     Erlang.lists.member(item, self)
