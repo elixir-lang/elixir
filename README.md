@@ -5,7 +5,7 @@ Nothing interesting here yet. Try again later.
 # Roadmap
 
 * Add case/match expressions
-* Add missing types (regexp, ranges, bitstream)
+* Implement missing types on STDLIB
 * Add $"foo" as shortcut to create a list of integers
 * Add generators
 * Add metaprogramming
