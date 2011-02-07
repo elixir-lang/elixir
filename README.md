@@ -17,7 +17,7 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 * Add $"foo" as shortcut to create a list of integers
 * Add generators
 * Add metaprogramming
-* Add partial application, pipeline f1 + f2, and 1#add and Integer##add 
+* Add partial application, pipeline f1 + f2, and 1#add and Integer##add
 * Add _.foo
 * Improve STDLIB
 * Add load paths
@@ -66,7 +66,7 @@ Several operations can also be done in a single expression, obeying the normal p
     (50 * 100) - 490   % => 10
     -(50 * 100) - 490  % => -990
 
-As in Ruby, everything is an object, so we can call methods numbers:
+As in Ruby, everything is an object, so we can call methods on numbers:
 
     -1.abs    % => 1
     5.div(2)  % => 2
@@ -83,7 +83,7 @@ It comes as no surprise that + is also a method:
 
 > #### To be implemented
 >
-> Currently, there is no support to enter numbers in other bases than base 10. This is the current API in Erlang:
+> Currently, there is no support to enter numbers in bases other than base 10. This is the current API in Erlang:
 >
 >     2#101010.  % => 42
 >     8#0677.    % => 447
@@ -105,7 +105,7 @@ Atoms are literals, with their own value as name. An atom 'symbol is an atom 'sy
 
     '"Atom with Spaces"
 
-As in Erlang and Ruby, Atoms are not garbage collected, so remember to not generate atoms dynamically, otherwise you will run out of memory sooner than later.
+As in Erlang and Ruby, Atoms are not garbage collected, so remember to not generate atoms dynamically, otherwise you will run out of memory sooner rather than later.
 
 #### Documentation:
 
@@ -253,7 +253,7 @@ Elixir has a similar syntax to Erlang for handling binaries:
     % Converting a binary to a list
     <<1, 17, 42>>.to_list  % => [1, 17, 42]
 
-Elixir also allows to specify the size for binaries, using the asme syntax as Erlang:
+Elixir also allows to specify the size for binaries, using the same syntax as Erlang:
 
     % A binary with size 4, because we specify that 42 is a 16-bits segment
     <<1, 17, 42:16>>
@@ -299,9 +299,9 @@ Elixir takes a different approach to strings. Strings in Elixir are handled as U
     % Strings are UTF-8
     "Arrow ⇧ up".length  % => 10
 
-This difference is important because strings are the only object that needs conversion between Elixir and Erlang. Erlang methods that expect Strings, actually expect a binary or a list of characters, so you need to convert any Elixir string before passing them to Erlang.
+This difference is important because strings are the only object that needs conversion between Elixir and Erlang. Erlang methods that expect Strings actually expect a binary or a list of characters, so you need to convert any Elixir string before passing them to Erlang.
 
-On the other hand, if you receive a String from an Erlang method, you are actually receiving a binary or a list of characters, so you may want to typecast to Elixir's string. Summing up, here are the conversions you need to know:
+On the other hand, if you receive a String from an Erlang method you are actually receiving a binary or a list of characters, so you may want to typecast to Elixir's string. Summing up, here are the conversions you need to know:
 
     % Converting a string_from_erlang to Elixir's String
     String.new string_from_erlang
@@ -341,7 +341,7 @@ To be written.
 
 In Elixir, we have the following basic types related to Strings:
 
-    % Strings (they are utf8 by default and represented as binaries)
+    % Strings (utf8 by default and represented as binaries)
     "string"
     "string #{'with} interpolation"    % => "string with interpolation"
 
@@ -375,7 +375,7 @@ Besides these basic types, we also have string sigils. Here is one example:
     ~r[regexp]
     ~r{regexp}
     ~r"regexp"
-    
+
     %% With interpolation
     %% It also accepts [], {} and "" as separators as above
     ~R(regexp #{1 + 1} interpolation)
@@ -422,10 +422,10 @@ This section will discuss Elixir's Object Model. Its main aspects are:
 
 ### Why Objects?
 
-Elixir's Object Model focus on method dispatching. Imagine that we have a dictionary and we want to represent it as a string in the following format:
+Elixir's Object Model focuses on method dispatching. Imagine that we have a dictionary and we want to represent it as a string in the following format:
 
     { k1: v1, k2: v2, ... }
-    
+
 In Elixir, the implementation would be as follow:
 
     object Dict
@@ -449,7 +449,7 @@ In Erlang, we would need the following:
 
 The Object Oriented aspect brings several benefits. For example, we don't need to explicitly call `dict:fold()` because the `to_s` method in Elixir is in the `Dict` scope, where the `fold` method is implemented, allowing us to call `fold` directly.
 
-The same applies to calling the function `join`. In Elixir, `join` is a method implemented in the List object, which is returned as result of the `fold` call. So we can simply call `join(", ")` in the List object instead of calling `string:join(List, ", ")` passing the list as argument.
+The same applies to calling the function `join`. In Elixir, `join` is a method implemented in the List object, which is returned as a result of the `fold` call. So we can simply call `join(", ")` in the List object instead of calling `string:join(List, ", ")` passing the list as argument.
 
 ### How does it work?
 
