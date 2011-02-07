@@ -94,6 +94,14 @@ object List
   end
   alias_local 'filter, 'select, 1
 
+  % Deletes an item from the list. If there is more than one
+  % occurence of the item in the list just the first one is deleted.
+  %
+  % ## Examples
+  %
+  %     [1,2,3].delete(2)   % => [1,3]
+  %     [1,2,1,3].delete(1) % => [2,1,3]
+  %
   def delete(item)
     Erlang.lists.delete(item, self)
   end

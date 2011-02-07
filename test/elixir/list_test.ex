@@ -55,4 +55,15 @@ object ListTest
     [] = [].tail
   end
 
+  def delete_test
+    x = [6,8,4,9]
+    [6,8,4] = x.delete(9)
+    [6,8,9] = x.delete(4)
+  end
+
+  def delete_with_duplicates_test
+    x = [6,8,6,4,9]
+    [8,6,4,9] = x.delete(6)
+  end
+
 end
