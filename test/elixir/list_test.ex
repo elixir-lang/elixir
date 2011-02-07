@@ -33,7 +33,7 @@ object ListTest < ExUnit::Case
 
   def each_returns_self_test
     list = [1,2,3]
-    each_returns = list.each -> (x) true = list.include?(x)
+    each_returns = list.each -> (x) x
     list = each_returns
   end
 
