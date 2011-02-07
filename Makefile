@@ -14,6 +14,8 @@ PARSER_BASE_NAME=elixir
 LEXER_NAME=$(PARSER_BASE_NAME)_lexer
 PARSER_NAME=$(PARSER_BASE_NAME)_parser
 
+.PHONY: test test_erlang test_elixir clean
+
 compile: ebin
 
 ebin: src/*
@@ -49,7 +51,7 @@ test: compile
 	@ make test_elixir
 
 clean:
-	rm -f $(SOURCE_DIR)/$(LEXER_NAME).erl
-	rm -f $(SOURCE_DIR)/$(PARSER_NAME).erl
-	rm -f $(EBIN_DIR)/*.beam
-	rm -f $(TEST_EBIN_DIR)/*.beam
+	@ rm -f $(SOURCE_DIR)/$(LEXER_NAME).erl
+	@ rm -f $(SOURCE_DIR)/$(PARSER_NAME).erl
+	@ rm -f $(EBIN_DIR)/*.beam
+	@ rm -f $(TEST_EBIN_DIR)/*.beam
