@@ -23,8 +23,21 @@ object List
     Erlang.lists.map(function, self)
   end
 
+  % Calls function once for each element in the list, passing that
+  % element as a parameter.
+  %
+  % Returns self.
+  %
+  % ## Examples
+  %
+  %     [1,2,3].each -> (x) do_something(x)
+  %     [1,2,3].each do (x)
+  %       do_something_else(x)
+  %     end
+  %
   def each(function)
     Erlang.lists.foreach(function, self)
+    self
   end
 
   % Returns true if the given item exists in the array.
