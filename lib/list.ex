@@ -1,4 +1,12 @@
 object List
+  % Returns a new list with the contents of the
+  % current list and the other list.
+  %
+  % ## Examples
+  %
+  %     [1,2,3] + [4,5,6] %=> [1,2,3,4,5,6]
+  %     [1,2,3] + [1,2,3] %=> [1,2,3,1,2,3]
+  %
   def +(another)
     Erlang.lists.append(self, another)
   end
