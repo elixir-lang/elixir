@@ -1,6 +1,14 @@
 # Elixir
 
-Nothing interesting here yet. Try again later.
+Elixir is a programming language built on top of Erlang. As Erlang, it is a functional language with strict evaluation, single assignment and dynamic typing built to support distributed, fault-tolerant, non-stop applications with hot swapping. Elixir allows you to invoke Erlang modules without a need to convert data types, therefore there is no hit in performance when invoking existing Erlang code.
+
+The main difference between Elixir and Erlang is syntax and object orientation. Elixir provides a very simple Object Model based on prototype languages with most of its syntax based on Ruby.
+
+# Usage
+
+Elixir is not ready for use yet, though this milestone will be achieved soon. If you want to contribute to Elixir, you can do that by cloning the repository and running ``make test``.
+
+The tests are organized in two directories: `test/erlang` and `test/elixir`. The first are written in Erlang and the second in Elixir. Much of Elixir's standard library is written in Elixir and tested in Elixir. This makes fairly easy to improve the language.
 
 # Roadmap
 
@@ -18,6 +26,66 @@ Nothing interesting here yet. Try again later.
 * Add method cache table
 * Allow classes to be reopened
 * Improve constant lookup
+
+# Learning Elixir
+
+This is a basic introduction into Elixir basic objects and object model. Some sections have a paragraph called "To be implemented", they represent parts of Elixir that was not implemented yet and that are under discussion.
+
+This introduction borrowed its guidelines from [Learn You Some Erlang](http://learnyousomeerlang.com/), a great resource to learn Erlang which will be referenced several times during this introduction.
+
+## Basic Types
+
+### Numbers
+
+Elixir supports both Integer and Floats:
+
+    2 + 15       % => 17
+    - 13 * 10    % => 130
+    1986 - 1985  % => 1
+    5 / 2        % => 2.5
+    4 / 2        % => 2.0
+
+Notice that, as Erlang, "/" always returns a Float. If you want to have integer-to-integer division and the modulo operator, you should use `div` and `rem`:
+
+    5 div 2  % => 2
+    5 rem 2  % => 1
+
+Several operations can also be done in a single expression, obeying the normal precedence rules:
+
+    50 * 100 - 490     % => 10
+    (50 * 100) - 490   % => 10
+    -(50 * 100) - 490  % => -990
+
+As in Ruby, everything is an object, so we can call methods numbers:
+
+    -1.abs    % => 1
+    5.div(2)  % => 2
+
+It comes as no surprise that + is also a method:
+
+    1.+(2)  % => 3 
+
+> #### To be implemented
+>
+> Currently, there is no support to enter numbers in other bases than base 10. This is the current API in Erlang:
+>
+>     2#101010.  % => 42
+>     8#0677.    % => 447
+>     16#AE.     % => 174
+
+### Atoms
+
+Elixir also has Atoms, called Symbols in other languages like Ruby. Although its syntax was borrowed from Lisp:
+
+    'atom
+    'Atom
+    'atom_without_spaces
+
+Atoms are literals, with their own value as name. An atom 'symbol is an atom 'symbol everywhere, with exactly the same value. Atoms start with a single quote and should not have spaces (spaces delimit the atom end). Atoms with spaces are represented by wrapping them in quotes:
+
+    '"Atom with Spaces"
+
+As in Erlang and Ruby, Atoms are not garbage collected, so remember to not generate atoms dynamically, otherwise you will run out of memory sooner than later.
 
 # Examples
 
