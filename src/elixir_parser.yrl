@@ -46,6 +46,7 @@ Nonterminals
   base_identifier
   ivar
   break
+  then_break
   match_op
   unary_op
   add_op
@@ -65,7 +66,7 @@ Nonterminals
   .
 
 Terminals
-  punctuated_identifier identifier float integer constant
+  punctuated_identifier identifier float integer constant then
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   div rem module object 'do' 'end' def eol Erlang true false
   if elsif else unless filename
@@ -260,6 +261,7 @@ base_identifier -> module : { identifier, ?line('$1'), module }.
 base_identifier -> object : { identifier, ?line('$1'), object }.
 base_identifier -> div : { identifier, ?line('$1'), 'div' }.
 base_identifier -> rem : { identifier, ?line('$1'), 'rem' }.
+base_identifier -> then : { identifier, ?line('$1'), 'then' }.
 base_identifier -> '_' : { identifier, ?line('$1'), '_' }.
 
 % ivar
@@ -320,12 +322,12 @@ base_expr -> filename : '$1'.
 if_expr -> if_elsif_clauses 'end' : build_if_expr('$1').
 if_expr -> if_elsif_clauses else_clause 'end' : build_if_expr('$1', '$2').
 
-if_clause -> 'if' expr break expr_list : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
-if_clause -> 'unless' expr break expr_list : { 'if_clause', ?line('$1'), false, '$2', '$4' }.
+if_clause -> 'if' expr then_break expr_list : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
+if_clause -> 'unless' expr then_break expr_list : { 'if_clause', ?line('$1'), false, '$2', '$4' }.
 
 elsif_clauses -> elsif_clause elsif_clauses : ['$1'|'$2'].
 elsif_clauses -> elsif_clause : ['$1'].
-elsif_clause  -> elsif expr break expr_list : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
+elsif_clause  -> elsif expr then_break expr_list : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
 
 if_elsif_clauses -> if_clause : ['$1'].
 if_elsif_clauses -> if_clause elsif_clauses : ['$1'|'$2'].
@@ -359,6 +361,10 @@ number -> integer : '$1'.
 % Break
 break -> eol : '$1'.
 break -> ';' : { eol, ?line('$1') }.
+
+% Then break
+then_break -> break : '$1'.
+then_break -> then : '$1'.
 
 % Match operator
 match_op -> '=' : '$1'.
@@ -417,6 +423,7 @@ method_name -> method_ops_identifier : { identifier, ?line('$1'), ?op('$1') }.
 
 implicit_method_ops_identifier -> div : '$1'.
 implicit_method_ops_identifier -> rem : '$1'.
+implicit_method_ops_identifier -> then : '$1'.
 
 method_ops_identifier -> '+' : '$1'.
 method_ops_identifier -> '-' : '$1'.

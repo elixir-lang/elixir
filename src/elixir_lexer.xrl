@@ -204,6 +204,7 @@ reserved_word('if')        -> true;
 reserved_word('elsif')     -> true;
 reserved_word('else')      -> true;
 reserved_word('unless')    -> true;
+reserved_word('then')      -> true;
 % reserved_word('and')     -> true;
 % reserved_word('or')      -> true;
 % reserved_word('not')     -> true;
