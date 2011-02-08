@@ -24,7 +24,7 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 * Add JIT on module compilation
 * Extending builtin types (like inheriting from Integer)
 * Add method cache table
-* Allow classes to be reopened
+* Allow object definitions to be reopened or to copy from another object
 * Improve constant lookup
 
 # Learning Elixir
@@ -327,7 +327,83 @@ Finally, strings also support interpolation:
 
 ### Functions
 
-To be written.
+Functions are an important aspect of Elixir, like in any functional programming language. Functions are created in Elixir with the keywords `->` or `do`:
+
+    my_function = do
+      1 + 2
+    end
+
+    my_function() % => 3
+
+    another_function = ->
+      1 * 2
+    end
+
+    another_function() % => 2
+
+Some functions expect arguments:
+
+    my_function = do (x, y)
+      x + y
+    end
+
+    my_function(1, 2) % => 3
+
+    another_function = -> (x, y)
+      x * y
+    end
+
+    another_function(1, 2) % => 2
+
+You can also represent functions in one line, without a need for the closing keyword `end`:
+
+    my_function = do (x, y) x + y
+    my_function(1, 2) % => 3
+
+    another_function = -> (x, y) x * y
+    another_function(1, 2) % => 2
+
+Notice that, whenever using one-line functions, if you need parenthesis inside the expression, you are required to give empty parenthesis arguments, for example:
+
+    % This works as expected:
+    my_function = -> 1 + 2
+    my_function() % => 3
+
+    % This won't work and it raises a syntax error
+    my_function = -> (1 + 2)
+
+    % This works as well:
+    my_function = -> () (1 + 2)
+
+In the second case, it is ambiguous if the parenthesis is part of the argument list or the function expressions. This is why you either need to remove parenthesis (as in the first example) or add empty parenthesis (as in the third example). This syntax quickly proves to be very convenient:
+
+    [1,2,3].map(-> (x) x * 2)   % => [2,4,6]
+
+In the example above, we are calling .map passing a function as argument. If we remove the optional parenthesis:
+
+    [1,2,3].map -> (x) x * 2   % => [2,4,6]
+
+Other examples using the multiline syntax:
+
+    [1,2,3].foldl(0, do (x, acc)
+      acc + x
+    end) % => 6
+
+Again, removing the parenthesis, improves readability:
+
+    [1,2,3].foldl 0, do (x, acc)
+      acc + x
+    end % => 6
+
+One final note is, while parenthesis are optional for method invocations, function invocations *always* require parenthesis:
+
+    my_function = -> (x, y) x + y
+
+    % This won't work and will raise undefined method my_function
+    my_function 1, 2
+
+    % This works
+    my_function(1, 2)
 
 #### Documentation
 
@@ -336,6 +412,8 @@ To be written.
 ## Variables and Pattern Matching
 
 To be written.
+
+## if/else and case/match
 
 ## Strings, Atoms, Regular Expressions, Interpolation and Sigils
 
