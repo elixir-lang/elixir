@@ -94,7 +94,7 @@ object Object
     end
 
     % Set the following methods to private.
-    Erlang.elixir_object_methods.set_visibility(self, 'private)
+    Erlang.elixir_module_methods.set_visibility(self, 'private)
 
     def filter_stacktrace({ 'EXIT, { reason, stacktrace } })
       regexp = ~r(^[A-Z])

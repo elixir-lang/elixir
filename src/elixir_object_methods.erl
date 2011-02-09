@@ -3,8 +3,7 @@
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, data/1,
   get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1,
-  get_visibility/1, set_visibility/2, alias_local/5, function_catch/1,
-  abstract_methods/1, abstract_public_methods/1, abstract_protected_methods/1,
+  function_catch/1, abstract_methods/1, abstract_public_methods/1, abstract_protected_methods/1,
   public_proto_methods/1]).
 -include("elixir.hrl").
 
@@ -49,20 +48,6 @@ function_catch(Function) ->
 
 %% PROTECTED API
 
-set_visibility(#elixir_object{name=Name, data=Data}, Visibility) when is_atom(Data) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
-  ets:insert(MethodTable, { visibility, Visibility });
-
-set_visibility(Self, Visibility) ->
-  elixir_errors:raise(badarg, "cannot change visibility of defined object").
-
-get_visibility(#elixir_object{name=Name, data=Data}) when is_atom(Data) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
-  ets:lookup_element(MethodTable, visibility, 2);
-
-get_visibility(Self) ->
-  [].
-
 get_ivar(Self, Name) when not is_atom(Name) ->
   elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~ts", [inspect(Name)]);
 
@@ -88,22 +73,8 @@ set_ivar(#elixir_object{data=Data} = Self, Name, Value) when is_atom(Data) ->
 set_ivar(#elixir_object{data=Dict} = Self, Name, Value) ->
   set_ivar_dict(Self, Name, Value, Dict);
 
-% TODO Cannot set ivar on native types.
-set_ivar(Self, Name, Value) ->
+set_ivar(Self, Name, Value) -> % TODO Cannot set ivar on native types.
   Self.
-
-alias_local(#elixir_object{name=Name, data=Data} = Self, Filename, Old, New, ElixirArity) when is_atom(Data) ->
-  Arity = ElixirArity + 1,
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
-  case ets:lookup(MethodTable, { Old, Arity }) of
-    [{{Old, Arity}, Line, Clauses}] ->
-      elixir_object:store_wrapped_method(Name, Filename, {function, Line, New, Arity, Clauses});
-    [] ->
-      elixir_errors:raise(nomethod, "No local method ~s/~w in ~s", [Old, Arity, Name])
-  end;
-
-alias_local(_, _, _, _, _) ->
-  elixir_errors:raise(badarg, "cannot alias local method outside object definition scope").
 
 public_proto_methods(Self) ->
   calculate_methods(fun abstract_public_methods/1, protos(Self), []).
