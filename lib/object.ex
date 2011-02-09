@@ -31,14 +31,113 @@ object Object
       Erlang.elixir_object_methods.parent(self)
     end
 
+    % Returns a list of atoms representing all mixins for the current object.
+    % The mixins chain is retrieved by getting the current object mixins and
+    % appending all protos from its parents.
+    %
+    % ## Example
+    %
+    % Imagine the following definition:
+    %
+    %     object Foo
+    %       mixin SomeMethods
+    %       proto MoreMethods
+    %     end
+    %
+    % The mixins chain for Foo is:
+    %
+    %     Foo.__mixins__  % => ['SomeMethods, 'Object::Methods]
+    %
+    % Where `SomeMethods` is a module mixed into `Foo` and the `Object::Methods`
+    % is a module added as proto on `Foo` parent, which is the object `Object`:
+    %
+    %     Foo.__parent__  % => 'Object
+    %
+    % The mixins for `Foo.new` are these:
+    %
+    %     Foo.new.__mixins__ %=> ['MoreMethods, 'Object::Methods]
+    %
+    % Where `MoreMethods` is a module added as proto to `Foo.new` parent (which is `Foo`)
+    % and `Object::Methods` is a proto on `Foo.new` grandparent (which is `Object`).
+    %
+    % If we added a mixin to `Foo.new`, we would have the following result:
+    %
+    %     Foo.new.mixin(MuchMoreMethods).__mixins__ %=> ['MuchMoreMethods, 'MoreMethods, 'Object::Methods]
+    %
+    % In other words, calculating the mixins chain is as simple as:
+    %
+    %     [self.exclusive_mixins, self.parent.exclusive_protos, self.parent.parent.exclusive_protos, ...]
+    %
+    % Until parent becomes empty (`Object` is the only object that does not have a parent).
+    %
+    % Notice that we don't have methods called `exclusive_mixins` and `exclusive_protos`,
+    % they are mentioned just as examples.
+    %
+    % == Mixins inside object definitions
+    %
+    % In Elixir, all methods are carried in modules. Regular objects does not have methods per-se.
+    % However, for convenience, Elixir allows you to define methods inside the object definition:
+    %
+    %     object Foo
+    %       def bar
+    %         'baz
+    %       end
+    %     end
+    %
+    % What happens internally is that Elixir automatically creates a module named `Foo::Proto`
+    % and automatically adds it as `Foo` proto. In order for this to work properly, Elixir
+    % adds `Module::Methods` as mixin during the object definition, but it is removed from
+    % the mixins chain after the object is defined:
+    %
+    %     object Foo
+    %       __mixins__   % => ['Module::Methods, 'Object::Methods]
+    %     end
+    %
+    %     Foo.__mixins__ % => ['Object::Methods]
+    %
     def __mixins__
       Erlang.elixir_object_methods.mixins(self)
     end
 
+    % Returns a list of atoms representing all proto for the current object.
+    % The mixins chain is retrieved by getting the current object protos and
+    % appending all protos from its parents.
+    %
+    % ## Example
+    %
+    % Imagine the following definition:
+    %
+    %     object Foo
+    %       mixin SomeMethods
+    %       proto MoreMethods
+    %     end
+    %
+    % The protos chain for Foo is:
+    %
+    %     Foo.__protos__  % => ['MoreMethods, 'Object::Methods]
+    %     Foo.new.__protos__  % => ['MoreMethods, 'Object::Methods]
+    %
+    % The lookup for protos happens in a similar fashion to mixins:
+    %
+    %     [self.exclusive_protos, self.parent.exclusive_protos, self.parent.parent.exclusive_protos, ...]
+    %
+    % Read the documentation for `__mixins__` for more information.
     def __protos__
       Erlang.elixir_object_methods.protos(self)
     end
 
+    % Returns a `Dict` with all variable names and values as its key-values.
+    %
+    % ## Example
+    %
+    %     object Foo
+    %       def constructor
+    %         { 'bar: 1, 'baz: 2 }
+    %       end
+    %     end
+    %
+    %     Foo.new.__ivars__ % => { 'bar: 1, 'baz: 2 }
+    %
     def __ivars__
       Dict.new Erlang.elixir_object_methods.data(self)
     end
