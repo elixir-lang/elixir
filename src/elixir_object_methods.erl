@@ -26,16 +26,23 @@ mixin(Self, Value) -> prepend_as(Self, mixins, Value).
 proto(Self, Value) when is_list(Value) -> [proto(Self, Item) || Item <- Value];
 proto(Self, Value) -> prepend_as(Self, protos, Value).
 
-name(Self)   -> object_name(Self).
-parent(Self) -> object_parent(Self).
+% Reflections
+
+name(Self)      -> object_name(Self).
+parent(Self)    -> object_parent(Self).
+protos(Self)    -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
+data(Self)      -> object_data(Self).
+ancestors(Self) -> lists:reverse(r_ancestors(Self)).
+
+% Mixins reflection. If we are creating an object (i.e. Data is an atom),
+% we hardcode "Module::Methods" to the object mixins so we can define methods
+% inside the object body.
+mixins(#elixir_object{data=Data} = Self) when is_atom(Data) ->
+  apply_chain(object_mixins(Self), ['Module::Methods'|traverse_chain(r_ancestors(Self), [])]);
 mixins(Self) ->
   apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), [])).
-protos(Self) ->
-  apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
-data(Self) -> object_data(Self).
 
-ancestors(Self) ->
-  lists:reverse(r_ancestors(Self)).
+% Methods available to all objects
 
 function_catch(Function) ->
   catch Function().

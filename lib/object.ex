@@ -77,22 +77,6 @@ object Object
       Erlang.elixir_object_methods.set_ivar(self, name, value)
     end
 
-    def public
-      Erlang.elixir_object_methods.set_visibility(self, 'public)
-    end
-
-    def protected
-      Erlang.elixir_object_methods.set_visibility(self, 'protected)
-    end
-
-    def private
-      Erlang.elixir_object_methods.set_visibility(self, 'private)
-    end
-
-    def alias_local(old, new, arity)
-      Erlang.elixir_object_methods.alias_local(self, __FILE__, old, new, arity)
-    end
-
     def __public_proto_methods__
       Erlang.elixir_object_methods.public_proto_methods(self)
     end
