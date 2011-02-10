@@ -199,7 +199,7 @@ added_as_proto_callback_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
 
-%% Visibility
+%% Module Methods
 
 can_retrieve_visibility_test() ->
   F = fun() ->
@@ -219,3 +219,17 @@ can_retrieve_public_proto_methods_test() ->
     true = lists:member({alias_local, 3}, List)
   end,
   test_helper:run_and_remove(F, ['ModuleTestProtos']).
+
+can_define_any_attribute_test() ->
+  F = fun() ->
+    elixir:eval("module Foo; define_attribute('foo, 'bar); end"),
+    [bar] = proplists:get_value(foo, 'Foo':module_info(attributes))
+  end,
+  test_helper:run_and_remove(F, ['Foo']).
+
+can_define_a_behavior_test() ->
+  F = fun() ->
+    {bar,[]} = elixir:eval("module Foo; define_attribute('behavior, 'bar); __behavior__; end"),
+    {bar,[]} = elixir:eval("Foo.__behavior__")
+  end,
+  test_helper:run_and_remove(F, ['Foo']).

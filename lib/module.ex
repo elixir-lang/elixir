@@ -1,5 +1,9 @@
 object Module
   module Methods
+    def __behavior__
+      Erlang.elixir_module_methods.behavior(self)
+    end
+
     % Set the following methods to protected.
     Erlang.elixir_module_methods.set_visibility(self, 'protected)
 
@@ -54,6 +58,14 @@ object Module
 
     def alias_local(old, new, arity)
       Erlang.elixir_module_methods.alias_local(self, __FILE__, old, new, arity)
+    end
+
+    % Define an attribute for the Erlang compiled module.
+    %
+    % This is not meant to be generally used, but only for libraries
+    % intending to improve Elixir integration with Erlang.
+    def define_attribute(key, value)
+      Erlang.elixir_module_methods.define_attribute(self, key, value)
     end
   end
 
