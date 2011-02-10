@@ -199,3 +199,23 @@ added_as_proto_callback_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
 
+%% Visibility
+
+can_retrieve_visibility_test() ->
+  F = fun() ->
+    {private,[]} = elixir:eval("module Foo; private; __visibility__; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo']).
+
+can_retrieve_mixins_without_duplication_test() ->
+  F = fun() ->
+    {['Foo', 'Module::Methods', 'Object::Methods'],[]} = elixir:eval("module Foo; __mixins__; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo']).
+
+can_retrieve_public_proto_methods_test() ->
+  F = fun() ->
+    {List,[]} = elixir:eval("module ModuleTestProtos; __public_proto_methods__; end"),
+    true = lists:member({alias_local, 3}, List)
+  end,
+  test_helper:run_and_remove(F, ['ModuleTestProtos']).

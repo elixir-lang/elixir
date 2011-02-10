@@ -36,7 +36,7 @@ ancestors(Self) -> lists:reverse(r_ancestors(Self)).
 % Mixins reflection. If we are creating an object (i.e. Data is an atom),
 % we hardcode "Module::Methods" to the object mixins so we can define methods
 % inside the object body.
-mixins(#elixir_object{data=Data} = Self) when is_atom(Data) ->
+mixins(#elixir_object{parent=Parent, data=Data} = Self) when is_atom(Data), Parent /= 'Module' ->
   apply_chain(object_mixins(Self), ['Module::Methods'|traverse_chain(r_ancestors(Self), [])]);
 mixins(Self) ->
   apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), [])).
@@ -77,9 +77,17 @@ set_ivar(Self, Name, Value) -> % TODO Cannot set ivar on native types.
   Self.
 
 public_proto_methods(Self) ->
-  calculate_methods(fun abstract_public_methods/1, protos(Self), []).
+  calculate_methods(Self, fun abstract_public_methods/1, protos(Self), []).
 
 % HELPERS
+
+% If we are defining a module, we need to remove itself from the given
+% List as the module was not defined in Erlang system yet.
+calculate_methods(#elixir_object{name=Name,parent=Parent,data=Data}, Fun, List, Acc) when is_atom(Data), Parent == 'Module' ->
+  calculate_methods(Fun, lists:delete(Name, List), Acc);
+
+calculate_methods(_Self, Fun, List, Acc) ->
+  calculate_methods(Fun, List, Acc).
 
 calculate_methods(Fun, [], Acc) ->
   Acc;
