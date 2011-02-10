@@ -1,4 +1,4 @@
-% Holds all methods required to bootstrap the object model.
+% Holds all runtime methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, data/1,
@@ -29,17 +29,10 @@ proto(Self, Value) -> prepend_as(Self, proto, Value).
 
 name(Self)      -> object_name(Self).
 parent(Self)    -> object_parent(Self).
+mixins(Self)    -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), [])).
 protos(Self)    -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
 data(Self)      -> object_data(Self).
 ancestors(Self) -> lists:reverse(r_ancestors(Self)).
-
-% Mixins reflection. If we are creating an object (i.e. Data is an atom),
-% we hardcode "Module::Methods" to the object mixins so we can define methods
-% inside the object body.
-mixins(#elixir_object{parent=Parent, data=Data} = Self) when is_atom(Data), Parent /= 'Module' ->
-  apply_chain(object_mixins(Self), ['Module::Methods'|traverse_chain(r_ancestors(Self), [])]);
-mixins(Self) ->
-  apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), [])).
 
 % Methods available to all objects
 

@@ -1,5 +1,5 @@
 -module(elixir_object).
--export([build/1, scope_for/2, transform/6, compile/7, wrap_method_definition/4, store_wrapped_method/3]).
+-export([build/1, scope_for/2, transform/6, compile/7]).
 -include("elixir.hrl").
 
 %% EXTERNAL API
@@ -30,12 +30,11 @@ build_template(Kind, Name, Template) ->
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(AttributeTable, [set, named_table, private]),
 
-  ets:insert(AttributeTable, { parent, Parent }),
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
   ets:insert(AttributeTable, { data,   Data }),
 
-  Object = #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos, data=AttributeTable},
+  Object = #elixir_object{name=Name, parent=Parent, mixins=[], protos=[], data=AttributeTable},
   { Object, AttributeTable }.
 
 % Returns the parent object based on the declaration.
@@ -44,18 +43,19 @@ default_parent(object, _Name) -> 'Object';
 default_parent(module, _Name) -> 'Module'.
 
 % Default mixins based on the declaration type.
-default_mixins(_, 'Object', _Template)  -> ['Object::Methods'];           % object Object
-default_mixins(_, 'Module', _Template)  -> ['Module::Methods'];           % object Module
-default_mixins(object, _Name, [])       -> [];                            % object Post
-default_mixins(object, _Name, Template) -> Template#elixir_object.mixins; % object SimplePost from Post
-default_mixins(module, Name, _Template) -> [Name].                        % module Numeric
+default_mixins(_, 'Object', _Template)  -> ['Object::Methods']; % object Object
+default_mixins(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
+default_mixins(object, _Name, [])       -> ['Module::Methods']; % object Post
+default_mixins(module, Name, _Template) -> [Name];              % module Numeric
+default_mixins(object, _Name, Template) ->                      % object SimplePost from Post
+  Template#elixir_object.mixins ++ ['Module::Methods'].
 
 % Default prototypes. Modules have themselves as the default prototype.
 default_protos(_, 'Object', _Template)  -> ['Object::Methods'];           % object Object
 default_protos(_, 'Module', _Template)  -> ['Module::Methods'];           % object Module
 default_protos(object, _Name, [])       -> [];                            % object Post
-default_protos(object, _Name, Template) -> Template#elixir_object.protos; % object SimplePost from Post
-default_protos(module, Name, _Template) -> [Name].                        % module Numeric
+default_protos(module, Name, _Template) -> [Name];                        % module Numeric
+default_protos(object, _Name, Template) -> Template#elixir_object.protos. % object SimplePost from Post
 
 % Returns the default data from parents.
 default_data([])       -> dict:new();
@@ -113,7 +113,7 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
 % TODO Do not allow module reopening.
 compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
   Name = Object#elixir_object.name,
-  Functions = unwrap_stored_methods(MethodTable),
+  Functions = elixir_methods:unwrap_stored_methods(MethodTable),
   load_form(build_erlang_form(Line, Object, Functions), Filename),
   add_implicit_mixins(Current, Name);
 
@@ -141,83 +141,6 @@ add_implicit_mixins(#elixir_object{name=Name} = Self, ModuleName) ->
 
 add_implicit_mixins(_, _) -> [].
 
-% Wraps the method into a call that will call store_wrapped_method
-% once the method definition is read. The method is compiled into a
-% meta tree to ensure we will receive the full method.
-%
-% We need to wrap methods instead of eagerly defining them to ensure
-% functions inside if branches won't propagate, for example:
-%
-%   module Foo
-%     if false
-%       def bar; 1; end
-%     else
-%       def bar; 2; end
-%     end
-%   end
-%
-% If we just analyzed the compiled structure (i.e. the method availables
-% before evaluating the method body), we would see both definitions.
-wrap_method_definition(Name, Line, Filename, Method) ->
-  Meta = erl_syntax:revert(erl_syntax:abstract(Method)),
-  Content = [{atom, Line, Name}, {string, Line, Filename}, Meta],
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
-
-% Gets a module stored in the CompiledTable with Index and
-% move it to the AddedTable.
-store_wrapped_method(Module, Filename, {function, Line, Name, Arity, Clauses}) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
-  Visibility = ets:lookup_element(MethodTable, visibility, 2),
-
-  FinalClauses = case ets:lookup(MethodTable, {Name, Arity}) of
-    [{{Name, Arity}, FinalLine, OtherClauses}] ->
-      check_valid_visibility(Line, Filename, Name, Arity, Visibility, MethodTable),
-      [hd(Clauses)|OtherClauses];
-    [] ->
-      add_visibility_entry(Name, Arity, Visibility, MethodTable),
-      FinalLine = Line,
-      Clauses
-  end,
-  ets:insert(MethodTable, {{Name, Arity}, FinalLine, FinalClauses}).
-
-% Helper to unwrap the methods stored in the methods table. It also returns
-% a list of methods to be exported with all protected methods.
-unwrap_stored_methods(Table) ->
-  Public    = ets:lookup_element(Table, public, 2),
-  Protected = ets:lookup_element(Table, protected, 2),
-  ets:delete(Table, visibility),
-  ets:delete(Table, public),
-  ets:delete(Table, protected),
-  { Public ++ Protected, Protected, ets:foldl(fun unwrap_stored_methods/2, [], Table) }.
-
-unwrap_stored_methods({{Name, Arity}, Line, Clauses}, Acc) ->
-  [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
-
-% Check the visibility of the method with the given Name and Arity in the attributes table.
-add_visibility_entry(Name, Arity, private, Table) ->
-  [];
-
-add_visibility_entry(Name, Arity, Visibility, Table) ->
-  Current= ets:lookup_element(Table, Visibility, 2),
-  ets:insert(Table, {Visibility, [{Name, Arity}|Current]}).
-
-check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
-  Available = [public, protected, private],
-  PrevVisibility = find_visibility(Name, Arity, Available, Table),
-  case Visibility == PrevVisibility of
-    false -> format_warning(Filename, {Line, ?MODULE, {changed_visibility, Name, PrevVisibility}});
-    true -> []
-  end.
-
-find_visibility(Name, Arity, [H|[]], Table) ->
-  H;
-
-find_visibility(Name, Arity, [Visibility|T], Table) ->
-  List = ets:lookup_element(Table, Visibility, 2),
-  case lists:member({Name, Arity}, List) of
-    true  -> Visibility;
-    false -> find_visibility(Name, Arity, T, Table)
-  end.
 
 % Retrieve all attributes in the attribute table and generate
 % an Erlang Abstract Form that defines an Erlang module.
@@ -226,11 +149,18 @@ build_erlang_form(Line, Object) ->
 
 build_erlang_form(Line, Object, {Export, Protected, Functions}) ->
   Name = Object#elixir_object.name,
+  Parent = Object#elixir_object.parent,
   AttrTable = Object#elixir_object.data,
-  Attrs = ets:tab2list(AttrTable),
-  Transform = fun(X, Acc) -> [{attribute, Line, element(1, X), element(2, X)}|Acc] end,
-  Base = lists:foldr(Transform, Functions, Attrs),
-  [{attribute, Line, module, Name}, {attribute, Line, export, Export}, {attribute, Line, protected, Protected} | Base].
+  Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
+  Base = ets:foldr(Transform, Functions, AttrTable),
+  [{attribute, Line, module, Name}, {attribute, Line, parent, Parent},
+   {attribute, Line, export, Export}, {attribute, Line, protected, Protected} | Base].
+
+transform_attribute(Line, {mixins, List}) ->
+  {attribute, Line, mixins, lists:delete('Module::Methods', List)};
+
+transform_attribute(Line, X) ->
+  {attribute, Line, element(1, X), element(2, X)}.
 
 % Compile and load given forms as an Erlang module.
 load_form(Forms, Filename) ->
@@ -264,10 +194,6 @@ format_warning(Filename, {Line,_,{unused_var,self}}) ->
 
 format_warning(Filename, {Line, _, {unused_function, {Name, Arity}}}) ->
   Message = io_lib:format("unused local method ~s/~w\n", [Name, Arity-1]),
-  io:format(elixir_errors:file_format(Line, Filename, Message));
-
-format_warning(Filename, {Line,_,{changed_visibility,Name,Visibility}}) ->
-  Message = io_lib:format("method ~s already defined with visibility ~s\n", [Name, Visibility]),
   io:format(elixir_errors:file_format(Line, Filename, Message));
 
 format_warning(Filename, {Line,Module,Desc}) ->

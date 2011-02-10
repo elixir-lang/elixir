@@ -1,7 +1,8 @@
+% Holds all runtime methods required to bootstrap modules.
+% These methods are overwritten by their Elixir version later in Module::Methods.
 -module(elixir_module_methods).
 -export([get_visibility/1, set_visibility/2, alias_local/5, define_attribute/3, behavior/1]).
 -include("elixir.hrl").
-
 
 set_visibility(#elixir_object{name=Name, data=Data}, Visibility) when is_atom(Data) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
@@ -22,7 +23,7 @@ alias_local(#elixir_object{name=Name, data=Data} = Self, Filename, Old, New, Eli
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   case ets:lookup(MethodTable, { Old, Arity }) of
     [{{Old, Arity}, Line, Clauses}] ->
-      elixir_object:store_wrapped_method(Name, Filename, {function, Line, New, Arity, Clauses});
+      elixir_methods:store_wrapped_method(Name, Filename, {function, Line, New, Arity, Clauses});
     [] ->
       elixir_errors:raise(nomethod, "No local method ~s/~w in ~s", [Old, Arity, Name])
   end;
