@@ -179,6 +179,12 @@ ivars_at_the_proto_level_test() ->
 
 %% Visibility
 
+can_retrieve_visibility_test() ->
+  F = fun() ->
+    {private,[]} = elixir:eval("object Foo; private; __visibility__; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
+
 private_methods_cannot_be_invoked_test() ->
   F = fun() ->
     elixir:eval("object Foo; private; def foo; 1; end; end"),
