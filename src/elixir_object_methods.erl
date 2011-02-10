@@ -21,9 +21,9 @@ new(#elixir_object{name=Name, protos=Protos} = Self, Args) ->
   Object#elixir_object{data=Dict}.
 
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
-mixin(Self, Value) -> prepend_as(Self, mixins, Value).
+mixin(Self, Value) -> prepend_as(Self, mixin, Value).
 proto(Self, Value) when is_list(Value) -> [proto(Self, Item) || Item <- Value];
-proto(Self, Value) -> prepend_as(Self, protos, Value).
+proto(Self, Value) -> prepend_as(Self, proto, Value).
 
 % Reflections
 
@@ -116,7 +116,8 @@ inspect(Object) ->
 prepend_as(#elixir_object{} = Self, Kind, Value) ->
   Name  = Self#elixir_object.name,
   Table = Self#elixir_object.data,
-  Data  = ets:lookup_element(Table, Kind, 2),
+  TableKind = ?ELIXIR_ATOM_CONCAT([Kind, s]),
+  Data  = ets:lookup_element(Table, TableKind, 2),
   List  = Value#elixir_object.protos,
 
   % If we are adding prototypes and the current name is
@@ -132,7 +133,10 @@ prepend_as(#elixir_object{} = Self, Kind, Value) ->
       Updated = umerge(List, Data)
   end,
 
-  ets:insert(Table, {Kind, Updated}).
+  ets:insert(Table, {TableKind, Updated}),
+
+  % Invoke the appropriate hook.
+  elixir_dispatch:dispatch(true, Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Self]).
 
 % Merge two lists taking into account uniqueness. Opposite to
 % lists:umerge2, does not require lists to be sorted.

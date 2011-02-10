@@ -1,14 +1,14 @@
 -module(module_test).
 -include_lib("eunit/include/eunit.hrl").
 
-module_body_is_executable_test() -> 
+module_body_is_executable_test() ->
   F = fun() ->
     ?assertError({nomethod, _}, elixir:eval("module Foo; a; end")),
     elixir:eval("module Bar; 1 + 2; end")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-module_compiler_precedence_test() -> 
+module_compiler_precedence_test() ->
   ?assertError({badsyntax, _}, elixir:eval("1 + module Foo; end")).
 
 modules_are_converted_into_erlang_modules_test() ->
@@ -182,3 +182,20 @@ local_call_does_not_look_at_outer_modules_test() ->
 
 cannot_lookup_not_stored_constants_test() ->
   ?assertError({badarg, "no constant FooBarBaz defined" }, elixir:eval("FooBarBaz")).
+
+%% Callbacks
+
+added_as_mixin_callback_test() ->
+  F = fun() ->
+    elixir:eval("module Foo; def __added_as_mixin__(base); base.set_ivar('foo, 2); end; end"),
+    {2,[]} = elixir:eval("object Bar; mixin Foo; @foo; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo','Bar']).
+
+added_as_proto_callback_test() ->
+  F = fun() ->
+    elixir:eval("module Foo; def __added_as_proto__(base); base.set_ivar('foo, 2); end; end"),
+    {2,[]} = elixir:eval("object Bar; proto Foo; @foo; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo','Bar']).
+

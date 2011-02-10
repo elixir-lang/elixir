@@ -45,12 +45,14 @@ default_parent(module, _Name) -> 'Module'.
 
 % Default mixins based on the declaration type.
 default_mixins(_, 'Object', _Template)  -> ['Object::Methods'];           % object Object
+default_mixins(_, 'Module', _Template)  -> ['Module::Methods'];           % object Module
 default_mixins(object, _Name, [])       -> [];                            % object Post
 default_mixins(object, _Name, Template) -> Template#elixir_object.mixins; % object SimplePost from Post
 default_mixins(module, Name, _Template) -> [Name].                        % module Numeric
 
 % Default prototypes. Modules have themselves as the default prototype.
 default_protos(_, 'Object', _Template)  -> ['Object::Methods'];           % object Object
+default_protos(_, 'Module', _Template)  -> ['Module::Methods'];           % object Module
 default_protos(object, _Name, [])       -> [];                            % object Post
 default_protos(object, _Name, Template) -> Template#elixir_object.protos; % object SimplePost from Post
 default_protos(module, Name, _Template) -> [Name].                        % module Numeric
