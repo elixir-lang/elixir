@@ -108,7 +108,9 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
 % TODO Do not allow module reopening.
 compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
   Name = Object#elixir_object.name,
-  Functions = elixir_methods:unwrap_stored_methods(MethodTable),
+  { Callbacks, Functions } = elixir_methods:unwrap_stored_methods(MethodTable),
+  Behavior = elixir_module_methods:behavior(Object),
+  compile_callbacks(Behavior, Line, Filename, Object, Callbacks),
   load_form(build_erlang_form(Line, Object, Functions), Filename),
   add_implicit_mixins(Current, Name);
 
@@ -123,6 +125,13 @@ compile_kind(_Kind, Line, Filename, Current, Object, MethodTable) ->
   end,
   load_form(build_erlang_form(Line, Object), Filename).
 
+% Handle callbacks compilation.
+compile_callbacks([], _Line, _Filename, _Object, _Callbacks) -> [];
+compile_callbacks(Behavior, Line, Filename, Object, Callbacks) ->
+  elixir_module_methods:define_erlang_attribute(Object, behavior, elixir_callbacks),
+  Form = elixir_callbacks:build_module_form(Line, Object#elixir_object.name, Behavior, Callbacks),
+  load_form(Form, Filename).
+
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
 add_implicit_mixins(#elixir_object{name=Name} = Self, ModuleName) ->
@@ -135,7 +144,6 @@ add_implicit_mixins(#elixir_object{name=Name} = Self, ModuleName) ->
   end;
 
 add_implicit_mixins(_, _) -> [].
-
 
 % Retrieve all attributes in the attribute table and generate
 % an Erlang Abstract Form that defines an Erlang module.

@@ -65,7 +65,7 @@ object Module
     % This is not meant to be generally used, but only for libraries
     % intending to improve Elixir integration with Erlang.
     def define_attribute(key, value)
-      Erlang.elixir_module_methods.define_attribute(self, key, value)
+      Erlang.elixir_module_methods.define_erlang_attribute(self, key, value)
     end
   end
 
