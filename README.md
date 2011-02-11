@@ -489,17 +489,15 @@ All string sigils follow the same set of rules. They start with a ~ followed by 
 
 Invoking Erlang methods with elixir is quite trivial:
 
-    % Accessing the is_atom BIF.
+    % Accessing the is_atom BIF from Erlang.
     % This is the same as `is_atom(foo)` in Erlang.
     Erlang.is_atom('foo)  % => true
 
-    % Accessing the function delete from lists.
+    % Accessing the function delete from module lists.
     % This is the same as `lists:member(1, [1,2,3])` in Erlang.
     Erlang.lists.member(1, [1,2,3]) % => true
 
-Notice that `Erlang` is not a real object in Elixir, but just a proxy.
-
-## Modules
+Notice that `Erlang` is not a real object in Elixir, but just a proxy that is converted to erlang calls at parse time.
 
 ## The Object Model
 
@@ -540,7 +538,7 @@ In Elixir, everything is an object. Objects carry properties, they don't carry m
     % Creates an instance of this object
     Person.new
 
-In Elixir, modules carry behavior, i.e. methods. All modules are objects, but not all objects are modules. We can define a new module as follow:
+In Elixir, modules carry behavior, i.e. methods. All modules are objects, but not all objects are modules. We can define a new module `Speak` with a method called `say` that receives a message and prints it out as follow:
 
     module Speak
       def say(message)
@@ -685,7 +683,7 @@ Instance variables can be changed using the `set_ivar` method:
       end
 
       def name(value)
-        set_ivar('name, value)
+        self.set_ivar('name, value)
       end
     end
 
@@ -700,7 +698,7 @@ Instance variables can be changed using the `set_ivar` method:
 
 Notice in the example above that `set_ivar` returns a new object. This is expected because as Erlang structures are immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
 
-### The Object Graph
+### Advanced: The Object Graph
 
 One final note about the object model is how instantiation works. When you create an instance from `Person`, it annotates that the parent for that instance is the `Person` object. Let's take a look at it:
 
@@ -745,3 +743,208 @@ Once again, remember:
 * Modules can be either mixed into objects (`mixin`), changing their current behavior...
 * Or added as prototype (`proto`), which will define the behavior of all children/instances from that object;
 * Finally, all modules defined as `proto` in the parent, becomes a `mixin` to the child.
+
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/object.ex>
+
+## Modules
+
+In the Object Model section, we have discussed modules and methods. Modules are very close to Erlang modules and it is important to keep that in mind if you are coming from a language like Ruby.
+
+### Local and remote calls
+
+In Erlang, it is very important to make a difference between local calls and remote calls, as they affect how hot code swapping works. You can read this section from [Learn You Some Erlang](http://learnyousomeerlang.com/designing-a-concurrent-application#hot-code-loving) for more information.
+
+Elixir keeps the same semantics as Erlang and makes a difference between local and remove calls. Let's take a look at some examples:
+
+    module Example
+      def remote_call
+        self.__parent__
+      end
+
+      def local_call
+        remote_call
+      end
+
+      def invalid_local_call
+        __parent__
+      end
+    end
+
+    % Remember the parent for a module is 'Module
+    Example.__parent__   % => 'Module
+    Example.remote_call  % => 'Module
+    Example.local_call   % => 'Module
+
+    % This won't work, in fact, it wouldn't even compile
+    Example.invalid_local_call
+
+In Elixir, every time you invoke a method without an explicit receiver (like `self`), you are making a local call. A local call searches for a method *in the current module* and, if no method exists, a compilation error is raised.
+
+This means that, even though all objects have a `__parent__` method, if you call `__parent__` without an explicit receiver inside a method, it will try to find a local method `__parent__` defined inside the current module. In order to really dispatch a method that goes through all mixins for that object, you need to use `self` as explicit receiver.
+
+Note that this rule applies only expressions inside methods. Take this for example:
+
+    module MoreExamples
+      mixin Something
+    end
+
+Even though `mixin` is a method that comes from `Object`, we can invoke it without an explicit `self`. This doesn't cause conflicts because you can only invoke a method in a module after the module is completely defined. Therefore, this doesn't work:
+
+    module MoreExamples
+      def foo
+        10
+      end
+
+      % Raises no method error
+      foo
+
+      % Raises undefined constant MoreExamples
+      MoreExamples.foo
+    end
+
+Finally, as local calls have the same syntax as variables. If a variable is defined with the same name as method, the variable is given higher preference:
+
+    module AnotherExample
+      def some_value
+        13
+      end
+
+      def value
+        some_value = 11
+        some_value
+      end
+    end
+
+    AnotherExample.value  % => 11
+
+### Method Visibility
+
+Now that we know the difference between local and remote calls we can take a better look at method visibility. Elixir provides three different visibilities: *public*, *protected* and *private*. All methods are public by default, this means that a method can be called from anywhere, at any time:
+
+    module Example
+      def public_method
+        13
+      end
+
+      def calling_public_method
+        public_method
+      end
+
+      def calling_public_method2
+        self.public_method
+      end
+    end
+
+    Example.public_method           % => 13
+    Example.calling_public_method   % => 13
+    Example.calling_public_method2  % => 13
+
+A public method can be called from another module, as long as it is a remote call:
+
+    module Invoker
+      mixin Example
+
+      % This won't work (it won't even compile) because, as we saw
+      % previously, it will attempt to call public_method locally.
+      % def calling_public_method
+      %   public_method
+      % end
+
+      def calling_public_method
+        self.public_method
+      end
+    end
+
+    Invoker.public_method          % => 13
+    Invoker.calling_public_method  % => 13
+
+A protected method can only be called if the current scope includes the mixin the module belongs to. Some examples:
+
+    module Example
+      def calling_protected_method
+        public_method
+      end
+
+      def calling_protected_method2
+        self.public_method
+      end
+
+      protected
+
+      def protected_method
+        13
+      end
+    end
+
+    % Here the current scope (self) is Object which doesn't have Example as mixin,
+    % so invoking the protected method raises an error.
+    Example.protected_method
+
+    % calling_protected_method calls protected_method using a local call.
+    % A local call always work, as it means they are in the same module.
+    Example.calling_protected_method  % => 13
+
+    % The following also works because calling_protected_method2 and
+    % protected_method are defined in the same module.
+    Example.calling_protected_method2 % => 13
+
+    module Invoker
+      mixin Example
+
+      def calling_protected_method
+        % Here the current scope (self) is Invoker, that has the mixin Example
+        % So calling Invoker.calling_protected_method at any point will work
+        self.protected_method
+      end
+    end
+
+    Invoker.calling_protected_method  % => 13
+
+Finally, private methods are the ones accessible just through a local call. This means a module cannot access private methods from other modules even after adding them as `mixin` or as `proto`.
+
+    module Example
+      def calling_private_method
+        private_method
+      end
+
+      def calling_private_method2
+        self.private_method
+      end
+
+      protected
+
+      def private_method
+        13
+      end
+    end
+
+    % Won't work, it is not a local call.
+    Example.private_method
+
+    % It works because calling_private_method is doing a local call.
+    Example.calling_private_method   % => 13
+
+    % It won't work because calling_private_method2 is not doing a local call.
+    Example.calling_private_method2
+
+    module Invoker
+      mixin Example
+
+      def calling_private_method
+        self.private_method
+      end
+    end
+
+    % It won't work because private_method is only accessible from
+    % local calls from the same module it is defined.
+    Invoker.calling_private_method
+
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
+
+### Behavior and Callbacks
+
+To be written.
