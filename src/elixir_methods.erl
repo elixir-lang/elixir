@@ -1,7 +1,28 @@
 % Holds the logic responsible for methods definition during parse time.
 -module(elixir_methods).
--export([wrap_method_definition/4, store_wrapped_method/3, unwrap_stored_methods/1]).
+-export([is_empty_table/1, new_method_table/1, wrap_method_definition/4, store_wrapped_method/3, unwrap_stored_methods/1]).
 -include("elixir.hrl").
+
+% Returns if a given table is empty or not.
+%
+% Since we use the same method table to store the current visibility,
+% public, protected and callbacks method, the table is empty if its
+% size is 4.
+is_empty_table(MethodTable) ->
+  case ets:info(MethodTable, size) of
+    4 -> true;
+    _ -> false
+  end.
+
+% Creates a new method table for the given name.
+new_method_table(Name) ->
+  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
+  ets:new(MethodTable, [set, named_table, private]),
+  ets:insert(MethodTable, { public, [] }),
+  ets:insert(MethodTable, { protected, [] }),
+  ets:insert(MethodTable, { callbacks, [] }),
+  ets:insert(MethodTable, { visibility, public }),
+  MethodTable.
 
 % Wraps the method into a call that will call store_wrapped_method
 % once the method definition is read. The method is compiled into a
@@ -47,10 +68,12 @@ store_wrapped_method(Module, Filename, {function, Line, Name, Arity, Clauses}) -
 unwrap_stored_methods(Table) ->
   Public    = ets:lookup_element(Table, public, 2),
   Protected = ets:lookup_element(Table, protected, 2),
+  Callbacks = ets:lookup_element(Table, callbacks, 2),
   ets:delete(Table, visibility),
   ets:delete(Table, public),
   ets:delete(Table, protected),
-  { Public ++ Protected, Protected, ets:foldl(fun unwrap_stored_methods/2, [], Table) }.
+  ets:delete(Table, callbacks),
+  { Public ++ Protected ++ Callbacks, Protected, ets:foldl(fun unwrap_stored_methods/2, [], Table) }.
 
 unwrap_stored_methods({{Name, Arity}, Line, Clauses}, Acc) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
@@ -64,7 +87,7 @@ add_visibility_entry(Name, Arity, Visibility, Table) ->
   ets:insert(Table, {Visibility, [{Name, Arity}|Current]}).
 
 check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
-  Available = [public, protected, private],
+  Available = [public, protected, callbacks, private],
   PrevVisibility = find_visibility(Name, Arity, Available, Table),
   case Visibility == PrevVisibility of
     false -> format_warning(Filename, {Line, ?MODULE, {changed_visibility, Name, PrevVisibility}});

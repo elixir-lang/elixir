@@ -81,12 +81,7 @@ transform(Kind, Line, Filename, Name, Parent, Body) ->
 % Initial step of template compilation. Generate a method
 % table and pass it forward to the next compile method.
 compile(Kind, Line, Filename, Current, Name, Template, Fun) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
-  ets:new(MethodTable, [set, named_table, private]),
-
-  ets:insert(MethodTable, { public, [] }),
-  ets:insert(MethodTable, { protected, [] }),
-  ets:insert(MethodTable, { visibility, public }),
+  MethodTable = elixir_methods:new_method_table(Name),
 
   try
     compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable)
@@ -120,9 +115,9 @@ compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
 % Compile an object. If methods were defined in the object scope,
 % we create a Proto module and automatically include it.
 compile_kind(_Kind, Line, Filename, Current, Object, MethodTable) ->
-  case ets:info(MethodTable, size) of
-    3 -> [];
-    _ ->
+  case elixir_methods:is_empty_table(MethodTable) of
+    true  -> [];
+    false ->
       Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object.name, '::', 'Proto']),
       compile(module, Line, Filename, Object, Name, [], fun(X) -> [] end, MethodTable)
   end,
