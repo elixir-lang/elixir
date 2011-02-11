@@ -10,6 +10,7 @@ Nonterminals
   call_exprs _call_exprs
   fun_call_expr _fun_call_expr
   method_call_expr _method_call_expr
+  without_args_method_call_expr _without_args_method_call_expr
   erlang_call_expr
   min_expr
 
@@ -97,6 +98,8 @@ Left     600 mult_op.
 Left     700 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
 Left     800 ','.
 Nonassoc 900 unary_op.
+Nonassoc 1000 without_args_method_call_expr.
+Nonassoc 1000 _without_args_method_call_expr.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -144,11 +147,13 @@ call_exprs -> min_expr : '$1'.
 fun_call_expr -> min_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
-method_call_expr -> call_exprs dot_eol method_name call_args_parens : build_method_call(true, '$1', '$3', '$4').
-method_call_expr -> call_exprs dot_eol method_name call_args_optional : build_method_call(false, '$1', '$3', '$4').
-method_call_expr -> call_exprs dot_eol method_name : build_method_call(true, '$1', '$3', []).
+method_call_expr -> call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
+method_call_expr -> call_exprs dot_eol method_name call_args_optional : build_method_call('$1', '$3', '$4').
+method_call_expr -> without_args_method_call_expr : '$1'.
 method_call_expr -> implicit_method_name call_args_optional : build_local_call('$1', '$2').
 method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
+
+without_args_method_call_expr -> call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Minimum expressions
 min_expr -> base_expr : '$1'.
@@ -178,11 +183,13 @@ _call_exprs -> base_expr : '$1'.
 _fun_call_expr -> base_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
-_method_call_expr -> _call_exprs dot_eol method_name call_args_parens : build_method_call(true, '$1', '$3', '$4').
-_method_call_expr -> _call_exprs dot_eol method_name call_args_optional : build_method_call(false, '$1', '$3', '$4').
-_method_call_expr -> _call_exprs dot_eol method_name : build_method_call(true, '$1', '$3', []).
+_method_call_expr -> _call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
+_method_call_expr -> _call_exprs dot_eol method_name call_args_optional : build_method_call('$1', '$3', '$4').
+_method_call_expr -> _without_args_method_call_expr : '$1'.
 _method_call_expr -> implicit_method_name call_args_optional : build_local_call('$1', '$2').
 _method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
+
+_without_args_method_call_expr -> _call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 %%% BUILDING BLOCKS
 
@@ -343,12 +350,12 @@ string_list -> string_base : ['$1'].
 string_list -> string_base '~' eol string_list : ['$1'|'$4'].
 
 % Erlang calls
-erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call(true, '$1', ?chars('$3'), ?chars('$5'), '$6').
-erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call(false, '$1', ?chars('$3'), ?chars('$5'), '$6').
-erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier : build_erlang_call(true, '$1', ?chars('$3'), ?chars('$5'), []).
-erlang_call_expr -> Erlang '.' base_identifier call_args_parens : build_erlang_call(true, '$1', erlang, ?chars('$3'), '$4').
-erlang_call_expr -> Erlang '.' base_identifier call_args_optional : build_erlang_call(false, '$1', erlang, ?chars('$3'), '$4').
-erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call(true, '$1', erlang, ?chars('$3'), []).
+erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
+erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
+erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), []).
+erlang_call_expr -> Erlang '.' base_identifier call_args_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
+erlang_call_expr -> Erlang '.' base_identifier call_args_optional : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
+erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call('$1', erlang, ?chars('$3'), []).
 
 % Stab syntax
 stabber -> '->' : '$1'.
@@ -464,35 +471,14 @@ build_match(Left, Op, Right) ->
 build_def_method(Name, Args, Clauses) ->
   { def_method, ?line(Name), ?chars(Name), length(Args), [Clauses] }.
 
-build_method_call(true, Expr, Name, Args) ->
-  { method_call, ?line(Name), ?chars(Name), Args, Expr };
-
-build_method_call(false, Expr, Name, Args) ->
-  case Args of
-    [{unary_op, Line, Op, Right}|T] ->
-      Left = { method_call, ?line(Name), ?chars(Name), T, Expr },
-      { binary_op, Line, Op, Left, Right };
-    _ -> build_method_call(true, Expr, Name, Args)
-  end.
+build_method_call(Expr, Name, Args) ->
+  { method_call, ?line(Name), ?chars(Name), Args, Expr }.
 
 build_local_call(Name, Args) ->
-  case Args of
-    [{unary_op, Line, Op, Right}|T] ->
-      Left = { local_call, ?line(Name), ?chars(Name), T },
-      { binary_op, Line, Op, Left, Right };
-    _ -> { local_call, ?line(Name), ?chars(Name), Args }
-  end.
+  { local_call, ?line(Name), ?chars(Name), Args }.
 
-build_erlang_call(true, Op, Prefix, Suffix, Args) ->
-  { erlang_call, ?line(Op), Prefix, Suffix, Args };
-
-build_erlang_call(false, Op, Prefix, Suffix, Args) ->
-  case Args of
-    [{unary_op, Line, Op, Expr}|T] ->
-      Call = { erlang_call, ?line(Op), Prefix, Suffix, T },
-      { binary_op, Line, Op, Call, Expr };
-    _ -> build_erlang_call(true, Op, Prefix, Suffix, Args)
-  end.
+build_erlang_call(Op, Prefix, Suffix, Args) ->
+  { erlang_call, ?line(Op), Prefix, Suffix, Args }.
 
 % Build a string list. If we are concatenating a non interpolated
 % string with an interpolated string, we need to escape the interpolation
