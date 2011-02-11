@@ -32,9 +32,9 @@ build_function_form(Line, Module, {Name, ElixirArity}) ->
 build_args(_Line, 0, Acc)    -> Acc;
 build_args(Line, Arity, Acc) ->
   Name = ?ELIXIR_ATOM_CONCAT(["X", Arity]),
-  Var  = { variable, Line, Name },
+  Var  = { var, Line, Name },
   build_args(Line, Arity - 1, [Var|Acc]).
 
 build_list(Line, Args)       -> build_list(Line, lists:reverse(Args), {nil, Line}).
 build_list(_Line, [], Acc)   -> Acc;
-build_list(Line, [H|T], Acc) -> { cons, Line, H, Acc }.
+build_list(Line, [H|T], Acc) -> build_list(Line, T, { cons, Line, H, Acc }).

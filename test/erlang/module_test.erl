@@ -226,10 +226,3 @@ can_define_any_attribute_test() ->
     [bar] = proplists:get_value(foo, 'Foo':module_info(attributes))
   end,
   test_helper:run_and_remove(F, ['Foo']).
-
-can_define_a_behavior_test() ->
-  F = fun() ->
-    {bar,[]} = elixir:eval("module Foo; define_attribute('behavior, 'bar); __behavior__; end"),
-    {bar,[]} = elixir:eval("Foo.__behavior__")
-  end,
-  test_helper:run_and_remove(F, ['Foo']).

@@ -56,6 +56,14 @@ object Module
       Erlang.elixir_module_methods.set_visibility(self, 'private)
     end
 
+    def callbacks
+      if __behavior__
+        Erlang.elixir_module_methods.set_visibility(self, 'callbacks)
+      else
+        Erlang.error({'badarg, "cannot define callbacks scope without a behavior specified"})
+      end
+    end
+
     def alias_local(old, new, arity)
       Erlang.elixir_module_methods.alias_local(self, __FILE__, old, new, arity)
     end
