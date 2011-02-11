@@ -698,7 +698,7 @@ Instance variables can be changed using the `set_ivar` method:
     another_person.name % => 'johh_doe
     another_person.age  % => 24
 
-Notice in the example above that `set_ivar` returns a new object. This is expected because as Erlang is immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
+Notice in the example above that `set_ivar` returns a new object. This is expected because as Erlang structures are immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
 
 ### The Object Graph
 
@@ -722,18 +722,26 @@ The object `Object` defines `Object::Methods` as `proto`, this is why all object
 
 The Object Graph for all these objects can be seen below:
 
-    ---------------    Parent   ---------------
-    |    Object   | <---------- |   Module    | <---
-    ---------------             ---------------    |
-          ^                            ^           |
-          |  Parent                    |  Parent   |
-          |                            |           |
-    ---------------    mixin    ---------------    |
-    |    Post     | <---------- | Post::Mixin |    | Parent
-    ---------------  _          ---------------    |
-          ^         |\__ proto                     |
-          |  Parent     \___                       |
-          |                 \__                    |
-    ---------------            \---------------    |
-    |  Post.new   | <---------- | Post::Proto | ---|
-    ---------------    mixin    ---------------
+    ---------------    Parent   -----------------
+    |    Object   | <---------- |     Module    | <---
+    ---------------             -----------------    |
+          ^                            ^             |
+          |  Parent                    |  Parent     |
+          |                            |             |
+    ---------------    mixin    -----------------    |
+    |   Person    | <---------- | Person::Mixin |    | Parent
+    ---------------  _          -----------------    |
+          ^         |\__ proto                       |
+          |  Parent     \___                         |
+          |                 \__                      |
+    ---------------            \-----------------    |
+    | Person.new  | <---------- | Person::Proto | ---|
+    ---------------    mixin    -----------------
+
+Once again, remember:
+
+* Everything is an object;
+* Methods are defined in modules. All modules are all objects, but not all objects are modules. Besides, modules cannot have instances. `Person::Mixin` and `Person::Proto` defined above are modules;
+* Modules can be either mixed into objects (`mixin`), changing their current behavior...
+* Or added as prototype (`proto`), which will define the behavior of all children/instances from that object;
+* Finally, all modules defined as `proto` in the parent, becomes a `mixin` to the child.
