@@ -258,18 +258,41 @@ transform({unary_op, Line, Op, Right}, F, V, S) ->
 %
 % The expression to be evaluated by the if expression can create
 % new variables. The expression list after evaluation can also
-% generate new variables but they are limited to that specific
-% scope.
+% generate new variables and these new variables may be available
+% outside the if/else expression. Consider this example:
+%
+%     module Foo
+%       def foo; 1; end
+%
+%       def bar(x)
+%         if x
+%           foo = 2
+%         else
+%           foo = foo
+%         end
+%         foo
+%       end
+%     end
+%
+%     Foo.bar(true)  % => 2
+%     Foo.bar(false) % => 1
+%
+% The example above shows two important things. A variable defined
+% inside if/else can be available outside the clauses, but, if that
+% happens, all clauses need to define this variable.
+%
+% Second, a variable defined in a clause does not affect other clauses,
+% so the second clause above could sucessfully invoke the method foo.
 transform({'if', Line, [If|Elsifs], Else}, F, V, S) ->
-  { TIf, IfV } = transform(If, F, V, S),
-  { TElsifs, ElsifV } = transform_tree(Elsifs, F, IfV, S),
-  { TElse, ElseV } = transform_tree(Else, F, ElsifV, S),
-  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), ElseV };
+  { TIf, IfV } = transform(If, F, {V,[]}, S),
+  { TElsifs, {ExprV, ListV} } = transform_tree(Elsifs, F, IfV, S),
+  { TElse, ElseV } = transform_tree(Else, F, ExprV, S),
+  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), umerge(ElseV, ListV) };
 
-transform({if_clause, Line, Bool, Expr, List}, F, V, S) ->
-  { TExpr, ExprV } = transform(Expr, F, V, S),
-  { TList, ListV } = transform_tree(List, F, ExprV, S),
-  { {if_clause, Line, Bool, TExpr, TList }, ListV };
+transform({if_clause, Line, Bool, Expr, List}, F, {ExprV, ListV}, S) ->
+  { TExpr, TExprV } = transform(Expr, F, ExprV, S),
+  { TList, TListV } = transform_tree(List, F, TExprV, S),
+  { {if_clause, Line, Bool, TExpr, TList }, { TExprV, umerge(ListV, TListV) } };
 
 % Handle functions declarations. They preserve the current binding.
 %
