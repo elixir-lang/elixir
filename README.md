@@ -13,12 +13,13 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 # Roadmap
 
 * Add case/match expressions
-* Implement missing types on STDLIB
-* Add generators
+* Add exceptions
+* Add interactive elixir (iex)
+* Implement missing types and improve STDLIB
+* Add generators/list comprehensions
 * Add metaprogramming
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add
 * Add _.foo
-* Improve STDLIB
 * Add load paths
 * Add JIT on module compilation
 * Extending builtin types (like inheriting from Integer)
@@ -193,6 +194,18 @@ Elixir Standard Library has a bunch of methods to interact with lists:
 As in Elixir `+` is simply a method like any other (and not an arithmetic operator as in Erlang), it can also be used to add arrays:
 
     [1, 2, 3] + [4, 5, 6]  % => [1,2,3,4,5,6]
+
+However, lists in Erlang and Elixir are implemented as linked lists. This means prepending an item to the list is quite fast, but appending is much slower. Therefore we have a special syntax to prepend one or more items to a list:
+
+    list = [2,3,4]
+
+    % Don't do this:
+    [1]   + [2,3,4]  % => [1,2,3,4]
+    [0,1] + [2,3,4]  % => [0,1,2,3,4]
+
+    % Do this instead:
+    [1|list]    % => [1,2,3,4]
+    [0,1|list]  % => [0,1,2,3,4]
 
 Most of the power in lists comes when used together with functions:
 
@@ -410,9 +423,89 @@ One final note is, while parenthesis are optional for method invocations, functi
 
 ## Variables and Pattern Matching
 
-To be written.
+Elixir inherits single assignment variables and pattern matching from Erlang. This means there isn't an assignment operator, but rather a match operator. A variable can be assigned just once:
+
+    x = 1
+    x = 2  % => Raises a bad match error, because x is already equals to 1
+
+In Erlang/Elixir terms, a variable that was not assigned yet is called *unbound variable*. Let's see more examples:
+
+    % Let's bound the variable x to 'foo
+    x = 'foo
+
+    % Now let's match a tuple with other tuple.
+    % Since x is already bound, we are comparing x with 'baz and it will fail:
+    { x, y } = { 'baz, 'bar }
+
+    % In this case, we compare 'x with 'foo and it matches.
+    % Since y is unbound, we assign 'bar to it:
+    { x, y } = { 'foo, 'bar }
+
+    x  % => 'foo
+    y  % => 'bar
+
+For lists, we can use the same syntax to prepend an item on pattern matching, easily retrieving the head and tail:
+
+    [h|t] = [1,2,3]
+    h  % => 1
+    t  % => [2,3]
+
+    % Raises an error because h was already assigned to 1 and 1 does not match 2
+    [h|t1] = [2,3,4]
+
+Elixir will often complain if you bound a value to a variable but never use it. For instance, imagine that you want to get just the first element of a tuple with three items:
+
+    {x, y, z} = {1, 2, 3}
+
+If you don't use the `y` and `z` variables, Elixir will show you some warnings. For this reason, you could use `_` instead:
+
+    {x, _, _} = {1, 2, 3}
+
+The variable `_` is always unbound:
+
+    _ = 1
+    _   % => Raises that variable '_' is unbound
+
+However, sometimes having several occurrences of `_` in the same expression is confusing, so you can do this instead:
+
+    {x, _y, _z} = {1, 2, 3}
+
+The values 2 and 3 will be bound to the variables `_y` and `_z`, but Elixir won't complain if you eventually don't use them.
+
+Keep in mind that the number of expressions allowed in pattern matching are limited. You cannot invoke methods, use interpolated strings, retrieve constants and so on. Therefore, this is invalid:
+
+    1.abs = -1
+
+Finally, pattern matching can also be implemented in methods signatures. Here is the classic Fibonacci example:
+
+    module Math
+      def fibonacci(0)
+        0
+      end
+
+      def fibonacci(1)
+        1
+      end
+
+      def fibonacci(n)
+        fibonacci(n - 1) + fibonacci(n - 2)
+      end
+    end
+
+    Math.fibonacci(0)   % => 0
+    Math.fibonacci(1)   % => 1
+    Math.fibonacci(3)   % => 2
+    Math.fibonacci(10)  % => 55
+
+We will discuss modules and methods with more details later.
 
 ## if/else and case/match
+
+To be written.
+
+## Exceptions
+
+To be written.
 
 ## Strings, Atoms, Regular Expressions, Interpolation and Sigils
 
@@ -939,6 +1032,53 @@ Finally, private methods are the ones accessible just through a local call. This
     % It won't work because private_method is only accessible from
     % local calls from the same module it is defined.
     Invoker.calling_private_method
+
+### Tail call optimization
+
+In the "Variables and Pattern Matching" section above, we have showed a simple Fibonacci example using Pattern Matching in the method signature. However, that example was not properly optimized:
+
+    module Math
+      def fibonacci(0)
+        0
+      end
+
+      def fibonacci(1)
+        1
+      end
+
+      def fibonacci(n)
+        fibonacci(n - 1) + fibonacci(n - 2)
+      end
+    end
+
+As Erlang, Elixir does tail call optimization (though it only applies to local calls). We can rewrite the fibonacci method with a version that will use tail call optimization like below:
+
+    module OptimizedMath
+      def fibonacci(n)
+        fibonacci(n, 1, 0)
+      end
+
+      def fibonacci(0, _, result)
+        result
+      end
+
+      def fibonacci(n, next, result)
+        fibonacci(n - 1, next + result, next)
+      end
+    end
+
+    OptimizedMath.fibonacci(0)   % => 0
+    OptimizedMath.fibonacci(1)   % => 1
+    OptimizedMath.fibonacci(3)   % => 2
+    OptimizedMath.fibonacci(10)  % => 55
+
+The third fibonacci function is optimized because the last method it calls is itself. In order to understand the difference between both versions and how tail call optimization works, we recommend reading more about it on the Recursion chapter from [Learn You Some Erlang](http://learnyousomeerlang.com/recursion).
+
+### Retrieving a method as a function
+
+Before proceeding on how to retrieve a method as a function, it is important to notice that, as in Erlang, Elixir's methods are identified by its name **and** arity. Therefore, the `OptimizedMath` module above has only two methods: a `fibonacci` with arity 1 and `fibonnaci` with arity 3. If two methods are defined with same name and arity, they become different clauses for the same method and pattern matching is used in order to specify which method to call. That said, the `Math` module has only one `fibonnaci` method with arity equals to 1 and 3 clauses.
+
+Remaining of this section still needs to be implemented and written.
 
 #### Documentation
 
