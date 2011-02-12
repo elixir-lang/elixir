@@ -21,6 +21,7 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add
 * Add _.foo
 * Add load paths
+* Support guards
 * Add JIT on module compilation
 * Extending builtin types (like inheriting from Integer)
 * Add method cache table
@@ -501,11 +502,53 @@ We will discuss modules and methods with more details later.
 
 ## if/else and case/match
 
-To be written.
+Elixir, differently from Erlang, has a more conventional if/else structure:
+
+    list = [1,2,3]
+
+    if list.include?(4)
+      IO.puts "it includes 4"
+    elsif list.include?(5)
+      IO.puts "it includes 5"
+    else
+      IO.puts "it does not include 4 or 5"
+    end
+
+Everything in Elixir, except false and `[]` (empty list) evaluates to true.
+
+On the other hand, the case/match structure from Elixir is quite similar to Erlang's:
+
+    case {1,2,3}
+    match {3,2,x}
+      x * 2
+    match {1,2,x}
+      x * 2
+    end
+
+As you can notice, case/match uses pattern matching. If no case expression matches, an error is raised. Elixir also allows an `else` clause in case/match, which is the same as invoking `match _`:
+
+    case {4,5,6}
+    match {3,2,x}
+      x * 2
+    match {1,2,x}
+      x * 2
+    else
+      10
+    end
+
+Finally, case/match expressions can be inlined, providing a more compact syntax:
+
+    case {4,5,6}
+    match {3,2,x} then x * 2
+    match {1,2,x} then x * 2
+    else 10
+    end
+
+Currently there is no support for guard expressions as in Erlang, although it may be implemented at some point.
 
 ## Exceptions
 
-To be written.
+To be written/implemented.
 
 ## Strings, Atoms, Regular Expressions, Interpolation and Sigils
 
