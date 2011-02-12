@@ -91,13 +91,14 @@ Nonassoc 100 base_identifier.
 Nonassoc 100 ')'.
 Nonassoc 100 eol.
 
-Left     300 match_op. % Handle a = -> b = 1 as a = (-> b = 1)
-Left     400 ':'.
-Left     400 '|'.
-Left     500 add_op.
-Left     600 mult_op.
-Left     700 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
-Left     800 ','.
+Right    200 match_op. % Handle a = -> b = 1 as a = (-> b = 1) and a = b = c as a = (b = c)
+Left     300 ':'.
+Left     300 '|'.
+Left     400 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
+Left     400 ','.
+
+Left     700 add_op.
+Left     800 mult_op.
 Nonassoc 900 unary_op.
 Nonassoc 1000 without_args_method_call_expr.
 Nonassoc 1000 _without_args_method_call_expr.
