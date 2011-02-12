@@ -20,12 +20,29 @@ object Dict
   %
   %     dict = { 'a: 1, 'b: 2 }
   %     list = dict.fold [], do (key, value, acc)
-  %       acc << "#{key}: #{value}"
+  %       ["#{key}: #{value}"|acc]
   %     end
   %     list.join(", ") % => "a: 1, b: 1"
   %
   def fold(acc, function)
     Erlang.dict.fold(function, acc, @dict)
+  end
+
+  % Calls the given *function* for each key and value. Returns a List
+  % with the result of each *function*.
+  %
+  % The *function* expects a key and value as argument. The evaluation order is undefined.
+  %
+  % ## Examples
+  %
+  %     dict = { 'a: 1, 'b: 2 }
+  %     new_dict = dict.map do (key, value, acc)
+  %       value * 2
+  %     end
+  %     new_dict % => { 'a: 2, 'b: 4 }
+  %
+  def map(function)
+    Erlang.dict.map(function, @dict)
   end
 
   % Returns this dictionary represented as a String.

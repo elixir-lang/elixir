@@ -14,7 +14,6 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 
 * Add case/match expressions
 * Implement missing types on STDLIB
-* Add $"foo" as shortcut to create a list of integers
 * Add generators
 * Add metaprogramming
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add
@@ -429,7 +428,7 @@ In Elixir, we have the following basic types related to Strings:
     $\\   % => 92
     $\(   % => 40
 
-    % A string represented as a list of chars (all expressions below allow interpolation)
+    % A string represented as a list of chars (all four expressions below allow interpolation)
     $"string"    % => [115,116, 114, 105, 110, 103]
     $(string)    % => [115,116, 114, 105, 110, 103]
     $[string]    % => [115,116, 114, 105, 110, 103]
@@ -471,8 +470,8 @@ All string sigils follow the same set of rules. They start with a ~ followed by 
     ~a"atom without interpolation"
     ~A[atom with interpolation]
 
-    % Another way to create a list of chars (to be implemented)
-    ~l(string)
+    % Another way to create a list of chars
+    ~l(string)  % => [115,116, 114, 105, 110, 103]
     ~L{string with interpolation}
 
     % A list of words (to be implemented)

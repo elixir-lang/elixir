@@ -67,10 +67,11 @@ Nonterminals
   .
 
 Terminals
-  punctuated_identifier identifier float integer constant then
+  punctuated_identifier identifier float integer constant
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
+  char_list interpolated_char_list
   div rem module object 'do' 'end' def eol Erlang true false
-  if elsif else unless filename
+  if elsif else then unless filename
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '~'
   .
@@ -312,6 +313,8 @@ base_expr -> string_list : build_string_list('$1').
 base_expr -> ivar : '$1'.
 base_expr -> atom : '$1'.
 base_expr -> interpolated_atom : '$1'.
+base_expr -> char_list : '$1'.
+base_expr -> interpolated_char_list : '$1'.
 base_expr -> regexp : '$1'.
 base_expr -> interpolated_regexp : '$1'.
 base_expr -> number : '$1'.

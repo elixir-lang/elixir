@@ -56,7 +56,7 @@ object String
   %     "elixir".inspect % => "\"elixir\""
   %
   def inspect
-    String.new <<$", @bin|binary, $">>
+    String.new <<$\", @bin|binary, $\">>
   end
 
   def to_bin

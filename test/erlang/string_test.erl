@@ -95,17 +95,9 @@ char_test() ->
 bad_char_test() ->
   ?assertError({badsyntax, _}, elixir:eval("$foo")).
 
-string_sigils_test() ->
-  {<<"f#{o}o">>, []} = eval_string("~q(f#{o}o)"),
-  {<<"bar">>, []} = eval_string("~Q(b#{'a}r)"),
-  {<<"b)r">>, []} = eval_string("~Q(b\\)r)").
-
 implicit_string_concatenation_test() ->
   {<<"foobar">>, []} = eval_string("\"foo\" ~ \n\"bar\""),
   {<<"foobarbaz">>, []} = eval_string("\"foo\"~\n\"b#{'a}r\"~\n\"baz\"").
-
-string_preprocessors_test() ->
-  {<<"f#{o}obar">>, []} = eval_string("~q(f#{o}o) ~\n ~Q(b#{'a}r)").
 
 %% Methods
 
@@ -129,6 +121,25 @@ string_length_test() ->
 
 string_add_test() ->
   {<<"elixir">>, []} = eval_string("\"eli\" + \"xir\"").
+
+%% Sigils and Char lists
+
+string_sigils_test() ->
+  {<<"f#{o}o">>, []} = eval_string("~q(f#{o}o)"),
+  {<<"bar">>, []} = eval_string("~Q(b#{'a}r)"),
+  {<<"b)r">>, []} = eval_string("~Q(b\\)r)").
+
+implicit_string_sigils_concatenation_test() ->
+  {<<"f#{o}obar">>, []} = eval_string("~q(f#{o}o) ~\n ~Q(b#{'a}r)").
+
+char_list_test() ->
+  {"foo", []}    = elixir:eval("$\"foo\""),
+  {"foo", []}    = elixir:eval("$(foo)"),
+  {"f#{o}o", []} = elixir:eval("$(f\\#{o}o)"),
+  {"foo", []}    = elixir:eval("$[f#{'o}o]"),
+  {"f#{o}o", []} = elixir:eval("~l(f#{o}o)"),
+  {"bar", []}    = elixir:eval("~L(b#{'a}r)"),
+  {"b)r", []}    = elixir:eval("~L(b\\)r)").
 
 %% Inspect in other objects
 

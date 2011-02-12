@@ -162,6 +162,15 @@ transform({bin_element, Line, Expr, Type, Specifiers }, F, V, S) ->
   { TExpr, NV } = transform(Expr, F, V, S),
   { { bin_element, Line, TExpr, Type, Specifiers }, NV };
 
+% Handle strings by wrapping them in the String object. A string is created
+% by explicitly creating an #elixir_object and not through String.new.
+%
+% = Variables
+%
+% No variables can be defined in a string without interpolation.
+transform({string, Line, String } = Expr, F, V, S) ->
+  { build_object(Line, 'String', [{bin, build_bin(Line, [Expr])}]), V };
+
 % Handle interpolated strings declarations. A string is created
 % by explicitly creating an #elixir_object and not through String.new.
 %
@@ -169,20 +178,9 @@ transform({bin_element, Line, Expr, Type, Specifiers }, F, V, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_string, Line, String }, F, V, S) ->
-  { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
-  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [Flattened]),
+  { List, VE } = handle_interpolations(String, Line, F, V, S),
+  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
   { build_object(Line, 'String', [{bin, Binary}]), VE };
-
-% Handle strings by wrapping them in the String object. A string is created
-% by explicitly creating an #elixir_object and not through String.new.
-%
-% = Variables
-%
-% No variables can be defined in a string without interpolation.
-%
-% TODO create the string directly instead of calling unicode.
-transform({string, Line, String } = Expr, F, V, S) ->
-  { build_object(Line, 'String', [{bin, build_bin(Line, [Expr])}]), V };
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
 %
@@ -190,8 +188,8 @@ transform({string, Line, String } = Expr, F, V, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_atom, Line, String}, F, V, S) ->
-  { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
-  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [Flattened]),
+  { List, VE } = handle_interpolations(String, Line, F, V, S),
+  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
   { ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_atom, [Binary, {atom, Line, utf8}]), VE };
 
 % Handle regexps by dispatching a list and its options to Regexp.new.
@@ -208,9 +206,29 @@ transform({regexp, Line, String, Operators }, F, V, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_regexp, Line, String, Operators }, F, V, S) ->
-  { Flattened, VE } = handle_interpolations(String, Line, F, V, S),
-  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, list_to_binary, [Flattened]),
+  { List, VE } = handle_interpolations(String, Line, F, V, S),
+  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
   build_regexp(Line, Binary, Operators, F, VE, S);
+
+% Handle char lists by simply converting them to Erlang strings.
+%
+% = Variables
+%
+% No variables can be defined in a char list without interpolation.
+transform({char_list, Line, String } = Expr, F, V, S) ->
+  { {string, Line, String}, V };
+
+% Handle interpolated strings declarations. A string is created
+% by explicitly creating an #elixir_object and not through String.new.
+%
+% = Variables
+%
+% Variables can be defined inside the interpolation.
+transform({interpolated_char_list, Line, String }, F, V, S) ->
+  { List, VE } = handle_interpolations(String, Line, F, V, S),
+  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
+  Flattened = ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_list, [Binary]),
+  { Flattened, VE };
 
 % Handle binary operations.
 %
@@ -233,7 +251,6 @@ transform({binary_op, Line, Op, Left, Right}, F, V, S) ->
 transform({unary_op, Line, Op, Right}, F, V, S) ->
   { TRight, V1} = transform(Right, F, V, S),
   { { op, Line, Op, TRight }, V1 };
-
 
 % Handle if/elsif/else expressions.
 %
@@ -364,7 +381,6 @@ transform({filename, Line}, F, V, S) ->
   transform({string, Line, F}, F, V, S);
 
 % Match all other expressions.
-% TODO Expand instead of catch all.
 transform(Expr, F, V, S) -> { Expr, V }.
 
 % Pack method clause in a format that receives Elixir metadata

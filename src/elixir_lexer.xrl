@@ -42,11 +42,12 @@ Rules.
 {Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
 %% __FILE__ and __LINE__
-
 __FILE__ : { token, { filename, TokenLine } }.
 __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 
 %% Char
+\${InterpolGroup} : build_string(interpolated_char_list, TokenChars, TokenLine, TokenLen, 3).
+\${BaseGroup} : build_string(char_list, TokenChars, TokenLine, TokenLen, 3).
 \$.   : build_char(TokenChars, TokenLine).
 \$\\. : build_char(TokenChars, TokenLine).
 
@@ -54,6 +55,10 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 ~Q{InterpolGroup} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen, 4).
 ~Q{BaseGroup} : build_string(string, TokenChars, TokenLine, TokenLen, 4).
 ~q{BaseGroup} : build_string(string, TokenChars, TokenLine, TokenLen, 4).
+
+~L{InterpolGroup} : build_string(interpolated_char_list, TokenChars, TokenLine, TokenLen, 4).
+~L{BaseGroup} : build_string(char_list, TokenChars, TokenLine, TokenLen, 4).
+~l{BaseGroup} : build_string(char_list, TokenChars, TokenLine, TokenLen, 4).
 
 ~R{InterpolGroup}{LowerCase}* : build_regexp(interpolated_regexp, TokenChars, TokenLine, TokenLen).
 ~R{BaseGroup}{LowerCase}* : build_regexp(regexp, TokenChars, TokenLine, TokenLen).
@@ -124,7 +129,8 @@ build_char(Chars, Line) ->
 
 % Handle strings without interpolation.
 build_string(Kind, Chars, Line, Length, Distance) ->
-  { String, Pushback } = handle_chars(Kind == interpolated_string, Chars, Line, Length, Distance),
+  Interpol = (lists:sublist(atom_to_list(Kind), 12) == "interpolated"),
+  { String, Pushback } = handle_chars(Interpol, Chars, Line, Length, Distance),
   { token, { Kind, Line, String }, Pushback }.
 
 % Handle regular expressions.
