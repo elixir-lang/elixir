@@ -66,12 +66,12 @@ object Regexp
     { 'bin: regexp_bin, 'parsed_options: parsed_options, 'compiled: compiled }
   end
 
-  def match(target)
+  def run(target)
     Erlang.re.run(target.to_bin, @compiled)
   end
 
   def match?(target)
-    match_happened?(match(target))
+    match_happened?(run(target))
   end
 
   private
