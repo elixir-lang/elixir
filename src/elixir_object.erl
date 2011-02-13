@@ -58,7 +58,7 @@ default_protos(module, Name, _Template) -> [Name];                        % modu
 default_protos(object, _Name, Template) -> Template#elixir_object.protos. % object SimplePost from Post
 
 % Returns the default data from parents.
-default_data([])       -> dict:new();
+default_data([])       -> orddict:new();
 default_data(Template) -> Template#elixir_object.data.
 
 %% USED ON TRANSFORMATION AND MODULE COMPILATION

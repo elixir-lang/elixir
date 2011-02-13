@@ -30,7 +30,7 @@ load_core_classes() ->
     'list.ex',
     'tuple.ex',
     'string.ex',
-    'dict.ex',
+    'ordered_dict.ex',
     'regexp.ex',
     'binary.ex'
   ]).

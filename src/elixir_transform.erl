@@ -137,17 +137,17 @@ transform({list, Line, Exprs, Tail }, F, V, S) ->
   { TExprs, VE } = build_list(Transformer, Exprs, Line, V, TTail),
   { TExprs, umerge(VE, VT) };
 
-% Handle dict declarations. It simply delegates to list to build a list
-% of args that is dispatched to dict:from_list/1. The final Dict
+% Handle orddict declarations. It simply delegates to list to build a list
+% of args that is dispatched to orddict:from_list/1. The final Dict
 % object is created explicitly and not through Dict.new.
 %
 % = Variables
 %
 % See list.
-transform({dict, Line, Exprs }, F, V, S) ->
+transform({orddict, Line, Exprs }, F, V, S) ->
   { List, NV } = transform({list, Line, Exprs, {nil, Line} }, F, V, S),
-  Dict = ?ELIXIR_WRAP_CALL(Line, dict, from_list, [List]),
-  { build_object(Line, 'Dict', [{dict, Dict}]), NV };
+  Dict = ?ELIXIR_WRAP_CALL(Line, orddict, from_list, [List]),
+  { build_object(Line, 'OrderedDict', [{orddict, Dict}]), NV };
 
 % Handle binaries declarations.
 %
@@ -461,7 +461,7 @@ build_if_clauses({if_clause, Line, Bool, Expr, List}, Acc) ->
 % Build an #elixir_object using tuples. It expects the parent
 % and a proplist of Key/Value pairs to be used as instance variables.
 build_object(Line, Parent, Ivars) ->
-  Dict = fun ({Key, Value}, Acc) -> ?ELIXIR_WRAP_CALL(Line, dict, store, [{atom, Line, Key}, Value, Acc]) end,
+  Dict = fun ({Key, Value}, Acc) -> ?ELIXIR_WRAP_CALL(Line, orddict, store, [{atom, Line, Key}, Value, Acc]) end,
 
   {tuple, Line,
     [
@@ -470,7 +470,7 @@ build_object(Line, Parent, Ivars) ->
       {atom, Line, Parent}, % Parent
       {nil, Line},          % Mixins
       {nil, Line},          % Protos
-      lists:foldl(Dict, ?ELIXIR_WRAP_CALL(Line, dict, new, []), Ivars)
+      lists:foldl(Dict, ?ELIXIR_WRAP_CALL(Line, orddict, new, []), Ivars)
     ]
   }.
 

@@ -4,7 +4,7 @@
 
 dict_find(Key, Dict) ->
   Data = Dict#elixir_object.data,
-  dict:find(Key, dict:fetch(dict, Data)).
+  orddict:find(Key, orddict:fetch(orddict, Data)).
 
 simple_dict_test() ->
   {Dict, _} = elixir:eval("{ 'a: 1 }"),

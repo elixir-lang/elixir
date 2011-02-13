@@ -240,9 +240,9 @@ A nil value in Elixir is represented by an empty list. In if expressions (that w
 
 * <https://github.com/josevalim/elixir/tree/master/lib/list.ex>
 
-### Dicts
+### Ordered Dicts
 
-Elixir provides a first-class syntax to deal with dictionaries (called Hash in Ruby).
+Elixir provides a first-class syntax to deal with ordered dictionaries (called Hash in Ruby).
 
     % A dict with 'a and 'b as keys and 1 and 2 as their respective values
     { 'a: 1, 'b: 2 }
@@ -250,11 +250,11 @@ Elixir provides a first-class syntax to deal with dictionaries (called Hash in R
     % An empty dict
     {:}
 
-Elixir dictionary implementation is backed up by [the dict module](http://www.erlang.org/doc/man/dict.html) in OTP.
+Elixir dictionary implementation is backed up by [the orddict module](http://www.erlang.org/doc/man/orddict.html) in OTP.
 
 #### Documentation:
 
-* <https://github.com/josevalim/elixir/tree/master/lib/dict.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/ordered_dict.ex>
 
 ### Binaries
 

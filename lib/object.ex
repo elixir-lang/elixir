@@ -139,7 +139,7 @@ object Object
     %     Foo.new.__ivars__ % => { 'bar: 1, 'baz: 2 }
     %
     def __ivars__
-      Dict.new Erlang.elixir_object_methods.data(self)
+      OrderedDict.new Erlang.elixir_object_methods.data(self)
     end
 
     def __ancestors__

@@ -89,24 +89,24 @@ calculate_methods(Fun, [H|T], Acc) ->
   calculate_methods(Fun, T, umerge(Acc, Fun(H))).
 
 get_ivar_dict(Name, Data) ->
-  case dict:find(Name, Data) of
+  case orddict:find(Name, Data) of
     { ok, Value } -> Value;
     error -> []
   end.
 
 set_ivar_dict(Self, Name, Value, Dict) ->
-  Self#elixir_object{data=dict:store(Name, Value, Dict)}.
+  Self#elixir_object{data=orddict:store(Name, Value, Dict)}.
 
-assert_dict_with_atoms(#elixir_object{parent='Dict'} = Data) ->
-  Dict = get_ivar(Data, dict),
-  case lists:all(fun is_atom/1, dict:fetch_keys(Dict)) of
+assert_dict_with_atoms(#elixir_object{parent='OrderedDict'} = Data) ->
+  Dict = get_ivar(Data, orddict),
+  case lists:all(fun is_atom/1, orddict:fetch_keys(Dict)) of
     true  -> Dict;
     false ->
-      elixir_errors:raise(badarg, "constructor needs to return a Dict with all keys as symbols, got ~ts", [inspect(Data)])
+      elixir_errors:raise(badarg, "constructor needs to return a OrderedDict with all keys as symbols, got ~ts", [inspect(Data)])
   end;
 
 assert_dict_with_atoms(Data) ->
-  elixir_errors:raise(badarg, "constructor needs to return a Dict, got ~ts", [inspect(Data)]).
+  elixir_errors:raise(badarg, "constructor needs to return a OrderedDict, got ~ts", [inspect(Data)]).
 
 inspect(Object) ->
   get_ivar(elixir_dispatch:dispatch(false, Object, inspect, []), bin).
@@ -221,7 +221,7 @@ object_data(#elixir_object{data=Data}) ->
   Data;
 
 object_data(Native) ->
-  dict:new(). % Native types has no protos.
+  orddict:new(). % Native types has no protos.
 
 % Method that get values from parents. Argument can either be an atom
 % or an #elixir_object.

@@ -1,12 +1,12 @@
-object Dict
-  % Construct a new Elixir dictionary by keeping an Erlang dictionary internally.
+object OrderedDict
+  % Construct a new Elixir dictionary by keeping an Erlang orddict internally.
   def constructor
-    { 'dict: Erlang.dict.new }
+    { 'orddict: Erlang.orddict.new }
   end
 
-  % Construct a new Dict receiving an Erlang dictionary.
-  def constructor(dict)
-    { 'dict: dict }
+  % Construct a new Dict receiving an Erlang orddict.
+  def constructor(orddict)
+    { 'orddict: orddict }
   end
 
   % Calls the given *function* for each key and value of the dictionary with an
@@ -25,7 +25,7 @@ object Dict
   %     list.join(", ") % => "a: 1, b: 1"
   %
   def fold(acc, function)
-    Erlang.dict.fold(function, acc, @dict)
+    Erlang.orddict.fold(function, acc, @orddict)
   end
 
   % Calls the given *function* for each key and value. Returns a List
@@ -42,7 +42,7 @@ object Dict
   %     new_dict % => { 'a: 2, 'b: 4 }
   %
   def map(function)
-    Erlang.dict.map(function, @dict)
+    Erlang.orddict.map(function, @orddict)
   end
 
   % Returns this dictionary represented as a String.

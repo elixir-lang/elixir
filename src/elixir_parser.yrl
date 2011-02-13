@@ -29,8 +29,8 @@ Nonterminals
   bin_comma_expr
   binary
   colon_comma_expr _colon_comma_expr
-  base_dict _base_dict
-  dict
+  base_orddict _base_orddict
+  orddict
   comma_separator
   body
   stabber
@@ -209,14 +209,14 @@ fun_base -> stabber break body 'end' :
   build_fun('$1', build_clause('$1', [], '$3')).
 
 % Args given on method invocations.
-base_dict  -> colon_comma_expr : { dict, ?line(lists:nth(1, '$1')), '$1' }.
-_base_dict -> _colon_comma_expr : { dict, ?line(lists:nth(1, '$1')), '$1' }.
+base_orddict  -> colon_comma_expr : { orddict, ?line(lists:nth(1, '$1')), '$1' }.
+_base_orddict -> _colon_comma_expr : { orddict, ?line(lists:nth(1, '$1')), '$1' }.
 
 comma_expr -> expr : ['$1'].
 comma_expr -> expr comma_separator comma_expr : ['$1'|'$3'].
 
 call_args -> expr : ['$1'].
-call_args -> base_dict : ['$1'].
+call_args -> base_orddict : ['$1'].
 call_args -> expr comma_separator call_args : ['$1'|'$3'].
 
 call_args_parens -> open_paren ')' : [].
@@ -225,7 +225,7 @@ call_args_parens -> open_paren call_args close_paren : '$2'.
 % The first item in call_args_optional cannot start with parens
 call_args_optional -> _expr : ['$1'].
 call_args_optional -> _expr comma_separator call_args : ['$1'|'$3'].
-call_args_optional -> _base_dict : ['$1'].
+call_args_optional -> _base_orddict : ['$1'].
 
 % Tuples declaration.
 tuple -> open_curly '}' : { tuple, ?line('$1'), [] }.
@@ -253,14 +253,14 @@ binary -> open_lt '>>' : build_bin(?line('$1'), []).
 binary -> open_lt bin_comma_expr close_gt : build_bin(?line('$1'), '$2').
 
 % Dicts declarations
-colon_comma_expr -> expr ':' expr : [build_dict_tuple('$1', '$3')].
-colon_comma_expr -> expr ':' expr comma_separator colon_comma_expr : [build_dict_tuple('$1', '$3')|'$5'].
+colon_comma_expr -> expr ':' expr : [build_orddict_tuple('$1', '$3')].
+colon_comma_expr -> expr ':' expr comma_separator colon_comma_expr : [build_orddict_tuple('$1', '$3')|'$5'].
 
-_colon_comma_expr -> _expr ':' expr : [build_dict_tuple('$1', '$3')].
-_colon_comma_expr -> _expr ':' expr comma_separator colon_comma_expr : [build_dict_tuple('$1', '$3')|'$5'].
+_colon_comma_expr -> _expr ':' expr : [build_orddict_tuple('$1', '$3')].
+_colon_comma_expr -> _expr ':' expr comma_separator colon_comma_expr : [build_orddict_tuple('$1', '$3')|'$5'].
 
-dict -> open_curly ':' '}' : { dict, ?line('$1'), [] }.
-dict -> open_curly colon_comma_expr close_curly : { dict, ?line('$1'), '$2' }.
+orddict -> open_curly ':' '}' : { orddict, ?line('$1'), [] }.
+orddict -> open_curly colon_comma_expr close_curly : { orddict, ?line('$1'), '$2' }.
 
 % Base identifiers. Some keywords are converted to base identifier and
 % are used as variable names. Notice extra_identifiers are not allowed as
@@ -322,7 +322,7 @@ base_expr -> number : '$1'.
 base_expr -> constant : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> list : '$1'.
-base_expr -> dict : '$1'.
+base_expr -> orddict : '$1'.
 base_expr -> binary : '$1'.
 base_expr -> true : { atom, ?line('$1'), true }.
 base_expr -> false : { atom, ?line('$1'), false }.
@@ -517,7 +517,7 @@ build_list(Line, Exprs) ->
 build_list(Line, Exprs, Tail) ->
   { list, Line, Exprs, Tail }.
 
-build_dict_tuple(Key, Value) ->
+build_orddict_tuple(Key, Value) ->
   { tuple, ?line(Key), [Key, Value] }.
 
 build_if_expr(Exprs) ->
