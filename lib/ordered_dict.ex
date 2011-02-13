@@ -14,7 +14,6 @@ object OrderedDict
   % accumulator passed to the next call. Returns the last accumulator.
   %
   % The function expects three arguments a key, a value and the accumulator.
-  % The evaluation order is undefined.
   %
   % ## Examples
   %
@@ -31,7 +30,7 @@ object OrderedDict
   % Calls the given *function* for each key and value. Returns a List
   % with the result of each *function*.
   %
-  % The *function* expects a key and value as argument. The evaluation order is undefined.
+  % The *function* expects a key and value as argument.
   %
   % ## Examples
   %
@@ -53,7 +52,7 @@ object OrderedDict
   %
   def inspect
     transformer = -> (key, value, acc) ["#{key.inspect}: #{value.inspect}"|acc]
-    "{#{fold([], transformer).join(", ")}}"
+    "{#{fold([], transformer).reverse.join(", ")}}"
   end
 
   % The same as inspect.

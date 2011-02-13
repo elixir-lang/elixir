@@ -94,6 +94,10 @@ object List
   end
   alias_local 'filter, 'select, 1
 
+  def reverse
+    Erlang.lists.reverse(self)
+  end
+
   % Deletes an item from the list. If there is more than one
   % occurence of the item in the list just the first one is deleted.
   %
