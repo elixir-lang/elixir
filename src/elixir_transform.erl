@@ -147,7 +147,7 @@ transform({list, Line, Exprs, Tail }, F, V, S) ->
 transform({orddict, Line, Exprs }, F, V, S) ->
   { List, NV } = transform({list, Line, Exprs, {nil, Line} }, F, V, S),
   Dict = ?ELIXIR_WRAP_CALL(Line, orddict, from_list, [List]),
-  { build_object(Line, 'OrderedDict', [{orddict, Dict}]), NV };
+  { {tuple, Line, [{atom, Line, elixir_orddict}, Dict] }, NV };
 
 % Handle binaries declarations.
 %

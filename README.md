@@ -242,7 +242,7 @@ A nil value in Elixir is represented by an empty list. In if expressions (that w
 
 ### Ordered Dicts
 
-Elixir provides a first-class syntax to deal with ordered dictionaries (called Hash in Ruby).
+Elixir provides a first-class syntax to deal with ordered dictionaries (similar to Hashes in Ruby).
 
     % A dict with 'a and 'b as keys and 1 and 2 as their respective values
     { 'a: 1, 'b: 2 }
@@ -250,7 +250,9 @@ Elixir provides a first-class syntax to deal with ordered dictionaries (called H
     % An empty dict
     {:}
 
-Elixir dictionary implementation is backed up by [the orddict module](http://www.erlang.org/doc/man/orddict.html) in OTP.
+Elixir dictionary implementation is backed up by [the orddict module](http://www.erlang.org/doc/man/orddict.html) in OTP. Notice that Erlang ordered dicts are **not** ordered in the order items are added, but rather using Erlang ordering of terms. You can learn more about Erlang ordering by [reading this section from Learn You Some Erlang](http://learnyousomeerlang.com/starting-out-for-real#bool-and-compare).
+
+Ordered Dicts are recommended to deal with small amount of data. Other data structures are recommended to deal with a huge amount and you can [read more about others key-value store](http://learnyousomeerlang.com/a-short-visit-to-common-data-structures#key-value-stores), but remember that most of them are not implemented in Elixir yet.
 
 #### Documentation:
 
@@ -753,7 +755,7 @@ On top of that, Elixir provides a better way to organize our code. Let's rewrite
 
 Instead of defining modules without a namespace, we can define them inside the Person object, avoiding polluting the main namespace and reducing the chance of conflicts.
 
-Finally, since the pattern above is very common, Elixir provides three conveniences to make our code more expresssive:
+Finally, since the pattern above is very common, Elixir provides three conveniences to make our code more expressive:
 
 * If a module `Mixin` is defined inside an object, it is automatically added as `mixin`;
 * If a module `Proto` is defined inside an object, it is automatically added as `proto`;

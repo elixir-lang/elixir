@@ -97,12 +97,11 @@ get_ivar_dict(Name, Data) ->
 set_ivar_dict(Self, Name, Value, Dict) ->
   Self#elixir_object{data=orddict:store(Name, Value, Dict)}.
 
-assert_dict_with_atoms(#elixir_object{parent='OrderedDict'} = Data) ->
-  Dict = get_ivar(Data, orddict),
+assert_dict_with_atoms(#elixir_orddict{struct=Dict} = Object) ->
   case lists:all(fun is_atom/1, orddict:fetch_keys(Dict)) of
     true  -> Dict;
     false ->
-      elixir_errors:raise(badarg, "constructor needs to return a OrderedDict with all keys as symbols, got ~ts", [inspect(Data)])
+      elixir_errors:raise(badarg, "constructor needs to return a OrderedDict with all keys as symbols, got ~ts", [inspect(Object)])
   end;
 
 assert_dict_with_atoms(Data) ->
@@ -193,8 +192,12 @@ object_parent(Native) when is_list(Native) ->
 object_parent(Native) when is_binary(Native) ->
   'Binary';
 
+object_parent(#elixir_orddict{}) ->
+  'OrderedDict';
+
 object_parent(Native) when is_tuple(Native) ->
   'Tuple'.
+
 
 object_mixins(#elixir_object{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, mixins, 2);

@@ -3,8 +3,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 dict_find(Key, Dict) ->
-  Data = Dict#elixir_object.data,
-  orddict:find(Key, orddict:fetch(orddict, Data)).
+  Struct = Dict#elixir_orddict.struct,
+  orddict:find(Key, Struct).
 
 simple_dict_test() ->
   {Dict, _} = elixir:eval("{ 'a: 1 }"),

@@ -1,12 +1,17 @@
 object OrderedDict
-  % Construct a new Elixir dictionary by keeping an Erlang orddict internally.
-  def constructor
-    { 'orddict: Erlang.orddict.new }
-  end
+  % Implement OrderedDict as a record. This is done basically
+  % to have improved performance for the equality operator.
+  module Mixin
+    % Return a new Elixir OrderedDict. Remember that new is
+    % special cased by the compiler to receive an array as argument.
+    def new([])
+      { 'elixir_orddict, Erlang.orddict.new }
+    end
 
-  % Construct a new Dict receiving an Erlang orddict.
-  def constructor(orddict)
-    { 'orddict: orddict }
+    % Return a new Elixir OrderedDict given the dictionary.
+    def new([orddict])
+      { 'elixir_orddict, orddict }
+    end
   end
 
   % Calls the given *function* for each key and value of the dictionary with an
@@ -24,7 +29,7 @@ object OrderedDict
   %     list.join(", ") % => "a: 1, b: 1"
   %
   def fold(acc, function)
-    Erlang.orddict.fold(function, acc, @orddict)
+    Erlang.orddict.fold(function, acc, orddict)
   end
 
   % Calls the given *function* for each key and value. Returns a List
@@ -41,7 +46,7 @@ object OrderedDict
   %     new_dict % => { 'a: 2, 'b: 4 }
   %
   def map(function)
-    Erlang.orddict.map(function, @orddict)
+    Erlang.orddict.map(function, orddict)
   end
 
   % Returns this dictionary represented as a String.
@@ -58,5 +63,11 @@ object OrderedDict
   % The same as inspect.
   def to_s
     inspect
+  end
+
+  private
+
+  def orddict
+    Erlang.element(2, self)
   end
 end
