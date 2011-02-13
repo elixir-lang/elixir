@@ -11,9 +11,13 @@
 % as Erlang does not understand the string representation from Elixir.
 %
 object String
-  % Initializes a string by keeping its internal list representation.
-  def constructor(bin)
-    { 'bin: bin.to_bin }
+  % Implement String as a record. This is done basically
+  % to have improved performance for the equality operator.
+  module Mixin
+    % Initializes a string by keeping its internal binary representation.
+    def new([bin])
+      { 'elixir_string, bin.to_bin }
+    end
   end
 
   % Concatenate two strings.
@@ -23,7 +27,7 @@ object String
   %     "eli" + "xir" % => "elixir"
   %
   def +(another)
-    String.new <<@bin|binary, another.to_bin|binary>>
+    String.new <<bin|binary, another.to_bin|binary>>
   end
 
   % Returns the length of the string. All strings parsed by the
@@ -36,17 +40,17 @@ object String
   %     "josé".length   % => 4
   %
   def length
-    Erlang.length(Erlang.unicode.characters_to_list(@bin, 'utf8))
+    Erlang.length(Erlang.unicode.characters_to_list(bin, 'utf8))
   end
 
   % Returns the list representation of this String.
   def to_list
-    Erlang.binary_to_list @bin
+    Erlang.binary_to_list bin
   end
 
   % Returns the list of chars represantion of this String.
   def to_char_list
-    Erlang.binary_to_list @bin
+    Erlang.binary_to_list bin
   end
 
   % Returns a string representation of this string.
@@ -56,15 +60,21 @@ object String
   %     "elixir".inspect % => "\"elixir\""
   %
   def inspect
-    String.new <<$\", @bin|binary, $\">>
+    String.new <<$\", bin|binary, $\">>
   end
 
   def to_bin
-    @bin
+    bin
   end
 
   % Returns the string itself.
   def to_s
     self
+  end
+
+  private
+
+  def bin
+    Erlang.element(2, self)
   end
 end

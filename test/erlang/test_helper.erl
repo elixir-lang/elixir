@@ -20,7 +20,7 @@ test() ->
   ]).
 
 unpack_string(String) ->
-  orddict:fetch(bin, String#elixir_object.data).
+  String#elixir_string.struct.
 
 unpack_regexp(Regexp) ->
   Data = Regexp#elixir_object.data,

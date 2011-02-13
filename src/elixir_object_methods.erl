@@ -108,7 +108,7 @@ assert_dict_with_atoms(Data) ->
   elixir_errors:raise(badarg, "constructor needs to return a OrderedDict, got ~ts", [inspect(Data)]).
 
 inspect(Object) ->
-  get_ivar(elixir_dispatch:dispatch(false, Object, inspect, []), bin).
+  element(2, elixir_dispatch:dispatch(false, Object, inspect, [])).
 
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
@@ -195,9 +195,11 @@ object_parent(Native) when is_binary(Native) ->
 object_parent(#elixir_orddict{}) ->
   'OrderedDict';
 
+object_parent(#elixir_string{}) ->
+  'String';
+
 object_parent(Native) when is_tuple(Native) ->
   'Tuple'.
-
 
 object_mixins(#elixir_object{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, mixins, 2);

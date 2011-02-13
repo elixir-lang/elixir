@@ -169,7 +169,7 @@ transform({bin_element, Line, Expr, Type, Specifiers }, F, V, S) ->
 %
 % No variables can be defined in a string without interpolation.
 transform({string, Line, String } = Expr, F, V, S) ->
-  { build_object(Line, 'String', [{bin, build_bin(Line, [Expr])}]), V };
+  { { tuple, Line, [{atom, Line, elixir_string}, build_bin(Line, [Expr])] }, V };
 
 % Handle interpolated strings declarations. A string is created
 % by explicitly creating an #elixir_object and not through String.new.
@@ -180,7 +180,7 @@ transform({string, Line, String } = Expr, F, V, S) ->
 transform({interpolated_string, Line, String }, F, V, S) ->
   { List, VE } = handle_interpolations(String, Line, F, V, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
-  { build_object(Line, 'String', [{bin, Binary}]), VE };
+  { { tuple, Line, [{atom, Line, elixir_string}, Binary] }, VE };
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
 %
@@ -458,22 +458,6 @@ build_if_clauses({if_clause, Line, Bool, Expr, List}, Acc) ->
     { clause, Line, False, [], Acc }
   ] }].
 
-% Build an #elixir_object using tuples. It expects the parent
-% and a proplist of Key/Value pairs to be used as instance variables.
-build_object(Line, Parent, Ivars) ->
-  Dict = fun ({Key, Value}, Acc) -> ?ELIXIR_WRAP_CALL(Line, orddict, store, [{atom, Line, Key}, Value, Acc]) end,
-
-  {tuple, Line,
-    [
-      {atom, Line, elixir_object},
-      {nil, Line},          % Name
-      {atom, Line, Parent}, % Parent
-      {nil, Line},          % Mixins
-      {nil, Line},          % Protos
-      lists:foldl(Dict, ?ELIXIR_WRAP_CALL(Line, orddict, new, []), Ivars)
-    ]
-  }.
-
 % Handles method calls. It performs no transformation and assumes
 % all data is already transformed.
 build_method_call(Name, Line, Args, Expr) ->
@@ -515,7 +499,7 @@ handle_string_extractions({s, String}, Line, F, V, S) ->
 handle_string_extractions({i, Interpolation}, Line, F, V, S) ->
   { Tree, NV } = parse(Interpolation, Line, F, V, S),
   Stringify = build_method_call(to_s, Line, {nil,Line}, hd(Tree)),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, [Stringify, {atom, Line, bin}]), NV }.
+  { ?ELIXIR_WRAP_CALL(Line, erlang, element, [{integer, Line, 2}, Stringify]), NV }.
 
 % Convert the given expression to a boolean value: true or false.
 % Assumes the given expressions was already transformed.

@@ -16,3 +16,4 @@
 %
 -record(elixir_object, {name=[], parent=[], mixins=[], protos=[], data=[] }).
 -record(elixir_orddict, {struct=[]}).
+-record(elixir_string, {struct=[]}).
