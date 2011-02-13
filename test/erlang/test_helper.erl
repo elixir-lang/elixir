@@ -8,13 +8,13 @@ test() ->
     arithmetic_test,
     atom_test,
     callbacks_test,
-    dict_test,
     erlang_call_test,
     function_test,
     object_test,
     match_test,
     module_test,
     operator_test,
+    ordered_dict_test,
     regexp_test,
     string_test
   ]).

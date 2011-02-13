@@ -1,4 +1,4 @@
--module(dict_test).
+-module(ordered_dict_test).
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
