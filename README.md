@@ -502,6 +502,211 @@ Finally, pattern matching can also be implemented in methods signatures. Here is
 
 We will discuss modules and methods with more details later.
 
+## Operators
+
+Operators can be binary or unary operators:
+
+    (expression) binary_op (expression)
+    unary_op (expression)
+
+### Term comparisons
+
+Elixir term comparisons operators are close to Erlang ones, except "!=", "=!=" and "<=" which maps to Erlang "/=", "=/=" and "=<".
+
+<table>
+<tr>
+  <td><strong>Operator</strong></td>
+  <td><strong>Description</strong></td>
+</tr>
+<tr>
+  <td>==</td>
+  <td>equal to</td>
+</tr>
+<tr>
+  <td>!=</td>
+  <td>not equal to</td>
+</tr>
+<tr>
+  <td>&lt;=</td>
+  <td>less than or equal to</td>
+</tr>
+<tr>
+  <td>&lt;</td>
+  <td>less than</td>
+</tr>
+<tr>
+  <td>&gt;=</td>
+  <td>greater than or equal to</td>
+</tr>
+<tr>
+  <td>&gt;</td>
+  <td>greater than</td>
+</tr>
+<tr>
+  <td>=:=</td>
+  <td>exactly equal to</td>
+</tr>
+<tr>
+  <td>=!=</td>
+  <td>exactly not equal to</td>
+</tr>
+</table>
+
+As in Erlang, Elixir can order different objects types:
+
+    number < atom < reference < fun < port < pid < tuple < any other object < list < bit string
+
+Lists are compared element by element. Tuples are ordered by size, two tuples with the same size are compared element by element. If one of the compared terms is an integer and the other a float, the integer is first converted into a float, unless the operator is one of `=:=` and `=!=`.
+
+All term comparison operators return a boolean expression.
+
+### Arithmetic operators
+
+<table>
+<tr>
+  <td><strong>Operator</strong></td>
+  <td><strong>Description</strong></td>
+  <td><strong>Argument</strong></td>
+</tr>
+<tr>
+  <td>+</td>
+  <td>unary +</td>
+  <td>number</td>
+</tr>
+<tr>
+  <td>-</td>
+  <td>unary -</td>
+  <td>number</td>
+</tr>
+<tr>
+  <td>+</td>
+  <td></td>
+  <td>any object</td>
+</tr>
+<tr>
+  <td>-</td>
+  <td></td>
+  <td>any object</td>
+</tr>
+<tr>
+  <td>*</td>
+  <td></td>
+  <td>any object</td>
+</tr>
+<tr>
+  <td>/</td>
+  <td>returns a float</td>
+  <td>any object</td>
+</tr>
+<tr>
+  <td>div</td>
+  <td>returns an integer</td>
+  <td>any object</td>
+</tr>
+<tr>
+  <td>rem</td>
+  <td>returns an integer</td>
+  <td>any object</td>
+</tr>
+</table>
+
+Except by the two unary operators, all other operators accept any object as parameter. This is because those operators are implemented as methods and their implementation are defined by the object which is receiving the method. For instance, we can concatenate two lists by using the `+` operator:
+
+    [1,2,3] + [4,5,6]  % => [1,2,3,4,5,6]
+
+This is the same as:
+
+    [1,2,3].+([4,5,6]) % => [1,2,3,4,5,6]
+
+Notice however that we cannot add a list with a number:
+
+    [1,2,3] + 1  % => Raises an error
+
+Also, Elixir keeps the same semantics as Erlang in the sense the `/` operator always returns a float when numbers are given as argument. The `div` and `rem` operators are used to deal with integers:
+
+    2 / 1    % => 2.0
+    6 div 4  % => 1
+    6 rem 4  % => 2
+
+### Bitwise operators
+
+To be implemented/written.
+
+### Strict boolean operators (to be implemented)
+
+Elixir provides the following operators to deal with booleans:
+
+<table>
+<tr>
+  <td><strong>Operator</strong></td>
+  <td><strong>Description</strong></td>
+</tr>
+<tr>
+  <td>and</td>
+  <td>same as Erlang's <b>andalso</b>, first expression must be a boolean</td>
+</tr>
+<tr>
+  <td>or</td>
+  <td>same as Erlang's <b>orelse</b>, first expression must be a boolean</td>
+</tr>
+<tr>
+  <td>not</td>
+  <td>unary operator same as Erlang's <b>not</b>, expression must be a boolean</td>
+</tr>
+</table>
+
+Both `and` and `or` are short-circuit operators. The second expression given is only evaluated if necessary. For example:
+
+    false and IO.puts("I will never be executed")
+    true or IO.puts("I will never be executed")
+
+### General boolean operators (to be implemented)
+
+Elixir provides three general boolean operators. They are also short-circuit operators, however they accept any object as argument and do not return a boolean but the last evaluated object:
+
+<table>
+<tr>
+  <td><strong>Operator</strong></td>
+  <td><strong>Description</strong></td>
+</tr>
+<tr>
+  <td>&&</td>
+  <td>and</td>
+</tr>
+<tr>
+  <td>||</td>
+  <td>or</td>
+</tr>
+<tr>
+  <td>!</td>
+  <td>not</td>
+</tr>
+</table>
+
+Remember that any object, except `false` and `[]` (empty list), evaluates to `true`:
+
+    ![]          % => true
+    !false       % => true
+    !true        % => false
+
+    [] && true   % => []
+    true && []   % => []
+    1 && 2       % => 2
+
+    true || []          % => true
+    'atom || 'another   % => 'atom
+    false || 'another   % => 'another
+
+    [] && IO.puts("I will never be executed")
+    false && IO.puts("I will never be executed")
+
+    1 || IO.puts("I will never be executed")
+    true || IO.puts("I will never be executed")
+
+### Precedence
+
+To be written.
+
 ## if/else and case/match
 
 Elixir, differently from Erlang, has a more conventional if/else structure:
@@ -790,7 +995,7 @@ When creating an object, we sometimes want to define properties specific to that
       def constructor(name, age)
         { 'name: name, 'age: age }
       end
-    
+
       def name
         @name
       end
@@ -826,7 +1031,7 @@ Instance variables can be changed using the `set_ivar` method:
 
     person = Person.name('john, 24)
     another_person = person.name('john_doe)
-    
+
     person.name % => 'john
     person.age  % => 24
 
