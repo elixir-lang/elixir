@@ -73,6 +73,22 @@ notnot_exclamation_mark_test() ->
   {false,[]} = elixir:eval("!![]"),
   {false,[]} = elixir:eval("!!false").
 
+less_greater_test() ->
+  {true,[]} = elixir:eval("1 < 2"),
+  {true,[]} = elixir:eval("1 < 'a"),
+  {false,[]} = elixir:eval("1 < 1.0"),
+  {false,[]} = elixir:eval("1 < 1"),
+  {true,[]} = elixir:eval("1 <= 1.0"),
+  {true,[]} = elixir:eval("1 <= 1"),
+  {true,[]} = elixir:eval("1 <= 'a"),
+  {false,[]} = elixir:eval("1 > 2"),
+  {false,[]} = elixir:eval("1 > 'a"),
+  {false,[]} = elixir:eval("1 > 1.0"),
+  {false,[]} = elixir:eval("1 > 1"),
+  {true,[]} = elixir:eval("1 >= 1.0"),
+  {true,[]} = elixir:eval("1 >= 1"),
+  {false,[]} = elixir:eval("1 >= 'a").
+
 integer_and_float_test() ->
   {true,[]} = elixir:eval("1 == 1"),
   {false,[]} = elixir:eval("1 != 1"),
