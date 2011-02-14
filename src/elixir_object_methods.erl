@@ -97,7 +97,7 @@ get_ivar_dict(Name, Data) ->
 set_ivar_dict(Self, Name, Value, Dict) ->
   Self#elixir_object{data=orddict:store(Name, Value, Dict)}.
 
-assert_dict_with_atoms(#elixir_orddict{struct=Dict} = Object) ->
+assert_dict_with_atoms(#elixir_orddict__{struct=Dict} = Object) ->
   case lists:all(fun is_atom/1, orddict:fetch_keys(Dict)) of
     true  -> Dict;
     false ->
@@ -192,10 +192,10 @@ object_parent(Native) when is_list(Native) ->
 object_parent(Native) when is_binary(Native) ->
   'Binary';
 
-object_parent(#elixir_orddict{}) ->
+object_parent(#elixir_orddict__{}) ->
   'OrderedDict';
 
-object_parent(#elixir_string{}) ->
+object_parent(#elixir_string__{}) ->
   'String';
 
 object_parent(Native) when is_tuple(Native) ->

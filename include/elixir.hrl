@@ -15,5 +15,5 @@
 %   5) Data holds the remaining information for the object.
 %
 -record(elixir_object, {name=[], parent=[], mixins=[], protos=[], data=[] }).
--record(elixir_orddict, {struct=[]}).
--record(elixir_string, {struct=[]}).
+-record(elixir_orddict__, {struct=[]}).
+-record(elixir_string__, {struct=[]}).

@@ -3,7 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 dict_find(Key, Dict) ->
-  Struct = Dict#elixir_orddict.struct,
+  Struct = Dict#elixir_orddict__.struct,
   orddict:find(Key, Struct).
 
 simple_dict_test() ->

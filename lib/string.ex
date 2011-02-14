@@ -16,7 +16,7 @@ object String
   module Mixin
     % Initializes a string by keeping its internal binary representation.
     def new([bin])
-      { 'elixir_string, bin.to_bin }
+      { 'elixir_string__, bin.to_bin }
     end
   end
 

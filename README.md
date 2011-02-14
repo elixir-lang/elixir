@@ -511,7 +511,7 @@ Operators can be binary or unary operators:
 
 ### Term comparisons
 
-Elixir term comparisons operators are close to Erlang ones, except "!=", "=!=" and "<=" which maps to Erlang "/=", "=/=" and "=<".
+Elixir term comparisons operators are close to Erlang ones, except `!=`, `=!=` and `<=` which maps to Erlang `/=`, `=/=` and `=<`.
 
 <table>
 <tr>

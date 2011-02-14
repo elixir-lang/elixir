@@ -5,12 +5,12 @@ object OrderedDict
     % Return a new Elixir OrderedDict. Remember that new is
     % special cased by the compiler to receive an array as argument.
     def new([])
-      { 'elixir_orddict, Erlang.orddict.new }
+      { 'elixir_orddict__, Erlang.orddict.new }
     end
 
     % Return a new Elixir OrderedDict given the dictionary.
     def new([orddict])
-      { 'elixir_orddict, orddict }
+      { 'elixir_orddict__, orddict }
     end
   end
 

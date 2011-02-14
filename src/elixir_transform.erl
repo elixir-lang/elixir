@@ -147,7 +147,7 @@ transform({list, Line, Exprs, Tail }, F, V, S) ->
 transform({orddict, Line, Exprs }, F, V, S) ->
   { List, NV } = transform({list, Line, Exprs, {nil, Line} }, F, V, S),
   Dict = ?ELIXIR_WRAP_CALL(Line, orddict, from_list, [List]),
-  { {tuple, Line, [{atom, Line, elixir_orddict}, Dict] }, NV };
+  { {tuple, Line, [{atom, Line, elixir_orddict__}, Dict] }, NV };
 
 % Handle binaries declarations.
 %
@@ -169,7 +169,7 @@ transform({bin_element, Line, Expr, Type, Specifiers }, F, V, S) ->
 %
 % No variables can be defined in a string without interpolation.
 transform({string, Line, String } = Expr, F, V, S) ->
-  { { tuple, Line, [{atom, Line, elixir_string}, build_bin(Line, [Expr])] }, V };
+  { { tuple, Line, [{atom, Line, elixir_string__}, build_bin(Line, [Expr])] }, V };
 
 % Handle interpolated strings declarations. A string is created
 % by explicitly creating an #elixir_object and not through String.new.
@@ -180,7 +180,7 @@ transform({string, Line, String } = Expr, F, V, S) ->
 transform({interpolated_string, Line, String }, F, V, S) ->
   { List, VE } = handle_interpolations(String, Line, F, V, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
-  { { tuple, Line, [{atom, Line, elixir_string}, Binary] }, VE };
+  { { tuple, Line, [{atom, Line, elixir_string__}, Binary] }, VE };
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
 %
