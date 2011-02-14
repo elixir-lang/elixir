@@ -23,7 +23,7 @@ unpack_string(String) ->
   String#elixir_string__.struct.
 
 unpack_regexp(Regexp) ->
-  Data = Regexp#elixir_object.data,
+  Data = Regexp#elixir_object__.data,
   { orddict:fetch(bin, Data), orddict:fetch(parsed_options, Data), orddict:fetch(compiled, Data) }.
 
 % Execute a piece of code and purge given modules right after

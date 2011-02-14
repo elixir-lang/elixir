@@ -15,7 +15,7 @@ build(Name) ->
     []   -> [];
     Else -> hd(Else)
   end,
-  #elixir_object{name=Name, parent=Parent, mixins=Mixins, protos=Protos}.
+  #elixir_object__{name=Name, parent=Parent, mixins=Mixins, protos=Protos}.
 
 %% TEMPLATE BUILDING FOR MODULE COMPILATION
 
@@ -34,7 +34,7 @@ build_template(Kind, Name, Template) ->
   ets:insert(AttributeTable, { protos, Protos }),
   ets:insert(AttributeTable, { data,   Data }),
 
-  Object = #elixir_object{name=Name, parent=Parent, mixins=[], protos=[], data=AttributeTable},
+  Object = #elixir_object__{name=Name, parent=Parent, mixins=[], protos=[], data=AttributeTable},
   { Object, AttributeTable }.
 
 % Returns the parent object based on the declaration.
@@ -48,18 +48,18 @@ default_mixins(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
 default_mixins(object, _Name, [])       -> ['Module::Methods']; % object Post
 default_mixins(module, Name, _Template) -> [Name];              % module Numeric
 default_mixins(object, _Name, Template) ->                      % object SimplePost from Post
-  Template#elixir_object.mixins ++ ['Module::Methods'].
+  Template#elixir_object__.mixins ++ ['Module::Methods'].
 
 % Default prototypes. Modules have themselves as the default prototype.
 default_protos(_, 'Object', _Template)  -> ['Object::Methods'];           % object Object
 default_protos(_, 'Module', _Template)  -> ['Module::Methods'];           % object Module
 default_protos(object, _Name, [])       -> [];                            % object Post
 default_protos(module, Name, _Template) -> [Name];                        % module Numeric
-default_protos(object, _Name, Template) -> Template#elixir_object.protos. % object SimplePost from Post
+default_protos(object, _Name, Template) -> Template#elixir_object__.protos. % object SimplePost from Post
 
 % Returns the default data from parents.
 default_data([])       -> orddict:new();
-default_data(Template) -> Template#elixir_object.data.
+default_data(Template) -> Template#elixir_object__.data.
 
 %% USED ON TRANSFORMATION AND MODULE COMPILATION
 
@@ -107,7 +107,7 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
 % TODO Allow object reopening but without method definition.
 % TODO Do not allow module reopening.
 compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
-  Name = Object#elixir_object.name,
+  Name = Object#elixir_object__.name,
   { Callbacks, Functions } = elixir_methods:unwrap_stored_methods(MethodTable),
   Behavior = elixir_module_methods:behavior(Object),
   compile_callbacks(Behavior, Line, Filename, Object, Callbacks),
@@ -120,7 +120,7 @@ compile_kind(_Kind, Line, Filename, Current, Object, MethodTable) ->
   case elixir_methods:is_empty_table(MethodTable) of
     true  -> [];
     false ->
-      Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object.name, '::', 'Proto']),
+      Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object__.name, '::', 'Proto']),
       compile(module, Line, Filename, Object, Name, [], fun(X) -> [] end, MethodTable)
   end,
   load_form(build_erlang_form(Line, Object), Filename).
@@ -129,12 +129,12 @@ compile_kind(_Kind, Line, Filename, Current, Object, MethodTable) ->
 compile_callbacks([], _Line, _Filename, _Object, _Callbacks) -> [];
 compile_callbacks(Behavior, Line, Filename, Object, Callbacks) ->
   elixir_module_methods:define_erlang_attribute(Object, behavior, elixir_callbacks),
-  Form = elixir_callbacks:build_module_form(Line, Object#elixir_object.name, Behavior, Callbacks),
+  Form = elixir_callbacks:build_module_form(Line, Object#elixir_object__.name, Behavior, Callbacks),
   load_form(Form, Filename).
 
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
-add_implicit_mixins(#elixir_object{name=Name} = Self, ModuleName) ->
+add_implicit_mixins(#elixir_object__{name=Name} = Self, ModuleName) ->
   Proto = lists:concat([Name, '::', 'Proto']),
   Mixin = lists:concat([Name, '::', 'Mixin']),
   case atom_to_list(ModuleName) of
@@ -151,9 +151,9 @@ build_erlang_form(Line, Object) ->
   build_erlang_form(Line, Object, {[],[],[]}).
 
 build_erlang_form(Line, Object, {Export, Protected, Functions}) ->
-  Name = Object#elixir_object.name,
-  Parent = Object#elixir_object.parent,
-  AttrTable = Object#elixir_object.data,
+  Name = Object#elixir_object__.name,
+  Parent = Object#elixir_object__.parent,
+  AttrTable = Object#elixir_object__.data,
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
   Base = ets:foldr(Transform, Functions, AttrTable),
   [{attribute, Line, module, Name}, {attribute, Line, parent, Parent},

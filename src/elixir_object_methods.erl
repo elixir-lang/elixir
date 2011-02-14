@@ -10,15 +10,15 @@
 % EXTERNAL API
 
 % TODO Disable .new call on native types
-new(#elixir_object{name=Name, protos=Protos} = Self, Args) ->
+new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
   Parent = case Name of
     [] -> Self;
     _  -> Name
   end,
-  Object = #elixir_object{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
+  Object = #elixir_object__{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
   Data = elixir_dispatch:dispatch(true, Object, constructor, Args),
   Dict = assert_dict_with_atoms(Data),
-  Object#elixir_object{data=Dict}.
+  Object#elixir_object__{data=Dict}.
 
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
 mixin(Self, Value) -> prepend_as(Self, mixin, Value).
@@ -44,11 +44,11 @@ function_catch(Function) ->
 get_ivar(Self, Name) when not is_atom(Name) ->
   elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~ts", [inspect(Name)]);
 
-get_ivar(#elixir_object{data=Data}, Name) when is_atom(Data) ->
+get_ivar(#elixir_object__{data=Data}, Name) when is_atom(Data) ->
   Dict = ets:lookup_element(Data, data, 2),
   get_ivar_dict(Name, Dict);
 
-get_ivar(#elixir_object{data=Dict}, Name) ->
+get_ivar(#elixir_object__{data=Dict}, Name) ->
   get_ivar_dict(Name, Dict);
 
 get_ivar(Self, Name) -> % Native types do not have instance variables.
@@ -57,13 +57,13 @@ get_ivar(Self, Name) -> % Native types do not have instance variables.
 set_ivar(Self, Name, Value) when not is_atom(Name) ->
   elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~ts", [inspect(Name)]);
 
-set_ivar(#elixir_object{data=Data} = Self, Name, Value) when is_atom(Data) ->
+set_ivar(#elixir_object__{data=Data} = Self, Name, Value) when is_atom(Data) ->
   Dict = ets:lookup_element(Data, data, 2),
   Object = set_ivar_dict(Self, Name, Value, Dict),
-  ets:insert(Data, { data, Object#elixir_object.data }),
+  ets:insert(Data, { data, Object#elixir_object__.data }),
   Object;
 
-set_ivar(#elixir_object{data=Dict} = Self, Name, Value) ->
+set_ivar(#elixir_object__{data=Dict} = Self, Name, Value) ->
   set_ivar_dict(Self, Name, Value, Dict);
 
 set_ivar(Self, Name, Value) -> % TODO Cannot set ivar on native types.
@@ -76,7 +76,7 @@ public_proto_methods(Self) ->
 
 % If we are defining a module, we need to remove itself from the given
 % List as the module was not defined in Erlang system yet.
-calculate_methods(#elixir_object{name=Name,parent=Parent,data=Data}, Fun, List, Acc) when is_atom(Data), Parent == 'Module' ->
+calculate_methods(#elixir_object__{name=Name,parent=Parent,data=Data}, Fun, List, Acc) when is_atom(Data), Parent == 'Module' ->
   calculate_methods(Fun, lists:delete(Name, List), Acc);
 
 calculate_methods(_Self, Fun, List, Acc) ->
@@ -95,7 +95,7 @@ get_ivar_dict(Name, Data) ->
   end.
 
 set_ivar_dict(Self, Name, Value, Dict) ->
-  Self#elixir_object{data=orddict:store(Name, Value, Dict)}.
+  Self#elixir_object__{data=orddict:store(Name, Value, Dict)}.
 
 assert_dict_with_atoms(#elixir_orddict__{struct=Dict} = Object) ->
   case lists:all(fun is_atom/1, orddict:fetch_keys(Dict)) of
@@ -113,12 +113,12 @@ inspect(Object) ->
 % TODO Only allow modules to be proto/mixed in.
 % TODO Handle native types
 % TODO Allow to call mixin outside object definition
-prepend_as(#elixir_object{} = Self, Kind, Value) ->
-  Name  = Self#elixir_object.name,
-  Table = Self#elixir_object.data,
+prepend_as(#elixir_object__{} = Self, Kind, Value) ->
+  Name  = Self#elixir_object__.name,
+  Table = Self#elixir_object__.data,
   TableKind = ?ELIXIR_ATOM_CONCAT([Kind, s]),
   Data  = ets:lookup_element(Table, TableKind, 2),
-  List  = Value#elixir_object.protos,
+  List  = Value#elixir_object__.protos,
 
   % If we are adding prototypes and the current name is
   % in the list of protos, this means we are adding a
@@ -166,15 +166,15 @@ r_ancestors(Name, Acc) ->
   r_ancestors(abstract_parent(Name), [Name|Acc]).
 
 % Methods that get values from objects. Argument can either be an
-% #elixir_object or an erlang native type.
+% #elixir_object__ or an erlang native type.
 
-object_name(#elixir_object{name=Name}) ->
+object_name(#elixir_object__{name=Name}) ->
   Name;
 
 object_name(Native) ->
   []. % Native types are instances and has no name.
 
-object_parent(#elixir_object{parent=Parent}) ->
+object_parent(#elixir_object__{parent=Parent}) ->
   Parent;
 
 object_parent(Native) when is_integer(Native) ->
@@ -201,37 +201,37 @@ object_parent(#elixir_string__{}) ->
 object_parent(Native) when is_tuple(Native) ->
   'Tuple'.
 
-object_mixins(#elixir_object{data=Data}) when is_atom(Data) ->
+object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, mixins, 2);
 
-object_mixins(#elixir_object{mixins=Mixins}) ->
+object_mixins(#elixir_object__{mixins=Mixins}) ->
   Mixins;
 
 object_mixins(Native) ->
   []. % Native types has all mixins from parents.
 
-object_protos(#elixir_object{data=Data}) when is_atom(Data) ->
+object_protos(#elixir_object__{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, protos, 2);
 
-object_protos(#elixir_object{protos=Protos}) ->
+object_protos(#elixir_object__{protos=Protos}) ->
   Protos;
 
 object_protos(Native) ->
   []. % Native types has no protos.
 
-object_data(#elixir_object{data=Data}) when is_atom(Data) ->
+object_data(#elixir_object__{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, data, 2);
 
-object_data(#elixir_object{data=Data}) ->
+object_data(#elixir_object__{data=Data}) ->
   Data;
 
 object_data(Native) ->
   orddict:new(). % Native types has no protos.
 
 % Method that get values from parents. Argument can either be an atom
-% or an #elixir_object.
+% or an #elixir_object__.
 
-abstract_parent(#elixir_object{parent=Parent}) ->
+abstract_parent(#elixir_object__{parent=Parent}) ->
   Parent;
 
 abstract_parent(Name) ->
@@ -240,19 +240,19 @@ abstract_parent(Name) ->
     Else -> hd(Else)
   end.
 
-abstract_mixins(#elixir_object{mixins=Mixins}) ->
+abstract_mixins(#elixir_object__{mixins=Mixins}) ->
   Mixins;
 
 abstract_mixins(Name) ->
   proplists:get_value(mixins, elixir_constants:lookup(Name, attributes)).
 
-abstract_protos(#elixir_object{protos=Protos}) ->
+abstract_protos(#elixir_object__{protos=Protos}) ->
   Protos;
 
 abstract_protos(Name) ->
   proplists:get_value(protos, elixir_constants:lookup(Name, attributes)).
 
-abstract_data(#elixir_object{data=Data}) ->
+abstract_data(#elixir_object__{data=Data}) ->
   Data;
 
 abstract_data(Name) ->
@@ -260,20 +260,20 @@ abstract_data(Name) ->
 
 % Get methods from abstract stuff.
 
-abstract_methods(#elixir_object{}) ->
+abstract_methods(#elixir_object__{}) ->
   [];
 
 abstract_methods(Name) ->
   Converter = fun({Name, Arity}) -> {Name, Arity - 1} end,
   lists:map(Converter, elixir_constants:lookup(Name, functions) -- [{module_info,0},{module_info,1}]).
 
-abstract_public_methods(#elixir_object{}) ->
+abstract_public_methods(#elixir_object__{}) ->
   [];
 
 abstract_public_methods(Name) ->
   abstract_methods(Name) -- abstract_protected_methods(Name).
 
-abstract_protected_methods(#elixir_object{}) ->
+abstract_protected_methods(#elixir_object__{}) ->
   [];
 
 abstract_protected_methods(Name) ->

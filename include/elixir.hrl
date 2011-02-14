@@ -14,6 +14,6 @@
 %   4) A tuple 'protos containing an ETS table index and a list of protos
 %   5) Data holds the remaining information for the object.
 %
--record(elixir_object, {name=[], parent=[], mixins=[], protos=[], data=[] }).
+-record(elixir_object__, {name=[], parent=[], mixins=[], protos=[], data=[] }).
 -record(elixir_orddict__, {struct=[]}).
 -record(elixir_string__, {struct=[]}).

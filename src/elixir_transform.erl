@@ -163,7 +163,7 @@ transform({bin_element, Line, Expr, Type, Specifiers }, F, V, S) ->
   { { bin_element, Line, TExpr, Type, Specifiers }, NV };
 
 % Handle strings by wrapping them in the String object. A string is created
-% by explicitly creating an #elixir_object and not through String.new.
+% by explicitly creating an #elixir_object__ and not through String.new.
 %
 % = Variables
 %
@@ -172,7 +172,7 @@ transform({string, Line, String } = Expr, F, V, S) ->
   { { tuple, Line, [{atom, Line, elixir_string__}, build_bin(Line, [Expr])] }, V };
 
 % Handle interpolated strings declarations. A string is created
-% by explicitly creating an #elixir_object and not through String.new.
+% by explicitly creating an #elixir_object__ and not through String.new.
 %
 % = Variables
 %
@@ -219,7 +219,7 @@ transform({char_list, Line, String } = Expr, F, V, S) ->
   { {string, Line, String}, V };
 
 % Handle interpolated strings declarations. A string is created
-% by explicitly creating an #elixir_object and not through String.new.
+% by explicitly creating an #elixir_object__ and not through String.new.
 %
 % = Variables
 %
