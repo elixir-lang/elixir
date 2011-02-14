@@ -52,6 +52,7 @@ Nonterminals
   unary_op
   add_op
   mult_op
+  comp_op
   dot_eol
   object_decl
   module_decl
@@ -74,6 +75,7 @@ Terminals
   if elsif else then unless filename
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '~'
+  '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!='
   .
 
 Rootsymbol grammar.
@@ -97,6 +99,7 @@ Left     300 '|'.
 Left     400 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
 Left     400 ','.
 
+Left     600 comp_op.
 Left     700 add_op.
 Left     800 mult_op.
 Nonassoc 900 unary_op.
@@ -134,6 +137,7 @@ expr -> expr match_op expr : build_match('$1', '$2', '$3').
 expr -> fun_base : '$1'.
 
 % Arithmetic operations
+expr -> expr comp_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr add_op expr : build_binary_op('$1', '$2', '$3').
 expr -> expr mult_op expr : build_binary_op('$1', '$2', '$3').
 expr -> unary_op expr : build_unary_op('$1', '$2').
@@ -170,7 +174,8 @@ _expr -> _expr match_op _expr : build_match('$1', '$2', '$3').
 _expr -> fun_base : '$1'.
 
 % Arithmetic operations
-_expr -> _expr add_op _expr : build_binary_op('$1', '$2', '$3').
+_expr -> _expr comp_op _expr : build_comp_op('$1', '$2', '$3').
+_expr -> _expr add_op _expr  : build_binary_op('$1', '$2', '$3').
 _expr -> _expr mult_op _expr : build_binary_op('$1', '$2', '$3').
 _expr -> unary_op _expr : build_unary_op('$1', '$2').
 _expr -> _call_exprs : '$1'.
@@ -382,8 +387,10 @@ match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.
 
 % Unary operator
-unary_op -> '+' : '$1'.
-unary_op -> '-' : '$1'.
+unary_op -> '+'   : '$1'.
+unary_op -> '-'   : '$1'.
+unary_op -> '!!'  : '$1'.
+unary_op -> '!'   : '$1'.
 
 % Addition operators
 add_op -> '+' : '$1'.
@@ -392,9 +399,18 @@ add_op -> '-' : '$1'.
 % Multiplication operators
 mult_op -> '*' : '$1'.
 mult_op -> '/' : '$1'.
-
 mult_op -> div : '$1'.
 mult_op -> rem : '$1'.
+
+% Comparision operators
+comp_op -> '>'   : '$1'.
+comp_op -> '<'   : '$1'.
+comp_op -> '=='  : '$1'.
+comp_op -> '!='  : '$1'.
+comp_op -> '<='  : '$1'.
+comp_op -> '>='  : '$1'.
+comp_op -> '=:=' : '$1'.
+comp_op -> '=!=' : '$1'.
 
 % Dot break
 dot_eol -> '.'     : '$1'.
@@ -462,6 +478,9 @@ build_object(Kind, Name, Body, Parent) ->
 
 build_fun(Stab, Clauses) ->
   { 'fun', ?line(Stab), { clauses, [Clauses] } }.
+
+build_comp_op(Left, Op, Right) ->
+  { comp_op, ?line(Op), ?op(Op), Left, Right }.
 
 build_binary_op(Left, Op, Right) ->
   { binary_op, ?line(Op), ?op(Op), Left, Right }.

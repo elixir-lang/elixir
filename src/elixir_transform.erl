@@ -230,6 +230,17 @@ transform({interpolated_char_list, Line, String }, F, V, S) ->
   Flattened = ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_list, [Binary]),
   { Flattened, VE };
 
+% Handle comparison operations.
+%
+% = Variables
+%
+% The Left and Right values of the comparison operation can be a match expression.
+% Variables defined inside these expressions needs to be added to the list.
+transform({comp_op, Line, Op, Left, Right}, F, V, S) ->
+  { TLeft, VL } = transform(Left, F, V, S),
+  { TRight, VR } = transform(Right, F, V, S),
+  { { op, Line, convert_comp_op(Op), TLeft, TRight }, umerge(VL, VR) };
+
 % Handle binary operations.
 %
 % = Variables
@@ -248,6 +259,17 @@ transform({binary_op, Line, Op, Left, Right}, F, V, S) ->
 %
 % The target (Right) of the unary operation can be a match expression.
 % Variables defined inside these expressions needs to be added to the list.
+
+% Specially handle the '!' operator as it has different semantics from Erlang.
+transform({unary_op, Line, '!', Right}, F, V, S) ->
+  { TRight, V1} = transform(Right, F, V, S),
+  { convert_to_boolean(Line, TRight, false), V1 };
+
+% Specially handle two '!!' operators for performance.
+transform({unary_op, Line, '!!', Right}, F, V, S) ->
+  { TRight, V1} = transform(Right, F, V, S),
+  { convert_to_boolean(Line, TRight, true), V1 };
+
 transform({unary_op, Line, Op, Right}, F, V, S) ->
   { TRight, V1} = transform(Right, F, V, S),
   { { op, Line, Op, TRight }, V1 };
@@ -516,3 +538,9 @@ convert_to_boolean(Line, Expr, Bool) ->
       { clause, Line, Nil, [], FalseResult },
       { clause, Line, Any, [], TrueResult }
   ] }.
+
+% Convert comparison operators to erlang format.
+convert_comp_op('=!=') -> '=/=';
+convert_comp_op('!=') ->  '/=';
+convert_comp_op('<=') ->  '=<';
+convert_comp_op(Else) ->  Else.

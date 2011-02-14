@@ -79,7 +79,16 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 ({LowerCase}|_){IdentifierBase}*[?!] : build(punctuated_identifier, TokenLine, TokenChars).
 
 %% Operators
+
+=:=   : { token, { '=:=', TokenLine } }.
+=!=   : { token, { '=!=', TokenLine } }.
+!!  	: { token, { '!!', TokenLine } }.
+==  	: { token, { '==', TokenLine } }.
+!=    : { token, { '!=', TokenLine } }.
+<=    : { token, { '<=', TokenLine } }.
+>=    : { token, { '>=', TokenLine } }.
 ->    : { token, { '->', TokenLine } }.
+<-    : { token, { '<-', TokenLine } }.
 <<    : { token, { '<<', TokenLine } }.
 >>    : { token, { '>>', TokenLine } }.
 \|    : { token, { '|', TokenLine } }.
@@ -98,10 +107,11 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 \:    : { token, { ':', TokenLine } }.
 ,     : { token, { ',', TokenLine } }.
 \.    : { token, { '.', TokenLine } }.
-\:    : { token, { ':', TokenLine } }.
-\@    : { token, { '@', TokenLine } }.
+@     : { token, { '@', TokenLine } }.
+~     : { token, { '~', TokenLine } }.
 <     : { token, { '<', TokenLine } }.
-\~    : { token, { '~', TokenLine } }.
+>     : { token, { '>', TokenLine } }.
+!     : { token, { '!', TokenLine } }.
 
 %% Skip
 {Comment} : skip_token.

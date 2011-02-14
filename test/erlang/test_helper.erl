@@ -13,7 +13,7 @@ test() ->
     object_test,
     match_test,
     module_test,
-    operator_test,
+    operators_test,
     ordered_dict_test,
     regexp_test,
     string_test
