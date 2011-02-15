@@ -110,6 +110,8 @@ and_test() ->
     {false, []} = elixir:eval("Bar.foo and Bar.bar"),
     {true, []} = elixir:eval("Bar.foo and Bar.baz 1"),
     {false, []} = elixir:eval("Bar.foo and Bar.baz 2"),
+    {true, []} = elixir:eval("1 == 1 and 2 < 3"),
+    {true, []} = elixir:eval("false and false or true"),
     ?assertError(badarg, elixir:eval("1 and 2"))
   end,
   test_helper:run_and_remove(F, ['Bar']).
@@ -141,6 +143,7 @@ andalso_test() ->
     {false, []} = elixir:eval("Bar.foo andalso Bar.bar"),
     {true, []} = elixir:eval("Bar.foo andalso Bar.baz 1"),
     {false, []} = elixir:eval("Bar.foo andalso Bar.baz 2"),
+    {true, []} = elixir:eval("false andalso false orelse true"),
     {3, []} = elixir:eval("Bar.foo andalso 1 + 2"),
     {false, []} = elixir:eval("Bar.bar andalso Erlang.error('bad)"),
     ?assertError({badarg, 1}, elixir:eval("1 andalso 2"))

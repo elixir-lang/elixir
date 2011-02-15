@@ -90,26 +90,26 @@ Rootsymbol grammar.
 % It can either be treated as x(+1) or (x) + 1. That said,
 % we give some precedence to base_expr so the second one
 % is chosen.
-Nonassoc 100 base_identifier.
+Nonassoc 10 base_identifier.
 
 % Solve nested call_args conflicts
-Nonassoc 100 ')'.
-Nonassoc 100 eol.
+Nonassoc 10 ')'.
+Nonassoc 10 eol.
 
-Right    200 match_op. % Handle a = -> b = 1 as a = (-> b = 1) and a = b = c as a = (b = c)
-Left     300 ':'.
-Left     300 '|'.
-Left     400 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
-Left     400 ','.
+Right    20 match_op. % Handle a = -> b = 1 as a = (-> b = 1) and a = b = c as a = (b = c)
+Left     30 ':'.
+Left     30 '|'.
+Left     40 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
+Left     40 ','.
 
-Left     600 comp_op.
-Left     700 add_op.
-Left     700 or_op.
-Left     800 mult_op.
-Left     800 and_op.
-Nonassoc 900 unary_op.
-Nonassoc 1000 without_args_method_call_expr.
-Nonassoc 1000 _without_args_method_call_expr.
+Left     50 or_op.
+Left     60 and_op.
+Left     70 comp_op.
+Left     80 add_op.
+Left     90 mult_op.
+Nonassoc 100 unary_op.
+Nonassoc 110 without_args_method_call_expr.
+Nonassoc 110 _without_args_method_call_expr.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
