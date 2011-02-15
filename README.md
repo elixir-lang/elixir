@@ -632,33 +632,42 @@ Also, Elixir keeps the same semantics as Erlang in the sense the `/` operator al
 
 To be implemented/written.
 
-### Strict boolean operators (to be implemented)
+### Strict boolean operators
 
 Elixir provides the following operators to deal with booleans:
 
 <table>
 <tr>
   <td><strong>Operator</strong></td>
+  <td><strong>Erlang equivalent</strong></td>
   <td><strong>Description</strong></td>
 </tr>
 <tr>
   <td>and</td>
-  <td>same as Erlang's <b>andalso</b>, first expression must be a boolean</td>
+  <td>and</td>
+  <td>Both expressions must return boolean</td>
 </tr>
 <tr>
   <td>or</td>
-  <td>same as Erlang's <b>orelse</b>, first expression must be a boolean</td>
+  <td>or</td>
+  <td>Both expressions must return boolean</td>
+</tr>
+<tr>
+  <td>andalso</td>
+  <td>andalso</td>
+  <td>First expression must return boolean, short-circuit operator</td>
+</tr>
+<tr>
+  <td>orelse</td>
+  <td>orelse</td>
+  <td>First expression must return boolean, short-circuit operator</td>
 </tr>
 <tr>
   <td>not</td>
-  <td>unary operator same as Erlang's <b>not</b>, expression must be a boolean</td>
+  <td>not</td>
+  <td>Unary operators, expression must be a boolean</td>
 </tr>
 </table>
-
-Both `and` and `or` are short-circuit operators. The second expression given is only evaluated if necessary. For example:
-
-    false and IO.puts("I will never be executed")
-    true or IO.puts("I will never be executed")
 
 ### General boolean operators (to be implemented)
 

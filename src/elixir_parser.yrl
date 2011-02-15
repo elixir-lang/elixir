@@ -53,6 +53,8 @@ Nonterminals
   add_op
   mult_op
   comp_op
+  or_op
+  and_op
   dot_eol
   object_decl
   module_decl
@@ -71,8 +73,9 @@ Terminals
   punctuated_identifier identifier float integer constant
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
-  div rem module object 'do' 'end' def eol Erlang true false
+  div rem module object do end def eol Erlang true false
   if elsif else then unless filename
+  and andalso or orelse not
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '~'
   '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!='
@@ -101,7 +104,9 @@ Left     400 ','.
 
 Left     600 comp_op.
 Left     700 add_op.
+Left     700 or_op.
 Left     800 mult_op.
+Left     800 and_op.
 Nonassoc 900 unary_op.
 Nonassoc 1000 without_args_method_call_expr.
 Nonassoc 1000 _without_args_method_call_expr.
@@ -137,6 +142,8 @@ expr -> expr match_op expr : build_match('$1', '$2', '$3').
 expr -> fun_base : '$1'.
 
 % Arithmetic operations
+expr -> expr and_op expr : build_comp_op('$1', '$2', '$3').
+expr -> expr or_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr comp_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr add_op expr : build_binary_op('$1', '$2', '$3').
 expr -> expr mult_op expr : build_binary_op('$1', '$2', '$3').
@@ -174,6 +181,8 @@ _expr -> _expr match_op _expr : build_match('$1', '$2', '$3').
 _expr -> fun_base : '$1'.
 
 % Arithmetic operations
+_expr -> _expr and_op _expr : build_comp_op('$1', '$2', '$3'). 
+_expr -> _expr or_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr comp_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr add_op _expr  : build_binary_op('$1', '$2', '$3').
 _expr -> _expr mult_op _expr : build_binary_op('$1', '$2', '$3').
@@ -391,6 +400,7 @@ unary_op -> '+'   : '$1'.
 unary_op -> '-'   : '$1'.
 unary_op -> '!!'  : '$1'.
 unary_op -> '!'   : '$1'.
+unary_op -> 'not' : '$1'.
 
 % Addition operators
 add_op -> '+' : '$1'.
@@ -411,6 +421,13 @@ comp_op -> '<='  : '$1'.
 comp_op -> '>='  : '$1'.
 comp_op -> '=:=' : '$1'.
 comp_op -> '=!=' : '$1'.
+
+% and/or operators
+and_op -> and : '$1'.
+and_op -> andalso : '$1'.
+
+or_op -> or : '$1'.
+or_op -> orelse : '$1'.
 
 % Dot break
 dot_eol -> '.'     : '$1'.
