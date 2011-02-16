@@ -172,3 +172,23 @@ not_test() ->
   {false, []} = elixir:eval("not true"),
   {true, []} = elixir:eval("not false"),
   ?assertError(badarg, elixir:eval("not 1")).
+
+andand_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\ndef foo; true; end\ndef bar; false; end\ndef baz(x); x==1; end\nend"),
+    {true, []} = elixir:eval("true && true"),
+    {false, []} = elixir:eval("true && false"),
+    {false, []} = elixir:eval("false && true"),
+    {false, []} = elixir:eval("false && false"),
+    {true, []} = elixir:eval("Bar.foo && Bar.foo"),
+    {false, []} = elixir:eval("Bar.foo && Bar.bar"),
+    {true, []} = elixir:eval("Bar.foo && Bar.baz 1"),
+    {false, []} = elixir:eval("Bar.foo && Bar.baz 2"),
+    {true, []} = elixir:eval("1 == 1 && 2 < 3"),
+    {3, []} = elixir:eval("Bar.foo && 1 + 2"),
+    {false, []} = elixir:eval("Bar.bar && Erlang.error('bad)"),
+    {[], []} = elixir:eval("[] && 2"),
+    {2, []} = elixir:eval("1 && 2"),
+    {false, []} = elixir:eval("false && false or true")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).

@@ -632,46 +632,9 @@ Also, Elixir keeps the same semantics as Erlang in the sense the `/` operator al
 
 To be implemented/written.
 
-### Strict boolean operators
+### Short-circuit control operators (to be implemented)
 
-Elixir provides the following operators to deal with booleans:
-
-<table>
-<tr>
-  <td><strong>Operator</strong></td>
-  <td><strong>Erlang equivalent</strong></td>
-  <td><strong>Description</strong></td>
-</tr>
-<tr>
-  <td>and</td>
-  <td>and</td>
-  <td>Both expressions must return boolean</td>
-</tr>
-<tr>
-  <td>or</td>
-  <td>or</td>
-  <td>Both expressions must return boolean</td>
-</tr>
-<tr>
-  <td>andalso</td>
-  <td>andalso</td>
-  <td>First expression must return boolean, short-circuit operator</td>
-</tr>
-<tr>
-  <td>orelse</td>
-  <td>orelse</td>
-  <td>First expression must return boolean, short-circuit operator</td>
-</tr>
-<tr>
-  <td>not</td>
-  <td>not</td>
-  <td>Unary operators, expression must be a boolean</td>
-</tr>
-</table>
-
-### General boolean operators (to be implemented)
-
-Elixir provides three general boolean operators. They are also short-circuit operators, however they accept any object as argument and do not return a boolean but the last evaluated object:
+Elixir provides three general boolean operators. They are short-circuit operators and accept any object as argument. They do not return a boolean but the last evaluated object:
 
 <table>
 <tr>
@@ -711,6 +674,43 @@ Remember that any object, except `false` and `[]` (empty list), evaluates to `tr
 
     1 || IO.puts("I will never be executed")
     true || IO.puts("I will never be executed")
+
+### Strict boolean operators
+
+Elixir provides the following operators to deal strictly with booleans:
+
+<table>
+<tr>
+  <td><strong>Operator</strong></td>
+  <td><strong>Erlang equivalent</strong></td>
+  <td><strong>Description</strong></td>
+</tr>
+<tr>
+  <td>and</td>
+  <td>and</td>
+  <td>Both expressions must return boolean</td>
+</tr>
+<tr>
+  <td>or</td>
+  <td>or</td>
+  <td>Both expressions must return boolean</td>
+</tr>
+<tr>
+  <td>andalso</td>
+  <td>andalso</td>
+  <td>First expression must return boolean, short-circuit operator</td>
+</tr>
+<tr>
+  <td>orelse</td>
+  <td>orelse</td>
+  <td>First expression must return boolean, short-circuit operator</td>
+</tr>
+<tr>
+  <td>not</td>
+  <td>not</td>
+  <td>Unary operators, expression must be a boolean</td>
+</tr>
+</table>
 
 ### Precedence
 

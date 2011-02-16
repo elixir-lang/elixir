@@ -54,6 +54,8 @@ integer_with_unary_test() ->
   {2,[]}    = elixir:eval("- 1 * - 2").
 
 integer_eol_test() ->
+  {3,[]} = elixir:eval("1 +\n2"),
+  {2,[]} = elixir:eval("1 *\n2"),
   {8,[]} = elixir:eval("1 + 2\n3 + 5"),
   {8,[]} = elixir:eval("1 + 2\n\n\n3 + 5"),
   {8,[]} = elixir:eval("1 + 2;\n\n3 + 5"),

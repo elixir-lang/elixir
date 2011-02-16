@@ -246,7 +246,7 @@ transform({interpolated_char_list, Line, String }, V, S) ->
 transform({comp_op, Line, Op, Left, Right}, V, S) ->
   { TLeft, VL } = transform(Left, V, S),
   { TRight, VR } = transform(Right, V, S),
-  { { op, Line, convert_comp_op(Op), TLeft, TRight }, umerge(VL, VR) };
+  build_comp_op(Line, Op, TLeft, TRight, umerge(VL, VR));
 
 % Handle binary operations.
 %
@@ -266,20 +266,9 @@ transform({binary_op, Line, Op, Left, Right}, V, S) ->
 %
 % The target (Right) of the unary operation can be a match expression.
 % Variables defined inside these expressions needs to be added to the list.
-
-% Specially handle the '!' operator as it has different semantics from Erlang.
-transform({unary_op, Line, '!', Right}, V, S) ->
-  { TRight, V1} = transform(Right, V, S),
-  { convert_to_boolean(Line, TRight, false), V1 };
-
-% Specially handle two '!!' operators for performance.
-transform({unary_op, Line, '!!', Right}, V, S) ->
-  { TRight, V1} = transform(Right, V, S),
-  { convert_to_boolean(Line, TRight, true), V1 };
-
 transform({unary_op, Line, Op, Right}, V, S) ->
   { TRight, V1} = transform(Right, V, S),
-  { { op, Line, Op, TRight }, V1 };
+  { build_unary_op(Line, Op, TRight), V1 };
 
 % Handle if/elsif/else expressions.
 %
@@ -540,10 +529,38 @@ convert_to_boolean(Line, Expr, Bool) ->
   TrueResult  = [{atom,Line,Bool}],
 
   { 'case', Line, Expr, [
-      { clause, Line, False, [], FalseResult },
-      { clause, Line, Nil, [], FalseResult },
-      { clause, Line, Any, [], TrueResult }
+    { clause, Line, False, [], FalseResult },
+    { clause, Line, Nil, [], FalseResult },
+    { clause, Line, Any, [], TrueResult }
   ] }.
+
+% Specially handle the '!' operator as it has different semantics from Erlang not.
+build_unary_op(Line, '!', Right) ->
+  convert_to_boolean(Line, Right, false);
+
+% Specially handle two '!!' operators for performance.
+build_unary_op(Line, '!!', Right) ->
+  convert_to_boolean(Line, Right, true);
+
+% Handle all others unary operators by simply passing them to Erlang.
+build_unary_op(Line, Op, Right) ->
+  { op, Line, Op, Right }.
+
+% Build and handle comparision operators.
+build_comp_op(Line, '&&', Left, Right, V) ->
+  Any   = [{var, Line, '_'}],
+  Nil   = [{nil,Line}],
+  False = [{atom,Line,false}],
+
+  { { 'case', Line, Left, [
+    { clause, Line, False, [], False },
+    { clause, Line, Nil, [], Nil },
+    { clause, Line, Any, [], [Right] }
+  ] }, V };
+
+% Build and handle comparision operators.
+build_comp_op(Line, Op, Left, Right, V) ->
+  { { op, Line, convert_comp_op(Op), Left, Right }, V }.
 
 % Convert comparison operators to erlang format.
 convert_comp_op('=!=') -> '=/=';
