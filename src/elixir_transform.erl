@@ -559,6 +559,23 @@ build_unary_op(Line, '!!', Right) ->
 build_unary_op(Line, Op, Right) ->
   { op, Line, Op, Right }.
 
+build_var_name(#elixir_scope{counter=Counter} = S) ->
+  { ?ELIXIR_ATOM_CONCAT(["ElixirVar", Counter]), S#elixir_scope{counter=Counter+1} }.
+
+% Build and handle comparision operators.
+build_comp_op(Line, '||', Left, Right, S) ->
+  { VarName, NS } = build_var_name(S),
+
+  Var = {var, Line, VarName},
+  Match = {match, Line, Var, Left},
+  True = [{atom,Line,true}],
+  False = [{atom,Line,false}],
+
+  { { 'case', Line, convert_to_boolean(Line, Match, true), [
+    { clause, Line, False, [], [Right] },
+    { clause, Line, True, [], [Var] }
+  ] }, NS };
+
 % Build and handle comparision operators.
 build_comp_op(Line, '&&', Left, Right, S) ->
   Any   = [{var, Line, '_'}],

@@ -92,7 +92,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 <<    : { token, { '<<', TokenLine } }.
 >>    : { token, { '>>', TokenLine } }.
 &&    : { token, { '&&', TokenLine } }.
-||    : { token, { '||', TokenLine } }.
+\|\|  : { token, { '||', TokenLine } }.
 \|    : { token, { '|', TokenLine } }.
 \+    : { token, { '+', TokenLine } }.
 -     : { token, { '-', TokenLine } }.

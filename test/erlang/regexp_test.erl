@@ -17,6 +17,9 @@ compiled_regexp_test() ->
   {{<<"foo">>, [unicode, caseless, multiline], Compiled}, []} = eval_regexp("~R{f#{'o}o}iu"),
   re_pattern = element(1, Compiled).
 
+match_test() ->
+  {true,[]} = elixir:eval("~r(foo).match?(\"foo\")").
+
 invalid_option_regexp_test() ->
   ?assertError({badarg, "unknown option \"h\""}, elixir:eval("~r{foo}h")).
 
