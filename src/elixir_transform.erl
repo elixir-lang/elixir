@@ -322,6 +322,25 @@ transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
   { TList, TListS } = transform_tree(List, TExprS),
   { {if_clause, Line, Bool, TExpr, TList }, { umergec(TExprS, TListS), umergev(ListS, TListS) } };
 
+% Handle case expressions.
+%
+% = Variables
+%
+% Variables are not shared between clauses but the overall variables
+% list need to be passed forward. Also, variables counter need to be
+% passed forward as well.
+transform({'case', Line, Expr, Clauses}, S) ->
+  { TExpr, NS } = transform(Expr, S),
+
+  Transformer = fun(X, Acc) ->
+    % Pass variables counter forward, but always get the variable list from NS
+    { TX, TAcc } = transform(X, umergec(NS, Acc)),
+    { TX, umergev(Acc, TAcc) }
+  end,
+
+  { TClauses, TS } = lists:mapfoldl(Transformer, NS, Clauses),
+  { { 'case', Line, TExpr, TClauses }, TS }; 
+
 % Handle functions declarations. They preserve the current binding.
 %
 % = Variables
@@ -332,7 +351,7 @@ transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
 % Notice we use transform instead of transform_tree below because
 % variables in different clauses do not mix.
 transform({'fun', Line, {clauses, Clauses}}, S) ->
-  TClauses = [transform(Clause, S) || Clause <- Clauses],
+  TClauses = [element(1, transform(Clause, S)) || Clause <- Clauses],
   { { 'fun', Line, {clauses, TClauses} }, S };
 
 % Handle function clauses.
@@ -343,9 +362,12 @@ transform({'fun', Line, {clauses, Clauses}}, S) ->
 % into account. Clauses do not return variables list as second argument
 % because variables in one clause should not affect the other.
 transform({clause, Line, Args, Guards, Exprs}, S) ->
-  { TArgs, NS } = transform_tree(Args, S#elixir_scope{match=true}),
-  { TExprs, _ } = transform_tree(Exprs, NS#elixir_scope{match=false}),
-  { clause, Line, TArgs, Guards, TExprs };
+  { TArgs, SA } = transform_tree(Args, S#elixir_scope{match=true}),
+  { TExprs, SE } = transform_tree(Exprs, SA#elixir_scope{match=false}),
+  { { clause, Line, TArgs, Guards, TExprs }, SE };
+
+transform({else_clause, Line, Exprs}, S) ->
+  transform({clause, Line, [{var, Line, '_'}], [], Exprs }, S);
 
 % Handles erlang function calls in the following format:
 %
@@ -371,7 +393,7 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, S) ->
 transform({def_method, Line, Name, Arity, Clauses}, S) ->
   Module = S#elixir_scope.module,
   NewScope = S#elixir_scope{method=true},
-  TClauses = [pack_method_clause(Clause, NewScope) || Clause <- Clauses],
+  TClauses = [element(1, pack_method_clause(Clause, NewScope)) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
   { elixir_methods:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), S };
 

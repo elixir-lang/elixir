@@ -33,6 +33,25 @@ vars_if_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
+case_test() ->
+  {true, _} = elixir:eval("case 1 match 2 then false match 1 then true end"),
+  {true, [{x,1}]} = elixir:eval("case 1 match {x,y} then false match x then true end"),
+  {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y} then true match {1,x} then false end"),
+  {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y}\ntrue\nmatch {1,x}\nfalse\nend"),
+  {true, _} = elixir:eval("case {1,2} match {3,4}\nfalse\nelse true\nend").
+
+vars_case_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\ndef foo; 1; end\ndef bar(x); case x match true then foo = 2 match false then foo = foo end; foo; end\nend"),
+    {1, _} = elixir:eval("Bar.bar(false)"),
+    {2, _} = elixir:eval("Bar.bar(true)"),
+    elixir:eval("module Baz\ndef foo; 1; end\ndef bar(x); case x match {foo,2} then foo = 2 match false then foo = foo end; foo; end\nend"),
+    {1, _} = elixir:eval("Baz.bar(false)"),
+    {2, _} = elixir:eval("Baz.bar({2, 2})"),
+    ?assertError({badmatch, 2}, elixir:eval("Baz.bar({1, 2})"))
+  end,
+  test_helper:run_and_remove(F, ['Bar', 'Baz']).
+
 %% Comparison
 
 equal_test() ->

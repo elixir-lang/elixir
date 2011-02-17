@@ -12,7 +12,6 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 
 # Roadmap
 
-* Add case/match expressions
 * Add exceptions
 * Add interactive elixir (iex)
 * Implement missing types and improve STDLIB

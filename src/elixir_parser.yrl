@@ -69,7 +69,7 @@ Nonterminals
   implicit_method_name
   method_ops_identifier
   implicit_method_ops_identifier
-  case_expr case_clause case_clauses
+  case_expr case_clause case_clauses else_case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
   .
 
@@ -370,17 +370,20 @@ elsif_clause  -> elsif expr then_break expr_list : { 'if_clause', ?line('$1'), t
 if_elsif_clauses -> if_clause : ['$1'].
 if_elsif_clauses -> if_clause elsif_clauses : ['$1'|'$2'].
 
-else_clause -> else expr_list : '$2'.
-else_clause -> else ';' expr_list : '$3'.
+else_clause -> else expr_list : { else_clause, ?line('$1'), '$2' }.
+else_clause -> else ';' expr_list : { else_clause, ?line('$1'), '$3' }.
 
 % Case
-case_expr -> case expr case_clauses 'end'       : { 'case', ?line('$1'), '$2', '$3' }.
-case_expr -> case expr break case_clauses 'end' : { 'case', ?line('$1'), '$2', '$4' }.
+case_expr -> case expr else_case_clauses 'end'       : { 'case', ?line('$1'), '$2', '$3' }.
+case_expr -> case expr break else_case_clauses 'end' : { 'case', ?line('$1'), '$2', '$4' }.
 
-case_clause -> match call_args_optional then_break expr_list : { case_clause, ?line('$1'), '$2', [], '$4' }.
+case_clause -> match call_args_optional then_break expr_list : { clause, ?line('$1'), '$2', [], '$4' }.
 
 case_clauses -> case_clause : ['$1'].
 case_clauses -> case_clause case_clauses : ['$1'|'$2'].
+
+else_case_clauses -> case_clauses : '$1'.
+else_case_clauses -> case_clauses else_clause : '$1' ++ ['$2'].
 
 % String expressions
 string_base -> string : '$1'.
@@ -588,10 +591,11 @@ build_orddict_tuple(Key, Value) ->
   { tuple, ?line(Key), [Key, Value] }.
 
 build_if_expr(Exprs) ->
-  build_if_expr(Exprs, [{nil, ?line(hd(Exprs))}]).
+  Line = ?line(hd(Exprs)),
+  { 'if', Line, Exprs, [{nil, Line}] }.
 
 build_if_expr(Exprs, Else) ->
-  { 'if', ?line(hd(Exprs)), Exprs, Else }.
+  { 'if', ?line(hd(Exprs)), Exprs, element(3, Else) }.
 
 build_bin(Line, Elements) ->
   { bin, Line, Elements }.
