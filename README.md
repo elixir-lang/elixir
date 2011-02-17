@@ -714,7 +714,42 @@ Elixir provides the following operators to deal strictly with booleans:
 
 ### Precedence
 
-To be written.
+Operator precedence in falling priority:
+
+<table>
+<tr>
+  <td><strong>Operator</strong></td>
+  <td><strong>Associativity</strong></td>
+</tr>
+<tr>
+  <td>+ - ! not</td>
+  <td>Non associative (unary operators)</td>
+</tr>
+<tr>
+  <td>/ * div rem</td>
+  <td>Left</td>
+</tr>
+<tr>
+  <td>== != &lt; &lt;= &gt; &gt;= =:= =!=</td>
+  <td>Left</td>
+</tr>
+<tr>
+  <td>and andalso</td>
+  <td>Left</td>
+</tr>
+<tr>
+  <td>or orelse</td>
+  <td>Left</td>
+</tr>
+<tr>
+  <td>&&</td>
+  <td>Left</td>
+</tr>
+<tr>
+  <td>||</td>
+  <td>Left</td>
+</tr>
+</table>
 
 ## if/else and case/match
 
