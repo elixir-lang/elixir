@@ -632,9 +632,9 @@ Also, Elixir keeps the same semantics as Erlang in the sense the `/` operator al
 
 To be implemented/written.
 
-### Short-circuit control operators (to be implemented)
+### General boolean operators
 
-Elixir provides three general boolean operators. They are short-circuit operators and accept any object as argument. They do not return a boolean but the last evaluated object:
+Elixir provides three general boolean operators. They are called *general* because they accept any object as argument. We will see later that some operators (inherited from Erlang) accept strictly boolean values.
 
 <table>
 <tr>
@@ -660,6 +660,9 @@ Remember that any object, except `false` and `[]` (empty list), evaluates to `tr
     ![]          % => true
     !false       % => true
     !true        % => false
+    !Object.new  % => false
+
+Both `&&` and `||` are short-circuit operators. They do not return a boolean but the last evaluated object:
 
     [] && true   % => []
     true && []   % => []
