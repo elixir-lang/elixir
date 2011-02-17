@@ -39,6 +39,13 @@ module_with_method_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
+module_with_method_without_parens_signature_test() ->
+  F = fun() ->
+    elixir:eval("module Bar; def foo x, y; x + y; end; end"),
+    3 = 'Bar':foo(self, 1, 2)
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
 module_with_empty_method_test() ->
   F = fun() ->
     elixir:eval("module Bar; def foo(); end; end"),

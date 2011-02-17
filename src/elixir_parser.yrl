@@ -20,6 +20,7 @@ Nonterminals
   comma_expr
   call_args
   call_args_parens
+  call_args_no_parens
   call_args_optional
   tuple
   list
@@ -68,6 +69,7 @@ Nonterminals
   implicit_method_name
   method_ops_identifier
   implicit_method_ops_identifier
+  case_expr case_clause case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
   .
 
@@ -76,7 +78,7 @@ Terminals
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false
-  if elsif else then unless filename
+  if elsif else then unless case match filename
   and andalso or orelse not '||' '&&'
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '~'
@@ -167,10 +169,9 @@ call_exprs -> min_expr : '$1'.
 fun_call_expr -> min_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
-method_call_expr -> call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
 method_call_expr -> call_exprs dot_eol method_name call_args_optional : build_method_call('$1', '$3', '$4').
 method_call_expr -> without_args_method_call_expr : '$1'.
-method_call_expr -> implicit_method_name call_args_optional : build_local_call('$1', '$2').
+method_call_expr -> implicit_method_name call_args_no_parens : build_local_call('$1', '$2').
 method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
 
 without_args_method_call_expr -> call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
@@ -208,10 +209,9 @@ _call_exprs -> base_expr : '$1'.
 _fun_call_expr -> base_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
-_method_call_expr -> _call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
 _method_call_expr -> _call_exprs dot_eol method_name call_args_optional : build_method_call('$1', '$3', '$4').
 _method_call_expr -> _without_args_method_call_expr : '$1'.
-_method_call_expr -> implicit_method_name call_args_optional : build_local_call('$1', '$2').
+_method_call_expr -> implicit_method_name call_args_no_parens : build_local_call('$1', '$2').
 _method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
 
 _without_args_method_call_expr -> _call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
@@ -245,10 +245,13 @@ call_args -> expr comma_separator call_args : ['$1'|'$3'].
 call_args_parens -> open_paren ')' : [].
 call_args_parens -> open_paren call_args close_paren : '$2'.
 
-% The first item in call_args_optional cannot start with parens
-call_args_optional -> _expr : ['$1'].
-call_args_optional -> _expr comma_separator call_args : ['$1'|'$3'].
-call_args_optional -> _base_orddict : ['$1'].
+% The first item in call_args_no_parens cannot start with parens
+call_args_no_parens -> _expr : ['$1'].
+call_args_no_parens -> _expr comma_separator call_args : ['$1'|'$3'].
+call_args_no_parens -> _base_orddict : ['$1'].
+
+call_args_optional -> call_args_parens : '$1'.
+call_args_optional -> call_args_no_parens : '$1'.
 
 % Tuples declaration.
 tuple -> open_curly '}' : { tuple, ?line('$1'), [] }.
@@ -350,6 +353,7 @@ base_expr -> binary : '$1'.
 base_expr -> true : { atom, ?line('$1'), true }.
 base_expr -> false : { atom, ?line('$1'), false }.
 base_expr -> if_expr : '$1'.
+base_expr -> case_expr : '$1'.
 base_expr -> filename : '$1'.
 
 % Conditionals
@@ -369,6 +373,15 @@ if_elsif_clauses -> if_clause elsif_clauses : ['$1'|'$2'].
 else_clause -> else expr_list : '$2'.
 else_clause -> else ';' expr_list : '$3'.
 
+% Case
+case_expr -> case expr case_clauses 'end'       : { 'case', ?line('$1'), '$2', '$3' }.
+case_expr -> case expr break case_clauses 'end' : { 'case', ?line('$1'), '$2', '$4' }.
+
+case_clause -> match call_args_optional then_break expr_list : { case_clause, ?line('$1'), '$2', [], '$4' }.
+
+case_clauses -> case_clause : ['$1'].
+case_clauses -> case_clause case_clauses : ['$1'|'$2'].
+
 % String expressions
 string_base -> string : '$1'.
 string_base -> interpolated_string : '$1'.
@@ -377,10 +390,8 @@ string_list -> string_base : ['$1'].
 string_list -> string_base '~' eol string_list : ['$1'|'$4'].
 
 % Erlang calls
-erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
 erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
 erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), []).
-erlang_call_expr -> Erlang '.' base_identifier call_args_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
 erlang_call_expr -> Erlang '.' base_identifier call_args_optional : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
 erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call('$1', erlang, ?chars('$3'), []).
 
@@ -473,7 +484,7 @@ objmod_body_decl -> method_decl : '$1'.
 method_decl -> def method_name break body 'end' :
   build_def_method('$2', [], build_clause('$2', [], '$4')).
 
-method_decl -> def method_name call_args_parens break body 'end' :
+method_decl -> def method_name call_args_optional break body 'end' :
   build_def_method('$2', '$3', build_clause('$2', '$3', '$5')).
 
 % Method names do not inherit from base_identifier, which includes object,
