@@ -1,15 +1,14 @@
 -module(elixir_transform).
 -export([parse/3]).
 -include("elixir.hrl").
--import(lists, [umerge/2]).
 
 parse(String, Binding, Filename) ->
   Vars = lists:usort(proplists:get_keys(Binding)),
-  parse(String, 1, Vars, #elixir_scope{filename=Filename}).
+  parse_and_transform(String, 1, #elixir_scope{filename=Filename, vars=Vars}).
 
-parse(String, Line, V, #elixir_scope{filename=Filename} = S) ->
+parse_and_transform(String, Line, #elixir_scope{filename=Filename} = S) ->
   Forms = forms(String, Line, Filename),
-  transform_tree(Forms, V, S).
+  transform_tree(Forms, S).
 
 forms(String, StartLine, Filename) ->
   case elixir_lexer:string(String, StartLine) of
@@ -19,7 +18,19 @@ forms(String, StartLine, Filename) ->
         {error, {Line, _, [Error, Token]}} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
       end;
     {error, {Line, _, {Error, Token}}, _} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
-  end.  
+  end.
+
+% Receives two scopes and return a new scope based on the second scope
+% with their variables merge.
+umergev(S1, S2) ->
+  V1 = S1#elixir_scope.vars,
+  V2 = S2#elixir_scope.vars,
+  S2#elixir_scope{vars=lists:umerge(V1, V2)}.
+
+% Receives two scopes and return a new scope based on the second scope
+% with the counter values from the first one.
+umergec(S1, S2) ->
+  S2#elixir_scope{counter=S1#elixir_scope.counter}.
 
 % Transform the given tree Forms.
 %
@@ -29,9 +40,8 @@ forms(String, StartLine, Filename) ->
 % scope where new variables can be defined (i.e. the left side
 % of a match or function clauses) and the second the nested
 % module name.
-transform_tree(Forms, V, S) ->
-  Transform = fun(X, Acc) -> transform(X, Acc, S) end,
-  lists:mapfoldl(Transform, V, Forms).
+transform_tree(Forms, S) ->
+  lists:mapfoldl(fun transform/2, S, Forms).
 
 % A transformation receives a node with a variables list (V),
 % a scope (S) and transforms it to Erlang Abstract Form.
@@ -45,12 +55,13 @@ transform_tree(Forms, V, S) ->
 % defined. In such cases, variables are added to the list if they don't
 % exist yet. If we cannot define a variable and it does not belong to
 % the list, make it a method call.
-transform({identifier, Line, Name}, V, S) ->
-  Var = S#elixir_scope.vars,
-  case { Var, lists:member(Name, V) } of
-    { _, true }      -> { {var, Line, Name}, V };
-    { true, false }  -> { {var, Line, Name}, lists:sort([Name|V]) };
-    { false, false } -> transform({local_call, Line, Name, []}, V, S)
+transform({identifier, Line, Name}, S) ->
+  Match = S#elixir_scope.match,
+  Vars = S#elixir_scope.vars,
+  case { Match, lists:member(Name, Vars) } of
+    { _, true }      -> { {var, Line, Name}, S };
+    { true, false }  -> { {var, Line, Name}, S#elixir_scope{vars=lists:sort([Name|Vars])} };
+    { false, false } -> transform({local_call, Line, Name, []}, S)
   end;
 
 % Represents a method call. The arguments need to be packed into
@@ -68,10 +79,10 @@ transform({identifier, Line, Name}, V, S) ->
 % This is required so Object.new() implementation can handle all arguments.
 % This case could also be implemented in the dispatcher, but would affect
 % performance.
-transform({method_call, Line, Name, Args, Expr}, V, S) ->
-  { TExpr, VE } = transform(Expr, V, S),
-  { TArgs, VA } = transform({list, Line, Args, {nil, Line}}, V, S),
-  { build_method_call(Name, Line, TArgs, TExpr), umerge(VA,VE) };
+transform({method_call, Line, Name, Args, Expr}, S) ->
+  { TExpr, SE } = transform(Expr, S),
+  { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, S),
+  { build_method_call(Name, Line, TArgs, TExpr), umergev(SE,SA) };
 
 % Makes a local call.
 %
@@ -82,13 +93,13 @@ transform({method_call, Line, Name, Args, Expr}, V, S) ->
 % = Variables
 %
 % New variables can be defined inside the arguments list.
-transform({local_call, Line, Name, Args}, V, S) ->
+transform({local_call, Line, Name, Args}, S) ->
   case S#elixir_scope.method of
     true ->
-      { TArgs, VA } = transform_tree(Args, V, S),
+      { TArgs, SA } = transform_tree(Args, S),
       FArgs = handle_new_call(Name, Line, [{var, Line, self}|TArgs]),
-      { { call, Line, {atom, Line, Name}, FArgs }, VA };
-    false -> transform({method_call, Line, Name, Args, {var, Line, self}}, V, S)
+      { { call, Line, {atom, Line, Name}, FArgs }, SA };
+    false -> transform({method_call, Line, Name, Args, {var, Line, self}}, S)
   end;
 
 % Reference to a constant (that should then be loaded).
@@ -96,17 +107,17 @@ transform({local_call, Line, Name, Args}, V, S) ->
 % = Variables
 %
 % It has no affect on variables scope.
-transform({constant, Line, Name}, V, S) ->
-  { ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Name}]), V };
+transform({constant, Line, Name}, S) ->
+  { ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Name}]), S };
 
 % Reference to an instance variable (that should then be loaded).
 %
 % = Variables
 %
 % It has no affect on variables scope.
-transform({ivar, Line, Name}, V, S) ->
+transform({ivar, Line, Name}, S) ->
   Args = [{var, Line, self}, {atom, Line, Name}],
-  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, Args), V };
+  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, Args), S };
 
 % Handle match declarations.
 %
@@ -117,10 +128,10 @@ transform({ivar, Line, Name}, V, S) ->
 %   a = (b = 1)
 %
 % So we need to take both into account.
-transform({match, Line, Left, Right}, V, S) ->
-  { TLeft, VL } = transform(Left, V, S#elixir_scope{vars=true}),
-  { TRight, VR } = transform(Right, V, S),
-  { {match, Line, TLeft, TRight }, umerge(VL, VR) };
+transform({match, Line, Left, Right}, S) ->
+  { TLeft, SL } = transform(Left, S#elixir_scope{match=true}),
+  { TRight, SR } = transform(Right, S),
+  { {match, Line, TLeft, TRight }, umergev(SL, SR) };
 
 % Handle tuple declarations.
 %
@@ -128,9 +139,9 @@ transform({match, Line, Left, Right}, V, S) ->
 %
 % Each expression in the tuple can contain a match expression.
 % Variables defined inside these expressions needs to be added to the var list.
-transform({tuple, Line, Exprs }, V, S) ->
-  { TExprs, VE } = transform_tree(Exprs, V, S),
-  { {tuple, Line, TExprs}, VE };
+transform({tuple, Line, Exprs }, S) ->
+  { TExprs, SE } = transform_tree(Exprs, S),
+  { {tuple, Line, TExprs}, SE };
 
 % Handle list declarations.
 %
@@ -138,11 +149,10 @@ transform({tuple, Line, Exprs }, V, S) ->
 %
 % Each expression in the list can contain a match expression.
 % Variables defined inside these expressions needs to be added to the var list.
-transform({list, Line, Exprs, Tail }, V, S) ->
-  Transformer = fun (X, Acc) -> transform(X, Acc, S) end,
-  { TTail, VT }  = transform(Tail, V, S),
-  { TExprs, VE } = build_list(Transformer, Exprs, Line, V, TTail),
-  { TExprs, umerge(VE, VT) };
+transform({list, Line, Exprs, Tail }, S) ->
+  { TTail, ST }  = transform(Tail, S),
+  { TExprs, SE } = build_list(fun transform/2, Exprs, Line, S, TTail),
+  { TExprs, umergev(SE, ST) };
 
 % Handle orddict declarations. It simply delegates to list to build a list
 % of args that is dispatched to orddict:from_list/1. The final Dict
@@ -151,23 +161,23 @@ transform({list, Line, Exprs, Tail }, V, S) ->
 % = Variables
 %
 % See list.
-transform({orddict, Line, Exprs }, V, S) ->
-  { List, NV } = transform({list, Line, Exprs, {nil, Line} }, V, S),
+transform({orddict, Line, Exprs }, S) ->
+  { List, NS } = transform({list, Line, Exprs, {nil, Line} }, S),
   Dict = ?ELIXIR_WRAP_CALL(Line, orddict, from_list, [List]),
-  { {tuple, Line, [{atom, Line, elixir_orddict__}, Dict] }, NV };
+  { {tuple, Line, [{atom, Line, elixir_orddict__}, Dict] }, NS };
 
 % Handle binaries declarations.
 %
 % = Variables
 %
 % Variables can not be defined inside each bin element.
-transform({bin, Line, Exprs }, V, S) ->
-  { TExprs, NV } = transform_tree(Exprs, V, S),
-  { { bin, Line, TExprs }, NV };
+transform({bin, Line, Exprs }, S) ->
+  { TExprs, NS } = transform_tree(Exprs, S),
+  { { bin, Line, TExprs }, NS };
 
-transform({bin_element, Line, Expr, Type, Specifiers }, V, S) ->
-  { TExpr, NV } = transform(Expr, V, S),
-  { { bin_element, Line, TExpr, Type, Specifiers }, NV };
+transform({bin_element, Line, Expr, Type, Specifiers }, S) ->
+  { TExpr, NS } = transform(Expr, S),
+  { { bin_element, Line, TExpr, Type, Specifiers }, NS };
 
 % Handle strings by wrapping them in the String object. A string is created
 % by explicitly creating an #elixir_object__ and not through String.new.
@@ -175,8 +185,8 @@ transform({bin_element, Line, Expr, Type, Specifiers }, V, S) ->
 % = Variables
 %
 % No variables can be defined in a string without interpolation.
-transform({string, Line, String } = Expr, V, S) ->
-  { { tuple, Line, [{atom, Line, elixir_string__}, build_bin(Line, [Expr])] }, V };
+transform({string, Line, String } = Expr, S) ->
+  { { tuple, Line, [{atom, Line, elixir_string__}, build_bin(Line, [Expr])] }, S };
 
 % Handle interpolated strings declarations. A string is created
 % by explicitly creating an #elixir_object__ and not through String.new.
@@ -184,46 +194,46 @@ transform({string, Line, String } = Expr, V, S) ->
 % = Variables
 %
 % Variables can be defined inside the interpolation.
-transform({interpolated_string, Line, String }, V, S) ->
-  { List, VE } = handle_interpolations(String, Line, V, S),
+transform({interpolated_string, Line, String }, S) ->
+  { List, SE } = handle_interpolations(String, Line, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
-  { { tuple, Line, [{atom, Line, elixir_string__}, Binary] }, VE };
+  { { tuple, Line, [{atom, Line, elixir_string__}, Binary] }, SE };
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
 %
 % = Variables
 %
 % Variables can be defined inside the interpolation.
-transform({interpolated_atom, Line, String}, V, S) ->
-  { List, VE } = handle_interpolations(String, Line, V, S),
+transform({interpolated_atom, Line, String}, S) ->
+  { List, SE } = handle_interpolations(String, Line, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
-  { ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_atom, [Binary, {atom, Line, utf8}]), VE };
+  { ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_atom, [Binary, {atom, Line, utf8}]), SE };
 
 % Handle regexps by dispatching a list and its options to Regexp.new.
 %
 % = Variables
 %
 % No variables can be defined in a string without interpolation.
-transform({regexp, Line, String, Operators }, V, S) ->
-  build_regexp(Line, {string, Line, String}, Operators, V, S);
+transform({regexp, Line, String, Operators }, S) ->
+  build_regexp(Line, {string, Line, String}, Operators, S);
 
 % Handle interpolated regexps by dispatching a list and its options to Regexp.new.
 %
 % = Variables
 %
 % Variables can be defined inside the interpolation.
-transform({interpolated_regexp, Line, String, Operators }, V, S) ->
-  { List, VE } = handle_interpolations(String, Line, V, S),
+transform({interpolated_regexp, Line, String, Operators }, S) ->
+  { List, SE } = handle_interpolations(String, Line, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
-  build_regexp(Line, Binary, Operators, VE, S);
+  build_regexp(Line, Binary, Operators, SE);
 
 % Handle char lists by simply converting them to Erlang strings.
 %
 % = Variables
 %
 % No variables can be defined in a char list without interpolation.
-transform({char_list, Line, String } = Expr, V, S) ->
-  { {string, Line, String}, V };
+transform({char_list, Line, String } = Expr, S) ->
+  { {string, Line, String}, S };
 
 % Handle interpolated strings declarations. A string is created
 % by explicitly creating an #elixir_object__ and not through String.new.
@@ -231,11 +241,11 @@ transform({char_list, Line, String } = Expr, V, S) ->
 % = Variables
 %
 % Variables can be defined inside the interpolation.
-transform({interpolated_char_list, Line, String }, V, S) ->
-  { List, VE } = handle_interpolations(String, Line, V, S),
+transform({interpolated_char_list, Line, String }, S) ->
+  { List, SE } = handle_interpolations(String, Line, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
   Flattened = ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_list, [Binary]),
-  { Flattened, VE };
+  { Flattened, SE };
 
 % Handle comparison operations.
 %
@@ -243,10 +253,10 @@ transform({interpolated_char_list, Line, String }, V, S) ->
 %
 % The Left and Right values of the comparison operation can be a match expression.
 % Variables defined inside these expressions needs to be added to the list.
-transform({comp_op, Line, Op, Left, Right}, V, S) ->
-  { TLeft, VL } = transform(Left, V, S),
-  { TRight, VR } = transform(Right, V, S),
-  build_comp_op(Line, Op, TLeft, TRight, umerge(VL, VR));
+transform({comp_op, Line, Op, Left, Right}, S) ->
+  { TLeft, SL } = transform(Left, S),
+  { TRight, SR } = transform(Right, S),
+  build_comp_op(Line, Op, TLeft, TRight, umergev(SL, SR));
 
 % Handle binary operations.
 %
@@ -254,11 +264,11 @@ transform({comp_op, Line, Op, Left, Right}, V, S) ->
 %
 % The Left and Right values of the binary operation can be a match expression.
 % Variables defined inside these expressions needs to be added to the list.
-transform({binary_op, Line, Op, Left, Right}, V, S) ->
-  { TLeft, VL } = transform(Left, V, S),
-  { TRight, VR } = transform(Right, V, S),
+transform({binary_op, Line, Op, Left, Right}, S) ->
+  { TLeft, SL } = transform(Left, S),
+  { TRight, SR } = transform(Right, S),
   Args = { cons, Line, TRight, {nil, Line} },
-  { build_method_call(Op, Line, Args, TLeft), umerge(VL, VR) };
+  { build_method_call(Op, Line, Args, TLeft), umergev(SL, SR) };
 
 % Handle unary operations.
 %
@@ -266,9 +276,9 @@ transform({binary_op, Line, Op, Left, Right}, V, S) ->
 %
 % The target (Right) of the unary operation can be a match expression.
 % Variables defined inside these expressions needs to be added to the list.
-transform({unary_op, Line, Op, Right}, V, S) ->
-  { TRight, V1} = transform(Right, V, S),
-  { build_unary_op(Line, Op, TRight), V1 };
+transform({unary_op, Line, Op, Right}, S) ->
+  { TRight, SE} = transform(Right, S),
+  { build_unary_op(Line, Op, TRight), SE };
 
 % Handle if/elsif/else expressions.
 %
@@ -301,16 +311,16 @@ transform({unary_op, Line, Op, Right}, V, S) ->
 %
 % Second, a variable defined in a clause does not affect other clauses,
 % so the second clause above could sucessfully invoke the method foo.
-transform({'if', Line, [If|Elsifs], Else}, V, S) ->
-  { TIf, IfV } = transform(If, {V,[]}, S),
-  { TElsifs, {ExprV, ListV} } = transform_tree(Elsifs, IfV, S),
-  { TElse, ElseV } = transform_tree(Else, ExprV, S),
-  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), umerge(ElseV, ListV) };
+transform({'if', Line, [If|Elsifs], Else}, S) ->
+  { TIf, IfS } = transform(If, {S,#elixir_scope{}}),
+  { TElsifs, {ExprS, ListS} } = transform_tree(Elsifs, IfS),
+  { TElse, ElseS } = transform_tree(Else, ExprS),
+  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), umergev(ElseS, ListS) };
 
-transform({if_clause, Line, Bool, Expr, List}, {ExprV, ListV}, S) ->
-  { TExpr, TExprV } = transform(Expr, ExprV, S),
-  { TList, TListV } = transform_tree(List, TExprV, S),
-  { {if_clause, Line, Bool, TExpr, TList }, { TExprV, umerge(ListV, TListV) } };
+transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
+  { TExpr, TExprS } = transform(Expr, ExprS),
+  { TList, TListS } = transform_tree(List, TExprS),
+  { {if_clause, Line, Bool, TExpr, TList }, { TExprS, umergev(ListS, TListS) } };
 
 % Handle functions declarations. They preserve the current binding.
 %
@@ -318,9 +328,12 @@ transform({if_clause, Line, Bool, Expr, List}, {ExprV, ListV}, S) ->
 %
 % Variables defined inside functions do not leak to the outer scope
 % but variables previously defined affect the current function.
-transform({'fun', Line, {clauses, Clauses}}, V, S) ->
-  TClauses = [transform(Clause, V, S) || Clause <- Clauses],
-  { { 'fun', Line, {clauses, TClauses} }, V };
+%
+% Notice we use transform instead of transform_tree below because
+% variables in different clauses do not mix.
+transform({'fun', Line, {clauses, Clauses}}, S) ->
+  TClauses = [transform(Clause, S) || Clause <- Clauses],
+  { { 'fun', Line, {clauses, TClauses} }, S };
 
 % Handle function clauses.
 %
@@ -329,9 +342,9 @@ transform({'fun', Line, {clauses, Clauses}}, V, S) ->
 % Variables declared in args do affect the exprs and should be taken
 % into account. Clauses do not return variables list as second argument
 % because variables in one clause should not affect the other.
-transform({clause, Line, Args, Guards, Exprs}, V, S) ->
-  { TArgs, NV } = transform_tree(Args, V, S#elixir_scope{vars=true}),
-  { TExprs, _ } = transform_tree(Exprs, NV, S),
+transform({clause, Line, Args, Guards, Exprs}, S) ->
+  { TArgs, NS } = transform_tree(Args, S#elixir_scope{match=true}),
+  { TExprs, _ } = transform_tree(Exprs, NS#elixir_scope{match=false}),
   { clause, Line, TArgs, Guards, TExprs };
 
 % Handles erlang function calls in the following format:
@@ -342,9 +355,9 @@ transform({clause, Line, Args, Guards, Exprs}, V, S) ->
 %
 % Variables can be set inside the args hash, so they need
 % to be taken into account on the variables list.
-transform({erlang_call, Line, Prefix, Suffix, Args}, V, S) ->
-  { TArgs, VA } = transform_tree(Args, V, S),
-  { ?ELIXIR_WRAP_CALL(Line, Prefix, Suffix, TArgs), VA };
+transform({erlang_call, Line, Prefix, Suffix, Args}, S) ->
+  { TArgs, SA } = transform_tree(Args, S),
+  { ?ELIXIR_WRAP_CALL(Line, Prefix, Suffix, TArgs), SA };
 
 % Method definitions are never executed by Elixir runtime. Their
 % abstract form is stored into an ETS table and is just added to
@@ -355,12 +368,12 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, V, S) ->
 % Variables are handled in each function clause.
 %
 % TODO Test that a method declaration outside a module raises an error.
-transform({def_method, Line, Name, Arity, Clauses}, V, S) ->
+transform({def_method, Line, Name, Arity, Clauses}, S) ->
   Module = S#elixir_scope.module,
   NewScope = S#elixir_scope{method=true},
-  TClauses = [pack_method_clause(Clause, V, NewScope) || Clause <- Clauses],
+  TClauses = [pack_method_clause(Clause, NewScope) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
-  { elixir_methods:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), V };
+  { elixir_methods:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), S };
 
 % Handle function calls.
 %
@@ -381,18 +394,18 @@ transform({def_method, Line, Name, Arity, Clauses}, V, S) ->
 %
 % This is parsed as a function call but is properly disambiguated to a method
 % call in this method.
-transform({fun_call, Line, Var, Args }, V, S) ->
+transform({fun_call, Line, Var, Args }, S) ->
   case Var of
-    { identifier, _, Name } -> Method = not lists:member(Name, V);
+    { identifier, _, Name } -> Method = not lists:member(Name, S#elixir_scope.vars);
     Name -> Method = false
   end,
 
   case Method of
-    true -> transform({local_call, Line, Name, Args}, V, S);
+    true -> transform({local_call, Line, Name, Args}, S);
     false ->
-      { TArgs, VA } = transform_tree(Args, V, S),
-      { TVar, VV }  = transform(Var, V, S),
-      { {call, Line, TVar, TArgs}, umerge(VA, VV) }
+      { TArgs, SA } = transform_tree(Args, S),
+      { TVar, SV }  = transform(Var, S),
+      { {call, Line, TVar, TArgs}, umergev(SA, SV) }
   end;
 
 % Handle module/object declarations. The difference between
@@ -405,23 +418,23 @@ transform({fun_call, Line, Var, Args }, V, S) ->
 % variables declared in a module do not leak outside its
 % context. The only variable available in the module by default
 % is self.
-transform({Kind, Line, Name, Parent, Exprs}, V, S) when Kind == object; Kind == module->
+transform({Kind, Line, Name, Parent, Exprs}, S) when Kind == object; Kind == module->
   Current = S#elixir_scope.module,
   Filename = S#elixir_scope.filename,
   NewName = elixir_object:scope_for(Current, Name),
-  { TExprs, _ } = transform_tree(Exprs, [self], S#elixir_scope{method=false,module=NewName}),
-  { elixir_object:transform(Kind, Line, Filename, NewName, Parent, TExprs), V };
+  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=false,module=NewName,vars=[self]}),
+  { elixir_object:transform(Kind, Line, Filename, NewName, Parent, TExprs), S };
 
 % Handles __FILE__
 %
 % = Variables
 %
 % No variables can be defined.
-transform({filename, Line}, V, S) ->
-  transform({string, Line, S#elixir_scope.filename}, V, S);
+transform({filename, Line}, S) ->
+  transform({string, Line, S#elixir_scope.filename}, S);
 
 % Match all other expressions.
-transform(Expr, V, S) -> { Expr, V }.
+transform(Expr, S) -> { Expr, S }.
 
 % Pack method clause in a format that receives Elixir metadata
 % as first argument (like self) and annotates __current__ with
@@ -432,9 +445,9 @@ transform(Expr, V, S) -> { Expr, V }.
 % It does not accummulate variables because variables in one
 % clause do not affect the other. Each clause starts with an
 % empty variable set as there is no binding.
-pack_method_clause({clause, Line, Args, Guards, Exprs}, V, S) ->
+pack_method_clause({clause, Line, Args, Guards, Exprs}, S) ->
   Clause = {clause, Line, [{var, Line, self}|Args], Guards, Exprs},
-  transform(Clause, [self], S).
+  transform(Clause, S#elixir_scope{vars=[self]}).
 
 % Build a list transforming each expression and accumulating
 % vars in one pass. It uses tail-recursive form.
@@ -446,18 +459,18 @@ pack_method_clause({clause, Line, Args, Guards, Exprs}, V, S) ->
 % The function needs to return a tuple where the first element
 % is an erlang abstract form and the second is the new variables
 % list.
-build_list(Fun, Exprs, Line, V) ->
-  build_list(Fun, Exprs, Line, V, {nil, Line}).
+build_list(Fun, Exprs, Line, S) ->
+  build_list(Fun, Exprs, Line, S, {nil, Line}).
 
-build_list(Fun, Exprs, Line, V, Tail) ->
-  build_list_each(Fun, lists:reverse(Exprs), Line, V, Tail).
+build_list(Fun, Exprs, Line, S, Tail) ->
+  build_list_each(Fun, lists:reverse(Exprs), Line, S, Tail).
 
-build_list_each(Fun, [], Line, V, Acc) ->
-  { Acc, V };
+build_list_each(Fun, [], Line, S, Acc) ->
+  { Acc, S };
 
-build_list_each(Fun, [H|T], Line, V, Acc) ->
-  { Expr, NV } = Fun(H, V),
-  build_list_each(Fun, T, Line, NV, { cons, Line, Expr, Acc }).
+build_list_each(Fun, [H|T], Line, S, Acc) ->
+  { Expr, NS } = Fun(H, S),
+  build_list_each(Fun, T, Line, NS, { cons, Line, Expr, Acc }).
 
 % Build binaries
 build_bin(Line, Exprs) ->
@@ -482,11 +495,11 @@ build_method_call(Name, Line, Args, Expr) ->
   ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [{var, Line, self}, Expr, {atom, Line, Name}, FArgs]).
 
 % Builds a regexp.
-build_regexp(Line, Expr, Operators, V, S) ->
+build_regexp(Line, Expr, Operators, S) ->
   Args = [Expr, {string, Line, Operators}],
-  { TArgs, _ } = transform({list, Line, Args, {nil, Line}}, V, S),
-  { Constant, _ } = transform({constant, Line, 'Regexp'}, V, S),
-  { build_method_call(new, Line, TArgs, Constant), V }.
+  { TArgs, _ } = transform({list, Line, Args, {nil, Line}}, S),
+  { Constant, _ } = transform({constant, Line, 'Regexp'}, S),
+  { build_method_call(new, Line, TArgs, Constant), S }.
 
 % Handle method dispatches to new by wrapping everything in an array
 % as we don't have a splat operator.
@@ -498,25 +511,25 @@ handle_new_call(_, _, Args) ->
 
 % Handle interpolation. The final result will be a parse tree that
 % returns a flattened list.
-handle_interpolations(String, Line, V, S) ->
+handle_interpolations(String, Line, S) ->
   Interpolations = String,
 
   % Optimized cases interpolations actually has no interpolation.
   case Interpolations of
-    [{s, String}] -> handle_string_extractions(hd(Interpolations), Line, V, S);
+    [{s, String}] -> handle_string_extractions(hd(Interpolations), Line, S);
     _ ->
-      Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, Acc, S) end,
-      build_list(Transformer, Interpolations, Line, V)
+      Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, S) end,
+      build_list(Transformer, Interpolations, Line, S)
   end.
 
 % Handle string extractions for interpolated strings.
-handle_string_extractions({s, String}, Line, V, S) ->
-  { { string, Line, String }, V };
+handle_string_extractions({s, String}, Line, S) ->
+  { { string, Line, String }, S };
 
-handle_string_extractions({i, Interpolation}, Line, V, S) ->
-  { Tree, NV } = parse(Interpolation, Line, V, S),
+handle_string_extractions({i, Interpolation}, Line, S) ->
+  { Tree, NS } = parse_and_transform(Interpolation, Line, S),
   Stringify = build_method_call(to_s, Line, {nil,Line}, hd(Tree)),
-  { ?ELIXIR_WRAP_CALL(Line, erlang, element, [{integer, Line, 2}, Stringify]), NV }.
+  { ?ELIXIR_WRAP_CALL(Line, erlang, element, [{integer, Line, 2}, Stringify]), NS }.
 
 % Convert the given expression to a boolean value: true or false.
 % Assumes the given expressions was already transformed.
@@ -547,7 +560,7 @@ build_unary_op(Line, Op, Right) ->
   { op, Line, Op, Right }.
 
 % Build and handle comparision operators.
-build_comp_op(Line, '&&', Left, Right, V) ->
+build_comp_op(Line, '&&', Left, Right, S) ->
   Any   = [{var, Line, '_'}],
   Nil   = [{nil,Line}],
   False = [{atom,Line,false}],
@@ -556,11 +569,11 @@ build_comp_op(Line, '&&', Left, Right, V) ->
     { clause, Line, False, [], False },
     { clause, Line, Nil, [], Nil },
     { clause, Line, Any, [], [Right] }
-  ] }, V };
+  ] }, S };
 
 % Build and handle comparision operators.
-build_comp_op(Line, Op, Left, Right, V) ->
-  { { op, Line, convert_comp_op(Op), Left, Right }, V }.
+build_comp_op(Line, Op, Left, Right, S) ->
+  { { op, Line, convert_comp_op(Op), Left, Right }, S }.
 
 % Convert comparison operators to erlang format.
 convert_comp_op('=!=') -> '=/=';
