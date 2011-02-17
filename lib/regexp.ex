@@ -71,18 +71,10 @@ object Regexp
   end
 
   def match?(target)
-    match_happened?(run(target))
+    'nomatch != run(target)
   end
 
   private
-
-  def match_happened?('nomatch)
-    false
-  end
-
-  def match_happened?(_)
-    true
-  end
 
   def parse_option($u, acc); ['unicode|acc]; end
   def parse_option($i, acc); ['caseless|acc]; end

@@ -55,11 +55,7 @@ object List
   %     [].head    % => []
   %
   def head
-    if self
-      Erlang.hd(self)
-    else
-      self
-    end
+    self && Erlang.hd(self)
   end
 
   % Returns the tail of the list:
@@ -70,11 +66,7 @@ object List
   %     [].tail    % => []
   %
   def tail
-    if self
-      Erlang.tl(self)
-    else
-      self
-    end
+    self && Erlang.tl(self)
   end
 
   % Returns true if the given item exists in the array.
