@@ -11,7 +11,7 @@
 % as Erlang does not understand the string representation from Elixir.
 %
 object String
-  % Implement String as a record. This is done basically
+  % Implement String as a record. This is done mainly
   % to have improved performance for the equality operator.
   module Mixin
     % Initializes a string by keeping its internal binary representation.

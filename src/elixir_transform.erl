@@ -20,17 +20,17 @@ forms(String, StartLine, Filename) ->
     {error, {Line, _, {Error, Token}}, _} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
   end.
 
-% Receives two scopes and return a new scope based on the second scope
-% with their variables merge.
+% Receives two scopes and return a new scope based on the second
+% with their variables merged.
 umergev(S1, S2) ->
   V1 = S1#elixir_scope.vars,
   V2 = S2#elixir_scope.vars,
   S2#elixir_scope{vars=lists:umerge(V1, V2)}.
 
-% Receives two scopes and return a new scope based on the second scope
+% Receives two scopes and return a new scope based on the first
 % with the counter values from the first one.
 umergec(S1, S2) ->
-  S2#elixir_scope{counter=S1#elixir_scope.counter}.
+  S1#elixir_scope{counter=S2#elixir_scope.counter}.
 
 % Transform the given tree Forms.
 %
@@ -81,7 +81,7 @@ transform({identifier, Line, Name}, S) ->
 % performance.
 transform({method_call, Line, Name, Args, Expr}, S) ->
   { TExpr, SE } = transform(Expr, S),
-  { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, S),
+  { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, umergec(S, SE)),
   { build_method_call(Name, Line, TArgs, TExpr), umergev(SE,SA) };
 
 % Makes a local call.
@@ -130,7 +130,7 @@ transform({ivar, Line, Name}, S) ->
 % So we need to take both into account.
 transform({match, Line, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S#elixir_scope{match=true}),
-  { TRight, SR } = transform(Right, S),
+  { TRight, SR } = transform(Right, umergec(S, SL)),
   { {match, Line, TLeft, TRight }, umergev(SL, SR) };
 
 % Handle tuple declarations.
@@ -151,8 +151,8 @@ transform({tuple, Line, Exprs }, S) ->
 % Variables defined inside these expressions needs to be added to the var list.
 transform({list, Line, Exprs, Tail }, S) ->
   { TTail, ST }  = transform(Tail, S),
-  { TExprs, SE } = build_list(fun transform/2, Exprs, Line, S, TTail),
-  { TExprs, umergev(SE, ST) };
+  { TExprs, SE } = build_list(fun transform/2, Exprs, Line, umergec(S, ST), TTail),
+  { TExprs, umergev(ST, SE) };
 
 % Handle orddict declarations. It simply delegates to list to build a list
 % of args that is dispatched to orddict:from_list/1. The final Dict
@@ -255,7 +255,7 @@ transform({interpolated_char_list, Line, String }, S) ->
 % Variables defined inside these expressions needs to be added to the list.
 transform({comp_op, Line, Op, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S),
-  { TRight, SR } = transform(Right, S),
+  { TRight, SR } = transform(Right, umergec(S, SL)),
   build_comp_op(Line, Op, TLeft, TRight, umergev(SL, SR));
 
 % Handle binary operations.
@@ -266,7 +266,7 @@ transform({comp_op, Line, Op, Left, Right}, S) ->
 % Variables defined inside these expressions needs to be added to the list.
 transform({binary_op, Line, Op, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S),
-  { TRight, SR } = transform(Right, S),
+  { TRight, SR } = transform(Right, umergec(S, SL)),
   Args = { cons, Line, TRight, {nil, Line} },
   { build_method_call(Op, Line, Args, TLeft), umergev(SL, SR) };
 
@@ -315,12 +315,12 @@ transform({'if', Line, [If|Elsifs], Else}, S) ->
   { TIf, IfS } = transform(If, {S,#elixir_scope{}}),
   { TElsifs, {ExprS, ListS} } = transform_tree(Elsifs, IfS),
   { TElse, ElseS } = transform_tree(Else, ExprS),
-  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), umergev(ElseS, ListS) };
+  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), umergev(ListS, ElseS) };
 
 transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
   { TExpr, TExprS } = transform(Expr, ExprS),
   { TList, TListS } = transform_tree(List, TExprS),
-  { {if_clause, Line, Bool, TExpr, TList }, { TExprS, umergev(ListS, TListS) } };
+  { {if_clause, Line, Bool, TExpr, TList }, { umergec(TExprS, TListS), umergev(ListS, TListS) } };
 
 % Handle functions declarations. They preserve the current binding.
 %
@@ -404,7 +404,7 @@ transform({fun_call, Line, Var, Args }, S) ->
     true -> transform({local_call, Line, Name, Args}, S);
     false ->
       { TArgs, SA } = transform_tree(Args, S),
-      { TVar, SV }  = transform(Var, S),
+      { TVar, SV }  = transform(Var, umergec(S, SA)),
       { {call, Line, TVar, TArgs}, umergev(SA, SV) }
   end;
 
@@ -422,7 +422,7 @@ transform({Kind, Line, Name, Parent, Exprs}, S) when Kind == object; Kind == mod
   Current = S#elixir_scope.module,
   Filename = S#elixir_scope.filename,
   NewName = elixir_object:scope_for(Current, Name),
-  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=false,module=NewName,vars=[self]}),
+  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=false,module=NewName}),
   { elixir_object:transform(Kind, Line, Filename, NewName, Parent, TExprs), S };
 
 % Handles __FILE__
@@ -447,7 +447,7 @@ transform(Expr, S) -> { Expr, S }.
 % empty variable set as there is no binding.
 pack_method_clause({clause, Line, Args, Guards, Exprs}, S) ->
   Clause = {clause, Line, [{var, Line, self}|Args], Guards, Exprs},
-  transform(Clause, S#elixir_scope{vars=[self]}).
+  transform(Clause, S#elixir_scope{vars=[self],counter=0}).
 
 % Build a list transforming each expression and accumulating
 % vars in one pass. It uses tail-recursive form.

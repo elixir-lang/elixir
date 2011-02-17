@@ -1,5 +1,5 @@
 object OrderedDict
-  % Implement OrderedDict as a record. This is done basically
+  % Implement OrderedDict as a record. This is done mainly
   % to have improved performance for the equality operator.
   module Mixin
     % Return a new Elixir OrderedDict. Remember that new is
