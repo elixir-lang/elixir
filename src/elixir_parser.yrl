@@ -29,6 +29,7 @@ Nonterminals
   call_args_optional
   tuple
   list
+  list_args
   bin_base_expr
   bin_specifier
   bin_specifier_list
@@ -172,8 +173,8 @@ np_call_exprs -> brackets_call : '$1'.
 np_call_exprs -> brackets_expr : '$1'.
 
 % Brackets call
-brackets_call -> np_call_exprs dot_eol bracket_identifier open_bracket comma_expr close_bracket : build_bracket_call(build_method_call('$1', '$3', []), '$4', '$5').
-brackets_call -> bracket_identifier open_bracket comma_expr close_bracket : build_bracket_call(build_identifier('$1'), '$2', '$3').
+brackets_call -> np_call_exprs dot_eol bracket_identifier list_args : build_bracket_call(build_method_call('$1', '$3', []), '$4').
+brackets_call -> bracket_identifier list_args : build_bracket_call(build_identifier('$1'), '$2').
 
 % Method call
 np_method_call_expr -> np_call_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
@@ -182,7 +183,7 @@ np_method_call_expr -> without_args_method_call_expr : '$1'.
 without_args_method_call_expr -> np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets expression
-brackets_expr -> call_exprs open_bracket comma_expr close_bracket : build_bracket_call('$1', '$2', '$3').
+brackets_expr -> call_exprs list_args : build_bracket_call('$1', '$2').
 brackets_expr -> call_exprs : '$1'.
 
 % Calls with parens
@@ -230,8 +231,8 @@ _np_call_exprs -> _brackets_call : '$1'.
 _np_call_exprs -> _brackets_expr : '$1'.
 
 % Brackets call
-_brackets_call -> _np_call_exprs dot_eol bracket_identifier open_bracket comma_expr close_bracket : build_bracket_call(build_method_call('$1', '$3', []), '$4', '$5').
-_brackets_call -> bracket_identifier open_bracket comma_expr close_bracket : build_bracket_call(build_identifier('$1'), '$2', '$3').
+_brackets_call -> _np_call_exprs dot_eol bracket_identifier list_args : build_bracket_call(build_method_call('$1', '$3', []), '$4').
+_brackets_call -> bracket_identifier list_args : build_bracket_call(build_identifier('$1'), '$2').
 
 % Method call
 _np_method_call_expr -> _np_call_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
@@ -240,7 +241,7 @@ _np_method_call_expr -> _without_args_method_call_expr : '$1'.
 _without_args_method_call_expr -> _np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets expression
-_brackets_expr -> _call_exprs open_bracket comma_expr close_bracket : build_bracket_call('$1', '$2', '$3').
+_brackets_expr -> _call_exprs list_args : build_bracket_call('$1', '$2').
 _brackets_expr -> _call_exprs : '$1'.
 
 % Calls with parens
@@ -302,6 +303,8 @@ tuple -> open_curly comma_expr close_curly : { tuple, ?line('$1'), '$2' }.
 list -> open_bracket ']' : build_list(?line('$1'), []).
 list -> open_bracket comma_expr close_bracket : build_list(?line('$1'), '$2').
 list -> open_bracket comma_expr '|' expr close_bracket : build_list(?line('$1'), '$2', '$4').
+
+list_args -> open_bracket comma_expr close_bracket : { ?line('$1'), '$2' }.
 
 % Binaries declaration.
 bin_base_expr -> expr : build_bin_element('$1', default, default).
@@ -437,6 +440,11 @@ np_erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier : build_er
 np_erlang_call_expr -> Erlang '.' base_identifier call_args_no_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
 np_erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call('$1', erlang, ?chars('$3'), []).
 
+% Erlang bracket calls
+np_erlang_call_expr -> Erlang '.' base_identifier '.' bracket_identifier list_args : build_bracket_call(build_erlang_call('$1', ?chars('$3'), ?chars('$5'), []), '$6').
+np_erlang_call_expr -> Erlang '.' bracket_identifier list_args : build_bracket_call(build_erlang_call('$1', erlang, ?chars('$3'), []), '$4').
+
+% Erlang calls with explicit parens
 erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
 erlang_call_expr -> Erlang '.' base_identifier call_args_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
 
@@ -562,8 +570,8 @@ Erlang code.
 build_identifier(Thing) ->
   { identifier, ?line(Thing), ?chars(Thing) }.
 
-build_bracket_call(Expr, Bracket, Args) ->
-  build_method_call(Expr, { identifier, ?line(Bracket), '[]' }, Args).
+build_bracket_call(Expr, Args) ->
+  build_method_call(Expr, { identifier, element(1, Args), '[]' }, element(2, Args)).
 
 build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.

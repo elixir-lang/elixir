@@ -68,6 +68,7 @@ object ListTest
 
   def brackets_syntax_test
     2 = [1,2,3][1]
+    2 = [1,2,3] [1]
     2 = ([1] + [2,3])[1]
 
     2 = a_list()[1]
