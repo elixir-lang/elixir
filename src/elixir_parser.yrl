@@ -7,10 +7,14 @@ Nonterminals
   decl_list
   decl
   expr _expr
+  np_call_exprs _np_call_exprs
+  np_method_call_expr _np_method_call_expr
+  without_args_method_call_expr _without_args_method_call_expr
+  np_erlang_call_expr
+  brackets_expr _brackets_expr
   call_exprs _call_exprs
   fun_call_expr _fun_call_expr
   method_call_expr _method_call_expr
-  without_args_method_call_expr _without_args_method_call_expr
   erlang_call_expr
   min_expr
 
@@ -157,9 +161,24 @@ expr -> expr comp_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr add_op expr : build_binary_op('$1', '$2', '$3').
 expr -> expr mult_op expr : build_binary_op('$1', '$2', '$3').
 expr -> unary_op expr : build_unary_op('$1', '$2').
-expr -> call_exprs : '$1'.
+expr -> np_call_exprs : '$1'.
 
-% Calls
+% No Parens Calls
+np_call_exprs -> np_method_call_expr : '$1'.
+np_call_exprs -> np_erlang_call_expr : '$1'.
+np_call_exprs -> brackets_expr : '$1'.
+
+% Method call
+np_method_call_expr -> np_call_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
+np_method_call_expr -> implicit_method_name call_args_no_parens : build_local_call('$1', '$2').
+np_method_call_expr -> without_args_method_call_expr : '$1'.
+without_args_method_call_expr -> np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
+
+% Brackets call
+brackets_expr -> call_exprs open_bracket comma_expr close_bracket : build_method_call('$1', '[]', '$3').
+brackets_expr -> call_exprs : '$1'.
+
+% Calls with parens
 call_exprs -> fun_call_expr : '$1'.
 call_exprs -> method_call_expr : '$1'.
 call_exprs -> erlang_call_expr : '$1'.
@@ -169,12 +188,8 @@ call_exprs -> min_expr : '$1'.
 fun_call_expr -> min_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
-method_call_expr -> call_exprs dot_eol method_name call_args_optional : build_method_call('$1', '$3', '$4').
-method_call_expr -> without_args_method_call_expr : '$1'.
-method_call_expr -> implicit_method_name call_args_no_parens : build_local_call('$1', '$2').
+method_call_expr -> np_call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
 method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
-
-without_args_method_call_expr -> call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Minimum expressions
 min_expr -> base_expr : '$1'.
@@ -197,9 +212,24 @@ _expr -> _expr comp_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr add_op _expr  : build_binary_op('$1', '$2', '$3').
 _expr -> _expr mult_op _expr : build_binary_op('$1', '$2', '$3').
 _expr -> unary_op _expr : build_unary_op('$1', '$2').
-_expr -> _call_exprs : '$1'.
+_expr -> _np_call_exprs : '$1'.
 
-% Calls
+% No Parens Calls
+_np_call_exprs -> _np_method_call_expr : '$1'.
+_np_call_exprs -> np_erlang_call_expr : '$1'.
+_np_call_exprs -> _brackets_expr : '$1'.
+
+% Method call
+_np_method_call_expr -> _np_call_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
+_np_method_call_expr -> implicit_method_name call_args_no_parens : build_local_call('$1', '$2').
+_np_method_call_expr -> _without_args_method_call_expr : '$1'.
+_without_args_method_call_expr -> _np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
+
+% Brackets call
+_brackets_expr -> _call_exprs open_bracket comma_expr close_bracket : build_method_call('$1', '[]', '$3').
+_brackets_expr -> _call_exprs : '$1'.
+
+% Calls with parens
 _call_exprs -> _fun_call_expr : '$1'.
 _call_exprs -> _method_call_expr : '$1'.
 _call_exprs -> erlang_call_expr : '$1'.
@@ -209,12 +239,8 @@ _call_exprs -> base_expr : '$1'.
 _fun_call_expr -> base_expr call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
-_method_call_expr -> _call_exprs dot_eol method_name call_args_optional : build_method_call('$1', '$3', '$4').
-_method_call_expr -> _without_args_method_call_expr : '$1'.
-_method_call_expr -> implicit_method_name call_args_no_parens : build_local_call('$1', '$2').
+_method_call_expr -> _np_call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
 _method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
-
-_without_args_method_call_expr -> _call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 %%% BUILDING BLOCKS
 
@@ -296,7 +322,6 @@ base_identifier -> module : { identifier, ?line('$1'), module }.
 base_identifier -> object : { identifier, ?line('$1'), object }.
 base_identifier -> div : { identifier, ?line('$1'), 'div' }.
 base_identifier -> rem : { identifier, ?line('$1'), 'rem' }.
-base_identifier -> then : { identifier, ?line('$1'), 'then' }.
 base_identifier -> '_' : { identifier, ?line('$1'), '_' }.
 
 % ivar
@@ -393,10 +418,13 @@ string_list -> string_base : ['$1'].
 string_list -> string_base '~' eol string_list : ['$1'|'$4'].
 
 % Erlang calls
-erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_optional : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
-erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), []).
-erlang_call_expr -> Erlang '.' base_identifier call_args_optional : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
-erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call('$1', erlang, ?chars('$3'), []).
+np_erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_no_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
+np_erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), []).
+np_erlang_call_expr -> Erlang '.' base_identifier call_args_no_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
+np_erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call('$1', erlang, ?chars('$3'), []).
+
+erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
+erlang_call_expr -> Erlang '.' base_identifier call_args_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
 
 % Stab syntax
 stabber -> '->' : '$1'.
@@ -501,7 +529,6 @@ method_name -> method_ops_identifier : { identifier, ?line('$1'), ?op('$1') }.
 
 implicit_method_ops_identifier -> div : '$1'.
 implicit_method_ops_identifier -> rem : '$1'.
-implicit_method_ops_identifier -> then : '$1'.
 
 method_ops_identifier -> '+' : '$1'.
 method_ops_identifier -> '-' : '$1'.

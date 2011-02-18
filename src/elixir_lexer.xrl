@@ -74,9 +74,10 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 \'{BaseGroup} : build_separator_atom(atom, TokenChars, TokenLine, TokenLen). % '
 
 %% Constant and identifier names
-{UpperCase}({IdentifierBase}|::)*    : build(constant, TokenLine, TokenChars).
-({LowerCase}|_){IdentifierBase}*     : build(identifier, TokenLine, TokenChars).
-({LowerCase}|_){IdentifierBase}*[?!] : build(punctuated_identifier, TokenLine, TokenChars).
+{UpperCase}({IdentifierBase}|::)*       : build(constant, TokenLine, TokenChars).
+({LowerCase}|_){IdentifierBase}*[?!]?\[ : build_bracket_identifier(TokenLine, TokenChars, TokenLen).
+({LowerCase}|_){IdentifierBase}*[?!]    : build(punctuated_identifier, TokenLine, TokenChars).
+({LowerCase}|_){IdentifierBase}*        : build(identifier, TokenLine, TokenChars).
 
 %% Operators
 
@@ -124,7 +125,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 
 Erlang code.
 
--import(lists, [sublist/3]).
+-import(lists, [sublist/2, sublist/3]).
 -export([extract_interpolations/2]).
 
 % Generic building block for constants and identifiers.
@@ -135,13 +136,18 @@ build(Kind, Line, Chars) ->
     false -> { token, {Kind, Line, Atom} }
   end.
 
+% Build a bracket identifier.
+build_bracket_identifier(Line, Chars, Length) ->
+  { _, Token } = build(bracket_identifier, Line, sublist(Chars, Length - 1)),
+  { token, Token, "[" }.
+
 % Handle chars.
 build_char(Chars, Line) ->
   { token, { integer, Line, lists:last(unescape_chars(false, Chars)) } }.
 
 % Handle strings without interpolation.
 build_string(Kind, Chars, Line, Length, Distance) ->
-  Interpol = (lists:sublist(atom_to_list(Kind), 12) == "interpolated"),
+  Interpol = (sublist(atom_to_list(Kind), 12) == "interpolated"),
   { String, Pushback } = handle_chars(Interpol, Chars, Line, Length, Distance),
   { token, { Kind, Line, String }, Pushback }.
 
