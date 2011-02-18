@@ -166,6 +166,7 @@ expr -> np_call_exprs : '$1'.
 % No Parens Calls
 np_call_exprs -> np_method_call_expr : '$1'.
 np_call_exprs -> np_erlang_call_expr : '$1'.
+np_call_exprs -> base_identifier : '$1'.
 np_call_exprs -> brackets_expr : '$1'.
 
 % Method call
@@ -186,6 +187,7 @@ call_exprs -> min_expr : '$1'.
 
 % Function call
 fun_call_expr -> min_expr call_args_parens : build_fun_call('$1', '$2').
+fun_call_expr -> base_identifier call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
 method_call_expr -> np_call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
@@ -217,6 +219,7 @@ _expr -> _np_call_exprs : '$1'.
 % No Parens Calls
 _np_call_exprs -> _np_method_call_expr : '$1'.
 _np_call_exprs -> np_erlang_call_expr : '$1'.
+_np_call_exprs -> base_identifier : '$1'.
 _np_call_exprs -> _brackets_expr : '$1'.
 
 % Method call
@@ -237,6 +240,7 @@ _call_exprs -> base_expr : '$1'.
 
 % Function call
 _fun_call_expr -> base_expr call_args_parens : build_fun_call('$1', '$2').
+_fun_call_expr -> base_identifier call_args_parens : build_fun_call('$1', '$2').
 
 % Method call
 _method_call_expr -> _np_call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
@@ -360,7 +364,6 @@ close_gt -> '>>'     : '$1'.
 close_gt -> eol '>>' : '$2'.
 
 % Base expressions
-base_expr -> base_identifier : '$1'.
 base_expr -> string_list : build_string_list('$1').
 base_expr -> ivar : '$1'.
 base_expr -> atom : '$1'.

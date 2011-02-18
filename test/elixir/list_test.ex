@@ -71,11 +71,16 @@ object ListTest
     2 = a_list()[1]
     2 = self.a_list()[1]
     2 = ([1] + [2,3])[1]
+    [1] = a_list [1]
   end
 
   protected
 
   def a_list
     [1,2,3]
+  end
+
+  def a_list(list)
+    list
   end
 end
