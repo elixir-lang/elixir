@@ -66,4 +66,16 @@ object ListTest
     [8,6,4,9] = x.delete(6)
   end
 
+  def brackets_syntax_test
+    2 = [1,2,3][1]
+    2 = a_list()[1]
+    2 = self.a_list()[1]
+    2 = ([1] + [2,3])[1]
+  end
+
+  protected
+
+  def a_list
+    [1,2,3]
+  end
 end

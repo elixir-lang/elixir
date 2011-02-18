@@ -19,6 +19,10 @@ object List
     Erlang.lists.foldr(function, acc, self)
   end
 
+  def [](number)
+    Erlang.lists.nth(number + 1, self)
+  end
+
   % Calls the function once for each element in the list.
   %
   % Returns a new list containing the values returned by the function.

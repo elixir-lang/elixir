@@ -175,7 +175,7 @@ np_method_call_expr -> without_args_method_call_expr : '$1'.
 without_args_method_call_expr -> np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets call
-brackets_expr -> call_exprs open_bracket comma_expr close_bracket : build_method_call('$1', '[]', '$3').
+brackets_expr -> call_exprs open_bracket comma_expr close_bracket : build_method_call('$1', { identifier, ?line('$2'), '[]' }, '$3').
 brackets_expr -> call_exprs : '$1'.
 
 % Calls with parens
@@ -226,7 +226,7 @@ _np_method_call_expr -> _without_args_method_call_expr : '$1'.
 _without_args_method_call_expr -> _np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets call
-_brackets_expr -> _call_exprs open_bracket comma_expr close_bracket : build_method_call('$1', '[]', '$3').
+_brackets_expr -> _call_exprs open_bracket comma_expr close_bracket : build_method_call('$1', { identifier, ?line('$2'), '[]' }, '$3').
 _brackets_expr -> _call_exprs : '$1'.
 
 % Calls with parens
@@ -530,10 +530,11 @@ method_name -> method_ops_identifier : { identifier, ?line('$1'), ?op('$1') }.
 implicit_method_ops_identifier -> div : '$1'.
 implicit_method_ops_identifier -> rem : '$1'.
 
-method_ops_identifier -> '+' : '$1'.
-method_ops_identifier -> '-' : '$1'.
-method_ops_identifier -> '*' : '$1'.
-method_ops_identifier -> '/' : '$1'.
+method_ops_identifier -> '+'     : '$1'.
+method_ops_identifier -> '-'     : '$1'.
+method_ops_identifier -> '*'     : '$1'.
+method_ops_identifier -> '/'     : '$1'.
+method_ops_identifier -> '[' ']' : { '[]', ?line('$1') }.
 
 Erlang code.
 
