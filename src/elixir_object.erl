@@ -195,6 +195,9 @@ format_warnings(Filename, Warnings) ->
 format_warning(Filename, {Line,_,{unused_var,self}}) ->
   [];
 
+format_warning(Filename, {Line,_,nomatch_clause_type}) ->
+  [];
+
 format_warning(Filename, {Line, _, {unused_function, {Name, Arity}}}) ->
   Message = io_lib:format("unused local method ~s/~w\n", [Name, Arity-1]),
   io:format(elixir_errors:file_format(Line, Filename, Message));
