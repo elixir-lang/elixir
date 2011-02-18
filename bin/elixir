@@ -1,0 +1,2 @@
+#!/bin/sh
+erl -I include -noshell -pa ebin -eval "elixir:boot(), elixir:require_file(\"$1\", [\".\"]), halt()."
