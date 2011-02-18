@@ -13,13 +13,14 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 # Roadmap
 
 * Add exceptions
+* Add load paths
+* Add [] as method
 * Add interactive elixir (iex)
 * Implement missing types and improve STDLIB
 * Add generators/list comprehensions
 * Add metaprogramming
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add
 * Add _.foo
-* Add load paths
 * Support guards
 * Add JIT on module compilation
 * Extending builtin types (like inheriting from Integer)
@@ -631,9 +632,9 @@ Also, Elixir keeps the same semantics as Erlang in the sense the `/` operator al
 
 To be implemented/written.
 
-### General boolean operators
+### Logical operators and control-flow
 
-Elixir provides three general boolean operators. They are called *general* because they accept any object as argument. We will see later that some operators (inherited from Erlang) accept strictly boolean values.
+Elixir provides three operators that accept any object as argument. We will see later that some operators (inherited from Erlang) accept strictly boolean values.
 
 <table>
 <tr>
@@ -661,7 +662,7 @@ Remember that any object, except `false` and `[]` (empty list), evaluates to `tr
     !true        % => false
     !Object.new  % => false
 
-Both `&&` and `||` are short-circuit operators. They do not return a boolean but the last evaluated object:
+Both `&&` and `||` are actually control structures. They do not return a boolean but the last evaluated object:
 
     [] && true   % => []
     true && []   % => []
