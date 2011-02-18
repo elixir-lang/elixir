@@ -68,10 +68,23 @@ object ListTest
 
   def brackets_syntax_test
     2 = [1,2,3][1]
+    2 = ([1] + [2,3])[1]
+
     2 = a_list()[1]
     2 = self.a_list()[1]
-    2 = ([1] + [2,3])[1]
+    2 = a_list[1]
+    2 = self.a_list[1]
     [1] = a_list [1]
+    [1] = self.a_list [1]
+    2 = 6 - 1 - self.a_list[1] - 1
+
+    2 = a_list!()[1]
+    2 = self.a_list!()[1]
+    2 = a_list![1]
+    2 = self.a_list![1]
+    [1] = a_list! [1]
+    [1] = self.a_list! [1]
+    2 = 6 - 1 - self.a_list![1] - 1
   end
 
   protected
@@ -81,6 +94,14 @@ object ListTest
   end
 
   def a_list(list)
+    list
+  end
+
+  def a_list!
+    [1,2,3]
+  end
+
+  def a_list!(list)
     list
   end
 end

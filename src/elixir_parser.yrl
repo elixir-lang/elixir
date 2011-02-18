@@ -8,6 +8,7 @@ Nonterminals
   decl
   expr _expr
   np_call_exprs _np_call_exprs
+  brackets_call _brackets_call
   np_method_call_expr _np_method_call_expr
   without_args_method_call_expr _without_args_method_call_expr
   np_erlang_call_expr
@@ -78,7 +79,7 @@ Nonterminals
   .
 
 Terminals
-  punctuated_identifier identifier float integer constant
+  bracket_identifier punctuated_identifier identifier float integer constant
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false
@@ -167,7 +168,12 @@ expr -> np_call_exprs : '$1'.
 np_call_exprs -> np_method_call_expr : '$1'.
 np_call_exprs -> np_erlang_call_expr : '$1'.
 np_call_exprs -> base_identifier : '$1'.
+np_call_exprs -> brackets_call : '$1'.
 np_call_exprs -> brackets_expr : '$1'.
+
+% Brackets call
+brackets_call -> np_call_exprs dot_eol bracket_identifier open_bracket comma_expr close_bracket : build_bracket_call(build_method_call('$1', '$3', []), '$4', '$5').
+brackets_call -> bracket_identifier open_bracket comma_expr close_bracket : build_bracket_call(build_identifier('$1'), '$2', '$3').
 
 % Method call
 np_method_call_expr -> np_call_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
@@ -175,8 +181,8 @@ np_method_call_expr -> implicit_method_name call_args_no_parens : build_local_ca
 np_method_call_expr -> without_args_method_call_expr : '$1'.
 without_args_method_call_expr -> np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
-% Brackets call
-brackets_expr -> call_exprs open_bracket comma_expr close_bracket : build_method_call('$1', { identifier, ?line('$2'), '[]' }, '$3').
+% Brackets expression
+brackets_expr -> call_exprs open_bracket comma_expr close_bracket : build_bracket_call('$1', '$2', '$3').
 brackets_expr -> call_exprs : '$1'.
 
 % Calls with parens
@@ -220,7 +226,12 @@ _expr -> _np_call_exprs : '$1'.
 _np_call_exprs -> _np_method_call_expr : '$1'.
 _np_call_exprs -> np_erlang_call_expr : '$1'.
 _np_call_exprs -> base_identifier : '$1'.
+_np_call_exprs -> _brackets_call : '$1'.
 _np_call_exprs -> _brackets_expr : '$1'.
+
+% Brackets call
+_brackets_call -> _np_call_exprs dot_eol bracket_identifier open_bracket comma_expr close_bracket : build_bracket_call(build_method_call('$1', '$3', []), '$4', '$5').
+_brackets_call -> bracket_identifier open_bracket comma_expr close_bracket : build_bracket_call(build_identifier('$1'), '$2', '$3').
 
 % Method call
 _np_method_call_expr -> _np_call_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
@@ -228,8 +239,8 @@ _np_method_call_expr -> implicit_method_name call_args_no_parens : build_local_c
 _np_method_call_expr -> _without_args_method_call_expr : '$1'.
 _without_args_method_call_expr -> _np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
-% Brackets call
-_brackets_expr -> _call_exprs open_bracket comma_expr close_bracket : build_method_call('$1', { identifier, ?line('$2'), '[]' }, '$3').
+% Brackets expression
+_brackets_expr -> _call_exprs open_bracket comma_expr close_bracket : build_bracket_call('$1', '$2', '$3').
 _brackets_expr -> _call_exprs : '$1'.
 
 % Calls with parens
@@ -548,6 +559,11 @@ Erlang code.
 % The following directive is needed for (significantly) faster compilation
 % of the generated .erl file by the HiPE compiler.  Please do not remove.
 % -compile([{hipe,[{regalloc,linear_scan}]}]).
+build_identifier(Thing) ->
+  { identifier, ?line(Thing), ?chars(Thing) }.
+
+build_bracket_call(Expr, Bracket, Args) ->
+  build_method_call(Expr, { identifier, ?line(Bracket), '[]' }, Args).
 
 build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.
