@@ -139,11 +139,6 @@ As in Erlang, the boolean values are simply atoms named true and false. However,
       1
     end
 
-> #### To be implemented
->
-> Elixir currently lacks much of boolean algebra. None of the boolean operators were implemented yet:  `and`, `or`, `xor` nor `not`.
-> Equality and match operators were not implemented as well: `==`, `/=`, `=:=`, `>`, `<`, etc.
-
 ### Tuples
 
 Tuples are used to organize many terms together when you know how many terms there are. As in Erlang, a tuple is written in the following form:
@@ -157,23 +152,26 @@ Tuples are used to organize many terms together when you know how many terms the
     % An empty tuple
     { }
 
+Tuples and lists (which are going to see next), are zero-indexed in Elixir while they are one-indexed in Erlang. You can retrieve a specific element using []:
+
+    {'a,'b,'c}[1]  % => 'b
+    {'a,'b,'c}[2]  % => 'c
+
 #### Documentation:
 
 * <https://github.com/josevalim/elixir/tree/master/lib/tuple.ex>
 
 > #### To be implemented
 >
-> Currently there is no way to interact with tuples elements. The following API is proposed:
+> Implement negative indexes:
 >
->   { 'a, 'b, 'c }[0]  % => 'a
->   { 'a, 'b, 'c }[1]  % => 'b
->   { 'a, 'b, 'c }[2]  % => 'c
+>   {'a,'b,'c}[-1] % => 'c
 >
-> Setting an element will be done through the set method:
+> Setting an element should be done through the set method:
 >
 >   { 'a, 'b, 'c }.set(0, 'd)  % => { 'd, 'b, 'c }
 >
-> This same note is also valid for lists and dicts (which we are going to see next).
+> And finally decide how out of bound indexes will behave.
 
 ### Lists
 
@@ -190,12 +188,13 @@ Elixir Standard Library has a bunch of methods to interact with lists:
     [1, 2, 3].head         % => 1
     [1, 2, 3].tail         % => [2,3]
     [1, 2, 3].length       % => 3
+    ['a, 'b, 'c][1]        % => 'b
 
 As in Elixir `+` is simply a method like any other (and not an arithmetic operator as in Erlang), it can also be used to add arrays:
 
     [1, 2, 3] + [4, 5, 6]  % => [1,2,3,4,5,6]
 
-However, lists in Erlang and Elixir are implemented as linked lists. This means prepending an item to the list is quite fast, but appending is much slower. Therefore we have a special syntax to prepend one or more items to a list:
+Lists in Erlang and Elixir are implemented as linked lists. This means prepending an item to the list is quite fast, but appending is much slower. Therefore we have a special syntax to prepend one or more items to a list:
 
     list = [2,3,4]
 
