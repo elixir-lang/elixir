@@ -79,6 +79,10 @@ object ListTest
     [1] = self.a_list [1]
     2 = 6 - 1 - self.a_list[1] - 1
 
+    a_list = [4,5,6]
+    5 = a_list[1]
+    [1] = a_list [1]
+
     2 = a_list!()[1]
     2 = self.a_list!()[1]
     2 = a_list![1]
