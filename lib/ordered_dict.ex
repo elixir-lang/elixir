@@ -46,7 +46,7 @@ object OrderedDict
   %     new_dict % => { 'a: 2, 'b: 4 }
   %
   def map(function)
-    Erlang.orddict.map(function, orddict)
+    OrderedDict.new Erlang.orddict.map(function, orddict)
   end
 
   % Returns this dictionary represented as a String.
