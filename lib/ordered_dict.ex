@@ -26,7 +26,7 @@ object OrderedDict
   %     list = dict.fold [], do (key, value, acc)
   %       ["#{key}: #{value}"|acc]
   %     end
-  %     list.join(", ") % => "a: 1, b: 1"
+  %     list.join(", ") % => "b: 2, a: 1"
   %
   def fold(acc, function)
     Erlang.orddict.fold(function, acc, orddict)
