@@ -5,12 +5,7 @@ module ExUnit::Case
 
   def __tests__
     regexp = ~r(_test$)
-    self.__public_proto_methods__.foldl [], do ({name, _arity}, acc)
-      if regexp.match?(name)
-        [name|acc]
-      else
-        acc
-      end
-    end
+    method_names = self.__public_proto_methods__.map -> ({name, _arity}) name
+    method_names.select -> (name) regexp.match?(name)
   end
 end
