@@ -1,11 +1,6 @@
 -module(arithmetic_test).
 -include_lib("eunit/include/eunit.hrl").
 
-% TODO Arithmetic operations are hardcoded.
-% They should instead be implemented using message passing.
-
-% TODO Implement div, res and pow.
-
 integer_sum_test() ->
   {3,[]} = elixir:eval("1+2"),
   {6,[]} = elixir:eval("1+2+3"),
