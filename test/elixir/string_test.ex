@@ -26,4 +26,8 @@ object StringTest
     "Hello" = "Hello".to_s
   end
 
+  def to_atom_test
+    'hello = "hello".to_atom
+  end
+
 end

@@ -72,6 +72,10 @@ object String
     self
   end
 
+  def to_atom
+    Erlang.binary_to_atom(bin, 'utf8)
+  end
+
   private
 
   def bin
