@@ -156,8 +156,13 @@ build_erlang_form(Line, Object, {Export, Protected, Functions}) ->
   AttrTable = Object#elixir_object__.data,
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
   Base = ets:foldr(Transform, Functions, AttrTable),
-  [{attribute, Line, module, Name}, {attribute, Line, parent, Parent},
+  [{attribute, Line, module, Name}, {attribute, Line, parent, Parent}, {attribute, Line, compile, no_auto_import()},
    {attribute, Line, export, Export}, {attribute, Line, protected, Protected} | Base].
+
+no_auto_import() ->
+  {no_auto_import, [
+    {size, 1}, {length, 1}, {error, 1}, {throw, 1}, {exit, 1}
+  ]}.
 
 transform_attribute(Line, {mixins, List}) ->
   {attribute, Line, mixins, lists:delete('Module::Methods', List)};

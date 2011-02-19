@@ -45,12 +45,12 @@ object String
 
   % Returns the list representation of this String.
   def to_list
-    Erlang.binary_to_list bin
+    Erlang.binary_to_list(bin)
   end
 
   % Returns the list of chars represantion of this String.
   def to_char_list
-    Erlang.binary_to_list bin
+    Erlang.binary_to_list(bin)
   end
 
   % Returns a string representation of this string.

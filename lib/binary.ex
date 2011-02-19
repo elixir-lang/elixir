@@ -4,10 +4,10 @@ object Binary
   end
 
   def to_char_list
-    Erlang.binary_to_list self
+    Erlang.binary_to_list(self)
   end
   
   def to_list
-    Erlang.binary_to_list self
+    Erlang.binary_to_list(self)
   end
 end
