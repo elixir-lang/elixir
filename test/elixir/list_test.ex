@@ -1,6 +1,5 @@
 object ListTest
   proto ExUnit::Case
-  proto Helpers
 
   def include_and_member_test
     list = [1,2,3]
@@ -23,7 +22,7 @@ object ListTest
       true = list.include?(x)
     end
 
-    self.assert_raise 'badmatch, do
+    self.assert_raise { 'badmatch, true }, do
       list.each -> (x) false = list.include?(x)
     end
   end
