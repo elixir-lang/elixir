@@ -117,6 +117,15 @@ object ListTest
     2 = 6 - 1 - self.a_list![1] - 1
   end
 
+  def list_comprehension_test
+    [2,4,6] = [x * 2 for x in [1,2,3]]
+    [2,4,6] = [x * 2 for x in [1,2,3], true]
+    [2,4,6] = [x * 2 for x in [1,2,3], x.abs > 0]
+    [3,2,6,4,9,6] = [x * y for x in [1,2,3], y in [3,2]]
+    [] = [x * 2 for x in [1,2,3], empty]
+    [] = [x * 2 for x in [1,2,3], falsy]
+  end
+
   protected
 
   def a_list
@@ -125,6 +134,14 @@ object ListTest
 
   def a_list(list)
     list
+  end
+
+  def falsy
+    false
+  end
+
+  def empty
+    []
   end
 
   def a_list!

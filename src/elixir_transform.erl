@@ -430,6 +430,13 @@ transform({fun_call, Line, Var, Args }, S) ->
       { {call, Line, TVar, TArgs}, umergev(SA, SV) }
   end;
 
+% Handle list comprehensions
+transform({lc, Line, Expr, Cases}, S) ->
+  Transformer = fun (X, Acc) -> transform_booleans(X, Line, Acc) end,
+  { TCases, SC } = lists:mapfoldl(Transformer, S, Cases),
+  { TExpr, SE } = transform(Expr, SC),
+  { { lc, Line, TExpr, TCases }, SE };
+
 % Handle module/object declarations. The difference between
 % them is specified in Parent.
 %
@@ -457,6 +464,15 @@ transform({filename, Line}, S) ->
 
 % Match all other expressions.
 transform(Expr, S) -> { Expr, S }.
+
+transform_booleans({generate, Line, Left, Right}, L, S) ->
+  { TLeft, SL } = transform(Left, S#elixir_scope{match=true}),
+  { TRight, SR } = transform(Right, SL#elixir_scope{match=false}),
+  { { generate, Line, TLeft, TRight }, SR };
+
+transform_booleans(X, L, S) ->
+  { TX, TS } = transform(X, S),
+  { convert_to_boolean(L, TX, true), TS }.
 
 % Pack method clause in a format that receives Elixir metadata
 % as first argument (like self) and annotates __current__ with

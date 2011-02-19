@@ -30,6 +30,9 @@ Nonterminals
   tuple
   list
   list_args
+  generator
+  comprehension_args
+  list_comprehension
   bin_base_expr
   bin_specifier
   bin_specifier_list
@@ -85,7 +88,7 @@ Terminals
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false
   if elsif else then unless case match filename
-  and andalso or orelse not '||' '&&'
+  and andalso or orelse not '||' '&&' for in
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '~'
   '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!='
@@ -295,6 +298,13 @@ call_args_no_parens -> _base_orddict : ['$1'].
 call_args_optional -> call_args_parens : '$1'.
 call_args_optional -> call_args_no_parens : '$1'.
 
+% Comprehension
+generator -> expr in expr : { generate, ?line('$2'), '$1', '$3' }.
+
+comprehension_args -> generator : ['$1'].
+comprehension_args -> expr : ['$1'].
+comprehension_args -> generator comma_separator comprehension_args : ['$1'|'$3'].
+
 % Tuples declaration.
 tuple -> open_curly '}' : { tuple, ?line('$1'), [] }.
 tuple -> open_curly comma_expr close_curly : { tuple, ?line('$1'), '$2' }.
@@ -304,6 +314,7 @@ list -> open_bracket ']' : build_list(?line('$1'), []).
 list -> open_bracket comma_expr close_bracket : build_list(?line('$1'), '$2').
 list -> open_bracket comma_expr '|' expr close_bracket : build_list(?line('$1'), '$2', '$4').
 
+list_comprehension -> open_bracket expr for comprehension_args close_bracket : { lc, ?line('$3'), '$2', '$4' }.
 list_args -> open_bracket comma_expr close_bracket : { ?line('$1'), '$2' }.
 
 % Binaries declaration.
@@ -390,6 +401,7 @@ base_expr -> number : '$1'.
 base_expr -> constant : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> list : '$1'.
+base_expr -> list_comprehension : '$1'.
 base_expr -> orddict : '$1'.
 base_expr -> binary : '$1'.
 base_expr -> true : { atom, ?line('$1'), true }.

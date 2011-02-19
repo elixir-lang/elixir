@@ -1,4 +1,8 @@
 module Numeric
+  def abs
+    Erlang.abs(self)
+  end
+
   def +(other)
     Erlang.elixir_numeric_methods.add(self, other)
   end

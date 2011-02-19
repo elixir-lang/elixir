@@ -222,6 +222,7 @@ reserved_word('false')     -> true;
 reserved_word('case')      -> true;
 reserved_word('match')     -> true;
 % reserved_word('begin')   -> true;
+% reserved_word('rescue')  -> true;
 % reserved_word('receive') -> true;
 % reserved_word('after')   -> true;
 % reserved_word('when')    -> true;
@@ -235,11 +236,8 @@ reserved_word('andalso')   -> true;
 reserved_word('or')        -> true;
 reserved_word('orelse')    -> true;
 reserved_word('not')       -> true;
-% reserved_word('for')     -> true;
-% reserved_word('in')      -> true;
-% reserved_word('try')     -> true;
-% reserved_word('catch')   -> true;
-% reserved_word('throw')   -> true;
+reserved_word('for')       -> true;
+reserved_word('in')        -> true;
 
 % Special operators
 reserved_word('div')       -> true;
