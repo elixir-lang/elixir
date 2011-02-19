@@ -8,7 +8,7 @@ The main difference between Elixir and Erlang is syntax and object orientation. 
 
 Elixir is not ready for use yet, though this milestone will be achieved soon. If you want to contribute to Elixir, you can do that by cloning the repository and running ``make test``.
 
-The tests are organized in two directories: `test/erlang` and `test/elixir`. The first are written in Erlang and the second in Elixir. Much of Elixir's standard library is written in Elixir and tested in Elixir. This makes fairly easy to improve the language.
+The tests are organized in two directories: `test/erlang` and `test/elixir`. The first is written in Erlang and the second in Elixir. Much of Elixir's standard library is written in Elixir and tested in Elixir. This makes fairly easy to improve the language.
 
 # Roadmap
 
@@ -163,15 +163,10 @@ Tuples and lists (which are going to see next), are zero-indexed in Elixir while
 
 > #### To be implemented
 >
-> Implement negative indexes:
->
->   {'a,'b,'c}[-1] % => 'c
->
 > Setting an element should be done through the set method:
 >
 >   { 'a, 'b, 'c }.set(0, 'd)  % => { 'd, 'b, 'c }
 >
-> And finally decide how out of bound indexes will behave.
 
 ### Lists
 
