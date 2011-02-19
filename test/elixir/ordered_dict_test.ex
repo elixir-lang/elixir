@@ -7,7 +7,19 @@ object OrderedDictTest
   end
 
   def map_test
-    true = { 1:11, 2:44 } == a_dict.map -> (key, value) key * value
+    { 1: 11, 2: 44 } == a_dict.map -> (key, value) key * value
+  end
+
+  def match_test
+    { 1: 2, 2: 4 } = { 2: 4, 1: 2 }
+
+    { 1: 2, x: y } = { 2: 4, 1: 2 }
+    2 = x
+    4 = y
+
+    self.assert_raise {'badmatch, {1: 2, 2: 4}}, do
+      { 2: 4, 1: 2 } = { 1: 2, 2: 4 }
+    end
   end
 
   protected

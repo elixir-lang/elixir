@@ -163,7 +163,10 @@ transform({list, Line, Exprs, Tail }, S) ->
 % See list.
 transform({orddict, Line, Exprs }, S) ->
   { List, NS } = transform({list, Line, Exprs, {nil, Line} }, S),
-  Dict = ?ELIXIR_WRAP_CALL(Line, orddict, from_list, [List]),
+  Dict = if
+    S#elixir_scope.match -> List;
+    true -> ?ELIXIR_WRAP_CALL(Line, orddict, from_list, [List])
+  end,
   { {tuple, Line, [{atom, Line, elixir_orddict__}, Dict] }, NS };
 
 % Handle binaries declarations.

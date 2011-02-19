@@ -13,6 +13,8 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 # Roadmap
 
 * Add exceptions
+* Add receive/after
+* Add tail operator to ordered dicts on pattern matching
 * Add load paths
 * Add interactive elixir (iex)
 * Implement missing types and improve STDLIB
@@ -467,6 +469,21 @@ However, sometimes having several occurrences of `_` in the same expression is c
     {x, _y, _z} = {1, 2, 3}
 
 The values 2 and 3 will be bound to the variables `_y` and `_z`, but Elixir won't complain if you eventually don't use them.
+
+Ordered dictionaries are also allowed in pattern matching and you are responsible to make their order match. Therefore, this won't match:
+
+    dict = { 2: 4, 1: 2 }
+    { 2: 4, 1: 2 } = dict
+
+This is because the `dict` is ordered, so it is actually represented as `{1: 2, 2: 4}`. The order is important in order to bound variables:
+
+    dict = { 2: 4, 1: 2 }
+
+    % This matches as the left expression is in the correct order
+    { 1: 2, 2: 4 } = dict
+
+    % This matches and bound x and y to 2 and 4
+    { 1: 2, x: y } = dict
 
 Keep in mind that the number of expressions allowed in pattern matching are limited. You cannot invoke methods, use interpolated strings, retrieve constants and so on. Therefore, this is invalid:
 
