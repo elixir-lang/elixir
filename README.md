@@ -10,6 +10,10 @@ Elixir is not ready for use yet, though this milestone will be achieved soon. If
 
 The tests are organized in two directories: `test/erlang` and `test/elixir`. The first is written in Erlang and the second in Elixir. Much of Elixir's standard library is written in Elixir and tested in Elixir. This makes fairly easy to improve the language.
 
+# Requirement
+
+Elixir requires Erlang R14A or later version to execute. R13 or prior version doesn't work because bug of `yecc`, Erlang's built-in parser generator.
+
 # Roadmap
 
 * Add exceptions
