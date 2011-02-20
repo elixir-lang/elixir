@@ -238,6 +238,8 @@ reserved_word('orelse')    -> true;
 reserved_word('not')       -> true;
 reserved_word('for')       -> true;
 reserved_word('in')        -> true;
+reserved_word('inlist')    -> true;
+reserved_word('inbin')     -> true;
 
 % Special operators
 reserved_word('div')       -> true;

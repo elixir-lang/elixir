@@ -118,13 +118,18 @@ object ListTest
   end
 
   def list_comprehension_test
-    [2,4,6] = [x * 2 for x in [1,2,3]]
+    [2,4,6] = [x * 2 for x inlist [1,2,3]]
     [2,4,6] = [x * 2 for x in [1,2,3], true]
     [2,4,6] = [x * 2 for x in [1,2,3], x.abs > 0]
     [2,6] = [x * 2 for x in [0,1,-2,3], x > 0]
     [3,2,6,4,9,6] = [x * y for x in [1,2,3], y in [3,2]]
-    [] = [x * 2 for x in [1,2,3], empty]
+    [] = [x * 2 for x inlist [1,2,3], empty]
     [] = [x * 2 for x in [1,2,3], falsy]
+  end
+
+  def variables_in_list_comprehensions_do_not_leak_test
+    [2,4,6] = [falsy * 2 for falsy in [1,2,3]]
+    false = falsy
   end
 
   protected

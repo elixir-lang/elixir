@@ -88,7 +88,7 @@ Terminals
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false
   if elsif else then unless case match filename
-  and andalso or orelse not '||' '&&' for in
+  and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '~'
   '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!='
@@ -299,7 +299,9 @@ call_args_optional -> call_args_parens : '$1'.
 call_args_optional -> call_args_no_parens : '$1'.
 
 % Comprehension
-generator -> expr in expr : { generate, ?line('$2'), '$1', '$3' }.
+generator -> expr in expr     : { undef_generate, ?line('$2'), '$1', '$3' }.
+generator -> expr inbin expr  : { bin_generate, ?line('$2'), '$1', '$3' }.
+generator -> expr inlist expr : { list_generate, ?line('$2'), '$1', '$3' }.
 
 comprehension_args -> generator : ['$1'].
 comprehension_args -> expr : ['$1'].

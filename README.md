@@ -18,7 +18,6 @@ Elixir requires Erlang R14A or later version to execute. R13 or prior version do
 
 * Add exceptions
 * Add receive/after
-* Add tail operator to ordered dicts on pattern matching
 * Add load paths
 * Add interactive elixir (iex)
 * Implement missing types and improve STDLIB
