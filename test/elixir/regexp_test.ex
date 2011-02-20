@@ -18,4 +18,9 @@ object RegexpTest
     false = ~r(foo$).match?("afooa")
     true = ~r(foo$).match?("afoo")
   end
+
+  def caseless_match_test
+    false = ~r(foo).match?("fOo")
+    true = ~r(foo)i.match?("fOo")
+  end
 end
