@@ -3,5 +3,6 @@ Code.require "list_test"
 Code.require "tuple_test"
 Code.require "ordered_dict_test"
 Code.require "string_test"
+Code.require "regexp_test"
 
-ExUnit.run([ListTest, TupleTest, OrderedDictTest, StringTest])
+ExUnit.run([ListTest, TupleTest, OrderedDictTest, StringTest, RegexpTest])
