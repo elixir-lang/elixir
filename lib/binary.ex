@@ -10,4 +10,12 @@ object Binary
   def to_list
     Erlang.binary_to_list(self)
   end
+
+  def inspect
+    String.new Erlang.io_lib.format($"~p", [self]).flatten
+  end
+
+  def to_s
+    inspect
+  end
 end

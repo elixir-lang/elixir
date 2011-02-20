@@ -33,6 +33,7 @@ Nonterminals
   generator
   comprehension_args
   list_comprehension
+  bin_comprehension
   bin_base_expr
   bin_specifier
   bin_specifier_list
@@ -335,6 +336,8 @@ bin_comma_expr -> bin_base_expr comma_separator bin_comma_expr : ['$1'|'$3'].
 binary -> open_lt '>>' : build_bin(?line('$1'), []).
 binary -> open_lt bin_comma_expr close_gt : build_bin(?line('$1'), '$2').
 
+bin_comprehension -> open_lt bin_comma_expr for comprehension_args close_gt : {bc, ?line('$3'), '$2', '$4' }.
+
 % Dicts declarations
 colon_comma_expr -> expr ':' expr : [build_orddict_tuple('$1', '$3')].
 colon_comma_expr -> expr ':' expr comma_separator colon_comma_expr : [build_orddict_tuple('$1', '$3')|'$5'].
@@ -404,6 +407,7 @@ base_expr -> constant : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> list : '$1'.
 base_expr -> list_comprehension : '$1'.
+base_expr -> bin_comprehension : '$1'.
 base_expr -> orddict : '$1'.
 base_expr -> binary : '$1'.
 base_expr -> true : { atom, ?line('$1'), true }.

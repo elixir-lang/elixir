@@ -82,6 +82,10 @@ object List
     self && Erlang.hd(self)
   end
 
+  def flatten
+    Erlang.lists.flatten(self)
+  end
+
   % Returns the tail of the list:
   %
   % ## Examples

@@ -21,6 +21,13 @@ object ListTest
     [1,2,3,1,2,3] = list_one + list_one
   end
 
+  def flatten_test
+    [1,2,3] = [1,2,3].flatten
+    [1,2,3] = [[1,2,3]].flatten
+    [1,2,3] = [[[1,2,3]]].flatten
+    [1,2,3] = [[1],[2],[3]].flatten
+  end
+
   def each_test
     list = [1,2,4]
     list.each do (x)
@@ -125,6 +132,15 @@ object ListTest
     [3,2,6,4,9,6] = [x * y for x in [1,2,3], y in [3,2]]
     [] = [x * 2 for x inlist [1,2,3], empty]
     [] = [x * 2 for x in [1,2,3], falsy]
+  end
+
+  def list_comprehension_with_binary_generator_test
+    [2,4,6] = [x * 2 for <<x>> in <<1,2,3>>]
+    [2,4,6] = [x * 2 for <<x>> inlist [<<1>>,<<2>>,<<3>>]]
+
+    pixels = << 213,45,132,64,76,32,76,0,0,234,32,15 >>
+    result = [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
+    result = [{r,g,b} for <<r:8,g:8,b:8>> in pixels]
   end
 
   def variables_in_list_comprehensions_do_not_leak_test

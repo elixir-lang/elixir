@@ -433,12 +433,22 @@ transform({fun_call, Line, Var, Args }, S) ->
       { {call, Line, TVar, TArgs}, umergev(SA, SV) }
   end;
 
-% Handle list comprehensions
-transform({lc, Line, Expr, Cases}, S) ->
-  Transformer = fun (X, Acc) -> transform_comprehension(X, Line, Acc) end,
-  { TCases, SC } = lists:mapfoldl(Transformer, S, Cases),
-  { TExpr, SE } = transform(Expr, SC),
-  { { lc, Line, TExpr, TCases }, umergec(S, SE) };
+% Handle list comprehensions.
+%
+% = Variables
+%
+% Variables defined inside the comprehensions do not leak.
+transform({lc, Line, Expr, Cases} = Form, S) ->
+  transform_comprehension(Form, S);
+
+% Handle binary comprehensions.
+%
+% = Variables
+%
+% Variables defined inside the comprehensions do not leak.
+transform({bc, Line, Elements, Cases}, S) ->
+  Bin = { bin, Line, Elements },
+  transform_comprehension({bc, Line, Bin, Cases}, S);
 
 % Handle module/object declarations. The difference between
 % them is specified in Parent.
@@ -468,6 +478,13 @@ transform({filename, Line}, S) ->
 % Match all other expressions.
 transform(Expr, S) -> { Expr, S }.
 
+% Handle transformations, generators and filters transformations.
+transform_comprehension({Kind, Line, Expr, Cases}, S) ->
+  Transformer = fun (X, Acc) -> transform_comprehension(X, Line, Acc) end,
+  { TCases, SC } = lists:mapfoldl(Transformer, S, Cases),
+  { TExpr, SE } = transform(Expr, SC),
+  { { Kind, Line, TExpr, TCases }, umergec(S, SE) }.
+
 transform_comprehension({undef_generate, Line, Left, Right}, L, S) ->
   Final = case Left of
     {bin, _Line, _Exprs} -> transform_comprehension({bin_generate, Line, Left, Right}, L, S);
@@ -478,6 +495,11 @@ transform_comprehension({list_generate, Line, Left, Right}, L, S) ->
   { TLeft, SL } = transform(Left, S#elixir_scope{match=true}),
   { TRight, SR } = transform(Right, SL#elixir_scope{match=false}),
   { { generate, Line, TLeft, TRight }, SR };
+
+transform_comprehension({bin_generate, Line, Left, Right}, L, S) ->
+  { TLeft, SL } = transform(Left, S#elixir_scope{match=true}),
+  { TRight, SR } = transform(Right, SL#elixir_scope{match=false}),
+  { { b_generate, Line, TLeft, TRight }, SR };
 
 transform_comprehension(X, L, S) ->
   { TX, TS } = transform(X, S),
