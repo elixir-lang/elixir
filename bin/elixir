@@ -1,2 +1,7 @@
 #!/bin/sh
-erl -I include -noshell -pa ebin -eval "elixir:boot(), elixir:require_file(\"$1\", [\".\"]), halt()."
+
+SCRIPT=$(readlink -f $0)
+SCRIPT_PATH=`dirname $SCRIPT`
+ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd` 
+
+ELIXIR_PATH=$ELIXIR_PATH erl -I $ELIXIR_PATH/include -noshell -pa $ELIXIR_PATH/ebin -eval "elixir:boot(), elixir:require_file(\"$1\", [\".\"]), halt()."

@@ -12,7 +12,10 @@ boot() ->
 % the default binding is Object, which at this point is not defined.
 load_core_classes() ->
   Dirname = filename:dirname(?FILE),
-  Basepath = filename:join([Dirname, "..", "lib"]),
+  Basepath = case os:getenv("ELIXIR_PATH") of
+    false -> filename:join([Dirname, "..", "lib"]);
+    Path -> filename:join([Path, "lib"])
+  end,
   Loader = fun(Class) ->
     Filepath = filename:join(Basepath, Class),
     {ok, Binary} = file:read_file(Filepath),
@@ -41,7 +44,8 @@ require_file(Path) ->
   Dirname = filename:dirname(?FILE),
   Paths = [
     filename:join([Dirname, "..", "lib"]),
-    filename:join([Dirname, "..", "test", "elixir"])
+    filename:join([Dirname, "..", "test", "elixir"]),
+    "."
   ],
   require_file(Path ++ ".ex", Paths).
 
