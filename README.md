@@ -12,7 +12,7 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 
 # Requirement
 
-Elixir requires Erlang R14A or later version to execute. R13 or prior version doesn't work because bug of `yecc`, Erlang's built-in parser generator.
+Elixir requires Erlang R14A or later version to execute. R13 or prior version doesn't work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
 
 # Roadmap
 
