@@ -25,7 +25,7 @@ alias_local(#elixir_object__{name=Name, data=Data} = Self, Filename, Old, New, E
     [{{Old, Arity}, Line, Clauses}] ->
       elixir_methods:store_wrapped_method(Name, Filename, {function, Line, New, Arity, Clauses});
     [] ->
-      elixir_errors:raise(nomethod, "No local method ~s/~w in ~s", [Old, Arity, Name])
+      elixir_errors:error({nolocalmethod, {Self, Old, Arity}})
   end;
 
 alias_local(_, _, _, _, _) ->

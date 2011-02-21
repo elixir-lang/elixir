@@ -9,7 +9,6 @@
 
 % EXTERNAL API
 
-% TODO Disable .new call on native types
 new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
   Parent = case Name of
     [] -> Self;
@@ -18,12 +17,14 @@ new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
   Object = #elixir_object__{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
   Data = elixir_dispatch:dispatch(true, Object, constructor, Args),
   Dict = assert_dict_with_atoms(Data),
-  Object#elixir_object__{data=Dict}.
+  Object#elixir_object__{data=Dict};
+
+new(Else, Args) -> builtinnotallowed(Else, new).
 
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
-mixin(Self, Value) -> prepend_as(Self, mixin, Value).
+mixin(Self, Value) -> prepend_as(Self, object_mixins(Self), mixin, Value).
 proto(Self, Value) when is_list(Value) -> [proto(Self, Item) || Item <- Value];
-proto(Self, Value) -> prepend_as(Self, proto, Value).
+proto(Self, Value) -> prepend_as(Self, object_protos(Self), proto, Value).
 
 % Reflections
 
@@ -66,8 +67,8 @@ set_ivar(#elixir_object__{data=Data} = Self, Name, Value) when is_atom(Data) ->
 set_ivar(#elixir_object__{data=Dict} = Self, Name, Value) ->
   set_ivar_dict(Self, Name, Value, Dict);
 
-set_ivar(Self, Name, Value) -> % TODO Cannot set ivar on native types.
-  Self.
+set_ivar(Self, Name, Value) ->
+  builtinnotallowed(Self, set_ivar).
 
 public_proto_methods(Self) ->
   calculate_methods(Self, fun abstract_public_methods/1, protos(Self), []).
@@ -110,49 +111,52 @@ assert_dict_with_atoms(Data) ->
 inspect(Object) ->
   element(2, elixir_dispatch:dispatch(false, Object, inspect, [])).
 
-% TODO Only allow modules to be proto/mixed in.
-% TODO Handle native types
-% TODO Allow to call mixin outside object definition
-prepend_as(#elixir_object__{} = Self, Kind, Value) ->
-  Name  = Self#elixir_object__.name,
-  Table = Self#elixir_object__.data,
-  TableKind = ?ELIXIR_ATOM_CONCAT([Kind, s]),
-  Data  = ets:lookup_element(Table, TableKind, 2),
-  List  = Value#elixir_object__.protos,
+% Helper that prepends a mixin or a proto to the object chain.
+prepend_as(#elixir_object__{name=Name} = Self, Chain, Kind, Value) ->
+  check_module(Value, Kind),
+  List = Value#elixir_object__.protos,
 
   % If we are adding prototypes and the current name is
   % in the list of protos, this means we are adding a
   % proto to a module and we need to ensure all added modules
   % will come after the module name in the proto list.
-  case lists:member(Name, Data) of
+  case lists:member(Name, Chain) of
     true ->
-      { Before, After } = lists:splitwith(fun(X) -> X /= Name end, Data),
+      { Before, After } = lists:splitwith(fun(X) -> X /= Name end, Chain),
       Final = umerge(List, lists:delete(Name, After)),
       Updated = umerge(Before, umerge([Name], Final));
     _ ->
-      Updated = umerge(List, Data)
+      Updated = umerge(List, Chain)
   end,
 
-  ets:insert(Table, {TableKind, Updated}),
+  Object = update_object_chain(Self, Kind, Updated),
 
   % Invoke the appropriate hook.
-  elixir_dispatch:dispatch(true, Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Self]).
+  elixir_dispatch:dispatch(true, Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]);
 
-% Merge two lists taking into account uniqueness. Opposite to
-% lists:umerge2, does not require lists to be sorted.
+% Raise an error if mixin or proto is called on builtin.
+prepend_as(Else, Chain, Kind, Value) -> builtinnotallowed(Else, Kind).
 
-umerge(List, Data) ->
-  umerge2(lists:reverse(List), Data).
+% Update the given object chain. Sometimes it means we need to update
+% the table, sometimes update a record.
+update_object_chain(#elixir_object__{data=Data} = Self, Kind, Chain) when is_atom(Data) ->
+  TableKind = ?ELIXIR_ATOM_CONCAT([Kind, s]),
+  ets:insert(Data, {TableKind, Chain}),
+  Self;
 
-umerge2([], Data) ->
-  Data;
+update_object_chain(Self, mixin, Chain) ->
+  Self#elixir_object__{mixins=Chain};
 
-umerge2([H|T], Data) ->
-  case lists:member(H, Data) of
-    true  -> New = Data;
-    false -> New = [H|Data]
-  end,
-  umerge2(T, New).
+update_object_chain(Self, proto, Chain) ->
+  Self#elixir_object__{protos=Chain}.
+
+% Check if it is a module and raises an error if not.
+check_module(#elixir_object__{parent='Module'}, Kind) -> [];
+check_module(Else, Kind) -> elixir_errors:error({notamodule, {Else, Kind}}).
+
+% Raise builtinnotallowed error with the given reason:
+builtinnotallowed(Builtin, Reason) ->
+  elixir_errors:error({builtinnotallowed, {Builtin, Reason}}).
 
 % Returns the ancestors chain considering only parents, but in reverse order.
 
@@ -278,6 +282,22 @@ abstract_protected_methods(#elixir_object__{}) ->
 
 abstract_protected_methods(Name) ->
   proplists:get_value(protected, elixir_constants:lookup(Name, attributes)).
+
+% Merge two lists taking into account uniqueness. Opposite to
+% lists:umerge2, does not require lists to be sorted.
+
+umerge(List, Data) ->
+  umerge2(lists:reverse(List), Data).
+
+umerge2([], Data) ->
+  Data;
+
+umerge2([H|T], Data) ->
+  case lists:member(H, Data) of
+    true  -> New = Data;
+    false -> New = [H|Data]
+  end,
+  umerge2(T, New).
 
 % Methods that traverses the ancestors chain and append.
 

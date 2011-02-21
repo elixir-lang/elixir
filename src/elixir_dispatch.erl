@@ -8,15 +8,11 @@ dispatch(Self, Object, Method, Args) ->
   Arity = length(Args) + 1,
   case find_module(Chain, Method, Arity) of
     [] ->
-      Mixins = string:join(lists:map(fun atom_to_list/1, Chain), ", "),
-      Message = "No method ~s/~w in mixins [~s]",
-      elixir_errors:raise(nomethod, Message, [Method, Arity - 1, Mixins]);
+      elixir_errors:error({nomethod, {Object, Method, Arity-1}});
     Module ->
       case visibility_matches(Self, Module, Method, Arity) of
         true  -> apply(Module, Method, [Object|Args]);
-        false ->
-          Message = "Cannot invoke protected method ~s/~w in mixin ~s",
-          elixir_errors:raise(protectedmethod, Message, [Method, Arity - 1, atom_to_list(Module)])
+        false -> elixir_errors:error({protectedmethod, {Object, Module, Method, Arity-1}})
       end
   end.
 

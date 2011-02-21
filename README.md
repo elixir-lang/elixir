@@ -817,6 +817,30 @@ Currently there is no support for guard expressions as in Erlang, although it ma
 
 To be written/implemented.
 
+### List of errors
+
+Here is a list of runtime errors that can be raised by Elixir:
+
+*   `{ 'builtinnotallowed, { builtin, method } }`
+
+    Invoking `method` not allowed on the `builtin` object. Built-in objects are all objects that maps directly to Erlang ones, they are: String, Integer, Float, Tuple, List, OrderedDict and so forth. A few operations like `mixin`, `proto` and copy are not allowed on built-in objects;
+
+*   `{ 'nomethod, { object, name, arity } }`
+
+    There isn't a public or protected method with the given `name` and `arity` in `object`;
+
+*   `{ 'nolocalmethod, { module, name, arity } }`
+
+    There isn't a local method with the given `name` and `arity` in `module`;
+
+*   `{ 'protectedmethod, { object, module, name, arity } }`
+
+    Cannot invoke protected method with the given `name` and `arity` from `module` in `object`;
+
+*   `{ 'notamodule, { object, method } }`
+
+    `method` failed because `object` is not a module
+
 ## Strings, Atoms, Regular Expressions, Interpolation and Sigils
 
 In Elixir, we have the following basic types related to Strings:

@@ -1,8 +1,10 @@
 % A bunch of helpers to help to deal with errors in Elixir source code.
 % This is not exposed in the Elixir language.
 -module(elixir_errors).
--export([raise/2, raise/3, file_format/3, file_error/4, syntax_error/4]).
+-export([error/1, raise/2, raise/3, file_format/3, file_error/4, syntax_error/4]).
 -include("elixir.hrl").
+
+error(Reason) -> erlang:error(Reason).
 
 raise(Reason, String) ->
   raise(Reason, String, []).
