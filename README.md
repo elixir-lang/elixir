@@ -911,6 +911,41 @@ All string sigils follow the same set of rules. They start with a ~ followed by 
 * <https://github.com/josevalim/elixir/tree/master/lib/atom.ex>
 * <https://github.com/josevalim/elixir/tree/master/lib/regexp.ex>
 
+## Heredoc
+
+Elixir also has HEREDOCs to make easier to handle big strings. The syntax is borrowed from Python (`"""`), although many features come from Ruby.
+
+    string = """
+      This is a string which
+      preserves whitespace at
+      the beginning and also
+      handles #{'interpolation}
+    """
+
+Similar to Ruby, HEREDOCs allow an identifier right after the initial three quotes:
+
+    string = """HTML
+      <p>Nice!</p>
+    """
+
+This allows to identify the content and most text editor uses it to properly syntax highlight it. Besides, you can add Elixir code after the HEREDOC and they still are properly evaluated:
+
+    string = """STRING + "123"
+    abc
+    """
+
+    string % => "abc123"
+
+Consequently, this feature allows multiple HEREDOCs:
+
+    list = ["""ONE, """TWO, """THREE]
+    this is the first text
+    """
+    this is another one
+    """
+    this is the third. cool, isn't?
+    """
+
 ## Invoking Erlang Methods
 
 Invoking Erlang methods with elixir is quite trivial:
