@@ -934,17 +934,21 @@ This allows to identify the content and most text editor uses it to properly syn
     abc
     """
 
-    string % => "abc123"
+    string % => "abc\n123"
 
 Consequently, this feature allows multiple HEREDOCs:
 
     list = ["""ONE, """TWO, """THREE]
-    this is the first text
+    this is the first string
     """
     this is another one
     """
     this is the third. cool, isn't?
     """
+
+    list[0] % => "this is the first string\n"
+    list[1] % => "this is another one\n"
+    list[2] % => "this is the third. cool, isn't?\n"
 
 ## Invoking Erlang Methods
 
