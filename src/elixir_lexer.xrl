@@ -33,6 +33,7 @@ InterpolQuoted = "{Quoted}{Interpol}{Quoted}"
 
 InterpolGroup = ({InterpolQuoted}|{InterpolCurly}|{InterpolBrackets}|{InterpolParens})
 BaseGroup = ({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens})
+
 % "
 
 Rules.
@@ -65,6 +66,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 ~r{BaseGroup}{LowerCase}* : build_regexp(regexp, TokenChars, TokenLine, TokenLen).
 
 %% Strings
+""".*(\n|[^(""")]|[^\n]""")*""" : build_heredoc(TokenChars, TokenLine, TokenLen).
 {InterpolQuoted} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen, 2).
 {BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen, 2).
 
@@ -136,6 +138,14 @@ build(Kind, Line, Chars) ->
     false -> { token, {Kind, Line, Atom} }
   end.
 
+build_heredoc(Chars, Line, Length) ->
+  Start = string:str(Chars, "\n"),
+  Stop = string:rstr(Chars, "\n"),
+  Pushback = extract_heredoc_pushback(Chars, Start),
+  Unescaped = unescape_chars(true, sublist(Chars, Start + 1, Stop - Start)),
+  { String, [] } = extract_interpolations(Unescaped, []),
+  { token, { interpolated_string, Line, String }, Pushback }.
+
 % Build a bracket identifier.
 build_bracket_identifier(Line, Chars, Length) ->
   { _, Token } = build(bracket_identifier, Line, sublist(Chars, Length - 1)),
@@ -172,6 +182,11 @@ build_separator_atom(Kind, Chars, Line, Length) ->
   { token, { Kind, Line, Atom }, Pushback }.
 
 % Helpers to unescape and process chars.
+
+extract_heredoc_pushback(Chars, Start) ->
+  FirstLine = sublist(Chars, Start - 1),
+  {match, [{0,Limit}|_]} = re:run(FirstLine, "\"\"\"[a-zA-Z0-9_]*"),
+  sublist(FirstLine, Limit + 1, length(FirstLine)).
 
 extract_regexp_options(Chars) ->
   Separators = [$", $}, $), $]],
@@ -251,6 +266,9 @@ reserved_word(_)           -> false.
 
 extract_interpolations(String, Last) ->
   extract_interpolations(String, [], [], [], Last).
+
+extract_interpolations([], Buffer, [], Output, []) ->
+  { lists:reverse(build_interpol(s, Buffer, Output)), [] };
 
 extract_interpolations([Last], Buffer, [], Output, Last) ->
   { lists:reverse(build_interpol(s, Buffer, Output)), [] };

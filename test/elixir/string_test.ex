@@ -1,6 +1,35 @@
 object StringTest
   proto ExUnit::Case
 
+  % Please leave this test at the top as we are asserting
+  % the result of __LINE__ at some point.
+  def heredoc_test
+    "abc\n" = """
+abc
+"""
+
+    "abc \"\"\"\n" = """RUBY
+abc """
+"""
+
+    "abc\n123" = """RUBY + "123"
+abc
+"""
+
+    list = ["""FOO, """BAR, """BAZ]
+one
+"""
+two
+"""
+three
+"""
+
+    % Ensure backtrace line is still the same
+    28 = __LINE__
+
+    ["one\n", "two\n", "three\n"] = list
+  end
+
   def concatenate_test
     "elixir" = "eli" + "xir"
   end
@@ -29,5 +58,4 @@ object StringTest
   def to_atom_test
     'hello = "hello".to_atom
   end
-
 end

@@ -213,6 +213,7 @@ format_warning(Filename, {Line,Module,Desc}) ->
 
 % Handle errors
 
+% TODO This can also be undefined variable
 format_error(Filename, {Line,Module,{undefined_function,{Name, Arity}}}) ->
   Message = io_lib:format("undefined local method ~s/~w", [Name, Arity-1]),
   elixir_errors:file_error(undefined_local_method, Line, Filename, Message);
