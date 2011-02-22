@@ -96,8 +96,9 @@ bad_char_test() ->
   ?assertError({badsyntax, _}, elixir:eval("$foo")).
 
 implicit_string_concatenation_test() ->
-  {<<"foobar">>, []} = eval_string("\"foo\" ~ \n\"bar\""),
-  {<<"foobarbaz">>, []} = eval_string("\"foo\"~\n\"b#{'a}r\"~\n\"baz\"").
+  {<<"foobar">>, []} = eval_string("\"foo\" \"bar\""),
+  {<<"foobar">>, []} = eval_string("\"foo\" \\\n \"bar\""),
+  {<<"foobarbaz">>, []} = eval_string("\"foo\" \\\n \"b#{'a}r\"\\\n\"baz\"").
 
 %% Methods
 
@@ -130,7 +131,8 @@ string_sigils_test() ->
   {<<"b)r">>, []} = eval_string("~Q(b\\)r)").
 
 implicit_string_sigils_concatenation_test() ->
-  {<<"f#{o}obar">>, []} = eval_string("~q(f#{o}o) ~\n ~Q(b#{'a}r)").
+  {<<"f#{o}obar">>, []} = eval_string("~q(f#{o}o) ~Q(b#{'a}r)"),
+  {<<"f#{o}obar">>, []} = eval_string("~q(f#{o}o) \\\n ~Q(b#{'a}r)").
 
 char_list_test() ->
   {"foo", []}    = elixir:eval("$\"foo\""),

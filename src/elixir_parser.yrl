@@ -91,7 +91,7 @@ Terminals
   if elsif else then unless case match filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '~'
+  ':' ';' '@' '{' '}' '|' '_' '<<' '>>'
   '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!='
   .
 
@@ -450,7 +450,7 @@ string_base -> string : '$1'.
 string_base -> interpolated_string : '$1'.
 
 string_list -> string_base : ['$1'].
-string_list -> string_base '~' eol string_list : ['$1'|'$4'].
+string_list -> string_base string_list : ['$1'|'$2'].
 
 % Erlang calls
 np_erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_no_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').

@@ -113,7 +113,6 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 ,     : { token, { ',', TokenLine } }.
 \.    : { token, { '.', TokenLine } }.
 @     : { token, { '@', TokenLine } }.
-~     : { token, { '~', TokenLine } }.
 <     : { token, { '<', TokenLine } }.
 >     : { token, { '>', TokenLine } }.
 !     : { token, { '!', TokenLine } }.
@@ -121,6 +120,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 %% Skip
 {Comment} : skip_token.
 {Whitespace}+ : skip_token.
+\\\n : skip_token.
 
 %% Newlines (with comment and whitespace checks)
 ({Comment}|{Whitespace})*(\n({Comment}|{Whitespace})*)+ : { token, { eol, TokenLine } }.
