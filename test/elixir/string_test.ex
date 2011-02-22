@@ -19,7 +19,7 @@ abc
     list = ["""FOO, """BAR, """BAZ]
 one
 """
-two
+#{'two}
 """
 three
 """
