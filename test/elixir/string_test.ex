@@ -8,11 +8,15 @@ object StringTest
 abc
 """
 
-    "abc \"\"\"\n" = """RUBY
+    "abc \"\"\"\n" = """STRING
 abc """
 """
 
-    "abc\n123" = """RUBY + "123"
+    "\"\"\" abc\n" = """STRING
+""" abc
+"""
+
+    "abc\n123" = """STRING + "123"
 abc
 """
 
@@ -25,7 +29,7 @@ three
 """
 
     % Ensure backtrace line is still the same
-    28 = __LINE__
+    32 = __LINE__
 
     ["one\n", "two\n", "three\n"] = list
   end

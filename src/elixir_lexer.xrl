@@ -66,7 +66,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 ~r{BaseGroup}{LowerCase}* : build_regexp(regexp, TokenChars, TokenLine, TokenLen).
 
 %% Strings
-""".*(\n|[^(""")]|[^\n]""")*""" : build_heredoc(TokenChars, TokenLine, TokenLen).
+""".*(\n|[^(""")]|[^\n]"""|"""[^\n]|[^\n]"""[^\n])*""" : build_heredoc(TokenChars, TokenLine, TokenLen).
 {InterpolQuoted} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen, 2).
 {BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen, 2).
 
