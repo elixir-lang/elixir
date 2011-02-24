@@ -81,6 +81,7 @@ Nonterminals
   implicit_method_ops_identifier
   case_expr case_clause case_clauses else_case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
+  exception_expr rescue_args rescue_clause rescue_clauses after_clause
   .
 
 Terminals
@@ -88,7 +89,7 @@ Terminals
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false
-  if elsif else then unless case match filename
+  if elsif else then unless case match begin rescue after filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>'
@@ -413,6 +414,7 @@ base_expr -> binary : '$1'.
 base_expr -> true : { atom, ?line('$1'), true }.
 base_expr -> false : { atom, ?line('$1'), false }.
 base_expr -> if_expr : '$1'.
+base_expr -> exception_expr : '$1'.
 base_expr -> case_expr : '$1'.
 base_expr -> filename : '$1'.
 
@@ -444,6 +446,23 @@ case_clauses -> case_clause case_clauses : ['$1'|'$2'].
 
 else_case_clauses -> case_clauses : '$1'.
 else_case_clauses -> case_clauses else_clause : '$1' ++ ['$2'].
+
+% Begin/Rescue/After
+exception_expr -> begin expr_list end : { 'try', ?line('$1'), '$2', [], [], [] }.
+exception_expr -> begin expr_list rescue_clauses end : { 'try', ?line('$1'), '$2', [], '$3', [] }.
+exception_expr -> begin expr_list after_clause end : { 'try', ?line('$1'), '$2', [], [], '$3' }.
+exception_expr -> begin expr_list rescue_clauses after_clause end : { 'try', ?line('$1'), '$2', [], '$3', '$4' }.
+
+rescue_args -> expr : ['$1'].
+rescue_args -> expr ':' expr : [{'$1', '$3'}].
+rescue_args -> expr comma_separator rescue_args : ['$1'|'$3'].
+rescue_args -> expr ':' expr comma_separator rescue_args : [{'$1', '$3'}|'$5'].
+
+rescue_clause -> rescue rescue_args then_break expr_list : build_rescue_clause('$1', '$2', '$4').
+rescue_clauses -> rescue_clause : '$1'.
+rescue_clauses -> rescue_clause rescue_clause : '$1' ++ '$2'.
+
+after_clause -> after expr_list : '$2'.
 
 % String expressions
 string_base -> string : '$1'.
@@ -593,6 +612,10 @@ build_bracket_call(Expr, Args) ->
 
 build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.
+
+build_rescue_clause(Parent, Args, Body) ->
+  Transformer = fun(X) -> build_clause(Parent, X, Body) end,
+  lists:map(Transformer, Args).
 
 build_clause(Parent, Args, Body) ->
   { clause, ?line(Parent), Args, [], Body }.
