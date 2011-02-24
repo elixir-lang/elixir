@@ -12,7 +12,7 @@ parse_and_transform(String, Line, #elixir_scope{filename=Filename} = S) ->
 
 forms(String, StartLine, Filename) ->
   case elixir_lexer:string(String, StartLine) of
-    {ok, Tokens, _} -> 
+    {ok, Tokens, _} ->
       case elixir_parser:parse(Tokens) of
         {ok, Forms} -> Forms;
         {error, {Line, _, [Error, Token]}} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
@@ -342,7 +342,7 @@ transform({'case', Line, Expr, Clauses}, S) ->
   end,
 
   { TClauses, TS } = lists:mapfoldl(Transformer, NS, Clauses),
-  { { 'case', Line, TExpr, TClauses }, TS }; 
+  { { 'case', Line, TExpr, TClauses }, TS };
 
 % Handle functions declarations. They preserve the current binding.
 %
@@ -361,11 +361,16 @@ transform({'fun', Line, {clauses, Clauses}}, S) ->
 %
 % = Variables
 %
-% Variables are never passed forward, except if begin is used
-% without any rescue or after clauses. The counter is always passed.
-transform({block, Line, Exprs}, S) ->
+% Variables are never passed forward. The counter is always passed.
+transform({'begin', Line, Exprs}, S) ->
   { TExprs, SE } = transform_tree(Exprs, S),
-  { { block, Line, TExprs }, SE };
+  { { call, Line,
+    { 'fun', Line,
+      { clauses,
+        [{ clause, Line, [], [], TExprs }]
+      }
+    },
+  [] }, umergec(S, SE) };
 
 transform({'try', Line, Body, Of, Clauses, After}, S) ->
   Transformer = fun(X, Acc) -> transform(X, umergec(S, Acc)) end,

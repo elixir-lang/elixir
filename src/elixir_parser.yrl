@@ -466,7 +466,7 @@ rescue_args -> expr ':' expr : [{'$1', '$3'}].
 rescue_args -> expr comma_separator rescue_args : [{{atom, ?line('$1'), throw},'$1'}|'$3'].
 rescue_args -> expr ':' expr comma_separator rescue_args : [{'$1', '$3'}|'$5'].
 
-begin_clause -> begin expr_list : build_block('$1', '$2').
+begin_clause -> begin expr_list : build_begin('$1', '$2').
 
 rescue_clause -> rescue rescue_args then_break expr_list : build_rescue_clauses('$1', '$2', '$4').
 rescue_clauses -> rescue_clause : '$1'.
@@ -624,11 +624,11 @@ build_bracket_call(Expr, Args) ->
 build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.
 
-build_block(Begin, []) ->
-   { block, ?line(Begin), [{nil,?line(Begin)}] };
+build_begin(Begin, []) ->
+   { 'begin', ?line(Begin), [{nil,?line(Begin)}] };
 
-build_block(Begin, Exprs) ->
-   { block, ?line(Begin), Exprs}.
+build_begin(Begin, Exprs) ->
+   { 'begin', ?line(Begin), Exprs}.
 
 build_try(Block, Rescue, After) ->
   { 'try', ?line(Block), ?exprs(Block), [], Rescue, After }.

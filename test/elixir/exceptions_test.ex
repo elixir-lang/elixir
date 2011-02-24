@@ -4,19 +4,12 @@ object ExceptionsTest
   def begin_only_test
     begin
       foo = 13
+      foo + 1
     end
-    13 = foo
+    11 = foo
   end
 
   def begin_with_after_test
-    begin
-      foo = 13
-      foo + 1
-    after
-    end
-
-    11 = foo
-
     assert_executed true, -> begin
     after
       put! true
