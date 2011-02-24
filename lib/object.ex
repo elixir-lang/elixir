@@ -188,6 +188,18 @@ object Object
       Erlang.elixir_dispatch.dispatch(true, self, method, args)
     end
 
+    def error(reason)
+      Erlang.error(reason)
+    end
+
+    def throw(reason)
+      Erlang.throw(reason)
+    end
+
+    def exit(reason)
+      Erlang.exit(reason)
+    end
+
     def catch(function)
       filter_stacktrace Erlang.elixir_object_methods.function_catch(function)
     end

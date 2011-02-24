@@ -357,6 +357,23 @@ transform({'fun', Line, {clauses, Clauses}}, S) ->
   TClauses = [element(1, transform(Clause, S)) || Clause <- Clauses],
   { { 'fun', Line, {clauses, TClauses} }, S };
 
+% Handle begin/rescue/after blocks.
+%
+% = Variables
+%
+% Variables are never passed forward, except if begin is used
+% without any rescue or after clauses. The counter is always passed.
+transform({block, Line, Exprs}, S) ->
+  { TExprs, SE } = transform_tree(Exprs, S),
+  { { block, Line, TExprs }, SE };
+
+transform({'try', Line, Body, Of, Clauses, After}, S) ->
+  Transformer = fun(X, Acc) -> transform(X, umergec(S, Acc)) end,
+  { TBody, SB } = transform_tree(Body, S),
+  { TClauses, SC } = lists:mapfoldl(Transformer, SB, Clauses),
+  { TAfter, SA } = transform_tree(After, umergec(S, SC)),
+  { { 'try', Line, TBody, Of, TClauses, TAfter }, umergec(S, SA) };
+
 % Handle function clauses.
 %
 % = Variables

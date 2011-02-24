@@ -16,7 +16,6 @@ Elixir requires Erlang R14A or later version to execute. R13 or prior version do
 
 # Roadmap
 
-* Add exceptions
 * Add receive/after
 * Add load paths
 * Add super
@@ -803,11 +802,10 @@ As you can notice, case/match uses pattern matching. If no case expression match
       10
     end
 
-Finally, case/match expressions can be inlined, providing a more compact syntax:
+Finally, case/match expressions can be inlined and grouped, providing a more compact syntax:
 
     case {4,5,6}
-    match {3,2,x} then x * 2
-    match {1,2,x} then x * 2
+    match {3,2,x}, {1,2,x} then x * 2
     else 10
     end
 
@@ -815,7 +813,59 @@ Currently there is no support for guard expressions as in Erlang, although it ma
 
 ## Exceptions
 
-To be written/implemented.
+Similarly to Erlang, Elixir has three kinds of exceptions. They are raised with the methods (and not keywords!) `throw`, `error` and `exit`. You can [read more about each type on Learn You Some Erlang](http://learnyousomeerlang.com/errors-and-exceptions#raising-exceptions).
+
+To handle these exceptions, Elixir uses a syntax similar to Ruby:
+
+    begin
+      self.throw {1,2}
+    rescue {1,2}
+      IO.puts "Rescued {1,2}"
+    end
+
+Similar to the `match` syntax, you can rescue different values in the same clause:
+
+    begin
+      self.throw {1,2}
+    rescue {1,2}, {3,4}
+      IO.puts "Rescued a tuple"
+    end
+
+In order to rescue an `error` or an `exit`, you need to be explicit:
+
+    begin
+      self.error {1,2}
+    rescue {1,2}
+      IO.puts "I will never get a tuple {1,2}"
+    rescue 'error: {1,2}
+      IO.puts "Rescue an error with {1,2}"
+    end
+
+You must use the keyword `after` if you want to execute some code regardless if there was an exception or not:
+
+    begin
+      self.error {1,2}
+    rescue {1,2}
+      IO.puts "I will never get a tuple {1,2}"
+    after
+      IO.puts "I am always executed"
+    end
+
+Notice that variables created inside begin/rescue/after clauses do not leak to the outer scope.
+
+    begin
+      foo = 13
+    end
+
+    foo % => raises undefined variable or local method foo error
+
+    begin
+      foo = 13
+    after
+      IO.puts "I am always executed"
+    end
+
+    foo % => raises undefined variable or local method foo error
 
 ### List of errors
 

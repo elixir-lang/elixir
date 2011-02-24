@@ -79,7 +79,7 @@ Nonterminals
   implicit_method_ops_identifier
   case_expr case_clause case_clauses else_case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
-  exception_expr rescue_args rescue_clause rescue_clauses after_clause
+  exception_expr begin_clause rescue_args rescue_clause rescue_clauses after_clause
   .
 
 Terminals
@@ -456,17 +456,19 @@ else_case_clauses -> case_clauses : '$1'.
 else_case_clauses -> case_clauses else_clause : '$1' ++ ['$2'].
 
 % Begin/Rescue/After
-exception_expr -> begin expr_list end : { 'try', ?line('$1'), '$2', [], [], [] }.
-exception_expr -> begin expr_list rescue_clauses end : { 'try', ?line('$1'), '$2', [], '$3', [] }.
-exception_expr -> begin expr_list after_clause end : { 'try', ?line('$1'), '$2', [], [], '$3' }.
-exception_expr -> begin expr_list rescue_clauses after_clause end : { 'try', ?line('$1'), '$2', [], '$3', '$4' }.
+exception_expr -> begin_clause end : '$1'.
+exception_expr -> begin_clause rescue_clauses end : build_try('$1', '$2', []).
+exception_expr -> begin_clause after_clause end : build_try('$1', [], '$2').
+exception_expr -> begin_clause rescue_clauses after_clause end : build_try('$1', '$2', '$3').
 
-rescue_args -> expr : ['$1'].
+rescue_args -> expr : [{{atom, ?line('$1'), throw},'$1'}].
 rescue_args -> expr ':' expr : [{'$1', '$3'}].
-rescue_args -> expr comma_separator rescue_args : ['$1'|'$3'].
+rescue_args -> expr comma_separator rescue_args : [{{atom, ?line('$1'), throw},'$1'}|'$3'].
 rescue_args -> expr ':' expr comma_separator rescue_args : [{'$1', '$3'}|'$5'].
 
-rescue_clause -> rescue rescue_args then_break expr_list : build_multiple_clauses('$1', '$2', '$4').
+begin_clause -> begin expr_list : build_block('$1', '$2').
+
+rescue_clause -> rescue rescue_args then_break expr_list : build_rescue_clauses('$1', '$2', '$4').
 rescue_clauses -> rescue_clause : '$1'.
 rescue_clauses -> rescue_clause rescue_clauses : '$1' ++ '$2'.
 
@@ -608,6 +610,7 @@ Erlang code.
 -define(op(Node), element(1, Node)).
 -define(line(Node), element(2, Node)).
 -define(chars(Node), element(3, Node)).
+-define(exprs(Node), element(3, Node)).
 
 % The following directive is needed for (significantly) faster compilation
 % of the generated .erl file by the HiPE compiler.  Please do not remove.
@@ -620,6 +623,22 @@ build_bracket_call(Expr, Args) ->
 
 build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.
+
+build_block(Begin, []) ->
+   { block, ?line(Begin), [{nil,?line(Begin)}] };
+
+build_block(Begin, Exprs) ->
+   { block, ?line(Begin), Exprs}.
+
+build_try(Block, Rescue, After) ->
+  { 'try', ?line(Block), ?exprs(Block), [], Rescue, After }.
+
+build_rescue_clauses(Parent, Args, Body) ->
+  Transformer = fun(X) -> build_clause(Parent, build_rescue_arg(X), Body) end,
+  lists:map(Transformer, Args).
+
+build_rescue_arg({Atom, Other}) ->
+  [{tuple, ?line(Atom), [Atom, Other, {var, ?line(Atom), '_'}]}].
 
 build_multiple_clauses(Parent, Args, Body) ->
   Transformer = fun(X) -> build_clause(Parent, [X], Body) end,
