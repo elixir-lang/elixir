@@ -38,7 +38,8 @@ case_test() ->
   {true, [{x,1}]} = elixir:eval("case 1 match {x,y} then false match x then true end"),
   {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y} then true match {1,x} then false end"),
   {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y}\ntrue\nmatch {1,x}\nfalse\nend"),
-  {true, _} = elixir:eval("case {1,2} match {3,4}\nfalse\nelse true\nend").
+  {true, _} = elixir:eval("case {1,2} match {3,4}\nfalse\nelse true\nend"),
+  {true, _} = elixir:eval("case {1,2} match {3,4}, {1,2}\ntrue\nend").
 
 vars_case_test() ->
   F = fun() ->

@@ -23,10 +23,8 @@ Nonterminals
   string_list
   fun_base
   comma_expr
-  call_args
-  call_args_parens
-  call_args_no_parens
-  call_args_optional
+  call_args call_args_parens call_args_no_parens
+  match_args match_args_parens match_args_no_parens match_args_optional
   tuple
   list
   list_args
@@ -266,13 +264,13 @@ _method_call_expr -> punctuated_identifier call_args_parens : build_local_call('
 %%% BUILDING BLOCKS
 
 % Base function declarations
-fun_base -> stabber call_args_parens expr :
+fun_base -> stabber match_args_parens expr :
   build_fun('$1', build_clause('$1', '$2', ['$3'])).
 
 fun_base -> stabber _expr :
   build_fun('$1', build_clause('$1', [], ['$2'])).
 
-fun_base -> stabber call_args_parens break body 'end' :
+fun_base -> stabber match_args_parens break body 'end' :
   build_fun('$1', build_clause('$1', '$2', '$4')).
 
 fun_base -> stabber break body 'end' :
@@ -297,8 +295,18 @@ call_args_no_parens -> _expr : ['$1'].
 call_args_no_parens -> _expr comma_separator call_args : ['$1'|'$3'].
 call_args_no_parens -> _base_orddict : ['$1'].
 
-call_args_optional -> call_args_parens : '$1'.
-call_args_optional -> call_args_no_parens : '$1'.
+% Match args
+match_args -> expr : ['$1'].
+match_args -> expr comma_separator match_args : ['$1'|'$3'].
+
+match_args_parens -> open_paren ')' : [].
+match_args_parens -> open_paren match_args close_paren : '$2'.
+
+match_args_no_parens -> _expr : ['$1'].
+match_args_no_parens -> _expr comma_separator match_args_no_parens : ['$1'|'$3'].
+
+match_args_optional -> match_args_parens : '$1'.
+match_args_optional -> match_args_no_parens : '$1'.
 
 % Comprehension
 generator -> expr in expr     : { undef_generate, ?line('$2'), '$1', '$3' }.
@@ -439,10 +447,10 @@ else_clause -> else ';' expr_list : { else_clause, ?line('$1'), '$3' }.
 case_expr -> case expr else_case_clauses 'end'       : { 'case', ?line('$1'), '$2', '$3' }.
 case_expr -> case expr break else_case_clauses 'end' : { 'case', ?line('$1'), '$2', '$4' }.
 
-case_clause -> match call_args_optional then_break expr_list : { clause, ?line('$1'), '$2', [], '$4' }.
+case_clause -> match match_args_optional then_break expr_list : build_multiple_clauses('$1', '$2', '$4').
 
-case_clauses -> case_clause : ['$1'].
-case_clauses -> case_clause case_clauses : ['$1'|'$2'].
+case_clauses -> case_clause : '$1'.
+case_clauses -> case_clause case_clauses : '$1' ++ '$2'.
 
 else_case_clauses -> case_clauses : '$1'.
 else_case_clauses -> case_clauses else_clause : '$1' ++ ['$2'].
@@ -458,9 +466,9 @@ rescue_args -> expr ':' expr : [{'$1', '$3'}].
 rescue_args -> expr comma_separator rescue_args : ['$1'|'$3'].
 rescue_args -> expr ':' expr comma_separator rescue_args : [{'$1', '$3'}|'$5'].
 
-rescue_clause -> rescue rescue_args then_break expr_list : build_rescue_clause('$1', '$2', '$4').
+rescue_clause -> rescue rescue_args then_break expr_list : build_multiple_clauses('$1', '$2', '$4').
 rescue_clauses -> rescue_clause : '$1'.
-rescue_clauses -> rescue_clause rescue_clause : '$1' ++ '$2'.
+rescue_clauses -> rescue_clause rescue_clauses : '$1' ++ '$2'.
 
 after_clause -> after expr_list : '$2'.
 
@@ -574,7 +582,7 @@ objmod_body_decl -> method_decl : '$1'.
 method_decl -> def method_name break body 'end' :
   build_def_method('$2', [], build_clause('$2', [], '$4')).
 
-method_decl -> def method_name call_args_optional break body 'end' :
+method_decl -> def method_name match_args_optional break body 'end' :
   build_def_method('$2', '$3', build_clause('$2', '$3', '$5')).
 
 % Method names do not inherit from base_identifier, which includes object,
@@ -613,8 +621,8 @@ build_bracket_call(Expr, Args) ->
 build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.
 
-build_rescue_clause(Parent, Args, Body) ->
-  Transformer = fun(X) -> build_clause(Parent, X, Body) end,
+build_multiple_clauses(Parent, Args, Body) ->
+  Transformer = fun(X) -> build_clause(Parent, [X], Body) end,
   lists:map(Transformer, Args).
 
 build_clause(Parent, Args, Body) ->
