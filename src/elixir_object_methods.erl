@@ -114,7 +114,7 @@ inspect(Object) ->
 % Helper that prepends a mixin or a proto to the object chain.
 prepend_as(#elixir_object__{name=Name} = Self, Chain, Kind, Value) ->
   check_module(Value, Kind),
-  List = Value#elixir_object__.protos,
+  List = object_protos(Value),
 
   % If we are adding prototypes and the current name is
   % in the list of protos, this means we are adding a

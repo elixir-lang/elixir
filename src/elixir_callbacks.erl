@@ -23,7 +23,7 @@ build_function_form(Line, Module, {Name, ElixirArity}) ->
   Args  = build_args(Line, Arity, []),
   Const = ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Module}]),
   Call  = ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [
-    {atom, Line, false}, Const, {atom, Line, Name}, build_list(Line, Args)
+    {atom, Line, true}, Const, {atom, Line, Name}, build_list(Line, Args)
   ]),
   {function, Line, Name, Arity,
     [{clause, Line, Args, [], [Call]}]

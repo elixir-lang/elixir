@@ -78,21 +78,21 @@ nested_module_name_with_methods_test() ->
 
 method_invocation_in_module_test() ->
   F = fun() ->
-    elixir:eval("module Bar; self.mixin self; def foo(); 1 + 2; end; end"),
+    elixir:eval("module Bar; def foo(); 1 + 2; end; end"),
     {3,[]} = elixir:eval("Bar.foo")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 method_invocation_in_module_with_eol_test() ->
   F = fun() ->
-    elixir:eval("module Bar; self.mixin self; def foo(); 1 + 2; end; end"),
+    elixir:eval("module Bar; def foo(); 1 + 2; end; end"),
     {3,[]} = elixir:eval("Bar.\nfoo")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 method_invocation_in_module_with_self_test() ->
   F = fun() ->
-    elixir:eval("module Bar; self.mixin self; def foo(); self.bar(1) + 3; end; def bar(x); x + 2; end; end"),
+    elixir:eval("module Bar; def foo(); self.bar(1) + 3; end; def bar(x); x + 2; end; end"),
     {6,[]} = elixir:eval("Bar.foo")
   end,
   test_helper:run_and_remove(F, ['Bar']).
@@ -101,6 +101,13 @@ method_invocation_in_module_with_self_without_parens_args_test() ->
   F = fun() ->
     elixir:eval("module Bar\n def foo(x)\n x + 1\n end\n  end"),
     {7,[]} = elixir:eval("Bar.foo 2 * 3")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+method_invocation_from_proto_test() ->
+  F = fun() ->
+    elixir:eval("module Foo;def foo;7;end;end\nmodule Bar;proto Foo;end"),
+    {7,[]} = elixir:eval("Bar.foo")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
@@ -216,7 +223,7 @@ can_retrieve_visibility_test() ->
 
 can_retrieve_mixins_without_duplication_test() ->
   F = fun() ->
-    {['Foo', 'Module::Methods', 'Object::Methods'],[]} = elixir:eval("module Foo; __mixins__; end")
+    {['Module::Methods', 'Object::Methods'],[]} = elixir:eval("module Foo; __mixins__; end")
   end,
   test_helper:run_and_remove(F, ['Foo']).
 

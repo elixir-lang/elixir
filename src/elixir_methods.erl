@@ -73,7 +73,8 @@ unwrap_stored_methods(Table) ->
   ets:delete(Table, public),
   ets:delete(Table, protected),
   ets:delete(Table, callbacks),
-  { Callbacks, { Public ++ Protected ++ Callbacks, Protected, ets:foldl(fun unwrap_stored_method/2, [], Table) } }.
+  AllProtected = Protected ++ Callbacks,
+  { Callbacks, { Public ++ AllProtected, AllProtected, ets:foldl(fun unwrap_stored_method/2, [], Table) } }.
 
 unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].

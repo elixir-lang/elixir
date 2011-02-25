@@ -20,6 +20,8 @@ dispatching_to_callback_dispatch_to_ex_module_test() ->
   F = fun() ->
     elixir:eval("module Foo; define_attribute('behavior, 'bar); callbacks; def foo; 1; end; def bar(x, y); x - y - self.foo - foo; end; end"),
     1 = 'ex_callbacks_Foo':foo(),
-    1 = 'ex_callbacks_Foo':bar(5, 2)
+    1 = 'ex_callbacks_Foo':bar(5, 2),
+    {1,[]} = elixir:eval("Foo.__send__('foo)"),
+    ?assertError({protectedmethod,_}, elixir:eval("Foo.foo"))
   end,
   test_helper:run_and_remove(F, ['Foo', 'ex_callbacks_Foo']).

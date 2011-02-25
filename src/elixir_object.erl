@@ -46,7 +46,7 @@ default_parent(module, _Name) -> 'Module'.
 default_mixins(_, 'Object', _Template)  -> ['Object::Methods']; % object Object
 default_mixins(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
 default_mixins(object, _Name, [])       -> ['Module::Methods']; % object Post
-default_mixins(module, Name, _Template) -> [Name];              % module Numeric
+default_mixins(module, Name, _Template) -> [];                  % module Numeric
 default_mixins(object, _Name, Template) ->                      % object SimplePost from Post
   Template#elixir_object__.mixins ++ ['Module::Methods'].
 
@@ -111,6 +111,10 @@ compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
   { Callbacks, Functions } = elixir_methods:unwrap_stored_methods(MethodTable),
   Behavior = elixir_module_methods:behavior(Object),
   compile_callbacks(Behavior, Line, Filename, Object, Callbacks),
+  case code:ensure_loaded('Module') of
+    {module, 'Module'} -> elixir_object_methods:mixin(Object, Object);
+    _ -> []
+  end,
   load_form(build_erlang_form(Line, Object, Functions), Filename),
   add_implicit_mixins(Current, Name);
 
