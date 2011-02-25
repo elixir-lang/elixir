@@ -180,11 +180,11 @@ object Object
       Erlang.elixir_object_methods.public_proto_methods(self)
     end
 
-    def send(method)
-      send(method, [])
+    def __send__(method)
+      __send__(method, [])
     end
 
-    def send(method, args)
+    def __send__(method, args)
       Erlang.elixir_dispatch.dispatch(true, self, method, args)
     end
 

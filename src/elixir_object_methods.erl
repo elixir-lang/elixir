@@ -203,7 +203,10 @@ object_parent(#elixir_string__{}) ->
   'String';
 
 object_parent(Native) when is_tuple(Native) ->
-  'Tuple'.
+  'Tuple';
+
+object_parent(Native) when is_pid(Native) ->
+  'Pid'.
 
 object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, mixins, 2);

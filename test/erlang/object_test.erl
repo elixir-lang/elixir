@@ -212,16 +212,17 @@ public_proto_methods_test() ->
 
 send_public_method_test() ->
   F = fun() ->
-    elixir:eval("object Foo; def foo; 1; end; def foo(x); x * 2; end; def bar; self.send('baz); end; protected; def baz; 3; end; end"),
-    {1, _}  = elixir:eval("Foo.new.send('foo)"),
-    {2, _}  = elixir:eval("Foo.new.send('foo, [1])")
+    elixir:eval("object Foo; def foo; 1; end; def foo(x); x * 2; end; end"),
+    {1, _}  = elixir:eval("Foo.new.__send__('foo)"),
+    {2, _}  = elixir:eval("Foo.new.__send__('foo, [1])")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
 send_protected_method_test() ->
   F = fun() ->
-    elixir:eval("object Foo; def bar; self.send('baz); end; protected; def baz; 3; end; end"),
-    {3, _}  = elixir:eval("Foo.new.send('bar)")
+    elixir:eval("object Foo; def bar; self.__send__('baz); end; protected; def baz; 3; end; end"),
+    {3, _}  = elixir:eval("Foo.new.__send__('bar)"),
+    {3, _}  = elixir:eval("Foo.new.__send__('baz)")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
