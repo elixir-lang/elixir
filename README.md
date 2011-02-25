@@ -749,6 +749,10 @@ Operator precedence in falling priority:
   <td>Left</td>
 </tr>
 <tr>
+  <td>&lt;- &lt;&lt;-</td>
+  <td>Right</td>
+</tr>
+<tr>
   <td>and andalso</td>
   <td>Left</td>
 </tr>

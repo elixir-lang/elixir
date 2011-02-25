@@ -379,6 +379,12 @@ transform({'try', Line, Body, Of, Clauses, After}, S) ->
   { TAfter, SA } = transform_tree(After, umergec(S, SC)),
   { { 'try', Line, TBody, Of, TClauses, TAfter }, umergec(S, SA) };
 
+% Handle receive expressions.
+transform({'receive', Line, Clauses}, S) ->
+  Transformer = fun(X, Acc) -> transform(X, umergec(S, Acc)) end,
+  { TClauses, SC } = lists:mapfoldl(Transformer, S, Clauses),
+  { { 'receive', Line, TClauses }, umergec(S, SC) };
+
 % Handle function clauses.
 %
 % = Variables

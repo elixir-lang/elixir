@@ -35,7 +35,8 @@ load_core_classes() ->
     'string.ex',
     'ordered_dict.ex',
     'regexp.ex',
-    'binary.ex'
+    'binary.ex',
+    'pid.ex'
   ]).
 
 % Paths are hardcoded here. We need to add support to load paths.

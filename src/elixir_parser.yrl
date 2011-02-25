@@ -62,6 +62,7 @@ Nonterminals
   add_op
   mult_op
   comp_op
+  right_op
   or_op
   and_op
   andand_op
@@ -80,6 +81,7 @@ Nonterminals
   case_expr case_clause case_clauses else_case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
   exception_expr begin_clause rescue_args rescue_clause rescue_clauses after_clause
+  receive_expr receive_clause receive_clauses
   .
 
 Terminals
@@ -87,10 +89,10 @@ Terminals
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false
-  if elsif else then unless case match begin rescue after filename
+  if elsif else then unless case match begin rescue receive after filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}' '|' '_' '<<' '>>'
+  ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '<-' '<<-'
   '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!='
   .
 
@@ -120,12 +122,13 @@ Left     60 andand_op.
 Left     70 or_op.
 Left     80 and_op.
 
-Left     90 comp_op.
-Left     100 add_op.
-Left     110 mult_op.
-Nonassoc 120 unary_op.
-Nonassoc 130 without_args_method_call_expr.
-Nonassoc 130 _without_args_method_call_expr.
+Right     90 right_op.
+Left     100 comp_op.
+Left     110 add_op.
+Left     120 mult_op.
+Nonassoc 130 unary_op.
+Nonassoc 140 without_args_method_call_expr.
+Nonassoc 140 _without_args_method_call_expr.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -158,6 +161,7 @@ expr -> expr match_op expr : build_match('$1', '$2', '$3').
 expr -> fun_base : '$1'.
 
 % Operators
+expr -> expr right_op expr : build_binary_op('$1', '$2', '$3').
 expr -> expr andand_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr oror_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr and_op expr : build_comp_op('$1', '$2', '$3').
@@ -216,6 +220,7 @@ _expr -> _expr match_op _expr : build_match('$1', '$2', '$3').
 _expr -> fun_base : '$1'.
 
 % Operators
+_expr -> _expr right_op _expr : build_binary_op('$1', '$2', '$3').
 _expr -> _expr andand_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr oror_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr and_op _expr : build_comp_op('$1', '$2', '$3'). 
@@ -423,6 +428,7 @@ base_expr -> true : { atom, ?line('$1'), true }.
 base_expr -> false : { atom, ?line('$1'), false }.
 base_expr -> if_expr : '$1'.
 base_expr -> exception_expr : '$1'.
+base_expr -> receive_expr : '$1'.
 base_expr -> case_expr : '$1'.
 base_expr -> filename : '$1'.
 
@@ -454,6 +460,15 @@ case_clauses -> case_clause case_clauses : '$1' ++ '$2'.
 
 else_case_clauses -> case_clauses : '$1'.
 else_case_clauses -> case_clauses else_clause : '$1' ++ ['$2'].
+
+% Receive
+receive_expr -> receive_clauses end : { 'receive', ?line(hd('$1')), '$1' }.
+receive_expr -> receive_clauses after expr then_break expr_list end : { 'receive', ?line(hd('$1')), '$1', '$3', '$5' }.
+
+receive_clause -> receive match_args_optional then_break expr_list : build_multiple_clauses('$1', '$2', '$4').
+receive_clauses -> receive_clause : '$1'.
+receive_clauses -> receive else_case_clauses : '$2'.
+receive_clauses -> receive break else_case_clauses : '$3'.
 
 % Begin/Rescue/After
 exception_expr -> begin_clause end : '$1'.
@@ -509,11 +524,17 @@ break -> ';' : { eol, ?line('$1') }.
 
 % Then break
 then_break -> break : '$1'.
-then_break -> then : '$1'.
+then_break -> then : { eol, ?line('$1') }.
+then_break -> then break : { eol, ?line('$1') }.
 
 % Match operator
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.
+
+% Right associative message oeprators
+right_op -> '<-' : '$1'.
+right_op -> '<<-' : '$1'.
+right_op -> right_op eol : '$1'.
 
 % Unary operator
 unary_op -> '+'   : '$1'.
@@ -603,6 +624,8 @@ method_ops_identifier -> '+'     : '$1'.
 method_ops_identifier -> '-'     : '$1'.
 method_ops_identifier -> '*'     : '$1'.
 method_ops_identifier -> '/'     : '$1'.
+method_ops_identifier -> '<-'    : '$1'.
+method_ops_identifier -> '<<-'   : '$1'.
 method_ops_identifier -> '[' ']' : { '[]', ?line('$1') }.
 
 Erlang code.

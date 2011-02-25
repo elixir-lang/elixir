@@ -83,6 +83,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 
 %% Operators
 
+<<-   : { token, { '<<-', TokenLine } }.
 =:=   : { token, { '=:=', TokenLine } }.
 =!=   : { token, { '=!=', TokenLine } }.
 !!  	: { token, { '!!', TokenLine } }.
@@ -238,7 +239,7 @@ reserved_word('case')      -> true;
 reserved_word('match')     -> true;
 reserved_word('begin')     -> true;
 reserved_word('rescue')    -> true;
-% reserved_word('receive') -> true;
+reserved_word('receive')   -> true;
 reserved_word('after')     -> true;
 % reserved_word('when')    -> true;
 reserved_word('if')        -> true;
