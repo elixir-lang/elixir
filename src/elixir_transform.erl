@@ -334,14 +334,7 @@ transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
 % passed forward as well.
 transform({'case', Line, Expr, Clauses}, S) ->
   { TExpr, NS } = transform(Expr, S),
-
-  Transformer = fun(X, Acc) ->
-    % Pass variables counter forward, but always get the variable list from NS
-    { TX, TAcc } = transform(X, umergec(NS, Acc)),
-    { TX, umergev(Acc, TAcc) }
-  end,
-
-  { TClauses, TS } = lists:mapfoldl(Transformer, NS, Clauses),
+  { TClauses, TS } = transform_clauses_tree(Clauses, NS),
   { { 'case', Line, TExpr, TClauses }, TS };
 
 % Handle functions declarations. They preserve the current binding.
@@ -380,10 +373,20 @@ transform({'try', Line, Body, Of, Clauses, After}, S) ->
   { { 'try', Line, TBody, Of, TClauses, TAfter }, umergec(S, SA) };
 
 % Handle receive expressions.
+%
+% = Variables
+%
+% Variables can be defined inside receive clauses as in case/match.
+% Variables defined in after do not leak to the outer scope.
 transform({'receive', Line, Clauses}, S) ->
-  Transformer = fun(X, Acc) -> transform(X, umergec(S, Acc)) end,
-  { TClauses, SC } = lists:mapfoldl(Transformer, S, Clauses),
+  { TClauses, SC } = transform_clauses_tree(Clauses, S),
   { { 'receive', Line, TClauses }, umergec(S, SC) };
+
+transform({'receive', Line, Clauses, Expr, After}, S) ->
+  { TClauses, SC } = transform_clauses_tree(Clauses, S),
+  { TExpr, _ } = transform(Expr, S),
+  { TAfter, SA } = transform_tree(After, umergec(S, SC)),
+  { { 'receive', Line, TClauses, TExpr, TAfter }, umergec(SC, SA) };
 
 % Handle function clauses.
 %
@@ -505,6 +508,15 @@ transform({filename, Line}, S) ->
 
 % Match all other expressions.
 transform(Expr, S) -> { Expr, S }.
+
+% Transform clauses tree
+transform_clauses_tree(Clauses, S) ->
+  Transformer = fun(X, Acc) ->
+    % Pass variables counter forward, but always get the variable list from NS
+    { TX, TAcc } = transform(X, umergec(S, Acc)),
+    { TX, umergev(Acc, TAcc) }
+  end,
+  lists:mapfoldl(Transformer, S, Clauses).
 
 % Handle transformations, generators and filters transformations.
 transform_comprehension({Kind, Line, Expr, Cases}, S) ->

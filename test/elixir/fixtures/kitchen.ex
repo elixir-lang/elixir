@@ -11,6 +11,8 @@ module Kitchen
     pid <- {Pid.self, {'take, food}}
     receive {pid, msg}
       msg
+    after 10000
+      IO.puts "Timed out"
     end
   end
 
@@ -29,7 +31,8 @@ module Kitchen
       end
     match 'terminate
       'ok
+    after 10000
+      IO.puts "Timed out"
     end
   end
-    
 end

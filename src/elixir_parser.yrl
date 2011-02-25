@@ -467,8 +467,8 @@ receive_expr -> receive_clauses after expr then_break expr_list end : { 'receive
 
 receive_clause -> receive match_args_optional then_break expr_list : build_multiple_clauses('$1', '$2', '$4').
 receive_clauses -> receive_clause : '$1'.
-receive_clauses -> receive else_case_clauses : '$2'.
-receive_clauses -> receive break else_case_clauses : '$3'.
+receive_clauses -> receive case_clauses : '$2'.
+receive_clauses -> receive break case_clauses : '$3'.
 
 % Begin/Rescue/After
 exception_expr -> begin_clause end : '$1'.
