@@ -5,14 +5,14 @@
 % a better example is the MyFridge object below.
 module Kitchen
   def store(pid, food)
-    pid <- {Pid.self, {'store, food}}
+    pid <- {Process.self, {'store, food}}
     receive {pid, msg}
       msg
     end
   end
 
   def take(pid, food)
-    pid <- {Pid.self, {'take, food}}
+    pid <- {Process.self, {'take, food}}
     receive {pid, msg}
       msg
     after 10000
@@ -21,7 +21,7 @@ module Kitchen
   end
 
   def see(pid)
-    pid <- {Pid.self, 'see}
+    pid <- {Process.self, 'see}
     receive {pid, msg}
       msg
     end
@@ -30,18 +30,18 @@ module Kitchen
   def fridge(foodlist)
     receive
     match {from, {'store, food}}
-      from <<- 'ok
+      from <- { Process.self, 'ok }
       fridge([food|foodlist])
     match {from, {'take, food}}
       if foodlist.include?(food)
-        from <<- {'ok, food}
+        from <- { Process.self, {'ok, food} }
         fridge(foodlist.delete(food))
       else
-        from <<- 'not_found
+        from <- { Process.self, 'not_found }
         fridge(foodlist)
       end
     match {from,'see}
-      from <<- foodlist
+      from <- { Process.self, foodlist }
       fridge(foodlist)
     match 'terminate
       'ok
@@ -59,7 +59,7 @@ end
 % to the object and you actually don't pass it around.
 object MyFridge
   def constructor(list)
-    pid = Pid.spawn Kitchen, 'fridge, [list]
+    pid = Process.spawn Kitchen, 'fridge, [list]
     { 'pid: pid }
   end
 

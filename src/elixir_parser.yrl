@@ -92,7 +92,7 @@ Terminals
   if elsif else then unless case match begin rescue receive after filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '<-' '<<-'
+  ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '<-'
   '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!='
   .
 
@@ -533,7 +533,6 @@ match_op -> '=' eol : '$1'.
 
 % Right associative message oeprators
 right_op -> '<-' : '$1'.
-right_op -> '<<-' : '$1'.
 right_op -> right_op eol : '$1'.
 
 % Unary operator
@@ -625,7 +624,6 @@ method_ops_identifier -> '-'     : '$1'.
 method_ops_identifier -> '*'     : '$1'.
 method_ops_identifier -> '/'     : '$1'.
 method_ops_identifier -> '<-'    : '$1'.
-method_ops_identifier -> '<<-'   : '$1'.
 method_ops_identifier -> '[' ']' : { '[]', ?line('$1') }.
 
 Erlang code.

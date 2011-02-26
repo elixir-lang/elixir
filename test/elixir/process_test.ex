@@ -1,10 +1,10 @@
 Code.require "fixtures/kitchen"
 
-object PidTest
+object ProcessTest
   proto ExUnit::Case
 
   def spawn_and_messages_with_module_test
-    pid = Pid.spawn(Kitchen, 'fridge, [['iogurt, 'bread]])
+    pid = Process.spawn(Kitchen, 'fridge, [['iogurt, 'bread]])
     {'ok, 'bread} = Kitchen.take(pid, 'bread)
     ['iogurt] = Kitchen.see(pid)
     'ok = Kitchen.store(pid, 'soda)
@@ -14,7 +14,7 @@ object PidTest
 
   def spawn_and_messages_with_object_test
     kitchen = MyKitchen.new
-    pid = Pid.spawn(kitchen, 'fridge, [['iogurt, 'bread]])
+    pid = Process.spawn(kitchen, 'fridge, [['iogurt, 'bread]])
     {'ok, 'bread} = kitchen.take(pid, 'bread)
     ['iogurt] = kitchen.see(pid)
     'ok = kitchen.store(pid, 'soda)

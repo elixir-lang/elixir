@@ -206,7 +206,7 @@ object_parent(Native) when is_tuple(Native) ->
   'Tuple';
 
 object_parent(Native) when is_pid(Native) ->
-  'Pid'.
+  'Process'.
 
 object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, mixins, 2);
