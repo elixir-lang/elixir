@@ -6,16 +6,19 @@
 behaviour_info(callbacks) -> [];
 behaviour_info(_) -> undefined.
 
-callback_name(Name) ->
-  ?ELIXIR_ATOM_CONCAT(["ex_callbacks_", Name]).
+callback_name(#elixir_object__{parent='Module',name=Name}) ->
+  ?ELIXIR_ATOM_CONCAT(["ex_callbacks_", Name]);
 
-build_module_form(Line, Name, Behavior, Callbacks) ->
+callback_name(#elixir_object__{name=Name}) ->
+  ?ELIXIR_ATOM_CONCAT(["ex_callbacks_", Name, "::Proto"]).
+
+build_module_form(Line, #elixir_object__{name=Name} = Object, Behavior, Callbacks) ->
   TransFuns   = fun(X) -> build_function_form(Line, Name, X) end,
   TransExport = fun({Fun, Arity}) -> {Fun, Arity - 1} end,
   Functions   = lists:map(TransFuns, Callbacks),
   Export      = lists:map(TransExport, Callbacks),
 
-  [{attribute, Line, module, callback_name(Name)},
+  [{attribute, Line, module, callback_name(Object)},
    {attribute, Line, behavior, Behavior}, {attribute, Line, export, Export} | Functions].
 
 build_function_form(Line, Module, {Name, ElixirArity}) ->

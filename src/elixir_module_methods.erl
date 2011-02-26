@@ -1,7 +1,7 @@
 % Holds all runtime methods required to bootstrap modules.
 % These methods are overwritten by their Elixir version later in Module::Methods.
 -module(elixir_module_methods).
--export([get_visibility/1, set_visibility/2, alias_local/5, define_erlang_attribute/3, behavior/1]).
+-export([get_visibility/1, set_visibility/2, alias_local/5, define_attribute/3, behavior/1, copy_attributes_fun/1]).
 -include("elixir.hrl").
 
 set_visibility(#elixir_object__{name=Name, data=Data}, Visibility) when is_atom(Data) ->
@@ -31,21 +31,42 @@ alias_local(#elixir_object__{name=Name, data=Data} = Self, Filename, Old, New, E
 alias_local(_, _, _, _, _) ->
   elixir_errors:raise(badarg, "cannot alias local method outside object definition scope").
 
-define_erlang_attribute(#elixir_object__{data=Data}, Key, Value) when is_atom(Data) ->
-  ets:insert(Data, { Key, Value });
+define_attribute(#elixir_object__{data=Data, parent=Parent}, Key, Value) when is_atom(Data) ->
+  case Parent of
+    'Module' -> ets:insert(Data, { Key, Value });
+    _ ->
+      Current = ets:lookup_element(Data, module, 2),
+      ets:insert(Data, { module, [{ Key, Value }|Current] })
+  end;
 
-define_erlang_attribute(_, _, _) ->
+define_attribute(_, _, _) ->
   elixir_errors:raise(badarg, "cannot add attribute to an already defined module").
 
-behavior(#elixir_object__{data=Data}) when is_atom(Data) ->
+copy_attributes_fun(Data) ->
+  fun(Object) ->
+    Copier = fun({Key,Value}) -> define_attribute(Object, Key, Value) end,
+    lists:foreach(Copier, Data)
+  end.
+
+behavior(#elixir_object__{data=Data, parent='Module'}) when is_atom(Data) ->
   case ets:lookup(Data, behavior) of
     [{behavior,Behavior}] -> Behavior;
     _ -> []
   end;
 
-behavior(#elixir_object__{name=Name}) ->
+behavior(#elixir_object__{data=Data}) when is_atom(Data) ->
+  case ets:lookup(Data, module) of
+    [{module,Attributes}] ->
+      case proplists:get_value(behavior, Attributes) of
+        undefined -> [];
+        Else -> Else
+      end;
+    _ -> []
+  end;
+
+behavior(#elixir_object__{name=Name} = Object) ->
   case module_behavior(Name) of
-    elixir_callbacks -> module_behavior(elixir_callbacks:callback_name(Name));
+    elixir_callbacks -> module_behavior(elixir_callbacks:callback_name(Object));
     _ -> []
   end.
 

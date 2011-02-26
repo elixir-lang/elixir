@@ -30,6 +30,11 @@ build_template(Kind, Name, Template) ->
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(AttributeTable, [set, named_table, private]),
 
+  case Kind of
+    object -> ets:insert(AttributeTable, { module, [] });
+    _ -> []
+  end,
+
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
   ets:insert(AttributeTable, { data,   Data }),
@@ -120,20 +125,24 @@ compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
 
 % Compile an object. If methods were defined in the object scope,
 % we create a Proto module and automatically include it.
-compile_kind(_Kind, Line, Filename, Current, Object, MethodTable) ->
+compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
+  AttributeTable = Object#elixir_object__.data,
   case elixir_methods:is_empty_table(MethodTable) of
     true  -> [];
     false ->
       Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object__.name, '::', 'Proto']),
-      compile(module, Line, Filename, Object, Name, [], fun(X) -> [] end, MethodTable)
+      Attributes = ets:lookup_element(AttributeTable, module, 2),
+      Define = elixir_module_methods:copy_attributes_fun(Attributes),
+      compile(module, Line, Filename, Object, Name, [], Define, MethodTable)
   end,
+  ets:delete(AttributeTable, module),
   load_form(build_erlang_form(Line, Object), Filename).
 
 % Handle callbacks compilation.
 compile_callbacks([], _Line, _Filename, _Object, _Callbacks) -> [];
 compile_callbacks(Behavior, Line, Filename, Object, Callbacks) ->
-  elixir_module_methods:define_erlang_attribute(Object, behavior, elixir_callbacks),
-  Form = elixir_callbacks:build_module_form(Line, Object#elixir_object__.name, Behavior, Callbacks),
+  elixir_module_methods:define_attribute(Object, behavior, elixir_callbacks),
+  Form = elixir_callbacks:build_module_form(Line, Object, Behavior, Callbacks),
   load_form(Form, Filename).
 
 % Check if the module currently defined is inside an object

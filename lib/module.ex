@@ -72,8 +72,17 @@ object Module
     %
     % This is not meant to be generally used, but only for libraries
     % intending to improve Elixir integration with Erlang.
-    def define_attribute(key, value)
-      Erlang.elixir_module_methods.define_erlang_attribute(self, key, value)
+    def define_module_attribute(key, value)
+      Erlang.elixir_module_methods.define_attribute(self, key, value)
+    end
+
+    % Returns an Atom with the name of the callbacks module.
+    def __callbacks_module__
+      if __behavior__
+        Erlang.elixir_callbacks.callback_name(self)
+      else
+        []
+      end
     end
   end
 

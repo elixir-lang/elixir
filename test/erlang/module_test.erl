@@ -236,7 +236,7 @@ can_retrieve_public_proto_methods_test() ->
 
 can_define_any_attribute_test() ->
   F = fun() ->
-    elixir:eval("module Foo; define_attribute('foo, 'bar); end"),
+    elixir:eval("module Foo; define_module_attribute('foo, 'bar); end"),
     [bar] = proplists:get_value(foo, 'Foo':module_info(attributes))
   end,
   test_helper:run_and_remove(F, ['Foo']).
