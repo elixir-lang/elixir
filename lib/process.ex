@@ -19,4 +19,13 @@ object Process
     Erlang.send(self, message)
   end
   alias_local '"<-", 'send, 1
+
+  def inspect
+    [_|t] = Erlang.pid_to_list(self)
+    String.new $"<Process " + t
+  end
+
+  def to_s
+    inspect
+  end
 end

@@ -37,4 +37,14 @@ object ObjectTest
     self.assert_raise {'builtinnotallowed, { 1, 'mixin } },    do 1.mixin(LikeCat)
     self.assert_raise {'builtinnotallowed, { 1, 'proto } },    do 1.proto(LikeCat)
   end
+
+  def inspect_test
+    object = Object.new
+    "<Object {}>" = object.inspect
+
+    with_ivars = Object.new.set_ivar('foo, 'bar).set_ivar('bar, 'baz)
+    "<Object {'bar: 'baz, 'foo: 'bar}>" = with_ivars.inspect
+
+    "<ObjectTest {}>" = self.inspect
+  end
 end

@@ -5,7 +5,7 @@
 % a better example is the MyFridge object below.
 module Kitchen
   def store(pid, food)
-    pid <- {Process.self, {'store, food}}
+    pid <- {Process.current, {'store, food}}
     receive {pid, msg}
       msg
     end

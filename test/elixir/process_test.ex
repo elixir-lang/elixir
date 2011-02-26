@@ -30,4 +30,9 @@ object ProcessTest
     ['soda, 'iogurt] = fridge.see
     fridge.terminate
   end
+
+  def inspect_test
+    pid = Erlang.list_to_pid($"<0.4.1>")
+    "<Process 0.4.1>" = pid.inspect
+  end
 end

@@ -71,7 +71,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 {BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen, 2).
 
 %% Atoms
-\'({UpperCase}|{LowerCase}|_)({IdentifierBase}|::)*[?!]? : build_atom(TokenChars, TokenLine, TokenLen). % '
+\'@?({UpperCase}|{LowerCase}|_){IdentifierBase}*[?!]? : build_atom(TokenChars, TokenLine, TokenLen). % '
 \'{InterpolGroup} : build_separator_atom(interpolated_atom, TokenChars, TokenLine, TokenLen). % '
 \'{BaseGroup} : build_separator_atom(atom, TokenChars, TokenLine, TokenLen). % '
 
@@ -138,11 +138,12 @@ build(Kind, Line, Chars) ->
     false -> { token, {Kind, Line, Atom} }
   end.
 
+% HAndle heredoc and multiline heredocs
 build_heredoc(Chars, Line, Length) ->
   Start = string:str(Chars, "\n"),
   Stop = string:rstr(Chars, "\n"),
   Pushback = extract_heredoc_pushback(Chars, Start),
-  Unescaped = unescape_chars(true, sublist(Chars, Start + 1, Stop - Start)),
+  Unescaped = unescape_chars(true, true, sublist(Chars, Start + 1, Stop - Start)),
   { String, [] } = extract_interpolations(Unescaped, []),
   { token, { interpolated_string, Line, String }, Pushback }.
 
@@ -153,18 +154,18 @@ build_bracket_identifier(Line, Chars, Length) ->
 
 % Handle chars.
 build_char(Chars, Line) ->
-  { token, { integer, Line, lists:last(unescape_chars(false, Chars)) } }.
+  { token, { integer, Line, lists:last(unescape_chars(true, false, Chars)) } }.
 
 % Handle strings without interpolation.
 build_string(Kind, Chars, Line, Length, Distance) ->
   Interpol = (sublist(atom_to_list(Kind), 12) == "interpolated"),
-  { String, Pushback } = handle_chars(Interpol, Chars, Line, Length, Distance),
+  { String, Pushback } = handle_chars(true, Interpol, Chars, Line, Length, Distance),
   { token, { Kind, Line, String }, Pushback }.
 
 % Handle regular expressions.
 build_regexp(Kind, Chars, Line, Length) ->
   { Regexp, Options, NewLength } = extract_regexp_options(Chars),
-  { String, Pushback } = handle_chars(Kind == interpolated_regexp, Regexp, Line, NewLength, 4),
+  { String, Pushback } = handle_chars(false, Kind == interpolated_regexp, Regexp, Line, NewLength, 4),
   { token, { Kind, Line, String, Options }, [] }.
 
 % Handle atoms without separators and without interpolation.
@@ -174,7 +175,7 @@ build_atom(Chars, Line, Length) ->
 
 % Handle quoted atoms with or without interpolation.
 build_separator_atom(Kind, Chars, Line, Length) ->
-  { String, Pushback } = handle_chars(Kind == interpolated_atom, Chars, Line, Length, 3),
+  { String, Pushback } = handle_chars(true, Kind == interpolated_atom, Chars, Line, Length, 3),
   Atom = case Kind of
     atom -> list_to_atom(String);
     _ -> String
@@ -193,21 +194,37 @@ extract_regexp_options(Chars) ->
   Max = lists:max(lists:map(fun(X) -> string:rchr(Chars, X) end, Separators)),
   erlang:append_element(lists:split(Max, Chars), Max).
 
-handle_chars(true, Chars, Line, Length, Distance) ->
+handle_chars(Escaping, true, Chars, Line, Length, Distance) ->
   Last = lists:last(Chars),
-  Unescaped = unescape_chars(true, sublist(Chars, Distance, Length - Distance + 1)),
+  Unescaped = unescape_chars(Escaping, true, sublist(Chars, Distance, Length - Distance + 1)),
   extract_interpolations(Unescaped, Last);
 
-handle_chars(false, Chars, Line, Length, Distance) ->
-  { unescape_chars(false, sublist(Chars, Distance, Length - Distance)), [] }.
+handle_chars(Escaping, false, Chars, Line, Length, Distance) ->
+  { unescape_chars(Escaping, false, sublist(Chars, Distance, Length - Distance)), [] }.
 
-unescape_chars(Kind, String) -> unescape_chars(Kind, String, []).
-unescape_chars(Kind, [], Output) -> lists:reverse(Output);
+unescape_chars(Escaping, Kind, String) -> unescape_chars(Escaping, Kind, String, []).
+unescape_chars(Escaping, Kind, [], Output) -> lists:reverse(Output);
 
-unescape_chars(true, [$\\, $#|Rest], Output) ->
-  unescape_chars(true, Rest, [$#, $\\|Output]);
+unescape_chars(Escaping, true, [$\\, $#|Rest], Output) ->
+  unescape_chars(Escaping, true, Rest, [$#, $\\|Output]);
 
-unescape_chars(Interpol, [$\\, Escaped|Rest], Output) ->
+% Do not escape everything, just a few. Used by regular expressions.
+unescape_chars(false, Interpol, [$\\, Escaped|Rest], Output) ->
+  Char = case Escaped of
+    $f  -> $\f;
+    $n  -> $\n;
+    $r  -> $\r;
+    $t  -> $\t;
+    $v  -> $\v;
+    _   -> []
+  end,
+
+  case Char of
+    [] -> unescape_chars(false, Interpol, Rest, [Escaped, $\\|Output]);
+    _  -> unescape_chars(false, Interpol, Rest, [Char|Output])
+  end;
+
+unescape_chars(true, Interpol, [$\\, Escaped|Rest], Output) ->
   Char = case Escaped of
     $b  -> $\b;
     $d  -> $\d;
@@ -220,10 +237,10 @@ unescape_chars(Interpol, [$\\, Escaped|Rest], Output) ->
     $v  -> $\v;
     _   -> Escaped
   end,
-  unescape_chars(Interpol, Rest, [Char|Output]);
+  unescape_chars(true, Interpol, Rest, [Char|Output]);
 
-unescape_chars(Interpol, [Char|Rest], Output) ->
-  unescape_chars(Interpol, Rest, [Char|Output]).
+unescape_chars(Escaping, Interpol, [Char|Rest], Output) ->
+  unescape_chars(Escaping, Interpol, Rest, [Char|Output]).
 
 reserved_word('Erlang')    -> true;
 reserved_word('_')         -> true;
