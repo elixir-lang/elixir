@@ -10,7 +10,7 @@ object Fridge
     % Spawn a new process by invoking the 'loop method defined below.
     % Notice that all methods defined in Fridge are actually defined
     % in Fridge::Proto, this is why we pass Fridge::Proto below.
-    pid = Pid.spawn Fridge::Proto, 'loop, [list]
+    pid = Process.spawn Fridge::Proto, 'loop, [list]
 
     % The values returned by constructor are kept as instance variables.
     { 'pid: pid }
@@ -23,7 +23,7 @@ object Fridge
     % Send a message to the spawned @pid passing the current
     % pid plus a message telling to store the given food.
     % This is the same as Erlang's ! operator
-    pid <- { Pid.self, { 'store, food } }
+    pid <- { Process.self, { 'store, food } }
 
     % The spawn process will respond back with its own
     % pid and an ok message
@@ -40,8 +40,8 @@ object Fridge
     % pid plus a message telling to take the given food.
     %
     % This is exactly the same as above, but the <<- syntax
-    % automatically adds Pid.self for us.
-    pid <<- {'take, food}
+    % automatically adds Process.self for us.
+    pid <- { Process.self, {'take, food} }
 
     % Retrieve the message again. Also, let's set a timeout
     % now for 10 seconds.
@@ -57,7 +57,7 @@ object Fridge
     pid = @pid
 
     % Send a see message
-    pid <<- 'see
+    pid <- { Process.self, 'see }
 
     % And get a message back
     receive {pid, msg}
@@ -80,18 +80,18 @@ object Fridge
     % than one type of message, you have to use receive/match.
     receive
     match {from, {'store, food}}
-      from <<- 'ok
+      from <- { Process.self, 'ok }
       loop([food|foodlist])
     match {from, {'take, food}}
       if foodlist.include?(food)
-        from <<- {'ok, food}
+        from <- { Process.self, {'ok, food} }
         loop(foodlist.delete(food))
       else
-        from <<- 'not_found
+        from <- { Process.self, 'not_found }
         loop(foodlist)
       end
     match {from,'see}
-      from <<- foodlist
+      from <- { Process.self, foodlist }
       loop(foodlist)
     match 'terminate
       'ok
