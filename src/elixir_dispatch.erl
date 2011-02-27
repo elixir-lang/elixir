@@ -35,7 +35,7 @@ visibility_matches(Self, Module, Method, Arity) ->
   end.
 
 is_protected_method(Module, Method, Arity) ->
-  Protected = elixir_object_methods:abstract_protected_methods(Module),
+  Protected = elixir_methods:abstract_protected_methods(Module),
   lists:member({Method, Arity}, Protected).
 
 % Find first module that contains the method with given arity.

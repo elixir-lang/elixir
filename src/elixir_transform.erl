@@ -425,7 +425,7 @@ transform({def_method, Line, Name, Arity, Clauses}, S) ->
   NewScope = S#elixir_scope{method=true},
   TClauses = [element(1, pack_method_clause(Clause, NewScope)) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
-  { elixir_methods:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), S };
+  { elixir_def_method:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), S };
 
 % Handle function calls.
 %

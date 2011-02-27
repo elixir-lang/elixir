@@ -86,7 +86,7 @@ transform(Kind, Line, Filename, Name, Parent, Body) ->
 % Initial step of template compilation. Generate a method
 % table and pass it forward to the next compile method.
 compile(Kind, Line, Filename, Current, Name, Template, Fun) ->
-  MethodTable = elixir_methods:new_method_table(Name),
+  MethodTable = elixir_def_method:new_method_table(Name),
 
   try
     compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable)
@@ -113,7 +113,7 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
 % TODO Do not allow module reopening.
 compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
   Name = Object#elixir_object__.name,
-  { Callbacks, Functions } = elixir_methods:unwrap_stored_methods(MethodTable),
+  { Callbacks, Functions } = elixir_def_method:unwrap_stored_methods(MethodTable),
   Behavior = elixir_callbacks:behavior(Object),
   compile_callbacks(Behavior, Line, Filename, Object, Callbacks),
   case code:ensure_loaded('Module') of
@@ -127,7 +127,7 @@ compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
 % we create a Proto module and automatically include it.
 compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
   AttributeTable = Object#elixir_object__.data,
-  case elixir_methods:is_empty_table(MethodTable) of
+  case elixir_def_method:is_empty_table(MethodTable) of
     true  -> [];
     false ->
       Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object__.name, "::Proto"]),

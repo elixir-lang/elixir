@@ -1,110 +1,48 @@
-% Holds the logic responsible for methods definition during parse time.
+% Holds introspection for methods.
+% To check how methods are defined internally, check elixir_def_method.
 -module(elixir_methods).
--export([is_empty_table/1, new_method_table/1, wrap_method_definition/4, store_wrapped_method/3, unwrap_stored_methods/1]).
+-export([abstract_methods/1, abstract_public_methods/1, abstract_protected_methods/1, public_proto_methods/1]).
 -include("elixir.hrl").
+-import(lists, [umerge/2, sort/1]).
 
-% Returns if a given table is empty or not.
-%
-% Since we use the same method table to store the current visibility,
-% public, protected and callbacks method, the table is empty if its
-% size is 4.
-is_empty_table(MethodTable) ->
-  case ets:info(MethodTable, size) of
-    4 -> true;
-    _ -> false
-  end.
+% Public in Elixir
 
-% Creates a new method table for the given name.
-new_method_table(Name) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
-  ets:new(MethodTable, [set, named_table, private]),
-  ets:insert(MethodTable, { public, [] }),
-  ets:insert(MethodTable, { protected, [] }),
-  ets:insert(MethodTable, { callbacks, [] }),
-  ets:insert(MethodTable, { visibility, public }),
-  MethodTable.
+public_proto_methods(Self) ->
+  calculate_methods(Self, fun abstract_public_methods/1, elixir_object_methods:protos(Self), []).
 
-% Wraps the method into a call that will call store_wrapped_method
-% once the method definition is read. The method is compiled into a
-% meta tree to ensure we will receive the full method.
-%
-% We need to wrap methods instead of eagerly defining them to ensure
-% functions inside if branches won't propagate, for example:
-%
-%   module Foo
-%     if false
-%       def bar; 1; end
-%     else
-%       def bar; 2; end
-%     end
-%   end
-%
-% If we just analyzed the compiled structure (i.e. the method availables
-% before evaluating the method body), we would see both definitions.
-wrap_method_definition(Name, Line, Filename, Method) ->
-  Meta = erl_syntax:revert(erl_syntax:abstract(Method)),
-  Content = [{atom, Line, Name}, {string, Line, Filename}, Meta],
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
+% Public in Erlang
 
-% Gets a module stored in the CompiledTable with Index and
-% move it to the AddedTable.
-store_wrapped_method(Module, Filename, {function, Line, Name, Arity, Clauses}) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
-  Visibility = ets:lookup_element(MethodTable, visibility, 2),
-
-  FinalClauses = case ets:lookup(MethodTable, {Name, Arity}) of
-    [{{Name, Arity}, FinalLine, OtherClauses}] ->
-      check_valid_visibility(Line, Filename, Name, Arity, Visibility, MethodTable),
-      [hd(Clauses)|OtherClauses];
-    [] ->
-      add_visibility_entry(Name, Arity, Visibility, MethodTable),
-      FinalLine = Line,
-      Clauses
-  end,
-  ets:insert(MethodTable, {{Name, Arity}, FinalLine, FinalClauses}).
-
-% Helper to unwrap the methods stored in the methods table. It also returns
-% a list of methods to be exported with all protected methods.
-unwrap_stored_methods(Table) ->
-  Public    = ets:lookup_element(Table, public, 2),
-  Protected = ets:lookup_element(Table, protected, 2),
-  Callbacks = ets:lookup_element(Table, callbacks, 2),
-  ets:delete(Table, visibility),
-  ets:delete(Table, public),
-  ets:delete(Table, protected),
-  ets:delete(Table, callbacks),
-  AllProtected = Protected ++ Callbacks,
-  { Callbacks, { Public ++ AllProtected, AllProtected, ets:foldl(fun unwrap_stored_method/2, [], Table) } }.
-
-unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
-  [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
-
-% Check the visibility of the method with the given Name and Arity in the attributes table.
-add_visibility_entry(Name, Arity, private, Table) ->
+abstract_methods(#elixir_object__{}) ->
   [];
 
-add_visibility_entry(Name, Arity, Visibility, Table) ->
-  Current= ets:lookup_element(Table, Visibility, 2),
-  ets:insert(Table, {Visibility, [{Name, Arity}|Current]}).
+abstract_methods(Name) ->
+  Converter = fun({Name, Arity}) -> {Name, Arity - 1} end,
+  lists:map(Converter, elixir_constants:lookup(Name, functions) -- [{module_info,0},{module_info,1}]).
 
-check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
-  Available = [public, protected, callbacks, private],
-  PrevVisibility = find_visibility(Name, Arity, Available, Table),
-  case Visibility == PrevVisibility of
-    false -> format_warning(Filename, {Line, ?MODULE, {changed_visibility, Name, PrevVisibility}});
-    true -> []
-  end.
+abstract_public_methods(#elixir_object__{}) ->
+  [];
 
-find_visibility(Name, Arity, [H|[]], Table) ->
-  H;
+abstract_public_methods(Name) ->
+  abstract_methods(Name) -- abstract_protected_methods(Name).
 
-find_visibility(Name, Arity, [Visibility|T], Table) ->
-  List = ets:lookup_element(Table, Visibility, 2),
-  case lists:member({Name, Arity}, List) of
-    true  -> Visibility;
-    false -> find_visibility(Name, Arity, T, Table)
-  end.
+abstract_protected_methods(#elixir_object__{}) ->
+  [];
 
-format_warning(Filename, {Line,_,{changed_visibility,Name,Visibility}}) ->
-  Message = io_lib:format("method ~s already defined with visibility ~s\n", [Name, Visibility]),
-  io:format(elixir_errors:file_format(Line, Filename, Message)).
+abstract_protected_methods(Name) ->
+  proplists:get_value(protected, elixir_constants:lookup(Name, attributes)).
+
+% Helpers
+
+% If we are defining a module, we need to remove itself from the given
+% List as the module was not defined in Erlang system yet.
+calculate_methods(#elixir_object__{name=Name,parent=Parent,data=Data}, Fun, List, Acc) when is_atom(Data), Parent == 'Module' ->
+  calculate_methods(Fun, lists:delete(Name, List), Acc);
+
+calculate_methods(_Self, Fun, List, Acc) ->
+  calculate_methods(Fun, List, Acc).
+
+calculate_methods(Fun, [], Acc) ->
+  Acc;
+
+calculate_methods(Fun, [H|T], Acc) ->
+  calculate_methods(Fun, T, umerge(Acc, sort(Fun(H)))).

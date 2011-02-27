@@ -184,10 +184,10 @@ object Object
       Erlang.elixir_dispatch.dispatch(true, self, method, args)
     end
 
-    % Those methods are related to modules but leak to all objects.
+    % Those methods are related to methods introspection.
 
     def __public_proto_methods__
-      Erlang.elixir_object_methods.public_proto_methods(self)
+      Erlang.elixir_methods.public_proto_methods(self)
     end
 
     % Exceptions related methods

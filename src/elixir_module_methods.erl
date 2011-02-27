@@ -23,7 +23,7 @@ alias_local(#elixir_object__{name=Name, data=Data} = Self, Filename, Old, New, E
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   case ets:lookup(MethodTable, { Old, Arity }) of
     [{{Old, Arity}, Line, Clauses}] ->
-      elixir_methods:store_wrapped_method(Name, Filename, {function, Line, New, Arity, Clauses});
+      elixir_def_method:store_wrapped_method(Name, Filename, {function, Line, New, Arity, Clauses});
     [] ->
       elixir_errors:error({nolocalmethod, {Self, Old, Arity}})
   end;

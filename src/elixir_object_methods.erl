@@ -2,9 +2,7 @@
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, mixins/1, protos/1, data/1,
-  get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1,
-  function_catch/1, abstract_methods/1, abstract_public_methods/1, abstract_protected_methods/1,
-  public_proto_methods/1]).
+  get_ivar/2, set_ivar/3, ancestors/1, abstract_parent/1, abstract_data/1, function_catch/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -70,24 +68,7 @@ set_ivar(#elixir_object__{data=Dict} = Self, Name, Value) ->
 set_ivar(Self, Name, Value) ->
   builtinnotallowed(Self, set_ivar).
 
-public_proto_methods(Self) ->
-  calculate_methods(Self, fun abstract_public_methods/1, protos(Self), []).
-
 % HELPERS
-
-% If we are defining a module, we need to remove itself from the given
-% List as the module was not defined in Erlang system yet.
-calculate_methods(#elixir_object__{name=Name,parent=Parent,data=Data}, Fun, List, Acc) when is_atom(Data), Parent == 'Module' ->
-  calculate_methods(Fun, lists:delete(Name, List), Acc);
-
-calculate_methods(_Self, Fun, List, Acc) ->
-  calculate_methods(Fun, List, Acc).
-
-calculate_methods(Fun, [], Acc) ->
-  Acc;
-
-calculate_methods(Fun, [H|T], Acc) ->
-  calculate_methods(Fun, T, umerge(Acc, Fun(H))).
 
 get_ivar_dict(Name, Data) ->
   case orddict:find(Name, Data) of
@@ -264,27 +245,6 @@ abstract_data(#elixir_object__{data=Data}) ->
 
 abstract_data(Name) ->
   hd(proplists:get_value(data, elixir_constants:lookup(Name, attributes))).
-
-% Get methods from abstract stuff.
-
-abstract_methods(#elixir_object__{}) ->
-  [];
-
-abstract_methods(Name) ->
-  Converter = fun({Name, Arity}) -> {Name, Arity - 1} end,
-  lists:map(Converter, elixir_constants:lookup(Name, functions) -- [{module_info,0},{module_info,1}]).
-
-abstract_public_methods(#elixir_object__{}) ->
-  [];
-
-abstract_public_methods(Name) ->
-  abstract_methods(Name) -- abstract_protected_methods(Name).
-
-abstract_protected_methods(#elixir_object__{}) ->
-  [];
-
-abstract_protected_methods(Name) ->
-  proplists:get_value(protected, elixir_constants:lookup(Name, attributes)).
 
 % Merge two lists taking into account uniqueness. Opposite to
 % lists:umerge2, does not require lists to be sorted.
