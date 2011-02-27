@@ -1,10 +1,14 @@
 module GenServer
-  protected
+  module Mixin
+    protected
 
-  % Callback that defines the registered module as a genserver
-  def __added_as_proto__(base)
-    base.define_module_attribute('behavior, 'gen_server)
+    % Callback that defines the registered module as a gen_server
+    def __added_as_proto__(base)
+      base.define_module_attribute('behavior, 'gen_server)
+    end
   end
+
+  protected
 
   def start_link(args)
     start_link(args, [])

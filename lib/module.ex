@@ -1,9 +1,5 @@
 object Module
   module Methods
-    def __behavior__
-      Erlang.elixir_module_methods.behavior(self)
-    end
-
     % Set the following methods to protected.
     Erlang.elixir_module_methods.set_visibility(self, 'protected)
 
@@ -57,7 +53,7 @@ object Module
     end
 
     def callbacks
-      if __behavior__
+      if self.__behavior__
         Erlang.elixir_module_methods.set_visibility(self, 'callbacks)
       else
         Erlang.error({'badarg, "cannot define callbacks scope without a behavior specified"})
@@ -74,15 +70,6 @@ object Module
     % intending to improve Elixir integration with Erlang.
     def define_module_attribute(key, value)
       Erlang.elixir_module_methods.define_attribute(self, key, value)
-    end
-
-    % Returns an Atom with the name of the callbacks module.
-    def __callbacks_module__
-      if __behavior__
-        Erlang.elixir_callbacks.callback_name(self)
-      else
-        []
-      end
     end
   end
 

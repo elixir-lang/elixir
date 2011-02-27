@@ -64,6 +64,9 @@ behavior(#elixir_object__{data=Data}) when is_atom(Data) ->
     _ -> []
   end;
 
+behavior(#elixir_object__{name=[]}) ->
+  [];
+
 behavior(#elixir_object__{name=Name} = Object) ->
   case module_behavior(Name) of
     elixir_callbacks -> module_behavior(elixir_callbacks:callback_name(Object));

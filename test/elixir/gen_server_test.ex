@@ -11,4 +11,13 @@ object GenServerTest
     ["Programming Elixir", "Crafting Rails Apps"] = Bookshelf.see(pid)
     Bookshelf.terminate(pid)
   end
+
+  def gen_server_with_object_test
+    bookshelf = BestBookshelf.new ["Crafting Rails Apps", "Programming Erlang"]
+    'ok = bookshelf.take "Programming Erlang"
+    ["Crafting Rails Apps"] = bookshelf.see
+    'ok = bookshelf.put "Programming Elixir"
+    ["Programming Elixir", "Crafting Rails Apps"] = bookshelf.see
+    bookshelf.terminate
+  end
 end

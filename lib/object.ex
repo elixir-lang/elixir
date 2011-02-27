@@ -176,10 +176,6 @@ object Object
       Erlang.elixir_object_methods.set_ivar(self, name, value)
     end
 
-    def __public_proto_methods__
-      Erlang.elixir_object_methods.public_proto_methods(self)
-    end
-
     def __send__(method)
       __send__(method, [])
     end
@@ -187,6 +183,28 @@ object Object
     def __send__(method, args)
       Erlang.elixir_dispatch.dispatch(true, self, method, args)
     end
+
+    % Those methods are related to modules but leak to all objects.
+
+    % Returns the behavior for the self.
+    def __behavior__
+      Erlang.elixir_module_methods.behavior(self)
+    end
+
+    % Returns an Atom with the name of the callbacks module.
+    def __callbacks_module__
+      if __behavior__
+        Erlang.elixir_callbacks.callback_name(self)
+      else
+        []
+      end
+    end
+
+    def __public_proto_methods__
+      Erlang.elixir_object_methods.public_proto_methods(self)
+    end
+
+    % Exceptions related methods
 
     def error(reason)
       Erlang.error(reason)
