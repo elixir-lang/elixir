@@ -70,7 +70,7 @@ default_data(Template) -> Template#elixir_object__.data.
 
 % Returns the new module name based on the previous scope.
 scope_for([], Name) -> Name;
-scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, '::', Name]).
+scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, "::", Name]).
 
 % Generates module transform. It wraps the module definition into
 % a function that will be invoked by compile/5 passing self as argument.
@@ -114,7 +114,7 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
 compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
   Name = Object#elixir_object__.name,
   { Callbacks, Functions } = elixir_methods:unwrap_stored_methods(MethodTable),
-  Behavior = elixir_module_methods:behavior(Object),
+  Behavior = elixir_callbacks:behavior(Object),
   compile_callbacks(Behavior, Line, Filename, Object, Callbacks),
   case code:ensure_loaded('Module') of
     {module, 'Module'} -> elixir_object_methods:mixin(Object, Object);
@@ -130,7 +130,7 @@ compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
   case elixir_methods:is_empty_table(MethodTable) of
     true  -> [];
     false ->
-      Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object__.name, '::', 'Proto']),
+      Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object__.name, "::Proto"]),
       Attributes = ets:lookup_element(AttributeTable, module, 2),
       Define = elixir_module_methods:copy_attributes_fun(Attributes),
       compile(module, Line, Filename, Object, Name, [], Define, MethodTable)
@@ -148,8 +148,8 @@ compile_callbacks(Behavior, Line, Filename, Object, Callbacks) ->
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
 add_implicit_mixins(#elixir_object__{name=Name} = Self, ModuleName) ->
-  Proto = lists:concat([Name, '::', 'Proto']),
-  Mixin = lists:concat([Name, '::', 'Mixin']),
+  Proto = lists:concat([Name, "::Proto"]),
+  Mixin = lists:concat([Name, "::Mixin"]),
   case atom_to_list(ModuleName) of
     Proto -> elixir_object_methods:proto(Self, build(ModuleName));
     Mixin -> elixir_object_methods:mixin(Self, build(ModuleName));

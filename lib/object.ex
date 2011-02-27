@@ -186,20 +186,6 @@ object Object
 
     % Those methods are related to modules but leak to all objects.
 
-    % Returns the behavior for the self.
-    def __behavior__
-      Erlang.elixir_module_methods.behavior(self)
-    end
-
-    % Returns an Atom with the name of the callbacks module.
-    def __callbacks_module__
-      if __behavior__
-        Erlang.elixir_callbacks.callback_name(self)
-      else
-        []
-      end
-    end
-
     def __public_proto_methods__
       Erlang.elixir_object_methods.public_proto_methods(self)
     end

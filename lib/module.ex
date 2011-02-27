@@ -1,5 +1,10 @@
 object Module
   module Methods
+    % Returns the behavior for the self.
+    def __behavior__
+      Erlang.elixir_callbacks.behavior(self)
+    end
+
     % Set the following methods to protected.
     Erlang.elixir_module_methods.set_visibility(self, 'protected)
 
@@ -53,7 +58,7 @@ object Module
     end
 
     def callbacks
-      if self.__behavior__
+      if __behavior__
         Erlang.elixir_module_methods.set_visibility(self, 'callbacks)
       else
         Erlang.error({'badarg, "cannot define callbacks scope without a behavior specified"})

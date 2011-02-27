@@ -1,6 +1,6 @@
 % Defines a callback module given the module Name, Behavior and Callback methods.
 -module(elixir_callbacks).
--export([behaviour_info/1, build_module_form/4, callback_name/1]).
+-export([behaviour_info/1, build_module_form/4, callback_name/1, behavior/1]).
 -include("elixir.hrl").
 
 behaviour_info(callbacks) -> [];
@@ -11,6 +11,34 @@ callback_name(#elixir_object__{parent='Module',name=Name}) ->
 
 callback_name(#elixir_object__{name=Name}) ->
   ?ELIXIR_ATOM_CONCAT(["ex_callbacks_", Name, "::Proto"]).
+
+behavior(#elixir_object__{data=Data, parent='Module'}) when is_atom(Data) ->
+  case ets:lookup(Data, behavior) of
+    [{behavior,Behavior}] -> Behavior;
+    _ -> []
+  end;
+
+behavior(#elixir_object__{data=Data}) when is_atom(Data) ->
+  case ets:lookup(Data, module) of
+    [{module,Attributes}] ->
+      case proplists:get_value(behavior, Attributes) of
+        undefined -> [];
+        Else -> Else
+      end;
+    _ -> []
+  end;
+
+behavior(#elixir_object__{name=Name} = Object) ->
+  case module_behavior(Name) of
+    elixir_callbacks -> module_behavior(elixir_callbacks:callback_name(Object));
+    _ -> []
+  end.
+
+module_behavior(Name) ->
+  case proplists:get_value(behavior, Name:module_info(attributes)) of
+    undefined -> [];
+    Else -> hd(Else)
+  end.
 
 build_module_form(Line, #elixir_object__{name=Name} = Object, Behavior, Callbacks) ->
   TransFuns   = fun(X) -> build_function_form(Line, Name, X) end,
