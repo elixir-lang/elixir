@@ -66,7 +66,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 ~r{BaseGroup}{LowerCase}* : build_regexp(regexp, TokenChars, TokenLine, TokenLen).
 
 %% Strings
-"\"".*([^"]|"[^"]|""[^"]|[^\n]"""|"""[^\n]|[^\n]"""[^\n])*""" : build_heredoc(TokenChars, TokenLine, TokenLen).
+~~.*([^~]|~[^~]|[^\n]~~|~~[^\n]|[^\n]~~[^\n])*~~ : build_heredoc(TokenChars, TokenLine, TokenLen).
 {InterpolQuoted} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen, 2).
 {BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen, 2).
 
@@ -186,7 +186,7 @@ build_separator_atom(Kind, Chars, Line, Length) ->
 
 extract_heredoc_pushback(Chars, Start) ->
   FirstLine = sublist(Chars, Start - 1),
-  {match, [{0,Limit}|_]} = re:run(FirstLine, "\"\"\"[a-zA-Z0-9_]*"),
+  {match, [{0,Limit}|_]} = re:run(FirstLine, "~~[a-zA-Z0-9_]*"),
   sublist(FirstLine, Limit + 1, length(FirstLine)).
 
 extract_regexp_options(Chars) ->

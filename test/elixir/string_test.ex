@@ -4,33 +4,33 @@ object StringTest
   % Please leave this test at the top as we are asserting
   % the result of __LINE__ at some point.
   def heredoc_test
-    "abc\n" = """
+    "abc\n" = ~~
 abc
-"""
+~~
 
-    "(\"a\")\n" = """STRING
-("a")
-"""
+    "(~a~)\n" = ~~STRING
+(~a~)
+~~
 
-    "abc \"\"\"\n" = """STRING
-abc """
-"""
+    "abc ~~\n" = ~~STRING
+abc ~~
+~~
 
-    "\"\"\" abc\n" = """STRING
-""" abc
-"""
+    "~~ abc\n" = ~~STRING
+~~ abc
+~~
 
-    "abc\n123" = """STRING + "123"
+    "abc\n123" = ~~STRING + "123"
 abc
-"""
+~~
 
-    list = ["""FOO, """BAR, """BAZ]
+    list = [~~FOO, ~~BAR, ~~BAZ]
 one
-"""
+~~
 #{'two}
-"""
+~~
 three
-"""
+~~
 
     % Ensure backtrace line is still the same
     36 = __LINE__

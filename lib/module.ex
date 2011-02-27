@@ -75,11 +75,11 @@ object Module
 
     def define_behavior(value)
       Erlang.elixir_module_methods.define_attribute(self, 'behavior, value)
-      module_eval __FILE__, __LINE__ + 1, """ELIXIR
+      module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
   def __callbacks_module__
     #{Erlang.elixir_callbacks.callback_name(self).inspect}
   end
-"""
+~~
     end
   end
 

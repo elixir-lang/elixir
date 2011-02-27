@@ -966,38 +966,38 @@ All string sigils follow the same set of rules. They start with a ~ followed by 
 
 ## Heredoc
 
-Elixir also has HEREDOCs to make easier to handle big strings. The syntax is borrowed from Python (`"""`), although many features come from Ruby.
+Elixir also has HEREDOCs to make easier to handle big strings:
 
-    string = """
+    string = ~~
       This is a string which
       preserves whitespace at
       the beginning and also
       handles #{'interpolation}
-    """
+    ~~
 
 Similar to Ruby, HEREDOCs allow an identifier right after the initial three quotes:
 
-    string = """HTML
+    string = ~~HTML
       <p>Nice!</p>
-    """
+    ~~
 
 This allows to identify the content and most text editor uses it to properly syntax highlight it. Besides, you can add Elixir code after the HEREDOC and they still are properly evaluated:
 
-    string = """STRING + "123"
+    string = ~~STRING + "123"
     abc
-    """
+    ~~
 
     string % => "abc\n123"
 
 Consequently, this feature allows multiple HEREDOCs:
 
-    list = ["""ONE, """TWO, """THREE]
+    list = [~~ONE, ~~TWO, ~~THREE]
     this is the first string
-    """
+    ~~
     this is another one
-    """
+    ~~
     this is the third. cool, isn't?
-    """
+    ~~
 
     list[0] % => "this is the first string\n"
     list[1] % => "this is another one\n"
