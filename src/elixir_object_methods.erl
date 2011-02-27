@@ -174,8 +174,8 @@ object_parent(Native) when is_atom(Native) ->
 object_parent(Native) when is_list(Native) ->
   'List';
 
-object_parent(Native) when is_binary(Native) ->
-  'Binary';
+object_parent(Native) when is_bitstring(Native) ->
+  'BitString';
 
 object_parent(#elixir_orddict__{}) ->
   'OrderedDict';

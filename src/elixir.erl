@@ -35,7 +35,7 @@ load_core_classes() ->
     'string.ex',
     'ordered_dict.ex',
     'regexp.ex',
-    'binary.ex',
+    'bit_string.ex',
     'process.ex'
   ]).
 

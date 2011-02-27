@@ -4,7 +4,7 @@ Code.require "gen_server"
 
 % Tests
 Code.require "atom_test"
-Code.require "binary_test"
+Code.require "bit_string_test"
 Code.require "exceptions_test"
 Code.require "gen_server_test"
 Code.require "list_test"
@@ -15,5 +15,5 @@ Code.require "regexp_test"
 Code.require "string_test"
 Code.require "tuple_test"
 
-ExUnit.run([AtomTest, BinaryTest, ExceptionsTest, GenServerTest, ListTest, ObjectTest,
+ExUnit.run([AtomTest, BitStringTest, ExceptionsTest, GenServerTest, ListTest, ObjectTest,
   OrderedDictTest, ProcessTest, RegexpTest, StringTest, TupleTest])

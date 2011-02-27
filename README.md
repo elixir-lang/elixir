@@ -254,22 +254,22 @@ Ordered Dicts are recommended to deal with small amount of data. Other data stru
 
 * <https://github.com/josevalim/elixir/tree/master/lib/ordered_dict.ex>
 
-### Binaries
+### Bit strings
 
-Elixir has a similar syntax to Erlang for handling binaries:
+Elixir has a similar syntax to Erlang for handling bit strings:
 
-    % A binary with three elements
+    % A bit string with three elements
     <<1, 17, 42>>
 
-    % Converting a binary to a list
+    % Converting a bit string to a list
     <<1, 17, 42>>.to_list  % => [1, 17, 42]
 
-Elixir also allows to specify the size for binaries, using the same syntax as Erlang:
+Elixir also allows to specify the size for bit strings, using the same syntax as Erlang:
 
-    % A binary with size 4, because we specify that 42 is a 16-bits segment
+    % A bit string with size 4, because we specify that 42 is a 16-bits segment
     <<1, 17, 42:16>>
 
-By default, the binary type in both Elixir and Erlang is integer. That said, the following is invalid:
+By default, the bit string type in both Elixir and Erlang is integer. That said, the following is invalid:
 
     <<3.14>>
 
@@ -277,15 +277,15 @@ Instead, you need explicitly specify it as a float:
 
     <<3.14|float>>
 
-Notice the syntax above is a bit different from Erlang. Erlang uses `/` to specify the type, Elixir uses `|`. This allows Elixir, differently from Erlang, to have expressions inside binaries:
+Notice the syntax above is a bit different from Erlang. Erlang uses `/` to specify the type, Elixir uses `|`. This allows Elixir, differently from Erlang, to have expressions inside bit string:
 
     <<1+2>>
 
-In general, everything that applies to Erlang binaries applies to Elixir binaries. You can [read more about them on Erlang's documentation](http://www.erlang.org/doc/programming_examples/bit_syntax.html).
+In general, everything that applies to Erlang bit string applies to Elixir bit string. You can [read more about them on Erlang's documentation](http://www.erlang.org/doc/programming_examples/bit_syntax.html).
 
 #### Documentation
 
-* <https://github.com/josevalim/elixir/tree/master/lib/binary.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/bit string.ex>
 * <http://www.erlang.org/doc/programming_examples/bit_syntax.html>
 
 ### Strings
@@ -915,7 +915,7 @@ In Elixir, we have the following basic types related to Strings:
     ${string}    % => [115,116, 114, 105, 110, 103]
 
     % A binary representing the list of chars above
-    <<[115,116, 114, 105, 110, 103]>>
+    <<115, 116, 114, 105, 110, 103>>
 
     % Erlang Atoms or Ruby Symbols
     'atom
@@ -1017,7 +1017,7 @@ Invoking Erlang methods with elixir is quite trivial:
 
 Notice that `Erlang` is not a real object in Elixir, but just a proxy that is converted to erlang calls at parse time.
 
-## List and Binary comprehensions
+## List and Bit string comprehensions
 
 List comprehensions allow you to quickly build a list from another list:
 
@@ -1031,24 +1031,24 @@ The comprehension is defined with the `for` keyword which accepts several expres
     % A comprehension with two generators
     [x*y for x in [1,2], y in [2,3]]  % => [2,3,4,6]
 
-There are two types of generators in Elixir/Erlang: list and binary generator:
+There are two types of generators in Elixir/Erlang: list and bit string generator:
 
     % A list generator:
     [n*2 for n in [1,2,3,4]]  % => [2,4,6,8]
 
-    % A binary generator:
+    % A bit string generator:
     [n*2 for <<n>> in <<1,2,3,4>>]  % => [2,4,6,8]
 
-Binary generators are quite useful when you need to organize binary streams:
+Binary generators are quite useful when you need to organize bit string streams:
 
     pixels = <<213,45,132,64,76,32,76,0,0,234,32,15>>
     [{r,g,b} for <<r:8,g:8,b:8>> in pixels ]  % => [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
 
-Elixir does its best to hide the differences between list and binary generators from you. However, there is a special case due to Erlang limitation that you need to explicitly tell Erlang that a list is being given as argument:
+Elixir does its best to hide the differences between list and bit string generators from you. However, there is a special case due to Erlang limitation that you need to explicitly tell Erlang that a list is being given as argument:
 
     % This will fail because when Elixir sees that the left side
-    % of the in expression is a binary, it expects the right side
-    % to be a binary as well:
+    % of the in expression is a bit string, it expects the right side
+    % to be a bit string as well:
     [n*2 for <<n>> in [<<1>>,<<2>>,<<3>>]  % => [2,4,6]
 
     % You need to be explicit and use inlist:
@@ -1057,7 +1057,7 @@ Elixir does its best to hide the differences between list and binary generators 
     % inbin is also available:
     [n*2 for <<n>> inbin <<1,2,3>>]  % => [2,4,6]
 
-You can [read more about list and binary comprehensions in Learn You Some Erlang](http://learnyousomeerlang.com/starting-out-for-real#list-comprehensions).
+You can [read more about list and bit string comprehensions in Learn You Some Erlang](http://learnyousomeerlang.com/starting-out-for-real#list-comprehensions).
 
 ## The Object Model
 
@@ -1552,14 +1552,14 @@ Remaining of this section still needs to be implemented and written.
 
 * <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
 
-### Processes
+## Processes
 
 To be written.
 
-### Behavior and Callbacks
+## Behavior and Callbacks
 
 To be written.
 
-### Metaprogramming
+## Metaprogramming, Reflection and Dynamic Dispatch
 
 To be written.

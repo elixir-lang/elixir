@@ -1,4 +1,4 @@
-object Binary
+object BitString
   def to_bin
     self
   end
