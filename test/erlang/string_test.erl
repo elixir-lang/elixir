@@ -8,7 +8,7 @@ eval_string(Expr) ->
   { test_helper:unpack_string(String), Binding }.
 
 extract_interpolations(String) ->
-  element(1, elixir_lexer:extract_interpolations(String ++ [$)], $))).
+  element(1, elixir_lexer:extract_interpolations(true, String ++ [$)], $))).
 
 % Interpolations
 
@@ -66,10 +66,7 @@ string_with_another_string_with_curly_inside_interpolation_test() ->
   {<<"fb}ro">>, _} = eval_string("\"f#{\"b}r\"}o\"").
 
 string_with_atom_with_separator_inside_interpolation_test() ->
-  {<<"f}o">>, _} = eval_string("\"f#{'(})}o\""),
-  {<<"f}o">>, _} = eval_string("\"f#{'[}]}o\""),
-  {<<"f}o">>, _} = eval_string("\"f#{'{\\}}}o\""),
-  {<<"f}o">>, _} = eval_string("\"f#{'\\\"}\\\"}o\"").
+  {<<"f}o">>, _} = eval_string("\"f#{\"}\"}o\"").
 
 string_without_interpolation_and_escaped_test() ->
   {<<"f#o">>, _} = eval_string("\"f\\#o\"").
