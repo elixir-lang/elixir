@@ -56,7 +56,7 @@ object Atom
   def inspect(other)
     bin = Erlang.atom_to_binary(other, 'utf8)
 
-    if ~r"\A@?\w*\z[?!]?".match?(bin)
+    if ~r"\A@?\w*[?!]?\z".match?(bin)
       String.new <<$', bin|binary>>
     else
       String.new <<$', $\", bin|binary, $\">>
