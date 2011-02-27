@@ -16,12 +16,11 @@ Elixir requires Erlang R14A or later version to execute. R13 or prior version do
 
 # Roadmap
 
-* Add receive/after
 * Add load paths
 * Add super
 * Add interactive elixir (iex)
 * Implement missing types and improve STDLIB
-* Add metaprogramming
+* Extend metaprogramming support
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add
 * Add _.foo
 * Support guards
@@ -1553,6 +1552,14 @@ Remaining of this section still needs to be implemented and written.
 
 * <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
 
+### Processes
+
+To be written.
+
 ### Behavior and Callbacks
+
+To be written.
+
+### Metaprogramming
 
 To be written.
