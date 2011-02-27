@@ -5,6 +5,22 @@ module Bookshelf
     self.start_link(books)
   end
 
+  def put(ref, title)
+    self.cast(ref, {'put, title})
+  end
+
+  def take(ref, title)
+    self.call(ref, {'take, title})
+  end
+
+  def see(ref)
+    self.call(ref, 'see)
+  end
+
+  def terminate(ref)
+    self.call(ref, 'terminate)
+  end
+
   callbacks
 
   def init(books)
@@ -23,6 +39,10 @@ module Bookshelf
     else
       { 'reply, 'not_found, books }
     end
+  end
+
+  def handle_call('see, _from, books)
+    { 'reply, books, books }
   end
 
   % Terminate sync message

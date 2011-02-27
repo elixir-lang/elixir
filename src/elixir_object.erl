@@ -174,7 +174,7 @@ build_erlang_form(Line, Object, {Export, Protected, Functions}) ->
 
 no_auto_import() ->
   {no_auto_import, [
-    {size, 1}, {length, 1}, {error, 2}, {self, 1}
+    {size, 1}, {length, 1}, {error, 2}, {self, 1}, {put, 2}, {get, 1}
   ]}.
 
 transform_attribute(Line, {mixins, List}) ->
