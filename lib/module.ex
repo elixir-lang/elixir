@@ -57,6 +57,10 @@ object Module
       Erlang.elixir_module_methods.set_visibility(self, 'private)
     end
 
+    def module_eval(file, line, string)
+      Erlang.elixir_module_methods.module_eval(self, string.to_char_list, file.to_char_list, line)
+    end
+
     def callbacks
       if __behavior__
         Erlang.elixir_module_methods.set_visibility(self, 'callbacks)
@@ -69,12 +73,13 @@ object Module
       Erlang.elixir_module_methods.alias_local(self, __FILE__, old, new, arity)
     end
 
-    % Define an attribute for the Erlang compiled module.
-    %
-    % This is not meant to be generally used, but only for libraries
-    % intending to improve Elixir integration with Erlang.
-    def define_module_attribute(key, value)
-      Erlang.elixir_module_methods.define_attribute(self, key, value)
+    def define_behavior(value)
+      Erlang.elixir_module_methods.define_attribute(self, 'behavior, value)
+      module_eval __FILE__, __LINE__ + 1, """ELIXIR
+  def __callbacks_module__
+    #{Erlang.elixir_callbacks.callback_name(self).inspect}
+  end
+"""
     end
   end
 

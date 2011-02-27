@@ -71,8 +71,6 @@ Nonterminals
   object_decl
   module_decl
   objmod_body
-  objmod_body_list
-  objmod_body_decl
   method_decl
   method_name
   implicit_method_name
@@ -145,6 +143,7 @@ decl_list -> decl break decl_list : ['$1'|'$3'].
 % Basic declarations
 decl -> object_decl : '$1'.
 decl -> module_decl : '$1'.
+decl -> method_decl : '$1'.
 decl -> expr : '$1'.
 
 % List of expressions delimited by break
@@ -589,16 +588,7 @@ object_decl -> object constant break objmod_body 'end' : build_object(object, '$
 module_decl -> module constant break objmod_body 'end' : build_object(module, '$2', '$4', []).
 
 objmod_body -> '$empty' : [{nil, 0}].
-objmod_body -> objmod_body_list : '$1'.
-
-objmod_body_list -> eol : [].
-objmod_body_list -> objmod_body_decl : ['$1'].
-objmod_body_list -> objmod_body_decl break : ['$1'].
-objmod_body_list -> eol objmod_body_list : '$2'.
-objmod_body_list -> objmod_body_decl break objmod_body_list : ['$1'|'$3'].
-
-objmod_body_decl -> decl : '$1'.
-objmod_body_decl -> method_decl : '$1'.
+objmod_body -> decl_list : '$1'.
 
 % Method declarations
 method_decl -> def method_name break body 'end' :

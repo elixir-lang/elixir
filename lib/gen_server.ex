@@ -4,7 +4,7 @@ module GenServer
 
     % Callback that defines the registered module as a gen_server
     def __added_as_proto__(base)
-      base.define_module_attribute('behavior, 'gen_server)
+      base.define_behavior('gen_server)
     end
   end
 

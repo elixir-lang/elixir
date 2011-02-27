@@ -66,7 +66,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 ~r{BaseGroup}{LowerCase}* : build_regexp(regexp, TokenChars, TokenLine, TokenLen).
 
 %% Strings
-""".*(\n|[^(""")]|[^\n]"""|"""[^\n]|[^\n]"""[^\n])*""" : build_heredoc(TokenChars, TokenLine, TokenLen).
+"\"".*([^"]|"[^"]|""[^"]|[^\n]"""|"""[^\n]|[^\n]"""[^\n])*""" : build_heredoc(TokenChars, TokenLine, TokenLen).
 {InterpolQuoted} : build_string(interpolated_string, TokenChars, TokenLine, TokenLen, 2).
 {BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen, 2).
 
@@ -138,7 +138,7 @@ build(Kind, Line, Chars) ->
     false -> { token, {Kind, Line, Atom} }
   end.
 
-% HAndle heredoc and multiline heredocs
+% Handle heredoc and multiline heredocs
 build_heredoc(Chars, Line, Length) ->
   Start = string:str(Chars, "\n"),
   Stop = string:rstr(Chars, "\n"),

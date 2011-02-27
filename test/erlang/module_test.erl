@@ -234,9 +234,10 @@ can_retrieve_public_proto_methods_test() ->
   end,
   test_helper:run_and_remove(F, ['ModuleTestProtos']).
 
-can_define_any_attribute_test() ->
-  F = fun() ->
-    elixir:eval("module Foo; define_module_attribute('foo, 'bar); end"),
-    [bar] = proplists:get_value(foo, 'Foo':module_info(attributes))
-  end,
-  test_helper:run_and_remove(F, ['Foo']).
+% This API was removed for awhile
+% can_define_any_attribute_test() ->
+%   F = fun() ->
+%     elixir:eval("module Foo; define_module_attribute('foo, 'bar); end"),
+%     [bar] = proplists:get_value(foo, 'Foo':module_info(attributes))
+%   end,
+%   test_helper:run_and_remove(F, ['Foo']).

@@ -8,6 +8,10 @@ object StringTest
 abc
 """
 
+    "(\"a\")\n" = """STRING
+("a")
+"""
+
     "abc \"\"\"\n" = """STRING
 abc """
 """
@@ -29,7 +33,7 @@ three
 """
 
     % Ensure backtrace line is still the same
-    32 = __LINE__
+    36 = __LINE__
 
     ["one\n", "two\n", "three\n"] = list
   end

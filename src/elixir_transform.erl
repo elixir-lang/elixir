@@ -2,11 +2,7 @@
 -export([parse/3]).
 -include("elixir.hrl").
 
-parse(String, Binding, Filename) ->
-  Vars = lists:usort(proplists:get_keys(Binding)),
-  parse_and_transform(String, 1, #elixir_scope{filename=Filename, vars=Vars}).
-
-parse_and_transform(String, Line, #elixir_scope{filename=Filename} = S) ->
+parse(String, Line, #elixir_scope{filename=Filename} = S) ->
   Forms = forms(String, Line, Filename),
   transform_tree(Forms, S).
 
@@ -636,7 +632,7 @@ handle_string_extractions({s, String}, Line, S) ->
   { { string, Line, String }, S };
 
 handle_string_extractions({i, Interpolation}, Line, S) ->
-  { Tree, NS } = parse_and_transform(Interpolation, Line, S),
+  { Tree, NS } = parse(Interpolation, Line, S),
   Stringify = build_method_call(to_s, Line, {nil,Line}, hd(Tree)),
   { ?ELIXIR_WRAP_CALL(Line, erlang, element, [{integer, Line, 2}, Stringify]), NS }.
 

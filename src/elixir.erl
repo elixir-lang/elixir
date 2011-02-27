@@ -1,5 +1,5 @@
 -module(elixir).
--export([boot/0, eval/1, eval/2, eval/3, parse/2, require_file/1, require_file/2]).
+-export([boot/0, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3, require_file/1, require_file/2]).
 -include("elixir.hrl").
 
 % Boot up Elixir setting up tables and loading main files.
@@ -64,18 +64,22 @@ require_file(Path, [H|T]) ->
 % Evaluates a string
 eval(String) -> eval(String, []).
 eval(String, Binding) -> eval(String, Binding, "nofile").
-
-eval(String, Binding, Filename) ->
+eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
+eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, #elixir_scope{}).
+eval(String, Binding, Filename, Line, Scope) ->
   SelfBinding = case proplists:get_value(self, Binding) of
     undefined -> lists:append(Binding, [{self,elixir_constants:lookup('Object')}]);
     _  -> Binding
   end,
-  {value, Value, NewBinding} = erl_eval:exprs(parse(String, SelfBinding, Filename), SelfBinding),
+  ParseTree = parse(String, SelfBinding, Filename, Line, Scope),
+  {value, Value, NewBinding} = erl_eval:exprs(ParseTree, SelfBinding),
   {Value, proplists:delete(self, NewBinding)}.
 
 % Parse string and transform tree to Erlang Abstract Form format
 parse(String, Binding) -> parse(String, Binding, "nofile").
-
-parse(String, Binding, Filename) ->
-  { NewForms, _ } = elixir_transform:parse(String, Binding, Filename),
+parse(String, Binding, Filename) -> parse(String, Binding, Filename, 1, #elixir_scope{}).
+parse(String, Binding, Filename, Line, Scope) ->
+  Vars = lists:usort(proplists:get_keys(Binding)),
+  NewScope = Scope#elixir_scope{vars=Vars, filename=Filename},
+  { NewForms, _ } = elixir_transform:parse(String, Line, NewScope),
   NewForms.
