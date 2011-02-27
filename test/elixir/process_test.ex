@@ -1,29 +1,29 @@
-Code.require "fixtures/kitchen"
+Code.require "fixtures/fridge"
 
 object ProcessTest
   proto ExUnit::Case
 
   def spawn_and_messages_with_module_test
-    pid = Process.spawn(Kitchen, 'fridge, [['iogurt, 'bread]])
-    {'ok, 'bread} = Kitchen.take(pid, 'bread)
-    ['iogurt] = Kitchen.see(pid)
-    'ok = Kitchen.store(pid, 'soda)
-    ['soda, 'iogurt] = Kitchen.see(pid)
+    pid = Process.spawn(Fridge, 'loop, [['iogurt, 'bread]])
+    {'ok, 'bread} = Fridge.take(pid, 'bread)
+    ['iogurt] = Fridge.see(pid)
+    'ok = Fridge.store(pid, 'soda)
+    ['soda, 'iogurt] = Fridge.see(pid)
     pid <- 'terminate
   end
 
   def spawn_and_messages_with_object_test
-    kitchen = MyKitchen.new
-    pid = Process.spawn(kitchen, 'fridge, [['iogurt, 'bread]])
-    {'ok, 'bread} = kitchen.take(pid, 'bread)
-    ['iogurt] = kitchen.see(pid)
-    'ok = kitchen.store(pid, 'soda)
-    ['soda, 'iogurt] = kitchen.see(pid)
+    fridge = MyFridge.new
+    pid = Process.spawn(fridge, 'loop, [['iogurt, 'bread]])
+    {'ok, 'bread} = fridge.take(pid, 'bread)
+    ['iogurt] = fridge.see(pid)
+    'ok = fridge.store(pid, 'soda)
+    ['soda, 'iogurt] = fridge.see(pid)
     pid <- 'terminate
   end
 
   def spawn_and_messages_with_object_orientation_test
-    fridge = MyFridge.new ['iogurt, 'bread]
+    fridge = BestFridge.new ['iogurt, 'bread]
     {'ok, 'bread} = fridge.take('bread)
     ['iogurt] = fridge.see
     'ok = fridge.store('soda)
