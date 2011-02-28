@@ -1,6 +1,5 @@
 % Dependencies
 Code.require "ex_unit"
-Code.require "gen_server"
 
 % Tests
 Code.require "atom_test"

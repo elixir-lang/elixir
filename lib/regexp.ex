@@ -66,15 +66,41 @@ object Regexp
     { 'bin: regexp_bin, 'parsed_options: parsed_options, 'compiled: compiled }
   end
 
-  def run(target)
-    Erlang.re.run(target.to_bin, @compiled)
-  end
-
+  % Returns a boolean depending if the regular expressions matches the given string.
   def match?(target)
     'nomatch != run(target)
   end
 
+  % Receives a string and a replacement and returns a string where the first match
+  % of the regular expressions is replaced by replacement. Inside the replacement,
+  % you can either give "&" to access the whole regular expression or \N, where
+  % N is in integer to access an specific matching parens.
+  %
+  % ## Example
+  %
+  %     ~r(d).replace("abc", "d")        % => "abc"
+  %     ~r(b).replace("abc", "d")        % => "adc"
+  %     ~r(b).replace("abc", "[&]")      % => "a[b]c"
+  %     ~r(b).replace("abc", "[\\&]")    % => "a[&]c"
+  %     ~r[(b)].replace("abc", "[\\1]")  % => "a[b]c"
+  %
+  def replace(string, replacement)
+    iolist = Erlang.re.replace(string.to_bin, @compiled, replacement.to_bin)
+    String.new Erlang.iolist_to_binary(iolist)
+  end
+
+  % The same as replace, but replaces all parts where the regular expressions
+  % matches in the string. Please read `replace` for documentation and examples.
+  def replace_all(string, replacement)
+    iolist = Erlang.re.replace(string.to_bin, @compiled, replacement.to_bin, ['global])
+    String.new Erlang.iolist_to_binary(iolist)
+  end
+
   private
+
+  def run(target)
+    Erlang.re.run(target.to_bin, @compiled)
+  end
 
   def parse_option($u, acc); ['unicode|acc]; end
   def parse_option($i, acc); ['caseless|acc]; end

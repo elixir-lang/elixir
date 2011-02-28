@@ -23,4 +23,20 @@ object RegexpTest
     false = ~r(foo).match?("fOo")
     true = ~r(foo)i.match?("fOo")
   end
+
+  def replace_test
+    "abc"   = ~r(d).replace("abc", "d")
+    "adc"   = ~r(b).replace("abc", "d")
+    "a[b]c" = ~r(b).replace("abc", "[&]")
+    "a[&]c" = ~r(b).replace("abc", "[\\&]")
+    "a[b]c" = ~r[(b)].replace("abc", "[\\1]")
+  end
+
+  def replace_all_test
+    "abcbe"     = ~r(d).replace("abcbe", "d")
+    "adcde"     = ~r(b).replace_all("abcbe", "d")
+    "a[b]c[b]e" = ~r(b).replace_all("abcbe", "[&]")
+    "a[&]c[&]e" = ~r(b).replace_all("abcbe", "[\\&]")
+    "a[b]c[b]e" = ~r[(b)].replace_all("abcbe", "[\\1]")
+  end
 end
