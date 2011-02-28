@@ -14,6 +14,12 @@ object ListTest
     false = list.member?(4)
   end
 
+  def inspect_test
+    "[]" = [].inspect    
+    "[1,2,3]" = [1,2,3].inspect
+    "[1,2|3]" = [1,2|3].inspect
+  end
+
   def add_two_lists_together_test
     list_one = [1,2,3]
     list_two = [4,5,6]

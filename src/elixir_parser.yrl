@@ -594,6 +594,9 @@ objmod_body -> decl_list : '$1'.
 method_decl -> def method_name break body 'end' :
   build_def_method('$2', [], build_clause('$2', [], '$4')).
 
+method_decl -> def method_name match_args_parens body 'end' :
+  build_def_method('$2', '$3', build_clause('$2', '$3', '$4')).
+
 method_decl -> def method_name match_args_optional break body 'end' :
   build_def_method('$2', '$3', build_clause('$2', '$3', '$5')).
 

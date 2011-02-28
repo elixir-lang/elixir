@@ -148,8 +148,12 @@ object List
   end
 
   def inspect
-    strings = map -> (x) x.inspect.to_char_list
-    "[#{String.new Erlang.string.join(strings, [$,, $\s])}]"
+    tail = list_tail(self)
+    if tail == []
+      "[#{inspect_join(self)}]"
+    else
+      "[#{inspect_join(copy_without_tail(self, []))}|#{tail}]"
+    end
   end
 
   def to_s
@@ -167,4 +171,23 @@ object List
     Erlang.length(self)
   end
   alias_local 'length, 'size, 0
+
+  % Returns if the list is proper.
+  def proper?
+    list_tail(self) == []
+  end
+
+  private
+
+  def inspect_join(list)
+    strings = list.map -> (x) x.inspect.to_char_list
+    String.new Erlang.string.join(strings, [$,])
+  end
+
+  def list_tail([_|t]) list_tail(t); end
+  def list_tail([]) []; end
+  def list_tail(object) object; end
+
+  def copy_without_tail([h|t], acc) copy_without_tail(t, [h|acc]); end
+  def copy_without_tail(_, acc) acc.reverse; end
 end
