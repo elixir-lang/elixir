@@ -5,39 +5,59 @@
 % Boot up Elixir setting up tables and loading main files.
 boot() ->
   code:ensure_loaded(elixir_object_methods),
-  load_core_classes().
+  BasePath = stdlib_path(),
+  BaseFiles = stdlib_files(),
+  load_core_classes(BasePath, BaseFiles),
+  boot_code_server(BasePath, BaseFiles).
+
+% Return the full path for the Elixir installation.
+stdlib_path() ->
+  case os:getenv("ELIXIR_PATH") of
+    false ->
+      Dirname = filename:dirname(?FILE),
+      filename:join([Dirname, "..", "lib"]);
+    Path -> filename:join([Path, "lib"])
+  end.
+
+% Returns all stdlib files that are loaded on boot.
+stdlib_files() ->
+  [
+    "object.ex",
+    "module.ex",
+    "io.ex",
+    "atom.ex",
+    "numeric.ex",
+    "integer.ex",
+    "float.ex",
+    "list.ex",
+    "tuple.ex",
+    "string.ex",
+    "ordered_dict.ex",
+    "regexp.ex",
+    "bit_string.ex",
+    "process.ex",
+    "gen_server.ex",
+    "file.ex",
+    "code.ex"
+  ].
 
 % Load core elixir classes.
 % Note we pass the self binding as nil when loading object because
 % the default binding is Object, which at this point is not defined.
-load_core_classes() ->
-  Dirname = filename:dirname(?FILE),
-  Basepath = case os:getenv("ELIXIR_PATH") of
-    false -> filename:join([Dirname, "..", "lib"]);
-    Path -> filename:join([Path, "lib"])
-  end,
-  Loader = fun(Class) ->
-    Filepath = filename:join(Basepath, Class),
+load_core_classes(BasePath, BaseFiles) ->
+  Loader = fun(File) ->
+    Filepath = filename:join(BasePath, File),
     {ok, Binary} = file:read_file(Filepath),
     eval(binary_to_list(Binary), [{self, []}], Filepath)
   end,
-  lists:foreach(Loader, [
-    'object.ex',
-    'module.ex',
-    'code.ex',
-    'io.ex',
-    'atom.ex',
-    'numeric.ex',
-    'integer.ex',
-    'float.ex',
-    'list.ex',
-    'tuple.ex',
-    'string.ex',
-    'ordered_dict.ex',
-    'regexp.ex',
-    'bit_string.ex',
-    'process.ex'
-  ]).
+  lists:foreach(Loader, BaseFiles).
+
+% Finally boot the code server!
+boot_code_server(BasePath, BaseFiles) ->
+  Expanded = 'File::Mixin':expand_path(self, BasePath),
+  State = { [Expanded], BaseFiles },
+  Module = 'Code::Server':'__callbacks_module__'(self),
+  gen_server:start({local, elixir_code_server}, Module, State, []).
 
 % Paths are hardcoded here. We need to add support to load paths.
 % TODO This could be done completely with Elixir code.

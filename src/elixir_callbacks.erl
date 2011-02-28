@@ -45,7 +45,6 @@ build_module_form(Line, #elixir_object__{name=Name} = Object, Behavior, Callback
   TransExport = fun({Fun, Arity}) -> {Fun, Arity - 1} end,
   Functions   = lists:map(TransFuns, Callbacks),
   Export      = lists:map(TransExport, Callbacks),
-
   [{attribute, Line, module, callback_name(Object)},
    {attribute, Line, behavior, Behavior}, {attribute, Line, export, Export} | Functions].
 
@@ -53,19 +52,13 @@ build_function_form(Line, Module, {Name, ElixirArity}) ->
   Arity = ElixirArity - 1,
   Args  = build_args(Line, Arity, []),
   Const = ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Module}]),
-  Call  = ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [
-    {atom, Line, true}, Const, {atom, Line, Name}, build_list(Line, Args)
-  ]),
+  Call  = ?ELIXIR_WRAP_CALL(Line, Module, Name, [Const|Args]),
   {function, Line, Name, Arity,
     [{clause, Line, Args, [], [Call]}]
   }.
 
 build_args(_Line, 0, Acc)    -> Acc;
 build_args(Line, Arity, Acc) ->
-  Name = ?ELIXIR_ATOM_CONCAT(["X", Arity]),
+  Name = ?ELIXIR_ATOM_CONCAT(["x", Arity]),
   Var  = { var, Line, Name },
   build_args(Line, Arity - 1, [Var|Acc]).
-
-build_list(Line, Args)       -> build_list(Line, lists:reverse(Args), {nil, Line}).
-build_list(_Line, [], Acc)   -> Acc;
-build_list(Line, [H|T], Acc) -> build_list(Line, T, { cons, Line, H, Acc }).

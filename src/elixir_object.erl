@@ -108,6 +108,18 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
     ets:delete(AttributeTable)
   end.
 
+merge_module_mixins(Object) ->
+  OldMixins = elixir_object_methods:object_mixins(Object),
+  OldProtos = elixir_object_methods:object_protos(Object),
+  Adder = fun(X, Acc) ->
+    case lists:member(X, Acc) of
+      true  -> Acc;
+      false -> [X|Acc]
+    end
+  end,
+  NewMixins = lists:foldl(Adder, lists:reverse(OldMixins), OldProtos),
+  ets:insert(Object#elixir_object__.data, { mixins, lists:reverse(NewMixins) }).
+
 % Handle compilation logic specific to objects or modules.
 % TODO Allow object reopening but without method definition.
 % TODO Do not allow module reopening.
@@ -116,10 +128,7 @@ compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
   { Callbacks, Functions } = elixir_def_method:unwrap_stored_methods(MethodTable),
   Behavior = elixir_callbacks:behavior(Object),
   compile_callbacks(Behavior, Line, Filename, Object, Callbacks),
-  case code:ensure_loaded('Module') of
-    {module, 'Module'} -> elixir_object_methods:mixin(Object, Object);
-    _ -> []
-  end,
+  merge_module_mixins(Object),
   load_form(build_erlang_form(Line, Object, Functions), Filename),
   add_implicit_mixins(Current, Name);
 

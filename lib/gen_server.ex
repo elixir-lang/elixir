@@ -1,5 +1,18 @@
 module GenServer
   module Mixin
+    % TODO This is duplicated right now, we should fix it later.
+    def call(ref, request)
+      Erlang.gen_server.call(ref, request)
+    end
+
+    def call(ref, request, timeout)
+      Erlang.gen_server.call(ref, request, timeout)
+    end
+
+    def cast(ref, request)
+      Erlang.gen_server.cast(ref, request)
+    end
+
     protected
 
     % Callback that defines the registered module as a gen_server
