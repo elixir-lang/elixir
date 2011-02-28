@@ -78,7 +78,7 @@ Nonterminals
   implicit_method_ops_identifier
   case_expr case_clause case_clauses else_case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
-  exception_expr begin_clause rescue_args rescue_clause rescue_clauses after_clause
+  exception_expr try_clause catch_args catch_clause catch_clauses after_clause
   receive_expr receive_clause receive_clauses
   .
 
@@ -87,7 +87,7 @@ Terminals
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false
-  if elsif else then unless case match begin rescue receive after filename
+  if elsif else then unless case match try catch receive after filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '<-'
@@ -470,21 +470,21 @@ receive_clauses -> receive case_clauses : '$2'.
 receive_clauses -> receive break case_clauses : '$3'.
 
 % Begin/Rescue/After
-exception_expr -> begin_clause end : '$1'.
-exception_expr -> begin_clause rescue_clauses end : build_try('$1', '$2', []).
-exception_expr -> begin_clause after_clause end : build_try('$1', [], '$2').
-exception_expr -> begin_clause rescue_clauses after_clause end : build_try('$1', '$2', '$3').
+exception_expr -> try_clause end : '$1'.
+exception_expr -> try_clause catch_clauses end : build_try('$1', '$2', []).
+exception_expr -> try_clause after_clause end : build_try('$1', [], '$2').
+exception_expr -> try_clause catch_clauses after_clause end : build_try('$1', '$2', '$3').
 
-rescue_args -> expr : [{{atom, ?line('$1'), throw},'$1'}].
-rescue_args -> expr ':' expr : [{'$1', '$3'}].
-rescue_args -> expr comma_separator rescue_args : [{{atom, ?line('$1'), throw},'$1'}|'$3'].
-rescue_args -> expr ':' expr comma_separator rescue_args : [{'$1', '$3'}|'$5'].
+catch_args -> expr : [{{atom, ?line('$1'), throw},'$1'}].
+catch_args -> expr ':' expr : [{'$1', '$3'}].
+catch_args -> expr comma_separator catch_args : [{{atom, ?line('$1'), throw},'$1'}|'$3'].
+catch_args -> expr ':' expr comma_separator catch_args : [{'$1', '$3'}|'$5'].
 
-begin_clause -> begin expr_list : build_begin('$1', '$2').
+try_clause -> try expr_list : build_try('$1', '$2').
 
-rescue_clause -> rescue rescue_args then_break expr_list : build_rescue_clauses('$1', '$2', '$4').
-rescue_clauses -> rescue_clause : '$1'.
-rescue_clauses -> rescue_clause rescue_clauses : '$1' ++ '$2'.
+catch_clause -> catch catch_args then_break expr_list : build_catch_clauses('$1', '$2', '$4').
+catch_clauses -> catch_clause : '$1'.
+catch_clauses -> catch_clause catch_clauses : '$1' ++ '$2'.
 
 after_clause -> after expr_list : '$2'.
 
@@ -635,20 +635,20 @@ build_bracket_call(Expr, Args) ->
 build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.
 
-build_begin(Begin, []) ->
-   { 'begin', ?line(Begin), [{nil,?line(Begin)}] };
+build_try(Begin, []) ->
+   { 'try', ?line(Begin), [{nil,?line(Begin)}] };
 
-build_begin(Begin, Exprs) ->
-   { 'begin', ?line(Begin), Exprs}.
+build_try(Begin, Exprs) ->
+   { 'try', ?line(Begin), Exprs}.
 
 build_try(Block, Rescue, After) ->
   { 'try', ?line(Block), ?exprs(Block), [], Rescue, After }.
 
-build_rescue_clauses(Parent, Args, Body) ->
-  Transformer = fun(X) -> build_clause(Parent, build_rescue_arg(X), Body) end,
+build_catch_clauses(Parent, Args, Body) ->
+  Transformer = fun(X) -> build_clause(Parent, build_catch_arg(X), Body) end,
   lists:map(Transformer, Args).
 
-build_rescue_arg({Atom, Other}) ->
+build_catch_arg({Atom, Other}) ->
   [{tuple, ?line(Atom), [Atom, Other, {var, ?line(Atom), '_'}]}].
 
 build_multiple_clauses(Parent, Args, Body) ->

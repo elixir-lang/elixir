@@ -204,7 +204,7 @@ object Object
       Erlang.exit(reason)
     end
 
-    def catch(function)
+    def catch!(function)
       filter_stacktrace Erlang.elixir_object_methods.function_catch(function)
     end
 

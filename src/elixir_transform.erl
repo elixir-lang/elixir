@@ -351,7 +351,7 @@ transform({'fun', Line, {clauses, Clauses}}, S) ->
 % = Variables
 %
 % Variables are never passed forward. The counter is always passed.
-transform({'begin', Line, Exprs}, S) ->
+transform({'try', Line, Exprs}, S) ->
   { TExprs, SE } = transform_tree(Exprs, S),
   { { call, Line,
     { 'fun', Line,

@@ -247,11 +247,11 @@ alias_local_keeps_visibility_test() ->
 %% Catch test
 
 no_error_catch_test() ->
-  {2, []} = elixir:eval("Object.catch -> 1 + 1").
+  {2, []} = elixir:eval("Object.catch! -> 1 + 1").
 
 error_catch_test() ->
-  {{'EXIT',{{badmatch,2},[]}}, []} = elixir:eval("Object.catch -> 1 = 2"),
-  {{'EXIT',{function_clause,[{'Object::Methods','catch',1}]}}, []} = elixir:eval("Object.catch -> [].map(1)").
+  {{'EXIT',{{badmatch,2},[]}}, []} = elixir:eval("Object.catch! -> 1 = 2"),
+  {{'EXIT',{function_clause,[{'Object::Methods','catch!',1}]}}, []} = elixir:eval("Object.catch! -> [].map(1)").
 
 %% __LINE__ and __FILE__
 
