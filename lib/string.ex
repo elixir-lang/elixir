@@ -53,6 +53,41 @@ object String
     Erlang.binary_to_list(bin)
   end
 
+  % Substitute the first occurrence of *given* in the string by *replacement*.
+  %
+  % Currently, given can be only be a regular expression, strings may be allowed
+  % in the future. Please check `Regexp#replace` for more information about
+  % the characters allowed in *replacement*.
+  %
+  % == Examples
+  %
+  %     "abc"   = "abc".sub(~r(d), "d")
+  %     "adc"   = "abc".sub(~r(b), "d")
+  %     "a[b]c" = "abc".sub(~r(b), "[&]")
+  %     "a[&]c" = "abc".sub(~r(b), "[\\&]")
+  %     "a[b]c" = "abc".sub(~r[(b)], "[\\1]")
+  %
+  def sub(given, replacement)
+    given.replace(self, replacement)
+  end
+
+  % Substitute the **all** occurrence of *given* in the string by *replacement*.
+  %
+  % Currently, given can be only be a regular expression, strings may be allowed
+  % in the future. Please check `Regexp#replace` for more information about
+  % the characters allowed in *replacement*.
+  %
+  % == Examples
+  %
+  %     "abcbe"     = "abcbe".gsub(~r(d), "d")
+  %     "adcde"     = "abcbe".gsub(~r(b), "d")
+  %     "a[b]c[b]e" = "abcbe".gsub(~r(b), "[&]")
+  %     "a[&]c[&]e" = "abcbe".gsub(~r(b), "[\\&]")
+  %     "a[b]c[b]e" = "abcbe".gsub(~r[(b)], "[\\1]")
+  def gsub(given, replacement)
+    given.replace_all(self, replacement)
+  end
+
   % Returns a string representation of this string.
   %
   % ## Examples

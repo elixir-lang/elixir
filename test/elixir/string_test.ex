@@ -66,4 +66,20 @@ three
   def to_atom_test
     'hello = "hello".to_atom
   end
+
+  def sub_test
+    "abc"   = "abc".sub(~r(d), "d")
+    "adc"   = "abc".sub(~r(b), "d")
+    "a[b]c" = "abc".sub(~r(b), "[&]")
+    "a[&]c" = "abc".sub(~r(b), "[\\&]")
+    "a[b]c" = "abc".sub(~r[(b)], "[\\1]")
+  end
+
+  def gsub_test
+    "abcbe"     = "abcbe".gsub(~r(d), "d")
+    "adcde"     = "abcbe".gsub(~r(b), "d")
+    "a[b]c[b]e" = "abcbe".gsub(~r(b), "[&]")
+    "a[&]c[&]e" = "abcbe".gsub(~r(b), "[\\&]")
+    "a[b]c[b]e" = "abcbe".gsub(~r[(b)], "[\\1]")
+  end
 end

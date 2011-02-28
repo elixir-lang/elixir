@@ -76,13 +76,13 @@ object Regexp
   % you can either give "&" to access the whole regular expression or \N, where
   % N is in integer to access an specific matching parens.
   %
-  % ## Example
+  % ## Examples
   %
-  %     ~r(d).replace("abc", "d")        % => "abc"
-  %     ~r(b).replace("abc", "d")        % => "adc"
-  %     ~r(b).replace("abc", "[&]")      % => "a[b]c"
-  %     ~r(b).replace("abc", "[\\&]")    % => "a[&]c"
-  %     ~r[(b)].replace("abc", "[\\1]")  % => "a[b]c"
+  %     "abc"   = ~r(d).replace("abc", "d")
+  %     "adc"   = ~r(b).replace("abc", "d")
+  %     "a[b]c" = ~r(b).replace("abc", "[&]")
+  %     "a[&]c" = ~r(b).replace("abc", "[\\&]")
+  %     "a[b]c" = ~r[(b)].replace("abc", "[\\1]")
   %
   def replace(string, replacement)
     iolist = Erlang.re.replace(string.to_bin, @compiled, replacement.to_bin)
