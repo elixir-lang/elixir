@@ -43,6 +43,17 @@ object Atom
     Erlang.atom_to_binary(self, 'utf8)
   end
 
+  % A convenience method that returns a tuple representing a method.
+  % The syntax was borrowed from Erlang.
+  %
+  % ## Examples
+  %
+  %     'a/2  % => { 'a, 2 }
+  %
+  def /(arity)
+    {self, arity}
+  end
+
   private
 
   def inspect(true)

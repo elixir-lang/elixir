@@ -59,7 +59,7 @@ object String
   % in the future. Please check `Regexp#replace` for more information about
   % the characters allowed in *replacement*.
   %
-  % == Examples
+  % ## Examples
   %
   %     "abc"   = "abc".sub(~r(d), "d")
   %     "adc"   = "abc".sub(~r(b), "d")
@@ -77,7 +77,7 @@ object String
   % in the future. Please check `Regexp#replace` for more information about
   % the characters allowed in *replacement*.
   %
-  % == Examples
+  % ## Examples
   %
   %     "abcbe"     = "abcbe".gsub(~r(d), "d")
   %     "adcde"     = "abcbe".gsub(~r(b), "d")

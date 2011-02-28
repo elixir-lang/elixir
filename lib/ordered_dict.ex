@@ -14,6 +14,14 @@ object OrderedDict
     end
   end
 
+  def [](key)
+    case Erlang.orddict.find(key, orddict)
+    match {'ok, value}
+      value
+    match 'error
+    end
+  end
+
   % Calls the given *function* for each key and value of the dictionary with an
   % extra argumen *acc* (short for accumulator). *function* must return a new
   % accumulator passed to the next call. Returns the last accumulator.

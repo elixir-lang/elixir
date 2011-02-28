@@ -1,17 +1,6 @@
 module GenServer
   module Mixin
-    % TODO This is duplicated right now, we should fix it later.
-    def call(ref, request)
-      Erlang.gen_server.call(ref, request)
-    end
-
-    def call(ref, request, timeout)
-      Erlang.gen_server.call(ref, request, timeout)
-    end
-
-    def cast(ref, request)
-      Erlang.gen_server.cast(ref, request)
-    end
+    delegate ['call/2, 'call/3, 'cast/2], 'to: "Erlang.gen_server"
 
     protected
 
@@ -35,15 +24,5 @@ module GenServer
     Erlang.gen_server.start_link(name, self.__callbacks_module__, args, options)
   end
 
-  def call(ref, request)
-    Erlang.gen_server.call(ref, request)
-  end
-
-  def call(ref, request, timeout)
-    Erlang.gen_server.call(ref, request, timeout)
-  end
-
-  def cast(ref, request)
-    Erlang.gen_server.cast(ref, request)
-  end
+  delegate ['call/2, 'call/3, 'cast/2], 'to: "Erlang.gen_server"
 end

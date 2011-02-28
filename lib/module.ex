@@ -8,6 +8,50 @@ object Module
     % Set the following methods to protected.
     Erlang.elixir_module_methods.set_visibility(self, 'protected)
 
+    % Delegate the given methods to the given expression.
+    %
+    % ## Examples
+    %
+    %     module Counter
+    %       def one; 1; end
+    %       def two; 2; end
+    %       def three; 3; end
+    %       def sum(a, b) a+b; end
+    %     end
+    %
+    %     module Delegator
+    %       delegate ['one/0, 'two/0, 'three/0, 'sum/2], :to => "Counter"
+    %     end
+    %
+    %     Delegator.one       % => 1
+    %     Delegator.sum(1, 2) % => 3
+    %
+    % Notice that the value given to 'to can be any expression:
+    %
+    %     module Three
+    %       delegate ['abs/0], :to => "-3"
+    %     end
+    %
+    %     Three.abs  % => 3
+    %
+    def delegate(pairs, options)
+      object = options['to]
+
+      pairs.each do ({name, arity})
+        args = arity.times [], do (i, acc)
+          ["x#{i}"|acc]
+        end
+
+        args_string = args.join(",")
+
+        module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
+  def #{name}(#{args_string})
+    (#{object}).#{name}(#{args_string})
+  end
+~~
+      end
+    end
+
     % Hook invoked whenever this module is added as a mixin.
     % It receives the target object where the mixin is being added
     % as parameter and must return an object of the same kind.
@@ -73,7 +117,7 @@ object Module
     % Receives a file, line and evaluates the given string in the context
     % of the module. This is good for dynamic method definition:
     %
-    % == Examples
+    % ## Examples
     %
     %     module MyMethods
     %       ["foo", "bar", "baz"].each -> (m)

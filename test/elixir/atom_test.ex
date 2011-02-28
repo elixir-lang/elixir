@@ -10,6 +10,10 @@ object AtomTest
     "'\"foo bar\"" = '"foo bar".inspect
   end
 
+  def tuple_shortcut_test
+    {'a, 2} = 'a/2
+  end
+
   def to_s_test
     "foo" = 'foo.to_s
     "@foo" = '@foo.to_s

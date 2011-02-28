@@ -22,6 +22,12 @@ object OrderedDictTest
     end
   end
 
+  def brackets_test
+    4 = { 2: 4, 1: 2 }[2]
+    2 = { 2: 4, 1: 2 }[1]
+    [] = { 2: 4, 1: 2 }[0]
+  end
+
   protected
 
   def a_dict
