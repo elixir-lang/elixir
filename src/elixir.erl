@@ -24,6 +24,7 @@ stdlib_files() ->
   [
     "object.ex",
     "module.ex",
+    "iex.ex",
     "io.ex",
     "atom.ex",
     "numeric.ex",

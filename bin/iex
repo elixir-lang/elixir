@@ -1,0 +1,4 @@
+#!/bin/sh
+SCRIPT_PATH=`dirname $0`
+ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
+ELIXIR_PATH=$ELIXIR_PATH erl -I $ELIXIR_PATH/include -noshell -pa $ELIXIR_PATH/ebin -eval "elixir:boot(), elixir:eval(\"IEX.new.loop\"), halt()."
