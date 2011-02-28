@@ -20,7 +20,7 @@ object Module
     %     end
     %
     %     module Delegator
-    %       delegate ['one/0, 'two/0, 'three/0, 'sum/2], :to => "Counter"
+    %       delegate ['one/0, 'two/0, 'three/0, 'sum/2], 'to: "Counter"
     %     end
     %
     %     Delegator.one       % => 1
@@ -29,7 +29,7 @@ object Module
     % Notice that the value given to 'to can be any expression:
     %
     %     module Three
-    %       delegate ['abs/0], :to => "(2-5)"
+    %       delegate ['abs/0], 'to: "(2-5)"
     %     end
     %
     %     Three.abs  % => 3
@@ -120,14 +120,15 @@ object Module
     % ## Examples
     %
     %     module MyMethods
+    %
     %       ["foo", "bar", "baz"].each -> (m)
     %         self.module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
     %       def #{m}
     %         @#{m}
     %       end
     %     ~~
-    %         end
     %       end
+    %
     %     end
     % 
     def module_eval(file, line, string)
