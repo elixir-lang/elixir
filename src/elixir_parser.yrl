@@ -435,24 +435,24 @@ base_expr -> filename : '$1'.
 if_expr -> if_elsif_clauses 'end' : build_if_expr('$1').
 if_expr -> if_elsif_clauses else_clause 'end' : build_if_expr('$1', '$2').
 
-if_clause -> 'if' expr then_break expr_list : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
-if_clause -> 'unless' expr then_break expr_list : { 'if_clause', ?line('$1'), false, '$2', '$4' }.
+if_clause -> 'if' expr then_break body : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
+if_clause -> 'unless' expr then_break body : { 'if_clause', ?line('$1'), false, '$2', '$4' }.
 
 elsif_clauses -> elsif_clause elsif_clauses : ['$1'|'$2'].
 elsif_clauses -> elsif_clause : ['$1'].
-elsif_clause  -> elsif expr then_break expr_list : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
+elsif_clause  -> elsif expr then_break body : { 'if_clause', ?line('$1'), true, '$2', '$4' }.
 
 if_elsif_clauses -> if_clause : ['$1'].
 if_elsif_clauses -> if_clause elsif_clauses : ['$1'|'$2'].
 
-else_clause -> else expr_list : { else_clause, ?line('$1'), '$2' }.
-else_clause -> else ';' expr_list : { else_clause, ?line('$1'), '$3' }.
+else_clause -> else body : { else_clause, ?line('$1'), '$2' }.
+else_clause -> else ';' body : { else_clause, ?line('$1'), '$3' }.
 
 % Case
 case_expr -> case expr else_case_clauses 'end'       : { 'case', ?line('$1'), '$2', '$3' }.
 case_expr -> case expr break else_case_clauses 'end' : { 'case', ?line('$1'), '$2', '$4' }.
 
-case_clause -> match match_args_optional then_break expr_list : build_multiple_clauses('$1', '$2', '$4').
+case_clause -> match match_args_optional then_break body : build_multiple_clauses('$1', '$2', '$4').
 
 case_clauses -> case_clause : '$1'.
 case_clauses -> case_clause case_clauses : '$1' ++ '$2'.
@@ -462,9 +462,9 @@ else_case_clauses -> case_clauses else_clause : '$1' ++ ['$2'].
 
 % Receive
 receive_expr -> receive_clauses end : { 'receive', ?line(hd('$1')), '$1' }.
-receive_expr -> receive_clauses after expr then_break expr_list end : { 'receive', ?line(hd('$1')), '$1', '$3', '$5' }.
+receive_expr -> receive_clauses after expr then_break body end : { 'receive', ?line(hd('$1')), '$1', '$3', '$5' }.
 
-receive_clause -> receive match_args_optional then_break expr_list : build_multiple_clauses('$1', '$2', '$4').
+receive_clause -> receive match_args_optional then_break body : build_multiple_clauses('$1', '$2', '$4').
 receive_clauses -> receive_clause : '$1'.
 receive_clauses -> receive case_clauses : '$2'.
 receive_clauses -> receive break case_clauses : '$3'.
@@ -480,13 +480,13 @@ catch_args -> expr ':' expr : [{'$1', '$3'}].
 catch_args -> expr comma_separator catch_args : [{{atom, ?line('$1'), throw},'$1'}|'$3'].
 catch_args -> expr ':' expr comma_separator catch_args : [{'$1', '$3'}|'$5'].
 
-try_clause -> try expr_list : build_try('$1', '$2').
+try_clause -> try body : build_try('$1', '$2').
 
-catch_clause -> catch catch_args then_break expr_list : build_catch_clauses('$1', '$2', '$4').
+catch_clause -> catch catch_args then_break body : build_catch_clauses('$1', '$2', '$4').
 catch_clauses -> catch_clause : '$1'.
 catch_clauses -> catch_clause catch_clauses : '$1' ++ '$2'.
 
-after_clause -> after expr_list : '$2'.
+after_clause -> after body : '$2'.
 
 % String expressions
 string_base -> string : '$1'.

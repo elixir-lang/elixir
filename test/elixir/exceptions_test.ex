@@ -17,6 +17,11 @@ object ExceptionsTest
   end
 
   def try_with_throw_catch_test
+    try
+      self.throw({1,2})
+    catch _
+    end
+
     assert_executed {1,2}, -> try
       self.throw({1,2})
     catch value
