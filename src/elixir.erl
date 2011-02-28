@@ -36,6 +36,9 @@ stdlib_files() ->
     "regexp.ex",
     "bit_string.ex",
     "process.ex",
+    "port.ex",
+    "reference.ex",
+    "function.ex",
     "gen_server.ex",
     "file.ex",
     "code.ex"

@@ -188,8 +188,17 @@ object_parent(#elixir_string__{}) ->
 object_parent(Native) when is_tuple(Native) ->
   'Tuple';
 
+object_parent(Native) when is_function(Native) ->
+  'Function';
+
 object_parent(Native) when is_pid(Native) ->
-  'Process'.
+  'Process';
+
+object_parent(Native) when is_reference(Native) ->
+  'Reference';
+
+object_parent(Native) when is_port(Native) ->
+  'Port'.
 
 object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
   ets:lookup_element(Data, mixins, 2);
