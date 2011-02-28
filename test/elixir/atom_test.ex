@@ -1,6 +1,15 @@
 object AtomTest
   proto ExUnit::Case
 
+  def method_atoms_test
+    '+
+    '-
+    '/
+    '*
+    '<-
+    '[]
+  end
+
   def inspect_test
     "'foo" = 'foo.inspect
     "'@foo" = '@foo.inspect

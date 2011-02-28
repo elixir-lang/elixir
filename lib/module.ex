@@ -29,7 +29,7 @@ object Module
     % Notice that the value given to 'to can be any expression:
     %
     %     module Three
-    %       delegate ['abs/0], :to => "-3"
+    %       delegate ['abs/0], :to => "(2-5)"
     %     end
     %
     %     Three.abs  % => 3
@@ -46,7 +46,7 @@ object Module
 
         module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
   def #{name}(#{args_string})
-    (#{object}).#{name}(#{args_string})
+    #{object}.#{name}(#{args_string})
   end
 ~~
       end
