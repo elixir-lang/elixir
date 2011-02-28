@@ -28,7 +28,7 @@ Elixir requires Erlang R14A or later version to execute. R13 or prior version do
 * Add JIT on module compilation
 * Extending builtin types (like inheriting from Integer)
 * Add method cache table
-* Allow object definitions to be reopened or to copy from another object
+* Allow object definitions to be reopened (?) or to copy from another object
 * Improve constant lookup
 
 # Learning Elixir
@@ -1264,17 +1264,17 @@ Notice in the example above that `set_ivar` returns a new object. This is expect
 One final note about the object model is how instantiation works. When you create an instance from `Person`, it annotates that the parent for that instance is the `Person` object. Let's take a look at it:
 
     person = Person.new
-    person.__parent__   % => 'Person
+    person.__parent__   % => Person
 
 The `Person` object is a direct child from `Object`:
 
-    Person.__parent__  % => `Object`
+    Person.__parent__  % => Object
 
 While all modules are children from `Module` which is a child from `Object`. The object `Object`, has no parent:
 
-    Person::Mixin.__parent__ % => 'Module
-    Person::Proto.__parent__ % => 'Module
-    Module.__parent__        % => 'Object
+    Person::Mixin.__parent__ % => Module
+    Person::Proto.__parent__ % => Module
+    Module.__parent__        % => Object
     Object.__parent__        % => []
 
 The object `Object` defines `Object::Methods` as `proto`, this is why all objects have this method as their `mixin`. It doesn't matter if you are a child, a grandchild or a grand-grandchild from `Object`, this `mixin` will be available to you. This happens because, in order to calculate all mixins for a given object, Elixir traverses the whole ancestors chain getting all modules defined as `proto` for all parents.
@@ -1334,9 +1334,9 @@ Elixir keeps the same semantics as Erlang and makes a difference between local a
     end
 
     % Remember the parent for a module is 'Module
-    Example.__parent__   % => 'Module
-    Example.remote_call  % => 'Module
-    Example.local_call   % => 'Module
+    Example.__parent__   % => Module
+    Example.remote_call  % => Module
+    Example.local_call   % => Module
 
     % This won't work, in fact, it wouldn't even compile
     Example.invalid_local_call
@@ -1553,14 +1553,49 @@ Remaining of this section still needs to be implemented and written.
 
 * <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
 
-## Processes
+## Processes, Behavior and Callbacks
 
-To be written.
+Elixir provides the same facilities to deal with processes as Erlang. Messages are sent using `<-` and the same `receive/after` syntax is available. You can learn more about it by checking the `process.ex` file in the examples folder: <https://github.com/josevalim/elixir/tree/master/examples/process.ex>
 
-## Behavior and Callbacks
+Besides, Elixir also imports behaviors from Erlang OTP. Currently, just `GenServer` is implemented and support for others will come as needed. Once again, you can learn more in the examples folder: <https://github.com/josevalim/elixir/tree/master/examples/gen_server.ex>
 
-To be written.
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/process.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/gen_server.ex>
 
 ## Metaprogramming, Reflection and Dynamic Dispatch
 
-To be written.
+Elixir allows you to dynamically dispatch methods and retrieve information about objects:
+
+    [1,2,3].send 'head   % => 1
+    {}.send 'empty?      % => true
+
+    {}.public_mixin_methods.member? 'empty?  % => true
+    {}.__parent__ % => Hash
+
+Elixir also allow you to dynamically define methods. For example, below we can define attribute readers for both "title" and "author" attributes dynamically:
+
+    object Book
+      def constructor(title, author)
+        { 'title: title, 'author: author }
+      end
+
+      ["title", "author"].each do (method)
+        module_eval __FILE__, __LINE__ + 1, ~~METHOD
+      def #{method}
+        @#{method}
+      end
+    ~~
+      end
+    end
+
+The real benefit is when you encapsulate it inside a method. For example, the definition above is inside Elixir, so you can actually call:
+
+    object Book
+      attr_reader ['title, 'author]
+
+      def constructor(title, author)
+        { 'title: title, 'author: author }
+      end
+    end
