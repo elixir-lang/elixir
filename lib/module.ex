@@ -41,26 +41,27 @@ object Module
       base
     end
 
+    % Returns the current method visibility.
     def __visibility__
       Erlang.elixir_module_methods.get_visibility(self)
     end
 
+    % Mark all methods defined next as public.
     def public
       Erlang.elixir_module_methods.set_visibility(self, 'public)
     end
 
+    % Mark all methods defined next as protected.
     def protected
       Erlang.elixir_module_methods.set_visibility(self, 'protected)
     end
 
+    % Mark all methods defined next as private.
     def private
       Erlang.elixir_module_methods.set_visibility(self, 'private)
     end
 
-    def module_eval(file, line, string)
-      Erlang.elixir_module_methods.module_eval(self, string.to_char_list, file.to_char_list, line)
-    end
-
+    % Mark all methods defined next as callbacks.
     def callbacks
       if __behavior__
         Erlang.elixir_module_methods.set_visibility(self, 'callbacks)
@@ -69,10 +70,35 @@ object Module
       end
     end
 
+    % Receives a file, line and evaluates the given string in the context
+    % of the module. This is good for dynamic method definition:
+    %
+    % == Examples
+    %
+    %     module MyMethods
+    %       ["foo", "bar", "baz"].each -> (m)
+    %         self.module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
+    %       def #{m}
+    %         @#{m}
+    %       end
+    %     ~~
+    %         end
+    %       end
+    %     end
+    % 
+    def module_eval(file, line, string)
+      Erlang.elixir_module_methods.module_eval(self, string.to_char_list, file.to_char_list, line)
+    end
+
+    % Alias a local method. Aliasing a method defined in another module is done
+    % by delegation.
     def alias_local(old, new, arity)
       Erlang.elixir_module_methods.alias_local(self, __FILE__, old, new, arity)
     end
 
+    % Defines the behavior for the module setting up a __callbacks_module__
+    % which returns where the callbacks were defined. Check GenServer for
+    % some examples of usage.
     def define_behavior(value)
       Erlang.elixir_module_methods.define_attribute(self, 'behavior, value)
       module_eval __FILE__, __LINE__ + 1, ~~ELIXIR

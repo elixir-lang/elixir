@@ -19,8 +19,9 @@ Elixir requires Erlang R14A or later version to execute. R13 or prior version do
 * Add load paths
 * Add super
 * Add interactive elixir (iex)
-* Implement missing types and improve STDLIB
+* Implement missing types (Reference, Port) and improve STDLIB
 * Extend metaprogramming support
+* Improve error messages internally and in ExUnit
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add
 * Add _.foo
 * Support guards
