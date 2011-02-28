@@ -821,49 +821,49 @@ Similarly to Erlang, Elixir has three kinds of exceptions. They are raised with 
 
 To handle these exceptions, Elixir uses a syntax similar to Ruby:
 
-    begin
+    try
       self.throw {1,2}
-    rescue {1,2}
+    catch {1,2}
       IO.puts "Rescued {1,2}"
     end
 
-Similar to the `match` syntax, you can rescue different values in the same clause:
+Similar to the `match` syntax, you can catch different values in the same clause:
 
-    begin
+    try
       self.throw {1,2}
-    rescue {1,2}, {3,4}
+    catch {1,2}, {3,4}
       IO.puts "Rescued a tuple"
     end
 
-In order to rescue an `error` or an `exit`, you need to be explicit:
+In order to catch an `error` or an `exit`, you need to be explicit:
 
-    begin
+    try
       self.error {1,2}
-    rescue {1,2}
+    catch {1,2}
       IO.puts "I will never get a tuple {1,2}"
-    rescue 'error: {1,2}
+    catch 'error: {1,2}
       IO.puts "Rescue an error with {1,2}"
     end
 
 You must use the keyword `after` if you want to execute some code regardless if there was an exception or not:
 
-    begin
+    try
       self.error {1,2}
-    rescue {1,2}
+    catch {1,2}
       IO.puts "I will never get a tuple {1,2}"
     after
       IO.puts "I am always executed"
     end
 
-Notice that variables created inside begin/rescue/after clauses do not leak to the outer scope.
+Notice that variables created inside try/catch/after clauses do not leak to the outer scope.
 
-    begin
+    try
       foo = 13
     end
 
     foo % => raises undefined variable or local method foo error
 
-    begin
+    try
       foo = 13
     after
       IO.puts "I am always executed"
