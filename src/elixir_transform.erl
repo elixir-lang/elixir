@@ -87,7 +87,7 @@ transform({method_call, Line, Name, Args, Expr}, S) ->
 % Variables can be defined on method invocation.
 transform({local_call, Line, super, Args}, S) ->
   case S#elixir_scope.method of
-    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for super", "super");
+    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for super", "");
     Method ->
       { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, S),
 
@@ -440,13 +440,16 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, S) ->
 %
 % Variables are handled in each function clause.
 %
-% TODO Test that a method declaration outside a module raises an error.
 transform({def_method, Line, Name, Arity, Clauses}, S) ->
   {_, Module} = S#elixir_scope.module,
-  NewScope = S#elixir_scope{method=Name},
-  TClauses = [element(1, pack_method_clause(Clause, NewScope)) || Clause <- Clauses],
-  Method = {function, Line, Name, Arity + 1, TClauses},
-  { elixir_def_method:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), S };
+  case Module of
+    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method", "");
+    _ ->
+      NewScope = S#elixir_scope{method=Name},
+      TClauses = [element(1, pack_method_clause(Clause, NewScope)) || Clause <- Clauses],
+      Method = {function, Line, Name, Arity + 1, TClauses},
+      { elixir_def_method:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), S }
+  end;
 
 % Handle function calls.
 %

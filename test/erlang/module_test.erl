@@ -114,6 +114,9 @@ method_invocation_from_proto_test() ->
 cannot_defined_underscore_as_method_test() ->
   ?assertError({badsyntax, _}, elixir:eval("module Bar; def _(); 1 + 2; end; end")).
 
+invalid_method_definition_test() ->
+  ?assertError({badsyntax, "nofile:1: invalid scope for method"}, elixir:eval("def bar; end")).
+
 % Local calls
 
 local_call_test() ->
@@ -212,6 +215,9 @@ super_with_method_missing_test() ->
     {4,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
+
+invalid_super_call_test() ->
+  ?assertError({badsyntax, "nofile:1: invalid scope for super"}, elixir:eval("super")).
 
 %% Callbacks
 
