@@ -1,14 +1,19 @@
 -module(elixir).
--export([boot/0, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3, require_file/1, require_file/2]).
+-export([boot/0, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
 -include("elixir.hrl").
 
-% Boot up Elixir setting up tables and loading main files.
 boot() ->
+  % Ensure elixir_object_methods is loaded and running
   code:ensure_loaded(elixir_object_methods),
+
+  % Load stdlib files
   BasePath = stdlib_path(),
-  BaseFiles = stdlib_files(),
-  load_core_classes(BasePath, BaseFiles),
-  boot_code_server(BasePath, BaseFiles).
+  BaseFiles = [filename:join(BasePath, File) || File <- stdlib_files()],
+  load_core_classes(BaseFiles),
+
+  % Finally boot the code server!
+  Constant = elixir_constants:lookup('Code::Server'),
+  'Code::Server':start(Constant, BasePath, BaseFiles).
 
 % Return the full path for the Elixir installation.
 stdlib_path() ->
@@ -47,42 +52,12 @@ stdlib_files() ->
 % Load core elixir classes.
 % Note we pass the self binding as nil when loading object because
 % the default binding is Object, which at this point is not defined.
-load_core_classes(BasePath, BaseFiles) ->
-  Loader = fun(File) ->
-    Filepath = filename:join(BasePath, File),
+load_core_classes(BaseFiles) ->
+  Loader = fun(Filepath) ->
     {ok, Binary} = file:read_file(Filepath),
     eval(binary_to_list(Binary), [{self, []}], Filepath)
   end,
   lists:foreach(Loader, BaseFiles).
-
-% Finally boot the code server!
-boot_code_server(BasePath, BaseFiles) ->
-  Expanded = 'File::Mixin':expand_path(self, BasePath),
-  State = { [Expanded], BaseFiles },
-  Module = 'Code::Server':'__callbacks_module__'(self),
-  gen_server:start({local, elixir_code_server}, Module, State, []).
-
-% Paths are hardcoded here. We need to add support to load paths.
-% TODO This could be done completely with Elixir code.
-require_file(Path) ->
-  Dirname = filename:dirname(?FILE),
-  Paths = [
-    filename:join([Dirname, "..", "lib"]),
-    filename:join([Dirname, "..", "test", "elixir"]),
-    "."
-  ],
-  require_file(Path ++ ".ex", Paths).
-
-require_file(Path, []) ->
-  elixir_errors:raise(enoent, "could not load file ~ts", [Path]);
-
-require_file(Path, [H|T]) ->
-  Filepath = filename:join(H, Path),
-  case file:read_file(Filepath) of
-    { ok, Binary } -> eval(binary_to_list(Binary), [], Filepath);
-    { error, enoent } -> require_file(Path, T);
-    { error, Reason } -> elixir_errors:raise(Reason, "could not load file ~ts", [Filepath])
-  end.
 
 % Evaluates a string
 eval(String) -> eval(String, []).

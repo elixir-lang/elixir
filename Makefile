@@ -43,7 +43,7 @@ test_erlang: compile
 
 test_elixir: compile
 	@ echo Running Elixir tests ...
-	@ time $(ERL) -eval 'elixir:boot(), elixir:require_file("test_helper"), halt().'
+	@ time bin/elixir test/elixir/test_helper.ex
 	@ echo
 
 test: compile

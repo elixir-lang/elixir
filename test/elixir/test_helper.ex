@@ -1,3 +1,5 @@
+Code.unshift_path File.expand_path("..", __FILE__)
+
 % Dependencies
 Code.require "ex_unit"
 

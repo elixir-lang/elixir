@@ -1,4 +1,4 @@
 #!/bin/sh
 SCRIPT_PATH=`dirname $0`
 ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
-ELIXIR_PATH=$ELIXIR_PATH erl -I $ELIXIR_PATH/include -noshell -pa $ELIXIR_PATH/ebin -eval "elixir:boot(), elixir:require_file(\"$1\", [\".\"]), halt()."
+ELIXIR_PATH=$ELIXIR_PATH erl -I $ELIXIR_PATH/include -noshell -pa $ELIXIR_PATH/ebin -eval "elixir:boot(), elixir:eval(\"Code.require File.expand_path \\\"$1\\\"\"), halt()."
