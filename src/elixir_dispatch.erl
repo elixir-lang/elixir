@@ -7,8 +7,7 @@ dispatch(Self, Object, Method, Args) ->
   Chain = elixir_object_methods:mixins(Object),
   Arity = length(Args) + 1,
   case find_module(Chain, Method, Arity) of
-    [] ->
-      dispatch(Self, Object, method_missing, [Method, Args]);
+    [] -> dispatch(true, Object, method_missing, [Method, Args]);
     Module ->
       case visibility_matches(Self, Module, Method, Arity) of
         true  -> apply(Module, Method, [Object|Args]);
@@ -18,11 +17,11 @@ dispatch(Self, Object, Method, Args) ->
 
 super(Object, Module, Method, Args) ->
   WholeChain = elixir_object_methods:mixins(Object),
-  [_|Chain] = lists:dropwhile(fun(X) -> X /= Module end, WholeChain),
+  [Module|Chain] = lists:dropwhile(fun(X) -> X /= Module end, WholeChain),
   Arity = length(Args) + 1,
   case find_module(Chain, Method, Arity) of
     [] -> dispatch(true, Object, method_missing, [Method, Args]);
-    Module -> apply(Module, Method, [Object|Args])
+    Next -> apply(Next, Method, [Object|Args])
   end.
 
 % If self is true, we don't check if it is protected or not

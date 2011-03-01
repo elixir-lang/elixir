@@ -89,8 +89,7 @@ transform({local_call, Line, super, Args}, S) ->
   case S#elixir_scope.method of
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for super", "super");
     Method ->
-      { TArgs, SA } = transform_tree(Args, S),
-      FArgs = {cons, Line, TArgs, {nil, Line}},
+      { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, S),
 
       Module = case S#elixir_scope.module of
         {object, Name} -> ?ELIXIR_ATOM_CONCAT([Name, "::Proto"]);
@@ -98,7 +97,7 @@ transform({local_call, Line, super, Args}, S) ->
       end,
 
       { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, super, [
-        {var, Line, self}, {atom, Line, Module}, {atom, Line, Method}, FArgs
+        {var, Line, self}, {atom, Line, Module}, {atom, Line, Method}, TArgs
       ]), SA }
   end;
 

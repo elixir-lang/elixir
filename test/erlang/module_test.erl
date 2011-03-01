@@ -197,6 +197,22 @@ local_call_does_not_look_at_outer_modules_test() ->
 cannot_lookup_not_stored_constants_test() ->
   ?assertError({badarg, "no constant FooBarBaz defined" }, elixir:eval("FooBarBaz")).
 
+%% Super
+
+super_call_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\ndef __send__(method);super(method)+1;end\ndef bar; 3; end\nend"),
+    {4,[]} = elixir:eval("Bar.__send__ 'bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
+super_with_method_missing_test() ->
+  F = fun() ->
+    elixir:eval("module Bar\ndef bar;super + 1;end\nprotected\ndef method_missing('bar, []); 3; end\nend"),
+    {4,[]} = elixir:eval("Bar.bar")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
 %% Callbacks
 
 added_as_mixin_callback_test() ->
