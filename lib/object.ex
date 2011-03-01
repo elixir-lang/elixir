@@ -208,6 +208,10 @@ object Object
       filter_stacktrace Erlang.elixir_object_methods.function_catch(function)
     end
 
+    def method_missing(method, args)
+      error { 'nomethod, {self, method, args.length} }
+    end
+
     % Set the following methods to private.
     Erlang.elixir_module_methods.set_visibility(self, 'private)
 

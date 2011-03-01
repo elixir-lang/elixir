@@ -8,7 +8,7 @@ dispatch(Self, Object, Method, Args) ->
   Arity = length(Args) + 1,
   case find_module(Chain, Method, Arity) of
     [] ->
-      elixir_errors:error({nomethod, {Object, Method, Arity-1}});
+      dispatch(Self, Object, method_missing, [Method, Args]);
     Module ->
       case visibility_matches(Self, Module, Method, Arity) of
         true  -> apply(Module, Method, [Object|Args]);
