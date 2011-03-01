@@ -17,19 +17,17 @@ Elixir requires Erlang R14A or later version to execute. R13 or prior version do
 # Roadmap
 
 * Add load paths
-* Add super
-* Add interactive elixir (iex)
-* Implement missing types (Reference, Port) and improve STDLIB
-* Extend metaprogramming support
+* Extend interactive elixir (iex)
+* Extend STDLIB
 * Improve error messages internally and in ExUnit
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add
 * Add _.foo
 * Support guards
-* Add JIT on module compilation
-* Extending builtin types (like inheriting from Integer)
+* Add JIT with Hipe on module compilation
 * Add method cache table
 * Allow object definitions to be reopened (?) or to copy from another object
 * Improve constant lookup
+* Allow extension of builtin types (like inheriting from Integer)
 
 # Learning Elixir
 
@@ -1564,17 +1562,19 @@ Besides, Elixir also imports behaviors from Erlang OTP. Currently, just `GenServ
 * <https://github.com/josevalim/elixir/tree/master/lib/process.ex>
 * <https://github.com/josevalim/elixir/tree/master/lib/gen_server.ex>
 
-## Metaprogramming, Reflection and Dynamic Dispatch
+## Dynamic Dispatch, Reflection, Metaprogramming and Method Missing
 
-Elixir allows you to dynamically dispatch methods and retrieve information about objects:
+Elixir allows you to dynamically dispatch methods:
 
     [1,2,3].send 'head   % => 1
     {}.send 'empty?      % => true
 
+You can also retrieve internal information about objects, like ivars, methods available, mixins, protos, etc:
+
     {}.public_mixin_methods.member? 'empty?  % => true
     {}.__parent__ % => Hash
 
-Elixir also allow you to dynamically define methods. For example, below we can define attribute readers for both "title" and "author" attributes dynamically:
+Elixir also allows you to dynamically define methods. For example, below we can define attribute readers for both "title" and "author" attributes dynamically:
 
     object Book
       def constructor(title, author)
@@ -1599,3 +1599,26 @@ The real benefit is when you encapsulate it inside a method. For example, the de
         { 'title: title, 'author: author }
       end
     end
+
+Finally, Elixir also has a hook that allows you to dynamically invoke a method when one does not exist. This hook is a method called `method_missing` and receives a method and a list of parameters as arguments:
+
+    object Shouter
+      % Methods called without arguments will be handled here
+      def method_missing(method, [])
+        IO.puts "#{method}!!!"
+      end
+
+      % Call default behavior
+      def method_missing(method, args)
+        super method, args
+      end
+    end
+
+    shouter = Shouter.new
+    shouter.hello % => "hello!!!"
+    shouter.bye? % => "bye?!!!"
+
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/object.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
