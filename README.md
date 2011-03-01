@@ -16,7 +16,6 @@ Elixir requires Erlang R14A or later version to execute. R13 or prior version do
 
 # Roadmap
 
-* Add load paths
 * Extend interactive elixir (iex)
 * Extend STDLIB
 * Improve error messages internally and in ExUnit
@@ -1550,6 +1549,32 @@ Remaining of this section still needs to be implemented and written.
 #### Documentation
 
 * <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
+
+## Code and load paths
+
+Loading code in Elixir happens by requiring files. For example, you can load `ex_unit` for testing as follow:
+
+    Code.require "ex_unit"
+
+However, Elixir can only requires files that exist in any of the registered paths. You can access those paths as follow:
+
+    % Get all paths
+    Code.paths
+
+    % Add a new path to Code.paths. In case it exists
+    % it is not added again.
+    Code.push_path "."
+
+    % Unshifting a path gives higher priority in case
+    % the same file exists in more than one place
+    Code.unshift_path "."
+
+    % Delete an existing path from Code.
+    Code.delete_path "."
+
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/code.ex>
 
 ## Processes, Behavior and Callbacks
 

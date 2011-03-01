@@ -104,10 +104,12 @@ module Code
     end
   end
 
-  % Requires a file given by the full path. If the file does
+  % Requires a file given by the path. If the file does
   % not exist, an error is raised.
-  def require_absolute(fullpath)
-    case Erlang.file.read_file(fullpath.to_bin)
+  def require_file(path)
+    fullpath = File.expand_path(path).to_bin
+
+    case Erlang.file.read_file(fullpath)
     match { 'ok, binary }
       server_call { 'push_loaded, fullpath }
       Erlang.elixir.eval(binary.to_char_list, [], fullpath.to_char_list)
@@ -125,7 +127,7 @@ module Code
       if loaded.include?(fullpath)
         false
       else
-        require_absolute(fullpath)
+        require_file(fullpath)
         true
       end
     else

@@ -77,13 +77,6 @@ string_with_escaped_interpolation_test() ->
 invalid_string_interpolation_test() ->
   ?assertError({badarg, "unexpected end of string, expected }"}, elixir:eval("\"f#{{}o\"")).
 
-strings_are_utf8_chars_test() ->
-  F = fun() ->
-    elixir:require_file("../erlang/fixtures/utf8"),
-    {10,[]} = elixir:eval("Foo.length")
-  end,
-  test_helper:run_and_remove(F, ['Foo']).
-
 char_test() ->
   {99,[]} = elixir:eval("$1 + $2"),
   {10,[]} = elixir:eval("$\\n"),
