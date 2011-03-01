@@ -68,7 +68,7 @@ object ExceptionsTest
   def try_with_several_catch_test
     assert_executed true, -> try
       self.throw({1,2})
-    catch {3,4} 
+    catch {3,4}
       put! false
     catch {1,2}
       put! true
@@ -87,7 +87,42 @@ object ExceptionsTest
     end
   end
 
+  def implicit_test
+    assert_executed true, -> implicit_catch
+    assert_executed true, -> implicit_after
+    assert_executed true, -> implicit_catch_after
+    assert_executed true, -> implicit_useless_catch_after
+  end
+
   private
+
+  def implicit_catch
+    self.throw({1,2})
+  catch {3,4}, {1,2}
+    put! true
+  end
+
+  def implicit_after
+    []
+  after
+    put! true
+  end
+
+  def implicit_catch_after
+    self.throw({1,2})
+  catch {3,4}, {1,2}
+    put! true
+  after
+    []
+  end
+
+  def implicit_useless_catch_after
+    []
+  catch {1,2}
+    []
+  after
+    put! true
+  end
 
   def assert_executed(value, function)
     put!(false)

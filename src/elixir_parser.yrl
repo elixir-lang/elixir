@@ -68,14 +68,8 @@ Nonterminals
   andand_op
   oror_op
   dot_eol
-  object_decl
-  module_decl
-  objmod_body
-  method_decl
-  method_name
-  implicit_method_name
-  method_ops_identifier
-  implicit_method_ops_identifier
+  object_decl module_decl objmod_body
+  method_decl method_name method_body implicit_method_name method_ops_identifier implicit_method_ops_identifier
   case_expr case_clause case_clauses else_case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
   exception_expr try_clause catch_args catch_clause catch_clauses after_clause
@@ -591,14 +585,20 @@ objmod_body -> '$empty' : [{nil, 0}].
 objmod_body -> decl_list : '$1'.
 
 % Method declarations
-method_decl -> def method_name break body 'end' :
+method_decl -> def method_name break method_body :
   build_def_method('$2', [], build_clause('$2', [], '$4')).
 
-method_decl -> def method_name match_args_parens body 'end' :
+method_decl -> def method_name match_args_parens method_body :
   build_def_method('$2', '$3', build_clause('$2', '$3', '$4')).
 
-method_decl -> def method_name match_args_optional break body 'end' :
+method_decl -> def method_name match_args_optional break method_body :
   build_def_method('$2', '$3', build_clause('$2', '$3', '$5')).
+
+% Method body
+method_body -> body end : '$1'.
+method_body -> body catch_clauses end : build_method('$1', '$2', [], '$3').
+method_body -> body after_clause end : build_method('$1', [], '$2', '$3').
+method_body -> body catch_clauses after_clause end : build_method('$1', '$2', '$3', '$4').
 
 % Method names do not inherit from base_identifier, which includes object,
 % module and _ as keywords, to avoid conflicts.
@@ -646,6 +646,9 @@ build_try(Begin, Exprs) ->
 
 build_try(Block, Rescue, After) ->
   { 'try', ?line(Block), ?exprs(Block), [], Rescue, After }.
+
+build_method(Exprs, Rescue, After, End) ->
+  [{ 'try', ?line(End), Exprs, [], Rescue, After }].
 
 build_catch_clauses(Parent, Args, Body) ->
   Transformer = fun(X) -> build_clause(Parent, build_catch_arg(X), Body) end,
