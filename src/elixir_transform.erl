@@ -421,7 +421,7 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, S) ->
 %
 % TODO Test that a method declaration outside a module raises an error.
 transform({def_method, Line, Name, Arity, Clauses}, S) ->
-  Module = S#elixir_scope.module,
+  {_, Module} = S#elixir_scope.module,
   NewScope = S#elixir_scope{method=true},
   TClauses = [element(1, pack_method_clause(Clause, NewScope)) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
@@ -488,10 +488,10 @@ transform({bc, Line, Elements, Cases}, S) ->
 % context. The only variable available in the module by default
 % is self.
 transform({Kind, Line, Name, Parent, Exprs}, S) when Kind == object; Kind == module->
-  Current = S#elixir_scope.module,
+  {_, Current} = S#elixir_scope.module,
   Filename = S#elixir_scope.filename,
   NewName = elixir_object:scope_for(Current, Name),
-  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=false,module=NewName}),
+  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=false,module={Kind, NewName}}),
   { elixir_object:transform(Kind, Line, Filename, NewName, Parent, TExprs), S };
 
 % Handles __FILE__

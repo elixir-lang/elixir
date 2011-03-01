@@ -27,9 +27,9 @@
 %
 %   1) when true, new variables can be defined in that subtree
 %   2) when true, method declarations are allowed
-%   3) keeps the current module name
+%   3) keeps the current module kind and name
 %   4) keeps a list of defined variables
 %   5) keeps a counter with the variables defined
 %   6) filename keeps the current scope filename
 %
--record(elixir_scope, {match=false, method=false, module=[], vars=[], counter=0, filename="nofile"}).
+-record(elixir_scope, {match=false, method=false, module={[],[]}, vars=[], counter=0, filename="nofile"}).
