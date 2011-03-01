@@ -1,8 +1,8 @@
 -module(elixir_dispatch).
--export([dispatch/4]).
+-export([dispatch/4,super/4]).
 -include("elixir.hrl").
 
-% TODO Implement method missing dispatching.
+% TODO Implement method missing dispatching to protected methods.
 dispatch(Self, Object, Method, Args) ->
   Chain = elixir_object_methods:mixins(Object),
   Arity = length(Args) + 1,
@@ -14,6 +14,15 @@ dispatch(Self, Object, Method, Args) ->
         true  -> apply(Module, Method, [Object|Args]);
         false -> elixir_errors:error({protectedmethod, {Object, Module, Method, Arity-1}})
       end
+  end.
+
+super(Object, Module, Method, Args) ->
+  WholeChain = elixir_object_methods:mixins(Object),
+  [_|Chain] = lists:dropwhile(fun(X) -> X /= Module end, WholeChain),
+  Arity = length(Args) + 1,
+  case find_module(Chain, Method, Arity) of
+    [] -> dispatch(true, Object, method_missing, [Method, Args]);
+    Module -> apply(Module, Method, [Object|Args])
   end.
 
 % If self is true, we don't check if it is protected or not

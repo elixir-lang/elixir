@@ -80,6 +80,28 @@ transform({method_call, Line, Name, Args, Expr}, S) ->
   { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, umergec(S, SE)),
   { build_method_call(Name, Line, TArgs, TExpr), umergev(SE,SA) };
 
+% Handles a call to super.
+%
+% = Variables
+%
+% Variables can be defined on method invocation.
+transform({local_call, Line, super, Args}, S) ->
+  case S#elixir_scope.method of
+    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for super", "super");
+    Method ->
+      { TArgs, SA } = transform_tree(Args, S),
+      FArgs = {cons, Line, TArgs, {nil, Line}},
+
+      Module = case S#elixir_scope.module of
+        {object, Name} -> ?ELIXIR_ATOM_CONCAT([Name, "::Proto"]);
+        {module, Name} -> Name
+      end,
+
+      { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, super, [
+        {var, Line, self}, {atom, Line, Module}, {atom, Line, Method}, FArgs
+      ]), SA }
+  end;
+
 % Makes a local call.
 %
 % If a local call is done inside a method, they don't go through the method
@@ -91,11 +113,11 @@ transform({method_call, Line, Name, Args, Expr}, S) ->
 % New variables can be defined inside the arguments list.
 transform({local_call, Line, Name, Args}, S) ->
   case S#elixir_scope.method of
-    true ->
+    [] -> transform({method_call, Line, Name, Args, {var, Line, self}}, S);
+    _  ->
       { TArgs, SA } = transform_tree(Args, S),
       FArgs = handle_new_call(Name, Line, [{var, Line, self}|TArgs]),
-      { { call, Line, {atom, Line, Name}, FArgs }, SA };
-    false -> transform({method_call, Line, Name, Args, {var, Line, self}}, S)
+      { { call, Line, {atom, Line, Name}, FArgs }, SA }
   end;
 
 % Reference to a constant (that should then be loaded).
@@ -422,7 +444,7 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, S) ->
 % TODO Test that a method declaration outside a module raises an error.
 transform({def_method, Line, Name, Arity, Clauses}, S) ->
   {_, Module} = S#elixir_scope.module,
-  NewScope = S#elixir_scope{method=true},
+  NewScope = S#elixir_scope{method=Name},
   TClauses = [element(1, pack_method_clause(Clause, NewScope)) || Clause <- Clauses],
   Method = {function, Line, Name, Arity + 1, TClauses},
   { elixir_def_method:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), S };
@@ -491,7 +513,7 @@ transform({Kind, Line, Name, Parent, Exprs}, S) when Kind == object; Kind == mod
   {_, Current} = S#elixir_scope.module,
   Filename = S#elixir_scope.filename,
   NewName = elixir_object:scope_for(Current, Name),
-  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=false,module={Kind, NewName}}),
+  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],module={Kind, NewName}}),
   { elixir_object:transform(Kind, Line, Filename, NewName, Parent, TExprs), S };
 
 % Handles __FILE__
