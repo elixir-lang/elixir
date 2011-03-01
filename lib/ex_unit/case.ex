@@ -5,7 +5,6 @@ module ExUnit::Case
 
   def __tests__
     regexp = ~r(_test$)
-    method_names = self.__public_proto_methods__.map -> ({name, _arity}) name
-    method_names.select -> (name) regexp.match?(name)
+    [name for {name, _} in self.__public_proto_methods__, regexp.match?(name)]
   end
 end
