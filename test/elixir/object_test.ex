@@ -1,5 +1,6 @@
 Code.require "fixtures/like_cat"
 Code.require "fixtures/like_dog"
+Code.require "fixtures/recorder"
 
 object ObjectTest
   proto ExUnit::Case
@@ -46,5 +47,14 @@ object ObjectTest
     "<Object {'bar: 'baz, 'foo: 'bar}>" = with_ivars.inspect
 
     "<ObjectTest {}>" = self.inspect
+  end
+
+  def method_missing_test
+    recorder = Recorder.new
+
+    [{'hello, ['the, "world"]}] = recorder.hello('the, "world").calls
+
+    processor = recorder.filter( -> (x) x rem 2 == 0 ).map( -> (x) x * 10 )
+    [20, 40] = processor.play([1, 2, 3, 4])
   end
 end

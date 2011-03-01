@@ -1,0 +1,19 @@
+object Recorder
+  def constructor
+    {'calls : []}
+  end
+
+  def calls
+    @calls
+  end
+
+  def method_missing(method, args)
+    self.set_ivar('calls, [{method, args}|@calls])
+  end
+
+  def play(receiver)
+    @calls.foldr receiver, do ({method, args}, acc)
+      acc.__send__(method, args)
+    end
+  end
+end
