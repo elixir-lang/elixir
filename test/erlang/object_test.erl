@@ -112,16 +112,14 @@ arguments_given_to_new_is_passed_to_constructors_test() ->
 invalid_hash_on_construction_test() ->
   F = fun() ->
     elixir:eval("object Bar\ndef constructor;{1: 2};end\nend"),
-    Error = "constructor needs to return a OrderedDict with all keys as symbols, got {1: 2}",
-    ?assertError({badarg, Error}, elixir:eval("Bar.new"))
+    ?assertError({badconstructor, {elixir_orddict__, [{1,2}]}}, elixir:eval("Bar.new"))
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
 
 not_a_hash_on_construction_test() ->
   F = fun() ->
     elixir:eval("object Bar\ndef constructor;'a;end\nend"),
-    Error = "constructor needs to return a OrderedDict, got 'a",
-    ?assertError({badarg, Error}, elixir:eval("Bar.new"))
+    ?assertError({badconstructor, a}, elixir:eval("Bar.new"))
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
 

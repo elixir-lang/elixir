@@ -184,8 +184,15 @@ local_call_precedence_in_arrays_test() ->
 
 local_call_does_not_look_at_outer_modules_test() ->
   F = fun() ->
-    ?assertError({undefined_local_method,"nofile:4: undefined local method foo/0"},
+    ?assertError({undefined_identifier,"nofile:4: undefined variable or local method foo"},
       elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar\nmixin Foo\ndef bar; foo(); end\nend"))
+  end,
+  test_helper:run_and_remove(F, ['Foo','Bar']).
+
+local_call_does_not_look_at_outer_modules_with_arity_test() ->
+  F = fun() ->
+    ?assertError({undefined_identifier,"nofile:4: undefined local method foo/2"},
+      elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar\nmixin Foo\ndef bar; foo(1,2); end\nend"))
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
 
@@ -198,7 +205,7 @@ local_call_does_not_look_at_outer_modules_test() ->
 %   test_helper:run_and_remove(F, ['Foo']).
 
 cannot_lookup_not_stored_constants_test() ->
-  ?assertError({badarg, "no constant FooBarBaz defined" }, elixir:eval("FooBarBaz")).
+  ?assertError({noconstant, 'FooBarBaz' }, elixir:eval("FooBarBaz")).
 
 %% Super
 

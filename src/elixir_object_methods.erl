@@ -43,7 +43,7 @@ function_catch(Function) ->
 %% PROTECTED API
 
 get_ivar(Self, Name) when not is_atom(Name) ->
-  elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~ts", [inspect(Name)]);
+  elixir_errors:error({badivar, Name});
 
 get_ivar(#elixir_object__{data=Data}, Name) when is_atom(Data) ->
   Dict = ets:lookup_element(Data, data, 2),
@@ -56,7 +56,7 @@ get_ivar(Self, Name) -> % Native types do not have instance variables.
   [].
 
 set_ivar(Self, Name, Value) when not is_atom(Name) ->
-  elixir_errors:raise(badarg, "instance variable name needs to be an atom, got ~ts", [inspect(Name)]);
+  elixir_errors:error({badivar, Name});
 
 set_ivar(#elixir_object__{data=Data} = Self, Name, Value) when is_atom(Data) ->
   Dict = ets:lookup_element(Data, data, 2),
@@ -85,14 +85,11 @@ assert_dict_with_atoms(#elixir_orddict__{struct=Dict} = Object) ->
   case lists:all(fun is_atom/1, orddict:fetch_keys(Dict)) of
     true  -> Dict;
     false ->
-      elixir_errors:raise(badarg, "constructor needs to return a OrderedDict with all keys as symbols, got ~ts", [inspect(Object)])
+      elixir_errors:error({badconstructor, Object})
   end;
 
 assert_dict_with_atoms(Data) ->
-  elixir_errors:raise(badarg, "constructor needs to return a OrderedDict, got ~ts", [inspect(Data)]).
-
-inspect(Object) ->
-  element(2, elixir_dispatch:dispatch(false, Object, inspect, [])).
+  elixir_errors:error({badconstructor, Data}).
 
 % Helper that prepends a mixin or a proto to the object chain.
 prepend_as(#elixir_object__{name=Name} = Self, Chain, Kind, Value) ->

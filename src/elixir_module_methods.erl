@@ -9,7 +9,7 @@ set_visibility(#elixir_object__{name=Name, data=Data}, Visibility) when is_atom(
   ets:insert(MethodTable, { visibility, Visibility });
 
 set_visibility(Self, Visibility) ->
-  elixir_errors:raise(badarg, "cannot change visibility of defined object").
+  elixir_errors:error({moduledefined, { Self, set_visibility }}).
 
 get_visibility(#elixir_object__{name=Name, data=Data}) when is_atom(Data) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
@@ -28,8 +28,8 @@ alias_local(#elixir_object__{name=Name, data=Data} = Self, Filename, Old, New, E
       elixir_errors:error({nolocalmethod, {Self, Old, Arity}})
   end;
 
-alias_local(_, _, _, _, _) ->
-  elixir_errors:raise(badarg, "cannot alias local method in an already defined module").
+alias_local(Self, _, _, _, _) ->
+  elixir_errors:error({moduledefined, { Self, alias_local }}).
 
 define_attribute(#elixir_object__{data=Data, parent=Parent}, Key, Value) when is_atom(Data) ->
   case Parent of
@@ -39,8 +39,8 @@ define_attribute(#elixir_object__{data=Data, parent=Parent}, Key, Value) when is
       ets:insert(Data, { module, [{ Key, Value }|Current] })
   end;
 
-define_attribute(_, _, _) ->
-  elixir_errors:raise(badarg, "cannot add attribute to an already defined module").
+define_attribute(Self, _, _) ->
+  elixir_errors:error({moduledefined, { Self, define_attribute }}).
 
 copy_attributes_fun(Data) ->
   fun(Object) ->

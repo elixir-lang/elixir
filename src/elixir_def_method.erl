@@ -92,7 +92,7 @@ check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
   Available = [public, protected, callbacks, private],
   PrevVisibility = find_visibility(Name, Arity, Available, Table),
   case Visibility == PrevVisibility of
-    false -> format_warning(Filename, {Line, ?MODULE, {changed_visibility, Name, PrevVisibility}});
+    false -> elixir_errors:handle_file_warning(Filename, {Line, ?MODULE, {changed_visibility, {Name, PrevVisibility}}});
     true -> []
   end.
 
@@ -106,6 +106,3 @@ find_visibility(Name, Arity, [Visibility|T], Table) ->
     false -> find_visibility(Name, Arity, T, Table)
   end.
 
-format_warning(Filename, {Line,_,{changed_visibility,Name,Visibility}}) ->
-  Message = io_lib:format("method ~s already defined with visibility ~s\n", [Name, Visibility]),
-  io:format(elixir_errors:file_format(Line, Filename, Message)).

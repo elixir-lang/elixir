@@ -892,6 +892,26 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     `method` failed because `object` is not a module
 
+*   `{ 'noconstant, name }`
+
+    A constant with `name` could not be found
+
+*   `{ 'badivar, name }`
+
+    The `name` given is not an atom and cannot be given as instance variable name
+
+*   `{ 'badconstructor, value }`
+
+    `value` returned by `constructor` is not an OrderedDict or it is an OrderedDict, but not all keys are atoms
+
+*   `{ 'moduledefined, { module, method } }`
+
+    Cannot invoke `method` in `module` because the module was already defined. For example, calling `module_eval` in an already defined module will raise such errors.
+
+*   `{ 'badtype, { old, new } }`
+
+    Expected `new` to have the same parent or be a descendant of `old`, but it is not. Usually raised by callbacks which expect a similar object to be returned.
+
 ## Strings, Atoms, Regular Expressions, Interpolation and Sigils
 
 In Elixir, we have the following basic types related to Strings:

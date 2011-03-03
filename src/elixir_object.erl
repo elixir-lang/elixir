@@ -204,48 +204,14 @@ load_form(Forms, Filename) ->
   end.
 
 format_errors(Filename, []) ->
-  elixir_errors:raise(bad, "compilation failed but no error was raised");
+  exit({nocompile, "compilation failed but no error was raised"});
 
 format_errors(Filename, Errors) ->
   lists:foreach(fun ({_, Each}) ->
-    lists:foreach(fun (Error) -> format_error(Filename, Error) end, Each)
+    lists:foreach(fun (Error) -> elixir_errors:handle_file_error(Filename, Error) end, Each)
   end, Errors).
 
 format_warnings(Filename, Warnings) ->
   lists:foreach(fun ({_, Each}) ->
-    lists:foreach(fun (Warning) -> format_warning(Filename, Warning) end, Each)
+    lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Filename, Warning) end, Each)
   end, Warnings).
-
-
-% Handle warnings
-
-format_warning(Filename, {Line,_,{unused_var,self}}) ->
-  [];
-
-format_warning(Filename, {Line,_,nomatch_clause_type}) ->
-  [];
-
-format_warning(Filename, {Line, _, {unused_function, {Name, Arity}}}) ->
-  Message = io_lib:format("unused local method ~s/~w\n", [Name, Arity-1]),
-  io:format(elixir_errors:file_format(Line, Filename, Message));
-
-format_warning(Filename, {Line,Module,Desc}) ->
-  Message = Module:format_error(Desc),
-  io:format(elixir_errors:file_format(Line, Filename, Message) ++ [$\n]).
-
-% Handle errors
-
-% TODO This can also be undefined variable
-format_error(Filename, {Line,Module,{undefined_function,{Name, Arity}}}) ->
-  Message = io_lib:format("undefined local method ~s/~w", [Name, Arity-1]),
-  elixir_errors:file_error(undefined_local_method, Line, Filename, Message);
-
-format_error(Filename, {Line,Module,Desc}) ->
-  Message = Module:format_error(Desc),
-  elixir_errors:file_error(reason_from_desc(Desc), Line, Filename, Message).
-
-reason_from_desc(Desc) when is_tuple(Desc) ->
-  element(1, Desc);
-
-reason_from_desc(Desc) ->
-  Desc.

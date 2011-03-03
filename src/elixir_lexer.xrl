@@ -145,8 +145,11 @@ build_heredoc(Chars, Line, Length) ->
   Stop = string:rstr(Chars, "\n"),
   Pushback = extract_heredoc_pushback(Chars, Start),
   Substring = sublist(Chars, Start + 1, Stop - Start),
-  { String, [] } = extract_interpolations(true, Substring, []),
-  { token, { interpolated_string, Line, String }, Pushback }.
+  case extract_interpolations(true, Substring, []) of
+    { error, Message } -> { error, Message };
+    { String, [] } -> 
+      { token, { interpolated_string, Line, String }, Pushback }
+  end.
 
 % Build a bracket identifier.
 build_bracket_identifier(Line, Chars, Length) ->
@@ -160,14 +163,20 @@ build_char(Chars, Line) ->
 % Handle strings without interpolation.
 build_string(Kind, Chars, Line, Length, Distance) ->
   Interpol = (sublist(atom_to_list(Kind), 12) == "interpolated"),
-  { String, Pushback } = handle_chars(true, Interpol, Chars, Line, Length, Distance),
-  { token, { Kind, Line, String }, Pushback }.
+  case handle_chars(true, Interpol, Chars, Line, Length, Distance) of
+    { error, Message } -> { error, Message };
+    { String, Pushback } -> 
+      { token, { Kind, Line, String }, Pushback }
+  end.
 
 % Handle regular expressions.
 build_regexp(Kind, Chars, Line, Length) ->
   { Regexp, Options, NewLength } = extract_regexp_options(Chars),
-  { String, Pushback } = handle_chars(false, Kind == interpolated_regexp, Regexp, Line, NewLength, 4),
-  { token, { Kind, Line, String, Options }, [] }.
+  case handle_chars(false, Kind == interpolated_regexp, Regexp, Line, NewLength, 4) of
+    { error, Message } -> { error, Message };
+    { String, Pushback } -> 
+      { token, { Kind, Line, String, Options }, [] }
+  end.
 
 % Handle atoms without separators and without interpolation.
 build_atom(Chars, Line, Length) ->
@@ -176,12 +185,15 @@ build_atom(Chars, Line, Length) ->
 
 % Handle quoted atoms with or without interpolation.
 build_separator_atom(Kind, Chars, Line, Length) ->
-  { String, Pushback } = handle_chars(true, Kind == interpolated_atom, Chars, Line, Length, 3),
-  Atom = case Kind of
-    atom -> list_to_atom(String);
-    _ -> String
-  end,
-  { token, { Kind, Line, Atom }, Pushback }.
+  case handle_chars(true, Kind == interpolated_atom, Chars, Line, Length, 3) of
+    { error, Message } -> { error, Message };
+    { String, Pushback } -> 
+      Atom = case Kind of
+        atom -> list_to_atom(String);
+        _ -> String
+      end,
+      { token, { Kind, Line, Atom }, Pushback }
+  end.
 
 % Helpers to unescape and process chars.
 
@@ -289,7 +301,7 @@ extract_interpolations(Escaping, [Last], Buffer, [], Output, Last) ->
   { lists:reverse(build_interpol(s, Escaping, Buffer, Output)), [] };
 
 extract_interpolations(Escaping, [Last], Buffer, Search, Output, Last) ->
-  elixir_errors:raise(badarg, "unexpected end of string, expected ~ts", [[hd(Search)]]);
+  { error, io_lib:format("unexpected end of string, expected ~ts", [[hd(Search)]]) };
 
 extract_interpolations(Escaping, [$\\, $#, ${|Rest], Buffer, [], Output, Last) ->
   extract_interpolations(Escaping, Rest, [${,$#|Buffer], [], Output, Last);
