@@ -12,13 +12,12 @@ The tests are organized in two directories: `test/erlang` and `test/elixir`. The
 
 # Requirement
 
-Elixir requires Erlang R14A or later version to execute. R13 or prior version doesn't work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
+Elixir requires Erlang R14B01 or later version to execute. Prior versions (like R13 and R14A) do not work due to a bug in `yecc`, Erlang's built-in parser generator and lack of proper UTF8 support.
 
 # Roadmap
 
 * Extend interactive elixir (iex)
 * Extend STDLIB
-* Improve error messages internally and in ExUnit
 * Add partial application, pipeline f1 + f2, and 1#add and Integer##add
 * Add _.foo
 * Support guards
@@ -852,7 +851,7 @@ You must use the keyword `after` if you want to execute some code regardless if 
       IO.puts "I am always executed"
     end
 
-Notice that variables created inside try/catch/after clauses do not leak to the outer scope.
+It is important to keep in mind that **tail calls are not optimized** inside try blocks. This is expected as the runtime needs to keep the backtrace in case an exception occur. Also, notice that variables created inside try/catch/after clauses do not leak to the outer scope.
 
     try
       foo = 13
@@ -867,6 +866,41 @@ Notice that variables created inside try/catch/after clauses do not leak to the 
     end
 
     foo % => raises undefined variable or local method foo error
+
+When used inside methods, the `try/end` can be omitted:
+
+    def some_method
+      self.error {1,2}
+    catch {1,2}
+      IO.puts "I will never get a tuple {1,2}"
+    after
+      IO.puts "I am always executed"
+    end
+
+Again, be careful when using this pattern with tail calls, as the try block is not optimized. For instance, consider this method:
+
+    def some_method([h|t], value)
+      value = method_that_may_raise_error(h)
+      some_method(t, value)
+    catch {1,2}
+      IO.puts "I will never get a tuple {1,2}"
+    after
+      IO.puts "I am always executed"
+    end
+
+It should actually be written as:
+
+    def some_method([h|t], value)
+      value = try
+        method_that_may_raise_error(h)
+      catch {1,2}
+        IO.puts "I will never get a tuple {1,2}"
+      after
+        IO.puts "I am always executed"
+      end
+
+      some_method(t, value)
+    end
 
 ### List of errors
 

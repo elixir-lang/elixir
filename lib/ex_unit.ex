@@ -52,7 +52,7 @@ module ExUnit
     IO.puts("\n  Failed: #{total_failures}.  Passed: #{total_passed}.")
   end
 
-  % Print each failued that occurred.
+  % Print each failure that occurred.
   def print_failure({object, test, {reason, backtrace}}, acc)
     IO.puts("#{acc}) #{test}(#{object})\n  Reason: #{reason}\n  Backtrace:")
     backtrace.each -> (b) print_backtrace(b)

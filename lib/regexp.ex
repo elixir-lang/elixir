@@ -109,8 +109,7 @@ object Regexp
   def parse_option($r, acc); ['ungreedy|acc]; end
   def parse_option($m, acc); ['dotall, {'newline, 'anycrlf}|acc]; end
 
-  % TODO Do not use Erlang.error once Elixir's exception system is working
   def parse_option(option, _)
-    Erlang.error({'badarg, ~Q(unknown option "#{option.chr}").to_char_list})
+    self.error({'badarg, ~Q(unknown option "#{option.chr}").to_char_list})
   end
 end
