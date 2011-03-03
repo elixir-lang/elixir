@@ -52,6 +52,32 @@ object Module
       end
     end
 
+    % Receives a list of names and define a method for each name that
+    % reads its respective instance variable.
+    %
+    % ## Example
+    %
+    %     object Car
+    %       attr_reader ['color]
+    %
+    %       def constructor(color)
+    %         { 'color: color }
+    %       end
+    %     end
+    %
+    %     car = Car.new 'red
+    %     car.color   % => 'red
+    %
+    def attr_reader(names)
+      names.each do (name)
+        module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
+  def #{name}
+    @#{name}
+  end
+~~
+      end
+    end
+
     % Hook invoked whenever this module is added as a mixin.
     % It receives the target object where the mixin is being added
     % as parameter and must return an object of the same kind.
