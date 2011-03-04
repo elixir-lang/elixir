@@ -1,10 +1,48 @@
 module Code::Server
+  object State
+    attr_reader ['paths, 'loaded, 'argv]
+
+    def constructor(basepath, basefiles)
+      paths  = [File.expand_path(basepath)]
+      loaded = [File.expand_path(file) for file in basefiles]
+      { 'paths: paths, 'loaded: loaded, 'argv: [] }
+    end
+
+    def push_path(path)
+      unless_included path, -> @paths + [path]
+    end
+
+    def unshift_path(path)
+      unless_included path, -> [path|@paths]
+    end
+
+    def delete_path(path)
+      self.set_ivar 'paths, @paths.delete(path)
+    end
+
+    def loaded(path)
+      self.set_ivar 'loaded, [path|@loaded]
+    end
+
+    def argv(argv)
+      self.set_ivar 'argv, argv
+    end
+
+    protected
+
+    def unless_included(path, function)
+      if @paths.include?(path)
+        self
+      else
+        self.set_ivar('paths, function())
+      end
+    end
+  end
+
   proto GenServer
 
   def start(basepath, basefiles)
-    path  = [File.expand_path(basepath)]
-    files = [File.expand_path(file) for file in basefiles]
-    self.start({'local, 'elixir_code_server}, {path, files}, [])
+    self.start({'local, 'elixir_code_server}, Code::Server::State.new(basepath, basefiles), [])
   end
 
   callbacks
@@ -13,28 +51,22 @@ module Code::Server
     { 'ok, state }
   end
 
-  def handle_call({'push_path, path}, _from, {paths,loaded})
-    unless_included path, paths, loaded, -> paths + [path]
+  % Define the following callbacks expecting one argument and dispatching them to state.
+  ['push_path, 'unshift_path, 'delete_path, 'argv, 'loaded].each do (arg)
+    module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
+def handle_call({'#{arg}, arg}, _from, state)
+  { 'reply, 'ok, state.#{arg}(arg) }
+end
+~~
   end
 
-  def handle_call({'unshift_path, path}, _from, {paths,loaded})
-    unless_included path, paths, loaded, -> [path|paths]
-  end
-
-  def handle_call({'delete_path, path}, _from, {paths,loaded})
-    { 'reply, 'ok, { paths.delete(path), loaded } }
-  end
-
-  def handle_call('paths, _from, {paths, loaded})
-    { 'reply, paths, { paths, loaded} }
-  end
-
-  def handle_call({'push_loaded, path}, _from, {paths,loaded})
-    { 'reply, 'ok, { paths, [path|loaded] } }
-  end
-
-  def handle_call('loaded, _from, {paths, loaded})
-    { 'reply, loaded, { paths, loaded} }
+  % Read values from state
+  ['paths, 'loaded, 'argv].each do (arg)
+    module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
+def handle_call('#{arg}, _from, state)
+  { 'reply, state.#{arg}, state }
+end
+~~
   end
 
   def handle_call(_request, _from, state)
@@ -57,12 +89,5 @@ module Code::Server
 
   def code_change(_old, state, _extra)
     { 'ok, state }
-  end
-
-  private
-
-  def unless_included(path, paths, loaded, function)
-    final = if paths.include?(path) then paths else function() end
-    { 'reply, 'ok, {final, loaded} }
   end
 end

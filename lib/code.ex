@@ -1,4 +1,8 @@
 module Code
+  def argv
+    server_call 'argv
+  end
+
   def version
     "0.1.0"
   end
@@ -46,7 +50,7 @@ module Code
 
     case Erlang.file.read_file(fullpath)
     match { 'ok, binary }
-      server_call { 'push_loaded, fullpath }
+      server_call { 'loaded, fullpath }
       Erlang.elixir.eval(binary.to_char_list, [], fullpath.to_char_list)
     match other
       self.error other
