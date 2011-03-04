@@ -1,8 +1,20 @@
 #!/bin/sh
 if [ $# -eq 0 ]; then
-  echo "Usage: `basename $0` file1.ex file2.ex file3.ex
+  echo "Usage: `basename $0` [switches] [files]
 
-Options can be passed to the erlang compiler by using ELIXIR_ERL_OPTS." >&2
+  -v              Prints version and exit
+  -e \"command\"    Evaluates the given command (may be used more than once)
+  -f \"command\"    The same as -e, but executes at the end (may be used more than once)
+
+* Each file passed will be loaded and executed.
+
+* All files an options are executed in the order they are supplied. For instance:
+
+  elixir foo.ex -e \"1 + 2\" baz.ex
+
+  Will load the file foo.ex, then evaluate the expression, then load baz.ex.
+
+* Options can be passed to the erlang compiler by using ELIXIR_ERL_OPTS." >&2
   exit 1
 fi
 
