@@ -192,6 +192,10 @@ object Object
 
     % Exceptions related methods
 
+    def __stacktrace__
+      filter_stacktrace Erlang.get_stacktrace
+    end
+
     def error(reason)
       Erlang.error(reason)
     end
@@ -205,7 +209,7 @@ object Object
     end
 
     def catch!(function)
-      filter_stacktrace Erlang.elixir_object_methods.function_catch(function)
+      filter_catch_stacktrace Erlang.elixir_object_methods.function_catch(function)
     end
 
     def method_missing(method, args)
@@ -215,19 +219,27 @@ object Object
     % Set the following methods to private.
     Erlang.elixir_module_methods.set_visibility(self, 'private)
 
-    def filter_stacktrace({ 'EXIT, { reason, stacktrace } })
-      regexp = ~r(^[A-Z])
-      newtrace = stacktrace.foldr [], do ({module, function, arity}, acc)
-        if regexp.match?(module)
-          [{module, function, arity - 1}|acc]
-        else
-          acc
-        end
-      end
-      { 'EXIT, { reason, newtrace } }
+    def filter_stacktrace(stacktrace)
+      filter_stacktrace(stacktrace, [], ~r(^[A-Z]))
     end
 
-    def filter_stacktrace(other)
+    def filter_stacktrace([{module, function, arity}|t], buffer, regexp)
+      if regexp.match?(module)
+        filter_stacktrace t, [{module, function, arity - 1}|buffer], regexp
+      else
+        filter_stacktrace t, buffer, regexp
+      end
+    end
+
+    def filter_stacktrace([], buffer, _)
+      buffer.reverse
+    end
+
+    def filter_catch_stacktrace({ 'EXIT, { reason, stacktrace } })
+      { 'EXIT, { reason, filter_stacktrace(stacktrace) } }
+    end
+
+    def filter_catch_stacktrace(other)
       other
     end
   end

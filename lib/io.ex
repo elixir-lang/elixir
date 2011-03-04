@@ -7,6 +7,10 @@ module IO
     Erlang.io.format(<<message.to_s.to_bin|binary, $\n>>)
   end
 
+  def puts(output, message)
+    Erlang.io.format(output, <<message.to_s.to_bin|binary, $\n>>)
+  end
+
   def gets
     gets("")
   end

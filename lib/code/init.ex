@@ -7,10 +7,21 @@ module Code::Init
   def process_argv(options)
     { real, argv } = split_options(options, [])
     GenServer.call('elixir_code_server, { 'argv, argv })
-    process_option(real)
+
+    try
+      process_option(real)
+    catch kind: error
+      IO.puts 'standard_error, "** #{kind} #{error.inspect}"
+      self.__stacktrace__.each -> (s) print_stacktrace(s)
+      halt!
+    end
   end
 
   private
+
+  def halt!
+    Erlang.halt()
+  end
 
   def split_options([$"--"|t], buffer)
     { buffer.reverse, t.map -> (i) String.new i }
@@ -44,6 +55,10 @@ module Code::Init
   end
 
   def process_option([])
-    Erlang.halt()
+    halt!
+  end
+
+  def print_stacktrace({module, method, arity})
+    IO.puts 'standard_error, "    #{module}##{method}/#{arity}"
   end
 end

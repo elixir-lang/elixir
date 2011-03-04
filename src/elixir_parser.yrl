@@ -169,6 +169,7 @@ expr -> np_call_exprs : '$1'.
 np_call_exprs -> np_method_call_expr : '$1'.
 np_call_exprs -> np_erlang_call_expr : '$1'.
 np_call_exprs -> base_identifier : '$1'.
+np_call_exprs -> implicit_method_name : build_local_call('$1', []).
 np_call_exprs -> brackets_call : '$1'.
 np_call_exprs -> brackets_expr : '$1'.
 
@@ -228,6 +229,7 @@ _expr -> _np_call_exprs : '$1'.
 _np_call_exprs -> _np_method_call_expr : '$1'.
 _np_call_exprs -> np_erlang_call_expr : '$1'.
 _np_call_exprs -> base_identifier : '$1'.
+_np_call_exprs -> implicit_method_name : build_local_call('$1', []).
 _np_call_exprs -> _brackets_call : '$1'.
 _np_call_exprs -> _brackets_expr : '$1'.
 
