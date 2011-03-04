@@ -1,5 +1,4 @@
 EBIN_DIR=ebin
-SOURCE_DIR=src
 TEST_DIR=test
 INCLUDE_DIR=include
 
@@ -10,27 +9,19 @@ ERLC_FLAGS=-W0 -Ddebug +debug_info
 ERLC=erlc -I $(INCLUDE_DIR) $(ERLC_FLAGS)
 ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
 
-PARSER_BASE_NAME=elixir
-LEXER_NAME=$(PARSER_BASE_NAME)_lexer
-PARSER_NAME=$(PARSER_BASE_NAME)_parser
-
 .PHONY: test test_erlang test_elixir clean
 
-compile: ebin
+src/elixir_lexer.erl: src/elixir_lexer.xrl
+	$(ERL) -eval 'leex:file("$<"), halt().'
 
-ebin: src/*
-	@ # Clean any .beam file
-	@ make clean
-	@ # Start compiling
-	@ echo Compiling ...
+src/elixir_parser.erl: src/elixir_parser.yrl
+	$(ERL) -eval 'yecc:file("$<"), halt().'
+
+ebin: src/*.erl
 	@ mkdir -p $(EBIN_DIR)
-	@ # Generate the lexer
-	@ $(ERL) -eval 'leex:file("$(SOURCE_DIR)/$(LEXER_NAME)"), halt().'
-	@ # Generate the parser
-	@ $(ERL) -eval 'yecc:file("$(SOURCE_DIR)/$(PARSER_NAME)"), halt().'
-	@ # Compile everything
-	$(ERLC) -o $(EBIN_DIR) $(SOURCE_DIR)/*.erl
-	@ echo
+	$(ERLC) -o $(EBIN_DIR) $?
+
+compile: src/elixir_lexer.erl src/elixir_parser.erl ebin
 
 test_erlang: compile
 	@ echo Running Erlang tests ...
@@ -39,19 +30,17 @@ test_erlang: compile
 	@ $(ERLC) -o $(TEST_EBIN_DIR) $(TEST_SOURCE_DIR)/*.erl
 	@ # Look and execute each file
 	@ time $(ERL) $(TEST_EBIN_DIR) -eval 'test_helper:test(), halt().'
-	@ echo 
+	@ echo
 
 test_elixir: compile
 	@ echo Running Elixir tests ...
 	@ time bin/elixir test/elixir/test_helper.ex
 	@ echo
 
-test: compile
-	@ make test_erlang
-	@ make test_elixir
+test: test_erlang test_elixir
 
 clean:
-	@ rm -f $(SOURCE_DIR)/$(LEXER_NAME).erl
-	@ rm -f $(SOURCE_DIR)/$(PARSER_NAME).erl
+	@ rm -f src/elixir_lexer.erl
+	@ rm -f src/elixir_parser.erl
 	@ rm -f $(EBIN_DIR)/*.beam
 	@ rm -f $(TEST_EBIN_DIR)/*.beam
