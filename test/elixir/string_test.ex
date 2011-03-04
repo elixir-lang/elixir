@@ -67,6 +67,13 @@ three
     'hello = "hello".to_atom
   end
 
+  def include_test
+    true  = "abc".include?("a")
+    true  = "abc".include?("abc")
+    true  = "ab cd".include?("b c")
+    false = "abc".include?("d")
+  end
+
   def sub_test
     "abc"   = "abc".sub(~r(d), "d")
     "adc"   = "abc".sub(~r(b), "d")

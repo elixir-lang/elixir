@@ -53,6 +53,19 @@ object String
     Erlang.binary_to_list(bin)
   end
 
+  % Check if the current string includes the given string.
+  %
+  % ## Examples
+  %
+  %     true  = "elixir".include?("el")
+  %     false = "elixir".include?("ex")
+  %
+  def include?(string)
+    cl1 = to_char_list
+    cl2 = string.to_char_list
+    include?(cl1, cl2, cl1.length, cl2.length)
+  end
+
   % Substitute the first occurrence of *given* in the string by *replacement*.
   %
   % Currently, given can be only be a regular expression, strings may be allowed
@@ -115,5 +128,42 @@ object String
 
   def bin
     Erlang.element(2, self)
+  end
+
+  def include?([], _, _, _)
+    false
+  end
+
+  def include?(original, compare, l1, l2)
+    if prefix(compare, original, l2, l1)
+      true
+    else
+      [_|t] = original
+      include? t, compare, l1 - 1, l2
+    end
+  end
+
+  def prefix(pre, string, l1, l2)
+    if l2 < l1
+      false
+    else
+      prefix(pre, string)
+    end
+  end
+
+  def prefix([], _)
+    true
+  end
+
+  def prefix(_, [])
+    false
+  end
+
+  def prefix([h|pre], [h|string])
+    prefix(pre, string)
+  end
+
+  def prefix(_, _)
+    false
   end
 end
