@@ -118,6 +118,17 @@ module Code
     end
   end
 
+  protected
+
+  def process_argv(files)
+    files.each do (file)
+      require_file file
+    end
+
+    % Regardless, always halt at the end.
+    Erlang.halt()
+  end
+
   private
 
   def require_in_paths(path, [h|t], loaded)

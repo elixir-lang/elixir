@@ -11,9 +11,13 @@ boot() ->
   BaseFiles = [filename:join(BasePath, File) || File <- stdlib_files()],
   load_core_classes(BaseFiles),
 
-  % Finally boot the code server!
-  Constant = elixir_constants:lookup('Code::Server'),
-  'Code::Server':start(Constant, BasePath, BaseFiles).
+  % Boot the code server
+  CodeServer = elixir_constants:lookup('Code::Server'),
+  'Code::Server':start(CodeServer, BasePath, BaseFiles),
+
+  % Process given options
+  Code = elixir_constants:lookup('Code'),
+  'Code':process_argv(Code, init:get_plain_arguments()).
 
 % Return the full path for the Elixir installation.
 stdlib_path() ->

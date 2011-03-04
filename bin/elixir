@@ -1,4 +1,12 @@
 #!/bin/sh
+if [ $# -eq 0 ]; then
+  echo "Usage: `basename $0` file1.ex file2.ex file3.ex
+
+Options can be passed to the erlang compiler by using ELIXIR_ERL_OPTS." >&2
+  exit 1
+fi
+
 SCRIPT_PATH=`dirname $0`
 ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
-ELIXIR_PATH=$ELIXIR_PATH erl -I $ELIXIR_PATH/include -noshell -pa $ELIXIR_PATH/ebin -eval "elixir:boot(), elixir:eval(\"Code.require_file File.expand_path \\\"$1\\\"\"), halt()."
+export ELIXIR_PATH=$ELIXIR_PATH
+erl -I $ELIXIR_PATH/include -noshell -pa $ELIXIR_PATH/ebin $ELIXIR_ERL_OPTS -s elixir boot -extra $*
