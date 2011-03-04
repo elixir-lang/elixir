@@ -11,6 +11,12 @@ ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
 
 .PHONY: test test_erlang test_elixir clean
 
+# This is the default task
+compile: src/elixir_lexer.erl src/elixir_parser.erl ebin
+
+# install:
+# We will need to do this one at some point
+
 src/elixir_lexer.erl: src/elixir_lexer.xrl
 	$(ERL) -eval 'leex:file("$<"), halt().'
 
@@ -20,8 +26,6 @@ src/elixir_parser.erl: src/elixir_parser.yrl
 ebin: src/*.erl
 	@ mkdir -p $(EBIN_DIR)
 	$(ERLC) -o $(EBIN_DIR) $?
-
-compile: src/elixir_lexer.erl src/elixir_parser.erl ebin
 
 test_erlang: compile
 	@ echo Running Erlang tests ...
