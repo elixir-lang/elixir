@@ -6,20 +6,39 @@ The main difference between Elixir and Erlang is syntax and object orientation. 
 
 # Usage
 
-Elixir is not ready for use yet, though this milestone will be achieved soon. If you want to contribute to Elixir, you can do that by cloning the repository and running ``make test``.
+Elixir is still in development. If you want to help building it or are just looking for some fun, you can get started now! First, you need to clone this repository to your machine, compile and test it:
 
-The tests are organized in two directories: `test/erlang` and `test/elixir`. The first is written in Erlang and the second in Elixir. Much of Elixir's standard library is written in Elixir and tested in Elixir. This makes fairly easy to improve the language.
+    git clone https://github.com/josevalim/elixir.git
+    cd elixir
+    make test
 
-# Requirement
+Notice that Elixir requires Erlang R14B01 or later version to execute. Prior versions (like R13 and R14A) do not work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
 
-Elixir requires Erlang R14B01 or later version to execute. Prior versions (like R13 and R14A) do not work due to a bug in `yecc`, Erlang's built-in parser generator and lack of proper UTF8 support.
+Running the commands above with a supported Erlang version should compile Elixir and show as result that all tests pass. After, you are ready to play with Elixir!
 
-# Roadmap
+This README provides a length explanation about Elixir in the Learning Elixir section below. There are also some examples [in the examples folder](https://github.com/josevalim/elixir/tree/master/examples/) that you can run by executing the `bin/elixir EXAMPLE`. Feel free to build your own examples and study the language better.
+
+## Contributing
+
+If you want to contribute to Elixir, the code is organized as most Erlang projects:
+
+* include, src - Both directories contain the part of the source code written in Erlang. `leex` and `yecc` were used as tokenizer and parser respectively;
+
+* lib - Contains Elixir's STDLIB, written in Elixir;
+
+* test/elixir - Tests for Elixir's STDLIB, written in Elixir. For this purpose, Elixir ships with a small unit test library called `ExUnit`;
+
+* test/erlang - Contains tests for Elixir, written in Erlang. Usually, just internal stuff is tested here. The preferred way to test is in Elixir itself;
+
+As much of Elixir's standard library is written in Elixir and tested in Elixir, you don't need to be an advanced Erlang user to improve the language. As an example, you may take a look at the [List implementation](https://github.com/josevalim/elixir/tree/master/lib/list.ex) and [its tests](https://github.com/josevalim/elixir/tree/master/test/elixir/list_test.ex) to check how simple it is.
+
+## Roadmap
+
+Here are a few things that we plan to add to Elixir in the long term.
 
 * Extend interactive elixir (iex)
-* Extend STDLIB
-* Add partial application, pipeline f1 + f2, and 1#add and Integer##add
-* Add _.foo
+* Add partial application, pipeline f1 + f2, and an easy way to retrieve functions (1#add and Integer##add?)
+* Add _.foo as shortcut to -> (x) x.foo
 * Support guards
 * Add JIT with Hipe on module compilation
 * Add method cache table
@@ -1701,3 +1720,26 @@ Finally, Elixir also has a hook that allows you to dynamically invoke a method w
 
 * <https://github.com/josevalim/elixir/tree/master/lib/object.ex>
 * <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
+
+# License
+
+Copyright (c) 2011 José Valim
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
