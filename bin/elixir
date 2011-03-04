@@ -9,4 +9,4 @@ fi
 SCRIPT_PATH=`dirname $0`
 ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
 export ELIXIR_PATH=$ELIXIR_PATH
-erl -I $ELIXIR_PATH/include -noshell -pa $ELIXIR_PATH/ebin $ELIXIR_ERL_OPTS -s elixir boot -extra $*
+erl -I $ELIXIR_PATH/include -noshell -pa $ELIXIR_PATH/ebin $ELIXIR_ERL_OPTS -s elixir boot -extra "$@"

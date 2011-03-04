@@ -16,8 +16,8 @@ boot() ->
   'Code::Server':start(CodeServer, BasePath, BaseFiles),
 
   % Process given options
-  Code = elixir_constants:lookup('Code'),
-  'Code':process_argv(Code, init:get_plain_arguments()).
+  CodeInit = elixir_constants:lookup('Code::Init'),
+  'Code::Init':process_argv(CodeInit, init:get_plain_arguments()).
 
 % Return the full path for the Elixir installation.
 stdlib_path() ->
@@ -50,7 +50,9 @@ stdlib_files() ->
     "function.ex",
     "gen_server.ex",
     "file.ex",
-    "code.ex"
+    "code.ex",
+    "code/server.ex",
+    "code/init.ex"
   ].
 
 % Load core elixir classes.

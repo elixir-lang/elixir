@@ -4,7 +4,7 @@ module IO
   end
 
   def puts(message)
-    Erlang.io.format(<<message.to_bin|binary, $\n>>)
+    Erlang.io.format(<<message.to_s.to_bin|binary, $\n>>)
   end
 
   def gets
