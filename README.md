@@ -508,7 +508,7 @@ Finally, pattern matching can also be implemented in methods signatures. Here is
     Math.fibonacci(3)   % => 2
     Math.fibonacci(10)  % => 55
 
-We will discuss modules and methods with more details later.
+Notice the example above is not tail call optimized. We will discuss modules, methods and optimizations later.
 
 ## Operators
 
