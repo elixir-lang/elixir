@@ -1,4 +1,11 @@
 #!/bin/sh
 SCRIPT_PATH=`dirname $0`
 ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
-bin/elixir -f "Code.require \"iex\";IEX.new.loop"
+
+# Readline support in the form of rlwrap
+if type -P rlwrap &>/dev/null; then 
+  echo "Found rlwrap, enabling readline support."; 
+  rlwrap bin/elixir -f "Code.require \"iex\";IEX.new.loop"
+else 
+  bin/elixir -f "Code.require \"iex\";IEX.new.loop"
+fi
