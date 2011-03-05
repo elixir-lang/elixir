@@ -16,4 +16,4 @@ end
 Math.fibonacci(0)   % => 0
 Math.fibonacci(1)   % => 1
 Math.fibonacci(3)   % => 2
-Math.fibonacci(1000000)  % => 55
+Math.fibonacci(10)  % => 55
