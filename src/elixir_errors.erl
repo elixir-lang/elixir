@@ -21,7 +21,7 @@ syntax_error(Line, Filename, Error, Token) when is_atom(Error) ->
   syntax_error(Line, Filename, [atom_to_list(Error), $\s], Token);
 
 syntax_error(Line, Filename, Error, Token) ->
-  file_error(badsyntax, Line, Filename, lists:flatten([Error, Token])).
+  elixir_errors:error({badsyntax, Line, Filename, Error, Token}).
 
 % Handle warnings
 

@@ -10,8 +10,8 @@ object IEX
       {result, new_binding} = Erlang.elixir.eval(code.to_list, @binding)
       IO.puts result.inspect
       self.set_ivar('binding, new_binding).loop
-    catch 'error: {'badsyntax, msg}
-      IO.puts(String.new msg)
+    catch 'error: {'badsyntax, _line, _filename, error, token}
+      IO.puts("Syntax Error: #{String.new error} #{token.inspect}")
       loop
     catch 'error: e
       IO.puts "Error: #{e.inspect}"
