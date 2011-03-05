@@ -66,3 +66,4 @@ clean:
 	rm -rf $(EBIN_DIR)
 	rm -rf $(TEST_EBIN_DIR)
 	rm -rf libc
+	@ echo

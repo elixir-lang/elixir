@@ -61,19 +61,22 @@ stdlib_main() ->
     "gen_server.ex",
     "file.ex",
     "code.ex",
-    "code/init.ex"
+    "code/init.ex",
+    "code/server.ex"
   ].
 
 stdlib_compile() ->
   stdlib_main() ++ [
-    "os.ex"
+    "iex.ex",
+    "os.ex",
+    "ex_unit/assertions.ex",
+    "ex_unit/case.ex",
+    "ex_unit/server.ex"
   ].
 
 % Returns all stdlib files that are loaded on boot.
 stdlib_files() ->
-  stdlib_main() ++ [
-    "code/server.ex"
-  ].
+  stdlib_main().
 
 % Compile elixir core objects.
 compile_core_objects(BaseFiles) ->

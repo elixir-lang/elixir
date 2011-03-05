@@ -1,5 +1,3 @@
-Code.require "ex_unit/assertions"
-
 module ExUnit::Case
   proto ExUnit::Assertions
 

@@ -67,5 +67,6 @@ module ExUnit
   end
 end
 
+Code.require "ex_unit/assertions"
 Code.require "ex_unit/case"
 Code.require "ex_unit/server"
