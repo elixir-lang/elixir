@@ -33,12 +33,12 @@ test_erlang: compile
 	@ # Compile test files
 	@ $(ERLC) -o $(TEST_EBIN_DIR) $(TEST_SOURCE_DIR)/*.erl
 	@ # Look and execute each file
-	@ time $(ERL) $(TEST_EBIN_DIR) -eval 'test_helper:test(), halt().'
+	time $(ERL) $(TEST_EBIN_DIR) -eval 'test_helper:test(), halt().'
 	@ echo
 
 test_elixir: compile
 	@ echo Running Elixir tests ...
-	@ time bin/elixir test/elixir/test_helper.ex
+	time bin/exunit test/elixir/*_test.ex
 	@ echo
 
 test: test_erlang test_elixir

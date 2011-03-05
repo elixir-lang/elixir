@@ -10,7 +10,11 @@ module ExUnit::Server
   end
 
   def add_case(name)
-    GenServer.call('exunit_server, { 'add_case, name })
+    try
+      GenServer.call('exunit_server, { 'add_case, name })
+    catch 'exit: { 'noproc, _ }
+      self.exit "ExUnit::Server is not running. Are you sure you invoked ExUnit.configure()?"
+    end
   end
 
   def cases

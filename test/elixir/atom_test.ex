@@ -1,3 +1,5 @@
+Code.require File.expand_path("../test_helper", __FILE__)
+
 object AtomTest
   proto ExUnit::Case
 

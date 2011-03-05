@@ -1,3 +1,5 @@
+Code.require File.expand_path("../test_helper", __FILE__)
+
 object StringTest
   proto ExUnit::Case
 
@@ -33,7 +35,7 @@ three
 ~~
 
     % Ensure backtrace line is still the same
-    36 = __LINE__
+    38 = __LINE__
 
     ["one\n", "two\n", "three\n"] = list
   end

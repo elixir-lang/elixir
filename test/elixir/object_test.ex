@@ -1,3 +1,4 @@
+Code.require File.expand_path("../test_helper", __FILE__)
 Code.require "fixtures/like_cat"
 Code.require "fixtures/like_dog"
 Code.require "fixtures/recorder"

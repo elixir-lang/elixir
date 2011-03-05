@@ -1,3 +1,4 @@
+Code.require File.expand_path("../test_helper", __FILE__)
 Code.require "os"
 
 object CodeTest
