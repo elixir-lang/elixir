@@ -131,6 +131,10 @@ Erlang code.
 -import(lists, [sublist/2, sublist/3]).
 -export([extract_interpolations/3]).
 
+% The following directive is needed for (significantly) faster compilation
+% of the generated .erl file by the HiPE compiler. Please do not remove.
+-compile([{hipe,[{regalloc,linear_scan}]}]).
+
 % Generic building block for constants and identifiers.
 build(Kind, Line, Chars) ->
   Atom = list_to_atom(Chars),

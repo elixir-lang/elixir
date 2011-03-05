@@ -32,6 +32,14 @@ If you want to contribute to Elixir, the code is organized as most Erlang projec
 
 As much of Elixir's standard library is written in Elixir and tested in Elixir, you don't need to be an advanced Erlang user to improve the language. As an example, you may take a look at the [List implementation](https://github.com/josevalim/elixir/tree/master/lib/list.ex) and [its tests](https://github.com/josevalim/elixir/tree/master/test/elixir/list_test.ex) to check how simple it is.
 
+## Compilation to Native Code
+
+Elixir can compile to native code using the Hipe compiler. All you need to do is to export the following before running your code:
+
+    export ERL_COMPILER_OPTIONS=native
+
+Notice this should affect boot time considerably, although improve performance on execution.
+
 ## Roadmap
 
 Here are a few things that we plan to add to Elixir in the long term.
@@ -40,7 +48,6 @@ Here are a few things that we plan to add to Elixir in the long term.
 * Add partial application, pipeline f1 + f2, and an easy way to retrieve functions (1#add and Integer##add?)
 * Add _.foo as shortcut to -> (x) x.foo
 * Support guards
-* Add JIT with Hipe on module compilation
 * Add method cache table
 * Allow object definitions to be reopened (?) or to copy from another object
 * Improve constant lookup

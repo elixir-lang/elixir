@@ -4,12 +4,11 @@
 
 compile() ->
   code:ensure_loaded(elixir_object_methods),
-  put(elixir_compile_core, true),
 
   % Load stdlib files
   BasePath = stdlib_path(),
   BaseFiles = [filename:join(BasePath, File) || File <- stdlib_compile()],
-  load_core_objects(BaseFiles, true),
+  compile_core_objects(BaseFiles),
 
   halt().
 
@@ -76,7 +75,17 @@ stdlib_files() ->
     "code/server.ex"
   ].
 
-% Load core elixir objecys.
+% Compile elixir core objects.
+compile_core_objects(BaseFiles) ->
+  Loader = fun(Filepath) ->
+    put(elixir_compile_core, []),
+    load_core_object(Filepath, true),
+    CompiledName = filename:rootname(Filepath, ".ex") ++ ".exb",
+    ok = file:write_file(CompiledName, term_to_binary(get(elixir_compile_core)))
+  end,
+  lists:foreach(Loader, BaseFiles).
+
+% Load core elixir objects.
 % Note we pass the self binding as nil when loading object because
 % the default binding is Object, which at this point is not defined.
 load_core_objects(BaseFiles, Force) ->
@@ -91,8 +100,8 @@ load_core_object(Filepath, _) ->
   Compiled = filename:rootname(Filepath, ".ex") ++ ".exb",
   case file:read_file(Compiled) of
     { ok, Terms } ->
-      { Module, Filename, Binary } = binary_to_term(Terms),
-      code:load_binary(Module, Filename, Binary);
+      List = binary_to_term(Terms),
+      lists:foreach(fun({M,F,B}) -> code:load_binary(M, F, B) end, List);
     _ -> load_core_object(Filepath, true)
   end.
 
