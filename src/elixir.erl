@@ -56,6 +56,8 @@ stdlib_files() ->
     "code/server.ex"
   ].
 
+recache() -> os:getenv("ELIXIR_RECACHE") == "1".
+
 % Load core elixir objects.
 % Note we pass the self binding as nil when loading object because
 % the default binding is Object, which at this point is not defined.
@@ -65,15 +67,29 @@ cache_regexp() ->
 
 internal_require(Filepath, Regexp) ->
   { ok, Source } = file:read_file_info(Filepath),
-  require(Filepath, Source, [{self,[]}], Regexp),
+  require(Filepath, Source, [{self,[]}], Regexp, recache()),
   Filepath.
 
+check_compiled() ->
+  case get(elixir_compile_core) of
+    undefined -> [];
+    _ ->
+      io:format("ERROR: Using cache directive in a file that requires other files, exiting ...\n"),
+      exit(badrequire)
+  end.
+
 require(Filepath, Source) ->
-  require(Filepath, Source, [], cache_regexp()).
+  require(Filepath, Source, [], cache_regexp(), recache()).
 
 % Require a file by attempting to read its cached bytecode
 % or loading it manually.
-require(Filepath, Source, Binding, Regexp) ->
+require(Filepath, Source, Binding, Regexp, true) ->
+  check_compiled(),
+  Compiled = filename:rootname(Filepath, ".ex") ++ ".exb",
+  load(Filepath, Compiled, Binding, Regexp);
+
+require(Filepath, Source, Binding, Regexp, _) ->
+  check_compiled(),
   Compiled = filename:rootname(Filepath, ".ex") ++ ".exb",
   case file:read_file_info(Compiled) of
     { ok, Info } ->
@@ -88,8 +104,7 @@ require(Filepath, Source, Binding, Regexp) ->
           load(Filepath, Compiled, Binding, Regexp)
       end;
     _ -> load(Filepath, Compiled, Binding, Regexp)
-  end,
-  Filepath. % Return the filepath
+  end.
 
 % If we got here, it means we could not load the cached one.
 % Load the file and create a new cache if the directive says so.
@@ -100,9 +115,13 @@ load(Filepath, Compiled, Binding, Regexp) ->
       put(elixir_compile_core, undefined),
       eval(binary_to_list(Binary), Binding, Filepath);
     _ ->
-      put(elixir_compile_core, []),
-      eval(binary_to_list(Binary), Binding, Filepath),
-      ok = file:write_file(Compiled, term_to_binary(get(elixir_compile_core)))
+      try
+        put(elixir_compile_core, []),
+        eval(binary_to_list(Binary), Binding, Filepath),
+        ok = file:write_file(Compiled, term_to_binary(get(elixir_compile_core)))
+      after
+        put(elixir_compile_core, undefined)
+      end
   end.
 
 % Evaluates a string

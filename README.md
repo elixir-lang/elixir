@@ -32,14 +32,6 @@ If you want to contribute to Elixir, the code is organized as most Erlang projec
 
 As much of Elixir's standard library is written in Elixir and tested in Elixir, you don't need to be an advanced Erlang user to improve the language. As an example, you may take a look at the [List implementation](https://github.com/josevalim/elixir/tree/master/lib/list.ex) and [its tests](https://github.com/josevalim/elixir/tree/master/test/elixir/list_test.ex) to check how simple it is.
 
-## Compilation to Native Code
-
-Elixir can compile to native code using the Hipe compiler. All you need to do is to export the following before running your code:
-
-    export ERL_COMPILER_OPTIONS=native
-
-Notice this should affect boot time considerably, although improve performance on execution.
-
 ## Roadmap
 
 Here are a few things that we plan to add to Elixir in the long term.
@@ -1727,6 +1719,44 @@ Finally, Elixir also has a hook that allows you to dynamically invoke a method w
 
 * <https://github.com/josevalim/elixir/tree/master/lib/object.ex>
 * <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
+
+# Performance
+
+The focus in Elixir so far has not been in performance, but there are a few things you can do right now.
+
+## Cache directive
+
+Elixir has a cache directive that takes a snapshot of a file after it was loaded in memory. The main reason for such directive is too dramatically increase boot time. You can enable it in any file by adding to the **first** line:
+
+    % elixir: cache
+
+The next time the file is loaded, it will create a file with `.exb` extension as cache.
+
+Keep in mind that, as just the snapshot is loaded, custom code inside the file is **not** executed. For instance, you should not cache the following file:
+
+    module Foo
+      def say_something
+        IO.puts "Hi!"
+      end
+    end
+
+    Foo.say_something
+
+If you cache the file above, `Foo.say_something` will never be executed when the snapshot is loaded. For exactly the same reason, if you have a file that loads other files, you should not cache them as well (Elixir won't even let you). If you are also dynamically generating code depending on an ENV variable, database or file information, it is likely that you want to avoid the cache as well.
+
+## Compilation to Native Code
+
+Elixir can compile to native code using the Hipe compiler. All you need to do is to export the following before running your code:
+
+    export ERL_COMPILER_OPTIONS=native
+
+Even though enabling native code compilation should improve performance on execution, it considerably affects boot time. That said, compilation to native code is often used with the cache directive above. It is common to set `ERL_COMPILER_OPTIONS` to native once and execute the code to warm up the cache. Imagine you have a project called app.ex, you just need to execute these two steps:
+
+    # Execute application once with native compilation and regenerating cache
+    ERL_COMPILER_OPTIONS=native ELIXIR_RECACHE=1 bin/elixir app.ex
+
+    # Enjoy fast code with fast boot time
+    bin/elixir app.ex
 
 # License
 
