@@ -1,9 +1,10 @@
 Code.unshift_path File.expand_path("..", __FILE__)
-
-% Dependencies
 Code.require "ex_unit"
 
-% Tests
+% Configure ExUnit, no options supported yet.
+ExUnit.configure {:}
+
+% Load test cases
 Code.require "atom_test"
 Code.require "bit_string_test"
 Code.require "code_test"
@@ -20,5 +21,5 @@ Code.require "regexp_test"
 Code.require "string_test"
 Code.require "tuple_test"
 
-ExUnit.run([AtomTest, BitStringTest, CodeTest, ExceptionsTest, FileTest, FunctionTest, GenServerTest,
-  IntegerTest, ListTest, ObjectTest, OrderedDictTest, ProcessTest, RegexpTest, StringTest, TupleTest])
+% And run them!
+ExUnit.run

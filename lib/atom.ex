@@ -43,6 +43,16 @@ object Atom
     Erlang.atom_to_binary(self, 'utf8)
   end
 
+  % Converts the given atom to a constant with the same name.
+  %
+  % ## Examples
+  %
+  %     'Atom.to_constant % => Atom
+  %
+  def to_constant
+    Erlang.elixir_constants.lookup(self)
+  end
+
   % A convenience method that returns a tuple representing a method.
   % The syntax was borrowed from Erlang.
   %

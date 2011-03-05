@@ -14,6 +14,26 @@ object OrderedDict
     end
   end
 
+  % Append the given *value* to the *key*. Raises an error
+  % if key is not a list of values.
+  %
+  % ## Examples
+  %
+  %     dict = { 'vowels: ['a, 'e, 'i, 'o] }
+  %     new_dict = dict.append 'vowels, 'u
+  %     new_dict['vowels] % => ['a, 'e, 'i, 'o, 'u]
+  %
+  def append(key, value)
+    OrderedDict.new Erlang.orddict.append(key, value, orddict)
+  end
+
+  % Retrieves the given key from the OrderedDict. Returns [] if key does not exist.
+  %
+  % ## Examples
+  %
+  %     { 1: 2, 3: 4}[1]  % => 2
+  %     { 1: 2, 3: 4}[5]  % => []
+  %
   def [](key)
     case Erlang.orddict.find(key, orddict)
     match {'ok, value}

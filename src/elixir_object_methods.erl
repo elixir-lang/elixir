@@ -45,12 +45,8 @@ function_catch(Function) ->
 get_ivar(Self, Name) when not is_atom(Name) ->
   elixir_errors:error({badivar, Name});
 
-get_ivar(#elixir_object__{data=Data}, Name) when is_atom(Data) ->
-  Dict = ets:lookup_element(Data, data, 2),
-  get_ivar_dict(Name, Dict);
-
-get_ivar(#elixir_object__{data=Dict}, Name) ->
-  get_ivar_dict(Name, Dict);
+get_ivar(#elixir_object__{} = Self, Name) ->
+  get_ivar_dict(Name, object_data(Self));
 
 get_ivar(Self, Name) -> % Native types do not have instance variables.
   [].
@@ -198,7 +194,11 @@ object_parent(Native) when is_port(Native) ->
   'Port'.
 
 object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
-  ets:lookup_element(Data, mixins, 2);
+  try
+    ets:lookup_element(Data, mixins, 2)
+  catch
+    error:badarg -> []
+  end;
 
 object_mixins(#elixir_object__{mixins=Mixins}) ->
   Mixins;
@@ -207,7 +207,11 @@ object_mixins(Native) ->
   []. % Native types has all mixins from parents.
 
 object_protos(#elixir_object__{data=Data}) when is_atom(Data) ->
-  ets:lookup_element(Data, protos, 2);
+  try
+    ets:lookup_element(Data, protos, 2)
+  catch
+    error:badarg -> []
+  end;
 
 object_protos(#elixir_object__{protos=Protos}) ->
   Protos;
@@ -216,7 +220,11 @@ object_protos(Native) ->
   []. % Native types has no protos.
 
 object_data(#elixir_object__{data=Data}) when is_atom(Data) ->
-  ets:lookup_element(Data, data, 2);
+  try
+    ets:lookup_element(Data, data, 2)
+  catch
+    error:badarg -> orddict:new()
+  end;
 
 object_data(#elixir_object__{data=Data}) ->
   Data;

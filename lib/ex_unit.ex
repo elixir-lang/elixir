@@ -1,6 +1,12 @@
+% Basic unit test structure for Elixir.
 module ExUnit
-  def run(list)
-    { failures, counter } = run(list, [], 0)
+  def configure(options)
+    ExUnit::Server.start(options)
+  end
+
+  def run
+    cases = ExUnit::Server.cases
+    { failures, counter } = run(cases, [], 0)
     print_results(failures, counter)
   end
 
@@ -14,7 +20,7 @@ module ExUnit
   end
 
   def run([object|t], failures, counter)
-    instance = object.new
+    instance = object.to_constant.new
     { new_failures, new_counter } = run_tests(object, instance, instance.__tests__, failures, counter)
     run(t, new_failures, new_counter)
   end
@@ -62,3 +68,4 @@ module ExUnit
 end
 
 Code.require "ex_unit/case"
+Code.require "ex_unit/server"
