@@ -10,6 +10,11 @@ module Code::Init
 
     try
       process_option(real)
+    % TODO: Need to translate all errors to more readable format
+    catch 'error: {'badsyntax, line, filename, error, token}
+      IO.puts 'standard_error, "** #{String.new filename}:#{line} #{String.new error} #{token.to_s}"
+      self.__stacktrace__.each -> (s) print_stacktrace(s)
+      halt!
     catch kind: error
       IO.puts 'standard_error, "** #{kind} #{error.inspect}"
       self.__stacktrace__.each -> (s) print_stacktrace(s)
