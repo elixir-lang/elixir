@@ -1,3 +1,5 @@
+% elixir: cache
+
 module ExUnit::Assertions
   def assert_include(base, container)
     unless container.include?(base)

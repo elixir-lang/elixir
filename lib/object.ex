@@ -1,3 +1,5 @@
+% elixir: cache
+
 object Object
   module Methods
     % Create a new object using the current object as parent
@@ -227,7 +229,7 @@ object Object
       if regexp.match?(module)
         filter_stacktrace t, [{module, function, arity - 1}|buffer], regexp
       else
-        filter_stacktrace t, buffer, regexp
+        filter_stacktrace t, [{module, function, arity}|buffer], regexp
       end
     end
 

@@ -1,3 +1,5 @@
+% elixir: cache
+
 object BitString
   def to_bin
     self

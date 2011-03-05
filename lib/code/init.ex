@@ -1,3 +1,5 @@
+% elixir: cache
+
 module Code::Init
 
   protected
@@ -10,7 +12,6 @@ module Code::Init
 
     try
       process_option(real)
-    % TODO: Need to translate all errors to more readable format
     catch 'error: {'badsyntax, line, filename, error, token}
       IO.puts 'standard_error, "** #{String.new filename}:#{line} #{String.new error} #{token.to_s}"
       self.__stacktrace__.each -> (s) print_stacktrace(s)

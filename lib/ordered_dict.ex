@@ -1,3 +1,5 @@
+% elixir: cache
+
 object OrderedDict
   % Implement OrderedDict as a record. This is done mainly
   % to have improved performance for the equality operator.

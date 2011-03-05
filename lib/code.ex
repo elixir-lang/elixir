@@ -1,3 +1,5 @@
+% elixir: cache
+
 module Code
   def argv
     server_call 'argv
@@ -48,10 +50,9 @@ module Code
   def require_file(path)
     fullpath = File.expand_path(path).to_bin
 
-    case Erlang.file.read_file(fullpath)
-    match { 'ok, binary }
-      server_call { 'loaded, fullpath }
-      Erlang.elixir.eval(binary.to_char_list, [], fullpath.to_char_list)
+    case Erlang.file.read_file_info(fullpath)
+    match { 'ok, info }
+      require_file(path, info)
     match other
       self.error other
     end
@@ -59,15 +60,25 @@ module Code
 
   private
 
+  def require_file(path, info)
+    server_call { 'loaded, path }
+    Erlang.elixir.require(path.to_char_list, info)
+  end
+
   def require_in_paths(path, [h|t], loaded)
     fullpath = File.expand_path(path, h).to_bin
 
-    if File.is_file?(fullpath)
-      if loaded.include?(fullpath)
-        false
+    case Erlang.file.read_file_info(fullpath)
+    match { 'ok, info }
+      if info[2] == 'regular
+        if loaded.include?(fullpath)
+          false
+        else
+          require_file(fullpath, info)
+          true
+        end
       else
-        require_file(fullpath)
-        true
+        require_in_paths(path, t, loaded)
       end
     else
       require_in_paths(path, t, loaded)

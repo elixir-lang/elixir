@@ -1,3 +1,5 @@
+% elixir: cache
+
 module ExUnit::Case
   proto ExUnit::Assertions
 

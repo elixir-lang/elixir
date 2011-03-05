@@ -1,3 +1,5 @@
+% elixir: cache
+
 module GenServer
   module Mixin
     delegate ['call/2, 'call/3, 'cast/2], 'to: "Erlang.gen_server"
