@@ -5,8 +5,7 @@ INCLUDE_DIR=include
 TEST_SOURCE_DIR=$(TEST_DIR)/erlang
 TEST_EBIN_DIR=$(TEST_DIR)/ebin
 
-ERLC_FLAGS=-W0 -Ddebug +debug_info
-ERLC=erlc -I $(INCLUDE_DIR) $(ERLC_FLAGS)
+ERLC=erlc -I $(INCLUDE_DIR) -W0
 ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
 
 .PHONY: test test_erlang test_elixir clean
@@ -26,6 +25,11 @@ src/elixir_parser.erl: src/elixir_parser.yrl
 ebin: src/*.erl
 	@ mkdir -p $(EBIN_DIR)
 	$(ERLC) -o $(EBIN_DIR) $?
+
+libc: lib/*.ex lib/*/*.ex
+	@ rm -rf libc
+	@ mkdir libc
+	$(ERL) -s elixir compile
 
 test_erlang: compile
 	@ echo Running Erlang tests ...
@@ -48,3 +52,5 @@ clean:
 	@ rm -f src/elixir_parser.erl
 	@ rm -f $(EBIN_DIR)/*.beam
 	@ rm -f $(TEST_EBIN_DIR)/*.beam
+	@ rm -f lib/**/*.exb
+	@ rm -rf libc

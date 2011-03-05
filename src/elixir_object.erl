@@ -196,6 +196,12 @@ transform_attribute(Line, X) ->
 load_form(Forms, Filename) ->
   case compile:forms(Forms, [return]) of
     {ok, ModuleName, Binary, Warnings} ->
+      case get(elixir_compile_core) of
+        true ->
+          CompiledName = filename:rootname(Filename, ".ex") ++ ".exb",
+          ok = file:write_file(CompiledName, term_to_binary({ModuleName, Filename, Binary}));
+        _ -> []
+      end,
       format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary);
     {error, Errors, Warnings} ->
