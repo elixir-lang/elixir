@@ -1,3 +1,5 @@
+% elixir: cache
+
 module Code::Server
   object State
     attr_reader ['paths, 'loaded, 'argv]

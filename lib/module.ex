@@ -1,3 +1,5 @@
+% elixir: cache
+
 object Module
   module Methods
     % Returns the behavior for the self.

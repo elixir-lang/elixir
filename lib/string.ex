@@ -1,3 +1,5 @@
+% elixir: cache
+
 % ## String and Erlang
 %
 % In Elixir, we have both strings, binaries and char lists. They are

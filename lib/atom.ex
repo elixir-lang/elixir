@@ -1,3 +1,5 @@
+% elixir: cache
+
 object Atom
   % Returns a version of this atom that is a representation of itself.
   %

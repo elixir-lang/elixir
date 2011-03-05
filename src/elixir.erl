@@ -1,25 +1,16 @@
 -module(elixir).
--export([compile/0, boot/0, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
+-export([boot/0, require/2, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
 -include("elixir.hrl").
-
-compile() ->
-  code:ensure_loaded(elixir_object_methods),
-
-  % Load stdlib files
-  BasePath = stdlib_path(),
-  BaseFiles = [filename:join(BasePath, File) || File <- stdlib_compile()],
-  compile_core_objects(BaseFiles),
-
-  halt().
+-include_lib("kernel/include/file.hrl").
 
 boot() ->
   % Ensure elixir_object_methods is loaded and running
   code:ensure_loaded(elixir_object_methods),
 
   % Load stdlib files
+  Regexp = cache_regexp(),
   BasePath = stdlib_path(),
-  BaseFiles = [filename:join(BasePath, File) || File <- stdlib_files()],
-  load_core_objects(BaseFiles, false),
+  BaseFiles = [internal_require(filename:join(BasePath, File), Regexp) || File <- stdlib_files()],
 
   % Boot the code server
   CodeServer = elixir_constants:lookup('Code::Server'),
@@ -39,7 +30,7 @@ stdlib_path() ->
   end.
 
 % Stblib files that are loaded and compiled.
-stdlib_main() ->
+stdlib_files() ->
   [
     "object.ex",
     "module.ex",
@@ -65,47 +56,53 @@ stdlib_main() ->
     "code/server.ex"
   ].
 
-stdlib_compile() ->
-  stdlib_main() ++ [
-    "iex.ex",
-    "os.ex",
-    "ex_unit/assertions.ex",
-    "ex_unit/case.ex",
-    "ex_unit/server.ex"
-  ].
-
-% Returns all stdlib files that are loaded on boot.
-stdlib_files() ->
-  stdlib_main().
-
-% Compile elixir core objects.
-compile_core_objects(BaseFiles) ->
-  Loader = fun(Filepath) ->
-    put(elixir_compile_core, []),
-    load_core_object(Filepath, true),
-    CompiledName = filename:rootname(Filepath, ".ex") ++ ".exb",
-    ok = file:write_file(CompiledName, term_to_binary(get(elixir_compile_core)))
-  end,
-  lists:foreach(Loader, BaseFiles).
-
 % Load core elixir objects.
 % Note we pass the self binding as nil when loading object because
 % the default binding is Object, which at this point is not defined.
-load_core_objects(BaseFiles, Force) ->
-  Loader = fun(Filepath) -> load_core_object(Filepath, Force) end,
-  lists:foreach(Loader, BaseFiles).
+cache_regexp() ->
+  { ok, Regexp } = re:compile("\\A%\s*elixir:\s*cache\s*$", [multiline]),
+  Regexp.
 
-load_core_object(Filepath, true) ->
-  {ok, Binary} = file:read_file(Filepath),
-  eval(binary_to_list(Binary), [{self, []}], Filepath);
+internal_require(Filepath, Regexp) ->
+  { ok, Source } = file:read_file_info(Filepath),
+  require(Filepath, Source, [{self,[]}], Regexp),
+  Filepath.
 
-load_core_object(Filepath, _) ->
+require(Filepath, Source) ->
+  require(Filepath, Source, [], cache_regexp()).
+
+% Require a file by attempting to read its cached bytecode
+% or loading it manually.
+require(Filepath, Source, Binding, Regexp) ->
   Compiled = filename:rootname(Filepath, ".ex") ++ ".exb",
-  case file:read_file(Compiled) of
-    { ok, Terms } ->
-      List = binary_to_term(Terms),
-      lists:foreach(fun({M,F,B}) -> code:load_binary(M, F, B) end, List);
-    _ -> load_core_object(Filepath, true)
+  case file:read_file_info(Compiled) of
+    { ok, Info } ->
+      BinTime = Info#file_info.mtime,
+      SourceTime = Source#file_info.mtime,
+      case BinTime > SourceTime of
+        true ->
+          { ok, Exb } = file:read_file(Compiled),
+          Terms = binary_to_term(Exb),
+          lists:foreach(fun({M,F,B}) -> code:load_binary(M, F, B) end, Terms);
+        false ->
+          load(Filepath, Compiled, Binding, Regexp)
+      end;
+    _ -> load(Filepath, Compiled, Binding, Regexp)
+  end,
+  Filepath. % Return the filepath
+
+% If we got here, it means we could not load the cached one.
+% Load the file and create a new cache if the directive says so.
+load(Filepath, Compiled, Binding, Regexp) ->
+  {ok, Binary} = file:read_file(Filepath),
+  case re:run(Binary, Regexp) of
+    nomatch ->
+      put(elixir_compile_core, undefined),
+      eval(binary_to_list(Binary), Binding, Filepath);
+    _ ->
+      put(elixir_compile_core, []),
+      eval(binary_to_list(Binary), Binding, Filepath),
+      ok = file:write_file(Compiled, term_to_binary(get(elixir_compile_core)))
   end.
 
 % Evaluates a string

@@ -1,3 +1,5 @@
+% elixir: cache
+
 % Regular expressions for Elixir built on top of the re module
 % in the Erlang Standard Library. More information can be found
 % on re documentation: http://www.erlang.org/doc/man/re.html

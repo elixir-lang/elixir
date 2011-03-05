@@ -1,3 +1,5 @@
+% elixir: cache
+
 object File
   module Mixin
     def expand_path(string)
@@ -11,11 +13,6 @@ object File
 
     def join(a, b)
       Erlang.filename.join(a.to_bin, b.to_bin)
-    end
-
-    % Check if the given path exists and it is a file.
-    def is_file?(path)
-      Erlang.elixir_file_methods.is_file(path.to_bin)
     end
 
     private
