@@ -11,16 +11,20 @@ ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
 .PHONY: test test_erlang test_elixir clean
 
 # This is the default task
-compile: src/elixir_lexer.erl src/elixir_parser.erl ebin
+compile: ebin | src/elixir_lexer.erl src/elixir_parser.erl
 
 # install:
 # We will need to do this one at some point
 
 src/elixir_lexer.erl: src/elixir_lexer.xrl
 	$(ERL) -eval 'leex:file("$<"), halt().'
+	@ mkdir -p $(EBIN_DIR)
+	$(ERLC) -o $(EBIN_DIR) $@
 
 src/elixir_parser.erl: src/elixir_parser.yrl
 	$(ERL) -eval 'yecc:file("$<"), halt().'
+	@ mkdir -p $(EBIN_DIR)
+	$(ERLC) -o $(EBIN_DIR) $@
 
 ebin: src/*.erl
 	@ mkdir -p $(EBIN_DIR)
@@ -48,9 +52,9 @@ test_elixir: compile
 test: test_erlang test_elixir
 
 clean:
-	@ rm -f src/elixir_lexer.erl
-	@ rm -f src/elixir_parser.erl
-	@ rm -f $(EBIN_DIR)/*.beam
-	@ rm -f $(TEST_EBIN_DIR)/*.beam
-	@ rm -f lib/**/*.exb
-	@ rm -rf libc
+	rm -f src/elixir_lexer.erl
+	rm -f src/elixir_parser.erl
+	rm -f lib/**/*.exb
+	rm -rf $(EBIN_DIR)
+	rm -rf $(TEST_EBIN_DIR)
+	rm -rf libc

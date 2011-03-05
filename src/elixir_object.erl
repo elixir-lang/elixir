@@ -197,10 +197,8 @@ load_form(Forms, Filename) ->
   case compile:forms(Forms, [return]) of
     {ok, ModuleName, Binary, Warnings} ->
       case get(elixir_compile_core) of
-        true ->
-          CompiledName = filename:rootname(Filename, ".ex") ++ ".exb",
-          ok = file:write_file(CompiledName, term_to_binary({ModuleName, Filename, Binary}));
-        _ -> []
+        undefined -> [];
+        List -> put(elixir_compile_core, [{ModuleName, Filename, Binary}|List])
       end,
       format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary);

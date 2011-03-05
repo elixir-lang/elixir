@@ -85,18 +85,14 @@ load_core_objects(BaseFiles, Force) ->
 
 load_core_object(Filepath, true) ->
   {ok, Binary} = file:read_file(Filepath),
-  io:format("Evaling... ~s", [Filepath]),
-  eval(binary_to_list(Binary), [{self, []}], Filepath),
-  io:format(" Evaled!\n");
+  eval(binary_to_list(Binary), [{self, []}], Filepath);
 
 load_core_object(Filepath, _) ->
   Compiled = filename:rootname(Filepath, ".ex") ++ ".exb",
   case file:read_file(Compiled) of
     { ok, Terms } ->
       { Module, Filename, Binary } = binary_to_term(Terms),
-      io:format("Loading... ~s", [Compiled]),
-      code:load_binary(Module, Filename, Binary),
-      io:format(" Loaded!\n");
+      code:load_binary(Module, Filename, Binary);
     _ -> load_core_object(Filepath, true)
   end.
 
@@ -110,7 +106,6 @@ eval(String, Binding, Filename, Line, Scope) ->
     undefined -> lists:append(Binding, [{self,elixir_constants:lookup('Object')}]);
     _  -> Binding
   end,
-
   ParseTree = parse(String, SelfBinding, Filename, Line, Scope),
   {value, Value, NewBinding} = erl_eval:exprs(ParseTree, SelfBinding),
   {Value, proplists:delete(self, NewBinding)}.
