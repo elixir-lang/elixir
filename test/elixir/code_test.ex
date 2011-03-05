@@ -25,10 +25,12 @@ object CodeTest
   end
 
   def code_init_test
-    "3\n"                   = OS.cmd("bin/elixir -e \"IO.puts 1 + 2\"")
-    "5\n3\n"                = OS.cmd("bin/elixir -f \"IO.puts 1 + 2\" -e \"IO.puts 3 + 2\"")
-    "3\n5\n1\n"             = OS.cmd("bin/elixir -f \"IO.puts 1\" test/elixir/fixtures/init_sample.ex -e \"IO.puts 3 + 2\"")
-    "[\"1\",\"2\",\"3\"]\n" = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" -- 1 2 3")
+    "3\n"       = OS.cmd("bin/elixir -e \"IO.puts 1 + 2\"")
+    "5\n3\n"    = OS.cmd("bin/elixir -f \"IO.puts 1 + 2\" -e \"IO.puts 3 + 2\"")
+    "5\n3\n1\n" = OS.cmd("bin/elixir -f \"IO.puts 1\" -e \"IO.puts 3 + 2\" test/elixir/fixtures/init_sample.ex")
+
+    expected = "#{["-o", "1", "2", "3"].inspect}\n3\n"
+    expected = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" test/elixir/fixtures/init_sample.ex -o 1 2 3")
   end
   
   def code_error_test

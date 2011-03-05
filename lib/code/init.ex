@@ -7,20 +7,20 @@ module Code::Init
   % Invoked directly from erlang boot process. It parses all argv
   % options and execute them in the order they are specified.
   def process_argv(options)
-    { real, argv } = split_options(options, [])
+    { commands, argv } = process_options(options, [], [], false)
     GenServer.call('elixir_code_server, { 'argv, argv })
 
     try
-      process_option(real)
+      commands.each -> (c) process_command(c)
     catch 'error: {'badsyntax, line, filename, error, token}
       IO.puts 'standard_error, "** #{String.new filename}:#{line} #{String.new error} #{token.to_s}"
       self.__stacktrace__.each -> (s) print_stacktrace(s)
-      halt!
     catch kind: error
       IO.puts 'standard_error, "** #{kind} #{error.inspect}"
       self.__stacktrace__.each -> (s) print_stacktrace(s)
-      halt!
     end
+
+    halt!
   end
 
   private
@@ -29,39 +29,42 @@ module Code::Init
     Erlang.halt()
   end
 
-  def split_options([$"--"|t], buffer)
-    { buffer.reverse, t.map -> (i) String.new i }
-  end
-
-  def split_options([h|t], buffer)
-    split_options(t, [h|buffer])
-  end
-
-  def split_options([], buffer)
-    { buffer.reverse, [] }
-  end
-
-  def process_option([$"-v"|_])
+  def process_options([$"-v"|_], _, _, _)
     IO.puts "Elixir #{Code.version}"
-    process_option([])
-  end
-
-  def process_option([$"-e",h|t])
-    Erlang.elixir.eval(h, [])
-    process_option(t)
-  end
-
-  def process_option([$"-f",h|t])
-    process_option(t + [$"-e", h])
-  end
-
-  def process_option([h|t])
-    Code.require_file h
-    process_option(t)
-  end
-
-  def process_option([])
     halt!
+  end
+
+  def process_options([$"-e",h|t], commands, close, files)
+    process_options(t, [{'eval, h}|commands], close, files)
+  end
+
+  def process_options([$"-f",h|t], commands, close, files)
+    process_options(t, commands, [{'eval, h}|close], files)
+  end
+
+  def process_options([h|t], commands, close, files)
+    if h.to_char_list[0] == $-
+      if files
+        { commands.reverse + close.reverse, [h|t].map -> (i) String.new(i) }
+      else
+        IO.puts "Unknown option #{String.new h}"
+        halt!
+      end
+    else
+      process_options(t, [{'require,h}|commands], close, true)
+    end
+  end
+
+  def process_options([], commands, close, _)
+    { commands.reverse + close.reverse, [] }
+  end
+
+  def process_command({'eval, expr})
+    Erlang.elixir.eval(expr, [])
+  end
+
+  def process_command({'require, file})
+    Code.require_file file
   end
 
   def print_stacktrace({module, method, arity})
