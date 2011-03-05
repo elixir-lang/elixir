@@ -8,7 +8,7 @@ object ObjectTest
   def nomethod_error_test
     object = Object.new
     error = { 'nomethod, {object, 'say, 0} }
-    self.assert_raise error, -> object.say
+    self.assert_error error, -> object.say
   end
 
   def runtime_mixin_test
@@ -28,15 +28,15 @@ object ObjectTest
   end
 
   def only_module_mixin_proto_test
-    self.assert_raise {'notamodule, { 1, 'mixin } }, do Object.mixin(1)
-    self.assert_raise {'notamodule, { 1, 'proto } }, do Object.proto(1)
+    self.assert_error {'notamodule, { 1, 'mixin } }, do Object.mixin(1)
+    self.assert_error {'notamodule, { 1, 'proto } }, do Object.proto(1)
   end
 
   def builtin_not_allowed_test
-    self.assert_raise {'builtinnotallowed, { 1, 'new } },      do 1.new
-    self.assert_raise {'builtinnotallowed, { 1, 'set_ivar } }, do 1.set_ivar('foo, 'bar)
-    self.assert_raise {'builtinnotallowed, { 1, 'mixin } },    do 1.mixin(LikeCat)
-    self.assert_raise {'builtinnotallowed, { 1, 'proto } },    do 1.proto(LikeCat)
+    self.assert_error {'builtinnotallowed, { 1, 'new } },      do 1.new
+    self.assert_error {'builtinnotallowed, { 1, 'set_ivar } }, do 1.set_ivar('foo, 'bar)
+    self.assert_error {'builtinnotallowed, { 1, 'mixin } },    do 1.mixin(LikeCat)
+    self.assert_error {'builtinnotallowed, { 1, 'proto } },    do 1.proto(LikeCat)
   end
 
   def inspect_test

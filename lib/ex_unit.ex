@@ -21,8 +21,13 @@ module ExUnit
 
   % For each instanciated object, dispatch each test in it.
   def run_tests(object, instance, [test|t], failures, counter)
-    result = self.catch! -> instance.__send__(test)
-    new_failures = parse_result(object, test, result, failures)
+    new_failures = try
+      instance.__send__(test)
+      failures
+    catch kind: error
+      [{object, test, kind, error, self.__stacktrace__}|failures]
+    end
+
     run_tests(object, instance, t, new_failures, counter + 1)
   end
 
@@ -30,38 +35,29 @@ module ExUnit
     { failures, counter }
   end
 
-  % Parse results after executing the test. If a failure happened,
-  % result will be a tuple starting with 'EXIT.
-  def parse_result(object, test, {'EXIT, reason}, failures)
-    [{object, test, reason}|failures]
-  end
-
-  def parse_result(_, _, _, failures)
-    failures
-  end
-
   % Prints results after the execution of the test suite.
   def print_results([], counter)
-    IO.puts("  All #{counter} tests passed.")
+    IO.puts "  All #{counter} tests passed."
   end
 
   def print_results(failures, counter)
     failures.foldl 1, -> (x, acc) print_failure(x, acc)
     total_failures = failures.length
     total_passed = counter - total_failures
-    IO.puts("\n  Failed: #{total_failures}.  Passed: #{total_passed}.")
+    IO.puts "  Failed: #{total_failures}.  Passed: #{total_passed}."
   end
 
   % Print each failure that occurred.
-  def print_failure({object, test, {reason, backtrace}}, acc)
-    IO.puts("#{acc}) #{test}(#{object})\n  Reason: #{reason}\n  Backtrace:")
-    backtrace.each -> (b) print_backtrace(b)
+  def print_failure({object, test, kind, reason, stacktrace}, acc)
+    IO.puts "#{acc}) #{test}(#{object})\n  #{kind}: #{reason}\n  stacktrace:"
+    stacktrace.each -> (b) print_backtrace(b)
+    IO.puts
     acc + 1
   end
 
   % Get each item in the backtrace and print them nicely.
   def print_backtrace({module, method, arity})
-    IO.puts("    #{module}##{method}/#{arity}")
+    IO.puts "    #{module}##{method}/#{arity}"
   end
 end
 

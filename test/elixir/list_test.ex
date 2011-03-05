@@ -40,7 +40,7 @@ object ListTest
       true = list.include?(x)
     end
 
-    self.assert_raise { 'badmatch, true }, do
+    self.assert_error { 'badmatch, true }, do
       list.each -> (x) false = list.include?(x)
     end
   end
@@ -87,7 +87,7 @@ object ListTest
     1 = [1,2,3][0]
     2 = [1,2,3][1]
     3 = [1,2,3][2]
-    self.assert_raise 'function_clause, do
+    self.assert_error 'function_clause, do
       [1,2,3][3]
     end
   end
@@ -96,7 +96,7 @@ object ListTest
     1 = [1,2,3][-3]
     2 = [1,2,3][-2]
     3 = [1,2,3][-1]
-    self.assert_raise 'function_clause, do
+    self.assert_error 'function_clause, do
       [1,2,3][-4]
     end
   end

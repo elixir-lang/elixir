@@ -17,7 +17,7 @@ object OrderedDictTest
     2 = x
     4 = y
 
-    self.assert_raise {'badmatch, {1: 2, 2: 4}}, do
+    self.assert_error {'badmatch, {1: 2, 2: 4}}, do
       { 2: 4, 1: 2 } = { 1: 2, 2: 4 }
     end
   end

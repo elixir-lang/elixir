@@ -11,7 +11,7 @@ object CodeTest
   end
 
   def require_test
-    self.assert_raise { 'enoent, "code_sample" }, do
+    self.assert_error { 'enoent, "code_sample" }, do
       Code.require "code_sample"
     end
 
@@ -28,5 +28,12 @@ object CodeTest
     "5\n3\n"                = OS.cmd("bin/elixir -f \"IO.puts 1 + 2\" -e \"IO.puts 3 + 2\"")
     "3\n5\n1\n"             = OS.cmd("bin/elixir -f \"IO.puts 1\" test/elixir/fixtures/init_sample.ex -e \"IO.puts 3 + 2\"")
     "[\"1\",\"2\",\"3\"]\n" = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" -- 1 2 3")
+  end
+  
+  def code_error_test
+    self.assert_include "** throw 1", OS.cmd("bin/elixir -e \"self.throw 1\"")
+    self.assert_include "** error 1", OS.cmd("bin/elixir -e \"self.error 1\"")
+    self.assert_include "** exit 1", OS.cmd("bin/elixir -e \"self.exit 1\"")
+    self.assert_include "Object::Methods#throw/1", OS.cmd("bin/elixir -e \"self.throw 1\"")
   end
 end
