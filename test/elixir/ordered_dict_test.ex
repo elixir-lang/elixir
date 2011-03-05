@@ -24,6 +24,17 @@ object OrderedDictTest
     end
   end
 
+  def append_test
+    [1] = {:}.append('foo, 1)['foo]
+
+    hash = { 'list: [] }.append('list, 1).append('list, 2)
+    [1,2] = hash['list]
+
+    self.assert_error 'badarg, do
+      { 'foo: 1 }.append('foo, 2)
+    end
+  end
+
   def brackets_test
     4 = { 2: 4, 1: 2 }[2]
     2 = { 2: 4, 1: 2 }[1]

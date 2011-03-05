@@ -16,8 +16,9 @@ object OrderedDict
     end
   end
 
-  % Append the given *value* to the *key*. Raises an error
-  % if key is not a list of values.
+  % Append the given *value* to the list stored in *key*. If *key* does
+  % not exist, it is set to a list with *value*. Raises an error if key
+  % exist but is not a list of values.
   %
   % ## Examples
   %
