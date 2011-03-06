@@ -3,7 +3,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 init(State) ->
-  elixir_callbacks:assert_behavior(?MODULE, State),
+  elixir_methods:assert_behavior(?MODULE, State),
   elixir_dispatch:dispatch(true, State, init, []).
 
 handle_call(Req, From, State) -> elixir_dispatch:dispatch(true, State, handle_call, [Req, From]).

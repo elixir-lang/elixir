@@ -133,15 +133,6 @@ object Module
       Erlang.elixir_module_methods.set_visibility(self, 'private)
     end
 
-    % Mark all methods defined next as callbacks.
-    def callbacks
-      if __behavior__
-        Erlang.elixir_module_methods.set_visibility(self, 'callbacks)
-      else
-        Erlang.error({'badarg, "cannot define callbacks scope without a behavior specified"})
-      end
-    end
-
     % Receives a file, line and evaluates the given string in the context
     % of the module. This is good for dynamic method definition:
     %
@@ -167,18 +158,6 @@ object Module
     % by delegation.
     def alias_local(old, new, arity)
       Erlang.elixir_module_methods.alias_local(self, __FILE__, old, new, arity)
-    end
-
-    % Defines the behavior for the module setting up a __callbacks_module__
-    % which returns where the callbacks were defined. Check GenServer for
-    % some examples of usage.
-    def define_behavior(value)
-      Erlang.elixir_module_methods.define_attribute(self, 'behavior, value)
-      module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
-  def __callbacks_module__
-    #{Erlang.elixir_callbacks.callback_name(self).inspect}
-  end
-~~
     end
   end
 

@@ -7,7 +7,6 @@ test() ->
   eunit:test([
     arithmetic_test,
     atom_test,
-    callbacks_test,
     erlang_call_test,
     function_test,
     object_test,

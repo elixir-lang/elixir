@@ -126,8 +126,6 @@ merge_module_mixins(Object) ->
 compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
   Name = Object#elixir_object__.name,
   { Callbacks, Functions } = elixir_def_method:unwrap_stored_methods(MethodTable),
-  Behavior = elixir_callbacks:behavior(Object),
-  compile_callbacks(Behavior, Line, Filename, Object, Callbacks),
   merge_module_mixins(Object),
   load_form(build_erlang_form(Line, Object, Functions), Filename),
   add_implicit_mixins(Current, Name);
@@ -146,13 +144,6 @@ compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
   end,
   ets:delete(AttributeTable, module),
   load_form(build_erlang_form(Line, Object), Filename).
-
-% Handle callbacks compilation.
-compile_callbacks([], _Line, _Filename, _Object, _Callbacks) -> [];
-compile_callbacks(Behavior, Line, Filename, Object, Callbacks) ->
-  elixir_module_methods:define_attribute(Object, behavior, elixir_callbacks),
-  Form = elixir_callbacks:build_module_form(Line, Object, Behavior, Callbacks),
-  load_form(Form, Filename).
 
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
