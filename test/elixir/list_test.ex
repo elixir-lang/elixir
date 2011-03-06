@@ -61,6 +61,14 @@ object ListTest
     [2,3,4] = collect_result
   end
 
+  def filter_and_select_test
+    filter_result = [1,2,3].filter -> (x) x / 2 == 1
+    [2] = filter_result
+
+    select_result = [1,2,3,4].select -> (x) [3,4].include?(x)
+    [3,4] = select_result
+  end
+
   def head_test
     1  = [1,2,3].head
     1  = [1].head
