@@ -3,7 +3,7 @@
 % and backtraces to be exhibited in output.
 module Code::Formatter
   def format_stacktrace({module, method, arity})
-    if arity.__parent__ == 'List
+    if arity.__parent_name__ == 'List
       "#{module}##{method}(#{format_object(arity)})"
     else
       "#{module}##{method}/#{arity}"
@@ -11,7 +11,7 @@ module Code::Formatter
   end
 
   def format_object(object)
-    if object.__parent__ == 'List
+    if object.__parent_name__ == 'List
       try
         String.new Erlang.io_lib.format($"~ts", [object])
       catch 'error: 'badarg

@@ -29,6 +29,10 @@ object Object
       Erlang.elixir_object_methods.name(self)
     end
 
+    def __parent_name__
+      Erlang.elixir_object_methods.parent_name(self)
+    end
+
     def __parent__
       Erlang.elixir_object_methods.parent(self)
     end
@@ -153,7 +157,7 @@ object Object
       if name
         name.to_s
       else
-        "<#{__parent__} #{__ivars__.inspect}>"
+        "<#{__parent_name__} #{__ivars__.inspect}>"
       end
     end
 
@@ -226,7 +230,7 @@ object Object
     end
 
     def filter_stacktrace([{module, function, arity}|t], buffer, regexp)
-      if regexp.match?(module) && arity.__parent__ == 'Integer
+      if regexp.match?(module) && arity.__parent_name__ == 'Integer
         filter_stacktrace t, [{module, function, arity - 1}|buffer], regexp
       else
         filter_stacktrace t, [{module, function, arity}|buffer], regexp

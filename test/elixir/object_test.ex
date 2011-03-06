@@ -40,6 +40,26 @@ object ObjectTest
     self.assert_error {'builtinnotallowed, { 1, 'proto } },    do 1.proto(LikeCat)
   end
 
+  def parent_test
+    'List = [].__parent_name__
+
+    constant = List
+    constant = [].__parent__
+
+    [] = Object.__parent_name__
+    [] = Object.__parent__
+
+    object = Object
+    parent = Object.new
+    child = parent.new
+
+    object = parent.__parent__
+    'Object = parent.__parent_name__
+
+    parent = child.__parent__
+    [] = child.__parent_name__
+  end
+
   def inspect_test
     object = Object.new
     "<Object {}>" = object.inspect
