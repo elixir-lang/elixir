@@ -942,23 +942,27 @@ Here is a list of runtime errors that can be raised by Elixir:
 
 *   `{ 'notamodule, { object, method } }`
 
-    `method` failed because `object` is not a module
+    `method` failed because `object` is not a module;
 
 *   `{ 'noconstant, name }`
 
-    A constant with `name` could not be found
+    A constant with `name` could not be found;
+
+*   `{ 'nocallback, { object, name, arity } }`
+
+    The callback `name` with `arity` was not implemented in `object`. Raised when an object is given as callback but does not comply to all conditions;
 
 *   `{ 'badivar, name }`
 
-    The `name` given is not an atom and cannot be given as instance variable name
+    The `name` given is not an atom and cannot be given as instance variable name;
 
 *   `{ 'badconstructor, value }`
 
-    `value` returned by `constructor` is not an OrderedDict or it is an OrderedDict, but not all keys are atoms
+    `value` returned by `constructor` is not an OrderedDict or it is an OrderedDict, but not all keys are atoms;
 
 *   `{ 'moduledefined, { module, method } }`
 
-    Cannot invoke `method` in `module` because the module was already defined. For example, calling `module_eval` in an already defined module will raise such errors.
+    Cannot invoke `method` in `module` because the module was already defined. For example, calling `module_eval` in an already defined module will raise such errors;
 
 *   `{ 'badtype, { old, new } }`
 

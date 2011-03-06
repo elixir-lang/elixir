@@ -14,7 +14,7 @@ boot() ->
 
   % Boot the code server
   CodeServer = elixir_constants:lookup('Code::Server'),
-  'Code::Server':start(CodeServer, BasePath, BaseFiles),
+  'Code::Server::Mixin':start(CodeServer, BasePath, BaseFiles),
 
   % Process given options
   CodeInit = elixir_constants:lookup('Code::Init'),

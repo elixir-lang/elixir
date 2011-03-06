@@ -1,10 +1,22 @@
 % Defines a callback module given the module Name, Behavior and Callback methods.
 -module(elixir_callbacks).
--export([behaviour_info/1, build_module_form/4, callback_name/1, behavior/1]).
+-export([assert_behavior/2, behaviour_info/1, build_module_form/4, callback_name/1, behavior/1]).
 -include("elixir.hrl").
 
 behaviour_info(callbacks) -> [];
 behaviour_info(_) -> undefined.
+
+assert_behavior(Module, Object) when is_atom(Module) -> 
+  assert_behavior(Module:module_info(exports) -- [{module_info,0},{module_info,1}], Object);
+
+assert_behavior(Exports, Object) -> 
+  Methods = elixir_methods:proto_methods(Object),
+  lists:foreach(fun({Name, Arity}) ->
+    case lists:member({Name, Arity-1}, Methods) of
+      true -> [];
+      false -> elixir_errors:error({nocallback, {Object, Name, Arity-1}})
+    end
+  end, Exports).
 
 callback_name(#elixir_object__{parent='Module',name=Name}) ->
   ?ELIXIR_ATOM_CONCAT(["ex_callbacks_", Name]);

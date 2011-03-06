@@ -1,10 +1,6 @@
-Code.require "gen_server"
-
 object Bookshelf
-  proto GenServer
-
   def constructor(books)
-    { 'ok, ref } = self.start_link(books)
+    { 'ok, ref } = GenServer.start_link(Bookshelf::Server.new(books))
     { 'ref: ref }
   end
 
@@ -24,48 +20,52 @@ object Bookshelf
     GenServer.call(@ref, 'terminate)
   end
 
-  callbacks
-
-  def init(books)
-    { 'ok, books }
-  end
-
-  % Async message
-  def handle_cast({'put, title}, books)
-    { 'noreply, [title|books] }
-  end
-
-  % Sync message
-  def handle_call({'take, title}, _from, books)
-    if books.include?(title)
-      { 'reply, 'ok, books.delete(title) }
-    else
-      { 'reply, 'not_found, books }
+  object Server
+    def constructor(books)
+      { 'books: books }
     end
-  end
 
-  def handle_call('see, _from, books)
-    { 'reply, books, books }
-  end
+    def init
+      { 'ok, self }
+    end
 
-  % Terminate sync message
-  def handle_call('terminate, _from, books)
-    { 'stop, 'normal, 'ok, books }
-  end
+    % Async message
+    def handle_cast({'put, title})
+      { 'noreply, self.set_ivar('books, [title|@books]) }
+    end
 
-  def handle_info(msg, books)
-    IO.puts("Unexpected message: #{msg}\n")
-    { 'no_reply, books }
-  end
+    % Sync message
+    def handle_call({'take, title}, _from)
+      if @books.include?(title)
+        { 'reply, 'ok, self.set_ivar('books, @books.delete(title)) }
+      else
+        { 'reply, 'not_found, self }
+      end
+    end
 
-  def terminate('normal, books)
-    books.each -> (b) IO.puts("Oh no! \"#{b}\" is burning!")
-    'ok
-  end
+    def handle_call('see, _from)
+      { 'reply, @books, self }
+    end
 
-  % Just do the code reloading
-  def code_change(_old, books, _extra)
-    { 'ok, books }
+    % Terminate sync message
+    def handle_call('terminate, _from)
+      { 'stop, 'normal, 'ok, self }
+    end
+
+    def handle_info(msg)
+      IO.puts("Unexpected message: #{msg}\n")
+      { 'no_reply, self }
+    end
+
+    def terminate('normal)
+      @books.each -> (b) IO.puts("Oh no! \"#{b}\" is burning!")
+      'ok
+    end
+
+    % Just do the code reloading
+    def code_change(_old, _extra)
+      { 'ok, self }
+    end
   end
 end
 

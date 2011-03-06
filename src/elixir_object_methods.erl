@@ -2,7 +2,7 @@
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, parent_name/1, mixins/1, protos/1, data/1,
-  get_ivar/2, set_ivar/3, ancestors/1, function_catch/1,
+  get_ivar/2, set_ivar/3, ivar_append/3, ancestors/1, function_catch/1,
   object_parent/1, object_mixins/1, object_protos/1, object_data/1,
   abstract_parent/1, abstract_mixins/1, abstract_protos/1, abstract_data/1]).
 -include("elixir.hrl").
@@ -62,20 +62,11 @@ get_ivar(#elixir_object__{} = Self, Name) ->
 get_ivar(Self, Name) -> % Native types do not have instance variables.
   [].
 
-set_ivar(Self, Name, Value) when not is_atom(Name) ->
-  elixir_errors:error({badivar, Name});
-
-set_ivar(#elixir_object__{data=Data} = Self, Name, Value) when is_atom(Data) ->
-  Dict = ets:lookup_element(Data, data, 2),
-  Object = set_ivar_dict(Self, Name, Value, Dict),
-  ets:insert(Data, { data, Object#elixir_object__.data }),
-  Object;
-
-set_ivar(#elixir_object__{data=Dict} = Self, Name, Value) ->
-  set_ivar_dict(Self, Name, Value, Dict);
-
 set_ivar(Self, Name, Value) ->
-  builtinnotallowed(Self, set_ivar).
+  set_ivar_dict(Self, Name, Value, set_ivar, fun(Dict) -> orddict:store(Name, Value, Dict) end).
+
+ivar_append(Self, Name, Value) ->
+  set_ivar_dict(Self, Name, Value, ivar_append, fun(Dict) -> orddict:append(Name, Value, Dict) end).
 
 % HELPERS
 
@@ -85,8 +76,20 @@ get_ivar_dict(Name, Data) ->
     error -> []
   end.
 
-set_ivar_dict(Self, Name, Value, Dict) ->
-  Self#elixir_object__{data=orddict:store(Name, Value, Dict)}.
+set_ivar_dict(_, Name, _, _, _) when not is_atom(Name) ->
+  elixir_errors:error({badivar, Name});
+
+set_ivar_dict(#elixir_object__{data=Data} = Self, Name, Value, _, Function) when is_atom(Data) ->
+  Dict = ets:lookup_element(Data, data, 2),
+  Object = Self#elixir_object__{data=Function(Dict)},
+  ets:insert(Data, { data, Object#elixir_object__.data }),
+  Object;
+
+set_ivar_dict(#elixir_object__{data=Dict} = Self, Name, Value, _, Function) ->
+  Self#elixir_object__{data=Function(Dict)};
+
+set_ivar_dict(Self, _, _, Method, _) ->
+  builtinnotallowed(Self, Method).
 
 assert_dict_with_atoms(#elixir_orddict__{struct=Dict} = Object) ->
   case lists:all(fun is_atom/1, orddict:fetch_keys(Dict)) of

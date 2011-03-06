@@ -1,61 +1,61 @@
 % elixir: cache
 
-module ExUnit::Server
-  proto GenServer
+object ExUnit::Server
+  module Mixin
+    def start(options)
+      { 'ok, _ } = GenServer.start_link({'local, 'exunit_server}, self.new(options), [])
+    end
 
-  def start(options)
-    state = {
-      'options: options,
-      'cases: []
-    }
-    self.start_link({'local, 'exunit_server}, state, [])
-  end
+    def add_case(name)
+      try
+        GenServer.call('exunit_server, { 'add_case, name })
+      catch 'exit: { 'noproc, _ }
+        self.exit "ExUnit::Server is not running. Are you sure you invoked ExUnit.configure() ?"
+      end
+    end
 
-  def add_case(name)
-    try
-      GenServer.call('exunit_server, { 'add_case, name })
-    catch 'exit: { 'noproc, _ }
-      self.exit "ExUnit::Server is not running. Are you sure you invoked ExUnit.configure()?"
+    def cases
+      GenServer.call('exunit_server, 'cases)
     end
   end
 
-  def cases
-    GenServer.call('exunit_server, 'cases)
+  def constructor(options)
+    { 'options: options, 'cases: [] }
   end
 
-  callbacks
+  protected
 
-  def init(state)
-    { 'ok, state }
+  def init()
+    { 'ok, self }
   end
 
-  def handle_call({'add_case, name}, _from, state)
-    { 'reply, 'ok, state.append('cases, name) }
+  def handle_call({'add_case, name}, _from)
+    { 'reply, 'ok, self.ivar_append('cases, name) }
   end
 
-  def handle_call('cases, _from, state)
-    { 'reply, state['cases], state }
+  def handle_call('cases, _from)
+    { 'reply, @cases, self }
   end
 
-  def handle_call(_request, _from, state)
-    { 'reply, 'undef, state }
+  def handle_call(_request, _from)
+    { 'reply, 'undef, self }
   end
 
-  def handle_info(_msg, state)
-    { 'no_reply, state }
+  def handle_info(_msg)
+    { 'no_reply, self }
   end
 
-  def handle_cast(_msg, state)
-    { 'no_reply, state }
+  def handle_cast(_msg)
+    { 'no_reply, self }
   end
 
-  def terminate(reason, state)
+  def terminate(reason)
     IO.puts "[FATAL] ExUnit::Server crashed:\n#{reason}"
-    IO.puts "[FATAL] ExUnit::Server snapshot:\n#{state}"
+    IO.puts "[FATAL] ExUnit::Server snapshot:\n#{self}"
     Erlang.init.stop(1) % Shut everything
   end
 
-  def code_change(_old, state, _extra)
-    { 'ok, state }
+  def code_change(_old, _extra)
+    { 'ok, self }
   end
 end
