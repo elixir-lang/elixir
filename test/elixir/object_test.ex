@@ -78,4 +78,15 @@ object ObjectTest
     processor = recorder.filter( -> (x) x rem 2 == 0 ).map( -> (x) x * 10 )
     [20, 40] = processor.play([1, 2, 3, 4])
   end
+
+  def ivar_append_test
+    [1] = Object.new.ivar_append('foo, 1).get_ivar('foo)
+
+    object = Object.new.ivar_append('list, 1).ivar_append('list, 2)
+    [1,2] = object.get_ivar('list)
+
+    self.assert_error 'badarg, do
+      Object.new.set_ivar('foo, 1).ivar_append('foo, 2)
+    end
+  end
 end

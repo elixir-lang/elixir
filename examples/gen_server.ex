@@ -20,6 +20,11 @@ object Bookshelf
     GenServer.call(@ref, 'terminate)
   end
 
+  % This is the server that is actually given to GenServer.
+  %
+  % It is quite similar to Erlang gen server, except that the
+  % state is never passed as argument, because it is the object
+  % itself.
   object Server
     def constructor(books)
       { 'books: books }
