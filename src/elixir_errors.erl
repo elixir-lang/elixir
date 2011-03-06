@@ -2,8 +2,8 @@
 % This is not exposed in the Elixir language.
 % TODO Remove strings from internal errors
 -module(elixir_errors).
--export([error/1, file_format/3, file_error/4, syntax_error/4,
-  handle_file_warning/2, handle_file_error/2, format_error/2, format_error/1]).
+-export([error/1, file_format/3, syntax_error/4, handle_file_warning/2,
+  handle_file_error/2, format_error/2, format_error/1]).
 -include("elixir.hrl").
 
 error(Reason) -> erlang:error(Reason).
@@ -11,14 +11,8 @@ error(Reason) -> erlang:error(Reason).
 file_format(Line, Filename, Message) ->
   lists:flatten(io_lib:format("~ts:~w: ~ts", [Filename, Line, Message])).
 
-file_error(Reason, Line, Filename, Message) ->
-  elixir_errors:error({Reason, file_format(Line, Filename, Message)}).
-
 syntax_error(Line, Filename, user, Token) ->
   syntax_error(Line, Filename, Token, "");
-
-syntax_error(Line, Filename, Error, Token) when is_atom(Error) ->
-  syntax_error(Line, Filename, [atom_to_list(Error), $\s], Token);
 
 syntax_error(Line, Filename, Error, Token) ->
   elixir_errors:error({badsyntax, Line, Filename, Error, Token}).
@@ -37,21 +31,10 @@ handle_file_warning(Filename, {Line,Module,Desc}) ->
 
 % Handle errors
 
-handle_file_error(Filename, {Line, Module, {undefined_function, {Name, Arity} }}) ->
-  Message = format_error(Module, { undefined_function, {Name, Arity} }),
-  file_error(undefined_identifier, Line, Filename, Message);
-
 handle_file_error(Filename, {Line,Module,Desc}) ->
-  Message = format_error(Module, format_error(Desc)),
-  file_error(reason_from_desc(Desc), Line, Filename, Message).
+  elixir_errors:error({badform, { Line, Filename, Module, Desc }}).
 
-reason_from_desc(Desc) when is_tuple(Desc) ->
-  element(1, Desc);
-
-reason_from_desc(Desc) ->
-  Desc.
-
-% Format each error
+% Format each error or warning in the format { Line, Module, Desc }
 
 format_error(_, {undefined_function, {Name, Arity}}) ->
   case Arity - 1 of

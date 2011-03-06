@@ -1,5 +1,7 @@
 % Basic unit test structure for Elixir.
 module ExUnit
+  proto Code::Formatter
+
   def configure(options)
     ExUnit::Server.start(options)
   end
@@ -55,15 +57,10 @@ module ExUnit
 
   % Print each failure that occurred.
   def print_failure({object, test, kind, reason, stacktrace}, acc)
-    IO.puts "#{acc}) #{test}(#{object})\n  #{kind}: #{reason}\n  stacktrace:"
-    stacktrace.each -> (b) print_backtrace(b)
+    IO.puts "#{acc}) #{test}(#{object})\n  #{kind} #{self.format_catch(kind, reason)}\n  stacktrace:"
+    stacktrace.each -> (s) IO.puts "    #{self.format_stacktrace(s)}"
     IO.puts
     acc + 1
-  end
-
-  % Get each item in the backtrace and print them nicely.
-  def print_backtrace({module, method, arity})
-    IO.puts "    #{module}##{method}/#{arity}"
   end
 end
 

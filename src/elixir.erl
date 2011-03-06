@@ -52,6 +52,7 @@ stdlib_files() ->
     "gen_server.ex",
     "file.ex",
     "code.ex",
+    "code/formatter.ex",
     "code/init.ex",
     "code/server.ex"
   ].

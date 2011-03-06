@@ -20,9 +20,9 @@ object IEX
       IO.puts result.inspect
       % I think we need some syntax sugar of set_ivar :)
       self.set_ivar('binding, new_binding).set_ivar('codecache, "").loop
-    catch 'error: {'badsyntax, _, _, _, '"$end"}
+    catch 'error: {'badsyntax, {_, _, _, '"$end"}}
       self.set_ivar('codecache, code).loop
-    catch 'error: {'badsyntax, _line, _filename, error, token}
+    catch 'error: {'badsyntax, {_line, _filename, error, token}}
       IO.puts("Syntax Error: #{String.new error} #{token.inspect}")
       self.set_ivar('codecache, "").loop
     catch 'error: e

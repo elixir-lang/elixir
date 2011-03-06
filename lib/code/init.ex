@@ -1,6 +1,8 @@
 % elixir: cache
 
+% Responsible for starting Elixir from the command line.
 module Code::Init
+  proto Code::Formatter
 
   protected
 
@@ -12,12 +14,9 @@ module Code::Init
 
     try
       commands.each -> (c) process_command(c)
-    catch 'error: {'badsyntax, line, filename, error, token}
-      IO.puts 'standard_error, "** #{String.new filename}:#{line} #{String.new error} #{token.to_s}"
-      self.__stacktrace__.each -> (s) print_stacktrace(s)
     catch kind: error
-      IO.puts 'standard_error, "** #{kind} #{error.inspect}"
-      self.__stacktrace__.each -> (s) print_stacktrace(s)
+      IO.puts 'standard_error, "** #{kind} #{self.format_catch(kind, error)}"
+      print_stacktrace(self.__stacktrace__)
     end
 
     halt!
@@ -67,7 +66,7 @@ module Code::Init
     Code.require_file file
   end
 
-  def print_stacktrace({module, method, arity})
-    IO.puts 'standard_error, "    #{module}##{method}/#{arity}"
+  def print_stacktrace(stacktrace)
+    stacktrace.each -> (s) IO.puts 'standard_error, "    #{self.format_stacktrace(s)}"
   end
 end

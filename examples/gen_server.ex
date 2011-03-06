@@ -9,19 +9,19 @@ object Bookshelf
   end
 
   def put(title)
-    self.cast(@ref, {'put, title})
+    GenServer.cast(@ref, {'put, title})
   end
 
   def take(title)
-    self.call(@ref, {'take, title})
+    GenServer.call(@ref, {'take, title})
   end
 
   def see
-    self.call(@ref, 'see)
+    GenServer.call(@ref, 'see)
   end
 
   def burn
-    self.call(@ref, 'terminate)
+    GenServer.call(@ref, 'terminate)
   end
 
   callbacks

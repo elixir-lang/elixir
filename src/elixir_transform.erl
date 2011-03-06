@@ -115,7 +115,7 @@ transform({local_call, Line, Name, Args}, S) ->
     [] -> transform({method_call, Line, Name, Args, {var, Line, self}}, S);
     _  ->
       { TArgs, SA } = transform_tree(Args, S),
-      FArgs = handle_new_call(Name, Line, [{var, Line, self}|TArgs]),
+      FArgs = handle_new_call(Name, Line, [{var, Line, self}|TArgs], true),
       { { call, Line, {atom, Line, Name}, FArgs }, SA }
   end;
 
@@ -620,7 +620,7 @@ build_if_clauses({if_clause, Line, Bool, Expr, List}, Acc) ->
 % Handles method calls. It performs no transformation and assumes
 % all data is already transformed.
 build_method_call(Name, Line, Args, Expr) ->
-  FArgs = handle_new_call(Name, Line, Args),
+  FArgs = handle_new_call(Name, Line, Args, false),
   ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [{var, Line, self}, Expr, {atom, Line, Name}, FArgs]).
 
 % Builds a regexp.
@@ -631,11 +631,17 @@ build_regexp(Line, Expr, Operators, S) ->
   { build_method_call(new, Line, TArgs, Constant), S }.
 
 % Handle method dispatches to new by wrapping everything in an array
-% as we don't have a splat operator.
-handle_new_call(new, Line, Args) ->
+% as we don't have a splat operator. If true is given as last option,
+% the items should be wrapped in a list, by creating a list. If false,
+% it is already an list so we just need a cons-cell.
+handle_new_call(new, Line, Args, true) ->
+  { List, [] } = build_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
+  [List];
+
+handle_new_call(new, Line, Args, false) ->
   {cons, Line, Args, {nil, Line}};
 
-handle_new_call(_, _, Args) ->
+handle_new_call(_, _, Args, _) ->
   Args.
 
 % Handle interpolation. The final result will be a parse tree that
