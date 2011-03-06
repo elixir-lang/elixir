@@ -45,6 +45,17 @@ object OrderedDict
     end
   end
 
+  % Stores the given *key* and *value* in the dictionary.
+  %
+  % ## Examples
+  %
+  %     {:}.set('a, 'b)  % => { 'a: 'b }
+  %
+  def set(key, value)
+    OrderedDict.new Erlang.orddict.store(key, value, orddict)
+  end
+  alias_local 'set, 'store, 2
+
   % Calls the given *function* for each key and value of the dictionary with an
   % extra argumen *acc* (short for accumulator). *function* must return a new
   % accumulator passed to the next call. Returns the last accumulator.
