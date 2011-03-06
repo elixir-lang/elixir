@@ -111,6 +111,13 @@ object List
   end
   alias_local 'member?, 'include?, 1
 
+  % Returns a list with items matching the given filter function
+  %
+  % ## Examples
+  %
+  %     [1,2,3].filter -> (x) x / 2 == 1          % => [2]
+  %     [1,2,3,4].filter -> (x) [3,4].include?(x) % => [3,4]
+  %
   def filter(function)
     Erlang.lists.filter(function, self)
   end
