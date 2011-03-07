@@ -5,6 +5,7 @@ if [ $# -eq 0 ]; then
   -v              Prints version and exit
   -e \"command\"    Evaluates the given command (may be used more than once)
   -f \"command\"    The same as -e, but executes at the end (may be used more than once)
+  --no-halt       Don't halt the process after the code is executed
 
 * Each file passed will be loaded and executed.
 
