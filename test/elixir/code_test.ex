@@ -19,6 +19,8 @@ object CodeTest
     Code.unshift_path "test/elixir/fixtures"
     true  = Code.require "code_sample"
     false = Code.require "code_sample"
+    false = Code.require "./code_sample"
+    false = Code.require "../fixtures/code_sample"
     Code.loaded.include? File.expand_path("test/elixir/fixtures/code_sample.ex")
   after
     Code.delete_path "test/elixir/fixtures"
