@@ -17,4 +17,24 @@ object FunctionTest
     sum = _.+(2)
     5 = sum(3)
   end
+
+  def match_arg_test
+    [1,2,3] = match_arg1([])
+    [1,2,3] = match_arg2([])
+
+    self.assert_error 'function_clause, do
+      match_arg1({})
+    end
+  end
+
+  private
+
+  def match_arg1(x = [])
+    x + [1,2,3]
+  end
+
+  def match_arg2([] = x)
+    x + [1,2,3]
+  end
+
 end
