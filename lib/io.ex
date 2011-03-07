@@ -22,6 +22,7 @@ module IO
   end
 
   def gets(prompt)
-    String.new Erlang.io.get_line(prompt.to_char_list)
+    result = Erlang.io.get_line(prompt.to_char_list)
+    String.new Erlang.unicode.characters_to_binary(result, 'utf8)
   end
 end
