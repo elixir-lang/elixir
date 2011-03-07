@@ -4,6 +4,17 @@
 object IEX
   proto Code::Formatter
 
+  module Mixin
+    def start
+      IO.write "Interactive Elixir (#{Code.version})\nRunning on "
+      Erlang.user_drv.start(['"tty_sl -c -e", {'"IEX::Mixin",'spawn,[IEX]}])
+    end
+
+    def spawn
+      Process.spawn -> self.new.loop
+    end
+  end
+
   def constructor
     {'binding: [], 'codecache: ""}
   end

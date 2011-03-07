@@ -9,6 +9,11 @@ object Process
     end
     alias_local 'self, 'current, 0
 
+    % Spawn the given function.
+    def spawn(function)
+      Erlang.spawn function
+    end
+
     % TODO Optimize for modules
     def spawn(object, method, args)
       Erlang.spawn -> object.__send__(method, args)

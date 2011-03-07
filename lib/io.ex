@@ -1,6 +1,10 @@
 % elixir: cache
 
 module IO
+  def write(message)
+    Erlang.io.format message.to_bin
+  end
+
   def puts
     puts("")
   end

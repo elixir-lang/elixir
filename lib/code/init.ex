@@ -9,7 +9,7 @@ module Code::Init
   % Invoked directly from erlang boot process. It parses all argv
   % options and execute them in the order they are specified.
   def process_argv(options)
-    { commands, argv } = process_options(options, [], [], false)
+    { commands, argv, halt } = process_options(options, [], [], false, true)
     GenServer.call('elixir_code_server, { 'argv, argv })
 
     try
@@ -19,7 +19,7 @@ module Code::Init
       print_stacktrace(self.__stacktrace__)
     end
 
-    halt!
+    if halt then halt! end
   end
 
   private
@@ -28,20 +28,24 @@ module Code::Init
     Erlang.halt()
   end
 
-  def process_options([$"-v"|_], _, _, _)
+  def process_options([$"-v"|_], _, _, _, _)
     IO.puts "Elixir #{Code.version}"
     halt!
   end
 
-  def process_options([$"-e",h|t], commands, close, files)
-    process_options(t, [{'eval, h}|commands], close, files)
+  def process_options([$"-e",h|t], commands, close, files, halt)
+    process_options(t, [{'eval, h}|commands], close, files, halt)
   end
 
-  def process_options([$"-f",h|t], commands, close, files)
-    process_options(t, commands, [{'eval, h}|close], files)
+  def process_options([$"-f",h|t], commands, close, files, halt)
+    process_options(t, commands, [{'eval, h}|close], files, halt)
   end
 
-  def process_options([h|t], commands, close, files)
+  def process_options([$"--no-halt"|t], commands, close, files, _)
+    process_options(t, commands, close, files, false)
+  end
+
+  def process_options([h|t], commands, close, files, halt)
     if h.to_char_list[0] == $-
       if files
         { commands.reverse + close.reverse, [h|t].map -> (i) String.new(i) }
@@ -50,12 +54,12 @@ module Code::Init
         halt!
       end
     else
-      process_options(t, [{'require,h}|commands], close, true)
+      process_options(t, [{'require,h}|commands], close, true, halt)
     end
   end
 
-  def process_options([], commands, close, _)
-    { commands.reverse + close.reverse, [] }
+  def process_options([], commands, close, _, halt)
+    { commands.reverse + close.reverse, [], halt }
   end
 
   def process_command({'eval, expr})

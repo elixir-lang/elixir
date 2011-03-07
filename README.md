@@ -36,7 +36,6 @@ As much of Elixir's standard library is written in Elixir and tested in Elixir, 
 
 Here are a few things that we plan to add to Elixir in the long term.
 
-* Extend interactive elixir (iex)
 * Add partial application, pipeline f1 + f2, and an easy way to retrieve functions (1#add and Integer##add?)
 * Add default arguments
 * Support guards
