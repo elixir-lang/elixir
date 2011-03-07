@@ -2,6 +2,8 @@
 
 % A simple REPL (Read-Eval-Print Loop) for Elixir
 object IEX
+  proto Code::Formatter
+
   def constructor
     {'binding: [], 'codecache: ""}
   end
@@ -9,7 +11,7 @@ object IEX
   def loop
     prompt = case @codecache
     match ""
-      "IEX> "
+      "iex> "
     else
       "...> "
     end
@@ -22,12 +24,10 @@ object IEX
       self.set_ivar('binding, new_binding).set_ivar('codecache, "").loop
     catch 'error: {'badsyntax, {_, _, _, '"$end"}}
       self.set_ivar('codecache, code).loop
-    catch 'error: {'badsyntax, {_line, _filename, error, token}}
-      IO.puts("Syntax Error: #{String.new error} #{token.inspect}")
-      self.set_ivar('codecache, "").loop
-    catch 'error: e
-      IO.puts "Error: #{e.inspect}"
-      self.set_ivar('codecache, "").loop
+    catch kind: error
+      IO.puts 'standard_error, "** #{kind} #{self.format_catch(kind, error)}"
+      self.__stacktrace__.each -> (s) IO.puts 'standard_error, "    #{self.format_stacktrace(s)}"
+      self.set_ivar('codecache, code).loop
     end
   end
 end

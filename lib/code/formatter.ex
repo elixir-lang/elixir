@@ -1,6 +1,7 @@
 % elixir: cache
 % This module contains some utilities function that formats objects
 % and backtraces to be exhibited in output.
+% TODO Add tests
 module Code::Formatter
   def format_stacktrace({module, method, arity})
     if arity.__parent_name__ == 'List
