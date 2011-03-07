@@ -22,12 +22,12 @@ object IEX
       IO.puts result.inspect
       % I think we need some syntax sugar of set_ivar :)
       self.set_ivar('binding, new_binding).set_ivar('codecache, "").loop
-    catch 'error: {'badsyntax, {_, _, _, '"$end"}}
+    catch 'error: {'badsyntax, {_, _, _, []}}
       self.set_ivar('codecache, code).loop
     catch kind: error
       IO.puts 'standard_error, "** #{kind} #{self.format_catch(kind, error)}"
       self.__stacktrace__.each -> (s) IO.puts 'standard_error, "    #{self.format_stacktrace(s)}"
-      self.set_ivar('codecache, code).loop
+      self.set_ivar('codecache, "").loop
     end
   end
 end
