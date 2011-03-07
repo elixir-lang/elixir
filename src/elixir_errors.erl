@@ -15,7 +15,7 @@ syntax_error(Line, Filename, user, Token) ->
   syntax_error(Line, Filename, Token, "");
 
 syntax_error(Line, Filename, Error, Token) ->
-  elixir_errors:error({badsyntax, Line, Filename, Error, Token}).
+  elixir_errors:error({badsyntax, {Line, Filename, Error, Token}}).
 
 % Handle warnings
 
