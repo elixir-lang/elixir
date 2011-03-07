@@ -16,18 +16,32 @@ object OrderedDict
     end
   end
 
-  % Append the given *value* to the list stored in *key*. If *key* does
-  % not exist, it is set to a list with *value*. Raises an error if key
-  % exist but is not a list of values.
+  % Updates the given *key* in list according to te given *function*.
+  % If no key exist, raises an error. You can use update/3 if you want
+  % to set an initial value if none exists.
   %
   % ## Examples
   %
   %     dict = { 'vowels: ['a, 'e, 'i, 'o] }
-  %     new_dict = dict.append 'vowels, 'u
+  %     new_dict = dict.update 'vowels, _.push('u)
   %     new_dict['vowels] % => ['a, 'e, 'i, 'o, 'u]
   %
-  def append(key, value)
-    OrderedDict.new Erlang.orddict.append(key, value, orddict)
+  def update(key, function)
+    OrderedDict.new Erlang.orddict.update(key, function, orddict)
+  end
+
+  % The same as update/2, but if no value exists, *initial* is used.
+  %
+  % ## Examples
+  %
+  %     dict = {:}.update('values, [], _.push(1))
+  %     dict['values]  % => []
+  %
+  %     dict.update('values, [], _.push(1))
+  %     dict['values]  % => [1]
+  %
+  def update(key, initial, function)
+    OrderedDict.new Erlang.orddict.update(key, function, initial, orddict)
   end
 
   % Retrieves the given key from the OrderedDict. Returns [] if key does not exist.

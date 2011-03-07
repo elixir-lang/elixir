@@ -84,5 +84,9 @@ object ObjectTest
 
     object = Object.new.update_ivar('list, [1], -> (_) self.error "never called").update_ivar('list, _.push(2))
     [1,2] = object.get_ivar('list)
+
+    self.assert_error 'function_clause, do
+      Object.new.update_ivar('foo, 2)
+    end
   end
 end
