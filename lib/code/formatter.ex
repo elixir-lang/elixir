@@ -24,7 +24,7 @@ module Code::Formatter
   end
 
   def format_catch('error, {'badsyntax, {line, filename, error, token}})
-    "\n#{String.new filename}:#{line}: #{String.new error} #{token.to_s}"
+    "\n#{String.new filename}:#{line}: #{String.new error} #{format_token token}"
   end
 
   def format_catch('error, {'badform, {line, filename, module, desc}})
@@ -34,5 +34,15 @@ module Code::Formatter
 
   def format_catch(_, reason)
     self.format_object(reason)
+  end
+
+  private
+
+  def format_token([])
+    "[]"
+  end
+
+  def format_token(obj)
+    String.new obj
   end
 end

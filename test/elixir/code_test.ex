@@ -40,6 +40,10 @@ object CodeTest
     self.assert_include "** error 1", OS.cmd("bin/elixir -e \"self.error 1\"")
     self.assert_include "** exit 1", OS.cmd("bin/elixir -e \"self.exit 1\"")
     self.assert_include "Object::Methods#throw/1", OS.cmd("bin/elixir -e \"self.throw 1\"")
+  end
+
+  def syntax_code_error_test
     self.assert_include "nofile:1: syntax error before:  []", OS.cmd("bin/elixir -e \"[1,2\"")
+    self.assert_include "nofile:1: syntax error before:  'end'", OS.cmd("bin/elixir -e \"-> 2 end()\"")
   end
 end
