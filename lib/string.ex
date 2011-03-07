@@ -22,6 +22,24 @@ object String
     end
   end
 
+  % Slice the string in the given *start* and *length* arguments. If length
+  % is less than zero, it is the negative index to the end of the string.
+  %
+  % ## Examples
+  %
+  %     "[1,2,3]"[0,3]   % => "[1,"
+  %     "[1,2,3]"[0,-2]  % => "1,2,3"
+  %
+  def [](start, length)
+    bin = to_bin
+
+    if length < 0
+      String.new Erlang.binary_part(bin, start, Erlang.size(bin) - start + length + 1)
+    else
+      String.new Erlang.binary_part(bin, start, length)
+    end
+  end
+
   % Concatenate two strings.
   %
   % ## Examples

@@ -1,6 +1,18 @@
 % elixir: cache
 
 object List
+  % Push a new element to the list.
+  %
+  % ## Examples
+  %
+  %     [1,2,3].push 4    % => [1,2,3,4]
+  %     [1,2,3].append 4  % => [1,2,3,4]
+  %
+  def push(item)
+    Erlang.lists.append(self, [item])
+  end
+  alias_local 'push, 'append, 1
+
   % Returns a new list with the contents of the
   % current list and the other list.
   %

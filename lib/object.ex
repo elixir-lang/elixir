@@ -182,8 +182,12 @@ object Object
       Erlang.elixir_object_methods.set_ivar(self, name, value)
     end
 
-    def ivar_append(name, value)
-      Erlang.elixir_object_methods.ivar_append(self, name, value)
+    def update_ivar(name, fun)
+      Erlang.elixir_object_methods.update_ivar(self, name, fun)
+    end
+
+    def update_ivar(name, initial, fun)
+      Erlang.elixir_object_methods.update_ivar(self, name, initial, fun)
     end
 
     def __send__(method)

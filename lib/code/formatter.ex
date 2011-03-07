@@ -4,7 +4,7 @@
 module Code::Formatter
   def format_stacktrace({module, method, arity})
     if arity.__parent_name__ == 'List
-      "#{module}##{method}(#{format_object(arity)})"
+      "#{module}##{method}(#{format_object(arity)[1,-2]})"
     else
       "#{module}##{method}/#{arity}"
     end

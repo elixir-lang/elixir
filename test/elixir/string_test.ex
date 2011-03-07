@@ -44,6 +44,17 @@ three
     "elixir" = "eli" + "xir"
   end
 
+  def slice_test
+    "[1,"   = "[1,2,3]"[0,3]
+    ",2,"   = "[1,2,3]"[2,3]
+    "1,2,3" = "[1,2,3]"[1,-2]
+    ""      = "[1,2,3]"[1,0]
+
+    self.assert_error 'badarg, -> "[1,2,3]"[10,0]
+    self.assert_error 'badarg, -> "[1,2,3]"[1,10]
+    self.assert_error 'badarg, -> "[1,2,3]"[1,-10]
+  end
+
   def length_test
     0 = "".length
     6 = "elixir".length

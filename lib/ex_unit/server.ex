@@ -30,7 +30,7 @@ object ExUnit::Server
   end
 
   def handle_call({'add_case, name}, _from)
-    { 'reply, 'ok, self.ivar_append('cases, name) }
+    { 'reply, 'ok, self.update_ivar('cases, _.push(name)) }
   end
 
   def handle_call('cases, _from)
