@@ -38,7 +38,7 @@ Here are a few things that we plan to add to Elixir in the long term.
 
 * Extend interactive elixir (iex)
 * Add partial application, pipeline f1 + f2, and an easy way to retrieve functions (1#add and Integer##add?)
-* Add _.foo as shortcut to -> (x) x.foo
+* Add default arguments
 * Support guards
 * Add method cache table
 * Allow object definitions to be reopened (?) or to copy from another object
@@ -421,7 +421,7 @@ Again, removing the parenthesis, improves readability:
       acc + x
     end % => 6
 
-One final note is, while parenthesis are optional for method invocations, function invocations *always* require parenthesis:
+Notice that while parenthesis are optional for method invocations, function invocations *always* require parenthesis:
 
     my_function = -> (x, y) x + y
 
@@ -430,6 +430,24 @@ One final note is, while parenthesis are optional for method invocations, functi
 
     % This works
     my_function(1, 2)
+
+Another cool extension Elixir adds to functions is the easy generation of anonymous functions. For instance, suppose you a list of cars and you want to get their names. A way to do that would be:
+
+    cars.map -> (c) c.name
+
+However, you can easily generate an anonymous functions that does the same:
+
+    cars.map _.name
+
+Anonymous functions can also be generated with arguments, so the map expressions we saw above:
+
+    [1,2,3].map -> (x) x * 2   % => [2,4,6]
+
+Could actually be rewritten as:
+
+    [1,2,3].map _.*(2)
+
+Currently, functions do not support partial applications or pipes, but such features will be added down the road.
 
 #### Documentation
 

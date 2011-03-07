@@ -8,11 +8,7 @@ if [ $# -eq 0 ]; then
 
 * Each file passed will be loaded and executed.
 
-* All files an options are executed in the order they are supplied. For instance:
-
-  elixir foo.ex -e \"1 + 2\" baz.ex
-
-  Will load the file foo.ex, then evaluate the expression, then load baz.ex.
+* Options given after files are passed down to the executed file.
 
 * Options can be passed to the erlang compiler by using ELIXIR_ERL_OPTS." >&2
   exit 1

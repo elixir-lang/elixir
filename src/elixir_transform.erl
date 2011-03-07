@@ -60,6 +60,15 @@ transform({identifier, Line, Name}, S) ->
     { false, false } -> transform({local_call, Line, Name, []}, S)
   end;
 
+% Handles anonymous method calls as _.foo(1), transforming it to a function
+% like like -> (x) x.foo(1).
+transform({method_call, Line, Name, Args, {identifier,L,'_'}}, S) ->
+  Var = { var, L, x },
+  { Call, CS } = transform({method_call, Line, Name, Args, Var}, S),
+  { { 'fun', Line, {
+    clauses, [{ clause, Line, [Var], [], [Call] }]
+  } }, CS };
+
 % Represents a method call. The arguments need to be packed into
 % an array before sending it to dispatch (which has fixed arity).
 %
@@ -694,14 +703,15 @@ build_unary_op(Line, '!!', Right) ->
 build_unary_op(Line, Op, Right) ->
   { op, Line, Op, Right }.
 
-build_var_name(#elixir_scope{counter=Counter} = S) ->
-  { ?ELIXIR_ATOM_CONCAT(["ElixirVar", Counter]), S#elixir_scope{counter=Counter+1} }.
+build_var_name(Line, #elixir_scope{counter=Counter} = S) ->
+  NS = S#elixir_scope{counter=Counter+1},
+  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["ElixirVar", Counter]) },
+  { Var, NS }.
 
 % Build and handle comparision operators.
 build_comp_op(Line, '||', Left, Right, S) ->
-  { VarName, NS } = build_var_name(S),
+  { Var, NS } = build_var_name(Line, S),
 
-  Var = {var, Line, VarName},
   Match = {match, Line, Var, Left},
   True = [{atom,Line,true}],
   False = [{atom,Line,false}],
