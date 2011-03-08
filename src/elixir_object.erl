@@ -11,11 +11,12 @@ build(Name) ->
   Module = Name:module_info(attributes),
   Mixins = proplists:get_value(mixins, Module),
   Protos = proplists:get_value(protos, Module),
+  Data   = proplists:get_value(data, Module),
   Parent = case proplists:get_value(parent, Module) of
     []   -> [];
     Else -> hd(Else)
   end,
-  #elixir_object__{name=Name, parent=Parent, mixins=Mixins, protos=Protos}.
+  #elixir_object__{name=Name, parent=Parent, mixins=Mixins, protos=Protos, data=Data}.
 
 %% TEMPLATE BUILDING FOR MODULE COMPILATION
 

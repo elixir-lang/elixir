@@ -15,8 +15,9 @@ module Code::Init
     try
       commands.each -> (c) process_command(c)
     catch kind: error
-      IO.puts 'standard_error, "** #{kind} #{self.format_catch(kind, error)}"
-      print_stacktrace(self.__stacktrace__)
+      io = IO.new('standard_error)
+      io.puts "** #{kind} #{self.format_catch(kind, error)}"
+      print_stacktrace(io, self.__stacktrace__)
     end
 
     if halt then halt! end
@@ -48,9 +49,9 @@ module Code::Init
   def process_options([h|t], commands, close, files, halt)
     if h.to_char_list[0] == $-
       if files
-        { commands.reverse + close.reverse, [h|t].map -> (i) String.new(i) }
+        { commands.reverse + close.reverse, [h|t].map(-> (i) String.new(i)), halt }
       else
-        IO.puts "Unknown option #{String.new h}"
+        IO.new('standard_error).puts "Unknown option #{String.new h}"
         halt!
       end
     else
@@ -70,7 +71,7 @@ module Code::Init
     Code.require_file file
   end
 
-  def print_stacktrace(stacktrace)
-    stacktrace.each -> (s) IO.puts 'standard_error, "    #{self.format_stacktrace(s)}"
+  def print_stacktrace(io, stacktrace)
+    stacktrace.each -> (s) io.puts "    #{self.format_stacktrace(s)}"
   end
 end

@@ -36,8 +36,9 @@ object IEX
     catch 'error: {'badsyntax, {_, _, _, []}}
       { @binding, code }
     catch kind: error
-      IO.puts 'standard_error, "** #{kind} #{self.format_catch(kind, error)}"
-      self.__stacktrace__.each -> (s) IO.puts 'standard_error, "    #{self.format_stacktrace(s)}"
+      io = IO.new 'standard_error
+      io.puts "** #{kind} #{self.format_catch(kind, error)}"
+      self.__stacktrace__.each -> (s) io.puts "    #{self.format_stacktrace(s)}"
       { @binding, "" }
     end
 
