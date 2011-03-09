@@ -8,13 +8,16 @@ The main difference between Elixir and Erlang is syntax and object orientation. 
 
 Elixir is still in development. If you want to help building it or are just looking for some fun, you can get started now! First, you need to clone this repository to your machine, compile and test it:
 
-    git clone https://github.com/josevalim/elixir.git
-    cd elixir
-    make test
+    $ git clone https://github.com/josevalim/elixir.git
+    $ cd elixir
+    $ make test
+
+    $ bin/elixir -v
+    Elixir 0.1.0
 
 Notice that Elixir requires Erlang R14B01 or later version to execute. Prior versions (like R13 and R14A) do not work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
 
-Running the commands above with a supported Erlang version should compile Elixir and show as result that all tests pass. After, you are ready to play with Elixir!
+Running the commands above with a supported Erlang version should compile Elixir, show as result that all tests pass and the current Elixir version. After, you are ready to play with Elixir!
 
 This README provides a length explanation about Elixir in the Learning Elixir section below. There are also some examples [in the examples folder](https://github.com/josevalim/elixir/tree/master/examples/) that you can run by executing the `bin/elixir EXAMPLE` and an interactive Elixir available as `bin/iex`. Feel free to build your own examples and study the language better.
 
