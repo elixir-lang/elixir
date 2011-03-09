@@ -18,30 +18,28 @@ Running the commands above with a supported Erlang version should compile Elixir
 
 This README provides a length explanation about Elixir in the Learning Elixir section below. There are also some examples [in the examples folder](https://github.com/josevalim/elixir/tree/master/examples/) that you can run by executing the `bin/elixir EXAMPLE` and an interactive Elixir available as `bin/iex`. Feel free to build your own examples and study the language better.
 
-## Contributing
+## Contributing & Roadmap
 
-If you want to contribute to Elixir, the code is organized as most Erlang projects:
+Currently, there is an effort to improve Elixir Standard Library. As much of Elixir's STDLIB is written in Elixir and tested in Elixir, you don't need to be an advanced Erlang user to improve the language, just know the [OTP](http://www.erlang.org/doc/) a bit. As an example, you may take a look at the [List implementation](https://github.com/josevalim/elixir/tree/master/lib/list.ex) and [its tests](https://github.com/josevalim/elixir/tree/master/test/elixir/list_test.ex) to check how simple it is.
 
-* include, src - Both directories contain the part of the source code written in Erlang. `leex` and `yecc` were used as tokenizer and parser respectively;
+If you want to contribute to Elixir, the code is organized as follow:
 
-* lib - Contains Elixir's STDLIB, written in Elixir;
+* `include`, `src` - Both directories contain the part of the source code written in Erlang. `leex` and `yecc` were used as tokenizer and parser respectively;
 
-* test/elixir - Tests for Elixir's STDLIB, written in Elixir. For this purpose, Elixir ships with a small unit test library called `ExUnit`;
+* `lib` - Contains Elixir's STDLIB, written in Elixir;
 
-* test/erlang - Contains tests for Elixir, written in Erlang. Usually, just internal stuff is tested here. The preferred way to test is in Elixir itself;
+* `test/elixir` - Tests for Elixir's STDLIB, written in Elixir. For this purpose, Elixir ships with a small unit test library called `ExUnit`;
 
-As much of Elixir's standard library is written in Elixir and tested in Elixir, you don't need to be an advanced Erlang user to improve the language. As an example, you may take a look at the [List implementation](https://github.com/josevalim/elixir/tree/master/lib/list.ex) and [its tests](https://github.com/josevalim/elixir/tree/master/test/elixir/list_test.ex) to check how simple it is.
+* `test/erlang` - Contains tests for Elixir, written in Erlang. Usually, just internal stuff is tested here. The preferred way to test is in Elixir itself.
 
-## Roadmap
+In the long term, here are a few things we would like to add:
 
-Here are a few things that we plan to add to Elixir in the long term.
-
-* Add partial application, pipeline f1 + f2, and an easy way to retrieve functions (1#add and Integer##add?)
-* Add default arguments
-* Support guards
+* Add partial function application, function pipeline (f1 + f2) and an easy way to retrieve functions from objects (1#add and Integer##add?)
+* Add default arguments to methods signature
+* Support guards in functions and methods
 * Add method cache table
 * Allow object definitions to be reopened (?) or to copy from another object
-* Improve constant lookup
+* Improve constant lookup (currently constants are referenced by their full name)
 * Allow extension of builtin types (like inheriting from Integer)
 
 # Learning Elixir
