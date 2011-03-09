@@ -711,7 +711,7 @@ build_string_list(Collection) ->
   end.
 
 build_string_list(Interpol, [], Acc) ->
-  lists:flatten(lists:reverse(Acc));
+  lists:append(lists:reverse(Acc));
 
 build_string_list(Interpol, [{Kind, _, Chars}|T], Acc) ->
   build_string_list(Interpol, T, [convert_string(Interpol, Kind, Chars)|Acc]).

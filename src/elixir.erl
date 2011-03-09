@@ -135,7 +135,7 @@ read_file(Device, Acc) ->
     eof  ->
       file:close(Device),
       Reverse = lists:reverse(Acc),
-      { hd(Reverse), lists:flatten(Reverse) };
+      { hd(Reverse), lists:append(Reverse) };
     Line -> read_file(Device, [Line|Acc])
   end.
 
