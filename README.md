@@ -16,7 +16,7 @@ Notice that Elixir requires Erlang R14B01 or later version to execute. Prior ver
 
 Running the commands above with a supported Erlang version should compile Elixir and show as result that all tests pass. After, you are ready to play with Elixir!
 
-This README provides a length explanation about Elixir in the Learning Elixir section below. There are also some examples [in the examples folder](https://github.com/josevalim/elixir/tree/master/examples/) that you can run by executing the `bin/elixir EXAMPLE`. Feel free to build your own examples and study the language better.
+This README provides a length explanation about Elixir in the Learning Elixir section below. There are also some examples [in the examples folder](https://github.com/josevalim/elixir/tree/master/examples/) that you can run by executing the `bin/elixir EXAMPLE` and an interactive Elixir available as `bin/iex`. Feel free to build your own examples and study the language better.
 
 ## Contributing
 
@@ -1390,7 +1390,7 @@ The Object Graph for all these objects can be seen below:
 Once again, remember:
 
 * Everything is an object;
-* Methods are defined in modules. All modules are all objects, but not all objects are modules. Besides, modules cannot have instances. `Person::Mixin` and `Person::Proto` defined above are modules;
+* Methods are defined in modules. All modules are objects, but not all objects are modules. Besides, modules cannot have instances. `Person::Mixin` and `Person::Proto` defined above are modules;
 * Modules can be either mixed into objects (`mixin`), changing their current behavior...
 * Or added as prototype (`proto`), which will define the behavior of all children/instances from that object;
 * Finally, all modules defined as `proto` in the parent, becomes a `mixin` to the child.
