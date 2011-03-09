@@ -44,11 +44,20 @@ three
     "elixir" = "eli" + "xir"
   end
 
+  def brackets_test
+    $e = "elixir"[0]
+    $x = "elixir"[-3]
+    $x = "elixir"[3]
+    $é = "josé"[3]
+    $é = "josé"[-1]
+  end
+
   def slice_test
     "[1,"   = "[1,2,3]"[0,3]
     ",2,"   = "[1,2,3]"[2,3]
     "1,2,3" = "[1,2,3]"[1,-2]
     ""      = "[1,2,3]"[1,0]
+    "é"     = "josé"[3,1]
 
     self.assert_error 'badarg, -> "[1,2,3]"[10,0]
     self.assert_error 'badarg, -> "[1,2,3]"[1,10]

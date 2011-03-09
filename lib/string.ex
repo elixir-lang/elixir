@@ -22,13 +22,24 @@ object String
     end
   end
 
+  % Retrieves a number that represents the given character.
+  %
+  % ## Examples
+  %
+  %     "elixir"[3]   % => 140
+  %     "elixir"[-3]  % => 140
+  %
+  def [](number)
+    Erlang.binary_to_list(bin)[number]
+  end
+
   % Slice the string in the given *start* and *length* arguments. If length
   % is less than zero, it is the negative index to the end of the string.
   %
   % ## Examples
   %
   %     "[1,2,3]"[0,3]   % => "[1,"
-  %     "[1,2,3]"[0,-2]  % => "1,2,3"
+  %     "[1,2,3]"[1,-2]  % => "1,2,3"
   %
   def [](start, length)
     bin = to_bin
@@ -60,7 +71,7 @@ object String
   %     "josé".length   % => 4
   %
   def length
-    Erlang.length(Erlang.unicode.characters_to_list(bin, 'utf8))
+    Erlang.size(bin)
   end
 
   % Returns the list representation of this String.

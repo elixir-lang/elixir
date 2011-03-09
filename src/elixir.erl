@@ -63,7 +63,7 @@ recache() -> os:getenv("ELIXIR_RECACHE") == "1".
 % Note we pass the self binding as nil when loading object because
 % the default binding is Object, which at this point is not defined.
 cache_regexp() ->
-  { ok, Regexp } = re:compile("\\A%\s*elixir:\s*cache\s*$", [multiline]),
+  { ok, Regexp } = re:compile("^%\s*elixir:\s*cache\s*$"),
   Regexp.
 
 internal_require(Filepath, Regexp) ->
@@ -110,19 +110,33 @@ require(Filepath, Source, Binding, Regexp, _) ->
 % If we got here, it means we could not load the cached one.
 % Load the file and create a new cache if the directive says so.
 load(Filepath, Compiled, Binding, Regexp) ->
-  {ok, Binary} = file:read_file(Filepath),
-  case re:run(Binary, Regexp) of
+  { First, List } = read_file(Filepath),
+  case re:run(First, Regexp) of
     nomatch ->
       put(elixir_compile_core, undefined),
-      eval(binary_to_list(Binary), Binding, Filepath);
+      eval(List, Binding, Filepath);
     _ ->
       try
         put(elixir_compile_core, []),
-        eval(binary_to_list(Binary), Binding, Filepath),
+        eval(List, Binding, Filepath),
         ok = file:write_file(Compiled, term_to_binary(get(elixir_compile_core)))
       after
         put(elixir_compile_core, undefined)
       end
+  end.
+
+% Read a file
+read_file(FileName) ->
+  {ok, Device} = file:open(FileName, [read, {encoding, utf8}]),
+  read_file(Device, []).
+
+read_file(Device, Acc) ->
+  case io:get_line(Device, "") of
+    eof  ->
+      file:close(Device),
+      Reverse = lists:reverse(Acc),
+      { hd(Reverse), lists:flatten(Reverse) };
+    Line -> read_file(Device, [Line|Acc])
   end.
 
 % Evaluates a string
