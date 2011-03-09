@@ -9,6 +9,9 @@
 
 % EXTERNAL API
 
+new(#elixir_object__{parent='Module'} = Self, Args) ->
+  elixir_errors:error({nomethod, { Self, new, length(Args) } });
+
 new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
   Parent = case Name of
     [] -> Self;

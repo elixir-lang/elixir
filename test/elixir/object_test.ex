@@ -12,6 +12,16 @@ object ObjectTest
     self.assert_error error, -> object.say
   end
 
+  def nomethod_error_when_calling_new_on_module_test
+    self.assert_error { 'nomethod, { LikeDog, 'new, 0 } }, do
+      LikeDog.new
+    end
+
+    self.assert_error { 'nomethod, { LikeDog, 'new, 2 } }, do
+      LikeDog.new(1,2)
+    end
+  end
+
   def runtime_mixin_test
     object = Object.new
     cat = object.mixin(LikeCat)
