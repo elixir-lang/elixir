@@ -198,8 +198,6 @@ Lists are the main object in Elixir (as in any other functional language) and ca
 
 Elixir Standard Library has a bunch of methods to interact with lists:
 
-    [1, 2, 3].head         % => 1
-    [1, 2, 3].tail         % => [2,3]
     [1, 2, 3].length       % => 3
     ['a, 'b, 'c][1]        % => 'b
 
