@@ -131,7 +131,7 @@ As in Erlang and Ruby, Atoms are not garbage collected, so remember to not gener
 
 ### Booleans
 
-As in Erlang, the boolean values are simply atoms named true and false. However, to avoid writing 'true and 'false, Elixir also allows you to simply write true or false. The following are all equivalent and will yield `1` as result:
+As in Erlang, the boolean values are simply atoms named true and false. However, to avoid writing `'true` and `'false`, Elixir also allows you to simply write `true` or `false`. The following are all equivalent and will yield `1` as result:
 
     if 'true
       1
@@ -230,26 +230,6 @@ Most of the power in lists comes when used together with functions:
     end  % => 6
 
 The examples above uses functions using the `do/end` syntax. Don't worry about them now, we are going to take a better look at them later.
-
-#### Nil value
-
-A nil value in Elixir is represented by an empty list. In if expressions (that we briefly saw above), everything evaluates to `true`, except empty lists `[]` and `false`. Both examples below will return 1 as result:
-
-    if 'any_symbol
-      1
-    else
-      2
-    end
-
-    if []
-      2
-    else
-      1
-    end
-
-#### Documentation:
-
-* <https://github.com/josevalim/elixir/tree/master/lib/list.ex>
 
 ### Ordered Dicts
 
@@ -699,24 +679,20 @@ Elixir provides three operators that accept any object as argument. We will see 
 </tr>
 </table>
 
-Remember that any object, except `false` and `[]` (empty list), evaluates to `true`:
+Remember that any object, except `false`, evaluates to `true`:
 
-    ![]          % => true
     !false       % => true
     !true        % => false
     !Object.new  % => false
 
 Both `&&` and `||` are actually control structures. They do not return a boolean but the last evaluated object:
 
-    [] && true   % => []
-    true && []   % => []
     1 && 2       % => 2
 
-    true || []          % => true
+    true || false       % => true
     'atom || 'another   % => 'atom
     false || 'another   % => 'another
 
-    [] && IO.puts("I will never be executed")
     false && IO.puts("I will never be executed")
 
     1 || IO.puts("I will never be executed")
@@ -1736,6 +1712,8 @@ Finally, Elixir also has a hook that allows you to dynamically invoke a method w
     shouter = Shouter.new
     shouter.hello % => "hello!!!"
     shouter.bye? % => "bye?!!!"
+
+Notice the example above also calls `super` which allows you to call the next method with the same name in the mixins chain.
 
 #### Documentation
 
