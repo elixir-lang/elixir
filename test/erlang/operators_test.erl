@@ -83,14 +83,14 @@ not_exclamation_mark_test() ->
   {false,_} = elixir:eval("!'a"),
   {false,_} = elixir:eval("!true"),
   {false,_} = elixir:eval("!1"),
-  {true,_} = elixir:eval("![]"),
+  {false,_} = elixir:eval("![]"),
   {true,_} = elixir:eval("!false").
 
 notnot_exclamation_mark_test() ->
   {true,_} = elixir:eval("!!'a"),
   {true,_} = elixir:eval("!!true"),
   {true,_} = elixir:eval("!!1"),
-  {false,_} = elixir:eval("!![]"),
+  {true,_} = elixir:eval("!![]"),
   {false,_} = elixir:eval("!!false").
 
 less_greater_test() ->
@@ -207,7 +207,6 @@ andand_test() ->
     {true, _} = elixir:eval("1 == 1 && 2 < 3"),
     {3, _} = elixir:eval("Bar.foo && 1 + 2"),
     {false, _} = elixir:eval("Bar.bar && Erlang.error('bad)"),
-    {[], _} = elixir:eval("[] && 2"),
     {2, _} = elixir:eval("1 && 2"),
     {false, _} = elixir:eval("false && false or true")
   end,
@@ -228,7 +227,6 @@ oror_test() ->
     {false, _} = elixir:eval("1 == 2 || 2 > 3"),
     {3, _} = elixir:eval("Bar.bar || 1 + 2"),
     {true, _} = elixir:eval("Bar.foo || Erlang.error('bad)"),
-    {2, _} = elixir:eval("[] || 2"),
     {1, _} = elixir:eval("1 || 2"),
     {true, _} = elixir:eval("false && false || true")
   end,

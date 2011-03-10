@@ -75,7 +75,7 @@ string_with_escaped_interpolation_test() ->
   {<<"f#{'o}o">>, _} = eval_string("\"f\\#{'o}o\"").
 
 invalid_string_interpolation_test() ->
-  ?assertError({badsyntax, "nofile:1: unexpected end of string, expected }"}, elixir:eval("\"f#{{}o\"")).
+  ?assertError({badsyntax, {1, "nofile", _, _}}, elixir:eval("\"f#{{}o\"")).
 
 char_test() ->
   {99,[]} = elixir:eval("$1 + $2"),

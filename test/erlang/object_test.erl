@@ -25,7 +25,7 @@ integer_name_test() ->
   {'Integer', []} = elixir:eval("Integer.__name__").
 
 integer_parent_test() ->
-  {'Object', []} = elixir:eval("Integer.__parent__").
+  {'Object', []} = elixir:eval("Integer.__parent_name__").
 
 integer_mixins_test() ->
   {['Integer::Mixin', 'Object::Methods'], []} = elixir:eval("Integer.__mixins__").
@@ -40,7 +40,7 @@ integer_instance_name_test() ->
   {[], []} = elixir:eval("1.__name__").
 
 integer_instance_parent_test() ->
-  {'Integer', []} = elixir:eval("1.__parent__").
+  {'Integer', []} = elixir:eval("1.__parent_name__").
 
 integer_instance_mixins_test() ->
   {['Integer::Proto', 'Numeric', 'Object::Methods'], []} = elixir:eval("1.__mixins__").
@@ -248,8 +248,8 @@ no_error_catch_test() ->
   {2, []} = elixir:eval("Object.catch! -> 1 + 1").
 
 error_catch_test() ->
-  {{'EXIT',{{badmatch,2},[]}}, []} = elixir:eval("Object.catch! -> 1 = 2"),
-  {{'EXIT',{function_clause,[{'Object::Methods','catch!',1}]}}, []} = elixir:eval("Object.catch! -> [].map(1)").
+  {{'EXIT',{{badmatch,2},_}}, []} = elixir:eval("Object.catch! -> 1 = 2"),
+  {{'EXIT',{function_clause,[{lists, map,[1,[]]},_,{'Object::Methods','catch!',1}|_]}}, []} = elixir:eval("Object.catch! -> [].map(1)").
 
 %% __LINE__ and __FILE__
 

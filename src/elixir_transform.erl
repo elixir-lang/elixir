@@ -679,7 +679,6 @@ handle_string_extractions({i, Interpolation}, Line, S) ->
 % Assumes the given expressions was already transformed.
 convert_to_boolean(Line, Expr, Bool) ->
   Any   = [{var, Line, '_'}],
-  Nil   = [{nil,Line}],
   False = [{atom,Line,false}],
 
   FalseResult = [{atom,Line,not Bool}],
@@ -687,7 +686,6 @@ convert_to_boolean(Line, Expr, Bool) ->
 
   { 'case', Line, Expr, [
     { clause, Line, False, [], FalseResult },
-    { clause, Line, Nil, [], FalseResult },
     { clause, Line, Any, [], TrueResult }
   ] }.
 
@@ -711,25 +709,20 @@ build_var_name(Line, #elixir_scope{counter=Counter} = S) ->
 % Build and handle comparision operators.
 build_comp_op(Line, '||', Left, Right, S) ->
   { Var, NS } = build_var_name(Line, S),
-
-  Match = {match, Line, Var, Left},
-  True = [{atom,Line,true}],
   False = [{atom,Line,false}],
 
-  { { 'case', Line, convert_to_boolean(Line, Match, true), [
+  { { 'case', Line, Left, [
     { clause, Line, False, [], [Right] },
-    { clause, Line, True, [], [Var] }
+    { clause, Line, [Var], [], [Var] }
   ] }, NS };
 
 % Build and handle comparision operators.
 build_comp_op(Line, '&&', Left, Right, S) ->
   Any   = [{var, Line, '_'}],
-  Nil   = [{nil,Line}],
   False = [{atom,Line,false}],
 
   { { 'case', Line, Left, [
     { clause, Line, False, [], False },
-    { clause, Line, Nil, [], Nil },
     { clause, Line, Any, [], [Right] }
   ] }, S };
 

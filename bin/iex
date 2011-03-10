@@ -2,4 +2,4 @@
 SCRIPT_PATH=`dirname $0`
 ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
 export ELIXIR_PATH=$ELIXIR_PATH
-erl -I $ELIXIR_PATH/include -pa $ELIXIR_PATH/ebin -noshell -noinput $ELIXIR_ERL_OPTS -s elixir boot -extra --no-halt -f "Code.require \"iex\"; IEX.start" "$@"
+erl -I $ELIXIR_PATH/include -pa $ELIXIR_PATH/ebin -noshell -noinput $ELIXIR_ERL_OPTS -s elixir start -extra --no-halt -f "Code.require \"iex\"; IEX.start" "$@"

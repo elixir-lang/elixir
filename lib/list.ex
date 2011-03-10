@@ -1,6 +1,17 @@
 % elixir: cache
 
 object List
+  % Returns true if all items in the list evaluates to true according the given function.
+  %
+  % ## Examples
+  %
+  %     [1,2,3].all? -> (i) i % 2 == 0  % => false
+  %     [2,4,6].all? -> (i) i % 2 == 0  % => true
+  %
+  def all?(function)
+    Erlang.lists.all(function, self)
+  end
+
   % Push a new element to the list.
   %
   % ## Examples
@@ -85,7 +96,8 @@ object List
     self
   end
 
-  % Returns the head of the list:
+  % Returns the head of the list. Raises 'badarg error if the list
+  % is empty.
   %
   % ## Examples
   %
@@ -93,22 +105,41 @@ object List
   %     [].head    % => []
   %
   def head
-    self && Erlang.hd(self)
+    Erlang.hd(self)
   end
 
+  % Flattens the given list. If the list being flattened is made of lists
+  % one level deep, use flatten! instead as it is optimized for such cases.
+  %
+  % ## Examples
+  %
+  %     [[1],[[2]],3].flatten  % => [1,2,3]
+  %
   def flatten
     Erlang.lists.flatten(self)
   end
 
-  % Returns the tail of the list:
+  % Flattens a list of lists one level deep. If one of the elements of the list
+  % is not a list, raises an error.
+  %
+  % ## Examples
+  %
+  %     [[1],[2],[3]].flatten!    % => [1,2,3]
+  %     [[1],[[2]],[3]].flatten!  % => [1,[2],3]
+  %
+  def flatten!
+    Erlang.lists.append(self)
+  end
+
+  % Returns the tail of the list. Raises 'badarg error if the list
+  % is empty.
   %
   % ## Examples
   %
   %     [1,2].tail % => [2]
-  %     [].tail    % => []
   %
   def tail
-    self && Erlang.tl(self)
+    Erlang.tl(self)
   end
 
   % Returns true if the given item exists in the array.
@@ -194,6 +225,13 @@ object List
   alias_local 'length, 'size, 0
 
   % Returns if the list is proper.
+  %
+  % ## Examples
+  %
+  %     [1,2].proper?    % => true
+  %     [1|[2]].proper?  % => true
+  %     [1|2].proper?    % => false
+  %
   def proper?
     list_tail(self) == []
   end

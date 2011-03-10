@@ -72,14 +72,14 @@ object ListTest
   def head_test
     1  = [1,2,3].head
     1  = [1].head
-    [] = [].head
+    self.assert_error 'badarg, -> [].head
   end
 
   def tail_test
     [2,3] = [1,2,3].tail
     [2] = [1,2].tail
     [] = [1].tail
-    [] = [].tail
+    self.assert_error 'badarg, -> [].tail
   end
 
   def delete_test
@@ -146,7 +146,6 @@ object ListTest
     [2,4,6] = [x * 2 for x in [1,2,3], x.abs > 0]
     [2,6] = [x * 2 for x in [0,1,-2,3], x > 0]
     [3,2,6,4,9,6] = [x * y for x in [1,2,3], y in [3,2]]
-    [] = [x * 2 for x inlist [1,2,3], empty]
     [] = [x * 2 for x in [1,2,3], falsy]
   end
 

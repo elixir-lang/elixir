@@ -1,8 +1,9 @@
 -module(elixir).
--export([boot/0, require/2, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
+-export([boot/0, start/0, require/2, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
+% Boot Elixir.
 boot() ->
   % Ensure elixir_object_methods is loaded and running
   code:ensure_loaded(elixir_object_methods),
@@ -14,9 +15,11 @@ boot() ->
 
   % Boot the code server
   CodeServer = elixir_constants:lookup('Code::Server'),
-  'Code::Server::Mixin':start(CodeServer, BasePath, BaseFiles),
+  'Code::Server::Mixin':start(CodeServer, BasePath, BaseFiles).
 
-  % Process given options
+% Boot and process given options.
+start() ->
+  boot(),
   CodeInit = elixir_constants:lookup('Code::Init'),
   'Code::Init':process_argv(CodeInit, init:get_plain_arguments()).
 

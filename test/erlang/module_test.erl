@@ -115,7 +115,7 @@ cannot_defined_underscore_as_method_test() ->
   ?assertError({badsyntax, _}, elixir:eval("module Bar; def _(); 1 + 2; end; end")).
 
 invalid_method_definition_test() ->
-  ?assertError({badsyntax, "nofile:1: invalid scope for method"}, elixir:eval("def bar; end")).
+  ?assertError({badsyntax, {1, "nofile", "invalid scope for method", []}}, elixir:eval("def bar; end")).
 
 % Local calls
 
@@ -184,14 +184,14 @@ local_call_precedence_in_arrays_test() ->
 
 local_call_does_not_look_at_outer_modules_test() ->
   F = fun() ->
-    ?assertError({undefined_identifier,"nofile:4: undefined variable or local method foo"},
+    ?assertError({badform,{4, "nofile", erl_lint, {undefined_function, _}}},
       elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar\nmixin Foo\ndef bar; foo(); end\nend"))
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
 
 local_call_does_not_look_at_outer_modules_with_arity_test() ->
   F = fun() ->
-    ?assertError({undefined_identifier,"nofile:4: undefined local method foo/2"},
+    ?assertError({badform,{4, "nofile", erl_lint, {undefined_function, _}}},
       elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar\nmixin Foo\ndef bar; foo(1,2); end\nend"))
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
@@ -224,7 +224,7 @@ super_with_method_missing_test() ->
   test_helper:run_and_remove(F, ['Bar']).
 
 invalid_super_call_test() ->
-  ?assertError({badsyntax, "nofile:1: invalid scope for super"}, elixir:eval("super")).
+  ?assertError({badsyntax, {1, "nofile", "invalid scope for super", []}}, elixir:eval("super")).
 
 %% Callbacks
 
