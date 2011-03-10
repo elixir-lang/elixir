@@ -68,7 +68,7 @@ Throughout this introduction, `% =>` represents the result of an expression:
 Elixir supports both Integer and Floats:
 
     2 + 15       % => 17
-    - 13 * 10    % => 130
+    - 13 * 10    % => -130
     1986 - 1985  % => 1
     5 / 2        % => 2.5
     4 / 2        % => 2.0
