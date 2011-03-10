@@ -36,6 +36,12 @@ object ListTest
     [1,2,3] = [[1],[2],[3]].flatten
   end
 
+  def flatten_bang_test
+    [1,2,3] = [[1,2,3]].flatten!
+    [1,2,3] = [[1],[2],[3]].flatten!
+    self.assert_error 'badarg, -> [1,2,3].flatten!
+  end
+
   def each_test
     list = [1,2,4]
     list.each do (x)
@@ -67,6 +73,18 @@ object ListTest
 
     select_result = [1,2,3,4].select -> (x) [3,4].include?(x)
     [3,4] = select_result
+  end
+
+  def proper_test
+    true  = [1,2].proper?
+    true  = [1|[2]].proper?
+    false = [1|2].proper?
+  end
+
+  def all_test
+    true  = [].all? -> (_) false
+    false = [1,2,3].all? -> (i) i rem 2 == 0
+    true  = [2,4,6].all? -> (i) i rem 2 == 0
   end
 
   def head_test

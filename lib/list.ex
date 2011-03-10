@@ -5,8 +5,8 @@ object List
   %
   % ## Examples
   %
-  %     [1,2,3].all? -> (i) i % 2 == 0  % => false
-  %     [2,4,6].all? -> (i) i % 2 == 0  % => true
+  %     [1,2,3].all? -> (i) i rem 2 == 0  % => false
+  %     [2,4,6].all? -> (i) i rem 2 == 0  % => true
   %
   def all?(function)
     Erlang.lists.all(function, self)
