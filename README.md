@@ -80,9 +80,9 @@ Notice that, as Erlang, "/" always returns a Float. If you want to have integer-
 
 Several operations can also be done in a single expression, obeying the normal precedence rules:
 
-    50 * 100 - 490     % => 10
-    (50 * 100) - 490   % => 10
-    -(50 * 100) - 490  % => -990
+    50 * 10 - 490     % => 10
+    (50 * 10) - 490   % => 10
+    -(50 * 10) - 490  % => -990
 
 As in Ruby, everything is an object, so we can call methods on numbers:
 
@@ -1748,7 +1748,7 @@ The focus in Elixir so far has not been in performance, but there are a few thin
 
 ## Cache directive
 
-Elixir has a cache directive that takes a snapshot of a file after it was loaded in memory. The main reason for such directive is too dramatically increase boot time. You can enable it in any file by adding to the **first** line:
+Elixir has a cache directive that takes a snapshot of a file after it was loaded in memory. The main reason for such directive is too dramatically decrease boot time. You can enable it in any file by adding to the **first** line:
 
     % elixir: cache
 
