@@ -88,6 +88,16 @@ object OrderedDict
     Erlang.orddict.fold(function, acc, orddict)
   end
 
+  % Deletes the given key from the Ordered Dict returning the new dict.
+  %
+  % ## Examples
+  %
+  %     { 'a: 1, 'b: 2 }.delete 'a  % => { 'b: 2 }
+  %
+  def delete(key)
+    OrderedDict.new Erlang.orddict.erase(key, orddict)
+  end
+
   % Calls the given *function* for each key and value. Returns a List
   % with the result of each *function*.
   %

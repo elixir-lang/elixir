@@ -19,9 +19,18 @@ object OrderedDictTest
     2 = x
     4 = y
 
+    { 1,2 } = kwargs 'a: 1, 'b: 2
+    { 1,2 } = kwargs 'b: 2, 'a: 1
+    { 1,2 } = kwargs 'b: 2, 'a: 1, 'c: 3
+
     self.assert_error {'badmatch, {1: 2, 2: 4}}, do
       { 2: 4, 1: 2 } = { 1: 2, 2: 4 }
     end
+  end
+
+  def delete_test
+    { 'a: 1 } = { 'a: 1, 'b: 2 }.delete('b)
+    { 'a: 1 } = { 'a: 1 }.delete('b)
   end
 
   def update_test
@@ -45,5 +54,13 @@ object OrderedDictTest
 
   def a_dict
     { 1:11, 2:22 }
+  end
+
+  def kwargs('a: x, 'b: y)
+    { x, y }
+  end
+
+  def kwargs(dict)
+    kwargs(dict.delete('c))
   end
 end
