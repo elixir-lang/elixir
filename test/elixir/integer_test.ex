@@ -3,6 +3,13 @@ Code.require File.expand_path("../test_helper", __FILE__)
 object IntegerTest
   proto ExUnit::Case
 
+  def abs_test
+    1 = -1.abs
+    1 = 1.abs
+    0 = 0.abs
+    -1 = -(1).abs
+  end
+
   def times_with_arity_0_test
     reset_counter
 

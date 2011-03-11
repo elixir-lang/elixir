@@ -13,6 +13,7 @@ Nonterminals
   without_args_method_call_expr _without_args_method_call_expr
   np_erlang_call_expr
   brackets_expr _brackets_expr
+  unary_expr _unary_expr
   call_exprs _call_exprs
   fun_call_expr _fun_call_expr
   method_call_expr _method_call_expr
@@ -185,7 +186,11 @@ without_args_method_call_expr -> np_call_exprs dot_eol method_name : build_metho
 
 % Brackets expression
 brackets_expr -> call_exprs list_args : build_bracket_call('$1', '$2').
-brackets_expr -> call_exprs : '$1'.
+brackets_expr -> unary_expr : '$1'.
+
+% Special case unaries with base expr to have higher priority
+unary_expr -> unary_op base_expr : build_unary_op('$1', '$2').
+unary_expr -> call_exprs : '$1'.
 
 % Calls with parens
 call_exprs -> fun_call_expr : '$1'.
@@ -245,7 +250,11 @@ _without_args_method_call_expr -> _np_call_exprs dot_eol method_name : build_met
 
 % Brackets expression
 _brackets_expr -> _call_exprs list_args : build_bracket_call('$1', '$2').
-_brackets_expr -> _call_exprs : '$1'.
+_brackets_expr -> _unary_expr : '$1'.
+
+% Special case unaries with min_expr to have higher priority
+_unary_expr -> unary_op base_expr : build_unary_op('$1', '$2').
+_unary_expr -> _call_exprs : '$1'.
 
 % Calls with parens
 _call_exprs -> _fun_call_expr : '$1'.
