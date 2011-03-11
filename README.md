@@ -45,6 +45,10 @@ In the long term, here are a few things we would like to add:
 * Improve constant lookup (currently constants are referenced by their full name)
 * Allow extension of builtin types (like inheriting from Integer)
 
+## Extra resources
+
+* Textmate Bundle for Elixir: <https://github.com/josevalim/elixir-tmbundle>
+
 # Learning Elixir
 
 This is a basic introduction into Elixir basic objects and object model. Some sections have a paragraph called "To be implemented", they represent parts of Elixir that was not implemented yet and that are under discussion.
