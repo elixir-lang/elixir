@@ -49,7 +49,7 @@ copy_attributes_fun(Data) ->
   end.
 
 module_eval(#elixir_object__{name=Name, data=Data} = Self, String, Filename, Line) when is_atom(Data) ->
-  Scope = #elixir_scope{module={object_kind(Self), Name}},
+  Scope = #elixir_scope{scope={object_kind(Self), Name}},
   elixir:eval(String, [{self,Self}], Filename, Line, Scope).
 
 object_kind(#elixir_object__{parent='Module'}) -> module;
