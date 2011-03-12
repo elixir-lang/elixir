@@ -4,6 +4,12 @@ object OrderedDict
   % Implement OrderedDict as a record. This is done mainly
   % to have improved performance for the equality operator.
   module Mixin
+    % Generates a new OrderedDict from a list of tuples
+    %
+    % ## Examples
+    %
+    %     { 'a: 1, 'b: 2 } = OrderedDict.from_list(['a/1, 'b/2])
+    %
     def from_list(list)
       { 'elixir_orddict__, Erlang.orddict.from_list(list) }
     end

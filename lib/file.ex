@@ -16,7 +16,7 @@ object File
     end
 
     def join(list)
-      Erlang.filename.join list.map(_.to_bin)
+      String.new Erlang.filename.join list.map(_.to_bin)
     end
 
     def join(a, b)

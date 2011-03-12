@@ -37,10 +37,26 @@ object List
     Erlang.lists.keyfind(key, n + 1, self)
   end
 
+  % "Zips" two lists of equal length into one list of two-tuples, where the
+  % first element of each tuple is taken from the first list and the second
+  % element is taken from corresponding element in the second list.
+  %
+  % Raises an error is list sizes does not match.
+  %
+  % ## Examples
+  %
+  %     ['foo, 'bar].zip [1,2]  % => [{'foo,1}, {'bar,2}]
+  %
   def zip(list)
     Erlang.lists.zip(self, list)
   end
 
+  % Does the opposite of `zip`.
+  %
+  % ## Examples
+  %
+  %     {['foo, 'bar], [1,2]} = [{'foo, 1}, {'bar, 2}].unzip
+  %
   def unzip
     Erlang.lists.unzip(self)
   end

@@ -12,6 +12,10 @@ object OrderedDictTest
     { 1: 11, 2: 44 } == a_dict.map -> (key, value) key * value
   end
 
+  def from_list_test
+    { 'a: 1, 'b: 2 } = OrderedDict.from_list(['a/1, 'b/2])
+  end
+
   def match_test
     { 1: 2, 2: 4 } = { 2: 4, 1: 2 }
 

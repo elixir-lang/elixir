@@ -87,6 +87,23 @@ object ListTest
     true  = [2,4,6].all? -> (i) i rem 2 == 0
   end
 
+  def keyfind_test
+    {'foo, 1} = ['foo/1, 'bar/2].keyfind('foo, 0)
+    {'bar, 2} = ['foo/1, 'bar/2].keyfind('bar, 0)
+    false = ['foo/1, 'bar/2].keyfind('foo, 1)
+    false = ['foo/1, 'bar/2].keyfind('baz, 0)
+  end
+
+  def zip_test
+    [{'foo, 1}, {'bar, 2}] = ['foo, 'bar].zip([1, 2])
+    self.assert_error 'function_clause, -> ['foo].zip([1, 2])
+  end
+
+  def unzip_test
+    {['foo, 'bar], [1,2]} = [{'foo, 1}, {'bar, 2}].unzip
+    self.assert_error 'function_clause, -> [{'foo, 0}, 'bar].unzip
+  end
+
   def head_test
     1  = [1,2,3].head
     1  = [1].head

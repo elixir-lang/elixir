@@ -18,5 +18,16 @@ object FileTest
     full = File.expand_path("foo/bar")
     full = File.expand_path("bar/../bar", "foo")
   end
+
+  def join_test
+    "foo/bar" = File.join("foo", "bar")
+    "foo/bar/baz" = File.join(["foo", "bar", "baz"])
+  end
+
+  def split_test
+    ["foo"] = File.split("foo")
+    ["foo", "bar"] = File.split("foo/bar")
+    ["foo", "bar", "baz"] = File.split("foo/bar/baz")
+  end
 end
 
