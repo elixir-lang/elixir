@@ -18,20 +18,21 @@ module Code::Init
       io = IO.new('standard_error)
       io.puts "** #{kind} #{self.format_catch(kind, error)}"
       print_stacktrace(io, self.__stacktrace__)
+      halt!(1)
     end
 
-    if halt then halt! end
+    if halt then halt!(0) end
   end
 
   private
 
-  def halt!
-    Erlang.halt()
+  def halt!(status)
+    Erlang.halt(status)
   end
 
   def process_options([$"-v"|_], _, _, _, _)
     IO.puts "Elixir #{Code.version}"
-    halt!
+    halt!(0)
   end
 
   def process_options([$"-e",h|t], commands, close, files, halt)
@@ -52,7 +53,7 @@ module Code::Init
         { commands.reverse + close.reverse, [h|t].map(-> (i) String.new(i)), halt }
       else
         IO.new('standard_error).puts "Unknown option #{String.new h}"
-        halt!
+        halt!(1)
       end
     else
       process_options(t, [{'require,h}|commands], close, true, halt)
