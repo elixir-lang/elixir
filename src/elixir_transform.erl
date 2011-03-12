@@ -52,7 +52,7 @@ transform_tree(Forms, S) ->
 % exist yet. If we cannot define a variable and it does not belong to
 % the list, make it a method call.
 transform({identifier, Line, Name}, S) ->
-  Match = S#elixir_scope.match,
+  Match = S#elixir_scope.assign,
   Vars = S#elixir_scope.vars,
   case { Match, lists:member(Name, Vars) } of
     { _, true }      -> { {var, Line, Name}, S };
@@ -100,7 +100,7 @@ transform({local_call, Line, super, Args}, S) ->
     Method ->
       { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, S),
 
-      Module = case S#elixir_scope.module of
+      Module = case S#elixir_scope.scope of
         {object, Name} -> ?ELIXIR_ATOM_CONCAT([Name, "::Proto"]);
         {module, Name} -> Name
       end,
@@ -155,7 +155,7 @@ transform({ivar, Line, Name}, S) ->
 %
 % So we need to take both into account.
 transform({match, Line, Left, Right}, S) ->
-  { TLeft, SL } = transform(Left, S#elixir_scope{match=true}),
+  { TLeft, SL } = transform(Left, S#elixir_scope{assign=true}),
   { TRight, SR } = transform(Right, umergec(S, SL)),
   { {match, Line, TLeft, TRight }, umergev(SL, SR) };
 
@@ -190,7 +190,7 @@ transform({list, Line, Exprs, Tail }, S) ->
 transform({orddict, Line, Exprs }, S) ->
   { List, NS } = transform({list, Line, Exprs, {nil, Line} }, S),
   Dict = if
-    S#elixir_scope.match -> List;
+    S#elixir_scope.assign -> List;
     true -> ?ELIXIR_WRAP_CALL(Line, orddict, from_list, [List])
   end,
   { {tuple, Line, [{atom, Line, elixir_orddict__}, Dict] }, NS };
@@ -422,8 +422,8 @@ transform({'receive', Line, Clauses, Expr, After}, S) ->
 % into account. Clauses do not return variables list as second argument
 % because variables in one clause should not affect the other.
 transform({clause, Line, Args, Guards, Exprs}, S) ->
-  { TArgs, SA } = transform_tree(Args, S#elixir_scope{match=true}),
-  { TExprs, SE } = transform_tree(Exprs, SA#elixir_scope{match=false}),
+  { TArgs, SA } = transform_tree(Args, S#elixir_scope{assign=true}),
+  { TExprs, SE } = transform_tree(Exprs, SA#elixir_scope{assign=false}),
   { { clause, Line, TArgs, Guards, TExprs }, SE };
 
 transform({else_clause, Line, Exprs}, S) ->
@@ -450,7 +450,7 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, S) ->
 % Variables are handled in each function clause.
 %
 transform({def_method, Line, Name, Arity, Clauses}, S) ->
-  {_, Module} = S#elixir_scope.module,
+  {_, Module} = S#elixir_scope.scope,
   case Module of
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method", "");
     _ ->
@@ -521,10 +521,10 @@ transform({bc, Line, Elements, Cases}, S) ->
 % context. The only variable available in the module by default
 % is self.
 transform({Kind, Line, Name, Parent, Exprs}, S) when Kind == object; Kind == module->
-  {_, Current} = S#elixir_scope.module,
+  {_, Current} = S#elixir_scope.scope,
   Filename = S#elixir_scope.filename,
   NewName = elixir_object:scope_for(Current, Name),
-  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],module={Kind, NewName}}),
+  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],scope={Kind, NewName}}),
   { elixir_object:transform(Kind, Line, Filename, NewName, Parent, TExprs), S };
 
 % Handles __FILE__
@@ -561,13 +561,13 @@ transform_comprehension({undef_generate, Line, Left, Right}, L, S) ->
   end;
 
 transform_comprehension({list_generate, Line, Left, Right}, L, S) ->
-  { TLeft, SL } = transform(Left, S#elixir_scope{match=true}),
-  { TRight, SR } = transform(Right, SL#elixir_scope{match=false}),
+  { TLeft, SL } = transform(Left, S#elixir_scope{assign=true}),
+  { TRight, SR } = transform(Right, SL#elixir_scope{assign=false}),
   { { generate, Line, TLeft, TRight }, SR };
 
 transform_comprehension({bin_generate, Line, Left, Right}, L, S) ->
-  { TLeft, SL } = transform(Left, S#elixir_scope{match=true}),
-  { TRight, SR } = transform(Right, SL#elixir_scope{match=false}),
+  { TLeft, SL } = transform(Left, S#elixir_scope{assign=true}),
+  { TRight, SR } = transform(Right, SL#elixir_scope{assign=false}),
   { { b_generate, Line, TLeft, TRight }, SR };
 
 transform_comprehension(X, L, S) ->

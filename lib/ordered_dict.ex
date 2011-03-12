@@ -4,6 +4,10 @@ object OrderedDict
   % Implement OrderedDict as a record. This is done mainly
   % to have improved performance for the equality operator.
   module Mixin
+    def from_list(list)
+      { 'elixir_orddict__, Erlang.orddict.from_list(list) }
+    end
+
     % Return a new Elixir OrderedDict. Remember that new is
     % special cased by the compiler to receive an array as argument.
     def new([])

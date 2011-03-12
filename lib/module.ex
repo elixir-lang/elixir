@@ -80,6 +80,21 @@ object Module
       end
     end
 
+    def attr_writer(names)
+      names.each do (name)
+        module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
+  def #{name}(value)
+    self.set_ivar '#{name}, value
+  end
+~~
+      end
+    end
+
+    def attr_accessor(names)
+      attr_reader names
+      attr_writer names
+    end
+
     % Hook invoked whenever this module is added as a mixin.
     % It receives the target object where the mixin is being added
     % as parameter and must return an object of the same kind.

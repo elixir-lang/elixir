@@ -3,7 +3,7 @@
 -include("elixir.hrl").
 
 % TODO Implement method missing dispatching to protected methods.
-dispatch(Self, Object, Method, Args) ->
+dispatch(Self, Object, Method, Args) when is_list(Args)->
   Chain = elixir_object_methods:mixins(Object),
   Arity = length(Args) + 1,
   case find_module(Chain, Method, Arity) of
@@ -15,7 +15,7 @@ dispatch(Self, Object, Method, Args) ->
       end
   end.
 
-super(Object, Module, Method, Args) ->
+super(Object, Module, Method, Args) when is_list(Args) ->
   WholeChain = elixir_object_methods:mixins(Object),
   [Module|Chain] = lists:dropwhile(fun(X) -> X /= Module end, WholeChain),
   Arity = length(Args) + 1,

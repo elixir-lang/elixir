@@ -8,11 +8,19 @@ object File
 
     def expand_path(string, relative)
       fullpath = absname(string, relative)
-      ~r{((/\.)|(/[^/]*[^\\]/\.\.))(/|\z)}.replace_all(fullpath, "\\4")
+      strip_dots ~r{((/\.)|(/[^/]*[^\\]/\.\.))(/|\z)}, fullpath
+    end
+
+    def split(filename)
+      Erlang.filename.split(filename.to_bin).map -> (i) String.new i
+    end
+
+    def join(list)
+      Erlang.filename.join list.map(_.to_bin)
     end
 
     def join(a, b)
-      Erlang.filename.join(a.to_bin, b.to_bin)
+      String.new Erlang.filename.join(a.to_bin, b.to_bin)
     end
 
     private
@@ -23,6 +31,15 @@ object File
 
     def absname(string, relative)
       Erlang.filename.absname(string.to_bin, File.expand_path(relative, []).to_bin)
+    end
+
+    def strip_dots(regexp, path)
+      new = regexp.replace_all(path, "\\4")
+      if new == path
+        path
+      else
+        strip_dots(regexp, new)
+      end
     end
   end
 end

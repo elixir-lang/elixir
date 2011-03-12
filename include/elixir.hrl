@@ -32,4 +32,4 @@
 %   5) keeps a counter with the variables defined
 %   6) filename keeps the current scope filename
 %
--record(elixir_scope, {match=false, method=[], module={[],[]}, vars=[], counter=0, filename="nofile"}).
+-record(elixir_scope, {assign=false, method=[], scope={[],[]}, vars=[], counter=0, filename="nofile"}).

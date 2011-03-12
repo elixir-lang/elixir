@@ -24,6 +24,27 @@ object List
   end
   alias_local 'push, 'append, 1
 
+  % Searches the list for a tuple whose nth element compares equal to key.
+  % Returns the tuple if such a tuple is found, otherwise false. The list
+  % needs necessarily to have only tuples and n is 0..(tuple.size - 1).
+  %
+  % ## Examples
+  %
+  %     ['foo/1, 'bar/2].keyfind('foo, 0)  % => {'foo, 1}
+  %     ['foo/1, 'bar/2].keyfind('baz, 0)  % => false
+  %
+  def keyfind(key, n)
+    Erlang.lists.keyfind(key, n + 1, self)
+  end
+
+  def zip(list)
+    Erlang.lists.zip(self, list)
+  end
+
+  def unzip
+    Erlang.lists.unzip(self)
+  end
+
   % Returns a new list with the contents of the
   % current list and the other list.
   %

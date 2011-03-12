@@ -185,7 +185,7 @@ np_method_call_expr -> without_args_method_call_expr : '$1'.
 without_args_method_call_expr -> np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets expression
-brackets_expr -> call_exprs list_args : build_bracket_call('$1', '$2').
+brackets_expr -> unary_expr list_args : build_bracket_call('$1', '$2').
 brackets_expr -> unary_expr : '$1'.
 
 % Special case unaries with base expr to have higher priority
@@ -249,7 +249,7 @@ _np_method_call_expr -> _without_args_method_call_expr : '$1'.
 _without_args_method_call_expr -> _np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets expression
-_brackets_expr -> _call_exprs list_args : build_bracket_call('$1', '$2').
+_brackets_expr -> _unary_expr list_args : build_bracket_call('$1', '$2').
 _brackets_expr -> _unary_expr : '$1'.
 
 % Special case unaries with min_expr to have higher priority
@@ -330,6 +330,8 @@ list -> open_bracket comma_expr close_bracket : build_list(?line('$1'), '$2').
 list -> open_bracket comma_expr '|' expr close_bracket : build_list(?line('$1'), '$2', '$4').
 
 list_comprehension -> open_bracket expr for comprehension_args close_bracket : { lc, ?line('$3'), '$2', '$4' }.
+
+list_args -> open_bracket ']' : { ?line('$1'), [] }.
 list_args -> open_bracket comma_expr close_bracket : { ?line('$1'), '$2' }.
 
 % Binaries declaration.
