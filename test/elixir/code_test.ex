@@ -35,6 +35,10 @@ object CodeTest
     expected = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" test/elixir/fixtures/init_sample.ex -o 1 2 3")
   end
   
+  def require_each_test
+    true = Code.require_each(["gen_server", "os"])
+  end
+
   def code_error_test
     self.assert_include "** throw 1", OS.cmd("bin/elixir -e \"self.throw 1\"")
     self.assert_include "** error 1", OS.cmd("bin/elixir -e \"self.error 1\"")

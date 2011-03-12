@@ -35,11 +35,10 @@ module Code
   def require_each([h|t])
     require h
     require_each t
-    true
   end
 
   def require_each([])
-    false
+    true
   end
 
   % Requires a file in the load paths. Returns true if the file was loaded,
