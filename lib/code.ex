@@ -38,6 +38,10 @@ module Code
     true
   end
 
+  def require_each([])
+    false
+  end
+
   % Requires a file in the load paths. Returns true if the file was loaded,
   % false if the file was already loaded and raises an error if the file
   % could not be found in any load path.
