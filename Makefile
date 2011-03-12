@@ -11,10 +11,16 @@ ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
 .PHONY: test test_erlang test_elixir clean
 
 # This is the default task
-compile: ebin | src/elixir_lexer.erl src/elixir_parser.erl
+compile: ebin/elixir.beam ebin | src/elixir_lexer.erl src/elixir_parser.erl
 
 # install:
 # We will need to do this one at some point
+
+ebin/elixir.beam: include/elixir.hrl
+	@ echo Compiling source ...
+	@ mkdir -p $(EBIN_DIR)
+	$(ERLC) -o $(EBIN_DIR) src/*.erl
+	@ echo
 
 src/elixir_lexer.erl: src/elixir_lexer.xrl
 	@ echo Compiling lexer ...
