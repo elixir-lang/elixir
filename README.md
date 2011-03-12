@@ -1730,11 +1730,13 @@ Notice the example above also calls `super` which allows you to call the next me
 * <https://github.com/josevalim/elixir/tree/master/lib/object.ex>
 * <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
 
-# Performance
+# Advanced Topics
+
+## Performance
 
 The focus in Elixir so far has not been in performance, but there are a few things you can do right now.
 
-## Cache directive
+### Cache directive
 
 Elixir has a cache directive that takes a snapshot of a file after it was loaded in memory. The main reason for such directive is too dramatically decrease boot time. You can enable it in any file by adding to the **first** line:
 
@@ -1754,7 +1756,7 @@ Keep in mind that, as just the snapshot is loaded, custom code inside the file i
 
 If you cache the file above, `Foo.say_something` will never be executed when the snapshot is loaded. For exactly the same reason, if you have a file that loads other files, you should not cache them as well (Elixir won't even let you). If you are also dynamically generating code depending on an ENV variable, database or file information, it is likely that you want to avoid the cache as well.
 
-## Compilation to Native Code
+### Compilation to Native Code
 
 Elixir can compile to native code using the Hipe compiler. All you need to do is to export the following before running your code:
 
@@ -1767,6 +1769,27 @@ Even though enabling native code compilation should improve performance on execu
 
     # Enjoy fast code with fast boot time
     bin/elixir app.ex
+
+## Records
+
+Elixir allows you to import records from Erlang code. Here is an example that imports the `file_info` record available in the `kernel` module:
+
+    Code.require "record"
+
+    object FileInfo
+      proto Record
+      record 'file_info, 'from_lib: "kernel/include/file.hrl"
+    end
+
+    % Manually access the Erlang file:read_file_info method
+    % passing the current file as a char list.
+    { 'ok, info } = Erlang.file.read_file_info(__FILE__.to_char_list)
+
+    % Create a new FileInfo object based on the tuple returned above
+    record = FileInfo.new info
+
+    % Profit by accessing the record info
+    record.access % => 'read_write
 
 # License
 
