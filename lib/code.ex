@@ -29,6 +29,15 @@ module Code
     raw_loaded.map -> (l) String.new l
   end
 
+  % Requires an array of files. Returns true if all files are loaded,
+  % otherwise raises an error if the file could not be found in any load
+  % path. 
+  def require_each([h|t])
+    require h
+    require_each t
+    true
+  end
+
   % Requires a file in the load paths. Returns true if the file was loaded,
   % false if the file was already loaded and raises an error if the file
   % could not be found in any load path.
@@ -44,7 +53,7 @@ module Code
       first
     end
   end
-
+ 
   % Requires a file given by the path. If the file does
   % not exist, an error is raised.
   def require_file(path)
