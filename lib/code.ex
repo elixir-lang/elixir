@@ -6,7 +6,7 @@ module Code
   end
 
   def version
-    "0.1.0"
+    "0.1.1.dev"
   end
 
   def unshift_path(path)
