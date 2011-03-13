@@ -3,7 +3,7 @@
 -export([test/0, unpack_string/1, unpack_regexp/1, run_and_remove/2, throw_elixir/1, throw_erlang/1]).
 
 test() ->
-  elixir:boot(),
+  elixir:start(),
   eunit:test([
     arithmetic_test,
     atom_test,

@@ -1,6 +1,9 @@
-#!/bin/sh
-if [ $# -eq 0 ]; then
-  echo "Usage: `basename $0` [switches] [files]
+#!/usr/bin/env escript
+%%! 
+
+
+main([]) ->
+  io:format("Usage: ~s [switches] [files]
 
   -v              Prints version and exit
   -e \"command\"    Evaluates the given command (may be used more than once)
@@ -11,11 +14,13 @@ if [ $# -eq 0 ]; then
 
 * Options given after files are passed down to the executed file.
 
-* Options can be passed to the erlang compiler by using ELIXIR_ERL_OPTS." >&2
-  exit 1
-fi
+* Options can be passed to the erlang compiler by using ELIXIR_ERL_OPTS.~n", [escript:script_name()]),
+  init:stop();
 
-SCRIPT_PATH=`dirname $0`
-ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
-export ELIXIR_PATH=$ELIXIR_PATH
-erl -I $ELIXIR_PATH/include -pa $ELIXIR_PATH/ebin -noshell $ELIXIR_ERL_OPTS -s elixir start -extra "$@"
+main(Args) ->
+  ElixirBin = filename:join(filename:dirname(escript:script_name()), "../ebin"),
+  code:add_pathz(ElixirBin), % This will work for local checkout and for common installation
+  elixir:start(),
+  CodeInit = elixir_constants:lookup('Code::Init'),
+  'Code::Init':process_argv(CodeInit, Args),
+  init:stop().
