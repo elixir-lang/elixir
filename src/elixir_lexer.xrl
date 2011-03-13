@@ -157,7 +157,11 @@ build_heredoc(Chars, Line, Length) ->
 
 % Build a bracket identifier.
 build_bracket_identifier(Line, Chars, Length) ->
-  { _, Token } = build(bracket_identifier, Line, sublist(Chars, Length - 1)),
+  Atom = list_to_atom(sublist(Chars, Length - 1)),
+  Token = case reserved_bracket_word(Atom) of
+    true ->  {Atom, Line};
+    false -> {bracket_identifier, Line, Atom}
+  end,
   { token, Token, "[" }.
 
 % Handle chars.
@@ -256,42 +260,44 @@ unescape_chars(true, [$\\, Escaped|Rest], Output) ->
 unescape_chars(Escaping, [Char|Rest], Output) ->
   unescape_chars(Escaping, Rest, [Char|Output]).
 
-reserved_word('Erlang')    -> true;
-reserved_word('_')         -> true;
-reserved_word('end')       -> true;
-reserved_word('do')        -> true;
-reserved_word('module')    -> true;
-reserved_word('object')    -> true;
-reserved_word('def')       -> true;
-reserved_word('true')      -> true;
-reserved_word('false')     -> true;
-reserved_word('case')      -> true;
-reserved_word('match')     -> true;
-reserved_word('try')       -> true;
-reserved_word('catch')     -> true;
-reserved_word('receive')   -> true;
-reserved_word('after')     -> true;
-% reserved_word('when')    -> true;
-reserved_word('if')        -> true;
-reserved_word('elsif')     -> true;
-reserved_word('else')      -> true;
-reserved_word('unless')    -> true;
-reserved_word('then')      -> true;
-reserved_word('and')       -> true;
-reserved_word('andalso')   -> true;
-reserved_word('or')        -> true;
-reserved_word('orelse')    -> true;
-reserved_word('not')       -> true;
-reserved_word('for')       -> true;
-reserved_word('in')        -> true;
-reserved_word('inlist')    -> true;
-reserved_word('inbin')     -> true;
+reserved_word('Erlang')  -> true;
+reserved_word('_')       -> true;
+reserved_word('end')     -> true;
+reserved_word('do')      -> true;
+reserved_word('module')  -> true;
+reserved_word('object')  -> true;
+reserved_word('def')     -> true;
+reserved_word('case')    -> true;
+reserved_word('match')   -> true;
+reserved_word('try')     -> true;
+reserved_word('catch')   -> true;
+reserved_word('receive') -> true;
+reserved_word('after')   -> true;
+% reserved_word('when')  -> true;
+reserved_word('if')      -> true;
+reserved_word('elsif')   -> true;
+reserved_word('else')    -> true;
+reserved_word('unless')  -> true;
+reserved_word('then')    -> true;
+reserved_word('and')     -> true;
+reserved_word('andalso') -> true;
+reserved_word('or')      -> true;
+reserved_word('orelse')  -> true;
+reserved_word('not')     -> true;
+reserved_word('for')     -> true;
+reserved_word('in')      -> true;
+reserved_word('inlist')  -> true;
+reserved_word('inbin')   -> true;
+reserved_word('div')     -> true;
+reserved_word('rem')     -> true;
+reserved_word(Else)      -> reserved_bracket_word(Else).
 
-% Special operators
-reserved_word('div')       -> true;
-reserved_word('rem')       -> true;
+% Keywords that are also valid when followed by brackets.
 
-reserved_word(_)           -> false.
+reserved_bracket_word(true)  -> true;
+reserved_bracket_word(false) -> true;
+% reserved_bracket_word(nil) -> true;
+reserved_bracket_word(_)     -> false.
 
 % Handle string interpolations
 

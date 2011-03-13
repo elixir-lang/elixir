@@ -16,6 +16,18 @@ object OrderedDictTest
     { 'a: 1, 'b: 2 } = OrderedDict.from_list(['a/1, 'b/2])
   end
 
+  def merge_test
+    { 'a: 3, 'b: 2 } = { 'a: 1 }.merge 'b: 2, 'a: 3
+  end
+
+  def merge_function_test
+    { 'a: 1, 'b: 2 } = { 'a: 1 }.merge { 'b: 2, 'a: 3 }, -> (_, v1, _) v1
+  end
+
+  def to_list_test
+    [{'a, 1}, {'b, 2}] = { 'b: 2, 'a: 1 }.to_list
+  end
+
   def match_test
     { 1: 2, 2: 4 } = { 2: 4, 1: 2 }
 

@@ -1667,6 +1667,10 @@ Besides, Elixir also imports behaviors from Erlang OTP. Currently, just `GenServ
 * <https://github.com/josevalim/elixir/tree/master/lib/process.ex>
 * <https://github.com/josevalim/elixir/tree/master/lib/gen_server.ex>
 
+# Advanced Topics
+
+Some advanced topics related to Elixir.
+
 ## Dynamic Dispatch, Reflection, Metaprogramming and Method Missing
 
 Elixir allows you to dynamically dispatch methods:
@@ -1730,8 +1734,6 @@ Notice the example above also calls `super` which allows you to call the next me
 * <https://github.com/josevalim/elixir/tree/master/lib/object.ex>
 * <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
 
-# Advanced Topics
-
 ## Performance
 
 The focus in Elixir so far has not been in performance, but there are a few things you can do right now.
@@ -1790,6 +1792,10 @@ Elixir allows you to import records from Erlang code. Here is an example that im
 
     % Profit by accessing the record info
     record.access % => 'read_write
+
+#### Documentation
+
+* <https://github.com/josevalim/elixir/tree/master/lib/record.ex>
 
 # License
 

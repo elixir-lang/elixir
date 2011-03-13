@@ -40,6 +40,32 @@ object OrderedDict
     OrderedDict.new Erlang.orddict.update(key, function, orddict)
   end
 
+  % Merge one dict into the other.
+  %
+  % ## Examples
+  %
+  %     { 'a: 3, 'b: 2 } = { 'a: 1 }.merge { 'b: 2, 'a: 3 }, -> (_, v1, _) v1
+  %
+  def merge(other)
+    function = -> (_k, _v1, v2) v2
+    OrderedDict.new Erlang.orddict.merge(function, orddict, other.to_list)
+  end
+
+  % Merge one dict into the other according to the given function. The function
+  % is invoked when both dicts have the same keys with the key and both values
+  % as arguments and should return the result given by the conflict of such keys.
+  %
+  % ## Examples
+  %
+  % The example provides a reverse merge, where the first dict is merged into
+  % the one given as argument:
+  %
+  %     { 'a: 1, 'b: 2 } = { 'a: 1 }.merge { 'b: 2, 'a: 3 }, -> (_k, v1, _v2) v1
+  %
+  def merge(other, function)
+    OrderedDict.new Erlang.orddict.merge(function, orddict, other.to_list)
+  end
+
   % The same as update/2, but if no value exists, *initial* is used.
   %
   % ## Examples
@@ -139,6 +165,16 @@ object OrderedDict
   % The same as inspect.
   def to_s
     inspect
+  end
+
+  % Converts this OrderedDict to a list. The return list is ordered.
+  %
+  % == Examples
+  %
+  %     [{'a, 1},{'b, 2}] = { 'a: 1, 'b: 2 }.to_list
+  %
+  def to_list
+    orddict
   end
 
   private

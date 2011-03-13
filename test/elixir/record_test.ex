@@ -13,7 +13,28 @@ object RecordTest
     proto Record
     record 'elixir_scope, 'from: File.expand_path("../../../include/elixir.hrl", __FILE__)
   end
-  
+
+  def record_constructor_with_dict_test
+    record = RecordTest::FileInfo.new('type: 'regular)
+    'regular = record.type
+    []       = record.access
+  end
+
+  def record_constructor_with_invalid_object_test
+    invalid = [1,2,3]
+    self.assert_error {'badarg, invalid}, -> RecordTest::FileInfo.new(invalid)
+  end
+
+  def record_constructor_with_invalid_tuple_name_test
+    invalid = {'elixir_another,1,2,3,4,5,6}
+    self.assert_error {'badrecord, invalid}, -> RecordTest::ElixirScope.new(invalid)
+  end
+
+  def record_constructor_with_invalid_tuple_size_test
+    invalid = {'elixir_scope,1,2,3,4,5}
+    self.assert_error {'badrecord, invalid}, -> RecordTest::ElixirScope.new(invalid)
+  end
+
   def record_accessors_test
     record = RecordTest::FileInfo.new(file_info)
     'regular    = record.type
