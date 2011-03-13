@@ -68,6 +68,10 @@ object ObjectTest
 
     parent = child.__parent__
     [] = child.__parent_name__
+
+    'List = [].class
+    [] = Object.class
+    [] = Object.parent
   end
 
   def inspect_test

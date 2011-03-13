@@ -33,6 +33,14 @@ object Object
       Erlang.elixir_object_methods.parent_name(self)
     end
 
+    def class
+      __parent_name__
+    end
+ 
+    def parent
+      __parent__
+    end
+
     def __parent__
       Erlang.elixir_object_methods.parent(self)
     end
