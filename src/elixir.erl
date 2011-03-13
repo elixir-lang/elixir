@@ -27,8 +27,13 @@ start() ->
 stdlib_path() ->
   case os:getenv("ELIXIR_PATH") of
     false ->
-      Dirname = filename:dirname(?FILE),
-      filename:join([Dirname, "..", "lib"]);
+      case code:lib_dir(elixir,lib) of
+        {error, bad_name} ->
+          Dirname = filename:dirname(?FILE),
+          filename:join([Dirname, "..", "lib"]);
+        Path when is_list(Path) ->
+          Path
+      end;
     Path -> filename:join([Path, "lib"])
   end.
 
