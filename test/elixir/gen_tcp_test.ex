@@ -35,10 +35,12 @@ object GenTcpTest
     client = Process.self
     server = Process.spawn -> GenTcpTest::Server.start(client)
 
+    % Connect to the server
     {'ok, tcp} = GenTCP.connect("localhost", 5678, ['binary, {'packet, 0}])
     'ok = tcp.send("Some Data")
     'ok = tcp.close
 
+    % Check if the server replied us back
     receive { server, "Some Data" }
       % Ok, test passed
     after 1000

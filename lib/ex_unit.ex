@@ -31,8 +31,10 @@ module ExUnit
   def run_tests(object, instance, [test|t], failures, counter)
     new_failures = try
       instance.__send__(test)
+      IO.write "."
       failures
     catch kind: error
+      IO.write "F"
       [{object, test, kind, error, self.__stacktrace__}|failures]
     end
 
@@ -43,16 +45,10 @@ module ExUnit
     { failures, counter }
   end
 
-  % Prints results after the execution of the test suite.
-  def print_results([], counter)
-    IO.puts "  All #{counter} tests passed."
-  end
-
   def print_results(failures, counter)
+    IO.puts "\n"
     failures.foldl 1, -> (x, acc) print_failure(x, acc)
-    total_failures = failures.length
-    total_passed = counter - total_failures
-    IO.puts "  Failed: #{total_failures}.  Passed: #{total_passed}."
+    IO.puts "#{counter} tests, #{failures.length} failures."
   end
 
   % Print each failure that occurred.
