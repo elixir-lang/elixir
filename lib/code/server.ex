@@ -2,8 +2,8 @@
 
 object Code::Server
   module Mixin
-    def start(basepath, basefiles)
-      { 'ok, _ } = GenServer.start({'local, 'elixir_code_server}, self.new(basepath, basefiles), [])
+    def start_link(basepath, basefiles)
+      { 'ok, _ } = GenServer.start_link({'local, 'elixir_code_server}, self.new(basepath, basefiles), [])
     end
   end
 

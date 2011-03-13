@@ -1,7 +1,22 @@
 -module(elixir).
 -export([boot/0, start/0, require/2, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
+-export([start_app/0]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
+
+
+% OTP Application API
+-export([start/2, stop/1, config_change/3]).
+
+start(_Type, _Args) ->
+  elixir_sup:start_link().
+  
+stop(_S) ->
+  ok.
+
+config_change(_Changed, _New, _Remove) ->
+  ok.
+
 
 % Boot Elixir.
 boot() ->
@@ -15,7 +30,15 @@ boot() ->
 
   % Boot the code server
   CodeServer = elixir_constants:lookup('Code::Server'),
-  'Code::Server::Mixin':start(CodeServer, BasePath, BaseFiles).
+  'Code::Server::Mixin':start_link(CodeServer, BasePath, BaseFiles).
+
+% Start as erlang application
+start_app() ->
+  case lists:keyfind(?MODULE,1, application:loaded_applications()) of
+    false -> application:start(?MODULE);
+    _ -> ok
+  end.
+
 
 % Boot and process given options.
 start() ->
