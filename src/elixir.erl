@@ -15,11 +15,18 @@ stop(_S) ->
 config_change(_Changed, _New, _Remove) ->
   ok.
 
+% Start elixir as an application.
 start_app() ->
   case lists:keyfind(?MODULE,1, application:loaded_applications()) of
     false -> application:start(?MODULE);
     _ -> ok
   end.
+
+% Boot and process given options. Invoked by Elixir's script.
+start() ->
+  start_app(),
+  CodeInit = elixir_constants:lookup('Code::Init'),
+  'Code::Init':process_argv(CodeInit, init:get_plain_arguments()).
 
 % Boot Elixir.
 boot() ->
@@ -34,12 +41,6 @@ boot() ->
   % Boot the code server
   CodeServer = elixir_constants:lookup('Code::Server'),
   'Code::Server::Mixin':start_link(CodeServer, BasePath, BaseFiles).
-
-% Boot and process given options. Invoked by Elixir's script.
-start() ->
-  boot(),
-  CodeInit = elixir_constants:lookup('Code::Init'),
-  'Code::Init':process_argv(CodeInit, init:get_plain_arguments()).
 
 % Return the full path for the Elixir installation.
 stdlib_path() ->
