@@ -1,4 +1,3 @@
-ebin
 erl_crash.dump
 src/elixir_lexer.erl
 src/elixir_parser.erl
