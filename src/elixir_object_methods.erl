@@ -2,7 +2,7 @@
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, parent_name/1, mixins/1, protos/1, data/1,
-  get_ivar/2, set_ivar/3, update_ivar/3, update_ivar/4, ancestors/1, function_catch/1,
+  get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4, ancestors/1, function_catch/1,
   object_parent/1, object_mixins/1, object_protos/1, object_data/1,
   abstract_parent/1, abstract_mixins/1, abstract_protos/1, abstract_data/1]).
 -include("elixir.hrl").
@@ -67,6 +67,10 @@ get_ivar(Self, Name) -> % Native types do not have instance variables.
 
 set_ivar(Self, Name, Value) ->
   set_ivar_dict(Self, Name, set_ivar, fun(Dict) -> orddict:store(Name, Value, Dict) end).
+
+set_ivars(Self, Value) ->
+  assert_dict_with_atoms(Value),
+  set_ivar_dict(Self, elixir, set_ivars, fun(Dict) -> orddict:merge(fun(_, V1, V2) -> V2 end, Dict, element(2, Value)) end).
 
 update_ivar(Self, Name, Function) ->
   set_ivar_dict(Self, Name, update_ivar, fun(Dict) -> orddict:update(Name, Function, Dict) end).

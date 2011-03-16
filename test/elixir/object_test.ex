@@ -89,6 +89,11 @@ object ObjectTest
     [20, 40] = processor.play([1, 2, 3, 4])
   end
 
+  def get_and_set_ivars_test
+    dict = { 'a: 1, 'b: 2 }
+    dict = Object.new.set_ivars(dict).get_ivars
+  end
+
   def update_ivar_test
     [1] = Object.new.set_ivar('foo, []).update_ivar('foo, _.push(1)).get_ivar('foo)
 

@@ -132,22 +132,6 @@ object Object
       Erlang.elixir_object_methods.protos(self)
     end
 
-    % Returns a `Dict` with all variable names and values as its key-values.
-    %
-    % ## Example
-    %
-    %     object Foo
-    %       def constructor
-    %         { 'bar: 1, 'baz: 2 }
-    %       end
-    %     end
-    %
-    %     Foo.new.__ivars__ % => { 'bar: 1, 'baz: 2 }
-    %
-    def __ivars__
-      OrderedDict.new Erlang.elixir_object_methods.data(self)
-    end
-
     def __ancestors__
       Erlang.elixir_object_methods.ancestors(self)
     end
@@ -157,7 +141,7 @@ object Object
       if name != []
         name.to_s
       else
-        "<#{__parent_name__} #{__ivars__.inspect}>"
+        "<#{__parent_name__} #{get_ivars.inspect}>"
       end
     end
 
@@ -178,8 +162,28 @@ object Object
       Erlang.elixir_object_methods.get_ivar(self, name)
     end
 
+    % Returns a `Dict` with all variable names and values as its key-values.
+    %
+    % ## Example
+    %
+    %     object Foo
+    %       def constructor
+    %         { 'bar: 1, 'baz: 2 }
+    %       end
+    %     end
+    %
+    %     Foo.new.__ivars__ % => { 'bar: 1, 'baz: 2 }
+    %
+    def get_ivars
+      OrderedDict.new Erlang.elixir_object_methods.data(self)
+    end
+
     def set_ivar(name, value)
       Erlang.elixir_object_methods.set_ivar(self, name, value)
+    end
+
+    def set_ivars(value)
+      Erlang.elixir_object_methods.set_ivars(self, value)
     end
 
     def update_ivar(name, fun)
