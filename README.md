@@ -1305,7 +1305,7 @@ When creating an object, we sometimes want to define properties specific to that
     person.name % => 'john
     person.age  % => 24
 
-Instance variables can be changed using the `set_ivar` method:
+Instance variables can be changed using the `@()` syntax that accepts a dict and allows you to atomically create a new object based on the current one:
 
     object Person
       def constructor(name, age)
@@ -1321,7 +1321,7 @@ Instance variables can be changed using the `set_ivar` method:
       end
 
       def name(value)
-        self.set_ivar('name, value)
+        @('name: value)
       end
     end
 
@@ -1334,7 +1334,7 @@ Instance variables can be changed using the `set_ivar` method:
     another_person.name % => 'johh_doe
     another_person.age  % => 24
 
-Notice in the example above that `set_ivar` returns a new object. This is expected because as Erlang structures are immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
+Notice that `@()` returns a new object. This is expected because as Erlang structures are immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
 
 ### Advanced: The Object Graph
 
