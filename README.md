@@ -486,12 +486,12 @@ However, sometimes having several occurrences of `_` in the same expression is c
 
 The values 2 and 3 will be bound to the variables `_y` and `_z`, but Elixir won't complain if you eventually don't use them.
 
-Ordered dictionaries are also allowed in pattern matching and you are responsible to make their order match. Therefore, this won't match:
+Ordered dicts are also allowed in pattern matching but there is one important restriction: you are responsible to make their order match. Therefore, this won't work:
 
     dict = { 2: 4, 1: 2 }
     { 2: 4, 1: 2 } = dict
 
-This is because the `dict` variable is ordered, so it is actually represented as `{1: 2, 2: 4}`. The order is important to bound variables:
+This fails because the `dict` variable is ordered, so it is actually represented as `{1: 2, 2: 4}`. Remember that `OrderedDict`s are ordered according to Elixir ordering of terms and not the order new items are added. This ordering rule is important to allow us to bound variables to key-values:
 
     dict = { 2: 4, 1: 2 }
 
@@ -1597,7 +1597,7 @@ In the "Variables and Pattern Matching" section above, we have showed a simple F
       end
     end
 
-As Erlang, Elixir does tail call optimization (though it only applies to local calls). We can rewrite the fibonacci method with a version that will use tail call optimization like below:
+As Erlang, Elixir does tail call optimization. We can rewrite the fibonacci method with a version that will use tail call optimization like below:
 
     module OptimizedMath
       def fibonacci(n)
@@ -1619,6 +1619,37 @@ As Erlang, Elixir does tail call optimization (though it only applies to local c
     OptimizedMath.fibonacci(10)  % => 55
 
 The third fibonacci method in `OptimizedMath` is optimized because the last method it calls is itself. In order to understand the difference between both versions and how tail call optimization works, we recommend reading more about it on the Recursion chapter from [Learn You Some Erlang](http://learnyousomeerlang.com/recursion).
+
+### Pattern matching in methods
+
+As we mentioned earlier and saw in the examples above, pattern matching is also allowed in method signatures. If the given args does not match a given method, it will try the next one until it succeeds or none is found, raising an error. Below, is an example that checks if a list is the prefix of another, relying solely on pattern matching:
+
+    module Prefix
+      % This won't match if the first element of each list is not equal
+      def is?([i|prefix], [i|list])
+        is?(prefix, list)
+      end
+
+      % If prefix is empty or gets empty, it matches
+      def is?([], _list)
+        true
+      end
+
+      % Anything else is false
+      def is?(_prefix, _list)
+        false
+      end
+    end
+
+The fact `OrderedDict`s are allowed in pattern matching and pattern matching is allowed in methods, makes it possible to use key-value arguments:
+
+    def do_something(value, 'special: true)
+      % Do something special
+    end
+
+    def do_something(value, 'special: false)
+      % Do something not that special
+    end
 
 ### Retrieving a method as a function
 

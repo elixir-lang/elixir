@@ -360,11 +360,6 @@ transform({'if', Line, [If|Elsifs], Else}, S) ->
   { TElse, ElseS } = transform_tree(Else, ExprS),
   { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), umergev(ListS, ElseS) };
 
-transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
-  { TExpr, TExprS } = transform(Expr, ExprS),
-  { TList, TListS } = transform_tree(List, TExprS),
-  { {if_clause, Line, Bool, TExpr, TList }, { umergec(TExprS, TListS), umergev(ListS, TListS) } };
-
 % Handle case expressions.
 %
 % = Variables
@@ -428,7 +423,20 @@ transform({'receive', Line, Clauses, Expr, After}, S) ->
   { TAfter, SA } = transform_tree(After, umergec(S, SC)),
   { { 'receive', Line, TClauses, TExpr, TAfter }, umergec(SC, SA) };
 
-% Handle function clauses.
+% Handle clauses. Those are the forms that handle clauses:
+%
+% * case -> Handle several clauses through transform_clauses_tree
+% * receive/catch -> Handle several clauses through transform_clauses_tree
+% * fun declarations -> Transform each clause manually
+% * method declarations -> Transform each clause manually
+%
+% transform_clauses_tree transforms each clause by folding
+% the variables counter and accumulating the list of variables.
+%
+% Both fun and method clauses allow the special operator := for default values.
+%
+% Notice that if expressions have an specialized kind of clause,
+% called if_clause and else_clause.
 %
 % = Variables
 %
@@ -439,6 +447,11 @@ transform({clause, Line, Args, Guards, Exprs}, S) ->
   { TArgs, SA } = transform_tree(Args, S#elixir_scope{assign=true}),
   { TExprs, SE } = transform_tree(Exprs, SA#elixir_scope{assign=false}),
   { { clause, Line, TArgs, Guards, TExprs }, SE };
+
+transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
+  { TExpr, TExprS } = transform(Expr, ExprS),
+  { TList, TListS } = transform_tree(List, TExprS),
+  { {if_clause, Line, Bool, TExpr, TList }, { umergec(TExprS, TListS), umergev(ListS, TListS) } };
 
 transform({else_clause, Line, Exprs}, S) ->
   transform({clause, Line, [{var, Line, '_'}], [], Exprs }, S);
@@ -555,7 +568,7 @@ transform(Expr, S) -> { Expr, S }.
 % Transform clauses tree
 transform_clauses_tree(Clauses, S) ->
   Transformer = fun(X, Acc) ->
-    % Pass variables counter forward, but always get the variable list from NS
+    % Pass variables counter forward, but always get the variable list from given S
     { TX, TAcc } = transform(X, umergec(S, Acc)),
     { TX, umergev(Acc, TAcc) }
   end,
