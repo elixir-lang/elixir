@@ -95,10 +95,11 @@ unpack_default_clause(Name, Clause) ->
   { setelement(3, Clause, NewArgs), NewClauses }.
 
 % Unpack default args from clauses
-unpack_default_args(Name, [{default_arg, Line, Expr, Default}|T], Acc, Clauses) ->
+unpack_default_args(Name, [{default_arg, Line, Expr, Default}|T] = List, Acc, Clauses) ->
   Args = build_arg(length(Acc), Line, []),
+  Defaults = lists:map(fun extract_default/1, List),
   Clause = { clause, Line, Args, [], [
-    { call, Line, {atom, Line, Name}, Args ++ [Default] }
+    { call, Line, {atom, Line, Name}, Args ++ Defaults }
   ]},
   unpack_default_args(Name, T, [Expr|Acc], [Clause|Clauses]);
 
@@ -107,6 +108,10 @@ unpack_default_args(Name, [H|T], Acc, Clauses) ->
 
 unpack_default_args(_Name, [], Acc, Clauses) ->
   { lists:reverse(Acc), lists:reverse(Clauses) }.
+
+% Extract default values
+extract_default({default_arg, Line, Expr, Default}) ->
+  Default.
 
 % Build an args list
 build_arg(0, _Line, Acc) -> Acc;

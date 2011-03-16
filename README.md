@@ -1665,6 +1665,22 @@ Besides supporting pattern matching in methods, Elixir also supports default arg
     Default.sum(2)     % => 4
     Default.sum(2, 3)  % => 5
 
+Default arguments working by implicitly defining methods that accepts less arguments. The code above generates exactly the same module as follow:
+
+    module Default
+      def sum()
+        sum(1, 2)
+      end
+
+      def sum(a)
+        sum(a, 2)
+      end
+
+      def sum(a := 1, b := 2)
+        a + b
+      end
+    end
+
 ### Retrieving a method as a function
 
 Before proceeding on how to retrieve a method as a function, it is important to notice that, as in Erlang, Elixir's methods are identified by its name **and** arity. Therefore, the `OptimizedMath` module above has only two methods: a `fibonacci` with arity 1 and `fibonnaci` with arity 3. If two methods are defined with same name and arity, they become different clauses for the same method and pattern matching is used in order to specify which method to call. That said, the `Math` module has only one `fibonnaci` method with arity equals to 1 and 3 clauses.
