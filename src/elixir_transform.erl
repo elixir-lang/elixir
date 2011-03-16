@@ -476,17 +476,22 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, S) ->
 %
 % Variables are handled in each function clause.
 %
-transform({def_method, Line, Name, Arity, Clauses}, S) ->
+transform({def_method, Line, Name, Arity, [Clause]}, S) ->
   {_, Module} = S#elixir_scope.scope,
   case Module of
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method", "");
     _ ->
       NewScope = S#elixir_scope{method=Name},
-      Unpacked = elixir_methods:unpack_default_clauses(Name, Clauses, []),
-      TClauses = [element(1, pack_method_clause(Clause, NewScope)) || Clause <- Clauses],
-      Method = {function, Line, Name, Arity + 1, TClauses},
-      { elixir_def_method:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), S }
+      { TClause, _ } = pack_method_clause(Clause, NewScope),
+      { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
+      Method = {function, Line, Name, Arity + 1, [Unpacked]},
+      { elixir_def_method:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method, Defaults), S }
   end;
+
+transform({default_arg, Line, Expr, Default}, S) ->
+  { TExpr, TS } = transform(Expr, S),
+  { TDefault, _ } = transform(Default, S),
+  { { default_arg, Line, TExpr, TDefault }, TS };
 
 % Handle function calls.
 %

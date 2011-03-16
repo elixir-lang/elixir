@@ -1,7 +1,7 @@
 % Holds introspection for methods.
 % To check how methods are defined internally, check elixir_def_method.
 -module(elixir_methods).
--export([assert_behavior/2, unpack_default_clauses/3, abstract_methods/1, abstract_public_methods/1,
+-export([assert_behavior/2, abstract_methods/1, abstract_public_methods/1,
   abstract_protected_methods/1, proto_methods/1, public_proto_methods/1]).
 -include("elixir.hrl").
 -import(lists, [umerge/2, sort/1]).
@@ -15,14 +15,6 @@ public_proto_methods(Self) ->
   calculate_methods(Self, fun abstract_public_methods/1, elixir_object_methods:protos(Self), []).
 
 % Public in Erlang
-
-% Methods that unpack default args from clauses
-unpack_default_clauses(Name, [H|T], Acc) ->
-  { NewArgs, NewAcc } = unpack_default_args(Name, element(3, H), [], Acc),
-  unpack_default_clauses(Name, T, [setelement(3, H, NewArgs)|NewAcc]);
-
-unpack_default_clauses(_Name, [], Acc) ->
-  lists:reverse(Acc).
 
 assert_behavior(Module, Object) when is_atom(Module) -> 
   assert_behavior(Module:module_info(exports) -- [{module_info,0},{module_info,1}], Object);
@@ -70,24 +62,3 @@ calculate_methods(Fun, [], Acc) ->
 
 calculate_methods(Fun, [H|T], Acc) ->
   calculate_methods(Fun, T, umerge(Acc, sort(Fun(H)))).
-
-% Build an args list
-build_arg(0, _Line, Acc) -> Acc;
-
-build_arg(Counter, Line, Acc) ->
-  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) },
-  build_arg(Counter - 1, Line, [Var|Acc]).
-
-% Unpack default args from clauses
-unpack_default_args(Name, [{default_arg, Line, Expr, Default}|T], Acc, Clauses) ->
-  Args = build_arg(length(Acc), Line, []),
-  Clause = { clause, Line, Args, [], [
-    { call, Line, {atom, Line, Name}, Args ++ [Default] }
-  ]},
-  unpack_default_args(Name, T, [Expr|Acc], [Clause|Clauses]);
-
-unpack_default_args(Name, [H|T], Acc, Clauses) ->
-  unpack_default_args(Name, T, [H|Acc], Clauses);
-
-unpack_default_args(_Name, [], Acc, Clauses) ->
-  { lists:reverse(Acc), Clauses }.

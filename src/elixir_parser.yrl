@@ -274,13 +274,13 @@ _method_call_expr -> punctuated_identifier call_args_parens : build_local_call('
 %%% BUILDING BLOCKS
 
 % Base function declarations
-fun_base -> stabber match_args_parens expr :
+fun_base -> stabber call_args_parens expr :
   build_fun('$1', build_clause('$1', '$2', ['$3'])).
 
 fun_base -> stabber _expr :
   build_fun('$1', build_clause('$1', [], ['$2'])).
 
-fun_base -> stabber match_args_parens break body 'end' :
+fun_base -> stabber call_args_parens break body 'end' :
   build_fun('$1', build_clause('$1', '$2', '$4')).
 
 fun_base -> stabber break body 'end' :
@@ -311,18 +311,21 @@ match_default_arg -> expr ':=' expr : { default_arg, ?line('$2'), '$1', '$3' }.
 match_default_args -> match_default_arg : ['$1'].
 match_default_args -> match_default_arg comma_separator match_default_args : ['$1'|'$3'].
 
-match_args -> call_args : '$1'.
+match_args -> expr : ['$1'].
+match_args -> base_orddict : ['$1'].
 match_args -> match_default_args : '$1'.
-match_args -> call_args comma_separator match_default_args : '$1' ++ '$3'.
+match_args -> expr comma_separator call_args : ['$1'|'$3'].
+match_args -> expr comma_separator match_default_args : ['$1'|'$3'].
 
 match_args_parens -> open_paren ')' : [].
 match_args_parens -> open_paren match_args close_paren : '$2'.
 
 match_default_arg_no_parens -> _expr ':=' expr : { default_arg, ?line('$2'), '$1', '$3' }.
 
-match_args_no_parens -> call_args_no_parens : '$1'.
-match_args_no_parens -> call_args_no_parens comma_separator match_default_args : '$1' ++ '$3'.
-
+match_args_no_parens -> _expr : ['$1'].
+match_args_no_parens -> _expr comma_separator call_args : ['$1'|'$3'].
+match_args_no_parens -> _expr comma_separator match_default_args : ['$1'|'$3'].
+match_args_no_parens -> _base_orddict : ['$1'].
 match_args_no_parens -> match_default_arg_no_parens : ['$1'].
 match_args_no_parens -> match_default_arg_no_parens comma_separator match_default_args : ['$1'|'$3'].
 

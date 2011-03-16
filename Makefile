@@ -45,7 +45,6 @@ test_erlang: compile
 	@ # Compile test files
 	@ $(ERLC) -o $(TEST_EBIN_DIR) $(TEST_SOURCE_DIR)/*.erl
 	@ # Look and execute each file
-	export ELIXIR_RECACHE=1
 	time $(ERL) $(TEST_EBIN_DIR) -eval 'test_helper:test(), halt().'
 	@ echo
 
