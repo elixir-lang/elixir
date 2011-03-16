@@ -41,6 +41,5 @@ object IO
     { 'device: device, 'mode: mode, 'encoding: encoding }
   end
 
-  set_ivar 'device, 'standard_io
-  set_ivar 'encoding, 'utf8
+  @('device: 'standard_io, 'encoding: 'utf8)
 end

@@ -42,7 +42,6 @@ object IEX
       { @binding, "" }
     end
 
-    % I think we need some syntax sugar of set_ivar :)
-    self.set_ivar('binding, b).set_ivar('codecache, c).loop
+    @('binding: b, 'codecache: c).loop
   end
 end

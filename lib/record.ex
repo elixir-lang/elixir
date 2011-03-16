@@ -203,8 +203,6 @@ module Record
 
   % Update the record using the given ordered dict *values*.
   def update(values)
-    values.fold self, do (key, value, acc)
-      acc.set_ivar(key, value)
-    end
+    @(values)
   end
 end

@@ -28,15 +28,15 @@ object Code::Server
   end
 
   def handle_call({'delete_path, path}, _from)
-    { 'reply, 'ok, self.set_ivar('paths, @paths.delete(path)) }
+    { 'reply, 'ok, @('paths, @paths.delete(path)) }
   end
 
   def handle_call({'loaded, path}, _from)
-    { 'reply, 'ok, self.set_ivar('loaded, [path|@loaded]) }
+    { 'reply, 'ok, @('loaded, [path|@loaded]) }
   end
 
   def handle_call({'argv, argv}, _from)
-    { 'reply, 'ok, self.set_ivar('argv, argv) }
+    { 'reply, 'ok, @('argv, argv) }
   end
 
   % Read values from state
@@ -75,7 +75,7 @@ end
     if @paths.include?(path)
       { 'reply, 'ok, self }
     else
-      { 'reply, 'ok, self.set_ivar('paths, function()) }
+      { 'reply, 'ok, @('paths, function()) }
     end
   end
 end
