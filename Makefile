@@ -25,18 +25,15 @@ ebin/elixir.beam: include/elixir.hrl
 src/elixir_lexer.erl: src/elixir_lexer.xrl
 	@ echo Compiling lexer ...
 	$(ERL) -eval 'leex:file("$<"), halt().'
-	@ mkdir -p $(EBIN_DIR)
-	$(ERLC) -o $(EBIN_DIR) $@
 	@ echo
 
 src/elixir_parser.erl: src/elixir_parser.yrl
 	@ echo Compiling parser ...
 	$(ERL) -eval 'yecc:file("$<"), halt().'
-	@ mkdir -p $(EBIN_DIR)
-	$(ERLC) -o $(EBIN_DIR) $@
 	@ echo
 
 ebin: src/*.erl
+	@ rm -rf lib/*.exb
 	@ echo Compiling source ...
 	@ mkdir -p $(EBIN_DIR)
 	$(ERLC) -o $(EBIN_DIR) $?

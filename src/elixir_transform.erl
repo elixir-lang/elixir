@@ -482,6 +482,7 @@ transform({def_method, Line, Name, Arity, Clauses}, S) ->
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method", "");
     _ ->
       NewScope = S#elixir_scope{method=Name},
+      Unpacked = elixir_methods:unpack_default_clauses(Name, Clauses, []),
       TClauses = [element(1, pack_method_clause(Clause, NewScope)) || Clause <- Clauses],
       Method = {function, Line, Name, Arity + 1, TClauses},
       { elixir_def_method:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method), S }

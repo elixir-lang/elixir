@@ -25,7 +25,8 @@ Nonterminals
   fun_base
   comma_expr
   call_args call_args_parens call_args_no_parens
-  match_args_parens match_args_no_parens match_args_optional
+  match_default_arg match_default_args match_args match_args_parens
+  match_default_arg_no_parens match_args_no_parens match_args_optional
   tuple
   list
   list_args
@@ -86,7 +87,7 @@ Terminals
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '<-'
-  '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!='
+  '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!=' ':='
   .
 
 Rootsymbol grammar.
@@ -305,8 +306,25 @@ call_args_no_parens -> _expr comma_separator call_args : ['$1'|'$3'].
 call_args_no_parens -> _base_orddict : ['$1'].
 
 % Match args
-match_args_parens -> call_args_parens : '$1'.
-match_args_no_parens -> call_args_no_parens: '$1'.
+match_default_arg -> expr ':=' expr : { default_arg, ?line('$2'), '$1', '$3' }.
+
+match_default_args -> match_default_arg : ['$1'].
+match_default_args -> match_default_arg comma_separator match_default_args : ['$1'|'$3'].
+
+match_args -> call_args : '$1'.
+match_args -> match_default_args : '$1'.
+match_args -> call_args comma_separator match_default_args : '$1' ++ '$3'.
+
+match_args_parens -> open_paren ')' : [].
+match_args_parens -> open_paren match_args close_paren : '$2'.
+
+match_default_arg_no_parens -> _expr ':=' expr : { default_arg, ?line('$2'), '$1', '$3' }.
+
+match_args_no_parens -> call_args_no_parens : '$1'.
+match_args_no_parens -> call_args_no_parens comma_separator match_default_args : '$1' ++ '$3'.
+
+match_args_no_parens -> match_default_arg_no_parens : ['$1'].
+match_args_no_parens -> match_default_arg_no_parens comma_separator match_default_args : ['$1'|'$3'].
 
 match_args_optional -> match_args_parens : '$1'.
 match_args_optional -> match_args_no_parens : '$1'.
