@@ -150,10 +150,14 @@ transform({ivar, Line, Name}, S) ->
 % = Variables
 %
 % Variables can be defined inside parens as it was a method invocation.
-transform({set_ivars, Line, Expr}, S) ->
-  { TExpr, SE } = transform(Expr, S),
-  Args = [{var, Line, self}, TExpr],
-  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivars, Args), SE };
+transform({set_ivars, Line, Exprs}, S) ->
+  { TExprs, SE } = transform_tree(Exprs, S),
+  Args = [{var, Line, self}|TExprs],
+  Call = case length(Args) of
+    2 -> ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivars, Args);
+    _ -> ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args)
+  end,
+  { Call, SE };
 
 % Handle match declarations.
 %

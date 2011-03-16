@@ -374,8 +374,7 @@ base_identifier -> '_' : { identifier, ?line('$1'), '_' }.
 
 % ivar
 ivar -> '@' base_identifier : { ivar, ?line('$1'), ?chars('$2') }.
-set_ivars -> '@' open_paren expr close_paren : { set_ivars, ?line('$1'), '$3' }.
-set_ivars -> '@' open_paren base_orddict close_paren : { set_ivars, ?line('$1'), '$3' }.
+set_ivars -> '@' call_args_parens : { set_ivars, ?line('$1'), '$2' }.
 
 % Commas and eol
 comma_separator -> ','     : '$1'.

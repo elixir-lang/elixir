@@ -90,6 +90,9 @@ object ObjectTest
   end
 
   def set_ivars_syntax_Test
+    @('a, 1)
+    1 = @a
+
     dict = { 'a: 1, 'b: 2 }
     @(dict)
     dict = self.get_ivars
