@@ -12,15 +12,16 @@ module Code::Formatter
   end
 
   def format_object(object)
-    if object.__parent_name__ == 'List && object.all? -> (i) i.__parent_name__ == 'Integer
-      try
-        String.new Erlang.io_lib.format($"~ts", [object])
-      catch 'error: 'badarg
-        object.inspect
-      end
-    else
-      object.inspect
-    end
+    object.inspect
+%    if object.__parent_name__ == 'List && object.all? -> (i) i.__parent_name__ == 'Integer
+%      try
+%        String.new Erlang.io_lib.format($"~ts", [object])
+%      catch 'error: 'badarg
+%        object.inspect
+%      end
+%    else
+%      object.inspect
+%    end
   end
 
   def format_catch('error, {'badsyntax, {line, filename, error, token}})
