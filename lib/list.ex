@@ -219,6 +219,10 @@ object List
     Erlang.lists.delete(item, self)
   end
 
+  def delete_all(item)
+    Erlang.sets.to_list(Erlang.sets.del_element(item, Erlang.sets.from_list(self)))
+  end
+
   def join(string)
     strings = map -> (x) x.to_s.to_char_list
     String.new Erlang.string.join(strings, string.to_char_list)
