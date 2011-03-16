@@ -182,16 +182,12 @@ object String
     end
   end
 
-  def prefix([], _)
-    true
-  end
-
-  def prefix(_, [])
-    false
-  end
-
   def prefix([h|pre], [h|string])
     prefix(pre, string)
+  end
+
+  def prefix([], _)
+    true
   end
 
   def prefix(_, _)

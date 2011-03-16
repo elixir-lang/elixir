@@ -1,6 +1,7 @@
 ## Current master (v0.1.1.dev)
 
 * improvements
+  * Added the ability to add default arguments to methods
   * Added @() as short syntax to update instance variables
   * Elixir now boots as an Erlang application under a supervision tree (by github.com/maxlapshin)
   * ExUnit now prints "." or "F" for each test executed

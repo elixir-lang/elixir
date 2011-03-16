@@ -2,11 +2,7 @@
 
 object File
   module Mixin
-    def expand_path(string)
-      expand_path(string, [])
-    end
-
-    def expand_path(string, relative)
+    def expand_path(string, relative := [])
       fullpath = absname(string, relative)
       strip_dots ~r{((/\.)|(/[^/]*[^\\]/\.\.))(/|\z)}, fullpath
     end

@@ -43,11 +43,6 @@
 %   or (*ANY) at the beginning of the regexp according to the re documentation
 %
 object Regexp
-  % The same as constructor(regexp, options) but no option is given.
-  def constructor(regexp)
-    constructor(regexp, [])
-  end
-
   % Creates a new regular expression. It expects two arguments,
   % the regular expression and a set of options. Both should be
   % a string or a list of chars and, if not, to_char_list is
@@ -57,7 +52,7 @@ object Regexp
   %
   %     Regexp.new("foo", "iu")
   %
-  def constructor(regexp, options)
+  def constructor(regexp, options := [])
     regexp_bin = regexp.to_bin
 
     parsed_options = options.to_char_list.foldl ['multiline], do (x, acc)

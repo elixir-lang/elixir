@@ -4,11 +4,7 @@
 module GenServer
   delegate ['call/2, 'call/3, 'cast/2], 'to: "Erlang.gen_server"
 
-  def start(state)
-    start(state, [])
-  end
-
-  def start(state, options)
+  def start(state, options := [])
     Erlang.gen_server.start('elixir_gen_server, state, options)
   end
 
@@ -16,11 +12,7 @@ module GenServer
     Erlang.gen_server.start(name, 'elixir_gen_server, state, options)
   end
 
-  def start_link(state)
-    start_link(state, [])
-  end
-
-  def start_link(state, options)
+  def start_link(state, options := [])
     Erlang.gen_server.start_link('elixir_gen_server, state, options)
   end
 

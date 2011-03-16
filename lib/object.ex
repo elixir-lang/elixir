@@ -194,11 +194,7 @@ object Object
       Erlang.elixir_object_methods.update_ivar(self, name, initial, fun)
     end
 
-    def __send__(method)
-      __send__(method, [])
-    end
-
-    def __send__(method, args)
+    def __send__(method, args := [])
       Erlang.elixir_dispatch.dispatch(true, self, method, args)
     end
 
