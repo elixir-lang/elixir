@@ -145,6 +145,16 @@ transform({ivar, Line, Name}, S) ->
   Args = [{var, Line, self}, {atom, Line, Name}],
   { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, Args), S };
 
+% Syntax for easily updating instance variables.
+%
+% = Variables
+%
+% Variables can be defined inside parens as it was a method invocation.
+transform({set_ivars, Line, Expr}, S) ->
+  { TExpr, SE } = transform(Expr, S),
+  Args = [{var, Line, self}, TExpr],
+  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivars, Args), SE };
+
 % Handle match declarations.
 %
 % = Variables

@@ -55,7 +55,7 @@ Nonterminals
   close_gt
   number
   base_identifier
-  ivar
+  ivar set_ivars
   break
   then_break
   match_op
@@ -374,6 +374,8 @@ base_identifier -> '_' : { identifier, ?line('$1'), '_' }.
 
 % ivar
 ivar -> '@' base_identifier : { ivar, ?line('$1'), ?chars('$2') }.
+set_ivars -> '@' open_paren expr close_paren : { set_ivars, ?line('$1'), '$3' }.
+set_ivars -> '@' open_paren base_orddict close_paren : { set_ivars, ?line('$1'), '$3' }.
 
 % Commas and eol
 comma_separator -> ','     : '$1'.
@@ -410,6 +412,7 @@ close_gt -> eol '>>' : '$2'.
 % Base expressions
 base_expr -> string_list : build_string_list('$1').
 base_expr -> ivar : '$1'.
+base_expr -> set_ivars : '$1'.
 base_expr -> atom : '$1'.
 base_expr -> interpolated_atom : '$1'.
 base_expr -> char_list : '$1'.

@@ -6,7 +6,7 @@ object Recorder
   end
 
   def method_missing(method, args)
-    self.set_ivar('calls, [{method, args}|@calls])
+    @('calls: [{method, args}|@calls])
   end
 
   def play(receiver)
