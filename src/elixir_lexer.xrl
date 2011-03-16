@@ -39,8 +39,10 @@ BaseGroup = ({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens})
 Rules.
 
 %% Numbers
-{Digit}+\.{Digit}+ : { token, { float, TokenLine, list_to_float(TokenChars) } }.
-{Digit}+           : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
+{Digit}+(_{Digit}+)*\.{Digit}+(_{Digit}+)*     : { token, { float, TokenLine, list_to_float(string:join(string:tokens(TokenChars, "_"), "")) } }.
+{Digit}+\.{Digit}+                             : { token, { float, TokenLine, list_to_float(TokenChars) } }.
+{Digit}+(_{Digit}+)*                           : { token, { integer, TokenLine, list_to_integer(string:join(string:tokens(TokenChars, "_"), "")) } }.
+{Digit}+                                       : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
 
 %% __FILE__ and __LINE__
 __FILE__ : { token, { filename, TokenLine } }.
