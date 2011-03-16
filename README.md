@@ -1325,7 +1325,7 @@ Instance variables can be changed using the `@()` syntax that accepts a dict and
       end
     end
 
-    person = Person.name('john, 24)
+    person = Person.new('john, 24)
     another_person = person.name('john_doe)
 
     person.name % => 'john
