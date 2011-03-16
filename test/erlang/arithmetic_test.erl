@@ -1,11 +1,11 @@
 -module(arithmetic_test).
 -include_lib("eunit/include/eunit.hrl").
 
-integer_sum_test() ->
+separator_test() ->
   {334,[]} = elixir:eval("3_34"),
   {600,[]} = elixir:eval("2_00+45_5-5_5").
 
-separator_num_test() ->
+integer_sum_test() ->
   {3,[]} = elixir:eval("1+2"),
   {6,[]} = elixir:eval("1+2+3"),
   {6,[]} = elixir:eval("1 + 2 + 3").
