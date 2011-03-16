@@ -111,9 +111,9 @@ It comes as no surprise that + is also a method:
 >     8#0677.    % => 447
 >     16#AE.     % => 174
 >
-> Another feature that will likely be included is the ability to include "_" in numbers as in Ruby. This improves the readability when working with large numbers:
->
->     1_052_672
+The ability to include "_" in numbers as in Ruby is available for integers and floats. This improves the readability when working with large numbers:
+
+     1_052_672
 
 ### Atoms
 

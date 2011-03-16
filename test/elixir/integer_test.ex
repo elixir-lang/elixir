@@ -10,6 +10,13 @@ object IntegerTest
     -1 = -(1).abs
   end
 
+  def separator_test
+    1234 = 1_234
+    -1_3_4 = -134
+    12.34 = 1_2.34
+    -1.3_4 = -1.34
+  end
+
   def times_with_arity_0_test
     reset_counter
 
