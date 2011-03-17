@@ -4,4 +4,3 @@ src/elixir_parser.erl
 test/ebin
 *.exb
 libc
-Makefile
