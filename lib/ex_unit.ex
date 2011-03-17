@@ -4,9 +4,8 @@
 %
 % A basic setup for ExUnit is shown below:
 %
-%     % 1) Require to configure ExUnit
-%     % Right now there are no configuration options yet, so we pass an empty dict
-%     ExUnit.configure {:}
+%     % 1) Require to configure ExUnit. See a list of options below.
+%     ExUnit.configure
 %
 %     % 2) Next we create a new TestCase and add ExUnit::Case to it
 %     object AssertionTest
@@ -65,6 +64,12 @@
 %       [1,2,3]
 %     end
 %
+% ## Options
+%
+% ExUnit supports the following options given to configure:
+%
+% * `:formatter` - The formatter that will print results
+%
 module ExUnit
   proto Code::Formatter
 
@@ -74,8 +79,10 @@ module ExUnit
 
   def run
     cases = ExUnit::Server.cases
-    { failures, counter } = run(cases, [], 0)
-    print_results(failures, counter)
+    options = ExUnit::Server.options
+    formatter = options['formatter] || ExUnit::Formatter.new
+    new_formatter = run(formatter, cases)
+    new_formatter.finish
   end
 
   private
@@ -83,66 +90,44 @@ module ExUnit
   % run/3 instantiates each object given in the list and execute
   % each test in these objects. counter keeps all tests executed
   % and failures all failures with their backtrace.
-  def run([], failures, counter)
-    { failures, counter }
+  def run(formatter, [])
+    formatter
   end
 
-  def run([object|t], failures, counter)
+  def run(formatter, [object|t])
     instance = object.to_constant.new
-    { new_failures, new_counter } = run_tests(object, instance, instance.__tests__, failures, counter)
-    run(t, new_failures, new_counter)
+    new_formatter = run_tests(formatter, object, instance, instance.__tests__)
+    run(new_formatter, t)
   end
 
   % For each instanciated object, dispatch each test in it.
-  def run_tests(object, instance, [test|t], failures, counter)
-    final_failures = try
-      result = instance.setup(test)
+  def run_tests(formatter, object, instance, [test|t])
+    final = try
+      subject = instance.setup(test)
 
-      new_failures = try
-        result.__send__(test)
-        failures
+      partial = try
+        subject.__send__(test)
+        nil
       catch kind1: error1
-        [{object, test, kind1, error1, self.__stacktrace__}|failures]
+        {kind1, error1, self.__stacktrace__}
       end
 
-      result.teardown(test)
-      new_failures
+      subject.teardown(test)
+      partial
     catch kind2: error2
-      [{object, test, kind2, error2, self.__stacktrace__}|failures]
+      {kind2, error2, self.__stacktrace__}
     end
 
-    print_partial(failures, final_failures)
-
-    run_tests(object, instance, t, final_failures, counter + 1)
+    new_formatter = formatter.each(object, test, final)
+    run_tests(new_formatter, object, instance, t)
   end
 
-  def run_tests(_, _, [], failures, counter)
-    { failures, counter }
-  end
-
-  def print_partial(failures, final_failures)
-    if final_failures.size > failures.size
-      IO.write "F"
-    else
-      IO.write "."
-    end
-  end
-
-  def print_results(failures, counter)
-    IO.puts "\n"
-    failures.foldl 1, -> (x, acc) print_failure(x, acc)
-    IO.puts "#{counter} tests, #{failures.length} failures."
-  end
-
-  % Print each failure that occurred.
-  def print_failure({object, test, kind, reason, stacktrace}, acc)
-    IO.puts "#{acc}) #{test}(#{object})\n  #{kind} #{self.format_catch(kind, reason)}\n  stacktrace:"
-    stacktrace.each -> (s) IO.puts "    #{self.format_stacktrace(s)}"
-    IO.puts
-    acc + 1
+  def run_tests(formatter, _, _, [])
+    formatter
   end
 end
 
 Code.require "ex_unit/assertions"
 Code.require "ex_unit/case"
 Code.require "ex_unit/server"
+Code.require "ex_unit/formatter"
