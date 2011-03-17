@@ -97,6 +97,10 @@ It comes as no surprise that + is also a method:
 
     1.+(2)  % => 3
 
+Finally, notice that Elixir allows you to include "_" in numbers (as in Ruby). This improves the readability when working with large numbers:
+
+    1_052_672
+
 #### Documentation:
 
 * <https://github.com/josevalim/elixir/tree/master/lib/integer.ex>
@@ -105,17 +109,12 @@ It comes as no surprise that + is also a method:
 
 > #### To be implemented
 >
-> Currently, there is no support to enter numbers in bases other than base 10. This is the current API in Erlang:
+> Currently, there is no support to enter numbers in bases other than base 10. This is the current API in Erlang (although the best API for Elixir is under discussion):
 >
 >     2#101010.  % => 42
 >     8#0677.    % => 447
 >     16#AE.     % => 174
 >
-
-
-The ability to include "_" in numbers as in Ruby is available for integers and floats. This improves the readability when working with large numbers:
-
-     1_052_672
 
 ### Atoms
 
