@@ -132,7 +132,7 @@ grammar -> decl_list : '$1'.
 grammar -> '$empty' : [{atom, 0, nil}].
 
 % List of declarations delimited by break
-decl_list -> eol : ['$1'].
+decl_list -> eol : [].
 decl_list -> decl : ['$1'].
 decl_list -> decl break : ['$1'].
 decl_list -> eol decl_list : '$2'.
@@ -405,7 +405,7 @@ comma_separator -> ',' eol : '$1'.
 
 % Function bodies
 body -> '$empty'  : [{atom, 0, nil}].
-body -> expr_list : '$1'.
+body -> expr_list : check_body('$1').
 
 % Parens handling
 open_paren -> '('      : '$1'.
@@ -624,7 +624,7 @@ object_decl -> object constant break objmod_body 'end' : build_object(object, '$
 module_decl -> module constant break objmod_body 'end' : build_object(module, '$2', '$4', []).
 
 objmod_body -> '$empty' : [{atom, 0, nil}].
-objmod_body -> decl_list : '$1'.
+objmod_body -> decl_list : check_body('$1').
 
 % Method declarations
 method_decl -> def method_name break method_body :
@@ -672,6 +672,9 @@ Erlang code.
 % of the generated .erl file by the HiPE compiler. Please do not remove.
 -compile([{hipe,[{regalloc,linear_scan}]}]).
 
+check_body([])   -> [{atom, 0, nil}];
+check_body(Else) -> Else.
+
 build_identifier(Thing) ->
   { identifier, ?line(Thing), ?chars(Thing) }.
 
@@ -680,9 +683,6 @@ build_bracket_call(Expr, Args) ->
 
 build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.
-
-build_try(Begin, []) ->
-   { 'try', ?line(Begin), [{atom,?line(Begin),nil}] };
 
 build_try(Begin, Exprs) ->
    { 'try', ?line(Begin), Exprs}.

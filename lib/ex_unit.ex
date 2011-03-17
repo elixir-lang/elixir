@@ -30,7 +30,9 @@ module ExUnit
   % For each instanciated object, dispatch each test in it.
   def run_tests(object, instance, [test|t], failures, counter)
     new_failures = try
-      instance.__send__(test)
+      result = instance.setup(test)
+      result.__send__(test)
+      result.teardown(test)
       IO.write "."
       failures
     catch kind: error
