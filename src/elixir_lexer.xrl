@@ -382,4 +382,3 @@ build_interpol(s, Escaping, Buffer, Output) ->
 
 build_interpol(i, Escaping, Buffer, Output) ->
   [{i, lists:reverse(Buffer)}|Output].
-

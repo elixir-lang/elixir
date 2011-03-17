@@ -42,4 +42,3 @@ module Code::Formatter
     String.new obj
   end
 end
-
