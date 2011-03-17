@@ -17,6 +17,10 @@ object ExUnit::Server
     def cases
       GenServer.call('exunit_server, 'cases)
     end
+
+    def options
+      GenServer.call('exunit_server, 'options)
+    end
   end
 
   def constructor(options)
@@ -35,6 +39,10 @@ object ExUnit::Server
 
   def handle_call('cases, _from)
     { 'reply, @cases, self }
+  end
+
+  def handle_call('options, _from)
+    { 'reply, @options, self }
   end
 
   def handle_call(_request, _from)

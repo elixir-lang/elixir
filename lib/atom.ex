@@ -68,6 +68,10 @@ object Atom
 
   private
 
+  def inspect(nil)
+    "nil"
+  end
+
   def inspect(true)
     "true"
   end

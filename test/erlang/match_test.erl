@@ -2,7 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 no_assignment_test() ->
-  {[], []} = elixir:eval("").
+  {nil, []} = elixir:eval("").
 
 % Var/assignment test
 arithmetic_test() ->

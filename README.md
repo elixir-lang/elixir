@@ -13,7 +13,7 @@ Elixir is still in development. If you want to help building it or are just look
     $ make test
 
     $ bin/elixir -v
-    Elixir 0.1.0
+    Elixir 0.1.1.dev
 
 Notice that Elixir requires Erlang R14B01 or later version to execute. Prior versions (like R13 and R14A) do not work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
 
@@ -37,10 +37,9 @@ If you want to contribute to Elixir, the code is organized as follow:
 
 In the long term, here are a few things we would like to add:
 
-* Add partial function application, function pipeline (f1 + f2) and an easy way to retrieve functions from objects (1#add and Integer##add?)
-* Add default arguments to methods signature
-* Support guards in functions and methods
 * Add method cache table
+* Add partial function application, function pipeline (f1 + f2) and an easy way to retrieve functions from objects (1#add and Integer##add?)
+* Support guards in functions and methods
 * Allow object definitions to be reopened (?) or to copy from another object
 * Improve constant lookup (currently constants are referenced by their full name)
 * Allow extension of builtin types (like inheriting from Integer)
@@ -97,6 +96,10 @@ It comes as no surprise that + is also a method:
 
     1.+(2)  % => 3
 
+Finally, notice that Elixir allows you to include "_" in numbers (as in Ruby). This improves the readability when working with large numbers:
+
+    1_052_672
+
 #### Documentation:
 
 * <https://github.com/josevalim/elixir/tree/master/lib/integer.ex>
@@ -105,17 +108,12 @@ It comes as no surprise that + is also a method:
 
 > #### To be implemented
 >
-> Currently, there is no support to enter numbers in bases other than base 10. This is the current API in Erlang:
+> Currently, there is no support to enter numbers in bases other than base 10. This is the current API in Erlang (although the best API for Elixir is under discussion):
 >
 >     2#101010.  % => 42
 >     8#0677.    % => 447
 >     16#AE.     % => 174
 >
-
-
-The ability to include "_" in numbers as in Ruby is available for integers and floats. This improves the readability when working with large numbers:
-
-     1_052_672
 
 ### Atoms
 
@@ -162,6 +160,8 @@ As in Erlang, the boolean values are simply atoms named true and false. However,
     else
       1
     end
+
+Besides those two boolean values, Elixir also has a `nil` value which is simply an atom as well. `nil` also evaluates to false in conditionals.
 
 ### Tuples
 
@@ -796,7 +796,7 @@ Elixir, differently from Erlang, has a more conventional if/else structure:
       IO.puts "it does not include 4 or 5"
     end
 
-Everything in Elixir, except false and `[]` (empty list) evaluates to true.
+Everything in Elixir, except `false` and `nil`, evaluates to `true`.
 
 On the other hand, the case/match structure from Elixir is quite similar to Erlang's:
 
@@ -807,7 +807,7 @@ On the other hand, the case/match structure from Elixir is quite similar to Erla
       x * 2
     end
 
-As you can notice, case/match uses pattern matching. If no case expression matches, an error is raised. Elixir also allows an `else` clause in case/match, which is the same as invoking `match _`:
+As you can notice,`case/match` uses pattern matching. If no case expression matches, an error is raised. Elixir also allows an `else` clause in case/match, which is the same as `match _`:
 
     case {4,5,6}
     match {3,2,x}
@@ -818,7 +818,7 @@ As you can notice, case/match uses pattern matching. If no case expression match
       10
     end
 
-Finally, case/match expressions can be inlined and grouped, providing a more compact syntax:
+Finally, `case/match` expressions can be inlined and grouped, providing a more compact syntax:
 
     case {4,5,6}
     match {3,2,x}, {1,2,x} then x * 2

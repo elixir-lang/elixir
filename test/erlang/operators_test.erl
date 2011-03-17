@@ -5,12 +5,13 @@
 % Booleans
 
 booleans_test() ->
+  {nil, _} = elixir:eval("nil"),
   {true, _} = elixir:eval("true"),
   {false, _} = elixir:eval("false").
 
 if_test() ->
   {1, _} = elixir:eval("if true; 1; end"),
-  {[], _} = elixir:eval("if false; 1; end"),
+  {nil, _} = elixir:eval("if false; 1; end"),
   {2, _} = elixir:eval("if false; 1; else 2; end"),
   {2, _} = elixir:eval("if false; 1; else; 2; end"),
   {3, _} = elixir:eval("if false; 1; elsif true; 3; else; 2; end"),
@@ -19,7 +20,7 @@ if_test() ->
 
 unless_test() ->
   {1, _} = elixir:eval("unless false; 1; end"),
-  {[], _} = elixir:eval("unless true; 1; end"),
+  {nil, _} = elixir:eval("unless true; 1; end"),
   {2, _} = elixir:eval("unless true; 1; else 2; end"),
   {2, _} = elixir:eval("unless true; 1; else; 2; end"),
   {3, _} = elixir:eval("unless true; 1; elsif true; 3; else; 2; end").
@@ -84,6 +85,7 @@ not_exclamation_mark_test() ->
   {false,_} = elixir:eval("!true"),
   {false,_} = elixir:eval("!1"),
   {false,_} = elixir:eval("![]"),
+  {true,_} = elixir:eval("!nil"),
   {true,_} = elixir:eval("!false").
 
 notnot_exclamation_mark_test() ->
@@ -91,6 +93,7 @@ notnot_exclamation_mark_test() ->
   {true,_} = elixir:eval("!!true"),
   {true,_} = elixir:eval("!!1"),
   {true,_} = elixir:eval("!![]"),
+  {false,_} = elixir:eval("!!nil"),
   {false,_} = elixir:eval("!!false").
 
 less_greater_test() ->
@@ -208,6 +211,7 @@ andand_test() ->
     {3, _} = elixir:eval("Bar.foo && 1 + 2"),
     {false, _} = elixir:eval("Bar.bar && Erlang.error('bad)"),
     {2, _} = elixir:eval("1 && 2"),
+    {nil, _} = elixir:eval("nil && 2"),
     {false, _} = elixir:eval("false && false or true")
   end,
   test_helper:run_and_remove(F, ['Bar']).
@@ -228,6 +232,7 @@ oror_test() ->
     {3, _} = elixir:eval("Bar.bar || 1 + 2"),
     {true, _} = elixir:eval("Bar.foo || Erlang.error('bad)"),
     {1, _} = elixir:eval("1 || 2"),
+    {2, _} = elixir:eval("nil || 2"),
     {true, _} = elixir:eval("false && false || true")
   end,
   test_helper:run_and_remove(F, ['Bar']).

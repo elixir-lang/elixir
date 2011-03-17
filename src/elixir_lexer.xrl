@@ -39,10 +39,10 @@ BaseGroup = ({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens})
 Rules.
 
 %% Numbers
-{Digit}+(_{Digit}+)*\.{Digit}+(_{Digit}+)*     : { token, { float, TokenLine, list_to_float(string:join(string:tokens(TokenChars, "_"), "")) } }.
-{Digit}+\.{Digit}+                             : { token, { float, TokenLine, list_to_float(TokenChars) } }.
-{Digit}+(_{Digit}+)*                           : { token, { integer, TokenLine, list_to_integer(string:join(string:tokens(TokenChars, "_"), "")) } }.
-{Digit}+                                       : { token, { integer, TokenLine, list_to_integer(TokenChars) } }.
+{Digit}+(_{Digit}+)*\.{Digit}+(_{Digit}+)*     : build_number(float, TokenLine, true, TokenChars).
+{Digit}+\.{Digit}+                             : build_number(float, TokenLine, false, TokenChars).
+{Digit}+(_{Digit}+)*                           : build_number(integer, TokenLine, true, TokenChars).
+{Digit}+                                       : build_number(integer, TokenLine, false, TokenChars).
 
 %% __FILE__ and __LINE__
 __FILE__ : { token, { filename, TokenLine } }.
@@ -73,7 +73,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 {BaseQuoted} : build_string(string, TokenChars, TokenLine, TokenLen, 2).
 
 %% Atoms
-\'(\+|\-|\*|\/|\<\-|\[\]) : build_atom(TokenChars, TokenLine, TokenLen). % '
+\'(\+|\-|\*|\/|\<\-|\[\]|\${Digit}+) : build_atom(TokenChars, TokenLine, TokenLen). % '
 \'@?({UpperCase}|{LowerCase}|_){IdentifierBase}*[?!]? : build_atom(TokenChars, TokenLine, TokenLen). % '
 \'{InterpolGroup} : build_separator_atom(interpolated_atom, TokenChars, TokenLine, TokenLen). % '
 \'{BaseGroup} : build_separator_atom(atom, TokenChars, TokenLine, TokenLen). % '
@@ -145,6 +145,13 @@ build(Kind, Line, Chars) ->
     true ->  { token, {Atom, Line} };
     false -> { token, {Kind, Line, Atom} }
   end.
+
+build_number(Kind, Line, true, Chars) ->
+  build_number(Kind, Line, false, string:join(string:tokens(Chars, "_"), ""));
+
+build_number(Kind, Line, false, Chars) ->
+  Converter = list_to_atom(lists:concat(["list_to_", Kind])),
+  { token, { Kind, Line, erlang:Converter(Chars) } }.
 
 % Handle heredoc and multiline heredocs
 build_heredoc(Chars, Line, Length) ->
@@ -276,7 +283,7 @@ reserved_word('try')     -> true;
 reserved_word('catch')   -> true;
 reserved_word('receive') -> true;
 reserved_word('after')   -> true;
-% reserved_word('when')  -> true;
+reserved_word('when')    -> true;
 reserved_word('if')      -> true;
 reserved_word('elsif')   -> true;
 reserved_word('else')    -> true;
@@ -299,7 +306,7 @@ reserved_word(Else)      -> reserved_bracket_word(Else).
 
 reserved_bracket_word(true)  -> true;
 reserved_bracket_word(false) -> true;
-% reserved_bracket_word(nil) -> true;
+reserved_bracket_word(nil)   -> true;
 reserved_bracket_word(_)     -> false.
 
 % Handle string interpolations

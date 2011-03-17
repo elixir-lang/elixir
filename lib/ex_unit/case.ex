@@ -12,4 +12,11 @@ module ExUnit::Case
     regexp = ~r(_test$)
     [name for {name, _} in self.__public_proto_methods__, regexp.match?(name)]
   end
+
+  def setup(_)
+    self
+  end
+
+  def teardown(_)
+  end
 end

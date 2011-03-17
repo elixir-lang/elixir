@@ -63,7 +63,7 @@ object OrderedDictTest
   def brackets_test
     4 = { 2: 4, 1: 2 }[2]
     2 = { 2: 4, 1: 2 }[1]
-    [] = { 2: 4, 1: 2 }[0]
+    nil = { 2: 4, 1: 2 }[0]
   end
 
   protected

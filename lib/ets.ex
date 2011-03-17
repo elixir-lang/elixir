@@ -32,7 +32,7 @@ object ETS
     end
 
     def match_continuation(con)
-      Erlang.apply('ets, 'match, [con])
+      Erlang.ets.match(con)
     end
 
     def select_reverse_continuation(con)
@@ -173,7 +173,7 @@ object ETS
   end
 
   def match_for(pattern)
-    Erlang.apply('ets, 'match, [@table, pattern])
+    Erlang.ets.match(@table, pattern)
   end
 
   def match_for(pattern, limit)

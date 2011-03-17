@@ -10,6 +10,7 @@ object AtomTest
     '*
     '<-
     '[]
+    '$1
   end
 
   def to_constant_test
