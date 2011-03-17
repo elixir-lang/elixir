@@ -162,6 +162,8 @@ As in Erlang, the boolean values are simply atoms named true and false. However,
       1
     end
 
+Besides those two boolean values, Elixir also has a `nil` value which is simply an atom as well. `nil` also evaluates to false in conditionals.
+
 ### Tuples
 
 Tuples are used to organize many terms together when you know how many terms there are. As in Erlang, a tuple is written in the following form:
@@ -795,7 +797,7 @@ Elixir, differently from Erlang, has a more conventional if/else structure:
       IO.puts "it does not include 4 or 5"
     end
 
-Everything in Elixir, except false and `[]` (empty list) evaluates to true.
+Everything in Elixir, except `false` and `nil`, evaluates to `true`.
 
 On the other hand, the case/match structure from Elixir is quite similar to Erlang's:
 
@@ -806,7 +808,7 @@ On the other hand, the case/match structure from Elixir is quite similar to Erla
       x * 2
     end
 
-As you can notice, case/match uses pattern matching. If no case expression matches, an error is raised. Elixir also allows an `else` clause in case/match, which is the same as invoking `match _`:
+As you can notice,`case/match` uses pattern matching. If no case expression matches, an error is raised. Elixir also allows an `else` clause in case/match, which is the same as `match _`:
 
     case {4,5,6}
     match {3,2,x}
@@ -817,7 +819,7 @@ As you can notice, case/match uses pattern matching. If no case expression match
       10
     end
 
-Finally, case/match expressions can be inlined and grouped, providing a more compact syntax:
+Finally, `case/match` expressions can be inlined and grouped, providing a more compact syntax:
 
     case {4,5,6}
     match {3,2,x}, {1,2,x} then x * 2
