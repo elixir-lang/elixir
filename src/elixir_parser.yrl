@@ -56,6 +56,7 @@ Nonterminals
   close_gt
   number
   base_identifier
+  erlang_identifier
   ivar set_ivars
   break
   then_break
@@ -82,7 +83,7 @@ Terminals
   bracket_identifier punctuated_identifier identifier float integer constant
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
-  div rem module object do end def eol Erlang true false
+  div rem module object do end def eol Erlang true false nil
   if elsif else then unless case match try catch receive after filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
@@ -99,7 +100,8 @@ Rootsymbol grammar.
 % It can either be treated as x(+1) or (x) + 1. That said,
 % we give some precedence to base_expr so the second one
 % is chosen.
-Nonassoc 10 base_identifier.
+Nonassoc 05 base_identifier.
+Nonassoc 06 erlang_identifier.
 
 % Solve nested call_args conflicts
 Nonassoc 10 ')'.
@@ -449,6 +451,7 @@ base_expr -> orddict : '$1'.
 base_expr -> binary : '$1'.
 base_expr -> true : { atom, ?line('$1'), true }.
 base_expr -> false : { atom, ?line('$1'), false }.
+base_expr -> nil : { atom, ?line('$1'), nil }.
 base_expr -> if_expr : '$1'.
 base_expr -> exception_expr : '$1'.
 base_expr -> receive_expr : '$1'.
@@ -519,19 +522,28 @@ string_base -> interpolated_string : '$1'.
 string_list -> string_base : ['$1'].
 string_list -> string_base string_list : ['$1'|'$2'].
 
+% Keywords in Elixir, but not in Erlang.
+erlang_identifier -> base_identifier : '$1'.
+erlang_identifier -> def : { identifier, ?line('$1'), def }.
+erlang_identifier -> match : { identifier, ?line('$1'), match }.
+erlang_identifier -> then : { identifier, ?line('$1'), then }.
+erlang_identifier -> unless : { identifier, ?line('$1'), unless }.
+erlang_identifier -> inlist : { identifier, ?line('$1'), inlist }.
+erlang_identifier -> inbin : { identifier, ?line('$1'), inbin }.
+
 % Erlang calls
-np_erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_no_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
-np_erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), []).
-np_erlang_call_expr -> Erlang '.' base_identifier call_args_no_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
-np_erlang_call_expr -> Erlang '.' base_identifier : build_erlang_call('$1', erlang, ?chars('$3'), []).
+np_erlang_call_expr -> Erlang '.' erlang_identifier '.' erlang_identifier call_args_no_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
+np_erlang_call_expr -> Erlang '.' erlang_identifier '.' erlang_identifier : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), []).
+np_erlang_call_expr -> Erlang '.' erlang_identifier call_args_no_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
+np_erlang_call_expr -> Erlang '.' erlang_identifier : build_erlang_call('$1', erlang, ?chars('$3'), []).
 
 % Erlang bracket calls
-np_erlang_call_expr -> Erlang '.' base_identifier '.' bracket_identifier list_args : build_bracket_call(build_erlang_call('$1', ?chars('$3'), ?chars('$5'), []), '$6').
+np_erlang_call_expr -> Erlang '.' erlang_identifier '.' bracket_identifier list_args : build_bracket_call(build_erlang_call('$1', ?chars('$3'), ?chars('$5'), []), '$6').
 np_erlang_call_expr -> Erlang '.' bracket_identifier list_args : build_bracket_call(build_erlang_call('$1', erlang, ?chars('$3'), []), '$4').
 
 % Erlang calls with explicit parens
-erlang_call_expr -> Erlang '.' base_identifier '.' base_identifier call_args_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
-erlang_call_expr -> Erlang '.' base_identifier call_args_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
+erlang_call_expr -> Erlang '.' erlang_identifier '.' erlang_identifier call_args_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
+erlang_call_expr -> Erlang '.' erlang_identifier call_args_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
 
 % Stab syntax
 stabber -> '->' : '$1'.

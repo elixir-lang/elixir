@@ -274,7 +274,7 @@ reserved_word('try')     -> true;
 reserved_word('catch')   -> true;
 reserved_word('receive') -> true;
 reserved_word('after')   -> true;
-% reserved_word('when')  -> true;
+reserved_word('when')    -> true;
 reserved_word('if')      -> true;
 reserved_word('elsif')   -> true;
 reserved_word('else')    -> true;
@@ -297,7 +297,7 @@ reserved_word(Else)      -> reserved_bracket_word(Else).
 
 reserved_bracket_word(true)  -> true;
 reserved_bracket_word(false) -> true;
-% reserved_bracket_word(nil) -> true;
+reserved_bracket_word(nil)   -> true;
 reserved_bracket_word(_)     -> false.
 
 % Handle string interpolations
