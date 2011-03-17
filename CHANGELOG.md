@@ -13,6 +13,7 @@
 
 * bug fix
   * Allow Elixir keywords, but that are not Erlang keywords, on Erlang method invocations
+  * Code formatter now properly handles empty arrays
 
 ## v0.1.0 (2011-03-12)
 
