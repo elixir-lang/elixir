@@ -11,10 +11,10 @@ object ExUnitTest
     1 = @foo
   end
 
-  def teardown('setup_test)
-    1 = @foo
-  end
-
-  def teardown(_)
+  def teardown_test
+    fixture = OS.cmd("bin/exunit test/elixir/fixtures/ex_unit_failure.ex")
+    self.assert_include "{'badmatch,1}", fixture
+    self.assert_include "{'badmatch,3}", fixture
+    self.assert_include "EVEN ON FAILURES", fixture
   end
 end

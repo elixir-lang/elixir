@@ -1,4 +1,70 @@
 % Basic unit test structure for Elixir.
+%
+% ## Example
+%
+% A basic setup for ExUnit is shown below:
+%
+%     % 1) Require to configure ExUnit
+%     % Right now there are no configuration options yet, so we pass an empty dict
+%     ExUnit.configure {:}
+%
+%     % 2) Next we create a new TestCase and add ExUnit::Case to it
+%     object AssertionTest
+%       proto ExUnit::Case
+%
+%       % 3) A test is a method which name finishes with _test
+%       def always_pass_test
+%         % 4) You can get most of your tests done with pattern matching
+%         true = true
+%       end
+%    end
+%
+% To run the test above, all you need to to is to use the bin/exunit script that ships with Elixir.
+% Assuming you named your file assertion_test.ex, you can run it as:
+%
+%     bin/exunit assertion_test.ex
+%
+% ## Assertions
+%
+% Most of ExUnit assertions can be done with pattern matching. However, there are
+% a few assertions over ExUnit::Assertions to aid testing.
+%
+% ## Callbacks
+%
+% ExUnit provides `setup` and `teardown` callbacks before and after running each test.
+%
+% For instance, imagine you have to connection to a database before each test and
+% disconnect from it after each test is executed, regardless if it failed or not.
+% You can do it as follow:
+%
+%     object QueryTest
+%       proto ExUnit::Case
+%
+%       def setup(_)
+%         @('connection, Database.connection)
+%       end
+%
+%       def query_test
+%         "2" = @connection.query("SELECT 1 + 1")
+%       end
+%
+%       def teardown(_)
+%         @connection.disconnect
+%       end
+%     end
+%
+% It is important to notice two things:
+%
+% 1) Both `setup` and `teardown` methods receives an atom with the name of test
+%    begin executed. This allows you to specialize the behavior for one specific test.
+%
+% 2) The `setup` method needs to necessarily return an object of the same kind
+%    of the test case. For instance, the following is wrong:
+%
+%     def setup
+%       [1,2,3]
+%     end
+%
 module ExUnit
   proto Code::Formatter
 
@@ -29,22 +95,37 @@ module ExUnit
 
   % For each instanciated object, dispatch each test in it.
   def run_tests(object, instance, [test|t], failures, counter)
-    new_failures = try
+    final_failures = try
       result = instance.setup(test)
-      result.__send__(test)
+
+      new_failures = try
+        result.__send__(test)
+        failures
+      catch kind1: error1
+        [{object, test, kind1, error1, self.__stacktrace__}|failures]
+      end
+
       result.teardown(test)
-      IO.write "."
-      failures
-    catch kind: error
-      IO.write "F"
-      [{object, test, kind, error, self.__stacktrace__}|failures]
+      new_failures
+    catch kind2: error2
+      [{object, test, kind2, error2, self.__stacktrace__}|failures]
     end
 
-    run_tests(object, instance, t, new_failures, counter + 1)
+    print_partial(failures, final_failures)
+
+    run_tests(object, instance, t, final_failures, counter + 1)
   end
 
   def run_tests(_, _, [], failures, counter)
     { failures, counter }
+  end
+
+  def print_partial(failures, final_failures)
+    if final_failures.size > failures.size
+      IO.write "F"
+    else
+      IO.write "."
+    end
   end
 
   def print_results(failures, counter)
