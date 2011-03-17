@@ -124,7 +124,7 @@ module Record
     end
 
     def parse_field({'record_field, _, key })
-      {'tuple, 0, [key, {'nil,0}]}
+      {'tuple, 0, [key, {'atom, 0, 'nil}]}
     end
 
     def parse_field({'record_field, _, key, value })

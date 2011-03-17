@@ -129,7 +129,7 @@ Nonassoc 140 _without_args_method_call_expr.
 %%% MAIN FLOW OF EXPRESSIONS
 
 grammar -> decl_list : '$1'.
-grammar -> '$empty' : [{nil, 0}].
+grammar -> '$empty' : [{atom, 0, nil}].
 
 % List of declarations delimited by break
 decl_list -> eol : ['$1'].
@@ -404,7 +404,7 @@ comma_separator -> ','     : '$1'.
 comma_separator -> ',' eol : '$1'.
 
 % Function bodies
-body -> '$empty'  : [{nil, 0}].
+body -> '$empty'  : [{atom, 0, nil}].
 body -> expr_list : '$1'.
 
 % Parens handling
@@ -623,7 +623,7 @@ dot_eol -> '.' eol : '$1'.
 object_decl -> object constant break objmod_body 'end' : build_object(object, '$2', '$4', []).
 module_decl -> module constant break objmod_body 'end' : build_object(module, '$2', '$4', []).
 
-objmod_body -> '$empty' : [{nil, 0}].
+objmod_body -> '$empty' : [{atom, 0, nil}].
 objmod_body -> decl_list : '$1'.
 
 % Method declarations
@@ -682,7 +682,7 @@ build_fun_call(Target, Args) ->
   { fun_call, ?line(Target), Target, Args }.
 
 build_try(Begin, []) ->
-   { 'try', ?line(Begin), [{nil,?line(Begin)}] };
+   { 'try', ?line(Begin), [{atom,?line(Begin),nil}] };
 
 build_try(Begin, Exprs) ->
    { 'try', ?line(Begin), Exprs}.

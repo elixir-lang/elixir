@@ -6,7 +6,7 @@
 
 function_without_body_test() ->
   {_, [{a, Res1}]} = elixir:eval("a = ->; end"),
-  [] = Res1().
+  nil = Res1().
 
 invalid_function_test() ->
   ?assertError({badsyntax, _}, elixir:eval("a = -> (1 + 2)")).

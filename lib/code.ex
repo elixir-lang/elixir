@@ -37,9 +37,9 @@ module Code
     loaded = raw_loaded
 
     first = require_in_paths(path, paths, loaded)
-    if first == []
+    if first == nil
       second = require_in_paths(path + ".ex", paths, loaded)
-      if second == [] then self.error { 'enoent, path } else second end
+      if second == nil then self.error { 'enoent, path } else second end
     else
       first
     end
@@ -86,7 +86,7 @@ module Code
   end
 
   def require_in_paths(_, [], _)
-    []
+    nil
   end
 
   def raw_paths

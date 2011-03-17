@@ -17,7 +17,7 @@ object RecordTest
   def record_constructor_with_dict_test
     record = RecordTest::FileInfo.new('type: 'regular)
     'regular = record.type
-    []       = record.access
+    nil      = record.access
   end
 
   def record_constructor_with_invalid_object_test
