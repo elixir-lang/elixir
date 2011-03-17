@@ -19,7 +19,7 @@ object ExceptionsTest
   end
 
   def try_with_throw_catch_test
-    try
+    nil = try
       self.throw({1,2})
     catch _
     end

@@ -11,7 +11,7 @@ booleans_test() ->
 
 if_test() ->
   {1, _} = elixir:eval("if true; 1; end"),
-  {[], _} = elixir:eval("if false; 1; end"),
+  {nil, _} = elixir:eval("if false; 1; end"),
   {2, _} = elixir:eval("if false; 1; else 2; end"),
   {2, _} = elixir:eval("if false; 1; else; 2; end"),
   {3, _} = elixir:eval("if false; 1; elsif true; 3; else; 2; end"),
@@ -20,7 +20,7 @@ if_test() ->
 
 unless_test() ->
   {1, _} = elixir:eval("unless false; 1; end"),
-  {[], _} = elixir:eval("unless true; 1; end"),
+  {nil, _} = elixir:eval("unless true; 1; end"),
   {2, _} = elixir:eval("unless true; 1; else 2; end"),
   {2, _} = elixir:eval("unless true; 1; else; 2; end"),
   {3, _} = elixir:eval("unless true; 1; elsif true; 3; else; 2; end").

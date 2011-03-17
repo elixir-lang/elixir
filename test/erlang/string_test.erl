@@ -142,4 +142,4 @@ list_inspect_test() ->
   {<<"[102,111,111]">>, []} = eval_string("\"foo\".to_char_list.to_s").
 
 tuple_inspect_test() ->
-  {<<"{'badmatch, true}">>, []} = eval_string("{'badmatch,true}.inspect").
+  {<<"{'badmatch,true}">>, []} = eval_string("{'badmatch,true}.inspect").
