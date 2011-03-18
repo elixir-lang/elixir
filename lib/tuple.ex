@@ -21,6 +21,13 @@ object Tuple
     Erlang.element(erl_index(number), self)
   end
 
+  % Sets the given element in the tuple. Also accepts negative indexes
+  % as in `[]`.
+  %
+  % ## Examples
+  %
+  %    {1,2,3}.set(-1, 5) % => {1,2,5}
+  %
   def set(number, value)
     Erlang.setelement(erl_index(number), self, value)
   end

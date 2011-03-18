@@ -13,6 +13,12 @@ object AtomTest
     '$1
   end
 
+  def exists_test
+    'some_unknown_atom1
+    true  = Atom.exists?("some_unknown_atom1")
+    false = Atom.exists?("some_unknown_atom2")
+  end
+
   def to_constant_test
     atom = Atom
     atom = 'Atom.to_constant

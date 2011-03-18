@@ -1,6 +1,18 @@
 % elixir: cache
 
 object Atom
+  module Mixin
+    % Returns true if an atom representation of the given string exists.
+    def exists?(string)
+      try
+        Erlang.binary_to_existing_atom(string.to_bin, 'utf8)
+        true
+      catch 'error: 'badarg
+        false
+      end
+    end
+  end
+
   % Returns a version of this atom that is a representation of itself.
   %
   % ## Examples
