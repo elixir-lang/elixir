@@ -63,6 +63,7 @@ end
   def terminate(reason)
     IO.puts "[FATAL] Code::Server crashed:\n#{reason}"
     IO.puts "[FATAL] Code::Server snapshot:\n#{self}"
+    'ok
   end
 
   def code_change(_old, _extra)
