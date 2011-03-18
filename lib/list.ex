@@ -37,6 +37,11 @@ object List
     Erlang.lists.keyfind(key, n + 1, self)
   end
 
+  % Returns true if the list is empty.
+  def empty?
+    self == []
+  end
+
   % "Zips" two lists of equal length into one list of two-tuples, where the
   % first element of each tuple is taken from the first list and the second
   % element is taken from corresponding element in the second list.

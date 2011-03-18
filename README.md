@@ -185,13 +185,6 @@ Tuples and lists (which are going to see next), are zero-indexed in Elixir while
 
 * <https://github.com/josevalim/elixir/tree/master/lib/tuple.ex>
 
-> #### To be implemented
->
-> Setting an element should be done through the set method:
->
->   { 'a, 'b, 'c }.set(0, 'd)  % => { 'd, 'b, 'c }
->
-
 ### Lists
 
 Lists are the main object in Elixir (as in any other functional language) and can contain anything:

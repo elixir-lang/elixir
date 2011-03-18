@@ -1,5 +1,5 @@
 -module(elixir).
--export([boot/0, start/0, require/2, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
+-export([start/0, require/2, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
@@ -7,8 +7,17 @@
 -export([start_app/0, start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  elixir_sup:start_link().
-  
+  % Ensure elixir_object_methods is loaded and running
+  code:ensure_loaded(elixir_object_methods),
+
+  % Load stdlib files
+  Regexp = cache_regexp(),
+  BasePath = stdlib_path(),
+  BaseFiles = [internal_require(filename:join(BasePath, File), Regexp) || File <- stdlib_files()],
+
+  % Boot the code server with supervisor
+  elixir_sup:start_link([BasePath, BaseFiles]).
+
 stop(_S) ->
   ok.
 
@@ -27,20 +36,6 @@ start() ->
   start_app(),
   CodeInit = elixir_constants:lookup('Code::Init'),
   'Code::Init':process_argv(CodeInit, init:get_plain_arguments()).
-
-% Boot Elixir.
-boot() ->
-  % Ensure elixir_object_methods is loaded and running
-  code:ensure_loaded(elixir_object_methods),
-
-  % Load stdlib files
-  Regexp = cache_regexp(),
-  BasePath = stdlib_path(),
-  BaseFiles = [internal_require(filename:join(BasePath, File), Regexp) || File <- stdlib_files()],
-
-  % Boot the code server
-  CodeServer = elixir_constants:lookup('Code::Server'),
-  'Code::Server::Mixin':start_link(CodeServer, BasePath, BaseFiles).
 
 % Return the full path for the Elixir installation.
 stdlib_path() ->

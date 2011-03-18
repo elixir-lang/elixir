@@ -60,7 +60,7 @@ object ExUnit::Server
   def terminate(reason)
     IO.puts "[FATAL] ExUnit::Server crashed:\n#{reason}"
     IO.puts "[FATAL] ExUnit::Server snapshot:\n#{self}"
-    Erlang.init.stop(1) % Shut everything
+    'ok
   end
 
   def code_change(_old, _extra)
