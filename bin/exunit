@@ -1,4 +1,4 @@
 #!/bin/sh
 SCRIPT_PATH=`dirname $0`
-ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
-bin/elixir -e "Code.require \"ex_unit\"" -f "ExUnit.run" "$@"
+ELIXIR_PATH=`cd $SCRIPT_PATH; pwd`
+$ELIXIR_PATH/elixir -e "Code.require \"ex_unit\"; Code.argv.each -> (f) Code.require_file f" -f "ExUnit.run" "$@"

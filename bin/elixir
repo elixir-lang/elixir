@@ -1,15 +1,13 @@
 #!/bin/sh
 if [ $# -eq 0 ]; then
-  echo "Usage: `basename $0` [switches] [files]
+  echo "Usage: `basename $0` [switches] [file] [data]
 
   -v              Prints version and exit
   -e \"command\"    Evaluates the given command (may be used more than once)
   -f \"command\"    The same as -e, but executes at the end (may be used more than once)
   --no-halt       Don't halt the process after the code is executed
 
-* Each file passed will be loaded and executed.
-
-* Options given after files are passed down to the executed file.
+* Options given after files are passed down to the executed code.
 
 * Options can be passed to the erlang compiler by using ELIXIR_ERL_OPTS." >&2
   exit 1

@@ -15,10 +15,14 @@ module Code::Init
     try
       commands.each -> (c) process_command(c)
     catch kind: error
-      io = IO.new('standard_error)
-      io.puts "** #{kind} #{self.format_catch(kind, error)}"
-      print_stacktrace(io, self.__stacktrace__)
-      halt!(1)
+      if kind == 'exit && ['String, 'Integer].include?(error.__parent_name__)
+        halt!(error)
+      else
+        io = IO.new('standard_error)
+        io.puts "** #{kind} #{self.format_catch(kind, error)}"
+        print_stacktrace(io, self.__stacktrace__)
+        halt!(1)
+      end
     end
 
     if halt then halt!(0) end
@@ -35,12 +39,12 @@ module Code::Init
     halt!(0)
   end
 
-  def process_options([$"-e",h|t], commands, close, files, halt)
-    process_options(t, [{'eval, h}|commands], close, files, halt)
+  def process_options([$"-e",h|t], commands, close, _files, halt)
+    process_options(t, [{'eval, h}|commands], close, true, halt)
   end
 
-  def process_options([$"-f",h|t], commands, close, files, halt)
-    process_options(t, commands, [{'eval, h}|close], files, halt)
+  def process_options([$"-f",h|t], commands, close, _files, halt)
+    process_options(t, commands, [{'eval, h}|close], true, halt)
   end
 
   def process_options([$"--no-halt"|t], commands, close, files, _)
@@ -48,16 +52,18 @@ module Code::Init
   end
 
   def process_options([h|t], commands, close, files, halt)
-    if h.to_char_list[0] == $-
+    { final, extra } = if h.to_char_list[0] == $-
       if files
-        { commands.reverse + close.reverse, [h|t].map(-> (i) String.new(i)), halt }
+        { commands, [h|t] }
       else
         IO.new('standard_error).puts "Unknown option #{String.new h}"
         halt!(1)
       end
     else
-      process_options(t, [{'require,h}|commands], close, true, halt)
+      { [{'require,h}|commands], t }
     end
+
+    { final.reverse + close.reverse, extra.map(-> (i) String.new(i)), halt }
   end
 
   def process_options([], commands, close, _, halt)
