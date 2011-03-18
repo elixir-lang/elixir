@@ -167,6 +167,11 @@ object OrderedDict
     inspect
   end
 
+  % Returns true if the ordered dict is empty.
+  def empty?
+    orddict == []
+  end
+
   % Converts this OrderedDict to a list. The return list is ordered.
   %
   % == Examples

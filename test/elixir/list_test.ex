@@ -198,6 +198,11 @@ object ListTest
     false = falsy
   end
 
+  def empty_test
+    false = ["abc"].empty?
+    true  = [].empty?
+  end
+
   protected
 
   def a_list

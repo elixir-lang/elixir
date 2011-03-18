@@ -30,6 +30,11 @@ object Tuple
     "{#{String.new Erlang.string.join(strings, [$,])}}"
   end
 
+  % Returns true if the tuple is empty.
+  def empty?
+    self == {}
+  end
+
   def to_s
     inspect
   end

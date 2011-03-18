@@ -142,6 +142,11 @@ object String
     String.new <<$\", bin|binary, $\">>
   end
 
+  % Returns true if the string is empty.
+  def empty?
+    Erlang.size(bin) == 0
+  end
+
   def to_bin
     bin
   end

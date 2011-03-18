@@ -21,6 +21,11 @@ object TupleTest
     end
   end
 
+  def empty_test
+    false = {"abc"}.empty?
+    true  = {}.empty?
+  end
+
   def to_list_test
     [1,2,3] = {1,2,3}.to_list
   end

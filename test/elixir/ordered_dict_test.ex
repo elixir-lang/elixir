@@ -66,6 +66,11 @@ object OrderedDictTest
     nil = { 2: 4, 1: 2 }[0]
   end
 
+  def empty_test
+    false = { 'a: "abc" }.empty?
+    true  = {:}.empty?
+  end
+
   protected
 
   def a_dict

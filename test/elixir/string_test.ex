@@ -104,6 +104,11 @@ three
     "a[b]c" = "abc".sub(~r[(b)], "[\\1]")
   end
 
+  def empty_test
+    false = "abc".empty?
+    true  = "".empty?
+  end
+
   def gsub_test
     "abcbe"     = "abcbe".gsub(~r(d), "d")
     "adcde"     = "abcbe".gsub(~r(b), "d")
