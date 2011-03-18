@@ -11,18 +11,18 @@ object Tuple
   %     {1,2,3}[1] % => 2
   %     {1,2,3}[2] % => 3
   %     {1,2,3}[3] % => Raises 'badarg error
-  %   
+  %
   %     {1,2,3}[-1] % => 3
   %     {1,2,3}[-2] % => 2
   %     {1,2,3}[-3] % => 1
   %     {1,2,3}[-4] % => Raises 'badarg error
   %
   def [](number)
-    if number < 0
-      Erlang.element(length + number + 1, self)
-    else
-      Erlang.element(number + 1, self)
-    end
+    Erlang.element(erl_index(number), self)
+  end
+
+  def set(number, value)
+    Erlang.setelement(erl_index(number), self, value)
   end
 
   def inspect
@@ -54,4 +54,14 @@ object Tuple
     Erlang.size(self)
   end
   alias_local 'length, 'size, 0
+
+  private
+
+  def erl_index(number)
+    if number < 0
+      length + number + 1
+    else
+      number + 1
+    end
+  end
 end

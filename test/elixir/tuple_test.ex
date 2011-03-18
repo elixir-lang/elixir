@@ -21,6 +21,13 @@ object TupleTest
     end
   end
 
+  def set_test
+    { 4, 2, 3 } = { 1, 2, 3 }.set(0, 4)
+    { 1, 2, 4 } = { 1, 2, 3 }.set(2, 4)
+    { 4, 2, 3 } = { 1, 2, 3 }.set(-3, 4)
+    { 1, 2, 4 } = { 1, 2, 3 }.set(-1, 4)
+  end
+
   def empty_test
     false = {"abc"}.empty?
     true  = {}.empty?
