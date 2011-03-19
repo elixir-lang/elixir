@@ -1,6 +1,7 @@
 ## Current master (v0.1.1.dev)
 
 * improvements
+  * Added basic support to ets tables (by github.com/kondratovich)
   * Added nil as value (which also evaluates to false)
   * Added the ability to use _ in number for readability: 123\_523\_542 (by github.com/kondratovich)
   * Added the ability to add default arguments to methods
