@@ -34,4 +34,9 @@ object ModuleTest
     { 2, 2 } = DefaultArgs.clash(2)
     { 2, 1 } = DefaultArgs.clash(2, 1)
   end
+
+  def atom_default_args_test
+    1 = DefaultArgs.atom('foo)
+    2 = DefaultArgs.atom('bar)
+  end
 end

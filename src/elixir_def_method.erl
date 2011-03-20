@@ -96,10 +96,10 @@ unpack_default_clause(Name, Clause) ->
 
 % Unpack default args from clauses
 unpack_default_args(Name, [{default_arg, Line, Expr, Default}|T] = List, Acc, Clauses) ->
-  Args = build_arg(length(Acc), Line, []),
+  { Args, Invoke } = build_arg(Acc, Line, [], []),
   Defaults = lists:map(fun extract_default/1, List),
   Clause = { clause, Line, Args, [], [
-    { call, Line, {atom, Line, Name}, Args ++ Defaults }
+    { call, Line, {atom, Line, Name}, Invoke ++ Defaults }
   ]},
   unpack_default_args(Name, T, [Expr|Acc], [Clause|Clauses]);
 
@@ -114,11 +114,23 @@ extract_default({default_arg, Line, Expr, Default}) ->
   Default.
 
 % Build an args list
-build_arg(0, _Line, Acc) -> Acc;
+build_arg([], _Line, Args, Invoke) -> { Args, Invoke };
 
-build_arg(Counter, Line, Acc) ->
-  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) },
-  build_arg(Counter - 1, Line, [Var|Acc]).
+build_arg([H|T], Line, Args, Invoke) ->
+  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", length(T)]) },
+  build_arg(T, Line, [{match, Line, Var, prune_vars(H)}|Args], [Var|Invoke]).
+
+% Remove any reference to vars from the given form.
+prune_vars({var, Line, _}) ->
+  { var, Line, '_' };
+
+prune_vars(H) when is_tuple(H) ->
+  list_to_tuple(lists:map(fun prune_vars/1, tuple_to_list(H)));
+
+prune_vars(H) when is_list(H) ->
+  lists:map(fun prune_vars/1, H);
+
+prune_vars(H) -> H.
 
 % Check the visibility of the method with the given Name and Arity in the attributes table.
 add_visibility_entry(Name, Arity, private, Table) ->

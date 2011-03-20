@@ -22,4 +22,12 @@ module DefaultArgs
   def clash(foo := 1, bar := 2)
     { foo, bar }
   end
+
+  def atom('foo, baz := 1)
+    baz
+  end
+
+  def atom('bar, baz := 2)
+    baz
+  end
 end
