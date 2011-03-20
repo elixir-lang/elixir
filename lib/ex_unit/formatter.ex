@@ -13,6 +13,7 @@ object ExUnit::Formatter
   end
 
   def each(object, test, failure)
+    IO.write "F"
     @('counter: @counter + 1, 'failures: [{object, test, failure}|@failures])
   end
 

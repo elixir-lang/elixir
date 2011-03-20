@@ -157,9 +157,12 @@ read_file(Device, Acc) ->
     eof  ->
       file:close(Device),
       Reverse = lists:reverse(Acc),
-      { hd(Reverse), lists:append(Reverse) };
+      { file_head(Reverse), lists:append(Reverse) };
     Line -> read_file(Device, [Line|Acc])
   end.
+
+file_head([])    -> [];
+file_head([H|T]) -> H.
 
 % Evaluates a string
 eval(String) -> eval(String, []).
