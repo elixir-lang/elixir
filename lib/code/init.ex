@@ -25,7 +25,12 @@ module Code::Init
       end
     end
 
-    if halt then halt!(0) end
+    if halt
+      halt!(0)
+    else
+      % TODO Is there a better way to suspend the process?
+      Erlang.timer.sleep('infinity)
+    end
   end
 
   private
