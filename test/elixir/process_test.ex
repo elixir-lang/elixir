@@ -32,8 +32,44 @@ object ProcessTest
     fridge.terminate
   end
 
+  def register_and_unregister_test
+    process = Process.self
+    process.register('elixir_test_process)
+    self.assert_include 'elixir_test_process, Process.registered
+
+    'elixir_test_process <- { 'test, 'message }
+    receive { 'test, 'message }
+    after 1000
+      self.error 'timedout
+    end
+
+    true = Process.unregister('elixir_test_process)
+    self.assert_error 'badarg, -> 'elixir_test_process <- { 'test, 'message }
+  end
+
+  def process_flag_and_link_test
+    Process.flag 'trap_exit, true
+    pid = Process.spawn -> internal_loop
+    Process.link pid
+    pid.exit('i_give_up)
+    receive { 'EXIT, pid, 'i_give_up }
+    after 1000
+      self.error 'timedout
+    end
+  after
+    Process.flag 'trap_exit, false
+  end
+
   def inspect_test
     pid = Erlang.list_to_pid($"<0.4.1>")
     "<Process 0.4.1>" = pid.inspect
+  end
+
+  private
+
+  def internal_loop
+    receive _
+      internal_loop
+    end
   end
 end

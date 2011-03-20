@@ -78,6 +78,13 @@ object Atom
     {self, arity}
   end
 
+  % Sends a message to the given that represents an registered process.
+  % This is the equivalent to Erlang's ! and is also aliased as `send`.
+  def <-(message)
+    Erlang.send(self, message)
+  end
+  alias_local '<-, 'send, 1
+
   private
 
   def inspect(nil)
