@@ -72,6 +72,7 @@ stdlib_files() ->
     "reference.ex",
     "function.ex",
     "gen_server.ex",
+    "record.ex",
     "file.ex",
     "code.ex",
     "code/formatter.ex",

@@ -19,6 +19,33 @@ object File
       String.new Erlang.filename.join(a.to_bin, b.to_bin)
     end
 
+    % Try to read the given file. If possible, returns a string
+    % with the file contents. Raises an error otherwise.
+    def read(filename)
+      case Erlang.file.read_file(filename.to_bin)
+      match { 'ok, binary }
+        String.new binary
+      match { 'error, other }
+        self.error other
+      end
+    end
+
+    % Returns if filename is a regular file or not.
+    def regular?(filename)
+      Erlang.filelib.is_regular(filename.to_bin)
+    end
+
+    % Try to read the given file. If possible, returns a File::Info
+    % object. Raises an error otherwise.
+    def read_info(filename)
+      case Erlang.file.read_file_info(filename.to_bin)
+      match { 'ok, info }
+        File::Info.new info
+      match { 'error, other }
+        self.error other
+      end
+    end
+
     private
 
     def absname(string, [])
@@ -36,6 +63,27 @@ object File
       else
         strip_dots(regexp, new)
       end
+    end
+  end
+
+  object Info
+    proto Record
+    record 'file_info, 'from_lib: "kernel/include/file.hrl"
+
+    def regular?
+      @type == 'regular
+    end
+
+    def directory?
+      @type == 'directory
+    end
+
+    def read?
+      @access == 'read orelse @access == 'read_write
+    end
+
+    def write?
+      @access == 'write orelse @access == 'read_write
     end
   end
 end

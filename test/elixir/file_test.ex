@@ -29,5 +29,28 @@ object FileTest
     ["foo", "bar"] = File.split("foo/bar")
     ["foo", "bar", "baz"] = File.split("foo/bar/baz")
   end
+
+  def read_info_test
+    info1 = File.read_info __FILE__
+    'regular = info1['type]
+    true = info1.regular?
+    true = info1.read?
+
+    info2 = File.read_info File.expand_path("..", __FILE__)
+    'directory = info2['type]
+    true = info2.directory?
+
+    self.assert_error 'enoent, -> File.read_info __FILE__ + ".unknown"
+  end
+
+  def read_test
+    self.assert_include "object FileTest", File.read __FILE__
+    self.assert_error 'enoent, -> File.read __FILE__ + ".unknown"
+  end
+
+  def regular_test
+    true  = File.regular?(__FILE__)
+    false = File.regular?(__FILE__ + ".unknown")
+  end
 end
 

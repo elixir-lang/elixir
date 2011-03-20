@@ -71,12 +71,13 @@ module Record
     % Retrieve a record definition from an Erlang file using
     % the same lookup as the *include_lib* attribute from Erlang modules.
     def retrieve(name, 'from_lib: file)
-      [app|path] = File.split(file)
+      % Access the mixin directly because File depend on this logic.
+      [app|path] = File::Mixin.split(file)
       case Erlang.code.lib_dir(app.to_char_list)
       match {'error, _}
         self.error {'norecord, {name, file}}
       match libpath
-        retrieve_record name, File.join([libpath|path])
+        retrieve_record name, File::Mixin.join([libpath|path])
       end
     end
 
@@ -199,6 +200,11 @@ module Record
   % Creates a new record using the default values as defaults.
   def constructor()
     OrderedDict.from_list self.record_keys.zip(self.record_defaults)
+  end
+
+  % Behave like a dictionary.
+  def [](key)
+    self.get_ivar(key)
   end
 
   % Update the record using the given ordered dict *values*.
