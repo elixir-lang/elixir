@@ -9,7 +9,7 @@ Definitions.
 Digit = [0-9]
 UpperCase = [A-Z]
 LowerCase = [a-z]
-Whitespace = [\s]
+Whitespace = [\s\t]
 IdentifierBase = ({UpperCase}|{LowerCase}|{Digit}|_)
 Comment = %.*
 

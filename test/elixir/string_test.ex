@@ -96,6 +96,13 @@ three
     false = "abc".include?("d")
   end
 
+  def split_test
+    ["foo", "baz"] = "foobarbaz".split(~r"bar")
+    ["foo", "baz", "bat"] = "foobarbazbarbat".split(~r"bar")
+    ["foo", "bazbarbat"] = "foobarbazbarbat".split(~r"bar", 2)
+    ["foobaz"] = "foobaz".split(~r"bar")
+  end
+
   def sub_test
     "abc"   = "abc".sub(~r(d), "d")
     "adc"   = "abc".sub(~r(b), "d")

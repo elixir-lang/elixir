@@ -68,6 +68,11 @@ object Regexp
     'nomatch != run(target)
   end
 
+  def split(string, parts := 'infinity)
+    list = Erlang.re.split(string.to_bin, @compiled, [{'return,'binary},'trim, {'parts, parts}])
+    [String.new(l) for l in list]
+  end
+
   % Receives a string and a replacement and returns a string where the first match
   % of the regular expressions is replaced by replacement. Inside the replacement,
   % you can either give "&" to access the whole regular expression or \N, where
@@ -82,15 +87,15 @@ object Regexp
   %     "a[b]c" = ~r[(b)].replace("abc", "[\\1]")
   %
   def replace(string, replacement)
-    iolist = Erlang.re.replace(string.to_bin, @compiled, replacement.to_bin)
-    String.new Erlang.iolist_to_binary(iolist)
+    binary = Erlang.re.replace(string.to_bin, @compiled, replacement.to_bin, [{'return,'binary}])
+    String.new binary
   end
 
   % The same as replace, but replaces all parts where the regular expressions
   % matches in the string. Please read `replace` for documentation and examples.
   def replace_all(string, replacement)
-    iolist = Erlang.re.replace(string.to_bin, @compiled, replacement.to_bin, ['global])
-    String.new Erlang.iolist_to_binary(iolist)
+    binary = Erlang.re.replace(string.to_bin, @compiled, replacement.to_bin, [{'return,'binary},'global])
+    String.new binary
   end
 
   private

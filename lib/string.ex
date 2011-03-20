@@ -112,7 +112,11 @@ object String
   %     "a[b]c" = "abc".sub(~r[(b)], "[\\1]")
   %
   def sub(given, replacement)
-    given.replace(self, replacement)
+    if given.__parent_name__ == 'Regexp
+      given.replace(self, replacement)
+    else
+      self.error 'badarg
+    end
   end
 
   % Substitute the **all** occurrence of *given* in the string by *replacement*.
@@ -129,7 +133,11 @@ object String
   %     "a[&]c[&]e" = "abcbe".gsub(~r(b), "[\\&]")
   %     "a[b]c[b]e" = "abcbe".gsub(~r[(b)], "[\\1]")
   def gsub(given, replacement)
-    given.replace_all(self, replacement)
+    if given.__parent_name__ == 'Regexp
+      given.replace_all(self, replacement)
+    else
+      self.error 'badarg
+    end
   end
 
   % Returns a string representation of this string.
@@ -140,6 +148,22 @@ object String
   %
   def inspect
     String.new <<$\", bin|binary, $\">>
+  end
+
+  % Receives a regular expression and split the string. An optional number
+  % of parts to split the string can be given. By default is the atom infinity.
+  %
+  % ## Examples
+  %
+  %     ["foo", "baz", "bat"] = "foobarbazbarbat".split(~r"bar")
+  %     ["foo", "bazbarbat"] = "foobarbazbarbat".split(~r"bar", 2)
+  %
+  def split(given, parts := 'infinity)
+    if given.__parent_name__ == 'Regexp
+      given.split(self, parts)
+    else
+      self.error 'badarg
+    end
   end
 
   % Returns true if the string is empty.
