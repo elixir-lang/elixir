@@ -142,13 +142,27 @@ object OrderedDict
   % ## Examples
   %
   %     dict = { 'a: 1, 'b: 2 }
-  %     new_dict = dict.map do (key, value, acc)
+  %     new_dict = dict.map do (key, value)
   %       value * 2
   %     end
   %     new_dict % => { 'a: 2, 'b: 4 }
   %
   def map(function)
     OrderedDict.new Erlang.orddict.map(function, orddict)
+  end
+
+  % Loops for each key-value pair in the dictionary.
+  %
+  % ## Examples
+  %
+  %     dict = { 'a: 1, 'b: 2 }
+  %     dict.each do (key, value)
+  %       IO.puts "#{key}: #{value}"
+  %     end
+  %
+  def each(function)
+    to_list.each -> ({x, y}) function(x, y)
+    self
   end
 
   % Returns this dictionary represented as a String.

@@ -395,6 +395,7 @@ base_identifier -> '_' : { identifier, ?line('$1'), '_' }.
 
 % ivar
 ivar -> '@' base_identifier : { ivar, ?line('$1'), ?chars('$2') }.
+ivar -> '@' bracket_identifier : { ivar, ?line('$1'), ?chars('$2') }.
 set_ivars -> '@' call_args_parens : { set_ivars, ?line('$1'), '$2' }.
 
 % Commas and eol

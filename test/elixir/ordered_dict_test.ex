@@ -3,6 +3,14 @@ Code.require File.expand_path("../test_helper", __FILE__)
 object OrderedDictTest
   proto ExUnit::Case
 
+  def setup(_)
+    @('dict, { 'a: 1 })
+  end
+
+  def instance_variable_bracket_test
+    1 = @dict['a]
+  end
+
   def fold_test
     [2, 1] = a_dict.fold [], -> (key, _, acc) [key|acc]
     33 = a_dict.fold 0, -> (_, value, acc) acc + value
