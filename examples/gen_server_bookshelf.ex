@@ -54,12 +54,12 @@ object Bookshelf
 
     % Terminate sync message
     def handle_call('terminate, _from)
-      { 'stop, 'normal, 'ok, self }
+      'ok
     end
 
     def handle_info(msg)
       IO.puts("Unexpected message: #{msg}\n")
-      { 'no_reply, self }
+      { 'noreply, self }
     end
 
     def terminate('normal)

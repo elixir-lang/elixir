@@ -50,11 +50,11 @@ object ExUnit::Server
   end
 
   def handle_info(_msg)
-    { 'no_reply, self }
+    { 'noreply, self }
   end
 
   def handle_cast(_msg)
-    { 'no_reply, self }
+    { 'noreply, self }
   end
 
   def terminate(reason)
