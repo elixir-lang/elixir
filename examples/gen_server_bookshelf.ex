@@ -54,7 +54,7 @@ object Bookshelf
 
     % Terminate sync message
     def handle_call('terminate, _from)
-      'ok
+      { 'stop, 'normal, 'ok, self }
     end
 
     def handle_info(msg)
