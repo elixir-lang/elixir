@@ -4,9 +4,8 @@
 
 % TODO Implement method missing dispatching to protected methods.
 dispatch(Self, Object, Method, Args) when is_list(Args)->
-  Chain = elixir_object_methods:mixins(Object),
   Arity = length(Args) + 1,
-  case find_module(Chain, Method, Arity) of
+  case find_module(Object, Method, Arity) of
     [] -> dispatch(true, Object, method_missing, [Method, Args]);
     Module ->
       case visibility_matches(Self, Module, Method, Arity) of
@@ -19,7 +18,7 @@ super(Object, Module, Method, Args) when is_list(Args) ->
   WholeChain = elixir_object_methods:mixins(Object),
   [Module|Chain] = lists:dropwhile(fun(X) -> X /= Module end, WholeChain),
   Arity = length(Args) + 1,
-  case find_module(Chain, Method, Arity) of
+  case find_module_chain(Chain, Method, Arity) of
     [] -> dispatch(true, Object, method_missing, [Method, Args]);
     Next -> apply(Next, Method, [Object|Args])
   end.
@@ -47,10 +46,24 @@ is_protected_method(Module, Method, Arity) ->
   lists:member({Method, Arity}, Protected).
 
 % Find first module that contains the method with given arity.
-find_module([], _Method, _Arity) -> [];
+find_module(#elixir_object__{} = Object, Method, Arity) ->
+  Chain = elixir_object_methods:mixins(Object),
+  find_module_chain(Chain, Method, Arity);
 
-find_module([H|T], Method, Arity) ->
+find_module(Object, Method, Arity) ->
+  Proto = ?ELIXIR_ATOM_CONCAT([elixir_object_methods:object_parent(Object), "::Proto"]),
+
+  case erlang:function_exported(Proto, Method, Arity) of
+    true -> Proto;
+    false ->
+      Chain = elixir_object_methods:mixins(Object),
+      find_module_chain(Chain, Method, Arity)
+  end.
+
+find_module_chain([], _Method, _Arity) -> [];
+
+find_module_chain([H|T], Method, Arity) ->
   case erlang:function_exported(H, Method, Arity) of
     true -> H;
-    Else -> find_module(T, Method, Arity)
+    _ -> find_module_chain(T, Method, Arity)
   end.

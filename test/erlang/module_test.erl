@@ -109,7 +109,7 @@ method_invocation_from_proto_test() ->
     elixir:eval("module Foo;def foo;7;end;end\nmodule Bar;proto Foo;end"),
     {7,[]} = elixir:eval("Bar.foo")
   end,
-  test_helper:run_and_remove(F, ['Bar']).
+  test_helper:run_and_remove(F, ['Foo', 'Bar']).
 
 cannot_defined_underscore_as_method_test() ->
   ?assertError({badsyntax, _}, elixir:eval("module Bar; def _(); 1 + 2; end; end")).

@@ -65,25 +65,25 @@ object File
       end
     end
   end
+end
 
-  object Info
-    proto Record
-    record 'file_info, 'from_lib: "kernel/include/file.hrl"
+object File::Info
+  proto Record
+  record 'file_info, 'from_lib: "kernel/include/file.hrl"
 
-    def regular?
-      @type == 'regular
-    end
+  def regular?
+    @type == 'regular
+  end
 
-    def directory?
-      @type == 'directory
-    end
+  def directory?
+    @type == 'directory
+  end
 
-    def read?
-      @access == 'read orelse @access == 'read_write
-    end
+  def read?
+    @access == 'read orelse @access == 'read_write
+  end
 
-    def write?
-      @access == 'write orelse @access == 'read_write
-    end
+  def write?
+    @access == 'write orelse @access == 'read_write
   end
 end

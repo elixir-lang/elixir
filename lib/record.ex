@@ -72,12 +72,12 @@ module Record
     % the same lookup as the *include_lib* attribute from Erlang modules.
     def retrieve(name, 'from_lib: file)
       % Access the mixin directly because File depend on this logic.
-      [app|path] = File::Mixin.split(file)
+      [app|path] = File.split(file)
       case Erlang.code.lib_dir(app.to_char_list)
       match {'error, _}
         self.error {'norecord, {name, file}}
       match libpath
-        retrieve_record name, File::Mixin.join([libpath|path])
+        retrieve_record name, File.join([libpath|path])
       end
     end
 

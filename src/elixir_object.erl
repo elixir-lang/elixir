@@ -36,6 +36,8 @@ build_template(Kind, Name, Template) ->
     _ -> []
   end,
 
+  ets:insert(AttributeTable, { proto, [] }),
+  ets:insert(AttributeTable, { mixin, [] }),
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
   ets:insert(AttributeTable, { data,   Data }),
@@ -74,7 +76,7 @@ scope_for([], Name) -> Name;
 scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, "::", Name]).
 
 % Generates module transform. It wraps the module definition into
-% a function that will be invoked by compile/5 passing self as argument.
+% a function that will be invoked by compile/7 passing self as argument.
 % We need to wrap them into anonymous functions so nested module
 % definitions have the variable self shadowed.
 transform(Kind, Line, Filename, Name, Parent, Body) ->
@@ -91,8 +93,10 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun) ->
 
   try
     compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable)
-  after
-    ets:delete(MethodTable)
+  catch
+    Type:Reason ->
+      ets:delete(MethodTable),
+      erlang:Type(Reason)
   end.
 
 % Receive the module function to be invoked, invoke it passing
@@ -105,8 +109,10 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
     Result = Fun(Object),
     compile_kind(Kind, Line, Filename, Current, Object, MethodTable),
     Result
-  after
-    ets:delete(AttributeTable)
+  catch
+    Type:Reason ->
+      ets:delete(AttributeTable),
+      erlang:Type(Reason)
   end.
 
 merge_module_mixins(Object) ->
@@ -126,17 +132,17 @@ merge_module_mixins(Object) ->
 % TODO Do not allow module reopening.
 compile_kind(module, Line, Filename, Current, Object, MethodTable) ->
   Name = Object#elixir_object__.name,
-  { Callbacks, Functions } = elixir_def_method:unwrap_stored_methods(MethodTable),
-  merge_module_mixins(Object),
-  load_form(build_erlang_form(Line, Object, Functions), Filename),
-  add_implicit_mixins(Current, Name);
+  case add_implicit_mixins(Current, Name, { Line, Filename, Object, MethodTable }) of
+    true -> [];
+    false -> compile_module(Line, Filename, Object, MethodTable)
+  end;
 
 % Compile an object. If methods were defined in the object scope,
 % we create a Proto module and automatically include it.
 compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
   AttributeTable = Object#elixir_object__.data,
   case elixir_def_method:is_empty_table(MethodTable) of
-    true  -> [];
+    true  -> ets:delete(MethodTable);
     false ->
       Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object__.name, "::Proto"]),
       Attributes = ets:lookup_element(AttributeTable, module, 2),
@@ -144,20 +150,45 @@ compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
       compile(module, Line, Filename, Object, Name, [], Define, MethodTable)
   end,
   ets:delete(AttributeTable, module),
-  load_form(build_erlang_form(Line, Object), Filename).
+  load_implicit_modules(Object, AttributeTable, proto),
+  load_implicit_modules(Object, AttributeTable, mixin),
+  load_form(build_erlang_form(Line, Object), Filename),
+  ets:delete(AttributeTable).
+
+% Flat object modules
+load_implicit_modules(Object, AttributeTable, Attribute) ->
+  case ets:lookup_element(AttributeTable, Attribute, 2) of
+    [] -> [];
+    { Line, Filename, Module, MethodTable } ->
+      compile_module(Line, Filename, Module, MethodTable),
+      elixir_object_methods:Attribute(Object, build(Module#elixir_object__.name))
+  end,
+  ets:delete(AttributeTable, Attribute).
 
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
-add_implicit_mixins(#elixir_object__{name=Name} = Self, ModuleName) ->
+add_implicit_mixins(#elixir_object__{name=Name, data=AttributeTable} = Self, ModuleName, Copy) ->
   Proto = lists:concat([Name, "::Proto"]),
   Mixin = lists:concat([Name, "::Mixin"]),
   case atom_to_list(ModuleName) of
-    Proto -> elixir_object_methods:proto(Self, build(ModuleName));
-    Mixin -> elixir_object_methods:mixin(Self, build(ModuleName));
-    Else  -> []
+    Proto -> ets:insert(AttributeTable, { proto, Copy }), true;
+    Mixin -> ets:insert(AttributeTable, { mixin, Copy }), true;
+    _     -> false
   end;
 
-add_implicit_mixins(_, _) -> [].
+add_implicit_mixins(_, _, _) -> false.
+
+% Handle logic compilation. Called by both compile_kind(module) and compile_kind(object).
+% The latter uses it for implicit modules.
+compile_module(Line, Filename, Module, MethodTable) ->
+  { Callbacks, Functions } = elixir_def_method:unwrap_stored_methods(MethodTable),
+  merge_module_mixins(Module),
+  AttributeTable = Module#elixir_object__.data,
+  load_implicit_modules(Module, AttributeTable, proto),
+  load_implicit_modules(Module, AttributeTable, mixin),
+  load_form(build_erlang_form(Line, Module, Functions), Filename),
+  ets:delete(AttributeTable),
+  ets:delete(MethodTable).
 
 % Retrieve all attributes in the attribute table and generate
 % an Erlang Abstract Form that defines an Erlang module.

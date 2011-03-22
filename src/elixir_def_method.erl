@@ -26,6 +26,11 @@ new_method_table(Name) ->
   ets:insert(MethodTable, { visibility, public }),
   MethodTable.
 
+% Unpack default args from the given clause. Invoked by elixir_transform.
+unpack_default_clause(Name, Clause) ->
+  { NewArgs, NewClauses } = unpack_default_args(Name, element(3, Clause), [], []),
+  { setelement(3, Clause, NewArgs), NewClauses }.
+
 % Wraps the method into a call that will call store_wrapped_method
 % once the method definition is read. The method is compiled into a
 % meta tree to ensure we will receive the full method.
@@ -49,29 +54,14 @@ wrap_method_definition(Name, Line, Filename, Method, Defaults) ->
   Content = [{atom, Line, Name}, {string, Line, Filename}, Meta, MetaDefaults],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
 
-% Gets a module stored in the CompiledTable with Index and
-% move it to the AddedTable.
+% Invoked by the wrapped method with the method abstract tree.
+% Each method is then added to the method table.
 store_wrapped_method(Module, Filename, Method, Defaults) ->
   Name = element(3, Method),
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
   Visibility = ets:lookup_element(MethodTable, visibility, 2),
   [store_each_method(MethodTable, Visibility, Filename, function_from_default(Name, Default)) || Default <- Defaults],
   store_each_method(MethodTable, Visibility, Filename, Method).
-
-function_from_default(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
-  { function, Line, Name, length(Args), [Clause] }.
-
-store_each_method(MethodTable, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
-  FinalClauses = case ets:lookup(MethodTable, {Name, Arity}) of
-    [{{Name, Arity}, FinalLine, OtherClauses}] ->
-      check_valid_visibility(Line, Filename, Name, Arity, Visibility, MethodTable),
-      Clauses ++ OtherClauses;
-    [] ->
-      add_visibility_entry(Name, Arity, Visibility, MethodTable),
-      FinalLine = Line,
-      Clauses
-  end,
-  ets:insert(MethodTable, {{Name, Arity}, FinalLine, FinalClauses}).
 
 % Helper to unwrap the methods stored in the methods table. It also returns
 % a list of methods to be exported with all protected methods.
@@ -89,14 +79,28 @@ unwrap_stored_methods(Table) ->
 unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
 
-% Unpack default args from the given clause
-unpack_default_clause(Name, Clause) ->
-  { NewArgs, NewClauses } = unpack_default_args(Name, element(3, Clause), [], []),
-  { setelement(3, Clause, NewArgs), NewClauses }.
+%% Helpers
+
+% Generates a function given a default clause.
+function_from_default(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
+  { function, Line, Name, length(Args), [Clause] }.
+
+% Store each of the given method in the MethodTable.
+store_each_method(MethodTable, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
+  FinalClauses = case ets:lookup(MethodTable, {Name, Arity}) of
+    [{{Name, Arity}, FinalLine, OtherClauses}] ->
+      check_valid_visibility(Line, Filename, Name, Arity, Visibility, MethodTable),
+      Clauses ++ OtherClauses;
+    [] ->
+      add_visibility_entry(Name, Arity, Visibility, MethodTable),
+      FinalLine = Line,
+      Clauses
+  end,
+  ets:insert(MethodTable, {{Name, Arity}, FinalLine, FinalClauses}).
 
 % Unpack default args from clauses
 unpack_default_args(Name, [{default_arg, Line, Expr, Default}|T] = List, Acc, Clauses) ->
-  { Args, Invoke } = build_arg(Acc, Line, [], []),
+  { Args, Invoke } = build_default_arg(Acc, Line, [], []),
   Defaults = lists:map(fun extract_default/1, List),
   Clause = { clause, Line, Args, [], [
     { call, Line, {atom, Line, Name}, Invoke ++ Defaults }
@@ -114,11 +118,11 @@ extract_default({default_arg, Line, Expr, Default}) ->
   Default.
 
 % Build an args list
-build_arg([], _Line, Args, Invoke) -> { Args, Invoke };
+build_default_arg([], _Line, Args, Invoke) -> { Args, Invoke };
 
-build_arg([H|T], Line, Args, Invoke) ->
+build_default_arg([H|T], Line, Args, Invoke) ->
   Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", length(T)]) },
-  build_arg(T, Line, [{match, Line, Var, prune_vars(H)}|Args], [Var|Invoke]).
+  build_default_arg(T, Line, [{match, Line, Var, prune_vars(H)}|Args], [Var|Invoke]).
 
 % Remove any reference to vars from the given form.
 prune_vars({var, Line, _}) ->
