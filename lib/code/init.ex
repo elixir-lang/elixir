@@ -19,8 +19,8 @@ module Code::Init
         halt!(error)
       else
         io = IO.new('standard_error)
-        io.puts "** #{kind} #{self.format_catch(kind, error)}"
-        print_stacktrace(io, self.__stacktrace__)
+        io.puts "** #{kind} #{format_catch(kind, error)}"
+        print_stacktrace(io, __stacktrace__)
         halt!(1)
       end
     end

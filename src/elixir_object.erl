@@ -54,7 +54,7 @@ default_parent(module, _Name) -> 'Module'.
 default_mixins(_, 'Object', _Template)  -> ['Object::Methods']; % object Object
 default_mixins(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
 default_mixins(object, _Name, [])       -> ['Module::Methods']; % object Post
-default_mixins(module, Name, _Template) -> [];                  % module Numeric
+default_mixins(module, Name, _Template) -> [Name];              % module Numeric
 default_mixins(object, _Name, Template) ->                      % object SimplePost from Post
   Template#elixir_object__.mixins ++ ['Module::Methods'].
 
@@ -119,9 +119,15 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
 % TODO Allow object reopening but without method definition.
 % TODO Do not allow module reopening.
 compile_kind(module, Line, Filename, Current, Module, MethodTable) ->
-  case add_implicit_mixins(Current, Module, { Line, Filename, Module, MethodTable }) of
+  case add_implicit_modules(Current, Module, { Line, Filename, Module, MethodTable }) of
     true -> [];
-    false -> compile_module(Line, Filename, Module, MethodTable)
+    false ->
+      case Module#elixir_object__.name of
+        'Object::Methods' -> [];
+        'Module::Methods' -> [];
+        _ -> elixir_def_method:flat_module(Module, Line, protos, Module, MethodTable)
+      end,
+      compile_module(Line, Filename, Module, MethodTable)
   end;
 
 % Compile an object. If methods were defined in the object scope,
@@ -143,28 +149,21 @@ compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
 % The latter uses it for implicit modules.
 compile_module(Line, Filename, Module, MethodTable) ->
   Functions = elixir_def_method:unwrap_stored_methods(MethodTable),
-  merge_module_mixins(Module),
   load_implicit_modules(Module, fun() -> load_form(build_erlang_form(Line, Module, Functions), Filename) end),
   ets:delete(MethodTable).
 
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
-add_implicit_mixins(#elixir_object__{name=Name, data=AttributeTable} = Self, Module, Copy) ->
+add_implicit_modules(#elixir_object__{name=Name, data=AttributeTable} = Self, Module, Copy) ->
   Proto = lists:concat([Name, "::Proto"]),
   Mixin = lists:concat([Name, "::Mixin"]),
   case atom_to_list(Module#elixir_object__.name) of
-    Proto ->
-      ets:insert(AttributeTable, { proto, Copy }),
-      % elixir_object_methods:proto(Self, Module),
-      true;
-    Mixin ->
-      ets:insert(AttributeTable, { mixin, Copy }),
-      % elixir_object_methods:mixin(Self, Module),
-      true;
+    Proto -> ets:insert(AttributeTable, { proto, Copy }), true;
+    Mixin -> ets:insert(AttributeTable, { mixin, Copy }), true;
     _ -> false
   end;
 
-add_implicit_mixins(_, _, _) -> false.
+add_implicit_modules(_, _, _) -> false.
 
 % Load implicit modules that were lazily stored
 load_implicit_modules(Object, Function) ->
@@ -191,19 +190,6 @@ read_implicit_module(Object, AttributeTable, Attribute) ->
     { _, _, Module, _ } -> elixir_object_methods:Attribute(Object, Module)
   end,
   Value.
-
-% Given a module, by default, add the module name to the mixins list.
-merge_module_mixins(Object) ->
-  OldMixins = elixir_object_methods:object_mixins(Object),
-  OldProtos = elixir_object_methods:object_protos(Object),
-  Adder = fun(X, Acc) ->
-    case lists:member(X, Acc) of
-      true  -> Acc;
-      false -> [X|Acc]
-    end
-  end,
-  NewMixins = lists:foldl(Adder, lists:reverse(OldMixins), OldProtos),
-  ets:insert(Object#elixir_object__.data, { mixins, lists:reverse(NewMixins) }).
 
 % Retrieve all attributes in the attribute table and generate
 % an Erlang Abstract Form that defines an Erlang module.
