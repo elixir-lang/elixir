@@ -10,7 +10,7 @@ module ExUnit::Case
 
   def __tests__
     regexp = ~r(_test$)
-    [name for {name, _} in self.__public_proto_methods__, regexp.match?(name)]
+    [name for {name, _} in self.__proto_methods__, regexp.match?(name)]
   end
 
   def setup(_)

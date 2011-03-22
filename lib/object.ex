@@ -200,8 +200,8 @@ object Object
 
     % Those methods are related to methods introspection.
 
-    def __public_proto_methods__
-      Erlang.elixir_methods.public_proto_methods(self)
+    def __proto_methods__
+      Erlang.elixir_methods.proto_methods(self)
     end
 
     % Exceptions related methods

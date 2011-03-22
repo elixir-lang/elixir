@@ -1,18 +1,17 @@
 % Holds the logic responsible for methods definition during parse time.
 % For modules introspection, check elixir_methods.
 -module(elixir_def_method).
--export([unpack_default_clause/2, is_empty_table/1, new_method_table/1,
+-export([unpack_default_clause/2, is_empty_table/1, new_method_table/1, flat_module/5,
   wrap_method_definition/5, store_wrapped_method/4, unwrap_stored_methods/1]).
 -include("elixir.hrl").
 
 % Returns if a given table is empty or not.
 %
 % Since we use the same method table to store the current visibility,
-% public, protected and callbacks method, the table is empty if its
-% size is 4.
+% public and inherited method, the table is empty if its size is 3.
 is_empty_table(MethodTable) ->
   case ets:info(MethodTable, size) of
-    4 -> true;
+    3 -> true;
     _ -> false
   end.
 
@@ -21,8 +20,7 @@ new_method_table(Name) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:new(MethodTable, [set, named_table, private]),
   ets:insert(MethodTable, { public, [] }),
-  ets:insert(MethodTable, { protected, [] }),
-  ets:insert(MethodTable, { callbacks, [] }),
+  ets:insert(MethodTable, { inherited, [] }),
   ets:insert(MethodTable, { visibility, public }),
   MethodTable.
 
@@ -64,20 +62,43 @@ store_wrapped_method(Module, Filename, Method, Defaults) ->
   store_each_method(MethodTable, Visibility, Filename, Method).
 
 % Helper to unwrap the methods stored in the methods table. It also returns
-% a list of methods to be exported with all protected methods.
+% a list of methods to be exported with all methods.
 unwrap_stored_methods(Table) ->
   Public    = ets:lookup_element(Table, public, 2),
-  Protected = ets:lookup_element(Table, protected, 2),
-  Callbacks = ets:lookup_element(Table, callbacks, 2),
+  Inherited = ets:lookup_element(Table, inherited, 2),
   ets:delete(Table, visibility),
   ets:delete(Table, public),
-  ets:delete(Table, protected),
-  ets:delete(Table, callbacks),
-  AllProtected = Protected ++ Callbacks,
-  { Callbacks, { Public ++ AllProtected, AllProtected, ets:foldl(fun unwrap_stored_method/2, [], Table) } }.
+  ets:delete(Table, inherited),
+  { Public ++ Inherited, Inherited, ets:foldl(fun unwrap_stored_method/2, [], Table) }.
 
 unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
+
+% Receives a method table and adds the given What from Object in it.
+flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) ->
+  RawModules = elixir_object_methods:What(Object),
+  Modules = lists:delete(ModuleName, RawModules),
+
+  Visibility = lists:foldl(fun(Module, Acc1) ->
+    lists:foldl(fun({Method, ElixirArity}, Acc2) ->
+      Arity = ElixirArity + 1,
+      case ets:lookup(MethodTable, {Method, Arity}) of
+        [] ->
+          BuiltArgs = build_arg(Arity, Line, []),
+
+          ets:insert(MethodTable, {
+            { Method, Arity }, Line, [
+              { clause, Line, BuiltArgs, [], [?ELIXIR_WRAP_CALL(Line, Module, Method, BuiltArgs)] }
+            ]
+          }),
+
+          [{Method,Arity}|Acc2];
+        _ -> Acc2
+      end
+    end, Acc1, elixir_methods:abstract_methods(Module))
+  end, [], Modules),
+
+  ets:insert(MethodTable, { inherited, Visibility }).
 
 %% Helpers
 
@@ -145,7 +166,7 @@ add_visibility_entry(Name, Arity, Visibility, Table) ->
   ets:insert(Table, {Visibility, [{Name, Arity}|Current]}).
 
 check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
-  Available = [public, protected, callbacks, private],
+  Available = [public, private],
   PrevVisibility = find_visibility(Name, Arity, Available, Table),
   case Visibility == PrevVisibility of
     false -> elixir_errors:handle_file_warning(Filename, {Line, ?MODULE, {changed_visibility, {Name, PrevVisibility}}});
@@ -164,3 +185,9 @@ find_visibility(Name, Arity, [Visibility|T], Table) ->
 
 abstract_syntax(Tree) ->
   erl_syntax:revert(erl_syntax:abstract(Tree)).
+
+% Build an args list
+build_arg(0, _Line, Args) -> Args;
+
+build_arg(Counter, Line, Args) ->
+  build_arg(Counter - 1, Line, [{ var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) }|Args]).

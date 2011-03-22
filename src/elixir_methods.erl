@@ -1,8 +1,7 @@
 % Holds introspection for methods.
 % To check how methods are defined internally, check elixir_def_method.
 -module(elixir_methods).
--export([assert_behavior/2, abstract_methods/1, abstract_public_methods/1,
-  abstract_protected_methods/1, proto_methods/1, public_proto_methods/1]).
+-export([assert_behavior/2, abstract_methods/1, proto_methods/1]).
 -include("elixir.hrl").
 -import(lists, [umerge/2, sort/1]).
 
@@ -10,9 +9,6 @@
 
 proto_methods(Self) ->
   calculate_methods(Self, fun abstract_methods/1, elixir_object_methods:protos(Self), []).
-
-public_proto_methods(Self) ->
-  calculate_methods(Self, fun abstract_public_methods/1, elixir_object_methods:protos(Self), []).
 
 % Public in Erlang
 
@@ -34,18 +30,6 @@ abstract_methods(#elixir_object__{}) ->
 abstract_methods(Name) ->
   Converter = fun({Name, Arity}) -> {Name, Arity - 1} end,
   lists:map(Converter, elixir_constants:lookup(Name, functions) -- [{module_info,0},{module_info,1}]).
-
-abstract_public_methods(#elixir_object__{}) ->
-  [];
-
-abstract_public_methods(Name) ->
-  abstract_methods(Name) -- abstract_protected_methods(Name).
-
-abstract_protected_methods(#elixir_object__{}) ->
-  [];
-
-abstract_protected_methods(Name) ->
-  proplists:get_value(protected, elixir_constants:lookup(Name, attributes)).
 
 % Helpers
 

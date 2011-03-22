@@ -142,7 +142,7 @@ compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
 % Handle logic compilation. Called by both compile_kind(module) and compile_kind(object).
 % The latter uses it for implicit modules.
 compile_module(Line, Filename, Module, MethodTable) ->
-  { Callbacks, Functions } = elixir_def_method:unwrap_stored_methods(MethodTable),
+  Functions = elixir_def_method:unwrap_stored_methods(MethodTable),
   merge_module_mixins(Module),
   load_implicit_modules(Module, fun() -> load_form(build_erlang_form(Line, Module, Functions), Filename) end),
   ets:delete(MethodTable).
@@ -180,7 +180,7 @@ load_implicit_modules(_Object, [], _Attribute) -> [];
 
 load_implicit_modules(Object, Value, Attribute) ->
   { Line, Filename, Module, MethodTable } = Value,
-  flat_module(Object, Line, Attribute, Module, MethodTable),
+  elixir_def_method:flat_module(Object, Line, Attribute, Module, MethodTable),
   compile_module(Line, Filename, Module, MethodTable).
 
 read_implicit_module(Object, AttributeTable, Attribute) ->
@@ -191,39 +191,6 @@ read_implicit_module(Object, AttributeTable, Attribute) ->
     { _, _, Module, _ } -> elixir_object_methods:Attribute(Object, Module)
   end,
   Value.
-
-% Receives a method table and adds the given What from Object in it.
-flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) ->
-  RawModules = elixir_object_methods:What(Object),
-  Modules = lists:delete(ModuleName, RawModules),
-
-  Visibility = lists:foldl(fun(Module, Acc1) ->
-    lists:foldl(fun({Method, ElixirArity}, Acc2) ->
-      Arity = ElixirArity + 1,
-      case ets:lookup(MethodTable, {Method, Arity}) of
-        [] ->
-          BuiltArgs = build_arg(Arity, Line, []),
-
-          ets:insert(MethodTable, {
-            { Method, Arity }, Line, [
-              { clause, Line, BuiltArgs, [], [?ELIXIR_WRAP_CALL(Line, Module, Method, BuiltArgs)] }
-            ]
-          }),
-
-          [{Method,Arity}|Acc2];
-        _ -> Acc2
-      end
-    end, Acc1, elixir_methods:abstract_methods(Module))
-  end, [], Modules),
-
-  Old = ets:lookup_element(MethodTable, public, 2),
-  ets:insert(MethodTable, { public, Old ++ Visibility }).
-
-% Build an args list
-build_arg(0, _Line, Args) -> Args;
-
-build_arg(Counter, Line, Args) ->
-  build_arg(Counter - 1, Line, [{ var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) }|Args]).
 
 % Given a module, by default, add the module name to the mixins list.
 merge_module_mixins(Object) ->
@@ -243,14 +210,14 @@ merge_module_mixins(Object) ->
 build_erlang_form(Line, Object) ->
   build_erlang_form(Line, Object, {[],[],[]}).
 
-build_erlang_form(Line, Object, {Export, Protected, Functions}) ->
+build_erlang_form(Line, Object, {Export, Inherited, Functions}) ->
   Name = Object#elixir_object__.name,
   Parent = Object#elixir_object__.parent,
   AttrTable = Object#elixir_object__.data,
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
   Base = ets:foldr(Transform, Functions, AttrTable),
   [{attribute, Line, module, Name}, {attribute, Line, parent, Parent}, {attribute, Line, compile, no_auto_import()},
-   {attribute, Line, export, Export}, {attribute, Line, protected, Protected} | Base].
+   {attribute, Line, export, Export}, {attribute, Line, inherited, Inherited} | Base].
 
 no_auto_import() ->
   {no_auto_import, [
