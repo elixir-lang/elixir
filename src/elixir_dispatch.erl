@@ -2,16 +2,11 @@
 -export([dispatch/4,super/4]).
 -include("elixir.hrl").
 
-% TODO Implement method missing dispatching to protected methods.
 dispatch(Self, Object, Method, Args) when is_list(Args)->
   Arity = length(Args) + 1,
   case find_module(Object, Method, Arity) of
     [] -> dispatch(true, Object, method_missing, [Method, Args]);
-    Module ->
-      case visibility_matches(Self, Module, Method, Arity) of
-        true  -> apply(Module, Method, [Object|Args]);
-        false -> elixir_errors:error({protectedmethod, {Object, Module, Method, Arity-1}})
-      end
+    Module -> apply(Module, Method, [Object|Args])
   end.
 
 super(Object, Module, Method, Args) when is_list(Args) ->
