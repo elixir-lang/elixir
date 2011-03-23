@@ -1,11 +1,11 @@
 -module(elixir_dispatch).
--export([dispatch/4,super/4]).
+-export([dispatch/3,super/4]).
 -include("elixir.hrl").
 
-dispatch(Self, Object, Method, Args) when is_list(Args)->
+dispatch(Object, Method, Args) when is_list(Args)->
   Arity = length(Args) + 1,
   case find_module(Object, Method, Arity) of
-    false -> dispatch(true, Object, method_missing, [Method, Args]);
+    false -> dispatch(Object, method_missing, [Method, Args]);
     Module -> apply(Module, Method, [Object|Args])
   end.
 
@@ -14,7 +14,7 @@ super(Object, Module, Method, Args) when is_list(Args) ->
   [Module|Chain] = lists:dropwhile(fun(X) -> X /= Module end, WholeChain),
   Arity = length(Args) + 1,
   case find_module_chain(Chain, Method, Arity) of
-    false -> dispatch(true, Object, method_missing, [Method, Args]);
+    false -> dispatch(Object, method_missing, [Method, Args]);
     Next -> apply(Next, Method, [Object|Args])
   end.
 

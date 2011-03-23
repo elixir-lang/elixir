@@ -190,7 +190,7 @@ object Object
     end
 
     def __send__(method, args := [])
-      Erlang.elixir_dispatch.dispatch(true, self, method, args)
+      Erlang.elixir_dispatch.dispatch(self, method, args)
     end
 
     % Those methods are related to methods introspection.

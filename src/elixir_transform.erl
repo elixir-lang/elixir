@@ -696,7 +696,7 @@ build_if_clauses({if_clause, Line, Bool, Expr, List}, Acc) ->
 % all data is already transformed.
 build_method_call(Name, Line, Args, Expr) ->
   FArgs = handle_new_call(Name, Line, Args, false),
-  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [{var, Line, self}, Expr, {atom, Line, Name}, FArgs]).
+  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, Name}, FArgs]).
 
 % Builds a regexp.
 build_regexp(Line, Expr, Operators, S) ->

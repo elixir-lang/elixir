@@ -18,7 +18,7 @@ new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
     _  -> Name
   end,
   Object = #elixir_object__{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
-  Data = elixir_dispatch:dispatch(true, Object, constructor, Args),
+  Data = elixir_dispatch:dispatch(Object, constructor, Args),
   Dict = assert_dict_with_atoms(Data),
   Object#elixir_object__{data=Dict};
 
@@ -132,7 +132,7 @@ prepend_as(#elixir_object__{name=Name} = Self, Chain, Kind, Value) ->
   Object = update_object_chain(Self, Kind, Updated),
 
   % Invoke the appropriate hook.
-  elixir_dispatch:dispatch(true, Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]);
+  elixir_dispatch:dispatch(Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]);
 
 % Raise an error if mixin or proto is called on builtin.
 prepend_as(Else, Chain, Kind, Value) -> builtinnotallowed(Else, Kind).
