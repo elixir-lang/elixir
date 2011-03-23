@@ -31,5 +31,6 @@
 %   4) keeps a list of defined variables
 %   5) keeps a counter with the variables defined
 %   6) filename keeps the current scope filename
+%   7) keeps a dict of variables that were explictly assigned
 %
--record(elixir_scope, {assign=false, method=[], scope={[],[]}, vars=[], counter=0, filename="nofile"}).
+-record(elixir_scope, {assign=false, method=[], scope={[],[]}, vars=[], counter=0, filename="nofile", assigned_vars=dict:new()}).

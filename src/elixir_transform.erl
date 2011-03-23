@@ -21,7 +21,9 @@ forms(String, StartLine, Filename) ->
 umergev(S1, S2) ->
   V1 = S1#elixir_scope.vars,
   V2 = S2#elixir_scope.vars,
-  S2#elixir_scope{vars=lists:umerge(V1, V2)}.
+  A1 = S1#elixir_scope.assigned_vars,
+  A2 = S2#elixir_scope.assigned_vars,
+  S2#elixir_scope{vars=lists:umerge(V1, V2), assigned_vars=dict:merge(fun(_,_,F) -> F end, A1, A2)}.
 
 % Receives two scopes and return a new scope based on the first
 % with the counter values from the first one.
@@ -171,7 +173,14 @@ transform({set_ivars, Line, Exprs}, S) ->
 transform({match, Line, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S#elixir_scope{assign=true}),
   { TRight, SR } = transform(Right, umergec(S, SL)),
-  { {match, Line, TLeft, TRight }, umergev(SL, SR) };
+  SM = umergev(SL, SR),
+  SF = case TLeft of
+    { var, _, Name } ->
+      Current = SM#elixir_scope.assigned_vars,
+      SM#elixir_scope{assigned_vars=dict:store(Name, {Right, TRight}, Current)};
+    _ -> SM
+  end,
+  { {match, Line, TLeft, TRight }, SF };
 
 % Handle tuple declarations.
 %
@@ -316,11 +325,11 @@ transform({binary_op, Line, Op, Left, Right}, S) ->
 
   SF = umergev(SL, SR),
 
-  case S#elixir_scope.assign orelse is_number_form(TLeft) of
+  case S#elixir_scope.assign orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
     true -> { {op, Line, Op, TLeft, TRight}, SF };
     false ->
       Args = { cons, Line, TRight, {nil, Line} },
-      case is_op_call_form(element(1, Left)) of
+      case is_op_call_form(element(1, Left)) orelse is_var_form(TLeft, S, fun({X,_}) -> is_op_call_form(element(1, X)) end) of
         true -> { build_method_call(Op, Line, Args, TLeft), SF };
         false ->
           { Var, NS } = build_var_name(Line, SF),
@@ -642,7 +651,7 @@ transform_comprehension(X, L, S) ->
 % empty variable set as there is no binding.
 pack_method_clause({clause, Line, Args, Guards, Exprs}, S) ->
   Clause = {clause, Line, [{var, Line, self}|Args], Guards, Exprs},
-  transform(Clause, S#elixir_scope{vars=[self],counter=0}).
+  transform(Clause, S#elixir_scope{vars=[self],counter=0,assigned_vars=dict:new()}).
 
 % Build a list transforming each expression and accumulating
 % vars in one pass. It uses tail-recursive form.
@@ -802,7 +811,8 @@ convert_comp_op(Else) ->  Else.
 
 is_number_form({integer, _, _}) -> true;
 is_number_form({float, _, _}) -> true;
-is_number_form({ op, _, Op, _ }) when Op == '+' orelse Op == '-' -> true;
+is_number_form({op, _, Op, _ }) when Op == '+'; Op == '-' -> true;
+is_number_form({op, _, Op, Left, _ }) when Op == '+'; Op == '-'; Op == '*'; Op == '/'; Op == 'div'; Op == 'rem' -> is_number_form(Left);
 is_number_form(_) -> false.
 
 is_op_call_form(string) -> true;
@@ -819,3 +829,11 @@ is_op_call_form(interpolated_regexp) -> true;
 is_op_call_form(interpolated_atom) -> true;
 is_op_call_form(interpolated_char_list) -> true;
 is_op_call_form(_) -> false.
+
+is_var_form({ var, _, Name }, #elixir_scope{assigned_vars=Dict}, Function) ->
+  case dict:find(Name, Dict) of
+    { ok, Var } -> Function(Var);
+    error -> false
+  end;
+
+is_var_form(_, _, _) -> false.

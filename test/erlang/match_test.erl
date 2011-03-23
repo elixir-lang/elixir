@@ -28,7 +28,7 @@ multiple_assignment_with_expression_test() ->
   {-4, [{a, -4}, {b, -4}]} = elixir:eval("a = (b = -(2 * 2))").
 
 multiple_assignment_with_binding_expression_test() ->
-  {3, [{a, 3}, {b, 1}]} = elixir:eval("a = (b + 2)", [{b, 1}]).
+  {3, [{a, 3}, {b, 1}]} = elixir:eval("a = (2 + b)", [{b, 1}]).
 
 underscore_assignment_test() -> 
   {1, []} = elixir:eval("_ = 1"),

@@ -45,21 +45,21 @@ object Integer
   def times_0(limit, counter, function)
     if counter <= limit
       function()
-      times_0(limit, counter + 1, function)
+      times_0(limit, 1 + counter, function)
     end
   end
 
   def times_1(limit, counter, function)
     if counter <= limit
       function(counter)
-      times_1(limit, counter + 1, function)
+      times_1(limit, 1 + counter, function)
     end
   end
 
   def times_2(limit, counter, function, acc)
     if counter <= limit
       new_acc = function(counter, acc)
-      times_2(limit, counter + 1, function, new_acc)
+      times_2(limit, 1 + counter, function, new_acc)
     else
       acc
     end
