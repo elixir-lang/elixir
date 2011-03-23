@@ -4,7 +4,7 @@
 -export([mixin/2, proto/2, new/2, name/1, parent/1, parent_name/1, mixins/1, protos/1, data/1,
   get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4, ancestors/1, function_catch/1,
   object_parent/1, object_mixins/1, object_protos/1, object_data/1,
-  abstract_parent/1, abstract_mixins/1, abstract_protos/1, abstract_data/1]).
+  abstract_parent/1, abstract_mixins/1, abstract_protos/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -224,6 +224,12 @@ object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
     error:badarg -> []
   end;
 
+object_mixins(#elixir_object__{name=[], mixins=Mixins} = Object) when is_atom(Mixins) ->
+  abstract_protos(object_parent(Object));
+
+object_mixins(#elixir_object__{name=Name, mixins=Mixins}) when is_atom(Mixins) ->
+  abstract_mixins(Name);
+
 object_mixins(#elixir_object__{mixins=Mixins}) ->
   Mixins;
 
@@ -236,6 +242,9 @@ object_protos(#elixir_object__{data=Data}) when is_atom(Data) ->
   catch
     error:badarg -> []
   end;
+
+object_protos(#elixir_object__{name=Name, protos=Protos}) when is_atom(Protos) ->
+  abstract_protos(Name);
 
 object_protos(#elixir_object__{protos=Protos}) ->
   Protos;
@@ -254,7 +263,7 @@ object_data(#elixir_object__{data=Data}) ->
   Data;
 
 object_data(Native) ->
-  orddict:new(). % Native types has no protos.
+  orddict:new(). % Native types has no data.
 
 % Method that get values from parents. Argument can either be an atom
 % or an #elixir_object__.
@@ -279,12 +288,6 @@ abstract_protos(#elixir_object__{protos=Protos}) ->
 
 abstract_protos(Name) ->
   proplists:get_value(protos, elixir_constants:lookup(Name, attributes)).
-
-abstract_data(#elixir_object__{data=Data}) ->
-  Data;
-
-abstract_data(Name) ->
-  hd(proplists:get_value(data, elixir_constants:lookup(Name, attributes))).
 
 % Merge two lists taking into account uniqueness. Opposite to
 % lists:umerge2, does not require lists to be sorted.

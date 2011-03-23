@@ -29,7 +29,7 @@ module Code::Formatter
   end
 
   def format_catch(_, reason)
-    self.format_object(reason)
+    format_object(reason)
   end
 
   private

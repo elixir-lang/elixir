@@ -8,15 +8,12 @@
 % build objects from their compiled modules. Assumes the given name
 % exists.
 build(Name) ->
-  Module = Name:module_info(attributes),
-  Mixins = proplists:get_value(mixins, Module),
-  Protos = proplists:get_value(protos, Module),
-  Data   = proplists:get_value(data, Module),
-  Parent = case proplists:get_value(parent, Module) of
-    []   -> [];
-    Else -> hd(Else)
-  end,
-  #elixir_object__{name=Name, parent=Parent, mixins=Mixins, protos=Protos, data=Data}.
+  Attributes = Name:module_info(attributes),
+  Snapshot = proplists:get_value(snapshot, Attributes),
+  case Snapshot of
+    [Value] -> Value;
+    _ -> Snapshot
+  end.
 
 %% TEMPLATE BUILDING FOR MODULE COMPILATION
 
@@ -184,7 +181,6 @@ load_implicit_modules(Object, Value, Attribute) ->
 
 read_implicit_module(Object, AttributeTable, Attribute) ->
   Value = ets:lookup_element(AttributeTable, Attribute, 2),
-  ets:delete(AttributeTable, Attribute),
   case Value of
     [] -> [];
     { _, _, Module, _ } -> elixir_object_methods:Attribute(Object, Module)
@@ -213,11 +209,31 @@ build_erlang_form(Line, Object) ->
 build_erlang_form(Line, Object, {Export, Inherited, Functions}) ->
   Name = Object#elixir_object__.name,
   Parent = Object#elixir_object__.parent,
-  AttrTable = Object#elixir_object__.data,
+  AttributeTable = Object#elixir_object__.data,
+  Mixin = destructive_read(AttributeTable, mixin),
+  Proto = destructive_read(AttributeTable, proto),
+  Data  = destructive_read(AttributeTable, data),
+  Snapshot = build_snapshot(Name, Parent, Mixin, Proto, Data),
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
-  Base = ets:foldr(Transform, Functions, AttrTable),
+  Base = ets:foldr(Transform, Functions, AttributeTable),
   [{attribute, Line, module, Name}, {attribute, Line, parent, Parent}, {attribute, Line, compile, no_auto_import()},
-   {attribute, Line, export, Export}, {attribute, Line, inherited, Inherited} | Base].
+   {attribute, Line, export, Export}, {attribute, Line, inherited, Inherited}, {attribute, Line, snapshot, Snapshot} | Base].
+
+destructive_read(Table, Attribute) ->
+  Value = ets:lookup_element(Table, Attribute, 2),
+  ets:delete(Table, Attribute),
+  Value.
+
+build_snapshot(Name, Parent, Mixin, Proto, Data) ->
+  FinalMixin = snapshot_module(Name, Parent, Mixin),
+  FinalProto = snapshot_module(Name, Parent, Proto),
+  #elixir_object__{name=Name, parent=Parent, mixins=FinalMixin, protos=FinalProto, data=Data}.
+
+snapshot_module('Object', _, [])      -> 'Object::Methods';
+snapshot_module('Module', _, [])      -> 'Module::Methods';
+snapshot_module(Name,  'Module', [])  -> Name;
+snapshot_module(_,  _, [])            -> 'Object::Methods';
+snapshot_module(_, _, {_,_,Module,_}) -> Module#elixir_object__.name.
 
 no_auto_import() ->
   {no_auto_import, [
