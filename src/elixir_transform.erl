@@ -310,8 +310,29 @@ transform({comp_op, Line, Op, Left, Right}, S) ->
 transform({binary_op, Line, Op, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
-  Args = { cons, Line, TRight, {nil, Line} },
-  { build_method_call(Op, Line, Args, TLeft), umergev(SL, SR) };
+
+  SF = umergev(SL, SR),
+
+  case S#elixir_scope.assign orelse is_number_form(TLeft) of
+    true -> { {op, Line, Op, TLeft, TRight}, SF };
+    false ->
+      Args = { cons, Line, TRight, {nil, Line} },
+      case is_op_call_form(element(1, Left)) of
+        true -> { build_method_call(Op, Line, Args, TLeft), SF };
+        false ->
+          { Var, NS } = build_var_name(Line, SF),
+
+          Match = [{match, Line, Var, TLeft}],
+          True = [{atom,Line,true}],
+          False = [{atom,Line,false}],
+          IsNumber = {call,Line,{atom,Line,is_number},Match},
+
+          { { 'case', Line, IsNumber, [
+            { clause, Line, True, [], [{op, Line, Op, Var, TRight}] },
+            { clause, Line, False, [], [build_method_call(Op, Line, Args, Var)] }
+          ] }, NS }
+      end
+  end;
 
 % Handle unary operations.
 %
@@ -775,3 +796,21 @@ convert_comp_op('=!=') -> '=/=';
 convert_comp_op('!=') ->  '/=';
 convert_comp_op('<=') ->  '=<';
 convert_comp_op(Else) ->  Else.
+
+is_number_form({integer, _, _}) -> true;
+is_number_form({float, _, _}) -> true;
+is_number_form({ op, _, Op, _ }) when Op == '+' orelse Op == '-' -> true;
+is_number_form(_) -> false.
+
+is_op_call_form(string) -> true;
+is_op_call_form(regexp) -> true;
+is_op_call_form(char_list) -> true;
+is_op_call_form(list) -> true;
+is_op_call_form(tuple) -> true;
+is_op_call_form(atom) -> true;
+is_op_call_form(function) -> true;
+is_op_call_form(interpolated_string) -> true;
+is_op_call_form(interpolated_regexp) -> true;
+is_op_call_form(interpolated_atom) -> true;
+is_op_call_form(interpolated_char_list) -> true;
+is_op_call_form(_) -> false.

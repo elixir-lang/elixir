@@ -158,7 +158,7 @@ expr -> expr match_op expr : build_match('$1', '$2', '$3').
 expr -> fun_base : '$1'.
 
 % Operators
-expr -> expr right_op expr : build_binary_op('$1', '$2', '$3').
+expr -> expr right_op expr : build_op_call('$1', '$2', '$3').
 expr -> expr andand_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr oror_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr and_op expr : build_comp_op('$1', '$2', '$3').
@@ -222,7 +222,7 @@ _expr -> _expr match_op _expr : build_match('$1', '$2', '$3').
 _expr -> fun_base : '$1'.
 
 % Operators
-_expr -> _expr right_op _expr : build_binary_op('$1', '$2', '$3').
+_expr -> _expr right_op _expr : build_op_call('$1', '$2', '$3').
 _expr -> _expr andand_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr oror_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr and_op _expr : build_comp_op('$1', '$2', '$3'). 
@@ -711,6 +711,9 @@ build_object(Kind, Name, Body, Parent) ->
 
 build_fun(Stab, Clauses) ->
   { 'fun', ?line(Stab), { clauses, [Clauses] } }.
+
+build_op_call(Left, Op, Right) ->
+  { method_call, ?line(Op), ?op(Op), [Right], Left }.
 
 build_comp_op(Left, Op, Right) ->
   { comp_op, ?line(Op), ?op(Op), Left, Right }.
