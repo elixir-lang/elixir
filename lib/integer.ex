@@ -22,12 +22,14 @@ object Integer
     times_2(self, 1, function, acc)
   end
 
-  def div(other)
-    Erlang.elixir_numeric_methods.integer_div(self, other)
-  end
-
-  def rem(other)
-    Erlang.elixir_numeric_methods.integer_rem(self, other)
+  ['div, 'rem].each do (op)
+    define_erlang_method __FILE__, __LINE__, op, 1, [
+      {
+        'clause, __LINE__, [{'var, __LINE__, 'other}], [], [
+          { 'op, __LINE__, op, {'var, __LINE__, 'self}, {'var, __LINE__, 'other} }
+        ]
+      }
+    ]
   end
 
   def chr
