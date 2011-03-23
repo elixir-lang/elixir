@@ -15,7 +15,7 @@ Elixir is still in development. If you want to help building it or are just look
     $ bin/elixir -v
     Elixir 0.1.1.dev
 
-Notice that Elixir requires Erlang R14B01 or later version to execute. Prior versions (like R13 and R14A) do not work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
+Notice that Elixir requires Erlang R14B01 or later version to execute (R14A and R14B **do not work**). Prior versions do not work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
 
 Running the commands above with a supported Erlang version should compile Elixir, show as result that all tests pass and the current Elixir version. After, you are ready to play with Elixir!
 
