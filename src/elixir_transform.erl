@@ -307,6 +307,9 @@ transform({comp_op, Line, Op, Left, Right}, S) ->
 %
 % The Left and Right values of the binary operation can be a match expression.
 % Variables defined inside these expressions needs to be added to the list.
+transform({binary_op, Line, Op, { atom, _, _ } = Left, Right}, S) ->
+  transform({tuple, Line, [Left, Right] }, S);
+
 transform({binary_op, Line, Op, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
@@ -809,6 +812,8 @@ is_op_call_form(list) -> true;
 is_op_call_form(tuple) -> true;
 is_op_call_form(atom) -> true;
 is_op_call_form(function) -> true;
+is_op_call_form(orddict) -> true;
+is_op_call_form(bin) -> true;
 is_op_call_form(interpolated_string) -> true;
 is_op_call_form(interpolated_regexp) -> true;
 is_op_call_form(interpolated_atom) -> true;

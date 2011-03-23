@@ -39,4 +39,13 @@ object ModuleTest
     1 = DefaultArgs.atom('foo)
     2 = DefaultArgs.atom('bar)
   end
+
+  def operators_signature_test
+    operators(2, {'atom, 2})
+  end
+
+  private
+
+  def operators(1 + 1, 'atom/2)
+  end
 end
