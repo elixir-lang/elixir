@@ -1,5 +1,5 @@
 -module(elixir_object).
--export([build/1, scope_for/2, transform/6, compile/7]).
+-export([build/1, scope_for/2, transform/6, compile/7, default_mixins/3, default_protos/3]).
 -include("elixir.hrl").
 
 %% EXTERNAL API
@@ -43,7 +43,7 @@ build_template(Kind, Name, Template) ->
   ets:insert(AttributeTable, { data,   Data }),
 
   Object = #elixir_object__{name=Name, parent=Parent, mixins=[], protos=[], data=AttributeTable},
-  { Object, AttributeTable }.
+  { Object, AttributeTable, { Mixins, Protos } }.
 
 % Returns the parent object based on the declaration.
 default_parent(_, 'Object')   -> [];
@@ -94,45 +94,43 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun) ->
   try
     compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable)
   catch
-    Type:Reason ->
-      ets:delete(MethodTable),
-      erlang:Type(Reason)
+    Type:Reason -> clean_up_tables(Type, Reason)
   end.
 
 % Receive the module function to be invoked, invoke it passing
 % self and then compile the added methods into an Erlang module
 % and loaded it in the VM.
 compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
-  { Object, AttributeTable } = build_template(Kind, Name, Template),
+  { Object, AttributeTable, Extra } = build_template(Kind, Name, Template),
 
   try
     Result = Fun(Object),
-    compile_kind(Kind, Line, Filename, Current, Object, MethodTable),
+    compile_kind(Kind, Line, Filename, Current, Object, Extra, MethodTable),
     Result
   catch
-    Type:Reason ->
-      ets:delete(AttributeTable),
-      erlang:Type(Reason)
+    Type:Reason -> clean_up_tables(Type, Reason)
   end.
 
 % Handle compilation logic specific to objects or modules.
 % TODO Allow object reopening but without method definition.
 % TODO Do not allow module reopening.
-compile_kind(module, Line, Filename, Current, Module, MethodTable) ->
+compile_kind(module, Line, Filename, Current, Module, { Mixins, _ }, MethodTable) ->
   case add_implicit_modules(Current, Module, { Line, Filename, Module, MethodTable }) of
     true -> [];
     false ->
-      case Module#elixir_object__.name of
+      Name = Module#elixir_object__.name,
+      case Name of
         'Object::Methods' -> [];
         'Module::Methods' -> [];
         _ -> elixir_def_method:flat_module(Module, Line, protos, Module, MethodTable)
       end,
+      generate_implicit_module_if(Line, Filename, Mixins, Module, MethodTable, mixin, "::Mixin"),
       compile_module(Line, Filename, Module, MethodTable)
   end;
 
 % Compile an object. If methods were defined in the object scope,
 % we create a Proto module and automatically include it.
-compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
+compile_kind(object, Line, Filename, Current, Object, { Mixins, Protos }, MethodTable) ->
   AttributeTable = Object#elixir_object__.data,
   case elixir_def_method:is_empty_table(MethodTable) of
     true  -> ets:delete(MethodTable);
@@ -142,6 +140,8 @@ compile_kind(object, Line, Filename, Current, Object, MethodTable) ->
       Define = elixir_module_methods:copy_attributes_fun(Attributes),
       compile(module, Line, Filename, Object, Name, [], Define, MethodTable)
   end,
+  generate_implicit_module_if(Line, Filename, Protos, Object, MethodTable, proto, "::Proto"),
+  generate_implicit_module_if(Line, Filename, Mixins, Object, MethodTable, mixin, "::Mixin"),
   ets:delete(AttributeTable, module),
   load_implicit_modules(Object, fun() -> load_form(build_erlang_form(Line, Object), Filename) end).
 
@@ -190,6 +190,20 @@ read_implicit_module(Object, AttributeTable, Attribute) ->
     { _, _, Module, _ } -> elixir_object_methods:Attribute(Object, Module)
   end,
   Value.
+
+generate_implicit_module_if(Line, Filename, Match,
+  #elixir_object__{name=Name, data=AttributeTable} = Object, MethodTable, Attribute, Suffix) ->
+
+  Method = ?ELIXIR_ATOM_CONCAT(["object_", Attribute, "s"]),
+  Bool1 = elixir_object_methods:Method(Object) == Match,
+  Bool2 = ets:lookup_element(AttributeTable, Attribute, 2) /= [],
+
+  if
+    Bool1 or Bool2 -> [];
+    true ->
+      Implicit = ?ELIXIR_ATOM_CONCAT([Name, Suffix]),
+      compile(module, Line, Filename, Object, Implicit, [], fun(X) -> [] end)
+  end.
 
 % Retrieve all attributes in the attribute table and generate
 % an Erlang Abstract Form that defines an Erlang module.
@@ -243,3 +257,16 @@ format_warnings(Filename, Warnings) ->
   lists:foreach(fun ({_, Each}) ->
     lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Filename, Warning) end, Each)
   end, Warnings).
+
+clean_up_tables(Type, Reason) ->
+  ElixirTables = [atom_to_list(X) || X <- ets:all(), is_atom(X)],
+  lists:foreach(fun clean_up_table/1, ElixirTables),
+  erlang:Type(Reason).
+
+clean_up_table("aex_" ++ _ = X) ->
+  ets:delete(list_to_atom(X));
+
+clean_up_table("mex_" ++ _ = X) ->
+  ets:delete(list_to_atom(X));
+
+clean_up_table(_) -> [].
