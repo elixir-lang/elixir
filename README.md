@@ -921,15 +921,11 @@ Here is a list of runtime errors that can be raised by Elixir:
 
 *   `{ 'nomethod, { object, name, arity } }`
 
-    There isn't a public or protected method with the given `name` and `arity` in `object`;
+    There isn't a public method with the given `name` and `arity` in `object`;
 
 *   `{ 'nolocalmethod, { module, name, arity } }`
 
     There isn't a local method with the given `name` and `arity` in `module`;
-
-*   `{ 'protectedmethod, { object, module, name, arity } }`
-
-    Cannot invoke protected method with the given `name` and `arity` from `module` in `object`;
 
 *   `{ 'notamodule, { object, method } }`
 
@@ -1138,7 +1134,7 @@ This section will discuss Elixir's Object Model. Its main aspects are:
 
 * Dynamic Dispatch - when a method is invoked on an object, the object itself determines which code gets executed
 * Mixins - an object does not contain methods, all methods are packed into modules that are mixed into objects
-* Encapsulation - methods can either be public, protected or private
+* Encapsulation - methods can either be public or private
 * Open recursion - Elixir's has a special variable called `self` that allows a method body to invoke another method body of the same object, passing through the ancestors chain
 * Reflections - Elixir is able to observe and modify an object structure at runtime
 
@@ -1454,7 +1450,7 @@ Finally, as local calls have the same syntax as variables. If a variable is defi
 
 ### Method Visibility
 
-Now that we know the difference between local and remote calls we can take a better look at method visibility. Elixir provides three different visibilities: *public*, *protected* and *private*. All methods are public by default, this means that a method can be called from anywhere, at any time:
+Now that we know the difference between local and remote calls we can take a better look at method visibility. Elixir provides two different visibilities: *public* and *private*. All methods are public by default, this means that a method can be called from anywhere, at any time:
 
     module Example
       def public_method
@@ -1493,49 +1489,7 @@ A public method can be called from another module, as long as it is a remote cal
     Invoker.public_method          % => 13
     Invoker.calling_public_method  % => 13
 
-A protected method can only be called if the current scope includes the mixin the module belongs to. Some examples:
-
-    module Example
-      def calling_protected_method
-        public_method
-      end
-
-      def calling_protected_method2
-        self.public_method
-      end
-
-      protected
-
-      def protected_method
-        13
-      end
-    end
-
-    % Here the current scope (self) is Object which doesn't have Example as mixin,
-    % so invoking the protected method raises an error.
-    Example.protected_method
-
-    % calling_protected_method calls protected_method using a local call.
-    % A local call always work, as it means they are in the same module.
-    Example.calling_protected_method  % => 13
-
-    % The following also works because calling_protected_method2 and
-    % protected_method are defined in the same module.
-    Example.calling_protected_method2 % => 13
-
-    module Invoker
-      mixin Example
-
-      def calling_protected_method
-        % Here the current scope (self) is Invoker, that has the mixin Example
-        % So calling Invoker.calling_protected_method at any point will work
-        self.protected_method
-      end
-    end
-
-    Invoker.calling_protected_method  % => 13
-
-Finally, private methods are the ones accessible just through a local call. This means a module cannot access private methods from other modules even after adding them as `mixin` or as `proto`.
+Private methods are the ones accessible just through a local call. This means a module cannot access private methods from other modules even after adding them as `mixin` or as `proto`.
 
     module Example
       def calling_private_method
@@ -1546,7 +1500,7 @@ Finally, private methods are the ones accessible just through a local call. This
         self.private_method
       end
 
-      protected
+      private
 
       def private_method
         13

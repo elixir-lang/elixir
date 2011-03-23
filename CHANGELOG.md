@@ -12,10 +12,14 @@
   * Added an interface to Erlang's GenTCP (by github.com/justinbaker)
   * Added the ability to import records from Erlang
   * Added more methods to OrderedDict, List and File in STDLIB
+  * Improved performance on method dispatch about 8 times
 
 * bug fix
   * Allow Elixir keywords, but that are not Erlang keywords, on Erlang method invocations
   * Code formatter now properly handles empty arrays
+
+* deprecations
+  * protected methods were removed for performance reasons, may eventually be brought back
 
 ## v0.1.0 (2011-03-12)
 
