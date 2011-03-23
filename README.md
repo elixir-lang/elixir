@@ -42,7 +42,12 @@ In the long term, here are a few things we would like to add:
 * Allow object definitions to be reopened (?) or to copy from another object
 * Improve constant lookup (currently constants are referenced by their full name)
 * Allow extension of builtin types (like inheriting from Integer)
-* Method dispatch to types specified at parse time could be optimized by skipping method loopup
+
+And a few performance optimizations:
+
+* object_mixins lookup on method dispatch can be faster
+* Already existent constants could be inserted directly in the abstract tree instead of looked up in runtime
+* Method dispatch to types specified at parse time could be optimized by skipping method lookup
 
 ## Extra resources
 
