@@ -13,6 +13,7 @@
   * Added the ability to import records from Erlang
   * Added more methods to OrderedDict, List and File in STDLIB
   * Improved performance on method dispatch about 8 times
+  * Number operators are 'atom/value are allowed in method signatures
 
 * bug fix
   * Allow Elixir keywords, but that are not Erlang keywords, on Erlang method invocations
