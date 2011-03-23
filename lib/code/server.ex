@@ -13,8 +13,6 @@ object Code::Server
     { 'paths: paths, 'loaded: loaded, 'argv: [] }
   end
 
-  protected
-
   def init
     { 'ok, self }
   end

@@ -27,8 +27,6 @@ object ExUnit::Server
     { 'options: options, 'cases: [] }
   end
 
-  protected
-
   def init()
     { 'ok, self }
   end

@@ -79,7 +79,7 @@ object OrderedDictTest
     true  = {:}.empty?
   end
 
-  protected
+  private
 
   def a_dict
     { 1:11, 2:22 }

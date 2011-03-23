@@ -4,8 +4,6 @@
 module Code::Init
   proto Code::Formatter
 
-  protected
-
   % Invoked directly from erlang boot process. It parses all argv
   % options and execute them in the order they are specified.
   def process_argv(options)

@@ -2,14 +2,6 @@
 
 object Module
   module Methods
-    % Returns the behavior for the self.
-    def __behavior__
-      Erlang.elixir_callbacks.behavior(self)
-    end
-
-    % Set the following methods to protected.
-    Erlang.elixir_module_methods.set_visibility(self, 'protected)
-
     % Delegate the given methods to the given expression.
     %
     % ## Examples
@@ -139,6 +131,7 @@ object Module
     end
 
     % Mark all methods defined next as protected.
+    % TODO Remove it after it is on deprecation for awhile
     def protected
       Erlang.elixir_module_methods.set_visibility(self, 'protected)
     end

@@ -61,34 +61,6 @@ implicit_methods_are_compiled_to_proto_module_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
 
-%% Inheritance
-
-% inheritance_test() ->
-%   F = fun() ->
-%     elixir:eval("object Foo\nmodule Mixin; def foo; 'mixin; end; end\ndef foo; 'proto ;end\nend\n"
-%       "object Bar < Foo\nmodule Mixin; def bar; 'mixin; end; end\ndef bar; 'proto; end\nend"),
-%     {mixin,[]} = elixir:eval("Bar.foo"),
-%     {proto,[]} = elixir:eval("Bar.new.foo"),
-%     {mixin,[]} = elixir:eval("Bar.bar"),
-%     {proto,[]} = elixir:eval("Bar.new.bar"),
-%     {['Bar::Mixin', 'Foo::Mixin', 'Object::Methods'],[]} = elixir:eval("Bar.__mixins__"),
-%     {['Bar::Proto', 'Foo::Proto', 'Object::Methods'],[]} = elixir:eval("Bar.__protos__")
-%   end,
-%   test_helper:run_and_remove(F, ['Foo', 'Foo::Mixin', 'Foo::Proto', 'Bar', 'Bar::Mixin', 'Bar::Proto']).
-% 
-% cannot_inherit_from_a_module_test() ->
-%   F = fun() ->
-%     ?assertError({badarg, "cannot inherit from module Foo"}, elixir:eval("module Foo; end\nobject Bar < Foo; end"))
-%   end,
-%   test_helper:run_and_remove(F, ['Foo', 'Bar']).
-% 
-% ivars_inheritance_test() ->
-%   F = fun() ->
-%     elixir:eval("object Foo; set_ivar('foo, 'bar); end"),
-%     {bar, []} = elixir:eval("object Bar < Foo; get_ivar('foo); end")
-%   end,
-%   test_helper:run_and_remove(F, ['Foo', 'Bar']).
-
 %% Initialization and Ivars
 
 hash_given_on_initialization_is_used_as_ivars_test() ->
@@ -190,21 +162,12 @@ private_methods_cannot_be_invoked_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
-protected_methods_can_be_invoked_in_their_own_scope_test() ->
-  F = fun() ->
-    elixir:eval("object Foo; def foo(obj); obj.baz; end; def bar; self.baz; end; protected; def baz; 1; end; end"),
-    {1,[]} = elixir:eval("Foo.new.bar"),
-    {1,[]} = elixir:eval("Foo.new.foo(Foo.new)"),
-    ?assertError({protectedmethod,{_,'Foo::Proto',baz,0}}, elixir:eval("Foo.new.baz"))
-  end,
-  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
-
-public_proto_methods_test() ->
+proto_methods_test() ->
   F = fun() ->
     elixir:eval("object Foo; def foo; end; private; def bar; end; end"),
-    {true, _}  = elixir:eval("Foo.__public_proto_methods__.member?({'foo,0})"),
-    {true, _}  = elixir:eval("Foo.__public_proto_methods__.member?({'new,1})"),
-    {false, _} = elixir:eval("Foo.__public_proto_methods__.member?({'module_info,0})")
+    {true, _}  = elixir:eval("Foo.__proto_methods__.member?({'foo,0})"),
+    {true, _}  = elixir:eval("Foo.__proto_methods__.member?({'new,1})"),
+    {false, _} = elixir:eval("Foo.__proto_methods__.member?({'module_info,0})")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 

@@ -256,9 +256,9 @@ can_retrieve_mixins_without_duplication_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo']).
 
-can_retrieve_public_proto_methods_test() ->
+can_retrieve_proto_methods_test() ->
   F = fun() ->
-    {List,[]} = elixir:eval("module ModuleTestProtos; __public_proto_methods__; end"),
+    {List,[]} = elixir:eval("module ModuleTestProtos; __proto_methods__; end"),
     true = lists:member({alias_local, 3}, List)
   end,
   test_helper:run_and_remove(F, ['ModuleTestProtos']).

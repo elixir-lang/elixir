@@ -149,11 +149,6 @@ object Object
       self.inspect
     end
 
-    % We could mark the methods below as protected, but, as everything
-    % inherits from Object, the visibility would never take effect and
-    % would just affect performance instead.
-    % protected
-
     def constructor
       {:}
     end

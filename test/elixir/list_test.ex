@@ -182,6 +182,7 @@ object ListTest
     [2,6] = [x * 2 for x in [0,1,-2,3], x > 0]
     [3,2,6,4,9,6] = [x * y for x in [1,2,3], y in [3,2]]
     [] = [x * 2 for x in [1,2,3], falsy]
+    [] = [x * 2 for x in [1,2,3], nilly]
   end
 
   def list_comprehension_with_binary_generator_test
@@ -203,7 +204,7 @@ object ListTest
     true  = [].empty?
   end
 
-  protected
+  % Helper methods
 
   def a_list
     [1,2,3]
@@ -217,8 +218,8 @@ object ListTest
     false
   end
 
-  def empty
-    []
+  def nilly
+    nil
   end
 
   def a_list!
