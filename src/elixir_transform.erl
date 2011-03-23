@@ -738,7 +738,7 @@ build_unary_op(Line, Op, Right) ->
 
 build_var_name(Line, #elixir_scope{counter=Counter} = S) ->
   NS = S#elixir_scope{counter=Counter+1},
-  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["ElixirVar", Counter]) },
+  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) },
   { Var, NS }.
 
 % Build and handle comparision operators.

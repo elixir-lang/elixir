@@ -5,19 +5,13 @@ module Numeric
     Erlang.abs(self)
   end
 
-  def +(other)
-    Erlang.elixir_numeric_methods.add(self, other)
-  end
-
-  def -(other)
-    Erlang.elixir_numeric_methods.subtract(self, other)
-  end
-
-  def *(other)
-    Erlang.elixir_numeric_methods.multiply(self, other)
-  end
-
-  def /(other)
-    Erlang.elixir_numeric_methods.divide(self, other)
+  ['+, '-, '*, '/].each do (op)
+    define_erlang_method __FILE__, __LINE__, op, 1, [
+      {
+        'clause, __LINE__, [{'var, __LINE__, 'other}], [], [
+          { 'op, __LINE__, op, {'var, __LINE__, 'self}, {'var, __LINE__, 'other} }
+        ]
+      }
+    ]
   end
 end

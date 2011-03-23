@@ -1,7 +1,8 @@
 % Holds all runtime methods required to bootstrap modules.
 % These methods are overwritten by their Elixir version later in Module::Methods.
 -module(elixir_module_methods).
--export([get_visibility/1, set_visibility/2, alias_local/5, define_attribute/3, copy_attributes_fun/1, module_eval/4]).
+-export([get_visibility/1, set_visibility/2, alias_local/5, define_erlang_method/6,
+  define_attribute/3, copy_attributes_fun/1, module_eval/4]).
 -include("elixir.hrl").
 
 set_visibility(#elixir_object__{name=Name, data=Data}, protected) when is_atom(Data) ->
@@ -53,7 +54,24 @@ copy_attributes_fun(Data) ->
 
 module_eval(#elixir_object__{name=Name, data=Data} = Self, String, Filename, Line) when is_atom(Data) ->
   Scope = #elixir_scope{scope={object_kind(Self), Name}},
-  elixir:eval(String, [{self,Self}], Filename, Line, Scope).
+  elixir:eval(to_char_list(String), [{self,Self}], to_char_list(Filename), Line, Scope);
+
+module_eval(Self, _, _, _) ->
+  elixir_errors:error({moduledefined, { Self, module_eval }}).
+
+define_erlang_method(#elixir_object__{name=Name, data=Data}, Filename, Line, Method, Arity, Clauses) when is_atom(Data)->
+  TClauses = lists:map(fun expand_clauses/1, Clauses),
+  elixir_def_method:store_wrapped_method(Name, to_char_list(Filename), {function, Line, Method, Arity + 1, TClauses}, []);
+
+define_erlang_method(Self, _, _, _, _, _) ->
+  elixir_errors:error({moduledefined, { Self, define_erlang_method }}).
 
 object_kind(#elixir_object__{parent='Module'}) -> module;
 object_kind(_) -> object.
+
+expand_clauses({ clause, Line, Args, Guards, Exprs }) ->
+  { clause, Line, [{var, Line, self}|Args], Guards, Exprs }.
+
+to_char_list(#elixir_string__{struct=Bin}) -> binary_to_list(Bin);
+to_char_list(Bin) when is_binary(Bin) -> binary_to_list(Bin);
+to_char_list(List) when is_list(List) -> List.

@@ -166,7 +166,13 @@ object Module
     %     end
     % 
     def module_eval(file, line, string)
-      Erlang.elixir_module_methods.module_eval(self, string.to_char_list, file.to_char_list, line)
+      Erlang.elixir_module_methods.module_eval(self, string, file, line)
+    end
+
+    % Allow to add a method to the module using Erlang's abstract form.
+    % The method automatically receives self as first argument.
+    def define_erlang_method(file, line, method, arity, clauses)
+      Erlang.elixir_module_methods.define_erlang_method(self, file, line, method, arity, clauses)
     end
 
     % Alias a local method. Aliasing a method defined in another module is done
