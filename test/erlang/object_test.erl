@@ -103,23 +103,17 @@ do_not_mixin_modules_twice_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-module_protos_come_later_than_self_by_default_test() ->
+add_mixins_to_dispatch_chain_test() ->
   F = fun() ->
-    {['Bar', 'Foo', 'Module::Methods', 'Object::Methods'], []} = elixir:eval("module Foo; end\nmodule Bar; proto Foo; end\nBar.__protos__")
-  end,
-  test_helper:run_and_remove(F, ['Foo', 'Bar']).
-
-add_a_mixin_protos_to_dispatch_chain_test() ->
-  F = fun() ->
-    {['Baz::Mixin', 'Bar', 'Foo', 'Baz', 'Module::Methods', 'Object::Methods'], []} =
-      elixir:eval("module Foo; end\nmodule Bar; proto Foo; end\nmodule Baz; mixin Bar; mixin self; end\nBaz.__mixins__")
+    {['Baz', 'Bar', 'Foo', 'Module::Methods', 'Object::Methods'], []} =
+      elixir:eval("module Foo; end\nmodule Bar; mixin Foo; end\nmodule Baz; mixin Bar; end\nBaz.__mixins__")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
 
-do_not_add_protos_twice_to_dispatch_chain_test() ->
+do_not_add_mixins_twice_to_dispatch_chain_test() ->
   F = fun() ->
-    {['Baz', 'Bar', 'Foo', 'Module::Methods', 'Object::Methods'], []} =
-      elixir:eval("module Foo; end\nmodule Bar; proto Foo; end\nmodule Baz; proto Bar; proto Foo; end\nBaz.__protos__")
+    {['Baz::Mixin', 'Bar', 'Foo', 'Object::Methods'], []} =
+      elixir:eval("module Foo; end\nmodule Bar; mixin Foo; end\nobject Baz; mixin Bar; mixin Foo; end\nBaz.__mixins__")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
 

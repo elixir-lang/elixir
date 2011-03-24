@@ -50,10 +50,6 @@ module Record
   % method that handles retrieving record definitions from
   % Erlang files.
   module Mixin
-    def __added_as_proto__(base)
-      base.mixin Record::Definition
-    end
-
     % Retrieve a record definition from an Erlang file using
     % the same lookup as the *include* attribute from Erlang modules.
     def retrieve(name, 'from: string)
@@ -147,7 +143,7 @@ module Record
     % * record_size
     %
     def record(name, options)
-      pairs = Record.retrieve(name, options)
+      pairs = Record::Mixin.retrieve(name, options)
       { keys, values } = pairs.unzip
 
       self.attr_accessor keys
@@ -170,6 +166,10 @@ module Record
   end
 ~~
     end
+  end
+
+  def __added_as_proto__(base)
+    base.mixin Record::Definition
   end
 
   % If it receives a tuple as argument, it checks if the tuple matches the record.

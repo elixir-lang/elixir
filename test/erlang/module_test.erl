@@ -104,9 +104,9 @@ method_invocation_in_module_with_self_without_parens_args_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-method_invocation_from_proto_test() ->
+method_invocation_from_mixin_test() ->
   F = fun() ->
-    elixir:eval("module Foo;def foo;7;end;end\nmodule Bar;proto Foo;end"),
+    elixir:eval("module Foo;def foo;7;end;end\nmodule Bar;mixin Foo;end"),
     {7,[]} = elixir:eval("Bar.foo")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar']).
@@ -182,27 +182,18 @@ local_call_precedence_in_arrays_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
+local_call_not_existing() ->
+  F = fun() ->
+    ?assertError({badform,{1, "nofile", erl_lint, {undefined_function, _}}},
+      elixir:eval("module Foo; def foo; bar(); end; end"))
+  end,
+  test_helper:run_and_remove(F, ['Foo']).
+
 local_call_does_not_look_at_outer_modules_test() ->
   F = fun() ->
-    ?assertError({badform,{4, "nofile", erl_lint, {undefined_function, _}}},
-      elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar\nmixin Foo\ndef bar; foo(); end\nend"))
+      {1, []} = elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar\nmixin Foo\ndef bar; foo(); end\nend\nBar.bar")
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
-
-local_call_does_not_look_at_outer_modules_with_arity_test() ->
-  F = fun() ->
-    ?assertError({badform,{4, "nofile", erl_lint, {undefined_function, _}}},
-      elixir:eval("module Foo; def foo; 1; end; end\nmodule Bar\nmixin Foo\ndef bar; foo(1,2); end\nend"))
-  end,
-  test_helper:run_and_remove(F, ['Foo','Bar']).
-
-% Module lookup
-% cannot_store_already_defined_constants_test() ->
-%   F = fun() ->
-%     ?assertError({badarg, "Constant 'Foo' is already defined" },
-%       elixir:eval("const Foo = 1 + 2; const Foo = 3"))
-%   end,
-%   test_helper:run_and_remove(F, ['Foo']).
 
 cannot_lookup_not_stored_constants_test() ->
   ?assertError({noconstant, 'FooBarBaz' }, elixir:eval("FooBarBaz")).
@@ -252,7 +243,8 @@ can_retrieve_visibility_test() ->
 
 can_retrieve_mixins_without_duplication_test() ->
   F = fun() ->
-    {['Foo', 'Module::Methods', 'Object::Methods'],[]} = elixir:eval("module Foo; __mixins__; end")
+    {['Module::Methods', 'Object::Methods'],[]} = elixir:eval("module Foo; __mixins__; end"),
+    {['Foo', 'Module::Methods', 'Object::Methods'],[]} = elixir:eval("Foo.__mixins__")
   end,
   test_helper:run_and_remove(F, ['Foo']).
 

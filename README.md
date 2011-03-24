@@ -1386,59 +1386,128 @@ Once again, remember:
 
 In the Object Model section, we have discussed modules and methods. Modules are very close to Erlang modules and it is important to keep that in mind if you are coming from a language like Ruby.
 
-### Local and remote calls
+### Implicit and explicit self calls
 
-In Erlang, it is very important to make a difference between local calls and remote calls, as they affect how hot code swapping works. You can read this section from [Learn You Some Erlang](http://learnyousomeerlang.com/designing-a-concurrent-application#hot-code-loving) for more information.
-
-Elixir keeps the same semantics as Erlang and makes a difference between local and remove calls. Let's take a look at some examples:
+In Elixir, there are two ways to call a method. Using self explicitly and without it. Let's see some examples:
 
     module Example
+      % Call a method defined in Object.
       def remote_call
         self.__parent__
       end
 
-      def local_call
-        remote_call
-      end
-
-      def invalid_local_call
+      % Calling a method specified in ancestors does not require self.
+      def implicit_remote_call
         __parent__
       end
-    end
 
-    % Remember the parent for a module is 'Module
-    Example.__parent__   % => Module
-    Example.remote_call  % => Module
-    Example.local_call   % => Module
-
-    % This won't work, in fact, it wouldn't even compile
-    Example.invalid_local_call
-
-In Elixir, every time you invoke a method without an explicit receiver (like `self`), you are making a local call. A local call searches for a method *in the current module* and, if no method exists, a compilation error is raised.
-
-This means that, even though all objects have a `__parent__` method, if you call `__parent__` without an explicit receiver inside a method, it will try to find a local method `__parent__` defined inside the current module. In order to really dispatch a method that goes through all mixins for that object, you need to use `self` as explicit receiver.
-
-Note that this rule applies only expressions inside methods. Take this for example:
-
-    module MoreExamples
-      mixin Something
-    end
-
-Even though `mixin` is a method that comes from `Object`, we can invoke it without an explicit `self`. This doesn't cause conflicts because you can only invoke a method in a module after the module is completely defined. Therefore, this doesn't work:
-
-    module MoreExamples
-      def foo
-        10
+      % Call a method defined in this module explicitly.
+      def local_call
+        self.remote_call
       end
 
-      % Raises no method error
-      foo
-
-      % Raises undefined constant MoreExamples
-      MoreExamples.foo
+      % Call a method defined in this module implicitly.
+      def implicit_local_call
+        remote_call
+      end
     end
 
-Finally, as local calls have the same syntax as variables. If a variable is defined with the same name as method, the variable is given higher preference:
+Local calls are compiled at parse time and are faster than explicit `self` calls. However, **local calls can only be made to methods existing in the current module or its ancestors**. That said, imagine we have a module that requires a hook to be implemented in the target object:
+
+    module Hooks
+      def do_something
+        my_hook
+      end
+    end
+
+    object Target
+      proto Hooks
+
+      def my_hook
+        13
+      end
+    end
+
+The example above won't compile because `my_hook` is a local call, but no `my_hook` method can be found in the module or its ancestors at compile time. Our second attempt could be:
+
+    module Hooks
+      def do_something
+        my_hook
+      end
+
+      def my_hook
+        11
+      end
+    end
+
+    object Target
+      proto Hooks
+
+      def my_hook
+        13
+      end
+    end
+
+    Target.new.do_something % => 11
+
+In this case, notice that `do_something` still returns 11. This is because `my_hook` inside `do_something` is a local call. It won't go through the dispatch chain. However, the following works as expected.
+
+    module Hooks
+      def do_something
+        self.my_hook
+      end
+
+      def my_hook
+        11
+      end
+    end
+
+    object Target
+      proto Hooks
+
+      def my_hook
+        13
+      end
+    end
+
+    Target.new.do_something % => 13
+
+By using `self`, we force the method to be dispatched instead of being invoked locally.
+
+### Local and remote calls
+
+In Erlang, it is very important to make a difference between local calls and remote calls, as they affect how hot code swapping works. You can read this section from [Learn You Some Erlang](http://learnyousomeerlang.com/designing-a-concurrent-application#hot-code-loving) for more information.
+
+Elixir keeps the same semantics as Erlang and makes a difference between local and remote calls. A **method call is considered local if it is called implicitly and the method invoked is in the same module**:
+
+    module Example
+      % Invoke method defined in Object explicitly.
+      def remote_call
+        self.__parent__
+      end
+
+      % Invoke method defined in Object implicitly.
+      def implicit_remote_call
+        __parent__
+      end
+
+      % This is a local call because internal is defined locally.
+      def local_call
+        internal
+      end
+
+      % Even though internal is defined locally, since we use self
+      % this is not a local call, but a remote call.
+      def not_a_local_call
+        self.internal
+      end
+
+      def internal
+        13
+      end
+    end
+
+Finally, notice that if a variable is defined with the same name as method, the variable is given higher preference:
 
     module AnotherExample
       def some_value
@@ -1474,25 +1543,6 @@ Now that we know the difference between local and remote calls we can take a bet
     Example.public_method           % => 13
     Example.calling_public_method   % => 13
     Example.calling_public_method2  % => 13
-
-A public method can be called from another module, as long as it is a remote call:
-
-    module Invoker
-      mixin Example
-
-      % This won't work (it won't even compile) because, as we saw
-      % previously, it will attempt to call public_method locally.
-      % def calling_public_method
-      %   public_method
-      % end
-
-      def calling_public_method
-        self.public_method
-      end
-    end
-
-    Invoker.public_method          % => 13
-    Invoker.calling_public_method  % => 13
 
 Private methods are the ones accessible just through a local call. This means a module cannot access private methods from other modules even after adding them as `mixin` or as `proto`.
 
@@ -1530,7 +1580,7 @@ Private methods are the ones accessible just through a local call. This means a 
     end
 
     % It won't work because private_method is only accessible from
-    % local calls from the same module it is defined.
+    % local calls (from the same module it is defined).
     Invoker.calling_private_method
 
 ### Tail call optimization

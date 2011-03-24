@@ -10,7 +10,7 @@
 % EXTERNAL API
 
 new(#elixir_object__{parent='Module'} = Self, Args) ->
-  elixir_errors:error({nomethod, { Self, new, length(Args) } });
+  elixir_dispatch:dispatch(Self, method_missing, [new, Args]);
 
 new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
   Parent = case Name of
@@ -26,6 +26,8 @@ new(Else, Args) -> builtinnotallowed(Else, new).
 
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
 mixin(Self, Value) -> prepend_as(Self, object_mixins(Self), mixin, Value).
+proto(#elixir_object__{parent='Module'} = Self, Value) ->
+  elixir_dispatch:dispatch(Self, method_missing, [proto, [Value]]);
 proto(Self, Value) when is_list(Value) -> [proto(Self, Item) || Item <- Value];
 proto(Self, Value) -> prepend_as(Self, object_protos(Self), proto, Value).
 
@@ -112,24 +114,10 @@ assert_dict_with_atoms(Data) ->
   elixir_errors:error({badconstructor, Data}).
 
 % Helper that prepends a mixin or a proto to the object chain.
-prepend_as(#elixir_object__{name=Name} = Self, Chain, Kind, Value) ->
+prepend_as(#elixir_object__{} = Self, Chain, Kind, Value) ->
   check_module(Value, Kind),
-  List = object_protos(Value),
-
-  % If we are adding prototypes and the current name is
-  % in the list of protos, this means we are adding a
-  % proto to a module and we need to ensure all added modules
-  % will come after the module name in the proto list.
-  case { Kind, lists:member(Name, Chain) } of
-    { proto, true } ->
-      { Before, After } = lists:splitwith(fun(X) -> X /= Name end, Chain),
-      Final = umerge(List, lists:delete(Name, After)),
-      Updated = umerge(Before, umerge([Name], Final));
-    _ ->
-      Updated = umerge(List, Chain)
-  end,
-
-  Object = update_object_chain(Self, Kind, Updated),
+  List = object_mixins(Value),
+  Object = update_object_chain(Self, Kind, umerge(List, Chain)),
 
   % Invoke the appropriate hook.
   elixir_dispatch:dispatch(Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]);

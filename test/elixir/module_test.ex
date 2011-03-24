@@ -4,6 +4,12 @@ Code.require "fixtures/default_args"
 object ModuleTest
   proto ExUnit::Case
 
+  module MethodMissing
+    def method_missing(method, args)
+      { method, args }
+    end
+  end
+
   def simple_default_args_test
     1 = DefaultArgs.arity0
     1 = DefaultArgs.arity0(1)
@@ -42,6 +48,12 @@ object ModuleTest
 
   def operators_signature_test
     operators(2, {'atom, 2})
+  end
+
+  def method_missing_test
+    { 'foo, [1] }   = ModuleTest::MethodMissing.foo(1)
+    { 'new, [1] }   = ModuleTest::MethodMissing.new(1)
+    { 'proto, [1] } = ModuleTest::MethodMissing.proto(1)
   end
 
   private

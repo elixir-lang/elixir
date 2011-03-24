@@ -71,7 +71,7 @@
 % * `:formatter` - The formatter that will print results
 %
 module ExUnit
-  proto Code::Formatter
+  mixin Code::Formatter
 
   def configure(options)
     ExUnit::Server.start(options)

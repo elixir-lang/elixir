@@ -18,7 +18,6 @@ build(Name) ->
 %% TEMPLATE BUILDING FOR MODULE COMPILATION
 
 % Build a template of an object or module used on compilation.
-% TODO Copy data from parent
 build_template(Kind, Name, Template) ->
   Parent = default_parent(Kind, Name),
   Mixins = default_mixins(Kind, Name, Template),
@@ -29,12 +28,13 @@ build_template(Kind, Name, Template) ->
   ets:new(AttributeTable, [set, named_table, private]),
 
   case Kind of
-    object -> ets:insert(AttributeTable, { module, [] });
+    object ->
+      ets:insert(AttributeTable, { module, [] }),
+      ets:insert(AttributeTable, { proto, [] }),
+      ets:insert(AttributeTable, { mixin, [] });
     _ -> []
   end,
 
-  ets:insert(AttributeTable, { proto, [] }),
-  ets:insert(AttributeTable, { mixin, [] }),
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
   ets:insert(AttributeTable, { data,   Data }),
@@ -51,7 +51,7 @@ default_parent(module, _Name) -> 'Module'.
 default_mixins(_, 'Object', _Template)  -> ['Object::Methods']; % object Object
 default_mixins(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
 default_mixins(object, _Name, [])       -> ['Module::Methods']; % object Post
-default_mixins(module, Name, _Template) -> [Name];              % module Numeric
+default_mixins(module, Name, _Template) -> [];                  % module Numeric
 default_mixins(object, _Name, Template) ->                      % object SimplePost from Post
   Template#elixir_object__.mixins ++ ['Module::Methods'].
 
@@ -59,7 +59,7 @@ default_mixins(object, _Name, Template) ->                      % object SimpleP
 default_protos(_, 'Object', _Template)  -> ['Object::Methods'];           % object Object
 default_protos(_, 'Module', _Template)  -> ['Module::Methods'];           % object Module
 default_protos(object, _Name, [])       -> [];                            % object Post
-default_protos(module, Name, _Template) -> [Name];                        % module Numeric
+default_protos(module, Name, _Template) -> [];                            % module Numeric
 default_protos(object, _Name, Template) -> Template#elixir_object__.protos. % object SimplePost from Post
 
 % Returns the default data from parents.
@@ -111,17 +111,22 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
 % Handle compilation logic specific to objects or modules.
 % TODO Allow object reopening but without method definition.
 % TODO Do not allow module reopening.
-compile_kind(module, Line, Filename, Current, Module, { Mixins, _ }, MethodTable) ->
+compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
+  Name = Module#elixir_object__.name,
+
+  % Update mixins to have Name
+  AttributeTable = Module#elixir_object__.data,
+  Mixins = ets:lookup_element(AttributeTable, mixins, 2),
+  ets:insert(AttributeTable, { mixins, [Name|Mixins] }),
+
   case add_implicit_modules(Current, Module, { Line, Filename, Module, MethodTable }) of
     true -> [];
     false ->
-      Name = Module#elixir_object__.name,
       case Name of
         'Object::Methods' -> [];
         'Module::Methods' -> [];
-        _ -> elixir_def_method:flat_module(Module, Line, protos, Module, MethodTable)
+        _ -> elixir_def_method:flat_module(Module, Line, mixins, Module, MethodTable)
       end,
-      generate_implicit_module_if(Line, Filename, Mixins, Module, MethodTable, mixin, "::Mixin"),
       compile_module(Line, Filename, Module, MethodTable)
   end;
 
@@ -129,28 +134,44 @@ compile_kind(module, Line, Filename, Current, Module, { Mixins, _ }, MethodTable
 % we create a Proto module and automatically include it.
 compile_kind(object, Line, Filename, Current, Object, { Mixins, Protos }, MethodTable) ->
   AttributeTable = Object#elixir_object__.data,
+
+  % Check if methods were defined, if so, create a Proto module.
   case elixir_def_method:is_empty_table(MethodTable) of
-    true  -> ets:delete(MethodTable);
+    true  ->
+      ets:delete(AttributeTable, module),
+      ets:delete(MethodTable);
     false ->
       Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object__.name, "::Proto"]),
-      Attributes = ets:lookup_element(AttributeTable, module, 2),
+      Attributes = destructive_read(AttributeTable, module),
       Define = elixir_module_methods:copy_attributes_fun(Attributes),
       compile(module, Line, Filename, Object, Name, [], Define, MethodTable)
   end,
-  generate_implicit_module_if(Line, Filename, Protos, Object, MethodTable, proto, "::Proto"),
-  generate_implicit_module_if(Line, Filename, Mixins, Object, MethodTable, mixin, "::Mixin"),
-  ets:delete(AttributeTable, module),
-  load_implicit_modules(Object, fun() -> load_form(build_erlang_form(Line, Object), Filename) end).
+
+  % Generate implicit modules if there isn't a ::Proto or ::Mixin
+  % and protos and mixins were added.
+  generate_implicit_module_if(Line, Filename, Protos, Object, proto, "::Proto"),
+  generate_implicit_module_if(Line, Filename, Mixins, Object, mixin, "::Mixin"),
+
+  % Read implicitly added modules, compile the form and load implicit modules.
+  Proto = read_implicit_module(Object, AttributeTable, proto),
+  Mixin = read_implicit_module(Object, AttributeTable, mixin),
+  load_form(build_erlang_form(Line, Object, {Mixin, Proto}), Filename),
+  load_implicit_modules(Object, Proto, protos),
+  load_implicit_modules(Object, Mixin, mixins),
+  ets:delete(AttributeTable).
 
 % Handle logic compilation. Called by both compile_kind(module) and compile_kind(object).
 % The latter uses it for implicit modules.
 compile_module(Line, Filename, Module, MethodTable) ->
   Functions = elixir_def_method:unwrap_stored_methods(MethodTable),
-  load_implicit_modules(Module, fun() -> load_form(build_erlang_form(Line, Module, Functions), Filename) end),
+  load_form(build_erlang_form(Line, Module, {[],[]}, Functions), Filename),
+  ets:delete(Module#elixir_object__.data),
   ets:delete(MethodTable).
 
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
+add_implicit_modules(#elixir_object__{parent='Module'} = Self, _Module, _Copy) -> false;
+
 add_implicit_modules(#elixir_object__{name=Name, data=AttributeTable} = Self, Module, Copy) ->
   Proto = lists:concat([Name, "::Proto"]),
   Mixin = lists:concat([Name, "::Mixin"]),
@@ -162,15 +183,7 @@ add_implicit_modules(#elixir_object__{name=Name, data=AttributeTable} = Self, Mo
 
 add_implicit_modules(_, _, _) -> false.
 
-% Load implicit modules that were lazily stored
-load_implicit_modules(Object, Function) ->
-  AttributeTable = Object#elixir_object__.data,
-  Proto = read_implicit_module(Object, AttributeTable, proto),
-  Mixin = read_implicit_module(Object, AttributeTable, mixin),
-  Function(),
-  load_implicit_modules(Object, Proto, protos),
-  load_implicit_modules(Object, Mixin, mixins),
-  ets:delete(AttributeTable).
+% Load implicit modules for object
 
 load_implicit_modules(_Object, [], _Attribute) -> [];
 
@@ -179,8 +192,10 @@ load_implicit_modules(Object, Value, Attribute) ->
   elixir_def_method:flat_module(Object, Line, Attribute, Module, MethodTable),
   compile_module(Line, Filename, Module, MethodTable).
 
+% Read implicit modules for object
+
 read_implicit_module(Object, AttributeTable, Attribute) ->
-  Value = ets:lookup_element(AttributeTable, Attribute, 2),
+  Value = destructive_read(AttributeTable, Attribute),
   case Value of
     [] -> [];
     { _, _, Module, _ } -> elixir_object_methods:Attribute(Object, Module)
@@ -188,7 +203,7 @@ read_implicit_module(Object, AttributeTable, Attribute) ->
   Value.
 
 generate_implicit_module_if(Line, Filename, Match,
-  #elixir_object__{name=Name, data=AttributeTable} = Object, MethodTable, Attribute, Suffix) ->
+  #elixir_object__{name=Name, data=AttributeTable} = Object, Attribute, Suffix) ->
 
   Method = ?ELIXIR_ATOM_CONCAT(["object_", Attribute, "s"]),
   Bool1 = elixir_object_methods:Method(Object) == Match,
@@ -203,15 +218,13 @@ generate_implicit_module_if(Line, Filename, Match,
 
 % Retrieve all attributes in the attribute table and generate
 % an Erlang Abstract Form that defines an Erlang module.
-build_erlang_form(Line, Object) ->
-  build_erlang_form(Line, Object, {[],[],[]}).
+build_erlang_form(Line, Object, Chains) ->
+  build_erlang_form(Line, Object, Chains, {[],[],[]}).
 
-build_erlang_form(Line, Object, {Export, Inherited, Functions}) ->
+build_erlang_form(Line, Object, {Mixin, Proto}, {Export, Inherited, Functions}) ->
   Name = Object#elixir_object__.name,
   Parent = Object#elixir_object__.parent,
   AttributeTable = Object#elixir_object__.data,
-  Mixin = destructive_read(AttributeTable, mixin),
-  Proto = destructive_read(AttributeTable, proto),
   Data  = destructive_read(AttributeTable, data),
   Snapshot = build_snapshot(Name, Parent, Mixin, Proto, Data),
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
@@ -231,7 +244,7 @@ build_snapshot(Name, Parent, Mixin, Proto, Data) ->
 
 snapshot_module('Object', _, [])      -> 'Object::Methods';
 snapshot_module('Module', _, [])      -> 'Module::Methods';
-snapshot_module(Name,  'Module', [])  -> Name;
+snapshot_module(Name,  'Module', _)   -> Name;
 snapshot_module(_,  _, [])            -> 'Object::Methods';
 snapshot_module(_, _, {_,_,Module,_}) -> Module#elixir_object__.name.
 
