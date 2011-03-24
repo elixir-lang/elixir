@@ -51,16 +51,16 @@ default_parent(module, _Name) -> 'Module'.
 default_mixins(_, 'Object', _Template)  -> ['Object::Methods']; % object Object
 default_mixins(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
 default_mixins(object, _Name, [])       -> ['Module::Methods']; % object Post
-default_mixins(module, Name, _Template) -> [];                  % module Numeric
+default_mixins(module, _Name, [])       -> [];                  % module Numeric
 default_mixins(object, _Name, Template) ->                      % object SimplePost from Post
   Template#elixir_object__.mixins ++ ['Module::Methods'].
 
 % Default prototypes. Modules have themselves as the default prototype.
-default_protos(_, 'Object', _Template)  -> ['Object::Methods'];           % object Object
-default_protos(_, 'Module', _Template)  -> ['Module::Methods'];           % object Module
-default_protos(object, _Name, [])       -> [];                            % object Post
-default_protos(module, Name, _Template) -> [];                            % module Numeric
-default_protos(object, _Name, Template) -> Template#elixir_object__.protos. % object SimplePost from Post
+default_protos(_, 'Object', _Template)  -> ['Object::Methods']; % object Object
+default_protos(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
+default_protos(_Kind, _Name, [])        -> [];                  % module Numeric
+default_protos(object, _Name, Template) ->                      % object SimplePost from Post
+  Template#elixir_object__.protos.
 
 % Returns the default data from parents.
 default_data([])       -> orddict:new();
@@ -205,8 +205,8 @@ read_implicit_module(Object, AttributeTable, Attribute) ->
 generate_implicit_module_if(Line, Filename, Match,
   #elixir_object__{name=Name, data=AttributeTable} = Object, Attribute, Suffix) ->
 
-  Method = ?ELIXIR_ATOM_CONCAT(["object_", Attribute, "s"]),
-  Bool1 = elixir_object_methods:Method(Object) == Match,
+  Method = ?ELIXIR_ATOM_CONCAT([Attribute, "s"]),
+  Bool1 = ets:lookup_element(AttributeTable, Method, 2) == Match,
   Bool2 = ets:lookup_element(AttributeTable, Attribute, 2) /= [],
 
   if

@@ -2,9 +2,7 @@
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
 -export([mixin/2, proto/2, new/2, name/1, parent/1, parent_name/1, mixins/1, protos/1, data/1,
-  get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4, ancestors/1, function_catch/1,
-  object_parent/1, object_mixins/1, object_protos/1, object_data/1,
-  abstract_parent/1, abstract_mixins/1, abstract_protos/1]).
+  get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4, ancestors/1, function_catch/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -34,10 +32,15 @@ proto(Self, Value) -> prepend_as(Self, object_protos(Self), proto, Value).
 % Reflections
 
 name(Self)      -> object_name(Self).
-mixins(Self)    -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), [])).
-protos(Self)    -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
 data(Self)      -> object_data(Self).
+protos(Self)    -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
 ancestors(Self) -> lists:reverse(r_ancestors(Self)).
+
+mixins(#elixir_object__{parent=[]})                                 -> ['Object::Methods'];
+mixins(#elixir_object__{parent='Module'} = Self)                    -> object_mixins(Self) ++ ['Module::Methods', 'Object::Methods'];
+mixins(#elixir_object__{parent=Parent} = Self) when is_atom(Parent) -> object_mixins(Self) ++ ['Object::Methods'];
+mixins(#elixir_object__{} = Self)                                   -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), []));
+mixins(Self)                                                        -> object_mixins(Self) ++ ['Object::Methods'].
 
 parent(Self) ->
   case object_parent(Self) of
@@ -148,14 +151,14 @@ builtinnotallowed(Builtin, Reason) ->
 
 % Returns the ancestors chain considering only parents, but in reverse order.
 
-r_ancestors(Object) ->
-  r_ancestors(object_parent(Object), []).
+r_ancestors(#elixir_object__{parent='Object'})                -> ['Object'];
+r_ancestors(#elixir_object__{parent=[]})                      -> [];
+r_ancestors(#elixir_object__{parent=Else}) when is_atom(Else) -> ['Object', Else];
+r_ancestors(#elixir_object__{} = Object)                      -> r_ancestors(object_parent(Object), []);
+r_ancestors(Else)                                             -> ['Object', object_parent(Else)].
 
-r_ancestors([], Acc) ->
-  Acc;
-
-r_ancestors(Name, Acc) ->
-  r_ancestors(abstract_parent(Name), [Name|Acc]).
+r_ancestors([], Acc)   -> Acc;
+r_ancestors(Name, Acc) -> r_ancestors(abstract_parent(Name), [Name|Acc]).
 
 % Methods that get values from objects. Argument can either be an
 % #elixir_object__ or an erlang native type.
@@ -222,7 +225,7 @@ object_mixins(#elixir_object__{mixins=Mixins}) ->
   Mixins;
 
 object_mixins(Native) ->
-  []. % Native types has all mixins from parents.
+  abstract_protos(object_parent(Native)).
 
 object_protos(#elixir_object__{data=Data}) when is_atom(Data) ->
   try
