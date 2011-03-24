@@ -38,13 +38,11 @@ name(Self)      -> object_name(Self).
 data(Self)      -> object_data(Self).
 ancestors(Self) -> lists:reverse(r_ancestors(Self)).
 
-mixins(#elixir_object__{parent=[]})                                 -> ['Object::Methods'];
-mixins(#elixir_object__{parent='Module'} = Self)                    -> object_mixins(Self) ++ ['Module::Methods', 'Object::Methods'];
-mixins(#elixir_object__{parent=Parent} = Self) when is_atom(Parent) -> object_mixins(Self) ++ ['Object::Methods'];
-mixins(#elixir_object__{} = Self)                                   -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), []));
-mixins(Self)                                                        -> object_mixins(Self) ++ ['Object::Methods'].
+mixins(#elixir_object__{parent='Module'} = Self) -> object_mixins(Self) ++ ['Module::Methods', 'Object::Methods'];
+mixins(#elixir_object__{} = Self)                -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), []));
+mixins(Self)                                     -> object_mixins(Self) ++ ['Object::Methods'].
 
-protos(#elixir_object__{} = Self) -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), []));
+protos(#elixir_object__{} = Self)                -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), []));
 protos(Self) -> mixins(Self).
 
 parent(Self) ->
@@ -348,4 +346,4 @@ traverse_chain([H|T], Acc) ->
   traverse_chain(T, apply_chain(abstract_protos(H), Acc)).
 
 apply_chain(List, Acc) ->
-  umerge(List, Acc).
+  List ++ Acc.
