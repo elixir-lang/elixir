@@ -199,6 +199,10 @@ object Object
       Erlang.elixir_methods.proto_methods(self)
     end
 
+    def __mixin_methods__
+      Erlang.elixir_methods.mixin_methods(self)
+    end
+
     % Exceptions related methods
 
     def __stacktrace__

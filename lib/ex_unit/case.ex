@@ -1,7 +1,7 @@
 % elixir: cache
 
 module ExUnit::Case
-  proto ExUnit::Assertions
+  mixin ExUnit::Assertions
 
   def __added_as_proto__(base)
     ExUnit::Server.add_case(base.__name__)
@@ -10,7 +10,7 @@ module ExUnit::Case
 
   def __tests__
     regexp = ~r(_test$)
-    [name for {name, _} in self.__proto_methods__, regexp.match?(name)]
+    [name for {name, _} in self.__mixin_methods__, regexp.match?(name)]
   end
 
   def setup(_)

@@ -1,12 +1,13 @@
 % Holds all runtime methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, proto/2, new/2, name/1, parent/1, parent_name/1, mixins/1, protos/1, data/1,
+-export([mixin/2, proto/2, new/2, name/1, parent/1, parent_name/1, mixins/1, protos/1, data/1, builtin_mixin/1,
   get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4, ancestors/1, function_catch/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
 
+% TODO: Rewrite this as remove_method once we add it
 new(#elixir_object__{parent='Module'} = Self, Args) ->
   elixir_dispatch:dispatch(Self, method_missing, [new, Args]);
 
@@ -24,6 +25,8 @@ new(Else, Args) -> builtinnotallowed(Else, new).
 
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
 mixin(Self, Value) -> prepend_as(Self, object_mixins(Self), mixin, Value).
+
+% TODO: Rewrite this as remove_method once we add it
 proto(#elixir_object__{parent='Module'} = Self, Value) ->
   elixir_dispatch:dispatch(Self, method_missing, [proto, [Value]]);
 proto(Self, Value) when is_list(Value) -> [proto(Self, Item) || Item <- Value];
@@ -33,7 +36,6 @@ proto(Self, Value) -> prepend_as(Self, object_protos(Self), proto, Value).
 
 name(Self)      -> object_name(Self).
 data(Self)      -> object_data(Self).
-protos(Self)    -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), [])).
 ancestors(Self) -> lists:reverse(r_ancestors(Self)).
 
 mixins(#elixir_object__{parent=[]})                                 -> ['Object::Methods'];
@@ -41,6 +43,9 @@ mixins(#elixir_object__{parent='Module'} = Self)                    -> object_mi
 mixins(#elixir_object__{parent=Parent} = Self) when is_atom(Parent) -> object_mixins(Self) ++ ['Object::Methods'];
 mixins(#elixir_object__{} = Self)                                   -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), []));
 mixins(Self)                                                        -> object_mixins(Self) ++ ['Object::Methods'].
+
+protos(#elixir_object__{} = Self) -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), []));
+protos(Self) -> mixins(Self).
 
 parent(Self) ->
   case object_parent(Self) of
@@ -279,6 +284,44 @@ abstract_protos(#elixir_object__{protos=Protos}) ->
 
 abstract_protos(Name) ->
   proplists:get_value(protos, elixir_constants:lookup(Name, attributes)).
+
+% Builtin mixins
+
+builtin_mixin(Native) when is_integer(Native) ->
+  'Integer::Proto';
+
+builtin_mixin(Native) when is_float(Native) ->
+  'Float::Proto';
+
+builtin_mixin(Native) when is_atom(Native) ->
+  'Atom::Proto';
+
+builtin_mixin(Native) when is_list(Native) ->
+  'List::Proto';
+
+builtin_mixin(Native) when is_bitstring(Native) ->
+  'BitString::Proto';
+
+builtin_mixin(#elixir_orddict__{}) ->
+  'OrderedDict::Proto';
+
+builtin_mixin(#elixir_string__{}) ->
+  'String::Proto';
+
+builtin_mixin(Native) when is_tuple(Native) ->
+  'Tuple::Proto';
+
+builtin_mixin(Native) when is_function(Native) ->
+  'Function::Proto';
+
+builtin_mixin(Native) when is_pid(Native) ->
+  'Process::Proto';
+
+builtin_mixin(Native) when is_reference(Native) ->
+  'Reference::Proto';
+
+builtin_mixin(Native) when is_port(Native) ->
+  'Port::Proto'.
 
 % Merge two lists taking into account uniqueness. Opposite to
 % lists:umerge2, does not require lists to be sorted.

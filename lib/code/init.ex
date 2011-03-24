@@ -2,7 +2,7 @@
 
 % Responsible for starting Elixir from the command line.
 module Code::Init
-  proto Code::Formatter
+  mixin Code::Formatter
 
   % Invoked directly from erlang boot process. It parses all argv
   % options and execute them in the order they are specified.

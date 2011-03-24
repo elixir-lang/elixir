@@ -62,7 +62,7 @@ test: test_erlang test_elixir
 clean:
 	rm -f src/elixir_lexer.erl
 	rm -f src/elixir_parser.erl
-	rm -rf lib/*.exb
+	rm -rf lib/*.exb lib/*/*.exb
 	rm -rf $(EBIN_DIR)/*.beam
 	rm -rf $(TEST_EBIN_DIR)/*.beam
 	rm -rf libc

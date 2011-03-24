@@ -52,7 +52,7 @@ find_module(#elixir_object__{} = Object, Method, Arity) ->
   find_module_chain(Chain, Method, Arity);
 
 find_module(Object, Method, Arity) ->
-  Mixin = builtin_mixin(Object),
+  Mixin = elixir_object_methods:builtin_mixin(Object),
   case erlang:function_exported(Mixin, Method, Arity) of
     true  -> Mixin;
     false -> false
@@ -65,39 +65,3 @@ find_module_chain([H|T], Method, Arity) ->
     true -> H;
     _ -> find_module_chain(T, Method, Arity)
   end.
-
-builtin_mixin(Native) when is_integer(Native) ->
-  'Integer::Proto';
-
-builtin_mixin(Native) when is_float(Native) ->
-  'Float::Proto';
-
-builtin_mixin(Native) when is_atom(Native) ->
-  'Atom::Proto';
-
-builtin_mixin(Native) when is_list(Native) ->
-  'List::Proto';
-
-builtin_mixin(Native) when is_bitstring(Native) ->
-  'BitString::Proto';
-
-builtin_mixin(#elixir_orddict__{}) ->
-  'OrderedDict::Proto';
-
-builtin_mixin(#elixir_string__{}) ->
-  'String::Proto';
-
-builtin_mixin(Native) when is_tuple(Native) ->
-  'Tuple::Proto';
-
-builtin_mixin(Native) when is_function(Native) ->
-  'Function::Proto';
-
-builtin_mixin(Native) when is_pid(Native) ->
-  'Process::Proto';
-
-builtin_mixin(Native) when is_reference(Native) ->
-  'Reference::Proto';
-
-builtin_mixin(Native) when is_port(Native) ->
-  'Port::Proto'.

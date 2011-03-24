@@ -26,16 +26,10 @@ config_change(_Changed, _New, _Remove) ->
 
 % Start elixir as an application.
 start_app() ->
-  % Ensure elixir_object_methods is loaded and running
-  code:ensure_loaded(elixir_object_methods),
-
-  % Load stdlib files
-  Regexp = cache_regexp(),
-  BasePath = stdlib_path(),
-  BaseFiles = [internal_require(filename:join(BasePath, File), Regexp) || File <- stdlib_files()],
-
-  % Boot the code server with supervisor
-  elixir_sup:start_link([BasePath, BaseFiles]).
+  case lists:keyfind(?MODULE,1, application:loaded_applications()) of
+    false -> application:start(?MODULE);
+    _ -> ok
+  end.
 
 % Boot and process given options. Invoked by Elixir's script.
 start() ->
