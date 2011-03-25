@@ -12,14 +12,15 @@ object Integer
 
   def times(function)
     if function.arity == 0
-      times_0(self, 1, function)
+      times_0(self, 0, function)
     else
-      times_1(self, 1, function)
+      times_1(self, 0, function)
     end
+    self
   end
 
   def times(acc, function)
-    times_2(self, 1, function, acc)
+    times_2(self, 0, function, acc)
   end
 
   ['div, 'rem].each do (op)
@@ -42,26 +43,28 @@ object Integer
 
   private
 
+  def times_0(limit, limit, _function)
+  end
+
   def times_0(limit, counter, function)
-    if counter <= limit
-      function()
-      times_0(limit, 1 + counter, function)
-    end
+    function()
+    times_0(limit, 1 + counter, function)
+  end
+
+  def times_1(limit, limit, _function)
   end
 
   def times_1(limit, counter, function)
-    if counter <= limit
-      function(counter)
-      times_1(limit, 1 + counter, function)
-    end
+    function(counter)
+    times_1(limit, 1 + counter, function)
+  end
+
+  def times_2(limit, limit, _function, acc)
+    acc
   end
 
   def times_2(limit, counter, function, acc)
-    if counter <= limit
-      new_acc = function(counter, acc)
-      times_2(limit, 1 + counter, function, new_acc)
-    else
-      acc
-    end
+    new_acc = function(counter, acc)
+    times_2(limit, 1 + counter, function, new_acc)
   end
 end

@@ -206,7 +206,7 @@ no_error_catch_test() ->
 
 error_catch_test() ->
   {{'EXIT',{{badmatch,2},_}}, []} = elixir:eval("Object.catch! -> 1 = 2"),
-  {{'EXIT',{function_clause,[{lists, map,[1,[]]},_,{'Object::Methods','catch!',1}|_]}}, []} = elixir:eval("Object.catch! -> [].map(1)").
+  {{'EXIT',{function_clause,[{lists, map,[1,[]]}|_]}}, []} = elixir:eval("Object.catch! -> [].map(1)").
 
 %% __LINE__ and __FILE__
 
