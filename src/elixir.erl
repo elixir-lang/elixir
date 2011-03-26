@@ -183,7 +183,11 @@ eval(String, Binding, Filename, Line, Scope) ->
 parse(String, Binding) -> parse(String, Binding, "nofile").
 parse(String, Binding, Filename) -> parse(String, Binding, Filename, 1, #elixir_scope{}).
 parse(String, Binding, Filename, Line, Scope) ->
-  Vars = lists:usort(proplists:get_keys(Binding)),
-  NewScope = Scope#elixir_scope{vars=Vars, filename=Filename},
+  NewScope = Scope#elixir_scope{vars=binding_dict(Binding), filename=Filename},
   { NewForms, _ } = elixir_transform:parse(String, Line, NewScope),
   NewForms.
+
+binding_dict(List) -> binding_dict(List, dict:new()).
+binding_dict([{self,_}|T], Dict) -> binding_dict(T, Dict);
+binding_dict([{H,_}|T], Dict) -> binding_dict(T, dict:store(H, H, Dict));
+binding_dict([], Dict) -> Dict.

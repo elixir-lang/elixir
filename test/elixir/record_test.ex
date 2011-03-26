@@ -58,7 +58,7 @@ object RecordTest
     record = RecordTest::ElixirScope.new
     'elixir_scope = record.record_name
     ['assign,'method,'scope,'vars,'counter,'filename, 'assigned_vars] = record.record_keys
-    [false,[],{[], []},[],0,$"nofile",_] = record.record_defaults
+    [false,[],{[], []},_,0,$"nofile",_] = record.record_defaults
     7 = record.record_size
   end
 
