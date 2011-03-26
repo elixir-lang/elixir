@@ -31,6 +31,12 @@ umergev(S1, S2) ->
 umergec(S1, S2) ->
   S1#elixir_scope{counter=S2#elixir_scope.counter}.
 
+% Transform considering assigns manipulation.
+transform_assigns(Fun, Args, Scope) ->
+  Merger = fun(_,_,F) -> F end,
+  { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
+  { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
+
 % Transform the given tree Forms.
 %
 % V is a list of variables that were bound (used for arranging
@@ -57,19 +63,27 @@ transform_tree(Forms, S) ->
 transform({identifier, Line, Name}, S) ->
   Match = S#elixir_scope.assign,
   Vars = S#elixir_scope.vars,
+  TempVars = S#elixir_scope.temp_vars,
+
+  KeyVars = dict:is_key(Name, Vars),
+  KeyTempVars = lists:member(Name, TempVars),
 
   case Name of
     'self' -> { {var, Line, Name}, S };
     '_' -> { {var, Line, Name}, S };
     _ ->
-      case { Match, dict:is_key(Name, Vars) } of
+      case { Match, KeyVars or KeyTempVars } of
+        { true, true } ->
+          case KeyTempVars of
+            true -> { {var, Line, Name}, S };
+            false ->
+              io:format("[ELIXIR] ~s:~p: Bound variable '~p' need to be explicitly marked in pattern matching\n",
+                [S#elixir_scope.filename, Line, Name]),
+              { {var, Line, Name}, S }
+          end;
         { false, true }  -> { {var, Line, Name}, S };
-        { Scenario, true } when Scenario /= clause  ->
-          io:format("[ELIXIR] ~s:~p: Bound variable '~p' need to be explicitly marked in pattern matching\n",
-            [S#elixir_scope.filename, Line, Name]),
-            { {var, Line, Name}, S };
-        { false, false } -> transform({local_call, Line, Name, []}, S);
-        { _, _ }  -> { {var, Line, Name}, S#elixir_scope{vars=dict:store(Name, Name, Vars)} }
+        { true, false }  -> { {var, Line, Name}, S#elixir_scope{vars=dict:store(Name, Name, Vars), temp_vars=[Name|TempVars]} };
+        { false, false } -> transform({local_call, Line, Name, []}, S)
       end
   end;
 
@@ -182,7 +196,7 @@ transform({set_ivars, Line, Exprs}, S) ->
 %
 % So we need to take both into account.
 transform({match, Line, Left, Right}, S) ->
-  { TLeft, SL } = transform(Left, S#elixir_scope{assign=match}),
+  { TLeft, SL } = transform_assigns(fun transform/2, Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
   SM = umergev(SL, SR),
   SF = case TLeft of
@@ -224,7 +238,7 @@ transform({list, Line, Exprs, Tail }, S) ->
 transform({orddict, Line, Exprs }, S) ->
   { List, NS } = transform({list, Line, Exprs, {nil, Line} }, S),
   Dict = if
-    S#elixir_scope.assign /= false -> List;
+    S#elixir_scope.assign -> List;
     true -> ?ELIXIR_WRAP_CALL(Line, orddict, from_list, [List])
   end,
   { {tuple, Line, [{atom, Line, elixir_orddict__}, Dict] }, NS };
@@ -337,7 +351,7 @@ transform({binary_op, Line, Op, Left, Right}, S) ->
   SF = umergev(SL, SR),
 
   % Check if left side is an integer or float, if so, dispatch straight to the operator
-  case S#elixir_scope.assign /= false orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
+  case S#elixir_scope.assign orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
     true -> { {op, Line, Op, TLeft, TRight}, SF };
     false ->
       Args = { cons, Line, TRight, {nil, Line} },
@@ -491,8 +505,8 @@ transform({'receive', Line, Clauses, Expr, After}, S) ->
 % into account. Clauses do not return variables list as second argument
 % because variables in one clause should not affect the other.
 transform({clause, Line, Args, Guards, Exprs}, S) ->
-  { TArgs, SA } = transform_tree(Args, S#elixir_scope{assign=clause}),
-  { TExprs, SE } = transform_tree(Exprs, SA#elixir_scope{assign=false}),
+  { TArgs, SA } = transform_assigns(fun transform_tree/2, Args, S),
+  { TExprs, SE } = transform_tree(Exprs, SA),
   { { clause, Line, TArgs, Guards, TExprs }, SE };
 
 transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
@@ -641,13 +655,13 @@ transform_comprehension({undef_generate, Line, Left, Right}, L, S) ->
   end;
 
 transform_comprehension({list_generate, Line, Left, Right}, L, S) ->
-  { TLeft, SL } = transform(Left, S#elixir_scope{assign=generate}),
-  { TRight, SR } = transform(Right, SL#elixir_scope{assign=false}),
+  { TLeft, SL } = transform_assigns(fun transform/2, Left, S),
+  { TRight, SR } = transform(Right, SL),
   { { generate, Line, TLeft, TRight }, SR };
 
 transform_comprehension({bin_generate, Line, Left, Right}, L, S) ->
-  { TLeft, SL } = transform(Left, S#elixir_scope{assign=generate}),
-  { TRight, SR } = transform(Right, SL#elixir_scope{assign=false}),
+  { TLeft, SL } = transform_assigns(fun transform/2, Left, S),
+  { TRight, SR } = transform(Right, SL),
   { { b_generate, Line, TLeft, TRight }, SR };
 
 transform_comprehension(X, L, S) ->
