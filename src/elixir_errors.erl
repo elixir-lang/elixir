@@ -43,10 +43,13 @@ format_error(_, {undefined_function, {Name, Arity}}) ->
   end;
 
 format_error(_, {changed_visibility,{Name,Visibility}}) ->
-  io_lib:format("method ~s already defined with visibility ~s\n", [Name, Visibility]);
+  io_lib:format("method ~s already defined with visibility ~s", [Name, Visibility]);
 
 format_error(_, {unused_function, {Name, Arity}}) ->
-  io_lib:format("unused local method ~s/~w\n", [Name, Arity-1]);
+  io_lib:format("unused local method ~s/~w", [Name, Arity-1]);
+
+format_error(_, {unbound_variable, Name}) ->
+  io_lib:format("variable '~s' is unbound", [atom_to_list(Name)]);
 
 format_error([], Desc) ->
   io_lib:format("~p", [Desc]);

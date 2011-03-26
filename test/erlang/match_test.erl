@@ -4,6 +4,11 @@
 no_assignment_test() ->
   {nil, []} = elixir:eval("").
 
+bound_variable_test() ->
+  ?assertError({unbound_var, x}, elixir:eval("\~x = 1")),
+  ?assertError({badsyntax, {1,"nofile","invalid scope to bound variable","x"}}, elixir:eval("\~x")),
+  {1, [{x,1}]} = elixir:eval("x = 1;~x = 1").
+
 % Var/assignment test
 arithmetic_test() ->
   ?assertError({badmatch, _}, elixir:eval("-1 = 1")).

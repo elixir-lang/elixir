@@ -80,7 +80,7 @@ Nonterminals
   .
 
 Terminals
-  bracket_identifier punctuated_identifier identifier float integer constant
+  bracket_identifier punctuated_identifier bound_identifier identifier float integer constant
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false nil
@@ -432,6 +432,7 @@ close_gt -> eol '>>' : '$2'.
 
 % Base expressions
 base_expr -> string_list : build_string_list('$1').
+base_expr -> bound_identifier : '$1'.
 base_expr -> ivar : '$1'.
 base_expr -> set_ivars : '$1'.
 base_expr -> atom : '$1'.

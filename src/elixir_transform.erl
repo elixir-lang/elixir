@@ -87,6 +87,18 @@ transform({identifier, Line, Name}, S) ->
       end
   end;
 
+% Handle identifiers that are certainly bounded
+transform({bound_identifier, Line, Name}, S) ->
+  case S#elixir_scope.assign of
+    false ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope to bound variable", atom_to_list(Name));
+    true ->
+      case dict:is_key(Name, S#elixir_scope.vars) of
+        false -> error({unbound_var, Name});
+        true -> { {var, Line, Name}, S }
+      end
+  end;
+
 % Handles anonymous method calls as _.foo(1), transforming it to a function
 % like like -> (x) x.foo(1).
 transform({method_call, Line, Name, Args, {identifier,L,'_'}}, S) ->
