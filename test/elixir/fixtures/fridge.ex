@@ -6,14 +6,14 @@
 module Fridge
   def store(pid, food)
     pid <- {Process.current, {'store, food}}
-    receive {pid, msg}
+    receive {~pid, msg}
       msg
     end
   end
 
   def take(pid, food)
     pid <- {Process.self, {'take, food}}
-    receive {pid, msg}
+    receive {~pid, msg}
       msg
     after 10000
       IO.puts "Timed out"
@@ -22,7 +22,7 @@ module Fridge
 
   def see(pid)
     pid <- {Process.self, 'see}
-    receive {pid, msg}
+    receive {~pid, msg}
       msg
     end
   end

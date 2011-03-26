@@ -21,7 +21,7 @@ object AtomTest
 
   def to_constant_test
     atom = Atom
-    atom = 'Atom.to_constant
+    ~atom = 'Atom.to_constant
 
     self.assert_error { 'noconstant, 'Foo }, do
       'Foo.to_constant

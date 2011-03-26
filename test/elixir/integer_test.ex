@@ -31,7 +31,7 @@ object IntegerTest
     reset_counter
 
     3 = 3.times do (i)
-      i = get_counter
+      ~i = get_counter
       increment_counter
     end
 
@@ -42,7 +42,7 @@ object IntegerTest
     reset_counter
 
     13 = 3.times 10, do (i, acc)
-      i = get_counter
+      ~i = get_counter
       increment_counter
       acc + i
     end

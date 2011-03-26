@@ -27,7 +27,7 @@ object Fridge
 
     % The spawn process will respond back with its own
     % pid and an ok message
-    receive {pid, msg}
+    receive {~pid, msg}
       msg
     end
   end
@@ -45,7 +45,7 @@ object Fridge
 
     % Retrieve the message again. Also, let's set a timeout
     % now for 10 seconds.
-    receive {pid, msg}
+    receive {~pid, msg}
       msg
     after 10000
       'timedout
@@ -60,7 +60,7 @@ object Fridge
     pid <- { Process.self, 'see }
 
     % And get a message back
-    receive {pid, msg}
+    receive {~pid, msg}
       msg
     end
   end
@@ -69,8 +69,6 @@ object Fridge
   def destroy
     @pid <- 'terminate
   end
-
-  protected
 
   % Finally, the loop method. It receives all messages from above
   % and is responsible to keep the fridge updated. As the last

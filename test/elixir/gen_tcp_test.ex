@@ -41,7 +41,7 @@ object GenTcpTest
     'ok = tcp.close
 
     % Check if the server replied us back
-    receive { server, "Some Data" }
+    receive { ~server, "Some Data" }
       % Ok, test passed
     after 1000
       self.error "Expected to receive \"Some Data\" from server, but did not"

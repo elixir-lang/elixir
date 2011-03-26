@@ -79,7 +79,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 \'{BaseGroup} : build_separator_atom(atom, TokenChars, TokenLine, TokenLen). % '
 
 %% Constant and identifier names
-~({LowerCase}|_){IdentifierBase}*       : build(bound_identifier, TokenLine, sublist(TokenChars, 2, TokenLen - 1)).
+~({LowerCase}|_){IdentifierBase}*       : { token, { bound_identifier, TokenLine, list_to_atom(sublist(TokenChars, 2, TokenLen - 1)) } }.
 {UpperCase}({IdentifierBase}|::)*       : build(constant, TokenLine, TokenChars).
 ({LowerCase}|_){IdentifierBase}*[?!]?\[ : build_bracket_identifier(TokenLine, TokenChars, TokenLen).
 ({LowerCase}|_){IdentifierBase}*[?!]    : build(punctuated_identifier, TokenLine, TokenChars).

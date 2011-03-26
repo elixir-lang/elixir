@@ -25,7 +25,7 @@ module ExUnit::Assertions
     result = try
       function()
       false
-    catch kind: value
+    catch ~kind: ~value
       true
     catch real_kind: real_value
       bad_assertion "Expected #{kind} with #{value.inspect}, got #{real_kind} with #{real_value.inspect}"

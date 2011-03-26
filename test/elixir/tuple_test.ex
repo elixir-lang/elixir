@@ -28,6 +28,15 @@ object TupleTest
     { 1, 2, 4 } = { 1, 2, 3 }.set(-1, 4)
   end
 
+  def unpack_test
+    { x, x } = { 1, 1 }
+    1 = x
+
+    assert_error { 'badmatch, { 1, 2 } }, do
+      { y, y } = { 1, 2 }
+    end
+  end
+
   def empty_test
     false = {"abc"}.empty?
     true  = {}.empty?
