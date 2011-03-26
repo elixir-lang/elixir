@@ -440,10 +440,14 @@ Currently, functions do not support partial applications or pipes, but such feat
 
 ## Variables and Pattern Matching
 
-Elixir inherits single assignment variables and pattern matching from Erlang. This means there isn't an assignment operator, but rather a match operator. A variable can be assigned just once:
+Variables in Elixir works different from Erlang. You can assign to them several times:
 
     x = 1
-    x = 2  % => Raises a bad match error, because x is already equals to 1
+    x = 2
+
+However, you can force a match to happen prefixing `~` to the variable name:
+
+    ~x = 3  % => Raises a bad match error, because x was last bound to 2
 
 In Erlang/Elixir terms, a variable that was not assigned yet is called *unbound variable*. Let's see more examples:
 
@@ -452,11 +456,11 @@ In Erlang/Elixir terms, a variable that was not assigned yet is called *unbound 
 
     % Now let's match a tuple with other tuple.
     % Since x is already bound, we are comparing x with 'baz and it will fail:
-    { x, y } = { 'baz, 'bar }
+    { ~x, y } = { 'baz, 'bar }
 
     % In this case, we compare 'x with 'foo and it matches.
     % Since y is unbound, we assign 'bar to it:
-    { x, y } = { 'foo, 'bar }
+    { ~x, y } = { 'foo, 'bar }
 
     x  % => 'foo
     y  % => 'bar
@@ -483,7 +487,7 @@ The variable `_` is always unbound:
     _ = 1
     _   % => Raises that variable '_' is unbound
 
-However, sometimes having several occurrences of `_` in the same expression is confusing, so you can do this instead:
+Sometimes having several occurrences of `_` in the same expression is confusing, so you can do this instead:
 
     {x, _y, _z} = {1, 2, 3}
 
