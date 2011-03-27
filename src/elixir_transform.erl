@@ -85,33 +85,22 @@ transform({identifier, Line, Name}, S) ->
     'self' -> { {var, Line, Name}, S };
     '_' -> { {var, Line, Name}, S };
     _ ->
-      % case { Match, dict:is_key(Name, Vars), lists:member(Name, TempVars) } of
-      %   { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
-      %   { true, _, _ } ->
-      %     { NewVar, NS } = build_var_name(Line, S),
-      %     RealName = element(3, NewVar),
-      %     { NewVar, NS#elixir_scope{vars=dict:store(Name, RealName, Vars), temp_vars=[RealName|TempVars]} };
-      %   { false, false, _ } -> transform({local_call, Line, Name, []}, S);
-      %   { false, true, _ }  -> { {var, Line, dict:fetch(Name, Vars) }, S }
-      case { Match, dict:is_key(Name, Vars) } of
-        { true, true } ->
-          case lists:member(Name, TempVars) of
-            true  -> { {var, Line, dict:fetch(Name, Vars) }, S };
-            false ->
-              { NewVar, NS } = build_var_name(Line, S),
-              RealName = element(3, NewVar),
-              { NewVar, NS#elixir_scope{vars=dict:store(Name, RealName, Vars), temp_vars=[RealName|TempVars], clause_vars=dict:store(Name, RealName, Vars)} }
-          end;
-        { false, true }  -> { {var, Line, dict:fetch(Name, Vars) }, S };
-        { true, false }  ->
-          case S#elixir_scope.noname of
-            true ->
-              { NewVar, NS } = build_var_name(Line, S),
-              RealName = element(3, NewVar),
-              { NewVar, NS#elixir_scope{vars=dict:store(Name, RealName, Vars), temp_vars=[RealName|TempVars], clause_vars=dict:store(Name, RealName, Vars)} };
-            false -> { {var, Line, Name}, S#elixir_scope{vars=dict:store(Name, Name, Vars), temp_vars=[Name|TempVars], clause_vars=dict:store(Name, Name, ClauseVars)} }
-          end;
-        { false, false } -> transform({local_call, Line, Name, []}, S)
+      case { Match, dict:is_key(Name, Vars), lists:member(Name, TempVars) } of
+        { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
+        { true, Else, _ } ->
+          % If it was already assigned or in a noname scope, build a new var
+          { NewVar, NS } = case Else or S#elixir_scope.noname of
+            true -> build_var_name(Line, S);
+            false -> { {var, Line, Name}, S }
+          end,
+          RealName = element(3, NewVar),
+          { NewVar, NS#elixir_scope{
+            vars=dict:store(Name, RealName, Vars),
+            temp_vars=[RealName|TempVars],
+            clause_vars=dict:store(Name, RealName, ClauseVars)
+          } };
+        { false, false, _ } -> transform({local_call, Line, Name, []}, S);
+        { false, true, _ }  -> { {var, Line, dict:fetch(Name, Vars) }, S }
       end
   end;
 
