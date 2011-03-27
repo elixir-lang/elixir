@@ -483,7 +483,7 @@ case_expr -> case expr break else_case_clauses 'end' : { 'case', ?line('$1'), '$
 guards -> when expr : ['$2'].
 
 case_clause -> match match_args_optional then_break body : build_multiple_clauses('$1', '$2', [], '$4').
-case_clause -> match match_args_optional guards then_break body : build_multiple_clauses('$1', '$2', '$3', '$4').
+case_clause -> match match_args_optional guards then_break body : build_multiple_clauses('$1', '$2', '$3', '$5').
 
 case_clauses -> case_clause : '$1'.
 case_clauses -> case_clause case_clauses : '$1' ++ '$2'.

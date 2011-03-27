@@ -19,14 +19,8 @@ syntax_error(Line, Filename, Error, Token) ->
 
 % Handle warnings
 
-handle_file_warning(Filename, {Line,_,{unused_var,self}}) ->
+handle_file_warning(Filename, {Line,_,{unused_var,_}}) ->
   [];
-
-handle_file_warning(Filename, {Line,Module,{unused_var,Var} = Desc}) ->
-  case hd(atom_to_list(Var)) == $X of
-    true  -> [];
-    false -> io:format(file_format(Line, Filename, format_error(Module, Desc)) ++ [$\n])
-  end;
 
 handle_file_warning(Filename, {Line,_,nomatch_clause_type}) ->
   [];

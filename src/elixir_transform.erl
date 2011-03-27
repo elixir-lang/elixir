@@ -452,7 +452,6 @@ transform({unary_op, Line, Op, Right}, S) ->
 transform({'if', Line, Exprs, Else}, S) ->
   { TExprs, SE } = transform_propagated_clauses_tree(Line, Exprs ++ [Else], S),
   { TIfs, [TElse] } = lists:split(length(TExprs) - 1, TExprs),
-  io:format(user, "~p\n", [hd(lists:foldr(fun build_if_clauses/2, element(5, TElse), TIfs))]),
   { hd(lists:foldr(fun build_if_clauses/2, element(5, TElse), TIfs)), SE };
 
 % Handle case expressions.
@@ -550,7 +549,7 @@ transform({clause, Line, Args, Guards, Exprs}, S) ->
 transform({if_clause, Line, Bool, Expr, List}, S) ->
   { TExpr, SE } = transform(Expr, S),
   { TList, SL } = transform_tree(List, SE),
-  { {if_clause, Line, Bool, TExpr, TList }, umergec(SE, SL) };
+  { {if_clause, Line, Bool, TExpr, TList }, SL };
 
 transform({else_clause, Line, Exprs}, S) ->
   transform({clause, Line, [{var, Line, '_'}], [], Exprs }, S);
@@ -699,18 +698,21 @@ transform_propagated_clauses_tree(Line, Clauses, RawS) ->
 
       % Defines a tuple that will be used as left side of the match operator
       LeftTuple = { tuple, Line, [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars] },
+      { StorageVar, SS } = build_var_name(Line, FS),
 
       % Expand all clauses by adding a match operation at the end that assigns
       % variables missing in one clause to the others.
       Expander = fun(Clause, Counter) ->
         ClauseVars = lists:nth(Counter, CV),
         RightTuple = [normalize_clause_var(Var, OldValue, ClauseVars) || {Var, _, OldValue} <- FinalVars],
-        ExtraExpr  = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
-        { setelement(5, Clause, element(5, Clause) ++ [ExtraExpr]), Counter + 1 }
+        [Final|RawClauses] = lists:reverse(element(5, Clause)),
+        StorageExpr = { match, Line, StorageVar, Final },
+        ExtraExpr   = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
+        { setelement(5, Clause, lists:reverse([StorageVar,ExtraExpr,StorageExpr|RawClauses])), Counter + 1 }
       end,
 
       { FClauses, _ } = lists:mapfoldl(Expander, 1, TClauses),
-      { FClauses, FS }
+      { FClauses, SS }
   end.
 
 normalize_clause_var(Var, OldValue, ClauseVars) ->
