@@ -23,12 +23,28 @@ umergev(S1, S2) ->
   V2 = S2#elixir_scope.vars,
   A1 = S1#elixir_scope.assigned_vars,
   A2 = S2#elixir_scope.assigned_vars,
-  S2#elixir_scope{vars=lists:umerge(V1, V2), assigned_vars=dict:merge(fun(_,_,F) -> F end, A1, A2)}.
+  S2#elixir_scope{vars=dict:merge(fun var_merger/3, V1, V2), assigned_vars=dict:merge(fun(_,_,V) -> V end, A1, A2)}.
 
 % Receives two scopes and return a new scope based on the first
 % with the counter values from the first one.
 umergec(S1, S2) ->
   S1#elixir_scope{counter=S2#elixir_scope.counter}.
+
+% Merge variables trying to find the most recently created.
+var_merger(Var, Var, K2) -> K2;
+var_merger(Var, K1, Var) -> K1;
+var_merger(Var, K1, K2) ->
+  V1 = list_to_integer(tl(atom_to_list(K1))),
+  V2 = list_to_integer(tl(atom_to_list(K2))),
+  if V1 > V2 -> V1;
+     true -> V2
+  end.
+
+% Transform considering assigns manipulation.
+transform_assigns(Fun, Args, Scope) ->
+  Merger = fun(_,_,F) -> F end,
+  { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
+  { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
 
 % Transform the given tree Forms.
 %
@@ -56,10 +72,37 @@ transform_tree(Forms, S) ->
 transform({identifier, Line, Name}, S) ->
   Match = S#elixir_scope.assign,
   Vars = S#elixir_scope.vars,
-  case { Match, lists:member(Name, Vars) } of
-    { _, true }      -> { {var, Line, Name}, S };
-    { true, false }  -> { {var, Line, Name}, S#elixir_scope{vars=lists:sort([Name|Vars])} };
-    { false, false } -> transform({local_call, Line, Name, []}, S)
+  TempVars = S#elixir_scope.temp_vars,
+
+  case Name of
+    'self' -> { {var, Line, Name}, S };
+    '_' -> { {var, Line, Name}, S };
+    _ ->
+      case { Match, dict:is_key(Name, Vars) } of
+        { true, true } ->
+          case lists:member(Name, TempVars) of
+            true  -> { {var, Line, dict:fetch(Name, Vars) }, S };
+            false ->
+              { NewVar, NS } = build_var_name(Line, S),
+              RealName = element(3, NewVar),
+              { NewVar, NS#elixir_scope{vars=dict:store(Name, RealName, Vars), temp_vars=[RealName|TempVars]} }
+          end;
+        { false, true }  -> { {var, Line, dict:fetch(Name, Vars) }, S };
+        { true, false }  -> { {var, Line, Name}, S#elixir_scope{vars=dict:store(Name, Name, Vars), temp_vars=[Name|TempVars]} };
+        { false, false } -> transform({local_call, Line, Name, []}, S)
+      end
+  end;
+
+% Handle identifiers that are certainly bounded
+transform({bound_identifier, Line, Name}, S) ->
+  case S#elixir_scope.assign of
+    false ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope to bound variable", atom_to_list(Name));
+    true ->
+      case dict:find(Name, S#elixir_scope.vars) of
+        { ok, Value } -> { {var, Line, Name}, S };
+        error -> error({unbound_var, Name})
+      end
   end;
 
 % Handles anonymous method calls as _.foo(1), transforming it to a function
@@ -171,7 +214,7 @@ transform({set_ivars, Line, Exprs}, S) ->
 %
 % So we need to take both into account.
 transform({match, Line, Left, Right}, S) ->
-  { TLeft, SL } = transform(Left, S#elixir_scope{assign=true}),
+  { TLeft, SL } = transform_assigns(fun transform/2, Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
   SM = umergev(SL, SR),
   SF = case TLeft of
@@ -325,10 +368,13 @@ transform({binary_op, Line, Op, Left, Right}, S) ->
 
   SF = umergev(SL, SR),
 
+  % Check if left side is an integer or float, if so, dispatch straight to the operator
   case S#elixir_scope.assign orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
     true -> { {op, Line, Op, TLeft, TRight}, SF };
     false ->
       Args = { cons, Line, TRight, {nil, Line} },
+
+      % Check if left side surely requires a method dispatch, if not, create a case expression
       case is_op_call_form(element(1, Left)) orelse is_var_form(TLeft, S, fun({X,_}) -> is_op_call_form(element(1, X)) end) of
         true -> { build_method_call(Op, Line, Args, TLeft), SF };
         false ->
@@ -477,8 +523,8 @@ transform({'receive', Line, Clauses, Expr, After}, S) ->
 % into account. Clauses do not return variables list as second argument
 % because variables in one clause should not affect the other.
 transform({clause, Line, Args, Guards, Exprs}, S) ->
-  { TArgs, SA } = transform_tree(Args, S#elixir_scope{assign=true}),
-  { TExprs, SE } = transform_tree(Exprs, SA#elixir_scope{assign=false}),
+  { TArgs, SA } = transform_assigns(fun transform_tree/2, Args, S),
+  { TExprs, SE } = transform_tree(Exprs, SA),
   { { clause, Line, TArgs, Guards, TExprs }, SE };
 
 transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
@@ -547,7 +593,7 @@ transform({default_arg, Line, Expr, Default}, S) ->
 % call in this method.
 transform({fun_call, Line, Var, Args }, S) ->
   case Var of
-    { identifier, _, Name } -> Method = not lists:member(Name, S#elixir_scope.vars);
+    { identifier, _, Name } -> Method = not dict:is_key(Name, S#elixir_scope.vars);
     Name -> Method = false
   end,
 
@@ -627,13 +673,13 @@ transform_comprehension({undef_generate, Line, Left, Right}, L, S) ->
   end;
 
 transform_comprehension({list_generate, Line, Left, Right}, L, S) ->
-  { TLeft, SL } = transform(Left, S#elixir_scope{assign=true}),
-  { TRight, SR } = transform(Right, SL#elixir_scope{assign=false}),
+  { TLeft, SL } = transform_assigns(fun transform/2, Left, S),
+  { TRight, SR } = transform(Right, SL),
   { { generate, Line, TLeft, TRight }, SR };
 
 transform_comprehension({bin_generate, Line, Left, Right}, L, S) ->
-  { TLeft, SL } = transform(Left, S#elixir_scope{assign=true}),
-  { TRight, SR } = transform(Right, SL#elixir_scope{assign=false}),
+  { TLeft, SL } = transform_assigns(fun transform/2, Left, S),
+  { TRight, SR } = transform(Right, SL),
   { { b_generate, Line, TLeft, TRight }, SR };
 
 transform_comprehension(X, L, S) ->
@@ -651,7 +697,7 @@ transform_comprehension(X, L, S) ->
 % empty variable set as there is no binding.
 pack_method_clause({clause, Line, Args, Guards, Exprs}, S) ->
   Clause = {clause, Line, [{var, Line, self}|Args], Guards, Exprs},
-  transform(Clause, S#elixir_scope{vars=[self],counter=0,assigned_vars=dict:new()}).
+  transform(Clause, S#elixir_scope{vars=dict:new(),counter=0,assigned_vars=dict:new()}).
 
 % Build a list transforming each expression and accumulating
 % vars in one pass. It uses tail-recursive form.

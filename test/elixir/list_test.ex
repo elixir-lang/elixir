@@ -56,7 +56,7 @@ object ListTest
   def each_returns_self_test
     list = [1,2,3]
     each_returns = list.each -> (x) x
-    list = each_returns
+    ~list = each_returns
   end
 
   def map_and_collect_test
@@ -191,7 +191,7 @@ object ListTest
 
     pixels = << 213,45,132,64,76,32,76,0,0,234,32,15 >>
     result = [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
-    result = [{r,g,b} for <<r:8,g:8,b:8>> in pixels]
+    ~result = [{r,g,b} for <<r:8,g:8,b:8>> in pixels]
   end
 
   def variables_in_list_comprehensions_do_not_leak_test

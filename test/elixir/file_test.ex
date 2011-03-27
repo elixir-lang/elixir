@@ -15,8 +15,8 @@ object FileTest
     "/foo/bar" = File.expand_path("bar/../bar", "/foo")
     "/bar" = File.expand_path("../bar/../bar", "/foo/../foo/../foo")
 
-    full = File.expand_path("foo/bar")
-    full = File.expand_path("bar/../bar", "foo")
+    full  = File.expand_path("foo/bar")
+    ~full = File.expand_path("bar/../bar", "foo")
   end
 
   def join_test

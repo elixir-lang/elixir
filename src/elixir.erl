@@ -26,11 +26,16 @@ config_change(_Changed, _New, _Remove) ->
 
 % Start elixir as an application.
 start_app() ->
-  case lists:keyfind(?MODULE,1, application:loaded_applications()) of
-    false -> application:start(?MODULE);
-    _ -> ok
-  end.
+  % Ensure elixir_object_methods is loaded and running
+  code:ensure_loaded(elixir_object_methods),
 
+  % Load stdlib files
+  Regexp = cache_regexp(),
+  BasePath = stdlib_path(),
+  BaseFiles = [internal_require(filename:join(BasePath, File), Regexp) || File <- stdlib_files()],
+
+  % Boot the code server with supervisor
+  elixir_sup:start_link([BasePath, BaseFiles]).
 % Boot and process given options. Invoked by Elixir's script.
 start() ->
   start_app(),
@@ -175,15 +180,31 @@ eval(String, Binding, Filename, Line, Scope) ->
     undefined -> lists:append(Binding, [{self,elixir_constants:lookup('Object')}]);
     _  -> Binding
   end,
-  ParseTree = parse(String, SelfBinding, Filename, Line, Scope),
+  { ParseTree, NewScope } = parse(String, SelfBinding, Filename, Line, Scope),
   {value, Value, NewBinding} = erl_eval:exprs(ParseTree, SelfBinding),
-  {Value, proplists:delete(self, NewBinding)}.
+  {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }.
 
 % Parse string and transform tree to Erlang Abstract Form format
 parse(String, Binding) -> parse(String, Binding, "nofile").
 parse(String, Binding, Filename) -> parse(String, Binding, Filename, 1, #elixir_scope{}).
 parse(String, Binding, Filename, Line, Scope) ->
-  Vars = lists:usort(proplists:get_keys(Binding)),
-  NewScope = Scope#elixir_scope{vars=Vars, filename=Filename},
-  { NewForms, _ } = elixir_transform:parse(String, Line, NewScope),
-  NewForms.
+  NewScope = Scope#elixir_scope{vars=binding_dict(Binding), filename=Filename},
+  elixir_transform:parse(String, Line, NewScope).
+
+binding_dict(List) -> binding_dict(List, dict:new()).
+binding_dict([{self,_}|T], Dict) -> binding_dict(T, Dict);
+binding_dict([{H,_}|T], Dict) -> binding_dict(T, dict:store(H, H, Dict));
+binding_dict([], Dict) -> Dict.
+
+final_binding(Binding, Vars) -> final_binding(Binding, [], Binding, Vars).
+final_binding([{self,_}|T], Acc, Binding, Vars) -> final_binding(T, Acc, Binding, Vars);
+final_binding([{Var,_}|T], Acc, Binding, Vars) ->
+  case atom_to_list(Var) of
+    [$X|_] -> final_binding(T, Acc, Binding, Vars);
+    _ ->
+      RealName = dict:fetch(Var, Vars),
+      RealValue = proplists:get_value(RealName, Binding, nil),
+      final_binding(T, [{Var, RealValue}|Acc], Binding, Vars)
+  end;
+
+final_binding([], Acc, _Binding, _Vars) -> lists:reverse(Acc).

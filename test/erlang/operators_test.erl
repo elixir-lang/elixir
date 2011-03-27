@@ -47,7 +47,7 @@ vars_case_test() ->
     elixir:eval("module Bar\ndef foo; 1; end\ndef bar(x); case x match true then foo = 2 match false then foo = foo end; foo; end\nend"),
     {1, _} = elixir:eval("Bar.bar(false)"),
     {2, _} = elixir:eval("Bar.bar(true)"),
-    elixir:eval("module Baz\ndef foo; 1; end\ndef bar(x); case x match {foo,2} then foo = 2 match false then foo = foo end; foo; end\nend"),
+    elixir:eval("module Baz\ndef foo; 1; end\ndef bar(x); case x match {foo,2} then \~foo = 2 match false then foo = foo end; foo; end\nend"),
     {1, _} = elixir:eval("Baz.bar(false)"),
     {2, _} = elixir:eval("Baz.bar({2, 2})"),
     ?assertError({badmatch, 2}, elixir:eval("Baz.bar({1, 2})"))

@@ -129,7 +129,7 @@ object ExceptionsTest
   def assert_executed(value, function)
     put!(false)
     function()
-    value = Erlang.get("assert_executed")
+    ~value = Erlang.get("assert_executed")
   end
 
   def put!(value)

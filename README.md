@@ -13,7 +13,7 @@ Elixir is still in development. If you want to help building it or are just look
     $ make test
 
     $ bin/elixir -v
-    Elixir 0.1.1.dev
+    Elixir 0.2.0.dev
 
 Notice that Elixir requires Erlang R14B01 or later version to execute (R14A and R14B **do not work**). Prior versions do not work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
 
@@ -440,10 +440,14 @@ Currently, functions do not support partial applications or pipes, but such feat
 
 ## Variables and Pattern Matching
 
-Elixir inherits single assignment variables and pattern matching from Erlang. This means there isn't an assignment operator, but rather a match operator. A variable can be assigned just once:
+Variables in Elixir works differently from Erlang. You can assign to them several times:
 
     x = 1
-    x = 2  % => Raises a bad match error, because x is already equals to 1
+    x = 2
+
+You can force a match to happen prefixing `~` to the variable name:
+
+    ~x = 3  % => Raises a bad match error, because x was last bound to 2
 
 In Erlang/Elixir terms, a variable that was not assigned yet is called *unbound variable*. Let's see more examples:
 
@@ -452,11 +456,11 @@ In Erlang/Elixir terms, a variable that was not assigned yet is called *unbound 
 
     % Now let's match a tuple with other tuple.
     % Since x is already bound, we are comparing x with 'baz and it will fail:
-    { x, y } = { 'baz, 'bar }
+    { ~x, y } = { 'baz, 'bar }
 
     % In this case, we compare 'x with 'foo and it matches.
     % Since y is unbound, we assign 'bar to it:
-    { x, y } = { 'foo, 'bar }
+    { ~x, y } = { 'foo, 'bar }
 
     x  % => 'foo
     y  % => 'bar
@@ -468,7 +472,7 @@ For lists, we can use the same syntax to prepend an item on pattern matching, ea
     t  % => [2,3]
 
     % Raises an error because h was already assigned to 1 and 1 does not match 2
-    [h|t1] = [2,3,4]
+    [~h|t1] = [2,3,4]
 
 Elixir will often complain if you bound a value to a variable but never use it. For instance, imagine that you want to get just the first element of a tuple with three items:
 
@@ -483,11 +487,17 @@ The variable `_` is always unbound:
     _ = 1
     _   % => Raises that variable '_' is unbound
 
-However, sometimes having several occurrences of `_` in the same expression is confusing, so you can do this instead:
+Sometimes having several occurrences of `_` in the same expression is confusing, so you can do this instead:
 
     {x, _y, _z} = {1, 2, 3}
 
 The values 2 and 3 will be bound to the variables `_y` and `_z`, but Elixir won't complain if you eventually don't use them.
+
+Keep in mind that the number of expressions allowed in pattern matching are limited. You cannot invoke methods, use interpolated strings, retrieve constants and so on. Therefore, this is invalid:
+
+    1.abs = -1
+
+### Ordered dicts
 
 Ordered dicts are also allowed in pattern matching but there is one important restriction: you are responsible to make their order match. Therefore, this won't work:
 
@@ -504,9 +514,18 @@ This fails because the `dict` variable is ordered, so it is actually represented
     % This matches and bound x and y to 2 and 4
     { 1: 2, x: y } = dict
 
-Keep in mind that the number of expressions allowed in pattern matching are limited. You cannot invoke methods, use interpolated strings, retrieve constants and so on. Therefore, this is invalid:
+### Closures and immutability
 
-    1.abs = -1
+Keep in mind that variables assignment inside functions do not change the original binding. For example:
+
+    a = 1
+    b = -> a = 2
+    b()
+    a % => 1
+
+This is different compared to other languages but is coherent to Erlang's immutability. As everything is immutable, when the function assigns a new variable, it creates a new binding with the new variable value and the original binding is never modified. This is important to avoid side-effects when passing functions to different processes (parallel execution).
+
+### Method signatures
 
 Finally, pattern matching can also be implemented in methods signatures. Here is the classic Fibonacci example:
 

@@ -19,7 +19,7 @@ module Chat
 
       def flush
         room = @room
-        receive { room, { 'message, message } }
+        receive { ~room, { 'message, message } }
           IO.puts message
         end
       end
@@ -31,7 +31,7 @@ module Chat
 
         room <- { Process.self, message }
 
-        receive { room, response }
+        receive { ~room, response }
           response
         after 1000
           IO.puts "Connection to room timed out!"
@@ -63,8 +63,6 @@ module Chat
           room.loop
         end
       end
-
-      protected
 
       def notify_all(sender, message)
         @clients.each do (c)

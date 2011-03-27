@@ -32,7 +32,7 @@ object CodeTest
     "5\n3\n1\n" = OS.cmd("bin/elixir -f \"IO.puts 1\" -e \"IO.puts 3 + 2\" test/elixir/fixtures/init_sample.ex")
 
     expected = "#{["-o", "1", "2", "3"].inspect}\n3\n"
-    expected = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" test/elixir/fixtures/init_sample.ex -o 1 2 3")
+    ~expected = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" test/elixir/fixtures/init_sample.ex -o 1 2 3")
   end
   
   def code_error_test

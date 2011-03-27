@@ -52,7 +52,7 @@ object ProcessTest
     pid = Process.spawn -> internal_loop
     Process.link pid
     pid.exit('i_give_up)
-    receive { 'EXIT, pid, 'i_give_up }
+    receive { 'EXIT, ~pid, 'i_give_up }
     after 1000
       self.error 'timedout
     end

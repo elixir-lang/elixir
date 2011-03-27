@@ -54,7 +54,7 @@ object ObjectTest
     'List = [].__parent_name__
 
     constant = List
-    constant = [].__parent__
+    ~constant = [].__parent__
 
     [] = Object.__parent_name__
     [] = Object.__parent__
@@ -63,10 +63,10 @@ object ObjectTest
     parent = Object.new
     child = parent.new
 
-    object = parent.__parent__
+    ~object = parent.__parent__
     'Object = parent.__parent_name__
 
-    parent = child.__parent__
+    ~parent = child.__parent__
     [] = child.__parent_name__
   end
 
@@ -95,12 +95,12 @@ object ObjectTest
 
     dict = { 'a: 1, 'b: 2 }
     @(dict)
-    dict = self.get_ivars
+    ~dict = self.get_ivars
   end
 
   def get_and_set_ivars_test
     dict = { 'a: 1, 'b: 2 }
-    dict = Object.new.set_ivars(dict).get_ivars
+    ~dict = Object.new.set_ivars(dict).get_ivars
   end
 
   def update_ivar_test

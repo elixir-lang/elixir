@@ -20,7 +20,7 @@ object IntegerTest
   def times_with_arity_0_test
     reset_counter
 
-    3.times do
+    3 = 3.times do
       increment_counter
     end
 
@@ -30,9 +30,9 @@ object IntegerTest
   def times_with_arity_1_test
     reset_counter
 
-    3.times do (i)
+    3 = 3.times do (i)
+      ~i = get_counter
       increment_counter
-      i = get_counter
     end
 
     3 = get_counter
@@ -41,9 +41,9 @@ object IntegerTest
   def times_with_arity_2_test
     reset_counter
 
-    6 = 3.times 0, do (i, acc)
+    13 = 3.times 10, do (i, acc)
+      ~i = get_counter
       increment_counter
-      i = get_counter
       acc + i
     end
 
