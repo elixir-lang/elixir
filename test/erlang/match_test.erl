@@ -16,6 +16,13 @@ arithmetic_test() ->
 assignment_test() ->
   {1, [{a, 1}]} = elixir:eval("a = 1").
 
+not_single_assignment_test() ->
+  {2, [{a, 2}]} = elixir:eval("a = 1\na = 2\na"),
+  {1, [{a, 1}]} = elixir:eval("{a,a} = {1,1}\na"),
+  {2, [{a, 2}]} = elixir:eval("a = 1\n{\~a,a} = {1,2}\na"),
+  {1, [{a, 1}]} = elixir:eval("a = 1\n(-> a = 2)()\na"),
+  ?assertError({badmatch, _}, elixir:eval("{a,a} = {1,2}")).
+
 multiline_assignment_test() ->
   {1, [{a, 1}]} = elixir:eval("a =\n1"),
   {1, [{a, 1}, {b, 1}]} = elixir:eval("a = 1\nb = 1").
@@ -37,7 +44,7 @@ multiple_assignment_with_binding_expression_test() ->
 
 underscore_assignment_test() -> 
   {1, []} = elixir:eval("_ = 1"),
-  {_, [{a,1},{c,3}]} = elixir:eval("[a,_,c] = [1,2,3]\n[a,_,c] = [1,4,3]").
+  {_, [{a,1},{c,3}]} = elixir:eval("[a,_,c] = [1,2,3]\n[\~a,_,\~c] = [1,4,3]").
 
 % Atoms match
 simple_atom_test() ->

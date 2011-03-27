@@ -19,17 +19,26 @@ forms(String, StartLine, Filename) ->
 % Receives two scopes and return a new scope based on the second
 % with their variables merged.
 umergev(S1, S2) ->
-  Merger = fun(_,_,F) -> F end,
   V1 = S1#elixir_scope.vars,
   V2 = S2#elixir_scope.vars,
   A1 = S1#elixir_scope.assigned_vars,
   A2 = S2#elixir_scope.assigned_vars,
-  S2#elixir_scope{vars=dict:merge(Merger, V1, V2), assigned_vars=dict:merge(Merger, A1, A2)}.
+  S2#elixir_scope{vars=dict:merge(fun var_merger/3, V1, V2), assigned_vars=dict:merge(fun(_,_,V) -> V end, A1, A2)}.
 
 % Receives two scopes and return a new scope based on the first
 % with the counter values from the first one.
 umergec(S1, S2) ->
   S1#elixir_scope{counter=S2#elixir_scope.counter}.
+
+% Merge variables trying to find the most recently created.
+var_merger(Var, Var, K2) -> K2;
+var_merger(Var, K1, Var) -> K1;
+var_merger(Var, K1, K2) ->
+  V1 = list_to_integer(tl(atom_to_list(K1))),
+  V2 = list_to_integer(tl(atom_to_list(K2))),
+  if V1 > V2 -> V1;
+     true -> V2
+  end.
 
 % Transform considering assigns manipulation.
 transform_assigns(Fun, Args, Scope) ->
@@ -65,23 +74,20 @@ transform({identifier, Line, Name}, S) ->
   Vars = S#elixir_scope.vars,
   TempVars = S#elixir_scope.temp_vars,
 
-  KeyVars = dict:is_key(Name, Vars),
-  KeyTempVars = lists:member(Name, TempVars),
-
   case Name of
     'self' -> { {var, Line, Name}, S };
     '_' -> { {var, Line, Name}, S };
     _ ->
-      case { Match, KeyVars or KeyTempVars } of
+      case { Match, dict:is_key(Name, Vars) } of
         { true, true } ->
-          case KeyTempVars of
-            true -> { {var, Line, Name}, S };
+          case lists:member(Name, TempVars) of
+            true  -> { {var, Line, dict:fetch(Name, Vars) }, S };
             false ->
-              io:format("[ELIXIR] ~s:~p: Bound variable '~p' need to be explicitly marked in pattern matching\n",
-                [S#elixir_scope.filename, Line, Name]),
-              { {var, Line, Name}, S }
+              { NewVar, NS } = build_var_name(Line, S),
+              RealName = element(3, NewVar),
+              { NewVar, NS#elixir_scope{vars=dict:store(Name, RealName, Vars), temp_vars=[RealName|TempVars]} }
           end;
-        { false, true }  -> { {var, Line, Name}, S };
+        { false, true }  -> { {var, Line, dict:fetch(Name, Vars) }, S };
         { true, false }  -> { {var, Line, Name}, S#elixir_scope{vars=dict:store(Name, Name, Vars), temp_vars=[Name|TempVars]} };
         { false, false } -> transform({local_call, Line, Name, []}, S)
       end
@@ -93,9 +99,9 @@ transform({bound_identifier, Line, Name}, S) ->
     false ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope to bound variable", atom_to_list(Name));
     true ->
-      case dict:is_key(Name, S#elixir_scope.vars) of
-        false -> error({unbound_var, Name});
-        true -> { {var, Line, Name}, S }
+      case dict:find(Name, S#elixir_scope.vars) of
+        { ok, Value } -> { {var, Line, Name}, S };
+        error -> error({unbound_var, Name})
       end
   end;
 
