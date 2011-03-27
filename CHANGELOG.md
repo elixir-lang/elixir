@@ -1,4 +1,4 @@
-## Current master (v0.1.1.dev)
+## Current master (v0.2.0.dev)
 
 * improvements
   * Added File.read, File.read_info and others
@@ -14,6 +14,7 @@
   * Added more methods to OrderedDict, List and File in STDLIB
   * Improved performance on method dispatch about 8 times
   * Number operators are 'atom/value are allowed in method signatures
+  * Allow variables to be assigned more than once
 
 * bug fix
   * Allow Elixir keywords, but that are not Erlang keywords, on Erlang method invocations
