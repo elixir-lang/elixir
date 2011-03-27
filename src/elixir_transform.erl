@@ -103,7 +103,14 @@ transform({identifier, Line, Name}, S) ->
               { NewVar, NS#elixir_scope{vars=dict:store(Name, RealName, Vars), temp_vars=[RealName|TempVars], clause_vars=dict:store(Name, RealName, Vars)} }
           end;
         { false, true }  -> { {var, Line, dict:fetch(Name, Vars) }, S };
-        { true, false }  -> { {var, Line, Name}, S#elixir_scope{vars=dict:store(Name, Name, Vars), temp_vars=[Name|TempVars], clause_vars=dict:store(Name, Name, ClauseVars)} };
+        { true, false }  ->
+          case S#elixir_scope.noname of
+            true ->
+              { NewVar, NS } = build_var_name(Line, S),
+              RealName = element(3, NewVar),
+              { NewVar, NS#elixir_scope{vars=dict:store(Name, RealName, Vars), temp_vars=[RealName|TempVars], clause_vars=dict:store(Name, RealName, Vars)} };
+            false -> { {var, Line, Name}, S#elixir_scope{vars=dict:store(Name, Name, Vars), temp_vars=[Name|TempVars], clause_vars=dict:store(Name, Name, ClauseVars)} }
+          end;
         { false, false } -> transform({local_call, Line, Name, []}, S)
       end
   end;
@@ -115,7 +122,7 @@ transform({bound_identifier, Line, Name}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope to bound variable", atom_to_list(Name));
     true ->
       case dict:find(Name, S#elixir_scope.vars) of
-        { ok, Value } -> { {var, Line, Name}, S };
+        { ok, Value } -> { {var, Line, Value}, S };
         error -> error({unbound_var, Name})
       end
   end;
@@ -450,7 +457,7 @@ transform({unary_op, Line, Op, Right}, S) ->
 % Second, a variable defined in a clause does not affect other clauses,
 % so the second clause above could sucessfully invoke the method foo.
 transform({'if', Line, Exprs, Else}, S) ->
-  { TExprs, SE } = transform_propagated_clauses_tree(Line, Exprs ++ [Else], S),
+  { TExprs, SE } = transform_clauses_tree(Line, Exprs ++ [Else], S),
   { TIfs, [TElse] } = lists:split(length(TExprs) - 1, TExprs),
   { hd(lists:foldr(fun build_if_clauses/2, element(5, TElse), TIfs)), SE };
 
@@ -463,7 +470,7 @@ transform({'if', Line, Exprs, Else}, S) ->
 % passed forward as well.
 transform({'case', Line, Expr, Clauses}, S) ->
   { TExpr, NS } = transform(Expr, S),
-  { TClauses, TS } = transform_propagated_clauses_tree(Line, Clauses, NS),
+  { TClauses, TS } = transform_clauses_tree(Line, Clauses, NS),
   { { 'case', Line, TExpr, TClauses }, TS };
 
 % Handle functions declarations. They preserve the current binding.
@@ -485,7 +492,7 @@ transform({'fun', Line, {clauses, Clauses}}, S) ->
 %
 % Variables are never passed forward. The counter is always passed.
 transform({'try', Line, Exprs}, S) ->
-  { TExprs, SE } = transform_tree(Exprs, S),
+  { TExprs, SE } = transform_tree(Exprs, S#elixir_scope{noname=true}),
   { { call, Line,
     { 'fun', Line,
       { clauses,
@@ -494,11 +501,15 @@ transform({'try', Line, Exprs}, S) ->
     },
   [] }, umergec(S, SE) };
 
-transform({'try', Line, Body, Of, Clauses, After}, S) ->
+transform({'try', Line, Body, Of, Clauses, After}, RS) ->
+  % Just pass the variable counter forward between each clause.
+  S = RS#elixir_scope{noname=true},
+  Transformer = fun(X, Acc) -> transform(X, umergec(S, Acc)) end,
+
   { TBody, SB } = transform_tree(Body, S),
-  { TClauses, SC } = transform_clauses_tree(Clauses, S, SB),
+  { TClauses, SC } = lists:mapfoldl(Transformer, umergec(S, SB), Clauses),
   { TAfter, SA } = transform_tree(After, umergec(S, SC)),
-  { { 'try', Line, TBody, Of, TClauses, TAfter }, umergec(S, SA) };
+  { { 'try', Line, TBody, Of, TClauses, TAfter }, umergec(RS, SA) };
 
 % Handle receive expressions.
 %
@@ -507,11 +518,11 @@ transform({'try', Line, Body, Of, Clauses, After}, S) ->
 % Variables can be defined inside receive clauses as in case/match.
 % Variables defined in after do not leak to the outer scope.
 transform({'receive', Line, Clauses}, S) ->
-  { TClauses, SC } = transform_clauses_tree(Clauses, S),
+  { TClauses, SC } = transform_clauses_tree(Line, Clauses, S),
   { { 'receive', Line, TClauses }, umergec(S, SC) };
 
 transform({'receive', Line, Clauses, Expr, After}, S) ->
-  { TClauses, SC } = transform_clauses_tree(Clauses, S),
+  { TClauses, SC } = transform_clauses_tree(Line, Clauses, S),
   { TExpr, _ } = transform(Expr, S),
   { TAfter, SA } = transform_tree(After, umergec(S, SC)),
   { { 'receive', Line, TClauses, TExpr, TAfter }, umergec(SC, SA) };
@@ -520,11 +531,13 @@ transform({'receive', Line, Clauses, Expr, After}, S) ->
 %
 % * case -> Handle several clauses through transform_clauses_tree
 % * receive/catch -> Handle several clauses through transform_clauses_tree
+% * if/elsif/else -> Handle several clauses through transform_clauses_tree
+% * try/catch/after -> Transform each clause manually
 % * fun declarations -> Transform each clause manually
 % * method declarations -> Transform each clause manually
 %
-% transform_clauses_tree transforms each clause by folding
-% the variables counter and accumulating the list of variables.
+% transform_clauses_tree transforms each clause keeping a list
+% of the variables changed and allowing them to leak to the outer scope.
 %
 % Both fun and method clauses allow the special operator := for default values.
 %
@@ -669,8 +682,18 @@ transform({filename, Line}, S) ->
 % Match all other expressions.
 transform(Expr, S) -> { Expr, S }.
 
-% Transform clauses tree
-transform_propagated_clauses_tree(Line, Clauses, RawS) ->
+% Transform a tree of clauses by keeping a dict with all variables
+% defined inside each clause. Variables defined in a clause but not
+% in the other have their default set to nil unless a default value
+% in the parent scope exists.
+
+% Special case if clause has just one element. There is no need to pass
+% through all the drama below.
+transform_clauses_tree(Line, [Clause], S) ->
+  { TClause, TS } = transform(Clause, S),
+  { [TClause], TS };
+
+transform_clauses_tree(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
 
   % Transform tree just passing the variables counter forward
@@ -715,12 +738,14 @@ transform_propagated_clauses_tree(Line, Clauses, RawS) ->
       { FClauses, SS }
   end.
 
+% If the var was defined in the clause, use it, otherwise use from main scope.
 normalize_clause_var(Var, OldValue, ClauseVars) ->
   case dict:find(Var, ClauseVars) of
     { ok, ClauseValue } -> { var, 0, ClauseValue };
     error -> OldValue
   end.
 
+% Normalize the given var checking its existence in the scope var dictionary.
 normalize_vars(Var, #elixir_scope{vars=Dict} = S) ->
   { { _, _, NewValue }, NS } = build_var_name(0, S),
   FS = NS#elixir_scope{vars=dict:store(Var, NewValue, Dict)},
@@ -731,17 +756,6 @@ normalize_vars(Var, #elixir_scope{vars=Dict} = S) ->
   end,
 
   { { Var, NewValue, Expr }, FS }.
-
-% Transform clauses tree
-transform_clauses_tree(Clauses, S) -> transform_clauses_tree(Clauses, S, S).
-
-transform_clauses_tree(Clauses, S, Initial) ->
-  Transformer = fun(X, Acc) ->
-    % Pass variables counter forward, but always get the variable list from given S
-    { TX, TAcc } = transform(X, umergec(S, Acc)),
-    { TX, umergev(Acc, TAcc) }
-  end,
-  lists:mapfoldl(Transformer, Initial, Clauses).
 
 % Handle transformations, generators and filters transformations.
 transform_comprehension({Kind, Line, Expr, Cases}, S) ->

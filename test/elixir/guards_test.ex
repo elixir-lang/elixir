@@ -16,9 +16,11 @@ object GuardsTest
   end
 
   def guards_on_case_test
-    x = 1
+    x = 10
 
     3 = case 1
+    match ~x
+      10
     match x when x < 0
       x * 2
     match x
@@ -28,31 +30,31 @@ object GuardsTest
     x
   end
 
-  % def guards_on_catch_test
-  %   2 = try
-  %     throw 1
-  %   catch 'throw: x when x < 0
-  %     x * -2
-  %   catch 'throw: x
-  %     x * 2
-  %   end
-  % 
-  %   -20 = try
-  %     throw -2
-  %   catch 'throw: x when x < 0
-  %     x * 10
-  %   catch 'throw: x
-  %     x * 2
-  %   end
-  % 
-  %   -20 = try
-  %     throw -2
-  %   catch 'throw: x, 'error: x when x < 0
-  %     x * 10
-  %   catch 'throw: x
-  %     x * 2
-  %   end
-  % end
+  def guards_on_catch_test
+    2 = try
+      throw 1
+    catch 'throw: x when x < 0
+      x * -2
+    catch 'throw: x
+      x * 2
+    end
+
+    -20 = try
+      throw(-2)
+    catch 'throw: x when x < 0
+      x * 10
+    catch 'throw: x
+      x * 2
+    end
+
+    -20 = try
+      throw(-2)
+    catch 'throw: x, 'error: x when x < 0
+      x * 10
+    catch 'throw: x
+      x * 2
+    end
+  end
 
   private
 
