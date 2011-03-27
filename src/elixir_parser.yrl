@@ -791,10 +791,10 @@ build_orddict_tuple(Key, Value) ->
 
 build_if_expr(Exprs) ->
   Line = ?line(hd(Exprs)),
-  { 'if', Line, Exprs, [{atom, Line, nil}] }.
+  { 'if', Line, Exprs, {else_clause, Line, [{atom, Line, nil}]} }.
 
 build_if_expr(Exprs, Else) ->
-  { 'if', ?line(hd(Exprs)), Exprs, element(3, Else) }.
+  { 'if', ?line(hd(Exprs)), Exprs, Else }.
 
 build_bin(Line, Elements) ->
   { bin, Line, Elements }.
