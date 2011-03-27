@@ -26,11 +26,13 @@
 % Keeps the scope used in transformation. It contains:
 %
 %   1) when true, new variables can be defined in that subtree
-%   2) keeps the name of the current method
-%   3) keeps the current module kind and name
-%   4) keeps a list of defined variables
-%   5) keeps a counter with the variables defined
-%   6) filename keeps the current scope filename
-%   7) keeps a dict of variables that were explictly assigned
+%   2) when true, we are inside a guard
+%   3) keeps the name of the current method
+%   4) keeps the current module kind and name
+%   5) keeps a list of defined variables
+%   6) keeps a list of all variables being defined in that particular assign
+%   7) keeps a counter with the variables defined
+%   8) filename keeps the current scope filename
+%   9) keeps a dict of variables that were explictly assigned
 %
--record(elixir_scope, {assign=false, method=[], scope={[],[]}, vars=dict:new(), temp_vars=[], counter=0, filename="nofile", assigned_vars=dict:new()}).
+-record(elixir_scope, {assign=false, guard=false, method=[], scope={[],[]}, vars=dict:new(), temp_vars=[], counter=0, filename="nofile", assigned_vars=dict:new()}).

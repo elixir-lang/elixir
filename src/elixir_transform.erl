@@ -366,10 +366,11 @@ transform({binary_op, Line, Op, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
 
+  Optimize = S#elixir_scope.assign or S#elixir_scope.guard,
   SF = umergev(SL, SR),
 
   % Check if left side is an integer or float, if so, dispatch straight to the operator
-  case S#elixir_scope.assign orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
+  case Optimize orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
     true -> { {op, Line, Op, TLeft, TRight}, SF };
     false ->
       Args = { cons, Line, TRight, {nil, Line} },
@@ -480,9 +481,8 @@ transform({'try', Line, Exprs}, S) ->
   [] }, umergec(S, SE) };
 
 transform({'try', Line, Body, Of, Clauses, After}, S) ->
-  Transformer = fun(X, Acc) -> transform(X, umergec(S, Acc)) end,
   { TBody, SB } = transform_tree(Body, S),
-  { TClauses, SC } = lists:mapfoldl(Transformer, SB, Clauses),
+  { TClauses, SC } = transform_clauses_tree(Clauses, S, SB),
   { TAfter, SA } = transform_tree(After, umergec(S, SC)),
   { { 'try', Line, TBody, Of, TClauses, TAfter }, umergec(S, SA) };
 
@@ -524,8 +524,13 @@ transform({'receive', Line, Clauses, Expr, After}, S) ->
 % because variables in one clause should not affect the other.
 transform({clause, Line, Args, Guards, Exprs}, S) ->
   { TArgs, SA } = transform_assigns(fun transform_tree/2, Args, S),
-  { TExprs, SE } = transform_tree(Exprs, SA),
-  { { clause, Line, TArgs, Guards, TExprs }, SE };
+  { TGuards, SG } = transform_tree(Guards, SA#elixir_scope{guard=true}),
+  { TExprs, SE } = transform_tree(Exprs, SG#elixir_scope{guard=false}),
+  FGuards = case TGuards of
+    [] -> [];
+    _  -> [TGuards]
+  end,
+  { { clause, Line, TArgs, FGuards, TExprs }, SE };
 
 transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
   { TExpr, TExprS } = transform(Expr, ExprS),
@@ -651,13 +656,15 @@ transform({filename, Line}, S) ->
 transform(Expr, S) -> { Expr, S }.
 
 % Transform clauses tree
-transform_clauses_tree(Clauses, S) ->
+transform_clauses_tree(Clauses, S) -> transform_clauses_tree(Clauses, S, S).
+
+transform_clauses_tree(Clauses, S, Initial) ->
   Transformer = fun(X, Acc) ->
     % Pass variables counter forward, but always get the variable list from given S
     { TX, TAcc } = transform(X, umergec(S, Acc)),
     { TX, umergev(Acc, TAcc) }
   end,
-  lists:mapfoldl(Transformer, S, Clauses).
+  lists:mapfoldl(Transformer, Initial, Clauses).
 
 % Handle transformations, generators and filters transformations.
 transform_comprehension({Kind, Line, Expr, Cases}, S) ->

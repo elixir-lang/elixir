@@ -57,9 +57,9 @@ object RecordTest
   def record_reflection_test
     record = RecordTest::ElixirScope.new
     'elixir_scope = record.record_name
-    ['assign,'method,'scope,'vars,'temp_vars,'counter,'filename,'assigned_vars] = record.record_keys
-    [false,[],{[], []},_,[],0,$"nofile",_] = record.record_defaults
-    8 = record.record_size
+    ['assign,'guard,'method,'scope,'vars,'temp_vars,'counter,'filename,'assigned_vars] = record.record_keys
+    [false,false,[],{[], []},_,[],0,$"nofile",_] = record.record_defaults
+    9 = record.record_size
   end
 
   private

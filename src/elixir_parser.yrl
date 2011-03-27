@@ -71,6 +71,7 @@ Nonterminals
   andand_op
   oror_op
   dot_eol
+  guards
   object_decl module_decl objmod_body
   method_decl method_name method_body implicit_method_name method_ops_identifier implicit_method_ops_identifier
   case_expr case_clause case_clauses else_case_clauses
@@ -84,7 +85,7 @@ Terminals
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false nil
-  if elsif else then unless case match try catch receive after filename
+  if elsif else then unless case match try catch receive after when filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '<-'
@@ -225,7 +226,7 @@ _expr -> fun_base : '$1'.
 _expr -> _expr right_op _expr : build_op_call('$1', '$2', '$3').
 _expr -> _expr andand_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr oror_op _expr : build_comp_op('$1', '$2', '$3').
-_expr -> _expr and_op _expr : build_comp_op('$1', '$2', '$3'). 
+_expr -> _expr and_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr or_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr comp_op _expr : build_comp_op('$1', '$2', '$3').
 _expr -> _expr add_op _expr  : build_binary_op('$1', '$2', '$3').
@@ -277,16 +278,16 @@ _method_call_expr -> punctuated_identifier call_args_parens : build_local_call('
 
 % Base function declarations
 fun_base -> stabber call_args_parens expr :
-  build_fun('$1', build_clause('$1', '$2', ['$3'])).
+  build_fun('$1', build_clause('$1', '$2', [], ['$3'])).
 
 fun_base -> stabber _expr :
-  build_fun('$1', build_clause('$1', [], ['$2'])).
+  build_fun('$1', build_clause('$1', [], [], ['$2'])).
 
 fun_base -> stabber call_args_parens break body 'end' :
-  build_fun('$1', build_clause('$1', '$2', '$4')).
+  build_fun('$1', build_clause('$1', '$2', [], '$4')).
 
 fun_base -> stabber break body 'end' :
-  build_fun('$1', build_clause('$1', [], '$3')).
+  build_fun('$1', build_clause('$1', [], [], '$3')).
 
 % Args given on method invocations.
 base_orddict  -> colon_comma_expr : { orddict, ?line(lists:nth(1, '$1')), '$1' }.
@@ -479,7 +480,10 @@ else_clause -> else ';' body : { else_clause, ?line('$1'), '$3' }.
 case_expr -> case expr else_case_clauses 'end'       : { 'case', ?line('$1'), '$2', '$3' }.
 case_expr -> case expr break else_case_clauses 'end' : { 'case', ?line('$1'), '$2', '$4' }.
 
-case_clause -> match match_args_optional then_break body : build_multiple_clauses('$1', '$2', '$4').
+guards -> when expr : ['$2'].
+
+case_clause -> match match_args_optional then_break body : build_multiple_clauses('$1', '$2', [], '$4').
+case_clause -> match match_args_optional guards then_break body : build_multiple_clauses('$1', '$2', '$3', '$4').
 
 case_clauses -> case_clause : '$1'.
 case_clauses -> case_clause case_clauses : '$1' ++ '$2'.
@@ -491,7 +495,8 @@ else_case_clauses -> case_clauses else_clause : '$1' ++ ['$2'].
 receive_expr -> receive_clauses end : { 'receive', ?line(hd('$1')), '$1' }.
 receive_expr -> receive_clauses after expr then_break body end : { 'receive', ?line(hd('$1')), '$1', '$3', '$5' }.
 
-receive_clause -> receive match_args_optional then_break body : build_multiple_clauses('$1', '$2', '$4').
+receive_clause -> receive match_args_optional then_break body : build_multiple_clauses('$1', '$2', [], '$4').
+receive_clause -> receive match_args_optional guards then_break body : build_multiple_clauses('$1', '$2', '$3', '$4').
 receive_clauses -> receive_clause : '$1'.
 receive_clauses -> receive case_clauses : '$2'.
 receive_clauses -> receive break case_clauses : '$3'.
@@ -509,7 +514,9 @@ catch_args -> expr ':' expr comma_separator catch_args : [{'$1', '$3'}|'$5'].
 
 try_clause -> try body : build_try('$1', '$2').
 
-catch_clause -> catch catch_args then_break body : build_catch_clauses('$1', '$2', '$4').
+catch_clause -> catch catch_args then_break body : build_catch_clauses('$1', '$2', [], '$4').
+catch_clause -> catch catch_args guards then_break body : build_catch_clauses('$1', '$2', '$3', '$5').
+
 catch_clauses -> catch_clause : '$1'.
 catch_clauses -> catch_clause catch_clauses : '$1' ++ '$2'.
 
@@ -628,13 +635,19 @@ objmod_body -> decl_list : check_body('$1').
 
 % Method declarations
 method_decl -> def method_name break method_body :
-  build_def_method('$2', [], build_clause('$2', [], '$4')).
+  build_def_method('$2', [], build_clause('$2', [], [], '$4')).
 
 method_decl -> def method_name match_args_parens method_body :
-  build_def_method('$2', '$3', build_clause('$2', '$3', '$4')).
+  build_def_method('$2', '$3', build_clause('$2', '$3', [], '$4')).
 
 method_decl -> def method_name match_args_optional break method_body :
-  build_def_method('$2', '$3', build_clause('$2', '$3', '$5')).
+  build_def_method('$2', '$3', build_clause('$2', '$3', [], '$5')).
+
+method_decl -> def method_name guards break method_body :
+  build_def_method('$2', [], build_clause('$2', [], '$3', '$5')).
+
+method_decl -> def method_name match_args_optional guards break method_body :
+  build_def_method('$2', '$3', build_clause('$2', '$3','$4', '$6')).
 
 % Method body
 method_body -> body end : '$1'.
@@ -693,19 +706,19 @@ build_try(Block, Rescue, After) ->
 build_method(Exprs, Rescue, After, End) ->
   [{ 'try', ?line(End), Exprs, [], Rescue, After }].
 
-build_catch_clauses(Parent, Args, Body) ->
-  Transformer = fun(X) -> build_clause(Parent, build_catch_arg(X), Body) end,
+build_catch_clauses(Parent, Args, Guards, Body) ->
+  Transformer = fun(X) -> build_clause(Parent, build_catch_arg(X), Guards, Body) end,
   lists:map(Transformer, Args).
 
 build_catch_arg({Atom, Other}) ->
   [{tuple, ?line(Atom), [Atom, Other, {var, ?line(Atom), '_'}]}].
 
-build_multiple_clauses(Parent, Args, Body) ->
-  Transformer = fun(X) -> build_clause(Parent, [X], Body) end,
+build_multiple_clauses(Parent, Args, Guards, Body) ->
+  Transformer = fun(X) -> build_clause(Parent, [X], Guards, Body) end,
   lists:map(Transformer, Args).
 
-build_clause(Parent, Args, Body) ->
-  { clause, ?line(Parent), Args, [], Body }.
+build_clause(Parent, Args, Guards, Body) ->
+  { clause, ?line(Parent), Args, Guards, Body }.
 
 build_object(Kind, Name, Body, Parent) ->
   { Kind, ?line(Name), ?chars(Name), Parent, Body }.
