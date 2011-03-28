@@ -33,7 +33,7 @@ object Date
  
   def initialize(date_tuple)
     {year, month, day} = date_tuple
-    {'year: year, 'month: month, 'day: day}
+    @('year: year, 'month: month, 'day: day)
   end
 
   def to_s
