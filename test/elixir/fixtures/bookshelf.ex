@@ -1,7 +1,7 @@
 object Bookshelf
-  def constructor(books)
+  def initialize(books)
     { 'ok, ref } = GenServer.start_link(Bookshelf::Server.new(books))
-    { 'ref: ref }
+    @('ref: ref)
   end
 
   def put(title)
@@ -21,8 +21,8 @@ object Bookshelf
   end
 
   object Server
-    def constructor(books)
-      { 'books: books }
+    def initialize(books)
+      @('books: books)
     end
 
     def init

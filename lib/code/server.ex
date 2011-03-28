@@ -7,10 +7,10 @@ object Code::Server
     end
   end
 
-  def constructor(basepath, basefiles)
+  def initialize(basepath, basefiles)
     paths  = [File.expand_path(basepath)]
     loaded = [File.expand_path(file) for file in basefiles]
-    { 'paths: paths, 'loaded: loaded, 'argv: [] }
+    @('paths: paths, 'loaded: loaded, 'argv: [])
   end
 
   def init

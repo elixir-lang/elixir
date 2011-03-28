@@ -28,8 +28,8 @@ object ETS
     end
   end
 
-  def constructor(table)
-    {'table: table}
+  def initialize(table)
+    @('table: table)
   end
 
   % Deletes the entire table.

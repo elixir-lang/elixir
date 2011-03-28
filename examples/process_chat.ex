@@ -1,8 +1,8 @@
 module Chat
   module Client
     object Room
-      def constructor(room)
-        { 'room: room }
+      def initialize(room)
+        @('room: room)
       end
 
       def join
@@ -42,8 +42,8 @@ module Chat
 
   module Server
     object Room
-      def constructor(clients)
-        { 'clients: clients }
+      def initialize(clients)
+        @('clients: clients)
       end
 
       def loop

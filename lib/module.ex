@@ -54,8 +54,8 @@ object Module
     %     object Car
     %       attr_reader ['color]
     %
-    %       def constructor(color)
-    %         { 'color: color }
+    %       def initialize(color)
+    %         @('color: color)
     %       end
     %     end
     %

@@ -149,8 +149,8 @@ object Object
       self.inspect
     end
 
-    def constructor
-      {:}
+    def initialize
+      self
     end
 
     def get_ivar(name)
@@ -162,8 +162,8 @@ object Object
     % ## Example
     %
     %     object Foo
-    %       def constructor
-    %         { 'bar: 1, 'baz: 2 }
+    %       def initialize
+    %         @('bar: 1, 'baz: 2)
     %       end
     %     end
     %
@@ -223,6 +223,11 @@ object Object
 
     def catch!(function)
       filter_catch_stacktrace Erlang.elixir_object_methods.function_catch(function)
+    end
+
+    def method_missing('initialize, args)
+      IO.puts "[ELIXIR] Defining 'constructor' is deprecated. Please define 'initialize' and return an object."
+      @(__send__('constructor, args))
     end
 
     def method_missing(method, args)

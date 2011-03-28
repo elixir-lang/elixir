@@ -32,13 +32,13 @@ object IO
   mixin IO::Methods
   proto IO::Methods
 
-  def constructor(device)
-    constructor(device, [], {:})
+  def initialize(device)
+    initialize(device, [], {:})
   end
 
-  def constructor(device, mode, options)
+  def initialize(device, mode, options)
     encoding = options['encoding] || 'utf8
-    { 'device: device, 'mode: mode, 'encoding: encoding }
+    @('device: device, 'mode: mode, 'encoding: encoding)
   end
 
   @('device: 'standard_io, 'encoding: 'utf8)

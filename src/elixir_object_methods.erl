@@ -17,9 +17,9 @@ new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
     _  -> Name
   end,
   Object = #elixir_object__{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
-  Data = elixir_dispatch:dispatch(Object, constructor, Args),
-  Dict = assert_dict_with_atoms(Data),
-  Object#elixir_object__{data=Dict};
+  NewObject = elixir_dispatch:dispatch(Object, initialize, Args),
+  assert_same_object(Object, NewObject),
+  NewObject;
 
 new(Else, Args) -> builtinnotallowed(Else, new).
 
@@ -113,11 +113,14 @@ assert_dict_with_atoms(#elixir_orddict__{struct=Dict} = Object) ->
   case lists:all(fun is_atom/1, orddict:fetch_keys(Dict)) of
     true  -> Dict;
     false ->
-      elixir_errors:error({badconstructor, Object})
+      elixir_errors:error({badivars, Object})
   end;
 
 assert_dict_with_atoms(Data) ->
-  elixir_errors:error({badconstructor, Data}).
+  elixir_errors:error({badivars, Data}).
+
+assert_same_object(#elixir_object__{parent=Parent}, #elixir_object__{parent=Parent}) -> true;
+assert_same_object(_, Else) -> elixir_errors:error({badinitialize, Else}).
 
 % Helper that prepends a mixin or a proto to the object chain.
 prepend_as(#elixir_object__{} = Self, Chain, Kind, Value) ->

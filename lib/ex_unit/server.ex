@@ -23,8 +23,8 @@ object ExUnit::Server
     end
   end
 
-  def constructor(options)
-    { 'options: options, 'cases: [] }
+  def initialize(options)
+    @('options: options, 'cases: [])
   end
 
   def init()
