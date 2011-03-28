@@ -23,6 +23,7 @@
 
 * deprecations
   * protected methods were removed for performance reasons, may eventually be brought back
+  * remove constructor in favor of initialize
 
 ## v0.1.0 (2011-03-12)
 

@@ -959,17 +959,17 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     The `name` given is not an atom and cannot be given as instance variable name;
 
-*   `{ 'badconstructor, value }`
+*   `{ 'badinitialize, value }`
 
-    `value` returned by `constructor` is not an OrderedDict or it is an OrderedDict, but not all keys are atoms;
+    `value` returned by `initialize` is not the same kind as the original object;
+
+*   `{ 'badivars, value }`
+
+    `value` given to `@()` or `set_ivars` is not an OrderedDict or it is an OrderedDict but not all keys are atoms;
 
 *   `{ 'moduledefined, { module, method } }`
 
     Cannot invoke `method` in `module` because the module was already defined. For example, calling `module_eval` in an already defined module will raise such errors;
-
-*   `{ 'badtype, { old, new } }`
-
-    Expected `new` to have the same parent or be a descendant of `old`, but it is not. Usually raised by callbacks which expect a similar object to be returned.
 
 ## Strings, Atoms, Regular Expressions, Interpolation and Sigils
 
@@ -1292,11 +1292,13 @@ This is much better! Now let's prove that everything is the same as before:
 
 ### Instance variables
 
-When creating an object, we sometimes want to define properties specific to that object. For example, a Person may have name and age as properties. This can be done by defining a `constructor`. A `constructor` is a method that receives all arguments given to `new` and should return a dict. The key-values given by the dict can be retrieved using instance variables:
+When creating an object, we sometimes want to define properties specific to that object. For example, a Person may have name and age as properties. This can be done by defining such properties as instance variables in the `initialize`:
 
     object Person
-      def constructor(name, age)
-        { 'name: name, 'age: age }
+      def initialize(name, age)
+        % Return a new version of this object but
+        % with name and age as instance variables
+        @('name: name, 'age: age)
       end
 
       def name
@@ -1312,11 +1314,11 @@ When creating an object, we sometimes want to define properties specific to that
     person.name % => 'john
     person.age  % => 24
 
-Instance variables can be changed using the `@()` syntax that accepts a dict and allows you to atomically create a new object based on the current one:
+Notice the `initialize` method needs to return an object of the same kind as the one being initialized. The `@()` syntax used above is just a special syntax to the `set_ivars` method. Both formats accept a dict and can be used in any method:
 
     object Person
-      def constructor(name, age)
-        { 'name: name, 'age: age }
+      def initialize(name, age)
+        @('name: name, 'age: age)
       end
 
       def name
@@ -1341,7 +1343,7 @@ Instance variables can be changed using the `@()` syntax that accepts a dict and
     another_person.name % => 'johh_doe
     another_person.age  % => 24
 
-Notice that `@()` returns a new object. This is expected because as Erlang structures are immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
+Notice that `@()` (and `set_ivars`) returns a new object. This is expected because as Erlang structures are immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
 
 ### Advanced: The Object Graph
 
@@ -1826,8 +1828,8 @@ You can also retrieve internal information about objects, like ivars, methods av
 Elixir also allows you to dynamically define methods. For example, below we can define attribute readers for both "title" and "author" attributes dynamically:
 
     object Book
-      def constructor(title, author)
-        { 'title: title, 'author: author }
+      def initialize(title, author)
+        @('title: title, 'author: author)
       end
 
       ["title", "author"].each do (method)
@@ -1844,8 +1846,8 @@ The real benefit is when you encapsulate it inside a method. For example, the de
     object Book
       attr_reader ['title, 'author]
 
-      def constructor(title, author)
-        { 'title: title, 'author: author }
+      def initialize(title, author)
+        @('title: title, 'author: author)
       end
     end
 
