@@ -3,8 +3,8 @@
 object ExUnit::Formatter
   proto Code::Formatter
 
-  def constructor()
-    { 'counter: 0, 'failures: [] }
+  def initialize()
+    @('counter: 0, 'failures: [])
   end
 
   def each(_object, _test, nil)

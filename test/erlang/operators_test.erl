@@ -34,6 +34,12 @@ vars_if_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
+multi_assigned_if_test() ->
+  {3, _} = elixir:eval("x = 1\nif true\nx = 2\nx = 3\nelse true\nend\nx"),
+  {3, _} = elixir:eval("x = 1\nif true\n\~x = 1\nx = 2\nx = 3\nelse true\nend\nx"),
+  {1, _} = elixir:eval("if true\nx = 1\nelse true\nend\nx"),
+  {nil, _} = elixir:eval("if false\nx = 1\nelse true\nend\nx").
+
 case_test() ->
   {true, _} = elixir:eval("case 1 match 2 then false match 1 then true end"),
   {true, [{x,1}]} = elixir:eval("case 1 match {x,y} then false match x then true end"),
@@ -41,6 +47,12 @@ case_test() ->
   {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y}\ntrue\nmatch {1,x}\nfalse\nend"),
   {true, _} = elixir:eval("case {1,2} match {3,4}\nfalse\nelse true\nend"),
   {true, _} = elixir:eval("case {1,2} match {3,4}, {1,2}\ntrue\nend").
+
+multi_assigned_case_test() ->
+  {3, _} = elixir:eval("x = 1\ncase true match true\nx = 2\nx = 3\nelse true\nend\nx"),
+  {3, _} = elixir:eval("x = 1\ncase 1 match \~x\nx = 2\nx = 3\nelse true\nend\nx"),
+  {1, _} = elixir:eval("case true match true\nx = 1\nelse true\nend\nx"),
+  {nil, _} = elixir:eval("case true match false\nx = 1\nelse true\nend\nx").
 
 vars_case_test() ->
   F = fun() ->

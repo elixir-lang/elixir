@@ -21,9 +21,15 @@ forms(String, StartLine, Filename) ->
 umergev(S1, S2) ->
   V1 = S1#elixir_scope.vars,
   V2 = S2#elixir_scope.vars,
+  C1 = S1#elixir_scope.clause_vars,
+  C2 = S2#elixir_scope.clause_vars,
   A1 = S1#elixir_scope.assigned_vars,
   A2 = S2#elixir_scope.assigned_vars,
-  S2#elixir_scope{vars=dict:merge(fun var_merger/3, V1, V2), assigned_vars=dict:merge(fun(_,_,V) -> V end, A1, A2)}.
+  S2#elixir_scope{
+    vars=dict:merge(fun var_merger/3, V1, V2),
+    clause_vars=dict:merge(fun var_merger/3, C1, C2),
+    assigned_vars=dict:merge(fun(_,_,V) -> V end, A1, A2)
+  }.
 
 % Receives two scopes and return a new scope based on the first
 % with the counter values from the first one.
@@ -36,8 +42,8 @@ var_merger(Var, K1, Var) -> K1;
 var_merger(Var, K1, K2) ->
   V1 = list_to_integer(tl(atom_to_list(K1))),
   V2 = list_to_integer(tl(atom_to_list(K2))),
-  if V1 > V2 -> V1;
-     true -> V2
+  if V1 > V2 -> K1;
+     true -> K2
   end.
 
 % Transform considering assigns manipulation.
@@ -73,23 +79,28 @@ transform({identifier, Line, Name}, S) ->
   Match = S#elixir_scope.assign,
   Vars = S#elixir_scope.vars,
   TempVars = S#elixir_scope.temp_vars,
+  ClauseVars = S#elixir_scope.clause_vars,
 
   case Name of
     'self' -> { {var, Line, Name}, S };
     '_' -> { {var, Line, Name}, S };
     _ ->
-      case { Match, dict:is_key(Name, Vars) } of
-        { true, true } ->
-          case lists:member(Name, TempVars) of
-            true  -> { {var, Line, dict:fetch(Name, Vars) }, S };
-            false ->
-              { NewVar, NS } = build_var_name(Line, S),
-              RealName = element(3, NewVar),
-              { NewVar, NS#elixir_scope{vars=dict:store(Name, RealName, Vars), temp_vars=[RealName|TempVars]} }
-          end;
-        { false, true }  -> { {var, Line, dict:fetch(Name, Vars) }, S };
-        { true, false }  -> { {var, Line, Name}, S#elixir_scope{vars=dict:store(Name, Name, Vars), temp_vars=[Name|TempVars]} };
-        { false, false } -> transform({local_call, Line, Name, []}, S)
+      case { Match, dict:is_key(Name, Vars), lists:member(Name, TempVars) } of
+        { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
+        { true, Else, _ } ->
+          % If it was already assigned or in a noname scope, build a new var
+          { NewVar, NS } = case Else or S#elixir_scope.noname of
+            true -> build_var_name(Line, S);
+            false -> { {var, Line, Name}, S }
+          end,
+          RealName = element(3, NewVar),
+          { NewVar, NS#elixir_scope{
+            vars=dict:store(Name, RealName, Vars),
+            temp_vars=[RealName|TempVars],
+            clause_vars=dict:store(Name, RealName, ClauseVars)
+          } };
+        { false, false, _ } -> transform({local_call, Line, Name, []}, S);
+        { false, true, _ }  -> { {var, Line, dict:fetch(Name, Vars) }, S }
       end
   end;
 
@@ -100,7 +111,7 @@ transform({bound_identifier, Line, Name}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope to bound variable", atom_to_list(Name));
     true ->
       case dict:find(Name, S#elixir_scope.vars) of
-        { ok, Value } -> { {var, Line, Name}, S };
+        { ok, Value } -> { {var, Line, Value}, S };
         error -> error({unbound_var, Name})
       end
   end;
@@ -366,10 +377,11 @@ transform({binary_op, Line, Op, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
 
+  Optimize = S#elixir_scope.assign or S#elixir_scope.guard,
   SF = umergev(SL, SR),
 
   % Check if left side is an integer or float, if so, dispatch straight to the operator
-  case S#elixir_scope.assign orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
+  case Optimize orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
     true -> { {op, Line, Op, TLeft, TRight}, SF };
     false ->
       Args = { cons, Line, TRight, {nil, Line} },
@@ -433,11 +445,10 @@ transform({unary_op, Line, Op, Right}, S) ->
 %
 % Second, a variable defined in a clause does not affect other clauses,
 % so the second clause above could sucessfully invoke the method foo.
-transform({'if', Line, [If|Elsifs], Else}, S) ->
-  { TIf, IfS } = transform(If, {S,#elixir_scope{}}),
-  { TElsifs, {ExprS, ListS} } = transform_tree(Elsifs, IfS),
-  { TElse, ElseS } = transform_tree(Else, ExprS),
-  { hd(lists:foldr(fun build_if_clauses/2, TElse, [TIf|TElsifs])), umergev(ListS, ElseS) };
+transform({'if', Line, Exprs, Else}, S) ->
+  { TExprs, SE } = transform_clauses_tree(Line, Exprs ++ [Else], S),
+  { TIfs, [TElse] } = lists:split(length(TExprs) - 1, TExprs),
+  { hd(lists:foldr(fun build_if_clauses/2, element(5, TElse), TIfs)), SE };
 
 % Handle case expressions.
 %
@@ -448,7 +459,7 @@ transform({'if', Line, [If|Elsifs], Else}, S) ->
 % passed forward as well.
 transform({'case', Line, Expr, Clauses}, S) ->
   { TExpr, NS } = transform(Expr, S),
-  { TClauses, TS } = transform_clauses_tree(Clauses, NS),
+  { TClauses, TS } = transform_clauses_tree(Line, Clauses, NS),
   { { 'case', Line, TExpr, TClauses }, TS };
 
 % Handle functions declarations. They preserve the current binding.
@@ -470,7 +481,7 @@ transform({'fun', Line, {clauses, Clauses}}, S) ->
 %
 % Variables are never passed forward. The counter is always passed.
 transform({'try', Line, Exprs}, S) ->
-  { TExprs, SE } = transform_tree(Exprs, S),
+  { TExprs, SE } = transform_tree(Exprs, S#elixir_scope{noname=true}),
   { { call, Line,
     { 'fun', Line,
       { clauses,
@@ -479,12 +490,15 @@ transform({'try', Line, Exprs}, S) ->
     },
   [] }, umergec(S, SE) };
 
-transform({'try', Line, Body, Of, Clauses, After}, S) ->
+transform({'try', Line, Body, Of, Clauses, After}, RS) ->
+  % Just pass the variable counter forward between each clause.
+  S = RS#elixir_scope{noname=true},
   Transformer = fun(X, Acc) -> transform(X, umergec(S, Acc)) end,
+
   { TBody, SB } = transform_tree(Body, S),
-  { TClauses, SC } = lists:mapfoldl(Transformer, SB, Clauses),
+  { TClauses, SC } = lists:mapfoldl(Transformer, umergec(S, SB), Clauses),
   { TAfter, SA } = transform_tree(After, umergec(S, SC)),
-  { { 'try', Line, TBody, Of, TClauses, TAfter }, umergec(S, SA) };
+  { { 'try', Line, TBody, Of, TClauses, TAfter }, umergec(RS, SA) };
 
 % Handle receive expressions.
 %
@@ -493,24 +507,26 @@ transform({'try', Line, Body, Of, Clauses, After}, S) ->
 % Variables can be defined inside receive clauses as in case/match.
 % Variables defined in after do not leak to the outer scope.
 transform({'receive', Line, Clauses}, S) ->
-  { TClauses, SC } = transform_clauses_tree(Clauses, S),
+  { TClauses, SC } = transform_clauses_tree(Line, Clauses, S),
   { { 'receive', Line, TClauses }, umergec(S, SC) };
 
-transform({'receive', Line, Clauses, Expr, After}, S) ->
-  { TClauses, SC } = transform_clauses_tree(Clauses, S),
-  { TExpr, _ } = transform(Expr, S),
-  { TAfter, SA } = transform_tree(After, umergec(S, SC)),
-  { { 'receive', Line, TClauses, TExpr, TAfter }, umergec(SC, SA) };
+transform({'receive', Line, Clauses, After}, S) ->
+  { TClauses, SC } = transform_clauses_tree(Line, Clauses ++ [After], S),
+  { FClauses, [TAfter] } = lists:split(length(TClauses) - 1, TClauses),
+  { _, _, FExpr, _, FAfter } = TAfter,
+  { { 'receive', Line, FClauses, FExpr, FAfter }, SC };
 
 % Handle clauses. Those are the forms that handle clauses:
 %
 % * case -> Handle several clauses through transform_clauses_tree
 % * receive/catch -> Handle several clauses through transform_clauses_tree
+% * if/elsif/else -> Handle several clauses through transform_clauses_tree
+% * try/catch/after -> Transform each clause manually
 % * fun declarations -> Transform each clause manually
 % * method declarations -> Transform each clause manually
 %
-% transform_clauses_tree transforms each clause by folding
-% the variables counter and accumulating the list of variables.
+% transform_clauses_tree transforms each clause keeping a list
+% of the variables changed and allowing them to leak to the outer scope.
 %
 % Both fun and method clauses allow the special operator := for default values.
 %
@@ -524,16 +540,26 @@ transform({'receive', Line, Clauses, Expr, After}, S) ->
 % because variables in one clause should not affect the other.
 transform({clause, Line, Args, Guards, Exprs}, S) ->
   { TArgs, SA } = transform_assigns(fun transform_tree/2, Args, S),
-  { TExprs, SE } = transform_tree(Exprs, SA),
-  { { clause, Line, TArgs, Guards, TExprs }, SE };
+  { TGuards, SG } = transform_tree(Guards, SA#elixir_scope{guard=true}),
+  { TExprs, SE } = transform_tree(Exprs, SG#elixir_scope{guard=false}),
+  FGuards = case TGuards of
+    [] -> [];
+    _  -> [TGuards]
+  end,
+  { { clause, Line, TArgs, FGuards, TExprs }, SE };
 
-transform({if_clause, Line, Bool, Expr, List}, {ExprS, ListS}) ->
-  { TExpr, TExprS } = transform(Expr, ExprS),
-  { TList, TListS } = transform_tree(List, TExprS),
-  { {if_clause, Line, Bool, TExpr, TList }, { umergec(TExprS, TListS), umergev(ListS, TListS) } };
+transform({if_clause, Line, Bool, Expr, List}, S) ->
+  { TExpr, SE } = transform(Expr, S),
+  { TList, SL } = transform_tree(List, SE),
+  { {if_clause, Line, Bool, TExpr, TList }, SL };
 
 transform({else_clause, Line, Exprs}, S) ->
   transform({clause, Line, [{var, Line, '_'}], [], Exprs }, S);
+
+transform({after_clause, Line, Expr, Else, Clauses}, S) ->
+  { TExpr, SE } = transform(Expr, S),
+  { TClauses, SA } = transform_tree(Clauses, SE),
+  { { after_clause, Line, TExpr, Else, TClauses }, SA };
 
 % Handles erlang function calls in the following format:
 %
@@ -650,14 +676,80 @@ transform({filename, Line}, S) ->
 % Match all other expressions.
 transform(Expr, S) -> { Expr, S }.
 
-% Transform clauses tree
-transform_clauses_tree(Clauses, S) ->
-  Transformer = fun(X, Acc) ->
-    % Pass variables counter forward, but always get the variable list from given S
-    { TX, TAcc } = transform(X, umergec(S, Acc)),
-    { TX, umergev(Acc, TAcc) }
+% Transform a tree of clauses by keeping a dict with all variables
+% defined inside each clause. Variables defined in a clause but not
+% in the other have their default set to nil unless a default value
+% in the parent scope exists.
+
+% Special case if clause has just one element. There is no need to pass
+% through all the drama below.
+transform_clauses_tree(Line, [Clause], S) ->
+  { TClause, TS } = transform(Clause, S),
+  { [TClause], TS };
+
+transform_clauses_tree(Line, Clauses, RawS) ->
+  S = RawS#elixir_scope{clause_vars=dict:new()},
+
+  % Transform tree just passing the variables counter forward
+  % and storing variables defined inside each clause.
+  Transformer = fun(X, {Acc, CV}) ->
+    { TX, TAcc } = transform(X, Acc),
+    { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
   end,
-  lists:mapfoldl(Transformer, S, Clauses).
+
+  { TClauses, { TS, RawCV } } = lists:mapfoldl(Transformer, {S, []}, Clauses),
+
+  % Now get all the variables defined inside each clause
+  CV = lists:reverse(RawCV),
+  NewVars = lists:umerge([lists:sort(dict:fetch_keys(X)) || X <- CV]),
+
+  case NewVars of
+    [] -> { TClauses, TS };
+    _  ->
+      % Create a new scope that contains a list of all variables
+      % defined inside all the clauses. It returns this new scope and
+      % a list of tuples where the first element is the variable name,
+      % the second one is the new pointer to the variable and the third
+      % is the old pointer.
+      { FinalVars, FS } = lists:mapfoldl(fun normalize_vars/2, TS, NewVars),
+
+      % Defines a tuple that will be used as left side of the match operator
+      LeftTuple = { tuple, Line, [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars] },
+      { StorageVar, SS } = build_var_name(Line, FS),
+
+      % Expand all clauses by adding a match operation at the end that assigns
+      % variables missing in one clause to the others.
+      Expander = fun(Clause, Counter) ->
+        ClauseVars = lists:nth(Counter, CV),
+        RightTuple = [normalize_clause_var(Var, OldValue, ClauseVars) || {Var, _, OldValue} <- FinalVars],
+        [Final|RawClauses] = lists:reverse(element(5, Clause)),
+        StorageExpr = { match, Line, StorageVar, Final },
+        ExtraExpr   = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
+        { setelement(5, Clause, lists:reverse([StorageVar,ExtraExpr,StorageExpr|RawClauses])), Counter + 1 }
+      end,
+
+      { FClauses, _ } = lists:mapfoldl(Expander, 1, TClauses),
+      { FClauses, SS }
+  end.
+
+% If the var was defined in the clause, use it, otherwise use from main scope.
+normalize_clause_var(Var, OldValue, ClauseVars) ->
+  case dict:find(Var, ClauseVars) of
+    { ok, ClauseValue } -> { var, 0, ClauseValue };
+    error -> OldValue
+  end.
+
+% Normalize the given var checking its existence in the scope var dictionary.
+normalize_vars(Var, #elixir_scope{vars=Dict} = S) ->
+  { { _, _, NewValue }, NS } = build_var_name(0, S),
+  FS = NS#elixir_scope{vars=dict:store(Var, NewValue, Dict)},
+
+  Expr = case dict:find(Var, Dict) of
+    { ok, OldValue } -> { var, 0, OldValue };
+    error -> { atom, 0, nil }
+  end,
+
+  { { Var, NewValue, Expr }, FS }.
 
 % Handle transformations, generators and filters transformations.
 transform_comprehension({Kind, Line, Expr, Cases}, S) ->

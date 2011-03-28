@@ -66,8 +66,8 @@ object GenTCP
     end
   end
 
-  def constructor(socket)
-    {'socket: socket}
+  def initialize(socket)
+    @('socket: socket)
   end
 
   def controlling_process(pid)

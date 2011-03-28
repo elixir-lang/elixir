@@ -15,8 +15,8 @@ object IEX
     end
   end
 
-  def constructor
-    {'binding: [], 'codecache: ""}
+  def initialize
+    @('binding: [], 'codecache: "")
   end
 
   def loop

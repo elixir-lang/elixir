@@ -65,7 +65,7 @@ implicit_methods_are_compiled_to_proto_module_test() ->
 
 hash_given_on_initialization_is_used_as_ivars_test() ->
   F = fun() ->
-    elixir:eval("object Bar\ndef constructor;{'a: 1, 'b: 2};end\ndef a; @a; end\ndef b; @b; end\ndef c; @c; end\nend"),
+    elixir:eval("object Bar\ndef initialize;@('a: 1, 'b: 2);end\ndef a; @a; end\ndef b; @b; end\ndef c; @c; end\nend"),
     {1,[]}  = elixir:eval("Bar.new.a"),
     {2,[]}  = elixir:eval("Bar.new.b"),
     {[],[]} = elixir:eval("Bar.new.c")
@@ -74,7 +74,7 @@ hash_given_on_initialization_is_used_as_ivars_test() ->
 
 arguments_given_to_new_is_passed_to_constructors_test() ->
   F = fun() ->
-    elixir:eval("object Bar\ndef constructor(x, y);{'a: x, 'b: y};end\ndef a; @a + 2; end\ndef b; @b; end\ndef c; @c; end\nend"),
+    elixir:eval("object Bar\ndef initialize(x, y);@('a: x, 'b: y);end\ndef a; @a + 2; end\ndef b; @b; end\ndef c; @c; end\nend"),
     {3,[]}  = elixir:eval("Bar.new(1,2).a"),
     {2,[]}  = elixir:eval("Bar.new(1,2).b"),
     {[],[]} = elixir:eval("Bar.new(1,2).c")
@@ -83,15 +83,22 @@ arguments_given_to_new_is_passed_to_constructors_test() ->
 
 invalid_hash_on_construction_test() ->
   F = fun() ->
-    elixir:eval("object Bar\ndef constructor;{1: 2};end\nend"),
-    ?assertError({badconstructor, {elixir_orddict__, [{1,2}]}}, elixir:eval("Bar.new"))
+    elixir:eval("object Bar\ndef initialize;@(1: 2);end\nend"),
+    ?assertError({badivars, {elixir_orddict__, [{1,2}]}}, elixir:eval("Bar.new"))
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
 
 not_a_hash_on_construction_test() ->
   F = fun() ->
-    elixir:eval("object Bar\ndef constructor;'a;end\nend"),
-    ?assertError({badconstructor, a}, elixir:eval("Bar.new"))
+    elixir:eval("object Bar\ndef initialize;@('a);end\nend"),
+    ?assertError({badivars, a}, elixir:eval("Bar.new"))
+  end,
+  test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
+
+not_an_object_on_initialize_test() ->
+  F = fun() ->
+    elixir:eval("object Bar\ndef initialize;1;end\nend"),
+    ?assertError({badinitialize, 1}, elixir:eval("Bar.new"))
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Proto']).
 

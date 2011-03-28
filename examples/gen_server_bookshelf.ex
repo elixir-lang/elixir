@@ -1,7 +1,7 @@
 object Bookshelf
-  def constructor(books)
+  def initialize(books)
     { 'ok, ref } = GenServer.start_link(Bookshelf::Server.new(books))
-    { 'ref: ref }
+    @('ref: ref)
   end
 
   def put(title)
@@ -26,8 +26,8 @@ object Bookshelf
   % state is never passed as argument, because it is the object
   % itself.
   object Server
-    def constructor(books)
-      { 'books: books }
+    def initialize(books)
+      @('books: books)
     end
 
     def init

@@ -15,9 +15,11 @@ Elixir is still in development. If you want to help building it or are just look
     $ bin/elixir -v
     Elixir 0.2.0.dev
 
-Notice that Elixir requires Erlang R14B01 or later version to execute (R14A and R14B **do not work**). Prior versions do not work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
+If tests fail, it is likely you have an outdated Erlang version. You can check your Erlang version by calling ``erl`` in the command line. You will see some information as follow:
 
-Running the commands above with a supported Erlang version should compile Elixir, show as result that all tests pass and the current Elixir version. After, you are ready to play with Elixir!
+    Erlang R14B01 (erts-5.8.2) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
+
+Elixir requires Erlang R14B01 or later version to execute (R14A and R14B **do not work**). If you have the correct version and tests still fail, feel free to open an issue in the issues tracker on Github. If all tests pass, you are ready to play with Elixir!
 
 This README provides a length explanation about Elixir in the Learning Elixir section below. There are also some examples [in the examples folder](https://github.com/josevalim/elixir/tree/master/examples/) that you can run by executing the `bin/elixir EXAMPLE` and an interactive Elixir available as `bin/iex`. Feel free to build your own examples and study the language better.
 
@@ -440,7 +442,7 @@ Currently, functions do not support partial applications or pipes, but such feat
 
 ## Variables and Pattern Matching
 
-Variables in Elixir works differently from Erlang. You can assign to them several times:
+Variables in Elixir works differently from Erlang. You can assigned to them several times:
 
     x = 1
     x = 2
@@ -497,8 +499,6 @@ Keep in mind that the number of expressions allowed in pattern matching are limi
 
     1.abs = -1
 
-### Ordered dicts
-
 Ordered dicts are also allowed in pattern matching but there is one important restriction: you are responsible to make their order match. Therefore, this won't work:
 
     dict = { 2: 4, 1: 2 }
@@ -513,17 +513,6 @@ This fails because the `dict` variable is ordered, so it is actually represented
 
     % This matches and bound x and y to 2 and 4
     { 1: 2, x: y } = dict
-
-### Closures and immutability
-
-Keep in mind that variables assignment inside functions do not change the original binding. For example:
-
-    a = 1
-    b = -> a = 2
-    b()
-    a % => 1
-
-This is different compared to other languages but is coherent to Erlang's immutability. As everything is immutable, when the function assigns a new variable, it creates a new binding with the new variable value and the original binding is never modified. This is important to avoid side-effects when passing functions to different processes (parallel execution).
 
 ### Method signatures
 
@@ -970,17 +959,17 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     The `name` given is not an atom and cannot be given as instance variable name;
 
-*   `{ 'badconstructor, value }`
+*   `{ 'badinitialize, value }`
 
-    `value` returned by `constructor` is not an OrderedDict or it is an OrderedDict, but not all keys are atoms;
+    `value` returned by `initialize` is not the same kind as the original object;
+
+*   `{ 'badivars, value }`
+
+    `value` given to `@()` or `set_ivars` is not an OrderedDict or it is an OrderedDict but not all keys are atoms;
 
 *   `{ 'moduledefined, { module, method } }`
 
     Cannot invoke `method` in `module` because the module was already defined. For example, calling `module_eval` in an already defined module will raise such errors;
-
-*   `{ 'badtype, { old, new } }`
-
-    Expected `new` to have the same parent or be a descendant of `old`, but it is not. Usually raised by callbacks which expect a similar object to be returned.
 
 ## Strings, Atoms, Regular Expressions, Interpolation and Sigils
 
@@ -1303,11 +1292,13 @@ This is much better! Now let's prove that everything is the same as before:
 
 ### Instance variables
 
-When creating an object, we sometimes want to define properties specific to that object. For example, a Person may have name and age as properties. This can be done by defining a `constructor`. A `constructor` is a method that receives all arguments given to `new` and should return a dict. The key-values given by the dict can be retrieved using instance variables:
+When creating an object, we sometimes want to define properties specific to that object. For example, a Person may have name and age as properties. This can be done by defining such properties as instance variables in the `initialize`:
 
     object Person
-      def constructor(name, age)
-        { 'name: name, 'age: age }
+      def initialize(name, age)
+        % Return a new version of this object but
+        % with name and age as instance variables
+        @('name: name, 'age: age)
       end
 
       def name
@@ -1323,11 +1314,11 @@ When creating an object, we sometimes want to define properties specific to that
     person.name % => 'john
     person.age  % => 24
 
-Instance variables can be changed using the `@()` syntax that accepts a dict and allows you to atomically create a new object based on the current one:
+Notice the `initialize` method needs to return an object of the same kind as the one being initialized. The `@()` syntax used above is just a special syntax to the `set_ivars` method. Both formats accept a dict and can be used in any method:
 
     object Person
-      def constructor(name, age)
-        { 'name: name, 'age: age }
+      def initialize(name, age)
+        @('name: name, 'age: age)
       end
 
       def name
@@ -1352,7 +1343,7 @@ Instance variables can be changed using the `@()` syntax that accepts a dict and
     another_person.name % => 'johh_doe
     another_person.age  % => 24
 
-Notice that `@()` returns a new object. This is expected because as Erlang structures are immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
+Notice that `@()` (and `set_ivars`) returns a new object. This is expected because as Erlang structures are immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
 
 ### Advanced: The Object Graph
 
@@ -1758,6 +1749,70 @@ Besides, Elixir also imports behaviors from Erlang OTP. Currently, just `GenServ
 
 Some advanced topics related to Elixir.
 
+## Variable scopes
+
+As explained at the beginning of this README, Elixir allows the same variable to be assigned more than once. However, keep in mind that variables assignment inside functions do not change the original binding. For example:
+
+    a = 1
+    b = -> a = 2
+    b()
+    a % => 1
+
+As everything is immutable, when the function assigns a new variable, it creates a new binding with the new variable value and the original binding is never modified. This is important to avoid side-effects when passing functions to different processes (parallel execution).
+
+Also, Elixir has much more flexible rules when it comes to variables inside control-flow expressions. For instance, the following works:
+
+    x = 1
+
+    if true
+      x = 2
+    end
+
+    x % => 2
+
+The same is also true for `receive/after` and `case/match` expressions. The only exception comes to `try/catch` scenarios, where a variable defined inside such blocks is never accessible from the outside. For example:
+
+    x = 1
+
+    try
+      x = 2
+    catch _:_
+      % Do nothing
+    end
+
+    x % => 1
+
+## Guards
+
+Elixir has basic support for guards. They can be used on method declaration, `receive/match` clauses, `case/match` clauses and `catch` clauses. In all cases, they are declared using the keyword `when`. For instance, you could implement a method that returns the absolute value of a number as follow:
+
+    def abs(x) when x < 0
+      - x
+    end
+
+    def abs(x)
+      x
+    end
+
+In a receive/case match clause, we would do instead:
+
+    case y
+    match x when x < 0 then - x
+    match x then x
+    end
+
+Finally, in catch expressions it works as follow:
+
+    try
+      throw y
+    catch 'throw:x when x < 0
+      - x
+    catch 'throw:x
+      x
+    end
+
+Guards only supports arithmetic operators on numbers, comparison operators and the following boolean operators: `or`, `orelse`, `and`, `andalso` and `not`.
+
 ## Dynamic Dispatch, Reflection, Metaprogramming and Method Missing
 
 Elixir allows you to dynamically dispatch methods:
@@ -1773,8 +1828,8 @@ You can also retrieve internal information about objects, like ivars, methods av
 Elixir also allows you to dynamically define methods. For example, below we can define attribute readers for both "title" and "author" attributes dynamically:
 
     object Book
-      def constructor(title, author)
-        { 'title: title, 'author: author }
+      def initialize(title, author)
+        @('title: title, 'author: author)
       end
 
       ["title", "author"].each do (method)
@@ -1791,8 +1846,8 @@ The real benefit is when you encapsulate it inside a method. For example, the de
     object Book
       attr_reader ['title, 'author]
 
-      def constructor(title, author)
-        { 'title: title, 'author: author }
+      def initialize(title, author)
+        @('title: title, 'author: author)
       end
     end
 

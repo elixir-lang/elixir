@@ -1,8 +1,8 @@
 object Recorder
   attr_reader ['calls]
 
-  def constructor
-    {'calls : []}
+  def initialize
+    @('calls : [])
   end
 
   def method_missing(method, args)

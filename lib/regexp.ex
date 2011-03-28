@@ -52,7 +52,7 @@ object Regexp
   %
   %     Regexp.new("foo", "iu")
   %
-  def constructor(regexp, options := [])
+  def initialize(regexp, options := [])
     regexp_bin = regexp.to_bin
 
     parsed_options = options.to_char_list.foldl ['multiline], do (x, acc)
@@ -60,7 +60,7 @@ object Regexp
     end
 
     { 'ok, compiled } = Erlang.re.compile(regexp_bin, parsed_options)
-    { 'bin: regexp_bin, 'parsed_options: parsed_options, 'compiled: compiled }
+    @('bin: regexp_bin, 'parsed_options: parsed_options, 'compiled: compiled)
   end
 
   % Returns a boolean depending if the regular expressions matches the given string.

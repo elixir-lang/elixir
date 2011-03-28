@@ -24,14 +24,14 @@
 % allows you to read and update each attribute, you also have the following
 % methods available to manipulate the record:
 %
-% * constructor() - creates an instance for this record using the default
+% * initialize() - creates an instance for this record using the default
 %   values given in the record declaration.
 %
-% * constructor(tuple) - receives a tuple that matches the record. If the first
+% * initialize(tuple) - receives a tuple that matches the record. If the first
 %   element of the tuple does not match the record name and the tuple size does
 %   match the amount of fields in the record, an error is raised.
 %
-% * constructor(ordered_dict) - receives an ordered dict and creates a new record
+% * initialize(ordered_dict) - receives an ordered dict and creates a new record
 %   using the values for the given keys in the dict and using the default values
 %   for the keys that were not supplied.
 %
@@ -181,25 +181,25 @@ module Record
   % not supplied.
   %
   % If the given object is none of the above, a `badarg error is raised.
-  def constructor(object)
+  def initialize(object)
     case object.__parent_name__
     match 'Tuple
       if object[0] == self.record_name && object.size == self.record_keys.size + 1
         [_|pairs] = object.to_list
-        OrderedDict.from_list self.record_keys.zip(pairs)
+        @(OrderedDict.from_list self.record_keys.zip(pairs))
       else
         self.error { 'badrecord, object }
       end
     match 'OrderedDict
-      constructor().merge(object)
+      @(default_values.merge(object))
     else
       self.error { 'badarg, object }
     end
   end
 
   % Creates a new record using the default values as defaults.
-  def constructor()
-    OrderedDict.from_list self.record_keys.zip(self.record_defaults)
+  def initialize()
+    @(default_values)
   end
 
   % Behave like a dictionary.
@@ -210,5 +210,11 @@ module Record
   % Update the record using the given ordered dict *values*.
   def update(values)
     @(values)
+  end
+
+  private
+
+  def default_values
+    OrderedDict.from_list self.record_keys.zip(self.record_defaults)
   end
 end

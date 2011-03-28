@@ -58,9 +58,9 @@ end
 % This example is more object oriented. The PID is internal
 % to the object and you actually don't pass it around.
 object BestFridge
-  def constructor(list)
+  def initialize(list)
     pid = Process.spawn Fridge, 'loop, [list]
-    { 'pid: pid }
+    @('pid: pid)
   end
 
   def store(food)
