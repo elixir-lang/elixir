@@ -440,7 +440,7 @@ Currently, functions do not support partial applications or pipes, but such feat
 
 ## Variables and Pattern Matching
 
-Variables in Elixir works differently from Erlang. You can assign to them several times:
+Variables in Elixir works differently from Erlang. You can assigned to them several times:
 
     x = 1
     x = 2
@@ -497,8 +497,6 @@ Keep in mind that the number of expressions allowed in pattern matching are limi
 
     1.abs = -1
 
-### Ordered dicts
-
 Ordered dicts are also allowed in pattern matching but there is one important restriction: you are responsible to make their order match. Therefore, this won't work:
 
     dict = { 2: 4, 1: 2 }
@@ -513,17 +511,6 @@ This fails because the `dict` variable is ordered, so it is actually represented
 
     % This matches and bound x and y to 2 and 4
     { 1: 2, x: y } = dict
-
-### Closures and immutability
-
-Keep in mind that variables assignment inside functions do not change the original binding. For example:
-
-    a = 1
-    b = -> a = 2
-    b()
-    a % => 1
-
-This is different compared to other languages but is coherent to Erlang's immutability. As everything is immutable, when the function assigns a new variable, it creates a new binding with the new variable value and the original binding is never modified. This is important to avoid side-effects when passing functions to different processes (parallel execution).
 
 ### Method signatures
 
@@ -1757,6 +1744,70 @@ Besides, Elixir also imports behaviors from Erlang OTP. Currently, just `GenServ
 # Advanced Topics
 
 Some advanced topics related to Elixir.
+
+## Variable scopes
+
+As explained at the beginning of this README, Elixir allows the same variable to be assigned more than once. However, keep in mind that variables assignment inside functions do not change the original binding. For example:
+
+    a = 1
+    b = -> a = 2
+    b()
+    a % => 1
+
+As everything is immutable, when the function assigns a new variable, it creates a new binding with the new variable value and the original binding is never modified. This is important to avoid side-effects when passing functions to different processes (parallel execution).
+
+Also, Elixir has much more flexible rules when it comes to variables inside control-flow expressions. For instance, the following works:
+
+    x = 1
+
+    if true
+      x = 2
+    end
+
+    x % => 2
+
+The same is also true for `receive/after` and `case/match` expressions. The only exception comes to `try/catch` scenarios, where a variable defined inside such blocks is never accessible from the outside. For example:
+
+    x = 1
+
+    try
+      x = 2
+    catch _:_
+      % Do nothing
+    end
+
+    x % => 1
+
+## Guards
+
+Elixir has basic support for guards. They can be used on method declaration, `receive/match` clauses, `case/match` clauses and `catch` clauses. In all cases, they are declared using the keyword `when`. For instance, you could implement a method that returns the absolute value of a number as follow:
+
+    def abs(x) when x < 0
+      - x
+    end
+
+    def abs(x)
+      x
+    end
+
+In a receive/case match clause, we would do instead:
+
+    case y
+    match x when x < 0 then - x
+    match x then x
+    end
+
+Finally, in catch expressions it works as follow:
+
+    try
+      throw y
+    catch 'throw:x when x < 0
+      - x
+    catch 'throw:x
+      x
+    end
+
+Guards only supports arithmetic operators on numbers, comparison operators and the following boolean operators: `or`, `orelse`, `and`, `andalso` and `not`.
 
 ## Dynamic Dispatch, Reflection, Metaprogramming and Method Missing
 

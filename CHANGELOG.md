@@ -15,6 +15,7 @@
   * Improved performance on method dispatch about 8 times
   * Number operators are 'atom/value are allowed in method signatures
   * Allow variables to be assigned more than once
+  * Basic support for guards
 
 * bug fix
   * Allow Elixir keywords, but that are not Erlang keywords, on Erlang method invocations
