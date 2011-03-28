@@ -510,11 +510,11 @@ transform({'receive', Line, Clauses}, S) ->
   { TClauses, SC } = transform_clauses_tree(Line, Clauses, S),
   { { 'receive', Line, TClauses }, umergec(S, SC) };
 
-transform({'receive', Line, Clauses, Expr, After}, S) ->
-  { TClauses, SC } = transform_clauses_tree(Line, Clauses, S),
-  { TExpr, _ } = transform(Expr, S),
-  { TAfter, SA } = transform_tree(After, umergec(S, SC)),
-  { { 'receive', Line, TClauses, TExpr, TAfter }, umergec(SC, SA) };
+transform({'receive', Line, Clauses, After}, S) ->
+  { TClauses, SC } = transform_clauses_tree(Line, Clauses ++ [After], S),
+  { FClauses, [TAfter] } = lists:split(length(TClauses) - 1, TClauses),
+  { _, _, FExpr, _, FAfter } = TAfter,
+  { { 'receive', Line, FClauses, FExpr, FAfter }, SC };
 
 % Handle clauses. Those are the forms that handle clauses:
 %
@@ -555,6 +555,11 @@ transform({if_clause, Line, Bool, Expr, List}, S) ->
 
 transform({else_clause, Line, Exprs}, S) ->
   transform({clause, Line, [{var, Line, '_'}], [], Exprs }, S);
+
+transform({after_clause, Line, Expr, Else, Clauses}, S) ->
+  { TExpr, SE } = transform(Expr, S),
+  { TClauses, SA } = transform_tree(Clauses, SE),
+  { { after_clause, Line, TExpr, Else, TClauses }, SA };
 
 % Handles erlang function calls in the following format:
 %

@@ -77,7 +77,7 @@ Nonterminals
   case_expr case_clause case_clauses else_case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
   exception_expr try_clause catch_args catch_clause catch_clauses after_clause
-  receive_expr receive_clause receive_clauses
+  receive_expr receive_clause after_arg_clause receive_clauses
   .
 
 Terminals
@@ -493,13 +493,15 @@ else_case_clauses -> case_clauses else_clause : '$1' ++ ['$2'].
 
 % Receive
 receive_expr -> receive_clauses end : { 'receive', ?line(hd('$1')), '$1' }.
-receive_expr -> receive_clauses after expr then_break body end : { 'receive', ?line(hd('$1')), '$1', '$3', '$5' }.
+receive_expr -> receive_clauses after_arg_clause end : { 'receive', ?line(hd('$1')), '$1', '$2' }.
 
 receive_clause -> receive match_args_optional then_break body : build_multiple_clauses('$1', '$2', [], '$4').
 receive_clause -> receive match_args_optional guards then_break body : build_multiple_clauses('$1', '$2', '$3', '$4').
 receive_clauses -> receive_clause : '$1'.
 receive_clauses -> receive case_clauses : '$2'.
 receive_clauses -> receive break case_clauses : '$3'.
+
+after_arg_clause -> after expr then_break body : { after_clause, ?line('$1'), '$2', [], '$4' }.
 
 % Begin/Rescue/After
 exception_expr -> try_clause end : '$1'.
