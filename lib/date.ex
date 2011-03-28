@@ -31,7 +31,7 @@ object Date
 
   end
  
-  def constructor(date_tuple)
+  def initialize(date_tuple)
     {year, month, day} = date_tuple
     {'year: year, 'month: month, 'day: day}
   end
