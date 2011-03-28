@@ -15,9 +15,11 @@ Elixir is still in development. If you want to help building it or are just look
     $ bin/elixir -v
     Elixir 0.2.0.dev
 
-Notice that Elixir requires Erlang R14B01 or later version to execute (R14A and R14B **do not work**). Prior versions do not work due to a bug in `yecc`, Erlang's built-in parser generator, and lack of proper UTF8 support.
+If tests fail, it is likely you have an outdated Erlang version. You can check your Erlang version by calling ``erl`` in the command line. You will see some information as follow:
 
-Running the commands above with a supported Erlang version should compile Elixir, show as result that all tests pass and the current Elixir version. After, you are ready to play with Elixir!
+    Erlang R14B01 (erts-5.8.2) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
+
+Elixir requires Erlang R14B01 or later version to execute (R14A and R14B **do not work**). If you have the correct version and tests still fail, feel free to open an issue in the issues tracker on Github. If all tests pass, you are ready to play with Elixir!
 
 This README provides a length explanation about Elixir in the Learning Elixir section below. There are also some examples [in the examples folder](https://github.com/josevalim/elixir/tree/master/examples/) that you can run by executing the `bin/elixir EXAMPLE` and an interactive Elixir available as `bin/iex`. Feel free to build your own examples and study the language better.
 
