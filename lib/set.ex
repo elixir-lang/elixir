@@ -6,7 +6,7 @@ object Set
   end
   
   def initialize
-    @('set: Erlang.sets.new())
+    @('set: Erlang.sets.new)
   end
   
   def initialize set
@@ -14,56 +14,56 @@ object Set
   end
   
   def set?
-    Erlang.sets.is_set(@set)
+    Erlang.sets.is_set(set)
   end
 
   def size
-    Erlang.sets.size(@set)
+    Erlang.sets.size(set)
   end
   
   def to_list
-    Erlang.sets.to_list(@set)
+    Erlang.sets.to_list(set)
   end
   
   def add element
-    Set.new(Erlang.sets.add_element(element, @set))
+    Set.new(Erlang.sets.add_element(element, set))
   end
   
   def include? element
-    Erlang.sets.is_element(element, @set)
+    Erlang.sets.is_element(element, set)
   end
   
   def delete(element)
-    Set.new(Erlang.sets.del_element(element, @set))
+    Set.new(Erlang.sets.del_element(element, set))
   end
   
-  def union set
-    Set.new(Erlang.sets.union(@set, set.set))
+  def union other
+    Set.new(Erlang.sets.union(set, other.set))
   end
   
   def set
     @set
   end
   
-  def intersection set
-    Set.new(Erlang.sets.intersection(@set, set.set))
+  def intersection other
+    Set.new(Erlang.sets.intersection(set, other.set))
   end
   
-  def disjoint? set
-    Erlang.sets.is_disjoint(@set, set.set)
+  def disjoint? other
+    Erlang.sets.is_disjoint(set, other.set)
   end
   
-  def subtract set
-    Set.new(Erlang.sets.subtract(@set, set.set))
+  def subtract other
+    Set.new(Erlang.sets.subtract(set, other.set))
   end
   alias_local 'subtract, '-, 1
 
-  def subset?(set)
-    Erlang.sets.is_subset(@set, set.set)
+  def subset?(other)
+    Erlang.sets.is_subset(set, other.set)
   end
   
-  def superset?(set)
-    set.subset?(self)
+  def superset?(other)
+    other.subset?(self)
   end
   
   def fold(function, accumulator)
