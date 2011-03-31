@@ -13,24 +13,18 @@ object Set
     @('set: set)
   end
   
-  % is set
   def set?
     Erlang.sets.is_set(@set)
   end
-  
-  % size
+
   def size
     Erlang.sets.size(@set)
   end
   
-  % to_list
   def to_list
     Erlang.sets.to_list(@set)
   end
   
-  % from_list
-  
-  % add_element
   def add element
     Set.new(Erlang.sets.add_element(element, @set))
   end
