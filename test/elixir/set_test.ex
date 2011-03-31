@@ -8,7 +8,11 @@ object SetTest
   end
   
   def from_list_test
-    [3,2,1] = Set.from_list([1,2,3]).to_list  % Fix up order depenance  
+    set = Set.from_list([1,2,3])
+    true = set.include?(1)
+    true = set.include?(2)
+    true = set.include?(3)
+    3 = set.size
   end
   
   def size_test
@@ -17,7 +21,8 @@ object SetTest
   end
   
   def to_list_test
-    [] = Set.new().to_list
+    [] = Set.new.to_list
+    [1] = Set.new.add(1).to_list
   end
   
   def add_test
@@ -40,8 +45,8 @@ object SetTest
   end
   
   def union_test
-    [3,2,1] = Set.new.add(1).add(2).union(Set.new.add(2).add(3)).to_list % Fix up order depenance  
-    [3,2,5,1,4] = Set.from_list([1,2,3]).union(Set.from_list([2,4,5])).to_list
+    true = Set.from_list([1,2,3]) == Set.new.add(1).add(2).union(Set.new.add(2).add(3))
+    true = Set.from_list([1,2,3,4,5]) == Set.from_list([1,2,3]).union(Set.from_list([2,4,5]))
   end
   
   def intersection_test
