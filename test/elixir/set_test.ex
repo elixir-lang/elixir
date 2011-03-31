@@ -1,4 +1,5 @@
 Code.require File.expand_path("../test_helper", __FILE__)
+Code.require "set.ex"
 
 object SetTest
   proto ExUnit::Case
@@ -60,11 +61,17 @@ object SetTest
   
   def subtract_test
     [1] = Set.new.add(1).add(2).subtract(Set.new.add(2)).to_list
+    [1] = (Set.from_list([1,2,3]) - Set.from_list([2,3,4])).to_list
   end
   
   def subset_test
     true = Set.new.add(1).subset?(Set.new.add(1).add(2))
     false = Set.new.add(3).subset?(Set.new.add(1).add(2))
+  end
+  
+  def superset_test
+    false = Set.new.add(1).superset?(Set.new.add(1).add(2))
+    true = Set.new.add(1).add(2).superset?(Set.new.add(1))
   end
   
   def fold_test
@@ -73,7 +80,7 @@ object SetTest
   end
   
   def filter_test
-    set = Set.new.add(1).add(2).add(3).add(4)
-    [3,4] = set.filter(-> (x) x > 2).to_list
+    set = Set.from_list([1,2,3,4])
+    true = Set.from_list([3,4]) == set.filter(-> (x) x > 2)
   end
 end

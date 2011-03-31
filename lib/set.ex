@@ -37,7 +37,6 @@ object Set
     Set.new(Erlang.sets.del_element(element, @set))
   end
   
-  % union(Set1, Set2)
   def union set
     Set.new(Erlang.sets.union(@set, set.set))
   end
@@ -57,9 +56,14 @@ object Set
   def subtract set
     Set.new(Erlang.sets.subtract(@set, set.set))
   end
+  alias_local 'subtract, '-, 1
 
   def subset?(set)
     Erlang.sets.is_subset(@set, set.set)
+  end
+  
+  def superset?(set)
+    set.subset?(self)
   end
   
   def fold(function, accumulator)
