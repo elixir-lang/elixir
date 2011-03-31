@@ -68,7 +68,11 @@ object Set
     Erlang.sets.is_subset(@set, set.set)
   end
   
-  %fold(Function, Acc0, Set) -> Acc1
+  def fold(function, accumulator)
+    Erlang.sets.fold(function, accumulator, set)
+  end
   
-  %filter(Pred, Set1) -> Set2
+  def filter(function)
+    Set.new(Erlang.sets.filter(function, set))
+  end
 end
