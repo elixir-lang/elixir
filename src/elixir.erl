@@ -66,6 +66,7 @@ stdlib_files() ->
     "string.ex",
     "ordered_dict.ex",
     "regexp.ex",
+    "set.ex",
     "bit_string.ex",
     "process.ex",
     "port.ex",
