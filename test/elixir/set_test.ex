@@ -61,4 +61,14 @@ object SetTest
     true = Set.new.add(1).subset?(Set.new.add(1).add(2))
     false = Set.new.add(3).subset?(Set.new.add(1).add(2))
   end
+  
+  def fold_test
+    set = Set.new.add(1).add(2)
+    3 = set.fold(-> (x,y) x + y, 0)
+  end
+  
+  def filter_test
+    set = Set.new.add(1).add(2).add(3).add(4)
+    [3,4] = set.filter(-> (x) x > 2).to_list
+  end
 end
