@@ -85,7 +85,7 @@ object Date
   end
 
   def complex_subtraction(days, year, month, day)
-    days_left_to_subtract = Erlang.abs(day - days)
+    days_left_to_subtract = (day - days).abs
     
     if month == 1 
       complex_subtraction( days_left_to_subtract, year - 1, 12, 31)
