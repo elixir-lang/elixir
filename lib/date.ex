@@ -1,10 +1,9 @@
 % elixir: cache
-object Date
 
+object Date
   attr_reader ['day, 'month, 'year]
 
   module Mixin
-
     def today
       Date.new(Erlang.date)
     end
@@ -16,7 +15,7 @@ object Date
     def yesterday
       Date.today.yesterday
     end
-    
+
     def days_in_month(date)
       if [1,3,5,7,8,10,12].member?(date.month)
         31
@@ -28,11 +27,14 @@ object Date
         28
       end
     end
-
   end
  
   def initialize(date_tuple)
     {year, month, day} = date_tuple
+    initialize(year, month, day)
+  end
+
+  def initialize(year, month, day)
     @('year: year, 'month: month, 'day: day)
   end
 
@@ -41,7 +43,7 @@ object Date
   end
   
   def leap_year?
-    Erlang.calendar.is_leap_year(self.year)  
+    Erlang.calendar.is_leap_year(@year)
   end
 
   def tomorrow
@@ -53,64 +55,58 @@ object Date
   end
 
   def -(days)
-    {year, month, day} = self.to_dict
-    if days < day
-      Date.new({year, month, day - days})
+    if days < @day
+      Date.new(@year, @month, @day - days)
     else
-      complex_subtraction(days, {year, month, day})
+      complex_subtraction(days, @year, @month, @day)
     end
   end
 
   def +(days)
-    {year, month, day} = self.to_dict
-    if (day + days) < Date.days_in_month(self)
-      Date.new({year, month, day + days})
+    if (@day + days) < Date.days_in_month(self)
+      Date.new(@year, @month, @day + days)
     else
-      complex_addition(days, {year, month, day})
+      complex_addition(days, @year, @month, @day)
     end
   end
 
-  def to_dict
-   {self.year, self.month, self.day}
+  def to_tuple
+   {@year, @month, @day}
   end
 
   private
  
-  def complex_subtraction(0, date)
-    Date.new(date)
+  def complex_subtraction(0, year, month, day)
+    Date.new(year, month, day)
   end
 
-  def complex_addition(0, date)
-    Date.new(date)
+  def complex_addition(0, year, month, day)
+    Date.new(year, month, day)
   end
 
-  def complex_subtraction(days, date)
-
-    {year, month, day} = date
+  def complex_subtraction(days, year, month, day)
     days_left_to_subtract = Erlang.abs(day - days)
     
     if month == 1 
-      complex_subtraction( days_left_to_subtract, {year - 1, 12, 31})
+      complex_subtraction( days_left_to_subtract, year - 1, 12, 31)
     elsif (day - days) > 0 
-      complex_subtraction(0, {year, month, days_left_to_subtract })
+      complex_subtraction(0, year, month, days_left_to_subtract)
     else 
       new_month = month - 1
-      complex_subtraction(days_left_to_subtract, {year, new_month, Date.days_in_month(Date.new({year, new_month, 1}) )})
+      date = Date.new(year, new_month, 1)
+      complex_subtraction(days_left_to_subtract, year, new_month, Date.days_in_month(date))
     end
-
   end
 
-  def complex_addition(days, date)
-
-    {year, month, day} = date
-    days_left_to_add = Erlang.abs(days - (Date.days_in_month(Date.new(date)) - day) )
+  def complex_addition(days, year, month, day)
+    days_in_month = Date.days_in_month(Date.new(year, month, day))
+    days_left_to_add = (days - (days_in_month - day)).abs
    
     if month == 12
-      Date.new({ year + 1, 1, 0}) + days_left_to_add
+      Date.new(year + 1, 1, 0) + days_left_to_add
     else
-      Date.new({year, month + 1, 0}) + days_left_to_add
+      Date.new(year, month + 1, 0) + days_left_to_add
     end
-
   end
 
   def convert_to_double_digit(unit)
@@ -120,5 +116,4 @@ object Date
       unit.to_s
     end
   end
-
 end
