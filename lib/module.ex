@@ -76,7 +76,7 @@ object Module
       names.each do (name)
         module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
   def #{name}(value)
-    self.set_ivar '#{name}, value
+    @('#{name}, value)
   end
 ~~
       end

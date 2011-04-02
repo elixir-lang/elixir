@@ -71,7 +71,7 @@ get_ivar(#elixir_object__{} = Self, Name) ->
   get_ivar_dict(Name, object_data(Self));
 
 get_ivar(Self, Name) -> % Native types do not have instance variables.
-  [].
+  nil.
 
 set_ivar(Self, Name, Value) ->
   set_ivar_dict(Self, Name, set_ivar, fun(Dict) -> orddict:store(Name, Value, Dict) end).
@@ -91,7 +91,7 @@ update_ivar(Self, Name, Initial, Function) ->
 get_ivar_dict(Name, Data) ->
   case orddict:find(Name, Data) of
     { ok, Value } -> Value;
-    error -> []
+    error -> nil
   end.
 
 set_ivar_dict(_, Name, _, _) when not is_atom(Name) ->
