@@ -4,10 +4,20 @@ Code.require "date"
 object DateTest
   proto ExUnit::Case
 
-  def general_test
-    true = Date.new({2012, 12, 21}).leap_year?
+  def leap_year_test
+    true  = Date.new({2012, 12, 21}).leap_year?
+    false = Date.new({2009, 12, 21}).leap_year?
+  end
+
+  def to_tuple_test
     {2012, 12, 21} = Date.new({2012, 12, 21}).to_tuple
+  end
+
+  def to_s_test
     "2012-12-21" = Date.new({2012, 12, 21}).to_s
+  end
+
+  def days_in_month_test
     31 = Date.days_in_month(Date.new({2012, 12, 21}))
     30 = Date.days_in_month(Date.new({2011, 4, 21}))
     29 = Date.days_in_month(Date.new({2012, 2, 21}))
@@ -28,5 +38,17 @@ object DateTest
     {2011, 4, 1} = (Date.new({2011, 3, 25}) + 7).to_tuple
     {2011, 5, 1} = (Date.new({2011, 3, 25}) + 37).to_tuple
     {2012, 3, 24} = (Date.new({2011, 3, 25}) + 365).to_tuple
+  end
+
+  def weekday_test
+    6 = Date.new(2010,4,17).weekday
+  end
+
+  def weekday_name_test
+    "Sat" = Date.new(2010,4,17).weekday_name
+  end
+
+  def month_name_test
+    "Apr" = Date.new(2010,4,17).month_name
   end
 end

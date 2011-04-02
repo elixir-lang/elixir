@@ -44,6 +44,10 @@ object DateTimeTest
     ~future = (current + 85).to_i
   end
 
+  def rfc1123_test
+    "Thu, 01-Jan-1970 00:00:01 GMT" = DateTime.new({{1970,1,1},{0,0,1}}).rfc1123
+  end
+
   private
 
   def date_time(year, month, day)

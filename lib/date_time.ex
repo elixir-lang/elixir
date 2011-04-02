@@ -1,4 +1,4 @@
-% elixir: cache
+% elixir: cache [date]
 
 % DateTime represents both Date and Time. Currently it is not aware of
 % timezones, but that should be added in the future, while Date and Time
@@ -39,8 +39,7 @@ object DateTime
 
   % Returns a string representation of the DateTime object.
   def inspect
-    "#{@date[0]}-#{convert_to_double_digit(@date[1])}-#{convert_to_double_digit(@date[2])} " \
-      "#{convert_to_double_digit(@time[0])}:#{convert_to_double_digit(@time[1])}:#{convert_to_double_digit(@time[2])}"
+    "#{formatted_date} #{formatted_time}"
   end
 
   def to_s
@@ -89,7 +88,21 @@ object DateTime
     { @date, @time }
   end
 
+  % Returns time according to RFC1123.
+  def rfc1123
+    date = Date.new(@date)
+    "#{date.weekday_name}, #{convert_to_double_digit(@date[2])}-#{date.month_name}-#{@date[0]} #{formatted_time} GMT"
+  end
+
   private
+
+  def formatted_date
+    "#{@date[0]}-#{convert_to_double_digit(@date[1])}-#{convert_to_double_digit(@date[2])}"
+  end
+
+  def formatted_time
+    "#{convert_to_double_digit(@time[0])}:#{convert_to_double_digit(@time[1])}:#{convert_to_double_digit(@time[2])}"
+  end
 
   def convert_to_double_digit(unit)
     if unit < 10

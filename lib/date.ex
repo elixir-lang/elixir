@@ -5,7 +5,6 @@
 %
 % This implementation is based on Erlang's date BIF: http://www.erlang.org/doc/man/erlang.html#date-0
 object Date
-
   attr_reader ['day, 'month, 'year]
 
   module Mixin
@@ -45,6 +44,18 @@ object Date
 
   def initialize(year, month, day)
     @('year: year, 'month: month, 'day: day)
+  end
+
+  def weekday
+    Erlang.calendar.day_of_the_week(to_tuple)
+  end
+
+  def weekday_name
+    day_name(weekday)
+  end
+
+  def month_name
+    month_name(@month)
   end
 
   % Return a string representation of the Date object.
@@ -93,6 +104,27 @@ object Date
   end
 
   private
+
+  def day_name(1) "Mon"; end
+  def day_name(2) "Tue"; end
+  def day_name(3) "Wed"; end
+  def day_name(4) "Thu"; end
+  def day_name(5) "Fri"; end
+  def day_name(6) "Sat"; end
+  def day_name(7) "Sun"; end
+
+  def month_name(1) "Jan"; end
+  def month_name(2) "Feb"; end
+  def month_name(3) "Mar"; end
+  def month_name(4) "Apr"; end
+  def month_name(5) "May"; end
+  def month_name(6) "Jun"; end
+  def month_name(7) "Jul"; end
+  def month_name(8) "Aug"; end
+  def month_name(9) "Sep"; end
+  def month_name(10) "Oct"; end
+  def month_name(11) "Nov"; end
+  def month_name(12) "Dec"; end
 
   def gregorian_addition(days)
     time = {0,0,0}
