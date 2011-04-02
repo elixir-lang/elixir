@@ -7,8 +7,8 @@ object Date
     def today
       Date.new(Erlang.date)
     end
- 
-    def tomorrow      
+
+    def tomorrow
       Date.today.tomorrow
     end
 
@@ -28,7 +28,7 @@ object Date
       end
     end
   end
- 
+
   def initialize(date_tuple)
     {year, month, day} = date_tuple
     initialize(year, month, day)
@@ -41,33 +41,25 @@ object Date
   def to_s
     "#{@year}-#{convert_to_double_digit(@month)}-#{convert_to_double_digit(@day)}"
   end
-  
+
   def leap_year?
     Erlang.calendar.is_leap_year(@year)
   end
 
   def tomorrow
-    self + 1
+    gregorian_addition(1)
   end
 
   def yesterday
-    self - 1
+    gregorian_addition(-1)
   end
 
   def -(days)
-    if days < @day
-      Date.new(@year, @month, @day - days)
-    else
-      complex_subtraction(days, @year, @month, @day)
-    end
+    gregorian_addition(-days)
   end
 
   def +(days)
-    if (@day + days) < Date.days_in_month(self)
-      Date.new(@year, @month, @day + days)
-    else
-      complex_addition(days, @year, @month, @day)
-    end
+    gregorian_addition(days)
   end
 
   def to_tuple
@@ -75,43 +67,17 @@ object Date
   end
 
   private
- 
-  def complex_subtraction(0, year, month, day)
-    Date.new(year, month, day)
-  end
 
-  def complex_addition(0, year, month, day)
-    Date.new(year, month, day)
-  end
-
-  def complex_subtraction(days, year, month, day)
-    days_left_to_subtract = (day - days).abs
-    
-    if month == 1 
-      complex_subtraction( days_left_to_subtract, year - 1, 12, 31)
-    elsif (day - days) > 0 
-      complex_subtraction(0, year, month, days_left_to_subtract)
-    else 
-      new_month = month - 1
-      date = Date.new(year, new_month, 1)
-      complex_subtraction(days_left_to_subtract, year, new_month, Date.days_in_month(date))
-    end
-  end
-
-  def complex_addition(days, year, month, day)
-    days_in_month = Date.days_in_month(Date.new(year, month, day))
-    days_left_to_add = (days - (days_in_month - day)).abs
-   
-    if month == 12
-      Date.new(year + 1, 1, 0) + days_left_to_add
-    else
-      Date.new(year, month + 1, 0) + days_left_to_add
-    end
+  def gregorian_addition(days)
+    time = {0,0,0}
+    seconds = Erlang.calendar.datetime_to_gregorian_seconds({to_tuple,time})
+    { date, _time } = Erlang.calendar.gregorian_seconds_to_datetime(seconds + (86400 * days))
+    Date.new(date)
   end
 
   def convert_to_double_digit(unit)
     if unit < 10
-      "0" + unit.to_s 
+      "0" + unit.to_s
     else
       unit.to_s
     end

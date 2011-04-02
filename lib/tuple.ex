@@ -50,6 +50,10 @@ object Tuple
     Erlang.tuple_to_list(self)
   end
 
+  def to_tuple
+    self
+  end
+
   % Returns the tuple length. Also aliased to size.
   %
   % ## Examples
