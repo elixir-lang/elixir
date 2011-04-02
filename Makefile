@@ -8,7 +8,7 @@ TEST_EBIN_DIR=$(TEST_DIR)/ebin
 ERLC=erlc -I $(INCLUDE_DIR) -W0
 ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
 
-.PHONY: test test_erlang test_elixir clean
+.PHONY: test test_erlang test_elixir clean clean_lib
 
 # This is the default task
 compile: ebin/elixir.beam ebin | src/elixir_lexer.erl src/elixir_parser.erl
@@ -59,11 +59,12 @@ test_elixir: compile
 
 test: test_erlang test_elixir
 
-clean:
+clean: clean_lib
 	rm -f src/elixir_lexer.erl
 	rm -f src/elixir_parser.erl
-	rm -rf lib/*.exb lib/*/*.exb
 	rm -rf $(EBIN_DIR)/*.beam
 	rm -rf $(TEST_EBIN_DIR)/*.beam
-	rm -rf libc
 	@ echo
+
+clean_lib:
+	find . -type f -name "*.exb" -exec rm -f {} \;
