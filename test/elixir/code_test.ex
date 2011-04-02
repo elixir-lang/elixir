@@ -49,4 +49,9 @@ object CodeTest
     self.assert_include "nofile:1: syntax error before:  []", OS.cmd("bin/elixir -e \"[1,2\"")
     self.assert_include "nofile:1: syntax error before:  'end'", OS.cmd("bin/elixir -e \"-> 2 end()\"")
   end
+
+  def cache_directive_dependencies_test
+    Code.require "fixtures/dependency_1"
+    13 = Dependency1.value
+  end
 end

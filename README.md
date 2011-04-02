@@ -1883,7 +1883,15 @@ Keep in mind that, as just the snapshot is loaded, custom code inside the file i
 
     Foo.say_something
 
-If you cache the file above, `Foo.say_something` will never be executed when the snapshot is loaded. For exactly the same reason, if you have a file that loads other files, you should not cache them as well (Elixir won't even let you). If you are also dynamically generating code depending on an ENV variable, database or file information, it is likely that you want to avoid the cache as well.
+If you cache the file above, `Foo.say_something` will never be executed when the snapshot is loaded. For exactly the same reason, if you have a file that requires other files using `Code.require`, Elixir won't allow you to cache them as well. For this special case, you can specify the dependencies between brackets and Elixir will load at the appropriate time:
+
+    % elixir: cache [bar,baz]
+    module Foo
+      mixin Bar
+      mixin Baz
+    end
+
+If you are dynamically generating code depending on an ENV variable, database or file information, it is likely that you want to avoid the cache as well.
 
 ### Compilation to Native Code
 

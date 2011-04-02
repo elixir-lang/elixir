@@ -265,7 +265,7 @@ load_form(Forms, Filename) ->
     {ok, ModuleName, Binary, Warnings} ->
       case get(elixir_compile_core) of
         undefined -> [];
-        List -> put(elixir_compile_core, [{ModuleName, Filename, Binary}|List])
+        List -> put(elixir_compile_core, [{module, ModuleName, Filename, Binary}|List])
       end,
       format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary);

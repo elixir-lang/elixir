@@ -19,6 +19,7 @@
   * Added Date to STDLIB (by github.com/justinbaker)
   * Added Set to STDLIB (by github.com/lsylvester)
   * Added DateTime to STDLIB
+  * Allow the cache directive to specify dependencies
 
 * bug fix
   * Allow Elixir keywords, but that are not Erlang keywords, on Erlang method invocations

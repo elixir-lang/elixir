@@ -39,7 +39,7 @@ module Code
     first = require_in_paths(path, paths, loaded)
     if first == nil
       second = require_in_paths(path + ".ex", paths, loaded)
-      if second == nil then self.error { 'enoent, path } else second end
+      if second == nil then error { 'enoent, path } else second end
     else
       first
     end
@@ -54,7 +54,7 @@ module Code
     match { 'ok, info }
       require_file(path, info)
     match other
-      self.error other
+      error other
     end
   end
 

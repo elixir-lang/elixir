@@ -86,7 +86,7 @@ recache() -> os:getenv("ELIXIR_RECACHE") == "1".
 % Note we pass the self binding as nil when loading object because
 % the default binding is Object, which at this point is not defined.
 cache_regexp() ->
-  { ok, Regexp } = re:compile("^%\s*elixir:\s*cache\s*$"),
+  { ok, Regexp } = re:compile("^%\s*elixir:\s*cache\s*(\\[([^\\]]*)\\])?$"),
   Regexp.
 
 internal_require(Filepath, Regexp) ->
@@ -123,7 +123,7 @@ require(Filepath, Source, Binding, Regexp, _) ->
         true ->
           { ok, Exb } = file:read_file(Compiled),
           Terms = binary_to_term(Exb),
-          lists:foreach(fun({M,F,B}) -> code:load_binary(M, F, B) end, Terms);
+          lists:foreach(fun handle_compile_terms/1, Terms);
         false ->
           load(Filepath, Compiled, Binding, Regexp)
       end;
@@ -134,19 +134,37 @@ require(Filepath, Source, Binding, Regexp, _) ->
 % Load the file and create a new cache if the directive says so.
 load(Filepath, Compiled, Binding, Regexp) ->
   { First, List } = read_file(Filepath),
-  case re:run(First, Regexp) of
+  case re:run(First, Regexp, [{capture,[2],list}]) of
     nomatch ->
       put(elixir_compile_core, undefined),
       eval(List, Binding, Filepath);
-    _ ->
+    {match,[Dependencies]} ->
       try
-        put(elixir_compile_core, []),
+        Default = default_compile_value(Dependencies),
+        lists:foreach(fun handle_compile_terms/1, Default),
+        put(elixir_compile_core, Default),
         eval(List, Binding, Filepath),
         ok = file:write_file(Compiled, term_to_binary(get(elixir_compile_core)))
       after
         put(elixir_compile_core, undefined)
       end
   end.
+
+default_compile_value(Dependencies) ->
+  Each = string:tokens(Dependencies, ","),
+  [{require, string:strip(X)} || X <- Each].
+
+handle_compile_terms({require, Path}) ->
+  String = #elixir_string__{struct=list_to_binary(Path)},
+  Code = elixir_constants:lookup('Code'),
+  'Code':require(Code, String);
+
+handle_compile_terms({module, M, F, B}) ->
+  code:load_binary(M, F, B);
+
+handle_compile_terms({M, F, B}) ->
+  io:format("[ELIXIR] Deprecated cache format found. Please remove your old .exb files."),
+  code:load_binary(M, F, B).
 
 % Read a file
 read_file(FileName) ->
