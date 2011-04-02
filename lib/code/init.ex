@@ -33,6 +33,10 @@ module Code::Init
 
   private
 
+  def halt!(0)
+    Erlang.init.stop
+  end
+
   def halt!(status)
     Erlang.halt(status)
   end
