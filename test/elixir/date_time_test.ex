@@ -23,6 +23,21 @@ object DateTimeTest
     {{2011, 3, 23}, {22,58,35}} = (date_time(2011, 3, 25) - 90085).to_tuple
   end
 
+  def accessors_test
+    datetime = DateTime.new({{2011, 3, 24}, {23,59,35}})
+    2011 = datetime.year
+    3    = datetime.month
+    24   = datetime.day
+    23   = datetime.hours
+    59   = datetime.minutes
+    35   = datetime.seconds
+  end
+
+  def inspect_test
+    datetime = DateTime.new({{2011, 3, 4}, {3,9,5}})
+    "2011-03-04 03:09:05" = datetime.inspect
+  end
+
   def to_i_test
     current = DateTime.utc
     future  = current.to_i + 85

@@ -38,8 +38,12 @@ object Date
     @('year: year, 'month: month, 'day: day)
   end
 
-  def to_s
+  def inspect
     "#{@year}-#{convert_to_double_digit(@month)}-#{convert_to_double_digit(@day)}"
+  end
+
+  def to_s
+    inspect
   end
 
   def leap_year?

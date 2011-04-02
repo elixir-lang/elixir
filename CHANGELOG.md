@@ -18,6 +18,7 @@
   * Basic support for guards
   * Added Date to STDLIB (by github.com/justinbaker)
   * Added Set to STDLIB (by github.com/lsylvester)
+  * Added DateTime to STDLIB
 
 * bug fix
   * Allow Elixir keywords, but that are not Erlang keywords, on Erlang method invocations
