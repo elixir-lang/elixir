@@ -123,4 +123,13 @@ three
     "a[&]c[&]e" = "abcbe".gsub(~r(b), "[\\&]")
     "a[b]c[b]e" = "abcbe".gsub(~r[(b)], "[\\1]")
   end
+
+  def conversion_test
+    "HELLO"  = "hello".upcase
+    "HELLO"  = "HeLlO".upcase
+    "hello"  = "HELLO".downcase
+    "hello"  = "HeLlO".downcase
+    "olleh"  = "hello".reverse
+  end
+
 end

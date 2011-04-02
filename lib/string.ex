@@ -184,6 +184,21 @@ object String
     Erlang.binary_to_atom(bin, 'utf8)
   end
 
+  % Returns a copy of the original string with all lowercase letters replaced with their uppercase counterparts.
+  def upcase
+    String.new(Erlang.string.to_upper(to_char_list))
+  end
+ 
+  % Returns a copy of the original string with all uppercase letters replaced with their lowercase counterparts.
+  def downcase
+    String.new(Erlang.string.to_lower(to_char_list))
+  end
+ 
+  % Returns a new string with the characters from original string in reverse order.
+  def reverse
+    String.new(self.to_char_list.reverse)
+  end
+
   private
 
   def bin
@@ -222,4 +237,5 @@ object String
   def prefix(_, _)
     false
   end
+
 end
