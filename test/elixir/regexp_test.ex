@@ -26,6 +26,11 @@ object RegexpTest
     true = ~r(foo)i.match?("fOo")
   end
 
+  def run_test
+    ["cd", "d"] = ~r"c(d)".run("abcd")
+    nil = ~r"e".run("abcd")
+  end
+
   def replace_test
     "abc"   = ~r(d).replace("abc", "d")
     "adc"   = ~r(b).replace("abc", "d")

@@ -98,10 +98,8 @@ object String
   end
 
   % Substitute the first occurrence of *given* in the string by *replacement*.
-  %
-  % Currently, given can be only be a regular expression, strings may be allowed
-  % in the future. Please check `Regexp#replace` for more information about
-  % the characters allowed in *replacement*.
+  % Please check `Regexp#replace` for more information about the characters
+  % allowed in *replacement*.
   %
   % ## Examples
   %
@@ -161,6 +159,20 @@ object String
       given.split(self, parts)
     else
       Regexp.new(Regexp.escape(given)).split(self, parts)
+    end
+  end
+
+  % Scan the whole string returning all matches.
+  %
+  % ## Examples
+  %
+  %     "abc"   = "key1=value1; key2=value2".scan(~r"(?:(\w+)=(\w+);?)")
+  %
+  def scan(given, offset := 0)
+    if given.__parent_name__ == 'Regexp
+      given.scan(self, 'all, offset)
+    else
+      Regexp.new(Regexp.escape(given)).scan(self, 'all, offset)
     end
   end
 

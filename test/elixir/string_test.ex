@@ -140,6 +140,13 @@ three
     "a[b]c[b]e" = "abcbe".gsub(~r[(b)], "[\\1]")
   end
 
+  def scan_test
+    [["key1", "value1"],["key2", "value2"]] = "key1=value1; key2=value2".scan(~r"(?:(\w+)=(\w+);?)")
+    [["key2", "value2"]] = "key1=value1; key2=value2".scan(~r"(?:(\w+)=(\w+);?)", 12)
+    ["abc"] = "eabcd".scan("abc")
+    [] = "eabcd".scan("ac")
+  end
+
   def conversion_test
     "HELLO"  = "hello".upcase
     "HELLO"  = "HeLlO".upcase

@@ -52,7 +52,7 @@ object Regexp
   end
 
   % Have the escape regexp pre-compiled and stored.
-  { 'ok, compiled } = Erlang.re.compile($"\\\\|\\{|\\[|\\(|\\)|\\]|\\}")
+  { 'ok, compiled } = Erlang.re.compile($"\\\\|\\{|\\[|\\(|\\)|\\]|\\}|\\.|\\?|\\*")
   @('escape_regexp, compiled)
 
   % Creates a new regular expression. It expects two arguments,
@@ -81,14 +81,14 @@ object Regexp
   end
 
   % Run the regular expression against the given target. It returns a list with
-  % all matches or an empty list if no match occurred.
+  % all matches or nil if no match occurred.
   %
   % This method accepts *captures* as second argument specifying which captures
   % from the regular expression should be handled.
-  def run(target, captures := 'all)
-    case Erlang.re.run(target.to_bin, @compiled, [{'capture, captures, 'binary}])
+  def run(target, captures := 'all, offset := 0)
+    case Erlang.re.run(target.to_bin, @compiled, [{'capture, captures, 'binary},{'offset,offset}])
     match 'nomatch
-      []
+      nil
     match {'match, results}
       [String.new(r) for r in results]
     end
@@ -96,12 +96,23 @@ object Regexp
 
   % Same as run, but scan the target several times collecting all matches of
   % the regular expression. This is similar to the /g option in Perl.
-  def scan(target, captures := 'all_but_first)
-    case Erlang.re.run(target.to_bin, @compiled, [{'capture, captures, 'binary}, 'global])
+  def scan(target, captures := 'all, offset := 0)
+    case Erlang.re.run(target.to_bin, @compiled, [{'capture, captures, 'binary},'global,{'offset,offset}])
     match 'nomatch
       []
     match {'match, results}
-      results.map -> (result) [String.new(r) for r in result]
+      if captures == 'all
+        results.map -> (result)
+          case result
+          match [_]
+            String.new(result)
+          match [h|t]
+            [String.new(r) for r in t]
+          end
+        end
+      else
+        [result.map -> (r) String.new(r) for result in results, result != []]
+      end
     end
   end
 
