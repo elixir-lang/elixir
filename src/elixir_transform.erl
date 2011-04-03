@@ -285,17 +285,15 @@ transform({bin_element, Line, Expr, Type, Specifiers }, S) ->
   { TExpr, NS } = transform(Expr, S),
   { { bin_element, Line, TExpr, Type, Specifiers }, NS };
 
-% Handle strings by wrapping them in the String object. A string is created
-% by explicitly creating an #elixir_object__ and not through String.new.
+% Handle strings by wrapping them in the String object.
 %
 % = Variables
 %
 % No variables can be defined in a string without interpolation.
 transform({string, Line, String } = Expr, S) ->
-  { { tuple, Line, [{atom, Line, elixir_string__}, build_bin(Line, [Expr])] }, S };
+  { build_bin(Line, [Expr]), S };
 
-% Handle interpolated strings declarations. A string is created
-% by explicitly creating an #elixir_object__ and not through String.new.
+% Handle interpolated strings declarations.
 %
 % = Variables
 %
@@ -303,7 +301,7 @@ transform({string, Line, String } = Expr, S) ->
 transform({interpolated_string, Line, String }, S) ->
   { List, SE } = handle_interpolations(String, Line, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
-  { { tuple, Line, [{atom, Line, elixir_string__}, Binary] }, SE };
+  { Binary, SE };
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
 %
@@ -341,8 +339,7 @@ transform({interpolated_regexp, Line, String, Operators }, S) ->
 transform({char_list, Line, String } = Expr, S) ->
   { {string, Line, String}, S };
 
-% Handle interpolated strings declarations. A string is created
-% by explicitly creating an #elixir_object__ and not through String.new.
+% Handle interpolated strings declarations.
 %
 % = Variables
 %
@@ -914,7 +911,7 @@ handle_string_extractions({s, String}, Line, S) ->
 handle_string_extractions({i, Interpolation}, Line, S) ->
   { Tree, NS } = parse(Interpolation, Line, S),
   Stringify = build_method_call(to_s, Line, {nil,Line}, hd(Tree)),
-  { ?ELIXIR_WRAP_CALL(Line, erlang, element, [{integer, Line, 2}, Stringify]), NS }.
+  { Stringify, NS }.
 
 % Convert the given expression to a boolean value: true or false.
 % Assumes the given expressions was already transformed.

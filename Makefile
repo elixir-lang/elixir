@@ -43,7 +43,7 @@ ebin: src/*.erl
 	$(ERLC) -o $(EBIN_DIR) $?
 	@ echo
 
-test_erlang: compile
+test_erlang: compile clean_lib
 	@ echo Running Erlang tests ...
 	@ mkdir -p $(TEST_EBIN_DIR)
 	@ # Compile test files
@@ -52,7 +52,7 @@ test_erlang: compile
 	time $(ERL) $(TEST_EBIN_DIR) -eval 'test_helper:test(), halt().'
 	@ echo
 
-test_elixir: compile
+test_elixir: compile clean_lib
 	@ echo Running Elixir tests ...
 	time bin/exunit test/elixir/*_test.ex
 	@ echo

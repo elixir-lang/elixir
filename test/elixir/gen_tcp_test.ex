@@ -10,7 +10,7 @@ object GenTcpTest
       {'ok, sock} = tcp.accept
       {'ok, bin} = recv(tcp, sock, [])
       'ok = tcp.close
-      pid <- { Process.self, String.new(bin) }
+      pid <- { Process.self, bin }
     end
 
     private

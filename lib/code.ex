@@ -10,23 +10,23 @@ module Code
   end
 
   def unshift_path(path)
-    server_call { 'unshift_path, File.expand_path(path).to_bin }
+    server_call { 'unshift_path, File.expand_path(path) }
   end
 
   def push_path(path)
-    server_call { 'push_path, File.expand_path(path).to_bin }
+    server_call { 'push_path, File.expand_path(path) }
   end
 
   def delete_path(path)
-    server_call { 'delete_path, File.expand_path(path).to_bin }
+    server_call { 'delete_path, File.expand_path(path) }
   end
 
   def paths
-    raw_paths.map -> (p) String.new p
+    raw_paths
   end
 
   def loaded
-    raw_loaded.map -> (l) String.new l
+    raw_loaded
   end
 
   % Requires a file in the load paths. Returns true if the file was loaded,
@@ -48,7 +48,7 @@ module Code
   % Requires a file given by the path. If the file does
   % not exist, an error is raised.
   def require_file(path)
-    fullpath = File.expand_path(path).to_bin
+    fullpath = File.expand_path(path)
 
     case Erlang.file.read_file_info(fullpath)
     match { 'ok, info }
@@ -66,7 +66,7 @@ module Code
   end
 
   def require_in_paths(path, [h|t], loaded)
-    fullpath = File.expand_path(path, h).to_bin
+    fullpath = File.expand_path(path, h)
 
     case Erlang.file.read_file_info(fullpath)
     match { 'ok, info }

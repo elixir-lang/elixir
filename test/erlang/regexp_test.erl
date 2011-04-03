@@ -21,5 +21,5 @@ match_test() ->
   {true,[]} = elixir:eval("~r(foo).match?(\"foo\")").
 
 invalid_option_regexp_test() ->
-  ?assertError({badarg, "unknown option \"h\""}, elixir:eval("~r{foo}h")).
+  ?assertError({badarg, <<"unknown option \"h\"">>}, elixir:eval("~r{foo}h")).
 

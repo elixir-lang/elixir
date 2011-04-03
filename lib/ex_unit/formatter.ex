@@ -26,8 +26,8 @@ object ExUnit::Formatter
   private
 
   def print_failure({object, test, {kind, reason, stacktrace}}, acc)
-    IO.puts "#{acc}) #{test}(#{object})\n  #{kind} #{self.format_catch(kind, reason)}\n  stacktrace:"
-    stacktrace.each -> (s) IO.puts "    #{self.format_stacktrace(s)}"
+    IO.puts "#{acc}) #{test}(#{object})\n  #{kind} #{format_catch(kind, reason)}\n  stacktrace:"
+    stacktrace.each -> (s) IO.puts "    #{format_stacktrace(s)}"
     IO.puts
     acc + 1
   end

@@ -75,7 +75,7 @@ object Process
 
   def inspect
     [_|t] = Erlang.pid_to_list(self)
-    String.new $"<Process " + t
+    ($"<Process " + t).to_bin
   end
 
   def register(name)

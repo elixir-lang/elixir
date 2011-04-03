@@ -3,7 +3,7 @@
 object IO
   module Methods
     def write(message)
-      Erlang.io.format @device, message.to_bin, []
+      Erlang.io.format @device, message, []
     end
 
     def puts
@@ -11,7 +11,7 @@ object IO
     end
 
     def puts(message)
-      Erlang.io.format @device, <<message.to_s.to_bin|binary, $\n>>, []
+      Erlang.io.format @device, <<message.to_s|binary, $\n>>, []
     end
 
     def gets
@@ -22,9 +22,9 @@ object IO
       result = Erlang.io.get_line(@device, prompt.to_char_list)
 
       if @encoding == 'utf8
-        String.new Erlang.unicode.characters_to_binary(result, 'utf8)
+        Erlang.unicode.characters_to_binary(result, 'utf8)
       else
-        String.new result
+        result
       end
     end
   end

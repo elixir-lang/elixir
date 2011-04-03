@@ -8,52 +8,52 @@ object File
     end
 
     def split(filename)
-      Erlang.filename.split(filename.to_bin).map -> (i) String.new i
+      Erlang.filename.split(filename)
     end
 
     def join(list)
-      String.new Erlang.filename.join list.map(_.to_bin)
+      Erlang.filename.join list
     end
 
     def join(a, b)
-      String.new Erlang.filename.join(a.to_bin, b.to_bin)
+      Erlang.filename.join(a, b)
     end
 
     % Try to read the given file. If possible, returns a string
     % with the file contents. Raises an error otherwise.
     def read(filename)
-      case Erlang.file.read_file(filename.to_bin)
+      case Erlang.file.read_file(filename)
       match { 'ok, binary }
-        String.new binary
+        binary
       match { 'error, other }
-        self.error other
+        error other
       end
     end
 
     % Returns if filename is a regular file or not.
     def regular?(filename)
-      Erlang.filelib.is_regular(filename.to_bin)
+      Erlang.filelib.is_regular(filename)
     end
 
     % Try to read the given file. If possible, returns a File::Info
     % object. Raises an error otherwise.
     def read_info(filename)
-      case Erlang.file.read_file_info(filename.to_bin)
+      case Erlang.file.read_file_info(filename)
       match { 'ok, info }
         File::Info.new info
       match { 'error, other }
-        self.error other
+        error other
       end
     end
 
     private
 
     def absname(string, [])
-      Erlang.filename.absname(string.to_bin)
+      Erlang.filename.absname(string)
     end
 
     def absname(string, relative)
-      Erlang.filename.absname(string.to_bin, File.expand_path(relative, []).to_bin)
+      Erlang.filename.absname(string, File.expand_path(relative, []))
     end
 
     def strip_dots(regexp, path)

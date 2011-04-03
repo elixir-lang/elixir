@@ -190,14 +190,14 @@ object_parent(Native) when is_atom(Native) ->
 object_parent(Native) when is_list(Native) ->
   'List';
 
+object_parent(Native) when is_binary(Native) ->
+  'String';
+
 object_parent(Native) when is_bitstring(Native) ->
   'BitString';
 
 object_parent(#elixir_orddict__{}) ->
   'OrderedDict';
-
-object_parent(#elixir_string__{}) ->
-  'String';
 
 object_parent(Native) when is_tuple(Native) ->
   'Tuple';
@@ -300,14 +300,14 @@ builtin_mixin(Native) when is_atom(Native) ->
 builtin_mixin(Native) when is_list(Native) ->
   'List::Proto';
 
+builtin_mixin(Native) when is_binary(Native) ->
+  'String::Proto';
+
 builtin_mixin(Native) when is_bitstring(Native) ->
   'BitString::Proto';
 
 builtin_mixin(#elixir_orddict__{}) ->
   'OrderedDict::Proto';
-
-builtin_mixin(#elixir_string__{}) ->
-  'String::Proto';
 
 builtin_mixin(Native) when is_tuple(Native) ->
   'Tuple::Proto';

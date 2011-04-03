@@ -230,7 +230,7 @@ object List
 
   def join(string)
     strings = map -> (x) x.to_s.to_char_list
-    String.new Erlang.string.join(strings, string.to_char_list)
+    Erlang.string.join(strings, string.to_char_list).to_bin
   end
 
   def to_list
@@ -286,7 +286,7 @@ object List
 
   def inspect_join(list)
     strings = list.map -> (x) x.inspect.to_char_list
-    String.new Erlang.string.join(strings, [$,])
+    Erlang.string.join(strings, [$,]).to_bin
   end
 
   def list_tail([_|t]) list_tail(t); end

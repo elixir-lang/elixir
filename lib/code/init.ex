@@ -63,14 +63,14 @@ module Code::Init
       if files
         { commands, [h|t] }
       else
-        IO.new('standard_error).puts "Unknown option #{String.new h}"
+        IO.new('standard_error).puts "Unknown option #{h.to_bin}"
         halt!(1)
       end
     else
       { [{'require,h}|commands], t }
     end
 
-    { final.reverse + close.reverse, extra.map(-> (i) String.new(i)), halt }
+    { final.reverse + close.reverse, extra.map(_.to_bin), halt }
   end
 
   def process_options([], commands, close, _, halt)

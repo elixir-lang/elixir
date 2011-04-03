@@ -2,6 +2,6 @@
 
 module OS
   def cmd(command)
-    String.new Erlang.os.cmd(command.to_char_list)
+    Erlang.os.cmd(command.to_char_list).to_bin
   end
 end

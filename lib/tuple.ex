@@ -34,7 +34,7 @@ object Tuple
 
   def inspect
     strings = to_list.map -> (x) x.inspect.to_char_list
-    "{#{String.new Erlang.string.join(strings, [$,])}}"
+    <<$\{, Erlang.string.join(strings, [$,]).to_bin|binary, $\}>>
   end
 
   % Returns true if the tuple is empty.

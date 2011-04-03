@@ -43,17 +43,6 @@ object Atom
   %     'A.to_s % => "A"
   %
   def to_s
-    String.new to_bin
-  end
-
-  % Converts the given atom to binary.
-  %
-  % ## Examples
-  %
-  %     'a.to_s % => <<"a">>
-  %     'A.to_s % => <<"A">>
-  %
-  def to_bin
     Erlang.atom_to_binary(self, 'utf8)
   end
 
@@ -103,9 +92,9 @@ object Atom
     bin = Erlang.atom_to_binary(other, 'utf8)
 
     if ~r"\A@?\w*[?!]?\z".match?(bin)
-      String.new <<$', bin|binary>>
+      <<$', bin|binary>>
     else
-      String.new <<$', $\", bin|binary, $\">>
+      <<$', $\", bin|binary, $\">>
     end
   end
 end

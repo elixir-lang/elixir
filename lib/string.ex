@@ -12,13 +12,15 @@
 % method, you need to convert a string either to to_bin or to_char_list,
 % as Erlang does not understand the string representation from Elixir.
 %
+% TODO: We need to inherit from BitString once we have inheritance.
 object String
   % Implement String as a record. This is done mainly
   % to have improved performance for the equality operator.
   module Mixin
     % Initializes a string by keeping its internal binary representation.
     def new([bin])
-      { 'elixir_string__, bin.to_bin }
+      IO.puts "[ELIXIR] Calling String.new is deprecated. Just call .to_bin in the list object instead."
+      bin.to_bin
     end
   end
 
@@ -30,7 +32,7 @@ object String
   %     "elixir"[-3]  % => 140
   %
   def [](number)
-    Erlang.binary_to_list(bin)[number]
+    Erlang.binary_to_list(self)[number]
   end
 
   % Slice the string in the given *start* and *length* arguments. If length
@@ -42,12 +44,10 @@ object String
   %     "[1,2,3]"[1,-2]  % => "1,2,3"
   %
   def [](start, length)
-    bin = to_bin
-
     if length < 0
-      String.new Erlang.binary_part(bin, start, Erlang.size(bin) - start + length + 1)
+      Erlang.binary_part(self, start, Erlang.size(self) - start + length + 1)
     else
-      String.new Erlang.binary_part(bin, start, length)
+      Erlang.binary_part(self, start, length)
     end
   end
 
@@ -58,7 +58,7 @@ object String
   %     "eli" + "xir" % => "elixir"
   %
   def +(another)
-    String.new <<bin|binary, another.to_bin|binary>>
+    <<self|binary, another|binary>>
   end
 
   % Returns the length of the string. All strings parsed by the
@@ -71,17 +71,17 @@ object String
   %     "josé".length   % => 4
   %
   def length
-    Erlang.size(bin)
+    Erlang.size(self)
   end
 
   % Returns the list representation of this String.
   def to_list
-    Erlang.binary_to_list(bin)
+    Erlang.binary_to_list(self)
   end
 
   % Returns the list of chars represantion of this String.
   def to_char_list
-    Erlang.binary_to_list(bin)
+    Erlang.binary_to_list(self)
   end
 
   % Check if the current string includes the given string.
@@ -143,7 +143,7 @@ object String
   %     "elixir".inspect % => "\"elixir\""
   %
   def inspect
-    String.new <<$\", bin|binary, $\">>
+    <<$\", self|binary, $\">>
   end
 
   % Receives a regular expression and split the string. An optional number
@@ -178,11 +178,12 @@ object String
 
   % Returns true if the string is empty.
   def empty?
-    Erlang.size(bin) == 0
+    Erlang.size(self) == 0
   end
 
+  % Returns the string itself.
   def to_bin
-    bin
+    self
   end
 
   % Returns the string itself.
@@ -191,29 +192,25 @@ object String
   end
 
   def to_atom
-    Erlang.binary_to_atom(bin, 'utf8)
+    Erlang.binary_to_atom(self, 'utf8)
   end
 
   % Returns a copy of the original string with all lowercase letters replaced with their uppercase counterparts.
   def upcase
-    String.new(Erlang.string.to_upper(to_char_list))
+    Erlang.string.to_upper(to_char_list).to_bin
   end
  
   % Returns a copy of the original string with all uppercase letters replaced with their lowercase counterparts.
   def downcase
-    String.new(Erlang.string.to_lower(to_char_list))
+    Erlang.string.to_lower(to_char_list).to_bin
   end
  
   % Returns a new string with the characters from original string in reverse order.
   def reverse
-    String.new(self.to_char_list.reverse)
+    to_char_list.reverse.to_bin
   end
 
   private
-
-  def bin
-    Erlang.element(2, self)
-  end
 
   def include?([], _, _, _)
     false
@@ -247,5 +244,4 @@ object String
   def prefix(_, _)
     false
   end
-
 end

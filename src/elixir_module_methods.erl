@@ -72,6 +72,5 @@ object_kind(_) -> object.
 expand_clauses({ clause, Line, Args, Guards, Exprs }) ->
   { clause, Line, [{var, Line, self}|Args], Guards, Exprs }.
 
-to_char_list(#elixir_string__{struct=Bin}) -> binary_to_list(Bin);
 to_char_list(Bin) when is_binary(Bin) -> binary_to_list(Bin);
 to_char_list(List) when is_list(List) -> List.

@@ -1,20 +1,12 @@
 % elixir: cache
 
 object BitString
-  def to_bin
-    self
-  end
-
-  def to_char_list
-    Erlang.binary_to_list(self)
-  end
-  
   def to_list
     Erlang.binary_to_list(self)
   end
 
   def inspect
-    String.new Erlang.io_lib.format($"~w", [self]).flatten
+    Erlang.io_lib.format($"~w", [self]).to_bin
   end
 
   def to_s

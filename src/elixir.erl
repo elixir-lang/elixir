@@ -155,9 +155,8 @@ default_compile_value(Dependencies) ->
   [{require, string:strip(X)} || X <- Each].
 
 handle_compile_terms({require, Path}) ->
-  String = #elixir_string__{struct=list_to_binary(Path)},
   Code = elixir_constants:lookup('Code'),
-  'Code':require(Code, String);
+  'Code':require(Code, list_to_binary(Path));
 
 handle_compile_terms({module, M, F, B}) ->
   code:load_binary(M, F, B);

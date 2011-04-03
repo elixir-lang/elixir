@@ -34,11 +34,11 @@ object Integer
   end
 
   def chr
-    String.new <<self>>
+    <<self>>
   end
 
   def to_s
-    String.new Erlang.integer_to_list(self)
+    Erlang.integer_to_list(self).to_bin
   end
 
   private

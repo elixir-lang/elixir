@@ -20,9 +20,6 @@
 % Representation for OrderedDict.
 -record(elixir_orddict__, {struct=[]}).
 
-% Representation for Strings.
--record(elixir_string__, {struct=[]}).
-
 % Keeps the scope used in transformation. It contains:
 %
 %   1)  when true, new variables can be defined in that subtree

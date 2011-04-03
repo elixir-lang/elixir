@@ -46,13 +46,12 @@ object Regexp
   module Mixin
     % Escape the given string so it can match a regular expression.
     def escape(string)
-      binary = Erlang.re.replace(string.to_bin, @escape_regexp, $"\\\\&", [{'return,'binary},'global])
-      String.new binary
+      Erlang.re.replace(string, @escape_regexp, "\\\\&", [{'return,'binary},'global])
     end
   end
 
   % Have the escape regexp pre-compiled and stored.
-  { 'ok, compiled } = Erlang.re.compile($"\\\\|\\{|\\[|\\(|\\)|\\]|\\}|\\.|\\?|\\*")
+  { 'ok, compiled } = Erlang.re.compile("\\\\|\\{|\\[|\\(|\\)|\\]|\\}|\\.|\\?|\\*")
   @('escape_regexp, compiled)
 
   % Creates a new regular expression. It expects two arguments,
@@ -64,9 +63,7 @@ object Regexp
   %
   %     Regexp.new("foo", "iu")
   %
-  def initialize(regexp, options := [])
-    regexp_bin = regexp.to_bin
-
+  def initialize(regexp_bin, options := [])
     parsed_options = options.to_char_list.foldl ['multiline], do (x, acc)
       parse_option(x, acc)
     end
@@ -77,7 +74,7 @@ object Regexp
 
   % Returns a boolean depending if the regular expressions matches the given string.
   def match?(target)
-    'nomatch != Erlang.re.run(target.to_bin, @compiled)
+    'nomatch != Erlang.re.run(target, @compiled)
   end
 
   % Run the regular expression against the given target. It returns a list with
@@ -86,40 +83,40 @@ object Regexp
   % This method accepts *captures* as second argument specifying which captures
   % from the regular expression should be handled.
   def run(target, captures := 'all, offset := 0)
-    case Erlang.re.run(target.to_bin, @compiled, [{'capture, captures, 'binary},{'offset,offset}])
+    case Erlang.re.run(target, @compiled, [{'capture, captures, 'binary},{'offset,offset}])
     match 'nomatch
       nil
     match {'match, results}
-      [String.new(r) for r in results]
+      results
     end
   end
 
   % Same as run, but scan the target several times collecting all matches of
   % the regular expression. This is similar to the /g option in Perl.
   def scan(target, captures := 'all, offset := 0)
-    case Erlang.re.run(target.to_bin, @compiled, [{'capture, captures, 'binary},'global,{'offset,offset}])
+    case Erlang.re.run(target, @compiled, [{'capture, captures, 'binary},'global,{'offset,offset}])
     match 'nomatch
       []
     match {'match, results}
       if captures == 'all
         results.map -> (result)
           case result
-          match [_]
-            String.new(result)
+          match [t]
+            t
           match [h|t]
-            [String.new(r) for r in t]
+            t
           end
         end
       else
-        [result.map -> (r) String.new(r) for result in results, result != []]
+        [r for r in results, r != []]
       end
     end
   end
 
   % Split the given *target* in the number of *parts* specified.
   def split(target, parts := 'infinity)
-    list = Erlang.re.split(target.to_bin, @compiled, [{'return,'binary},'trim,{'parts, parts}])
-    [String.new(l) for l in list, l != <<>>]
+    list = Erlang.re.split(target, @compiled, [{'return,'binary},'trim,{'parts, parts}])
+    [l for l in list, l != ""]
   end
 
   % Receives a string and a replacement and returns a string where the first match
@@ -136,15 +133,13 @@ object Regexp
   %     "a[b]c" = ~r[(b)].replace("abc", "[\\1]")
   %
   def replace(string, replacement)
-    binary = Erlang.re.replace(string.to_bin, @compiled, replacement.to_bin, [{'return,'binary}])
-    String.new binary
+    Erlang.re.replace(string, @compiled, replacement, [{'return,'binary}])
   end
 
   % The same as replace, but replaces all parts where the regular expressions
   % matches in the string. Please read `replace` for documentation and examples.
   def replace_all(string, replacement)
-    binary = Erlang.re.replace(string.to_bin, @compiled, replacement.to_bin, [{'return,'binary},'global])
-    String.new binary
+    Erlang.re.replace(string, @compiled, replacement, [{'return,'binary},'global])
   end
 
   private
@@ -157,6 +152,6 @@ object Regexp
   def parse_option($m, acc); ['dotall, {'newline, 'anycrlf}|acc]; end
 
   def parse_option(option, _)
-    self.error({'badarg, ~Q(unknown option "#{option.chr}").to_char_list})
+    error({'badarg, "unknown option \"#{option.chr}\""})
   end
 end

@@ -242,7 +242,7 @@ object Object
     end
 
     def filter_stacktrace([{module, function, arity}|t], buffer, regexp)
-      if regexp.match?(module) && arity.__parent_name__ == 'Integer
+      if regexp.match?(module.to_s) && arity.__parent_name__ == 'Integer
         filter_stacktrace t, [{module, function, arity - 1}|buffer], regexp
       else
         filter_stacktrace t, [{module, function, arity}|buffer], regexp

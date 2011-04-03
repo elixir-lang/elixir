@@ -19,7 +19,7 @@ test() ->
   ]).
 
 unpack_string(String) ->
-  String#elixir_string__.struct.
+  String.
 
 unpack_regexp(Regexp) ->
   Data = Regexp#elixir_object__.data,
