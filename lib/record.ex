@@ -71,7 +71,7 @@ module Record
       [app|path] = File.split(file)
       case Erlang.code.lib_dir(app.to_char_list)
       match {'error, _}
-        self.error {'norecord, {name, file}}
+        error {'norecord, {name, file}}
       match libpath
         retrieve_record name, File.join([libpath|path])
       end
@@ -84,7 +84,7 @@ module Record
     def retrieve_record(name, file)
       case retrieve_from_file(file).keyfind(name, 0)
       match false
-        self.error {'norecord, {name, file}}
+        error {'norecord, {name, file}}
       match record
         parse_record(record)
       end
@@ -99,11 +99,11 @@ module Record
     % includes record and other preprocessor modules. This is done
     % by using Erlang's epp_dodger.
     def read_file(file)
-      case Erlang.epp_dodger.quick_parse_file(file.to_bin)
+      case Erlang.epp_dodger.quick_parse_file(file)
       match {'ok, form}
         form
       match error
-        self.error(error)
+        error(error)
       end
     end
 

@@ -37,6 +37,10 @@ object Integer
     <<self>>
   end
 
+  def to_char_list
+    Erlang.integer_to_list(self)
+  end
+
   def to_s
     Erlang.integer_to_list(self).to_bin
   end

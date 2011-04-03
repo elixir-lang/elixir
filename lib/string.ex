@@ -1,16 +1,15 @@
 % elixir: cache
 
-% ## String and Erlang
+% In Elixir, strings are represented as binaries. A binary is a bit
+% string where its size is a multiple of eight. A BitString created
+% conforming to this condition will be automatically mapped as String:
 %
-% In Elixir, we have both strings, binaries and char lists. They are
-% all different ways to represent the same thing, the choice is just
-% a matter of which API you want to use. A String will be mapped to
-% the String object while the others will be mapped respectively to
-% Binary and List objects.
+%     <<72, 73, 74>>.__parent__ % => String
 %
-% It is important to notice that if you need to interact with an Erlang
-% method, you need to convert a string either to to_bin or to_char_list,
-% as Erlang does not understand the string representation from Elixir.
+% Notice that Erlang represents strings as lists. For this reason,
+% sometimes you need to convert a String to a list of chars, using
+% the `to_char_list` method. Also, you may want to convert a list
+% to a binary (i.e. a string) using the `to_bin` method.
 %
 % TODO: We need to inherit from BitString once we have inheritance.
 object String

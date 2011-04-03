@@ -91,7 +91,7 @@ object GenTCP
   end
 
   def send(message)
-    Erlang.gen_tcp.send(@socket, message.to_bin)
+    Erlang.gen_tcp.send(@socket, message)
   end
 
   def close

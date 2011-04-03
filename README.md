@@ -283,36 +283,29 @@ In Erlang, strings are a list of chars:
 
 This is expensive because each character uses 8 bytes of memory, not 8 bits! Erlang stores each character as a 32-bit integer, with a 32-bit pointer for the next item in the list.
 
-Elixir takes a different approach to strings. Strings in Elixir are handled as UTF-8 binaries.
+Elixir takes a different approach to strings. Strings in Elixir are handled as UTF-8 binaries. Since a binary is nothing more than a bit string, where the number of bits is a multiple of 8, we can create strings using the bit string syntax:
+
+    <<72, 73, 74>  % => "HIJ"
+
+When a bit string with multiple of 8 bits is created, it is automatically mapped to a string. However, you will rarely use the syntax above as Elixir provides the more traditional quote syntax to handle strings:
 
     % The famous "hello world" string
     "hello world"
 
-    % A string converted to its underlying binary:
-    "hello".to_bin  % => <<104, 101, 108, 108, 111>>
-
     % A string converted to a char list:
     "hello".to_char_list  % => [104, 101, 108, 108, 111]
+
+    % Convert a char list back to a binary/string:
+    [104, 101, 108, 108, 111].to_bin % => "hello"
+
+    % Notice that to_s in a list is not the same as to_bin.
+    % It returns the list represented as a string instead:
+    [104, 101, 108, 108, 111].to_s % => "[104,101,108,108,111]"
 
     % Strings are UTF-8
     "Arrow ⇧ up".length  % => 10
 
-This difference is important because strings are the only object that needs conversion between Elixir and Erlang. Erlang methods that expect Strings actually expect a binary or a list of characters, so you need to convert any Elixir string before passing them to Erlang.
-
-On the other hand, if you receive a String from an Erlang method you are actually receiving a binary or a list of characters, so you may want to typecast to Elixir's string. Summing up, here are the conversions you need to know:
-
-    % Converting a string_from_erlang to Elixir's String
-    String.new string_from_erlang
-
-    % Where string_from_erlang is either a binary:
-    <<[104, 101, 108, 108, 111]>>
-
-    % Or a char_list:
-    [104, 101, 108, 108, 111]
-
-    % Converting a string_from_elixir to Erlang
-    "string_from_elixir".to_bin
-    "string_from_elixir".to_char_list
+Keep in mind that, as Elixir strings are different from Erlang strings, sometimes you may need to convert Elixir strings to a char list and vice-versa when invoking Erlang methods using the methods `to_char_list` and `to_bin` as seen above.
 
 Finally, strings also support interpolation:
 
@@ -1109,10 +1102,14 @@ There are two types of generators in Elixir/Erlang: list and bit string generato
     % A bit string generator:
     [n*2 for <<n>> in <<1,2,3,4>>]  % => [2,4,6,8]
 
-Binary generators are quite useful when you need to organize bit string streams:
+Bit string generators are quite useful when you need to organize bit string streams:
 
     pixels = <<213,45,132,64,76,32,76,0,0,234,32,15>>
     [{r,g,b} for <<r:8,g:8,b:8>> in pixels ]  % => [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
+
+Remember, as strings are binaries and a binary is a special kind of bit string where the number of bit is a multiple of 8, we can also use strings on comprehensions. For instance, the example below removes all white space characters from a string:
+
+    <<c for <<c>> in " hello world ", c != $\s>> % => "helloworld"
 
 Elixir does its best to hide the differences between list and bit string generators from you. However, there is a special case due to Erlang limitation that you need to explicitly tell Erlang that a list is being given as argument:
 
