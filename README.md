@@ -289,7 +289,7 @@ Elixir takes a different approach to strings. Strings in Elixir are handled as U
     "hello world"
 
     % A string converted to its underlying binary:
-    "hello".to_bin  % => <<[104, 101, 108, 108, 111]>>
+    "hello".to_bin  % => <<104, 101, 108, 108, 111>>
 
     % A string converted to a char list:
     "hello".to_char_list  % => [104, 101, 108, 108, 111]

@@ -14,7 +14,7 @@ object BitString
   end
 
   def inspect
-    String.new Erlang.io_lib.format($"~p", [self]).flatten
+    String.new Erlang.io_lib.format($"~w", [self]).flatten
   end
 
   def to_s

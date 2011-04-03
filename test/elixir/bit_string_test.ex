@@ -4,7 +4,8 @@ object BitStringTest
   proto ExUnit::Case
 
   def inspect_test
-    "<<1,2,3>>" = << 1,2,3 >>.inspect
+    "<<1,2,3>>" = <<1,2,3>>.inspect
+    "<<71,72,73>>" = <<71,72,73>>.inspect
   end
 
   def bit_string_comprehension_test
