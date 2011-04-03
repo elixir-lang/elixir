@@ -78,6 +78,7 @@ Nonterminals
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
   exception_expr try_clause catch_args catch_clause catch_clauses after_clause
   receive_expr receive_clause after_arg_clause receive_clauses
+  begin_expr
   .
 
 Terminals
@@ -85,7 +86,7 @@ Terminals
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false nil
-  if elsif else then unless case match try catch receive after when filename
+  if elsif else then unless case match begin try catch receive after when filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
   ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '<-'
@@ -456,6 +457,7 @@ base_expr -> nil : { atom, ?line('$1'), nil }.
 base_expr -> if_expr : '$1'.
 base_expr -> exception_expr : '$1'.
 base_expr -> receive_expr : '$1'.
+base_expr -> begin_expr : '$1'.
 base_expr -> case_expr : '$1'.
 base_expr -> filename : '$1'.
 
@@ -503,7 +505,10 @@ receive_clauses -> receive break case_clauses : '$3'.
 
 after_arg_clause -> after expr then_break body : { after_clause, ?line('$1'), '$2', [], '$4' }.
 
-% Begin/Rescue/After
+% Begin expr
+begin_expr -> begin body end : { 'begin', ?line('$1'), '$2' }.
+
+% Try/Catch/After
 exception_expr -> try_clause end : '$1'.
 exception_expr -> try_clause catch_clauses end : build_try('$1', '$2', []).
 exception_expr -> try_clause after_clause end : build_try('$1', [], '$2').

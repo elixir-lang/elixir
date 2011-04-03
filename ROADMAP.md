@@ -13,6 +13,7 @@ In the long term, here are a few things we would like to add:
 * Allow extension of builtin types (like inheriting from Integer)
 * Do not eval code when reading files
 * Allow method declarations to finish with ",", meaning another method with the same name and arity must be defined next
+* Make method definitions return a pointer to the defined method to allow further manipulation
 
 And a few performance optimizations:
 

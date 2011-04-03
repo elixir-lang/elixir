@@ -275,6 +275,7 @@ reserved_word('Erlang')  -> true;
 reserved_word('_')       -> true;
 reserved_word('end')     -> true;
 reserved_word('do')      -> true;
+reserved_word('begin')   -> true;
 reserved_word('module')  -> true;
 reserved_word('object')  -> true;
 reserved_word('def')     -> true;

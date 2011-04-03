@@ -359,10 +359,38 @@ transform({interpolated_char_list, Line, String }, S) ->
 %
 % The Left and Right values of the comparison operation can be a match expression.
 % Variables defined inside these expressions needs to be added to the list.
+transform({comp_op, Line, '||', Left, Right}, S) ->
+  { Var, NS } = build_var_name(Line, S),
+  { TLeft, SL } = transform(Left, NS),
+  { TRight, SR } = transform(Right, umergec(NS, SL)),
+
+  Match = {match, Line, Var, TLeft},
+  True  = [{atom,Line,true}],
+  False = [{atom,Line,false}],
+
+  { { 'case', Line, convert_to_boolean(Line, Match, true), [
+    { clause, Line, False, [], [TRight] },
+    { clause, Line, True, [], [Var] }
+  ] }, umergev(SL, SR) };
+
+transform({comp_op, Line, '&&', Left, Right}, S) ->
+  { TLeft, SL } = transform(Left, S),
+  { TRight, SR } = transform(Right, umergec(S, SL)),
+
+  Any   = [{var, Line,'_'}],
+  Nil   = [{atom,Line,nil}],
+  False = [{atom,Line,false}],
+
+  { { 'case', Line, TLeft, [
+    { clause, Line, False, [], False },
+    { clause, Line, Nil, [], Nil },
+    { clause, Line, Any, [], [TRight] }
+  ] }, umergev(SL, SR) };
+
 transform({comp_op, Line, Op, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
-  build_comp_op(Line, Op, TLeft, TRight, umergev(SL, SR));
+  { { op, Line, convert_comp_op(Op), TLeft, TRight }, umergev(SL, SR) };
 
 % Handle binary operations.
 %
@@ -475,7 +503,16 @@ transform({'fun', Line, {clauses, Clauses}}, S) ->
   TClauses = [element(1, transform(Clause, S)) || Clause <- Clauses],
   { { 'fun', Line, {clauses, TClauses} }, S };
 
-% Handle begin/rescue/after blocks.
+% Begin blocks.
+%
+% = Variables
+%
+% Variables are passed forward.
+transform({'begin', Line, Exprs}, S) ->
+  { TExprs, SE } = transform_tree(Exprs, S),
+  { { block, Line, TExprs }, SE };
+
+% Handle try/catch/after blocks.
 %
 % = Variables
 %
@@ -911,35 +948,6 @@ build_var_name(Line, #elixir_scope{counter=Counter} = S) ->
   NS = S#elixir_scope{counter=Counter+1},
   Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) },
   { Var, NS }.
-
-% Build and handle comparision operators.
-build_comp_op(Line, '||', Left, Right, S) ->
-  { Var, NS } = build_var_name(Line, S),
-
-  Match = {match, Line, Var, Left},
-  True = [{atom,Line,true}],
-  False = [{atom,Line,false}],
-
-  { { 'case', Line, convert_to_boolean(Line, Match, true), [
-    { clause, Line, False, [], [Right] },
-    { clause, Line, True, [], [Var] }
-  ] }, NS };
-
-% Build and handle comparision operators.
-build_comp_op(Line, '&&', Left, Right, S) ->
-  Any   = [{var, Line, '_'}],
-  Nil   = [{atom,Line,nil}],
-  False = [{atom,Line,false}],
-
-  { { 'case', Line, Left, [
-    { clause, Line, False, [], False },
-    { clause, Line, Nil, [], Nil },
-    { clause, Line, Any, [], [Right] }
-  ] }, S };
-
-% Build and handle comparision operators.
-build_comp_op(Line, Op, Left, Right, S) ->
-  { { op, Line, convert_comp_op(Op), Left, Right }, S }.
 
 % Convert comparison operators to erlang format.
 convert_comp_op('=!=') -> '=/=';

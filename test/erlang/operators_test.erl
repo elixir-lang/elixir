@@ -248,3 +248,6 @@ oror_test() ->
     {true, _} = elixir:eval("false && false || true")
   end,
   test_helper:run_and_remove(F, ['Bar']).
+
+begin_test() ->
+  {1,[{x,1}]} = elixir:eval("begin\nx=1\nend\nx").
