@@ -115,15 +115,13 @@ object String
     if given.__parent_name__ == 'Regexp
       given.replace(self, replacement)
     else
-      self.error 'badarg
+      Regexp.new(Regexp.escape(given)).replace(self, replacement)
     end
   end
 
   % Substitute the **all** occurrence of *given* in the string by *replacement*.
-  %
-  % Currently, given can be only be a regular expression, strings may be allowed
-  % in the future. Please check `Regexp#replace` for more information about
-  % the characters allowed in *replacement*.
+  % Please check `Regexp#replace` for more information about the characters
+  % allowed in *replacement*.
   %
   % ## Examples
   %
@@ -136,7 +134,7 @@ object String
     if given.__parent_name__ == 'Regexp
       given.replace_all(self, replacement)
     else
-      self.error 'badarg
+      Regexp.new(Regexp.escape(given)).replace_all(self, replacement)
     end
   end
 
@@ -162,7 +160,7 @@ object String
     if given.__parent_name__ == 'Regexp
       given.split(self, parts)
     else
-      self.error 'badarg
+      Regexp.new(Regexp.escape(given)).split(self, parts)
     end
   end
 

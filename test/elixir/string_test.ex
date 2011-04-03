@@ -40,6 +40,10 @@ three
     ["one\n", "two\n", "three\n"] = list
   end
 
+  def escape_test
+    "\n" = "\010"
+  end
+
   def concatenate_test
     "elixir" = "eli" + "xir"
   end
@@ -101,11 +105,22 @@ three
     ["foo", "baz", "bat"] = "foobarbazbarbat".split(~r"bar")
     ["foo", "bazbarbat"] = "foobarbazbarbat".split(~r"bar", 2)
     ["foobaz"] = "foobaz".split(~r"bar")
+    [] = "foobaz".split(~r"\w")
+  end
+
+  def split_with_string_test
+    ["foo", "baz"] = "foobarbaz".split("bar")
+    ["foo", "baz", "bat"] = "foobarbazbarbat".split("bar")
+    ["foo", "bazbarbat"] = "foobarbazbarbat".split("bar", 2)
+    ["foobaz"] = "foobaz".split("bar")
+    ["foobaz"] = "foobaz".split("\\w")
+    ["foo", "baz"] = "foo[]baz".split("[]")
   end
 
   def sub_test
     "abc"   = "abc".sub(~r(d), "d")
     "adc"   = "abc".sub(~r(b), "d")
+    "adc"   = "abc".sub("b", "d")
     "a[b]c" = "abc".sub(~r(b), "[&]")
     "a[&]c" = "abc".sub(~r(b), "[\\&]")
     "a[b]c" = "abc".sub(~r[(b)], "[\\1]")
@@ -119,6 +134,7 @@ three
   def gsub_test
     "abcbe"     = "abcbe".gsub(~r(d), "d")
     "adcde"     = "abcbe".gsub(~r(b), "d")
+    "adcde"     = "abcbe".gsub("b", "d")
     "a[b]c[b]e" = "abcbe".gsub(~r(b), "[&]")
     "a[&]c[&]e" = "abcbe".gsub(~r(b), "[\\&]")
     "a[b]c[b]e" = "abcbe".gsub(~r[(b)], "[\\1]")

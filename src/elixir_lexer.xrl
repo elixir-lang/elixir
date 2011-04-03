@@ -254,22 +254,33 @@ unescape_chars(false, [$\\, Escaped|Rest], Output) ->
   end;
 
 unescape_chars(true, [$\\, Escaped|Rest], Output) ->
-  Char = case Escaped of
-    $b  -> $\b;
-    $d  -> $\d;
-    $e  -> $\e;
-    $f  -> $\f;
-    $n  -> $\n;
-    $r  -> $\r;
-    $s  -> $\s;
-    $t  -> $\t;
-    $v  -> $\v;
-    _   -> Escaped
-  end,
-  unescape_chars(true, Rest, [Char|Output]);
+  case extract_integers([Escaped|Rest], []) of
+    {_,[]} ->
+      Char = case Escaped of
+        $b  -> $\b;
+        $d  -> $\d;
+        $e  -> $\e;
+        $f  -> $\f;
+        $n  -> $\n;
+        $r  -> $\r;
+        $s  -> $\s;
+        $t  -> $\t;
+        $v  -> $\v;
+        _   -> Escaped
+      end,
+      unescape_chars(true, Rest, [Char|Output]);
+    {RealRest,Integer} ->
+      unescape_chars(true, RealRest, [list_to_integer(Integer)|Output])
+  end;
 
 unescape_chars(Escaping, [Char|Rest], Output) ->
   unescape_chars(Escaping, Rest, [Char|Output]).
+
+extract_integers([H|T], Acc) when H >= 48 andalso H =< 57 -> 
+  extract_integers(T, [H|Acc]);
+
+extract_integers(Remaining, Acc) ->
+  { Remaining, lists:reverse(Acc) }.
 
 reserved_word('Erlang')  -> true;
 reserved_word('_')       -> true;

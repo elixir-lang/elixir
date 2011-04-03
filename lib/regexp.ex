@@ -43,6 +43,18 @@
 %   or (*ANY) at the beginning of the regexp according to the re documentation
 %
 object Regexp
+  module Mixin
+    % Escape the given string so it can match a regular expression.
+    def escape(string)
+      binary = Erlang.re.replace(string.to_bin, @escape_regexp, $"\\\\&", [{'return,'binary},'global])
+      String.new binary
+    end
+  end
+
+  % Have the escape regexp pre-compiled and stored.
+  { 'ok, compiled } = Erlang.re.compile($"\\\\|\\{|\\[|\\(|\\)|\\]|\\}")
+  @('escape_regexp, compiled)
+
   % Creates a new regular expression. It expects two arguments,
   % the regular expression and a set of options. Both should be
   % a string or a list of chars and, if not, to_char_list is
@@ -65,12 +77,38 @@ object Regexp
 
   % Returns a boolean depending if the regular expressions matches the given string.
   def match?(target)
-    'nomatch != run(target)
+    'nomatch != Erlang.re.run(target.to_bin, @compiled)
   end
 
-  def split(string, parts := 'infinity)
-    list = Erlang.re.split(string.to_bin, @compiled, [{'return,'binary},'trim, {'parts, parts}])
-    [String.new(l) for l in list]
+  % Run the regular expression against the given target. It returns a list with
+  % all matches or an empty list if no match occurred.
+  %
+  % This method accepts *captures* as second argument specifying which captures
+  % from the regular expression should be handled.
+  def run(target, captures := 'all)
+    case Erlang.re.run(target.to_bin, @compiled, [{'capture, captures, 'binary}])
+    match 'nomatch
+      []
+    match {'match, results}
+      [String.new(r) for r in results]
+    end
+  end
+
+  % Same as run, but scan the target several times collecting all matches of
+  % the regular expression. This is similar to the /g option in Perl.
+  def scan(target, captures := 'all_but_first)
+    case Erlang.re.run(target.to_bin, @compiled, [{'capture, captures, 'binary}, 'global])
+    match 'nomatch
+      []
+    match {'match, results}
+      results.map -> (result) [String.new(r) for r in result]
+    end
+  end
+
+  % Split the given *target* in the number of *parts* specified.
+  def split(target, parts := 'infinity)
+    list = Erlang.re.split(target.to_bin, @compiled, [{'return,'binary},'trim,{'parts, parts}])
+    [String.new(l) for l in list, l != <<>>]
   end
 
   % Receives a string and a replacement and returns a string where the first match
@@ -99,10 +137,6 @@ object Regexp
   end
 
   private
-
-  def run(target)
-    Erlang.re.run(target.to_bin, @compiled)
-  end
 
   def parse_option($u, acc); ['unicode|acc]; end
   def parse_option($i, acc); ['caseless|acc]; end
