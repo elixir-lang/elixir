@@ -14,6 +14,7 @@ In the long term, here are a few things we would like to add:
 * Do not eval code when reading files
 * Allow method declarations to finish with ",", meaning another method with the same name and arity must be defined next
 * Make method definitions return a pointer to the defined method to allow further manipulation
+* Dict comprehensions
 
 And a few performance optimizations:
 
