@@ -1070,15 +1070,9 @@ Invoking Erlang methods with elixir is quite trivial:
     % This is the same as `lists:member(1, [1,2,3])` in Erlang.
     Erlang.lists.member(1, [1,2,3]) % => true
 
-As there is no conversion between most Erlang data types and Elixir ones, there is no performance hit in invoking Erlang methods. The only exception are strings, that needs to be converted to binaries or a char list before calling Erlang. For instance, the `io:format` method in Erlang should be called from Elixir like follow:
+As there is no conversion between most Erlang data types and Elixir ones, there is no performance hit in invoking Erlang methods. The only exception are strings that are binaries in Elixir and may need to be converted to char lists in some specific erlang modules. More details were outline in the BitString and String sections above.
 
-    Erlang.io.format "~s\n".to_char_list, ["hello".to_char_list]
-
-Conversion from an Erlang string (a char list) to an Elixir string is done by `String.new`:
-
-    String.new Erlang.return_some_erlang_char_list
-
-As the string object is special cased by Elixir compiler, so even though there is a conversion, the performance hit is still kept quite minimal. Finally, notice that `Erlang` is not a real object in Elixir, but just a proxy that is converted to erlang calls at parse time.
+Finally, notice that `Erlang` is not a real object in Elixir, but just a proxy that is converted to erlang calls at parse time.
 
 ## List and Bit string comprehensions
 
