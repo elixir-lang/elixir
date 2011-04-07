@@ -318,7 +318,7 @@ Finally, strings also support interpolation:
 
 ### Functions
 
-Functions are an important aspect of Elixir, like in any functional programming language. Functions are created in Elixir with the keywords `->` or `do`:
+Functions are an important aspect of Elixir as in any functional programming language. Functions are created in Elixir with the keywords `->` or `do`:
 
     my_function = do
       1 + 2
@@ -396,7 +396,7 @@ Notice that while parenthesis are optional for method invocations, function invo
     % This works
     my_function(1, 2)
 
-Another cool extension Elixir adds to functions is the easy generation of anonymous functions. For instance, suppose you a list of cars and you want to get their names. A way to do that would be:
+Another cool extension Elixir adds to functions is the easy generation of anonymous functions. For instance, suppose you have a list of cars and you want to get their names. A way to do that would be:
 
     cars.map -> (c) c.name
 
@@ -1928,6 +1928,14 @@ Elixir allows you to import records from Erlang code. Here is an example that im
 #### Documentation
 
 * <https://github.com/josevalim/elixir/tree/master/lib/record.ex>
+
+# Trade-offs
+
+Elixir has a few trade-offs when compared to Erlang and other languages. Two deserve special attention:
+
+* Stacktraces are quite limited. When an error happens, they don't show a lot of information nor the line number of the error. The former happens due to tail call optimization while the latter is an Erlang limitation that cannot be circumvented in Elixir.
+
+* Hot code swap cannot be done with Elixir. Once you add scripting, open classes and meta-programming, there is no longer the atomicity required for hot code swapping as most modules are generated and compiled at run-time instead of a specific pre-compilation time. Maybe this can be circumvented in the future, but it is not a goal now. If hot code swapping is a requisite, use Erlang.
 
 # License
 

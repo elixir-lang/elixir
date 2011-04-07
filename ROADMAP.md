@@ -4,7 +4,7 @@ In the long term, here are a few things we would like to add:
 
 * Add partial function application, function pipeline (f1 + f2) and an easy way to retrieve functions from objects (1#add and Integer##add?)
 * Extend guards support in methods
-* Add guards in functions and allow funtions to have several clauses
+* Add guards in functions and allow functions to have several clauses
 * Allow object definitions to be reopened or add refinements
 * Allow copy and/or inheritance from another object
 * Improve constant lookup (currently constants are referenced by their full name)
@@ -16,6 +16,7 @@ In the long term, here are a few things we would like to add:
 * Make method definitions return a pointer to the defined method to allow further manipulation
 * Dict comprehensions and get rid of inbin and inlist
 * 'Foo::Bar should work without requiring double quotes
+* Add more OTP behaviors: supervisors, apps, fsm and events
 
 And a few performance optimizations:
 

@@ -114,7 +114,7 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
 compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
   Name = Module#elixir_object__.name,
 
-  % Update mixins to have Name
+  % Update mixins to have the module itself
   AttributeTable = Module#elixir_object__.data,
   Mixins = ets:lookup_element(AttributeTable, mixins, 2),
   ets:insert(AttributeTable, { mixins, [Name|Mixins] }),
