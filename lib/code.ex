@@ -62,7 +62,7 @@ module Code
 
   def require_file(path, info)
     server_call { 'loaded, path }
-    Erlang.elixir.require(path.to_char_list, info)
+    Erlang.elixir.require(path.to_char_list)
   end
 
   def require_in_paths(path, [h|t], loaded)

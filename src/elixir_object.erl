@@ -268,6 +268,8 @@ load_form(Forms, Filename) ->
         undefined -> [];
         List -> put(elixir_compile_core, [{module, ModuleName, Filename, Binary}|List])
       end,
+      Path = "ebin/" ++ atom_to_list(ModuleName) ++ ".beam",
+      ok = file:write_file(Path, Binary),
       format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary);
     {error, Errors, Warnings} ->

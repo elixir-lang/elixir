@@ -23,8 +23,8 @@ object AtomTest
     atom = Atom
     ~atom = 'Atom.to_constant
 
-    self.assert_error { 'noconstant, 'Foo }, do
-      'Foo.to_constant
+    self.assert_error { 'noconstant, 'ThisConstantDoesNotExist }, do
+      'ThisConstantDoesNotExist.to_constant
     end
   end
 
