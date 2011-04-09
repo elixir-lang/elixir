@@ -238,19 +238,35 @@ object Object
     Erlang.elixir_module_methods.set_visibility(self, 'private)
 
     def filter_stacktrace(stacktrace)
-      filter_stacktrace(stacktrace, [], ~r(^[A-Z]))
+      filter_stacktrace(stacktrace, [])
     end
 
-    def filter_stacktrace([{module, function, arity}|t], buffer, regexp)
-      if regexp.match?(module.to_s) && arity.__parent_name__ == 'Integer
-        filter_stacktrace t, [{module, function, arity - 1}|buffer], regexp
+    def filter_stacktrace([{raw_module, function, raw_arity}|t], buffer)
+      if filtered = filter_stacktrace_module(raw_module.to_char_list)
+        module = filtered
+        arity = if raw_arity.__parent_name__ == 'Integer
+          raw_arity - 1
+        else
+          raw_arity
+        end
       else
-        filter_stacktrace t, [{module, function, arity}|buffer], regexp
+        module = raw_module
+        arity = raw_arity
       end
+
+      filter_stacktrace t, [{module, function, arity}|buffer]
     end
 
-    def filter_stacktrace([], buffer, _)
+    def filter_stacktrace([], buffer)
       buffer.reverse
+    end
+
+    def filter_stacktrace_module([$e, $x, h|t]) when h >= $A andalso h <= $Z
+      Atom.from_char_list [h|t]
+    end
+
+    def filter_stacktrace_module(_)
+      nil
     end
 
     def filter_catch_stacktrace({ 'EXIT, { reason, stacktrace } })
