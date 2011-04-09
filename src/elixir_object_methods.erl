@@ -289,40 +289,40 @@ abstract_protos(Name) ->
 % Builtin mixins
 
 builtin_mixin(Native) when is_integer(Native) ->
-  'Integer::Proto';
+  'exInteger::Proto';
 
 builtin_mixin(Native) when is_float(Native) ->
-  'Float::Proto';
+  'exFloat::Proto';
 
 builtin_mixin(Native) when is_atom(Native) ->
-  'Atom::Proto';
+  'exAtom::Proto';
 
 builtin_mixin(Native) when is_list(Native) ->
-  'List::Proto';
+  'exList::Proto';
 
 builtin_mixin(Native) when is_binary(Native) ->
-  'String::Proto';
+  'exString::Proto';
 
 builtin_mixin(Native) when is_bitstring(Native) ->
-  'BitString::Proto';
+  'exBitString::Proto';
 
 builtin_mixin(#elixir_orddict__{}) ->
-  'OrderedDict::Proto';
+  'exOrderedDict::Proto';
 
 builtin_mixin(Native) when is_tuple(Native) ->
-  'Tuple::Proto';
+  'exTuple::Proto';
 
 builtin_mixin(Native) when is_function(Native) ->
-  'Function::Proto';
+  'exFunction::Proto';
 
 builtin_mixin(Native) when is_pid(Native) ->
-  'Process::Proto';
+  'exProcess::Proto';
 
 builtin_mixin(Native) when is_reference(Native) ->
-  'Reference::Proto';
+  'exReference::Proto';
 
 builtin_mixin(Native) when is_port(Native) ->
-  'Port::Proto'.
+  'exPort::Proto'.
 
 % Merge two lists taking into account uniqueness. Opposite to
 % lists:umerge2, does not require lists to be sorted.

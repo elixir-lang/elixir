@@ -229,7 +229,8 @@ build_erlang_form(Line, Object, {Mixin, Proto}, {Export, Inherited, Functions}) 
   Snapshot = build_snapshot(Name, Parent, Mixin, Proto, Data),
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
   Base = ets:foldr(Transform, Functions, AttributeTable),
-  [{attribute, Line, module, Name}, {attribute, Line, parent, Parent}, {attribute, Line, compile, no_auto_import()},
+  ModuleName = ?ELIXIR_ERL_MODULE(Name),
+  [{attribute, Line, module, ModuleName}, {attribute, Line, parent, Parent}, {attribute, Line, compile, no_auto_import()},
    {attribute, Line, export, Export}, {attribute, Line, inherited, Inherited}, {attribute, Line, snapshot, Snapshot} | Base].
 
 destructive_read(Table, Attribute) ->
@@ -242,11 +243,11 @@ build_snapshot(Name, Parent, Mixin, Proto, Data) ->
   FinalProto = snapshot_module(Name, Parent, Proto),
   #elixir_object__{name=Name, parent=Parent, mixins=FinalMixin, protos=FinalProto, data=Data}.
 
-snapshot_module('Object', _, [])      -> 'Object::Methods';
-snapshot_module('Module', _, [])      -> 'Module::Methods';
-snapshot_module(Name,  'Module', _)   -> Name;
-snapshot_module(_,  _, [])            -> 'Object::Methods';
-snapshot_module(_, _, {_,_,Module,_}) -> Module#elixir_object__.name.
+snapshot_module('Object', _, [])      -> 'exObject::Methods';
+snapshot_module('Module', _, [])      -> 'exModule::Methods';
+snapshot_module(Name,  'Module', _)   -> ?ELIXIR_ERL_MODULE(Name);
+snapshot_module(_,  _, [])            -> 'exObject::Methods';
+snapshot_module(_, _, {_,_,Module,_}) -> ?ELIXIR_ERL_MODULE(Module#elixir_object__.name).
 
 no_auto_import() ->
   {no_auto_import, [

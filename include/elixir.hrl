@@ -5,6 +5,7 @@
   }).
 
 -define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
+-define(ELIXIR_ERL_MODULE(Atom), list_to_atom([$e,$x|atom_to_list(Atom)])).
 
 % Representation for Elixir Objects. The elixir_object__ holds
 % the general represenation and contains:

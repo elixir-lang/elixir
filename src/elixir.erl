@@ -35,7 +35,7 @@ start_app() ->
 start() ->
   start_app(),
   CodeInit = elixir_constants:lookup('Code::Init'),
-  'Code::Init':process_argv(CodeInit, init:get_plain_arguments()).
+  'exCode::Init':process_argv(CodeInit, init:get_plain_arguments()).
 
 % Return the full path for the Elixir installation.
 stdlib_path() ->

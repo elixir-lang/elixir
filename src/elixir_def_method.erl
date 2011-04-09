@@ -80,6 +80,7 @@ flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) 
   Modules = lists:delete(ModuleName, RawModules),
 
   Visibility = lists:foldl(fun(Module, Acc1) ->
+    DispatchTo = ?ELIXIR_ERL_MODULE(Module),
     lists:foldl(fun({Method, ElixirArity}, Acc2) ->
       Arity = ElixirArity + 1,
       case ets:lookup(MethodTable, {Method, Arity}) of
@@ -88,7 +89,7 @@ flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) 
 
           ets:insert(MethodTable, {
             { Method, Arity }, Line, [
-              { clause, Line, BuiltArgs, [], [?ELIXIR_WRAP_CALL(Line, Module, Method, BuiltArgs)] }
+              { clause, Line, BuiltArgs, [], [?ELIXIR_WRAP_CALL(Line, DispatchTo, Method, BuiltArgs)] }
             ]
           }),
 

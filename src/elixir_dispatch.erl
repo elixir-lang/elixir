@@ -61,7 +61,8 @@ find_module(Object, Method, Arity) ->
 find_module_chain([], _Method, _Arity) -> false;
 
 find_module_chain([H|T], Method, Arity) ->
-  case erlang:function_exported(H, Method, Arity) of
-    true -> H;
+  Name = ?ELIXIR_ERL_MODULE(H),
+  case erlang:function_exported(Name, Method, Arity) of
+    true -> Name;
     _ -> find_module_chain(T, Method, Arity)
   end.
