@@ -1,4 +1,5 @@
 EBIN_DIR=ebin
+EXBIN_DIR=exbin
 TEST_DIR=test
 INCLUDE_DIR=include
 
@@ -11,13 +12,13 @@ ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
 .PHONY: test test_erlang test_elixir clean clean_lib
 
 # This is the default task
-compile: ebin/elixir.beam ebin | src/elixir_lexer.erl src/elixir_parser.erl
+compile: ebin/elixir.beam ebin exbin | src/elixir_lexer.erl src/elixir_parser.erl
 
 # install:
 # We will need to do this one at some point
 
 ebin/elixir.beam: include/elixir.hrl
-	@ echo Compiling source ...
+	@ echo Compiling Erlang source ...
 	@ mkdir -p $(EBIN_DIR)
 	$(ERLC) -o $(EBIN_DIR) src/*.erl
 	@ echo
@@ -37,11 +38,15 @@ src/elixir_parser.erl: src/elixir_parser.yrl
 	@ echo
 
 ebin: src/*.erl
-	@ rm -rf lib/*.exb
-	@ echo Compiling source ...
+	@ echo Compiling Erlang source ...
 	@ mkdir -p $(EBIN_DIR)
 	$(ERLC) -o $(EBIN_DIR) $?
 	@ echo
+
+exbin: lib/*.ex
+	@ echo Compiling Elixir source ...
+	@ mkdir -p $(EXBIN_DIR)
+	$(ERL) -s elixir compile_core -s erlang halt
 
 test_erlang: compile clean_lib
 	@ echo Running Erlang tests ...
@@ -49,7 +54,7 @@ test_erlang: compile clean_lib
 	@ # Compile test files
 	@ $(ERLC) -o $(TEST_EBIN_DIR) $(TEST_SOURCE_DIR)/*.erl
 	@ # Look and execute each file
-	time $(ERL) $(TEST_EBIN_DIR) -eval 'test_helper:test(), halt().'
+	time $(ERL) $(TEST_EBIN_DIR) -pa exbin -s test_helper test -s erlang halt
 	@ echo
 
 test_elixir: compile clean_lib
@@ -64,6 +69,7 @@ clean: clean_lib
 	rm -f src/elixir_parser.erl
 	rm -rf $(EBIN_DIR)/*.beam
 	rm -rf $(TEST_EBIN_DIR)/*.beam
+	rm -rf $(EXBIN_DIR)
 	@ echo
 
 clean_lib:

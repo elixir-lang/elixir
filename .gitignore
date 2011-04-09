@@ -3,6 +3,4 @@ src/elixir_lexer.erl
 src/elixir_parser.erl
 test/ebin
 ebin/*.beam
-*.exb
-libc
-Makefile
+exbin/*.beam

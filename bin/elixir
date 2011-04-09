@@ -9,12 +9,11 @@ if [ $# -eq 0 ]; then
 
 * Options given after files are passed down to the executed code.
 
-* Options can be passed to the erlang compiler by using ELIXIR_ERL_OPTS." >&2
+* Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS." >&2
   exit 1
 fi
 
 SELF=`readlink $0 || echo $0`
 SCRIPT_PATH=`dirname $SELF`
 ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
-export ELIXIR_PATH=$ELIXIR_PATH
-erl -I $ELIXIR_PATH/include -pa $ELIXIR_PATH/ebin -noshell $ELIXIR_ERL_OPTS -s elixir start -extra "$@"
+erl -I $ELIXIR_PATH/include -pa $ELIXIR_PATH/ebin $ELIXIR_PATH/exbin -noshell $ELIXIR_ERL_OPTS -s elixir start -extra "$@"

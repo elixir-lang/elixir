@@ -1,8 +1,9 @@
 % Holds all runtime methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, proto/2, new/2, name/1, parent/1, parent_name/1, mixins/1, protos/1, data/1, builtin_mixin/1,
-  get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4, ancestors/1, function_catch/1]).
+-export([mixin/2, mixin/3, proto/2, proto/3, new/2, name/1, parent/1, parent_name/1,
+  mixins/1, protos/1, data/1, builtin_mixin/1, get_ivar/2, set_ivar/3, set_ivars/2,
+  update_ivar/3, update_ivar/4, ancestors/1, function_catch/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
@@ -23,14 +24,16 @@ new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
 
 new(Else, Args) -> builtinnotallowed(Else, new).
 
-mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
-mixin(Self, Value) -> prepend_as(Self, object_mixins(Self), mixin, Value).
+mixin(Self, Value) -> mixin(Self, Value, true).
+mixin(Self, Value, Flag) when is_list(Value) -> [mixin(Self, Item, Flag) || Item <- Value];
+mixin(Self, Value, Flag) -> prepend_as(Self, object_mixins(Self), mixin, Value, Flag).
 
+proto(Self, Value) -> proto(Self, Value, true).
 % TODO: Rewrite this as remove_method once we add it
-proto(#elixir_object__{parent='Module'} = Self, Value) ->
+proto(#elixir_object__{parent='Module'} = Self, Value, Flag) ->
   elixir_dispatch:dispatch(Self, method_missing, [proto, [Value]]);
-proto(Self, Value) when is_list(Value) -> [proto(Self, Item) || Item <- Value];
-proto(Self, Value) -> prepend_as(Self, object_protos(Self), proto, Value).
+proto(Self, Value, Flag) when is_list(Value) -> [proto(Self, Item, Flag) || Item <- Value];
+proto(Self, Value, Flag) -> prepend_as(Self, object_protos(Self), proto, Value, Flag).
 
 % Reflections
 
@@ -123,16 +126,21 @@ assert_same_object(#elixir_object__{parent=Parent}, #elixir_object__{parent=Pare
 assert_same_object(_, Else) -> elixir_errors:error({badinitialize, Else}).
 
 % Helper that prepends a mixin or a proto to the object chain.
-prepend_as(#elixir_object__{} = Self, Chain, Kind, Value) ->
+prepend_as(#elixir_object__{} = Self, Chain, Kind, Value, Flag) ->
   check_module(Value, Kind),
   List = object_mixins(Value),
   Object = update_object_chain(Self, Kind, umerge(List, Chain)),
 
   % Invoke the appropriate hook.
-  elixir_dispatch:dispatch(Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]);
+  case Flag of
+    true ->
+      elixir_dispatch:dispatch(Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]);
+    false ->
+      Object
+  end;
 
 % Raise an error if mixin or proto is called on builtin.
-prepend_as(Else, Chain, Kind, Value) -> builtinnotallowed(Else, Kind).
+prepend_as(Else, Chain, Kind, Value, Flag) -> builtinnotallowed(Else, Kind).
 
 % Update the given object chain. Sometimes it means we need to update
 % the table, sometimes update a record.

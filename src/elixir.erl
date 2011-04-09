@@ -1,21 +1,15 @@
 -module(elixir).
 -export([start/0, require/1, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
+-export([compile_core/0]).
 -include("elixir.hrl").
--include_lib("kernel/include/file.hrl").
 
 % OTP Application API
 -export([start_app/0, start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  % Ensure elixir_object_methods is loaded and running
   code:ensure_loaded(elixir_object_methods),
-
-  % Load stdlib files
-  BasePath = stdlib_path(),
-  BaseFiles = [internal_require(filename:join(BasePath, File)) || File <- stdlib_files()],
-
-  % Boot the code server with supervisor
-  elixir_sup:start_link([BasePath, BaseFiles]).
+  [code:ensure_loaded(Module) || Module <- builtin_mixins()],
+  elixir_sup:start_link([]).
 
 stop(_S) ->
   ok.
@@ -36,52 +30,21 @@ start() ->
   CodeInit = elixir_constants:lookup('Code::Init'),
   'exCode::Init':process_argv(CodeInit, init:get_plain_arguments()).
 
-% Return the full path for the Elixir installation.
-stdlib_path() ->
-  case os:getenv("ELIXIR_PATH") of
-    false ->
-      case code:lib_dir(elixir,lib) of
-        {error, bad_name} ->
-          Dirname = filename:dirname(?FILE),
-          filename:join([Dirname, "..", "lib"]);
-        Path when is_list(Path) ->
-          Path
-      end;
-    Path -> filename:join([Path, "lib"])
-  end.
-
-% Stblib files that are loaded and compiled.
-stdlib_files() ->
+builtin_mixins() ->
   [
-    "object.ex",
-    "module.ex",
-    "io.ex",
-    "atom.ex",
-    "list.ex",
-    "numeric.ex",
-    "integer.ex",
-    "float.ex",
-    "tuple.ex",
-    "string.ex",
-    "ordered_dict.ex",
-    "regexp.ex",
-    "bit_string.ex",
-    "process.ex",
-    "port.ex",
-    "reference.ex",
-    "function.ex",
-    "gen_server.ex",
-    "record.ex",
-    "file.ex",
-    "code.ex",
-    "code/formatter.ex",
-    "code/init.ex",
-    "code/server.ex"
+    'exInteger::Proto',
+    'exFloat::Proto',
+    'exAtom::Proto',
+    'exList::Proto',
+    'exString::Proto',
+    'exBitString::Proto',
+    'exOrderedDict::Proto',
+    'exTuple::Proto',
+    'exFunction::Proto',
+    'exProcess::Proto',
+    'exReference::Proto',
+    'exPort::Proto'
   ].
-
-internal_require(Filepath) ->
-  require(Filepath, [{self,[]}]),
-  Filepath.
 
 require(Filepath) ->
   require(Filepath, []).
@@ -142,3 +105,47 @@ final_binding([{Var,_}|T], Acc, Binding, Vars) ->
   end;
 
 final_binding([], Acc, _Binding, _Vars) -> lists:reverse(Acc).
+
+%% Compilation helpers
+
+compile_core() ->
+  code:ensure_loaded(elixir_object_methods),
+  [require(File, [{self,nil}]) || File <- compile_main()],
+  AllLists = [filelib:wildcard(Wildcard) || Wildcard <- compile_list()],
+  Files = lists:append(AllLists) -- compile_main(),
+  [require(File) || File <- Files].
+
+compile_list() ->
+  [
+    "lib/*.ex",
+    "lib/*/*.ex"
+  ].
+
+compile_main() ->
+  [
+    "lib/object.ex",
+    "lib/module.ex",
+    "lib/io.ex",
+    "lib/atom.ex",
+    "lib/list.ex",
+    "lib/numeric.ex",
+    "lib/integer.ex",
+    "lib/float.ex",
+    "lib/tuple.ex",
+    "lib/string.ex",
+    "lib/ordered_dict.ex",
+    "lib/regexp.ex",
+    "lib/bit_string.ex",
+    "lib/process.ex",
+    "lib/port.ex",
+    "lib/reference.ex",
+    "lib/function.ex",
+    "lib/gen_server.ex",
+    "lib/record.ex",
+    "lib/file.ex",
+    "lib/code.ex",
+    "lib/code/formatter.ex",
+    "lib/code/init.ex",
+    "lib/code/server.ex",
+    "lib/code/compiler.ex"
+  ].

@@ -155,16 +155,15 @@ compile_kind(object, Line, Filename, Current, Object, { Mixins, Protos }, Method
   % Read implicitly added modules, compile the form and load implicit modules.
   Proto = read_implicit_module(Object, AttributeTable, proto),
   Mixin = read_implicit_module(Object, AttributeTable, mixin),
-  load_form(build_erlang_form(Line, Object, {Mixin, Proto}), Filename),
-  load_implicit_modules(Object, Proto, protos),
-  load_implicit_modules(Object, Mixin, mixins),
+
+  load_form(build_erlang_form(Line, Filename, Object, {Mixin, Proto}), Filename),
   ets:delete(AttributeTable).
 
 % Handle logic compilation. Called by both compile_kind(module) and compile_kind(object).
 % The latter uses it for implicit modules.
 compile_module(Line, Filename, Module, MethodTable) ->
   Functions = elixir_def_method:unwrap_stored_methods(MethodTable),
-  load_form(build_erlang_form(Line, Module, {[],[]}, Functions), Filename),
+  load_form(build_erlang_form(Line, Filename, Module, {[],[]}, Functions), Filename),
   ets:delete(Module#elixir_object__.data),
   ets:delete(MethodTable).
 
@@ -183,24 +182,18 @@ add_implicit_modules(#elixir_object__{name=Name, data=AttributeTable} = Self, Mo
 
 add_implicit_modules(_, _, _) -> false.
 
-% Load implicit modules for object
-
-load_implicit_modules(_Object, [], _Attribute) -> [];
-
-load_implicit_modules(Object, Value, Attribute) ->
-  { Line, Filename, Module, MethodTable } = Value,
-  elixir_def_method:flat_module(Object, Line, Attribute, Module, MethodTable),
-  compile_module(Line, Filename, Module, MethodTable).
-
 % Read implicit modules for object
 
 read_implicit_module(Object, AttributeTable, Attribute) ->
   Value = destructive_read(AttributeTable, Attribute),
   case Value of
     [] -> [];
-    { _, _, Module, _ } -> elixir_object_methods:Attribute(Object, Module)
-  end,
-  Value.
+    { Line, Filename, Module, MethodTable } ->
+      elixir_object_methods:Attribute(Object, Module, false),
+      elixir_def_method:flat_module(Object, Line, ?ELIXIR_ATOM_CONCAT([Attribute,"s"]), Module, MethodTable),
+      compile_module(Line, Filename, Module, MethodTable),
+      Module
+  end.
 
 generate_implicit_module_if(Line, Filename, Match,
   #elixir_object__{name=Name, data=AttributeTable} = Object, Attribute, Suffix) ->
@@ -218,20 +211,32 @@ generate_implicit_module_if(Line, Filename, Match,
 
 % Retrieve all attributes in the attribute table and generate
 % an Erlang Abstract Form that defines an Erlang module.
-build_erlang_form(Line, Object, Chains) ->
-  build_erlang_form(Line, Object, Chains, {[],[],[]}).
+build_erlang_form(Line, Filename, Object, Chains) ->
+  build_erlang_form(Line, Filename, Object, Chains, {[],[],[]}).
 
-build_erlang_form(Line, Object, {Mixin, Proto}, {Export, Inherited, Functions}) ->
+build_erlang_form(Line, Filename, Object, {Mixin, Proto}, {Export, Inherited, Functions}) ->
   Name = Object#elixir_object__.name,
   Parent = Object#elixir_object__.parent,
   AttributeTable = Object#elixir_object__.data,
   Data  = destructive_read(AttributeTable, data),
   Snapshot = build_snapshot(Name, Parent, Mixin, Proto, Data),
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
-  Base = ets:foldr(Transform, Functions, AttributeTable),
   ModuleName = ?ELIXIR_ERL_MODULE(Name),
-  [{attribute, Line, module, ModuleName}, {attribute, Line, parent, Parent}, {attribute, Line, compile, no_auto_import()},
-   {attribute, Line, export, Export}, {attribute, Line, inherited, Inherited}, {attribute, Line, snapshot, Snapshot} | Base].
+  Base = ets:foldr(Transform, Functions, AttributeTable) ++ [exported_function(Line, ModuleName)],
+  [{attribute, Line, module, ModuleName}, {attribute, Line, parent, Parent},
+   {attribute, Line, compile, no_auto_import()}, {attribute, Line, file, Filename},
+   {attribute, Line, inherited, Inherited}, {attribute, Line, snapshot, Snapshot},
+   {attribute, Line, export, [{'__function_exported__',2}|Export]} | Base].
+
+exported_function(Line, ModuleName) ->
+  { function, Line, '__function_exported__', 2,
+    [{ clause, Line, [{var,Line,function},{var,Line,arity}], [], [
+      ?ELIXIR_WRAP_CALL(
+        Line, erlang, function_exported,
+        [{atom,Line,ModuleName},{var,Line,function},{var,Line,arity}]
+      )
+    ]}]
+  }.
 
 destructive_read(Table, Attribute) ->
   Value = ets:lookup_element(Table, Attribute, 2),
@@ -247,7 +252,7 @@ snapshot_module('Object', _, [])      -> 'exObject::Methods';
 snapshot_module('Module', _, [])      -> 'exModule::Methods';
 snapshot_module(Name,  'Module', _)   -> ?ELIXIR_ERL_MODULE(Name);
 snapshot_module(_,  _, [])            -> 'exObject::Methods';
-snapshot_module(_, _, {_,_,Module,_}) -> ?ELIXIR_ERL_MODULE(Module#elixir_object__.name).
+snapshot_module(_, _, Module) -> ?ELIXIR_ERL_MODULE(Module#elixir_object__.name).
 
 no_auto_import() ->
   {no_auto_import, [
@@ -264,11 +269,7 @@ transform_attribute(Line, X) ->
 load_form(Forms, Filename) ->
   case compile:forms(Forms, [return]) of
     {ok, ModuleName, Binary, Warnings} ->
-      case get(elixir_compile_core) of
-        undefined -> [];
-        List -> put(elixir_compile_core, [{module, ModuleName, Filename, Binary}|List])
-      end,
-      Path = "ebin/" ++ atom_to_list(ModuleName) ++ ".beam",
+      Path = "exbin/" ++ atom_to_list(ModuleName) ++ ".beam",
       ok = file:write_file(Path, Binary),
       format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary);
