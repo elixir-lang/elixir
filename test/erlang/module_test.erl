@@ -14,63 +14,63 @@ module_compiler_precedence_test() ->
 modules_are_converted_into_erlang_modules_test() ->
   F = fun() ->
     elixir:eval("module Bar; 1 + 2; end"),
-    {file, "nofile"} = code:is_loaded('Bar')
+    {file, "nofile"} = code:is_loaded('exBar')
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 blank_modules_are_converted_into_erlang_modules_test() ->
   F = fun() ->
     elixir:eval("module Bar; end"),
-    {file, "nofile"} = code:is_loaded('Bar')
+    {file, "nofile"} = code:is_loaded('exBar')
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 module_preceeded_by_other_expressions_test() ->
   F = fun() ->
     elixir:eval("1 + 2\nmodule Bar; 1 + 2; end"),
-    {file, "nofile"} = code:is_loaded('Bar')
+    {file, "nofile"} = code:is_loaded('exBar')
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 module_with_method_test() ->
   F = fun() ->
     elixir:eval("module Bar; def foo(); 1 + 2; end; end"),
-    3 = 'Bar':foo(self)
+    3 = 'exBar':foo(self)
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 module_with_method_without_parens_signature_test() ->
   F = fun() ->
     elixir:eval("module Bar; def foo x, y; x + y; end; end"),
-    3 = 'Bar':foo(self, 1, 2)
+    3 = 'exBar':foo(self, 1, 2)
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 module_with_empty_method_test() ->
   F = fun() ->
     elixir:eval("module Bar; def foo(); end; end"),
-    nil = 'Bar':foo(self)
+    nil = 'exBar':foo(self)
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 module_with_several_methods_test() ->
   F = fun() ->
     elixir:eval("module Bar; def foo(); 1 + 2; end; def bar(); 2 + 3; end; end"),
-    5 = 'Bar':bar(self)
+    5 = 'exBar':bar(self)
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 nested_modules_with_methods_test() ->
   F = fun() ->
     elixir:eval("module Bar; module Baz; def foo(); 1 + 2; end; end; end"),
-    3 = 'Bar::Baz':foo(self)
+    3 = 'exBar::Baz':foo(self)
   end,
   test_helper:run_and_remove(F, ['Bar', 'Bar::Baz']).
 
 nested_module_name_with_methods_test() ->
   F = fun() ->
     elixir:eval("module Bar::Baz; def foo(); 1 + 2; end; end"),
-    3 = 'Bar::Baz':foo(self)
+    3 = 'exBar::Baz':foo(self)
   end,
   test_helper:run_and_remove(F, ['Bar::Baz']).
 

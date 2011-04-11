@@ -1,4 +1,4 @@
-Code.require File.expand_path("../test_helper", __FILE__)
+Code.require_file "../test_helper", __FILE__
 
 object RecordTest
   proto ExUnit::Case
@@ -57,9 +57,10 @@ object RecordTest
   def record_reflection_test
     record = RecordTest::ElixirScope.new
     'elixir_scope = record.record_name
-    ['assign,'guard,'noname,'method,'scope,'vars,'temp_vars,'clause_vars,'counter,'filename,'assigned_vars] = record.record_keys
-    [false,false,false,[],{[], []},_,[],_,0,$"nofile",_] = record.record_defaults
-    11 = record.record_size
+    ['assign,'guard,'noname,'method,'scope,'vars,'temp_vars,
+      'clause_vars,'counter,'filename,'assigned_vars,'compile_path] = record.record_keys
+    [false,false,false,[],{[], []},_,[],_,0,$"nofile",_,[]] = record.record_defaults
+    12 = record.record_size
   end
 
   private

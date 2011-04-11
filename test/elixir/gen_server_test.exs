@@ -1,5 +1,5 @@
-Code.require File.expand_path("../test_helper", __FILE__)
-Code.require "fixtures/bookshelf"
+Code.require_file "../test_helper", __FILE__
+Code.require_file "../fixtures/bookshelf", __FILE__
 
 object GenServerTest
   proto ExUnit::Case

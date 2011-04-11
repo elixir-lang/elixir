@@ -1,6 +1,6 @@
 #!/bin/sh
 SELF=`readlink $0 || echo $0`
 SCRIPT_PATH=`dirname $SELF`
-ELIXIR_PATH=`cd $SCRIPT_PATH; cd ..; pwd`
-export ELIXIR_PATH=$ELIXIR_PATH
-erl -I $ELIXIR_PATH/include -pa $ELIXIR_PATH/ebin -noshell -noinput $ELIXIR_ERL_OPTS -s elixir start -extra --no-halt -f "Code.require \"iex\"; IEX.start" "$@"
+ELIXIR_PATH=`cd $SCRIPT_PATH; pwd`
+export ELIXIR_ERL_OPTS="$ELIXIR_ERL_OPTS -noinput"
+$ELIXIR_PATH/elixir --no-halt -e "IEX.start" "$@"

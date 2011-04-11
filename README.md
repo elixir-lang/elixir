@@ -49,9 +49,49 @@ This is a basic introduction into Elixir basic objects and object model. Some se
 
 This introduction borrowed its guidelines from [Learn You Some Erlang](http://learnyousomeerlang.com/), a great resource to learn Erlang which will be referenced several times during this introduction.
 
+## Hello World
+
+Let's start with a simple hello world. The first step is to create a new file called "hello.ex" inside Elixir repository with the following contents:
+
+    module Hello
+      def world
+        IO.puts "Hello World"
+      end
+    end
+
+Now, we can compile this file to the current directory:
+
+    bin/elixirc hello.ex -o .
+
+And execute it by invoking the method `world` in the module `Hello` in the same directory:
+
+    bin/elixir -e "Hello.world"
+
+And hopefully you will see "Hello World" printed!
+
+When you are building libraries in Elixir, those are the main steps you should take. Write your code, compile it and run it! However, sometimes it is nice to just put some code together and run it, without a explicit compilation step. For that, elixir allows you to easily create scripts. Let's create a new file "hello.exs" with the following contents:
+
+    IO.puts "Hello World"
+
+And now run it:
+
+    bin/elixir hello.exs
+
+And it works again! Notice we used the extension `.exs` instead of `.ex` here. This is just a convention, Elixir does not treat `.exs` files differently from `.ex` files in any way! In fact, you could even try to compile the `.exs` file:
+
+    bin/elixirc hello.exs -o .
+
+When you do that, you can see that "Hello World" is printed as well. This is because Elixir actually execute the files to compile them. This is the key to many Elixir features, as we are going to see later.
+
+Also notice that Elixir also ships with an interactive console that you can use for most examples in this tutorial, you can start it with:
+
+    bin/iex
+
+Enjoy!
+
 ## Some notation
 
-Comments in Elixir are, as in Erlang, done with %.
+Before we start, notice that comments in Elixir are, as in Erlang, done with %.
 
     % This is a commented line
 

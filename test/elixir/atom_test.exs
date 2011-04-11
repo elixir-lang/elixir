@@ -1,4 +1,4 @@
-Code.require File.expand_path("../test_helper", __FILE__)
+Code.require_file "../test_helper", __FILE__
 
 object AtomTest
   proto ExUnit::Case
@@ -23,8 +23,8 @@ object AtomTest
     atom = Atom
     ~atom = 'Atom.to_constant
 
-    self.assert_error { 'noconstant, 'Foo }, do
-      'Foo.to_constant
+    self.assert_error { 'noconstant, 'ThisConstantDoesNotExist }, do
+      'ThisConstantDoesNotExist.to_constant
     end
   end
 

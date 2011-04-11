@@ -1,4 +1,4 @@
-Code.require File.expand_path("../test_helper", __FILE__)
+Code.require_file "../test_helper", __FILE__
 
 object ExUnitTest
   proto ExUnit::Case
@@ -12,7 +12,7 @@ object ExUnitTest
   end
 
   def teardown_test
-    fixture = OS.cmd("bin/exunit test/elixir/fixtures/ex_unit_failure.ex")
+    fixture = OS.cmd("bin/exunit test/elixir/fixtures/ex_unit_failure.exs")
     self.assert_include "{'badmatch,1}", fixture
     self.assert_include "{'badmatch,3}", fixture
     self.assert_include "EVEN ON FAILURES", fixture

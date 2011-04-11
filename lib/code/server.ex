@@ -2,31 +2,17 @@
 
 object Code::Server
   module Mixin
-    def start_link(basepath, basefiles)
-      { 'ok, _ } = GenServer.start_link({'local, 'elixir_code_server}, self.new(basepath, basefiles), [])
+    def start_link()
+      { 'ok, _ } = GenServer.start_link({'local, 'elixir_code_server}, self.new(), [])
     end
   end
 
-  def initialize(basepath, basefiles)
-    paths  = [File.expand_path(basepath)]
-    loaded = [File.expand_path(file) for file in basefiles]
-    @('paths: paths, 'loaded: loaded, 'argv: [])
+  def initialize()
+    @('argv: [], 'loaded: [])
   end
 
   def init
     { 'ok, self }
-  end
-
-  def handle_call({'push_path, path}, _from)
-    unless_included path, -> @paths + [path]
-  end
-
-  def handle_call({'unshift_path, path}, _from)
-    unless_included path, -> [path|@paths]
-  end
-
-  def handle_call({'delete_path, path}, _from)
-    { 'reply, 'ok, @('paths, @paths.delete(path)) }
   end
 
   def handle_call({'loaded, path}, _from)
@@ -37,13 +23,12 @@ object Code::Server
     { 'reply, 'ok, @('argv, argv) }
   end
 
-  % Read values from state
-  ['paths, 'loaded, 'argv].each do (arg)
-    module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
-def handle_call('#{arg}, _from)
-  { 'reply, @#{arg}, self }
-end
-~~
+  def handle_call('loaded, _from)
+    { 'reply, @loaded, self }
+  end
+
+  def handle_call('argv, _from)
+    { 'reply, @argv, self }
   end
 
   def handle_call(_request, _from)
@@ -66,15 +51,5 @@ end
 
   def code_change(_old, _extra)
     { 'ok, self }
-  end
-
-  private
-
-  def unless_included(path, function)
-    if @paths.include?(path)
-      { 'reply, 'ok, self }
-    else
-      { 'reply, 'ok, @('paths, function()) }
-    end
   end
 end

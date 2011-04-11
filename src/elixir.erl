@@ -1,22 +1,15 @@
 -module(elixir).
--export([start/0, require/2, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
+-export([start/0, start_app/0, file/1, file/3, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
 -include("elixir.hrl").
--include_lib("kernel/include/file.hrl").
 
-% OTP Application API
--export([start_app/0, start/2, stop/1, config_change/3]).
+% OTP APPLICATION API
+
+-export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  % Ensure elixir_object_methods is loaded and running
   code:ensure_loaded(elixir_object_methods),
-
-  % Load stdlib files
-  Regexp = cache_regexp(),
-  BasePath = stdlib_path(),
-  BaseFiles = [internal_require(filename:join(BasePath, File), Regexp) || File <- stdlib_files()],
-
-  % Boot the code server with supervisor
-  elixir_sup:start_link([BasePath, BaseFiles]).
+  [code:ensure_loaded(Module) || Module <- builtin_mixins()],
+  elixir_sup:start_link([]).
 
 stop(_S) ->
   ok.
@@ -24,7 +17,11 @@ stop(_S) ->
 config_change(_Changed, _New, _Remove) ->
   ok.
 
-% Start elixir as an application.
+%% ELIXIR MAIN ENTRY POINTS
+
+% Start the Elixir app. This is the proper way to boot Elixir from
+% inside an Erlang process.
+
 start_app() ->
   case lists:keyfind(?MODULE,1, application:loaded_applications()) of
     false -> application:start(?MODULE);
@@ -32,157 +29,54 @@ start_app() ->
   end.
 
 % Boot and process given options. Invoked by Elixir's script.
+
 start() ->
   start_app(),
   CodeInit = elixir_constants:lookup('Code::Init'),
-  'Code::Init':process_argv(CodeInit, init:get_plain_arguments()).
+  'exCode::Init':process_argv(CodeInit, init:get_plain_arguments()).
 
-% Return the full path for the Elixir installation.
-stdlib_path() ->
-  case os:getenv("ELIXIR_PATH") of
-    false ->
-      case code:lib_dir(elixir,lib) of
-        {error, bad_name} ->
-          Dirname = filename:dirname(?FILE),
-          filename:join([Dirname, "..", "lib"]);
-        Path when is_list(Path) ->
-          Path
-      end;
-    Path -> filename:join([Path, "lib"])
-  end.
-
-% Stblib files that are loaded and compiled.
-stdlib_files() ->
+builtin_mixins() ->
   [
-    "object.ex",
-    "module.ex",
-    "io.ex",
-    "atom.ex",
-    "list.ex",
-    "numeric.ex",
-    "integer.ex",
-    "float.ex",
-    "tuple.ex",
-    "string.ex",
-    "ordered_dict.ex",
-    "regexp.ex",
-    "bit_string.ex",
-    "process.ex",
-    "port.ex",
-    "reference.ex",
-    "function.ex",
-    "gen_server.ex",
-    "record.ex",
-    "file.ex",
-    "code.ex",
-    "code/formatter.ex",
-    "code/init.ex",
-    "code/server.ex"
+    'exInteger::Proto',
+    'exFloat::Proto',
+    'exAtom::Proto',
+    'exList::Proto',
+    'exString::Proto',
+    'exBitString::Proto',
+    'exOrderedDict::Proto',
+    'exTuple::Proto',
+    'exFunction::Proto',
+    'exProcess::Proto',
+    'exReference::Proto',
+    'exPort::Proto'
   ].
 
-recache() -> os:getenv("ELIXIR_RECACHE") == "1".
+file(Filepath) ->
+  file(Filepath, [], []).
 
-% Load core elixir objects.
-% Note we pass the self binding as nil when loading object because
-% the default binding is Object, which at this point is not defined.
-cache_regexp() ->
-  { ok, Regexp } = re:compile("^%\s*elixir:\s*cache\s*(\\[([^\\]]*)\\])?$"),
-  Regexp.
+file(Filepath, Binding, CompilePath) ->
+  List = read_file(Filepath),
+  eval(List, Binding, Filepath, 1, #elixir_scope{compile_path=CompilePath}).
 
-internal_require(Filepath, Regexp) ->
-  { ok, Source } = file:read_file_info(Filepath),
-  require(Filepath, Source, [{self,[]}], Regexp, recache()),
-  Filepath.
+% Read a file as utf8
 
-check_compiled() ->
-  case get(elixir_compile_core) of
-    undefined -> [];
-    _ ->
-      io:format("ERROR: Using cache directive in a file that requires other files, exiting ...\n"),
-      exit(badrequire)
+read_file(Filename) ->
+  case file:open(Filename, [read, {encoding, utf8}]) of
+    {ok, Device} -> read_file(Device, []);
+    Error -> erlang:error({badfile, list_to_binary(Filename), Error})
   end.
-
-require(Filepath, Source) ->
-  require(Filepath, Source, [], cache_regexp(), recache()).
-
-% Require a file by attempting to read its cached bytecode
-% or loading it manually.
-require(Filepath, Source, Binding, Regexp, true) ->
-  check_compiled(),
-  Compiled = filename:rootname(Filepath, ".ex") ++ ".exb",
-  load(Filepath, Compiled, Binding, Regexp);
-
-require(Filepath, Source, Binding, Regexp, _) ->
-  check_compiled(),
-  Compiled = filename:rootname(Filepath, ".ex") ++ ".exb",
-  case file:read_file_info(Compiled) of
-    { ok, Info } ->
-      BinTime = Info#file_info.mtime,
-      SourceTime = Source#file_info.mtime,
-      case BinTime > SourceTime of
-        true ->
-          { ok, Exb } = file:read_file(Compiled),
-          Terms = binary_to_term(Exb),
-          lists:foreach(fun handle_compile_terms/1, Terms);
-        false ->
-          load(Filepath, Compiled, Binding, Regexp)
-      end;
-    _ -> load(Filepath, Compiled, Binding, Regexp)
-  end.
-
-% If we got here, it means we could not load the cached one.
-% Load the file and create a new cache if the directive says so.
-load(Filepath, Compiled, Binding, Regexp) ->
-  { First, List } = read_file(Filepath),
-  case re:run(First, Regexp, [{capture,[2],list}]) of
-    nomatch ->
-      put(elixir_compile_core, undefined),
-      eval(List, Binding, Filepath);
-    {match,[Dependencies]} ->
-      try
-        Default = default_compile_value(Dependencies),
-        lists:foreach(fun handle_compile_terms/1, Default),
-        put(elixir_compile_core, Default),
-        eval(List, Binding, Filepath),
-        ok = file:write_file(Compiled, term_to_binary(get(elixir_compile_core)))
-      after
-        put(elixir_compile_core, undefined)
-      end
-  end.
-
-default_compile_value(Dependencies) ->
-  Each = string:tokens(Dependencies, ","),
-  [{require, string:strip(X)} || X <- Each].
-
-handle_compile_terms({require, Path}) ->
-  Code = elixir_constants:lookup('Code'),
-  'Code':require(Code, list_to_binary(Path));
-
-handle_compile_terms({module, M, F, B}) ->
-  code:load_binary(M, F, B);
-
-handle_compile_terms({M, F, B}) ->
-  io:format("[ELIXIR] Deprecated cache format found. Please remove your old .exb files."),
-  code:load_binary(M, F, B).
-
-% Read a file
-read_file(FileName) ->
-  {ok, Device} = file:open(FileName, [read, {encoding, utf8}]),
-  read_file(Device, []).
 
 read_file(Device, Acc) ->
   case io:get_line(Device, "") of
     eof  ->
       file:close(Device),
-      Reverse = lists:reverse(Acc),
-      { file_head(Reverse), lists:append(Reverse) };
-    Line -> read_file(Device, [Line|Acc])
+      lists:append(lists:reverse(Acc));
+    Line ->
+      read_file(Device, [Line|Acc])
   end.
 
-file_head([])    -> [];
-file_head([H|T]) -> H.
-
 % Evaluates a string
+
 eval(String) -> eval(String, []).
 eval(String, Binding) -> eval(String, Binding, "nofile").
 eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
@@ -196,7 +90,8 @@ eval(String, Binding, Filename, Line, Scope) ->
   {value, Value, NewBinding} = erl_eval:exprs(ParseTree, SelfBinding),
   {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }.
 
-% Parse string and transform tree to Erlang Abstract Form format
+% Parse string and transform tree to Erlang Abstract Form format.
+
 parse(String, Binding) -> parse(String, Binding, "nofile").
 parse(String, Binding, Filename) -> parse(String, Binding, Filename, 1, #elixir_scope{}).
 parse(String, Binding, Filename, Line, Scope) ->

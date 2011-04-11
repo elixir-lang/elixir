@@ -1,100 +1,82 @@
 % elixir: cache
 
 module Code
+  % Returns the extra argv options given when elixir is invoked.
   def argv
     server_call 'argv
   end
 
+  % Returns all loaded files.
+  def loaded_files
+    server_call 'loaded
+  end
+
+  % Returns elixir version.
   def version
     "0.2.0.dev"
   end
 
-  def unshift_path(path)
-    server_call { 'unshift_path, File.expand_path(path) }
+  def require(_file)
+    IO.puts "[ELIXIR] Code.require is deprecated. Elixir now compile files and " \
+      "relies on Erlang's autoload. Check the README for more information."
   end
 
-  def push_path(path)
-    server_call { 'push_path, File.expand_path(path) }
+  % Compile a *file* and add the result to the given *destination*. Destination
+  % needs to be a directory.
+  def compile_file(file, destination)
+    Erlang.elixir_compiler.file(file.to_char_list, destination.to_char_list)
   end
 
-  def delete_path(path)
-    server_call { 'delete_path, File.expand_path(path) }
-  end
-
-  def paths
-    raw_paths
-  end
-
-  def loaded
-    raw_loaded
-  end
-
-  % Requires a file in the load paths. Returns true if the file was loaded,
-  % false if the file was already loaded and raises an error if the file
-  % could not be found in any load path.
-  def require(path)
-    paths = raw_paths
-    loaded = raw_loaded
-
-    first = require_in_paths(path, paths, loaded)
-    if first == nil
-      second = require_in_paths(path + ".ex", paths, loaded)
-      if second == nil then error { 'enoent, path } else second end
+  % Require the given *file*. Accepts *relative_to* as an argument to tell
+  % where the file is located. If the file was already required/loaded,
+  % returns nil, otherwise the full path of the loaded file.
+  %
+  % When requiring a file, you may skip passing .exs as extension as Elixir
+  % automatically adds it for you.
+  def require_file(file, relative_to := nil)
+    file = find_file(file, relative_to)
+    if loaded_files.include?(file)
+      nil
     else
-      first
+      load_and_push_file file
     end
   end
 
-  % Requires a file given by the path. If the file does
-  % not exist, an error is raised.
-  def require_file(path)
-    fullpath = File.expand_path(path)
-
-    case Erlang.file.read_file_info(fullpath)
-    match { 'ok, info }
-      require_file(path, info)
-    match other
-      error other
-    end
+  % Require the given *file*. Accepts *relative_to* as an argument to tell
+  % where the file is located. If the file was already required/loaded,
+  % loads it again. It returns the full path of the loaded file.
+  %
+  % When loading a file, you may skip passing .exs as extension as Elixir
+  % automatically adds it for you.
+  def load_file(file, relative_to := nil)
+    load_and_push_file find_file(file, relative_to)
   end
 
   private
 
-  def require_file(path, info)
-    server_call { 'loaded, path }
-    Erlang.elixir.require(path.to_char_list, info)
+  def load_and_push_file(file)
+    server_call { 'loaded, file }
+    Erlang.elixir.file file.to_char_list
+    file
   end
 
-  def require_in_paths(path, [h|t], loaded)
-    fullpath = File.expand_path(path, h)
-
-    case Erlang.file.read_file_info(fullpath)
-    match { 'ok, info }
-      if info[2] == 'regular
-        if loaded.include?(fullpath)
-          false
-        else
-          require_file(fullpath, info)
-          true
-        end
-      else
-        require_in_paths(path, t, loaded)
-      end
+  def find_file(file, relative_to)
+    file = if relative_to
+      File.expand_path(file, relative_to)
     else
-      require_in_paths(path, t, loaded)
+      File.expand_path(file)
     end
-  end
 
-  def require_in_paths(_, [], _)
-    nil
-  end
-
-  def raw_paths
-    server_call 'paths
-  end
-
-  def raw_loaded
-    server_call 'loaded
+    if File.regular?(file)
+      file
+    else
+      file = file + ".exs"
+      if File.regular?(file)
+        file
+      else
+        error { 'enoent, file }
+      end
+    end
   end
 
   def server_call(args)

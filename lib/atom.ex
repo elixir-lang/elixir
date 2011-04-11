@@ -11,6 +11,10 @@ object Atom
         false
       end
     end
+
+    def from_char_list(list)
+      Erlang.list_to_atom(list)
+    end
   end
 
   % Returns a version of this atom that is a representation of itself.
