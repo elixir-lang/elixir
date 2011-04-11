@@ -49,7 +49,7 @@ module Code
     if File.regular?(file)
       file
     else
-      file = file + ".ex"
+      file = file + ".exs"
       if File.regular?(file)
         file
       else

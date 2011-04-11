@@ -60,7 +60,7 @@ test_erlang: compile
 
 test_elixir: compile
 	@ echo Running Elixir tests ...
-	time bin/exunit test/elixir/*_test.ex
+	time bin/exunit test/elixir/*_test.exs
 	@ echo
 
 test: test_erlang test_elixir

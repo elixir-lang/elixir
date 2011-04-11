@@ -4,21 +4,21 @@ object CodeTest
   proto ExUnit::Case
 
   def require_test
-    assert_error { 'enoent, File.expand_path("code_sample.ex") }, do
+    assert_error { 'enoent, File.expand_path("code_sample.exs") }, do
       Code.require_file "code_sample"
     end
 
     Code.require_file "../fixtures/code_sample", __FILE__
-    assert_include File.expand_path("test/elixir/fixtures/code_sample.ex"), Code.loaded_files
+    assert_include File.expand_path("test/elixir/fixtures/code_sample.exs"), Code.loaded_files
   end
 
   def code_init_test
     "3\n"       = OS.cmd("bin/elixir -e \"IO.puts 1 + 2\"")
     "5\n3\n"    = OS.cmd("bin/elixir -f \"IO.puts 1 + 2\" -e \"IO.puts 3 + 2\"")
-    "5\n3\n1\n" = OS.cmd("bin/elixir -f \"IO.puts 1\" -e \"IO.puts 3 + 2\" test/elixir/fixtures/init_sample.ex")
+    "5\n3\n1\n" = OS.cmd("bin/elixir -f \"IO.puts 1\" -e \"IO.puts 3 + 2\" test/elixir/fixtures/init_sample.exs")
 
     expected = "#{["-o", "1", "2", "3"].inspect}\n3\n"
-    ~expected = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" test/elixir/fixtures/init_sample.ex -o 1 2 3")
+    ~expected = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" test/elixir/fixtures/init_sample.exs -o 1 2 3")
   end
 
   def code_error_test
