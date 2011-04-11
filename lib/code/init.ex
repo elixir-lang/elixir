@@ -120,12 +120,12 @@ module Code::Init
   end
 
   def process_shared([$"-pa",h|t], state)
-    Erlang.code.add_patha(h)
+    Code.prepend_path(h)
     process_shared t, state
   end
 
   def process_shared([$"-pz",h|t], state)
-    Erlang.code.add_pathz(h)
+    Code.append_path(h)
     process_shared t, state
   end
 

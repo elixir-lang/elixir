@@ -11,6 +11,21 @@ module Code
     server_call 'loaded
   end
 
+  % Return all paths, including Erlang ones.
+  def paths
+    Erlang.code.get_paths.map _.to_bin
+  end
+
+  % Prepend a path to Erlang's code path.
+  def prepend_path(path)
+    Erlang.code.add_patha path.to_char_list
+  end
+
+  % Append a path to Erlang's code path.
+  def append_path(path)
+    Erlang.code.add_pathz path.to_char_list
+  end
+
   % Returns elixir version.
   def version
     "0.2.0.dev"

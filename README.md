@@ -1726,25 +1726,13 @@ Remaining of this section still needs to be implemented and written.
 
 ## Code and load paths
 
-Loading code in Elixir happens by requiring files. For example, you can load `ex_unit` for testing as follow:
+Loading code in Elixir happens by automatically loading modules inside the compilation directory. For instance, if you are building a library and have the compiled code inside the exbin/ directory, you can access any of the modules in it using:
 
-    Code.require "ex_unit"
+    bin/elixir -pa exbin/ -e "SomeCompiledModule.method"
 
-However, Elixir can only requires files that exist in any of the registered paths. You can access those paths as follow:
+You can find more documentation by typing "bin/elixir". You may also add and remove paths programatically
 
-    % Get all paths
-    Code.paths
-
-    % Add a new path to Code.paths. In case it exists
-    % it is not added again.
-    Code.push_path "."
-
-    % Unshifting a path gives higher priority in case
-    % the same file exists in more than one place
-    Code.unshift_path "."
-
-    % Delete an existing path from Code.
-    Code.delete_path "."
+When scripting, it may be convenient to load another specific script file, you can do that using `Code.load_file` or `Code.require_file` in which the second assures the file is being loaded just once.
 
 #### Documentation
 
@@ -1896,47 +1884,11 @@ Notice the example above also calls `super` which allows you to call the next me
 
 The focus in Elixir so far has not been in performance, but there are a few things you can do right now.
 
-### Cache directive
-
-Elixir has a cache directive that takes a snapshot of a file after it was loaded in memory. The main reason for such directive is too dramatically decrease boot time. You can enable it in any file by adding to the **first** line:
-
-    % elixir: cache
-
-The next time the file is loaded, it will create a file with `.exb` extension as cache.
-
-Keep in mind that, as just the snapshot is loaded, custom code inside the file is **not** executed. For instance, you should not cache the following file:
-
-    module Foo
-      def say_something
-        IO.puts "Hi!"
-      end
-    end
-
-    Foo.say_something
-
-If you cache the file above, `Foo.say_something` will never be executed when the snapshot is loaded. For exactly the same reason, if you have a file that requires other files using `Code.require`, Elixir won't allow you to cache them as well. For this special case, you can specify the dependencies between brackets and Elixir will load at the appropriate time:
-
-    % elixir: cache [bar,baz]
-    module Foo
-      mixin Bar
-      mixin Baz
-    end
-
-If you are dynamically generating code depending on an ENV variable, database or file information, it is likely that you want to avoid the cache as well.
-
 ### Compilation to Native Code
 
 Elixir can compile to native code using the Hipe compiler. All you need to do is to export the following before running your code:
 
     export ERL_COMPILER_OPTIONS=native
-
-Even though enabling native code compilation should improve performance on execution, it considerably affects boot time. That said, compilation to native code is often used with the cache directive above. It is common to set `ERL_COMPILER_OPTIONS` to native once and execute the code to warm up the cache. Imagine you have a project called app.ex, you just need to execute these two steps:
-
-    # Execute application once with native compilation and regenerating cache
-    ERL_COMPILER_OPTIONS=native ELIXIR_RECACHE=1 bin/elixir app.ex
-
-    # Enjoy fast code with fast boot time
-    bin/elixir app.ex
 
 ## Records
 
