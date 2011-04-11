@@ -119,6 +119,16 @@ module Code::Init
     process_shared t, state.add_command({'eval, h})
   end
 
+  def process_shared([$"-pa",h|t], state)
+    Erlang.code.add_patha(h)
+    process_shared t, state
+  end
+
+  def process_shared([$"-pz",h|t], state)
+    Erlang.code.add_pathz(h)
+    process_shared t, state
+  end
+
   def process_shared([$"-f",h|t], state)
     process_shared t, state.add_close({'eval, h})
   end

@@ -5,7 +5,6 @@ if [ $# -eq 0 ]; then
   -v              Prints version and exit
   -e \"command\"    Evaluates the given command (*)
   -f \"command\"    The same as -e, but executes at the end (*)
-  -d \"Mod\" \"name\" Send the given name to given Mod (*)
   -pa \"path\"      Prepend the given path to Erlang code path (*)
   -pz \"path\"      Append the given path to Erlang code path (*)
   --no-halt       Don't halt the process after the code is executed

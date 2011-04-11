@@ -44,4 +44,8 @@ object CodeTest
   after
     Erlang.file.del_dir("test/tmp/")
   end
+
+  def compile_paths_test
+    assert_include "13", OS.cmd("bin/elixir -pa foo -pz bar -e \"IO.puts 13\"")
+  end
 end
