@@ -37,4 +37,11 @@ object CodeTest
     assert_include "nofile:1: syntax error before:  []", OS.cmd("bin/elixir -e \"[1,2\"")
     assert_include "nofile:1: syntax error before:  'end'", OS.cmd("bin/elixir -e \"-> 2 end()\"")
   end
+
+  def compile_code_test
+    assert_include "Compiling lib/code/init.ex", OS.cmd("bin/elixirc lib/code/*.ex -o test/tmp/")
+    true = File.regular?("test/tmp/exCode::Init.beam")
+  after
+    Erlang.file.del_dir("test/tmp/")
+  end
 end
