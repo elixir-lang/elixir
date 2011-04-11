@@ -1,5 +1,5 @@
 -module(elixir).
--export([start/0, require/1, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
+-export([start/0, file/1, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
 -export([compile_core/0]).
 -include("elixir.hrl").
 
@@ -46,12 +46,12 @@ builtin_mixins() ->
     'exPort::Proto'
   ].
 
-require(Filepath) ->
-  require(Filepath, []).
+file(Filepath) ->
+  file(Filepath, [], #elixir_scope{}).
 
-require(Filepath, Binding) ->
+file(Filepath, Binding, Scope) ->
   List = read_file(Filepath),
-  eval(List, Binding, Filepath).
+  eval(List, Binding, Filepath, 1, Scope).
 
 % Read a file as utf8
 read_file(FileName) ->
@@ -108,12 +108,15 @@ final_binding([], Acc, _Binding, _Vars) -> lists:reverse(Acc).
 
 %% Compilation helpers
 
+internal_file(File) ->
+  file(File, [{self,nil}], #elixir_scope{compile_path="exbin"}).
+
 compile_core() ->
   code:ensure_loaded(elixir_object_methods),
-  [require(File, [{self,nil}]) || File <- compile_main()],
+  [internal_file(File) || File <- compile_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- compile_list()],
   Files = lists:append(AllLists) -- compile_main(),
-  [require(File) || File <- Files].
+  [file(File) || File <- Files].
 
 compile_list() ->
   [

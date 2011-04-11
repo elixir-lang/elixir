@@ -694,10 +694,9 @@ transform({bc, Line, Elements, Cases}, S) ->
 % is self.
 transform({Kind, Line, Name, Parent, Exprs}, S) when Kind == object; Kind == module->
   {_, Current} = S#elixir_scope.scope,
-  Filename = S#elixir_scope.filename,
   NewName = elixir_object:scope_for(Current, Name),
   { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],scope={Kind, NewName}}),
-  { elixir_object:transform(Kind, Line, Filename, NewName, Parent, TExprs), S };
+  { elixir_object:transform(Kind, Line, NewName, Parent, TExprs, S), S };
 
 % Handles __FILE__
 %
