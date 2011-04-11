@@ -8,15 +8,23 @@ object Code::Server
   end
 
   def initialize()
-    @('argv: [])
+    @('argv: [], 'loaded: [])
   end
 
   def init
     { 'ok, self }
   end
 
+  def handle_call({'loaded, path}, _from)
+    { 'reply, 'ok, @('loaded, [path|@loaded]) }
+  end
+
   def handle_call({'argv, argv}, _from)
     { 'reply, 'ok, @('argv, argv) }
+  end
+
+  def handle_call('loaded, _from)
+    { 'reply, @loaded, self }
   end
 
   def handle_call('argv, _from)

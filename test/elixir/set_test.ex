@@ -1,5 +1,4 @@
-Code.require File.expand_path("../test_helper", __FILE__)
-Code.require "set.ex"
+Code.require_file "../test_helper", __FILE__
 
 object SetTest
   proto ExUnit::Case

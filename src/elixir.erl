@@ -60,9 +60,11 @@ file(Filepath, Binding, CompilePath) ->
 
 % Read a file as utf8
 
-read_file(FileName) ->
-  {ok, Device} = file:open(FileName, [read, {encoding, utf8}]),
-  read_file(Device, []).
+read_file(Filename) ->
+  case file:open(Filename, [read, {encoding, utf8}]) of
+    {ok, Device} -> read_file(Device, []);
+    Error -> erlang:error({badfile, list_to_binary(Filename), Error})
+  end.
 
 read_file(Device, Acc) ->
   case io:get_line(Device, "") of

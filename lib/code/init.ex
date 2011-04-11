@@ -10,18 +10,7 @@ module Code::Init
     { commands, argv, halt } = process_options(options, [], [], false, true)
     GenServer.call('elixir_code_server, { 'argv, argv })
 
-    try
-      commands.each -> (c) process_command(c)
-    catch kind: error
-      if kind == 'exit && ['String, 'Integer].include?(error.__parent_name__)
-        halt!(error)
-      else
-        io = IO.new('standard_error)
-        io.puts "** #{kind} #{format_catch(kind, error)}"
-        print_stacktrace(io, __stacktrace__)
-        halt!(1)
-      end
-    end
+    [process_command(c) for c in commands]
 
     if halt
       halt!(0)
@@ -78,11 +67,38 @@ module Code::Init
   end
 
   def process_command({'eval, expr})
-    Erlang.elixir.eval(expr, [])
+    with_catch -> Erlang.elixir.eval(expr, [])
   end
 
   def process_command({'require, file})
-    Code.require_file file
+    with_catch -> Code.load_file(file), do (io, kind, _error)
+      io.puts "** #{kind} in #{file.to_bin}"
+    end
+  end
+
+  def with_catch(command, callback := nil)
+    command()
+  catch kind: error
+    if exiting?(kind, error)
+      case error.__parent_name__
+      match 'String
+        halt!(error.to_char_list)
+      match 'Integer
+        halt!(error)
+      end
+    else
+      io = IO.new('standard_error)
+      if callback
+        callback(io, kind, error)
+      end
+      io.puts "** #{kind} #{format_catch(kind, error)}"
+      print_stacktrace(io, __stacktrace__)
+      halt!(1)
+    end
+  end
+
+  def exiting?(kind, error)
+    kind == 'exit && ['String, 'Integer].include?(error.__parent_name__)
   end
 
   def print_stacktrace(io, stacktrace)

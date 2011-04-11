@@ -1,5 +1,5 @@
-Code.require File.expand_path("../test_helper", __FILE__)
-Code.require "fixtures/fridge"
+Code.require_file "../test_helper", __FILE__
+Code.require_file "../fixtures/fridge", __FILE__
 
 object ProcessTest
   proto ExUnit::Case

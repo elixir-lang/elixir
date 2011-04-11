@@ -1,7 +1,7 @@
-Code.require File.expand_path("../test_helper", __FILE__)
-Code.require "fixtures/like_cat"
-Code.require "fixtures/like_dog"
-Code.require "fixtures/recorder"
+Code.require_file "../test_helper", __FILE__
+Code.require_file "../fixtures/like_cat", __FILE__
+Code.require_file "../fixtures/like_dog", __FILE__
+Code.require_file "../fixtures/recorder", __FILE__
 
 object ObjectTest
   proto ExUnit::Case

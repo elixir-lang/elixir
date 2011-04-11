@@ -1,5 +1,4 @@
-Code.require File.expand_path("../test_helper", __FILE__)
-Code.require "date_time"
+Code.require_file "../test_helper", __FILE__
 
 object DateTimeTest
   proto ExUnit::Case

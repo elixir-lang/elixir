@@ -1,4 +1,4 @@
-Code.require File.expand_path("../test_helper", __FILE__)
+Code.require_file "../test_helper", __FILE__
 
 object GuardsTest
   proto ExUnit::Case
