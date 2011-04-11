@@ -5,6 +5,10 @@ module Code
     server_call 'argv
   end
 
+  def loaded_files
+    server_call 'loaded
+  end
+
   def version
     "0.2.0.dev"
   end
@@ -14,8 +18,8 @@ module Code
       "relies on Erlang's autoload. Check the README for more information."
   end
 
-  def loaded_files
-    server_call 'loaded
+  def compile_file(file, destination)
+    Erlang.elixir_compiler.file(file.to_char_list, destination.to_char_list)
   end
 
   def require_file(file, relative_to := nil)

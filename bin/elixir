@@ -3,13 +3,18 @@ if [ $# -eq 0 ]; then
   echo "Usage: `basename $0` [switches] [.exs files] [data]
 
   -v              Prints version and exit
-  -e \"command\"    Evaluates the given command (may be given more than once)
-  -f \"command\"    The same as -e, but executes at the end (may be given more than once)
+  -e \"command\"    Evaluates the given command (*)
+  -f \"command\"    The same as -e, but executes at the end (*)
+  -d \"Mod\" \"name\" Send the given name to given Mod (*)
+  -pa \"path\"      Prepend the given path to Erlang code path (*)
+  -pz \"path\"      Append the given path to Erlang code path (*)
   --no-halt       Don't halt the process after the code is executed
 
-* Options given after files are passed down to the executed code.
+** Options marked with (*) can be given more than once
 
-* Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS." >&2
+** Options given after files are passed down to the executed code.
+
+** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS." >&2
   exit 1
 fi
 

@@ -4,15 +4,54 @@
 module Code::Init
   mixin Code::Formatter
 
+  object Config
+    attr_accessor ['output]
+
+    def initialize()
+      @('commands: [], 'close: [], 'halt: true, 'output: "exbin")
+    end
+
+    def halt?
+      @halt
+    end
+
+    def no_halt!
+      @('halt: false)
+    end
+
+    def add_command(c)
+      @('commands: [c|@commands])
+    end
+
+    def add_close(c)
+      @('close: [c|@close])
+    end
+
+    def final_commands
+      @commands.reverse + @close.reverse
+    end
+  end
+
   % Invoked directly from erlang boot process. It parses all argv
   % options and execute them in the order they are specified.
   def process_argv(options)
-    { commands, argv, halt } = process_options(options, [], [], false, true)
+    { config, argv } = process_options(options, Code::Init::Config.new)
     GenServer.call('elixir_code_server, { 'argv, argv })
 
-    [process_command(c) for c in commands]
+    try
+      [process_command(c, config) for c in config.final_commands]
+    catch kind: error
+      if exiting?(kind, error)
+        halt!(error)
+      else
+        io = IO.new('standard_error)
+        io.puts "** #{kind} #{format_catch(kind, error)}"
+        print_stacktrace(io, __stacktrace__)
+        halt!(1)
+      end
+    end
 
-    if halt
+    if config.halt?
       halt!(0)
     else
       % TODO Is there a better way to suspend the process?
@@ -27,73 +66,11 @@ module Code::Init
   end
 
   def halt!(status)
-    Erlang.halt(status)
-  end
-
-  def process_options([$"-v"|_], _, _, _, _)
-    IO.puts "Elixir #{Code.version}"
-    halt!(0)
-  end
-
-  def process_options([$"-e",h|t], commands, close, _files, halt)
-    process_options(t, [{'eval, h}|commands], close, true, halt)
-  end
-
-  def process_options([$"-f",h|t], commands, close, _files, halt)
-    process_options(t, commands, [{'eval, h}|close], true, halt)
-  end
-
-  def process_options([$"--no-halt"|t], commands, close, files, _)
-    process_options(t, commands, close, files, false)
-  end
-
-  def process_options([h|t], commands, close, files, halt)
-    { final, extra } = if h.to_char_list[0] == $-
-      if files
-        { commands, [h|t] }
-      else
-        IO.new('standard_error).puts "Unknown option #{h.to_bin}"
-        halt!(1)
-      end
-    else
-      { [{'require,h}|commands], t }
-    end
-
-    { final.reverse + close.reverse, extra.map(_.to_bin), halt }
-  end
-
-  def process_options([], commands, close, _, halt)
-    { commands.reverse + close.reverse, [], halt }
-  end
-
-  def process_command({'eval, expr})
-    with_catch -> Erlang.elixir.eval(expr, [])
-  end
-
-  def process_command({'require, file})
-    with_catch -> Code.load_file(file), do (io, kind, _error)
-      io.puts "** #{kind} in #{file.to_bin}"
-    end
-  end
-
-  def with_catch(command, callback := nil)
-    command()
-  catch kind: error
-    if exiting?(kind, error)
-      case error.__parent_name__
-      match 'String
-        halt!(error.to_char_list)
-      match 'Integer
-        halt!(error)
-      end
-    else
-      io = IO.new('standard_error)
-      if callback
-        callback(io, kind, error)
-      end
-      io.puts "** #{kind} #{format_catch(kind, error)}"
-      print_stacktrace(io, __stacktrace__)
-      halt!(1)
+    case status.__parent_name__
+    match 'String
+      Erlang.halt(status.to_char_list)
+    match 'Integer
+      Erlang.halt(status)
     end
   end
 
@@ -102,6 +79,101 @@ module Code::Init
   end
 
   def print_stacktrace(io, stacktrace)
-    stacktrace.each -> (s) io.puts "    #{self.format_stacktrace(s)}"
+    stacktrace.each -> (s) io.puts "    #{format_stacktrace(s)}"
+  end
+
+  def invalid_option(option)
+    IO.new('standard_error).puts "Unknown option #{option.to_bin}"
+    halt!(1)
+  end
+
+  def shared_option?(list, state, callback)
+    case process_shared(list, state)
+    match { ~list, _ }
+      invalid_option list.head
+    match { new_list, new_state }
+      callback(new_list, new_state)
+    end
+  end
+
+  % Process shared options
+
+  def process_shared([$"-v"|_], _)
+    IO.puts "Elixir #{Code.version}"
+    halt!(0)
+  end
+
+  def process_shared([$"-e",h|t], state)
+    process_shared t, state.add_command({'eval, h})
+  end
+
+  def process_shared([$"-f",h|t], state)
+    process_shared t, state.add_close({'eval, h})
+  end
+
+  def process_shared(list, state)
+    { list, state }
+  end
+
+  % Process init options
+
+  def process_options([$"--no-halt"|t], state)
+    process_options t, state.no_halt!
+  end
+
+  def process_options([$"--"|t], state)
+    { state, t.map(_.to_bin) }
+  end
+
+  def process_options([$"-elixirc"|t], state)
+    process_compiler t, state
+  end
+
+  def process_options([h|t] = list, state)
+    if h.to_char_list[0] == $-
+      shared_option? list, state, -> (nl, ns) process_options(nl, ns)
+    else
+      { state.add_command({'load,h}), t.map(_.to_bin) }
+    end
+  end
+
+  def process_options([], state)
+    { state, [] }
+  end
+
+  % Process compiler options
+
+  def process_compiler([$"--"|t], state)
+    { state, t.map(_.to_bin) }
+  end
+
+  def process_compiler([$"-o",h|t], state)
+    process_compiler t, state.output(h)
+  end
+
+  def process_compiler([h|t] = list, state)
+    if h.to_char_list[0] == $-
+      shared_option? list, state, -> (nl, ns) process_compiler(nl, ns)
+    else
+      process_compiler t, state.add_command({'compile,h})
+    end
+  end
+
+  def process_compiler([], state)
+    { state, [] }
+  end
+
+  % Process commands
+
+  def process_command({'eval, expr}, _state)
+    Erlang.elixir.eval(expr, [])
+  end
+
+  def process_command({'load, file}, _state)
+    Code.load_file(file)
+  end
+
+  def process_command({'compile, file}, state)
+    Code.compile_file(file, state.output)
   end
 end

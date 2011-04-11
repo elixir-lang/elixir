@@ -1,19 +1,19 @@
 -module(elixir_compiler).
--export([compile/2, core/0]).
+-export([file/2, core/0]).
 -include("elixir.hrl").
 
-compile(File, Path) ->
+file(File, Path) ->
   elixir:file(File, [], Path).
 
-internal_compile(File) ->
+internal_file(File) ->
   elixir:file(File, [{self,nil}], "exbin").
 
 core() ->
   code:ensure_loaded(elixir_object_methods),
-  [internal_compile(File) || File <- compile_main()],
+  [internal_file(File) || File <- compile_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- compile_list()],
   Files = lists:append(AllLists) -- compile_main(),
-  [compile(File, "exbin") || File <- Files].
+  [file(File, "exbin") || File <- Files].
 
 compile_list() ->
   [
@@ -46,6 +46,5 @@ compile_main() ->
     "lib/code.ex",
     "lib/code/formatter.ex",
     "lib/code/init.ex",
-    "lib/code/server.ex",
-    "lib/code/compiler.ex"
+    "lib/code/server.ex"
   ].
