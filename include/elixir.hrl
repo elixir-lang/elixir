@@ -28,11 +28,11 @@
 %   3)  when true, do not assign to the variable name
 %   4)  keeps the name of the current method
 %   5)  keeps the current module kind and name
-%   6)  keeps a list of defined variables
-%   7)  keeps a list of all variables being defined in that particular assign
-%   8)  keeps a list of all variables being defined in that particular clause
+%   6)  keeps a dict of defined variables and their alias
+%   7)  keeps a list of all variables defined in a particular assign
+%   8)  keeps a dict of all variables defined in a particular clause
 %   9)  keeps a counter with the variables defined
-%   10)  filename keeps the current scope filename
-%   11) keeps a dict of variables that were explictly assigned
+%   10) keeps the current scope filename
+%   11) keeps a dict of variables that were explictly assigned and their tree value
 %
 -record(elixir_scope, {assign=false, guard=false, noname=false, method=[], scope={[],[]}, vars=dict:new(), temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile", assigned_vars=dict:new()}).

@@ -756,15 +756,40 @@ transform_clauses_tree(Line, Clauses, RawS) ->
       Expander = fun(Clause, Counter) ->
         ClauseVars = lists:nth(Counter, CV),
         RightTuple = [normalize_clause_var(Var, OldValue, ClauseVars) || {Var, _, OldValue} <- FinalVars],
+
+        AssignExpr = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
         [Final|RawClauses] = lists:reverse(element(5, Clause)),
-        StorageExpr = { match, Line, StorageVar, Final },
-        ExtraExpr   = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
-        { setelement(5, Clause, lists:reverse([StorageVar,ExtraExpr,StorageExpr|RawClauses])), Counter + 1 }
+
+        % If the last sentence has a match clause, we need to assign its value
+        % in the variable list. If not, we insert the variable list before the
+        % final clause in order to keep it tail call optimized.
+        FinalClause = case has_match_tuple(Final) of
+          true -> 
+            StorageExpr = { match, Line, StorageVar, Final },
+            [StorageVar,AssignExpr,StorageExpr|RawClauses];
+          false ->
+            [Final,AssignExpr|RawClauses]
+        end,
+
+        { setelement(5, Clause, lists:reverse(FinalClause)), Counter + 1 }
       end,
 
       { FClauses, _ } = lists:mapfoldl(Expander, 1, TClauses),
       { FClauses, SS }
   end.
+
+% Defines tuple
+
+has_match_tuple({match, _, _, _}) ->
+  true;
+
+has_match_tuple(H) when is_tuple(H) ->
+  has_match_tuple(tuple_to_list(H));
+
+has_match_tuple(H) when is_list(H) ->
+  lists:any(fun has_match_tuple/1, H);
+
+has_match_tuple(H) -> false.
 
 % If the var was defined in the clause, use it, otherwise use from main scope.
 normalize_clause_var(Var, OldValue, ClauseVars) ->
