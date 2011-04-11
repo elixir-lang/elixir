@@ -1,14 +1,17 @@
 % elixir: cache
 
 module Code
+  % Returns the extra argv options given when elixir is invoked.
   def argv
     server_call 'argv
   end
 
+  % Returns all loaded files.
   def loaded_files
     server_call 'loaded
   end
 
+  % Returns elixir version.
   def version
     "0.2.0.dev"
   end
@@ -18,10 +21,18 @@ module Code
       "relies on Erlang's autoload. Check the README for more information."
   end
 
+  % Compile a *file* and add the result to the given *destination*. Destination
+  % needs to be a directory.
   def compile_file(file, destination)
     Erlang.elixir_compiler.file(file.to_char_list, destination.to_char_list)
   end
 
+  % Require the given *file*. Accepts *relative_to* as an argument to tell
+  % where the file is located. If the file was already required/loaded,
+  % returns nil, otherwise the full path of the loaded file.
+  %
+  % When requiring a file, you may skip passing .exs as extension as Elixir
+  % automatically adds it for you.
   def require_file(file, relative_to := nil)
     file = find_file(file, relative_to)
     if loaded_files.include?(file)
@@ -31,6 +42,12 @@ module Code
     end
   end
 
+  % Require the given *file*. Accepts *relative_to* as an argument to tell
+  % where the file is located. If the file was already required/loaded,
+  % loads it again. It returns the full path of the loaded file.
+  %
+  % When loading a file, you may skip passing .exs as extension as Elixir
+  % automatically adds it for you.
   def load_file(file, relative_to := nil)
     load_and_push_file find_file(file, relative_to)
   end

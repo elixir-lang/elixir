@@ -8,7 +8,15 @@ module Code::Init
     attr_accessor ['output]
 
     def initialize()
-      @('commands: [], 'close: [], 'halt: true, 'output: "exbin")
+      @('commands: [], 'close: [], 'halt: true, 'output: "exbin", 'compile: false)
+    end
+
+    def compiling?
+      @compile
+    end
+
+    def compile!
+      @('compile, true)
     end
 
     def halt?
@@ -37,6 +45,10 @@ module Code::Init
   def process_argv(options)
     { config, argv } = process_options(options, Code::Init::Config.new)
     GenServer.call('elixir_code_server, { 'argv, argv })
+
+    if config.compiling?
+      Erlang.file.make_dir(config.output.to_char_list)
+    end
 
     try
       [process_command(c, config) for c in config.final_commands]
@@ -125,8 +137,8 @@ module Code::Init
     { state, t.map(_.to_bin) }
   end
 
-  def process_options([$"-elixirc"|t], state)
-    process_compiler t, state
+  def process_options([$"+compile"|t], state)
+    process_compiler t, state.compile!
   end
 
   def process_options([h|t] = list, state)
@@ -173,7 +185,11 @@ module Code::Init
     Code.load_file(file)
   end
 
-  def process_command({'compile, file}, state)
-    Code.compile_file(file, state.output)
+  def process_command({'compile, pattern}, state)
+    files = Erlang.filelib.wildcard(pattern.to_char_list)
+    files.each do (file)
+      IO.puts "Compiling #{file.to_bin}"
+      Code.compile_file(file, state.output)
+    end
   end
 end
