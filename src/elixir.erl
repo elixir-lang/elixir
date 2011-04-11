@@ -1,10 +1,10 @@
 -module(elixir).
--export([start/0, file/1, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
--export([compile_core/0]).
+-export([start/0, start_app/0, file/1, file/3, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
 -include("elixir.hrl").
 
-% OTP Application API
--export([start_app/0, start/2, stop/1, config_change/3]).
+% OTP APPLICATION API
+
+-export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
   code:ensure_loaded(elixir_object_methods),
@@ -17,7 +17,11 @@ stop(_S) ->
 config_change(_Changed, _New, _Remove) ->
   ok.
 
-% Start elixir as an application.
+%% ELIXIR MAIN ENTRY POINTS
+
+% Start the Elixir app. This is the proper way to boot Elixir from
+% inside an Erlang process.
+
 start_app() ->
   case lists:keyfind(?MODULE,1, application:loaded_applications()) of
     false -> application:start(?MODULE);
@@ -25,6 +29,7 @@ start_app() ->
   end.
 
 % Boot and process given options. Invoked by Elixir's script.
+
 start() ->
   start_app(),
   CodeInit = elixir_constants:lookup('Code::Init'),
@@ -47,13 +52,14 @@ builtin_mixins() ->
   ].
 
 file(Filepath) ->
-  file(Filepath, [], #elixir_scope{}).
+  file(Filepath, [], []).
 
-file(Filepath, Binding, Scope) ->
+file(Filepath, Binding, CompilePath) ->
   List = read_file(Filepath),
-  eval(List, Binding, Filepath, 1, Scope).
+  eval(List, Binding, Filepath, 1, #elixir_scope{compile_path=CompilePath}).
 
 % Read a file as utf8
+
 read_file(FileName) ->
   {ok, Device} = file:open(FileName, [read, {encoding, utf8}]),
   read_file(Device, []).
@@ -68,6 +74,7 @@ read_file(Device, Acc) ->
   end.
 
 % Evaluates a string
+
 eval(String) -> eval(String, []).
 eval(String, Binding) -> eval(String, Binding, "nofile").
 eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
@@ -81,7 +88,8 @@ eval(String, Binding, Filename, Line, Scope) ->
   {value, Value, NewBinding} = erl_eval:exprs(ParseTree, SelfBinding),
   {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }.
 
-% Parse string and transform tree to Erlang Abstract Form format
+% Parse string and transform tree to Erlang Abstract Form format.
+
 parse(String, Binding) -> parse(String, Binding, "nofile").
 parse(String, Binding, Filename) -> parse(String, Binding, Filename, 1, #elixir_scope{}).
 parse(String, Binding, Filename, Line, Scope) ->
@@ -105,50 +113,3 @@ final_binding([{Var,_}|T], Acc, Binding, Vars) ->
   end;
 
 final_binding([], Acc, _Binding, _Vars) -> lists:reverse(Acc).
-
-%% Compilation helpers
-
-internal_file(File) ->
-  file(File, [{self,nil}], #elixir_scope{compile_path="exbin"}).
-
-compile_core() ->
-  code:ensure_loaded(elixir_object_methods),
-  [internal_file(File) || File <- compile_main()],
-  AllLists = [filelib:wildcard(Wildcard) || Wildcard <- compile_list()],
-  Files = lists:append(AllLists) -- compile_main(),
-  [file(File) || File <- Files].
-
-compile_list() ->
-  [
-    "lib/*.ex",
-    "lib/*/*.ex"
-  ].
-
-compile_main() ->
-  [
-    "lib/object.ex",
-    "lib/module.ex",
-    "lib/io.ex",
-    "lib/atom.ex",
-    "lib/list.ex",
-    "lib/numeric.ex",
-    "lib/integer.ex",
-    "lib/float.ex",
-    "lib/tuple.ex",
-    "lib/string.ex",
-    "lib/ordered_dict.ex",
-    "lib/regexp.ex",
-    "lib/bit_string.ex",
-    "lib/process.ex",
-    "lib/port.ex",
-    "lib/reference.ex",
-    "lib/function.ex",
-    "lib/gen_server.ex",
-    "lib/record.ex",
-    "lib/file.ex",
-    "lib/code.ex",
-    "lib/code/formatter.ex",
-    "lib/code/init.ex",
-    "lib/code/server.ex",
-    "lib/code/compiler.ex"
-  ].

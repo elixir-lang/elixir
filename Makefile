@@ -46,7 +46,7 @@ ebin: src/*.erl
 exbin: lib/*.ex
 	@ echo Compiling Elixir source ...
 	@ mkdir -p $(EXBIN_DIR)
-	$(ERL) -s elixir compile_core -s erlang halt
+	$(ERL) -s elixir_compiler core -s erlang halt
 
 test_erlang: compile
 	@ echo Running Erlang tests ...
