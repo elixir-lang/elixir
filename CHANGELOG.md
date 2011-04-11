@@ -20,6 +20,7 @@
   * Added Set to STDLIB (by github.com/lsylvester)
   * Added DateTime to STDLIB
   * Allow the cache directive to specify dependencies
+  * Added elixirc as an explicit compiler step and autoload
 
 * bug fix
   * Allow Elixir keywords, but that are not Erlang keywords, on Erlang method invocations
@@ -28,6 +29,7 @@
 * deprecations
   * protected methods were removed for performance reasons, may eventually be brought back
   * remove constructor in favor of initialize
+  * remove require in favor of autoload
 
 ## v0.1.0 (2011-03-12)
 

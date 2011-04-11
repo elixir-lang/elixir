@@ -8,7 +8,7 @@ module Code::Init
     attr_accessor ['output]
 
     def initialize()
-      @('commands: [], 'close: [], 'halt: true, 'output: "exbin", 'compile: false)
+      @('commands: [], 'close: [], 'halt: true, 'output: ".", 'compile: false)
     end
 
     def compiling?
