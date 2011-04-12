@@ -788,7 +788,7 @@ Operator precedence in falling priority:
   <td>Left</td>
 </tr>
 <tr>
-  <td>&lt;- &lt;&lt;-</td>
+  <td>&lt;-</td>
   <td>Right</td>
 </tr>
 <tr>
