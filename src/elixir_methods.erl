@@ -53,11 +53,6 @@ convert_methods(Target) ->
 
 convert_method({Name, Arity}) -> { Name, Arity - 1 }.
 
-% If we are defining a module, we need to remove itself from the given
-% List as the module was not defined in Erlang system yet.
-calculate_methods(#elixir_object__{name=Name,parent=Parent,data=Data}, Fun, List, Acc) when is_atom(Data), Parent == 'Module' ->
-  calculate_methods(Fun, lists:delete(Name, List), Acc);
-
 calculate_methods(_Self, Fun, List, Acc) ->
   calculate_methods(Fun, List, Acc).
 

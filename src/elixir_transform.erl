@@ -1,3 +1,5 @@
+% Handle main transformations + variable tracking.
+% Code inlining is in elixir_inliner, general helpers in elixir_tree_helpers.
 -module(elixir_transform).
 -export([parse/3]).
 -include("elixir.hrl").
@@ -28,13 +30,17 @@ umergev(S1, S2) ->
   S2#elixir_scope{
     vars=dict:merge(fun var_merger/3, V1, V2),
     clause_vars=dict:merge(fun var_merger/3, C1, C2),
-    assigned_vars=dict:merge(fun(_,_,V) -> V end, A1, A2)
+    assigned_vars=dict:merge(fun unique_var_merge/3, A1, A2)
   }.
 
 % Receives two scopes and return a new scope based on the first
 % with the counter values from the first one.
 umergec(S1, S2) ->
   S1#elixir_scope{counter=S2#elixir_scope.counter}.
+
+% Merge variables and keep them only if they are equal.
+unique_var_merge(_, V, V) -> V;
+unique_var_merge(_, _, _) -> [].
 
 % Merge variables trying to find the most recently created.
 var_merger(Var, Var, K2) -> K2;
@@ -90,7 +96,7 @@ transform({identifier, Line, Name}, S) ->
         { true, Else, _ } ->
           % If it was already assigned or in a noname scope, build a new var
           { NewVar, NS } = case Else or S#elixir_scope.noname of
-            true -> build_var_name(Line, S);
+            true -> elixir_tree_helpers:build_var_name(Line, S);
             false -> { {var, Line, Name}, S }
           end,
           RealName = element(3, NewVar),
@@ -143,7 +149,7 @@ transform({method_call, Line, Name, Args, {identifier,L,'_'}}, S) ->
 transform({method_call, Line, Name, Args, Expr}, S) ->
   { TExpr, SE } = transform(Expr, S),
   { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, umergec(S, SE)),
-  { build_method_call(Name, Line, TArgs, TExpr), umergev(SE,SA) };
+  { elixir_tree_helpers:build_method_call(Name, Line, TArgs, TExpr), umergev(SE,SA) };
 
 % Handles a call to super.
 %
@@ -180,7 +186,7 @@ transform({local_call, Line, Name, Args}, S) ->
     [] -> transform({method_call, Line, Name, Args, {var, Line, self}}, S);
     _  ->
       { TArgs, SA } = transform_tree(Args, S),
-      FArgs = handle_new_call(Name, Line, [{var, Line, self}|TArgs], true),
+      FArgs = elixir_tree_helpers:handle_new_call(Name, Line, [{var, Line, self}|TArgs], true),
       { { call, Line, {atom, Line, Name}, FArgs }, SA }
   end;
 
@@ -254,7 +260,7 @@ transform({tuple, Line, Exprs }, S) ->
 % Variables defined inside these expressions needs to be added to the var list.
 transform({list, Line, Exprs, Tail }, S) ->
   { TTail, ST }  = transform(Tail, S),
-  { TExprs, SE } = build_list(fun transform/2, Exprs, Line, umergec(S, ST), TTail),
+  { TExprs, SE } = elixir_tree_helpers:build_list(fun transform/2, Exprs, Line, umergec(S, ST), TTail),
   { TExprs, umergev(ST, SE) };
 
 % Handle orddict declarations. It simply delegates to list to build a list
@@ -291,7 +297,7 @@ transform({bin_element, Line, Expr, Type, Specifiers }, S) ->
 %
 % No variables can be defined in a string without interpolation.
 transform({string, Line, String } = Expr, S) ->
-  { build_bin(Line, [Expr]), S };
+  { elixir_tree_helpers:build_bin(Line, [Expr]), S };
 
 % Handle interpolated strings declarations.
 %
@@ -299,7 +305,7 @@ transform({string, Line, String } = Expr, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_string, Line, String }, S) ->
-  { List, SE } = handle_interpolations(String, Line, S),
+  { List, SE } = elixir_interpolation:transform(String, Line, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
   { Binary, SE };
 
@@ -309,7 +315,7 @@ transform({interpolated_string, Line, String }, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_atom, Line, String}, S) ->
-  { List, SE } = handle_interpolations(String, Line, S),
+  { List, SE } = elixir_interpolation:transform(String, Line, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
   { ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_atom, [Binary, {atom, Line, utf8}]), SE };
 
@@ -327,7 +333,7 @@ transform({regexp, Line, String, Operators }, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_regexp, Line, String, Operators }, S) ->
-  { List, SE } = handle_interpolations(String, Line, S),
+  { List, SE } = elixir_interpolation:transform(String, Line, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
   build_regexp(Line, Binary, Operators, SE);
 
@@ -345,7 +351,7 @@ transform({char_list, Line, String } = Expr, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_char_list, Line, String }, S) ->
-  { List, SE } = handle_interpolations(String, Line, S),
+  { List, SE } = elixir_interpolation:transform(String, Line, S),
   Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
   Flattened = ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_list, [Binary]),
   { Flattened, SE };
@@ -357,7 +363,7 @@ transform({interpolated_char_list, Line, String }, S) ->
 % The Left and Right values of the comparison operation can be a match expression.
 % Variables defined inside these expressions needs to be added to the list.
 transform({comp_op, Line, '||', Left, Right}, S) ->
-  { Var, NS } = build_var_name(Line, S),
+  { Var, NS } = elixir_tree_helpers:build_var_name(Line, S),
   { TLeft, SL } = transform(Left, NS),
   { TRight, SR } = transform(Right, umergec(NS, SL)),
 
@@ -365,7 +371,7 @@ transform({comp_op, Line, '||', Left, Right}, S) ->
   True  = [{atom,Line,true}],
   False = [{atom,Line,false}],
 
-  { { 'case', Line, convert_to_boolean(Line, Match, true), [
+  { { 'case', Line, elixir_tree_helpers:convert_to_boolean(Line, Match, true), [
     { clause, Line, False, [], [TRight] },
     { clause, Line, True, [], [Var] }
   ] }, umergev(SL, SR) };
@@ -401,33 +407,7 @@ transform({binary_op, Line, Op, { atom, _, _ } = Left, Right}, S) ->
 transform({binary_op, Line, Op, Left, Right}, S) ->
   { TLeft, SL } = transform(Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
-
-  Optimize = S#elixir_scope.assign or S#elixir_scope.guard,
-  SF = umergev(SL, SR),
-
-  % Check if left side is an integer or float, if so, dispatch straight to the operator
-  case Optimize orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
-    true -> { {op, Line, Op, TLeft, TRight}, SF };
-    false ->
-      Args = { cons, Line, TRight, {nil, Line} },
-
-      % Check if left side surely requires a method dispatch, if not, create a case expression
-      case is_op_call_form(element(1, Left)) orelse is_var_form(TLeft, S, fun({X,_}) -> is_op_call_form(element(1, X)) end) of
-        true -> { build_method_call(Op, Line, Args, TLeft), SF };
-        false ->
-          { Var, NS } = build_var_name(Line, SF),
-
-          Match = [{match, Line, Var, TLeft}],
-          True = [{atom,Line,true}],
-          False = [{atom,Line,false}],
-          IsNumber = {call,Line,{atom,Line,is_number},Match},
-
-          { { 'case', Line, IsNumber, [
-            { clause, Line, True, [], [{op, Line, Op, Var, TRight}] },
-            { clause, Line, False, [], [build_method_call(Op, Line, Args, Var)] }
-          ] }, NS }
-      end
-  end;
+  elixir_inliner:binary_op(Line, Left, Right, TLeft, TRight, Op, S, umergev(SL, SR));
 
 % Handle unary operations.
 %
@@ -748,7 +728,7 @@ transform_clauses_tree(Line, Clauses, RawS) ->
 
       % Defines a tuple that will be used as left side of the match operator
       LeftTuple = { tuple, Line, [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars] },
-      { StorageVar, SS } = build_var_name(Line, FS),
+      { StorageVar, SS } = elixir_tree_helpers:build_var_name(Line, FS),
 
       % Expand all clauses by adding a match operation at the end that assigns
       % variables missing in one clause to the others.
@@ -777,7 +757,7 @@ transform_clauses_tree(Line, Clauses, RawS) ->
       { FClauses, SS }
   end.
 
-% Defines tuple
+% Helpers to transform clauses tree
 
 has_match_tuple({match, _, _, _}) ->
   true;
@@ -799,7 +779,7 @@ normalize_clause_var(Var, OldValue, ClauseVars) ->
 
 % Normalize the given var checking its existence in the scope var dictionary.
 normalize_vars(Var, #elixir_scope{vars=Dict} = S) ->
-  { { _, _, NewValue }, NS } = build_var_name(0, S),
+  { { _, _, NewValue }, NS } = elixir_tree_helpers:build_var_name(0, S),
   FS = NS#elixir_scope{vars=dict:store(Var, NewValue, Dict)},
 
   Expr = case dict:find(Var, Dict) of
@@ -810,6 +790,7 @@ normalize_vars(Var, #elixir_scope{vars=Dict} = S) ->
   { { Var, NewValue, Expr }, FS }.
 
 % Handle transformations, generators and filters transformations.
+
 transform_comprehension({Kind, Line, Expr, Cases}, S) ->
   Transformer = fun (X, Acc) -> transform_comprehension(X, Line, Acc) end,
   { TCases, SC } = lists:mapfoldl(Transformer, S, Cases),
@@ -834,11 +815,10 @@ transform_comprehension({bin_generate, Line, Left, Right}, L, S) ->
 
 transform_comprehension(X, L, S) ->
   { TX, TS } = transform(X, S),
-  { convert_to_boolean(L, TX, true), TS }.
+  { elixir_tree_helpers:convert_to_boolean(L, TX, true), TS }.
 
 % Pack method clause in a format that receives Elixir metadata
-% as first argument (like self) and annotates __current__ with
-% the current module name (for super).
+% as first argument (like self).
 %
 % = Variables
 %
@@ -849,158 +829,38 @@ pack_method_clause({clause, Line, Args, Guards, Exprs}, S) ->
   Clause = {clause, Line, [{var, Line, self}|Args], Guards, Exprs},
   transform(Clause, S#elixir_scope{vars=dict:new(),counter=0,assigned_vars=dict:new()}).
 
-% Build a list transforming each expression and accumulating
-% vars in one pass. It uses tail-recursive form.
-%
-% It receives a function to transform each expression given
-% in Exprs, a Line used to build the List and the variables
-% scope V is passed down item by item.
-%
-% The function needs to return a tuple where the first element
-% is an erlang abstract form and the second is the new variables
-% list.
-build_list(Fun, Exprs, Line, S) ->
-  build_list(Fun, Exprs, Line, S, {nil, Line}).
-
-build_list(Fun, Exprs, Line, S, Tail) ->
-  build_list_each(Fun, lists:reverse(Exprs), Line, S, Tail).
-
-build_list_each(Fun, [], Line, S, Acc) ->
-  { Acc, S };
-
-build_list_each(Fun, [H|T], Line, S, Acc) ->
-  { Expr, NS } = Fun(H, S),
-  build_list_each(Fun, T, Line, NS, { cons, Line, Expr, Acc }).
-
-% Build binaries
-build_bin(Line, Exprs) ->
-  Transformer = fun (X) -> { bin_element, Line, X, default, default } end,
-  { bin, Line, lists:map(Transformer, Exprs) }.
-
 % Build if/elsif/else clauses by nesting then one inside the other.
 % Assumes expressions were already converted.
 build_if_clauses({if_clause, Line, Bool, Expr, List}, Acc) ->
   True  = [{atom,Line,true}],
   False = [{atom,Line,false}],
 
-  [{ 'case', Line, convert_to_boolean(Line, Expr, Bool), [
+  [{ 'case', Line, elixir_tree_helpers:convert_to_boolean(Line, Expr, Bool), [
     { clause, Line, True, [], List },
     { clause, Line, False, [], Acc }
   ] }].
-
-% Handles method calls. It performs no transformation and assumes
-% all data is already transformed.
-build_method_call(Name, Line, Args, Expr) ->
-  FArgs = handle_new_call(Name, Line, Args, false),
-  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, Name}, FArgs]).
 
 % Builds a regexp.
 build_regexp(Line, Expr, Operators, S) ->
   Args = [Expr, {string, Line, Operators}],
   { TArgs, _ } = transform({list, Line, Args, {nil, Line}}, S),
   { Constant, _ } = transform({constant, Line, 'Regexp'}, S),
-  { build_method_call(new, Line, TArgs, Constant), S }.
-
-% Handle method dispatches to new by wrapping everything in an array
-% as we don't have a splat operator. If true is given as last option,
-% the items should be wrapped in a list, by creating a list. If false,
-% it is already an list so we just need a cons-cell.
-handle_new_call(new, Line, Args, true) ->
-  { List, [] } = build_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
-  [List];
-
-handle_new_call(new, Line, Args, false) ->
-  {cons, Line, Args, {nil, Line}};
-
-handle_new_call(_, _, Args, _) ->
-  Args.
-
-% Handle interpolation. The final result will be a parse tree that
-% returns a flattened list.
-handle_interpolations(String, Line, S) ->
-  Interpolations = String,
-
-  % Optimized cases interpolations actually has no interpolation.
-  case Interpolations of
-    [{s, String}] -> handle_string_extractions(hd(Interpolations), Line, S);
-    _ ->
-      Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, S) end,
-      build_list(Transformer, Interpolations, Line, S)
-  end.
-
-% Handle string extractions for interpolated strings.
-handle_string_extractions({s, String}, Line, S) ->
-  { { string, Line, String }, S };
-
-handle_string_extractions({i, Interpolation}, Line, S) ->
-  { Tree, NS } = parse(Interpolation, Line, S),
-  Stringify = build_method_call(to_s, Line, {nil,Line}, hd(Tree)),
-  { Stringify, NS }.
-
-% Convert the given expression to a boolean value: true or false.
-% Assumes the given expressions was already transformed.
-convert_to_boolean(Line, Expr, Bool) ->
-  Any   = [{var, Line, '_'}],
-  False = [{atom,Line,false}],
-  Nil   = [{atom,Line,nil}],
-
-  FalseResult = [{atom,Line,not Bool}],
-  TrueResult  = [{atom,Line,Bool}],
-
-  { 'case', Line, Expr, [
-    { clause, Line, False, [], FalseResult },
-    { clause, Line, Nil, [], FalseResult },
-    { clause, Line, Any, [], TrueResult }
-  ] }.
+  { elixir_tree_helpers:build_method_call(new, Line, TArgs, Constant), S }.
 
 % Specially handle the '!' operator as it has different semantics from Erlang not.
 build_unary_op(Line, '!', Right) ->
-  convert_to_boolean(Line, Right, false);
+  elixir_tree_helpers:convert_to_boolean(Line, Right, false);
 
 % Specially handle two '!!' operators for performance.
 build_unary_op(Line, '!!', Right) ->
-  convert_to_boolean(Line, Right, true);
+  elixir_tree_helpers:convert_to_boolean(Line, Right, true);
 
 % Handle all others unary operators by simply passing them to Erlang.
 build_unary_op(Line, Op, Right) ->
   { op, Line, Op, Right }.
-
-build_var_name(Line, #elixir_scope{counter=Counter} = S) ->
-  NS = S#elixir_scope{counter=Counter+1},
-  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) },
-  { Var, NS }.
 
 % Convert comparison operators to erlang format.
 convert_comp_op('=!=') -> '=/=';
 convert_comp_op('!=') ->  '/=';
 convert_comp_op('<=') ->  '=<';
 convert_comp_op(Else) ->  Else.
-
-is_number_form({integer, _, _}) -> true;
-is_number_form({float, _, _}) -> true;
-is_number_form({op, _, Op, _ }) when Op == '+'; Op == '-' -> true;
-is_number_form({op, _, Op, Left, _ }) when Op == '+'; Op == '-'; Op == '*'; Op == '/'; Op == 'div'; Op == 'rem' -> is_number_form(Left);
-is_number_form(_) -> false.
-
-is_op_call_form(string) -> true;
-is_op_call_form(regexp) -> true;
-is_op_call_form(char_list) -> true;
-is_op_call_form(list) -> true;
-is_op_call_form(tuple) -> true;
-is_op_call_form(atom) -> true;
-is_op_call_form(function) -> true;
-is_op_call_form(orddict) -> true;
-is_op_call_form(bin) -> true;
-is_op_call_form(interpolated_string) -> true;
-is_op_call_form(interpolated_regexp) -> true;
-is_op_call_form(interpolated_atom) -> true;
-is_op_call_form(interpolated_char_list) -> true;
-is_op_call_form(_) -> false.
-
-is_var_form({ var, _, Name }, #elixir_scope{assigned_vars=Dict}, Function) ->
-  case dict:find(Name, Dict) of
-    { ok, Var } -> Function(Var);
-    error -> false
-  end;
-
-is_var_form(_, _, _) -> false.

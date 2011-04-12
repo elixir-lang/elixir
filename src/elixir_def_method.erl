@@ -1,5 +1,5 @@
-% Holds the logic responsible for methods definition during parse time.
-% For modules introspection, check elixir_methods.
+% Holds the logic responsible for methods definition during compile time.
+% For methods introspection, check elixir_methods.
 -module(elixir_def_method).
 -export([unpack_default_clause/2, is_empty_table/1, new_method_table/1, flat_module/5,
   wrap_method_definition/5, store_wrapped_method/4, unwrap_stored_methods/1]).

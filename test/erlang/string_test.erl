@@ -8,7 +8,7 @@ eval_string(Expr) ->
   { test_helper:unpack_string(String), Binding }.
 
 extract_interpolations(String) ->
-  element(1, elixir_lexer:extract_interpolations(true, String ++ [$)], $))).
+  element(1, elixir_interpolation:extract(true, String ++ [$)], $))).
 
 % Interpolations
 

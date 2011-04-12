@@ -133,7 +133,6 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 Erlang code.
 
 -import(lists, [sublist/2, sublist/3]).
--export([extract_interpolations/3]).
 
 % The following directive is needed for (significantly) faster compilation
 % of the generated .erl file by the HiPE compiler. Please do not remove.
@@ -160,7 +159,7 @@ build_heredoc(Chars, Line, Length) ->
   Stop = string:rstr(Chars, "\n"),
   Pushback = extract_heredoc_pushback(Chars, Start),
   Substring = sublist(Chars, Start + 1, Stop - Start),
-  case extract_interpolations(true, Substring, []) of
+  case elixir_interpolation:extract(true, Substring, []) of
     { error, Message } -> { error, Message };
     { String, [] } -> 
       { token, { interpolated_string, Line, String }, Pushback }
@@ -177,7 +176,7 @@ build_bracket_identifier(Line, Chars, Length) ->
 
 % Handle chars.
 build_char(Chars, Line) ->
-  { token, { integer, Line, lists:last(unescape_chars(true, Chars)) } }.
+  { token, { integer, Line, lists:last(elixir_interpolation:unescape_chars(true, Chars)) } }.
 
 % Handle strings without interpolation.
 build_string(Kind, Chars, Line, Length, Distance) ->
@@ -229,58 +228,10 @@ extract_regexp_options(Chars) ->
 handle_chars(Escaping, true, Chars, Line, Length, Distance) ->
   Last = lists:last(Chars),
   Substring = sublist(Chars, Distance, Length - Distance + 1),
-  extract_interpolations(Escaping, Substring, Last);
+  elixir_interpolation:extract(Escaping, Substring, Last);
 
 handle_chars(Escaping, false, Chars, Line, Length, Distance) ->
-  { unescape_chars(Escaping, sublist(Chars, Distance, Length - Distance)), [] }.
-
-unescape_chars(Escaping, String) -> unescape_chars(Escaping, String, []).
-unescape_chars(Escaping, [], Output) -> lists:reverse(Output);
-
-% Do not escape everything, just a few. Used by regular expressions.
-unescape_chars(false, [$\\, Escaped|Rest], Output) ->
-  Char = case Escaped of
-    $f  -> $\f;
-    $n  -> $\n;
-    $r  -> $\r;
-    $t  -> $\t;
-    $v  -> $\v;
-    _   -> []
-  end,
-
-  case Char of
-    [] -> unescape_chars(false, Rest, [Escaped, $\\|Output]);
-    _  -> unescape_chars(false, Rest, [Char|Output])
-  end;
-
-unescape_chars(true, [$\\, Escaped|Rest], Output) ->
-  case extract_integers([Escaped|Rest], []) of
-    {_,[]} ->
-      Char = case Escaped of
-        $b  -> $\b;
-        $d  -> $\d;
-        $e  -> $\e;
-        $f  -> $\f;
-        $n  -> $\n;
-        $r  -> $\r;
-        $s  -> $\s;
-        $t  -> $\t;
-        $v  -> $\v;
-        _   -> Escaped
-      end,
-      unescape_chars(true, Rest, [Char|Output]);
-    {RealRest,Integer} ->
-      unescape_chars(true, RealRest, [list_to_integer(Integer)|Output])
-  end;
-
-unescape_chars(Escaping, [Char|Rest], Output) ->
-  unescape_chars(Escaping, Rest, [Char|Output]).
-
-extract_integers([H|T], Acc) when H >= 48 andalso H =< 57 -> 
-  extract_integers(T, [H|Acc]);
-
-extract_integers(Remaining, Acc) ->
-  { Remaining, lists:reverse(Acc) }.
+  { elixir_interpolation:unescape_chars(Escaping, sublist(Chars, Distance, Length - Distance)), [] }.
 
 reserved_word('Erlang')  -> true;
 reserved_word('_')       -> true;
@@ -321,77 +272,3 @@ reserved_bracket_word(true)  -> true;
 reserved_bracket_word(false) -> true;
 reserved_bracket_word(nil)   -> true;
 reserved_bracket_word(_)     -> false.
-
-% Handle string interpolations
-
-extract_interpolations(Escaping, String, Last) ->
-  extract_interpolations(Escaping, String, [], [], [], Last).
-
-extract_interpolations(Escaping, [], Buffer, [], Output, []) ->
-  { lists:reverse(build_interpol(s, Escaping, Buffer, Output)), [] };
-
-extract_interpolations(Escaping, [Last], Buffer, [], Output, Last) ->
-  { lists:reverse(build_interpol(s, Escaping, Buffer, Output)), [] };
-
-extract_interpolations(Escaping, [Last], Buffer, Search, Output, Last) ->
-  { error, io_lib:format("unexpected end of string, expected ~ts", [[hd(Search)]]) };
-
-extract_interpolations(Escaping, [$\\, $#, ${|Rest], Buffer, [], Output, Last) ->
-  extract_interpolations(Escaping, Rest, [${,$#|Buffer], [], Output, Last);
-
-extract_interpolations(Escaping, [$\\,Char|Rest], Buffer, [], Output, Last) ->
-  extract_interpolations(Escaping, Rest, [Char,$\\|Buffer], [], Output, Last);
-
-extract_interpolations(Escaping, [$#, ${|Rest], Buffer, [], Output, Last) ->
-  NewOutput = build_interpol(s, Escaping, Buffer, Output),
-  extract_interpolations(Escaping, Rest, [], [$}], NewOutput, Last);
-
-extract_interpolations(Escaping, [$}|Rest], Buffer, [$}], Output, Last) ->
-  NewOutput = build_interpol(i, Escaping, Buffer, Output),
-  extract_interpolations(Escaping, Rest, [], [], NewOutput, Last);
-
-extract_interpolations(Escaping, [Last|Remaining], Buffer, [], Output, Last) ->
-  { lists:reverse(build_interpol(s, Escaping, Buffer, Output)), Remaining };
-
-extract_interpolations(Escaping, [Char|Rest], Buffer, [], Output, Last) ->
-  extract_interpolations(Escaping, Rest, [Char|Buffer], [], Output, Last);
-
-% Check for available separators "", {}, [] and () inside interpolation
-
-extract_interpolations(Escaping, [$"|Rest], Buffer, [$"|Search], Output, Last) ->
-  extract_interpolations(Escaping, Rest, [$"|Buffer], Search, Output, Last);
-
-extract_interpolations(Escaping, [$"|Rest], Buffer, Search, Output, Last) ->
-  extract_interpolations(Escaping, Rest, [$"|Buffer], [$"|Search], Output, Last);
-
-extract_interpolations(Escaping, [${|Rest], Buffer, Search, Output, Last) ->
-  extract_interpolations(Escaping, Rest, [${|Buffer], [$}|Search], Output, Last);
-
-extract_interpolations(Escaping, [$}|Rest], Buffer, [$}|Search], Output, Last) ->
-  extract_interpolations(Escaping, Rest, [$}|Buffer], Search, Output, Last);
-
-extract_interpolations(Escaping, [$[|Rest], Buffer, Search, Output, Last) ->
-  extract_interpolations(Escaping, Rest, [$[|Buffer], [$]|Search], Output, Last);
-
-extract_interpolations(Escaping, [$]|Rest], Buffer, [$]|Search], Output, Last) ->
-  extract_interpolations(Escaping, Rest, [$]|Buffer], Search, Output, Last);
-
-extract_interpolations(Escaping, [$(|Rest], Buffer, Search, Output, Last) ->
-  extract_interpolations(Escaping, Rest, [$(|Buffer], [$)|Search], Output, Last);
-
-extract_interpolations(Escaping, [$)|Rest], Buffer, [$)|Search], Output, Last) ->
-  extract_interpolations(Escaping, Rest, [$)|Buffer], Search, Output, Last);
-
-% Else
-
-extract_interpolations(Escaping, [Char|Rest], Buffer, Search, Output, Last) ->
-  extract_interpolations(Escaping, Rest, [Char|Buffer], Search, Output, Last).
-
-build_interpol(Piece, Escaping, [], Output) ->
-  Output;
-
-build_interpol(s, Escaping, Buffer, Output) ->
-  [{s, unescape_chars(Escaping, lists:reverse(Buffer))}|Output];
-
-build_interpol(i, Escaping, Buffer, Output) ->
-  [{i, lists:reverse(Buffer)}|Output].

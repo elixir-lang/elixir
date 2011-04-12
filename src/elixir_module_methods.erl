@@ -1,5 +1,7 @@
-% Holds all runtime methods required to bootstrap modules.
-% These methods are overwritten by their Elixir version later in Module::Methods.
+% Holds all methods specific to modules, like visibility, alias_local and friends.
+% This works on the same structures as elixir_def_methods, but elixir_def_methods
+% are rather an internal module while most of the methods defined here are exposed
+% in Module::Methods.
 -module(elixir_module_methods).
 -export([get_visibility/1, set_visibility/2, alias_local/5, define_erlang_method/6,
   define_attribute/3, copy_attributes_fun/1, module_eval/4]).
