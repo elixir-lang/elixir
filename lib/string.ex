@@ -1,5 +1,3 @@
-% elixir: cache
-
 % In Elixir, strings are represented as binaries. A binary is a bit
 % string where its size is a multiple of eight. A BitString created
 % conforming to this condition will be automatically mapped as String:

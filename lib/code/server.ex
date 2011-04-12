@@ -1,5 +1,3 @@
-% elixir: cache
-
 object Code::Server
   module Mixin
     def start_link()

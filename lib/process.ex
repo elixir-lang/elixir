@@ -1,5 +1,3 @@
-% elixir: cache
-
 object Process
   module Mixin
     % Returns the pid for the current process.

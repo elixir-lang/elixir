@@ -1,9 +1,6 @@
-% elixir: cache
-
-% Date represents dates, with years, months, and days. Date has no concept of timezones, while DateTime does(but not currently).
-% 
-%
-% This implementation is based on Erlang's date BIF: http://www.erlang.org/doc/man/erlang.html#date-0
+% Date represents dates, with years, months, and days. Date has no concept of timezones,
+% while DateTime does(but not currently). This implementation is based on Erlang's date BIF:
+% http://www.erlang.org/doc/man/erlang.html#date-0
 object Date
   attr_reader ['day, 'month, 'year]
 

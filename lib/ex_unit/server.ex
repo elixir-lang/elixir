@@ -1,5 +1,3 @@
-% elixir: cache
-
 object ExUnit::Server
   module Mixin
     def start(options)

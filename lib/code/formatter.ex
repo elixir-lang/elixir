@@ -1,4 +1,3 @@
-% elixir: cache
 % This module contains some utilities function that formats objects
 % and backtraces to be exhibited in output.
 module Code::Formatter

@@ -1,5 +1,3 @@
-% elixir: cache
-
 object Set
   module Mixin
     def from_list(list)

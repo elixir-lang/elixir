@@ -1,5 +1,3 @@
-% elixir: cache
-
 % Handles GenServer creation and communication.
 module GenServer
   delegate ['call/2, 'call/3, 'cast/2], 'to: "Erlang.gen_server"

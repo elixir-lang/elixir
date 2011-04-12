@@ -1,5 +1,3 @@
-% elixir: cache
-
 object Function
   def arity
     { 'arity, value } = Erlang.fun_info(self, 'arity)

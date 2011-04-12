@@ -1,5 +1,3 @@
-% elixir: cache
-
 object File
   module Mixin
     def expand_path(string, relative := [])

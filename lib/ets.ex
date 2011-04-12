@@ -1,5 +1,3 @@
-% elixir: cache
-
 % Most methods simply map to Erlang ones. Use ETS.new(tid|atom) to wrap an
 % existing ETS table. Use ETS.create to create a new one.
 object ETS

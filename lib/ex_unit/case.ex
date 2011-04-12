@@ -1,5 +1,3 @@
-% elixir: cache
-
 module ExUnit::Case
   mixin ExUnit::Assertions
 

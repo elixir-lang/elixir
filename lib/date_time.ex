@@ -1,5 +1,3 @@
-% elixir: cache [date]
-
 % DateTime represents both Date and Time. Currently it is not aware of
 % timezones, but that should be added in the future, while Date and Time
 % objects should always ignore timezones.

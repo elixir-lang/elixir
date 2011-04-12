@@ -1,5 +1,3 @@
-% elixir: cache
-
 object Atom
   module Mixin
     % Returns true if an atom representation of the given string exists.

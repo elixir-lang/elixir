@@ -1,5 +1,3 @@
-% elixir: cache
-
 object Module
   module Methods
     % Delegate the given methods to the given expression.

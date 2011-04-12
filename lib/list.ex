@@ -1,5 +1,3 @@
-% elixir: cache
-
 object List
   % Returns true if all items in the list evaluates to true according the given function.
   %

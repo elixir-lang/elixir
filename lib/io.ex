@@ -1,5 +1,3 @@
-% elixir: cache
-
 object IO
   module Methods
     def write(message)

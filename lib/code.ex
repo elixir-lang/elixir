@@ -1,5 +1,3 @@
-% elixir: cache
-
 module Code
   % Returns the extra argv options given when elixir is invoked.
   def argv

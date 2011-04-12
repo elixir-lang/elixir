@@ -1,5 +1,3 @@
-% elixir: cache
-
 object Float
   proto Numeric
 
@@ -11,6 +9,6 @@ object Float
   end
 
   def to_s
-    Erlang.float_to_list(self)
+    Erlang.float_to_list(self).to_bin
   end
 end

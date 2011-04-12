@@ -1,5 +1,3 @@
-% elixir: cache
-
 % A simple REPL (Read-Eval-Print Loop) for Elixir
 object IEX
   proto Code::Formatter

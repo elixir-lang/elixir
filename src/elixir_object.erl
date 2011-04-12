@@ -190,7 +190,9 @@ add_implicit_modules(#elixir_object__{name=Name, data=AttributeTable} = Self, Mo
         "nixiM::" ++ _ -> error({reservedmodulename, ModuleName});
         _ -> false
       end
-  end.
+  end;
+
+add_implicit_modules(_, _, _) -> false.
 
 % Read implicit modules for object
 

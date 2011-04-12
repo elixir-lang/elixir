@@ -1,5 +1,3 @@
-% elixir: cache
-
 % Allow Erlang records to be imported into Elixir. For example,
 % we can retrieve the `file_info` record from Erlang as follow:
 %
@@ -46,10 +44,10 @@
 % * record_size
 %
 module Record
-  % Mixin methods for the Record module. They are basically
+  % Helper methods for the Record module. They are basically
   % method that handles retrieving record definitions from
   % Erlang files.
-  module Mixin
+  module Helpers
     % Retrieve a record definition from an Erlang file using
     % the same lookup as the *include* attribute from Erlang modules.
     def retrieve(name, 'from: string)
@@ -143,7 +141,7 @@ module Record
     % * record_size
     %
     def record(name, options)
-      pairs = Record::Mixin.retrieve(name, options)
+      pairs = Record::Helpers.retrieve(name, options)
       { keys, values } = pairs.unzip
 
       self.attr_accessor keys

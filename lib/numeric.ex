@@ -1,5 +1,3 @@
-% elixir: cache
-
 module Numeric
   def abs
     Erlang.abs(self)

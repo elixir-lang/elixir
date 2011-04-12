@@ -1,5 +1,3 @@
-% elixir: cache
-
 object BitString
   def to_list
     Erlang.binary_to_list(self)

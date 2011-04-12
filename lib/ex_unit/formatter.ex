@@ -1,5 +1,3 @@
-% elixir: cache
-
 object ExUnit::Formatter
   proto Code::Formatter
 

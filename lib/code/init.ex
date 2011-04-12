@@ -1,5 +1,3 @@
-% elixir: cache
-
 % Responsible for starting Elixir from the command line.
 module Code::Init
   mixin Code::Formatter

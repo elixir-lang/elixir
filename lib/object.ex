@@ -1,5 +1,3 @@
-% elixir: cache
-
 object Object
   module Methods
     % Create a new object using the current object as parent
