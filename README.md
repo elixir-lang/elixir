@@ -972,6 +972,10 @@ Here is a list of runtime errors that can be raised by Elixir:
         module Foo::Baz
         end
 
+*   `{ 'reservedmodulename, name }`
+
+    Raised when you defined a module named `Mixin` or `Proto` outside of an Object. Both `Mixin` and `Proto` are reserved modules names;
+
 *   `{ 'nomethod, { object, name, arity } }`
 
     There isn't a public method with the given `name` and `arity` in `object`;
@@ -1933,14 +1937,6 @@ Elixir allows you to import records from Erlang code. Here is an example that im
 #### Documentation
 
 * <https://github.com/josevalim/elixir/tree/master/lib/record.ex>
-
-# Trade-offs
-
-Elixir has a few trade-offs when compared to Erlang and other languages. Two deserve special attention:
-
-* Stacktraces are quite limited. When an error happens, they don't show a lot of information nor the line number of the error. The former happens due to tail call optimization while the latter is an Erlang limitation that cannot be circumvented in Elixir.
-
-* Hot code swap cannot be done with Elixir. Once you add scripting, open classes and meta-programming, there is no longer the atomicity required for hot code swapping as most modules are generated and compiled at run-time instead of a specific pre-compilation time. Maybe this can be circumvented in the future, but it is not a goal now. If hot code swapping is a requisite, use Erlang.
 
 # License
 

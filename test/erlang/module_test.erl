@@ -198,6 +198,10 @@ local_call_does_not_look_at_outer_modules_test() ->
 cannot_lookup_not_stored_constants_test() ->
   ?assertError({noconstant, 'FooBarBaz' }, elixir:eval("FooBarBaz")).
 
+reserved_modules_test() ->
+  ?assertError({reservedmodulename, 'Example::Mixin'}, elixir:eval("module Example::Mixin; end")),
+  ?assertError({reservedmodulename, 'Example::Proto'}, elixir:eval("module Example::Proto; end")).
+
 %% Super
 
 super_call_test() ->

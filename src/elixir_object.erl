@@ -177,18 +177,20 @@ compile_module(Line, Filename, CompilePath, Module, MethodTable) ->
 
 % Check if the module currently defined is inside an object
 % definition an automatically include it.
-add_implicit_modules(#elixir_object__{parent='Module'} = Self, _Module, _Copy) -> false;
-
 add_implicit_modules(#elixir_object__{name=Name, data=AttributeTable} = Self, Module, Copy) ->
+  ModuleName = Module#elixir_object__.name,
   Proto = lists:concat([Name, "::Proto"]),
   Mixin = lists:concat([Name, "::Mixin"]),
-  case atom_to_list(Module#elixir_object__.name) of
+  case atom_to_list(ModuleName) of
     Proto -> ets:insert(AttributeTable, { proto, Copy }), true;
     Mixin -> ets:insert(AttributeTable, { mixin, Copy }), true;
-    _ -> false
-  end;
-
-add_implicit_modules(_, _, _) -> false.
+    Else ->
+      case lists:reverse(Else) of
+        "otorP::" ++ _ -> error({reservedmodulename, ModuleName});
+        "nixiM::" ++ _ -> error({reservedmodulename, ModuleName});
+        _ -> false
+      end
+  end.
 
 % Read implicit modules for object
 
