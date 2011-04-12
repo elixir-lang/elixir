@@ -104,6 +104,14 @@ compile(Kind, Line, Filename, CompilePath, Current, Name, Template, Fun, MethodT
 
   try
     Result = Fun(Object),
+
+    try
+      elixir_constants:lookup(Name),
+      error({objectdefined, Name})
+    catch
+      error:{noconstant, _} -> []
+    end,
+
     compile_kind(Kind, Line, Filename, CompilePath, Current, Object, Extra, MethodTable),
     Result
   catch

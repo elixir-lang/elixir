@@ -953,6 +953,25 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     Invoking `method` not allowed on the `builtin` object. Built-in objects are all objects that maps directly to Erlang ones, they are: String, Integer, Float, Tuple, List, OrderedDict and so forth. A few operations like `mixin`, `proto` and copy are not allowed on built-in objects;
 
+*   `{ 'objectdefined, name }`
+
+    An object with `name` was already defined. This is a common error to appear during compilation time as the following valid Ruby pattern is not valid in Elixir:
+
+        module Foo
+          module Bar
+          end
+        end
+
+        module Foo
+          module Baz
+          end
+        end
+
+    In the example above, we are reopening `Foo` to add a `Baz` module. This is invalid in Elixir as modules cannot be reopened. To handle this, just define `Baz` directly as `Foo::Baz`:
+
+        module Foo::Baz
+        end
+
 *   `{ 'nomethod, { object, name, arity } }`
 
     There isn't a public method with the given `name` and `arity` in `object`;

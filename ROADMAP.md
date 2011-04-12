@@ -7,7 +7,7 @@ In the long term, here are a few things we would like to add:
 * Add guards in functions and allow functions to have several clauses
 * Allow object definitions to be reopened or add refinements
 * Allow copy and/or inheritance from another object
-* Improve constant lookup (currently constants are referenced by their full name)
+* Improve constant lookup (and namespaces?) (currently constants are referenced by their full name)
 * Add eval and instance_eval
 * Add alias\_method, remove\_method and undef\_method
 * Allow extension of builtin types (like inheriting from Integer)

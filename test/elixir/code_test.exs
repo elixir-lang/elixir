@@ -39,8 +39,9 @@ object CodeTest
   end
 
   def compile_code_test
-    assert_include "Compiling lib/code/init.ex", OS.cmd("bin/elixirc lib/code/*.ex -o test/tmp/")
-    true = File.regular?("test/tmp/exCode::Init.beam")
+    assert_include "Compiling test/elixir/fixtures/bookshelf.exs",
+      OS.cmd("bin/elixirc test/elixir/fixtures/bookshelf.exs -o test/tmp/")
+    true = File.regular?("test/tmp/exBookshelf.beam")
   after
     Erlang.file.del_dir("test/tmp/")
   end

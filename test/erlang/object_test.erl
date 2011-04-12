@@ -122,14 +122,14 @@ do_not_add_mixins_twice_to_dispatch_chain_test() ->
     {['Baz::Mixin', 'Bar', 'Foo', 'Object::Methods'], []} =
       elixir:eval("module Foo; end\nmodule Bar; mixin Foo; end\nobject Baz; mixin Bar; mixin Foo; end\nBaz.__mixins__")
   end,
-  test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
+  test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz', 'Baz::Mixin']).
 
 adds_module_methods_to_mixins_inside_the_class_test() ->
   F = fun() ->
     {['Bar', 'Foo', 'Module::Methods', 'Object::Methods'], []} =
       elixir:eval("module Foo; end\nmodule Bar; end\nobject Baz; mixin Foo; mixin Bar; __mixins__; end")
   end,
-  test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz']).
+  test_helper:run_and_remove(F, ['Foo', 'Bar', 'Baz', 'Baz::Mixin']).
 
 %% Ivars test
 

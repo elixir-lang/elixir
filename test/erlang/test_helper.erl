@@ -30,7 +30,8 @@ run_and_remove(Fun, Modules) ->
   try
     Fun()
   after
-    [code:purge(?ELIXIR_ERL_MODULE(Module)) || Module <- Modules]
+    [code:purge(?ELIXIR_ERL_MODULE(Module)) || Module <- Modules],
+    [code:delete(?ELIXIR_ERL_MODULE(Module)) || Module <- Modules]
   end.
 
 % Throws an error with the Erlang Abstract Form from the Elixir string
