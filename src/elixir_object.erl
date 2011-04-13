@@ -164,14 +164,14 @@ compile_kind(object, Line, Filename, CompilePath, Current, Object, { Mixins, Pro
   Proto = read_implicit_module(Object, AttributeTable, proto, CompilePath),
   Mixin = read_implicit_module(Object, AttributeTable, mixin, CompilePath),
 
-  load_form(build_erlang_form(Line, Filename, Object, {Mixin, Proto}), Filename, CompilePath),
+  load_form(build_object_form(Line, Filename, Object, Mixin, Proto), Filename, CompilePath),
   ets:delete(AttributeTable).
 
 % Handle logic compilation. Called by both compile_kind(module) and compile_kind(object).
 % The latter uses it for implicit modules.
 compile_module(Line, Filename, CompilePath, Module, MethodTable) ->
   Functions = elixir_def_method:unwrap_stored_methods(MethodTable),
-  load_form(build_erlang_form(Line, Filename, Module, {[],[]}, Functions), Filename, CompilePath),
+  load_form(build_module_form(Line, Filename, Module, Functions), Filename, CompilePath),
   ets:delete(Module#elixir_object__.data),
   ets:delete(MethodTable).
 
@@ -221,61 +221,38 @@ generate_implicit_module_if(Line, Filename, CompilePath, Match,
       compile(module, Line, Filename, CompilePath, Object, Implicit, [], fun(X) -> [] end)
   end.
 
-% Retrieve all attributes in the attribute table and generate
-% an Erlang Abstract Form that defines an Erlang module.
-build_erlang_form(Line, Filename, Object, Chains) ->
-  build_erlang_form(Line, Filename, Object, Chains, {[],[],[]}).
+% Build a module form. The difference to an object form is that we need
+% to consider method related attributes for modules.
+build_module_form(Line, Filename, Object, {Export, Inherited, Functions}) ->
+  ModuleName = ?ELIXIR_ERL_MODULE(Object#elixir_object__.name),
 
-build_erlang_form(Line, Filename, Object, {Mixin, Proto}, {Export, Inherited, Functions}) ->
+  Extra = [
+    {attribute, Line, inherited, Inherited},
+    {attribute, Line, compile, no_auto_import()},
+    {attribute, Line, export, [{'__function_exported__',2}|Export]},
+    exported_function(Line, ModuleName) | Functions
+  ],
+
+  build_erlang_form(Line, Filename, Object, [], [], Extra).
+
+% Build an object form. Same as module form without method related stuff.
+build_object_form(Line, Filename, Object, Mixin, Proto) ->
+  build_erlang_form(Line, Filename, Object, Mixin, Proto, []).
+
+% TODO Cache mixins and protos full chain.
+build_erlang_form(Line, Filename, Object, Mixin, Proto, Extra) ->
   Name = Object#elixir_object__.name,
   Parent = Object#elixir_object__.parent,
   AttributeTable = Object#elixir_object__.data,
-  Data  = destructive_read(AttributeTable, data),
+  Data = destructive_read(AttributeTable, data),
+
   Snapshot = build_snapshot(Name, Parent, Mixin, Proto, Data),
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
   ModuleName = ?ELIXIR_ERL_MODULE(Name),
-  Base = ets:foldr(Transform, Functions, AttributeTable) ++ [exported_function(Line, ModuleName)],
+  Base = ets:foldr(Transform, Extra, AttributeTable),
+
   [{attribute, Line, module, ModuleName}, {attribute, Line, parent, Parent},
-   {attribute, Line, compile, no_auto_import()}, {attribute, Line, file, Filename},
-   {attribute, Line, inherited, Inherited}, {attribute, Line, snapshot, Snapshot},
-   {attribute, Line, export, [{'__function_exported__',2}|Export]} | Base].
-
-exported_function(Line, ModuleName) ->
-  { function, Line, '__function_exported__', 2,
-    [{ clause, Line, [{var,Line,function},{var,Line,arity}], [], [
-      ?ELIXIR_WRAP_CALL(
-        Line, erlang, function_exported,
-        [{atom,Line,ModuleName},{var,Line,function},{var,Line,arity}]
-      )
-    ]}]
-  }.
-
-destructive_read(Table, Attribute) ->
-  Value = ets:lookup_element(Table, Attribute, 2),
-  ets:delete(Table, Attribute),
-  Value.
-
-build_snapshot(Name, Parent, Mixin, Proto, Data) ->
-  FinalMixin = snapshot_module(Name, Parent, Mixin),
-  FinalProto = snapshot_module(Name, Parent, Proto),
-  #elixir_object__{name=Name, parent=Parent, mixins=FinalMixin, protos=FinalProto, data=Data}.
-
-snapshot_module('Object', _, [])      -> 'exObject::Methods';
-snapshot_module('Module', _, [])      -> 'exModule::Methods';
-snapshot_module(Name,  'Module', _)   -> ?ELIXIR_ERL_MODULE(Name);
-snapshot_module(_,  _, [])            -> 'exObject::Methods';
-snapshot_module(_, _, Module) -> ?ELIXIR_ERL_MODULE(Module#elixir_object__.name).
-
-no_auto_import() ->
-  {no_auto_import, [
-    {size, 1}, {length, 1}, {error, 2}, {self, 1}, {put, 2}, {get, 1}
-  ]}.
-
-transform_attribute(Line, {mixins, List}) ->
-  {attribute, Line, mixins, lists:delete('Module::Methods', List)};
-
-transform_attribute(Line, X) ->
-  {attribute, Line, element(1, X), element(2, X)}.
+   {attribute, Line, file, Filename}, {attribute, Line, snapshot, Snapshot} | Base].
 
 % Compile and load given forms as an Erlang module.
 load_form(Forms, Filename, CompilePath) ->
@@ -293,6 +270,45 @@ load_form(Forms, Filename, CompilePath) ->
       format_warnings(Filename, Warnings),
       format_errors(Filename, Errors)
   end.
+
+%% BUILD AND LOAD HELPERS
+
+destructive_read(Table, Attribute) ->
+  Value = ets:lookup_element(Table, Attribute, 2),
+  ets:delete(Table, Attribute),
+  Value.
+
+build_snapshot(Name, Parent, Mixin, Proto, Data) ->
+  FinalMixin = snapshot_module(Name, Parent, Mixin),
+  FinalProto = snapshot_module(Name, Parent, Proto),
+  #elixir_object__{name=Name, parent=Parent, mixins=FinalMixin, protos=FinalProto, data=Data}.
+
+snapshot_module('Object', _, [])    -> 'exObject::Methods';
+snapshot_module('Module', _, [])    -> 'exModule::Methods';
+snapshot_module(Name,  'Module', _) -> ?ELIXIR_ERL_MODULE(Name);
+snapshot_module(_,  _, [])          -> 'exObject::Methods';
+snapshot_module(_, _, Module)       -> ?ELIXIR_ERL_MODULE(Module#elixir_object__.name).
+
+no_auto_import() ->
+  {no_auto_import, [
+    {size, 1}, {length, 1}, {error, 2}, {self, 1}, {put, 2}, {get, 1}
+  ]}.
+
+transform_attribute(Line, {mixins, List}) ->
+  {attribute, Line, mixins, lists:delete('Module::Methods', List)};
+
+transform_attribute(Line, X) ->
+  {attribute, Line, element(1, X), element(2, X)}.
+
+exported_function(Line, ModuleName) ->
+  { function, Line, '__function_exported__', 2,
+    [{ clause, Line, [{var,Line,function},{var,Line,arity}], [], [
+      ?ELIXIR_WRAP_CALL(
+        Line, erlang, function_exported,
+        [{atom,Line,ModuleName},{var,Line,function},{var,Line,arity}]
+      )
+    ]}]
+  }.
 
 format_errors(Filename, []) ->
   exit({nocompile, "compilation failed but no error was raised"});

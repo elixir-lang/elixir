@@ -41,12 +41,11 @@ name(Self)      -> object_name(Self).
 data(Self)      -> object_data(Self).
 ancestors(Self) -> lists:reverse(r_ancestors(Self)).
 
-mixins(#elixir_object__{parent='Module'} = Self) -> object_mixins(Self) ++ ['Module::Methods', 'Object::Methods'];
-mixins(#elixir_object__{} = Self)                -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), []));
-mixins(Self)                                     -> object_mixins(Self) ++ ['Object::Methods'].
+mixins(#elixir_object__{} = Self) -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), []));
+mixins(Self)                      -> object_mixins(Self) ++ ['Object::Methods'].
 
-protos(#elixir_object__{} = Self)                -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), []));
-protos(Self) -> mixins(Self).
+protos(#elixir_object__{} = Self) -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), []));
+protos(Self)                      -> mixins(Self).
 
 parent(Self) ->
   case object_parent(Self) of
