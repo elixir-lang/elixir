@@ -63,11 +63,11 @@ Now, we can compile this file to the current directory:
 
     bin/elixirc hello.ex -o .
 
-And execute it by invoking the method `world` in the module `Hello` in the same directory:
+Notice that some .beam files were added to the current directory with the compiled code. We can execute it by invoking the method `world` in the module `Hello` in the same directory:
 
     bin/elixir -e "Hello.world"
 
-And hopefully you will see "Hello World" printed!
+And you will see "Hello World" printed! This example works because Elixir automatically loads the compiled files in the current directory. If your compiled files are in other directories, you can pass those new directories to `bin/elixir` using `-pa` and `-pz` as options. Type `bin/elixir` with no arguments for more information.
 
 When you are building libraries in Elixir, those are the main steps you should take. Write your code, compile it and run it! However, sometimes it is nice to just put some code together and run it, without a explicit compilation step. For that, elixir allows you to easily create scripts. Let's create a new file "hello.exs" with the following contents:
 
