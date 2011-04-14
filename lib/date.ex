@@ -5,17 +5,22 @@ object Date
   attr_reader ['day, 'month, 'year]
 
   module Mixin
-    % Return the current date according to the operating system.
+    % Return the current date according to the operating system,
+    % but in UTC. This means that, if you are on 17th April but
+    % in UTC it still is 16th April, it will return 16th April.
     def today
-      Date.new(Erlang.date)
+      {date,_} = Erlang.calendar.universal_time
+      Date.new(date)
     end
 
-    % Return the tomorrow's date according to the operating system.
+    % Return the tomorrow's date according to the operating system,
+    % but in UTC.
     def tomorrow
       Date.today.tomorrow
     end
 
-    % Return the yesterday's date according to the operating system.
+    % Return the yesterday's date according to the operating system,
+    % but in UTC.
     def yesterday
       Date.today.yesterday
     end

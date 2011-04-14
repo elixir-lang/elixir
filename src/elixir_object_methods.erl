@@ -128,6 +128,8 @@ assert_same_object(_, Else) -> elixir_errors:error({badinitialize, Else}).
 prepend_as(#elixir_object__{} = Self, Chain, Kind, Value, Flag) ->
   check_module(Value, Kind),
   List = object_mixins(Value),
+
+  % TODO: This does not consider modules available in the ancestor chain
   Object = update_object_chain(Self, Kind, umerge(List, Chain)),
 
   % Invoke the appropriate hook.
