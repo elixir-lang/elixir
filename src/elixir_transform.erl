@@ -612,38 +612,19 @@ transform({default_arg, Line, Expr, Default}, S) ->
   { TDefault, _ } = transform(Default, S),
   { { default_arg, Line, TExpr, TDefault }, TS };
 
-% Handle function calls.
+% Special cased function calls.
 %
 % = Variables
 %
 % Both the left and right side can contain variable declarations, as below:
 %
-%   (a = -> (x) x + 2)(b = 1)
+%   (a = -> (x) x + 2).(b = 1)
 %
 % So we need to take both into account.
-%
-% Also, there are a few cases where a function may be ambigous with a method call:
-%
-%    module Foo
-%      def bar; 1; end
-%      def baz; bar(); end
-%    end
-%
-% This is parsed as a function call but is properly disambiguated to a method
-% call in this method.
 transform({fun_call, Line, Var, Args }, S) ->
-  case Var of
-    { identifier, _, Name } -> Method = not dict:is_key(Name, S#elixir_scope.vars);
-    Name -> Method = false
-  end,
-
-  case Method of
-    true -> transform({local_call, Line, Name, Args}, S);
-    false ->
-      { TArgs, SA } = transform_tree(Args, S),
-      { TVar, SV }  = transform(Var, umergec(S, SA)),
-      { {call, Line, TVar, TArgs}, umergev(SA, SV) }
-  end;
+  { TArgs, SA } = transform_tree(Args, S),
+  { TVar, SV }  = transform(Var, umergec(S, SA)),
+  { {call, Line, TVar, TArgs}, umergev(SA, SV) };
 
 % Handle list comprehensions.
 %

@@ -204,10 +204,10 @@ call_exprs -> erlang_call_expr : '$1'.
 call_exprs -> min_expr : '$1'.
 
 % Function call
-fun_call_expr -> min_expr call_args_parens : build_fun_call('$1', '$2').
-fun_call_expr -> base_identifier call_args_parens : build_fun_call('$1', '$2').
+fun_call_expr -> np_call_exprs dot_eol call_args_parens : build_fun_call('$1', '$3').
 
 % Method call
+method_call_expr -> base_identifier call_args_parens : build_local_call('$1', '$2').
 method_call_expr -> np_call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
 method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
 
@@ -268,10 +268,10 @@ _call_exprs -> erlang_call_expr : '$1'.
 _call_exprs -> base_expr : '$1'.
 
 % Function call
-_fun_call_expr -> base_expr call_args_parens : build_fun_call('$1', '$2').
-_fun_call_expr -> base_identifier call_args_parens : build_fun_call('$1', '$2').
+_fun_call_expr -> _np_call_exprs dot_eol call_args_parens : build_fun_call('$1', '$3').
 
 % Method call
+_method_call_expr -> base_identifier call_args_parens : build_local_call('$1', '$2').
 _method_call_expr -> _np_call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
 _method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
 

@@ -87,25 +87,25 @@ function_as_clojure_test() ->
 
 %% Function calls
 function_calls_test() ->
-  {3, _} = elixir:eval("b = 1; a = do 2 + b; a()").
+  {3, _} = elixir:eval("b = 1; a = do 2 + b; a.()").
 
 function_calls_with_arg_test() ->
-  {3, _} = elixir:eval("b = 1; a = do (a) a + b; a(2)").
+  {3, _} = elixir:eval("b = 1; a = do (a) a + b; a.(2)").
 
 function_call_with_assignment_test() ->
-  {3, [{a,_},{c, 3}]} = elixir:eval("a = -> (x) x + 2; c = a(1)").
+  {3, [{a,_},{c, 3}]} = elixir:eval("a = -> (x) x + 2; c = a.(1)").
 
 function_call_inside_another_function_test() ->
-  {1, _} = elixir:eval("a = -> (x) x + 2; b = -> a(1) - 2; b()").
+  {1, _} = elixir:eval("a = -> (x) x + 2; b = -> a.(1) - 2; b.()").
 
 function_calls_with_multiple_args_test() ->
-  {5, _} = elixir:eval("a = do (a, b) a + b; a(3, 2)").
+  {5, _} = elixir:eval("a = do (a, b) a + b; a.(3, 2)").
 
 function_calls_with_multiple_expressions_test() ->
-  {26, _} = elixir:eval("a = do (a, b) a + b; a((3 + 4 - 1), (2 * 10))").
+  {26, _} = elixir:eval("a = do (a, b) a + b; a.((3 + 4 - 1), (2 * 10))").
 
 function_calls_with_multiple_args_with_line_breaks_test() ->
-  {5, _} = elixir:eval("a = do (a, b) a + b; a(\n3,\n2\n)").
+  {5, _} = elixir:eval("a = do (a, b) a + b; a.(\n3,\n2\n)").
 
 function_calls_with_parenthesis_test() ->
-  {3, [{a,_},{b,1}]} = elixir:eval("(a = -> (x) x + 2)(b = 1)").
+  {3, [{a,_},{b,1}]} = elixir:eval("(a = -> (x) x + 2).(b = 1)").

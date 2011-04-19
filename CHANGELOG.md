@@ -21,6 +21,7 @@
   * Added DateTime to STDLIB
   * Allow the cache directive to specify dependencies
   * Added elixirc as an explicit compiler step and autoload
+  * Functions can be called as fun.call(arg1, arg2), fun.apply([arg1,arg2]), fun[arg1, arg2] or fun.(arg1, arg2)
 
 * bug fix
   * Allow Elixir keywords, but that are not Erlang keywords, on Erlang method invocations
@@ -28,8 +29,9 @@
 
 * deprecations
   * protected methods were removed for performance reasons, may eventually be brought back
-  * remove constructor in favor of initialize
-  * remove require in favor of autoload
+  * Removed constructor in favor of initialize
+  * Removed require in favor of autoload
+  * Calling functions as fun() is no longer supported
 
 ## v0.1.0 (2011-03-12)
 

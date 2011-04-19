@@ -43,10 +43,7 @@ handle_file_error(Filename, {Line,Module,Desc}) ->
 % Format each error or warning in the format { Line, Module, Desc }
 
 format_error(_, {undefined_function, {Name, Arity}}) ->
-  case Arity - 1 of
-    0 -> io_lib:format("undefined variable or local method ~s", [Name]);
-    Else -> io_lib:format("undefined local method ~s/~w", [Name, Arity-1])
-  end;
+  io_lib:format("undefined local method ~s/~w", [Name, Arity-1]);
 
 format_error(_, {changed_visibility,{Name,Visibility}}) ->
   io_lib:format("method ~s already defined with visibility ~s", [Name, Visibility]);

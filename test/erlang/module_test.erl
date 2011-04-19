@@ -154,16 +154,16 @@ local_call_gives_higher_preference_to_variables_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-local_call_gives_higher_preference_to_function_calls_test() ->
+local_call_does_not_conflict_with_fun_calls() ->
   F = fun() ->
     elixir:eval("module Bar\ndef foo;1;end\ndef bar; foo = -> 3; foo(); end\nend"),
-    {3,[]} = elixir:eval("Bar.bar")
+    {1,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 local_call_inside_a_function_test() ->
   F = fun() ->
-    elixir:eval("module Bar\ndef foo;1;end\ndef bar; baz = -> foo; baz(); end\nend"),
+    elixir:eval("module Bar\ndef foo;1;end\ndef bar; baz = -> foo; baz.(); end\nend"),
     {1,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).

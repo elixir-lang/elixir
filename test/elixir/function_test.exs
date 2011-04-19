@@ -9,13 +9,37 @@ object FunctionTest
     2 = (-> (a,b) a + b).arity
   end
 
-  def anonymous_function_test
+  def syntax_call_test
+    0 = (-> 0).()
+    1 = (-> (a) a).(1)
+    2 = (-> (a,b) a + b).(1,1)
+  end
+
+  def call_test
+    0 = (-> 0).call
+    1 = (-> (a) a).call 1
+    2 = (-> (a,b) a + b).call 1,1
+  end
+
+  def brackets_test
+    0 = (-> 0)[]
+    1 = (-> (a) a)[1]
+    2 = (-> (a,b) a + b)[1,1]
+  end
+
+  def apply_test
+    0 = (-> 0).apply []
+    1 = (-> (a) a).apply [1]
+    2 = (-> (a,b) a + b).apply [1,1]
+  end
+
+  def anonymous_receiver_function_test
     fun = _.arity
     'Function = fun.__parent_name__
-    1 = fun(-> (a) a)
+    1 = fun.(-> (a) a)
 
     sum = _.+(2)
-    5 = sum(3)
+    5 = sum.(3)
   end
 
   def match_arg_test

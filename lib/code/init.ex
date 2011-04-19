@@ -102,7 +102,7 @@ module Code::Init
     match { ~list, _ }
       invalid_option list.head
     match { new_list, new_state }
-      callback(new_list, new_state)
+      callback.(new_list, new_state)
     end
   end
 

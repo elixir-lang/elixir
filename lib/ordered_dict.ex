@@ -159,7 +159,7 @@ object OrderedDict
   %     end
   %
   def each(function)
-    to_list.each -> ({x, y}) function(x, y)
+    to_list.each -> ({x, y}) function.(x, y)
     self
   end
 

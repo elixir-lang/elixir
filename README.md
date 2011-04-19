@@ -364,13 +364,13 @@ Functions are an important aspect of Elixir as in any functional programming lan
       1 + 2
     end
 
-    my_function() % => 3
+    my_function.call() % => 3
 
     another_function = ->
       1 * 2
     end
 
-    another_function() % => 2
+    another_function.call() % => 2
 
 Some functions expect arguments:
 
@@ -378,27 +378,27 @@ Some functions expect arguments:
       x + y
     end
 
-    my_function(1, 2) % => 3
+    my_function.call(1, 2) % => 3
 
     another_function = -> (x, y)
       x * y
     end
 
-    another_function(1, 2) % => 2
+    another_function.call(1, 2) % => 2
 
 You can also represent functions in one line, without a need for the closing keyword `end`:
 
     my_function = do (x, y) x + y
-    my_function(1, 2) % => 3
+    my_function.call(1, 2) % => 3
 
     another_function = -> (x, y) x * y
-    another_function(1, 2) % => 2
+    another_function.call(1, 2) % => 2
 
 Notice that, whenever using one-line functions, if you need parenthesis inside the expression, you are required to give empty parenthesis arguments, for example:
 
     % This works as expected:
     my_function = -> 1 + 2
-    my_function() % => 3
+    my_function.call % => 3
 
     % This won't work and it raises a syntax error
     my_function = -> (1 + 2)
@@ -426,17 +426,14 @@ Again, removing the parenthesis, improves readability:
       acc + x
     end % => 6
 
-Notice that while parenthesis are optional for method invocations, function invocations *always* require parenthesis:
+Elixir also provides a shortcut syntax to invoke functions that is usually faster as it skips method lookup:
 
     my_function = -> (x, y) x + y
+    my_function.(1, 2) % => 3
 
-    % This won't work and will raise undefined method my_function
-    my_function 1, 2
+In such cases, parenthesis are always required.
 
-    % This works
-    my_function(1, 2)
-
-Another cool extension Elixir adds to functions is the easy generation of anonymous functions. For instance, suppose you have a list of cars and you want to get their names. A way to do that would be:
+Another useful extension Elixir adds to functions is the easy generation of anonymous functions. For instance, suppose you have a list of cars and you want to get their names. A way to do that would be:
 
     cars.map -> (c) c.name
 

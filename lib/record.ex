@@ -101,7 +101,7 @@ module Record
       match {'ok, form}
         form
       match error
-        error(error)
+        error.(error)
       end
     end
 

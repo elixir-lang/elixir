@@ -20,7 +20,7 @@ not_single_assignment_test() ->
   {2, [{a, 2}]} = elixir:eval("a = 1\na = 2\na"),
   {1, [{a, 1}]} = elixir:eval("{a,a} = {1,1}\na"),
   {2, [{a, 2}]} = elixir:eval("a = 1\n{\~a,a} = {1,2}\na"),
-  {1, [{a, 1}]} = elixir:eval("a = 1\n(-> a = 2)()\na"),
+  {1, [{a, 1}]} = elixir:eval("a = 1\n(-> a = 2).()\na"),
   ?assertError({badmatch, _}, elixir:eval("{a,a} = {1,2}")).
 
 multiline_assignment_test() ->
@@ -58,7 +58,7 @@ atom_match_test() ->
   ?assertError({badmatch, _}, elixir:eval("'bar = 'foo")).
 
 atom_match_on_function_test() ->
-  {3, _} = elixir:eval("a = -> ('foo, x) x + 1\na('foo, 2)").
+  {3, _} = elixir:eval("a = -> ('foo, x) x + 1\na.('foo, 2)").
 
 % Tuples match
 simple_tuple_test() ->
@@ -72,8 +72,8 @@ tuple_match_test() ->
   ?assertError({badmatch, _}, elixir:eval("{1, 3, 2} = {1, 2, 3}")).
 
 tuple_match_on_function_test() ->
-  {4, _} = elixir:eval("a = -> ({ 1, 2, x}) x + 1\na({1,2,3})"),
-  {4, _} = elixir:eval("a = -> ({ -1, 2, x}) x + 1\na({-1,2,3})").
+  {4, _} = elixir:eval("a = -> ({ 1, 2, x}) x + 1\na.({1,2,3})"),
+  {4, _} = elixir:eval("a = -> ({ -1, 2, x}) x + 1\na.({-1,2,3})").
 
 % Lists match
 simple_list_test() ->
@@ -88,8 +88,8 @@ list_match_test() ->
   ?assertError({badmatch, _}, elixir:eval("[1, 3, 2] = [1, 2, 3]")).
 
 list_match_on_function_test() ->
-  {4, _} = elixir:eval("a = -> ([ 1, 2, x]) x + 1\na([1,2,3])"),
-  {4, _} = elixir:eval("a = -> ([ -1, 2, x]) x + 1\na([-1,2,3])").
+  {4, _} = elixir:eval("a = -> ([ 1, 2, x]) x + 1\na.([1,2,3])"),
+  {4, _} = elixir:eval("a = -> ([ -1, 2, x]) x + 1\na.([-1,2,3])").
 
 head_and_tail_test() ->
   {_,[{h,1},{t,[2,3]}]} = elixir:eval("[h|t] = [1,2,3]"),

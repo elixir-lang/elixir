@@ -21,7 +21,7 @@ module ExUnit::Assertions
 
   def assert_try(kind, value, function)
     result = try
-      function()
+      function.()
       false
     catch ~kind: ~value
       true

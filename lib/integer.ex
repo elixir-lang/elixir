@@ -49,7 +49,7 @@ object Integer
   end
 
   def times_0(limit, counter, function)
-    function()
+    function.()
     times_0(limit, 1 + counter, function)
   end
 
@@ -57,7 +57,7 @@ object Integer
   end
 
   def times_1(limit, counter, function)
-    function(counter)
+    function.(counter)
     times_1(limit, 1 + counter, function)
   end
 
@@ -66,7 +66,7 @@ object Integer
   end
 
   def times_2(limit, counter, function, acc)
-    new_acc = function(counter, acc)
+    new_acc = function.(counter, acc)
     times_2(limit, 1 + counter, function, new_acc)
   end
 end
