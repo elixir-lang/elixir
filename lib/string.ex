@@ -133,6 +133,21 @@ object String
     end
   end
 
+  % Remove all space characters from the beginning and end of the string.
+  def strip
+    gsub(~r"\A\s*|\s*\z", "")
+  end
+
+  % Remove all space characters from the beginning of the string.
+  def lstrip
+    gsub(~r"\A\s*", "")
+  end
+
+  % Remove all space characters from the end of the string.
+  def rstrip
+    gsub(~r"\s*\z", "")
+  end
+
   % Returns a string representation of this string.
   %
   % ## Examples

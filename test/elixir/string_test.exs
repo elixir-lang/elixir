@@ -93,6 +93,15 @@ three
     'hello = "hello".to_atom
   end
 
+  def strip_test
+    "hello" = "  hello  ".strip
+    "hello" = "  hello  ".strip.strip
+    "hello" = "  hello  ".lstrip.rstrip
+    "hello  " = "  hello  ".lstrip
+    "  hello" = "  hello  ".rstrip
+    "foo  \n  bar" = "  foo  \n  bar  ".strip
+  end
+
   def include_test
     true  = "abc".include?("a")
     true  = "abc".include?("abc")
