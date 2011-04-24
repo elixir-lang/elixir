@@ -34,6 +34,6 @@
 %   9)  a counter with the variables defined
 %   10) the current scope filename
 %   11) a dict of variables that were explictly assigned and their tree value
-%   12) the path to compile files to
 %
--record(elixir_scope, {assign=false, guard=false, noname=false, method=[], scope={[],[]}, vars=dict:new(), temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile", assigned_vars=dict:new(), compile_path=[]}).
+-record(elixir_scope, {assign=false, guard=false, noname=false, method=[], scope={[],[]}, vars=dict:new(),
+  temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile", assigned_vars=dict:new()}).

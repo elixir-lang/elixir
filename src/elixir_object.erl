@@ -1,5 +1,5 @@
 -module(elixir_object).
--export([build/1, scope_for/2, transform/6, compile/8, default_mixins/3, default_protos/3]).
+-export([build/1, scope_for/2, transform/6, compile/7, default_mixins/3, default_protos/3]).
 -include("elixir.hrl").
 
 %% EXTERNAL API
@@ -78,20 +78,19 @@ scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, "::", Name]).
 % definitions have the variable self shadowed.
 transform(Kind, Line, Name, Parent, Body, S) ->
   Filename = S#elixir_scope.filename,
-  CompilePath = S#elixir_scope.compile_path,
   Clause = { clause, Line, [{var, Line, self}], [], Body },
   Fun = { 'fun', Line, { clauses, [Clause] } },
   Args = [{atom, Line, Kind}, {integer, Line, Line}, {string, Line, Filename},
-    {string, Line, CompilePath}, {var, Line, self}, {atom, Line, Name}, {atom, Line, Parent}, Fun],
+    {var, Line, self}, {atom, Line, Name}, {atom, Line, Parent}, Fun],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 % Initial step of template compilation. Generate a method
 % table and pass it forward to the next compile method.
-compile(Kind, Line, Filename, CompilePath, Current, Name, Template, Fun) ->
+compile(Kind, Line, Filename, Current, Name, Template, Fun) ->
   MethodTable = elixir_def_method:new_method_table(Name),
 
   try
-    compile(Kind, Line, Filename, CompilePath, Current, Name, Template, Fun, MethodTable)
+    compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable)
   catch
     Type:Reason -> clean_up_tables(Type, Reason)
   end.
@@ -99,7 +98,7 @@ compile(Kind, Line, Filename, CompilePath, Current, Name, Template, Fun) ->
 % Receive the module function to be invoked, invoke it passing
 % self and then compile the added methods into an Erlang module
 % and loaded it in the VM.
-compile(Kind, Line, Filename, CompilePath, Current, Name, Template, Fun, MethodTable) ->
+compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
   { Object, AttributeTable, Extra } = build_template(Kind, Name, Template),
 
   try
@@ -113,14 +112,14 @@ compile(Kind, Line, Filename, CompilePath, Current, Name, Template, Fun, MethodT
       error:{noconstant, _} -> []
     end,
 
-    compile_kind(Kind, Line, Filename, CompilePath, Current, Object, Extra, MethodTable),
+    compile_kind(Kind, Line, Filename, Current, Object, Extra, MethodTable),
     Result
   catch
     Type:Reason -> clean_up_tables(Type, Reason)
   end.
 
 % Handle compilation logic specific to objects or modules.
-compile_kind(module, Line, Filename, CompilePath, Current, Module, _, MethodTable) ->
+compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
   Name = Module#elixir_object__.name,
 
   % Update mixins to have the module itself
@@ -136,12 +135,12 @@ compile_kind(module, Line, Filename, CompilePath, Current, Module, _, MethodTabl
         'Module::Methods' -> [];
         _ -> elixir_def_method:flat_module(Module, Line, mixins, Module, MethodTable)
       end,
-      compile_module(Line, Filename, CompilePath, Module, MethodTable)
+      compile_module(Line, Filename, Module, MethodTable)
   end;
 
 % Compile an object. If methods were defined in the object scope,
 % we create a Proto module and automatically include it.
-compile_kind(object, Line, Filename, CompilePath, Current, Object, { Mixins, Protos }, MethodTable) ->
+compile_kind(object, Line, Filename, Current, Object, { Mixins, Protos }, MethodTable) ->
   AttributeTable = Object#elixir_object__.data,
 
   % Check if methods were defined, if so, create a Proto module.
@@ -153,26 +152,26 @@ compile_kind(object, Line, Filename, CompilePath, Current, Object, { Mixins, Pro
       Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object__.name, "::Proto"]),
       Attributes = destructive_read(AttributeTable, module),
       Define = elixir_module_methods:copy_attributes_fun(Attributes),
-      compile(module, Line, Filename, CompilePath, Object, Name, [], Define, MethodTable)
+      compile(module, Line, Filename, Object, Name, [], Define, MethodTable)
   end,
 
   % Generate implicit modules if there isn't a ::Proto or ::Mixin
   % and protos and mixins were added.
-  generate_implicit_module_if(Line, Filename, CompilePath, Protos, Object, proto, "::Proto"),
-  generate_implicit_module_if(Line, Filename, CompilePath, Mixins, Object, mixin, "::Mixin"),
+  generate_implicit_module_if(Line, Filename, Protos, Object, proto, "::Proto"),
+  generate_implicit_module_if(Line, Filename, Mixins, Object, mixin, "::Mixin"),
 
   % Read implicitly added modules, compile the form and load implicit modules.
-  Proto = read_implicit_module(Object, AttributeTable, proto, CompilePath),
-  Mixin = read_implicit_module(Object, AttributeTable, mixin, CompilePath),
+  Proto = read_implicit_module(Object, AttributeTable, proto),
+  Mixin = read_implicit_module(Object, AttributeTable, mixin),
 
-  load_form(build_object_form(Line, Filename, Object, Mixin, Proto), Filename, CompilePath),
+  load_form(build_object_form(Line, Filename, Object, Mixin, Proto), Filename),
   ets:delete(AttributeTable).
 
 % Handle logic compilation. Called by both compile_kind(module) and compile_kind(object).
 % The latter uses it for implicit modules.
-compile_module(Line, Filename, CompilePath, Module, MethodTable) ->
+compile_module(Line, Filename, Module, MethodTable) ->
   Functions = elixir_def_method:unwrap_stored_methods(MethodTable),
-  load_form(build_module_form(Line, Filename, Module, Functions), Filename, CompilePath),
+  load_form(build_module_form(Line, Filename, Module, Functions), Filename),
   ets:delete(Module#elixir_object__.data),
   ets:delete(MethodTable).
 
@@ -197,18 +196,18 @@ add_implicit_modules(_, _, _) -> false.
 
 % Read implicit modules for object
 
-read_implicit_module(Object, AttributeTable, Attribute, CompilePath) ->
+read_implicit_module(Object, AttributeTable, Attribute) ->
   Value = destructive_read(AttributeTable, Attribute),
   case Value of
     [] -> [];
     { Line, Filename, Module, MethodTable } ->
       elixir_object_methods:Attribute(Object, Module, false),
       elixir_def_method:flat_module(Object, Line, ?ELIXIR_ATOM_CONCAT([Attribute,"s"]), Module, MethodTable),
-      compile_module(Line, Filename, CompilePath, Module, MethodTable),
+      compile_module(Line, Filename, Module, MethodTable),
       Module
   end.
 
-generate_implicit_module_if(Line, Filename, CompilePath, Match,
+generate_implicit_module_if(Line, Filename, Match,
   #elixir_object__{name=Name, data=AttributeTable} = Object, Attribute, Suffix) ->
 
   Method = ?ELIXIR_ATOM_CONCAT([Attribute, "s"]),
@@ -219,7 +218,7 @@ generate_implicit_module_if(Line, Filename, CompilePath, Match,
     Bool1 or Bool2 -> [];
     true ->
       Implicit = ?ELIXIR_ATOM_CONCAT([Name, Suffix]),
-      compile(module, Line, Filename, CompilePath, Object, Implicit, [], fun(X) -> [] end)
+      compile(module, Line, Filename, Object, Implicit, [], fun(X) -> [] end)
   end.
 
 % Build a module form. The difference to an object form is that we need
@@ -257,14 +256,14 @@ build_erlang_form(Line, Filename, Object, Mixin, Proto, Extra) ->
    {attribute, Line, snapshot, Snapshot} | Base].
 
 % Compile and load given forms as an Erlang module.
-load_form(Forms, Filename, CompilePath) ->
+load_form(Forms, Filename) ->
   case compile:forms(Forms, [return]) of
     {ok, ModuleName, Binary, Warnings} ->
-      case CompilePath of
-        [] -> [];
-        _  ->
-          Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
-          ok = file:write_file(Path, Binary)
+      case get(elixir_compiled) of
+        Current when is_list(Current) ->
+          put(elixir_compiled, [{ModuleName,Binary}|Current]);
+        _ ->
+          []
       end,
       format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary);

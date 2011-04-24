@@ -58,13 +58,13 @@ object RecordTest
     record = RecordTest::ElixirScope.new
     'elixir_scope = record.record_name
     ['assign,'guard,'noname,'method,'scope,'vars,'temp_vars,
-      'clause_vars,'counter,'filename,'assigned_vars,'compile_path] = record.record_keys
-    [false,false,false,[],{[], []},_,[],_,0,$"nofile",_,[]] = record.record_defaults
-    12 = record.record_size
+      'clause_vars,'counter,'filename,'assigned_vars] = record.record_keys
+    [false,false,false,[],{[], []},_,[],_,0,$"nofile",_] = record.record_defaults
+    11 = record.record_size
   end
 
   private
-  
+
   def file_info
     { 'ok, file_info } = Erlang.file.read_file_info(__FILE__.to_bin)
     file_info

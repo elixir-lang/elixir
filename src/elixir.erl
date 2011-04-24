@@ -1,5 +1,5 @@
 -module(elixir).
--export([start/0, start_app/0, file/1, file/3, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
+-export([start/0, start_app/0, file/1, file/2, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
 -include("elixir.hrl").
 
 % OTP APPLICATION API
@@ -52,11 +52,11 @@ builtin_mixins() ->
   ].
 
 file(Filepath) ->
-  file(Filepath, [], []).
+  file(Filepath, []).
 
-file(Filepath, Binding, CompilePath) ->
+file(Filepath, Binding) ->
   List = read_file(Filepath),
-  eval(List, Binding, Filepath, 1, #elixir_scope{compile_path=CompilePath}).
+  eval(List, Binding, Filepath).
 
 % Read a file as utf8
 
