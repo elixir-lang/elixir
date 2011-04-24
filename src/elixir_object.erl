@@ -106,8 +106,9 @@ compile(Kind, Line, Filename, CompilePath, Current, Name, Template, Fun, MethodT
     Result = Fun(Object),
 
     try
-      elixir_constants:lookup(Name),
-      error({objectdefined, Name})
+      ErrorInfo = elixir_constants:lookup(Name, attributes),
+      [{ErrorFile,ErrorLine}] = proplists:get_value(exfile, ErrorInfo),
+      error({objectdefined, {Name, list_to_binary(ErrorFile), ErrorLine}})
     catch
       error:{noconstant, _} -> []
     end,
@@ -252,7 +253,8 @@ build_erlang_form(Line, Filename, Object, Mixin, Proto, Extra) ->
   Base = ets:foldr(Transform, Extra, AttributeTable),
 
   [{attribute, Line, module, ModuleName}, {attribute, Line, parent, Parent},
-   {attribute, Line, file, Filename}, {attribute, Line, snapshot, Snapshot} | Base].
+   {attribute, Line, file, {Filename,Line}}, {attribute, Line, exfile, {Filename,Line}},
+   {attribute, Line, snapshot, Snapshot} | Base].
 
 % Compile and load given forms as an Erlang module.
 load_form(Forms, Filename, CompilePath) ->

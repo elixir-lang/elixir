@@ -4,8 +4,6 @@
 -export([lookup/1, lookup/2]).
 -include("elixir.hrl").
 
-% Lookup a constant with the given name in the ETS table. Raises
-% an error if the constant does not exist.
 lookup(RawName) ->
   Name = ?ELIXIR_ERL_MODULE(RawName),
   case code:ensure_loaded(Name) of

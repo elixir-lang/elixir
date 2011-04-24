@@ -950,9 +950,9 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     Invoking `method` not allowed on the `builtin` object. Built-in objects are all objects that maps directly to Erlang ones, they are: String, Integer, Float, Tuple, List, OrderedDict and so forth. A few operations like `mixin`, `proto` and copy are not allowed on built-in objects;
 
-*   `{ 'objectdefined, name }`
+*   `{ 'objectdefined, {name,file,line} }`
 
-    An object with `name` was already defined. This is a common error to appear during compilation time as the following valid Ruby pattern is not valid in Elixir:
+    An object with `name` was already defined on `file` at `line`. This is a common error to appear during compilation time as the following valid Ruby pattern is not valid in Elixir:
 
         module Foo
           module Bar
