@@ -170,8 +170,7 @@ object OrderedDict
   %     { 'a: 1, 'b: 2 }.inspect % => "{'a: 1, 'b: 1}"
   %
   def inspect
-    transformer = -> (key, value, acc) ["#{key.inspect}: #{value.inspect}"|acc]
-    "{#{fold([], transformer).reverse.join(", ")}}"
+    inspect(orddict)
   end
 
   % The same as inspect.
@@ -195,6 +194,15 @@ object OrderedDict
   end
 
   private
+
+  def inspect([])
+    "{:}"
+  end
+
+  def inspect(_)
+    transformer = -> (key, value, acc) ["#{key.inspect}: #{value.inspect}"|acc]
+    "{#{fold([], transformer).reverse.join(", ")}}"
+  end
 
   def orddict
     Erlang.element(2, self)

@@ -72,12 +72,12 @@ object ObjectTest
 
   def inspect_test
     object = Object.new
-    "<Object {}>" = object.inspect
+    "<Object {:}>" = object.inspect
 
     with_ivars = Object.new.set_ivar('foo, 'bar).set_ivar('bar, 'baz)
     "<Object {'bar: 'baz, 'foo: 'bar}>" = with_ivars.inspect
 
-    "<ObjectTest {}>" = self.inspect
+    "<ObjectTest {:}>" = self.inspect
   end
 
   def method_missing_test

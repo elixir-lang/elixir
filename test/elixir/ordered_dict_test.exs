@@ -79,6 +79,11 @@ object OrderedDictTest
     true  = {:}.empty?
   end
 
+  def inspect
+    "{:}" = {:}.inspect
+    "{'a: 'b}" = {'a: 'b}.inspect
+  end
+
   private
 
   def a_dict
