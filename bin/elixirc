@@ -1,4 +1,24 @@
 #!/bin/sh
+if [ $# -eq 0 ]; then
+  echo "Usage: `basename $0` [switches] [.ex files]
+
+  -v              Prints version and exit
+  -o              The directory to output compiled files
+  -s              A specification file with compilation instructions
+  -e \"command\"    Evaluates the given command (*)
+  -f \"command\"    The same as -e, but executes at the end (*)
+  -pa \"path\"      Prepend the given path to Erlang code path (*)
+  -pz \"path\"      Append the given path to Erlang code path (*)
+
+** Options marked with (*) can be given more than once;
+
+** Options given after -- are passed down to the executed code;
+
+** The specification file is made of a list of file patterns separated by line break;
+
+** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS." >&2
+  exit 1
+fi
 SELF=`readlink $0 || echo $0`
 SCRIPT_PATH=`dirname $SELF`
 ELIXIR_PATH=`cd $SCRIPT_PATH; pwd`

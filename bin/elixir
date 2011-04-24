@@ -1,6 +1,6 @@
 #!/bin/sh
 if [ $# -eq 0 ]; then
-  echo "Usage: `basename $0` [switches] [.exs files] [data]
+  echo "Usage: `basename $0` [options] [.exs file] [data]
 
   -v              Prints version and exit
   -e \"command\"    Evaluates the given command (*)
@@ -9,9 +9,9 @@ if [ $# -eq 0 ]; then
   -pz \"path\"      Append the given path to Erlang code path (*)
   --no-halt       Don't halt the process after the code is executed
 
-** Options marked with (*) can be given more than once
+** Options marked with (*) can be given more than once;
 
-** Options given after files are passed down to the executed code.
+** Options given after the .exs file or -- are passed down to the executed code;
 
 ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS." >&2
   exit 1
