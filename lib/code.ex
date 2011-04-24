@@ -34,10 +34,26 @@ module Code
       "relies on Erlang's autoload. Check the README for more information."
   end
 
+  % Compile a *file* and returns a list of tuples where the first element
+  % is the module name and the second one is its binary.
+  def compile_file(file)
+    Erlang.elixir_compiler.file(file.to_char_list)
+  end
+
   % Compile a *file* and add the result to the given *destination*. Destination
   % needs to be a directory.
-  def compile_file(file, destination)
-    Erlang.elixir_compiler.file(file.to_char_list, destination.to_char_list)
+  def compile_file_to_path(file, destination)
+    Erlang.elixir_compiler.file_to_path(file.to_char_list, destination.to_char_list)
+  end
+
+  % Loads the given *file*. Accepts *relative_to* as an argument to tell
+  % where the file is located. If the file was already required/loaded,
+  % loads it again. It returns the full path of the loaded file.
+  %
+  % When loading a file, you may skip passing .exs as extension as Elixir
+  % automatically adds it for you.
+  def load_file(file, relative_to := nil)
+    load_and_push_file find_file(file, relative_to)
   end
 
   % Require the given *file*. Accepts *relative_to* as an argument to tell
@@ -53,16 +69,6 @@ module Code
     else
       load_and_push_file file
     end
-  end
-
-  % Require the given *file*. Accepts *relative_to* as an argument to tell
-  % where the file is located. If the file was already required/loaded,
-  % loads it again. It returns the full path of the loaded file.
-  %
-  % When loading a file, you may skip passing .exs as extension as Elixir
-  % automatically adds it for you.
-  def load_file(file, relative_to := nil)
-    load_and_push_file find_file(file, relative_to)
   end
 
   private

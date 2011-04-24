@@ -197,7 +197,7 @@ module Code::Init
     files = Erlang.filelib.wildcard(pattern.to_char_list)
     files.each do (file)
       IO.puts "Compiling #{file.to_bin}"
-      Code.compile_file(file, state.output)
+      Code.compile_file_to_path(file, state.output)
     end
   end
 end
