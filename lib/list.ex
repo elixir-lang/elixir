@@ -159,16 +159,22 @@ object List
     Erlang.lists.flatten(self)
   end
 
-  % Flattens a list of lists one level deep. If one of the elements of the list
-  % is not a list, raises an error.
+  % Receives a list of lists and flatten them one level deep. If one of the
+  % elements of the list is not a list, raises an error. This has much better
+  % performance than the original flatten.
   %
   % ## Examples
   %
-  %     [[1],[2],[3]].flatten!    % => [1,2,3]
-  %     [[1],[[2]],[3]].flatten!  % => [1,[2],3]
+  %     [[1],[2],[3]].flatten_lists    % => [1,2,3]
+  %     [[1],[[2]],[3]].flatten_lists  % => [1,[2],3]
   %
-  def flatten!
+  def flatten_lists
     Erlang.lists.append(self)
+  end
+
+  % Removes all duplicated elements from a list.
+  def uniq
+    uniq(self, [])
   end
 
   % Returns the tail of the list. Raises 'badarg error if the list
@@ -281,6 +287,19 @@ object List
   end
 
   private
+
+  def uniq([h|t], acc)
+    case Erlang.lists.member(h, acc)
+    match true
+      uniq(t, acc)
+    match false
+      uniq(t, [h|acc])
+    end
+  end
+
+  def uniq([], acc)
+    Erlang.lists.reverse(acc)
+  end
 
   def inspect_join(list)
     strings = list.map -> (x) x.inspect.to_char_list

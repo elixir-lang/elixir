@@ -36,10 +36,10 @@ object ListTest
     [1,2,3] = [[1],[2],[3]].flatten
   end
 
-  def flatten_bang_test
-    [1,2,3] = [[1,2,3]].flatten!
-    [1,2,3] = [[1],[2],[3]].flatten!
-    self.assert_error 'badarg, -> [1,2,3].flatten!
+  def flatten_lists_test
+    [1,2,3] = [[1,2,3]].flatten_lists
+    [1,2,3] = [[1],[2],[3]].flatten_lists
+    self.assert_error 'badarg, -> [1,2,3].flatten_lists
   end
 
   def each_test

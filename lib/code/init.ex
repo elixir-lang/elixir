@@ -171,6 +171,10 @@ module Code::Init
     process_compiler t, state.output(h)
   end
 
+  def process_compiler([$"-s",h|t], state)
+    process_compiler t, state.add_command({'compile_spec,h})
+  end
+
   def process_compiler([h|t] = list, state)
     if h.to_char_list[0] == $-
       shared_option? list, state, -> (nl, ns) process_compiler(nl, ns)
@@ -194,8 +198,17 @@ module Code::Init
   end
 
   def process_command({'compile, pattern}, state)
-    files = Erlang.filelib.wildcard(pattern.to_char_list)
-    files.each do (file)
+    compile_patterns [pattern], state
+  end
+
+  def process_command({'compile_spec, spec}, state)
+    contents = File.read(spec)
+    compile_patterns contents.split(~r"\n"), state
+  end
+
+  def compile_patterns(lines, state)
+    lines = [Erlang.filelib.wildcard(line.to_char_list) for line in lines]
+    lines.flatten_lists.uniq.each do (file)
       IO.puts "Compiling #{file.to_bin}"
       Code.compile_file_to_path(file, state.output)
     end

@@ -39,8 +39,16 @@ object CodeTest
   end
 
   def compile_code_test
-    assert_include "Compiling test/elixir/fixtures/bookshelf.exs",
+    "Compiling test/elixir/fixtures/bookshelf.exs\n" =
       OS.cmd("bin/elixirc test/elixir/fixtures/bookshelf.exs -o test/tmp/")
+    true = File.regular?("test/tmp/exBookshelf.beam")
+  after
+    Erlang.file.del_dir("test/tmp/")
+  end
+
+  def compile_spec_test
+    "Compiling test/elixir/fixtures/bookshelf.exs\n" =
+      OS.cmd("bin/elixirc -s test/elixir/fixtures/elixirc.spec -o test/tmp/")
     true = File.regular?("test/tmp/exBookshelf.beam")
   after
     Erlang.file.del_dir("test/tmp/")
