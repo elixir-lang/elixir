@@ -1,4 +1,4 @@
-## Current master (v0.2.0.dev)
+## v0.2.0 (2011-04-25)
 
 * improvements
   * Added File.read, File.read_info and others

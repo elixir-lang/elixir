@@ -26,7 +26,7 @@ module Code
 
   % Returns elixir version.
   def version
-    "0.2.0.dev"
+    "0.2.0"
   end
 
   def require(_file)

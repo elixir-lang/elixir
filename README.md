@@ -13,7 +13,7 @@ Elixir is still in development. If you want to help building it or are just look
     $ make test
 
     $ bin/elixir -v
-    Elixir 0.2.0.dev
+    Elixir 0.2.0
 
 If tests fail, it is likely you have an outdated Erlang version. You can check your Erlang version by calling ``erl`` in the command line. You will see some information as follow:
 
