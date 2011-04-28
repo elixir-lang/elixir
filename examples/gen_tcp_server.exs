@@ -1,5 +1,3 @@
-Code.require "gen_tcp"
-
 module Server
   def start
     {'ok, tcp} = GenTCP.listen(5678, ['binary, {'packet, 0}, {'active, false}])

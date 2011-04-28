@@ -10,7 +10,7 @@ object Fridge
     % Spawn a new process by invoking the 'loop method defined below.
     % Notice that all methods defined in Fridge are actually defined
     % in Fridge::Proto, this is why we pass Fridge::Proto below.
-    pid = Process.spawn Fridge::Proto, 'loop, [list]
+    pid = Process.spawn -> Fridge::Proto.loop [list]
 
     % Returns the object with the pid as instance variable.
     @('pid: pid)

@@ -17,16 +17,6 @@ object Process
       Erlang.proc_lib.spawn function
     end
 
-    % Spawn the method in the object with the given args.
-    def spawn(object, method, args)
-      Erlang.spawn -> object.__send__(method, args)
-    end
-
-    % Spawn the method in the object with the given args using proc_lib.
-    def spawn!(object, method, args)
-      Erlang.proc_lib.spawn -> object.__send__(method, args)
-    end
-
     % Spawn as link the given function.
     def spawn_link(function)
       Erlang.spawn_link function
@@ -35,16 +25,6 @@ object Process
     % Spawn as link the given function using proc_lib.
     def spawn_link!(function)
       Erlang.proc_lib.spawn_link function
-    end
-
-    % Spawn as link the method in the object with the given args.
-    def spawn_link(object, method, args)
-      Erlang.spawn_link -> object.__send__(method, args)
-    end
-
-    % Spawn as link the method in the object with the given args using proc_lib.
-    def spawn_link!(object, method, args)
-      Erlang.proc_lib.spawn_link -> object.__send__(method, args)
     end
 
     def flag(key, value)

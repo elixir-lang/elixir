@@ -59,7 +59,7 @@ end
 % to the object and you actually don't pass it around.
 object BestFridge
   def initialize(list)
-    pid = Process.spawn Fridge, 'loop, [list]
+    pid = Process.spawn -> Fridge.loop list
     @('pid: pid)
   end
 

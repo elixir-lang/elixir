@@ -5,7 +5,7 @@ object ProcessTest
   proto ExUnit::Case
 
   def spawn_and_messages_with_module_test
-    pid = Process.spawn(Fridge, 'loop, [['iogurt, 'bread]])
+    pid = Process.spawn -> Fridge.loop ['iogurt, 'bread]
     {'ok, 'bread} = Fridge.take(pid, 'bread)
     ['iogurt] = Fridge.see(pid)
     'ok = Fridge.store(pid, 'soda)
@@ -15,7 +15,7 @@ object ProcessTest
 
   def spawn_and_messages_with_object_test
     fridge = MyFridge.new
-    pid = Process.spawn(fridge, 'loop, [['iogurt, 'bread]])
+    pid = Process.spawn -> fridge.loop(['iogurt, 'bread])
     {'ok, 'bread} = fridge.take(pid, 'bread)
     ['iogurt] = fridge.see(pid)
     'ok = fridge.store(pid, 'soda)
