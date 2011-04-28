@@ -1,15 +1,15 @@
 object ExUnit::Server
   module Mixin
-    def start(options)
-      { 'ok, _ } = GenServer.start_link({'local, 'exunit_server}, self.new(options), [])
+    def start
+      { 'ok, _ } = GenServer.start_link({'local, 'exunit_server}, self.new, [])
     end
 
     def add_case(name)
-      try
-        GenServer.call('exunit_server, { 'add_case, name })
-      catch 'exit: { 'noproc, _ }
-        self.exit "ExUnit::Server is not running. Are you sure you invoked ExUnit.configure() ?"
-      end
+      check -> GenServer.call('exunit_server, { 'add_case, name })
+    end
+
+    def merge_options(options)
+      check -> GenServer.call('exunit_server, { 'merge_options, options })
     end
 
     def cases
@@ -19,10 +19,20 @@ object ExUnit::Server
     def options
       GenServer.call('exunit_server, 'options)
     end
+
+    private
+
+    def check(function)
+      try
+        function.()
+      catch 'exit: { 'noproc, _ }
+        self.exit "ExUnit::Server is not running. Are you sure you used exunit from command line?"
+      end
+    end
   end
 
-  def initialize(options)
-    @('options: options, 'cases: [])
+  def initialize
+    @('options: {:}, 'cases: [])
   end
 
   def init()
@@ -31,6 +41,10 @@ object ExUnit::Server
 
   def handle_call({'add_case, name}, _from)
     { 'reply, 'ok, self.update_ivar('cases, _.push(name)) }
+  end
+
+  def handle_call({'merge_options, options}, _from)
+    { 'reply, 'ok, self.update_ivar('options, _.merge(options)) }
   end
 
   def handle_call('cases, _from)

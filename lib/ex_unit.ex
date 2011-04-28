@@ -5,7 +5,8 @@
 % A basic setup for ExUnit is shown below:
 %
 %     % File: assertion_test.exs
-%     % 1) Require to configure ExUnit. See a list of options below.
+%
+%     % 1) If you wish to configure ExUnit. See a list of options below.
 %     ExUnit.configure
 %
 %     % 2) Next we create a new TestCase and add ExUnit::Case to it
@@ -73,8 +74,12 @@
 % * `'max_cases` - Maximum number of cases to run in parallel
 %
 module ExUnit
+  def start
+    ExUnit::Server.start
+  end
+
   def configure(options)
-    ExUnit::Server.start(options)
+    ExUnit::Server.merge_options(options)
   end
 
   def run
