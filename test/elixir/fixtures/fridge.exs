@@ -1,6 +1,6 @@
 % Example taken from http://learnyousomeerlang.com/more-on-multiprocessing#state-your-state
 
-% This example is very very erlangish. See pid_test.ex.
+% This example is very very erlangish. See process_test.exs.
 % It would require you to pass the PID around the whole time,
 % a better example is the MyFridge object below.
 module Fridge

@@ -15,6 +15,10 @@ object ExUnit::Formatter
     @('counter: @counter + 1, 'failures: [{object, test, failure}|@failures])
   end
 
+  def each_case(_object)
+    self
+  end
+
   def finish
     IO.puts "\n"
     @failures.foldl 1, -> (x, acc) print_failure(x, acc)

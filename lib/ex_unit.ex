@@ -4,6 +4,7 @@
 %
 % A basic setup for ExUnit is shown below:
 %
+%     % File: assertion_test.exs
 %     % 1) Require to configure ExUnit. See a list of options below.
 %     ExUnit.configure
 %
@@ -21,7 +22,7 @@
 % To run the test above, all you need to to is to use the bin/exunit script that ships with Elixir.
 % Assuming you named your file assertion_test.ex, you can run it as:
 %
-%     bin/exunit assertion_test.ex
+%     bin/exunit assertion_test.exs
 %
 % ## Assertions
 %
@@ -68,61 +69,19 @@
 %
 % ExUnit supports the following options given to configure:
 %
-% * `:formatter` - The formatter that will print results
+% * `'formatter` - The formatter that will print results
+% * `'max_cases` - Maximum number of cases to run in parallel
 %
 module ExUnit
-  mixin Code::Formatter
-
   def configure(options)
     ExUnit::Server.start(options)
   end
 
   def run
-    cases = ExUnit::Server.cases
-    options = ExUnit::Server.options
+    cases     = ExUnit::Server.cases
+    options   = ExUnit::Server.options
     formatter = options['formatter] || ExUnit::Formatter.new
-    new_formatter = run(formatter, cases)
-    new_formatter.finish
-  end
-
-  private
-
-  % run/3 instantiates each object given in the list and execute
-  % each test in these objects. counter keeps all tests executed
-  % and failures all failures with their backtrace.
-  def run(formatter, [])
-    formatter
-  end
-
-  def run(formatter, [object|t])
-    instance = object.to_constant.new
-    new_formatter = run_tests(formatter, object, instance, instance.__tests__)
-    run(new_formatter, t)
-  end
-
-  % For each instanciated object, dispatch each test in it.
-  def run_tests(formatter, object, instance, [test|t])
-    final = try
-      subject = instance.setup(test)
-
-      partial = try
-        subject.__send__(test)
-        nil
-      catch kind1: error1
-        {kind1, error1, self.__stacktrace__}
-      end
-
-      subject.teardown(test)
-      partial
-    catch kind2: error2
-      {kind2, error2, self.__stacktrace__}
-    end
-
-    new_formatter = formatter.each(object, test, final)
-    run_tests(new_formatter, object, instance, t)
-  end
-
-  def run_tests(formatter, _, _, [])
-    formatter
+    max_cases = options['max_cases] || 4
+    ExUnit::Runner.new(formatter, cases, max_cases).start
   end
 end
