@@ -175,18 +175,18 @@ proto_methods_test() ->
 send_public_method_test() ->
   F = fun() ->
     elixir:eval("object Foo; def foo; 1; end; def foo(x); x * 2; end; end"),
-    {1, _}  = elixir:eval("Foo.new.__send__('foo)"),
-    {2, _}  = elixir:eval("Foo.new.__send__('foo, [1])")
+    {1, _}  = elixir:eval("Foo.new.send('foo)"),
+    {2, _}  = elixir:eval("Foo.new.send('foo, [1])")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
-send_protected_method_test() ->
-  F = fun() ->
-    elixir:eval("object Foo; def bar; self.__send__('baz); end; protected; def baz; 3; end; end"),
-    {3, _}  = elixir:eval("Foo.new.__send__('bar)"),
-    {3, _}  = elixir:eval("Foo.new.__send__('baz)")
-  end,
-  test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
+% send_protected_method_test() ->
+%   F = fun() ->
+%     elixir:eval("object Foo; def bar; self.send('baz); end; protected; def baz; 3; end; end"),
+%     {3, _}  = elixir:eval("Foo.new.send('bar)"),
+%     {3, _}  = elixir:eval("Foo.new.send('baz)")
+%   end,
+%   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
 %% alias_local
 
@@ -206,15 +206,6 @@ alias_local_keeps_visibility_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo', 'Foo::Proto']).
 
-%% Catch test
-
-no_error_catch_test() ->
-  {2, []} = elixir:eval("Object.catch! -> 1 + 1").
-
-error_catch_test() ->
-  {{'EXIT',{{badmatch,2},_}}, []} = elixir:eval("Object.catch! -> 1 = 2"),
-  {{'EXIT',{function_clause,[{lists, map,[1,[]]}|_]}}, []} = elixir:eval("Object.catch! -> [].map(1)").
-
 %% __LINE__ and __FILE__
 
 line_underscore_test() ->
@@ -232,7 +223,7 @@ eval_string(Expr) ->
 
 to_s_test() ->
   F = fun() ->
-    elixir:eval("object Bar\ndef constructor(x);{'a: x};end\nend"),
+    elixir:eval("object Bar\ndef initialize(x);@('a: x);end\nend"),
     {<<"Bar">>,[]}  = eval_string("Bar.to_s"),
     {<<"<Bar {'a: 1}>">>,[]}  = eval_string("Bar.new(1).to_s")
   end,
@@ -240,7 +231,7 @@ to_s_test() ->
 
 inspect_test() ->
   F = fun() ->
-    elixir:eval("object Bar\ndef constructor(x);{'a: x};end\nend"),
+    elixir:eval("object Bar\ndef initialize(x);@('a, x);end\nend"),
     {<<"Bar">>,[]}  = eval_string("Bar.inspect"),
     {<<"<Bar {'a: 1}>">>,[]}  = eval_string("Bar.new(1).inspect")
   end,

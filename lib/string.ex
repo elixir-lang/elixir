@@ -11,16 +11,6 @@
 %
 % TODO: We need to inherit from BitString once we have inheritance.
 object String
-  % Implement String as a record. This is done mainly
-  % to have improved performance for the equality operator.
-  module Mixin
-    % Initializes a string by keeping its internal binary representation.
-    def new([bin])
-      IO.puts "[ELIXIR] Calling String.new is deprecated. Just call .to_bin in the list object instead."
-      bin.to_bin
-    end
-  end
-
   % Retrieves a number that represents the given character.
   %
   % ## Examples

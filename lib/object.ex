@@ -187,7 +187,7 @@ object Object
       Erlang.elixir_object_methods.update_ivar(self, name, initial, fun)
     end
 
-    def __send__(method, args := [])
+    def send(method, args := [])
       Erlang.elixir_dispatch.dispatch(self, method, args)
     end
 
@@ -217,15 +217,6 @@ object Object
 
     def exit(reason)
       Erlang.exit(reason)
-    end
-
-    def catch!(function)
-      filter_catch_stacktrace Erlang.elixir_object_methods.function_catch(function)
-    end
-
-    def method_missing('initialize, args)
-      IO.puts "[ELIXIR] Defining 'constructor' is deprecated. Please define 'initialize' and return an object."
-      @(__send__('constructor, args))
     end
 
     def method_missing(method, args)
@@ -265,14 +256,6 @@ object Object
 
     def filter_stacktrace_module(_)
       nil
-    end
-
-    def filter_catch_stacktrace({ 'EXIT, { reason, stacktrace } })
-      { 'EXIT, { reason, filter_stacktrace(stacktrace) } }
-    end
-
-    def filter_catch_stacktrace(other)
-      other
     end
   end
 

@@ -29,11 +29,6 @@ module Code
     "0.2.1.dev"
   end
 
-  def require(_file)
-    IO.puts "[ELIXIR] Code.require is deprecated. Elixir now compile files and " \
-      "relies on Erlang's autoload. Check the README for more information."
-  end
-
   % Compile a *file* and returns a list of tuples where the first element
   % is the module name and the second one is its binary.
   def compile_file(file)

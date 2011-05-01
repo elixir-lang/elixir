@@ -7,9 +7,6 @@
   define_attribute/3, copy_attributes_fun/1, module_eval/4]).
 -include("elixir.hrl").
 
-set_visibility(#elixir_object__{name=Name, data=Data}, protected) when is_atom(Data) ->
-  io:format("[ELIXIR] protected as method visibility is deprecated.\n");
-
 set_visibility(#elixir_object__{name=Name, data=Data}, Visibility) when is_atom(Data) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:insert(MethodTable, { visibility, Visibility });

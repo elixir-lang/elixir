@@ -213,14 +213,14 @@ reserved_modules_test() ->
 
 super_call_test() ->
   F = fun() ->
-    elixir:eval("module Bar\ndef __send__(method);super(method)+1;end\ndef bar; 3; end\nend"),
-    {4,[]} = elixir:eval("Bar.__send__ 'bar")
+    elixir:eval("module Bar\ndef send(method);super(method)+1;end\ndef bar; 3; end\nend"),
+    {4,[]} = elixir:eval("Bar.send 'bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
 super_with_method_missing_test() ->
   F = fun() ->
-    elixir:eval("module Bar\ndef bar;super + 1;end\nprotected\ndef method_missing('bar, []); 3; end\nend"),
+    elixir:eval("module Bar\ndef bar;super + 1;end\ndef method_missing('bar, []); 3; end\nend"),
     {4,[]} = elixir:eval("Bar.bar")
   end,
   test_helper:run_and_remove(F, ['Bar']).

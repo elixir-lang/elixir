@@ -11,7 +11,7 @@ object Recorder
 
   def play(receiver)
     @calls.foldr receiver, do ({method, args}, acc)
-      acc.__send__(method, args)
+      acc.send(method, args)
     end
   end
 end

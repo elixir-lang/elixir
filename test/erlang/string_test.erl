@@ -92,12 +92,6 @@ implicit_string_concatenation_test() ->
 
 %% Methods
 
-string_initialized_with_bin_test() ->
-  {<<"elixir">>, []} = eval_string("String.new(<<100 + 1,108,105,120,105,114>>)").
-
-string_initialized_with_char_list_test() ->
-  {<<"elixir">>, []} = eval_string("String.new([100 + 1,108,105,120,105,114])").
-
 string_to_s_returns_self_test() ->
   {<<"elixir">>, []} = eval_string("\"elixir\".to_s").
 

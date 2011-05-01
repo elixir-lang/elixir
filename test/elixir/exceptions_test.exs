@@ -56,7 +56,7 @@ object ExceptionsTest
       put! true
     end
 
-    {1,2} = self.catch! do
+    {1,2} = try
       assert_executed true, -> try
         self.throw({1,2})
       catch {3,4}
@@ -64,6 +64,8 @@ object ExceptionsTest
       after
         put! true
       end
+    catch val
+      val
     end
   end
 

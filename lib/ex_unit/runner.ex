@@ -86,7 +86,7 @@ object ExUnit::Runner
       subject = instance.setup(test)
 
       partial = try
-        subject.__send__(test)
+        subject.send(test)
         nil
       catch kind1: error1
         {kind1, error1, self.__stacktrace__}
