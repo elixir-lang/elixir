@@ -1,5 +1,6 @@
 Code.require_file "../test_helper", __FILE__
 
+% We break tests in different test cases so they can run in parallel.
 object CodeTest
   proto ExUnit::Case
 
@@ -12,49 +13,65 @@ object CodeTest
     assert_include File.expand_path("test/elixir/fixtures/code_sample.exs"), Code.loaded_files
   end
 
-  def code_init_test
-    "3\n"       = OS.cmd("bin/elixir -e \"IO.puts 1 + 2\"")
-    "5\n3\n"    = OS.cmd("bin/elixir -f \"IO.puts 1 + 2\" -e \"IO.puts 3 + 2\"")
-    "5\n3\n1\n" = OS.cmd("bin/elixir -f \"IO.puts 1\" -e \"IO.puts 3 + 2\" test/elixir/fixtures/init_sample.exs")
+  object Code1Test
+    proto ExUnit::Case
 
-    expected = "#{["-o", "1", "2", "3"].inspect}\n3\n"
-    ~expected = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" test/elixir/fixtures/init_sample.exs -o 1 2 3")
+    def code_init_test
+      "3\n"       = OS.cmd("bin/elixir -e \"IO.puts 1 + 2\"")
+      "5\n3\n"    = OS.cmd("bin/elixir -f \"IO.puts 1 + 2\" -e \"IO.puts 3 + 2\"")
+      "5\n3\n1\n" = OS.cmd("bin/elixir -f \"IO.puts 1\" -e \"IO.puts 3 + 2\" test/elixir/fixtures/init_sample.exs")
+
+      expected = "#{["-o", "1", "2", "3"].inspect}\n3\n"
+      ~expected = OS.cmd("bin/elixir -e \"IO.puts Code.argv\" test/elixir/fixtures/init_sample.exs -o 1 2 3")
+    end
   end
 
-  def code_error_test
-    example = OS.cmd("bin/elixir -e \"self.throw 1\"")
-    assert_include "** throw 1", example
-    assert_include "Object::Methods#throw/1", example
+  object Code2Test
+    proto ExUnit::Case
 
-    assert_include "** error 1", OS.cmd("bin/elixir -e \"self.error 1\"")
-    assert_include "** exit {1}", OS.cmd("bin/elixir -e \"self.exit {1}\"")
+    def code_error_test
+      example = OS.cmd("bin/elixir -e \"self.throw 1\"")
+      assert_include "** throw 1", example
+      assert_include "Object::Methods#throw/1", example
 
-    % It does not catch exits with integers nor strings...
-    "" = OS.cmd("bin/elixir -e \"self.exit 1\"")
+      assert_include "** error 1", OS.cmd("bin/elixir -e \"self.error 1\"")
+      assert_include "** exit {1}", OS.cmd("bin/elixir -e \"self.exit {1}\"")
+
+      % It does not catch exits with integers nor strings...
+      "" = OS.cmd("bin/elixir -e \"self.exit 1\"")
+    end
   end
 
-  def syntax_code_error_test
-    assert_include "nofile:1: syntax error before:  []", OS.cmd("bin/elixir -e \"[1,2\"")
-    assert_include "nofile:1: syntax error before:  'end'", OS.cmd("bin/elixir -e \"-> 2 end()\"")
+  object Code3Test
+    proto ExUnit::Case
+
+    def syntax_code_error_test
+      assert_include "nofile:1: syntax error before:  []", OS.cmd("bin/elixir -e \"[1,2\"")
+      assert_include "nofile:1: syntax error before:  'end'", OS.cmd("bin/elixir -e \"-> 2 end()\"")
+    end
   end
 
-  def compile_code_test
-    "Compiling test/elixir/fixtures/bookshelf.exs\n" =
-      OS.cmd("bin/elixirc test/elixir/fixtures/bookshelf.exs -o test/tmp/")
-    true = File.regular?("test/tmp/exBookshelf.beam")
-  after
-    Erlang.file.del_dir("test/tmp/")
-  end
+  object CompileTest
+    proto ExUnit::Case
 
-  def compile_spec_test
-    "Compiling test/elixir/fixtures/bookshelf.exs\n" =
-      OS.cmd("bin/elixirc -s test/elixir/fixtures/elixirc.spec -o test/tmp/")
-    true = File.regular?("test/tmp/exBookshelf.beam")
-  after
-    Erlang.file.del_dir("test/tmp/")
-  end
+    def compile_code_test
+      "Compiling test/elixir/fixtures/bookshelf.exs\n" =
+        OS.cmd("bin/elixirc test/elixir/fixtures/bookshelf.exs -o test/tmp/")
+      true = File.regular?("test/tmp/exBookshelf.beam")
+    after
+      Erlang.file.del_dir("test/tmp/")
+    end
 
-  def compile_paths_test
-    assert_include "13", OS.cmd("bin/elixir -pa foo -pz bar -e \"IO.puts 13\"")
+    def compile_spec_test
+      "Compiling test/elixir/fixtures/bookshelf.exs\n" =
+        OS.cmd("bin/elixirc -s test/elixir/fixtures/elixirc.spec -o test/tmp/")
+      true = File.regular?("test/tmp/exBookshelf.beam")
+    after
+      Erlang.file.del_dir("test/tmp/")
+    end
+
+    def compile_paths_test
+      assert_include "13", OS.cmd("bin/elixir -pa foo -pz bar -e \"IO.puts 13\"")
+    end
   end
 end
