@@ -1,5 +1,8 @@
 ## Current master (v0.2.1.dev)
 
+* improvements
+  * ExUnit now run test cases in parallel
+
 ## v0.2.0 (2011-04-25)
 
 * improvements
