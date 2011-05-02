@@ -325,7 +325,7 @@ This is expensive because each character uses 8 bytes of memory, not 8 bits! Erl
 
 Elixir takes a different approach to strings. Strings in Elixir are handled as UTF-8 binaries. Since a binary is nothing more than a bit string, where the number of bits is a multiple of 8, we can create strings using the bit string syntax:
 
-    <<72, 73, 74>  % => "HIJ"
+    <<72, 73, 74>>  % => "HIJ"
 
 When a bit string with multiple of 8 bits is created, it is automatically mapped to a string. However, you will rarely use the syntax above as Elixir provides the more traditional quote syntax to handle strings:
 
