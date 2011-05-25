@@ -158,11 +158,11 @@ update_object_chain(Self, proto, Chain) ->
 
 % Check if it is a module and raises an error if not.
 check_module(#elixir_object__{parent='Module'}, Kind) -> [];
-check_module(Else, Kind) -> elixir_errors:error({notamodule, {Else, Kind}}).
+check_module(Else, Kind) -> elixir_errors:error({notamodule, {Kind, Else}}).
 
 % Raise builtinnotallowed error with the given reason:
 builtinnotallowed(Builtin, Reason) ->
-  elixir_errors:error({builtinnotallowed, {Builtin, Reason}}).
+  elixir_errors:error({builtinnotallowed, {Reason, Builtin}}).
 
 % Returns the ancestors chain considering only parents, but in reverse order.
 

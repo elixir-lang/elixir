@@ -220,7 +220,7 @@ object Object
     end
 
     def method_missing(method, args)
-      error { 'nomethod, {self, method, Erlang.length(args)} }
+      error { 'nomethod, {method, Erlang.length(args), self} }
     end
 
     % Set the following methods to private.

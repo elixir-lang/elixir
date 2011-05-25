@@ -36,7 +36,7 @@ assert_behavior(Exports, Object) ->
   lists:foreach(fun({Name, Arity}) ->
     case lists:member({Name, Arity-1}, Methods) of
       true -> [];
-      false -> elixir_errors:error({nocallback, {Object, Name, Arity-1}})
+      false -> elixir_errors:error({nocallback, {Name, Arity-1, Object}})
     end
   end, Exports).
 

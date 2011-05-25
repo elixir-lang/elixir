@@ -946,11 +946,11 @@ It should actually be written as:
 
 Here is a list of runtime errors that can be raised by Elixir:
 
-*   `{ 'builtinnotallowed, { builtin, method } }`
+*   `{ 'builtinnotallowed, { method, builtin } }`
 
     Invoking `method` not allowed on the `builtin` object. Built-in objects are all objects that maps directly to Erlang ones, they are: String, Integer, Float, Tuple, List, OrderedDict and so forth. A few operations like `mixin`, `proto` and copy are not allowed on built-in objects;
 
-*   `{ 'objectdefined, {name,file,line} }`
+*   `{ 'objectdefined, { name, file, line } }`
 
     An object with `name` was already defined on `file` at `line`. This is a common error to appear during compilation time as the following valid Ruby pattern is not valid in Elixir:
 
@@ -973,15 +973,15 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     Raised when you defined a module named `Mixin` or `Proto` outside of an Object. Both `Mixin` and `Proto` are reserved modules names;
 
-*   `{ 'nomethod, { object, name, arity } }`
+*   `{ 'nomethod, { name, arity, object } }`
 
     There isn't a public method with the given `name` and `arity` in `object`;
 
-*   `{ 'nolocalmethod, { module, name, arity } }`
+*   `{ 'nolocalmethod, { name, arity, module } }`
 
     There isn't a local method with the given `name` and `arity` in `module`;
 
-*   `{ 'notamodule, { object, method } }`
+*   `{ 'notamodule, { method, object } }`
 
     `method` failed because `object` is not a module;
 
@@ -989,7 +989,7 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     A constant with `name` could not be found;
 
-*   `{ 'nocallback, { object, name, arity } }`
+*   `{ 'nocallback, { name, arity, object } }`
 
     The callback `name` with `arity` was not implemented in `object`. Raised when an object is given as callback but does not comply to all conditions;
 
@@ -1005,7 +1005,7 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     `value` given to `@()` or `set_ivars` is not an OrderedDict or it is an OrderedDict but not all keys are atoms;
 
-*   `{ 'moduledefined, { module, method } }`
+*   `{ 'moduledefined, { method, module } }`
 
     Cannot invoke `method` in `module` because the module was already defined. For example, calling `module_eval` in an already defined module will raise such errors;
 

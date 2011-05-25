@@ -12,7 +12,7 @@ set_visibility(#elixir_object__{name=Name, data=Data}, Visibility) when is_atom(
   ets:insert(MethodTable, { visibility, Visibility });
 
 set_visibility(Self, Visibility) ->
-  elixir_errors:error({moduledefined, { Self, set_visibility }}).
+  elixir_errors:error({moduledefined, { set_visibility, Self }}).
 
 get_visibility(#elixir_object__{name=Name, data=Data}) when is_atom(Data) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
@@ -28,11 +28,11 @@ alias_local(#elixir_object__{name=Name, data=Data} = Self, Filename, Old, New, E
     [{{Old, Arity}, Line, Clauses}] ->
       elixir_def_method:store_wrapped_method(Name, Filename, {function, Line, New, Arity, Clauses}, []);
     [] ->
-      elixir_errors:error({nolocalmethod, {Self, Old, Arity}})
+      elixir_errors:error({nolocalmethod, {Old, Arity, Self}})
   end;
 
 alias_local(Self, _, _, _, _) ->
-  elixir_errors:error({moduledefined, { Self, alias_local }}).
+  elixir_errors:error({moduledefined, { alias_local, Self }}).
 
 define_attribute(#elixir_object__{data=Data, parent=Parent}, Key, Value) when is_atom(Data) ->
   case Parent of
@@ -43,7 +43,7 @@ define_attribute(#elixir_object__{data=Data, parent=Parent}, Key, Value) when is
   end;
 
 define_attribute(Self, _, _) ->
-  elixir_errors:error({moduledefined, { Self, define_attribute }}).
+  elixir_errors:error({moduledefined, { define_attribute, Self }}).
 
 copy_attributes_fun(Data) ->
   fun(Object) ->
@@ -56,14 +56,14 @@ module_eval(#elixir_object__{name=Name, data=Data} = Self, String, Filename, Lin
   elixir:eval(to_char_list(String), [{self,Self}], to_char_list(Filename), Line, Scope);
 
 module_eval(Self, _, _, _) ->
-  elixir_errors:error({moduledefined, { Self, module_eval }}).
+  elixir_errors:error({moduledefined, { module_eval, Self }}).
 
 define_erlang_method(#elixir_object__{name=Name, data=Data}, Filename, Line, Method, Arity, Clauses) when is_atom(Data)->
   TClauses = lists:map(fun expand_clauses/1, Clauses),
   elixir_def_method:store_wrapped_method(Name, to_char_list(Filename), {function, Line, Method, Arity + 1, TClauses}, []);
 
 define_erlang_method(Self, _, _, _, _, _) ->
-  elixir_errors:error({moduledefined, { Self, define_erlang_method }}).
+  elixir_errors:error({moduledefined, { define_erlang_method, Self }}).
 
 object_kind(#elixir_object__{parent='Module'}) -> module;
 object_kind(_) -> object.
