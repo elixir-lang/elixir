@@ -2,6 +2,7 @@
 
 * improvements
   * ExUnit now run test cases in parallel
+  * Brackets in array was optimized and also accepts out of bound indexes (and return nil in such cases)
 
 ## v0.2.0 (2011-04-25)
 
