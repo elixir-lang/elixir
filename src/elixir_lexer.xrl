@@ -38,11 +38,13 @@ BaseGroup = ({BaseQuoted}|{BaseCurly}|{BaseBrackets}|{BaseParens})
 
 Rules.
 
+%% Signed numbers
+\s(\+|\-){Digit}+(_{Digit}+)*\.{Digit}+(_{Digit}+)* : build_signed_number(float, TokenLine, TokenChars).
+\s(\+|\-){Digit}+(_{Digit}+)*                       : build_signed_number(integer, TokenLine, TokenChars).
+
 %% Numbers
-{Digit}+(_{Digit}+)*\.{Digit}+(_{Digit}+)*     : build_number(float, TokenLine, true, TokenChars).
-{Digit}+\.{Digit}+                             : build_number(float, TokenLine, false, TokenChars).
-{Digit}+(_{Digit}+)*                           : build_number(integer, TokenLine, true, TokenChars).
-{Digit}+                                       : build_number(integer, TokenLine, false, TokenChars).
+{Digit}+(_{Digit}+)*\.{Digit}+(_{Digit}+)* : build_number(float, TokenLine, TokenChars).
+{Digit}+(_{Digit}+)*                       : build_number(integer, TokenLine, TokenChars).
 
 %% __FILE__ and __LINE__
 __FILE__ : { token, { filename, TokenLine } }.
@@ -146,12 +148,17 @@ build(Kind, Line, Chars) ->
     false -> { token, {Kind, Line, Atom} }
   end.
 
-build_number(Kind, Line, true, Chars) ->
-  build_number(Kind, Line, false, string:join(string:tokens(Chars, "_"), ""));
+build_number(Kind, Line, Chars) ->
+  { token, { Kind, Line, convert_number(Kind, Chars) } }.
 
-build_number(Kind, Line, false, Chars) ->
+build_signed_number(Kind, Line, Chars) ->
+  [$\s,Sign|Number] = Chars,
+  { token, { signed_number, Kind, Line, list_to_atom([Sign]), convert_number(Kind, Number) } }.
+
+convert_number(Kind, Chars) ->
+  Number =  string:join(string:tokens(Chars, "_"), ""),
   Converter = list_to_atom(lists:concat(["list_to_", Kind])),
-  { token, { Kind, Line, erlang:Converter(Chars) } }.
+  erlang:Converter(Number).
 
 % Handle heredoc and multiline heredocs
 build_heredoc(Chars, Line, Length) ->

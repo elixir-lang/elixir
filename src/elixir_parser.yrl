@@ -82,7 +82,8 @@ Nonterminals
   .
 
 Terminals
-  bracket_identifier punctuated_identifier bound_identifier identifier float integer constant
+  bracket_identifier punctuated_identifier bound_identifier identifier constant
+  float integer signed_number
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
   div rem module object do end def eol Erlang true false nil
@@ -127,6 +128,7 @@ Left     120 mult_op.
 Nonassoc 130 unary_op.
 Nonassoc 140 without_args_method_call_expr.
 Nonassoc 140 _without_args_method_call_expr.
+Nonassoc 150 signed_number.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -168,6 +170,7 @@ expr -> expr or_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr comp_op expr : build_comp_op('$1', '$2', '$3').
 expr -> expr add_op expr : build_binary_op('$1', '$2', '$3').
 expr -> expr mult_op expr : build_binary_op('$1', '$2', '$3').
+expr -> expr signed_number : build_signed_binary_op('$1', '$2').
 expr -> unary_op expr : build_unary_op('$1', '$2').
 expr -> np_call_exprs : '$1'.
 
@@ -460,6 +463,7 @@ base_expr -> receive_expr : '$1'.
 base_expr -> begin_expr : '$1'.
 base_expr -> case_expr : '$1'.
 base_expr -> filename : '$1'.
+base_expr -> signed_number : build_signed_unary_op('$1').
 
 % Conditionals
 if_expr -> if_elsif_clauses 'end' : build_if_expr('$1').
@@ -744,6 +748,12 @@ build_binary_op(Left, Op, Right) ->
 
 build_unary_op(Op, Value) ->
   { unary_op, ?line(Op), ?op(Op), Value }.
+
+build_signed_binary_op(Left, { signed_number, Kind, Line, Op, Value }) ->
+  build_binary_op(Left, { Op, Line }, { Kind, Line, Value }).
+
+build_signed_unary_op({ signed_number, Kind, Line, Op, Value }) ->
+  build_unary_op({ Op, Line }, { Kind, Line, Value }).
 
 build_match(Left, Op, Right) ->
   { match, ?line(Op), Left, Right }.

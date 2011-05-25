@@ -123,6 +123,12 @@ object ListTest
     [6,8,9] = x.delete(4)
   end
 
+  def arithmetic_syntax_test
+    [1,2,3] = [1,2,3].delete -1
+    2 = [1,2,3].length - 1
+    2 = [1,2,3].length-1
+  end
+
   def delete_with_duplicates_test
     x = [6,8,6,4,9]
     [8,6,4,9] = x.delete(6)

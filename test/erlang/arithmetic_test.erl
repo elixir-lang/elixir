@@ -74,6 +74,7 @@ sum_as_explicit_method_call_test() ->
 operators_precedence_test() ->
   F = fun() ->
     {3,[]} = elixir:eval("module Foo; def length; 1; end; end\n1 + Foo.length + 1"),
-    {2,[]} = elixir:eval("module Bar; def length(x); 1; end; end\n1 + Bar.length(+1)")
+    {3,[]} = elixir:eval("1 + Foo.length+1"),
+    {2,[]} = elixir:eval("module Bar; def length(x); 1; end; end\n1 + Bar.length +1")
   end,
   test_helper:run_and_remove(F, ['Foo', 'Bar']).
