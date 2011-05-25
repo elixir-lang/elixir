@@ -77,6 +77,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 %% Atoms
 \'(\+|\-|\*|\/|\<\-|\[\]|\${Digit}+) : build_atom(TokenChars, TokenLine, TokenLen). % '
 \'@?({UpperCase}|{LowerCase}|_){IdentifierBase}*[?!]? : build_atom(TokenChars, TokenLine, TokenLen). % '
+\'{UpperCase}({IdentifierBase}|::)* : build_atom(TokenChars, TokenLine, TokenLen). % '
 \'{InterpolGroup} : build_separator_atom(interpolated_atom, TokenChars, TokenLine, TokenLen). % '
 \'{BaseGroup} : build_separator_atom(atom, TokenChars, TokenLine, TokenLen). % '
 

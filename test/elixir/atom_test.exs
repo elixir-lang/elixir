@@ -11,6 +11,7 @@ object AtomTest
     '<-
     '[]
     '$1
+    'Foo::Bar
   end
 
   def exists_test
