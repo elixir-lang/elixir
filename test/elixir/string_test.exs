@@ -89,6 +89,11 @@ three
     "Hello" = "Hello".to_s
   end
 
+  def inspect_test
+    "\"Hello\"" = "Hello".inspect
+    "<<1,2,3>>" = <<1,2,3>>.inspect
+  end
+
   def to_atom_test
     'hello = "hello".to_atom
   end

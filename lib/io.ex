@@ -19,8 +19,8 @@ object IO
     def gets(prompt)
       result = Erlang.io.get_line(@device, prompt.to_char_list)
 
-      if @encoding == 'utf8
-        Erlang.unicode.characters_to_binary(result, 'utf8)
+      if @encoding != 'binary
+        Erlang.unicode.characters_to_list(result, @encoding).to_bin
       else
         result
       end

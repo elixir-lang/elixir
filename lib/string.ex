@@ -145,7 +145,12 @@ object String
   %     "elixir".inspect % => "\"elixir\""
   %
   def inspect
-    <<$\", self|binary, $\">>
+    list = Erlang.binary_to_list(self)
+    if Erlang.io_lib.printable_unicode_list(list)
+      <<$\", self|binary, $\">>
+    else
+      Erlang.io_lib.format($"~w", [self]).to_bin
+    end
   end
 
   % Receives a regular expression and split the string. An optional number
