@@ -92,8 +92,24 @@ object OrderedDict
     match 'error
     end
   end
+  alias_local '[], 'get, 1
 
-  % Stores the given *key* and *value* in the dictionary.
+  % Returns a boolean if the ordered dict has the given key or not.
+  %
+  % ## Examples
+  %
+  %     { 'a: 1 }.key?('a) % => true
+  %
+  def key?(key)
+    case Erlang.orddict.find(key, orddict)
+    match {'ok, value}
+      true
+    match 'error
+      false
+    end
+  end
+
+  % Stores the given *value* in *key* in the dictionary.
   %
   % ## Examples
   %
@@ -103,6 +119,22 @@ object OrderedDict
     OrderedDict.new Erlang.orddict.store(key, value, orddict)
   end
   alias_local 'set, 'store, 2
+
+  % Stores the given *value* in *key* in the dictionary if none is set yet.
+  %
+  % ## Examples
+  %
+  %     {'a: b}.set_new('a,'c)  % => { 'a: 'b }
+  %     {'a: b}.set_new('b,'c)  % => { 'a: 'b, 'b: c }
+  %
+  def set_new(key, value)
+    if key?(key)
+      self
+    else
+      set(key, value)
+    end
+  end
+  alias_local 'set_new, 'store_new, 2
 
   % Calls the given *function* for each key and value of the dictionary with an
   % extra argumen *acc* (short for accumulator). *function* must return a new

@@ -74,6 +74,22 @@ object OrderedDictTest
     nil = { 2: 4, 1: 2 }[0]
   end
 
+  def get_test
+    4 = { 2: 4, 1: 2 }.get 2
+    2 = { 2: 4, 1: 2 }.get 1
+    nil = { 2: 4, 1: 2 }.get 0
+  end
+
+  def key_question_mark_test
+    true  = { 1: 2 }.key?(1)
+    false = { 1: 2 }.key?(2)
+  end
+
+  def set_new_test
+    { 1: 2 } = { 1: 2 }.set_new(1, 3)
+    { 1: 3 } = {:}.set_new(1, 3)
+  end
+
   def empty_test
     false = { 'a: "abc" }.empty?
     true  = {:}.empty?
