@@ -87,8 +87,12 @@ eval(String, Binding, Filename, Line, Scope) ->
     _  -> Binding
   end,
   { ParseTree, NewScope } = parse(String, SelfBinding, Filename, Line, Scope),
-  {value, Value, NewBinding} = erl_eval:exprs(ParseTree, SelfBinding),
-  {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }.
+  case ParseTree of
+    [] -> { nil, SelfBinding };
+    _  ->
+      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, SelfBinding),
+      {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }
+  end.
 
 % Parse string and transform tree to Erlang Abstract Form format.
 

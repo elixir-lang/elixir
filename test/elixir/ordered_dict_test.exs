@@ -63,7 +63,7 @@ object OrderedDictTest
     dict = { 'list: [] }.update('list, _.push(1)).update('list, _.push(2))
     [1,2] = dict['list]
 
-    self.assert_error 'function_clause, do
+    assert_error 'function_clause, do
       {:}.update('foo, 2)
     end
   end

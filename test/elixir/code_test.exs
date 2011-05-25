@@ -13,6 +13,10 @@ object CodeTest
     assert_include File.expand_path("test/elixir/fixtures/code_sample.exs"), Code.loaded_files
   end
 
+  def empty_files_require_test
+    Code.require_file "../fixtures/comments", __FILE__
+  end
+
   object Code1Test
     proto ExUnit::Case
 
