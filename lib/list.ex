@@ -15,12 +15,10 @@ object List
   % ## Examples
   %
   %     [1,2,3].push 4    % => [1,2,3,4]
-  %     [1,2,3].append 4  % => [1,2,3,4]
   %
   def push(item)
     Erlang.lists.append(self, [item])
   end
-  alias_local 'push, 'append, 1
 
   % Searches the list for a tuple whose nth element compares equal to key.
   % Returns the tuple if such a tuple is found, otherwise false. The list
@@ -85,26 +83,25 @@ object List
   end
 
   % Retrieves an item from the list. Negative indexes are allowed
-  % and they retrieve the element in the reverse order. Out of bound
-  % indexes raises 'function_clause error.
+  % and they retrieve the element in the reverse order.
   %
   % ## Examples
   %
   %     [1,2,3][0] % => 1
   %     [1,2,3][1] % => 2
   %     [1,2,3][2] % => 3
-  %     [1,2,3][3] % => Raises 'function_clause error
+  %     [1,2,3][3] % => nil
   %
   %     [1,2,3][-1] % => 3
   %     [1,2,3][-2] % => 2
   %     [1,2,3][-3] % => 1
-  %     [1,2,3][-43] % => Raises 'function_clause error
+  %     [1,2,3][-43] % => nil
   %
   def [](number)
     if number < 0
-      Erlang.lists.nth(length + number + 1, self)
+      brackets(-1 * (1 + number), Erlang.lists.reverse(self))
     else
-      Erlang.lists.nth(number + 1, self)
+      brackets(number, self)
     end
   end
 
@@ -287,6 +284,18 @@ object List
   end
 
   private
+
+  def brackets(0, [h|_])
+    h
+  end
+
+  def brackets(_, [])
+    nil
+  end
+
+  def brackets(n, [_|t]) when n > 0
+    brackets(n - 1, t)
+  end
 
   def uniq([h|t], acc)
     case Erlang.lists.member(h, acc)

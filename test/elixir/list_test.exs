@@ -132,18 +132,14 @@ object ListTest
     1 = [1,2,3][0]
     2 = [1,2,3][1]
     3 = [1,2,3][2]
-    self.assert_error 'function_clause, do
-      [1,2,3][3]
-    end
+    nil = [1,2,3][3]
   end
 
   def brackets_negative_index_test
     1 = [1,2,3][-3]
     2 = [1,2,3][-2]
     3 = [1,2,3][-1]
-    self.assert_error 'function_clause, do
-      [1,2,3][-4]
-    end
+    nil = [1,2,3][-4]
   end
 
   def brackets_syntax_test
