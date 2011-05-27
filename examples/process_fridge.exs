@@ -23,7 +23,7 @@ object Fridge
     % Send a message to the spawned @pid passing the current
     % pid plus a message telling to store the given food.
     % This is the same as Erlang's ! operator
-    pid <- { Process.self, { 'store, food } }
+    pid <- { Process.current, { 'store, food } }
 
     % The spawn process will respond back with its own
     % pid and an ok message
@@ -38,10 +38,7 @@ object Fridge
 
     % Send a message to the spawned @pid passing the current
     % pid plus a message telling to take the given food.
-    %
-    % This is exactly the same as above, but the <<- syntax
-    % automatically adds Process.self for us.
-    pid <- { Process.self, {'take, food} }
+    pid <- { Process.current, {'take, food} }
 
     % Retrieve the message again. Also, let's set a timeout
     % now for 10 seconds.
@@ -57,7 +54,7 @@ object Fridge
     pid = @pid
 
     % Send a see message
-    pid <- { Process.self, 'see }
+    pid <- { Process.current, 'see }
 
     % And get a message back
     receive {~pid, msg}
@@ -78,18 +75,18 @@ object Fridge
     % than one type of message, you have to use receive/match.
     receive
     match {from, {'store, food}}
-      from <- { Process.self, 'ok }
+      from <- { Process.current, 'ok }
       loop([food|foodlist])
     match {from, {'take, food}}
       if foodlist.include?(food)
-        from <- { Process.self, {'ok, food} }
+        from <- { Process.current, {'ok, food} }
         loop(foodlist.delete(food))
       else
-        from <- { Process.self, 'not_found }
+        from <- { Process.current, 'not_found }
         loop(foodlist)
       end
     match {from,'see}
-      from <- { Process.self, foodlist }
+      from <- { Process.current, foodlist }
       loop(foodlist)
     match 'terminate
       'ok

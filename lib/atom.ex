@@ -49,6 +49,7 @@ object Atom
   end
 
   % Converts the given atom to a constant with the same name.
+  % Raises a no_constant error if the constant does not exist.
   %
   % ## Examples
   %
@@ -70,11 +71,11 @@ object Atom
   end
 
   % Sends a message to the given that represents an registered process.
-  % This is the equivalent to Erlang's ! and is also aliased as `send`.
+  % This is the equivalent to Erlang's ! and is also aliased as `deliver`.
   def <-(message)
     Erlang.send(self, message)
   end
-  alias_local '<-, 'send, 1
+  alias_local '<-, 'dispatch, 1
 
   private
 

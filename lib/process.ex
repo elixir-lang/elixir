@@ -1,11 +1,9 @@
 object Process
   module Mixin
     % Returns the pid for the current process.
-    % This method is also aliased as 'current.
-    def self
+    def current
       Erlang.self
     end
-    alias_local 'self, 'current, 0
 
     % Spawn the given function.
     def spawn(function)
@@ -45,11 +43,11 @@ object Process
   end
 
   % Sends a message to the Pid. This is the equivalent to Erlang's !.
-  % This method is also aliased as send.
+  % This method is also aliased as dispatch.
   def <-(message)
     Erlang.send(self, message)
   end
-  alias_local '<-, 'send, 1
+  alias_local '<-, 'dispatch, 1
 
   def inspect
     [_|t] = Erlang.pid_to_list(self)

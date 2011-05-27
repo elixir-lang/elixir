@@ -60,10 +60,17 @@
 %    begin executed. This allows you to specialize the behavior for one specific test.
 %
 % 2) The `setup` method needs to necessarily return an object of the same kind
-%    of the test case. For instance, the following is wrong:
+%    of the test case (self). For instance, the following is wrong:
 %
 %     def setup
-%       [1,2,3]
+%       MyModule.something
+%     end
+%
+%    However the following works:
+%
+%     def setup
+%       MyModule.something
+%       self
 %     end
 %
 % ## Options

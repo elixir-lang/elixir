@@ -9,7 +9,7 @@ object GenTcpTest
       {'ok, sock} = tcp.accept
       {'ok, bin} = recv(tcp, sock, [])
       'ok = tcp.close
-      pid <- { Process.self, bin }
+      pid <- { Process.current, bin }
     end
 
     private
@@ -31,7 +31,7 @@ object GenTcpTest
 
   def server_and_client_test
     % Spawn the server in a new process
-    client = Process.self
+    client = Process.current
     server = Process.spawn -> GenTcpTest::Server.start(client)
 
     % Connect to the server

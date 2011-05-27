@@ -29,7 +29,7 @@ module Chat
       def send(message)
         room = @room
 
-        room <- { Process.self, message }
+        room <- { Process.current, message }
 
         receive { ~room, response }
           response
@@ -49,17 +49,17 @@ module Chat
       def loop
         receive
         match { pid, 'join }
-          notify_all Process.self, "Some user joined"
-          pid <- { Process.self, 'ok }
+          notify_all Process.current, "Some user joined"
+          pid <- { Process.current, 'ok }
           self.set_ivar('clients, [pid|@clients]).loop
         match { pid, { 'say, message } }
           notify_all(pid, message)
-          pid <- { Process.self, 'ok }
+          pid <- { Process.current, 'ok }
           loop
         match { pid, 'leave }
-          pid <- { Process.self, 'ok }
+          pid <- { Process.current, 'ok }
           room = self.set_ivar 'clients, @clients.delete(pid)
-          room.notify_all Process.self, "Some user left"
+          room.notify_all Process.current, "Some user left"
           room.loop
         end
       end
@@ -67,7 +67,7 @@ module Chat
       def notify_all(sender, message)
         @clients.each do (c)
           if c != sender
-            c <- { Process.self, { 'message, message } }
+            c <- { Process.current, { 'message, message } }
           end
         end
       end
@@ -75,7 +75,7 @@ module Chat
   end
 end
 
-client = Process.self
+client = Process.current
 server = Process.spawn -> Chat::Server::Room.new([client]).loop
 
 room = Chat::Client::Room.new(server)

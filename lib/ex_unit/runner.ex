@@ -75,7 +75,7 @@ object ExUnit::Runner
 
   % Run each test case in its own process.
   def spawn_case(testcase)
-    pid = Process.self
+    pid = Process.current
     instance = testcase.new
     Process.spawn_link -> run_tests(pid, testcase, instance, instance.__tests__)
   end
@@ -98,12 +98,12 @@ object ExUnit::Runner
       {kind2, error2, self.__stacktrace__}
     end
 
-    pid <- { Process.self, 'each, { object, test, final } }
+    pid <- { Process.current, 'each, { object, test, final } }
     run_tests(pid, object, instance, t)
   end
 
   % When all tests in a testcase were run, notify the runner.
   def run_tests(pid, object, _, [])
-    pid <- { Process.self, 'each_case, object }
+    pid <- { Process.current, 'each_case, object }
   end
 end

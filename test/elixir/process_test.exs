@@ -33,7 +33,7 @@ object ProcessTest
   end
 
   def register_and_unregister_test
-    process = Process.self
+    process = Process.current
     process.register('elixir_test_process)
     self.assert_include 'elixir_test_process, Process.registered
 

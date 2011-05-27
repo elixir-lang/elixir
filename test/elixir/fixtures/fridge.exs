@@ -12,7 +12,7 @@ module Fridge
   end
 
   def take(pid, food)
-    pid <- {Process.self, {'take, food}}
+    pid <- {Process.current, {'take, food}}
     receive {~pid, msg}
       msg
     after 10000
@@ -21,7 +21,7 @@ module Fridge
   end
 
   def see(pid)
-    pid <- {Process.self, 'see}
+    pid <- {Process.current, 'see}
     receive {~pid, msg}
       msg
     end
@@ -30,18 +30,18 @@ module Fridge
   def loop(foodlist)
     receive
     match {from, {'store, food}}
-      from <- { Process.self, 'ok }
+      from <- { Process.current, 'ok }
       loop([food|foodlist])
     match {from, {'take, food}}
       if foodlist.include?(food)
-        from <- { Process.self, {'ok, food} }
+        from <- { Process.current, {'ok, food} }
         loop(foodlist.delete(food))
       else
-        from <- { Process.self, 'not_found }
+        from <- { Process.current, 'not_found }
         loop(foodlist)
       end
     match {from,'see}
-      from <- { Process.self, foodlist }
+      from <- { Process.current, foodlist }
       loop(foodlist)
     match 'terminate
       'ok
