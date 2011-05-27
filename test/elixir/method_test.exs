@@ -20,6 +20,9 @@ object MethodTest
   end
 
   def def_returns_method_object_test
-    {'foo,1} = MethodTest::Sample.foo
+    method = MethodTest::Sample.foo
+    'foo = method.name
+    1 = method.arity
+    'MethodTest::Sample = method.owner.__name__
   end
 end

@@ -2,7 +2,7 @@
 % For methods introspection, check elixir_methods.
 -module(elixir_def_method).
 -export([unpack_default_clause/2, is_empty_table/1, new_method_table/1, flat_module/5,
-  wrap_method_definition/5, store_wrapped_method/4, unwrap_stored_methods/1]).
+  wrap_method_definition/5, store_wrapped_method/5, unwrap_stored_methods/1]).
 -include("elixir.hrl").
 
 % Returns if a given table is empty or not.
@@ -49,19 +49,24 @@ unpack_default_clause(Name, Clause) ->
 wrap_method_definition(Name, Line, Filename, Method, Defaults) ->
   Meta = abstract_syntax(Method),
   MetaDefaults = abstract_syntax(Defaults),
-  Content = [{atom, Line, Name}, {string, Line, Filename}, Meta, MetaDefaults],
+  Content = [{var, Line, self}, {atom, Line, Name}, {string, Line, Filename}, Meta, MetaDefaults],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
 
 % Invoked by the wrapped method with the method abstract tree.
 % Each method is then added to the method table.
-store_wrapped_method(Module, Filename, Method, Defaults) ->
+store_wrapped_method(nil, Module, Filename, Method, Defaults) ->
   Name = element(3, Method),
-  Arity = element(4, Method),
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
   Visibility = ets:lookup_element(MethodTable, visibility, 2),
   [store_each_method(MethodTable, Visibility, Filename, function_from_default(Name, Default)) || Default <- Defaults],
-  store_each_method(MethodTable, Visibility, Filename, Method),
-  {Name,Arity-1}.
+  store_each_method(MethodTable, Visibility, Filename, Method);
+
+store_wrapped_method(Self, Module, Filename, Method, Defaults) ->
+  Name = element(3, Method),
+  Arity = element(4, Method),
+  store_wrapped_method(nil, Module, Filename, Method, Defaults),
+  Constant = elixir_constants:lookup('Method'),
+  elixir_object_methods:new(Constant, [Self, Name, Arity - 1]).
 
 % Helper to unwrap the methods stored in the methods table. It also returns
 % a list of methods to be exported with all methods.
