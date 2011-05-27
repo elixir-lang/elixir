@@ -2,7 +2,7 @@
 % This is not exposed in the Elixir language.
 % TODO Remove strings from internal errors
 -module(elixir_errors).
--export([error/1, file_format/3, syntax_error/4, handle_file_warning/2,
+-export([error/1, file_format/3, syntax_error/3, syntax_error/4, handle_file_warning/2,
   handle_file_error/2, format_error/2, format_error/1]).
 -include("elixir.hrl").
 
@@ -10,6 +10,9 @@ error(Reason) -> erlang:error(Reason).
 
 file_format(Line, Filename, Message) ->
   lists:flatten(io_lib:format("~ts:~w: ~ts", [Filename, Line, Message])).
+
+syntax_error(Line, Filename, Token) ->
+  syntax_error(Line, Filename, Token, "").
 
 syntax_error(Line, Filename, user, Token) ->
   syntax_error(Line, Filename, Token, "");

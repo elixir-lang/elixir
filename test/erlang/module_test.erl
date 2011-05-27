@@ -8,11 +8,21 @@ module_body_is_executable_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-module_compiler_precedence_test() ->
+module_compiler_precedence_and_values_test() ->
   F = fun() ->
     {nil,[{foo,nil}]} = elixir:eval("foo = module Foo; end")
   end,
   test_helper:run_and_remove(F, ['Foo']).
+
+invalid_scope_for_module_test() ->
+  ?assertError({badsyntax, {1,"nofile","invalid scope for module",[]}},
+    elixir:eval("module Foo; def foo; module Bar; end; end; end")).
+
+invalid_scope_for_method_test() ->
+  ?assertError({badsyntax, {1,"nofile","invalid scope for method",[]}},
+    elixir:eval("def foo; end")),
+  ?assertError({badsyntax, {1,"nofile","invalid scope for method",[]}},
+    elixir:eval("module Foo; def foo; def bar; end; end; end")).
 
 modules_are_converted_into_erlang_modules_test() ->
   F = fun() ->

@@ -597,8 +597,8 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, S) ->
 %
 transform({def_method, Line, Name, Arity, [Clause]}, S) ->
   {_, Module} = S#elixir_scope.scope,
-  case Module of
-    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method", "");
+  case (Module == []) or (S#elixir_scope.method /= []) of
+    true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
       NewScope = S#elixir_scope{method=Name},
       { TClause, _ } = pack_method_clause(Clause, NewScope),
@@ -654,10 +654,15 @@ transform({bc, Line, Elements, Cases}, S) ->
 % context. The only variable available in the module by default
 % is self.
 transform({Kind, Line, Name, Parent, Exprs}, S) when Kind == object; Kind == module->
-  {_, Current} = S#elixir_scope.scope,
-  NewName = elixir_object:scope_for(Current, Name),
-  { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],scope={Kind, NewName}}),
-  { elixir_object:transform(Kind, Line, NewName, Parent, TExprs, S), S };
+  case S#elixir_scope.method of
+    [] -> 
+      {_, Current} = S#elixir_scope.scope,
+      NewName = elixir_object:scope_for(Current, Name),
+      { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],scope={Kind, NewName}}),
+      { elixir_object:transform(Kind, Line, NewName, Parent, TExprs, S), S };
+    _ ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for " ++ atom_to_list(Kind))
+  end;
 
 % Handles __FILE__
 %
