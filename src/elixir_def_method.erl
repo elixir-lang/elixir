@@ -56,10 +56,12 @@ wrap_method_definition(Name, Line, Filename, Method, Defaults) ->
 % Each method is then added to the method table.
 store_wrapped_method(Module, Filename, Method, Defaults) ->
   Name = element(3, Method),
+  Arity = element(4, Method),
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
   Visibility = ets:lookup_element(MethodTable, visibility, 2),
   [store_each_method(MethodTable, Visibility, Filename, function_from_default(Name, Default)) || Default <- Defaults],
-  store_each_method(MethodTable, Visibility, Filename, Method).
+  store_each_method(MethodTable, Visibility, Filename, Method),
+  {Name,Arity-1}.
 
 % Helper to unwrap the methods stored in the methods table. It also returns
 % a list of methods to be exported with all methods.

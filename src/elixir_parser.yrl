@@ -4,8 +4,6 @@
 Nonterminals
   grammar
   expr_list
-  decl_list
-  decl
   expr _expr
   np_call_exprs _np_call_exprs
   brackets_call _brackets_call
@@ -72,7 +70,7 @@ Nonterminals
   oror_op
   dot_eol
   guards
-  object_decl module_decl objmod_body
+  object_decl module_decl
   method_decl method_name method_body implicit_method_name method_ops_identifier implicit_method_ops_identifier
   case_expr case_clause case_clauses else_case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
@@ -132,21 +130,8 @@ Nonassoc 150 signed_number.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> decl_list : '$1'.
+grammar -> expr_list : '$1'.
 grammar -> '$empty' : [{atom, 0, nil}].
-
-% List of declarations delimited by break
-decl_list -> eol : [].
-decl_list -> decl : ['$1'].
-decl_list -> decl break : ['$1'].
-decl_list -> eol decl_list : '$2'.
-decl_list -> decl break decl_list : ['$1'|'$3'].
-
-% Basic declarations
-decl -> object_decl : '$1'.
-decl -> module_decl : '$1'.
-decl -> method_decl : '$1'.
-decl -> expr : '$1'.
 
 % List of expressions delimited by break
 expr_list -> eol : [].
@@ -154,6 +139,11 @@ expr_list -> expr : ['$1'].
 expr_list -> expr break : ['$1'].
 expr_list -> eol expr_list : '$2'.
 expr_list -> expr break expr_list : ['$1'|'$3'].
+
+% Object/Module/Method declarations
+expr -> object_decl : '$1'.
+expr -> module_decl : '$1'.
+expr -> method_decl : '$1'.
 
 % Assignment
 expr -> expr match_op expr : build_match('$1', '$2', '$3').
@@ -638,11 +628,8 @@ dot_eol -> '.'     : '$1'.
 dot_eol -> '.' eol : '$1'.
 
 % Object/Module declaration
-object_decl -> object constant break objmod_body 'end' : build_object(object, '$2', '$4', []).
-module_decl -> module constant break objmod_body 'end' : build_object(module, '$2', '$4', []).
-
-objmod_body -> '$empty' : [{atom, 0, nil}].
-objmod_body -> decl_list : check_body('$1').
+object_decl -> object constant break body 'end' : build_object(object, '$2', '$4', []).
+module_decl -> module constant break body 'end' : build_object(module, '$2', '$4', []).
 
 % Method declarations
 method_decl -> def method_name break method_body :

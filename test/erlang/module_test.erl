@@ -9,7 +9,10 @@ module_body_is_executable_test() ->
   test_helper:run_and_remove(F, ['Bar']).
 
 module_compiler_precedence_test() ->
-  ?assertError({badsyntax, _}, elixir:eval("1 + module Foo; end")).
+  F = fun() ->
+    {nil,[{foo,nil}]} = elixir:eval("foo = module Foo; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo']).
 
 modules_are_converted_into_erlang_modules_test() ->
   F = fun() ->
