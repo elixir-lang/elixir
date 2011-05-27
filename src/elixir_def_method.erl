@@ -54,19 +54,19 @@ wrap_method_definition(Name, Line, Filename, Method, Defaults) ->
 
 % Invoked by the wrapped method with the method abstract tree.
 % Each method is then added to the method table.
-store_wrapped_method(nil, Module, Filename, Method, Defaults) ->
+store_wrapped_method(Self, Module, Filename, Method, Defaults) ->
   Name = element(3, Method),
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
   Visibility = ets:lookup_element(MethodTable, visibility, 2),
   [store_each_method(MethodTable, Visibility, Filename, function_from_default(Name, Default)) || Default <- Defaults],
-  store_each_method(MethodTable, Visibility, Filename, Method);
-
-store_wrapped_method(Self, Module, Filename, Method, Defaults) ->
-  Name = element(3, Method),
-  Arity = element(4, Method),
-  store_wrapped_method(nil, Module, Filename, Method, Defaults),
-  Constant = elixir_constants:lookup('Method'),
-  elixir_object_methods:new(Constant, [Self, Name, Arity - 1]).
+  store_each_method(MethodTable, Visibility, Filename, Method),
+  try
+    Arity = element(4, Method),
+    Constant = elixir_constants:lookup('Method'),
+    elixir_object_methods:new(Constant, [Self, Name, Arity - 1])
+  catch
+    error:{noconstant,'Method'} -> []
+  end.
 
 % Helper to unwrap the methods stored in the methods table. It also returns
 % a list of methods to be exported with all methods.
