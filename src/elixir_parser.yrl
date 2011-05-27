@@ -641,11 +641,18 @@ method_decl -> def method_name match_args_parens method_body :
 method_decl -> def method_name match_args_optional break method_body :
   build_def_method('$2', '$3', build_clause('$2', '$3', [], '$5')).
 
-method_decl -> def method_name guards break method_body :
-  build_def_method('$2', [], build_clause('$2', [], '$3', '$5')).
-
 method_decl -> def method_name match_args_optional guards break method_body :
-  build_def_method('$2', '$3', build_clause('$2', '$3','$4', '$6')).
+  build_def_method('$2', '$3', build_clause('$2', '$3', '$4', '$6')).
+
+% Anonymous Method declarations
+method_decl -> def break method_body :
+  build_def_method('$1', [], build_clause('$1', [], [], '$3')).
+
+method_decl -> def match_args_parens break method_body :
+  build_def_method('$1', '$2', build_clause('$1', '$2', [], '$4')).
+
+method_decl -> def match_args_parens guards break method_body :
+  build_def_method('$1', '$2', build_clause('$1', '$2', '$3', '$5')).
 
 % Method body
 method_body -> body end : '$1'.
