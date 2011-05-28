@@ -89,6 +89,7 @@ flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) 
   SelfModules = elixir_object_methods:What(Object),
   RawModules = lists:delete(ModuleName, SelfModules),
 
+  % Do not flat Module::Methods that are temporarily added.
   Modules = case Object#elixir_object__.parent of
     'Module' -> RawModules;
     Else     -> lists:delete('Module::Methods', RawModules)
