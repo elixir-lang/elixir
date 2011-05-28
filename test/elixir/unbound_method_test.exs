@@ -1,6 +1,6 @@
 Code.require_file "../test_helper", __FILE__
 
-object MethodTest
+object UnboundMethodTest
   proto ExUnit::Case
 
   object Sample
@@ -20,17 +20,17 @@ object MethodTest
   end
 
   def def_returns_method_object_test
-    method = MethodTest::Sample.foo
+    method = UnboundMethodTest::Sample.foo
     'foo = method.name
     1 = method.arity
-    'MethodTest::Sample = method.owner.__name__
+    'UnboundMethodTest::Sample = method.owner.__name__
   end
 
   def anonymous_methods_test
-    method = MethodTest::Sample.bar
-    '__anonymous_method_MethodTest::Sample_4 = method.name
+    method = UnboundMethodTest::Sample.bar
+    '__anonymous_method_UnboundMethodTest::Sample_4 = method.name
     2 = method.arity
-    'MethodTest::Sample = method.owner.__name__
+    'UnboundMethodTest::Sample = method.owner.__name__
   end
 
 end

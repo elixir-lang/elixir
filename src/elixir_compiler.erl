@@ -61,6 +61,7 @@ compile_main() ->
     "lib/gen_server.ex",
     "lib/record.ex",
     "lib/file.ex",
+    "lib/unbound_method.ex",
     "lib/method.ex",
     "lib/code.ex",
     "lib/code/formatter.ex",

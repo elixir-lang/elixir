@@ -1,6 +1,10 @@
 -module(elixir_dispatch).
--export([dispatch/3,super/4]).
+-export([owner_dispatch/4,dispatch/3,super/4]).
 -include("elixir.hrl").
+
+owner_dispatch(Module, Method, Self, Args) ->
+  Proto = (elixir_constants:lookup(Module))#elixir_object__.protos,
+  apply(Module, Method, [Self|Args]).
 
 dispatch(Object, Method, Args) when is_list(Args)->
   Arity = length(Args) + 1,
