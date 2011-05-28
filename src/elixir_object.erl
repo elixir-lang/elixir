@@ -292,7 +292,8 @@ snapshot_module(_, _, Module)       -> ?ELIXIR_ERL_MODULE(Module#elixir_object__
 
 no_auto_import() ->
   {no_auto_import, [
-    {size, 1}, {length, 1}, {error, 2}, {self, 1}, {put, 2}, {get, 1}
+    {size, 1}, {length, 1}, {error, 2}, {self, 1}, {put, 2},
+    {get, 1}, {exit, 1}, {exit, 2}
   ]}.
 
 transform_attribute(Line, {mixins, List}) ->
