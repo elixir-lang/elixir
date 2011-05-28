@@ -1132,7 +1132,7 @@ Invoking Erlang methods with elixir is quite trivial:
 
 As there is no conversion between most Erlang data types and Elixir ones, there is no performance hit in invoking Erlang methods. The only exception are strings that are binaries in Elixir and may need to be converted to char lists in some specific erlang modules. More details were outline in the BitString and String sections above.
 
-Finally, notice that `Erlang` is not a real object in Elixir, but just a proxy that is converted to erlang calls at parse time.
+Finally, notice that `Erlang` is not a real object in Elixir, but just a proxy that is converted to erlang calls at compile time.
 
 ## List and Bit string comprehensions
 
