@@ -54,9 +54,14 @@ wrap_method_definition(Name, Line, Filename, Method, Defaults) ->
 
 % Invoked by the wrapped method with the method abstract tree.
 % Each method is then added to the method table.
-store_wrapped_method(Self, Module, Filename, Method, Defaults) ->
-  Name = element(3, Method),
+store_wrapped_method(Self, Module, Filename, OriginalMethod, Defaults) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
+  Name = case element(3, OriginalMethod) of
+    []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", Module, "_", ets:info(MethodTable, size)]);
+    Else -> Else
+  end,
+  Method = setelement(3, OriginalMethod, Name),
+
   Visibility = ets:lookup_element(MethodTable, visibility, 2),
   [store_each_method(MethodTable, Visibility, Filename, function_from_default(Name, Default)) || Default <- Defaults],
   store_each_method(MethodTable, Visibility, Filename, Method),

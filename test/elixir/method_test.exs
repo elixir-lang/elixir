@@ -8,14 +8,14 @@ object MethodTest
       x + 1
     end
 
-    bar = def bar(x, y)
+    bar = def(x, y)
       x + y
     end
 
+    @('bar, bar)
+
     module Mixin
-      def foo
-        @foo
-      end
+      attr_reader ['foo, 'bar]
     end
   end
 
@@ -25,4 +25,12 @@ object MethodTest
     1 = method.arity
     'MethodTest::Sample = method.owner.__name__
   end
+
+  def anonymous_methods_test
+    method = MethodTest::Sample.bar
+    '__anonymous_method_MethodTest::Sample_4 = method.name
+    2 = method.arity
+    'MethodTest::Sample = method.owner.__name__
+  end
+
 end

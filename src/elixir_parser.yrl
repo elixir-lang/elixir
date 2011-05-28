@@ -646,13 +646,13 @@ method_decl -> def method_name match_args_optional guards break method_body :
 
 % Anonymous Method declarations
 method_decl -> def break method_body :
-  build_def_method('$1', [], build_clause('$1', [], [], '$3')).
+  build_anonymous_def_method('$1', [], build_clause('$1', [], [], '$3')).
 
 method_decl -> def match_args_parens break method_body :
-  build_def_method('$1', '$2', build_clause('$1', '$2', [], '$4')).
+  build_anonymous_def_method('$1', '$2', build_clause('$1', '$2', [], '$4')).
 
 method_decl -> def match_args_parens guards break method_body :
-  build_def_method('$1', '$2', build_clause('$1', '$2', '$3', '$5')).
+  build_anonymous_def_method('$1', '$2', build_clause('$1', '$2', '$3', '$5')).
 
 % Method body
 method_body -> body end : '$1'.
@@ -754,6 +754,9 @@ build_match(Left, Op, Right) ->
 
 build_def_method(Name, Args, Clauses) ->
   { def_method, ?line(Name), ?chars(Name), length(Args), [Clauses] }.
+
+build_anonymous_def_method(Def, Args, Clauses) ->
+  { def_method, ?line(Def), [], length(Args), [Clauses] }.
 
 build_method_call(Expr, Name, Args) ->
   { method_call, ?line(Name), ?chars(Name), Args, Expr }.
