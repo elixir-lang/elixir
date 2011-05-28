@@ -182,7 +182,7 @@ object_name(#elixir_object__{name=Name}) ->
   Name;
 
 object_name(Native) ->
-  []. % Native types are instances and has no name.
+  nil. % Native types are instances and has no name.
 
 object_parent(#elixir_object__{parent=Parent}) ->
   Parent;

@@ -37,7 +37,7 @@ integer_ancestors_test() ->
   {['Object'], []} = elixir:eval("Integer.__ancestors__").
 
 integer_instance_name_test() ->
-  {[], []} = elixir:eval("1.__name__").
+  {nil, []} = elixir:eval("1.__name__").
 
 integer_instance_parent_test() ->
   {'Integer', []} = elixir:eval("1.__parent_name__").

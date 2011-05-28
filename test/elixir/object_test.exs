@@ -107,6 +107,10 @@ object ObjectTest
     false = 1.__mixin_methods__.include?({ 'attr_reader, 1 })
   end
 
+  def __name__test
+    nil = 1.__name__
+  end
+
   def update_ivar_test
     [1] = Object.new.set_ivar('foo, []).update_ivar('foo, _.push(1)).get_ivar('foo)
 
