@@ -103,6 +103,10 @@ object ObjectTest
     ~dict = Object.new.set_ivars(dict).get_ivars
   end
 
+  def does_not_include_module_methods_test
+    false = 1.__mixin_methods__.include?({ 'attr_reader, 1 })
+  end
+
   def update_ivar_test
     [1] = Object.new.set_ivar('foo, []).update_ivar('foo, _.push(1)).get_ivar('foo)
 

@@ -1,7 +1,7 @@
 % Holds introspection for methods.
 % To check how methods are defined internally, check elixir_def_method.
 -module(elixir_methods).
--export([assert_behavior/2, abstract_methods/1, proto_methods/1, mixin_methods/1]).
+-export([assert_behavior/2, owner_methods/1, proto_methods/1, mixin_methods/1]).
 -include("elixir.hrl").
 -import(lists, [umerge/2, sort/1]).
 
@@ -11,7 +11,7 @@ mixin_methods(#elixir_object__{mixins=Mixin}) when is_atom(Mixin) ->
   convert_methods(Mixin:module_info(exports));
 
 mixin_methods(#elixir_object__{} = Self) ->
-  calculate_methods(Self, fun abstract_methods/1, elixir_object_methods:mixins(Self), []);
+  calculate_methods(Self, fun owner_methods/1, elixir_object_methods:mixins(Self), []);
 
 mixin_methods(Self) ->
   Mixin = elixir_object_methods:builtin_mixin(Self),
@@ -21,7 +21,7 @@ proto_methods(#elixir_object__{protos=Proto}) when is_atom(Proto) ->
   convert_methods(Proto:module_info(exports));
 
 proto_methods(#elixir_object__{} = Self) ->
-  calculate_methods(Self, fun abstract_methods/1, elixir_object_methods:protos(Self), []);
+  calculate_methods(Self, fun owner_methods/1, elixir_object_methods:protos(Self), []);
 
 proto_methods(Self) ->
   mixin_methods(Self).
@@ -40,8 +40,13 @@ assert_behavior(Exports, Object) ->
     end
   end, Exports).
 
-abstract_methods(Name) when is_atom(Name) ->
-  convert_methods(elixir_constants:lookup(Name, exports)).
+owner_methods(Name) when is_atom(Name) ->
+  Attributes = elixir_constants:lookup(Name, attributes),
+  Public = case proplists:get_value(public, Attributes) of
+    undefined -> [];
+    Else -> Else
+  end,
+  convert_methods(Public).
 
 % Helpers
 

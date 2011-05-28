@@ -60,6 +60,8 @@ store_wrapped_method(Self, Module, Filename, Method, Defaults) ->
   Visibility = ets:lookup_element(MethodTable, visibility, 2),
   [store_each_method(MethodTable, Visibility, Filename, function_from_default(Name, Default)) || Default <- Defaults],
   store_each_method(MethodTable, Visibility, Filename, Method),
+
+  % Returns a method object at the end.
   try
     Arity = element(4, Method),
     Constant = elixir_constants:lookup('Method'),
@@ -76,7 +78,7 @@ unwrap_stored_methods(Table) ->
   ets:delete(Table, visibility),
   ets:delete(Table, public),
   ets:delete(Table, inherited),
-  { Public ++ Inherited, Inherited, ets:foldl(fun unwrap_stored_method/2, [], Table) }.
+  { Public, Inherited, ets:foldl(fun unwrap_stored_method/2, [], Table) }.
 
 unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
@@ -84,8 +86,13 @@ unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
 % Receives a method table and adds the given What from Object in it.
 % TODO Maybe this could be done by simply using the import directive?
 flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) ->
-  RawModules = elixir_object_methods:What(Object),
-  Modules = lists:delete(ModuleName, RawModules),
+  SelfModules = elixir_object_methods:What(Object),
+  RawModules = lists:delete(ModuleName, SelfModules),
+
+  Modules = case Object#elixir_object__.parent of
+    'Module' -> RawModules;
+    Else     -> lists:delete('Module::Methods', RawModules)
+  end,
 
   Visibility = lists:foldl(fun(Module, Acc1) ->
     DispatchTo = ?ELIXIR_ERL_MODULE(Module),
@@ -104,7 +111,7 @@ flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) 
           [{Method,Arity}|Acc2];
         _ -> Acc2
       end
-    end, Acc1, elixir_methods:abstract_methods(Module))
+    end, Acc1, elixir_methods:owner_methods(Module))
   end, [], Modules),
 
   ets:insert(MethodTable, { inherited, Visibility }).

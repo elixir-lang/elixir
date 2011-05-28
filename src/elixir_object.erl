@@ -223,11 +223,12 @@ generate_implicit_module_if(Line, Filename, Match,
 
 % Build a module form. The difference to an object form is that we need
 % to consider method related attributes for modules.
-build_module_form(Line, Filename, Object, {Export, Inherited, Functions}) ->
+build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
   ModuleName = ?ELIXIR_ERL_MODULE(Object#elixir_object__.name),
+  Export = Public ++ Inherited,
 
   Extra = [
-    {attribute, Line, inherited, Inherited},
+    {attribute, Line, public, Public},
     {attribute, Line, compile, no_auto_import()},
     {attribute, Line, export, [{'__function_exported__',2}|Export]},
     exported_function(Line, ModuleName) | Functions
