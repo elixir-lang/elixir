@@ -36,6 +36,7 @@ object AtomTest
     "'foo!" = 'foo!.inspect
     "'\"f!o\"" = '"f!o".inspect
     "'\"foo bar\"" = '"foo bar".inspect
+    "'Foo::Bar" = 'Foo::Bar.inspect
   end
 
   def tuple_shortcut_test

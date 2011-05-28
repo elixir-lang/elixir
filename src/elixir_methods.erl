@@ -56,8 +56,8 @@ convert_method({Name, Arity}) -> { Name, Arity - 1 }.
 calculate_methods(_Self, Fun, List, Acc) ->
   calculate_methods(Fun, List, Acc).
 
-calculate_methods(Fun, [], Acc) ->
-  Acc;
-
 calculate_methods(Fun, [H|T], Acc) ->
-  calculate_methods(Fun, T, umerge(Acc, sort(Fun(H)))).
+  calculate_methods(Fun, T, umerge(Acc, sort(Fun(H))));
+
+calculate_methods(Fun, [], Acc) ->
+  Acc.
