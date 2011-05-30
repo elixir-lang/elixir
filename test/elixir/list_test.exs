@@ -30,9 +30,9 @@ object ListTest
   end
 
   def fold_test
-      addfun = -> (e, acc) e + acc
-      "bazbarfoo" = ["foo", "bar", "baz"].foldl("", addfun)
-      "foobarbaz" = ["foo", "bar", "baz"].foldr("", addfun)
+    addfun = -> (e, acc) e + acc
+    "bazbarfoo" = ["foo", "bar", "baz"].foldl("", addfun)
+    "foobarbaz" = ["foo", "bar", "baz"].foldr("", addfun)
   end
 
   def flatten_test
@@ -45,7 +45,7 @@ object ListTest
   def flatten_lists_test
     [1,2,3] = [[1,2,3]].flatten_lists
     [1,2,3] = [[1],[2],[3]].flatten_lists
-    self.assert_error 'badarg, -> [1,2,3].flatten_lists
+    assert_error 'badarg, -> [1,2,3].flatten_lists
   end
 
   def each_test
@@ -54,7 +54,7 @@ object ListTest
       true = list.include?(x)
     end
 
-    self.assert_error { 'badmatch, true }, do
+    assert_error { 'badmatch, true }, do
       list.each -> (x) false = list.include?(x)
     end
   end
@@ -102,30 +102,30 @@ object ListTest
 
   def zip_test
     [{'foo, 1}, {'bar, 2}] = ['foo, 'bar].zip([1, 2])
-    self.assert_error 'function_clause, -> ['foo].zip([1, 2])
+    assert_error 'function_clause, -> ['foo].zip([1, 2])
   end
 
   def unzip_test
     {['foo, 'bar], [1,2]} = [{'foo, 1}, {'bar, 2}].unzip
-    self.assert_error 'function_clause, -> [{'foo, 0}, 'bar].unzip
+    assert_error 'function_clause, -> [{'foo, 0}, 'bar].unzip
   end
 
   def zipwith_test
     [5,7,9] = [1,2,3].zipwith([4,5,6], -> (x,y) x + y)
-    self.assert_error 'function_clause, -> [1,2,3].zipwith([1,2], -> (_,_) 0)
+    assert_error 'function_clause, -> [1,2,3].zipwith([1,2], -> (_,_) 0)
   end
 
   def head_test
     1  = [1,2,3].head
     1  = [1].head
-    self.assert_error 'badarg, -> [].head
+    assert_error 'badarg, -> [].head
   end
 
   def tail_test
     [2,3] = [1,2,3].tail
     [2] = [1,2].tail
     [] = [1].tail
-    self.assert_error 'badarg, -> [].tail
+    assert_error 'badarg, -> [].tail
   end
 
   def uniq_test
