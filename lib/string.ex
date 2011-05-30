@@ -216,11 +216,7 @@ object String
   %    "x".chop.chop  % => ""
   %
   def chop
-    if ~r(\r\n$).match?(self)
-      self[0, length - 2]
-    else
-      self[0, length - 1]
-    end
+    sub(~r"(\r\n|.)\z", "")
   end
 
   % Returns true if the string is empty.
