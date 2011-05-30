@@ -8,4 +8,8 @@ object UnboundMethod
   def bind(object)
     Method.new(object, @owner, name, arity)
   end
+
+  def apply_to(object, args)
+    Erlang.elixir_dispatch.owner_dispatch(@owner, object, @name, args)
+  end
 end
