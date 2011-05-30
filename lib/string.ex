@@ -257,7 +257,7 @@ object String
   % Returns a copy of the origin string with the first character converted to uppercase and the rest to lowercase.
   def capitalize
     [h|t] = Erlang.string.to_lower(to_char_list)
-    ([Erlang.string.to_upper(h)] + t).to_bin
+    [Erlang.string.to_upper(h)|t].to_bin
   end
 
   % Returns a new string with the characters from original string in reverse order.
