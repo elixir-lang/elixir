@@ -306,12 +306,37 @@ object List
 
   % Takes elements from the list while the function returns true.
   %
-  % ## Example
+  % ## Examples
   %
   %    [1,2,3,4,5].takewhile(-> (x) x < 3) % => [1,2]
   %
   def takewhile(function)
     Erlang.lists.takewhile(function, self)
+  end
+
+  % Split the list into two list, where the first contains N elements
+  % and the second the rest.
+  %
+  % Raise an error if position is out of bound.
+  %
+  % ## Examples
+  %
+  %    [1,2,3,4,5].split(3) % => {[1,2,3], [4,5]}
+  def split(n)
+    Erlang.lists.split(n, self)
+  end
+
+  % Returns a new list with item inserted at position n.
+  %
+  % Raise an error if position is out of bound.
+  %
+  % ## Examples
+  %
+  %    [1,2,3,4,5].insert(0, 2) % => [1,2,0,3,4,5]
+  %
+  def insert(item, n)
+    {h,t} = split(n)
+    h + [item] + t
   end
 
   def to_list
