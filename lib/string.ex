@@ -84,6 +84,29 @@ object String
     include?(cl1, cl2, cl1.length, cl2.length)
   end
 
+  % Returns the index of the first occurence of the given substring or matching regex.
+  % Returns nil if nothing is found.
+  %
+  % Note that the regex search is not very efficient.
+  %
+  % ## Examples
+  %
+  %    1   = "hello".index('e')
+  %    3   = "hello".index('lo')
+  %    nil = "hello".index('a')
+  %
+  def index(given)
+    if given.__parent_name__ == 'Regexp
+      index(given.run(to_char_list)[0])
+    else
+      result = Erlang.string.str(to_char_list, given.to_char_list)
+      case result
+      match 0 then nil
+      match _ then result - 1
+      end
+    end
+  end
+
   % Substitute the first occurrence of *given* in the string by *replacement*.
   % Please check `Regexp#replace` for more information about the characters
   % allowed in *replacement*.
@@ -183,6 +206,26 @@ object String
     end
   end
 
+  % Return a string with the last character removed. If the string end
+  % with \r\n then both characters are removed.
+  %
+  % ## Examples
+  %
+  %    "foo".chop     % => "fo"
+  %    "foo\r\n".chop % => "foo"
+  %    "foo\n\r".chop % => "foo\n"
+  %    "x".chop.chop  % => ""
+  %
+  def chop
+    if self.length <= 1
+      ""
+    elsif self[length - 2, 2] == "\r\n"
+      self[0, length - 2]
+    else
+      self[0, length - 1]
+    end
+  end
+
   % Returns true if the string is empty.
   def empty?
     Erlang.size(self) == 0
@@ -211,7 +254,13 @@ object String
   def downcase
     Erlang.string.to_lower(to_char_list).to_bin
   end
- 
+
+  % Returns a copy of the origin string with the first character converted to uppercase and the rest to lowercase.
+  def capitalize
+    [h|t] = Erlang.string.to_lower(to_char_list)
+    ([Erlang.string.to_upper(h)] + t).to_bin
+  end
+
   % Returns a new string with the characters from original string in reverse order.
   def reverse
     to_char_list.reverse.to_bin
