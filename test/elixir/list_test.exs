@@ -29,6 +29,12 @@ object ListTest
     [1,2,3,1,2,3] = list_one + list_one
   end
 
+  def fold_test
+      addfun = -> (e, acc) e + acc
+      "bazbarfoo" = ["foo", "bar", "baz"].foldl("", addfun)
+      "foobarbaz" = ["foo", "bar", "baz"].foldr("", addfun)
+  end
+
   def flatten_test
     [1,2,3] = [1,2,3].flatten
     [1,2,3] = [[1,2,3]].flatten
@@ -117,6 +123,10 @@ object ListTest
     self.assert_error 'badarg, -> [].tail
   end
 
+  def uniq_test
+    [1,2,4] = [1,2,1,4,1,2].uniq
+  end
+
   def delete_test
     x = [6,8,4,9]
     [6,8,4] = x.delete(9)
@@ -132,6 +142,17 @@ object ListTest
   def delete_with_duplicates_test
     x = [6,8,6,4,9]
     [8,6,4,9] = x.delete(6)
+  end
+
+  def delete_all_test
+    x = [1,2,1,3]
+    [3,2] = x.delete_all(1)
+  end
+
+  def join_test
+    "1,2,3" = [1,2,3].join(",")
+    "foo" = ["foo"].join("_")
+    "foo_bar" = ['foo, 'bar].join("_")
   end
 
   def brackets_test
