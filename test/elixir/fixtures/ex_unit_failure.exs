@@ -1,4 +1,4 @@
-ExUnit.configure {:}
+ExUnit.configure {}
 
 object ExUnitFailureTest
   proto ExUnit::Case

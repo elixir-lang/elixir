@@ -32,7 +32,7 @@ object ExUnit::Server
   end
 
   def initialize
-    @('options: {:}, 'cases: [])
+    @('options: {}, 'cases: [])
   end
 
   def init()

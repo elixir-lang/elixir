@@ -17,7 +17,7 @@ dict_with_expressions_test() ->
   {ok, 9} = dict_find(3, Dict).
 
 empty_dict_test() ->
-  {Dict, _} = elixir:eval("{:}"),
+  {Dict, _} = elixir:eval("{}"),
   error = dict_find(b, Dict).
 
 dict_with_variables_test() ->

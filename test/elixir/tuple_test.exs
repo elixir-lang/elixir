@@ -7,7 +7,8 @@ object TupleTest
     1 = {1,2,3}[0]
     2 = {1,2,3}[1]
     3 = {1,2,3}[2]
-    self.assert_error 'badarg, do
+
+    assert_error 'badarg, do
       {1,2,3}[3]
     end
   end
@@ -16,7 +17,8 @@ object TupleTest
     1 = {1,2,3}[-3]
     2 = {1,2,3}[-2]
     3 = {1,2,3}[-1]
-    self.assert_error 'badarg, do
+
+    assert_error 'badarg, do
       {1,2,3}[-4]
     end
   end
@@ -39,7 +41,7 @@ object TupleTest
 
   def empty_test
     false = {"abc"}.empty?
-    true  = {}.empty?
+    true  = Tuple.new.empty?
   end
 
   def to_list_test
@@ -48,6 +50,11 @@ object TupleTest
 
   def length_size_test
     3 = {1,2,3}.length
-    0 = {}.size
+    0 = Tuple.new.size
+  end
+
+  def inspect_test
+    "{1,2,3}"   = {1,2,3}.inspect
+    "Tuple.new" = Tuple.new.inspect
   end
 end

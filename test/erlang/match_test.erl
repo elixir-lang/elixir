@@ -62,7 +62,7 @@ atom_match_on_function_test() ->
 
 % Tuples match
 simple_tuple_test() ->
-  {{}, _} = elixir:eval("a = {}"),
+  {{}, _} = elixir:eval("a = Tuple.new"),
   {{1,2,3}, _} = elixir:eval("a = {1, 2, 3}"),
   {{1,2,3}, _} = elixir:eval("a = {1, 1 + 1, 3}"),
   {{1,{2},3}, _} = elixir:eval("a = {1, {2}, 3}").

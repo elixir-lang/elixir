@@ -68,7 +68,7 @@ object OrderedDict
   %
   % ## Examples
   %
-  %     dict = {:}.update('values, [], _.push(1))
+  %     dict = {}.update('values, [], _.push(1))
   %     dict['values]  % => []
   %
   %     dict.update('values, [], _.push(1))
@@ -113,7 +113,7 @@ object OrderedDict
   %
   % ## Examples
   %
-  %     {:}.set('a, 'b)  % => { 'a: 'b }
+  %     {}.set('a, 'b)  % => { 'a: 'b }
   %
   def set(key, value)
     OrderedDict.new Erlang.orddict.store(key, value, orddict)
@@ -228,7 +228,7 @@ object OrderedDict
   private
 
   def inspect([])
-    "{:}"
+    "{}"
   end
 
   def inspect(_)

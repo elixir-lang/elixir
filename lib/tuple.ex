@@ -1,4 +1,10 @@
 object Tuple
+  module Mixin
+    def new([])
+      Erlang.elixir_object_methods.empty_tuple
+    end
+  end
+
   % Retrieves an item from the tuple. Negative indexes are allowed
   % and they retrieve the element in the reverse order. Out of bound
   % indexes raises 'function_clause error.
@@ -31,13 +37,18 @@ object Tuple
   end
 
   def inspect
-    strings = to_list.map -> (x) x.inspect.to_char_list
-    <<$\{, Erlang.string.join(strings, [$,]).to_bin|binary, $\}>>
+    case to_list
+    match []
+      "Tuple.new"
+    match list
+      strings = list.map -> (x) x.inspect.to_char_list
+      <<$\{, Erlang.string.join(strings, [$,]).to_bin|binary, $\}>>
+    end
   end
 
   % Returns true if the tuple is empty.
   def empty?
-    self == {}
+    Erlang.size(self) == 0
   end
 
   def to_s

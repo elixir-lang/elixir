@@ -58,13 +58,13 @@ object OrderedDictTest
   end
 
   def update_test
-    [1] = {:}.update('foo, [1], -> (_) self.error "Never called")['foo]
+    [1] = {}.update('foo, [1], -> (_) self.error "Never called")['foo]
 
     dict = { 'list: [] }.update('list, _.push(1)).update('list, _.push(2))
     [1,2] = dict['list]
 
     assert_error 'function_clause, do
-      {:}.update('foo, 2)
+      {}.update('foo, 2)
     end
   end
 
@@ -87,16 +87,16 @@ object OrderedDictTest
 
   def set_new_test
     { 1: 2 } = { 1: 2 }.set_new(1, 3)
-    { 1: 3 } = {:}.set_new(1, 3)
+    { 1: 3 } = {}.set_new(1, 3)
   end
 
   def empty_test
     false = { 'a: "abc" }.empty?
-    true  = {:}.empty?
+    true  = {}.empty?
   end
 
   def inspect
-    "{:}" = {:}.inspect
+    "{}" = {}.inspect
     "{'a: 'b}" = {'a: 'b}.inspect
   end
 

@@ -1,12 +1,15 @@
 % Holds all runtime methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, mixin/3, proto/2, proto/3, new/2, name/1, parent/1, parent_name/1,
-  mixins/1, protos/1, data/1, builtin_mixin/1, get_ivar/2, set_ivar/3, set_ivars/2,
-  update_ivar/3, update_ivar/4, ancestors/1, function_catch/1]).
+-export([empty_tuple/0, mixin/2, mixin/3, proto/2, proto/3, new/2, name/1,
+  parent/1, parent_name/1, mixins/1, protos/1, data/1, builtin_mixin/1,
+  get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4,
+  ancestors/1, function_catch/1]).
 -include("elixir.hrl").
 
 % EXTERNAL API
+
+empty_tuple() -> {}.
 
 % TODO: Rewrite this as remove_method once we add it
 new(#elixir_object__{parent='Module'} = Self, Args) ->

@@ -31,7 +31,7 @@ object IO
   proto IO::Methods
 
   def initialize(device)
-    initialize(device, [], {:})
+    initialize(device, [], {})
   end
 
   def initialize(device, mode, options)
