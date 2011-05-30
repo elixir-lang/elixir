@@ -62,6 +62,19 @@ object List
     Erlang.lists.unzip(self)
   end
 
+  % Combine the elements of two lists of equal length into one list using
+  % a function.
+  %
+  % Raises an error if list sizes does not match.
+  %
+  % ## Examples
+  %
+  %    [5,7,9] = [1,2,3].zipwith([4,5,6], -> (x,y) x + y)
+  %
+  def zipwith(list, function)
+    Erlang.lists.zipwith(function, self, list)
+  end
+
   % Returns a new list with the contents of the
   % current list and the other list.
   %
@@ -268,6 +281,17 @@ object List
   def join(string)
     strings = map -> (x) x.to_s.to_char_list
     Erlang.string.join(strings, string.to_char_list).to_bin
+  end
+
+  % Returns the sorted list
+  %
+  % ## Examples
+  %
+  %    [4,1,3,2,4].sort      % => [1,2,3,4,4]
+  %    ["foo", "bar", "baz"] % => ["bar", "baz", "foo"]
+  %
+  def sort
+    Erlang.lists.sort(self)
   end
 
   def to_list

@@ -110,6 +110,11 @@ object ListTest
     self.assert_error 'function_clause, -> [{'foo, 0}, 'bar].unzip
   end
 
+  def zipwith_test
+    [5,7,9] = [1,2,3].zipwith([4,5,6], -> (x,y) x + y)
+    self.assert_error 'function_clause, -> [1,2,3].zipwith([1,2], -> (_,_) 0)
+  end
+
   def head_test
     1  = [1,2,3].head
     1  = [1].head
@@ -153,6 +158,11 @@ object ListTest
     "1,2,3" = [1,2,3].join(",")
     "foo" = ["foo"].join("_")
     "foo_bar" = ['foo, 'bar].join("_")
+  end
+
+  def sort_test
+    [1,2,3,4,4] = [4,1,3,2,4].sort
+    ["bar", "baz", "foo"] = ["foo", "bar", "baz"].sort
   end
 
   def brackets_test
