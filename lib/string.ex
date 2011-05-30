@@ -87,8 +87,6 @@ object String
   % Returns the index of the first occurence of the given substring or matching regex.
   % Returns nil if nothing is found.
   %
-  % Note that the regex search is not very efficient.
-  %
   % ## Examples
   %
   %    1   = "hello".index('e')
@@ -97,7 +95,8 @@ object String
   %
   def index(given)
     if given.__parent_name__ == 'Regexp
-      index(given.run(to_char_list)[0])
+      [{x,_}] = given.run(to_char_list, 'all, 0, 'index)
+      x
     else
       result = Erlang.string.str(to_char_list, given.to_char_list)
       case result
