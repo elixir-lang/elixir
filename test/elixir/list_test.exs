@@ -165,6 +165,11 @@ object ListTest
     ["bar", "baz", "foo"] = ["foo", "bar", "baz"].sort
   end
 
+  def take_test
+    [1,2] = [1,2,3,4,5].takewhile(-> (x) x < 3)
+    [1,2] = [1,2,3,4,5].take(2)
+  end
+
   def brackets_test
     1 = [1,2,3][0]
     2 = [1,2,3][1]
