@@ -165,11 +165,6 @@ object ListTest
     ["bar", "baz", "foo"] = ["foo", "bar", "baz"].sort
   end
 
-  def take_test
-    [1,2] = [1,2,3,4,5].takewhile(-> (x) x < 3)
-    [1,2] = [1,2,3,4,5].take(2)
-  end
-
   def split_test
     {[1,2,3], [4,5]} = [1,2,3,4,5].split(3)
     assert_error 'badarg, -> [1,2,3,4,5].split(10)

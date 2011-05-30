@@ -294,16 +294,6 @@ object List
     Erlang.lists.sort(self)
   end
 
-  % Take the first n elements from the list.
-  %
-  % ## Examples
-  %
-  %    [1,2,3,4,5].take(2) % => [1,2]
-  %
-  def take(n)
-    Erlang.lists.sublist(self, n)
-  end
-
   % Takes elements from the list while the function returns true.
   %
   % ## Examples
