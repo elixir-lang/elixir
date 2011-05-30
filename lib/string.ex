@@ -216,9 +216,7 @@ object String
   %    "x".chop.chop  % => ""
   %
   def chop
-    if self.length <= 1
-      ""
-    elsif self[length - 2, 2] == "\r\n"
+    if ~r(\r\n$).match?(self)
       self[0, length - 2]
     else
       self[0, length - 1]
