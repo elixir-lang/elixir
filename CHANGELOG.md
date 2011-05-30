@@ -6,6 +6,9 @@
   * Added anonymous methods: def(x,y) x + y; end
   * Added Method and UnboundMethod objects
 
+* deprecations
+  * Use {} instead of {:} as an empty dict. An empty tuple can be retrieved with Tuple.new
+
 ## v0.2.0 (2011-04-25)
 
 * improvements

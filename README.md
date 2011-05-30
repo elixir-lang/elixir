@@ -209,7 +209,7 @@ Tuples are used to organize many terms together when you know how many terms the
     { 10, 20 }
 
     % An empty tuple
-    { }
+    Tuple.new
 
 Tuples and lists (which are going to see next), are zero-indexed in Elixir while they are one-indexed in Erlang. You can retrieve a specific element using []:
 
@@ -271,7 +271,7 @@ Elixir provides a first-class syntax to deal with ordered dictionaries (similar 
     { 'a: 1, 'b: 2 }
 
     % An empty dict
-    {:}
+    {}
 
 Elixir dictionary implementation is backed up by [the orddict module](http://www.erlang.org/doc/man/orddict.html) in OTP. Notice that Erlang ordered dicts are **not** ordered in the order items are added, but rather using Erlang ordering of terms. You can learn more about Erlang ordering by [reading this section from Learn You Some Erlang](http://learnyousomeerlang.com/starting-out-for-real#bool-and-compare).
 
@@ -1847,7 +1847,7 @@ Elixir allows you to dynamically dispatch methods:
 You can also retrieve internal information about objects, like ivars, methods available, mixins, protos, etc:
 
     {}.public_mixin_methods.member? 'empty?  % => true
-    {}.__parent__ % => Hash
+    {}.__parent__ % => OrderedDict
 
 Elixir also allows you to dynamically define methods. For example, below we can define attribute readers for both "title" and "author" attributes dynamically:
 

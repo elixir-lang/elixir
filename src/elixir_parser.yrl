@@ -374,7 +374,6 @@ colon_comma_expr -> expr ':' expr comma_separator colon_comma_expr : [build_ordd
 _colon_comma_expr -> _expr ':' expr : [build_orddict_tuple('$1', '$3')].
 _colon_comma_expr -> _expr ':' expr comma_separator colon_comma_expr : [build_orddict_tuple('$1', '$3')|'$5'].
 
-orddict -> open_curly ':' '}' : io:format("[ELIXIR] {:} is deprecated as empty dict. Use {} instead. Line: ~p.~n", [?line('$1')]), { orddict, ?line('$1'), [] }.
 orddict -> open_curly '}' : { orddict, ?line('$1'), [] }.
 orddict -> open_curly colon_comma_expr close_curly : { orddict, ?line('$1'), '$2' }.
 
