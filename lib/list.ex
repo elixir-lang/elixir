@@ -42,7 +42,7 @@ object List
   % first element of each tuple is taken from the first list and the second
   % element is taken from corresponding element in the second list.
   %
-  % Raises an error is list sizes does not match.
+  % Raises an error if list sizes does not match.
   %
   % ## Examples
   %
@@ -62,6 +62,19 @@ object List
     Erlang.lists.unzip(self)
   end
 
+  % Combine the elements of two lists of equal length into one list using
+  % a function.
+  %
+  % Raises an error if list sizes does not match.
+  %
+  % ## Examples
+  %
+  %    [5,7,9] = [1,2,3].zipwith([4,5,6], -> (x,y) x + y)
+  %
+  def zipwith(list, function)
+    Erlang.lists.zipwith(function, self, list)
+  end
+
   % Returns a new list with the contents of the
   % current list and the other list.
   %
@@ -74,10 +87,26 @@ object List
     Erlang.lists.append(self, another)
   end
 
+  % Combine all elements of the lists by applying the given function, starting
+  % with the given accumulator. The list is traversed from the left.
+  %
+  % ## Examples
+  %
+  %    [1,2,3].foldl(0, -> (e, acc) e + acc)                % => 6
+  %    ["foo", "bar", "baz"].foldl("", -> (e, acc) e + acc) % => "bazbarfoo"
+  %
   def foldl(acc, function)
     Erlang.lists.foldl(function, acc, self)
   end
 
+  % Combine all elements of the lists by applying the given function, starting
+  % with the given accumulator. The list is traversed from the right.
+  %
+  % ## Examples
+  %
+  %    [1,2,3].foldl(0, -> (e, acc) e + acc)            % => 6
+  %    ["foo", "bar", "baz"].foldr("", -> (e, acc) e + acc) % => "foobarbaz"
+  %
   def foldr(acc, function)
     Erlang.lists.foldr(function, acc, self)
   end
@@ -209,6 +238,12 @@ object List
   end
   alias_local 'filter, 'select, 1
 
+  % Returns a list with its elements in reverse order.
+  %
+  % ## Examples
+  %
+  %    [1,2,3].reverse % => [3,2,1]
+  %
   def reverse
     Erlang.lists.reverse(self)
   end
@@ -225,13 +260,38 @@ object List
     Erlang.lists.delete(item, self)
   end
 
+  % Deletes all item from the list matching the given argument.
+  %
+  % ## Examples
+  %
+  %     [1,2,1,3].delete(1) % => [3,2]
+  %
   def delete_all(item)
     Erlang.sets.to_list(Erlang.sets.del_element(item, Erlang.sets.from_list(self)))
   end
 
+  % Returns a string created by converting each items of the list
+  % to a string, separated by the given string
+  %
+  % ## Examples
+  %
+  %    [1,2,3].join(",")      % => "1,2,3"
+  %    ['foo, 'bar].join("_") % => "foo_bar"
+  %
   def join(string)
     strings = map -> (x) x.to_s.to_char_list
     Erlang.string.join(strings, string.to_char_list).to_bin
+  end
+
+  % Returns the sorted list
+  %
+  % ## Examples
+  %
+  %    [4,1,3,2,4].sort      % => [1,2,3,4,4]
+  %    ["foo", "bar", "baz"] % => ["bar", "baz", "foo"]
+  %
+  def sort
+    Erlang.lists.sort(self)
   end
 
   def to_list

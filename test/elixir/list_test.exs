@@ -29,6 +29,12 @@ object ListTest
     [1,2,3,1,2,3] = list_one + list_one
   end
 
+  def fold_test
+      addfun = -> (e, acc) e + acc
+      "bazbarfoo" = ["foo", "bar", "baz"].foldl("", addfun)
+      "foobarbaz" = ["foo", "bar", "baz"].foldr("", addfun)
+  end
+
   def flatten_test
     [1,2,3] = [1,2,3].flatten
     [1,2,3] = [[1,2,3]].flatten
@@ -104,6 +110,11 @@ object ListTest
     self.assert_error 'function_clause, -> [{'foo, 0}, 'bar].unzip
   end
 
+  def zipwith_test
+    [5,7,9] = [1,2,3].zipwith([4,5,6], -> (x,y) x + y)
+    self.assert_error 'function_clause, -> [1,2,3].zipwith([1,2], -> (_,_) 0)
+  end
+
   def head_test
     1  = [1,2,3].head
     1  = [1].head
@@ -115,6 +126,10 @@ object ListTest
     [2] = [1,2].tail
     [] = [1].tail
     self.assert_error 'badarg, -> [].tail
+  end
+
+  def uniq_test
+    [1,2,4] = [1,2,1,4,1,2].uniq
   end
 
   def delete_test
@@ -132,6 +147,22 @@ object ListTest
   def delete_with_duplicates_test
     x = [6,8,6,4,9]
     [8,6,4,9] = x.delete(6)
+  end
+
+  def delete_all_test
+    x = [1,2,1,3]
+    [3,2] = x.delete_all(1)
+  end
+
+  def join_test
+    "1,2,3" = [1,2,3].join(",")
+    "foo" = ["foo"].join("_")
+    "foo_bar" = ['foo, 'bar].join("_")
+  end
+
+  def sort_test
+    [1,2,3,4,4] = [4,1,3,2,4].sort
+    ["bar", "baz", "foo"] = ["foo", "bar", "baz"].sort
   end
 
   def brackets_test
