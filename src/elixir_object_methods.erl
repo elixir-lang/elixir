@@ -69,14 +69,17 @@ function_catch(Function) ->
 
 %% PROTECTED API
 
-get_ivar(Self, Name) when not is_atom(Name) ->
-  elixir_errors:error({badivar, Name});
+get_ivar(#elixir_object__{} = Self, Name) when is_atom(Name) ->
+  case orddict:find(Name, object_data(Self)) of
+    { ok, Value } -> Value;
+    error -> nil
+  end;
 
-get_ivar(#elixir_object__{} = Self, Name) ->
-  get_ivar_dict(Name, object_data(Self));
+get_ivar(Self, Name) when is_atom(Name) -> % Native types do not have instance variables.
+  nil;
 
-get_ivar(Self, Name) -> % Native types do not have instance variables.
-  nil.
+get_ivar(Self, Name) ->
+  elixir_errors:error({badivar, Name}).
 
 set_ivar(Self, Name, Value) ->
   set_ivar_dict(Self, Name, set_ivar, fun(Dict) -> orddict:store(Name, Value, Dict) end).
@@ -92,12 +95,6 @@ update_ivar(Self, Name, Initial, Function) ->
   set_ivar_dict(Self, Name, update_ivar, fun(Dict) -> orddict:update(Name, Function, Initial, Dict) end).
 
 % HELPERS
-
-get_ivar_dict(Name, Data) ->
-  case orddict:find(Name, Data) of
-    { ok, Value } -> Value;
-    error -> nil
-  end.
 
 set_ivar_dict(_, Name, _, _) when not is_atom(Name) ->
   elixir_errors:error({badivar, Name});
@@ -261,15 +258,15 @@ object_protos(#elixir_object__{protos=Protos}) ->
 object_protos(Native) ->
   []. % Native types has no protos.
 
-object_data(#elixir_object__{data=Data}) when is_atom(Data) ->
+object_data(#elixir_object__{data=Data}) when not is_atom(Data) ->
+  Data;
+
+object_data(#elixir_object__{data=Data}) ->
   try
     ets:lookup_element(Data, data, 2)
   catch
     error:badarg -> orddict:new()
   end;
-
-object_data(#elixir_object__{data=Data}) ->
-  Data;
 
 object_data(Native) ->
   orddict:new(). % Native types has no data.
