@@ -1,6 +1,5 @@
 % A bunch of helpers to help to deal with errors in Elixir source code.
 % This is not exposed in the Elixir language.
-% TODO Remove strings from internal errors
 -module(elixir_errors).
 -export([error/1, file_format/3, syntax_error/3, syntax_error/4, handle_file_warning/2,
   handle_file_error/2, format_error/2, format_error/1]).
