@@ -165,6 +165,16 @@ object ListTest
     ["bar", "baz", "foo"] = ["foo", "bar", "baz"].sort
   end
 
+  def split_test
+    {[1,2,3], [4,5]} = [1,2,3,4,5].split(3)
+    assert_error 'badarg, -> [1,2,3,4,5].split(10)
+  end
+
+  def insert_test
+    [1,2,0,3,4,5] = [1,2,3,4,5].insert(0, 2)
+    assert_error 'badarg, -> [1,2,3].insert(0, 10)
+  end
+
   def brackets_test
     1 = [1,2,3][0]
     2 = [1,2,3][1]

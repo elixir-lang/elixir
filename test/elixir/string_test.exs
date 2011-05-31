@@ -114,6 +114,14 @@ three
     false = "abc".include?("d")
   end
 
+  def index_test
+    1   = "hello".index("e")
+    3   = "hello".index("lo")
+    nil = "hello".index("a")
+
+    1   = "hello".index(~r([aeiou]))
+  end
+
   def split_test
     ["foo", "baz"] = "foobarbaz".split(~r"bar")
     ["foo", "baz", "bat"] = "foobarbazbarbat".split(~r"bar")
@@ -166,7 +174,16 @@ three
     "HELLO"  = "HeLlO".upcase
     "hello"  = "HELLO".downcase
     "hello"  = "HeLlO".downcase
+    "Hello"  = "heLlO".capitalize
+    "12foo"  = "12foo".capitalize
     "olleh"  = "hello".reverse
+  end
+
+  def chop_test
+    "fo"    = "foo".chop
+    "foo"   = "foo\r\n".chop
+    "foo\n" = "foo\n\r".chop
+    ""      = "x".chop.chop
   end
 
 end
