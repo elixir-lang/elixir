@@ -80,8 +80,8 @@ object Regexp
   %
   % This method accepts *captures* as second argument specifying which captures
   % from the regular expression should be handled.
-  def run(target, captures := 'all, offset := 0)
-    case Erlang.re.run(target, @compiled, [{'capture, captures, 'binary},{'offset,offset}])
+  def run(target, captures := 'all, offset := 0, type := 'binary)
+    case Erlang.re.run(target, @compiled, [{'capture, captures, type},{'offset,offset}])
     match 'nomatch
       nil
     match {'match, results}
@@ -91,8 +91,8 @@ object Regexp
 
   % Same as run, but scan the target several times collecting all matches of
   % the regular expression. This is similar to the /g option in Perl.
-  def scan(target, captures := 'all, offset := 0)
-    case Erlang.re.run(target, @compiled, [{'capture, captures, 'binary},'global,{'offset,offset}])
+  def scan(target, captures := 'all, offset := 0, type := 'binary)
+    case Erlang.re.run(target, @compiled, [{'capture, captures, type},'global,{'offset,offset}])
     match 'nomatch
       []
     match {'match, results}
