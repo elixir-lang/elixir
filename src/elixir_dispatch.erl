@@ -6,20 +6,26 @@ owner_dispatch(Module, Self, Method, Args) ->
   Proto = (elixir_constants:lookup(Module))#elixir_object__.protos,
   apply(Proto, Method, [Self|Args]).
 
-dispatch(Object, Method, Args) when is_list(Args)->
+dispatch(Object, Method, Args) ->
   Arity = length(Args) + 1,
   case find_module(Object, Method, Arity) of
-    false -> dispatch(Object, method_missing, [Method, Args]);
+    false -> method_missing(Object, [Method, Args]);
     Module -> apply(Module, Method, [Object|Args])
   end.
 
-super(Object, Module, Method, Args) when is_list(Args) ->
+super(Object, Module, Method, Args) ->
   WholeChain = elixir_object_methods:mixins(Object),
   [Module|Chain] = lists:dropwhile(fun(X) -> X /= Module end, WholeChain),
   Arity = length(Args) + 1,
   case find_module_chain(Chain, Method, Arity) of
-    false -> dispatch(Object, method_missing, [Method, Args]);
+    false -> method_missing(Object, [Method, Args]);
     Next -> apply(Next, Method, [Object|Args])
+  end.
+
+method_missing(Object, Args) ->
+  case find_module(Object, method_missing, 3) of
+    false -> elixir_errors:error({nomethodmissing, {Args,Object}});
+    Module -> apply(Module, method_missing, [Object|Args])
   end.
 
 % Find first module that contains the method with given arity.
