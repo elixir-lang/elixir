@@ -196,7 +196,17 @@ transform({local_call, Line, Name, Args}, S) ->
 %
 % It has no affect on variables scope.
 transform({constant, Line, Name}, S) ->
-  { ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Name}]), S };
+  % Try to localize constants at compile time.
+  % This may not be a good idea because we may point to old references
+  % if we don't recompile the whole code, all the time.
+  Final = try
+    Snapshot = elixir_constants:lookup(Name),
+    erl_syntax:revert(erl_syntax:abstract(Snapshot))
+  catch
+    error:{noconstant,Name} ->
+      ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Name}])
+  end,
+  { Final, S };
 
 % Reference to an instance variable (that should then be loaded).
 %
