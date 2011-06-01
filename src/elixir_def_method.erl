@@ -47,8 +47,8 @@ unpack_default_clause(Name, Clause) ->
 % If we just analyzed the compiled structure (i.e. the method availables
 % before evaluating the method body), we would see both definitions.
 wrap_method_definition(Name, Line, Filename, Method, Defaults) ->
-  Meta = abstract_syntax(Method),
-  MetaDefaults = abstract_syntax(Defaults),
+  Meta = elixir_tree_helpers:abstract_syntax(Method),
+  MetaDefaults = elixir_tree_helpers:abstract_syntax(Defaults),
   Content = [{var, Line, self}, {atom, Line, Name}, {string, Line, Filename}, Meta, MetaDefaults],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
 
@@ -204,9 +204,6 @@ find_visibility(Name, Arity, [Visibility|T], Table) ->
     true  -> Visibility;
     false -> find_visibility(Name, Arity, T, Table)
   end.
-
-abstract_syntax(Tree) ->
-  erl_syntax:revert(erl_syntax:abstract(Tree)).
 
 % Build an args list
 build_arg(0, _Line, Args) -> Args;

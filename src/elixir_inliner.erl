@@ -1,7 +1,27 @@
 % Responsible for code inlining and optimizations in general.
 -module(elixir_inliner).
--export([binary_op/8,get_ivar/3,set_ivar/4,set_ivars/4]).
+-export([binary_op/8,get_ivar/3,set_ivar/4,set_ivars/4,method_call/5]).
 -include("elixir.hrl").
+
+method_call(Line, Expr, Name, TArgs, Else) ->
+  Snapshot = case Expr of
+    {constant,Line,Constant} ->
+      try
+        elixir_constants:lookup(Constant)
+      catch
+        error:{noconstant,Constant} -> []
+      end;
+    _ -> []
+  end,
+
+  case Snapshot of
+    [] -> Else;
+    _  ->
+      FArgs = elixir_tree_helpers:handle_new_call(Name, Line, TArgs),
+      { Module, Method, MArgs } = elixir_dispatch:dispatch_candidate(Line, Snapshot, Name, length(FArgs) + 1, FArgs),
+      Reverse = elixir_tree_helpers:abstract_syntax(Snapshot),
+      { call, Line, { remote, Line, { atom, Line, Module }, { atom, Line, Method } }, [Reverse|MArgs] }
+  end.
 
 binary_op(Line, Left, Right, TLeft, TRight, Op, S, SF) ->
   Optimize = S#elixir_scope.assign or S#elixir_scope.guard,

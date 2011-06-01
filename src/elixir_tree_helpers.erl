@@ -1,7 +1,11 @@
 -module(elixir_tree_helpers).
--export([build_bin/2, build_list/4, build_list/5, build_method_call/4, build_simple_list/2, handle_new_call/3,
+-export([abstract_syntax/1, build_bin/2, build_list/4, build_list/5,
+  build_method_call/4, build_simple_list/2, handle_new_call/3,
   build_var_name/2, convert_to_boolean/3]).
 -include("elixir.hrl").
+
+abstract_syntax(Tree) ->
+  erl_syntax:revert(erl_syntax:abstract(Tree)).
 
 % Build a list transforming each expression and accumulating
 % vars in one pass. It uses tail-recursive form.

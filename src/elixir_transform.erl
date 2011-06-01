@@ -149,28 +149,8 @@ transform({method_call, Line, Name, Args, {identifier,L,'_'}}, S) ->
 transform({method_call, Line, Name, Args, Expr}, S) ->
   { TExpr, SE } = transform(Expr, S),
   { TArgs, SA } = transform_tree(Args, umergec(S, SE)),
-  FS = umergev(SE,SA),
-
-  Snapshot = case Expr of
-    {constant,Line,Constant} ->
-      try
-        elixir_constants:lookup(Constant)
-      catch
-        error:{noconstant,Constant} -> []
-      end;
-    _ -> []
-  end,
-
-  case Snapshot of
-    [] ->
-      { elixir_tree_helpers:build_method_call(Name, Line, TArgs, TExpr), FS };
-    _  ->
-      FArgs = elixir_tree_helpers:handle_new_call(Name, Line, TArgs),
-      { Module, Method, MArgs } = elixir_dispatch:dispatch_candidate(Line, Snapshot, Name, length(FArgs) + 1, FArgs),
-      Reverse = erl_syntax:revert(erl_syntax:abstract(Snapshot)),
-      Final = { call, Line, { remote, Line, { atom, Line, Module }, { atom, Line, Method } }, [Reverse|MArgs] },
-      { Final, FS }
-  end;
+  Else = elixir_tree_helpers:build_method_call(Name, Line, TArgs, TExpr),
+  { elixir_inliner:method_call(Line, Expr, Name, TArgs, Else), umergev(SE,SA) };
 
 % Handles a call to super.
 %
@@ -222,7 +202,7 @@ transform({constant, Line, Name}, S) ->
   % if we don't recompile the whole code, all the time.
   Final = try
     Snapshot = elixir_constants:lookup(Name),
-    erl_syntax:revert(erl_syntax:abstract(Snapshot))
+    elixir_tree_helpers:abstract_syntax(Snapshot)
   catch
     error:{noconstant,Name} ->
       ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Name}])
