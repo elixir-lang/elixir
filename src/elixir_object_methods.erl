@@ -82,7 +82,7 @@ set_ivar(Self, Name, Value) when is_atom(Name) ->
 
 set_ivars(Self, Value) ->
   assert_dict_with_atoms(Value),
-  set_ivar_dict(Self, elixir, set_ivars, fun(Dict) -> orddict:merge(fun(_, V1, V2) -> V2 end, Dict, element(2, Value)) end).
+  set_ivar_dict(Self, elixir, set_ivars, fun(Dict) -> elixir_helpers:orddict_merge(Dict, element(2, Value)) end).
 
 update_ivar(Self, Name, Function) ->
   set_ivar_dict(Self, Name, update_ivar, fun(Dict) -> orddict:update(Name, Function, Dict) end).

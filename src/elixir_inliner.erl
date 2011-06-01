@@ -1,6 +1,6 @@
 % Responsible for code inlining and optimizations in general.
 -module(elixir_inliner).
--export([binary_op/8,get_ivar/3]).
+-export([binary_op/8,get_ivar/3,set_ivar/4]).
 -include("elixir.hrl").
 
 binary_op(Line, Left, Right, TLeft, TRight, Op, S, SF) ->
@@ -42,6 +42,32 @@ get_ivar(Line, Name, Else) ->
     }],
     []
   }.
+
+set_ivar(Line, [{atom,_,_} = Left, Right], Else, S) ->
+  Element = [{integer,Line,6},{var,Line,self}],
+  { Var, FS } = elixir_tree_helpers:build_var_name(Line, S),
+
+  Call = {block,Line,[
+    {match, Line, Var, Right},
+    {'try',Line,
+      [{call,Line,{atom,Line,setelement},Element ++
+        [{call,Line,
+          {remote,Line,{atom,Line,orddict},{atom,Line,store}},
+          [Left, Var, {call,Line,{atom,Line,element},Element}]
+        }]
+      }],
+      [],
+      [{clause,Line,
+        [{tuple,Line,[{atom,Line,error},{var,Line,'_'},{var,Line,'_'}]}],[],[Else]
+      }],
+      []
+    }
+  ]},
+  
+  { Call, FS };
+
+set_ivar(_Line, _Expr, Else, S) ->
+  { Else, S }.
 
 % Helpers
 

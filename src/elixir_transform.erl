@@ -216,11 +216,15 @@ transform({ivar, Line, Name}, S) ->
 transform({set_ivars, Line, Exprs}, S) ->
   { TExprs, SE } = transform_tree(Exprs, S),
   Args = [{var, Line, self}|TExprs],
-  Call = case length(Args) of
-    2 -> ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivars, Args);
-    _ -> ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args)
-  end,
-  { Call, SE };
+  Call = case length(TExprs) of
+    1 -> { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivars, Args), SE };
+    2 ->
+      Else = ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args),
+      elixir_inline:set_ivar(Line, TExprs, Else, S);
+    _ ->
+      % TODO raise an exception
+      { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args), SE }
+  end;
 
 % Handle match declarations.
 %
