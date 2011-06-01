@@ -26,7 +26,8 @@ build_list_each(Fun, [H|T], Line, S, Acc) ->
   { Expr, NS } = Fun(H, S),
   build_list_each(Fun, T, Line, NS, { cons, Line, Expr, Acc }).
 
-build_arg_list(Line, Args) ->
+% Builds a simple list, without transformation, just by generating the cons-cell.
+build_simple_list(Line, Args) ->
   { List, [] } = build_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
   List.
 
@@ -36,13 +37,13 @@ build_bin(Line, Exprs) ->
   { bin, Line, lists:map(Transformer, Exprs) }.
 
 build_method_call(new, Line, Args, Expr) ->
-  FArgs = build_arg_list(Line, Args),
+  FArgs = build_simple_list(Line, Args),
   Final = {cons, Line, FArgs, {nil, Line}},
   ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, new}, {integer, Line, 2}, Final]);
 
 build_method_call(Name, Line, Args, Expr) ->
   Arity = length(Args) + 1,
-  FArgs = build_arg_list(Line, Args),
+  FArgs = build_simple_list(Line, Args),
   ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, Name}, {integer, Line, Arity}, FArgs]).
 
 % Handle method dispatches to new by wrapping everything in an array
@@ -50,7 +51,7 @@ build_method_call(Name, Line, Args, Expr) ->
 % the items should be wrapped in a list, by creating a list. If false,
 % it is already an list so we just need a cons-cell.
 handle_new_call(new, Line, Args) ->
-  [build_arg_list(Line, Args)];
+  [build_simple_list(Line, Args)];
 
 handle_new_call(_, _, Args) ->
   Args.

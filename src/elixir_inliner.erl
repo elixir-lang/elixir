@@ -37,9 +37,7 @@ get_ivar(Line, Name, Else) ->
       [{atom,Line,Name},{call,Line,{atom,Line,element},[{integer,Line,6},{var,Line,self}]}]
     }],
     [],
-    [{clause,Line,
-      [{tuple,Line,[{atom,Line,error},{var,Line,'_'},{var,Line,'_'}]}],[],[Else]
-    }],
+    else_clause(Line, Else),
     []
   }.
 
@@ -57,19 +55,47 @@ set_ivar(Line, [{atom,_,_} = Left, Right], Else, S) ->
         }]
       }],
       [],
-      [{clause,Line,
-        [{tuple,Line,[{atom,Line,error},{var,Line,'_'},{var,Line,'_'}]}],[],[Else]
-      }],
+      else_clause(Line, Else),
       []
     }
   ]},
   
-  { Call, FS };
+  { Else, FS };
 
 set_ivar(_Line, _Expr, Else, S) ->
   { Else, S }.
 
+% If it is a raw, already ordered dict, optimize it.
+set_ivars(Line, [{tuple,_,[{atom,_,_elixir_orddict__},{cons,_,_,_} = Dict]}], Else, S) ->
+    Element = [{integer,Line,6},{var,Line,self}],
+    { Var, FS } = elixir_tree_helpers:build_var_name(Line, S),
+
+    Call = {block,Line,[
+      {match, Line, Var, Dict},
+      {'try',Line,
+        [{call,Line,{atom,Line,setelement},Element ++
+          [{call,Line,
+            {remote,Line,{atom,Line,elixir_helpers},{atom,Line,orddict_store}},
+            [{call,Line,{atom,Line,element},Element}, Var]
+          }]
+        }],
+        [],
+        else_clause(Line, Else),
+        []
+      }
+    ]},
+
+    { Call, FS };
+
+set_ivars(_Line, _Expr, Else, S) ->
+  { Else, S }.
+
 % Helpers
+
+else_clause(Line, Else) ->
+  [{clause,Line,
+    [{tuple,Line,[{atom,Line,error},{var,Line,'_'},{var,Line,'_'}]}],[],[Else]
+  }].
 
 is_number_form({integer, _, _}) -> true;
 is_number_form({float, _, _}) -> true;

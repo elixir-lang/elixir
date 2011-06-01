@@ -220,7 +220,7 @@ transform({set_ivars, Line, Exprs}, S) ->
     1 -> { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivars, Args), SE };
     2 ->
       Else = ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args),
-      elixir_inline:set_ivar(Line, TExprs, Else, S);
+      elixir_inliner:set_ivar(Line, TExprs, Else, S);
     _ ->
       % TODO raise an exception
       { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args), SE }
@@ -276,11 +276,22 @@ transform({list, Line, Exprs, Tail }, S) ->
 %
 % See list.
 transform({orddict, Line, Exprs }, S) ->
-  { List, NS } = transform({list, Line, Exprs, {nil, Line} }, S),
+  Value = is_atoms_dict(Exprs),
+  
+  % If the dict is made of atoms, order them at compile time
+  % so we don't need to do that at runtime.
+  OExprs = if
+    Value -> ordered_dict_tree(Exprs);
+    true  -> Exprs
+  end,
+
+  { List, NS } = transform({list, Line, OExprs, {nil, Line} }, S),
+
   Dict = if
-    S#elixir_scope.assign -> List;
+    Value or S#elixir_scope.assign -> List;
     true -> ?ELIXIR_WRAP_CALL(Line, orddict, from_list, [List])
   end,
+
   { {tuple, Line, [{atom, Line, elixir_orddict__}, Dict] }, NS };
 
 % Handle binaries declarations.
@@ -760,6 +771,14 @@ has_match_tuple(H) when is_list(H) ->
   lists:any(fun has_match_tuple/1, H);
 
 has_match_tuple(H) -> false.
+
+% For orddict compile time ordering
+is_atoms_dict([]) -> true;
+is_atoms_dict([{tuple,_,[{atom,_,_},_]}|T]) -> is_atoms_dict(T);
+is_atoms_dict(_) -> false.
+
+ordered_dict_tree(Dict) ->
+  lists:sort(fun({tuple,_,[{_,_,A},_]},{tuple,_,[{_,_,B},_]}) -> A =< B end, Dict).
 
 % If the var was defined in the clause, use it, otherwise use from main scope.
 normalize_clause_var(Var, OldValue, ClauseVars) ->
