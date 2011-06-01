@@ -1,7 +1,7 @@
 object Tuple
   module Mixin
     def new([])
-      Erlang.elixir_object_methods.empty_tuple
+      Erlang.elixir_helpers.empty_tuple
     end
   end
 

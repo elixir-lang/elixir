@@ -1,6 +1,6 @@
 % Responsible for code inlining and optimizations in general.
 -module(elixir_inliner).
--export([binary_op/8]).
+-export([binary_op/8,get_ivar/3]).
 -include("elixir.hrl").
 
 binary_op(Line, Left, Right, TLeft, TRight, Op, S, SF) ->
@@ -29,6 +29,19 @@ binary_op(Line, Left, Right, TLeft, TRight, Op, S, SF) ->
           ] }, NS }
       end
   end.
+
+get_ivar(Line, Name, Else) ->
+  {'try',Line,
+    [{call,Line,
+      {remote,Line,{atom,Line,elixir_helpers},{atom,Line,orddict_find}},
+      [{atom,Line,Name},{call,Line,{atom,Line,element},[{integer,Line,6},{var,Line,self}]}]
+    }],
+    [],
+    [{clause,Line,
+      [{tuple,Line,[{atom,Line,error},{var,Line,'_'},{var,Line,'_'}]}],[],[Else]
+    }],
+    []
+  }.
 
 % Helpers
 

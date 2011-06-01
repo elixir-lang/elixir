@@ -205,7 +205,8 @@ transform({constant, Line, Name}, S) ->
 % It has no affect on variables scope.
 transform({ivar, Line, Name}, S) ->
   Args = [{var, Line, self}, {atom, Line, Name}],
-  { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, Args), S };
+  Else = ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, Args),
+  { elixir_inliner:get_ivar(Line, Name, Else), S };
 
 % Syntax for easily updating instance variables.
 %
