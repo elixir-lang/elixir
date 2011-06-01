@@ -1,10 +1,19 @@
 -module(elixir_dispatch).
--export([owner_dispatch/4,dispatch/3,dispatch/4,super/4]).
+-export([owner_dispatch/4,dispatch_candidate/5,dispatch/3,dispatch/4,super/4]).
 -include("elixir.hrl").
 
 owner_dispatch(Module, Self, Method, Args) ->
   Proto = (elixir_constants:lookup(Module))#elixir_object__.protos,
   apply(Proto, Method, [Self|Args]).
+
+dispatch_candidate(Line, Object, Method, Arity, Args) ->
+  case find_module(Object, Method, Arity) of
+    false  ->
+      List = elixir_tree_helpers:build_simple_list(Line, Args),
+      dispatch_candidate(Line, Object, method_missing, 3, [{atom,Line,Method},List]);
+    Module ->
+      { Module, Method, Args }
+  end.
 
 dispatch(Object, Method, Args) ->
   dispatch(Object, Method, length(Args) + 1, Args).

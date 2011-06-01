@@ -1,5 +1,5 @@
 -module(elixir_tree_helpers).
--export([build_bin/2, build_list/4, build_list/5, build_method_call/4, handle_new_call/3,
+-export([build_bin/2, build_list/4, build_list/5, build_method_call/4, build_simple_list/2, handle_new_call/3,
   build_var_name/2, convert_to_boolean/3]).
 -include("elixir.hrl").
 

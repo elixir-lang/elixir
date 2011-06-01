@@ -89,6 +89,14 @@ object ObjectTest
     [20, 40] = processor.play([1, 2, 3, 4])
   end
 
+  def constant_method_missing_test
+    {'foo,[1,2,3]} = Recorder.foo(1,2,3)
+
+    assert_error { 'nomethod, {'foo,3,Object} }, do
+      Object.foo(1,2,3)
+    end
+  end
+
   def set_ivars_syntax_Test
     @('a, 1)
     1 = @a

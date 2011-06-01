@@ -1,4 +1,10 @@
 object Recorder
+  module Mixin
+    def method_missing(method, args)
+      {method,args}
+    end
+  end
+
   attr_reader ['calls]
 
   def initialize
