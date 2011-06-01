@@ -1,5 +1,5 @@
 -module(elixir_dispatch).
--export([owner_dispatch/4,dispatch/3,super/4]).
+-export([owner_dispatch/4,dispatch/3,dispatch/4,super/4]).
 -include("elixir.hrl").
 
 owner_dispatch(Module, Self, Method, Args) ->
@@ -7,7 +7,9 @@ owner_dispatch(Module, Self, Method, Args) ->
   apply(Proto, Method, [Self|Args]).
 
 dispatch(Object, Method, Args) ->
-  Arity = length(Args) + 1,
+  dispatch(Object, Method, length(Args) + 1, Args).
+
+dispatch(Object, Method, Arity, Args) ->
   case find_module(Object, Method, Arity) of
     false -> method_missing(Object, [Method, Args]);
     Module -> apply(Module, Method, [Object|Args])

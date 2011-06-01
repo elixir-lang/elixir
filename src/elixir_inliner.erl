@@ -10,7 +10,7 @@ binary_op(Line, Left, Right, TLeft, TRight, Op, S, SF) ->
   case Optimize orelse is_number_form(TLeft) orelse is_var_form(TLeft, S, fun({_,X}) -> is_number_form(X) end) of
     true -> { {op, Line, Op, TLeft, TRight}, SF };
     false ->
-      Args = { cons, Line, TRight, {nil, Line} },
+      Args = [TRight],
 
       % Check if left side surely requires a method dispatch, if not, create a case expression
       case is_op_call_form(element(1, Left)) orelse is_var_form(TLeft, S, fun({X,_}) -> is_op_call_form(element(1, X)) end) of

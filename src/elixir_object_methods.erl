@@ -300,6 +300,12 @@ abstract_protos(Name) ->
 
 % Builtin mixins
 
+builtin_mixin(Native) when is_list(Native) ->
+  'exList::Proto';
+
+builtin_mixin(Native) when is_binary(Native) ->
+  'exString::Proto';
+
 builtin_mixin(Native) when is_integer(Native) ->
   'exInteger::Proto';
 
@@ -309,17 +315,11 @@ builtin_mixin(Native) when is_float(Native) ->
 builtin_mixin(Native) when is_atom(Native) ->
   'exAtom::Proto';
 
-builtin_mixin(Native) when is_list(Native) ->
-  'exList::Proto';
-
-builtin_mixin(Native) when is_binary(Native) ->
-  'exString::Proto';
+builtin_mixin(#elixir_orddict__{}) ->
+  'exOrderedDict::Proto';
 
 builtin_mixin(Native) when is_bitstring(Native) ->
   'exBitString::Proto';
-
-builtin_mixin(#elixir_orddict__{}) ->
-  'exOrderedDict::Proto';
 
 builtin_mixin(Native) when is_tuple(Native) ->
   'exTuple::Proto';

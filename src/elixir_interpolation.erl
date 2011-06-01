@@ -130,7 +130,7 @@ handle_string_extractions({s, String}, Line, S) ->
 
 handle_string_extractions({i, Interpolation}, Line, S) ->
   { Tree, NS } = elixir_transform:parse(Interpolation, Line, S),
-  Stringify = elixir_tree_helpers:build_method_call(to_s, Line, {nil,Line}, hd(Tree)),
+  Stringify = elixir_tree_helpers:build_method_call(to_s, Line, [], hd(Tree)),
   { Stringify, NS }.
 
 build_interpol(Piece, Escaping, [], Output) ->

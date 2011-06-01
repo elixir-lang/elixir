@@ -148,7 +148,7 @@ transform({method_call, Line, Name, Args, {identifier,L,'_'}}, S) ->
 % performance.
 transform({method_call, Line, Name, Args, Expr}, S) ->
   { TExpr, SE } = transform(Expr, S),
-  { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, umergec(S, SE)),
+  { TArgs, SA } = transform_tree(Args, umergec(S, SE)),
   { elixir_tree_helpers:build_method_call(Name, Line, TArgs, TExpr), umergev(SE,SA) };
 
 % Handles a call to super.
@@ -186,7 +186,7 @@ transform({local_call, Line, Name, Args}, S) ->
     [] -> transform({method_call, Line, Name, Args, {var, Line, self}}, S);
     _  ->
       { TArgs, SA } = transform_tree(Args, S),
-      FArgs = elixir_tree_helpers:handle_new_call(Name, Line, [{var, Line, self}|TArgs], true),
+      FArgs = elixir_tree_helpers:handle_new_call(Name, Line, [{var, Line, self}|TArgs]),
       { { call, Line, {atom, Line, Name}, FArgs }, SA }
   end;
 
@@ -829,7 +829,7 @@ build_if_clauses({if_clause, Line, Bool, Expr, List}, Acc) ->
 % Builds a regexp.
 build_regexp(Line, Expr, Operators, S) ->
   Args = [Expr, {string, Line, Operators}],
-  { TArgs, _ } = transform({list, Line, Args, {nil, Line}}, S),
+  { TArgs, _ } = transform_tree(Args, S),
   { Constant, _ } = transform({constant, Line, 'Regexp'}, S),
   { elixir_tree_helpers:build_method_call(new, Line, TArgs, Constant), S }.
 
