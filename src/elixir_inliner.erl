@@ -1,6 +1,6 @@
 % Responsible for code inlining and optimizations in general.
 -module(elixir_inliner).
--export([binary_op/8,get_ivar/3,set_ivar/4]).
+-export([binary_op/8,get_ivar/3,set_ivar/4,set_ivars/4]).
 -include("elixir.hrl").
 
 binary_op(Line, Left, Right, TLeft, TRight, Op, S, SF) ->
@@ -60,32 +60,32 @@ set_ivar(Line, [{atom,_,_} = Left, Right], Else, S) ->
     }
   ]},
   
-  { Else, FS };
+  { Call, FS };
 
 set_ivar(_Line, _Expr, Else, S) ->
   { Else, S }.
 
 % If it is a raw, already ordered dict, optimize it.
 set_ivars(Line, [{tuple,_,[{atom,_,_elixir_orddict__},{cons,_,_,_} = Dict]}], Else, S) ->
-    Element = [{integer,Line,6},{var,Line,self}],
-    { Var, FS } = elixir_tree_helpers:build_var_name(Line, S),
+  Element = [{integer,Line,6},{var,Line,self}],
+  { Var, FS } = elixir_tree_helpers:build_var_name(Line, S),
 
-    Call = {block,Line,[
-      {match, Line, Var, Dict},
-      {'try',Line,
-        [{call,Line,{atom,Line,setelement},Element ++
-          [{call,Line,
-            {remote,Line,{atom,Line,elixir_helpers},{atom,Line,orddict_store}},
-            [{call,Line,{atom,Line,element},Element}, Var]
-          }]
-        }],
-        [],
-        else_clause(Line, Else),
-        []
-      }
-    ]},
+  Call = {block,Line,[
+    {match, Line, Var, Dict},
+    {'try',Line,
+      [{call,Line,{atom,Line,setelement},Element ++
+        [{call,Line,
+          {remote,Line,{atom,Line,elixir_helpers},{atom,Line,orddict_merge}},
+          [{call,Line,{atom,Line,element},Element}, Var]
+        }]
+      }],
+      [],
+      else_clause(Line, Else),
+      []
+    }
+  ]},
 
-    { Call, FS };
+  { Call, FS };
 
 set_ivars(_Line, _Expr, Else, S) ->
   { Else, S }.

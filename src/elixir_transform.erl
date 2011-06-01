@@ -217,10 +217,12 @@ transform({set_ivars, Line, Exprs}, S) ->
   { TExprs, SE } = transform_tree(Exprs, S),
   Args = [{var, Line, self}|TExprs],
   Call = case length(TExprs) of
-    1 -> { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivars, Args), SE };
+    1 ->
+      Else = ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivars, Args),
+      elixir_inliner:set_ivars(Line, TExprs, Else, SE);
     2 ->
       Else = ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args),
-      elixir_inliner:set_ivar(Line, TExprs, Else, S);
+      elixir_inliner:set_ivar(Line, TExprs, Else, SE);
     _ ->
       % TODO raise an exception
       { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args), SE }
