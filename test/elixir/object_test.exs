@@ -9,15 +9,15 @@ object ObjectTest
   def nomethod_error_test
     object = Object.new
     error = { 'nomethod, {'say, 0, object} }
-    self.assert_error error, -> object.say
+    assert_error error, -> object.say
   end
 
   def nomethod_error_when_calling_new_on_module_test
-    self.assert_error { 'nomethod, { 'new, 0, LikeDog } }, do
+    assert_error { 'nomethod, { 'new, 0, LikeDog } }, do
       LikeDog.new
     end
 
-    self.assert_error { 'nomethod, { 'new, 2, LikeDog } }, do
+    assert_error { 'nomethod, { 'new, 2, LikeDog } }, do
       LikeDog.new(1,2)
     end
   end
@@ -39,15 +39,15 @@ object ObjectTest
   end
 
   def only_module_mixin_proto_test
-    self.assert_error {'notamodule, { 'mixin, 1 } }, do Object.mixin(1)
-    self.assert_error {'notamodule, { 'proto, 1 } }, do Object.proto(1)
+    assert_error {'notamodule, { 'mixin, 1 } }, do Object.mixin(1)
+    assert_error {'notamodule, { 'proto, 1 } }, do Object.proto(1)
   end
 
   def builtin_not_allowed_test
-    self.assert_error {'builtinnotallowed, { 'new, 1 } },      do 1.new
-    self.assert_error {'builtinnotallowed, { 'set_ivar, 1 } }, do 1.set_ivar('foo, 'bar)
-    self.assert_error {'builtinnotallowed, { 'mixin, 1 } },    do 1.mixin(LikeCat)
-    self.assert_error {'builtinnotallowed, { 'proto, 1 } },    do 1.proto(LikeCat)
+    assert_error {'builtinnotallowed, { 'new, 1 } },      do 1.new
+    assert_error {'builtinnotallowed, { 'set_ivar, 1 } }, do 1.set_ivar('foo, 'bar)
+    assert_error {'builtinnotallowed, { 'mixin, 1 } },    do 1.mixin(LikeCat)
+    assert_error {'builtinnotallowed, { 'proto, 1 } },    do 1.proto(LikeCat)
   end
 
   def parent_test
@@ -56,8 +56,8 @@ object ObjectTest
     constant = List
     ~constant = [].__parent__
 
-    [] = Object.__parent_name__
-    [] = Object.__parent__
+    nil = Object.__parent_name__
+    nil = Object.__parent__
 
     object = Object
     parent = Object.new
@@ -67,7 +67,7 @@ object ObjectTest
     'Object = parent.__parent_name__
 
     ~parent = child.__parent__
-    [] = child.__parent_name__
+    nil = child.__parent_name__
   end
 
   def inspect_test

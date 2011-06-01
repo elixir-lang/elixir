@@ -24,6 +24,7 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
   ok = file:write_file(Path, Binary).
 
 internal_file(File) ->
+  io:format("Compiling ~s~n", [File]),
   file_to_path(File, "exbin", [{self,nil}]).
 
 core() ->

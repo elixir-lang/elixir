@@ -136,7 +136,7 @@ object Object
 
     def inspect
       name = __name__
-      if name != []
+      if name
         name.to_s
       else
         "<#{__parent_name__} #{get_ivars.inspect}>"

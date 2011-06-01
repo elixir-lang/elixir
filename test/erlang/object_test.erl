@@ -7,7 +7,7 @@ object_name_test() ->
   {'Object', []} = elixir:eval("Object.__name__").
 
 object_parent_test() ->
-  {[], []} = elixir:eval("Object.__parent__").
+  {nil, []} = elixir:eval("Object.__parent__").
 
 object_mixins_test() ->
   {['Object::Methods'], []} = elixir:eval("Object.__mixins__").

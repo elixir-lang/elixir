@@ -11,21 +11,25 @@
 
 empty_tuple() -> {}.
 
+% INITIALIZATION
+
 % TODO: Rewrite this as remove_method once we add it
 new(#elixir_object__{parent='Module'} = Self, Args) ->
   elixir_dispatch:dispatch(Self, method_missing, [new, Args]);
 
 new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
   Parent = case Name of
-    [] -> Self;
+    nil -> Self;
     _  -> Name
   end,
-  Object = #elixir_object__{name=[], parent=Parent, mixins=Protos, protos=[], data=[]},
+  Object = #elixir_object__{parent=Parent, mixins=Protos},
   NewObject = elixir_dispatch:dispatch(Object, initialize, Args),
   assert_same_object(Object, NewObject),
   NewObject;
 
 new(Else, Args) -> builtinnotallowed(Else, new).
+
+% MIXINS AND PROTOS
 
 mixin(Self, Value) -> mixin(Self, Value, true).
 mixin(Self, Value, Flag) when is_list(Value) -> [mixin(Self, Item, Flag) || Item <- Value];
@@ -52,14 +56,16 @@ protos(Self)                      -> mixins(Self).
 
 parent(Self) ->
   case object_parent(Self) of
+    nil -> nil;
     Object when is_atom(Object) -> elixir_constants:lookup(Object);
     Object -> Object
   end.
 
 parent_name(Self) ->
   case object_parent(Self) of
+    nil -> nil;
     Object when is_atom(Object) -> Object;
-    _ -> []
+    _ -> nil
   end.
 
 % Methods available to all objects
@@ -69,19 +75,16 @@ function_catch(Function) ->
 
 %% PROTECTED API
 
-get_ivar(#elixir_object__{} = Self, Name) when is_atom(Name) ->
+get_ivar(Self, Name) when is_atom(Name) ->
   case orddict:find(Name, object_data(Self)) of
     { ok, Value } -> Value;
     error -> nil
   end;
 
-get_ivar(Self, Name) when is_atom(Name) -> % Native types do not have instance variables.
-  nil;
-
 get_ivar(Self, Name) ->
   elixir_errors:error({badivar, Name}).
 
-set_ivar(Self, Name, Value) ->
+set_ivar(Self, Name, Value) when is_atom(Name) ->
   set_ivar_dict(Self, Name, set_ivar, fun(Dict) -> orddict:store(Name, Value, Dict) end).
 
 set_ivars(Self, Value) ->
@@ -99,14 +102,14 @@ update_ivar(Self, Name, Initial, Function) ->
 set_ivar_dict(_, Name, _, _) when not is_atom(Name) ->
   elixir_errors:error({badivar, Name});
 
-set_ivar_dict(#elixir_object__{data=Data} = Self, Name, _, Function) when is_atom(Data) ->
+set_ivar_dict(#elixir_object__{data=Dict} = Self, Name, _, Function) when not is_atom(Dict) ->
+  Self#elixir_object__{data=Function(Dict)};
+
+set_ivar_dict(#elixir_object__{data=Data} = Self, Name, _, Function) ->
   Dict = ets:lookup_element(Data, data, 2),
   Object = Self#elixir_object__{data=Function(Dict)},
   ets:insert(Data, { data, Object#elixir_object__.data }),
   Object;
-
-set_ivar_dict(#elixir_object__{data=Dict} = Self, Name, _, Function) ->
-  Self#elixir_object__{data=Function(Dict)};
 
 set_ivar_dict(Self, _, Method, _) ->
   builtinnotallowed(Self, Method).
@@ -125,7 +128,7 @@ assert_same_object(#elixir_object__{parent=Parent}, #elixir_object__{parent=Pare
 assert_same_object(_, Else) -> elixir_errors:error({badinitialize, Else}).
 
 % Helper that prepends a mixin or a proto to the object chain.
-prepend_as(#elixir_object__{} = Self, Chain, Kind, Value, Flag) ->
+prepend_as(Self, Chain, Kind, Value, Flag) ->
   check_module(Value, Kind),
   List = object_mixins(Value),
 
@@ -138,10 +141,7 @@ prepend_as(#elixir_object__{} = Self, Chain, Kind, Value, Flag) ->
       elixir_dispatch:dispatch(Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]);
     false ->
       Object
-  end;
-
-% Raise an error if mixin or proto is called on builtin.
-prepend_as(Else, Chain, Kind, Value, Flag) -> builtinnotallowed(Else, Kind).
+  end.
 
 % Update the given object chain. Sometimes it means we need to update
 % the table, sometimes update a record.
@@ -150,11 +150,14 @@ update_object_chain(#elixir_object__{data=Data} = Self, Kind, Chain) when is_ato
   ets:insert(Data, {TableKind, Chain}),
   Self;
 
-update_object_chain(Self, mixin, Chain) ->
+update_object_chain(#elixir_object__{} = Self, mixin, Chain) ->
   Self#elixir_object__{mixins=Chain};
 
-update_object_chain(Self, proto, Chain) ->
-  Self#elixir_object__{protos=Chain}.
+update_object_chain(#elixir_object__{} = Self, proto, Chain) ->
+  Self#elixir_object__{protos=Chain};
+
+% Raise an error if mixin or proto is called on builtin.
+update_object_chain(Self, Kind, _) -> builtinnotallowed(Self, Kind).
 
 % Check if it is a module and raises an error if not.
 check_module(#elixir_object__{parent='Module'}, Kind) -> [];
@@ -167,12 +170,12 @@ builtinnotallowed(Builtin, Reason) ->
 % Returns the ancestors chain considering only parents, but in reverse order.
 
 r_ancestors(#elixir_object__{parent='Object'})                -> ['Object'];
-r_ancestors(#elixir_object__{parent=[]})                      -> [];
+r_ancestors(#elixir_object__{parent=nil})                     -> [];
 r_ancestors(#elixir_object__{parent=Else}) when is_atom(Else) -> ['Object', Else];
 r_ancestors(#elixir_object__{} = Object)                      -> r_ancestors(object_parent(Object), []);
 r_ancestors(Else)                                             -> ['Object', object_parent(Else)].
 
-r_ancestors([], Acc)   -> Acc;
+r_ancestors(nil, Acc)  -> Acc;
 r_ancestors(Name, Acc) -> r_ancestors(abstract_parent(Name), [Name|Acc]).
 
 % Methods that get values from objects. Argument can either be an
@@ -182,7 +185,7 @@ object_name(#elixir_object__{name=Name}) ->
   Name;
 
 object_name(Native) ->
-  nil. % Native types are instances and has no name.
+  nil. % Native and short objects has no name.
 
 object_parent(#elixir_object__{parent=Parent}) ->
   Parent;
@@ -202,9 +205,6 @@ object_parent(Native) when is_list(Native) ->
 object_parent(Native) when is_binary(Native) ->
   'String';
 
-object_parent(Native) when is_bitstring(Native) ->
-  'BitString';
-
 object_parent(#elixir_orddict__{}) ->
   'OrderedDict';
 
@@ -213,6 +213,9 @@ object_parent(Native) when is_tuple(Native) ->
 
 object_parent(Native) when is_function(Native) ->
   'Function';
+
+object_parent(Native) when is_bitstring(Native) ->
+  'BitString';
 
 object_parent(Native) when is_pid(Native) ->
   'Process';
@@ -230,7 +233,7 @@ object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
     error:badarg -> []
   end;
 
-object_mixins(#elixir_object__{name=[], mixins=Mixins} = Object) when is_atom(Mixins) ->
+object_mixins(#elixir_object__{name=nil, mixins=Mixins} = Object) when is_atom(Mixins) ->
   abstract_protos(object_parent(Object));
 
 object_mixins(#elixir_object__{name=Name, mixins=Mixins}) when is_atom(Mixins) ->
@@ -279,7 +282,7 @@ abstract_parent(#elixir_object__{parent=Parent}) ->
 
 abstract_parent(Name) ->
   case proplists:get_value(parent, elixir_constants:lookup(Name, attributes)) of
-    []   -> [];
+    []   -> nil;
     Else -> hd(Else)
   end.
 

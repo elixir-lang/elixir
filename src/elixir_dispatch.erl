@@ -28,7 +28,6 @@ method_missing(Object, Args) ->
     Module -> apply(Module, method_missing, [Object|Args])
   end.
 
-% Find first module that contains the method with given arity.
 find_module(#elixir_object__{mixins=Mixin}, Method, Arity) when is_atom(Mixin) ->
   case Mixin:'__function_exported__'(Method, Arity) of
     true  -> Mixin;

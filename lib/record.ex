@@ -144,9 +144,9 @@ module Record
       pairs = Record::Helpers.retrieve(name, options)
       { keys, values } = pairs.unzip
 
-      self.attr_accessor keys
+      attr_accessor keys
 
-      self.module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
+      module_eval __FILE__, __LINE__ + 1, ~~ELIXIR
   def record_name
     '#{name}
   end
