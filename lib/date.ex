@@ -63,7 +63,7 @@ module Date
       month_name(@month)
     end
 
-    % Return a string representation of the Date object.
+    % Return a string representation of the Date.
     %
     % ## Example
     %
@@ -78,27 +78,27 @@ module Date
       inspect
     end
 
-    % Determine whether or the not the Date object occurs within a leap year
+    % Determine whether or the not the Date occurs within a leap year
     def leap_year?
       Erlang.calendar.is_leap_year(@year)
     end
 
-    % Return tomorrow's date, relative to the Date object
+    % Return tomorrow's date, relative to the current date
     def tomorrow
       gregorian_addition(1)
     end
 
-    % Return yesterdays's date, relative to the Date object
+    % Return yesterdays's date, relative to the current date
     def yesterday
       gregorian_addition(-1)
     end
 
-    % Subtract the number of *days* from the Date object.
+    % Subtract the number of *days* from the current date
     def -(days)
       gregorian_addition(-days)
     end
 
-    % Add the number of *days* from the Date object.
+    % Add the number of *days* from the current date
     def +(days)
       gregorian_addition(days)
     end

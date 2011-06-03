@@ -59,7 +59,7 @@
 % 1) Both `setup` and `teardown` methods receives an atom with the name of test
 %    begin executed. This allows you to specialize the behavior for one specific test.
 %
-% 2) The `setup` method needs to necessarily return an object of the same kind
+% 2) The `setup` method needs to necessarily return a data type of the same kind
 %    of the test case (self). For instance, the following is wrong:
 %
 %     def setup

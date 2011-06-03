@@ -2,10 +2,10 @@
 module Code::Init
   mixin Code::Formatter
 
-  object Config
+  module Config
     attr_accessor ['output]
 
-    def initialize()
+    def __bound__()
       @('commands: [], 'close: [], 'halt: true, 'output: ".", 'compile: false)
     end
 
@@ -41,7 +41,7 @@ module Code::Init
   % Invoked directly from erlang boot process. It parses all argv
   % options and execute them in the order they are specified.
   def process_argv(options)
-    { config, argv } = process_options(options, Code::Init::Config.new)
+    { config, argv } = process_options(options, #Code::Init::Config())
     GenServer.call('elixir_code_server, { 'argv, argv })
 
     if config.compiling?

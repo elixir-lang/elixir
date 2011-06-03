@@ -49,7 +49,7 @@ object Module
     %
     % ## Example
     %
-    %     object Car
+    %     module Car
     %       attr_reader ['color]
     %
     %       def initialize(color)
@@ -86,8 +86,8 @@ object Module
     end
 
     % Hook invoked whenever this module is added as a mixin.
-    % It receives the target object where the mixin is being added
-    % as parameter and must return an object of the same kind.
+    % It receives the target module where the mixin is being added
+    % as parameter and must return an module of the same kind.
     %
     % ## Example
     %
@@ -100,7 +100,7 @@ object Module
     %       end
     %     end
     %
-    %     object Baz
+    %     module Baz
     %       mixin Foo
     %       IO.puts @baz   % => 13
     %     end
@@ -110,8 +110,8 @@ object Module
     end
 
     % Hook invoked whenever this module is added as a mixin.
-    % It receives the target object where the proto is being added
-    % as parameter and must return an object of the same kind.
+    % It receives the target module where the proto is being added
+    % as parameter and must return an module of the same kind.
     %
     % Check `__added_as_mixin__` for more examples and information.
     def __added_as_proto__(base)

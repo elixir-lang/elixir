@@ -3,8 +3,8 @@
 %
 %     Code.require "record"
 % 
-%     object FileInfo
-%       proto Record
+%     module FileInfo
+%       mixin Record
 %       record 'file_info, 'from_lib: "kernel/include/file.hrl"
 %     end
 % 
@@ -13,7 +13,7 @@
 %     { 'ok, info } = Erlang.file.read_file_info(__FILE__.to_char_list)
 % 
 %     % Create a new FileInfo object based on the tuple returned above
-%     record = FileInfo.new info
+%     record = #FileInfo(info)
 % 
 %     % Profit by accessing the record info
 %     record.access % => 'read_write
@@ -128,7 +128,7 @@ module Record
   end
 
   module Definition
-    % Method to be used in objects that adds Record as proto.
+    % Method to be used in modules that adds Record as mixin.
     % It accepts a name and 'from or 'from_lib as option as
     % described in `Record#retrieve`.
     %
@@ -179,7 +179,7 @@ module Record
   % the given keys in the dict and using the default values for the keys that were
   % not supplied.
   %
-  % If the given object is none of the above, a `badarg error is raised.
+  % If the given argument is none of the above, a `badarg error is raised.
   def __bound__(object)
     case object.__parent_name__
     match 'Tuple

@@ -31,7 +31,7 @@ module ETS
       Erlang.ets.delete(@table)
     end
 
-    % Deletes all objects with the given *key* from the table.
+    % Deletes all entries with the given *key* from the table.
     def delete(key)
       Erlang.ets.delete(@table, key)
     end
@@ -44,22 +44,22 @@ module ETS
       Erlang.ets.first(@table)
     end
 
-    % Insert the given object in the table.
+    % Insert the given entry in the table.
     %
-    % If the table is a set and the key of the inserted objects matches the key of any object in
-    % the table, the old object will be replaced. If the table is an ordered_set and the key of the
-    % inserted object compares equal to the key of any object in the table, the old object is also
-    % replaced. If the list contains more than one object with matching keys and the table is a set,
+    % If the table is a set and the key of the inserted entrys matches the key of any entry in
+    % the table, the old entry will be replaced. If the table is an ordered_set and the key of the
+    % inserted entry compares equal to the key of any entry in the table, the old entry is also
+    % replaced. If the list contains more than one entry with matching keys and the table is a set,
     % one will be inserted, which one is not defined. The same thing holds for ordered_set, but will
     % also happen if the keys compare equal.
     %
     % The entire operation is guaranteed to be atomic and isolated.
-    def insert(obj)
-      Erlang.ets.insert(@table, obj)
+    def insert(element)
+      Erlang.ets.insert(@table, element)
     end
 
-    % This function works exactly like insert, with the exception that instead of overwriting objects
-    % with the same key (in the case of set or ordered_set) or adding more objects with keys already existing
+    % This function works exactly like insert, with the exception that instead of overwriting entrys
+    % with the same key (in the case of set or ordered_set) or adding more entrys with keys already existing
     % in the table (in the case of bag and duplicate_bag), it simply returns false. If obj is
     % a list, the function checks every key prior to inserting anything. Nothing will be inserted if
     % not all keys present in the list are absent from the table. Like `insert`, the entire operation is
@@ -75,36 +75,36 @@ module ETS
       Erlang.ets.last(@table)
     end
 
-    % Returns a list of all objects with the key in the table.
+    % Returns a list of all entrys with the key in the table.
     def lookup(key)
       Erlang.ets.lookup(@table, key)
     end
 
     % If the table is of type set or ordered_set, the function returns the pos:th
-    % element of the object with the *key*.
+    % element of the entry with the *key*.
     %
     % If the table is of type bag or duplicate_bag, the functions returns a list with the
-    % pos:th element of every object with the key.
+    % pos:th element of every entry with the key.
     def lookup_element(key, pos)
       Erlang.ets.lookup_element(@table, key, pos)
     end
 
-    % Works like lookup/2, but does not return the objects. The function returns
+    % Works like lookup/2, but does not return the entrys. The function returns
     % true if one or more elements in the table has the *key*, false otherwise.
     def member?(key)
       Erlang.ets.member(@table, key)
     end
     alias_local 'member?, 'include?, 1
 
-    % Returns a list of all objects in the table.
+    % Returns a list of all entrys in the table.
     def to_list()
       Erlang.ets.tab2list(@table)
     end
 
     % This function provides an efficient way to update one or more elements within
-    % an object, without the hassle of having to look up, update and write back the entire object.
+    % an entry, without the hassle of having to look up, update and write back the entire entry.
     %
-    % It will destructively update the object with key. The element at the pos:th position will be
+    % It will destructively update the entry with key. The element at the pos:th position will be
     % given the value Value.
     def update_element(key, pos, value)
       Erlang.ets.update_element(@table, key, {pos, value})
