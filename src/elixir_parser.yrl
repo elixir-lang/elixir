@@ -9,6 +9,8 @@ Nonterminals
   brackets_call _brackets_call
   np_method_call_expr _np_method_call_expr
   without_args_method_call_expr _without_args_method_call_expr
+  eol_sharp_exprs _eol_sharp_exprs
+  sharp_exprs _sharp_exprs
   np_erlang_call_expr
   brackets_expr _brackets_expr
   unary_expr _unary_expr
@@ -68,7 +70,7 @@ Nonterminals
   and_op
   andand_op
   oror_op
-  dot_eol
+  dot_eol dot_sharp unary_sharp
   guards
   object_decl module_decl
   method_decl method_name method_body implicit_method_name method_ops_identifier implicit_method_ops_identifier
@@ -88,7 +90,7 @@ Terminals
   if elsif else then unless case match begin try catch receive after when filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
-  ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '<-'
+  ':' ';' '@' '{' '}' '|' '_' '<<' '>>' '<-' '#'
   '!' '!!' '<' '>' '==' '!=' '<=' '>=' '=:=' '=!=' ':='
   .
 
@@ -113,6 +115,7 @@ Left     30 ':'.
 Left     30 '|'.
 Left     40 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
 Left     40 ','.
+Left     40 '#'. % Handle a = -> b.to_s as a = (-> b.to_s)
 
 Left     50 oror_op.
 Left     60 andand_op.
@@ -124,6 +127,7 @@ Left     100 comp_op.
 Left     110 add_op.
 Left     120 mult_op.
 Nonassoc 130 unary_op.
+Nonassoc 130 unary_sharp.
 Nonassoc 140 without_args_method_call_expr.
 Nonassoc 140 _without_args_method_call_expr.
 Nonassoc 150 signed_number.
@@ -162,7 +166,15 @@ expr -> expr add_op expr : build_binary_op('$1', '$2', '$3').
 expr -> expr mult_op expr : build_binary_op('$1', '$2', '$3').
 expr -> expr signed_number : build_signed_binary_op('$1', '$2').
 expr -> unary_op expr : build_unary_op('$1', '$2').
-expr -> np_call_exprs : '$1'.
+expr -> eol_sharp_exprs : '$1'.
+
+% Keep both
+eol_sharp_exprs -> sharp_exprs : '$1'.
+eol_sharp_exprs -> np_call_exprs : '$1'.
+
+% Sharp expr
+sharp_exprs -> unary_sharp min_expr call_args_parens : build_sharp_call([], '$2', '$3').
+sharp_exprs -> eol_sharp_exprs dot_sharp min_expr call_args_parens : build_method_call('$1', '$3', '$4').
 
 % No Parens Calls
 np_call_exprs -> np_method_call_expr : '$1'.
@@ -173,14 +185,14 @@ np_call_exprs -> brackets_call : '$1'.
 np_call_exprs -> brackets_expr : '$1'.
 
 % Brackets call
-brackets_call -> np_call_exprs dot_eol bracket_identifier list_args : build_bracket_call(build_method_call('$1', '$3', []), '$4').
+brackets_call -> eol_sharp_exprs dot_eol bracket_identifier list_args : build_bracket_call(build_method_call('$1', '$3', []), '$4').
 brackets_call -> bracket_identifier list_args : build_bracket_call(build_identifier('$1'), '$2').
 
 % Method call
-np_method_call_expr -> np_call_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
+np_method_call_expr -> eol_sharp_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
 np_method_call_expr -> implicit_method_name call_args_no_parens : build_local_call('$1', '$2').
 np_method_call_expr -> without_args_method_call_expr : '$1'.
-without_args_method_call_expr -> np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
+without_args_method_call_expr -> eol_sharp_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets expression
 brackets_expr -> unary_expr list_args : build_bracket_call('$1', '$2').
@@ -197,11 +209,11 @@ call_exprs -> erlang_call_expr : '$1'.
 call_exprs -> min_expr : '$1'.
 
 % Function call
-fun_call_expr -> np_call_exprs dot_eol call_args_parens : build_fun_call('$1', '$3').
+fun_call_expr -> eol_sharp_exprs dot_eol call_args_parens : build_fun_call('$1', '$3').
 
 % Method call
 method_call_expr -> base_identifier call_args_parens : build_local_call('$1', '$2').
-method_call_expr -> np_call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
+method_call_expr -> eol_sharp_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
 method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
 
 % Minimum expressions
@@ -211,22 +223,30 @@ min_expr -> open_paren expr close_paren : '$2'.
 %%% COPY OF MAIN FLOW FOR STABBER BUT WITHOUT MIN_EXPR PARENS
 
 % Assignment
-_expr -> _expr match_op _expr : build_match('$1', '$2', '$3').
+_expr -> _expr match_op expr : build_match('$1', '$2', '$3').
 
 % Function definitions
 _expr -> fun_base : '$1'.
 
 % Operators
-_expr -> _expr right_op _expr : build_op_call('$1', '$2', '$3').
-_expr -> _expr andand_op _expr : build_comp_op('$1', '$2', '$3').
-_expr -> _expr oror_op _expr : build_comp_op('$1', '$2', '$3').
-_expr -> _expr and_op _expr : build_comp_op('$1', '$2', '$3').
-_expr -> _expr or_op _expr : build_comp_op('$1', '$2', '$3').
-_expr -> _expr comp_op _expr : build_comp_op('$1', '$2', '$3').
-_expr -> _expr add_op _expr  : build_binary_op('$1', '$2', '$3').
-_expr -> _expr mult_op _expr : build_binary_op('$1', '$2', '$3').
-_expr -> unary_op _expr : build_unary_op('$1', '$2').
-_expr -> _np_call_exprs : '$1'.
+_expr -> _expr right_op expr : build_op_call('$1', '$2', '$3').
+_expr -> _expr andand_op expr : build_comp_op('$1', '$2', '$3').
+_expr -> _expr oror_op expr : build_comp_op('$1', '$2', '$3').
+_expr -> _expr and_op expr : build_comp_op('$1', '$2', '$3').
+_expr -> _expr or_op expr : build_comp_op('$1', '$2', '$3').
+_expr -> _expr comp_op expr : build_comp_op('$1', '$2', '$3').
+_expr -> _expr add_op expr  : build_binary_op('$1', '$2', '$3').
+_expr -> _expr mult_op expr : build_binary_op('$1', '$2', '$3').
+_expr -> unary_op expr : build_unary_op('$1', '$2').
+_expr -> _eol_sharp_exprs : '$1'.
+
+% Keep both
+_eol_sharp_exprs -> _sharp_exprs : '$1'.
+_eol_sharp_exprs -> _np_call_exprs : '$1'.
+
+% Sharp expr
+_sharp_exprs -> unary_sharp min_expr call_args_parens : build_sharp_call([], '$2', '$3').
+_sharp_exprs -> _eol_sharp_exprs dot_sharp min_expr call_args_parens : build_method_call('$1', '$3', '$4').
 
 % No Parens Calls
 _np_call_exprs -> _np_method_call_expr : '$1'.
@@ -237,14 +257,14 @@ _np_call_exprs -> _brackets_call : '$1'.
 _np_call_exprs -> _brackets_expr : '$1'.
 
 % Brackets call
-_brackets_call -> _np_call_exprs dot_eol bracket_identifier list_args : build_bracket_call(build_method_call('$1', '$3', []), '$4').
+_brackets_call -> _eol_sharp_exprs dot_eol bracket_identifier list_args : build_bracket_call(build_method_call('$1', '$3', []), '$4').
 _brackets_call -> bracket_identifier list_args : build_bracket_call(build_identifier('$1'), '$2').
 
 % Method call
-_np_method_call_expr -> _np_call_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
+_np_method_call_expr -> _eol_sharp_exprs dot_eol method_name call_args_no_parens : build_method_call('$1', '$3', '$4').
 _np_method_call_expr -> implicit_method_name call_args_no_parens : build_local_call('$1', '$2').
 _np_method_call_expr -> _without_args_method_call_expr : '$1'.
-_without_args_method_call_expr -> _np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
+_without_args_method_call_expr -> _eol_sharp_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets expression
 _brackets_expr -> _unary_expr list_args : build_bracket_call('$1', '$2').
@@ -261,11 +281,11 @@ _call_exprs -> erlang_call_expr : '$1'.
 _call_exprs -> base_expr : '$1'.
 
 % Function call
-_fun_call_expr -> _np_call_exprs dot_eol call_args_parens : build_fun_call('$1', '$3').
+_fun_call_expr -> _eol_sharp_exprs dot_eol call_args_parens : build_fun_call('$1', '$3').
 
 % Method call
 _method_call_expr -> base_identifier call_args_parens : build_local_call('$1', '$2').
-_method_call_expr -> _np_call_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
+_method_call_expr -> _eol_sharp_exprs dot_eol method_name call_args_parens : build_method_call('$1', '$3', '$4').
 _method_call_expr -> punctuated_identifier call_args_parens : build_local_call('$1', '$2').
 
 %%% BUILDING BLOCKS
@@ -626,6 +646,11 @@ oror_op -> '||' eol : '$1'.
 dot_eol -> '.'     : '$1'.
 dot_eol -> '.' eol : '$1'.
 
+% Sharp
+dot_sharp -> '#'     : '$1'.
+dot_sharp -> '#' eol : '$1'.
+unary_sharp -> '#'   : '$1'.
+
 % Object/Module declaration
 object_decl -> object constant break body 'end' : build_object(object, '$2', '$4', []).
 module_decl -> module constant break body 'end' : build_object(module, '$2', '$4', []).
@@ -759,6 +784,9 @@ build_anonymous_def_method(Def, Args, Clauses) ->
 
 build_method_call(Expr, Name, Args) ->
   { method_call, ?line(Name), ?chars(Name), Args, Expr }.
+
+build_sharp_call(Left, Right, Args) ->
+  { bind_call, ?line(Right), Left, Right, Args }.
 
 build_local_call(Name, Args) ->
   { local_call, ?line(Name), ?chars(Name), Args }.

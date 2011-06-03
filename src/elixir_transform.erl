@@ -191,6 +191,22 @@ transform({local_call, Line, Name, Args}, S) ->
       { { call, Line, {atom, Line, Name}, FArgs }, SA }
   end;
 
+% Handles binding calls.
+%
+% = Variables
+%
+% Can be defined on both sides and args.
+transform({bind_call, Line, [], Right, Args}, S) ->
+  { TRight, SR } = transform(Right, S),
+  { TArgs, SA } = transform_tree(Args, umergec(S, SR)),
+  { ?ELIXIR_WRAP_CALL(elixir_bind, slate_bind, [TRight, TArgs]), umergev(SR,SA) };
+
+transform({bind_call, Line, Left, Right, Args}, S) ->
+  { TLeft,  SL } = transform(Left, S),
+  { TRight, SR } = transform(Right, umergec(S, SL)),
+  { TArgs,  SA } = transform_tree(Args, umergec(S, SR)),
+  { ?ELIXIR_WRAP_CALL(elixir_bind, slate_bind, [TLeft, TRight, TArgs]), umergev(SL, umergev(SR,SA)) };
+
 % Reference to a constant (that should then be loaded).
 %
 % = Variables
