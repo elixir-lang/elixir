@@ -7,7 +7,7 @@ module Module
   % definition with the *using* feature.
   module Using
     def mixin(module)
-      Erlang.elixir_object_methods.mixin(self, module)
+      Erlang.elixir_module_methods.mixin(self, module)
     end
 
     % Delegate the given methods to the given expression.

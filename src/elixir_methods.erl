@@ -6,6 +6,7 @@
 -import(lists, [umerge/2, sort/1]).
 
 % Public in Elixir
+% TODO This is likely returning the wrong result.
 
 mixin_methods(#elixir_slate__{module=Module}) ->
   convert_methods(Module:module_info(exports));

@@ -1,24 +1,8 @@
-% Holds all runtime methods required to bootstrap method dispatching.
+% Holds implementation for most Module::Behavior methods.
 -module(elixir_object_methods).
--export([mixin/2, is_module/1, module_name/1, module/1, mixins/1, data/1, builtin_mixin/1,
+-export([is_module/1, module_name/1, module/1, mixins/1, data/1, builtin_mixin/1,
   get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4]).
 -include("elixir.hrl").
-
-% Mixins
-
-mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
-mixin(Self, Value) -> 
-  check_module(Value),
-  NewMixins = mixins(Value),
-  CurrentMixins = mixins(Self),
-  update_mixins_chain(Self, umerge(NewMixins, CurrentMixins)),
-  elixir_dispatch:dispatch(Value, '__added_as_mixin__', [Self]).
-
-update_mixins_chain(#elixir_object__{data=Data} = Self, Chain) when is_atom(Data) ->
-  ets:insert(Data, {mixins, Chain}).
-
-check_module(#elixir_object__{parent='Module'}) -> [];
-check_module(Else) -> elixir_errors:error({not_a_module, Else}).
 
 % Introspection
 
@@ -151,21 +135,3 @@ builtin_mixin(Native) when is_reference(Native) ->
 
 builtin_mixin(Native) when is_port(Native) ->
   'exPort::Instance'.
-
-% HELPERS
-
-% Merge two lists taking into account uniqueness. Opposite to
-% lists:umerge2, does not require lists to be sorted.
-
-umerge(List, Data) ->
-  umerge2(lists:reverse(List), Data).
-
-umerge2([], Data) ->
-  Data;
-
-umerge2([H|T], Data) ->
-  case lists:member(H, Data) of
-    true  -> New = Data;
-    false -> New = [H|Data]
-  end,
-  umerge2(T, New).
