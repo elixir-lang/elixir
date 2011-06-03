@@ -299,10 +299,20 @@ module List
     %
     % ## Examples
     %
-    %    [1,2,3,4,5].takewhile(-> (x) x < 3) % => [1,2]
+    %    [1,2,3,4,5].takewhile -> (x) x < 3 % => [1,2]
     %
     def takewhile(function)
       Erlang.lists.takewhile(function, self)
+    end
+
+    % Drops elements from the list while the function returns true.
+    %
+    % ## Examples
+    %
+    %    [1,2,3,4,5].dropwhile -> (x) x < 3 % => [3,4,5]
+    %
+    def dropwhile(function)
+      Erlang.lists.dropwhile(function, self)
     end
 
     % Split the list into two list, where the first contains N elements
@@ -313,6 +323,7 @@ module List
     % ## Examples
     %
     %    [1,2,3,4,5].split(3) % => {[1,2,3], [4,5]}
+    %
     def split(n)
       Erlang.lists.split(n, self)
     end
@@ -328,6 +339,29 @@ module List
     def insert(item, n)
       {h,t} = split(n)
       h + [item] + t
+    end
+
+    % Partition the list into two lists where the first list contains all
+    % elements for which the given function returns true, and the second
+    % when the function returns false.
+    %
+    % ## Examples
+    %
+    %    [1,2,3,4,5,6].partition -> (x) x rem 2 == 0 % => {[2,4,6], [1,3,5]}
+    %
+    def partition(function)
+      Erlang.lists.partition(function, self)
+    end
+
+    % Partition the list into two lists according to the function. This
+    % is the same as doing {list.takewhile(function), list.dropwhile(function)}
+    %
+    % ## Examples
+    %
+    %    [1,2,3,4,5,6].splitwith -> (x) x rem 2 == 1 % => {[1], [2,3,4,5,6]}
+    %
+    def splitwith(function)
+      Erlang.lists.splitwith(function, self)
     end
 
     def to_list

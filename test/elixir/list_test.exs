@@ -165,6 +165,14 @@ module ListTest
     "foo_bar" = ['foo, 'bar].join("_")
   end
 
+  def takewhile_test
+    [1,2] = [1,2,3,4,5].takewhile -> (x) x < 3
+  end
+
+  def dropwhile_test
+    [3,4,5] = [1,2,3,4,5].dropwhile -> (x) x < 3
+  end
+
   def sort_test
     [1,2,3,4,4] = [4,1,3,2,4].sort
     ["bar", "baz", "foo"] = ["foo", "bar", "baz"].sort
@@ -178,6 +186,16 @@ module ListTest
   def insert_test
     [1,2,0,3,4,5] = [1,2,3,4,5].insert(0, 2)
     assert_error 'badarg, -> [1,2,3].insert(0, 10)
+  end
+
+  def partition_test
+    {[2,4,6], [1,3,5]} = [1,2,3,4,5,6].partition -> (x) x rem 2 == 0
+    {[], [1,3,5]} = [1,3,5].partition -> (x) x rem 2 == 0
+    {[2,4,6], []} = [2,4,6].partition -> (x) x rem 2 == 0
+  end
+
+  def splitwith_test
+    {[1], [2,3,4,5,6]} = [1,2,3,4,5,6].splitwith -> (x) x rem 2 == 1
   end
 
   def brackets_test
