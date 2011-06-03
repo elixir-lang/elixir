@@ -3,19 +3,6 @@ Code.require_file "../test_helper", __FILE__
 module RegexpTest
   mixin ExUnit::Case
 
-  module Yes
-    def yes?
-      "YES"
-    end
-  end
-
-  def mixin_and_proto_test
-    regexp = Regexp.new("foo", "i").mixin(RegexpTest::Yes).proto(RegexpTest::Yes)
-    "YES"  = regexp.yes?
-    regexp = regexp.new("foo", "i")
-    "YES"  = regexp.yes?
-  end
-
   def constructor_test
     true = ~r(foo)i == Regexp.new("foo", "i")
     true = ~r(foo)iu == Regexp.new("foo", "iu")
