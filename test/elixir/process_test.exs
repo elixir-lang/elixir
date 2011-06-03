@@ -14,7 +14,7 @@ module ProcessTest
   end
 
   def spawn_and_messages_with_object_test
-    fridge = MyFridge.new
+    fridge = #Fridge()
     pid = Process.spawn -> fridge.loop(['iogurt, 'bread])
     {'ok, 'bread} = fridge.take(pid, 'bread)
     ['iogurt] = fridge.see(pid)
@@ -24,7 +24,7 @@ module ProcessTest
   end
 
   def spawn_and_messages_with_object_orientation_test
-    fridge = BestFridge.new ['iogurt, 'bread]
+    fridge = #BestFridge(['iogurt, 'bread])
     {'ok, 'bread} = fridge.take('bread)
     ['iogurt] = fridge.see
     'ok = fridge.store('soda)

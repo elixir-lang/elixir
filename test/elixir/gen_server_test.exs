@@ -5,7 +5,7 @@ module GenServerTest
   mixin ExUnit::Case
 
   def gen_server_test
-    bookshelf = Bookshelf.new ["Crafting Rails Apps", "Programming Erlang"]
+    bookshelf = #Bookshelf(["Crafting Rails Apps", "Programming Erlang"])
     'ok = bookshelf.take "Programming Erlang"
     ["Crafting Rails Apps"] = bookshelf.see
     'ok = bookshelf.put "Programming Elixir"

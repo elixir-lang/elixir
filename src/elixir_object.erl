@@ -44,6 +44,7 @@ build_template(Kind, Name, Template) ->
 
 % Returns the parent object based on the declaration.
 default_parent(_, 'Object')   -> nil;
+default_parent(_, 'Module')   -> nil;
 default_parent(object, _Name) -> 'Object';
 default_parent(module, _Name) -> 'Module'.
 

@@ -1,6 +1,6 @@
-object Bookshelf
-  def initialize(books)
-    { 'ok, ref } = GenServer.start_link(Bookshelf::Server.new(books))
+module Bookshelf
+  def __bound__(books)
+    { 'ok, ref } = GenServer.start_link(#Bookshelf::Server(books))
     @('ref: ref)
   end
 
@@ -20,8 +20,8 @@ object Bookshelf
     GenServer.call(@ref, 'terminate)
   end
 
-  object Server
-    def initialize(books)
+  module Server
+    def __bound__(books)
       @('books: books)
     end
 

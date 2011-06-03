@@ -1,4 +1,4 @@
-object Module
+module Module
   module Methods
     % Delegate the given methods to the given expression.
     %

@@ -51,14 +51,10 @@ module Fridge
   end
 end
 
-object MyFridge
-  proto Fridge
-end
-
 % This example is more object oriented. The PID is internal
 % to the object and you actually don't pass it around.
-object BestFridge
-  def initialize(list)
+module BestFridge
+  def __bound__(list)
     pid = Process.spawn -> Fridge.loop list
     @('pid: pid)
   end
