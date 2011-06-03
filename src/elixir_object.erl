@@ -19,7 +19,6 @@ build(Name) ->
 
 % Build a template of an object or module used on compilation.
 build_template(Kind, Name, Template) ->
-  Parent = default_parent(Kind, Name),
   Mixins = default_mixins(Kind, Name),
   Data   = default_data(Template),
 
@@ -29,12 +28,8 @@ build_template(Kind, Name, Template) ->
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { data,   Data }),
 
-  Object = #elixir_object__{name=Name, parent=Parent, data=AttributeTable},
+  Object = #elixir_object__{name=Name, data=AttributeTable},
   { Object, AttributeTable, { Mixins, [] } }.
-
-% Returns the parent object based on the declaration.
-default_parent(_, 'Module')   -> nil;
-default_parent(module, _Name) -> 'Module'.
 
 % Default mixins based on the declaration type.
 default_mixins(_, 'Module::Behavior')  -> [];
@@ -146,19 +141,18 @@ mixins_function(Line, Filename, Object) ->
     [{ clause, Line, [], [], [MixinsTree]}]
   }.
 
-% TODO Cache mixins and protos full chain.
 build_erlang_form(Line, Filename, Object, Extra) ->
   Name = Object#elixir_object__.name,
-  Parent = Object#elixir_object__.parent,
   AttributeTable = Object#elixir_object__.data,
   Data = destructive_read(AttributeTable, data),
 
-  Snapshot = build_snapshot(Name, Parent, Data),
+  % TODO Analyze all the attributes being passed.
+  Snapshot = build_snapshot(Name, Data),
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
   ModuleName = ?ELIXIR_ERL_MODULE(Name),
   Base = ets:foldr(Transform, Extra, AttributeTable),
 
-  [{attribute, Line, module, ModuleName}, {attribute, Line, parent, Parent},
+  [{attribute, Line, module, ModuleName}, 
    {attribute, Line, file, {Filename,Line}}, {attribute, Line, exfile, {Filename,Line}},
    {attribute, Line, snapshot, Snapshot} | Base].
 
@@ -186,11 +180,8 @@ destructive_read(Table, Attribute) ->
   ets:delete(Table, Attribute),
   Value.
 
-build_snapshot(Name, Parent, Data) ->
-  FinalMixin = snapshot_module(Name, Parent),
-  #elixir_object__{name=FinalMixin, parent=Parent, data=Data}.
-
-snapshot_module(Name, _) -> ?ELIXIR_ERL_MODULE(Name).
+build_snapshot(Name, Data) ->
+  #elixir_object__{name=?ELIXIR_ERL_MODULE(Name), data=Data}.
 
 no_auto_import() ->
   {no_auto_import, [

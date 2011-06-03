@@ -17,12 +17,9 @@ end).
 % the general represenation and contains:
 %
 %   1) An Atom 'name that represents the constant assigned to the object
-%   2) An #elixir_object record 'parent that represents the parent object (if it can be represented by a constant)
-%   3) A tuple 'mixins containing an ETS table index and a list of mixins
-%   4) A tuple 'protos containing an ETS table index and a list of protos
-%   5) Data holds the remaining information for the object.
+%   2) Data holds the remaining information for the object.
 %
--record(elixir_object__, {name=nil, parent=[], data=[] }).
+-record(elixir_object__, {name=nil, data=[] }).
 
 % Represents an elixir slate. It holds the binding module and data.
 -record(elixir_slate__, {module=[], data=[] }).

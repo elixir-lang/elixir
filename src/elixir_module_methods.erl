@@ -16,7 +16,7 @@ mixin(Self, Value) ->
 update_mixins_chain(#elixir_object__{data=Data} = Self, Chain) when is_atom(Data) ->
   ets:insert(Data, {mixins, Chain}).
 
-check_module(#elixir_object__{parent='Module'}) -> [];
+check_module(#elixir_object__{}) -> [];
 check_module(Else) -> elixir_errors:error({not_a_module, Else}).
 
 % Visibility
@@ -59,8 +59,7 @@ module_eval(#elixir_object__{name=Name, data=Data} = Self, String, Filename, Lin
 module_eval(Self, _, _, _) ->
   elixir_errors:error({moduledefined, { module_eval, Self }}).
 
-object_kind(#elixir_object__{parent='Module'}) -> module;
-object_kind(_) -> object.
+object_kind(#elixir_object__{}) -> module.
 
 % define_erlang_methods
 

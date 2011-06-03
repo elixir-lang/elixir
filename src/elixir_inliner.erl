@@ -17,6 +17,7 @@ method_call(Line, Expr, Name, TArgs, Else) ->
   case Snapshot of
     [] -> Else;
     _  ->
+      % TODO: Remove handle_new_call completely
       FArgs = elixir_tree_helpers:handle_new_call(Name, Line, TArgs),
       { Module, Method, MArgs } = elixir_dispatch:dispatch_candidate(Line, Snapshot, Name, length(FArgs) + 1, FArgs),
       Reverse = elixir_tree_helpers:abstract_syntax(Snapshot),
