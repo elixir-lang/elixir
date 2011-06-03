@@ -45,7 +45,7 @@ data(Self)      -> object_data(Self).
 ancestors(Self) -> lists:reverse(r_ancestors(Self)).
 
 mixins(#elixir_object__{} = Self) -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), []));
-mixins(Self)                      -> object_mixins(Self) ++ ['Object::Methods'].
+mixins(Self)                      -> object_mixins(Self).
 
 protos(#elixir_object__{} = Self) -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), []));
 protos(Self)                      -> mixins(Self).
@@ -165,11 +165,11 @@ builtinnotallowed(Builtin, Reason) ->
 
 % Returns the ancestors chain considering only parents, but in reverse order.
 
-r_ancestors(#elixir_object__{parent='Object'})                -> ['Object'];
+r_ancestors(#elixir_object__{parent='Module'})                -> ['Module'];
 r_ancestors(#elixir_object__{parent=nil})                     -> [];
-r_ancestors(#elixir_object__{parent=Else}) when is_atom(Else) -> ['Object', Else];
+r_ancestors(#elixir_object__{parent=Else}) when is_atom(Else) -> ['Module', Else];
 r_ancestors(#elixir_object__{} = Object)                      -> r_ancestors(object_parent(Object), []);
-r_ancestors(Else)                                             -> ['Object', object_parent(Else)].
+r_ancestors(Else)                                             -> ['Module', object_parent(Else)].
 
 r_ancestors(nil, Acc)  -> Acc;
 r_ancestors(Name, Acc) -> r_ancestors(abstract_parent(Name), [Name|Acc]).

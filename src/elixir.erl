@@ -83,7 +83,7 @@ eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
 eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, #elixir_scope{}).
 eval(String, Binding, Filename, Line, Scope) ->
   SelfBinding = case proplists:get_value(self, Binding) of
-    undefined -> lists:append(Binding, [{self,elixir_constants:lookup('Object')}]);
+    undefined -> lists:append(Binding, [{self,elixir_constants:lookup('Module')}]);
     _  -> Binding
   end,
   { ParseTree, NewScope } = parse(String, SelfBinding, Filename, Line, Scope),

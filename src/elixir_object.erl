@@ -43,25 +43,17 @@ build_template(Kind, Name, Template) ->
   { Object, AttributeTable, { Mixins, Protos } }.
 
 % Returns the parent object based on the declaration.
-default_parent(_, 'Object')   -> nil;
 default_parent(_, 'Module')   -> nil;
-default_parent(object, _Name) -> 'Object';
 default_parent(module, _Name) -> 'Module'.
 
 % Default mixins based on the declaration type.
-default_mixins(_, 'Object', _Template)  -> ['Object::Methods']; % object Object
 default_mixins(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
-default_mixins(object, _Name, [])       -> ['Module::Methods']; % object Post
-default_mixins(module, _Name, [])       -> [];                  % module Numeric
-default_mixins(object, _Name, Template) ->                      % object SimplePost from Post
-  Template#elixir_object__.mixins ++ ['Module::Methods'].
+default_mixins(module, _Name, [])       -> [].                  % module Numeric
 
 % Default prototypes. Modules have themselves as the default prototype.
 default_protos(_, 'Object', _Template)  -> ['Object::Methods']; % object Object
 default_protos(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
-default_protos(_Kind, _Name, [])        -> [];                  % module Numeric
-default_protos(object, _Name, Template) ->                      % object SimplePost from Post
-  Template#elixir_object__.protos.
+default_protos(_Kind, _Name, [])        -> [].                  % module Numeric
 
 % Returns the default data from parents.
 default_data([])       -> orddict:new();
@@ -137,36 +129,7 @@ compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
         _ -> elixir_def_method:flat_module(Module, Line, mixins, Module, MethodTable)
       end,
       compile_module(Line, Filename, Module, MethodTable)
-  end;
-
-% Compile an object. If methods were defined in the object scope,
-% we create a Proto module and automatically include it.
-compile_kind(object, Line, Filename, Current, Object, { Mixins, Protos }, MethodTable) ->
-  AttributeTable = Object#elixir_object__.data,
-
-  % Check if methods were defined, if so, create a Proto module.
-  case elixir_def_method:is_empty_table(MethodTable) of
-    true  ->
-      ets:delete(AttributeTable, module),
-      ets:delete(MethodTable);
-    false ->
-      Name = ?ELIXIR_ATOM_CONCAT([Object#elixir_object__.name, "::Proto"]),
-      Attributes = destructive_read(AttributeTable, module),
-      Define = elixir_module_methods:copy_attributes_fun(Attributes),
-      compile(module, Line, Filename, Object, Name, [], Define, MethodTable)
-  end,
-
-  % Generate implicit modules if there isn't a ::Proto or ::Mixin
-  % and protos and mixins were added.
-  generate_implicit_module_if(Line, Filename, Protos, Object, proto, "::Proto"),
-  generate_implicit_module_if(Line, Filename, Mixins, Object, mixin, "::Mixin"),
-
-  % Read implicitly added modules, compile the form and load implicit modules.
-  Proto = read_implicit_module(Object, AttributeTable, proto),
-  Mixin = read_implicit_module(Object, AttributeTable, mixin),
-
-  load_form(build_object_form(Line, Filename, Object, Mixin, Proto), Filename),
-  ets:delete(AttributeTable).
+  end.
 
 % Handle logic compilation. Called by both compile_kind(module) and compile_kind(object).
 % The latter uses it for implicit modules.
@@ -195,33 +158,6 @@ add_implicit_modules(#elixir_object__{name=Name, data=AttributeTable} = Self, Mo
 
 add_implicit_modules(_, _, _) -> false.
 
-% Read implicit modules for object
-
-read_implicit_module(Object, AttributeTable, Attribute) ->
-  Value = destructive_read(AttributeTable, Attribute),
-  case Value of
-    [] -> [];
-    { Line, Filename, Module, MethodTable } ->
-      elixir_object_methods:Attribute(Object, Module, false),
-      elixir_def_method:flat_module(Object, Line, ?ELIXIR_ATOM_CONCAT([Attribute,"s"]), Module, MethodTable),
-      compile_module(Line, Filename, Module, MethodTable),
-      Module
-  end.
-
-generate_implicit_module_if(Line, Filename, Match,
-  #elixir_object__{name=Name, data=AttributeTable} = Object, Attribute, Suffix) ->
-
-  Method = ?ELIXIR_ATOM_CONCAT([Attribute, "s"]),
-  Bool1 = ets:lookup_element(AttributeTable, Method, 2) == Match,
-  Bool2 = ets:lookup_element(AttributeTable, Attribute, 2) /= [],
-
-  if
-    Bool1 or Bool2 -> [];
-    true ->
-      Implicit = ?ELIXIR_ATOM_CONCAT([Name, Suffix]),
-      compile(module, Line, Filename, Object, Implicit, [], fun(X) -> [] end)
-  end.
-
 % Build a module form. The difference to an object form is that we need
 % to consider method related attributes for modules.
 build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
@@ -236,10 +172,6 @@ build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
   ],
 
   build_erlang_form(Line, Filename, Object, [], [], Extra).
-
-% Build an object form. Same as module form without method related stuff.
-build_object_form(Line, Filename, Object, Mixin, Proto) ->
-  build_erlang_form(Line, Filename, Object, Mixin, Proto, []).
 
 % TODO Cache mixins and protos full chain.
 build_erlang_form(Line, Filename, Object, Mixin, Proto, Extra) ->

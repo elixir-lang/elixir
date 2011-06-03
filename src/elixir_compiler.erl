@@ -42,7 +42,6 @@ compile_list() ->
 
 compile_main() ->
   [
-    "lib/object.ex",
     "lib/module.ex",
     "lib/io.ex",
     "lib/atom.ex",
