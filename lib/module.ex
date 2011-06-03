@@ -145,18 +145,16 @@ module Module
   end
 
   module Behavior
-    def __name__
-      Erlang.elixir_object_methods.name(self)
+    def __module_name__
+      Erlang.elixir_object_methods.module_name(self)
     end
 
-    % TODO Is this really needed?
-    def __parent_name__
-      Erlang.elixir_object_methods.parent_name(self)
+    def __module__
+      Erlang.elixir_object_methods.module(self)
     end
 
-    % TODO Is this really needed?
-    def __parent__
-      Erlang.elixir_object_methods.parent(self)
+    def __module__?
+      Erlang.elixir_object_methods.is_module(self)
     end
 
     % Returns a list of atoms representing all mixins for the current object.
@@ -166,11 +164,11 @@ module Module
     end
 
     def inspect
-      name = __name__
-      if name
+      name = __module_name__
+      if __module__?
         name.to_s
       else
-        "<#{__parent_name__} #{get_ivars.inspect}>"
+        "<##{name} #{get_ivars.inspect}>"
       end
     end
 
@@ -286,7 +284,7 @@ module Module
     def filter_stacktrace([{raw_module, function, raw_arity}|t], buffer)
       if filtered = filter_stacktrace_module(raw_module.to_char_list)
         module = filtered
-        arity = if raw_arity.__parent_name__ == 'Integer
+        arity = if Erlang.is_integer(raw_arity)
           raw_arity - 1
         else
           raw_arity

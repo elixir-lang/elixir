@@ -42,11 +42,11 @@
 %
 module Regexp
   def new([regexp_bin])
-    #Regexp::Instance(regexp_bin, [])
+    #Regexp::Behavior(regexp_bin, [])
   end
 
   def new([regexp_bin, options])
-    #Regexp::Instance(regexp_bin, options)
+    #Regexp::Behavior(regexp_bin, options)
   end
 
   % Escape the given string so it can match a regular expression.
@@ -58,12 +58,7 @@ module Regexp
   { 'ok, compiled } = Erlang.re.compile("\\\\|\\{|\\[|\\(|\\)|\\]|\\}|\\.|\\?|\\*")
   @('escape_regexp, compiled)
 
-  module Instance
-    % TODO: Remove me
-    def __parent_name__
-      'Regexp
-    end
-
+  module Behavior
     % Creates a new regular expression. It expects two arguments,
     % the regular expression and a set of options. Both should be
     % a string or a list of chars and, if not, to_char_list is

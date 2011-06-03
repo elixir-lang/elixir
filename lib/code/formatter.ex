@@ -2,7 +2,7 @@
 % and backtraces to be exhibited in output.
 module Code::Formatter
   def format_stacktrace({module, method, arity})
-    if arity.__parent_name__ == 'List
+    if Erlang.is_list(arity)
       "#{module}##{method}(#{format_object(arity)[1,-2]})"
     else
       "#{module}##{method}/#{arity}"

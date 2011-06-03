@@ -95,7 +95,7 @@ module String
     %    nil = "hello".index('a')
     %
     def index(given)
-      if given.__parent_name__ == 'Regexp
+      if given.__module_name__ == 'Regexp::Behavior
         [{x,_}] = given.run(to_char_list, 'all, 0, 'index)
         x
       else
@@ -120,7 +120,7 @@ module String
     %     "a[b]c" = "abc".sub(~r[(b)], "[\\1]")
     %
     def sub(given, replacement)
-      if given.__parent_name__ == 'Regexp
+      if given.__module_name__ == 'Regexp::Behavior
         given.replace(self, replacement)
       else
         Regexp.new(Regexp.escape(given)).replace(self, replacement)
@@ -139,7 +139,7 @@ module String
     %     "a[&]c[&]e" = "abcbe".gsub(~r(b), "[\\&]")
     %     "a[b]c[b]e" = "abcbe".gsub(~r[(b)], "[\\1]")
     def gsub(given, replacement)
-      if given.__parent_name__ == 'Regexp
+      if given.__module_name__ == 'Regexp::Behavior
         given.replace_all(self, replacement)
       else
         Regexp.new(Regexp.escape(given)).replace_all(self, replacement)
@@ -185,7 +185,7 @@ module String
     %     ["foo", "bazbarbat"] = "foobarbazbarbat".split(~r"bar", 2)
     %
     def split(given, parts := 'infinity)
-      if given.__parent_name__ == 'Regexp
+      if given.__module_name__ == 'Regexp::Behavior
         given.split(self, parts)
       else
         Regexp.new(Regexp.escape(given)).split(self, parts)
@@ -199,7 +199,7 @@ module String
     %     "abc"   = "key1=value1; key2=value2".scan(~r"(?:(\w+)=(\w+);?)")
     %
     def scan(given, offset := 0)
-      if given.__parent_name__ == 'Regexp
+      if given.__module_name__ == 'Regexp::Behavior
         given.scan(self, 'all, offset)
       else
         Regexp.new(Regexp.escape(given)).scan(self, 'all, offset)

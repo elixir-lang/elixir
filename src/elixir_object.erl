@@ -123,6 +123,7 @@ compile_module(Line, Filename, Module, MethodTable) ->
 
 % Build a module form. The difference to an object form is that we need
 % to consider method related attributes for modules.
+% TODO: Cache __module_name__, exported functions and snapshot
 build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
   ModuleName = ?ELIXIR_ERL_MODULE(Object#elixir_object__.name),
   Export = Public ++ Inherited,

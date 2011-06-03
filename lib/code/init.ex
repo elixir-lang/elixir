@@ -76,16 +76,15 @@ module Code::Init
   end
 
   def halt!(status)
-    case status.__parent_name__
-    match 'String
-      Erlang.halt(status.to_char_list)
-    match 'Integer
+    if Erlang.is_number(status)
       Erlang.halt(status)
+    else
+      Erlang.halt(status.to_char_list)
     end
   end
 
   def exiting?(kind, error)
-    kind == 'exit && ['String, 'Integer].include?(error.__parent_name__)
+    kind == 'exit && (Erlang.is_binary(error) || Erlang.is_number(error))
   end
 
   def print_stacktrace(io, stacktrace)

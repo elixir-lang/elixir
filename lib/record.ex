@@ -181,18 +181,15 @@ module Record
   %
   % If the given argument is none of the above, a `badarg error is raised.
   def __bound__(object)
-    case object.__parent_name__
-    match 'Tuple
+    if object.__module_name__ == 'Tuple::Instance
       if object[0] == self.record_name && object.size == self.record_keys.size + 1
         [_|pairs] = object.to_list
         @(OrderedDict.from_list self.record_keys.zip(pairs))
       else
         self.error { 'badrecord, object }
       end
-    match 'OrderedDict
-      @(default_values.merge(object))
     else
-      self.error { 'badarg, object }
+      @(default_values.merge(object))
     end
   end
 

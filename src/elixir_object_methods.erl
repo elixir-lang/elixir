@@ -1,42 +1,70 @@
-% Holds all runtime methods required to bootstrap the object model.
-% These methods are overwritten by their Elixir version later in Object::Methods.
+% Holds all runtime methods required to bootstrap method dispatching.
 -module(elixir_object_methods).
--export([mixin/2, name/1,
-  parent/1, parent_name/1, mixins/1, data/1, builtin_mixin/1,
+-export([mixin/2, is_module/1, module_name/1, module/1, mixins/1, data/1, builtin_mixin/1,
   get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4]).
 -include("elixir.hrl").
 
-% MIXINS AND PROTOS
-
-% TODO: Is this flag needed?
+% Mixins
 
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
-mixin(Self, Value) -> prepend_as(Self, object_mixins(Self), mixin, Value).
+mixin(Self, Value) -> 
+  check_module(Value),
+  NewMixins = mixins(Value),
+  CurrentMixins = mixins(Self),
+  update_mixins_chain(Self, umerge(NewMixins, CurrentMixins)),
+  elixir_dispatch:dispatch(Value, '__added_as_mixin__', [Self]).
 
-% Reflections
+update_mixins_chain(#elixir_object__{data=Data} = Self, Chain) when is_atom(Data) ->
+  ets:insert(Data, {mixins, Chain}).
 
-name(Self)   -> object_name(Self).
-data(Self)   -> object_data(Self).
-mixins(Self) -> object_mixins(Self).
+check_module(#elixir_object__{parent='Module'}) -> [];
+check_module(Else) -> elixir_errors:error({not_a_module, Else}).
 
-parent(Self) ->
-  case object_parent(Self) of
-    nil -> nil;
-    Object when is_atom(Object) -> elixir_constants:lookup(Object);
-    Object -> Object
-  end.
+% Introspection
 
-parent_name(Self) ->
-  case object_parent(Self) of
-    nil -> nil;
-    Object when is_atom(Object) -> Object;
-    _ -> nil
-  end.
+module_name(#elixir_slate__{module=Module})  -> ?ELIXIR_EX_MODULE(Module);
+module_name(#elixir_object__{name=Module})   -> ?ELIXIR_EX_MODULE(Module);
+module_name(Native) -> ?ELIXIR_EX_MODULE(builtin_mixin(Native)).
 
-%% PROTECTED API
+is_module(#elixir_object__{}) -> true;
+is_module(_) -> false.
+
+module(#elixir_object__{} = Self) -> Self;
+module(Else) -> elixir_constants:lookup(module_name(Else)).
+
+mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
+  try
+    ets:lookup_element(Data, mixins, 2)
+  catch
+    error:badarg -> []
+  end;
+
+mixins(#elixir_object__{name=Name}) ->
+  Name:'__elixir_mixins__'();
+
+mixins(Native) -> % TODO: This needs to be properly tested.
+  [module_name(Native),'Module::Methods'].
+
+data(#elixir_slate__{data=Data}) ->
+  Data;
+
+data(#elixir_object__{data=Data}) when not is_atom(Data) ->
+  Data;
+
+data(#elixir_object__{data=Data}) ->
+  try
+    ets:lookup_element(Data, data, 2)
+  catch
+    error:badarg -> orddict:new()
+  end;
+
+data(Native) ->
+  orddict:new(). % Native types has no data.
+
+%% ivars
 
 get_ivar(Self, Name) when is_atom(Name) ->
-  elixir_helpers:orddict_find(Name, object_data(Self));
+  elixir_helpers:orddict_find(Name, data(Self));
 
 get_ivar(Self, Name) ->
   elixir_errors:error({badivar, Name}).
@@ -53,8 +81,6 @@ update_ivar(Self, Name, Function) ->
 
 update_ivar(Self, Name, Initial, Function) ->
   set_ivar_dict(Self, Name, update_ivar, fun(Dict) -> orddict:update(Name, Function, Initial, Dict) end).
-
-% HELPERS
 
 set_ivar_dict(_, Name, _, _) when not is_atom(Name) ->
   elixir_errors:error({badivar, Name});
@@ -84,109 +110,9 @@ assert_dict_with_atoms(#elixir_orddict__{struct=Dict} = Object) ->
 assert_dict_with_atoms(Data) ->
   elixir_errors:error({badivars, Data}).
 
-% Helper that prepends a mixin or a proto to the object chain.
-prepend_as(Self, Chain, Kind, Value) ->
-  check_module(Value, Kind),
-  List = object_mixins(Value),
-
-  % TODO: This does not consider modules available in the ancestor chain
-  Object = update_object_chain(Self, Kind, umerge(List, Chain)),
-
-  % Invoke the appropriate hook.
-  elixir_dispatch:dispatch(Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]).
-
-% Update the given object chain. Sometimes it means we need to update
-% the table, sometimes update a record.
-update_object_chain(#elixir_object__{data=Data} = Self, Kind, Chain) when is_atom(Data) ->
-  TableKind = ?ELIXIR_ATOM_CONCAT([Kind, s]),
-  ets:insert(Data, {TableKind, Chain}),
-  Self.
-
-% Check if it is a module and raises an error if not.
-check_module(#elixir_object__{parent='Module'}, Kind) -> [];
-check_module(Else, Kind) -> elixir_errors:error({notamodule, {Kind, Else}}).
-
 % Raise builtinnotallowed error with the given reason:
 builtinnotallowed(Builtin, Reason) ->
   elixir_errors:error({builtinnotallowed, {Reason, Builtin}}).
-
-% Methods that get values from objects. Argument can either be an
-% #elixir_object__ or an erlang native type.
-
-object_name(#elixir_object__{name=Name}) ->
-  Name;
-
-object_name(Native) ->
-  nil. % Native and short objects has no name.
-
-object_parent(#elixir_object__{parent=Parent}) ->
-  Parent;
-
-object_parent(Native) when is_integer(Native) ->
-  'Integer';
-
-object_parent(Native) when is_float(Native) ->
-  'Float';
-
-object_parent(Native) when is_atom(Native) ->
-  'Atom';
-
-object_parent(Native) when is_list(Native) ->
-  'List';
-
-object_parent(Native) when is_binary(Native) ->
-  'String';
-
-object_parent(#elixir_orddict__{}) ->
-  'OrderedDict';
-
-object_parent(Native) when is_tuple(Native) ->
-  'Tuple';
-
-object_parent(Native) when is_function(Native) ->
-  'Function';
-
-object_parent(Native) when is_bitstring(Native) ->
-  'BitString';
-
-object_parent(Native) when is_pid(Native) ->
-  'Process';
-
-object_parent(Native) when is_reference(Native) ->
-  'Reference';
-
-object_parent(Native) when is_port(Native) ->
-  'Port'.
-
-object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
-  try
-    ets:lookup_element(Data, mixins, 2)
-  catch
-    error:badarg -> []
-  end;
-
-object_mixins(#elixir_object__{name=Name}) ->
-  Name:'__elixir_mixins__'();
-
-% TODO: This needs to be properly tested.
-object_mixins(Native) ->
-  object_parent(Native) ++ ['Module::Methods'].
-
-object_data(#elixir_slate__{data=Data}) ->
-  Data;
-
-object_data(#elixir_object__{data=Data}) when not is_atom(Data) ->
-  Data;
-
-object_data(#elixir_object__{data=Data}) ->
-  try
-    ets:lookup_element(Data, data, 2)
-  catch
-    error:badarg -> orddict:new()
-  end;
-
-object_data(Native) ->
-  orddict:new(). % Native types has no data.
 
 % Builtin mixins
 
@@ -225,6 +151,8 @@ builtin_mixin(Native) when is_reference(Native) ->
 
 builtin_mixin(Native) when is_port(Native) ->
   'exPort::Instance'.
+
+% HELPERS
 
 % Merge two lists taking into account uniqueness. Opposite to
 % lists:umerge2, does not require lists to be sorted.
