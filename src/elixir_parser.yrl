@@ -72,7 +72,7 @@ Nonterminals
   oror_op
   dot_eol dot_sharp unary_sharp sharp_identifier
   guards
-  object_decl module_decl
+  module_decl
   method_decl method_name method_body implicit_method_name method_ops_identifier implicit_method_ops_identifier
   case_expr case_clause case_clauses else_case_clauses
   if_expr if_clause elsif_clauses elsif_clause if_elsif_clauses else_clause
@@ -86,7 +86,7 @@ Terminals
   float integer signed_number
   atom interpolated_atom string interpolated_string regexp interpolated_regexp
   char_list interpolated_char_list
-  div rem module object do end def eol Erlang true false nil
+  div rem module do end def eol Erlang true false nil
   if elsif else then unless case match begin try catch receive after when filename
   and andalso or orelse not '||' '&&' for in inlist inbin
   '=' '+' '-' '*' '/' '(' ')' '->' ',' '.' '[' ']'
@@ -144,8 +144,7 @@ expr_list -> expr break : ['$1'].
 expr_list -> eol expr_list : '$2'.
 expr_list -> expr break expr_list : ['$1'|'$3'].
 
-% Object/Module/Method declarations
-expr -> object_decl : '$1'.
+% Module & Method declarations
 expr -> module_decl : '$1'.
 expr -> method_decl : '$1'.
 
@@ -401,7 +400,6 @@ orddict -> open_curly colon_comma_expr close_curly : { orddict, ?line('$1'), '$2
 % implicit method call.
 base_identifier -> identifier : '$1'.
 base_identifier -> module : { identifier, ?line('$1'), module }.
-base_identifier -> object : { identifier, ?line('$1'), object }.
 base_identifier -> div : { identifier, ?line('$1'), 'div' }.
 base_identifier -> rem : { identifier, ?line('$1'), 'rem' }.
 base_identifier -> '_' : { identifier, ?line('$1'), '_' }.
@@ -654,8 +652,7 @@ sharp_identifier -> min_expr : '$1'.
 sharp_identifier -> base_identifier : '$1'.
 
 % Object/Module declaration
-object_decl -> object constant break body 'end' : build_object(object, '$2', '$4', []).
-module_decl -> module constant break body 'end' : build_object(module, '$2', '$4', []).
+module_decl -> module constant break body 'end' : build_module(module, '$2', '$4', []).
 
 % Method declarations
 method_decl -> def method_name break method_body :
@@ -686,8 +683,8 @@ method_body -> body catch_clauses end : build_method('$1', '$2', [], '$3').
 method_body -> body after_clause end : build_method('$1', [], '$2', '$3').
 method_body -> body catch_clauses after_clause end : build_method('$1', '$2', '$3', '$4').
 
-% Method names do not inherit from base_identifier, which includes object,
-% module and _ as keywords, to avoid conflicts.
+% Method names do not inherit from base_identifier, which
+% includes module and _ as keywords, to avoid conflicts.
 implicit_method_name -> identifier : '$1'.
 implicit_method_name -> punctuated_identifier : '$1'.
 implicit_method_name -> implicit_method_ops_identifier : { identifier, ?line('$1'), ?op('$1') }.
@@ -751,7 +748,7 @@ build_multiple_clauses(Parent, Args, Guards, Body) ->
 build_clause(Parent, Args, Guards, Body) ->
   { clause, ?line(Parent), Args, Guards, Body }.
 
-build_object(Kind, Name, Body, Parent) ->
+build_module(Kind, Name, Body, Parent) ->
   { Kind, ?line(Name), ?chars(Name), Parent, Body }.
 
 build_fun(Stab, Clauses) ->

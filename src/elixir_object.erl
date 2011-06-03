@@ -27,14 +27,6 @@ build_template(Kind, Name, Template) ->
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(AttributeTable, [set, named_table, private]),
 
-  case Kind of
-    object ->
-      ets:insert(AttributeTable, { module, [] }),
-      ets:insert(AttributeTable, { proto, [] }),
-      ets:insert(AttributeTable, { mixin, [] });
-    _ -> []
-  end,
-
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { protos, Protos }),
   ets:insert(AttributeTable, { data,   Data }),
@@ -120,16 +112,11 @@ compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
   Mixins = ets:lookup_element(AttributeTable, mixins, 2),
   ets:insert(AttributeTable, { mixins, [Name|Mixins] }),
 
-  case add_implicit_modules(Current, Module, { Line, Filename, Module, MethodTable }) of
-    true -> [];
-    false ->
-      case Name of
-        'Object::Methods' -> [];
-        'Module::Methods' -> [];
-        _ -> elixir_def_method:flat_module(Module, Line, mixins, Module, MethodTable)
-      end,
-      compile_module(Line, Filename, Module, MethodTable)
-  end.
+  case Name of
+    'Module::Methods' -> [];
+    _ -> elixir_def_method:flat_module(Module, Line, mixins, Module, MethodTable)
+  end,
+  compile_module(Line, Filename, Module, MethodTable).
 
 % Handle logic compilation. Called by both compile_kind(module) and compile_kind(object).
 % The latter uses it for implicit modules.
@@ -138,25 +125,6 @@ compile_module(Line, Filename, Module, MethodTable) ->
   load_form(build_module_form(Line, Filename, Module, Functions), Filename),
   ets:delete(Module#elixir_object__.data),
   ets:delete(MethodTable).
-
-% Check if the module currently defined is inside an object
-% definition an automatically include it.
-add_implicit_modules(#elixir_object__{name=Name, data=AttributeTable} = Self, Module, Copy) ->
-  ModuleName = Module#elixir_object__.name,
-  Proto = lists:concat([Name, "::Proto"]),
-  Mixin = lists:concat([Name, "::Mixin"]),
-  case atom_to_list(ModuleName) of
-    Proto -> ets:insert(AttributeTable, { proto, Copy }), true;
-    Mixin -> ets:insert(AttributeTable, { mixin, Copy }), true;
-    Else ->
-      case lists:reverse(Else) of
-        "otorP::" ++ _ -> error({reservedmodulename, ModuleName});
-        "nixiM::" ++ _ -> error({reservedmodulename, ModuleName});
-        _ -> false
-      end
-  end;
-
-add_implicit_modules(_, _, _) -> false.
 
 % Build a module form. The difference to an object form is that we need
 % to consider method related attributes for modules.
