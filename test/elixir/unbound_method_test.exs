@@ -41,18 +41,18 @@ module UnboundMethodTest
   end
 
   def apply_to_test
-    3 = UnboundMethodTest::Sample.bar.apply_to(Object.new, [1,2])
+    3 = UnboundMethodTest::Sample.bar.apply_to(Module.blank_slate, [1,2])
   end
 
   def binding_and_call_test
-    method = UnboundMethodTest::Sample.bar.bind(Object.new)
+    method = UnboundMethodTest::Sample.bar.bind(Module.blank_slate)
     3 = method.apply [1,2]
     3 = method.call(1,2)
     3 = method[1,2]
   end
 
   def binding_and_call_with_self_test
-    method = UnboundMethodTest::Sample.baz.bind(Object.new).bind(self)
+    method = UnboundMethodTest::Sample.baz.bind(Module.blank_slate).bind(self)
     23 = method.apply [10]
     23 = method.call(10)
     23 = method[10]

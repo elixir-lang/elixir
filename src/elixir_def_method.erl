@@ -69,10 +69,10 @@ store_wrapped_method(Self, Module, Filename, OriginalMethod, Defaults) ->
   % Returns a method object at the end.
   try
     Arity = element(4, Method),
-    Constant = elixir_constants:lookup('UnboundMethod'),
+    Constant = elixir_constants:lookup('UnboundMethod::Instance'),
     elixir_bind:slate_bind(Constant, [?ELIXIR_ERL_MODULE(Self#elixir_object__.name), Name, Arity - 1])
   catch
-    error:{noconstant,'UnboundMethod'} -> []
+    error:{noconstant,'UnboundMethod::Instance'} -> []
   end.
 
 % Helper to unwrap the methods stored in the methods table. It also returns

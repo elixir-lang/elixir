@@ -11,7 +11,7 @@ init(Args) ->
   Supervisors = [
     {   
       elixir_code_server_sup,
-      { 'exCode::Server::Mixin', start_link, [CodeServer|Args] },
+      { 'exCode::Server', start_link, [CodeServer|Args] },
 
       permanent,                    % Restart  = permanent | transient | temporary
       2000,                         % Shutdown = brutal_kill | int() >= 0 | infinity

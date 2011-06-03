@@ -22,14 +22,14 @@
 % allows you to read and update each attribute, you also have the following
 % methods available to manipulate the record:
 %
-% * initialize() - creates an instance for this record using the default
+% * __bound__() - creates an instance for this record using the default
 %   values given in the record declaration.
 %
-% * initialize(tuple) - receives a tuple that matches the record. If the first
+% * __bound__(tuple) - receives a tuple that matches the record. If the first
 %   element of the tuple does not match the record name and the tuple size does
 %   match the amount of fields in the record, an error is raised.
 %
-% * initialize(ordered_dict) - receives an ordered dict and creates a new record
+% * __bound__(ordered_dict) - receives an ordered dict and creates a new record
 %   using the values for the given keys in the dict and using the default values
 %   for the keys that were not supplied.
 %
@@ -166,7 +166,8 @@ module Record
     end
   end
 
-  def __added_as_proto__(base)
+  % TODO: This should be use *using*
+  def __added_as_mixin__(base)
     base.mixin Record::Definition
   end
 
@@ -179,7 +180,7 @@ module Record
   % not supplied.
   %
   % If the given object is none of the above, a `badarg error is raised.
-  def initialize(object)
+  def __bound__(object)
     case object.__parent_name__
     match 'Tuple
       if object[0] == self.record_name && object.size == self.record_keys.size + 1
@@ -196,7 +197,7 @@ module Record
   end
 
   % Creates a new record using the default values as defaults.
-  def initialize()
+  def __bound__()
     @(default_values)
   end
 
