@@ -1,5 +1,6 @@
 object Tuple
   module Mixin
+    % TODO: Change this Tuple.empty
     def new([])
       Erlang.elixir_helpers.empty_tuple
     end
