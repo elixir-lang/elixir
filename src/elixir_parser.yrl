@@ -174,7 +174,7 @@ eol_sharp_exprs -> np_call_exprs : '$1'.
 
 % Sharp expr
 sharp_exprs -> unary_sharp min_expr call_args_parens : build_sharp_call([], '$2', '$3').
-sharp_exprs -> eol_sharp_exprs dot_sharp min_expr call_args_parens : build_method_call('$1', '$3', '$4').
+sharp_exprs -> eol_sharp_exprs dot_sharp min_expr call_args_parens : build_sharp_call('$1', '$3', '$4').
 
 % No Parens Calls
 np_call_exprs -> np_method_call_expr : '$1'.
@@ -246,7 +246,7 @@ _eol_sharp_exprs -> _np_call_exprs : '$1'.
 
 % Sharp expr
 _sharp_exprs -> unary_sharp min_expr call_args_parens : build_sharp_call([], '$2', '$3').
-_sharp_exprs -> _eol_sharp_exprs dot_sharp min_expr call_args_parens : build_method_call('$1', '$3', '$4').
+_sharp_exprs -> _eol_sharp_exprs dot_sharp min_expr call_args_parens : build_sharp_call('$1', '$3', '$4').
 
 % No Parens Calls
 _np_call_exprs -> _np_method_call_expr : '$1'.

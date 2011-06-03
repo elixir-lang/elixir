@@ -4,13 +4,15 @@
 
 slate_bind(Right, Args) ->
   check_module(Right, bind),
-  Bound = #elixir_slate__{module=Right},
-  apply(Right, '__bound__', [Bound|Args]).
+  Module = Right#elixir_object__.mixins,
+  Bound = #elixir_slate__{module=Module},
+  apply(Module, '__bound__', [Bound|Args]).
 
-bind(#elixir_slate__{module=[]} = Self, Right, Args) ->
+bind(#elixir_slate__{module=[]} = Left, Right, Args) ->
   check_module(Right, bind),
-  Bound = Self#elixir_slate__{module=Right},
-  apply(Right, '__bound__', [Bound|Args]);
+  Module = Right#elixir_object__.mixins,
+  Bound = Left#elixir_slate__{module=Module},
+  apply(Module, '__bound__', [Bound|Args]);
 
 bind(#elixir_slate__{} = Self, Right, Args) ->
   elixir_errors:error({already_bound, {Self,Right,Args}});

@@ -171,6 +171,15 @@ object Module
     def alias_local(old, new, arity)
       Erlang.elixir_module_methods.alias_local(self, __FILE__, old, new, arity)
     end
+
+    % Default behavior applied when a module is bound.
+    def __bound__
+      self
+    end
+
+    def blank_slate
+      {'elixir_slate__, [], []}
+    end
   end
 
   % Module::Methods is automatically mixed and proto'd by Elixir

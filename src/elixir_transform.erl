@@ -199,13 +199,15 @@ transform({local_call, Line, Name, Args}, S) ->
 transform({bind_call, Line, [], Right, Args}, S) ->
   { TRight, SR } = transform(Right, S),
   { TArgs, SA } = transform_tree(Args, umergec(S, SR)),
-  { ?ELIXIR_WRAP_CALL(elixir_bind, slate_bind, [TRight, TArgs]), umergev(SR,SA) };
+  FArgs = elixir_tree_helpers:build_simple_list(Line, TArgs),
+  { ?ELIXIR_WRAP_CALL(Line, elixir_bind, slate_bind, [TRight, FArgs]), umergev(SR,SA) };
 
 transform({bind_call, Line, Left, Right, Args}, S) ->
   { TLeft,  SL } = transform(Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
   { TArgs,  SA } = transform_tree(Args, umergec(S, SR)),
-  { ?ELIXIR_WRAP_CALL(elixir_bind, slate_bind, [TLeft, TRight, TArgs]), umergev(SL, umergev(SR,SA)) };
+  FArgs = elixir_tree_helpers:build_simple_list(Line, TArgs),
+  { ?ELIXIR_WRAP_CALL(Line, elixir_bind, bind, [TLeft, TRight, FArgs]), umergev(SL, umergev(SR,SA)) };
 
 % Reference to a constant (that should then be loaded).
 %
