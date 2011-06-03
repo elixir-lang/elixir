@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object DateTimeTest
-  proto ExUnit::Case
+module DateTimeTest
+  mixin ExUnit::Case
 
   def utc_test
     date = Date.today.to_tuple

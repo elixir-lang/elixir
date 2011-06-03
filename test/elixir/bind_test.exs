@@ -6,11 +6,12 @@ module BindMath
   end
 end
 
-object BindTest
-  proto ExUnit::Case
+module BindTest
+  mixin ExUnit::Case
 
   % TODO: Test exceptions
   % TODO: Make parens optional
+  % TODO: Test inspect
 
   def bind_test
     1 = Module.blank_slate#BindMath().one

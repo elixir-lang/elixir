@@ -1,5 +1,5 @@
-object ThirdTest
-  proto ExUnit::Case
+module ThirdTest
+  mixin ExUnit::Case
 
   def sleep_test
     Erlang.timer.sleep(2000)

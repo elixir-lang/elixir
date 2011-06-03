@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object UnboundMethodTest
-  proto ExUnit::Case
+module UnboundMethodTest
+  mixin ExUnit::Case
 
   object Sample
     set_ivar 'foo, def foo(x) 

@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object RecordTest
-  proto ExUnit::Case
+module RecordTest
+  mixin ExUnit::Case
 
   object FileInfo
     proto Record

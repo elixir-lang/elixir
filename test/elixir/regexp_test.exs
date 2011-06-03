@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object RegexpTest
-  proto ExUnit::Case
+module RegexpTest
+  mixin ExUnit::Case
 
   module Yes
     def yes?

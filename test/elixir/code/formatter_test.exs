@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
-object Code::FormatterTest
-  proto ExUnit::Case
+module Code::FormatterTest
+  mixin ExUnit::Case
 
   def format_object_test
     "[]" = Code::Formatter.format_object([])

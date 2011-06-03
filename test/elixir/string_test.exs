@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object StringTest
-  proto ExUnit::Case
+module StringTest
+  mixin ExUnit::Case
 
   % Please leave this test at the top as we are asserting
   % the result of __LINE__ at some point.

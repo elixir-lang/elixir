@@ -7,6 +7,11 @@
 
 % Public in Elixir
 
+% TODO: Rename this to simply methods?
+
+mixin_methods(#elixir_slate__{module=Module}) ->
+  convert_methods(Module:module_info(exports));
+
 mixin_methods(#elixir_object__{mixins=Mixin}) when is_atom(Mixin) ->
   convert_methods(Mixin:module_info(exports));
 

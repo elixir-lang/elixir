@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object OrderedDictTest
-  proto ExUnit::Case
+module OrderedDictTest
+  mixin ExUnit::Case
 
   def setup(_)
     @('dict, { 'a: 1 })

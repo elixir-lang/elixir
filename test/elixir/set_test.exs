@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object SetTest
-  proto ExUnit::Case
+module SetTest
+  mixin ExUnit::Case
   
   def is_set_test
     true = Set.new().set?    

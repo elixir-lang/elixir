@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object GuardsTest
-  proto ExUnit::Case
+module GuardsTest
+  mixin ExUnit::Case
 
   def guards_on_method_test
     2 = guards(1)

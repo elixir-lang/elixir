@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object IntegerTest
-  proto ExUnit::Case
+module IntegerTest
+  mixin ExUnit::Case
 
   def abs_test
     1 = -1.abs

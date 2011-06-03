@@ -1,8 +1,8 @@
 Code.require_file "../test_helper", __FILE__
 Code.require_file "../fixtures/bookshelf", __FILE__
 
-object GenServerTest
-  proto ExUnit::Case
+module GenServerTest
+  mixin ExUnit::Case
 
   def gen_server_test
     bookshelf = Bookshelf.new ["Crafting Rails Apps", "Programming Erlang"]

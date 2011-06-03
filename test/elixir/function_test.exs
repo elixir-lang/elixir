@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object FunctionTest
-  proto ExUnit::Case
+module FunctionTest
+  mixin ExUnit::Case
 
   def arity_test
     0 = (-> 'a).arity

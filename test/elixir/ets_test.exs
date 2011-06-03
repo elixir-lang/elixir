@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object ETSTest
-  proto ExUnit::Case
+module ETSTest
+  mixin ExUnit::Case
 
   def setup(test)
     table = ETS.create 'sometable, setup_options(test)

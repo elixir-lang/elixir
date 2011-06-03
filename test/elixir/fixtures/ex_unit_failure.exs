@@ -1,7 +1,7 @@
 ExUnit.configure {}
 
-object ExUnitFailureTest
-  proto ExUnit::Case
+module ExUnitFailureTest
+  mixin ExUnit::Case
 
   def setup('always_pass_test)
     @('foo, 1)

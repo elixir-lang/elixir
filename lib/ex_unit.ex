@@ -10,8 +10,8 @@
 %     ExUnit.configure
 %
 %     % 2) Next we create a new TestCase and add ExUnit::Case to it
-%     object AssertionTest
-%       proto ExUnit::Case
+%     module AssertionTest
+%       mixin ExUnit::Case
 %
 %       % 3) A test is a method which name finishes with _test
 %       def always_pass_test
@@ -38,8 +38,8 @@
 % disconnect from it after each test is executed, regardless if it failed or not.
 % You can do it as follow:
 %
-%     object QueryTest
-%       proto ExUnit::Case
+%     module QueryTest
+%       mixin ExUnit::Case
 %
 %       def setup(_)
 %         @('connection, Database.connection)

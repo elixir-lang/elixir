@@ -1,8 +1,8 @@
 Code.require_file "../test_helper", __FILE__
 Code.require_file "../fixtures/default_args", __FILE__
 
-object ModuleTest
-  proto ExUnit::Case
+module ModuleTest
+  mixin ExUnit::Case
 
   module MethodMissing
     def method_missing(method, args)

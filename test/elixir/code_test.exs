@@ -1,8 +1,8 @@
 Code.require_file "../test_helper", __FILE__
 
 % We break tests in different test cases so they can run in parallel.
-object CodeTest
-  proto ExUnit::Case
+module CodeTest
+  mixin ExUnit::Case
 
   def require_test
     assert_error { 'enoent, File.expand_path("code_sample.exs") }, do
@@ -18,7 +18,7 @@ object CodeTest
   end
 
   % object Code1Test
-  %   proto ExUnit::Case
+  %   mixin ExUnit::Case
   % 
   %   def code_init_test
   %     "3\n"       = OS.cmd("bin/elixir -e \"IO.puts 1 + 2\"")
@@ -31,7 +31,7 @@ object CodeTest
   % end
   % 
   % object Code2Test
-  %   proto ExUnit::Case
+  %   mixin ExUnit::Case
   % 
   %   def code_error_test
   %     example = OS.cmd("bin/elixir -e \"self.throw 1\"")
@@ -47,7 +47,7 @@ object CodeTest
   % end
   % 
   % object Code3Test
-  %   proto ExUnit::Case
+  %   mixin ExUnit::Case
   % 
   %   def syntax_code_error_test
   %     assert_include "nofile:1: syntax error before:  []", OS.cmd("bin/elixir -e \"[1,2\"")
@@ -56,7 +56,7 @@ object CodeTest
   % end
   % 
   % object CompileTest
-  %   proto ExUnit::Case
+  %   mixin ExUnit::Case
   % 
   %   def compile_code_test
   %     "Compiling test/elixir/fixtures/bookshelf.exs\n" =

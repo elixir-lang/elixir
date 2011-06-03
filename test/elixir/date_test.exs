@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object DateTest
-  proto ExUnit::Case
+module DateTest
+  mixin ExUnit::Case
 
   def leap_year_test
     true  = Date.new({2012, 12, 21}).leap_year?

@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object GenTcpTest
-  proto ExUnit::Case
+module GenTcpTest
+  mixin ExUnit::Case
 
   module Server
     def start(pid)

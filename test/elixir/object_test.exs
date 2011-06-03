@@ -3,8 +3,8 @@ Code.require_file "../fixtures/like_cat", __FILE__
 Code.require_file "../fixtures/like_dog", __FILE__
 Code.require_file "../fixtures/recorder", __FILE__
 
-object ObjectTest
-  proto ExUnit::Case
+module ObjectTest
+  mixin ExUnit::Case
 
   def nomethod_error_test
     object = Object.new
@@ -76,8 +76,6 @@ object ObjectTest
 
     with_ivars = Object.new.set_ivar('foo, 'bar).set_ivar('bar, 'baz)
     "<Object {'bar: 'baz, 'foo: 'bar}>" = with_ivars.inspect
-
-    "<ObjectTest {}>" = self.inspect
   end
 
   def method_missing_test

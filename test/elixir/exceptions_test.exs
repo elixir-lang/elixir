@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object ExceptionsTest
-  proto ExUnit::Case
+module ExceptionsTest
+  mixin ExUnit::Case
 
   def try_only_test
     try

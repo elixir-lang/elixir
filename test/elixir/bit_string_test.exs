@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object BitStringTest
-  proto ExUnit::Case
+module BitStringTest
+  mixin ExUnit::Case
 
   def inspect_test
     "<<1,2,3:5>>" = <<1,2,3:5>>.inspect

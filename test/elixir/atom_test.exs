@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object AtomTest
-  proto ExUnit::Case
+module AtomTest
+  mixin ExUnit::Case
 
   def method_atoms_test
     '+

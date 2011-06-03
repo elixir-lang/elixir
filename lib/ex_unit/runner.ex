@@ -76,7 +76,7 @@ module ExUnit::Runner
   % Run each test case in its own process.
   def spawn_case(testcase)
     pid = Process.current
-    instance = testcase.new
+    instance = #testcase()
     Process.spawn_link -> run_tests(pid, testcase, instance, instance.__tests__)
   end
 

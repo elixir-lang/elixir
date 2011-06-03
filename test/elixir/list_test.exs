@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object ListTest
-  proto ExUnit::Case
+module ListTest
+  mixin ExUnit::Case
 
   def length_size_test
     3 = [1,2,3].length

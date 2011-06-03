@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object ExUnitTest
-  proto ExUnit::Case
+module ExUnitTest
+  mixin ExUnit::Case
 
   def setup(_)
     @('foo, 1)

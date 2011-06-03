@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-object TupleTest
-  proto ExUnit::Case
+module TupleTest
+  mixin ExUnit::Case
 
   def brackets_test
     1 = {1,2,3}[0]

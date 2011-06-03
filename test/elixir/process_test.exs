@@ -1,8 +1,8 @@
 Code.require_file "../test_helper", __FILE__
 Code.require_file "../fixtures/fridge", __FILE__
 
-object ProcessTest
-  proto ExUnit::Case
+module ProcessTest
+  mixin ExUnit::Case
 
   def spawn_and_messages_with_module_test
     pid = Process.spawn -> Fridge.loop ['iogurt, 'bread]

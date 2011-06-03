@@ -1,19 +1,17 @@
 module ExUnit::Case
   mixin ExUnit::Assertions
 
-  module MixinMethods
-    def synchronous!
-      @('synchronous, true)
-    end
-
-    def synchronous?
-      @synchronous || false
-    end
+  def __added_as_mixin__(base)
+    ExUnit::Server.add_case(base.__name__)
+    base
   end
 
-  def __added_as_proto__(base)
-    ExUnit::Server.add_case(base.__name__)
-    base.mixin(ExUnit::Case::MixinMethods)
+  def synchronous!
+    @('synchronous, true)
+  end
+
+  def synchronous?
+    @synchronous || false
   end
 
   def __tests__
