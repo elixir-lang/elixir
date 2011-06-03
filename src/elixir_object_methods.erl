@@ -8,17 +8,18 @@
 
 % MIXINS AND PROTOS
 
+% TODO: Is this flag needed?
+
 mixin(Self, Value) -> mixin(Self, Value, true).
 mixin(Self, Value, Flag) when is_list(Value) -> [mixin(Self, Item, Flag) || Item <- Value];
 mixin(Self, Value, Flag) -> prepend_as(Self, object_mixins(Self), mixin, Value, Flag).
 
 % Reflections
 
-name(Self)      -> object_name(Self).
-data(Self)      -> object_data(Self).
-ancestors(Self) -> lists:reverse(r_ancestors(Self)).
+name(Self) -> object_name(Self).
+data(Self) -> object_data(Self).
 
-mixins(#elixir_object__{} = Self) -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), []));
+mixins(#elixir_object__{} = Self) -> object_mixins(Self) ++ ['Module::Methods'];
 mixins(Self)                      -> object_mixins(Self).
 
 parent(Self) ->
@@ -86,9 +87,6 @@ assert_dict_with_atoms(#elixir_orddict__{struct=Dict} = Object) ->
 assert_dict_with_atoms(Data) ->
   elixir_errors:error({badivars, Data}).
 
-assert_same_object(#elixir_object__{parent=Parent}, #elixir_object__{parent=Parent}) -> true;
-assert_same_object(_, Else) -> elixir_errors:error({badinitialize, Else}).
-
 % Helper that prepends a mixin or a proto to the object chain.
 prepend_as(Self, Chain, Kind, Value, Flag) ->
   check_module(Value, Kind),
@@ -115,9 +113,6 @@ update_object_chain(#elixir_object__{data=Data} = Self, Kind, Chain) when is_ato
 update_object_chain(#elixir_object__{} = Self, mixin, Chain) ->
   Self#elixir_object__{mixins=Chain};
 
-update_object_chain(#elixir_object__{} = Self, proto, Chain) ->
-  Self#elixir_object__{protos=Chain};
-
 % Raise an error if mixin or proto is called on builtin.
 update_object_chain(Self, Kind, _) -> builtinnotallowed(Self, Kind).
 
@@ -128,17 +123,6 @@ check_module(Else, Kind) -> elixir_errors:error({notamodule, {Kind, Else}}).
 % Raise builtinnotallowed error with the given reason:
 builtinnotallowed(Builtin, Reason) ->
   elixir_errors:error({builtinnotallowed, {Reason, Builtin}}).
-
-% Returns the ancestors chain considering only parents, but in reverse order.
-
-r_ancestors(#elixir_object__{parent='Module'})                -> ['Module'];
-r_ancestors(#elixir_object__{parent=nil})                     -> [];
-r_ancestors(#elixir_object__{parent=Else}) when is_atom(Else) -> ['Module', Else];
-r_ancestors(#elixir_object__{} = Object)                      -> r_ancestors(object_parent(Object), []);
-r_ancestors(Else)                                             -> ['Module', object_parent(Else)].
-
-r_ancestors(nil, Acc)  -> Acc;
-r_ancestors(Name, Acc) -> r_ancestors(abstract_parent(Name), [Name|Acc]).
 
 % Methods that get values from objects. Argument can either be an
 % #elixir_object__ or an erlang native type.
@@ -195,17 +179,15 @@ object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
     error:badarg -> []
   end;
 
-object_mixins(#elixir_object__{name=nil, mixins=Mixins} = Object) when is_atom(Mixins) ->
-  abstract_protos(object_parent(Object));
-
 object_mixins(#elixir_object__{name=Name, mixins=Mixins}) when is_atom(Mixins) ->
   abstract_mixins(Name);
 
 object_mixins(#elixir_object__{mixins=Mixins}) ->
   Mixins;
 
+% TODO: This needs to be properly tested.
 object_mixins(Native) ->
-  abstract_protos(object_parent(Native)).
+  object_parent(Native) ++ ['Module::Methods'].
 
 object_data(#elixir_slate__{data=Data}) ->
   Data;
@@ -226,26 +208,11 @@ object_data(Native) ->
 % Method that get values from parents. Argument can either be an atom
 % or an #elixir_object__.
 
-abstract_parent(#elixir_object__{parent=Parent}) ->
-  Parent;
-
-abstract_parent(Name) ->
-  case proplists:get_value(parent, elixir_constants:lookup(Name, attributes)) of
-    []   -> nil;
-    Else -> hd(Else)
-  end.
-
 abstract_mixins(#elixir_object__{mixins=Mixins}) ->
   Mixins;
 
 abstract_mixins(Name) ->
   proplists:get_value(mixins, elixir_constants:lookup(Name, attributes)).
-
-abstract_protos(#elixir_object__{protos=Protos}) ->
-  Protos;
-
-abstract_protos(Name) ->
-  proplists:get_value(protos, elixir_constants:lookup(Name, attributes)).
 
 % Builtin mixins
 
@@ -300,14 +267,3 @@ umerge2([H|T], Data) ->
     false -> New = [H|Data]
   end,
   umerge2(T, New).
-
-% Methods that traverses the ancestors chain and append.
-
-traverse_chain([], Acc) ->
-  Acc;
-
-traverse_chain([H|T], Acc) ->
-  traverse_chain(T, apply_chain(abstract_protos(H), Acc)).
-
-apply_chain(List, Acc) ->
-  List ++ Acc.
