@@ -1,15 +1,15 @@
-object UnboundMethod
+module UnboundMethod
   attr_reader ['owner, 'name, 'arity]
 
-  def initialize(owner, name, arity)
+  def __bound__(owner, name, arity)
     @('owner: owner, 'name: name, 'arity: arity)
   end
 
   def bind(object)
-    Method.new(object, @owner, name, arity)
+    #Method(object, @owner, name, arity)
   end
 
   def apply_to(object, args)
-    Erlang.elixir_dispatch.owner_dispatch(@owner, object, @name, args)
+    Erlang.apply(@owner, @name, [object|args])
   end
 end

@@ -12,6 +12,7 @@ module BindTest
   % TODO: Test exceptions
   % TODO: Make parens optional
   % TODO: Test inspect
+  % TODO: Solve unary precedence bind_routes #Foo
 
   def bind_test
     1 = Module.blank_slate#BindMath().one

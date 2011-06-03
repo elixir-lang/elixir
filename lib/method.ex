@@ -1,4 +1,4 @@
-object Method
+module Method
   attr_reader ['binding, 'owner, 'name, 'arity]
 
   % Dynamically define call and [] as methods that receives
@@ -6,18 +6,18 @@ object Method
   20.times [], do (i, acc)
     module_eval __FILE__, __LINE__, ~~ELIXIR
 def [](#{acc.join(",")})
-  Erlang.elixir_dispatch.owner_dispatch(@owner, @binding, @name, [#{acc.join(",")}])
+  Erlang.apply(@owner, @name, [#{["@binding"|acc].join(",")}])
 end
 
 def call(#{acc.join(",")})
-  Erlang.elixir_dispatch.owner_dispatch(@owner, @binding, @name, [#{acc.join(",")}])
+  Erlang.apply(@owner, @name, [#{["@binding"|acc].join(",")}])
 end
 ~~
 
     ["v#{i}"|acc]
   end
 
-  def initialize(binding, owner, name, arity)
+  def __bound__(binding, owner, name, arity)
     @('binding: binding, 'owner: owner, 'name: name, 'arity: arity)
   end
 
@@ -26,6 +26,6 @@ end
   end
 
   def apply(args)
-    Erlang.elixir_dispatch.owner_dispatch(@owner, @binding, @name, args)
+    Erlang.apply(@owner, @name, [@binding|args])
   end
 end

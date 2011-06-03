@@ -3,7 +3,7 @@ Code.require_file "../test_helper", __FILE__
 module UnboundMethodTest
   mixin ExUnit::Case
 
-  object Sample
+  module Sample
     set_ivar 'foo, def foo(x) 
       x + 1
     end
@@ -18,9 +18,7 @@ module UnboundMethodTest
       x + self.y
     end)
 
-    module Mixin
-      attr_reader ['foo, 'bar, 'baz]
-    end
+    attr_reader ['foo, 'bar, 'baz]
   end
 
   % Hook used for the binding
@@ -32,14 +30,18 @@ module UnboundMethodTest
     method = UnboundMethodTest::Sample.foo
     'foo = method.name
     1 = method.arity
-    'UnboundMethodTest::Sample = method.owner
+    'exUnboundMethodTest::Sample = method.owner
   end
 
   def anonymous_methods_test
     method = UnboundMethodTest::Sample.bar
     '__anonymous_method_UnboundMethodTest::Sample_4 = method.name
     2 = method.arity
-    'UnboundMethodTest::Sample = method.owner
+    'exUnboundMethodTest::Sample = method.owner
+  end
+
+  def apply_to_test
+    3 = UnboundMethodTest::Sample.bar.apply_to(Object.new, [1,2])
   end
 
   def binding_and_call_test

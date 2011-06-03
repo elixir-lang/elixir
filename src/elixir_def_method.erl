@@ -70,7 +70,7 @@ store_wrapped_method(Self, Module, Filename, OriginalMethod, Defaults) ->
   try
     Arity = element(4, Method),
     Constant = elixir_constants:lookup('UnboundMethod'),
-    elixir_object_methods:new(Constant, [Self#elixir_object__.name, Name, Arity - 1])
+    elixir_bind:slate_bind(Constant, [?ELIXIR_ERL_MODULE(Self#elixir_object__.name), Name, Arity - 1])
   catch
     error:{noconstant,'UnboundMethod'} -> []
   end.
