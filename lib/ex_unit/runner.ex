@@ -1,5 +1,5 @@
-object ExUnit::Runner
-  def initialize(formatter, cases, max_cases)
+module ExUnit::Runner
+  def __bound__(formatter, cases, max_cases)
     @(
       'formatter: formatter,
       'cases: cases,

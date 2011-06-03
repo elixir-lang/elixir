@@ -92,8 +92,8 @@ module ExUnit
   def run
     cases     = ExUnit::Server.cases
     options   = ExUnit::Server.options
-    formatter = options['formatter] || ExUnit::Formatter.new
+    formatter = options['formatter] || #ExUnit::Formatter()
     max_cases = options['max_cases] || 4
-    ExUnit::Runner.new(formatter, cases, max_cases).start
+    #ExUnit::Runner(formatter, cases, max_cases).start
   end
 end

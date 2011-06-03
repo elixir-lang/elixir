@@ -95,6 +95,9 @@ update_ivar(Self, Name, Initial, Function) ->
 set_ivar_dict(_, Name, _, _) when not is_atom(Name) ->
   elixir_errors:error({badivar, Name});
 
+set_ivar_dict(#elixir_slate__{data=Dict} = Self, Name, _, Function) ->
+  Self#elixir_slate__{data=Function(Dict)};
+
 set_ivar_dict(#elixir_object__{data=Dict} = Self, Name, _, Function) when not is_atom(Dict) ->
   Self#elixir_object__{data=Function(Dict)};
 
@@ -253,6 +256,9 @@ object_protos(#elixir_object__{protos=Protos}) ->
 
 object_protos(Native) ->
   []. % Native types has no protos.
+
+object_data(#elixir_slate__{data=Data}) ->
+  Data;
 
 object_data(#elixir_object__{data=Data}) when not is_atom(Data) ->
   Data;

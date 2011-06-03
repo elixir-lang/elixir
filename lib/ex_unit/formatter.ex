@@ -1,7 +1,7 @@
-object ExUnit::Formatter
-  proto Code::Formatter
+module ExUnit::Formatter
+  mixin Code::Formatter
 
-  def initialize()
+  def __bound__()
     @('counter: 0, 'failures: [])
   end
 
