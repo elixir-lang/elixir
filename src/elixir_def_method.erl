@@ -82,13 +82,7 @@ unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
 % TODO Maybe this could be done by simply using the import directive?
 flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) ->
   SelfModules = elixir_object_methods:What(Object),
-  RawModules = lists:delete(ModuleName, SelfModules),
-
-  % Do not flat Module::Methods that are temporarily added.
-  Modules = case Object#elixir_object__.parent of
-    'Module' -> RawModules;
-    Else     -> lists:delete('Module::Methods', RawModules)
-  end,
+  Modules = lists:delete(ModuleName, SelfModules),
 
   Visibility = lists:foldl(fun(Module, Acc1) ->
     DispatchTo = ?ELIXIR_ERL_MODULE(Module),

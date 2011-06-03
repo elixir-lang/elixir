@@ -139,16 +139,16 @@ build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
     exported_function(Line, ModuleName) | Functions
   ],
 
-  build_erlang_form(Line, Filename, Object, [], [], Extra).
+  build_erlang_form(Line, Filename, Object, Extra).
 
 % TODO Cache mixins and protos full chain.
-build_erlang_form(Line, Filename, Object, Mixin, Proto, Extra) ->
+build_erlang_form(Line, Filename, Object, Extra) ->
   Name = Object#elixir_object__.name,
   Parent = Object#elixir_object__.parent,
   AttributeTable = Object#elixir_object__.data,
   Data = destructive_read(AttributeTable, data),
 
-  Snapshot = build_snapshot(Name, Parent, Mixin, Proto, Data),
+  Snapshot = build_snapshot(Name, Parent, Data),
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
   ModuleName = ?ELIXIR_ERL_MODULE(Name),
   Base = ets:foldr(Transform, Extra, AttributeTable),
@@ -181,25 +181,19 @@ destructive_read(Table, Attribute) ->
   ets:delete(Table, Attribute),
   Value.
 
-build_snapshot(Name, Parent, Mixin, Proto, Data) ->
-  FinalMixin = snapshot_module(Name, Parent, Mixin),
-  FinalProto = snapshot_module(Name, Parent, Proto),
+build_snapshot(Name, Parent, Data) ->
+  FinalMixin = snapshot_module(Name, Parent),
+  FinalProto = snapshot_module(Name, Parent),
   #elixir_object__{name=Name, parent=Parent, mixins=FinalMixin, protos=FinalProto, data=Data}.
 
-snapshot_module('Object', _, [])    -> 'exObject::Methods';
-snapshot_module('Module', _, [])    -> 'exModule::Methods';
-snapshot_module(Name,  'Module', _) -> ?ELIXIR_ERL_MODULE(Name);
-snapshot_module(_,  _, [])          -> 'exObject::Methods';
-snapshot_module(_, _, Module)       -> ?ELIXIR_ERL_MODULE(Module#elixir_object__.name).
+snapshot_module('Module', _)    -> 'exModule::Methods';
+snapshot_module(Name, 'Module') -> ?ELIXIR_ERL_MODULE(Name).
 
 no_auto_import() ->
   {no_auto_import, [
     {size, 1}, {length, 1}, {error, 2}, {self, 1}, {put, 2},
     {get, 1}, {exit, 1}, {exit, 2}
   ]}.
-
-transform_attribute(Line, {mixins, List}) ->
-  {attribute, Line, mixins, lists:delete('Module::Methods', List)};
 
 transform_attribute(Line, X) ->
   {attribute, Line, element(1, X), element(2, X)}.
