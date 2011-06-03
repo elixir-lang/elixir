@@ -1,42 +1,16 @@
 % Holds all runtime methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, mixin/3, proto/2, proto/3, new/2, name/1,
-  parent/1, parent_name/1, mixins/1, protos/1, data/1, builtin_mixin/1,
-  get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4,
-  ancestors/1, function_catch/1]).
+-export([mixin/2, mixin/3, name/1,
+  parent/1, parent_name/1, mixins/1, data/1, builtin_mixin/1,
+  get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4]).
 -include("elixir.hrl").
-
-% INITIALIZATION
-
-% TODO: Rewrite this as remove_method once we add it
-new(#elixir_object__{parent='Module'} = Self, Args) ->
-  elixir_dispatch:dispatch(Self, method_missing, [new, Args]);
-
-new(#elixir_object__{name=Name, protos=Protos} = Self, Args) ->
-  Parent = case Name of
-    nil -> Self;
-    _  -> Name
-  end,
-  Object = #elixir_object__{parent=Parent, mixins=Protos},
-  NewObject = elixir_dispatch:dispatch(Object, initialize, Args),
-  assert_same_object(Object, NewObject),
-  NewObject;
-
-new(Else, Args) -> builtinnotallowed(Else, new).
 
 % MIXINS AND PROTOS
 
 mixin(Self, Value) -> mixin(Self, Value, true).
 mixin(Self, Value, Flag) when is_list(Value) -> [mixin(Self, Item, Flag) || Item <- Value];
 mixin(Self, Value, Flag) -> prepend_as(Self, object_mixins(Self), mixin, Value, Flag).
-
-proto(Self, Value) -> proto(Self, Value, true).
-% TODO: Rewrite this as remove_method once we add it
-proto(#elixir_object__{parent='Module'} = Self, Value, Flag) ->
-  elixir_dispatch:dispatch(Self, method_missing, [proto, [Value]]);
-proto(Self, Value, Flag) when is_list(Value) -> [proto(Self, Item, Flag) || Item <- Value];
-proto(Self, Value, Flag) -> prepend_as(Self, object_protos(Self), proto, Value, Flag).
 
 % Reflections
 
@@ -46,9 +20,6 @@ ancestors(Self) -> lists:reverse(r_ancestors(Self)).
 
 mixins(#elixir_object__{} = Self) -> apply_chain(object_mixins(Self), traverse_chain(r_ancestors(Self), []));
 mixins(Self)                      -> object_mixins(Self).
-
-protos(#elixir_object__{} = Self) -> apply_chain(object_protos(Self), traverse_chain(r_ancestors(Self), []));
-protos(Self)                      -> mixins(Self).
 
 parent(Self) ->
   case object_parent(Self) of
@@ -63,11 +34,6 @@ parent_name(Self) ->
     Object when is_atom(Object) -> Object;
     _ -> nil
   end.
-
-% Methods available to all objects
-
-function_catch(Function) ->
-  catch Function().
 
 %% PROTECTED API
 
@@ -240,22 +206,6 @@ object_mixins(#elixir_object__{mixins=Mixins}) ->
 
 object_mixins(Native) ->
   abstract_protos(object_parent(Native)).
-
-object_protos(#elixir_object__{data=Data}) when is_atom(Data) ->
-  try
-    ets:lookup_element(Data, protos, 2)
-  catch
-    error:badarg -> []
-  end;
-
-object_protos(#elixir_object__{name=Name, protos=Protos}) when is_atom(Protos) ->
-  abstract_protos(Name);
-
-object_protos(#elixir_object__{protos=Protos}) ->
-  Protos;
-
-object_protos(Native) ->
-  []. % Native types has no protos.
 
 object_data(#elixir_slate__{data=Data}) ->
   Data;

@@ -1,19 +1,9 @@
 % Holds the logic responsible for methods definition during compile time.
 % For methods introspection, check elixir_methods.
 -module(elixir_def_method).
--export([unpack_default_clause/2, is_empty_table/1, new_method_table/1, flat_module/5,
+-export([unpack_default_clause/2, new_method_table/1, flat_module/5,
   wrap_method_definition/5, store_wrapped_method/5, unwrap_stored_methods/1]).
 -include("elixir.hrl").
-
-% Returns if a given table is empty or not.
-%
-% Since we use the same method table to store the current visibility,
-% public and inherited method, the table is empty if its size is 3.
-is_empty_table(MethodTable) ->
-  case ets:info(MethodTable, size) of
-    3 -> true;
-    _ -> false
-  end.
 
 % Creates a new method table for the given name.
 new_method_table(Name) ->

@@ -2,6 +2,8 @@
 -export([slate_bind/2, bind/3]).
 -include("elixir.hrl").
 
+% TODO: assert_same
+
 slate_bind(Right, Args) ->
   check_module(Right, bind),
   Module = Right#elixir_object__.mixins,

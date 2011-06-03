@@ -9,7 +9,6 @@ test() ->
     atom_test,
     erlang_call_test,
     function_test,
-    object_test,
     match_test,
     module_test,
     operators_test,

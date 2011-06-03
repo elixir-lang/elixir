@@ -3,8 +3,7 @@
 % are rather an internal module while most of the methods defined here are exposed
 % in Module::Methods.
 -module(elixir_module_methods).
--export([get_visibility/1, set_visibility/2, alias_local/5, define_erlang_method/6,
-  define_attribute/3, copy_attributes_fun/1, module_eval/4]).
+-export([get_visibility/1, set_visibility/2, alias_local/5, define_erlang_method/6, module_eval/4]).
 -include("elixir.hrl").
 
 set_visibility(#elixir_object__{name=Name, data=Data}, Visibility) when is_atom(Data) ->
@@ -33,23 +32,6 @@ alias_local(#elixir_object__{name=Name, data=Data} = Self, Filename, Old, New, E
 
 alias_local(Self, _, _, _, _) ->
   elixir_errors:error({moduledefined, { alias_local, Self }}).
-
-define_attribute(#elixir_object__{data=Data, parent=Parent}, Key, Value) when is_atom(Data) ->
-  case Parent of
-    'Module' -> ets:insert(Data, { Key, Value });
-    _ ->
-      Current = ets:lookup_element(Data, module, 2),
-      ets:insert(Data, { module, [{ Key, Value }|Current] })
-  end;
-
-define_attribute(Self, _, _) ->
-  elixir_errors:error({moduledefined, { define_attribute, Self }}).
-
-copy_attributes_fun(Data) ->
-  fun(Object) ->
-    Copier = fun({Key,Value}) -> define_attribute(Object, Key, Value) end,
-    lists:foreach(Copier, Data)
-  end.
 
 module_eval(#elixir_object__{name=Name, data=Data} = Self, String, Filename, Line) when is_atom(Data) ->
   Scope = #elixir_scope{scope={object_kind(Self), Name}},
