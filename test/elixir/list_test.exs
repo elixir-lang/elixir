@@ -98,6 +98,12 @@ module ListTest
     true  = [2,4,6].all? -> (i) i rem 2 == 0
   end
 
+  def any_test
+    false = [].any? -> (_) false
+    false = [4,5,6].any? -> (i) i == 2
+    true  = [1,2,3].any? -> (i) i == 2
+  end
+
   def keyfind_test
     {'foo, 1} = ['foo/1, 'bar/2].keyfind('foo, 0)
     {'bar, 2} = ['foo/1, 'bar/2].keyfind('bar, 0)
@@ -120,6 +126,11 @@ module ListTest
     assert_error 'function_clause, -> [1,2,3].zipwith([1,2], -> (_,_) 0)
   end
 
+  def sum_test
+    6 = [1,2,3].sum
+    0 = [].sum
+  end
+
   def head_test
     1  = [1,2,3].head
     1  = [1].head
@@ -131,6 +142,18 @@ module ListTest
     [2] = [1,2].tail
     [] = [1].tail
     assert_error 'badarg, -> [].tail
+  end
+
+  def min_max_test
+    1 = [1,2,3].min
+    "bar" = ["baz", "foo", "bar"].min
+    assert_error 'function_clause, -> [].min
+  end
+
+  def max_test
+    3 = [1,2,3].max
+    "foo" = ["baz", "foo", "bar"].max
+    assert_error 'function_clause, -> [].max
   end
 
   def uniq_test

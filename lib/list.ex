@@ -11,6 +11,18 @@ module List
       Erlang.lists.all(function, self)
     end
 
+    % Returns true if at least one item the list evaluates to true according
+    % to the given function.
+    %
+    % ## Examples
+    %
+    %    [4,5,6].any? -> (i) i == 2 % => false
+    %    [1,2,3].any? -> (i) i == 2 % => true
+    %
+    def any?(function)
+      Erlang.lists.any(function, self)
+    end
+
     % Push a new element to the list.
     %
     % ## Examples
@@ -86,6 +98,17 @@ module List
     %
     def +(another)
       Erlang.lists.append(self, another)
+    end
+
+    % Returns the sum of the elements in the list.
+    % Returns 0 if the list is empty.
+    %
+    % ## Examples
+    %
+    %    [1,2,3].sum % => 6
+    %
+    def sum
+      Erlang.lists.sum(self)
     end
 
     % Combine all elements of the lists by applying the given function, starting
@@ -184,6 +207,30 @@ module List
     %
     def flatten
       Erlang.lists.flatten(self)
+    end
+
+    % Returns the first element that is lesser than or equal to all other
+    % elements. Raises 'function_clause error if the list is empty.
+    %
+    % ## Examples
+    %
+    %    [2,1,5,3,4].min           % => 1
+    %    ["foo", "bar", "baz"].min % => "bar"
+    %
+    def min
+      Erlang.lists.min(self)
+    end
+
+    % Returns the first element that is greater than or equal to all other
+    % elements. Raises 'function_clause error if the list is empty.
+    %
+    % ## Examples
+    %
+    %    [2,1,5,3,4].max           % => 5
+    %    ["foo", "bar", "baz"].max % => "foo"
+    %
+    def max
+      Erlang.lists.max(self)
     end
 
     % Receives a list of lists and flatten them one level deep. If one of the
