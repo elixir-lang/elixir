@@ -41,11 +41,8 @@ method_missing(Object, Args) ->
 find_module(#elixir_slate__{module=Module}, Method, Arity) ->
   Module;
 
-find_module(#elixir_object__{mixins=Mixin}, Method, Arity) when is_atom(Mixin) ->
-  case Mixin:'__function_exported__'(Method, Arity) of
-    true  -> Mixin;
-    false -> false
-  end;
+find_module(#elixir_object__{name=Module,data=Data}, Method, Arity) when not is_atom(Data) ->
+  Module;
 
 find_module(#elixir_object__{} = Object, Method, Arity) ->
   Chain = elixir_object_methods:mixins(Object),

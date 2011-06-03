@@ -29,7 +29,7 @@ build_template(Kind, Name, Template) ->
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { data,   Data }),
 
-  Object = #elixir_object__{name=Name, parent=Parent, mixins=[], protos=[], data=AttributeTable},
+  Object = #elixir_object__{name=Name, parent=Parent, data=AttributeTable},
   { Object, AttributeTable, { Mixins, [] } }.
 
 % Returns the parent object based on the declaration.
@@ -183,8 +183,7 @@ destructive_read(Table, Attribute) ->
 
 build_snapshot(Name, Parent, Data) ->
   FinalMixin = snapshot_module(Name, Parent),
-  FinalProto = snapshot_module(Name, Parent),
-  #elixir_object__{name=Name, parent=Parent, mixins=FinalMixin, protos=FinalProto, data=Data}.
+  #elixir_object__{name=FinalMixin, parent=Parent, data=Data}.
 
 snapshot_module('Module', _)    -> 'exModule::Methods';
 snapshot_module(Name, 'Module') -> ?ELIXIR_ERL_MODULE(Name).

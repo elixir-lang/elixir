@@ -1,7 +1,7 @@
 % Holds all runtime methods required to bootstrap the object model.
 % These methods are overwritten by their Elixir version later in Object::Methods.
 -module(elixir_object_methods).
--export([mixin/2, mixin/3, name/1,
+-export([mixin/2, name/1,
   parent/1, parent_name/1, mixins/1, data/1, builtin_mixin/1,
   get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4]).
 -include("elixir.hrl").
@@ -10,9 +10,8 @@
 
 % TODO: Is this flag needed?
 
-mixin(Self, Value) -> mixin(Self, Value, true).
-mixin(Self, Value, Flag) when is_list(Value) -> [mixin(Self, Item, Flag) || Item <- Value];
-mixin(Self, Value, Flag) -> prepend_as(Self, object_mixins(Self), mixin, Value, Flag).
+mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
+mixin(Self, Value) -> prepend_as(Self, object_mixins(Self), mixin, Value).
 
 % Reflections
 
@@ -86,7 +85,7 @@ assert_dict_with_atoms(Data) ->
   elixir_errors:error({badivars, Data}).
 
 % Helper that prepends a mixin or a proto to the object chain.
-prepend_as(Self, Chain, Kind, Value, Flag) ->
+prepend_as(Self, Chain, Kind, Value) ->
   check_module(Value, Kind),
   List = object_mixins(Value),
 
@@ -94,25 +93,14 @@ prepend_as(Self, Chain, Kind, Value, Flag) ->
   Object = update_object_chain(Self, Kind, umerge(List, Chain)),
 
   % Invoke the appropriate hook.
-  case Flag of
-    true ->
-      elixir_dispatch:dispatch(Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]);
-    false ->
-      Object
-  end.
+  elixir_dispatch:dispatch(Value, ?ELIXIR_ATOM_CONCAT(["__added_as_", atom_to_list(Kind), "__"]), [Object]).
 
 % Update the given object chain. Sometimes it means we need to update
 % the table, sometimes update a record.
 update_object_chain(#elixir_object__{data=Data} = Self, Kind, Chain) when is_atom(Data) ->
   TableKind = ?ELIXIR_ATOM_CONCAT([Kind, s]),
   ets:insert(Data, {TableKind, Chain}),
-  Self;
-
-update_object_chain(#elixir_object__{} = Self, mixin, Chain) ->
-  Self#elixir_object__{mixins=Chain};
-
-% Raise an error if mixin or proto is called on builtin.
-update_object_chain(Self, Kind, _) -> builtinnotallowed(Self, Kind).
+  Self.
 
 % Check if it is a module and raises an error if not.
 check_module(#elixir_object__{parent='Module'}, Kind) -> [];
@@ -177,11 +165,8 @@ object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
     error:badarg -> []
   end;
 
-object_mixins(#elixir_object__{name=Name, mixins=Mixins}) when is_atom(Mixins) ->
-  Mixins:'__mixins__'(nil);
-
-object_mixins(#elixir_object__{mixins=Mixins}) ->
-  Mixins;
+object_mixins(#elixir_object__{name=Name}) ->
+  Name:'__mixins__'(nil);
 
 % TODO: This needs to be properly tested.
 object_mixins(Native) ->

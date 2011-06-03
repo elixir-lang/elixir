@@ -6,13 +6,13 @@
 
 slate_bind(Right, Args) ->
   check_module(Right, bind),
-  Module = Right#elixir_object__.mixins,
+  Module = Right#elixir_object__.name,
   Bound = #elixir_slate__{module=Module},
   apply(Module, '__bound__', [Bound|Args]).
 
 bind(#elixir_slate__{module=[]} = Left, Right, Args) ->
   check_module(Right, bind),
-  Module = Right#elixir_object__.mixins,
+  Module = Right#elixir_object__.name,
   Bound = Left#elixir_slate__{module=Module},
   apply(Module, '__bound__', [Bound|Args]);
 
@@ -24,5 +24,5 @@ bind(Self, Right, Args) ->
 
 % Helpers
 
-check_module(#elixir_object__{parent='Module'}, Kind) -> [];
+check_module(#elixir_object__{}, Kind) -> [];
 check_module(Else, Kind) -> elixir_errors:error({not_a_module, Else}).
