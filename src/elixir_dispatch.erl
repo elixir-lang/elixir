@@ -18,6 +18,9 @@ dispatch_candidate(Line, Object, Method, Arity, Args) ->
 dispatch(Object, Method, Args) ->
   dispatch(Object, Method, length(Args) + 1, Args).
 
+dispatch(#elixir_slate__{module=Module} = Object, Method, _Arity, Args) ->
+  apply(Module, Method, [Object|Args]);
+
 dispatch(Object, Method, Arity, Args) ->
   case find_module(Object, Method, Arity) of
     false -> method_missing(Object, [Method, Args]);

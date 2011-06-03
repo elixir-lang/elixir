@@ -54,7 +54,7 @@ get_ivar(Line, Name, Else) ->
   {'try',Line,
     [{call,Line,
       {remote,Line,{atom,Line,elixir_helpers},{atom,Line,orddict_find}},
-      [{atom,Line,Name},{call,Line,{atom,Line,element},[{integer,Line,6},{var,Line,self}]}]
+      [{atom,Line,Name},{call,Line,{atom,Line,element},[{integer,Line,3},{var,Line,self}]}]
     }],
     [],
     else_clause(Line, Else),
@@ -62,7 +62,7 @@ get_ivar(Line, Name, Else) ->
   }.
 
 set_ivar(Line, [{atom,_,_} = Left, Right], Else, S) ->
-  Element = [{integer,Line,6},{var,Line,self}],
+  Element = [{integer,Line,3},{var,Line,self}],
   { Var, FS } = elixir_tree_helpers:build_var_name(Line, S),
 
   Call = {block,Line,[
@@ -87,7 +87,7 @@ set_ivar(_Line, _Expr, Else, S) ->
 
 % If it is a raw, already ordered dict, optimize it.
 set_ivars(Line, [{tuple,_,[{atom,_,_elixir_orddict__},{cons,_,_,_} = Dict]}], Else, S) ->
-  Element = [{integer,Line,6},{var,Line,self}],
+  Element = [{integer,Line,3},{var,Line,self}],
   { Var, FS } = elixir_tree_helpers:build_var_name(Line, S),
 
   Call = {block,Line,[
