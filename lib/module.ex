@@ -105,16 +105,8 @@ module Module
     %       IO.puts @baz   % => 13
     %     end
     %
+    % TODO: Rename to __mixed_in__
     def __added_as_mixin__(base)
-      base
-    end
-
-    % Hook invoked whenever this module is added as a mixin.
-    % It receives the target module where the proto is being added
-    % as parameter and must return an module of the same kind.
-    %
-    % Check `__added_as_mixin__` for more examples and information.
-    def __added_as_proto__(base)
       base
     end
 

@@ -52,7 +52,6 @@ module ModuleTest
 
   def method_missing_test
     { 'foo, [1] }   = ModuleTest::MethodMissing.foo(1)
-    { 'new, [1] }   = ModuleTest::MethodMissing.new(1)
     { 'proto, [1] } = ModuleTest::MethodMissing.proto(1)
   end
 

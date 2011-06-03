@@ -250,13 +250,6 @@ added_as_mixin_callback_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
 
-added_as_proto_callback_test() ->
-  F = fun() ->
-    elixir:eval("module Foo; def __added_as_proto__(base); base.set_ivar('foo, 2); end; end"),
-    {2,[]} = elixir:eval("object Bar; proto Foo; @foo; end")
-  end,
-  test_helper:run_and_remove(F, ['Foo','Bar']).
-
 %% Module Methods
 
 can_retrieve_visibility_test() ->
@@ -271,18 +264,3 @@ can_retrieve_mixins_without_duplication_test() ->
     {['Foo', 'Module::Methods', 'Object::Methods'],[]} = elixir:eval("Foo.__mixins__")
   end,
   test_helper:run_and_remove(F, ['Foo']).
-
-can_retrieve_proto_methods_test() ->
-  F = fun() ->
-    {List,[]} = elixir:eval("module ModuleTestProtos; __proto_methods__; end"),
-    true = lists:member({alias_local, 3}, List)
-  end,
-  test_helper:run_and_remove(F, ['ModuleTestProtos']).
-
-% This API was removed for awhile
-% can_define_any_attribute_test() ->
-%   F = fun() ->
-%     elixir:eval("module Foo; define_module_attribute('foo, 'bar); end"),
-%     [bar] = proplists:get_value(foo, 'Foo':module_info(attributes))
-%   end,
-%   test_helper:run_and_remove(F, ['Foo']).

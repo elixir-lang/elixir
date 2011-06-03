@@ -1,36 +1,19 @@
 object Object
   module Methods
-    % Create a new object using the current object as parent
-    %
-    % ## Example
-    %
-    %     obj = Object.new
-    %     obj.__parent__ %=> 'Object
-    %
-    % ## Notes
-    %
-    % The new method is special cased by the compiler to receive
-    % all arguments wrapped into a single array.
-    def new(args)
-      Erlang.elixir_object_methods.new(self, args)
-    end
-
     def mixin(module)
       Erlang.elixir_object_methods.mixin(self, module)
-    end
-
-    def proto(module)
-      Erlang.elixir_object_methods.proto(self, module)
     end
 
     def __name__
       Erlang.elixir_object_methods.name(self)
     end
 
+    % TODO Is this really needed?
     def __parent_name__
       Erlang.elixir_object_methods.parent_name(self)
     end
 
+    % TODO Is this really needed?
     def __parent__
       Erlang.elixir_object_methods.parent(self)
     end
@@ -103,37 +86,6 @@ object Object
       Erlang.elixir_object_methods.mixins(self)
     end
 
-    % Returns a list of atoms representing all proto for the current object.
-    % The mixins chain is retrieved by getting the current object protos and
-    % appending all protos from its parents.
-    %
-    % ## Example
-    %
-    % Imagine the following definition:
-    %
-    %     object Foo
-    %       mixin SomeMethods
-    %       proto MoreMethods
-    %     end
-    %
-    % The protos chain for Foo is:
-    %
-    %     Foo.__protos__  % => ['MoreMethods, 'Object::Methods]
-    %     Foo.new.__protos__  % => ['MoreMethods, 'Object::Methods]
-    %
-    % The lookup for protos happens in a similar fashion to mixins:
-    %
-    %     [self.exclusive_protos, self.parent.exclusive_protos, self.parent.parent.exclusive_protos, ...]
-    %
-    % Read the documentation for `__mixins__` for more information.
-    def __protos__
-      Erlang.elixir_object_methods.protos(self)
-    end
-
-    def __ancestors__
-      Erlang.elixir_object_methods.ancestors(self)
-    end
-
     def inspect
       name = __name__
       if name
@@ -192,10 +144,6 @@ object Object
     end
 
     % Those methods are related to methods introspection.
-
-    def __proto_methods__
-      Erlang.elixir_methods.proto_methods(self)
-    end
 
     def __mixin_methods__
       Erlang.elixir_methods.mixin_methods(self)
