@@ -50,16 +50,13 @@ find_module(#elixir_object__{} = Object, Method, Arity) ->
 
 find_module(Object, Method, Arity) ->
   Mixin = elixir_object_methods:builtin_mixin(Object),
-  case erlang:function_exported(Mixin, Method, Arity) of
-    true  -> Mixin;
-    false -> false
-  end.
+  Mixin.
 
 find_module_chain([], _Method, _Arity) -> false;
 
 find_module_chain([H|T], Method, Arity) ->
   Name = ?ELIXIR_ERL_MODULE(H),
-  case Name:'__function_exported__'(Method, Arity) of
+  case Name:'__elixir_exported__'(Method, Arity) of
     true -> Name;
     _ -> find_module_chain(T, Method, Arity)
   end.

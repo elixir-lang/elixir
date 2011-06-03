@@ -127,16 +127,11 @@ build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
   ModuleName = ?ELIXIR_ERL_MODULE(Object#elixir_object__.name),
   Export = Public ++ Inherited,
 
-  { MixinsFunctions, MixinsExport } = case lists:member({'__mixins__',1}, Export) of
-    true  -> { Functions, Export };
-    false -> { [mixins_function(Line,Filename,Object)|Functions], [{'__mixins__',1}|Export] }
-  end,
-
   Extra = [
     {attribute, Line, public, Public},
     {attribute, Line, compile, no_auto_import()},
-    {attribute, Line, export, [{'__function_exported__',2}|MixinsExport]},
-    exported_function(Line, ModuleName) | MixinsFunctions
+    {attribute, Line, export, [{'__elixir_exported__',2},{'__elixir_mixins__',0}|Export]},
+    exported_function(Line, ModuleName), mixins_function(Line,Filename,Object) | Functions
   ],
 
   build_erlang_form(Line, Filename, Object, Extra).
@@ -146,8 +141,8 @@ mixins_function(Line, Filename, Object) ->
   % TODO: Don't raise if mixins is defined
   Mixins = lists:delete('Module::Using', destructive_read(Object#elixir_object__.data, mixins)),
   { MixinsTree, [] } = elixir_tree_helpers:build_list(fun(X,Y) -> {{atom,Line,X},Y} end, Mixins, Line, []),
-  { function, Line, '__mixins__', 1,
-    [{ clause, Line, [{var,Line,'_'}], [], [MixinsTree]}]
+  { function, Line, '__elixir_mixins__', 0,
+    [{ clause, Line, [], [], [MixinsTree]}]
   }.
 
 % TODO Cache mixins and protos full chain.
@@ -206,7 +201,7 @@ transform_attribute(Line, X) ->
   {attribute, Line, element(1, X), element(2, X)}.
 
 exported_function(Line, ModuleName) ->
-  { function, Line, '__function_exported__', 2,
+  { function, Line, '__elixir_exported__', 2,
     [{ clause, Line, [{var,Line,function},{var,Line,arity}], [], [
       ?ELIXIR_WRAP_CALL(
         Line, erlang, function_exported,

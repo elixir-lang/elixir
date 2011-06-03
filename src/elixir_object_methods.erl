@@ -166,7 +166,7 @@ object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
   end;
 
 object_mixins(#elixir_object__{name=Name}) ->
-  Name:'__mixins__'(nil);
+  Name:'__elixir_mixins__'();
 
 % TODO: This needs to be properly tested.
 object_mixins(Native) ->

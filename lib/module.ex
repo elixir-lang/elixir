@@ -10,10 +10,6 @@ module Module
       Erlang.elixir_object_methods.mixin(self, module)
     end
 
-    def __mixins__
-      Erlang.elixir_object_methods.mixins(self)
-    end
-
     % Delegate the given methods to the given expression.
     %
     % ## Examples
@@ -165,7 +161,9 @@ module Module
 
     % Returns a list of atoms representing all mixins for the current object.
     % This method is defined automatically for each compiled module.
-    % def __mixins__; end
+    def __mixins__
+      Erlang.elixir_object_methods.mixins(self)
+    end
 
     def inspect
       name = __name__
