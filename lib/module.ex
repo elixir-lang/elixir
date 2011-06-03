@@ -1,6 +1,19 @@
+
+
 module Module
-  % Decouple in Instance and Using methods.
-  module Methods
+  def blank_slate
+    {'elixir_slate__, [], []}
+  end
+
+  % This module is included temporarily during method
+  % definition with the *using* feature.
+  module Using
+    def __mixins__
+      Erlang.elixir_object_methods.mixins(self)
+    end  
+  end
+
+  module Behavior
     def mixin(module)
       Erlang.elixir_object_methods.mixin(self, module)
     end
@@ -340,10 +353,6 @@ module Module
     % Default behavior applied when a module is bound.
     def __bound__
       self
-    end
-
-    def blank_slate
-      {'elixir_slate__, [], []}
     end
 
     % Set the following methods to private.

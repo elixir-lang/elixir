@@ -260,7 +260,7 @@ can_retrieve_visibility_test() ->
 
 can_retrieve_mixins_without_duplication_test() ->
   F = fun() ->
-    {['Module::Methods', 'Object::Methods'],[]} = elixir:eval("module Foo; __mixins__; end"),
-    {['Foo', 'Module::Methods', 'Object::Methods'],[]} = elixir:eval("Foo.__mixins__")
+    {['Module::Using', 'Module::Behavior'],[]} = elixir:eval("module Foo; __mixins__; end"),
+    {['Foo', 'Module::Behavior'],[]} = elixir:eval("Foo.__mixins__")
   end,
   test_helper:run_and_remove(F, ['Foo']).

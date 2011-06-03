@@ -20,7 +20,7 @@ build(Name) ->
 % Build a template of an object or module used on compilation.
 build_template(Kind, Name, Template) ->
   Parent = default_parent(Kind, Name),
-  Mixins = default_mixins(Kind, Name, Template),
+  Mixins = default_mixins(Kind, Name),
   Data   = default_data(Template),
 
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
@@ -37,8 +37,9 @@ default_parent(_, 'Module')   -> nil;
 default_parent(module, _Name) -> 'Module'.
 
 % Default mixins based on the declaration type.
-default_mixins(_, 'Module::Methods', _Template)  -> []; % object Module
-default_mixins(module, _Name, [])       -> ['Module::Methods']. % module Numeric
+default_mixins(_, 'Module::Behavior')  -> [];
+default_mixins(_, 'Module::Using')     -> [];
+default_mixins(module, _Name)          -> ['Module::Using', 'Module::Behavior'].
 
 % Returns the default data from parents.
 default_data([])       -> orddict:new();
@@ -106,7 +107,8 @@ compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
   ets:insert(AttributeTable, { mixins, [Name|Mixins] }),
 
   case Name of
-    'Module::Methods' -> [];
+    'Module::Behavior' -> [];
+    'Module::Using' -> [];
     _ -> elixir_def_method:flat_module(Module, Line, mixins, Module, MethodTable)
   end,
   compile_module(Line, Filename, Module, MethodTable).
@@ -125,17 +127,24 @@ build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
   ModuleName = ?ELIXIR_ERL_MODULE(Object#elixir_object__.name),
   Export = Public ++ Inherited,
 
+  { MixinsFunctions, MixinsExport } = case lists:member({'__mixins__',1}, Export) of
+    true  -> { Functions, Export };
+    false -> { [mixins_function(Line,Filename,Object)|Functions], [{'__mixins__',1}|Export] }
+  end,
+
   Extra = [
     {attribute, Line, public, Public},
     {attribute, Line, compile, no_auto_import()},
-    {attribute, Line, export, [{'__function_exported__',2},{'__mixins__',1}|Export]},
-    exported_function(Line, ModuleName), mixins_function(Line,Filename,Object) | Functions
+    {attribute, Line, export, [{'__function_exported__',2}|MixinsExport]},
+    exported_function(Line, ModuleName) | MixinsFunctions
   ],
 
   build_erlang_form(Line, Filename, Object, Extra).
 
 mixins_function(Line, Filename, Object) ->
-  Mixins = elixir_object_methods:mixins(Object),
+  % TODO: Make using a feature of the language
+  % TODO: Don't raise if mixins is defined
+  Mixins = lists:delete('Module::Using', destructive_read(Object#elixir_object__.data, mixins)),
   { MixinsTree, [] } = elixir_tree_helpers:build_list(fun(X,Y) -> {{atom,Line,X},Y} end, Mixins, Line, []),
   { function, Line, '__mixins__', 1,
     [{ clause, Line, [{var,Line,'_'}], [], [MixinsTree]}]
@@ -185,8 +194,7 @@ build_snapshot(Name, Parent, Data) ->
   FinalMixin = snapshot_module(Name, Parent),
   #elixir_object__{name=FinalMixin, parent=Parent, data=Data}.
 
-snapshot_module('Module', _)    -> 'exModule::Methods';
-snapshot_module(Name, 'Module') -> ?ELIXIR_ERL_MODULE(Name).
+snapshot_module(Name, _) -> ?ELIXIR_ERL_MODULE(Name).
 
 no_auto_import() ->
   {no_auto_import, [

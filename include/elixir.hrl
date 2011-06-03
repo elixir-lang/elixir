@@ -16,7 +16,7 @@
 %   4) A tuple 'protos containing an ETS table index and a list of protos
 %   5) Data holds the remaining information for the object.
 %
--record(elixir_object__, {name=nil, parent=[], mixins=[], protos=[], data=[] }).
+-record(elixir_object__, {name=nil, parent=[], data=[] }).
 
 % Represents an elixir slate. It holds the binding module and data.
 -record(elixir_slate__, {module=[], data=[] }).
