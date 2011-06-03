@@ -1,5 +1,4 @@
-object Port
-  % Temporary module to force proto compilation
-  def __temp__
+module Port
+  module Instance
   end
 end

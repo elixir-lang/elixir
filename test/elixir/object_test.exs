@@ -95,22 +95,9 @@ module ObjectTest
     end
   end
 
-  def set_ivars_syntax_Test
-    @('a, 1)
-    1 = @a
-
-    dict = { 'a: 1, 'b: 2 }
-    @(dict)
-    ~dict = self.get_ivars
-  end
-
   def get_and_set_ivars_test
     dict = { 'a: 1, 'b: 2 }
     ~dict = Object.new.set_ivars(dict).get_ivars
-  end
-
-  def does_not_include_module_methods_test
-    false = 1.__mixin_methods__.include?({ 'attr_reader, 1 })
   end
 
   def __name__test

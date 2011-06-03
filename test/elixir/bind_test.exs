@@ -20,4 +20,8 @@ module BindTest
   def slate_bind_test
     1 = #BindMath().one
   end
+
+  % def does_not_include_module_methods_test
+  %   false = 1.__mixin_methods__.include?({ 'attr_reader, 1 })
+  % end
 end

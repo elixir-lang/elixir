@@ -41,7 +41,7 @@ module TupleTest
 
   def empty_test
     false = {"abc"}.empty?
-    true  = Tuple.new.empty?
+    true  = Tuple.empty.empty?
   end
 
   def to_list_test
@@ -50,11 +50,11 @@ module TupleTest
 
   def length_size_test
     3 = {1,2,3}.length
-    0 = Tuple.new.size
+    0 = Tuple.empty.size
   end
 
   def inspect_test
     "{1,2,3}"   = {1,2,3}.inspect
-    "Tuple.new" = Tuple.new.inspect
+    "Tuple.empty" = Tuple.empty.inspect
   end
 end

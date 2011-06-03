@@ -1,5 +1,4 @@
-object Reference
-  % Temporary module to force proto compilation
-  def __temp__
+module Reference
+  module Instance
   end
 end
