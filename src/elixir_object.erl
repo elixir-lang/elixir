@@ -1,5 +1,5 @@
 -module(elixir_object).
--export([build/1, scope_for/2, transform/6, compile/7, default_mixins/3, default_protos/3]).
+-export([build/1, scope_for/2, transform/6, compile/7]).
 -include("elixir.hrl").
 
 %% EXTERNAL API
@@ -21,31 +21,24 @@ build(Name) ->
 build_template(Kind, Name, Template) ->
   Parent = default_parent(Kind, Name),
   Mixins = default_mixins(Kind, Name, Template),
-  Protos = default_protos(Kind, Name, Template),
   Data   = default_data(Template),
 
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(AttributeTable, [set, named_table, private]),
 
   ets:insert(AttributeTable, { mixins, Mixins }),
-  ets:insert(AttributeTable, { protos, Protos }),
   ets:insert(AttributeTable, { data,   Data }),
 
   Object = #elixir_object__{name=Name, parent=Parent, mixins=[], protos=[], data=AttributeTable},
-  { Object, AttributeTable, { Mixins, Protos } }.
+  { Object, AttributeTable, { Mixins, [] } }.
 
 % Returns the parent object based on the declaration.
 default_parent(_, 'Module')   -> nil;
 default_parent(module, _Name) -> 'Module'.
 
 % Default mixins based on the declaration type.
-default_mixins(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
-default_mixins(module, _Name, [])       -> [].                  % module Numeric
-
-% Default prototypes. Modules have themselves as the default prototype.
-default_protos(_, 'Object', _Template)  -> ['Object::Methods']; % object Object
-default_protos(_, 'Module', _Template)  -> ['Module::Methods']; % object Module
-default_protos(_Kind, _Name, [])        -> [].                  % module Numeric
+default_mixins(_, 'Module::Methods', _Template)  -> []; % object Module
+default_mixins(module, _Name, [])       -> ['Module::Methods']. % module Numeric
 
 % Returns the default data from parents.
 default_data([])       -> orddict:new();
@@ -135,11 +128,18 @@ build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
   Extra = [
     {attribute, Line, public, Public},
     {attribute, Line, compile, no_auto_import()},
-    {attribute, Line, export, [{'__function_exported__',2}|Export]},
-    exported_function(Line, ModuleName) | Functions
+    {attribute, Line, export, [{'__function_exported__',2},{'__mixins__',1}|Export]},
+    exported_function(Line, ModuleName), mixins_function(Line,Filename,Object) | Functions
   ],
 
   build_erlang_form(Line, Filename, Object, Extra).
+
+mixins_function(Line, Filename, Object) ->
+  Mixins = elixir_object_methods:mixins(Object),
+  { MixinsTree, [] } = elixir_tree_helpers:build_list(fun(X,Y) -> {{atom,Line,X},Y} end, Mixins, Line, []),
+  { function, Line, '__mixins__', 1,
+    [{ clause, Line, [{var,Line,'_'}], [], [MixinsTree]}]
+  }.
 
 % TODO Cache mixins and protos full chain.
 build_erlang_form(Line, Filename, Object, Extra) ->

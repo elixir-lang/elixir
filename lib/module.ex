@@ -82,9 +82,11 @@ module Module
     %
     %     Foo.__mixins__ % => ['Object::Methods]
     %
-    def __mixins__
-      Erlang.elixir_object_methods.mixins(self)
-    end
+    % TODO This is defined automatically!!!!
+    %
+    % def __mixins__
+    %   Erlang.elixir_object_methods.mixins(self)
+    % end
 
     def inspect
       name = __name__

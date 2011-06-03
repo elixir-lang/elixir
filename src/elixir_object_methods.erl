@@ -16,11 +16,9 @@ mixin(Self, Value, Flag) -> prepend_as(Self, object_mixins(Self), mixin, Value, 
 
 % Reflections
 
-name(Self) -> object_name(Self).
-data(Self) -> object_data(Self).
-
-mixins(#elixir_object__{} = Self) -> object_mixins(Self) ++ ['Module::Methods'];
-mixins(Self)                      -> object_mixins(Self).
+name(Self)   -> object_name(Self).
+data(Self)   -> object_data(Self).
+mixins(Self) -> object_mixins(Self).
 
 parent(Self) ->
   case object_parent(Self) of
@@ -180,7 +178,7 @@ object_mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
   end;
 
 object_mixins(#elixir_object__{name=Name, mixins=Mixins}) when is_atom(Mixins) ->
-  abstract_mixins(Name);
+  Mixins:'__mixins__'(nil);
 
 object_mixins(#elixir_object__{mixins=Mixins}) ->
   Mixins;
@@ -204,15 +202,6 @@ object_data(#elixir_object__{data=Data}) ->
 
 object_data(Native) ->
   orddict:new(). % Native types has no data.
-
-% Method that get values from parents. Argument can either be an atom
-% or an #elixir_object__.
-
-abstract_mixins(#elixir_object__{mixins=Mixins}) ->
-  Mixins;
-
-abstract_mixins(Name) ->
-  proplists:get_value(mixins, elixir_constants:lookup(Name, attributes)).
 
 % Builtin mixins
 
