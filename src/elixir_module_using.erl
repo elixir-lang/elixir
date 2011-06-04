@@ -1,5 +1,5 @@
 % Holds implementation for most Module::Using methods.
--module(elixir_module_methods).
+-module(elixir_module_using).
 -export([mixin/2, get_visibility/1, set_visibility/2, alias_local/5, define_erlang_method/6, module_eval/4]).
 -include("elixir.hrl").
 

@@ -7,7 +7,7 @@ module Module
   % definition with the *using* feature.
   module Using
     def mixin(module)
-      Erlang.elixir_module_methods.mixin(self, module)
+      Erlang.elixir_module_using.mixin(self, module)
     end
 
     % Delegate the given methods to the given expression.
@@ -97,17 +97,17 @@ module Module
 
     % Returns the current method visibility.
     def __visibility__
-      Erlang.elixir_module_methods.get_visibility(self)
+      Erlang.elixir_module_using.get_visibility(self)
     end
 
     % Mark all methods defined next as public.
     def public
-      Erlang.elixir_module_methods.set_visibility(self, 'public)
+      Erlang.elixir_module_using.set_visibility(self, 'public)
     end
 
     % Mark all methods defined next as private.
     def private
-      Erlang.elixir_module_methods.set_visibility(self, 'private)
+      Erlang.elixir_module_using.set_visibility(self, 'private)
     end
 
     % Receives a file, line and evaluates the given string in the context
@@ -128,19 +128,19 @@ module Module
     %     end
     % 
     def module_eval(file, line, string)
-      Erlang.elixir_module_methods.module_eval(self, string, file, line)
+      Erlang.elixir_module_using.module_eval(self, string, file, line)
     end
 
     % Allow to add a method to the module using Erlang's abstract form.
     % The method automatically receives self as first argument.
     def define_erlang_method(file, line, method, arity, clauses)
-      Erlang.elixir_module_methods.define_erlang_method(self, file, line, method, arity, clauses)
+      Erlang.elixir_module_using.define_erlang_method(self, file, line, method, arity, clauses)
     end
 
     % Alias a local method. Aliasing a method defined in another module is done
     % by delegation.
     def alias_local(old, new, arity)
-      Erlang.elixir_module_methods.alias_local(self, __FILE__, old, new, arity)
+      Erlang.elixir_module_using.alias_local(self, __FILE__, old, new, arity)
     end
   end
 
@@ -275,7 +275,7 @@ module Module
     end
 
     % Set the following methods to private.
-    Erlang.elixir_module_methods.set_visibility(self, 'private)
+    Erlang.elixir_module_using.set_visibility(self, 'private)
 
     def filter_stacktrace(stacktrace)
       filter_stacktrace(stacktrace, [])
