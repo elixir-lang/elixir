@@ -116,11 +116,8 @@ bind(#elixir_slate__{module=[]} = Left, Right, Args) ->
   Bound = Left#elixir_slate__{module=Module},
   apply(Module, '__bound__', [Bound|Args]);
 
-bind(#elixir_slate__{} = Self, Right, Args) ->
-  elixir_errors:error({already_bound, {Self,Right,Args}});
-
 bind(Self, Right, Args) ->
-  elixir_errors:error({binding_not_allowed, {Self,Right,Args}}).
+  elixir_errors:error({already_bound, {Self,Right,Args}}).
 
 check_module(#elixir_module__{}) -> [];
 check_module(Else) -> elixir_errors:error({not_a_module, Else}).

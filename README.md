@@ -1410,6 +1410,8 @@ After the module is bound, `self` in a method will point to the bound structure.
 
 All built-in data types will already be bound to a given module. For instance, all integers are bound to the `Integer::Behavior` module. That's where methods like `abs` and `+` seen previously are implemented.
 
+NOTE: Elixir currently only allows you to bind only one module in an object. This means the example above `1#DurationExtensions` won't work because `1` is already bound to `Integer::Behavior`. This will be fixed in future releases.
+
 #### Custom data structures with blank slates
 
 The built-in data types of a language are important but a language needs to allows us to provide our own data types. This is achieved by binding a module to a blank slate:
@@ -1651,7 +1653,7 @@ Elixir has basic support for guards. They can be used on method declaration, `re
     def abs(x) when x < 0
       - x
     end
-
+    
     def abs(x)
       x
     end
@@ -1729,20 +1731,18 @@ Elixir can compile to native code using the Hipe compiler. All you need to do is
 
 Elixir allows you to import records from Erlang code. Here is an example that imports the `file_info` record available in the `kernel` module:
 
-    Code.require "record"
-
     module FileInfo
       mixin Record
       record 'file_info, 'from_lib: "kernel/include/file.hrl"
     end
-
+    
     % Manually access the Erlang file:read_file_info method
     % passing the current file as a char list.
     { 'ok, info } = Erlang.file.read_file_info(__FILE__.to_char_list)
-
+    
     % Create a new FileInfo object based on the tuple returned above
     record = #FileInfo(info)
-
+    
     % Profit by accessing the record info
     record.access % => 'read_write
 

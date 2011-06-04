@@ -11,7 +11,7 @@ module BindTest
 
   % TODO: Test exceptions
   % TODO: Make parens optional
-  % TODO: Test inspect
+  % TODO: Test inspect (including on BlankSlate)
 
   def bind_test
     1 = Module.blank_slate#BindMath().one
