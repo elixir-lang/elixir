@@ -1839,7 +1839,7 @@ Finally, in catch expressions it works as follow:
 
 Guards only supports arithmetic operators on numbers, comparison operators and the following boolean operators: `or`, `orelse`, `and`, `andalso` and `not`.
 
-## Dynamic Dispatch, Reflection, Metaprogramming and Method Missing
+## Dynamic Dispatch and Metaprogramming
 
 Elixir allows you to dynamically dispatch methods:
 
@@ -1876,26 +1876,6 @@ The real benefit is when you encapsulate it inside a method. For example, the de
         @('title: title, 'author: author)
       end
     end
-
-Finally, Elixir also has a hook that allows you to dynamically invoke a method when one does not exist. This hook is a method called `method_missing` and receives a method and a list of parameters as arguments:
-
-    object Shouter
-      % Methods called without arguments will be handled here
-      def method_missing(method, [])
-        IO.puts "#{method}!!!"
-      end
-
-      % Call default behavior
-      def method_missing(method, args)
-        super method, args
-      end
-    end
-
-    shouter = Shouter.new
-    shouter.hello % => "hello!!!"
-    shouter.bye? % => "bye?!!!"
-
-Notice the example above also calls `super` which allows you to call the next method with the same name in the mixins chain.
 
 #### Documentation
 
