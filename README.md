@@ -81,7 +81,7 @@ And it works again! Notice we used the extension `.exs` instead of `.ex` here. T
 
     bin/elixirc hello.exs -o .
 
-When you do that, you can see that "Hello World" is printed as well. This is because Elixir actually execute the files to compile them. This is the key to many Elixir features, as we are going to see later.
+When you do that, you can see that "Hello World" is printed as well. This is because Elixir actually executes the files to compile them. This is the key to many Elixir features, as we are going to see later.
 
 Also notice that Elixir also ships with an interactive console that you can use for most examples in this tutorial, you can start it with:
 
