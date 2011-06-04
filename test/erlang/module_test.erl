@@ -218,10 +218,6 @@ local_call_does_not_look_at_outer_modules_test() ->
 cannot_lookup_not_stored_constants_test() ->
   ?assertError({noconstant, 'FooBarBaz' }, elixir:eval("FooBarBaz")).
 
-reserved_modules_test() ->
-  ?assertError({reservedmodulename, 'Example::Mixin'}, elixir:eval("module Example::Mixin; end")),
-  ?assertError({reservedmodulename, 'Example::Proto'}, elixir:eval("module Example::Proto; end")).
-
 %% Super
 
 super_call_test() ->
@@ -246,7 +242,7 @@ invalid_super_call_test() ->
 added_as_mixin_callback_test() ->
   F = fun() ->
     elixir:eval("module Foo; def __added_as_mixin__(base); base.set_ivar('foo, 2); end; end"),
-    {2,[]} = elixir:eval("object Bar; mixin Foo; @foo; end")
+    {2,[]} = elixir:eval("module Bar; mixin Foo; @foo; end")
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
 

@@ -35,7 +35,7 @@ module FunctionTest
 
   def anonymous_receiver_function_test
     fun = _.arity
-    'Function = fun.__parent_name__
+    'Function::Behavior = fun.__module_name__
     1 = fun.(-> (a) a)
 
     sum = _.+(2)

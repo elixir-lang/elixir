@@ -19,11 +19,6 @@ module RecordTest
     nil      = record.access
   end
 
-  def record_constructor_with_invalid_object_test
-    invalid = [1,2,3]
-    self.assert_error {'badarg, invalid}, -> #RecordTest::FileInfo(invalid)
-  end
-
   def record_constructor_with_invalid_tuple_name_test
     invalid = {'elixir_another,1,2,3,4,5,6}
     self.assert_error {'badrecord, invalid}, -> #RecordTest::ElixirScope(invalid)
