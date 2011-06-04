@@ -15,11 +15,6 @@ module OrderedDict
     { 'elixir_orddict__, Erlang.orddict.new() }
   end
 
-  % Return a new Elixir OrderedDict given the dictionary.
-  def new(orddict)
-    { 'elixir_orddict__, orddict }
-  end
-
   module Behavior
     % Updates the given *key* in list according to te given *function*.
     % If no key exist, raises an error. You can use update/3 if you want
@@ -32,7 +27,7 @@ module OrderedDict
     %     new_dict['vowels] % => ['a, 'e, 'i, 'o, 'u]
     %
     def update(key, function)
-      OrderedDict.new Erlang.orddict.update(key, function, orddict)
+      new Erlang.orddict.update(key, function, orddict)
     end
 
     % Merge one dict into the other.
@@ -43,7 +38,7 @@ module OrderedDict
     %
     def merge(other)
       function = -> (_k, _v1, v2) v2
-      OrderedDict.new Erlang.orddict.merge(function, orddict, other.to_list)
+      new Erlang.orddict.merge(function, orddict, other.to_list)
     end
 
     % Merge one dict into the other according to the given function. The function
@@ -58,7 +53,7 @@ module OrderedDict
     %     { 'a: 1, 'b: 2 } = { 'a: 1 }.merge { 'b: 2, 'a: 3 }, -> (_k, v1, _v2) v1
     %
     def merge(other, function)
-      OrderedDict.new Erlang.orddict.merge(function, orddict, other.to_list)
+      new Erlang.orddict.merge(function, orddict, other.to_list)
     end
 
     % The same as update/2, but if no value exists, *initial* is used.
@@ -72,7 +67,7 @@ module OrderedDict
     %     dict['values]  % => [1]
     %
     def update(key, initial, function)
-      OrderedDict.new Erlang.orddict.update(key, function, initial, orddict)
+      new Erlang.orddict.update(key, function, initial, orddict)
     end
 
     % Retrieves the given key from the OrderedDict. Returns [] if key does not exist.
@@ -83,11 +78,7 @@ module OrderedDict
     %     { 1: 2, 3: 4}[5]  % => []
     %
     def [](key)
-      case Erlang.orddict.find(key, orddict)
-      match {'ok, value}
-        value
-      match 'error
-      end
+      Erlang.elixir_helpers.orddict_find(key, orddict)
     end
     alias_local '[], 'get, 1
 
@@ -113,7 +104,7 @@ module OrderedDict
     %     {}.set('a, 'b)  % => { 'a: 'b }
     %
     def set(key, value)
-      OrderedDict.new Erlang.orddict.store(key, value, orddict)
+      new Erlang.orddict.store(key, value, orddict)
     end
     alias_local 'set, 'store, 2
 
@@ -158,7 +149,7 @@ module OrderedDict
     %     { 'a: 1, 'b: 2 }.delete 'a  % => { 'b: 2 }
     %
     def delete(key)
-      OrderedDict.new Erlang.orddict.erase(key, orddict)
+      new Erlang.orddict.erase(key, orddict)
     end
 
     % Calls the given *function* for each key and value. Returns a List
@@ -175,7 +166,7 @@ module OrderedDict
     %     new_dict % => { 'a: 2, 'b: 4 }
     %
     def map(function)
-      OrderedDict.new Erlang.orddict.map(function, orddict)
+      new Erlang.orddict.map(function, orddict)
     end
 
     % Loops for each key-value pair in the dictionary.
@@ -223,6 +214,10 @@ module OrderedDict
     end
 
     private
+
+    def new(orddict)
+      { 'elixir_orddict__, orddict }
+    end
 
     def inspect([])
       "{}"
