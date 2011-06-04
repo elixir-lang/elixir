@@ -63,7 +63,7 @@ Now, we can compile this file to the current directory:
 
     bin/elixirc hello.ex -o .
 
-Notice that some .beam files were added to the current directory with the compiled code. We can execute it by invoking the method `world` in the module `Hello` in the same directory:
+Notice that a .beam file was added to the current directory with the compiled code. We can execute it by invoking the method `world` in the module `Hello` in the same directory:
 
     bin/elixir -e "Hello.world"
 
@@ -81,9 +81,9 @@ And it works again! Notice we used the extension `.exs` instead of `.ex` here. T
 
     bin/elixirc hello.exs -o .
 
-When you do that, you can see that "Hello World" is printed as well. This is because Elixir actually execute the files to compile them. This is the key to many Elixir features, as we are going to see later.
+When you do that, you can see that "Hello World" is printed as well. This is because Elixir actually executes the files to compile them. This is the key to many Elixir features, as we are going to see later.
 
-Also notice that Elixir also ships with an interactive console that you can use for most examples in this tutorial, you can start it with:
+Also notice that Elixir ships with an interactive console that you can use for most examples in this tutorial, you can start it with:
 
     bin/iex
 
@@ -312,7 +312,7 @@ In general, everything that applies to Erlang bit string applies to Elixir bit s
 
 #### Documentation
 
-* <https://github.com/josevalim/elixir/tree/master/lib/bit string.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/bit_string.ex>
 * <http://www.erlang.org/doc/programming_examples/bit_syntax.html>
 
 ### Strings
@@ -394,7 +394,7 @@ You can also represent functions in one line, without a need for the closing key
     another_function = -> (x, y) x * y
     another_function.call(1, 2) % => 2
 
-Notice that, whenever using one-line functions, if you need parenthesis inside the expression, you are required to give empty parenthesis arguments, for example:
+Notice that, whenever using one-line functions, if you need parentheses inside the expression, you are required to give empty parentheses arguments, for example:
 
     % This works as expected:
     my_function = -> 1 + 2
@@ -406,11 +406,11 @@ Notice that, whenever using one-line functions, if you need parenthesis inside t
     % This works as well:
     my_function = -> () (1 + 2)
 
-In the second case, it is ambiguous if the parenthesis is part of the argument list or the function expressions. This is why you either need to remove parenthesis (as in the first example) or add empty parenthesis (as in the third example). This syntax quickly proves to be very convenient:
+In the second case, it is ambiguous if the parentheses is part of the argument list or the function expressions. This is why you either need to remove parentheses (as in the first example) or add empty parentheses (as in the third example). This syntax quickly proves to be very convenient:
 
     [1,2,3].map(-> (x) x * 2)   % => [2,4,6]
 
-In the example above, we are calling .map passing a function as argument. If we remove the optional parenthesis:
+In the example above, we are calling .map passing a function as argument. If we remove the optional parentheses:
 
     [1,2,3].map -> (x) x * 2   % => [2,4,6]
 
@@ -420,7 +420,7 @@ Other examples using the multiline syntax:
       acc + x
     end) % => 6
 
-Again, removing the parenthesis, improves readability:
+Again, removing the parentheses, improves readability:
 
     [1,2,3].foldl 0, do (x, acc)
       acc + x
@@ -431,7 +431,7 @@ Elixir also provides a shortcut syntax to invoke functions that is usually faste
     my_function = -> (x, y) x + y
     my_function.(1, 2) % => 3
 
-In such cases, parenthesis are always required.
+In such cases, parentheses are always required.
 
 Another useful extension Elixir adds to functions is the easy generation of anonymous functions. For instance, suppose you have a list of cars and you want to get their names. A way to do that would be:
 
@@ -457,7 +457,7 @@ Currently, functions do not support partial applications or pipes, but such feat
 
 ## Variables and Pattern Matching
 
-Variables in Elixir works differently from Erlang. You can assigned to them several times:
+Variables in Elixir work differently from Erlang. You can assign values to the same variable several times:
 
     x = 1
     x = 2
