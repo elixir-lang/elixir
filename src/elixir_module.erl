@@ -134,7 +134,7 @@ build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
 
 mixins_function(Line, Filename, Object) ->
   % TODO: Make using a feature of the language
-  % TODO: Don't raise if mixins is defined
+  % TODO: Have an explicit way to ensure __elixir_mixins__ will not conflict
   Mixins = lists:delete('Module::Using', destructive_read(Object#elixir_module__.data, mixins)),
   { MixinsTree, [] } = elixir_tree_helpers:build_list(fun(X,Y) -> {{atom,Line,X},Y} end, Mixins, Line, []),
   { function, Line, '__elixir_mixins__', 0,

@@ -700,15 +700,16 @@ transform({bc, Line, Elements, Cases}, S) ->
 % variables declared in a module do not leak outside its
 % context. The only variable available in the module by default
 % is self.
-transform({Kind, Line, Name, Parent, Exprs}, S) when Kind == object; Kind == module->
+transform({module, Line, Name, Parent, Exprs}, S) ->
   case S#elixir_scope.method of
     [] -> 
       {_, Current} = S#elixir_scope.scope,
       NewName = elixir_module:scope_for(Current, Name),
-      { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],scope={Kind, NewName}}),
-      { elixir_module:transform(Kind, Line, NewName, Parent, TExprs, S), S };
+      % TODO: Remove module from scope.
+      { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],scope={module, NewName}}),
+      { elixir_module:transform(module, Line, NewName, Parent, TExprs, S), S };
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for " ++ atom_to_list(Kind))
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for " ++ atom_to_list(module))
   end;
 
 % Handles __FILE__
