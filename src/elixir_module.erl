@@ -147,7 +147,8 @@ add_extra_function(Exported, Functions, Pair, Contents) ->
     false -> { [Pair|Exported], [Contents|Functions] }
   end.
 
-module_function(Line, #elixir_module__{name=Name, data=Data}) ->
+module_function(Line, #elixir_module__{name=Name, data=AttributeTable}) ->
+  Data = ets:lookup_element(AttributeTable, data, 2),
   Snapshot = #elixir_module__{name=?ELIXIR_ERL_MODULE(Name), data=Data},
   Reverse = elixir_tree_helpers:abstract_syntax(Snapshot),
   { function, Line, '__module__', 1,

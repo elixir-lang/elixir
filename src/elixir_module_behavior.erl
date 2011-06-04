@@ -1,6 +1,6 @@
 % Holds implementation for most Module::Behavior methods.
 -module(elixir_module_behavior).
--export([is_module/1, module_name/1, module/1, mixins/1, data/1,
+-export([is_module/1, module_name/1, mixins/1, data/1,
   slate_bind/2, bind/3,
   get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4]).
 -include("elixir.hrl").
@@ -13,9 +13,6 @@ module_name(Native) -> ?ELIXIR_EX_MODULE(elixir_dispatch:builtin_mixin(Native)).
 
 is_module(#elixir_module__{}) -> true;
 is_module(_) -> false.
-
-module(#elixir_module__{} = Self) -> Self;
-module(Else) -> elixir_constants:lookup(module_name(Else)).
 
 mixins(#elixir_module__{data=Data}) when is_atom(Data) ->
   try

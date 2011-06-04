@@ -15,6 +15,10 @@ module Module
     def __mixins__
       Erlang.elixir_module_behavior.mixins(self)
     end
+
+    def __module__
+      self
+    end
   end
 
   % This module is included temporarily during method
@@ -159,10 +163,6 @@ module Module
   end
 
   module Behavior
-    def __module__
-      Erlang.elixir_module_behavior.module(self)
-    end
-
     def __module__?
       Erlang.elixir_module_behavior.is_module(self)
     end
