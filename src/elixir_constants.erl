@@ -7,7 +7,7 @@
 lookup(RawName) ->
   Name = ?ELIXIR_ERL_MODULE(RawName),
   case code:ensure_loaded(Name) of
-    {module, Name} -> elixir_object:build(Name);
+    {module, Name} -> elixir_module:build(Name);
     _ -> elixir_errors:error({noconstant, RawName})
   end.
 

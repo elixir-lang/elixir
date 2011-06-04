@@ -1,29 +1,30 @@
 % Holds implementation for most Module::Behavior methods.
 -module(elixir_module_behavior).
--export([is_module/1, module_name/1, module/1, mixins/1, data/1, builtin_mixin/1,
+-export([is_module/1, module_name/1, module/1, mixins/1, data/1,
+  slate_bind/2, bind/3, builtin_mixin/1,
   get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4]).
 -include("elixir.hrl").
 
 % Introspection
 
 module_name(#elixir_slate__{module=Module})  -> ?ELIXIR_EX_MODULE(Module);
-module_name(#elixir_object__{name=Module})   -> ?ELIXIR_EX_MODULE(Module);
+module_name(#elixir_module__{name=Module})   -> ?ELIXIR_EX_MODULE(Module);
 module_name(Native) -> ?ELIXIR_EX_MODULE(builtin_mixin(Native)).
 
-is_module(#elixir_object__{}) -> true;
+is_module(#elixir_module__{}) -> true;
 is_module(_) -> false.
 
-module(#elixir_object__{} = Self) -> Self;
+module(#elixir_module__{} = Self) -> Self;
 module(Else) -> elixir_constants:lookup(module_name(Else)).
 
-mixins(#elixir_object__{data=Data}) when is_atom(Data) ->
+mixins(#elixir_module__{data=Data}) when is_atom(Data) ->
   try
     ets:lookup_element(Data, mixins, 2)
   catch
     error:badarg -> []
   end;
 
-mixins(#elixir_object__{name=Name}) ->
+mixins(#elixir_module__{name=Name}) ->
   Name:'__elixir_mixins__'();
 
 mixins(Native) -> % TODO: This needs to be properly tested.
@@ -32,10 +33,10 @@ mixins(Native) -> % TODO: This needs to be properly tested.
 data(#elixir_slate__{data=Data}) ->
   Data;
 
-data(#elixir_object__{data=Data}) when not is_atom(Data) ->
+data(#elixir_module__{data=Data}) when not is_atom(Data) ->
   Data;
 
-data(#elixir_object__{data=Data}) ->
+data(#elixir_module__{data=Data}) ->
   try
     ets:lookup_element(Data, data, 2)
   catch
@@ -72,13 +73,13 @@ set_ivar_dict(_, Name, _, _) when not is_atom(Name) ->
 set_ivar_dict(#elixir_slate__{data=Dict} = Self, Name, _, Function) ->
   Self#elixir_slate__{data=Function(Dict)};
 
-set_ivar_dict(#elixir_object__{data=Dict} = Self, Name, _, Function) when not is_atom(Dict) ->
-  Self#elixir_object__{data=Function(Dict)};
+set_ivar_dict(#elixir_module__{data=Dict} = Self, Name, _, Function) when not is_atom(Dict) ->
+  Self#elixir_module__{data=Function(Dict)};
 
-set_ivar_dict(#elixir_object__{data=Data} = Self, Name, _, Function) ->
+set_ivar_dict(#elixir_module__{data=Data} = Self, Name, _, Function) ->
   Dict = ets:lookup_element(Data, data, 2),
-  Object = Self#elixir_object__{data=Function(Dict)},
-  ets:insert(Data, { data, Object#elixir_object__.data }),
+  Object = Self#elixir_module__{data=Function(Dict)},
+  ets:insert(Data, { data, Object#elixir_module__.data }),
   Object;
 
 set_ivar_dict(Self, _, Method, _) ->
@@ -97,6 +98,32 @@ assert_dict_with_atoms(Data) ->
 % Raise builtinnotallowed error with the given reason:
 builtinnotallowed(Builtin, Reason) ->
   elixir_errors:error({builtinnotallowed, {Reason, Builtin}}).
+
+% Binding
+
+% TODO: assert_same
+% TODO: provide __bind__ method
+
+slate_bind(Right, Args) ->
+  check_module(Right),
+  Module = Right#elixir_module__.name,
+  Bound = #elixir_slate__{module=Module},
+  apply(Module, '__bound__', [Bound|Args]).
+
+bind(#elixir_slate__{module=[]} = Left, Right, Args) ->
+  check_module(Right),
+  Module = Right#elixir_module__.name,
+  Bound = Left#elixir_slate__{module=Module},
+  apply(Module, '__bound__', [Bound|Args]);
+
+bind(#elixir_slate__{} = Self, Right, Args) ->
+  elixir_errors:error({already_bound, {Self,Right,Args}});
+
+bind(Self, Right, Args) ->
+  elixir_errors:error({binding_not_allowed, {Self,Right,Args}}).
+
+check_module(#elixir_module__{}) -> [];
+check_module(Else) -> elixir_errors:error({not_a_module, Else}).
 
 % Builtin mixins
 

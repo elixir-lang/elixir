@@ -13,22 +13,22 @@ mixin(Self, Value) ->
   update_mixins_chain(Self, umerge(NewMixins, CurrentMixins)),
   elixir_dispatch:dispatch(Value, '__added_as_mixin__', [Self]).
 
-update_mixins_chain(#elixir_object__{data=Data} = Self, Chain) when is_atom(Data) ->
+update_mixins_chain(#elixir_module__{data=Data} = Self, Chain) when is_atom(Data) ->
   ets:insert(Data, {mixins, Chain}).
 
-check_module(#elixir_object__{}) -> [];
+check_module(#elixir_module__{}) -> [];
 check_module(Else) -> elixir_errors:error({not_a_module, Else}).
 
 % Visibility
 
-set_visibility(#elixir_object__{name=Name, data=Data}, Visibility) when is_atom(Data) ->
+set_visibility(#elixir_module__{name=Name, data=Data}, Visibility) when is_atom(Data) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:insert(MethodTable, { visibility, Visibility });
 
 set_visibility(Self, Visibility) ->
   elixir_errors:error({moduledefined, { set_visibility, Self }}).
 
-get_visibility(#elixir_object__{name=Name, data=Data}) when is_atom(Data) ->
+get_visibility(#elixir_module__{name=Name, data=Data}) when is_atom(Data) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   ets:lookup_element(MethodTable, visibility, 2);
 
@@ -37,7 +37,7 @@ get_visibility(Self) ->
 
 % alias_local
 
-alias_local(#elixir_object__{name=Name, data=Data} = Self, Filename, Old, New, ElixirArity) when is_atom(Data) ->
+alias_local(#elixir_module__{name=Name, data=Data} = Self, Filename, Old, New, ElixirArity) when is_atom(Data) ->
   Arity = ElixirArity + 1,
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
   case ets:lookup(MethodTable, { Old, Arity }) of
@@ -52,18 +52,18 @@ alias_local(Self, _, _, _, _) ->
 
 % module_eval
 
-module_eval(#elixir_object__{name=Name, data=Data} = Self, String, Filename, Line) when is_atom(Data) ->
+module_eval(#elixir_module__{name=Name, data=Data} = Self, String, Filename, Line) when is_atom(Data) ->
   Scope = #elixir_scope{scope={object_kind(Self), Name}},
   elixir:eval(to_char_list(String), [{self,Self}], to_char_list(Filename), Line, Scope);
 
 module_eval(Self, _, _, _) ->
   elixir_errors:error({moduledefined, { module_eval, Self }}).
 
-object_kind(#elixir_object__{}) -> module.
+object_kind(#elixir_module__{}) -> module.
 
 % define_erlang_methods
 
-define_erlang_method(#elixir_object__{name=Name, data=Data} = Self, Filename, Line, Method, Arity, Clauses) when is_atom(Data)->
+define_erlang_method(#elixir_module__{name=Name, data=Data} = Self, Filename, Line, Method, Arity, Clauses) when is_atom(Data)->
   TClauses = lists:map(fun expand_clauses/1, Clauses),
   elixir_def_method:store_wrapped_method(Self, Name, to_char_list(Filename), {function, Line, Method, Arity + 1, TClauses}, []);
 

@@ -11,10 +11,10 @@
 mixin_methods(#elixir_slate__{module=Module}) ->
   convert_methods(Module:module_info(exports));
 
-mixin_methods(#elixir_object__{data=Data} = Self) when is_atom(Data) ->
+mixin_methods(#elixir_module__{data=Data} = Self) when is_atom(Data) ->
   calculate_methods(Self, fun owner_methods/1, elixir_module_behavior:mixins(Self), []);
 
-mixin_methods(#elixir_object__{name=Module}) ->
+mixin_methods(#elixir_module__{name=Module}) ->
   convert_methods(Module:module_info(exports));
 
 mixin_methods(Self) ->

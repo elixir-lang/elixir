@@ -41,10 +41,10 @@ method_missing(Object, Args) ->
 find_module(#elixir_slate__{module=Module}, Method, Arity) ->
   Module;
 
-find_module(#elixir_object__{name=Module,data=Data}, Method, Arity) when not is_atom(Data) ->
+find_module(#elixir_module__{name=Module,data=Data}, Method, Arity) when not is_atom(Data) ->
   Module;
 
-find_module(#elixir_object__{} = Object, Method, Arity) ->
+find_module(#elixir_module__{} = Object, Method, Arity) ->
   Chain = elixir_module_behavior:mixins(Object),
   find_module_chain(Chain, Method, Arity);
 

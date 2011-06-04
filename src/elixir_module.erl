@@ -1,4 +1,4 @@
--module(elixir_object).
+-module(elixir_module).
 -export([build/1, scope_for/2, transform/6, compile/7]).
 -include("elixir.hrl").
 
@@ -28,7 +28,7 @@ build_template(Kind, Name, Template) ->
   ets:insert(AttributeTable, { mixins, Mixins }),
   ets:insert(AttributeTable, { data,   Data }),
 
-  Object = #elixir_object__{name=Name, data=AttributeTable},
+  Object = #elixir_module__{name=Name, data=AttributeTable},
   { Object, AttributeTable, { Mixins, [] } }.
 
 % Default mixins based on the declaration type.
@@ -38,7 +38,7 @@ default_mixins(module, _Name)          -> ['Module::Using', 'Module::Behavior'].
 
 % Returns the default data from parents.
 default_data([])       -> orddict:new();
-default_data(Template) -> Template#elixir_object__.data.
+default_data(Template) -> Template#elixir_module__.data.
 
 %% USED ON TRANSFORMATION AND MODULE COMPILATION
 
@@ -94,10 +94,10 @@ compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
 
 % Handle compilation logic specific to objects or modules.
 compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
-  Name = Module#elixir_object__.name,
+  Name = Module#elixir_module__.name,
 
   % Update mixins to have the module itself
-  AttributeTable = Module#elixir_object__.data,
+  AttributeTable = Module#elixir_module__.data,
   Mixins = ets:lookup_element(AttributeTable, mixins, 2),
   ets:insert(AttributeTable, { mixins, [Name|Mixins] }),
 
@@ -113,14 +113,14 @@ compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
 compile_module(Line, Filename, Module, MethodTable) ->
   Functions = elixir_def_method:unwrap_stored_methods(MethodTable),
   load_form(build_module_form(Line, Filename, Module, Functions), Filename),
-  ets:delete(Module#elixir_object__.data),
+  ets:delete(Module#elixir_module__.data),
   ets:delete(MethodTable).
 
 % Build a module form. The difference to an object form is that we need
 % to consider method related attributes for modules.
 % TODO: Cache __module_name__, exported functions and snapshot
 build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
-  ModuleName = ?ELIXIR_ERL_MODULE(Object#elixir_object__.name),
+  ModuleName = ?ELIXIR_ERL_MODULE(Object#elixir_module__.name),
   Export = Public ++ Inherited,
 
   Extra = [
@@ -135,15 +135,15 @@ build_module_form(Line, Filename, Object, {Public, Inherited, Functions}) ->
 mixins_function(Line, Filename, Object) ->
   % TODO: Make using a feature of the language
   % TODO: Don't raise if mixins is defined
-  Mixins = lists:delete('Module::Using', destructive_read(Object#elixir_object__.data, mixins)),
+  Mixins = lists:delete('Module::Using', destructive_read(Object#elixir_module__.data, mixins)),
   { MixinsTree, [] } = elixir_tree_helpers:build_list(fun(X,Y) -> {{atom,Line,X},Y} end, Mixins, Line, []),
   { function, Line, '__elixir_mixins__', 0,
     [{ clause, Line, [], [], [MixinsTree]}]
   }.
 
 build_erlang_form(Line, Filename, Object, Extra) ->
-  Name = Object#elixir_object__.name,
-  AttributeTable = Object#elixir_object__.data,
+  Name = Object#elixir_module__.name,
+  AttributeTable = Object#elixir_module__.data,
   Data = destructive_read(AttributeTable, data),
 
   % TODO Analyze all the attributes being passed.
@@ -181,7 +181,7 @@ destructive_read(Table, Attribute) ->
   Value.
 
 build_snapshot(Name, Data) ->
-  #elixir_object__{name=?ELIXIR_ERL_MODULE(Name), data=Data}.
+  #elixir_module__{name=?ELIXIR_ERL_MODULE(Name), data=Data}.
 
 no_auto_import() ->
   {no_auto_import, [

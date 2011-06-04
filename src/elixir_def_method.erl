@@ -60,7 +60,7 @@ store_wrapped_method(Self, Module, Filename, OriginalMethod, Defaults) ->
   try
     Arity = element(4, Method),
     Constant = elixir_constants:lookup('UnboundMethod::Behavior'),
-    elixir_bind:slate_bind(Constant, [?ELIXIR_ERL_MODULE(Self#elixir_object__.name), Name, Arity - 1])
+    elixir_module_behavior:slate_bind(Constant, [?ELIXIR_ERL_MODULE(Self#elixir_module__.name), Name, Arity - 1])
   catch
     error:{noconstant,'UnboundMethod::Behavior'} -> []
   end.
@@ -80,7 +80,7 @@ unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
 
 % Receives a method table and adds the given What from Object in it.
 % TODO Maybe this could be done by simply using the import directive?
-flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) ->
+flat_module(Object, Line, What, #elixir_module__{name=ModuleName}, MethodTable) ->
   SelfModules = elixir_module_behavior:What(Object),
   Modules = lists:delete('Module::Using', lists:delete(ModuleName, SelfModules)),
 

@@ -13,13 +13,13 @@
   _ -> Name
 end).
 
-% Representation for Elixir Objects. The elixir_object__ holds
+% Representation for Elixir Objects. The elixir_module__ holds
 % the general represenation and contains:
 %
 %   1) An Atom 'name that represents the constant assigned to the object
 %   2) Data holds the remaining information for the object.
 %
--record(elixir_object__, {name=nil, data=[] }).
+-record(elixir_module__, {name=nil, data=[] }).
 
 % Represents an elixir slate. It holds the binding module and data.
 -record(elixir_slate__, {module=[], data=[] }).

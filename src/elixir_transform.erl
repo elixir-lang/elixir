@@ -200,14 +200,14 @@ transform({bind_call, Line, [], Right, Args}, S) ->
   { TRight, SR } = transform(Right, S),
   { TArgs, SA } = transform_tree(Args, umergec(S, SR)),
   FArgs = elixir_tree_helpers:build_simple_list(Line, TArgs),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_bind, slate_bind, [TRight, FArgs]), umergev(SR,SA) };
+  { ?ELIXIR_WRAP_CALL(Line, elixir_module_behavior, slate_bind, [TRight, FArgs]), umergev(SR,SA) };
 
 transform({bind_call, Line, Left, Right, Args}, S) ->
   { TLeft,  SL } = transform(Left, S),
   { TRight, SR } = transform(Right, umergec(S, SL)),
   { TArgs,  SA } = transform_tree(Args, umergec(S, SR)),
   FArgs = elixir_tree_helpers:build_simple_list(Line, TArgs),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_bind, bind, [TLeft, TRight, FArgs]), umergev(SL, umergev(SR,SA)) };
+  { ?ELIXIR_WRAP_CALL(Line, elixir_module_behavior, bind, [TLeft, TRight, FArgs]), umergev(SL, umergev(SR,SA)) };
 
 % Reference to a constant (that should then be loaded).
 %
@@ -704,9 +704,9 @@ transform({Kind, Line, Name, Parent, Exprs}, S) when Kind == object; Kind == mod
   case S#elixir_scope.method of
     [] -> 
       {_, Current} = S#elixir_scope.scope,
-      NewName = elixir_object:scope_for(Current, Name),
+      NewName = elixir_module:scope_for(Current, Name),
       { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],scope={Kind, NewName}}),
-      { elixir_object:transform(Kind, Line, NewName, Parent, TExprs, S), S };
+      { elixir_module:transform(Kind, Line, NewName, Parent, TExprs, S), S };
     _ ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for " ++ atom_to_list(Kind))
   end;
