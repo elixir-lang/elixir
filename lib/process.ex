@@ -40,7 +40,7 @@ module Process
     Erlang.registered
   end
 
-  module Instance
+  module Behavior
     % Sends a message to the Pid. This is the equivalent to Erlang's !.
     % This method is also aliased as dispatch.
     def <-(message)

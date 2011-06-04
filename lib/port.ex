@@ -1,4 +1,4 @@
 module Port
-  module Instance
+  module Behavior
   end
 end

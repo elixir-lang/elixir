@@ -56,13 +56,13 @@ module GenTCP
   def init_socket(result)
     case result
     match { 'ok, socket }
-      { 'ok, #GenTCP::Instance(socket) }
+      { 'ok, #GenTCP::Behavior(socket) }
     match other
       other
     end
   end
 
-  module Instance
+  module Behavior
     def __bound__(socket)
       @('socket: socket)
     end

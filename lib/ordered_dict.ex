@@ -20,7 +20,7 @@ module OrderedDict
     { 'elixir_orddict__, orddict }
   end
 
-  module Instance
+  module Behavior
     % Updates the given *key* in list according to te given *function*.
     % If no key exist, raises an error. You can use update/3 if you want
     % to set an initial value if none exists.

@@ -1,5 +1,5 @@
 module Function
-  module Instance
+  module Behavior
     % Dynamically define call and [] as methods that receives
     % up to 20 arguments and forward them to the function.
     20.times [], do (i, acc)

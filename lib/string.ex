@@ -11,7 +11,7 @@
 %
 % TODO: We need to inherit from BitString once we have inheritance.
 module String
-  module Instance
+  module Behavior
     % Retrieves a number that represents the given character.
     %
     % ## Examples

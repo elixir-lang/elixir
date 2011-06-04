@@ -1,5 +1,5 @@
 module UnboundMethod
-  module Instance
+  module Behavior
     attr_reader ['owner, 'name, 'arity]
 
     def __bound__(owner, name, arity)
@@ -7,7 +7,7 @@ module UnboundMethod
     end
 
     def bind(object)
-      #Method::Instance(object, @owner, name, arity)
+      #Method::Behavior(object, @owner, name, arity)
     end
 
     def apply_to(object, args)

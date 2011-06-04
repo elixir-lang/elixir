@@ -1,5 +1,5 @@
 module BitString
-  module Instance
+  module Behavior
     def to_list
       Erlang.binary_to_list(self)
     end

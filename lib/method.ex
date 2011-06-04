@@ -1,5 +1,5 @@
 module Method
-  module Instance
+  module Behavior
     attr_reader ['binding, 'owner, 'name, 'arity]
 
     % Dynamically define call and [] as methods that receives

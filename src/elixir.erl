@@ -37,18 +37,18 @@ start() ->
 
 builtin_mixins() ->
   [
-    'exInteger::Instance',
-    'exFloat::Instance',
-    'exAtom::Instance',
-    'exList::Instance',
-    'exString::Instance',
-    'exBitString::Instance',
-    'exOrderedDict::Instance',
-    'exTuple::Instance',
-    'exFunction::Instance',
-    'exProcess::Instance',
-    'exReference::Instance',
-    'exPort::Instance'
+    'exInteger::Behavior',
+    'exFloat::Behavior',
+    'exAtom::Behavior',
+    'exList::Behavior',
+    'exString::Behavior',
+    'exBitString::Behavior',
+    'exOrderedDict::Behavior',
+    'exTuple::Behavior',
+    'exFunction::Behavior',
+    'exProcess::Behavior',
+    'exReference::Behavior',
+    'exPort::Behavior'
   ].
 
 file(Filepath) ->

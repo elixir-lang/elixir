@@ -1,13 +1,13 @@
 module Set
   def new()
-    #Set::Instance(Erlang.sets.new)
+    #Set::Behavior(Erlang.sets.new)
   end
 
   def from_list(list)
-    #Set::Instance(Erlang.sets.from_list(list))
+    #Set::Behavior(Erlang.sets.from_list(list))
   end
 
-  module Instance
+  module Behavior
     attr_reader ['set]
 
     def __bound__(set)

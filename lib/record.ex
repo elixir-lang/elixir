@@ -181,7 +181,7 @@ module Record
   %
   % If the given argument is none of the above, a `badarg error is raised.
   def __bound__(object)
-    if object.__module_name__ == 'Tuple::Instance
+    if object.__module_name__ == 'Tuple::Behavior
       if object[0] == self.record_name && object.size == self.record_keys.size + 1
         [_|pairs] = object.to_list
         @(OrderedDict.from_list self.record_keys.zip(pairs))

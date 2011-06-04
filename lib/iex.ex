@@ -6,10 +6,10 @@ module IEX
   end
 
   def spawn
-    Process.spawn -> #IEX::Instance().loop
+    Process.spawn -> #IEX::Behavior().loop
   end
 
-  module Instance
+  module Behavior
     mixin Code::Formatter
 
     def __bound__

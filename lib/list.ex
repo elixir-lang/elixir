@@ -1,5 +1,5 @@
 module List
-  module Instance
+  module Behavior
     % Returns true if all items in the list evaluates to true according the given function.
     %
     % ## Examples

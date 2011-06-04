@@ -4,11 +4,11 @@
 module Date
   def new(date_tuple)
     {year, month, day} = date_tuple
-    #Date::Instance(year, month, day)
+    #Date::Behavior(year, month, day)
   end
 
   def new(year, month, day)
-    #Date::Instance(year, month, day)
+    #Date::Behavior(year, month, day)
   end
 
   % Return the current date according to the operating system,
@@ -44,7 +44,7 @@ module Date
     end
   end
 
-  module Instance
+  module Behavior
     attr_reader ['day, 'month, 'year]
 
     def __bound__(year, month, day)

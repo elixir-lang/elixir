@@ -1,5 +1,5 @@
 module Float
-  module Instance
+  module Behavior
     mixin Numeric
 
     def inspect

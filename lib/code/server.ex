@@ -1,9 +1,9 @@
 module Code::Server
   def start_link()
-    { 'ok, _ } = GenServer.start_link({'local, 'elixir_code_server}, #Code::Server::Instance(), [])
+    { 'ok, _ } = GenServer.start_link({'local, 'elixir_code_server}, #Code::Server::Behavior(), [])
   end
 
-  module Instance
+  module Behavior
     def __bound__()
       @('argv: [], 'loaded: [])
     end

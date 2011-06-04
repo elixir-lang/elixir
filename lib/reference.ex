@@ -1,4 +1,4 @@
 module Reference
-  module Instance
+  module Behavior
   end
 end

@@ -1,6 +1,6 @@
 module ExUnit::Server
   def start
-    { 'ok, _ } = GenServer.start_link({'local, 'exunit_server}, #ExUnit::Server::Instance(), [])
+    { 'ok, _ } = GenServer.start_link({'local, 'exunit_server}, #ExUnit::Server::Behavior(), [])
   end
 
   def add_case(name)
@@ -29,7 +29,7 @@ module ExUnit::Server
     end
   end
 
-  module Instance
+  module Behavior
     def __bound__
       @('options: {}, 'cases: [])
     end

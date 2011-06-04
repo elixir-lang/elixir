@@ -5,16 +5,16 @@
 % This implementation is based on Erlang's calendar module: http://erlang.org/doc/man/calendar.html
 module DateTime
   def new(date_time)
-    #DateTime::Instance(date_time)
+    #DateTime::Behavior(date_time)
   end
 
   % Return the current time in UTC according to the value
   % returned by the operating system.
   def utc
-    #DateTime::Instance(Erlang.calendar.universal_time)
+    #DateTime::Behavior(Erlang.calendar.universal_time)
   end
 
-  module Instance
+  module Behavior
     def __bound__({date, time})
       @('date: date.to_tuple, 'time: time.to_tuple)
     end

@@ -2,12 +2,12 @@
 % existing ETS table. Use ETS.create to create a new one.
 module ETS
   def new(table)
-    #ETS::Instance(table)
+    #ETS::Behavior(table)
   end
 
   % Creates new ets table.
   def create(name, options)
-    #ETS::Instance(Erlang.ets.new(name, options.to_list))
+    #ETS::Behavior(Erlang.ets.new(name, options.to_list))
   end
 
   % Returns a list of all tables at the node. Named tables are
@@ -21,7 +21,7 @@ module ETS
     Erlang.ets.i()
   end
 
-  module Instance
+  module Behavior
     def __bound__(table)
       @('table: table)
     end

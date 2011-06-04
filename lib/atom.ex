@@ -13,7 +13,7 @@ module Atom
     Erlang.list_to_atom(list)
   end
 
-  module Instance
+  module Behavior
     % Returns a version of this atom that is a representation of itself.
     %
     % ## Examples

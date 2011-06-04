@@ -101,37 +101,37 @@ builtinnotallowed(Builtin, Reason) ->
 % Builtin mixins
 
 builtin_mixin(Native) when is_list(Native) ->
-  'exList::Instance';
+  'exList::Behavior';
 
 builtin_mixin(Native) when is_binary(Native) ->
-  'exString::Instance';
+  'exString::Behavior';
 
 builtin_mixin(Native) when is_integer(Native) ->
-  'exInteger::Instance';
+  'exInteger::Behavior';
 
 builtin_mixin(Native) when is_float(Native) ->
-  'exFloat::Instance';
+  'exFloat::Behavior';
 
 builtin_mixin(Native) when is_atom(Native) ->
-  'exAtom::Instance';
+  'exAtom::Behavior';
 
 builtin_mixin(#elixir_orddict__{}) ->
-  'exOrderedDict::Instance';
+  'exOrderedDict::Behavior';
 
 builtin_mixin(Native) when is_bitstring(Native) ->
-  'exBitString::Instance';
+  'exBitString::Behavior';
 
 builtin_mixin(Native) when is_tuple(Native) ->
-  'exTuple::Instance';
+  'exTuple::Behavior';
 
 builtin_mixin(Native) when is_function(Native) ->
-  'exFunction::Instance';
+  'exFunction::Behavior';
 
 builtin_mixin(Native) when is_pid(Native) ->
-  'exProcess::Instance';
+  'exProcess::Behavior';
 
 builtin_mixin(Native) when is_reference(Native) ->
-  'exReference::Instance';
+  'exReference::Behavior';
 
 builtin_mixin(Native) when is_port(Native) ->
-  'exPort::Instance'.
+  'exPort::Behavior'.

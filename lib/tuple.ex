@@ -3,7 +3,7 @@ module Tuple
     Erlang.elixir_helpers.empty_tuple
   end
 
-  module Instance
+  module Behavior
     % Retrieves an item from the tuple. Negative indexes are allowed
     % and they retrieve the element in the reverse order. Out of bound
     % indexes raises 'function_clause error.
