@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([scope_for/2, transform/6, compile/7]).
+-export([scope_for/2, transform/4, compile/5]).
 -include("elixir.hrl").
 
 %% EXTERNAL API
@@ -12,9 +12,9 @@ bootstrap_modules('Module::Using')      -> true;
 bootstrap_modules(_)                    -> false.
 
 % Build a template of an object or module used on compilation.
-build_template(Kind, Name, Template) ->
+build_module(Name) ->
   Mixins = default_mixins(Name),
-  Data   = default_data(Template),
+  Data   = default_data(),
 
   AttributeTable = ?ELIXIR_ATOM_CONCAT([aex_, Name]),
   ets:new(AttributeTable, [set, named_table, private]),
@@ -23,7 +23,7 @@ build_template(Kind, Name, Template) ->
   ets:insert(AttributeTable, { data,   Data }),
 
   Object = #elixir_module__{name=Name, data=AttributeTable},
-  { Object, AttributeTable, { Mixins, [] } }.
+  { Object, AttributeTable }.
 
 % Default mixins based on the declaration type.
 default_mixins(Name) ->
@@ -33,8 +33,7 @@ default_mixins(Name) ->
   end.
 
 % Returns the default data from parents.
-default_data([])       -> orddict:new();
-default_data(Template) -> Template#elixir_module__.data.
+default_data() -> orddict:new().
 
 %% USED ON TRANSFORMATION AND MODULE COMPILATION
 
@@ -46,50 +45,39 @@ scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, "::", Name]).
 % a function that will be invoked by compile/7 passing self as argument.
 % We need to wrap them into anonymous functions so nested module
 % definitions have the variable self shadowed.
-transform(Kind, Line, Name, Parent, Body, S) ->
+transform(Line, Name, Body, S) ->
   Filename = S#elixir_scope.filename,
   Clause = { clause, Line, [{var, Line, self}], [], Body },
   Fun = { 'fun', Line, { clauses, [Clause] } },
-  Args = [{atom, Line, Kind}, {integer, Line, Line}, {string, Line, Filename},
-    {var, Line, self}, {atom, Line, Name}, {atom, Line, Parent}, Fun],
+  Args = [{integer, Line, Line}, {string, Line, Filename},
+    {var, Line, self}, {atom, Line, Name}, Fun],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
-% Initial step of template compilation. Generate a method
-% table and pass it forward to the next compile method.
-compile(Kind, Line, Filename, Current, Name, Template, Fun) ->
-  MethodTable = elixir_def_method:new_method_table(Name),
-
+check_module_available(Name) ->
   try
-    compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable)
+    ErrorInfo = elixir_constants:lookup(Name, attributes),
+    [{ErrorFile,ErrorLine}] = proplists:get_value(exfile, ErrorInfo),
+    error({objectdefined, {Name, list_to_binary(ErrorFile), ErrorLine}})
   catch
-    Type:Reason -> clean_up_tables(Type, Reason)
+    error:{noconstant, _} -> []
   end.
 
-% Receive the module function to be invoked, invoke it passing
-% self and then compile the added methods into an Erlang module
-% and loaded it in the VM.
-compile(Kind, Line, Filename, Current, Name, Template, Fun, MethodTable) ->
-  { Object, AttributeTable, Extra } = build_template(Kind, Name, Template),
+compile(Line, Filename, Current, Name, Fun) ->
+  check_module_available(Name),
+  MethodTable = elixir_def_method:new_method_table(Name),
+  { Object, AttributeTable } = build_module(Name),
 
   try
     Result = Fun(Object),
-
-    try
-      ErrorInfo = elixir_constants:lookup(Name, attributes),
-      [{ErrorFile,ErrorLine}] = proplists:get_value(exfile, ErrorInfo),
-      error({objectdefined, {Name, list_to_binary(ErrorFile), ErrorLine}})
-    catch
-      error:{noconstant, _} -> []
-    end,
-
-    compile_kind(Kind, Line, Filename, Current, Object, Extra, MethodTable),
+    compile_kind(Line, Filename, Current, Object, MethodTable),
     Result
-  catch
-    Type:Reason -> clean_up_tables(Type, Reason)
+  after
+    ets:delete(?ELIXIR_ATOM_CONCAT([aex_,Name])),
+    ets:delete(?ELIXIR_ATOM_CONCAT([mex_,Name]))
   end.
 
 % Handle compilation logic specific to objects or modules.
-compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
+compile_kind(Line, Filename, Current, Module, MethodTable) ->
   Name = Module#elixir_module__.name,
 
   % Update mixins to have the module itself
@@ -107,13 +95,10 @@ compile_kind(module, Line, Filename, Current, Module, _, MethodTable) ->
 % The latter uses it for implicit modules.
 compile_module(Line, Filename, Module, MethodTable) ->
   Functions = elixir_def_method:unwrap_stored_methods(MethodTable),
-  load_form(build_module_form(Line, Filename, Module, Functions), Filename),
-  ets:delete(Module#elixir_module__.data),
-  ets:delete(MethodTable).
+  load_form(build_module_form(Line, Filename, Module, Functions), Filename).
 
 % Build a module form. The difference to an object form is that we need
 % to consider method related attributes for modules.
-% TODO: Cache __module_name__, exported functions and snapshot
 build_module_form(Line, Filename, Object, {Public, Inherited, F0}) ->
   E0 = Public ++ Inherited,
 
@@ -225,16 +210,3 @@ format_warnings(Filename, Warnings) ->
   lists:foreach(fun ({_, Each}) ->
     lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Filename, Warning) end, Each)
   end, Warnings).
-
-clean_up_tables(Type, Reason) ->
-  ElixirTables = [atom_to_list(X) || X <- ets:all(), is_atom(X)],
-  lists:foreach(fun clean_up_table/1, ElixirTables),
-  erlang:Type(Reason).
-
-clean_up_table("aex_" ++ _ = X) ->
-  ets:delete(list_to_atom(X));
-
-clean_up_table("mex_" ++ _ = X) ->
-  ets:delete(list_to_atom(X));
-
-clean_up_table(_) -> [].

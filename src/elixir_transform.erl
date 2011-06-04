@@ -696,14 +696,14 @@ transform({bc, Line, Elements, Cases}, S) ->
 % variables declared in a module do not leak outside its
 % context. The only variable available in the module by default
 % is self.
-transform({module, Line, Name, Parent, Exprs}, S) ->
+transform({module, Line, Name, _Parent, Exprs}, S) ->
   case S#elixir_scope.method of
     [] -> 
       Current = S#elixir_scope.nesting,
       NewName = elixir_module:scope_for(Current, Name),
       % TODO: Remove module from scope.
       { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],nesting=NewName}),
-      { elixir_module:transform(module, Line, NewName, Parent, TExprs, S), S };
+      { elixir_module:transform(Line, NewName, TExprs, S), S };
     _ ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for module")
   end;
