@@ -457,7 +457,7 @@ Currently, functions do not support partial applications or pipes, but such feat
 
 ## Variables and Pattern Matching
 
-Variables in Elixir works differently from Erlang. You can assigned to them several times:
+Variables in Elixir work differently from Erlang. You can assigned to them several times:
 
     x = 1
     x = 2
