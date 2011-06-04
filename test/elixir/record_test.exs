@@ -46,15 +46,15 @@ module RecordTest
 
   def record_defaults_test
     record = #RecordTest::ElixirScope()
-    {[],[]} = record.scope
+    [] = record.nesting
   end
 
   def record_reflection_test
     record = #RecordTest::ElixirScope()
     'elixir_scope = record.record_name
-    ['assign,'guard,'noname,'method,'scope,'vars,'temp_vars,
+    ['assign,'guard,'noname,'method,'nesting,'vars,'temp_vars,
       'clause_vars,'counter,'filename,'assigned_vars] = record.record_keys
-    [false,false,false,[],{[], []},_,[],_,0,$"nofile",_] = record.record_defaults
+    [false,false,false,[],[],_,[],_,0,$"nofile",_] = record.record_defaults
     11 = record.record_size
   end
 

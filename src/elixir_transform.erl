@@ -162,12 +162,7 @@ transform({local_call, Line, super, Args}, S) ->
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for super", "");
     Method ->
       { TArgs, SA } = transform({list, Line, Args, {nil, Line}}, S),
-
-      Module = case S#elixir_scope.scope of
-        {object, Name} -> ?ELIXIR_ATOM_CONCAT([Name, "::Proto"]);
-        {module, Name} -> Name
-      end,
-
+      Module = S#elixir_scope.nesting,
       { ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, super, [
         {var, Line, self}, {atom, Line, Module}, {atom, Line, Method}, TArgs
       ]), SA }
@@ -644,7 +639,7 @@ transform({erlang_call, Line, Prefix, Suffix, Args}, S) ->
 % Variables are handled in each function clause.
 %
 transform({def_method, Line, Name, Arity, [Clause]}, S) ->
-  {_, Module} = S#elixir_scope.scope,
+  Module = S#elixir_scope.nesting,
   case (Module == []) or (S#elixir_scope.method /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
@@ -704,13 +699,13 @@ transform({bc, Line, Elements, Cases}, S) ->
 transform({module, Line, Name, Parent, Exprs}, S) ->
   case S#elixir_scope.method of
     [] -> 
-      {_, Current} = S#elixir_scope.scope,
+      Current = S#elixir_scope.nesting,
       NewName = elixir_module:scope_for(Current, Name),
       % TODO: Remove module from scope.
-      { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],scope={module, NewName}}),
+      { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],nesting=NewName}),
       { elixir_module:transform(module, Line, NewName, Parent, TExprs, S), S };
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for " ++ atom_to_list(module))
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for module")
   end;
 
 % Handles __FILE__

@@ -41,5 +41,5 @@ end).
 %   10) the current scope filename
 %   11) a dict of variables that were explictly assigned and their tree value
 %
--record(elixir_scope, {assign=false, guard=false, noname=false, method=[], scope={[],[]}, vars=dict:new(),
+-record(elixir_scope, {assign=false, guard=false, noname=false, method=[], nesting=[], vars=dict:new(),
   temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile", assigned_vars=dict:new()}).

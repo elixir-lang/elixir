@@ -1,19 +1,8 @@
 -module(elixir_module).
--export([build/1, scope_for/2, transform/6, compile/7]).
+-export([scope_for/2, transform/6, compile/7]).
 -include("elixir.hrl").
 
 %% EXTERNAL API
-
-% Build an object from the given name. Used by elixir_constants to
-% build objects from their compiled modules. Assumes the given name
-% exists.
-build(Name) ->
-  Attributes = Name:module_info(attributes),
-  Snapshot = proplists:get_value(snapshot, Attributes),
-  case Snapshot of
-    [Value] -> Value;
-    _ -> Snapshot
-  end.
 
 %% TEMPLATE BUILDING FOR MODULE COMPILATION
 
@@ -174,14 +163,12 @@ build_erlang_form(Line, Filename, Object, Extra) ->
   Data = destructive_read(AttributeTable, data),
 
   % TODO Analyze all the attributes being passed.
-  Snapshot = build_snapshot(Name, Data),
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
   ModuleName = ?ELIXIR_ERL_MODULE(Name),
   Base = ets:foldr(Transform, Extra, AttributeTable),
 
   [{attribute, Line, module, ModuleName}, 
-   {attribute, Line, file, {Filename,Line}}, {attribute, Line, exfile, {Filename,Line}},
-   {attribute, Line, snapshot, Snapshot} | Base].
+   {attribute, Line, file, {Filename,Line}}, {attribute, Line, exfile, {Filename,Line}}| Base].
 
 % Compile and load given forms as an Erlang module.
 load_form(Forms, Filename) ->
@@ -206,9 +193,6 @@ destructive_read(Table, Attribute) ->
   Value = ets:lookup_element(Table, Attribute, 2),
   ets:delete(Table, Attribute),
   Value.
-
-build_snapshot(Name, Data) ->
-  #elixir_module__{name=?ELIXIR_ERL_MODULE(Name), data=Data}.
 
 no_auto_import() ->
   {no_auto_import, [

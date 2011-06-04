@@ -53,7 +53,7 @@ alias_local(Self, _, _, _, _) ->
 % module_eval
 
 module_eval(#elixir_module__{name=Name, data=Data} = Self, String, Filename, Line) when is_atom(Data) ->
-  Scope = #elixir_scope{scope={object_kind(Self), Name}},
+  Scope = #elixir_scope{nesting=Name},
   elixir:eval(to_char_list(String), [{self,Self}], to_char_list(Filename), Line, Scope);
 
 module_eval(Self, _, _, _) ->
