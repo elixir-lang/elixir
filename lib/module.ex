@@ -240,10 +240,6 @@ module Module
       Erlang.exit(reason)
     end
 
-    def method_missing(method, args)
-      error { 'nomethod, {method, Erlang.length(args), self} }
-    end
-
     % Hook invoked whenever this module is added as a mixin.
     % It receives the target module where the mixin is being added
     % as parameter and must return an module of the same kind.

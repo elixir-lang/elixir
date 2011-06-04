@@ -17,9 +17,9 @@ method_call(Line, Expr, Name, TArgs, Else) ->
   case Snapshot of
     [] -> Else;
     _  ->
-      { Module, Method, MArgs } = elixir_dispatch:dispatch_candidate(Line, Snapshot, Name, length(TArgs) + 1, TArgs),
+      Module = Snapshot#elixir_module__.name,
       Reverse = elixir_tree_helpers:abstract_syntax(Snapshot),
-      { call, Line, { remote, Line, { atom, Line, Module }, { atom, Line, Method } }, [Reverse|MArgs] }
+      { call, Line, { remote, Line, { atom, Line, Module }, { atom, Line, Name } }, [Reverse|TArgs] }
   end.
 
 binary_op(Line, Left, Right, TLeft, TRight, Op, S, SF) ->

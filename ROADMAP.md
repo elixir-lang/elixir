@@ -21,7 +21,7 @@ In the long term, here are a few things we would like to add:
 
 * Dict comprehensions and get rid of inbin and inlist
 * Add more OTP behaviors: supervisors, apps, fsm and events
-* method\_missing
+* method\_missing + super
 
 ### Optimizations
 

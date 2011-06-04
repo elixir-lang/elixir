@@ -3,7 +3,7 @@
 
 module_body_is_executable_test() ->
   F = fun() ->
-    ?assertError({nomethod, _}, elixir:eval("module Foo; a; end")),
+    ?assertError(undef, elixir:eval("module Foo; a; end")),
     elixir:eval("module Bar; 1 + 2; end")
   end,
   test_helper:run_and_remove(F, ['Bar']).
@@ -227,12 +227,12 @@ super_call_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar']).
 
-super_with_method_missing_test() ->
-  F = fun() ->
-    elixir:eval("module Bar\ndef bar;super + 1;end\ndef method_missing('bar, []); 3; end\nend"),
-    {4,[]} = elixir:eval("Bar.bar")
-  end,
-  test_helper:run_and_remove(F, ['Bar']).
+% super_with_method_missing_test() ->
+%   F = fun() ->
+%     elixir:eval("module Bar\ndef bar;super + 1;end\ndef method_missing('bar, []); 3; end\nend"),
+%     {4,[]} = elixir:eval("Bar.bar")
+%   end,
+%   test_helper:run_and_remove(F, ['Bar']).
 
 invalid_super_call_test() ->
   ?assertError({badsyntax, {1, "nofile", "invalid scope for super", []}}, elixir:eval("super")).
