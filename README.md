@@ -63,7 +63,7 @@ Now, we can compile this file to the current directory:
 
     bin/elixirc hello.ex -o .
 
-Notice that some .beam files were added to the current directory with the compiled code. We can execute it by invoking the method `world` in the module `Hello` in the same directory:
+Notice that a .beam file was added to the current directory with the compiled code. We can execute it by invoking the method `world` in the module `Hello` in the same directory:
 
     bin/elixir -e "Hello.world"
 
