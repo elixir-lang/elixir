@@ -394,7 +394,7 @@ You can also represent functions in one line, without a need for the closing key
     another_function = -> (x, y) x * y
     another_function.call(1, 2) % => 2
 
-Notice that, whenever using one-line functions, if you need parenthesis inside the expression, you are required to give empty parenthesis arguments, for example:
+Notice that, whenever using one-line functions, if you need parentheses inside the expression, you are required to give empty parentheses arguments, for example:
 
     % This works as expected:
     my_function = -> 1 + 2
@@ -406,11 +406,11 @@ Notice that, whenever using one-line functions, if you need parenthesis inside t
     % This works as well:
     my_function = -> () (1 + 2)
 
-In the second case, it is ambiguous if the parenthesis is part of the argument list or the function expressions. This is why you either need to remove parenthesis (as in the first example) or add empty parenthesis (as in the third example). This syntax quickly proves to be very convenient:
+In the second case, it is ambiguous if the parentheses is part of the argument list or the function expressions. This is why you either need to remove parentheses (as in the first example) or add empty parentheses (as in the third example). This syntax quickly proves to be very convenient:
 
     [1,2,3].map(-> (x) x * 2)   % => [2,4,6]
 
-In the example above, we are calling .map passing a function as argument. If we remove the optional parenthesis:
+In the example above, we are calling .map passing a function as argument. If we remove the optional parentheses:
 
     [1,2,3].map -> (x) x * 2   % => [2,4,6]
 
@@ -420,7 +420,7 @@ Other examples using the multiline syntax:
       acc + x
     end) % => 6
 
-Again, removing the parenthesis, improves readability:
+Again, removing the parentheses, improves readability:
 
     [1,2,3].foldl 0, do (x, acc)
       acc + x
@@ -431,7 +431,7 @@ Elixir also provides a shortcut syntax to invoke functions that is usually faste
     my_function = -> (x, y) x + y
     my_function.(1, 2) % => 3
 
-In such cases, parenthesis are always required.
+In such cases, parentheses are always required.
 
 Another useful extension Elixir adds to functions is the easy generation of anonymous functions. For instance, suppose you have a list of cars and you want to get their names. A way to do that would be:
 
