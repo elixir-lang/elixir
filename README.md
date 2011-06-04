@@ -4,6 +4,11 @@ Elixir is a programming language built on top of Erlang. As Erlang, it is a func
 
 The main difference between Elixir and Erlang is syntax and object orientation. Elixir provides a very simple Object Model based on prototype languages with most of its syntax inspired by Ruby.
 
+# Important links
+
+* [Mailing list](http://groups.google.com/group/elixir-lang-core)
+* #elixir-lang on freenode IRC
+
 # Usage
 
 Elixir is still in development. If you want to help building it or are just looking for some fun, you can get started now! First, you need to clone this repository to your machine, compile and test it:
