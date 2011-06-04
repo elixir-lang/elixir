@@ -12,7 +12,6 @@ module BindTest
   % TODO: Test exceptions
   % TODO: Make parens optional
   % TODO: Test inspect
-  % TODO: Solve unary precedence bind_routes #Foo
 
   def bind_test
     1 = Module.blank_slate#BindMath().one
@@ -22,7 +21,18 @@ module BindTest
     1 = #BindMath().one
   end
 
+  def precedence_test
+    thing = mirror #BindMath()
+    1 = thing.one
+  end
+
   % def does_not_include_module_methods_test
   %   false = 1.__mixin_methods__.include?({ 'attr_reader, 1 })
   % end
+
+  private
+
+  def mirror(thing)
+    thing
+  end
 end

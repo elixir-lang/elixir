@@ -87,6 +87,10 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 ({LowerCase}|_){IdentifierBase}*[?!]    : build(punctuated_identifier, TokenLine, TokenChars).
 ({LowerCase}|_){IdentifierBase}*        : build(identifier, TokenLine, TokenChars).
 
+%% Special cased operators
+
+[\s\t]\# : { token, { 's#',TokenLine } }. 
+
 %% Operators
 
 =:=   : { token, { '=:=', TokenLine } }.
@@ -114,7 +118,6 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 \]    : { token, { ']', TokenLine } }.
 \{    : { token, { '{', TokenLine } }.
 \}    : { token, { '}', TokenLine } }.
-\#    : { token, { '#', TokenLine } }.
 =     : { token, { '=', TokenLine } }.
 ;     : { token, { ';', TokenLine } }.
 \:    : { token, { ':', TokenLine } }.
@@ -124,6 +127,7 @@ __LINE__ : { token, { integer, TokenLine, TokenLine } }.
 <     : { token, { '<', TokenLine } }.
 >     : { token, { '>', TokenLine } }.
 !     : { token, { '!', TokenLine } }.
+\#    : { token, { '#', TokenLine } }.
 
 %% Skip
 {Comment} : skip_token.
