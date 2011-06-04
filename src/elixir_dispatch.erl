@@ -1,5 +1,5 @@
 -module(elixir_dispatch).
--export([dispatch/3,dispatch/4,super/4]).
+-export([dispatch/3,dispatch/4,super/4,builtin_mixin/1]).
 -include("elixir.hrl").
 
 dispatch(Object, Method, Args) ->
@@ -19,9 +19,8 @@ dispatch(#elixir_module__{name=Fallback} = Object, Method, Arity, Args) ->
   end,
   apply(Module, Method, [Object|Args]);
 
-% TODO: Move builtin_mixin here for performance.
 dispatch(Object, Method, _Arity, Args) ->
-  Module = elixir_module_behavior:builtin_mixin(Object),
+  Module = builtin_mixin(Object),
   apply(Module, Method, [Object|Args]).
 
 super(Object, Module, Method, Args) ->
@@ -42,3 +41,41 @@ find_module_chain([H|T], Method, Arity) ->
     true -> Name;
     _ -> find_module_chain(T, Method, Arity)
   end.
+
+% Builtin mixins
+
+builtin_mixin(Native) when is_list(Native) ->
+  'exList::Behavior';
+
+builtin_mixin(Native) when is_binary(Native) ->
+  'exString::Behavior';
+
+builtin_mixin(Native) when is_integer(Native) ->
+  'exInteger::Behavior';
+
+builtin_mixin(Native) when is_float(Native) ->
+  'exFloat::Behavior';
+
+builtin_mixin(Native) when is_atom(Native) ->
+  'exAtom::Behavior';
+
+builtin_mixin(#elixir_orddict__{}) ->
+  'exOrderedDict::Behavior';
+
+builtin_mixin(Native) when is_bitstring(Native) ->
+  'exBitString::Behavior';
+
+builtin_mixin(Native) when is_tuple(Native) ->
+  'exTuple::Behavior';
+
+builtin_mixin(Native) when is_function(Native) ->
+  'exFunction::Behavior';
+
+builtin_mixin(Native) when is_pid(Native) ->
+  'exProcess::Behavior';
+
+builtin_mixin(Native) when is_reference(Native) ->
+  'exReference::Behavior';
+
+builtin_mixin(Native) when is_port(Native) ->
+  'exPort::Behavior'.

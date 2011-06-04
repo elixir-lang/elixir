@@ -18,7 +18,7 @@ mixin_methods(#elixir_module__{name=Module}) ->
   convert_methods(Module:module_info(exports));
 
 mixin_methods(Self) ->
-  Mixin = elixir_module_behavior:builtin_mixin(Self),
+  Mixin = elixir_dispatch:builtin_mixin(Self),
   convert_methods(Mixin:module_info(exports)).
 
 % Public in Erlang

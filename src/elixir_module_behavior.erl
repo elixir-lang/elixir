@@ -1,7 +1,7 @@
 % Holds implementation for most Module::Behavior methods.
 -module(elixir_module_behavior).
 -export([is_module/1, module_name/1, module/1, mixins/1, data/1,
-  slate_bind/2, bind/3, builtin_mixin/1,
+  slate_bind/2, bind/3,
   get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4]).
 -include("elixir.hrl").
 
@@ -9,7 +9,7 @@
 
 module_name(#elixir_slate__{module=Module})  -> ?ELIXIR_EX_MODULE(Module);
 module_name(#elixir_module__{name=Module})   -> ?ELIXIR_EX_MODULE(Module);
-module_name(Native) -> ?ELIXIR_EX_MODULE(builtin_mixin(Native)).
+module_name(Native) -> ?ELIXIR_EX_MODULE(elixir_dispatch:builtin_mixin(Native)).
 
 is_module(#elixir_module__{}) -> true;
 is_module(_) -> false.
@@ -124,41 +124,3 @@ bind(Self, Right, Args) ->
 
 check_module(#elixir_module__{}) -> [];
 check_module(Else) -> elixir_errors:error({not_a_module, Else}).
-
-% Builtin mixins
-
-builtin_mixin(Native) when is_list(Native) ->
-  'exList::Behavior';
-
-builtin_mixin(Native) when is_binary(Native) ->
-  'exString::Behavior';
-
-builtin_mixin(Native) when is_integer(Native) ->
-  'exInteger::Behavior';
-
-builtin_mixin(Native) when is_float(Native) ->
-  'exFloat::Behavior';
-
-builtin_mixin(Native) when is_atom(Native) ->
-  'exAtom::Behavior';
-
-builtin_mixin(#elixir_orddict__{}) ->
-  'exOrderedDict::Behavior';
-
-builtin_mixin(Native) when is_bitstring(Native) ->
-  'exBitString::Behavior';
-
-builtin_mixin(Native) when is_tuple(Native) ->
-  'exTuple::Behavior';
-
-builtin_mixin(Native) when is_function(Native) ->
-  'exFunction::Behavior';
-
-builtin_mixin(Native) when is_pid(Native) ->
-  'exProcess::Behavior';
-
-builtin_mixin(Native) when is_reference(Native) ->
-  'exReference::Behavior';
-
-builtin_mixin(Native) when is_port(Native) ->
-  'exPort::Behavior'.
