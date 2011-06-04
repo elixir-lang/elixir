@@ -312,7 +312,7 @@ In general, everything that applies to Erlang bit string applies to Elixir bit s
 
 #### Documentation
 
-* <https://github.com/josevalim/elixir/tree/master/lib/bit string.ex>
+* <https://github.com/josevalim/elixir/tree/master/lib/bit_string.ex>
 * <http://www.erlang.org/doc/programming_examples/bit_syntax.html>
 
 ### Strings
