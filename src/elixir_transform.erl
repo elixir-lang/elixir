@@ -220,7 +220,8 @@ transform({constant, Line, Name}, S) ->
   % if we don't recompile the whole code, all the time.
   Final = try
     Snapshot = elixir_constants:lookup(Name),
-    elixir_tree_helpers:abstract_syntax(Snapshot)
+    Module = Snapshot#elixir_module__.name,
+    ?ELIXIR_WRAP_CALL(Line, Module, '__module__', [{nil,Line}])
   catch
     error:{noconstant,Name} ->
       ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Name}])

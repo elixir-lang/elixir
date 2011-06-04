@@ -18,8 +18,8 @@ method_call(Line, Expr, Name, TArgs, Else) ->
     [] -> Else;
     _  ->
       Module = Snapshot#elixir_module__.name,
-      Reverse = elixir_tree_helpers:abstract_syntax(Snapshot),
-      { call, Line, { remote, Line, { atom, Line, Module }, { atom, Line, Name } }, [Reverse|TArgs] }
+      Reverse = ?ELIXIR_WRAP_CALL(Line, Module, '__module__', [{nil,Line}]),
+      ?ELIXIR_WRAP_CALL(Line, Module, Name, [Reverse|TArgs])
   end.
 
 binary_op(Line, Left, Right, TLeft, TRight, Op, S, SF) ->
