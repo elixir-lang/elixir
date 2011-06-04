@@ -2,7 +2,7 @@
 module IEX
   def start
     IO.write "Interactive Elixir (#{Code.version})\nRunning on "
-    Erlang.user_drv.start(['"tty_sl -c -e", {'"exIEX::Mixin",'spawn,[IEX]}])
+    Erlang.user_drv.start(['"tty_sl -c -e", {'exIEX,'spawn,[IEX]}])
   end
 
   def spawn
