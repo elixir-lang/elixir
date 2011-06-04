@@ -81,7 +81,7 @@ unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
 % Receives a method table and adds the given What from Object in it.
 % TODO Maybe this could be done by simply using the import directive?
 flat_module(Object, Line, What, #elixir_object__{name=ModuleName}, MethodTable) ->
-  SelfModules = elixir_object_methods:What(Object),
+  SelfModules = elixir_module_behavior:What(Object),
   Modules = lists:delete('Module::Using', lists:delete(ModuleName, SelfModules)),
 
   Visibility = lists:foldl(fun(Module, Acc1) ->

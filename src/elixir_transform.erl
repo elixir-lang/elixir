@@ -234,7 +234,7 @@ transform({constant, Line, Name}, S) ->
 % It has no affect on variables scope.
 transform({ivar, Line, Name}, S) ->
   Args = [{var, Line, self}, {atom, Line, Name}],
-  Else = ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, get_ivar, Args),
+  Else = ?ELIXIR_WRAP_CALL(Line, elixir_module_behavior, get_ivar, Args),
   { elixir_inliner:get_ivar(Line, Name, Else), S };
 
 % Syntax for easily updating instance variables.
@@ -247,14 +247,14 @@ transform({set_ivars, Line, Exprs}, S) ->
   Args = [{var, Line, self}|TExprs],
   Call = case length(TExprs) of
     1 ->
-      Else = ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivars, Args),
+      Else = ?ELIXIR_WRAP_CALL(Line, elixir_module_behavior, set_ivars, Args),
       elixir_inliner:set_ivars(Line, TExprs, Else, SE);
     2 ->
-      Else = ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args),
+      Else = ?ELIXIR_WRAP_CALL(Line, elixir_module_behavior, set_ivar, Args),
       elixir_inliner:set_ivar(Line, TExprs, Else, SE);
     _ ->
       % TODO raise an exception
-      { ?ELIXIR_WRAP_CALL(Line, elixir_object_methods, set_ivar, Args), SE }
+      { ?ELIXIR_WRAP_CALL(Line, elixir_module_behavior, set_ivar, Args), SE }
   end;
 
 % Handle match declarations.

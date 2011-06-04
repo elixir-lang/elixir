@@ -12,13 +12,13 @@ mixin_methods(#elixir_slate__{module=Module}) ->
   convert_methods(Module:module_info(exports));
 
 mixin_methods(#elixir_object__{data=Data} = Self) when is_atom(Data) ->
-  calculate_methods(Self, fun owner_methods/1, elixir_object_methods:mixins(Self), []);
+  calculate_methods(Self, fun owner_methods/1, elixir_module_behavior:mixins(Self), []);
 
 mixin_methods(#elixir_object__{name=Module}) ->
   convert_methods(Module:module_info(exports));
 
 mixin_methods(Self) ->
-  Mixin = elixir_object_methods:builtin_mixin(Self),
+  Mixin = elixir_module_behavior:builtin_mixin(Self),
   convert_methods(Mixin:module_info(exports)).
 
 % Public in Erlang

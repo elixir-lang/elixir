@@ -28,7 +28,7 @@ internal_file(File) ->
   file_to_path(File, "exbin", [{self,nil}]).
 
 core() ->
-  code:ensure_loaded(elixir_object_methods),
+  code:ensure_loaded(elixir_module_behavior),
   [internal_file(File) || File <- compile_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- compile_list()],
   Files = lists:append(AllLists) -- compile_main(),

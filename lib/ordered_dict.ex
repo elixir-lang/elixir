@@ -9,10 +9,13 @@ module OrderedDict
     { 'elixir_orddict__, Erlang.orddict.from_list(list) }
   end
 
-  % Return a new Elixir OrderedDict. Remember that new is
-  % special cased by the compiler to receive an array as argument.
+  % Return a new Elixir OrderedDict.
   def new()
     { 'elixir_orddict__, Erlang.orddict.new() }
+  end
+
+  def new(orddict)
+    { 'elixir_orddict__, orddict }
   end
 
   module Behavior

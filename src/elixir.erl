@@ -7,7 +7,7 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  code:ensure_loaded(elixir_object_methods),
+  code:ensure_loaded(elixir_module_behavior),
   [code:ensure_loaded(Module) || Module <- builtin_mixins()],
   elixir_sup:start_link([]).
 

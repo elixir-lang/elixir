@@ -24,7 +24,7 @@ dispatch(Object, Method, Arity, Args) ->
   end.
 
 super(Object, Module, Method, Args) ->
-  WholeChain = elixir_object_methods:mixins(Object),
+  WholeChain = elixir_module_behavior:mixins(Object),
   [Module|Chain] = lists:dropwhile(fun(X) -> X /= Module end, WholeChain),
   Arity = length(Args) + 1,
   case find_module_chain(Chain, Method, Arity) of
@@ -45,11 +45,11 @@ find_module(#elixir_object__{name=Module,data=Data}, Method, Arity) when not is_
   Module;
 
 find_module(#elixir_object__{} = Object, Method, Arity) ->
-  Chain = elixir_object_methods:mixins(Object),
+  Chain = elixir_module_behavior:mixins(Object),
   find_module_chain(Chain, Method, Arity);
 
 find_module(Object, Method, Arity) ->
-  Mixin = elixir_object_methods:builtin_mixin(Object),
+  Mixin = elixir_module_behavior:builtin_mixin(Object),
   Mixin.
 
 find_module_chain([], _Method, _Arity) -> false;

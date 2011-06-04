@@ -146,21 +146,21 @@ module Module
 
   module Behavior
     def __module_name__
-      Erlang.elixir_object_methods.module_name(self)
+      Erlang.elixir_module_behavior.module_name(self)
     end
 
     def __module__
-      Erlang.elixir_object_methods.module(self)
+      Erlang.elixir_module_behavior.module(self)
     end
 
     def __module__?
-      Erlang.elixir_object_methods.is_module(self)
+      Erlang.elixir_module_behavior.is_module(self)
     end
 
     % Returns a list of atoms representing all mixins for the current object.
     % This method is defined automatically for each compiled module.
     def __mixins__
-      Erlang.elixir_object_methods.mixins(self)
+      Erlang.elixir_module_behavior.mixins(self)
     end
 
     def inspect
@@ -177,7 +177,7 @@ module Module
     end
 
     def get_ivar(name)
-      Erlang.elixir_object_methods.get_ivar(self, name)
+      Erlang.elixir_module_behavior.get_ivar(self, name)
     end
 
     % Returns a `Dict` with all variable names and values as its key-values.
@@ -193,23 +193,23 @@ module Module
     %     Foo.new.__ivars__ % => { 'bar: 1, 'baz: 2 }
     %
     def get_ivars
-      OrderedDict.new Erlang.elixir_object_methods.data(self)
+      OrderedDict.new Erlang.elixir_module_behavior.data(self)
     end
 
     def set_ivar(name, value)
-      Erlang.elixir_object_methods.set_ivar(self, name, value)
+      Erlang.elixir_module_behavior.set_ivar(self, name, value)
     end
 
     def set_ivars(value)
-      Erlang.elixir_object_methods.set_ivars(self, value)
+      Erlang.elixir_module_behavior.set_ivars(self, value)
     end
 
     def update_ivar(name, fun)
-      Erlang.elixir_object_methods.update_ivar(self, name, fun)
+      Erlang.elixir_module_behavior.update_ivar(self, name, fun)
     end
 
     def update_ivar(name, initial, fun)
-      Erlang.elixir_object_methods.update_ivar(self, name, initial, fun)
+      Erlang.elixir_module_behavior.update_ivar(self, name, initial, fun)
     end
 
     def send(method, args := [])

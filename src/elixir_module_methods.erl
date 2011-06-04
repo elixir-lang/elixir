@@ -8,8 +8,8 @@
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
 mixin(Self, Value) -> 
   check_module(Value),
-  NewMixins = elixir_object_methods:mixins(Value),
-  CurrentMixins = elixir_object_methods:mixins(Self),
+  NewMixins = elixir_module_behavior:mixins(Value),
+  CurrentMixins = elixir_module_behavior:mixins(Self),
   update_mixins_chain(Self, umerge(NewMixins, CurrentMixins)),
   elixir_dispatch:dispatch(Value, '__added_as_mixin__', [Self]).
 

@@ -1,5 +1,5 @@
 % Holds implementation for most Module::Behavior methods.
--module(elixir_object_methods).
+-module(elixir_module_behavior).
 -export([is_module/1, module_name/1, module/1, mixins/1, data/1, builtin_mixin/1,
   get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4]).
 -include("elixir.hrl").
