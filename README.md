@@ -2,7 +2,7 @@
 
 Elixir is a programming language built on top of Erlang. As Erlang, it is a functional language with strict evaluation, single assignment and dynamic typing built to support distributed, fault-tolerant, non-stop applications with hot swapping. Elixir allows you to invoke Erlang modules without a need to convert data types, therefore there is no hit in performance when invoking existing Erlang code.
 
-The main difference between Elixir and Erlang is syntax and object orientation. Elixir provides a very simple Object Model based on prototype languages with most of its syntax inspired by Ruby.
+The main difference between Elixir and Erlang is its syntax inspired by Ruby and method dispatching based on modules.
 
 # Usage
 
@@ -47,7 +47,7 @@ If you are interested, check out the ROADMAP.md file in the repository or keep r
 
 # Learning Elixir
 
-This is a basic introduction into Elixir basic objects and object model. Some sections have a paragraph called "To be implemented", they represent parts of Elixir that was not implemented yet and that are under discussion.
+This is a basic introduction into Elixir. Some sections have a paragraph called "To be implemented", they represent parts of Elixir that was not implemented yet and that are under discussion.
 
 This introduction borrowed its guidelines from [Learn You Some Erlang](http://learnyousomeerlang.com/), a great resource to learn Erlang which will be referenced several times during this introduction.
 
@@ -124,7 +124,7 @@ Several operations can also be done in a single expression, obeying the normal p
     (50 * 10) - 490   % => 10
     -(50 * 10) - 490  % => -990
 
-As in Ruby, everything is an object, so we can call methods on numbers:
+In Elixir, you can dispatch methods to data types, this is further explained later:
 
     -1.abs    % => 1
     5.div(2)  % => 2
@@ -224,7 +224,7 @@ Tuples and lists (which are going to see next), are zero-indexed in Elixir while
 
 ### Lists
 
-Lists are the main object in Elixir (as in any other functional language) and can contain anything:
+Lists are the main structure in Elixir (as in any other functional language) and can contain anything:
 
     % Some list with elements
     ['atom, 1, 2, 3, { 'some, 'tuple }]
@@ -606,9 +606,9 @@ Elixir term comparisons operators are close to Erlang ones, except `!=`, `=!=` a
 </tr>
 </table>
 
-As in Erlang, Elixir can order different objects types:
+As in Erlang, Elixir can order different types according to the following order:
 
-    number < atom < reference < fun < port < pid < tuple < any other object < list < bit string
+    number < atom < reference < fun < port < pid < tuple < modules < blank slates < list < bit string
 
 Lists are compared element by element. Tuples are ordered by size, two tuples with the same size are compared element by element. If one of the compared terms is an integer and the other a float, the integer is first converted into a float, unless the operator is one of `=:=` and `=!=`.
 
@@ -635,36 +635,36 @@ All term comparison operators return a boolean expression.
 <tr>
   <td>+</td>
   <td></td>
-  <td>any object</td>
+  <td>anything</td>
 </tr>
 <tr>
   <td>-</td>
   <td></td>
-  <td>any object</td>
+  <td>anything</td>
 </tr>
 <tr>
   <td>*</td>
   <td></td>
-  <td>any object</td>
+  <td>anything</td>
 </tr>
 <tr>
   <td>/</td>
   <td>returns a float</td>
-  <td>any object</td>
+  <td>anything</td>
 </tr>
 <tr>
   <td>div</td>
   <td>returns an integer</td>
-  <td>any object</td>
+  <td>anything</td>
 </tr>
 <tr>
   <td>rem</td>
   <td>returns an integer</td>
-  <td>any object</td>
+  <td>anything</td>
 </tr>
 </table>
 
-Except by the two unary operators, all other operators accept any object as parameter. This is because those operators are implemented as methods and their implementation are defined by the object which is receiving the method. For instance, we can concatenate two lists by using the `+` operator:
+Except by the two unary operators, all other operators can be overloaded. For instance, we can concatenate two lists by using the `+` operator:
 
     [1,2,3] + [4,5,6]  % => [1,2,3,4,5,6]
 
@@ -685,48 +685,6 @@ Also, Elixir keeps the same semantics as Erlang in the sense the `/` operator al
 ### Bitwise operators
 
 To be implemented/written.
-
-### Logical operators and control-flow
-
-Elixir provides three operators that accept any object as argument. We will see later that some operators (inherited from Erlang) accept strictly boolean values.
-
-<table>
-<tr>
-  <td><strong>Operator</strong></td>
-  <td><strong>Description</strong></td>
-</tr>
-<tr>
-  <td>&&</td>
-  <td>and</td>
-</tr>
-<tr>
-  <td>||</td>
-  <td>or</td>
-</tr>
-<tr>
-  <td>!</td>
-  <td>not</td>
-</tr>
-</table>
-
-Remember that any object, except `false`, evaluates to `true`:
-
-    !false       % => true
-    !true        % => false
-    !Object.new  % => false
-
-Both `&&` and `||` are actually control structures. They do not return a boolean but the last evaluated object:
-
-    1 && 2       % => 2
-
-    true || false       % => true
-    'atom || 'another   % => 'atom
-    false || 'another   % => 'another
-
-    false && IO.puts("I will never be executed")
-
-    1 || IO.puts("I will never be executed")
-    true || IO.puts("I will never be executed")
 
 ### Strict boolean operators
 
@@ -764,6 +722,48 @@ Elixir provides the following operators to deal strictly with booleans:
   <td>Unary operators, expression must be a boolean</td>
 </tr>
 </table>
+
+### Logical operators and control-flow
+
+Elixir provides three operators general purposes operators:
+
+<table>
+<tr>
+  <td><strong>Operator</strong></td>
+  <td><strong>Description</strong></td>
+</tr>
+<tr>
+  <td>&&</td>
+  <td>and</td>
+</tr>
+<tr>
+  <td>||</td>
+  <td>or</td>
+</tr>
+<tr>
+  <td>!</td>
+  <td>not</td>
+</tr>
+</table>
+
+Remember that everything, except `false` and `nil`, evaluates to `true`:
+
+    !false       % => true
+    !true        % => false
+    !Object.new  % => false
+
+Both `&&` and `||` are actually control structures. They do not return a boolean but the last evaluated expression:
+
+    1 && 2       % => 2
+
+    true || false       % => true
+    'atom || 'another   % => 'atom
+    false || 'another   % => 'another
+
+    false && IO.puts("I will never be executed")
+
+    1 || IO.puts("I will never be executed")
+    true || IO.puts("I will never be executed")
 
 ### Precedence
 
@@ -946,11 +946,13 @@ It should actually be written as:
 
 ### List of errors
 
+TODO: THIS LIST IS OUT OF DATA AND SHOULD BE UPDATED.
+
 Here is a list of runtime errors that can be raised by Elixir:
 
 *   `{ 'builtinnotallowed, { method, builtin } }`
 
-    Invoking `method` not allowed on the `builtin` object. Built-in objects are all objects that maps directly to Erlang ones, they are: String, Integer, Float, Tuple, List, OrderedDict and so forth. A few operations like `mixin`, `proto` and copy are not allowed on built-in objects;
+    Invoking `method` not allowed on the `builtin` structure. Built-in structures are all structures that comes directly from Erlang, they are: String, Integer, Float, Tuple, List, OrderedDict and so forth. A few operations like setting instance variables are not allowed on built-in objects;
 
 *   `{ 'objectdefined, { name, file, line } }`
 
@@ -1134,7 +1136,7 @@ Invoking Erlang methods with elixir is quite trivial:
 
 As there is no conversion between most Erlang data types and Elixir ones, there is no performance hit in invoking Erlang methods. The only exception are strings that are binaries in Elixir and may need to be converted to char lists in some specific erlang modules. More details were outline in the BitString and String sections above.
 
-Finally, notice that `Erlang` is not a real object in Elixir, but just a proxy that is converted to erlang calls at compile time.
+Finally, notice that `Erlang` is just a proxy that is converted to erlang calls at compile time.
 
 ## List and Bit string comprehensions
 
@@ -1182,377 +1184,36 @@ Elixir does its best to hide the differences between list and bit string generat
 
 You can [read more about list and bit string comprehensions in Learn You Some Erlang](http://learnyousomeerlang.com/starting-out-for-real#list-comprehensions).
 
-## The Object Model
-
-This section will discuss Elixir's Object Model. Its main aspects are:
-
-* Dynamic Dispatch - when a method is invoked on an object, the object itself determines which code gets executed
-* Mixins - an object does not contain methods, all methods are packed into modules that are mixed into objects
-* Encapsulation - methods can either be public or private
-* Open recursion - Elixir's has a special variable called `self` that allows a method body to invoke another method body of the same object, passing through the ancestors chain
-* Reflections - Elixir is able to observe and modify an object structure at runtime
-
-### Why Objects?
-
-Elixir's Object Model focuses on method dispatching. Imagine you have a Person structure with fields name and age generated by an ORM. Retrieving this Person structure, changing its name and saving it would be as follow in Erlang:
-
-    Person = person:find(john),
-    Modified = person:set(name, john_doe, Person)
-    true = person:save(Modified)
-
-In Elixir, this would be written as:
-
-    person = Person.find('john)
-    modified = person.set('name, 'john_doe)
-    true = modified.save
-
-In Erlang, every time we want to do something with the `Person` structure, we need to explicitly call the module `person` and pass the `Person` structure as parameter.
-
-Elixir is more concise due to method dispatching. Once you create a `person` object, you can invoke methods on it directly and there isn't a need to always pass the own list object as argument. The need for dynamic method dispatching is one of the main reasons for the existence of Elixir and its Object Model.
-
-### How does it work?
-
-In Elixir, everything is an object. Objects carry properties, they don't carry methods. We can define a new object as follow:
-
-    % Define an object Person
-    object Person
-    end
-
-    % Creates an instance of this object
-    Person.new
-
-In Elixir, modules carry behavior, i.e. methods. All modules are objects, but not all objects are modules. We can define a new module `Speak` with a method called `say` that receives a message and prints it out as follow:
-
-    module Speak
-      def say(message)
-        IO.puts message
-      end
-    end
-
-The convenience of objects comes when we add modules to objects:
-
-    person = Person.new
-    person.say "Hi"          % => Raises no method error
-
-    another_person = Person.new.mixin(Speak)
-    another_person.say "Hi"  % => "Hi"
-
-The `mixin` method adds the given module to the *current object* mixins chain. Therefore, every time we invoke a method in this object, it will search if the method exists in one of its mixins. We can retrieve all mixins of an object with the method `__mixins__`:
-
-    another_person.__mixins__  % => ['Speak, 'Object::Methods]
-
-The `Speak` module is the one we added and `Object::Methods` is a module included by default in all objects and is where the `__mixins__` method is implemented.
-
-If every time we create a new `Person` instance, we need to explicitly mix in a module, Elixir wouldn't be much useful. For this reason, we define in the object `Person` that all of its children has a `Speak` module by default. This can be done with the `proto` method:
-
-    object Person
-      proto Speak
-    end
-
-    Person.new.say "Hi"  % => "Hi"
-
-    Person.__protos__      % => ['Speak, 'Object::Methods]
-    Person.new.__mixins__  % => ['Speak, 'Object::Methods]
-
-A `proto` is how an object specifies how its children is going to behave. In other words, a `proto` added to the parent, becomes a `mixin` to the child.
-
-Since everything is an object, the `mixin` method we discussed earlier is also available to the `Person` object:
-
-    module NewBorns
-      def create_and_cry
-        instance = self.new
-        instance.say "whaaaaaaa"
-        instance
-      end
-    end
-
-    object Person
-      mixin NewBorns
-      proto Speak
-    end
-
-    person = Person.create_and_cry  % => "whaaaaaaa"
-
-    Person.__mixins__    % => ['NewBorns, 'Object::Methods]
-    Person.__protos__    % => ['Speak,    'Object::Methods]
-
-This wraps the core of Elixir object system. Remember: everything is an object, methods are defined in modules and modules can be either mixed into objects (`mixin`), changing their current behavior, or added as prototype (`proto`), which will define the behavior of all children of that object. Finally, all modules defined as `proto` in the parent, becomes a `mixin` to the child.
-
-On top of that, Elixir provides a better way to organize our code. Let's rewrite our Person object:
-
-    object Person
-      module Mixin
-        def create_and_cry
-          instance = self.new
-          instance.say "whaaaaaaa"
-          instance
-        end
-      end
-
-      module Proto
-        def say(message)
-          IO.puts message
-        end
-      end
-
-      mixin Person::Mixin
-      proto Person::Proto
-    end
-
-Instead of defining modules without a namespace, we can define them inside the Person object, avoiding polluting the main namespace and reducing the chance of conflicts.
-
-Finally, since the pattern above is very common, Elixir provides three conveniences to make our code more expressive:
-
-* If a module `Mixin` is defined inside an object, it is automatically added as `mixin`;
-* If a module `Proto` is defined inside an object, it is automatically added as `proto`;
-* You can also completely skip the `proto` module and define methods as if you were defining methods inside the object. This is a just a syntax convenience. Internally, Elixir will still create a `Proto` module and automatically add it as `proto` to your object.
-
-With these conveniences in mind, let's rewrite our `Person` object once again:
-
-    object Person
-      module Mixin
-        def create_and_cry
-          instance = self.new
-          instance.say "whaaaaaaa"
-          instance
-        end
-      end
-
-      def say(message)
-        IO.puts message
-      end
-    end
-
-This is much better! Now let's prove that everything is the same as before:
-
-    Person.__mixins__    % => ['Person::Mixin, 'Object::Methods]
-    Person.__protos__    % => ['Person::Proto, 'Object::Methods]
-
-### Instance variables
-
-When creating an object, we sometimes want to define properties specific to that object. For example, a Person may have name and age as properties. This can be done by defining such properties as instance variables in the `initialize`:
-
-    object Person
-      def initialize(name, age)
-        % Return a new version of this object but
-        % with name and age as instance variables
-        @('name: name, 'age: age)
-      end
-
-      def name
-        @name
-      end
-
-      def age
-        @age
-      end
-    end
-
-    person = Person.new('john, 24)
-    person.name % => 'john
-    person.age  % => 24
-
-Notice the `initialize` method needs to return an object of the same kind as the one being initialized. The `@()` syntax used above is just a special syntax to the `set_ivars` method. Both formats accept a dict and can be used in any method:
-
-    object Person
-      def initialize(name, age)
-        @('name: name, 'age: age)
-      end
-
-      def name
-        @name
-      end
-
-      def age
-        @age
-      end
-
-      def name(value)
-        @('name: value)
-      end
-    end
-
-    person = Person.new('john, 24)
-    another_person = person.name('john_doe)
-
-    person.name % => 'john
-    person.age  % => 24
-
-    another_person.name % => 'johh_doe
-    another_person.age  % => 24
-
-Notice that `@()` (and `set_ivars`) returns a new object. This is expected because as Erlang structures are immutable, all objects in Elixir are also immutable. Above we can see that the initial person object has not changed at all.
-
-### Advanced: The Object Graph
-
-One final note about the object model is how instantiation works. When you create an instance from `Person`, it annotates that the parent for that instance is the `Person` object. Let's take a look at it:
-
-    person = Person.new
-    person.__parent__   % => Person
-
-The `Person` object is a direct child from `Object`:
-
-    Person.__parent__  % => Object
-
-While all modules are children from `Module` which is a child from `Object`. The object `Object`, has no parent:
-
-    Person::Mixin.__parent__ % => Module
-    Person::Proto.__parent__ % => Module
-    Module.__parent__        % => Object
-    Object.__parent__        % => []
-
-The object `Object` defines `Object::Methods` as `proto`, this is why all objects have this method as their `mixin`. It doesn't matter if you are a child, a grandchild or a grand-grandchild from `Object`, this `mixin` will be available to you. This happens because, in order to calculate all mixins for a given object, Elixir traverses the whole ancestors chain getting all modules defined as `proto` for all parents.
-
-The Object Graph for all these objects can be seen below:
-
-    ---------------    Parent   -----------------
-    |    Object   | <---------- |     Module    | <---
-    ---------------             -----------------    |
-          ^                            ^             |
-          |  Parent                    |  Parent     |
-          |                            |             |
-    ---------------    mixin    -----------------    |
-    |   Person    | <---------- | Person::Mixin |    | Parent
-    ---------------  _          -----------------    |
-          ^         |\__ proto                       |
-          |  Parent     \___                         |
-          |                 \__                      |
-    ---------------            \-----------------    |
-    | Person.new  | <---------- | Person::Proto | ---|
-    ---------------    mixin    -----------------
-
-Once again, remember:
-
-* Everything is an object;
-* Methods are defined in modules. All modules are objects, but not all objects are modules. Besides, modules cannot have instances. `Person::Mixin` and `Person::Proto` defined above are modules;
-* Modules can be either mixed into objects (`mixin`), changing their current behavior...
-* Or added as prototype (`proto`), which will define the behavior of all children/instances from that object;
-* Finally, all modules defined as `proto` in the parent, becomes a `mixin` to the child.
-
-#### Documentation
-
-* <https://github.com/josevalim/elixir/tree/master/lib/object.ex>
-
 ## Modules
 
-In the Object Model section, we have discussed modules and methods. Modules are very close to Erlang modules and it is important to keep that in mind if you are coming from a language like Ruby.
+As Erlang, Elixir code is mainly organized around modules. Here is a very simple example:
 
-### Implicit and explicit self calls
-
-In Elixir, there are two ways to call a method. Using self explicitly and without it. Let's see some examples:
-
-    module Example
-      % Call a method defined in Object.
-      def remote_call
-        self.__parent__
-      end
-
-      % Calling a method specified in ancestors does not require self.
-      def implicit_remote_call
-        __parent__
-      end
-
-      % Call a method defined in this module explicitly.
-      def local_call
-        self.remote_call
-      end
-
-      % Call a method defined in this module implicitly.
-      def implicit_local_call
-        remote_call
+    module Hello
+      def world
+        IO.puts "Hello World"
       end
     end
-
-Local calls are compiled at parse time and are faster than explicit `self` calls. However, **local calls can only be made to methods existing in the current module or its ancestors**. That said, imagine we have a module that requires a hook to be implemented in the target object:
-
-    module Hooks
-      def do_something
-        my_hook
-      end
-    end
-
-    object Target
-      proto Hooks
-
-      def my_hook
-        13
-      end
-    end
-
-The example above won't compile because `my_hook` is a local call, but no `my_hook` method can be found in the module or its ancestors at compile time. Our second attempt could be:
-
-    module Hooks
-      def do_something
-        my_hook
-      end
-
-      def my_hook
-        11
-      end
-    end
-
-    object Target
-      proto Hooks
-
-      def my_hook
-        13
-      end
-    end
-
-    Target.new.do_something % => 11
-
-In this case, notice that `do_something` still returns 11. This is because `my_hook` inside `do_something` is a local call. It won't go through the dispatch chain. However, the following works as expected.
-
-    module Hooks
-      def do_something
-        self.my_hook
-      end
-
-      def my_hook
-        11
-      end
-    end
-
-    object Target
-      proto Hooks
-
-      def my_hook
-        13
-      end
-    end
-
-    Target.new.do_something % => 13
-
-By using `self`, we force the method to be dispatched instead of being invoked locally.
+    
+    Hello.world % => "Hello World"
 
 ### Local and remote calls
 
 In Erlang, it is very important to make a difference between local calls and remote calls, as they affect how hot code swapping works. You can read this section from [Learn You Some Erlang](http://learnyousomeerlang.com/designing-a-concurrent-application#hot-code-loving) for more information.
 
-Elixir keeps the same semantics as Erlang and makes a difference between local and remote calls. A **method call is considered local if it is called implicitly and the method invoked is in the same module**:
+Elixir keeps the same semantics as Erlang and makes a difference between local and remote calls.
 
     module Example
-      % Invoke method defined in Object explicitly.
-      def remote_call
-        self.__parent__
-      end
-
-      % Invoke method defined in Object implicitly.
-      def implicit_remote_call
-        __parent__
-      end
-
       % This is a local call because internal is defined locally.
       def local_call
         internal
       end
-
+      
       % Even though internal is defined locally, since we use self
       % this is not a local call, but a remote call.
       def not_a_local_call
         self.internal
       end
-
+      
       def internal
         13
       end
@@ -1564,13 +1225,13 @@ Finally, notice that if a variable is defined with the same name as method, the 
       def some_value
         13
       end
-
+      
       def value
         some_value = 11
         some_value
       end
     end
-
+    
     AnotherExample.value  % => 11
 
 ### Method Visibility
@@ -1581,58 +1242,46 @@ Now that we know the difference between local and remote calls we can take a bet
       def public_method
         13
       end
-
+      
       def calling_public_method
         public_method
       end
-
+      
       def calling_public_method2
         self.public_method
       end
     end
-
+    
     Example.public_method           % => 13
     Example.calling_public_method   % => 13
     Example.calling_public_method2  % => 13
 
-Private methods are the ones accessible just through a local call. This means a module cannot access private methods from other modules even after adding them as `mixin` or as `proto`.
+Private methods are the ones accessible just through a local call:
 
     module Example
       def calling_private_method
         private_method
       end
-
+      
       def calling_private_method2
         self.private_method
       end
-
+      
       private
-
+      
       def private_method
         13
       end
     end
-
+    
     % Won't work, it is not a local call.
     Example.private_method
-
+    
     % It works because calling_private_method is doing a local call.
     Example.calling_private_method   % => 13
-
+    
     % It won't work because calling_private_method2 is not doing a local call.
     Example.calling_private_method2
-
-    module Invoker
-      mixin Example
-
-      def calling_private_method
-        self.private_method
-      end
-    end
-
-    % It won't work because private_method is only accessible from
-    % local calls (from the same module it is defined).
-    Invoker.calling_private_method
 
 ### Tail call optimization
 
@@ -1642,11 +1291,11 @@ In the "Variables and Pattern Matching" section above, we have showed a simple F
       def fibonacci(0)
         0
       end
-
+      
       def fibonacci(1)
         1
       end
-
+      
       def fibonacci(n)
         fibonacci(n - 1) + fibonacci(n - 2)
       end
@@ -1658,16 +1307,16 @@ As Erlang, Elixir does tail call optimization. We can rewrite the fibonacci meth
       def fibonacci(n)
         fibonacci(n, 1, 0)
       end
-
+      
       def fibonacci(0, _, result)
         result
       end
-
+      
       def fibonacci(n, next, result)
         fibonacci(n - 1, next + result, next)
       end
     end
-
+    
     OptimizedMath.fibonacci(0)   % => 0
     OptimizedMath.fibonacci(1)   % => 1
     OptimizedMath.fibonacci(3)   % => 2
@@ -1684,12 +1333,12 @@ As we mentioned earlier and saw in the examples above, pattern matching is also 
       def is?([i|prefix], [i|list])
         is?(prefix, list)
       end
-
+      
       % If prefix is empty or gets empty, it matches
       def is?([], _list)
         true
       end
-
+      
       % Anything else is false
       def is?(_prefix, _list)
         false
@@ -1701,7 +1350,7 @@ The fact `OrderedDict`s are allowed in pattern matching and pattern matching is 
     def do_something(value, 'special: true)
       % Do something special
     end
-
+    
     def do_something(value, 'special: false)
       % Do something not that special
     end
@@ -1715,7 +1364,7 @@ Besides supporting pattern matching in methods, Elixir also supports default arg
         a + b
       end
     end
-
+    
     Default.sum        % => 3
     Default.sum(2)     % => 4
     Default.sum(2, 3)  % => 5
@@ -1726,21 +1375,208 @@ Default arguments working by implicitly defining methods that accepts less argum
       def sum()
         sum(1, 2)
       end
-
+      
       def sum(a)
         sum(a, 2)
       end
-
+      
       def sum(a := 1, b := 2)
         a + b
       end
     end
 
-### Retrieving a method as a function
+#### Documentation
 
-Before proceeding on how to retrieve a method as a function, it is important to notice that, as in Erlang, Elixir's methods are identified by its name **and** arity. Therefore, the `OptimizedMath` module above has only two methods: a `fibonacci` with arity 1 and `fibonnaci` with arity 3. If two methods are defined with same name and arity, they become different clauses for the same method and pattern matching is used in order to specify which method to call. That said, the `Math` module has only one `fibonnaci` method with arity equals to 1 and 3 clauses.
+* <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
 
-Remaining of this section still needs to be implemented and written.
+## Module binding, refinements and mixins
+
+Elixir provides a way to bind modules to structures in order to provide method dispatching. A couple of features are built on top of this functionality and are going to be described next.
+
+### Binding
+
+Binding is the ability to bind modules to data types at runtime. Binding is done through the bind operator `#`. Here is an example that creates a module and binds it to the integer 1 at runtime:
+
+    module DurationExtensions
+      def day_in_seconds
+        self * 3600
+      end
+    end
+    
+    bound_integer = 1#DurationExtensions
+    1.day_in_seconds % => 3600
+
+After the module is bound, `self` in a method will point to the bound structure.
+
+All built-in data types will already be bound to a given module. For instance, all integers are bound to the `Integer::Behavior` module. That's where methods like `abs` and `+` seen previously are implemented.
+
+#### Custom data structures with blank slates
+
+The built-in data types of a language are important but a language needs to allows us to provide our own data types. This is achieved by binding a module to a blank slate:
+
+    module Car
+      def engine
+        IO.puts "VROOOM"
+      end
+    end
+    
+    % Create a blank slate and bind it to `Car` module:
+    car = Module.blank_slate#Car()
+    car.engine % => "VROOOM"
+
+The `Module.blank_slate` expression above returns an empty data type that is then bound to the module `Car`. Since the expression `Module.blank_slate#Car('green)` is too long, the form commonly used is:
+
+    car = #Car('green)
+    car.engine % => "VROOOM"
+
+#### Internal variables
+
+Elixir also allows us to store information inside data structures. This is done with internal variables. In the example below, we are going to store the color of a car by using the `__bound__` callback and then read it:
+
+    module Car
+      % Callback invoked whenever this module is bound to a structure.
+      % All the argument passed to the bind operator are accessible here.
+      def __bound__(color)
+        % Set the internal variable color to the given color.
+        @('color, color)
+      end
+      
+      def color
+        % Read the internal variable color.
+        @color
+      end
+    end
+    
+    car = Module.blank_slate#Car('green)
+    car.color % => 'green
+
+Whenever a module is bound, the callback `__bound__` in the module is invoked. All the variables given on binding are accessible in the callback. Data can be added to the blank slate through **internal variables** (for example, `@color` above).
+
+#### Best practices
+
+Libraries must hide the blank slate binding as most as possible. For instance, the `Car` example above, requires the developer to manually
+bind a method, leading to coupling. Ideally, the `Car` should provide an API for that as below:
+
+    module Car
+      def new(color)
+        #Car::Behavior(color)
+      end
+      
+      module Behavior
+        def __bound__(color)
+          @('color, color)
+        end
+    
+        def color
+          @color
+        end
+      end
+    end
+
+### Refinements (to be implemented)
+
+Refinements is the ability to change an already defined module at compile time avoiding the need to always bind the module to the same data types:
+
+    :refine Integer::Instance with DurationExtensions
+    1.day_in_seconds % => 3600
+
+### Mixins
+
+Mixins are the ability to mix one module into another module **still in definition**:
+
+    module SimpleMath
+      def one
+        1
+      end
+      
+      def two
+        2
+      end
+    end
+    
+    module AdvancedMath
+      mixin SimpleMath
+      
+      def one_plus_two
+        one + two
+      end
+    end
+    
+    AdvancedMath.one_plus_two % => 3
+
+Different from refinements that only alter method lookup, mixins provide a copy mechanism that copy all the methods defined in the mixed in module into the target providing faster behavior at run-time.
+
+Note that mixed in methods are available straight away, while methods defined in the module are just available after the module is defined:
+
+    module AdvancedMath
+      mixin SimpleMath
+      
+      one % => 1
+      two % => 2
+      
+      def one_plus_two
+        one + two
+      end
+      
+      % Fails because AdvancedMath is still
+      % in definition.
+      one_plus_two % => ERROR
+    end
+
+Finally, notice that methods that are not available at compile time cannot be called locally. For instance, imagine you have module `RequiresName` that requires name to be implemented in the target:
+
+    module RequiresName
+      def shout
+        IO.puts "HELLO #{self.name}"
+      end
+    end
+    
+    module Person
+      mixin RequiresName
+      
+      def name
+        "John Doe"
+      end
+    end
+    
+    Person.shout % => "HELLO John Doe"
+
+In the example above, `RequiresName` uses `self.name` instead of `name`. This is required because `name` is not known when `RequiresName` is defined and it should actually be implemented by target classes.
+
+#### Temporary mixins (to be implemented)
+
+Sometimes it is also convenient to include a mixin only during the
+module definition. This is achieved with temporary mixins:
+
+    module SimpleMath
+      def one
+        1
+      end
+      
+      def two
+        2
+      end
+    end
+    
+    module AdvancedMath
+      using SimpleMath
+      
+      one + two % => 3
+      
+      def one_plus_two
+        one + two
+      end
+    end
+    
+    % Will fail because SimpleMath methods are
+    % available only during the module definition.
+    AdvancedMath.one_plus_two % => ERROR
+
+#### Summary
+
+* Binding allows us to change dispatch on a given data type at runtime;
+* Refinements allows us to change dispatch on an existing module at compile time;
+* Mixins allows us to mix behavior from existing modules during module definition.
 
 #### Documentation
 
@@ -1841,24 +1677,19 @@ Guards only supports arithmetic operators on numbers, comparison operators and t
 
 ## Dynamic Dispatch and Metaprogramming
 
-Elixir allows you to dynamically dispatch methods:
+Elixir allows you to dynamically dispatch methods using `send`:
 
     [1,2,3].send 'head   % => 1
     {}.send 'empty?      % => true
 
-You can also retrieve internal information about objects, like ivars, methods available, mixins, protos, etc:
-
-    {}.public_mixin_methods.member? 'empty?  % => true
-    {}.__parent__ % => OrderedDict
-
 Elixir also allows you to dynamically define methods. For example, below we can define attribute readers for both "title" and "author" attributes dynamically:
 
-    object Book
-      def initialize(title, author)
-        @('title: title, 'author: author)
+    module Person
+      def __bound__(name, age)
+        @('name: name, 'age: age)
       end
 
-      ["title", "author"].each do (method)
+      ["name", "age"].each do (method)
         module_eval __FILE__, __LINE__ + 1, ~~METHOD
       def #{method}
         @#{method}
@@ -1866,20 +1697,22 @@ Elixir also allows you to dynamically define methods. For example, below we can 
     ~~
       end
     end
+    
+    person = #Person("John Doe", 24)
+    person.name % => "John Doe"
 
 The real benefit is when you encapsulate it inside a method. For example, the definition above is inside Elixir, so you can actually call:
 
-    object Book
-      attr_reader ['title, 'author]
-
-      def initialize(title, author)
-        @('title: title, 'author: author)
+    module Person
+      attr_reader ['name, 'age]
+      
+      def initialize(name, age)
+        @('name: name, 'age: age)
       end
     end
 
 #### Documentation
 
-* <https://github.com/josevalim/elixir/tree/master/lib/object.ex>
 * <https://github.com/josevalim/elixir/tree/master/lib/module.ex>
 
 ## Performance
@@ -1898,8 +1731,8 @@ Elixir allows you to import records from Erlang code. Here is an example that im
 
     Code.require "record"
 
-    object FileInfo
-      proto Record
+    module FileInfo
+      mixin Record
       record 'file_info, 'from_lib: "kernel/include/file.hrl"
     end
 
@@ -1908,7 +1741,7 @@ Elixir allows you to import records from Erlang code. Here is an example that im
     { 'ok, info } = Erlang.file.read_file_info(__FILE__.to_char_list)
 
     % Create a new FileInfo object based on the tuple returned above
-    record = FileInfo.new info
+    record = #FileInfo(info)
 
     % Profit by accessing the record info
     record.access % => 'read_write
