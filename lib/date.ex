@@ -2,12 +2,12 @@
 % while DateTime does(but not currently). This implementation is based on Erlang's date BIF:
 % http://www.erlang.org/doc/man/erlang.html#date-0
 module Date
-  def new([date_tuple])
+  def new(date_tuple)
     {year, month, day} = date_tuple
     #Date::Instance(year, month, day)
   end
 
-  def new([year, month, day])
+  def new(year, month, day)
     #Date::Instance(year, month, day)
   end
 

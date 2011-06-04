@@ -11,12 +11,12 @@ module OrderedDict
 
   % Return a new Elixir OrderedDict. Remember that new is
   % special cased by the compiler to receive an array as argument.
-  def new([])
+  def new()
     { 'elixir_orddict__, Erlang.orddict.new() }
   end
 
   % Return a new Elixir OrderedDict given the dictionary.
-  def new([orddict])
+  def new(orddict)
     { 'elixir_orddict__, orddict }
   end
 

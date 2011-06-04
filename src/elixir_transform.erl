@@ -187,7 +187,7 @@ transform({local_call, Line, Name, Args}, S) ->
     [] -> transform({method_call, Line, Name, Args, {var, Line, self}}, S);
     _  ->
       { TArgs, SA } = transform_tree(Args, S),
-      FArgs = elixir_tree_helpers:handle_new_call(Name, Line, [{var, Line, self}|TArgs]),
+      FArgs = [{var, Line, self}|TArgs],
       { { call, Line, {atom, Line, Name}, FArgs }, SA }
   end;
 

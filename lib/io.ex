@@ -1,10 +1,10 @@
 % TODO: Decouple all this.
 module IO
-  def new([device])
+  def new(device)
     #IO(device, [], {})
   end
 
-  def new([device, mode, options])
+  def new(device, mode, options)
     #IO(device, mode, options)
   end
 

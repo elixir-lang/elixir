@@ -4,7 +4,7 @@
 %
 % This implementation is based on Erlang's calendar module: http://erlang.org/doc/man/calendar.html
 module DateTime
-  def new([date_time])
+  def new(date_time)
     #DateTime::Instance(date_time)
   end
 

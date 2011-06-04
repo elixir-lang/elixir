@@ -1,5 +1,5 @@
 module Set
-  def new([])
+  def new()
     #Set::Instance(Erlang.sets.new)
   end
 

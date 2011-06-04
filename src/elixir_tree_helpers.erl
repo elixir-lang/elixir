@@ -1,6 +1,6 @@
 -module(elixir_tree_helpers).
 -export([abstract_syntax/1, build_bin/2, build_list/4, build_list/5,
-  build_method_call/4, build_simple_list/2, handle_new_call/3,
+  build_method_call/4, build_simple_list/2,
   build_var_name/2, convert_to_boolean/3]).
 -include("elixir.hrl").
 
@@ -40,25 +40,10 @@ build_bin(Line, Exprs) ->
   Transformer = fun (X) -> { bin_element, Line, X, default, default } end,
   { bin, Line, lists:map(Transformer, Exprs) }.
 
-build_method_call(new, Line, Args, Expr) ->
-  FArgs = build_simple_list(Line, Args),
-  Final = {cons, Line, FArgs, {nil, Line}},
-  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, new}, {integer, Line, 2}, Final]);
-
 build_method_call(Name, Line, Args, Expr) ->
   Arity = length(Args) + 1,
   FArgs = build_simple_list(Line, Args),
   ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, Name}, {integer, Line, Arity}, FArgs]).
-
-% Handle method dispatches to new by wrapping everything in an array
-% as we don't have a splat operator. If true is given as last option,
-% the items should be wrapped in a list, by creating a list. If false,
-% it is already an list so we just need a cons-cell.
-handle_new_call(new, Line, Args) ->
-  [build_simple_list(Line, Args)];
-
-handle_new_call(_, _, Args) ->
-  Args.
 
 % Builds a variable name.
 build_var_name(Line, #elixir_scope{counter=Counter} = S) ->

@@ -41,11 +41,7 @@
 %   or (*ANY) at the beginning of the regexp according to the re documentation
 %
 module Regexp
-  def new([regexp_bin])
-    #Regexp::Behavior(regexp_bin, [])
-  end
-
-  def new([regexp_bin, options])
+  def new(regexp_bin, options := [])
     #Regexp::Behavior(regexp_bin, options)
   end
 
