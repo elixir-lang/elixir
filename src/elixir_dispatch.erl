@@ -12,7 +12,8 @@ dispatch(#elixir_module__{name=Module,data=Data} = Object, Method, _Arity, Args)
   apply(Module, Method, [Object|Args]);
 
 dispatch(#elixir_module__{name=Fallback} = Object, Method, Arity, Args) ->
-  Chain = elixir_module_behavior:mixins(Object),
+  % Temporarily add Module::Definition so compiled method works.
+  Chain = ['Module::Definition'|elixir_module_behavior:mixins(Object)],
   case find_module_chain(Chain, Method, Arity) of
     false -> Module = Fallback;
     Module -> []

@@ -41,12 +41,12 @@ owner_methods(Name) when is_atom(Name) ->
     undefined -> [];
     Else -> Else
   end,
-  convert_methods(Public).
+  convert_methods(Public -- defaults()).
 
 % Helpers
 
 defaults() ->
-  [{module_info,0},{module_info,1},{'__elixir_exported__',2},{'__elixir_mixins__',1}].
+  [{module_info,0},{module_info,1},{'__elixir_exported__',2},{'__mixins__',1},{'__module_name__',1},{'__module__',1}].
 
 convert_methods(Target) ->
   lists:map(fun convert_method/1, Target -- defaults()).

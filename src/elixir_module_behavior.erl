@@ -25,10 +25,11 @@ mixins(#elixir_module__{data=Data}) when is_atom(Data) ->
   end;
 
 mixins(#elixir_module__{name=Name}) ->
-  Name:'__elixir_mixins__'();
+  Name:'__mixins__'([]);
 
-mixins(Native) -> % TODO: This needs to be properly tested.
-  [module_name(Native),'Module::Methods'].
+% TODO: This is probably never invoked. In case it is, test it.
+mixins(Native) -> 
+  [?ELIXIR_EX_MODULE(elixir_dispatch:builtin_mixin(Native)),'Module::Methods'].
 
 data(#elixir_slate__{data=Data}) ->
   Data;

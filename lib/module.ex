@@ -3,6 +3,20 @@ module Module
     {'elixir_slate__, [], []}
   end
 
+  % This module keeps all the methods that are automatically
+  % generated on compilation time but needs to be available
+  % during module definition.
+  module Definition
+    def __module_name__
+      % TODO: This is temporary, module_name logic could be in Elixir itself.
+      Erlang.elixir_module_behavior.module_name(self)
+    end
+
+    def __mixins__
+      Erlang.elixir_module_behavior.mixins(self)
+    end
+  end
+
   % This module is included temporarily during method
   % definition with the *using* feature.
   module Using
@@ -145,22 +159,12 @@ module Module
   end
 
   module Behavior
-    def __module_name__
-      Erlang.elixir_module_behavior.module_name(self)
-    end
-
     def __module__
       Erlang.elixir_module_behavior.module(self)
     end
 
     def __module__?
       Erlang.elixir_module_behavior.is_module(self)
-    end
-
-    % Returns a list of atoms representing all mixins for the current object.
-    % This method is defined automatically for each compiled module.
-    def __mixins__
-      Erlang.elixir_module_behavior.mixins(self)
     end
 
     def inspect
