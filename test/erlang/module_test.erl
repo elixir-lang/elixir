@@ -260,3 +260,17 @@ can_retrieve_mixins_without_duplication_test() ->
     {['Foo', 'Module::Behavior'],[]} = elixir:eval("Foo.__mixins__")
   end,
   test_helper:run_and_remove(F, ['Foo']).
+
+can_retrieve_module_name_test() ->
+  F = fun() ->
+    {'Foo',[]} = elixir:eval("module Foo; __module_name__; end"),
+    {'Foo',[]} = elixir:eval("Foo.__module_name__")
+  end,
+  test_helper:run_and_remove(F, ['Foo']).
+
+can_retrieve_module_test() ->
+  F = fun() ->
+    elixir:eval("module Foo; self = __module__; end"),
+    elixir:eval("mod = Foo\nmod = Foo.__module__")
+  end,
+  test_helper:run_and_remove(F, ['Foo']).

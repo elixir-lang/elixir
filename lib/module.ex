@@ -7,7 +7,6 @@ module Module
   % This module keeps all the methods that are automatically
   % generated on compilation time but needs to be available
   % during module definition.
-  % TODO: Test this stuff
   module Definition
     def __module_name__
       [_,_|name] = Erlang.atom_to_list(Erlang.element(2, self))
