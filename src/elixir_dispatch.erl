@@ -5,6 +5,7 @@
 dispatch(Object, Method, Args) ->
   dispatch(Object, Method, length(Args) + 1, Args).
 
+% TODO: No need to pass arity
 dispatch(#elixir_slate__{module=Module} = Object, Method, _Arity, Args) ->
   apply(Module, Method, [Object|Args]);
 
@@ -36,7 +37,7 @@ super(Object, Module, Method, Args) ->
 
 find_module_chain([], _Method, _Arity) -> false;
 
-% TODO: This could be faster it it could skip ?ELIXIR_ERL_MODULE.
+% TODO: This could be faster if it could skip ?ELIXIR_ERL_MODULE.
 find_module_chain([H|T], Method, Arity) ->
   Name = ?ELIXIR_ERL_MODULE(H),
   case Name:'__elixir_exported__'(Method, Arity) of

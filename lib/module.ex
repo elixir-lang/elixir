@@ -1,4 +1,5 @@
 module Module
+  % TODO: Create blank slate module
   def blank_slate
     {'elixir_slate__, [], []}
   end
@@ -6,10 +7,11 @@ module Module
   % This module keeps all the methods that are automatically
   % generated on compilation time but needs to be available
   % during module definition.
+  % TODO: Test this stuff
   module Definition
     def __module_name__
-      % TODO: This is temporary, module_name logic could be in Elixir itself.
-      Erlang.elixir_module_behavior.module_name(self)
+      [_,_|name] = Erlang.atom_to_list(Erlang.element(2, self))
+      Erlang.list_to_atom(name)
     end
 
     def __mixins__

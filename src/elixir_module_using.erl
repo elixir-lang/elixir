@@ -11,6 +11,7 @@ mixin(Self, Value) ->
   NewMixins = elixir_module_behavior:mixins(Value),
   CurrentMixins = elixir_module_behavior:mixins(Self),
   update_mixins_chain(Self, umerge(NewMixins, CurrentMixins)),
+  % TODO: Use __mixed_in__ as callback instead
   elixir_dispatch:dispatch(Value, '__added_as_mixin__', [Self]).
 
 update_mixins_chain(#elixir_module__{data=Data} = Self, Chain) when is_atom(Data) ->
