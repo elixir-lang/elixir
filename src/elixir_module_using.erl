@@ -22,14 +22,14 @@ check_module(Else) -> elixir_errors:error({not_a_module, Else}).
 % Visibility
 
 set_visibility(#elixir_module__{name=Name, data=Data}, Visibility) when is_atom(Data) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
+  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
   ets:insert(MethodTable, { visibility, Visibility });
 
 set_visibility(Self, Visibility) ->
   elixir_errors:error({moduledefined, { set_visibility, Self }}).
 
 get_visibility(#elixir_module__{name=Name, data=Data}) when is_atom(Data) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
+  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
   ets:lookup_element(MethodTable, visibility, 2);
 
 get_visibility(Self) ->
@@ -39,7 +39,7 @@ get_visibility(Self) ->
 
 alias_local(#elixir_module__{name=Name, data=Data} = Self, Filename, Old, New, ElixirArity) when is_atom(Data) ->
   Arity = ElixirArity + 1,
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
+  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
   case ets:lookup(MethodTable, { Old, Arity }) of
     [{{Old, Arity}, Line, Clauses}] ->
       elixir_def_method:store_wrapped_method(Self, Name, Filename, {function, Line, New, Arity, Clauses}, []);

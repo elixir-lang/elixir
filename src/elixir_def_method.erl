@@ -7,7 +7,7 @@
 
 % Creates a new method table for the given name.
 new_method_table(Name) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Name]),
+  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
   ets:new(MethodTable, [set, named_table, private]),
   ets:insert(MethodTable, { public, [] }),
   ets:insert(MethodTable, { inherited, [] }),
@@ -45,7 +45,7 @@ wrap_method_definition(Name, Line, Filename, Method, Defaults) ->
 % Invoked by the wrapped method with the method abstract tree.
 % Each method is then added to the method table.
 store_wrapped_method(Self, Module, Filename, OriginalMethod, Defaults) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex_, Module]),
+  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Module]),
   Name = case element(3, OriginalMethod) of
     []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", Module, "_", ets:info(MethodTable, size)]);
     Else -> Else
