@@ -1,13 +1,16 @@
-## Current master (v0.2.1.dev)
+## Current master (v0.3.0.dev)
 
 * improvements
   * ExUnit now run test cases in parallel
   * Brackets in array was optimized and also accepts out of bound indexes (and return nil in such cases)
   * Added anonymous methods: def(x,y) x + y; end
-  * Added Method and UnboundMethod objects
+  * Added Method and UnboundMethod modules
+  * Added `using` as temporary mixins
 
 * deprecations
   * Use {} instead of {:} as an empty dict. An empty tuple can be retrieved with Tuple.new
+  * `__added_as_mixin__` is now `__mixed_in__`
+  * object and protos were removed in favor of module binding
 
 ## v0.2.0 (2011-04-25)
 
