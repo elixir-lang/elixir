@@ -166,9 +166,8 @@ module Record
     end
   end
 
-  % TODO: This should be use *using*
   def __mixed_in__(base)
-    base.mixin Record::Definition
+    base.using Record::Definition
   end
 
   % If it receives a tuple as argument, it checks if the tuple matches the record.
