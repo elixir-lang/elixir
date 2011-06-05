@@ -1449,10 +1449,28 @@ Elixir also allows us to store information inside data structures. This is done 
       end
     end
     
-    car = Module.blank_slate#Car('green)
+    car = #Car('green)
     car.color % => 'green
 
 Whenever a module is bound, the callback `__bound__` in the module is invoked. All the variables given on binding are accessible in the callback. Data can be added to the blank slate through **internal variables** (for example, `@color` above).
+
+#### Mutability
+
+Everything in Elixir is immutable. Well, almost everything, the only exception are modules:
+
+    module Hello
+      set_ivar 'foo, 2
+      IO.puts foo % => 2
+    end
+
+In the example above, `set_ivar` is setting the value of an internal variable named `'foo` to `2` which we can read on the following line. Now, if we tried such trick with `Car`, it wouldn't work as expected:
+
+    car = #Car('green)
+    new_car = car.set_ivar 'color, 'red
+    car.color     % => 'green
+    new_car.color % => 'red
+
+Immutability is important to ensure we won't have race conditions or deadlocks on runtime. However, it is ok for modules to be mutable as it happens only during compilation time, adding great extensibility.
 
 #### Best practices
 
@@ -1622,28 +1640,28 @@ As explained at the beginning of this README, Elixir allows the same variable to
     b()
     a % => 1
 
-As everything is immutable, when the function assigns a new variable, it creates a new binding with the new variable value and the original binding is never modified. This is important to avoid side-effects when passing functions to different processes (parallel execution).
+As everything is immutable, when the function assigns a new variable, it creates a new binding with the new variable value and the original binding is never modified. This is important to avoid side-effects when passing functions to different processes.
 
 Also, Elixir has much more flexible rules when it comes to variables inside control-flow expressions. For instance, the following works:
 
     x = 1
-
+    
     if true
       x = 2
     end
-
+    
     x % => 2
 
 The same is also true for `receive/after` and `case/match` expressions. The only exception comes to `try/catch` scenarios, where a variable defined inside such blocks is never accessible from the outside. For example:
 
     x = 1
-
+    
     try
       x = 2
     catch _:_
       % Do nothing
     end
-
+    
     x % => 1
 
 ## Guards
