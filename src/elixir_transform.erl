@@ -701,7 +701,6 @@ transform({module, Line, Name, _Parent, Exprs}, S) ->
     [] -> 
       Current = S#elixir_scope.nesting,
       NewName = elixir_module:scope_for(Current, Name),
-      % TODO: Remove module from scope.
       { TExprs, _ } = transform_tree(Exprs, S#elixir_scope{method=[],nesting=NewName}),
       { elixir_module:transform(Line, NewName, TExprs, S), S };
     _ ->

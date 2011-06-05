@@ -1,9 +1,6 @@
 -module(function_test).
 -include_lib("eunit/include/eunit.hrl").
 
-% TODO Support multiple function
-% TODO Support guards?
-
 function_without_body_test() ->
   {_, [{a, Res1}]} = elixir:eval("a = ->; end"),
   nil = Res1().
