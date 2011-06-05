@@ -12,25 +12,26 @@ scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, "::", Name]).
 build_module(ElixirName) ->
   Name   = ?ELIXIR_ERL_MODULE(ElixirName),
   Mixins = default_mixins(ElixirName),
+  Using  = default_using(ElixirName),
   Data   = default_data(),
 
   AttributeTable = ?ELIXIR_ATOM_CONCAT([a, Name]),
   ets:new(AttributeTable, [set, named_table, private]),
 
   ets:insert(AttributeTable, { mixins, Mixins }),
+  ets:insert(AttributeTable, { using,  Using }),
   ets:insert(AttributeTable, { data,   Data }),
 
   #elixir_module__{name=Name, data=AttributeTable}.
 
-% Default mixins based on the declaration type.
 default_mixins(ElixirName) ->
   case bootstrap_modules(ElixirName) of
     true  -> [];
     false -> ['Module::Using', 'Module::Behavior']
   end.
 
-% Returns the default data from parents.
-default_data() -> orddict:new().
+default_using(_) -> ['Module::Using'].
+default_data()   -> orddict:new().
 
 bootstrap_modules('Module::Definition') -> true;
 bootstrap_modules('Module::Behavior')   -> true;
@@ -68,42 +69,38 @@ compile(Line, Filename, Current, ElixirName, Fun) ->
   end.
 
 % Handle compilation logic specific to objects or modules.
-compile_module(Line, Filename, ElixirName, Module, MethodTable) ->
-  Name = Module#elixir_module__.name,
-
-  % Update mixins to have the module itself
-  AttributeTable = Module#elixir_module__.data,
-  Mixins = ets:lookup_element(AttributeTable, mixins, 2),
-  ets:insert(AttributeTable, { mixins, [ElixirName|Mixins] }),
+compile_module(Line, Filename, ElixirName, #elixir_module__{name=Name, data=AttributeTable} = Module, MethodTable) ->
+  RawMixins   = destructive_read(AttributeTable, mixins),
+  Using       = destructive_read(AttributeTable, using),
+  Data        = destructive_read(AttributeTable, data),
+  TempMixins  = RawMixins -- Using,
+  FinalMixins = [ElixirName|TempMixins],
 
   case bootstrap_modules(Name) of
     true  -> [];
-    false -> elixir_def_method:flat_module(Line, Mixins, MethodTable)
+    false -> elixir_def_method:flat_module(Line, TempMixins, MethodTable)
   end,
 
-  {Public, Inherited, F0} = elixir_def_method:unwrap_stored_methods(MethodTable),
-  E0 = Public ++ Inherited,
+  {P0, Inherited, F0} = elixir_def_method:unwrap_stored_methods(MethodTable),
 
-  { E1, F1 } = add_extra_function(E0, F0, {'__mixins__',1},          mixins_function(Line, Module)),
-  { E2, F2 } = add_extra_function(E1, F1, {'__elixir_exported__',2}, exported_function(Line, Module)),
-  { E3, F3 } = add_extra_function(E2, F2, {'__module_name__',1},     module_name_function(Line, Module)),
-  { E4, F4 } = add_extra_function(E3, F3, {'__module__',1},          module_function(Line, Module)),
+  { P1, F1 } = add_extra_function(P0, F0, {'__mixins__',1},          mixins_function(Line, Module, FinalMixins)),
+  { P2, F2 } = add_extra_function(P1, F1, {'__elixir_exported__',2}, exported_function(Line, Module)),
+  { P3, F3 } = add_extra_function(P2, F2, {'__module_name__',1},     module_name_function(Line, Module)),
+  { P4, F4 } = add_extra_function(P3, F3, {'__module__',1},          module_function(Line, Module, Data)),
 
-  Extra = [
-    {attribute, Line, public, Public},
+  Export = P4 ++ Inherited,
+
+  Base = [
+    {attribute, Line, module, Name},
+    {attribute, Line, file, {Filename,Line}},
+    {attribute, Line, exfile, {Filename,Line}},
+    {attribute, Line, public, P4},
     {attribute, Line, compile, no_auto_import()},
-    {attribute, Line, export, E4} | F4
+    {attribute, Line, export, Export} | F4
   ],
 
-  Data = destructive_read(AttributeTable, data),
-
-  % TODO Analyze all the attributes being passed.
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
-  Base = ets:foldr(Transform, Extra, AttributeTable),
-
-  Forms = [{attribute, Line, module, Name}, 
-   {attribute, Line, file, {Filename,Line}}, {attribute, Line, exfile, {Filename,Line}}| Base],
-
+  Forms = ets:foldr(Transform, Base, AttributeTable),
   load_form(Forms, Filename).
 
 % Compile and load given forms as an Erlang module.
@@ -125,11 +122,11 @@ load_form(Forms, Filename) ->
 
 %% BUILD AND LOAD HELPERS
 
-check_module_available(Name) ->
+check_module_available(ElixirName) ->
   try
-    ErrorInfo = elixir_constants:lookup(Name, attributes),
+    ErrorInfo = elixir_constants:lookup(ElixirName, attributes),
     [{ErrorFile,ErrorLine}] = proplists:get_value(exfile, ErrorInfo),
-    error({objectdefined, {Name, list_to_binary(ErrorFile), ErrorLine}})
+    error({objectdefined, {ElixirName, list_to_binary(ErrorFile), ErrorLine}})
   catch
     error:{noconstant, _} -> []
   end.
@@ -158,35 +155,32 @@ add_extra_function(Exported, Functions, Pair, Contents) ->
     false -> { [Pair|Exported], [Contents|Functions] }
   end.
 
-exported_function(Line, Object) ->
+exported_function(Line, #elixir_module__{name=Name}) ->
   { function, Line, '__elixir_exported__', 2,
     [{ clause, Line, [{var,Line,function},{var,Line,arity}], [], [
       ?ELIXIR_WRAP_CALL(
         Line, erlang, function_exported,
-        [{atom,Line,Object#elixir_module__.name},{var,Line,function},{var,Line,arity}]
+        [{atom,Line,Name},{var,Line,function},{var,Line,arity}]
       )
     ]}]
   }.
 
-module_function(Line, #elixir_module__{name=Name, data=AttributeTable}) ->
-  Data = ets:lookup_element(AttributeTable, data, 2),
+module_function(Line, #elixir_module__{name=Name}, Data) ->
   Snapshot = #elixir_module__{name=Name, data=Data},
   Reverse = elixir_tree_helpers:abstract_syntax(Snapshot),
   { function, Line, '__module__', 1,
     [{ clause, Line, [{var,Line,'_'}], [], [Reverse]}]
   }.
 
-mixins_function(Line, Object) ->
-  % TODO: Make using a feature of the language
-  Mixins = lists:delete('Module::Using', destructive_read(Object#elixir_module__.data, mixins)),
+mixins_function(Line, Module, Mixins) ->
   { MixinsTree, [] } = elixir_tree_helpers:build_list(fun(X,Y) -> {{atom,Line,X},Y} end, Mixins, Line, []),
   { function, Line, '__mixins__', 1,
     [{ clause, Line, [{var,Line,'_'}], [], [MixinsTree]}]
   }.
 
-module_name_function(Line, Object) ->
+module_name_function(Line, #elixir_module__{name=Name}) ->
   { function, Line, '__module_name__', 1,
-    [{ clause, Line, [{var,Line,'_'}], [], [{atom,Line,?ELIXIR_EX_MODULE(Object#elixir_module__.name)}]}]
+    [{ clause, Line, [{var,Line,'_'}], [], [{atom,Line,?ELIXIR_EX_MODULE(Name)}]}]
   }.
 
 % ERROR HANDLING

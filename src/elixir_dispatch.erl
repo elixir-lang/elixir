@@ -37,7 +37,6 @@ super(Object, Module, Method, Args) ->
 
 find_module_chain([], _Method, _Arity) -> false;
 
-% TODO: This could be faster if it could skip ?ELIXIR_ERL_MODULE.
 find_module_chain([H|T], Method, Arity) ->
   Name = ?ELIXIR_ERL_MODULE(H),
   case Name:'__elixir_exported__'(Method, Arity) of

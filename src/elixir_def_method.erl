@@ -102,7 +102,7 @@ flat_module(Line, Mixins, MethodTable) ->
           [{Method,Arity}|Acc2];
         _ -> Acc2
       end
-    end, Acc1, elixir_methods:owner_methods(Module))
+    end, Acc1, elixir_methods:inherit_methods(Module))
   end, [], Modules),
 
   ets:insert(MethodTable, { inherited, Visibility }).

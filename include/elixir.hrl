@@ -6,12 +6,7 @@
 
 -define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
 -define(ELIXIR_ERL_MODULE(Atom), list_to_atom([$e,$x|atom_to_list(Atom)])).
-
-% TODO: Fix me
--define(ELIXIR_EX_MODULE(Name), case atom_to_list(Name) of
-  [$e,$x|Rest] -> list_to_atom(Rest);
-  _ -> Name
-end).
+-define(ELIXIR_EX_MODULE(Name), list_to_atom(tl(tl(atom_to_list(Name))))).
 
 % Representation for Elixir Objects. The elixir_module__ holds
 % the general represenation and contains:
