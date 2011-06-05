@@ -1,19 +1,15 @@
 -module(elixir_dispatch).
--export([dispatch/3,dispatch/4,super/4,builtin_mixin/1]).
+-export([dispatch/3,super/4,builtin_mixin/1]).
 -include("elixir.hrl").
 
-dispatch(Object, Method, Args) ->
-  dispatch(Object, Method, length(Args) + 1, Args).
-
-% TODO: No need to pass arity
-dispatch(#elixir_slate__{module=Module} = Object, Method, _Arity, Args) ->
+dispatch(#elixir_slate__{module=Module} = Object, Method, Args) ->
   apply(Module, Method, [Object|Args]);
 
-dispatch(#elixir_module__{name=Module,data=Data} = Object, Method, _Arity, Args) when not is_atom(Data) ->
+dispatch(#elixir_module__{name=Module,data=Data} = Object, Method, Args) when not is_atom(Data) ->
   apply(Module, Method, [Object|Args]);
 
-dispatch(#elixir_module__{name=Fallback} = Object, Method, Arity, Args) ->
-  % Temporarily add Module::Definition so compiled method works.
+dispatch(#elixir_module__{name=Fallback} = Object, Method, Args) ->
+  Arity = length(Args) + 1,
   Chain = ['Module::Definition'|elixir_module_behavior:mixins(Object)],
   case find_module_chain(Chain, Method, Arity) of
     false -> Module = Fallback;
@@ -21,7 +17,7 @@ dispatch(#elixir_module__{name=Fallback} = Object, Method, Arity, Args) ->
   end,
   apply(Module, Method, [Object|Args]);
 
-dispatch(Object, Method, _Arity, Args) ->
+dispatch(Object, Method, Args) ->
   Module = builtin_mixin(Object),
   apply(Module, Method, [Object|Args]).
 

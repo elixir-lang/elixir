@@ -41,9 +41,8 @@ build_bin(Line, Exprs) ->
   { bin, Line, lists:map(Transformer, Exprs) }.
 
 build_method_call(Name, Line, Args, Expr) ->
-  Arity = length(Args) + 1,
   FArgs = build_simple_list(Line, Args),
-  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, Name}, {integer, Line, Arity}, FArgs]).
+  ?ELIXIR_WRAP_CALL(Line, elixir_dispatch, dispatch, [Expr, {atom, Line, Name}, FArgs]).
 
 % Builds a variable name.
 build_var_name(Line, #elixir_scope{counter=Counter} = S) ->
