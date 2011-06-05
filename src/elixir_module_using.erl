@@ -42,7 +42,7 @@ alias_local(#elixir_module__{name=Name, data=Data} = Self, Filename, Old, New, E
   MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
   case ets:lookup(MethodTable, { Old, Arity }) of
     [{{Old, Arity}, Line, Clauses}] ->
-      elixir_def_method:store_wrapped_method(Self, Name, Filename, {function, Line, New, Arity, Clauses}, []);
+      elixir_def_method:store_wrapped_method(Self, Filename, {function, Line, New, Arity, Clauses}, []);
     [] ->
       elixir_errors:error({nolocalmethod, {Old, Arity, Self}})
   end;
@@ -53,7 +53,7 @@ alias_local(Self, _, _, _, _) ->
 % module_eval
 
 module_eval(#elixir_module__{name=Name, data=Data} = Self, String, Filename, Line) when is_atom(Data) ->
-  Scope = #elixir_scope{nesting=Name},
+  Scope = #elixir_scope{nesting=?ELIXIR_EX_MODULE(Name)},
   elixir:eval(to_char_list(String), [{self,Self}], to_char_list(Filename), Line, Scope);
 
 module_eval(Self, _, _, _) ->
@@ -63,9 +63,9 @@ object_kind(#elixir_module__{}) -> module.
 
 % define_erlang_methods
 
-define_erlang_method(#elixir_module__{name=Name, data=Data} = Self, Filename, Line, Method, Arity, Clauses) when is_atom(Data)->
+define_erlang_method(#elixir_module__{data=Data} = Self, Filename, Line, Method, Arity, Clauses) when is_atom(Data)->
   TClauses = lists:map(fun expand_clauses/1, Clauses),
-  elixir_def_method:store_wrapped_method(Self, Name, to_char_list(Filename), {function, Line, Method, Arity + 1, TClauses}, []);
+  elixir_def_method:store_wrapped_method(Self, to_char_list(Filename), {function, Line, Method, Arity + 1, TClauses}, []);
 
 define_erlang_method(Self, _, _, _, _, _) ->
   elixir_errors:error({moduledefined, { define_erlang_method, Self }}).

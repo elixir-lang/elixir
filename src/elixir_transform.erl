@@ -647,7 +647,7 @@ transform({def_method, Line, Name, Arity, [Clause]}, S) ->
       { TClause, _ } = pack_method_clause(Clause, NewScope),
       { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
       Method = {function, Line, Name, Arity + 1, [Unpacked]},
-      { elixir_def_method:wrap_method_definition(Module, Line, S#elixir_scope.filename, Method, Defaults), S }
+      { elixir_def_method:wrap_method_definition(Line, S#elixir_scope.filename, Method, Defaults), S }
   end;
 
 transform({default_arg, Line, Expr, Default}, S) ->

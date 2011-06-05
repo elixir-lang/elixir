@@ -1,13 +1,13 @@
 % Holds the logic responsible for methods definition during compile time.
 % For methods introspection, check elixir_methods.
 -module(elixir_def_method).
--export([unpack_default_clause/2, new_method_table/1, flat_module/5,
-  wrap_method_definition/5, store_wrapped_method/5, unwrap_stored_methods/1]).
+-export([unpack_default_clause/2, new_method_table/1, flat_module/3,
+  wrap_method_definition/4, store_wrapped_method/4, unwrap_stored_methods/1]).
 -include("elixir.hrl").
 
 % Creates a new method table for the given name.
-new_method_table(Name) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
+new_method_table(ElixirName) ->
+  MethodTable = ?ELIXIR_ATOM_CONCAT([mex, ElixirName]),
   ets:new(MethodTable, [set, named_table, private]),
   ets:insert(MethodTable, { public, [] }),
   ets:insert(MethodTable, { inherited, [] }),
@@ -36,31 +36,34 @@ unpack_default_clause(Name, Clause) ->
 %
 % If we just analyzed the compiled structure (i.e. the method availables
 % before evaluating the method body), we would see both definitions.
-wrap_method_definition(Name, Line, Filename, Method, Defaults) ->
+wrap_method_definition(Line, Filename, Method, Defaults) ->
   Meta = elixir_tree_helpers:abstract_syntax(Method),
   MetaDefaults = elixir_tree_helpers:abstract_syntax(Defaults),
-  Content = [{var, Line, self}, {atom, Line, Name}, {string, Line, Filename}, Meta, MetaDefaults],
+  Content = [{var, Line, self}, {string, Line, Filename}, Meta, MetaDefaults],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
 
 % Invoked by the wrapped method with the method abstract tree.
 % Each method is then added to the method table.
-store_wrapped_method(Self, Module, Filename, OriginalMethod, Defaults) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Module]),
-  Name = case element(3, OriginalMethod) of
-    []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", Module, "_", ets:info(MethodTable, size)]);
+store_wrapped_method(Self, Filename, OriginalMethod, Defaults) ->
+  Name        = Self#elixir_module__.name,
+  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
+  ElixirName  = ?ELIXIR_EX_MODULE(Name),
+
+  MethodName = case element(3, OriginalMethod) of
+    []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", ElixirName, "_", ets:info(MethodTable, size)]);
     Else -> Else
   end,
-  Method = setelement(3, OriginalMethod, Name),
+  Method = setelement(3, OriginalMethod, MethodName),
 
   Visibility = ets:lookup_element(MethodTable, visibility, 2),
-  [store_each_method(MethodTable, Visibility, Filename, function_from_default(Name, Default)) || Default <- Defaults],
+  [store_each_method(MethodTable, Visibility, Filename, function_from_default(MethodName, Default)) || Default <- Defaults],
   store_each_method(MethodTable, Visibility, Filename, Method),
 
   % Returns a method object at the end.
   try
     Arity = element(4, Method),
     Constant = elixir_constants:lookup('UnboundMethod::Behavior'),
-    elixir_module_behavior:slate_bind(Constant, [?ELIXIR_ERL_MODULE(Self#elixir_module__.name), Name, Arity - 1])
+    elixir_module_behavior:slate_bind(Constant, [Name, MethodName, Arity - 1])
   catch
     error:{noconstant,'UnboundMethod::Behavior'} -> []
   end.
@@ -79,9 +82,8 @@ unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
 
 % Receives a method table and adds the given What from Object in it.
-flat_module(Object, Line, What, #elixir_module__{name=ModuleName}, MethodTable) ->
-  SelfModules = elixir_module_behavior:What(Object),
-  Modules = lists:delete('Module::Using', lists:delete(ModuleName, SelfModules)),
+flat_module(Line, Mixins, MethodTable) ->
+  Modules = lists:delete('Module::Using', Mixins),
 
   Visibility = lists:foldl(fun(Module, Acc1) ->
     DispatchTo = ?ELIXIR_ERL_MODULE(Module),

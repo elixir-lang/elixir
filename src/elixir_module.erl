@@ -9,8 +9,9 @@ scope_for(Scope, Name) -> ?ELIXIR_ATOM_CONCAT([Scope, "::", Name]).
 %% MODULE BUILDING
 
 % Build a template of an object or module used on compilation.
-build_module(Name) ->
-  Mixins = default_mixins(Name),
+build_module(ElixirName) ->
+  Name   = ?ELIXIR_ERL_MODULE(ElixirName),
+  Mixins = default_mixins(ElixirName),
   Data   = default_data(),
 
   AttributeTable = ?ELIXIR_ATOM_CONCAT([a, Name]),
@@ -22,8 +23,8 @@ build_module(Name) ->
   #elixir_module__{name=Name, data=AttributeTable}.
 
 % Default mixins based on the declaration type.
-default_mixins(Name) ->
-  case bootstrap_modules(Name) of
+default_mixins(ElixirName) ->
+  case bootstrap_modules(ElixirName) of
     true  -> [];
     false -> ['Module::Using', 'Module::Behavior']
   end.
@@ -42,42 +43,42 @@ bootstrap_modules(_)                    -> false.
 % a function that will be invoked by compile/5 passing self as argument.
 % We need to wrap them into anonymous functions so nested module
 % definitions have the variable self shadowed.
-transform(Line, Name, Body, S) ->
+transform(Line, ElixirName, Body, S) ->
   Filename = S#elixir_scope.filename,
   Clause = { clause, Line, [{var, Line, self}], [], Body },
   Fun = { 'fun', Line, { clauses, [Clause] } },
   Args = [{integer, Line, Line}, {string, Line, Filename},
-    {var, Line, self}, {atom, Line, Name}, Fun],
+    {var, Line, self}, {atom, Line, ElixirName}, Fun],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 % Main entry point for compilation. Receives the function and
 % execute it passing the module.
-compile(Line, Filename, Current, Name, Fun) ->
-  check_module_available(Name),
-  MethodTable = elixir_def_method:new_method_table(Name),
-  Module = build_module(Name),
+compile(Line, Filename, Current, ElixirName, Fun) ->
+  check_module_available(ElixirName),
+  Module = build_module(ElixirName),
+  MethodTable = elixir_def_method:new_method_table(ElixirName),
 
   try
     Result = Fun(Module),
-    compile_module(Line, Filename, Module, MethodTable),
+    compile_module(Line, Filename, ElixirName, Module, MethodTable),
     Result
   after
-    ets:delete(?ELIXIR_ATOM_CONCAT([a,Name])),
-    ets:delete(?ELIXIR_ATOM_CONCAT([m,Name]))
+    ets:delete(?ELIXIR_ATOM_CONCAT([aex,ElixirName])),
+    ets:delete(?ELIXIR_ATOM_CONCAT([mex,ElixirName]))
   end.
 
 % Handle compilation logic specific to objects or modules.
-compile_module(Line, Filename, Module, MethodTable) ->
+compile_module(Line, Filename, ElixirName, Module, MethodTable) ->
   Name = Module#elixir_module__.name,
 
   % Update mixins to have the module itself
   AttributeTable = Module#elixir_module__.data,
   Mixins = ets:lookup_element(AttributeTable, mixins, 2),
-  ets:insert(AttributeTable, { mixins, [Name|Mixins] }),
+  ets:insert(AttributeTable, { mixins, [ElixirName|Mixins] }),
 
   case bootstrap_modules(Name) of
     true  -> [];
-    false -> elixir_def_method:flat_module(Module, Line, mixins, Module, MethodTable)
+    false -> elixir_def_method:flat_module(Line, Mixins, MethodTable)
   end,
 
   {Public, Inherited, F0} = elixir_def_method:unwrap_stored_methods(MethodTable),
@@ -94,16 +95,13 @@ compile_module(Line, Filename, Module, MethodTable) ->
     {attribute, Line, export, E4} | F4
   ],
 
-  Name = Module#elixir_module__.name,
-  AttributeTable = Module#elixir_module__.data,
   Data = destructive_read(AttributeTable, data),
 
   % TODO Analyze all the attributes being passed.
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
-  ModuleName = ?ELIXIR_ERL_MODULE(Name),
   Base = ets:foldr(Transform, Extra, AttributeTable),
 
-  Forms = [{attribute, Line, module, ModuleName}, 
+  Forms = [{attribute, Line, module, Name}, 
    {attribute, Line, file, {Filename,Line}}, {attribute, Line, exfile, {Filename,Line}}| Base],
 
   load_form(Forms, Filename).
@@ -165,14 +163,14 @@ exported_function(Line, Object) ->
     [{ clause, Line, [{var,Line,function},{var,Line,arity}], [], [
       ?ELIXIR_WRAP_CALL(
         Line, erlang, function_exported,
-        [{atom,Line,?ELIXIR_ERL_MODULE(Object#elixir_module__.name)},{var,Line,function},{var,Line,arity}]
+        [{atom,Line,Object#elixir_module__.name},{var,Line,function},{var,Line,arity}]
       )
     ]}]
   }.
 
 module_function(Line, #elixir_module__{name=Name, data=AttributeTable}) ->
   Data = ets:lookup_element(AttributeTable, data, 2),
-  Snapshot = #elixir_module__{name=?ELIXIR_ERL_MODULE(Name), data=Data},
+  Snapshot = #elixir_module__{name=Name, data=Data},
   Reverse = elixir_tree_helpers:abstract_syntax(Snapshot),
   { function, Line, '__module__', 1,
     [{ clause, Line, [{var,Line,'_'}], [], [Reverse]}]
