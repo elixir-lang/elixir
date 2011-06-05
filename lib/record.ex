@@ -167,7 +167,7 @@ module Record
   end
 
   % TODO: This should be use *using*
-  def __added_as_mixin__(base)
+  def __mixed_in__(base)
     base.mixin Record::Definition
   end
 

@@ -265,8 +265,7 @@ module Module
     %       IO.puts @baz   % => 13
     %     end
     %
-    % TODO: Rename to __mixed_in__
-    def __added_as_mixin__(base)
+    def __mixed_in__(base)
       base
     end
 

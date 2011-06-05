@@ -1,7 +1,7 @@
 module ExUnit::Case
   mixin ExUnit::Assertions
 
-  def __added_as_mixin__(base)
+  def __mixed_in__(base)
     ExUnit::Server.add_case(base.__module_name__)
     base
   end

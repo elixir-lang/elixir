@@ -241,7 +241,7 @@ invalid_super_call_test() ->
 
 added_as_mixin_callback_test() ->
   F = fun() ->
-    elixir:eval("module Foo; def __added_as_mixin__(base); base.set_ivar('foo, 2); end; end"),
+    elixir:eval("module Foo; def __mixed_in__(base); base.set_ivar('foo, 2); end; end"),
     {2,[]} = elixir:eval("module Bar; mixin Foo; @foo; end")
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
