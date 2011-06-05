@@ -29,6 +29,14 @@ module Module
       Erlang.elixir_module_using.mixin(self, module)
     end
 
+    def using(module)
+      Erlang.elixir_module_using.using(self, module)
+    end
+
+    def __using__
+      Erlang.ets.lookup_element(Erlang.element(3, self), 'using, 2)
+    end
+
     % Delegate the given methods to the given expression.
     %
     % ## Examples
@@ -164,8 +172,19 @@ module Module
   end
 
   module Behavior
+    %% INTROSPECTION METHODS
+
+    % The following methods are generated automatically:
+    % def __module__()
+    % def __module_name__()
+    % def __mixins__()
+
     def __module__?
       Erlang.elixir_module_behavior.is_module(self)
+    end
+
+    def __mixin_methods__
+      Erlang.elixir_methods.mixin_methods(self)
     end
 
     def inspect
@@ -181,11 +200,13 @@ module Module
       self.inspect
     end
 
+    %% INTERNAL VARIABLE METHODS
+
     def get_ivar(name)
       Erlang.elixir_module_behavior.get_ivar(self, name)
     end
 
-    % Returns a `Dict` with all variable names and values as its key-values.
+    % Returns an `OrderedDict` with all variable names and values.
     %
     % ## Example
     %
@@ -217,17 +238,13 @@ module Module
       Erlang.elixir_module_behavior.update_ivar(self, name, initial, fun)
     end
 
+    %% DYNAMIC DISPATCHING
+
     def send(method, args := [])
       Erlang.elixir_dispatch.dispatch(self, method, args)
     end
 
-    % Those methods are related to methods introspection.
-
-    def __mixin_methods__
-      Erlang.elixir_methods.mixin_methods(self)
-    end
-
-    % Exceptions related methods
+    %% EXCEPTION RELATED
 
     def __stacktrace__
       filter_stacktrace Erlang.get_stacktrace
@@ -245,6 +262,8 @@ module Module
       Erlang.exit(reason)
     end
 
+    %% MODULE HOOKS
+
     % Hook invoked whenever this module is added as a mixin.
     % It receives the target module where the mixin is being added
     % as parameter and must return an module of the same kind.
@@ -255,7 +274,7 @@ module Module
     % instance variable on the target object:
     %
     %     module Foo
-    %       def __added_as_mixin__(base)
+    %       def __mixed_in__(base)
     %         base.set_ivar('baz, 13)
     %       end
     %     end
@@ -269,7 +288,12 @@ module Module
       base
     end
 
-    % Default behavior applied when a module is bound.
+    % Hook invoked whenever this module is added as with *using*.
+    def __used__(base)
+      base
+    end
+
+    % Hook invoked whenver this module is bound.
     def __bound__
       self
     end

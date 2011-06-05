@@ -1,23 +1,31 @@
 % Holds implementation for most Module::Using methods.
 -module(elixir_module_using).
--export([mixin/2, get_visibility/1, set_visibility/2, alias_local/5, define_erlang_method/6, module_eval/4]).
+-export([mixin/2, using/2, get_visibility/1, set_visibility/2, alias_local/5, define_erlang_method/6, module_eval/4]).
 -include("elixir.hrl").
 
 % Mixins
 
 mixin(Self, Value) when is_list(Value) -> [mixin(Self, Item) || Item <- Value];
-mixin(Self, Value) -> 
+mixin(#elixir_module__{data=Data} = Self, Value) when is_atom(Data) ->
   check_module(Value),
-  NewMixins = elixir_module_behavior:mixins(Value),
   CurrentMixins = elixir_module_behavior:mixins(Self),
-  update_mixins_chain(Self, umerge(NewMixins, CurrentMixins)),
+  NewMixins = elixir_module_behavior:mixins(Value),
+  CurrentUsing = ets:lookup_element(Data, using, 2),
+  ets:insert(Data, {mixins, umerge(NewMixins, CurrentMixins)}),
+  ets:insert(Data, {using,  CurrentUsing -- NewMixins}),
   elixir_dispatch:dispatch(Value, '__mixed_in__', [Self]).
 
-update_mixins_chain(#elixir_module__{data=Data} = Self, Chain) when is_atom(Data) ->
-  ets:insert(Data, {mixins, Chain}).
+% Using
 
-check_module(#elixir_module__{}) -> [];
-check_module(Else) -> elixir_errors:error({not_a_module, Else}).
+using(Self, Value) when is_list(Value) -> [using(Self, Item) || Item <- Value];
+using(#elixir_module__{data=Data} = Self, Value) when is_atom(Data) ->
+  check_module(Value),
+  CurrentMixins = elixir_module_behavior:mixins(Self),
+  NewMixins = elixir_module_behavior:mixins(Value),
+  CurrentUsing = ets:lookup_element(Data, using, 2),
+  ets:insert(Data, {mixins, umerge(NewMixins, CurrentMixins)}),
+  ets:insert(Data, {using,  umerge(NewMixins -- CurrentMixins, CurrentUsing)}),
+  elixir_dispatch:dispatch(Value, '__used__', [Self]).
 
 % Visibility
 
@@ -93,3 +101,6 @@ umerge2([H|T], Data) ->
     false -> New = [H|Data]
   end,
   umerge2(T, New).
+
+check_module(#elixir_module__{}) -> [];
+check_module(Else) -> elixir_errors:error({not_a_module, Else}).

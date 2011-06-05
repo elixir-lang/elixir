@@ -237,16 +237,7 @@ super_call_test() ->
 invalid_super_call_test() ->
   ?assertError({badsyntax, {1, "nofile", "invalid scope for super", []}}, elixir:eval("super")).
 
-%% Callbacks
-
-added_as_mixin_callback_test() ->
-  F = fun() ->
-    elixir:eval("module Foo; def __mixed_in__(base); base.set_ivar('foo, 2); end; end"),
-    {2,[]} = elixir:eval("module Bar; mixin Foo; @foo; end")
-  end,
-  test_helper:run_and_remove(F, ['Foo','Bar']).
-
-%% Module Methods
+%% Module Definition/Using Methods
 
 can_retrieve_visibility_test() ->
   F = fun() ->
@@ -274,3 +265,41 @@ can_retrieve_module_test() ->
     elixir:eval("mod = Foo\nmod = Foo.__module__")
   end,
   test_helper:run_and_remove(F, ['Foo']).
+
+can_retrieve_using_without_duplication_test() ->
+  F = fun() ->
+    {['Module::Using'],[]} = elixir:eval("module Foo; __using__; end"),
+    {['Foo', 'Module::Using'],[]} = elixir:eval("module Bar; using Foo; __using__; end"),
+    {['Bar', 'Module::Behavior'],[]} = elixir:eval("Bar.__mixins__")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Bar']).
+
+using_already_mixed_in_modules_test() ->
+  F = fun() ->
+    {['Module::Using'],[]} = elixir:eval("module Foo; end\nmodule Bar; mixin Foo; using Foo; __using__; end"),
+    {['Bar', 'Foo', 'Module::Behavior'],[]} = elixir:eval("Bar.__mixins__")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Bar']).
+
+mixing_already_used_in_modules_test() ->
+  F = fun() ->
+    {['Module::Using'],[]} = elixir:eval("module Foo; end\nmodule Bar; using Foo; mixin Foo; __using__; end"),
+    {['Bar', 'Foo', 'Module::Behavior'],[]} = elixir:eval("Bar.__mixins__")
+  end,
+  test_helper:run_and_remove(F, ['Foo', 'Bar']).
+
+%% Callbacks
+
+mixed_in_callback_test() ->
+  F = fun() ->
+    elixir:eval("module Foo; def __mixed_in__(base); base.set_ivar('foo, 2); end; end"),
+    {2,[]} = elixir:eval("module Bar; mixin Foo; @foo; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo','Bar']).
+
+used_in_callback_test() ->
+  F = fun() ->
+    elixir:eval("module Foo; def __used__(base); base.set_ivar('foo, 2); end; end"),
+    {2,[]} = elixir:eval("module Bar; using Foo; @foo; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo','Bar']).
