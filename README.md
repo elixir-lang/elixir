@@ -1545,7 +1545,7 @@ Finally, notice that methods that are not available at compile time cannot be ca
 
 In the example above, `RequiresName` uses `self.name` instead of `name`. This is required because `name` is not known when `RequiresName` is defined and it should actually be implemented by target classes.
 
-#### Temporary mixins (to be implemented)
+#### Temporary mixins
 
 Sometimes it is also convenient to include a mixin only during the
 module definition. This is achieved with temporary mixins:
