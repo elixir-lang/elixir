@@ -84,19 +84,19 @@ compile_module(Line, Filename, ElixirName, #elixir_module__{name=Name, data=Attr
   {P0, Inherited, F0} = elixir_def_method:unwrap_stored_methods(MethodTable),
 
   { P1, F1 } = add_extra_function(P0, F0, {'__mixins__',1},          mixins_function(Line, Module, FinalMixins)),
-  { P2, F2 } = add_extra_function(P1, F1, {'__elixir_exported__',2}, exported_function(Line, Module)),
-  { P3, F3 } = add_extra_function(P2, F2, {'__module_name__',1},     module_name_function(Line, Module)),
-  { P4, F4 } = add_extra_function(P3, F3, {'__module__',1},          module_function(Line, Module, Data)),
+  { P2, F2 } = add_extra_function(P1, F1, {'__module_name__',1},     module_name_function(Line, Module)),
+  { P3, F3 } = add_extra_function(P2, F2, {'__module__',1},          module_function(Line, Module, Data)),
 
-  Export = P4 ++ Inherited,
+  Export = [{'__elixir_exported__',2} | P3 ++ Inherited],
 
   Base = [
     {attribute, Line, module, Name},
     {attribute, Line, file, {Filename,Line}},
     {attribute, Line, exfile, {Filename,Line}},
-    {attribute, Line, public, P4},
+    {attribute, Line, public, P3},
     {attribute, Line, compile, no_auto_import()},
-    {attribute, Line, export, Export} | F4
+    {attribute, Line, export, Export},
+    exported_function(Line, Module) | F3
   ],
 
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
