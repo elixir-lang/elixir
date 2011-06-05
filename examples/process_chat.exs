@@ -1,7 +1,7 @@
 module Chat
   module Client
-    object Room
-      def initialize(room)
+    module Room
+      def __bound__(room)
         @('room: room)
       end
 
@@ -41,8 +41,8 @@ module Chat
   end
 
   module Server
-    object Room
-      def initialize(clients)
+    module Room
+      def __bound__(clients)
         @('clients: clients)
       end
 
@@ -76,14 +76,14 @@ module Chat
 end
 
 client = Process.current
-server = Process.spawn -> Chat::Server::Room.new([client]).loop
+server = Process.spawn -> #Chat::Server::Room([client]).loop
 
-room = Chat::Client::Room.new(server)
+room = #Chat::Client::Room(server)
 
 % Spawn another process to simulate another client that will
 % join the room, send a message and leave.
 Process.spawn do
-  another_client = Chat::Client::Room.new(server)
+  another_client = #Chat::Client::Room(server)
   another_client.join
   another_client.say "Hi!"
   another_client.leave

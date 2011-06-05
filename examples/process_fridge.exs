@@ -4,13 +4,13 @@
 % This example showcases Elixir communication between process, in a similar fashion to Erlang's.
 % This example builds a small fridge where you can store, take and see items.
 
-object Fridge
+module Fridge
   % Creates a new fridge by receiving a list.
-  def initialize(list)
+  def __bound__(list)
     % Spawn a new process by invoking the 'loop method defined below.
     % Notice that all methods defined in Fridge are actually defined
     % in Fridge::Proto, this is why we pass Fridge::Proto below.
-    pid = Process.spawn -> Fridge::Proto.loop [list]
+    pid = Process.spawn -> Fridge.loop [list]
 
     % Returns the object with the pid as instance variable.
     @('pid: pid)
@@ -94,7 +94,7 @@ object Fridge
   end
 end
 
-fridge = Fridge.new(['beer,'water])
+fridge = #Fridge(['beer,'water])
 fridge.store('apples)
 IO.puts "We have #{fridge.see.join(", ")} in the fridge"
 fridge.take('beer)

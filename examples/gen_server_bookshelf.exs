@@ -1,6 +1,6 @@
-object Bookshelf
-  def initialize(books)
-    { 'ok, ref } = GenServer.start_link(Bookshelf::Server.new(books))
+module Bookshelf
+  def __bound__(books)
+    { 'ok, ref } = GenServer.start_link(#Bookshelf::Server(books))
     @('ref: ref)
   end
 
@@ -25,8 +25,8 @@ object Bookshelf
   % It is quite similar to Erlang gen server, except that the
   % state is never passed as argument, because it is the object
   % itself.
-  object Server
-    def initialize(books)
+  module Server
+    def __bound__(books)
       @('books: books)
     end
 
@@ -74,7 +74,7 @@ object Bookshelf
   end
 end
 
-bookshelf = Bookshelf.new(["Crafting Rails Apps","Programming Erlang"])
+bookshelf = #Bookshelf(["Crafting Rails Apps","Programming Erlang"])
 
 bookshelf.put("Programming Elixir")
 IO.puts "In the bookshelf: "
