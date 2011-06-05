@@ -1463,12 +1463,18 @@ Everything in Elixir is immutable. Well, almost everything, the only exception a
       IO.puts foo % => 2
     end
 
-In the example above, `set_ivar` is setting the value of an internal variable named `'foo` to `2` which we can read on the following line. Now, if we tried such trick with `Car`, it wouldn't work as expected:
+In the example above, `set_ivar` is setting the value of an internal variable named `'foo` to `2` which we can read on the following line. Now, if we tried such trick with `#Car`, it wouldn't work the same:
 
     car = #Car('green)
     new_car = car.set_ivar 'color, 'red
     car.color     % => 'green
     new_car.color % => 'red
+
+Notice however that modules are only mutable during definition. After a module is defined, we can no longer modify it:
+
+    new_module = Hello.set_ivar 'bar, 2
+    Hello.get_ivar 'bar       % => nil
+    new_module.get_ivar 'bar  % => 2
 
 Immutability is important to ensure we won't have race conditions or deadlocks on runtime. However, it is ok for modules to be mutable as it happens only during compilation time, adding great extensibility.
 
