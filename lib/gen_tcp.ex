@@ -39,10 +39,6 @@ module GenTCP
     init_socket Erlang.gen_tcp.listen(port, options)
   end
 
-  def listen(port, options, timeout)
-    init_socket Erlang.gen_tcp.listen(port, options, timeout)
-  end
-
   def connect(address, port, options)
     init_socket Erlang.gen_tcp.connect(address.to_char_list, port, options)
   end
@@ -95,8 +91,8 @@ module GenTCP
       Erlang.gen_tcp.close(@socket)
     end
 
-    def shutdown
-      Erlang.gen_tcp.shutdown(@socket)
+    def shutdown(how)
+      Erlang.gen_tcp.shutdown(@socket, how)
     end
   end
 end
