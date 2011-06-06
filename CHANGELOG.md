@@ -6,6 +6,7 @@
   * Added anonymous methods: def(x,y) x + y; end
   * Added Method and UnboundMethod modules
   * Added `using` as temporary mixins
+  * Added `respond_to?(method, arity)`
 
 * deprecations
   * Use {} instead of {:} as an empty dict. An empty tuple can be retrieved with Tuple.new
