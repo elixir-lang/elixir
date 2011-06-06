@@ -9,7 +9,7 @@
   * Added `respond_to?(method, arity)`
 
 * deprecations
-  * Use {} instead of {:} as an empty dict. An empty tuple can be retrieved with Tuple.new
+  * Use {} instead of {:} as an empty dict. An empty tuple can be retrieved with Tuple.empty
   * `__added_as_mixin__` is now `__mixed_in__`
   * object and protos were removed in favor of module binding
 
