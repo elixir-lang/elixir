@@ -11,7 +11,7 @@ module BindTest
 
   % TODO: Test exceptions
   % TODO: Make parens optional
-  % TODO: Test inspect (including on BlankSlate)
+  % TODO: Test blank slate
 
   def bind_test
     1 = Module.blank_slate#BindMath().one
@@ -30,10 +30,6 @@ module BindTest
     thing = mirror #BindMath()
     1 = thing.one
   end
-
-  % def does_not_include_module_methods_test
-  %   false = 1.__mixin_methods__.include?({ 'attr_reader, 1 })
-  % end
 
   private
 

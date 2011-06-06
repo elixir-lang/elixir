@@ -56,6 +56,7 @@ module ModuleTest
     true = OrderedDict.respond_to? 'from_list, 1
     true = OrderedDict.respond_to? '__module_name__, 0
     true = OrderedDict.respond_to? 'respond_to?, 2
+    false = OrderedDict.respond_to? 'mixin, 1
     false = OrderedDict.respond_to? 'whatever, 0
     false = OrderedDict.respond_to? '__elixir_exported__, 1
   end
@@ -75,6 +76,45 @@ module ModuleTest
     assert_not_included {'whatever, 0}, OrderedDict.__local_methods__
     assert_not_included {'elixir_exported, 1}, OrderedDict.__local_methods__
   end
+
+  def builtin_not_allowed_test
+    assert_error {'builtin_not_allowed, { 'set_ivar, 1 } }, do 1.set_ivar('foo, 'bar)
+  end
+
+  module Example
+  end
+
+  def inspect_test
+    "ModuleTest::Example" = ModuleTest::Example.inspect
+
+    with_ivars = #ModuleTest::Example().set_ivar('foo, 'bar).set_ivar('bar, 'baz)
+    "<#ModuleTest::Example {'bar: 'baz, 'foo: 'bar}>" = with_ivars.inspect
+  end
+
+  def to_s_test
+    "ModuleTest::Example" = ModuleTest::Example.to_s
+    with_ivars = #ModuleTest::Example().set_ivar('foo, 'bar).set_ivar('bar, 'baz)
+    "<#ModuleTest::Example {'bar: 'baz, 'foo: 'bar}>" = with_ivars.to_s
+  end
+
+  def get_and_set_ivars_test
+    dict = { 'a: 1, 'b: 2 }
+    ~dict = #ModuleTest::Example().set_ivars(dict).get_ivars
+  end
+
+  def update_ivar_test
+    [1] = #ModuleTest::Example().set_ivar('foo, []).update_ivar('foo, _.push(1)).get_ivar('foo)
+
+    foo = #ModuleTest::Example().update_ivar('list, [1], -> (_) self.error "never called").update_ivar('list, _.push(2))
+    [1,2] = foo.get_ivar('list)
+  end
+
+  % def method_missing_test
+  %   recorder = Recorder.new
+  %   [{'hello, ['the, "world"]}] = recorder.hello('the, "world").calls
+  %   processor = recorder.filter( -> (x) x rem 2 == 0 ).map( -> (x) x * 10 )
+  %   [20, 40] = processor.play([1, 2, 3, 4])
+  % end
 
   private
 
