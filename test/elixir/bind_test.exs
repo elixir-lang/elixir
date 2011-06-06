@@ -21,6 +21,11 @@ module BindTest
     1 = #BindMath().one
   end
 
+  def module_question_mark_test
+    true  = BindMath.__module__?
+    false = #BindMath().__module__?
+  end
+
   def precedence_test
     thing = mirror #BindMath()
     1 = thing.one

@@ -24,7 +24,7 @@ module AtomTest
     atom = Atom
     ~atom = 'Atom.to_constant
 
-    self.assert_error { 'noconstant, 'ThisConstantDoesNotExist }, do
+    self.assert_error { 'no_constant, 'ThisConstantDoesNotExist }, do
       'ThisConstantDoesNotExist.to_constant
     end
   end

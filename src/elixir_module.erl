@@ -126,9 +126,9 @@ check_module_available(ElixirName) ->
   try
     ErrorInfo = elixir_constants:lookup(ElixirName, attributes),
     [{ErrorFile,ErrorLine}] = proplists:get_value(exfile, ErrorInfo),
-    error({objectdefined, {ElixirName, list_to_binary(ErrorFile), ErrorLine}})
+    error({module_defined, {ElixirName, list_to_binary(ErrorFile), ErrorLine}})
   catch
-    error:{noconstant, _} -> []
+    error:{no_constant, _} -> []
   end.
 
 destructive_read(Table, Attribute) ->

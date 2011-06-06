@@ -87,10 +87,10 @@ nested_module_name_with_methods_test() ->
   end,
   test_helper:run_and_remove(F, ['Bar::Baz']).
 
-objectdefined_error_test() ->
+module_defined_error_test() ->
   F = fun() ->
     elixir:eval("module Foo; def foo(); 1 + 2; end; end", [], "specialfile", 10),
-    ?assertError({objectdefined, {'Foo',<<"specialfile">>,10}}, elixir:eval("module Foo; end"))
+    ?assertError({module_defined, {'Foo',<<"specialfile">>,10}}, elixir:eval("module Foo; end"))
   end,
   test_helper:run_and_remove(F, ['Foo']).
 
@@ -216,7 +216,7 @@ local_call_does_not_look_at_outer_modules_test() ->
   test_helper:run_and_remove(F, ['Foo','Bar']).
 
 cannot_lookup_not_stored_constants_test() ->
-  ?assertError({noconstant, 'FooBarBaz' }, elixir:eval("FooBarBaz")).
+  ?assertError({no_constant, 'FooBarBaz' }, elixir:eval("FooBarBaz")).
 
 %% Super
 

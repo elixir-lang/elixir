@@ -34,7 +34,7 @@ set_visibility(#elixir_module__{name=Name, data=Data}, Visibility) when is_atom(
   ets:insert(MethodTable, { visibility, Visibility });
 
 set_visibility(Self, Visibility) ->
-  elixir_errors:error({moduledefined, { set_visibility, Self }}).
+  elixir_errors:error({module_defined, { set_visibility, Self }}).
 
 get_visibility(#elixir_module__{name=Name, data=Data}) when is_atom(Data) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
@@ -52,11 +52,11 @@ alias_local(#elixir_module__{name=Name, data=Data} = Self, Filename, Old, New, E
     [{{Old, Arity}, Line, Clauses}] ->
       elixir_def_method:store_wrapped_method(Self, Filename, {function, Line, New, Arity, Clauses}, []);
     [] ->
-      elixir_errors:error({nolocalmethod, {Old, Arity, Self}})
+      elixir_errors:error({no_local_method, {Old, Arity, Self}})
   end;
 
 alias_local(Self, _, _, _, _) ->
-  elixir_errors:error({moduledefined, { alias_local, Self }}).
+  elixir_errors:error({module_defined, { alias_local, Self }}).
 
 % module_eval
 
@@ -65,7 +65,7 @@ module_eval(#elixir_module__{name=Name, data=Data} = Self, String, Filename, Lin
   elixir:eval(to_char_list(String), [{self,Self}], to_char_list(Filename), Line, Scope);
 
 module_eval(Self, _, _, _) ->
-  elixir_errors:error({moduledefined, { module_eval, Self }}).
+  elixir_errors:error({module_defined, { module_eval, Self }}).
 
 object_kind(#elixir_module__{}) -> module.
 
@@ -76,7 +76,7 @@ define_erlang_method(#elixir_module__{data=Data} = Self, Filename, Line, Method,
   elixir_def_method:store_wrapped_method(Self, to_char_list(Filename), {function, Line, Method, Arity + 1, TClauses}, []);
 
 define_erlang_method(Self, _, _, _, _, _) ->
-  elixir_errors:error({moduledefined, { define_erlang_method, Self }}).
+  elixir_errors:error({module_defined, { define_erlang_method, Self }}).
 
 expand_clauses({ clause, Line, Args, Guards, Exprs }) ->
   { clause, Line, [{var, Line, self}|Args], Guards, Exprs }.

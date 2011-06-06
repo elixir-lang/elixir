@@ -89,13 +89,13 @@ module ExUnit::Runner
         subject.send(test)
         nil
       catch kind1: error1
-        {kind1, error1, self.__stacktrace__}
+        {kind1, error1, __stacktrace__}
       end
 
       subject.teardown(test)
       partial
     catch kind2: error2
-      {kind2, error2, self.__stacktrace__}
+      {kind2, error2, __stacktrace__}
     end
 
     pid <- { Process.current, 'each, { object, test, final } }

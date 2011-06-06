@@ -946,17 +946,15 @@ It should actually be written as:
 
 ### List of errors
 
-TODO: THIS LIST IS OUT OF DATA AND SHOULD BE UPDATED.
-
 Here is a list of runtime errors that can be raised by Elixir:
 
 *   `{ 'builtinnotallowed, { method, builtin } }`
 
-    Invoking `method` not allowed on the `builtin` structure. Built-in structures are all structures that comes directly from Erlang, they are: String, Integer, Float, Tuple, List, OrderedDict and so forth. A few operations like setting instance variables are not allowed on built-in objects;
+    Invoking `method` not allowed on the `builtin` structure. Builtins are all structures that comes directly from Erlang, they are: String, Integer, Float, Tuple, List, OrderedDict and so forth. Binding and setting instance variables are currently disabled on builtins;
 
-*   `{ 'objectdefined, { name, file, line } }`
+*   `{ 'module_defined, { name, file, line } }`
 
-    An object with `name` was already defined on `file` at `line`. This is a common error to appear during compilation time as the following valid Ruby pattern is not valid in Elixir:
+    An module with `name` was already defined on `file` at `line`. This is a common error to appear during compilation time as the following valid Ruby pattern is not valid in Elixir:
 
         module Foo
           module Bar
@@ -973,43 +971,31 @@ Here is a list of runtime errors that can be raised by Elixir:
         module Foo::Baz
         end
 
-*   `{ 'reservedmodulename, name }`
-
-    Raised when you defined a module named `Mixin` or `Proto` outside of an Object. Both `Mixin` and `Proto` are reserved modules names;
-
-*   `{ 'nomethod, { name, arity, object } }`
-
-    There isn't a public method with the given `name` and `arity` in `object`;
-
-*   `{ 'nolocalmethod, { name, arity, module } }`
+*   `{ 'no_local_method, { name, arity, module } }`
 
     There isn't a local method with the given `name` and `arity` in `module`;
 
-*   `{ 'notamodule, { method, object } }`
+*   `{ 'not_a_module, { method, other } }`
 
-    `method` failed because `object` is not a module;
+    `method` failed because `other` is not a module;
 
-*   `{ 'noconstant, name }`
+*   `{ 'no_constant, name }`
 
     A constant with `name` could not be found;
 
-*   `{ 'nocallback, { name, arity, object } }`
+*   `{ 'no_callback, { name, arity, structure } }`
 
-    The callback `name` with `arity` was not implemented in `object`. Raised when an object is given as callback but does not comply to all conditions;
+    The callback `name` with `arity` was not implemented in `structure`. Raised when a structure is given as callback but does not comply to all conditions;
 
-*   `{ 'badivar, name }`
+*   `{ 'bad_ivar, name }`
 
-    The `name` given is not an atom and cannot be given as instance variable name;
+    The `name` given is not an atom and cannot be given as internal variable name;
 
-*   `{ 'badinitialize, value }`
+*   `{ 'bad_ivars, value }`
 
-    `value` returned by `initialize` is not the same kind as the original object;
+    `value` given to `@()` or `set_ivars` is not an `OrderedDict` or it is an `OrderedDict` but not all keys are atoms;
 
-*   `{ 'badivars, value }`
-
-    `value` given to `@()` or `set_ivars` is not an OrderedDict or it is an OrderedDict but not all keys are atoms;
-
-*   `{ 'moduledefined, { method, module } }`
+*   `{ 'module_defined, { method, module } }`
 
     Cannot invoke `method` in `module` because the module was already defined. For example, calling `module_eval` in an already defined module will raise such errors;
 

@@ -45,7 +45,7 @@ get_ivar(Self, Name) when is_atom(Name) ->
   elixir_helpers:orddict_find(Name, data(Self));
 
 get_ivar(Self, Name) ->
-  elixir_errors:error({badivar, Name}).
+  elixir_errors:error({bad_ivar, Name}).
 
 set_ivar(Self, Name, Value) when is_atom(Name) ->
   set_ivar_dict(Self, Name, set_ivar, fun(Dict) -> orddict:store(Name, Value, Dict) end).
@@ -61,7 +61,7 @@ update_ivar(Self, Name, Initial, Function) ->
   set_ivar_dict(Self, Name, update_ivar, fun(Dict) -> orddict:update(Name, Function, Initial, Dict) end).
 
 set_ivar_dict(_, Name, _, _) when not is_atom(Name) ->
-  elixir_errors:error({badivar, Name});
+  elixir_errors:error({bad_ivar, Name});
 
 set_ivar_dict(#elixir_slate__{data=Dict} = Self, Name, _, Function) ->
   Self#elixir_slate__{data=Function(Dict)};
@@ -76,21 +76,20 @@ set_ivar_dict(#elixir_module__{data=Data} = Self, Name, _, Function) ->
   Object;
 
 set_ivar_dict(Self, _, Method, _) ->
-  builtinnotallowed(Self, Method).
+  builtin_not_allowed(Self, Method).
 
 assert_dict_with_atoms(#elixir_orddict__{struct=Dict} = Object) ->
   case lists:all(fun is_atom/1, orddict:fetch_keys(Dict)) of
     true  -> Dict;
     false ->
-      elixir_errors:error({badivars, Object})
+      elixir_errors:error({bad_ivars, Object})
   end;
 
 assert_dict_with_atoms(Data) ->
-  elixir_errors:error({badivars, Data}).
+  elixir_errors:error({bad_ivars, Data}).
 
-% Raise builtinnotallowed error with the given reason:
-builtinnotallowed(Builtin, Reason) ->
-  elixir_errors:error({builtinnotallowed, {Reason, Builtin}}).
+builtin_not_allowed(Builtin, Reason) ->
+  elixir_errors:error({builtin_not_allowed, {Reason, Builtin}}).
 
 % Binding
 

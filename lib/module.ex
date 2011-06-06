@@ -188,7 +188,7 @@ module Module
     end
 
     def inspect
-      name = __module_name__
+      name = self.__module_name__
       if __module__?
         name.to_s
       else
