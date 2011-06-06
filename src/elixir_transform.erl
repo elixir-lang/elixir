@@ -444,7 +444,7 @@ transform({comp_op, Line, Op, Left, Right}, S) ->
 %
 % The Left and Right values of the binary operation can be a match expression.
 % Variables defined inside these expressions needs to be added to the list.
-transform({binary_op, Line, Op, { atom, _, _ } = Left, Right}, S) ->
+transform({binary_op, Line, '/', { atom, _, _ } = Left, Right}, S) ->
   transform({tuple, Line, [Left, Right] }, S);
 
 transform({binary_op, Line, Op, Left, Right}, S) ->
