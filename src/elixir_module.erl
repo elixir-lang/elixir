@@ -76,27 +76,30 @@ compile_module(Line, Filename, ElixirName, #elixir_module__{name=Name, data=Attr
   TempMixins  = RawMixins -- Using,
   FinalMixins = [ElixirName|TempMixins],
 
-  case bootstrap_modules(Name) of
+  case bootstrap_modules(ElixirName) of
     true  -> [];
     false -> elixir_def_method:flat_module(Line, TempMixins, MethodTable)
   end,
 
   {P0, Inherited, F0} = elixir_def_method:unwrap_stored_methods(MethodTable),
 
-  { P1, F1 } = add_extra_function(P0, F0, {'__mixins__',1},          mixins_function(Line, Module, FinalMixins)),
-  { P2, F2 } = add_extra_function(P1, F1, {'__module_name__',1},     module_name_function(Line, Module)),
-  { P3, F3 } = add_extra_function(P2, F2, {'__module__',1},          module_function(Line, Module, Data)),
+  { P1, F1 } = add_extra_function(P0, F0, {'__mixins__',1},        mixins_function(Line, Module, FinalMixins)),
+  { P2, F2 } = add_extra_function(P1, F1, {'__module_name__',1},   module_name_function(Line, Module)),
+  { P3, F3 } = add_extra_function(P2, F2, {'__module__',1},        module_function(Line, Module, Data)),
 
-  Export = [{'__elixir_exported__',2} | P3 ++ Inherited],
+  % Do not change this order:
+  { P4, F4 } = add_extra_function(P3, F3, {'__local_methods__',1}, local_methods_function(Line, P3)),
+  { P5, F5 } = add_extra_function(P4, F4, {'__mixin_methods__',1}, mixin_methods_function(Line, P4 ++ Inherited)),
+
+  Export = [{'__elixir_exported__',2} | P5 ++ Inherited],
 
   Base = [
     {attribute, Line, module, Name},
     {attribute, Line, file, {Filename,Line}},
     {attribute, Line, exfile, {Filename,Line}},
-    {attribute, Line, public, P3},
     {attribute, Line, compile, no_auto_import()},
     {attribute, Line, export, Export},
-    exported_function(Line, Module) | F3
+    exported_function(Line, Module) | F5
   ],
 
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
@@ -165,6 +168,15 @@ exported_function(Line, #elixir_module__{name=Name}) ->
     ]}]
   }.
 
+local_methods_function(Line, Public) ->
+  MixinMethods = {'__mixin_methods__',1},
+  FinalPublic = [MixinMethods,{'__local_methods__',1}|lists:delete(MixinMethods,Public)],
+  return_tuples_function(Line, '__local_methods__', FinalPublic).
+
+mixin_methods_function(Line, Export) ->
+  FinalExport = [{'__mixin_methods__',1}|Export],
+  return_tuples_function(Line, '__mixin_methods__', FinalExport).
+
 module_function(Line, #elixir_module__{name=Name}, Data) ->
   Snapshot = #elixir_module__{name=Name, data=Data},
   Reverse = elixir_tree_helpers:abstract_syntax(Snapshot),
@@ -181,6 +193,14 @@ mixins_function(Line, Module, Mixins) ->
 module_name_function(Line, #elixir_module__{name=Name}) ->
   { function, Line, '__module_name__', 1,
     [{ clause, Line, [{var,Line,'_'}], [], [{atom,Line,?ELIXIR_EX_MODULE(Name)}]}]
+  }.
+
+return_tuples_function(Line, MethodName, Tuples) ->
+  { FinalTuples, [] } = elixir_tree_helpers:build_list(fun({Name,Arity},Y) ->
+    {{tuple,Line,[{atom,Line,Name},{integer,Line,Arity-1}]},Y}
+  end, Tuples, Line, []),
+  { function, Line, MethodName, 1,
+    [{ clause, Line, [{var,Line,'_'}], [], [FinalTuples]}]
   }.
 
 % ERROR HANDLING

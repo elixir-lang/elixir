@@ -82,11 +82,9 @@ unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
 
 % Receives a method table and adds the given What from Object in it.
-flat_module(Line, Mixins, MethodTable) ->
-  Modules = lists:delete('Module::Using', Mixins),
-
-  Visibility = lists:foldl(fun(Module, Acc1) ->
-    DispatchTo = ?ELIXIR_ERL_MODULE(Module),
+flat_module(Line, Modules, MethodTable) ->
+  Visibility = lists:foldl(fun(ElixirModule, Acc1) ->
+    Module = ?ELIXIR_ERL_MODULE(ElixirModule),
     lists:foldl(fun({Method, ElixirArity}, Acc2) ->
       Arity = ElixirArity + 1,
       case ets:lookup(MethodTable, {Method, Arity}) of
@@ -95,7 +93,7 @@ flat_module(Line, Mixins, MethodTable) ->
 
           ets:insert(MethodTable, {
             { Method, Arity }, Line, [
-              { clause, Line, BuiltArgs, [], [?ELIXIR_WRAP_CALL(Line, DispatchTo, Method, BuiltArgs)] }
+              { clause, Line, BuiltArgs, [], [?ELIXIR_WRAP_CALL(Line, Module, Method, BuiltArgs)] }
             ]
           }),
 

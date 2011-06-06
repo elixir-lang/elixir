@@ -16,7 +16,7 @@ module ExUnit::Case
 
   def __tests__
     regexp = ~r(_test$)
-    [name for {name, _} in __mixin_methods__, regexp.match?(name.to_s)]
+    [name for {name, _} in self.__mixin_methods__, regexp.match?(name.to_s)]
   end
 
   def setup(_)

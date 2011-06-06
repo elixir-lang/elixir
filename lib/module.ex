@@ -20,6 +20,14 @@ module Module
     def __module__
       self
     end
+
+    def __local_methods__
+      []
+    end
+
+    def __mixin_methods__
+      Erlang.elixir_methods.mixin_methods(self)
+    end
   end
 
   % This module is included temporarily during method
@@ -178,13 +186,11 @@ module Module
     % def __module__()
     % def __module_name__()
     % def __mixins__()
+    % def __local_methods__()
+    % def __mixin_methods__()
 
     def __module__?
       Erlang.elixir_module_behavior.is_module(self)
-    end
-
-    def __mixin_methods__
-      Erlang.elixir_methods.mixin_methods(self)
     end
 
     def inspect

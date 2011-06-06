@@ -940,7 +940,7 @@ It should actually be written as:
       after
         IO.puts "I am always executed"
       end
-
+      
       some_method(t, value)
     end
 
@@ -1186,7 +1186,7 @@ As Erlang, Elixir code is mainly organized around modules. Here is a very simple
 
 In Erlang, it is very important to make a difference between local calls and remote calls, as they affect how hot code swapping works. You can read this section from [Learn You Some Erlang](http://learnyousomeerlang.com/designing-a-concurrent-application#hot-code-loving) for more information.
 
-Elixir keeps the same semantics as Erlang and makes a difference between local and remote calls.
+Elixir keeps the same semantics as Erlang and makes a difference between local and remote calls:
 
     module Example
       % This is a local call because internal is defined locally.
@@ -1196,7 +1196,7 @@ Elixir keeps the same semantics as Erlang and makes a difference between local a
       
       % Even though internal is defined locally, since we use self
       % this is not a local call, but a remote call.
-      def not_a_local_call
+      def remote_call
         self.internal
       end
       
@@ -1204,6 +1204,38 @@ Elixir keeps the same semantics as Erlang and makes a difference between local a
         13
       end
     end
+
+This difference becomes important when we consider mixins:
+
+    module Main
+      mixin Example
+      
+      def internal
+        11
+      end
+    end
+    
+    Main.local_call  % => 13
+    Main.remote_call % => 11
+
+Notice that the local call uses the value of the local method internal, while remote call uses the one overridden in `Main`. Most methods related to module introspection (starting with `__`) are local and therefore always need `self` in order to be dynamic:
+
+    module Introspection
+      def original_name
+        __module_name__
+      end
+      
+      def my_name
+        self.__module_name__
+      end
+    end
+    
+    module Main
+      mixin Introspection
+    end
+    
+    Main.my_name       % => 'Main
+    Main.original_name % => 'Introspection
 
 Finally, notice that if a variable is defined with the same name as method, the variable is given higher preference:
 
@@ -1218,7 +1250,9 @@ Finally, notice that if a variable is defined with the same name as method, the 
       end
     end
     
-    AnotherExample.value  % => 11
+    AnotherExample.value % => 11
+
+If in the example above you wanted to call do a local call, you could have used `some_value()` to disambiguate.
 
 ### Method Visibility
 
