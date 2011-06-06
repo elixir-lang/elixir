@@ -2,7 +2,7 @@
 
 Elixir is a programming language built on top of Erlang. As Erlang, it is a functional language with strict evaluation, single assignment and dynamic typing built to support distributed, fault-tolerant, non-stop applications with hot swapping. Elixir allows you to invoke Erlang modules without a need to convert data types, therefore there is no hit in performance when invoking existing Erlang code.
 
-The main difference between Elixir and Erlang is its syntax inspired by Ruby and method dispatching based on modules.
+The main difference between Elixir and Erlang is its syntax inspired by Ruby and method dispatching and metaprogramming on top of modules.
 
 # Usage
 
