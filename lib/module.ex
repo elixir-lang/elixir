@@ -246,7 +246,15 @@ module Module
 
     %% DYNAMIC DISPATCHING
 
+    def respond_to?(method, arity)
+      Erlang.lists.member({method, arity}, self.__mixin_methods__)
+    end
+
     def send(method, args := [])
+      Erlang.elixir_dispatch.dispatch(self, method, args)
+    end
+
+    def __send__(method, args := [])
       Erlang.elixir_dispatch.dispatch(self, method, args)
     end
 

@@ -1,7 +1,13 @@
 module ExUnit::Assertions
-  def assert_include(base, container)
+  def assert_included(base, container)
     unless container.include?(base)
       self.error { 'badassertion, "Expected #{container.inspect} to include #{base.inspect}" } 
+    end
+  end
+
+  def assert_not_included(base, container)
+    if container.include?(base)
+      self.error { 'badassertion, "Expected #{container.inspect} to not include #{base.inspect}" } 
     end
   end
  

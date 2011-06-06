@@ -44,7 +44,7 @@ module FileTest
   end
 
   def read_test
-    self.assert_include "object FileTest", File.read __FILE__
+    self.assert_included "object FileTest", File.read __FILE__
     self.assert_error 'enoent, -> File.read __FILE__ + ".unknown"
   end
 

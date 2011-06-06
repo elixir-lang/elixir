@@ -13,8 +13,8 @@ module ExUnitTest
 
   def teardown_test
     fixture = OS.cmd("bin/exunit test/elixir/fixtures/ex_unit_failure.exs")
-    self.assert_include "{'badmatch,1}", fixture
-    self.assert_include "{'badmatch,3}", fixture
-    self.assert_include "EVEN ON FAILURES", fixture
+    self.assert_included "{'badmatch,1}", fixture
+    self.assert_included "{'badmatch,3}", fixture
+    self.assert_included "EVEN ON FAILURES", fixture
   end
 end

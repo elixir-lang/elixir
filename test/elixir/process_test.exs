@@ -35,7 +35,7 @@ module ProcessTest
   def register_and_unregister_test
     process = Process.current
     process.register('elixir_test_process)
-    self.assert_include 'elixir_test_process, Process.registered
+    self.assert_included 'elixir_test_process, Process.registered
 
     'elixir_test_process <- { 'test, 'message }
     receive { 'test, 'message }
