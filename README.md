@@ -1500,33 +1500,68 @@ Elixir also allows us to store information inside data structures. This is done 
     car = #Car('green)
     car.color % => 'green
 
-Whenever a module is bound, the callback `__bound__` in the module is invoked. All the variables given on binding are accessible in the callback. Data can be added to the blank slate through **internal variables** (for example, `@color` above).
+Whenever a module is bound, the callback `__bound__` in the module is invoked. All the values given on binding are accessible in the callback. Data can be added to the blank slate through **internal variables** (for example, `@color` above).
 
-Notice internal variables are always relative to the receiver of the method. In `car.color`, it will read the internal variable `@color` in `car`. On the other hand, `Car.color` will attempt to read the internal variable `@color` in the module `Car`, which will return `nil`.
+#### Module internal variables
+
+As any structure, modules also have internal variables:
+
+    module Car
+      set_ivar('color, 'red)
+      
+      def color
+        @color
+      end
+    end
+    
+    Car.color % => 'red
+
+In the example above, we are setting and reading the internal variable of the module Car. However, keep in mind that if we bind the module, `@color` will point the bind object as seen above:
+
+    #Car().color % => nil
+
+If you want to access a module variable even from the bound object, you can use `@@color`:
+
+    module Car
+      set_ivar('color, 'red)
+    
+      def color
+        @@color
+      end
+    end
+    
+    #Car().color % => 'red
+
 
 #### Mutability
 
-Everything in Elixir is immutable. Well, almost everything, the only exception are modules:
-
-    module Hello
-      set_ivar 'foo, 2
-      IO.puts foo % => 2
-    end
-
-In the example above, `set_ivar` is setting the value of an internal variable named `'foo` to `2` which we can read on the following line. Now, if we tried such trick with `#Car`, it wouldn't work the same:
+Almost everything in Elixir is immutable. For example, every time we set the internal variable of a new structure, it returns a new structure instead of modifying the first one in place:
 
     car = #Car('green)
-    new_car = car.set_ivar 'color, 'red
+    new_car = car.set_ivar('color, 'red)
+    
     car.color     % => 'green
     new_car.color % => 'red
 
-Notice however that modules are only mutable during definition. After a module is defined, we can no longer modify it:
+The only exception to mutability are modules:
 
-    new_module = Hello.set_ivar 'bar, 2
-    Hello.get_ivar 'bar       % => nil
-    new_module.get_ivar 'bar  % => 2
+    module Car
+      set_ivar('color, 'red)
+    
+      def color
+        @color
+      end
+    end
+    
+    Car.color % => 'red
 
-Immutability is important to ensure we won't have race conditions or deadlocks on runtime. However, it is ok for modules to be mutable as it happens only during compilation time, adding great extensibility.
+In the example above, `set_ivar` is setting the value of the internal variable `@color` but it is not returning a new object, it is modifying the value of the module in place! However, notice that modules are only mutable during definition. After a module is defined, we can no longer modify it:
+
+    new_module = Car.set_ivar 'color, 'green
+    Car.color        % => 'red
+    new_module.color % =>'green
+
+Notice in the example above `Car`'s internal variable `@color` is still `'red` even after calling `set_ivar`. Immutability is important to ensure we won't have race conditions or deadlocks on runtime. However, it is ok for modules to be mutable as long as it happens only during compilation time, adding great extensibility.
 
 #### Best practices
 
