@@ -266,13 +266,6 @@ can_retrieve_module_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo']).
 
-can_retrieve_ivars_test() ->
-  F = fun() ->
-    {[{foo,bar}],[]} = elixir:eval("module Foo; @('foo, 'bar); __ivars__; end"),
-    {[{foo,bar}],[]} = elixir:eval("Foo.__ivars__")
-  end,
-  test_helper:run_and_remove(F, ['Foo']).
-
 can_retrieve_using_without_duplication_test() ->
   F = fun() ->
     {['Module::Using'],[]} = elixir:eval("module Foo; __using__; end"),
