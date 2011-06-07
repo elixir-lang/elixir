@@ -85,13 +85,14 @@ compile_module(Line, Filename, ElixirName, #elixir_module__{name=Name, data=Attr
 
   { P1, F1 } = add_extra_function(P0, F0, {'__mixins__',1},        mixins_function(Line, Module, FinalMixins)),
   { P2, F2 } = add_extra_function(P1, F1, {'__module_name__',1},   module_name_function(Line, Module)),
-  { P3, F3 } = add_extra_function(P2, F2, {'__module__',1},        module_function(Line, Module, Data)),
+  { P3, F3 } = add_extra_function(P2, F2, {'__module__',1},        module_function(Line, Module)),
+  { P4, F4 } = add_extra_function(P3, F3, {'__ivars__',1},         ivars_function(Line, Data)),
 
   % Do not change this order:
-  { P4, F4 } = add_extra_function(P3, F3, {'__local_methods__',1}, local_methods_function(Line, P3)),
-  { P5, F5 } = add_extra_function(P4, F4, {'__mixin_methods__',1}, mixin_methods_function(Line, P4 ++ Inherited)),
+  { P5, F5 } = add_extra_function(P4, F4, {'__local_methods__',1}, local_methods_function(Line, P4)),
+  { P6, F6 } = add_extra_function(P5, F5, {'__mixin_methods__',1}, mixin_methods_function(Line, P5 ++ Inherited)),
 
-  Export = [{'__elixir_exported__',2} | P5 ++ Inherited],
+  Export = [{'__elixir_exported__',2} | P6 ++ Inherited],
 
   Base = [
     {attribute, Line, module, Name},
@@ -99,7 +100,7 @@ compile_module(Line, Filename, ElixirName, #elixir_module__{name=Name, data=Attr
     {attribute, Line, exfile, {Filename,Line}},
     {attribute, Line, compile, no_auto_import()},
     {attribute, Line, export, Export},
-    exported_function(Line, Module) | F5
+    exported_function(Line, Module) | F6
   ],
 
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
@@ -177,10 +178,19 @@ mixin_methods_function(Line, Export) ->
   FinalExport = [{'__mixin_methods__',1}|Export],
   return_tuples_function(Line, '__mixin_methods__', FinalExport).
 
-module_function(Line, #elixir_module__{name=Name}, Data) ->
-  Snapshot = #elixir_module__{name=Name, data=Data},
-  Reverse = elixir_tree_helpers:abstract_syntax(Snapshot),
+module_function(Line, #elixir_module__{name=Name}) ->
+  Snapshot = {tuple, Line, [
+    { atom, Line, elixir_module__ },
+    { atom, Line, Name },
+    { call, Line, { atom, Line, '__ivars__' }, [{nil,Line}] }
+  ]},
   { function, Line, '__module__', 1,
+    [{ clause, Line, [{var,Line,'_'}], [], [Snapshot]}]
+  }.
+
+ivars_function(Line, Data) ->
+  Reverse = elixir_tree_helpers:abstract_syntax(Data),
+  { function, Line, '__ivars__', 1,
     [{ clause, Line, [{var,Line,'_'}], [], [Reverse]}]
   }.
 

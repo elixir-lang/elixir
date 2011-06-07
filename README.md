@@ -1218,7 +1218,7 @@ This difference becomes important when we consider mixins:
     Main.local_call  % => 13
     Main.remote_call % => 11
 
-Notice that the local call uses the value of the local method internal, while remote call uses the one overridden in `Main`. Most methods related to module introspection (starting with `__`) are local and therefore always need `self` in order to be dynamic:
+Notice that the local call uses the value of the local method `internal`, while remote call uses the one overridden in `Main`. Most methods related to module introspection (starting with `__`) are local and therefore always need `self` in order to be dynamic:
 
     module Introspection
       def original_name
@@ -1233,6 +1233,9 @@ Notice that the local call uses the value of the local method internal, while re
     module Main
       mixin Introspection
     end
+    
+    Introspection.my_name       % => 'Introspection
+    Introspection.original_name % => 'Introspection
     
     Main.my_name       % => 'Main
     Main.original_name % => 'Introspection
@@ -1464,7 +1467,8 @@ Elixir also allows us to store information inside data structures. This is done 
       end
       
       def color
-        % Read the internal variable color.
+        % Read the internal variable @color.
+        % @internal_variables are always relative to self.
         @color
       end
     end
@@ -1473,6 +1477,8 @@ Elixir also allows us to store information inside data structures. This is done 
     car.color % => 'green
 
 Whenever a module is bound, the callback `__bound__` in the module is invoked. All the variables given on binding are accessible in the callback. Data can be added to the blank slate through **internal variables** (for example, `@color` above).
+
+Notice internal variables are always relative to the receiver of the method. In `car.color`, it will read the internal variable `@color` in `car`. On the other hand, `Car.color` will attempt to read the internal variable `@color` in the module `Car`, which will return `nil`.
 
 #### Mutability
 

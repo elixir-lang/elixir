@@ -28,6 +28,10 @@ module Module
     def __mixin_methods__
       Erlang.elixir_methods.mixin_methods(self)
     end
+
+    def __ivars__
+      Erlang.ets.lookup_element(Erlang.element(3, self), 'data, 2)
+    end
   end
 
   % This module is included temporarily during method
@@ -188,6 +192,7 @@ module Module
     % def __mixins__()
     % def __local_methods__()
     % def __mixin_methods__()
+    % def __ivars__()
 
     def __module__?
       Erlang.elixir_module_behavior.is_module(self)
@@ -216,13 +221,13 @@ module Module
     %
     % ## Example
     %
-    %     object Foo
-    %       def initialize
+    %     module Foo
+    %       def __bound__
     %         @('bar: 1, 'baz: 2)
     %       end
     %     end
     %
-    %     Foo.new.__ivars__ % => { 'bar: 1, 'baz: 2 }
+    %     #Foo().get_ivars % => { 'bar: 1, 'baz: 2 }
     %
     def get_ivars
       OrderedDict.new Erlang.elixir_module_behavior.data(self)
