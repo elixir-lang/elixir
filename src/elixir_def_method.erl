@@ -171,8 +171,15 @@ prune_vars(H) -> H.
 
 % Update local calls now that we know all private methods.
 update_local_calls({local_call, Line, Name, Args}, Private) ->
-  FArgs = [{var, Line, self}|update_local_calls(Args, Private)],
-  { call, Line, {atom, Line, Name}, FArgs };
+  Arity = length(Args) + 1,
+  TArgs = update_local_calls(Args, Private),
+  case lists:member({Name,Arity}, Private) of
+    true ->
+      { call, Line, {atom, Line, Name}, [{var, Line, self}|TArgs] };
+    false ->
+      TExpr = { var, Line, self },
+      elixir_tree_helpers:build_method_call(Name, Line, TArgs, TExpr)
+  end;
 
 update_local_calls(H, Private) when is_tuple(H) ->
   list_to_tuple([update_local_calls(X, Private) || X <- tuple_to_list(H)]);

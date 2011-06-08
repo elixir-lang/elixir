@@ -4,6 +4,34 @@ Code.require_file "../fixtures/default_args", __FILE__
 module ModuleTest
   mixin ExUnit::Case
 
+  module A
+    def foo
+      1 + bar + baz
+    end
+
+    def bar
+      1
+    end
+
+    private
+
+    def baz
+      1
+    end
+  end
+
+  module B
+    mixin ModuleTest::A
+
+    def bar
+      2
+    end
+
+    def baz
+      3
+    end
+  end
+
   def simple_default_args_test
     1 = DefaultArgs.arity0
     1 = DefaultArgs.arity0(1)
@@ -107,6 +135,11 @@ module ModuleTest
 
     foo = #ModuleTest::Example().update_ivar('list, [1], -> (_) self.error "never called").update_ivar('list, _.push(2))
     [1,2] = foo.get_ivar('list)
+  end
+
+  def local_and_remote_calls_test
+    3 = ModuleTest::A.foo
+    4 = ModuleTest::B.foo
   end
 
   % def method_missing_test
