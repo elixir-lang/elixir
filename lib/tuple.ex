@@ -13,15 +13,20 @@ module Tuple
     %     {1,2,3}[0] % => 1
     %     {1,2,3}[1] % => 2
     %     {1,2,3}[2] % => 3
-    %     {1,2,3}[3] % => Raises 'badarg error
+    %     {1,2,3}[3] % => nil
     %
     %     {1,2,3}[-1] % => 3
     %     {1,2,3}[-2] % => 2
     %     {1,2,3}[-3] % => 1
-    %     {1,2,3}[-4] % => Raises 'badarg error
+    %     {1,2,3}[-4] % => nil
     %
     def [](number)
-      Erlang.element(erl_index(number), self)
+      index = erl_index(number)
+      if index > 0 && index <= self.length
+        Erlang.element(index, self)
+      else
+        nil
+      end
     end
 
     % Sets the given element in the tuple. Also accepts negative indexes

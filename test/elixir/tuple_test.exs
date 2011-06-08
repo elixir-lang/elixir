@@ -4,22 +4,28 @@ module TupleTest
   mixin ExUnit::Case
 
   def brackets_test
-    1 = {1,2,3}[0]
-    2 = {1,2,3}[1]
-    3 = {1,2,3}[2]
+    1   = {1,2,3}[0]
+    2   = {1,2,3}[1]
+    3   = {1,2,3}[2]
+    nil = {1,2,3}[3]
 
-    assert_error 'badarg, do
-      {1,2,3}[3]
-    end
   end
 
   def brackets_negative_index_test
-    1 = {1,2,3}[-3]
-    2 = {1,2,3}[-2]
-    3 = {1,2,3}[-1]
+    1   = {1,2,3}[-3]
+    2   = {1,2,3}[-2]
+    3   = {1,2,3}[-1]
+    nil = {1,2,3}[-4]
 
+  end
+
+  def brackets_invalid_index_type_test
     assert_error 'badarg, do
-      {1,2,3}[-4]
+      {1,2,3}["somestring"]
+    end
+    % TODO: Fix this assertion when Tuple#[] raises 'badarg when atom is passed
+    assert_error 'undef, do
+      {1,2,3}['someatom]
     end
   end
 
