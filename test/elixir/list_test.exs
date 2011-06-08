@@ -16,6 +16,11 @@ module ListTest
     false = list.member?(4)
   end
 
+  def double_brackets_test
+    2 = [1, [2], 3][1][0]
+    2 = (-> [1, [2], 3][1][0]).()
+  end
+
   def inspect_test
     "[]" = [].inspect    
     "[1,2,3]" = [1,2,3].inspect

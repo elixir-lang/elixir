@@ -186,7 +186,7 @@ np_method_call_expr -> without_args_method_call_expr : '$1'.
 without_args_method_call_expr -> np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets expression
-brackets_expr -> unary_expr list_args : build_bracket_call('$1', '$2').
+brackets_expr -> brackets_expr list_args : build_bracket_call('$1', '$2').
 brackets_expr -> unary_expr : '$1'.
 
 % Special case unaries with base expr to have higher priority
@@ -258,7 +258,7 @@ _np_method_call_expr -> _without_args_method_call_expr : '$1'.
 _without_args_method_call_expr -> _np_call_exprs dot_eol method_name : build_method_call('$1', '$3', []).
 
 % Brackets expression
-_brackets_expr -> _unary_expr list_args : build_bracket_call('$1', '$2').
+_brackets_expr -> _brackets_expr list_args : build_bracket_call('$1', '$2').
 _brackets_expr -> _unary_expr : '$1'.
 
 % Special case unaries with min_expr to have higher priority
