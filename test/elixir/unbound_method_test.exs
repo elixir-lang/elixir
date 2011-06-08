@@ -35,7 +35,7 @@ module UnboundMethodTest
 
   def anonymous_methods_test
     method = UnboundMethodTest::Sample.bar
-    '__anonymous_method_UnboundMethodTest::Sample_4 = method.name
+    '__anonymous_method_UnboundMethodTest::Sample_2 = method.name
     2 = method.arity
     'exUnboundMethodTest::Sample = method.owner
   end

@@ -10,6 +10,7 @@ new_method_table(ElixirName) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([mex, ElixirName]),
   ets:new(MethodTable, [set, named_table, private]),
   ets:insert(MethodTable, { public, [] }),
+  ets:insert(MethodTable, { private, [] }),
   ets:insert(MethodTable, { inherited, [] }),
   ets:insert(MethodTable, { visibility, public }),
   MethodTable.
@@ -50,7 +51,7 @@ store_wrapped_method(Self, Filename, OriginalMethod, Defaults) ->
   ElixirName  = ?ELIXIR_EX_MODULE(Name),
 
   MethodName = case element(3, OriginalMethod) of
-    []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", ElixirName, "_", ets:info(MethodTable, size)]);
+    []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", ElixirName, "_", methods_count(MethodTable)+1]);
     Else -> Else
   end,
   Method = setelement(3, OriginalMethod, MethodName),
@@ -72,9 +73,11 @@ store_wrapped_method(Self, Filename, OriginalMethod, Defaults) ->
 % a list of methods to be exported with all methods.
 unwrap_stored_methods(Table) ->
   Public    = ets:lookup_element(Table, public, 2),
+  Private   = ets:lookup_element(Table, private, 2),
   Inherited = ets:lookup_element(Table, inherited, 2),
   ets:delete(Table, visibility),
   ets:delete(Table, public),
+  ets:delete(Table, private),
   ets:delete(Table, inherited),
   { Public, Inherited, ets:foldl(fun unwrap_stored_method/2, [], Table) }.
 
@@ -106,6 +109,9 @@ flat_module(Line, Modules, MethodTable) ->
   ets:insert(MethodTable, { inherited, Visibility }).
 
 %% Helpers
+
+methods_count(MethodTable) ->
+  ets:info(MethodTable, size) - 4.
 
 % Generates a function given a default clause.
 function_from_default(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
@@ -163,9 +169,6 @@ prune_vars(H) when is_list(H) ->
 prune_vars(H) -> H.
 
 % Check the visibility of the method with the given Name and Arity in the attributes table.
-add_visibility_entry(Name, Arity, private, Table) ->
-  [];
-
 add_visibility_entry(Name, Arity, Visibility, Table) ->
   Current= ets:lookup_element(Table, Visibility, 2),
   ets:insert(Table, {Visibility, [{Name, Arity}|Current]}).
