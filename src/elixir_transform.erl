@@ -181,9 +181,9 @@ transform({local_call, Line, Name, Args}, S) ->
   case S#elixir_scope.method of
     [] -> transform({method_call, Line, Name, Args, {var, Line, self}}, S);
     _  ->
+      % Local calls are resolved just later once we know public/private methods.
       { TArgs, SA } = transform_tree(Args, S),
-      FArgs = [{var, Line, self}|TArgs],
-      { { call, Line, {atom, Line, Name}, FArgs }, SA }
+      { { local_call, Line, Name, TArgs }, SA }
   end;
 
 % Handles binding calls.

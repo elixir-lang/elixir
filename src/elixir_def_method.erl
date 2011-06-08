@@ -79,10 +79,11 @@ unwrap_stored_methods(Table) ->
   ets:delete(Table, public),
   ets:delete(Table, private),
   ets:delete(Table, inherited),
-  { Public, Inherited, ets:foldl(fun unwrap_stored_method/2, [], Table) }.
+  { Public, Inherited, ets:foldl(fun(X, Acc) -> unwrap_stored_method(X, Acc, Private) end, [], Table) }.
 
-unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc) ->
-  [{function, Line, Name, Arity, lists:reverse(Clauses)}|Acc].
+unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc, Private) ->
+  FClauses = update_local_calls(lists:reverse(Clauses), Private),
+  [{function, Line, Name, Arity, FClauses}|Acc].
 
 % Receives a method table and adds the given What from Object in it.
 flat_module(Line, Modules, MethodTable) ->
@@ -167,6 +168,19 @@ prune_vars(H) when is_list(H) ->
   lists:map(fun prune_vars/1, H);
 
 prune_vars(H) -> H.
+
+% Update local calls now that we know all private methods.
+update_local_calls({local_call, Line, Name, Args}, Private) ->
+  FArgs = [{var, Line, self}|update_local_calls(Args, Private)],
+  { call, Line, {atom, Line, Name}, FArgs };
+
+update_local_calls(H, Private) when is_tuple(H) ->
+  list_to_tuple([update_local_calls(X, Private) || X <- tuple_to_list(H)]);
+
+update_local_calls(H, Private) when is_list(H) ->
+  [update_local_calls(X, Private) || X <- H];
+
+update_local_calls(H, _Private) -> H.
 
 % Check the visibility of the method with the given Name and Arity in the attributes table.
 add_visibility_entry(Name, Arity, Visibility, Table) ->
