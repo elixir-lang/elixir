@@ -2,11 +2,14 @@
 
 * improvements
   * ExUnit now run test cases in parallel
-  * Brackets in array was optimized and also accepts out of bound indexes (and return nil in such cases)
   * Added anonymous methods: def(x,y) x + y; end
   * Added Method and UnboundMethod modules
   * Added `using` as temporary mixins
   * Added `respond_to?(method, arity)`
+  * Nested brackets are now supported `nested_array[1][2]`
+  * Brackets method in array was optimized and also accepts out of bound indexes (returning nil in such cases)
+  * Brackets method in tuples accepts out of bound indexes (by github.com/marcinbunsch)
+  * Local calls are restricted only to private methods
 
 * deprecations
   * Use {} instead of {:} as an empty dict. An empty tuple can be retrieved with Tuple.empty
