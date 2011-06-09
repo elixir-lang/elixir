@@ -7,7 +7,7 @@ init(State) ->
   elixir_dispatch:dispatch(State, init, []).
 
 handle_call(Req, From, State) -> elixir_dispatch:dispatch(State, handle_call, [Req, From]).
-handle_cast(Req, State) -> elixir_dispatch:dispatch(State, handle_cast, [Req]).
-handle_info(Req, State) -> elixir_dispatch:dispatch(State, handle_info, [Req]).
-terminate(Req, State) -> elixir_dispatch:dispatch(State, terminate, [Req]).
+handle_cast(Msg, State) -> elixir_dispatch:dispatch(State, handle_cast, [Msg]).
+handle_info(Info, State) -> elixir_dispatch:dispatch(State, handle_info, [Info]).
+terminate(Reason, State) -> elixir_dispatch:dispatch(State, terminate, [Reason]).
 code_change(Old, State, Extra) -> elixir_dispatch:dispatch(State, code_change, [Old, Extra]).
