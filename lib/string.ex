@@ -95,7 +95,7 @@ module String
     %
     def index(given)
       if given.__module_name__ == 'Regexp::Behavior
-        [{x,_}] = given.run(to_char_list, 'all, 0, 'index)
+        [{x,_}] = given.indexes(self)
         x
       else
         result = Erlang.string.str(to_char_list, given.to_char_list)
@@ -199,9 +199,9 @@ module String
     %
     def scan(given, offset := 0)
       if given.__module_name__ == 'Regexp::Behavior
-        given.scan(self, 'all, offset)
+        given.scan(self, offset)
       else
-        Regexp.new(Regexp.escape(given)).scan(self, 'all, offset)
+        Regexp.new(Regexp.escape(given)).scan(self, offset)
       end
     end
 

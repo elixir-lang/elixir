@@ -29,7 +29,6 @@ module RegexpTest
   def run_test
     ["cd", "d"] = ~r"c(d)".run("abcd")
     nil = ~r"e".run("abcd")
-    [{3,3}] = ~r"bar".run("foobarbaz", 'all, 0, 'index)
   end
 
   def replace_test

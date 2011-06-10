@@ -80,11 +80,18 @@ module Regexp
 
     % Run the regular expression against the given target. It returns a list with
     % all matches or nil if no match occurred.
-    %
-    % This method accepts *captures* as second argument specifying which captures
-    % from the regular expression should be handled.
-    def run(target, captures := 'all, offset := 0, type := 'binary)
-      case Erlang.re.run(target, @compiled, [{'capture, captures, type},{'offset,offset}])
+    def run(target)
+      case Erlang.re.run(target, @compiled, [{'capture, 'all, 'binary}])
+      match 'nomatch
+        nil
+      match {'match, results}
+        results
+      end
+    end
+
+    % Returns lists with the match indexes in the given string.
+    def indexes(target, offset := 0)
+      case Erlang.re.run(target, @compiled, [{'capture, 'all, 'index},{'offset,offset}])
       match 'nomatch
         nil
       match {'match, results}
@@ -94,22 +101,18 @@ module Regexp
 
     % Same as run, but scan the target several times collecting all matches of
     % the regular expression. This is similar to the /g option in Perl.
-    def scan(target, captures := 'all, offset := 0, type := 'binary)
-      case Erlang.re.run(target, @compiled, [{'capture, captures, type},'global,{'offset,offset}])
+    def scan(target, offset := 0)
+      case Erlang.re.run(target, @compiled, [{'capture, 'all, 'binary},'global,{'offset,offset}])
       match 'nomatch
         []
       match {'match, results}
-        if captures == 'all
-          results.map -> (result)
-            case result
-            match [t]
-              t
-            match [h|t]
-              t
-            end
+        results.map -> (result)
+          case result
+          match [t]
+            t
+          match [h|t]
+            t
           end
-        else
-          [r for r in results, r != []]
         end
       end
     end
