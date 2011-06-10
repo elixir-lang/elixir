@@ -88,13 +88,9 @@ assert_dict_with_atoms(#elixir_orddict__{struct=Dict} = Object) ->
 assert_dict_with_atoms(Data) ->
   elixir_errors:error({bad_ivars, Data}).
 
-builtin_not_allowed(Builtin, Reason) ->
-  elixir_errors:error({builtin_not_allowed, {Reason, Builtin}}).
-
 % Binding
 
 % TODO: assert_same
-% TODO: provide __bind__ method
 
 slate_bind(Right, Args) ->
   check_module(Right),
@@ -102,14 +98,19 @@ slate_bind(Right, Args) ->
   Bound = #elixir_slate__{module=Module},
   apply(Module, '__bound__', [Bound|Args]).
 
-bind(#elixir_slate__{module=[]} = Left, Right, Args) ->
+bind(#elixir_slate__{} = Left, Right, Args) ->
   check_module(Right),
   Module = Right#elixir_module__.name,
   Bound = Left#elixir_slate__{module=Module},
   apply(Module, '__bound__', [Bound|Args]);
 
-bind(Self, Right, Args) ->
-  elixir_errors:error({already_bound, {Self,Right,Args}}).
+bind(Left, Right, Args) ->
+  builtin_not_allowed(Left, bind).
 
 check_module(#elixir_module__{}) -> [];
 check_module(Else) -> elixir_errors:error({not_a_module, Else}).
+
+% Helpers
+
+builtin_not_allowed(Builtin, Reason) ->
+  elixir_errors:error({builtin_not_allowed, {Reason, Builtin}}).

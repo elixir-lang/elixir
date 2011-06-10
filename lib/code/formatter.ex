@@ -13,7 +13,11 @@ module Code::Formatter
     if object != [] && Erlang.io_lib.printable_list(object)
       object.flatten.to_bin
     else
-      object.inspect
+      try
+        object.inspect
+      catch 'error: 'undef
+        "[Could not inspect object]"
+      end
     end
   end
 

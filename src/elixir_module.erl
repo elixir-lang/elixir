@@ -33,6 +33,7 @@ default_mixins(ElixirName) ->
 default_using(_) -> ['Module::Using'].
 default_data()   -> orddict:new().
 
+bootstrap_modules('Module::BlankSlate') -> true;
 bootstrap_modules('Module::Definition') -> true;
 bootstrap_modules('Module::Behavior')   -> true;
 bootstrap_modules('Module::Using')      -> true;

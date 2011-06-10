@@ -1419,9 +1419,9 @@ Binding is the ability to bind modules to data types at runtime. Binding is done
 
 After the module is bound, `self` in a method will point to the bound structure.
 
-All built-in data types will already be bound to a given module. For instance, all integers are bound to the `Integer::Behavior` module. That's where methods like `abs` and `+` seen previously are implemented.
+All built-in data types are already bound to a given module by default. For instance, all integers are bound to the `Integer::Behavior` module. That's where methods like `abs` and `+` seen previously are implemented.
 
-NOTE: Elixir currently only allows you to bind only one module in an object. This means the example above `1#DurationExtensions` won't work because `1` is already bound to `Integer::Behavior`. This will be fixed in future releases.
+NOTE: Elixir currently does not allow you to change the binding of internal structures as integers, strings and so forth. This means the example above `1#DurationExtensions` won't work because `1` is already bound to `Integer::Behavior`. This will be fixed in future releases.
 
 #### Custom data structures with blank slates
 

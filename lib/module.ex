@@ -1,7 +1,9 @@
 module Module
-  % TODO: Create blank slate module
   def blank_slate
-    {'elixir_slate__, [], []}
+    {'elixir_slate__, 'exModule::BlankSlate, []}
+  end
+
+  module BlankSlate
   end
 
   % This module keeps all the methods that are automatically
@@ -250,6 +252,10 @@ module Module
     end
 
     %% DYNAMIC DISPATCHING
+
+    def __bind__(to, args := [])
+      Erlang.elixir_module_behavior.bind(self, to, args)
+    end
 
     def respond_to?(method, arity)
       case self
