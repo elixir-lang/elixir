@@ -88,6 +88,10 @@ three
     "Hello" = "Hello".to_s
   end
 
+  def to_str_test
+    "Hello" = "Hello".to_str
+  end
+
   def inspect_test
     "\"Hello\"" = "Hello".inspect
     "<<1,2,3>>" = <<1,2,3>>.inspect

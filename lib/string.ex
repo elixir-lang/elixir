@@ -4,12 +4,21 @@
 %
 %     <<72, 73, 74>>.__parent__ % => String
 %
-% Notice that Erlang represents strings as lists. For this reason,
-% sometimes you need to convert a String to a list of chars, using
-% the `to_char_list` method. Also, you may want to convert a list
-% to a binary (i.e. a string) using the `to_bin` method.
+% ## `to_char_list`, `to_bin`, `to_s` and `to_str`
 %
-% TODO: We need to inherit from BitString once we have inheritance.
+% There are four methods responsible for conversion from and to strings.
+%
+% Since Erlang represents strings as lists, `to_bin` and `to_char_list`
+% has the sole purpose of converting from Erlang strings (char lists)
+% to Elixir strings (binaries) and vice-versa. In general, those methods
+% are only invoked when handling data from/to Erlang. Such methods should
+% not be implemented in your own structures.
+%
+% On the other hand, `to_s` should return a string representation of
+% a data structure while implementing `to_str` means that a structure
+% could be used in any place a string would normaly be used.
+%
+% Notice that to_i and to_int follows exactly the same 
 module String
   module Behavior
     % Retrieves a number that represents the given character.
@@ -60,11 +69,6 @@ module String
     %
     def length
       Erlang.size(self)
-    end
-
-    % Returns the list of chars represantion of this String.
-    def to_char_list
-      Erlang.binary_to_list(self)
     end
 
     % Check if the current string includes the given string.
@@ -228,6 +232,16 @@ module String
     % Returns the string itself.
     def to_s
       self
+    end
+
+    % Returns the string itself.
+    def to_str
+      self
+    end
+
+    % Returns the list of chars represantion of this String.
+    def to_char_list
+      Erlang.binary_to_list(self)
     end
 
     def to_atom
