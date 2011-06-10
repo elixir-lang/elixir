@@ -66,7 +66,7 @@ store_wrapped_method(Self, Filename, OriginalMethod, Defaults) ->
     Constant = elixir_constants:lookup('UnboundMethod::Behavior'),
     elixir_module_behavior:slate_bind(Constant, [Name, MethodName, Arity - 1])
   catch
-    error:{no_constant,'UnboundMethod::Behavior'} -> []
+    error:{no_module,'UnboundMethod::Behavior'} -> []
   end.
 
 % Helper to unwrap the methods stored in the methods table. It also returns

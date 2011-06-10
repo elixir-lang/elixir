@@ -9,7 +9,7 @@ method_call(Line, Expr, Name, TArgs, Else) ->
       try
         elixir_constants:lookup(Constant)
       catch
-        error:{no_constant,Constant} -> []
+        error:{no_module,Constant} -> []
       end;
     _ -> []
   end,

@@ -48,7 +48,7 @@ module Atom
     end
 
     % Converts the given atom to a constant with the same name.
-    % Raises a no_constant error if the constant does not exist.
+    % Raises a no_module error if the constant does not exist.
     %
     % ## Examples
     %

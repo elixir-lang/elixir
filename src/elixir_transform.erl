@@ -218,7 +218,7 @@ transform({constant, Line, Name}, S) ->
     Module = Snapshot#elixir_module__.name,
     ?ELIXIR_WRAP_CALL(Line, Module, '__module__', [{nil,Line}])
   catch
-    error:{no_constant,Name} ->
+    error:{no_module,Name} ->
       ?ELIXIR_WRAP_CALL(Line, elixir_constants, lookup, [{atom, Line, Name}])
   end,
   { Final, S };

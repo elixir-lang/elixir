@@ -979,9 +979,9 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     `method` failed because `other` is not a module;
 
-*   `{ 'no_constant, name }`
+*   `{ 'no_module, name }`
 
-    A constant with `name` could not be found;
+    A module with `name` could not be found;
 
 *   `{ 'no_callback, { name, arity, structure } }`
 

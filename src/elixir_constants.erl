@@ -9,7 +9,7 @@ lookup(RawName) ->
   try
     Name:'__module__'([])
   catch
-    error:undef -> elixir_errors:error({no_constant, RawName})
+    error:undef -> elixir_errors:error({no_module, RawName})
   end.
 
 lookup(RawName, Something) ->
@@ -17,5 +17,5 @@ lookup(RawName, Something) ->
   try
     Name:module_info(Something)
   catch
-    error:undef -> elixir_errors:error({no_constant, RawName})
+    error:undef -> elixir_errors:error({no_module, RawName})
   end.

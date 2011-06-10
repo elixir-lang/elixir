@@ -133,7 +133,7 @@ check_module_available(ElixirName) ->
     [{ErrorFile,ErrorLine}] = proplists:get_value(exfile, ErrorInfo),
     error({module_defined, {ElixirName, list_to_binary(ErrorFile), ErrorLine}})
   catch
-    error:{no_constant, _} -> []
+    error:{no_module, _} -> []
   end.
 
 destructive_read(Table, Attribute) ->

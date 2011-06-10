@@ -216,7 +216,7 @@ local_call_does_not_look_at_outer_modules_test() ->
   test_helper:run_and_remove(F, ['Foo','Bar']).
 
 cannot_lookup_not_stored_constants_test() ->
-  ?assertError({no_constant, 'FooBarBaz' }, elixir:eval("FooBarBaz")).
+  ?assertError({no_module, 'FooBarBaz' }, elixir:eval("FooBarBaz")).
 
 %% Super
 
