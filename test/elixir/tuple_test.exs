@@ -16,13 +16,13 @@ module TupleTest
     2   = {1,2,3}[-2]
     3   = {1,2,3}[-1]
     nil = {1,2,3}[-4]
-
   end
 
   def brackets_invalid_index_type_test
     assert_error 'badarg, do
       {1,2,3}["somestring"]
     end
+
     % TODO: Fix this assertion when Tuple#[] raises 'badarg when atom is passed
     assert_error 'undef, do
       {1,2,3}['someatom]
@@ -51,7 +51,7 @@ module TupleTest
   end
 
   def to_list_test
-    [1,2,3] = {1,2,3}.to_list
+    [1,2,3] = {1,2,3}.to_l
   end
 
   def length_size_test

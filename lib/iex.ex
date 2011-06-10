@@ -27,7 +27,7 @@ module IEX
       code = @codecache + IO.gets(prompt)
 
       { b, c } = try
-        {result, new_binding} = Erlang.elixir.eval(code.to_list, @binding)
+        {result, new_binding} = Erlang.elixir.eval(code.to_char_list, @binding)
         IO.puts result.inspect
         { new_binding, "" }
       catch 'error: {'badsyntax, {_, _, _, []}}

@@ -62,11 +62,6 @@ module String
       Erlang.size(self)
     end
 
-    % Returns the list representation of this String.
-    def to_list
-      Erlang.binary_to_list(self)
-    end
-
     % Returns the list of chars represantion of this String.
     def to_char_list
       Erlang.binary_to_list(self)

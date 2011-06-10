@@ -52,9 +52,9 @@ module Atom
     %
     % ## Examples
     %
-    %     'Atom.to_constant % => Atom
+    %     'Atom.to_module % => Atom
     %
-    def to_constant
+    def to_module
       Erlang.elixir_constants.lookup(self)
     end
 

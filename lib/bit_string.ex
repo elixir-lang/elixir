@@ -1,9 +1,5 @@
 module BitString
   module Behavior
-    def to_list
-      Erlang.binary_to_list(self)
-    end
-
     def inspect
       Erlang.io_lib.format($"~w", [self]).to_bin
     end

@@ -182,7 +182,7 @@ module Record
   def __bound__(object)
     if object.__module_name__ == 'Tuple::Behavior
       if object[0] == self.record_name && object.size == self.record_keys.size + 1
-        [_|pairs] = object.to_list
+        [_|pairs] = object.to_l
         @(OrderedDict.from_list self.record_keys.zip(pairs))
       else
         self.error { 'badrecord, object }

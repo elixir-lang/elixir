@@ -22,7 +22,7 @@ module Set
       Erlang.sets.size(@set)
     end
   
-    def to_list
+    def to_l
       Erlang.sets.to_list(@set)
     end
   

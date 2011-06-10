@@ -41,7 +41,7 @@ module OrderedDict
     %
     def merge(other)
       function = -> (_k, _v1, v2) v2
-      new Erlang.orddict.merge(function, orddict, other.to_list)
+      new Erlang.orddict.merge(function, orddict, other.to_l)
     end
 
     % Merge one dict into the other according to the given function. The function
@@ -56,7 +56,7 @@ module OrderedDict
     %     { 'a: 1, 'b: 2 } = { 'a: 1 }.merge { 'b: 2, 'a: 3 }, -> (_k, v1, _v2) v1
     %
     def merge(other, function)
-      new Erlang.orddict.merge(function, orddict, other.to_list)
+      new Erlang.orddict.merge(function, orddict, other.to_l)
     end
 
     % The same as update/2, but if no value exists, *initial* is used.
@@ -109,7 +109,6 @@ module OrderedDict
     def set(key, value)
       new Erlang.orddict.store(key, value, orddict)
     end
-    alias_local 'set, 'store, 2
 
     % Stores the given *value* in *key* in the dictionary if none is set yet.
     %
@@ -125,7 +124,6 @@ module OrderedDict
         set(key, value)
       end
     end
-    alias_local 'set_new, 'store_new, 2
 
     % Calls the given *function* for each key and value of the dictionary with an
     % extra argumen *acc* (short for accumulator). *function* must return a new
@@ -182,7 +180,7 @@ module OrderedDict
     %     end
     %
     def each(function)
-      to_list.each -> ({x, y}) function.(x, y)
+      to_l.each -> ({x, y}) function.(x, y)
       self
     end
 
@@ -210,9 +208,9 @@ module OrderedDict
     %
     % == Examples
     %
-    %     [{'a, 1},{'b, 2}] = { 'a: 1, 'b: 2 }.to_list
+    %     [{'a, 1},{'b, 2}] = { 'a: 1, 'b: 2 }.to_l
     %
-    def to_list
+    def to_l
       orddict
     end
 

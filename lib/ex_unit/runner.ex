@@ -49,7 +49,7 @@ module ExUnit::Runner
   def spawn_cases
     case @cases
     match [h|t]
-      testcase = h.to_constant
+      testcase = h.to_module
 
       if testcase.synchronous?
         @('sync_cases: [h|@sync_cases], 'cases: t).spawn_cases
@@ -67,7 +67,7 @@ module ExUnit::Runner
   % After all cases were run, it is time to run the asynchronous ones.
   def spawn_sync_cases
     [h|t] = @sync_cases
-    spawn_case h.to_constant
+    spawn_case h.to_module
     @('sync_cases: t)
   end
 

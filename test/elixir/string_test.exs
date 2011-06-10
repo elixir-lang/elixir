@@ -63,9 +63,9 @@ three
     ""      = "[1,2,3]"[1,0]
     "é"     = "josé"[3,1]
 
-    self.assert_error 'badarg, -> "[1,2,3]"[10,0]
-    self.assert_error 'badarg, -> "[1,2,3]"[1,10]
-    self.assert_error 'badarg, -> "[1,2,3]"[1,-10]
+    assert_error 'badarg, -> "[1,2,3]"[10,0]
+    assert_error 'badarg, -> "[1,2,3]"[1,10]
+    assert_error 'badarg, -> "[1,2,3]"[1,-10]
   end
 
   def length_test
@@ -76,8 +76,7 @@ three
     5 = "こんにちは".length
   end
 
-  def to_list_test
-    [115, 116, 114, 105, 110, 103] = "string".to_list
+  def to_char_list_test
     [115, 116, 114, 105, 110, 103] = "string".to_char_list
   end
 

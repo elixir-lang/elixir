@@ -99,7 +99,7 @@ string_inspect_test() ->
   {<<"\"elixir\"">>, []} = eval_string("\"elixir\".inspect").
 
 string_to_list_test() ->
-  {"elixir", []} = elixir:eval("\"elixir\".to_list").
+  {"elixir", []} = elixir:eval("\"elixir\".to_char_list").
 
 string_length_test() ->
   {6, []} = elixir:eval("\"elixir\".length").

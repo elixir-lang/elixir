@@ -330,7 +330,7 @@ module List
       h + [item] + t
     end
 
-    def to_list
+    def to_l
       self
     end
 

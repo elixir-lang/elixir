@@ -20,12 +20,12 @@ module AtomTest
     false = Atom.exists?("some_unknown_atom2")
   end
 
-  def to_constant_test
+  def to_module_test
     atom = Atom
-    ~atom = 'Atom.to_constant
+    ~atom = 'Atom.to_module
 
     self.assert_error { 'no_constant, 'ThisConstantDoesNotExist }, do
-      'ThisConstantDoesNotExist.to_constant
+      'ThisConstantDoesNotExist.to_module
     end
   end
 

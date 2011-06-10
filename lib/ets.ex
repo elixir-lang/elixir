@@ -7,7 +7,7 @@ module ETS
 
   % Creates new ets table.
   def create(name, options)
-    #ETS::Behavior(Erlang.ets.new(name, options.to_list))
+    #ETS::Behavior(Erlang.ets.new(name, options.to_l))
   end
 
   % Returns a list of all tables at the node. Named tables are
@@ -97,7 +97,7 @@ module ETS
     alias_local 'member?, 'include?, 1
 
     % Returns a list of all entrys in the table.
-    def to_list()
+    def to_l()
       Erlang.ets.tab2list(@table)
     end
 
