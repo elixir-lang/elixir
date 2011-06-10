@@ -259,6 +259,13 @@ can_retrieve_module_name_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo']).
 
+can_retrieve_respond_to_test() ->
+  F = fun() ->
+    {true,[]} = elixir:eval("module Foo; respond_to?('inspect, 0); end"),
+    {true,[]} = elixir:eval("Foo.respond_to?('inspect, 0)")
+  end,
+  test_helper:run_and_remove(F, ['Foo']).
+
 can_retrieve_module_test() ->
   F = fun() ->
     elixir:eval("module Foo; self = __module__; end"),

@@ -11,7 +11,7 @@ mixin_methods(#elixir_slate__{module=Module}) ->
   Module:'__mixin_methods__'([]);
 
 mixin_methods(#elixir_module__{data=Data} = Self) when is_atom(Data) ->
-  calculate_methods(Self, fun(X) -> X:'__local_methods__'([]) end, elixir_module_behavior:mixins(Self), []);
+  calculate_methods(Self, fun(X) -> Mod = ?ELIXIR_ERL_MODULE(X), Mod:'__local_methods__'([]) end, elixir_module_behavior:mixins(Self), []);
 
 mixin_methods(#elixir_module__{name=Module}) ->
   Module:'__mixin_methods__'([]);
