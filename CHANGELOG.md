@@ -10,6 +10,7 @@
   * Brackets method in array was optimized and also accepts out of bound indexes (returning nil in such cases)
   * Brackets method in tuples accepts out of bound indexes (by github.com/marcinbunsch)
   * Local calls are restricted only to private methods
+  * Added `Timer` with the method `ms` used for benchmarking
 
 * deprecations
   * Use {} instead of {:} as an empty dict. An empty tuple can be retrieved with Tuple.empty
