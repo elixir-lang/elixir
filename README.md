@@ -948,7 +948,7 @@ It should actually be written as:
 
 Here is a list of runtime errors that can be raised by Elixir:
 
-*   `{ 'builtinnotallowed, { method, builtin } }`
+*   `{ 'builtin_not_allowed, { method, builtin } }`
 
     Invoking `method` not allowed on the `builtin` structure. Builtins are all structures that comes directly from Erlang, they are: String, Integer, Float, Tuple, List, OrderedDict and so forth. Binding and setting instance variables are currently disabled on builtins;
 
@@ -990,6 +990,10 @@ Here is a list of runtime errors that can be raised by Elixir:
 *   `{ 'bad_ivar, name }`
 
     The `name` given is not an atom and cannot be given as internal variable name;
+
+*   `{ 'bad_binding, { module, actual } }`
+
+    Could not bind to module `module` as `__bound__` callback returned `actual`;
 
 *   `{ 'bad_ivars, value }`
 

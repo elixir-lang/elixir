@@ -90,22 +90,33 @@ assert_dict_with_atoms(Data) ->
 
 % Binding
 
-% TODO: assert_same
-
 slate_bind(Right, Args) ->
   check_module(Right),
   Module = Right#elixir_module__.name,
   Bound = #elixir_slate__{module=Module},
-  apply(Module, '__bound__', [Bound|Args]).
+  bind_callback(Module, Bound, Args).
 
 bind(#elixir_slate__{} = Left, Right, Args) ->
   check_module(Right),
   Module = Right#elixir_module__.name,
   Bound = Left#elixir_slate__{module=Module},
-  apply(Module, '__bound__', [Bound|Args]);
+  bind_callback(Module, Bound, Args);
 
 bind(Left, Right, Args) ->
-  builtin_not_allowed(Left, bind).
+  builtin_not_allowed(Left, '__bind__').
+
+bind_callback(Module, Bound, Args) ->
+  Final = apply(Module, '__bound__', [Bound|Args]),
+  assert_same(Module, Final),
+  Final.
+
+assert_same(Module,   #elixir_slate__{module=Module}) -> [];
+assert_same(Expected, Actual) -> elixir_errors:error({bad_binding, {?ELIXIR_EX_MODULE(Expected),Actual}}).
+
+bad_binding_error(Expected, Actual) ->
+  FinalExpected = ?ELIXIR_EX_MODULE(Expected),
+  FinalActual   = ?ELIXIR_EX_MODULE(Actual),
+  elixir_errors:error({bad_binding, {FinalExpected,FinalActual}}).
 
 check_module(#elixir_module__{}) -> [];
 check_module(Else) -> elixir_errors:error({not_a_module, Else}).
