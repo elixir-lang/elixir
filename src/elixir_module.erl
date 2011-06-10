@@ -91,7 +91,8 @@ compile_module(Line, Filename, ElixirName, #elixir_module__{name=Name, data=Attr
   { P4, F4 } = add_extra_function(P3, F3, {'__local_methods__',1}, local_methods_function(Line, P3)),
   { P5, F5 } = add_extra_function(P4, F4, {'__mixin_methods__',1}, mixin_methods_function(Line, P4 ++ Inherited)),
 
-  Export = [{'__elixir_exported__',2} | P5 ++ Inherited],
+  All = P5 ++ Inherited,
+  Export = [{'__elixir_exported__',2},{'__elixir_respond_to__',2} | All],
 
   Base = [
     {attribute, Line, module, Name},
@@ -99,7 +100,7 @@ compile_module(Line, Filename, ElixirName, #elixir_module__{name=Name, data=Attr
     {attribute, Line, exfile, {Filename,Line}},
     {attribute, Line, compile, no_auto_import()},
     {attribute, Line, export, Export},
-    exported_function(Line, Module) | F5
+    exported_function(Line, Module), respond_to_function(Line, All) | F5
   ],
 
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
@@ -166,6 +167,15 @@ exported_function(Line, #elixir_module__{name=Name}) ->
         [{atom,Line,Name},{var,Line,function},{var,Line,arity}]
       )
     ]}]
+  }.
+
+respond_to_function(Line, All) ->
+  Clauses = lists:map(fun({Name,Arity}) ->
+    { clause, Line, [{atom,Line,Name}, {integer,Line,Arity-1}], [], [{atom,Line,true}] }
+  end, All),
+
+  { function, Line, '__elixir_respond_to__', 2,
+    Clauses ++ [{ clause, Line, [{var,Line,'_'},{var,Line,'_'}], [], [{atom,Line,false}] }]
   }.
 
 local_methods_function(Line, Public) ->

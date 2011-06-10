@@ -28,6 +28,11 @@ module Module
     def __mixin_methods__
       Erlang.elixir_methods.mixin_methods(self)
     end
+
+    % Override optimized respond_to to simply check for __mixin_methods__.
+    def respond_to?(method, arity)
+      Erlang.lists.member({method, arity}, __mixin_methods__)
+    end
   end
 
   % This module is included temporarily during method
@@ -247,7 +252,14 @@ module Module
     %% DYNAMIC DISPATCHING
 
     def respond_to?(method, arity)
-      Erlang.lists.member({method, arity}, self.__mixin_methods__)
+      case self
+        match { 'elixir_slate__, mod, _ }  then mod
+        match { 'elixir_module__, mod, _ } then mod
+        else
+          mod = Erlang.elixir_dispatch.builtin_mixin(self)
+      end
+
+      Erlang.apply(mod, '__elixir_respond_to__, [method, arity])
     end
 
     def send(method, args := [])
