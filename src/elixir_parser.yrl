@@ -8,6 +8,7 @@ Nonterminals
   np_call_exprs _np_call_exprs
   brackets_call _brackets_call
   np_method_call_expr _np_method_call_expr
+  np_sharp_expr _np_sharp_expr
   without_args_method_call_expr _without_args_method_call_expr
   sharp_expr _sharp_expr
   np_erlang_call_expr
@@ -114,7 +115,7 @@ Left     30 ':'.
 Left     30 '|'.
 Left     40 '.'. % Handle a = -> b.to_s as a = (-> b.to_s)
 Left     40 ','.
-Left     40 '#'. % Handle a = -> b.to_s as a = (-> b.to_s)
+Left     40 '#'. % Handle a = -> b#Foo as a = (-> b#Foo)
 
 Left     50 oror_op.
 Left     60 andand_op.
@@ -169,10 +170,17 @@ expr -> np_call_exprs : '$1'.
 % No Parens Calls
 np_call_exprs -> np_method_call_expr : '$1'.
 np_call_exprs -> np_erlang_call_expr : '$1'.
+np_call_exprs -> np_sharp_expr : '$1'.
 np_call_exprs -> base_identifier : '$1'.
 np_call_exprs -> implicit_method_name : build_local_call('$1', []).
 np_call_exprs -> brackets_call : '$1'.
 np_call_exprs -> brackets_expr : '$1'.
+
+% Sharp call
+np_sharp_expr -> unary_sharp sharp_identifier call_args_no_parens : build_sharp_call([], '$2', '$3').
+np_sharp_expr -> np_call_exprs sharp_eol sharp_identifier call_args_no_parens : build_sharp_call('$1', '$3', '$4').
+np_sharp_expr -> unary_sharp sharp_identifier : build_sharp_call([], '$2', []).
+np_sharp_expr -> np_call_exprs sharp_eol sharp_identifier : build_sharp_call('$1', '$3', []).
 
 % Brackets call
 brackets_call -> np_call_exprs dot_eol bracket_identifier list_args : build_bracket_call(build_method_call('$1', '$3', []), '$4').
@@ -238,10 +246,17 @@ _expr -> _np_call_exprs : '$1'.
 % No Parens Calls
 _np_call_exprs -> _np_method_call_expr : '$1'.
 _np_call_exprs -> np_erlang_call_expr : '$1'.
+_np_call_exprs -> _np_sharp_expr : '$1'.
 _np_call_exprs -> base_identifier : '$1'.
 _np_call_exprs -> implicit_method_name : build_local_call('$1', []).
 _np_call_exprs -> _brackets_call : '$1'.
 _np_call_exprs -> _brackets_expr : '$1'.
+
+% Sharp call
+_np_sharp_expr -> unary_sharp sharp_identifier call_args_no_parens : build_sharp_call([], '$2', '$3').
+_np_sharp_expr -> _np_call_exprs sharp_eol sharp_identifier call_args_no_parens : build_sharp_call('$1', '$3', '$4').
+_np_sharp_expr -> unary_sharp sharp_identifier : build_sharp_call([], '$2', []).
+_np_sharp_expr -> _np_call_exprs sharp_eol sharp_identifier : build_sharp_call('$1', '$3', []).
 
 % Brackets call
 _brackets_call -> _np_call_exprs dot_eol bracket_identifier list_args : build_bracket_call(build_method_call('$1', '$3', []), '$4').
@@ -643,8 +658,9 @@ sharp_eol -> '#' eol : '$1'.
 unary_sharp -> '#'   : '$1'.
 unary_sharp -> 's#'  : '$1'.
 
-sharp_identifier -> min_expr : '$1'.
+sharp_identifier -> constant : '$1'.
 sharp_identifier -> base_identifier : '$1'.
+sharp_identifier -> open_paren expr close_paren : '$2'.
 
 % Object/Module declaration
 module_decl -> module constant break body 'end' : build_module(module, '$2', '$4', []).

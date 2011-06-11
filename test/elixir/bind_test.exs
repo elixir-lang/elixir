@@ -9,6 +9,16 @@ module BindTest
     end
   end
 
+  module ArgsMath
+    def __bound__(1)
+      self
+    end
+
+    def one
+      1
+    end
+  end
+
   module CrazyMath
     def one
       11
@@ -27,8 +37,6 @@ module BindTest
     end
   end
 
-  % TODO: Make parens optional
-
   def bind_test
     1 = Module.blank_slate#BindTest::Math().one
   end
@@ -45,6 +53,18 @@ module BindTest
   def precedence_test
     thing = mirror #BindTest::Math()
     1 = thing.one
+    thing = mirror(#BindTest::Math())
+    1 = thing.one
+
+    thing = mirror #BindTest::Math
+    1 = thing.one
+    thing = mirror(#BindTest::Math)
+    1 = thing.one
+  end
+
+  def without_parens_test
+    1 = #BindTest::Math.one
+    1 = (#BindTest::ArgsMath 1).one
   end
 
   def rebind_test

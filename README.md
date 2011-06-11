@@ -775,6 +775,10 @@ Operator precedence in falling priority:
   <td><strong>Associativity</strong></td>
 </tr>
 <tr>
+  <td>. #</td>
+  <td>Left</td>
+</tr>
+<tr>
   <td>+ - ! not</td>
   <td>Non associative (unary operators)</td>
 </tr>
@@ -1425,8 +1429,6 @@ After the module is bound, `self` in a method will point to the bound structure.
 
 All built-in data types are already bound to a given module by default. For instance, all integers are bound to the `Integer::Behavior` module. That's where methods like `abs` and `+` seen previously are implemented.
 
-NOTE: Elixir currently does not allow you to change the binding of internal structures as integers, strings and so forth. This means the example above `1#DurationExtensions` won't work because `1` is already bound to `Integer::Behavior`. This will be fixed in future releases.
-
 #### Custom data structures with blank slates
 
 The built-in data types of a language are important but a language needs to allows us to provide our own data types. This is achieved by binding a module to a blank slate:
@@ -1445,6 +1447,14 @@ The `Module.blank_slate` expression above returns an empty data type that is the
 
     car = #Car('green)
     car.engine % => "VROOOM"
+
+Notice the `#` operator has the same precedence as `.`, so the next expressions are equivalent and will all print `"VROOOM"`:
+
+     Module.blank_slate#Car.engine
+     (Module.blank_slate#Car).engine
+     Module.blank_slate#Car().engine
+
+NOTE: Elixir currently does not allow you to bind to any internal structure besides blank slates. This means the example with `1#DurationExtensions` above won't work because `1` is an integer, not a blank slate. This will be fixed in future releases.
 
 #### Internal variables
 
@@ -1482,7 +1492,7 @@ As any other structure, modules also have internal variables:
     
     Car.color % => 'red
 
-In the example above, we are setting and reading the internal variable of the module Car. However, keep in mind that if we bind the module, `@color` will point the bind object as seen above:
+In the example above, we are setting and reading the internal variable of the module Car. However, keep in mind that if we bind the module, `@color` will point to the bind object as seen above:
 
     #Car().color % => nil
 
