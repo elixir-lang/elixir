@@ -16,7 +16,7 @@ Nonterminals
   call_exprs _call_exprs
   fun_call_expr _fun_call_expr
   method_call_expr _method_call_expr
-  erlang_call_expr space_sharp_expr
+  erlang_call_expr
   min_expr
 
   string_base
@@ -69,7 +69,7 @@ Nonterminals
   and_op
   andand_op
   oror_op
-  dot_eol dot_sharp unary_sharp space_sharp sharp_identifier
+  dot_eol sharp_eol unary_sharp sharp_identifier
   guards
   module_decl
   method_decl method_name method_body implicit_method_name method_ops_identifier implicit_method_ops_identifier
@@ -127,7 +127,6 @@ Left     110 add_op.
 Left     120 mult_op.
 Nonassoc 130 unary_op.
 Nonassoc 130 unary_sharp.
-Nonassoc 130 space_sharp.
 Nonassoc 140 without_args_method_call_expr.
 Nonassoc 140 _without_args_method_call_expr.
 Nonassoc 150 signed_number.
@@ -198,14 +197,11 @@ call_exprs -> fun_call_expr : '$1'.
 call_exprs -> method_call_expr : '$1'.
 call_exprs -> erlang_call_expr : '$1'.
 call_exprs -> sharp_expr : '$1'.
-call_exprs -> space_sharp_expr : '$1'.
 call_exprs -> min_expr : '$1'.
 
 % Sharp expr
-space_sharp_expr -> space_sharp sharp_identifier call_args_parens : build_sharp_call([], '$2', '$3').
-
 sharp_expr -> unary_sharp sharp_identifier call_args_parens : build_sharp_call([], '$2', '$3').
-sharp_expr -> np_call_exprs dot_sharp sharp_identifier call_args_parens : build_sharp_call('$1', '$3', '$4').
+sharp_expr -> np_call_exprs sharp_eol sharp_identifier call_args_parens : build_sharp_call('$1', '$3', '$4').
 
 % Function call
 fun_call_expr -> np_call_exprs dot_eol call_args_parens : build_fun_call('$1', '$3').
@@ -270,12 +266,11 @@ _call_exprs -> _fun_call_expr : '$1'.
 _call_exprs -> _method_call_expr : '$1'.
 _call_exprs -> erlang_call_expr : '$1'.
 _call_exprs -> _sharp_expr : '$1'.
-_call_exprs -> space_sharp_expr : '$1'.
 _call_exprs -> base_expr : '$1'.
 
 % Sharp expr
 _sharp_expr -> unary_sharp sharp_identifier call_args_parens : build_sharp_call([], '$2', '$3').
-_sharp_expr -> _np_call_exprs dot_sharp sharp_identifier call_args_parens : build_sharp_call('$1', '$3', '$4').
+_sharp_expr -> _np_call_exprs sharp_eol sharp_identifier call_args_parens : build_sharp_call('$1', '$3', '$4').
 
 % Function call
 _fun_call_expr -> _np_call_exprs dot_eol call_args_parens : build_fun_call('$1', '$3').
@@ -643,10 +638,10 @@ dot_eol -> '.'     : '$1'.
 dot_eol -> '.' eol : '$1'.
 
 % Sharp
-dot_sharp -> '#'     : '$1'.
-dot_sharp -> '#' eol : '$1'.
+sharp_eol -> '#'     : '$1'.
+sharp_eol -> '#' eol : '$1'.
 unary_sharp -> '#'   : '$1'.
-space_sharp -> 's#'  : '$1'.
+unary_sharp -> 's#'  : '$1'.
 
 sharp_identifier -> min_expr : '$1'.
 sharp_identifier -> base_identifier : '$1'.
