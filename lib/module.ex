@@ -30,11 +30,6 @@ module Module
     def __mixin_methods__
       Erlang.elixir_methods.mixin_methods(self)
     end
-
-    % Override optimized respond_to to simply check for __mixin_methods__.
-    def respond_to?(method, arity)
-      Erlang.lists.member({method, arity}, __mixin_methods__)
-    end
   end
 
   % This module is included temporarily during method
@@ -259,13 +254,19 @@ module Module
 
     def respond_to?(method, arity)
       case self
-        match { 'elixir_slate__, mod, _ }  then mod
-        match { 'elixir_module__, mod, _ } then mod
+      match { 'elixir_slate__, mod, _ }
+        Erlang.apply(mod, '__elixir_respond_to__, [method, arity])
+      match { 'elixir_module__, mod, data }
+        case Erlang.is_atom(data)
+        match true
+          __mixin_methods__.include?({method, arity})
         else
-          mod = Erlang.elixir_dispatch.builtin_mixin(self)
+          Erlang.apply(mod, '__elixir_respond_to__, [method, arity])
+        end
+      else
+        mod = Erlang.elixir_dispatch.builtin_mixin(self)
+        Erlang.apply(mod, '__elixir_respond_to__, [method, arity])
       end
-
-      Erlang.apply(mod, '__elixir_respond_to__, [method, arity])
     end
 
     def send(method, args := [])
