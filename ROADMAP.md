@@ -7,7 +7,6 @@ In the long term, here are a few things we would like to add:
 * Add partial function application, function pipeline (f1 + f2) and an easy way to retrieve functions from objects (1#add and Integer##add? What about local functions?)
 * Extend guards support in methods
 * Add guards in functions and allow functions to have several clauses
-* Add eval
 * Add alias\_method, remove\_method and undef\_method
 * Allow public and private as decorators
 

@@ -20,13 +20,13 @@ module SetTest
     1 = Set.new().add(2).size
   end
   
-  def to_l_test
-    [] = Set.new.to_l
-    [1] = Set.new.add(1).to_l
+  def to_list_test
+    [] = Set.new.to_list
+    [1] = Set.new.add(1).to_list
   end
   
   def add_test
-    [1] = Set.new().add(1).to_l
+    [1] = Set.new().add(1).to_list
   end
   
   def include_test
@@ -50,7 +50,7 @@ module SetTest
   end
   
   def intersection_test
-    [2] = Set.new.add(1).add(2).intersection(Set.new.add(2).add(3)).to_l
+    [2] = Set.new.add(1).add(2).intersection(Set.new.add(2).add(3)).to_list
   end
   
   def disjoint_test
@@ -59,8 +59,8 @@ module SetTest
   end
   
   def subtract_test
-    [1] = Set.new.add(1).add(2).subtract(Set.new.add(2)).to_l
-    [1] = (Set.from_list([1,2,3]) - Set.from_list([2,3,4])).to_l
+    [1] = Set.new.add(1).add(2).subtract(Set.new.add(2)).to_list
+    [1] = (Set.from_list([1,2,3]) - Set.from_list([2,3,4])).to_list
   end
   
   def subset_test

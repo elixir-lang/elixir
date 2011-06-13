@@ -11,11 +11,13 @@
   * Brackets method in tuples accepts out of bound indexes (by github.com/marcinbunsch)
   * Local calls are restricted only to private methods
   * Added `Timer` with the method `ms` used for benchmarking
+  * Added `remove_ivar`, `Module.stacktrace` and `Module.eval`
 
 * deprecations
   * Use {} instead of {:} as an empty dict. An empty tuple can be retrieved with Tuple.empty
   * `__added_as_mixin__` is now `__mixed_in__`
   * object and protos were removed in favor of module binding
+  * `__stacktrace__` was removed in favor of `Module.stacktrace`
 
 ## v0.2.0 (2011-04-25)
 

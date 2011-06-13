@@ -1,8 +1,4 @@
 module Module
-  def blank_slate
-    {'elixir_slate__, 'exModule::BlankSlate, []}
-  end
-
   module BlankSlate
   end
 
@@ -279,10 +275,6 @@ module Module
 
     %% EXCEPTION RELATED
 
-    def __stacktrace__
-      filter_stacktrace Erlang.get_stacktrace
-    end
-
     def error(reason)
       Erlang.error(reason)
     end
@@ -330,40 +322,65 @@ module Module
     def __bound__
       self
     end
+  end
 
-    % Set the following methods to private.
-    Erlang.elixir_module_using.set_visibility(self, 'private)
+  % Returns a blank slate.
+  def blank_slate
+    {'elixir_slate__, 'exModule::BlankSlate, []}
+  end
 
-    def filter_stacktrace(stacktrace)
-      filter_stacktrace(stacktrace, [])
-    end
+  % Returns the stacktrace filtered with Elixir specifics.
+  def stacktrace
+    filter_stacktrace Erlang.get_stacktrace
+  end
 
-    def filter_stacktrace([{raw_module, function, raw_arity}|t], buffer)
-      if filtered = filter_stacktrace_module(raw_module.to_char_list)
-        module = filtered
-        arity = if Erlang.is_integer(raw_arity)
-          raw_arity - 1
-        else
-          raw_arity
-        end
+  def eval(code)
+    { result, _ } = Erlang.elixir.eval(code.to_char_list)
+    result
+  end
+
+  def eval(code, binding)
+    { result, _ } = Erlang.elixir.eval(code.to_char_list, binding.to_list)
+    result
+  end
+
+  def eval(file, line, code, binding)
+    { result, _ } = Erlang.elixir.eval(code.to_char_list, binding.to_list, file.to_char_list, line)
+    result
+  end
+
+  % Set the following methods to private.
+  Erlang.elixir_module_using.set_visibility(self, 'private)
+
+  def filter_stacktrace(stacktrace)
+    filter_stacktrace(stacktrace, [])
+  end
+
+  def filter_stacktrace([{raw_module, function, raw_arity}|t], buffer)
+    if filtered = filter_stacktrace_module(raw_module.to_char_list)
+      module = filtered
+      arity = if Erlang.is_integer(raw_arity)
+        raw_arity - 1
       else
-        module = raw_module
-        arity = raw_arity
+        raw_arity
       end
-
-      filter_stacktrace t, [{module, function, arity}|buffer]
+    else
+      module = raw_module
+      arity = raw_arity
     end
 
-    def filter_stacktrace([], buffer)
-      buffer.reverse
-    end
+    filter_stacktrace t, [{module, function, arity}|buffer]
+  end
 
-    def filter_stacktrace_module([$e, $x, h|t]) when h >= $A andalso h <= $Z
-      Atom.from_char_list [h|t]
-    end
+  def filter_stacktrace([], buffer)
+    buffer.reverse
+  end
 
-    def filter_stacktrace_module(_)
-      nil
-    end
+  def filter_stacktrace_module([$e, $x, h|t]) when h >= $A andalso h <= $Z
+    Atom.from_char_list [h|t]
+  end
+
+  def filter_stacktrace_module(_)
+    nil
   end
 end

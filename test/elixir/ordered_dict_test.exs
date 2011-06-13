@@ -32,8 +32,8 @@ module OrderedDictTest
     { 'a: 1, 'b: 2 } = { 'a: 1 }.merge { 'b: 2, 'a: 3 }, -> (_, v1, _) v1
   end
 
-  def to_l_test
-    [{'a, 1}, {'b, 2}] = { 'b: 2, 'a: 1 }.to_l
+  def to_list_test
+    [{'a, 1}, {'b, 2}] = { 'b: 2, 'a: 1 }.to_list
   end
 
   def match_test

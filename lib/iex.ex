@@ -27,7 +27,7 @@ module IEX
       code = @codecache + IO.gets(prompt)
 
       { b, c } = try
-        {result, new_binding} = Erlang.elixir.eval(code.to_char_list, @binding)
+        {result, new_binding} = Module.eval(code.to_char_list, @binding)
         IO.puts Code::Formatter.format_object(result)
         { new_binding, "" }
       catch 'error: {'badsyntax, {_, _, _, []}}
@@ -35,7 +35,7 @@ module IEX
       catch kind: error
         io = IO.new 'standard_error
         io.puts "** #{kind} #{self.format_catch(kind, error)}"
-        self.__stacktrace__.each -> (s) io.puts "    #{self.format_stacktrace(s)}"
+        Module.stacktrace.each -> (s) io.puts "    #{self.format_stacktrace(s)}"
         { @binding, "" }
       end
 

@@ -56,7 +56,7 @@ module Code::Init
       else
         io = IO.new('standard_error)
         io.puts "** #{kind} #{format_catch(kind, error)}"
-        print_stacktrace(io, __stacktrace__)
+        print_stacktrace(io, Module.stacktrace)
         halt!(1)
       end
     end
@@ -189,7 +189,7 @@ module Code::Init
   % Process commands
 
   def process_command({'eval, expr}, _state)
-    Erlang.elixir.eval(expr, [])
+    Module.eval(expr, [])
   end
 
   def process_command({'load, file}, _state)

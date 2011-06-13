@@ -41,7 +41,7 @@ module Tuple
     end
 
     def inspect
-      case to_l
+      case to_list
       match []
         "Tuple.empty"
       match list
@@ -55,7 +55,7 @@ module Tuple
       Erlang.size(self) == 0
     end
 
-    def to_l
+    def to_list
       Erlang.tuple_to_list(self)
     end
 
