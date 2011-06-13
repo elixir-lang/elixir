@@ -43,14 +43,14 @@ compile_list() ->
 compile_main() ->
   [
     "lib/module.ex",
+    "lib/list.ex",
+    "lib/regexp.ex",
     "lib/io.ex",
     "lib/atom.ex",
-    "lib/list.ex",
     "lib/numeric.ex",
     "lib/integer.ex",
     "lib/float.ex",
     "lib/tuple.ex",
-    "lib/regexp.ex",
     "lib/string.ex",
     "lib/ordered_dict.ex",
     "lib/bit_string.ex",

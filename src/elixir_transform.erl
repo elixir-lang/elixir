@@ -368,7 +368,8 @@ transform({interpolated_atom, Line, String}, S) ->
 %
 % No variables can be defined in a string without interpolation.
 transform({regexp, Line, String, Operators }, S) ->
-  build_regexp(Line, {string, Line, String}, Operators, S);
+  Final = 'exRegexp':new([], list_to_binary(String), Operators),
+  { elixir_tree_helpers:abstract_syntax(Final), S };
 
 % Handle interpolated regexps by dispatching a list and its options to Regexp.new.
 %

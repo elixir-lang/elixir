@@ -26,4 +26,3 @@ In the long term, here are a few things we would like to add:
 
 * Do not eval code when reading files instead, quickly compile them to a module
 * Method dispatch to types specified at parse time could be optimized by skipping method lookup
-* regexps could be inlined to avoid runtime compilation. Inlining can happen by using Erlang's inline directive with hidden local methods.
