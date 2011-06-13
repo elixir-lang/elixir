@@ -1414,24 +1414,15 @@ Elixir provides a way to bind modules to structures in order to provide method d
 
 ### Binding
 
-Binding is the ability to bind modules to data types at runtime. Binding is done through the bind operator `#`. Here is an example that creates a module and binds it to the integer 1 at runtime:
+Binding is the ability to bind modules to data types. Method dispatching is done by simply invoking a method in the module bound to the structure. For example, when the method `+` is invoked in a string, it is simply invoking the method `+` defined in `String::Behavior` as below:
 
-    module DurationExtensions
-      def day_in_seconds
-        self * 3600
+    module String::Behavior
+      def +(another)
+        <<self|binary, another|binary>>
       end
     end
-    
-    bound_integer = 1#DurationExtensions
-    1.day_in_seconds % => 3600
 
-After the module is bound, `self` in a method will point to the bound structure.
-
-All built-in data types are already bound to a given module by default. For instance, all integers are bound to the `Integer::Behavior` module. That's where methods like `abs` and `+` seen previously are implemented.
-
-#### Custom data structures with blank slates
-
-The built-in data types of a language are important but a language needs to allows us to provide our own data types. This is achieved by binding a module to a blank slate:
+All built-in data types (like integers, tuples, lists, etc) are already bound to a given module at runtime and cannot be changed. However, Elixir provides a data structure called **blank slate** that is not bound by default and therefore can be bound to any module:
 
     module Car
       def engine
@@ -1443,9 +1434,9 @@ The built-in data types of a language are important but a language needs to allo
     car = Module.blank_slate#Car()
     car.engine % => "VROOOM"
 
-The `Module.blank_slate` expression above returns an empty data type that is then bound to the module `Car`. Since the expression `Module.blank_slate#Car('green)` is too long, the form commonly used is:
+The `Module.blank_slate` expression above returns an empty data type that is then bound to the module `Car` using the operator `#`. Since the expression `Module.blank_slate#Car()` is too long, the form commonly used is:
 
-    car = #Car('green)
+    car = #Car()
     car.engine % => "VROOOM"
 
 Notice the `#` operator has the same precedence as `.`, so the next expressions are equivalent and will all print `"VROOOM"`:
@@ -1454,11 +1445,9 @@ Notice the `#` operator has the same precedence as `.`, so the next expressions 
      (Module.blank_slate#Car).engine
      Module.blank_slate#Car().engine
 
-NOTE: Elixir currently does not allow you to bind to any internal structure besides blank slates. This means the example with `1#DurationExtensions` above won't work because `1` is an integer, not a blank slate. This will be fixed in future releases.
-
 #### Internal variables
 
-Elixir also allows us to store information inside data structures. This is done with internal variables. In the example below, we are going to store the color of a car by using the `__bound__` callback and then read it:
+Elixir allows us to store information inside blank slates. This is done with internal variables. In the example below, we are going to store the color of a car by using the `__bound__` callback and then read it:
 
     module Car
       % Callback invoked whenever this module is bound to a structure.
@@ -1480,7 +1469,7 @@ Elixir also allows us to store information inside data structures. This is done 
 
 Whenever a module is bound, the callback `__bound__` in the module is invoked. All the values given on binding are accessible in the callback. Data can be added to the blank slate through **internal variables** (for example, `@color` above).
 
-As any other structure, modules also have internal variables:
+Besides blank slates, modules also have internal variables:
 
     module Car
       set_ivar('color, 'red)
@@ -1528,8 +1517,7 @@ Notice in the example above `Car`'s internal variable `@color` is still `'red` e
 
 #### Best practices
 
-Libraries must hide the blank slate binding as most as possible. For instance, the `Car` example above, requires the developer to manually
-bind a method, leading to coupling. Ideally, the `Car` should provide an API for that as below:
+Libraries must hide the blank slate binding as most as possible. For instance, the `Car` example above, requires the developer to manually bind a method, leading to coupling. Ideally, the `Car` should provide an API for that as below:
 
     module Car
       def new(color)
