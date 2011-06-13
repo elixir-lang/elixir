@@ -9,7 +9,7 @@ In the long term, here are a few things we would like to add:
 * Add guards in functions and allow functions to have several clauses
 * Add eval
 * Add alias\_method, remove\_method and undef\_method
-* Allow inline, public and private as decorators
+* Allow public and private as decorators
 
 ### Namespaces and Refinements
 
@@ -21,7 +21,6 @@ In the long term, here are a few things we would like to add:
 
 * Dict comprehensions and get rid of inbin and inlist
 * Add more OTP behaviors: supervisors, apps, fsm and events
-* method\_missing + super
 
 ### Optimizations
 

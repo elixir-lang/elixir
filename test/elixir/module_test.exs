@@ -143,13 +143,6 @@ module ModuleTest
     4 = ModuleTest::B.foo
   end
 
-  % def method_missing_test
-  %   recorder = Recorder.new
-  %   [{'hello, ['the, "world"]}] = recorder.hello('the, "world").calls
-  %   processor = recorder.filter( -> (x) x rem 2 == 0 ).map( -> (x) x * 10 )
-  %   [20, 40] = processor.play([1, 2, 3, 4])
-  % end
-
   private
 
   def operators(1 + 1, 'atom/2)
