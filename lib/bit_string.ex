@@ -4,10 +4,6 @@ module BitString
       Erlang.io_lib.format($"~w", [self]).to_bin
     end
 
-    def to_s
-      inspect
-    end
-
     % Returns the binary length. Also aliased to size.
     %
     % ## Examples

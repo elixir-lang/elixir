@@ -351,10 +351,6 @@ module List
       end
     end
 
-    def to_s
-      inspect
-    end
-
     % Returns the list length. Also aliased to size.
     %
     % ## Examples

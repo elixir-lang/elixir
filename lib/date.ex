@@ -74,10 +74,6 @@ module Date
       "#{@year}-#{convert_to_double_digit(@month)}-#{convert_to_double_digit(@day)}"
     end
 
-    def to_s
-      inspect
-    end
-
     % Determine whether or the not the Date occurs within a leap year
     def leap_year?
       Erlang.calendar.is_leap_year(@year)

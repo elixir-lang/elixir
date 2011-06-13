@@ -43,10 +43,6 @@ module DateTime
       "#{formatted_date} #{formatted_time}"
     end
 
-    def to_s
-      inspect
-    end
-
     % Converts the given time to a string according to the gregorian calendar (i.e. starting with year 0).
     % You can find more information about it on Erlang's calendar module: http://erlang.org/doc/man/calendar.html
     def to_i

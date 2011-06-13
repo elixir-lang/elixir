@@ -55,10 +55,6 @@ module Tuple
       Erlang.size(self) == 0
     end
 
-    def to_s
-      inspect
-    end
-
     def to_l
       Erlang.tuple_to_list(self)
     end

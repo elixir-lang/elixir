@@ -194,11 +194,6 @@ module OrderedDict
       inspect(orddict)
     end
 
-    % The same as inspect.
-    def to_s
-      inspect
-    end
-
     % Returns true if the ordered dict is empty.
     def empty?
       orddict == []

@@ -2,10 +2,6 @@ module Integer
   module Behavior
     mixin Numeric
 
-    def inspect
-      to_s
-    end
-
     % Iterates the given function n times, passing values from zero
     % to n - 1.
     %
@@ -65,7 +61,7 @@ module Integer
       Erlang.integer_to_list(self)
     end
 
-    def to_s
+    def inspect
       Erlang.integer_to_list(self).to_bin
     end
 
