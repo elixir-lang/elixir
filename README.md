@@ -1003,9 +1003,9 @@ Here is a list of runtime errors that can be raised by Elixir:
 
     `value` given to `@()` or `set_ivars` is not an `OrderedDict` or it is an `OrderedDict` but not all keys are atoms;
 
-*   `{ 'module_defined, { method, module } }`
+*   `{ 'internal_method_overridden, { method, arity } }`
 
-    Cannot invoke `method` in `module` because the module was already defined. For example, calling `module_eval` in an already defined module will raise such errors;
+    The `method` with arity `arity` is defined automatically by Elixir and cannot be overridden.
 
 ## Strings, Atoms, Regular Expressions, Interpolation and Sigils
 
