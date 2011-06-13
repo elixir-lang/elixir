@@ -1,7 +1,7 @@
 % Holds implementation for most Module::Behavior methods.
 -module(elixir_module_behavior).
 -export([is_module/1, mixins/1, data/1, slate_bind/2, bind/3,
-  get_ivar/2, set_ivar/3, set_ivars/2, update_ivar/3, update_ivar/4]).
+  get_ivar/2, set_ivar/3, set_ivars/2, remove_ivar/2, update_ivar/3]).
 -include("elixir.hrl").
 
 % Introspection
@@ -55,10 +55,10 @@ set_ivars(Self, Value) ->
   set_ivar_dict(Self, elixir, set_ivars, fun(Dict) -> elixir_helpers:orddict_merge(Dict, element(2, Value)) end).
 
 update_ivar(Self, Name, Function) ->
-  set_ivar_dict(Self, Name, update_ivar, fun(Dict) -> orddict:update(Name, Function, Dict) end).
+  set_ivar_dict(Self, Name, update_ivar, fun(Dict) -> orddict:update(Name, Function, nil, Dict) end).
 
-update_ivar(Self, Name, Initial, Function) ->
-  set_ivar_dict(Self, Name, update_ivar, fun(Dict) -> orddict:update(Name, Function, Initial, Dict) end).
+remove_ivar(Self, Name) ->
+  set_ivar_dict(Self, Name, remove_ivar, fun(Dict) -> orddict:erase(Name, Dict) end).
 
 set_ivar_dict(_, Name, _, _) when not is_atom(Name) ->
   elixir_errors:error({bad_ivar, Name});

@@ -132,9 +132,10 @@ module ModuleTest
 
   def update_ivar_test
     [1] = #ModuleTest::Example().set_ivar('foo, []).update_ivar('foo, _.push(1)).get_ivar('foo)
+  end
 
-    foo = #ModuleTest::Example().update_ivar('list, [1], -> (_) self.error "never called").update_ivar('list, _.push(2))
-    [1,2] = foo.get_ivar('list)
+  def remove_ivar_test
+    nil = #ModuleTest::Example().set_ivar('foo, 'bar).remove_ivar('foo).get_ivar('foo)
   end
 
   def local_and_remote_calls_test

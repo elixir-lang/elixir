@@ -242,8 +242,8 @@ module Module
       Erlang.elixir_module_behavior.update_ivar(self, name, fun)
     end
 
-    def update_ivar(name, initial, fun)
-      Erlang.elixir_module_behavior.update_ivar(self, name, initial, fun)
+    def remove_ivar(name)
+      Erlang.elixir_module_behavior.remove_ivar(self, name)
     end
 
     %% DYNAMIC DISPATCHING
