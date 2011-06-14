@@ -26,7 +26,7 @@ module Code
 
   % Returns elixir version.
   def version
-    "0.3.0.dev"
+    "0.3.0"
   end
 
   % Compile a *file* and returns a list of tuples where the first element
