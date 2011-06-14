@@ -4,7 +4,7 @@ In the long term, here are a few things we would like to add:
 
 ### Methods and functions
 
-* Add partial function application, function pipeline (f1 + f2) and an easy way to retrieve functions from objects (1#add and Integer##add? What about local functions?)
+* Add partial function application and function pipeline (f1 + f2)
 * Extend guards support in methods
 * Add guards in functions and allow functions to have several clauses
 * Add alias\_method, remove\_method and undef\_method
@@ -24,4 +24,3 @@ In the long term, here are a few things we would like to add:
 ### Optimizations
 
 * Do not eval code when reading files instead, quickly compile them to a module
-* Method dispatch to types specified at parse time could be optimized by skipping method lookup
