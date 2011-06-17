@@ -1,4 +1,15 @@
 module List
+  % Returns a list which contains n copies of elem
+  %
+  % ## Examples
+  %
+  %    List.duplicate(3, 1)    % => [1,1,1]
+  %    List.duplicate(2, 'foo) % => ['foo, 'foo]
+  %
+  def duplicate(number, elem)
+    Erlang.lists.duplicate(number, elem)
+  end
+
   module Behavior
     % Returns true if all items in the list evaluates to true according the given function.
     %
@@ -262,6 +273,18 @@ module List
       Erlang.tl(self)
     end
 
+    % Returns the nth tail of the list
+    %
+    % ## Examples
+    %
+    %    [1,2,3,4,5].nthtail(3) % => [4,5]
+    %    [1,2,3,4,5].nthtail(0) % => [1,2,3,4,5]
+    %    [1,2,3,4,5].nthtail(5) % => []
+    %
+    def nthtail(n)
+      Erlang.lists.nthtail(n, self)
+    end
+
     % Returns true if the given item exists in the array.
     %
     % ## Examples
@@ -443,6 +466,17 @@ module List
       Erlang.length(self)
     end
     alias_local 'length, 'size, 0
+
+    % Equivalent to list.flatten.length but more efficient
+    %
+    % ## Examples
+    %
+    %    [1, [2,3]].flatlength % => 3
+    %    [[1,2,3]].flatlength  % => 3
+    %
+    def flatlength
+      Erlang.lists.flatlength(self)
+    end
 
     % Returns if the list is proper.
     %

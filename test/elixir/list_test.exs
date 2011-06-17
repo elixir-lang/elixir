@@ -8,6 +8,13 @@ module ListTest
     0 = [].size
   end
 
+  def flatlength_test
+    3 = [1,2,3].flatlength
+    3 = [[1,2,3]].flatlength
+    3 = [1, [2,3]].flatlength
+    3 = [[1], [2], [3]].flatlength
+  end
+
   def include_and_member_test
     list = [1,2,3]
     true  = list.include?(1)
@@ -142,6 +149,14 @@ module ListTest
     [2] = [1,2].tail
     [] = [1].tail
     assert_error 'badarg, -> [].tail
+  end
+
+  def nthtail
+    list = [1,2,3,4,5]
+    [4,5] = list.nthtail(3)
+    list = list.nthtail(0)
+    [] = list.nthtail(5)
+    [] = [].nthtail(1)
   end
 
   def min_max_test
@@ -291,6 +306,12 @@ module ListTest
   def empty_test
     false = ["abc"].empty?
     true  = [].empty?
+  end
+
+  def duplicate_test
+    [1,1,1] = List.duplicate(3, 1)
+    ['foo, 'foo] = List.duplicate(2, 'foo)
+    [] = List.duplicate(0, 'bar)
   end
 
   % Helper methods
