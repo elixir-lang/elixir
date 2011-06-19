@@ -8,7 +8,7 @@ In the long term, here are a few things we would like to add:
 * Extend guards support in methods
 * Add guards in functions and allow functions to have several clauses
 * Add alias\_method, remove\_method and undef\_method
-* Allow public and private as decorators
+* Allow public, private and async as decorators
 
 ### Namespaces and Refinements
 
