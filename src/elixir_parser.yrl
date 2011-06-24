@@ -526,6 +526,7 @@ after_arg_clause -> after expr then_break body : { after_clause, ?line('$1'), '$
 
 % Begin expr
 begin_expr -> begin body end : { 'begin', ?line('$1'), '$2' }.
+begin_expr -> begin ';' body end : { 'begin', ?line('$1'), '$3' }.
 
 % Try/Catch/After
 exception_expr -> try_clause end : '$1'.
@@ -547,6 +548,7 @@ catch_clauses -> catch_clause : '$1'.
 catch_clauses -> catch_clause catch_clauses : '$1' ++ '$2'.
 
 after_clause -> after body : '$2'.
+after_clause -> after ';' body : '$3'.
 
 % String expressions
 string_base -> string : '$1'.

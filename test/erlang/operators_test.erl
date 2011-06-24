@@ -250,4 +250,6 @@ oror_test() ->
   test_helper:run_and_remove(F, ['Bar']).
 
 begin_test() ->
-  {1,[{x,1}]} = elixir:eval("begin\nx=1\nend\nx").
+  {1,_} = elixir:eval("begin 1 end"),
+  {1,[{x,1}]} = elixir:eval("begin\nx=1\nend\nx"),
+  {1,[{x,1}]} = elixir:eval("begin;x=1;end;x").
