@@ -289,6 +289,13 @@ module ListTest
     2 = 6 - 1 - self.a_list![1] - 1
   end
 
+  def bracket_slice_test
+    [1,2,3] = [1,2,3,4,5][0,2]
+    [3,4,5] = [1,2,3,4,5][-3,3]
+
+    [] = [1,2,3,4,5][5, 1]
+  end
+
   def list_comprehension_test
     [2,4,6] = [x * 2 for x inlist [1,2,3]]
     [2,4,6] = [x * 2 for x in [1,2,3], true]

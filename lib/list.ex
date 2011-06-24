@@ -2,7 +2,7 @@ module List
   module Behavior
     % Returns a new list as a concatenation of the given number
     % of the original array.
-    % If n is a string, then the behavior is the same as join
+    % If n is a string, then the behavior is the same as join.
     %
     % ## Examples
     %
@@ -176,6 +176,22 @@ module List
       end
     end
 
+    % Returns a sublist starting at start and of length elements.
+    % Negative indices count backward from the end of the array.
+    %
+    % ## Examples
+    %
+    %    [1,2,3,4,5][0,2]  % => [1,2,3]
+    %    [1,2,3,4,5][-3,3] % => [3,4,5]
+    %
+    def [](start, len)
+      if start < 0
+        Erlang.lists.sublist(self, start + 1 + length, len + 1)
+      else
+        Erlang.lists.sublist(self, start + 1, len + 1)
+      end
+    end
+
     % Calls the function once for each element in the list.
     %
     % Returns a new list containing the values returned by the function.
@@ -278,18 +294,6 @@ module List
     %
     def tail
       Erlang.tl(self)
-    end
-
-    % Returns the nth tail of the list
-    %
-    % ## Examples
-    %
-    %    [1,2,3,4,5].nthtail(3) % => [4,5]
-    %    [1,2,3,4,5].nthtail(0) % => [1,2,3,4,5]
-    %    [1,2,3,4,5].nthtail(5) % => []
-    %
-    def nthtail(n)
-      Erlang.lists.nthtail(n, self)
     end
 
     % Returns true if the given item exists in the array.
