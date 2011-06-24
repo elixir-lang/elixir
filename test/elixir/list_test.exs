@@ -8,6 +8,16 @@ module ListTest
     0 = [].size
   end
 
+  def multiplier_test
+    [] = [] * 3
+    [] = ['foo] * 0
+    "" = [] * ","
+
+    [1,1,1]   = [1] * 3
+    [1,2,1,2] = [1,2] * 2
+    "1,2,3" = [1,2,3] * ","
+  end
+
   def flatlength_test
     3 = [1,2,3].flatlength
     3 = [[1,2,3]].flatlength
@@ -306,12 +316,6 @@ module ListTest
   def empty_test
     false = ["abc"].empty?
     true  = [].empty?
-  end
-
-  def duplicate_test
-    [1,1,1] = List.duplicate(3, 1)
-    ['foo, 'foo] = List.duplicate(2, 'foo)
-    [] = List.duplicate(0, 'bar)
   end
 
   % Helper methods

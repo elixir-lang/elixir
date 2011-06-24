@@ -1,16 +1,23 @@
 module List
-  % Returns a list which contains n copies of elem
-  %
-  % ## Examples
-  %
-  %    List.duplicate(3, 1)    % => [1,1,1]
-  %    List.duplicate(2, 'foo) % => ['foo, 'foo]
-  %
-  def duplicate(number, elem)
-    Erlang.lists.duplicate(number, elem)
-  end
-
   module Behavior
+    % Returns a new list as a concatenation of the given number
+    % of the original array.
+    % If n is a string, then the behavior is the same as join
+    %
+    % ## Examples
+    %
+    %    [1] * 3       % => [1,1,1]
+    %    [1,2] * 2     % => [1,2,1,2]
+    %    [1,2,3] * "," % => "1,2,3"
+    %
+    def *(mult)
+      if mult.__module_name__ == 'String::Behavior
+        join(mult)
+      else
+        duplicate(mult, self, [])
+      end
+    end
+
     % Returns true if all items in the list evaluates to true according the given function.
     %
     % ## Examples
@@ -528,5 +535,13 @@ module List
 
     def copy_without_tail([h|t], acc) copy_without_tail(t, [h|acc]); end
     def copy_without_tail(_, acc) acc.reverse; end
+
+    def duplicate(0, _, list)
+      list.flatten_lists
+    end
+
+    def duplicate(n, term, list) when n > 0
+      duplicate(n - 1, term, [term|list])
+    end
   end
 end
