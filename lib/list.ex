@@ -1,5 +1,23 @@
 module List
   module Behavior
+    % Returns a new list as a concatenation of the given number
+    % of the original array.
+    % If n is a string, then the behavior is the same as join.
+    %
+    % ## Examples
+    %
+    %    [1] * 3       % => [1,1,1]
+    %    [1,2] * 2     % => [1,2,1,2]
+    %    [1,2,3] * "," % => "1,2,3"
+    %
+    def *(mult)
+      if mult.__module_name__ == 'String::Behavior
+        join(mult)
+      else
+        duplicate(mult, self, [])
+      end
+    end
+
     % Returns true if all items in the list evaluates to true according the given function.
     %
     % ## Examples
@@ -9,6 +27,18 @@ module List
     %
     def all?(function)
       Erlang.lists.all(function, self)
+    end
+
+    % Returns true if at least one item the list evaluates to true according
+    % to the given function.
+    %
+    % ## Examples
+    %
+    %    [4,5,6].any? -> (i) i == 2 % => false
+    %    [1,2,3].any? -> (i) i == 2 % => true
+    %
+    def any?(function)
+      Erlang.lists.any(function, self)
     end
 
     % Push a new element to the list.
@@ -88,6 +118,17 @@ module List
       Erlang.lists.append(self, another)
     end
 
+    % Returns the sum of the elements in the list.
+    % Returns 0 if the list is empty.
+    %
+    % ## Examples
+    %
+    %    [1,2,3].sum % => 6
+    %
+    def sum
+      Erlang.lists.sum(self)
+    end
+
     % Combine all elements of the lists by applying the given function, starting
     % with the given accumulator. The list is traversed from the left.
     %
@@ -132,6 +173,22 @@ module List
         brackets(-1 * (1 + number), Erlang.lists.reverse(self))
       else
         brackets(number, self)
+      end
+    end
+
+    % Returns a sublist starting at start and of length elements.
+    % Negative indices count backward from the end of the array.
+    %
+    % ## Examples
+    %
+    %    [1,2,3,4,5][0,2]  % => [1,2,3]
+    %    [1,2,3,4,5][-3,3] % => [3,4,5]
+    %
+    def [](start, len)
+      if start < 0
+        Erlang.lists.sublist(self, start + 1 + length, len + 1)
+      else
+        Erlang.lists.sublist(self, start + 1, len + 1)
       end
     end
 
@@ -184,6 +241,30 @@ module List
     %
     def flatten
       Erlang.lists.flatten(self)
+    end
+
+    % Returns the first element that is lesser than or equal to all other
+    % elements. Raises 'function_clause error if the list is empty.
+    %
+    % ## Examples
+    %
+    %    [2,1,5,3,4].min           % => 1
+    %    ["foo", "bar", "baz"].min % => "bar"
+    %
+    def min
+      Erlang.lists.min(self)
+    end
+
+    % Returns the first element that is greater than or equal to all other
+    % elements. Raises 'function_clause error if the list is empty.
+    %
+    % ## Examples
+    %
+    %    [2,1,5,3,4].max           % => 5
+    %    ["foo", "bar", "baz"].max % => "foo"
+    %
+    def max
+      Erlang.lists.max(self)
     end
 
     % Receives a list of lists and flatten them one level deep. If one of the
@@ -299,10 +380,20 @@ module List
     %
     % ## Examples
     %
-    %    [1,2,3,4,5].takewhile(-> (x) x < 3) % => [1,2]
+    %    [1,2,3,4,5].takewhile -> (x) x < 3 % => [1,2]
     %
     def takewhile(function)
       Erlang.lists.takewhile(function, self)
+    end
+
+    % Drops elements from the list while the function returns true.
+    %
+    % ## Examples
+    %
+    %    [1,2,3,4,5].dropwhile -> (x) x < 3 % => [3,4,5]
+    %
+    def dropwhile(function)
+      Erlang.lists.dropwhile(function, self)
     end
 
     % Split the list into two list, where the first contains N elements
@@ -313,6 +404,7 @@ module List
     % ## Examples
     %
     %    [1,2,3,4,5].split(3) % => {[1,2,3], [4,5]}
+    %
     def split(n)
       Erlang.lists.split(n, self)
     end
@@ -328,6 +420,29 @@ module List
     def insert(item, n)
       {h,t} = split(n)
       h + [item] + t
+    end
+
+    % Partition the list into two lists where the first list contains all
+    % elements for which the given function returns true, and the second
+    % when the function returns false.
+    %
+    % ## Examples
+    %
+    %    [1,2,3,4,5,6].partition -> (x) x rem 2 == 0 % => {[2,4,6], [1,3,5]}
+    %
+    def partition(function)
+      Erlang.lists.partition(function, self)
+    end
+
+    % Partition the list into two lists according to the function. This
+    % is the same as doing {list.takewhile(function), list.dropwhile(function)}
+    %
+    % ## Examples
+    %
+    %    [1,2,3,4,5,6].splitwith -> (x) x rem 2 == 1 % => {[1], [2,3,4,5,6]}
+    %
+    def splitwith(function)
+      Erlang.lists.splitwith(function, self)
     end
 
     def to_list
@@ -362,6 +477,17 @@ module List
       Erlang.length(self)
     end
     alias_local 'length, 'size, 0
+
+    % Equivalent to list.flatten.length but more efficient
+    %
+    % ## Examples
+    %
+    %    [1, [2,3]].flatlength % => 3
+    %    [[1,2,3]].flatlength  % => 3
+    %
+    def flatlength
+      Erlang.lists.flatlength(self)
+    end
 
     % Returns if the list is proper.
     %
@@ -413,5 +539,13 @@ module List
 
     def copy_without_tail([h|t], acc) copy_without_tail(t, [h|acc]); end
     def copy_without_tail(_, acc) acc.reverse; end
+
+    def duplicate(0, _, list)
+      list.flatten_lists
+    end
+
+    def duplicate(n, term, list) when n > 0
+      duplicate(n - 1, term, [term|list])
+    end
   end
 end

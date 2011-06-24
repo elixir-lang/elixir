@@ -8,6 +8,23 @@ module ListTest
     0 = [].size
   end
 
+  def multiplier_test
+    [] = [] * 3
+    [] = ['foo] * 0
+    "" = [] * ","
+
+    [1,1,1]   = [1] * 3
+    [1,2,1,2] = [1,2] * 2
+    "1,2,3" = [1,2,3] * ","
+  end
+
+  def flatlength_test
+    3 = [1,2,3].flatlength
+    3 = [[1,2,3]].flatlength
+    3 = [1, [2,3]].flatlength
+    3 = [[1], [2], [3]].flatlength
+  end
+
   def include_and_member_test
     list = [1,2,3]
     true  = list.include?(1)
@@ -98,6 +115,12 @@ module ListTest
     true  = [2,4,6].all? -> (i) i rem 2 == 0
   end
 
+  def any_test
+    false = [].any? -> (_) false
+    false = [4,5,6].any? -> (i) i == 2
+    true  = [1,2,3].any? -> (i) i == 2
+  end
+
   def keyfind_test
     {'foo, 1} = ['foo/1, 'bar/2].keyfind('foo, 0)
     {'bar, 2} = ['foo/1, 'bar/2].keyfind('bar, 0)
@@ -120,6 +143,11 @@ module ListTest
     assert_error 'function_clause, -> [1,2,3].zipwith([1,2], -> (_,_) 0)
   end
 
+  def sum_test
+    6 = [1,2,3].sum
+    0 = [].sum
+  end
+
   def head_test
     1  = [1,2,3].head
     1  = [1].head
@@ -131,6 +159,18 @@ module ListTest
     [2] = [1,2].tail
     [] = [1].tail
     assert_error 'badarg, -> [].tail
+  end
+
+  def min_max_test
+    1 = [1,2,3].min
+    "bar" = ["baz", "foo", "bar"].min
+    assert_error 'function_clause, -> [].min
+  end
+
+  def max_test
+    3 = [1,2,3].max
+    "foo" = ["baz", "foo", "bar"].max
+    assert_error 'function_clause, -> [].max
   end
 
   def uniq_test
@@ -165,6 +205,14 @@ module ListTest
     "foo_bar" = ['foo, 'bar].join("_")
   end
 
+  def takewhile_test
+    [1,2] = [1,2,3,4,5].takewhile -> (x) x < 3
+  end
+
+  def dropwhile_test
+    [3,4,5] = [1,2,3,4,5].dropwhile -> (x) x < 3
+  end
+
   def sort_test
     [1,2,3,4,4] = [4,1,3,2,4].sort
     ["bar", "baz", "foo"] = ["foo", "bar", "baz"].sort
@@ -178,6 +226,16 @@ module ListTest
   def insert_test
     [1,2,0,3,4,5] = [1,2,3,4,5].insert(0, 2)
     assert_error 'badarg, -> [1,2,3].insert(0, 10)
+  end
+
+  def partition_test
+    {[2,4,6], [1,3,5]} = [1,2,3,4,5,6].partition -> (x) x rem 2 == 0
+    {[], [1,3,5]} = [1,3,5].partition -> (x) x rem 2 == 0
+    {[2,4,6], []} = [2,4,6].partition -> (x) x rem 2 == 0
+  end
+
+  def splitwith_test
+    {[1], [2,3,4,5,6]} = [1,2,3,4,5,6].splitwith -> (x) x rem 2 == 1
   end
 
   def brackets_test
@@ -221,6 +279,13 @@ module ListTest
     [1] = a_list! [1]
     [1] = self.a_list! [1]
     2 = 6 - 1 - self.a_list![1] - 1
+  end
+
+  def bracket_slice_test
+    [1,2,3] = [1,2,3,4,5][0,2]
+    [3,4,5] = [1,2,3,4,5][-3,3]
+
+    [] = [1,2,3,4,5][5, 1]
   end
 
   def list_comprehension_test
