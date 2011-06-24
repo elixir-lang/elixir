@@ -161,14 +161,6 @@ module ListTest
     assert_error 'badarg, -> [].tail
   end
 
-  def nthtail
-    list = [1,2,3,4,5]
-    [4,5] = list.nthtail(3)
-    list = list.nthtail(0)
-    [] = list.nthtail(5)
-    [] = [].nthtail(1)
-  end
-
   def min_max_test
     1 = [1,2,3].min
     "bar" = ["baz", "foo", "bar"].min
