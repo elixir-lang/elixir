@@ -190,7 +190,7 @@ build_bracket_identifier(Line, Chars, Length) ->
 build_char(Chars, Line) ->
   { token, { integer, Line, lists:last(elixir_interpolation:unescape_chars(true, Chars)) } }.
 
-% Handle strings without interpolation.
+% Handle strings.
 build_string(Kind, Chars, Line, Length, Distance) ->
   Interpol = (sublist(atom_to_list(Kind), 12) == "interpolated"),
   case handle_chars(true, Interpol, Chars, Line, Length, Distance) of
