@@ -9,11 +9,14 @@ module IEX
     Process.spawn -> #IEX::Behavior().loop
   end
 
+  module Context
+  end
+
   module Behavior
     mixin Code::Formatter
 
     def __bound__
-      @('binding: [], 'codecache: "")
+      @('binding: wrap_self([]), 'codecache: "")
     end
 
     def loop
@@ -29,7 +32,7 @@ module IEX
       { b, c } = try
         {result, new_binding} = Erlang.elixir.eval(code.to_char_list, @binding)
         IO.puts Code::Formatter.format_object(result)
-        { new_binding, "" }
+        { wrap_self(new_binding), "" }
       catch 'error: {'badsyntax, {_, _, _, ""}}
         { @binding, code }
       catch kind: error
@@ -40,6 +43,12 @@ module IEX
       end
 
       @('binding: b, 'codecache: c).loop
+    end
+
+    private
+
+    def wrap_self(rest)
+      [{'self,#IEX::Context()}|rest]
     end
   end
 end
