@@ -17,7 +17,12 @@ syntax_error(Line, Filename, user, Token) ->
   syntax_error(Line, Filename, Token, "");
 
 syntax_error(Line, Filename, Error, Token) ->
-  elixir_errors:error({badsyntax, {Line, Filename, Error, Token}}).
+  Message = if
+    (Token == []) and (Error == "syntax error before:") -> <<"syntax error">>;
+    is_atom(Error) -> atom_to_binary(Error, utf8);
+    is_list(Error) -> list_to_binary(Error)
+  end,
+  elixir_errors:error({badsyntax, {Line, list_to_binary(Filename), Message, list_to_binary(Token)}}).
 
 % Handle warnings
 
@@ -40,7 +45,7 @@ handle_file_warning(Filename, {Line,Module,Desc}) ->
 % Handle errors
 
 handle_file_error(Filename, {Line,Module,Desc}) ->
-  elixir_errors:error({badform, { Line, Filename, Module, Desc }}).
+  elixir_errors:error({badform, { Line, list_to_binary(Filename), Module, Desc }}).
 
 % Format each error or warning in the format { Line, Module, Desc }
 

@@ -15,13 +15,13 @@ module_compiler_precedence_and_values_test() ->
   test_helper:run_and_remove(F, ['Foo']).
 
 invalid_scope_for_module_test() ->
-  ?assertError({badsyntax, {1,"nofile","invalid scope for module",[]}},
+  ?assertError({badsyntax, {1,<<"nofile">>,<<"invalid scope for module">>,<<>>}},
     elixir:eval("module Foo; def foo; module Bar; end; end; end")).
 
 invalid_scope_for_method_test() ->
-  ?assertError({badsyntax, {1,"nofile","invalid scope for method",[]}},
+  ?assertError({badsyntax, {1,<<"nofile">>,<<"invalid scope for method">>,<<>>}},
     elixir:eval("def foo; end")),
-  ?assertError({badsyntax, {1,"nofile","invalid scope for method",[]}},
+  ?assertError({badsyntax, {1,<<"nofile">>,<<"invalid scope for method">>,<<>>}},
     elixir:eval("module Foo; def foo; def bar; end; end; end")).
 
 modules_are_converted_into_erlang_modules_test() ->
@@ -135,7 +135,7 @@ cannot_defined_underscore_as_method_test() ->
   ?assertError({badsyntax, _}, elixir:eval("module Bar; def _(); 1 + 2; end; end")).
 
 invalid_method_definition_test() ->
-  ?assertError({badsyntax, {1, "nofile", "invalid scope for method", []}}, elixir:eval("def bar; end")).
+  ?assertError({badsyntax, {1, <<"nofile">>, <<"invalid scope for method">>, <<>>}}, elixir:eval("def bar; end")).
 
 % Local calls
 
@@ -235,7 +235,7 @@ super_call_test() ->
 %   test_helper:run_and_remove(F, ['Bar']).
 
 invalid_super_call_test() ->
-  ?assertError({badsyntax, {1, "nofile", "invalid scope for super", []}}, elixir:eval("super")).
+  ?assertError({badsyntax, {1, <<"nofile">>, <<"invalid scope for super">>, <<>>}}, elixir:eval("super")).
 
 %% Module Definition/Using Methods
 

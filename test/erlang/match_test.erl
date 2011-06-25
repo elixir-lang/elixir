@@ -6,7 +6,7 @@ no_assignment_test() ->
 
 bound_variable_test() ->
   ?assertError({unbound_var, x}, elixir:eval("\~x = 1")),
-  ?assertError({badsyntax, {1,"nofile","invalid scope to bound variable","x"}}, elixir:eval("\~x")),
+  ?assertError({badsyntax, {1,<<"nofile">>,<<"invalid scope to bound variable">>,<<"x">>}}, elixir:eval("\~x")),
   {1, [{x,1}]} = elixir:eval("x = 1;~x = 1").
 
 % Var/assignment test

@@ -30,7 +30,7 @@ module IEX
         {result, new_binding} = Erlang.elixir.eval(code.to_char_list, @binding)
         IO.puts Code::Formatter.format_object(result)
         { new_binding, "" }
-      catch 'error: {'badsyntax, {_, _, _, []}}
+      catch 'error: {'badsyntax, {_, _, _, ""}}
         { @binding, code }
       catch kind: error
         io = IO.new 'standard_error

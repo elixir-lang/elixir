@@ -22,25 +22,15 @@ module Code::Formatter
   end
 
   def format_catch('error, {'badsyntax, {line, filename, error, token}})
-    "\n#{filename.to_bin}:#{line}: #{error.to_bin} #{format_token token}"
+    "\n#{filename}:#{line}: #{error} #{token}".rstrip
   end
 
   def format_catch('error, {'badform, {line, filename, module, desc}})
     formatted = Erlang.elixir_errors.format_error(module, desc)
-    "\n#{filename.to_bin}:#{line}: #{formatted.to_bin}"
+    "\n#{filename}:#{line}: #{formatted.to_bin}"
   end
 
   def format_catch(_, reason)
     format_object(reason)
-  end
-
-  private
-
-  def format_token([])
-    "[]"
-  end
-
-  def format_token(obj)
-    obj.to_bin
   end
 end

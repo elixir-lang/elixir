@@ -50,7 +50,7 @@ module CodeTest
     mixin ExUnit::Case
 
     def syntax_code_error_test
-      assert_included "nofile:1: syntax error before:  []", OS.cmd("bin/elixir -e \"[1,2\"")
+      assert_included "nofile:1: syntax error", OS.cmd("bin/elixir -e \"[1,2\"")
       assert_included "nofile:1: syntax error before:  'end'", OS.cmd("bin/elixir -e \"-> 2 end()\"")
     end
   end
