@@ -70,6 +70,7 @@ module String
     def length
       Erlang.size(self)
     end
+    alias_local 'length, 'size, 0
 
     % Check if the current string includes the given string.
     %
@@ -169,7 +170,7 @@ module String
     def inspect
       list = Erlang.binary_to_list(self)
       if Erlang.io_lib.printable_unicode_list(list)
-        <<$\", gsub(~r{("|#)}, "\\\\\\1").gsub(~r{\n}, "\\\\n")|binary, $\">>
+        <<$\", gsub(~r{("|#|\r|\n)}, "\\\\\\1")|binary, $\">>
       else
         Erlang.io_lib.format($"~w", [self]).to_bin
       end
