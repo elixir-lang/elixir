@@ -20,9 +20,9 @@ syntax_error(Line, Filename, Error, Token) ->
   Message = if
     (Token == []) and (Error == "syntax error before:") -> <<"syntax error">>;
     is_atom(Error) -> atom_to_binary(Error, utf8);
-    is_list(Error) -> list_to_binary(Error)
+    true -> iolist_to_binary(Error)
   end,
-  elixir_errors:error({badsyntax, {Line, list_to_binary(Filename), Message, list_to_binary(Token)}}).
+  elixir_errors:error({badsyntax, {Line, iolist_to_binary(Filename), Message, iolist_to_binary(Token)}}).
 
 % Handle warnings
 
