@@ -169,7 +169,7 @@ module String
     def inspect
       list = Erlang.binary_to_list(self)
       if Erlang.io_lib.printable_unicode_list(list)
-        <<$\", gsub(~r{("|#|\n|\r)}, "\\\\\\1")|binary, $\">>
+        <<$\", gsub(~r{("|#)}, "\\\\\\1").gsub(~r{\n}, "\\\\n")|binary, $\">>
       else
         Erlang.io_lib.format($"~w", [self]).to_bin
       end
