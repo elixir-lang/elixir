@@ -93,12 +93,15 @@ three
   end
 
   def inspect_test
+    [34,102,92,110,111,34] = "f\no".inspect.to_char_list
+
     "\"Hello\"" = "Hello".inspect
     "<<1,2,3>>" = <<1,2,3>>.inspect
     "\"f\\\"o\\\"o\"" = "f\"o\"o".inspect
     "\"f\\\#o\"" = "f#o".inspect
-    "\"f\\\no\"" = "f\no".inspect
-    6 = "f\no".inspect.size
+
+    "\"f\\no\"" = "f\no".inspect
+    [34,102,92,110,111,34] = "f\no".inspect.to_char_list
   end
 
   def eval_inspect_test

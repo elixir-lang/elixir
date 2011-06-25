@@ -170,7 +170,7 @@ module String
     def inspect
       list = Erlang.binary_to_list(self)
       if Erlang.io_lib.printable_unicode_list(list)
-        <<$\", gsub(~r{("|#|\r|\n)}, "\\\\\\1")|binary, $\">>
+        <<$\", escape(list, [])|binary, $\">>
       else
         Erlang.io_lib.format($"~w", [self]).to_bin
       end
@@ -271,6 +271,39 @@ module String
     end
 
     private
+
+    def escape([h|t], buffer)
+      char = case h
+      match $#, $\"
+        [$\\,h]
+      match $\b
+        [$\\,$b]
+      match $\d
+        [$\\,$d]
+      match $\e
+        [$\\,$e]
+      match $\f
+        [$\\,$f]
+      match $\n
+        [$\\,$n]
+      match $\r
+        [$\\,$r]
+      match $\s
+        [$\\,$s]
+      match $\t
+        [$\\,$t]
+      match $\v
+        [$\\,$v]
+      else
+        h
+      end
+
+      escape(t, [char|buffer])
+    end
+
+    def escape([], buffer)
+      Erlang.iolist_to_binary(Erlang.lists.reverse(buffer))
+    end
 
     def include?([], _, _, _)
       false
