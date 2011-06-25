@@ -95,6 +95,8 @@ three
   def inspect_test
     "\"Hello\"" = "Hello".inspect
     "<<1,2,3>>" = <<1,2,3>>.inspect
+    "\"f\\\"o\\\"o\"" = "f\"o\"o".inspect
+    "\"f\\\#o\"" = "f#o".inspect
   end
 
   def to_atom_test
