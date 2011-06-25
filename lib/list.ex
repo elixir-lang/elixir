@@ -1,8 +1,7 @@
 module List
   module Behavior
     % Returns a new list as a concatenation of the given number
-    % of the original array.
-    % If n is a string, then the behavior is the same as join.
+    % of the original list. If n is a string, then the behavior is the same as join.
     %
     % ## Examples
     %
@@ -16,6 +15,15 @@ module List
       else
         duplicate(mult, self, [])
       end
+    end
+
+    % Count the nummber of times a given item occurs in the list.
+    %
+    % ## Examples
+    %
+    %    [1,1,2,3,3].count(1) % => 2
+    def count(item)
+      count item, self, 0
     end
 
     % Returns true if all items in the list evaluates to true according the given function.
@@ -502,6 +510,18 @@ module List
     end
 
     private
+
+    def count(item, [item|t], counter)
+      count item, t, 1 + counter
+    end
+
+    def count(item, [_|t], counter)
+      count item, t, counter
+    end
+
+    def count(_item, [], counter)
+      counter
+    end
 
     def brackets(0, [h|_])
       h

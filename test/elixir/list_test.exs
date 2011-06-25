@@ -8,6 +8,11 @@ module ListTest
     0 = [].size
   end
 
+  def count_test
+    2 = [1,1,2,3,3].count(1)
+    0 = [1,1,2,3,3].count(4)
+  end
+
   def multiplier_test
     [] = [] * 3
     [] = ['foo] * 0

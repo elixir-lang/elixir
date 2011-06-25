@@ -18,9 +18,24 @@
 % a data structure while implementing `to_str` means that a structure
 % could be used in any place a string would normaly be used.
 %
-% Notice that to_i and to_int follows exactly the same 
+% Notice that to_i and to_int follows exactly the same convention.
 module String
   module Behavior
+    % Returns a new string as a concatenation of the given *number*
+    % of the original string.
+    %
+    % ## Examples
+    %
+    %    "foo" * 3  % => "foofoofoo"
+    %
+    def *(0)
+      ""
+    end
+
+    def *(number)
+      Erlang.binary.copy(self, number)
+    end
+
     % Retrieves a number that represents the given character.
     %
     % ## Examples
@@ -29,7 +44,11 @@ module String
     %     "elixir"[-3]  % => 140
     %
     def [](number)
-      Erlang.binary_to_list(self)[number]
+      if number < 0
+        Erlang.binary.at(self, Erlang.size(self) + number)
+      else
+        Erlang.binary.at(self, number)
+      end
     end
 
     % Slice the string in the given *start* and *length* arguments. If length
@@ -96,8 +115,12 @@ module String
     %
     def index(given)
       if given.__module_name__ == 'Regexp::Behavior
-        [{x,_}] = given.indexes(self)
-        x
+        case given.indexes(self)
+        match [{x,_}|_]
+          x
+        match nil
+          nil
+        end
       else
         result = Erlang.string.str(to_char_list, given.to_char_list)
         case result
@@ -105,6 +128,19 @@ module String
         match _ then result - 1
         end
       end
+    end
+
+    % Returns the index of the first occurence of the given substring or matching regex.
+    % Returns nil if nothing is found.
+    %
+    % ## Examples
+    %
+    %    1   = "hello".count('e')
+    %    3   = "hello".count('lo')
+    %    0   = "hello".count('a')
+    %
+    def count(given)
+      count given.to_char_list, to_char_list, 0
     end
 
     % Substitute the first occurrence of *given* in the string by *replacement*.
@@ -303,6 +339,26 @@ module String
 
     def escape([], buffer)
       Erlang.iolist_to_binary(Erlang.lists.reverse(buffer))
+    end
+
+    def count(items, [h|t], counter)
+      count items, t, count_each(h, items, counter)
+    end
+
+    def count(_items, [], counter)
+      counter
+    end
+
+    def count_each(item, [item|_], counter)
+      counter + 1
+    end
+
+    def count_each(item, [_|t], counter)
+      count_each item, t, counter
+    end
+
+    def count_each(_item, [], counter)
+      counter
     end
 
     def include?([], _, _, _)

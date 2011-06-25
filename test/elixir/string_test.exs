@@ -128,12 +128,24 @@ three
     false = "abc".include?("d")
   end
 
+  def multiplier_test
+    "" = "foo" * 0
+    "foofoofoo" = "foo" * 3
+  end
+
+  def count_test
+    1 = "hello".count("e")
+    3 = "hello".count("lo")
+    0 = "hello".count("a")
+  end
+
   def index_test
     1   = "hello".index("e")
     3   = "hello".index("lo")
     nil = "hello".index("a")
 
     1   = "hello".index(~r([aeiou]))
+    nil = "hello".index(~r([a]))
   end
 
   def split_test
