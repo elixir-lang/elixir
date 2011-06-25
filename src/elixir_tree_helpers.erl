@@ -1,5 +1,5 @@
 -module(elixir_tree_helpers).
--export([abstract_syntax/1, build_bin/2, build_list/4, build_list/5,
+-export([abstract_syntax/1, build_bin/4, build_simple_bin/2, build_list/4, build_list/5,
   build_method_call/4, build_simple_list/2,
   build_var_name/2, convert_to_boolean/3]).
 -include("elixir.hrl").
@@ -35,10 +35,21 @@ build_simple_list(Line, Args) ->
   { List, [] } = build_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
   List.
 
-% Build binaries
-build_bin(Line, Exprs) ->
-  Transformer = fun (X) -> { bin_element, Line, X, default, default } end,
-  { bin, Line, lists:map(Transformer, Exprs) }.
+% Build a complex binary
+build_bin(Fun, Exprs, Line, S) ->
+  build_bin_each(Fun, Exprs, Line, S, []).
+
+build_bin_each(Fun, [], Line, S, Acc) ->
+  { { bin, Line, lists:reverse(Acc) }, S };
+
+build_bin_each(Fun, [H|T], Line, S, Acc) ->
+  { Expr, NS, Format } = Fun(H, S),
+  build_bin_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, default, Format }|Acc]).
+
+% Build simple binaries
+build_simple_bin(Line, Exprs) ->
+  { Bin, [] } = build_bin(fun(X,Y) -> {X,Y,default} end, Exprs, Line, []),
+  Bin.
 
 build_method_call(Name, Line, Args, Expr) ->
   FArgs = build_simple_list(Line, Args),

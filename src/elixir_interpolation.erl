@@ -67,10 +67,12 @@ transform(String, Line, S) ->
 
   % Optimized cases interpolations actually has no interpolation.
   case Interpolations of
-    [{s, String}] -> handle_string_extractions(hd(Interpolations), Line, S);
+    [{s, String}] ->
+      { Final, FS, _ } = handle_string_extractions(hd(Interpolations), Line, S),
+      { Final, FS };
     _ ->
       Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, S) end,
-      elixir_tree_helpers:build_list(Transformer, Interpolations, Line, S)
+      elixir_tree_helpers:build_bin(Transformer, Interpolations, Line, S)
   end.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
@@ -126,12 +128,12 @@ unescape_chars(Escaping, [Char|Rest], Output) ->
 % Helpers
 
 handle_string_extractions({s, String}, Line, S) ->
-  { { string, Line, String }, S };
+  { { string, Line, String }, S, default };
 
 handle_string_extractions({i, Interpolation}, Line, S) ->
   { Tree, NS } = elixir_transform:parse(Interpolation, Line, S),
   Stringify = elixir_tree_helpers:build_method_call(to_s, Line, [], hd(Tree)),
-  { Stringify, NS }.
+  { Stringify, NS, [binary] }.
 
 build_interpol(Piece, Escaping, [], Output) ->
   Output;

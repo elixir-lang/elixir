@@ -340,7 +340,7 @@ transform({bin_element, Line, Expr, Type, Specifiers }, S) ->
 %
 % No variables can be defined in a string without interpolation.
 transform({string, Line, String } = Expr, S) ->
-  { elixir_tree_helpers:build_bin(Line, [Expr]), S };
+  { elixir_tree_helpers:build_simple_bin(Line, [Expr]), S };
 
 % Handle interpolated strings declarations.
 %
@@ -348,9 +348,7 @@ transform({string, Line, String } = Expr, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_string, Line, String }, S) ->
-  { List, SE } = elixir_interpolation:transform(String, Line, S),
-  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
-  { Binary, SE };
+  elixir_interpolation:transform(String, Line, S);
 
 % Handle interpolated atoms by converting them to lists and calling atom_to_list.
 %
@@ -358,8 +356,7 @@ transform({interpolated_string, Line, String }, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_atom, Line, String}, S) ->
-  { List, SE } = elixir_interpolation:transform(String, Line, S),
-  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
+  { Binary, SE } = elixir_interpolation:transform(String, Line, S),
   { ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_atom, [Binary, {atom, Line, utf8}]), SE };
 
 % Handle regexps by dispatching a list and its options to Regexp.new.
@@ -377,9 +374,10 @@ transform({regexp, Line, String, Operators }, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_regexp, Line, String, Operators }, S) ->
-  { List, SE } = elixir_interpolation:transform(String, Line, S),
-  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
-  build_regexp(Line, Binary, Operators, SE);
+  { Binary, SE } = elixir_interpolation:transform(String, Line, S),
+  Args = [Binary, {string, Line, Operators}],
+  { Constant, _ } = transform({constant, Line, 'Regexp'}, SE),
+  { elixir_tree_helpers:build_method_call(new, Line, Args, Constant), SE };
 
 % Handle char lists by simply converting them to Erlang strings.
 %
@@ -395,8 +393,7 @@ transform({char_list, Line, String } = Expr, S) ->
 %
 % Variables can be defined inside the interpolation.
 transform({interpolated_char_list, Line, String }, S) ->
-  { List, SE } = elixir_interpolation:transform(String, Line, S),
-  Binary = ?ELIXIR_WRAP_CALL(Line, erlang, iolist_to_binary, [List]),
+  { Binary, SE } = elixir_interpolation:transform(String, Line, S),
   Flattened = ?ELIXIR_WRAP_CALL(Line, erlang, binary_to_list, [Binary]),
   { Flattened, SE };
 
@@ -877,13 +874,6 @@ build_if_clauses({if_clause, Line, Bool, Expr, List}, Acc) ->
     { clause, Line, True, [], List },
     { clause, Line, False, [], Acc }
   ] }].
-
-% Builds a regexp.
-build_regexp(Line, Expr, Operators, S) ->
-  Args = [Expr, {string, Line, Operators}],
-  { TArgs, _ } = transform_tree(Args, S),
-  { Constant, _ } = transform({constant, Line, 'Regexp'}, S),
-  { elixir_tree_helpers:build_method_call(new, Line, TArgs, Constant), S }.
 
 % Specially handle the '!' operator as it has different semantics from Erlang not.
 build_unary_op(Line, '!', Right) ->
