@@ -1,3 +1,9 @@
+## v0.3.1.dev
+
+* improvements
+  * Added embedded elixir (check EEx module for more information)
+  * Improve list and string STDLIB (by github.com/DuoSRX)
+
 ## v0.3.0 (2011-06-14)
 
 * improvements
