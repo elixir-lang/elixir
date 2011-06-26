@@ -89,6 +89,21 @@ module EExTest
     end
   end
 
+  module SafeEngineTest
+    mixin ExUnit::Case
+
+    def escape_test
+      "&lt;f&amp;&quot;o&gt;" = invoke(~q{<%= "<f&\\"o>" %>})
+      "<f&\"o>" = invoke(~q{<%== "<f&\\"o>" %>})
+    end
+
+    private
+
+    def invoke(string)
+      Module.eval EEx::Compiler.string(EEx::SafeEngine, string, "nofile")
+    end
+  end
+
   module UtilTest
     mixin ExUnit::Case
 

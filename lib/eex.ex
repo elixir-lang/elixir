@@ -33,6 +33,10 @@
 %
 % Engines change the behavior of common tags as <%= as <%== to add extra behavior.
 %
+% * EEx::Engine - the default engine
+% * EEx::SafeEngine - an engine that automtically escapes html chars when <%= is used
+%   and provides <%== for already escaped content
+%
 module EEx
   % TODO: Use application setup once we have it.
   def setup
