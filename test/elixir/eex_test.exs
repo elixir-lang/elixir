@@ -88,4 +88,33 @@ module EExTest
       Module.eval EEx::Compiler.string(EEx::Engine, string, "nofile")
     end
   end
+
+  module BehaviorTest
+    mixin ExUnit::Case
+
+    def string_readers_test
+      behavior = EEx.string("foo")
+      "nofile" = behavior.filename
+      1 = behavior.line
+      assert_included "<<0:0", behavior.compiled
+    end
+
+    def file_readers_test
+      behavior = EEx.file File.expand_path("../fixtures/template.eex", __FILE__)
+      assert_included "fixtures/template.eex", behavior.filename
+      1 = behavior.line
+      assert_included "<<0:0", behavior.compiled
+    end
+
+    def render_test
+      behavior = EEx.file File.expand_path("../fixtures/template.eex", __FILE__)
+      "foo\nbar\n\nbaz\n" = behavior.render 'self: self, 'x: 2
+    end
+
+    % Function called from the rendered template
+    def some_func(x, fun)
+      2 = x
+      fun.()
+    end
+  end
 end

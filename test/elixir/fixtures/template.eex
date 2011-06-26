@@ -1,0 +1,5 @@
+foo
+<%= 'bar %>
+<%= some_func x, do ?>
+baz
+<? end %>
