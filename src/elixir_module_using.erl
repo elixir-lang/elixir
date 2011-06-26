@@ -25,7 +25,7 @@ using(#elixir_module__{data=Data} = Self, Value) when is_atom(Data) ->
   CurrentUsing = ets:lookup_element(Data, using, 2),
   ets:insert(Data, {mixins, umerge(NewMixins, CurrentMixins)}),
   ets:insert(Data, {using,  umerge(NewMixins -- CurrentMixins, CurrentUsing)}),
-  elixir_dispatch:dispatch(Value, '__used__', [Self]).
+  elixir_dispatch:dispatch(Value, '__using__', [Self]).
 
 % Visibility
 

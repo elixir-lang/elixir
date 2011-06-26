@@ -314,7 +314,7 @@ module Module
     end
 
     % Hook invoked whenever this module is added as with *using*.
-    def __used__(base)
+    def __using__(base)
       base
     end
 
