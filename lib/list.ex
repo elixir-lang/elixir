@@ -125,6 +125,7 @@ module List
     def +(another)
       Erlang.lists.append(self, another)
     end
+    alias_local '+, 'append, 1
 
     % Returns the sum of the elements in the list.
     % Returns 0 if the list is empty.
@@ -238,6 +239,37 @@ module List
     %
     def head
       Erlang.hd(self)
+    end
+
+    % Similar to `head`, but returns nil if the list is empty.
+    %
+    % ## Examples
+    %
+    %     [1,2].first % => 1
+    %     [].first    % => nil
+    %
+    def first
+      case self
+      match []
+        nil
+      match [x|_]
+        x
+      end
+    end
+
+    % Returns the last element of the list.
+    %
+    % ## Examples
+    %
+    %    [1,2,3].last % => 3
+    %
+    def last
+      case self
+      match []
+        nil
+      else
+        Erlang.lists.last(self)
+      end
     end
 
     % Flattens the given list. If the list being flattened is made of lists

@@ -13,6 +13,11 @@ module ListTest
     0 = [1,1,2,3,3].count(4)
   end
 
+  def append_test
+    [1,2,3,4,5,6] = [1,2,3] + [4,5,6]
+    [1,2,3,4,5,6] = [1,2,3].append [4,5,6]
+  end
+
   def multiplier_test
     [] = [] * 3
     [] = ['foo] * 0
@@ -157,6 +162,18 @@ module ListTest
     1  = [1,2,3].head
     1  = [1].head
     assert_error 'badarg, -> [].head
+  end
+
+  def first_test
+    1   = [1,2,3].first
+    1   = [1].first
+    nil = [].first
+  end
+
+  def last_test
+    3   = [1,2,3].last
+    1   = [1].last
+    nil = [].last
   end
 
   def tail_test
