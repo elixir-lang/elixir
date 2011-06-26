@@ -5,7 +5,7 @@ EEx.setup
 module EExTest
   mixin ExUnit::Case
 
-  module ParserTest
+  module LexerTest
     mixin ExUnit::Case
 
     def equal_end_test
@@ -26,7 +26,7 @@ module EExTest
     private
 
     def invoke(string)
-      EEx::Parser.string(string, "nofile")
+      EEx::Lexer.string(string, "nofile")
     end
   end
 
@@ -86,6 +86,15 @@ module EExTest
 
     def invoke(string)
       Module.eval EEx::Compiler.string(EEx::Engine, string, "nofile")
+    end
+  end
+
+  module UtilTest
+    mixin ExUnit::Case
+
+    def html_escape_test
+      "&lt;f&amp;&quot;o&gt;" = EEx::Util.h("<f&\"o>")
+      "&lt;f&amp;&quot;o&gt;" = EEx::Util.html_escape("<f&\"o>")
     end
   end
 
