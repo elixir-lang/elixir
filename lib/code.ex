@@ -19,9 +19,17 @@ module Code
     Erlang.code.add_patha path.to_char_list
   end
 
+  def prepend_path(path, relative_to)
+    prepand_path File.expand_path(path, relative_to)
+  end
+
   % Append a path to Erlang's code path.
   def append_path(path)
     Erlang.code.add_pathz path.to_char_list
+  end
+
+  def append_path(path, relative_to)
+    append_path File.expand_path(path, relative_to)
   end
 
   % Returns elixir version.
