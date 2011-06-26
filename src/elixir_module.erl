@@ -62,6 +62,10 @@ compile(Line, Filename, Current, ElixirName, Fun) ->
 
   try
     Result = Fun(Module),
+    case bootstrap_modules(ElixirName) of
+      true  -> [];
+      false -> elixir_dispatch:dispatch(Module, '__defining__', [])
+    end,
     compile_module(Line, Filename, ElixirName, Module, MethodTable),
     Result
   after

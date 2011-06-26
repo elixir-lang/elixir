@@ -313,13 +313,18 @@ module Module
       base
     end
 
-    % Hook invoked whenever this module is added as with *using*.
+    % Hook invoked whenever a module is added as with *using*.
     def __using__(base)
       base
     end
 
-    % Hook invoked whenver this module is bound.
+    % Hook invoked whenever a module is bound.
     def __bound__
+      self
+    end
+
+    % Hook invoked whenever a module is on definition.
+    def __defining__
       self
     end
   end

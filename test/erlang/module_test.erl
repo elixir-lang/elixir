@@ -304,9 +304,16 @@ mixed_in_callback_test() ->
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
 
-used_in_callback_test() ->
+using_in_callback_test() ->
   F = fun() ->
     elixir:eval("module Foo; def __using__(base); base.set_ivar('foo, 2); end; end"),
     {2,[]} = elixir:eval("module Bar; using Foo; @foo; end")
+  end,
+  test_helper:run_and_remove(F, ['Foo','Bar']).
+
+defining_in_callback_test() ->
+  F = fun() ->
+    elixir:eval("module Foo; def __defining__; @('foo, 2); end; end"),
+    {2,[]} = elixir:eval("module Bar; mixin Foo; def foo; @foo; end; end\nBar.foo")
   end,
   test_helper:run_and_remove(F, ['Foo','Bar']).
