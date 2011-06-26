@@ -368,12 +368,6 @@ Functions are an important aspect of Elixir as in any functional programming lan
 
     my_function.call() % => 3
 
-    another_function = ->
-      1 * 2
-    end
-
-    another_function.call() % => 2
-
 Some functions expect arguments:
 
     my_function = do (x, y)
@@ -382,16 +376,7 @@ Some functions expect arguments:
 
     my_function.call(1, 2) % => 3
 
-    another_function = -> (x, y)
-      x * y
-    end
-
-    another_function.call(1, 2) % => 2
-
-You can also represent functions in one line, without a need for the closing keyword `end`:
-
-    my_function = do (x, y) x + y
-    my_function.call(1, 2) % => 3
+The stab operator is used to represent inline functions:
 
     another_function = -> (x, y) x * y
     another_function.call(1, 2) % => 2
@@ -402,19 +387,19 @@ Notice that, whenever using one-line functions, if you need parentheses inside t
     my_function = -> 1 + 2
     my_function.call % => 3
 
-    % This won't work and it raises a syntax error
+    % This won't work and it raises a syntax error as it is ambiguous
     my_function = -> (1 + 2)
 
     % This works as well:
     my_function = -> () (1 + 2)
 
-In the second case, it is ambiguous if the parentheses is part of the argument list or the function expressions. This is why you either need to remove parentheses (as in the first example) or add empty parentheses (as in the third example). This syntax quickly proves to be very convenient:
+Inline functions are convenient for method calls:
 
     [1,2,3].map(-> (x) x * 2)   % => [2,4,6]
 
-In the example above, we are calling .map passing a function as argument. If we remove the optional parentheses:
+As the parenthesis are not required, we can remove them:
 
-    [1,2,3].map -> (x) x * 2   % => [2,4,6]
+    [1,2,3].map -> (x) x * 2    % => [2,4,6]
 
 Other examples using the multiline syntax:
 
@@ -428,12 +413,10 @@ Again, removing the parentheses, improves readability:
       acc + x
     end % => 6
 
-Elixir also provides a shortcut syntax to invoke functions that is usually faster as it skips method lookup:
+Besides using call, we can also invoke functions using `apply`, brackets `[]` and the `.()` syntax:
 
     my_function = -> (x, y) x + y
     my_function.(1, 2) % => 3
-
-In such cases, parentheses are always required.
 
 Another useful extension Elixir adds to functions is the easy generation of anonymous functions. For instance, suppose you have a list of cars and you want to get their names. A way to do that would be:
 

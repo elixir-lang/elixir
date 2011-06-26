@@ -44,7 +44,6 @@ Nonterminals
   orddict
   comma_separator
   body
-  stabber
   base_expr
   open_paren
   close_paren
@@ -298,16 +297,16 @@ _method_call_expr -> punctuated_identifier call_args_parens : build_local_call('
 %%% BUILDING BLOCKS
 
 % Base function declarations
-fun_base -> stabber call_args_parens expr :
+fun_base -> '->' call_args_parens expr :
   build_fun('$1', build_clause('$1', '$2', [], ['$3'])).
 
-fun_base -> stabber _expr :
+fun_base -> '->' _expr :
   build_fun('$1', build_clause('$1', [], [], ['$2'])).
 
-fun_base -> stabber call_args_parens break body 'end' :
+fun_base -> 'do' call_args_parens break body 'end' :
   build_fun('$1', build_clause('$1', '$2', [], '$4')).
 
-fun_base -> stabber break body 'end' :
+fun_base -> 'do' break body 'end' :
   build_fun('$1', build_clause('$1', [], [], '$3')).
 
 % Args given on method invocations.
@@ -579,10 +578,6 @@ np_erlang_call_expr -> Erlang '.' bracket_identifier list_args : build_bracket_c
 % Erlang calls with explicit parens
 erlang_call_expr -> Erlang '.' erlang_identifier '.' erlang_identifier call_args_parens : build_erlang_call('$1', ?chars('$3'), ?chars('$5'), '$6').
 erlang_call_expr -> Erlang '.' erlang_identifier call_args_parens : build_erlang_call('$1', erlang, ?chars('$3'), '$4').
-
-% Stab syntax
-stabber -> '->' : '$1'.
-stabber -> 'do' : '$1'.
 
 % Numbers
 number -> float   : '$1'.

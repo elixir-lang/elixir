@@ -4,6 +4,9 @@
   * Added embedded elixir (check EEx module for more information)
   * Improve list and string STDLIB (by github.com/DuoSRX)
 
+* deprecations
+  * Enforce -> for one liners and do...end for multiline
+
 ## v0.3.0 (2011-06-14)
 
 * improvements

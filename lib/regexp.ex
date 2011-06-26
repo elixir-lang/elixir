@@ -106,7 +106,7 @@ module Regexp
       match 'nomatch
         []
       match {'match, results}
-        results.map -> (result)
+        results.map do (result)
           case result
           match [t]
             t

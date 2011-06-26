@@ -106,7 +106,7 @@ module ModuleTest
   end
 
   def builtin_not_allowed_test
-    assert_error {'builtin_not_allowed, { 'set_ivar, 1 } }, do 1.set_ivar('foo, 'bar)
+    assert_error {'builtin_not_allowed, { 'set_ivar, 1 } }, -> 1.set_ivar('foo, 'bar)
   end
 
   module Example
