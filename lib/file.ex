@@ -4,16 +4,25 @@ module File
     strip_dots ~r{((/\.)|(/[^/]*[^\\]/\.\.))(/|\z)}, fullpath
   end
 
+  % split the filename into its parts
   def split(filename)
     Erlang.filename.split(filename)
   end
 
+  % join all the paths in the given list to make a filename
   def join(list)
     Erlang.filename.join list
   end
 
+  % join paths *a* and *b*
   def join(a, b)
     Erlang.filename.join(a, b)
+  end
+
+  % Retrieves all filenames according to the wildcard expression.
+  % Check for more info http://www.erlang.org/doc/man/filelib.html#wildcard-1
+  def wildcard(wildcard)
+    Erlang.elixir_glob.wildcard(wildcard.to_char_list).map _.to_bin
   end
 
   % Try to read the given file. If possible, returns a string
