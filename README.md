@@ -1405,7 +1405,7 @@ Binding is the ability to bind modules to data types. Method dispatching is done
       end
     end
 
-All built-in data types (like integers, tuples, lists, etc) are already bound to a given module at runtime and cannot be changed. However, Elixir provides a data structure called **blank slate** that is not bound by default and therefore can be bound to any module:
+All built-in data types (like integers, tuples, lists, etc) are already bound to a given module at runtime and cannot be changed. However, Elixir provides a data structure called **blank slate** that is more flexible and can be bound to any module:
 
     module Car
       def engine
