@@ -52,5 +52,27 @@ module FileTest
     true  = File.regular?(__FILE__)
     false = File.regular?(__FILE__ + ".unknown")
   end
+
+  def wildcard_test
+    files = File.wildcard File.expand_path("../../../lib/**/*", __FILE__)
+    assert_included File.expand_path("../../../lib/code", __FILE__), files
+    assert_included File.expand_path("../../../lib/code.ex", __FILE__), files
+  end
+
+  def wildcard_include_dot_test
+    dotted = File.expand_path("../fixtures/.dotted.exs", __FILE__)
+
+    files = File.wildcard File.expand_path("../fixtures/*", __FILE__)
+    assert_not_included dotted, files
+
+    files = File.wildcard File.expand_path("../fixtures/*", __FILE__), true
+    assert_included dotted, files
+
+    files = File.wildcard File.expand_path("../fixtures/**/*", __FILE__)
+    assert_not_included dotted, files
+
+    files = File.wildcard File.expand_path("../fixtures/**/*", __FILE__), true
+    assert_included dotted, files
+  end
 end
 

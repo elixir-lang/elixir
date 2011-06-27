@@ -324,8 +324,6 @@ module String
         [$\\,$n]
       match $\r
         [$\\,$r]
-      match $\s
-        [$\\,$s]
       match $\t
         [$\\,$t]
       match $\v
