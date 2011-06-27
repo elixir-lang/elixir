@@ -1,6 +1,6 @@
-%% Modified version of filelib:wildcard that can handle **.
+%% Modified version of filelib:wildcard that can handle "**"
+%% and automatically skips directories starting with "." by default.
 
-%%
 %% %CopyrightBegin%
 %%
 %% Copyright Ericsson AB 1997-2010. All Rights Reserved.
@@ -20,19 +20,19 @@
 
 -module(elixir_glob).
 -compile({no_auto_import,[error/1]}).
--export([wildcard/1]).
+-export([wildcard/2]).
 
-wildcard(Pattern) when is_list(Pattern) ->
-  do_wildcard(Pattern, file).
-
-do_wildcard(Pattern, Mod) when is_list(Pattern) ->
-  do_wildcard_comp(do_compile_wildcard(Pattern), Mod).
+wildcard(Pattern, Mod) when is_binary(Pattern) ->
+  Compiled = do_compile_wildcard(binary_to_list(Pattern)),
+  Results = do_wildcard_comp(Compiled, Mod),
+  [list_to_binary(Result) || Result <- lists:sort(Results)].
 
 do_wildcard_comp({compiled_wildcard,{exists,File}}, Mod) ->
   case file:read_file_info(File) of
   	{ok,_} -> [File];
   	_ -> []
   end;
+
 do_wildcard_comp({compiled_wildcard,[Base|Rest]}, Mod) ->
   do_wildcard_1([Base], Rest, Mod).
 
@@ -56,12 +56,17 @@ do_wildcard_2([], _, Result, _Mod) ->
 do_wildcard_3(Base, [[double_star]], Result, Mod) ->
   do_wildcard_3(Base, [[accept]], Result, Mod);
 do_wildcard_3(Base, [[double_star]|Rest], Result, Mod) ->
-  do_double_star([Base], Rest, Result, length(Rest));
-do_wildcard_3(Base, [Pattern|Rest], Result, Mod) ->
   case do_list_dir(Base, Mod) of
-  	{ok, Files0} ->
-	    Files = lists:sort(Files0),
-	    Matches = wildcard_4(Pattern, Files, Base, []),
+  	{ok, Files} ->
+      do_double_star(Base, Files, Rest, Result, length(Rest), Mod);
+  	_ ->
+	    Result
+  end;
+
+do_wildcard_3(Base, [Pattern|Rest], Result, Mod) ->
+  case do_list_dir(Base, true) of
+  	{ok, Files} ->
+	    Matches = wildcard_4(Pattern, Files, Base, [], Mod),
 	    do_wildcard_2(Matches, Rest, Result, Mod);
   	_ ->
 	    Result
@@ -70,42 +75,44 @@ do_wildcard_3(Base, [], Result, _Mod) ->
     [Base|Result].
 
 % Check if the pattern match for the list of files.
-wildcard_4(Pattern, [File|Rest], Base, Result) when is_binary(File) ->
-  wildcard_4(Pattern, [binary_to_list(File)|Rest], Base, Result);
-wildcard_4(Pattern, [File|Rest], Base, Result) ->
-  NewResult = case wildcard_5(Pattern, File) of
+wildcard_4(Pattern, [File|Rest], Base, Result, Mod) ->
+  NewResult = case wildcard_5(Pattern, File, Mod) of
   	true  -> [join(Base, File)|Result];
   	false -> Result
   end,
-  wildcard_4(Pattern, Rest, Base, NewResult);
-wildcard_4(_Patt, [], _Base, Result) ->
+  wildcard_4(Pattern, Rest, Base, NewResult, Mod);
+wildcard_4(_Patt, [], _Base, Result, _Mod) ->
   Result.
 
 % Match the pattern with the file.
-wildcard_5([question|Rest1], [_|Rest2]) ->
-  wildcard_5(Rest1, Rest2);
-wildcard_5([accept], _) ->
+wildcard_5([question|Rest1], [_|Rest2], Mod) ->
+  wildcard_5(Rest1, Rest2, Mod);
+wildcard_5([accept], [$.|_], false) ->
+  false; % Skip if false and it starts with .
+wildcard_5([accept], _, _Mod) ->
   true;
-wildcard_5([double_star], _) ->
+wildcard_5([double_star], _, _Mod) ->
   true;
-wildcard_5([star|Rest], File) ->
-  do_star(Rest, File);
-wildcard_5([{one_of, Ordset}|Rest], [C|File]) ->
+wildcard_5([star|Rest], [$.|_], false) ->
+  false;
+wildcard_5([star|Rest], File, Mod) ->
+  do_star(Rest, File, Mod);
+wildcard_5([{one_of, Ordset}|Rest], [C|File], Mod) ->
   case ordsets:is_element(C, Ordset) of
-  	true  -> wildcard_5(Rest, File);
+  	true  -> wildcard_5(Rest, File, Mod);
   	false -> false
   end;
-wildcard_5([{alt, Alts}], File) ->
-  do_alt(Alts, File);
-wildcard_5([C|Rest1], [C|Rest2]) when is_integer(C) ->
-  wildcard_5(Rest1, Rest2);
-wildcard_5([X|_], [Y|_]) when is_integer(X), is_integer(Y) ->
+wildcard_5([{alt, Alts}], File, Mod) ->
+  do_alt(Alts, File, Mod);
+wildcard_5([C|Rest1], [C|Rest2], Mod) when is_integer(C) ->
+  wildcard_5(Rest1, Rest2, Mod);
+wildcard_5([X|_], [Y|_], _Mod) when is_integer(X), is_integer(Y) ->
   false;
-wildcard_5([], []) ->
+wildcard_5([], [], _Mod) ->
   true;
-wildcard_5([], [_|_]) ->
+wildcard_5([], [_|_], _Mod) ->
   false;
-wildcard_5([_|_], []) ->
+wildcard_5([_|_], [], _Mod) ->
   false.
 
 %%% Handle specifics patterns
@@ -113,55 +120,73 @@ wildcard_5([_|_], []) ->
 % Handle double stars by expand directories recursively until
 % files are found. And when a file is found, check if the pattern
 % matches.
-do_double_star([H|T], Rest, Result, MatchLength) ->
-  NewResult = case do_list_dir(H, file) of
-	{ok, Files0} ->
-	    Files = [join(H, File) || File <- lists:sort(Files0)],
-	    do_double_star(Files, Rest, Result, MatchLength);
-	_ ->
-	  Split = filename:split(H),
-	  CurrentLength = length(Split),
-	  case CurrentLength >= MatchLength of
-	    true  ->
-	      Parts = lists:nthtail(CurrentLength - MatchLength, Split),
-	      case do_part_match(Parts, Rest) of
-	        true  -> [H|Result];
-	        false -> Result
-	      end;
-      false -> Result
-    end
+do_double_star(Base, [H|T], Rest, Result, MatchLength, Mod) ->
+  Full = join(Base, H),
+  Split = filename:split(H),
+  CurrentLength = length(Split),
+
+  % Check if the current part belongs to the list
+  PartResult = case CurrentLength >= MatchLength of
+    true  ->
+      Parts = lists:nthtail(CurrentLength - MatchLength, Split),
+      case do_part_match(Parts, Rest, Mod) of
+        true  -> [Full|Result];
+        false -> Result
+      end;
+    false -> Result
   end,
-  do_double_star(T, Rest, NewResult, MatchLength);
 
-do_double_star([], _Rest, Result, _MatchLength) ->
-  lists:reverse(Result).
+  % If it is a directory, expand it further.
+  FinalResult = case do_list_dir(Full, Mod) of
+  	{ok, Files} ->
+	    JoinedFiles = [join(H, File) || File <- Files],
+	    do_double_star(Base, JoinedFiles, Rest, PartResult, MatchLength, Mod);
+  	_ -> PartResult
+  end,
+  do_double_star(Base, T, Rest, FinalResult, MatchLength, Mod);
 
-do_part_match([PartH|PartT], [PatternH|PatternT]) ->
-  case wildcard_5(PatternH, PartH) of
-    true  -> do_part_match(PartT, PatternT);
+do_double_star(_Base, [], _Rest, Result, _MatchLength, _Mod) ->
+  Result.
+
+do_part_match([PartH|PartT], [PatternH|PatternT], Mod) ->
+  case wildcard_5(PatternH, PartH, Mod) of
+    true  -> do_part_match(PartT, PatternT, Mod);
     false -> false
   end;
-do_part_match([], []) ->
+do_part_match([], [], _Mod) ->
   true.
 
-do_star(Pattern, [X|Rest]) ->
-  case wildcard_5(Pattern, [X|Rest]) of
+do_star(Pattern, [X|Rest], Mod) ->
+  case wildcard_5(Pattern, [X|Rest], Mod) of
   	true  -> true;
-  	false -> do_star(Pattern, Rest)
+  	false -> do_star(Pattern, Rest, Mod)
   end;
-do_star(Pattern, []) ->
-  wildcard_5(Pattern, []).
+do_star(Pattern, [], Mod) ->
+  wildcard_5(Pattern, [], Mod).
 
-do_alt([Alt|Rest], File) ->
-  case wildcard_5(Alt, File) of
+do_alt([Alt|Rest], File, Mod) ->
+  case wildcard_5(Alt, File, Mod) of
   	true  -> true;
-  	false -> do_alt(Rest, File)
+  	false -> do_alt(Rest, File, Mod)
   end;
-do_alt([], _File) ->
+do_alt([], _File, _Mod) ->
   false.
 
-do_list_dir(current, Mod) -> file:list_dir(".");
-do_list_dir(Dir, Mod) ->     file:list_dir(Dir).
+do_list_dir(current, Bool) -> do_list_dir(".", Bool);
+do_list_dir(Dir, Bool)     ->
+  case file:list_dir(Dir) of
+    {ok,Files} -> {ok,convert_list(Files, [], Bool)};
+    Else -> Else
+  end.
+
+convert_list([H|T], Acc, Bool) when is_binary(H) ->
+  convert_list([binary_to_list(H)|T], Acc, Bool);
+convert_list([H|T], Acc, false) when hd(H) == $. ->
+  convert_list(T, Acc, false);
+convert_list([H|T], Acc, Bool) ->
+  convert_list(T, [H|Acc], Bool);
+convert_list([], Acc, _Bool) ->
+  Acc.
 
 join(current, File) -> File;
 join(Base, File) -> filename:join(Base, File).
@@ -252,7 +277,7 @@ compile_charset1([X|Rest], Ordset) ->
   compile_charset1(Rest, ordsets:add_element(X, Ordset));
 compile_charset1([], _Ordset) ->
   error.
-    
+
 compile_range(Lower, Current, Ordset) when Lower =< Current ->
   compile_range(Lower, Current-1, ordsets:add_element(Current, Ordset));
 compile_range(_, _, Ordset) ->

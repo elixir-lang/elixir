@@ -21,8 +21,8 @@ module File
 
   % Retrieves all filenames according to the wildcard expression.
   % Check for more info http://www.erlang.org/doc/man/filelib.html#wildcard-1
-  def wildcard(wildcard)
-    Erlang.elixir_glob.wildcard(wildcard.to_char_list).map _.to_bin
+  def wildcard(wildcard, include_dot := false)
+    Erlang.elixir_glob.wildcard(wildcard, include_dot)
   end
 
   % Try to read the given file. If possible, returns a string
