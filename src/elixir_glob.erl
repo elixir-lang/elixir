@@ -29,8 +29,8 @@ wildcard(Pattern, Mod) when is_binary(Pattern) ->
 
 do_wildcard_comp({compiled_wildcard,{exists,File}}, Mod) ->
   case file:read_file_info(File) of
-  	{ok,_} -> [File];
-  	_ -> []
+    {ok,_} -> [File];
+    _ -> []
   end;
 
 do_wildcard_comp({compiled_wildcard,[Base|Rest]}, Mod) ->
@@ -57,19 +57,19 @@ do_wildcard_3(Base, [[double_star]], Result, Mod) ->
   do_wildcard_3(Base, [[accept]], Result, Mod);
 do_wildcard_3(Base, [[double_star]|Rest], Result, Mod) ->
   case do_list_dir(Base, Mod) of
-  	{ok, Files} ->
+    {ok, Files} ->
       do_double_star(Base, Files, Rest, Result, length(Rest), Mod);
-  	_ ->
-	    Result
+    _ ->
+      Result
   end;
 
 do_wildcard_3(Base, [Pattern|Rest], Result, Mod) ->
   case do_list_dir(Base, true) of
-  	{ok, Files} ->
-	    Matches = wildcard_4(Pattern, Files, Base, [], Mod),
-	    do_wildcard_2(Matches, Rest, Result, Mod);
-  	_ ->
-	    Result
+    {ok, Files} ->
+      Matches = wildcard_4(Pattern, Files, Base, [], Mod),
+      do_wildcard_2(Matches, Rest, Result, Mod);
+    _ ->
+      Result
   end;
 do_wildcard_3(Base, [], Result, _Mod) ->
     [Base|Result].
@@ -77,8 +77,8 @@ do_wildcard_3(Base, [], Result, _Mod) ->
 % Check if the pattern match for the list of files.
 wildcard_4(Pattern, [File|Rest], Base, Result, Mod) ->
   NewResult = case wildcard_5(Pattern, File, Mod) of
-  	true  -> [join(Base, File)|Result];
-  	false -> Result
+    true  -> [join(Base, File)|Result];
+    false -> Result
   end,
   wildcard_4(Pattern, Rest, Base, NewResult, Mod);
 wildcard_4(_Patt, [], _Base, Result, _Mod) ->
@@ -99,8 +99,8 @@ wildcard_5([star|Rest], File, Mod) ->
   do_star(Rest, File, Mod);
 wildcard_5([{one_of, Ordset}|Rest], [C|File], Mod) ->
   case ordsets:is_element(C, Ordset) of
-  	true  -> wildcard_5(Rest, File, Mod);
-  	false -> false
+    true  -> wildcard_5(Rest, File, Mod);
+    false -> false
   end;
 wildcard_5([{alt, Alts}], File, Mod) ->
   do_alt(Alts, File, Mod);
@@ -138,10 +138,10 @@ do_double_star(Base, [H|T], Rest, Result, MatchLength, Mod) ->
 
   % If it is a directory, expand it further.
   FinalResult = case do_list_dir(Full, Mod) of
-  	{ok, Files} ->
-	    JoinedFiles = [join(H, File) || File <- Files],
-	    do_double_star(Base, JoinedFiles, Rest, PartResult, MatchLength, Mod);
-  	_ -> PartResult
+    {ok, Files} ->
+      JoinedFiles = [join(H, File) || File <- Files],
+      do_double_star(Base, JoinedFiles, Rest, PartResult, MatchLength, Mod);
+    _ -> PartResult
   end,
   do_double_star(Base, T, Rest, FinalResult, MatchLength, Mod);
 
@@ -158,16 +158,16 @@ do_part_match([], [], _Mod) ->
 
 do_star(Pattern, [X|Rest], Mod) ->
   case wildcard_5(Pattern, [X|Rest], Mod) of
-  	true  -> true;
-  	false -> do_star(Pattern, Rest, Mod)
+    true  -> true;
+    false -> do_star(Pattern, Rest, Mod)
   end;
 do_star(Pattern, [], Mod) ->
   wildcard_5(Pattern, [], Mod).
 
 do_alt([Alt|Rest], File, Mod) ->
   case wildcard_5(Alt, File, Mod) of
-  	true  -> true;
-  	false -> do_alt(Rest, File, Mod)
+    true  -> true;
+    false -> do_alt(Rest, File, Mod)
   end;
 do_alt([], _File, _Mod) ->
   false.
@@ -199,18 +199,18 @@ do_compile_wildcard(Pattern) ->
 compile_wildcard_1(Pattern) ->
   [Root|Rest] = filename:split(Pattern),
   case filename:pathtype(Root) of
-  	relative ->
-	    compile_wildcard_2([Root|Rest], current);
-  	_ ->
-	    compile_wildcard_2(Rest, [Root])
+    relative ->
+      compile_wildcard_2([Root|Rest], current);
+    _ ->
+      compile_wildcard_2(Rest, [Root])
   end.
 
 compile_wildcard_2([Part|Rest], Root) ->
   case compile_part(Part) of
-  	Part ->
-	    compile_wildcard_2(Rest, join(Root, Part));
-  	Pattern ->
-	    compile_wildcard_3(Rest, [Pattern,Root])
+    Part ->
+      compile_wildcard_2(Rest, join(Root, Part));
+    Pattern ->
+      compile_wildcard_3(Rest, [Pattern,Root])
   end;
 compile_wildcard_2([], Root) -> {exists,Root}.
 
@@ -243,17 +243,17 @@ compile_part([$*|Rest], Upto, Result) ->
   compile_part(Rest, Upto, [star|Result]);
 compile_part([$[|Rest], Upto, Result) ->
   case compile_charset(Rest, ordsets:new()) of
-  	{ok, Charset, Rest1} ->
-	    compile_part(Rest1, Upto, [Charset|Result]);
-  	error ->
-	    compile_part(Rest, Upto, [$[|Result])
+    {ok, Charset, Rest1} ->
+      compile_part(Rest1, Upto, [Charset|Result]);
+    error ->
+      compile_part(Rest, Upto, [$[|Result])
   end;
 compile_part([${|Rest], Upto, Result) ->
   case compile_alt(Rest) of
-  	{ok, Alt} ->
-	    lists:reverse(Result, [Alt]);
-  	error ->
-	    compile_part(Rest, Upto, [${|Result])
+    {ok, Alt} ->
+      lists:reverse(Result, [Alt]);
+    error ->
+      compile_part(Rest, Upto, [${|Result])
   end;
 compile_part([X|Rest], Upto, Result) ->
   compile_part(Rest, Upto, [X|Result]);
@@ -288,14 +288,14 @@ compile_alt(Pattern) ->
 
 compile_alt(Pattern, Result) ->
   case compile_part_to_sep(Pattern) of
-  	{ok, $,, AltPattern, Rest} ->
-	    compile_alt(Rest, [AltPattern|Result]);
-  	{ok, $}, AltPattern, Rest} ->
-	    NewResult = [AltPattern|Result],
-	    RestPattern = compile_part(Rest),
-	    {ok, {alt, [Alt++RestPattern || Alt <- NewResult]}};
-  	Pattern ->
-	    error
+    {ok, $,, AltPattern, Rest} ->
+      compile_alt(Rest, [AltPattern|Result]);
+    {ok, $}, AltPattern, Rest} ->
+      NewResult = [AltPattern|Result],
+      RestPattern = compile_part(Rest),
+      {ok, {alt, [Alt++RestPattern || Alt <- NewResult]}};
+    Pattern ->
+      error
   end.
 
 error(Reason) ->
