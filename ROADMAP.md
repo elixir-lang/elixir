@@ -16,6 +16,14 @@ In the long term, here are a few things we would like to add:
 * Data copy between modules
 * Improve constant lookup (and namespaces?) (currently constants are referenced by their full name)
 
+### Scopes
+
+* Allow variable inside try to leak
+
+### Signals
+
+* Add bit operators and change =:= and =!= to === and !==
+
 ### Others
 
 * Dict comprehensions and get rid of inbin and inlist
