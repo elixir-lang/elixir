@@ -147,6 +147,7 @@ module ModuleTest
     2 = Module.eval("1 + 1")
     3 = Module.eval("foo + 1", 'foo: 2)
     4 = Module.eval(__FILE__, __LINE__, "foo + 1", 'foo: 3)
+    5 = Module.eval(__FILE__, __LINE__, "bar + 1", ['foo/3, 'bar/4])
   end
 
   private
