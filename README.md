@@ -548,7 +548,7 @@ Operators can be binary or unary operators:
 
 ### Term comparisons
 
-Elixir term comparisons operators are close to Erlang ones, except `!=`, `=!=` and `<=` which maps to Erlang `/=`, `=/=` and `=<`.
+Elixir term comparisons operators are close to Erlang ones, except `!=`, `===`, `!==` and `<=` which maps to Erlang `/=`, `=:=`, `=/=` and `=<`.
 
 <table>
 <tr>
@@ -580,11 +580,11 @@ Elixir term comparisons operators are close to Erlang ones, except `!=`, `=!=` a
   <td>greater than</td>
 </tr>
 <tr>
-  <td>=:=</td>
+  <td>===</td>
   <td>exactly equal to</td>
 </tr>
 <tr>
-  <td>=!=</td>
+  <td>!==</td>
   <td>exactly not equal to</td>
 </tr>
 </table>
@@ -593,7 +593,7 @@ As in Erlang, Elixir can order different types according to the following order:
 
     number < atom < reference < fun < port < pid < tuple < modules < blank slates < list < bit string
 
-Lists are compared element by element. Tuples are ordered by size, two tuples with the same size are compared element by element. If one of the compared terms is an integer and the other a float, the integer is first converted into a float, unless the operator is one of `=:=` and `=!=`.
+Lists are compared element by element. Tuples are ordered by size, two tuples with the same size are compared element by element. If one of the compared terms is an integer and the other a float, the integer is first converted into a float, unless the operator is one of `===` and `!==`.
 
 All term comparison operators return a boolean expression.
 
@@ -770,7 +770,7 @@ Operator precedence in falling priority:
   <td>Left</td>
 </tr>
 <tr>
-  <td>== != &lt; &lt;= &gt; &gt;= =:= =!=</td>
+  <td>== != &lt; &lt;= &gt; &gt;= === !==</td>
   <td>Left</td>
 </tr>
 <tr>

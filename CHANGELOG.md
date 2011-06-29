@@ -6,6 +6,7 @@
 
 * deprecations
   * Enforce -> for one liners and do...end for multiline
+  * =:= and =!= are removed in favor of === and !==
 
 ## v0.3.0 (2011-06-14)
 

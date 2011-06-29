@@ -129,10 +129,10 @@ integer_and_float_test() ->
   {false,_} = elixir:eval("1 != 1"),
   {true,_} = elixir:eval("1 == 1.0"),
   {false,_} = elixir:eval("1 != 1.0"),
-  {true,_} = elixir:eval("1 =:= 1"),
-  {false,_} = elixir:eval("1 =!= 1"),
-  {false,_} = elixir:eval("1 =:= 1.0"),
-  {true,_} = elixir:eval("1 =!= 1.0").
+  {true,_} = elixir:eval("1 === 1"),
+  {false,_} = elixir:eval("1 !== 1"),
+  {false,_} = elixir:eval("1 === 1.0"),
+  {true,_} = elixir:eval("1 !== 1.0").
 
 and_test() ->
   F = fun() ->

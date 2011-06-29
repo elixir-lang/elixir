@@ -888,7 +888,8 @@ build_unary_op(Line, Op, Right) ->
   { op, Line, Op, Right }.
 
 % Convert comparison operators to erlang format.
-convert_comp_op('=!=') -> '=/=';
+convert_comp_op('===') -> '=:=';
+convert_comp_op('!==') -> '=/=';
 convert_comp_op('!=') ->  '/=';
 convert_comp_op('<=') ->  '=<';
 convert_comp_op(Else) ->  Else.
