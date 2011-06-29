@@ -1,7 +1,7 @@
 % A simple REPL (Read-Eval-Print Loop) for Elixir
 module IEX
   def start
-    IO.write "Interactive Elixir (#{Code.version})\nRunning on "
+    IO.write "Interactive Elixir (#{Code.version}) - Abort with Ctrl + C\nRunning on "
     Erlang.user_drv.start(['"tty_sl -c -e", {'exIEX,'spawn,[IEX]}])
   end
 

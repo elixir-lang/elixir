@@ -92,7 +92,7 @@ eval(String, Binding, Filename, Line, Scope) ->
   case ParseTree of
     [] -> { nil, SelfBinding };
     _  ->
-      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, SelfBinding),
+      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, lists:sort(SelfBinding)),
       {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }
   end.
 
