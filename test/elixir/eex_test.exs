@@ -75,6 +75,10 @@ module EExTest
       "foo1\n<% bar\nbar %>\n4baz" = invoke("foo<%= __LINE__ %>\n<%% bar\nbar %>\n<%= __LINE__ %>baz")
     end
 
+    def conditional_test
+      "foo\ntwo\nbar" = invoke("foo\n<%= if false ?>one<? else ?>two<? end %>\nbar")
+    end
+
     def invalid_test
       try
         invoke("foo<? 'bar %>baz")
