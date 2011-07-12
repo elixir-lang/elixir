@@ -40,6 +40,11 @@ three
     ["one\n", "two\n", "three\n"] = list
   end
 
+  def utf8_string_test
+    5 = "Śliwa".size
+    5 = Module.eval("\"Śliwa\".size")
+  end
+
   def escape_test
     "\n" = "\010"
   end
