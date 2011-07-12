@@ -339,9 +339,8 @@ transform({bin_element, Line, Expr, Type, Specifiers }, S) ->
 % = Variables
 %
 % No variables can be defined in a string without interpolation.
-transform({string, Line, String }, S) ->
-  CharList = [{integer,Line,Integer} || Integer <- String],
-  { elixir_tree_helpers:build_simple_bin(Line, CharList), S };
+transform({string, Line, String } = Expr, S) ->
+  { elixir_tree_helpers:build_simple_bin(Line, [Expr]), S };
 
 % Handle interpolated strings declarations.
 %

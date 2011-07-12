@@ -44,7 +44,15 @@ build_bin_each(Fun, [], Line, S, Acc) ->
 
 build_bin_each(Fun, [H|T], Line, S, Acc) ->
   { Expr, NS, Format } = Fun(H, S),
-  build_bin_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, default, Format }|Acc]).
+  case Expr of
+    {string, _, String} ->
+      Final = lists:foldl(fun(Integer, FinalAcc) ->
+        [{bin_element,Line,{integer,Line,Integer},default,Format}|FinalAcc]
+      end, Acc, String),
+      build_bin_each(Fun, T, Line, NS, Final);
+    _ ->
+      build_bin_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, default, Format }|Acc])
+  end.
 
 % Build simple binaries
 build_simple_bin(Line, Exprs) ->
