@@ -7,6 +7,7 @@ module Code::FormatterTest
     "[]" = Code::Formatter.format_object([])
     "{1,2,3}" = Code::Formatter.format_object({1,2,3})
     "[1,2,3]" = Code::Formatter.format_object([1,2,3])
-    "abc" = Code::Formatter.format_object([$a,$b,$c])
+    "[97,98,99]" = Code::Formatter.format_object([$a,$b,$c])
+    "\"abc\"" = Code::Formatter.format_object("abc")
   end
 end

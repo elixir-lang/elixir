@@ -10,15 +10,9 @@ module Code::Formatter
   end
 
   def format_object(object)
-    if object != [] && Erlang.io_lib.printable_list(object)
-      object.flatten.to_bin
-    else
-      try
-        object.inspect
-      catch 'error: 'undef
-        "[Could not inspect object]"
-      end
-    end
+    object.inspect
+  catch 'error: 'undef
+    "[Could not inspect object]"
   end
 
   def format_catch('error, {'badsyntax, {line, filename, error, token}})
