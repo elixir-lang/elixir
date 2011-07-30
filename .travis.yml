@@ -1,0 +1,7 @@
+target: erlang
+script: "make compile test"
+notifications:
+  disabled: true
+env:
+  - ERL_LIBS=/usr/local/erlang/R14B03 PATH=$PATH:/usr/local/erlang/R14B03/bin
+  - ERL_LIBS=/usr/local/erlang/R13B04 PATH=$PATH:/usr/local/erlang/R13B04/bin
