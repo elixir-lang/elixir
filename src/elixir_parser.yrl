@@ -724,14 +724,33 @@ Erlang code.
 check_body([])   -> [{atom, 0, nil}];
 check_body(Else) -> Else.
 
+check_partial(Args) ->
+  {NewArgs, PartialArgsCounter} = lists:mapfoldl(fun({identifier, Line, '_'}, Counter) -> {{identifier, Line, list_to_atom(lists:concat(["?", Counter]))}, Counter+1};
+                                                    (Arg, Counter) -> {Arg, Counter} end, 0, Args),
+  if PartialArgsCounter < 1 ->
+    false;
+  true ->
+    {PartialArgs, _} = lists:mapfoldl(fun({identifier, Line, '_'}, Counter) -> {{identifier, Line, list_to_atom(lists:concat(["?", Counter]))}, Counter+1};
+                                         (_, Counter) -> {arg, Counter} end, 0, Args),
+    {lists:filter(fun is_tuple/1, PartialArgs), NewArgs}
+  end.
+
 build_identifier(Thing) ->
   { identifier, ?line(Thing), ?chars(Thing) }.
+
+build_partial(Parent, Args, Body) ->
+  build_fun(Parent, build_clause(Parent, Args, [], [Body])).
 
 build_bracket_call(Expr, Args) ->
   build_method_call(Expr, { identifier, element(1, Args), '[]' }, element(2, Args)).
 
 build_fun_call(Target, Args) ->
-  { fun_call, ?line(Target), Target, Args }.
+  case check_partial(Args) of
+    false ->
+      { fun_call, ?line(Target), Target, Args };
+    {PartialFnArgs, NewArgs} ->
+      build_partial(Target, PartialFnArgs, { fun_call, ?line(Target), Target, NewArgs })
+  end.
 
 build_try(Begin, Exprs) ->
    { 'try', ?line(Begin), Exprs}.
@@ -790,10 +809,20 @@ build_anonymous_def_method(Def, Args, Clauses) ->
   { def_method, ?line(Def), [], length(Args), [Clauses] }.
 
 build_method_call(Expr, Name, Args) ->
-  { method_call, ?line(Name), ?chars(Name), Args, Expr }.
+  case check_partial(Args) of
+    false ->
+      { method_call, ?line(Name), ?chars(Name), Args, Expr };
+    {PartialFnArgs, NewArgs} ->
+      build_partial(Name, PartialFnArgs, { method_call, ?line(Name), ?chars(Name), NewArgs, Expr })
+  end.
 
 build_sharp_call(Left, Right, Args) ->
-  { bind_call, ?line(Right), Left, Right, Args }.
+  case check_partial(Args) of
+    false ->
+      { bind_call, ?line(Right), Left, Right, Args };
+    {PartialFnArgs, NewArgs} ->
+      build_partial(Right, PartialFnArgs, { bind_call, ?line(Right), Left, Right, NewArgs })
+  end.
 
 build_local_call(Name, Args) ->
   { local_call, ?line(Name), ?chars(Name), Args }.
