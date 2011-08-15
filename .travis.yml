@@ -1,4 +1,4 @@
-target: erlang
+language: erlang
 notifications:
   email: false
 otp_release:
