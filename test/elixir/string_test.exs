@@ -97,6 +97,12 @@ three
     "Hello" = "Hello".to_str
   end
 
+  def to_i_test
+    0 = "0".to_i
+    1 = "1".to_i
+    93402 = "093402".to_i
+  end
+
   def inspect_test
     [34,102,92,110,111,34] = "f\no".inspect.to_char_list
 
