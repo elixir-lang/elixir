@@ -285,6 +285,11 @@ module String
       Erlang.binary_to_atom(self, 'utf8)
     end
 
+    % Returns the integer representation of this string if it is a valid integer.
+    def to_i
+      Erlang.list_to_integer(to_char_list)
+    end
+
     % Returns a copy of the original string with all lowercase letters replaced with their uppercase counterparts.
     def upcase
       Erlang.string.to_upper(to_char_list).to_bin
