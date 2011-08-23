@@ -247,4 +247,16 @@ three
     end
   end
 
+  def each_line_test
+    lines = ["a", "b", "c", "d"]
+    "a\nb\r\nc\n\rd".each_line do (l)
+      true = lines.include?(l)
+    end
+  end
+
+  def each_line_returns_self_test
+    str = "a\nb\r\nc\n\rd"
+    str = str.each_line -> (l) l
+  end
+
 end
