@@ -294,7 +294,7 @@ module String
     def upcase
       Erlang.string.to_upper(to_char_list).to_bin
     end
- 
+
     % Returns a copy of the original string with all uppercase letters replaced with their lowercase counterparts.
     def downcase
       Erlang.string.to_lower(to_char_list).to_bin
@@ -309,6 +309,15 @@ module String
     % Returns a new string with the characters from original string in reverse order.
     def reverse
       to_char_list.reverse.to_bin
+    end
+
+    def each_char(fun)
+      each_byte -> (b) fun.(<<b>>)
+    end
+
+    def each_byte(fun)
+      Erlang.lists.foreach(fun, self.to_char_list)
+      self
     end
 
     private

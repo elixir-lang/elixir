@@ -223,4 +223,28 @@ three
     ""      = "x".chop.chop
   end
 
+  def each_char_test
+    "abc".each_char do (c)
+      true = "abc".include?(c)
+    end
+  end
+
+  def each_char_returns_self_test
+    "abc" = "abc".each_char do (c)
+      c
+    end
+  end
+
+  def each_byte_test
+    "abc".each_byte do (b)
+      true = "abc".include?(<<b>>)
+    end
+  end
+
+  def each_byte_returns_self_test
+    "abc" = "abc".each_byte do (b)
+      b
+    end
+  end
+
 end
