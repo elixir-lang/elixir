@@ -311,12 +311,36 @@ module String
       to_char_list.reverse.to_bin
     end
 
+    % Calls the function once for every character of the string
+    %
+    % Returns self
+    %
+    %     "foo".each_char -> (c) IO.puts(c)
+    %
     def each_char(fun)
       each_byte -> (b) fun.(<<b>>)
     end
 
+    % Calls the function once for every byte of the string
+    %
+    % Returns self
+    %
+    %     "foo".each_byte -> (b) IO.puts(b)
+    %
     def each_byte(fun)
       Erlang.lists.foreach(fun, self.to_char_list)
+      self
+    end
+
+    % Calls the function once for every line of the string
+    % Splits by \n, \r\n and \n\r
+    %
+    % Returns self
+    %
+    %     "foo".each_line -> (l) IO.puts(l)
+    %
+    def each_line(fun)
+      self.split(~r"\r\n|\n\r|\n").each(fun)
       self
     end
 
