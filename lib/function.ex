@@ -24,5 +24,22 @@ module Function
       { 'arity, value } = Erlang.fun_info(self, 'arity)
       value
     end
+
+    % Creates a function that calls self
+    % and passes the result to fun
+    %
+    % Precondition: both functions must have arity 1
+    %
+    % Returns the composed function
+    %
+    % g = f.and_then -> (x) x*x
+    %
+    def and_then(fun)
+      if arity == 1 && fun.arity == 1
+        -> (x) fun.(self.(x))
+      else
+        self.error('bad_arity)
+      end
+    end
   end
 end

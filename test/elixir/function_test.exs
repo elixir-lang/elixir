@@ -51,6 +51,22 @@ module FunctionTest
     end
   end
 
+  def and_then_test
+    f = -> (x) x+1
+    g = -> (x) x+2
+    h = f.and_then(g)
+    1 = h.arity
+    f.(g.(2)) == h.(2)
+  end
+
+  def and_then_error_on_wrong_arity_test
+    f = -> (x) x+1
+    g = -> (x,y) x+y
+    self.assert_error 'bad_arity, do
+      h = f.and_then(g)
+    end
+  end
+
   private
 
   def match_arg1(x = [])
