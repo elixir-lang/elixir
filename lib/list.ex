@@ -203,20 +203,12 @@ module List
 
     % Calls the function once for each element in the list.
     %
-    % Also takes a method name in form of an atom as parameter
-    % and tries to call the method on every element of the list.
-    %
     % Returns a new list containing the values returned by the function.
     %
     %     [1,2,3].map -> (x) x + 1 % => [2,3,4]
-    %     [1,2,3].map('to_s)  % => ["1","2","3"]
     %
     def map(function)
-      if function.__module_name__ == 'Atom::Behavior
-        Erlang.lists.map(-> (elem) elem.send(function), self)
-      else
-        Erlang.lists.map(function, self)
-      end
+      Erlang.lists.map(function, self)
     end
     alias_local 'map, 'collect, 1
 

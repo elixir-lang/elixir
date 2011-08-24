@@ -105,14 +105,6 @@ module ListTest
     [2,3,4] = collect_result
   end
 
-  def map_and_collect_atom_to_proc_test
-    map_result = [1,2,3].map('to_s)
-    ["1","2","3"] = map_result
-
-    collect_result = [1,2,3].collect('to_s)
-    ["1","2","3"] = collect_result
-  end
-
   def filter_and_select_test
     filter_result = [1,2,3].filter -> (x) x / 2 == 1
     [2] = filter_result
