@@ -52,18 +52,18 @@ module FunctionTest
   end
 
   def and_then_test
-    f = -> (x) x+1
+    f = -> (x,y) x+y
     g = -> (x) x+2
     h = f.and_then(g)
-    1 = h.arity
-    f.(g.(2)) == h.(2)
+    2 = h.arity
+    g.(f.(2,3)) == h.(2,3)
   end
 
   def and_then_error_on_wrong_arity_test
     f = -> (x) x+1
     g = -> (x,y) x+y
-    self.assert_error 'bad_arity, do
-      h = f.and_then(g)
+    self.assert_error 'badarity, do
+      f.and_then(g)
     end
   end
 

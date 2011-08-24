@@ -28,18 +28,25 @@ module Function
     % Creates a function that calls self
     % and passes the result to fun
     %
-    % Precondition: both functions must have arity 1
+    % Precondition: fun must have arity 1
     %
-    % Returns the composed function
+    % Returns a composed function f with f.arity = self.arity
     %
     % g = f.and_then -> (x) x*x
     %
+    module_eval __FILE__, __LINE__ + 1, ~~METHOD
     def and_then(fun)
-      if arity == 1 && fun.arity == 1
-        -> (x) fun.(self.(x))
+      if fun.arity == 1
+        case arity
+        #{(20.times {[],[]}, do (i,{lines,acc})
+          {["match #{i} then " +
+              "->(#{acc.join(",")}) fun.(self.(#{acc.join(",")}))" |lines], ["v#{i}"|acc]}
+          end)[0].join("\n")}
+        end
       else
-        self.error('bad_arity)
+        self.error('badarity)
       end
     end
+~~
   end
 end
