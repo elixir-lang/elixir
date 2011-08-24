@@ -24,5 +24,29 @@ module Function
       { 'arity, value } = Erlang.fun_info(self, 'arity)
       value
     end
+
+    % Creates a function that calls self
+    % and passes the result to fun
+    %
+    % Precondition: fun must have arity 1
+    %
+    % Returns a composed function f with f.arity = self.arity
+    %
+    % g = f.and_then -> (x) x*x
+    %
+    module_eval __FILE__, __LINE__ + 1, ~~METHOD
+    def and_then(fun)
+      if fun.arity == 1
+        case arity
+        #{(20.times {[],[]}, do (i,{lines,acc})
+          {["match #{i} then " +
+              "->(#{acc.join(",")}) fun.(self.(#{acc.join(",")}))" |lines], ["v#{i}"|acc]}
+          end)[0].join("\n")}
+        end
+      else
+        self.error('badarity)
+      end
+    end
+~~
   end
 end
