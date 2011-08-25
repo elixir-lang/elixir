@@ -1,17 +1,6 @@
 module Math
-  ['sin, 'cos, 'tan, 'asin, 'acos, 'atan, 'sinh, 'cosh, 'tanh, 'asinh, 'acosh, 'atanh, 'exp, 'log, 'log10, 'sqrt, 'erf, 'erfc].each do (method)
-  module_eval __FILE__, __LINE__+1, ~~METHOD
-    def #{method}(x)
-      Erlang.math.#{method}(x)
-    end
-~~
-  end
-
-  def atan2(x,y)
-    Erlang.math.atan2(x,y)
-  end
-
-  def pow(x,y)
-    Erlang.math.pow(x,y)
-  end
+  delegate ['sin/1, 'cos/1, 'tan/1, 'asin/1, 'acos/1, 'atan/1, 'sinh/1,
+            'cosh/1, 'tanh/1, 'asinh/1, 'acosh/1, 'atanh/1, 'exp/1,
+            'log/1, 'log10/1, 'sqrt/1, 'erf/1, 'erfc/1, 'atan2/2,
+            'pow/2], 'to: "Erlang.math"
 end
