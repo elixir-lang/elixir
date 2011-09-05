@@ -416,6 +416,8 @@ Again, removing the parentheses, improves readability:
 Besides using call, we can also invoke functions using `apply`, brackets `[]` and the `.()` syntax:
 
     my_function = -> (x, y) x + y
+    my_function.apply([1, 2])   % => pass arguments in a list (just like JavaScript)
+    my_function[1, 2]
     my_function.(1, 2) % => 3
 
 Another useful extension Elixir adds to functions is the easy generation of anonymous functions. For instance, suppose you have a list of cars and you want to get their names. A way to do that would be:
