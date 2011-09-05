@@ -211,7 +211,7 @@ Tuples are used to organize many terms together when you know how many terms the
     { 10, 20 }
 
     % An empty tuple
-    Tuple.new
+    Tuple.empty
 
 Tuples and lists (which are going to see next), are zero-indexed in Elixir while they are one-indexed in Erlang. You can retrieve a specific element using []:
 
