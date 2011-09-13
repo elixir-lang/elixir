@@ -7,6 +7,7 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
+  (catch code:add_pathz(code:lib_dir(?MODULE, exbin))),
   [code:ensure_loaded(Module) || Module <- builtin_mixins()],
   elixir_sup:start_link([]).
 
