@@ -266,6 +266,12 @@ module ListTest
     3 = [1,2,3][2]
     nil = [1,2,3][3]
   end
+  
+  % It is very convenient to have hash-like proplists access to list
+  def proplist_brackets_test
+    1 = [{'a,1},{'b,2},{'c,3}]['a]
+    'undefined = [{'a,1},{'b,2},{'c,3}]['d]
+  end
 
   def brackets_negative_index_test
     1 = [1,2,3][-3]
