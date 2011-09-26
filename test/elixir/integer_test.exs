@@ -3,13 +3,6 @@ Code.require_file "../test_helper", __FILE__
 module IntegerTest
   mixin ExUnit::Case
 
-  def abs_test
-    1 = -1.abs
-    1 = 1.abs
-    0 = 0.abs
-    -1 = -(1).abs
-  end
-
   def separator_test
     1234 = 1_234
     -1_3_4 = -134
