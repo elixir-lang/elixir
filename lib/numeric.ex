@@ -4,6 +4,10 @@ module Numeric
     Erlang.abs(self)
   end
 
+  def abs2
+    self * self
+  end
+
   def truncate
     Erlang.trunc(self)
   end
@@ -36,6 +40,18 @@ module Numeric
     match x when x < 0 then x.truncate
     match x then (x + 1).truncate
     end
+  end
+
+  def integer?
+    Erlang.is_integer self
+  end
+
+  def zero?
+    self == 0
+  end
+
+  def nonzero?
+    !zero?
   end
 
   ['+, '-, '*, '/].each do (op)
