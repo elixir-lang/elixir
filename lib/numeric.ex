@@ -1,7 +1,13 @@
 module Numeric
 
+  % Returns the absolute value of self.
   def abs
     Erlang.abs(self)
+  end
+
+  % Returns square of self.
+  def abs2
+    self * self
   end
 
   def truncate
@@ -24,6 +30,7 @@ module Numeric
     round
   end
 
+  % Returns the largest Integer less than or equal to self.
   def floor
     case self
     match x when x < 0 then (x - 1).truncate
@@ -31,11 +38,27 @@ module Numeric
     end
   end
 
+  % Returns the smallest Integer greater than or equal to self.
   def ceil
     case self
     match x when x < 0 then x.truncate
     match x then (x + 1).truncate
     end
+  end
+
+  % Returns true if integer
+  def integer?
+    Erlang.is_integer self
+  end
+
+  % Returns true if zero
+  def zero?
+    self == 0
+  end
+
+  % Returns true if not zero
+  def nonzero?
+    !zero?
   end
 
   ['+, '-, '*, '/].each do (op)

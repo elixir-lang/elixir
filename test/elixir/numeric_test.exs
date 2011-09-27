@@ -12,6 +12,13 @@ module NumericTest
     -1 = -(1).abs
   end
 
+  def abs2_test
+    1 = -1.abs2
+    1 = 1.abs2
+    4 = 2.abs2
+    16.0 = -4.0.abs2
+  end
+
   def round_test
     3 = 3.round
     3 = 3.4.round
@@ -54,6 +61,33 @@ module NumericTest
     4 = 3.5.ceil
     5 = 4.0.ceil
     -3 = -3.4.ceil
+  end
+
+  def integer_test
+    true = 0.integer?
+    false = 0.0.integer?
+    true = 1.integer?
+    false = 1.0.integer?
+    true = -1.integer?
+    false = -1.0.integer?
+  end
+
+  def zero_test
+    true = 0.zero?
+    true = 0.0.zero?
+    false = 1.zero?
+    false = 1.0.zero?
+    false = -1.zero?
+    false = -1.0.zero?
+  end
+
+  def nonzero_test
+    false = 0.nonzero?
+    false = 0.0.nonzero?
+    true = 1.nonzero?
+    true = 1.0.nonzero?
+    true = -1.nonzero?
+    true = -1.0.nonzero?
   end
 
 end
