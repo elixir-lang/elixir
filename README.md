@@ -1,4 +1,4 @@
-# Elixir
+# Elixir [![Build Status](https://secure.travis-ci.org/josevalim/elixir.png "Build Status")](http://travis-ci.org/josevalim/elixir)
 
 Elixir is a programming language built on top of Erlang. As Erlang, it is a functional language with strict evaluation, single assignment and dynamic typing built to support distributed, fault-tolerant, non-stop applications with hot swapping. Elixir allows you to invoke Erlang modules without a need to convert data types, therefore there is no hit in performance when invoking existing Erlang code.
 
@@ -929,7 +929,7 @@ It should actually be written as:
       after
         IO.puts "I am always executed"
       end
-      
+
       some_method(t, value)
     end
 
@@ -1172,7 +1172,7 @@ As Erlang, Elixir code is mainly organized around modules. Here is a very simple
         IO.puts "Hello World"
       end
     end
-    
+
     Hello.world % => "Hello World"
 
 ### Method Visibility
@@ -1183,16 +1183,16 @@ One important aspect of modules is the method visibility. Elixir provides two di
       def public_method
         13
       end
-      
+
       def calling_public_method
         public_method
       end
-      
+
       def calling_public_method2
         self.public_method
       end
     end
-    
+
     Example.public_method           % => 13
     Example.calling_public_method   % => 13
     Example.calling_public_method2  % => 13
@@ -1203,24 +1203,24 @@ Private methods are internal and therefore cannot be accessed in the `self.metho
       def calling_private_method
         private_method
       end
-      
+
       def calling_private_method2
         self.private_method
       end
-      
+
       private
-      
+
       def private_method
         13
       end
     end
-    
+
     % Won't work, the method is private.
     Example.private_method
-    
+
     % It works because calling_private_method is calling private_method without self.
     Example.calling_private_method   % => 13
-    
+
     % It won't work because calling_private_method is calling private_method with self.
     Example.calling_private_method2
 
@@ -1234,30 +1234,30 @@ In Elixir, every time you call a private method, it is doing a local call. This 
       def foo
         1 + bar + baz
       end
-      
+
       def bar
         1
       end
-      
+
       private
-      
+
       def baz
         1
       end
     end
-    
+
     module B
       mixin A
-      
+
       def bar
         2
       end
-      
+
       def baz
         3
       end
     end
-    
+
     A.foo % => 3
     B.foo % => 4
 
@@ -1270,14 +1270,14 @@ Finally, notice that if a variable is defined with the same name as method, the 
         some_value = 11
         some_value
       end
-      
+
       private
-      
+
       def some_value
         13
       end
     end
-    
+
     AnotherExample.value % => 11
 
 If in the example above you wanted to call do a local call, you could have used `some_value()` to disambiguate.
@@ -1290,11 +1290,11 @@ In the "Variables and Pattern Matching" section above, we have showed a simple F
       def fibonacci(0)
         0
       end
-      
+
       def fibonacci(1)
         1
       end
-      
+
       def fibonacci(n)
         fibonacci(n - 1) + fibonacci(n - 2)
       end
@@ -1306,16 +1306,16 @@ As Erlang, Elixir does tail call optimization. We can rewrite the fibonacci meth
       def fibonacci(n)
         fibonacci(n, 1, 0)
       end
-      
+
       def fibonacci(0, _, result)
         result
       end
-      
+
       def fibonacci(n, next, result)
         fibonacci(n - 1, next + result, next)
       end
     end
-    
+
     OptimizedMath.fibonacci(0)   % => 0
     OptimizedMath.fibonacci(1)   % => 1
     OptimizedMath.fibonacci(3)   % => 2
@@ -1332,18 +1332,18 @@ As we mentioned earlier and saw in the examples above, pattern matching is also 
       def is?([i|prefix], [i|list])
         is?(prefix, list)
       end
-      
+
       % If prefix is empty or gets empty, it matches
       def is?([], _list)
         true
       end
-      
+
       % Anything else is false
       def is?(_prefix, _list)
         false
       end
     end
-    
+
     prefix = "foo".to_char_list
     full   = "foobar".to_char_list
     Prefix.is?(prefix, full) % => true
@@ -1354,7 +1354,7 @@ The fact `OrderedDict`s are allowed in pattern matching and pattern matching is 
     def do_something(value, 'special: true)
       % Do something special
     end
-    
+
     def do_something(value, 'special: false)
       % Do something not that special
     end
@@ -1368,7 +1368,7 @@ Besides supporting pattern matching in methods, Elixir also supports default arg
         a + b
       end
     end
-    
+
     Default.sum        % => 3
     Default.sum(2)     % => 4
     Default.sum(2, 3)  % => 5
@@ -1379,11 +1379,11 @@ Default arguments work by implicitly defining methods that accepts less argument
       def sum()
         sum(1, 2)
       end
-      
+
       def sum(a)
         sum(a, 2)
       end
-      
+
       def sum(a, b)
         a + b
       end
@@ -1414,7 +1414,7 @@ All built-in data types (like integers, tuples, lists, etc) are already bound to
         IO.puts "VROOOM"
       end
     end
-    
+
     % Create a blank slate and bind it to `Car` module:
     car = Module.blank_slate#Car()
     car.engine % => "VROOOM"
@@ -1441,14 +1441,14 @@ Elixir allows us to store information inside blank slates. This is done with int
         % Set the internal variable color to the given color.
         @('color, color)
       end
-      
+
       def color
         % Read the internal variable @color.
         % @internal_variables are always relative to self.
         @color
       end
     end
-    
+
     car = #Car('green)
     car.color % => 'green
 
@@ -1458,12 +1458,12 @@ Besides blank slates, modules also have internal variables:
 
     module Car
       set_ivar('color, 'red)
-      
+
       def color
         @color
       end
     end
-    
+
     Car.color % => 'red
 
 In the example above, we are setting and reading the internal variable of the module Car. However, keep in mind that if we bind the module, `@color` will point to the bind object as seen above:
@@ -1476,7 +1476,7 @@ Almost everything in Elixir is immutable. For example, every time we set the int
 
     car = #Car('green)
     new_car = car.set_ivar('color, 'red)
-    
+
     car.color     % => 'green
     new_car.color % => 'red
 
@@ -1484,12 +1484,12 @@ The only exception to mutability are modules:
 
     module Car
       set_ivar('color, 'red)
-    
+
       def color
         @color
       end
     end
-    
+
     Car.color % => 'red
 
 In the example above, `set_ivar` is setting the value of the internal variable `@color` but it is not returning a new object, it is modifying the value of the module in place! However, notice that modules are only mutable during definition. After a module is defined, we can no longer modify it:
@@ -1508,12 +1508,12 @@ Libraries must hide the blank slate binding as most as possible. For instance, t
       def new(color)
         #Car::Behavior(color)
       end
-      
+
       module Behavior
         def __bound__(color)
           @('color, color)
         end
-    
+
         def color
           @color
         end
@@ -1535,20 +1535,20 @@ Mixins are the ability to mix one module into another module **still in definiti
       def one
         1
       end
-      
+
       def two
         2
       end
     end
-    
+
     module AdvancedMath
       mixin SimpleMath
-      
+
       def one_plus_two
         one + two
       end
     end
-    
+
     AdvancedMath.one_plus_two % => 3
 
 Different from refinements that only alter method lookup, mixins provide a copy mechanism that copy all the methods defined in the mixed in module into the target providing faster behavior at run-time.
@@ -1557,14 +1557,14 @@ Note that mixed in methods are available straight away, while methods defined in
 
     module AdvancedMath
       mixin SimpleMath
-      
+
       one % => 1
       two % => 2
-      
+
       def one_plus_two
         one + two
       end
-      
+
       % Fails because AdvancedMath is still
       % in definition.
       one_plus_two % => ERROR
@@ -1577,15 +1577,15 @@ Finally, notice that methods that are not available at compile time cannot be ca
         IO.puts "HELLO #{self.name}"
       end
     end
-    
+
     module Person
       mixin RequiresName
-      
+
       def name
         "John Doe"
       end
     end
-    
+
     Person.shout % => "HELLO John Doe"
 
 In the example above, `RequiresName` uses `self.name` instead of `name`. This is required because `name` is not known locally.
@@ -1599,22 +1599,22 @@ module definition. This is achieved with temporary mixins:
       def one
         1
       end
-      
+
       def two
         2
       end
     end
-    
+
     module AdvancedMath
       using SimpleMath
-      
+
       one + two % => 3
-      
+
       def one_plus_two
         one + two
       end
     end
-    
+
     % Will fail because SimpleMath methods are
     % available only during the module definition.
     AdvancedMath.one_plus_two % => ERROR
@@ -1672,23 +1672,23 @@ As everything is immutable, when the function assigns a new variable, it creates
 Also, Elixir has much more flexible rules when it comes to variables inside control-flow expressions. For instance, the following works:
 
     x = 1
-    
+
     if true
       x = 2
     end
-    
+
     x % => 2
 
 The same is also true for `receive/after` and `case/match` expressions. The only exception comes to `try/catch` scenarios, where a variable defined inside such blocks is never accessible from the outside. For example:
 
     x = 1
-    
+
     try
       x = 2
     catch _:_
       % Do nothing
     end
-    
+
     x % => 1
 
 ## Guards
@@ -1698,7 +1698,7 @@ Elixir has basic support for guards. They can be used on method declaration, `re
     def abs(x) when x < 0
       - x
     end
-    
+
     def abs(x)
       x
     end
@@ -1744,7 +1744,7 @@ Elixir also allows you to dynamically define methods. For example, below we can 
     ~~
       end
     end
-    
+
     person = #Person("John Doe", 24)
     person.name % => "John Doe"
 
@@ -1752,7 +1752,7 @@ The real benefit is when you encapsulate it inside a method. For example, the de
 
     module Person
       attr_reader ['name, 'age]
-      
+
       def initialize(name, age)
         @('name: name, 'age: age)
       end
@@ -1780,14 +1780,14 @@ Elixir allows you to import records from Erlang code. Here is an example that im
       mixin Record
       record 'file_info, 'from_lib: "kernel/include/file.hrl"
     end
-    
+
     % Manually access the Erlang file:read_file_info method
     % passing the current file as a char list.
     { 'ok, info } = Erlang.file.read_file_info(__FILE__.to_char_list)
-    
+
     % Create a new FileInfo object based on the tuple returned above
     record = #FileInfo(info)
-    
+
     % Profit by accessing the record info
     record.access % => 'read_write
 
