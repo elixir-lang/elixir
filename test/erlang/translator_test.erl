@@ -57,4 +57,7 @@ local_call_test() ->
 %% Expressions
 
 expressions_test() ->
-  3 = eval([1, 2, 3]).
+  nil = eval([[]]),
+  3   = eval([1, 2, 3]),
+  5   = eval([{'+', 1, [{'+', 1, 1, 2}], 2}]),
+  7   = eval([{'+', 1, [{'+', 1, 1, 2}, {'+', 1, 2, 3}], 2}]).

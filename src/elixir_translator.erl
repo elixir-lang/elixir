@@ -48,6 +48,18 @@ translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
   { TArgs, NS } = translate(Args, S),
   { { call, Line, { atom, Line, Atom }, TArgs }, NS };
 
+%% Block expressions
+
+translate_each([], S) ->
+  { { atom, 0, nil }, S };
+
+translate_each([Expr], S) ->
+  translate_each(Expr, S);
+
+translate_each(List, S) when is_list(List) ->
+  { TList, NS } = translate(List, S),
+  { { block, 0, TList }, NS };
+
 %% Literals
 
 translate_each(Number, S) when is_integer(Number) ->
