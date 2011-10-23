@@ -14,7 +14,8 @@ test() ->
     operators_test,
     ordered_dict_test,
     regexp_test,
-    string_test
+    string_test,
+    translator_test
   ]).
 
 unpack_string(String) ->
