@@ -4,10 +4,11 @@
 
 eval(Forms) ->
   { Transformed, FinalScope } = elixir_translator:translate(Forms, #elixir_scope{}),
+  io:format("~p~n", [Transformed]),
   { value, Result, _ } = erl_eval:exprs(Transformed, []),
   Result.
 
-%% LITERALS
+%% Literals
 
 atoms_test() ->
   atom = eval([atom]).
@@ -18,7 +19,7 @@ integer_test() ->
 float_test() ->
   2.0 = eval([2.0]).
 
-%% Operators
+%% Math Operators
 
 addition_test() ->
   3 = eval([{'+', 1, 1, 2}]).
@@ -31,6 +32,27 @@ multiplication_test() ->
 
 division_test() ->
   1.5 = eval([{'/', 1, 3, 2}]).
+
+%% Short-circuit operators
+
+andand_test() ->
+  true  = eval([{'&&', 1, true, true}]),
+  false = eval([{'&&', 1, true, false}]),
+  false = eval([{'&&', 1, false, true}]),
+  false = eval([{'&&', 1, false, false}]),
+  false = eval([{'&&', 1, false, {error, 1, [omg]}}]).
+
+oror_test() ->
+  true  = eval([{'||', 1, true, true}]),
+  true  = eval([{'||', 1, true, false}]),
+  true  = eval([{'||', 1, false, true}]),
+  false = eval([{'||', 1, false, false}]),
+  true  = eval([{'||', 1, true, {error, 1, [omg]}}]).
+
+%% Method calls
+
+local_call_test() ->
+  42.0 = eval([{float, 1, [42]}]).
 
 %% Expressions
 
