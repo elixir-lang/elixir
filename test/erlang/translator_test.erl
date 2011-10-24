@@ -23,6 +23,14 @@ assigning_twice_test() ->
 assignment_match_test() ->
   ?assertError({badmatch, 2}, eval([{'=', 1, 13, 2}])).
 
+%% Functions
+
+functions_test() ->
+  Keywords = { ':', 1, [{do, { '+', 1, { x, 1, false }, { y, 1, false }}}] },
+  Args     = { '[]', 1, [{ x, 1, false }, { y, 1, false }] },
+  Fun = eval([{ fn, 1, [Args, Keywords] }]),
+  3 = Fun(1, 2).
+
 %% Literals
 
 atoms_test() ->

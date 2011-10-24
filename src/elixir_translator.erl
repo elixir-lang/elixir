@@ -56,6 +56,18 @@ translate_each({'&&', Line, Left, Right}, S) ->
     { clause, Line, Any, [], [TRight] }
   ] }, umergev(SL, SR) };
 
+%% Functions
+
+translate_each({fn, Line, [{'[]', _, Args}, {':', _, Keywords}]}, S) ->
+  { TArgs, NS } = translate_assigns(fun translate/2, Args, S),
+  { TKeywords, FS } = translate_keywords(Keywords, NS),
+  [{ do, TExprs}] = TKeywords,
+  { { 'fun', Line, {clauses, [{clause, Line, TArgs, [], TExprs}]} }, FS };
+
+% TODO: Handle tree errors properly
+translate_each({fn, Line, _}, S) ->
+  error(invalid_arguments_for_fn);
+
 %% Variables & Methods
 
 translate_each({Name, Line, false}, S) when is_atom(Name) ->
@@ -119,6 +131,17 @@ translate_each(Atom, S) when is_atom(Atom) ->
 translate_assigns(Fun, Args, Scope) ->
   { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
   { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
+
+translate_keywords(Keywords, S) ->
+  { Result, NS } = lists:mapfoldl(fun translate_each_keyword/2, S, Keywords),
+  { orddict:from_list(Result), NS }.
+
+translate_each_keyword({Key,Expr}, S) when not is_list(Expr) ->
+  translate_each_keyword({Key,[Expr]}, S);
+
+translate_each_keyword({Key,Expr}, S) when is_atom(Key) ->
+  { TExpr, NS } = translate(Expr, S),
+  { { Key, TExpr }, NS }.
 
 % Receives two scopes and return a new scope based on the second
 % with their variables merged.
