@@ -3,10 +3,25 @@
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Forms) ->
+  { Result, _ } = eval(Forms, []),
+  Result.
+
+eval(Forms, Binding) ->
   { Transformed, FinalScope } = elixir_translator:translate(Forms, #elixir_scope{}),
   io:format("~p~n", [Transformed]),
-  { value, Result, _ } = erl_eval:exprs(Transformed, []),
-  Result.
+  { value, Result, NewBinding } = erl_eval:exprs(Transformed, []),
+  { Result, NewBinding }.
+
+%% Assignment Operator
+
+assignment_test() ->
+  {13, [{a,13}]} = eval([{'=', 1, {a, 1, false},13}], []).
+
+assigning_twice_test() ->
+  23 = eval([{'=', 1, {a, 1, false},13}, {'=', 2, {a, 2, false}, {'+', 2, {a, 2, false}, 10}}]).
+
+assignment_match_test() ->
+  ?assertError({badmatch, 2}, eval([{'=', 1, 13, 2}])).
 
 %% Literals
 

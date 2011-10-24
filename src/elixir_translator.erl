@@ -5,6 +5,20 @@
 translate(Forms, S) ->
   lists:mapfoldl(fun translate_each/2, S, Forms).
 
+%% Assignment operator
+
+translate_each({'=', Line, Left, Right}, S) ->
+  { TLeft, SL } = translate_assigns(fun translate_each/2, Left, S),
+  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+  SM = umergev(SL, SR),
+  SF = case TLeft of
+    { var, _, Name } ->
+      Current = SM#elixir_scope.assigned_vars,
+      SM#elixir_scope{assigned_vars=dict:store(Name, {Right, TRight}, Current)};
+    _ -> SM
+  end,
+  { {match, Line, TLeft, TRight }, SF };
+
 %% Math Operators
 
 translate_each({ Op, Line, Left, Right }, S) when Op == '+'; Op == '-'; Op == '*'; Op == '/' ->
@@ -42,7 +56,36 @@ translate_each({'&&', Line, Left, Right}, S) ->
     { clause, Line, Any, [], [TRight] }
   ] }, umergev(SL, SR) };
 
-%% Methods
+%% Variables & Methods
+
+translate_each({Name, Line, false}, S) when is_atom(Name) ->
+  Match = S#elixir_scope.assign,
+  Vars = S#elixir_scope.vars,
+  TempVars = S#elixir_scope.temp_vars,
+  ClauseVars = S#elixir_scope.clause_vars,
+
+  case Name of
+    '_' -> { {var, Line, Name}, S };
+    _ ->
+      case { Match, dict:is_key(Name, Vars), lists:member(Name, TempVars) } of
+        { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
+        { true, Else, _ } ->
+          % If it was already assigned or in a noname scope, build a new var.
+          % TODO: Potentially get rid of noname scopes.
+          { NewVar, NS } = case Else or S#elixir_scope.noname of
+            true -> elixir_tree_helpers:build_var_name(Line, S);
+            false -> { {var, Line, Name}, S }
+          end,
+          RealName = element(3, NewVar),
+          { NewVar, NS#elixir_scope{
+            vars=dict:store(Name, RealName, Vars),
+            temp_vars=[RealName|TempVars],
+            clause_vars=dict:store(Name, RealName, ClauseVars)
+          } };
+        { false, false, _ } -> translate_each({Name, Line, []}, S);
+        { false, true, _ }  -> { {var, Line, dict:fetch(Name, Vars) }, S }
+      end
+  end;
 
 translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
   { TArgs, NS } = translate(Args, S),
@@ -72,6 +115,10 @@ translate_each(Atom, S) when is_atom(Atom) ->
   { { atom, 0, Atom }, S }.
 
 %% Helpers
+
+translate_assigns(Fun, Args, Scope) ->
+  { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
+  { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
 
 % Receives two scopes and return a new scope based on the second
 % with their variables merged.
