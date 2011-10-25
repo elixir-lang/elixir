@@ -491,7 +491,7 @@ transform({unary_op, Line, Op, Right}, S) ->
 %
 % Second, a variable defined in a clause does not affect other clauses,
 % so the second clause above could sucessfully invoke the method foo.
-transform({'if', Line, Exprs, Else}, S) ->
+transform({'if', Line, Exprs, Else} = T, S) ->
   { TExprs, SE } = transform_clauses_tree(Line, Exprs ++ [Else], S),
   { TIfs, [TElse] } = lists:split(length(TExprs) - 1, TExprs),
   { hd(lists:foldr(fun build_if_clauses/2, element(5, TElse), TIfs)), SE };

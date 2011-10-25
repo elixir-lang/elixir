@@ -23,6 +23,11 @@ assigning_twice_test() ->
 assignment_match_test() ->
   ?assertError({badmatch, 2}, eval([{'=', 1, 13, 2}])).
 
+%% Ifs
+
+if_do_test() ->
+  example = eval([{ 'if', 1, [true, { ':', 1, [{do, example}] }] }]).
+
 %% Functions
 
 functions_test() ->

@@ -56,9 +56,32 @@ translate_each({'&&', Line, Left, Right}, S) ->
     { clause, Line, Any, [], [TRight] }
   ] }, umergev(SL, SR) };
 
+%% If
+
+translate_each({'if', Line, [Condition, {':', _, [{do,_}|_] = Keywords}]}, S) ->
+  [{ do, Exprs }|ElsesKeywords] = Keywords,
+
+  IfKeywords = case is_list(Exprs) of
+    true  -> {do, [Condition|Exprs]};
+    false -> {do, [Condition,Exprs]}
+  end,
+
+  case ElsesKeywords of
+    [{else,_} = ElseKeywords|ElsifsKeywords] -> [];
+    ElsifsKeywords -> ElseKeywords = {else,[nil]}
+  end,
+
+  { Clauses, FS } = translate_clauses(Line, [IfKeywords|ElsifsKeywords] ++ [ElseKeywords], S),
+  [Else|Others] = lists:reverse(Clauses),
+  { build_if_clauses(Line, Others, Else), FS };
+
+% TODO: Handle tree errors properly
+translate_each({'if', Line, _}, S) ->
+  error(invalid_arguments_for_if);
+
 %% Functions
 
-translate_each({fn, Line, [{'[]', _, Args}, {':', _, Keywords}]}, S) ->
+translate_each({fn, Line, [{'[]', _, Args}, {':', _, [{do,_}] = Keywords}]}, S) ->
   { TArgs, NS } = translate_assigns(fun translate/2, Args, S),
   { TKeywords, FS } = translate_keywords(Keywords, NS),
   [{ do, TExprs}] = TKeywords,
@@ -128,13 +151,16 @@ translate_each(Atom, S) when is_atom(Atom) ->
 
 %% Helpers
 
+%% Assigns helpers
+
 translate_assigns(Fun, Args, Scope) ->
   { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
   { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
 
+%% Keyword helpers
+
 translate_keywords(Keywords, S) ->
-  { Result, NS } = lists:mapfoldl(fun translate_each_keyword/2, S, Keywords),
-  { orddict:from_list(Result), NS }.
+  lists:mapfoldl(fun translate_each_keyword/2, S, Keywords).
 
 translate_each_keyword({Key,Expr}, S) when not is_list(Expr) ->
   translate_each_keyword({Key,[Expr]}, S);
@@ -142,6 +168,133 @@ translate_each_keyword({Key,Expr}, S) when not is_list(Expr) ->
 translate_each_keyword({Key,Expr}, S) when is_atom(Key) ->
   { TExpr, NS } = translate(Expr, S),
   { { Key, TExpr }, NS }.
+
+%% Clauses
+
+translate_clauses(Line, [Clause], S) ->
+  { TClause, TS } = translate_each_clause(Clause, S),
+  { [TClause], TS };
+
+translate_clauses(Line, Clauses, RawS) ->
+  S = RawS#elixir_scope{clause_vars=dict:new()},
+
+  % Transform tree just passing the variables counter forward
+  % and storing variables defined inside each clause.
+  Transformer = fun(X, {Acc, CV}) ->
+    { TX, TAcc } = translate_each_clause(X, Acc),
+    { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
+  end,
+
+  { TClauses, { TS, RawCV } } = lists:mapfoldl(Transformer, {S, []}, Clauses),
+
+  % Now get all the variables defined inside each clause
+  CV = lists:reverse(RawCV),
+  NewVars = lists:umerge([lists:sort(dict:fetch_keys(X)) || X <- CV]),
+
+  case NewVars of
+    [] -> { TClauses, TS };
+    _  ->
+      % Create a new scope that contains a list of all variables
+      % defined inside all the clauses. It returns this new scope and
+      % a list of tuples where the first element is the variable name,
+      % the second one is the new pointer to the variable and the third
+      % is the old pointer.
+      { FinalVars, FS } = lists:mapfoldl(fun normalize_vars/2, TS, NewVars),
+
+      % Defines a tuple that will be used as left side of the match operator
+      LeftTuple = { tuple, Line, [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars] },
+      { StorageVar, SS } = elixir_tree_helpers:build_var_name(Line, FS),
+
+      % Expand all clauses by adding a match operation at the end that assigns
+      % variables missing in one clause to the others.
+      Expander = fun(Clause, Counter) ->
+        ClauseVars = lists:nth(Counter, CV),
+        RightTuple = [normalize_clause_var(Var, OldValue, ClauseVars) || {Var, _, OldValue} <- FinalVars],
+
+        AssignExpr = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
+        [Final|RawClauses] = lists:reverse(Clause),
+
+        % If the last sentence has a match clause, we need to assign its value
+        % in the variable list. If not, we insert the variable list before the
+        % final clause in order to keep it tail call optimized.
+        FinalClause = case has_match_tuple(Final) of
+          true ->
+            StorageExpr = { match, Line, StorageVar, Final },
+            [StorageVar,AssignExpr,StorageExpr|RawClauses];
+          false ->
+            [Final,AssignExpr|RawClauses]
+        end,
+
+        { lists:reverse(FinalClause), Counter + 1 }
+      end,
+
+      { FClauses, _ } = lists:mapfoldl(Expander, 1, TClauses),
+      { FClauses, SS }
+  end.
+
+translate_each_clause({Key,Expr}, S) when not is_list(Expr) ->
+  translate_each_clause({Key,[Expr]}, S);
+
+translate_each_clause({else,Expr}, S) ->
+  translate(Expr, S);
+
+translate_each_clause({Key,[Expr]}, S) ->
+  translate_each_clause({Key,[Expr,nil]}, S);
+
+translate_each_clause({Key,[Condition|Exprs]} = T, S) when Key == do; Key == elsif ->
+  { TCondition, SC } = translate_each(Condition, S),
+  { TExprs, SE } = translate(Exprs, SC),
+  { [TCondition|TExprs], SE }.
+
+% Helpers to translate clauses
+
+has_match_tuple({match, _, _, _}) ->
+  true;
+
+has_match_tuple(H) when is_tuple(H) ->
+  has_match_tuple(tuple_to_list(H));
+
+has_match_tuple(H) when is_list(H) ->
+  lists:any(fun has_match_tuple/1, H);
+
+has_match_tuple(H) -> false.
+
+% Normalize the given var checking its existence in the scope var dictionary.
+
+normalize_vars(Var, #elixir_scope{vars=Dict} = S) ->
+  { { _, _, NewValue }, NS } = elixir_tree_helpers:build_var_name(0, S),
+  FS = NS#elixir_scope{vars=dict:store(Var, NewValue, Dict)},
+
+  Expr = case dict:find(Var, Dict) of
+    { ok, OldValue } -> { var, 0, OldValue };
+    error -> { atom, 0, nil }
+  end,
+
+  { { Var, NewValue, Expr }, FS }.
+
+% If the var was defined in the clause, use it, otherwise use from main scope
+
+normalize_clause_var(Var, OldValue, ClauseVars) ->
+  case dict:find(Var, ClauseVars) of
+    { ok, ClauseValue } -> { var, 0, ClauseValue };
+    error -> OldValue
+  end.
+
+%% Build if clauses by nesting
+
+build_if_clauses(Line, [], Acc) ->
+  Acc;
+
+build_if_clauses(Line, [[Condition|Exprs]|Others], Acc) ->
+  True  = [{atom,Line,true}],
+  False = [{atom,Line,false}],
+
+  Case = { 'case', Line, elixir_tree_helpers:convert_to_boolean(Line, Condition, true), [
+    { clause, Line, True,  [], Exprs },
+    { clause, Line, False, [], Acc }
+  ] },
+
+  build_if_clauses(Line, Others, Case).
 
 % Receives two scopes and return a new scope based on the second
 % with their variables merged.
