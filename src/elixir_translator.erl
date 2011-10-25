@@ -282,7 +282,7 @@ normalize_clause_var(Var, OldValue, ClauseVars) ->
 
 %% Build if clauses by nesting
 
-build_if_clauses(Line, [], Acc) ->
+build_if_clauses(Line, [], [Acc]) ->
   Acc;
 
 build_if_clauses(Line, [[Condition|Exprs]|Others], Acc) ->
@@ -294,7 +294,7 @@ build_if_clauses(Line, [[Condition|Exprs]|Others], Acc) ->
     { clause, Line, False, [], Acc }
   ] },
 
-  build_if_clauses(Line, Others, Case).
+  build_if_clauses(Line, Others, [Case]).
 
 % Receives two scopes and return a new scope based on the second
 % with their variables merged.
