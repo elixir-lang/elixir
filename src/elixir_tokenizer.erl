@@ -32,7 +32,7 @@ tokenize(Line, [T|Rest], Tokens) when T == $ ; T == $\r; T == $\t ->
   tokenize(Line, Rest, Tokens);
 
 tokenize(Line, String, _) ->
-  { error, { Line, invalidtoken, String } }.
+  { error, { Line, "invalid token", String } }.
 
 %% Helpers
 
@@ -43,6 +43,9 @@ eol(Line, Tokens) ->
   end.
 
 % Integers and floats
+
+tokenize_number(Line, [$_,H|T], Acc) when H >= 48 andalso H =< 57 ->
+  tokenize_number(Line, T, [H|Acc]);
 
 tokenize_number(Line, [H|T], Acc) when H >= 48 andalso H =< 57 ->
   tokenize_number(Line, T, [H|Acc]);

@@ -1,10 +1,10 @@
 -module(arithmetic_test).
 -include_lib("eunit/include/eunit.hrl").
 
-% separator_test() ->
-%   {334,[]} = elixir:eval("3_34"),
-%   {600,[]} = elixir:eval("2_00+45_5-5_5").
-% 
+separator_test() ->
+  {334,[]} = elixir:eval("3_34"),
+  {600,[]} = elixir:eval("2_00+45_5-5_5").
+
 integer_sum_test() ->
   {3,[]} = elixir:eval("1+2"),
   {6,[]} = elixir:eval("1+2+3"),
