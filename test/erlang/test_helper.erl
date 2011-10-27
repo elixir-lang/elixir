@@ -15,6 +15,7 @@ test() ->
     ordered_dict_test,
     regexp_test,
     string_test,
+    tokenizer_test,
     translator_test
   ]).
 
