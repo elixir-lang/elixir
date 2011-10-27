@@ -7,12 +7,32 @@ tokenize(String, Line) ->
 tokenize(_, [], Tokens) ->
   lists:reverse(Tokens);
 
+% End of line
+
+tokenize(Line, "\n" ++ Rest, Tokens) ->
+  tokenize(Line + 1, Rest, eol(Line, Tokens));
+
+tokenize(Line, "\r\n" ++ Rest, Tokens) ->
+  tokenize(Line + 1, Rest, eol(Line, Tokens));
+
+% Punctuation tokens
+
 tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,; T == $; ->
   tokenize(Line, Rest, [{T, Line}|Tokens]);
+
+% Integers and floats
 
 tokenize(Line, [H|_] = String, Tokens) when H >= 48 andalso H =< 57 ->
   { Rest, Token } = tokenize_number(Line, String, []),
   tokenize(Line, Rest, [Token|Tokens]).
+
+%% Helpers
+
+eol(Line, Tokens) ->
+  case Tokens of
+    [{eol,_}|Rest] -> Tokens;
+    _ -> [{eol,Line}|Tokens]
+  end.
 
 % Integers and floats
 
