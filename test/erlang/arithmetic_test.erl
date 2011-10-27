@@ -34,6 +34,7 @@ integer_without_parens_test() ->
 
 integer_with_parens_test() ->
   {21,[]}   = elixir:eval("3 * (5 + 2)"),
+  {21,[]}   = elixir:eval("3 * (((5 + (2))))"),
   {25,[]}   = elixir:eval("(2 + 3) * 5"),
   {0.25,[]} = elixir:eval("4 / (11 + 5)").
 
