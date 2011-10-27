@@ -6,6 +6,7 @@ Nonterminals
   expr_list
   expr
   max_expr
+  base_expr
   add_op
   mult_op
   break
@@ -14,7 +15,7 @@ Nonterminals
 Terminals
   number
   '+' '-' '*' '/'
-  eol ';'
+  '(' ')' eol ';'
   .
 
 Rootsymbol grammar.
@@ -25,7 +26,7 @@ Left     120 mult_op.
 %%% MAIN FLOW OF EXPRESSIONS
 
 grammar -> expr_list : '$1'.
-grammar -> '$empty' : [{atom, 0, nil}].
+grammar -> '$empty' : [nil].
 
 % List of expressions delimited by break
 expr_list -> eol : [].
@@ -38,7 +39,10 @@ expr -> expr add_op expr : build_op('$2', '$1', '$3').
 expr -> expr mult_op expr : build_op('$2', '$1', '$3').
 expr -> max_expr : '$1'.
 
-max_expr -> number : ?exprs('$1').
+max_expr -> base_expr : '$1'.
+max_expr -> '(' grammar ')' : '$2'.
+
+base_expr -> number : ?exprs('$1').
 
 %% Helpers
 
@@ -47,9 +51,11 @@ break -> ';' : { eol, ?line('$1') }.
 
 add_op -> '+' : '$1'.
 add_op -> '-' : '$1'.
+add_op -> add_op eol : '$1'.
+
 mult_op -> '*' : '$1'.
 mult_op -> '/' : '$1'.
-
+mult_op -> mult_op eol : '$1'.
 
 Erlang code.
 
