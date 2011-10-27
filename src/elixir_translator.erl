@@ -1,6 +1,20 @@
 -module(elixir_translator).
--export([translate/2]).
+-export([translate/2, parse/3]).
 -include("elixir.hrl").
+
+parse(String, Line, #elixir_scope{filename=Filename} = S) ->
+  Forms = forms(String, Line, Filename),
+  translate(Forms, S).
+
+forms(String, StartLine, Filename) ->
+  case elixir_tokenizer:tokenize(String, StartLine) of
+    {ok, Tokens} ->
+      case elixir_parser:parse(Tokens) of
+        {ok, Forms} -> Forms;
+        {error, {Line, _, [Error, Token]}} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
+      end;
+    {error, {Line, Error, Token}} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
+  end.
 
 translate(Forms, S) ->
   lists:mapfoldl(fun translate_each/2, S, Forms).

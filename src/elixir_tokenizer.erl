@@ -5,7 +5,18 @@ tokenize(String, Line) ->
   tokenize(Line, String, []).
 
 tokenize(_, [], Tokens) ->
-  lists:reverse(Tokens);
+  { ok, lists:reverse(Tokens) };
+
+% Integers and floats
+
+tokenize(Line, [H|_] = String, Tokens) when H >= 48 andalso H =< 57 ->
+  { Rest, Token } = tokenize_number(Line, String, []),
+  tokenize(Line, Rest, [Token|Tokens]);
+
+% Operators/punctuation tokens
+
+tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,; T == $;; T == $+; T == $-; T == $*; T == $/ ->
+  tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
 
 % End of line
 
@@ -15,16 +26,13 @@ tokenize(Line, "\n" ++ Rest, Tokens) ->
 tokenize(Line, "\r\n" ++ Rest, Tokens) ->
   tokenize(Line + 1, Rest, eol(Line, Tokens));
 
-% Punctuation tokens
+% Spaces
 
-tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,; T == $; ->
-  tokenize(Line, Rest, [{T, Line}|Tokens]);
+tokenize(Line, [T|Rest], Tokens) when T == $ ; T == $\r; T == $\t ->
+  tokenize(Line, Rest, Tokens);
 
-% Integers and floats
-
-tokenize(Line, [H|_] = String, Tokens) when H >= 48 andalso H =< 57 ->
-  { Rest, Token } = tokenize_number(Line, String, []),
-  tokenize(Line, Rest, [Token|Tokens]).
+tokenize(Line, String, _) ->
+  { error, { Line, invalidtoken, String } }.
 
 %% Helpers
 

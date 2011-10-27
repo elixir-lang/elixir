@@ -3,18 +3,9 @@
 -export([test/0, unpack_string/1, unpack_regexp/1, run_and_remove/2, throw_elixir/1, throw_erlang/1]).
 
 test() ->
-  elixir:start_app(),
+  % elixir:start_app(),
   eunit:test([
     arithmetic_test,
-    atom_test,
-    erlang_call_test,
-    function_test,
-    match_test,
-    module_test,
-    operators_test,
-    ordered_dict_test,
-    regexp_test,
-    string_test,
     tokenizer_test,
     translator_test
   ]).

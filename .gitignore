@@ -1,7 +1,9 @@
-erl_crash.dump
-src/*_lexer.erl
-src/*_parser.erl
-test/ebin
-test/tmp
-ebin/*.beam
-exbin/*.beam
+/erl_crash.dump
+/src/*_lexer.erl
+/src/*_parser.erl
+/test/ebin
+/test/tmp
+/ebin/*.beam
+/exbin/*.beam
+/src/*rl.old
+
