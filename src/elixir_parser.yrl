@@ -4,7 +4,7 @@
 Nonterminals
   grammar expr_list expr call_expr max_expr base_expr
   break comma_separator
-  add_op mult_op unary_op
+  add_op mult_op unary_op match_op
   open_paren close_paren
   call_args call_args_parens
   operator_call
@@ -12,12 +12,13 @@ Nonterminals
 
 Terminals
   number
-  '+' '-' '*' '/' call_op
+  '+' '-' '*' '/' '=' call_op
   '(' ')' eol ';' ','
   .
 
 Rootsymbol grammar.
 
+Right     20 match_op.
 Left     110 add_op.
 Left     120 mult_op.
 Nonassoc 130 unary_op.
@@ -35,6 +36,7 @@ expr_list -> expr break : ['$1'].
 expr_list -> eol expr_list : '$2'.
 expr_list -> expr break expr_list : ['$1'|'$3'].
 
+expr -> expr match_op expr : build_op('$2', '$1', '$3').
 expr -> expr add_op expr : build_op('$2', '$1', '$3').
 expr -> expr mult_op expr : build_op('$2', '$1', '$3').
 expr -> unary_op expr : build_unary_op('$1', '$2').
@@ -73,6 +75,9 @@ mult_op -> mult_op eol : '$1'.
 
 unary_op -> '+' : '$1'.
 unary_op -> '-' : '$1'.
+
+match_op -> '=' : '$1'.
+match_op -> '=' eol : '$1'.
 
 % Function calls
 
