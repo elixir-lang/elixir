@@ -72,6 +72,18 @@ multiplication_test() ->
 division_test() ->
   1.5 = eval([{'/', 1, 3, 2}]).
 
+% Unary operators
+
+plus_test() ->
+  1 = eval([{'+', 1, 1}]),
+  1.2 = eval([{'+', 1, 1.2}]),
+  1.2 = eval([{'+', 1, [{'+', 1, 0.2, 1.0}]}]).
+
+minus_test() ->
+  -1 = eval([{'-', 1, 1}]),
+  -1.2 = eval([{'-', 1, 1.2}]),
+  -1.2 = eval([{'-', 1, [{'+', 1, 0.2, 1.0}]}]).
+
 %% Short-circuit operators
 
 andand_test() ->

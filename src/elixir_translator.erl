@@ -40,6 +40,18 @@ translate_each({ Op, Line, Left, Right }, S) when Op == '+'; Op == '-'; Op == '*
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   { { op, Line, Op, TLeft, TRight }, umergev(SL, SR) };
 
+% Unary Math Operators
+
+translate_each({ '+', Line, Expr }, S) when is_number(Expr) ->
+  translate_each(Expr, S);
+
+translate_each({ '-', Line, Expr }, S) when is_number(Expr) ->
+  translate_each(-1 * Expr, S);
+
+translate_each({ Op, Line, Expr }, S) when Op == '+'; Op == '-' ->
+  { TExpr, NS } = translate_each(Expr, S),
+  { { op, Line, Op, TExpr }, NS };
+
 %% Short-circuit operators
 
 translate_each({'||', Line, Left, Right}, S) ->

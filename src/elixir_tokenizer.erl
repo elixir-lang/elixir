@@ -10,7 +10,7 @@ tokenize(_, [], Tokens) ->
 % Integers and floats
 
 tokenize(Line, [H|_] = String, Tokens) when H >= 48 andalso H =< 57 ->
-  { Rest, Token } = tokenize_number(Line, String, []),
+  { Rest, Token } = tokenize_number(Line, String, [], false),
   tokenize(Line, Rest, [Token|Tokens]);
 
 % Operators/punctuation tokens
@@ -43,12 +43,24 @@ eol(Line, Tokens) ->
   end.
 
 % Integers and floats
+% At this point, we are at least sure the first digit is a number.
 
-tokenize_number(Line, [$_,H|T], Acc) when H >= 48 andalso H =< 57 ->
-  tokenize_number(Line, T, [H|Acc]);
+% Check if we have a point followed by a number;
+tokenize_number(Line, [$.,H|T], Acc, false) when H >= 48 andalso H =< 57 ->
+  tokenize_number(Line, T, [H,$.|Acc], true);
 
-tokenize_number(Line, [H|T], Acc) when H >= 48 andalso H =< 57 ->
-  tokenize_number(Line, T, [H|Acc]);
+% Check if we have an underscore followed by a number;
+tokenize_number(Line, [$_,H|T], Acc, Bool) when H >= 48 andalso H =< 57 ->
+  tokenize_number(Line, T, [H|Acc], Bool);
 
-tokenize_number(Line, Rest, Acc) ->
+% Just numbers;
+tokenize_number(Line, [H|T], Acc, Bool) when H >= 48 andalso H =< 57 ->
+  tokenize_number(Line, T, [H|Acc], Bool);
+
+% Cast to float...
+tokenize_number(Line, Rest, Acc, true) ->
+  { Rest, { number, Line, erlang:list_to_float(lists:reverse(Acc)) } };
+
+% Or integer.
+tokenize_number(Line, Rest, Acc, false) ->
   { Rest, { number, Line, erlang:list_to_integer(lists:reverse(Acc)) } }.
