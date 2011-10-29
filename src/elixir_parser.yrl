@@ -2,17 +2,17 @@
 % Copyright (C) 2011 Jose Valim
 
 Nonterminals
-  grammar expr_list expr max_expr base_expr
+  grammar expr_list expr call_expr max_expr base_expr
   break comma_separator
   add_op mult_op unary_op
   open_paren close_paren
   call_args call_args_parens
-  operator operator_call
+  operator_call
   .
 
 Terminals
   number
-  '+' '-' '*' '/'
+  '+' '-' '*' '/' call_op
   '(' ')' eol ';' ','
   .
 
@@ -21,6 +21,7 @@ Rootsymbol grammar.
 Left     110 add_op.
 Left     120 mult_op.
 Nonassoc 130 unary_op.
+Nonassoc 140 call_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -37,7 +38,10 @@ expr_list -> expr break expr_list : ['$1'|'$3'].
 expr -> expr add_op expr : build_op('$2', '$1', '$3').
 expr -> expr mult_op expr : build_op('$2', '$1', '$3').
 expr -> unary_op expr : build_unary_op('$1', '$2').
-expr -> max_expr : '$1'.
+expr -> call_expr : '$1'.
+
+call_expr -> operator_call : '$1'.
+call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
 max_expr -> '(' grammar ')' : '$2'.
@@ -70,12 +74,9 @@ mult_op -> mult_op eol : '$1'.
 unary_op -> '+' : '$1'.
 unary_op -> '-' : '$1'.
 
-% Method calls
+% Function calls
 
-operator -> '+' : '$1'.
-operator -> '-' : '$1'.
-operator -> '*' : '$1'.
-operator -> '/' : '$1'.
+operator_call -> call_op call_args_parens : build_call_op('$1', '$2').
 
 call_args -> expr : ['$1'].
 call_args -> expr comma_separator call_args : ['$1'|'$3'].
@@ -98,3 +99,9 @@ build_op(Op, Left, Right) ->
 
 build_unary_op(Op, Expr) ->
   { ?op(Op), ?line(Op), Expr }.
+
+build_call_op(Op, [Left, Right]) ->
+  { ?exprs(Op), ?line(Op), Left, Right };
+
+build_call_op(Op, [Expr]) ->
+  { ?exprs(Op), ?line(Op), Expr }.

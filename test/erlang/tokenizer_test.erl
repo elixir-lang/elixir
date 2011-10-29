@@ -9,6 +9,9 @@ tokenize(String) ->
 arithmetic_test() ->
   [{number,1,1},{'+',1},{number,1,2},{'+',1},{number,1,3}] = tokenize("1 + 2 + 3").
 
+op_call_test() ->
+  [{call_op,1,'+'},{'(',1},{number,1,1},{',',1},{number,1,2},{')',1}] = tokenize("+(1, 2)").
+
 integer_test() ->
   [{number, 1, 123}] = tokenize("123"),
   [{number, 1, 123},{';', 1}] = tokenize("123;"),

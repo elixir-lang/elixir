@@ -13,6 +13,11 @@ tokenize(Line, [H|_] = String, Tokens) when H >= 48 andalso H =< 57 ->
   { Rest, Token } = tokenize_number(Line, String, [], false),
   tokenize(Line, Rest, [Token|Tokens]);
 
+% Call operators
+
+tokenize(Line, [T,$(|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/ ->
+  tokenize(Line, Rest, [{'(',Line},{call_op,Line,list_to_atom([T])}|Tokens]);
+
 % Operators/punctuation tokens
 
 tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,; T == $;; T == $+; T == $-; T == $*; T == $/ ->
