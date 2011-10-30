@@ -84,7 +84,7 @@ translate_each({'&&', Line, Left, Right}, S) ->
 
 %% If
 
-translate_each({'if', Line, [Condition, {':', _, [{do,_}|_] = Keywords}]}, S) ->
+translate_each({'if', Line, [Condition, {'{}', _, [{do,_}|_] = Keywords}]}, S) ->
   [{ do, Exprs }|ElsesKeywords] = Keywords,
 
   IfKeywords = case is_list(Exprs) of
@@ -107,7 +107,7 @@ translate_each({'if', Line, _}, S) ->
 
 %% Functions
 
-translate_each({fn, Line, [{'[]', _, Args}, {':', _, [{do,_}] = Keywords}]}, S) ->
+translate_each({fn, Line, [{'[]', _, Args}, {'{}', _, [{do,_}] = Keywords}]}, S) ->
   { TArgs, NS } = translate_assigns(fun translate/2, Args, S),
   { TKeywords, FS } = translate_keywords(Keywords, NS),
   [{ do, TExprs}] = TKeywords,
