@@ -11,7 +11,7 @@ Nonterminals
   .
 
 Terminals
-  number
+  number atom
   '+' '-' '*' '/' '=' call_op
   '(' ')' eol ';' ','
   .
@@ -49,6 +49,7 @@ max_expr -> base_expr : '$1'.
 max_expr -> '(' grammar ')' : '$2'.
 
 base_expr -> number : ?exprs('$1').
+base_expr -> atom : ?exprs('$1').
 
 %% Helpers
 
