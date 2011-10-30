@@ -2,10 +2,10 @@
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
-% atom_with_punctuation_test() ->
-%   {'a?',[]} = elixir:eval("'a?"),
-%   {'a!',[]} = elixir:eval("'a!").
-% 
+atom_with_punctuation_test() ->
+  {'a?',[]} = elixir:eval(":a?"),
+  {'a!',[]} = elixir:eval(":a!").
+
 % atom_inspect_test() ->
 %   {String,[]} = elixir:eval("'a.inspect"),
 %   <<"'a">> = test_helper:unpack_string(String).

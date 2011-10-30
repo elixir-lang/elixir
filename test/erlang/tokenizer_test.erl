@@ -39,7 +39,7 @@ float_test() ->
   { error, _ } = elixir_tokenizer:tokenize("1._23", 1).
 
 identifier_test() ->
-  [{identifier,1,abc}] = tokenize("abc"),
+  [{identifier,1,abc}] = tokenize("abc "),
   [{punctuation_identifier,1,'abc?'}] = tokenize("abc?"),
   [{punctuation_identifier,1,'abc!'}] = tokenize("abc!"),
   [{punctuation_identifier,1,'a0c!'}] = tokenize("a0c!"),

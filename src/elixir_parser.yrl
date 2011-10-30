@@ -11,7 +11,7 @@ Nonterminals
   .
 
 Terminals
-  number atom
+  number atom identifier
   '+' '-' '*' '/' '=' call_op
   '(' ')' eol ';' ','
   .
@@ -50,6 +50,7 @@ max_expr -> '(' grammar ')' : '$2'.
 
 base_expr -> number : ?exprs('$1').
 base_expr -> atom : ?exprs('$1').
+base_expr -> identifier : build_identifier('$1').
 
 %% Helpers
 
@@ -111,3 +112,6 @@ build_call_op(Op, [Left, Right]) ->
 
 build_call_op(Op, [Expr]) ->
   { ?exprs(Op), ?line(Op), Expr }.
+
+build_identifier({ identifier, Line, Identifier }) ->
+  { Identifier, Line, false }.

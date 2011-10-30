@@ -37,8 +37,8 @@ tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,;
 
 % Identifier
 
-tokenize(Line, [T|String], Tokens) when T >= $a andalso T =< $z; T == $_ ->
-  { Rest, { Kind, Identifier } } = tokenize_paren_identifier([T|String], []),
+tokenize(Line, [H|_] = String, Tokens) when H >= $a andalso H =< $z; H == $_ ->
+  { Rest, { Kind, Identifier } } = tokenize_paren_identifier(String, []),
   tokenize(Line, Rest, [{Kind,Line,Identifier}|Tokens]);
 
 % End of line
@@ -94,7 +94,7 @@ tokenize_number(Rest, Acc, false) ->
 tokenize_identifier([H|T], Acc) when H >= $0 andalso H =< $9; H >= $A andalso H =< $Z; H >= $a andalso H =< $z; H == $_ ->
   tokenize_identifier(T, [H|Acc]);
 
-tokenize_identifier([H|Rest], Acc) when H == $?; H =< $! ->
+tokenize_identifier([H|Rest], Acc) when H == $?; H == $! ->
   { Rest, { punctuation_identifier, list_to_atom(lists:reverse([H|Acc])) } };
 
 tokenize_identifier(Rest, Acc) ->
