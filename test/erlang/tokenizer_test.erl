@@ -22,6 +22,9 @@ unquoted_atom_test() ->
 op_atom_test() ->
   [{atom,1,f0_1}] = tokenize(":f0_1").
 
+kv_test() ->
+  [{kv_identifier,1,do}] = tokenize("do:").
+
 integer_test() ->
   [{number, 1, 123}] = tokenize("123"),
   [{number, 1, 123},{';', 1}] = tokenize("123;"),
@@ -40,8 +43,8 @@ float_test() ->
 
 identifier_test() ->
   [{identifier,1,abc}] = tokenize("abc "),
-  [{punctuation_identifier,1,'abc?'}] = tokenize("abc?"),
-  [{punctuation_identifier,1,'abc!'}] = tokenize("abc!"),
-  [{punctuation_identifier,1,'a0c!'}] = tokenize("a0c!"),
+  [{punctuated_identifier,1,'abc?'}] = tokenize("abc?"),
+  [{punctuated_identifier,1,'abc!'}] = tokenize("abc!"),
+  [{punctuated_identifier,1,'a0c!'}] = tokenize("a0c!"),
   [{paren_identifier,1,'a0c'},{'(',1},{')',1}] = tokenize("a0c()"),
   [{paren_identifier,1,'a0c!'},{'(',1},{')',1}] = tokenize("a0c!()").

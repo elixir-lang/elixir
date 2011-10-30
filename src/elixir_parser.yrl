@@ -6,19 +6,24 @@ Nonterminals
   break comma_separator
   add_op mult_op unary_op match_op
   open_paren close_paren
-  call_args call_args_parens
+  call_args call_args_parens call_args_no_parens
   operator_call
+  base_orddict kv_comma kv
   .
 
 Terminals
-  number atom identifier
+  identifier kv_identifier punctuated_identifier paren_identifier
+  number atom
   '+' '-' '*' '/' '=' call_op
   '(' ')' eol ';' ','
   .
 
 Rootsymbol grammar.
 
+% Solve nested call_args conflicts
+
 Right     20 match_op.
+Left      40 ','.
 Left     110 add_op.
 Left     120 mult_op.
 Nonassoc 130 unary_op.
@@ -43,6 +48,10 @@ expr -> unary_op expr : build_unary_op('$1', '$2').
 expr -> call_expr : '$1'.
 
 call_expr -> operator_call : '$1'.
+call_expr -> paren_identifier call_args_parens : build_identifier('$1', '$2').
+call_expr -> punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
+call_expr -> identifier call_args_no_parens : build_identifier('$1', '$2').
+call_expr -> punctuated_identifier : build_identifier('$1', []).
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
@@ -50,7 +59,7 @@ max_expr -> '(' grammar ')' : '$2'.
 
 base_expr -> number : ?exprs('$1').
 base_expr -> atom : ?exprs('$1').
-base_expr -> identifier : build_identifier('$1').
+base_expr -> identifier : build_identifier('$1', false).
 
 %% Helpers
 
@@ -86,10 +95,23 @@ match_op -> '=' eol : '$1'.
 operator_call -> call_op call_args_parens : build_call_op('$1', '$2').
 
 call_args -> expr : ['$1'].
+call_args -> base_orddict : ['$1'].
 call_args -> expr comma_separator call_args : ['$1'|'$3'].
+
+call_args_no_parens -> call_args : '$1'.
 
 call_args_parens -> open_paren ')' : [].
 call_args_parens -> open_paren call_args close_paren : '$2'.
+
+% Orddict
+
+base_orddict -> kv_comma : { '{}', ?line(element(2,hd('$1'))), '$1' }.
+
+kv_comma -> kv expr : [{?exprs('$1'),'$2'}].
+kv_comma -> kv expr comma_separator kv_comma : [{?exprs('$1'),'$2'}|'$4'].
+
+kv -> kv_identifier : '$1'.
+kv -> kv_identifier eol : '$1'.
 
 Erlang code.
 
@@ -113,5 +135,5 @@ build_call_op(Op, [Left, Right]) ->
 build_call_op(Op, [Expr]) ->
   { ?exprs(Op), ?line(Op), Expr }.
 
-build_identifier({ identifier, Line, Identifier }) ->
-  { Identifier, Line, false }.
+build_identifier({ _, Line, Identifier }, Args) ->
+  { Identifier, Line, Args }.
