@@ -9,9 +9,20 @@ tokenize(_, [], Tokens) ->
 
 % Integers and floats
 
-tokenize(Line, [H|_] = String, Tokens) when H >= 48 andalso H =< 57 ->
+tokenize(Line, [H|_] = String, Tokens) when H >= $0 andalso H =< $9 ->
   { Rest, Token } = tokenize_number(Line, String, [], false),
   tokenize(Line, Rest, [Token|Tokens]);
+
+% Atoms
+
+tokenize(Line, [$:,T|String], Tokens) when T >= $A andalso T =< $Z; T >= $a andalso T =< $z; T == $_ ->
+  { Rest, Token } = tokenize_identifier(atom, Line, [T|String], []),
+  tokenize(Line, Rest, [Token|Tokens]);
+
+% Atom operators
+
+tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
+  tokenize(Line, Rest, [{atom,Line,list_to_atom([T])}|Tokens]);
 
 % Call operators
 
@@ -52,15 +63,15 @@ eol(Line, Tokens) ->
 % At this point, we are at least sure the first digit is a number.
 
 % Check if we have a point followed by a number;
-tokenize_number(Line, [$.,H|T], Acc, false) when H >= 48 andalso H =< 57 ->
+tokenize_number(Line, [$.,H|T], Acc, false) when H >= $0 andalso H =< $9 ->
   tokenize_number(Line, T, [H,$.|Acc], true);
 
 % Check if we have an underscore followed by a number;
-tokenize_number(Line, [$_,H|T], Acc, Bool) when H >= 48 andalso H =< 57 ->
+tokenize_number(Line, [$_,H|T], Acc, Bool) when H >= $0 andalso H =< $9 ->
   tokenize_number(Line, T, [H|Acc], Bool);
 
 % Just numbers;
-tokenize_number(Line, [H|T], Acc, Bool) when H >= 48 andalso H =< 57 ->
+tokenize_number(Line, [H|T], Acc, Bool) when H >= $0 andalso H =< $9 ->
   tokenize_number(Line, T, [H|Acc], Bool);
 
 % Cast to float...
@@ -70,3 +81,12 @@ tokenize_number(Line, Rest, Acc, true) ->
 % Or integer.
 tokenize_number(Line, Rest, Acc, false) ->
   { Rest, { number, Line, erlang:list_to_integer(lists:reverse(Acc)) } }.
+
+% Identifiers
+% At this point, the validity of the first character was already verified.
+
+tokenize_identifier(Kind, Line, [H|T], Acc) when H >= $0 andalso H =< $9; H >= $A andalso H =< $Z; H >= $a andalso H =< $z; H == $_ ->
+  tokenize_identifier(Kind, Line, T, [H|Acc]);
+
+tokenize_identifier(Kind, Line, Rest, Acc) ->
+  { Rest, { Kind, Line, list_to_atom(lists:reverse(Acc)) } }.

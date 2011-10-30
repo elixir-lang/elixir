@@ -12,6 +12,16 @@ arithmetic_test() ->
 op_call_test() ->
   [{call_op,1,'+'},{'(',1},{number,1,1},{',',1},{number,1,2},{')',1}] = tokenize("+(1, 2)").
 
+unquoted_atom_test() ->
+  [{atom, 1, '+'}] = tokenize(":+"),
+  [{atom, 1, '-'}] = tokenize(":-"),
+  [{atom, 1, '*'}] = tokenize(":*"),
+  [{atom, 1, '/'}] = tokenize(":/"),
+  [{atom, 1, '='}] = tokenize(":=").
+
+op_atom_test() ->
+  [{atom,1,f0_1}] = tokenize(":f0_1").
+
 integer_test() ->
   [{number, 1, 123}] = tokenize("123"),
   [{number, 1, 123},{';', 1}] = tokenize("123;"),
