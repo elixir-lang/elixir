@@ -3,11 +3,11 @@
 
 % invalid_function_test() ->
 %   ?assertError({badsyntax, _}, elixir:eval("a = -> (1 + 2)")).
-% 
-% function_assignment_test() ->
-%   {_, [{a, Res1}]} = elixir:eval("a = -> 1 + 2"),
-%   3 = Res1().
-% 
+
+function_assignment_test() ->
+  {_, [{a, Res1}]} = elixir:eval("a = fn do: 1 + 2"),
+  3 = Res1().
+
 % function_assignment_multiline_test() ->
 %   {_, [{a, Res2}]} = elixir:eval("a = do \nx = 1\nx + 2\n end"),
 %   3 = Res2(),

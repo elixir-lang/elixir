@@ -107,6 +107,9 @@ translate_each({'if', Line, _}, S) ->
 
 %% Functions
 
+translate_each({fn, Line, [{'{}', _, [{do,_}]}] = Args}, S) ->
+  translate_each({fn, Line, [{'[]', Line, []}|Args]}, S);
+
 translate_each({fn, Line, [{'[]', _, Args}, {'{}', _, [{do,_}] = Keywords}]}, S) ->
   { TArgs, NS } = translate_assigns(fun translate/2, Args, S),
   { TKeywords, FS } = translate_keywords(Keywords, NS),

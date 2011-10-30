@@ -7,6 +7,7 @@ test() ->
   eunit:test([
     atom_test,
     arithmetic_test,
+    function_test,
     match_test,
     tokenizer_test,
     translator_test
