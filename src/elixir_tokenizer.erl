@@ -32,14 +32,20 @@ tokenize(Line, [T,$(|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T =
 % Operators/punctuation tokens
 
 tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,;
-  T == $;; T == $+; T == $-; T == $*; T == $/; T == $= ->
+  T == $;; T == $+; T == $-; T == $*; T == $/; T == $=;
+  T == ${; T == $} ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
 
 % Identifier
 
 tokenize(Line, [H|_] = String, Tokens) when H >= $a andalso H =< $z; H == $_ ->
   { Rest, { Kind, Identifier } } = tokenize_extra_identifier(String, []),
-  tokenize(Line, Rest, [{Kind,Line,Identifier}|Tokens]);
+  case Kind == identifier andalso keyword(Identifier) of
+    true  ->
+      tokenize(Line, Rest, [{Identifier,Line}|Tokens]);
+    false ->
+      tokenize(Line, Rest, [{Kind,Line,Identifier}|Tokens])
+  end;
 
 % End of line
 
@@ -107,3 +113,8 @@ tokenize_extra_identifier(String, Acc) ->
     [$(|_] -> { Rest, { paren_identifier, Atom } };
     _ -> { Rest, { Kind, Atom } }
   end.
+
+% Keywords (OMG, so few!)
+keyword('do')  -> true;
+keyword('end') -> true;
+keyword(_)     -> false.

@@ -60,10 +60,13 @@ float_with_parens_and_unary_test() ->
 op_call_test() ->
   {3, []} = elixir:eval("+(1, 2)"),
   {-1, []} = elixir:eval("+(1, -(2))"),
-  {-1, []} = elixir:eval("+(=(1, 1), -2 = -2)").
-  % {3, [{a,1},{b,2}]} = elixir:eval("+(a = 1, b = 2)").
+  {-1, []} = elixir:eval("+(=(1, 1), -2 = -2)"),
+  {3, [{a,1},{b,2}]} = elixir:eval("+(a = 1, b = 2)").
 
-% operators_precedence_test() ->
+operators_precedence_test() ->
+  {5, []} = elixir:eval("abs -10 + 5"),
+  {15, []} = elixir:eval("abs(-10) + 5").
+
 %   F = fun() ->
 %     {3,[]} = elixir:eval("module Foo; def length; 1; end; end\n1 + Foo.length + 1"),
 %     {3,[]} = elixir:eval("1 + Foo.length+1"),

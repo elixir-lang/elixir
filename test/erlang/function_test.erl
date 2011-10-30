@@ -4,9 +4,14 @@
 % invalid_function_test() ->
 %   ?assertError({badsyntax, _}, elixir:eval("a = -> (1 + 2)")).
 
+function_do_end_test() ->
+  {Fun, _} = elixir:eval("fn do\n1 + 2\nend"),
+  3 = Fun(),
+  {3, _} = elixir:eval("if date do\n1 + 2\nend").
+
 function_assignment_test() ->
-  {_, [{a, Res1}]} = elixir:eval("a = fn do: 1 + 2"),
-  3 = Res1().
+  {_, [{a, Fun}]} = elixir:eval("a = fn do: 1 + 2"),
+  3 = Fun().
 
 % function_assignment_multiline_test() ->
 %   {_, [{a, Res2}]} = elixir:eval("a = do \nx = 1\nx + 2\n end"),
