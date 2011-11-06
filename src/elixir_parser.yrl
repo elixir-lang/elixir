@@ -116,15 +116,15 @@ call_args_parens -> open_paren call_args close_paren : '$2'.
 
 % KV and orddict
 
-base_orddict -> kv_comma : { '{}', ?line(element(2,hd('$1'))), '$1' }.
+base_orddict -> kv_comma : { '{}', ?line(hd('$1')), '$1' }.
 
-kv_comma -> kv_eol expr : [{?exprs('$1'),'$2'}].
-kv_comma -> kv_eol expr comma_separator kv_comma : [{?exprs('$1'),'$2'}|'$4'].
+kv_comma -> kv_eol expr : [{?exprs('$1'),?line('$1'),'$2'}].
+kv_comma -> kv_eol expr comma_separator kv_comma : [{?exprs('$1'),?line('$1'),'$2'}|'$4'].
 
 kv_eol -> kv_identifier : '$1'.
 kv_eol -> kv_identifier eol : '$1'.
 
-do_block -> 'do' expr_list 'end' : [{ '{}', ?line('$1'), [{'do','$2'}] }].
+do_block -> 'do' expr_list 'end' : [{ '{}', ?line('$1'), [{'do',?line('$1'),'$2'}] }].
 
 Erlang code.
 

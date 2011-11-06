@@ -67,16 +67,16 @@ translate(Line, Fun, Clauses, RawS) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-translate_each(Fun, {Key,Expr}, S) when not is_list(Expr) ->
-  translate_each(Fun, {Key,[Expr]}, S);
+translate_each(Fun, {Key,Line,Expr}, S) when not is_list(Expr) ->
+  translate_each(Fun, {Key,Line,[Expr]}, S);
 
-translate_each(Fun, {else,Expr}, S) ->
+translate_each(Fun, {else,_,Expr}, S) ->
   Fun(Expr, S);
 
-translate_each(Fun, {Key,[Expr]}, S) ->
-  translate_each(Fun, {Key,[Expr,nil]}, S);
+translate_each(Fun, {Key,Line,[Expr]}, S) ->
+  translate_each(Fun, {Key,Line,[Expr,nil]}, S);
 
-translate_each(Fun, {Key,[Condition|Exprs]} = T, S) when Key == do; Key == elsif; Key == match ->
+translate_each(Fun, {Key,_Line,[Condition|Exprs]} = T, S) when Key == do; Key == elsif; Key == match ->
   { [TCondition], SC } = Fun([Condition], S),
   { TExprs, SE } = Fun(Exprs, SC),
   { [TCondition|TExprs], SE }.

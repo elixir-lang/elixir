@@ -84,17 +84,17 @@ translate_each({'&&', Line, Left, Right}, S) ->
 
 %% If
 
-translate_each({'if', Line, [Condition, {'{}', _, [{do,_}|_] = Keywords}]}, S) ->
-  [{ do, Exprs }|ElsesKeywords] = Keywords,
+translate_each({'if', Line, [Condition, {'{}', _, [{do,_,_}|_] = Keywords}]}, S) ->
+  [{ do, DoLine, Exprs }|ElsesKeywords] = Keywords,
 
   IfKeywords = case is_list(Exprs) of
-    true  -> {do, [Condition|Exprs]};
-    false -> {do, [Condition,Exprs]}
+    true  -> {do, DoLine, [Condition|Exprs]};
+    false -> {do, DoLine, [Condition,Exprs]}
   end,
 
   case ElsesKeywords of
-    [{else,_} = ElseKeywords|ElsifsKeywords] -> [];
-    ElsifsKeywords -> ElseKeywords = {else,[nil]}
+    [{else,_,_} = ElseKeywords|ElsifsKeywords] -> [];
+    ElsifsKeywords -> ElseKeywords = {else,Line,[nil]}
   end,
 
   { Clauses, FS } = elixir_clauses:translate(Line, fun translate/2, [IfKeywords|ElsifsKeywords] ++ [ElseKeywords], S),
@@ -102,23 +102,23 @@ translate_each({'if', Line, [Condition, {'{}', _, [{do,_}|_] = Keywords}]}, S) -
   { build_if_clauses(Line, Others, Else), FS };
 
 % TODO: Handle tree errors properly
-translate_each({'if', Line, _}, S) ->
-  error(invalid_arguments_for_if);
+translate_each({'if', _, _} = Clause, S) ->
+  error({invalid_arguments_for_if, Clause});
 
 %% Functions
 
-translate_each({fn, Line, [{'{}', _, [{do,_}]}] = Args}, S) ->
+translate_each({fn, Line, [{'{}', _, [{do,_,_}]}] = Args}, S) ->
   translate_each({fn, Line, [{'[]', Line, []}|Args]}, S);
 
-translate_each({fn, Line, [{'[]', _, Args}, {'{}', _, [{do,_}] = Keywords}]}, S) ->
+translate_each({fn, Line, [{'[]', _, Args}, {'{}', _, [{do,_,_}] = Keywords}]}, S) ->
   { TArgs, NS } = translate_assigns(fun translate/2, Args, S),
   { TKeywords, FS } = translate_keywords(Keywords, NS),
-  [{ do, TExprs}] = TKeywords,
+  [{ do, _, TExprs}] = TKeywords,
   { { 'fun', Line, {clauses, [{clause, Line, TArgs, [], TExprs}]} }, FS };
 
 % TODO: Handle tree errors properly
-translate_each({fn, Line, _}, S) ->
-  error(invalid_arguments_for_fn);
+translate_each({fn, _, _} = Clause, S) ->
+  error({invalid_arguments_for_fn, Clause});
 
 %% Variables & Methods
 
@@ -191,12 +191,12 @@ translate_assigns(Fun, Args, Scope) ->
 translate_keywords(Keywords, S) ->
   lists:mapfoldl(fun translate_each_keyword/2, S, Keywords).
 
-translate_each_keyword({Key,Expr}, S) when not is_list(Expr) ->
-  translate_each_keyword({Key,[Expr]}, S);
+translate_each_keyword({Key,Line,Expr}, S) when not is_list(Expr) ->
+  translate_each_keyword({Key,Line,[Expr]}, S);
 
-translate_each_keyword({Key,Expr}, S) when is_atom(Key) ->
+translate_each_keyword({Key,Line,Expr}, S) when is_atom(Key) ->
   { TExpr, NS } = translate(Expr, S),
-  { { Key, TExpr }, NS }.
+  { { Key, Line, TExpr }, NS }.
 
 %% Build if clauses by nesting
 
