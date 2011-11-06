@@ -15,6 +15,15 @@ tokenize(Line, [H|_] = String, Tokens) when H >= $0 andalso H =< $9 ->
 
 % Atoms
 
+tokenize(Line, "true" ++ Rest, Tokens) ->
+  tokenize(Line, Rest, [{atom,Line,true}|Tokens]);
+
+tokenize(Line, "false" ++ Rest, Tokens) ->
+  tokenize(Line, Rest, [{atom,Line,false}|Tokens]);
+
+tokenize(Line, "nil" ++ Rest, Tokens) ->
+  tokenize(Line, Rest, [{atom,Line,nil}|Tokens]);
+
 tokenize(Line, [$:,T|String], Tokens) when T >= $A andalso T =< $Z; T >= $a andalso T =< $z; T == $_ ->
   { Rest, { _, Atom } } = tokenize_identifier([T|String], []),
   tokenize(Line, Rest, [{atom,Line,Atom}|Tokens]);

@@ -2,22 +2,21 @@
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
-% % Booleans
-% 
-% booleans_test() ->
-%   {nil, _} = elixir:eval("nil"),
-%   {true, _} = elixir:eval("true"),
-%   {false, _} = elixir:eval("false").
-% 
-% if_test() ->
-%   {1, _} = elixir:eval("if true; 1; end"),
-%   {nil, _} = elixir:eval("if false; 1; end"),
-%   {2, _} = elixir:eval("if false; 1; else 2; end"),
-%   {2, _} = elixir:eval("if false; 1; else; 2; end"),
-%   {3, _} = elixir:eval("if false; 1; elsif true; 3; else; 2; end"),
-%   {3, _} = elixir:eval("if false\n 1\n elsif true\n 3\n else\n 2\n end"),
-%   {3, _} = elixir:eval("if false then 1 elsif true then 3 else 2 end").
-% 
+% Booleans
+
+booleans_test() ->
+  {nil, _} = elixir:eval("nil"),
+  {true, _} = elixir:eval("true"),
+  {false, _} = elixir:eval("false").
+
+if_kvargs_test() ->
+  {1, _} = elixir:eval("if(true, do: 1)"),
+  {nil, _} = elixir:eval("if(false, do: 1)"),
+  {2, _} = elixir:eval("if(false, do: 1, else: 2)").
+  % {3, _} = elixir:eval("if false; 1; elsif true; 3; else; 2; end"),
+  % {3, _} = elixir:eval("if false\n 1\n elsif true\n 3\n else\n 2\n end"),
+  % {3, _} = elixir:eval("if false then 1 elsif true then 3 else 2 end").
+
 % unless_test() ->
 %   {1, _} = elixir:eval("unless false; 1; end"),
 %   {nil, _} = elixir:eval("unless true; 1; end"),
