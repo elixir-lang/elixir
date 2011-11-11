@@ -50,7 +50,7 @@ if_vars_test() ->
 
 functions_test() ->
   Keywords = { '{}', 1, [{do, 1, { '+', 1, { x, 1, false }, { y, 1, false }}}] },
-  Args     = { '[]', 1, [{ x, 1, false }, { y, 1, false }] },
+  Args = { '[]', 1, [{ x, 1, false }, { y, 1, false }] },
   Fun = eval([{ fn, 1, [Args, Keywords] }]),
   3 = Fun(1, 2).
 

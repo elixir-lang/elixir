@@ -9,6 +9,11 @@ tokenize(_, [], Tokens) ->
 
 % Integers and floats
 
+tokenize(Line, [Space,Sign,H|T], Tokens) when H >= $0 andalso H =< $9, Sign == $+ orelse Sign == $-, Space == $\s orelse Space == $\t ->
+  String = [H|T],
+  { Rest, Number } = tokenize_number(String, [], false),
+  tokenize(Line, Rest, [{signed_number,Line,Number,list_to_atom([Sign])}|Tokens]);
+
 tokenize(Line, [H|_] = String, Tokens) when H >= $0 andalso H =< $9 ->
   { Rest, Number } = tokenize_number(String, [], false),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
@@ -42,7 +47,7 @@ tokenize(Line, [T,$(|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T =
 
 tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,;
   T == $;; T == $+; T == $-; T == $*; T == $/; T == $=;
-  T == ${; T == $} ->
+  T == ${; T == $}; T == $[; T == $]; T == $| ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
 
 % Identifier
@@ -120,8 +125,24 @@ tokenize_extra_identifier(String, Acc) ->
   case Rest of
     [$:|T] -> { T, { kv_identifier, Atom } };
     [$(|_] -> { Rest, { paren_identifier, Atom } };
-    _ -> { Rest, { Kind, Atom } }
+    _ ->
+      case next_is_do(Rest) of
+        true  -> { Rest, { do_identifier, Atom } };
+        false -> { Rest, { Kind, Atom } }
+      end
   end.
+
+next_is_do([Space|Tokens]) when Space == $\t; Space == $\s ->
+  next_is_do(Tokens);
+
+next_is_do([$d,$o,H|_]) when H >= $0 andalso H =< $9; H >= $A andalso H =< $Z; H >= $a andalso H =< $z; H == $_; H == $: ->
+  false;
+
+next_is_do([$d,$o|_]) ->
+  true;
+
+next_is_do(_) ->
+  false.
 
 % Keywords (OMG, so few!)
 keyword('do')  -> true;

@@ -4,20 +4,22 @@
 Nonterminals
   grammar expr_list
   expr call_expr max_expr base_expr block_expr
-  break comma_separator
+  break comma_separator comma_expr
   add_op mult_op unary_op match_op
   open_paren close_paren
+  open_bracket close_bracket
   call_args call_args_parens call_args_no_parens
   operator_call
   base_orddict kv_comma kv_eol do_block
+  list var
   .
 
 Terminals
   'do' 'end'
-  identifier kv_identifier punctuated_identifier paren_identifier
-  number atom
+  identifier do_identifier kv_identifier punctuated_identifier paren_identifier
+  number signed_number atom
   '+' '-' '*' '/' '=' call_op
-  '(' ')' eol ';' ','
+  '(' ')' eol ';' ',' '[' ']' '|'
   .
 
 Rootsymbol grammar.
@@ -28,8 +30,9 @@ Right     20 match_op.
 Left      40 ','.
 Left     110 add_op.
 Left     120 mult_op.
-Nonassoc 130 unary_op.
-Nonassoc 140 call_op.
+Nonassoc 140 unary_op.
+Nonassoc 150 call_op.
+Nonassoc 160 var.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -47,7 +50,7 @@ block_expr -> paren_identifier call_args_parens do_block : build_identifier('$1'
 block_expr -> punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> punctuated_identifier do_block : build_identifier('$1', '$2').
 block_expr -> identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> identifier do_block : build_identifier('$1', '$2').
+block_expr -> do_identifier do_block : build_identifier('$1', '$2').
 block_expr -> expr : '$1'.
 
 expr -> expr match_op expr : build_op('$2', '$1', '$3').
@@ -67,10 +70,15 @@ max_expr -> base_expr : '$1'.
 max_expr -> '(' grammar ')' : '$2'.
 
 base_expr -> number : ?exprs('$1').
+base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
 base_expr -> atom : ?exprs('$1').
-base_expr -> identifier : build_identifier('$1', false).
+base_expr -> var : build_identifier('$1', false).
+base_expr -> do_identifier : build_identifier('$1', false).
+base_expr -> list : '$1'.
 
 %% Helpers
+
+var -> identifier : '$1'.
 
 break -> eol : '$1'.
 break -> ';' : { eol, ?line('$1') }.
@@ -78,10 +86,18 @@ break -> ';' : { eol, ?line('$1') }.
 comma_separator -> ','     : '$1'.
 comma_separator -> ',' eol : '$1'.
 
+comma_expr -> expr : ['$1'].
+comma_expr -> expr comma_separator comma_expr : ['$1'|'$3'].
+
 open_paren -> '('      : '$1'.
 open_paren -> '(' eol  : '$1'.
 close_paren -> ')'     : '$1'.
 close_paren -> eol ')' : '$2'.
+
+open_bracket  -> '['      : '$1'.
+open_bracket  -> '[' eol  : '$1'.
+close_bracket -> ']'     : '$1'.
+close_bracket -> eol ']' : '$2'.
 
 % Operators
 
@@ -126,6 +142,12 @@ kv_eol -> kv_identifier eol : '$1'.
 
 do_block -> 'do' expr_list 'end' : [{ '{}', ?line('$1'), [{'do',?line('$1'),'$2'}] }].
 
+% Lists
+
+list -> open_bracket ']' : build_list(?line('$1'), []).
+list -> open_bracket comma_expr close_bracket : build_list(?line('$1'), '$2').
+list -> open_bracket comma_expr '|' expr close_bracket : build_list(?line('$1'), '$2', ?line('$3'), '$4').
+
 Erlang code.
 
 -define(op(Node), element(1, Node)).
@@ -150,3 +172,11 @@ build_call_op(Op, [Expr]) ->
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, Args }.
+
+build_list(Line, Args) ->
+  { '[]', Line, Args }.
+
+build_list(Line, Args, Pipe, Tail) ->
+  [Last|Rest] = lists:reverse(Args),
+  Final = [{'|',Pipe,[Last,Tail]}|Rest],
+  { '[]', Line, lists:reverse(Final) }.

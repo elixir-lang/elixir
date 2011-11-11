@@ -1,17 +1,20 @@
 -module(function_test).
 -include_lib("eunit/include/eunit.hrl").
 
-% invalid_function_test() ->
-%   ?assertError({badsyntax, _}, elixir:eval("a = -> (1 + 2)")).
-
 function_do_end_test() ->
   {Fun, _} = elixir:eval("fn do\n1 + 2\nend"),
-  3 = Fun(),
+  3 = Fun().
+
+function_arg_do_end_test() ->
   {3, _} = elixir:eval("if date do\n1 + 2\nend").
 
 function_assignment_test() ->
   {_, [{a, Fun}]} = elixir:eval("a = fn do: 1 + 2"),
   3 = Fun().
+
+function_with_args_test() ->
+  {Fun, _} = elixir:eval("fn [a,b], do: a + b"),
+  3 = Fun(1,2).
 
 % function_assignment_multiline_test() ->
 %   {_, [{a, Res2}]} = elixir:eval("a = do \nx = 1\nx + 2\n end"),
