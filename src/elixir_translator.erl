@@ -107,6 +107,9 @@ translate_each({'if', _, _} = Clause, S) ->
 
 %% Containers
 
+translate_each({'[]', Line, []}, S) ->
+  { { nil, Line }, S };
+
 translate_each({'[]', Line, Args}, S) ->
   [RTail|RArgs] = lists:reverse(Args),
 
