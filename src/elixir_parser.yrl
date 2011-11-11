@@ -159,13 +159,13 @@ Erlang code.
 -compile([{hipe,[{regalloc,linear_scan}]}]).
 
 build_op(Op, Left, Right) ->
-  { ?op(Op), ?line(Op), Left, Right }.
+  { ?op(Op), ?line(Op), [Left, Right] }.
 
 build_unary_op(Op, Expr) ->
-  { ?op(Op), ?line(Op), Expr }.
+  { ?op(Op), ?line(Op), [Expr] }.
 
-build_call_op(Op, [Left, Right]) ->
-  { ?exprs(Op), ?line(Op), Left, Right };
+build_call_op(Op, Args) ->
+  { ?exprs(Op), ?line(Op), Args };
 
 build_call_op(Op, [Expr]) ->
   { ?exprs(Op), ?line(Op), Expr }.

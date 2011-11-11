@@ -21,7 +21,7 @@ translate(Forms, S) ->
 
 %% Assignment operator
 
-translate_each({'=', Line, Left, Right}, S) ->
+translate_each({'=', Line, [Left, Right]}, S) ->
   { TLeft, SL } = translate_assigns(fun translate_each/2, Left, S),
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   SM = umergev(SL, SR),
@@ -35,17 +35,17 @@ translate_each({'=', Line, Left, Right}, S) ->
 
 %% Math Operators
 
-translate_each({ Op, Line, Left, Right }, S) when Op == '+'; Op == '-'; Op == '*'; Op == '/' ->
+translate_each({ Op, Line, [Left, Right] }, S) when Op == '+'; Op == '-'; Op == '*'; Op == '/' ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   { { op, Line, Op, TLeft, TRight }, umergev(SL, SR) };
 
 % Unary Math Operators
 
-translate_each({ '+', Line, Expr }, S) when is_number(Expr) ->
+translate_each({ '+', Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(Expr, S);
 
-translate_each({ '-', Line, Expr }, S) when is_number(Expr) ->
+translate_each({ '-', Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(-1 * Expr, S);
 
 translate_each({ Op, Line, Expr }, S) when Op == '+'; Op == '-' ->
@@ -54,7 +54,7 @@ translate_each({ Op, Line, Expr }, S) when Op == '+'; Op == '-' ->
 
 %% Short-circuit operators
 
-translate_each({'||', Line, Left, Right}, S) ->
+translate_each({'||', Line, [Left, Right]}, S) ->
   { Var, NS } = elixir_tree_helpers:build_var_name(Line, S),
   { TLeft, SL } = translate_each(Left, NS),
   { TRight, SR } = translate_each(Right, umergec(NS, SL)),
@@ -68,7 +68,7 @@ translate_each({'||', Line, Left, Right}, S) ->
     { clause, Line, True, [], [Var] }
   ] }, umergev(SL, SR) };
 
-translate_each({'&&', Line, Left, Right}, S) ->
+translate_each({'&&', Line, [Left, Right]}, S) ->
   { TLeft, SL } = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
 
