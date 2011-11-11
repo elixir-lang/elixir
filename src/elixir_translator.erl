@@ -105,6 +105,24 @@ translate_each({'if', Line, [Condition, {'{}', _, [{do,_,_}|_] = Keywords}]}, S)
 translate_each({'if', _, _} = Clause, S) ->
   error({invalid_arguments_for_if, Clause});
 
+%% Containers
+
+translate_each({'[]', Line, Args}, S) ->
+  [RTail|RArgs] = lists:reverse(Args),
+
+  case RTail of
+    {'|',_,[Left,Right]} ->
+      Exprs = [Left|RArgs],
+      { Tail, ST } = translate_each(Right, S);
+    _ ->
+      Exprs = [RTail|RArgs],
+      Tail = { nil, Line},
+      ST = S
+  end,
+
+  { TExprs, SE } = elixir_tree_helpers:build_reverse_list(fun translate_each/2, Exprs, Line, umergec(S, ST), Tail),
+  { TExprs, umergev(ST, SE) };
+
 %% Functions
 
 translate_each({fn, Line, [{'{}', _, [{do,_,_}]}] = Args}, S) ->

@@ -1,6 +1,6 @@
 -module(elixir_tree_helpers).
--export([abstract_syntax/1, build_bin/4, build_simple_bin/2, build_list/4, build_list/5,
-  build_method_call/4, build_simple_list/2,
+-export([abstract_syntax/1, build_bin/4, build_simple_bin/2, build_list/5,
+  build_method_call/4, build_simple_list/2, build_reverse_list/5,
   build_var_name/2, convert_to_boolean/3]).
 -include("elixir.hrl").
 
@@ -22,6 +22,9 @@ build_list(Fun, Exprs, Line, S) ->
 
 build_list(Fun, Exprs, Line, S, Tail) ->
   build_list_each(Fun, lists:reverse(Exprs), Line, S, Tail).
+
+build_reverse_list(Fun, Exprs, Line, S, Tail) ->
+  build_list_each(Fun, Exprs, Line, S, Tail).
 
 build_list_each(Fun, [], Line, S, Acc) ->
   { Acc, S };

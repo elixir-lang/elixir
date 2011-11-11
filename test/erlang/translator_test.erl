@@ -23,6 +23,11 @@ assigning_twice_test() ->
 assignment_match_test() ->
   ?assertError({badmatch, 2}, eval([{'=', 1, 13, 2}])).
 
+%% Lists
+
+list_test() ->
+  [1,2,3] = eval([{'[]',1,[1,2,3]}]).
+
 %% Ifs
 
 if_do_test() ->
