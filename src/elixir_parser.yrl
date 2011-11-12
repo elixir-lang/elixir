@@ -143,7 +143,7 @@ call_args_parens -> open_paren call_args close_paren : '$2'.
 
 % KV and orddict
 
-base_orddict -> kv_comma : { '[]', ?line(hd('$1')), '$1' }.
+base_orddict -> kv_comma : { '[]', ?line(hd('$1')), lists:sort('$1') }.
 
 kv_comma -> kv_eol expr : [{'{}',?line('$1'),[?exprs('$1'),'$2']}].
 kv_comma -> kv_eol expr comma_separator kv_comma : [{'{}',?line('$1'),[?exprs('$1'),'$2']}|'$4'].
@@ -164,7 +164,7 @@ curly_block -> '{' expr_list '}' : build_block('$1', '$2').
 % in the existing one. Except list, everything should depend
 % on call_args.
 
-list_args -> kv_comma : '$1'.
+list_args -> kv_comma : lists:sort('$1').
 list_args -> block_expr : ['$1'].
 list_args -> block_expr comma_separator call_args : ['$1'|'$3'].
 
