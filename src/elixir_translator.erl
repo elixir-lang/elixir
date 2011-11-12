@@ -84,17 +84,19 @@ translate_each({'&&', Line, [Left, Right]}, S) ->
 
 %% If
 
-translate_each({'if', Line, [Condition, {'{}', _, [{do,_,_}|_] = Keywords}]}, S) ->
-  [{ do, DoLine, Exprs }|ElsesKeywords] = Keywords,
+translate_each({'if', Line, [Condition, {'[]', _, [{'{}', _, [do,_]}|_] = Keywords}]}, S) ->
+  [{ '{}', DoLine, [do,Exprs]}|ElsesKeywords] = Keywords,
 
-  IfKeywords = case is_list(Exprs) of
-    true  -> {do, DoLine, [Condition|Exprs]};
-    false -> {do, DoLine, [Condition,Exprs]}
+  WithCondition = case is_list(Exprs) of
+    true  -> [Condition|Exprs];
+    false -> [Condition,Exprs]
   end,
 
+  IfKeywords = {'{}', DoLine, [do, WithCondition]},
+
   case ElsesKeywords of
-    [{else,_,_} = ElseKeywords|ElsifsKeywords] -> [];
-    ElsifsKeywords -> ElseKeywords = {else,Line,[nil]}
+    [{'{}',_,[else,_]} = ElseKeywords|ElsifsKeywords] -> [];
+    ElsifsKeywords -> ElseKeywords = {'{}',Line,[else,nil]}
   end,
 
   { Clauses, FS } = elixir_clauses:translate(Line, fun translate/2, [IfKeywords|ElsifsKeywords] ++ [ElseKeywords], S),
@@ -132,11 +134,11 @@ translate_each({'[]', Line, Args}, S) ->
 
 %% Functions
 
-translate_each({function, Line, [{'[]', _, Args}, {'{}', _, [{do,_,_}] = Keywords}]}, S) ->
+translate_each({function, Line, [{'[]', _, Args}, {'[]', _, [{'{}', _, [do,_]} = Keywords]}]}, S) ->
   { TArgs, NS } = translate_assigns(fun translate/2, Args, S),
-  { TKeywords, FS } = translate_keywords(Keywords, NS),
-  [{ do, _, TExprs}] = TKeywords,
-  { { 'fun', Line, {clauses, [{clause, Line, TArgs, [], TExprs}]} }, FS };
+  { TKeywords, FS } = translate_each(Keywords, NS),
+  { tuple, _, [_, TExprs] } = TKeywords,
+  { { 'fun', Line, {clauses, [{clause, Line, TArgs, [], listify(TExprs)}]} }, FS };
 
 % TODO: Handle tree errors properly
 translate_each({function, _, _} = Clause, S) ->
@@ -202,23 +204,16 @@ translate_each(Atom, S) when is_atom(Atom) ->
 
 %% Helpers
 
+%% Listify
+
+listify(Expr) when not is_list(Expr) -> [Expr];
+listify(Expr) -> Expr.
+
 %% Assigns helpers
 
 translate_assigns(Fun, Args, Scope) ->
   { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
   { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
-
-%% Keyword helpers
-
-translate_keywords(Keywords, S) ->
-  lists:mapfoldl(fun translate_each_keyword/2, S, Keywords).
-
-translate_each_keyword({Key,Line,Expr}, S) when not is_list(Expr) ->
-  translate_each_keyword({Key,Line,[Expr]}, S);
-
-translate_each_keyword({Key,Line,Expr}, S) when is_atom(Key) ->
-  { TExpr, NS } = translate(Expr, S),
-  { { Key, Line, TExpr }, NS }.
 
 %% Build if clauses by nesting
 
