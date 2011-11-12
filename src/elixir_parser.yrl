@@ -9,11 +9,10 @@ Nonterminals
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
-  call_args call_args_parens call_args_no_parens
-  operator_call
+  call_args call_args_parens call_args_no_parens operator_call
   base_orddict kv_comma kv_eol do_block
   list list_args
-  var
+  var tuple
   .
 
 Terminals
@@ -77,6 +76,7 @@ base_expr -> atom : ?exprs('$1').
 base_expr -> var : build_identifier('$1', false).
 base_expr -> do_identifier : build_identifier('$1', false).
 base_expr -> list : '$1'.
+base_expr -> tuple : '$1'.
 
 %% Helpers
 
@@ -160,6 +160,11 @@ list_args -> block_expr comma_separator call_args : ['$1'|'$3'].
 list -> open_bracket ']' : build_list(?line('$1'), []).
 list -> open_bracket list_args close_bracket : build_list(?line('$1'), '$2').
 list -> open_bracket list_args '|' expr close_bracket : build_list(?line('$1'), '$2', ?line('$3'), '$4').
+
+% Tuple
+
+tuple -> open_curly '}' : { '{}', ?line('$1'), [] }.
+tuple -> open_curly call_args close_curly :  { '{}', ?line('$1'), '$2' }.
 
 Erlang code.
 
