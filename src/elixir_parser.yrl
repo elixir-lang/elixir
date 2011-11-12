@@ -4,7 +4,7 @@
 Nonterminals
   grammar expr_list
   expr call_expr max_expr base_expr block_expr
-  break comma_separator comma_expr
+  break comma_separator
   add_op mult_op unary_op match_op
   open_paren close_paren
   open_bracket close_bracket
@@ -12,7 +12,8 @@ Nonterminals
   call_args call_args_parens call_args_no_parens
   operator_call
   base_orddict kv_comma kv_eol do_block
-  list var
+  list list_args
+  var
   .
 
 Terminals
@@ -87,9 +88,6 @@ break -> ';' : { eol, ?line('$1') }.
 comma_separator -> ','     : '$1'.
 comma_separator -> ',' eol : '$1'.
 
-comma_expr -> block_expr : ['$1'].
-comma_expr -> block_expr comma_separator comma_expr : ['$1'|'$3'].
-
 open_paren -> '('      : '$1'.
 open_paren -> '(' eol  : '$1'.
 close_paren -> ')'     : '$1'.
@@ -150,9 +148,18 @@ do_block -> 'do' expr_list 'end' : [{'[]', ?line('$1'), [{'{}', ?line('$1'), ['d
 
 % Lists
 
+% list_args is an special case of call_args because kv_comma
+% does not generate a new array, it actually becomes tuples
+% in the existing one. Except list, everything should depend
+% on call_args.
+
+list_args -> kv_comma : '$1'.
+list_args -> block_expr : ['$1'].
+list_args -> block_expr comma_separator call_args : ['$1'|'$3'].
+
 list -> open_bracket ']' : build_list(?line('$1'), []).
-list -> open_bracket comma_expr close_bracket : build_list(?line('$1'), '$2').
-list -> open_bracket comma_expr '|' expr close_bracket : build_list(?line('$1'), '$2', ?line('$3'), '$4').
+list -> open_bracket list_args close_bracket : build_list(?line('$1'), '$2').
+list -> open_bracket list_args '|' expr close_bracket : build_list(?line('$1'), '$2', ?line('$3'), '$4').
 
 Erlang code.
 
