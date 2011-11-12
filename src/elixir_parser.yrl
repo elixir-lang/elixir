@@ -3,14 +3,14 @@
 
 Nonterminals
   grammar expr_list
-  expr call_expr max_expr base_expr block_expr
+  expr call_expr max_expr base_expr block_expr curly_expr
   break comma_separator
   add_op mult_op unary_op match_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
   call_args call_args_parens call_args_no_parens operator_call
-  base_orddict kv_comma kv_eol do_block
+  base_orddict kv_comma kv_eol do_block curly_block
   list list_args
   var tuple
   .
@@ -27,6 +27,8 @@ Rootsymbol grammar.
 
 % Solve nested call_args conflicts
 
+% TODO: Test p {} and p { foo } becomes a block
+Nonassoc  10 '{'.
 Right     20 match_op.
 Left      40 ','.
 Left     110 add_op.
@@ -58,7 +60,12 @@ expr -> expr match_op expr : build_op('$2', '$1', '$3').
 expr -> expr add_op expr : build_op('$2', '$1', '$3').
 expr -> expr mult_op expr : build_op('$2', '$1', '$3').
 expr -> unary_op expr : build_unary_op('$1', '$2').
-expr -> call_expr : '$1'.
+expr -> curly_expr : '$1'.
+
+curly_expr -> paren_identifier call_args_parens curly_block : build_identifier('$1', '$2' ++ '$3').
+curly_expr -> punctuated_identifier curly_block : build_identifier('$1', '$2').
+curly_expr -> identifier curly_block : build_identifier('$1', '$2').
+curly_expr -> call_expr : '$1'.
 
 call_expr -> operator_call : '$1'.
 call_expr -> paren_identifier call_args_parens : build_identifier('$1', '$2').
@@ -144,7 +151,11 @@ kv_comma -> kv_eol expr comma_separator kv_comma : [{'{}',?line('$1'),[?exprs('$
 kv_eol -> kv_identifier : '$1'.
 kv_eol -> kv_identifier eol : '$1'.
 
-do_block -> 'do' expr_list 'end' : [{'[]', ?line('$1'), [{'{}', ?line('$1'), ['do','$2']}] }].
+do_block -> 'do' 'end'           : build_block('$1', []).
+do_block -> 'do' expr_list 'end' : build_block('$1', '$2').
+
+curly_block -> '{' '}'           : build_block('$1', []).
+curly_block -> '{' expr_list '}' : build_block('$1', '$2').
 
 % Lists
 
@@ -187,6 +198,10 @@ build_call_op(Op, Args) ->
 
 build_call_op(Op, [Expr]) ->
   { ?exprs(Op), ?line(Op), Expr }.
+
+build_block(Delimiter, Contents) ->
+  Line = ?line(Delimiter),
+  [{'[]', Line, [{'{}', Line, ['do',Contents]}] }].
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, Args }.

@@ -6,7 +6,8 @@ function_do_end_test() ->
   3 = Fun().
 
 function_arg_do_end_test() ->
-  {3, _} = elixir:eval("if date do\n1 + 2\nend").
+  {3, _} = elixir:eval("if date do\n1 + 2\nend"),
+  {nil, _} = elixir:eval("if date do end").
 
 function_assignment_test() ->
   {_, [{a, Fun}]} = elixir:eval("a = function [], do: 1 + 2"),
