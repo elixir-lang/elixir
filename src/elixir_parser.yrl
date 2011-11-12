@@ -8,6 +8,7 @@ Nonterminals
   add_op mult_op unary_op match_op
   open_paren close_paren
   open_bracket close_bracket
+  open_curly close_curly
   call_args call_args_parens call_args_no_parens
   operator_call
   base_orddict kv_comma kv_eol do_block
@@ -19,7 +20,7 @@ Terminals
   identifier do_identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom
   '+' '-' '*' '/' '=' call_op
-  '(' ')' eol ';' ',' '[' ']' '|'
+  '(' ')' eol ';' ',' '[' ']' '|' '{' '}'
   .
 
 Rootsymbol grammar.
@@ -86,18 +87,23 @@ break -> ';' : { eol, ?line('$1') }.
 comma_separator -> ','     : '$1'.
 comma_separator -> ',' eol : '$1'.
 
-comma_expr -> expr : ['$1'].
-comma_expr -> expr comma_separator comma_expr : ['$1'|'$3'].
+comma_expr -> block_expr : ['$1'].
+comma_expr -> block_expr comma_separator comma_expr : ['$1'|'$3'].
 
 open_paren -> '('      : '$1'.
 open_paren -> '(' eol  : '$1'.
 close_paren -> ')'     : '$1'.
 close_paren -> eol ')' : '$2'.
 
-open_bracket  -> '['      : '$1'.
-open_bracket  -> '[' eol  : '$1'.
+open_bracket  -> '['     : '$1'.
+open_bracket  -> '[' eol : '$1'.
 close_bracket -> ']'     : '$1'.
 close_bracket -> eol ']' : '$2'.
+
+open_curly  -> '{'     : '$1'.
+open_curly  -> '{' eol : '$1'.
+close_curly -> '}'     : '$1'.
+close_curly -> eol '}' : '$2'.
 
 % Operators
 

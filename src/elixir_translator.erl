@@ -107,6 +107,10 @@ translate_each({'if', _, _} = Clause, S) ->
 
 %% Containers
 
+translate_each({'{}', Line, Args}, S) ->
+  { TArgs, SE } = translate(Args, S),
+  { {tuple, Line, TArgs}, SE };
+
 translate_each({'[]', Line, []}, S) ->
   { { nil, Line }, S };
 
@@ -128,18 +132,15 @@ translate_each({'[]', Line, Args}, S) ->
 
 %% Functions
 
-translate_each({fn, Line, [{'{}', _, [{do,_,_}]}] = Args}, S) ->
-  translate_each({fn, Line, [{'[]', Line, []}|Args]}, S);
-
-translate_each({fn, Line, [{'[]', _, Args}, {'{}', _, [{do,_,_}] = Keywords}]}, S) ->
+translate_each({function, Line, [{'[]', _, Args}, {'{}', _, [{do,_,_}] = Keywords}]}, S) ->
   { TArgs, NS } = translate_assigns(fun translate/2, Args, S),
   { TKeywords, FS } = translate_keywords(Keywords, NS),
   [{ do, _, TExprs}] = TKeywords,
   { { 'fun', Line, {clauses, [{clause, Line, TArgs, [], TExprs}]} }, FS };
 
 % TODO: Handle tree errors properly
-translate_each({fn, _, _} = Clause, S) ->
-  error({invalid_arguments_for_fn, Clause});
+translate_each({function, _, _} = Clause, S) ->
+  error({invalid_arguments_for_function, Clause});
 
 %% Variables & Methods
 

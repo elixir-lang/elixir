@@ -2,18 +2,18 @@
 -include_lib("eunit/include/eunit.hrl").
 
 function_do_end_test() ->
-  {Fun, _} = elixir:eval("fn do\n1 + 2\nend"),
+  {Fun, _} = elixir:eval("function [] do\n1 + 2\nend"),
   3 = Fun().
 
 function_arg_do_end_test() ->
   {3, _} = elixir:eval("if date do\n1 + 2\nend").
 
 function_assignment_test() ->
-  {_, [{a, Fun}]} = elixir:eval("a = fn do: 1 + 2"),
+  {_, [{a, Fun}]} = elixir:eval("a = function [], do: 1 + 2"),
   3 = Fun().
 
 function_with_args_test() ->
-  {Fun, _} = elixir:eval("fn [a,b], do: a + b"),
+  {Fun, _} = elixir:eval("function [a,b], do: a + b"),
   3 = Fun(1,2).
 
 % function_assignment_multiline_test() ->

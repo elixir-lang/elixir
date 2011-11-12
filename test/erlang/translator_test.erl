@@ -30,6 +30,10 @@ list_test() ->
   [1,2,3] = eval([{'[]',1,[1,2,3]}]),
   [1,2,3|4] = eval([{'[]',1,[1,2,{'|',1,[3,4]}]}]).
 
+tuple_test() ->
+  {} = eval([{'{}',1,[]}]),
+  {1,2,3} = eval([{'{}',1,[1,2,3]}]).
+
 %% Ifs
 
 if_do_test() ->
@@ -51,7 +55,7 @@ if_vars_test() ->
 functions_test() ->
   Keywords = { '{}', 1, [{do, 1, { '+', 1, [{ x, 1, false }, { y, 1, false }]}}] },
   Args = { '[]', 1, [{ x, 1, false }, { y, 1, false }] },
-  Fun = eval([{ fn, 1, [Args, Keywords] }]),
+  Fun = eval([{ function, 1, [Args, Keywords] }]),
   3 = Fun(1, 2).
 
 %% Literals
