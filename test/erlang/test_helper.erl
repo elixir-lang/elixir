@@ -10,6 +10,7 @@ test() ->
     function_test,
     operators_test,
     match_test,
+    namespace_test,
     tokenizer_test,
     translator_test
   ]).

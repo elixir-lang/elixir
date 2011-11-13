@@ -12,6 +12,7 @@ Nonterminals
   call_args call_args_parens call_args_no_parens operator_call
   base_orddict kv_comma kv_eol do_block curly_block
   list list_args
+  dot_op dot_identifier dot_do_identifier dot_paren_identifier dot_punctuated_identifier
   var tuple
   .
 
@@ -20,7 +21,7 @@ Terminals
   identifier do_identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom
   '+' '-' '*' '/' '=' call_op
-  '(' ')' eol ';' ',' '[' ']' '|' '{' '}'
+  '(' ')' eol ';' ',' '[' ']' '|' '{' '}' '.'
   .
 
 Rootsymbol grammar.
@@ -36,6 +37,7 @@ Left     120 mult_op.
 Nonassoc 140 unary_op.
 Nonassoc 150 call_op.
 Nonassoc 160 var.
+Right    170 dot_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -49,11 +51,11 @@ expr_list -> block_expr break : ['$1'].
 expr_list -> eol expr_list : '$2'.
 expr_list -> block_expr break expr_list : ['$1'|'$3'].
 
-block_expr -> paren_identifier call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> punctuated_identifier do_block : build_identifier('$1', '$2').
-block_expr -> identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> do_identifier do_block : build_identifier('$1', '$2').
+block_expr -> dot_paren_identifier call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_punctuated_identifier do_block : build_identifier('$1', '$2').
+block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
 block_expr -> expr : '$1'.
 
 expr -> expr match_op expr : build_op('$2', '$1', '$3').
@@ -62,16 +64,16 @@ expr -> expr mult_op expr : build_op('$2', '$1', '$3').
 expr -> unary_op expr : build_unary_op('$1', '$2').
 expr -> curly_expr : '$1'.
 
-curly_expr -> paren_identifier call_args_parens curly_block : build_identifier('$1', '$2' ++ '$3').
-curly_expr -> punctuated_identifier curly_block : build_identifier('$1', '$2').
-curly_expr -> identifier curly_block : build_identifier('$1', '$2').
+curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2' ++ '$3').
+curly_expr -> dot_punctuated_identifier curly_block : build_identifier('$1', '$2').
+curly_expr -> dot_identifier curly_block : build_identifier('$1', '$2').
 curly_expr -> call_expr : '$1'.
 
 call_expr -> operator_call : '$1'.
-call_expr -> paren_identifier call_args_parens : build_identifier('$1', '$2').
-call_expr -> punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
-call_expr -> identifier call_args_no_parens : build_identifier('$1', '$2').
-call_expr -> punctuated_identifier : build_identifier('$1', []).
+call_expr -> dot_paren_identifier call_args_parens : build_identifier('$1', '$2').
+call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
+call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
+call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
@@ -81,13 +83,13 @@ base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
 base_expr -> atom : ?exprs('$1').
 base_expr -> var : build_identifier('$1', false).
-base_expr -> do_identifier : build_identifier('$1', false).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
 
 %% Helpers
 
-var -> identifier : '$1'.
+var -> dot_identifier : '$1'.
+var -> dot_do_identifier : '$1'.
 
 break -> eol : '$1'.
 break -> ';' : { eol, ?line('$1') }.
@@ -125,6 +127,23 @@ unary_op -> '-' : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.
+
+% Dot operator
+
+dot_op -> '.' : '$1'.
+dot_op -> '.' eol : '$1'.
+
+dot_identifier -> identifier : ['$1'].
+dot_identifier -> identifier dot_op dot_identifier : ['$1'|'$3'].
+
+dot_do_identifier -> do_identifier : ['$1'].
+dot_do_identifier -> dot_identifier dot_op do_identifier : '$1' ++ ['$3'].
+
+dot_paren_identifier -> paren_identifier : ['$1'].
+dot_paren_identifier -> dot_identifier dot_op paren_identifier : '$1' ++ ['$3'].
+
+dot_punctuated_identifier -> punctuated_identifier : ['$1'].
+dot_punctuated_identifier -> dot_identifier dot_op punctuated_identifier : '$1' ++ ['$3'].
 
 % Function calls
 
@@ -203,7 +222,7 @@ build_block(Delimiter, Contents) ->
   Line = ?line(Delimiter),
   [{'[]', Line, [{'{}', Line, ['do',Contents]}] }].
 
-build_identifier({ _, Line, Identifier }, Args) ->
+build_identifier([{ _, Line, Identifier }], Args) ->
   { Identifier, Line, Args }.
 
 build_list(Line, Args) ->

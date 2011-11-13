@@ -35,11 +35,7 @@ float_test() ->
   [{number, 1, 12.3}] = tokenize("12.3"),
   [{number, 1, 12.3},{';', 1}] = tokenize("12.3;"),
   [{eol, 1}, {number, 3, 12.3}] = tokenize("\n\n12.3"),
-  [{number, 1, 12.3}, {number, 1, 23.4}] = tokenize("  12.3  23.4  "),
-  { error, _ } = elixir_tokenizer:tokenize("1.", 1),
-  { error, _ } = elixir_tokenizer:tokenize(".23", 1),
-  { error, _ } = elixir_tokenizer:tokenize("1_.23", 1),
-  { error, _ } = elixir_tokenizer:tokenize("1._23", 1).
+  [{number, 1, 12.3}, {number, 1, 23.4}] = tokenize("  12.3  23.4  ").
 
 identifier_test() ->
   [{identifier,1,abc}] = tokenize("abc "),
@@ -48,3 +44,10 @@ identifier_test() ->
   [{punctuated_identifier,1,'a0c!'}] = tokenize("a0c!"),
   [{paren_identifier,1,'a0c'},{'(',1},{')',1}] = tokenize("a0c()"),
   [{paren_identifier,1,'a0c!'},{'(',1},{')',1}] = tokenize("a0c!()").
+
+dot_test() ->
+  [{identifier,1,foo},
+   {'.',1},
+   {identifier,1,bar},
+   {'.',1},
+   {identifier,1,baz}] = tokenize("foo.bar.baz").
