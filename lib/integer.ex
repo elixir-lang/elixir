@@ -51,7 +51,7 @@ module Integer
       <<self>>
     end
 
-    % Conver an integer to a char list of its digits.
+    % Convert an integer to a char list of its digits.
     %
     % ## Examples
     %
