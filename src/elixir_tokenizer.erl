@@ -9,11 +9,6 @@ tokenize(_, [], Tokens) ->
 
 % Integers and floats
 
-tokenize(Line, [Space,Sign,H|T], Tokens) when H >= $0 andalso H =< $9, Sign == $+ orelse Sign == $-, Space == $\s orelse Space == $\t ->
-  String = [H|T],
-  { Rest, Number } = tokenize_number(String, [], false),
-  tokenize(Line, Rest, [{signed_number,Line,Number,list_to_atom([Sign])}|Tokens]);
-
 tokenize(Line, [H|_] = String, Tokens) when H >= $0 andalso H =< $9 ->
   { Rest, Number } = tokenize_number(String, [], false),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
@@ -46,6 +41,14 @@ tokenize(Line, [T,$(|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T =
 tokenize(Line, [T1,T2,$(|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
   T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
   tokenize(Line, [$(|Rest], [{call_op,Line,list_to_atom([T1,T2])}|Tokens]);
+
+% Ambiguous unary/binary operators tokens
+
+tokenize(Line, [Space,Sign,NotSpace|T], [{Identifier,_,_}|_] = Tokens) when Sign == $+ orelse Sign == $-,
+  Space == $\s orelse Space == $\t, NotSpace /= $\s andalso NotSpace /= $\t andalso NotSpace /= $\n,
+  Identifier == identifier orelse Identifier == punctuated_identifier ->
+  Rest = [NotSpace|T],
+  tokenize(Line, Rest, [{special_op,Line,list_to_atom([Sign])}|Tokens]);
 
 % Operators/punctuation tokens
 

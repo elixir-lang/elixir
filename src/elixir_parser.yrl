@@ -20,7 +20,7 @@ Terminals
   'do' 'end'
   identifier do_identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom
-  '+' '-' '*' '/' '=' call_op
+  '+' '-' '*' '/' '=' call_op special_op
   '(' ')' eol ';' ',' '[' ']' '|' '{' '}' '.'
   .
 
@@ -38,6 +38,7 @@ Nonassoc 140 unary_op.
 Nonassoc 150 call_op.
 Nonassoc 160 var.
 Right    170 dot_op.
+Nonassoc 180 special_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -62,6 +63,7 @@ expr -> expr match_op expr : build_op('$2', '$1', '$3').
 expr -> expr add_op expr : build_op('$2', '$1', '$3').
 expr -> expr mult_op expr : build_op('$2', '$1', '$3').
 expr -> unary_op expr : build_unary_op('$1', '$2').
+expr -> special_op expr : build_special_op('$1', '$2').
 expr -> curly_expr : '$1'.
 
 curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2' ++ '$3').
@@ -211,6 +213,9 @@ build_op(Op, Left, Right) ->
 
 build_unary_op(Op, Expr) ->
   { ?op(Op), ?line(Op), [Expr] }.
+
+build_special_op(Op, Expr) ->
+  { ?exprs(Op), ?line(Op), [Expr] }.
 
 build_call_op(Op, Args) ->
   { ?exprs(Op), ?line(Op), Args };

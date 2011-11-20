@@ -8,6 +8,7 @@ separator_test() ->
 integer_sum_test() ->
   {3,[]} = elixir:eval("1+2"),
   {6,[]} = elixir:eval("1+2+3"),
+  {6,[]} = elixir:eval("1+2 +3"),
   {6,[]} = elixir:eval("1 + 2 + 3").
 
 integer_sum_minus_test() ->
@@ -66,6 +67,11 @@ op_call_test() ->
 operators_precedence_test() ->
   {5, []} = elixir:eval("abs -10 + 5"),
   {15, []} = elixir:eval("abs(-10) + 5").
+
+operators_variables_precedence_test() ->
+  {30, _} = elixir:eval("a = 10\nb= 20\na+b"),
+  % {30, _} = elixir:eval("a = 10\nb= 20\na +b"),
+  {30, _} = elixir:eval("a = 10\nb= 20\na + b").
 
 %   F = fun() ->
 %     {3,[]} = elixir:eval("module Foo; def length; 1; end; end\n1 + Foo.length + 1"),
