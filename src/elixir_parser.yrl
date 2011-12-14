@@ -239,7 +239,11 @@ build_block(Delimiter, Contents) ->
   [{'[]', Line, [{'{}', Line, ['do',Contents]}] }].
 
 build_identifier({ '.', DotLine, Expr, { _, Line, Identifier } }, Args) ->
-  { { '.', DotLine, Expr, Identifier }, Line, Args };
+  FArgs = case Args of
+    false -> [];
+    _ -> Args
+  end,
+  { { '.', DotLine, Expr, Identifier }, Line, FArgs };
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, Args }.
