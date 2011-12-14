@@ -11,4 +11,5 @@ erlang_call_test() ->
   {_, []} = elixir:eval("Erlang.dict.new()"),
   {1, []} = elixir:eval("Erlang.erlang_call_test.match()"),
   Date = erlang:date(),
-  {Date, []} = elixir:eval(".(:erlang, :date)").
+  {Date, []} = elixir:eval(".(:erlang, :date)"),
+  {1, []} = elixir:eval(".(:erlang, :abs)(-1)").

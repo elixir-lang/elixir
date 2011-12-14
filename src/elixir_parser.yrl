@@ -79,6 +79,7 @@ call_expr -> dot_paren_identifier call_args_parens : build_identifier('$1', '$2'
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
+call_expr -> expr dot_call_op call_args_parens : build_identifier({ '.', ?line('$2'), ['$1']}, '$3').
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.

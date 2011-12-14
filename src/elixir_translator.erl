@@ -138,8 +138,8 @@ translate_each({ref, Line, Ref}, S) ->
   { {atom, Line, Ref }, S };
 
 translate_each({'::', Line, [Left, Right]}, S) ->
-  { TLeft, LS } = translate_each(Left, S),
-  { TRight, RS } = translate_each(Right, LS),
+  { TLeft, SL } = translate_each(Left, S),
+  { TRight, SR } = translate_each(Right, umergec(S, SL)),
 
   % TODO: Handle the case were TLeft or TRight are not an atom
   Final = case {TLeft,TRight} of
@@ -148,7 +148,7 @@ translate_each({'::', Line, [Left, Right]}, S) ->
       { atom, Line, Atom }
   end,
 
-  { Final, RS };
+  { Final, umergev(SL, SR) };
 
 %% Functions
 
@@ -210,10 +210,17 @@ translate_each({{'.', _, [{{ '.', _, [{ref, _, 'Erlang'}, Remote]}, _, _}, Atom]
 %% Dot calls
 
 translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
-  { TLeft,  LS } = translate_each(Left, S),
-  { TRight, RS } = translate_each(Right, LS),
-  { TArgs,  NS } = translate(Args, RS),
-  { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, NS };
+  { TLeft,  SL } = translate_each(Left, S),
+  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+  { TArgs,  SA } = translate(Args, umergec(S, SR)),
+  { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) };
+
+%% Fun calls
+
+translate_each({{'.', _, [Expr]}, Line, Args}, S) ->
+  { TExpr, SE } = translate_each(Expr, S),
+  { TArgs, SA } = translate(Args, umergec(S, SE)),
+  { {call, Line, TExpr, TArgs}, umergev(SE, SA) };
 
 %% Block expressions
 

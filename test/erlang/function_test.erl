@@ -21,6 +21,9 @@ function_with_kv_args_test() ->
   {Fun, _} = elixir:eval("function [a, other: b, another: c], do: a + b + c"),
   6 = Fun(1,[{another,3},{other,2}]).
 
+function_call_test() ->
+  {3, _} = elixir:eval("x = function [a,b], do: a + b\nx.(1,2)").
+
 % function_assignment_multiline_test() ->
 %   {_, [{a, Res2}]} = elixir:eval("a = do \nx = 1\nx + 2\n end"),
 %   3 = Res2(),
