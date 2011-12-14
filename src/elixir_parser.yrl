@@ -47,24 +47,24 @@ grammar -> '$empty' : [nil].
 
 % List of expressions delimited by break
 expr_list -> eol : [].
-expr_list -> block_expr : ['$1'].
-expr_list -> block_expr break : ['$1'].
+expr_list -> expr : ['$1'].
+expr_list -> expr break : ['$1'].
 expr_list -> eol expr_list : '$2'.
-expr_list -> block_expr break expr_list : ['$1'|'$3'].
-
-block_expr -> dot_paren_identifier call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> dot_punctuated_identifier do_block : build_identifier('$1', '$2').
-block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
-block_expr -> expr : '$1'.
+expr_list -> expr break expr_list : ['$1'|'$3'].
 
 expr -> expr match_op expr : build_op('$2', '$1', '$3').
 expr -> expr add_op expr : build_op('$2', '$1', '$3').
 expr -> expr mult_op expr : build_op('$2', '$1', '$3').
 expr -> unary_op expr : build_unary_op('$1', '$2').
 expr -> special_op expr : build_special_op('$1', '$2').
-expr -> curly_expr : '$1'.
+expr -> block_expr : '$1'.
+
+block_expr -> dot_paren_identifier call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_punctuated_identifier do_block : build_identifier('$1', '$2').
+block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
+block_expr -> curly_expr : '$1'.
 
 curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2' ++ '$3').
 curly_expr -> dot_punctuated_identifier curly_block : build_identifier('$1', '$2').
@@ -135,17 +135,17 @@ match_op -> '=' eol : '$1'.
 dot_op -> '.' : '$1'.
 dot_op -> '.' eol : '$1'.
 
-dot_identifier -> identifier : ['$1'].
-dot_identifier -> identifier dot_op dot_identifier : ['$1'|'$3'].
+dot_identifier -> identifier : '$1'.
+dot_identifier -> expr dot_op identifier : { '.', ?line('$2'), '$1', '$3' }.
 
-dot_do_identifier -> do_identifier : ['$1'].
-dot_do_identifier -> dot_identifier dot_op do_identifier : '$1' ++ ['$3'].
+dot_do_identifier -> do_identifier : '$1'.
+dot_do_identifier -> expr dot_op do_identifier : { '.', ?line('$2'), '$1', '$3' }.
 
-dot_paren_identifier -> paren_identifier : ['$1'].
-dot_paren_identifier -> dot_identifier dot_op paren_identifier : '$1' ++ ['$3'].
+dot_paren_identifier -> paren_identifier : '$1'.
+dot_paren_identifier -> expr dot_op paren_identifier : { '.', ?line('$2'), '$1', '$3' }.
 
-dot_punctuated_identifier -> punctuated_identifier : ['$1'].
-dot_punctuated_identifier -> dot_identifier dot_op punctuated_identifier : '$1' ++ ['$3'].
+dot_punctuated_identifier -> punctuated_identifier : '$1'.
+dot_punctuated_identifier -> expr dot_op punctuated_identifier : { '.', ?line('$2'), '$1', '$3' }.
 
 % Function calls
 
@@ -155,9 +155,9 @@ call_args_no_parens -> expr : ['$1'].
 call_args_no_parens -> base_orddict : ['$1'].
 call_args_no_parens -> expr comma_separator call_args : ['$1'|'$3'].
 
-call_args -> block_expr : ['$1'].
+call_args -> expr : ['$1'].
 call_args -> base_orddict : ['$1'].
-call_args -> block_expr comma_separator call_args : ['$1'|'$3'].
+call_args -> expr comma_separator call_args : ['$1'|'$3'].
 
 call_args_parens -> open_paren ')' : [].
 call_args_parens -> open_paren call_args close_paren : '$2'.
@@ -186,8 +186,8 @@ curly_block -> '{' expr_list '}' : build_block('$1', '$2').
 % on call_args.
 
 list_args -> kv_comma : lists:sort('$1').
-list_args -> block_expr : ['$1'].
-list_args -> block_expr comma_separator call_args : ['$1'|'$3'].
+list_args -> expr : ['$1'].
+list_args -> expr comma_separator call_args : ['$1'|'$3'].
 
 list -> open_bracket ']' : build_list(?line('$1'), []).
 list -> open_bracket list_args close_bracket : build_list(?line('$1'), '$2').
@@ -227,7 +227,10 @@ build_block(Delimiter, Contents) ->
   Line = ?line(Delimiter),
   [{'[]', Line, [{'{}', Line, ['do',Contents]}] }].
 
-build_identifier([{ _, Line, Identifier }], Args) ->
+build_identifier({ '.', DotLine, Expr, { _, Line, Identifier } }, Args) ->
+  { { '.', DotLine, Expr, Identifier }, Line, Args };
+
+build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, Args }.
 
 build_list(Line, Args) ->
