@@ -39,7 +39,7 @@ tokenize(Line, [T,$(|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T =
   tokenize(Line, [$(|Rest], [{call_op,Line,list_to_atom([T])}|Tokens]);
 
 tokenize(Line, [T1,T2,$(|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
-  T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
+  T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $}; T1 == $: andalso T2 == $: ->
   tokenize(Line, [$(|Rest], [{call_op,Line,list_to_atom([T1,T2])}|Tokens]);
 
 % Ambiguous unary/binary operators tokens
@@ -56,6 +56,15 @@ tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,;
   T == $;; T == $+; T == $-; T == $*; T == $/; T == $=;
   T == ${; T == $}; T == $[; T == $]; T == $|; T == $. ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
+
+tokenize(Line, [T1,T2|Rest], Tokens) when T1 == $: andalso T2 == $: ->
+  tokenize(Line, Rest, [{list_to_atom([T1,T2]), Line}|Tokens]);
+
+% References
+
+tokenize(Line, [H|_] = String, Tokens) when H >= $A andalso H =< $Z ->
+  { Rest, { _, Identifier } } = tokenize_identifier(String, [], false),
+  tokenize(Line, Rest, [{ref,Line,Identifier}|Tokens]);
 
 % Identifier
 
@@ -118,13 +127,16 @@ tokenize_number(Rest, Acc, false) ->
 % Identifiers
 % At this point, the validity of the first character was already verified.
 
-tokenize_identifier([H|T], Acc) when H >= $0 andalso H =< $9; H >= $A andalso H =< $Z; H >= $a andalso H =< $z; H == $_ ->
-  tokenize_identifier(T, [H|Acc]);
+tokenize_identifier(String, Acc) ->
+  tokenize_identifier(String, Acc, true).
 
-tokenize_identifier([H|Rest], Acc) when H == $?; H == $! ->
+tokenize_identifier([H|T], Acc, Bool) when H >= $0 andalso H =< $9; H >= $A andalso H =< $Z; H >= $a andalso H =< $z; H == $_ ->
+  tokenize_identifier(T, [H|Acc], Bool);
+
+tokenize_identifier([H|Rest], Acc, true) when H == $?; H == $! ->
   { Rest, { punctuated_identifier, list_to_atom(lists:reverse([H|Acc])) } };
 
-tokenize_identifier(Rest, Acc) ->
+tokenize_identifier(Rest, Acc, _) ->
   { Rest, { identifier, list_to_atom(lists:reverse(Acc)) } }.
 
 tokenize_extra_identifier(String, Acc) ->

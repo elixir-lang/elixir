@@ -132,6 +132,24 @@ translate_each({'[]', Line, Args}, S) ->
   { TExprs, SE } = elixir_tree_helpers:build_reverse_list(fun translate_each/2, Exprs, Line, umergec(S, ST), Tail),
   { TExprs, umergev(ST, SE) };
 
+%% References
+
+translate_each({ref, Line, Ref}, S) ->
+  { {atom, Line, Ref }, S };
+
+translate_each({'::', Line, Left, Right}, S) ->
+  { TLeft, LS } = translate_each(Left, S),
+  { TRight, RS } = translate_each(Right, LS),
+
+  % TODO: Handle the case were TLeft or TRight are not an atom
+  Final = case {TLeft,TRight} of
+    {{atom,Line,ALeft}, {atom,_,ARight}} ->
+      Atom = list_to_atom(lists:concat([atom_to_list(ALeft), "::", atom_to_list(ARight)])),
+      { atom, Line, Atom }
+  end,
+
+  { Final, RS };
+
 %% Functions
 
 translate_each({function, Line, [{'[]', _, Args}, {'[]', _, [{'{}', _, [do,_]} = Keywords]}]}, S) ->

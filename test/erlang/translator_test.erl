@@ -23,6 +23,14 @@ assigning_twice_test() ->
 assignment_match_test() ->
   ?assertError({badmatch, 2}, eval([{'=', 1, [13, 2]}])).
 
+%% References
+
+single_reference_test() ->
+  {'Foo', _} = eval([{ref, 1, 'Foo'}], []).
+
+nested_reference_test() ->
+  {'Foo::Bar::Baz', _} = eval([{'::',1,{ref,1,'Foo'},{'::',1,{ref,1,'Bar'},{ref,1,'Baz'}}}], []).
+
 %% Lists
 
 list_test() ->

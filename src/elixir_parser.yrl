@@ -13,15 +13,16 @@ Nonterminals
   base_orddict kv_comma kv_eol do_block curly_block
   list list_args
   dot_op dot_identifier dot_do_identifier dot_paren_identifier dot_punctuated_identifier
+  ref_op ref_identifier
   var tuple
   .
 
 Terminals
   'do' 'end'
-  identifier do_identifier kv_identifier punctuated_identifier paren_identifier
+  ref identifier do_identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom
   '+' '-' '*' '/' '=' call_op special_op
-  '(' ')' eol ';' ',' '[' ']' '|' '{' '}' '.'
+  '(' ')' eol ';' ',' '[' ']' '|' '{' '}' '.' '::'
   .
 
 Rootsymbol grammar.
@@ -37,8 +38,9 @@ Left     120 mult_op.
 Nonassoc 140 unary_op.
 Nonassoc 150 call_op.
 Nonassoc 160 var.
-Right    170 dot_op.
-Nonassoc 180 special_op.
+Left     170 dot_op.
+Right    180 ref_op.
+Nonassoc 190 special_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -87,6 +89,7 @@ base_expr -> atom : ?exprs('$1').
 base_expr -> var : build_identifier('$1', false).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
+base_expr -> ref_identifier : '$1'.
 
 %% Helpers
 
@@ -129,6 +132,14 @@ unary_op -> '-' : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.
+
+% Ref operator
+
+ref_op -> '::' : '$1'.
+ref_op -> '::' eol : '$1'.
+
+ref_identifier -> ref : '$1'.
+ref_identifier -> ref ref_op ref_identifier : { '::', ?line('$2'), '$1', '$3' }.
 
 % Dot operator
 
