@@ -197,6 +197,22 @@ translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
   { TArgs, NS } = translate(Args, S),
   { { call, Line, { atom, Line, Atom }, TArgs }, NS };
 
+% Erlang calls
+
+translate_each({{'.', _, { ref, _, 'Erlang'}, Atom}, Line, Args}, S) when is_atom(Atom) ->
+  { TArgs, NS } = case Args of
+    false -> { [], S };
+    _ -> translate(Args, S)
+  end,
+  { { call, Line, { atom, Line, Atom }, TArgs }, NS };
+
+  translate_each({{'.', _, {{ '.', _, {ref, _, 'Erlang'}, Remote}, _, _}, Atom}, Line, Args}, S) when is_atom(Atom) and is_atom(Remote) ->
+    { TArgs, NS } = case Args of
+      false -> { [], S };
+      _ -> translate(Args, S)
+    end,
+    { { call, Line, { remote, Line, { atom, Line, Remote}, { atom, Line, Atom } }, TArgs }, NS };
+
 %% Block expressions
 
 translate_each([], S) ->

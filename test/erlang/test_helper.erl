@@ -5,8 +5,9 @@
 test() ->
   % elixir:start_app(),
   eunit:test([
-    atom_test,
     arithmetic_test,
+    atom_test,
+    erlang_call_test,
     function_test,
     operators_test,
     match_test,
