@@ -21,7 +21,7 @@ Terminals
   'do' 'end'
   ref identifier do_identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom
-  '+' '-' '*' '/' '=' call_op special_op
+  '+' '-' '*' '/' '=' call_op special_op dot_call_op
   '(' ')' eol ';' ',' '[' ']' '|' '{' '}' '.' '::'
   .
 
@@ -37,6 +37,7 @@ Left     110 add_op.
 Left     120 mult_op.
 Nonassoc 140 unary_op.
 Nonassoc 150 call_op.
+Nonassoc 150 dot_call_op.
 Nonassoc 160 var.
 Left     170 dot_op.
 Right    180 ref_op.
@@ -139,7 +140,7 @@ ref_op -> '::' : '$1'.
 ref_op -> '::' eol : '$1'.
 
 ref_identifier -> ref : '$1'.
-ref_identifier -> ref ref_op ref_identifier : { '::', ?line('$2'), '$1', '$3' }.
+ref_identifier -> ref ref_op ref_identifier : { '::', ?line('$2'), ['$1', '$3'] }.
 
 % Dot operator
 
@@ -147,16 +148,17 @@ dot_op -> '.' : '$1'.
 dot_op -> '.' eol : '$1'.
 
 dot_identifier -> identifier : '$1'.
-dot_identifier -> expr dot_op identifier : { '.', ?line('$2'), '$1', '$3' }.
+dot_identifier -> dot_call_op call_args_parens : { '.', ?line('$1'), '$2' }.
+dot_identifier -> expr dot_op identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
 dot_do_identifier -> do_identifier : '$1'.
-dot_do_identifier -> expr dot_op do_identifier : { '.', ?line('$2'), '$1', '$3' }.
+dot_do_identifier -> expr dot_op do_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
 dot_paren_identifier -> paren_identifier : '$1'.
-dot_paren_identifier -> expr dot_op paren_identifier : { '.', ?line('$2'), '$1', '$3' }.
+dot_paren_identifier -> expr dot_op paren_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
 dot_punctuated_identifier -> punctuated_identifier : '$1'.
-dot_punctuated_identifier -> expr dot_op punctuated_identifier : { '.', ?line('$2'), '$1', '$3' }.
+dot_punctuated_identifier -> expr dot_op punctuated_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
 % Function calls
 
@@ -229,21 +231,21 @@ build_special_op(Op, Expr) ->
   { ?exprs(Op), ?line(Op), [Expr] }.
 
 build_call_op(Op, Args) ->
-  { ?exprs(Op), ?line(Op), Args };
-
-build_call_op(Op, [Expr]) ->
-  { ?exprs(Op), ?line(Op), Expr }.
+  { ?exprs(Op), ?line(Op), Args }.
 
 build_block(Delimiter, Contents) ->
   Line = ?line(Delimiter),
   [{'[]', Line, [{'{}', Line, ['do',Contents]}] }].
 
-build_identifier({ '.', DotLine, Expr, { _, Line, Identifier } }, Args) ->
+build_identifier({ '.', DotLine, [Expr, { _, Line, Identifier }] }, Args) ->
+  build_identifier({ '.', DotLine, [Expr, Identifier] }, Args);
+
+build_identifier({ '.', Line, _ } = Dot, Args) ->
   FArgs = case Args of
     false -> [];
     _ -> Args
   end,
-  { { '.', DotLine, Expr, Identifier }, Line, FArgs };
+  { Dot, Line, FArgs };
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, Args }.

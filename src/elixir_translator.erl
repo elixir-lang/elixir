@@ -137,7 +137,7 @@ translate_each({'[]', Line, Args}, S) ->
 translate_each({ref, Line, Ref}, S) ->
   { {atom, Line, Ref }, S };
 
-translate_each({'::', Line, Left, Right}, S) ->
+translate_each({'::', Line, [Left, Right]}, S) ->
   { TLeft, LS } = translate_each(Left, S),
   { TRight, RS } = translate_each(Right, LS),
 
@@ -199,21 +199,21 @@ translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
 
 %% Erlang calls
 
-translate_each({{'.', _, { ref, _, 'Erlang'}, Atom}, Line, Args}, S) when is_atom(Atom) ->
+translate_each({{'.', _, [{ ref, _, 'Erlang'}, Atom]}, Line, Args}, S) when is_atom(Atom) ->
   { TArgs, NS } = translate(Args, S),
   { { call, Line, { atom, Line, Atom }, TArgs }, NS };
 
-translate_each({{'.', _, {{ '.', _, {ref, _, 'Erlang'}, Remote}, _, _}, Atom}, Line, Args}, S) when is_atom(Atom) and is_atom(Remote) ->
+translate_each({{'.', _, [{{ '.', _, [{ref, _, 'Erlang'}, Remote]}, _, _}, Atom]}, Line, Args}, S) when is_atom(Atom) and is_atom(Remote) ->
   { TArgs, NS } = translate(Args, S),
   { { call, Line, { remote, Line, { atom, Line, Remote}, { atom, Line, Atom } }, TArgs }, NS };
 
 %% Dot calls
 
-translate_each({{'.', _, Left, Right}, Line, Args}, S) ->
-  { TLeft,  LS } = translate(Left, S),
-  { TRight, RS } = translate(Right, LS),
+translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
+  { TLeft,  LS } = translate_each(Left, S),
+  { TRight, RS } = translate_each(Right, LS),
   { TArgs,  NS } = translate(Args, RS),
-  { { call, Line, { remote, Line, TLeft, Right }, TArgs }, NS };
+  { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, NS };
 
 %% Block expressions
 
