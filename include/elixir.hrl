@@ -26,9 +26,9 @@
 %
 %   1)  when true, new variables can be defined in that subtree
 %   2)  when true, we are inside a guard
-%   3)  when true, do not assign to the variable name
-%   4)  the name of the current method
-%   5)  the current module kind and name
+%   3)  when true, don't resolve sub references
+%   4)  the current method
+%   5)  the current namespace
 %   6)  a dict of defined variables and their alias
 %   7)  a list of all variables defined in a particular assign
 %   8)  a dict of all variables defined in a particular clause
@@ -36,5 +36,5 @@
 %   10) the current scope filename
 %   11) a dict of variables that were explictly assigned and their tree value
 %
--record(elixir_scope, {assign=false, guard=false, noname=false, method=[], nesting=[], vars=dict:new(),
+-record(elixir_scope, {assign=false, guard=false, noref=false, method=[], namespace=[], vars=dict:new(),
   temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile", assigned_vars=dict:new()}).

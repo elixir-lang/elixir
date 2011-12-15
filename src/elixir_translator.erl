@@ -176,9 +176,7 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
       case { Match, dict:is_key(Name, Vars), lists:member(Name, TempVars) } of
         { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
         { true, Else, _ } ->
-          % If it was already assigned or in a noname scope, build a new var.
-          % TODO: Potentially get rid of noname scopes.
-          { NewVar, NS } = case Else or S#elixir_scope.noname of
+          { NewVar, NS } = case Else of
             true -> elixir_tree_helpers:build_var_name(Line, S);
             false -> { {var, Line, Name}, S }
           end,
