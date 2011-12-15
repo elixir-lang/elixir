@@ -82,11 +82,6 @@ compile_module(Line, Filename, ElixirName, #elixir_module__{name=Name, data=Attr
   FinalMixins = [ElixirName|TempMixins],
   Bootstrap = bootstrap_modules(ElixirName),
 
-  case Bootstrap of
-    true  -> [];
-    false -> elixir_def_method:flat_module(Line, TempMixins, MethodTable)
-  end,
-
   {P0, Inherited, F0} = elixir_def_method:unwrap_stored_methods(MethodTable),
 
   { P1, F1 } = add_extra_function(Bootstrap, P0, F0, {'__mixins__',1},        mixins_function(Line, Module, FinalMixins)),

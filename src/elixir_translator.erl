@@ -4,7 +4,12 @@
 
 parse(String, Line, #elixir_scope{filename=Filename} = S) ->
   Forms = forms(String, Line, Filename),
-  translate(Forms, S).
+  { Translated, FS } = translate(Forms, S),
+  Final = case FS#elixir_scope.namespace of
+    [] -> Translated;
+    _  -> Translated ++ [elixir_namespace:transform(0, compile, FS)]
+  end,
+  { Final, FS }.
 
 forms(String, StartLine, Filename) ->
   case elixir_tokenizer:tokenize(String, StartLine) of
@@ -132,9 +137,32 @@ translate_each({'[]', Line, Args}, S) ->
   { TExprs, SE } = elixir_tree_helpers:build_reverse_list(fun translate_each/2, Exprs, Line, umergec(S, ST), Tail),
   { TExprs, umergev(ST, SE) };
 
-%% References
+%% References and namespaces
 
-translate_each({ref, Line, [Ref]}, S) ->
+translate_each({ns, Line, [Ref]}, S) ->
+  case S#elixir_scope.method of
+    [] ->
+      { TRef, NS } = translate_each(Ref, S),
+      case TRef of
+        { atom, _, Namespace } ->
+          FS = NS#elixir_scope{namespace = Namespace},
+          Expr = case S#elixir_scope.namespace of
+            [] -> elixir_namespace:transform(Line, build, FS);
+            _  ->
+              { block, Line, [
+                elixir_namespace:transform(Line, compile, S),
+                elixir_namespace:transform(Line, build, FS)
+              ] }
+          end,
+          { Expr, FS };
+        _ ->
+          elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid namespace name")
+      end;
+    _ ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for namespace")
+  end;
+
+translate_each({ref, Line, [Ref]}, S) when is_atom(Ref) ->
   { {atom, Line, Ref }, S };
 
 translate_each({'::', Line, [Left, Right]}, S) ->
@@ -203,7 +231,7 @@ translate_each({{'.', _, [{ ref, _, ['Erlang']}, Atom]}, Line, Args}, S) when is
 
 translate_each({{'.', _, [{{ '.', _, [{ref, _, ['Erlang']}, Remote]}, _, _}, Atom]}, Line, Args}, S) when is_atom(Atom) and is_atom(Remote) ->
   { TArgs, NS } = translate(Args, S),
-  { { call, Line, { remote, Line, { atom, Line, Remote}, { atom, Line, Atom } }, TArgs }, NS };
+  { ?ELIXIR_WRAP_CALL(Line, Remote, Atom, TArgs), NS };
 
 %% Dot calls
 

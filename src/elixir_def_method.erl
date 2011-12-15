@@ -1,17 +1,17 @@
 % Holds the logic responsible for methods definition during compile time.
 % For methods introspection, check elixir_methods.
 -module(elixir_def_method).
--export([unpack_default_clause/2, new_method_table/1, flat_module/3,
+-export([unpack_default_clause/2, new_method_table/1,
   wrap_method_definition/4, store_wrapped_method/4, unwrap_stored_methods/1]).
 -include("elixir.hrl").
 
 % Creates a new method table for the given name.
-new_method_table(ElixirName) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex, ElixirName]),
+new_method_table(Namespace) ->
+  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Namespace]),
   ets:new(MethodTable, [set, named_table, private]),
   ets:insert(MethodTable, { public, [] }),
   ets:insert(MethodTable, { private, [] }),
-  ets:insert(MethodTable, { inherited, [] }),
+  ets:insert(MethodTable, { macros, [] }),
   ets:insert(MethodTable, { visibility, public }),
   MethodTable.
 
@@ -71,43 +71,19 @@ store_wrapped_method(Self, Filename, OriginalMethod, Defaults) ->
 
 % Helper to unwrap the methods stored in the methods table. It also returns
 % a list of methods to be exported with all methods.
-unwrap_stored_methods(Table) ->
+unwrap_stored_methods(Namespace) ->
+  Table     = ?ELIXIR_ATOM_CONCAT([m, Namespace]),
   Public    = ets:lookup_element(Table, public, 2),
   Private   = ets:lookup_element(Table, private, 2),
-  Inherited = ets:lookup_element(Table, inherited, 2),
+  Macros    = ets:lookup_element(Table, macros, 2),
   ets:delete(Table, visibility),
   ets:delete(Table, public),
   ets:delete(Table, private),
-  ets:delete(Table, inherited),
-  { Public, Inherited, ets:foldl(fun(X, Acc) -> unwrap_stored_method(X, Acc, Private) end, [], Table) }.
+  ets:delete(Table, macros),
+  { Public, Macros, ets:foldl(fun(X, Acc) -> unwrap_stored_method(X, Acc, Private) end, [], Table) }.
 
 unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc, Private) ->
-  FClauses = update_local_calls(lists:reverse(Clauses), Private),
-  [{function, Line, Name, Arity, FClauses}|Acc].
-
-% Receives a method table and adds the given What from Object in it.
-flat_module(Line, Modules, MethodTable) ->
-  Visibility = lists:foldl(fun(ElixirModule, Acc1) ->
-    Module = ?ELIXIR_ERL_MODULE(ElixirModule),
-    lists:foldl(fun({Method, ElixirArity}, Acc2) ->
-      Arity = ElixirArity + 1,
-      case ets:lookup(MethodTable, {Method, Arity}) of
-        [] ->
-          BuiltArgs = build_arg(Arity, Line, []),
-
-          ets:insert(MethodTable, {
-            { Method, Arity }, Line, [
-              { clause, Line, BuiltArgs, [], [?ELIXIR_WRAP_CALL(Line, Module, Method, BuiltArgs)] }
-            ]
-          }),
-
-          [{Method,Arity}|Acc2];
-        _ -> Acc2
-      end
-    end, Acc1, elixir_methods:inherit_methods(Module))
-  end, [], Modules),
-
-  ets:insert(MethodTable, { inherited, Visibility }).
+  [{function, Line, Name, Arity, Clauses}|Acc].
 
 %% Helpers
 
@@ -168,26 +144,6 @@ prune_vars(H) when is_list(H) ->
   lists:map(fun prune_vars/1, H);
 
 prune_vars(H) -> H.
-
-% Update local calls now that we know all private methods.
-update_local_calls({local_call, Line, Name, Args}, Private) ->
-  Arity = length(Args) + 1,
-  TArgs = update_local_calls(Args, Private),
-  case lists:member({Name,Arity}, Private) of
-    true ->
-      { call, Line, {atom, Line, Name}, [{var, Line, self}|TArgs] };
-    false ->
-      TExpr = { var, Line, self },
-      elixir_tree_helpers:build_method_call(Name, Line, TArgs, TExpr)
-  end;
-
-update_local_calls(H, Private) when is_tuple(H) ->
-  list_to_tuple([update_local_calls(X, Private) || X <- tuple_to_list(H)]);
-
-update_local_calls(H, Private) when is_list(H) ->
-  [update_local_calls(X, Private) || X <- H];
-
-update_local_calls(H, _Private) -> H.
 
 % Check the visibility of the method with the given Name and Arity in the attributes table.
 add_visibility_entry(Name, Arity, Visibility, Table) ->
