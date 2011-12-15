@@ -67,7 +67,7 @@ tokenize(Line, [T1,T2|Rest], Tokens) when T1 == $: andalso T2 == $: ->
 
 tokenize(Line, [H|_] = String, Tokens) when H >= $A andalso H =< $Z ->
   { Rest, { _, Identifier } } = tokenize_identifier(String, [], false),
-  tokenize(Line, Rest, [{ref,Line,Identifier}|Tokens]);
+  tokenize(Line, Rest, [{ref,Line,[Identifier]}|Tokens]);
 
 % Identifier
 
