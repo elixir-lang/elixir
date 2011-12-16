@@ -185,7 +185,7 @@ translate_each({'::', Line, [Left, Right]}, S) ->
 
 %% Def
 
-translate_each({def, Line, [{'[]', _, [{'{}',_,X}, {'{}',_,Y}]}]}, S) ->
+translate_each({Kind, Line, [{'[]', _, [{'{}',_,X}, {'{}',_,Y}]}]}, S) when Kind == def; Kind == defmacro->
   Namespace = S#elixir_scope.namespace,
   case (Namespace == []) or (S#elixir_scope.method /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
@@ -206,12 +206,12 @@ translate_each({def, Line, [{'[]', _, [{'{}',_,X}, {'{}',_,Y}]}]}, S) ->
       { TClause, _ } = translate_clause(Line, Args, Exprs, [], ClauseScope),
       { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
       Method = { function, Line, Name, length(Args), [Unpacked] },
-      { elixir_def_method:wrap_method_definition(Line, S#elixir_scope.filename, Namespace, Method, Defaults), S }
+      { elixir_def_method:wrap_method_definition(Kind, Line, S#elixir_scope.filename, Namespace, Method, Defaults), S }
   end;
 
 % TODO: Handle tree errors properly
-translate_each({def, Line, _}, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for def");
+translate_each({Kind, Line, _}, S) when Kind == def; Kind == defmacro ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for " ++ atom_to_list(Kind));
 
 %% Functions
 
