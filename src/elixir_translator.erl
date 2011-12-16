@@ -1,5 +1,5 @@
 -module(elixir_translator).
--export([translate/2, parse/3]).
+-export([translate/2, translate_each/2, parse/3]).
 -include("elixir.hrl").
 
 parse(String, Line, #elixir_scope{filename=Filename} = S) ->
@@ -216,7 +216,7 @@ translate_each({Kind, Line, _}, S) when Kind == def; Kind == defmacro ->
 %% Quoting
 
 translate_each({quote, Line, [Expr]}, S) ->
-  { elixir_tree_helpers:abstract_syntax(Expr), S };
+  elixir_quote:translate(Expr, S);
 
 % TODO: Handle tree errors properly
 translate_each({quote, _, _} = Clause, S) ->
