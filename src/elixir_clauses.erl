@@ -2,7 +2,9 @@
 -export([translate/4]).
 -include("elixir.hrl").
 
-% Helpers for translating clauses
+% Helpers for translating clauses for if/case/try and friends.
+% Function and method clauses are not translated in this helper
+% as they don't need to share variables.
 
 translate(Line, Fun, [Clause], S) ->
   { TClause, TS } = translate_each(Fun, Clause, S),

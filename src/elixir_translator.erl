@@ -36,7 +36,7 @@ translate_each({'=', Line, [Left, Right]}, S) ->
       SM#elixir_scope{assigned_vars=dict:store(Name, {Right, TRight}, Current)};
     _ -> SM
   end,
-  { {match, Line, TLeft, TRight }, SF };
+  { { match, Line, TLeft, TRight }, SF };
 
 %% Math Operators
 
@@ -183,13 +183,36 @@ translate_each({'::', Line, [Left, Right]}, S) ->
 
   { Final, umergev(SL, SR) };
 
+%% Def
+
+translate_each({def, Line, [{'[]', _, [{'{}',_,X}, {'{}',_,Y}]}]}, S) ->
+  Namespace = S#elixir_scope.namespace,
+  case (Namespace == []) or (S#elixir_scope.method /= []) of
+    true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
+    _ ->
+      case X of
+        [do,Exprs] -> [Name, Args] = Y;
+        _ ->
+          [do, Exprs]  = Y,
+          [Name, Args] = X
+      end,
+
+      ClauseScope = S#elixir_scope{method=Name, counter=0, vars=dict:new(), assigned_vars=dict:new()},
+      { TClause, _ } = translate_clause(Line, Args, Exprs, [], ClauseScope),
+      { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
+      Method = { function, Line, Name, length(Args), [Unpacked] },
+      { elixir_def_method:wrap_method_definition(Line, S#elixir_scope.filename, Method, Defaults), S }
+  end;
+
+% TODO: Handle tree errors properly
+translate_each({def, Line, _}, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for def");
+
 %% Functions
 
-translate_each({function, Line, [{'[]', _, Args}, {'[]', _, [{'{}', _, [do,_]} = Keywords]}]}, S) ->
-  { TArgs, NS } = translate_assigns(fun translate/2, Args, S),
-  { TKeywords, FS } = translate_each(Keywords, NS),
-  { tuple, _, [_, TExprs] } = TKeywords,
-  { { 'fun', Line, {clauses, [{clause, Line, TArgs, [], listify(TExprs)}]} }, FS };
+translate_each({function, Line, [{'[]', _, Args}, {'[]', _, [{'{}', _, [do,Exprs]}]}]}, S) ->
+  { TClause, NS } = translate_clause(Line, Args, Exprs, [], S),
+  { { 'fun', Line, {clauses, [TClause]} }, NS };
 
 % TODO: Handle tree errors properly
 translate_each({function, _, _} = Clause, S) ->
@@ -288,6 +311,14 @@ listify(Expr) -> Expr.
 translate_assigns(Fun, Args, Scope) ->
   { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
   { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
+
+%% Clauses helpers for methods and functions
+
+translate_clause(Line, Args, Exprs, Guards, S) ->
+  { TArgs, SA }   = translate_assigns(fun translate/2, Args, S),
+  { TGuards, SG } = translate(Guards, SA#elixir_scope{guard=true}),
+  { TExprs, SE }  = translate_each(Exprs, SG#elixir_scope{guard=false}),
+  { { clause, Line, TArgs, TGuards, listify(TExprs) }, SE }.
 
 %% Build if clauses by nesting
 

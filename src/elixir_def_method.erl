@@ -15,7 +15,7 @@ new_method_table(Namespace) ->
   ets:insert(MethodTable, { visibility, public }),
   MethodTable.
 
-% Unpack default args from the given clause. Invoked by elixir_transform.
+% Unpack default args from the given clause. Invoked by elixir_translate.
 unpack_default_clause(Name, Clause) ->
   { NewArgs, NewClauses } = unpack_default_args(Name, element(3, Clause), [], []),
   { setelement(3, Clause, NewArgs), NewClauses }.
@@ -58,16 +58,16 @@ store_wrapped_method(Self, Filename, OriginalMethod, Defaults) ->
 
   Visibility = ets:lookup_element(MethodTable, visibility, 2),
   [store_each_method(MethodTable, Visibility, Filename, function_from_default(MethodName, Default)) || Default <- Defaults],
-  store_each_method(MethodTable, Visibility, Filename, Method),
+  store_each_method(MethodTable, Visibility, Filename, Method).
 
   % Returns a method object at the end.
-  try
-    Arity = element(4, Method),
-    Constant = elixir_constants:lookup('UnboundMethod::Behavior'),
-    elixir_module_behavior:slate_bind(Constant, [Name, MethodName, Arity - 1])
-  catch
-    error:{no_module,'UnboundMethod::Behavior'} -> []
-  end.
+  % try
+  %   Arity = element(4, Method),
+  %   Constant = elixir_constants:lookup('UnboundMethod::Behavior'),
+  %   elixir_module_behavior:slate_bind(Constant, [Name, MethodName, Arity - 1])
+  % catch
+  %   error:{no_module,'UnboundMethod::Behavior'} -> []
+  % end.
 
 % Helper to unwrap the methods stored in the methods table. It also returns
 % a list of methods to be exported with all methods.
