@@ -36,7 +36,7 @@ tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T =
 % Call operators
 
 tokenize(Line, [$.,$(|Rest], Tokens) ->
-  tokenize(Line, [$(|Rest], [{dot_call_op,Line}|Tokens]);
+  tokenize(Line, [$(|Rest], [{dot_call_op,Line,'.'}|Tokens]);
 
 tokenize(Line, [T,$(|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
   tokenize(Line, [$(|Rest], [{call_op,Line,list_to_atom([T])}|Tokens]);

@@ -191,17 +191,22 @@ translate_each({def, Line, [{'[]', _, [{'{}',_,X}, {'{}',_,Y}]}]}, S) ->
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
       case X of
-        [do,Exprs] -> [Name, Args] = Y;
+        [do,Exprs] -> [Name, RawArgs] = Y;
         _ ->
           [do, Exprs]  = Y,
-          [Name, Args] = X
+          [Name, RawArgs] = X
+      end,
+
+      case RawArgs of
+        {'[]', _, Args } -> [];
+        Args -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for def")
       end,
 
       ClauseScope = S#elixir_scope{method=Name, counter=0, vars=dict:new(), assigned_vars=dict:new()},
       { TClause, _ } = translate_clause(Line, Args, Exprs, [], ClauseScope),
       { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
       Method = { function, Line, Name, length(Args), [Unpacked] },
-      { elixir_def_method:wrap_method_definition(Line, S#elixir_scope.filename, Method, Defaults), S }
+      { elixir_def_method:wrap_method_definition(Line, S#elixir_scope.filename, Namespace, Method, Defaults), S }
   end;
 
 % TODO: Handle tree errors properly

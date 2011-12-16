@@ -2,7 +2,7 @@
 % For methods introspection, check elixir_methods.
 -module(elixir_def_method).
 -export([unpack_default_clause/2, new_method_table/1,
-  wrap_method_definition/4, store_wrapped_method/4, unwrap_stored_methods/1]).
+  wrap_method_definition/5, store_wrapped_method/4, unwrap_stored_methods/1]).
 -include("elixir.hrl").
 
 % Creates a new method table for the given name.
@@ -37,21 +37,19 @@ unpack_default_clause(Name, Clause) ->
 %
 % If we just analyzed the compiled structure (i.e. the method availables
 % before evaluating the method body), we would see both definitions.
-wrap_method_definition(Line, Filename, Method, Defaults) ->
+wrap_method_definition(Line, Filename, Namespace, Method, Defaults) ->
   Meta = elixir_tree_helpers:abstract_syntax(Method),
   MetaDefaults = elixir_tree_helpers:abstract_syntax(Defaults),
-  Content = [{var, Line, self}, {string, Line, Filename}, Meta, MetaDefaults],
+  Content = [{string, Line, Filename}, {atom, Line, Namespace}, Meta, MetaDefaults],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
 
 % Invoked by the wrapped method with the method abstract tree.
 % Each method is then added to the method table.
-store_wrapped_method(Self, Filename, OriginalMethod, Defaults) ->
-  Name        = Self#elixir_module__.name,
+store_wrapped_method(Filename, Name, OriginalMethod, Defaults) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
-  ElixirName  = ?ELIXIR_EX_MODULE(Name),
 
   MethodName = case element(3, OriginalMethod) of
-    []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", ElixirName, "_", methods_count(MethodTable)+1]);
+    []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", Name, "_", methods_count(MethodTable)+1]);
     Else -> Else
   end,
   Method = setelement(3, OriginalMethod, MethodName),

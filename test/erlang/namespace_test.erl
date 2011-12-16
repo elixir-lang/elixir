@@ -7,6 +7,13 @@ namespace_definition_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
+namespace_method_test() ->
+  F = fun() ->
+    elixir:eval("ns Foo::Bar::Baz\ndef sum: [a, b] do\na + b\nend"),
+    3 = '::Foo::Bar::Baz':sum(1, 2)
+  end,
+  test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
+
 single_ref_test() ->
   { '::Foo', _ } = elixir:eval("Foo").
 

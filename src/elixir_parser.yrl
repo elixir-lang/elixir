@@ -9,7 +9,7 @@ Nonterminals
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
-  call_args call_args_parens call_args_no_parens operator_call
+  raw_call_args call_args call_args_parens call_args_no_parens operator_call
   base_orddict kv_comma kv_eol do_block curly_block
   list list_args
   dot_op dot_identifier dot_do_identifier dot_paren_identifier dot_punctuated_identifier
@@ -62,14 +62,14 @@ expr -> unary_op expr : build_unary_op('$1', '$2').
 expr -> special_op expr : build_special_op('$1', '$2').
 expr -> block_expr : '$1'.
 
-block_expr -> dot_paren_identifier call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
-block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_paren_identifier call_args_parens do_block : build_identifier('$1', '$2', '$3').
+block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_punctuated_identifier do_block : build_identifier('$1', '$2').
-block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
 block_expr -> curly_expr : '$1'.
 
-curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2' ++ '$3').
+curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2', '$3').
 curly_expr -> dot_punctuated_identifier curly_block : build_identifier('$1', '$2').
 curly_expr -> dot_identifier curly_block : build_identifier('$1', '$2').
 curly_expr -> call_expr : '$1'.
@@ -149,8 +149,11 @@ dot_op -> '.' : '$1'.
 dot_op -> '.' eol : '$1'.
 
 dot_identifier -> identifier : '$1'.
-dot_identifier -> dot_call_op call_args_parens : { '.', ?line('$1'), '$2' }.
 dot_identifier -> expr dot_op identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+
+dot_identifier -> dot_call_op call_args_parens : build_identifier('$1', '$2').
+dot_identifier -> dot_call_op call_args_parens curly_block : build_identifier('$1', '$2', '$3').
+dot_identifier -> dot_call_op call_args_parens do_block : build_identifier('$1', '$2', '$3').
 
 dot_do_identifier -> do_identifier : '$1'.
 dot_do_identifier -> expr dot_op do_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
@@ -163,22 +166,26 @@ dot_punctuated_identifier -> expr dot_op punctuated_identifier : { '.', ?line('$
 
 % Function calls
 
-operator_call -> call_op call_args_parens : build_call_op('$1', '$2').
+operator_call -> call_op call_args_parens : build_identifier('$1', '$2').
+operator_call -> call_op call_args_parens curly_block : build_identifier('$1', '$2', '$3').
+operator_call -> call_op call_args_parens do_block : build_identifier('$1', '$2', '$3').
+
+raw_call_args -> expr : ['$1'].
+raw_call_args -> base_orddict : ['$1'].
+raw_call_args -> expr comma_separator raw_call_args : ['$1'|'$3'].
+
+call_args -> raw_call_args : build_args('$1').
 
 call_args_no_parens -> expr : ['$1'].
 call_args_no_parens -> base_orddict : ['$1'].
-call_args_no_parens -> expr comma_separator call_args : ['$1'|'$3'].
-
-call_args -> expr : ['$1'].
-call_args -> base_orddict : ['$1'].
-call_args -> expr comma_separator call_args : ['$1'|'$3'].
+call_args_no_parens -> expr comma_separator raw_call_args : ['$1'|'$3'].
 
 call_args_parens -> open_paren ')' : [].
-call_args_parens -> open_paren call_args close_paren : '$2'.
+call_args_parens -> open_paren raw_call_args close_paren : '$2'.
 
 % KV and orddict
 
-base_orddict -> kv_comma : { '[]', ?line(hd('$1')), lists:sort('$1') }.
+base_orddict -> kv_comma : { '[:]', ?line(hd('$1')), lists:sort('$1') }.
 
 kv_comma -> kv_eol expr : [{'{}',?line('$1'),[?exprs('$1'),'$2']}].
 kv_comma -> kv_eol expr comma_separator kv_comma : [{'{}',?line('$1'),[?exprs('$1'),'$2']}|'$4'].
@@ -210,7 +217,7 @@ list -> open_bracket list_args '|' expr close_bracket : build_list(?line('$1'), 
 % Tuple
 
 tuple -> open_curly '}' : { '{}', ?line('$1'), [] }.
-tuple -> open_curly call_args close_curly :  { '{}', ?line('$1'), '$2' }.
+tuple -> open_curly call_args close_curly :  { '{}', ?line('$1'), build_args('$2') }.
 
 Erlang code.
 
@@ -231,12 +238,30 @@ build_unary_op(Op, Expr) ->
 build_special_op(Op, Expr) ->
   { ?exprs(Op), ?line(Op), [Expr] }.
 
-build_call_op(Op, Args) ->
-  { ?exprs(Op), ?line(Op), Args }.
-
 build_block(Delimiter, Contents) ->
   Line = ?line(Delimiter),
-  [{'[]', Line, [{'{}', Line, ['do',Contents]}] }].
+  {'[:]', Line, [{'{}', Line, ['do',Contents]}] }.
+
+build_list(Line, Args) ->
+  { '[]', Line, Args }.
+
+build_list(Line, Args, Pipe, Tail) ->
+  [Last|Rest] = lists:reverse(Args),
+  Final = [{'|',Pipe,[Last,Tail]}|Rest],
+  { '[]', Line, lists:reverse(Final) }.
+
+% Build args by transforming [:] into the final form []
+
+build_args(Args) -> lists:map(fun build_arg/1, Args).
+build_arg({ '[:]', Line, Args }) -> { '[]', Line, Args };
+build_arg(Else) -> Else.
+
+% Build identifiers. Those helpers are responsible to:
+% + Merge kv args and kv blocks arguments
+% + Handle dot operators and transform them in the proper function call
+
+build_identifier(Expr, Args, Block) ->
+  build_identifier(Expr, merge_kv(Args, Block)).
 
 build_identifier({ '.', DotLine, [Expr, { _, Line, Identifier }] }, Args) ->
   build_identifier({ '.', DotLine, [Expr, Identifier] }, Args);
@@ -246,15 +271,34 @@ build_identifier({ '.', Line, _ } = Dot, Args) ->
     false -> [];
     _ -> Args
   end,
-  { Dot, Line, FArgs };
+  { Dot, Line, build_args(FArgs) };
+
+build_identifier({ _, Line, Identifier }, false) ->
+  { Identifier, Line, false };
 
 build_identifier({ _, Line, Identifier }, Args) ->
-  { Identifier, Line, Args }.
+  { Identifier, Line, build_args(Args) }.
 
-build_list(Line, Args) ->
-  { '[]', Line, Args }.
+% Merge key-value pairs from args and blocks
 
-build_list(Line, Args, Pipe, Tail) ->
-  [Last|Rest] = lists:reverse(Args),
-  Final = [{'|',Pipe,[Last,Tail]}|Rest],
-  { '[]', Line, lists:reverse(Final) }.
+merge_kv([], Block)   -> [Block];
+merge_kv(Args, Block) ->
+  { Reverse, Last } = last(Args, []),
+  case is_kv(Last) of
+    true  ->
+      { '[:]', Line, Left } = Last,
+      { '[:]', _, Right }  = Block,
+      KV = { '[:]', Line, Left ++ Right },
+      lists:reverse([KV|Reverse]);
+    false ->
+      lists:reverse([Block,Last|Reverse])
+  end.
+
+last([L], Acc)   -> { Acc, L };
+last([H|T], Acc) -> last(T, [H|Acc]).
+
+is_kv({'[:]', _, Args}) -> lists:all(fun is_kv_tuple/1, Args);
+is_kv(_) -> false.
+
+is_kv_tuple({ '{}', _, [Key, _ ] }) when is_atom(Key) -> true;
+is_kv_tuple(_) -> false.
