@@ -163,7 +163,12 @@ translate_each({ns, Line, [Ref]}, S) ->
   end;
 
 translate_each({ref, Line, [Ref]}, S) when is_atom(Ref) ->
-  { {atom, Line, Ref }, S };
+  String = atom_to_list(Ref),
+  Atom = case String of
+    "::" ++ _ -> Ref;
+    _ -> list_to_atom("::" ++ String)
+  end,
+  { {atom, Line, Atom }, S };
 
 translate_each({'::', Line, [Left, Right]}, S) ->
   { TLeft, SL } = translate_each(Left, S),
@@ -172,7 +177,7 @@ translate_each({'::', Line, [Left, Right]}, S) ->
   % TODO: Handle the case were TLeft or TRight are not an atom
   Final = case {TLeft,TRight} of
     {{atom,Line,ALeft}, {atom,_,ARight}} ->
-      Atom = list_to_atom(lists:concat([atom_to_list(ALeft), "::", atom_to_list(ARight)])),
+      Atom = list_to_atom(lists:concat([atom_to_list(ALeft), atom_to_list(ARight)])),
       { atom, Line, Atom }
   end,
 
