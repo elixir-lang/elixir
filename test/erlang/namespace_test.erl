@@ -14,6 +14,13 @@ namespace_method_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
+namespace_macro_test() ->
+  F = fun() ->
+    elixir:eval("ns Foo::Bar::Baz\ndefmacro sum: [a, b] do\nquote(a + b)\nend"),
+    {'+',3,[{a,3,false},{b,3,false}]} = '::Foo::Bar::Baz':sum(1, 2)
+  end,
+  test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
+
 single_ref_test() ->
   { '::Foo', _ } = elixir:eval("Foo").
 

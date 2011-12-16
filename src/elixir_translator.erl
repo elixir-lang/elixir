@@ -213,6 +213,15 @@ translate_each({Kind, Line, [{'[]', _, [{'{}',_,X}, {'{}',_,Y}]}]}, S) when Kind
 translate_each({Kind, Line, _}, S) when Kind == def; Kind == defmacro ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for " ++ atom_to_list(Kind));
 
+%% Quoting
+
+translate_each({quote, Line, [Expr]}, S) ->
+  { elixir_tree_helpers:abstract_syntax(Expr), S };
+
+% TODO: Handle tree errors properly
+translate_each({quote, _, _} = Clause, S) ->
+  error({invalid_arguments_for_quote, Clause});
+
 %% Functions
 
 translate_each({function, Line, [{'[]', _, Args}, {'[]', _, [{'{}', _, [do,Exprs]}]}]}, S) ->
