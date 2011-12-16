@@ -8,7 +8,6 @@
 
 start(_Type, _Args) ->
   (catch code:add_pathz(code:lib_dir(?MODULE, exbin))),
-  [code:ensure_loaded(Module) || Module <- builtin_mixins()],
   elixir_sup:start_link([]).
 
 stop(_S) ->
@@ -34,25 +33,6 @@ start() ->
   start_app(),
   CodeInit = elixir_constants:lookup('Code::Init'),
   'exCode::Init':process_argv(CodeInit, init:get_plain_arguments()).
-
-builtin_mixins() ->
-  [
-    'exModule::Behavior',
-    'exModule::Using',
-    'exModule::Definition',
-    'exInteger::Behavior',
-    'exFloat::Behavior',
-    'exAtom::Behavior',
-    'exList::Behavior',
-    'exString::Behavior',
-    'exBitString::Behavior',
-    'exOrderedDict::Behavior',
-    'exTuple::Behavior',
-    'exFunction::Behavior',
-    'exProcess::Behavior',
-    'exReference::Behavior',
-    'exPort::Behavior'
-  ].
 
 file(Filepath) ->
   file(Filepath, []).
