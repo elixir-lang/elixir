@@ -185,7 +185,7 @@ call_args_parens -> open_paren raw_call_args close_paren : '$2'.
 
 % KV and orddict
 
-base_orddict -> kv_comma : { '[:]', ?line(hd('$1')), lists:sort('$1') }.
+base_orddict -> kv_comma : { '[:]', ?line(hd('$1')), sort_kv('$1') }.
 
 kv_comma -> kv_eol expr : [{'{}',?line('$1'),[?exprs('$1'),'$2']}].
 kv_comma -> kv_eol expr comma_separator kv_comma : [{'{}',?line('$1'),[?exprs('$1'),'$2']}|'$4'].
@@ -206,7 +206,7 @@ curly_block -> '{' expr_list '}' : build_block('$1', '$2').
 % in the existing one. Except list, everything should depend
 % on call_args.
 
-list_args -> kv_comma : lists:sort('$1').
+list_args -> kv_comma : sort_kv('$1').
 list_args -> expr : ['$1'].
 list_args -> expr comma_separator call_args : ['$1'|'$3'].
 
@@ -279,6 +279,11 @@ build_identifier({ _, Line, Identifier }, false) ->
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, build_args(Args) }.
 
+% Sort key-values
+
+sort_kv(List) -> lists:sort(fun sort_kv/2, List).
+sort_kv({ '{}', _, [A,_] }, { '{}', _, [B,_] }) -> A =< B.
+
 % Merge key-value pairs from args and blocks
 
 merge_kv([], Block)   -> [Block];
@@ -288,7 +293,7 @@ merge_kv(Args, Block) ->
     true  ->
       { '[:]', Line, Left } = Last,
       { '[:]', _, Right }  = Block,
-      KV = { '[:]', Line, Left ++ Right },
+      KV = { '[:]', Line, sort_kv(Left ++ Right) },
       lists:reverse([KV|Reverse]);
     false ->
       lists:reverse([Block,Last|Reverse])
