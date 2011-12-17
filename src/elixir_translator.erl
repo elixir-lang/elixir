@@ -283,9 +283,8 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) when is_atom(Right) ->
       { TArgs,  SA } = translate(Args, umergec(S, SR)),
       { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) };
     Namespace -> 
-      { TArgs, NS } = elixir_quote:translate(Args, S),
-      Tree = apply(Namespace, Right, TArgs),
-      translate_each(Tree, NS)
+      Tree = apply(Namespace, Right, Args),
+      translate_each(Tree, S)
   end;
 
 %% Fun calls
