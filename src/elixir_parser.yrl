@@ -4,13 +4,14 @@
 Nonterminals
   grammar expr_list
   expr call_expr max_expr base_expr block_expr curly_expr
-  break comma_separator
+  comma_separator
   add_op mult_op unary_op match_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
   raw_call_args call_args call_args_parens call_args_no_parens operator_call
-  base_orddict kv_comma kv_eol do_block curly_block
+  base_orddict kv_comma kv_eol
+  do_eol end_eol do_block curly_block
   list list_args
   dot_op dot_identifier dot_do_identifier dot_paren_identifier dot_punctuated_identifier
   ref_op ref_identifier
@@ -22,7 +23,7 @@ Terminals
   ref identifier do_identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom
   '+' '-' '*' '/' '=' call_op special_op dot_call_op
-  '(' ')' eol ';' ',' '[' ']' '|' '{' '}' '.' '::'
+  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::'
   .
 
 Rootsymbol grammar.
@@ -46,14 +47,14 @@ Nonassoc 190 special_op.
 %%% MAIN FLOW OF EXPRESSIONS
 
 grammar -> expr_list : '$1'.
+grammar -> eol expr_list : '$2'.
+grammar -> expr_list eol : '$1'.
+grammar -> eol expr_list eol : '$2'.
 grammar -> '$empty' : [nil].
 
 % List of expressions delimited by break
-expr_list -> eol : [].
 expr_list -> expr : ['$1'].
-expr_list -> expr break : ['$1'].
-expr_list -> eol expr_list : '$2'.
-expr_list -> expr break expr_list : ['$1'|'$3'].
+expr_list -> expr_list eol expr : '$1' ++ ['$3'].
 
 expr -> expr match_op expr : build_op('$2', '$1', '$3').
 expr -> expr add_op expr : build_op('$2', '$1', '$3').
@@ -83,7 +84,8 @@ call_expr -> expr dot_call_op call_args_parens : build_identifier({ '.', ?line('
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
-max_expr -> '(' expr_list ')' : build_block('$2').
+max_expr -> open_paren ')' : build_block([]).
+max_expr -> open_paren expr_list close_paren : build_block('$2').
 
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
@@ -97,9 +99,6 @@ base_expr -> ref_identifier : '$1'.
 
 var -> dot_identifier : '$1'.
 var -> dot_do_identifier : '$1'.
-
-break -> eol : '$1'.
-break -> ';' : { eol, ?line('$1') }.
 
 comma_separator -> ','     : '$1'.
 comma_separator -> ',' eol : '$1'.
@@ -185,19 +184,28 @@ call_args_parens -> open_paren raw_call_args close_paren : '$2'.
 
 % KV and orddict
 
-base_orddict -> kv_comma : { '[:]', ?line(hd('$1')), '$1' }.
+kv_eol -> kv_identifier : '$1'.
+kv_eol -> kv_identifier eol : '$1'.
 
 kv_comma -> kv_eol expr : [{?exprs('$1'),'$2'}].
 kv_comma -> kv_eol expr comma_separator kv_comma : [{?exprs('$1'), '$2'}|'$4'].
 
-kv_eol -> kv_identifier : '$1'.
-kv_eol -> kv_identifier eol : '$1'.
+base_orddict -> kv_comma : { '[:]', ?line(hd('$1')), '$1' }.
 
-do_block -> 'do' 'end'           : build_kv_block('$1', []).
-do_block -> 'do' expr_list 'end' : build_kv_block('$1', '$2').
+% KV blocks
 
-curly_block -> '{' '}'           : build_kv_block('$1', []).
-curly_block -> '{' expr_list '}' : build_kv_block('$1', '$2').
+do_eol -> 'do' : '$1'.
+do_eol -> 'do' eol : '$1'.
+
+end_eol -> 'end' : '$1'.
+end_eol -> eol 'end' : '$2'.
+
+do_block -> do_eol 'end'             : build_kv_block('$1', []).
+do_block -> do_eol expr_list end_eol : build_kv_block('$1', '$2').
+
+% TODO: Support '{' eol
+curly_block -> '{' '}'                   : build_kv_block('$1', []).
+curly_block -> '{' expr_list close_curly : build_kv_block('$1', '$2').
 
 % Lists
 
