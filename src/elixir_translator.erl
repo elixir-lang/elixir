@@ -1,5 +1,5 @@
 -module(elixir_translator).
--export([translate/2, translate_each/2, parse/3]).
+-export([translate/2, translate_each/2, parse/3, umergec/2, umergev/2]).
 -include("elixir.hrl").
 
 parse(String, Line, #elixir_scope{filename=Filename} = S) ->
@@ -193,7 +193,6 @@ translate_each({Kind, Line, [[X, Y]]}, S) when Kind == def; Kind == defmacro->
 
 % TODO: Handle tree errors properly
 translate_each({Kind, Line, Args}, S) when Kind == def; Kind == defmacro ->
-  io:format("~p~n", [Args]),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for " ++ atom_to_list(Kind));
 
 %% Quoting

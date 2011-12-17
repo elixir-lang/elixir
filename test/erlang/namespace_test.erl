@@ -28,6 +28,13 @@ namespace_quote_unquote_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
+namespace_operator_macro_test() ->
+  F = fun() ->
+    elixir:eval("ns Foo::Bar::Baz\ndefmacro +: [a, b], do: quote(unquote(a) + unquote(b))"),
+    {'+',2,[1,2]} = '::Foo::Bar::Baz':'+'(1, 2)
+  end,
+  test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
+  
 macro_call_test() ->
   {1,[]} = elixir:eval("if(true, do: 1, else: 2)"),
   {2,[]} = elixir:eval("Elixir::Macros.unless(true, do: 1, else: 2)").

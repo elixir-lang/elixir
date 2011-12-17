@@ -33,6 +33,19 @@ tokenize(Line, [$:,T|String], Tokens) when T >= $A andalso T =< $Z; T >= $a anda
 tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
   tokenize(Line, Rest, [{atom,Line,list_to_atom([T])}|Tokens]);
 
+tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
+  T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $}; T1 == $: andalso T2 == $: ->
+  tokenize(Line, Rest, [{atom,Line,list_to_atom([T1,T2])}|Tokens]);
+
+% KV Identifiers
+
+tokenize(Line, [T,$:|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
+  tokenize(Line, Rest, [{kv_identifier,Line,list_to_atom([T])}|Tokens]);
+
+tokenize(Line, [T1,T2,$:|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
+  T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $}; T1 == $: andalso T2 == $: ->
+  tokenize(Line, Rest, [{kv_identifier,Line,list_to_atom([T1,T2])}|Tokens]);
+
 % Call operators
 
 tokenize(Line, [$.,$(|Rest], Tokens) ->
@@ -47,10 +60,10 @@ tokenize(Line, [T1,T2,$(|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $|
 
 % Ambiguous unary/binary operators tokens
 
-tokenize(Line, [Space,Sign,NotSpace|T], [{Identifier,_,_}|_] = Tokens) when Sign == $+ orelse Sign == $-,
-  Space == $\s orelse Space == $\t, NotSpace /= $\s andalso NotSpace /= $\t andalso NotSpace /= $\n,
+tokenize(Line, [Space,Sign,NotMarker|T], [{Identifier,_,_}|_] = Tokens) when Sign == $+ orelse Sign == $-,
+  Space == $\s orelse Space == $\t, NotMarker /= $\s andalso NotMarker /= $\t andalso NotMarker /= $\n andalso NotMarker /= $: andalso NotMarker /= $(,
   Identifier == identifier orelse Identifier == punctuated_identifier ->
-  Rest = [NotSpace|T],
+  Rest = [NotMarker|T],
   tokenize(Line, Rest, [{special_op,Line,list_to_atom([Sign])}|Tokens]);
 
 % Operators/punctuation tokens

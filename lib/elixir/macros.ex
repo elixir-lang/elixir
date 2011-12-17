@@ -5,3 +5,7 @@ defmacro unless: [clause, options] do
   negative = Erlang.orddict.fetch(:else, options)
   quote(if(unquote(clause), do: unquote(negative), else: unquote(positive)))
 end
+
+defmacro +: [left, right] do
+  quote({ :op, 0, :+, unquote(left), unquote(right) })
+end

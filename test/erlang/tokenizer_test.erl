@@ -17,13 +17,16 @@ unquoted_atom_test() ->
   [{atom, 1, '-'}] = tokenize(":-"),
   [{atom, 1, '*'}] = tokenize(":*"),
   [{atom, 1, '/'}] = tokenize(":/"),
-  [{atom, 1, '='}] = tokenize(":=").
+  [{atom, 1, '='}] = tokenize(":="),
+  [{atom, 1, '&&'}] = tokenize(":&&").
 
 op_atom_test() ->
   [{atom,1,f0_1}] = tokenize(":f0_1").
 
 kv_test() ->
-  [{kv_identifier,1,do}] = tokenize("do:").
+  [{kv_identifier,1,do}] = tokenize("do:"),
+  [{kv_identifier,1,'+'}] = tokenize("+:"),
+  [{identifier,1,def},{kv_identifier,1,'+'}] = tokenize("def +:").
 
 integer_test() ->
   [{number, 1, 123}] = tokenize("123"),
