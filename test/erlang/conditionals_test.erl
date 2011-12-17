@@ -1,4 +1,4 @@
--module(operators_test).
+-module(conditionals_test).
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
