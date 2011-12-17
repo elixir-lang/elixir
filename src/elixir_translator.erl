@@ -89,7 +89,7 @@ translate_each({'&&', Line, [Left, Right]}, S) ->
 
 %% If
 
-translate_each({'if', Line, [Condition, {'[]', _, [{'{}', _, [do,_]}|_] = Keywords}]}, S) ->
+translate_each({'if', Line, [Condition, [{'{}', _, [do,_]}|_] = Keywords]}, S) ->
   [{ '{}', DoLine, [do,Exprs]}|ElsesKeywords] = Keywords,
 
   WithCondition = case is_list(Exprs) of
@@ -172,7 +172,7 @@ translate_each({'::', Line, [Left, Right]}, S) ->
 
 %% Def
 
-translate_each({Kind, Line, [{'[]', _, [{'{}',_,X}, {'{}',_,Y}]}]}, S) when Kind == def; Kind == defmacro->
+translate_each({Kind, Line, [[{'{}',_,X}, {'{}',_,Y}]]}, S) when Kind == def; Kind == defmacro->
   Namespace = S#elixir_scope.namespace,
   case (Namespace == []) or (S#elixir_scope.method /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
@@ -206,7 +206,7 @@ translate_each({quote, _, _} = Clause, S) ->
 
 %% Functions
 
-translate_each({function, Line, [Args, {'[]', _, [{'{}', _, [do,Exprs]}]}]}, S) when is_list(Args) ->
+translate_each({function, Line, [Args, [{'{}', _, [do,Exprs]}]]}, S) when is_list(Args) ->
   { TClause, NS } = translate_clause(Line, Args, Exprs, [], S),
   { { 'fun', Line, {clauses, [TClause]} }, NS };
 

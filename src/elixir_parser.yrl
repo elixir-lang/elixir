@@ -256,7 +256,7 @@ build_list(Line, Args, Pipe, Tail) ->
 % Build args by transforming [:] into the final form []
 
 build_args(Args) -> lists:map(fun build_arg/1, Args).
-build_arg({ '[:]', Line, Args }) -> { '[]', Line, Args };
+build_arg({ '[:]', Line, Args }) -> Args;
 build_arg(Else) -> Else.
 
 % Build identifiers. Those helpers are responsible to:

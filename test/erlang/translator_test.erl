@@ -40,23 +40,23 @@ tuple_test() ->
 %% Ifs
 
 if_do_test() ->
-  example = eval([{ 'if', 1, [true, { '[]', 1, [{'{}', 1, [do, example]}] }] }]).
+  example = eval([{ 'if', 1, [true, [{'{}', 1, [do, example]}] ] }]).
 
 if_do_else_test() ->
-  failed = eval([{ 'if', 1, [false, { '[]', 1, [{'{}', 1, [do, example]},{'{}', 1, [else, failed]}] }] }]).
+  failed = eval([{ 'if', 1, [false, [{'{}', 1, [do, example]},{'{}', 1, [else, failed]}] ] }]).
 
 if_do_else_elsif_test() ->
-  ok  = eval([{ 'if', 1, [false, { '[]', 1, [{'{}', 1, [do, example]},{'{}', 1, [else, failed]},{'{}', 1, [elsif, [true, ok]]}] }] }]),
-  nil = eval([{ 'if', 1, [false, { '[]', 1, [{'{}', 1, [do, example]},{'{}', 1, [else, failed]},{'{}', 1, [elsif, [true]]}] }] }]),
-  10  = eval([{ 'if', 1, [false, { '[]', 1, [{'{}', 1, [do, example]},{'{}', 1, [else, failed]},{'{}', 1, [elsif, [false]]},{'{}', 1, [elsif, [true, 10]]}] }] }]).
+  ok  = eval([{ 'if', 1, [false, [{'{}', 1, [do, example]},{'{}', 1, [else, failed]},{'{}', 1, [elsif, [true, ok]]}] ] }]),
+  nil = eval([{ 'if', 1, [false, [{'{}', 1, [do, example]},{'{}', 1, [else, failed]},{'{}', 1, [elsif, [true]]}] ] }]),
+  10  = eval([{ 'if', 1, [false, [{'{}', 1, [do, example]},{'{}', 1, [else, failed]},{'{}', 1, [elsif, [false]]},{'{}', 1, [elsif, [true, 10]]}] ] }]).
 
 if_vars_test() ->
-  {true,[{'X0',1},{foo,1}]} = eval([{ 'if', 1, [{'=', 1, [{foo,1,false},1]}, { '[]', 1, [{'{}',1,[do,true]},{'{}',1,[else,false]}] }] }], []).
+  {true,[{'X0',1},{foo,1}]} = eval([{ 'if', 1, [{'=', 1, [{foo,1,false},1]}, [{'{}',1,[do,true]},{'{}',1,[else,false]}] ] }], []).
 
 %% Functions
 
 functions_test() ->
-  Keywords = {'[]', 1, [{'{}', 1, [do, { '+', 1, [{ x, 1, false }, { y, 1, false }]}]}]},
+  Keywords = [{'{}', 1, [do, { '+', 1, [{ x, 1, false }, { y, 1, false }]}]}],
   Args = [{ x, 1, false }, { y, 1, false }],
   Fun = eval([{ function, 1, [Args, Keywords] }]),
   3 = Fun(1, 2).
