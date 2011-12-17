@@ -31,13 +31,7 @@ single_reference_test() ->
 nested_reference_test() ->
   {'::Foo::Bar::Baz', _} = eval([{'::',1,[{ref,1,['Foo']},{'::',1,[{ref,1,['Bar']},{ref,1,['Baz']}]}]}], []).
 
-%% Lists
-
-list_test() ->
-  [] = eval([{'[]',1,[]}]),
-  [1,2,3] = eval([{'[]',1,[1,2,3]}]),
-  [1,2,3,{do,foo}] = eval([{'[]',1,[1,2,3,{'{}',1,[do,foo]}]}]),
-  [1,2,3|4] = eval([{'[]',1,[1,2,{'|',1,[3,4]}]}]).
+%% Containers
 
 tuple_test() ->
   {} = eval([{'{}',1,[]}]),
@@ -63,11 +57,17 @@ if_vars_test() ->
 
 functions_test() ->
   Keywords = {'[]', 1, [{'{}', 1, [do, { '+', 1, [{ x, 1, false }, { y, 1, false }]}]}]},
-  Args = { '[]', 1, [{ x, 1, false }, { y, 1, false }] },
+  Args = [{ x, 1, false }, { y, 1, false }],
   Fun = eval([{ function, 1, [Args, Keywords] }]),
   3 = Fun(1, 2).
 
 %% Literals
+
+list_test() ->
+  [] = eval([[]]),
+  [1,2,3] = eval([[1,2,3]]),
+  [1,2,3,{do,foo}] = eval([[1,2,3,{'{}',1,[do,foo]}]]),
+  [1,2,3|4] = eval([[1,2,{'|',1,[3,4]}]]).
 
 atoms_test() ->
   atom = eval([atom]).

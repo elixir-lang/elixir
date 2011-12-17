@@ -83,7 +83,7 @@ call_expr -> expr dot_call_op call_args_parens : build_identifier({ '.', ?line('
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
-max_expr -> '(' expr_list ')' : build_expr_list('$2').
+max_expr -> '(' expr_list ')' : build_block('$2').
 
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
@@ -193,11 +193,11 @@ kv_comma -> kv_eol expr comma_separator kv_comma : [{'{}',?line('$1'),[?exprs('$
 kv_eol -> kv_identifier : '$1'.
 kv_eol -> kv_identifier eol : '$1'.
 
-do_block -> 'do' 'end'           : build_block('$1', []).
-do_block -> 'do' expr_list 'end' : build_block('$1', '$2').
+do_block -> 'do' 'end'           : build_kv_block('$1', []).
+do_block -> 'do' expr_list 'end' : build_kv_block('$1', '$2').
 
-curly_block -> '{' '}'           : build_block('$1', []).
-curly_block -> '{' expr_list '}' : build_block('$1', '$2').
+curly_block -> '{' '}'           : build_kv_block('$1', []).
+curly_block -> '{' expr_list '}' : build_kv_block('$1', '$2').
 
 % Lists
 
@@ -238,21 +238,20 @@ build_unary_op(Op, Expr) ->
 build_special_op(Op, Expr) ->
   { ?exprs(Op), ?line(Op), [Expr] }.
 
-build_block(Delimiter, Contents) ->
+build_kv_block(Delimiter, Contents) ->
   Line = ?line(Delimiter),
-  {'[:]', Line, [{'{}', Line, ['do',build_expr_list(Contents)]}] }.
+  {'[:]', Line, [{'{}', Line, ['do',build_block(Contents)]}] }.
 
-build_expr_list([])     -> nil;
-build_expr_list([Expr]) -> Expr;
-build_expr_list(Exprs)  -> { block, 0, Exprs }.
+build_block([])     -> nil;
+build_block([Expr]) -> Expr;
+build_block(Exprs)  -> { block, 0, Exprs }.
 
-build_list(Line, Args) ->
-  { '[]', Line, Args }.
+build_list(Line, Args) -> Args.
 
 build_list(Line, Args, Pipe, Tail) ->
   [Last|Rest] = lists:reverse(Args),
   Final = [{'|',Pipe,[Last,Tail]}|Rest],
-  { '[]', Line, lists:reverse(Final) }.
+  lists:reverse(Final).
 
 % Build args by transforming [:] into the final form []
 

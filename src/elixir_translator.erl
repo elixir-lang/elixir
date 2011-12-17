@@ -124,25 +124,6 @@ translate_each({'{}', Line, Args}, S) ->
   { TArgs, SE } = translate(Args, S),
   { {tuple, Line, TArgs}, SE };
 
-translate_each({'[]', Line, []}, S) ->
-  { { nil, Line }, S };
-
-translate_each({'[]', Line, Args}, S) ->
-  [RTail|RArgs] = lists:reverse(Args),
-
-  case RTail of
-    {'|',_,[Left,Right]} ->
-      Exprs = [Left|RArgs],
-      { Tail, ST } = translate_each(Right, S);
-    _ ->
-      Exprs = [RTail|RArgs],
-      Tail = { nil, Line},
-      ST = S
-  end,
-
-  { TExprs, SE } = elixir_tree_helpers:build_reverse_list(fun translate_each/2, Exprs, Line, umergec(S, ST), Tail),
-  { TExprs, umergev(ST, SE) };
-
 %% References and namespaces
 
 translate_each({ns, Line, [Ref]}, S) ->
@@ -197,15 +178,10 @@ translate_each({Kind, Line, [{'[]', _, [{'{}',_,X}, {'{}',_,Y}]}]}, S) when Kind
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
       case X of
-        [do,Exprs] -> [Name, RawArgs] = Y;
+        [do,Exprs] -> [Name, Args] = Y;
         _ ->
           [do, Exprs]  = Y,
-          [Name, RawArgs] = X
-      end,
-
-      case RawArgs of
-        {'[]', _, Args } -> [];
-        Args -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for def")
+          [Name, Args] = X
       end,
 
       ClauseScope = S#elixir_scope{method=Name, counter=0, vars=dict:new(), assigned_vars=dict:new()},
@@ -230,7 +206,7 @@ translate_each({quote, _, _} = Clause, S) ->
 
 %% Functions
 
-translate_each({function, Line, [{'[]', _, Args}, {'[]', _, [{'{}', _, [do,Exprs]}]}]}, S) ->
+translate_each({function, Line, [Args, {'[]', _, [{'{}', _, [do,Exprs]}]}]}, S) when is_list(Args) ->
   { TClause, NS } = translate_clause(Line, Args, Exprs, [], S),
   { { 'fun', Line, {clauses, [TClause]} }, NS };
 
@@ -319,6 +295,25 @@ translate_each({{'.', _, [Expr]}, Line, Args}, S) ->
   { {call, Line, TExpr, TArgs}, umergev(SE, SA) };
 
 %% Literals
+
+translate_each([], S) ->
+  { { nil, 0 }, S };
+
+translate_each(Args, S) when is_list(Args) -> 
+  [RTail|RArgs] = lists:reverse(Args),
+
+  case RTail of
+    {'|',_,[Left,Right]} ->
+      Exprs = [Left|RArgs],
+      { Tail, ST } = translate_each(Right, S);
+    _ ->
+      Exprs = [RTail|RArgs],
+      Tail = { nil, 0 },
+      ST = S
+  end,
+
+  { TExprs, SE } = elixir_tree_helpers:build_reverse_list(fun translate_each/2, Exprs, 0, umergec(S, ST), Tail),
+  { TExprs, umergev(ST, SE) };
 
 translate_each(Number, S) when is_integer(Number) ->
   { { integer, 0, Number }, S };
