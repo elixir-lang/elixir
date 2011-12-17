@@ -185,10 +185,10 @@ call_args_parens -> open_paren raw_call_args close_paren : '$2'.
 
 % KV and orddict
 
-base_orddict -> kv_comma : { '[:]', ?line(hd('$1')), sort_kv('$1') }.
+base_orddict -> kv_comma : { '[:]', ?line(hd('$1')), '$1' }.
 
-kv_comma -> kv_eol expr : [{'{}',?line('$1'),[?exprs('$1'),'$2']}].
-kv_comma -> kv_eol expr comma_separator kv_comma : [{'{}',?line('$1'),[?exprs('$1'),'$2']}|'$4'].
+kv_comma -> kv_eol expr : [{?exprs('$1'),'$2'}].
+kv_comma -> kv_eol expr comma_separator kv_comma : [{?exprs('$1'), '$2'}|'$4'].
 
 kv_eol -> kv_identifier : '$1'.
 kv_eol -> kv_identifier eol : '$1'.
@@ -217,7 +217,7 @@ list -> open_bracket list_args '|' expr close_bracket : build_list(?line('$1'), 
 % Tuple
 
 tuple -> open_curly '}' : { '{}', ?line('$1'), [] }.
-tuple -> open_curly call_args close_curly :  { '{}', ?line('$1'), build_args('$2') }.
+tuple -> open_curly call_args close_curly :  { '{}', ?line('$1'), '$2' }.
 
 Erlang code.
 
@@ -229,6 +229,8 @@ Erlang code.
 % of the generated .erl file by the HiPE compiler. Please do not remove.
 -compile([{hipe,[{regalloc,linear_scan}]}]).
 
+%% Operators
+
 build_op(Op, Left, Right) ->
   { ?op(Op), ?line(Op), [Left, Right] }.
 
@@ -238,13 +240,19 @@ build_unary_op(Op, Expr) ->
 build_special_op(Op, Expr) ->
   { ?exprs(Op), ?line(Op), [Expr] }.
 
-build_kv_block(Delimiter, Contents) ->
-  Line = ?line(Delimiter),
-  {'[:]', Line, [{'{}', Line, ['do',build_block(Contents)]}] }.
+%% Blocks
 
+% Handle args that expects blocks of code
 build_block([])     -> nil;
 build_block([Expr]) -> Expr;
 build_block(Exprs)  -> { block, 0, Exprs }.
+
+% Handle key value blocks
+build_kv_block(Delimiter, Contents) ->
+  Line = ?line(Delimiter),
+  {'[:]', Line, [{'do',build_block(Contents)}]}.
+
+%% Lists
 
 build_list(Line, Args) -> Args.
 
@@ -253,15 +261,19 @@ build_list(Line, Args, Pipe, Tail) ->
   Final = [{'|',Pipe,[Last,Tail]}|Rest],
   lists:reverse(Final).
 
+%% Args
 % Build args by transforming [:] into the final form []
+% and properly sorting the items.
 
 build_args(Args) -> lists:map(fun build_arg/1, Args).
-build_arg({ '[:]', Line, Args }) -> Args;
+build_arg({ '[:]', Line, Args }) -> sort_kv(Args);
 build_arg(Else) -> Else.
 
-% Build identifiers. Those helpers are responsible to:
-% + Merge kv args and kv blocks arguments
-% + Handle dot operators and transform them in the proper function call
+%% Identifiers
+% Those helpers are responsible to:
+%
+%   + Merge kv args and kv blocks arguments
+%   + Handle dot operators and transform them in the proper function call
 
 build_identifier(Expr, Args, Block) ->
   build_identifier(Expr, merge_kv(Args, Block)).
@@ -282,11 +294,7 @@ build_identifier({ _, Line, Identifier }, false) ->
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, build_args(Args) }.
 
-% Sort key-values
-
-sort_kv(List) -> lists:sort(fun sort_kv/2, List).
-sort_kv({ '{}', _, [A,_] }, { '{}', _, [B,_] }) -> A =< B.
-
+%% KV Helpers
 % Merge key-value pairs from args and blocks
 
 merge_kv([], Block)   -> [Block];
@@ -296,7 +304,7 @@ merge_kv(Args, Block) ->
     true  ->
       { '[:]', Line, Left } = Last,
       { '[:]', _, Right }  = Block,
-      KV = { '[:]', Line, sort_kv(Left ++ Right) },
+      KV = { '[:]', Line, Left ++ Right },
       lists:reverse([KV|Reverse]);
     false ->
       lists:reverse([Block,Last|Reverse])
@@ -308,5 +316,8 @@ last([H|T], Acc) -> last(T, [H|Acc]).
 is_kv({'[:]', _, Args}) -> lists:all(fun is_kv_tuple/1, Args);
 is_kv(_) -> false.
 
-is_kv_tuple({ '{}', _, [Key, _ ] }) when is_atom(Key) -> true;
+is_kv_tuple({ Key, _ }) when is_atom(Key) -> true;
 is_kv_tuple(_) -> false.
+
+sort_kv(List) -> lists:sort(fun sort_kv/2, List).
+sort_kv({ A, _ }, { B, _ }) -> A =< B.

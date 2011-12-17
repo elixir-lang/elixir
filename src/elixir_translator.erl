@@ -89,19 +89,19 @@ translate_each({'&&', Line, [Left, Right]}, S) ->
 
 %% If
 
-translate_each({'if', Line, [Condition, [{'{}', _, [do,_]}|_] = Keywords]}, S) ->
-  [{ '{}', DoLine, [do,Exprs]}|ElsesKeywords] = Keywords,
+translate_each({'if', Line, [Condition, [{do,_}|_] = Keywords]}, S) ->
+  [{do,Exprs}|ElsesKeywords] = Keywords,
 
   WithCondition = case is_list(Exprs) of
     true  -> [Condition|Exprs];
     false -> [Condition,Exprs]
   end,
 
-  IfKeywords = {'{}', DoLine, [do, WithCondition]},
+  IfKeywords = {do, WithCondition},
 
   case ElsesKeywords of
-    [{'{}',_,[else,_]} = ElseKeywords|ElsifsKeywords] -> [];
-    ElsifsKeywords -> ElseKeywords = {'{}',Line,[else,nil]}
+    [{else,_} = ElseKeywords | ElsifsKeywords] -> [];
+    ElsifsKeywords -> ElseKeywords = {else,nil}
   end,
 
   { Clauses, FS } = elixir_clauses:translate(Line, fun translate/2, [IfKeywords|ElsifsKeywords] ++ [ElseKeywords], S),
@@ -172,16 +172,16 @@ translate_each({'::', Line, [Left, Right]}, S) ->
 
 %% Def
 
-translate_each({Kind, Line, [[{'{}',_,X}, {'{}',_,Y}]]}, S) when Kind == def; Kind == defmacro->
+translate_each({Kind, Line, [[X, Y]]}, S) when Kind == def; Kind == defmacro->
   Namespace = S#elixir_scope.namespace,
   case (Namespace == []) or (S#elixir_scope.method /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
       case X of
-        [do,Exprs] -> [Name, Args] = Y;
+        {do,Exprs} -> {Name, Args} = Y;
         _ ->
-          [do, Exprs]  = Y,
-          [Name, Args] = X
+          {do, Exprs}  = Y,
+          {Name, Args} = X
       end,
 
       ClauseScope = S#elixir_scope{method=Name, counter=0, vars=dict:new(), assigned_vars=dict:new()},
@@ -192,7 +192,8 @@ translate_each({Kind, Line, [[{'{}',_,X}, {'{}',_,Y}]]}, S) when Kind == def; Ki
   end;
 
 % TODO: Handle tree errors properly
-translate_each({Kind, Line, _}, S) when Kind == def; Kind == defmacro ->
+translate_each({Kind, Line, Args}, S) when Kind == def; Kind == defmacro ->
+  io:format("~p~n", [Args]),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for " ++ atom_to_list(Kind));
 
 %% Quoting
@@ -206,7 +207,7 @@ translate_each({quote, _, _} = Clause, S) ->
 
 %% Functions
 
-translate_each({function, Line, [Args, [{'{}', _, [do,Exprs]}]]}, S) when is_list(Args) ->
+translate_each({function, Line, [Args, [{do,Exprs}]]}, S) when is_list(Args) ->
   { TClause, NS } = translate_clause(Line, Args, Exprs, [], S),
   { { 'fun', Line, {clauses, [TClause]} }, NS };
 
@@ -295,6 +296,11 @@ translate_each({{'.', _, [Expr]}, Line, Args}, S) ->
   { {call, Line, TExpr, TArgs}, umergev(SE, SA) };
 
 %% Literals
+
+translate_each({ Left, Right }, S) ->
+  { TLeft, SL }  = translate_each(Left, S),
+  { TRight, SR } = translate_each(Right, SL),
+  { { tuple, 0, [TLeft, TRight] }, SR };
 
 translate_each([], S) ->
   { { nil, 0 }, S };

@@ -14,6 +14,11 @@ translate_each({ Left, Line, Right }, S) ->
   Tuple = { tuple, Line, [TLeft, { integer, Line, Line }, TRight] },
   { Tuple, RS };
 
+translate_each({ Left, Right }, S) ->
+  { TLeft, LS } = translate_each(Left, S),
+  { TRight, RS } = translate_each(Right, LS),
+  { { tuple, 0, [TLeft, TRight] }, RS };
+
 translate_each(List, S) when is_list(List) -> 
   elixir_tree_helpers:build_list(fun translate_each/2, List, 0, S);
 
