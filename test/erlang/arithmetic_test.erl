@@ -73,9 +73,11 @@ operators_variables_precedence_test() ->
   % {30, _} = elixir:eval("a = 10\nb= 20\na +b"),
   {30, _} = elixir:eval("a = 10\nb= 20\na + b").
 
-%   F = fun() ->
-%     {3,[]} = elixir:eval("module Foo; def length; 1; end; end\n1 + Foo.length + 1"),
-%     {3,[]} = elixir:eval("1 + Foo.length+1"),
-%     {2,[]} = elixir:eval("module Bar; def length(x); 1; end; end\n1 + Bar.length +1")
-%   end,
-%   test_helper:run_and_remove(F, ['Foo', 'Bar']).
+operators_variables_precedence_on_namespaces_test() ->
+  F = fun() ->
+    elixir:eval("ns Foo; def l: [], do: 1; ns Bar; def l: [x], do: 1;"),
+    {3,[]} = elixir:eval("1 + Foo.l + 1"),
+    {3,[]} = elixir:eval("1 + Foo.l+1"),
+    {2,[]} = elixir:eval("1 + Bar.l +1")
+  end,
+  test_helper:run_and_remove(F, ['::Foo', '::Bar']).
