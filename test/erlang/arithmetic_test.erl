@@ -50,8 +50,8 @@ integer_eol_test() ->
   {8,[]} = elixir:eval("1 + 2;\n\n3 + 5"),
   {8,[]} = elixir:eval("1 + (\n2\n) + 3 + 2"),
   {8,[]} = elixir:eval("1 + (\n\n  2\n\n) + 3 + 2"),
-  ?assertError({badsyntax, _}, elixir:eval("1 + 2;\n;\n3 + 5")),
-  ?assertError({badsyntax, _}, elixir:eval(";1 + 2")).
+  {3,[]} = elixir:eval(";1 + 2"),
+  ?assertError({badsyntax, _}, elixir:eval("1 + 2;\n;\n3 + 5")).
 
 float_with_parens_and_unary_test() ->
   {-21.0,[]} = elixir:eval("-3.0 * (5 + 2)"),

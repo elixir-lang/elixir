@@ -69,7 +69,7 @@ tokenize(Line, [Space,Sign,NotMarker|T], [{Identifier,_,_}|_] = Tokens) when Sig
 % Operators/punctuation tokens
 
 tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,;
-  T == $;; T == $+; T == $-; T == $*; T == $/; T == $=;
+  T == $+; T == $-; T == $*; T == $/; T == $=;
   T == ${; T == $}; T == $[; T == $]; T == $|; T == $. ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
 
@@ -94,6 +94,12 @@ tokenize(Line, [H|_] = String, Tokens) when H >= $a andalso H =< $z; H == $_ ->
   end;
 
 % End of line
+
+tokenize(Line, ";" ++ Rest, []) ->
+  tokenize(Line, Rest, eol(Line, []));
+
+tokenize(Line, ";" ++ Rest, [Top|Tokens]) when element(1, Top) /= eol ->
+  tokenize(Line, Rest, eol(Line, [Top|Tokens]));
 
 tokenize(Line, "\n" ++ Rest, Tokens) ->
   tokenize(Line + 1, Rest, eol(Line, Tokens));
