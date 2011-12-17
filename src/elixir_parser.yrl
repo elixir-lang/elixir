@@ -83,7 +83,7 @@ call_expr -> expr dot_call_op call_args_parens : build_identifier({ '.', ?line('
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
-max_expr -> '(' grammar ')' : '$2'.
+max_expr -> '(' expr_list ')' : build_expr_list('$2').
 
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
@@ -240,7 +240,11 @@ build_special_op(Op, Expr) ->
 
 build_block(Delimiter, Contents) ->
   Line = ?line(Delimiter),
-  {'[:]', Line, [{'{}', Line, ['do',Contents]}] }.
+  {'[:]', Line, [{'{}', Line, ['do',build_expr_list(Contents)]}] }.
+
+build_expr_list([])     -> nil;
+build_expr_list([Expr]) -> Expr;
+build_expr_list(Exprs)  -> { block, 0, Exprs }.
 
 build_list(Line, Args) ->
   { '[]', Line, Args }.

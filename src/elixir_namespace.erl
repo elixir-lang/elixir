@@ -15,13 +15,15 @@ build(Line, Filename, Namespace) ->
 
 compile(Line, Filename, Namespace) ->
   try
-    {Export, Macros, Functions} = elixir_def_method:unwrap_stored_methods(Namespace),
+    {E0, Macros, F0} = elixir_def_method:unwrap_stored_methods(Namespace),
+
+    { E1, F1 } = add_extra_function(E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
 
     Base = [
       {attribute, Line, module, Namespace},
       {attribute, Line, file, {Filename,Line}},
       % {attribute, Line, compile, no_auto_import()},
-      {attribute, Line, export, Export} | Functions
+      {attribute, Line, export, E1} | F1
     ],
 
     Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
@@ -48,6 +50,25 @@ load_form(Forms, Filename) ->
       format_warnings(Filename, Warnings),
       format_errors(Filename, Errors)
   end.
+
+% EXTRA FUNCTIONS
+
+add_extra_function(Exported, Functions, Pair, Contents) ->
+  case lists:member(Pair, Exported) of
+    true -> elixir_errors:error({internal_method_overridden, Pair});
+    false -> { [Pair|Exported], [Contents|Functions] }
+  end.
+
+macros_function(Line, Macros) ->
+  SortedMacros = lists:sort(Macros),
+
+  { Tuples, [] } = elixir_tree_helpers:build_list(fun({Name, Arity}, Y) ->
+    { { tuple, Line, [ {atom, Line, Name}, { integer, Line, Arity } ] }, Y }
+  end, SortedMacros, Line, []),
+
+  { function, Line, '__macros__', 0,
+    [{ clause, Line, [], [], [Tuples]}]
+  }.
 
 % ATTRIBUTES
 

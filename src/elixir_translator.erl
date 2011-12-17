@@ -112,6 +112,12 @@ translate_each({'if', Line, [Condition, {'[]', _, [{'{}', _, [do,_]}|_] = Keywor
 translate_each({'if', _, _} = Clause, S) ->
   error({invalid_arguments_for_if, Clause});
 
+%% Blocks
+
+translate_each({ block, Line, Args }, S) when is_list(Args) ->
+  { TArgs, NS } = translate(Args, S),
+  { { block, Line, TArgs }, NS };
+
 %% Containers
 
 translate_each({'{}', Line, Args}, S) ->
@@ -216,7 +222,7 @@ translate_each({Kind, Line, _}, S) when Kind == def; Kind == defmacro ->
 %% Quoting
 
 translate_each({quote, Line, [Expr]}, S) ->
-  elixir_quote:translate(Expr, S);
+  elixir_quote:translate_each(Expr, S);
 
 % TODO: Handle tree errors properly
 translate_each({quote, _, _} = Clause, S) ->
@@ -277,11 +283,33 @@ translate_each({{'.', _, [{{ '.', _, [{ref, _, ['Erlang']}, Remote]}, _, _}, Ato
 
 %% Dot calls
 
-translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
+% TODO Support when Left and TRight are not atoms
+translate_each({{'.', _, [Left, Right]}, Line, Args}, S) when is_atom(Right) ->
   { TLeft,  SL } = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
-  { TArgs,  SA } = translate(Args, umergec(S, SR)),
-  { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) };
+  { TRight,  SR } = translate_each(Right, umergec(S, SL)),
+
+  Namespace = case TLeft of
+    { atom, _, Option } ->
+      try
+        case lists:member({Right, length(Args)}, Option:'__macros__'()) of
+          true  -> Option;
+          false -> []
+        end
+      catch
+        error:undef -> []
+      end;
+    _ -> []
+  end,
+
+  case Namespace of
+    [] ->
+      { TArgs,  SA } = translate(Args, umergec(S, SR)),
+      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) };
+    Namespace -> 
+      { TArgs, NS } = elixir_quote:translate(Args, S),
+      Tree = apply(Namespace, Right, TArgs),
+      translate_each(Tree, NS)
+  end;
 
 %% Fun calls
 
@@ -289,18 +317,6 @@ translate_each({{'.', _, [Expr]}, Line, Args}, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   { TArgs, SA } = translate(Args, umergec(S, SE)),
   { {call, Line, TExpr, TArgs}, umergev(SE, SA) };
-
-%% Block expressions
-
-translate_each([], S) ->
-  { { atom, 0, nil }, S };
-
-translate_each([Expr], S) ->
-  translate_each(Expr, S);
-
-translate_each(List, S) when is_list(List) ->
-  { TList, NS } = translate(List, S),
-  { { block, 0, TList }, NS };
 
 %% Literals
 
