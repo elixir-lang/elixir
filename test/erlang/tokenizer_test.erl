@@ -56,9 +56,9 @@ dot_test() ->
    {identifier,1,baz}] = tokenize("foo.bar.baz").
 
 ref_test() ->
- [{ref,1,Foo}] = tokenize("Foo"),
- [{ref,1,Foo},
-  {'::',1},
-  {ref,1,Bar},
-  {'::',1},
-  {ref,1,Baz}] = tokenize("Foo::Bar::Baz").
+  [{ref,1,Foo}] = tokenize("Foo"),
+  [{ref,1,Foo},
+   {'::',1},
+   {ref,1,Bar},
+   {'::',1},
+   {ref,1,Baz}] = tokenize("Foo::Bar::Baz").

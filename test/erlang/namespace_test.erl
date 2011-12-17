@@ -30,8 +30,8 @@ namespace_quote_unquote_test() ->
 
 namespace_operator_macro_test() ->
   F = fun() ->
-    elixir:eval("ns Foo::Bar::Baz\ndefmacro +: [a, b], do: quote(unquote(a) + unquote(b))"),
-    {'+',2,[1,2]} = '::Foo::Bar::Baz':'+'(1, 2)
+    elixir:eval("ns Foo::Bar::Baz\ndefmacro +: [a, b], do: quote(unquote(a) - unquote(b))"),
+    {'-',2,[1,2]} = '::Foo::Bar::Baz':'+'(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
   

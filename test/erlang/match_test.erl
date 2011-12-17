@@ -1,9 +1,9 @@
 -module(match_test).
 -include_lib("eunit/include/eunit.hrl").
 
-% no_assignment_test() ->
-%   {nil, []} = elixir:eval("").
-% 
+no_assignment_test() ->
+  {nil, []} = elixir:eval("").
+
 % bound_variable_test() ->
 %   ?assertError({unbound_var, x}, elixir:eval("\~x = 1")),
 %   ?assertError({badsyntax, {1,<<"nofile">>,<<"invalid scope to bound variable">>,<<"x">>}}, elixir:eval("\~x")),
