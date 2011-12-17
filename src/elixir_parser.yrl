@@ -30,8 +30,7 @@ Rootsymbol grammar.
 
 % Solve nested call_args conflicts
 
-Nonassoc   1 kv_list.
-Nonassoc  10 '{'. % TODO: Test p {} and p { foo } becomes a block
+Nonassoc  10 kv_list.
 Right     20 match_op.
 Left      40 ','.
 Left     110 add_op.
@@ -65,22 +64,20 @@ expr -> block_expr : '$1'.
 
 block_expr -> dot_paren_identifier call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
-block_expr -> dot_punctuated_identifier do_block : build_identifier('$1', '$2').
+block_expr -> dot_punctuated_identifier do_block : build_identifier('$1', [], '$2').
 block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
-block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
+block_expr -> dot_do_identifier do_block : build_identifier('$1', [], '$2').
 block_expr -> dot_call_expr call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> curly_expr : '$1'.
 
 curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2', '$3').
-curly_expr -> dot_punctuated_identifier curly_block : build_identifier('$1', '$2').
-curly_expr -> dot_identifier curly_block : build_identifier('$1', '$2').
 curly_expr -> dot_call_expr call_args_parens curly_block : build_identifier('$1', '$2', '$3').
 curly_expr -> call_expr : '$1'.
 
 call_expr -> operator_call : '$1'.
 call_expr -> dot_paren_identifier call_args_parens : build_identifier('$1', '$2').
-call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
-call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
+call_expr -> dot_punctuated_identifier call_args_no_parens : build_maybe_curly_identifier('$1', '$2').
+call_expr -> dot_identifier call_args_no_parens : build_maybe_curly_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_call_expr call_args_parens : build_identifier('$1', '$2').
 call_expr -> max_expr : '$1'.
@@ -201,18 +198,16 @@ do_eol -> 'do' eol : '$1'.
 end_eol -> 'end' : '$1'.
 end_eol -> eol 'end' : '$2'.
 
-% Note kv pairs are on reverse order
 kv_list -> eol kv_eol expr_list : [{?exprs('$2'),'$3'}].
-kv_list -> kv_list eol kv_eol expr_list : [{?exprs('$3'), '$4'}|'$1'].
+kv_list -> eol kv_eol expr_list kv_list : [{?exprs('$2'), '$3'}|'$4'].
 
 do_block -> do_eol 'end'                     : build_kv_block('$1', [], []).
 do_block -> 'do' kv_list end_eol             : build_kv_block('$1', [], '$2').
 do_block -> do_eol expr_list end_eol         : build_kv_block('$1', '$2', []).
 do_block -> do_eol expr_list kv_list end_eol : build_kv_block('$1', '$2', '$3').
 
-% TODO: Support '{' eol
-curly_block -> '{' '}'                   : build_kv_block('$1', [], []).
-curly_block -> '{' expr_list close_curly : build_kv_block('$1', '$2', []).
+curly_block -> open_curly '}' : build_kv_block('$1', [], []).
+curly_block -> open_curly expr_list close_curly : build_kv_block('$1', '$2', []).
 
 % Lists
 
@@ -291,6 +286,16 @@ build_arg(Else) -> Else.
 %
 %   + Merge kv args and kv blocks arguments
 %   + Handle dot operators and transform them in the proper function call
+%   + Handle ambiguitity between p { }, p { 1 }, p { 1, 2 }
+
+build_maybe_curly_identifier(Expr, [{ '{}', Line, []}]) ->
+  build_identifier(Expr, [[{do,nil}]]);
+
+build_maybe_curly_identifier(Expr, [{ '{}', Line, [Arg]}]) ->
+  build_identifier(Expr, [[{do,Arg}]]);
+
+build_maybe_curly_identifier(Expr, Args) ->
+  build_identifier(Expr, Args).
 
 build_identifier(Expr, Args, Block) ->
   build_identifier(Expr, merge_kv(Args, Block)).
