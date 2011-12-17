@@ -11,7 +11,7 @@ Nonterminals
   open_curly close_curly
   raw_call_args call_args call_args_parens call_args_no_parens operator_call
   base_orddict kv_comma kv_eol
-  do_eol end_eol do_block curly_block
+  do_eol end_eol kv_list do_block curly_block
   list list_args
   dot_op dot_identifier dot_do_identifier dot_paren_identifier dot_punctuated_identifier
   ref_op ref_identifier
@@ -30,8 +30,8 @@ Rootsymbol grammar.
 
 % Solve nested call_args conflicts
 
-% TODO: Test p {} and p { foo } becomes a block
-Nonassoc  10 '{'.
+Nonassoc   1 kv_list.
+Nonassoc  10 '{'. % TODO: Test p {} and p { foo } becomes a block
 Right     20 match_op.
 Left      40 ','.
 Left     110 add_op.
@@ -46,15 +46,15 @@ Nonassoc 190 special_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> expr_list : '$1'.
-grammar -> eol expr_list : '$2'.
-grammar -> expr_list eol : '$1'.
-grammar -> eol expr_list eol : '$2'.
+grammar -> expr_list : lists:reverse('$1').
+grammar -> eol expr_list : lists:reverse('$2').
+grammar -> expr_list eol : lists:reverse('$1').
+grammar -> eol expr_list eol : lists:reverse('$2').
 grammar -> '$empty' : [nil].
 
-% List of expressions delimited by break
+% Note expressions are on reverse order
 expr_list -> expr : ['$1'].
-expr_list -> expr_list eol expr : '$1' ++ ['$3'].
+expr_list -> expr_list eol expr : ['$3'|'$1'].
 
 expr -> expr match_op expr : build_op('$2', '$1', '$3').
 expr -> expr add_op expr : build_op('$2', '$1', '$3').
@@ -200,12 +200,18 @@ do_eol -> 'do' eol : '$1'.
 end_eol -> 'end' : '$1'.
 end_eol -> eol 'end' : '$2'.
 
-do_block -> do_eol 'end'             : build_kv_block('$1', []).
-do_block -> do_eol expr_list end_eol : build_kv_block('$1', '$2').
+% Note kv pairs are on reverse order
+kv_list -> eol kv_eol expr_list : [{?exprs('$2'),'$3'}].
+kv_list -> kv_list eol kv_eol expr_list : [{?exprs('$3'), '$4'}|'$1'].
+
+do_block -> do_eol 'end'                     : build_kv_block('$1', [], []).
+do_block -> 'do' kv_list end_eol             : build_kv_block('$1', [], '$2').
+do_block -> do_eol expr_list end_eol         : build_kv_block('$1', '$2', []).
+do_block -> do_eol expr_list kv_list end_eol : build_kv_block('$1', '$2', '$3').
 
 % TODO: Support '{' eol
-curly_block -> '{' '}'                   : build_kv_block('$1', []).
-curly_block -> '{' expr_list close_curly : build_kv_block('$1', '$2').
+curly_block -> '{' '}'                   : build_kv_block('$1', [], []).
+curly_block -> '{' expr_list close_curly : build_kv_block('$1', '$2', []).
 
 % Lists
 
@@ -253,12 +259,14 @@ build_special_op(Op, Expr) ->
 % Handle args that expects blocks of code
 build_block([])     -> nil;
 build_block([Expr]) -> Expr;
-build_block(Exprs)  -> { block, 0, Exprs }.
+build_block(Exprs)  -> { block, 0, lists:reverse(Exprs) }.
 
 % Handle key value blocks
-build_kv_block(Delimiter, Contents) ->
+build_kv_block(Delimiter, Contents, ReverseList) ->
   Line = ?line(Delimiter),
-  {'[:]', Line, [{'do',build_block(Contents)}]}.
+  List = [{do,Contents}|ReverseList],
+  BlocksList = [{Key,build_block(Value)} || {Key,Value} <- List],
+  {'[:]', Line, BlocksList}.
 
 %% Lists
 
