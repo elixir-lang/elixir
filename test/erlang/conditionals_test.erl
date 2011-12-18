@@ -207,13 +207,13 @@ case_test() ->
 %   {true, _} = elixir:eval("not false"),
 %   ?assertError(badarg, elixir:eval("not 1")).
 % 
-% andand_test() ->
+andand_test() ->
 %   F = fun() ->
 %     elixir:eval("module Bar\ndef foo; true; end\ndef bar; false; end\ndef baz(x); x==1; end\nend"),
-%     {true, _} = elixir:eval("true && true"),
-%     {false, _} = elixir:eval("true && false"),
-%     {false, _} = elixir:eval("false && true"),
-%     {false, _} = elixir:eval("false && false"),
+    {true, _} = elixir:eval("true && true"),
+    {false, _} = elixir:eval("true && false"),
+    {false, _} = elixir:eval("false && true"),
+    {false, _} = elixir:eval("false && false").
 %     {true, _} = elixir:eval("Bar.foo && Bar.foo"),
 %     {false, _} = elixir:eval("Bar.foo && Bar.bar"),
 %     {true, _} = elixir:eval("Bar.foo && Bar.baz 1"),

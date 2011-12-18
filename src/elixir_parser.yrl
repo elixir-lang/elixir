@@ -5,7 +5,7 @@ Nonterminals
   grammar expr_list
   expr call_expr max_expr base_expr block_expr curly_expr
   comma_separator
-  add_op mult_op unary_op match_op
+  add_op mult_op unary_op match_op andand_op oror_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
@@ -23,7 +23,7 @@ Terminals
   identifier do_identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom ref
   '+' '-' '*' '/' '=' call_op special_op dot_call_op
-  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::'
+  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::' '&&' '||'
   .
 
 Rootsymbol grammar.
@@ -31,6 +31,14 @@ Rootsymbol grammar.
 Right     20 match_op.
 Nonassoc  30 'do'. % Solve nested call_args conflicts
 Left      40 ','.  % Solve nested call_args conflicts
+
+Left      50 oror_op.
+Left      60 andand_op.
+% Left      70 or_op.
+% Left      80 and_op.
+% Right     90 right_op.
+% Left     100 comp_op.
+
 Left     110 add_op.
 Left     120 mult_op.
 Nonassoc 140 unary_op.
@@ -56,6 +64,8 @@ expr_list -> expr_list eol expr : ['$3'|'$1'].
 expr -> expr match_op expr : build_op('$2', '$1', '$3').
 expr -> expr add_op expr : build_op('$2', '$1', '$3').
 expr -> expr mult_op expr : build_op('$2', '$1', '$3').
+expr -> expr andand_op expr : build_op('$2', '$1', '$3').
+expr -> expr oror_op expr : build_op('$2', '$1', '$3').
 expr -> unary_op expr : build_unary_op('$1', '$2').
 expr -> special_op expr : build_special_op('$1', '$2').
 expr -> block_expr : '$1'.
@@ -130,6 +140,12 @@ unary_op -> '-' : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.
+
+andand_op -> '&&' : '$1'.
+andand_op -> '&&' eol : '$1'.
+
+oror_op -> '||' : '$1'.
+oror_op -> '||' eol : '$1'.
 
 % Ref operator
 
