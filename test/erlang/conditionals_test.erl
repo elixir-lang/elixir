@@ -21,7 +21,8 @@ if_else_kv_blocks_test() ->
   {3, _} = elixir:eval("if(false) do 1;else: 2; 3; end").
 
 if_elsif_else_test() ->
-  {3, _} = elixir:eval("if false do\n 1\nelsif: true\n3\nelse:\n2\nend").
+  {3, _} = elixir:eval("if false do\n 1\nelsif: true\n3\nelse:\n2\nend"),
+  {nil, _} = elixir:eval("if false do\n 1\nelsif: [true, 3]\nelse:\n2\nend").
 
 % vars_if_test() ->
 %   F = fun() ->

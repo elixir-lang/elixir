@@ -210,9 +210,8 @@ curly_block -> open_curly expr_list close_curly : build_kv_block('$1', '$2', [])
 % Lists
 
 % list_args is an special case of call_args because kv_comma
-% does not generate a new array, it actually becomes tuples
-% in the existing one. Except list, everything should depend
-% on call_args.
+% does not generate a new array when it is the only element.
+% Except this, everything should depend on call_args.
 
 list_args -> kv_comma : sort_kv('$1').
 list_args -> expr : ['$1'].
@@ -251,9 +250,9 @@ build_special_op(Op, Expr) ->
 %% Blocks
 
 % Handle args that expects blocks of code
-build_block([])     -> nil;
-build_block([Expr]) -> Expr;
-build_block(Exprs)  -> { block, 0, lists:reverse(Exprs) }.
+build_block([])                            -> nil;
+build_block([Expr]) when not is_list(Expr) -> Expr;
+build_block(Exprs)                         -> { block, 0, lists:reverse(Exprs) }.
 
 % Handle key value blocks
 build_kv_block(Delimiter, Contents, ReverseList) ->
