@@ -233,7 +233,7 @@ translate_each({function, Line, [Args, [{do,Exprs}]]}, S) when is_list(Args) ->
 translate_each({function, _, Args} = Clause, S) when is_list(Args) ->
   error({invalid_arguments_for_function, Clause});
 
-%% Variables & Methods
+%% Variables & Function calls
 
 translate_each({Name, Line, false}, S) when is_atom(Name) ->
   Match = S#elixir_scope.assign,
@@ -279,19 +279,24 @@ translate_each({{'.', _, [{{ '.', _, [{ref, _, ['Erlang']}, Remote]}, _, _}, Ato
 %% Dot calls
 
 % TODO Support when Left and TRight are not atoms
-translate_each({{'.', _, [Left, Right]}, Line, Args}, S) when is_atom(Right) ->
+translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
   { TLeft,  SL } = translate_each(Left, S),
   { TRight,  SR } = translate_each(Right, umergec(S, SL)),
 
   Callback = fun() ->
-    { TArgs,  SA } = translate(Args, umergec(S, SR)),
+    { TArgs, SA } = translate(Args, umergec(S, SR)),
     { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) }
   end,
 
-  case TLeft of
-    { atom, _, Option } ->
-      elixir_macro:dispatch_one(Option, Right, Args, umergev(SL, SR), Callback);
-    _ -> Callback()
+  case { TLeft, TRight } of
+    { { atom, _, Receiver }, { atom, _, Name } }  ->
+      elixir_macro:dispatch_one(Receiver, Name, Args, umergev(SL, SR), Callback);
+    { { var, _, _ }, { var, _, _ } }  ->
+      Callback();
+    _ ->
+      { TArgs, SA } = translate(Args, umergec(S, SR)),
+      Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(1, TArgs)],
+      { ?ELIXIR_WRAP_CALL(Line, erlang, apply, Apply), umergev(SL, umergev(SR,SA)) }
   end;
 
 %% Fun calls
