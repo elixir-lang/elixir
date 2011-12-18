@@ -16,13 +16,13 @@ if_else_kv_args_test() ->
 
 if_else_kv_blocks_test() ->
   {2, _} = elixir:eval("if(false) do\n1\nelse:\n2\nend"),
-  {2, _} = elixir:eval("if(false) do 1;else: 2; end").
+  {2, _} = elixir:eval("if(false) do\n1\n3\nelse:\n2\nend"),
+  {2, _} = elixir:eval("if(false) do 1;else: 2; end"),
+  {3, _} = elixir:eval("if(false) do 1;else: 2; 3; end").
 
-% if_elsif_else_test() ->
-%   {3, _} = elixir:eval("if false; 1; elsif true; 3; else; 2; end"),
-%   {3, _} = elixir:eval("if false\n 1\n elsif true\n 3\n else\n 2\n end"),
-%   {3, _} = elixir:eval("if false then 1 elsif true then 3 else 2 end").
-%
+if_elsif_else_test() ->
+  {3, _} = elixir:eval("if false do\n 1\nelsif: true\n3\nelse:\n2\nend").
+
 % vars_if_test() ->
 %   F = fun() ->
 %     {1, [{foo,1}]} = elixir:eval("if foo = 1; true; else; false; end; foo"),

@@ -20,19 +20,17 @@ Nonterminals
 
 Terminals
   'do' 'end'
-  ref identifier do_identifier kv_identifier punctuated_identifier paren_identifier
-  number signed_number atom
+  identifier do_identifier kv_identifier punctuated_identifier paren_identifier
+  number signed_number atom ref
   '+' '-' '*' '/' '=' call_op special_op dot_call_op
   '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::'
   .
 
 Rootsymbol grammar.
 
-% Solve nested call_args conflicts
-
-Nonassoc  10 kv_list.
 Right     20 match_op.
-Left      40 ','.
+Nonassoc  30 'do'. % Solve nested call_args conflicts
+Left      40 ','.  % Solve nested call_args conflicts
 Left     110 add_op.
 Left     120 mult_op.
 Nonassoc 140 unary_op.
@@ -198,13 +196,13 @@ do_eol -> 'do' eol : '$1'.
 end_eol -> 'end' : '$1'.
 end_eol -> eol 'end' : '$2'.
 
-kv_list -> eol kv_eol expr_list : [{?exprs('$2'),'$3'}].
-kv_list -> eol kv_eol expr_list kv_list : [{?exprs('$2'), '$3'}|'$4'].
+kv_list -> kv_eol expr_list eol : [{?exprs('$1'),'$2'}].
+kv_list -> kv_eol expr_list eol kv_list : [{?exprs('$1'), '$2'}|'$4'].
 
-do_block -> do_eol 'end'                     : build_kv_block('$1', [], []).
-do_block -> 'do' kv_list end_eol             : build_kv_block('$1', [], '$2').
-do_block -> do_eol expr_list end_eol         : build_kv_block('$1', '$2', []).
-do_block -> do_eol expr_list kv_list end_eol : build_kv_block('$1', '$2', '$3').
+do_block -> do_eol 'end'                         : build_kv_block('$1', [], []).
+do_block -> do 'eol' kv_list 'end'               : build_kv_block('$1', [], '$2').
+do_block -> do_eol expr_list end_eol             : build_kv_block('$1', '$2', []).
+do_block -> do_eol expr_list 'eol' kv_list 'end' : build_kv_block('$1', '$2', '$4').
 
 curly_block -> open_curly '}' : build_kv_block('$1', [], []).
 curly_block -> open_curly expr_list close_curly : build_kv_block('$1', '$2', []).

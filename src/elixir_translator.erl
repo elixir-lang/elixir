@@ -91,13 +91,7 @@ translate_each({'&&', Line, [Left, Right]}, S) ->
 
 translate_each({'if', Line, [Condition, [{do,_}|_] = Keywords]}, S) ->
   [{do,Exprs}|ElsesKeywords] = Keywords,
-
-  WithCondition = case is_list(Exprs) of
-    true  -> [Condition|Exprs];
-    false -> [Condition,Exprs]
-  end,
-
-  IfKeywords = {do, WithCondition},
+  IfKeywords = {do, [Condition,Exprs]},
 
   case ElsesKeywords of
     [{else,_} = ElseKeywords | ElsifsKeywords] -> [];

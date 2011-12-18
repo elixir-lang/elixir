@@ -25,7 +25,7 @@ ebin/elixir.beam: include/elixir.hrl
 
 src/elixir_parser.erl: src/elixir_parser.yrl
 	@ echo Compiling parser ...
-	$(ERL) -eval 'yecc:file("$<"), halt().'
+	$(ERL) -eval 'yecc:file("$<", [{verbose,false}]), halt().'
 	@ mkdir -p $(EBIN_DIR)
 	$(ERLC) -o $(EBIN_DIR) $@
 	@ echo
