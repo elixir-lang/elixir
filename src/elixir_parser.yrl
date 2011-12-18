@@ -13,14 +13,14 @@ Nonterminals
   base_orddict kv_comma kv_eol
   do_eol end_eol kv_list do_block curly_block
   list list_args
-  dot_op dot_identifier dot_do_identifier dot_paren_identifier dot_punctuated_identifier dot_call_expr
+  dot_op dot_identifier dot_paren_identifier dot_punctuated_identifier dot_call_expr
   ref_op ref_identifier
   var tuple
   .
 
 Terminals
   'do' 'end'
-  identifier do_identifier kv_identifier punctuated_identifier paren_identifier
+  identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom ref
   '+' '-' '*' '/' '=' call_op special_op dot_call_op
   '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::' '&&' '||'
@@ -72,9 +72,7 @@ expr -> block_expr : '$1'.
 
 block_expr -> dot_paren_identifier call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
-block_expr -> dot_punctuated_identifier do_block : build_identifier('$1', [], '$2').
 block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
-block_expr -> dot_do_identifier do_block : build_identifier('$1', [], '$2').
 block_expr -> dot_call_expr call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> call_op call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> curly_expr : '$1'.
@@ -107,7 +105,6 @@ base_expr -> ref_identifier : '$1'.
 %% Helpers
 
 var -> dot_identifier : '$1'.
-var -> dot_do_identifier : '$1'.
 
 comma_separator -> ','     : '$1'.
 comma_separator -> ',' eol : '$1'.
@@ -165,9 +162,6 @@ dot_op -> '.' eol : '$1'.
 dot_identifier -> identifier : '$1'.
 dot_identifier -> dot_call_op call_args_parens : build_identifier('$1', '$2'). % .(args)
 dot_identifier -> expr dot_op identifier : { '.', ?line('$2'), ['$1', '$3'] }.
-
-dot_do_identifier -> do_identifier : '$1'.
-dot_do_identifier -> expr dot_op do_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
 dot_paren_identifier -> paren_identifier : '$1'.
 dot_paren_identifier -> expr dot_op paren_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
@@ -312,8 +306,7 @@ build_identifier(Expr, Args, Block) ->
   build_identifier(Expr, merge_kv(Args, Block)).
 
 build_identifier({ '.', DotLine, [Expr, { Kind, _, Identifier }] }, Args) when
-  Kind == identifier; Kind == do_identifier; Kind == kv_identifier;
-  Kind == punctuated_identifier; Kind == paren_identifier ->
+  Kind == identifier; Kind == punctuated_identifier; Kind == paren_identifier ->
   build_identifier({ '.', DotLine, [Expr, Identifier] }, Args);
 
 build_identifier({ '.', Line, _ } = Dot, Args) ->
