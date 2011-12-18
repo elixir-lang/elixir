@@ -1,22 +1,22 @@
 -module(elixir_clauses).
--export([translate/4]).
+-export([translate/3]).
 -include("elixir.hrl").
 
 % Helpers for translating clauses for if/case/try and friends.
-% Function and method clauses are not translated in this helper
+% Function and def clauses are not translated in this helper
 % as they don't need to share variables.
 
-translate(Line, Fun, [Clause], S) ->
-  { TClause, TS } = translate_each(Fun, Clause, S),
+translate(Line, [Clause], S) ->
+  { TClause, TS } = translate_each(Clause, S),
   { [TClause], TS };
 
-translate(Line, Fun, Clauses, RawS) ->
+translate(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
 
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
   Transformer = fun(X, {Acc, CV}) ->
-    { TX, TAcc } = translate_each(Fun, X, Acc),
+    { TX, TAcc } = translate_each(X, Acc),
     { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
   end,
 
@@ -69,18 +69,18 @@ translate(Line, Fun, Clauses, RawS) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-translate_each(Fun, {Key,Expr}, S) when not is_list(Expr) ->
-  translate_each(Fun, {Key,[Expr]}, S);
+translate_each({Key,Expr}, S) when not is_list(Expr) ->
+  translate_each({Key,[Expr]}, S);
 
-translate_each(Fun, {else,Expr}, S) ->
-  Fun(Expr, S);
+translate_each({else,Expr}, S) ->
+  elixir_translator:translate(Expr, S);
 
-translate_each(Fun, {Key,[Expr]}, S) ->
-  translate_each(Fun, {Key,[Expr, nil]}, S);
+translate_each({Key,[Expr]}, S) ->
+  translate_each({Key,[Expr, nil]}, S);
 
-translate_each(Fun, {Key,[Condition|Exprs]} = T, S) when Key == do; Key == elsif; Key == match ->
-  { [TCondition], SC } = Fun([Condition], S),
-  { TExprs, SE } = Fun(Exprs, SC),
+translate_each({Key,[Condition|Exprs]} = T, S) when Key == do; Key == elsif; Key == match ->
+  { TCondition, SC } = elixir_translator:translate_each(Condition, S),
+  { TExprs, SE } = elixir_translator:translate(Exprs, SC),
   { [TCondition|TExprs], SE }.
 
 % Check if the given expression is a match tuple.

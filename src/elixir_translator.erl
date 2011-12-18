@@ -1,5 +1,5 @@
 -module(elixir_translator).
--export([translate/2, translate_each/2, parse/3, umergec/2, umergev/2]).
+-export([translate/2, translate_each/2, parse/3]).
 -include("elixir.hrl").
 
 parse(String, Line, #elixir_scope{filename=Filename} = S) ->
@@ -104,7 +104,7 @@ translate_each({'if', Line, [Condition, [{do,_}|_] = Keywords]}, S) ->
     ElsifsKeywords -> ElseKeywords = {else,nil}
   end,
 
-  { Clauses, FS } = elixir_clauses:translate(Line, fun translate/2, [IfKeywords|ElsifsKeywords] ++ [ElseKeywords], S),
+  { Clauses, FS } = elixir_clauses:translate(Line, [IfKeywords|ElsifsKeywords] ++ [ElseKeywords], S),
   [Else|Others] = lists:reverse(Clauses),
   { build_if_clauses(Line, Others, Else), FS };
 

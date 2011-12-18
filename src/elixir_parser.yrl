@@ -300,6 +300,8 @@ build_maybe_curly_identifier(Expr, Args) ->
 build_identifier(Expr, Args, Block) ->
   build_identifier(Expr, merge_kv(Args, Block)).
 
+% TODO: This will mistakenly convert other right sides that are
+% not identifiers to identifiers. Example: dot_call_op call_args_parens
 build_identifier({ '.', DotLine, [Expr, { _, Line, Identifier }] }, Args) ->
   build_identifier({ '.', DotLine, [Expr, Identifier] }, Args);
 
