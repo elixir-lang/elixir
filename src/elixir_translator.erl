@@ -1,5 +1,5 @@
 -module(elixir_translator).
--export([translate/2, translate_each/2, parse/3]).
+-export([translate/2, translate_each/2, translate_assigns/3, parse/3]).
 -include("elixir.hrl").
 
 parse(String, Line, #elixir_scope{filename=Filename} = S) ->
@@ -23,6 +23,10 @@ forms(String, StartLine, Filename) ->
 
 translate(Forms, S) ->
   lists:mapfoldl(fun translate_each/2, S, Forms).
+
+translate_assigns(Fun, Args, Scope) ->
+  { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
+  { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
 
 %% Assignment operator
 
@@ -87,17 +91,32 @@ translate_each({'&&', Line, [Left, Right]}, S) ->
     { clause, Line, Any, [], [TRight] }
   ] }, umergev(SL, SR) };
 
+%% Case
+
+translate_each({'case', Line, [Expr, RawClauses]}, S) ->
+  Clauses = orddict:erase(do, RawClauses),
+
+  case Clauses of
+    [{else,Else}|{match,Match}] ->
+      ElseClause = prepend_to_block(Line, {'_', Line, false}, Else),
+      MatchClauses = [{match,listify(Match) ++ [ElseClause]}];
+    MatchClauses -> []
+  end,
+
+  { TExpr, NS } = translate_each(Expr, S),
+  { TClauses, TS } = elixir_clauses:translate(Line, MatchClauses, NS),
+  FClauses = [build_case_clause(Line, C) || C <- TClauses],
+  { { 'case', Line, TExpr, FClauses }, TS };
+
+% TODO: Handle tree errors properly
+translate_each({'case', _, Args} = Clause, S) when is_list(Args) ->
+  error({invalid_arguments_for_case, Clause});
+
 %% If
 
 translate_each({'if', Line, [Condition, [{do,_}|_] = Keywords]}, S) ->
   [{do,Exprs}|ElsesKeywords] = Keywords,
-
-  IfClauses = case Exprs of
-    { block, BlockLine, Args } -> { block, BlockLine, [Condition|Args] };
-    _ -> { block, Line, [Condition, Exprs] }
-  end,
-
-  IfKeywords = {do, IfClauses},
+  IfKeywords = {do, prepend_to_block(Line, Condition, Exprs)},
 
   case ElsesKeywords of
     [{else,_} = ElseKeywords | ElsifsKeywords] -> [];
@@ -109,7 +128,7 @@ translate_each({'if', Line, [Condition, [{do,_}|_] = Keywords]}, S) ->
   { build_if_clauses(Line, Others, Else), FS };
 
 % TODO: Handle tree errors properly
-translate_each({'if', _, _} = Clause, S) ->
+translate_each({'if', _, Args} = Clause, S) when is_list(Args) ->
   error({invalid_arguments_for_if, Clause});
 
 %% Blocks
@@ -120,7 +139,7 @@ translate_each({ block, Line, Args }, S) when is_list(Args) ->
 
 %% Containers
 
-translate_each({'{}', Line, Args}, S) ->
+translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate(Args, S),
   { {tuple, Line, TArgs}, SE };
 
@@ -172,7 +191,7 @@ translate_each({'::', Line, [Left, Right]}, S) ->
 
 %% Def
 
-translate_each({Kind, Line, [[X, Y]]}, S) when Kind == def; Kind == defmacro->
+translate_each({Kind, Line, [[X, Y]]}, S) when Kind == def orelse Kind == defmacro->
   Namespace = S#elixir_scope.namespace,
   case (Namespace == []) or (S#elixir_scope.method /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
@@ -192,7 +211,7 @@ translate_each({Kind, Line, [[X, Y]]}, S) when Kind == def; Kind == defmacro->
   end;
 
 % TODO: Handle tree errors properly
-translate_each({Kind, Line, Args}, S) when Kind == def; Kind == defmacro ->
+translate_each({Kind, Line, Args}, S) when is_list(Args), Kind == def orelse Kind == defmacro ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for " ++ atom_to_list(Kind));
 
 %% Quoting
@@ -201,7 +220,7 @@ translate_each({quote, Line, [Expr]}, S) ->
   elixir_quote:translate_each(Expr, S);
 
 % TODO: Handle tree errors properly
-translate_each({quote, _, _} = Clause, S) ->
+translate_each({quote, _, Args} = Clause, S) when is_list(Args) ->
   error({invalid_arguments_for_quote, Clause});
 
 %% Functions
@@ -211,7 +230,7 @@ translate_each({function, Line, [Args, [{do,Exprs}]]}, S) when is_list(Args) ->
   { { 'fun', Line, {clauses, [TClause]} }, NS };
 
 % TODO: Handle tree errors properly
-translate_each({function, _, _} = Clause, S) ->
+translate_each({function, _, Args} = Clause, S) when is_list(Args) ->
   error({invalid_arguments_for_function, Clause});
 
 %% Variables & Methods
@@ -330,11 +349,10 @@ translate_each(Atom, S) when is_atom(Atom) ->
 
 %% Helpers
 
-%% Assigns helpers
+%% Listify
 
-translate_assigns(Fun, Args, Scope) ->
-  { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
-  { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
+listify(Expr) when not is_list(Expr) -> [Expr];
+listify(Expr) -> Expr.
 
 %% Clauses helpers for def and functions
 
@@ -350,6 +368,19 @@ translate_clause(Line, Args, Expr, Guards, S) ->
   end,
 
   { { clause, Line, TArgs, TGuards, TExprs }, SE }.
+
+%% Prepend a given expression to a block.
+
+prepend_to_block(_Line, Expr, { block, Line, Args }) ->
+  { block, Line, [Expr|Args] };
+
+prepend_to_block(Line, Expr, Args) ->
+  { block, Line, [Expr, Args] }.
+
+%% Build case clauses
+
+build_case_clause(Line, [Condition|Exprs]) ->
+  { clause, Line, [Condition], [], Exprs }.
 
 %% Build if clauses by nesting
 

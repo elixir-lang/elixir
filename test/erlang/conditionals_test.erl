@@ -39,9 +39,9 @@ if_elsif_else_test() ->
 %   {1, _} = elixir:eval("if true\nx = 1\nelse true\nend\nx"),
 %   {nil, _} = elixir:eval("if false\nx = 1\nelse true\nend\nx").
 % 
-% case_test() ->
-%   {true, _} = elixir:eval("case 1 match 2 then false match 1 then true end"),
-%   {true, [{x,1}]} = elixir:eval("case 1 match {x,y} then false match x then true end"),
+case_test() ->
+  {true, _} = elixir:eval("case 1 do\nmatch: 2; false\nmatch: 1; true\nend"),
+  {true, [{x,1}]} = elixir:eval("case 1 do\nmatch: {x,y}; false\nmatch: x; true\nend").
 %   {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y} then true match {1,x} then false end"),
 %   {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y}\ntrue\nmatch {1,x}\nfalse\nend"),
 %   {true, _} = elixir:eval("case {1,2} match {3,4}\nfalse\nelse true\nend"),

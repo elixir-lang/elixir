@@ -200,7 +200,7 @@ kv_list -> kv_eol expr_list eol : [{?exprs('$1'),'$2'}].
 kv_list -> kv_eol expr_list eol kv_list : [{?exprs('$1'), '$2'}|'$4'].
 
 do_block -> do_eol 'end'                         : build_kv_block('$1', [], []).
-do_block -> do 'eol' kv_list 'end'               : build_kv_block('$1', [], '$2').
+do_block -> do 'eol' kv_list 'end'               : build_kv_block('$1', [], '$3').
 do_block -> do_eol expr_list end_eol             : build_kv_block('$1', '$2', []).
 do_block -> do_eol expr_list 'eol' kv_list 'end' : build_kv_block('$1', '$2', '$4').
 
