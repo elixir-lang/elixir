@@ -283,26 +283,15 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) when is_atom(Right) ->
   { TLeft,  SL } = translate_each(Left, S),
   { TRight,  SR } = translate_each(Right, umergec(S, SL)),
 
-  Namespace = case TLeft of
-    { atom, _, Option } ->
-      try
-        case lists:member({Right, length(Args)}, Option:'__macros__'()) of
-          true  -> Option;
-          false -> []
-        end
-      catch
-        error:undef -> []
-      end;
-    _ -> []
+  Callback = fun() ->
+    { TArgs,  SA } = translate(Args, umergec(S, SR)),
+    { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) }
   end,
 
-  case Namespace of
-    [] ->
-      { TArgs,  SA } = translate(Args, umergec(S, SR)),
-      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) };
-    Namespace ->
-      Tree = apply(Namespace, Right, Args),
-      translate_each(Tree, S)
+  case TLeft of
+    { atom, _, Option } ->
+      elixir_macro:dispatch_one(Option, Right, Args, umergev(SL, SR), Callback);
+    _ -> Callback()
   end;
 
 %% Fun calls
