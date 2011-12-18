@@ -110,10 +110,14 @@ translate_each({Key,[Expr]}, S) ->
   translate_each({Key,[Expr, nil]}, S);
 
 % Handle all other clauses.
-translate_each({Key,[Condition|Exprs]} = T, S) ->
+translate_each({Key,[Condition|Exprs]}, S) when Key == do; Key == elsif; Key == match, Key == 'catch' ->
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TExprs, SE } = elixir_translator:translate(Exprs, SC),
-  { [TCondition|TExprs], SE }.
+  { [TCondition|TExprs], SE };
+
+% TODO: Raise a better message.
+translate_each({Key,_}, S) ->
+  error({invalid_key_for_clause, Key}).
 
 % Check if the given expression is a match tuple.
 % This is a small optimization to allow us to change
