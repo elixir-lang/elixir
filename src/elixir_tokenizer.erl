@@ -13,6 +13,25 @@ tokenize(Line, [H|_] = String, Tokens) when H >= $0 andalso H =< $9 ->
   { Rest, Number } = tokenize_number(String, [], false),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 
+% Dot operators
+
+% ## Exception for .( as it needs to be treated specially in the parser
+tokenize(Line, [$.,$(|Rest], Tokens) ->
+  tokenize(Line, [$(|Rest], [{dot_call_op,Line,'.'}|Tokens]);
+
+% ## Containers
+tokenize(Line, [$.,T1,T2|Rest], Tokens) when T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
+  tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
+
+% ## Two Token Operators
+tokenize(Line, [$.,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
+  T1 == $: andalso T2 == $: ->
+  tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
+
+% ## Single Token Operators
+tokenize(Line, [$.,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
+  tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T]), Rest),{'.',Line}|Tokens]);
+
 % Atoms
 
 tokenize(Line, "true" ++ Rest, Tokens) ->
@@ -30,33 +49,48 @@ tokenize(Line, [$:,T|String], Tokens) when T >= $A andalso T =< $Z; T >= $a anda
 
 % Atom operators
 
+% ## Containers
+tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
+  tokenize(Line, Rest, [{atom,Line,list_to_atom([T1,T2])}|Tokens]);
+
+% ## Two Token Operators
+tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
+  T1 == $: andalso T2 == $: ->
+  tokenize(Line, Rest, [{atom,Line,list_to_atom([T1,T2])}|Tokens]);
+
+% ## Single Token Operators
 tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
   tokenize(Line, Rest, [{atom,Line,list_to_atom([T])}|Tokens]);
 
-tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
-  T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $}; T1 == $: andalso T2 == $: ->
-  tokenize(Line, Rest, [{atom,Line,list_to_atom([T1,T2])}|Tokens]);
-
 % KV Identifiers
 
+% ## Containers
+tokenize(Line, [T1,T2,$:|Rest], Tokens) when T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
+  tokenize(Line, Rest, [{kv_identifier,Line,list_to_atom([T1,T2])}|Tokens]);
+
+% ## Two Token Operators
+tokenize(Line, [T1,T2,$:|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
+  T1 == $: andalso T2 == $: ->
+  tokenize(Line, Rest, [{kv_identifier,Line,list_to_atom([T1,T2])}|Tokens]);
+
+% ## Single Token Operators
 tokenize(Line, [T,$:|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
   tokenize(Line, Rest, [{kv_identifier,Line,list_to_atom([T])}|Tokens]);
 
-tokenize(Line, [T1,T2,$:|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
-  T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $}; T1 == $: andalso T2 == $: ->
-  tokenize(Line, Rest, [{kv_identifier,Line,list_to_atom([T1,T2])}|Tokens]);
-
 % Call operators
 
-tokenize(Line, [$.,$(|Rest], Tokens) ->
-  tokenize(Line, [$(|Rest], [{dot_call_op,Line,'.'}|Tokens]);
+% ## Containers
+tokenize(Line, [T1,T2,$(|Rest], Tokens) when T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
+  tokenize(Line, [$(|Rest], [{call_op,Line,list_to_atom([T1,T2])}|Tokens]);
 
+% ## Two Token Operators
+tokenize(Line, [T1,T2,$(|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
+  T1 == $: andalso T2 == $: ->
+  tokenize(Line, [$(|Rest], [{call_op,Line,list_to_atom([T1,T2])}|Tokens]);
+
+% ## Single Token Operators
 tokenize(Line, [T,$(|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
   tokenize(Line, [$(|Rest], [{call_op,Line,list_to_atom([T])}|Tokens]);
-
-tokenize(Line, [T1,T2,$(|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
-  T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $}; T1 == $: andalso T2 == $: ->
-  tokenize(Line, [$(|Rest], [{call_op,Line,list_to_atom([T1,T2])}|Tokens]);
 
 % Ambiguous unary/binary operators tokens
 
@@ -66,16 +100,22 @@ tokenize(Line, [Space,Sign,NotMarker|T], [{Identifier,_,_}|_] = Tokens) when Sig
   Rest = [NotMarker|T],
   tokenize(Line, Rest, [{special_op,Line,list_to_atom([Sign])}|Tokens]);
 
-% Operators/punctuation tokens
+% Stand-alone tokens
 
-tokenize(Line, [T|Rest], Tokens) when T == $(; T == $); T == $,;
-  T == $+; T == $-; T == $*; T == $/; T == $=;
-  T == ${; T == $}; T == $[; T == $]; T == $|; T == $. ->
+% ## Containers + punctuation tokens
+tokenize(Line, [T|Rest], Tokens) when T == $(;
+  T == ${; T == $}; T == $[; T == $]; T == $|;
+  T == $); T == $,; T == $. ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
 
+% ## Two Token Operators
 tokenize(Line, [T1,T2|Rest], Tokens) when T1 == $: andalso T2 == $:;
   T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $| ->
   tokenize(Line, Rest, [{list_to_atom([T1,T2]), Line}|Tokens]);
+
+% ## Single Token Operators
+tokenize(Line, [T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
+  tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
 
 % References
 
@@ -86,7 +126,7 @@ tokenize(Line, [H|_] = String, Tokens) when H >= $A andalso H =< $Z ->
 % Identifier
 
 tokenize(Line, [H|_] = String, Tokens) when H >= $a andalso H =< $z; H == $_ ->
-  { Rest, { Kind, Identifier } } = tokenize_extra_identifier(String, []),
+  { Rest, { Kind, _, Identifier } } = tokenize_many_identifier(Line, String, []),
   case Kind == identifier andalso keyword(Identifier) of
     true  ->
       tokenize(Line, Rest, [{Identifier,Line}|Tokens]);
@@ -162,15 +202,24 @@ tokenize_identifier([H|Rest], Acc, true) when H == $?; H == $! ->
 tokenize_identifier(Rest, Acc, _) ->
   { Rest, { identifier, list_to_atom(lists:reverse(Acc)) } }.
 
-tokenize_extra_identifier(String, Acc) ->
+% Tokenize identifier checking if it is a kv_identifier or a call_identifier.
+tokenize_many_identifier(Line, String, Acc) ->
   { Rest, { Kind, Atom } } = tokenize_identifier(String, Acc),
   case Rest of
-    [$:|T] -> { T, { kv_identifier, Atom } };
-    [$(|_] -> { Rest, { paren_identifier, Atom } };
+    [$:|T] ->
+      { T, { kv_identifier, Line, Atom } };
+    _ ->
+      { Rest, tokenize_call_identifier(Kind, Line, Atom, Rest) }
+  end.
+
+% Tokenize identifier checking if it is a call_identifier.
+tokenize_call_identifier(Kind, Line, Atom, Rest) ->
+  case Rest of
+    [$(|_] -> { paren_identifier, Line, Atom };
     _ ->
       case next_is_do(Rest) of
-        true  -> { Rest, { do_identifier, Atom } };
-        false -> { Rest, { Kind, Atom } }
+        true  -> { do_identifier, Line, Atom };
+        false -> { Kind, Line, Atom }
       end
   end.
 
