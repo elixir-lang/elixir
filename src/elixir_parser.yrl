@@ -9,7 +9,7 @@ Nonterminals
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
-  raw_call_args call_args call_args_parens call_args_no_parens operator_call
+  raw_call_args call_args call_args_parens call_args_no_parens
   base_orddict kv_comma kv_eol
   do_eol end_eol kv_list do_block curly_block
   list list_args
@@ -76,13 +76,15 @@ block_expr -> dot_punctuated_identifier do_block : build_identifier('$1', [], '$
 block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_do_identifier do_block : build_identifier('$1', [], '$2').
 block_expr -> dot_call_expr call_args_parens do_block : build_identifier('$1', '$2', '$3').
+block_expr -> call_op call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> curly_expr : '$1'.
 
 curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2', '$3').
 curly_expr -> dot_call_expr call_args_parens curly_block : build_identifier('$1', '$2', '$3').
+curly_expr -> call_op call_args_parens curly_block : build_identifier('$1', '$2', '$3').
 curly_expr -> call_expr : '$1'.
 
-call_expr -> operator_call : '$1'.
+call_expr -> call_op call_args_parens : build_identifier('$1', '$2').
 call_expr -> dot_paren_identifier call_args_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_maybe_curly_identifier('$1', '$2').
 call_expr -> dot_identifier call_args_no_parens : build_maybe_curly_identifier('$1', '$2').
@@ -176,10 +178,6 @@ dot_punctuated_identifier -> expr dot_op punctuated_identifier : { '.', ?line('$
 dot_call_expr -> expr dot_call_op : { '.', ?line('$2'), ['$1'] }.
 
 % Function calls
-
-operator_call -> call_op call_args_parens : build_identifier('$1', '$2').
-operator_call -> call_op call_args_parens curly_block : build_identifier('$1', '$2', '$3').
-operator_call -> call_op call_args_parens do_block : build_identifier('$1', '$2', '$3').
 
 raw_call_args -> expr : ['$1'].
 raw_call_args -> base_orddict : ['$1'].
