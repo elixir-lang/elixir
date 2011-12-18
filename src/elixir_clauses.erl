@@ -13,6 +13,8 @@ translate(Line, [Clause], S) ->
 translate(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
 
+  DecoupledClauses = decouple_clauses(Clauses, []),
+
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
   Transformer = fun(X, {Acc, CV}) ->
@@ -20,7 +22,7 @@ translate(Line, Clauses, RawS) ->
     { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
   end,
 
-  { TClauses, { TS, RawCV } } = lists:mapfoldl(Transformer, {S, []}, Clauses),
+  { TClauses, { TS, RawCV } } = lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
 
   % Now get all the variables defined inside each clause
   CV = lists:reverse(RawCV),
@@ -67,26 +69,48 @@ translate(Line, Clauses, RawS) ->
       { FClauses, SS }
   end.
 
+% Decouple clauses. A clause is a key-value pair. If the value is an array,
+% it is broken into several other key-value pairs with the same key. This
+% process is only valid for :match and :elsif keys (as they are the only
+% that supports many clauses)
+%
+% + An array. Which means several expressions were given. Valid only for match, elsif, catch.
+% + Any other expression.
+%
+decouple_clauses([{Key,Value}|T], Clauses) when is_list(Value), Key == elsif orelse Key == match orelse Key == 'catch' ->
+  Final = lists:foldl(fun(X, Acc) -> [{Key,X}|Acc] end, Clauses, Value),
+  decouple_clauses(T, Final);
+
+% TODO: Raise a better message.
+decouple_clauses([{Key,Value}|T], Clauses) when is_list(Value) ->
+  error({invalid_many_clauses_for_key, Key});
+
+decouple_clauses([H|T], Clauses) ->
+  decouple_clauses(T, [H|Clauses]);
+
+decouple_clauses([], Clauses) ->
+  lists:reverse(Clauses).
+
 % Handle each key/value clause pair and translate them accordingly.
 
-% Extract clauses from block
+% Extract clauses from block.
 translate_each({Key,{block,_,Exprs}}, S) ->
-  translate_kv({Key,Exprs}, S);
+  translate_each({Key,Exprs}, S);
 
 % Wrap each clause in a list. The first item in the list usually express a condition.
 translate_each({Key,Expr}, S) when not is_list(Expr) ->
-  translate_kv({Key,[Expr]}, S).
+  translate_each({Key,[Expr]}, S);
 
 % Some clauses have no conditions. So we are done.
-translate_kv({Key,Expr}, S) when Key == else; Key == 'after'; Key == 'try' ->
+translate_each({Key,Expr}, S) when Key == else; Key == 'after'; Key == 'try' ->
   elixir_translator:translate(Expr, S);
 
-% Clauses that have conditions must return at least two elemenets.
-translate_kv({Key,[Expr]}, S) ->
-  translate_kv({Key,[Expr, nil]}, S);
+% Clauses that have conditions must return at least two elements.
+translate_each({Key,[Expr]}, S) ->
+  translate_each({Key,[Expr, nil]}, S);
 
 % Handle all other clauses.
-translate_kv({Key,[Condition|Exprs]} = T, S) when Key == do; Key == elsif; Key == match ->
+translate_each({Key,[Condition|Exprs]} = T, S) ->
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TExprs, SE } = elixir_translator:translate(Exprs, SC),
   { [TCondition|TExprs], SE }.
