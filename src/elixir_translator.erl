@@ -330,24 +330,26 @@ translate_each(Atom, S) when is_atom(Atom) ->
 
 %% Helpers
 
-%% Listify
-
-listify(Expr) when not is_list(Expr) -> [Expr];
-listify(Expr) -> Expr.
-
 %% Assigns helpers
 
 translate_assigns(Fun, Args, Scope) ->
   { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
   { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
 
-%% Clauses helpers for methods and functions
+%% Clauses helpers for def and functions
 
-translate_clause(Line, Args, Exprs, Guards, S) ->
+translate_clause(Line, Args, Expr, Guards, S) ->
   { TArgs, SA }   = translate_assigns(fun translate/2, Args, S),
   { TGuards, SG } = translate(Guards, SA#elixir_scope{guard=true}),
-  { TExprs, SE }  = translate_each(Exprs, SG#elixir_scope{guard=false}),
-  { { clause, Line, TArgs, TGuards, listify(TExprs) }, SE }.
+  { TExpr, SE }  = translate_each(Expr, SG#elixir_scope{guard=false}),
+
+  % Uncompact expressions from the block.
+  case TExpr of
+    { block, _, TExprs } -> [];
+    _ -> TExprs = [TExpr]
+  end,
+
+  { { clause, Line, TArgs, TGuards, TExprs }, SE }.
 
 %% Build if clauses by nesting
 
