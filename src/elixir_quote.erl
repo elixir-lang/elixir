@@ -11,7 +11,11 @@ translate_each({ unquote, Line, [Expr] }, S) ->
 translate_each({ Left, Line, Right }, S) ->
   { TLeft, LS } = translate_each(Left, S),
   { TRight, RS } = translate_each(Right, LS),
-  Tuple = { tuple, Line, [TLeft, { integer, Line, Line }, TRight] },
+
+  % We need to remove line numbers from quoted exprs otherwise
+  % the line number quotes in the macro will get mixed with the
+  % original exprs line numbers given to the macro as arguments.
+  Tuple = { tuple, Line, [TLeft, { integer, Line, 0 }, TRight] },
   { Tuple, RS };
 
 translate_each({ Left, Right }, S) ->
@@ -19,7 +23,7 @@ translate_each({ Left, Right }, S) ->
   { TRight, RS } = translate_each(Right, LS),
   { { tuple, 0, [TLeft, TRight] }, RS };
 
-translate_each(List, S) when is_list(List) -> 
+translate_each(List, S) when is_list(List) ->
   elixir_tree_helpers:build_list(fun translate_each/2, List, 0, S);
 
 translate_each(Number, S) when is_integer(Number) ->

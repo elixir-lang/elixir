@@ -14,24 +14,17 @@ namespace_method_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
-namespace_macro_test() ->
-  F = fun() ->
-    elixir:eval("ns Foo::Bar::Baz\ndefmacro sum: [a, b] do\nquote(a + b)\nend"),
-    {'+',3,[{a,3,false},{b,3,false}]} = '::Foo::Bar::Baz':sum(1, 2)
-  end,
-  test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
-
 namespace_quote_unquote_test() ->
   F = fun() ->
     elixir:eval("ns Foo::Bar::Baz\ndefmacro sum: [a, b], do: quote(unquote(a) + unquote(b))"),
-    {'+',2,[1,2]} = '::Foo::Bar::Baz':sum(1, 2)
+    {'+',0,[1,2]} = '::Foo::Bar::Baz':sum(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
 namespace_operator_macro_test() ->
   F = fun() ->
     elixir:eval("ns Foo::Bar::Baz\ndefmacro +: [a, b], do: quote(unquote(a) - unquote(b))"),
-    {'-',2,[1,2]} = '::Foo::Bar::Baz':'+'(1, 2)
+    {'-',0,[1,2]} = '::Foo::Bar::Baz':'+'(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
   
