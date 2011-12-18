@@ -91,7 +91,13 @@ translate_each({'&&', Line, [Left, Right]}, S) ->
 
 translate_each({'if', Line, [Condition, [{do,_}|_] = Keywords]}, S) ->
   [{do,Exprs}|ElsesKeywords] = Keywords,
-  IfKeywords = {do, [Condition,Exprs]},
+
+  IfClauses = case Exprs of
+    { block, BlockLine, Args } -> { block, BlockLine, [Condition|Args] };
+    _ -> { block, Line, [Condition, Exprs] }
+  end,
+
+  IfKeywords = {do, IfClauses},
 
   case ElsesKeywords of
     [{else,_} = ElseKeywords | ElsifsKeywords] -> [];
@@ -275,7 +281,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) when is_atom(Right) ->
     [] ->
       { TArgs,  SA } = translate(Args, umergec(S, SR)),
       { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) };
-    Namespace -> 
+    Namespace ->
       Tree = apply(Namespace, Right, Args),
       translate_each(Tree, S)
   end;
@@ -297,7 +303,7 @@ translate_each({ Left, Right }, S) ->
 translate_each([], S) ->
   { { nil, 0 }, S };
 
-translate_each(Args, S) when is_list(Args) -> 
+translate_each(Args, S) when is_list(Args) ->
   [RTail|RArgs] = lists:reverse(Args),
 
   case RTail of

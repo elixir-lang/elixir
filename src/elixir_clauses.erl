@@ -71,22 +71,22 @@ translate(Line, Clauses, RawS) ->
 
 % Extract clauses from block
 translate_each({Key,{block,_,Exprs}}, S) ->
-  translate_each({Key,Exprs}, S);
+  translate_kv({Key,Exprs}, S);
 
 % Wrap each clause in a list. The first item in the list usually express a condition.
 translate_each({Key,Expr}, S) when not is_list(Expr) ->
-  translate_each({Key,[Expr]}, S);
+  translate_kv({Key,[Expr]}, S).
 
 % Some clauses have no conditions. So we are done.
-translate_each({Key,Expr}, S) when Key == else; Key == 'after'; Key == 'try' ->
+translate_kv({Key,Expr}, S) when Key == else; Key == 'after'; Key == 'try' ->
   elixir_translator:translate(Expr, S);
 
 % Clauses that have conditions must return at least two elemenets.
-translate_each({Key,[Expr]}, S) ->
-  translate_each({Key,[Expr, nil]}, S);
+translate_kv({Key,[Expr]}, S) ->
+  translate_kv({Key,[Expr, nil]}, S);
 
 % Handle all other clauses.
-translate_each({Key,[Condition|Exprs]} = T, S) when Key == do; Key == elsif; Key == match ->
+translate_kv({Key,[Condition|Exprs]} = T, S) when Key == do; Key == elsif; Key == match ->
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TExprs, SE } = elixir_translator:translate(Exprs, SC),
   { [TCondition|TExprs], SE }.

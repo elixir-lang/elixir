@@ -46,9 +46,9 @@ if_do_else_test() ->
   failed = eval([{ 'if', 1, [false, [{do, example},{else, failed}] ] }]).
 
 if_do_else_elsif_test() ->
-  ok  = eval([{ 'if', 1, [false, [{do, example},{else, failed},{elsif, [true, ok]}] ] }]),
-  nil = eval([{ 'if', 1, [false, [{do, example},{else, failed},{elsif, [true]}] ] }]),
-  10  = eval([{ 'if', 1, [false, [{do, example},{else, failed},{elsif, [false]},{elsif, [true, 10]}] ] }]).
+  ok  = eval([{ 'if', 1, [false, [{do, example},{else, failed},{elsif, {block, 1, [true, ok]}}] ] }]),
+  nil = eval([{ 'if', 1, [false, [{do, example},{else, failed},{elsif, true}] ] }]),
+  10  = eval([{ 'if', 1, [false, [{do, example},{else, failed},{elsif, false},{elsif, {block, 1, [true, 10]}}] ] }]).
 
 if_vars_test() ->
   {true,[{'X0',1},{foo,1}]} = eval([{ 'if', 1, [{'=', 1, [{foo,1,false},1]}, [{do,true},{else,false}] ] }], []).
