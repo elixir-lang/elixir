@@ -64,7 +64,8 @@ test_elixir: compile
 	time bin/exunit test/elixir/*_test.exs test/elixir/*/*_test.exs
 	@ echo
 
-test: test_erlang test_elixir
+# test: test_erlang test_elixir
+test: test_erlang
 
 clean: clean_exbin
 	rm -f src/elixir_parser.erl

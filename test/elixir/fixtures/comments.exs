@@ -1,4 +1,0 @@
-% File
-% Only
-% With
-% Comments
