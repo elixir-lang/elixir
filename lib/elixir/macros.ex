@@ -21,8 +21,8 @@ end
 
 defmacro ||: [left, right] do
   quote(
-    case !(__oror_var = unquote(left)) do
-    match: false
+    case !!(__oror_var = unquote(left)) do
+    match: true
       __oror_var
     else:
       unquote(right)

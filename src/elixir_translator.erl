@@ -57,6 +57,11 @@ translate_each({ '+', Line, [Expr] }, S) when is_number(Expr) ->
 translate_each({ '-', Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(-1 * Expr, S);
 
+% Optimize !! calls
+translate_each({ '!', Line, [{'!', _, [Expr]}] }, S) ->
+  { TExpr, NS } = translate_each(Expr, S),
+  { elixir_tree_helpers:convert_to_boolean(Line, TExpr, true), NS };
+
 translate_each({ '!', Line, [Expr] }, S) ->
   { TExpr, NS } = translate_each(Expr, S),
   { elixir_tree_helpers:convert_to_boolean(Line, TExpr, false), NS };
