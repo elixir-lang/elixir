@@ -34,7 +34,6 @@
 %   8)  a dict of all variables defined in a particular clause
 %   9)  a counter with the variables defined
 %   10) the current scope filename
-%   11) a dict of variables that were explictly assigned and their tree value
 %
 -record(elixir_scope, {assign=false, guard=false, noref=false, method=[], namespace=[], vars=dict:new(),
-  temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile", assigned_vars=dict:new()}).
+  temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile"}).

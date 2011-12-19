@@ -31,16 +31,9 @@ translate_assigns(Fun, Args, Scope) ->
 %% Assignment operator
 
 translate_each({'=', Line, [Left, Right]}, S) ->
-  { TLeft, SL } = translate_assigns(fun translate_each/2, Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
-  SM = umergev(SL, SR),
-  SF = case TLeft of
-    { var, _, Name } ->
-      Current = SM#elixir_scope.assigned_vars,
-      SM#elixir_scope{assigned_vars=dict:store(Name, {Right, TRight}, Current)};
-    _ -> SM
-  end,
-  { { match, Line, TLeft, TRight }, SF };
+  { TRight, SR } = translate_each(Right, S),
+  { TLeft, SL } = translate_assigns(fun translate_each/2, Left, SR),
+  { { match, Line, TLeft, TRight }, SL };
 
 %% Math Operators
 
@@ -182,7 +175,7 @@ translate_each({Kind, Line, [[X, Y]]}, S) when Kind == def orelse Kind == defmac
           {Name, Args} = X
       end,
 
-      ClauseScope = S#elixir_scope{method=Name, counter=0, vars=dict:new(), assigned_vars=dict:new()},
+      ClauseScope = S#elixir_scope{method=Name, counter=0, vars=dict:new()},
       { TClause, _ } = translate_clause(Line, Args, Exprs, [], ClauseScope),
       { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
       Method = { function, Line, Name, length(Args), [Unpacked] },
@@ -381,22 +374,15 @@ umergev(S1, S2) ->
   V2 = S2#elixir_scope.vars,
   C1 = S1#elixir_scope.clause_vars,
   C2 = S2#elixir_scope.clause_vars,
-  A1 = S1#elixir_scope.assigned_vars,
-  A2 = S2#elixir_scope.assigned_vars,
   S2#elixir_scope{
     vars=dict:merge(fun var_merger/3, V1, V2),
-    clause_vars=dict:merge(fun var_merger/3, C1, C2),
-    assigned_vars=dict:merge(fun unique_var_merge/3, A1, A2)
+    clause_vars=dict:merge(fun var_merger/3, C1, C2)
   }.
 
 % Receives two scopes and return a new scope based on the first
 % with the counter values from the first one.
 umergec(S1, S2) ->
   S1#elixir_scope{counter=S2#elixir_scope.counter}.
-
-% Merge variables and keep them only if they are equal.
-unique_var_merge(_, V, V) -> V;
-unique_var_merge(_, _, _) -> [].
 
 % Merge variables trying to find the most recently created.
 var_merger(Var, Var, K2) -> K2;

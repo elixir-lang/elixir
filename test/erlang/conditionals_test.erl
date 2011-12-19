@@ -244,7 +244,8 @@ oror_test() ->
     {true, _} = elixir:eval("false || true"),
     {false, _} = elixir:eval("false || false"),
     {false, _} = elixir:eval("nil || false"),
-    {nil, _} = elixir:eval("false || nil").
+    {nil, _} = elixir:eval("false || nil"),
+    {true, _} = elixir:eval("false || nil || true").
 %     {true, _} = elixir:eval("Bar.foo || Bar.foo"),
 %     {true, _} = elixir:eval("Bar.foo || Bar.bar"),
 %     {false, _} = elixir:eval("Bar.bar || Bar.bar"),
