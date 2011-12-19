@@ -4,12 +4,12 @@
 Nonterminals
   grammar expr_list
   expr call_expr max_expr base_expr block_expr curly_expr
-  comma_separator
+  comma_separator comma_expr
   add_op mult_op unary_op match_op andand_op oror_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
-  raw_call_args call_args call_args_parens call_args_no_parens
+  call_args call_args_parens call_args_no_parens
   base_orddict kv_comma kv_eol
   do_eol end_eol kv_list do_block curly_block
   list list_args
@@ -173,18 +173,17 @@ dot_call_expr -> expr dot_call_op : { '.', ?line('$2'), ['$1'] }.
 
 % Function calls
 
-raw_call_args -> expr : ['$1'].
-raw_call_args -> base_orddict : ['$1'].
-raw_call_args -> expr comma_separator raw_call_args : ['$1'|'$3'].
+comma_expr -> expr : ['$1'].
+comma_expr -> comma_expr comma_separator expr : ['$3'|'$1'].
 
-call_args -> raw_call_args : build_args('$1').
+call_args -> call_args_no_parens : build_args('$1').
 
-call_args_no_parens -> expr : ['$1'].
+call_args_no_parens -> comma_expr : lists:reverse('$1').
 call_args_no_parens -> base_orddict : ['$1'].
-call_args_no_parens -> expr comma_separator raw_call_args : ['$1'|'$3'].
+call_args_no_parens -> comma_expr comma_separator base_orddict : lists:reverse(['$3'|'$1']).
 
 call_args_parens -> open_paren ')' : [].
-call_args_parens -> open_paren raw_call_args close_paren : '$2'.
+call_args_parens -> open_paren call_args_no_parens close_paren : '$2'.
 
 % KV and orddict
 
