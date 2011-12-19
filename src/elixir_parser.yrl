@@ -281,11 +281,22 @@ build_block([Expr]) when not is_list(Expr) -> Expr;
 build_block(Exprs)                         -> { block, 0, lists:reverse(Exprs) }.
 
 % Handle key value blocks
-build_kv_block(Delimiter, Contents, ReverseList) ->
+build_kv_block(Delimiter, Contents, IncompleteList) ->
   Line = ?line(Delimiter),
-  List = [{do,Contents}|ReverseList],
-  BlocksList = [{Key,build_block(Value)} || {Key,Value} <- List],
-  {'[:]', Line, BlocksList}.
+  List = [{do,Contents}|IncompleteList],
+  {'[:]', Line, build_kv_block(List, [])}.
+
+% Build key value blocks by joining all clauses together
+build_kv_block([{Key,Value}|T], Acc) ->
+  New = build_block(Value),
+  NewAcc = orddict:update(Key, fun(Old) -> [New|Old] end, [New], Acc),
+  build_kv_block(T, NewAcc);
+
+build_kv_block([], Acc) ->
+  lists:reverse([build_kv_block(X) || X <- Acc]).
+
+build_kv_block({Key,[Value]}) -> { Key, Value };
+build_kv_block({Key,Else})    -> { Key, lists:reverse(Else) }.
 
 %% Args
 % Build args by transforming [:] into the final form []
