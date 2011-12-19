@@ -61,36 +61,6 @@ translate_each({ Op, Line, [Expr] }, S) when Op == '+'; Op == '-' ->
   { TExpr, NS } = translate_each(Expr, S),
   { { op, Line, Op, TExpr }, NS };
 
-%% Short-circuit operators
-
-translate_each({'||', Line, [Left, Right]}, S) ->
-  { Var, NS } = elixir_tree_helpers:build_var_name(Line, S),
-  { TLeft, SL } = translate_each(Left, NS),
-  { TRight, SR } = translate_each(Right, umergec(NS, SL)),
-
-  Match = {match, Line, Var, TLeft},
-  True  = [{atom,Line,true}],
-  False = [{atom,Line,false}],
-
-  { { 'case', Line, elixir_tree_helpers:convert_to_boolean(Line, Match, true), [
-    { clause, Line, False, [], [TRight] },
-    { clause, Line, True, [], [Var] }
-  ] }, umergev(SL, SR) };
-
-translate_each({'&&', Line, [Left, Right]}, S) ->
-  { TLeft, SL } = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
-
-  Any   = [{var, Line,'_'}],
-  Nil   = [{atom,Line,nil}],
-  False = [{atom,Line,false}],
-
-  { { 'case', Line, TLeft, [
-    { clause, Line, False, [], False },
-    { clause, Line, Nil, [], Nil },
-    { clause, Line, Any, [], [TRight] }
-  ] }, umergev(SL, SR) };
-
 %% Case
 
 translate_each({'case', Line, [Expr, RawClauses]}, S) ->
@@ -263,8 +233,12 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
   end;
 
 translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
-  { TArgs, NS } = translate(Args, S),
-  { { call, Line, { atom, Line, Atom }, TArgs }, NS };
+  Callback = fun() ->
+    { TArgs, NS } = translate(Args, S),
+    { { call, Line, { atom, Line, Atom }, TArgs }, NS }
+  end,
+
+  elixir_macro:dispatch_one('::Elixir::Macros', Atom, Args, S, Callback);
 
 %% Erlang calls
 
@@ -278,7 +252,6 @@ translate_each({{'.', _, [{{ '.', _, [{ref, _, ['Erlang']}, Remote]}, _, _}, Ato
 
 %% Dot calls
 
-% TODO Support when Left and TRight are not atoms
 translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
   { TLeft,  SL } = translate_each(Left, S),
   { TRight,  SR } = translate_each(Right, umergec(S, SL)),
