@@ -14,10 +14,9 @@ Nonterminals
   kv_comma base_orddict
   matched_kv_comma matched_base_orddict
   do_eol end_eol kv_list do_block curly_block
-  list list_args
   dot_op dot_identifier dot_paren_identifier dot_punctuated_identifier dot_call_expr
   ref_op ref_identifier
-  var tuple
+  var tuple list
   .
 
 Terminals
@@ -237,17 +236,10 @@ curly_block -> open_curly expr_list close_curly : build_kv_block('$1', '$2', [])
 
 % Lists
 
-% list_args is an special case of call_args because kv_comma
-% does not generate a new array when it is the only element.
-% Except this, everything should depend on call_args.
-
-list_args -> kv_comma : sort_kv('$1').
-list_args -> expr : ['$1'].
-list_args -> expr comma_separator call_args : ['$1'|'$3'].
-
-list -> open_bracket ']' : build_list(?line('$1'), []).
-list -> open_bracket list_args close_bracket : build_list(?line('$1'), '$2').
-list -> open_bracket list_args '|' matched_expr close_bracket : build_list(?line('$1'), '$2', ?line('$3'), '$4').
+list -> open_bracket ']' : [].
+list -> open_bracket kv_comma close_bracket : sort_kv('$2').
+list -> open_bracket expr close_bracket : ['$2'].
+list -> open_bracket expr comma_separator call_args close_bracket : ['$2'|'$4'].
 
 % Tuple
 
@@ -288,15 +280,6 @@ build_kv_block(Delimiter, Contents, ReverseList) ->
   List = [{do,Contents}|ReverseList],
   BlocksList = [{Key,build_block(Value)} || {Key,Value} <- List],
   {'[:]', Line, BlocksList}.
-
-%% Lists
-
-build_list(Line, Args) -> Args.
-
-build_list(Line, Args, Pipe, Tail) ->
-  [Last|Rest] = lists:reverse(Args),
-  Final = [{'|',Pipe,[Last,Tail]}|Rest],
-  lists:reverse(Final).
 
 %% Args
 % Build args by transforming [:] into the final form []
