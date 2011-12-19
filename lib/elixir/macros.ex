@@ -18,3 +18,16 @@ defmacro &&: [left, right] do
     end
   )
 end
+
+defmacro ||: [left, right] do
+  quote(
+    case(__oror_var = unquote(left)) do
+    match: false
+      unquote(right)
+    match: nil
+      unquote(right)
+    match: _
+      __oror_var
+    end
+  )
+end

@@ -1,10 +1,19 @@
 -module(atom_test).
+-export([kv/1]).
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
+kv([{Key,nil}]) -> Key.
+
 atom_with_punctuation_test() ->
   {'a?',[]} = elixir:eval(":a?"),
-  {'a!',[]} = elixir:eval(":a!").
+  {'a!',[]} = elixir:eval(":a!"),
+  {'||',[]} = elixir:eval(":||").
+
+kv_with_punctuation_test() ->
+  {'a?',[]} = elixir:eval("Erlang.atom_test.kv(a?: nil)"),
+  {'a!',[]} = elixir:eval("Erlang.atom_test.kv(a!: nil)"),
+  {'||',[]} = elixir:eval("Erlang.atom_test.kv(||: nil)").
 
 % atom_inspect_test() ->
 %   {String,[]} = elixir:eval("'a.inspect"),

@@ -232,13 +232,14 @@ andand_test() ->
 %   end,
 %   test_helper:run_and_remove(F, ['Bar']).
 % 
-% oror_test() ->
+oror_test() ->
 %   F = fun() ->
 %     elixir:eval("module Bar\ndef foo; true; end\ndef bar; false; end\ndef baz(x); x==1; end\nend"),
-%     {true, _} = elixir:eval("true || true"),
-%     {true, _} = elixir:eval("true || false"),
-%     {true, _} = elixir:eval("false || true"),
-%     {false, _} = elixir:eval("false || false"),
+    {true, _} = elixir:eval("Elixir::Macros.||(false, true)"),
+    {true, _} = elixir:eval("true || true"),
+    {true, _} = elixir:eval("true || false"),
+    {true, _} = elixir:eval("false || true"),
+    {false, _} = elixir:eval("false || false").
 %     {true, _} = elixir:eval("Bar.foo || Bar.foo"),
 %     {true, _} = elixir:eval("Bar.foo || Bar.bar"),
 %     {false, _} = elixir:eval("Bar.bar || Bar.bar"),

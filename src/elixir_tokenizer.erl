@@ -104,8 +104,8 @@ tokenize(Line, [Space,Sign,NotMarker|T], [{Identifier,_,_}|_] = Tokens) when Sig
 
 % ## Containers + punctuation tokens
 tokenize(Line, [T|Rest], Tokens) when T == $(;
-  T == ${; T == $}; T == $[; T == $]; T == $|;
-  T == $); T == $,; T == $. ->
+  T == ${; T == $}; T == $[; T == $]; T == $);
+  T == $,; T == $. ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
 
 % ## Two Token Operators
@@ -114,7 +114,7 @@ tokenize(Line, [T1,T2|Rest], Tokens) when T1 == $: andalso T2 == $:;
   tokenize(Line, Rest, [{list_to_atom([T1,T2]), Line}|Tokens]);
 
 % ## Single Token Operators
-tokenize(Line, [T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $= ->
+tokenize(Line, [T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $=; T == $| ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
 
 % References

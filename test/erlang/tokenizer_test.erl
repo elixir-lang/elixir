@@ -26,6 +26,7 @@ op_atom_test() ->
 kv_test() ->
   [{kv_identifier,1,do}] = tokenize("do:"),
   [{kv_identifier,1,'+'}] = tokenize("+:"),
+  [{kv_identifier,1,'||'}] = tokenize("||:"),
   [{identifier,1,def},{kv_identifier,1,'+'}] = tokenize("def +:").
 
 integer_test() ->
