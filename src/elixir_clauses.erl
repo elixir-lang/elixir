@@ -6,67 +6,68 @@
 % Function and def clauses are not translated in this helper
 % as they don't need to share variables.
 
-translate(Line, [Clause], S) ->
-  { TClause, TS } = translate_each(Clause, S),
-  { [TClause], TS };
-
 translate(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
-
   DecoupledClauses = decouple_clauses(Clauses, []),
 
-  % Transform tree just passing the variables counter forward
-  % and storing variables defined inside each clause.
-  Transformer = fun(X, {Acc, CV}) ->
-    { TX, TAcc } = translate_each(X, Acc),
-    { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
-  end,
-
-  { TClauses, { TS, RawCV } } = lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
-
-  % Now get all the variables defined inside each clause
-  CV = lists:reverse(RawCV),
-  NewVars = lists:umerge([lists:sort(dict:fetch_keys(X)) || X <- CV]),
-
-  case NewVars of
-    [] -> { TClauses, TS };
-    _  ->
-      % Create a new scope that contains a list of all variables
-      % defined inside all the clauses. It returns this new scope and
-      % a list of tuples where the first element is the variable name,
-      % the second one is the new pointer to the variable and the third
-      % is the old pointer.
-      { FinalVars, FS } = lists:mapfoldl(fun normalize_vars/2, TS, NewVars),
-
-      % Defines a tuple that will be used as left side of the match operator
-      LeftTuple = { tuple, Line, [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars] },
-      { StorageVar, SS } = elixir_tree_helpers:build_var_name(Line, FS),
-
-      % Expand all clauses by adding a match operation at the end that assigns
-      % variables missing in one clause to the others.
-      Expander = fun(Clause, Counter) ->
-        ClauseVars = lists:nth(Counter, CV),
-        RightTuple = [normalize_clause_var(Var, OldValue, ClauseVars) || {Var, _, OldValue} <- FinalVars],
-
-        AssignExpr = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
-        [Final|RawClauses] = lists:reverse(Clause),
-
-        % If the last sentence has a match clause, we need to assign its value
-        % in the variable list. If not, we insert the variable list before the
-        % final clause in order to keep it tail call optimized.
-        FinalClause = case has_match_tuple(Final) of
-          true ->
-            StorageExpr = { match, Line, StorageVar, Final },
-            [StorageVar,AssignExpr,StorageExpr|RawClauses];
-          false ->
-            [Final,AssignExpr|RawClauses]
-        end,
-
-        { lists:reverse(FinalClause), Counter + 1 }
+  case DecoupledClauses of
+    [DecoupledClause] ->
+      { TDecoupledClause, TS } = translate_each(DecoupledClause, S),
+      { [TDecoupledClause], TS };
+    _ ->
+      % Transform tree just passing the variables counter forward
+      % and storing variables defined inside each clause.
+      Transformer = fun(X, {Acc, CV}) ->
+        { TX, TAcc } = translate_each(X, Acc),
+        { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
       end,
 
-      { FClauses, _ } = lists:mapfoldl(Expander, 1, TClauses),
-      { FClauses, SS }
+      { TClauses, { TS, RawCV } } = lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
+
+      % Now get all the variables defined inside each clause
+      CV = lists:reverse(RawCV),
+      NewVars = lists:umerge([lists:sort(dict:fetch_keys(X)) || X <- CV]),
+
+      case NewVars of
+        [] -> { TClauses, TS };
+        _  ->
+          % Create a new scope that contains a list of all variables
+          % defined inside all the clauses. It returns this new scope and
+          % a list of tuples where the first element is the variable name,
+          % the second one is the new pointer to the variable and the third
+          % is the old pointer.
+          { FinalVars, FS } = lists:mapfoldl(fun normalize_vars/2, TS, NewVars),
+
+          % Defines a tuple that will be used as left side of the match operator
+          LeftTuple = { tuple, Line, [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars] },
+          { StorageVar, SS } = elixir_tree_helpers:build_var_name(Line, FS),
+
+          % Expand all clauses by adding a match operation at the end that assigns
+          % variables missing in one clause to the others.
+          Expander = fun(Clause, Counter) ->
+            ClauseVars = lists:nth(Counter, CV),
+            RightTuple = [normalize_clause_var(Var, OldValue, ClauseVars) || {Var, _, OldValue} <- FinalVars],
+
+            AssignExpr = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
+            [Final|RawClauses] = lists:reverse(Clause),
+
+            % If the last sentence has a match clause, we need to assign its value
+            % in the variable list. If not, we insert the variable list before the
+            % final clause in order to keep it tail call optimized.
+            FinalClause = case has_match_tuple(Final) of
+              true ->
+                StorageExpr = { match, Line, StorageVar, Final },
+                [StorageVar,AssignExpr,StorageExpr|RawClauses];
+              false ->
+                [Final,AssignExpr|RawClauses]
+            end,
+
+            { lists:reverse(FinalClause), Counter + 1 }
+          end,
+
+          { FClauses, _ } = lists:mapfoldl(Expander, 1, TClauses),
+          { FClauses, SS }
+      end
   end.
 
 % Decouple clauses. A clause is a key-value pair. If the value is an array,

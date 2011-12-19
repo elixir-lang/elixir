@@ -24,7 +24,7 @@ Terminals
   identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom ref
   '+' '-' '*' '/' '=' call_op special_op dot_call_op
-  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::' '&&' '||'
+  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::' '&&' '||' '!'
   .
 
 Rootsymbol grammar.
@@ -144,7 +144,11 @@ mult_op -> '/' : '$1'.
 mult_op -> mult_op eol : '$1'.
 
 unary_op -> '+' : '$1'.
+unary_op -> '+' eol : '$1'.
 unary_op -> '-' : '$1'.
+unary_op -> '-' eol : '$1'.
+unary_op -> '!' : '$1'.
+unary_op -> '!' eol : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.

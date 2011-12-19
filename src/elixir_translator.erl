@@ -49,13 +49,17 @@ translate_each({ Op, Line, [Left, Right] }, S) when Op == '+'; Op == '-'; Op == 
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   { { op, Line, Op, TLeft, TRight }, umergev(SL, SR) };
 
-% Unary Math Operators
+% Unary Operators
 
 translate_each({ '+', Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(Expr, S);
 
 translate_each({ '-', Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(-1 * Expr, S);
+
+translate_each({ '!', Line, [Expr] }, S) ->
+  { TExpr, NS } = translate_each(Expr, S),
+  { elixir_tree_helpers:convert_to_boolean(Line, TExpr, false), NS };
 
 translate_each({ Op, Line, [Expr] }, S) when Op == '+'; Op == '-' ->
   { TExpr, NS } = translate_each(Expr, S),
@@ -67,7 +71,7 @@ translate_each({'case', Line, [Expr, RawClauses]}, S) ->
   Clauses = orddict:erase(do, RawClauses),
 
   case Clauses of
-    [{else,Else}|{match,Match}] ->
+    [{else,Else},{match,Match}] ->
       ElseClause = prepend_to_block(Line, {'_', Line, false}, Else),
       MatchClauses = [{match,listify(Match) ++ [ElseClause]}];
     MatchClauses -> []

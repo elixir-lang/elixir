@@ -218,7 +218,10 @@ andand_test() ->
     {true, _} = elixir:eval("true && true"),
     {false, _} = elixir:eval("true && false"),
     {false, _} = elixir:eval("false && true"),
-    {false, _} = elixir:eval("false && false").
+    {false, _} = elixir:eval("false && false"),
+    {nil, _} = elixir:eval("true && nil"),
+    {nil, _} = elixir:eval("nil && true"),
+    {false, _} = elixir:eval("false && nil").
 %     {true, _} = elixir:eval("Bar.foo && Bar.foo"),
 %     {false, _} = elixir:eval("Bar.foo && Bar.bar"),
 %     {true, _} = elixir:eval("Bar.foo && Bar.baz 1"),
@@ -239,7 +242,9 @@ oror_test() ->
     {true, _} = elixir:eval("true || true"),
     {true, _} = elixir:eval("true || false"),
     {true, _} = elixir:eval("false || true"),
-    {false, _} = elixir:eval("false || false").
+    {false, _} = elixir:eval("false || false"),
+    {false, _} = elixir:eval("nil || false"),
+    {nil, _} = elixir:eval("false || nil").
 %     {true, _} = elixir:eval("Bar.foo || Bar.foo"),
 %     {true, _} = elixir:eval("Bar.foo || Bar.bar"),
 %     {false, _} = elixir:eval("Bar.bar || Bar.bar"),
