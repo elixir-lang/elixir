@@ -39,6 +39,7 @@ if_elsif_else_test() ->
 %   {1, _} = elixir:eval("if true\nx = 1\nelse true\nend\nx"),
 %   {nil, _} = elixir:eval("if false\nx = 1\nelse true\nend\nx").
 % 
+
 case_test() ->
   {true, _} = elixir:eval("case 1 do\nmatch: 2; false\nmatch: 1; true\nend"),
   {true, [{x,1}]} = elixir:eval("case 1 do\nmatch: {x,y}; false\nmatch: x; true\nend").
@@ -46,7 +47,10 @@ case_test() ->
 %   {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y}\ntrue\nmatch {1,x}\nfalse\nend"),
 %   {true, _} = elixir:eval("case {1,2} match {3,4}\nfalse\nelse true\nend"),
 %   {true, _} = elixir:eval("case {1,2} match {3,4}, {1,2}\ntrue\nend").
-% 
+
+case_with_do_ambiguity_test() ->
+  {1,_} = elixir:eval("case quote(true) do\nmatch: true; 1\nmatch: _; false\nend").
+
 % multi_assigned_case_test() ->
 %   {3, _} = elixir:eval("x = 1\ncase true match true\nx = 2\nx = 3\nelse true\nend\nx"),
 %   {3, _} = elixir:eval("x = 1\ncase 1 match \~x\nx = 2\nx = 3\nelse true\nend\nx"),

@@ -8,7 +8,7 @@ end
 
 defmacro &&: [left, right] do
   quote(
-    case(unquote(left)) do
+    case unquote(left) do
     match: false
       false
     match: nil
