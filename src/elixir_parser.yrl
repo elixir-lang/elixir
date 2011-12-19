@@ -5,7 +5,7 @@ Nonterminals
   grammar expr_list
   expr unmatched_expr matched_expr op_expr curly_expr call_expr max_expr base_expr
   comma_separator kv_eol
-  add_op mult_op unary_op match_op andand_op oror_op
+  add_op mult_op unary_op match_op andand_op oror_op pipe_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
@@ -29,17 +29,16 @@ Terminals
 
 Rootsymbol grammar.
 
-Right     20 match_op.
-Left      30 do.
-Left      40 ','.  % Solve nested call_args conflicts
-
+Right     10 match_op.
+Left      20 do.
+Left      30 ','.  % Solve nested call_args conflicts
+Left      40 pipe_op.
 Left      50 oror_op.
 Left      60 andand_op.
 % Left      70 or_op.
 % Left      80 and_op.
 % Right     90 right_op.
 % Left     100 comp_op.
-
 Left     110 add_op.
 Left     120 mult_op.
 Nonassoc 140 unary_op.
@@ -80,6 +79,7 @@ op_expr -> matched_expr add_op matched_expr : build_op('$2', '$1', '$3').
 op_expr -> matched_expr mult_op matched_expr : build_op('$2', '$1', '$3').
 op_expr -> matched_expr andand_op matched_expr : build_op('$2', '$1', '$3').
 op_expr -> matched_expr oror_op matched_expr : build_op('$2', '$1', '$3').
+op_expr -> matched_expr pipe_op matched_expr : build_op('$2', '$1', '$3').
 op_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
 op_expr -> special_op matched_expr : build_special_op('$1', '$2').
 op_expr -> unary_op unmatched_expr : build_unary_op('$1', '$2').
@@ -154,6 +154,8 @@ andand_op -> '&&' eol : '$1'.
 
 oror_op -> '||' : '$1'.
 oror_op -> '||' eol : '$1'.
+
+pipe_op -> '|' : '$1'.
 
 % Ref operator
 
