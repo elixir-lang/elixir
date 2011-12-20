@@ -5,22 +5,6 @@
   }).
 
 -define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
--define(ELIXIR_ERL_MODULE(Atom), list_to_atom([$e,$x|atom_to_list(Atom)])).
--define(ELIXIR_EX_MODULE(Name), list_to_atom(tl(tl(atom_to_list(Name))))).
-
-% Representation for Elixir Objects. The elixir_module__ holds
-% the general represenation and contains:
-%
-%   1) An Atom 'name that represents the constant assigned to the object
-%   2) Data holds the remaining information for the object.
-%
--record(elixir_module__, {name=nil, data=[] }).
-
-% Represents an elixir slate. It holds the binding module and data.
--record(elixir_slate__, {module=[], data=[] }).
-
-% Representation for OrderedDict.
--record(elixir_orddict__, {struct=[]}).
 
 % Keeps the scope used in transformation. It contains:
 %
