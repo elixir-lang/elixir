@@ -78,10 +78,11 @@ unwrap_stored_methods(Namespace) ->
   ets:delete(Table, public),
   ets:delete(Table, private),
   ets:delete(Table, macros),
-  { Public, Macros, ets:foldl(fun(X, Acc) -> unwrap_stored_method(X, Acc, Private) end, [], Table) }.
+  Functions = ets:foldl(fun(X, Acc) -> unwrap_stored_method(X, Acc, Private) end, [], Table),
+  { Public, Macros, Functions }.
 
 unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc, Private) ->
-  [{function, Line, Name, Arity, Clauses}|Acc].
+  [{function, Line, Name, Arity, lists:reverse(Clauses) }|Acc].
 
 %% Helpers
 
@@ -101,7 +102,7 @@ store_each_method(Kind, MethodTable, Visibility, Filename, {function, Line, Name
       Clauses ++ OtherClauses;
     [] ->
       add_visibility_entry(Name, Arity, Visibility, MethodTable),
-      add_function_entry(Kind, Name, Arity, MethodTable),
+      add_function_entry(Name, Arity, Kind, MethodTable),
       FinalLine = Line,
       Clauses
   end,
@@ -146,13 +147,13 @@ prune_vars(H) when is_list(H) ->
 prune_vars(H) -> H.
 
 % Add function entry
-add_function_entry(defmacro, Name, Arity, Table) ->
+add_function_entry(Name, Arity, defmacro, Table) ->
   Current= ets:lookup_element(Table, macros, 2),
   ets:insert(Table, {macros, [{Name, Arity}|Current]});
 
-add_function_entry(def, _Name, _Arity, _Table) -> [].
+add_function_entry(_Name, _Arity, def, _Table) -> [].
 
-check_valid_kind(Kind, Line, Filename, Name, Arity, Table) ->
+check_valid_kind(Line, Filename, Name, Arity, Kind, Table) ->
   List = ets:lookup_element(Table, macros, 2),
 
   Previous = case lists:member({Name, Arity}, List) of
