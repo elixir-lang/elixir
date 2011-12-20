@@ -41,6 +41,12 @@ float_test() ->
   [{eol, 1}, {number, 3, 12.3}] = tokenize("\n\n12.3"),
   [{number, 1, 12.3}, {number, 1, 23.4}] = tokenize("  12.3  23.4  ").
 
+comments_test() ->
+    [{number, 1, 1},{eol, 1},{number,2,2}] = tokenize("1 # Comment\n2"),
+    [{number, 1, 12.3},{eol, 1}] = tokenize("12.3;"),
+    [{eol, 1}, {number, 3, 12.3}] = tokenize("\n\n12.3"),
+    [{number, 1, 12.3}, {number, 1, 23.4}] = tokenize("  12.3  23.4  ").
+
 identifier_test() ->
   [{identifier,1,abc}] = tokenize("abc "),
   [{punctuated_identifier,1,'abc?'}] = tokenize("abc?"),

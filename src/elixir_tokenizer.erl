@@ -13,6 +13,12 @@ tokenize(Line, [H|_] = String, Tokens) when H >= $0 andalso H =< $9 ->
   { Rest, Number } = tokenize_number(String, [], false),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 
+% Comments
+
+tokenize(Line, [$#|String], Tokens) ->
+  Rest = tokenize_comment(String),
+  tokenize(Line, Rest, Tokens);
+
 % Dot operators
 
 % ## Exception for .( as it needs to be treated specially in the parser
@@ -186,6 +192,13 @@ tokenize_number(Rest, Acc, true) ->
 % Or integer.
 tokenize_number(Rest, Acc, false) ->
   { Rest, erlang:list_to_integer(lists:reverse(Acc)) }.
+
+% Comments
+
+tokenize_comment("\r\n" ++ _ = Rest) -> Rest;
+tokenize_comment("\n" ++ _ = Rest)   -> Rest;
+tokenize_comment([_|Rest])       -> tokenize_comment(Rest);
+tokenize_comment([])             -> [].
 
 % Identifiers
 % At this point, the validity of the first character was already verified.

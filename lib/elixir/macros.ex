@@ -28,6 +28,7 @@ defmacro ||: [left, right] do
   )
 end
 
+# Optimize !! to avoid generating case twice.
 defmacro !: [{:!,_,[expr]}] do
   quote(
     case unquote(expr) do
@@ -41,6 +42,17 @@ defmacro !: [{:!,_,[expr]}] do
   )
 end
 
+# Implements the unary operator ! as a macro.
+# It receives any argument and returns true if
+# it is false or nil.
+#
+# == Examples
+#
+#   !1        #=> false
+#   ![1,2,3]  #=> false
+#   !false    #=> true
+#   !nil      #=> true
+#
 defmacro !: [expr] do
   quote(
     case unquote(expr) do
