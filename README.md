@@ -2,7 +2,7 @@
 
 Elixir is a programming language built on top of Erlang. As Erlang, it is a functional language with strict evaluation and dynamic typing built to support distributed, fault-tolerant, non-stop applications with hot swapping.
 
-The main difference between Elixir and Erlang is its homoiconic syntax that allows meta-programming. Support for more features like polymorphism is upcoming.
+The main difference between Elixir and Erlang is its more natural homoiconic syntax that allows meta-programming. Support for more features like polymorphism, import mechanisms is upcoming.
 
 Elixir and Erlang shares the same bytecode and data types. This means you can invoke Erlang code from Elixir (and vice-versa) without any performance hit.
 
@@ -17,19 +17,17 @@ Elixir is still in development but ready to try out! First, you need to clone th
     $ bin/elixir -v
     Elixir 0.3.1.dev
 
-If tests fail, it is likely you have an outdated Erlang version. You can check your Erlang version by calling ``erl`` in the command line. You will see some information as follow:
+If tests fail, it is likely you have an outdated Erlang version. You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
 
-    Erlang R14B01 (erts-5.8.2) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
+    Erlang R14B03 (erts-5.8.4) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
 
 Elixir requires Erlang R14B03 or later. If you have the correct version and tests still fail, feel free to open an issue in the issues tracker on Github. If all tests pass, you are ready to go.
-
-This README provides a length explanation about Elixir in the Learning Elixir section below. There are also some examples [in the examples folder](https://github.com/josevalim/elixir/tree/master/examples/) that you can run by executing the `bin/elixir EXAMPLE` and an interactive Elixir available as `bin/iex`. Feel free to build your own examples and study the language better.
 
 ## Contributing & Roadmap
 
 If you want to contribute to Elixir, the code is organized as follow:
 
-* `include`, `src` - Both directories contain the part of the source code written in Erlang. `leex` and `yecc` were used as tokenizer and parser respectively;
+* `include`, `src` - Both directories contain part of the source code written in Erlang. `yecc` is used as the parser;
 
 * `lib` - Contains Elixir's STDLIB, written in Elixir;
 
