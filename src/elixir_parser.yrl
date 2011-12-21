@@ -74,7 +74,8 @@ unmatched_expr -> dot_identifier do_block : build_identifier('$1', [], '$2').
 unmatched_expr -> dot_call_expr call_args_parens do_block : build_identifier('$1', '$2', '$3').
 unmatched_expr -> call_op call_args_parens do_block : build_identifier('$1', '$2', '$3').
 
-op_expr -> matched_expr match_op expr : build_op('$2', '$1', '$3').
+op_expr -> matched_expr match_op unmatched_expr : build_op('$2', '$1', '$3').
+op_expr -> matched_expr match_op matched_expr : build_op('$2', '$1', '$3').
 op_expr -> matched_expr add_op matched_expr : build_op('$2', '$1', '$3').
 op_expr -> matched_expr mult_op matched_expr : build_op('$2', '$1', '$3').
 op_expr -> matched_expr andand_op matched_expr : build_op('$2', '$1', '$3').
@@ -82,8 +83,6 @@ op_expr -> matched_expr oror_op matched_expr : build_op('$2', '$1', '$3').
 op_expr -> matched_expr pipe_op matched_expr : build_op('$2', '$1', '$3').
 op_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
 op_expr -> special_op matched_expr : build_special_op('$1', '$2').
-op_expr -> unary_op unmatched_expr : build_unary_op('$1', '$2').
-op_expr -> special_op unmatched_expr : build_special_op('$1', '$2').
 op_expr -> curly_expr : '$1'.
 
 curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2', '$3').

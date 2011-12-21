@@ -78,26 +78,13 @@ translate_each({'case', Line, [Expr, RawClauses]}, S) ->
 translate_each({'case', _, Args} = Clause, S) when is_list(Args) ->
   error({invalid_arguments_for_case, Clause});
 
-%% If
-
-translate_each({'if', Line, [Condition, [{do,_}|_] = Keywords]}, S) ->
-  [{do,Exprs}|ElsesKeywords] = Keywords,
-  IfKeywords = {do, prepend_to_block(Line, Condition, Exprs)},
-
-  case ElsesKeywords of
-    [{else,_} = ElseKeywords | ElsifsKeywords] -> [];
-    ElsifsKeywords -> ElseKeywords = {else,nil}
-  end,
-
-  { Clauses, FS } = elixir_clauses:translate(Line, [IfKeywords|ElsifsKeywords] ++ [ElseKeywords], S),
-  [Else|Others] = lists:reverse(Clauses),
-  { build_if_clauses(Line, Others, Else), FS };
-
-% TODO: Handle tree errors properly
-translate_each({'if', _, Args} = Clause, S) when is_list(Args) ->
-  error({invalid_arguments_for_if, Clause});
-
 %% Blocks
+
+translate_each({ block, Line, [] }, S) ->
+  { { atom, Line, nil }, S };
+
+translate_each({ block, Line, [Arg] }, S) ->
+  translate_each(Arg, S);
 
 translate_each({ block, Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
@@ -352,22 +339,6 @@ prepend_to_block(Line, Expr, Args) ->
 
 build_case_clause(Line, [Condition|Exprs]) ->
   { clause, Line, [Condition], [], Exprs }.
-
-%% Build if clauses by nesting
-
-build_if_clauses(Line, [], [Acc]) ->
-  Acc;
-
-build_if_clauses(Line, [[Condition|Exprs]|Others], Acc) ->
-  True  = [{atom,Line,true}],
-  False = [{atom,Line,false}],
-
-  Case = { 'case', Line, elixir_tree_helpers:convert_to_boolean(Line, Condition, true), [
-    { clause, Line, True,  [], Exprs },
-    { clause, Line, False, [], Acc }
-  ] },
-
-  build_if_clauses(Line, Others, [Case]).
 
 % Receives two scopes and return a new scope based on the second
 % with their variables merged.

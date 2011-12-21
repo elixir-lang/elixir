@@ -1,6 +1,5 @@
 -module(elixir_tree_helpers).
--export([abstract_syntax/1, build_var_name/2, convert_to_boolean/3,
-  build_bitstr/4,
+-export([abstract_syntax/1, build_var_name/2, build_bitstr/4,
   build_list/4, build_list/5, build_simple_list/2, build_reverse_list/5]).
 -include("elixir.hrl").
 
@@ -11,22 +10,6 @@ build_var_name(Line, #elixir_scope{counter=Counter} = S) ->
   NS = S#elixir_scope{counter=Counter+1},
   Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) },
   { Var, NS }.
-
-% Convert the given expression to a boolean value: true or false.
-% Assumes the given expressions was already transformed.
-convert_to_boolean(Line, Expr, Bool) ->
-  Any   = [{var, Line, '_'}],
-  False = [{atom,Line,false}],
-  Nil   = [{atom,Line,nil}],
-
-  FalseResult = [{atom,Line,not Bool}],
-  TrueResult  = [{atom,Line,Bool}],
-
-  { 'case', Line, Expr, [
-    { clause, Line, False, [], FalseResult },
-    { clause, Line, Nil, [], FalseResult },
-    { clause, Line, Any, [], TrueResult }
-  ] }.
 
 % Build a list transforming each expression and accumulating
 % vars in one pass. It uses tail-recursive form.
