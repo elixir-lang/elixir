@@ -13,15 +13,15 @@ op_call_test() ->
   [{call_op,1,'+'},{'(',1},{number,1,1},{',',1},{number,1,2},{')',1}] = tokenize("+(1, 2)").
 
 unquoted_atom_test() ->
-  [{atom, 1, '+'}] = tokenize(":+"),
-  [{atom, 1, '-'}] = tokenize(":-"),
-  [{atom, 1, '*'}] = tokenize(":*"),
-  [{atom, 1, '/'}] = tokenize(":/"),
-  [{atom, 1, '='}] = tokenize(":="),
-  [{atom, 1, '&&'}] = tokenize(":&&").
+  [{atom, 1, ['+']}] = tokenize(":+"),
+  [{atom, 1, ['-']}] = tokenize(":-"),
+  [{atom, 1, ['*']}] = tokenize(":*"),
+  [{atom, 1, ['/']}] = tokenize(":/"),
+  [{atom, 1, ['=']}] = tokenize(":="),
+  [{atom, 1, ['&&']}] = tokenize(":&&").
 
 op_atom_test() ->
-  [{atom,1,f0_1}] = tokenize(":f0_1").
+  [{atom,1,[f0_1]}] = tokenize(":f0_1").
 
 kv_test() ->
   [{kv_identifier,1,do}] = tokenize("do:"),
@@ -71,4 +71,4 @@ ref_test() ->
    {ref,1,Baz}] = tokenize("Foo::Bar::Baz").
 
 string_test() ->
-  [{string,1,[<<"foo">>]}] = tokenize("\"foo\"").
+  [{string,1,["foo"]}] = tokenize("\"foo\"").

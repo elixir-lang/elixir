@@ -8,34 +8,34 @@ extract_interpolations(String) ->
 % Interpolations
 
 extract_interpolations_without_interpolation_test() ->
-  [<<"foo">>] = extract_interpolations("foo").
+  ["foo"] = extract_interpolations("foo").
 
 extract_interpolations_with_escaped_interpolation_test() ->
-  [<<"f#{o}o">>] = extract_interpolations("f\\#{o}o").
+  ["f#{o}o"] = extract_interpolations("f\\#{o}o").
 
 extract_interpolations_with_interpolation_test() ->
-  [<<"f">>, o, <<"o">>] = extract_interpolations("f#{:o}o").
+  ["f", o, "o"] = extract_interpolations("f#{:o}o").
 
 extract_interpolations_with_two_interpolations_test() ->
-  [<<"f">>, o, o, <<"o">>] = extract_interpolations("f#{:o}#{:o}o").
+  ["f", o, o, "o"] = extract_interpolations("f#{:o}#{:o}o").
 
 extract_interpolations_with_only_two_interpolations_test() ->
   [o, o] = extract_interpolations("#{:o}#{:o}").
 
 extract_interpolations_with_tuple_inside_interpolation_test() ->
-  [<<"f">>, {'{}',1,[1]}, <<"o">>] = extract_interpolations("f#{{1}}o").
+  ["f", {'{}',1,[1]}, "o"] = extract_interpolations("f#{{1}}o").
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
-  [<<"f">>, {block,2,[1,2]}, <<"o">>] = extract_interpolations("f#{1\n2}o").
+  ["f", {block,2,[1,2]}, "o"] = extract_interpolations("f#{1\n2}o").
 
 extract_interpolations_with_string_inside_interpolation_test() ->
-  [<<"f">>, <<"foo">>, <<"o">>] = extract_interpolations("f#{\"foo\"}o").
+  ["f", <<"foo">>, "o"] = extract_interpolations("f#{\"foo\"}o").
 
-% extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
-%   [<<"f">>}, {i, "\"f}o\""}, <<"o">>}] = extract_interpolations("f#{\"f}o\"}o").
-%
+extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
+  ["f", <<"f}o">>, "o"] = extract_interpolations("f#{\"f}o\"}o").
+
 % extract_interpolations_with_right_curly_inside_regexp_inside_interpolation_test() ->
-%   [<<"f">>}, {i, "#r\"f}o\""}, <<"o">>}] = extract_interpolations("f#{#r\"f}o\"}o").
+%   ["f"}, {i, "#r\"f}o\""}, "o"}] = extract_interpolations("f#{#r\"f}o\"}o").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
   ?assertError({interpolation_error, { 1, "invalid token", ":1" } }, extract_interpolations("f#{:1}o")).

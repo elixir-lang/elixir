@@ -111,7 +111,7 @@ build_interpol(Kind, Line, Escaping, [], Output) ->
   Output;
 
 build_interpol(s, Line, Escaping, Buffer, Output) ->
-  [list_to_binary(unescape_chars(Escaping, lists:reverse(Buffer)))|Output];
+  [unescape_chars(Escaping, lists:reverse(Buffer))|Output];
 
 build_interpol(i, Line, Escaping, Buffer, Output) ->
   [forms(lists:reverse(Buffer), Line)|Output].

@@ -49,32 +49,38 @@ tokenize(Line, [$"|T], Tokens) ->
 % Atoms
 
 tokenize(Line, "true" ++ Rest, Tokens) ->
-  tokenize(Line, Rest, [{atom,Line,true}|Tokens]);
+  tokenize(Line, Rest, [{atom,Line,[true]}|Tokens]);
 
 tokenize(Line, "false" ++ Rest, Tokens) ->
-  tokenize(Line, Rest, [{atom,Line,false}|Tokens]);
+  tokenize(Line, Rest, [{atom,Line,[false]}|Tokens]);
 
 tokenize(Line, "nil" ++ Rest, Tokens) ->
-  tokenize(Line, Rest, [{atom,Line,nil}|Tokens]);
+  tokenize(Line, Rest, [{atom,Line,[nil]}|Tokens]);
 
 tokenize(Line, [$:,T|String], Tokens) when T >= $A andalso T =< $Z; T >= $a andalso T =< $z; T == $_ ->
   { Rest, { _, Atom } } = tokenize_identifier([T|String], []),
-  tokenize(Line, Rest, [{atom,Line,Atom}|Tokens]);
+  tokenize(Line, Rest, [{atom,Line,[Atom]}|Tokens]);
+
+tokenize(Line, [$:,$"|T], Tokens) ->
+  case elixir_interpolation:extract(Line, atom, T, $") of
+    { NewLine, Parts, Rest } -> tokenize(NewLine, Rest, [{atom,Line,Parts}|Tokens]);
+    Else -> Else
+  end;
 
 % Atom operators
 
 % ## Containers
 tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
-  tokenize(Line, Rest, [{atom,Line,list_to_atom([T1,T2])}|Tokens]);
+  tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
 
 % ## Two Token Operators
 tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $| andalso T2 == $|;
   T1 == $: andalso T2 == $: ->
-  tokenize(Line, Rest, [{atom,Line,list_to_atom([T1,T2])}|Tokens]);
+  tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
 
 % ## Single Token Operators
 tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $=; T == $|; T == $! ->
-  tokenize(Line, Rest, [{atom,Line,list_to_atom([T])}|Tokens]);
+  tokenize(Line, Rest, [{atom,Line,[list_to_atom([T])]}|Tokens]);
 
 % KV Identifiers
 

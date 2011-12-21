@@ -105,7 +105,7 @@ max_expr -> open_paren expr_list close_paren : build_block('$2').
 
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
-base_expr -> atom : ?exprs('$1').
+base_expr -> atom : build_atom('$1').
 base_expr -> var : build_identifier('$1', false).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
@@ -345,8 +345,12 @@ build_identifier({ _, Line, Identifier }, Args) ->
 
 %% Interpolation aware
 
-build_string({ string, _Line, [H] }) when is_binary(H) -> H;
+build_string({ string, _Line, [H] }) when is_list(H) -> list_to_binary(H);
 build_string({ string, Line, Args }) -> { bitstr, Line, Args }.
+
+build_atom({ atom, _Line, [H] }) when is_atom(H) -> H;
+build_atom({ atom, _Line, [H] }) when is_list(H) -> list_to_atom(H);
+build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ bitstr, Line, Args}, utf8] }.
 
 %% KV Helpers
 % Merge key-value pairs from args and blocks

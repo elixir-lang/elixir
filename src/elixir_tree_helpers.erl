@@ -62,7 +62,7 @@ build_list_each(Fun, [H|T], Line, S, Acc) ->
 
 % Build a bitstring taking into accounts the following types:
 %
-% * If a binary is given, we just append its items
+% * If a bitstring or a list is given, we just append its items
 % * If a tuple is given, extract the bitstring information and transform the rest
 %
 build_bitstr(Fun, Exprs, Line, S) ->
@@ -71,10 +71,16 @@ build_bitstr(Fun, Exprs, Line, S) ->
 build_bitstr_each(Fun, [], Line, S, Acc) ->
   { { bin, Line, lists:reverse(Acc) }, S };
 
+build_bitstr_each(Fun, [H|T], Line, S, Acc) when is_list(H) ->
+  NewAcc = lists:foldl(fun(Integer, FinalAcc) ->
+    [{bin_element,Line,{integer,Line,Integer},default,default}|FinalAcc]
+  end, Acc, H),
+  build_bitstr_each(Fun, T, Line, S, NewAcc);
+
 build_bitstr_each(Fun, [H|T], Line, S, Acc) when is_bitstring(H) ->
-  { { bin, _, Elements }, NS } = Fun(H, S),
+  { bin, _, Elements } = elixir_tree_helpers:abstract_syntax(H),
   NewAcc = lists:foldl(fun(Element, FinalAcc) -> [Element|FinalAcc] end, Acc, Elements),
-  build_bitstr_each(Fun, T, Line, NS, NewAcc);
+  build_bitstr_each(Fun, T, Line, S, NewAcc);
 
 build_bitstr_each(Fun, [H|T], Line, S, Acc) ->
   { Expr, NS } = Fun(H, S),
