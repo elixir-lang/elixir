@@ -1,6 +1,6 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
--export([translate/3, extract/4, unescape_chars/2]).
+-export([extract/4, unescape_chars/2]).
 -include("elixir.hrl").
 
 % Extract string interpolations
@@ -9,13 +9,16 @@ extract(Line, Escaping, String, Last) ->
   extract(Line, Escaping, String, [], [], [], Last).
 
 extract(Line, Escaping, [], Buffer, [], Output, []) ->
-  { Line, lists:reverse(build_interpol(s, Escaping, Buffer, Output)), [] };
+  { Line, lists:reverse(build_interpol(s, Line, Escaping, Buffer, Output)), [] };
 
 extract(Line, Escaping, [Last|Remaining], Buffer, [], Output, Last) ->
-  { Line, lists:reverse(build_interpol(s, Escaping, Buffer, Output)), Remaining };
+  { Line, lists:reverse(build_interpol(s, Line, Escaping, Buffer, Output)), Remaining };
 
 extract(Line, Escaping, [Last], Buffer, Search, Output, Last) ->
   { error, { Line, io_lib:format("unexpected end of string, expected ~ts", [[hd(Search)]]), [Last] } };
+
+extract(Line, Escaping, [$\n|Rest], Buffer, Search, Output, Last) ->
+  extract(Line+1, Escaping, Rest, [$\n|Buffer], Search, Output, Last);
 
 extract(Line, Escaping, [$\\, $#, ${|Rest], Buffer, [], Output, Last) ->
   extract(Line, Escaping, Rest, [${,$#|Buffer], [], Output, Last);
@@ -24,11 +27,11 @@ extract(Line, Escaping, [$\\,Char|Rest], Buffer, [], Output, Last) ->
   extract(Line, Escaping, Rest, [Char,$\\|Buffer], [], Output, Last);
 
 extract(Line, Escaping, [$#, ${|Rest], Buffer, [], Output, Last) ->
-  NewOutput = build_interpol(s, Escaping, Buffer, Output),
+  NewOutput = build_interpol(s, Line, Escaping, Buffer, Output),
   extract(Line, Escaping, Rest, [], [$}], NewOutput, Last);
 
 extract(Line, Escaping, [$}|Rest], Buffer, [$}], Output, Last) ->
-  NewOutput = build_interpol(i, Escaping, Buffer, Output),
+  NewOutput = build_interpol(i, Line, Escaping, Buffer, Output),
   extract(Line, Escaping, Rest, [], [], NewOutput, Last);
 
 % Check for available separators "", {}, [] and () inside interpolation
@@ -50,27 +53,8 @@ extract(Line, Escaping, [$(|Rest], Buffer, Search, Output, Last) ->
 
 % Else
 
-extract(Line, Escaping, [$\n|Rest], Buffer, Search, Output, Last) ->
-  extract(Line+1, Escaping, Rest, [$\n|Buffer], Search, Output, Last);
-
 extract(Line, Escaping, [Char|Rest], Buffer, Search, Output, Last) ->
   extract(Line, Escaping, Rest, [Char|Buffer], Search, Output, Last).
-
-% Handle interpolation. The final result will be a parse tree that
-% returns a flattened list.
-
-translate(String, Line, S) ->
-  Interpolations = String,
-
-  % Optimized cases interpolations actually has no interpolation.
-  case Interpolations of
-    [{s, String}] ->
-      { Final, FS, _ } = handle_string_extractions(hd(Interpolations), Line, S),
-      { Final, FS };
-    _ ->
-      Transformer = fun(X, Acc) -> handle_string_extractions(X, Line, S) end,
-      elixir_tree_helpers:build_bin(Transformer, Interpolations, Line, S)
-  end.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
@@ -123,25 +107,28 @@ unescape_chars(Escaping, [], Output) -> lists:reverse(Output).
 
 % Helpers
 
-handle_string_extractions({s, String}, Line, S) ->
-  { { string, Line, String }, S, default };
-
-handle_string_extractions({i, Interpolation}, Line, S) ->
-  { Tree, NS } = elixir_transform:parse(Interpolation, Line, S),
-  % Stringify = elixir_tree_helpers:build_method_call(to_s, Line, [], hd(Tree)),
-  { hd(Tree), NS, [binary] }.
-
-build_interpol(Piece, Escaping, [], Output) ->
+build_interpol(Kind, Line, Escaping, [], Output) ->
   Output;
 
-build_interpol(s, Escaping, Buffer, Output) ->
+build_interpol(s, Line, Escaping, Buffer, Output) ->
   [{s, unescape_chars(Escaping, lists:reverse(Buffer))}|Output];
 
-build_interpol(i, Escaping, Buffer, Output) ->
-  [{i, lists:reverse(Buffer)}|Output].
+build_interpol(i, Line, Escaping, Buffer, Output) ->
+  [{i, forms(lists:reverse(Buffer), Line)}|Output].
 
 extract_integers([H|T], Acc) when H >= 48 andalso H =< 57 ->
   extract_integers(T, [H|Acc]);
 
 extract_integers(Remaining, Acc) ->
   { Remaining, lists:reverse(Acc) }.
+
+forms(String, StartLine) ->
+  case elixir_tokenizer:tokenize(String, StartLine) of
+    {ok, Tokens} ->
+      case elixir_parser:parse(Tokens) of
+        {ok, [Forms]} when not is_list(Forms) -> Forms;
+        {ok, Forms} -> { block, StartLine, Forms };
+        {error, {Line, _, [Error, Token]}} -> error({ interpolation_error, { Line, Error, Token } })
+      end;
+    {error, {Line, Error, Token}} -> error({ interpolation_error, { Line, Error, Token } })
+  end.

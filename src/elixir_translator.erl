@@ -11,12 +11,15 @@ parse(String, Line, #elixir_scope{filename=Filename} = S) ->
   end,
   { Final, FS }.
 
+% TODO test error inside interpolation are properly handled.
 forms(String, StartLine, Filename) ->
   case elixir_tokenizer:tokenize(String, StartLine) of
     {ok, Tokens} ->
-      case elixir_parser:parse(Tokens) of
+      try elixir_parser:parse(Tokens) of
         {ok, Forms} -> Forms;
         {error, {Line, _, [Error, Token]}} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
+      catch
+        { interpolation_error, { Line, Error, Token } } -> elixir_errors:syntax_error(Line, Filename, Error, Token)
       end;
     {error, {Line, Error, Token}} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
   end.
