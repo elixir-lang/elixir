@@ -46,34 +46,31 @@ simple_string_test() ->
   {<<"foo">>, _} = elixir:eval("\"foo\"").
 
 % string_with_double_quotes_test() ->
-%   {<<"f\"o\"o">>, _} = eval_string("\"f\\\"o\\\"o\"").
+%   {<<"f\"o\"o">>, _} = elixir:eval("\"f\\\"o\\\"o\"").
 % 
 % string_with_newline_test() ->
-%   {<<"f\no">>, _} = eval_string("\"f\no\"").
+%   {<<"f\no">>, _} = elixir:eval("\"f\no\"").
 % 
 % string_with_slash_test() ->
-%   {<<"f\\o">>, _} = eval_string("\"f\\\\o\"").
-% 
-% string_with_interpolation_test() ->
-%   {<<"foo">>, _} = eval_string("\"f#{'o}o\"").
-% 
-% string_with_another_string_interpolation_test() ->
-%   {<<"foo">>, _} = eval_string("\"f#{\"o\"}o\"").
-% 
+%   {<<"f\\o">>, _} = elixir:eval("\"f\\\\o\"").
+
+string_with_interpolation_test() ->
+  {<<"foo">>, _} = elixir:eval("\"f#{\"o\"}o\"").
+
 % string_with_another_string_inside_string_interpolation_test() ->
-%   {<<"fbaro">>, _} = eval_string("\"f#{\"b#{'a}r\"}o\"").
+%   {<<"fbaro">>, _} = elixir:eval("\"f#{\"b#{'a}r\"}o\"").
 % 
 % string_with_another_string_with_curly_inside_interpolation_test() ->
-%   {<<"fb}ro">>, _} = eval_string("\"f#{\"b}r\"}o\"").
+%   {<<"fb}ro">>, _} = elixir:eval("\"f#{\"b}r\"}o\"").
 % 
 % string_with_atom_with_separator_inside_interpolation_test() ->
-%   {<<"f}o">>, _} = eval_string("\"f#{\"}\"}o\"").
+%   {<<"f}o">>, _} = elixir:eval("\"f#{\"}\"}o\"").
 % 
 % string_without_interpolation_and_escaped_test() ->
-%   {<<"f#o">>, _} = eval_string("\"f\\#o\"").
+%   {<<"f#o">>, _} = elixir:eval("\"f\\#o\"").
 % 
 % string_with_escaped_interpolation_test() ->
-%   {<<"f#{'o}o">>, _} = eval_string("\"f\\#{'o}o\"").
+%   {<<"f#{'o}o">>, _} = elixir:eval("\"f\\#{'o}o\"").
 % 
 % invalid_string_interpolation_test() ->
 %   ?assertError({badsyntax, {1, <<"nofile">>, _, _}}, elixir:eval("\"f#{{}o\"")).
@@ -87,37 +84,20 @@ simple_string_test() ->
 %   ?assertError({badsyntax, _}, elixir:eval("$foo")).
 % 
 % implicit_string_concatenation_test() ->
-%   {<<"foobar">>, []} = eval_string("\"foo\" \"bar\""),
-%   {<<"foobar">>, []} = eval_string("\"foo\" \\\n \"bar\""),
-%   {<<"foobarbaz">>, []} = eval_string("\"foo\" \\\n \"b#{'a}r\"\\\n\"baz\"").
-% 
-% %% Methods
-% 
-% string_to_s_returns_self_test() ->
-%   {<<"elixir">>, []} = eval_string("\"elixir\".to_s").
-% 
-% string_inspect_test() ->
-%   {<<"\"elixir\"">>, []} = eval_string("\"elixir\".inspect").
-% 
-% string_to_list_test() ->
-%   {"elixir", []} = elixir:eval("\"elixir\".to_char_list").
-% 
-% string_length_test() ->
-%   {6, []} = elixir:eval("\"elixir\".length").
-% 
-% string_add_test() ->
-%   {<<"elixir">>, []} = eval_string("\"eli\" + \"xir\"").
+%   {<<"foobar">>, []} = elixir:eval("\"foo\" \"bar\""),
+%   {<<"foobar">>, []} = elixir:eval("\"foo\" \\\n \"bar\""),
+%   {<<"foobarbaz">>, []} = elixir:eval("\"foo\" \\\n \"b#{'a}r\"\\\n\"baz\"").
 % 
 % %% Sigils and Char lists
 % 
 % string_sigils_test() ->
-%   {<<"f#{o}o">>, []} = eval_string("~q(f#{o}o)"),
-%   {<<"bar">>, []} = eval_string("~Q(b#{'a}r)"),
-%   {<<"b)r">>, []} = eval_string("~Q(b\\)r)").
+%   {<<"f#{o}o">>, []} = elixir:eval("~q(f#{o}o)"),
+%   {<<"bar">>, []} = elixir:eval("~Q(b#{'a}r)"),
+%   {<<"b)r">>, []} = elixir:eval("~Q(b\\)r)").
 % 
 % implicit_string_sigils_concatenation_test() ->
-%   {<<"f#{o}obar">>, []} = eval_string("~q(f#{o}o) ~Q(b#{'a}r)"),
-%   {<<"f#{o}obar">>, []} = eval_string("~q(f#{o}o) \\\n ~Q(b#{'a}r)").
+%   {<<"f#{o}obar">>, []} = elixir:eval("~q(f#{o}o) ~Q(b#{'a}r)"),
+%   {<<"f#{o}obar">>, []} = elixir:eval("~q(f#{o}o) \\\n ~Q(b#{'a}r)").
 % 
 % char_list_test() ->
 %   {"foo", []}    = elixir:eval("$\"foo\""),
@@ -131,10 +111,15 @@ simple_string_test() ->
 % %% Inspect in other objects
 % 
 % list_inspect_test() ->
-%   {<<"[1,2,3]">>, []} = eval_string("[1,2,3].inspect"),
-%   {<<"[102,111,111]">>, []} = eval_string("\"foo\".to_char_list.inspect"),
-%   {<<"[1,2,3]">>, []} = eval_string("[1,2,3].to_s"),
-%   {<<"[102,111,111]">>, []} = eval_string("\"foo\".to_char_list.to_s").
+%   {<<"[1,2,3]">>, []} = elixir:eval("[1,2,3].inspect"),
+%   {<<"[102,111,111]">>, []} = elixir:eval("\"foo\".to_char_list.inspect"),
+%   {<<"[1,2,3]">>, []} = elixir:eval("[1,2,3].to_s"),
+%   {<<"[102,111,111]">>, []} = elixir:eval("\"foo\".to_char_list.to_s").
 % 
 % tuple_inspect_test() ->
-%   {<<"{'badmatch,true}">>, []} = eval_string("{'badmatch,true}.inspect").
+%   {<<"{'badmatch,true}">>, []} = elixir:eval("{'badmatch,true}.inspect").
+
+%% Binaries
+
+bitstr_with_integer_test() ->
+  {<<"fdo">>, _} = elixir:eval("bitstr \"f\", 50+50, \"o\"").

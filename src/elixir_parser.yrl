@@ -110,7 +110,7 @@ base_expr -> var : build_identifier('$1', false).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> ref_identifier : '$1'.
-base_expr -> string : build_string(?exprs('$1'), []).
+base_expr -> string : build_string('$1').
 
 %% Helpers
 
@@ -345,8 +345,8 @@ build_identifier({ _, Line, Identifier }, Args) ->
 
 %% Interpolation aware
 
-build_string([H], []) when is_binary(H) ->
-  H.
+build_string({ string, _Line, [H] }) when is_binary(H) -> H;
+build_string({ string, Line, Args }) -> { bitstr, Line, Args }.
 
 %% KV Helpers
 % Merge key-value pairs from args and blocks

@@ -103,6 +103,11 @@ translate_each({ block, Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
 
+%% Bit strings
+
+translate_each({ bitstr, Line, Args }, S) when is_list(Args) ->
+  elixir_tree_helpers:build_bitstr(fun translate_each/2, Args, Line, S);
+
 %% Containers
 
 translate_each({'{}', Line, Args}, S) when is_list(Args) ->
