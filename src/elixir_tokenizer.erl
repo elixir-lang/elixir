@@ -38,6 +38,14 @@ tokenize(Line, [$.,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&; T1 == $|
 tokenize(Line, [$.,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $/; T == $=; T == $|; T == $! ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T]), Rest),{'.',Line}|Tokens]);
 
+% Strings
+
+tokenize(Line, [$"|T], Tokens) ->
+  case elixir_interpolation:extract(Line, string, T, $") of
+    { NewLine, Parts, Rest } -> tokenize(NewLine, Rest, [{string,Line,Parts}|Tokens]);
+    Else -> Else
+  end;
+
 % Atoms
 
 tokenize(Line, "true" ++ Rest, Tokens) ->
@@ -159,8 +167,8 @@ tokenize(Line, "\r\n" ++ Rest, Tokens) ->
 tokenize(Line, [T|Rest], Tokens) when T == $ ; T == $\r; T == $\t ->
   tokenize(Line, Rest, Tokens);
 
-tokenize(Line, String, _) ->
-  { error, { Line, "invalid token", String } }.
+tokenize(Line, [T|_], _) ->
+  { error, { Line, "invalid token", [T] } }.
 
 %% Helpers
 

@@ -3,12 +3,12 @@
 -include_lib("eunit/include/eunit.hrl").
 
 % % Evaluate the Expr returning String internal information.
-% eval_string(Expr) ->
-%   { String, Binding } = elixir:eval(Expr),
-%   { test_helper:unpack_string(String), Binding }.
+eval_string(Expr) ->
+  { String, Binding } = elixir:eval(Expr),
+  { String, Binding }.
 
 extract_interpolations(String) ->
-  element(1, elixir_interpolation:extract(1, true, String ++ [$)], $))).
+  element(2, elixir_interpolation:extract(1, true, String ++ [$"], $")).
 
 % Interpolations
 
