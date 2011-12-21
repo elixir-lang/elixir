@@ -72,13 +72,13 @@ translate(Line, Clauses, RawS) ->
 
 % Decouple clauses. A clause is a key-value pair. If the value is an array,
 % it is broken into several other key-value pairs with the same key. This
-% process is only valid for :match and :elsif keys (as they are the only
+% process is only valid for :match and :catch keys (as they are the only
 % that supports many clauses)
 %
 % + An array. Which means several expressions were given. Valid only for match, elsif, catch.
 % + Any other expression.
 %
-decouple_clauses([{Key,Value}|T], Clauses) when is_list(Value), Key == elsif orelse Key == match orelse Key == 'catch' ->
+decouple_clauses([{Key,Value}|T], Clauses) when is_list(Value), Key == match orelse Key == 'catch' ->
   Final = lists:foldl(fun(X, Acc) -> [{Key,X}|Acc] end, Clauses, Value),
   decouple_clauses(T, Final);
 
@@ -117,7 +117,7 @@ translate_each({Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch' ->
   { [TCondition|TExprs], SE };
 
 % Handle all other clauses.
-translate_each({Key,[Condition|Exprs]}, S) when Key == do; Key == elsif ->
+translate_each({Key,[Condition|Exprs]}, S) when Key == do ->
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TExprs, SE } = elixir_translator:translate(Exprs, SC),
   { [TCondition|TExprs], SE };
