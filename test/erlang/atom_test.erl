@@ -1,30 +1,39 @@
 -module(atom_test).
+-export([kv/1]).
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
+kv([{Key,nil}]) -> Key.
+
 atom_with_punctuation_test() ->
-  {'a?',[]} = elixir:eval("'a?"),
-  {'a!',[]} = elixir:eval("'a!").
+  {'a?',[]} = elixir:eval(":a?"),
+  {'a!',[]} = elixir:eval(":a!"),
+  {'||',[]} = elixir:eval(":||").
 
-atom_inspect_test() ->
-  {String,[]} = elixir:eval("'a.inspect"),
-  <<"'a">> = test_helper:unpack_string(String).
+kv_with_punctuation_test() ->
+  {'a?',[]} = elixir:eval("Erlang.atom_test.kv(a?: nil)"),
+  {'a!',[]} = elixir:eval("Erlang.atom_test.kv(a!: nil)"),
+  {'||',[]} = elixir:eval("Erlang.atom_test.kv(||: nil)").
 
-atom_to_s_test() ->
-  {String,[]} = elixir:eval("'a.to_s"),
-  <<"a">> = test_helper:unpack_string(String).
-
-separators_atom_test() ->
-  {foo,[]} = elixir:eval("'\"foo\""),
-  {foo,[]} = elixir:eval("'[foo]"),
-  {foo,[]} = elixir:eval("'(foo)"),
-  {foo,[]} = elixir:eval("'{foo}").
-
-separators_atom_with_interpolation_test() ->
-  {foo,[]} = elixir:eval("'\"f#{'o}o\""),
-  {foo,[]} = elixir:eval("'[f#{'o}o]"),
-  {foo,[]} = elixir:eval("'(f#{'o}o)"),
-  {foo,[]} = elixir:eval("'{f#{'o}o}").
-
-quoted_atom_chars_are_escaped_test() ->
-  {'"',[]} = elixir:eval("'\"\\\"\"").
+% atom_inspect_test() ->
+%   {String,[]} = elixir:eval("'a.inspect"),
+%   <<"'a">> = test_helper:unpack_string(String).
+% 
+% atom_to_s_test() ->
+%   {String,[]} = elixir:eval("'a.to_s"),
+%   <<"a">> = test_helper:unpack_string(String).
+% 
+% separators_atom_test() ->
+%   {foo,[]} = elixir:eval("'\"foo\""),
+%   {foo,[]} = elixir:eval("'[foo]"),
+%   {foo,[]} = elixir:eval("'(foo)"),
+%   {foo,[]} = elixir:eval("'{foo}").
+% 
+% separators_atom_with_interpolation_test() ->
+%   {foo,[]} = elixir:eval("'\"f#{'o}o\""),
+%   {foo,[]} = elixir:eval("'[f#{'o}o]"),
+%   {foo,[]} = elixir:eval("'(f#{'o}o)"),
+%   {foo,[]} = elixir:eval("'{f#{'o}o}").
+% 
+% quoted_atom_chars_are_escaped_test() ->
+%   {'"',[]} = elixir:eval("'\"\\\"\"").

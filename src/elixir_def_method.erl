@@ -1,21 +1,21 @@
 % Holds the logic responsible for methods definition during compile time.
 % For methods introspection, check elixir_methods.
 -module(elixir_def_method).
--export([unpack_default_clause/2, new_method_table/1, flat_module/3,
-  wrap_method_definition/4, store_wrapped_method/4, unwrap_stored_methods/1]).
+-export([unpack_default_clause/2, new_method_table/1,
+  wrap_method_definition/6, store_wrapped_method/5, unwrap_stored_methods/1]).
 -include("elixir.hrl").
 
 % Creates a new method table for the given name.
-new_method_table(ElixirName) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([mex, ElixirName]),
+new_method_table(Namespace) ->
+  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Namespace]),
   ets:new(MethodTable, [set, named_table, private]),
   ets:insert(MethodTable, { public, [] }),
   ets:insert(MethodTable, { private, [] }),
-  ets:insert(MethodTable, { inherited, [] }),
+  ets:insert(MethodTable, { macros, [] }),
   ets:insert(MethodTable, { visibility, public }),
   MethodTable.
 
-% Unpack default args from the given clause. Invoked by elixir_transform.
+% Unpack default args from the given clause. Invoked by elixir_translate.
 unpack_default_clause(Name, Clause) ->
   { NewArgs, NewClauses } = unpack_default_args(Name, element(3, Clause), [], []),
   { setelement(3, Clause, NewArgs), NewClauses }.
@@ -27,87 +27,62 @@ unpack_default_clause(Name, Clause) ->
 % We need to wrap methods instead of eagerly defining them to ensure
 % functions inside if branches won't propagate, for example:
 %
-%   module Foo
-%     if false
-%       def bar; 1; end
-%     else
-%       def bar; 2; end
-%     end
+%   ns Foo
+%
+%   if false do
+%     def bar: [], do: 1
+%   else:
+%     def bar: [], do: 2
 %   end
 %
 % If we just analyzed the compiled structure (i.e. the method availables
 % before evaluating the method body), we would see both definitions.
-wrap_method_definition(Line, Filename, Method, Defaults) ->
+wrap_method_definition(Kind, Line, Filename, Namespace, Method, Defaults) ->
   Meta = elixir_tree_helpers:abstract_syntax(Method),
   MetaDefaults = elixir_tree_helpers:abstract_syntax(Defaults),
-  Content = [{var, Line, self}, {string, Line, Filename}, Meta, MetaDefaults],
+  Content = [{atom, Line, Kind}, {string, Line, Filename}, {atom, Line, Namespace}, Meta, MetaDefaults],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
 
 % Invoked by the wrapped method with the method abstract tree.
 % Each method is then added to the method table.
-store_wrapped_method(Self, Filename, OriginalMethod, Defaults) ->
-  Name        = Self#elixir_module__.name,
+store_wrapped_method(Kind, Filename, Name, OriginalMethod, Defaults) ->
   MethodTable = ?ELIXIR_ATOM_CONCAT([m, Name]),
-  ElixirName  = ?ELIXIR_EX_MODULE(Name),
 
   MethodName = case element(3, OriginalMethod) of
-    []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", ElixirName, "_", methods_count(MethodTable)+1]);
+    []   -> ?ELIXIR_ATOM_CONCAT(["__anonymous_method_", Name, "_", methods_count(MethodTable)+1]);
     Else -> Else
   end,
   Method = setelement(3, OriginalMethod, MethodName),
 
   Visibility = ets:lookup_element(MethodTable, visibility, 2),
-  [store_each_method(MethodTable, Visibility, Filename, function_from_default(MethodName, Default)) || Default <- Defaults],
-  store_each_method(MethodTable, Visibility, Filename, Method),
+  [store_each_method(Kind, MethodTable, Visibility, Filename, function_from_default(MethodName, Default)) || Default <- Defaults],
+  store_each_method(Kind, MethodTable, Visibility, Filename, Method).
 
   % Returns a method object at the end.
-  try
-    Arity = element(4, Method),
-    Constant = elixir_constants:lookup('UnboundMethod::Behavior'),
-    elixir_module_behavior:slate_bind(Constant, [Name, MethodName, Arity - 1])
-  catch
-    error:{no_module,'UnboundMethod::Behavior'} -> []
-  end.
+  % try
+  %   Arity = element(4, Method),
+  %   Constant = elixir_constants:lookup('UnboundMethod::Behavior'),
+  %   elixir_module_behavior:slate_bind(Constant, [Name, MethodName, Arity - 1])
+  % catch
+  %   error:{no_module,'UnboundMethod::Behavior'} -> []
+  % end.
 
 % Helper to unwrap the methods stored in the methods table. It also returns
 % a list of methods to be exported with all methods.
-unwrap_stored_methods(Table) ->
+unwrap_stored_methods(Namespace) ->
+  Table     = ?ELIXIR_ATOM_CONCAT([m, Namespace]),
   Public    = ets:lookup_element(Table, public, 2),
   Private   = ets:lookup_element(Table, private, 2),
-  Inherited = ets:lookup_element(Table, inherited, 2),
+  Macros    = ets:lookup_element(Table, macros, 2),
   ets:delete(Table, visibility),
   ets:delete(Table, public),
   ets:delete(Table, private),
-  ets:delete(Table, inherited),
-  { Public, Inherited, ets:foldl(fun(X, Acc) -> unwrap_stored_method(X, Acc, Private) end, [], Table) }.
+  ets:delete(Table, macros),
+  Functions = ets:foldl(fun(X, Acc) -> unwrap_stored_method(X, Acc, Private) end, [], Table),
+  { Public, Macros, Functions }.
 
 unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc, Private) ->
-  FClauses = update_local_calls(lists:reverse(Clauses), Private),
-  [{function, Line, Name, Arity, FClauses}|Acc].
-
-% Receives a method table and adds the given What from Object in it.
-flat_module(Line, Modules, MethodTable) ->
-  Visibility = lists:foldl(fun(ElixirModule, Acc1) ->
-    Module = ?ELIXIR_ERL_MODULE(ElixirModule),
-    lists:foldl(fun({Method, ElixirArity}, Acc2) ->
-      Arity = ElixirArity + 1,
-      case ets:lookup(MethodTable, {Method, Arity}) of
-        [] ->
-          BuiltArgs = build_arg(Arity, Line, []),
-
-          ets:insert(MethodTable, {
-            { Method, Arity }, Line, [
-              { clause, Line, BuiltArgs, [], [?ELIXIR_WRAP_CALL(Line, Module, Method, BuiltArgs)] }
-            ]
-          }),
-
-          [{Method,Arity}|Acc2];
-        _ -> Acc2
-      end
-    end, Acc1, elixir_methods:inherit_methods(Module))
-  end, [], Modules),
-
-  ets:insert(MethodTable, { inherited, Visibility }).
+  [{function, Line, Name, Arity, lists:reverse(Clauses) }|Acc].
 
 %% Helpers
 
@@ -119,20 +94,22 @@ function_from_default(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
   { function, Line, Name, length(Args), [Clause] }.
 
 % Store each of the given method in the MethodTable.
-store_each_method(MethodTable, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
+store_each_method(Kind, MethodTable, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
   FinalClauses = case ets:lookup(MethodTable, {Name, Arity}) of
     [{{Name, Arity}, FinalLine, OtherClauses}] ->
       check_valid_visibility(Line, Filename, Name, Arity, Visibility, MethodTable),
+      check_valid_kind(Line, Filename, Name, Arity, Kind, MethodTable),
       Clauses ++ OtherClauses;
     [] ->
       add_visibility_entry(Name, Arity, Visibility, MethodTable),
+      add_function_entry(Name, Arity, Kind, MethodTable),
       FinalLine = Line,
       Clauses
   end,
   ets:insert(MethodTable, {{Name, Arity}, FinalLine, FinalClauses}).
 
 % Unpack default args from clauses
-unpack_default_args(Name, [{default_arg, Line, Expr, Default}|T] = List, Acc, Clauses) ->
+unpack_default_args(Name, [{':=', Line, [Expr, Default]}|T] = List, Acc, Clauses) ->
   { Args, Invoke } = build_default_arg(Acc, Line, [], []),
   Defaults = lists:map(fun extract_default/1, List),
   Clause = { clause, Line, Args, [], [
@@ -147,7 +124,7 @@ unpack_default_args(_Name, [], Acc, Clauses) ->
   { lists:reverse(Acc), lists:reverse(Clauses) }.
 
 % Extract default values
-extract_default({default_arg, Line, Expr, Default}) ->
+extract_default({':=', Line, [Expr, Default]}) ->
   Default.
 
 % Build an args list
@@ -169,25 +146,25 @@ prune_vars(H) when is_list(H) ->
 
 prune_vars(H) -> H.
 
-% Update local calls now that we know all private methods.
-update_local_calls({local_call, Line, Name, Args}, Private) ->
-  Arity = length(Args) + 1,
-  TArgs = update_local_calls(Args, Private),
-  case lists:member({Name,Arity}, Private) of
-    true ->
-      { call, Line, {atom, Line, Name}, [{var, Line, self}|TArgs] };
-    false ->
-      TExpr = { var, Line, self },
-      elixir_tree_helpers:build_method_call(Name, Line, TArgs, TExpr)
-  end;
+% Add function entry
+add_function_entry(Name, Arity, defmacro, Table) ->
+  Current= ets:lookup_element(Table, macros, 2),
+  ets:insert(Table, {macros, [{Name, Arity}|Current]});
 
-update_local_calls(H, Private) when is_tuple(H) ->
-  list_to_tuple([update_local_calls(X, Private) || X <- tuple_to_list(H)]);
+add_function_entry(_Name, _Arity, def, _Table) -> [].
 
-update_local_calls(H, Private) when is_list(H) ->
-  [update_local_calls(X, Private) || X <- H];
+check_valid_kind(Line, Filename, Name, Arity, Kind, Table) ->
+  List = ets:lookup_element(Table, macros, 2),
 
-update_local_calls(H, _Private) -> H.
+  Previous = case lists:member({Name, Arity}, List) of
+    true -> defmacro;
+    false -> def
+  end,
+
+  case Kind == Previous of
+    false -> elixir_errors:handle_file_warning(Filename, {Line, ?MODULE, {changed_kind, {Name, Arity, Previous}}});
+    true -> []
+  end.
 
 % Check the visibility of the method with the given Name and Arity in the attributes table.
 add_visibility_entry(Name, Arity, Visibility, Table) ->
@@ -196,9 +173,9 @@ add_visibility_entry(Name, Arity, Visibility, Table) ->
 
 check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
   Available = [public, private],
-  PrevVisibility = find_visibility(Name, Arity, Available, Table),
-  case Visibility == PrevVisibility of
-    false -> elixir_errors:handle_file_warning(Filename, {Line, ?MODULE, {changed_visibility, {Name, PrevVisibility}}});
+  Previous = find_visibility(Name, Arity, Available, Table),
+  case Visibility == Previous of
+    false -> elixir_errors:handle_file_warning(Filename, {Line, ?MODULE, {changed_visibility, {Name, Arity, Previous}}});
     true -> []
   end.
 
@@ -211,9 +188,3 @@ find_visibility(Name, Arity, [Visibility|T], Table) ->
     true  -> Visibility;
     false -> find_visibility(Name, Arity, T, Table)
   end.
-
-% Build an args list
-build_arg(0, _Line, Args) -> Args;
-
-build_arg(Counter, Line, Args) ->
-  build_arg(Counter - 1, Line, [{ var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) }|Args]).

@@ -26,17 +26,11 @@ syntax_error(Line, Filename, Error, Token) ->
 
 % Handle warnings
 
-handle_file_warning(Filename, {Line,_,{unused_var,self}}) ->
-  [];
-
 handle_file_warning(Filename, {Line,Module,{unused_var,Var} = Desc}) ->
   case hd(atom_to_list(Var)) == $X of
     true  -> [];
     false -> io:format(file_format(Line, Filename, format_error(Module, Desc)) ++ [$\n])
   end;
-
-handle_file_warning(Filename, {Line,_,nomatch_clause_type}) ->
-  [];
 
 handle_file_warning(Filename, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
@@ -49,17 +43,11 @@ handle_file_error(Filename, {Line,Module,Desc}) ->
 
 % Format each error or warning in the format { Line, Module, Desc }
 
-format_error(_, {undefined_function, {Name, Arity}}) ->
-  io_lib:format("undefined local method ~s/~w", [Name, Arity-1]);
+format_error(_, {changed_visibility,{Name,Arity,Previous}}) ->
+  io_lib:format("function ~s/~B already defined with visibility ~s", [Name, Arity, Previous]);
 
-format_error(_, {changed_visibility,{Name,Visibility}}) ->
-  io_lib:format("method ~s already defined with visibility ~s", [Name, Visibility]);
-
-format_error(_, {unused_function, {Name, Arity}}) ->
-  io_lib:format("unused local method ~s/~w", [Name, Arity-1]);
-
-format_error(_, {unbound_variable, Name}) ->
-  io_lib:format("variable '~s' is unbound", [atom_to_list(Name)]);
+format_error(_, {changed_kind,{Name,Arity,Previous}}) ->
+  io_lib:format("function ~s/~B already defined as ~s", [Name, Arity, Previous]);
 
 format_error([], Desc) ->
   io_lib:format("~p", [Desc]);

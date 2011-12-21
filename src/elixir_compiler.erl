@@ -25,14 +25,13 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 
 internal_file(File) ->
   io:format("Compiling ~s~n", [File]),
-  file_to_path(File, "exbin", [{self,nil}]).
+  file_to_path(File, "exbin").
 
 core() ->
-  code:ensure_loaded(elixir_module_behavior),
   [internal_file(File) || File <- compile_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- compile_list()],
   Files = lists:append(AllLists) -- compile_main(),
-  [file_to_path(File, "exbin") || File <- Files].
+  [internal_file(File) || File <- Files].
 
 compile_list() ->
   [
@@ -41,30 +40,4 @@ compile_list() ->
   ].
 
 compile_main() ->
-  [
-    "lib/module.ex",
-    "lib/list.ex",
-    "lib/regexp.ex",
-    "lib/io.ex",
-    "lib/atom.ex",
-    "lib/numeric.ex",
-    "lib/integer.ex",
-    "lib/float.ex",
-    "lib/tuple.ex",
-    "lib/string.ex",
-    "lib/ordered_dict.ex",
-    "lib/bit_string.ex",
-    "lib/process.ex",
-    "lib/port.ex",
-    "lib/reference.ex",
-    "lib/function.ex",
-    "lib/gen_server.ex",
-    "lib/record.ex",
-    "lib/file.ex",
-    "lib/unbound_method.ex",
-    "lib/method.ex",
-    "lib/code.ex",
-    "lib/code/formatter.ex",
-    "lib/code/init.ex",
-    "lib/code/server.ex"
-  ].
+  [].

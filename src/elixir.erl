@@ -8,7 +8,6 @@
 
 start(_Type, _Args) ->
   (catch code:add_pathz(code:lib_dir(?MODULE, exbin))),
-  [code:ensure_loaded(Module) || Module <- builtin_mixins()],
   elixir_sup:start_link([]).
 
 stop(_S) ->
@@ -34,25 +33,6 @@ start() ->
   start_app(),
   CodeInit = elixir_constants:lookup('Code::Init'),
   'exCode::Init':process_argv(CodeInit, init:get_plain_arguments()).
-
-builtin_mixins() ->
-  [
-    'exModule::Behavior',
-    'exModule::Using',
-    'exModule::Definition',
-    'exInteger::Behavior',
-    'exFloat::Behavior',
-    'exAtom::Behavior',
-    'exList::Behavior',
-    'exString::Behavior',
-    'exBitString::Behavior',
-    'exOrderedDict::Behavior',
-    'exTuple::Behavior',
-    'exFunction::Behavior',
-    'exProcess::Behavior',
-    'exReference::Behavior',
-    'exPort::Behavior'
-  ].
 
 file(Filepath) ->
   file(Filepath, []).
@@ -85,15 +65,11 @@ eval(String, Binding) -> eval(String, Binding, "nofile").
 eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
 eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, #elixir_scope{}).
 eval(String, Binding, Filename, Line, Scope) ->
-  SelfBinding = case proplists:get_value(self, Binding) of
-    undefined -> lists:append(Binding, [{self,elixir_constants:lookup('Module')}]);
-    _  -> Binding
-  end,
-  { ParseTree, NewScope } = parse(String, SelfBinding, Filename, Line, Scope),
+  { ParseTree, NewScope } = parse(String, Binding, Filename, Line, Scope),
   case ParseTree of
-    [] -> { nil, SelfBinding };
+    [] -> { nil, Binding };
     _  ->
-      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, lists:sort(SelfBinding)),
+      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, lists:sort(Binding)),
       {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }
   end.
 
@@ -103,7 +79,7 @@ parse(String, Binding) -> parse(String, Binding, "nofile").
 parse(String, Binding, Filename) -> parse(String, Binding, Filename, 1, #elixir_scope{}).
 parse(String, Binding, Filename, Line, Scope) ->
   NewScope = Scope#elixir_scope{vars=binding_dict(Binding), filename=Filename},
-  elixir_transform:parse(String, Line, NewScope).
+  elixir_translator:parse(String, Line, NewScope).
 
 binding_dict(List) -> binding_dict(List, dict:new()).
 binding_dict([{self,_}|T], Dict) -> binding_dict(T, Dict);

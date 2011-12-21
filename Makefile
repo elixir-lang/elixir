@@ -12,7 +12,7 @@ ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
 .PHONY: test test_erlang test_elixir clean clean_exbin
 
 # This is the default task
-compile: ebin/elixir.beam ebin | src/elixir_lexer.erl src/elixir_parser.erl src/eex_lexer.erl exbin
+compile: ebin/elixir.beam ebin | src/elixir_parser.erl src/eex_lexer.erl exbin
 
 # install:
 # We will need to do this one at some point
@@ -23,16 +23,9 @@ ebin/elixir.beam: include/elixir.hrl
 	$(ERLC) -o $(EBIN_DIR) src/*.erl
 	@ echo
 
-src/elixir_lexer.erl: src/elixir_lexer.xrl
-	@ echo Compiling lexer ...
-	$(ERL) -eval 'leex:file("$<"), halt().'
-	@ mkdir -p $(EBIN_DIR)
-	$(ERLC) -o $(EBIN_DIR) $@
-	@ echo
-
 src/elixir_parser.erl: src/elixir_parser.yrl
 	@ echo Compiling parser ...
-	$(ERL) -eval 'yecc:file("$<"), halt().'
+	$(ERL) -eval 'yecc:file("$<", [{verbose,false}]), halt().'
 	@ mkdir -p $(EBIN_DIR)
 	$(ERLC) -o $(EBIN_DIR) $@
 	@ echo
@@ -50,7 +43,7 @@ ebin: src/*.erl
 	$(ERLC) -o $(EBIN_DIR) $?
 	@ echo
 
-exbin: lib/*.ex lib/*/*.ex
+exbin: lib/*/*.ex
 	@ echo Compiling Elixir source ...
 	@ mkdir -p $(EXBIN_DIR)
 	@ touch $(EXBIN_DIR)
@@ -71,10 +64,10 @@ test_elixir: compile
 	time bin/exunit test/elixir/*_test.exs test/elixir/*/*_test.exs
 	@ echo
 
-test: test_erlang test_elixir
+# test: test_erlang test_elixir
+test: test_erlang
 
 clean: clean_exbin
-	rm -f src/elixir_lexer.erl
 	rm -f src/elixir_parser.erl
 	rm -f src/eex_lexer.erl
 	rm -rf $(EBIN_DIR)/*.beam
