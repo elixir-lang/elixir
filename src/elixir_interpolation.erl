@@ -1,63 +1,57 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
--export([transform/3, extract/3, unescape_chars/2]).
+-export([transform/3, extract/4, unescape_chars/2]).
 -include("elixir.hrl").
 
 % Extract string interpolations
 
-extract(Escaping, String, Last) ->
-  extract(Escaping, String, [], [], [], Last).
+extract(Line, Escaping, String, Last) ->
+  extract(Line, Escaping, String, [], [], [], Last).
 
-extract(Escaping, [], Buffer, [], Output, []) ->
+extract(Line, Escaping, [], Buffer, [], Output, []) ->
   { lists:reverse(build_interpol(s, Escaping, Buffer, Output)), [] };
 
-extract(Escaping, [Last], Buffer, [], Output, Last) ->
-  { lists:reverse(build_interpol(s, Escaping, Buffer, Output)), [] };
-
-extract(Escaping, [Last], Buffer, Search, Output, Last) ->
-  { error, io_lib:format("unexpected end of string, expected ~ts", [[hd(Search)]]) };
-
-extract(Escaping, [$\\, $#, ${|Rest], Buffer, [], Output, Last) ->
-  extract(Escaping, Rest, [${,$#|Buffer], [], Output, Last);
-
-extract(Escaping, [$\\,Char|Rest], Buffer, [], Output, Last) ->
-  extract(Escaping, Rest, [Char,$\\|Buffer], [], Output, Last);
-
-extract(Escaping, [$#, ${|Rest], Buffer, [], Output, Last) ->
-  NewOutput = build_interpol(s, Escaping, Buffer, Output),
-  extract(Escaping, Rest, [], [$}], NewOutput, Last);
-
-extract(Escaping, [$}|Rest], Buffer, [$}], Output, Last) ->
-  NewOutput = build_interpol(i, Escaping, Buffer, Output),
-  extract(Escaping, Rest, [], [], NewOutput, Last);
-
-extract(Escaping, [Last|Remaining], Buffer, [], Output, Last) ->
+extract(Line, Escaping, [Last|Remaining], Buffer, [], Output, Last) ->
   { lists:reverse(build_interpol(s, Escaping, Buffer, Output)), Remaining };
 
-extract(Escaping, [Char|Rest], Buffer, [], Output, Last) ->
-  extract(Escaping, Rest, [Char|Buffer], [], Output, Last);
+extract(Line, Escaping, [Last], Buffer, Search, Output, Last) ->
+  { error, io_lib:format("unexpected end of string, expected ~ts", [[hd(Search)]]) };
+
+extract(Line, Escaping, [$\\, $#, ${|Rest], Buffer, [], Output, Last) ->
+  extract(Line, Escaping, Rest, [${,$#|Buffer], [], Output, Last);
+
+extract(Line, Escaping, [$\\,Char|Rest], Buffer, [], Output, Last) ->
+  extract(Line, Escaping, Rest, [Char,$\\|Buffer], [], Output, Last);
+
+extract(Line, Escaping, [$#, ${|Rest], Buffer, [], Output, Last) ->
+  NewOutput = build_interpol(s, Escaping, Buffer, Output),
+  extract(Line, Escaping, Rest, [], [$}], NewOutput, Last);
+
+extract(Line, Escaping, [$}|Rest], Buffer, [$}], Output, Last) ->
+  NewOutput = build_interpol(i, Escaping, Buffer, Output),
+  extract(Line, Escaping, Rest, [], [], NewOutput, Last);
 
 % Check for available separators "", {}, [] and () inside interpolation
 
-extract(Escaping, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $" ->
-  extract(Escaping, Rest, [C|Buffer], Search, Output, Last);
+extract(Line, Escaping, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $"; C == $' ->
+  extract(Line, Escaping, Rest, [C|Buffer], Search, Output, Last);
 
-extract(Escaping, [$"|Rest], Buffer, Search, Output, Last) ->
-  extract(Escaping, Rest, [$"|Buffer], [$"|Search], Output, Last);
+extract(Line, Escaping, [C|Rest], Buffer, Search, Output, Last) when C == $"; C == $' ->
+  extract(Line, Escaping, Rest, [C|Buffer], [C|Search], Output, Last);
 
-extract(Escaping, [${|Rest], Buffer, Search, Output, Last) ->
-  extract(Escaping, Rest, [${|Buffer], [$}|Search], Output, Last);
+extract(Line, Escaping, [${|Rest], Buffer, Search, Output, Last) ->
+  extract(Line, Escaping, Rest, [${|Buffer], [$}|Search], Output, Last);
 
-extract(Escaping, [$[|Rest], Buffer, Search, Output, Last) ->
-  extract(Escaping, Rest, [$[|Buffer], [$]|Search], Output, Last);
+extract(Line, Escaping, [$[|Rest], Buffer, Search, Output, Last) ->
+  extract(Line, Escaping, Rest, [$[|Buffer], [$]|Search], Output, Last);
 
-extract(Escaping, [$(|Rest], Buffer, Search, Output, Last) ->
-  extract(Escaping, Rest, [$(|Buffer], [$)|Search], Output, Last);
+extract(Line, Escaping, [$(|Rest], Buffer, Search, Output, Last) ->
+  extract(Line, Escaping, Rest, [$(|Buffer], [$)|Search], Output, Last);
 
 % Else
 
-extract(Escaping, [Char|Rest], Buffer, Search, Output, Last) ->
-  extract(Escaping, Rest, [Char|Buffer], Search, Output, Last).
+extract(Line, Escaping, [Char|Rest], Buffer, Search, Output, Last) ->
+  extract(Line, Escaping, Rest, [Char|Buffer], Search, Output, Last).
 
 % Handle interpolation. The final result will be a parse tree that
 % returns a flattened list.
@@ -81,7 +75,7 @@ unescape_chars(Escaping, String) -> unescape_chars(Escaping, String, []).
 unescape_chars(Escaping, [], Output) -> lists:reverse(Output);
 
 % Do not escape everything, just a few. Used by regular expressions.
-unescape_chars(false, [$\\, Escaped|Rest], Output) ->
+unescape_chars(regexp, [$\\, Escaped|Rest], Output) ->
   case extract_integers([Escaped|Rest], []) of
     {_,[]} ->
       Char = case Escaped of
@@ -102,7 +96,7 @@ unescape_chars(false, [$\\, Escaped|Rest], Output) ->
   end;
 
 % Escape characters as in strings.
-unescape_chars(true, [$\\, Escaped|Rest], Output) ->
+unescape_chars(_, [$\\, Escaped|Rest], Output) ->
   case extract_integers([Escaped|Rest], []) of
     {_,[]} ->
       Char = case Escaped of
@@ -132,8 +126,8 @@ handle_string_extractions({s, String}, Line, S) ->
 
 handle_string_extractions({i, Interpolation}, Line, S) ->
   { Tree, NS } = elixir_transform:parse(Interpolation, Line, S),
-  Stringify = elixir_tree_helpers:build_method_call(to_s, Line, [], hd(Tree)),
-  { Stringify, NS, [binary] }.
+  % Stringify = elixir_tree_helpers:build_method_call(to_s, Line, [], hd(Tree)),
+  { hd(Tree), NS, [binary] }.
 
 build_interpol(Piece, Escaping, [], Output) ->
   Output;

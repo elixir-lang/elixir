@@ -12,6 +12,7 @@ test() ->
     conditionals_test,
     match_test,
     namespace_test,
+    string_test,
     tokenizer_test,
     translator_test
   ]).
