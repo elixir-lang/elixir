@@ -69,3 +69,6 @@ ref_test() ->
    {ref,1,Bar},
    {'::',1},
    {ref,1,Baz}] = tokenize("Foo::Bar::Baz").
+
+string_test() ->
+  [{string,1,[<<"foo">>]}] = tokenize("\"foo\"").

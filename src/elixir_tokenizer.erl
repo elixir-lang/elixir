@@ -167,8 +167,8 @@ tokenize(Line, "\r\n" ++ Rest, Tokens) ->
 tokenize(Line, [T|Rest], Tokens) when T == $ ; T == $\r; T == $\t ->
   tokenize(Line, Rest, Tokens);
 
-tokenize(Line, [T|_], _) ->
-  { error, { Line, "invalid token", [T] } }.
+tokenize(Line, T, _) ->
+  { error, { Line, "invalid token", T } }.
 
 %% Helpers
 

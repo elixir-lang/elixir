@@ -22,7 +22,7 @@ Nonterminals
 Terminals
   'do' 'end'
   identifier kv_identifier punctuated_identifier paren_identifier
-  number signed_number atom ref
+  number signed_number atom ref string
   '+' '-' '*' '/' '=' call_op special_op dot_call_op
   '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::' '&&' '||' '!'
   .
@@ -110,6 +110,7 @@ base_expr -> var : build_identifier('$1', false).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> ref_identifier : '$1'.
+base_expr -> string : build_string(?exprs('$1'), []).
 
 %% Helpers
 
@@ -341,6 +342,11 @@ build_identifier({ _, Line, Identifier }, false) ->
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, build_args(Args) }.
+
+%% Interpolation aware
+
+build_string([H], []) when is_binary(H) ->
+  H.
 
 %% KV Helpers
 % Merge key-value pairs from args and blocks
