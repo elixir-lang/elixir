@@ -1,5 +1,5 @@
 -module(elixir_clauses).
--export([match/3, assigns/3, assigns_blocks/4]).
+-export([match/3, assigns/3, assigns_blocks/4, assigns_blocks/5, extract_guards/1]).
 -include("elixir.hrl").
 
 % Function for translating assigns.
@@ -12,6 +12,9 @@ assigns(Fun, Args, Scope) ->
 
 assigns_blocks(Fun, BareArgs, Exprs, S) ->
   { Args, Guards } = extract_guards(BareArgs),
+  assigns_blocks(Fun, Args, Exprs, Guards, S).
+
+assigns_blocks(Fun, Args, Exprs, Guards, S) ->
   { TArgs, SA }    = elixir_clauses:assigns(Fun, Args, S),
   { TGuards, SG }  = elixir_translator:translate(Guards, SA#elixir_scope{guard=true}),
   { TExprs, SE }   = elixir_translator:translate(Exprs, SG#elixir_scope{guard=false}),
@@ -37,6 +40,7 @@ assigns_blocks(Fun, BareArgs, Exprs, S) ->
   { { clause, 0, FArgs, FGuards, FExprs }, SE }.
 
 % Extract guards from the given expression.
+
 extract_guards({ '|', _, [Left, Right] }) -> { Left, [Right] };
 extract_guards(Else) -> { Else, [] }.
 

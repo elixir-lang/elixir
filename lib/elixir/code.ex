@@ -17,4 +17,4 @@ ns Elixir::Code
 # 
 # Elixir requires Erlang R14B03 or later. If you have the correct version and tests still fail, feel free to open an issue in the issues tracker on Github. If all tests pass, you are ready to go.
 
-def :version, do: "0.4.0.dev"
+def version, do: "0.4.0.dev"

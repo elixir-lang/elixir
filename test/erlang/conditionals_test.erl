@@ -213,7 +213,7 @@ equal_test() ->
 % 
 andand_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef :foo, do: true\ndef :bar, do: false\n def baz: [x], do: x == 1"),
+    elixir:eval("ns Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
     {true, _} = elixir:eval("Elixir::Macros.&&(true, true)"),
     {true, _} = elixir:eval("true && true"),
     {false, _} = elixir:eval("true && false"),
@@ -237,7 +237,7 @@ andand_test() ->
 
 oror_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef :foo, do: true\ndef :bar, do: false\n def baz: [x], do: x == 1"),
+    elixir:eval("ns Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
     {true, _} = elixir:eval("Elixir::Macros.||(false, true)"),
     {true, _} = elixir:eval("true || true"),
     {true, _} = elixir:eval("true || false"),

@@ -1,6 +1,6 @@
 ns Elixir::Macros
 
-defmacro if: [condition, [{:do,do_clause}|tail]] do
+defmacro if(condition, [{:do,do_clause}|tail]) do
   matches = prepend_to_block(condition, do_clause)
 
   else_clause  = Orddict.fetch(tail, :else, nil)
@@ -10,11 +10,11 @@ defmacro if: [condition, [{:do,do_clause}|tail]] do
   build_if_clauses(List.reverse(all), else_clause)
 end
 
-defmacro unless: [clause, options] do
+defmacro unless(clause, options) do
   quote(if(!unquote(clause), unquote(options)))
 end
 
-defmacro &&: [left, right] do
+defmacro &&(left, right) do
   quote(
     case unquote(left) do
     match: false
@@ -27,7 +27,7 @@ defmacro &&: [left, right] do
   )
 end
 
-defmacro ||: [left, right] do
+defmacro ||(left, right) do
   quote(
     case !(__oror_var = unquote(left)) do
     match: false
@@ -39,7 +39,7 @@ defmacro ||: [left, right] do
 end
 
 # Optimize !! to avoid generating case twice.
-defmacro !: [{:!,_,[expr]}] do
+defmacro !({:!,_,[expr]}) do
   quote(
     case unquote(expr) do
     match: false
@@ -63,7 +63,7 @@ end
 #   !false    #=> true
 #   !nil      #=> true
 #
-defmacro !: [expr] do
+defmacro !(expr) do
   quote(
     case unquote(expr) do
     match: false
@@ -103,7 +103,7 @@ end
 #       end
 #     end
 #
-def build_if_clauses: [[h|t], acc] do
+def build_if_clauses([h|t], acc) do
   { condition, clause } = extract_condition_clause(h)
 
   new_acc = quote(
@@ -118,7 +118,7 @@ def build_if_clauses: [[h|t], acc] do
   build_if_clauses(t, new_acc)
 end
 
-def build_if_clauses: [[], acc], do: acc
+def build_if_clauses([], acc), do: acc
 
 # Extract condition clauses from blocks. Whenever we do:
 #
@@ -139,15 +139,15 @@ def build_if_clauses: [[], acc], do: acc
 #
 # Therefore, this method simply extract the first argument from
 # the block which is the argument used as condition.
-def extract_condition_clause: [{ :block, line, [h|t] }], do: { h, { :block, line, t } }
-def extract_condition_clause: [other], do: { other, nil }
+def extract_condition_clause({ :block, line, [h|t] }), do: { h, { :block, line, t } }
+def extract_condition_clause(other), do: { other, nil }
 
 # Append the given expression to the block given as second argument.
 # In case the second argument is not a block, create one.
-def prepend_to_block: [expr, { :block, line, args }] do
+def prepend_to_block(expr, { :block, line, args }) do
   { :block, line, [expr|args] }
 end
 
-def prepend_to_block: [expr, args] do
+def prepend_to_block(expr, args) do
   { :block, 0, [expr, args] }
 end

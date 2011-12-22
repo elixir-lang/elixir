@@ -159,23 +159,17 @@ translate_each({'::', Line, [Left, Right]}, S) ->
 
 %% Def
 
-translate_each({Kind, Line, [Name, Do]}, S) when is_atom(Name), Kind == def orelse Kind == defmacro ->
-  translate_each({Kind, Line, [[{Name,[]}|Do]]}, S);
+translate_each({Kind, Line, [{Name,_,false},Else]}, S) when Kind == def orelse Kind == defmacro ->
+  translate_each({Kind, Line, [{Name,Line,[]},Else]}, S);
 
-translate_each({Kind, Line, [[X, Y]]}, S) when Kind == def orelse Kind == defmacro->
+translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kind == defmacro ->
   Namespace = S#elixir_scope.namespace,
   case (Namespace == []) or (S#elixir_scope.method /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
-      case X of
-        {do,Expr} -> {Name, Args} = Y;
-        _ ->
-          {do, Expr}  = Y,
-          {Name, Args} = X
-      end,
-
+      { { Name, _, Args}, Guards } = elixir_clauses:extract_guards(Call),
       ClauseScope = S#elixir_scope{method=Name, counter=0, vars=dict:new()},
-      { TClause, _ } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], ClauseScope),
+      { TClause, _ } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], Guards, ClauseScope),
 
       Arity = length(element(3, TClause)),
       { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
