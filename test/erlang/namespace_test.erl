@@ -48,6 +48,14 @@ namespace_def_shortcut_and_endns_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
+namespace_def_with_guard_test() ->
+  F = fun() ->
+    elixir:eval("ns Foo\ndef v: [x] | x < 10, do: true\ndef v: [x] | x >= 10, do: false\n"),
+    {true,_} = elixir:eval("Foo.v(0)"),
+    {false,_} = elixir:eval("Foo.v(20)")
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
 single_ref_test() ->
   { '::Foo', _ } = elixir:eval("Foo").
 

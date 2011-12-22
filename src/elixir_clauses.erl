@@ -1,5 +1,5 @@
 -module(elixir_clauses).
--export([match/3, assigns/3]).
+-export([match/3, assigns/3, assigns_blocks/4]).
 -include("elixir.hrl").
 
 % Function for translating assigns.
@@ -7,6 +7,38 @@
 assigns(Fun, Args, Scope) ->
   { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
   { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
+
+% Handles assigns with guards
+
+assigns_blocks(Fun, BareArgs, Exprs, S) ->
+  { Args, Guards } = extract_guards(BareArgs),
+  { TArgs, SA }    = elixir_clauses:assigns(Fun, Args, S),
+  { TGuards, SG }  = elixir_translator:translate(Guards, SA#elixir_scope{guard=true}),
+  { TExprs, SE }   = elixir_translator:translate(Exprs, SG#elixir_scope{guard=false}),
+
+  % Properly listify args
+  case is_list(TArgs) of
+    true  -> FArgs = TArgs;
+    false -> FArgs = [TArgs]
+  end,
+
+  % Properly listify guards
+  FGuards = case TGuards of
+    [] -> [];
+    _  -> [TGuards]
+  end,
+
+  % Uncompact expressions from the block.
+  case TExprs of
+    { block, _, FExprs } -> [];
+    _ -> FExprs = TExprs
+  end,
+
+  { { clause, 0, FArgs, FGuards, FExprs }, SE }.
+
+% Extract guards from the given expression.
+extract_guards({ '|', _, [Left, Right] }) -> { Left, [Right] };
+extract_guards(Else) -> { Else, [] }.
 
 % Function for translating macros with match style
 % clauses like case, try and receive.
@@ -54,20 +86,22 @@ match(Line, Clauses, RawS) ->
             RightTuple = [normalize_clause_var(Var, OldValue, ClauseVars) || {Var, _, OldValue} <- FinalVars],
 
             AssignExpr = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
-            [Final|RawClauses] = lists:reverse(Clause),
+            ClauseExprs = element(5, Clause),
+            [Final|RawClauseExprs] = lists:reverse(ClauseExprs),
 
             % If the last sentence has a match clause, we need to assign its value
             % in the variable list. If not, we insert the variable list before the
             % final clause in order to keep it tail call optimized.
-            FinalClause = case has_match_tuple(Final) of
+            FinalClauseExprs = case has_match_tuple(Final) of
               true ->
                 StorageExpr = { match, Line, StorageVar, Final },
-                [StorageVar,AssignExpr,StorageExpr|RawClauses];
+                [StorageVar,AssignExpr,StorageExpr|RawClauseExprs];
               false ->
-                [Final,AssignExpr|RawClauses]
+                [Final,AssignExpr|RawClauseExprs]
             end,
 
-            { lists:reverse(FinalClause), Counter + 1 }
+            FinalClause = setelement(5, Clause, lists:reverse(FinalClauseExprs)),
+            { FinalClause, Counter + 1 }
           end,
 
           { FClauses, _ } = lists:mapfoldl(Expander, 1, TClauses),
@@ -113,9 +147,7 @@ translate_each({Key,[Expr]}, S) ->
 
 % Handle assign other clauses.
 translate_each({Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch'; Key == 'after' ->
-  { TCondition, SC } = assigns(fun elixir_translator:translate_each/2, Condition, S),
-  { TExprs, SE } = elixir_translator:translate(Exprs, SC),
-  { [TCondition|TExprs], SE };
+  assigns_blocks(fun elixir_translator:translate_each/2, Condition, Exprs, S);
 
 % TODO: Raise a better message.
 translate_each({Key,Value}, S) ->

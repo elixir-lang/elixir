@@ -75,8 +75,7 @@ translate_each({'case', Line, [Expr, RawClauses]}, S) ->
 
   { TExpr, NS } = translate_each(Expr, S),
   { TClauses, TS } = elixir_clauses:match(Line, MatchClauses, NS),
-  FClauses = [build_case_clause(Line, C) || C <- TClauses],
-  { { 'case', Line, TExpr, FClauses }, TS };
+  { { 'case', Line, TExpr, TClauses }, TS };
 
 % TODO: Handle tree errors properly
 translate_each({'case', _, Args} = Clause, S) when is_list(Args) ->
@@ -169,16 +168,18 @@ translate_each({Kind, Line, [[X, Y]]}, S) when Kind == def orelse Kind == defmac
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
       case X of
-        {do,Exprs} -> {Name, Args} = Y;
+        {do,Expr} -> {Name, Args} = Y;
         _ ->
-          {do, Exprs}  = Y,
+          {do, Expr}  = Y,
           {Name, Args} = X
       end,
 
       ClauseScope = S#elixir_scope{method=Name, counter=0, vars=dict:new()},
-      { TClause, _ } = translate_clause(Line, Args, Exprs, [], ClauseScope),
+      { TClause, _ } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], ClauseScope),
+
+      Arity = length(element(3, TClause)),
       { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
-      Method = { function, Line, Name, length(Args), [Unpacked] },
+      Method = { function, Line, Name, Arity, [Unpacked] },
       { elixir_def_method:wrap_method_definition(Kind, Line, S#elixir_scope.filename, Namespace, Method, Defaults), S }
   end;
 
@@ -197,8 +198,8 @@ translate_each({quote, _, Args} = Clause, S) when is_list(Args) ->
 
 %% Functions
 
-translate_each({function, Line, [Args, [{do,Exprs}]]}, S) when is_list(Args) ->
-  { TClause, NS } = translate_clause(Line, Args, Exprs, [], S),
+translate_each({function, Line, [Args, [{do,Expr}]]}, S) when is_list(Args) ->
+  { TClause, NS } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], S),
   { { 'fun', Line, {clauses, [TClause]} }, NS };
 
 % TODO: Handle tree errors properly
@@ -325,21 +326,6 @@ translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
 
 listify(Expr) when not is_list(Expr) -> [Expr];
 listify(Expr) -> Expr.
-
-%% Clauses helpers for def and functions
-
-translate_clause(Line, Args, Expr, Guards, S) ->
-  { TArgs, SA }   = elixir_clauses:assigns(fun translate/2, Args, S),
-  { TGuards, SG } = translate(Guards, SA#elixir_scope{guard=true}),
-  { TExpr, SE }  = translate_each(Expr, SG#elixir_scope{guard=false}),
-
-  % Uncompact expressions from the block.
-  case TExpr of
-    { block, _, TExprs } -> [];
-    _ -> TExprs = [TExpr]
-  end,
-
-  { { clause, Line, TArgs, TGuards, TExprs }, SE }.
 
 %% Prepend a given expression to a block.
 
