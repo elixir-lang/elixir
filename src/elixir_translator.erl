@@ -45,6 +45,13 @@ translate_each({ Op, Line, [Left, Right] }, S) when Op == '+'; Op == '-'; Op == 
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   { { op, Line, Op, TLeft, TRight }, umergev(SL, SR) };
 
+translate_each({ Op, Line, [Left, Right] }, S) when
+  Op == '<'; Op == '>'; Op == '<='; Op == '>=';
+  Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
+  { TLeft, SL }  = translate_each(Left, S),
+  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+  { { op, Line, convert_comp_op(Op), TLeft, TRight }, umergev(SL, SR) };
+
 % Unary Operators
 
 translate_each({ '+', Line, [Expr] }, S) when is_number(Expr) ->
@@ -376,3 +383,8 @@ var_merger(Var, K1, K2) ->
   if V1 > V2 -> K1;
      true -> K2
   end.
+
+convert_comp_op('!==') -> '=/=';
+convert_comp_op('!=') ->  '/=';
+convert_comp_op('<=') ->  '=<';
+convert_comp_op(Else) ->  Else.

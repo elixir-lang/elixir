@@ -69,10 +69,10 @@ case_with_do_ambiguity_test() ->
 %   end,
 %   test_helper:run_and_remove(F, ['Bar', 'Baz']).
 % 
-% %% Comparison
-% 
-% equal_test() ->
-%   {true,_} = elixir:eval("'a == 'a"),
+%% Comparison
+
+equal_test() ->
+  {true,_} = elixir:eval(":a == :a").
 %   {true,_} = elixir:eval("1 == 1"),
 %   {true,_} = elixir:eval("~q(a) == ~q(a)"),
 %   {true,_} = elixir:eval("{1,2} == {1,2}"),
@@ -212,8 +212,8 @@ case_with_do_ambiguity_test() ->
 %   ?assertError(badarg, elixir:eval("not 1")).
 % 
 andand_test() ->
-%   F = fun() ->
-%     elixir:eval("module Bar\ndef foo; true; end\ndef bar; false; end\ndef baz(x); x==1; end\nend"),
+  F = fun() ->
+    elixir:eval("ns Bar\ndef :foo, do: true\ndef :bar, do: false\n def baz: [x], do: x == 1"),
     {true, _} = elixir:eval("Elixir::Macros.&&(true, true)"),
     {true, _} = elixir:eval("true && true"),
     {false, _} = elixir:eval("true && false"),
@@ -221,23 +221,23 @@ andand_test() ->
     {false, _} = elixir:eval("false && false"),
     {nil, _} = elixir:eval("true && nil"),
     {nil, _} = elixir:eval("nil && true"),
-    {false, _} = elixir:eval("false && nil").
-%     {true, _} = elixir:eval("Bar.foo && Bar.foo"),
-%     {false, _} = elixir:eval("Bar.foo && Bar.bar"),
-%     {true, _} = elixir:eval("Bar.foo && Bar.baz 1"),
-%     {false, _} = elixir:eval("Bar.foo && Bar.baz 2"),
-%     {true, _} = elixir:eval("1 == 1 && 2 < 3"),
-%     {3, _} = elixir:eval("Bar.foo && 1 + 2"),
-%     {false, _} = elixir:eval("Bar.bar && Erlang.error('bad)"),
-%     {2, _} = elixir:eval("1 && 2"),
-%     {nil, _} = elixir:eval("nil && 2"),
-%     {false, _} = elixir:eval("false && false or true")
-%   end,
-%   test_helper:run_and_remove(F, ['Bar']).
-% 
+    {false, _} = elixir:eval("false && nil"),
+    {true, _} = elixir:eval("Bar.foo && Bar.foo"),
+    {false, _} = elixir:eval("Bar.foo && Bar.bar"),
+    {true, _} = elixir:eval("Bar.foo && Bar.baz 1"),
+    {false, _} = elixir:eval("Bar.foo && Bar.baz 2"),
+    {true, _} = elixir:eval("1 == 1 && 2 < 3"),
+    {3, _} = elixir:eval("Bar.foo && 1 + 2"),
+    {false, _} = elixir:eval("Bar.bar && Erlang.error(:bad)"),
+    {2, _} = elixir:eval("1 && 2"),
+    {nil, _} = elixir:eval("nil && 2")
+    % {false, _} = elixir:eval("false && false or true")
+  end,
+  test_helper:run_and_remove(F, ['Bar']).
+
 oror_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef :foo, do: true\ndef :bar, do: false\n# def baz: [x], do: x == 1"),
+    elixir:eval("ns Bar\ndef :foo, do: true\ndef :bar, do: false\n def baz: [x], do: x == 1"),
     {true, _} = elixir:eval("Elixir::Macros.||(false, true)"),
     {true, _} = elixir:eval("true || true"),
     {true, _} = elixir:eval("true || false"),
@@ -248,14 +248,14 @@ oror_test() ->
     {true, _} = elixir:eval("false || nil || true"),
     {true, _} = elixir:eval("Bar.foo || Bar.foo"),
     {true, _} = elixir:eval("Bar.foo || Bar.bar"),
-    {false, _} = elixir:eval("Bar.bar || Bar.bar")
-%     {true, _} = elixir:eval("Bar.bar || Bar.baz 1"),
-%     {false, _} = elixir:eval("Bar.bar || Bar.baz 2"),
-%     {false, _} = elixir:eval("1 == 2 || 2 > 3"),
-%     {3, _} = elixir:eval("Bar.bar || 1 + 2"),
-%     {true, _} = elixir:eval("Bar.foo || Erlang.error('bad)"),
-%     {1, _} = elixir:eval("1 || 2"),
-%     {2, _} = elixir:eval("nil || 2"),
-%     {true, _} = elixir:eval("false && false || true")
+    {false, _} = elixir:eval("Bar.bar || Bar.bar"),
+    {true, _} = elixir:eval("Bar.bar || Bar.baz 1"),
+    {false, _} = elixir:eval("Bar.bar || Bar.baz 2"),
+    {false, _} = elixir:eval("1 == 2 || 2 > 3"),
+    {3, _} = elixir:eval("Bar.bar || 1 + 2"),
+    {true, _} = elixir:eval("Bar.foo || Erlang.error(:bad)"),
+    {1, _} = elixir:eval("1 || 2"),
+    {2, _} = elixir:eval("nil || 2"),
+    {true, _} = elixir:eval("false && false || true")
   end,
   test_helper:run_and_remove(F, ['::Bar']).
