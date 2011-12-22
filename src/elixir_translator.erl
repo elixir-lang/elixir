@@ -192,13 +192,11 @@ translate_each({quote, _, Args} = Clause, S) when is_list(Args) ->
 
 %% Functions
 
-translate_each({function, Line, [Args, [{do,Expr}]]}, S) when is_list(Args) ->
+% TODO: Handle tree errors properly
+translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
+  { Args, [[{do,Expr}]] } = lists:split(length(RawArgs) - 1, RawArgs),
   { TClause, NS } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], S),
   { { 'fun', Line, {clauses, [TClause]} }, NS };
-
-% TODO: Handle tree errors properly
-translate_each({function, _, Args} = Clause, S) when is_list(Args) ->
-  error({invalid_arguments_for_function, Clause});
 
 %% Variables & Function calls
 

@@ -2,7 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 function_do_end_test() ->
-  {Fun, _} = elixir:eval("function [] do\n1 + 2\nend"),
+  {Fun, _} = elixir:eval("fn do\n1 + 2\nend"),
   3 = Fun().
 
 function_arg_do_end_test() ->
@@ -10,15 +10,15 @@ function_arg_do_end_test() ->
   {nil, _} = elixir:eval("if date do end").
 
 function_assignment_test() ->
-  {_, [{a, Fun}]} = elixir:eval("a = function [], do: 1 + 2"),
+  {_, [{a, Fun}]} = elixir:eval("a = fn do: 1 + 2"),
   3 = Fun().
 
 function_with_args_test() ->
-  {Fun, _} = elixir:eval("function [a,b], do: a + b"),
+  {Fun, _} = elixir:eval("fn(a, b, do: a + b)"),
   3 = Fun(1,2).
 
 function_with_kv_args_test() ->
-  {Fun, _} = elixir:eval("function [a, other: b, another: c], do: a + b + c"),
+  {Fun, _} = elixir:eval("fn(a, [other: b, another: c], do: a + b + c)"),
   6 = Fun(1,[{another,3},{other,2}]).
 
 % function_assignment_multiline_test() ->
@@ -71,13 +71,13 @@ function_with_kv_args_test() ->
 % %% Function calls
 
 function_call_test() ->
-  {3, _} = elixir:eval("x = function [a,b], do: a + b\nx.(1,2)").
+  {3, _} = elixir:eval("x = fn(a,b, do: a + b)\nx.(1,2)").
 
 function_call_without_arg_test() ->
-  {3, _} = elixir:eval("x = function [], do: 2 + 1\nx.()").
+  {3, _} = elixir:eval("x = fn do: 2 + 1\nx.()").
 
 function_call_do_end_test() ->
-  {[1,[{do,2},{else,3}]], _} = elixir:eval("x = function [a, b], do: [a, b]\nx.(1) do\n2\nelse: 3\nend").
+  {[1,[{do,2},{else,3}]], _} = elixir:eval("x = fn(a, b){ [a, b] }\nx.(1) do\n2\nelse: 3\nend").
 
 % function_calls_with_arg_test() ->
 %   {3, _} = elixir:eval("b = 1; a = -> (a) a + b; a.(2)").

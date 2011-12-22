@@ -57,8 +57,8 @@ if_vars_test() ->
 
 functions_test() ->
   Keywords = [{do, { '+', 1, [{ x, 1, false }, { y, 1, false }]}}],
-  Args = [{ x, 1, false }, { y, 1, false }],
-  Fun = eval([{ function, 1, [Args, Keywords] }]),
+  Args = [{ x, 1, false }, { y, 1, false }, Keywords],
+  Fun = eval([{ fn, 1, Args }]),
   3 = Fun(1, 2).
 
 %% Literals

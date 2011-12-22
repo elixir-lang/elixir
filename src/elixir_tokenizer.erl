@@ -316,8 +316,26 @@ tokenize_many_identifier(Line, String, Acc) ->
 tokenize_call_identifier(Kind, Line, Atom, Rest) ->
   case Rest of
     [$(|_] -> { paren_identifier, Line, Atom };
-    _ -> { Kind, Line, Atom }
+    _ ->
+      case next_is_do(Rest) of
+        true  -> { do_identifier, Line, Atom };
+        false -> { Kind, Line, Atom }
+      end
   end.
+
+next_is_do([Space|Tokens]) when Space == $\t; Space == $\s ->
+  next_is_do(Tokens);
+
+next_is_do([$d,$o,H|_]) when
+  H >= $0 andalso H =< $9; H >= $A andalso H =< $Z;
+  H >= $a andalso H =< $z; H == $_; H == $: ->
+  false;
+
+next_is_do([$d,$o|_]) ->
+  true;
+
+next_is_do(_) ->
+  false.
 
 % Keywords (OMG, so few!)
 keyword('do')  -> true;
