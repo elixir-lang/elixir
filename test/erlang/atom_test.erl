@@ -15,20 +15,11 @@ kv_with_punctuation_test() ->
   {'a!',[]} = elixir:eval("Erlang.atom_test.kv(a!: nil)"),
   {'||',[]} = elixir:eval("Erlang.atom_test.kv(||: nil)").
 
-% atom_inspect_test() ->
-%   {String,[]} = elixir:eval("'a.inspect"),
-%   <<"'a">> = test_helper:unpack_string(String).
-% 
-% atom_to_s_test() ->
-%   {String,[]} = elixir:eval("'a.to_s"),
-%   <<"a">> = test_helper:unpack_string(String).
-% 
-
 quoted_atom_test() ->
   {foo,[]} = elixir:eval(":\"foo\"").
 
 atom_with_interpolation_test() ->
   {foo,[]} = elixir:eval(":\"f#{\"o\"}o\"").
 
-% quoted_atom_chars_are_escaped_test() ->
-%   {'"',[]} = elixir:eval("'\"\\\"\"").
+quoted_atom_chars_are_escaped_test() ->
+  {'"',[]} = elixir:eval(":\"\\\"\"").

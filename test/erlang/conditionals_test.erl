@@ -236,8 +236,8 @@ andand_test() ->
 %   test_helper:run_and_remove(F, ['Bar']).
 % 
 oror_test() ->
-%   F = fun() ->
-%     elixir:eval("module Bar\ndef foo; true; end\ndef bar; false; end\ndef baz(x); x==1; end\nend"),
+  F = fun() ->
+    elixir:eval("ns Bar\ndef :foo, do: true\ndef :bar, do: false\n# def baz: [x], do: x == 1"),
     {true, _} = elixir:eval("Elixir::Macros.||(false, true)"),
     {true, _} = elixir:eval("true || true"),
     {true, _} = elixir:eval("true || false"),
@@ -245,10 +245,10 @@ oror_test() ->
     {false, _} = elixir:eval("false || false"),
     {false, _} = elixir:eval("nil || false"),
     {nil, _} = elixir:eval("false || nil"),
-    {true, _} = elixir:eval("false || nil || true").
-%     {true, _} = elixir:eval("Bar.foo || Bar.foo"),
-%     {true, _} = elixir:eval("Bar.foo || Bar.bar"),
-%     {false, _} = elixir:eval("Bar.bar || Bar.bar"),
+    {true, _} = elixir:eval("false || nil || true"),
+    {true, _} = elixir:eval("Bar.foo || Bar.foo"),
+    {true, _} = elixir:eval("Bar.foo || Bar.bar"),
+    {false, _} = elixir:eval("Bar.bar || Bar.bar")
 %     {true, _} = elixir:eval("Bar.bar || Bar.baz 1"),
 %     {false, _} = elixir:eval("Bar.bar || Bar.baz 2"),
 %     {false, _} = elixir:eval("1 == 2 || 2 > 3"),
@@ -257,10 +257,5 @@ oror_test() ->
 %     {1, _} = elixir:eval("1 || 2"),
 %     {2, _} = elixir:eval("nil || 2"),
 %     {true, _} = elixir:eval("false && false || true")
-%   end,
-%   test_helper:run_and_remove(F, ['Bar']).
-% 
-% begin_test() ->
-%   {1,_} = elixir:eval("begin 1 end"),
-%   {1,[{x,1}]} = elixir:eval("begin\nx=1\nend\nx"),
-%   {1,[{x,1}]} = elixir:eval("begin;x=1;end;x").
+  end,
+  test_helper:run_and_remove(F, ['::Bar']).
