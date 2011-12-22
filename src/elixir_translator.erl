@@ -37,17 +37,13 @@ translate_each({'=', Line, [Left, Right]}, S) ->
 %% Operators
 
 translate_each({ Op, Line, [Left, Right] }, S) when
-  Op == '+'; Op == '-'; Op == '*'; Op == '/'; Op == '++'; Op == '--' ->
-  { TLeft, SL }  = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
-  { { op, Line, Op, TLeft, TRight }, umergev(SL, SR) };
-
-translate_each({ Op, Line, [Left, Right] }, S) when
+  Op == '+'; Op == '-'; Op == '*'; Op == '/';
+  Op == '++'; Op == '--';
   Op == '<'; Op == '>'; Op == '<='; Op == '>=';
   Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
-  { { op, Line, convert_comp_op(Op), TLeft, TRight }, umergev(SL, SR) };
+  { { op, Line, convert_op(Op), TLeft, TRight }, umergev(SL, SR) };
 
 % Unary Operators
 
@@ -327,11 +323,6 @@ prepend_to_block(_Line, Expr, { block, Line, Args }) ->
 prepend_to_block(Line, Expr, Args) ->
   { block, Line, [Expr, Args] }.
 
-%% Build case clauses
-
-build_case_clause(Line, [Condition|Exprs]) ->
-  { clause, Line, [Condition], [], Exprs }.
-
 % Receives two scopes and return a new scope based on the second
 % with their variables merged.
 umergev(S1, S2) ->
@@ -359,7 +350,7 @@ var_merger(Var, K1, K2) ->
      true -> K2
   end.
 
-convert_comp_op('!==') -> '=/=';
-convert_comp_op('!=') ->  '/=';
-convert_comp_op('<=') ->  '=<';
-convert_comp_op(Else) ->  Else.
+convert_op('!==') -> '=/=';
+convert_op('!=') ->  '/=';
+convert_op('<=') ->  '=<';
+convert_op(Else) ->  Else.
