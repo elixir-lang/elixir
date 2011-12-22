@@ -1,6 +1,6 @@
 ns Orddict
 
-# TODO: Write in Elixir once we have guards and comparison operators
-def fetch: [orddict, key, default] do
-  Erlang.elixir_helpers.orddict_find(key, orddict, default)
-end
+def fetch: [ [{k,_}|_], key, default ] | key < k, do: default
+def fetch: [ [{k,_}|d], key, default ] | key > k, do: fetch(d, key, default)
+def fetch: [ [{_k,value}|_], _key, _default ],    do: value
+def fetch: [ [], _, default ],                    do: default

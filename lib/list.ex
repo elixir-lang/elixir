@@ -1,12 +1,6 @@
 ns List
 
-def wrap: [list] do
-  case is_list(list) do
-  match: true
-    list
-  match: false
-    [list]
-  end
-end
+def wrap: [list] | is_list(list), do: list
+def wrap: [other], do: [other]
 
 def reverse: [list], do: Erlang.lists.reverse(list)

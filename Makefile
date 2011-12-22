@@ -43,7 +43,7 @@ ebin: src/*.erl
 	$(ERLC) -o $(EBIN_DIR) $?
 	@ echo
 
-exbin: lib/*/*.ex
+exbin: lib/*.ex lib/*/*.ex
 	@ echo Compiling Elixir source ...
 	@ mkdir -p $(EXBIN_DIR)
 	@ touch $(EXBIN_DIR)
