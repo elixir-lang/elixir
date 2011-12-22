@@ -1,4 +1,4 @@
--module(arithmetic_test).
+-module(operators_test).
 -include_lib("eunit/include/eunit.hrl").
 
 separator_test() ->
@@ -81,3 +81,10 @@ operators_variables_precedence_on_namespaces_test() ->
     {2,[]} = elixir:eval("1 + Bar.l +1")
   end,
   test_helper:run_and_remove(F, ['::Foo', '::Bar']).
+
+add_add_op_test() ->
+  {[1,2,3,4],[]} = elixir:eval("[1,2] ++ [3,4]").
+
+minus_minus_op_test() ->
+  {[1,2],[]} = elixir:eval("[1,2,3] -- [3]"),
+  {[1,2,3],[]} = elixir:eval("[1,2,3] -- [3] -- [3]").

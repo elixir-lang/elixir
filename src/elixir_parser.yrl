@@ -6,7 +6,8 @@ Nonterminals
   expr block_expr curly_expr call_expr max_expr base_expr
   matched_expr matched_op_expr unmatched_expr unmatched_op_expr
   comma_separator kv_eol
-  add_op mult_op unary_op match_op andand_op oror_op pipe_op comp_expr_op
+  match_op add_op mult_op unary_op addadd_op multmult_op pipe_op
+  andand_op oror_op  comp_expr_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
@@ -24,8 +25,10 @@ Terminals
   'do' 'end'
   identifier kv_identifier punctuated_identifier paren_identifier
   number signed_number atom ref string
-  '+' '-' '*' '/' '=' call_op special_op dot_call_op comp_op
-  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::' '&&' '||' '!'
+  call_op special_op dot_call_op comp_op
+  '=' '+' '-' '*' '/' '++' '--' '**' '//'
+  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::'
+  '&&' '||' '!'
   .
 
 Rootsymbol grammar.
@@ -42,13 +45,15 @@ Left      60 andand_op.
 Left     100 comp_expr_op.
 Left     110 add_op.
 Left     120 mult_op.
-Nonassoc 140 unary_op.
-Nonassoc 150 call_op.
-Nonassoc 150 dot_call_op.
-Nonassoc 160 var.
-Left     170 dot_op.
-Right    180 ref_op.
-Nonassoc 190 special_op.
+Right    130 addadd_op.
+Right    140 multmult_op.
+Nonassoc 150 unary_op.
+Nonassoc 160 call_op.
+Nonassoc 160 dot_call_op.
+Nonassoc 170 var.
+Left     180 dot_op.
+Right    190 ref_op.
+Nonassoc 200 special_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -68,12 +73,14 @@ expr -> unmatched_expr : '$1'.
 matched_expr   -> matched_op_expr   : '$1'.
 unmatched_expr -> unmatched_op_expr : '$1'.
 
-unmatched_op_expr -> expr match_op  expr : build_op('$2', '$1', '$3').
-unmatched_op_expr -> expr add_op    expr : build_op('$2', '$1', '$3').
-unmatched_op_expr -> expr mult_op   expr : build_op('$2', '$1', '$3').
+unmatched_op_expr -> expr match_op expr : build_op('$2', '$1', '$3').
+unmatched_op_expr -> expr add_op expr : build_op('$2', '$1', '$3').
+unmatched_op_expr -> expr mult_op expr : build_op('$2', '$1', '$3').
+unmatched_op_expr -> expr addadd_op expr : build_op('$2', '$1', '$3').
+unmatched_op_expr -> expr multmult_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr andand_op expr : build_op('$2', '$1', '$3').
-unmatched_op_expr -> expr oror_op   expr : build_op('$2', '$1', '$3').
-unmatched_op_expr -> expr pipe_op   expr : build_op('$2', '$1', '$3').
+unmatched_op_expr -> expr oror_op expr : build_op('$2', '$1', '$3').
+unmatched_op_expr -> expr pipe_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr comp_expr_op expr : build_expr_op('$2', '$1', '$3').
 unmatched_op_expr -> unary_op expr : build_unary_op('$1', '$2').
 unmatched_op_expr -> special_op expr : build_special_op('$1', '$2').
@@ -82,6 +89,8 @@ unmatched_op_expr -> block_expr : '$1'.
 matched_op_expr -> matched_expr match_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr add_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr mult_op matched_expr : build_op('$2', '$1', '$3').
+matched_op_expr -> matched_expr addadd_op matched_expr : build_op('$2', '$1', '$3').
+matched_op_expr -> matched_expr multmult_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr andand_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr oror_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr pipe_op matched_expr : build_op('$2', '$1', '$3').
@@ -157,6 +166,16 @@ mult_op -> '*' : '$1'.
 mult_op -> '/' : '$1'.
 mult_op -> '*' eol : '$1'.
 mult_op -> '/' eol : '$1'.
+
+addadd_op -> '++' : '$1'.
+addadd_op -> '--' : '$1'.
+addadd_op -> '++' eol : '$1'.
+addadd_op -> '--' eol : '$1'.
+
+multmult_op -> '**' : '$1'.
+multmult_op -> '//' : '$1'.
+multmult_op -> '**' eol : '$1'.
+multmult_op -> '//' eol : '$1'.
 
 unary_op -> '+' : '$1'.
 unary_op -> '+' eol : '$1'.

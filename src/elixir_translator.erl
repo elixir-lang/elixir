@@ -34,9 +34,10 @@ translate_each({'=', Line, [Left, Right]}, S) ->
   { TLeft, SL } = elixir_clauses:assigns(fun translate_each/2, Left, SR),
   { { match, Line, TLeft, TRight }, SL };
 
-%% Math Operators
+%% Operators
 
-translate_each({ Op, Line, [Left, Right] }, S) when Op == '+'; Op == '-'; Op == '*'; Op == '/' ->
+translate_each({ Op, Line, [Left, Right] }, S) when
+  Op == '+'; Op == '-'; Op == '*'; Op == '/'; Op == '++'; Op == '--' ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   { { op, Line, Op, TLeft, TRight }, umergev(SL, SR) };

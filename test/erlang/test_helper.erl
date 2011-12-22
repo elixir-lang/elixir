@@ -5,13 +5,13 @@
 test() ->
   elixir:start_app(),
   eunit:test([
-    arithmetic_test,
     atom_test,
+    conditionals_test,
     erlang_call_test,
     function_test,
-    conditionals_test,
     match_test,
     namespace_test,
+    operators_test,
     string_test,
     tokenizer_test,
     translator_test
