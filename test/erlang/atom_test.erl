@@ -13,7 +13,8 @@ atom_with_punctuation_test() ->
 kv_with_punctuation_test() ->
   {'a?',[]} = elixir:eval("Erlang.atom_test.kv(a?: nil)"),
   {'a!',[]} = elixir:eval("Erlang.atom_test.kv(a!: nil)"),
-  {'||',[]} = elixir:eval("Erlang.atom_test.kv(||: nil)").
+  {'||',[]} = elixir:eval("Erlang.atom_test.kv(||: nil)"),
+  {'foo bar',[]} = elixir:eval("Erlang.atom_test.kv(\"foo bar\": nil)").
 
 quoted_atom_test() ->
   {foo,[]} = elixir:eval(":\"foo\"").

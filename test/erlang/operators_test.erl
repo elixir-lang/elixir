@@ -70,7 +70,6 @@ operators_precedence_test() ->
 
 operators_variables_precedence_test() ->
   {30, _} = elixir:eval("a = 10\nb= 20\na+b"),
-  % {30, _} = elixir:eval("a = 10\nb= 20\na +b"),
   {30, _} = elixir:eval("a = 10\nb= 20\na + b").
 
 operators_variables_precedence_on_namespaces_test() ->

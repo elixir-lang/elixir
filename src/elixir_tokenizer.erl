@@ -53,7 +53,15 @@ tokenize(Line, [$.,T|Rest], Tokens) when T == $+; T == $-; T == $*;
 
 tokenize(Line, [$"|T], Tokens) ->
   case elixir_interpolation:extract(Line, string, T, $") of
-    { NewLine, Parts, Rest } -> tokenize(NewLine, Rest, [{string,Line,Parts}|Tokens]);
+    { NewLine, Parts, [$:|Rest] } ->
+      case Parts of
+        [List] when is_list(List) ->
+          tokenize(NewLine, Rest, [{kv_identifier,Line,list_to_atom(List)}|Tokens]);
+        _ ->
+          { error, { Line, "invalid interpolation in key", [$"|T] } }
+      end;
+    { NewLine, Parts, Rest } ->
+      tokenize(NewLine, Rest, [{string,Line,Parts}|Tokens]);
     Else -> Else
   end;
 
