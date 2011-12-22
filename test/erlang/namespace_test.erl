@@ -28,10 +28,6 @@ namespace_operator_macro_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
   
-macro_call_test() ->
-  {1,[]} = elixir:eval("if(true, do: 1, else: 2)"),
-  {2,[]} = elixir:eval("Elixir::Macros.unless(true, do: 1, else: 2)").
-
 namespace_curly_call_test() ->
   F = fun() ->
     elixir:eval("ns Foo\ndef ok: [x], do: x"),
@@ -43,6 +39,12 @@ namespace_curly_call_test() ->
     {{},_} = elixir:eval("Foo.ok({ })"),
     {{1},_} = elixir:eval("Foo.ok({ 1 })"),
     {{1,2},_} = elixir:eval("Foo.ok({ 1, 2 })")
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
+namespace_def_shortcut_and_endns_test() ->
+  F = fun() ->
+    {1,[]} = elixir:eval("ns Foo\ndef :version, do: 1\nendns\nFoo.version")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 

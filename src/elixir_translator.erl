@@ -126,6 +126,12 @@ translate_each({ns, Line, [Ref]}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for namespace")
   end;
 
+translate_each({endns, Line, []}, S) ->
+  case S#elixir_scope.namespace of
+    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no namespace defined");
+    _  -> { elixir_namespace:transform(Line, compile, S), S#elixir_scope{namespace=[]} }
+  end;
+
 translate_each({ref, Line, [Ref]}, S) when is_atom(Ref) ->
   String = atom_to_list(Ref),
   Atom = case String of
@@ -138,7 +144,8 @@ translate_each({'::', Line, [Left, Right]}, S) ->
   { TLeft, SL } = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
 
-  % TODO: Handle the case were TLeft or TRight are not an atom
+  % TODO: Handle the case were TLeft or TRight
+  % are not an atom at compile time.
   Final = case {TLeft,TRight} of
     {{atom,Line,ALeft}, {atom,_,ARight}} ->
       Atom = list_to_atom(lists:concat([atom_to_list(ALeft), atom_to_list(ARight)])),
@@ -148,6 +155,9 @@ translate_each({'::', Line, [Left, Right]}, S) ->
   { Final, umergev(SL, SR) };
 
 %% Def
+
+translate_each({Kind, Line, [Name, Do]}, S) when is_atom(Name), Kind == def orelse Kind == defmacro ->
+  translate_each({Kind, Line, [[{Name,[]}|Do]]}, S);
 
 translate_each({Kind, Line, [[X, Y]]}, S) when Kind == def orelse Kind == defmacro->
   Namespace = S#elixir_scope.namespace,
