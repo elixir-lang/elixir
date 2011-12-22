@@ -1,5 +1,5 @@
 -module(elixir_translator).
--export([translate/2, translate_each/2, translate_assigns/3, parse/3]).
+-export([translate/2, translate_each/2, parse/3]).
 -include("elixir.hrl").
 
 parse(String, Line, #elixir_scope{filename=Filename} = S) ->
@@ -27,15 +27,11 @@ forms(String, StartLine, Filename) ->
 translate(Forms, S) ->
   lists:mapfoldl(fun translate_each/2, S, Forms).
 
-translate_assigns(Fun, Args, Scope) ->
-  { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
-  { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
-
 %% Assignment operator
 
 translate_each({'=', Line, [Left, Right]}, S) ->
   { TRight, SR } = translate_each(Right, S),
-  { TLeft, SL } = translate_assigns(fun translate_each/2, Left, SR),
+  { TLeft, SL } = elixir_clauses:assigns(fun translate_each/2, Left, SR),
   { { match, Line, TLeft, TRight }, SL };
 
 %% Math Operators
@@ -77,7 +73,7 @@ translate_each({'case', Line, [Expr, RawClauses]}, S) ->
   end,
 
   { TExpr, NS } = translate_each(Expr, S),
-  { TClauses, TS } = elixir_clauses:translate(Line, MatchClauses, NS),
+  { TClauses, TS } = elixir_clauses:match(Line, MatchClauses, NS),
   FClauses = [build_case_clause(Line, C) || C <- TClauses],
   { { 'case', Line, TExpr, FClauses }, TS };
 
@@ -332,7 +328,7 @@ listify(Expr) -> Expr.
 %% Clauses helpers for def and functions
 
 translate_clause(Line, Args, Expr, Guards, S) ->
-  { TArgs, SA }   = translate_assigns(fun translate/2, Args, S),
+  { TArgs, SA }   = elixir_clauses:assigns(fun translate/2, Args, S),
   { TGuards, SG } = translate(Guards, SA#elixir_scope{guard=true}),
   { TExpr, SE }  = translate_each(Expr, SG#elixir_scope{guard=false}),
 

@@ -1,12 +1,17 @@
 -module(elixir_clauses).
--export([translate/3]).
+-export([match/3, assigns/3]).
 -include("elixir.hrl").
 
-% Helpers for translating clauses for if/case/try and friends.
-% Function and def clauses are not translated in this helper
-% as they don't need to share variables.
+% Function for translating assigns.
 
-translate(Line, Clauses, RawS) ->
+assigns(Fun, Args, Scope) ->
+  { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
+  { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
+
+% Function for translating macros with match style
+% clauses like case, try and receive.
+
+match(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
   DecoupledClauses = decouple_clauses(Clauses, []),
 
@@ -102,23 +107,13 @@ translate_each({Key,{block,_,Exprs}}, S) ->
 translate_each({Key,Expr}, S) when not is_list(Expr) ->
   translate_each({Key,[Expr]}, S);
 
-% Some clauses have no conditions. So we are done.
-translate_each({Key,Expr}, S) when Key == else; Key == 'after'; Key == 'try' ->
-  elixir_translator:translate(Expr, S);
-
-% Clauses that have conditions must return at least two elements.
+% Clauses must return at least two elements.
 translate_each({Key,[Expr]}, S) ->
   translate_each({Key,[Expr, nil]}, S);
 
 % Handle assign other clauses.
-translate_each({Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch' ->
-  { TCondition, SC } = elixir_translator:translate_assigns(fun elixir_translator:translate_each/2, Condition, S),
-  { TExprs, SE } = elixir_translator:translate(Exprs, SC),
-  { [TCondition|TExprs], SE };
-
-% Handle all other clauses.
-translate_each({Key,[Condition|Exprs]}, S) when Key == do ->
-  { TCondition, SC } = elixir_translator:translate_each(Condition, S),
+translate_each({Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch'; Key == 'after' ->
+  { TCondition, SC } = assigns(fun elixir_translator:translate_each/2, Condition, S),
   { TExprs, SE } = elixir_translator:translate(Exprs, SC),
   { [TCondition|TExprs], SE };
 
