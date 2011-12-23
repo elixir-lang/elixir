@@ -24,15 +24,15 @@ if_elsif_else_test() ->
   {3, _} = elixir:eval("if false do\n 1\nelsif: true\n3\nelse:\n2\nend"),
   {nil, _} = elixir:eval("if false do\n 1\nelsif: [true, 3]\nelse:\n2\nend").
 
-% vars_if_test() ->
-%   F = fun() ->
-%     {1, [{foo,1}]} = elixir:eval("if foo = 1; true; else; false; end; foo"),
-%     elixir:eval("module Bar\ndef foo; 1; end\ndef bar(x); if x; foo = 2; else; foo = foo; end; foo; end\nend"),
-%     {1, _} = elixir:eval("Bar.bar(false)"),
-%     {2, _} = elixir:eval("Bar.bar(true)")
-%   end,
-%   test_helper:run_and_remove(F, ['::Bar']).
-% 
+vars_if_test() ->
+  F = fun() ->
+    {1, [{foo,1}]} = elixir:eval("if foo = 1 do; true; else: false; end; foo"),
+    elixir:eval("ns Bar\ndef foo, do: 1\ndef bar(x) do\nif x do; foo = 2; else: foo = foo; end; foo; end\n"),
+    {1, _} = elixir:eval("Bar.bar(false)"),
+    {2, _} = elixir:eval("Bar.bar(true)")
+  end,
+  test_helper:run_and_remove(F, ['::Bar']).
+
 % multi_assigned_if_test() ->
 %   {3, _} = elixir:eval("x = 1\nif true\nx = 2\nx = 3\nelse true\nend\nx"),
 %   {3, _} = elixir:eval("x = 1\nif true\n\~x = 1\nx = 2\nx = 3\nelse true\nend\nx"),
@@ -42,11 +42,8 @@ if_elsif_else_test() ->
 
 case_test() ->
   {true, _} = elixir:eval("case 1 do\nmatch: 2; false\nmatch: 1; true\nend"),
-  {true, [{x,1}]} = elixir:eval("case 1 do\nmatch: {x,y}; false\nmatch: x; true\nend").
-%   {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y} then true match {1,x} then false end"),
-%   {true, [{x,1},{y,2}]} = elixir:eval("case {1,2} match {x,y}\ntrue\nmatch {1,x}\nfalse\nend"),
-%   {true, _} = elixir:eval("case {1,2} match {3,4}\nfalse\nelse true\nend"),
-%   {true, _} = elixir:eval("case {1,2} match {3,4}, {1,2}\ntrue\nend").
+  {true, [{x,1}]} = elixir:eval("case 1 do\nmatch: {x,y}; false\nmatch: x; true\nend"),
+  {true, _} = elixir:eval("case {1,2} do;match: {3,4}\nfalse\nelse: true\nend").
 
 case_with_do_ambiguity_test() ->
   {1,_} = elixir:eval("case quote(true) do\nmatch: true; 1\nmatch: _; false\nend").
@@ -56,18 +53,14 @@ case_with_do_ambiguity_test() ->
 %   {3, _} = elixir:eval("x = 1\ncase 1 match \~x\nx = 2\nx = 3\nelse true\nend\nx"),
 %   {1, _} = elixir:eval("case true match true\nx = 1\nelse true\nend\nx"),
 %   {nil, _} = elixir:eval("case true match false\nx = 1\nelse true\nend\nx").
-% 
-% vars_case_test() ->
-%   F = fun() ->
-%     elixir:eval("module Bar\ndef foo; 1; end\ndef bar(x); case x match true then foo = 2 match false then foo = foo end; foo; end\nend"),
-%     {1, _} = elixir:eval("Bar.bar(false)"),
-%     {2, _} = elixir:eval("Bar.bar(true)"),
-%     elixir:eval("module Baz\ndef foo; 1; end\ndef bar(x); case x match {foo,2} then \~foo = 2 match false then foo = foo end; foo; end\nend"),
-%     {1, _} = elixir:eval("Baz.bar(false)"),
-%     {2, _} = elixir:eval("Baz.bar({2, 2})"),
-%     ?assertError({badmatch, 2}, elixir:eval("Baz.bar({1, 2})"))
-%   end,
-%   test_helper:run_and_remove(F, ['::Bar', '::Baz']).
+
+vars_case_test() ->
+  F = fun() ->
+    elixir:eval("ns Bar\ndef foo, do: 1\ndef bar(x) do\ncase x do\nmatch: true; foo = 2\nmatch: false; foo = foo\nend\nfoo\nend"),
+    {1, _} = elixir:eval("Bar.bar(false)"),
+    {2, _} = elixir:eval("Bar.bar(true)")
+  end,
+  test_helper:run_and_remove(F, ['::Bar']).
 
 % Comparison
 
