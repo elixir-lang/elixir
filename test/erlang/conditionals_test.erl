@@ -47,6 +47,11 @@ vars_if_test() ->
 try_test() ->
   {2, _} = elixir:eval("try do\nErlang.foo.bar\ncatch: { :error, :undef, _ }; 2\nend").
 
+% Receive
+
+receive_test() ->
+  {10, _} = elixir:eval("self() <- :foo\nreceive do\nmatch: :foo\n10\nend").
+
 % Case
 
 case_test() ->

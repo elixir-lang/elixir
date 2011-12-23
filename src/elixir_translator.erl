@@ -43,7 +43,7 @@ translate_each({ '-', Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(-1 * Expr, S);
 
 translate_each({ Op, Line, Exprs }, S) when is_list(Exprs),
-  Op == '+'; Op == '-'; Op == '*'; Op == '/';
+  Op == '+'; Op == '-'; Op == '*'; Op == '/'; Op == '<-';
   Op == '++'; Op == '--'; Op == 'andalso'; Op == 'orelse';
   Op == 'not'; Op == 'and'; Op == 'or'; Op == 'xor';
   Op == '<'; Op == '>'; Op == '<='; Op == '>=';
@@ -216,6 +216,22 @@ translate_each({'try', Line, [Clauses]}, RawS) ->
 translate_each({'try', _, Args} = Clause, S) when is_list(Args) ->
   error({invalid_arguments_for_try, Clause});
 
+%% Receive
+
+translate_each({'receive', Line, [RawClauses] }, S) ->
+  Clauses = orddict:erase(do, RawClauses),
+  case orddict:find('after', Clauses) of
+    { ok, After } ->
+      AClauses = orddict:erase('after', RawClauses),
+      { TClauses, SC } = elixir_clauses:match(Line, AClauses ++ [{'after',After}], S),
+      { FClauses, [TAfter] } = lists:split(length(TClauses) - 1, TClauses),
+      { _, _, FExpr, _, FAfter } = TAfter,
+      { { 'receive', Line, FClauses, FExpr, FAfter }, SC };
+    error ->
+      { TClauses, SC } = elixir_clauses:match(Line, Clauses, S),
+      { { 'receive', Line, TClauses }, umergec(S, SC) }
+  end;
+
 %% Variables & Function calls
 
 translate_each({Name, Line, false}, S) when is_atom(Name) ->
@@ -368,4 +384,5 @@ convert_op('!==') -> '=/=';
 convert_op('===') -> '=:=';
 convert_op('!=')  ->  '/=';
 convert_op('<=')  ->  '=<';
+convert_op('<-')  ->  '!';
 convert_op(Else)  ->  Else.
