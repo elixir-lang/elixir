@@ -1,5 +1,6 @@
 -module(elixir_clauses).
--export([clauses/4, assigns/3, assigns_blocks/4, assigns_blocks/5, extract_guards/1]).
+-export([match/3, assigns/3, assigns_blocks/4,
+  try_catch/3, assigns_blocks/5, extract_guards/1]).
 -include("elixir.hrl").
 
 % Function for translating assigns.
@@ -29,7 +30,7 @@ assigns_blocks(Fun, Args, Exprs, Guards, S) ->
 
   % Uncompact expressions from the block.
   case TExprs of
-    { block, _, FExprs } -> [];
+    [{ block, _, FExprs }] -> [];
     _ -> FExprs = TExprs
   end,
 
@@ -40,12 +41,19 @@ assigns_blocks(Fun, Args, Exprs, Guards, S) ->
 extract_guards({ '|', _, [Left, Right] }) -> { Left, [Right] };
 extract_guards(Else) -> { Else, [] }.
 
-% Function for translating macros with match style
-% clauses like case, try and receive.
+% Function for translating macros for try's catch.
 
-clauses(Kind, Line, Clauses, RawS) ->
+try_catch(Line, Clauses, S) ->
+  DecoupledClauses = decouple_clauses(Clauses, []),
+  % Just pass the variable counter forward between each clause.
+  Transformer = fun(X, Acc) -> translate_each(X, umergec(S, Acc)) end,
+  lists:mapfoldl(Transformer, S, DecoupledClauses).
+
+% Function for translating macros with match style like case and receive.
+
+match(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
-  DecoupledClauses = decouple_clauses(handle_else(Kind, Line, Clauses), []),
+  DecoupledClauses = decouple_clauses(handle_else(match, Line, Clauses), []),
 
   case DecoupledClauses of
     [DecoupledClause] ->

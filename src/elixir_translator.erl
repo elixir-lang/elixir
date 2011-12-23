@@ -64,9 +64,9 @@ translate_each({ erlang_op, Line, [Op, Expr] }, S) when is_atom(Op) ->
 %% Case
 
 translate_each({'case', Line, [Expr, RawClauses]}, S) ->
-  Clauses = proplists:delete(do, RawClauses),
+  Clauses = orddict:erase(do, RawClauses),
   { TExpr, NS } = translate_each(Expr, S),
-  { TClauses, TS } = elixir_clauses:clauses(match, Line, Clauses, NS),
+  { TClauses, TS } = elixir_clauses:match(Line, Clauses, NS),
   { { 'case', Line, TExpr, TClauses }, TS };
 
 % TODO: Handle tree errors properly
@@ -198,6 +198,24 @@ translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
   { TClause, NS } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], S),
   { { 'fun', Line, {clauses, [TClause]} }, NS };
 
+%% Try
+
+translate_each({'try', Line, [Clauses]}, RawS) ->
+  Do    = proplists:get_value('do',    Clauses, []),
+  Catch = proplists:get_value('catch', Clauses, []),
+  After = proplists:get_value('after', Clauses, []),
+
+  S = RawS#elixir_scope{noname=true},
+
+  { TDo, SB }    = translate([Do], S),
+  { TCatch, SC } = elixir_clauses:try_catch(Line, [{'catch',Catch}], umergec(S, SB)),
+  { TAfter, SA } = translate([After], umergec(S, SC)),
+  { { 'try', Line, unpack_try(do, TDo), [], TCatch, unpack_try('after', TAfter) }, umergec(RawS, SA) };
+
+% TODO: Handle tree errors properly
+translate_each({'try', _, Args} = Clause, S) when is_list(Args) ->
+  error({invalid_arguments_for_try, Clause});
+
 %% Variables & Function calls
 
 translate_each({Name, Line, false}, S) when is_atom(Name) ->
@@ -212,7 +230,7 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
       case { Match, dict:is_key(Name, Vars), lists:member(Name, TempVars) } of
         { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
         { true, Else, _ } ->
-          { NewVar, NS } = case Else of
+          { NewVar, NS } = case Else or S#elixir_scope.noname of
             true -> elixir_tree_helpers:build_var_name(Line, S);
             false -> { {var, Line, Name}, S }
           end,
@@ -312,6 +330,12 @@ translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
 
 %% Helpers
+
+% Unpack a list of expressions from a block.
+% Return an empty list in case it is an empty expression on after.
+unpack_try(_, [{ block, _, Exprs }]) -> Exprs;
+unpack_try('after', [{ nil, _ }])    -> [];
+unpack_try(_, Exprs)                 -> Exprs.
 
 % Receives two scopes and return a new scope based on the second
 % with their variables merged.

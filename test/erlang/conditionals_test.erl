@@ -9,6 +9,8 @@ booleans_test() ->
   {true, _} = elixir:eval("true"),
   {false, _} = elixir:eval("false").
 
+% If
+
 if_else_kv_args_test() ->
   {1, _} = elixir:eval("if(true, do: 1)"),
   {nil, _} = elixir:eval("if(false, do: 1)"),
@@ -39,6 +41,13 @@ vars_if_test() ->
 %   {1, _} = elixir:eval("if true\nx = 1\nelse true\nend\nx"),
 %   {nil, _} = elixir:eval("if false\nx = 1\nelse true\nend\nx").
 % 
+
+% Try
+
+try_test() ->
+  {2, _} = elixir:eval("try do\nErlang.foo.bar\ncatch: { :error, :undef, _ }; 2\nend").
+
+% Case
 
 case_test() ->
   {true, _} = elixir:eval("case 1 do\nmatch: 2; false\nmatch: 1; true\nend"),
