@@ -54,7 +54,6 @@ try_catch(Line, Clauses, S) ->
 match(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
   DecoupledClauses = decouple_clauses(handle_else(match, Line, Clauses), []),
-
   case DecoupledClauses of
     [DecoupledClause] ->
       { TDecoupledClause, TS } = translate_each(DecoupledClause, S),

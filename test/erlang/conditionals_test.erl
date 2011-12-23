@@ -50,7 +50,14 @@ try_test() ->
 % Receive
 
 receive_test() ->
-  {10, _} = elixir:eval("self() <- :foo\nreceive do\nmatch: :foo\n10\nend").
+  {10, _} = elixir:eval("self() <- :foo\nreceive do\nmatch: :foo\n10\nend"),
+  {20, _} = elixir:eval("self() <- :bar\nreceive do\nmatch: :foo\n10\nelse: 20\nend"),
+  {30, _} = elixir:eval("receive do\nafter: 1\n30\nend").
+
+vars_receive_test() ->
+  {10, _} = elixir:eval("self() <- :foo\nreceive do\nmatch: :foo\na = 10\nmatch: :bar\nend\na"),
+  {nil, _} = elixir:eval("self() <- :bar\nreceive do\nmatch: :foo\nb = 10\nelse: 20\nend\nb"),
+  {30, _} = elixir:eval("receive do\nmatch: :foo\nafter: 1\nc = 30\nend\nc").
 
 % Case
 

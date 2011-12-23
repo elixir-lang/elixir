@@ -222,14 +222,14 @@ translate_each({'receive', Line, [RawClauses] }, S) ->
   Clauses = orddict:erase(do, RawClauses),
   case orddict:find('after', Clauses) of
     { ok, After } ->
-      AClauses = orddict:erase('after', RawClauses),
+      AClauses = orddict:erase('after', Clauses),
       { TClauses, SC } = elixir_clauses:match(Line, AClauses ++ [{'after',After}], S),
       { FClauses, [TAfter] } = lists:split(length(TClauses) - 1, TClauses),
-      { _, _, FExpr, _, FAfter } = TAfter,
+      { _, _, [FExpr], _, FAfter } = TAfter,
       { { 'receive', Line, FClauses, FExpr, FAfter }, SC };
     error ->
       { TClauses, SC } = elixir_clauses:match(Line, Clauses, S),
-      { { 'receive', Line, TClauses }, umergec(S, SC) }
+      { { 'receive', Line, TClauses }, SC }
   end;
 
 %% Variables & Function calls
