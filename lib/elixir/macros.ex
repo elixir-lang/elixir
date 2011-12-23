@@ -11,7 +11,20 @@ ns Elixir::Macros
 defmacro div(left, right), do:
   quote(erlang_op :div, unquote(left), unquote(right))
 
-
+# Provides an 'private' macro for restrict visibility of functions
+#
+# == Examples
+#
+#     ns Foo   # definition of Foo namespace
+#
+#     private  # make it function private
+#     def secret do
+#       :secret
+#     end
+#
+#     endns
+#     Foo.secret #=> it will raise 'undef' error
+#
 defmacro private do
   quote(Erlang.elixir_def_method.set_visibility(__NAMESPACE__, :private))
 end
