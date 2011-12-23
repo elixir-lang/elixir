@@ -1,5 +1,73 @@
 ns Elixir::Macros
 
+# Provides an integer division macro according to Erlang semantics.
+# Raises an error if one of the arguments is not an integer.
+# Can be used in guard tests.
+#
+# == Examples
+#
+#     5 div 2 #=> 2
+#
+defmacro div(left, right), do:
+  quote(erlang_op :div, unquote(left), unquote(right))
+
+# Provides an integer remainder macro according to Erlang semantics.
+# Raises an error if one of the arguments is not an integer.
+# Can be used in guard tests.
+#
+# == Examples
+#
+#     5 rem 2 #=> 1
+#
+defmacro rem(left, right), do:
+  quote(erlang_op :rem, unquote(left), unquote(right))
+
+# Provides an `if` macro. The macro expects the first argument to
+# be a condition and the rest are key-value arguments.
+#
+# == One-liner examples
+#
+#     if(foo, do: bar)
+#
+# In the example above, bar will be returned if foo evalutes to
+# true (i.e. it is not false nor nil). Otherwise, nil will be returned.
+#
+# An else option can be given to specify the opposite:
+#
+#     if(foo, do: bar, else: bar)
+#
+# == Key-value blocks examples
+#
+# When several expressions must be passed to if, the most appropriate
+# form is thorugh key-value blocks. The first example above would then
+# be translated to:
+#
+#     if foo do
+#       bar
+#     end
+#
+# Notice that do/end becomes delimiters. The value given between
+# do/end becomes the expression given to as `do:`. The second example
+# would then translate do:
+#
+#     if foo do
+#       bar
+#     else:
+#       baz
+#     end
+#
+# Notice that extra keys follows the regular `else:` form. You can also
+# add extra `elsif:` clauses:
+#
+#
+#     if foo do
+#       bar
+#     elsif: some_condition
+#       bar + baz
+#     else:
+#       baz
+#     end
+#
 defmacro if(condition, [{:do,do_clause}|tail]) do
   matches = prepend_to_block(condition, do_clause)
 
@@ -10,10 +78,27 @@ defmacro if(condition, [{:do,do_clause}|tail]) do
   build_if_clauses(List.reverse(all), else_clause)
 end
 
+# Provide a unless macro that executes the expression
+# unless a value evalutes to true. Check `if` for examples
+# and documentation.
 defmacro unless(clause, options) do
   quote(if(!unquote(clause), unquote(options)))
 end
 
+# Provide a short-circuit operator that executes the second
+# expression only if the first one evalutes to true (i.e. it is
+# not nil nor false). Returns the first expression otherwise.
+#
+# == Examples
+#
+#     true && true         #=> true
+#     nil && true          #=> nil
+#     true && 1            #=> 1
+#     false && error(:bad) #=> false
+#
+# Notice that, differently from Erlang `and` and `andalso` operators,
+# this operator accepts any expression as arguments, not only booleans.
+# Unfortunately cannot be used in macros.
 defmacro &&(left, right) do
   quote(
     case unquote(left) do
@@ -27,6 +112,20 @@ defmacro &&(left, right) do
   )
 end
 
+# Provide a short-circuit operator that executes the second
+# expression only if the first one does not evalute to true (i.e. it
+# is not nil nor false). Returns the first expression otherwise.
+#
+# == Examples
+#
+#     false || false       #=> false
+#     nil || true          #=> true
+#     false || 1           #=> 1
+#     true || error(:bad)  #=> true
+#
+# Notice that, differently from Erlang `or` and `orelse` operators,
+# this operator accepts any expression as arguments, not only booleans.
+# Unfortunately cannot be used in macros.
 defmacro ||(left, right) do
   quote(
     case !(__oror_var = unquote(left)) do
@@ -39,6 +138,7 @@ defmacro ||(left, right) do
 end
 
 # Optimize !! to avoid generating case twice.
+# :nodoc:
 defmacro !({:!,_,[expr]}) do
   quote(
     case unquote(expr) do
@@ -52,9 +152,9 @@ defmacro !({:!,_,[expr]}) do
   )
 end
 
-# Implements the unary operator ! as a macro.
-# It receives any argument and returns true if
-# it is false or nil.
+# Implements the unary operator ! as a macro. It receives any
+# argument and returns true if it is false or nil. Returns false
+# otherwise.
 #
 # == Examples
 #
