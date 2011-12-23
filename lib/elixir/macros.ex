@@ -17,16 +17,34 @@ defmacro div(left, right), do:
 #
 #     ns Foo   # definition of Foo namespace
 #
-#     private  # make it function private
+#     private  # make function an private
 #     def secret do
 #       :secret
 #     end
 #
-#     endns
+#     endns    # ends namespace here
 #     Foo.secret #=> it will raise 'undef' error
 #
 defmacro private do
   quote(Erlang.elixir_def_method.set_visibility(__NAMESPACE__, :private))
+end
+
+# Provides an 'public' macro for restrict visibility of functions
+#
+# == Examples
+#
+#     ns Foo  # definition of Foo namespace
+#
+#     public  # make function an public
+#     def secret do
+#       :secret
+#     end
+#
+#     endns   # ends namespace here
+#     Foo.secret #=> :secret
+#
+defmacro public do
+  quote(Erlang.elixir_def_method.set_visibility(__NAMESPACE__, :public))
 end
 
 # Provides an integer remainder macro according to Erlang semantics.
