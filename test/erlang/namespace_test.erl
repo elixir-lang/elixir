@@ -27,7 +27,7 @@ namespace_operator_macro_test() ->
     {'-',0,[1,2]} = '::Foo::Bar::Baz':'+'(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
-  
+
 namespace_curly_call_test() ->
   F = fun() ->
     elixir:eval("ns Foo\ndef ok(x), do: x"),
@@ -45,6 +45,12 @@ namespace_curly_call_test() ->
 namespace_def_shortcut_and_endns_test() ->
   F = fun() ->
     {1,[]} = elixir:eval("ns Foo\ndef version, do: 1\nendns\nFoo.version")
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
+namespace_macro_test() ->
+  F = fun() ->
+    {'::Foo',[]} = elixir:eval("ns Foo\ndef version, do: __NAMESPACE__\nendns\nFoo.version")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 

@@ -129,6 +129,12 @@ translate_each({ns, Line, [Ref]}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for namespace")
   end;
 
+translate_each({'__NAMESPACE__', Line, []}, S) ->
+  case S#elixir_scope.namespace of
+    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no namespace defined");
+    Namespace  -> {{atom, Line, Namespace }, S}
+  end;
+
 translate_each({endns, Line, []}, S) ->
   case S#elixir_scope.namespace of
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no namespace defined");
@@ -360,3 +366,4 @@ convert_op('===') -> '=:=';
 convert_op('!=')  ->  '/=';
 convert_op('<=')  ->  '=<';
 convert_op(Else)  ->  Else.
+

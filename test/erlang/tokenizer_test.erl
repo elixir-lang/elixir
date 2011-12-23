@@ -55,6 +55,9 @@ identifier_test() ->
   [{paren_identifier,1,'a0c'},{'(',1},{')',1}] = tokenize("a0c()"),
   [{paren_identifier,1,'a0c!'},{'(',1},{')',1}] = tokenize("a0c!()").
 
+namespace_test() ->
+   [{identifier,1,'__NAMESPACE__'}] = tokenize("__NAMESPACE__").
+
 dot_test() ->
   [{identifier,1,foo},
    {'.',1},
@@ -75,3 +78,4 @@ string_test() ->
 
 functions_test() ->
   [{do_identifier,1,fn},{do,1},{number,1,1}] = tokenize("fn do 1").
+
