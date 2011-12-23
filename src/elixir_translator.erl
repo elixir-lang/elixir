@@ -44,7 +44,8 @@ translate_each({ '-', Line, [Expr] }, S) when is_number(Expr) ->
 
 translate_each({ Op, Line, Exprs }, S) when is_list(Exprs),
   Op == '+'; Op == '-'; Op == '*'; Op == '/';
-  Op == '++'; Op == '--';
+  Op == '++'; Op == '--'; Op == 'andalso'; Op == 'orelse';
+  Op == 'not'; Op == 'and'; Op == 'or'; Op == 'xor';
   Op == '<'; Op == '>'; Op == '<='; Op == '>=';
   Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
   translate_each({ erlang_op, Line, [Op|Exprs] }, S);
@@ -355,6 +356,7 @@ var_merger(Var, K1, K2) ->
   end.
 
 convert_op('!==') -> '=/=';
-convert_op('!=') ->  '/=';
-convert_op('<=') ->  '=<';
-convert_op(Else) ->  Else.
+convert_op('===') -> '=:=';
+convert_op('!=')  ->  '/=';
+convert_op('<=')  ->  '=<';
+convert_op(Else)  ->  Else.

@@ -340,4 +340,14 @@ next_is_do(_) ->
 % Keywords (OMG, so few!)
 keyword('do')  -> true;
 keyword('end') -> true;
+
+% Not really keywords, but we treat as such just
+% to make it easier to handle them in the parser.
+keyword('not')     -> true;
+keyword('and')     -> true;
+keyword('or')      -> true;
+keyword('xor')     -> true;
+keyword('andalso') -> true;
+keyword('orelse')  -> true;
+
 keyword(_)     -> false.
