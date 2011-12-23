@@ -1,5 +1,5 @@
 -module(elixir_clauses).
--export([match/3, assigns/3, assigns_blocks/4, assigns_blocks/5, extract_guards/1]).
+-export([clauses/4, assigns/3, assigns_blocks/4, assigns_blocks/5, extract_guards/1]).
 -include("elixir.hrl").
 
 % Function for translating assigns.
@@ -19,11 +19,7 @@ assigns_blocks(Fun, Args, Exprs, Guards, S) ->
   { TGuards, SG }  = elixir_translator:translate(Guards, SA#elixir_scope{guard=true}),
   { TExprs, SE }   = elixir_translator:translate(Exprs, SG#elixir_scope{guard=false}),
 
-  % Properly listify args
-  case is_list(TArgs) of
-    true  -> FArgs = TArgs;
-    false -> FArgs = [TArgs]
-  end,
+  FArgs = listify(TArgs),
 
   % Properly listify guards
   FGuards = case TGuards of
@@ -47,9 +43,9 @@ extract_guards(Else) -> { Else, [] }.
 % Function for translating macros with match style
 % clauses like case, try and receive.
 
-match(Line, Clauses, RawS) ->
+clauses(Kind, Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
-  DecoupledClauses = decouple_clauses(Clauses, []),
+  DecoupledClauses = decouple_clauses(handle_else(Kind, Line, Clauses), []),
 
   case DecoupledClauses of
     [DecoupledClause] ->
@@ -113,6 +109,15 @@ match(Line, Clauses, RawS) ->
       end
   end.
 
+% Handle else clauses by moving them under the given Kind.
+handle_else(Kind, Line, Clauses) ->
+  case Clauses of
+    [{else,Else},{Kind,KindClauses}] ->
+      ElseClause = prepend_to_block(Line, {'_', Line, false}, Else),
+      [{Kind, listify(KindClauses) ++ [ElseClause]}];
+    KindClauses -> KindClauses
+  end.
+
 % Decouple clauses. A clause is a key-value pair. If the value is an array,
 % it is broken into several other key-value pairs with the same key. This
 % process is only valid for :match and :catch keys (as they are the only
@@ -145,7 +150,11 @@ translate_each({Key,{block,_,Exprs}}, S) ->
 translate_each({Key,Expr}, S) when not is_list(Expr) ->
   translate_each({Key,[Expr]}, S);
 
-% Clauses must return at least two elements.
+% Do clauses have no conditions. So we are done.
+translate_each({Key,Expr}, S) when Key == do ->
+  elixir_translator:translate(Expr, S);
+
+% Condition clauses must return at least two elements.
 translate_each({Key,[Expr]}, S) ->
   translate_each({Key,[Expr, nil]}, S);
 
@@ -198,3 +207,16 @@ normalize_clause_var(Var, OldValue, ClauseVars) ->
 
 umergec(S1, S2) ->
   S1#elixir_scope{counter=S2#elixir_scope.counter}.
+
+%% Listify
+
+listify(Expr) when not is_list(Expr) -> [Expr];
+listify(Expr) -> Expr.
+
+%% Prepend a given expression to a block.
+
+prepend_to_block(_Line, Expr, { block, Line, Args }) ->
+  { block, Line, [Expr|Args] };
+
+prepend_to_block(Line, Expr, Args) ->
+  { block, Line, [Expr, Args] }.

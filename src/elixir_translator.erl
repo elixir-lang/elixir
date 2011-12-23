@@ -64,17 +64,9 @@ translate_each({ erlang_op, Line, [Op, Expr] }, S) when is_atom(Op) ->
 %% Case
 
 translate_each({'case', Line, [Expr, RawClauses]}, S) ->
-  Clauses = orddict:erase(do, RawClauses),
-
-  case Clauses of
-    [{else,Else},{match,Match}] ->
-      ElseClause = prepend_to_block(Line, {'_', Line, false}, Else),
-      MatchClauses = [{match,listify(Match) ++ [ElseClause]}];
-    MatchClauses -> []
-  end,
-
+  Clauses = proplists:delete(do, RawClauses),
   { TExpr, NS } = translate_each(Expr, S),
-  { TClauses, TS } = elixir_clauses:match(Line, MatchClauses, NS),
+  { TClauses, TS } = elixir_clauses:clauses(match, Line, Clauses, NS),
   { { 'case', Line, TExpr, TClauses }, TS };
 
 % TODO: Handle tree errors properly
@@ -321,19 +313,6 @@ translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
 
 %% Helpers
 
-%% Listify
-
-listify(Expr) when not is_list(Expr) -> [Expr];
-listify(Expr) -> Expr.
-
-%% Prepend a given expression to a block.
-
-prepend_to_block(_Line, Expr, { block, Line, Args }) ->
-  { block, Line, [Expr|Args] };
-
-prepend_to_block(Line, Expr, Args) ->
-  { block, Line, [Expr, Args] }.
-
 % Receives two scopes and return a new scope based on the second
 % with their variables merged.
 umergev(S1, S2) ->
@@ -366,4 +345,3 @@ convert_op('===') -> '=:=';
 convert_op('!=')  ->  '/=';
 convert_op('<=')  ->  '=<';
 convert_op(Else)  ->  Else.
-
