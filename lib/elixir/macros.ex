@@ -11,6 +11,11 @@ ns Elixir::Macros
 defmacro div(left, right), do:
   quote(erlang_op :div, unquote(left), unquote(right))
 
+
+defmacro private do
+  quote(Erlang.elixir_def_method.set_visibility(__NAMESPACE__, :private))
+end
+
 # Provides an integer remainder macro according to Erlang semantics.
 # Raises an error if one of the arguments is not an integer.
 # Can be used in guard tests.
