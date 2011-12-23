@@ -6,4 +6,5 @@
 /ebin/*.beam
 /exbin/*.beam
 /src/*rl.old
-
+/.eunit/*
+/deps/*
