@@ -111,11 +111,16 @@ clauses(Kind, Line, Clauses, RawS) ->
 
 % Handle else clauses by moving them under the given Kind.
 handle_else(Kind, Line, Clauses) ->
-  case Clauses of
-    [{else,Else},{Kind,KindClauses}] ->
+  case orddict:find(else, Clauses) of
+    { ok, Else } ->
       ElseClause = prepend_to_block(Line, {'_', Line, false}, Else),
-      [{Kind, listify(KindClauses) ++ [ElseClause]}];
-    KindClauses -> KindClauses
+      TClauses = orddict:erase(else, Clauses),
+      case orddict:find(Kind, TClauses) of
+        { ok, KindClauses } ->
+          orddict:store(Kind, listify(KindClauses) ++ [ElseClause], TClauses);
+        _ -> [{Kind,ElseClause}]
+      end;
+    _ -> Clauses
   end.
 
 % Decouple clauses. A clause is a key-value pair. If the value is an array,
