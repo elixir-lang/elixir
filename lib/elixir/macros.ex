@@ -216,7 +216,9 @@ defmacro !(expr) do
   )
 end
 
-# private
+# Mark visibility from here on to private. We can't use the
+# private macro because it is defined in this namespace.
+Erlang.elixir_def_method.set_visibility(__NAMESPACE__, :private)
 
 # Build if clauses by nesting them recursively.
 # For instance, the following clause:
