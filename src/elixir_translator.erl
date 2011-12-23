@@ -36,26 +36,29 @@ translate_each({'=', Line, [Left, Right]}, S) ->
 
 %% Operators
 
-translate_each({ Op, Line, [Left, Right] }, S) when
-  Op == '+'; Op == '-'; Op == '*'; Op == '/';
-  Op == '++'; Op == '--';
-  Op == '<'; Op == '>'; Op == '<='; Op == '>=';
-  Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
-  { TLeft, SL }  = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
-  { { op, Line, convert_op(Op), TLeft, TRight }, umergev(SL, SR) };
-
-% Unary Operators
-
 translate_each({ '+', Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(Expr, S);
 
 translate_each({ '-', Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(-1 * Expr, S);
 
-translate_each({ Op, Line, [Expr] }, S) when Op == '+'; Op == '-' ->
+translate_each({ Op, Line, Exprs }, S) when is_list(Exprs),
+  Op == '+'; Op == '-'; Op == '*'; Op == '/';
+  Op == '++'; Op == '--';
+  Op == '<'; Op == '>'; Op == '<='; Op == '>=';
+  Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
+  translate_each({ erlang_op, Line, [Op|Exprs] }, S);
+
+%% Operators
+
+translate_each({ erlang_op, Line, [Op, Left, Right] }, S) when is_atom(Op) ->
+  { TLeft, SL }  = translate_each(Left, S),
+  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+  { { op, Line, convert_op(Op), TLeft, TRight }, umergev(SL, SR) };
+
+translate_each({ erlang_op, Line, [Op, Expr] }, S) when is_atom(Op) ->
   { TExpr, NS } = translate_each(Expr, S),
-  { { op, Line, Op, TExpr }, NS };
+  { { op, Line, convert_op(Op), TExpr }, NS };
 
 %% Case
 
@@ -100,7 +103,7 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate(Args, S),
   { {tuple, Line, TArgs}, SE };
 
-%% References and namespaces
+%% Namespaces
 
 translate_each({ns, Line, [Ref]}, S) ->
   case S#elixir_scope.method of
@@ -130,6 +133,8 @@ translate_each({endns, Line, []}, S) ->
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no namespace defined");
     _  -> { elixir_namespace:transform(Line, compile, S), S#elixir_scope{namespace=[]} }
   end;
+
+%% References
 
 translate_each({ref, Line, [Ref]}, S) when is_atom(Ref) ->
   String = atom_to_list(Ref),
@@ -228,7 +233,6 @@ translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
     { TArgs, NS } = translate(Args, S),
     { { call, Line, { atom, Line, Atom }, TArgs }, NS }
   end,
-
   elixir_macro:dispatch_one('::Elixir::Macros', Atom, Args, S, Callback);
 
 %% Erlang calls
@@ -263,7 +267,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
       { ?ELIXIR_WRAP_CALL(Line, erlang, apply, Apply), umergev(SL, umergev(SR,SA)) }
   end;
 
-%% Fun calls
+%% Anonymous function calls
 
 translate_each({{'.', _, [Expr]}, Line, Args}, S) ->
   { TExpr, SE } = translate_each(Expr, S),
