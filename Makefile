@@ -21,7 +21,9 @@ APP := elixir
 
 .PHONY: deps
 
-all: deps
+# Compile erlang source and then
+# compile elixir as a post-hook
+compile: deps
 	@$(REBAR) compile
 
 deps:
@@ -36,10 +38,14 @@ distclean:
 doc:
 	@$(REBAR) doc skip_deps=true
 
-test: deps all
+test: test_erlang test_elixir
+
+test_erlang: deps compile
 	@$(REBAR) skip_deps=true eunit
 
-release: all test
+test_elixir: deps compile
+
+release: compile test
 	dialyzer --src src $(DIALYZER_WARNINGS)
 
 exbin: lib/*.ex lib/*/*.ex
