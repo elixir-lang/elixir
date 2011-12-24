@@ -12,13 +12,14 @@
 %   2)  when true, we are inside a guard
 %   3)  when true, don't resolve sub references
 %   4)  when true, don't add new names. used by try.
-%   5)  the current method
-%   6)  the current namespace
-%   7)  a dict of defined variables and their alias
-%   8)  a list of all variables defined in a particular assign
-%   9)  a dict of all variables defined in a particular clause
-%   10) a counter with the variables defined
-%   11) the current scope filename
+%   5)  the current macro being transformed
+%   6)  the current method
+%   7)  the current namespace
+%   8)  a dict of defined variables and their alias
+%   9)  a list of all variables defined in a particular assign
+%   10)  a dict of all variables defined in a particular clause
+%   11) a counter with the variables defined
+%   12) the current scope filename
 %
--record(elixir_scope, {assign=false, guard=false, noref=false, noname=false, method=[],
+-record(elixir_scope, {assign=false, guard=false, noref=false, noname=false, macro=[], method=[],
   namespace=[], vars=dict:new(), temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile"}).

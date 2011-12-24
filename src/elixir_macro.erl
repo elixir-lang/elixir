@@ -6,11 +6,14 @@ dispatch_one(Receiver, Name, Args, S, Callback) ->
   case is_bootstrap(S#elixir_scope.namespace) of
     true  -> Callback();
     false ->
+      Arity = length(Args),
       try
-        case lists:member({Name, length(Args)}, Receiver:'__macros__'()) of
+        case lists:member({Name, Arity}, Receiver:'__macros__'()) of
           true  -> 
             Tree = apply(Receiver, Name, Args),
-            elixir_translator:translate_each(Tree, S);
+            NewS = S#elixir_scope{macro={Name,Arity}},
+            { TTree, TS } = elixir_translator:translate_each(Tree, S),
+            { TTree, TS#elixir_scope{macro=[]} };
           false -> Callback()
         end
       catch

@@ -43,9 +43,8 @@ multiple_assignment_with_expression_test() ->
 multiple_assignment_with_binding_expression_test() ->
   {3, [{a, 3}, {b, 1}]} = elixir:eval("a = (2 + b)", [{b, 1}]).
 
-% underscore_assignment_test() -> 
-%   {1, []} = elixir:eval("_ = 1"),
-%   {_, [{a,1},{c,3}]} = elixir:eval("[a,_,c] = [1,2,3]\n[\~a,_,\~c] = [1,4,3]").
+underscore_assignment_test() ->
+  {1, []} = elixir:eval("_ = 1").
 
 % Tuples match
 simple_tuple_test() ->
@@ -77,3 +76,9 @@ head_and_tail_test() ->
   {_,[{h,1}]} = elixir:eval("[h|[2,3]] = [1,2,3]"),
   {_,[{t,[2,3]}]} = elixir:eval("[+1|t] = [1,2,3]"),
   ?assertError({badmatch, _}, elixir:eval("[2,h|t] = [1,2,3]")).
+
+% Orddict match
+
+orrdict_match_test() ->
+  {[{a,1},{b,2}], _} = elixir:eval("a = [a: 1, b: 2]"),
+  {[{a,3},{b,2}], _} = elixir:eval("a = [a: 1, b: 2, a: 3]").

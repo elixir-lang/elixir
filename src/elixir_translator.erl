@@ -85,6 +85,9 @@ translate_each({ block, Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
 
+% TODO: Add tests that kv_block not handled by macros raises
+% a meaningful exception
+
 %% Bit strings
 
 translate_each({ bitstr, Line, Args }, S) when is_list(Args) ->
