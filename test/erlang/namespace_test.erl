@@ -33,9 +33,10 @@ namespace_curly_call_test() ->
     elixir:eval("ns Foo\ndef ok(x), do: x"),
     {[{do,nil}],_} = elixir:eval("Foo.ok { }"),
     {[{do,1}],_} = elixir:eval("Foo.ok { 1 }"),
+    {[{do,3}],_} = elixir:eval("Foo.ok { 1\n2\n3 }"),
     {{1,2},_} = elixir:eval("Foo.ok { 1, 2 }"),
     {[{do,1}],_} = elixir:eval("Foo.ok() { \n1 }"),
-    {[{do,1}],_} = elixir:eval("Foo.ok() { \n1\n }"),
+    {[{do,3}],_} = elixir:eval("Foo.ok() { \n1\n2\n3 }"),
     {{},_} = elixir:eval("Foo.ok({ })"),
     {{1},_} = elixir:eval("Foo.ok({ 1 })"),
     {{1,2},_} = elixir:eval("Foo.ok({ 1, 2 })")

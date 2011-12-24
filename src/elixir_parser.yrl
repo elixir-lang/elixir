@@ -16,14 +16,17 @@ Nonterminals
   kv_comma base_orddict
   matched_kv_comma matched_base_orddict
   do_eol end_eol kv_list do_block curly_block
-  dot_op dot_identifier dot_do_identifier dot_paren_identifier dot_punctuated_identifier dot_call_expr
+  dot_op dot_identifier dot_do_identifier dot_curly_identifier
+  dot_paren_identifier dot_punctuated_identifier dot_call_expr
   ref_op ref_identifier
-  var tuple list
+  var list
+  tuple long_tuple long_tuple_call_args
   .
 
 Terminals
   'do' 'end'
-  identifier do_identifier kv_identifier punctuated_identifier paren_identifier
+  identifier kv_identifier punctuated_identifier paren_identifier
+  do_identifier curly_identifier
   number signed_number atom ref string
   call_op special_op dot_call_op comp_op
   'not' 'and' 'or' 'xor' 'andalso' 'orelse'
@@ -114,20 +117,23 @@ matched_op_expr -> curly_expr : '$1'.
 
 block_expr -> dot_paren_identifier call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
+block_expr -> dot_curly_identifier long_tuple_call_args do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_do_identifier do_block : build_identifier('$1', [], '$2').
 block_expr -> dot_call_expr call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> call_op call_args_parens do_block : build_identifier('$1', '$2', '$3').
 
 curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2', '$3').
+curly_expr -> dot_curly_identifier curly_block : build_identifier('$1', [], '$2').
 curly_expr -> dot_call_expr call_args_parens curly_block : build_identifier('$1', '$2', '$3').
 curly_expr -> call_op call_args_parens curly_block : build_identifier('$1', '$2', '$3').
 curly_expr -> call_expr : '$1'.
 
 call_expr -> call_op call_args_parens : build_identifier('$1', '$2').
+call_expr -> dot_curly_identifier long_tuple_call_args : build_identifier('$1', '$2').
 call_expr -> dot_paren_identifier call_args_parens : build_identifier('$1', '$2').
-call_expr -> dot_punctuated_identifier call_args_no_parens : build_maybe_curly_identifier('$1', '$2').
-call_expr -> dot_identifier call_args_no_parens : build_maybe_curly_identifier('$1', '$2').
+call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
+call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', false).
 call_expr -> dot_call_expr call_args_parens : build_identifier('$1', '$2').
@@ -251,6 +257,9 @@ dot_identifier -> matched_expr dot_op identifier : { '.', ?line('$2'), ['$1', '$
 dot_do_identifier -> do_identifier : '$1'.
 dot_do_identifier -> matched_expr dot_op do_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
+dot_curly_identifier -> curly_identifier : '$1'.
+dot_curly_identifier -> matched_expr dot_op curly_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+
 dot_paren_identifier -> paren_identifier : '$1'.
 dot_paren_identifier -> matched_expr dot_op paren_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
@@ -321,9 +330,18 @@ list -> open_bracket expr close_bracket : ['$2'].
 list -> open_bracket expr comma_separator call_args close_bracket : ['$2'|'$4'].
 
 % Tuple
+% We need to break call_args apart here to solve
+% ambiguity between p { }, p { 1 } and p { 1, ... }
 
 tuple -> open_curly '}' : { '{}', ?line('$1'), [] }.
-tuple -> open_curly call_args close_curly :  { '{}', ?line('$1'), '$2' }.
+tuple -> open_curly expr close_curly :  { '{}', ?line('$1'), build_args(['$2']) }.
+tuple -> open_curly base_orddict close_curly :  { '{}', ?line('$1'), build_args(['$2']) }.
+tuple -> long_tuple : '$1'.
+
+long_tuple -> open_curly expr comma_separator call_args close_curly :  { '{}', ?line('$1'), ['$2'|'$4'] }.
+
+long_tuple_call_args -> long_tuple : ['$1'].
+long_tuple_call_args -> long_tuple comma_separator call_args_no_parens : ['$1'|'$3'].
 
 Erlang code.
 
@@ -379,7 +397,7 @@ build_kv_block({Key,Else})    -> { Key, lists:reverse(Else) }.
 % and properly sorting the items.
 
 build_args(Args) -> lists:map(fun build_arg/1, Args).
-build_arg({ '[:]', Line, Args }) -> sort_kv(Args);
+build_arg({ '[:]', _Line, Args }) -> sort_kv(Args);
 build_arg(Else) -> Else.
 
 %% Identifiers
@@ -387,23 +405,12 @@ build_arg(Else) -> Else.
 %
 %   + Merge kv args and kv blocks arguments
 %   + Handle dot operators and transform them in the proper function call
-%   + Handle ambiguitity between p { }, p { 1 }, p { 1, 2 }
-
-build_maybe_curly_identifier(Expr, [{ '{}', Line, []}]) ->
-  build_identifier(Expr, [[{do,nil}]]);
-
-build_maybe_curly_identifier(Expr, [{ '{}', Line, [Arg]}]) ->
-  build_identifier(Expr, [[{do,Arg}]]);
-
-build_maybe_curly_identifier(Expr, Args) ->
-  build_identifier(Expr, Args).
-
 build_identifier(Expr, Args, Block) ->
   build_identifier(Expr, merge_kv(Args, Block)).
 
 build_identifier({ '.', DotLine, [Expr, { Kind, _, Identifier }] }, Args) when
   Kind == identifier; Kind == punctuated_identifier;
-  Kind == paren_identifier; Kind == do_identifier ->
+  Kind == paren_identifier; Kind == do_identifier; Kind == curly_identifier ->
   build_identifier({ '.', DotLine, [Expr, Identifier] }, Args);
 
 build_identifier({ '.', Line, _ } = Dot, Args) ->

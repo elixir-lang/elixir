@@ -258,7 +258,7 @@ tokenize(Line, T, _) ->
 
 eol(Line, Tokens) ->
   case Tokens of
-    [{eol,_}|Rest] -> Tokens;
+    [{eol,_}|_] -> Tokens;
     _ -> [{eol,Line}|Tokens]
   end.
 
@@ -322,25 +322,31 @@ tokenize_call_identifier(Kind, Line, Atom, Rest) ->
   case Rest of
     [$(|_] -> { paren_identifier, Line, Atom };
     _ ->
-      case next_is_do(Rest) of
-        true  -> { do_identifier, Line, Atom };
-        false -> { Kind, Line, Atom }
+      case next_is_block(Rest) of
+        []              -> { Kind, Line, Atom };
+        BlockIdentifier -> { BlockIdentifier, Line, Atom }
       end
   end.
 
-next_is_do([Space|Tokens]) when Space == $\t; Space == $\s ->
-  next_is_do(Tokens);
+next_is_block([Space|Tokens]) when Space == $\t; Space == $\s ->
+  next_is_block(Tokens);
 
-next_is_do([$d,$o,H|_]) when
+next_is_block([$d,$o,H|_]) when
   H >= $0 andalso H =< $9; H >= $A andalso H =< $Z;
   H >= $a andalso H =< $z; H == $_; H == $: ->
-  false;
+  [];
 
-next_is_do([$d,$o|_]) ->
-  true;
+next_is_block([$d,$o|_]) ->
+  do_identifier;
 
-next_is_do(_) ->
-  false.
+next_is_block([${,$},$:|_]) ->
+  [];
+
+next_is_block([${|_]) ->
+  curly_identifier;
+
+next_is_block(_) ->
+  [].
 
 % Keywords (OMG, so few!)
 keyword('do')  -> true;
