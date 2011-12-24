@@ -2,6 +2,7 @@ language: erlang
 notifications:
   recipients:
     - jose.valim@plataformatec.com.br
+    - andrzej.sliwa@i-tool.eu
 otp_release:
   - R14B03
   - R14B04
