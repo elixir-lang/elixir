@@ -124,7 +124,7 @@ handle_else(Kind, Line, Clauses) ->
       TClauses = orddict:erase(else, Clauses),
       case orddict:find(Kind, TClauses) of
         { ok, KindClauses } ->
-          orddict:store(Kind, listify(KindClauses) ++ [ElseClause], TClauses);
+          orddict:store(Kind, append_to_kv_block(ElseClause, KindClauses), TClauses);
         _ -> [{Kind,ElseClause}]
       end;
     _ -> Clauses
@@ -135,15 +135,15 @@ handle_else(Kind, Line, Clauses) ->
 % process is only valid for :match and :catch keys (as they are the only
 % that supports many clauses)
 %
-% + An array. Which means several expressions were given. Valid only for match, elsif, catch.
+% + An array. Which means several expressions were given. Valid only for match, catch.
 % + Any other expression.
 %
-decouple_clauses([{Key,Value}|T], Clauses) when is_list(Value), Key == match orelse Key == 'catch' ->
+decouple_clauses([{Key,{kv_block,_,Value}}|T], Clauses) when Key == match orelse Key == 'catch' ->
   Final = lists:foldl(fun(X, Acc) -> [{Key,X}|Acc] end, Clauses, Value),
   decouple_clauses(T, Final);
 
 % TODO: Raise a better message.
-decouple_clauses([{Key,Value}|T], Clauses) when is_list(Value) ->
+decouple_clauses([{Key,{kv_block,_,Value}}|T], Clauses) ->
   error({invalid_many_clauses_for_key, Key});
 
 decouple_clauses([H|T], Clauses) ->
@@ -156,26 +156,26 @@ decouple_clauses([], Clauses) ->
 
 % Extract clauses from block.
 translate_each({Key,{block,_,Exprs}}, S) ->
-  translate_each({Key,Exprs}, S);
+  translate_each_({Key,Exprs}, S);
 
 % Wrap each clause in a list. The first item in the list usually express a condition.
-translate_each({Key,Expr}, S) when not is_list(Expr) ->
-  translate_each({Key,[Expr]}, S);
+translate_each({Key,Expr}, S)  ->
+  translate_each_({Key,[Expr]}, S).
 
 % Do clauses have no conditions. So we are done.
-translate_each({Key,Expr}, S) when Key == do ->
+translate_each_({Key,Expr}, S) when Key == do ->
   elixir_translator:translate(Expr, S);
 
 % Condition clauses must return at least two elements.
-translate_each({Key,[Expr]}, S) ->
-  translate_each({Key,[Expr, nil]}, S);
+translate_each_({Key,[Expr]}, S) ->
+  translate_each_({Key,[Expr, nil]}, S);
 
 % Handle assign other clauses.
-translate_each({Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch'; Key == 'after' ->
+translate_each_({Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch'; Key == 'after' ->
   assigns_blocks(fun elixir_translator:translate_each/2, Condition, Exprs, S);
 
 % TODO: Raise a better message.
-translate_each({Key,Value}, S) ->
+translate_each_({Key,Value}, S) ->
   error({invalid_key_for_clause, Key}).
 
 % Check if the given expression is a match tuple.
@@ -232,3 +232,9 @@ prepend_to_block(_Line, Expr, { block, Line, Args }) ->
 
 prepend_to_block(Line, Expr, Args) ->
   { block, Line, [Expr, Args] }.
+
+append_to_kv_block(Expr, { kv_block, Line, Args }) ->
+  { kv_block, Line, Args ++ [Expr] };
+
+append_to_kv_block(Expr, Args) ->
+  { kv_block, 0, [Args, Expr] }.

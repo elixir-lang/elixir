@@ -376,21 +376,23 @@ build_block(Exprs)                         -> { block, 0, lists:reverse(Exprs) }
 
 % Handle key value blocks
 build_kv_block(Delimiter, Contents, IncompleteList) ->
-  Line = ?line(Delimiter),
-  List = [{do,Contents}|IncompleteList],
-  {'[:]', Line, build_kv_block(List, [])}.
+  Line  = ?line(Delimiter),
+  List  = [{do,Contents}|IncompleteList],
+  Final = reverse_kv_block(merge_kv_block([{X,build_block(Y)} || {X,Y} <- List], [])),
+  {'[:]', Line, Final}.
 
-% Build key value blocks by joining all clauses together
-build_kv_block([{Key,Value}|T], Acc) ->
-  New = build_block(Value),
-  NewAcc = orddict:update(Key, fun(Old) -> [New|Old] end, [New], Acc),
-  build_kv_block(T, NewAcc);
+reverse_kv_block(List) -> lists:reverse([reverse_each_kv_block(X) || X <- List]).
+reverse_each_kv_block({Key, { kv_block, _, Value }}) -> { Key, { kv_block, 0, lists:reverse(Value) } };
+reverse_each_kv_block(Else) -> Else.
 
-build_kv_block([], Acc) ->
-  lists:reverse([build_kv_block(X) || X <- Acc]).
+merge_kv_block([{Key,Value}|T], Acc) ->
+  NewAcc = orddict:update(Key, fun(Old) -> merge_each_kv_block(Old, Value) end, Value, Acc),
+  merge_kv_block(T, NewAcc);
 
-build_kv_block({Key,[Value]}) -> { Key, Value };
-build_kv_block({Key,Else})    -> { Key, lists:reverse(Else) }.
+merge_kv_block([], Acc) -> Acc.
+
+merge_each_kv_block({ kv_block, _, Old }, New) -> { kv_block, 0, [New|Old] };
+merge_each_kv_block(Old, New) -> { kv_block, 0, [New, Old] }.
 
 %% Args
 % Build args by transforming [:] into the final form []
@@ -405,8 +407,21 @@ build_arg(Else) -> Else.
 %
 %   + Merge kv args and kv blocks arguments
 %   + Handle dot operators and transform them in the proper function call
+build_identifier(Expr, [], Block) ->
+  build_identifier(Expr, [Block]);
+
 build_identifier(Expr, Args, Block) ->
-  build_identifier(Expr, merge_kv(Args, Block)).
+  { Reverse, Last } = last(Args, []),
+  Final = case is_kv(Last) of
+    true  ->
+      { '[:]', Line, Left } = Last,
+      { '[:]', _, Right }  = Block,
+      KV = { '[:]', Line, merge_kv_block(Left, Right) },
+      lists:reverse([KV|Reverse]);
+    false ->
+      lists:reverse([Block,Last|Reverse])
+  end,
+  build_identifier(Expr, Final).
 
 build_identifier({ '.', DotLine, [Expr, { Kind, _, Identifier }] }, Args) when
   Kind == identifier; Kind == punctuated_identifier;
@@ -435,21 +450,7 @@ build_atom({ atom, _Line, [H] }) when is_atom(H) -> H;
 build_atom({ atom, _Line, [H] }) when is_list(H) -> list_to_atom(H);
 build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ bitstr, Line, Args}, utf8] }.
 
-%% KV Helpers
-% Merge key-value pairs from args and blocks
-
-merge_kv([], Block)   -> [Block];
-merge_kv(Args, Block) ->
-  { Reverse, Last } = last(Args, []),
-  case is_kv(Last) of
-    true  ->
-      { '[:]', Line, Left } = Last,
-      { '[:]', _, Right }  = Block,
-      KV = { '[:]', Line, Left ++ Right },
-      lists:reverse([KV|Reverse]);
-    false ->
-      lists:reverse([Block,Last|Reverse])
-  end.
+%% Helpers
 
 last([L], Acc)   -> { Acc, L };
 last([H|T], Acc) -> last(T, [H|Acc]).

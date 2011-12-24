@@ -66,6 +66,14 @@ case_test() ->
   {true, [{x,1}]} = elixir:eval("case 1 do\nmatch: {x,y}; false\nmatch: x; true\nend"),
   {true, _} = elixir:eval("case {1,2} do;match: {3,4}\nfalse\nelse: true\nend").
 
+case_list_test() ->
+  {nil, _} = elixir:eval("case [1,2], match: [1,2]").
+
+% Ensure that when both kv arg and kv block are given, the kv block comes later.
+case_kv_args_and_block_match_test() ->
+  {nil, _} = elixir:eval("case [1,2], match: [1,2] do\nmatch: [3,4]\n:ok\nend"),
+  {ok,  _} = elixir:eval("case [3,4], match: [1,2] do\nmatch: [3,4]\n:ok\nend").
+
 case_with_do_ambiguity_test() ->
   {1,_} = elixir:eval("case quote(true) do\nmatch: true; 1\nmatch: _; false\nend").
 
