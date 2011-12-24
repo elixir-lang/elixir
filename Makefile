@@ -42,5 +42,5 @@ test: deps all
 release: all test
 	dialyzer --src src $(DIALYZER_WARNINGS)
 
-compile_elixir:
+exbin: lib/*.ex lib/*/*.ex
 	@$(ERL) -s elixir_compiler core -s erlang halt
