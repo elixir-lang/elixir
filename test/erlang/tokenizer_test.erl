@@ -78,17 +78,10 @@ dynamic_ref_test() ->
   {'::',1},
   {identifier,1,y},
   {'::',1},
-  {identifier,1,z}] = tokenize("x::y::z"),
-
-  [{identifier,1,x},
-   {'::',1},
-   {identifier,1,y},
-   {'::',1},
-   {identifier,1,z}] = tokenize("x ::y:: z").
+  {identifier,1,z}] = tokenize("x::y::z").
 
 string_test() ->
   [{string,1,["foo"]}] = tokenize("\"foo\"").
 
 functions_test() ->
   [{do_identifier,1,fn},{do,1},{number,1,1}] = tokenize("fn do 1").
-

@@ -86,3 +86,12 @@ nested_ref_test() ->
 dynamic_ref_test() ->
   { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\nx::y::z"),
   { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\n::(x, y, z)").
+
+dynamic_ref_precedence_test() ->
+  F = fun() ->
+    elixir:eval("ns A::Foo; def l, do: A::Foo; ns A::Bar; def l(x), do: A::Bar;"),
+    {'::A::Foo::B',[]} = elixir:eval("A::Foo.l :: B"),
+    {'::A::Foo::B',[]} = elixir:eval("A::Foo.l::B"),
+    {'::A::Bar',[]} = elixir:eval("A::Bar.l ::B")
+  end,
+  test_helper:run_and_remove(F, ['::Foo', '::Bar']).
