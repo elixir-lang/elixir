@@ -66,12 +66,25 @@ dot_test() ->
    {identifier,1,baz}] = tokenize("foo.bar.baz").
 
 ref_test() ->
-  [{ref,1,Foo}] = tokenize("Foo"),
-  [{ref,1,Foo},
+  [{ref,1,['Foo']}] = tokenize("Foo"),
+  [{ref,1,['Foo']},
    {'::',1},
-   {ref,1,Bar},
+   {ref,1,['Bar']},
    {'::',1},
-   {ref,1,Baz}] = tokenize("Foo::Bar::Baz").
+   {ref,1,['Baz']}] = tokenize("Foo::Bar::Baz").
+
+dynamic_ref_test() ->
+ [{identifier,1,x},
+  {'::',1},
+  {identifier,1,y},
+  {'::',1},
+  {identifier,1,z}] = tokenize("x::y::z"),
+
+  [{identifier,1,x},
+   {'::',1},
+   {identifier,1,y},
+   {'::',1},
+   {identifier,1,z}] = tokenize("x ::y:: z").
 
 string_test() ->
   [{string,1,["foo"]}] = tokenize("\"foo\"").

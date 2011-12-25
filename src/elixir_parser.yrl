@@ -6,7 +6,7 @@ Nonterminals
   expr block_expr curly_expr call_expr max_expr base_expr
   matched_expr matched_op_expr unmatched_expr unmatched_op_expr
   comma_separator kv_eol
-  match_op add_op mult_op unary_op addadd_op multmult_op pipe_op arrow_op
+  match_op add_op mult_op unary_op addadd_op multmult_op pipe_op arrow_op ref_op
   andand_op oror_op andalso_op orelse_op and_op or_op comp_expr_op
   open_paren close_paren
   open_bracket close_bracket
@@ -18,7 +18,6 @@ Nonterminals
   do_eol end_eol kv_list do_block curly_block
   dot_op dot_identifier dot_do_identifier dot_curly_identifier
   dot_paren_identifier dot_punctuated_identifier parens_call
-  ref_op ref_identifier
   var list
   tuple long_tuple long_tuple_call_args
   .
@@ -92,6 +91,7 @@ unmatched_op_expr -> expr and_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr or_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr pipe_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr arrow_op expr : build_op('$2', '$1', '$3').
+unmatched_op_expr -> expr ref_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr comp_expr_op expr : build_expr_op('$2', '$1', '$3').
 unmatched_op_expr -> unary_op expr : build_unary_op('$1', '$2').
 unmatched_op_expr -> special_op expr : build_special_op('$1', '$2').
@@ -110,6 +110,7 @@ matched_op_expr -> matched_expr and_op matched_expr : build_op('$2', '$1', '$3')
 matched_op_expr -> matched_expr or_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr pipe_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr arrow_op matched_expr : build_op('$2', '$1', '$3').
+matched_op_expr -> matched_expr ref_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr comp_expr_op matched_expr : build_expr_op('$2', '$1', '$3').
 matched_op_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
 matched_op_expr -> special_op matched_expr : build_special_op('$1', '$2').
@@ -143,7 +144,7 @@ base_expr -> atom : build_atom('$1').
 base_expr -> var : build_identifier('$1', false).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
-base_expr -> ref_identifier : '$1'.
+base_expr -> ref : '$1'.
 base_expr -> string : build_string('$1').
 
 %% Helpers
@@ -235,9 +236,6 @@ comp_expr_op -> comp_op eol : '$1'.
 
 ref_op -> '::' : '$1'.
 ref_op -> '::' eol : '$1'.
-
-ref_identifier -> ref : '$1'.
-ref_identifier -> ref ref_op ref_identifier : { '::', ?line('$2'), ['$1', '$3'] }.
 
 % Dot operator
 

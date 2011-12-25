@@ -1,6 +1,14 @@
 -module(elixir_namespace).
--export([transform/3, build/3, compile/3]).
+-export([transform/3, build/3, compile/3, modulize/1]).
 -include("elixir.hrl").
+
+modulize(Args) -> list_to_atom(lists:concat([modulize_(Arg) || Arg <- Args])).
+
+modulize_(Arg) ->
+  case Ref = atom_to_list(Arg) of
+    "::" ++ _ -> Ref;
+    _ -> list_to_atom("::" ++ Ref)
+  end.
 
 transform(Line, Kind, S) ->
   Filename  = S#elixir_scope.filename,
@@ -8,7 +16,7 @@ transform(Line, Kind, S) ->
   Args = [{integer, Line, Line}, {string, Line, Filename}, {atom, Line, Namespace}],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, Kind, Args).
 
-build(Line, Filename, Namespace) ->
+build(_Line, _Filename, Namespace) ->
   AttributeTable = ?ELIXIR_ATOM_CONCAT([a, Namespace]),
   ets:new(AttributeTable, [set, named_table, private]),
   elixir_def_method:new_method_table(Namespace).
@@ -83,7 +91,7 @@ transform_attribute(Line, X) ->
 
 % ERROR HANDLING
 
-format_errors(Filename, []) ->
+format_errors(_Filename, []) ->
   exit({nocompile, "compilation failed but no error was raised"});
 
 format_errors(Filename, Errors) ->

@@ -312,7 +312,10 @@ tokenize_many_identifier(Line, String, Acc) ->
   { Rest, { Kind, Atom } } = tokenize_identifier(String, Acc),
   case Rest of
     [$:|T] ->
-      { T, { kv_identifier, Line, Atom } };
+      case T of
+        [$:|_] -> { [$:|T], { identifier, Line, Atom } };
+        _ -> { T, { kv_identifier, Line, Atom } }
+      end;
     _ ->
       { Rest, tokenize_call_identifier(Kind, Line, Atom, Rest) }
   end.

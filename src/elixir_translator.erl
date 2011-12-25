@@ -139,26 +139,20 @@ translate_each({endns, Line, []}, S) ->
 %% References
 
 translate_each({ref, Line, [Ref]}, S) when is_atom(Ref) ->
-  String = atom_to_list(Ref),
-  Atom = case String of
-    "::" ++ _ -> Ref;
-    _ -> list_to_atom("::" ++ String)
-  end,
-  { {atom, Line, Atom }, S };
+  { {atom, Line, list_to_atom("::" ++ atom_to_list(Ref)) }, S };
 
-translate_each({'::', Line, [Left, Right]}, S) ->
-  { TLeft, SL } = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+translate_each({'::', Line, Args}, S) when is_list(Args) ->
+  { TArgs, NS } = translate_args(Args, S),
+  Atoms = [Atom || { atom, _, Atom } <- TArgs],
 
-  % TODO: Handle the case were TLeft or TRight
-  % are not an atom at compile time.
-  Final = case {TLeft,TRight} of
-    {{atom,Line,ALeft}, {atom,_,ARight}} ->
-      Atom = list_to_atom(lists:concat([atom_to_list(ALeft), atom_to_list(ARight)])),
-      { atom, Line, Atom }
+  Final = case length(Atoms) == length(TArgs) of
+    true  -> { atom, Line, elixir_namespace:modulize(Atoms) };
+    false ->
+      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
+      ?ELIXIR_WRAP_CALL(Line, elixir_namespace, modulize, FArgs)
   end,
 
-  { Final, umergev(SL, SR) };
+  { Final, NS };
 
 %% Def
 
