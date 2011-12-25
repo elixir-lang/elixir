@@ -52,14 +52,13 @@ translate_each({ Op, Line, Exprs }, S) when is_list(Exprs),
 
 %% Operators
 
-translate_each({ erlang_op, Line, [Op, Left, Right] }, S) when is_atom(Op) ->
-  { TLeft, SL }  = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
-  { { op, Line, convert_op(Op), TLeft, TRight }, umergev(SL, SR) };
-
 translate_each({ erlang_op, Line, [Op, Expr] }, S) when is_atom(Op) ->
   { TExpr, NS } = translate_each(Expr, S),
   { { op, Line, convert_op(Op), TExpr }, NS };
+
+translate_each({ erlang_op, Line, [Op|Args] }, S) when is_atom(Op) ->
+  { [TLeft, TRight], NS }  = translate_args(Args, S),
+  { { op, Line, convert_op(Op), TLeft, TRight }, NS };
 
 %% Case
 
@@ -91,12 +90,13 @@ translate_each({ block, Line, Args }, S) when is_list(Args) ->
 %% Bit strings
 
 translate_each({ bitstr, Line, Args }, S) when is_list(Args) ->
-  elixir_tree_helpers:build_bitstr(fun translate_each/2, Args, Line, S);
+  { TArgs, { SC, SV } } = elixir_tree_helpers:build_bitstr(fun translate_arg/2, Args, Line, { S, S }),
+  { TArgs, umergec(SV, SC) };
 
 %% Containers
 
 translate_each({'{}', Line, Args}, S) when is_list(Args) ->
-  { TArgs, SE } = translate(Args, S),
+  { TArgs, SE } = translate_args(Args, S),
   { {tuple, Line, TArgs}, SE };
 
 %% Namespaces
@@ -266,7 +266,7 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
 
 translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
   Callback = fun() ->
-    { TArgs, NS } = translate(Args, S),
+    { TArgs, NS } = translate_args(Args, S),
     { { call, Line, { atom, Line, Atom }, TArgs }, NS }
   end,
   elixir_macro:dispatch_one('::Elixir::Macros', Atom, Args, S, Callback);
@@ -274,11 +274,11 @@ translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
 %% Erlang calls
 
 translate_each({{'.', _, [{ ref, _, ['Erlang']}, Atom]}, Line, Args}, S) when is_atom(Atom) ->
-  { TArgs, NS } = translate(Args, S),
+  { TArgs, NS } = translate_args(Args, S),
   { { call, Line, { atom, Line, Atom }, TArgs }, NS };
 
 translate_each({{'.', _, [{{ '.', _, [{ref, _, ['Erlang']}, Remote]}, _, _}, Atom]}, Line, Args}, S) when is_atom(Atom) and is_atom(Remote) ->
-  { TArgs, NS } = translate(Args, S),
+  { TArgs, NS } = translate_args(Args, S),
   { ?ELIXIR_WRAP_CALL(Line, Remote, Atom, TArgs), NS };
 
 %% Dot calls
@@ -288,7 +288,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
   { TRight,  SR } = translate_each(Right, umergec(S, SL)),
 
   Callback = fun() ->
-    { TArgs, SA } = translate(Args, umergec(S, SR)),
+    { TArgs, SA } = translate_args(Args, umergec(S, SR)),
     { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) }
   end,
 
@@ -298,7 +298,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
     { { var, _, _ }, { var, _, _ } }  ->
       Callback();
     _ ->
-      { TArgs, SA } = translate(Args, umergec(S, SR)),
+      { TArgs, SA } = translate_args(Args, umergec(S, SR)),
       Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(1, TArgs)],
       { ?ELIXIR_WRAP_CALL(Line, erlang, apply, Apply), umergev(SL, umergev(SR,SA)) }
   end;
@@ -307,12 +307,12 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
 
 translate_each({{'.', _, [Expr]}, Line, Args}, S) ->
   { TExpr, SE } = translate_each(Expr, S),
-  { TArgs, SA } = translate(Args, umergec(S, SE)),
+  { TArgs, SA } = translate_args(Args, umergec(S, SE)),
   { {call, Line, TExpr, TArgs}, umergev(SE, SA) };
 
 %% Literals
 
-translate_each({ Left, Right }, S) ->
+translate_each({ Left, Right }, S) when is_atom(Left) ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL),
   { { tuple, 0, [TLeft, TRight] }, SR };
@@ -326,15 +326,17 @@ translate_each(Args, S) when is_list(Args) ->
   case RTail of
     {'|',_,[Left,Right]} ->
       Exprs = [Left|RArgs],
-      { Tail, ST } = translate_each(Right, S);
+      { Tail, ST } = translate_each(Right, S),
+      ListS = umergec(S, ST);
     _ ->
       Exprs = [RTail|RArgs],
       Tail = { nil, 0 },
-      ST = S
+      ST = S,
+      ListS = S
   end,
 
-  { TExprs, SE } = elixir_tree_helpers:build_reverse_list(fun translate_each/2, Exprs, 0, umergec(S, ST), Tail),
-  { TExprs, umergev(ST, SE) };
+  { TExprs, { SC, SV } } = elixir_tree_helpers:build_reverse_list(fun translate_arg/2, Exprs, 0, { ListS, ListS }, Tail),
+  { TExprs, umergev(ST, umergec(SV, SC)) };
 
 translate_each(Number, S) when is_integer(Number) ->
   { { integer, 0, Number }, S };
@@ -349,6 +351,26 @@ translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
 
 %% Helpers
+
+% Variables in arguments are not propagated from one
+% argument to the other. For instance:
+%
+%   x = 1
+%   foo(x = x + 2, x)
+%   x
+%
+% Should be the same as:
+%
+%   foo(3, 1)
+%   3
+%
+translate_arg(Arg, { Acc, S }) ->
+  { TArg, TAcc } = translate_each(Arg, Acc),
+  { TArg, { umergec(S, TAcc), umergev(S, TAcc) } }.
+
+translate_args(Args, S) ->
+  { TArgs, { SC, SV } } = lists:mapfoldl(fun translate_arg/2, {S, S}, Args),
+  { TArgs, umergec(SV, SC) }.
 
 % Unpack a list of expressions from a block.
 % Return an empty list in case it is an empty expression on after.

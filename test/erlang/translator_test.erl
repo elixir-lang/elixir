@@ -70,8 +70,7 @@ list_test() ->
   [1,2,3|4] = eval([[1,2,{'|',1,[3,4]}]]).
 
 kv_test() ->
-  {key, 1} = eval([{key, 1}]),
-  {2, 1} = eval([{2, 1}]).
+  {key, 1} = eval([{key, 1}]).
 
 atoms_test() ->
   atom = eval([atom]).

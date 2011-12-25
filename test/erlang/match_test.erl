@@ -69,6 +69,9 @@ list_match_test() ->
   {_, _} = elixir:eval("[1, 2, 3] = [1, 2, 3]"),
   ?assertError({badmatch, _}, elixir:eval("[1, 3, 2] = [1, 2, 3]")).
 
+list_vars_test() ->
+  {[3,1], [{x,3}]} = elixir:eval("x = 1\n[x = x + 2, x]").
+
 head_and_tail_test() ->
   {_,[{h,1},{t,[2,3]}]} = elixir:eval("[h|t] = [1,2,3]"),
   {_,[{h,2},{t,[3]}]} = elixir:eval("[1,h|t] = [1,2,3]"),
