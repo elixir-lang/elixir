@@ -78,7 +78,8 @@ namespace_def_with_guard_test() ->
   test_helper:run_and_remove(F, ['::Foo']).
 
 single_ref_test() ->
-  { '::Foo', _ } = elixir:eval("Foo").
+  { '::Foo', _ } = elixir:eval("Foo"),
+  { '::Foo', _ } = elixir:eval("::Foo").
 
 nested_ref_test() ->
   { '::Foo::Bar::Baz', _ } = elixir:eval("Foo::Bar::Baz").
