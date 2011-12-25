@@ -1,4 +1,4 @@
--module(elixir_namespace).
+-module(elixir_module).
 -export([transform/3, build/3, compile/3, modulize/1]).
 -include("elixir.hrl").
 
@@ -12,35 +12,35 @@ modulize_(Arg) ->
 
 transform(Line, Kind, S) ->
   Filename  = S#elixir_scope.filename,
-  Namespace = S#elixir_scope.namespace,
-  Args = [{integer, Line, Line}, {string, Line, Filename}, {atom, Line, Namespace}],
+  Module = S#elixir_scope.module,
+  Args = [{integer, Line, Line}, {string, Line, Filename}, {atom, Line, Module}],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, Kind, Args).
 
-build(_Line, _Filename, Namespace) ->
-  AttributeTable = ?ELIXIR_ATOM_CONCAT([a, Namespace]),
+build(_Line, _Filename, Module) ->
+  AttributeTable = ?ELIXIR_ATOM_CONCAT([a, Module]),
   ets:new(AttributeTable, [set, named_table, private]),
-  elixir_def_method:new_method_table(Namespace).
+  elixir_def_method:new_method_table(Module).
 
-compile(Line, Filename, Namespace) ->
+compile(Line, Filename, Module) ->
   try
-    {E0, Macros, F0} = elixir_def_method:unwrap_stored_methods(Namespace),
+    {E0, Macros, F0} = elixir_def_method:unwrap_stored_methods(Module),
 
     { E1, F1 } = add_extra_function(E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
 
     Base = [
-      {attribute, Line, module, Namespace},
+      {attribute, Line, module, Module},
       {attribute, Line, file, {Filename,Line}},
       % {attribute, Line, compile, no_auto_import()},
       {attribute, Line, export, E1} | F1
     ],
 
     Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
-    Table = ?ELIXIR_ATOM_CONCAT([a, Namespace]),
+    Table = ?ELIXIR_ATOM_CONCAT([a, Module]),
     Forms = ets:foldr(Transform, Base, Table),
     load_form(Forms, Filename)
   after
-    ets:delete(?ELIXIR_ATOM_CONCAT([a,Namespace])),
-    ets:delete(?ELIXIR_ATOM_CONCAT([m,Namespace]))
+    ets:delete(?ELIXIR_ATOM_CONCAT([a,Module])),
+    ets:delete(?ELIXIR_ATOM_CONCAT([m,Module]))
   end.
 
 load_form(Forms, Filename) ->

@@ -5,9 +5,9 @@
 parse(String, Line, #elixir_scope{filename=Filename} = S) ->
   Forms = forms(String, Line, Filename),
   { Translated, FS } = translate(Forms, S),
-  Final = case FS#elixir_scope.namespace of
+  Final = case FS#elixir_scope.module of
     [] -> Translated;
-    _  -> Translated ++ [elixir_namespace:transform(0, compile, FS)]
+    _  -> Translated ++ [elixir_module:transform(0, compile, FS)]
   end,
   { Final, FS }.
 
@@ -99,41 +99,43 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { {tuple, Line, TArgs}, SE };
 
-%% Namespaces
+%% Modules
 
 translate_each({ns, Line, [Ref]}, S) ->
   case S#elixir_scope.function of
     [] ->
       { TRef, NS } = translate_each(Ref, S),
       case TRef of
-        { atom, _, Namespace } ->
-          FS = NS#elixir_scope{namespace = Namespace},
-          Expr = case S#elixir_scope.namespace of
-            [] -> elixir_namespace:transform(Line, build, FS);
+        { atom, _, Module } ->
+          FS = NS#elixir_scope{module = Module},
+          Expr = case S#elixir_scope.module of
+            [] -> elixir_module:transform(Line, build, FS);
             _  ->
               { block, Line, [
-                elixir_namespace:transform(Line, compile, S),
-                elixir_namespace:transform(Line, build, FS)
+                elixir_module:transform(Line, compile, S),
+                elixir_module:transform(Line, build, FS)
               ] }
           end,
           { Expr, FS };
         _ ->
-          elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid namespace name")
+          % TODO: Test me
+          elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid module name")
       end;
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for namespace")
+      % TODO: Test me
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for module")
   end;
 
 translate_each({'__NAMESPACE__', Line, []}, S) ->
-  case S#elixir_scope.namespace of
-    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no namespace defined");
-    Namespace  -> {{atom, Line, Namespace }, S}
+  case S#elixir_scope.module of
+    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined");
+    Module  -> {{atom, Line, Module }, S}
   end;
 
 translate_each({endns, Line, []}, S) ->
-  case S#elixir_scope.namespace of
-    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no namespace defined");
-    _  -> { elixir_namespace:transform(Line, compile, S), S#elixir_scope{namespace=[]} }
+  case S#elixir_scope.module of
+    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined");
+    _  -> { elixir_module:transform(Line, compile, S), S#elixir_scope{module=[]} }
   end;
 
 %% References
@@ -146,10 +148,10 @@ translate_each({'::', Line, Args}, S) when is_list(Args) ->
   Atoms = [Atom || { atom, _, Atom } <- TArgs],
 
   Final = case length(Atoms) == length(TArgs) of
-    true  -> { atom, Line, elixir_namespace:modulize(Atoms) };
+    true  -> { atom, Line, elixir_module:modulize(Atoms) };
     false ->
       FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      ?ELIXIR_WRAP_CALL(Line, elixir_namespace, modulize, FArgs)
+      ?ELIXIR_WRAP_CALL(Line, elixir_module, modulize, FArgs)
   end,
 
   { Final, NS };
@@ -160,8 +162,8 @@ translate_each({Kind, Line, [{Name,_,false},Else]}, S) when Kind == def orelse K
   translate_each({Kind, Line, [{Name,Line,[]},Else]}, S);
 
 translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kind == defmacro ->
-  Namespace = S#elixir_scope.namespace,
-  case (Namespace == []) or (S#elixir_scope.function /= []) of
+  Module = S#elixir_scope.module,
+  case (Module == []) or (S#elixir_scope.function /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
       { { Name, _, Args}, Guards } = elixir_clauses:extract_guards(Call),
@@ -171,7 +173,7 @@ translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kin
       Arity = length(element(3, TClause)),
       { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
       Method = { function, Line, Name, Arity, [Unpacked] },
-      { elixir_def_method:wrap_method_definition(Kind, Line, S#elixir_scope.filename, Namespace, Method, Defaults), S }
+      { elixir_def_method:wrap_method_definition(Kind, Line, S#elixir_scope.filename, Module, Method, Defaults), S }
   end;
 
 % TODO: Handle tree errors properly
