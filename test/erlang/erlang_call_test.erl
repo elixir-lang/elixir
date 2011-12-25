@@ -13,7 +13,7 @@ erlang_call_test() ->
 
 dynamic_atom_erlang_call_test() ->
   Date = erlang:date(),
-  {Date, []} = elixir:eval(".(:erlang, :date)"),
+  {Date, []} = elixir:eval(".(:erlang, :date)()"),
   {1, []} = elixir:eval(".(:erlang, :abs)(-1)").
 
 dynamic_var_erlang_call_test() ->

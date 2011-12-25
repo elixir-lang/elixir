@@ -17,7 +17,7 @@ Nonterminals
   matched_kv_comma matched_base_orddict
   do_eol end_eol kv_list do_block curly_block
   dot_op dot_identifier dot_do_identifier dot_curly_identifier
-  dot_paren_identifier dot_punctuated_identifier dot_call_expr
+  dot_paren_identifier dot_punctuated_identifier parens_call
   ref_op ref_identifier
   var list
   tuple long_tuple long_tuple_call_args
@@ -115,28 +115,22 @@ matched_op_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
 matched_op_expr -> special_op matched_expr : build_special_op('$1', '$2').
 matched_op_expr -> curly_expr : '$1'.
 
-block_expr -> dot_paren_identifier call_args_parens do_block : build_identifier('$1', '$2', '$3').
+block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_curly_identifier long_tuple_call_args do_block : build_identifier('$1', '$2', '$3').
-block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_do_identifier do_block : build_identifier('$1', [], '$2').
-block_expr -> dot_call_expr call_args_parens do_block : build_identifier('$1', '$2', '$3').
-block_expr -> call_op call_args_parens do_block : build_identifier('$1', '$2', '$3').
+block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
 
-curly_expr -> dot_paren_identifier call_args_parens curly_block : build_identifier('$1', '$2', '$3').
+curly_expr -> parens_call call_args_parens curly_block : build_identifier('$1', '$2', '$3').
 curly_expr -> dot_curly_identifier curly_block : build_identifier('$1', [], '$2').
-curly_expr -> dot_call_expr call_args_parens curly_block : build_identifier('$1', '$2', '$3').
-curly_expr -> call_op call_args_parens curly_block : build_identifier('$1', '$2', '$3').
 curly_expr -> call_expr : '$1'.
 
-call_expr -> call_op call_args_parens : build_identifier('$1', '$2').
+call_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 call_expr -> dot_curly_identifier long_tuple_call_args : build_identifier('$1', '$2').
-call_expr -> dot_paren_identifier call_args_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', false).
-call_expr -> dot_call_expr call_args_parens : build_identifier('$1', '$2').
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
@@ -251,7 +245,6 @@ dot_op -> '.' : '$1'.
 dot_op -> '.' eol : '$1'.
 
 dot_identifier -> identifier : '$1'.
-dot_identifier -> dot_call_op call_args_parens : build_identifier('$1', '$2'). % .(args)
 dot_identifier -> matched_expr dot_op identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
 dot_do_identifier -> do_identifier : '$1'.
@@ -266,7 +259,10 @@ dot_paren_identifier -> matched_expr dot_op paren_identifier : { '.', ?line('$2'
 dot_punctuated_identifier -> punctuated_identifier : '$1'.
 dot_punctuated_identifier -> matched_expr dot_op punctuated_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
-dot_call_expr -> matched_expr dot_call_op : { '.', ?line('$2'), ['$1'] }.
+parens_call -> dot_paren_identifier : '$1'.
+parens_call -> matched_expr dot_call_op : { '.', ?line('$2'), ['$1'] }. % Fun calls
+parens_call -> dot_call_op call_args_parens : build_identifier('$1', '$2'). % .(args)
+parens_call -> call_op : '$1'. % +(args)
 
 % Function calls
 
