@@ -102,7 +102,7 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 %% Namespaces
 
 translate_each({ns, Line, [Ref]}, S) ->
-  case S#elixir_scope.method of
+  case S#elixir_scope.function of
     [] ->
       { TRef, NS } = translate_each(Ref, S),
       case TRef of
@@ -161,11 +161,11 @@ translate_each({Kind, Line, [{Name,_,false},Else]}, S) when Kind == def orelse K
 
 translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kind == defmacro ->
   Namespace = S#elixir_scope.namespace,
-  case (Namespace == []) or (S#elixir_scope.method /= []) of
+  case (Namespace == []) or (S#elixir_scope.function /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
       { { Name, _, Args}, Guards } = elixir_clauses:extract_guards(Call),
-      ClauseScope = S#elixir_scope{method=Name, counter=0, vars=dict:new()},
+      ClauseScope = S#elixir_scope{function=Name, counter=0, vars=dict:new()},
       { TClause, _ } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], Guards, ClauseScope),
 
       Arity = length(element(3, TClause)),
