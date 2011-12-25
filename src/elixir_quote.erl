@@ -5,7 +5,7 @@
 translate(Forms, S) ->
   lists:mapfoldl(fun translate_each/2, S, Forms).
 
-translate_each({ unquote, Line, [Expr] }, S) ->
+translate_each({ unquote, _Line, [Expr] }, S) ->
   elixir_translator:translate_each(Expr, S);
 
 translate_each({ Left, Line, Right }, S) ->

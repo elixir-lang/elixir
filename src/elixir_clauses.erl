@@ -43,7 +43,7 @@ extract_guards(Else) -> { Else, [] }.
 
 % Function for translating macros for try's catch.
 
-try_catch(Line, Clauses, S) ->
+try_catch(_Line, Clauses, S) ->
   DecoupledClauses = decouple_clauses(Clauses, []),
   % Just pass the variable counter forward between each clause.
   Transformer = fun(X, Acc) -> translate_each(X, umergec(S, Acc)) end,
@@ -143,7 +143,7 @@ decouple_clauses([{Key,{kv_block,_,Value}}|T], Clauses) when Key == match orelse
   decouple_clauses(T, Final);
 
 % TODO: Raise a better message.
-decouple_clauses([{Key,{kv_block,_,Value}}|T], Clauses) ->
+decouple_clauses([{Key,{kv_block,_,_Value}}|_T], _Clauses) ->
   error({invalid_many_clauses_for_key, Key});
 
 decouple_clauses([H|T], Clauses) ->
@@ -175,7 +175,7 @@ translate_each_({Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch'; K
   assigns_blocks(fun elixir_translator:translate_each/2, Condition, Exprs, S);
 
 % TODO: Raise a better message.
-translate_each_({Key,Value}, S) ->
+translate_each_({Key,_Value}, _S) ->
   error({invalid_key_for_clause, Key}).
 
 % Check if the given expression is a match tuple.
@@ -191,7 +191,7 @@ has_match_tuple(H) when is_tuple(H) ->
 has_match_tuple(H) when is_list(H) ->
   lists:any(fun has_match_tuple/1, H);
 
-has_match_tuple(H) -> false.
+has_match_tuple(_) -> false.
 
 % Normalize the given var checking its existence in the scope var dictionary.
 

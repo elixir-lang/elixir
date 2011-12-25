@@ -36,7 +36,7 @@ build_simple_list(Line, Args) ->
   { List, [] } = build_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
   List.
 
-build_list_each(Fun, [], Line, S, Acc) ->
+build_list_each(_Fun, [], _Line, S, Acc) ->
   { Acc, S };
 
 build_list_each(Fun, [H|T], Line, S, Acc) ->
@@ -51,7 +51,7 @@ build_list_each(Fun, [H|T], Line, S, Acc) ->
 build_bitstr(Fun, Exprs, Line, S) ->
   build_bitstr_each(Fun, Exprs, Line, S, []).
 
-build_bitstr_each(Fun, [], Line, S, Acc) ->
+build_bitstr_each(_Fun, [], Line, S, Acc) ->
   { { bin, Line, lists:reverse(Acc) }, S };
 
 build_bitstr_each(Fun, [H|T], Line, S, Acc) when is_list(H) ->

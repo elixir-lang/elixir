@@ -27,7 +27,7 @@ wildcard(Pattern, Mod) when is_binary(Pattern) ->
   Results = do_wildcard_comp(Compiled, Mod),
   [list_to_binary(Result) || Result <- lists:sort(Results)].
 
-do_wildcard_comp({compiled_wildcard,{exists,File}}, Mod) ->
+do_wildcard_comp({compiled_wildcard,{exists,File}}, _Mod) ->
   case file:read_file_info(File) of
     {ok,_} -> [File];
     _ -> []
@@ -93,7 +93,7 @@ wildcard_5([accept], _, _Mod) ->
   true;
 wildcard_5([double_star], _, _Mod) ->
   true;
-wildcard_5([star|Rest], [$.|_], false) ->
+wildcard_5([star|_Rest], [$.|_], false) ->
   false;
 wildcard_5([star|Rest], File, Mod) ->
   do_star(Rest, File, Mod);

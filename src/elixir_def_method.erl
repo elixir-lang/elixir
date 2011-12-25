@@ -12,8 +12,8 @@ set_visibility(Name, Visibility) when is_atom(Name) ->
   ets:insert(MethodTable, { visibility, Visibility }).
 
 % Creates a new method table for the given name.
-new_method_table(Namespace) ->
-  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Namespace]),
+new_method_table(Module) ->
+  MethodTable = ?ELIXIR_ATOM_CONCAT([m, Module]),
   ets:new(MethodTable, [set, named_table, private]),
   ets:insert(MethodTable, { public, [] }),
   ets:insert(MethodTable, { private, [] }),
@@ -43,10 +43,10 @@ unpack_default_clause(Name, Clause) ->
 %
 % If we just analyzed the compiled structure (i.e. the method availables
 % before evaluating the method body), we would see both definitions.
-wrap_method_definition(Kind, Line, Filename, Namespace, Method, Defaults) ->
+wrap_method_definition(Kind, Line, Filename, Module, Method, Defaults) ->
   Meta = elixir_tree_helpers:abstract_syntax(Method),
   MetaDefaults = elixir_tree_helpers:abstract_syntax(Defaults),
-  Content = [{atom, Line, Kind}, {string, Line, Filename}, {atom, Line, Namespace}, Meta, MetaDefaults],
+  Content = [{atom, Line, Kind}, {string, Line, Filename}, {atom, Line, Module}, Meta, MetaDefaults],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_wrapped_method, Content).
 
 % Invoked by the wrapped method with the method abstract tree.
@@ -75,8 +75,8 @@ store_wrapped_method(Kind, Filename, Name, OriginalMethod, Defaults) ->
 
 % Helper to unwrap the methods stored in the methods table. It also returns
 % a list of methods to be exported with all methods.
-unwrap_stored_methods(Namespace) ->
-  Table     = ?ELIXIR_ATOM_CONCAT([m, Namespace]),
+unwrap_stored_methods(Module) ->
+  Table     = ?ELIXIR_ATOM_CONCAT([m, Module]),
   Public    = ets:lookup_element(Table, public, 2),
   Private   = ets:lookup_element(Table, private, 2),
   Macros    = ets:lookup_element(Table, macros, 2),
@@ -87,7 +87,7 @@ unwrap_stored_methods(Namespace) ->
   Functions = ets:foldl(fun(X, Acc) -> unwrap_stored_method(X, Acc, Private) end, [], Table),
   { Public, Macros, Functions }.
 
-unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc, Private) ->
+unwrap_stored_method({{Name, Arity}, Line, Clauses}, Acc, _Private) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses) }|Acc].
 
 %% Helpers
@@ -115,7 +115,7 @@ store_each_method(Kind, MethodTable, Visibility, Filename, {function, Line, Name
   ets:insert(MethodTable, {{Name, Arity}, FinalLine, FinalClauses}).
 
 % Unpack default args from clauses
-unpack_default_args(Name, [{':=', Line, [Expr, Default]}|T] = List, Acc, Clauses) ->
+unpack_default_args(Name, [{':=', Line, [Expr, _Default]}|T] = List, Acc, Clauses) ->
   { Args, Invoke } = build_default_arg(Acc, Line, [], []),
   Defaults = lists:map(fun extract_default/1, List),
   Clause = { clause, Line, Args, [], [
@@ -130,7 +130,7 @@ unpack_default_args(_Name, [], Acc, Clauses) ->
   { lists:reverse(Acc), lists:reverse(Clauses) }.
 
 % Extract default values
-extract_default({':=', Line, [Expr, Default]}) ->
+extract_default({':=', _Line, [_Expr, Default]}) ->
   Default.
 
 % Build an args list
@@ -185,7 +185,7 @@ check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
     true -> []
   end.
 
-find_visibility(Name, Arity, [H|[]], Table) ->
+find_visibility(_Name, _Arity, [H|[]], _Table) ->
   H;
 
 find_visibility(Name, Arity, [Visibility|T], Table) ->

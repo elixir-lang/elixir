@@ -36,10 +36,10 @@ translate_each({'=', Line, [Left, Right]}, S) ->
 
 %% Operators
 
-translate_each({ '+', Line, [Expr] }, S) when is_number(Expr) ->
+translate_each({ '+', _Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(Expr, S);
 
-translate_each({ '-', Line, [Expr] }, S) when is_number(Expr) ->
+translate_each({ '-', _Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(-1 * Expr, S);
 
 translate_each({ Op, Line, Exprs }, S) when is_list(Exprs),
@@ -69,7 +69,7 @@ translate_each({'case', Line, [Expr, RawClauses]}, S) ->
   { { 'case', Line, TExpr, TClauses }, TS };
 
 % TODO: Handle tree errors properly
-translate_each({'case', _, Args} = Clause, S) when is_list(Args) ->
+translate_each({'case', _, Args} = Clause, _S) when is_list(Args) ->
   error({invalid_arguments_for_case, Clause});
 
 %% Blocks
@@ -77,7 +77,7 @@ translate_each({'case', _, Args} = Clause, S) when is_list(Args) ->
 translate_each({ block, Line, [] }, S) ->
   { { atom, Line, nil }, S };
 
-translate_each({ block, Line, [Arg] }, S) ->
+translate_each({ block, _Line, [Arg] }, S) ->
   translate_each(Arg, S);
 
 translate_each({ block, Line, Args }, S) when is_list(Args) ->
@@ -182,11 +182,11 @@ translate_each({Kind, Line, Args}, S) when is_list(Args), Kind == def orelse Kin
 
 %% Quoting
 
-translate_each({quote, Line, [Expr]}, S) ->
+translate_each({quote, _Line, [Expr]}, S) ->
   elixir_quote:translate_each(Expr, S);
 
 % TODO: Handle tree errors properly
-translate_each({quote, _, Args} = Clause, S) when is_list(Args) ->
+translate_each({quote, _, Args} = Clause, _S) when is_list(Args) ->
   error({invalid_arguments_for_quote, Clause});
 
 %% Functions
@@ -212,7 +212,7 @@ translate_each({'try', Line, [Clauses]}, RawS) ->
   { { 'try', Line, unpack_try(do, TDo), [], TCatch, unpack_try('after', TAfter) }, umergec(RawS, SA) };
 
 % TODO: Handle tree errors properly
-translate_each({'try', _, Args} = Clause, S) when is_list(Args) ->
+translate_each({'try', _, Args} = Clause, _S) when is_list(Args) ->
   error({invalid_arguments_for_try, Clause});
 
 %% Receive
@@ -394,7 +394,7 @@ umergec(S1, S2) ->
 % Merge variables trying to find the most recently created.
 var_merger(Var, Var, K2) -> K2;
 var_merger(Var, K1, Var) -> K1;
-var_merger(Var, K1, K2) ->
+var_merger(_Var, K1, K2) ->
   V1 = list_to_integer(tl(atom_to_list(K1))),
   V2 = list_to_integer(tl(atom_to_list(K2))),
   if V1 > V2 -> K1;

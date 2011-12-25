@@ -14,7 +14,7 @@ extract(Line, Escaping, [], Buffer, [], Output, []) ->
 extract(Line, Escaping, [Last|Remaining], Buffer, [], Output, Last) ->
   { Line, lists:reverse(build_interpol(s, Line, Escaping, Buffer, Output)), Remaining };
 
-extract(Line, Escaping, [Last], Buffer, Search, Output, Last) ->
+extract(Line, _Escaping, [Last], _Buffer, Search, _Output, Last) ->
   { error, { Line, io_lib:format("unexpected end of string, expected ~ts", [[hd(Search)]]), [Last] } };
 
 extract(Line, Escaping, [$\n|Rest], Buffer, Search, Output, Last) ->
@@ -103,17 +103,17 @@ unescape_chars(_, [$\\, Escaped|Rest], Output) ->
 unescape_chars(Escaping, [Char|Rest], Output) ->
   unescape_chars(Escaping, Rest, [Char|Output]);
 
-unescape_chars(Escaping, [], Output) -> lists:reverse(Output).
+unescape_chars(_Escaping, [], Output) -> lists:reverse(Output).
 
 % Helpers
 
-build_interpol(Kind, Line, Escaping, [], Output) ->
+build_interpol(_Kind, _Line, _Escaping, [], Output) ->
   Output;
 
-build_interpol(s, Line, Escaping, Buffer, Output) ->
+build_interpol(s, _Line, Escaping, Buffer, Output) ->
   [unescape_chars(Escaping, lists:reverse(Buffer))|Output];
 
-build_interpol(i, Line, Escaping, Buffer, Output) ->
+build_interpol(i, Line, _Escaping, Buffer, Output) ->
   [forms(lists:reverse(Buffer), Line)|Output].
 
 extract_integers([H|T], Acc) when H >= 48 andalso H =< 57 ->

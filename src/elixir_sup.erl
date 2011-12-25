@@ -5,7 +5,7 @@
 start_link(Args) ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, Args).
 
-init(Args) ->
+init(_Args) ->
   % CodeServer = elixir_constants:lookup('Code::Server'),
   % 
   % Supervisors = [
