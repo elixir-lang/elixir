@@ -287,7 +287,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
       Callback();
     _ ->
       { TArgs, SA } = translate_args(Args, umergec(S, SR)),
-      Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(1, TArgs)],
+      Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(Line, TArgs)],
       { ?ELIXIR_WRAP_CALL(Line, erlang, apply, Apply), umergev(SL, umergev(SR,SA)) }
   end;
 

@@ -1,6 +1,7 @@
 -module(elixir_tree_helpers).
 -export([abstract_syntax/1, build_var_name/2, build_bitstr/4,
-  build_list/4, build_list/5, build_simple_list/2, build_reverse_list/5]).
+  build_list/4, build_list/5, build_simple_list/2,
+  build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
 
 abstract_syntax(Tree) ->
@@ -28,12 +29,19 @@ build_list(Fun, Exprs, Line, S, Tail) ->
   build_list_each(Fun, lists:reverse(Exprs), Line, S, Tail).
 
 % Same as build_list, but the list given is in reverse other.
+build_reverse_list(Fun, Exprs, Line, S) ->
+  build_list_each(Fun, Exprs, Line, S, {nil,Line}).
+
 build_reverse_list(Fun, Exprs, Line, S, Tail) ->
   build_list_each(Fun, Exprs, Line, S, Tail).
 
 % Builds a simple list, without transformation, just by generating the cons-cell.
 build_simple_list(Line, Args) ->
   { List, [] } = build_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
+  List.
+
+build_simple_reverse_list(Line, Args) ->
+  { List, [] } = build_reverse_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
   List.
 
 build_list_each(_Fun, [], _Line, S, Acc) ->

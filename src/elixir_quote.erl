@@ -24,7 +24,7 @@ translate_each({ Left, Right }, S) ->
   { { tuple, 0, [TLeft, TRight] }, RS };
 
 translate_each(List, S) when is_list(List) ->
-  elixir_tree_helpers:build_list(fun translate_each/2, List, 0, S);
+  splice(List, [], [], S);
 
 translate_each(Number, S) when is_integer(Number) ->
   { { integer, 0, Number }, S };
@@ -34,3 +34,29 @@ translate_each(Number, S) when is_float(Number) ->
 
 translate_each(Atom, S) when is_atom(Atom) ->
   { { atom, 0, Atom }, S }.
+
+% Loop through the list finding each unquote_splice entry.
+
+splice([{ unquote_splice, _, [Args] }|T], Buffer, Acc, S) ->
+  { NewAcc, NewS } = from_buffer_to_acc(Buffer, Acc, S),
+  { TArgs, TS } = elixir_translator:translate_each(Args, NewS),
+  splice(T, [], [TArgs|NewAcc], TS);
+
+splice([H|T], Buffer, Acc, S) ->
+  splice(T, [H|Buffer], Acc, S);
+
+splice([], Buffer, Acc, S) ->
+  { NewAcc, NewS } = from_buffer_to_acc(Buffer, Acc, S),
+  case NewAcc of
+    [List] -> { List, NewS };
+    _ ->
+      List = elixir_tree_helpers:build_simple_reverse_list(0, NewAcc),
+      { ?ELIXIR_WRAP_CALL(0, lists, append, [List]), NewS }
+  end.
+
+from_buffer_to_acc([], Acc, S) ->
+  { Acc, S };
+
+from_buffer_to_acc(Buffer, Acc, S) ->
+  { New, NewS } = elixir_tree_helpers:build_reverse_list(fun translate_each/2, Buffer, 0, S),
+  { [New|Acc], NewS }.

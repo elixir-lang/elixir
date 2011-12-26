@@ -28,6 +28,9 @@ quote_unquote_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
+quote_unquote_splice_test() ->
+  { { '{}', 0, [1,2,3,4,5] }, _ } = elixir:eval("x = [2,3,4]\nquote { { 1, unquote_splice(x), 5} }").
+
 operator_macro_test() ->
   F = fun() ->
     elixir:eval("module Foo::Bar::Baz\ndefmacro +(a, b), do: quote { unquote(a) - unquote(b) }"),
