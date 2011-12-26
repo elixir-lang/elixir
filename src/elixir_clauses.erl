@@ -1,6 +1,7 @@
 -module(elixir_clauses).
--export([match/3, assigns/3, assigns_blocks/4,
-  try_catch/3, assigns_blocks/5, extract_guards/1]).
+-export([match/3, try_catch/3,
+  assigns/3, assigns_blocks/4, assigns_blocks/5,
+  extract_args/1, extract_guards/1]).
 -include("elixir.hrl").
 
 % Function for translating assigns.
@@ -40,6 +41,12 @@ assigns_blocks(Fun, Args, Exprs, Guards, S) ->
 
 extract_guards({ '|', _, [Left, Right] }) -> { Left, [Right] };
 extract_guards(Else) -> { Else, [] }.
+
+% Extract name and args from the given expression.
+
+extract_args({ { '.', _, [Name] }, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
+extract_args({ Name, _, false }) when is_atom(Name) -> { Name, [] };
+extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args }.
 
 % Function for translating macros for try's catch.
 

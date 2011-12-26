@@ -156,15 +156,13 @@ translate_each({'::', Line, Args}, S) when is_list(Args) ->
 
 %% Def
 
-translate_each({Kind, Line, [{Name,_,false},Else]}, S) when Kind == def orelse Kind == defmacro ->
-  translate_each({Kind, Line, [{Name,Line,[]},Else]}, S);
-
 translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kind == defmacro ->
   Module = S#elixir_scope.module,
   case (Module == []) or (S#elixir_scope.function /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
     _ ->
-      { { Name, _, Args}, Guards } = elixir_clauses:extract_guards(Call),
+      { TCall, Guards } = elixir_clauses:extract_guards(Call),
+      { Name, Args } = elixir_clauses:extract_args(TCall),
       ClauseScope = S#elixir_scope{function=Name, counter=0, vars=dict:new()},
       { TClause, _ } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], Guards, ClauseScope),
 
