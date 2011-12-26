@@ -103,7 +103,7 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 
 translate_each({module, Line, [Ref, [{do,Block}]]}, S) ->
   Current = S#elixir_scope.module,
-  Exprs   = [{ns, Line, [Ref]}, Block, {endns, Line, []}],
+  Exprs   = [{module, Line, [Ref]}, Block, {endmodule, Line, []}],
   { TExprs, NS } = translate(Exprs, S#elixir_scope{module=[]}),
   { { block, Line, TExprs }, NS#elixir_scope{module=Current} };
 
