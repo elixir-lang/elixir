@@ -1,43 +1,43 @@
--module(namespace_test).
+-module(module_test).
 -include_lib("eunit/include/eunit.hrl").
 
-namespace_definition_test() ->
+definition_test() ->
   F = fun() ->
-    elixir:eval("ns Foo::Bar::Baz")
+    elixir:eval("module Foo::Bar::Baz")
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
-namespace_function_test() ->
+function_test() ->
   F = fun() ->
-    elixir:eval("ns Foo::Bar::Baz\ndef sum(a, b) do\na + b\nend"),
+    elixir:eval("module Foo::Bar::Baz\ndef sum(a, b) do\na + b\nend"),
     3 = '::Foo::Bar::Baz':sum(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
-namespace_dynamic_function_test() ->
+dynamic_function_test() ->
   F = fun() ->
-    elixir:eval("ns Foo::Bar::Baz\ndef :sum.(a, b) do\na + b\nend"),
+    elixir:eval("module Foo::Bar::Baz\ndef :sum.(a, b) do\na + b\nend"),
     3 = '::Foo::Bar::Baz':sum(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
-namespace_quote_unquote_test() ->
+quote_unquote_test() ->
   F = fun() ->
-    elixir:eval("ns Foo::Bar::Baz\ndefmacro sum(a, b), do: quote(unquote(a) + unquote(b))"),
+    elixir:eval("module Foo::Bar::Baz\ndefmacro sum(a, b), do: quote(unquote(a) + unquote(b))"),
     {'+',0,[1,2]} = '::Foo::Bar::Baz':sum(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
-namespace_operator_macro_test() ->
+operator_macro_test() ->
   F = fun() ->
-    elixir:eval("ns Foo::Bar::Baz\ndefmacro +(a, b), do: quote(unquote(a) - unquote(b))"),
+    elixir:eval("module Foo::Bar::Baz\ndefmacro +(a, b), do: quote(unquote(a) - unquote(b))"),
     {'-',0,[1,2]} = '::Foo::Bar::Baz':'+'(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
-namespace_curly_call_test() ->
+curly_call_test() ->
   F = fun() ->
-    elixir:eval("ns Foo\ndef ok(x), do: x"),
+    elixir:eval("module Foo\ndef ok(x), do: x"),
     {[{do,nil}],_} = elixir:eval("Foo.ok { }"),
     {[{do,1}],_} = elixir:eval("Foo.ok { 1 }"),
     {[{do,3}],_} = elixir:eval("Foo.ok { 1\n2\n3 }"),
@@ -50,43 +50,43 @@ namespace_curly_call_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
-namespace_def_shortcut_and_endns_test() ->
+def_shortcut_and_endns_test() ->
   F = fun() ->
-    {1,[]} = elixir:eval("ns Foo\ndef version, do: 1\nendns\nFoo.version")
+    {1,[]} = elixir:eval("module Foo\ndef version, do: 1\nendmodule\nFoo.version")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
-namespace_macro_test() ->
+macro_test() ->
   F = fun() ->
-    {'::Foo',[]} = elixir:eval("ns Foo\ndef version, do: __NAMESPACE__\nendns\nFoo.version")
+    {'::Foo',[]} = elixir:eval("module Foo\ndef version, do: __MODULE__\nendmodule\nFoo.version")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
-namespace_private_test() ->
+private_test() ->
   F = fun() ->
-    elixir:eval("ns Foo\n private\ndef version, do: __NAMESPACE__\n"),
+    elixir:eval("module Foo\n private\ndef version, do: __MODULE__\n"),
     ?assertError(undef, elixir:eval("Foo.version"))
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
-namespace_public_test() ->
+public_test() ->
   F = fun() ->
-    elixir:eval("ns Foo\nprivate\npublic\ndef version, do: __NAMESPACE__\n"),
+    elixir:eval("module Foo\nprivate\npublic\ndef version, do: __MODULE__\n"),
     ?assertEqual({'::Foo', []}, elixir:eval("Foo.version"))
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
-namespace_def_default_test() ->
+def_default_test() ->
   F = fun() ->
-    elixir:eval("ns Foo\ndef version(x // 1), do: x\n"),
+    elixir:eval("module Foo\ndef version(x // 1), do: x\n"),
     ?assertEqual({1, []}, elixir:eval("Foo.version")),
     ?assertEqual({2, []}, elixir:eval("Foo.version(2)"))
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
-namespace_def_with_guard_test() ->
+def_with_guard_test() ->
   F = fun() ->
-    elixir:eval("ns Foo\ndef v(x) when x < 10, do: true\ndef v(x) when x >= 10, do: false\n"),
+    elixir:eval("module Foo\ndef v(x) when x < 10, do: true\ndef v(x) when x >= 10, do: false\n"),
     {true,_} = elixir:eval("Foo.v(0)"),
     {false,_} = elixir:eval("Foo.v(20)")
   end,
@@ -105,7 +105,7 @@ dynamic_ref_test() ->
 
 dynamic_ref_precedence_test() ->
   F = fun() ->
-    elixir:eval("ns A::Foo; def l, do: A::Foo; ns A::Bar; def l(x), do: A::Bar;"),
+    elixir:eval("module A::Foo; def l, do: A::Foo; module A::Bar; def l(x), do: A::Bar;"),
     {'::A::Foo::B',[]} = elixir:eval("A::Foo.l :: B"),
     {'::A::Foo::B',[]} = elixir:eval("A::Foo.l::B"),
     {'::A::Bar',[]} = elixir:eval("A::Bar.l ::B")

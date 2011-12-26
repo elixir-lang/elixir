@@ -1,4 +1,4 @@
-ns Orddict
+module Orddict
 
 def fetch([{k,_}|_], key, default) when key < k, do: default
 def fetch([{k,_}|d], key, default) when key > k, do: fetch(d, key, default)

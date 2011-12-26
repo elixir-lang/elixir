@@ -1,7 +1,7 @@
 # This namespace provide macros for bitwise operators
 # provided by Erlang. Those can be used in guards.
 
-ns Bitwise
+module Bitwise
 
 defmacro bnot(expr),        do: quote(erlang_op :bnot, unquote(expr))
 defmacro band(left, right), do: quote(erlang_op :band, unquote(left), unquote(right))
