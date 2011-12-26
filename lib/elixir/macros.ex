@@ -1,25 +1,7 @@
 module Elixir::Macros
 
 defmacro defrecord(name, values) do
-  { functions, _ } = List.mapfoldl values, 1, fn({ key, _ }, i) {
-    i = i + 1
-
-    contents = quote do
-      def unquote(key).(record) do
-        element(unquote(i), record)
-      end
-
-      def unquote(key).(record, value) do
-        setelement(unquote(i), value, record)
-      end
-    end
-
-    { contents, i }
-  }
-
-  quote {
-    module unquote(name), do: unquote(functions)
-  }
+  Record.define(name, values)
 end
 
 # Provides a 'private' macro for restrict visibility of functions

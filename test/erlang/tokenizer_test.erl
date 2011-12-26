@@ -88,3 +88,6 @@ functions_test() ->
 
 default_test() ->
   [{identifier,1,x},{'//',1},{number,1,1}] = tokenize("x // 1").
+
+addadd_test() ->
+  [{identifier,1,x},{'++',1},{identifier,1,y}] = tokenize("x ++ y").
