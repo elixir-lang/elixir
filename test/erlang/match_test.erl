@@ -46,6 +46,9 @@ multiple_assignment_with_binding_expression_test() ->
 underscore_assignment_test() ->
   {1, []} = elixir:eval("_ = 1").
 
+assignment_precedence_test() ->
+  {_, [{x,{ block, _, [1,2,3]}}]} = elixir:eval("x = quote do\n1\n2\n3\nend").
+
 % Tuples match
 simple_tuple_test() ->
   {{}, _} = elixir:eval("a = {}"),
