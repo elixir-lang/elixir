@@ -40,7 +40,7 @@ compile(Line, Filename, Module) ->
     load_form(Forms, Filename)
   after
     ets:delete(?ELIXIR_ATOM_CONCAT([a,Module])),
-    ets:delete(?ELIXIR_ATOM_CONCAT([m,Module]))
+    elixir_def:delete_table(Module)
   end.
 
 load_form(Forms, Filename) ->
