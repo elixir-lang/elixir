@@ -11,7 +11,7 @@
                     eex_lexer,
                     elixir_clauses,
                     elixir_compiler,
-                    elixir_def_method,
+                    elixir_def,
                     elixir_errors,
                     elixir_glob,
                     elixir_interpolation,

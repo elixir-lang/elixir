@@ -40,4 +40,4 @@ compile_list() ->
   ].
 
 compile_main() ->
-  [].
+  ["lib/elixir/macros.ex"].

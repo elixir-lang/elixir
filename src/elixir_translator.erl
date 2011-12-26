@@ -169,9 +169,9 @@ translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kin
       { TClause, _ } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], Guards, ClauseScope),
 
       Arity = length(element(3, TClause)),
-      { Unpacked, Defaults } = elixir_def_method:unpack_default_clause(Name, TClause),
+      { Unpacked, Defaults } = elixir_def:unpack_default_clause(Name, TClause),
       Method = { function, Line, Name, Arity, [Unpacked] },
-      { elixir_def_method:wrap_method_definition(Kind, Line, S#elixir_scope.filename, Module, Method, Defaults), S }
+      { elixir_def:wrap_method_definition(Kind, Line, S#elixir_scope.filename, Module, Method, Defaults), S }
   end;
 
 % TODO: Handle tree errors properly

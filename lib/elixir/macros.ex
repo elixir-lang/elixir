@@ -17,7 +17,7 @@ ns Elixir::Macros
 #     Foo.secret #=> it will raise 'undef' error
 #
 defmacro private do
-  quote(Erlang.elixir_def_method.set_visibility(__NAMESPACE__, :private))
+  quote(Erlang.elixir_def.set_visibility(__NAMESPACE__, :private))
 end
 
 # Provides a 'public' macro for restrict visibility of functions
@@ -37,7 +37,7 @@ end
 #     Foo.secret #=> :secret
 #
 defmacro public do
-  quote(Erlang.elixir_def_method.set_visibility(__NAMESPACE__, :public))
+  quote(Erlang.elixir_def.set_visibility(__NAMESPACE__, :public))
 end
 
 # Provides an integer division macro according to Erlang semantics.
@@ -218,7 +218,7 @@ end
 
 # Mark visibility from here on to private. We can't use the
 # private macro because it is defined in this namespace.
-Erlang.elixir_def_method.set_visibility(__NAMESPACE__, :private)
+Erlang.elixir_def.set_visibility(__NAMESPACE__, :private)
 
 # Build if clauses by nesting them recursively.
 # For instance, the following clause:

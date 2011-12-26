@@ -1,10 +1,9 @@
 % Holds the logic responsible for methods definition during compile time.
 % For methods introspection, check elixir_methods.
--module(elixir_def_method).
+-module(elixir_def).
 -export([unpack_default_clause/2, new_method_table/1, set_visibility/2,
   wrap_method_definition/6, store_wrapped_method/5, unwrap_stored_methods/1]).
 -include("elixir.hrl").
-
 
 % Visibility
 set_visibility(Name, Visibility) when is_atom(Name) ->
