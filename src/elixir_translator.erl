@@ -101,7 +101,7 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 
 %% Modules
 
-translate_each({ns, Line, [Ref]}, S) ->
+translate_each({module, Line, [Ref]}, S) ->
   case S#elixir_scope.function of
     [] ->
       { TRef, NS } = translate_each(Ref, S),
@@ -126,13 +126,13 @@ translate_each({ns, Line, [Ref]}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for module")
   end;
 
-translate_each({'__NAMESPACE__', Line, []}, S) ->
+translate_each({'__MODULE__', Line, []}, S) ->
   case S#elixir_scope.module of
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined");
     Module  -> {{atom, Line, Module }, S}
   end;
 
-translate_each({endns, Line, []}, S) ->
+translate_each({endmodule, Line, []}, S) ->
   case S#elixir_scope.module of
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined");
     _  -> { elixir_module:transform(Line, compile, S), S#elixir_scope{module=[]} }

@@ -29,7 +29,7 @@ if_elsif_else_test() ->
 vars_if_test() ->
   F = fun() ->
     {1, [{foo,1}]} = elixir:eval("if foo = 1 do; true; else: false; end; foo"),
-    elixir:eval("ns Bar\ndef foo, do: 1\ndef bar(x) do\nif x do; foo = 2; else: foo = foo; end; foo; end\n"),
+    elixir:eval("module Bar\ndef foo, do: 1\ndef bar(x) do\nif x do; foo = 2; else: foo = foo; end; foo; end\n"),
     {1, _} = elixir:eval("Bar.bar(false)"),
     {2, _} = elixir:eval("Bar.bar(true)")
   end,
@@ -40,7 +40,7 @@ vars_if_test() ->
 %   {3, _} = elixir:eval("x = 1\nif true\n\~x = 1\nx = 2\nx = 3\nelse true\nend\nx"),
 %   {1, _} = elixir:eval("if true\nx = 1\nelse true\nend\nx"),
 %   {nil, _} = elixir:eval("if false\nx = 1\nelse true\nend\nx").
-% 
+%
 
 % Try
 
@@ -85,7 +85,7 @@ case_with_do_ambiguity_test() ->
 
 vars_case_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef foo, do: 1\ndef bar(x) do\ncase x do\nmatch: true; foo = 2\nmatch: false; foo = foo\nend\nfoo\nend"),
+    elixir:eval("module Bar\ndef foo, do: 1\ndef bar(x) do\ncase x do\nmatch: true; foo = 2\nmatch: false; foo = foo\nend\nfoo\nend"),
     {1, _} = elixir:eval("Bar.bar(false)"),
     {2, _} = elixir:eval("Bar.bar(true)")
   end,
@@ -151,7 +151,7 @@ integer_and_float_test() ->
 
 and_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
+    elixir:eval("module Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
     {true, _} = elixir:eval("true and true"),
     {false, _} = elixir:eval("true and false"),
     {false, _} = elixir:eval("false and true"),
@@ -168,7 +168,7 @@ and_test() ->
 
 or_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
+    elixir:eval("module Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
     {true, _} = elixir:eval("true or true"),
     {true, _} = elixir:eval("true or false"),
     {true, _} = elixir:eval("false or true"),
@@ -184,7 +184,7 @@ or_test() ->
 
 xor_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
+    elixir:eval("module Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
     {false, _} = elixir:eval("true xor true"),
     {true, _} = elixir:eval("true xor false"),
     {true, _} = elixir:eval("false xor true"),
@@ -200,7 +200,7 @@ xor_test() ->
 
 andalso_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
+    elixir:eval("module Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
     {true, _} = elixir:eval("true andalso true"),
     {false, _} = elixir:eval("true andalso false"),
     {false, _} = elixir:eval("false andalso true"),
@@ -218,7 +218,7 @@ andalso_test() ->
 
 orelse_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
+    elixir:eval("module Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
     {true, _} = elixir:eval("true orelse true"),
     {true, _} = elixir:eval("true orelse false"),
     {true, _} = elixir:eval("false orelse true"),
@@ -241,7 +241,7 @@ not_test() ->
 
 andand_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
+    elixir:eval("module Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
     {true, _} = elixir:eval("Elixir::Macros.&&(true, true)"),
     {true, _} = elixir:eval("true && true"),
     {false, _} = elixir:eval("true && false"),
@@ -265,7 +265,7 @@ andand_test() ->
 
 oror_test() ->
   F = fun() ->
-    elixir:eval("ns Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
+    elixir:eval("module Bar\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1"),
     {true, _} = elixir:eval("Elixir::Macros.||(false, true)"),
     {true, _} = elixir:eval("true || true"),
     {true, _} = elixir:eval("true || false"),
