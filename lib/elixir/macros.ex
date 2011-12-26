@@ -1,10 +1,10 @@
-ns Elixir::Macros
+module Elixir::Macros
 
 # Provides a 'private' macro for restrict visibility of functions
 #
 # == Examples
 #
-#     ns Foo   # definition of Foo namespace
+#     module Foo   # definition of Foo module
 #
 #     private  # mark following functions as private
 #
@@ -12,19 +12,19 @@ ns Elixir::Macros
 #       :secret
 #     end
 #
-#     endns    # ends namespace here
+#     endmodule    # ends module here
 #
 #     Foo.secret #=> it will raise 'undef' error
 #
 defmacro private do
-  quote(Erlang.elixir_def.set_visibility(__NAMESPACE__, :private))
+  quote(Erlang.elixir_def.set_visibility(__MODULE__, :private))
 end
 
 # Provides a 'public' macro for restrict visibility of functions
 #
 # == Examples
 #
-#     ns Foo  # definition of Foo namespace
+#     module Foo  # definition of Foo module
 #
 #     public  # mark following functions as public (the default)
 #
@@ -32,12 +32,12 @@ end
 #       :secret
 #     end
 #
-#     endns   # ends namespace here
+#     endmodule   # ends module here
 #
 #     Foo.secret #=> :secret
 #
 defmacro public do
-  quote(Erlang.elixir_def.set_visibility(__NAMESPACE__, :public))
+  quote(Erlang.elixir_def.set_visibility(__MODULE__, :public))
 end
 
 # Provides an integer division macro according to Erlang semantics.
@@ -217,8 +217,8 @@ defmacro !(expr) do
 end
 
 # Mark visibility from here on to private. We can't use the
-# private macro because it is defined in this namespace.
-Erlang.elixir_def.set_visibility(__NAMESPACE__, :private)
+# private macro because it is defined in this module.
+Erlang.elixir_def.set_visibility(__MODULE__, :private)
 
 # Build if clauses by nesting them recursively.
 # For instance, the following clause:
