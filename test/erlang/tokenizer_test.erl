@@ -85,3 +85,6 @@ string_test() ->
 
 functions_test() ->
   [{do_identifier,1,fn},{do,1},{number,1,1}] = tokenize("fn do 1").
+
+default_test() ->
+  [{identifier,1,x},{'//',1},{number,1,1}] = tokenize("x // 1").

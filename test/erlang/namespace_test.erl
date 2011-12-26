@@ -64,8 +64,16 @@ namespace_private_test() ->
 
 namespace_public_test() ->
   F = fun() ->
-    elixir:eval("ns Foo\n public\ndef version, do: __NAMESPACE__\n"),
+    elixir:eval("ns Foo\nprivate\npublic\ndef version, do: __NAMESPACE__\n"),
     ?assertEqual({'::Foo', []}, elixir:eval("Foo.version"))
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
+namespace_def_default_test() ->
+  F = fun() ->
+    elixir:eval("ns Foo\ndef version(x // 1), do: x\n"),
+    ?assertEqual({1, []}, elixir:eval("Foo.version")),
+    ?assertEqual({2, []}, elixir:eval("Foo.version(2)"))
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 

@@ -12,7 +12,7 @@ unpack(Name, Clause) ->
 %% Unpack default from given args.
 %% Returns the given arguments without their default
 %% clauses and a list of clauses for the default calls.
-unpack_each(Name, [{':=', Line, [Expr, _Default]}|T] = List, Acc, Clauses) ->
+unpack_each(Name, [{call, _, {atom, Line, '//'}, [Expr, _Default]}|T] = List, Acc, Clauses) ->
   { Args, Invoke } = build_default_arg(Acc, Line, [], []),
   Defaults = lists:map(fun extract_default/1, List),
   Clause = { clause, Line, Args, [], [
@@ -27,7 +27,7 @@ unpack_each(_Name, [], Acc, Clauses) ->
   { lists:reverse(Acc), lists:reverse(Clauses) }.
 
 % Extract default values
-extract_default({':=', _Line, [_Expr, Default]}) ->
+extract_default({call, _, {atom, _,'//'}, [_Expr, Default]}) ->
   Default.
 
 % Build default arguments for the function clause and for invocation.
