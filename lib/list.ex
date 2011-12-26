@@ -22,7 +22,7 @@ end
 
 def mapfoldl([h|t], acc, f) do  
   { result, acc } = f.(h, acc)
-  { rest, acc }   = mapfoldl(f, acc, t)
+  { rest, acc }   = mapfoldl(t, acc, f)
   { [result|rest], acc }
 end
 

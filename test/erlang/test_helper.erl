@@ -12,6 +12,7 @@ test() ->
     match_test,
     namespace_test,
     operators_test,
+    record_test,
     string_test,
     tokenizer_test,
     translator_test
