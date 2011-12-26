@@ -7,7 +7,7 @@ Nonterminals
   matched_expr matched_op_expr unmatched_expr unmatched_op_expr
   comma_separator kv_eol
   add_op mult_op unary_op addadd_op multmult_op
-  match_op pipe_op arrow_op ref_op default_op
+  match_op arrow_op ref_op default_op when_op pipe_op
   andand_op oror_op andalso_op orelse_op and_op or_op comp_expr_op
   open_paren close_paren
   open_bracket close_bracket
@@ -29,7 +29,7 @@ Terminals
   do_identifier curly_identifier
   number signed_number atom ref string
   call_op special_op dot_call_op comp_op
-  'not' 'and' 'or' 'xor' 'andalso' 'orelse'
+  'not' 'and' 'or' 'xor' 'andalso' 'orelse' 'when'
   '=' '+' '-' '*' '/' '++' '--' '**' '//' '<-'
   '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::'
   '&&' '||' '!'
@@ -41,14 +41,15 @@ Right     10 match_op.
 Left      20 do.
 Left      30 ','.  % Solve nested call_args conflicts
 Right     40 default_op.
-Left      50 pipe_op.
-Right     60 arrow_op.
-Left      70 oror_op.
-Left      80 andand_op.
-Left      90 orelse_op.
-Left     100 andalso_op.
-Left     110 or_op.
-Left     120 and_op.
+Right     50 when_op.
+Left      60 pipe_op.
+Right     70 arrow_op.
+Left      80 oror_op.
+Left      90 andand_op.
+Left     100 orelse_op.
+Left     110 andalso_op.
+Left     120 or_op.
+Left     130 and_op.
 Left     150 comp_expr_op.
 Left     160 add_op.
 Left     170 mult_op.
@@ -92,6 +93,7 @@ unmatched_op_expr -> expr orelse_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr and_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr or_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr pipe_op expr : build_op('$2', '$1', '$3').
+unmatched_op_expr -> expr when_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr arrow_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr ref_op expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> expr default_op expr : build_op('$2', '$1', '$3').
@@ -112,6 +114,7 @@ matched_op_expr -> matched_expr orelse_op matched_expr : build_op('$2', '$1', '$
 matched_op_expr -> matched_expr and_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr or_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr pipe_op matched_expr : build_op('$2', '$1', '$3').
+matched_op_expr -> matched_expr when_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr arrow_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr ref_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr default_op matched_expr : build_op('$2', '$1', '$3').
@@ -232,6 +235,9 @@ or_op -> 'xor' eol : '$1'.
 
 pipe_op -> '|' : '$1'.
 pipe_op -> '|' eol : '$1'.
+
+when_op -> 'when' : '$1'.
+when_op -> 'when' eol : '$1'.
 
 arrow_op -> '<-' : '$1'.
 arrow_op -> '<-' eol : '$1'.

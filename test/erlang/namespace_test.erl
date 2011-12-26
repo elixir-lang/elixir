@@ -86,7 +86,7 @@ namespace_def_default_test() ->
 
 namespace_def_with_guard_test() ->
   F = fun() ->
-    elixir:eval("ns Foo\ndef v(x) | x < 10, do: true\ndef v(x) | x >= 10, do: false\n"),
+    elixir:eval("ns Foo\ndef v(x) when x < 10, do: true\ndef v(x) when x >= 10, do: false\n"),
     {true,_} = elixir:eval("Foo.v(0)"),
     {false,_} = elixir:eval("Foo.v(20)")
   end,

@@ -368,4 +368,5 @@ keyword('or')      -> true;
 keyword('xor')     -> true;
 keyword('andalso') -> true;
 keyword('orelse')  -> true;
+keyword('when')    -> true;
 keyword(_)         -> false.

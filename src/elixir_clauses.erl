@@ -39,7 +39,7 @@ assigns_blocks(Fun, Args, Exprs, Guards, S) ->
 
 % Extract guards from the given expression.
 
-extract_guards({ '|', _, [Left, Right] }) -> { Left, [Right] };
+extract_guards({ 'when', _, [Left, Right] }) -> { Left, [Right] };
 extract_guards(Else) -> { Else, [] }.
 
 % Extract name and args from the given expression.
