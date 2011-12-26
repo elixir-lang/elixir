@@ -146,14 +146,12 @@ translate_each({ref, Line, [Ref]}, S) when is_atom(Ref) ->
 translate_each({'::', Line, Args}, S) when is_list(Args) ->
   { TArgs, NS } = translate_args(Args, S),
   Atoms = [Atom || { atom, _, Atom } <- TArgs],
-
   Final = case length(Atoms) == length(TArgs) of
     true  -> { atom, Line, elixir_module:modulize(Atoms) };
     false ->
       FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
       ?ELIXIR_WRAP_CALL(Line, elixir_module, modulize, FArgs)
   end,
-
   { Final, NS };
 
 %% Def
@@ -267,16 +265,6 @@ translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
   end,
   elixir_macro:dispatch_one('::Elixir::Macros', Atom, Args, S, Callback);
 
-%% Erlang calls
-
-translate_each({{'.', _, [{ ref, _, ['Erlang']}, Atom]}, Line, Args}, S) when is_atom(Atom) ->
-  { TArgs, NS } = translate_args(Args, S),
-  { { call, Line, { atom, Line, Atom }, TArgs }, NS };
-
-translate_each({{'.', _, [{{ '.', _, [{ref, _, ['Erlang']}, Remote]}, _, _}, Atom]}, Line, Args}, S) when is_atom(Atom) and is_atom(Remote) ->
-  { TArgs, NS } = translate_args(Args, S),
-  { ?ELIXIR_WRAP_CALL(Line, Remote, Atom, TArgs), NS };
-
 %% Dot calls
 
 translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
@@ -289,6 +277,8 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
   end,
 
   case { TLeft, TRight } of
+    { { atom, _, '::Erlang' }, { atom, _, Atom } } ->
+      { { atom, Line, Atom }, S };
     { { atom, _, Receiver }, { atom, _, Name } }  ->
       elixir_macro:dispatch_one(Receiver, Name, Args, umergev(SL, SR), Callback);
     { { var, _, _ }, { var, _, _ } }  ->

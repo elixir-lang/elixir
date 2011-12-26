@@ -3,9 +3,9 @@
 -include("elixir.hrl").
 
 dispatch_one(Receiver, Name, Args, S, Callback) ->
-  case is_bootstrap(S#elixir_scope.module) of
-    true  -> Callback();
-    false ->
+  case has_macros(S#elixir_scope.module) of
+    false -> Callback();
+    true  ->
       Arity = length(Args),
       try
         case lists:member({Name, Arity}, Receiver:'__macros__'()) of
@@ -21,5 +21,5 @@ dispatch_one(Receiver, Name, Args, S, Callback) ->
       end
   end.
 
-is_bootstrap('::Elixir::Macros') -> true;
-is_bootstrap(_) -> false.
+has_macros('::Elixir::Macros') -> false;
+has_macros(_)                  -> true.
