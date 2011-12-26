@@ -19,11 +19,11 @@ transform(Line, Kind, S) ->
 build(_Line, _Filename, Module) ->
   AttributeTable = ?ELIXIR_ATOM_CONCAT([a, Module]),
   ets:new(AttributeTable, [set, named_table, private]),
-  elixir_def:new_method_table(Module).
+  elixir_def:build_table(Module).
 
 compile(Line, Filename, Module) ->
   try
-    {E0, Macros, F0} = elixir_def:unwrap_stored_methods(Module),
+    {E0, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
 
     { E1, F1 } = add_extra_function(E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
 
