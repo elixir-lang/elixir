@@ -17,8 +17,7 @@ transform(Line, Kind, S) ->
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, Kind, Args).
 
 build(_Line, _Filename, Module) ->
-  AttributeTable = ?ELIXIR_ATOM_CONCAT([a, Module]),
-  ets:new(AttributeTable, [set, named_table, private]),
+  build_table(Module),
   elixir_def:build_table(Module).
 
 compile(Line, Filename, Module) ->
@@ -35,11 +34,10 @@ compile(Line, Filename, Module) ->
     ],
 
     Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
-    Table = ?ELIXIR_ATOM_CONCAT([a, Module]),
-    Forms = ets:foldr(Transform, Base, Table),
+    Forms = ets:foldr(Transform, Base, table(Module)),
     load_form(Forms, Filename)
   after
-    ets:delete(?ELIXIR_ATOM_CONCAT([a,Module])),
+    delete_table(Module),
     elixir_def:delete_table(Module)
   end.
 
@@ -77,6 +75,17 @@ macros_function(Line, Macros) ->
   { function, Line, '__macros__', 0,
     [{ clause, Line, [], [], [Tuples]}]
   }.
+
+%% Table methods
+
+table(Module) ->
+  ?ELIXIR_ATOM_CONCAT([a, Module]).
+
+build_table(Module) ->
+  ets:new(table(Module), [set, named_table, private]).
+
+delete_table(Module) ->
+  ets:delete(table(Module)).
 
 % ATTRIBUTES
 

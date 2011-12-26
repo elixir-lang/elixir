@@ -1,7 +1,8 @@
 % Holds the logic responsible for functions definition during compile time.
 -module(elixir_def).
 -export([set_visibility/2,
-  table/1, build_table/1, delete_table/1,
+  build_table/1,
+  delete_table/1,
   wrap_definition/6,
   store_definition/5,
   unwrap_stored_definitions/1]).
