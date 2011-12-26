@@ -12,8 +12,6 @@ module Elixir::Macros
 #       :secret
 #     end
 #
-#     endmodule    # ends module here
-#
 #     Foo.secret #=> it will raise 'undef' error
 #
 defmacro private do
@@ -31,8 +29,6 @@ end
 #     def secret do
 #       :secret
 #     end
-#
-#     endmodule   # ends module here
 #
 #     Foo.secret #=> :secret
 #
