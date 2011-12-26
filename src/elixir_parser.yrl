@@ -254,8 +254,7 @@ dot_punctuated_identifier -> punctuated_identifier : '$1'.
 dot_punctuated_identifier -> matched_expr dot_op punctuated_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
 parens_call -> dot_paren_identifier : '$1'.
-parens_call -> matched_expr dot_call_op : { '.', ?line('$2'), ['$1'] }. % Fun calls
-parens_call -> dot_call_op call_args_parens : build_identifier('$1', '$2'). % .(args)
+parens_call -> matched_expr dot_call_op : { '.', ?line('$2'), ['$1'] }. % Fun/local calls
 parens_call -> call_op : '$1'. % +(args)
 
 % Function calls
