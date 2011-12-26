@@ -56,8 +56,8 @@ Left     170 mult_op.
 Right    180 addadd_op.
 Right    190 multmult_op.
 Nonassoc 250 unary_op.
-Nonassoc 260 call_op.
-Nonassoc 260 dot_call_op.
+Left     260 call_op.
+Right    260 dot_call_op.
 Nonassoc 270 var.
 Left     280 dot_op.
 Right    290 ref_op.
