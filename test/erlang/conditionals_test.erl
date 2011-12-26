@@ -75,7 +75,7 @@ case_kv_args_and_block_match_test() ->
   {ok,  _} = elixir:eval("case [3,4], match: [1,2] do\nmatch: [3,4]\n:ok\nend").
 
 case_with_do_ambiguity_test() ->
-  {1,_} = elixir:eval("case quote(true) do\nmatch: true; 1\nmatch: _; false\nend").
+  {true,_} = elixir:eval("case atom_to_list(true) do\nmatch: _; true\nend").
 
 % multi_assigned_case_test() ->
 %   {3, _} = elixir:eval("x = 1\ncase true match true\nx = 2\nx = 3\nelse true\nend\nx"),

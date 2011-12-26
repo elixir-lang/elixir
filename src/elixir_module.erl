@@ -2,7 +2,7 @@
 -export([transform/3, build/3, compile/3, modulize/1]).
 -include("elixir.hrl").
 
-modulize(Args) -> list_to_atom(lists:concat([modulize_(Arg) || Arg <- Args])).
+modulize(Args) -> list_to_atom(lists:concat([modulize_(Arg) || Arg <- Args, Arg /= nil])).
 
 modulize_(Arg) ->
   case Ref = atom_to_list(Arg) of

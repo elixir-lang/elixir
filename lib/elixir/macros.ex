@@ -17,7 +17,7 @@ module Elixir::Macros
 #     Foo.secret #=> it will raise 'undef' error
 #
 defmacro private do
-  quote(Erlang.elixir_def.set_visibility(__MODULE__, :private))
+  quote { Erlang.elixir_def.set_visibility(__MODULE__, :private) }
 end
 
 # Provides a 'public' macro for restrict visibility of functions
@@ -37,7 +37,7 @@ end
 #     Foo.secret #=> :secret
 #
 defmacro public do
-  quote(Erlang.elixir_def.set_visibility(__MODULE__, :public))
+  quote { Erlang.elixir_def.set_visibility(__MODULE__, :public) }
 end
 
 # Provides an integer division macro according to Erlang semantics.
@@ -49,7 +49,7 @@ end
 #     5 div 2 #=> 2
 #
 defmacro div(left, right), do:
-  quote(erlang_op :div, unquote(left), unquote(right))
+  quote { erlang_op :div, unquote(left), unquote(right) }
 
 # Provides an integer remainder macro according to Erlang semantics.
 # Raises an error if one of the arguments is not an integer.
@@ -60,7 +60,7 @@ defmacro div(left, right), do:
 #     5 rem 2 #=> 1
 #
 defmacro rem(left, right), do:
-  quote(erlang_op :rem, unquote(left), unquote(right))
+  quote { erlang_op :rem, unquote(left), unquote(right) }
 
 # Provides an `if` macro. The macro expects the first argument to
 # be a condition and the rest are key-value arguments.
@@ -122,7 +122,7 @@ end
 # unless a value evalutes to true. Check `if` for examples
 # and documentation.
 defmacro unless(clause, options) do
-  quote(if(!unquote(clause), unquote(options)))
+  quote { if(!unquote(clause), unquote(options)) }
 end
 
 # Provide a short-circuit operator that executes the second
@@ -140,7 +140,7 @@ end
 # this operator accepts any expression as arguments, not only booleans.
 # Unfortunately cannot be used in macros.
 defmacro &&(left, right) do
-  quote(
+  quote do
     case unquote(left) do
     match: false
       false
@@ -149,7 +149,7 @@ defmacro &&(left, right) do
     match: _
       unquote(right)
     end
-  )
+  end
 end
 
 # Provide a short-circuit operator that executes the second
@@ -167,20 +167,20 @@ end
 # this operator accepts any expression as arguments, not only booleans.
 # Unfortunately cannot be used in macros.
 defmacro ||(left, right) do
-  quote(
+  quote {
     case !(__oror_var = unquote(left)) do
     match: false
       __oror_var
     else:
       unquote(right)
     end
-  )
+  }
 end
 
 # Optimize !! to avoid generating case twice.
 # :nodoc:
-defmacro !({:!,_,[expr]}) do
-  quote(
+defmacro !({:!, _, [expr]}) do
+  quote {
     case unquote(expr) do
     match: false
       false
@@ -189,7 +189,7 @@ defmacro !({:!,_,[expr]}) do
     else:
       true
     end
-  )
+  }
 end
 
 # Implements the unary operator ! as a macro. It receives any
@@ -204,7 +204,7 @@ end
 #   !nil      #=> true
 #
 defmacro !(expr) do
-  quote(
+  quote do
     case unquote(expr) do
     match: false
       true
@@ -213,7 +213,7 @@ defmacro !(expr) do
     else:
       false
     end
-  )
+  end
 end
 
 # Mark visibility from here on to private. We can't use the
@@ -248,14 +248,14 @@ Erlang.elixir_def.set_visibility(__MODULE__, :private)
 def build_if_clauses([h|t], acc) do
   { condition, clause } = extract_condition_clause(h)
 
-  new_acc = quote(
+  new_acc = quote {
     case !unquote(condition) do
     match: false
       unquote(clause)
     match: true
       unquote(acc)
     end
-  )
+  }
 
   build_if_clauses(t, new_acc)
 end

@@ -101,6 +101,12 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 
 %% Modules
 
+translate_each({module, Line, [Ref, [{do,Block}]]}, S) ->
+  Current = S#elixir_scope.module,
+  Exprs   = [{ns, Line, [Ref]}, Block, {endns, Line, []}],
+  { TExprs, NS } = translate(Exprs, S#elixir_scope{module=[]}),
+  { { block, Line, TExprs }, NS#elixir_scope{module=Current} };
+
 translate_each({module, Line, [Ref]}, S) ->
   case S#elixir_scope.function of
     [] ->
@@ -128,9 +134,10 @@ translate_each({module, Line, [Ref]}, S) ->
 
 translate_each({'__MODULE__', Line, []}, S) ->
   case S#elixir_scope.module of
-    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined");
-    Module  -> {{atom, Line, Module }, S}
-  end;
+    []     -> Module = nil;
+    Module -> []
+  end,
+  { { atom, Line, Module }, S };
 
 translate_each({endmodule, Line, []}, S) ->
   case S#elixir_scope.module of
@@ -159,7 +166,7 @@ translate_each({'::', Line, Args}, S) when is_list(Args) ->
 translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kind == defmacro ->
   Module = S#elixir_scope.module,
   case (Module == []) or (S#elixir_scope.function /= []) of
-    true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for method");
+    true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for " ++ atom_to_list(Kind));
     _ ->
       { TCall, Guards } = elixir_clauses:extract_guards(Call),
       { Name, Args } = elixir_clauses:extract_args(TCall),
@@ -178,12 +185,9 @@ translate_each({Kind, Line, Args}, S) when is_list(Args), Kind == def orelse Kin
 
 %% Quoting
 
-translate_each({quote, _Line, [Expr]}, S) ->
-  elixir_quote:translate_each(Expr, S);
-
 % TODO: Handle tree errors properly
-translate_each({quote, _, Args} = Clause, _S) when is_list(Args) ->
-  error({invalid_arguments_for_quote, Clause});
+translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->
+  elixir_quote:translate_each(Exprs, S);
 
 %% Functions
 

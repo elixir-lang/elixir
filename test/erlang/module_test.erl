@@ -23,14 +23,14 @@ dynamic_function_test() ->
 
 quote_unquote_test() ->
   F = fun() ->
-    elixir:eval("module Foo::Bar::Baz\ndefmacro sum(a, b), do: quote(unquote(a) + unquote(b))"),
+    elixir:eval("module Foo::Bar::Baz\ndefmacro sum(a, b), do: quote { unquote(a) + unquote(b) }"),
     {'+',0,[1,2]} = '::Foo::Bar::Baz':sum(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
 operator_macro_test() ->
   F = fun() ->
-    elixir:eval("module Foo::Bar::Baz\ndefmacro +(a, b), do: quote(unquote(a) - unquote(b))"),
+    elixir:eval("module Foo::Bar::Baz\ndefmacro +(a, b), do: quote { unquote(a) - unquote(b) }"),
     {'-',0,[1,2]} = '::Foo::Bar::Baz':'+'(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
@@ -58,7 +58,8 @@ def_shortcut_and_endns_test() ->
 
 macro_test() ->
   F = fun() ->
-    {'::Foo',[]} = elixir:eval("module Foo\ndef version, do: __MODULE__\nendmodule\nFoo.version")
+    {'::Foo',[]} = elixir:eval("module Foo\ndef version, do: __MODULE__\nendmodule\nFoo.version"),
+    {nil,[]} = elixir:eval("__MODULE__")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
@@ -91,6 +92,15 @@ def_with_guard_test() ->
     {false,_} = elixir:eval("Foo.v(20)")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
+
+do_end_test() ->
+  F = fun() ->
+    elixir:eval("module Foo\ndef a, do: 1\nmodule Bar do\ndef b, do: 2\nend\ndef c, do: 3"),
+    {1,_} = elixir:eval("Foo.a"),
+    {2,_} = elixir:eval("Bar.b"),
+    {3,_} = elixir:eval("Foo.c")
+  end,
+  test_helper:run_and_remove(F, ['::Foo', '::Bar']).
 
 single_ref_test() ->
   { '::Foo', _ } = elixir:eval("Foo"),
