@@ -39,6 +39,9 @@ extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
 
 %% Bin strings
 
+empty_bin_string_test() ->
+  {<<"">>, _} = elixir:eval("\"\"").
+
 simple_bin_string_test() ->
   {<<"foo">>, _} = elixir:eval("\"foo\"").
 
@@ -73,6 +76,9 @@ invalid_string_interpolation_test() ->
   ?assertError({badsyntax, {1, <<"nofile">>, _, _}}, elixir:eval("\"f#{{}o\"")).
 
 %% List strings
+
+empty_list_string_test() ->
+  {[], _} = elixir:eval("\'\'").
 
 simple_list_string_test() ->
   {"foo", _} = elixir:eval("'foo'").
