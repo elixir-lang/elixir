@@ -2,19 +2,17 @@ module Record
 
 # Main entry point for records definition.
 defmacro define(_parent, name, values) do
-  functions = getters_and_setters(values, 1, [])
-  functions = [initializers(name, values)|functions]
-
   quote do
     # Use `module NAME, do: CONTENTS` syntax which is
     # the same as `module NAME do CONTENTS end`. We need
     # to wrap this in a block so this module declaration
     # do not affect the outer module one.
-    module unquote(name), do: unquote(functions)
+    module unquote(name) do
+      Record.getters_and_setters(unquote(values), 1, [])
+      Record.initializers(__MODULE__, unquote(values))
+    end
   end
 end
-
-private
 
 # Define initializers methods. For a declaration like:
 #
@@ -34,7 +32,7 @@ private
 #       { FileInfo, Orddict.fetch(opts, :atime, nil), Orddict.fetch(opts, :mtime, nil) }
 #     end
 #
-def initializers(name, values) do
+defmacro initializers(name, values) do
   # Get default values from the dictionary.
   defaults  = Orddict.values(values)
 
@@ -82,7 +80,7 @@ end
 # syntax as `unquote(key)(record)` wouldn't be valid (as Elixir
 # allows you to parenthesis just on specific cases as `foo()`
 # and `foo.bar()`)
-def getters_and_setters([{ key, _ }|t], i, acc) do
+defmacro getters_and_setters([{ key, _ }|t], i, acc) do
   i = i + 1
 
   contents = quote do
@@ -98,4 +96,4 @@ def getters_and_setters([{ key, _ }|t], i, acc) do
   getters_and_setters(t, i, [contents|acc])
 end
 
-def getters_and_setters([], _i, acc), do: acc
+defmacro getters_and_setters([], _i, acc), do: acc
