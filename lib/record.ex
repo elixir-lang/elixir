@@ -114,7 +114,7 @@ def typed_functions(key, default, i) when is_list(default) do
 
     def unquote(prepend).(value, record) do
       current = element(unquote(i), record)
-      setelement(unquote(i), record, List.prepend(value, current))
+      setelement(unquote(i), record, List.append(value, current))
     end
   end
 end
