@@ -66,6 +66,13 @@ macro_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
+macro_line_test() ->
+  F = fun() ->
+    ?assertMatch({2, []}, elixir:eval("module Foo\ndef line, do: __LINE__\nendmodule\nFoo.line")),
+    ?assertMatch({1, []}, elixir:eval("__LINE__"))
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
 private_test() ->
   F = fun() ->
     elixir:eval("module Foo\n private\ndef version, do: __MODULE__\n"),

@@ -124,6 +124,9 @@ translate_each({'__MODULE__', Line, []}, S) ->
   end,
   { { atom, Line, Module }, S };
 
+translate_each({'__LINE__', Line, []}, S) ->
+  { { atom, Line, Line }, S };
+
 translate_each({endmodule, Line, []}, S) ->
   case S#elixir_scope.module of
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined");
