@@ -81,11 +81,12 @@ expr -> unmatched_expr : '$1'.
 matched_expr   -> matched_op_expr   : '$1'.
 unmatched_expr -> unmatched_op_expr : '$1'.
 
+unmatched_op_expr -> matched_expr match_op unmatched_expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> unary_op expr : build_unary_op('$1', '$2').
 unmatched_op_expr -> special_op expr : build_special_op('$1', '$2').
 unmatched_op_expr -> block_expr : '$1'.
 
-matched_op_expr -> matched_expr match_op expr : build_op('$2', '$1', '$3').
+matched_op_expr -> matched_expr match_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr add_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr mult_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr addadd_op matched_expr : build_op('$2', '$1', '$3').

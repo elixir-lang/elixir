@@ -77,6 +77,12 @@ case_kv_args_and_block_match_test() ->
 case_with_do_ambiguity_test() ->
   {true,_} = elixir:eval("case atom_to_list(true) do\nmatch: _; true\nend").
 
+case_with_match_do_ambiguity_test() ->
+  {true,_} = elixir:eval("case x = atom_to_list(true) do\nmatch: _; true\nend").
+
+case_with_unary_do_ambiguity_test() ->
+  {false,_} = elixir:eval("! case atom_to_list(true) do\nmatch: _; true\nend").
+
 % multi_assigned_case_test() ->
 %   {3, _} = elixir:eval("x = 1\ncase true match true\nx = 2\nx = 3\nelse true\nend\nx"),
 %   {3, _} = elixir:eval("x = 1\ncase 1 match \~x\nx = 2\nx = 3\nelse true\nend\nx"),
