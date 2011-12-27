@@ -59,26 +59,12 @@ def_shortcut_and_endns_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
-module_underscore_macro_test() ->
+macro_test() ->
   F = fun() ->
     {'::Foo',[]} = elixir:eval("module Foo\ndef version, do: __MODULE__\nendmodule\nFoo.version"),
     {nil,[]} = elixir:eval("__MODULE__")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
-
-module_underscore_on_macro_call_test() ->
-  F = fun() ->
-    elixir:eval("module Foo\ndefmacro x(Bar), do: true\n"),
-    elixir:eval("module Bar\nFoo.x(__MODULE__)")
-  end,
-  test_helper:run_and_remove(F, ['::Foo', '::Bar']).
-
-module_underscore_on_nested_macro_call_test() ->
-  F = fun() ->
-    elixir:eval("module Foo\ndefmacro x({ :{}, _, [Bar,1,2] }), do: true\n"),
-    elixir:eval("module Bar\nFoo.x({ __MODULE__, 1, 2 })")
-  end,
-  test_helper:run_and_remove(F, ['::Foo', '::Bar']).
 
 private_test() ->
   F = fun() ->
