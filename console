@@ -1,3 +1,3 @@
 #!/bin/bash
 
-erl -pa ebin -pa deps/*/ebin -name term@127.0.0.1
+rlwrap -a dummy erl -pa ebin -pa exbin -pa deps/*/ebin -name term@127.0.0.1 "$@"
