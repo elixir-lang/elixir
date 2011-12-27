@@ -17,7 +17,8 @@ kv_with_punctuation_test() ->
   {'foo bar',[]} = elixir:eval("Erlang.atom_test.kv(\"foo bar\": nil)").
 
 quoted_atom_test() ->
-  {foo,[]} = elixir:eval(":\"foo\"").
+  {foo,[]} = elixir:eval(":\"foo\""),
+  {foo,[]} = elixir:eval(":'foo'").
 
 atom_with_interpolation_test() ->
   {foo,[]} = elixir:eval(":\"f#{\"o\"}o\"").

@@ -27,7 +27,7 @@ Terminals
   'do' 'end'
   identifier kv_identifier punctuated_identifier paren_identifier
   do_identifier curly_identifier
-  number signed_number atom ref string
+  number signed_number atom ref bin_string list_string
   call_op special_op dot_call_op comp_op
   'not' 'and' 'or' 'xor' 'andalso' 'orelse' 'when'
   '=' '+' '-' '*' '/' '++' '--' '**' '//' '<-'
@@ -136,7 +136,8 @@ base_expr -> var : build_identifier('$1', false).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> ref : '$1'.
-base_expr -> string : build_string('$1').
+base_expr -> bin_string  : build_bin_string('$1').
+base_expr -> list_string : build_list_string('$1').
 
 %% Helpers
 
@@ -433,8 +434,11 @@ build_identifier({ _, Line, Identifier }, Args) ->
 
 %% Interpolation aware
 
-build_string({ string, _Line, [H] }) when is_list(H) -> list_to_binary(H);
-build_string({ string, Line, Args }) -> { bitstr, Line, Args }.
+build_bin_string({ bin_string, _Line, [H] }) when is_list(H) -> list_to_binary(H);
+build_bin_string({ bin_string, Line, Args }) -> { bitstr, Line, Args }.
+
+build_list_string({ list_string, _Line, [H] }) when is_list(H) -> H;
+build_list_string({ list_string, Line, Args }) -> { binary_to_list, Line, [{ bitstr, Line, Args}] }.
 
 build_atom({ atom, _Line, [H] }) when is_atom(H) -> H;
 build_atom({ atom, _Line, [H] }) when is_list(H) -> list_to_atom(H);

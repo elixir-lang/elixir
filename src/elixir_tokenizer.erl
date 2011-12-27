@@ -52,8 +52,8 @@ tokenize(Line, [$.,T|Rest], Tokens) when T == $+; T == $-; T == $*;
 
 % Strings
 
-tokenize(Line, [$"|T], Tokens) ->
-  case elixir_interpolation:extract(Line, string, T, $") of
+tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
+  case elixir_interpolation:extract(Line, string, T, H) of
     { NewLine, Parts, [$:|Rest] } ->
       case Parts of
         [List] when is_list(List) ->
@@ -62,7 +62,11 @@ tokenize(Line, [$"|T], Tokens) ->
           { error, { Line, "invalid interpolation in key", [$"|T] } }
       end;
     { NewLine, Parts, Rest } ->
-      tokenize(NewLine, Rest, [{string,Line,Parts}|Tokens]);
+      Kind = case H == $" of
+        true  -> bin_string;
+        false -> list_string
+      end,
+      tokenize(NewLine, Rest, [{Kind,Line,Parts}|Tokens]);
     Else -> Else
   end;
 
@@ -81,8 +85,8 @@ tokenize(Line, [$:,T|String], Tokens) when T >= $A andalso T =< $Z; T >= $a anda
   { Rest, { _, Atom } } = tokenize_identifier([T|String], []),
   tokenize(Line, Rest, [{atom,Line,[Atom]}|Tokens]);
 
-tokenize(Line, [$:,$"|T], Tokens) ->
-  case elixir_interpolation:extract(Line, atom, T, $") of
+tokenize(Line, [$:,H|T], Tokens) when H == $"; H == $' ->
+  case elixir_interpolation:extract(Line, atom, T, H) of
     { NewLine, Parts, Rest } -> tokenize(NewLine, Rest, [{atom,Line,Parts}|Tokens]);
     Else -> Else
   end;

@@ -39,16 +39,16 @@ extract(Line, Escaping, [$}|Rest], Buffer, [$}], Output, Last) ->
 extract(Line, Escaping, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $"; C == $' ->
   extract(Line, Escaping, Rest, [C|Buffer], Search, Output, Last);
 
-extract(Line, Escaping, [C|Rest], Buffer, Search, Output, Last) when C == $"; C == $' ->
+extract(Line, Escaping, [C|Rest], Buffer, [_|_] = Search, Output, Last) when C == $"; C == $' ->
   extract(Line, Escaping, Rest, [C|Buffer], [C|Search], Output, Last);
 
-extract(Line, Escaping, [${|Rest], Buffer, Search, Output, Last) ->
+extract(Line, Escaping, [${|Rest], Buffer, [_|_] = Search, Output, Last) ->
   extract(Line, Escaping, Rest, [${|Buffer], [$}|Search], Output, Last);
 
-extract(Line, Escaping, [$[|Rest], Buffer, Search, Output, Last) ->
+extract(Line, Escaping, [$[|Rest], Buffer, [_|_] = Search, Output, Last) ->
   extract(Line, Escaping, Rest, [$[|Buffer], [$]|Search], Output, Last);
 
-extract(Line, Escaping, [$(|Rest], Buffer, Search, Output, Last) ->
+extract(Line, Escaping, [$(|Rest], Buffer, [_|_] = Search, Output, Last) ->
   extract(Line, Escaping, Rest, [$(|Buffer], [$)|Search], Output, Last);
 
 % Else
