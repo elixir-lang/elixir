@@ -84,6 +84,10 @@ string_test() ->
   [{bin_string,1,["foo"]}] = tokenize("\"foo\""),
   [{list_string,1,["foo"]}] = tokenize("'foo'").
 
+empty_string_test() ->
+  [{bin_string,1,[""]}] = tokenize("\"\""),
+  [{list_string,1,[""]}] = tokenize("''").
+
 functions_test() ->
   [{do_identifier,1,fn},{do,1},{number,1,1}] = tokenize("fn do 1").
 

@@ -9,10 +9,10 @@ extract(Line, Escaping, String, Last) ->
   extract(Line, Escaping, String, [], [], [], Last).
 
 extract(Line, Escaping, [], Buffer, [], Output, []) ->
-  { Line, lists:reverse(build_interpol(s, Line, Escaping, Buffer, Output)), [] };
+  finish_extraction(Line, Escaping, Buffer, Output, []);
 
 extract(Line, Escaping, [Last|Remaining], Buffer, [], Output, Last) ->
-  { Line, lists:reverse(build_interpol(s, Line, Escaping, Buffer, Output)), Remaining };
+  finish_extraction(Line, Escaping, Buffer, Output, Remaining);
 
 extract(Line, _Escaping, [Last], _Buffer, Search, _Output, Last) ->
   { error, { Line, io_lib:format("unexpected end of string, expected ~ts", [[hd(Search)]]), [Last] } };
@@ -55,6 +55,13 @@ extract(Line, Escaping, [$(|Rest], Buffer, [_|_] = Search, Output, Last) ->
 
 extract(Line, Escaping, [Char|Rest], Buffer, Search, Output, Last) ->
   extract(Line, Escaping, Rest, [Char|Buffer], Search, Output, Last).
+
+finish_extraction(Line, Escaping, Buffer, Output, Remaining) ->
+  case build_interpol(s, Line, Escaping, Buffer, Output) of
+    []    -> Final = [[]];
+    Final -> []
+  end,
+  { Line, lists:reverse(Final), Remaining }.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
