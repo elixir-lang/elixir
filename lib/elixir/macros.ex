@@ -1,7 +1,32 @@
 module Elixir::Macros
 
+# Define a record given by name and values. Example:
+#
+#     defrecord FileInfo, atime: nil, mtime: nil
+#
+# This macro will then define a module named FileInfo
+# which will contain getters and setters for each attribute
+# and initializers methods. Therefore, one can do:
+#
+#     file_info = FileInfo.new(atime: now())
+#     file_info.atime         #=> Returns the value of now()
+#     file_info.atime(now())  #=> Updates the value of now()
+#
+# FileInfo is simply a module with functions specific for
+# the record. Notice that the name of the module is sensitive
+# to the current context. For instance:
+#
+#     defrecord FileInfo, atime: nil, mtime: nil
+#
+# The example above will define a module named FileInfo. However,
+# if invoked inside a module, the name will be nested:
+#
+#     module Foo::Bar
+#     defrecord FileInfo, atime: nil, mtime: nil
+#     Foo::Bar::FileInfo.new # Nested
+#
 defmacro defrecord(name, values) do
-  Record.define(name, values)
+  quote { Record.define(__MODULE__, unquote(name), unquote(values)) }
 end
 
 # Provides a 'private' macro for restrict visibility of functions

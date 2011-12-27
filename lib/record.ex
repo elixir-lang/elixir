@@ -1,18 +1,7 @@
 module Record
 
-# Define a record given by name and values. Example:
-#
-#     defrecord FileInfo, atime: nil, mtime: nil
-#
-# This macro will then define a module named FileInfo
-# which will contain getters and setters for each attribute
-# and initializers methods. Therefore, one can do:
-#
-#     file_info = FileInfo.new(a: now())
-#     file_info.a         #=> Returns the value of now()
-#     file_Info.a(now())  #=> Updates the value of now()
-#
-defmacro define(name, values) do
+# Main entry point for records definition.
+defmacro define(_parent, name, values) do
   functions = getters_and_setters(values, 1, [])
   functions = [initializers(name, values)|functions]
 
