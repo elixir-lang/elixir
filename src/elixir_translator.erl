@@ -268,7 +268,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
       { { atom, Line, Atom }, S };
     { { atom, _, Receiver }, { atom, _, Name } }  ->
       elixir_macro:dispatch_one(Receiver, Name, Args, umergev(SL, SR), Callback);
-    { { Kind, _, _ }, { var, _, _ } } when Kind == var; Kind == tuple ->
+    { { Kind, _, _ }, { atom, _, _ } } when Kind == var; Kind == tuple ->
       Callback();
     _ ->
       { TArgs, SA } = translate_args(Args, umergec(S, SR)),
