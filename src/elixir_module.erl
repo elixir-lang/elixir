@@ -2,6 +2,8 @@
 -export([transform/3, build/3, compile/3, modulize/1]).
 -include("elixir.hrl").
 
+%% Receives a list of atoms representing modules
+%% and concatenate them.
 modulize(Args) -> list_to_atom(lists:concat([modulize_(Arg) || Arg <- Args, Arg /= nil])).
 
 modulize_(Arg) ->
@@ -9,6 +11,8 @@ modulize_(Arg) ->
     "::" ++ _ -> Ref;
     _ -> list_to_atom("::" ++ Ref)
   end.
+
+%% Transforma of args and scope into a compiled erlang call.
 
 transform(Line, Kind, S) ->
   Filename  = S#elixir_scope.filename,

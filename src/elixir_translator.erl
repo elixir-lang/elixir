@@ -107,27 +107,7 @@ translate_each({module, Line, [Ref|Tail]}, S) ->
       { TRef, NS } = translate_each(Ref, S),
       case TRef of
         { atom, _, Module } ->
-          FS = NS#elixir_scope{module = Module},
-          case Tail of
-            [[{do,Block}]] ->
-              { TBlock, BS } = translate_each(Block, FS),
-
-              { { block, Line, [
-                elixir_module:transform(Line, build, FS),
-                TBlock,
-                elixir_module:transform(Line, compile, BS)
-              ] }, BS#elixir_scope{module=S#elixir_scope.module} };
-            _ ->
-              case S#elixir_scope.module of
-                [] ->
-                  { elixir_module:transform(Line, build, FS), FS };
-                _  ->
-                  { { block, Line, [
-                    elixir_module:transform(Line, compile, S),
-                    elixir_module:transform(Line, build, FS)
-                  ] }, FS }
-              end
-          end;
+          module_macro(Line, Tail, S, NS#elixir_scope{module = Module});
         _ ->
           % TODO: Test me
           elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid module name")
@@ -404,3 +384,33 @@ convert_op('!=')  ->  '/=';
 convert_op('<=')  ->  '=<';
 convert_op('<-')  ->  '!';
 convert_op(Else)  ->  Else.
+
+%% Handle the module macro.
+
+%% Handle the case where module is called with a do block.
+%% In such scenarios, we need to define a new block without
+%% affecting the outer module, if one exists.
+module_macro(Line, [[{do,Block}]], OldS, NewS) ->
+  { TBlock, FinalS } = translate_each(Block, NewS),
+
+  Contents = { block, Line, [
+    elixir_module:transform(Line, build, NewS),
+    TBlock,
+    elixir_module:transform(Line, compile, FinalS)
+  ] },
+
+  { Contents, FinalS#elixir_scope{module=OldS#elixir_scope.module} };
+
+%% In cases we call `module` but no module was previously
+%% defined, we should just build the new one.
+module_macro(Line, _Tail, #elixir_scope{module=[]}, NewS) ->
+  { elixir_module:transform(Line, build, NewS), NewS };
+
+%% Finally, if a previous module was defined, we need to
+%% compile it and then build the new one.
+module_macro(Line, _Tail, OldS, NewS) ->
+  Contents = { block, Line, [
+    elixir_module:transform(Line, compile, OldS),
+    elixir_module:transform(Line, build, NewS)
+  ] },
+  { Contents, NewS }.
