@@ -31,8 +31,7 @@ start_app() ->
 
 start() ->
   start_app(),
-  CodeInit = elixir_constants:lookup('Code::Init'),
-  'exCode::Init':process_argv(CodeInit, init:get_plain_arguments()).
+  '::Elixir::CLI':process_argv(init:get_plain_arguments()).
 
 file(Filepath) ->
   file(Filepath, []).

@@ -37,12 +37,12 @@ Terminals
 
 Rootsymbol grammar.
 
-Right     10 match_op.
-Left      20 do.
-Left      30 ','.  % Solve nested call_args conflicts
-Right     40 default_op.
-Right     50 when_op.
-Left      60 pipe_op.
+Left      10 do.
+Left      20 ','.  % Solve nested call_args conflicts
+Right     30 default_op.
+Right     40 when_op.
+Left      50 pipe_op.
+Right     60 match_op.
 Right     70 arrow_op.
 Left      80 oror_op.
 Left      90 andand_op.

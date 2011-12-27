@@ -2,6 +2,9 @@ module Record
 
 # Main entry point for records definition.
 defmacro defrecord(name, values) do
+  do_block = Orddict.fetch(values, :do, nil)
+  values   = Orddict.delete(values, :do)
+
   quote do
     # Use `module NAME, do: CONTENTS` syntax which is
     # the same as `module NAME do CONTENTS end`. We need
@@ -10,6 +13,7 @@ defmacro defrecord(name, values) do
     module __MODULE__ :: unquote(name) do
       Record.getters_and_setters(unquote(values), 1, [])
       Record.initializers(__MODULE__, unquote(values))
+      unquote(do_block)
     end
   end
 end

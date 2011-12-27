@@ -33,6 +33,13 @@ record_new_selective_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
+record_do_extra_test() ->
+  F = fun() ->
+    elixir:eval("defrecord Foo, a: 1, b: 2, c: 3 do\ndef is_one?(record), do: record.a == 1\nend"),
+    { true, _ } = elixir:eval("Foo.new.is_one?")
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
 nested_record_test() ->
   F = fun() ->
     elixir:eval("module Foo\ndefrecord Bar, a: 1, b: 2, c: 3"),

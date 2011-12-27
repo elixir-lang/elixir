@@ -6,9 +6,9 @@
 
 % Function for translating assigns.
 
-assigns(Fun, Args, Scope) ->
-  { Result, NewScope } = Fun(Args, Scope#elixir_scope{assign=true}),
-  { Result, NewScope#elixir_scope{assign=false, temp_vars=[] } }.
+assigns(Fun, Args, S) ->
+  { Result, NewS } = Fun(Args, S#elixir_scope{assign=true}),
+  { Result, NewS#elixir_scope{assign=S#elixir_scope.assign, temp_vars=[] } }.
 
 % Handles assigns with guards
 

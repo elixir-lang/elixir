@@ -88,3 +88,12 @@ head_and_tail_test() ->
 orrdict_match_test() ->
   {[{a,1},{b,2}], _} = elixir:eval("a = [a: 1, b: 2]"),
   {[{a,3},{b,2}], _} = elixir:eval("a = [a: 1, b: 2, a: 3]").
+
+% Function match
+
+function_clause_test() ->
+  F = fun() ->
+    elixir:eval("module Foo\ndef a([{_k,_}=e|_]), do: e\n"),
+    {{foo,bar},_} = elixir:eval("Foo.a([{:foo,:bar}])")
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).

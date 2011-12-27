@@ -39,7 +39,7 @@ handle_file_warning(Filename, {Line,Module,Desc}) ->
 % Handle errors
 
 handle_file_error(Filename, {Line,Module,Desc}) ->
-  elixir_errors:error({badform, { Line, list_to_binary(Filename), Module, Desc }}).
+  elixir_errors:error({badform, { Line, Filename, Module, Desc }}).
 
 % Format each error or warning in the format { Line, Module, Desc }
 
