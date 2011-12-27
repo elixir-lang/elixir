@@ -117,21 +117,26 @@ translate_each({module, Line, [Ref|Tail]}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for module")
   end;
 
-translate_each({'__MODULE__', Line, []}, S) ->
-  case S#elixir_scope.module of
-    []     -> Module = nil;
-    Module -> []
-  end,
-  { { atom, Line, Module }, S };
-
-translate_each({'__LINE__', Line, []}, S) ->
-  { { atom, Line, Line }, S };
-
 translate_each({endmodule, Line, []}, S) ->
   case S#elixir_scope.module of
     [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined");
     _  -> { elixir_module:transform(Line, compile, S), S#elixir_scope{module=[]} }
   end;
+
+%% Built-in macros
+
+translate_each({'__MODULE__', Line, []}, S) ->
+  case S#elixir_scope.module of
+    []     -> Module = nil;
+    Module -> []
+  end,
+  {{ atom, Line, Module }, S };
+
+translate_each({'__LINE__', Line, []}, S) ->
+  {{ integer, Line, Line }, S };
+
+translate_each({'__FILE__', Line, []}, S) ->
+  translate_each(list_to_binary(S#elixir_scope.filename), S);
 
 %% References
 

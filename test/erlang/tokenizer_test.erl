@@ -55,8 +55,14 @@ identifier_test() ->
   [{paren_identifier,1,'a0c'},{'(',1},{')',1}] = tokenize("a0c()"),
   [{paren_identifier,1,'a0c!'},{'(',1},{')',1}] = tokenize("a0c!()").
 
-namespace_test() ->
-   [{identifier,1,'__NAMESPACE__'}] = tokenize("__NAMESPACE__").
+module_macro_test() ->
+    [{identifier,1,'__MODULE__'}] = tokenize("__MODULE__").
+
+line_macro_test() ->
+    [{identifier,1,'__LINE__'}] = tokenize("__LINE__").
+
+file_macro_test() ->
+    [{identifier,1,'__FILE__'}] = tokenize("__FILE__").
 
 dot_test() ->
   [{identifier,1,foo},
