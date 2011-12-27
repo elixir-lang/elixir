@@ -2,9 +2,6 @@ module Record
 
 # Main entry point for records definition.
 defmacro defrecord(name, values) do
-  do_block = Orddict.fetch(values, :do, nil)
-  values   = Orddict.delete(values, :do)
-
   quote do
     # Use `module NAME, do: CONTENTS` syntax which is
     # the same as `module NAME do CONTENTS end`. We need
@@ -13,7 +10,6 @@ defmacro defrecord(name, values) do
     module __MODULE__ :: unquote(name) do
       Record.getters_and_setters(unquote(values), 1, [])
       Record.initializers(__MODULE__, unquote(values))
-      unquote(do_block)
     end
   end
 end
@@ -84,7 +80,7 @@ end
 # syntax as `unquote(key)(record)` wouldn't be valid (as Elixir
 # allows you to parenthesis just on specific cases as `foo()`
 # and `foo.bar()`)
-defmacro getters_and_setters([{ key, _ }|t], i, acc) do
+defmacro getters_and_setters([{ key, default }|t], i, acc) do
   i = i + 1
 
   contents = quote do
@@ -97,7 +93,30 @@ defmacro getters_and_setters([{ key, _ }|t], i, acc) do
     end
   end
 
-  getters_and_setters(t, i, [contents|acc])
+  typed = typed_functions(key, default, i)
+  getters_and_setters(t, i, [contents, typed | acc])
 end
 
 defmacro getters_and_setters([], _i, acc), do: acc
+
+private
+
+def typed_functions(key, default, i) when is_list(default) do
+  bin_key = atom_to_binary(key, :utf8)
+  append  = :"append_#{bin_key}"
+  prepend = :"prepend_#{bin_key}"
+
+  quote do
+    def unquote(append).(value, record) do
+      current = element(unquote(i), record)
+      setelement(unquote(i), record, List.append(current, value))
+    end
+
+    def unquote(prepend).(value, record) do
+      current = element(unquote(i), record)
+      setelement(unquote(i), record, List.prepend(value, current))
+    end
+  end
+end
+
+def typed_functions(_, _, _), do: nil

@@ -1,34 +1,6 @@
 module Elixir::CLI
 
-defrecord Config, commands: [], close: [], halt: true, output: '.', compile: false do
-  def compiling?(record) do
-    record.compile
-  end
-  
-  def compile!(record) do
-    record.compile(true)
-  end
-  
-  def halt?(record) do
-    record.halt
-  end
-
-  def no_halt!(record) do
-    record.halt(false)
-  end
-
-  def add_command(c, record) do
-    record.commands([c|record.commands])
-  end
-
-  def add_close(c, record) do
-    record.close([c|record.close])
-  end
-
-  def all_commands(record) do
-    List.reverse(record.commands ++ record.close)
-  end
-end
+defrecord Config, commands: [], close: [], halt: true, output: '.', compile: false
 
 # Invoked directly from erlang boot process. It parses all argv
 # options and execute them in the order they are specified.
@@ -36,13 +8,14 @@ def process_argv(options) do
   { config, _argv } = process_options(options, Elixir::CLI::Config.new)
   # GenServer.call('elixir_code_server, { 'argv, argv })
 
-  if config.compiling? do
+  if config.compile do
     Erlang.file.make_dir(config.output)
   end
 
-  List.map config.all_commands, fn(c) { process_command(c, config) }
+  all_commands = List.reverse(config.commands) ++ List.reverse(config.close)
+  List.map all_commands, fn(c) { process_command(c, config) }
 
-  if config.halt? do
+  if config.halt do
     halt!(0)
   else:
     Erlang.timer.sleep(:infinity)
@@ -81,7 +54,7 @@ def process_shared(['-v'|t], config) do
 end
 
 def process_shared(['-e',h|t], config) do
-  process_shared t, config.add_command({ :eval, h })
+  process_shared t, config.prepend_commands [{:eval,h}]
 end
 
 def process_shared(['-pa',h|t], config) do
@@ -95,7 +68,7 @@ def process_shared(['-pz',h|t], config) do
 end
 
 def process_shared(['-f',h|t], config) do
-  process_shared t, config.add_close({ :eval, h })
+  process_shared t, config.prepend_close [{:eval,h}]
 end
 
 def process_shared(list, config) do
@@ -105,7 +78,7 @@ end
 # Process init options
 
 def process_options(['--no-halt'|t], config) do
-  process_options t, config.no_halt!
+  process_options t, config.halt(false)
 end
 
 def process_options(['--'|t], config) do
@@ -113,7 +86,7 @@ def process_options(['--'|t], config) do
 end
 
 def process_options(['+compile'|t], config) do
-  process_compiler t, config.compile!
+  process_compiler t, config.compile(true)
 end
 
 def process_options([h|t] = list, config) do

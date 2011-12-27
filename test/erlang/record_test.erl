@@ -33,10 +33,11 @@ record_new_selective_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
-record_do_extra_test() ->
+record_append_prepend_test() ->
   F = fun() ->
-    elixir:eval("defrecord Foo, a: 1, b: 2, c: 3 do\ndef is_one?(record), do: record.a == 1\nend"),
-    { true, _ } = elixir:eval("Foo.new.is_one?")
+    elixir:eval("defrecord Foo, a: 1, b: [3], c: 3"),
+    { { '::Foo', 1, [3,4,5], 3 }, _ } = elixir:eval("Foo.new.append_b  [4,5]"),
+    { { '::Foo', 1, [1,2,3], 3 }, _ } = elixir:eval("Foo.new.prepend_b [1,2]")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
