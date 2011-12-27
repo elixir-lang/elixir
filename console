@@ -1,3 +1,6 @@
 #!/bin/bash
 
-rlwrap -a dummy erl -pa ebin -pa exbin -pa deps/*/ebin -name term@127.0.0.1 "$@"
+if which rlwrap >/dev/null; then
+  WRAPPER="rlwrap -a dummy"
+fi
+$WRAPPER erl -pa ebin -pa exbin -pa deps/*/ebin -name term@127.0.0.1 "$@"
