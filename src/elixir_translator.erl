@@ -180,7 +180,7 @@ translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->
 translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
   { Args, [[{do,Expr}]] } = lists:split(length(RawArgs) - 1, RawArgs),
   { TClause, NS } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], S),
-  { { 'fun', Line, {clauses, [TClause]} }, NS };
+  { { 'fun', Line, {clauses, [TClause]} }, umergec(S, NS) };
 
 %% Try
 

@@ -1,0 +1,175 @@
+module Elixir::CLI
+
+defrecord Config, commands: [], close: [], halt: true, output: '.', compile: false do
+  def compiling?(record) do
+    record.compile
+  end
+  
+  def compile!(record) do
+    record.compile(true)
+  end
+  
+  def halt?(record) do
+    record.halt
+  end
+
+  def no_halt!(record) do
+    record.halt(false)
+  end
+
+  def add_command(c, record) do
+    record.commands([c|record.commands])
+  end
+
+  def add_close(c, record) do
+    record.close([c|record.close])
+  end
+
+  def all_commands(record) do
+    List.reverse(record.commands ++ record.close)
+  end
+end
+
+# Invoked directly from erlang boot process. It parses all argv
+# options and execute them in the order they are specified.
+def process_argv(options) do
+  { config, _argv } = process_options(options, Elixir::CLI::Config.new)
+  # GenServer.call('elixir_code_server, { 'argv, argv })
+
+  if config.compiling? do
+    Erlang.file.make_dir(config.output)
+  end
+
+  List.map config.all_commands, fn(c) { process_command(c, config) }
+
+  if config.halt? do
+    halt!(0)
+  else:
+    Erlang.timer.sleep(:infinity)
+  end
+end
+
+private
+
+def halt!(0) do
+  Erlang.init.stop
+end
+
+def halt!(status) do
+  halt(status)
+end
+
+def invalid_option(option) do
+  Erlang.io.format(:standard_error, "Unknown option #{list_to_binary(option)}\n")
+  halt!(1)
+end
+
+def shared_option?(list, config, callback) do
+  case process_shared(list, config) do
+  match: { [h|t], _ } when h == hd(list)
+    invalid_option h
+  match: { new_list, new_config }
+    callback.(new_list, new_config)
+  end
+end
+
+# Process shared options
+
+def process_shared(['-v'|t], config) do
+  Erlang.io.format "Elixir #{Elixir::Code.version}"
+  process_shared t, config
+end
+
+def process_shared(['-e',h|t], config) do
+  process_shared t, config.add_command({ :eval, h })
+end
+
+def process_shared(['-pa',h|t], config) do
+  Erlang.code.add_patha(h)
+  process_shared t, config
+end
+
+def process_shared(['-pz',h|t], config) do
+  Erlang.code.add_pathz(h)
+  process_shared t, config
+end
+
+def process_shared(['-f',h|t], config) do
+  process_shared t, config.add_close({ :eval, h })
+end
+
+def process_shared(list, config) do
+  { list, config }
+end
+
+# Process init options
+
+def process_options(['--no-halt'|t], config) do
+  process_options t, config.no_halt!
+end
+
+def process_options(['--'|t], config) do
+  { config, t }
+end
+
+def process_options(['+compile'|t], config) do
+  process_compiler t, config.compile!
+end
+
+def process_options([h|t] = list, config) do
+  case h do
+  match: '-' ++ _
+    shared_option? list, config, fn(nl, ns){ process_options(nl, ns) }
+  else:
+    { config.add_command({ :load, h }), t }
+  end
+end
+
+def process_options([], config) do
+  { config, [] }
+end
+
+# Process compiler options
+
+def process_compiler(['--'|t], config) do
+  { config, t }
+end
+
+def process_compiler(['-o',h|t], config) do
+  process_compiler t, config.output(h)
+end
+
+def process_compiler([h|t] = list, config) do
+  case h do
+  match: '-' ++ _
+    shared_option? list, config, fn(nl, ns){ process_compiler(nl, ns) }
+  else:
+    process_compiler t, config.add_command({ :compile, h })
+  end
+end
+
+def process_compiler([], config) do
+  { config, [] }
+end
+
+# Process commands
+
+def process_command({:eval, expr}, _config) do
+  Erlang.elixir.eval(expr, [])
+end
+
+def process_command({:load, file}, _config) do
+  Erlang.elixir.file file
+end
+
+def process_command({:compile, pattern}, config) do
+  compile_patterns [pattern], config
+end
+
+def compile_patterns(lines, config) do
+  lines = List.map lines, fn(line){ Erlang.elixir_glob.wildcard(line) }
+  List.map List.uniq(List.append(lines)), fn(file) {
+    Erlang.io.format "Compiling #{list_to_binary(file)}"
+    Erlang.elixir_compiler.file_to_path(file, config.output)
+  }
+end

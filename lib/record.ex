@@ -92,8 +92,8 @@ defmacro getters_and_setters([{ key, _ }|t], i, acc) do
       element(unquote(i), record)
     end
 
-    def unquote(key).(record, value) do
-      setelement(unquote(i), value, record)
+    def unquote(key).(value, record) do
+      setelement(unquote(i), record, value)
     end
   end
 

@@ -4,7 +4,6 @@ if [ $# -eq 0 ]; then
 
   -v              Prints version and exit
   -o              The directory to output compiled files
-  -s              A specification file with compilation instructions
   -e \"command\"    Evaluates the given command (*)
   -f \"command\"    The same as -e, but executes at the end (*)
   -pa \"path\"      Prepend the given path to Erlang code path (*)
@@ -13,8 +12,6 @@ if [ $# -eq 0 ]; then
 ** Options marked with (*) can be given more than once;
 
 ** Options given after -- are passed down to the executed code;
-
-** The specification file is made of a list of file patterns separated by line break;
 
 ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS." >&2
   exit 1
