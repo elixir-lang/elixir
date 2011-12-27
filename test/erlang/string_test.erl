@@ -73,7 +73,7 @@ bin_string_with_escaped_interpolation_test() ->
   {<<"f#{'o}o">>, _} = elixir:eval("\"f\\#{'o}o\"").
 
 invalid_string_interpolation_test() ->
-  ?assertError({badsyntax, {1, <<"nofile">>, _, _}}, elixir:eval("\"f#{{}o\"")).
+  ?assertError({badsyntax, {1, "nofile", _, _}}, elixir:eval("\"f#{{}o\"")).
 
 %% List strings
 
@@ -111,26 +111,26 @@ list_string_with_escaped_interpolation_test() ->
 %   {99,[]} = elixir:eval("$1 + $2"),
 %   {10,[]} = elixir:eval("$\\n"),
 %   {40,[]} = elixir:eval("$\\(").
-%     
+%
 % bad_char_test() ->
 %   ?assertError({badsyntax, _}, elixir:eval("$foo")).
-% 
+%
 % implicit_string_concatenation_test() ->
 %   {<<"foobar">>, []} = elixir:eval("\"foo\" \"bar\""),
 %   {<<"foobar">>, []} = elixir:eval("\"foo\" \\\n \"bar\""),
 %   {<<"foobarbaz">>, []} = elixir:eval("\"foo\" \\\n \"b#{'a}r\"\\\n\"baz\"").
-% 
+%
 % %% Sigils and Char lists
-% 
+%
 % string_sigils_test() ->
 %   {<<"f#{o}o">>, []} = elixir:eval("~q(f#{o}o)"),
 %   {<<"bar">>, []} = elixir:eval("~Q(b#{'a}r)"),
 %   {<<"b)r">>, []} = elixir:eval("~Q(b\\)r)").
-% 
+%
 % implicit_string_sigils_concatenation_test() ->
 %   {<<"f#{o}obar">>, []} = elixir:eval("~q(f#{o}o) ~Q(b#{'a}r)"),
 %   {<<"f#{o}obar">>, []} = elixir:eval("~q(f#{o}o) \\\n ~Q(b#{'a}r)").
-% 
+%
 % char_list_test() ->
 %   {"foo", []}    = elixir:eval("$\"foo\""),
 %   {"foo", []}    = elixir:eval("$(foo)"),
@@ -139,15 +139,15 @@ list_string_with_escaped_interpolation_test() ->
 %   {"f#{o}o", []} = elixir:eval("~l(f#{o}o)"),
 %   {"bar", []}    = elixir:eval("~L(b#{'a}r)"),
 %   {"b)r", []}    = elixir:eval("~L(b\\)r)").
-% 
+%
 % %% Inspect in other objects
-% 
+%
 % list_inspect_test() ->
 %   {<<"[1,2,3]">>, []} = elixir:eval("[1,2,3].inspect"),
 %   {<<"[102,111,111]">>, []} = elixir:eval("\"foo\".to_char_list.inspect"),
 %   {<<"[1,2,3]">>, []} = elixir:eval("[1,2,3].to_s"),
 %   {<<"[102,111,111]">>, []} = elixir:eval("\"foo\".to_char_list.to_s").
-% 
+%
 % tuple_inspect_test() ->
 %   {<<"{'badmatch,true}">>, []} = elixir:eval("{'badmatch,true}.inspect").
 
