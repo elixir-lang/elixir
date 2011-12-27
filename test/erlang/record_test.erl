@@ -32,3 +32,11 @@ record_new_selective_test() ->
     { 20, _ } = elixir:eval("Foo.new(b: 20).b")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
+
+nested_record_test() ->
+  F = fun() ->
+    elixir:eval("module Foo\ndefrecord Bar, a: 1, b: 2, c: 3"),
+    { { '::Foo::Bar', 1, 2, 3 }, _ } = elixir:eval("Foo::Bar.new"),
+    { 1, _ } = elixir:eval("Foo::Bar.new.a")
+  end,
+  test_helper:run_and_remove(F, ['::Foo', '::Foo::Bar']).

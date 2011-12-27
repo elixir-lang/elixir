@@ -26,7 +26,7 @@ module Elixir::Macros
 #     Foo::Bar::FileInfo.new # Nested
 #
 defmacro defrecord(name, values) do
-  quote { Record.define(__MODULE__, unquote(name), unquote(values)) }
+  Record.defrecord(name, values)
 end
 
 # Provides a 'private' macro for restrict visibility of functions

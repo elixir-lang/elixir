@@ -1,13 +1,13 @@
 module Record
 
 # Main entry point for records definition.
-defmacro define(_parent, name, values) do
+defmacro defrecord(name, values) do
   quote do
     # Use `module NAME, do: CONTENTS` syntax which is
     # the same as `module NAME do CONTENTS end`. We need
     # to wrap this in a block so this module declaration
     # do not affect the outer module one.
-    module unquote(name) do
+    module __MODULE__ :: unquote(name) do
       Record.getters_and_setters(unquote(values), 1, [])
       Record.initializers(__MODULE__, unquote(values))
     end

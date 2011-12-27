@@ -101,28 +101,33 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 
 %% Modules
 
-translate_each({module, Line, [Ref, [{do,Block}]]}, S) ->
-  Current = S#elixir_scope.module,
-  Exprs   = [{module, Line, [Ref]}, Block, {endmodule, Line, []}],
-  { TExprs, NS } = translate(Exprs, S#elixir_scope{module=[]}),
-  { { block, Line, TExprs }, NS#elixir_scope{module=Current} };
-
-translate_each({module, Line, [Ref]}, S) ->
+translate_each({module, Line, [Ref|Tail]}, S) ->
   case S#elixir_scope.function of
     [] ->
       { TRef, NS } = translate_each(Ref, S),
       case TRef of
         { atom, _, Module } ->
           FS = NS#elixir_scope{module = Module},
-          Expr = case S#elixir_scope.module of
-            [] -> elixir_module:transform(Line, build, FS);
-            _  ->
-              { block, Line, [
-                elixir_module:transform(Line, compile, S),
-                elixir_module:transform(Line, build, FS)
-              ] }
-          end,
-          { Expr, FS };
+          case Tail of
+            [[{do,Block}]] ->
+              { TBlock, BS } = translate_each(Block, FS),
+
+              { { block, Line, [
+                elixir_module:transform(Line, build, FS),
+                TBlock,
+                elixir_module:transform(Line, compile, BS)
+              ] }, BS#elixir_scope{module=S#elixir_scope.module} };
+            _ ->
+              case S#elixir_scope.module of
+                [] ->
+                  { elixir_module:transform(Line, build, FS), FS };
+                _  ->
+                  { { block, Line, [
+                    elixir_module:transform(Line, compile, S),
+                    elixir_module:transform(Line, build, FS)
+                  ] }, FS }
+              end
+          end;
         _ ->
           % TODO: Test me
           elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid module name")
