@@ -76,7 +76,7 @@ end
 # Process shared options
 
 def process_shared(['-v'|t], config) do
-  Erlang.io.format "Elixir #{Elixir::Code.version}"
+  Erlang.io.format "Elixir #{Elixir::Code.version}\n"
   process_shared t, config
 end
 
@@ -167,9 +167,9 @@ def process_command({:compile, pattern}, config) do
 end
 
 def compile_patterns(lines, config) do
-  lines = List.map lines, fn(line){ Erlang.elixir_glob.wildcard(line) }
+  lines = List.map lines, fn(line){ Erlang.elixir_glob.wildcard(line, '.') }
   List.map List.uniq(List.append(lines)), fn(file) {
-    Erlang.io.format "Compiling #{list_to_binary(file)}"
+    Erlang.io.format "Compiling #{list_to_binary(file)}\n"
     Erlang.elixir_compiler.file_to_path(file, config.output)
   }
 end

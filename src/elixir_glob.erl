@@ -22,10 +22,10 @@
 -compile({no_auto_import,[error/1]}).
 -export([wildcard/2]).
 
-wildcard(Pattern, Mod) when is_binary(Pattern) ->
-  Compiled = do_compile_wildcard(binary_to_list(Pattern)),
+wildcard(Pattern, Mod) ->
+  Compiled = do_compile_wildcard(Pattern),
   Results = do_wildcard_comp(Compiled, Mod),
-  [list_to_binary(Result) || Result <- lists:sort(Results)].
+  lists:sort(Results).
 
 do_wildcard_comp({compiled_wildcard,{exists,File}}, _Mod) ->
   case file:read_file_info(File) of
