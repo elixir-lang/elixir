@@ -6,6 +6,26 @@ The main difference between Elixir and Erlang is its more natural homoiconic syn
 
 Elixir and Erlang shares the same bytecode and data types. This means you can invoke Erlang code from Elixir (and vice-versa) without any performance hit.
 
+# Usage
+
+Elixir is still in development but ready to try out! First, you need to
+clone this repository to your machine, compile and test it:
+
+    $ git clone https://github.com/josevalim/elixir.git
+    $ cd elixir
+    $ make test
+
+    $ bin/elixir -v
+    Elixir 0.4.0.dev
+
+If tests pass, you are ready to try Interactive Elixir by running: `bin/iex`.
+
+However, if tests fail, it is likely you have an outdated Erlang version. You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
+
+    Erlang R14B03 (erts-5.8.4) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
+
+Elixir requires Erlang R14B03 or later. If you have the correct version and tests still fail, feel free to open an issue in the issues tracker on Github. If all tests pass, you are ready to go.
+
 ## Contributing & Roadmap
 
 If you want to contribute, first you need to clone this repository to your machine, compile and run the tests:
