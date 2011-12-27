@@ -114,7 +114,7 @@ build_interpol(s, _Line, Escaping, Buffer, Output) ->
   [unescape_chars(Escaping, lists:reverse(Buffer))|Output];
 
 build_interpol(i, Line, _Escaping, Buffer, Output) ->
-  [forms(lists:reverse(Buffer), Line)|Output].
+  [{ '|', Line, [forms(lists:reverse(Buffer), Line), binary]}|Output].
 
 extract_integers([H|T], Acc) when H >= 48 andalso H =< 57 ->
   extract_integers(T, [H|Acc]);

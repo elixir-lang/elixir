@@ -1,7 +1,7 @@
 module Elixir::IEx
 
 def start do
-  Erlang.io.format("Interactive Elixir Running on")
+  Erlang.io.format("Interactive Elixir (#{Elixir::Code.version})\nRunning on")
   function = fn { loop([], "") }
   Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
 end
