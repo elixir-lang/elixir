@@ -42,10 +42,7 @@ end
 def spawn_cases(config) do
   case config.cases do
   match: [test_case|t]
-    sync = false # testcase.synchronous?
-    if sync do
-      spawn_cases config.prepend_sync_cases([test_case]).cases(t)
-    elsif: config.taken_cases < config.max_cases
+    if config.taken_cases < config.max_cases do
       spawn_case test_case
       spawn_cases config.taken_cases(config.taken_cases + 1).cases(t)
     else:

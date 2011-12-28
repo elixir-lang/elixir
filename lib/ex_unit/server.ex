@@ -1,6 +1,6 @@
 module ExUnit::Server
   
-defrecord Config, options: [], cases: []
+defrecord Config, options: [], cases: [], sync_cases: []
 
 def start_link do
   { :ok, _ } = Erlang.gen_server.start_link({:local, :exunit_server}, __MODULE__, [], [])
@@ -10,12 +10,12 @@ def add_case(name) do
   check fn { Erlang.gen_server.call(:exunit_server, { :add_case, name }) }
 end
 
-def merge_options(options) do
-  check fn { Erlang.gen_server.call(:exunit_server, { :merge_options, options }) }
+def add_sync_case(name) do
+  check fn { Erlang.gen_server.call(:exunit_server, { :add_sync_case, name }) }
 end
 
-def cases do
-  List.reverse Erlang.gen_server.call(:exunit_server, :cases)
+def merge_options(options) do
+  check fn { Erlang.gen_server.call(:exunit_server, { :merge_options, options }) }
 end
 
 def options do
@@ -32,16 +32,19 @@ def handle_call({:add_case, name}, _from, config) do
   { :reply, :ok, config.prepend_cases [name] }
 end
 
+def handle_call({:add_sync_case, name}, _from, config) do
+  { :reply, :ok, config.prepend_sync_cases [name] }
+end
+
 def handle_call({:merge_options, options}, _from, config) do
   { :reply, :ok, config.options Orddict.merge(config.options, options) }
 end
 
-def handle_call(:cases, _from, config) do
-  { :reply, config.cases, config }
-end
-
 def handle_call(:options, _from, config) do
-  { :reply, config.options, config }
+  options = Orddict.merge config.options,
+    cases: List.reverse(config.cases),
+    sync_cases: List.reverse(config.sync_cases)
+  { :reply, options, config }
 end
 
 def handle_call(_request, _from, config) do
