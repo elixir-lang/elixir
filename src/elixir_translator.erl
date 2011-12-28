@@ -135,7 +135,7 @@ translate_each({'__MODULE__', Line, []}, S) ->
 translate_each({'__LINE__', Line, []}, S) ->
   {{ integer, Line, Line }, S };
 
-translate_each({'__FILE__', Line, []}, S) ->
+translate_each({'__FILE__', _Line, []}, S) ->
   translate_each(list_to_binary(S#elixir_scope.filename), S);
 
 %% References
@@ -164,7 +164,7 @@ translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kin
       { TCall, Guards } = elixir_clauses:extract_guards(Call),
       { Name, Args } = elixir_clauses:extract_args(TCall),
       ClauseScope = S#elixir_scope{function=Name, counter=0, vars=dict:new()},
-      { TClause, _ } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], Guards, ClauseScope),
+      { TClause, _ } = elixir_clauses:assigns_blocks(Line, fun translate/2, Args, [Expr], Guards, ClauseScope),
 
       Arity = length(element(3, TClause)),
       { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, TClause),
@@ -187,7 +187,7 @@ translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->
 % TODO: Handle tree errors properly
 translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
   { Args, [[{do,Expr}]] } = lists:split(length(RawArgs) - 1, RawArgs),
-  { TClause, NS } = elixir_clauses:assigns_blocks(fun translate/2, Args, [Expr], S),
+  { TClause, NS } = elixir_clauses:assigns_blocks(Line, fun translate/2, Args, [Expr], S),
   { { 'fun', Line, {clauses, [TClause]} }, umergec(S, NS) };
 
 %% Try

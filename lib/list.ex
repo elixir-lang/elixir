@@ -12,6 +12,14 @@ def append(left, right) do
   left ++ right
 end
 
+def foldl([h|t], acc, f) do
+  foldl(t, f.(h, acc), f)
+end
+
+def foldl([], acc, f) when is_function(f, 2) do
+  acc
+end
+
 def map([h|t], f) do
   [f.(h)|map(t,f)]
 end

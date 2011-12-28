@@ -42,6 +42,5 @@ compile_list() ->
 compile_main() ->
   [
     "lib/elixir/macros.ex",
-    "lib/record.ex",
-    "lib/elixir/code.ex"
+    "lib/record.ex"
   ].

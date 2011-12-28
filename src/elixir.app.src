@@ -1,27 +1,10 @@
-{application,
- elixir, [
-          {description, "elixir "},
-          {vsn, "0.4.0"},
-          {registered, []},
-          {applications, [
-                          kernel,
-                          stdlib
-                         ]},
-          {module, [elixir,
-                    eex_lexer,
-                    elixir_clauses,
-                    elixir_compiler,
-                    elixir_def,
-                    elixir_errors,
-                    elixir_glob,
-                    elixir_interpolation,
-                    elixir_macro,
-                    elixir_namespace,
-                    elixir_parser,
-                    elixir_quote,
-                    elixir_sup,
-                    elixir_tokenizer,
-                    elixir_translator,
-                    elixir_tree_helpers]},
-          {env, []}
-         ]}.
+{application, elixir,
+[{description, "elixir"},
+ {vsn, "0.4.0.dev"},
+ {modules, [
+	elixir
+  ]},
+ {registered,[elixir_code_server]},
+ {applications, [kernel,stdlib]},
+ {mod, {elixir,[]}}
+]}.

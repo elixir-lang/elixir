@@ -5,8 +5,8 @@ defrecord Config, commands: [], close: [], halt: true, output: '.', compile: fal
 # Invoked directly from erlang boot process. It parses all argv
 # options and execute them in the order they are specified.
 def process_argv(options) do
-  { config, _argv } = process_options(options, Elixir::CLI::Config.new)
-  # GenServer.call('elixir_code_server, { 'argv, argv })
+  { config, argv } = process_options(options, Elixir::CLI::Config.new)
+  Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
 
   if config.compile do
     Erlang.file.make_dir(config.output)
@@ -49,7 +49,7 @@ end
 # Process shared options
 
 def process_shared(['-v'|t], config) do
-  Erlang.io.format "Elixir #{Elixir::Code.version}\n"
+  Erlang.io.format "Elixir #{Code.version}\n"
   process_shared t, config
 end
 
@@ -94,7 +94,7 @@ def process_options([h|t] = list, config) do
   match: '-' ++ _
     shared_option? list, config, fn(nl, ns){ process_options(nl, ns) }
   else:
-    { config.add_command({ :load, h }), t }
+    { config.prepend_commands([{:load, h}]), t }
   end
 end
 
@@ -117,7 +117,7 @@ def process_compiler([h|t] = list, config) do
   match: '-' ++ _
     shared_option? list, config, fn(nl, ns){ process_compiler(nl, ns) }
   else:
-    process_compiler t, config.add_command({ :compile, h })
+    process_compiler t, config.prepend_commands[{:compile,h}]
   end
 end
 
@@ -132,7 +132,7 @@ def process_command({:eval, expr}, _config) do
 end
 
 def process_command({:load, file}, _config) do
-  Erlang.elixir.file file
+  Code.require_file file
 end
 
 def process_command({:compile, pattern}, config) do

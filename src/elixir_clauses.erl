@@ -1,6 +1,6 @@
 -module(elixir_clauses).
 -export([match/3, try_catch/3,
-  assigns/3, assigns_blocks/4, assigns_blocks/5,
+  assigns/3, assigns_blocks/5, assigns_blocks/6,
   extract_args/1, extract_guards/1]).
 -include("elixir.hrl").
 
@@ -12,11 +12,11 @@ assigns(Fun, Args, S) ->
 
 % Handles assigns with guards
 
-assigns_blocks(Fun, BareArgs, Exprs, S) ->
+assigns_blocks(Line, Fun, BareArgs, Exprs, S) ->
   { Args, Guards } = extract_guards(BareArgs),
-  assigns_blocks(Fun, Args, Exprs, Guards, S).
+  assigns_blocks(Line, Fun, Args, Exprs, Guards, S).
 
-assigns_blocks(Fun, Args, Exprs, Guards, S) ->
+assigns_blocks(Line, Fun, Args, Exprs, Guards, S) ->
   { TArgs, SA }    = elixir_clauses:assigns(Fun, Args, S),
   { TGuards, SG }  = elixir_translator:translate(Guards, SA#elixir_scope{guard=true}),
   { TExprs, SE }   = elixir_translator:translate(Exprs, SG#elixir_scope{guard=false}),
@@ -35,7 +35,7 @@ assigns_blocks(Fun, Args, Exprs, Guards, S) ->
     _ -> FExprs = TExprs
   end,
 
-  { { clause, 0, FArgs, FGuards, FExprs }, SE }.
+  { { clause, Line, FArgs, FGuards, FExprs }, SE }.
 
 % Extract guards from the given expression.
 
@@ -50,10 +50,10 @@ extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Arg
 
 % Function for translating macros for try's catch.
 
-try_catch(_Line, Clauses, S) ->
+try_catch(Line, Clauses, S) ->
   DecoupledClauses = decouple_clauses(Clauses, []),
   % Just pass the variable counter forward between each clause.
-  Transformer = fun(X, Acc) -> translate_each(X, umergec(S, Acc)) end,
+  Transformer = fun(X, Acc) -> translate_each(Line, X, umergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, DecoupledClauses).
 
 % Function for translating macros with match style like case and receive.
@@ -63,13 +63,13 @@ match(Line, Clauses, RawS) ->
   DecoupledClauses = decouple_clauses(handle_else(match, Line, Clauses), []),
   case DecoupledClauses of
     [DecoupledClause] ->
-      { TDecoupledClause, TS } = translate_each(DecoupledClause, S),
+      { TDecoupledClause, TS } = translate_each(Line, DecoupledClause, S),
       { [TDecoupledClause], TS };
     _ ->
       % Transform tree just passing the variables counter forward
       % and storing variables defined inside each clause.
       Transformer = fun(X, {Acc, CV}) ->
-        { TX, TAcc } = translate_each(X, Acc),
+        { TX, TAcc } = translate_each(Line, X, Acc),
         { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
       end,
 
@@ -162,27 +162,27 @@ decouple_clauses([], Clauses) ->
 % Handle each key/value clause pair and translate them accordingly.
 
 % Extract clauses from block.
-translate_each({Key,{block,_,Exprs}}, S) ->
-  translate_each_({Key,Exprs}, S);
+translate_each(Line, {Key,{block,_,Exprs}}, S) ->
+  translate_each_(Line, {Key,Exprs}, S);
 
 % Wrap each clause in a list. The first item in the list usually express a condition.
-translate_each({Key,Expr}, S)  ->
-  translate_each_({Key,[Expr]}, S).
+translate_each(Line, {Key,Expr}, S)  ->
+  translate_each_(Line, {Key,[Expr]}, S).
 
 % Do clauses have no conditions. So we are done.
-translate_each_({Key,Expr}, S) when Key == do ->
+translate_each_(_Line, {Key,Expr}, S) when Key == do ->
   elixir_translator:translate(Expr, S);
 
 % Condition clauses must return at least two elements.
-translate_each_({Key,[Expr]}, S) ->
-  translate_each_({Key,[Expr, nil]}, S);
+translate_each_(Line, {Key,[Expr]}, S) ->
+  translate_each_(Line, {Key,[Expr, nil]}, S);
 
 % Handle assign other clauses.
-translate_each_({Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch'; Key == 'after' ->
-  assigns_blocks(fun elixir_translator:translate_each/2, Condition, Exprs, S);
+translate_each_(Line, {Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch'; Key == 'after' ->
+  assigns_blocks(Line, fun elixir_translator:translate_each/2, Condition, Exprs, S);
 
 % TODO: Raise a better message.
-translate_each_({Key,_Value}, _S) ->
+translate_each_(_Line, {Key,_Value}, _S) ->
   error({invalid_key_for_clause, Key}).
 
 % Check if the given expression is a match tuple.
