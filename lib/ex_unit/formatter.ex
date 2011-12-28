@@ -13,12 +13,12 @@ end
 
 def handle_call({:each, _test_case, _test, nil }, _from, config) do
   Erlang.io.format "."
-  { :reply, :ok, config.counter(config.counter + 1) }
+  { :reply, :ok, config.increment_counter }
 end
 
 def handle_call({:each, test_case, test, failure }, _from, config) do
   Erlang.io.format "F"
-  { :reply, :ok, config.counter(config.counter + 1).
+  { :reply, :ok, config.increment_counter.
     prepend_failures([{test_case, test, failure}]) }
 end
 

@@ -37,7 +37,7 @@ def handle_call({:add_sync_case, name}, _from, config) do
 end
 
 def handle_call({:merge_options, options}, _from, config) do
-  { :reply, :ok, config.options Orddict.merge(config.options, options) }
+  { :reply, :ok, config.merge_options(options) }
 end
 
 def handle_call(:options, _from, config) do
