@@ -9,8 +9,8 @@ module Elixir::Macros
 # and initializers methods. Therefore, one can do:
 #
 #     file_info = FileInfo.new(atime: now())
-#     file_info.atime         #=> Returns the value of now()
-#     file_info.atime(now())  #=> Updates the value of now()
+#     file_info.atime         #=> Returns the value of atime
+#     file_info.atime(now())  #=> Updates the value of atime
 #
 # FileInfo is simply a module with functions specific for
 # the record. Notice that the name of the module is sensitive
@@ -29,9 +29,9 @@ defmacro defrecord(name, values) do
   Record.defrecord(name, values)
 end
 
-# Provides a 'private' macro for restrict visibility of functions
+# Provides a `private` macro for restrict visibility of functions
 #
-# == Examples
+# ## Examples
 #
 #     module Foo   # definition of Foo module
 #
@@ -47,9 +47,9 @@ defmacro private do
   quote { Erlang.elixir_def.set_visibility(__MODULE__, :private) }
 end
 
-# Provides a 'public' macro for restrict visibility of functions
+# Provides a `public` macro for restrict visibility of functions
 #
-# == Examples
+# ## Examples
 #
 #     module Foo  # definition of Foo module
 #
@@ -69,7 +69,7 @@ end
 # Raises an error if one of the arguments is not an integer.
 # Can be used in guard tests.
 #
-# == Examples
+# ## Examples
 #
 #     5 div 2 #=> 2
 #
@@ -80,7 +80,7 @@ defmacro div(left, right), do:
 # Raises an error if one of the arguments is not an integer.
 # Can be used in guard tests.
 #
-# == Examples
+# ## Examples
 #
 #     5 rem 2 #=> 1
 #
@@ -90,7 +90,7 @@ defmacro rem(left, right), do:
 # Provides an `if` macro. The macro expects the first argument to
 # be a condition and the rest are key-value arguments.
 #
-# == One-liner examples
+# ## One-liner examples
 #
 #     if(foo, do: bar)
 #
@@ -101,7 +101,7 @@ defmacro rem(left, right), do:
 #
 #     if(foo, do: bar, else: bar)
 #
-# == Key-value blocks examples
+# ## Key-value blocks examples
 #
 # When several expressions must be passed to if, the most appropriate
 # form is thorugh key-value blocks. The first example above would then
@@ -154,7 +154,7 @@ end
 # expression only if the first one evalutes to true (i.e. it is
 # not nil nor false). Returns the first expression otherwise.
 #
-# == Examples
+# ## Examples
 #
 #     true && true         #=> true
 #     nil && true          #=> nil
@@ -181,7 +181,7 @@ end
 # expression only if the first one does not evalute to true (i.e. it
 # is not nil nor false). Returns the first expression otherwise.
 #
-# == Examples
+# ## Examples
 #
 #     false || false       #=> false
 #     nil || true          #=> true
@@ -221,7 +221,7 @@ end
 # argument and returns true if it is false or nil. Returns false
 # otherwise.
 #
-# == Examples
+# ## Examples
 #
 #   !1        #=> false
 #   ![1,2,3]  #=> false
