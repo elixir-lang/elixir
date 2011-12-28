@@ -48,6 +48,15 @@ record_merge_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
+record_increment_test() ->
+  F = fun() ->
+    elixir:eval("defrecord Foo, a: 0"),
+    { { '::Foo', 1 }, _ } = elixir:eval("Foo.new.increment_a"),
+    { { '::Foo', 10 }, _ } = elixir:eval("Foo.new.increment_a 10"),
+    { { '::Foo', -2 }, _ } = elixir:eval("Foo.new.increment_a -2")
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
 nested_record_test() ->
   F = fun() ->
     elixir:eval("module Foo\ndefrecord Bar, a: 1, b: 2, c: 3"),

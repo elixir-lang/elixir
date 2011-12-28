@@ -125,4 +125,21 @@ def typed_functions(key, default, i) when is_list(default) do
   end
 end
 
+def typed_functions(key, default, i) when is_number(default) do
+  bin_key   = atom_to_binary(key, :utf8)
+  increment = :"increment_#{bin_key}"
+
+  quote do
+    # TODO: Fix this when defaults work in the first argument.
+    def unquote(increment).(record) do
+      unquote(increment).(1, record)
+    end
+
+    def unquote(increment).(value, record) do
+      current = element(unquote(i), record)
+      setelement(unquote(i), record, current + value)
+    end
+  end
+end
+
 def typed_functions(_, _, _), do: nil
