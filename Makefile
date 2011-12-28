@@ -41,9 +41,11 @@ doc:
 test: test_erlang test_elixir
 
 test_erlang: deps compile
-	@$(REBAR) skip_deps=true eunit
+	@ $(REBAR) skip_deps=true eunit
 
 test_elixir: deps compile
+	@ echo "==> elixir (exunit)"
+	time bin/exunit test/elixir/*_test.exs
 
 release: compile test
 	dialyzer --src src $(DIALYZER_WARNINGS)
