@@ -105,6 +105,7 @@ def typed_functions(key, default, i) when is_list(default) do
   bin_key = atom_to_binary(key, :utf8)
   append  = :"append_#{bin_key}"
   prepend = :"prepend_#{bin_key}"
+  merge   = :"merge_#{bin_key}"
 
   quote do
     def unquote(append).(value, record) do
@@ -115,6 +116,11 @@ def typed_functions(key, default, i) when is_list(default) do
     def unquote(prepend).(value, record) do
       current = element(unquote(i), record)
       setelement(unquote(i), record, List.append(value, current))
+    end
+
+    def unquote(merge).(value, record) do
+      current = element(unquote(i), record)
+      setelement(unquote(i), record, Orddict.merge(current, value))
     end
   end
 end

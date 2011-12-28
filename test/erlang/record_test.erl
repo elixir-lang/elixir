@@ -41,6 +41,13 @@ record_append_prepend_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
+record_merge_test() ->
+  F = fun() ->
+    elixir:eval("defrecord Foo, a: [foo: :bar]"),
+    { { '::Foo', [{a,1},{foo,baz}] }, _ } = elixir:eval("Foo.new.merge_a  [foo: :baz, a: 1]")
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
 nested_record_test() ->
   F = fun() ->
     elixir:eval("module Foo\ndefrecord Bar, a: 1, b: 2, c: 3"),
