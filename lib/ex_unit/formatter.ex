@@ -29,8 +29,9 @@ end
 def handle_call(:finish, _from, config) do
   Erlang.io.format "\n"
   List.foldl config.failures, 1, fn(x, acc) { print_failure(x, acc) }
-  Erlang.io.format "#{integer_to_binary(config.counter)} tests, #{integer_to_binary(length(config.failures))} failures.\n"
-  { :reply, :ok, config }
+  failures_count = length(config.failures)
+  Erlang.io.format "#{integer_to_binary(config.counter)} tests, #{integer_to_binary(failures_count)} failures.\n"
+  { :reply, failures_count, config }
 end
 
 def handle_call(_request, _from, config) do

@@ -49,5 +49,6 @@ end
 def run do
   config = ExUnit::Runner::Config.new ExUnit::Server.options
   config = config.formatter(config.formatter.start)
-  ExUnit::Runner.start config
+  failures = ExUnit::Runner.start config
+  if failures > 0, do: halt(1), else: halt(0)
 end

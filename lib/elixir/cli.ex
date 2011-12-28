@@ -16,7 +16,7 @@ def process_argv(options) do
   List.map all_commands, fn(c) { process_command(c, config) }
 
   if config.halt do
-    halt!(0)
+    halt(0)
   else:
     Erlang.timer.sleep(:infinity)
   end
@@ -24,17 +24,9 @@ end
 
 private
 
-def halt!(0) do
-  Erlang.init.stop
-end
-
-def halt!(status) do
-  halt(status)
-end
-
 def invalid_option(option) do
   Erlang.io.format(:standard_error, "Unknown option #{list_to_binary(option)}\n")
-  halt!(1)
+  halt(1)
 end
 
 def shared_option?(list, config, callback) do

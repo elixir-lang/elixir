@@ -45,7 +45,7 @@ test_erlang: deps compile
 
 test_elixir: deps compile
 	@ echo "==> elixir (exunit)"
-	time bin/exunit test/elixir/*_test.exs
+	@ time bin/exunit test/elixir/*_test.exs
 
 release: compile test
 	dialyzer --src src $(DIALYZER_WARNINGS)

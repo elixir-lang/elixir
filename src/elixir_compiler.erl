@@ -42,5 +42,7 @@ compile_list() ->
 compile_main() ->
   [
     "lib/elixir/macros.ex",
+    "lib/orddict.ex",
+    "lib/list.ex",
     "lib/record.ex"
   ].
