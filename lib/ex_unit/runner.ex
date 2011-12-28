@@ -1,17 +1,17 @@
 module ExUnit::Runner
 
-defrecord Config, formatter: nil, runs: nil, cases: [], max_cases: 0, taken_cases: 0, sync_cases: []
+defrecord Config, formatter: ExUnit::Formatter, cases: [], max_cases: 4, taken_cases: 0, sync_cases: []
 
 # The runner entry point. At first, it will simply spawn cases and start
 # looping expecting messages. When all the cases are spawned and finished,
 # we start running the sync cases. When sync cases finish, tell the formatter
 # we finished and exit.
 def start(config) do
-  if config.cases == 0 do
+  if config.cases == [] do
     if config.taken_cases > 0 do
       loop config
     elsif: config.sync_cases == []
-      config.formatter.finish config.runs
+      call_formatter config, :finish
     else:
       loop spawn_sync_cases(config)
     end
@@ -28,11 +28,11 @@ end
 def loop(config) do
   receive do
   match: { pid, :each, { test_case, test, final } }
-    new_runs = config.formatter.each(config.runs, test_case, test, final)
-    loop config.runs(new_runs)
+    call_formatter config, { :each, test_case, test, final }
+    loop config
   match: { pid, :each_case, test_case }
-    new_runs = config.formatter.each_case(config.runs, test_case)
-    start config.runs(new_runs).taken_cases(config.taken_cases - 1)
+    call_formatter config, { :each_case, test_case }
+    start config.taken_cases(config.taken_cases - 1)
   end
 end
 
@@ -64,6 +64,10 @@ def spawn_sync_cases(config) do
 end
 
 private
+
+def call_formatter(config, message) do
+  Erlang.gen_server.call(config.formatter, message)
+end
 
 # Run each test case in its own process.
 def spawn_case(test_case) do

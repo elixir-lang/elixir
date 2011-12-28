@@ -1,32 +1,58 @@
-# TODO: Make this a genserver
-
 module ExUnit::Formatter
 
 defrecord Config, counter: 0, failures: []
 
 def start do
-  Config.new
+  { :ok, pid } = Erlang.gen_server.start_link(__MODULE__, [], [])
+  pid
 end
 
-def each(config, _test_case, _test, nil) do
+def init(_args) do
+  { :ok, ExUnit::Formatter::Config.new }
+end
+
+def handle_call({:each, _test_case, _test, nil }, _from, config) do
   Erlang.io.format "."
-  config.counter(config.counter + 1)
+  { :reply, :ok, config.counter(config.counter + 1) }
 end
 
-def each(config, test_case, test, failure) do
+def handle_call({:each, test_case, test, failure }, _from, config) do
   Erlang.io.format "F"
-  config.counter(config.counter + 1).
-    prepend_failures([{test_case, test, failure}])
+  { :reply, :ok, config.counter(config.counter + 1).
+    prepend_failures([{test_case, test, failure}]) }
 end
 
-def each_case(config, _test_case) do
-  config
+def handle_call({:each_case, _test_case}, _from, config) do
+  { :reply, :ok, config }
 end
 
-def finish(config) do
+def handle_call(:finish, _from, config) do
   Erlang.io.format "\n"
   List.foldl config.failures, 1, fn(x, acc) { print_failure(x, acc) }
-  Erlang.io.format "#{integer_to_binary(config.counter)} tests, #{integer_to_binary(length(config.failures))} failures."
+  Erlang.io.format "#{integer_to_binary(config.counter)} tests, #{integer_to_binary(length(config.failures))} failures.\n"
+  { :reply, :ok, config }
+end
+
+def handle_call(_request, _from, config) do
+  { :reply, :undef, config }
+end
+
+def handle_info(_msg, config) do
+  { :noreply, config }
+end
+
+def handle_cast(_msg, config) do
+  { :noreply, config }
+end
+
+def terminate(reason, config) do
+  IO.puts "[FATAL] ExUnit::Formatter crashed:\n#{reason}"
+  IO.puts "[FATAL] ExUnit::Formatter snapshot:\n#{config}"
+  :ok
+end
+
+def code_change(_old, config, _extra) do
+  { :ok, config }
 end
 
 private
@@ -36,7 +62,7 @@ def integer_to_binary(int) do
 end
 
 def print_failure({test_case, test, failure}, acc) do
-  Erlang.io.format "#{integer_to_binary(acc)}) #{atom_to_binary(test, :utf8)}(#{atom_to_binary(test_case, :utf8)})\n"
+  Erlang.io.format "#{integer_to_binary(acc)}) #{atom_to_binary(test, :utf8)} (#{atom_to_binary(test_case, :utf8)})\n"
   Erlang.io.format '~p~n', [failure]
   acc + 1
 end

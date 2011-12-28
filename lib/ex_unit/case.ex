@@ -11,7 +11,7 @@ defmacro prepare do
 end
 
 def tests_for(mod) do
-  exports = mod.module_info [:exports]
+  exports = mod.module_info(:exports)
   tests_for exports, []
 end
 

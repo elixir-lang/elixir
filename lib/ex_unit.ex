@@ -49,7 +49,7 @@ end
 def run do
   cases   = ExUnit::Server.cases
   options = ExUnit::Server.options
-  config  = ExUnit::Runner::Config.new Orddict.store(options, :cases, cases)
-  config  = config.runs(config.formatter.start)
+  config  = ExUnit::Runner::Config.new Orddict.merge(options, cases: cases)
+  config  = config.formatter(config.formatter.start)
   ExUnit::Runner.start config
 end
