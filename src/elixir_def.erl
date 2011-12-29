@@ -61,8 +61,8 @@ store_definition(Kind, Filename, Module, Function, Defaults) ->
   FunctionName  = element(3, Function),
 
   Visibility = ets:lookup_element(FunctionTable, visibility, 2),
-  [store_each(Kind, FunctionTable, Visibility, Filename, function_for_clause(FunctionName, Default)) || Default <- Defaults],
   store_each(Kind, FunctionTable, Visibility, Filename, Function),
+  [store_each(Kind, FunctionTable, Visibility, Filename, function_for_clause(FunctionName, Default)) || Default <- Defaults],
   { FunctionName, element(4, Function) }.
 
 % Unwrap the functions stored in the functions table.
@@ -97,8 +97,6 @@ function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
 store_each(Kind, FunctionTable, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
   FinalClauses = case ets:lookup(FunctionTable, {Name, Arity}) of
     [{{Name, Arity}, FinalLine, OtherClauses}] ->
-      % TODO: Raise a warning if storing the same name/arity but
-      % the last clause was not the same name/arity
       check_valid_visibility(Line, Filename, Name, Arity, Visibility, FunctionTable),
       check_valid_kind(Line, Filename, Name, Arity, Kind, FunctionTable),
       check_valid_clause(Line, Filename, Name, Arity, Visibility, FunctionTable),

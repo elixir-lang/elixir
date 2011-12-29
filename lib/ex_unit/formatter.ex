@@ -12,12 +12,12 @@ def init(_args) do
 end
 
 def handle_call({:each, _test_case, _test, nil }, _from, config) do
-  Erlang.io.format "."
+  IO.print "."
   { :reply, :ok, config.increment_counter }
 end
 
 def handle_call({:each, test_case, test, failure }, _from, config) do
-  Erlang.io.format "F"
+  IO.print "F"
   { :reply, :ok, config.increment_counter.
     prepend_failures([{test_case, test, failure}]) }
 end
@@ -27,10 +27,10 @@ def handle_call({:each_case, _test_case}, _from, config) do
 end
 
 def handle_call(:finish, _from, config) do
-  Erlang.io.format "\n\n"
+  IO.print "\n\n"
   List.foldl config.failures, 1, fn(x, acc) { print_failure(x, acc) }
   failures_count = length(config.failures)
-  Erlang.io.format "#{integer_to_binary(config.counter)} tests, #{integer_to_binary(failures_count)} failures.\n"
+  IO.puts "#{integer_to_binary(config.counter)} tests, #{integer_to_binary(failures_count)} failures."
   { :reply, failures_count, config }
 end
 
@@ -63,9 +63,9 @@ def integer_to_binary(int) do
 end
 
 def print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
-  Erlang.io.format "#{integer_to_binary(acc)}) #{atom_to_binary(test, :utf8)} (#{atom_to_binary(test_case, :utf8)})\n"
-  Erlang.io.format "  #{atom_to_binary(kind, :utf8)} #{Elixir::Formatter.format_catch(kind, reason)}\n  stacktrace:"
-  List.each stacktrace, fn(s){ Erlang.io.format "\n    #{Elixir::Formatter.format_stacktrace(s)}" }
-  Erlang.io.format "\n\n"
+  IO.puts "#{integer_to_binary(acc)}) #{atom_to_binary(test, :utf8)} (#{atom_to_binary(test_case, :utf8)})"
+  IO.puts "  #{atom_to_binary(kind, :utf8)} #{Elixir::Formatter.format_catch(kind, reason)}\n  stacktrace:"
+  List.each stacktrace, fn(s){ IO.puts "    #{Elixir::Formatter.format_stacktrace(s)}" }
+  IO.print "\n"
   acc + 1
 end

@@ -17,11 +17,11 @@ def process_argv(options) do
   try do
     List.map all_commands, fn(c) { process_command(c, config) }
   catch: { :throw, reason, _ }
-    print "** throw #{Elixir::Formatter.format_catch(:throw, reason)}\n"
+    IO.puts :standard_error, "** throw #{Elixir::Formatter.format_catch(:throw, reason)}"
     print_stacktrace(Code.stacktrace)
     halt(1)
   catch: { :error, reason, _ }
-    print "** error #{Elixir::Formatter.format_catch(:error, reason)}\n"
+    IO.puts :standard_error, "** error #{Elixir::Formatter.format_catch(:error, reason)}"
     print_stacktrace(Code.stacktrace)
     halt(1)
   end
@@ -35,12 +35,8 @@ end
 
 private
 
-def print(message) do
-  Erlang.io.format :standard_error, message, []
-end
-
 def invalid_option(option) do
-  Erlang.io.format(:standard_error, "Unknown option #{list_to_binary(option)}\n")
+  IO.puts(:standard_error, "Unknown option #{list_to_binary(option)}")
   halt(1)
 end
 
@@ -54,13 +50,13 @@ def shared_option?(list, config, callback) do
 end
 
 def print_stacktrace(stacktrace) do
-  List.each stacktrace, fn(s) { print "    #{Elixir::Formatter.format_stacktrace(s)}\n" }
+  List.each stacktrace, fn(s) { IO.puts :standard_error, "    #{Elixir::Formatter.format_stacktrace(s)}" }
 end
 
 # Process shared options
 
 def process_shared(['-v'|t], config) do
-  Erlang.io.format "Elixir #{Code.version}\n"
+  IO.puts "Elixir #{Code.version}"
   process_shared t, config
 end
 
@@ -153,7 +149,7 @@ end
 def compile_patterns(lines, config) do
   lines = List.map lines, fn(line){ Erlang.elixir_glob.wildcard(line, '.') }
   List.map List.uniq(List.append(lines)), fn(file) {
-    Erlang.io.format "Compiling #{list_to_binary(file)}\n"
+    IO.puts "Compiling #{list_to_binary(file)}"
     Erlang.elixir_compiler.file_to_path(file, config.output)
   }
 end
