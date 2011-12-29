@@ -4,7 +4,7 @@ module __MODULE__ :: UnproperMacro do
   defmacro unproper(args), do: args
 end
 
-ExUnit::Case.prepare
+use ExUnit::Case
 
 def test_invalid_token do
   "nofile:1: invalid token: \end" = format_catch '\end'

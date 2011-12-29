@@ -105,6 +105,15 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 
 %% Modules
 
+translate_each({use, Line, [Ref|Args]}, S) ->
+  case S#elixir_scope.module of
+    {0,nil} ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "use");
+    {_,Module} ->
+      Call = { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] },
+      translate_each(Call, S)
+  end;
+
 translate_each({module, Line, [Ref|Tail]}, S) ->
   case S#elixir_scope.function of
     [] ->

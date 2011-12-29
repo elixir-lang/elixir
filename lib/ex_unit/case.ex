@@ -1,15 +1,13 @@
 module ExUnit::Case
 
-defmacro prepare(opts // []) do
-  sync = Orddict.fetch(opts, :sync, false)
+defmacro __using__(module, opts // []) do
+  if Orddict.fetch(opts, :sync, false) do
+    ExUnit::Server.add_sync_case(module)
+  else:
+    ExUnit::Server.add_case(module)
+  end
 
   quote do
-    if unquote(sync) do
-      ExUnit::Server.add_sync_case(__MODULE__)
-    else:
-      ExUnit::Server.add_case(__MODULE__)
-    end
-
     def __tests__ do
       ExUnit::Case.tests_for(__MODULE__)
     end
