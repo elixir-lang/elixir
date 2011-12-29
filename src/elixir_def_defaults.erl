@@ -13,10 +13,10 @@ unpack(Name, Clause) ->
 %% Returns the given arguments without their default
 %% clauses and a list of clauses for the default calls.
 unpack_each(Name, [{call, _, {atom, Line, '//'}, [Expr, _Default]}|T] = List, Acc, Clauses) ->
-  { Args, Invoke } = build_default_arg(Acc, Line, [], []),
-  Defaults = lists:map(fun extract_default/1, List),
-  Clause = { clause, Line, Args, [], [
-    { call, Line, {atom, Line, Name}, Invoke ++ Defaults }
+  { Args, Invoke } = build_match(Acc, Line, [], []),
+  { NewArgs, NewInvoke } = extract_defaults(List, [], []),
+  Clause = { clause, Line, Args ++ NewArgs, [], [
+    { call, Line, {atom, Line, Name}, Invoke ++ NewInvoke }
   ]},
   unpack_each(Name, T, [Expr|Acc], [Clause|Clauses]);
 
@@ -26,18 +26,27 @@ unpack_each(Name, [H|T], Acc, Clauses) ->
 unpack_each(_Name, [], Acc, Clauses) ->
   { lists:reverse(Acc), lists:reverse(Clauses) }.
 
-% Extract default values
-extract_default({call, _, {atom, _,'//'}, [_Expr, Default]}) ->
-  Default.
+% Extract default values from args following the current default clause.
 
-% Build default arguments for the function clause and for invocation.
-build_default_arg([], _Line, Args, Invoke) -> { Args, Invoke };
+extract_defaults([{call, _, {atom, _,'//'}, [_Expr, Default]}|T], NewArgs, NewInvoke) ->
+  extract_defaults(T, NewArgs, [Default|NewInvoke]);
 
-build_default_arg([H|T], Line, Args, Invoke) ->
+extract_defaults([H|T], NewArgs, NewInvoke) ->
+  extract_defaults(T, [H|NewArgs], [H|NewInvoke]);
+
+extract_defaults([], NewArgs, NewInvoke) ->
+  { lists:reverse(NewArgs), lists:reverse(NewInvoke) }.
+
+% Build matches for all the previous argument until the current default clause.
+
+build_match([], _Line, Args, Invoke) -> { Args, Invoke };
+
+build_match([H|T], Line, Args, Invoke) ->
   Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", length(T)]) },
-  build_default_arg(T, Line, [{match, Line, Var, prune_vars(H)}|Args], [Var|Invoke]).
+  build_match(T, Line, [{match, Line, Var, prune_vars(H)}|Args], [Var|Invoke]).
 
 % Remove any reference to vars from the given form.
+
 prune_vars({var, Line, _}) ->
   { var, Line, '_' };
 

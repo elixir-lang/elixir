@@ -102,6 +102,14 @@ def_default_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
+def_left_default_test() ->
+  F = fun() ->
+    elixir:eval("module Foo\ndef version(x // 1, y), do: x + y\n"),
+    ?assertEqual({4, []}, elixir:eval("Foo.version(3)")),
+    ?assertEqual({5, []}, elixir:eval("Foo.version(2, 3)"))
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
 def_with_guard_test() ->
   F = fun() ->
     elixir:eval("module Foo\ndef v(x) when x < 10, do: true\ndef v(x) when x >= 10, do: false\n"),

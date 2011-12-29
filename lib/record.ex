@@ -130,12 +130,7 @@ def typed_functions(key, default, i) when is_number(default) do
   increment = :"increment_#{bin_key}"
 
   quote do
-    # TODO: Fix this when defaults work in the first argument.
-    def unquote(increment).(record) do
-      unquote(increment).(1, record)
-    end
-
-    def unquote(increment).(value, record) do
+    def unquote(increment).(value // 1, record) do
       current = element(unquote(i), record)
       setelement(unquote(i), record, current + value)
     end
