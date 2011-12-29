@@ -1,7 +1,7 @@
-module AssertionTest
+module AssertionTest do
+  use ExUnit::Case
 
-use ExUnit::Case
-
-def test_always_pass do
-  true = true
+  def test_always_pass do
+    true = true
+  end
 end

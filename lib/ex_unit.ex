@@ -36,19 +36,19 @@
 # * `:formatter` - The formatter that will print results
 # * `:max_cases` - Maximum number of cases to run in parallel
 #
-module ExUnit
+module ExUnit do
+  def start do
+    ExUnit::Server.start_link
+  end
 
-def start do
-  ExUnit::Server.start_link
-end
+  def configure(options) do
+    ExUnit::Server.merge_options(options)
+  end
 
-def configure(options) do
-  ExUnit::Server.merge_options(options)
-end
-
-def run do
-  config = ExUnit::Runner::Config.new ExUnit::Server.options
-  config = config.formatter(config.formatter.start)
-  failures = ExUnit::Runner.start config
-  if failures > 0, do: halt(1), else: halt(0)
+  def run do
+    config = ExUnit::Runner::Config.new ExUnit::Server.options
+    config = config.formatter(config.formatter.start)
+    failures = ExUnit::Runner.start config
+    if failures > 0, do: halt(1), else: halt(0)
+  end
 end
