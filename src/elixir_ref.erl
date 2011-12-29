@@ -1,5 +1,5 @@
 -module(elixir_ref).
--export([concat/1]).
+-export([concat/1, lookup/1]).
 
 %% Receives a list of atoms representing modules
 %% and concatenate them.
@@ -11,3 +11,6 @@ concat_(Arg) ->
     _ -> list_to_atom("::" ++ Ref)
   end.
 
+%% Lookup a reference in the current scope
+
+lookup(Else) -> Else.

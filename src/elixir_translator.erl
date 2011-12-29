@@ -149,10 +149,20 @@ translate_each({'__FILE__', _Line, []}, S) ->
 %% References
 
 translate_each({ref, Line, [Ref]}, S) when is_atom(Ref) ->
-  { {atom, Line, list_to_atom("::" ++ atom_to_list(Ref)) }, S };
+  Atom = list_to_atom("::" ++ atom_to_list(Ref)),
+  Final = case S#elixir_scope.noref of
+    true  -> Atom;
+    false -> elixir_ref:lookup(Atom)
+  end,
+  { {atom, Line, Final }, S };
 
-translate_each({'::', Line, Args}, S) when is_list(Args) ->
-  { TArgs, NS } = translate_args(Args, S),
+translate_each({'::', Line, [Left]}, S) ->
+  translate_each({'::', Line, [nil,Left]}, S);
+
+translate_each({'::', Line, [Left|Right]}, S) ->
+  { TLeft, LS } = translate_each(Left, S),
+  { TRight, RS } = translate_args(Right, (umergec(S, LS))#elixir_scope{noref=true}),
+  TArgs = [TLeft|TRight],
   Atoms = [Atom || { atom, _, Atom } <- TArgs],
   Final = case length(Atoms) == length(TArgs) of
     true  -> { atom, Line, elixir_ref:concat(Atoms) };
@@ -160,7 +170,7 @@ translate_each({'::', Line, Args}, S) when is_list(Args) ->
       FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
       ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
   end,
-  { Final, NS };
+  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
 
 %% Def
 
