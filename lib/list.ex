@@ -20,6 +20,11 @@ def foldl([], acc, f) when is_function(f, 2) do
   acc
 end
 
+def each(list, f) do
+  _each(list, f)
+  list
+end
+
 def map([h|t], f) do
   [f.(h)|map(t,f)]
 end
@@ -43,7 +48,7 @@ def reverse(list) do
 end
 
 def uniq(list) do
-  uniq(list, [])
+  _uniq(list, [])
 end
 
 def wrap(list) when is_list(list) do
@@ -56,15 +61,24 @@ end
 
 private
 
-def uniq([h|t], acc) do
+def _each([h|t], f) do
+  f.(h)
+  _each(t, f)
+end
+
+def _each([], f) when is_function(f, 1) do
+  []
+end
+
+def _uniq([h|t], acc) do
   case Erlang.lists.member(h, acc) do
   match: true
-    uniq(t, acc)
+    _uniq(t, acc)
   match: false
-    uniq(t, [h|acc])
+    _uniq(t, [h|acc])
   end
 end
 
-def uniq([], acc) do
+def _uniq([], acc) do
   Erlang.lists.reverse(acc)
 end
