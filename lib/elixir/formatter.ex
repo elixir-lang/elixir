@@ -2,9 +2,9 @@ module Elixir::Formatter
 
 def format_stacktrace({module, fun, arity}) do
   if is_list(arity) do
-    "#{inspect(module)}##{inspect(fun)}(#{inspect(arity)})"
+    "#{inspect(module)}.#{inspect(fun)}(#{inspect(arity)})"
   else:
-    "#{inspect(module)}##{inspect(fun)}/#{inspect(arity)}"
+    "#{inspect(module)}.#{inspect(fun)}/#{inspect(arity)}"
   end
 end
 
