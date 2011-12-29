@@ -9,8 +9,7 @@ table(Module) ->
   ?ELIXIR_ATOM_CONCAT([a, Module]).
 
 read_attribute(Module, Attr) ->
-  [].
-  % ets:lookup_element(table(Module), Attr, 2).
+  ets:lookup_element(table(Module), Attr, 2).
 
 insert_attribute(Module, Attr, Value) ->
   ets:insert(table(Module), { Attr, Value }).
@@ -40,7 +39,6 @@ compile(Line, Filename, Module, Block) ->
     Base   = base_form(Line, Filename, Module),
 
     Table  = table(Module),
-    _Refer = destructive_read(Table, refer),
     _Import= destructive_read(Table, import),
     _Data  = destructive_read(Table, data),
 
@@ -61,7 +59,6 @@ build(Module) ->
   ets:new(Table, [set, named_table, private]),
 
   %% Default attributes
-  ets:insert(Table, { refer, [] }),
   ets:insert(Table, { import, [] }),
   ets:insert(Table, { data, [] }),
 
