@@ -1,5 +1,6 @@
 -module(elixir_module).
--export([transform/3, transform/4, build/3, compile/3, compile/4, modulize/1, format_error/1]).
+-export([transform/2, transform/3, transform/4,
+  build/3, compile/3, compile/4, modulize/1, format_error/1]).
 -include("elixir.hrl").
 
 %% Receives a list of atoms representing modules
@@ -16,11 +17,11 @@ modulize_(Arg) ->
 %% The abstract form for extra arguments may be given and they
 %% will be passed to the invoked function.
 
-transform(Line, Kind, S) -> transform(Line, Kind, S, []).
-
-transform(Line, Kind, S, Raw) ->
+transform(Kind, S) -> transform(Kind, S, element(1, S#elixir_scope.module)).
+transform(Kind, S, Line) -> transform(Kind, S, Line, []).
+transform(Kind, S, Line, Raw) ->
   Filename  = S#elixir_scope.filename,
-  Module = S#elixir_scope.module,
+  { _, Module } = S#elixir_scope.module,
   Args = [{integer, Line, Line}, {string, Line, Filename}, {atom, Line, Module}|Raw],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, Kind, Args).
 

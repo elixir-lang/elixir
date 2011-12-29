@@ -6,8 +6,8 @@ parse(String, Line, #elixir_scope{filename=Filename} = S) ->
   Forms = forms(String, Line, Filename),
   { Translated, FS } = translate(Forms, S),
   Final = case FS#elixir_scope.module of
-    [] -> Translated;
-    _  -> Translated ++ [elixir_module:transform(0, compile, FS)]
+    {0,nil} -> Translated;
+    _  -> Translated ++ [elixir_module:transform(compile, FS)]
   end,
   { Final, FS }.
 
@@ -111,7 +111,7 @@ translate_each({module, Line, [Ref|Tail]}, S) ->
       { TRef, NS } = translate_each(Ref, S),
       case TRef of
         { atom, _, Module } ->
-          module_macro(Line, Tail, S, NS#elixir_scope{module = Module});
+          module_macro(Line, Tail, S, NS#elixir_scope{module={Line,Module}});
         _ ->
           elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "module")
       end;
@@ -121,17 +121,14 @@ translate_each({module, Line, [Ref|Tail]}, S) ->
 
 translate_each({endmodule, Line, []}, S) ->
   case S#elixir_scope.module of
-    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined for: ", "endmodule");
-    _  -> { elixir_module:transform(Line, compile, S), S#elixir_scope{module=[]} }
+    {0,nil} -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined for: ", "endmodule");
+    _  -> { elixir_module:transform(compile, S, Line), S#elixir_scope{module={0,nil}} }
   end;
 
 %% Built-in macros
 
 translate_each({'__MODULE__', Line, []}, S) ->
-  case S#elixir_scope.module of
-    []     -> Module = nil;
-    Module -> []
-  end,
+  { _, Module } = S#elixir_scope.module,
   {{ atom, Line, Module }, S };
 
 translate_each({'__LINE__', Line, []}, S) ->
@@ -160,7 +157,7 @@ translate_each({'::', Line, Args}, S) when is_list(Args) ->
 
 translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kind == defmacro ->
   Module = S#elixir_scope.module,
-  case (Module == []) or (S#elixir_scope.function /= []) of
+  case (Module == {0,nil}) or (S#elixir_scope.function /= []) of
     true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", atom_to_list(Kind));
     _ ->
       { TCall, Guards } = elixir_clauses:extract_guards(Call),
@@ -171,7 +168,7 @@ translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kin
       Arity = length(element(3, TClause)),
       { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, TClause),
       Method = { function, Line, Name, Arity, [Unpacked] },
-      { elixir_def:wrap_definition(Kind, Line, S#elixir_scope.filename, Module, Method, Defaults), S }
+      { elixir_def:wrap_definition(Kind, Line, S#elixir_scope.filename, element(2, Module), Method, Defaults), S }
   end;
 
 translate_each({Kind, Line, Args}, S) when is_list(Args), Kind == def orelse Kind == defmacro ->
@@ -410,22 +407,22 @@ module_macro(Line, [[{do,Block}]], OldS, NewS) ->
   Fun = { 'fun', Line, { clauses, [Clause] } },
 
   Contents = { block, Line, [
-    elixir_module:transform(Line, build, NewS),
-    elixir_module:transform(Line, compile, FinalS, [Fun])
+    elixir_module:transform(build, NewS),
+    elixir_module:transform(compile, FinalS, Line, [Fun])
   ] },
 
   { Contents, FinalS#elixir_scope{module=OldS#elixir_scope.module} };
 
 %% In cases we call `module` but no module was previously
 %% defined, we should just build the new one.
-module_macro(Line, _Tail, #elixir_scope{module=[]}, NewS) ->
-  { elixir_module:transform(Line, build, NewS), NewS };
+module_macro(_Line, _Tail, #elixir_scope{module={0,nil}}, NewS) ->
+  { elixir_module:transform(build, NewS), NewS };
 
 %% Finally, if a previous module was defined, we need to
 %% compile it and then build the new one.
 module_macro(Line, _Tail, OldS, NewS) ->
   Contents = { block, Line, [
-    elixir_module:transform(Line, compile, OldS),
-    elixir_module:transform(Line, build, NewS)
+    elixir_module:transform(compile, OldS),
+    elixir_module:transform(build, NewS)
   ] },
   { Contents, NewS }.

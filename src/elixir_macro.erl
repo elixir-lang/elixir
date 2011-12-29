@@ -24,5 +24,5 @@ dispatch_one(Receiver, Name, Args, S, Callback) ->
       end
   end.
 
-has_macros('::Elixir::Macros') -> false;
-has_macros(_)                  -> true.
+has_macros({_,'::Elixir::Macros'}) -> false;
+has_macros(_)                      -> true.

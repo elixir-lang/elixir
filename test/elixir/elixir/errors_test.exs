@@ -62,6 +62,11 @@ def test_visibility_clause_change do
     format_catch 'module Foo do\ndef foo(1), do: 1\nprivate\ndef foo(x), do: x\nend'
 end
 
+def test_internal_function_overriden do
+  "nofile:1: function __macros__/0 is internal and should not be overriden" =
+    format_catch 'module Foo\ndef __macros__, do: []'
+end
+
 def test_interpolation_error do
   "nofile:1: syntax error before: ')'" = format_catch '"foo\#{case 1 do )}bar"'
 end

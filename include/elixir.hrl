@@ -22,4 +22,4 @@
 %   12) the current scope filename
 %
 -record(elixir_scope, {assign=false, guard=false, noref=false, noname=false, macro=[], function=[],
-  module=[], vars=dict:new(), temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile"}).
+  module={0,nil}, vars=dict:new(), temp_vars=[], clause_vars=dict:new(), counter=0, filename="nofile"}).
