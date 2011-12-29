@@ -35,7 +35,7 @@ extract_interpolations_with_right_curly_inside_string_inside_interpolation_test(
   ["f", {'|',1,[<<"f}o">>, binary]}, "o"] = extract_interpolations("f#{\"f}o\"}o").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
-  ?assertError({interpolation_error, { 1, "invalid token", ":1" } }, extract_interpolations("f#{:1}o")).
+  ?assertThrow({interpolation_error, { 1, "invalid token: ", ":1" } }, extract_interpolations("f#{:1}o")).
 
 %% Bin strings
 

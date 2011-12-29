@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([transform/3, build/3, compile/3, modulize/1, format_error/1]).
+-export([transform/3, transform/4, build/3, compile/3, compile/4, modulize/1, format_error/1]).
 -include("elixir.hrl").
 
 %% Receives a list of atoms representing modules
@@ -12,22 +12,35 @@ modulize_(Arg) ->
     _ -> list_to_atom("::" ++ Ref)
   end.
 
-%% Transforma of args and scope into a compiled erlang call.
+%% Transformation of args and scope into a compiled erlang call.
+%% The abstract form for extra arguments may be given and they
+%% will be passed to the invoked function.
 
-transform(Line, Kind, S) ->
+transform(Line, Kind, S) -> transform(Line, Kind, S, []).
+
+transform(Line, Kind, S, Raw) ->
   Filename  = S#elixir_scope.filename,
   Module = S#elixir_scope.module,
-  Args = [{integer, Line, Line}, {string, Line, Filename}, {atom, Line, Module}],
+  Args = [{integer, Line, Line}, {string, Line, Filename}, {atom, Line, Module}|Raw],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, Kind, Args).
+
+%% Hook that builds the table for the module.
 
 build(_Line, _Filename, Module) ->
   build_table(Module),
   elixir_def:build_table(Module).
 
-compile(Line, Filename, Module) ->
-  try
-    {E0, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
+%% Hook for compilation. A function may be passed as fourth argument.
+%% The function is invoked before the module is compiled.
 
+compile(Line, Filename, Module) ->
+  compile(Line, Filename, Module, fun() -> [] end).
+
+compile(Line, Filename, Module, Fun) ->
+  try
+    Result = Fun(),
+
+    {E0, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
     { E1, F1 } = add_extra_function(Line, Filename, E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
 
     Base = [
@@ -39,7 +52,8 @@ compile(Line, Filename, Module) ->
 
     Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
     Forms = ets:foldr(Transform, Base, table(Module)),
-    load_form(Forms, Filename)
+    load_form(Forms, Filename),
+    Result
   after
     delete_table(Module),
     elixir_def:delete_table(Module)

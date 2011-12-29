@@ -406,10 +406,12 @@ convert_op(Else)  ->  Else.
 module_macro(Line, [[{do,Block}]], OldS, NewS) ->
   { TBlock, FinalS } = translate_each(Block, NewS),
 
+  Clause = { clause, Line, [], [], [TBlock] },
+  Fun = { 'fun', Line, { clauses, [Clause] } },
+
   Contents = { block, Line, [
     elixir_module:transform(Line, build, NewS),
-    TBlock,
-    elixir_module:transform(Line, compile, FinalS)
+    elixir_module:transform(Line, compile, FinalS, [Fun])
   ] },
 
   { Contents, FinalS#elixir_scope{module=OldS#elixir_scope.module} };

@@ -52,6 +52,16 @@ def test_unproper_macro do
     format_catch 'module Foo\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend'
 end
 
+def test_def_defmacro_clause_change do
+  "nofile:3: defmacro foo/1 already defined as def" =
+    format_catch 'module Foo do\ndef foo(1), do: 1\ndefmacro foo(x), do: x\nend'
+end
+
+def test_visibility_clause_change do
+  "nofile:4: function foo/1 already defined with visibility public" =
+    format_catch 'module Foo do\ndef foo(1), do: 1\nprivate\ndef foo(x), do: x\nend'
+end
+
 def test_interpolation_error do
   "nofile:1: syntax error before: ')'" = format_catch '"foo\#{case 1 do )}bar"'
 end

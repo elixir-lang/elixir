@@ -127,7 +127,7 @@ check_valid_kind(Line, Filename, Name, Arity, Kind, Table) ->
   end,
 
   case Kind == Previous of
-    false -> elixir_errors:form_error(Line, Filename, ?MODULE, {changed_kind, {Name, Arity, Previous}});
+    false -> elixir_errors:form_error(Line, Filename, ?MODULE, {changed_kind, {Name, Arity, Previous, Kind}});
     true -> []
   end.
 
@@ -141,7 +141,7 @@ check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
   Available = [public, private],
   Previous = find_visibility(Name, Arity, Available, Table),
   case Visibility == Previous of
-    false -> elixir_errors:form(Line, Filename, ?MODULE, {changed_visibility, {Name, Arity, Previous}});
+    false -> elixir_errors:form_error(Line, Filename, ?MODULE, {changed_visibility, {Name, Arity, Previous}});
     true -> []
   end.
 
@@ -160,5 +160,5 @@ find_visibility(Name, Arity, [Visibility|T], Table) ->
 format_error({changed_visibility,{Name,Arity,Previous}}) ->
   io_lib:format("function ~s/~B already defined with visibility ~s", [Name, Arity, Previous]);
 
-format_error({changed_kind,{Name,Arity,Previous}}) ->
-  io_lib:format("function ~s/~B already defined as ~s", [Name, Arity, Previous]).
+format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
+  io_lib:format("~s ~s/~B already defined as ~s", [Current, Name, Arity, Previous]).
