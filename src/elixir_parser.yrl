@@ -369,21 +369,21 @@ build_block(Exprs)                         -> { block, 0, lists:reverse(Exprs) }
 build_kv_block(Delimiter, Contents, IncompleteList) ->
   Line  = ?line(Delimiter),
   List  = [{do,Contents}|IncompleteList],
-  Final = reverse_kv_block(merge_kv_block([{X,build_block(Y)} || {X,Y} <- List], [])),
+  Final = reverse_kv_block(merge_kv_block(Line, [{X,build_block(Y)} || {X,Y} <- List], [])),
   {'[:]', Line, Final}.
 
 reverse_kv_block(List) -> lists:reverse([reverse_each_kv_block(X) || X <- List]).
-reverse_each_kv_block({Key, { kv_block, _, Value }}) -> { Key, { kv_block, 0, lists:reverse(Value) } };
+reverse_each_kv_block({Key, { kv_block, Line, Value }}) -> { Key, { kv_block, Line, lists:reverse(Value) } };
 reverse_each_kv_block(Else) -> Else.
 
-merge_kv_block([{Key,Value}|T], Acc) ->
-  NewAcc = orddict:update(Key, fun(Old) -> merge_each_kv_block(Old, Value) end, Value, Acc),
-  merge_kv_block(T, NewAcc);
+merge_kv_block(Line, [{Key,Value}|T], Acc) ->
+  NewAcc = orddict:update(Key, fun(Old) -> merge_each_kv_block(Line, Old, Value) end, Value, Acc),
+  merge_kv_block(Line, T, NewAcc);
 
-merge_kv_block([], Acc) -> Acc.
+merge_kv_block(_Line, [], Acc) -> Acc.
 
-merge_each_kv_block({ kv_block, _, Old }, New) -> { kv_block, 0, [New|Old] };
-merge_each_kv_block(Old, New) -> { kv_block, 0, [New, Old] }.
+merge_each_kv_block(_, { kv_block, Line, Old }, New) -> { kv_block, Line, [New|Old] };
+merge_each_kv_block(Line, Old, New) -> { kv_block, Line, [New, Old] }.
 
 %% Args
 % Build args by transforming [:] into the final form []
@@ -407,7 +407,7 @@ build_identifier(Expr, Args, Block) ->
     true  ->
       { '[:]', Line, Left } = Last,
       { '[:]', _, Right }  = Block,
-      KV = { '[:]', Line, merge_kv_block(Left, Right) },
+      KV = { '[:]', Line, merge_kv_block(Line, Left, Right) },
       lists:reverse([KV|Reverse]);
     false ->
       lists:reverse([Block,Last|Reverse])

@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([transform/3, build/3, compile/3, modulize/1]).
+-export([transform/3, build/3, compile/3, modulize/1, format_error/1]).
 -include("elixir.hrl").
 
 %% Receives a list of atoms representing modules
@@ -28,7 +28,7 @@ compile(Line, Filename, Module) ->
   try
     {E0, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
 
-    { E1, F1 } = add_extra_function(E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
+    { E1, F1 } = add_extra_function(Line, Filename, E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
 
     Base = [
       {attribute, Line, module, Module},
@@ -63,9 +63,9 @@ load_form(Forms, Filename) ->
 
 % EXTRA FUNCTIONS
 
-add_extra_function(Exported, Functions, Pair, Contents) ->
+add_extra_function(Line, Filename, Exported, Functions, Pair, Contents) ->
   case lists:member(Pair, Exported) of
-    true -> elixir_errors:error({internal_method_overridden, Pair});
+    true -> elixir_errors:form_error(Line, Filename, ?MODULE, {internal_function_overridden, Pair});
     false -> { [Pair|Exported], [Contents|Functions] }
   end.
 
@@ -103,6 +103,9 @@ transform_attribute(Line, X) ->
   {attribute, Line, element(1, X), element(2, X)}.
 
 % ERROR HANDLING
+
+format_error({internal_function_overridden,{Name,Arity}}) ->
+  io_lib:format("function ~s/~B is internal and should not be overriden", [Name, Arity]).
 
 format_errors(_Filename, []) ->
   exit({nocompile, "compilation failed but no error was raised"});

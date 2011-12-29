@@ -5,7 +5,8 @@
   delete_table/1,
   wrap_definition/6,
   store_definition/5,
-  unwrap_stored_definitions/1]).
+  unwrap_stored_definitions/1,
+  format_error/1]).
 -include("elixir.hrl").
 
 %% Set the visibility entry for the given module.
@@ -126,7 +127,7 @@ check_valid_kind(Line, Filename, Name, Arity, Kind, Table) ->
   end,
 
   case Kind == Previous of
-    false -> elixir_errors:handle_file_warning(Filename, {Line, ?MODULE, {changed_kind, {Name, Arity, Previous}}});
+    false -> elixir_errors:form_error(Line, Filename, ?MODULE, {changed_kind, {Name, Arity, Previous}});
     true -> []
   end.
 
@@ -140,7 +141,7 @@ check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
   Available = [public, private],
   Previous = find_visibility(Name, Arity, Available, Table),
   case Visibility == Previous of
-    false -> elixir_errors:handle_file_warning(Filename, {Line, ?MODULE, {changed_visibility, {Name, Arity, Previous}}});
+    false -> elixir_errors:form(Line, Filename, ?MODULE, {changed_visibility, {Name, Arity, Previous}});
     true -> []
   end.
 
@@ -153,3 +154,11 @@ find_visibility(Name, Arity, [Visibility|T], Table) ->
     true  -> Visibility;
     false -> find_visibility(Name, Arity, T, Table)
   end.
+
+%% Format errors
+
+format_error({changed_visibility,{Name,Arity,Previous}}) ->
+  io_lib:format("function ~s/~B already defined with visibility ~s", [Name, Arity, Previous]);
+
+format_error({changed_kind,{Name,Arity,Previous}}) ->
+  io_lib:format("function ~s/~B already defined as ~s", [Name, Arity, Previous]).

@@ -67,7 +67,7 @@ finish_extraction(Line, Escaping, Buffer, Output, Remaining) ->
 
 unescape_chars(Escaping, String) -> unescape_chars(Escaping, String, []).
 
-unescape_chars(regexp, [$\\, Escaped|Rest], Output) ->
+unescape_chars(false, [$\\, Escaped|Rest], Output) ->
   case extract_integers([Escaped|Rest], []) of
     {_,[]} ->
       Char = case Escaped of
@@ -135,7 +135,7 @@ forms(String, StartLine) ->
       case elixir_parser:parse(Tokens) of
         {ok, [Forms]} when not is_list(Forms) -> Forms;
         {ok, Forms} -> { block, StartLine, Forms };
-        {error, {Line, _, [Error, Token]}} -> error({ interpolation_error, { Line, Error, Token } })
+        {error, {Line, _, [Error, Token]}} -> throw({ interpolation_error, { Line, Error, Token } })
       end;
-    {error, {Line, Error, Token}} -> error({ interpolation_error, { Line, Error, Token } })
+    {error, {Line, Error, Token}} -> throw({ interpolation_error, { Line, Error, Token } })
   end.

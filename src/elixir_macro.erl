@@ -17,7 +17,7 @@ dispatch_one(Receiver, Name, Args, S, Callback) ->
       case lists:member({Name, Arity}, Macros) of
         true  -> 
           Tree = apply(Receiver, Name, Args),
-          NewS = S#elixir_scope{macro={Name,Arity}},
+          NewS = S#elixir_scope{macro={Receiver,Name,Arity}},
           { TTree, TS } = elixir_translator:translate_each(Tree, NewS),
           { TTree, TS#elixir_scope{macro=[]} };
         false -> Callback()

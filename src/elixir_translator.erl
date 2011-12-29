@@ -11,17 +11,16 @@ parse(String, Line, #elixir_scope{filename=Filename} = S) ->
   end,
   { Final, FS }.
 
-% TODO test error inside interpolation are properly handled.
 forms(String, StartLine, Filename) ->
-  case elixir_tokenizer:tokenize(String, StartLine) of
+  try elixir_tokenizer:tokenize(String, StartLine) of
     {ok, Tokens} ->
-      try elixir_parser:parse(Tokens) of
+      case elixir_parser:parse(Tokens) of
         {ok, Forms} -> Forms;
         {error, {Line, _, [Error, Token]}} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
-      catch
-        { interpolation_error, { Line, Error, Token } } -> elixir_errors:syntax_error(Line, Filename, Error, Token)
       end;
     {error, {Line, Error, Token}} -> elixir_errors:syntax_error(Line, Filename, Error, Token)
+  catch
+    { interpolation_error, { Line, Error, Token } } -> elixir_errors:syntax_error(Line, Filename, Error, Token)
   end.
 
 translate(Forms, S) ->
@@ -68,9 +67,8 @@ translate_each({'case', Line, [Expr, RawClauses]}, S) ->
   { TClauses, TS } = elixir_clauses:match(Line, Clauses, NS),
   { { 'case', Line, TExpr, TClauses }, TS };
 
-% TODO: Handle tree errors properly
-translate_each({'case', _, Args} = Clause, _S) when is_list(Args) ->
-  error({invalid_arguments_for_case, Clause});
+translate_each({'case', Line, Args}, S) when is_list(Args) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "case");
 
 %% Blocks
 
@@ -84,8 +82,14 @@ translate_each({ block, Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
 
-% TODO: Add tests that kv_block not handled by macros raises
-% a meaningful exception
+translate_each({ kv_block, Line, Args }, S) when is_list(Args) ->
+  case S#elixir_scope.macro of
+    { Receiver, Name, Arity } ->
+      Desc = io_lib:format("~s.~s/~B", [Receiver, Name, Arity]),
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "key value blocks not supported by: ", Desc);
+    _ ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "unhandled key value blocks", "")
+  end;
 
 %% Bit strings
 
@@ -109,17 +113,15 @@ translate_each({module, Line, [Ref|Tail]}, S) ->
         { atom, _, Module } ->
           module_macro(Line, Tail, S, NS#elixir_scope{module = Module});
         _ ->
-          % TODO: Test me
-          elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid module name")
+          elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "module")
       end;
     _ ->
-      % TODO: Test me
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for module")
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "module")
   end;
 
 translate_each({endmodule, Line, []}, S) ->
   case S#elixir_scope.module of
-    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined");
+    [] -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined for: ", "endmodule");
     _  -> { elixir_module:transform(Line, compile, S), S#elixir_scope{module=[]} }
   end;
 
@@ -159,7 +161,7 @@ translate_each({'::', Line, Args}, S) when is_list(Args) ->
 translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kind == defmacro ->
   Module = S#elixir_scope.module,
   case (Module == []) or (S#elixir_scope.function /= []) of
-    true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for " ++ atom_to_list(Kind));
+    true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", atom_to_list(Kind));
     _ ->
       { TCall, Guards } = elixir_clauses:extract_guards(Call),
       { Name, Args } = elixir_clauses:extract_args(TCall),
@@ -172,23 +174,27 @@ translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def orelse Kin
       { elixir_def:wrap_definition(Kind, Line, S#elixir_scope.filename, Module, Method, Defaults), S }
   end;
 
-% TODO: Handle tree errors properly
 translate_each({Kind, Line, Args}, S) when is_list(Args), Kind == def orelse Kind == defmacro ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for " ++ atom_to_list(Kind));
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", atom_to_list(Kind));
 
 %% Quoting
 
-% TODO: Handle tree errors properly
 translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->
   elixir_quote:translate_each(Exprs, S);
 
+translate_each({quote, Line, Args}, S) when is_list(Args) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "quote");
+
 %% Functions
 
-% TODO: Handle tree errors properly
 translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
-  { Args, [[{do,Expr}]] } = lists:split(length(RawArgs) - 1, RawArgs),
-  { TClause, NS } = elixir_clauses:assigns_blocks(Line, fun translate/2, Args, [Expr], S),
-  { { 'fun', Line, {clauses, [TClause]} }, umergec(S, NS) };
+  case lists:split(length(RawArgs) - 1, RawArgs) of
+    { Args, [[{do,Expr}]] } ->
+      { TClause, NS } = elixir_clauses:assigns_blocks(Line, fun translate/2, Args, [Expr], S),
+      { { 'fun', Line, {clauses, [TClause]} }, umergec(S, NS) };
+    _ ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "fn")
+  end;
 
 %% Try
 
@@ -204,9 +210,8 @@ translate_each({'try', Line, [Clauses]}, RawS) ->
   { TAfter, SA } = translate([After], umergec(S, SC)),
   { { 'try', Line, unpack_try(do, TDo), [], TCatch, unpack_try('after', TAfter) }, umergec(RawS, SA) };
 
-% TODO: Handle tree errors properly
-translate_each({'try', _, Args} = Clause, _S) when is_list(Args) ->
-  error({invalid_arguments_for_try, Clause});
+translate_each({'try', Line, Args}, S) when is_list(Args) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "try");
 
 %% Receive
 

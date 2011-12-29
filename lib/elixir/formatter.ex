@@ -9,12 +9,12 @@ def format_stacktrace({module, fun, arity}) do
 end
 
 def format_catch(:error, {:badsyntax, {line, filename, error, token}}) do
-  "\n#{list_to_binary(filename)}:#{inspect(line)}: #{atom_to_binary(error, :utf8)} #{format_token token}"
+  "#{list_to_binary(filename)}:#{inspect(line)}: #{list_to_binary(error)}#{format_token token}"
 end
 
 def format_catch(:error, {:badform, {line, filename, module, desc}}) do
-  formatted = list_to_binary module.format_error(desc)
-  "\n#{list_to_binary(filename)}:#{inspect(line)}: #{formatted}"
+  formatted = list_to_binary Erlang.elixir_errors.format_error(module, desc)
+  "#{list_to_binary(filename)}:#{inspect(line)}: #{formatted}"
 end
 
 def format_catch(_, reason) do
@@ -55,5 +55,5 @@ end
 
 private
 
-def format_token([]),    do: "[]"
+def format_token([]),    do: ""
 def format_token(token), do: list_to_binary(token)
