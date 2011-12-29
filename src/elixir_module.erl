@@ -1,6 +1,5 @@
 -module(elixir_module).
--export([transform/2, transform/3, transform/4,
-  build/3, compile/3, compile/4, format_error/1,
+-export([transform/4, compile/4, format_error/1,
   read_attribute/2, insert_attribute/3, update_attribute/3]).
 -include("elixir.hrl").
 
@@ -26,39 +25,18 @@ update_attribute(Module, Attr, Fun) ->
 %% The abstract form for extra arguments may be given and they
 %% will be passed to the invoked function.
 
-transform(Kind, S) -> transform(Kind, S, element(1, S#elixir_scope.module)).
-transform(Kind, S, Line) -> transform(Kind, S, Line, []).
-transform(Kind, S, Line, Raw) ->
-  Filename  = S#elixir_scope.filename,
-  { _, Module } = S#elixir_scope.module,
-  Args = [{integer, Line, Line}, {string, Line, Filename}, {atom, Line, Module}|Raw],
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, Kind, Args).
+transform(Line, Filename, Module, Block) ->
+  Tree = elixir_tree_helpers:abstract_syntax(Block),
+  Args = [{integer, Line, Line}, {string, Line, Filename}, {atom, Line, Module}, Tree],
+  ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
-%% Hook that builds both attribute and functions
-%% and set up common hooks.
+%% The compilation hook.
 
-build(_Line, _Filename, Module) ->
-  %% Attribute table
-  Table = table(Module),
-  ets:new(Table, [set, named_table, private]),
+compile(Line, Filename, Module, Block) ->
+  build(Module),
 
-  %% Default attributes
-  ets:insert(Table, { refer, [] }),
-  ets:insert(Table, { import, [] }),
-  ets:insert(Table, { data, [] }),
-
-  %% Function table
-  elixir_def:build_table(Module).
-
-%% Hook for compilation. A function may be passed as fourth argument.
-%% The function is invoked before the module is compiled.
-
-compile(Line, Filename, Module) ->
-  compile(Line, Filename, Module, fun() -> [] end).
-
-compile(Line, Filename, Module, Fun) ->
   try
-    Result = Fun(),
+    Result = eval_form(Line, Filename, Module, Block),
     Base   = base_form(Line, Filename, Module),
 
     Table  = table(Module),
@@ -75,6 +53,43 @@ compile(Line, Filename, Module, Fun) ->
     elixir_def:delete_table(Module)
   end.
 
+%% Hook that builds both attribute and functions and set up common hooks.
+
+build(Module) ->
+  %% Attribute table
+  Table = table(Module),
+  ets:new(Table, [set, named_table, private]),
+
+  %% Default attributes
+  ets:insert(Table, { refer, [] }),
+  ets:insert(Table, { import, [] }),
+  ets:insert(Table, { data, [] }),
+
+  %% Function table
+  elixir_def:build_table(Module).
+
+%% Receives the module representation and evaluates it.
+
+eval_form(Line, Filename, Module, Block) ->
+  S = #elixir_scope{filename=Filename, module={Line,Module}},
+  { TBlock, _ } = elixir_translator:translate_each(Block, S),
+  { value, Result, _ } = erl_eval:exprs([TBlock], []),
+  Result.
+
+%% Return the base form with module, exports and function declaratins.
+
+base_form(Line, Filename, Module) ->
+  {E0, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
+  { E1, F1 } = add_extra_function(Line, Filename, E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
+
+  [
+    {attribute, Line, module, Module},
+    {attribute, Line, file, {Filename,Line}},
+    {attribute, Line, export, E1} | F1
+  ].
+
+%% Loads the form into the code server.
+
 load_form(Forms, Filename) ->
   case compile:forms(Forms, [return]) of
     {ok, ModuleName, Binary, Warnings} ->
@@ -90,18 +105,6 @@ load_form(Forms, Filename) ->
       format_warnings(Filename, Warnings),
       format_errors(Filename, Errors)
   end.
-
-%% Return the base form with module, exports and function declaratins.
-
-base_form(Line, Filename, Module) ->
-  {E0, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
-  { E1, F1 } = add_extra_function(Line, Filename, E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
-
-  [
-    {attribute, Line, module, Module},
-    {attribute, Line, file, {Filename,Line}},
-    {attribute, Line, export, E1} | F1
-  ].
 
 % EXTRA FUNCTIONS
 

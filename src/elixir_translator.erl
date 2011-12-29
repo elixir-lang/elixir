@@ -4,12 +4,7 @@
 
 parse(String, Line, #elixir_scope{filename=Filename} = S) ->
   Forms = forms(String, Line, Filename),
-  { Translated, FS } = translate(Forms, S),
-  Final = case FS#elixir_scope.module of
-    {0,nil} -> Translated;
-    _  -> Translated ++ [elixir_module:transform(compile, FS)]
-  end,
-  { Final, FS }.
+  translate(Forms, S).
 
 forms(String, StartLine, Filename) ->
   try elixir_tokenizer:tokenize(String, StartLine) of
@@ -114,14 +109,13 @@ translate_each({use, Line, [Ref|Args]}, S) ->
       translate_each(Call, S)
   end;
 
-translate_each({module, Line, [Ref|Tail]}, S) ->
+translate_each({module, Line, [Ref, [{do,Block}]]}, S) ->
   case S#elixir_scope.function of
     [] ->
-      { TRef, NS } = translate_each(Ref, S#elixir_scope{noref=true}),
+      { TRef, _ } = translate_each(Ref, S#elixir_scope{noref=true}),
       case TRef of
         { atom, _, Module } ->
-          { Final, FS } = module_macro(Line, Tail, S, NS#elixir_scope{module={Line,Module}}),
-          { Final, FS#elixir_scope{noref=S#elixir_scope.noref} };
+          { elixir_module:transform(Line, S#elixir_scope.filename, Module, Block), S };
         _ ->
           elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "module")
       end;
@@ -129,20 +123,14 @@ translate_each({module, Line, [Ref|Tail]}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "module")
   end;
 
-translate_each({endmodule, Line, []}, S) ->
-  case S#elixir_scope.module of
-    {0,nil} -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no module defined for: ", "endmodule");
-    _  -> { elixir_module:transform(compile, S, Line), S#elixir_scope{module={0,nil}} }
-  end;
-
 %% Built-in macros
 
 translate_each({'__MODULE__', Line, []}, S) ->
   { _, Module } = S#elixir_scope.module,
-  {{ atom, Line, Module }, S };
+  { { atom, Line, Module }, S };
 
 translate_each({'__LINE__', Line, []}, S) ->
-  {{ integer, Line, Line }, S };
+  { { integer, Line, Line }, S };
 
 translate_each({'__FILE__', _Line, []}, S) ->
   translate_each(list_to_binary(S#elixir_scope.filename), S);
@@ -424,21 +412,3 @@ convert_op('!=')  ->  '/=';
 convert_op('<=')  ->  '=<';
 convert_op('<-')  ->  '!';
 convert_op(Else)  ->  Else.
-
-%% Handle the module macro.
-
-%% Handle the case where module is called with a do block.
-%% In such scenarios, we need to define a new block without
-%% affecting the outer module, if one exists.
-module_macro(Line, [[{do,Block}]], OldS, NewS) ->
-  { TBlock, FinalS } = translate_each(Block, NewS),
-
-  Clause = { clause, Line, [], [], [TBlock] },
-  Fun = { 'fun', Line, { clauses, [Clause] } },
-
-  Contents = { block, Line, [
-    elixir_module:transform(build, NewS),
-    elixir_module:transform(compile, FinalS, Line, [Fun])
-  ] },
-
-  { Contents, FinalS#elixir_scope{module=OldS#elixir_scope.module} }.
