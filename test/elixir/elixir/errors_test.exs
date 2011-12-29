@@ -18,11 +18,11 @@ module Elixir::ErrorsTest do
   end
 
   def test_bad_form do
-    "nofile:2: function bar/0 undefined" = format_catch 'module Foo\ndef foo, do: bar'
+    "nofile:2: function bar/0 undefined" = format_catch 'module Foo do\ndef foo, do: bar\nend'
   end
 
   def test_invalid_scope_for_module do
-    "nofile:3: invalid scope for: module" = format_catch 'module Foo\ndef foo do\nmodule Bar, do: 1\nend'
+    "nofile:3: invalid scope for: module" = format_catch 'module Foo do\ndef foo do\nmodule Bar, do: 1\nend\nend'
   end
 
   def test_invalid_scope_for_function do
@@ -48,7 +48,7 @@ module Elixir::ErrorsTest do
 
   def test_unproper_macro do
     "nofile:2: key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
-      format_catch 'module Foo\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend'
+      format_catch 'module Foo do\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
   end
 
   def test_def_defmacro_clause_change do
@@ -68,7 +68,7 @@ module Elixir::ErrorsTest do
 
   def test_internal_function_overriden do
     "nofile:1: function __macros__/0 is internal and should not be overriden" =
-      format_catch 'module Foo\ndef __macros__, do: []'
+      format_catch 'module Foo do\ndef __macros__, do: []\nend'
   end
 
   def test_interpolation_error do

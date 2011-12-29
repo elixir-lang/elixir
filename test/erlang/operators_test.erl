@@ -78,7 +78,7 @@ operators_variables_precedence_test() ->
 
 operators_variables_precedence_on_namespaces_test() ->
   F = fun() ->
-    elixir:eval("module Foo; def l, do: 1; module Bar; def l(x), do: 1;"),
+    elixir:eval("module Foo do; def l, do: 1; end; module Bar do; def l(x), do: 1; end"),
     {3,[]} = elixir:eval("1 + Foo.l + 1"),
     {3,[]} = elixir:eval("1 + Foo.l+1"),
     {2,[]} = elixir:eval("1 + Bar.l +1")

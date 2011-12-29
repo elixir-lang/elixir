@@ -59,7 +59,7 @@ record_increment_test() ->
 
 nested_record_test() ->
   F = fun() ->
-    elixir:eval("module Foo\ndefrecord Bar, a: 1, b: 2, c: 3"),
+    elixir:eval("module Foo, do: defrecord(Bar, a: 1, b: 2, c: 3)"),
     { { '::Foo::Bar', 1, 2, 3 }, _ } = elixir:eval("Foo::Bar.new"),
     { 1, _ } = elixir:eval("Foo::Bar.new.a")
   end,

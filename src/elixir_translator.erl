@@ -441,18 +441,4 @@ module_macro(Line, [[{do,Block}]], OldS, NewS) ->
     elixir_module:transform(compile, FinalS, Line, [Fun])
   ] },
 
-  { Contents, FinalS#elixir_scope{module=OldS#elixir_scope.module} };
-
-%% In cases we call `module` but no module was previously
-%% defined, we should just build the new one.
-module_macro(_Line, _Tail, #elixir_scope{module={0,nil}}, NewS) ->
-  { elixir_module:transform(build, NewS), NewS };
-
-%% Finally, if a previous module was defined, we need to
-%% compile it and then build the new one.
-module_macro(Line, _Tail, OldS, NewS) ->
-  Contents = { block, Line, [
-    elixir_module:transform(compile, OldS),
-    elixir_module:transform(build, NewS)
-  ] },
-  { Contents, NewS }.
+  { Contents, FinalS#elixir_scope{module=OldS#elixir_scope.module} }.

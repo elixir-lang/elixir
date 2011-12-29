@@ -93,7 +93,7 @@ orrdict_match_test() ->
 
 function_clause_test() ->
   F = fun() ->
-    elixir:eval("module Foo\ndef a([{_k,_}=e|_]), do: e\n"),
+    elixir:eval("module Foo do\ndef a([{_k,_}=e|_]), do: e\nend"),
     {{foo,bar},_} = elixir:eval("Foo.a([{:foo,:bar}])")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
