@@ -81,13 +81,13 @@ def run_tests(pid, test_case, [test|t]) do
       apply test_case, test, []
       nil
     catch: { kind1, error1, _ }
-      {kind1, error1, Erlang.erlang.get_stacktrace}
+      {kind1, error1, Code.stacktrace}
     end
 
     # test_case.teardown(test)
     partial
   catch: { kind2, error2, _ }
-    {kind2, error2, Erlang.erlang.get_stacktrace}
+    {kind2, error2, Code.stacktrace}
   end
 
   pid <- { self(), :each, { test_case, test, final } }

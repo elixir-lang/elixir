@@ -13,7 +13,18 @@ def process_argv(options) do
   end
 
   all_commands = List.reverse(config.commands) ++ List.reverse(config.close)
-  List.map all_commands, fn(c) { process_command(c, config) }
+
+  try do
+    List.map all_commands, fn(c) { process_command(c, config) }
+  catch: { :throw, reason, _ }
+    print "** throw #{Elixir::Formatter.format_catch(:throw, reason)}\n"
+    print_stacktrace(Code.stacktrace)
+    halt(1)
+  catch: { :error, reason, _ }
+    print "** error #{Elixir::Formatter.format_catch(:error, reason)}\n"
+    print_stacktrace(Code.stacktrace)
+    halt(1)
+  end
 
   if config.halt do
     halt(0)
@@ -23,6 +34,10 @@ def process_argv(options) do
 end
 
 private
+
+def print(message) do
+  Erlang.io.format :standard_error, message, []
+end
 
 def invalid_option(option) do
   Erlang.io.format(:standard_error, "Unknown option #{list_to_binary(option)}\n")
@@ -36,6 +51,10 @@ def shared_option?(list, config, callback) do
   match: { new_list, new_config }
     callback.(new_list, new_config)
   end
+end
+
+def print_stacktrace(stacktrace) do
+  List.each stacktrace, fn(s) { print "    #{Elixir::Formatter.format_stacktrace(s)}\n" }
 end
 
 # Process shared options

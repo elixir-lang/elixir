@@ -13,3 +13,7 @@ end
 def require_file(file) do
   Erlang.elixir.file file
 end
+
+def stacktrace do
+  Erlang.erlang.get_stacktrace
+end
