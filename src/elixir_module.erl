@@ -1,17 +1,7 @@
 -module(elixir_module).
 -export([transform/2, transform/3, transform/4,
-  build/3, compile/3, compile/4, modulize/1, format_error/1]).
+  build/3, compile/3, compile/4, format_error/1]).
 -include("elixir.hrl").
-
-%% Receives a list of atoms representing modules
-%% and concatenate them.
-modulize(Args) -> list_to_atom(lists:concat([modulize_(Arg) || Arg <- Args, Arg /= nil])).
-
-modulize_(Arg) ->
-  case Ref = atom_to_list(Arg) of
-    "::" ++ _ -> Ref;
-    _ -> list_to_atom("::" ++ Ref)
-  end.
 
 %% Transformation of args and scope into a compiled erlang call.
 %% The abstract form for extra arguments may be given and they

@@ -155,10 +155,10 @@ translate_each({'::', Line, Args}, S) when is_list(Args) ->
   { TArgs, NS } = translate_args(Args, S),
   Atoms = [Atom || { atom, _, Atom } <- TArgs],
   Final = case length(Atoms) == length(TArgs) of
-    true  -> { atom, Line, elixir_module:modulize(Atoms) };
+    true  -> { atom, Line, elixir_ref:concat(Atoms) };
     false ->
       FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      ?ELIXIR_WRAP_CALL(Line, elixir_module, modulize, FArgs)
+      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
   end,
   { Final, NS };
 
