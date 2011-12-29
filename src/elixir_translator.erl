@@ -117,10 +117,11 @@ translate_each({use, Line, [Ref|Args]}, S) ->
 translate_each({module, Line, [Ref|Tail]}, S) ->
   case S#elixir_scope.function of
     [] ->
-      { TRef, NS } = translate_each(Ref, S),
+      { TRef, NS } = translate_each(Ref, S#elixir_scope{noref=true}),
       case TRef of
         { atom, _, Module } ->
-          module_macro(Line, Tail, S, NS#elixir_scope{module={Line,Module}});
+          { Final, FS } = module_macro(Line, Tail, S, NS#elixir_scope{module={Line,Module}}),
+          { Final, FS#elixir_scope{noref=S#elixir_scope.noref} };
         _ ->
           elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "module")
       end;
@@ -150,10 +151,13 @@ translate_each({'__FILE__', _Line, []}, S) ->
 
 translate_each({ref, Line, [Ref]}, S) when is_atom(Ref) ->
   Atom = list_to_atom("::" ++ atom_to_list(Ref)),
-  Final = case S#elixir_scope.noref of
+  { _, Module } = S#elixir_scope.module,
+
+  Final  = case S#elixir_scope.noref or (Module == nil) of
     true  -> Atom;
-    false -> elixir_ref:lookup(Atom)
+    false -> elixir_ref:lookup(Atom, elixir_module:read_attribute(Module, refer))
   end,
+
   { {atom, Line, Final }, S };
 
 translate_each({'::', Line, [Left]}, S) ->
@@ -171,6 +175,13 @@ translate_each({'::', Line, [Left|Right]}, S) ->
       ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
   end,
   { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
+
+translate_each({noref, _Line, [[{do,Block}]]}, S) ->
+  { TBlock, BS } = translate_each(Block, S#elixir_scope{noref=true}),
+  { TBlock, BS#elixir_scope{noref=S#elixir_scope.noref} };
+
+translate_each({noref, Line, Args}, S) when is_list(Args) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "noref");
 
 %% Def
 

@@ -33,7 +33,10 @@ translate_each(Number, S) when is_float(Number) ->
   { { float, 0, Number }, S };
 
 translate_each(Atom, S) when is_atom(Atom) ->
-  { { atom, 0, Atom }, S }.
+  { { atom, 0, Atom }, S };
+
+translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
+  { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
 
 % Loop through the list finding each unquote_splice entry.
 

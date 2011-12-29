@@ -1,5 +1,5 @@
 -module(elixir_ref).
--export([concat/1, lookup/1]).
+-export([concat/1, lookup/2]).
 
 %% Receives a list of atoms representing modules
 %% and concatenate them.
@@ -13,4 +13,8 @@ concat_(Arg) ->
 
 %% Lookup a reference in the current scope
 
-lookup(Else) -> Else.
+lookup(Else, Dict) ->
+  case orddict:find(Else, Dict) of
+    { ok, Value } -> lookup(Value, Dict);
+    error -> Else
+  end.

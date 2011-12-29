@@ -49,8 +49,20 @@ module Elixir::Macros
 # * `prepend_field` - Receives another list and prepend its values
 # * `append_field` - Receives another list and append its values
 #
-defmacro defrecord(name, values) do
-  Record.defrecord(name, values)
+defmacro defrecord(name, values, opts // []) do
+  Record.defrecord(name, values, opts)
+end
+
+defmacro refer(old, as: new) do
+  quote do
+    if __MODULE__ do
+      Erlang.elixir_module.update_attribute __MODULE__, :refer, fn(current) {
+        Orddict.store(current, noref { unquote(new) }, unquote(old))
+      }
+    else:
+      error(:badarg, "refer needs to be called inside a module")
+    end
+  end
 end
 
 # Provides a `private` macro for restrict visibility of functions
