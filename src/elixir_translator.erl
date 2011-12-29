@@ -115,7 +115,7 @@ translate_each({refer, Line, [Left, [{as,Right}]]}, S) ->
 
   case { TLeft, TRight } of
     { { atom, _, _ }, { atom, _, false } } ->
-      [];
+      { { atom, Line, nil }, SR#elixir_scope{noref=S#elixir_scope.noref} };
     { { atom, _, Old }, { atom, _, New } } ->
       { { tuple, Line, [TLeft, TRight] }, SR#elixir_scope{
         refer=dict:store(New, Old, S#elixir_scope.refer),
