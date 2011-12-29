@@ -6,7 +6,7 @@ module Elixir::Macros
 #
 # This macro will then define a module named FileInfo
 # which will contain getters and setters for each attribute
-# and initializers methods. Therefore, one can do:
+# and initialization methods. Therefore, one can do:
 #
 #     file_info = FileInfo.new(atime: now())
 #     file_info.atime         #=> Returns the value of atime
@@ -18,12 +18,36 @@ module Elixir::Macros
 #
 #     defrecord FileInfo, atime: nil, mtime: nil
 #
-# The example above will define a module named FileInfo. However,
-# if invoked inside a module, the name will be nested:
+# ... will define a module named FileInfo. However, if invoked
+# inside a module, the name will be nested:
 #
 #     module Foo::Bar
 #     defrecord FileInfo, atime: nil, mtime: nil
 #     Foo::Bar::FileInfo.new # Nested
+#
+# ## Default based functions
+#
+# Depending on the default value, Elixir will define helpers to interact
+# with the record. For example, ExUnit defines a record which keeps
+# track of how many tests were executed and the failures that happened
+# The record definition is similar to:
+#
+#     defrecord Config, counter: 0, failures: []
+#
+# Since `counter` is an integer, Elixir automatically defines a helper
+# named `increment_counter` that will increase the counter value:
+#
+#     Config.new.increment_counter.counter #=> 1
+#
+# `increment_counter` also accepts a number of increment as argument:
+#
+#     Config.new.increment_counter(10).counter #=> 10
+#
+# Besides, if the default is a list, Elixir will define three helpers:
+#
+# * `merge_field` - Receives an ordered dict and merge it into the current values;
+# * `prepend_field` - Receives another list and prepend its values
+# * `append_field` - Receives another list and append its values
 #
 defmacro defrecord(name, values) do
   Record.defrecord(name, values)
