@@ -62,6 +62,11 @@ def test_visibility_clause_change do
     format_catch 'module Foo do\ndef foo(1), do: 1\nprivate\ndef foo(x), do: x\nend'
 end
 
+def test_clause_change do
+  "nofile:4: function foo/1 clause does not match with previous one" =
+    format_catch 'module Foo do\ndef foo(1), do: 1\ndef bar(x), do: x\ndef foo(x), do: x\nend'
+end
+
 def test_internal_function_overriden do
   "nofile:1: function __macros__/0 is internal and should not be overriden" =
     format_catch 'module Foo\ndef __macros__, do: []'

@@ -101,6 +101,7 @@ store_each(Kind, FunctionTable, Visibility, Filename, {function, Line, Name, Ari
       % the last clause was not the same name/arity
       check_valid_visibility(Line, Filename, Name, Arity, Visibility, FunctionTable),
       check_valid_kind(Line, Filename, Name, Arity, Kind, FunctionTable),
+      check_valid_clause(Line, Filename, Name, Arity, Visibility, FunctionTable),
       Clauses ++ OtherClauses;
     [] ->
       add_visibility_entry(Name, Arity, Visibility, FunctionTable),
@@ -155,7 +156,18 @@ find_visibility(Name, Arity, [Visibility|T], Table) ->
     false -> find_visibility(Name, Arity, T, Table)
   end.
 
+%% Handle clause order
+
+check_valid_clause(Line, Filename, Name, Arity, Visibility, Table) ->
+  case ets:lookup_element(Table, Visibility, 2) of
+    [{Name,Arity}|_] -> [];
+    _ -> elixir_errors:form_error(Line, Filename, ?MODULE, { changed_clause, {Name, Arity} })
+  end.
+
 %% Format errors
+
+format_error({changed_clause,{Name,Arity}}) ->
+  io_lib:format("function ~s/~B clause does not match with previous one", [Name, Arity]);
 
 format_error({changed_visibility,{Name,Arity,Previous}}) ->
   io_lib:format("function ~s/~B already defined with visibility ~s", [Name, Arity, Previous]);
