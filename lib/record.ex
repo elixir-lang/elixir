@@ -11,7 +11,7 @@ module Record do
       module __MODULE__ :: unquote(name) do
         require ::Record
         Record.getters_and_setters(unquote(values), 1, [])
-        Record.initializers(__MODULE__, unquote(values))
+        Record.initializers(unquote(values))
       end
 
       require __MODULE__ :: unquote(name), as: unquote(as)
@@ -36,7 +36,7 @@ module Record do
   #       { FileInfo, Orddict.fetch(opts, :atime, nil), Orddict.fetch(opts, :mtime, nil) }
   #     end
   #
-  defmacro initializers(name, values) do
+  defmacro initializers(values) do
     # Get default values from the dictionary.
     defaults = Orddict.values(values)
 
@@ -50,8 +50,8 @@ module Record do
 
     quote do
       def new(), do: new([])
-      def new([]), do: { unquote(name), unquote_splice(defaults) }
-      def new(opts), do: { unquote(name), unquote_splice(selective) }
+      def new([]), do: { __MODULE__, unquote_splice(defaults) }
+      def new(opts), do: { __MODULE__, unquote_splice(selective) }
     end
   end
 
