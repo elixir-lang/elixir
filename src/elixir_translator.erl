@@ -113,9 +113,12 @@ translate_each({use, Line, [Ref|Args]}, S) ->
   end;
 
 translate_each({require, Line, [Left]}, S) ->
-  translate_each({ require, Line, [Left, [{as,false}]]}, S);
+  translate_each({ require, Line, [Left, []]}, S);
 
-translate_each({require, Line, [Left, [{as,Right}]]}, S) ->
+translate_each({require, Line, [Left,Opts]}, S) ->
+  Right  = proplists:get_value(as, Opts, false),
+  Import = proplists:get_value(import, Opts, false),
+
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL#elixir_scope{noref=true}),
 
@@ -131,7 +134,16 @@ translate_each({require, Line, [Left, [{as,Right}]]}, S) ->
   Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
   elixir_module:ensure_loaded(Line, Old, S),
 
-  { Tuple, SR#elixir_scope{
+  IS = case Import of
+    true  ->
+      %% This should be able to handle errors
+      Imports = [{Old,Old:'__macros__'()}|SR#elixir_scope.imports],
+      SR#elixir_scope{imports=Imports};
+    false ->
+      SR
+  end,
+
+  { Tuple, IS#elixir_scope{
     refer=orddict:store(New, Old, S#elixir_scope.refer),
     noref=S#elixir_scope.noref
   } };
@@ -297,7 +309,7 @@ translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
     { TArgs, NS } = translate_args(Args, S),
     { { call, Line, { atom, Line, Atom }, TArgs }, NS }
   end,
-  elixir_macro:dispatch_one(Line, '::Elixir::Macros', Atom, Args, S, Callback);
+  elixir_macro:dispatch_imports(Line, Atom, Args, S, Callback);
 
 %% Dot calls
 
@@ -314,7 +326,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
     { { atom, _, '::Erlang' }, { atom, _, Atom } } ->
       { { atom, Line, Atom }, S };
     { { atom, _, Receiver }, { atom, _, Name } }  ->
-      elixir_macro:dispatch_one(Line, Receiver, Name, Args, umergev(SL, SR), Callback);
+      elixir_macro:dispatch_refer(Line, Receiver, Name, Args, umergev(SL, SR), Callback);
     { { Kind, _, _ }, { atom, _, _ } } when Kind == var; Kind == tuple ->
       Callback();
     _ ->

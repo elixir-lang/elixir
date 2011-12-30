@@ -1,32 +1,44 @@
 -module(elixir_macro).
--export([dispatch_one/6, format_error/1]).
+-export([dispatch_refer/6, dispatch_imports/5, format_error/1]).
 -include("elixir.hrl").
 
-dispatch_one(Line, Receiver, Name, Args, S, Callback) ->
-  case invoke_macros(S#elixir_scope.module) of
-    false -> Callback();
-    true  ->
-      Arity  = length(Args),
-
-      Macros = try
-        Receiver:'__macros__'()
-      catch
-        error:undef -> []
-      end,
-
-      case lists:member({Name, Arity}, Macros) of
-        true  ->
-          ensure_required(Line, Receiver, Name, Arity, S),
-          Tree = apply(Receiver, Name, Args),
-          NewS = S#elixir_scope{macro={Receiver,Name,Arity}},
-          { TTree, TS } = elixir_translator:translate_each(Tree, NewS),
-          { TTree, TS#elixir_scope{macro=[]} };
-        false -> Callback()
-      end
+dispatch_imports(Line, Name, Args, S, Callback) ->
+  Arity = length(Args),
+  case find_macro({Name, Arity}, S#elixir_scope.imports) of
+    nil -> Callback();
+    Receiver -> dispatch(Line, Receiver, Name, Arity, Args, S)
   end.
 
-invoke_macros({_,'::Elixir::Macros'}) -> false;
-invoke_macros(_)                      -> true.
+dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
+  Arity  = length(Args),
+
+  Macros = try
+    Receiver:'__macros__'()
+  catch
+    error:undef -> []
+  end,
+
+  case lists:member({Name, Arity}, Macros) of
+    true  -> dispatch(Line, Receiver, Name, Arity, Args, S);
+    false -> Callback()
+  end.
+
+%% HELPERS
+
+dispatch(Line, Receiver, Name, Arity, Args, S) ->
+  ensure_required(Line, Receiver, Name, Arity, S),
+  Tree = apply(Receiver, Name, Args),
+  NewS = S#elixir_scope{macro={Receiver,Name,Arity}},
+  { TTree, TS } = elixir_translator:translate_each(Tree, NewS),
+  { TTree, TS#elixir_scope{macro=[]} }.
+
+find_macro(Tuple, [{ Name, Values }|T]) ->
+  case lists:member(Tuple, Values) of
+    true  -> Name;
+    false -> find_macro(Tuple, T)
+  end;
+
+find_macro(_Tuple, []) -> nil.
 
 %% ERROR HANDLING
 
