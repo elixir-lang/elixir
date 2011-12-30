@@ -51,6 +51,11 @@ module Elixir::ErrorsTest do
       format_catch 'module Foo do\nrequire Elixir::ErrorsTest::UnproperMacro\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
   end
 
+  def test_macro_conflict do
+    "nofile:1: imported macro ::Elixir::Macros#defrecord/2 conflicts with local function or import" =
+      format_catch 'module Foo do\ndef defrecord(_, _), do: OMG\nend'
+  end
+
   def test_unrequired_macro do
     "nofile:2: tried to use ::Record#getters_and_setters/3 but module was not required. Required: ['::Elixir::Macros']" =
       format_catch 'module Foo do\nRecord.getters_and_setters([], 0, [])\nend'

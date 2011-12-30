@@ -53,14 +53,10 @@ store_definition(Kind, Filename, Module, Function, Defaults) ->
   FunctionName  = element(3, Function),
 
   %% Normalize visibility and kind
-  Visibility = case Kind of
-    defp -> private;
-    _    -> public
-  end,
-
-  Final = case Kind of
-    defp -> def;
-    _ -> Kind
+  { Final, Visibility } = case Kind of
+    defmacro -> { defmacro, public };
+    defp     -> { def, private };
+    def      -> { def, public }
   end,
 
   store_each(Final, FunctionTable, Visibility, Filename, Function),
@@ -79,7 +75,7 @@ unwrap_stored_definitions(Module) ->
   ets:delete(Table, private),
   ets:delete(Table, macros),
   Functions = ets:foldl(fun(X, Acc) -> unwrap_stored_definition(X, Acc, Private) end, [], Table),
-  { Public, Macros, Functions }.
+  { Public, Private, Macros, Functions }.
 
 unwrap_stored_definition({{Name, Arity}, Line, Clauses}, Acc, _Private) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses) }|Acc].
@@ -99,8 +95,8 @@ store_each(Kind, FunctionTable, Visibility, Filename, {function, Line, Name, Ari
   FinalClauses = case ets:lookup(FunctionTable, {Name, Arity}) of
     [{{Name, Arity}, FinalLine, OtherClauses}] ->
       check_valid_visibility(Line, Filename, Name, Arity, Visibility, FunctionTable),
-      check_valid_kind(Line, Filename, Name, Arity, Kind, FunctionTable),
       check_valid_clause(Line, Filename, Name, Arity, Visibility, FunctionTable),
+      check_valid_kind(Line, Filename, Name, Arity, Kind, FunctionTable),
       Clauses ++ OtherClauses;
     [] ->
       add_visibility_entry(Name, Arity, Visibility, FunctionTable),

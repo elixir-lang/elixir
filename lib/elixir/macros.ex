@@ -49,7 +49,7 @@ module Elixir::Macros do
   # * `append_field` - Receives another list and append its values
   #
   defmacro defrecord(name, values, opts // []) do
-    Record.defrecord(name, values, opts)
+    Record.define(name, values, opts)
   end
 
   # Provides an integer division macro according to Erlang semantics.

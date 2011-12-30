@@ -1,6 +1,6 @@
 module Record do
   # Main entry point for records definition.
-  def defrecord(name, values, opts) do
+  def define(name, values, opts) do
     as = Orddict.fetch(opts, :as, name)
 
     quote do

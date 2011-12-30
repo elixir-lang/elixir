@@ -47,12 +47,14 @@ compile(Line, Filename, Module, Block) when is_atom(Module) ->
   build(Module),
 
   try
-    Result = eval_form(Line, Filename, Module, Block),
-    Base   = base_form(Line, Filename, Module),
+    { Result, S } = eval_form(Line, Filename, Module, Block),
+    { All, Base } = base_form(Line, Filename, Module),
 
     Table  = table(Module),
     _Import= destructive_read(Table, import),
     _Data  = destructive_read(Table, data),
+
+    elixir_macro:ensure_no_conflicts(Line, All, S#elixir_scope.imports, S),
 
     Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
     Forms = ets:foldr(Transform, Base, Table),
@@ -84,21 +86,21 @@ build(Module) ->
 
 eval_form(Line, Filename, Module, Block) ->
   S = #elixir_scope{filename=Filename, module={Line,Module}},
-  { TBlock, _ } = elixir_translator:translate_each(Block, S),
+  { TBlock, TS } = elixir_translator:translate_each(Block, S),
   { value, Result, _ } = erl_eval:exprs([TBlock], []),
-  Result.
+  { Result, TS }.
 
 %% Return the base form with module, exports and function declaratins.
 
 base_form(Line, Filename, Module) ->
-  {E0, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
+  {E0, Private, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
   { E1, F1 } = add_extra_function(Line, Filename, E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
 
-  [
+  { E1 ++ Private, [
     {attribute, Line, module, Module},
     {attribute, Line, file, {Filename,Line}},
     {attribute, Line, export, E1} | F1
-  ].
+  ] }.
 
 %% Loads the form into the code server.
 
