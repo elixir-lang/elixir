@@ -117,7 +117,6 @@ translate_each({require, Line, [Left]}, S) ->
 
 translate_each({require, Line, [Left,Opts]}, S) ->
   Right  = proplists:get_value(as, Opts, false),
-  Import = proplists:get_value(import, Opts, false),
 
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL#elixir_scope{noref=true}),
@@ -131,14 +130,19 @@ translate_each({require, Line, [Left,Opts]}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "require")
   end,
 
+  Truthy = fun(X) -> proplists:get_value(X, Opts, false ) /= false end,
+  Import = lists:any(Truthy, [import, only, except]),
+
   %% Handle given :as
   elixir_module:ensure_loaded(Line, Old, S, Import),
 
   %% Handle given :import
   IS = case Import of
     true  ->
-      Imports = [{Old,elixir_macro:get_macros(Line, Old, S)}|SR#elixir_scope.imports],
-      SR#elixir_scope{imports=Imports};
+      OldImports = lists:keydelete(Old, 1, SR#elixir_scope.imports),
+      Macros     = elixir_tree_helpers:apply_opts(elixir_macro:get_macros(Line, Old, S), Opts),
+      NewImports = [{Old,Macros}|OldImports],
+      SR#elixir_scope{imports=NewImports};
     false -> SR
   end,
 
