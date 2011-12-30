@@ -47,8 +47,13 @@ module Elixir::ErrorsTest do
   end
 
   def test_unproper_macro do
-    "nofile:2: key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
-      format_catch 'module Foo do\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
+    "nofile:3: key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
+      format_catch 'module Foo do\nrequire Elixir::ErrorsTest::UnproperMacro\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
+  end
+
+  def test_unrequired_macro do
+    "nofile:2: tried to use ::Record#getters_and_setters/3 but module was not required. Required: ['::Elixir::Macros']" =
+      format_catch 'module Foo do\nRecord.getters_and_setters([], 0, [])\nend'
   end
 
   def test_def_defmacro_clause_change do

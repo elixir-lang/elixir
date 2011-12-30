@@ -98,18 +98,24 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { {tuple, Line, TArgs}, SE };
 
-%% Modules
+%% Modules directives
 
 translate_each({use, Line, [Ref|Args]}, S) ->
   case S#elixir_scope.module of
     {0,nil} ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "use");
     {_,Module} ->
-      Call = { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] },
+      Call = { block, Line, [
+        { require, Line, [Ref] },
+        { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
+      ] },
       translate_each(Call, S)
   end;
 
-translate_each({load, Line, [Left, [{as,Right}]]}, S) ->
+translate_each({require, Line, [Left]}, S) ->
+  translate_each({ require, Line, [Left, [{as,false}]]}, S);
+
+translate_each({require, Line, [Left, [{as,Right}]]}, S) ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL#elixir_scope{noref=true}),
 
@@ -119,7 +125,7 @@ translate_each({load, Line, [Left, [{as,Right}]]}, S) ->
     { { atom, _, ALeft }, { atom, _, ARight } } ->
       { ALeft, ARight };
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "refer")
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "require")
   end,
 
   Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
@@ -129,6 +135,8 @@ translate_each({load, Line, [Left, [{as,Right}]]}, S) ->
     refer=orddict:store(New, Old, S#elixir_scope.refer),
     noref=S#elixir_scope.noref
   } };
+
+%% Modules
 
 translate_each({module, Line, [Ref, [{do,Block}]]}, S) ->
   { TRef, _ } = translate_each(Ref, S#elixir_scope{noref=true}),
@@ -289,7 +297,7 @@ translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
     { TArgs, NS } = translate_args(Args, S),
     { { call, Line, { atom, Line, Atom }, TArgs }, NS }
   end,
-  elixir_macro:dispatch_one('::Elixir::Macros', Atom, Args, S, Callback);
+  elixir_macro:dispatch_one(Line, '::Elixir::Macros', Atom, Args, S, Callback);
 
 %% Dot calls
 
@@ -306,7 +314,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
     { { atom, _, '::Erlang' }, { atom, _, Atom } } ->
       { { atom, Line, Atom }, S };
     { { atom, _, Receiver }, { atom, _, Name } }  ->
-      elixir_macro:dispatch_one(Receiver, Name, Args, umergev(SL, SR), Callback);
+      elixir_macro:dispatch_one(Line, Receiver, Name, Args, umergev(SL, SR), Callback);
     { { Kind, _, _ }, { atom, _, _ } } when Kind == var; Kind == tuple ->
       Callback();
     _ ->

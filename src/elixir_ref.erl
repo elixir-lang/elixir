@@ -17,5 +17,5 @@ concat_(Arg) ->
 lookup(Else, Dict) ->
   case orddict:find(Else, Dict) of
     { ok, Value } when Value /= Else -> lookup(Value, Dict);
-    error -> Else
+    _ -> Else
   end.

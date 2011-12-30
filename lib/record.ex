@@ -9,11 +9,12 @@ module Record do
       # to wrap this in a block so this module declaration
       # do not affect the outer module one.
       module __MODULE__ :: unquote(name) do
+        require ::Record
         Record.getters_and_setters(unquote(values), 1, [])
         Record.initializers(__MODULE__, unquote(values))
       end
 
-      load __MODULE__ :: unquote(name), as: unquote(as)
+      require __MODULE__ :: unquote(name), as: unquote(as)
     end
   end
 
@@ -37,7 +38,7 @@ module Record do
   #
   defmacro initializers(name, values) do
     # Get default values from the dictionary.
-    defaults  = Orddict.values(values)
+    defaults = Orddict.values(values)
 
     # For each value, define a piece of code that will receive
     # an ordered dict of options (opts) and it will try to fetch
