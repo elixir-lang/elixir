@@ -33,4 +33,9 @@ module Elixir::RequireTest do
     1  = bor(0, 1)
     -1 = bnot(0)
   end
+
+  def test_require_erlang do
+    require Erlang.lists, as: MyList
+    [1,2,3] = MyList.flatten([1,[2],3])
+  end
 end
