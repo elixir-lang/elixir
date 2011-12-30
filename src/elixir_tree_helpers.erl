@@ -1,18 +1,8 @@
 -module(elixir_tree_helpers).
--export([apply_opts/2, abstract_syntax/1, build_var_name/2, build_bitstr/4,
+-export([abstract_syntax/1, build_var_name/2, build_bitstr/4,
   build_list/4, build_list/5, build_simple_list/2,
   build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
-
-apply_opts(List, Opts) ->
-  case orddict:find(only, Opts) of
-    { ok, Only } -> Only;
-    error ->
-      case orddict:find(except, Opts) of
-        { ok, Except } -> List -- Except;
-        error -> List
-      end
-  end.
 
 abstract_syntax(Tree) ->
   erl_syntax:revert(erl_syntax:abstract(Tree)).

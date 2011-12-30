@@ -3,6 +3,7 @@ module Elixir::ErrorsTest do
 
   module __MODULE__ :: UnproperMacro do
     defmacro unproper(args), do: args
+    defmacro case(x), do: x
   end
 
   def test_invalid_token do
@@ -103,6 +104,11 @@ module Elixir::ErrorsTest do
   def test_invalid_kv_for_match do
     "nofile:1: invalid key: invalid" =
       format_catch 'case true do\ninvalid: 2\nafter: 3\nend'
+  end
+
+  def test_cant_import_in_erlang_macros do
+    "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro#case/1 because it conflicts with Elixir internal macros" =
+      format_catch 'require Elixir::ErrorsTest::UnproperMacro, import: true'
   end
 
   ## Helpers

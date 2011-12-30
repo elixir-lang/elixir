@@ -22,14 +22,5 @@
   refer=[                                   %% an orddict with references by new -> old names
     {'::Elixir::Macros','::Elixir::Macros'}
   ],
-  imports=[                                 %% a list with macros imported by module
-    {
-      '::Elixir::Macros',
-      try
-        '::Elixir::Macros':'__macros__'()
-      catch
-        error:undef -> []
-      end
-    }
-  ],
+  imports=elixir_import:default_macros(),   %% a list with macros imported by module
   scheduled=[]}).                           %% scheduled modules to be loaded

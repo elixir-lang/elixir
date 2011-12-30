@@ -138,10 +138,9 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 
   %% Handle given :import
   IS = case Import of
-    true  ->
-      OldImports = lists:keydelete(Old, 1, SR#elixir_scope.imports),
-      Macros     = elixir_tree_helpers:apply_opts(elixir_macro:get_macros(Line, Old, S), Opts),
-      NewImports = [{Old,Macros}|OldImports],
+    true ->
+      NewImports = elixir_import:update(Line, Old, SR#elixir_scope.imports,
+        Opts, fun() -> elixir_macro:get_macros(Line, Old, S) end, SR),
       SR#elixir_scope{imports=NewImports};
     false -> SR
   end,
@@ -280,6 +279,9 @@ translate_each({'receive', Line, [RawClauses] }, S) ->
       { TClauses, SC } = elixir_clauses:match(Line, Clauses, S),
       { { 'receive', Line, TClauses }, SC }
   end;
+
+translate_each({'receive', Line, Args}, S) when is_list(Args) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "receive");
 
 %% Variables & Function calls
 
