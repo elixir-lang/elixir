@@ -325,7 +325,6 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
 
 translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
   Callback = fun() ->
-    elixir_import:record(local, { Atom, length(Args) }, nil, S),
     { TArgs, NS } = translate_args(Args, S),
     { { call, Line, { atom, Line, Atom }, TArgs }, NS }
   end,

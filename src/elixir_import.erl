@@ -2,55 +2,41 @@
 %% another by `require`. The first one matters only for local
 %% calls and the second one for macros.
 -module(elixir_import).
--export([local_imports/0, macro_imports/0, only_imports/1,
-  calculate/5, handle_import/4, handle_import/5,
+-export([default_imports/0, only_imports/1,
+  calculate/5, handle_import/5,
   format_error/1, ensure_no_macro_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
 -compile({inline,[in_erlang_macros/0]}).
 
 %% Create tables that are responsible to store
-%% local and macro invocations.
+%% import and macro invocations.
 
 macro_table(Module)  -> ?ELIXIR_ATOM_CONCAT([m, Module]).
-local_table(Module)  -> ?ELIXIR_ATOM_CONCAT([l, Module]).
 only_table(Module)   -> ?ELIXIR_ATOM_CONCAT([o, Module]).
 
 build_table(Module) ->
   ets:new(macro_table(Module),  [set, named_table, private]),
-  ets:new(local_table(Module),  [bag, named_table, private]),
   ets:new(only_table(Module),   [set, named_table, private]).
 
 delete_table(Module) ->
   ets:delete(macro_table(Module)),
-  ets:delete(local_table(Module)),
   ets:delete(only_table(Module)).
 
 record(_Kind, _Tuple, _Receiver, #elixir_scope{module={0, nil}}) ->
   [];
 
-record(Kind, Tuple, Receiver, #elixir_scope{module={_,Module}}) ->
-  record_(Kind, Tuple, Receiver, Module).
-
-record_(local, Tuple, _, Module) ->
-  ets:insert(local_table(Module), Tuple);
-
-record_(macro, Tuple, Receiver, Module) ->
+record(macro, Tuple, Receiver, #elixir_scope{module={_,Module}}) ->
   ets:insert(macro_table(Module), { Tuple, Receiver }).
 
 %% Handle the import macro declaration.
 
-handle_import(Line, Filename, Module, Ref) -> handle_import(Line, Filename, Module, Ref, []).
-
-handle_import(Line, Filename, Module, Ref, Opts) when is_atom(Ref), is_list(Opts) ->
+handle_import(Line, Filename, Module, Ref, [{only,_}] = Opts) when is_atom(Ref) ->
   Imports = calculate(Line, Filename, Ref, Opts, fun() -> Ref:module_info(exports) end),
+  ets:insert(only_table(Module), Imports);
 
-  case orddict:find(only, Opts) of
-    { ok, _ } ->
-      ets:insert(only_table(Module), Imports);
-    error ->
-      []
-  end.
+handle_import(Line, Filename, _Module, _Ref, _Opts) ->
+  elixir_errors:syntax_error(Line, Filename, "invalid args for: ", "import").
 
 %% Calculate the new { Key, List } tuple of imports
 %% according to the function and options given.
@@ -67,15 +53,11 @@ calculate(Line, Filename, Key, Opts, Fun) ->
   ensure_no_in_erlang_macro_conflict(Line, Filename, Key, New),
   {Key,New}.
 
-%% Return configured imports
+%% Return configured imports and defaults
 
 only_imports(Module) -> ets:tab2list(only_table(Module)).
 
-%% Return default local and macros for import
-
-local_imports() -> [].
-
-macro_imports() ->
+default_imports() ->
   [
     { '::Elixir::Macros', in_elixir_macros() }
   ].
