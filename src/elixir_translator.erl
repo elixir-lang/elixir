@@ -123,6 +123,7 @@ translate_each({load, Line, [Left, [{as,Right}]]}, S) ->
   end,
 
   Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
+  elixir_module:ensure_loaded(Line, Old, S),
 
   { Tuple, SR#elixir_scope{
     refer=orddict:store(New, Old, S#elixir_scope.refer),
@@ -130,18 +131,15 @@ translate_each({load, Line, [Left, [{as,Right}]]}, S) ->
   } };
 
 translate_each({module, Line, [Ref, [{do,Block}]]}, S) ->
-  case S#elixir_scope.function of
-    [] ->
-      { TRef, _ } = translate_each(Ref, S#elixir_scope{noref=true}),
-      case TRef of
-        { atom, _, Module } ->
-          { elixir_module:transform(Line, S#elixir_scope.filename, Module, Block), S };
-        _ ->
-          elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "module")
-      end;
-    _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "module")
-  end;
+  { TRef, _ } = translate_each(Ref, S#elixir_scope{noref=true}),
+
+  NS = case TRef of
+    { atom, _, Module } ->
+      S#elixir_scope{scheduled=[Module|S#elixir_scope.scheduled]};
+    _ -> S
+  end,
+
+  { elixir_module:transform(Line, S#elixir_scope.filename, TRef, Block), NS };
 
 %% Built-in macros
 

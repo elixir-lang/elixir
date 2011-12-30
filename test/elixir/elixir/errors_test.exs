@@ -21,8 +21,8 @@ module Elixir::ErrorsTest do
     "nofile:2: function bar/0 undefined" = format_catch 'module Foo do\ndef foo, do: bar\nend'
   end
 
-  def test_invalid_scope_for_module do
-    "nofile:3: invalid scope for: module" = format_catch 'module Foo do\ndef foo do\nmodule Bar, do: 1\nend\nend'
+  def test_name_for_module do
+    "nofile:1: invalid module name: 3" = format_catch 'module 1 + 2, do: 3'
   end
 
   def test_invalid_scope_for_function do

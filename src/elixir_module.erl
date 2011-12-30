@@ -1,7 +1,19 @@
 -module(elixir_module).
 -export([transform/4, compile/4, format_error/1,
-  read_attribute/2, insert_attribute/3, update_attribute/3]).
+  read_attribute/2, insert_attribute/3, update_attribute/3,
+  ensure_loaded/3]).
 -include("elixir.hrl").
+
+ensure_loaded(Line, Module, S) ->
+  case lists:member(Module, S#elixir_scope.scheduled) of
+    true  -> ok;
+    false ->
+      case code:ensure_loaded(Module) of
+        { module, _ }   -> ok;
+        { error, What } ->
+          elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { unloaded_module, { Module, What } })
+      end
+  end.
 
 %% TABLE METHODS
 
@@ -24,14 +36,14 @@ update_attribute(Module, Attr, Fun) ->
 %% The abstract form for extra arguments may be given and they
 %% will be passed to the invoked function.
 
-transform(Line, Filename, Module, Block) ->
+transform(Line, Filename, Ref, Block) ->
   Tree = elixir_tree_helpers:abstract_syntax(Block),
-  Args = [{integer, Line, Line}, {string, Line, Filename}, {atom, Line, Module}, Tree],
+  Args = [{integer, Line, Line}, {string, Line, Filename}, Ref, Tree],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 %% The compilation hook.
 
-compile(Line, Filename, Module, Block) ->
+compile(Line, Filename, Module, Block) when is_atom(Module) ->
   build(Module),
 
   try
@@ -49,7 +61,10 @@ compile(Line, Filename, Module, Block) ->
   after
     ets:delete(table(Module)),
     elixir_def:delete_table(Module)
-  end.
+  end;
+
+compile(Line, Filename, Other, _Block) ->
+  elixir_errors:form_error(Line, Filename, ?MODULE, { invalid_module, Other }).
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
@@ -141,7 +156,13 @@ destructive_read(Table, Attribute) ->
 % ERROR HANDLING
 
 format_error({internal_function_overridden,{Name,Arity}}) ->
-  io_lib:format("function ~s/~B is internal and should not be overriden", [Name, Arity]).
+  io_lib:format("function ~s/~B is internal and should not be overriden", [Name, Arity]);
+
+format_error({unloaded_module,{ Module, What }}) ->
+  io_lib:format("module ~s is not loaded: ~s", [Module, What]);
+
+format_error({invalid_module, Module}) ->
+  io_lib:format("invalid module name: ~p", [Module]).
 
 format_errors(_Filename, []) ->
   exit({nocompile, "compilation failed but no error was raised"});

@@ -20,8 +20,9 @@
 %   10) a dict of all variables defined in a particular clause
 %   11) a counter for the variables defined
 %   12) the current scope filename
-%   13) reference variables
+%   13) references set
+%   14) scheduled modules to be loaded
 %
 -record(elixir_scope, {assign=false, guard=false, noref=false, noname=false, macro=[], function=[],
   module={0,nil}, vars=dict:new(), temp_vars=[], clause_vars=dict:new(), counter=0,
-  filename="nofile", refer=[]}).
+  filename="nofile", refer=[], scheduled=[]}).
