@@ -15,7 +15,7 @@ concat_(Arg) ->
 %% Lookup a reference in the current scope
 
 lookup(Else, Dict) ->
-  case dict:find(Else, Dict) of
-    { ok, Value } -> lookup(Value, Dict);
+  case orddict:find(Else, Dict) of
+    { ok, Value } when Value /= Else -> lookup(Value, Dict);
     error -> Else
   end.

@@ -109,21 +109,25 @@ translate_each({use, Line, [Ref|Args]}, S) ->
       translate_each(Call, S)
   end;
 
-translate_each({refer, Line, [Left, [{as,Right}]]}, S) ->
+translate_each({load, Line, [Left, [{as,Right}]]}, S) ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL#elixir_scope{noref=true}),
 
-  case { TLeft, TRight } of
-    { { atom, _, _ }, { atom, _, false } } ->
-      { { atom, Line, nil }, SR#elixir_scope{noref=S#elixir_scope.noref} };
-    { { atom, _, Old }, { atom, _, New } } ->
-      { { tuple, Line, [TLeft, TRight] }, SR#elixir_scope{
-        refer=dict:store(New, Old, S#elixir_scope.refer),
-        noref=S#elixir_scope.noref
-      } };
+  { Old, New } = case { TLeft, TRight } of
+    { { atom, _, ALeft }, { atom, _, false } } ->
+      { ALeft, ALeft };
+    { { atom, _, ALeft }, { atom, _, ARight } } ->
+      { ALeft, ARight };
     _ ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "refer")
-  end;
+  end,
+
+  Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
+
+  { Tuple, SR#elixir_scope{
+    refer=orddict:store(New, Old, S#elixir_scope.refer),
+    noref=S#elixir_scope.noref
+  } };
 
 translate_each({module, Line, [Ref, [{do,Block}]]}, S) ->
   case S#elixir_scope.function of

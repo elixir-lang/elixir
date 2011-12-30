@@ -13,7 +13,7 @@ module Record do
         Record.initializers(__MODULE__, unquote(values))
       end
 
-      refer __MODULE__ :: unquote(name), as: unquote(as)
+      load __MODULE__ :: unquote(name), as: unquote(as)
     end
   end
 
