@@ -58,6 +58,116 @@ If you are interested, check out the ROADMAP.md file in the repository or keep r
 * #elixir-lang on freenode IRC
 * [Textmate Bundle for Elixir](https://github.com/josevalim/elixir-tmbundle)
 
+## Modules
+
+In order to create a new module in Elixir, all we have to do is to call the `module` macro passing its contents:
+
+    module Math do
+      def sum(a, b) do
+        a + b
+      end
+    end
+
+    Math.sum(1, 2) #=> 3
+
+There are many definitions available inside the Elixir modules. They are:
+
+* `def`  - defines a function;
+* `defp` - defines a private function;
+* `defmacro` - defines a macro;
+* `defrecord` - defines a record;
+* `defprotocol` - defines a protocol;
+* `defimpl` - defines an implementation for a protocol
+
+All those definitions will be described with the detail throughout this tutorial.
+
+### Module nesting
+
+In Elixir, nesting a module inside the other does not affect the its name:
+
+    module Foo do
+      module Bar do
+      end
+    end
+
+The example above will define two modules `Foo` and `Bar`. Notice that the second module is **not** called `Foo::Bar`. In general, nesting modules is discouraged in Elixir.
+
+### Directives
+
+In order to support software-reuse, Elixir supports three directives:
+
+#### import
+
+You must use `import` whenever you want to easily access functions from others modules without using the qualified name. For instance, if you want to use the `values` function from `Orddict` several times in your module and you don't want to always type `Orddict.values`, you can simply import it:
+
+    module Math do
+      import Orddict, only: [values: 1]
+
+      def some_function do
+        # call values(orddict)
+      end
+    end
+
+In this case, we are importing only the function `values` (with arity 1) from `Orddict`. `only` is a required argument and the call will fail if not given.
+
+This mechanism cannot be used to import macros. Only functions.
+
+#### require
+
+`require` has two main responsibilities. The first responsibility is to setup references aliases for a given module. For instance, one can do:
+
+    module Math do
+      require MyOrddict, as: Orddict
+    end
+
+And now, any reference to `Orddict` will be automatically replaced by `MyOrddict`. In case one wants to access the original `Orddict`, it can be done by prefixing the module name with `::`:
+
+    Orddict.values   #=> uses ::MyOrddict.values
+    ::Orddict.values #=> uses ::Orddict.values
+
+The second responsibility of `require` is to enable the given module macros in the current module. For instance, let's suppose you created your own `if` implementation called in the module `MyMacros`. If you want to invoke it, you need to first explicitly require the `MyMacros`:
+
+    module Math do
+      require MyMacros
+      MyMacros.if do_something, it_works
+    end
+
+An attempt to call a macro that was not loaded will raise an error. It is important to note that `require` is the only directive that is **lexical**. This means you can require specific macros inside specific functions:
+
+    module Math do
+      def some_function do
+        require MyMacros, import: true
+        if do_something, it_works
+      end
+    end
+
+In the example above, we required and imported macros from `MyMacro`, replacing the original `if` implementation by our own during that specific function. All other functions in that module will still be able to use the original one.
+
+You can read more about creating your own macros in the "Meta-programming in Elixir" section.
+
+#### use
+
+`use` is the simplest mechanism of all three as it simply intends to be a common API for extension. For instance, in order to use `ExUnit` test framework, you simply need to use `ExUnit::Case` in your module:
+
+    module AssertionTest do
+      use ExUnit::Case
+
+      def test_always_pass do
+        true = true
+      end
+    end
+
+By calling `use`, a hook called `__using__` will be invoked in `ExUnit::Case` which will then do the proper setup. In other words, `use` is simply a translation to:
+
+    module AssertionTest do
+      require ExUnit::Case
+      ExUnit::Case.__using__(:"::AssertionTest")
+
+      def test_always_pass do
+        true = true
+      end
+    end
+
 ## Meta-programming in Elixir
 
 Elixir is an homoiconic language. Any Elixir program can be represented using its own data structures. This section describes the Elixir language specification for such data structures.
@@ -70,29 +180,101 @@ The tuple above represents a function call to sum passing 1, 2 and 3 as argument
 
 * The first element of the tuple is always an atom or another tuple in the same representation;
 * The second element of the tuple is always an integer representing the line number;
-* The third element of the tuple are the arguments for the function call. The third argument may also be false, meaning that it represents either a variable or a function call. It is up to Elixir interpreters (or your own macros) to decide it.
+* The third element of the tuple are the arguments for the function call. The third argument may also be false, meaning that it may be a variable call.
 
 You can get the representation of any expression by using the quote macro:
 
-    quote sum(1, 2, 3)
+    quote { sum(1, 2, 3) }
     #=> { :sum, 0, [1, 2, 3] }
 
-Besides the tuple, Elixir has a few literals. Literals are elements that when quoted return themselves. They are:
+Besides the tuple, Elixir has a few literals. Literals are data types that when quoted return themselves. They are:
 
     :sum         #=> Atoms
     1            #=> Integers
     2.0          #=> Floats
     [1,2]        #=> Lists
+    "binaries"   #=> Binaries
     {key, value} #=> Key-value pairs (i.e. a tuple with two elements)
 
-Parenthesis in Elixir are used to group a list of expressions in a block macro:
+With those basic structures in mind, we are ready to define our own macro.
 
-    quote((
-      1
-      2
-      3
-    ))
-    #=> { :block, 0, [1,2,3] }
+### Defining your own macro
+
+A macro can be define using `defmacro`. For instance, we can define a macro called unless which works the same as Ruby's unless in just few lines of code:
+
+    defmacro unless(clause, options) do
+      quote { if(!unquote(clause), unquote(options)) }
+    end
+
+In the example above, unless will be called receiving two arguments: a `clause` and `options`. However, note that unless won't receive its values, but its expressions. For example, if one calls:
+
+    unless 2 + 2 == 5, do: call_function()
+
+Our `unless` macro will receive the following:
+
+    unless({:==, 1, [{:+, 1, [2, 2]}, 5]}, { :call_function, 1, [] })
+
+After being invoked, our `unless` macro will call `quote`, to return a tree representation of the `if` clause. This means we are transforming our `unless` in a `if`!
+
+However, there is a common mistake when quoting expressions which is that developers usually forget to `unquote` the proper expression. In order to understand what `unquote` does, let's simply remove it:
+
+    defmacro unless(clause, options) do
+      quote { if(!clause, options) }
+    end
+
+When called, our `unless` would then return:
+
+    { :if, 0, [{ :!, 0, [{:custom, 0, false}]}, do: {:options, 0, false}] }
+
+Notice that the tree structure returned by unless is trying to access `custom` and `options` as variables instead of using the `2 + 2 == 5` and `call_function()` expressions we gave to it. This is because we forgot to unquote! If we bring unquote back:
+
+    defmacro unless(clause, options) do
+      quote { if(!unquote(clause), unquote(options)) }
+    end
+
+It would return:
+
+    { :if, 0, [{ :!, 0, [{:==, 1, [{:+, 1, [2, 2]}, 5]}]},
+      do: { :call_function, 1, [] }] }
+
+In other words, unquote is a mechanism to inject expressions into the tree being quoted and is essential to the meta-programming mechanism. Elixir also provides `unquote_splice`, but we will discuss it some other time.
+
+### Locals and macros
+
+When building macros, one may usually want to do some kind of recursion. For example, let's implement the `delegate` macro which delegates some function calls to a given target. For example, we could invoke:
+
+    delegate [values: 1], to: List
+
+One way to implement this delegate would be by recursively calling each function, as in:
+
+    defmacro delegate([h|t], to: target) do
+      # Setup delegation for the head `h` of the list
+      # ...
+      delegate(t, to: target)
+    end
+
+Notice that, in the example above we are calling the `delegate` macro and one would expect the macro to be then expanded, giving us the wrong behavior. Since this is a common idiom in Elixir, Elixir decided that local macro calls are **never** expanded. This is important because one cannot write:
+
+    module MyMacros
+      defmacro delegate([h|t], to: target) do
+        # ...
+      end
+
+      delegate [values: 1], to: List
+    end
+
+In order to access the macro, it needs to be defined in an outer module:
+
+    module MyMacros::Support
+      defmacro delegate([h|t], to: target) do
+        # ...
+      end
+    end
+
+    module MyMacros
+      require MyMacros::Support, import: true
+      delegate [values: 1], to: List
+    end
 
 ## Performance
 
