@@ -143,6 +143,17 @@ An attempt to call a macro that was not loaded will raise an error. It is import
 
 In the example above, we required and imported macros from `MyMacro`, replacing the original `if` implementation by our own during that specific function. All other functions in that module will still be able to use the original one.
 
+Finally, `require` also accepts `only` and `except` as options to select which macros to import. Consecutive calls to `require` passing the same models override previous definitions.
+
+    module MyIo
+      # Import bit-or and bit-and from Bitwise
+      require Bitwise, only: [bor: 2, band: 2]
+      def some_func(x, y, z), do: x bor y band z
+
+      # Import all, except bxor, overriding previous
+      require Bitwise, except: [bxor: 2]
+    end
+
 You can read more about creating your own macros in the "Meta-programming in Elixir" section.
 
 #### use
