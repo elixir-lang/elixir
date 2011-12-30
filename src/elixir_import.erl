@@ -2,7 +2,7 @@
 %% another by `require`. The first one matters only for local
 %% calls and the second one for macros.
 -module(elixir_import).
--export([default_imports/0, only_imports/1,
+-export([macro_imports/0, local_imports/1,
   calculate/5, handle_import/5,
   format_error/1, ensure_no_macro_conflict/4,
   build_table/1, delete_table/1, record/4]).
@@ -13,15 +13,15 @@
 %% import and macro invocations.
 
 macro_table(Module)  -> ?ELIXIR_ATOM_CONCAT([m, Module]).
-only_table(Module)   -> ?ELIXIR_ATOM_CONCAT([o, Module]).
+import_table(Module) -> ?ELIXIR_ATOM_CONCAT([i, Module]).
 
 build_table(Module) ->
   ets:new(macro_table(Module),  [set, named_table, private]),
-  ets:new(only_table(Module),   [set, named_table, private]).
+  ets:new(import_table(Module), [set, named_table, private]).
 
 delete_table(Module) ->
   ets:delete(macro_table(Module)),
-  ets:delete(only_table(Module)).
+  ets:delete(import_table(Module)).
 
 record(_Kind, _Tuple, _Receiver, #elixir_scope{module={0, nil}}) ->
   [];
@@ -33,7 +33,7 @@ record(macro, Tuple, Receiver, #elixir_scope{module={_,Module}}) ->
 
 handle_import(Line, Filename, Module, Ref, [{only,_}] = Opts) when is_atom(Ref) ->
   Imports = calculate(Line, Filename, Ref, Opts, fun() -> Ref:module_info(exports) end),
-  ets:insert(only_table(Module), Imports);
+  ets:insert(import_table(Module), Imports);
 
 handle_import(Line, Filename, _Module, _Ref, _Opts) ->
   elixir_errors:syntax_error(Line, Filename, "invalid args for: ", "import").
@@ -55,9 +55,9 @@ calculate(Line, Filename, Key, Opts, Fun) ->
 
 %% Return configured imports and defaults
 
-only_imports(Module) -> ets:tab2list(only_table(Module)).
+local_imports(Module) -> ets:tab2list(import_table(Module)).
 
-default_imports() ->
+macro_imports() ->
   [
     { '::Elixir::Macros', in_elixir_macros() }
   ].

@@ -2,6 +2,7 @@ module Elixir::ImportTest do
   use ExUnit::Case
 
   import Erlang.lists, only: [flatten: 1]
+  import Erlang.other, only: []
 
   def test_import_erlang do
     [1,2,3] = flatten [1,[2],3]

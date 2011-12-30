@@ -50,7 +50,7 @@ compile(Line, Filename, Module, Block) when is_atom(Module) ->
   try
     { Result, _ }    = eval_form(Line, Filename, Module, Block),
     { Funs, Forms0 } = functions_form(Line, Filename, Module),
-    { _All, Forms1 } = only_imports_form(Line, Filename, Module, Funs, Forms0),
+    { _All, Forms1 } = imports_form(Line, Filename, Module, Funs, Forms0),
     Forms2           = attributes_form(Line, Filename, Module, Forms1),
 
     Final = [
@@ -101,10 +101,10 @@ functions_form(Line, Filename, Module) ->
 
 %% Add imports handling to the form
 
-only_imports_form(Line, Filename, Module, Funs, Current) ->
-  OnlyImports = elixir_import:only_imports(Module),
+imports_form(Line, Filename, Module, Funs, Current) ->
+  LocalImports = elixir_import:local_imports(Module),
   Transform = fun(X, Acc) -> transform_import(Line, X, Acc) end,
-  { Imported, Forms } = lists:mapfoldr(Transform, Current, OnlyImports),
+  { Imported, Forms } = lists:mapfoldr(Transform, Current, LocalImports),
 
   All = lists:append([Funs|Imported]),
   elixir_import:ensure_no_macro_conflict(Line, Filename, Module, All),
@@ -169,6 +169,9 @@ macros_function(Line, Macros) ->
 %     {size, 1}, {length, 1}, {error, 2}, {self, 1}, {put, 2},
 %     {get, 1}, {exit, 1}, {exit, 2}
 %   ]}.
+
+transform_import(_Line, {_,[]}, Acc) ->
+  { [], Acc };
 
 transform_import(Line, X, Acc) ->
   { element(2, X), [{attribute, Line, import, X}|Acc] }.
