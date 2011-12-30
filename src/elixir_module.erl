@@ -44,6 +44,7 @@ transform(Line, Filename, Ref, Block) ->
 %% The compilation hook.
 
 compile(Line, Filename, Module, Block) when is_atom(Module) ->
+  check_module_availability(Line, Filename, Module),
   build(Module),
 
   try
@@ -136,6 +137,12 @@ load_form(Forms, Filename) ->
       format_errors(Filename, Errors)
   end.
 
+check_module_availability(Line, Filename, Module) ->
+  case code:ensure_loaded(Module) of
+    { module, _ } -> elixir_errors:form_error(Line, Filename, ?MODULE, { module_defined, Module });
+    { error, _ }  -> []
+  end.
+
 % EXTRA FUNCTIONS
 
 add_extra_function(Line, Filename, Exported, Functions, Pair, Contents) ->
@@ -183,7 +190,10 @@ format_error({unloaded_module,{ Module, What }}) ->
   io_lib:format("module ~s is not loaded, reason: ~s", [Module, What]);
 
 format_error({invalid_module, Module}) ->
-  io_lib:format("invalid module name: ~p", [Module]).
+  io_lib:format("invalid module name: ~p", [Module]);
+
+format_error({module_defined, Module}) ->
+  io_lib:format("module ~s already defined", [Module]).
 
 format_errors(_Filename, []) ->
   exit({nocompile, "compilation failed but no error was raised"});

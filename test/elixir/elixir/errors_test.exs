@@ -121,6 +121,10 @@ module Elixir::ErrorsTest do
       format_catch 'module Foo, do: import Erlang.lists, only: [element: 2]'
   end
 
+  def test_already_defined_module do
+    "nofile:1: module ::Record already defined" = format_catch 'module Record, do: true'
+  end
+
   ## Helpers
 
   defp format_catch(expr) do
