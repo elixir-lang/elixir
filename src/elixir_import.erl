@@ -3,7 +3,7 @@
 %% calls and the second one for macros.
 -module(elixir_import).
 -export([local_imports/0, macro_imports/0,
-  update/6, only_imports/1,
+  update/5, only_imports/1,
   format_error/1, ensure_no_macro_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
@@ -45,9 +45,7 @@ record_(only, Imports, Receiver, Module) ->
 %% value of Key and adding new ones according to the rules
 %% given by Opts or the default value in Fun.
 
-update(Line, Key, ListOfTuples, Opts, Fun, S) ->
-  OldImports = lists:keydelete(Key, 1, ListOfTuples),
-
+update(Line, Key, Opts, Fun, S) ->
   New = case orddict:find(only, Opts) of
     { ok, Only } -> Only;
     error ->
@@ -56,9 +54,8 @@ update(Line, Key, ListOfTuples, Opts, Fun, S) ->
         error -> Fun()
       end
   end,
-
   ensure_no_in_erlang_macro_conflict(Line, Key, New, S),
-  [{Key,New}|OldImports].
+  {Key,New}.
 
 %% Return configured imports
 

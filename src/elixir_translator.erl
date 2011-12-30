@@ -112,6 +112,15 @@ translate_each({use, Line, [Ref|Args]}, S) ->
       translate_each(Call, S)
   end;
 
+translate_each({import, Line, Args}, S) when is_list(Args) ->
+  Module = S#elixir_scope.module,
+  case (Module == {0,nil}) or (S#elixir_scope.function /= []) of
+    true  ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "import");
+    false ->
+      translate_each({{'.', Line, [elixir_import, handle_import]}, Line, Args}, S)
+  end;
+
 translate_each({require, Line, [Left]}, S) ->
   translate_each({ require, Line, [Left, []]}, S);
 
@@ -139,9 +148,10 @@ translate_each({require, Line, [Left,Opts]}, S) ->
   %% Handle given :import
   IS = case Import of
     true ->
-      NewImports = elixir_import:update(Line, Old, SR#elixir_scope.imports,
-        Opts, fun() -> elixir_macro:get_macros(Line, Old, S) end, SR),
-      SR#elixir_scope{imports=NewImports};
+      OldImports = lists:keydelete(Old, 1, SR#elixir_scope.imports),
+      NewImports = elixir_import:update(Line, Old, Opts,
+        fun() -> elixir_macro:get_macros(Line, Old, S) end, SR),
+      SR#elixir_scope{imports=[NewImports|OldImports]};
     false -> SR
   end,
 
