@@ -34,8 +34,11 @@ ensure_no_conflicts(_Line, _Functions, [], _S) -> ok.
 dispatch_imports(Line, Name, Args, S, Callback) ->
   Arity = length(Args),
   case find_macro({Name, Arity}, S#elixir_scope.imports) of
-    nil -> Callback();
-    Receiver -> dispatch(Line, Receiver, Name, Arity, Args, S)
+    nil ->
+      Callback();
+    Receiver ->
+      elixir_import:record(macro, { Name, Arity }, Receiver, S),
+      dispatch(Line, Receiver, Name, Arity, Args, S)
   end.
 
 %% Dispatch based on scope's refer

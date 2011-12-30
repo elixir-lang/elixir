@@ -62,7 +62,8 @@ compile(Line, Filename, Module, Block) when is_atom(Module) ->
     Result
   after
     ets:delete(table(Module)),
-    elixir_def:delete_table(Module)
+    elixir_def:delete_table(Module),
+    elixir_import:delete_table(Module)
   end;
 
 compile(Line, Filename, Other, _Block) ->
@@ -80,7 +81,10 @@ build(Module) ->
   ets:insert(Table, { data, [] }),
 
   %% Function table
-  elixir_def:build_table(Module).
+  elixir_def:build_table(Module),
+
+  %% Import tables
+  elixir_import:build_table(Module).
 
 %% Receives the module representation and evaluates it.
 
