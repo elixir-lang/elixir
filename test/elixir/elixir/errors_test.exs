@@ -106,9 +106,19 @@ module Elixir::ErrorsTest do
       format_catch 'case true do\ninvalid: 2\nafter: 3\nend'
   end
 
-  def test_cant_import_in_erlang_macros do
+  def test_cant_import_in_erlang_macros_with_require do
     "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro#case/1 because it conflicts with Elixir internal macros" =
       format_catch 'require Elixir::ErrorsTest::UnproperMacro, import: true'
+  end
+
+  def test_cant_import_in_erlang_macros_with_import do
+    "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro#case/1 because it conflicts with Elixir internal macros" =
+      format_catch 'module Foo, do: import Elixir::ErrorsTest::UnproperMacro, only: [case: 1]'
+  end
+
+  def test_cant_import_due_to_erlang_conflict do
+    "nofile:1: import directive overrides pre R14 auto-imported BIF element/2\n - use \"-compile({no_auto_import,[element/2]}).\" to resolve name clash" =
+      format_catch 'module Foo, do: import Erlang.lists, only: [element: 2]'
   end
 
   ## Helpers

@@ -47,26 +47,17 @@ compile(Line, Filename, Module, Block) when is_atom(Module) ->
   build(Module),
 
   try
-    { Result, S }   = eval_form(Line, Filename, Module, Block),
-    { All, Forms0 } = base_form(Line, Filename, Module),
+    { Result, _ }    = eval_form(Line, Filename, Module, Block),
+    { Funs, Forms0 } = functions_form(Line, Filename, Module),
+    { _All, Forms1 } = only_imports_form(Line, Filename, Module, Funs, Forms0),
+    Forms2           = attributes_form(Line, Filename, Module, Forms1),
 
-    Table  = table(Module),
-    _Data  = destructive_read(Table, data),
+    Final = [
+      {attribute, Line, module, Module},
+      {attribute, Line, file, {Filename,Line}} | Forms2
+    ],
 
-    %% Handle attributes
-    Transform0 = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
-    Forms1 = ets:foldr(Transform0, Forms0, Table),
-
-    %% Handle only imports
-    OnlyImports = elixir_import:only_imports(Module),
-    Transform1 = fun(X, Acc) -> transform_import(Line, X, Acc) end,
-    { Imported, Forms1 } = lists:mapfoldr(Transform1, Forms1, OnlyImports),
-
-    %% Ensure no conflicts
-    AllWithImported = lists:append([All|Imported]),
-    elixir_import:ensure_no_macro_conflict(Line, Module, AllWithImported, S),
-
-    load_form(Forms1, Filename),
+    load_form(Final, Filename),
     Result
   after
     ets:delete(table(Module)),
@@ -80,17 +71,13 @@ compile(Line, Filename, Other, _Block) ->
 %% Hook that builds both attribute and functions and set up common hooks.
 
 build(Module) ->
-  %% Attribute table
+  %% Attribute table with defaults
   Table = table(Module),
   ets:new(Table, [set, named_table, private]),
-
-  %% Default attributes
   ets:insert(Table, { data, [] }),
 
-  %% Function table
+  %% Function and imports table
   elixir_def:build_table(Module),
-
-  %% Import tables
   elixir_import:build_table(Module).
 
 %% Receives the module representation and evaluates it.
@@ -101,17 +88,35 @@ eval_form(Line, Filename, Module, Block) ->
   { value, Result, _ } = erl_eval:exprs([TBlock], []),
   { Result, TS }.
 
-%% Return the base form with module, exports and function declaratins.
+%% Return the form with exports and function declarations.
 
-base_form(Line, Filename, Module) ->
+functions_form(Line, Filename, Module) ->
   {E0, Private, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
   { E1, F1 } = add_extra_function(Line, Filename, E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
 
   { E1 ++ Private, [
-    {attribute, Line, module, Module},
-    {attribute, Line, file, {Filename,Line}},
     {attribute, Line, export, E1} | F1
   ] }.
+
+%% Add imports handling to the form
+
+only_imports_form(Line, Filename, Module, Funs, Current) ->
+  OnlyImports = elixir_import:only_imports(Module),
+  Transform = fun(X, Acc) -> transform_import(Line, X, Acc) end,
+  { Imported, Forms } = lists:mapfoldr(Transform, Current, OnlyImports),
+
+  All = lists:append([Funs|Imported]),
+  elixir_import:ensure_no_macro_conflict(Line, Filename, Module, All),
+
+  { All, Forms }.
+
+%% Add attributes handling to the form
+
+attributes_form(Line, _Filename, Module, Current) ->
+  Table = table(Module),
+  _Data = destructive_read(Table, data),
+  Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
+  ets:foldr(Transform, Current, Table).
 
 %% Loads the form into the code server.
 
