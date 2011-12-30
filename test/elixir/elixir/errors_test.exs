@@ -76,6 +76,16 @@ module Elixir::ErrorsTest do
       format_catch 'module Foo do\ndef __macros__, do: []\nend'
   end
 
+  def test_no_macros do
+    "nofile:2: could not load macros from module lists" =
+      format_catch 'module Foo do\nrequire Erlang.lists, import: true\nend'
+  end
+
+  def test_unloaded_module do
+    "nofile:2: module ::Certainly::Doesnt::Exist is not loaded, reason: nofile"
+      format_catch 'require Certainly::Doesnt::Exist, import: true'
+  end
+
   def test_interpolation_error do
     "nofile:1: syntax error before: ')'" = format_catch '"foo\#{case 1 do )}bar"'
   end

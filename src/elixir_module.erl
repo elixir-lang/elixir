@@ -1,11 +1,11 @@
 -module(elixir_module).
 -export([transform/4, compile/4, format_error/1,
   read_attribute/2, insert_attribute/3, update_attribute/3,
-  ensure_loaded/3]).
+  ensure_loaded/4]).
 -include("elixir.hrl").
 
-ensure_loaded(Line, Module, S) ->
-  case lists:member(Module, S#elixir_scope.scheduled) of
+ensure_loaded(Line, Module, S, Force) ->
+  case not Force andalso lists:member(Module, S#elixir_scope.scheduled) of
     true  -> ok;
     false ->
       case code:ensure_loaded(Module) of
@@ -159,7 +159,7 @@ format_error({internal_function_overridden,{Name,Arity}}) ->
   io_lib:format("function ~s/~B is internal and should not be overriden", [Name, Arity]);
 
 format_error({unloaded_module,{ Module, What }}) ->
-  io_lib:format("module ~s is not loaded: ~s", [Module, What]);
+  io_lib:format("module ~s is not loaded, reason: ~s", [Module, What]);
 
 format_error({invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]).

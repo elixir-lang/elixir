@@ -1,6 +1,15 @@
 -module(elixir_macro).
--export([dispatch_refer/6, dispatch_imports/5, format_error/1]).
+-export([get_macros/3, dispatch_refer/6, dispatch_imports/5, format_error/1]).
 -include("elixir.hrl").
+
+get_macros(Line, Module, S) ->
+  try
+    Module:'__macros__'()
+  catch
+    error:undef ->
+      Tuple = { no_macros, Module },
+      elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
+  end.
 
 dispatch_imports(Line, Name, Args, S, Callback) ->
   Arity = length(Args),
@@ -12,6 +21,9 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
 dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
   Arity  = length(Args),
 
+  %% We are always checking if a macro exist to be
+  %% user friendly. That said, if there are no macro,
+  %% don't bother, simply skip.
   Macros = try
     Receiver:'__macros__'()
   catch
@@ -47,9 +59,12 @@ ensure_required(Line, Receiver, Name, Arity, S) ->
   case lists:member(Receiver, Required) of
     true  -> ok;
     false ->
-      Tuple = { unrequired_macro, { Receiver, Name, Arity, Required } },
+      Tuple = { unrequired_module, { Receiver, Name, Arity, Required } },
       elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
   end.
 
-format_error({unrequired_macro,{Receiver, Name, Arity, Required}}) ->
-  io_lib:format("tried to use ~s#~s/~B but module was not required. Required: ~p", [Receiver, Name, Arity, Required]).
+format_error({unrequired_module,{Receiver, Name, Arity, Required}}) ->
+  io_lib:format("tried to use ~s#~s/~B but module was not required. Required: ~p", [Receiver, Name, Arity, Required]);
+
+format_error({no_macros, Module}) ->
+  io_lib:format("could not load macros from module ~s", [Module]).

@@ -131,17 +131,19 @@ translate_each({require, Line, [Left,Opts]}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "require")
   end,
 
-  Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
-  elixir_module:ensure_loaded(Line, Old, S),
+  %% Handle given :as
+  elixir_module:ensure_loaded(Line, Old, S, Import),
 
+  %% Handle given :import
   IS = case Import of
     true  ->
-      %% This should be able to handle errors
-      Imports = [{Old,Old:'__macros__'()}|SR#elixir_scope.imports],
+      Imports = [{Old,elixir_macro:get_macros(Line, Old, S)}|SR#elixir_scope.imports],
       SR#elixir_scope{imports=Imports};
-    false ->
-      SR
+    false -> SR
   end,
+
+  %% Return result
+  Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
 
   { Tuple, IS#elixir_scope{
     refer=orddict:store(New, Old, S#elixir_scope.refer),
