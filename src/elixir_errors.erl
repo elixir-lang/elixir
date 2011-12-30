@@ -28,7 +28,10 @@ handle_file_warning(Filename, {Line,Module,{unused_var,Var} = Desc}) ->
     false -> io:format(file_format(Line, Filename, format_error(Module, Desc)) ++ [$\n])
   end;
 
-handle_file_warning(_Filename, {_Line,_,nomatch_clause_type}) ->
+handle_file_warning(_Filename, {_Line,sys_core_fold,nomatch_clause_type}) ->
+  [];
+
+handle_file_warning(_Filename, {_Line,sys_core_fold,useless_building}) ->
   [];
 
 handle_file_warning(Filename, {Line,Module,Desc}) ->
