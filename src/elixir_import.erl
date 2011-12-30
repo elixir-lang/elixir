@@ -2,7 +2,8 @@
 %% another by `require`. The first one matters only for local
 %% calls and the second one for macros.
 -module(elixir_import).
--export([local_imports/0, macro_imports/0, update/6,
+-export([local_imports/0, macro_imports/0,
+  update/6, only_imports/1,
   format_error/1, ensure_no_macro_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
@@ -11,16 +12,19 @@
 %% Create tables that are responsible to store
 %% local and macro invocations.
 
-macro_table(Module) -> ?ELIXIR_ATOM_CONCAT([m, Module]).
-local_table(Module) -> ?ELIXIR_ATOM_CONCAT([l, Module]).
+macro_table(Module)  -> ?ELIXIR_ATOM_CONCAT([m, Module]).
+local_table(Module)  -> ?ELIXIR_ATOM_CONCAT([l, Module]).
+only_table(Module)   -> ?ELIXIR_ATOM_CONCAT([o, Module]).
 
 build_table(Module) ->
-  ets:new(macro_table(Module), [ordered_set, named_table, private]),
-  ets:new(local_table(Module), [bag, named_table, private]).
+  ets:new(macro_table(Module),  [set, named_table, private]),
+  ets:new(local_table(Module),  [bag, named_table, private]),
+  ets:new(only_table(Module),   [set, named_table, private]).
 
 delete_table(Module) ->
   ets:delete(macro_table(Module)),
-  ets:delete(local_table(Module)).
+  ets:delete(local_table(Module)),
+  ets:delete(only_table(Module)).
 
 record(_Kind, _Tuple, _Receiver, #elixir_scope{module={0, nil}}) ->
   [];
@@ -32,7 +36,10 @@ record_(local, Tuple, _, Module) ->
   ets:insert(local_table(Module), Tuple);
 
 record_(macro, Tuple, Receiver, Module) ->
-  ets:insert(macro_table(Module), { Tuple, Receiver }).
+  ets:insert(macro_table(Module), { Tuple, Receiver });
+
+record_(only, Imports, Receiver, Module) ->
+  ets:insert(only_table(Module), { Receiver, Imports }).
 
 %% Update the ListOfTuples by removing any previous
 %% value of Key and adding new ones according to the rules
@@ -52,6 +59,10 @@ update(Line, Key, ListOfTuples, Opts, Fun, S) ->
 
   ensure_no_in_erlang_macro_conflict(Line, Key, New, S),
   [{Key,New}|OldImports].
+
+%% Return configured imports
+
+only_imports(Module) -> ets:tab2list(only_table(Module)).
 
 %% Return default local and macros for import
 

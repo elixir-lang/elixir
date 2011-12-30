@@ -47,18 +47,26 @@ compile(Line, Filename, Module, Block) when is_atom(Module) ->
   build(Module),
 
   try
-    { Result, S } = eval_form(Line, Filename, Module, Block),
-    { All, Base } = base_form(Line, Filename, Module),
+    { Result, S }   = eval_form(Line, Filename, Module, Block),
+    { All, Forms0 } = base_form(Line, Filename, Module),
 
     Table  = table(Module),
-    _Import= destructive_read(Table, import),
     _Data  = destructive_read(Table, data),
 
-    elixir_import:ensure_no_macro_conflict(Line, Module, All, S),
+    %% Handle attributes
+    Transform0 = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
+    Forms1 = ets:foldr(Transform0, Forms0, Table),
 
-    Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
-    Forms = ets:foldr(Transform, Base, Table),
-    load_form(Forms, Filename),
+    %% Handle only imports
+    OnlyImports = elixir_import:only_imports(Module),
+    Transform1 = fun(X, Acc) -> transform_import(Line, X, Acc) end,
+    { Imported, Forms1 } = lists:mapfoldr(Transform1, Forms1, OnlyImports),
+
+    %% Ensure no conflicts
+    AllWithImported = lists:append([All|Imported]),
+    elixir_import:ensure_no_macro_conflict(Line, Module, AllWithImported, S),
+
+    load_form(Forms1, Filename),
     Result
   after
     ets:delete(table(Module)),
@@ -77,7 +85,6 @@ build(Module) ->
   ets:new(Table, [set, named_table, private]),
 
   %% Default attributes
-  ets:insert(Table, { import, [] }),
   ets:insert(Table, { data, [] }),
 
   %% Function table
@@ -150,6 +157,9 @@ macros_function(Line, Macros) ->
 %     {size, 1}, {length, 1}, {error, 2}, {self, 1}, {put, 2},
 %     {get, 1}, {exit, 1}, {exit, 2}
 %   ]}.
+
+transform_import(Line, X, Acc) ->
+  { element(2, X), [{attribute, Line, import, X}|Acc] }.
 
 transform_attribute(Line, X) ->
   {attribute, Line, element(1, X), element(2, X)}.
