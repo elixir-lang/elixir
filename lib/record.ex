@@ -1,6 +1,4 @@
 module Record do
-  require ::Elixir::Macros, except: [defrecord: 3]
-
   # Main entry point for records definition.
   def defrecord(name, values, opts) do
     as = Orddict.fetch(opts, :as, name)

@@ -2,7 +2,8 @@
 %% another by `require`. The first one matters only for local
 %% calls and the second one for macros.
 -module(elixir_import).
--export([default_macros/0, update/6, format_error/1,
+-export([local_imports/0, macro_imports/0, update/6,
+  format_error/1, ensure_no_macro_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
 -compile({inline,[in_erlang_macros/0]}).
@@ -49,20 +50,22 @@ update(Line, Key, ListOfTuples, Opts, Fun, S) ->
       end
   end,
 
-  validate(Line, Key, New, S),
+  ensure_no_in_erlang_macro_conflict(Line, Key, New, S),
   [{Key,New}|OldImports].
 
-%% Return default macros for import
+%% Return default local and macros for import
 
-default_macros() ->
+local_imports() -> [].
+
+macro_imports() ->
   [
     { '::Elixir::Macros', in_elixir_macros() }
   ].
 
-%% Validates given functions to ensure it doesn't clash
-%% with any of Elixir "implemented in Erlang" macros
+%% Ensure the given functions don't clash with any
+%% of Elixir "implemented in Erlang" macros.
 
-validate(Line, Key, [{Name,Arity}|T], S) ->
+ensure_no_in_erlang_macro_conflict(Line, Key, [{Name,Arity}|T], S) ->
   InErlang = in_erlang_macros(),
   case orddict:find(Name, InErlang) of
     { ok, Value } ->
@@ -70,19 +73,38 @@ validate(Line, Key, [{Name,Arity}|T], S) ->
         true  ->
           Tuple = { import_conflict, { Key, Name, Arity } },
           elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple);
-        false -> validate(Line, Key, T, S)
+        false -> ensure_no_in_erlang_macro_conflict(Line, Key, T, S)
       end;
-    error -> validate(Line, Key, T, S)
+    error -> ensure_no_in_erlang_macro_conflict(Line, Key, T, S)
   end;
 
-validate(_Line, _Key, [], _S) -> ok.
+ensure_no_in_erlang_macro_conflict(_Line, _Key, [], _S) -> ok.
 
-%% ERRORS
+%% Find conlicts in the given list of functions with the set of imports.
+
+ensure_no_macro_conflict(Line, Module, AllDefined, S) ->
+  %% Find functions that were defined and invoked
+  Table = macro_table(Module),
+  Matches = [X || X <- AllDefined, ets:member(Table, X)],
+
+  case Matches of
+    [{Name,Arity}|_] ->
+      Key = ets:lookup_element(Table, {Name, Arity }, 2),
+      Tuple = { macro_conflict, { Key, Name, Arity } },
+      elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple);
+    [] ->
+      ok
+  end.
+
+%% Error handling
+
+format_error({macro_conflict,{Receiver, Name, Arity}}) ->
+  io_lib:format("used imported macro ~s#~s/~B conflicts with local function or import", [Receiver, Name, Arity]);
 
 format_error({import_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("could not import ~s#~s/~B because it conflicts with Elixir internal macros", [Receiver, Name, Arity]).
 
-%% Macros implemented in Elixir
+%% Macros implemented in Elixir - imported by default
 
 in_elixir_macros() ->
   try
@@ -91,7 +113,7 @@ in_elixir_macros() ->
     error:undef -> []
   end.
 
-%% Macros implemented in Erlang
+%% Macros implemented in Erlang - imported and non overridable by default
 
 in_erlang_macros() ->
   orddict:from_list([
@@ -132,6 +154,7 @@ in_erlang_macros() ->
     {'__MODULE__','*'},
     {'__FILE__','*'},
     {'__LINE__','*'},
+    {'import','*'},
     {'ref',1},
     {'::','*'},
     {'def','*'},

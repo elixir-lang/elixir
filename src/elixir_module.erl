@@ -54,7 +54,7 @@ compile(Line, Filename, Module, Block) when is_atom(Module) ->
     _Import= destructive_read(Table, import),
     _Data  = destructive_read(Table, data),
 
-    elixir_macro:ensure_no_conflicts(Line, All, S#elixir_scope.imports, S),
+    elixir_import:ensure_no_macro_conflict(Line, Module, All, S),
 
     Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
     Forms = ets:foldr(Transform, Base, Table),

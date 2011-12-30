@@ -53,8 +53,8 @@ module Elixir::ErrorsTest do
   end
 
   def test_macro_conflict do
-    "nofile:1: imported macro ::Elixir::Macros#defrecord/2 conflicts with local function or import" =
-      format_catch 'module Foo do\ndef defrecord(_, _), do: OMG\nend'
+    "nofile:1: used imported macro ::Elixir::Macros#defrecord/2 conflicts with local function or import" =
+      format_catch 'module Foo do\ndefrecord(::Elixir::ErrorsTest::MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
   def test_unrequired_macro do
