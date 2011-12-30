@@ -51,7 +51,7 @@ extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Arg
 % Function for translating macros for try's catch.
 
 try_catch(Line, Clauses, S) ->
-  DecoupledClauses = decouple_clauses(Clauses, []),
+  DecoupledClauses = decouple_clauses(Line, Clauses, [], S),
   % Just pass the variable counter forward between each clause.
   Transformer = fun(X, Acc) -> translate_each(Line, X, umergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, DecoupledClauses).
@@ -60,7 +60,7 @@ try_catch(Line, Clauses, S) ->
 
 match(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
-  DecoupledClauses = decouple_clauses(handle_else(match, Line, Clauses), []),
+  DecoupledClauses = decouple_clauses(Line, handle_else(match, Line, Clauses), [], S),
   case DecoupledClauses of
     [DecoupledClause] ->
       { TDecoupledClause, TS } = translate_each(Line, DecoupledClause, S),
@@ -145,18 +145,17 @@ handle_else(Kind, Line, Clauses) ->
 % + An array. Which means several expressions were given. Valid only for match, catch.
 % + Any other expression.
 %
-decouple_clauses([{Key,{kv_block,_,Value}}|T], Clauses) when Key == match orelse Key == 'catch' ->
+decouple_clauses(Line, [{Key,{kv_block,_,Value}}|T], Clauses, S) when Key == match orelse Key == 'catch' ->
   Final = lists:foldl(fun(X, Acc) -> [{Key,X}|Acc] end, Clauses, Value),
-  decouple_clauses(T, Final);
+  decouple_clauses(Line, T, Final, S);
 
-% TODO: Raise a better message.
-decouple_clauses([{Key,{kv_block,_,_Value}}|_T], _Clauses) ->
-  error({invalid_many_clauses_for_key, Key});
+decouple_clauses(Line, [{Key,{kv_block,_,_}}|_T], _Clauses, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "key value blocks not supported in: ", atom_to_list(Key));
 
-decouple_clauses([H|T], Clauses) ->
-  decouple_clauses(T, [H|Clauses]);
+decouple_clauses(Line, [H|T], Clauses, S) ->
+  decouple_clauses(Line, T, [H|Clauses], S);
 
-decouple_clauses([], Clauses) ->
+decouple_clauses(_Line, [], Clauses, _S) ->
   lists:reverse(Clauses).
 
 % Handle each key/value clause pair and translate them accordingly.
@@ -181,9 +180,8 @@ translate_each_(Line, {Key,[Expr]}, S) ->
 translate_each_(Line, {Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch'; Key == 'after' ->
   assigns_blocks(Line, fun elixir_translator:translate_each/2, Condition, Exprs, S);
 
-% TODO: Raise a better message.
-translate_each_(_Line, {Key,_Value}, _S) ->
-  error({invalid_key_for_clause, Key}).
+translate_each_(Line, {Key,_}, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key: ", atom_to_list(Key)).
 
 % Check if the given expression is a match tuple.
 % This is a small optimization to allow us to change
