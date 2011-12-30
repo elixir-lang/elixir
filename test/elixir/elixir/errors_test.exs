@@ -57,8 +57,8 @@ module Elixir::ErrorsTest do
   end
 
   def test_visibility_clause_change do
-    "nofile:4: function foo/1 already defined with visibility public" =
-      format_catch 'module Foo do\ndef foo(1), do: 1\nprivate\ndef foo(x), do: x\nend'
+    "nofile:3: function foo/1 already defined with visibility public" =
+      format_catch 'module Foo do\ndef foo(1), do: 1\ndefp foo(x), do: x\nend'
   end
 
   def test_clause_change do
@@ -75,9 +75,9 @@ module Elixir::ErrorsTest do
     "nofile:1: syntax error before: ')'" = format_catch '"foo\#{case 1 do )}bar"'
   end
 
-  private
+  ## Helpers
 
-  def format_catch(expr) do
+  defp format_catch(expr) do
     try do
       Erlang.elixir.eval(expr)
       error({ :bad_assertion, "Expected function given to format_catch to fail" })

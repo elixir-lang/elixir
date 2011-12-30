@@ -82,15 +82,8 @@ macro_file_test() ->
 
 private_test() ->
   F = fun() ->
-    elixir:eval("module Foo do\nprivate\ndef version, do: __MODULE__\nend"),
+    elixir:eval("module Foo do\ndefp version, do: __MODULE__\nend"),
     ?assertError(undef, elixir:eval("Foo.version"))
-  end,
-  test_helper:run_and_remove(F, ['::Foo']).
-
-public_test() ->
-  F = fun() ->
-    elixir:eval("module Foo do\nprivate\npublic\ndef version, do: __MODULE__\nend"),
-    ?assertEqual({'::Foo', []}, elixir:eval("Foo.version"))
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 

@@ -1,19 +1,12 @@
 % Holds the logic responsible for functions definition during compile time.
 -module(elixir_def).
--export([set_visibility/2,
-  build_table/1,
+-export([build_table/1,
   delete_table/1,
   wrap_definition/6,
   store_definition/5,
   unwrap_stored_definitions/1,
   format_error/1]).
 -include("elixir.hrl").
-
-%% Set the visibility entry for the given module.
-%% Called from Elixir.
-
-set_visibility(Module, Visibility) when is_atom(Module) ->
-  ets:insert(table(Module), { visibility, Visibility }).
 
 %% Table management functions. Called internally.
 
@@ -25,7 +18,6 @@ build_table(Module) ->
   ets:insert(FunctionTable, { public, [] }),
   ets:insert(FunctionTable, { private, [] }),
   ets:insert(FunctionTable, { macros, [] }),
-  ets:insert(FunctionTable, { visibility, public }),
   FunctionTable.
 
 delete_table(Module) ->
@@ -60,9 +52,19 @@ store_definition(Kind, Filename, Module, Function, Defaults) ->
   FunctionTable = table(Module),
   FunctionName  = element(3, Function),
 
-  Visibility = ets:lookup_element(FunctionTable, visibility, 2),
-  store_each(Kind, FunctionTable, Visibility, Filename, Function),
-  [store_each(Kind, FunctionTable, Visibility, Filename, function_for_clause(FunctionName, Default)) || Default <- Defaults],
+  %% Normalize visibility and kind
+  Visibility = case Kind of
+    defp -> private;
+    _    -> public
+  end,
+
+  Final = case Kind of
+    defp -> def;
+    _ -> Kind
+  end,
+
+  store_each(Final, FunctionTable, Visibility, Filename, Function),
+  [store_each(Final, FunctionTable, Visibility, Filename, function_for_clause(FunctionName, Default)) || Default <- Defaults],
   { FunctionName, element(4, Function) }.
 
 % Unwrap the functions stored in the functions table.
@@ -73,7 +75,6 @@ unwrap_stored_definitions(Module) ->
   Public    = ets:lookup_element(Table, public, 2),
   Private   = ets:lookup_element(Table, private, 2),
   Macros    = ets:lookup_element(Table, macros, 2),
-  ets:delete(Table, visibility),
   ets:delete(Table, public),
   ets:delete(Table, private),
   ets:delete(Table, macros),

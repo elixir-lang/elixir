@@ -55,13 +55,11 @@ module ExUnit::Formatter do
     { :ok, config }
   end
 
-  private
-
-  def integer_to_binary(int) do
+  defp integer_to_binary(int) do
     list_to_binary(integer_to_list(int))
   end
 
-  def print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
+  defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
     IO.puts "#{integer_to_binary(acc)}) #{atom_to_binary(test, :utf8)} (#{atom_to_binary(test_case, :utf8)})"
     IO.puts "  #{atom_to_binary(kind, :utf8)} #{Elixir::Formatter.format_catch(kind, reason)}\n  stacktrace:"
     List.each stacktrace, fn(s){ IO.puts "    #{Elixir::Formatter.format_stacktrace(s)}" }

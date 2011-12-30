@@ -52,42 +52,6 @@ module Elixir::Macros do
     Record.defrecord(name, values, opts)
   end
 
-  # Provides a `private` macro for restrict visibility of functions
-  #
-  # ## Examples
-  #
-  #     module Foo   # definition of Foo module
-  #
-  #     private  # mark following functions as private
-  #
-  #     def secret do
-  #       :secret
-  #     end
-  #
-  #     Foo.secret #=> it will raise 'undef' error
-  #
-  defmacro private do
-    quote { Erlang.elixir_def.set_visibility(__MODULE__, :private) }
-  end
-
-  # Provides a `public` macro for restrict visibility of functions
-  #
-  # ## Examples
-  #
-  #     module Foo  # definition of Foo module
-  #
-  #     public  # mark following functions as public (the default)
-  #
-  #     def secret do
-  #       :secret
-  #     end
-  #
-  #     Foo.secret #=> :secret
-  #
-  defmacro public do
-    quote { Erlang.elixir_def.set_visibility(__MODULE__, :public) }
-  end
-
   # Provides an integer division macro according to Erlang semantics.
   # Raises an error if one of the arguments is not an integer.
   # Can be used in guard tests.
@@ -264,10 +228,6 @@ module Elixir::Macros do
     end
   end
 
-  # Mark visibility from here on to private. We can't use the
-  # private macro because it is defined in this module.
-  Erlang.elixir_def.set_visibility(__MODULE__, :private)
-
   # Build if clauses by nesting them recursively.
   # For instance, the following clause:
   #
@@ -293,7 +253,7 @@ module Elixir::Macros do
   #       end
   #     end
   #
-  def build_if_clauses([h|t], acc) do
+  defp build_if_clauses([h|t], acc) do
     { condition, clause } = extract_condition_clause(h)
 
     new_acc = quote {
@@ -308,7 +268,7 @@ module Elixir::Macros do
     build_if_clauses(t, new_acc)
   end
 
-  def build_if_clauses([], acc), do: acc
+  defp build_if_clauses([], acc), do: acc
 
   # Extract condition clauses from blocks. Whenever we do:
   #
@@ -329,16 +289,16 @@ module Elixir::Macros do
   #
   # Therefore, this method simply extract the first argument from
   # the block which is the argument used as condition.
-  def extract_condition_clause({ :block, line, [h|t] }), do: { h, { :block, line, t } }
-  def extract_condition_clause(other), do: { other, nil }
+  defp extract_condition_clause({ :block, line, [h|t] }), do: { h, { :block, line, t } }
+  defp extract_condition_clause(other), do: { other, nil }
 
   # Append the given expression to the block given as second argument.
   # In case the second argument is not a block, create one.
-  def prepend_to_block(expr, { :block, line, args }) do
+  defp prepend_to_block(expr, { :block, line, args }) do
     { :block, line, [expr|args] }
   end
 
-  def prepend_to_block(expr, args) do
+  defp prepend_to_block(expr, args) do
     { :block, 0, [expr, args] }
   end
 end

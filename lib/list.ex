@@ -58,18 +58,18 @@ module List do
     [other]
   end
 
-  private
+  ## Private
 
-  def _each([h|t], f) do
+  defp _each([h|t], f) do
     f.(h)
     _each(t, f)
   end
 
-  def _each([], f) when is_function(f, 1) do
+  defp _each([], f) when is_function(f, 1) do
     []
   end
 
-  def _uniq([h|t], acc) do
+  defp _uniq([h|t], acc) do
     case Erlang.lists.member(h, acc) do
     match: true
       _uniq(t, acc)
@@ -78,7 +78,7 @@ module List do
     end
   end
 
-  def _uniq([], acc) do
+  defp _uniq([], acc) do
     Erlang.lists.reverse(acc)
   end
 end

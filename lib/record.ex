@@ -102,9 +102,9 @@ module Record do
 
   defmacro getters_and_setters([], _i, acc), do: acc
 
-  private
+  ## Private
 
-  def typed_functions(key, default, i) when is_list(default) do
+  defp typed_functions(key, default, i) when is_list(default) do
     bin_key = atom_to_binary(key, :utf8)
     append  = :"append_#{bin_key}"
     prepend = :"prepend_#{bin_key}"
@@ -128,7 +128,7 @@ module Record do
     end
   end
 
-  def typed_functions(key, default, i) when is_number(default) do
+  defp typed_functions(key, default, i) when is_number(default) do
     bin_key   = atom_to_binary(key, :utf8)
     increment = :"increment_#{bin_key}"
 
@@ -140,5 +140,5 @@ module Record do
     end
   end
 
-  def typed_functions(_, _, _), do: nil
+  defp typed_functions(_, _, _), do: nil
 end

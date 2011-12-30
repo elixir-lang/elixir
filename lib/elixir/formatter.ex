@@ -52,8 +52,8 @@ module Elixir::Formatter do
     list_to_binary :io_lib.format("~p", [data])
   end
 
-  private
+  ## Private
 
-  def format_token([]),    do: ""
-  def format_token(token), do: list_to_binary(token)
+  defp format_token([]),    do: ""
+  defp format_token(token), do: list_to_binary(token)
 end
