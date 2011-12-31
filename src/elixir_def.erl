@@ -2,8 +2,8 @@
 -module(elixir_def).
 -export([build_table/1,
   delete_table/1,
-  wrap_definition/6,
-  store_definition/5,
+  wrap_definition/5,
+  store_definition/6,
   unwrap_stored_definitions/1,
   format_error/1]).
 -include("elixir.hrl").
@@ -40,15 +40,35 @@ delete_table(Module) ->
 %%
 %% If we just analyzed the compiled structure (i.e. the function availables
 %% before evaluating the function body), we would see both definitions.
-wrap_definition(Kind, Line, Filename, Module, Function, Defaults) ->
-  Meta = elixir_tree_helpers:abstract_syntax(Function),
-  MetaDefaults = elixir_tree_helpers:abstract_syntax(Defaults),
-  Content = [{atom, Line, Kind}, {string, Line, Filename}, {atom, Line, Module}, Meta, MetaDefaults],
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_definition, Content).
+wrap_definition(Kind, Line, Call, Expr, S) ->
+  MetaCall = elixir_tree_helpers:abstract_syntax(Call),
+  MetaExpr = elixir_tree_helpers:abstract_syntax(Expr),
+
+  % Remove vars that we are not going to use from scope to make it "lighter"
+  CleanS = S#elixir_scope{vars=nil, clause_vars=nil, counter=0},
+  MetaS  = elixir_tree_helpers:abstract_syntax(CleanS),
+
+  Args = [
+    {atom, Line, Kind},
+    {integer, Line, Line},
+    {var, Line, 'XMODULE'},
+    MetaCall,
+    MetaExpr,
+    MetaS
+  ],
+
+  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_definition, Args).
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
-store_definition(Kind, Filename, Module, Function, Defaults) ->
+
+store_definition(Kind, Line, nil, _Call, _Expr, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid module scope for: ", atom_to_list(Kind));
+
+store_definition(Kind, Line, Module, Call, Expr, S) ->
+  { Function, Defaults } = translate_definition(Line, Module, Call, Expr, S),
+
+  Filename      = S#elixir_scope.filename,
   FunctionTable = table(Module),
   FunctionName  = element(3, Function),
 
@@ -62,6 +82,28 @@ store_definition(Kind, Filename, Module, Function, Defaults) ->
   store_each(Final, FunctionTable, Visibility, Filename, Function),
   [store_each(Final, FunctionTable, Visibility, Filename, function_for_clause(FunctionName, Default)) || Default <- Defaults],
   { FunctionName, element(4, Function) }.
+
+%% Translate the given call and expression given
+%% and then store it in memory.
+
+translate_definition(Line, Module, Call, Expr, S) ->
+  { TCall, Guards } = elixir_clauses:extract_guards(Call),
+  { Name, Args } = elixir_clauses:extract_args(TCall),
+
+  ClauseScope = S#elixir_scope{
+    function=Name,
+    vars=dict:new(),
+    clause_vars=dict:new(),
+    module={Line,Module}
+  },
+
+  { TClause, _ } = elixir_clauses:assigns_blocks(Line,
+    fun elixir_translator:translate/2, Args, [Expr], Guards, ClauseScope),
+
+  Arity = length(element(3, TClause)),
+  { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, TClause),
+  Function = { function, Line, Name, Arity, [Unpacked] },
+  { Function, Defaults }.
 
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,

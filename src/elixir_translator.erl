@@ -221,19 +221,11 @@ translate_each({'::', Line, [Left|Right]}, S) ->
 %% Def
 
 translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
-  Module = S#elixir_scope.module,
-  case (Module == {0,nil}) or (S#elixir_scope.function /= []) of
-    true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", atom_to_list(Kind));
+  case S#elixir_scope.function /= [] of
+    true ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid function scope for: ", atom_to_list(Kind));
     _ ->
-      { TCall, Guards } = elixir_clauses:extract_guards(Call),
-      { Name, Args } = elixir_clauses:extract_args(TCall),
-      ClauseScope = S#elixir_scope{function=Name, counter=0, vars=dict:new()},
-      { TClause, _ } = elixir_clauses:assigns_blocks(Line, fun translate/2, Args, [Expr], Guards, ClauseScope),
-
-      Arity = length(element(3, TClause)),
-      { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, TClause),
-      Function = { function, Line, Name, Arity, [Unpacked] },
-      { elixir_def:wrap_definition(Kind, Line, S#elixir_scope.filename, element(2, Module), Function, Defaults), S }
+      { elixir_def:wrap_definition(Kind, Line, Call, Expr, S), S }
   end;
 
 translate_each({Kind, Line, Args}, S) when is_list(Args), Kind == def; Kind == defmacro; Kind == defp ->

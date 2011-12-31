@@ -20,15 +20,21 @@ module Protocol do
   end
 
   def defimpl(protocol, opts) do
+    block = Orddict.fetch(opts, :do, nil)
+    for   = Orddict.fetch(opts, :for, nil)
+
     quote do
       # Build up the name, protocol and block
-      opts     = unquote(opts)
       protocol = unquote(protocol)
-      block    = Orddict.fetch(opts, :do, nil)
-      for      = Orddict.fetch(opts, :for, __MODULE__)
-      name     = protocol::for
+      name     = protocol :: (unquote(for) || __MODULE__)
 
       # Check if given protocol exists
+      try do
+        protocol.module_info
+      catch: { :error, :undef, _ }
+        error { :badarg, "#{protocol} is not loaded" }
+      end
+
       funs = try do
         protocol.__protocol__
       catch: { :error, :undef, _ }
@@ -36,15 +42,14 @@ module Protocol do
       end
 
       # Create a module with the given contents
-      module name, do: block
+      module name, do: unquote(block)
 
       # Check if the implemented protocol was valid
       exports   = name.module_info(:exports)
       remaining = funs -- exports
 
-      if remaining != [] do
+      if remaining != [], do:
         error { :badarg, "#{name} did not implement #{protocol}, missing: #{remaining}" }
-      end
     end
   end
 

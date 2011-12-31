@@ -45,5 +45,6 @@ compile_main() ->
     "lib/orddict.ex",
     "lib/list.ex",
     "lib/record.ex",
-    "lib/protocol.ex"
+    "lib/protocol.ex",
+    "lib/inspect.ex"
   ].

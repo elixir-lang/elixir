@@ -68,7 +68,8 @@ eval(String, Binding, Filename, Line, Scope) ->
   case ParseTree of
     [] -> { nil, Binding };
     _  ->
-      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, lists:sort(Binding)),
+      ModBinding = [{'XMODULE',nil}|Binding],
+      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, lists:sort(ModBinding)),
       {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }
   end.
 
@@ -81,12 +82,10 @@ parse(String, Binding, Filename, Line, Scope) ->
   elixir_translator:parse(String, Line, NewScope).
 
 binding_dict(List) -> binding_dict(List, dict:new()).
-binding_dict([{self,_}|T], Dict) -> binding_dict(T, Dict);
 binding_dict([{H,_}|T], Dict) -> binding_dict(T, dict:store(H, H, Dict));
 binding_dict([], Dict) -> Dict.
 
 final_binding(Binding, Vars) -> final_binding(Binding, [], Binding, Vars).
-final_binding([{self,_}|T], Acc, Binding, Vars) -> final_binding(T, Acc, Binding, Vars);
 final_binding([{Var,_}|T], Acc, Binding, Vars) ->
   case atom_to_list(Var) of
     [$X|_] -> final_binding(T, Acc, Binding, Vars);

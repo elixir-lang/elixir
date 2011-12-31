@@ -86,7 +86,7 @@ build(Module) ->
 eval_form(Line, Filename, Module, Block) ->
   S = #elixir_scope{filename=Filename, module={Line,Module}},
   { TBlock, TS } = elixir_translator:translate_each(Block, S),
-  { value, Result, _ } = erl_eval:exprs([TBlock], []),
+  { value, Result, _ } = erl_eval:exprs([TBlock], [{'XMODULE',Module}]),
   { Result, TS }.
 
 %% Return the form with exports and function declarations.

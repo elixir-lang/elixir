@@ -8,7 +8,7 @@
 
 assigns(Fun, Args, S) ->
   { Result, NewS } = Fun(Args, S#elixir_scope{assign=true}),
-  { Result, NewS#elixir_scope{assign=S#elixir_scope.assign, temp_vars=[] } }.
+  { Result, NewS#elixir_scope{assign=S#elixir_scope.assign, temp_vars=S#elixir_scope.temp_vars} }.
 
 % Handles assigns with guards
 
@@ -64,7 +64,7 @@ match(Line, Clauses, RawS) ->
   case DecoupledClauses of
     [DecoupledClause] ->
       { TDecoupledClause, TS } = translate_each(Line, DecoupledClause, S),
-      { [TDecoupledClause], TS };
+      { [TDecoupledClause], TS#elixir_scope{clause_vars=dict:new()} };
     _ ->
       % Transform tree just passing the variables counter forward
       % and storing variables defined inside each clause.
@@ -119,7 +119,7 @@ match(Line, Clauses, RawS) ->
           end,
 
           { FClauses, _ } = lists:mapfoldl(Expander, 1, TClauses),
-          { FClauses, SS }
+          { FClauses, SS#elixir_scope{clause_vars=dict:new()} }
       end
   end.
 
