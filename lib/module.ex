@@ -1,6 +1,6 @@
 module Module do
-  def eval(module, string, filename, line) do
-    Erlang.elixir_module.eval(module, to_list(string), to_list(filename), line)
+  def eval(module, filename // 'nofile', line // 1, quoted) do
+    Erlang.elixir_module.eval(module, quoted, to_list(filename), line)
   end
 
   defp to_list(list) when is_list(list),  do: list

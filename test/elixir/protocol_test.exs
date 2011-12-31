@@ -9,9 +9,9 @@ module ProtocolTest do
     defprotocol [blank(thing)], except: [Atom, Number, List]
   end
 
-  # module __MODULE__ :: WithOnly do
-  #   defprotocol [blank(thing)], only: [Tuple, Function]
-  # end
+  module __MODULE__ :: WithOnly do
+    defprotocol [blank(thing)], only: [Tuple, Function]
+  end
 
   def test_protocol_with_all do
     assert_undef(ProtocolTest::WithAll, Atom, :foo)

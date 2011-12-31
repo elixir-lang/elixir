@@ -4,10 +4,6 @@ module Record do
     as = Orddict.fetch(opts, :as, name)
 
     quote do
-      # Use `module NAME, do: CONTENTS` syntax which is
-      # the same as `module NAME do CONTENTS end`. We need
-      # to wrap this in a block so this module declaration
-      # do not affect the outer module one.
       module __MODULE__ :: unquote(name) do
         require ::Record
         Record.getters_and_setters(unquote(values), 1, [])
@@ -45,7 +41,7 @@ module Record do
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
     selective = List.map values, fn({k,v}) {
-      quote { Orddict.fetch(opts, unquote(k), unquote(v)) }
+      quote { ::Orddict.fetch(opts, unquote(k), unquote(v)) }
     }
 
     quote do

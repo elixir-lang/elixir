@@ -15,10 +15,10 @@ ensure_loaded(Line, Module, S, Force) ->
       end
   end.
 
-eval(Module, String, Filename, Line) ->
+eval(Module, Tree, Filename, Line) ->
   case table_exists(Module) of
     true ->
-      elixir:eval(String, [], Filename, Line, Module);
+      eval_form(Line, Filename, Module, Tree);
     false ->
       elixir_errors:form_error(Line, Filename, ?MODULE, { module_compiled, { Module, eval } })
   end.
@@ -98,8 +98,8 @@ build(Module) ->
 eval_form(Line, Filename, Module, Block) ->
   S = #elixir_scope{filename=Filename, module={Line,Module}},
   { TBlock, TS } = elixir_translator:translate_each(Block, S),
-  { value, Result, _ } = erl_eval:exprs([TBlock], [{'XMODULE',Module}]),
-  { Result, TS }.
+  { value, Result, Binding } = erl_eval:exprs([TBlock], [{'XMODULE',Module}]),
+  { Result, Binding }.
 
 %% Return the form with exports and function declarations.
 

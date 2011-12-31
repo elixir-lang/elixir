@@ -4,24 +4,25 @@ module Protocol do
 
   # Handle `defprotocol` when it is declared in the current module.
   def defprotocol(nil, args, opts) do
+    kv = to_kv(args)
     quote do
-      require ::Protocol
-      Protocol.reflection(unquote(args))
-      Protocol.functions(__MODULE__, unquote(args), unquote(opts))
+      def __protocol__, do: unquote(kv)
+      Protocol.functions(__MODULE__, __MODULE__, unquote(kv), unquote(opts))
     end
   end
 
   # Handle `defprotocol` when it is declared as a module.
   def defprotocol(name, args, opts) do
+    kv = to_kv(args)
     quote do
-      module __MODULE__ :: name do
-        require ::Protocol
-        Protocol.reflection(unquote(args))
-        Protocol.functions(unquote(name), unquote(args), unquote(opts))
+      module __MODULE__ :: unquote(name) do
+        def __protocol__, do: unquote(kv)
+        Protocol.functions(__MODULE__, unquote(name), unquote(kv), unquote(opts))
       end
     end
   end
 
+  # Implement the given protocol according to the given option.
   def defimpl(protocol, opts) do
     block = fetch(opts, :do, nil)
     for   = fetch(opts, :for, nil)
@@ -57,73 +58,60 @@ module Protocol do
     end
   end
 
-  ## Entry callback functions
-
-  # Returns the reflection for this protocol, which is
-  # is a function called __protocol__ that returns a key-value
-  # with functions to be implemented and their arity.
-  defmacro reflection(args) do
-    quote do
-      def __protocol__, do: unquote(to_kv(args))
-    end
-  end
-
-  defmacro functions(module, funs, opts) do
-    List.map funs, fn(fun) { each_function(module, fun, conversions(opts)) }
+  # Callback entrypoint that defines the protocol functions.
+  # It receives the target module, functions tuples and the options
+  # that should be used to calculate which kinds we shuold generate
+  # functions for.
+  def functions(target, module, funs, opts) do
+    kinds = conversions_for(opts)
+    List.each funs, fn(fun) { each_function(target, module, fun, kinds) }
   end
 
   ## Helpers
 
-  # Implement the protocol invocation callbacks for each function.
+  # Implement the protocol invocation callbacks for
+  # each function considering all kinds selected.
+  defp each_function(target, module, {name,arity}, kinds) do
+    args = generate_args(arity, [])
+    List.each kinds, fn(kind) { each_function_kind(target, module, name, args, kind) }
+  end
 
-  defp each_function(module, {name,_,args}, original_kinds) do
-    # Replace the first argument by a known name called __arg.
-    # We don't care about the other args as they are simply passed along.
-    args = [quote { __arg }|tl(args)]
+  # For each function and kind, add a new function to the module.
+  # We need to special case tuples so it properly handle records.
+  # All the other cases simply do a function dispatch.
+  defp each_function_kind(target, module, name, args, { Tuple, :is_tuple }) do
+    Module.eval target, __FILE__, __LINE__, quote {
+      def unquote(name).(unquote_splice(args)) when xA == {} do
+        apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
+      end
 
-    # Remove tuples from the list, it will be special cased later.
-    tuple = { Tuple, :is_tuple }
-    kinds = L.delete(tuple, original_kinds)
+      def unquote(name).(unquote_splice(args)) when is_tuple(xA) do
+        first = element(1, xA)
 
-    acc = List.map kinds, fn({kind, fun}) {
-      quote do
-        def unquote(name).(unquote_splice(args)) when unquote(fun).(__arg) do
-          apply unquote(module)::unquote(kind), unquote(name), [unquote_splice(args)]
+        if is_atom(first) do
+          try do
+            apply unquote(module)::element(1, xA), unquote(name), [unquote_splice(args)]
+          catch: { :error, :undef, _ }
+            apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
+          end
+        else:
+          apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
         end
       end
     }
+  end
 
-    # Protocols for tuples and records require a more complex lookup
-    if L.member(tuple, original_kinds) do
-      new = quote do
-        def unquote(name).(unquote_splice(args)) when __arg == {} do
-          apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
-        end
-
-        def unquote(name).(unquote_splice(args)) when is_tuple(__arg) do
-          first = element(1, __arg)
-
-          if is_atom(first) do
-            try do
-              apply unquote(module)::element(1, __arg), unquote(name), [unquote_splice(args)]
-            catch: { :error, :undef, _ }
-              apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
-            end
-          else:
-            apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
-          end
-        end
+  defp each_function_kind(target, module, name, args, { kind, fun }) do
+    Module.eval target, __FILE__, __LINE__, quote {
+      def unquote(name).(unquote_splice(args)) when unquote(fun).(xA) do
+        apply unquote(module)::unquote(kind), unquote(name), [unquote_splice(args)]
       end
-      [new|acc]
-    else:
-      acc
-    end
+    }
   end
 
   # Converts the protocol expressions as [each(collection), length(collection)]
   # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
-
-  defp to_kv(args) do
+  defmacro to_kv(args) do
     Orddict.from_list List.map(args, fn(x) {
       case x do
       match: { _, _, args } when args == [] or args == false
@@ -136,9 +124,21 @@ module Protocol do
     })
   end
 
-  # Returns the default conversions according to the given only/except options.
+  # Geenerate arguments according the arity. The arguments
+  # are named xa, xb and so forth. We cannot use string
+  # interpolation to generate the arguments because of compile
+  # dependencies, so we use the bitstr macro instead.
+  defp generate_args(0, acc) do
+    acc
+  end
 
-  defp conversions(opts) do
+  defp generate_args(counter, acc) do
+    name = binary_to_atom(bitstr(?x, counter + 64), :utf8)
+    generate_args(counter - 1, [{ name, 0, false }|acc])
+  end
+
+  # Returns the default conversions according to the given only/except options.
+  defp conversions_for(opts) do
     kinds = [
       { Tuple,     :is_tuple },
       { Atom,      :is_atom },
@@ -152,7 +152,7 @@ module Protocol do
     ]
 
     if only = fetch(opts, :only, false) do
-      selected = List.map only, fn(i) { { i, L.keyfind(i, 1, kinds) } }
+      selected = List.map only, fn(i) { L.keyfind(i, 1, kinds) }
       selected ++ [{ Any, :is_any }]
     elsif: except = fetch(opts, :except, false)
       selected = List.foldl except, kinds, fn(i, list) { L.keydelete(i, 1, list) }
