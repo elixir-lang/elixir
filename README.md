@@ -108,7 +108,7 @@ You must use `import` whenever you want to easily access functions from others m
       end
     end
 
-In this case, we are importing only the function `values` (with arity 1) from `Orddict`. `only` is a required argument and the call will fail if not given.
+In this case, we are importing only the function `values` (with arity 1) from `Orddict`. Although `only` is optional, its usage is recommended. `except` could also be given as an option.
 
 This mechanism cannot be used to import macros. Only functions.
 
