@@ -8,6 +8,9 @@ module Orddict do
   def fetch([{_k,value}|_], _key, _default),    do: value
   def fetch([], _, default),                    do: default
 
+  def keys([{k,_}|t]), do: [k|keys(t)]
+  def keys([]),        do: []
+
   def values([{_,v}|t]), do: [v|values(t)]
   def values([]),        do: []
 

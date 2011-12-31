@@ -79,8 +79,14 @@ store_definition(Kind, Line, Module, Call, Expr, S) ->
     def      -> { def, public }
   end,
 
-  store_each(Final, FunctionTable, Visibility, Filename, Function),
-  [store_each(Final, FunctionTable, Visibility, Filename, function_for_clause(FunctionName, Default)) || Default <- Defaults],
+  %% Store function
+  store_each(false, Final, FunctionTable, Visibility, Filename, Function),
+
+  %% Store defaults
+  [store_each(true, Final, FunctionTable, Visibility, Filename,
+    function_for_clause(FunctionName, Default)) || Default <- Defaults],
+
+  %% Return stored function name and its arity
   { FunctionName, element(4, Function) }.
 
 %% Translate the given call and expression given
@@ -133,12 +139,17 @@ function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
 %% This function also checks and emit warnings in case
 %% the kind, of the visibility of the function changes.
 
-store_each(Kind, FunctionTable, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
+store_each(IsDefault, Kind, FunctionTable, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
   FinalClauses = case ets:lookup(FunctionTable, {Name, Arity}) of
     [{{Name, Arity}, FinalLine, OtherClauses}] ->
       check_valid_visibility(Line, Filename, Name, Arity, Visibility, FunctionTable),
-      check_valid_clause(Line, Filename, Name, Arity, Visibility, FunctionTable),
       check_valid_kind(Line, Filename, Name, Arity, Kind, FunctionTable),
+
+      case IsDefault of
+        true -> [];
+        false -> check_valid_clause(Line, Filename, Name, Arity, Visibility, FunctionTable)
+      end,
+
       Clauses ++ OtherClauses;
     [] ->
       add_visibility_entry(Name, Arity, Visibility, FunctionTable),

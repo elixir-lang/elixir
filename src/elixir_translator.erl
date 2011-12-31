@@ -289,7 +289,7 @@ translate_each({'receive', Line, Args}, S) when is_list(Args) ->
 %% Apply
 %% Optimize apply by checking what doesn't need to be dispatched dynamically
 
-translate_each({apply, Line, [Left, Right, Args]}, S) ->
+translate_each({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
   translate_each({{'.', Line, [Left, Right]}, Line, Args}, S);
 
 %% Variables & Function calls

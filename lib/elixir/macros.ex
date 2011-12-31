@@ -52,8 +52,11 @@ module Elixir::Macros do
     Record.defrecord(name, values, opts)
   end
 
-  defmacro defprotocol(name // nil, args) do
-    Protocol.defprotocol(name, args)
+  defmacro defprotocol(args),                          do: defprotocol(nil, args)
+  defmacro defprotocol(args, opts) when is_list(args), do: defprotocol(nil, args, opts)
+
+  defmacro defprotocol(name, args, opts // []) do
+    Protocol.defprotocol(name, args, opts)
   end
 
   defmacro defimpl(name, opts // []) do
@@ -62,6 +65,10 @@ module Elixir::Macros do
 
   defmacro inspect(arg),   do: quote { ::Inspect.inspect(unquote(arg)) }
   defmacro stringify(arg), do: quote { ::Inspect.stringify(unquote(arg)) }
+
+  # Checks if the given argument is_any structure.
+  # Always returns true.
+  defmacro is_any(_), do: true
 
   # Provides an integer division macro according to Erlang semantics.
   # Raises an error if one of the arguments is not an integer.
