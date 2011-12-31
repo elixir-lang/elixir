@@ -145,7 +145,7 @@ module Protocol do
       { List,      :is_list },
       { BitString, :is_bitstring },
       { Number,    :is_number },
-      { Functions, :is_function },
+      { Function,  :is_function },
       { PID,       :is_pid },
       { Port,      :is_port },
       { Reference, :is_reference },
