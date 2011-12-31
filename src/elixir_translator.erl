@@ -191,7 +191,7 @@ translate_each({'__FILE__', _Line, []}, S) ->
 
 %% References
 
-translate_each({ref, Line, [Ref]}, S) when is_atom(Ref) ->
+translate_each({module_ref, Line, [Ref]}, S) when is_atom(Ref) ->
   Atom = list_to_atom("::" ++ atom_to_list(Ref)),
   { _, Module } = S#elixir_scope.module,
 

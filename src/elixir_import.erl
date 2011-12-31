@@ -182,7 +182,7 @@ in_erlang_macros() ->
     {'__FILE__','*'},
     {'__LINE__','*'},
     {'import','*'},
-    {'ref',1},
+    {'module_ref',1},
     {'::','*'},
     {'def','*'},
     {'defp','*'},

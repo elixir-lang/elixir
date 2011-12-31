@@ -7,7 +7,7 @@ Nonterminals
   matched_expr matched_op_expr unmatched_expr unmatched_op_expr
   comma_separator kv_eol
   add_op mult_op unary_op addadd_op multmult_op
-  match_op arrow_op ref_op default_op when_op pipe_op
+  match_op arrow_op module_ref_op default_op when_op pipe_op
   andand_op oror_op andalso_op orelse_op and_op or_op comp_expr_op
   open_paren close_paren
   open_bracket close_bracket
@@ -27,7 +27,7 @@ Terminals
   'do' 'end'
   identifier kv_identifier punctuated_identifier paren_identifier
   do_identifier curly_identifier
-  number signed_number atom ref bin_string list_string
+  number signed_number atom module_ref bin_string list_string
   dot_call_op special_op comp_op
   'not' 'and' 'or' 'xor' 'andalso' 'orelse' 'when'
   '=' '+' '-' '*' '/' '++' '--' '**' '//' '<-'
@@ -59,7 +59,7 @@ Nonassoc 250 unary_op.
 Right    260 dot_call_op.
 Nonassoc 270 var.
 Left     280 dot_op.
-Right    290 ref_op.
+Right    290 module_ref_op.
 Nonassoc 300 special_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
@@ -99,7 +99,7 @@ matched_op_expr -> matched_expr or_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr pipe_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr when_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr arrow_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr ref_op matched_expr : build_op('$2', '$1', '$3').
+matched_op_expr -> matched_expr module_ref_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr default_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr comp_expr_op matched_expr : build_expr_op('$2', '$1', '$3').
 matched_op_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
@@ -134,7 +134,7 @@ base_expr -> atom : build_atom('$1').
 base_expr -> var : build_identifier('$1', false).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
-base_expr -> ref : '$1'.
+base_expr -> module_ref : '$1'.
 base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
 
@@ -231,8 +231,8 @@ comp_expr_op -> comp_op eol : '$1'.
 
 % Ref operator
 
-ref_op -> '::' : '$1'.
-ref_op -> '::' eol : '$1'.
+module_ref_op -> '::' : '$1'.
+module_ref_op -> '::' eol : '$1'.
 
 % Dot operator
 
