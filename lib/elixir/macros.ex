@@ -56,6 +56,13 @@ module Elixir::Macros do
     Protocol.defprotocol(name, args)
   end
 
+  defmacro defimpl(name, opts // []) do
+    Protocol.defimpl(name, opts)
+  end
+
+  defmacro inspect(arg),   do: quote { ::Inspect.inspect(unquote(arg)) }
+  defmacro stringify(arg), do: quote { ::Inspect.stringify(unquote(arg)) }
+
   # Provides an integer division macro according to Erlang semantics.
   # Raises an error if one of the arguments is not an integer.
   # Can be used in guard tests.

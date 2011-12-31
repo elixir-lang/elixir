@@ -19,6 +19,35 @@ module Protocol do
     end
   end
 
+  def defimpl(protocol, opts) do
+    quote do
+      # Build up the name, protocol and block
+      opts     = unquote(opts)
+      protocol = unquote(protocol)
+      block    = Orddict.fetch(opts, :do, nil)
+      for      = Orddict.fetch(opts, :for, __MODULE__)
+      name     = protocol::for
+
+      # Check if given protocol exists
+      funs = try do
+        protocol.__protocol__
+      catch: { :error, :undef, _ }
+        error { :badarg, "#{protocol} is not a protocol" }
+      end
+
+      # Create a module with the given contents
+      module name, do: block
+
+      # Check if the implemented protocol was valid
+      exports   = name.module_info(:exports)
+      remaining = funs -- exports
+
+      if remaining != [] do
+        error { :badarg, "#{name} did not implement #{protocol}, missing: #{remaining}" }
+      end
+    end
+  end
+
   # Returns the reflection for this protocol, which is
   # is a function called __protocol__ that returns a key-value
   # with functions to be implemented and their arity.
