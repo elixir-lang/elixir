@@ -19,6 +19,16 @@ tokenize(Line, [$#|String], Tokens) ->
   Rest = tokenize_comment(String),
   tokenize(Line, Rest, Tokens);
 
+% Char tokens
+
+tokenize(Line, [$?,$\\,H|T], Tokens) ->
+  Chars = elixir_interpolation:unescape_chars(true, [$\\,H]),
+  tokenize(Line, T, [{number,Line,lists:last(Chars)}|Tokens]);
+
+tokenize(Line, [$?,H|T], Tokens) ->
+  Chars = elixir_interpolation:unescape_chars(true, [H]),
+  tokenize(Line, T, [{number,Line,lists:last(Chars)}|Tokens]);
+
 % Dot operators
 
 % ## Exception for .( as it needs to be treated specially in the parser
