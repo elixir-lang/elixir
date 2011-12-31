@@ -1,5 +1,7 @@
 -module(elixir).
--export([start/0, start_app/0, file/1, file/2, eval/1, eval/2, eval/3, eval/4, eval/5, parse/2, parse/3]).
+-export([start/0, start_app/0, file/1, file/2,
+  eval/1, eval/2, eval/3, eval/4, eval/5,
+  parse/2, parse/3]).
 -include("elixir.hrl").
 
 % OTP APPLICATION API
@@ -62,14 +64,20 @@ read_file(Device, Acc) ->
 eval(String) -> eval(String, []).
 eval(String, Binding) -> eval(String, Binding, "nofile").
 eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
-eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, #elixir_scope{}).
-eval(String, Binding, Filename, Line, Scope) ->
+eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, nil).
+
+eval(String, Binding, Filename, Line, nil) ->
+  eval_(String, [{'XMODULE',nil}|Binding], Filename, Line, #elixir_scope{});
+
+eval(String, Binding, Filename, Line, Module) ->
+  eval_(String, [{'XMODULE',Module}|Binding], Filename, Line, #elixir_scope{module={Line,Module}}).
+
+eval_(String, Binding, Filename, Line, Scope) ->
   { ParseTree, NewScope } = parse(String, Binding, Filename, Line, Scope),
   case ParseTree of
     [] -> { nil, Binding };
     _  ->
-      ModBinding = [{'XMODULE',nil}|Binding],
-      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, lists:sort(ModBinding)),
+      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, lists:sort(Binding)),
       {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }
   end.
 

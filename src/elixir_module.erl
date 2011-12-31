@@ -1,7 +1,7 @@
 -module(elixir_module).
 -export([transform/4, compile/4, format_error/1,
   read_attribute/2, insert_attribute/3, update_attribute/3,
-  ensure_loaded/4]).
+  ensure_loaded/4, eval/4]).
 -include("elixir.hrl").
 
 ensure_loaded(Line, Module, S, Force) ->
@@ -15,10 +15,22 @@ ensure_loaded(Line, Module, S, Force) ->
       end
   end.
 
+eval(Module, String, Filename, Line) ->
+  case table_exists(Module) of
+    true ->
+      elixir:eval(String, [], Filename, Line, Module);
+    false ->
+      elixir_errors:form_error(Line, Filename, ?MODULE, { module_compiled, { Module, eval } })
+  end.
+
 %% TABLE METHODS
 
 table(Module) ->
   ?ELIXIR_ATOM_CONCAT([a, Module]).
+
+table_exists(Module) ->
+  Table = table(Module),
+  Table == ets:info(Table, name).
 
 read_attribute(Module, Attr) ->
   ets:lookup_element(table(Module), Attr, 2).
@@ -194,6 +206,9 @@ format_error({unloaded_module,{ Module, What }}) ->
 
 format_error({invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
+
+format_error({module_compiled, {Module, What}}) ->
+  io_lib:format("could not invoke ~s, module ~s already compiled", [What, Module]);
 
 format_error({module_defined, Module}) ->
   io_lib:format("module ~s already defined", [Module]).
