@@ -3,5 +3,6 @@ module InspectTest do
 
   def test_atom do
     ":foo" = inspect(:foo)
+    "foo"  = stringify(:foo)
   end
 end

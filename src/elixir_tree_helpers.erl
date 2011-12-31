@@ -54,7 +54,7 @@ build_list_each(Fun, [H|T], Line, S, Acc) ->
 % Build a bitstring taking into accounts the following types:
 %
 % * If a bitstring or a list is given, we just append its items
-% * If a tuple is given, extract the bitstring information
+% * If '|' is given, extract the bitstring information
 % * All the other types are simply transformed and handled with Erlang's default
 %
 build_bitstr(Fun, Exprs, Line, S) ->
