@@ -55,11 +55,11 @@ Left     160 add_op.
 Left     170 mult_op.
 Right    180 addadd_op.
 Right    190 multmult_op.
-Nonassoc 250 unary_op.
-Right    260 dot_call_op.
-Nonassoc 270 var.
-Left     280 dot_op.
-Right    290 module_ref_op.
+Left     260 dot_call_op.
+Left     260 dot_op.
+Right    270 module_ref_op.
+Nonassoc 280 unary_op.
+Nonassoc 290 var.
 Nonassoc 300 special_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
