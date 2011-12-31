@@ -13,6 +13,14 @@ module ProtocolTest do
     defprotocol [blank(thing)], only: [Tuple, Function]
   end
 
+  defrecord Foo, a: 0, b: 0
+
+  defimpl __MODULE__::WithAll, for: Foo do
+    def blank(record) do
+      record.a + record.b == 0
+    end
+  end
+
   def test_protocol_with_all do
     assert_undef(ProtocolTest::WithAll, Atom, :foo)
     assert_undef(ProtocolTest::WithAll, Function, fn(x, do: x))
@@ -22,6 +30,7 @@ module ProtocolTest do
     assert_undef(ProtocolTest::WithAll, List, [1,2,3])
     assert_undef(ProtocolTest::WithAll, Tuple, {})
     assert_undef(ProtocolTest::WithAll, Tuple, {1,2,3})
+    assert_undef(ProtocolTest::WithAll, Tuple, {Bar,2,3})
     assert_undef(ProtocolTest::WithAll, BitString, "foo")
     assert_undef(ProtocolTest::WithAll, BitString, bitstr(1))
     assert_undef(ProtocolTest::WithAll, PID, self())
@@ -45,10 +54,14 @@ module ProtocolTest do
     assert_undef(ProtocolTest::WithOnly, Tuple, {})
   end
 
-  # Dispatch blank(thing) to the given target
-  # and check if it will dispatch (and successfully fail)
-  # to the proper implementation target.
+  def test_protocol_with_record do
+    true  = ProtocolTest::WithAll.blank(ProtocolTest::Foo.new)
+    false = ProtocolTest::WithAll.blank(ProtocolTest::Foo.new(a: 1))
+  end
 
+  # Dispatch `blank(thing)` to the given `target`
+  # and check if it will dispatch (and successfully fail)
+  # to the proper implementation `impl`.
   defp assert_undef(target, impl, thing) do
     try do
       target.blank(thing)
