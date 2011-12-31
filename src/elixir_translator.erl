@@ -151,7 +151,7 @@ translate_each({require, Line, [Left,Opts]}, S) ->
     true ->
       OldImports = lists:keydelete(Old, 1, SR#elixir_scope.imports),
       NewImports = elixir_import:calculate(Line, SR#elixir_scope.filename, Old,
-        Opts, fun() -> elixir_macro:get_macros(Line, Old, SR) end),
+        Opts, OldImports, fun() -> elixir_macro:get_macros(Line, Old, SR) end),
       SR#elixir_scope{imports=[NewImports|OldImports]};
     false -> SR
   end,

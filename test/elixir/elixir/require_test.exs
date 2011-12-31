@@ -15,13 +15,8 @@ module Elixir::RequireTest do
   end
 
   def test_function_import_with_only do
+    require Bitwise, except: [bnot: 1]
     require Elixir::MessedBitwise, only: [bnot: 1]
-    0 = bnot(0)
-    1 = bor(0, 1)
-  end
-
-  def test_function_import_except do
-    require Elixir::MessedBitwise, except: [bor: 2]
     0 = bnot(0)
     1 = bor(0, 1)
   end

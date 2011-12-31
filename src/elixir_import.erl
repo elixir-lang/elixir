@@ -3,7 +3,7 @@
 %% calls and the second one for macros.
 -module(elixir_import).
 -export([macro_imports/0, local_imports/1,
-  calculate/5, handle_import/5,
+  calculate/6, handle_import/4, handle_import/5,
   format_error/1, ensure_no_macro_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
@@ -31,9 +31,15 @@ record(macro, Tuple, Receiver, #elixir_scope{module={_,Module}}) ->
 
 %% Handle the import macro declaration.
 
-handle_import(Line, Filename, Module, Ref, [{only,_}] = Opts) when is_atom(Ref) ->
-  Imports = calculate(Line, Filename, Ref, Opts, fun() -> Ref:module_info(exports) end),
-  ets:insert(import_table(Module), Imports);
+handle_import(Line, Filename, Module, Ref) ->
+  handle_import(Line, Filename, Module, Ref, []).
+
+handle_import(Line, Filename, Module, Ref, Opts) when is_atom(Ref), is_list(Opts) ->
+  Table = import_table(Module),
+  ets:delete(Table, Ref),
+  All = ets:tab2list(Table),
+  Imports = calculate(Line, Filename, Ref, Opts, All, fun() -> Ref:module_info(exports) end),
+  ets:insert(Table, Imports);
 
 handle_import(Line, Filename, _Module, _Ref, _Opts) ->
   elixir_errors:syntax_error(Line, Filename, "invalid args for: ", "import").
@@ -41,7 +47,7 @@ handle_import(Line, Filename, _Module, _Ref, _Opts) ->
 %% Calculate the new { Key, List } tuple of imports
 %% according to the function and options given.
 
-calculate(Line, Filename, Key, Opts, Fun) ->
+calculate(Line, Filename, Key, Opts, All, Fun) ->
   New = case orddict:find(only, Opts) of
     { ok, Only } -> Only;
     error ->
@@ -50,6 +56,7 @@ calculate(Line, Filename, Key, Opts, Fun) ->
         error -> Fun()
       end
   end,
+  ensure_no_conflicts(Line, Filename, New, All),
   ensure_no_in_erlang_macro_conflict(Line, Filename, Key, New),
   {Key,New}.
 
@@ -81,6 +88,8 @@ ensure_no_in_erlang_macro_conflict(Line, Filename, Key, [{Name,Arity}|T]) ->
 ensure_no_in_erlang_macro_conflict(_Line, _Filename, _Key, []) -> ok.
 
 %% Find conlicts in the given list of functions with the set of imports.
+%% Erlang automatically checks for conflict with locals, so we need to
+%% handle the case just with macros.
 
 ensure_no_macro_conflict(Line, Filename, Module, AllDefined) ->
   %% Find functions that were defined and invoked
@@ -96,7 +105,24 @@ ensure_no_macro_conflict(Line, Filename, Module, AllDefined) ->
       ok
   end.
 
+%% Find conlicts in the given list of functions with the set of imports.
+
+ensure_no_conflicts(Line, Filename, Functions, [{Key,Value}|T]) ->
+  Filtered = lists:filter(fun(X) -> lists:member(X, Functions) end, Value),
+  case Filtered of
+    [{Name,Arity}|_] ->
+      Tuple = { already_imported, { Key, Name, Arity } },
+      elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
+    [] ->
+      ensure_no_conflicts(Line, Filename, Functions, T)
+  end;
+
+ensure_no_conflicts(_Line, _Filename, _Functions, _S) -> ok.
+
 %% Error handling
+
+format_error({already_imported,{Receiver, Name, Arity}}) ->
+  io_lib:format("function ~s/~B already imported from ~s", [Name, Arity, Receiver]);
 
 format_error({macro_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("used imported macro ~s#~s/~B conflicts with local function or import", [Receiver, Name, Arity]);
