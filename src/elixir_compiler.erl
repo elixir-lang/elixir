@@ -25,7 +25,13 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 
 internal_file(File) ->
   io:format("Compiling ~s~n", [File]),
-  file_to_path(File, "exbin").
+  try
+    file_to_path(File, "exbin")
+  catch
+    Kind:Reason ->
+      io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, erlang:get_stacktrace()]),
+      exit(1)
+  end.
 
 core() ->
   [internal_file(File) || File <- compile_main()],
