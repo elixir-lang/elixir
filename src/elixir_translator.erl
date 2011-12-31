@@ -356,8 +356,13 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
 
 translate_each({{'.', _, [Expr]}, Line, Args}, S) ->
   { TExpr, SE } = translate_each(Expr, S),
-  { TArgs, SA } = translate_args(Args, umergec(S, SE)),
-  { {call, Line, TExpr, TArgs}, umergev(SE, SA) };
+  case TExpr of
+    { atom, _, Atom } ->
+      translate_each({ Atom, Line, Args }, S);
+    _ ->
+      { TArgs, SA } = translate_args(Args, umergec(S, SE)),
+      { {call, Line, TExpr, TArgs}, umergev(SE, SA) }
+  end;
 
 %% Literals
 

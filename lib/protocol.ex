@@ -26,7 +26,7 @@ module Protocol do
     quote do
       # Build up the name, protocol and block
       protocol = unquote(protocol)
-      name     = protocol :: (unquote(for) || __MODULE__)
+      name     = protocol::(unquote(for) || __MODULE__)
 
       # Check if given protocol exists
       try do

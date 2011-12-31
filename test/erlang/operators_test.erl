@@ -63,10 +63,10 @@ float_with_parens_and_unary_test() ->
   {0.25,[]}  = elixir:eval("4 / (11.0 + 5)").
 
 op_call_test() ->
-  {3, []} = elixir:eval("+(1, 2)"),
-  {-1, []} = elixir:eval("+(1, -(2))"),
-  {-1, []} = elixir:eval("+(=(1, 1), -2 = -2)"),
-  {3, [{a,1},{b,2}]} = elixir:eval("+(a = 1, b = 2)").
+  {3, []} = elixir:eval(":+.(1, 2)"),
+  {-1, []} = elixir:eval(":+.(1, -(2))"),
+  {-1, []} = elixir:eval(":+.(:=.(1, 1), -2 = -2)"),
+  {3, [{a,1},{b,2}]} = elixir:eval(":+.(a = 1, b = 2)").
 
 operators_precedence_test() ->
   {5, []} = elixir:eval("abs -10 + 5"),

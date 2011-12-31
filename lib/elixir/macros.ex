@@ -162,7 +162,7 @@ module Elixir::Macros do
   # Notice that, differently from Erlang `and` and `andalso` operators,
   # this operator accepts any expression as arguments, not only booleans.
   # Unfortunately cannot be used in macros.
-  defmacro &&(left, right) do
+  defmacro :&&.(left, right) do
     quote do
       case unquote(left) do
       match: false
@@ -189,7 +189,7 @@ module Elixir::Macros do
   # Notice that, differently from Erlang `or` and `orelse` operators,
   # this operator accepts any expression as arguments, not only booleans.
   # Unfortunately cannot be used in macros.
-  defmacro ||(left, right) do
+  defmacro :||.(left, right) do
     quote {
       case !(__oror_var = unquote(left)) do
       match: false
@@ -202,7 +202,7 @@ module Elixir::Macros do
 
   # Optimize !! to avoid generating case twice.
   # :nodoc:
-  defmacro !({:!, _, [expr]}) do
+  defmacro :!.({:!, _, [expr]}) do
     quote {
       case unquote(expr) do
       match: false
@@ -226,7 +226,7 @@ module Elixir::Macros do
   #   !false    #=> true
   #   !nil      #=> true
   #
-  defmacro !(expr) do
+  defmacro :!.(expr) do
     quote do
       case unquote(expr) do
       match: false

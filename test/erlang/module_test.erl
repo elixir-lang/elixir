@@ -33,7 +33,7 @@ quote_unquote_splice_test() ->
 
 operator_macro_test() ->
   F = fun() ->
-    elixir:eval("module Foo::Bar::Baz do\ndefmacro +(a, b), do: quote { unquote(a) - unquote(b) }\nend"),
+    elixir:eval("module Foo::Bar::Baz do\ndefmacro :+.(a, b), do: quote { unquote(a) - unquote(b) }\nend"),
     {'-',0,[1,2]} = '::Foo::Bar::Baz':'+'(1, 2)
   end,
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
@@ -137,7 +137,7 @@ dynamic_module_test() ->
 
 dynamic_ref_test() ->
   { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\nx::y::z"),
-  { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\n::(x, y, z)").
+  { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\n:::.(x, y, z)").
 
 dynamic_ref_precedence_test() ->
   F = fun() ->

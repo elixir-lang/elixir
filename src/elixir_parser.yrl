@@ -28,7 +28,7 @@ Terminals
   identifier kv_identifier punctuated_identifier paren_identifier
   do_identifier curly_identifier
   number signed_number atom ref bin_string list_string
-  call_op special_op dot_call_op comp_op
+  dot_call_op special_op comp_op
   'not' 'and' 'or' 'xor' 'andalso' 'orelse' 'when'
   '=' '+' '-' '*' '/' '++' '--' '**' '//' '<-'
   '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::'
@@ -56,7 +56,6 @@ Left     170 mult_op.
 Right    180 addadd_op.
 Right    190 multmult_op.
 Nonassoc 250 unary_op.
-Left     260 call_op.
 Right    260 dot_call_op.
 Nonassoc 270 var.
 Left     280 dot_op.
@@ -257,7 +256,6 @@ dot_punctuated_identifier -> matched_expr dot_op punctuated_identifier : { '.', 
 
 parens_call -> dot_paren_identifier : '$1'.
 parens_call -> matched_expr dot_call_op : { '.', ?line('$2'), ['$1'] }. % Fun/local calls
-parens_call -> call_op : '$1'. % +(args)
 
 % Function calls
 
