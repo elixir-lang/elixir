@@ -64,7 +64,7 @@ match(Line, Clauses, RawS) ->
   case DecoupledClauses of
     [DecoupledClause] ->
       { TDecoupledClause, TS } = translate_each(Line, DecoupledClause, S),
-      { [TDecoupledClause], TS#elixir_scope{clause_vars=dict:new()} };
+      { [TDecoupledClause], TS };
     _ ->
       % Transform tree just passing the variables counter forward
       % and storing variables defined inside each clause.
@@ -119,7 +119,7 @@ match(Line, Clauses, RawS) ->
           end,
 
           { FClauses, _ } = lists:mapfoldl(Expander, 1, TClauses),
-          { FClauses, SS#elixir_scope{clause_vars=dict:new()} }
+          { FClauses, SS }
       end
   end.
 

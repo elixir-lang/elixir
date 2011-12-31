@@ -54,9 +54,8 @@ module List do
     list
   end
 
-  def wrap(other) do
-    [other]
-  end
+  def wrap(nil),   do: []
+  def wrap(other), do: [other]
 
   ## Private
 

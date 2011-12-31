@@ -148,16 +148,17 @@ module Protocol do
       { Function,  :is_function },
       { PID,       :is_pid },
       { Port,      :is_port },
-      { Reference, :is_reference },
-      { Any,       :is_any }
+      { Reference, :is_reference }
     ]
 
     if only = fetch(opts, :only, false) do
-      List.map only, fn(i) { { i, L.keyfind(i, 1, kinds) } }
+      selected = List.map only, fn(i) { { i, L.keyfind(i, 1, kinds) } }
+      selected ++ [{ Any, :is_any }]
     elsif: except = fetch(opts, :except, false)
-      List.foldl except, kinds, fn(i, list) { L.keydelete(i, 1, list) }
+      selected = List.foldl except, kinds, fn(i, list) { L.keydelete(i, 1, list) }
+      selected ++ [{ Any, :is_any }]
     else:
-      L.delete { Any, :is_any }, kinds
+      kinds
     end
   end
 end
