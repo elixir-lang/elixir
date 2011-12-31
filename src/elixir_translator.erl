@@ -294,6 +294,12 @@ translate_each({'receive', Line, [RawClauses] }, S) ->
 translate_each({'receive', Line, Args}, S) when is_list(Args) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "receive");
 
+%% Apply
+%% Optimize apply by checking what doesn't need to be dispatched dynamically
+
+translate_each({apply, Line, [Left, Right, Args]}, S) ->
+  translate_each({{'.', Line, [Left, Right]}, Line, Args}, S);
+
 %% Variables & Function calls
 
 translate_each({Name, Line, false}, S) when is_atom(Name) ->
@@ -351,7 +357,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
     _ ->
       { TArgs, SA } = translate_args(Args, umergec(S, SR)),
       Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      { ?ELIXIR_WRAP_CALL(Line, erlang, apply, Apply), umergev(SL, umergev(SR,SA)) }
+      { { call, Line, { atom, Line, apply }, Apply }, umergev(SL, umergev(SR,SA)) }
   end;
 
 %% Anonymous function calls

@@ -1,4 +1,8 @@
 module Orddict do
+  def from_list(pairs) do
+    List.foldl pairs, [], fn({k,v}, dict){ store(dict, k, v) }
+  end
+
   def fetch([{k,_}|_], key, default) when key < k, do: default
   def fetch([{k,_}|d], key, default) when key > k, do: fetch(d, key, default)
   def fetch([{_k,value}|_], _key, _default),    do: value
@@ -11,7 +15,7 @@ module Orddict do
   def delete([{k,_}=e|dict], key) when key > k, do: [e|delete(dict, key)]
   def delete([{_k,_v}|dict], _key), do: dict
   def delete([], _), do: []
-  
+
   def store([{k,_}=e|dict], key, new) when key < k, do: [{key,new},e|dict]
   def store([{k,_}=e|dict], key, new) when key > k, do: [e|store(dict, key, new)]
   def store([{_,_}|dict], key, new), do: [{key,new}|dict]

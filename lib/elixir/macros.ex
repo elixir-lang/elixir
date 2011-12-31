@@ -52,6 +52,10 @@ module Elixir::Macros do
     Record.defrecord(name, values, opts)
   end
 
+  defmacro defprotocol(name // nil, args) do
+    Protocol.defprotocol(name, args)
+  end
+
   # Provides an integer division macro according to Erlang semantics.
   # Raises an error if one of the arguments is not an integer.
   # Can be used in guard tests.

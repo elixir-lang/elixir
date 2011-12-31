@@ -153,6 +153,7 @@ in_erlang_macros() ->
     {'<-',2},
     {'++',2},
     {'--',2},
+    {'apply',3},
     {'andalso',2},
     {'orelse',2},
     {'not',1},
