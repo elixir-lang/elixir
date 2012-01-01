@@ -44,6 +44,24 @@ module Inspect::NumberTest do
   end
 end
 
+module Inspect::TupleTest do
+  use ExUnit::Case
+
+  def test_basic do
+    "{ 1, \"b\", 3 }" = inspect({ 1, "b", 3 })
+    "{ 1, \"b\", 3 }" = stringify({ 1, "b", 3 })
+  end
+end
+
+module Inspect::ListTest do
+  use ExUnit::Case
+
+  def test_basic do
+    "[ 1, \"b\", 3 ]" = inspect([ 1, "b", 3 ])
+    "[ 1, \"b\", 3 ]" = stringify([ 1, "b", 3 ])
+  end
+end
+
 module Inspect::AnyTest do
   use ExUnit::Case
 

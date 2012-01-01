@@ -1,5 +1,24 @@
 module Inspect do
-  defprotocol [inspect(thing), stringify(thing)], only: [BitString, Atom, Number]
+  defprotocol [inspect(thing), stringify(thing)],
+    only: [BitString, Tuple, Atom, Number, List]
+
+  # Handle generating inspect for containers
+
+  def container_join([h], acc, last) do
+    acc = bitstr(acc | :binary, Inspect.inspect(h) | :binary, ?\s, last)
+  end
+
+  def container_join([h|t], acc, last) do
+    acc = bitstr(acc | :binary, Inspect.inspect(h) | :binary, ', ')
+    container_join(t, acc, last)
+  end
+
+  def container_join([], acc, last) do
+    bitstr(acc | :binary, last)
+  end
+
+  # Receives a string as a list and escapes all occorrences
+  # of char and any string interpolation
 
   def escape_string(other, char) do
     escape_string(other, char, [char])
@@ -85,6 +104,26 @@ defimpl Inspect, for: BitString do
 
   def stringify(thing) do
     iolist_to_binary Erlang.io_lib.format('~p', [thing])
+  end
+end
+
+defimpl Inspect, for: Tuple do
+  def inspect(thing) do
+    Inspect.container_join(tuple_to_list(thing), "{ ", ?})
+  end
+
+  def stringify(thing) do
+    Inspect.container_join(tuple_to_list(thing), "{ ", ?})
+  end
+end
+
+defimpl Inspect, for: List do
+  def inspect(thing) do
+    Inspect.container_join(thing, "[ ", ?])
+  end
+
+  def stringify(thing) do
+    Inspect.container_join(thing, "[ ", ?])
   end
 end
 
