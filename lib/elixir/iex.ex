@@ -1,11 +1,11 @@
 module Elixir::IEx do
   def start do
     IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
-    function = fn { loop([], '') }
+    function = fn { do_loop([], '') }
     Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
   end
 
-  def loop(binding, code_cache) do
+  def do_loop(binding, code_cache) do
     prompt = case code_cache do
     match: []
       "iex> "
@@ -28,6 +28,6 @@ module Elixir::IEx do
       { binding, '' }
     end
 
-    loop(binding_to_return, code_cache_to_return)
+    do_loop(binding_to_return, code_cache_to_return)
   end
 end

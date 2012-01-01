@@ -248,7 +248,7 @@ translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
   Clauses = case lists:split(length(RawArgs) - 1, RawArgs) of
     { Args, [[{do,Expr}]] } ->
       [{match,Args,Expr}];
-    { [], [KV] } ->
+    { [], [KV] } when is_list(KV) ->
       elixir_kv_block:decouple(orddict:erase(do, KV));
     _ ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "fn")
@@ -264,33 +264,32 @@ translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
 
 %% Loop and recur
 
-translate_each({do_loop, Line, [Left, Right]}, S) ->
-  %% Generate a variable that will store the function
-  %% and another that will store the first argument
-  { FunVar, VS }  = elixir_tree_helpers:build_ex_var(Line, S),
-  { LeftVar, LS } = elixir_tree_helpers:build_ex_var(Line, VS),
+translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
+  case lists:split(length(RawArgs) - 1, RawArgs) of
+    { Args, [KV] } when is_list(KV) ->
+      %% Generate a variable that will store the function
+      { FunVar, VS }  = elixir_tree_helpers:build_ex_var(Line, S),
 
-  %% Create a case block that will receive the left
-  %% variable and the kv blocks given to loop
-  Case = { 'case', Line, [LeftVar, Right] },
+      %% Add this new variable to all match clauses
+      [{match, KVBlock}] = elixir_kv_block:normalize(orddict:erase(do, KV)),
+      Values = [{ [FunVar|Conds], Expr } || { Conds, Expr } <- element(3, KVBlock)],
+      NewKVBlock = setelement(3, KVBlock, Values),
 
-  %% Case will be the body of a function which receives
-  %% to arguments, itself and the looping data
-  Function = { fn, Line, [FunVar, LeftVar, [{do,Case}]] },
+      %% Generate a function with the match blocks
+      Function = { fn, Line, [[{match,NewKVBlock}]] },
 
-  %% Finally, assign the function to a variable and
-  %% then invoke it passing the function itself as first
-  %% argument and the first argument of loop as second
-  Block = { block, Line, [
-    { '=', Line, [FunVar, Function] },
-    { { '.', Line, [FunVar] }, Line, [FunVar, Left] }
-  ] },
+      %% Finally, assign the function to a variable and
+      %% invoke it passing the function itself as first arg
+      Block = { block, Line, [
+        { '=', Line, [FunVar, Function] },
+        { { '.', Line, [FunVar] }, Line, [FunVar|Args] }
+      ] },
 
-  { TBlock, TS } = translate_each(Block, LS#elixir_scope{recur=element(1,FunVar)}),
-  { TBlock, TS#elixir_scope{recur=[]} };
-
-translate_each({loop, Line, [Args]}, S) when is_list(Args) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "loop");
+      { TBlock, TS } = translate_each(Block, VS#elixir_scope{recur=element(1,FunVar)}),
+      { TBlock, TS#elixir_scope{recur=[]} };
+    _ ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "loop")
+  end;
 
 translate_each({recur, Line, false}, S) ->
   translate_each({recur, Line, []}, S);

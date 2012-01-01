@@ -8,14 +8,14 @@ module ExUnit::Runner do
   def start(config) do
     if config.cases == [] do
       if config.taken_cases > 0 do
-        loop config
+        do_loop config
       elsif: config.sync_cases == []
         call_formatter config, :finish
       else:
-        loop spawn_sync_cases(config)
+        do_loop spawn_sync_cases(config)
       end
     else:
-      loop spawn_cases(config)
+      do_loop spawn_cases(config)
     end
   end
 
@@ -24,11 +24,11 @@ module ExUnit::Runner do
   # attempt to spawn new ones.
   #
   # TODO Add timeout.
-  def loop(config) do
+  def do_loop(config) do
     receive do
     match: { pid, :each, { test_case, test, final } }
       call_formatter config, { :each, test_case, test, final }
-      loop config
+      do_loop config
     match: { pid, :each_case, test_case }
       call_formatter config, { :each_case, test_case }
       start config.taken_cases(config.taken_cases - 1)
