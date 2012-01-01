@@ -11,4 +11,16 @@ module Elixir::LoopTest do
       acc
     end
   end
+
+  def test_do_loop_base do
+    fun = fn do
+    match: { 1, 2 }, []
+      1
+    match: [], x when x == []
+      2
+    end
+
+    1 = fun.({ 1, 2 }, [])
+    2 = fun.([], [])
+  end
 end

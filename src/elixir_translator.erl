@@ -245,13 +245,22 @@ translate_each({quote, Line, Args}, S) when is_list(Args) ->
 %% Functions
 
 translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
-  case lists:split(length(RawArgs) - 1, RawArgs) of
+  Clauses = case lists:split(length(RawArgs) - 1, RawArgs) of
     { Args, [[{do,Expr}]] } ->
-      { TClause, NS } = elixir_clauses:assigns_block(Line, fun translate/2, Args, [Expr], S),
-      { { 'fun', Line, {clauses, [TClause]} }, umergec(S, NS) };
+      [{match,Args,Expr}];
+    { [], [KV] } ->
+      elixir_kv_block:decouple(orddict:erase(do, KV));
     _ ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "fn")
-  end;
+  end,
+
+  Transformer = fun({ match, ArgsWithGuards, Expr }, Acc) ->
+    { FinalArgs, Guards } = elixir_clauses:extract_last_guards(ArgsWithGuards),
+    elixir_clauses:assigns_block(Line, fun translate/2, FinalArgs, [Expr], Guards, umergec(S, Acc))
+  end,
+
+  { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
+  { { 'fun', Line, {clauses, TClauses} }, umergec(S, NS) };
 
 %% Loop and recur
 

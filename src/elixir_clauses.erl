@@ -3,7 +3,7 @@
 -module(elixir_clauses).
 -export([match/3, try_catch/3,
   assigns/3, assigns_block/5, assigns_block/6,
-  extract_args/1, extract_guards/1]).
+  extract_args/1, extract_guards/1, extract_last_guards/1]).
 -include("elixir.hrl").
 
 % Function for translating assigns.
@@ -44,6 +44,14 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
 
 extract_guards({ 'when', _, [Left, Right] }) -> { Left, [Right] };
 extract_guards(Else) -> { Else, [] }.
+
+% Extract guards when it is in the last element of the args
+
+extract_last_guards([]) -> { [], [] };
+extract_last_guards(Args) ->
+  { Left, [Right] } = lists:split(length(Args) - 1, Args),
+  { Bare, Guards } = elixir_clauses:extract_guards(Right),
+  { Left ++ [Bare], Guards }.
 
 % Extract name and args from the given expression.
 
