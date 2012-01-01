@@ -1,5 +1,5 @@
 module Inspect do
-  defprotocol [inspect(thing), stringify(thing)], only: [Atom, BitString]
+  defprotocol [inspect(thing), stringify(thing)], only: [BitString, Atom, Number]
 
   def escape_string(other, char) do
     escape_string(other, char, [char])
@@ -85,6 +85,24 @@ defimpl Inspect, for: BitString do
 
   def stringify(thing) do
     iolist_to_binary Erlang.io_lib.format('~p', [thing])
+  end
+end
+
+defimpl Inspect, for: Number do
+  def inspect(thing) when is_integer(thing) do
+    list_to_binary integer_to_list(thing)
+  end
+
+  def inspect(thing) do
+    list_to_binary float_to_list(thing)
+  end
+
+  def stringify(thing) when is_integer(thing) do
+    list_to_binary integer_to_list(thing)
+  end
+
+  def stringify(thing) do
+    list_to_binary float_to_list(thing)
   end
 end
 

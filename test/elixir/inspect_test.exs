@@ -30,6 +30,20 @@ module Inspect::BitStringTest do
   end
 end
 
+module Inspect::NumberTest do
+  use ExUnit::Case
+
+  def test_integer do
+    "100" = inspect(100)
+    "100" = stringify(100)
+  end
+
+  def test_float do
+    "1.00000000000000000000e+00" = inspect(1.0)
+    "1.00000000000000000000e+00" = stringify(1.0)
+  end
+end
+
 module Inspect::AnyTest do
   use ExUnit::Case
 
