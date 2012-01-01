@@ -244,7 +244,7 @@ translate_each({quote, Line, Args}, S) when is_list(Args) ->
 translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
   case lists:split(length(RawArgs) - 1, RawArgs) of
     { Args, [[{do,Expr}]] } ->
-      { TClause, NS } = elixir_clauses:assigns_blocks(Line, fun translate/2, Args, [Expr], S),
+      { TClause, NS } = elixir_clauses:assigns_block(Line, fun translate/2, Args, [Expr], S),
       { { 'fun', Line, {clauses, [TClause]} }, umergec(S, NS) };
     _ ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "fn")

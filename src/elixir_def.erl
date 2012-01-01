@@ -103,7 +103,7 @@ translate_definition(Line, Module, Call, Expr, S) ->
     module={Line,Module}
   },
 
-  { TClause, _ } = elixir_clauses:assigns_blocks(Line,
+  { TClause, _ } = elixir_clauses:assigns_block(Line,
     fun elixir_translator:translate/2, Args, [Expr], Guards, ClauseScope),
 
   Arity = length(element(3, TClause)),

@@ -1,6 +1,6 @@
 -module(elixir_clauses).
 -export([match/3, try_catch/3,
-  assigns/3, assigns_blocks/5, assigns_blocks/6,
+  assigns/3, assigns_block/5, assigns_block/6,
   extract_args/1, extract_guards/1]).
 -include("elixir.hrl").
 
@@ -10,13 +10,14 @@ assigns(Fun, Args, S) ->
   { Result, NewS } = Fun(Args, S#elixir_scope{assign=true}),
   { Result, NewS#elixir_scope{assign=S#elixir_scope.assign, temp_vars=S#elixir_scope.temp_vars} }.
 
-% Handles assigns with guards
+%% Function for translating a block that is preceeded by an
+%% assignment and optional guards. This is used by def* and fn.
 
-assigns_blocks(Line, Fun, BareArgs, Exprs, S) ->
+assigns_block(Line, Fun, BareArgs, Exprs, S) ->
   { Args, Guards } = extract_guards(BareArgs),
-  assigns_blocks(Line, Fun, Args, Exprs, Guards, S).
+  assigns_block(Line, Fun, Args, Exprs, Guards, S).
 
-assigns_blocks(Line, Fun, Args, Exprs, Guards, S) ->
+assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
   { TArgs, SA }    = elixir_clauses:assigns(Fun, Args, S),
   { TGuards, SG }  = elixir_translator:translate(Guards, SA#elixir_scope{guard=true}),
   { TExprs, SE }   = elixir_translator:translate(Exprs, SG#elixir_scope{guard=false}),
@@ -178,7 +179,7 @@ translate_each_(Line, {Key,[Expr]}, S) ->
 
 % Handle assign other clauses.
 translate_each_(Line, {Key,[Condition|Exprs]}, S) when Key == match; Key == 'catch'; Key == 'after' ->
-  assigns_blocks(Line, fun elixir_translator:translate_each/2, Condition, Exprs, S);
+  assigns_block(Line, fun elixir_translator:translate_each/2, Condition, Exprs, S);
 
 translate_each_(Line, {Key,_}, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key: ", atom_to_list(Key)).
