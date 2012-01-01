@@ -97,7 +97,7 @@ build(Module) ->
 
 eval_form(Line, Filename, Module, Block) ->
   S = #elixir_scope{filename=Filename, module={Line,Module}},
-  { TBlock, TS } = elixir_translator:translate_each(Block, S),
+  { TBlock, _ } = elixir_translator:translate_each(Block, S),
   { value, Result, Binding } = erl_eval:exprs([TBlock], [{'XMODULE',Module}]),
   { Result, Binding }.
 

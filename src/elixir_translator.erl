@@ -250,6 +250,49 @@ translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "fn")
   end;
 
+%% Loop and recur
+
+translate_each({loop, Line, [Left, Right]}, S) ->
+  %% Generate a variable that will store the function
+  %% and another that will store the first argument
+  { FunVar, VS }  = elixir_tree_helpers:build_ex_var(Line, S),
+  { LeftVar, LS } = elixir_tree_helpers:build_ex_var(Line, VS),
+
+  %% Create a case block that will receive the left
+  %% variable and the kv blocks given to loop
+  Case = { 'case', Line, [LeftVar, Right] },
+
+  %% Case will be the body of a function which receives
+  %% to arguments, itself and the looping data
+  Function = { fn, Line, [FunVar, LeftVar, [{do,Case}]] },
+
+  %% Finally, assign the function to a variable and
+  %% then invoke it passing the function itself as first
+  %% argument and the first argument of loop as second
+  Block = { block, Line, [
+    { '=', Line, [FunVar, Function] },
+    { { '.', Line, [FunVar] }, Line, [FunVar, Left] }
+  ] },
+
+  { TBlock, TS } = translate_each(Block, LS#elixir_scope{recur=element(1,FunVar)}),
+  { TBlock, TS#elixir_scope{recur=[]} };
+
+translate_each({loop, Line, [Args]}, S) when is_list(Args) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "loop");
+
+translate_each({recur, Line, false}, S) ->
+  translate_each({recur, Line, []}, S);
+
+translate_each({recur, Line, Args}, S) when is_list(Args) ->
+  case S#elixir_scope.recur of
+    [] ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "recur");
+    Recur ->
+      ExVar = { Recur, Line, false },
+      Call = { { '.', Line, [ExVar] }, Line, [ExVar|Args] },
+      translate_each(Call, S)
+  end;
+
 %% Try
 
 translate_each({'try', Line, [Clauses]}, RawS) ->
@@ -307,7 +350,7 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
         { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
         { true, Else, _ } ->
           { NewVar, NS } = case Else or S#elixir_scope.noname of
-            true -> elixir_tree_helpers:build_var_name(Line, S);
+            true -> elixir_tree_helpers:build_erl_var(Line, S);
             false -> { {var, Line, Name}, S }
           end,
           RealName = element(3, NewVar),

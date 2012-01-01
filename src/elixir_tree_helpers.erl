@@ -1,5 +1,6 @@
 -module(elixir_tree_helpers).
--export([abstract_syntax/1, build_var_name/2, build_bitstr/4,
+-export([abstract_syntax/1, build_erl_var/2, build_ex_var/2,
+  build_bitstr/4,
   build_list/4, build_list/5, build_simple_list/2,
   build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
@@ -7,9 +8,14 @@
 abstract_syntax(Tree) ->
   erl_syntax:revert(erl_syntax:abstract(Tree)).
 
-build_var_name(Line, #elixir_scope{counter=Counter} = S) ->
+build_erl_var(Line, #elixir_scope{counter=Counter} = S) ->
   NS = S#elixir_scope{counter=Counter+1},
   Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) },
+  { Var, NS }.
+
+build_ex_var(Line, #elixir_scope{counter=Counter} = S) ->
+  NS = S#elixir_scope{counter=Counter+1},
+  Var = { ?ELIXIR_ATOM_CONCAT(["X", Counter]), Line, false },
   { Var, NS }.
 
 % Build a list transforming each expression and accumulating

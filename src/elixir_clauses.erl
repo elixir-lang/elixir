@@ -91,7 +91,7 @@ match(Line, Clauses, RawS) ->
 
           % Defines a tuple that will be used as left side of the match operator
           LeftTuple = { tuple, Line, [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars] },
-          { StorageVar, SS } = elixir_tree_helpers:build_var_name(Line, FS),
+          { StorageVar, SS } = elixir_tree_helpers:build_erl_var(Line, FS),
 
           % Expand all clauses by adding a match operation at the end that assigns
           % variables missing in one clause to the others.
@@ -201,7 +201,7 @@ has_match_tuple(_) -> false.
 % Normalize the given var checking its existence in the scope var dictionary.
 
 normalize_vars(Var, #elixir_scope{vars=Dict} = S) ->
-  { { _, _, NewValue }, NS } = elixir_tree_helpers:build_var_name(0, S),
+  { { _, _, NewValue }, NS } = elixir_tree_helpers:build_erl_var(0, S),
   FS = NS#elixir_scope{vars=dict:store(Var, NewValue, Dict)},
 
   Expr = case dict:find(Var, Dict) of

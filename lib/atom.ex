@@ -25,7 +25,7 @@ defimpl Inspect, for: Atom do
   defp valid_upper_identifier?([]), do: true
   defp valid_upper_identifier?(_),  do: false
 
-  # Detect if atom follows is :letter_or_underscore
+  # Detect if atom is :letter_or_underscore
 
   defp valid_lower_identifier?([h|t]) when
     (h >= ?a andalso h <= ?z) orelse (h == ?_) do

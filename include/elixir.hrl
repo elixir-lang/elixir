@@ -13,6 +13,7 @@
   noname=false,                             %% when true, don't add new names. used by try.
   macro=[],                                 %% the current macro being transformed
   function=[],                              %% the current function
+  recur=[],                                 %% the current loop function to be recurred
   module={0,nil},                           %% the current module
   vars=dict:new(),                          %% a dict of defined variables and their alias
   temp_vars=[],                             %% a list of all variables defined in a particular assign
