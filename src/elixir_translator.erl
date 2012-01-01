@@ -252,7 +252,7 @@ translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
 
 %% Loop and recur
 
-translate_each({loop, Line, [Left, Right]}, S) ->
+translate_each({do_loop, Line, [Left, Right]}, S) ->
   %% Generate a variable that will store the function
   %% and another that will store the first argument
   { FunVar, VS }  = elixir_tree_helpers:build_ex_var(Line, S),
