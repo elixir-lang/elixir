@@ -6,6 +6,16 @@ module Inspect::AtomTest do
     "foo"  = stringify(:foo)
   end
 
+  def test_true_false_nil do
+    "false" = inspect(false)
+    "true"  = inspect(true)
+    "nil"   = inspect(nil)
+
+    "false" = stringify(false)
+    "true"  = stringify(true)
+    "nil"   = stringify(nil)
+  end
+
   def test_with_uppercase do
     ":fOO" = inspect(:fOO)
     "fOO"  = stringify(:fOO)
