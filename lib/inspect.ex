@@ -5,7 +5,7 @@ module Inspect do
   # Handle generating inspect for containers
 
   def container_join([h], acc, last) do
-    acc = bitstr(acc | :binary, Inspect.inspect(h) | :binary, ?\s, last)
+    acc = bitstr(acc | :binary, Inspect.inspect(h) | :binary, last | :binary)
   end
 
   def container_join([h|t], acc, last) do
@@ -14,7 +14,7 @@ module Inspect do
   end
 
   def container_join([], acc, last) do
-    bitstr(acc | :binary, last)
+    bitstr(acc | :binary, last | :binary)
   end
 
   # Receives a string as a list and escapes all occorrences
@@ -50,7 +50,7 @@ defimpl Inspect, for: Atom do
     elsif: valid_upper_identifier?(list)
       atom_to_binary(atom, :utf8)
     else:
-      iolist_to_binary [?:, Inspect.escape_string(list, ?")]
+      list_to_binary [?:, Inspect.escape_string(list, ?")]
     end
   end
 
@@ -91,11 +91,16 @@ end
 
 defimpl Inspect, for: BitString do
   def inspect(thing) when is_binary(thing) do
-    iolist_to_binary Inspect.escape_string(binary_to_list(thing), ?")
+    list = binary_to_list(thing)
+    if Erlang.io_lib.printable_list(list) do
+      list_to_binary Inspect.escape_string(list, ?")
+    else:
+      list_to_binary Erlang.io_lib.format('~p', [thing])
+    end
   end
 
   def inspect(thing) do
-    iolist_to_binary Erlang.io_lib.format('~p', [thing])
+    list_to_binary Erlang.io_lib.format('~p', [thing])
   end
 
   def stringify(thing) when is_binary(thing) do
@@ -103,27 +108,31 @@ defimpl Inspect, for: BitString do
   end
 
   def stringify(thing) do
-    iolist_to_binary Erlang.io_lib.format('~p', [thing])
+    list_to_binary Erlang.io_lib.format('~p', [thing])
   end
 end
 
 defimpl Inspect, for: Tuple do
   def inspect(thing) do
-    Inspect.container_join(tuple_to_list(thing), "{ ", ?})
+    Inspect.container_join(tuple_to_list(thing), "{", "}")
   end
 
   def stringify(thing) do
-    Inspect.container_join(tuple_to_list(thing), "{ ", ?})
+    Inspect.container_join(tuple_to_list(thing), "{", "}")
   end
 end
 
 defimpl Inspect, for: List do
   def inspect(thing) do
-    Inspect.container_join(thing, "[ ", ?])
+    if Erlang.io_lib.printable_list(thing) do
+      list_to_binary Inspect.escape_string(thing, ?')
+    else:
+      Inspect.container_join(thing, "[", "]")
+    end
   end
 
   def stringify(thing) do
-    Inspect.container_join(thing, "[ ", ?])
+    Inspect.container_join(thing, "[", "]")
   end
 end
 
@@ -147,10 +156,10 @@ end
 
 defimpl Inspect, for: Any do
   def inspect(thing) do
-    iolist_to_binary Erlang.io_lib.format('~p', [thing])
+    list_to_binary Erlang.io_lib.format('~p', [thing])
   end
 
   def stringify(thing) do
-    iolist_to_binary Erlang.io_lib.format('~p', [thing])
+    list_to_binary Erlang.io_lib.format('~p', [thing])
   end
 end

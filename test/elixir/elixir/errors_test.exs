@@ -96,11 +96,6 @@ module Elixir::ErrorsTest do
     "nofile:1: syntax error before: ')'" = format_catch '"foo\#{case 1 do )}bar"'
   end
 
-  def test_invalid_kv_block do
-    "nofile:1: key value blocks not supported in: after" =
-      format_catch 'case true do\nafter: 2\nafter: 3\nend'
-  end
-
   def test_invalid_kv_for_match do
     "nofile:1: invalid key: invalid" =
       format_catch 'case true do\ninvalid: 2\nafter: 3\nend'

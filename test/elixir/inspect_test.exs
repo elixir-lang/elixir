@@ -28,6 +28,10 @@ module Inspect::BitStringTest do
     "\"foo\"" = inspect("foo")
     "foo" = stringify("foo")
   end
+
+  def test_unprintable do
+    "<<1>>" = inspect(bitstr 1)
+  end
 end
 
 module Inspect::NumberTest do
@@ -48,8 +52,13 @@ module Inspect::TupleTest do
   use ExUnit::Case
 
   def test_basic do
-    "{ 1, \"b\", 3 }" = inspect({ 1, "b", 3 })
-    "{ 1, \"b\", 3 }" = stringify({ 1, "b", 3 })
+    "{1, \"b\", 3}" = inspect({ 1, "b", 3 })
+    "{1, \"b\", 3}" = stringify({ 1, "b", 3 })
+  end
+
+  def test_empty do
+    "{}" = inspect({})
+    "{}" = stringify({})
   end
 end
 
@@ -57,8 +66,18 @@ module Inspect::ListTest do
   use ExUnit::Case
 
   def test_basic do
-    "[ 1, \"b\", 3 ]" = inspect([ 1, "b", 3 ])
-    "[ 1, \"b\", 3 ]" = stringify([ 1, "b", 3 ])
+    "[1, \"b\", 3]" = inspect([ 1, "b", 3 ])
+    "[1, \"b\", 3]" = stringify([ 1, "b", 3 ])
+  end
+
+  def test_printable do
+    "'abc'" = inspect('abc')
+    "[97, 98, 99]" = stringify('abc')
+  end
+
+  def test_empty do
+    "''" = inspect([])
+    "[]" = stringify([])
   end
 end
 
