@@ -1,3 +1,5 @@
+%% Handle code related to match/after/catch/else clauses
+%% for receive/try/fn and friends.
 -module(elixir_clauses).
 -export([match/3, try_catch/3,
   assigns/3, assigns_block/5, assigns_block/6,
@@ -52,7 +54,7 @@ extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Arg
 % Function for translating macros for try's catch.
 
 try_catch(Line, Clauses, S) ->
-  DecoupledClauses = elixir_kv_block:decouple(elixir_kv_block:normalize(Clauses), []),
+  DecoupledClauses = elixir_kv_block:decouple(Clauses),
   % Just pass the variable counter forward between each clause.
   Transformer = fun(X, Acc) -> translate_each(Line, X, umergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, DecoupledClauses).
@@ -61,7 +63,7 @@ try_catch(Line, Clauses, S) ->
 
 match(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
-  DecoupledClauses = elixir_kv_block:decouple(handle_else(match, Line, elixir_kv_block:normalize(Clauses)), []),
+  DecoupledClauses = elixir_kv_block:decouple(Clauses, fun(X) -> handle_else(match, Line, X) end),
   case DecoupledClauses of
     [DecoupledClause] ->
       { TDecoupledClause, TS } = translate_each(Line, DecoupledClause, S),

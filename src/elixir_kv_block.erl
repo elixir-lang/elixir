@@ -26,10 +26,11 @@ normalize_each({ kv_block, _, _} = Value) -> Value;
 normalize_each(Value) -> { kv_block, 0, [{[],Value}] }.
 
 %% Decouple clauses from kv_blocks. Assumes the given dict was already normalized.
-decouple(List) -> decouple(normalize(List), []).
+decouple(List)      -> decouple(List, fun(X) -> X end).
+decouple(List, Fun) -> decouple_each(Fun(normalize(List)), []).
 
-decouple([{Key,{kv_block,_,Value}}|T], Clauses) ->
+decouple_each([{Key,{kv_block,_,Value}}|T], Clauses) ->
   Final = lists:foldl(fun({K,V}, Acc) -> [{Key,K,V}|Acc] end, Clauses, Value),
-  decouple(T, Final);
+  decouple_each(T, Final);
 
-decouple([], Acc) -> lists:reverse(Acc).
+decouple_each([], Acc) -> lists:reverse(Acc).
