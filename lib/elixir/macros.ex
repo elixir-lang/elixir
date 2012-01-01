@@ -139,13 +139,26 @@ module Elixir::Macros do
   #     end
   #
   defmacro if(condition, [{:do,do_clause}|tail]) do
-    matches = prepend_to_block(condition, do_clause)
-
+    # Transform the condition and the expressions in the
+    # do_clause to a key-value block. Get the other values
+    # from the tail orddict.
+    if_clause    = { :kv_block, 0, [ { [condition], do_clause } ] }
     else_clause  = Orddict.fetch(tail, :else, nil)
-    elsif_clause = Orddict.fetch(tail, :elsif, [])
 
-    all = [matches|List.wrap(elsif_clause)]
-    build_if_clauses(List.reverse(all), else_clause)
+    # Merge if and elsif clauses, as they will all become match clauses.
+    merged =
+      case Orddict.fetch(tail, :elsif, nil) do
+      match: nil
+        [match: if_clause]
+      match: elsif_clause
+        Erlang.elixir_kv_block.merge([match: if_clause], [match: elsif_clause])
+      end
+
+    # Decouple all if and elsif clauses into an array of tuples.
+    # Those tuples are made of three elements, the key-block key,
+    # the given condition and the block expressions
+    all = Erlang.elixir_kv_block.decouple(merged)
+    build_if_clauses(all, else_clause)
   end
 
   # Provide a unless macro that executes the expression
@@ -271,14 +284,12 @@ module Elixir::Macros do
   #       end
   #     end
   #
-  defp build_if_clauses([h|t], acc) do
-    { condition, clause } = extract_condition_clause(h)
-
+  defp build_if_clauses([{ :match, [condition], clause }|t], acc) do
     new_acc = quote {
       case !unquote(condition) do
       match: false
         unquote(clause)
-      match: true
+      else:
         unquote(acc)
       end
     }
@@ -286,37 +297,9 @@ module Elixir::Macros do
     build_if_clauses(t, new_acc)
   end
 
+  defp build_if_clauses([{ :match, [], _clause }|_], _) do
+    error { :badarg, "No conditions given to elsif clause" }
+  end
+
   defp build_if_clauses([], acc), do: acc
-
-  # Extract condition clauses from blocks. Whenever we do:
-  #
-  #     if foo do
-  #       1
-  #     elsif bar
-  #       2
-  #       3
-  #     end
-  #
-  # This is transformed as a macro call to:
-  #
-  #     if(foo, do: 1, elsif: (bar; 2; 3))
-  #
-  # And, as we know, Elixir transforms (bar; 2; 3) into a block:
-  #
-  #     if(foo, do: 1, elsif: { :block, 0, [bar, 2, 3] })
-  #
-  # Therefore, this method simply extract the first argument from
-  # the block which is the argument used as condition.
-  defp extract_condition_clause({ :block, line, [h|t] }), do: { h, { :block, line, t } }
-  defp extract_condition_clause(other), do: { other, nil }
-
-  # Append the given expression to the block given as second argument.
-  # In case the second argument is not a block, create one.
-  defp prepend_to_block(expr, { :block, line, args }) do
-    { :block, line, [expr|args] }
-  end
-
-  defp prepend_to_block(expr, args) do
-    { :block, 0, [expr, args] }
-  end
 end

@@ -16,7 +16,7 @@ Nonterminals
   matched_comma_expr call_args_no_parens
   kv_comma base_orddict
   matched_kv_comma matched_base_orddict
-  do_eol end_eol kv_list do_block curly_block
+  do_eol end_eol kv_item kv_list do_block curly_block
   dot_op dot_identifier dot_do_identifier dot_curly_identifier
   dot_paren_identifier dot_punctuated_identifier parens_call
   var list
@@ -300,13 +300,17 @@ do_eol -> 'do' eol : '$1'.
 end_eol -> 'end' : '$1'.
 end_eol -> eol 'end' : '$2'.
 
-kv_list -> kv_eol expr_list eol : [{?exprs('$1'),'$2'}].
-kv_list -> kv_eol expr_list eol kv_list : [{?exprs('$1'), '$2'}|'$4'].
+kv_item -> kv_identifier expr eol : { ?exprs('$1'), { kv_block, ?line('$1'), [{['$2'],nil}] } }.
+kv_item -> kv_identifier eol expr_list eol : { ?exprs('$1'), build_block('$3') }.
+kv_item -> kv_identifier expr eol expr_list eol : { ?exprs('$1'), { kv_block, ?line('$1'), [{['$2'],build_block('$4')}] } }.
 
-do_block -> do_eol 'end'                         : build_kv_block('$1', [], []).
-do_block -> do 'eol' kv_list 'end'               : build_kv_block('$1', [], '$3').
-do_block -> do_eol expr_list end_eol             : build_kv_block('$1', '$2', []).
-do_block -> do_eol expr_list 'eol' kv_list 'end' : build_kv_block('$1', '$2', '$4').
+kv_list -> kv_item : ['$1'].
+kv_list -> kv_item kv_list : ['$1'|'$2'].
+
+do_block -> do_eol 'end'                       : build_kv_block('$1', [], []).
+do_block -> do eol kv_list 'end'               : build_kv_block('$1', [], '$3').
+do_block -> do_eol expr_list end_eol           : build_kv_block('$1', '$2', []).
+do_block -> do_eol expr_list eol kv_list 'end' : build_kv_block('$1', '$2', '$4').
 
 curly_block -> open_curly '}' : build_kv_block('$1', [], []).
 curly_block -> open_curly expr_list close_curly : build_kv_block('$1', '$2', []).
@@ -360,28 +364,16 @@ build_special_op(Op, Expr) ->
 
 % Handle args that expects blocks of code
 build_block([])                            -> nil;
+build_block([nil])                         -> { block, 0, [nil] };
 build_block([Expr]) when not is_list(Expr) -> Expr;
 build_block(Exprs)                         -> { block, 0, lists:reverse(Exprs) }.
 
 % Handle key value blocks
 build_kv_block(Delimiter, Contents, IncompleteList) ->
   Line  = ?line(Delimiter),
-  List  = [{do,Contents}|IncompleteList],
-  Final = reverse_kv_block(merge_kv_block(Line, [{X,build_block(Y)} || {X,Y} <- List], [])),
+  List  = [{do,build_block(Contents)}|IncompleteList],
+  Final = lists:reverse(elixir_kv_block:merge(Line, [], List)),
   {'[:]', Line, Final}.
-
-reverse_kv_block(List) -> lists:reverse([reverse_each_kv_block(X) || X <- List]).
-reverse_each_kv_block({Key, { kv_block, Line, Value }}) -> { Key, { kv_block, Line, lists:reverse(Value) } };
-reverse_each_kv_block(Else) -> Else.
-
-merge_kv_block(Line, [{Key,Value}|T], Acc) ->
-  NewAcc = orddict:update(Key, fun(Old) -> merge_each_kv_block(Line, Old, Value) end, Value, Acc),
-  merge_kv_block(Line, T, NewAcc);
-
-merge_kv_block(_Line, [], Acc) -> Acc.
-
-merge_each_kv_block(_, { kv_block, Line, Old }, New) -> { kv_block, Line, [New|Old] };
-merge_each_kv_block(Line, Old, New) -> { kv_block, Line, [New, Old] }.
 
 %% Args
 % Build args by transforming [:] into the final form []
@@ -405,7 +397,7 @@ build_identifier(Expr, Args, Block) ->
     true  ->
       { '[:]', Line, Left } = Last,
       { '[:]', _, Right }  = Block,
-      KV = { '[:]', Line, merge_kv_block(Line, Left, Right) },
+      KV = { '[:]', Line, elixir_kv_block:merge(Line, Left, Right) },
       lists:reverse([KV|Reverse]);
     false ->
       lists:reverse([Block,Last|Reverse])

@@ -77,6 +77,9 @@ translate_each({ block, Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
 
+translate_each({ kv_block, _, [{[Expr],nil}] }, S) ->
+  translate_each(Expr, S);
+
 translate_each({ kv_block, Line, Args }, S) when is_list(Args) ->
   case S#elixir_scope.macro of
     { Receiver, Name, Arity } ->
@@ -409,7 +412,7 @@ translate_each({{'.', _, [Expr]}, Line, Args}, S) ->
 
 %% Literals
 
-translate_each({ Left, Right }, S) when is_atom(Left) ->
+translate_each({ Left, Right }, S) ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL),
   { { tuple, 0, [TLeft, TRight] }, SR };
