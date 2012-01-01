@@ -16,3 +16,12 @@ module Inspect::AtomTest do
     "::Foo::Bar"  = stringify(::Foo::Bar)
   end
 end
+
+module Inspect::AnyTest do
+  use ExUnit::Case
+
+  def test_basic do
+    bin = inspect(fn(x){ x + 1 })
+    '#Fun<' ++ _ = binary_to_list(bin)
+  end
+end
