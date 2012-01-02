@@ -290,6 +290,17 @@ defmodule Elixir::Macros do
     Protocol.defimpl(name, do: block, for: for)
   end
 
+  defmacro import(module, opts // [])
+  defmacro use(module, args // [])
+  defmacro require(module, opts // [])
+
+  defmacro quote(do: contents)
+  defmacro unquote(expr)
+
+  defmacro fn(args)
+  defmacro loop(args)
+  defmacro recur(args)
+
   # Inspect the given arguments according to the Inspect protocol.
   #
   # ## Examples
@@ -361,6 +372,135 @@ defmodule Elixir::Macros do
   #
   defmacro rem(left, right), do:
     quote { erlang_op :rem, unquote(left), unquote(right) }
+
+  # Matches the given condition against the match clauses.
+  #
+  # ## Examples
+  #
+  #     case thing do
+  #     match: { :selector, i, value } when is_integer(i)
+  #       value
+  #     match: value
+  #       value
+  #     end
+  #
+  # In the example above, we compare `thing` with each given
+  # match clause and execute the first one that matches. If no
+  # clause matches, an error is raised.
+  #
+  # Since Elixir variables can be assigned more than once, variables
+  # in a match clause will always be assigned instead of matching with
+  # its previous values. For example:
+  #
+  #     i = 1
+  #     case 10 do
+  #     match: i
+  #       i * 2
+  #     end
+  #
+  # The example above will return 20, because `i` is assgined to 10
+  # and then multiplied by 2. If you desire to match the value of `i`
+  # against the given condition, you need to use the `^` operator:
+  #
+  #     i = 1
+  #     case 10 do
+  #     match: ^i
+  #       i * 2
+  #     end
+  #
+  # The example above will actually fail because 10 does not match 1.
+  #
+  # Finally, `case` accepts an `else:` branch as a fallback if none
+  # of the clauses match:
+  #
+  #     case thing do
+  #     match: { :selector, i, value } when is_integer(i)
+  #       value
+  #     else:
+  #       thing
+  #     end
+  #
+  defmacro case(condition, blocks)
+
+  # Execute the given expressions and catch any error, exit
+  # or throw that may have happened.
+  #
+  # ## Examples
+  #
+  #     try do
+  #       do_something_that_may_fail(some_arg)
+  #     catch: { :error, :badarg, _ }
+  #       IO.puts "Invalid argument given"
+  #     catch: { :throw, value, _ }
+  #       IO.puts "caught #{value}"
+  #     after:
+  #       IO.puts "This is printed regardless if it failed or succeed"
+  #     end
+  #
+  # Each `catch` clause must be followed by a tuple with three elements.
+  # The first one is the kind of exception: `:error`, `:throw` or `:exit`.
+  # The second one is the value given to error, throw or exit and the third
+  # one is the stacktrace (which one usually wants to ignore).
+  #
+  # ## Variable visibility
+  #
+  # Since an expression inside `try` may not have been properly evaluted,
+  # any variable created inside `try` cannot be accessed externaly.
+  # For instance:
+  #
+  #     try do
+  #       x = 1
+  #       do_something_that_may_fail(same_arg)
+  #       :ok
+  #     catch: _
+  #       :failed
+  #     end
+  #
+  #     x #=> Cannot access `x`
+  #
+  # In the example above, `x` cannot be accessed since it was defined
+  # inside the `try` clause.
+  defmacro try(args)
+
+  # The current process will hang until it receives a message
+  # from other processes that matches the given clauses.
+  #
+  # ## Examples
+  #
+  #     receive
+  #     match: { :selector, i, value } when is_integer(i)
+  #       value
+  #     match: value when is_atom(value)
+  #       value
+  #     else:
+  #       IO.puts :standard_error, "Unexpected message received"
+  #     end
+  #
+  # The match clauses above follows the same rules as `case/2`.
+  #
+  # An optional after clause can be given in case the message was not
+  # received after the specified period of time:
+  #
+  #     receive
+  #     match: { :selector, i, value } when is_integer(i)
+  #       value
+  #     match: value when is_atom(value)
+  #       value
+  #     else:
+  #       IO.puts :standard_error, "Unexpected message received"
+  #     after: 5000
+  #       IO.puts :standard_error, "No message in 5 seconds"
+  #     end
+  #
+  # The `after` clause can be specified even if there are no match clauses.
+  # There are two special cases for the timout value given to after:
+  #
+  # * `:infinity` - The process should wait indefinitely for a matching
+  # message, this is the same as not using a timeout.
+  #
+  # * 0 - if there is no matching message in the mailbox, the timeout
+  # will occur immediately.
+  defmacro receive(args)
 
   # Provides an `if` macro. The macro expects the first argument to
   # be a condition and the rest are key-value arguments.
