@@ -58,6 +58,10 @@ defimpl Inspect, for: Atom do
     end
   end
 
+  def stringify(nil) do
+    ""
+  end
+
   def stringify(atom) do
     atom_to_binary(atom, :utf8)
   end

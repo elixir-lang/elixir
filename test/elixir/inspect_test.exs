@@ -13,7 +13,7 @@ module Inspect::AtomTest do
 
     "false" = stringify(false)
     "true"  = stringify(true)
-    "nil"   = stringify(nil)
+    ""   = stringify(nil)
   end
 
   def test_with_uppercase do
