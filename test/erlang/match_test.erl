@@ -4,11 +4,6 @@
 no_assignment_test() ->
   {nil, []} = elixir:eval("").
 
-% bound_variable_test() ->
-%   ?assertError({unbound_var, x}, elixir:eval("\~x = 1")),
-%   ?assertError({badsyntax, {1,<<"nofile">>,<<"invalid scope to bound variable">>,<<"x">>}}, elixir:eval("\~x")),
-%   {1, [{x,1}]} = elixir:eval("x = 1;~x = 1").
-
 % Var/assignment test
 arithmetic_test() ->
   ?assertError({badmatch, _}, elixir:eval("-1 = 1")).
@@ -20,9 +15,9 @@ not_single_assignment_test() ->
   {2, [{a, 2}]} = elixir:eval("a = 1\na = 2\na"),
   {1, [{a, 1}]} = elixir:eval("{a,a} = {1,1}\na"),
   {1, [{a, 1}]} = elixir:eval("{a,a} = :{}.(1, 1)\na"),
-  % {2, [{a, 2}]} = elixir:eval("a = 1\n{\~a,a} = {1,2}\na"),
-  % {1, [{a, 1}]} = elixir:eval("a = 1\nfunction([], do: a = 2).()\na"),
-  ?assertError({badmatch, _}, elixir:eval("{a,a} = {1,2}")).
+  {2, [{a, 2}]} = elixir:eval("a = 1\n{^a,a} = {1,2}\na"),
+  ?assertError({badmatch, _}, elixir:eval("{a,a} = {1,2}")),
+  ?assertError({badmatch, _}, elixir:eval("a = 1\n^a = 2")).
 
 multiline_assignment_test() ->
   {1, [{a, 1}]} = elixir:eval("a =\n1"),

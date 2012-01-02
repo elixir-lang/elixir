@@ -1,4 +1,6 @@
 defmodule Elixir::CLI do
+  import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
+
   defrecord Config, commands: [], close: [], halt: true, output: '.', compile: false
 
   # Invoked directly from erlang boot process. It parses all argv
@@ -16,11 +18,11 @@ defmodule Elixir::CLI do
     try do
       List.map all_commands, fn(c) { process_command(c, config) }
     catch: { :throw, reason, _ }
-      IO.puts :standard_error, "** throw #{Elixir::Formatter.format_catch(:throw, reason)}"
+      IO.puts :standard_error, "** throw #{format_catch(:throw, reason)}"
       print_stacktrace(Code.stacktrace)
       halt(1)
     catch: { :error, reason, _ }
-      IO.puts :standard_error, "** error #{Elixir::Formatter.format_catch(:error, reason)}"
+      IO.puts :standard_error, "** error #{format_catch(:error, reason)}"
       print_stacktrace(Code.stacktrace)
       halt(1)
     end
@@ -49,7 +51,7 @@ defmodule Elixir::CLI do
   end
 
   defp print_stacktrace(stacktrace) do
-    List.each stacktrace, fn(s) { IO.puts :standard_error, "    #{Elixir::Formatter.format_stacktrace(s)}" }
+    List.each stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
   end
 
   # Process shared options

@@ -31,7 +31,7 @@ Terminals
   dot_call_op special_op comp_op
   'not' 'and' 'or' 'xor' 'andalso' 'orelse' 'when'
   '=' '+' '-' '*' '/' '++' '--' '**' '//' '<-'
-  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::'
+  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::' '^'
   '&&' '||' '!'
   .
 
@@ -189,6 +189,8 @@ unary_op -> '-' : '$1'.
 unary_op -> '-' eol : '$1'.
 unary_op -> '!' : '$1'.
 unary_op -> '!' eol : '$1'.
+unary_op -> '^' : '$1'.
+unary_op -> '^' eol : '$1'.
 unary_op -> 'not' : '$1'.
 unary_op -> 'not' eol : '$1'.
 unary_op -> '::' : '$1'.

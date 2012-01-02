@@ -348,6 +348,29 @@ translate_each({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
 
 %% Variables & Function calls
 
+translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
+  Result = case Args of
+    false ->
+      case S#elixir_scope.assign of
+        false -> "non-assignment scope for: ";
+        true  ->
+          case dict:find(Name, S#elixir_scope.vars) of
+            error -> "unbound variable: ";
+            { ok, Value } -> { {var, Line, Value}, S }
+          end
+      end;
+    _ ->
+      "cannot bind expression at token: "
+  end,
+
+  case is_list(Result) of
+    true ->
+      Desc = io_lib:format("^~s", [Name]),
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, Result, Desc);
+    false ->
+      Result
+  end;
+
 translate_each({Name, Line, false}, S) when is_atom(Name) ->
   Match = S#elixir_scope.assign,
   Vars = S#elixir_scope.vars,

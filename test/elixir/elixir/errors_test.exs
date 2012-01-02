@@ -22,6 +22,18 @@ defmodule Elixir::ErrorsTest do
     "nofile:2: function bar/0 undefined" = format_catch 'defmodule Foo do\ndef foo, do: bar\nend'
   end
 
+  def test_unbound_var do
+    "nofile:1: unbound variable: ^x" = format_catch('^x = 1')
+  end
+
+  def test_unbound_not_assignment do
+    "nofile:1: non-assignment scope for: ^x" = format_catch('^x')
+  end
+
+  def test_unbound_expr do
+    "nofile:1: cannot bind expression at token: ^x" = format_catch('^x(1)')
+  end
+
   def test_name_for_defmodule do
     "nofile:1: invalid module name: 3" = format_catch 'defmodule 1 + 2, do: 3'
   end
@@ -48,7 +60,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_unproper_macro do
-    "nofile:3: key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
+    "nofile:4: key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
       format_catch 'defmodule Foo do\nrequire Elixir::ErrorsTest::UnproperMacro\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
   end
 
@@ -125,7 +137,7 @@ defmodule Elixir::ErrorsTest do
   defp format_catch(expr) do
     try do
       Erlang.elixir.eval(expr)
-      error({ :bad_assertion, "Expected function given to format_catch to fail" })
+      error { :bad_assertion, "Expected function given to format_catch to fail" }
     catch: { kind, error, _ }
       Elixir::Formatter.format_catch(kind, error)
     end

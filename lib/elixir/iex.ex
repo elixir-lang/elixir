@@ -26,7 +26,7 @@ defmodule Elixir::IEx do
     catch: { kind, error, _ }
       IO.puts :standard_error, "** #{kind} #{format_catch(kind, error)}"
       List.each Code.stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
-      { binding, '' }
+      {binding, ''}
     end
 
     do_loop(binding_to_return, code_cache_to_return)

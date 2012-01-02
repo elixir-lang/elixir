@@ -9,7 +9,9 @@ defmodule ProtocolTest do
     defprotocol [blank(thing)], except: [Atom, Number, List]
   end
 
-  defprotocol WithOnly, [blank(thing)], only: [Tuple, Function]
+  defmodule __MODULE__ :: WithOnly do
+    defprotocol [blank(thing)], only: [Tuple, Function]
+  end
 
   defrecord Foo, a: 0, b: 0
 
@@ -66,12 +68,13 @@ defmodule ProtocolTest do
       error("Expected invocation to fail")
     catch: { :error, :undef, [stack|_] }
       ref = target :: impl
-      if hd(stack) == { ref, :blank, [thing] } do
+      case hd(stack) do
+      match: { ^ref, :blank, [^thing] }
         :ok
-      elsif: hd(stack) == { ref, :blank, [thing], []}
+      match: { ^ref, :blank, [^thing], []}
         :ok
       else:
-        error("Invalid stack #{stack}")
+        error("Invalid stack #{stack}. Expected: { #{ref}, :blank, [#{thing}] }")
       end
     end
   end
