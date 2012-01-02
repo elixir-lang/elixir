@@ -1,4 +1,6 @@
 module Elixir::IEx do
+  import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
+
   def start do
     IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
     function = fn { do_loop([], '') }
@@ -17,14 +19,13 @@ module Elixir::IEx do
 
     {binding_to_return, code_cache_to_return} = try do
       {result, new_binding} = Erlang.elixir.eval(code, binding)
-      # TODO: Remove this for IO.puts inspect() once we have inspect protocol
-      Erlang.io.format("~p~n", [result])
+      IO.puts inspect(result)
       {new_binding, ''}
     catch: { :error, {:badsyntax, {_, _, _, []}}, _}
       {binding, code}
     catch: { kind, error, _ }
-      IO.puts :standard_error, "** #{atom_to_binary(kind, :utf8)} #{Elixir::Formatter.format_catch(kind, error)}"
-      List.each Code.stacktrace, fn(s) { IO.puts :standard_error, "    #{Elixir::Formatter.format_stacktrace(s)}" }
+      IO.puts :standard_error, "** #{kind} #{format_catch(kind, error)}"
+      List.each Code.stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
       { binding, '' }
     end
 

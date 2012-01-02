@@ -1,4 +1,6 @@
 module ExUnit::Formatter do
+  import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
+
   defrecord Config, counter: 0, failures: []
 
   def start do
@@ -29,7 +31,7 @@ module ExUnit::Formatter do
     IO.print "\n\n"
     List.foldl config.failures, 1, fn(x, acc) { print_failure(x, acc) }
     failures_count = length(config.failures)
-    IO.puts "#{integer_to_binary(config.counter)} tests, #{integer_to_binary(failures_count)} failures."
+    IO.puts "#{config.counter} tests, #{failures_count} failures."
     { :reply, failures_count, config }
   end
 
@@ -55,14 +57,10 @@ module ExUnit::Formatter do
     { :ok, config }
   end
 
-  defp integer_to_binary(int) do
-    list_to_binary(integer_to_list(int))
-  end
-
   defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
-    IO.puts "#{integer_to_binary(acc)}) #{atom_to_binary(test, :utf8)} (#{atom_to_binary(test_case, :utf8)})"
-    IO.puts "  #{atom_to_binary(kind, :utf8)} #{Elixir::Formatter.format_catch(kind, reason)}\n  stacktrace:"
-    List.each stacktrace, fn(s){ IO.puts "    #{Elixir::Formatter.format_stacktrace(s)}" }
+    IO.puts "#{acc}) #{test} (#{test_case})"
+    IO.puts "  #{kind} #{format_catch(kind, reason)}\n  stacktrace:"
+    List.each stacktrace, fn(s){ IO.puts "    #{format_stacktrace(s)}" }
     IO.print "\n"
     acc + 1
   end
