@@ -68,9 +68,10 @@ defmodule ProtocolTest do
       error("Expected invocation to fail")
     catch: { :error, :undef, [stack|_] }
       ref = target :: impl
-      if hd(stack) == { ref, :blank, [thing] } do
+      case hd(stack) do
+      match: { ^ref, :blank, [^thing] }
         :ok
-      elsif: hd(stack) == { ref, :blank, [thing], []}
+      match: { ^ref, :blank, [^thing], []}
         :ok
       else:
         error("Invalid stack #{stack}. Expected: { #{ref}, :blank, [#{thing}] }")
