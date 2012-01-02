@@ -18,7 +18,7 @@ clone this repository to your machine, compile and test it:
     $ bin/elixir -v
     Elixir 0.4.0.dev
 
-If tests pass, you are ready to try Interactive Elixir by running: `bin/iex`.
+If tests pass, you are ready to try Interactive Elixir by running: `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang version. You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
 
@@ -28,19 +28,7 @@ Elixir requires Erlang R14B03 or later. If you have the correct version and test
 
 ## Contributing & Roadmap
 
-If you want to contribute, first you need to clone this repository to your machine, compile and run the tests:
-
-    $ git clone https://github.com/josevalim/elixir.git
-    $ cd elixir
-    $ make test
-
-If tests fail, it is likely you have an outdated Erlang version. You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
-
-    Erlang R14B03 (erts-5.8.4) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
-
-Elixir requires Erlang R14B03 or later. If you have the correct version and tests still fail, feel free to open an issue in the issues tracker on Github. If all tests pass, you are ready to go.
-
-The code is organized as follow:
+If you want to contribute, the code is organized as follow:
 
 * `include`, `src` - Both directories contain part of the source code written in Erlang. `yecc` is used as the parser;
 
@@ -70,7 +58,7 @@ In order to create a new module in Elixir, all we have to do is to call the `def
 
     Math.sum(1, 2) #=> 3
 
-There are many definitions available inside the Elixir modules. They are:
+There are many definitions available inside Elixir modules. They are:
 
 * `def`  - defines a function;
 * `defp` - defines a private function;
@@ -79,7 +67,7 @@ There are many definitions available inside the Elixir modules. They are:
 * `defprotocol` - defines a protocol;
 * `defimpl` - defines an implementation for a protocol
 
-All those definitions will be described with the detail throughout this tutorial.
+All those definitions will be described with the detail throughout this tutorial (coming soon).
 
 ### Module nesting
 
