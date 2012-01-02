@@ -290,9 +290,140 @@ defmodule Elixir::Macros do
     Protocol.defimpl(name, do: block, for: for)
   end
 
+  # `import` allows one to easily access functions from others modules
+  # without using the qualified name.
+  #
+  # ## Examples
+  #
+  # If you want to use the `values` function from `Orddict` several times
+  # in your module and you don't want to always type `Orddict.values`,
+  # you can simply import it:
+  #
+  #     defmodule Math do
+  #       import Orddict, only: [values: 1]
+  #
+  #       def some_function do
+  #         # call values(orddict)
+  #       end
+  #     end
+  #
+  # In this case, we are importing only the function `values` (with arity 1)
+  # from `Orddict`. Although `only` is optional, its usage is recommended.
+  # `except` could also be given as an option. If no option is given, all
+  # functions are imported.
+  #
+  # This mechanism cannot be used to import macros. Only functions.
+  # Check `require/2` for more information on how to import macros.
   defmacro import(module, opts // [])
+
+  # `use` is a simple mechanism for extending the current module with the
+  # given module.
+  #
+  # == Examples
+  #
+  #     defmodule AssertionTest do
+  #       use ExUnit::Case
+  #
+  #       def test_always_pass do
+  #         true = true
+  #       end
+  #     end
+  #
+  # By calling `use`, a hook called `__using__` will be invoked in
+  # `ExUnit::Case` which will then do the proper setup. In other words,
+  # `use` is simply a translation to:
+  #
+  #     defmodule AssertionTest do
+  #       require ExUnit::Case
+  #       ExUnit::Case.__using__(::AssertionTest)
+  #
+  #       def test_always_pass do
+  #         true = true
+  #       end
+  #     end
+  #
   defmacro use(module, args // [])
+
+  # `require` has two main responsibilities: it allows you to to setup
+  # references aliases for a given module and also enables macros usage
+  # from a given module.
+  #
+  # ## References example
+  #
+  #     defmodule Math do
+  #       require MyOrddict, as: Orddict
+  #     end
+  #
+  # In the example above, we have set up `MyOrdict` to be referenced
+  # as `Orddict`. So now, any reference to `Orddict` will be
+  # automatically replaced by `MyOrddict`.
+  #
+  # In case one wants to access the original `Orddict`, it can be done
+  # by prefixing the module name with `::`:
+  #
+  #     Orddict.values   #=> uses ::MyOrddict.values
+  #     ::Orddict.values #=> uses ::Orddict.values
+  #
+  # ## Macros example
+  #
+  # The second responsibility of `require` is to enable the given module
+  # macros in the current module. For instance, let's suppose you created
+  # your own `if` implementation called in the module `MyMacros`. If you
+  # want to invoke it, you need to first explicitly require the `MyMacros`:
+  #
+  #     defmodule Math do
+  #       require MyMacros
+  #       MyMacros.if do_something, it_works
+  #     end
+  #
+  # An attempt to call a macro that was not loaded will raise an error.
+  #
+  # ## Lexical scope
+  #
+  # It is important to note that `require` is **lexical**. This means you
+  # can require specific macros inside specific functions:
+  #
+  #     defmodule Math do
+  #       def some_function do
+  #         # 1) Disable `if/2` from Elixir::Macros
+  #         require Elixir::Macros, except: [if: 2]
+  #
+  #         # 2) Require new if macro from MyMacros
+  #         require MyMacros, import: true
+  #
+  #         # 3) Use the new macro
+  #         if do_something, it_works
+  #       end
+  #     end
+  #
+  # In the example above, we required and imported macros from `MyMacro`,
+  # replacing the original `if/2` implementation by our own during that
+  # specific function. All other functions in that module will still
+  # be able to use the original one.
+  #
+  # Finally, `require` also accepts `only` and `except` as options to
+  # select which macros to import. Consecutive calls to `require`
+  # passing the same models override previous definitions.
+  #
+  #     defmodule MyIo
+  #       # Import bit-or and bit-and from Bitwise
+  #       require Bitwise, only: [bor: 2, band: 2]
+  #       def some_func(x, y, z), do: x bor y band z
+  #
+  #       # Import all, except bxor, overriding previous
+  #       require Bitwise, except: [bxor: 2]
+  #     end
+  #
   defmacro require(module, opts // [])
+
+  # Returns the current module name as an atom or nil otherwise.
+  defmacro __MODULE__
+
+  # Returns the current file name as a char list.
+  defmacro __FILE__
+
+  # Returns the current line number as an integer.
+  defmacro __LINE__
 
   defmacro quote(do: contents)
   defmacro unquote(expr)
@@ -552,8 +683,8 @@ defmodule Elixir::Macros do
     # Transform the condition and the expressions in the
     # do_clause to a key-value block. Get the other values
     # from the tail orddict.
-    if_clause    = { :kv_block, 0, [ { [condition], do_clause } ] }
-    else_clause  = Orddict.fetch(tail, :else, nil)
+    if_clause   = { :kv_block, 0, [ { [condition], do_clause } ] }
+    else_clause = Orddict.fetch(tail, :else, nil)
 
     # Merge if and elsif clauses, as they will all become match clauses.
     merged =
@@ -668,6 +799,8 @@ defmodule Elixir::Macros do
       end
     end
   end
+
+  ## Private functions
 
   # Build if clauses by nesting them recursively.
   # For instance, the following clause:
