@@ -69,6 +69,30 @@ defmodule Elixir::Macros do
   # Always returns true.
   defmacro is_any(_), do: true
 
+  # Define elem to get Tuple element according to Elixir conventions.
+  # We need to implement it as a macro to it can be used in guards.
+  #
+  # == Example
+  #
+  #    tuple = { :foo, :bar, 3 }
+  #    elem(tuple, 1) #=> :foo
+  #
+  defmacro elem(tuple, index) do
+    quote { element(unquote(index), unquote(tuple)) }
+  end
+
+  # Define setelem to set Tuple element according to Elixir conventions.
+  # We need to implement it as a macro to it can be used in guards.
+  #
+  # == Example
+  #
+  #    tuple = { :foo, :bar, 3 }
+  #    setelem(tuple, 1, :baz) #=> { :baz, :bar, 3 }
+  #
+  defmacro setelem(tuple, index, value) do
+    quote { setelement(unquote(index), unquote(tuple), unquote(value)) }
+  end
+
   # Provides an integer division macro according to Erlang semantics.
   # Raises an error if one of the arguments is not an integer.
   # Can be used in guard tests.
