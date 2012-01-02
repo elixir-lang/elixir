@@ -314,8 +314,10 @@ do_block -> do eol kv_list 'end'               : build_kv_block('$1', [], '$3').
 do_block -> do_eol expr_list end_eol           : build_kv_block('$1', '$2', []).
 do_block -> do_eol expr_list eol kv_list 'end' : build_kv_block('$1', '$2', '$4').
 
-curly_block -> open_curly '}' : build_kv_block('$1', [], []).
-curly_block -> open_curly expr_list close_curly : build_kv_block('$1', '$2', []).
+curly_block -> open_curly '}'                       : build_kv_block('$1', [], []).
+curly_block -> '{' eol kv_list '}'                  : build_kv_block('$1', [], '$3').
+curly_block -> open_curly expr_list close_curly     : build_kv_block('$1', '$2', []).
+curly_block -> open_curly expr_list eol kv_list '}' : build_kv_block('$1', '$2', '$4').
 
 % Lists
 
