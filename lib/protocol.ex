@@ -106,7 +106,7 @@ defmodule Protocol do
       case x do
       match: { _, _, args } when args == [] or args == false
         error({ :badarg, "protocol functions expect at least one argument" })
-      match: { name, _, args }
+      match: { name, _, args } when is_atom(name) and is_list(args)
         { name, length(args) }
       else:
         error({ :badarg, "invalid args for defprotocol" })

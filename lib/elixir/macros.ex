@@ -102,7 +102,28 @@ defmodule Elixir::Macros do
   # Means we are generating a new function called atom.
   defmacro def(name, do: contents)
 
-  # Define a record given by name and values. Example:
+  # Defines a function that is private. Private functions
+  # can only be accessible from the same module it is defined.
+  #
+  # Check `def/2` for more information
+  #
+  # ## Examples
+  #
+  #     defmodule Foo do
+  #       def bar do
+  #         sum(1, 2)
+  #       end
+  #
+  #       defp sum(a, b), do: a + b
+  #     end
+  #
+  # In the example above, `sum` is private and accessing it
+  # through `Foo.sum` will raise an error.
+  defmacro defp(name, do: contents)
+
+  # Define a record given by name and values.
+  #
+  # ## Examples
   #
   #     defrecord FileInfo, atime: nil, mtime: nil
   #
@@ -153,23 +174,146 @@ defmodule Elixir::Macros do
   # * `prepend_field` - Receives another list and prepend its values
   # * `append_field` - Receives another list and append its values
   #
+  # ## Record as tuples
+  #
+  # A record is nothing more than a tuple. That said, if you create a
+  # record an inspect it, this is what you should see on console:
+  #
+  #     IO.puts FileInfo.new
+  #     #=> { ::FileInfo, nil, nil }
+  #
+  # The first element of the tuple is always the record name.
   defmacro defrecord(name, values, opts // []) do
     Record.defrecord(name, values, opts)
   end
 
+  # Defines the current module as a protocol and specifies the API
+  # that should be implemented.
+  #
+  # ## Examples
+  #
+  # In Elixir, only `false` and `nil` are considered falsy values.
+  # Everything else evaluates to true in `if` clauses. Depending
+  # on the application, it may be important to specify a `blank?`
+  # protocol that returns a boolean for other data types that should
+  # be considered `blank?`. For instance, an empty list or an empty
+  # binary could be considered blanks.
+  #
+  # We could implement this protocol as follow:
+  #
+  #     defmodule Blank do
+  #       defprotocol [blank?(data)]
+  #
+  #       # The opposite of blank?
+  #       def present?(data) do
+  #         !blank?(data)
+  #       end
+  #     end
+  #
+  # Now that the protocol is defined, we can implement it. We need
+  # to implement the protocol for each Elixir type. For example:
+  #
+  #     # Numbers are never blank
+  #     defimpl Blank, for: Number do
+  #       def blank?(number), do: false
+  #     end
+  #
+  #     # Just empty list is blank
+  #     defimpl Blank, for: List do
+  #       def blank?([]), do: true
+  #       def blank?(_),  do: false
+  #     end
+  #
+  #     # Just the atoms false and nil are blank
+  #     defimpl Blank, for: Atom do
+  #       def blank?(false), do: true
+  #       def blank?(nil),   do: true
+  #       def blank?(_),     do: false
+  #     end
+  #
+  # And we would have to define the implementation for all types.
+  # The types available are:
+  #
+  # * Tuple
+  # * Atom
+  # * List
+  # * BitString
+  # * Number
+  # * Function
+  # * PID
+  # * Port
+  # * Reference
+  #
+  # ## Selecting protocols
+  #
+  # Implement the protocol for all 9 types above can be cumbersome.
+  # Even more if you consider that Number, Function, PID, Port and
+  # Reference are never going to be blank. For this reason, Elixir
+  # allows you to point out that you are going to implement the protocols
+  # just for some types, as follows:
+  #
+  #     defprotocol [blank?(data)], only: [Atom, Tuple, List, BitString]
+  #
+  # And for all other types, Elixir will now dispatch to Any. That said,
+  # the default behavior could be implemented as:
+  #
+  #     defimpl Blank, for: Any do
+  #       def blank?(_), do: false
+  #     end
+  #
+  # Now, all data types that we not specified in only will be automatically
+  # considered non blank.
+  #
+  # ## Protocols + Records
+  #
+  # The real benefit of protocols comes when mixed with records. For instance,
+  # one may implement a custom dictionary as a Red-Black tree and this
+  # dictionary should also be considered as blank in case it has no items.
+  # That said, he just needs to implement the protocol for this dictionary:
+  #
+  #     defimpl Blank, for: RedBlack::Dict do
+  #       def blank?(dict), do: RedBlack.empty_dict?(dict)
+  #     end
+  #
+  # In the example above, we have implemented `blank?` for the custom
+  # dictionary.
+  #
+  # Finally, notice that since records are simply tuples, the default
+  # implementation for records can be given in the tuple implementation.
   defmacro defprotocol(args, opts // []) do
     Protocol.defprotocol(args, opts)
   end
 
-  defmacro defimpl(name, opts // []) do
-    Protocol.defimpl(name, opts)
+  # Defines an implementation for the given protocol. See
+  # `defprotocol/2` for examples.
+  defmacro defimpl(name, do: block, for: for) do
+    Protocol.defimpl(name, do: block, for: for)
   end
 
-  defmacro inspect(arg),   do: quote { ::Inspect.inspect(unquote(arg)) }
-  defmacro stringify(arg), do: quote { ::Inspect.stringify(unquote(arg)) }
+  # Inspect the given arguments according to the Inspect protocol.
+  #
+  # ## Examples
+  #
+  #     inspect(:foo)
+  #     #=> ":foo"
+  #
+  defmacro inspect(arg) do
+    quote { ::Inspect.inspect(unquote(arg)) }
+  end
 
-  # Checks if the given argument is_any structure.
-  # Always returns true.
+  # Convert the argument to a string according to the Inspect protocol.
+  # This is the function invoked when there is string interpolation.
+  #
+  # ## Examples
+  #
+  #     stringify(:foo)
+  #     #=> "foo"
+  #
+  defmacro stringify(arg) do
+    quote { ::Inspect.stringify(unquote(arg)) }
+  end
+
+  # Checks if the given argument is_any structure. Always returns true.
   defmacro is_any(_), do: true
 
   # Define elem to get Tuple element according to Elixir conventions.

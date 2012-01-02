@@ -31,7 +31,7 @@ defmodule ExUnit::Runner do
       do_loop config
     match: { pid, :each_case, test_case }
       call_formatter config, { :each_case, test_case }
-      start config.taken_cases(config.taken_cases - 1)
+      start config.increment_taken_cases(-1)
     end
   end
 
@@ -43,7 +43,7 @@ defmodule ExUnit::Runner do
     match: [test_case|t]
       if config.taken_cases < config.max_cases do
         spawn_case test_case
-        spawn_cases config.taken_cases(config.taken_cases + 1).cases(t)
+        spawn_cases config.increment_taken_cases.cases(t)
       else:
         config
       end
