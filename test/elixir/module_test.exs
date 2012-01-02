@@ -1,4 +1,4 @@
-module ModuleTest do
+defmodule ModuleTest do
   use ExUnit::Case
 
   contents = quote { def eval_info, do: { __MODULE__, __FILE__, __LINE__ } }

@@ -1,4 +1,4 @@
-module List do
+defmodule List do
   def append(list) do
     Erlang.lists.append(list)
   end

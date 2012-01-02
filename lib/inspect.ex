@@ -1,4 +1,4 @@
-module Inspect do
+defmodule Inspect do
   defprotocol [inspect(thing), stringify(thing)],
     only: [BitString, Tuple, Atom, Number, List]
 

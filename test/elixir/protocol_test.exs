@@ -1,21 +1,21 @@
-module ProtocolTest do
+defmodule ProtocolTest do
   use ExUnit::Case
 
-  module __MODULE__ :: WithAll do
+  defmodule __MODULE__ :: WithAll do
     defprotocol [blank(thing)]
   end
 
-  module __MODULE__ :: WithExcept do
+  defmodule __MODULE__ :: WithExcept do
     defprotocol [blank(thing)], except: [Atom, Number, List]
   end
 
-  module __MODULE__ :: WithOnly do
+  defmodule __MODULE__ :: WithOnly do
     defprotocol [blank(thing)], only: [Tuple, Function]
   end
 
   defrecord Foo, a: 0, b: 0
 
-  defimpl __MODULE__::WithAll, for: Foo do
+  defimpl __MODULE__ :: WithAll, for: Foo do
     def blank(record) do
       record.a + record.b == 0
     end

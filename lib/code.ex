@@ -1,4 +1,4 @@
-module Code do
+defmodule Code do
   def version, do: "0.4.0.dev"
 
   def argv do

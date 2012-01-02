@@ -1,4 +1,4 @@
-module ExUnit::Server do
+defmodule ExUnit::Server do
   defrecord Config, options: [], cases: [], sync_cases: []
 
   def start_link do

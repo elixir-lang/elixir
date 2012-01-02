@@ -1,4 +1,4 @@
-module ExUnit::Formatter do
+defmodule ExUnit::Formatter do
   import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
 
   defrecord Config, counter: 0, failures: []

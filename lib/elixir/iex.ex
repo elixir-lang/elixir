@@ -1,4 +1,4 @@
-module Elixir::IEx do
+defmodule Elixir::IEx do
   import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
 
   def start do

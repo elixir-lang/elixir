@@ -1,4 +1,4 @@
-module IO do
+defmodule IO do
   def print(device // :standard_io, item) do
     Erlang.io.format device, item, []
   end

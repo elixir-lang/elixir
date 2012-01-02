@@ -10,12 +10,13 @@
 #     ExUnit.configure
 #
 #     # 2) Next we create a new TestCase and add ExUnit::Case to it
-#     module AssertionTest
-#     ExUnit::Case.prepare
+#     defmodule AssertionTest do
+#       use ExUnit::Case
 #
-#     # 3) A test is a method which name finishes with _test
-#     def test_always_pass
-#       true = true
+#       # 3) A test is a method which name finishes with _test
+#       def test_always_pass
+#         true = true
+#       end
 #     end
 #
 # To run the test above, all you need to to is to use the bin/exunit
@@ -36,7 +37,7 @@
 # * `:formatter` - The formatter that will print results
 # * `:max_cases` - Maximum number of cases to run in parallel
 #
-module ExUnit do
+defmodule ExUnit do
   def start do
     ExUnit::Server.start_link
   end

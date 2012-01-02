@@ -1,4 +1,4 @@
-module Orddict do
+defmodule Orddict do
   def from_list(pairs) do
     List.foldl pairs, [], fn({k,v}, dict){ store(dict, k, v) }
   end

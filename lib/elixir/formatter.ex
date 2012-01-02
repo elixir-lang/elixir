@@ -1,4 +1,4 @@
-module Elixir::Formatter do
+defmodule Elixir::Formatter do
   # Handle stacktrace for Erlang < R15
   def format_stacktrace({module, fun, arity}) do
     format_module_fun_arity(module, fun, arity)

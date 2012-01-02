@@ -1,4 +1,4 @@
-module Inspect::AtomTest do
+defmodule Inspect::AtomTest do
   use ExUnit::Case
 
   def test_basic do
@@ -27,7 +27,7 @@ module Inspect::AtomTest do
   end
 end
 
-module Inspect::BitStringTest do
+defmodule Inspect::BitStringTest do
   use ExUnit::Case
 
   # TODO: Write me
@@ -44,7 +44,7 @@ module Inspect::BitStringTest do
   end
 end
 
-module Inspect::NumberTest do
+defmodule Inspect::NumberTest do
   use ExUnit::Case
 
   def test_integer do
@@ -58,7 +58,7 @@ module Inspect::NumberTest do
   end
 end
 
-module Inspect::TupleTest do
+defmodule Inspect::TupleTest do
   use ExUnit::Case
 
   def test_basic do
@@ -72,7 +72,7 @@ module Inspect::TupleTest do
   end
 end
 
-module Inspect::ListTest do
+defmodule Inspect::ListTest do
   use ExUnit::Case
 
   def test_basic do
@@ -91,7 +91,7 @@ module Inspect::ListTest do
   end
 end
 
-module Inspect::AnyTest do
+defmodule Inspect::AnyTest do
   use ExUnit::Case
 
   def test_funs do
