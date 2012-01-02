@@ -1,4 +1,4 @@
-module Elixir::CLI do
+defmodule Elixir::CLI do
   defrecord Config, commands: [], close: [], halt: true, output: '.', compile: false
 
   # Invoked directly from erlang boot process. It parses all argv

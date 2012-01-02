@@ -1,7 +1,7 @@
-module Elixir::ErrorsTest do
+defmodule Elixir::ErrorsTest do
   use ExUnit::Case
 
-  module __MODULE__ :: UnproperMacro do
+  defmodule __MODULE__ :: UnproperMacro do
     defmacro unproper(args), do: args
     defmacro case(x), do: x
   end
@@ -19,11 +19,11 @@ module Elixir::ErrorsTest do
   end
 
   def test_bad_form do
-    "nofile:2: function bar/0 undefined" = format_catch 'module Foo do\ndef foo, do: bar\nend'
+    "nofile:2: function bar/0 undefined" = format_catch 'defmodule Foo do\ndef foo, do: bar\nend'
   end
 
-  def test_name_for_module do
-    "nofile:1: invalid module name: 3" = format_catch 'module 1 + 2, do: 3'
+  def test_name_for_defmodule do
+    "nofile:1: invalid module name: 3" = format_catch 'defmodule 1 + 2, do: 3'
   end
 
   def test_invalid_scope_for_function do
@@ -49,42 +49,42 @@ module Elixir::ErrorsTest do
 
   def test_unproper_macro do
     "nofile:3: key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
-      format_catch 'module Foo do\nrequire Elixir::ErrorsTest::UnproperMacro\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
+      format_catch 'defmodule Foo do\nrequire Elixir::ErrorsTest::UnproperMacro\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
   end
 
   def test_macro_conflict do
     "nofile:1: used imported macro ::Elixir::Macros#defrecord/2 conflicts with local function or import" =
-      format_catch 'module Foo do\ndefrecord(::Elixir::ErrorsTest::MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
+      format_catch 'defmodule Foo do\ndefrecord(::Elixir::ErrorsTest::MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
   def test_unrequired_macro do
     "nofile:2: tried to use ::Record#getters_and_setters/3 but module was not required. Required: ['::Elixir::Macros']" =
-      format_catch 'module Foo do\nRecord.getters_and_setters([], 0, [])\nend'
+      format_catch 'defmodule Foo do\nRecord.getters_and_setters([], 0, [])\nend'
   end
 
   def test_def_defmacro_clause_change do
     "nofile:3: defmacro foo/1 already defined as def" =
-      format_catch 'module Foo do\ndef foo(1), do: 1\ndefmacro foo(x), do: x\nend'
+      format_catch 'defmodule Foo do\ndef foo(1), do: 1\ndefmacro foo(x), do: x\nend'
   end
 
   def test_visibility_clause_change do
     "nofile:3: function foo/1 already defined with visibility public" =
-      format_catch 'module Foo do\ndef foo(1), do: 1\ndefp foo(x), do: x\nend'
+      format_catch 'defmodule Foo do\ndef foo(1), do: 1\ndefp foo(x), do: x\nend'
   end
 
   def test_clause_change do
     "nofile:4: function foo/1 clause does not match with previous one" =
-      format_catch 'module Foo do\ndef foo(1), do: 1\ndef bar(x), do: x\ndef foo(x), do: x\nend'
+      format_catch 'defmodule Foo do\ndef foo(1), do: 1\ndef bar(x), do: x\ndef foo(x), do: x\nend'
   end
 
   def test_internal_function_overriden do
     "nofile:1: function __macros__/0 is internal and should not be overriden" =
-      format_catch 'module Foo do\ndef __macros__, do: []\nend'
+      format_catch 'defmodule Foo do\ndef __macros__, do: []\nend'
   end
 
   def test_no_macros do
     "nofile:2: could not load macros from module lists" =
-      format_catch 'module Foo do\nrequire Erlang.lists, import: true\nend'
+      format_catch 'defmodule Foo do\nrequire Erlang.lists, import: true\nend'
   end
 
   def test_unloaded_module do
@@ -108,16 +108,16 @@ module Elixir::ErrorsTest do
 
   def test_cant_import_in_erlang_macros_with_import do
     "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro#case/1 because it conflicts with Elixir internal macros" =
-      format_catch 'module Foo, do: import Elixir::ErrorsTest::UnproperMacro, only: [case: 1]'
+      format_catch 'defmodule Foo, do: import Elixir::ErrorsTest::UnproperMacro, only: [case: 1]'
   end
 
   def test_cant_import_due_to_erlang_conflict do
     "nofile:1: import directive overrides pre R14 auto-imported BIF element/2\n - use \"-compile({no_auto_import,[element/2]}).\" to resolve name clash" =
-      format_catch 'module Foo, do: import Erlang.lists, only: [element: 2]'
+      format_catch 'defmodule Foo, do: import Erlang.lists, only: [element: 2]'
   end
 
   def test_already_defined_module do
-    "nofile:1: module ::Record already defined" = format_catch 'module Record, do: true'
+    "nofile:1: module ::Record already defined" = format_catch 'defmodule Record, do: true'
   end
 
   ## Helpers

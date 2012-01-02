@@ -169,7 +169,7 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 
 %% Modules
 
-translate_each({module, Line, [Ref, [{do,Block}]]}, S) ->
+translate_each({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
   { TRef, _ } = translate_each(Ref, S#elixir_scope{noref=true}),
 
   NS = case TRef of

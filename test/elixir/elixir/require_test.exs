@@ -1,9 +1,9 @@
-module Elixir::MessedBitwise do
+defmodule Elixir::MessedBitwise do
   defmacro bnot(x),   do: x
   defmacro bor(x, _), do: x
 end
 
-module Elixir::RequireTest do
+defmodule Elixir::RequireTest do
   use ExUnit::Case
 
   require Bitwise, import: true

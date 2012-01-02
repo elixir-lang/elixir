@@ -1,4 +1,4 @@
-module ExUnit::Runner do
+defmodule ExUnit::Runner do
   defrecord Config, formatter: ExUnit::Formatter, cases: [], max_cases: 4, taken_cases: 0, sync_cases: []
 
   # The runner entry point. At first, it will simply spawn cases and start

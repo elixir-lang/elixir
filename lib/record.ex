@@ -1,10 +1,10 @@
-module Record do
+defmodule Record do
   # Main entry point for records definition.
   def defrecord(name, values, opts) do
     as = Orddict.fetch(opts, :as, name)
 
     quote do
-      module __MODULE__ :: unquote(name) do
+      defmodule __MODULE__ :: unquote(name) do
         require ::Record
         Record.getters_and_setters(unquote(values), 1, [])
         Record.initializers(unquote(values))

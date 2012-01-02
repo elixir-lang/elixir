@@ -1,4 +1,4 @@
-module Elixir::LoopTest do
+defmodule Elixir::LoopTest do
   use ExUnit::Case
 
   def test_do_loop do

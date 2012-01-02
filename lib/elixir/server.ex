@@ -1,4 +1,4 @@
-module Elixir::Server do
+defmodule Elixir::Server do
   defrecord Config, argv: [], loaded: []
 
   def start_link do

@@ -1,4 +1,4 @@
-module Protocol do
+defmodule Protocol do
   require Erlang.lists, as: L
   import Orddict, only: [fetch: 3]
 
@@ -15,7 +15,7 @@ module Protocol do
   def defprotocol(name, args, opts) do
     kv = to_kv(args)
     quote do
-      module __MODULE__ :: unquote(name) do
+      defmodule __MODULE__ :: unquote(name) do
         def __protocol__, do: unquote(kv)
         Protocol.functions(__MODULE__, unquote(name), unquote(kv), unquote(opts))
       end
@@ -48,7 +48,7 @@ module Protocol do
       end
 
       # Create a module with the given contents
-      module name, do: unquote(block)
+      defmodule name, do: unquote(block)
 
       # Check if the implemented protocol was valid
       exports   = name.module_info(:exports)

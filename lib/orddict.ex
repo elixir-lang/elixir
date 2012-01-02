@@ -1,6 +1,5 @@
-module Orddict do
+defmodule Orddict do
 
-  # Provides conversion form list to the dictionary
   def from_list(pairs) do
     List.foldl pairs, [], fn({k, v}, dict){ store(dict, k, v) }
   end

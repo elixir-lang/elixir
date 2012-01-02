@@ -1,4 +1,4 @@
-module OrddictTest do
+defmodule OrddictTest do
   use ExUnit::Case
 
   def test_from_list do

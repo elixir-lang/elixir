@@ -56,13 +56,12 @@ If you are interested, check out the ROADMAP.md file in the repository or keep r
 
 * [Mailing list](http://groups.google.com/group/elixir-lang-core)
 * #elixir-lang on freenode IRC
-* [Textmate Bundle for Elixir](https://github.com/josevalim/elixir-tmbundle)
 
 ## Modules
 
-In order to create a new module in Elixir, all we have to do is to call the `module` macro passing its contents:
+In order to create a new module in Elixir, all we have to do is to call the `defmodule` macro passing its contents:
 
-    module Math do
+    defmodule Math do
       def sum(a, b) do
         a + b
       end
@@ -85,8 +84,8 @@ All those definitions will be described with the detail throughout this tutorial
 
 In Elixir, nesting a module inside the other does not affect the its name:
 
-    module Foo do
-      module Bar do
+    defmodule Foo do
+      defmodule Bar do
       end
     end
 
@@ -100,7 +99,7 @@ In order to support software-reuse, Elixir supports three directives:
 
 You must use `import` whenever you want to easily access functions from others modules without using the qualified name. For instance, if you want to use the `values` function from `Orddict` several times in your module and you don't want to always type `Orddict.values`, you can simply import it:
 
-    module Math do
+    defmodule Math do
       import Orddict, only: [values: 1]
 
       def some_function do
@@ -116,7 +115,7 @@ This mechanism cannot be used to import macros. Only functions.
 
 `require` has two main responsibilities. The first responsibility is to setup references aliases for a given module. For instance, one can do:
 
-    module Math do
+    defmodule Math do
       require MyOrddict, as: Orddict
     end
 
@@ -127,14 +126,14 @@ And now, any reference to `Orddict` will be automatically replaced by `MyOrddict
 
 The second responsibility of `require` is to enable the given module macros in the current module. For instance, let's suppose you created your own `if` implementation called in the module `MyMacros`. If you want to invoke it, you need to first explicitly require the `MyMacros`:
 
-    module Math do
+    defmodule Math do
       require MyMacros
       MyMacros.if do_something, it_works
     end
 
 An attempt to call a macro that was not loaded will raise an error. It is important to note that `require` is the only directive that is **lexical**. This means you can require specific macros inside specific functions:
 
-    module Math do
+    defmodule Math do
       def some_function do
         require MyMacros, import: true
         if do_something, it_works
@@ -145,7 +144,7 @@ In the example above, we required and imported macros from `MyMacro`, replacing 
 
 Finally, `require` also accepts `only` and `except` as options to select which macros to import. Consecutive calls to `require` passing the same models override previous definitions.
 
-    module MyIo
+    defmodule MyIo
       # Import bit-or and bit-and from Bitwise
       require Bitwise, only: [bor: 2, band: 2]
       def some_func(x, y, z), do: x bor y band z
@@ -160,7 +159,7 @@ You can read more about creating your own macros in the "Meta-programming in Eli
 
 `use` is the simplest mechanism of all three as it simply intends to be a common API for extension. For instance, in order to use `ExUnit` test framework, you simply need to use `ExUnit::Case` in your module:
 
-    module AssertionTest do
+    defmodule AssertionTest do
       use ExUnit::Case
 
       def test_always_pass do
@@ -170,7 +169,7 @@ You can read more about creating your own macros in the "Meta-programming in Eli
 
 By calling `use`, a hook called `__using__` will be invoked in `ExUnit::Case` which will then do the proper setup. In other words, `use` is simply a translation to:
 
-    module AssertionTest do
+    defmodule AssertionTest do
       require ExUnit::Case
       ExUnit::Case.__using__(:"::AssertionTest")
 
@@ -266,7 +265,7 @@ One way to implement this delegate would be by recursively calling each function
 
 Notice that, in the example above we are calling the `delegate` macro and one would expect the macro to be then expanded, giving us the wrong behavior. Since this is a common idiom in Elixir, Elixir decided that local macro calls are **never** expanded. This is important because one cannot write:
 
-    module MyMacros
+    defmodule MyMacros
       defmacro delegate([h|t], to: target) do
         # ...
       end
@@ -276,13 +275,13 @@ Notice that, in the example above we are calling the `delegate` macro and one wo
 
 In order to access the macro, it needs to be defined in an outer module:
 
-    module MyMacros::Support
+    defmodule MyMacros::Support
       defmacro delegate([h|t], to: target) do
         # ...
       end
     end
 
-    module MyMacros
+    defmodule MyMacros
       require MyMacros::Support, import: true
       delegate [values: 1], to: List
     end

@@ -1,4 +1,4 @@
-module Elixir::ImportOnlyTest do
+defmodule Elixir::ImportOnlyTest do
   use ExUnit::Case
 
   import Erlang.lists, only: [flatten: 1]
@@ -9,7 +9,7 @@ module Elixir::ImportOnlyTest do
   end
 end
 
-module Elixir::ImportAllTest do
+defmodule Elixir::ImportAllTest do
   use ExUnit::Case
 
   import Erlang.lists
@@ -19,7 +19,7 @@ module Elixir::ImportAllTest do
   end
 end
 
-module Elixir::ImportExceptTest do
+defmodule Elixir::ImportExceptTest do
   use ExUnit::Case
 
   import Erlang.lists, except: [each: 1]
