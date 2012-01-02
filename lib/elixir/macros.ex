@@ -272,11 +272,11 @@ defmodule Elixir::Macros do
   # That said, he just needs to implement the protocol for this dictionary:
   #
   #     defimpl Blank, for: RedBlack::Dict do
-  #       def blank?(dict), do: RedBlack.empty_dict?(dict)
+  #       def blank?(dict), do: RedBlack.empty?(dict)
   #     end
   #
   # In the example above, we have implemented `blank?` for the custom
-  # dictionary.
+  # dictionary that simply delegates to `RedBlack.empty?`.
   #
   # Finally, notice that since records are simply tuples, the default
   # implementation for records can be given in the tuple implementation.
