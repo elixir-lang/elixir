@@ -20,8 +20,10 @@ defmodule Elixir::Macros do
   # ... will define a module named FileInfo. However, if invoked
   # inside a module, the name will be nested:
   #
-  #     module Foo::Bar
-  #     defrecord FileInfo, atime: nil, mtime: nil
+  #     defmodule Foo::Bar do
+  #       defrecord FileInfo, atime: nil, mtime: nil
+  #     end
+  #
   #     Foo::Bar::FileInfo.new # Nested
   #
   # ## Default based functions
@@ -52,11 +54,8 @@ defmodule Elixir::Macros do
     Record.defrecord(name, values, opts)
   end
 
-  defmacro defprotocol(args),                          do: defprotocol(nil, args)
-  defmacro defprotocol(args, opts) when is_list(args), do: defprotocol(nil, args, opts)
-
-  defmacro defprotocol(name, args, opts // []) do
-    Protocol.defprotocol(name, args, opts)
+  defmacro defprotocol(args, opts // []) do
+    Protocol.defprotocol(args, opts)
   end
 
   defmacro defimpl(name, opts // []) do
@@ -158,7 +157,7 @@ defmodule Elixir::Macros do
     # Those tuples are made of three elements, the key-block key,
     # the given condition and the block expressions
     all = Erlang.elixir_kv_block.decouple(merged)
-    build_if_clauses(all, else_clause)
+    build_if_clauses(List.reverse(all), else_clause)
   end
 
   # Provide a unless macro that executes the expression

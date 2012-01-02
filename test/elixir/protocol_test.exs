@@ -9,7 +9,9 @@ defmodule ProtocolTest do
     defprotocol [blank(thing)], except: [Atom, Number, List]
   end
 
-  defprotocol WithOnly, [blank(thing)], only: [Tuple, Function]
+  defmodule __MODULE__ :: WithOnly do
+    defprotocol [blank(thing)], only: [Tuple, Function]
+  end
 
   defrecord Foo, a: 0, b: 0
 
@@ -71,7 +73,7 @@ defmodule ProtocolTest do
       elsif: hd(stack) == { ref, :blank, [thing], []}
         :ok
       else:
-        error("Invalid stack #{stack}")
+        error("Invalid stack #{stack}. Expected: { #{ref}, :blank, [#{thing}] }")
       end
     end
   end

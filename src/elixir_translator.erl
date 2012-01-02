@@ -360,7 +360,7 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
           end
       end;
     _ ->
-      "cannot bind expression: "
+      "cannot bind expression at token: "
   end,
 
   case is_list(Result) of

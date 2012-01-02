@@ -1,5 +1,8 @@
 defmodule Inspect do
-  defprotocol [inspect(thing), stringify(thing)],
+  # Short circuit binary handlings for performance
+  def stringify(thing) when is_binary(thing), do: thing
+
+  defprotocol [stringify(thing), inspect(thing)],
     only: [BitString, Tuple, Atom, Number, List]
 
   # Handle generating inspect for containers

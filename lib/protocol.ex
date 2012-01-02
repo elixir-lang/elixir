@@ -3,22 +3,11 @@ defmodule Protocol do
   import Orddict, only: [fetch: 3]
 
   # Handle `defprotocol` when it is declared in the current module.
-  def defprotocol(nil, args, opts) do
+  def defprotocol(args, opts) do
     kv = to_kv(args)
     quote do
-      def __protocol__, do: unquote(kv)
       Protocol.functions(__MODULE__, __MODULE__, unquote(kv), unquote(opts))
-    end
-  end
-
-  # Handle `defprotocol` when it is declared as a module.
-  def defprotocol(name, args, opts) do
-    kv = to_kv(args)
-    quote do
-      defmodule __MODULE__ :: unquote(name) do
-        def __protocol__, do: unquote(kv)
-        Protocol.functions(__MODULE__, unquote(name), unquote(kv), unquote(opts))
-      end
+      def __protocol__, do: unquote(kv)
     end
   end
 
@@ -65,7 +54,7 @@ defmodule Protocol do
   # functions for.
   def functions(target, module, funs, opts) do
     kinds = conversions_for(opts)
-    List.each funs, fn(fun) { each_function(target, module, fun, kinds) }
+    List.each List.reverse(funs), fn(fun) { each_function(target, module, fun, kinds) }
   end
 
   ## Helpers
