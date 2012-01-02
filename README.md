@@ -56,6 +56,7 @@ If you are interested, check out the ROADMAP.md file in the repository or keep r
 
 * [Mailing list](http://groups.google.com/group/elixir-lang-core)
 * #elixir-lang on freenode IRC
+* [Textmate Bundle for Elixir](https://github.com/josevalim/elixir-tmbundle)
 
 ## Modules
 
