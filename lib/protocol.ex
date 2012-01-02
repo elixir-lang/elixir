@@ -12,10 +12,7 @@ defmodule Protocol do
   end
 
   # Implement the given protocol according to the given option.
-  def defimpl(protocol, opts) do
-    block = fetch(opts, :do, nil)
-    for   = fetch(opts, :for, nil)
-
+  def defimpl(protocol, do: block, for: for) do
     quote do
       # Build up the name, protocol and block
       protocol = unquote(protocol)

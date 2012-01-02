@@ -319,7 +319,7 @@ defmodule Elixir::Macros do
   # Define elem to get Tuple element according to Elixir conventions.
   # We need to implement it as a macro to it can be used in guards.
   #
-  # == Example
+  # ## Example
   #
   #    tuple = { :foo, :bar, 3 }
   #    elem(tuple, 1) #=> :foo
@@ -331,7 +331,7 @@ defmodule Elixir::Macros do
   # Define setelem to set Tuple element according to Elixir conventions.
   # We need to implement it as a macro to it can be used in guards.
   #
-  # == Example
+  # ## Example
   #
   #    tuple = { :foo, :bar, 3 }
   #    setelem(tuple, 1, :baz) #=> { :baz, :bar, 3 }
