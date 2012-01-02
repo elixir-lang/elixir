@@ -425,8 +425,82 @@ defmodule Elixir::Macros do
   # Returns the current line number as an integer.
   defmacro __LINE__
 
+  # Allows you to get the representation of any expression.
+  #
+  # ## Examples
+  #
+  #     quote { sum(1, 2, 3) }
+  #     #=> { :sum, 0, [1, 2, 3] }
+  #
+  # ## Homoiconicity
+  #
+  # Elixir is an homoiconic language. Any Elixir program can be
+  # represented using its own data structures. The building block
+  # of Elixir homoiconicity is a tuple with three elements, for example:
+  #
+  #     { :sum, 1, [1, 2, 3] }
+  #
+  # The tuple above represents a function call to sum passing 1, 2 and
+  # 3 as arguments. The tuple elements are:
+  #
+  # * The first element of the tuple is always an atom or
+  #   another tuple in the same representation;
+  # * The second element of the tuple is always an integer
+  #   representing the line number;
+  # * The third element of the tuple are the arguments for the
+  #   function call. The third argument may also be false, meaning
+  #   that it may be a variable.
+  #
+  # ## Macro literals
+  #
+  # Besides the tuple described above, Elixir has a few literals that
+  # when quoted return themselves. They are:
+  #
+  #     :sum         #=> Atoms
+  #     1            #=> Integers
+  #     2.0          #=> Floats
+  #     [1,2]        #=> Lists
+  #     "binaries"   #=> Binaries
+  #     {key, value} #=> Key-value pairs (i.e. a tuple with two elements)
+  #
   defmacro quote(do: contents)
+
+  # Unquotes the given expression from inside a macro.
+  #
+  # ## Examples
+  #
+  # Imagine the situation you have a variable `name` and
+  # you want to inject it inside some quote. The first attempt
+  # would be:
+  #
+  #     value = 13
+  #     quote { sum(1, value, 3) }
+  #
+  # Which would then return:
+  #
+  #     { :sum, 0, [1, { :value, 0, false }, 3] }
+  #
+  # Which is not the expected result. For this, we use unquote:
+  #
+  #     value = 13
+  #     quote { sum(1, unquote(value), 3) }
+  #     #=> { :sum, 0, [1, 13, 3] }
+  #
   defmacro unquote(expr)
+
+  # Unquotes the given list expanding its arguments. Similar
+  # to unquote.
+  #
+  # ## Examples
+  #
+  #     values = [2,3,4]
+  #     quote { sum(1, unquote_splice(values), 5) }
+  #     #=> { :sum, 0, [1, 2, 3, 4, 5] }
+  #
+  defmacro unquote_splice(expr)
+
+  defmacro bitstr(expr)
+  defmacro module_ref(expr)
 
   defmacro fn(args)
   defmacro loop(args)
