@@ -499,12 +499,81 @@ defmodule Elixir::Macros do
   #
   defmacro unquote_splice(expr)
 
-  defmacro bitstr(expr)
-  defmacro module_ref(expr)
-
+  # Returns an anonymous function based on the given arguments.
+  #
+  # ## Examples
+  #
+  #     sum = fn(x, y) { x + y }
+  #     sum.(1, 2) #=> 3
+  #
+  # Notice that a function needs to be invoked using the dot between
+  # th function and the arguments.
+  #
+  # A function could also be defined using `do/end` syntax, although
+  # this is not recommended in order to avoid ambiguity. For example,
+  # consider this case:
+  #
+  #     List.map [1,2,3], fn(x){ x * 2 }
+  #
+  # The example works fine, but if we replace it by `do/end`, it will fail:
+  #
+  #     List.map [1,2,3], fn(x) do
+  #       x * 2
+  #     end
+  #
+  # The reason it fails is because do/end always bind to the farthest
+  # function call. It is easy to see the problem if we add parentheis
+  # to the outer call. For example, the example using curly brackets
+  # would translate to:
+  #
+  #     List.map([1,2,3], fn(x){ x * 2 })
+  #
+  # Which is the expected result, however using `do/end` blocks:
+  #
+  #     List.map([1,2,3], fn(x)) do
+  #       x * 2
+  #     end
+  #
+  # Which is not what we expect.
+  #
+  # ## Function with multiple clauses
+  #
+  # One may define a function which expects different clauses as long
+  # as all clauses expects the same number of arguments:
+  #
+  #     fun = fn do
+  #     match: x, y when y < 0
+  #       x - y
+  #     match: x, y
+  #       x + y
+  #     end
+  #
+  #     fun.(10, -10) #=> 20
+  #     fun.(10, 10)  #=> 20
+  #
   defmacro fn(args)
+
+  # Handle annonymous recursive loops.
+  #
+  # ## Examples
+  #
+  #     list = [1,2,3]
+  #
+  #     loop list, [] do
+  #     match: [h|t], acc
+  #       recur t, [h*2|acc]
+  #     match: [], acc
+  #       acc
+  #     end
+  #     #=> [6,4,2]
+  #
+  # Notice that all match clauses expects the same ammount
+  # of arguments. Guards can also be given.
+  #
+  # Recursion happens by calling recur with the same number
+  # of arguments of each match clause. `recur` does not guarantee
+  # that it will be tail recursive.
   defmacro loop(args)
-  defmacro recur(args)
 
   # Inspect the given arguments according to the Inspect protocol.
   #
@@ -646,6 +715,8 @@ defmodule Elixir::Macros do
   # The first one is the kind of exception: `:error`, `:throw` or `:exit`.
   # The second one is the value given to error, throw or exit and the third
   # one is the stacktrace (which one usually wants to ignore).
+  #
+  # Note that calls inside `try` are not tail recursive.
   #
   # ## Variable visibility
   #

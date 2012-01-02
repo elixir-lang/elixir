@@ -52,7 +52,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_invalid_fn_args do
-    "nofile:1: invalid args for: fn" = format_catch 'fn 1'
+    "nofile:1: no block given for: fn" = format_catch 'fn 1'
   end
 
   def test_invalid_try_args do

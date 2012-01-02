@@ -255,7 +255,7 @@ translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
     { [], [KV] } when is_list(KV) ->
       elixir_kv_block:decouple(orddict:erase(do, KV));
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "fn")
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no block given for: ", "fn")
   end,
 
   Transformer = fun({ match, ArgsWithGuards, Expr }, Acc) ->
