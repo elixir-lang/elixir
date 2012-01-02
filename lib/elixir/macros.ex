@@ -1,6 +1,106 @@
 defmodule Elixir::Macros do
+  # Defines a module given by name with the given contents.
+  #
+  # ## Examples
+  #
+  #     defmodule Foo do
+  #       def bar, do: :baz
+  #     end
+  #
+  #     Foo.bar #=> :baz
+  #
+  # ## Nesting
+  #
+  # Nesting a module inside the other does not affect its name:
+  #
+  #     defmodule Foo do
+  #       defmodule Bar do
+  #       end
+  #     end
+  #
+  # In the example above, two modules `Foo` and `Bar`. Notice that
+  # the second module is **not** called `Foo::Bar`. In general,
+  # nesting modules is discouraged in Elixir.
+  #
+  # ## Dynamic names
+  #
+  # Elixir module names can be dynamically generated. This is very
+  # useful for macros. For instance, one could write:
+  #
+  #     defmodule binary_to_atom("Foo#{1}", :utf8) do
+  #       # contents ...
+  #     end
+  #
+  # Elixir will accept any module name as long as the expression
+  # returns an atom.
+  defmacro defmodule(name, do: contents)
 
-  def defmodule(name, do: contents)
+  # Defines a function with the given name and contents.
+  #
+  # ## Examples
+  #
+  #     defmodule Foo do
+  #       def bar, do: :baz
+  #     end
+  #
+  #     Foo.bar #=> :baz
+  #
+  # A function that expects arguments can be defined as follow:
+  #
+  #     defmodule Foo do
+  #       def sum(a, b) do
+  #         a + b
+  #       end
+  #     end
+  #
+  # In the example above, we defined a function `sum` that receives
+  # two arguments and sum them.
+  #
+  # ## Function invocation
+  #
+  # Elixir follows the same rule as Erlang when it comes to
+  # function invocations. Calling a function is the same thing
+  # as "invoking at atom". That said, one could write:
+  #
+  #     defmodule Foo do
+  #       def bar do
+  #         :sum.(1, 2)
+  #       end
+  #
+  #       def sum(a, b), do: a + b
+  #     end
+  #
+  # In the example above, sum is invoked by invoking an atom
+  # passing arguments 1 and 2. Since this syntax is a bit verbose,
+  # Elixir also support the more conventional:
+  #
+  #    sum(1, 2)
+  #
+  # Invoking a function in another module is equally easy:
+  #
+  #    Foo.sum(1, 2) #=> 3
+  #
+  # ## Dynamic function definition
+  #
+  # In macros it may be convenient to dynamically generate a function.
+  # The first argument that Elixir expects in `def` is always a function
+  # invocation form. That said, imagine you have a variable called `name`
+  # and you want to use it to dynamically generate a function, you can do
+  # that as:
+  #
+  #     def atom.(first_arg, second_arg) do
+  #       # ...
+  #     end
+  #
+  # Notice that the `.` is important as the format above says that we want
+  # to define a function with the name given in atom, while the format below:
+  #
+  #     def atom(first_arg, second_arg) do
+  #       # ...
+  #     end
+  #
+  # Means we are generating a new function called atom.
+  defmacro def(name, do: contents)
 
   # Define a record given by name and values. Example:
   #
@@ -49,7 +149,7 @@ defmodule Elixir::Macros do
   #
   # Besides, if the default is a list, Elixir will define three helpers:
   #
-  # * `merge_field` - Receives an ordered dict and merge it into the current values;
+  # * `merge_field` - Receives an orddict and merge it into the current value;
   # * `prepend_field` - Receives another list and prepend its values
   # * `append_field` - Receives another list and append its values
   #
