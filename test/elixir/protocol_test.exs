@@ -9,9 +9,7 @@ defmodule ProtocolTest do
     defprotocol [blank(thing)], except: [Atom, Number, List]
   end
 
-  defmodule __MODULE__ :: WithOnly do
-    defprotocol [blank(thing)], only: [Tuple, Function]
-  end
+  defprotocol WithOnly, [blank(thing)], only: [Tuple, Function]
 
   defrecord Foo, a: 0, b: 0
 
