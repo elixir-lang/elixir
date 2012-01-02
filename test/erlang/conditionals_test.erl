@@ -35,12 +35,11 @@ vars_if_test() ->
   end,
   test_helper:run_and_remove(F, ['::Bar']).
 
-% multi_assigned_if_test() ->
-%   {3, _} = elixir:eval("x = 1\nif true\nx = 2\nx = 3\nelse true\nend\nx"),
-%   {3, _} = elixir:eval("x = 1\nif true\n\~x = 1\nx = 2\nx = 3\nelse true\nend\nx"),
-%   {1, _} = elixir:eval("if true\nx = 1\nelse true\nend\nx"),
-%   {nil, _} = elixir:eval("if false\nx = 1\nelse true\nend\nx").
-%
+multi_assigned_if_test() ->
+  {3, _} = elixir:eval("x = 1\nif true do\nx = 2\nx = 3\nelse: true\nend\nx"),
+  {3, _} = elixir:eval("x = 1\nif true do\n^x = 1\nx = 2\nx = 3\nelse: true\nend\nx"),
+  {1, _} = elixir:eval("if true do\nx = 1\nelse: true\nend\nx"),
+  {nil, _} = elixir:eval("if false do\nx = 1\nelse: true\nend\nx").
 
 % Try
 
@@ -75,11 +74,11 @@ case_with_match_do_ambiguity_test() ->
 case_with_unary_do_ambiguity_test() ->
   {false,_} = elixir:eval("! case atom_to_list(true) do\nmatch: _; true\nend").
 
-% multi_assigned_case_test() ->
-%   {3, _} = elixir:eval("x = 1\ncase true match true\nx = 2\nx = 3\nelse true\nend\nx"),
-%   {3, _} = elixir:eval("x = 1\ncase 1 match \~x\nx = 2\nx = 3\nelse true\nend\nx"),
-%   {1, _} = elixir:eval("case true match true\nx = 1\nelse true\nend\nx"),
-%   {nil, _} = elixir:eval("case true match false\nx = 1\nelse true\nend\nx").
+multi_assigned_case_test() ->
+  {3, _} = elixir:eval("x = 1\ncase true do\n match: true\nx = 2\nx = 3\nelse: true\nend\nx"),
+  {3, _} = elixir:eval("x = 1\ncase 1 do\n match: ^x\nx = 2\nx = 3\nelse: true\nend\nx"),
+  {1, _} = elixir:eval("case true do\nmatch: true\nx = 1\nelse: true\nend\nx"),
+  {nil, _} = elixir:eval("case true do\nmatch: false\nx = 1\nelse: true\nend\nx").
 
 vars_case_test() ->
   F = fun() ->

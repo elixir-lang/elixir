@@ -168,6 +168,7 @@ in_erlang_macros() ->
     {'!=',2},
     {'===',2},
     {'!==',2},
+    {'^','1'},
     {erlang_op,1},
     {erlang_op,2},
     {'case','*'},
@@ -190,5 +191,6 @@ in_erlang_macros() ->
     {'quote','*'},
     {'fn','*'},
     {'receive','*'},
-    {'try','*'}
+    {'try','*'},
+    {'loop','*'}
   ]).
