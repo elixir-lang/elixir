@@ -231,6 +231,10 @@ translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def; Kind == d
       { elixir_def:wrap_definition(Kind, Line, Call, Expr, S), S }
   end;
 
+translate_each({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
+  { Name, Args } = elixir_clauses:extract_args(Call),
+  { { tuple, Line, [{ atom, Line, Name }, { integer, Line, length(Args) }] }, S };
+
 translate_each({Kind, Line, Args}, S) when is_list(Args), Kind == def; Kind == defmacro; Kind == defp ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", atom_to_list(Kind));
 

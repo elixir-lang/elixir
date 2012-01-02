@@ -1,4 +1,7 @@
 defmodule Elixir::Macros do
+
+  def defmodule(name, do: contents)
+
   # Define a record given by name and values. Example:
   #
   #     defrecord FileInfo, atime: nil, mtime: nil
