@@ -4,6 +4,7 @@
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
 -import(elixir_tree_helpers, [umergev/2, umergec/2]).
+-import(elixir_errors, [syntax_error/4]).
 -include("elixir.hrl").
 
 %% Operators
@@ -114,7 +115,7 @@ translate_macro({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def; Kind == 
   record(Kind, S),
   case S#elixir_scope.function /= [] of
     true ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid function scope for: ", atom_to_list(Kind));
+      syntax_error(Line, S#elixir_scope.filename, "invalid function scope for: ", atom_to_list(Kind));
     _ ->
       { elixir_def:wrap_definition(Kind, Line, Call, Expr, S), S }
   end;
@@ -125,7 +126,7 @@ translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kin
   { { tuple, Line, [{ atom, Line, Name }, { integer, Line, length(Args) }] }, S };
 
 translate_macro({Kind, Line, Args}, S) when is_list(Args), Kind == def; Kind == defmacro; Kind == defp ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", atom_to_list(Kind));
+  syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", atom_to_list(Kind));
 
 %% Functions
 
@@ -137,7 +138,7 @@ translate_macro({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
     { [], [KV] } when is_list(KV) ->
       elixir_kv_block:decouple(orddict:erase(do, KV));
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no block given for: ", "fn")
+      syntax_error(Line, S#elixir_scope.filename, "no block given for: ", "fn")
   end,
 
   Transformer = fun({ match, ArgsWithGuards, Expr }, Acc) ->
@@ -175,14 +176,14 @@ translate_macro({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
       { TBlock, TS } = translate_each(Block, VS#elixir_scope{recur=element(1,FunVar)}),
       { TBlock, TS#elixir_scope{recur=[]} };
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "loop")
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "loop")
   end;
 
 translate_macro({recur, Line, Args}, S) when is_list(Args) ->
   record(recur, S),
   case S#elixir_scope.recur of
     [] ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop. invalid scope for: ", "recur");
+      syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop. invalid scope for: ", "recur");
     Recur ->
       ExVar = { Recur, Line, false },
       Call = { { '.', Line, [ExVar] }, Line, [ExVar|Args] },
