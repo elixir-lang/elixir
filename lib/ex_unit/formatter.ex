@@ -29,7 +29,7 @@ defmodule ExUnit::Formatter do
 
   def handle_call(:finish, _from, config) do
     IO.print "\n\n"
-    List.foldl config.failures, 1, fn(x, acc) { print_failure(x, acc) }
+    List.foldl List.reverse(config.failures), 1, fn(x, acc) { print_failure(x, acc) }
     failures_count = length(config.failures)
     IO.puts "#{config.counter} tests, #{failures_count} failures."
     { :reply, failures_count, config }

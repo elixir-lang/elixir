@@ -177,12 +177,6 @@ macros_function(Line, Macros) ->
 
 % ATTRIBUTES
 
-% no_auto_import() ->
-%   {no_auto_import, [
-%     {size, 1}, {length, 1}, {error, 2}, {self, 1}, {put, 2},
-%     {get, 1}, {exit, 1}, {exit, 2}
-%   ]}.
-
 transform_import(_Line, {_,[]}, Acc) ->
   { [], Acc };
 

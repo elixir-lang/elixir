@@ -24,6 +24,7 @@ translate(Forms, S) ->
 %% Assignment operator
 
 translate_each({'=', Line, [Left, Right]}, S) ->
+  record('=', S),
   { TRight, SR } = translate_each(Right, S),
   { TLeft, SL } = elixir_clauses:assigns(fun translate_each/2, Left, SR),
   { { match, Line, TLeft, TRight }, SL };
@@ -31,9 +32,11 @@ translate_each({'=', Line, [Left, Right]}, S) ->
 %% Operators
 
 translate_each({ '+', _Line, [Expr] }, S) when is_number(Expr) ->
+  record('+', S),
   translate_each(Expr, S);
 
 translate_each({ '-', _Line, [Expr] }, S) when is_number(Expr) ->
+  record('-', S),
   translate_each(-1 * Expr, S);
 
 translate_each({ Op, Line, Exprs }, S) when is_list(Exprs),
@@ -42,28 +45,29 @@ translate_each({ Op, Line, Exprs }, S) when is_list(Exprs),
   Op == 'not'; Op == 'and'; Op == 'or'; Op == 'xor';
   Op == '<'; Op == '>'; Op == '<='; Op == '>=';
   Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
+  record(Op, S),
   translate_each({ erlang_op, Line, [Op|Exprs] }, S);
 
 %% Operators
 
 translate_each({ erlang_op, Line, [Op, Expr] }, S) when is_atom(Op) ->
+  record(erlang_op, S),
   { TExpr, NS } = translate_each(Expr, S),
   { { op, Line, convert_op(Op), TExpr }, NS };
 
 translate_each({ erlang_op, Line, [Op|Args] }, S) when is_atom(Op) ->
+  record(erlang_op, S),
   { [TLeft, TRight], NS }  = translate_args(Args, S),
   { { op, Line, convert_op(Op), TLeft, TRight }, NS };
 
 %% Case
 
 translate_each({'case', Line, [Expr, RawClauses]}, S) ->
+  record('case', S),
   Clauses = orddict:erase(do, RawClauses),
   { TExpr, NS } = translate_each(Expr, S),
   { TClauses, TS } = elixir_clauses:match(Line, Clauses, NS),
   { { 'case', Line, TExpr, TClauses }, TS };
-
-translate_each({'case', Line, Args}, S) when is_list(Args) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "case");
 
 %% Blocks
 
@@ -104,9 +108,10 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 %% Modules directives
 
 translate_each({use, Line, [Ref|Args]}, S) ->
+  record(use, S),
   case S#elixir_scope.module of
     {0,nil} ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "canont invoke use outside module. invalid scope for: ", "use");
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot invoke use outside module. invalid scope for: ", "use");
     {_,Module} ->
       Call = { block, Line, [
         { require, Line, [Ref] },
@@ -115,7 +120,11 @@ translate_each({use, Line, [Ref|Args]}, S) ->
       translate_each(Call, S)
   end;
 
-translate_each({import, Line, Args}, S) when is_list(Args) ->
+translate_each({import, Line, [Arg]}, S) ->
+  translate_each({import, Line, [Arg, []]}, S);
+
+translate_each({import, Line, [_,_] = Args}, S) ->
+  record(import, S),
   Module = S#elixir_scope.module,
   case (Module == {0,nil}) or (S#elixir_scope.function /= []) of
     true  ->
@@ -129,6 +138,7 @@ translate_each({require, Line, [Left]}, S) ->
   translate_each({ require, Line, [Left, []]}, S);
 
 translate_each({require, Line, [Left,Opts]}, S) ->
+  record(require, S),
   Right  = proplists:get_value(as, Opts, false),
 
   { TLeft, SL }  = translate_each(Left, S),
@@ -170,6 +180,7 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 %% Modules
 
 translate_each({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
+  record(defmodule, S),
   { TRef, _ } = translate_each(Ref, S#elixir_scope{noref=true}),
 
   NS = case TRef of
@@ -224,6 +235,7 @@ translate_each({'::', Line, [Left|Right]}, S) ->
 %% Def
 
 translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+  record(Kind, S),
   case S#elixir_scope.function /= [] of
     true ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid function scope for: ", atom_to_list(Kind));
@@ -232,6 +244,7 @@ translate_each({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def; Kind == d
   end;
 
 translate_each({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
+  record(Kind, S),
   { Name, Args } = elixir_clauses:extract_args(Call),
   { { tuple, Line, [{ atom, Line, Name }, { integer, Line, length(Args) }] }, S };
 
@@ -241,14 +254,17 @@ translate_each({Kind, Line, Args}, S) when is_list(Args), Kind == def; Kind == d
 %% Quoting
 
 translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->
+  record(quote, S),
   elixir_quote:translate_each(Exprs, S);
 
-translate_each({quote, Line, Args}, S) when is_list(Args) ->
+translate_each({quote, Line, [_]}, S) ->
+  record(quote, S),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "quote");
 
 %% Functions
 
 translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
+  record(fn, S),
   Clauses = case lists:split(length(RawArgs) - 1, RawArgs) of
     { Args, [[{do,Expr}]] } ->
       [{match,Args,Expr}];
@@ -269,6 +285,7 @@ translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
 %% Loop and recur
 
 translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
+  record(loop, S),
   case lists:split(length(RawArgs) - 1, RawArgs) of
     { Args, [KV] } when is_list(KV) ->
       %% Generate a variable that will store the function
@@ -295,10 +312,8 @@ translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "loop")
   end;
 
-translate_each({recur, Line, false}, S) ->
-  translate_each({recur, Line, []}, S);
-
 translate_each({recur, Line, Args}, S) when is_list(Args) ->
+  record(recur, S),
   case S#elixir_scope.recur of
     [] ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop. invalid scope for: ", "recur");
@@ -311,6 +326,7 @@ translate_each({recur, Line, Args}, S) when is_list(Args) ->
 %% Try
 
 translate_each({'try', Line, [Clauses]}, RawS) ->
+  record('try', RawS),
   Do    = proplists:get_value('do',    Clauses, []),
   Catch = proplists:get_value('catch', Clauses, []),
   After = proplists:get_value('after', Clauses, []),
@@ -322,12 +338,10 @@ translate_each({'try', Line, [Clauses]}, RawS) ->
   { TAfter, SA } = translate([After], umergec(S, SC)),
   { { 'try', Line, unpack_try(do, TDo), [], TCatch, unpack_try('after', TAfter) }, umergec(RawS, SA) };
 
-translate_each({'try', Line, Args}, S) when is_list(Args) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "try");
-
 %% Receive
 
 translate_each({'receive', Line, [RawClauses] }, S) ->
+  record('receive', S),
   Clauses = orddict:erase(do, RawClauses),
   case orddict:find('after', Clauses) of
     { ok, After } ->
@@ -341,13 +355,11 @@ translate_each({'receive', Line, [RawClauses] }, S) ->
       { { 'receive', Line, TClauses }, SC }
   end;
 
-translate_each({'receive', Line, Args}, S) when is_list(Args) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "receive");
-
 %% Apply
 %% Optimize apply by checking what doesn't need to be dispatched dynamically
 
 translate_each({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
+  record(apply, S),
   translate_each({{'.', Line, [Left, Right]}, Line, Args}, S);
 
 %% Variables & Function calls
@@ -363,8 +375,7 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
             { ok, Value } -> { {var, Line, Value}, S }
           end
       end;
-    _ ->
-      "cannot bind expression at token: "
+    _ -> "cannot bind expression at token: "
   end,
 
   case is_list(Result) of
@@ -529,6 +540,16 @@ umergev(S1, S2) ->
 % with the counter values from the first one.
 umergec(S1, S2) ->
   S1#elixir_scope{counter=S2#elixir_scope.counter}.
+
+% We need to record macros invoked so we raise users
+% a nice error in case they define a local that overrides
+% an invoked macro instead of silently failing.
+%
+% Some macros are not recorded because they will always
+% raise an error to users if they define something similar
+% regardless if they invoked it or not.
+record(Atom, S) ->
+  elixir_import:record(internal, { Atom, nil }, in_erlang_macros, S).
 
 % Merge variables trying to find the most recently created.
 var_merger(Var, Var, K2) -> K2;

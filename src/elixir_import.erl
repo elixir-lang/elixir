@@ -3,37 +3,42 @@
 %% calls and the second one for macros.
 -module(elixir_import).
 -export([macro_imports/0, local_imports/1,
-  calculate/7, handle_import/4, handle_import/5,
-  format_error/1,
+  calculate/7, handle_import/5, format_error/1,
   ensure_no_macro_conflict/4, ensure_no_local_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
--compile({inline,[in_erlang_macros/0]}).
+-compile({inline,[in_erlang_macros/0, in_erlang_macros_always_conflict/0]}).
 
 %% Create tables that are responsible to store
 %% import and macro invocations.
 
-macro_table(Module)  -> ?ELIXIR_ATOM_CONCAT([m, Module]).
-import_table(Module) -> ?ELIXIR_ATOM_CONCAT([i, Module]).
+macro_table(Module)    -> ?ELIXIR_ATOM_CONCAT([m, Module]).
+import_table(Module)   -> ?ELIXIR_ATOM_CONCAT([i, Module]).
+internal_table(Module) -> ?ELIXIR_ATOM_CONCAT([e, Module]).
 
 build_table(Module) ->
-  ets:new(macro_table(Module),  [set, named_table, private]),
-  ets:new(import_table(Module), [set, named_table, private]).
+  ets:new(macro_table(Module),    [set, named_table, private]),
+  ets:new(import_table(Module),   [set, named_table, private]),
+  ets:new(internal_table(Module), [bag, named_table, private]).
 
 delete_table(Module) ->
   ets:delete(macro_table(Module)),
-  ets:delete(import_table(Module)).
+  ets:delete(import_table(Module)),
+  ets:delete(internal_table(Module)).
 
 record(_Kind, _Tuple, _Receiver, #elixir_scope{module={0, nil}}) ->
   [];
 
 record(macro, Tuple, Receiver, #elixir_scope{module={_,Module}}) ->
-  ets:insert(macro_table(Module), { Tuple, Receiver }).
+  ets:insert(macro_table(Module), { Tuple, Receiver });
+
+record(internal, _Tuple, _Receiver, #elixir_scope{function=[]}) ->
+  [];
+
+record(internal, Tuple, _Receiver, #elixir_scope{module={_,Module}}) ->
+  ets:insert(internal_table(Module), Tuple).
 
 %% Handle the import macro declaration.
-
-handle_import(Line, Filename, Module, Ref) ->
-  handle_import(Line, Filename, Module, Ref, []).
 
 handle_import(Line, Filename, Module, Ref, Opts) when is_atom(Ref), is_list(Opts) ->
   Table = import_table(Module),
@@ -70,7 +75,7 @@ calculate(Line, Filename, Key, Opts, All, Fun, Kind) ->
       end
   end,
   ensure_no_conflicts(Line, Filename, New, All),
-  ensure_no_in_erlang_macro_conflict(Line, Filename, Key, New),
+  ensure_no_in_erlang_macro_conflict(Line, Filename, Key, New, import_conflict),
   {Key,New}.
 
 %% Return configured imports and defaults
@@ -85,24 +90,32 @@ macro_imports() ->
 %% Ensure the given functions don't clash with any
 %% of Elixir "implemented in Erlang" macros.
 
-ensure_no_in_erlang_macro_conflict(Line, Filename, Key, [{Name,Arity}|T]) ->
+ensure_no_in_erlang_macro_conflict(Line, Filename, Key, [{Name,Arity}|T], Reason) ->
   InErlang = in_erlang_macros(),
   case orddict:find(Name, InErlang) of
     { ok, Value } ->
       case (Value == '*') or (Value == Arity) of
         true  ->
-          Tuple = { import_conflict, { Key, Name, Arity } },
+          Tuple = { Reason, { Key, Name, Arity } },
           elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
-        false -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T)
+        false -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
       end;
-    error -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T)
+    error -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
   end;
 
-ensure_no_in_erlang_macro_conflict(_Line, _Filename, _Key, []) -> ok.
+ensure_no_in_erlang_macro_conflict(_Line, _Filename, _Key, [], _) -> ok.
 
-%% Check if any of the locals invoked conflicts with in Erlang macros.
-ensure_no_local_conflict(_Line, _Filename, _Module, _AllDefined) ->
-  [].
+%% Check if any of the locals defined conflicts with an invoked
+%% Elixir "implemented in Erlang" macro. Checking if a local
+%% conflicts with an import is automatically done by Erlang.
+
+ensure_no_local_conflict(Line, Filename, Module, AllDefined) ->
+  Table = internal_table(Module),
+  AlwaysConflict = in_erlang_macros_always_conflict(),
+
+  %% Get all defined functions that conflicts with an invoked internal macro
+  Matches = [{X,Y} || {X,Y} <- AllDefined, (ets:member(Table, X) orelse lists:member(X, AlwaysConflict))],
+  ensure_no_in_erlang_macro_conflict(Line, Filename, Module, Matches, local_conflict).
 
 %% Find conlicts in the given list of functions with the recorded set
 %% of macros. Erlang automatically checks for conflict with imported
@@ -142,14 +155,17 @@ ensure_no_conflicts(_Line, _Filename, _Functions, _S) -> ok.
 format_error({already_imported,{Receiver, Name, Arity}}) ->
   io_lib:format("function ~s/~B already imported from ~s", [Name, Arity, Receiver]);
 
-format_error({macro_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("used imported macro ~s.~s/~B conflicts with local function or import", [Receiver, Name, Arity]);
-
 format_error({invalid_import,{Receiver, Name, Arity, macro}}) ->
   io_lib:format("~s.~s/~B isn't a macro and can't be imported using require. Maybe you wanted to use import?", [Receiver, Name, Arity]);
 
+format_error({macro_conflict,{Receiver, Name, Arity}}) ->
+  io_lib:format("imported macro ~s.~s/~B conflicts with local function or import", [Receiver, Name, Arity]);
+
+format_error({local_conflict,{_, Name, Arity}}) ->
+  io_lib:format("cannot invoke local ~s/~B because it conflicts with Elixir internal macros", [Name, Arity]);
+
 format_error({import_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("could not import ~s.~s/~B because it conflicts with Elixir internal macros", [Receiver, Name, Arity]).
+  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir internal macros", [Receiver, Name, Arity]).
 
 %% Macros implemented in Elixir - imported by default
 
@@ -189,31 +205,38 @@ in_erlang_macros() ->
     {'!=',2},
     {'===',2},
     {'!==',2},
-    {'^','1'},
-    {erlang_op,1},
+    {'^',1},
     {erlang_op,2},
-    {'case','*'},
+    {erlang_op,3},
     {'block','*'},
     {'kv_block','*'},
     {'bitstr','*'},
     {'{}','*'},
     {'use','*'},
-    {'require','*'},
-    {'module','*'},
-    {'__MODULE__','*'},
-    {'__FILE__','*'},
-    {'__LINE__','*'},
-    {'import','*'},
+    {'require',2},
+    {'defmodule','*'},
+    {'__MODULE__',0},
+    {'__FILE__',0},
+    {'__LINE__',0},
+    {'import',2},
     {'module_ref',1},
     {'::','*'},
     {'def','*'},
     {'defp','*'},
     {'defmacro','*'},
-    {'quote','1'},
-    {'unquote','1'},
-    {'unquote_splice','1'},
+    {'quote',1},
+    {'unquote',1},
+    {'unquote_splice',1},
     {'fn','*'},
-    {'receive','*'},
-    {'try','*'},
-    {'loop','*'}
+    {'case',2},
+    {'receive',1},
+    {'try',1},
+    {'loop','*'},
+    {'recur','*'}
   ]).
+
+%% Those macros will always raise an error if one defines them
+%% because they are called internally many times.
+in_erlang_macros_always_conflict() ->
+  [block, kv_block, bitstr, erlang_op, '{}', '__MODULE__',
+   '__FILE__', '__LINE__', 'module_ref', '::', '^'].

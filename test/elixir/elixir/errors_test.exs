@@ -3,7 +3,7 @@ defmodule Elixir::ErrorsTest do
 
   defmodule __MODULE__ :: UnproperMacro do
     defmacro unproper(args), do: args
-    defmacro case(x), do: x
+    defmacro case(x, _), do: x
   end
 
   def test_invalid_token do
@@ -43,10 +43,6 @@ defmodule Elixir::ErrorsTest do
     "nofile:3: cannot define function outside module. invalid scope for: defmacro" = format_catch '\n\ndefmacro Foo, do: 2'
   end
 
-  def test_invalid_case_args do
-    "nofile:1: invalid args for: case" = format_catch 'case 1, 2, 3'
-  end
-
   def test_invalid_quote_args do
     "nofile:1: invalid args for: quote" = format_catch 'quote 1'
   end
@@ -55,17 +51,13 @@ defmodule Elixir::ErrorsTest do
     "nofile:1: no block given for: fn" = format_catch 'fn 1'
   end
 
-  def test_invalid_try_args do
-    "nofile:1: invalid args for: try" = format_catch 'try 1 do\n2\nend'
-  end
-
   def test_unproper_macro do
     "nofile:4: key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
       format_catch 'defmodule Foo do\nrequire Elixir::ErrorsTest::UnproperMacro\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
   end
 
   def test_macro_conflict do
-    "nofile:1: used imported macro ::Elixir::Macros.defrecord/2 conflicts with local function or import" =
+    "nofile:1: imported macro ::Elixir::Macros.defrecord/2 conflicts with local function or import" =
       format_catch 'defmodule Foo do\ndefrecord(::Elixir::ErrorsTest::MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
@@ -119,18 +111,23 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_cant_import_in_erlang_macros_with_require do
-    "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro.case/1 because it conflicts with Elixir internal macros" =
+    "nofile:1: cannot import ::Elixir::ErrorsTest::UnproperMacro.case/2 because it conflicts with Elixir internal macros" =
       format_catch 'require Elixir::ErrorsTest::UnproperMacro, import: true'
   end
 
   def test_cant_import_in_erlang_macros_with_import do
-    "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro.case/1 because it conflicts with Elixir internal macros" =
-      format_catch 'defmodule Foo, do: import Elixir::ErrorsTest::UnproperMacro, only: [case: 1]'
+    "nofile:1: cannot import ::Elixir::ErrorsTest::UnproperMacro.case/2 because it conflicts with Elixir internal macros" =
+      format_catch 'defmodule Foo, do: import Elixir::ErrorsTest::UnproperMacro, only: [case: 2]'
   end
 
   def test_cant_import_due_to_erlang_conflict do
     "nofile:1: import directive overrides pre R14 auto-imported BIF element/2\n - use \"-compile({no_auto_import,[element/2]}).\" to resolve name clash" =
       format_catch 'defmodule Foo, do: import Erlang.lists, only: [element: 2]'
+  end
+
+  def test_cant_define_local_due_to_in_erlang_macros_conflict do
+    "nofile:1: cannot invoke local quote/1 because it conflicts with Elixir internal macros" =
+      format_catch 'defmodule Foo do\ndef quote(x), do: x\ndef bar(x), do: quote(do: x)\nend'
   end
 
   def test_already_defined_module do
