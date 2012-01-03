@@ -416,8 +416,16 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
 
 translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
   Callback = fun() ->
-    { TArgs, NS } = translate_args(Args, S),
-    { { call, Line, { atom, Line, Atom }, TArgs }, NS }
+    case convert_partials(Line, Args, S) of
+      { _, [], _ } ->
+        { TArgs, NS } = translate_args(Args, S),
+        { { call, Line, { atom, Line, Atom }, TArgs }, NS };
+      { _, Def, _ } when length(Def) == length(Args) ->
+        { { 'fun', Line, { function, Atom, length(Args) } }, S };
+      { Call, Def, SC } ->
+        Block = [{do, { Atom, Line, Call }}],
+        translate_each({ fn, Line, Def ++ [Block] }, SC)
+    end
   end,
   elixir_macro:dispatch_imports(Line, Atom, Args, S, Callback);
 
@@ -542,7 +550,6 @@ umergec(S1, S2) ->
 
 % Translate apply. Used by both apply and external function
 % invocation macros.
-
 translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
   { TArgs, SA } = translate_args(Args, umergec(S, SR)),
   FS = umergev(SL, umergev(SR,SA)),
@@ -554,6 +561,23 @@ translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
       Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(Line, TArgs)],
       { { call, Line, { atom, Line, apply }, Apply }, FS }
   end.
+
+%% This function receives arguments and then checks
+%% the args for partial application. It returns a tuple
+%% with three elements where the first element is the list
+%% of call args, the second the list of def args for the
+%% function definition and the third one is the new scope.
+convert_partials(Line, List, S) -> convert_partials(Line, List, S, [], []).
+
+convert_partials(Line, [{'_', _, false}|T], S, CallAcc, DefAcc) ->
+  { Var, SC } = elixir_tree_helpers:build_ex_var(Line, S),
+  convert_partials(Line, T, SC, [Var|CallAcc], [Var|DefAcc]);
+
+convert_partials(Line, [H|T], S, CallAcc, DefAcc) ->
+  convert_partials(Line, T, S, [H|CallAcc], DefAcc);
+
+convert_partials(_Line, [], S, CallAcc, DefAcc) ->
+  { lists:reverse(CallAcc), lists:reverse(DefAcc), S }.
 
 % We need to record macros invoked so we raise users
 % a nice error in case they define a local that overrides
