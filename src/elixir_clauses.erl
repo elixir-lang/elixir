@@ -4,6 +4,7 @@
 -export([match/3, try_catch/3,
   assigns/3, assigns_block/5, assigns_block/6,
   extract_args/1, extract_guards/1, extract_last_guards/1]).
+-import(elixir_tree_helpers, [umergec/2]).
 -include("elixir.hrl").
 
 % Function for translating assigns.
@@ -215,11 +216,6 @@ normalize_clause_var(Var, OldValue, ClauseVars) ->
     { ok, ClauseValue } -> { var, 0, ClauseValue };
     error -> OldValue
   end.
-
-% Merge variable counters.
-
-umergec(S1, S2) ->
-  S1#elixir_scope{counter=S2#elixir_scope.counter}.
 
 %% Listify
 
