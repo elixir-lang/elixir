@@ -355,12 +355,13 @@ translate_each({'receive', Line, [RawClauses] }, S) ->
       { { 'receive', Line, TClauses }, SC }
   end;
 
-%% Apply
-%% Optimize apply by checking what doesn't need to be dispatched dynamically
+%% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
 translate_each({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
   record(apply, S),
-  translate_each({{'.', Line, [Left, Right]}, Line, Args}, S);
+  { TLeft,  SL } = translate_each(Left, S),
+  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+  translate_apply(Line, TLeft, TRight, Args, S, SL, SR);
 
 %% Variables & Function calls
 
@@ -424,24 +425,22 @@ translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
 
 translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
   { TLeft,  SL } = translate_each(Left, S),
-  { TRight,  SR } = translate_each(Right, umergec(S, SL)),
+  { TRight, SR } = translate_each(Right, umergec(S, SL)),
 
-  Callback = fun() ->
-    { TArgs, SA } = translate_args(Args, umergec(S, SR)),
-    { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR,SA)) }
-  end,
+  Callback = fun() -> translate_apply(Line, TLeft, TRight, Args, S, SL, SR) end,
 
   case { TLeft, TRight } of
     { { atom, _, '::Erlang' }, { atom, _, Atom } } ->
-      { { atom, Line, Atom }, S };
-    { { atom, _, Receiver }, { atom, _, Name } }  ->
-      elixir_macro:dispatch_refer(Line, Receiver, Name, Args, umergev(SL, SR), Callback);
-    { { Kind, _, _ }, { atom, _, _ } } when Kind == var; Kind == tuple ->
-      Callback();
+      case Args of
+        [] -> { { atom, Line, Atom }, S };
+        _ ->
+          Message = "invalid args for Erlang.MODULE expression: ",
+          elixir_errors:syntax_error(Line, S#elixir_scope.filename, Message, atom_to_list(Atom))
+      end;
+    { { atom, _, Receiver }, { atom, _, Atom } }  ->
+      elixir_macro:dispatch_refer(Line, Receiver, Atom, Args, umergev(SL, SR), Callback);
     _ ->
-      { TArgs, SA } = translate_args(Args, umergec(S, SR)),
-      Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      { { call, Line, { atom, Line, apply }, Apply }, umergev(SL, umergev(SR,SA)) }
+      Callback()
   end;
 
 %% Anonymous function calls
@@ -540,6 +539,21 @@ umergev(S1, S2) ->
 % with the counter values from the first one.
 umergec(S1, S2) ->
   S1#elixir_scope{counter=S2#elixir_scope.counter}.
+
+% Translate apply. Used by both apply and external function
+% invocation macros.
+
+translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
+  { TArgs, SA } = translate_args(Args, umergec(S, SR)),
+  FS = umergev(SL, umergev(SR,SA)),
+
+  case { TLeft, TRight } of
+    { { Kind, _, _ }, { atom, _, _ } } when Kind == var; Kind == tuple; Kind == atom ->
+      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, FS };
+    _ ->
+      Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(Line, TArgs)],
+      { { call, Line, { atom, Line, apply }, Apply }, FS }
+  end.
 
 % We need to record macros invoked so we raise users
 % a nice error in case they define a local that overrides

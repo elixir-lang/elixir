@@ -208,7 +208,7 @@ andalso_test() ->
     {false, _} = elixir:eval("Bar.foo andalso Bar.baz 2"),
     {true, _} = elixir:eval("false andalso false orelse true"),
     {3, _} = elixir:eval("Bar.foo andalso 1 + 2"),
-    {false, _} = elixir:eval("Bar.bar andalso Erlang.error(:bad)"),
+    {false, _} = elixir:eval("Bar.bar andalso error(:bad)"),
     ?assertError({badarg, 1}, elixir:eval("1 andalso 2"))
   end,
   test_helper:run_and_remove(F, ['::Bar']).
@@ -226,7 +226,7 @@ orelse_test() ->
     {true, _} = elixir:eval("Bar.bar orelse Bar.baz 1"),
     {false, _} = elixir:eval("Bar.bar orelse Bar.baz 2"),
     {3, _} = elixir:eval("Bar.bar orelse 1 + 2"),
-    {true, _} = elixir:eval("Bar.foo orelse Erlang.error(:bad)"),
+    {true, _} = elixir:eval("Bar.foo orelse error(:bad)"),
     ?assertError({badarg, 1}, elixir:eval("1 orelse 2"))
   end,
   test_helper:run_and_remove(F, ['::Bar']).
@@ -253,7 +253,7 @@ andand_test() ->
     {false, _} = elixir:eval("Bar.foo && Bar.baz 2"),
     {true, _} = elixir:eval("1 == 1 && 2 < 3"),
     {3, _} = elixir:eval("Bar.foo && 1 + 2"),
-    {false, _} = elixir:eval("Bar.bar && Erlang.error(:bad)"),
+    {false, _} = elixir:eval("Bar.bar && error(:bad)"),
     {2, _} = elixir:eval("1 && 2"),
     {nil, _} = elixir:eval("nil && 2"),
     {false, _} = elixir:eval("false && false or true")
@@ -278,7 +278,7 @@ oror_test() ->
     {false, _} = elixir:eval("Bar.bar || Bar.baz 2"),
     {false, _} = elixir:eval("1 == 2 || 2 > 3"),
     {3, _} = elixir:eval("Bar.bar || 1 + 2"),
-    {true, _} = elixir:eval("Bar.foo || Erlang.error(:bad)"),
+    {true, _} = elixir:eval("Bar.foo || error(:bad)"),
     {1, _} = elixir:eval("1 || 2"),
     {2, _} = elixir:eval("nil || 2"),
     {true, _} = elixir:eval("false && false || true")
