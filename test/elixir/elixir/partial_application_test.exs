@@ -33,6 +33,12 @@ defmodule Elixir::PartialApplicationTest do
     7 = fun.(13, 6)
   end
 
+  def test_partial_with_internal_macro do
+    fun = if(_, do: 1, else: 2)
+    1 = fun.(20)
+    2 = fun.(nil)
+  end
+
   defp minus(x, y) do
     x - y
   end
