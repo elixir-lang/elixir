@@ -1,4 +1,4 @@
-% Holds the logic responsible for functions definition during compile time.
+% Holds the logic responsible for functions definition (def, defp and defmacro).
 -module(elixir_def).
 -export([build_table/1,
   delete_table/1,

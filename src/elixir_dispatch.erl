@@ -1,4 +1,5 @@
--module(elixir_macro).
+%% Helpers related to macro dispatch.
+-module(elixir_dispatch).
 -export([get_macros/3, format_error/1, dispatch_refer/6, dispatch_imports/5]).
 -include("elixir.hrl").
 

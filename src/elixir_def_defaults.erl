@@ -1,3 +1,4 @@
+% Handle default clauses for function definitions.
 -module(elixir_def_defaults).
 -export([unpack/2]).
 -include("elixir.hrl").

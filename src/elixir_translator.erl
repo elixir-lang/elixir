@@ -128,7 +128,7 @@ translate_each({require, Line, [Left,Opts]}, S) ->
     true ->
       OldImports = lists:keydelete(Old, 1, SR#elixir_scope.imports),
       NewImports = elixir_import:calculate(Line, SR#elixir_scope.filename, Old,
-        Opts, OldImports, fun() -> elixir_macro:get_macros(Line, Old, SR) end, macro),
+        Opts, OldImports, fun() -> elixir_dispatch:get_macros(Line, Old, SR) end, macro),
       SR#elixir_scope{imports=[NewImports|OldImports]};
     false -> SR
   end,
@@ -229,7 +229,7 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
 
 translate_each({Atom, Line, _} = Original, S) when is_atom(Atom) ->
   case handle_partials(Line, Original, S) of
-    error -> elixir_local_macros:translate_macro(Original, S);
+    error -> elixir_macros:translate_macro(Original, S);
     Else  -> Else
   end;
 
@@ -250,7 +250,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
           syntax_error(Line, S#elixir_scope.filename, Message, atom_to_list(Atom))
       end;
     { { atom, _, Receiver }, { atom, _, Atom } }  ->
-      elixir_macro:dispatch_refer(Line, Receiver, Atom, Args, umergev(SL, SR), Callback);
+      elixir_dispatch:dispatch_refer(Line, Receiver, Atom, Args, umergev(SL, SR), Callback);
     _ ->
       Callback()
   end;
@@ -357,7 +357,7 @@ handle_partials(Line, Original, S) ->
   case convert_partials(Line, element(3, Original), S) of
     { Call, Def, SC } when Def /= [] ->
       Block = [{do, setelement(3, Original, Call)}],
-      elixir_local_macros:translate_macro({ fn, Line, Def ++ [Block] }, SC);
+      elixir_macros:translate_macro({ fn, Line, Def ++ [Block] }, SC);
     _ -> error
   end.
 

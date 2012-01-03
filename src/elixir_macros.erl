@@ -1,4 +1,6 @@
--module(elixir_local_macros).
+%% Those macros are local and can be partially applied.
+%% In the future, they may even be overriden by imports.
+-module(elixir_macros).
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
 -import(elixir_tree_helpers, [umergev/2, umergec/2]).
@@ -202,7 +204,7 @@ translate_macro({ Atom, Line, Args }, S) ->
     { TArgs, NS } = translate_args(Args, S),
     { { call, Line, { atom, Line, Atom }, TArgs }, NS }
   end,
-  elixir_macro:dispatch_imports(Line, Atom, Args, S, Callback).
+  elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback).
 
 %% Helpers
 

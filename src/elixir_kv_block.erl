@@ -1,3 +1,4 @@
+%% Helpers related to key-value blocks.
 -module(elixir_kv_block).
 -export([merge/2, merge/3, normalize/1, decouple/2, decouple/1]).
 -include("elixir.hrl").
