@@ -414,20 +414,16 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
       end
   end;
 
-translate_each({Atom, Line, Args}, S) when is_atom(Atom) ->
-  Callback = fun() ->
-    case convert_partials(Line, Args, S) of
-      { _, [], _ } ->
+translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
+  case handle_partials(Line, Original, S) of
+    error ->
+      Callback = fun() ->
         { TArgs, NS } = translate_args(Args, S),
-        { { call, Line, { atom, Line, Atom }, TArgs }, NS };
-      { _, Def, _ } when length(Def) == length(Args) ->
-        { { 'fun', Line, { function, Atom, length(Args) } }, S };
-      { Call, Def, SC } ->
-        Block = [{do, { Atom, Line, Call }}],
-        translate_each({ fn, Line, Def ++ [Block] }, SC)
-    end
-  end,
-  elixir_macro:dispatch_imports(Line, Atom, Args, S, Callback);
+        { { call, Line, { atom, Line, Atom }, TArgs }, NS }
+      end,
+      elixir_macro:dispatch_imports(Line, Atom, Args, S, Callback);
+    Else -> Else
+  end;
 
 %% Dot calls
 
@@ -459,15 +455,11 @@ translate_each({{'.', _, [Expr]}, Line, Args} = Original, S) ->
     { atom, _, Atom } ->
       translate_each({ Atom, Line, Args }, S);
     _ ->
-      case convert_partials(Line, Args, SE) of
-        { _, [], _ } ->
+      case handle_partials(Line, Original, S) of
+        error ->
           { TArgs, SA } = translate_args(Args, umergec(S, SE)),
           { {call, Line, TExpr, TArgs}, umergev(SE, SA) };
-        { _, Def, _ } when length(Def) == length(Args) ->
-          { TExpr, S };
-        { Call, Def, SC } ->
-          Block = [{do, setelement(3, Original, Call)}],
-          translate_each({ fn, Line, Def ++ [Block] }, SC)
+        Else -> Else
       end
   end;
 
@@ -568,6 +560,15 @@ translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
     _ ->
       Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(Line, TArgs)],
       { { call, Line, { atom, Line, apply }, Apply }, FS }
+  end.
+
+%% Handle partials by automatically wrapping them in a function
+handle_partials(Line, Original, S) ->
+  case convert_partials(Line, element(3, Original), S) of
+    { Call, Def, SC } when Def /= [] ->
+      Block = [{do, setelement(3, Original, Call)}],
+      translate_each({ fn, Line, Def ++ [Block] }, SC);
+    _ -> error
   end.
 
 %% This function receives arguments and then checks
