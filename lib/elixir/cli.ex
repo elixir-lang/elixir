@@ -16,7 +16,7 @@ defmodule Elixir::CLI do
     all_commands = List.reverse(config.commands) ++ List.reverse(config.close)
 
     try do
-      List.map all_commands, fn(c) { process_command(c, config) }
+      List.map all_commands, process_command(_, config)
     catch: { :throw, reason, _ }
       IO.puts :standard_error, "** throw #{format_catch(:throw, reason)}"
       print_stacktrace(Code.stacktrace)
@@ -100,7 +100,7 @@ defmodule Elixir::CLI do
   defp process_options([h|t] = list, config) do
     case h do
     match: '-' ++ _
-      shared_option? list, config, fn(nl, ns){ process_options(nl, ns) }
+      shared_option? list, config, process_options(_, _)
     else:
       { config.prepend_commands([{:load, h}]), t }
     end
@@ -123,7 +123,7 @@ defmodule Elixir::CLI do
   defp process_compiler([h|t] = list, config) do
     case h do
     match: '-' ++ _
-      shared_option? list, config, fn(nl, ns){ process_compiler(nl, ns) }
+      shared_option? list, config, process_compiler(_, _)
     else:
       process_compiler t, config.prepend_commands[{:compile,h}]
     end
@@ -148,7 +148,7 @@ defmodule Elixir::CLI do
   end
 
   defp compile_patterns(lines, config) do
-    lines = List.map lines, fn(line){ Erlang.elixir_glob.wildcard(line, '.') }
+    lines = List.map lines, Erlang.elixir_glob.wildcard(_, '.')
     List.map List.uniq(List.append(lines)), fn(file) {
       IO.puts "Compiling #{list_to_binary(file)}"
       Erlang.elixir_compiler.file_to_path(file, config.output)

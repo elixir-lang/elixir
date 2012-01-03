@@ -44,6 +44,10 @@ defmodule Elixir::PartialApplicationTest do
     [3,2,1] = fun.([1,2,3])
   end
 
+  def test_partial_application_for_operator do
+    [2,4,6] = List.map [1,2,3], :*.(_, 2)
+  end
+
   defp minus(x, y) do
     x - y
   end

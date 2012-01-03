@@ -51,7 +51,7 @@ defmodule Protocol do
   # functions for.
   def functions(target, module, funs, opts) do
     kinds = conversions_for(opts)
-    List.each List.reverse(funs), fn(fun) { each_function(target, module, fun, kinds) }
+    List.each List.reverse(funs), each_function(target, module, _, kinds)
   end
 
   ## Helpers
@@ -60,7 +60,7 @@ defmodule Protocol do
   # each function considering all kinds selected.
   defp each_function(target, module, {name,arity}, kinds) do
     args = generate_args(arity, [])
-    List.each kinds, fn(kind) { each_function_kind(target, module, name, args, kind) }
+    List.each kinds, each_function_kind(target, module, name, args, _)
   end
 
   # For each function and kind, add a new function to the module.
