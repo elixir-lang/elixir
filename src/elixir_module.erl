@@ -119,6 +119,7 @@ imports_form(Line, Filename, Module, Funs, Current) ->
   { Imported, Forms } = lists:mapfoldr(Transform, Current, LocalImports),
 
   All = lists:append([Funs|Imported]),
+  elixir_import:ensure_no_local_conflict(Line, Filename, Module, All),
   elixir_import:ensure_no_macro_conflict(Line, Filename, Module, All),
 
   { All, Forms }.

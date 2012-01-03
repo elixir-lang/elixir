@@ -74,7 +74,7 @@ ensure_required(Line, Receiver, Name, Arity, S) ->
   end.
 
 format_error({unrequired_module,{Receiver, Name, Arity, Required}}) ->
-  io_lib:format("tried to use ~s#~s/~B but module was not required. Required: ~p", [Receiver, Name, Arity, Required]);
+  io_lib:format("tried to use ~s.~s/~B but module was not required. Required: ~p", [Receiver, Name, Arity, Required]);
 
 format_error({no_macros, Module}) ->
   io_lib:format("could not load macros from module ~s", [Module]).

@@ -65,12 +65,17 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_macro_conflict do
-    "nofile:1: used imported macro ::Elixir::Macros#defrecord/2 conflicts with local function or import" =
+    "nofile:1: used imported macro ::Elixir::Macros.defrecord/2 conflicts with local function or import" =
       format_catch 'defmodule Foo do\ndefrecord(::Elixir::ErrorsTest::MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
+  def test_require_invalid_macro do
+    "nofile:2: ::Elixir::Macros.invalid/1 isn't a macro and can't be imported using require. Maybe you wanted to use import?" =
+      format_catch 'defmodule Foo do\nrequire Elixir::Macros, only: [invalid: 1]\nend'
+  end
+
   def test_unrequired_macro do
-    "nofile:2: tried to use ::Record#getters_and_setters/3 but module was not required. Required: ['::Elixir::Macros']" =
+    "nofile:2: tried to use ::Record.getters_and_setters/3 but module was not required. Required: ['::Elixir::Macros']" =
       format_catch 'defmodule Foo do\nRecord.getters_and_setters([], 0, [])\nend'
   end
 
@@ -114,12 +119,12 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_cant_import_in_erlang_macros_with_require do
-    "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro#case/1 because it conflicts with Elixir internal macros" =
+    "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro.case/1 because it conflicts with Elixir internal macros" =
       format_catch 'require Elixir::ErrorsTest::UnproperMacro, import: true'
   end
 
   def test_cant_import_in_erlang_macros_with_import do
-    "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro#case/1 because it conflicts with Elixir internal macros" =
+    "nofile:1: could not import ::Elixir::ErrorsTest::UnproperMacro.case/1 because it conflicts with Elixir internal macros" =
       format_catch 'defmodule Foo, do: import Elixir::ErrorsTest::UnproperMacro, only: [case: 1]'
   end
 
