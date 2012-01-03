@@ -39,6 +39,11 @@ defmodule Elixir::PartialApplicationTest do
     2 = fun.(nil)
   end
 
+  def test_partial_application_for_module_calls do
+    fun = List.reverse(_)
+    [3,2,1] = fun.([1,2,3])
+  end
+
   defp minus(x, y) do
     x - y
   end

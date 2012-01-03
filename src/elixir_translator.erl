@@ -235,24 +235,28 @@ translate_each({Atom, Line, _} = Original, S) when is_atom(Atom) ->
 
 %% Dot calls
 
-translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
-  { TLeft,  SL } = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) ->
+  case handle_partials(Line, Original, S) of
+    error ->
+      { TLeft,  SL } = translate_each(Left, S),
+      { TRight, SR } = translate_each(Right, umergec(S, SL)),
 
-  Callback = fun() -> translate_apply(Line, TLeft, TRight, Args, S, SL, SR) end,
+      Callback = fun() -> translate_apply(Line, TLeft, TRight, Args, S, SL, SR) end,
 
-  case { TLeft, TRight } of
-    { { atom, _, '::Erlang' }, { atom, _, Atom } } ->
-      case Args of
-        [] -> { { atom, Line, Atom }, S };
+      case { TLeft, TRight } of
+        { { atom, _, '::Erlang' }, { atom, _, Atom } } ->
+          case Args of
+            [] -> { { atom, Line, Atom }, S };
+            _ ->
+              Message = "invalid args for Erlang.MODULE expression: ",
+              syntax_error(Line, S#elixir_scope.filename, Message, atom_to_list(Atom))
+          end;
+        { { atom, _, Receiver }, { atom, _, Atom } }  ->
+          elixir_dispatch:dispatch_refer(Line, Receiver, Atom, Args, umergev(SL, SR), Callback);
         _ ->
-          Message = "invalid args for Erlang.MODULE expression: ",
-          syntax_error(Line, S#elixir_scope.filename, Message, atom_to_list(Atom))
+          Callback()
       end;
-    { { atom, _, Receiver }, { atom, _, Atom } }  ->
-      elixir_dispatch:dispatch_refer(Line, Receiver, Atom, Args, umergev(SL, SR), Callback);
-    _ ->
-      Callback()
+    Else -> Else
   end;
 
 %% Anonymous function calls
