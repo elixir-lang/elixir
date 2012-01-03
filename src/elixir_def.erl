@@ -63,7 +63,7 @@ wrap_definition(Kind, Line, Call, Expr, S) ->
 % Each function is then added to the function table.
 
 store_definition(Kind, Line, nil, _Call, _Expr, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid module scope for: ", atom_to_list(Kind));
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module. invalid scope for: ", atom_to_list(Kind));
 
 store_definition(Kind, Line, Module, Call, Expr, S) ->
   { Function, Defaults } = translate_definition(Line, Module, Call, Expr, S),

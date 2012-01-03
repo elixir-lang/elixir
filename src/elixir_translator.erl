@@ -106,7 +106,7 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 translate_each({use, Line, [Ref|Args]}, S) ->
   case S#elixir_scope.module of
     {0,nil} ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "use");
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "canont invoke use outside module. invalid scope for: ", "use");
     {_,Module} ->
       Call = { block, Line, [
         { require, Line, [Ref] },
@@ -119,7 +119,7 @@ translate_each({import, Line, Args}, S) when is_list(Args) ->
   Module = S#elixir_scope.module,
   case (Module == {0,nil}) or (S#elixir_scope.function /= []) of
     true  ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "import");
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot invoke import outside module. invalid scope for: ", "import");
     false ->
       NewArgs = [Line, S#elixir_scope.filename, element(2, Module)|Args],
       translate_each({{'.', Line, [elixir_import, handle_import]}, Line, NewArgs}, S)
@@ -301,7 +301,7 @@ translate_each({recur, Line, false}, S) ->
 translate_each({recur, Line, Args}, S) when is_list(Args) ->
   case S#elixir_scope.recur of
     [] ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid scope for: ", "recur");
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop. invalid scope for: ", "recur");
     Recur ->
       ExVar = { Recur, Line, false },
       Call = { { '.', Line, [ExVar] }, Line, [ExVar|Args] },

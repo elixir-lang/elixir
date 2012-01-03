@@ -39,8 +39,8 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_invalid_scope_for_function do
-    "nofile:1: invalid module scope for: def" = format_catch 'def Foo, do: 2'
-    "nofile:3: invalid module scope for: defmacro" = format_catch '\n\ndefmacro Foo, do: 2'
+    "nofile:1: cannot define function outside module. invalid scope for: def" = format_catch 'def Foo, do: 2'
+    "nofile:3: cannot define function outside module. invalid scope for: defmacro" = format_catch '\n\ndefmacro Foo, do: 2'
   end
 
   def test_invalid_case_args do
