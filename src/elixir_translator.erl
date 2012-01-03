@@ -453,14 +453,22 @@ translate_each({{'.', _, [Left, Right]}, Line, Args}, S) ->
 
 %% Anonymous function calls
 
-translate_each({{'.', _, [Expr]}, Line, Args}, S) ->
+translate_each({{'.', _, [Expr]}, Line, Args} = Original, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   case TExpr of
     { atom, _, Atom } ->
       translate_each({ Atom, Line, Args }, S);
     _ ->
-      { TArgs, SA } = translate_args(Args, umergec(S, SE)),
-      { {call, Line, TExpr, TArgs}, umergev(SE, SA) }
+      case convert_partials(Line, Args, SE) of
+        { _, [], _ } ->
+          { TArgs, SA } = translate_args(Args, umergec(S, SE)),
+          { {call, Line, TExpr, TArgs}, umergev(SE, SA) };
+        { _, Def, _ } when length(Def) == length(Args) ->
+          { TExpr, S };
+        { Call, Def, SC } ->
+          Block = [{do, setelement(3, Original, Call)}],
+          translate_each({ fn, Line, Def ++ [Block] }, SC)
+      end
   end;
 
 %% Literals

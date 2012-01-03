@@ -19,6 +19,20 @@ defmodule Elixir::PartialApplicationTest do
     7 = fun.(3)
   end
 
+  def test_partial_with_funcall_and_one_item do
+    fun = minus(_, _)
+    fun = fun.(10, _)
+    5 = fun.(5)
+    7 = fun.(3)
+  end
+
+  def test_partial_with_funcall_and_all_items do
+    fun = minus(_, _)
+    fun = fun.(_, _)
+    5 = fun.(10, 5)
+    7 = fun.(13, 6)
+  end
+
   defp minus(x, y) do
     x - y
   end
