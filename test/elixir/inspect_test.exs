@@ -32,9 +32,10 @@ end
 defmodule Inspect::BitStringTest do
   use ExUnit::Case
 
-  # TODO: Write me
-  # def test_bitstring do
-  # end
+  def test_bitstring do
+    "<<0,1|4>>" = inspect(<<1|12-integer-signed>>)
+    "<<0,1|4>>" = stringify(<<1|12-integer-signed>>)
+  end
 
   def test_binary do
     "\"foo\"" = inspect("foo")

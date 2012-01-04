@@ -84,13 +84,39 @@ build_bitstr_each(Fun, [H|T], Line, S, Acc) when is_bitstring(H) ->
   NewAcc = lists:foldl(fun(Element, FinalAcc) -> [Element|FinalAcc] end, Acc, Elements),
   build_bitstr_each(Fun, T, Line, S, NewAcc);
 
-build_bitstr_each(Fun, [{'|',_,[H,binary]}|T], Line, S, Acc) ->
+build_bitstr_each(Fun, [{'|',_,[H,V]}|T], Line, S, Acc) ->
   { Expr, NS } = Fun(H, S),
-  build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, default, [binary] }|Acc]);
+  { Int, Types } = extract_bin_values(Line, V, default, [], S),
+  Final = case Types of
+    [] -> default;
+    _  -> Types
+  end,
+  build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, Int, Final }|Acc]);
 
 build_bitstr_each(Fun, [H|T], Line, S, Acc) ->
   { Expr, NS } = Fun(H, S),
   build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, default, default }|Acc]).
+
+%% Extra binary specifiers
+
+extract_bin_values(Line, { '-', Line, [Left, Right] }, Int, Types, S) ->
+  { LInt, LTypes } = extract_bin_values(Line, Left, Int, Types, S),
+  extract_bin_values(Line, Right, LInt, LTypes, S);
+
+extract_bin_values(Line, Value, default, Types, _S) when is_integer(Value) ->
+  { { integer, Line, Value }, Types };
+
+extract_bin_values(Line, Value, _Int, _Types, S) when is_integer(Value) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "duplicated size specifier for: ", "<<>>");
+
+extract_bin_values(_Line, { Value, _, false }, Int, Types, _S) when is_atom(Value) ->
+  { Int, [Value|Types] };
+
+extract_bin_values(_Line, Value, Int, Types, _S) when is_atom(Value) ->
+  { Int, [Value|Types] };
+
+extract_bin_values(Line, _Value, _Int, _Types, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid specifier for: ", "<<>>").
 
 %% Handle variable scopes
 

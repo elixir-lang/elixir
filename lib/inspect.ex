@@ -1,3 +1,5 @@
+require ::Elixir::Macros, except: [stringify: 1, inspect: 1]
+
 defmodule Inspect do
   # Short circuit binary handlings for performance
   def stringify(thing) when is_binary(thing), do: thing
@@ -95,12 +97,12 @@ defimpl Inspect, for: BitString do
     if Erlang.io_lib.printable_list(list) do
       list_to_binary Inspect.escape_string(list, ?")
     else:
-      list_to_binary Erlang.io_lib.format('~p', [thing])
+      as_bitstring(thing)
     end
   end
 
   def inspect(thing) do
-    list_to_binary Erlang.io_lib.format('~p', [thing])
+    as_bitstring(thing)
   end
 
   def stringify(thing) when is_binary(thing) do
@@ -108,14 +110,22 @@ defimpl Inspect, for: BitString do
   end
 
   def stringify(thing) do
-    list_to_binary Erlang.io_lib.format('~p', [thing])
+    as_bitstring(thing)
   end
+
+  defp as_bitstring(thing) do
+    erlang = Erlang.io_lib.format('~p', [thing])
+    list_to_binary List.reverse(replace(erlang, []))
+  end
+
+  defp replace([?:|t], acc),                do: replace(t, [?||acc])
+  defp replace([h|t], acc) when is_list(h), do: replace(t, replace(h, acc))
+  defp replace([h|t], acc),                 do: replace(t, [h|acc])
+  defp replace([], acc),                    do: acc
 end
 
 defimpl Inspect, for: Tuple do
-  def inspect(thing) do
-    Inspect.container_join(tuple_to_list(thing), "{", "}")
-  end
+  def inspect(thing), do: stringify(thing)
 
   def stringify(thing) do
     Inspect.container_join(tuple_to_list(thing), "{", "}")
@@ -137,13 +147,7 @@ defimpl Inspect, for: List do
 end
 
 defimpl Inspect, for: Number do
-  def inspect(thing) when is_integer(thing) do
-    list_to_binary integer_to_list(thing)
-  end
-
-  def inspect(thing) do
-    list_to_binary float_to_list(thing)
-  end
+  def inspect(thing), do: stringify(thing)
 
   def stringify(thing) when is_integer(thing) do
     list_to_binary integer_to_list(thing)
@@ -155,9 +159,7 @@ defimpl Inspect, for: Number do
 end
 
 defimpl Inspect, for: Any do
-  def inspect(thing) do
-    list_to_binary Erlang.io_lib.format('~p', [thing])
-  end
+  def inspect(thing), do: stringify(thing)
 
   def stringify(thing) do
     list_to_binary Erlang.io_lib.format('~p', [thing])

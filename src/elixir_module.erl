@@ -18,7 +18,7 @@ ensure_loaded(Line, Module, S, Force) ->
 eval(Module, Tree, Filename, Line) ->
   case table_exists(Module) of
     true ->
-      eval_form(Line, Filename, Module, Tree);
+      eval_form(Line, Module, Tree, #elixir_scope{filename=Filename});
     false ->
       elixir_errors:form_error(Line, Filename, ?MODULE, { module_compiled, { Module, eval } })
   end.
@@ -48,19 +48,26 @@ update_attribute(Module, Attr, Fun) ->
 %% The abstract form for extra arguments may be given and they
 %% will be passed to the invoked function.
 
-transform(Line, Filename, Ref, Block) ->
+transform(Line, Ref, Block, S) ->
+  NewS = #elixir_scope{
+    filename=S#elixir_scope.filename,
+    imports=S#elixir_scope.imports,
+    refer=S#elixir_scope.refer
+  },
   Tree = elixir_tree_helpers:abstract_syntax(Block),
-  Args = [{integer, Line, Line}, {string, Line, Filename}, Ref, Tree],
+  AbsS = elixir_tree_helpers:abstract_syntax(NewS),
+  Args = [{integer, Line, Line}, Ref, Tree, AbsS],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 %% The compilation hook.
 
-compile(Line, Filename, Module, Block) when is_atom(Module) ->
+compile(Line, Module, Block, S) when is_atom(Module) ->
+  Filename = S#elixir_scope.filename,
   check_module_availability(Line, Filename, Module),
   build(Module),
 
   try
-    { Result, _ }    = eval_form(Line, Filename, Module, Block),
+    { Result, _ }    = eval_form(Line, Module, Block, S),
     { Funs, Forms0 } = functions_form(Line, Filename, Module),
     { _All, Forms1 } = imports_form(Line, Filename, Module, Funs, Forms0),
     Forms2           = attributes_form(Line, Filename, Module, Forms1),
@@ -78,8 +85,8 @@ compile(Line, Filename, Module, Block) when is_atom(Module) ->
     elixir_import:delete_table(Module)
   end;
 
-compile(Line, Filename, Other, _Block) ->
-  elixir_errors:form_error(Line, Filename, ?MODULE, { invalid_module, Other }).
+compile(Line, Other, _Block, S) ->
+  elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { invalid_module, Other }).
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
@@ -95,8 +102,8 @@ build(Module) ->
 
 %% Receives the module representation and evaluates it.
 
-eval_form(Line, Filename, Module, Block) ->
-  S = #elixir_scope{filename=Filename, module={Line,Module}},
+eval_form(Line, Module, Block, RawS) ->
+  S = RawS#elixir_scope{module={Line,Module}},
   { TBlock, _ } = elixir_translator:translate_each(Block, S),
   { value, Result, Binding } = erl_eval:exprs([TBlock], [{'XMODULE',Module}]),
   { Result, Binding }.
