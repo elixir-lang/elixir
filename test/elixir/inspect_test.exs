@@ -78,6 +78,11 @@ defmodule Inspect::TupleTest do
     "{1, \"b\", 3}" = stringify({ 1, "b", 3 })
   end
 
+  def test_record_like do
+    "{:foo, :bar}" = inspect({ :foo, :bar })
+    "{:foo, :bar}" = stringify({ :foo, :bar })
+  end
+
   def test_empty do
     "{}" = inspect({})
     "{}" = stringify({})
