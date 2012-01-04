@@ -86,7 +86,7 @@ build_bitstr_each(Fun, [H|T], Line, S, Acc) when is_bitstring(H) ->
 
 build_bitstr_each(Fun, [{'|',_,[H,V]}|T], Line, S, Acc) ->
   { Expr, NS } = Fun(H, S),
-  { Int, Types } = extract_bin_values(Line, V, default, [], S),
+  { Int, Types } = extract_bin_values(Line, V, default, [], element(1, S)),
   Final = case Types of
     [] -> default;
     _  -> Types

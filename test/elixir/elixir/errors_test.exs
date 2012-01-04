@@ -134,6 +134,14 @@ defmodule Elixir::ErrorsTest do
     "nofile:1: module ::Record already defined" = format_catch 'defmodule Record, do: true'
   end
 
+  def test_duplicated_bitstring_size do
+    "nofile:1: duplicated size specifier for: <<>>" = format_catch '<<1|12-12>>'
+  end
+
+  def test_invalid_bitstring_specified do
+    "nofile:1: invalid specifier for: <<>>" = format_catch '<<1|12-binary()>>'
+  end
+
   ## Helpers
 
   defp format_catch(expr) do
