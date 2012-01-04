@@ -190,6 +190,14 @@ translate_macro({recur, Line, Args}, S) when is_list(Args) ->
       translate_each(Call, S)
   end;
 
+%% Comprehensions
+
+translate_macro({ for, Line, Args }, S) when is_list(Args) ->
+  translate_comprehension(Line, lc, Args, S);
+
+translate_macro({ bitfor, Line, Args }, S) when is_list(Args) ->
+  translate_comprehension(Line, bin, Args, S);
+
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
 translate_macro({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
@@ -208,6 +216,38 @@ translate_macro({ Atom, Line, Args }, S) ->
   elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback).
 
 %% Helpers
+
+translate_comprehension(Line, Kind, Args, S) ->
+  case lists:split(length(Args) - 1, Args) of
+    { Cases, [[{do,Expr}]] } ->
+      { TCases, SC } = lists:mapfoldl(fun translate_each_comprehension/2, S, Cases),
+      { TExpr, SE } = translate_each(Expr, SC),
+      { { Kind, Line, TExpr, TCases }, umergec(S, SE) };
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "no block given for comprehension: ", atom_to_list(Kind))
+  end.
+
+translate_each_comprehension({ in, Line, [Left, Right] }, S) when is_bitstring(Left);
+  is_tuple(Left) andalso element(1, Left) == '<<>>' ->
+  translate_each_comprehension({ inbin, Line, [left, Right]}, S);
+
+translate_each_comprehension({inbin, Line, [Left, Right]}, S) ->
+  { TRight, SR } = translate_each(Right, S),
+  { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
+  { { b_generate, Line, TLeft, TRight }, SL };
+
+translate_each_comprehension({Kind, Line, [Left, Right]}, S) when Kind == in; Kind == inlist ->
+  { TRight, SR } = translate_each(Right, S),
+  { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
+  { { generate, Line, TLeft, TRight }, SL };
+
+translate_each_comprehension(X, S) ->
+  { TX, TS } = translate_each(X, S),
+  Line = case X of
+    { _, L, _ } -> L;
+    _ -> 0
+  end,
+  { elixir_tree_helpers:convert_to_boolean(Line, TX, true), TS }.
 
 % Unpack a list of expressions from a block.
 % Return an empty list in case it is an empty expression on after.

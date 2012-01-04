@@ -7,7 +7,7 @@
   build_bitstr/4,
   build_list/4, build_list/5, build_simple_list/2,
   build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2,
-  umergev/2, umergec/2]).
+  umergev/2, umergec/2, convert_to_boolean/3]).
 -include("elixir.hrl").
 
 abstract_syntax(Tree) ->
@@ -120,3 +120,17 @@ var_merger(_Var, K1, K2) ->
   if V1 > V2 -> K1;
      true -> K2
   end.
+
+convert_to_boolean(Line, Expr, Bool) ->
+  Any   = [{var, Line, '_'}],
+  False = [{atom,Line,false}],
+  Nil   = [{atom,Line,nil}],
+
+  FalseResult = [{atom,Line,not Bool}],
+  TrueResult  = [{atom,Line,Bool}],
+
+  { 'case', Line, Expr, [
+    { clause, Line, False, [], FalseResult },
+    { clause, Line, Nil, [], FalseResult },
+    { clause, Line, Any, [], TrueResult }
+  ] }.

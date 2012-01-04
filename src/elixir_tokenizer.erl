@@ -82,15 +82,6 @@ tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
 
 % Atoms
 
-tokenize(Line, "true" ++ Rest, Tokens) ->
-  tokenize(Line, Rest, [{atom,Line,[true]}|Tokens]);
-
-tokenize(Line, "false" ++ Rest, Tokens) ->
-  tokenize(Line, Rest, [{atom,Line,[false]}|Tokens]);
-
-tokenize(Line, "nil" ++ Rest, Tokens) ->
-  tokenize(Line, Rest, [{atom,Line,[nil]}|Tokens]);
-
 tokenize(Line, [$:,T|String], Tokens) when T >= $A andalso T =< $Z; T >= $a andalso T =< $z; T == $_ ->
   { Rest, { _, Atom } } = tokenize_identifier([T|String], []),
   tokenize(Line, Rest, [{atom,Line,[Atom]}|Tokens]);
@@ -115,7 +106,7 @@ tokenize(Line, [$:,T1,T2,T3|Rest], Tokens) when
 
 % ## Two Token Operators
 tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
-  T1 == $| andalso T2 == $|; T1 == $: andalso T2 == $:;
+  T1 == $| andalso T2 == $|; % T1 == $: andalso T2 == $:; Do not allow :::
   T1 == $= andalso T2 == $=; T1 == $! andalso T2 == $=;
   T1 == $< andalso T2 == $=; T1 == $> andalso T2 == $=;
   T1 == $+ andalso T2 == $+; T1 == $- andalso T2 == $-;
@@ -220,7 +211,8 @@ tokenize(Line, [H|_] = String, Tokens) when H >= $A andalso H =< $Z ->
 
 tokenize(Line, [H|_] = String, Tokens) when H >= $a andalso H =< $z; H == $_ ->
   { Rest, { Kind, _, Identifier } } = tokenize_many_identifier(Line, String, []),
-  case Kind == identifier andalso keyword(Identifier) of
+  HasKeyword = Kind == identifier orelse Kind == do_identifier orelse Kind == curly_identifier,
+  case HasKeyword andalso keyword(Identifier) of
     true  ->
       tokenize(Line, Rest, [{Identifier,Line}|Tokens]);
     false ->
@@ -356,4 +348,8 @@ keyword('xor')     -> true;
 keyword('andalso') -> true;
 keyword('orelse')  -> true;
 keyword('when')    -> true;
+keyword('in')      -> true;
+keyword('true')    -> true;
+keyword('false')   -> true;
+keyword('nil')     -> true;
 keyword(_)         -> false.
