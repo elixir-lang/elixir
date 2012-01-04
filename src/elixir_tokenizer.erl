@@ -272,6 +272,14 @@ tokenize_number([$.,H|T], Acc, false) when H >= $0 andalso H =< $9 ->
 tokenize_number([$_,H|T], Acc, Bool) when H >= $0 andalso H =< $9 ->
   tokenize_number(T, [H|Acc], Bool);
 
+% Check if we have e- followed by numbers. Valid only for floats.
+tokenize_number([$e,S,H|T], Acc, true) when H >= $0 andalso H =< $9, S == $+ orelse S == $- ->
+  tokenize_number(T, [H,S,$e|Acc], true);
+
+% Check if we have e followed by numbers. Valid only for floats.
+tokenize_number([$e,H|T], Acc, true) when H >= $0 andalso H =< $9 ->
+  tokenize_number(T, [H,$e|Acc], true);
+
 % Just numbers;
 tokenize_number([H|T], Acc, Bool) when H >= $0 andalso H =< $9 ->
   tokenize_number(T, [H|Acc], Bool);

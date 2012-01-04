@@ -60,6 +60,12 @@ defmodule Inspect::NumberTest do
   def test_float do
     "1.00000000000000000000e+00" = inspect(1.0)
     "1.00000000000000000000e+00" = stringify(1.0)
+
+    "1.00000000000000000000e+10" = inspect(1.0e10)
+    "1.00000000000000000000e+10" = stringify(1.0e10)
+
+    "1.00000000000000000000e+10" = inspect(1.0e+10)
+    "1.00000000000000000000e+10" = stringify(1.0e+10)
   end
 end
 
