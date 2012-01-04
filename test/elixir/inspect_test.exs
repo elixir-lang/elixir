@@ -19,6 +19,8 @@ defmodule Inspect::AtomTest do
   def test_with_uppercase do
     ":fOO" = inspect(:fOO)
     "fOO"  = stringify(:fOO)
+    ":FOO" = inspect(:FOO)
+    "FOO"  = stringify(:FOO)
   end
 
   def test_reference_atom do
