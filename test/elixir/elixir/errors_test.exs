@@ -101,6 +101,11 @@ defmodule Elixir::ErrorsTest do
       format_catch 'require Certainly::Doesnt::Exist, import: true'
   end
 
+  def test_already_compiled_module do
+    "nofile:1: could not invoke eval, module ::Record already compiled" =
+      format_catch 'Module.eval ::Record, __FILE__, __LINE__, quote { 1 }'
+  end
+
   def test_interpolation_error do
     "nofile:1: syntax error before: ')'" = format_catch '"foo\#{case 1 do )}bar"'
   end
