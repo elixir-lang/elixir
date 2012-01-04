@@ -103,7 +103,7 @@ defmodule Elixir::ErrorsTest do
 
   def test_already_compiled_module do
     "nofile:1: could not invoke eval, module ::Record already compiled" =
-      format_catch 'Module.eval ::Record, __FILE__, __LINE__, quote { 1 }'
+      format_catch 'Module.eval_quoted ::Record, __FILE__, __LINE__, quote { 1 }'
   end
 
   def test_interpolation_error do

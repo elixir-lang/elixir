@@ -1,7 +1,7 @@
 -module(elixir).
 -export([start/0, start_app/0, file/1, file/2,
   eval/1, eval/2, eval/3, eval/4, eval/5,
-  parse/2, parse/3]).
+  eval_quoted/1, eval_quoted/2, eval_quoted/3]).
 -include("elixir.hrl").
 
 % OTP APPLICATION API
@@ -64,30 +64,24 @@ read_file(Device, Acc) ->
 eval(String) -> eval(String, []).
 eval(String, Binding) -> eval(String, Binding, "nofile").
 eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
-eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, nil).
+eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, #elixir_scope{}).
+eval(String, Binding, Filename, Line, Scope) ->
+  Forms = elixir_translator:forms(String, Line, Filename),
+  eval_quoted(Forms, Binding, Scope#elixir_scope{filename=Filename}).
 
-eval(String, Binding, Filename, Line, nil) ->
-  eval_(String, [{'XMODULE',nil}|Binding], Filename, Line, #elixir_scope{});
-
-eval(String, Binding, Filename, Line, Module) ->
-  eval_(String, [{'XMODULE',Module}|Binding], Filename, Line, #elixir_scope{module={Line,Module}}).
-
-eval_(String, Binding, Filename, Line, Scope) ->
-  { ParseTree, NewScope } = parse(String, Binding, Filename, Line, Scope),
+eval_quoted(Tree) -> eval_quoted(Tree, []).
+eval_quoted(Tree, Binding) -> eval_quoted(Tree, Binding, #elixir_scope{}).
+eval_quoted(Tree, Binding, RawScope) ->
+  Scope = RawScope#elixir_scope{vars=binding_dict(Binding)},
+  { ParseTree, NewScope } = elixir_translator:translate(Tree, Scope),
   case ParseTree of
     [] -> { nil, Binding };
     _  ->
-      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, lists:sort(Binding)),
+      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, normalize_binding(Binding)),
       {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }
   end.
 
-% Parse string and transform tree to Erlang Abstract Form format.
-
-parse(String, Binding) -> parse(String, Binding, "nofile").
-parse(String, Binding, Filename) -> parse(String, Binding, Filename, 1, #elixir_scope{}).
-parse(String, Binding, Filename, Line, Scope) ->
-  NewScope = Scope#elixir_scope{vars=binding_dict(Binding), filename=Filename},
-  elixir_translator:parse(String, Line, NewScope).
+%% Helpers
 
 binding_dict(List) -> binding_dict(List, dict:new()).
 binding_dict([{H,_}|T], Dict) -> binding_dict(T, dict:store(H, H, Dict));
@@ -104,3 +98,10 @@ final_binding([{Var,_}|T], Acc, Binding, Vars) ->
   end;
 
 final_binding([], Acc, _Binding, _Vars) -> lists:reverse(Acc).
+
+normalize_binding(Binding) ->
+  Orddict = orddict:from_list(Binding),
+  case orddict:find('XMODULE', Orddict) of
+    { ok, _ } -> Orddict;
+    _ -> orddict:store('XMODULE', nil, Orddict)
+  end.

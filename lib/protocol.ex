@@ -67,7 +67,7 @@ defmodule Protocol do
   # We need to special case tuples so it properly handle records.
   # All the other cases simply do a function dispatch.
   defp each_function_kind(target, module, name, args, { Tuple, :is_tuple }) do
-    Module.eval target, __FILE__, __LINE__, quote {
+    Module.eval_quoted target, __FILE__, __LINE__, quote {
       def unquote(name).(unquote_splice(args)) when xA == {} do
         apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
       end
@@ -89,7 +89,7 @@ defmodule Protocol do
   end
 
   defp each_function_kind(target, module, name, args, { kind, fun }) do
-    Module.eval target, __FILE__, __LINE__, quote {
+    Module.eval_quoted target, __FILE__, __LINE__, quote {
       def unquote(name).(unquote_splice(args)) when unquote(fun).(xA) do
         apply unquote(module)::unquote(kind), unquote(name), [unquote_splice(args)]
       end

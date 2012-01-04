@@ -1,12 +1,8 @@
 -module(elixir_translator).
--export([parse/3, translate/2, translate_each/2, translate_args/2, translate_apply/7]).
+-export([translate/2, translate_each/2, translate_args/2, translate_apply/7, forms/3]).
 -import(elixir_tree_helpers, [umergev/2, umergec/2]).
 -import(elixir_errors, [syntax_error/4]).
 -include("elixir.hrl").
-
-parse(String, Line, #elixir_scope{filename=Filename} = S) ->
-  Forms = forms(String, Line, Filename),
-  translate(Forms, S).
 
 forms(String, StartLine, Filename) ->
   try elixir_tokenizer:tokenize(String, StartLine) of

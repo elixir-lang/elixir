@@ -1,13 +1,13 @@
 defmodule ModuleTest do
   use ExUnit::Case
 
-  contents = quote { def eval_info, do: { __MODULE__, __FILE__, __LINE__ } }
-  Module.eval __MODULE__, __FILE__, __LINE__ - 1, contents
+  contents = quote { def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ } }
+  Module.eval_quoted __MODULE__, __FILE__, __LINE__, contents
 
-  def test_eval do
+  def test_eval_quoted do
     # We do not assert on the line here because macros
-    # always ignore the line numbers. We need to revaluated
+    # always ignore the line numbers. We need to revaluate
     # the situation on Erlang R15.
-    { ::ModuleTest, __FILE__, _ } = eval_info()
+    { ::ModuleTest, __FILE__, _ } = eval_quoted_info()
   end
 end
