@@ -3,7 +3,7 @@
 -module(elixir_macros).
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
--import(elixir_tree_helpers, [umergev/2, umergec/2]).
+-import(elixir_tree_helpers, [umergec/2]).
 -import(elixir_errors, [syntax_error/4]).
 -include("elixir.hrl").
 
@@ -79,24 +79,6 @@ translate_macro({'receive', Line, [RawClauses] }, S) ->
       { { 'receive', Line, TClauses }, SC }
   end;
 
-%% ::
-
-translate_macro({'::', Line, [Left]}, S) ->
-  translate_macro({'::', Line, [nil,Left]}, S);
-
-translate_macro({'::', Line, [Left|Right]}, S) ->
-  { TLeft, LS } = translate_each(Left, S),
-  { TRight, RS } = translate_args(Right, (umergec(S, LS))#elixir_scope{noref=true}),
-  TArgs = [TLeft|TRight],
-  Atoms = [Atom || { atom, _, Atom } <- TArgs],
-  Final = case length(Atoms) == length(TArgs) of
-    true  -> { atom, Line, elixir_ref:concat(Atoms) };
-    false ->
-      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
-  end,
-  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
-
 %% Definitions
 
 translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
@@ -148,6 +130,35 @@ translate_macro({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
   { { 'fun', Line, {clauses, TClauses} }, umergec(S, NS) };
+
+%% Modules directives
+
+translate_macro({use, Line, [Ref|Args]}, S) ->
+  record(use, S),
+  case S#elixir_scope.module of
+    {0,nil} ->
+      syntax_error(Line, S#elixir_scope.filename, "cannot invoke use outside module. invalid scope for: ", "use");
+    {_,Module} ->
+      Call = { block, Line, [
+        { require, Line, [Ref] },
+        { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
+      ] },
+      translate_each(Call, S)
+  end;
+
+translate_macro({import, Line, [Arg]}, S) ->
+  translate_macro({import, Line, [Arg, []]}, S);
+
+translate_macro({import, Line, [_,_] = Args}, S) ->
+  record(import, S),
+  Module = S#elixir_scope.module,
+  case (Module == {0,nil}) or (S#elixir_scope.function /= []) of
+    true  ->
+      syntax_error(Line, S#elixir_scope.filename, "cannot invoke import outside module. invalid scope for: ", "import");
+    false ->
+      NewArgs = [Line, S#elixir_scope.filename, element(2, Module)|Args],
+      translate_each({{'.', Line, [elixir_import, handle_import]}, Line, NewArgs}, S)
+  end;
 
 %% Loop and recur
 

@@ -12,6 +12,7 @@ Nonterminals
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
+  open_bit close_bit
   comma_expr call_args_comma_expr call_args call_args_parens
   matched_comma_expr call_args_no_parens
   kv_comma base_orddict
@@ -19,7 +20,7 @@ Nonterminals
   do_eol end_eol kv_item kv_list do_block curly_block
   dot_op dot_identifier dot_do_identifier dot_curly_identifier
   dot_paren_identifier dot_punctuated_identifier parens_call
-  var list
+  var list bit_string
   tuple long_tuple long_tuple_call_args
   .
 
@@ -29,9 +30,11 @@ Terminals
   do_identifier curly_identifier
   number signed_number atom module_ref bin_string list_string
   dot_call_op special_op comp_op
-  'not' 'and' 'or' 'xor' 'andalso' 'orelse' 'when' 'in' 'true' 'false' 'nil'
-  '=' '+' '-' '*' '/' '++' '--' '**' '//' '<-'
-  '(' ')' eol ',' '[' ']' '|' '{' '}' '.' '::' '^'
+  'not' 'and' 'or' 'xor' 'andalso' 'orelse' 'when' 'in'
+  'true' 'false' 'nil'
+  '=' '+' '-' '*' '/' '++' '--' '**' '//'
+  '(' ')' '[' ']' '{' '}' '<<' '>>'
+  eol ','  '|'  '.' '::' '^' '<-'
   '&&' '||' '!'
   .
 
@@ -142,6 +145,7 @@ base_expr -> 'false' : ?op('$1').
 base_expr -> 'nil' : ?op('$1').
 base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
+base_expr -> bit_string : '$1'.
 
 %% Helpers
 
@@ -159,6 +163,11 @@ open_bracket  -> '['     : '$1'.
 open_bracket  -> '[' eol : '$1'.
 close_bracket -> ']'     : '$1'.
 close_bracket -> eol ']' : '$2'.
+
+open_bit  -> '<<'     : '$1'.
+open_bit  -> '<<' eol : '$1'.
+close_bit -> '>>'     : '$1'.
+close_bit -> eol '>>' : '$2'.
 
 open_curly  -> '{'     : '$1'.
 open_curly  -> '{' eol : '$1'.
@@ -348,6 +357,11 @@ long_tuple -> open_curly expr comma_separator call_args close_curly :  { '{}', ?
 long_tuple_call_args -> long_tuple : ['$1'].
 long_tuple_call_args -> long_tuple comma_separator call_args_no_parens : ['$1'|'$3'].
 
+% Bitstrings
+
+bit_string -> open_bit '>>' : { '<<>>', ?line('$1'), [] }.
+bit_string -> open_bit call_args close_bit : { '<<>>', ?line('$1'), '$2' }.
+
 Erlang code.
 
 -define(op(Node), element(1, Node)).
@@ -437,14 +451,14 @@ build_identifier({ _, Line, Identifier }, Args) ->
 %% Interpolation aware
 
 build_bin_string({ bin_string, _Line, [H] }) when is_list(H) -> list_to_binary(H);
-build_bin_string({ bin_string, Line, Args }) -> { bitstr, Line, Args }.
+build_bin_string({ bin_string, Line, Args }) -> { '<<>>', Line, Args }.
 
 build_list_string({ list_string, _Line, [H] }) when is_list(H) -> H;
-build_list_string({ list_string, Line, Args }) -> { binary_to_list, Line, [{ bitstr, Line, Args}] }.
+build_list_string({ list_string, Line, Args }) -> { binary_to_list, Line, [{ '<<>>', Line, Args}] }.
 
 build_atom({ atom, _Line, [H] }) when is_atom(H) -> H;
 build_atom({ atom, _Line, [H] }) when is_list(H) -> list_to_atom(H);
-build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ bitstr, Line, Args}, utf8] }.
+build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ '<<>>', Line, Args}, utf8] }.
 
 %% Helpers
 

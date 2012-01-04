@@ -65,38 +65,15 @@ translate_each({ bitstr, Line, Args }, S) when is_list(Args) ->
   { TArgs, { SC, SV } } = elixir_tree_helpers:build_bitstr(fun translate_arg/2, Args, Line, { S, S }),
   { TArgs, umergec(SV, SC) };
 
+translate_each({ '<<>>', Line, Args }, S) when is_list(Args) ->
+  { TArgs, { SC, SV } } = elixir_tree_helpers:build_bitstr(fun translate_arg/2, Args, Line, { S, S }),
+  { TArgs, umergec(SV, SC) };
+
 translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { {tuple, Line, TArgs}, SE };
 
-%% Modules directives
-
-translate_each({use, Line, [Ref|Args]}, S) ->
-  record(use, S),
-  case S#elixir_scope.module of
-    {0,nil} ->
-      syntax_error(Line, S#elixir_scope.filename, "cannot invoke use outside module. invalid scope for: ", "use");
-    {_,Module} ->
-      Call = { block, Line, [
-        { require, Line, [Ref] },
-        { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
-      ] },
-      translate_each(Call, S)
-  end;
-
-translate_each({import, Line, [Arg]}, S) ->
-  translate_each({import, Line, [Arg, []]}, S);
-
-translate_each({import, Line, [_,_] = Args}, S) ->
-  record(import, S),
-  Module = S#elixir_scope.module,
-  case (Module == {0,nil}) or (S#elixir_scope.function /= []) of
-    true  ->
-      syntax_error(Line, S#elixir_scope.filename, "cannot invoke import outside module. invalid scope for: ", "import");
-    false ->
-      NewArgs = [Line, S#elixir_scope.filename, element(2, Module)|Args],
-      translate_each({{'.', Line, [elixir_import, handle_import]}, Line, NewArgs}, S)
-  end;
+%% require is lexical and cannot be partially applied or overwritten
 
 translate_each({require, Line, [Left]}, S) ->
   translate_each({ require, Line, [Left, []]}, S);
@@ -165,6 +142,24 @@ translate_each({module_ref, Line, [Ref]}, S) when is_atom(Ref) ->
   end,
 
   { {atom, Line, Final }, S };
+
+%% ::
+
+translate_each({'::', Line, [Left]}, S) ->
+  translate_each({'::', Line, [nil,Left]}, S);
+
+translate_each({'::', Line, [Left|Right]}, S) ->
+  { TLeft, LS } = translate_each(Left, S),
+  { TRight, RS } = translate_args(Right, (umergec(S, LS))#elixir_scope{noref=true}),
+  TArgs = [TLeft|TRight],
+  Atoms = [Atom || { atom, _, Atom } <- TArgs],
+  Final = case length(Atoms) == length(TArgs) of
+    true  -> { atom, Line, elixir_ref:concat(Atoms) };
+    false ->
+      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
+      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
+  end,
+  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
 
 %% Quoting
 

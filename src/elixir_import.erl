@@ -210,7 +210,7 @@ in_erlang_macros() ->
     {erlang_op,3},
     {'block','*'},
     {'kv_block','*'},
-    {'bitstr','*'},
+    {'<<>>','*'},
     {'{}','*'},
     {'use','*'},
     {'require',2},
@@ -232,11 +232,13 @@ in_erlang_macros() ->
     {'receive',1},
     {'try',1},
     {'loop','*'},
-    {'recur','*'}
+    {'recur','*'},
+    {'for','*'},
+    {'bitfor','*'}
   ]).
 
 %% Those macros will always raise an error if one defines them
 %% because they are called internally many times.
 in_erlang_macros_always_conflict() ->
-  [block, kv_block, bitstr, erlang_op, '{}', '__MODULE__',
+  [block, kv_block, erlang_op, '<<>>', '{}', '__MODULE__',
    '__FILE__', '__LINE__', 'module_ref', '::', '^'].

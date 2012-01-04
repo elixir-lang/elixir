@@ -13,7 +13,7 @@ defmodule Inspect::AtomTest do
 
     "false" = stringify(false)
     "true"  = stringify(true)
-    ""   = stringify(nil)
+    ""      = stringify(nil)
   end
 
   def test_with_uppercase do
@@ -38,7 +38,10 @@ defmodule Inspect::BitStringTest do
 
   def test_binary do
     "\"foo\"" = inspect("foo")
-    "foo" = stringify("foo")
+    "foo"     = stringify("foo")
+
+    "\"abc\"" = inspect(<<?a, ?b, ?c>>)
+    "abc"     = stringify(<<?a, ?b, ?c>>)
   end
 
   def test_unprintable do
