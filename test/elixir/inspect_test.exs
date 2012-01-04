@@ -45,7 +45,7 @@ defmodule Inspect::BitStringTest do
   end
 
   def test_unprintable do
-    "<<1>>" = inspect(bitstr 1)
+    "<<1>>" = inspect(<<1>>)
   end
 end
 

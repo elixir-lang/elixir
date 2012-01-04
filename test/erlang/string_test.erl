@@ -115,4 +115,4 @@ char_test() ->
 %% Binaries
 
 bitstr_with_integer_test() ->
-  {<<"fdo">>, _} = elixir:eval("bitstr \"f\", 50+50, \"o\"").
+  {<<"fdo">>, _} = elixir:eval("<< \"f\", 50+50, \"o\" >>").

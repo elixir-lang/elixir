@@ -114,13 +114,13 @@ defmodule Protocol do
   # Geenerate arguments according the arity. The arguments
   # are named xa, xb and so forth. We cannot use string
   # interpolation to generate the arguments because of compile
-  # dependencies, so we use the bitstr macro instead.
+  # dependencies, so we use the <<>> instead.
   defp generate_args(0, acc) do
     acc
   end
 
   defp generate_args(counter, acc) do
-    name = binary_to_atom(bitstr(?x, counter + 64), :utf8)
+    name = binary_to_atom(<<?x, counter + 64>>, :utf8)
     generate_args(counter - 1, [{ name, 0, false }|acc])
   end
 

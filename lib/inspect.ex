@@ -8,16 +8,16 @@ defmodule Inspect do
   # Handle generating inspect for containers
 
   def container_join([h], acc, last) do
-    acc = bitstr(acc | :binary, Inspect.inspect(h) | :binary, last | :binary)
+    acc = << acc | :binary, Inspect.inspect(h) | :binary, last | :binary >>
   end
 
   def container_join([h|t], acc, last) do
-    acc = bitstr(acc | :binary, Inspect.inspect(h) | :binary, ', ')
+    acc = << acc | :binary, Inspect.inspect(h) | :binary, ', ' >>
     container_join(t, acc, last)
   end
 
   def container_join([], acc, last) do
-    bitstr(acc | :binary, last | :binary)
+    << acc | :binary, last | :binary >>
   end
 
   # Receives a string as a list and escapes all occorrences
@@ -53,7 +53,7 @@ defimpl Inspect, for: Atom do
     list = atom_to_list(atom)
 
     if valid_identifier?(list) == [] do
-      bitstr ?:, atom_to_binary(atom, :utf8) | :binary
+      << ?:, atom_to_binary(atom, :utf8) | :binary >>
     elsif: valid_const_identifier?(list) == []
       atom_to_binary(atom, :utf8)
     else:
