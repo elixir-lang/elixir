@@ -1,7 +1,6 @@
 -module(elixir_module).
 -export([transform/4, compile/4, format_error/1,
-  read_attribute/2, insert_attribute/3, update_attribute/3,
-  ensure_loaded/4, eval/4]).
+  ensure_loaded/4, eval_quoted/5]).
 -include("elixir.hrl").
 
 ensure_loaded(Line, Module, S, Force) ->
@@ -15,32 +14,13 @@ ensure_loaded(Line, Module, S, Force) ->
       end
   end.
 
-eval(Module, Tree, Filename, Line) ->
-  case table_exists(Module) of
-    true ->
-      eval_form(Line, Module, Tree, #elixir_scope{filename=Filename});
-    false ->
-      elixir_errors:form_error(Line, Filename, ?MODULE, { module_compiled, { Module, eval } })
-  end.
+eval_quoted(Module, Tree, Binding, Filename, Line) ->
+  eval_form(Line, Module, Tree, Binding, #elixir_scope{filename=Filename}).
 
 %% TABLE METHODS
 
 table(Module) ->
   ?ELIXIR_ATOM_CONCAT([a, Module]).
-
-table_exists(Module) ->
-  Table = table(Module),
-  Table == ets:info(Table, name).
-
-read_attribute(Module, Attr) ->
-  ets:lookup_element(table(Module), Attr, 2).
-
-insert_attribute(Module, Attr, Value) ->
-  ets:insert(table(Module), { Attr, Value }).
-
-update_attribute(Module, Attr, Fun) ->
-  Current = read_attribute(Module, Attr),
-  insert_attribute(Module, Attr, Fun(Current)).
 
 %% TRANSFORMATION METHODS
 
@@ -67,7 +47,7 @@ compile(Line, Module, Block, S) when is_atom(Module) ->
   build(Module),
 
   try
-    { Result, _ }    = eval_form(Line, Module, Block, S),
+    { Result, _ }    = eval_form(Line, Module, Block, [], S),
     { Funs, Forms0 } = functions_form(Line, Filename, Module),
     { _All, Forms1 } = imports_form(Line, Filename, Module, Funs, Forms0),
     Forms2           = attributes_form(Line, Filename, Module, Forms1),
@@ -102,9 +82,9 @@ build(Module) ->
 
 %% Receives the module representation and evaluates it.
 
-eval_form(Line, Module, Block, RawS) ->
+eval_form(Line, Module, Block, RawBinding, RawS) ->
   S = RawS#elixir_scope{module={Line,Module}},
-  Binding = [{'XMODULE',Module}],
+  Binding = [{'XMODULE',Module}|RawBinding],
   elixir:eval_quoted([Block], Binding, S).
 
 %% Return the form with exports and function declarations.
@@ -207,9 +187,6 @@ format_error({unloaded_module,{ Module, What }}) ->
 
 format_error({invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
-
-format_error({module_compiled, {Module, What}}) ->
-  io_lib:format("could not invoke ~s, module ~s already compiled", [What, Module]);
 
 format_error({module_defined, Module}) ->
   io_lib:format("module ~s already defined", [Module]).
