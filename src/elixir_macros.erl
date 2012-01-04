@@ -207,7 +207,7 @@ translate_macro({ for, Line, Args }, S) when is_list(Args) ->
   translate_comprehension(Line, lc, Args, S);
 
 translate_macro({ bitfor, Line, Args }, S) when is_list(Args) ->
-  translate_comprehension(Line, bin, Args, S);
+  translate_comprehension(Line, bc, Args, S);
 
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
@@ -238,9 +238,8 @@ translate_comprehension(Line, Kind, Args, S) ->
       syntax_error(Line, S#elixir_scope.filename, "no block given for comprehension: ", atom_to_list(Kind))
   end.
 
-translate_each_comprehension({ in, Line, [Left, Right] }, S) when is_bitstring(Left);
-  is_tuple(Left) andalso element(1, Left) == '<<>>' ->
-  translate_each_comprehension({ inbin, Line, [left, Right]}, S);
+translate_each_comprehension({ in, Line, [{'<<>>', _, _} = Left, Right] }, S) ->
+  translate_each_comprehension({ inbin, Line, [Left, Right]}, S);
 
 translate_each_comprehension({inbin, Line, [Left, Right]}, S) ->
   { TRight, SR } = translate_each(Right, S),
