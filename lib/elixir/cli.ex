@@ -17,12 +17,10 @@ defmodule Elixir::CLI do
 
     try do
       List.map all_commands, process_command(_, config)
-    catch: { :throw, reason, _ }
-      IO.puts :standard_error, "** throw #{format_catch(:throw, reason)}"
-      print_stacktrace(Code.stacktrace)
-      halt(1)
-    catch: { :error, reason, _ }
-      IO.puts :standard_error, "** error #{format_catch(:error, reason)}"
+    catch: { :exit, reason, _ } when is_integer(reason)
+      halt(reason)
+    catch: { kind, reason, _ }
+      IO.puts :standard_error, "** #{kind} #{format_catch(kind, reason)}"
       print_stacktrace(Code.stacktrace)
       halt(1)
     end

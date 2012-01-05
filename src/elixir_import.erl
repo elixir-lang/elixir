@@ -7,7 +7,7 @@
   ensure_no_macro_conflict/4, ensure_no_local_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
--compile({inline,[in_erlang_macros/0, in_erlang_macros_always_conflict/0]}).
+-compile({inline,[in_erlang_macros/0]}).
 
 %% Create tables that are responsible to store
 %% import and macro invocations.
@@ -74,9 +74,10 @@ calculate(Line, Filename, Key, Opts, All, Fun, Kind) ->
         error -> Fun()
       end
   end,
-  ensure_no_conflicts(Line, Filename, New, All),
-  ensure_no_in_erlang_macro_conflict(Line, Filename, Key, New, import_conflict),
-  {Key,New}.
+  Final = New -- internal_funs(),
+  ensure_no_conflicts(Line, Filename, Final, All),
+  ensure_no_in_erlang_macro_conflict(Line, Filename, Key, Final, import_conflict),
+  { Key, Final }.
 
 %% Return configured imports and defaults
 
@@ -166,6 +167,16 @@ format_error({local_conflict,{_, Name, Arity}}) ->
 
 format_error({import_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir internal macros", [Receiver, Name, Arity]).
+
+%% Internal funs, never imported, required, etc
+
+internal_funs() ->
+  [
+    { module_info, 0 },
+    { module_info, 1 },
+    { '__data__', 0 },
+    { '__macros__', 0 }
+  ].
 
 %% Macros implemented in Elixir - imported by default
 

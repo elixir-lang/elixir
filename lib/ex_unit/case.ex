@@ -7,6 +7,8 @@ defmodule ExUnit::Case do
     end
 
     quote do
+      import ExUnit::Assertions
+
       def __tests__ do
         ExUnit::Case.tests_for(__MODULE__)
       end
