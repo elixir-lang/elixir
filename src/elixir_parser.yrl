@@ -68,6 +68,7 @@ Nonassoc 300 special_op.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
+grammar -> eol : [nil].
 grammar -> expr_list : lists:reverse('$1').
 grammar -> eol expr_list : lists:reverse('$2').
 grammar -> expr_list eol : lists:reverse('$1').
