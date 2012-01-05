@@ -1,33 +1,7 @@
 require ::Elixir::Macros, except: [stringify: 1, inspect: 1]
 
-defmodule String do
-  defprotocol Inspect, [stringify(thing), inspect(thing)],
-    only: [BitString, Tuple, Atom, Number, List]
-
-  # Receives a string as a list and escapes all occorrences
-  # of char and any string interpolation
-  def escape(other, char) do
-    escape(other, char, [char])
-  end
-
-  ## Helpers
-
-  defp escape([char|t], char, acc) do
-    escape(t, char, [char,?\\|acc])
-  end
-
-  defp escape([?#|t], char, acc) do
-    escape(t, char, [?#,?\\|acc])
-  end
-
-  defp escape([h|t], char, acc) do
-    escape(t, char, [h|acc])
-  end
-
-  defp escape([], char, acc) do
-    List.reverse([char|acc])
-  end
-end
+defprotocol String::Inspect, [stringify(thing), inspect(thing)],
+  only: [BitString, Tuple, Atom, Number, List]
 
 defimpl String::Inspect, for: Atom do
   def inspect(false), do: "false"
