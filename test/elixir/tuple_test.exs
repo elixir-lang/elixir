@@ -1,3 +1,5 @@
+Code.require_file "../test_helper", __FILE__
+
 defmodule TupleTest do
   use ExUnit::Case
 

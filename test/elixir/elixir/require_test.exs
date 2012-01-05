@@ -1,3 +1,5 @@
+Code.require_file "../../test_helper", __FILE__
+
 defmodule Elixir::MessedBitwise do
   defmacro bnot(x),   do: x
   defmacro bor(x, _), do: x

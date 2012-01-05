@@ -1,3 +1,5 @@
+Code.require_file "../test_helper", __FILE__
+
 defmodule ProtocolTest do
   use ExUnit::Case
 

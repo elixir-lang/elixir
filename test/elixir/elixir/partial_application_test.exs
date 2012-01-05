@@ -1,3 +1,5 @@
+Code.require_file "../../test_helper", __FILE__
+
 defmodule Elixir::PartialApplicationTest do
   use ExUnit::Case
 

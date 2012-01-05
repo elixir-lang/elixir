@@ -1,3 +1,5 @@
+Code.require_file "../test_helper", __FILE__
+
 defmodule ModuleTest do
   use ExUnit::Case
 
