@@ -50,8 +50,8 @@ defmodule Elixir::Formatter do
       end
 
     if is_list(arity) do
-      # TODO: Don't depend on container_join, but on List.join
-      "#{module}#{separator}#{fun}#{String::Inspect::List.container_join(arity, "(", ")")}"
+      inspected = for x in arity, do: inspect(x)
+      "#{module}#{separator}#{fun}(#{List.join(inspected, ", ")})"
     else:
       "#{module}#{separator}#{fun}/#{arity}"
     end
