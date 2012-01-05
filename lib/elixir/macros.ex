@@ -598,9 +598,6 @@ defmodule Elixir::Macros do
     quote { ::Inspect.stringify(unquote(arg)) }
   end
 
-  # Checks if the given argument is_any structure. Always returns true.
-  defmacro is_any(_), do: true
-
   # Define elem to get Tuple element according to Elixir conventions.
   # We need to implement it as a macro to it can be used in guards.
   #

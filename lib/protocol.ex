@@ -6,7 +6,8 @@ defmodule Protocol do
   def defprotocol(args, opts) do
     kv = to_kv(args)
     quote do
-      Protocol.functions(__MODULE__, __MODULE__, unquote(kv), unquote(opts))
+      Protocol.functions(__MODULE__, unquote(kv))
+      Protocol.protocol_for(__MODULE__, unquote(opts))
       def __protocol__, do: unquote(kv)
     end
   end
@@ -46,63 +47,90 @@ defmodule Protocol do
   end
 
   # Callback entrypoint that defines the protocol functions.
-  # It receives the target module, functions tuples and the options
-  # that should be used to calculate which kinds we shuold generate
-  # functions for.
-  def functions(target, module, funs, opts) do
+  # It simply detects the protocol using __protocol_for__ and
+  # then dispatches to it.
+  def functions(module, funs) do
+    List.each List.reverse(funs), each_function(module, _)
+  end
+
+  # Implements the method that detects the protocol and returns
+  # the module to dispatch to. Returns module::Record for records
+  # which should be properly handled by the dispatching function.
+  def protocol_for(module, opts) do
     kinds = conversions_for(opts)
-    List.each List.reverse(funs), each_function(target, module, _, kinds)
+    List.each kinds, each_protocol_for(module, _)
   end
 
   ## Helpers
 
-  # Implement the protocol invocation callbacks for
-  # each function considering all kinds selected.
-  defp each_function(target, module, {name,arity}, kinds) do
-    args = generate_args(arity, [])
-    List.each kinds, each_function_kind(target, module, name, args, _)
-  end
-
-  # For each function and kind, add a new function to the module.
-  # We need to special case tuples so it properly handle records.
-  # All the other cases simply do a function dispatch.
-  defp each_function_kind(target, module, name, args, { Tuple, :is_tuple }) do
-    contents = quote {
-      def unquote(name).(unquote_splice(args)) when xA == {} do
-        apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
+  # Specially handle tuples as they can also be record.
+  # If this is the case, module::Record will be returned.
+  defp each_protocol_for(module, { Tuple, :is_tuple }) do
+    contents = quote do
+      def __protocol_for__({}) do
+        unquote(module)::Tuple
       end
 
-      def unquote(name).(unquote_splice(args)) when is_tuple(xA) do
-        first = element(1, xA)
+      def __protocol_for__(arg) when is_tuple(arg) do
+        case is_atom(element(1, arg)) do
+        match: true
+          unquote(module)::Record
+        else:
+          unquote(module)::Tuple
+        end
+      end
+    end
 
-        if is_atom(first) do
+    Module.eval_quoted module, contents, [], __FILE__, __LINE__
+  end
+
+  # Special case any as we don't need to generate a guard.
+  defp each_protocol_for(module, { _, :is_any }) do
+    contents = quote do
+      def __protocol_for__(_) do
+        unquote(module)::Any
+      end
+    end
+
+    Module.eval_quoted module, contents, [], __FILE__, __LINE__
+  end
+
+  # Generate all others protocols.
+  defp each_protocol_for(module, { kind, fun }) do
+    contents = quote do
+      def __protocol_for__(arg) when unquote(fun).(arg) do
+        unquote(module)::unquote(kind)
+      end
+    end
+
+    Module.eval_quoted module, contents, [], __FILE__, __LINE__
+  end
+
+  # Implement the protocol invocation callbacks for each function.
+  defp each_function(module, { name, arity }) do
+    args = generate_args(arity, [])
+
+    contents = quote do
+      def unquote(name).(unquote_splice(args)) do
+        case __protocol_for__(xA) do
+        match: unquote(module)::Record
           try do
             apply unquote(module)::element(1, xA), unquote(name), [unquote_splice(args)]
           catch: { :error, :undef, _ }
             apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
           end
-        else:
-          apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
+        match: other
+          apply other, unquote(name), [unquote_splice(args)]
         end
       end
-    }
+    end
 
-    Module.eval_quoted target, contents, [], __FILE__, __LINE__
-  end
-
-  defp each_function_kind(target, module, name, args, { kind, fun }) do
-    contents = quote {
-      def unquote(name).(unquote_splice(args)) when unquote(fun).(xA) do
-        apply unquote(module)::unquote(kind), unquote(name), [unquote_splice(args)]
-      end
-    }
-
-    Module.eval_quoted target, contents, [], __FILE__, __LINE__
+    Module.eval_quoted module, contents, [], __FILE__, __LINE__
   end
 
   # Converts the protocol expressions as [each(collection), length(collection)]
   # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
-  defmacro to_kv(args) do
+  defp to_kv(args) do
     Orddict.from_list List.map(args, fn(x) {
       case x do
       match: { _, _, args } when args == [] or args == false
