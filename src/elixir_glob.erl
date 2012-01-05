@@ -22,6 +22,12 @@
 -compile({no_auto_import,[error/1]}).
 -export([wildcard/2]).
 
+wildcard(Pattern, Mod) when is_binary(Pattern) ->
+  [list_to_binary(X) || X <- wildcard(binary_to_list(Pattern), Mod)];
+
+wildcard(Pattern, Mod) when is_binary(Mod) ->
+  wildcard(Pattern, binary_to_list(Mod));
+
 wildcard(Pattern, Mod) ->
   Compiled = do_compile_wildcard(Pattern),
   Results = do_wildcard_comp(Compiled, Mod),

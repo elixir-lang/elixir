@@ -148,10 +148,10 @@ defmodule Elixir::CLI do
   end
 
   defp compile_patterns(lines, config) do
-    lines = List.map lines, Erlang.elixir_glob.wildcard(_, '.')
+    lines = List.map lines, File.wildcard(_)
     List.map List.uniq(List.append(lines)), fn(file) {
       IO.puts "Compiling #{list_to_binary(file)}"
-      Erlang.elixir_compiler.file_to_path(file, config.output)
+      Code.compile_file_to_path(file, config.output)
     }
   end
 end

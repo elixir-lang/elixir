@@ -1,8 +1,6 @@
 -module(elixir_compiler).
--export([file/1, file_to_path/2, core/0]).
+-export([file/2, file_to_path/2, core/0]).
 -include("elixir.hrl").
-
-file(File) -> file(File, []).
 
 file(File, Binding) ->
   try
