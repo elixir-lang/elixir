@@ -53,6 +53,29 @@ defmodule ProtocolTest do
     false = ProtocolTest::WithAll.blank(ProtocolTest::Foo.new(a: 1))
   end
 
+  def test_protocol_for do
+    assert_protocol_for(ProtocolTest::WithAll, Atom, :foo)
+    assert_protocol_for(ProtocolTest::WithAll, Function, fn(x, do: x))
+    assert_protocol_for(ProtocolTest::WithAll, Number, 1)
+    assert_protocol_for(ProtocolTest::WithAll, Number, 1.1)
+    assert_protocol_for(ProtocolTest::WithAll, List, [])
+    assert_protocol_for(ProtocolTest::WithAll, List, [1,2,3])
+    assert_protocol_for(ProtocolTest::WithAll, Tuple, {})
+    assert_protocol_for(ProtocolTest::WithAll, Tuple, {1,2,3})
+    assert_protocol_for(ProtocolTest::WithAll, Record, {Bar,2,3})
+    assert_protocol_for(ProtocolTest::WithAll, BitString, "foo")
+    assert_protocol_for(ProtocolTest::WithAll, BitString, <<1>>)
+    assert_protocol_for(ProtocolTest::WithAll, PID, self())
+    assert_protocol_for(ProtocolTest::WithAll, Port, hd(:erlang.ports))
+    assert_protocol_for(ProtocolTest::WithAll, Reference, make_ref)
+  end
+
+  # Assert that the given protocol is going to be dispatched.
+  defp assert_protocol_for(target, impl, thing) do
+    joined  = target::impl
+    ^joined = target.__protocol_for__ thing
+  end
+
   # Dispatch `blank(thing)` to the given `target`
   # and check if it will dispatch (and successfully fail)
   # to the proper implementation `impl`.
