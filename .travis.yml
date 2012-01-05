@@ -6,3 +6,4 @@ notifications:
 otp_release:
   - R14B03
   - R14B04
+  - R15B
