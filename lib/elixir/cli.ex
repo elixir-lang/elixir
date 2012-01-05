@@ -151,7 +151,7 @@ defmodule Elixir::CLI do
     lines = List.map lines, File.wildcard(_)
     List.map List.uniq(List.append(lines)), fn(file) {
       IO.puts "Compiling #{list_to_binary(file)}"
-      Code.compile_file_to_path(file, config.output)
+      Code.compile_file_to_dir(file, config.output)
     }
   end
 end

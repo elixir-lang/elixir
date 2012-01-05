@@ -1,0 +1,1 @@
+defmodule CompileSample, do: nil
