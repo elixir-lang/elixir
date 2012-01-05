@@ -29,6 +29,10 @@ defmodule Inspect::AtomTest do
     "::Foo::Bar" = inspect(::Foo::Bar)
     "::Foo::Bar" = stringify(::Foo::Bar)
   end
+
+  def test_impl_for do
+    String::Inspect = String::Inspect::Atom.__impl_for__
+  end
 end
 
 defmodule Inspect::BitStringTest do

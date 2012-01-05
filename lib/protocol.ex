@@ -37,7 +37,10 @@ defmodule Protocol do
       end
 
       # Create a module with the given contents
-      defmodule name, do: unquote(block)
+      defmodule name do
+        def __impl_for__, do: unquote(protocol)
+        unquote(block)
+      end
 
       # Check if the implemented protocol was valid
       exports   = name.module_info(:exports)
