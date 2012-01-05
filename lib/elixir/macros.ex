@@ -201,8 +201,8 @@ defmodule Elixir::Macros do
   #
   # We could implement this protocol as follow:
   #
-  #     defmodule Blank do
-  #       defprotocol [blank?(data)]
+  #     defmodule Presence do
+  #       defprotocol Blank, [blank?(data)]
   #
   #       # The opposite of blank?
   #       def present?(data) do
@@ -214,18 +214,18 @@ defmodule Elixir::Macros do
   # to implement the protocol for each Elixir type. For example:
   #
   #     # Numbers are never blank
-  #     defimpl Blank, for: Number do
+  #     defimpl Presence::Blank, for: Number do
   #       def blank?(number), do: false
   #     end
   #
   #     # Just empty list is blank
-  #     defimpl Blank, for: List do
+  #     defimpl Presence::Blank, for: List do
   #       def blank?([]), do: true
   #       def blank?(_),  do: false
   #     end
   #
   #     # Just the atoms false and nil are blank
-  #     defimpl Blank, for: Atom do
+  #     defimpl Presence::Blank, for: Atom do
   #       def blank?(false), do: true
   #       def blank?(nil),   do: true
   #       def blank?(_),     do: false
@@ -252,12 +252,12 @@ defmodule Elixir::Macros do
   # allows you to point out that you are going to implement the protocols
   # just for some types, as follows:
   #
-  #     defprotocol [blank?(data)], only: [Atom, Tuple, List, BitString]
+  #     defprotocol Blank, [blank?(data)], only: [Atom, Tuple, List, BitString]
   #
   # And for all other types, Elixir will now dispatch to Any. That said,
   # the default behavior could be implemented as:
   #
-  #     defimpl Blank, for: Any do
+  #     defimpl Presence::Blank, for: Any do
   #       def blank?(_), do: false
   #     end
   #
@@ -271,7 +271,7 @@ defmodule Elixir::Macros do
   # dictionary should also be considered as blank in case it has no items.
   # That said, he just needs to implement the protocol for this dictionary:
   #
-  #     defimpl Blank, for: RedBlack::Dict do
+  #     defimpl Presence::Blank, for: RedBlack::Dict do
   #       def blank?(dict), do: RedBlack.empty?(dict)
   #     end
   #
@@ -280,8 +280,8 @@ defmodule Elixir::Macros do
   #
   # Finally, notice that since records are simply tuples, the default
   # implementation for records can be given in the tuple implementation.
-  defmacro defprotocol(args, opts // []) do
-    Protocol.defprotocol(args, opts)
+  defmacro defprotocol(name, args, opts // []) do
+    Protocol.defprotocol(name, args, opts)
   end
 
   # Defines an implementation for the given protocol. See
@@ -583,7 +583,7 @@ defmodule Elixir::Macros do
   #     #=> ":foo"
   #
   defmacro inspect(arg) do
-    quote { ::Inspect.inspect(unquote(arg)) }
+    quote { ::String::Inspect.inspect(unquote(arg)) }
   end
 
   # Convert the argument to a string according to the Inspect protocol.
@@ -595,7 +595,7 @@ defmodule Elixir::Macros do
   #     #=> "foo"
   #
   defmacro stringify(arg) do
-    quote { ::Inspect.stringify(unquote(arg)) }
+    quote { ::String::Inspect.stringify(unquote(arg)) }
   end
 
   # Define elem to get Tuple element according to Elixir conventions.

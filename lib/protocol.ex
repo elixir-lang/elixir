@@ -3,12 +3,14 @@ defmodule Protocol do
   import Orddict, only: [fetch: 3]
 
   # Handle `defprotocol` when it is declared in the current module.
-  def defprotocol(args, opts) do
+  def defprotocol(name, args, opts) do
     kv = to_kv(args)
     quote do
-      Protocol.functions(__MODULE__, unquote(kv))
-      Protocol.protocol_for(__MODULE__, unquote(opts))
-      def __protocol__, do: unquote(kv)
+      defmodule __MODULE__ :: unquote(name) do
+        Protocol.functions(__MODULE__, unquote(kv))
+        Protocol.protocol_for(__MODULE__, unquote(opts))
+        def __protocol__, do: unquote(kv)
+      end
     end
   end
 

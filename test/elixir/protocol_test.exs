@@ -3,17 +3,9 @@ Code.require_file "../test_helper", __FILE__
 defmodule ProtocolTest do
   use ExUnit::Case
 
-  defmodule __MODULE__ :: WithAll do
-    defprotocol [blank(thing)]
-  end
-
-  defmodule __MODULE__ :: WithExcept do
-    defprotocol [blank(thing)], except: [Atom, Number, List]
-  end
-
-  defmodule __MODULE__ :: WithOnly do
-    defprotocol [blank(thing)], only: [Tuple, Function]
-  end
+  defprotocol WithAll, [blank(thing)]
+  defprotocol WithExcept, [blank(thing)], except: [Atom, Number, List]
+  defprotocol WithOnly, [blank(thing)], only: [Tuple, Function]
 
   defrecord Foo, a: 0, b: 0
 

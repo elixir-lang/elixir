@@ -1,52 +1,35 @@
 require ::Elixir::Macros, except: [stringify: 1, inspect: 1]
 
-defmodule Inspect do
-  # Short circuit binary handlings for performance
-  def stringify(thing) when is_binary(thing), do: thing
-
-  defprotocol [stringify(thing), inspect(thing)],
+defmodule String do
+  defprotocol Inspect, [stringify(thing), inspect(thing)],
     only: [BitString, Tuple, Atom, Number, List]
-
-  # Handle generating inspect for containers
-
-  def container_join([h], acc, last) do
-    acc = << acc | :binary, Inspect.inspect(h) | :binary, last | :binary >>
-  end
-
-  def container_join([h|t], acc, last) do
-    acc = << acc | :binary, Inspect.inspect(h) | :binary, ', ' >>
-    container_join(t, acc, last)
-  end
-
-  def container_join([], acc, last) do
-    << acc | :binary, last | :binary >>
-  end
 
   # Receives a string as a list and escapes all occorrences
   # of char and any string interpolation
-
-  def escape_string(other, char) do
-    escape_string(other, char, [char])
+  def escape(other, char) do
+    escape(other, char, [char])
   end
 
-  defp escape_string([char|t], char, acc) do
-    escape_string(t, char, [char,?\\|acc])
+  ## Helpers
+
+  defp escape([char|t], char, acc) do
+    escape(t, char, [char,?\\|acc])
   end
 
-  defp escape_string([?#|t], char, acc) do
-    escape_string(t, char, [?#,?\\|acc])
+  defp escape([?#|t], char, acc) do
+    escape(t, char, [?#,?\\|acc])
   end
 
-  defp escape_string([h|t], char, acc) do
-    escape_string(t, char, [h|acc])
+  defp escape([h|t], char, acc) do
+    escape(t, char, [h|acc])
   end
 
-  defp escape_string([], char, acc) do
+  defp escape([], char, acc) do
     List.reverse([char|acc])
   end
 end
 
-defimpl Inspect, for: Atom do
+defimpl String::Inspect, for: Atom do
   def inspect(false), do: "false"
   def inspect(true),  do: "true"
   def inspect(nil),   do: "nil"
@@ -59,7 +42,7 @@ defimpl Inspect, for: Atom do
     elsif: valid_const_identifier?(list) == []
       atom_to_binary(atom, :utf8)
     else:
-      list_to_binary [?:, Inspect.escape_string(list, ?")]
+      list_to_binary [?:, String.escape(list, ?")]
     end
   end
 
@@ -91,11 +74,11 @@ defimpl Inspect, for: Atom do
   defp valid_identifier?(else), do: else
 end
 
-defimpl Inspect, for: BitString do
+defimpl String::Inspect, for: BitString do
   def inspect(thing) when is_binary(thing) do
     list = binary_to_list(thing)
     if Erlang.io_lib.printable_list(list) do
-      list_to_binary Inspect.escape_string(list, ?")
+      list_to_binary String.escape(list, ?")
     else:
       as_bitstring(thing)
     end
@@ -113,6 +96,8 @@ defimpl Inspect, for: BitString do
     as_bitstring(thing)
   end
 
+  ## Helpers
+
   defp as_bitstring(thing) do
     erlang = Erlang.io_lib.format('~p', [thing])
     list_to_binary List.reverse(replace(erlang, []))
@@ -124,29 +109,46 @@ defimpl Inspect, for: BitString do
   defp replace([], acc),                    do: acc
 end
 
-defimpl Inspect, for: Tuple do
-  def inspect(thing), do: stringify(thing)
+defimpl String::Inspect, for: List do
+  def inspect(thing) do
+    stringify(thing)
+  end
+
+  def stringify([]), do: "''"
 
   def stringify(thing) do
-    Inspect.container_join(tuple_to_list(thing), "{", "}")
-  end
-end
-
-defimpl Inspect, for: List do
-  def inspect(thing) do
     if Erlang.io_lib.printable_list(thing) do
-      list_to_binary Inspect.escape_string(thing, ?')
+      list_to_binary String.escape(thing, ?')
     else:
-      Inspect.container_join(thing, "[", "]")
+      container_join(thing, "[", "]")
     end
   end
 
-  def stringify(thing) do
-    Inspect.container_join(thing, "[", "]")
+  ## Helpers
+
+  def container_join([h], acc, last) do
+    acc = << acc | :binary, String::Inspect.inspect(h) | :binary, last | :binary >>
+  end
+
+  def container_join([h|t], acc, last) do
+    acc = << acc | :binary, String::Inspect.inspect(h) | :binary, ', ' >>
+    container_join(t, acc, last)
+  end
+
+  def container_join([], acc, last) do
+    << acc | :binary, last | :binary >>
   end
 end
 
-defimpl Inspect, for: Number do
+defimpl String::Inspect, for: Tuple do
+  def inspect(thing), do: stringify(thing)
+
+  def stringify(thing) do
+    String::Inspect::List.container_join(tuple_to_list(thing), "{", "}")
+  end
+end
+
+defimpl String::Inspect, for: Number do
   def inspect(thing), do: stringify(thing)
 
   def stringify(thing) when is_integer(thing) do
@@ -158,7 +160,7 @@ defimpl Inspect, for: Number do
   end
 end
 
-defimpl Inspect, for: Any do
+defimpl String::Inspect, for: Any do
   def inspect(thing), do: stringify(thing)
 
   def stringify(thing) do

@@ -101,12 +101,12 @@ defmodule Inspect::ListTest do
 
   def test_printable do
     "'abc'" = inspect('abc')
-    "[97, 98, 99]" = stringify('abc')
+    "'abc'" = stringify('abc')
   end
 
   def test_empty do
     "''" = inspect([])
-    "[]" = stringify([])
+    "''" = stringify([])
   end
 end
 
