@@ -1,35 +1,36 @@
 % Handle default clauses for function definitions.
 -module(elixir_def_defaults).
--export([unpack/2]).
+-export([unpack/3]).
 -include("elixir.hrl").
 
 % Unpack default args from the given clause. Invoked by elixir_translate.
-unpack(Name, Clause) ->
-  { NewArgs, NewClauses } = unpack_each(Name, element(3, Clause), [], []),
-  { setelement(3, Clause, NewArgs), NewClauses }.
+unpack(Name, Args, S) ->
+  unpack_each(Name, Args, [], [], S).
 
 %% Helpers
 
 %% Unpack default from given args.
 %% Returns the given arguments without their default
 %% clauses and a list of clauses for the default calls.
-unpack_each(Name, [{call, _, {atom, Line, '//'}, [Expr, _Default]}|T] = List, Acc, Clauses) ->
-  { Args, Invoke } = build_match(Acc, Line, [], []),
-  { NewArgs, NewInvoke } = extract_defaults(List, [], []),
-  Clause = { clause, Line, Args ++ NewArgs, [], [
-    { call, Line, {atom, Line, Name}, Invoke ++ NewInvoke }
-  ]},
-  unpack_each(Name, T, [Expr|Acc], [Clause|Clauses]);
+unpack_each(Name, [{'//', Line, [Expr, _]}|T] = List, Acc, Clauses, S) ->
+  Base = build_match(Acc, Line, []),
+  { Args, Invoke } = extract_defaults(List, [], []),
 
-unpack_each(Name, [H|T], Acc, Clauses) ->
-  unpack_each(Name, T, [H|Acc], Clauses);
+  Call = { Name, Line, Base ++ Invoke },
+  { Clause, _ } = elixir_clauses:assigns_block(Line,
+    fun elixir_translator:translate/2, Base ++ Args, [Call], [], S),
 
-unpack_each(_Name, [], Acc, Clauses) ->
+  unpack_each(Name, T, [Expr|Acc], [Clause|Clauses], S);
+
+unpack_each(Name, [H|T], Acc, Clauses, S) ->
+  unpack_each(Name, T, [H|Acc], Clauses, S);
+
+unpack_each(_Name, [], Acc, Clauses, _S) ->
   { lists:reverse(Acc), lists:reverse(Clauses) }.
 
 % Extract default values from args following the current default clause.
 
-extract_defaults([{call, _, {atom, _,'//'}, [_Expr, Default]}|T], NewArgs, NewInvoke) ->
+extract_defaults([{'//', _, [_Expr, Default]}|T], NewArgs, NewInvoke) ->
   extract_defaults(T, NewArgs, [Default|NewInvoke]);
 
 extract_defaults([H|T], NewArgs, NewInvoke) ->
@@ -40,21 +41,8 @@ extract_defaults([], NewArgs, NewInvoke) ->
 
 % Build matches for all the previous argument until the current default clause.
 
-build_match([], _Line, Args, Invoke) -> { Args, Invoke };
+build_match([], _Line, Acc) -> Acc;
 
-build_match([H|T], Line, Args, Invoke) ->
-  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", length(T)]) },
-  build_match(T, Line, [{match, Line, Var, prune_vars(H)}|Args], [Var|Invoke]).
-
-% Remove any reference to vars from the given form.
-
-prune_vars({var, Line, _}) ->
-  { var, Line, '_' };
-
-prune_vars(H) when is_tuple(H) ->
-  list_to_tuple(lists:map(fun prune_vars/1, tuple_to_list(H)));
-
-prune_vars(H) when is_list(H) ->
-  lists:map(fun prune_vars/1, H);
-
-prune_vars(H) -> H.
+build_match([_|T], Line, Acc) ->
+  Var = { ?ELIXIR_ATOM_CONCAT(["X", length(T)]), Line, false },
+  build_match(T, Line, [Var|Acc]).

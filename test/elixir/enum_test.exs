@@ -3,6 +3,16 @@ Code.require_file "../test_helper", __FILE__
 defmodule EnumTest do
   use ExUnit::Case
 
+  def test_all? do
+    true  = Enum.all? [2,4,6], fn(x) { rem(x, 2) == 0 }
+    false = Enum.all? [2,3,4], fn(x) { rem(x, 2) == 0 }
+
+    true  = Enum.all? [2,4,6]
+    false = Enum.all? [2,nil,4]
+
+    true  = Enum.all? []
+  end
+
   def test_each do
     [] = Enum.each [], fn(x) { x }
 

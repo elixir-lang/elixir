@@ -103,12 +103,13 @@ translate_definition(Line, Module, Call, Expr, S) ->
     module={Line,Module}
   },
 
+  { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, Args, ClauseScope),
+
   { TClause, _ } = elixir_clauses:assigns_block(Line,
-    fun elixir_translator:translate/2, Args, [Expr], Guards, ClauseScope),
+    fun elixir_translator:translate/2, Unpacked, [Expr], Guards, ClauseScope),
 
   Arity = length(element(3, TClause)),
-  { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, TClause),
-  Function = { function, Line, Name, Arity, [Unpacked] },
+  Function = { function, Line, Name, Arity, [TClause] },
   { Function, Defaults }.
 
 % Unwrap the functions stored in the functions table.

@@ -2,8 +2,35 @@ defmodule Enum do
   defprotocol Iterator, [iterator(collection)], only: [List]
   require Enum::Iterator, as: I
 
+  # Invokes the given `fun` for each item in the `collection`
+  # checking if the result of the function invocation evalutes
+  # to true. If any does not, abort.
+  #
+  # ## Examples
+  #
+  #     Enum.all? [2,4,6], fn(x) { rem(x, 2) == 0 }
+  #     #=> true
+  #
+  #     Enum.all? [2,3,4], fn(x) { rem(x, 2) == 0 }
+  #     #=> false
+  #
+  # If no function is given, it defaults to checking if
+  # all items in the collection evalutes to true.
+  #
+  #     Enum.all? [1,2,3]   #=> true
+  #     Enum.all? [1,nil,3] #=> false
+  #
+  def all?(collection, fun // fn(x) { x }) do
+    _all?(I.iterator(collection).(), fun)
+  end
+
   # Invokes the given `fun` for each item in the `collection`.
   # Returns the `collection` itself.
+  #
+  # ## Examples
+  #
+  #     Enum.each ['some', 'example'], fn(x) { IO.puts x }
+  #
   def each(collection, fun) do
     _each(I.iterator(collection).(), fun)
     collection
@@ -25,7 +52,7 @@ defmodule Enum do
   # Joiner can be either a binary or a list and the
   # result will be of the same type of joiner.
   #
-  # == Examples
+  # ## Examples
   #
   #     Enum.join([1,2,3], " = ") #=> "1 = 2 = 3"
   #     Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
@@ -65,6 +92,21 @@ defmodule Enum do
   end
 
   ## Implementations
+
+  def _all?({ h, next }, fun) do
+    case fun.(h) do
+    match: false
+      false
+    match: nil
+      false
+    else:
+      _all?(next.(), fun)
+    end
+  end
+
+  def _all?(__STOP_ITERATOR__, _) do
+    true
+  end
 
   ## each
 
