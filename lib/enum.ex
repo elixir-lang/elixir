@@ -9,14 +9,26 @@ defmodule Enum do
     collection
   end
 
+  # Iterates the collection from left to right passing an
+  # accumulator as parameter. Returns the accumulator.
+  #
+  # ## Examples
+  #
+  #     Enum.foldl [1, 2, 3], 0, fn(x, acc) { x + acc }
+  #     #=> 6
+  #
+  def foldl(collection, acc, f) do
+    _foldl(I.iterator(collection).(), acc, f)
+  end
+
   # Join the given `collection` according to `joiner`.
   # Joiner can be either a binary or a list and the
   # result will be of the same type of joiner.
   #
   # == Examples
   #
-  #     List.join([1,2,3], " = ") #=> "1 = 2 = 3"
-  #     List.join([1,2,3], ' = ') #=> '1 = 2 = 3'
+  #     Enum.join([1,2,3], " = ") #=> "1 = 2 = 3"
+  #     Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
   #
   def join(collection, joiner) when is_list(joiner) do
     binary_to_list join(collection, list_to_binary(joiner))
@@ -40,7 +52,7 @@ defmodule Enum do
 
   ## Implementations
 
-  ## Each
+  ## each
 
   defp _each({ h, next }, fun) do
     fun.(h)
@@ -51,7 +63,17 @@ defmodule Enum do
     []
   end
 
-  ## Join
+  ## foldl
+
+  def _foldl({ h, next }, acc, f) do
+    _foldl(next.(), f.(h, acc), f)
+  end
+
+  def _foldl(__STOP_ITERATOR__, acc, _f) do
+    acc
+  end
+
+  ## join
 
   # The first item is simply stringified unless ...
   def _join({ h, next }, joiner, nil) do
@@ -74,7 +96,7 @@ defmodule Enum do
     acc
   end
 
-  ## Map
+  ## map
 
   defp _map({ h, next }, fun) do
     [fun.(h)|_map(next.(), fun)]
