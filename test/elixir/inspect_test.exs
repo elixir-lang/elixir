@@ -30,8 +30,8 @@ defmodule Inspect::AtomTest do
     "::Foo::Bar" = stringify(::Foo::Bar)
   end
 
-  def test_impl_for do
-    String::Inspect = String::Inspect::Atom.__impl_for__
+  def test_impl do
+    String::Inspect = String::Inspect::Atom.__impl__
   end
 end
 

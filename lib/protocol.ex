@@ -2,19 +2,29 @@ defmodule Protocol do
   require Erlang.lists, as: L
   import Orddict, only: [fetch: 3]
 
-  # Handle `defprotocol` when it is declared in the current module.
+  # Handle `defprotocol`. It will define a function for each
+  # protocol plus two extra functions:
+  #
+  # * `__protocol__/0` - returns a key-value pair with the protocol functions
+  #
+  # * `__protocol_for__/1` - receives one argument and returns the protocol
+  #                          module that the function should be dispatched to
+  #                          according to the only/except rules
+  #
   def defprotocol(name, args, opts) do
     kv = to_kv(args)
     quote do
       defmodule __MODULE__ :: unquote(name) do
+        def __protocol__, do: unquote(kv)
         Protocol.functions(__MODULE__, unquote(kv))
         Protocol.protocol_for(__MODULE__, unquote(opts))
-        def __protocol__, do: unquote(kv)
       end
     end
   end
 
-  # Implement the given protocol according to the given option.
+  # Implement the given protocol for the given module.
+  # It also defines a `__impl__` function which
+  # returns the protocol being implemented.
   def defimpl(protocol, do: block, for: for) do
     quote do
       # Build up the name, protocol and block
@@ -38,7 +48,7 @@ defmodule Protocol do
 
       # Create a module with the given contents
       defmodule name do
-        def __impl_for__, do: unquote(protocol)
+        def __impl__, do: unquote(protocol)
         unquote(block)
       end
 
@@ -117,15 +127,16 @@ defmodule Protocol do
 
     contents = quote do
       def unquote(name).(unquote_splice(args)) do
+        args = [unquote_splice(args)]
         case __protocol_for__(xA) do
         match: unquote(module)::Record
           try do
-            apply unquote(module)::element(1, xA), unquote(name), [unquote_splice(args)]
+            apply unquote(module)::element(1, xA), unquote(name), args
           catch: { :error, :undef, _ }
-            apply unquote(module)::Tuple, unquote(name), [unquote_splice(args)]
+            apply unquote(module)::Tuple, unquote(name), args
           end
         match: other
-          apply other, unquote(name), [unquote_splice(args)]
+          apply other, unquote(name), args
         end
       end
     end
