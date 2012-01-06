@@ -25,7 +25,7 @@ defmodule Elixir::IEx do
       {binding, code}
     catch: { kind, error, _ }
       IO.puts :standard_error, "** #{kind} #{format_catch(kind, error)}"
-      List.each Code.stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
+      Enum.each Code.stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
       {binding, ''}
     end
 

@@ -513,11 +513,11 @@ defmodule Elixir::Macros do
   # this is not recommended in order to avoid ambiguity. For example,
   # consider this case:
   #
-  #     List.map [1,2,3], fn(x){ x * 2 }
+  #     Enum.map [1,2,3], fn(x){ x * 2 }
   #
   # The example works fine, but if we replace it by `do/end`, it will fail:
   #
-  #     List.map [1,2,3], fn(x) do
+  #     Enum.map [1,2,3], fn(x) do
   #       x * 2
   #     end
   #
@@ -526,11 +526,11 @@ defmodule Elixir::Macros do
   # to the outer call. For example, the example using curly brackets
   # would translate to:
   #
-  #     List.map([1,2,3], fn(x){ x * 2 })
+  #     Enum.map([1,2,3], fn(x){ x * 2 })
   #
   # Which is the expected result, however using `do/end` blocks:
   #
-  #     List.map([1,2,3], fn(x)) do
+  #     Enum.map([1,2,3], fn(x)) do
   #       x * 2
   #     end
   #

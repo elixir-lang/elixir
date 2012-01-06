@@ -1,7 +1,10 @@
 defmodule Orddict do
-
   def from_list(pairs) do
-    List.foldl pairs, [], fn({k, v}, dict){ store(dict, k, v) }
+    Erlang.lists.foldl fn({k, v}, dict){ store(dict, k, v) }, [], pairs
+  end
+
+  def from_enum(pairs) do
+    Enum.foldl pairs, [], fn({k, v}, dict){ store(dict, k, v) }
   end
 
   # Fetches value from the dictionary for specific key.

@@ -49,7 +49,8 @@ compile_main() ->
     "lib/module.ex",
     "lib/orddict.ex",
     "lib/list.ex",
-    "lib/record.ex",
     "lib/protocol.ex",
+    "lib/enum.ex",
+    "lib/record.ex",
     "lib/inspect.ex"
   ].

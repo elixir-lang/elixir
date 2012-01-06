@@ -1,4 +1,5 @@
 defmodule Protocol do
+  # We need to use Erlang.lists because Enum is not available yet
   require Erlang.lists, as: L
   import Orddict, only: [fetch: 3]
 
@@ -65,15 +66,14 @@ defmodule Protocol do
   # It simply detects the protocol using __protocol_for__ and
   # then dispatches to it.
   def functions(module, funs) do
-    List.each List.reverse(funs), each_function(module, _)
+    for fun in L.reverse(funs), do: each_function(module, fun)
   end
 
   # Implements the method that detects the protocol and returns
   # the module to dispatch to. Returns module::Record for records
   # which should be properly handled by the dispatching function.
   def protocol_for(module, opts) do
-    kinds = conversions_for(opts)
-    List.each kinds, each_protocol_for(module, _)
+    for kind in conversions_for(opts), do: each_protocol_for(module, kind)
   end
 
   ## Helpers
@@ -147,7 +147,7 @@ defmodule Protocol do
   # Converts the protocol expressions as [each(collection), length(collection)]
   # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
   defp to_kv(args) do
-    Orddict.from_list List.map(args, fn(x) {
+    Orddict.from_list for(x in args) {
       case x do
       match: { _, _, args } when args == [] or args == false
         error({ :badarg, "protocol functions expect at least one argument" })
@@ -156,7 +156,7 @@ defmodule Protocol do
       else:
         error({ :badarg, "invalid args for defprotocol" })
       end
-    })
+    }
   end
 
   # Geenerate arguments according the arity. The arguments
@@ -187,10 +187,10 @@ defmodule Protocol do
     ]
 
     if only = fetch(opts, :only, false) do
-      selected = List.map only, fn(i) { L.keyfind(i, 1, kinds) }
+      selected = L.map fn(i) { L.keyfind(i, 1, kinds) }, only
       selected ++ [{ Any, :is_any }]
     elsif: except = fetch(opts, :except, false)
-      selected = List.foldl except, kinds, fn(i, list) { L.keydelete(i, 1, list) }
+      selected = L.foldl fn(i, list) { L.keydelete(i, 1, list) }, kinds, except
       selected ++ [{ Any, :is_any }]
     else:
       kinds
