@@ -50,6 +50,20 @@ defmodule Enum do
     _map(I.iterator(collection).(), fun)
   end
 
+  # Invokes the given `fun` for each item in the `collection`
+  # while also keeping an accumulator. Returns a tuple where
+  # the first element is the iterated collection and the second
+  # one is the final accumulator.
+  #
+  # ## Examples
+  #
+  #     Enum.mapfoldl [1, 2, 3], 0, fn(x, acc) { { x * 2, x + acc } }
+  #     #=> { [2, 4, 6], 6 }
+  #
+  def mapfoldl(collection, acc, fun) do
+    _mapfoldl(I.iterator(collection).(), acc, fun)
+  end
+
   ## Implementations
 
   ## each
@@ -65,34 +79,34 @@ defmodule Enum do
 
   ## foldl
 
-  def _foldl({ h, next }, acc, f) do
+  defp _foldl({ h, next }, acc, f) do
     _foldl(next.(), f.(h, acc), f)
   end
 
-  def _foldl(__STOP_ITERATOR__, acc, _f) do
+  defp _foldl(__STOP_ITERATOR__, acc, _f) do
     acc
   end
 
   ## join
 
   # The first item is simply stringified unless ...
-  def _join({ h, next }, joiner, nil) do
+  defp _join({ h, next }, joiner, nil) do
     _join(next.(), joiner, stringify(h))
   end
 
   # The first item is __STOP_ITERATOR__, then we return an empty string;
-  def _join(__STOP_ITERATOR__, _joiner, nil) do
+  defp _join(__STOP_ITERATOR__, _joiner, nil) do
     ""
   end
 
   # All other items are concatenated to acc, by first adding the joiner;
-  def _join({ h, next }, joiner, acc) do
+  defp _join({ h, next }, joiner, acc) do
     acc = << acc | :binary, joiner | :binary, stringify(h) | :binary >>
     _join(next.(), joiner, acc)
   end
 
   # Until we have to stop iteration, then we return acc.
-  def _join(__STOP_ITERATOR__, _joiner, acc) do
+  defp _join(__STOP_ITERATOR__, _joiner, acc) do
     acc
   end
 
@@ -104,6 +118,18 @@ defmodule Enum do
 
   defp _map(__STOP_ITERATOR__, _fun) do
     []
+  end
+
+  ## mapfoldl
+
+  defp _mapfoldl({ h, next }, acc, f) do
+    { result, acc } = f.(h, acc)
+    { rest, acc }   = _mapfoldl(next.(), acc, f)
+    { [result|rest], acc }
+  end
+
+  defp _mapfoldl(__STOP_ITERATOR__, acc, _f) do
+    { [], acc }
   end
 end
 

@@ -33,4 +33,9 @@ defmodule EnumTest do
     [] = Enum.map [], fn(x) { x * 2 }
     [2,4,6] = Enum.map [1,2,3], fn(x) { x * 2 }
   end
+
+  def test_mapfoldl do
+    { [], 1 } = Enum.mapfoldl [], 1, fn(x, acc) { { x * 2, x + acc } }
+    { [2,4,6], 7 } = Enum.mapfoldl [1,2,3], 1, fn(x, acc) { { x * 2, x + acc } }
+  end
 end
