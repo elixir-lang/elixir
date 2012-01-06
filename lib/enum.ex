@@ -3,8 +3,8 @@ defmodule Enum do
   require Enum::Iterator, as: I
 
   # Invokes the given `fun` for each item in the `collection`
-  # checking if the result of the function invocation evalutes
-  # to true. If any does not, abort.
+  # checking if all results evalutes to true. If any does not,
+  # abort and return false. Otherwise, true.
   #
   # ## Examples
   #
@@ -24,6 +24,28 @@ defmodule Enum do
     _all?(I.iterator(collection).(), fun)
   end
 
+  # Invokes the given `fun` for each item in the `collection`
+  # checking if any of the results returns true. If one does,
+  # aborts and returns true. If not, returns false.
+  #
+  # ## Examples
+  #
+  #     Enum.any? [2,4,6], fn(x) { rem(x, 2) == 1 }
+  #     #=> false
+  #
+  #     Enum.any? [2,3,4], fn(x) { rem(x, 2) == 1 }
+  #     #=> true
+  #
+  # If no function is given, it defaults to checking if
+  # any item in the collection evalutes to true.
+  #
+  #     Enum.any? [false,false,false] #=> false
+  #     Enum.any? [false,true,false]  #=> true
+  #
+  def any?(collection, fun // fn(x) { x }) do
+    _any?(I.iterator(collection).(), fun)
+  end
+
   # Invokes the given `fun` for each item in the `collection`.
   # Returns the `collection` itself.
   #
@@ -34,6 +56,17 @@ defmodule Enum do
   def each(collection, fun) do
     _each(I.iterator(collection).(), fun)
     collection
+  end
+
+  # Returns if the collection is empty or not.
+  #
+  # ## Examples
+  #
+  #     Enum.empty? [] #=> true
+  #     Enum.empty? [1,2,3] #=> false
+  #
+  def empty?(collection) do
+    I.iterator(collection).() == __STOP_ITERATOR__
   end
 
   # Iterates the collection from left to right passing an
@@ -93,6 +126,8 @@ defmodule Enum do
 
   ## Implementations
 
+  ## all?
+
   def _all?({ h, next }, fun) do
     case fun.(h) do
     match: false
@@ -106,6 +141,23 @@ defmodule Enum do
 
   def _all?(__STOP_ITERATOR__, _) do
     true
+  end
+
+  ## any?
+
+  def _any?({ h, next }, fun) do
+    case fun.(h) do
+    match: false
+      _any?(next.(), fun)
+    match: nil
+      _any?(next.(), fun)
+    else:
+      true
+    end
+  end
+
+  def _any?(__STOP_ITERATOR__, _) do
+    false
   end
 
   ## each

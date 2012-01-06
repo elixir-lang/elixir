@@ -13,6 +13,21 @@ defmodule EnumTest do
     true  = Enum.all? []
   end
 
+  def test_any? do
+    false = Enum.any? [2,4,6], fn(x) { rem(x, 2) == 1 }
+    true  = Enum.any? [2,3,4], fn(x) { rem(x, 2) == 1 }
+
+    false = Enum.any? [false,false,false]
+    true  = Enum.any? [false,true,false]
+
+    false = Enum.any? []
+  end
+
+  def test_empty? do
+    true  = Enum.empty? []
+    false = Enum.empty? [1,2,3]
+  end
+
   def test_each do
     [] = Enum.each [], fn(x) { x }
 
