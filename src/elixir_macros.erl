@@ -52,13 +52,13 @@ translate_macro({'case', Line, [Expr, RawClauses]}, S) ->
 translate_macro({'try', Line, [Clauses]}, RawS) ->
   record('try', RawS),
   Do    = proplists:get_value('do',    Clauses, []),
-  Catch = proplists:get_value('catch', Clauses, []),
   After = proplists:get_value('after', Clauses, []),
+  Catch = orddict:erase('after', orddict:erase('do', Clauses)),
 
   S = RawS#elixir_scope{noname=true},
 
   { TDo, SB }    = translate([Do], S),
-  { TCatch, SC } = elixir_clauses:try_catch(Line, [{'catch',Catch}], umergec(S, SB)),
+  { TCatch, SC } = elixir_clauses:try_catch(Line, Catch, umergec(S, SB)),
   { TAfter, SA } = translate([After], umergec(S, SC)),
   { { 'try', Line, unpack_try(do, TDo), [], TCatch, unpack_try('after', TAfter) }, umergec(RawS, SA) };
 
@@ -93,12 +93,16 @@ translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
 
   { elixir_module:transform(Line, TRef, Block, S), NS };
 
-translate_macro({Kind, Line, [Call,[{do, Expr}]]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+translate_macro({Kind, Line, [Call,KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   record(Kind, S),
   case S#elixir_scope.function /= [] of
     true ->
       syntax_error(Line, S#elixir_scope.filename, "invalid function scope for: ", atom_to_list(Kind));
     _ ->
+      case KV of
+        [{do, Expr}] -> [];
+        _ -> Expr = { 'try', Line, [KV]}
+      end,
       { elixir_def:wrap_definition(Kind, Line, Call, Expr, S), S }
   end;
 

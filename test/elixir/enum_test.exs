@@ -8,13 +8,9 @@ defmodule EnumTest do
   end
 
   def test_each do
-    try do
-      [1,2,3] = Enum.each [1,2,3], fn(x) { put(:enum_test_each, x * 2) }
-      6 = get(:enum_test_each)
-    catch: { :invalid, _, _ }
-      nil
-    after:
-      erase(:enum_test_each)
-    end
+    [1,2,3] = Enum.each [1,2,3], fn(x) { put(:enum_test_each, x * 2) }
+    6 = get(:enum_test_each)
+  after:
+    erase(:enum_test_each)
   end
 end
