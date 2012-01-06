@@ -109,8 +109,8 @@ defmodule Inspect::ListTest do
   end
 
   def test_empty do
-    "''" = inspect([])
-    "''" = stringify([])
+    "[]" = inspect([])
+    "[]" = stringify([])
   end
 end
 

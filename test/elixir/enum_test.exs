@@ -19,14 +19,14 @@ defmodule EnumTest do
 
   def test_join_with_bin do
     ""            = Enum.join [], " = "
-    "1 = 2 = 3"   = Enum.join([1,2,3], " = ")
-    "1 = {2} = 3" = Enum.join([1,{ 2 },3], " = ")
+    "1 = 2 = 3"   = Enum.join [1,2,3], " = "
+    "1 = {2} = 3" = Enum.join [1,{ 2 },3], " = "
   end
 
   def test_join_with_list do
     ''            = Enum.join [], ' = '
-    '1 = 2 = 3'   = Enum.join([1,2,3], ' = ')
-    '1 = {2} = 3' = Enum.join([1,{ 2 },3], ' = ')
+    '1 = 2 = 3'   = Enum.join [1,2,3], ' = '
+    '1 = {2} = 3' = Enum.join [1,{ 2 },3], ' = '
   end
 
   def test_map do

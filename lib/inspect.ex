@@ -88,7 +88,7 @@ defimpl String::Inspect, for: List do
     stringify(thing)
   end
 
-  def stringify([]), do: "''"
+  def stringify([]), do: "[]"
 
   def stringify(thing) do
     if Erlang.io_lib.printable_list(thing) do
