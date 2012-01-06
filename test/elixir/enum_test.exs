@@ -23,6 +23,18 @@ defmodule EnumTest do
     false = Enum.any? []
   end
 
+  def test_detect do
+    nil = Enum.detect [2,4,6], fn(x) { rem(x, 2) == 1 }
+    0   = Enum.detect [2,4,6], 0, fn(x) { rem(x, 2) == 1 }
+    3   = Enum.detect [2,3,4], fn(x) { rem(x, 2) == 1 }
+  end
+
+  def test_detect_value do
+    nil  = Enum.detect_value [2,4,6], fn(x) { rem(x, 2) == 1 }
+    0    = Enum.detect_value [2,4,6], 0, fn(x) { rem(x, 2) == 1 }
+    true = Enum.detect_value [2,3,4], fn(x) { rem(x, 2) == 1 }
+  end
+
   def test_empty? do
     true  = Enum.empty? []
     false = Enum.empty? [1,2,3]

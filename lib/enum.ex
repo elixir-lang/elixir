@@ -46,6 +46,43 @@ defmodule Enum do
     _any?(I.iterator(collection).(), fun)
   end
 
+  # Invokes the `fun` for each item in collection
+  # and returns the first the function returns a truthy
+  # value. If no item is found, returns `ifnone`.
+  #
+  # ## Examples
+  #
+  #     Enum.detect [2,4,6], fn(x) { rem(x, 2) == 1 }
+  #     # => nil
+  #
+  #     Enum.detect [2,4,6], 0, fn(x) { rem(x, 2) == 1 }
+  #     # => 0
+  #
+  #     Enum.detect [2,3,4], fn(x) { rem(x, 2) == 1 }
+  #     # => 3
+  #
+  def detect(collection, ifnone // nil, fun) do
+    _detect(I.iterator(collection).(), ifnone, fun)
+  end
+
+  # Similar to detect, but returns the value of the function
+  # invocation instead of the element iterated.
+  #
+  # ## Examples
+  #
+  #     Enum.detect_value [2,4,6], fn(x) { rem(x, 2) == 1 }
+  #     # => nil
+  #
+  #     Enum.detect_value [2,4,6], 0, fn(x) { rem(x, 2) == 1 }
+  #     # => 0
+  #
+  #     Enum.detect_value [2,3,4], fn(x) { rem(x, 2) == 1 }
+  #     # => true
+  #
+  def detect_value(collection, ifnone // nil, fun) do
+    _detect_value(I.iterator(collection).(), ifnone, fun)
+  end
+
   # Invokes the given `fun` for each item in the `collection`.
   # Returns the `collection` itself.
   #
@@ -128,7 +165,7 @@ defmodule Enum do
 
   ## all?
 
-  def _all?({ h, next }, fun) do
+  defp _all?({ h, next }, fun) do
     case fun.(h) do
     match: false
       false
@@ -139,13 +176,13 @@ defmodule Enum do
     end
   end
 
-  def _all?(__STOP_ITERATOR__, _) do
+  defp _all?(__STOP_ITERATOR__, _) do
     true
   end
 
   ## any?
 
-  def _any?({ h, next }, fun) do
+  defp _any?({ h, next }, fun) do
     case fun.(h) do
     match: false
       _any?(next.(), fun)
@@ -156,8 +193,42 @@ defmodule Enum do
     end
   end
 
-  def _any?(__STOP_ITERATOR__, _) do
+  defp _any?(__STOP_ITERATOR__, _) do
     false
+  end
+
+  ## detect
+
+  defp _detect({ h, next }, ifnone, fun) do
+    case fun.(h) do
+    match: false
+      _detect(next.(), ifnone, fun)
+    match: nil
+      _detect(next.(), ifnone, fun)
+    else:
+      h
+    end
+  end
+
+  defp _detect(__STOP_ITERATOR__, ifnone, _) do
+    ifnone
+  end
+
+  ## detect_value
+
+  defp _detect_value({ h, next }, ifnone, fun) do
+    case fun.(h) do
+    match: false
+      _detect_value(next.(), ifnone, fun)
+    match: nil
+      _detect_value(next.(), ifnone, fun)
+    match: other
+      other
+    end
+  end
+
+  defp _detect_value(__STOP_ITERATOR__, ifnone, _) do
+    ifnone
   end
 
   ## each
