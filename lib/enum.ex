@@ -2,8 +2,23 @@ defmodule Enum do
   defprotocol Iterator, [iterator(collection)], only: [List]
   require Enum::Iterator, as: I
 
-  def map(thing, fun) do
-    _map(I.iterator(thing).(), fun)
+  # Invokes the given `fun` for each item in the `collection`.
+  # Returns the `collection` itself.
+  def each(collection, fun) do
+    _each(I.iterator(collection).(), fun)
+    collection
+  end
+
+  # Invokes the given `fun` for each item in the `collection`.
+  # Returns the result of all function calls.
+  #
+  # ## Examples
+  #
+  #     Enum.map [1, 2, 3], fn(x) { x * 2 }
+  #     #=> [2, 4, 6]
+  #
+  def map(collection, fun) do
+    _map(I.iterator(collection).(), fun)
   end
 
   ## Implementations
@@ -13,6 +28,15 @@ defmodule Enum do
   end
 
   defp _map(__STOP_ITERATOR__, _fun) do
+    []
+  end
+
+  defp _each({ h, next }, fun) do
+    fun.(h)
+    _each(next.(), fun)
+  end
+
+  defp _each(__STOP_ITERATOR__, _fun) do
     []
   end
 end
