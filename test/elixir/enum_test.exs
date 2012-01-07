@@ -49,6 +49,11 @@ defmodule EnumTest do
     erase(:enum_test_each)
   end
 
+  def test_filter do
+    [2]     = Enum.filter [1,2,3], fn(x) { rem(x, 2) == 0 }
+    [2,4,6] = Enum.filter [2,4,6], fn(x) { rem(x, 2) == 0 }
+  end
+
   def test_foldl do
     1 = Enum.foldl [], 1, fn(x, acc) { x + acc }
     7 = Enum.foldl [1,2,3], 1, fn(x, acc) { x + acc }

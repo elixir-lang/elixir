@@ -106,6 +106,18 @@ defmodule Enum do
     I.iterator(collection).() == __STOP_ITERATOR__
   end
 
+  # Invokes the given `fun` for each item in the `collection`.
+  # Returns only the items the function evalutes to true.
+  #
+  # ## Examples
+  #
+  #     Enum.filter [1, 2, 3], fn(x) { rem(x, 2) == 0 }
+  #     #=> [2]
+  #
+  def filter(collection, fun) do
+    _filter(I.iterator(collection).(), fun)
+  end
+
   # Iterates the collection from left to right passing an
   # accumulator as parameter. Returns the accumulator.
   #
@@ -239,6 +251,23 @@ defmodule Enum do
   end
 
   defp _each(__STOP_ITERATOR__, _fun) do
+    []
+  end
+
+  ## filter
+
+  defp _filter({ h, next }, fun) do
+    case fun.(h) do
+    match: false
+      _filter(next.(), fun)
+    match: nil
+      _filter(next.(), fun)
+    else:
+      [h|_filter(next.(), fun)]
+    end
+  end
+
+  defp _filter(__STOP_ITERATOR__, _fun) do
     []
   end
 
