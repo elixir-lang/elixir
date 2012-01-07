@@ -1,6 +1,6 @@
 -module(elixir_module).
 -export([transform/4, compile/4, format_error/1,
-  ensure_loaded/4, eval_quoted/5]).
+  ensure_loaded/4, binding_and_scope_for_eval/4]).
 -include("elixir.hrl").
 
 ensure_loaded(Line, Module, S, Force) ->
@@ -14,8 +14,14 @@ ensure_loaded(Line, Module, S, Force) ->
       end
   end.
 
-eval_quoted(Module, Tree, Binding, Filename, Line) ->
-  eval_form(Line, Module, Tree, Binding, #elixir_scope{filename=Filename}).
+binding_and_scope_for_eval(Line, Filename, Module, Binding) ->
+  binding_and_scope_for_eval(Line, Filename, Module, Binding, #elixir_scope{filename=Filename}).
+
+binding_and_scope_for_eval(Line, _Filename, Module, Binding, S) ->
+  {
+    [{'XMODULE',Module}|Binding],
+    S#elixir_scope{module={Line,Module}}
+  }.
 
 %% TABLE METHODS
 
@@ -47,7 +53,7 @@ compile(Line, Module, Block, S) when is_atom(Module) ->
   build(Module),
 
   try
-    { Result, _ }    = eval_form(Line, Module, Block, [], S),
+    { Result, _ }    = eval_form(Line, Filename, Module, Block, [], S),
     { Funs, Forms0 } = functions_form(Line, Filename, Module),
     { _All, Forms1 } = imports_form(Line, Filename, Module, Funs, Forms0),
     Forms2           = attributes_form(Line, Filename, Module, Forms1),
@@ -75,6 +81,7 @@ build(Module) ->
   Table = table(Module),
   ets:new(Table, [set, named_table, private]),
   ets:insert(Table, { data, [] }),
+  ets:insert(Table, { callbacks, [] }),
 
   %% Function and imports table
   elixir_def:build_table(Module),
@@ -82,10 +89,12 @@ build(Module) ->
 
 %% Receives the module representation and evaluates it.
 
-eval_form(Line, Module, Block, RawBinding, RawS) ->
-  S = RawS#elixir_scope{module={Line,Module}},
-  Binding = [{'XMODULE',Module}|RawBinding],
-  elixir:eval_quoted([Block], Binding, S).
+eval_form(Line, Filename, Module, Block, RawBinding, RawS) ->
+  { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, RawBinding, RawS),
+  { Value, NewBinding, NewS } = elixir:raw_eval([Block], Binding, S),
+  { Callbacks, FinalS } = callbacks_for(Line, Module, NewS),
+  elixir:raw_eval(Callbacks, NewBinding, FinalS),
+  { Value, NewBinding }.
 
 %% Return the form with exports and function declarations.
 
@@ -168,6 +177,26 @@ data_function(Line, Module) ->
   { function, Line, '__data__', 0,
     [{ clause, Line, [], [], [elixir_tree_helpers:abstract_syntax(Data)]}]
   }.
+
+% HELPERS
+
+callbacks_for(Line, Module, S) ->
+  Table = table(Module),
+  Callbacks = destructive_read(Table, callbacks),
+
+  { Exprs, Refers } = lists:mapfoldl(
+    fun (X, Acc) -> each_callback_for(Line, Module, X, Acc) end,
+    S#elixir_scope.refer, Callbacks),
+
+  { Exprs, S#elixir_scope{refer=Refers} }.
+
+each_callback_for(Line, Module, {M,F}, Acc) ->
+  Expr = { { '.', Line, [M,F] }, Line, [ Module ] },
+  Refer = case orddict:find(M, Acc) of
+    { ok, _ } -> Acc;
+    _ -> orddict:store(M, M, Acc)
+  end,
+  { Expr, Refer }.
 
 % ATTRIBUTES
 

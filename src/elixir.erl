@@ -1,6 +1,6 @@
 -module(elixir).
 -export([start/0, start_app/0, file/1, file/2,
-  eval/1, eval/2, eval/3, eval/4, eval/5,
+  eval/1, eval/2, eval/3, eval/4, eval/5, raw_eval/3,
   eval_quoted/1, eval_quoted/2, eval_quoted/3]).
 -include("elixir.hrl").
 
@@ -72,13 +72,17 @@ eval(String, Binding, Filename, Line, Scope) ->
 eval_quoted(Tree) -> eval_quoted(Tree, []).
 eval_quoted(Tree, Binding) -> eval_quoted(Tree, Binding, #elixir_scope{}).
 eval_quoted(Tree, Binding, RawScope) ->
+  { Value, NewBinding, _S } = raw_eval(Tree, Binding, RawScope),
+  { Value, NewBinding }.
+
+raw_eval(Tree, Binding, RawScope) ->
   Scope = RawScope#elixir_scope{vars=binding_dict(Binding)},
   { ParseTree, NewScope } = elixir_translator:translate(Tree, Scope),
   case ParseTree of
-    [] -> { nil, Binding };
+    [] -> { nil, Binding, NewScope };
     _  ->
       {value, Value, NewBinding} = erl_eval:exprs(ParseTree, normalize_binding(Binding)),
-      {Value, final_binding(NewBinding, NewScope#elixir_scope.vars) }
+      {Value, final_binding(NewBinding, NewScope#elixir_scope.vars), NewScope }
   end.
 
 %% Helpers
