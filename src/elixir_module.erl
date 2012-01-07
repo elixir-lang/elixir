@@ -19,9 +19,12 @@ binding_and_scope_for_eval(Line, Filename, Module, Binding) ->
 
 binding_and_scope_for_eval(Line, _Filename, Module, Binding, S) ->
   {
-    [{'XMODULE',Module}|Binding],
-    S#elixir_scope{module={Line,Module}}
+    binding_for_eval(Module, Binding),
+    scope_for_eval(Line, Module, S)
   }.
+
+binding_for_eval(Module, Binding) -> [{'XMODULE',Module}|Binding].
+scope_for_eval(Line, Module, S) -> S#elixir_scope{module={Line,Module}}.
 
 %% TABLE METHODS
 
@@ -93,7 +96,7 @@ eval_form(Line, Filename, Module, Block, RawBinding, RawS) ->
   { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, RawBinding, RawS),
   { Value, NewBinding, NewS } = elixir:raw_eval([Block], Binding, S),
   { Callbacks, FinalS } = callbacks_for(Line, Module, NewS),
-  elixir:raw_eval(Callbacks, NewBinding, FinalS),
+  elixir:raw_eval(Callbacks, binding_for_eval(Module, NewBinding), FinalS),
   { Value, NewBinding }.
 
 %% Return the form with exports and function declarations.

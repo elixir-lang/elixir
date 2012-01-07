@@ -1,5 +1,22 @@
 Code.require_file "../test_helper", __FILE__
 
+defmodule ModuleTest::ToBeUsed do
+  def __using__(target) do
+    Module.merge_data target, callback: false
+    Module.add_compile_callback(target, __MODULE__, :callback)
+  end
+
+  defmacro callback(target) do
+    value = Orddict.fetch(Module.read_data(target), :callback, nil)
+    Module.merge_data target, callback: true
+    quote { def original_value, do: unquote(value) }
+  end
+end
+
+defmodule ModuleTest::ToUse do
+  use ModuleTest::ToBeUsed
+end
+
 defmodule ModuleTest do
   use ExUnit::Case
 
@@ -19,5 +36,10 @@ defmodule ModuleTest do
 
   def test_merge_data do
     [other_value: 2, value: 1] == __MODULE__.__data__
+  end
+
+  def test_compile_callback_hook do
+    false = ModuleTest::ToUse.original_value
+    [callback: true] = ModuleTest::ToUse.__data__
   end
 end
