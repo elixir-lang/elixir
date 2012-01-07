@@ -65,14 +65,10 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { {tuple, Line, TArgs}, SE };
 
-%% require is lexical and cannot be partially applied or overwritten
+%% require and refer are lexical and cannot be partially applied or overwritten
 
-translate_each({require, Line, [Left]}, S) ->
-  translate_each({ require, Line, [Left, []]}, S);
-
-translate_each({require, Line, [Left,Opts]}, S) ->
-  record(require, S),
-  Right  = proplists:get_value(as, Opts, false),
+translate_each({refer, Line, [Left, [{as,Right}]]}, S) ->
+  record(refer, S),
 
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL#elixir_scope{noref=true}),
@@ -83,32 +79,45 @@ translate_each({require, Line, [Left,Opts]}, S) ->
     { { atom, _, ALeft }, { atom, _, ARight } } ->
       { ALeft, ARight };
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "require")
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "refer")
+  end,
+
+  Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
+
+  { Tuple, SR#elixir_scope{
+    refer=orddict:store(New, Old, S#elixir_scope.refer),
+    noref=S#elixir_scope.noref
+  } };
+
+translate_each({require, Line, [Left]}, S) ->
+  translate_each({ require, Line, [Left, []]}, S);
+
+translate_each({require, Line, [Left,Opts]}, S) ->
+  record(require, S),
+
+  As = proplists:get_value(as, Opts, false),
+  { TRef, SR }  = translate_each(Left, S),
+
+  Ref = case TRef of
+    { atom, _,  Atom } -> Atom;
+    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "require")
   end,
 
   Truthy = fun(X) -> proplists:get_value(X, Opts, false ) /= false end,
   Import = lists:any(Truthy, [import, only, except]),
 
-  %% Handle given :as
-  elixir_module:ensure_loaded(Line, Old, S, Import),
+  elixir_module:ensure_loaded(Line, Ref, SR, Import),
 
-  %% Handle given :import
   IS = case Import of
     true ->
-      OldImports = lists:keydelete(Old, 1, SR#elixir_scope.imports),
-      NewImports = elixir_import:calculate(Line, SR#elixir_scope.filename, Old,
-        Opts, OldImports, fun() -> elixir_dispatch:get_macros(Line, Old, SR) end, macro),
+      OldImports = lists:keydelete(Ref, 1, SR#elixir_scope.imports),
+      NewImports = elixir_import:calculate(Line, SR#elixir_scope.filename, Ref,
+        Opts, OldImports, fun() -> elixir_dispatch:get_macros(Line, Ref, SR) end, macro),
       SR#elixir_scope{imports=[NewImports|OldImports]};
     false -> SR
   end,
 
-  %% Return result
-  Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
-
-  { Tuple, IS#elixir_scope{
-    refer=orddict:store(New, Old, S#elixir_scope.refer),
-    noref=S#elixir_scope.noref
-  } };
+  translate_each({ refer, Line, [Ref, [{as,As}]] }, IS);
 
 %% Arg-less macros
 

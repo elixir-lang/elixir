@@ -1,6 +1,6 @@
 defmodule Protocol do
   # We need to use Erlang.lists because Enum is not available yet
-  require Erlang.lists, as: L
+  refer Erlang.lists, as: L
   import Orddict, only: [fetch: 3]
 
   # Handle `defprotocol`. It will define a function for each

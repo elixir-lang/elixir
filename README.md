@@ -80,7 +80,7 @@ The example above will define two modules `Foo` and `Bar`. Notice that the secon
 
 ### Directives
 
-In order to support software-reuse, Elixir supports three directives:
+In order to support software-reuse, Elixir supports four directives:
 
 #### import
 
@@ -98,12 +98,12 @@ In this case, we are importing only the function `values` (with arity 1) from `O
 
 This mechanism cannot be used to import macros. Only functions.
 
-#### require
+#### refer
 
-`require` has two main responsibilities. The first responsibility is to setup references aliases for a given module. For instance, one can do:
+`refer` is responsible to setup references aliases for a given module. For instance, one can do:
 
     defmodule Math do
-      require MyOrddict, as: Orddict
+      refer MyOrddict, as: Orddict
     end
 
 And now, any reference to `Orddict` will be automatically replaced by `MyOrddict`. In case one wants to access the original `Orddict`, it can be done by prefixing the module name with `::`:
@@ -111,7 +111,9 @@ And now, any reference to `Orddict` will be automatically replaced by `MyOrddict
     Orddict.values   #=> uses ::MyOrddict.values
     ::Orddict.values #=> uses ::Orddict.values
 
-The second responsibility of `require` is to enable the given module macros in the current module. For instance, let's suppose you created your own `if` implementation called in the module `MyMacros`. If you want to invoke it, you need to first explicitly require the `MyMacros`:
+#### require
+
+`require` allows you to enable the given module macros. For instance, suppose you created your own `if` implementation called in the module `MyMacros`. If you want to invoke it, you need to first explicitly require the `MyMacros`:
 
     defmodule Math do
       require MyMacros

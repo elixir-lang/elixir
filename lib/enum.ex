@@ -1,6 +1,6 @@
 defmodule Enum do
   defprotocol Iterator, [iterator(collection)], only: [List, Tuple]
-  require Enum::Iterator, as: I
+  refer Enum::Iterator, as: I
 
   # Invokes the given `fun` for each item in the `collection`
   # checking if all results evalutes to true. If any does not,
