@@ -1,5 +1,8 @@
 defmodule Module do
+  refer Erlang.ets, as: ETS
+
   # Evalutes the quotes contents in the given module context.
+  # Raises an error if the module was already compiled.
   #
   # ## Examples
   #
@@ -27,7 +30,27 @@ defmodule Module do
   #
   def compiled?(module) do
     table = table_for(module)
-    table == Erlang.ets.info(table, :name)
+    table == ETS.info(table, :name)
+  end
+
+  # Merge the given `new` data to the module, overriding
+  # any previous one.
+  #
+  # ## Examples
+  #
+  #     defmodule Foo do
+  #       Module.merge_data __MODULE__, value: 1
+  #     end
+  #
+  #     Foo.__data__ #=> [value: 1]
+  #
+  def merge_data(module, new) do
+    assert_already_compiled!(:merge_data, module)
+    table = table_for(module)
+    old   = ETS.lookup_element(table, :data, 2)
+    final = Orddict.merge(old, new)
+    ETS.insert(table, { :data,  final })
+    final
   end
 
   ## Helpers

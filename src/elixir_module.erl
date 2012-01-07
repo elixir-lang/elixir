@@ -90,11 +90,13 @@ eval_form(Line, Module, Block, RawBinding, RawS) ->
 %% Return the form with exports and function declarations.
 
 functions_form(Line, Filename, Module) ->
-  {E0, Private, Macros, F0} = elixir_def:unwrap_stored_definitions(Module),
-  { E1, F1 } = add_extra_function(Line, Filename, E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
+  { E0, Private, Macros, F0 } = elixir_def:unwrap_stored_definitions(Module),
 
-  { E1 ++ Private, [
-    {attribute, Line, export, E1} | F1
+  { E1, F1 } = add_extra_function(Line, Filename, E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
+  { E2, F2 } = add_extra_function(Line, Filename, E1, F1, {'__data__', 0}, data_function(Line, Module)),
+
+  { E2 ++ Private, [
+    {attribute, Line, export, E2} | F2
   ] }.
 
 %% Add imports handling to the form
@@ -113,10 +115,8 @@ imports_form(Line, Filename, Module, Funs, Current) ->
 %% Add attributes handling to the form
 
 attributes_form(Line, _Filename, Module, Current) ->
-  Table = table(Module),
-  _Data = destructive_read(Table, data),
   Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
-  ets:foldr(Transform, Current, Table).
+  ets:foldr(Transform, Current, table(Module)).
 
 %% Loads the form into the code server.
 
@@ -159,6 +159,14 @@ macros_function(Line, Macros) ->
 
   { function, Line, '__macros__', 0,
     [{ clause, Line, [], [], [Tuples]}]
+  }.
+
+data_function(Line, Module) ->
+  Table = table(Module),
+  Data  = destructive_read(Table, data),
+
+  { function, Line, '__data__', 0,
+    [{ clause, Line, [], [], [elixir_tree_helpers:abstract_syntax(Data)]}]
   }.
 
 % ATTRIBUTES
