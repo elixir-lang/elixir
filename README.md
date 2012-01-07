@@ -38,8 +38,6 @@ If you want to contribute, the code is organized as follow:
 
 * `test/erlang` - Contains tests for Elixir, written in Erlang. Usually, just internal stuff is tested here. The preferred way to test is in Elixir itself.
 
-If you are interested, check out the ROADMAP.md file in the repository or keep reading this README to find items to be implemented.
-
 ## Important links
 
 * [Mailing list](http://groups.google.com/group/elixir-lang-core)
