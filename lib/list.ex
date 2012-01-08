@@ -6,7 +6,7 @@ defmodule List do
     Erlang.lists.append(list)
   end
 
-  def append([h], right) do
+  def append([h], right) when is_list(right) do
     [h|right]
   end
 
@@ -14,11 +14,15 @@ defmodule List do
     left ++ right
   end
 
-  def reverse(list) do
+  def flatten(list, tail // []) when is_list(list) andalso is_list(tail) do
+    _flatten(list, tail)
+  end
+
+  def reverse(list) when is_list(list) do
     Erlang.lists.reverse(list)
   end
 
-  def uniq(list) do
+  def uniq(list) when is_list(list) do
     _uniq(list, [])
   end
 
@@ -27,6 +31,18 @@ defmodule List do
   def wrap(other), do: [other]
 
   ## Private
+
+  defp _flatten([h|t], tail) when is_list(h) do
+    _flatten(h, _flatten(t, tail))
+  end
+
+  defp _flatten([h|t], tail) do
+    [h|_flatten(t, tail)]
+  end
+
+  defp _flatten([], tail) do
+    tail
+  end
 
   defp _uniq([h|t], acc) do
     case Erlang.lists.member(h, acc) do
