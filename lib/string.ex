@@ -2,24 +2,24 @@ defmodule String do
   # Receives a string as a list and escapes all occorrences
   # of char and any string interpolation
   def escape(other, char) do
-    escape(other, char, [char])
+    [char|do_escape(other, char)]
   end
 
   ## Helpers
 
-  defp escape([char|t], char, acc) do
-    escape(t, char, [char,?\\|acc])
+  defp do_escape([char|t], char) do
+    [?\\,char|do_escape(t, char)]
   end
 
-  defp escape([?#|t], char, acc) do
-    escape(t, char, [?#,?\\|acc])
+  defp do_escape([?#|t], char) do
+    [?\\,?#|do_escape(t, char)]
   end
 
-  defp escape([h|t], char, acc) do
-    escape(t, char, [h|acc])
+  defp do_escape([h|t], char) do
+    [h|do_escape(t,char)]
   end
 
-  defp escape([], char, acc) do
-    List.reverse([char|acc])
+  defp do_escape([], char) do
+    [char]
   end
 end
