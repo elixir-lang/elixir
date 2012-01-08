@@ -1,6 +1,8 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule ModuleTest::ToBeUsed do
+  def value, do: 1
+
   def __using__(target) do
     Module.merge_data target, callback: false
     Module.add_compile_callback(target, __MODULE__, :callback)
@@ -32,6 +34,11 @@ defmodule ModuleTest do
     # always ignore the line numbers. We need to revaluate
     # the situation on Erlang R15.
     { ::ModuleTest, __FILE__, _ } = eval_quoted_info()
+  end
+
+  def test_refer_with_one_arg do
+    refer ModuleTest::ToBeUsed
+    1 = ToBeUsed.value
   end
 
   def test_merge_data do

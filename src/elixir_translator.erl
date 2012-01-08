@@ -66,25 +66,35 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { {tuple, Line, TArgs}, SE };
 
 %% require and refer are lexical and cannot be partially applied or overwritten
-
-translate_each({refer, Line, [Left, [{as,Right}]]}, S) ->
+translate_each({refer, Line, [Ref|T]}, S) ->
   record(refer, S),
 
-  { TLeft, SL }  = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, SL#elixir_scope{noref=true}),
+  KV = case T of
+    [NotEmpty] -> NotEmpty;
+    [] -> []
+  end,
 
-  { Old, New } = case { TLeft, TRight } of
-    { { atom, _, ALeft }, { atom, _, false } } ->
-      { ALeft, ALeft };
-    { { atom, _, ALeft }, { atom, _, ARight } } ->
-      { ALeft, ARight };
-    _ ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "refer")
+  Extractor = fun
+    ({ atom, _, Atom }) -> Atom;
+    (_) -> syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "refer")
+  end,
+
+  { TRef, SR } = translate_each(Ref, S),
+  Old = Extractor(TRef),
+
+  { New, SF } = case orddict:find(as, KV) of
+    { ok, false } ->
+      { Old, SR };
+    { ok, Other } ->
+      { TOther, SA } = translate_each(Other, SR#elixir_scope{noref=true}),
+      { Extractor(TOther), SA };
+    error ->
+      { elixir_ref:split(Old), SR }
   end,
 
   Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
 
-  { Tuple, SR#elixir_scope{
+  { Tuple, SF#elixir_scope{
     refer=orddict:store(New, Old, S#elixir_scope.refer),
     noref=S#elixir_scope.noref
   } };

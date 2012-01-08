@@ -1,5 +1,14 @@
 -module(elixir_ref).
--export([concat/1, lookup/2]).
+-export([split/1, concat/1, lookup/2]).
+
+%% Receives an atom and returns the last predicate.
+
+split(Atom) ->
+  list_to_atom(split(lists:reverse(atom_to_list(Atom)), [])).
+
+split([$:,$:|_], Acc) -> [$:,$:|Acc];
+split([H|T], Acc) -> split(T, [H|Acc]);
+split([], Acc) -> Acc.
 
 %% Receives a list of atoms representing modules
 %% and concatenate them.

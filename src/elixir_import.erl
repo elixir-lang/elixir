@@ -224,6 +224,8 @@ in_erlang_macros() ->
     {'<<>>','*'},
     {'{}','*'},
     {'use','*'},
+    {'refer',1},
+    {'require',1},
     {'refer',2},
     {'require',2},
     {'defmodule','*'},
