@@ -286,7 +286,7 @@ translate_each({{'.', _, [Expr]}, Line, Args} = Original, S) ->
 
 %% Literals
 
-translate_each({ Left, Right }, S) when is_atom(Left) ->
+translate_each({ Left, Right }, S) ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL),
   { { tuple, 0, [TLeft, TRight] }, SR };
