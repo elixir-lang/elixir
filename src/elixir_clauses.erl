@@ -10,7 +10,7 @@
 % Function for translating assigns.
 
 assigns(Fun, Args, S) ->
-  { Result, NewS } = Fun(Args, S#elixir_scope{assign=true}),
+  { Result, NewS } = Fun(Args, S#elixir_scope{assign=true,temp_vars=dict:new()}),
   { Result, NewS#elixir_scope{assign=S#elixir_scope.assign, temp_vars=S#elixir_scope.temp_vars} }.
 
 %% Function for translating a block that is preceeded by an

@@ -17,7 +17,24 @@ not_single_assignment_test() ->
   {1, [{a, 1}]} = elixir:eval("{a,a} = :{}.(1, 1)\na"),
   {2, [{a, 2}]} = elixir:eval("a = 1\n{^a,a} = {1,2}\na"),
   ?assertError({badmatch, _}, elixir:eval("{a,a} = {1,2}")),
+  ?assertError({badmatch, _}, elixir:eval("a = 0;{a,a} = {1,2}")),
   ?assertError({badmatch, _}, elixir:eval("a = 1\n^a = 2")).
+
+duplicated_assignment_on_module_with_tuple_test() ->
+  F = fun() ->
+    elixir:eval("defmodule Foo do\ndef v({ a, _left }, { a, _right }), do: a\nend"),
+    {1,_} = elixir:eval("Foo.v({ 1, :foo }, { 1, :bar })"),
+    ?assertError(function_clause, elixir:eval("Foo.v({ 1, :foo }, { 2, :bar })"))
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
+
+duplicated_assignment_on_module_with_list_test() ->
+  F = fun() ->
+    elixir:eval("defmodule Foo do\ndef v([ a, _left ], [ a, _right ]), do: a\nend"),
+    {1,_} = elixir:eval("Foo.v([ 1, :foo ], [ 1, :bar ])"),
+    ?assertError(function_clause, elixir:eval("Foo.v([ 1, :foo ], [ 2, :bar ])"))
+  end,
+  test_helper:run_and_remove(F, ['::Foo']).
 
 multiline_assignment_test() ->
   {1, [{a, 1}]} = elixir:eval("a =\n1"),

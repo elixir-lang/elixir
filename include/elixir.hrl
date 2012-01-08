@@ -16,7 +16,7 @@
   recur=[],                                 %% the current loop function to be recurred
   module={0,nil},                           %% the current module
   vars=dict:new(),                          %% a dict of defined variables and their alias
-  temp_vars=[],                             %% a list of all variables defined in a particular assign
+  temp_vars=dict:new(),                     %% a dict of all variables defined in a particular assign
   clause_vars=dict:new(),                   %% a dict of all variables defined in a particular clause
   counter=0,                                %% a counter for the variables defined
   filename="nofile",                        %% the current scope filename

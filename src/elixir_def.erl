@@ -45,7 +45,7 @@ wrap_definition(Kind, Line, Call, Expr, S) ->
   MetaExpr = elixir_tree_helpers:abstract_syntax(Expr),
 
   % Remove vars that we are not going to use from scope to make it "lighter"
-  CleanS = S#elixir_scope{vars=nil, clause_vars=nil, counter=0},
+  CleanS = S#elixir_scope{vars=nil, clause_vars=nil, temp_vars=nil, counter=0},
   MetaS  = elixir_tree_helpers:abstract_syntax(CleanS),
 
   Args = [
@@ -99,6 +99,7 @@ translate_definition(Line, Module, Call, Expr, S) ->
   ClauseScope = S#elixir_scope{
     function=Name,
     vars=dict:new(),
+    temp_vars=dict:new(),
     clause_vars=dict:new(),
     module={Line,Module}
   },

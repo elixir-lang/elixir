@@ -208,7 +208,7 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
   case Name of
     '_' -> { {var, Line, Name}, S };
     _ ->
-      case { Match, dict:is_key(Name, Vars), lists:member(Name, TempVars) } of
+      case { Match, dict:is_key(Name, Vars), dict:is_key(Name, TempVars) } of
         { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
         { true, Else, _ } ->
           { NewVar, NS } = case Else or S#elixir_scope.noname of
@@ -218,7 +218,7 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
           RealName = element(3, NewVar),
           { NewVar, NS#elixir_scope{
             vars=dict:store(Name, RealName, Vars),
-            temp_vars=[RealName|TempVars],
+            temp_vars=dict:store(Name, RealName, TempVars),
             clause_vars=dict:store(Name, RealName, ClauseVars)
           } };
         { false, false, _ } -> translate_each({Name, Line, []}, S);
@@ -276,7 +276,7 @@ translate_each({{'.', _, [Expr]}, Line, Args} = Original, S) ->
 
 %% Literals
 
-translate_each({ Left, Right }, S) ->
+translate_each({ Left, Right }, S) when is_atom(Left) ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL),
   { { tuple, 0, [TLeft, TRight] }, SR };
@@ -328,9 +328,14 @@ translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
 %   foo(3, 1)
 %   3
 %
+% However, notice that if we are doing an assignment,
+% it behaves the same as translate.
 translate_arg(Arg, { Acc, S }) ->
   { TArg, TAcc } = translate_each(Arg, Acc),
   { TArg, { umergec(S, TAcc), umergev(S, TAcc) } }.
+
+translate_args(Args, #elixir_scope{assign=true} = S) ->
+  translate(Args, S);
 
 translate_args(Args, S) ->
   { TArgs, { SC, SV } } = lists:mapfoldl(fun translate_arg/2, {S, S}, Args),

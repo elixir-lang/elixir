@@ -154,7 +154,7 @@ defmodule Protocol do
       match: { name, _, args } when is_atom(name) and is_list(args)
         { name, length(args) }
       else:
-        error({ :badarg, "invalid args for defprotocol" })
+        error({ :badarg, "invalid args for defprotocol", x })
       end
     }
   end
