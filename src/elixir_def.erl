@@ -2,6 +2,7 @@
 -module(elixir_def).
 -export([build_table/1,
   delete_table/1,
+  reset_last/1,
   wrap_definition/5,
   store_definition/6,
   unwrap_stored_definitions/1,
@@ -18,10 +19,15 @@ build_table(Module) ->
   ets:insert(FunctionTable, { public, [] }),
   ets:insert(FunctionTable, { private, [] }),
   ets:insert(FunctionTable, { macros, [] }),
+  ets:insert(FunctionTable, { last, [] }),
   FunctionTable.
 
 delete_table(Module) ->
   ets:delete(table(Module)).
+
+%% Reset the last item. Useful when evaling code.
+reset_last(Module) ->
+  ets:insert(table(Module), { last, [] }).
 
 %% Wraps the function into a call to store_definition once the function
 %% definition is read. The function is compiled into a meta tree to ensure
@@ -80,9 +86,7 @@ store_definition(Kind, Line, Module, Call, Expr, S) ->
   end,
 
   %% Store function
-  %% TODO: We need to set this boolean back to true once we figure out
-  %% how to not screw eval.
-  store_each(false, Final, FunctionTable, Visibility, Filename, Function),
+  store_each(true, Final, FunctionTable, Visibility, Filename, Function),
 
   %% Store defaults
   [store_each(false, Final, FunctionTable, Visibility, Filename,
@@ -126,6 +130,7 @@ unwrap_stored_definitions(Module) ->
   ets:delete(Table, public),
   ets:delete(Table, private),
   ets:delete(Table, macros),
+  ets:delete(Table, last),
   Functions = ets:foldl(fun(X, Acc) -> unwrap_stored_definition(X, Acc, Private) end, [], Table),
   { Public, Private, Macros, Functions }.
 
@@ -151,7 +156,7 @@ store_each(Check, Kind, FunctionTable, Visibility, Filename, {function, Line, Na
 
       case Check of
         false -> [];
-        true -> check_valid_clause(Line, Filename, Name, Arity, Visibility, FunctionTable)
+        true -> check_valid_clause(Line, Filename, Name, Arity, FunctionTable)
       end,
 
       Clauses ++ OtherClauses;
@@ -166,10 +171,13 @@ store_each(Check, Kind, FunctionTable, Visibility, Filename, {function, Line, Na
 %% Handle kind (def/defmacro) entries in the table
 
 add_function_entry(Name, Arity, defmacro, Table) ->
+  Tuple = { Name, Arity },
   Current= ets:lookup_element(Table, macros, 2),
-  ets:insert(Table, {macros, [{Name, Arity}|Current]});
+  ets:insert(Table, {last, Tuple}),
+  ets:insert(Table, {macros, [Tuple|Current]});
 
-add_function_entry(_Name, _Arity, def, _Table) -> [].
+add_function_entry(Name, Arity, def, Table) ->
+  ets:insert(Table, {last, {Name,Arity}}).
 
 check_valid_kind(Line, Filename, Name, Arity, Kind, Table) ->
   List = ets:lookup_element(Table, macros, 2),
@@ -210,9 +218,10 @@ find_visibility(Name, Arity, [Visibility|T], Table) ->
 
 %% Handle clause order
 
-check_valid_clause(Line, Filename, Name, Arity, Visibility, Table) ->
-  case ets:lookup_element(Table, Visibility, 2) of
-    [{Name,Arity}|_] -> [];
+check_valid_clause(Line, Filename, Name, Arity, Table) ->
+  case ets:lookup_element(Table, last, 2) of
+    {Name,Arity} -> [];
+    [] -> [];
     _ -> elixir_errors:form_error(Line, Filename, ?MODULE, { changed_clause, {Name, Arity} })
   end.
 

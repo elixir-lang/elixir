@@ -16,6 +16,7 @@ defmodule Module do
   def eval_quoted(module, quoted, binding, filename, line) do
     assert_already_compiled!(:eval_quoted, module)
     { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(line, to_list(filename), module, binding)
+    Erlang.elixir_def.reset_last(module)
     Erlang.elixir.eval_quoted([quoted], binding, scope)
   end
 
