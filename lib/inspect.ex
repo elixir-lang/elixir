@@ -7,6 +7,7 @@ defimpl String::Inspect, for: Atom do
   def inspect(false), do: "false"
   def inspect(true),  do: "true"
   def inspect(nil),   do: "nil"
+  def inspect(:""),   do: ":\"\""
 
   def inspect(atom) do
     list = atom_to_list(atom)

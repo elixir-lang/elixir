@@ -8,6 +8,11 @@ defmodule Inspect::AtomTest do
     "foo"  = stringify(:foo)
   end
 
+  def test_empty do
+    ":\"\"" = inspect(:"")
+    ""     = stringify(:"")
+  end
+
   def test_true_false_nil do
     "false" = inspect(false)
     "true"  = inspect(true)
