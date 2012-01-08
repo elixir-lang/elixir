@@ -71,9 +71,11 @@ eval(String, Binding, Filename, Line, Scope) ->
 
 eval_quoted(Tree) -> eval_quoted(Tree, []).
 eval_quoted(Tree, Binding) -> eval_quoted(Tree, Binding, #elixir_scope{}).
-eval_quoted(Tree, Binding, RawScope) ->
+eval_quoted(Tree, Binding, #elixir_scope{} = RawScope) ->
   { Value, NewBinding, _S } = raw_eval(Tree, Binding, RawScope),
-  { Value, NewBinding }.
+  { Value, NewBinding };
+eval_quoted(Tree, Binding, Filename) ->
+  eval_quoted(Tree, Binding, #elixir_scope{filename=Filename}).
 
 raw_eval(Tree, Binding, RawScope) ->
   Scope = RawScope#elixir_scope{vars=binding_dict(Binding)},

@@ -11,6 +11,17 @@ defmodule Code do
     server_call :loaded
   end
 
+  # Evalutes the quotes contents.
+  #
+  # ## Examples
+  #
+  #     contents = quote { a + b }
+  #     Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => 3
+  #
+  def eval_quoted(quoted, binding, filename, _line) do
+    Erlang.elixir.eval_quoted([quoted], binding, to_list(filename))
+  end
+
   # Loads the given `file`. Accepts `relative_to` as an argument to tell
   # where the file is located. If the file was already required/loaded,
   # loads it again. It returns the full path of the loaded file.
