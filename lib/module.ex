@@ -109,7 +109,7 @@ defmodule Module do
   # can be updated throughout the module definition and therefore, the final
   # value of the data can only be compiled using a compiation callback,
   # which will read the final value of :some_data and compile to a function.
-  def add_compile_callback(module, target, fun) do
+  def add_compile_callback(module, target, fun // :__compiling__) do
     assert_already_compiled!(:add_compile_callback, module)
     new   = { target, fun }
     table = table_for(module)

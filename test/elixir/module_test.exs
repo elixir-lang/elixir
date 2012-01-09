@@ -5,7 +5,12 @@ defmodule ModuleTest::ToBeUsed do
 
   def __using__(target) do
     Module.merge_data target, callback: false
+    Module.add_compile_callback(target, __MODULE__)
     Module.add_compile_callback(target, __MODULE__, :callback)
+  end
+
+  def __compiling__(target) do
+    Module.merge_data target, compiling: true
   end
 
   defmacro callback(target) do
@@ -47,6 +52,10 @@ defmodule ModuleTest do
 
   def test_compile_callback_hook do
     false = ModuleTest::ToUse.original_value
-    [callback: true] = ModuleTest::ToUse.__data__
+    true  = Orddict.fetch ModuleTest::ToUse.__data__, :callback, false
+  end
+
+  def test_default_compile_callback_hook do
+    true  = Orddict.fetch ModuleTest::ToUse.__data__, :compiling, false
   end
 end
