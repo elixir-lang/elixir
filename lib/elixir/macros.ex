@@ -599,11 +599,11 @@ defmodule Elixir::Macros do
   #
   # ## Examples
   #
-  #     stringify(:foo)
+  #     to_binary(:foo)
   #     #=> "foo"
   #
-  defmacro stringify(arg) do
-    quote { ::String::Inspect.stringify(unquote(arg)) }
+  defmacro to_binary(arg) do
+    quote { ::String::Inspect.to_binary(unquote(arg)) }
   end
 
   # Define elem to get Tuple element according to Elixir conventions.

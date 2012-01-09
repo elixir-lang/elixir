@@ -11,7 +11,7 @@ defmodule Elixir::CLI::InitTest do
     '5\n3\n1\n' = OS.cmd('bin/elixir -f "IO.puts 1" -e "IO.puts 3 + 2" test/elixir/fixtures/init_sample.exs')
 
     expected  = '#{inspect ['-o', '1', '2', '3']}\n3\n'
-    ^expected = OS.cmd('bin/elixir -e "IO.puts Code.argv" test/elixir/fixtures/init_sample.exs -o 1 2 3')
+    ^expected = OS.cmd('bin/elixir -e "IO.puts inspect(Code.argv)" test/elixir/fixtures/init_sample.exs -o 1 2 3')
   end
 end
 

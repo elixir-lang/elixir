@@ -1,6 +1,6 @@
 defmodule IO do
   def print(device // :standard_io, item) do
-    Erlang.io.format device, stringify(item), []
+    Erlang.io.format device, to_binary(item), []
   end
 
   def puts(device // :standard_io, item) do

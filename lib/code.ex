@@ -75,7 +75,7 @@ defmodule Code do
   # Finds the file given the relative_to path.
   # If the file is found, returns its path in binary, fails otherwise.
   defp find_file(file, relative_to) do
-    file = to_bin(file)
+    file = to_binary(file)
 
     file = if relative_to do
       File.expand_path(file, relative_to)
@@ -94,9 +94,6 @@ defmodule Code do
       end
     end
   end
-
-  defp to_bin(bin)  when is_binary(bin), do: bin
-  defp to_bin(list) when is_list(list),  do: list_to_binary(list)
 
   defp to_list(list) when is_list(list),  do: list
   defp to_list(bin)  when is_binary(bin), do: binary_to_list(bin)

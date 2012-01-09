@@ -1,6 +1,6 @@
-require ::Elixir::Macros, except: [stringify: 1, inspect: 1]
+require ::Elixir::Macros, except: [to_binary: 1, inspect: 1]
 
-defprotocol String::Inspect, [stringify(thing), inspect(thing)],
+defprotocol String::Inspect, [to_binary(thing), inspect(thing)],
   only: [BitString, Tuple, Atom, Number, List]
 
 defimpl String::Inspect, for: Atom do
@@ -21,11 +21,11 @@ defimpl String::Inspect, for: Atom do
     end
   end
 
-  def stringify(nil) do
+  def to_binary(nil) do
     ""
   end
 
-  def stringify(atom) do
+  def to_binary(atom) do
     atom_to_binary(atom, :utf8)
   end
 
@@ -63,11 +63,11 @@ defimpl String::Inspect, for: BitString do
     as_bitstring(thing)
   end
 
-  def stringify(thing) when is_binary(thing) do
+  def to_binary(thing) when is_binary(thing) do
     thing
   end
 
-  def stringify(thing) do
+  def to_binary(thing) do
     as_bitstring(thing)
   end
 
@@ -85,19 +85,17 @@ defimpl String::Inspect, for: BitString do
 end
 
 defimpl String::Inspect, for: List do
+  def inspect([]), do: "[]"
+
   def inspect(thing) do
-    stringify(thing)
-  end
-
-  def stringify([]), do: "[]"
-
-  def stringify(thing) do
     if Erlang.io_lib.printable_list(thing) do
       list_to_binary String.escape(thing, ?')
     else:
       container_join(thing, "[", "]")
     end
   end
+
+  def to_binary(thing), do: list_to_binary(thing)
 
   ## Helpers
 
@@ -116,29 +114,29 @@ defimpl String::Inspect, for: List do
 end
 
 defimpl String::Inspect, for: Tuple do
-  def inspect(thing), do: stringify(thing)
+  def inspect(thing), do: to_binary(thing)
 
-  def stringify(thing) do
+  def to_binary(thing) do
     String::Inspect::List.container_join(tuple_to_list(thing), "{", "}")
   end
 end
 
 defimpl String::Inspect, for: Number do
-  def inspect(thing), do: stringify(thing)
+  def inspect(thing), do: to_binary(thing)
 
-  def stringify(thing) when is_integer(thing) do
+  def to_binary(thing) when is_integer(thing) do
     list_to_binary integer_to_list(thing)
   end
 
-  def stringify(thing) do
+  def to_binary(thing) do
     list_to_binary float_to_list(thing)
   end
 end
 
 defimpl String::Inspect, for: Any do
-  def inspect(thing), do: stringify(thing)
+  def inspect(thing), do: to_binary(thing)
 
-  def stringify(thing) do
+  def to_binary(thing) do
     list_to_binary Erlang.io_lib.format('~p', [thing])
   end
 end

@@ -285,7 +285,7 @@ defmodule Enum do
 
   # The first item is simply stringified unless ...
   defp _join({ h, next }, joiner, nil) do
-    _join(next.(), joiner, stringify(h))
+    _join(next.(), joiner, to_binary(h))
   end
 
   # The first item is __STOP_ITERATOR__, then we return an empty string;
@@ -295,7 +295,7 @@ defmodule Enum do
 
   # All other items are concatenated to acc, by first adding the joiner;
   defp _join({ h, next }, joiner, acc) do
-    acc = << acc | :binary, joiner | :binary, stringify(h) | :binary >>
+    acc = << acc | :binary, joiner | :binary, to_binary(h) | :binary >>
     _join(next.(), joiner, acc)
   end
 
