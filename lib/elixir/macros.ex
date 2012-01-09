@@ -74,32 +74,24 @@ defmodule Elixir::Macros do
   # passing arguments 1 and 2. Since this syntax is a bit verbose,
   # Elixir also support the more conventional:
   #
-  #    sum(1, 2)
+  #     sum(1, 2)
   #
   # Invoking a function in another module is equally easy:
   #
-  #    Foo.sum(1, 2) #=> 3
+  #     Foo.sum(1, 2) #=> 3
   #
   # ## Dynamic function definition
   #
   # In macros it may be convenient to dynamically generate a function.
-  # The first argument that Elixir expects in `def` is always a function
-  # invocation form. That said, imagine you have a variable called `name`
-  # and you want to use it to dynamically generate a function, you can do
-  # that as:
+  # This can be done by explicitly passing the function name, arguments
+  # and guard:
   #
-  #     def atom.(first_arg, second_arg) do
+  #     name = :some_function
+  #
+  #     def name, [first_arg, second_arg], [is_list(first_arg)] do
   #       # ...
   #     end
   #
-  # Notice that the `.` is important as the format above says that we want
-  # to define a function with the name given in atom, while the format below:
-  #
-  #     def atom(first_arg, second_arg) do
-  #       # ...
-  #     end
-  #
-  # Means we are generating a new function called atom.
   defmacro def(name, do: contents)
 
   # Defines a function that is private. Private functions

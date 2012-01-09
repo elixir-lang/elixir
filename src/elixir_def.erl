@@ -3,8 +3,8 @@
 -export([build_table/1,
   delete_table/1,
   reset_last/1,
-  wrap_definition/5,
-  store_definition/6,
+  wrap_definition/7,
+  store_definition/8,
   unwrap_stored_definitions/1,
   format_error/1]).
 -include("elixir.hrl").
@@ -46,33 +46,36 @@ reset_last(Module) ->
 %%
 %% If we just analyzed the compiled structure (i.e. the function availables
 %% before evaluating the function body), we would see both definitions.
-wrap_definition(Kind, Line, Call, Expr, S) ->
-  MetaCall = elixir_tree_helpers:abstract_syntax(Call),
-  MetaExpr = elixir_tree_helpers:abstract_syntax(Expr),
+wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
+  MetaArgs   = elixir_tree_helpers:abstract_syntax(Args),
+  MetaGuards = elixir_tree_helpers:abstract_syntax(Guards),
+  MetaExpr   = elixir_tree_helpers:abstract_syntax(Expr),
 
   % Remove vars that we are not going to use from scope to make it "lighter"
   CleanS = S#elixir_scope{vars=nil, clause_vars=nil, temp_vars=nil, counter=0},
   MetaS  = elixir_tree_helpers:abstract_syntax(CleanS),
 
-  Args = [
+  Invoke = [
     {atom, Line, Kind},
     {integer, Line, Line},
     {var, Line, 'XMODULE'},
-    MetaCall,
+    Name,
+    MetaArgs,
+    MetaGuards,
     MetaExpr,
     MetaS
   ],
 
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_definition, Args).
+  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_definition, Invoke).
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, Line, nil, _Call, _Expr, S) ->
+store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module. invalid scope for: ", atom_to_list(Kind));
 
-store_definition(Kind, Line, Module, Call, Expr, S) ->
-  { Function, Defaults } = translate_definition(Line, Module, Call, Expr, S),
+store_definition(Kind, Line, Module, Name, Args, Guards, Expr, S) ->
+  { Function, Defaults } = translate_definition(Line, Module, Name, Args, Guards, Expr, S),
 
   Filename      = S#elixir_scope.filename,
   FunctionTable = table(Module),
@@ -98,10 +101,7 @@ store_definition(Kind, Line, Module, Call, Expr, S) ->
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Line, Module, Call, Expr, S) ->
-  { TCall, Guards } = elixir_clauses:extract_guards(Call),
-  { Name, Args } = elixir_clauses:extract_args(TCall),
-
+translate_definition(Line, Module, Name, Args, Guards, Expr, S) ->
   ClauseScope = S#elixir_scope{
     function=Name,
     vars=dict:new(),

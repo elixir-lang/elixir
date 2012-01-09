@@ -93,7 +93,17 @@ translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
 
   { elixir_module:transform(Line, TRef, Block, S), NS };
 
-translate_macro({Kind, Line, [Call,KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
+  record(Kind, S),
+  { Name, Args } = elixir_clauses:extract_args(Call),
+  { { tuple, Line, [{ atom, Line, Name }, { integer, Line, length(Args) }] }, S };
+
+translate_macro({Kind, Line, [Call, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+  { TCall, Guards } = elixir_clauses:extract_guards(Call),
+  { Name, Args } = elixir_clauses:extract_args(TCall),
+  translate_macro({ Kind, Line, [ Name, Args, Guards, KV ] }, S);
+
+translate_macro({Kind, Line, [Name, Args, Guards, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   record(Kind, S),
   case S#elixir_scope.function /= [] of
     true ->
@@ -103,13 +113,9 @@ translate_macro({Kind, Line, [Call,KV]}, S) when Kind == def; Kind == defp; Kind
         [{do, Expr}] -> [];
         _ -> Expr = { 'try', Line, [KV]}
       end,
-      { elixir_def:wrap_definition(Kind, Line, Call, Expr, S), S }
+      { TName, TS } = translate_each(Name, S),
+      { elixir_def:wrap_definition(Kind, Line, TName, Args, Guards, Expr, TS), TS }
   end;
-
-translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
-  record(Kind, S),
-  { Name, Args } = elixir_clauses:extract_args(Call),
-  { { tuple, Line, [{ atom, Line, Name }, { integer, Line, length(Args) }] }, S };
 
 translate_macro({Kind, Line, Args}, S) when is_list(Args), Kind == def; Kind == defmacro; Kind == defp ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", atom_to_list(Kind));
