@@ -49,6 +49,11 @@ defmodule ModuleTest do
     1 = ToBeUsed.value
   end
 
+  def test___MODULE__ do
+    __MODULE__ = :"::ModuleTest"
+    :"::ModuleTest" = __MODULE__
+  end
+
   def test_merge_data do
     [other_value: 2, value: 1] == __MODULE__.__data__
   end

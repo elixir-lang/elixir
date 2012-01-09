@@ -131,17 +131,17 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 
 %% Arg-less macros
 
-translate_each({'__MODULE__', Line, []}, S) ->
+translate_each({'__MODULE__', Line, false}, S) ->
   { _, Module } = S#elixir_scope.module,
   { { atom, Line, Module }, S };
 
-translate_each({'__LINE__', Line, []}, S) ->
+translate_each({'__LINE__', Line, false}, S) ->
   { { integer, Line, Line }, S };
 
-translate_each({'__FILE__', _Line, []}, S) ->
+translate_each({'__FILE__', _Line, false}, S) ->
   translate_each(list_to_binary(S#elixir_scope.filename), S);
 
-translate_each({'__STOP_ITERATOR__', Line, []}, S) ->
+translate_each({'__STOP_ITERATOR__', Line, false}, S) ->
   { { atom, Line, '__STOP_ITERATOR__' }, S };
 
 %% References
