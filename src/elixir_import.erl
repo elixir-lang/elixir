@@ -44,7 +44,7 @@ handle_import(Line, Filename, Module, Ref, Opts) when is_atom(Ref), is_list(Opts
   Table = import_table(Module),
   ets:delete(Table, Ref),
   All = ets:tab2list(Table),
-  Imports = calculate(Line, Filename, Ref, Opts, All, fun() -> Ref:module_info(exports) end, false),
+  Imports = calculate(Line, Filename, Ref, Opts, All, fun() -> Ref:module_info(exports) -- macros_for(Ref) end, false),
   ets:insert(Table, Imports);
 
 handle_import(Line, Filename, _Module, _Ref, _Opts) ->
@@ -168,6 +168,15 @@ format_error({local_conflict,{_, Name, Arity}}) ->
 format_error({import_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir internal macros", [Receiver, Name, Arity]).
 
+%% Returns all the macros for the given reference.
+%% Does not raise if a macro can't be found.
+macros_for(Ref) ->
+  try
+    Ref:'__macros__'()
+  catch
+    error:undef -> []
+  end.
+
 %% Internal funs, never imported, required, etc
 
 internal_funs() ->
@@ -181,12 +190,7 @@ internal_funs() ->
 
 %% Macros implemented in Elixir - imported by default
 
-in_elixir_macros() ->
-  try
-    '::Elixir::Macros':'__macros__'()
-  catch
-    error:undef -> []
-  end.
+in_elixir_macros() -> macros_for('::Elixir::Macros').
 
 %% Macros implemented in Erlang - imported and non overridable by default
 
