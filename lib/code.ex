@@ -19,7 +19,7 @@ defmodule Code do
   #     Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => 3
   #
   def eval_quoted(quoted, binding, filename, _line) do
-    Erlang.elixir.eval_quoted([quoted], binding, to_list(filename))
+    elem Erlang.elixir.eval_quoted([quoted], binding, to_list(filename)), 1
   end
 
   # Loads the given `file`. Accepts `relative_to` as an argument to tell
