@@ -14,7 +14,7 @@ defmodule ModuleTest::ToBeUsed do
   end
 
   defmacro callback(target) do
-    value = Orddict.fetch(Module.read_data(target), :callback, nil)
+    value = Module.read_data(target, :callback)
     Module.merge_data target, callback: true
     quote do
       name = :original_value

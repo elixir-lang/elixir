@@ -56,6 +56,20 @@ defmodule Module do
     ETS.lookup_element(table_for(module), :data, 2)
   end
 
+  # Reads the data from `module` at the given key `at`.
+  #
+  # ## Examples
+  #
+  #     defmodule Foo do
+  #       Module.merge_data __MODULE__, value: 1
+  #       Module.read_data __MODULE__, :value #=> 1
+  #     end
+  #
+  def read_data(module, at) do
+    Orddict.fetch read_data(module), at, nil
+  end
+
+
   # Merge the given `new` data to the module, overriding
   # any previous one.
   #
