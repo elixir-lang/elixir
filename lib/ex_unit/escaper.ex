@@ -1,3 +1,12 @@
+# In some assertions we need to show a guard clause
+# in the exception message. This usually works fine
+# except if the clause has a "_", which means that
+# we cannot show it because evaluating it would
+# generate a "unbound _" error.
+#
+# For such cases, we can use `ExUnit::Escaper.escape`
+# to escape the expression replacing all "_" by a flag
+# that when inspected returns "_".
 defmodule ExUnit::Escaper do
   defrecord Flag, as: nil
 
@@ -8,7 +17,7 @@ defmodule ExUnit::Escaper do
 
   # Replace _ by a record that when inspected prints "_"
   def escape({ :_, _, false }) do
-    quote { unquote(Flag).new(as: "_") }
+    Flag.new(as: "_")
   end
 
   def escape(expr) when is_tuple(expr) do
