@@ -175,7 +175,8 @@ internal_funs() ->
     { module_info, 0 },
     { module_info, 1 },
     { '__data__', 0 },
-    { '__macros__', 0 }
+    { '__macros__', 0 },
+    { '__using__', 1 }
   ].
 
 %% Macros implemented in Elixir - imported by default
