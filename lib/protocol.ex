@@ -29,36 +29,35 @@ defmodule Protocol do
   def defimpl(protocol, do: block, for: for) do
     quote do
       # Build up the name, protocol and block
-      protocol = unquote(protocol)
-      for      = unquote(for) || __MODULE__
-      name     = protocol::for
+      __protocol = unquote(protocol)
+      __for      = unquote(for)
+      __name     = __protocol::__for
 
       # Check if protocol is loaded
       try do
-        protocol.module_info
+        __protocol.module_info
       catch: { :error, :undef, _ }
         error { :badarg, "#{protocol} is not loaded" }
       end
 
       # Check if protocol is really a protocol
-      funs = try do
-        protocol.__protocol__
+      __funs = try do
+        __protocol.__protocol__
       catch: { :error, :undef, _ }
         error { :badarg, "#{protocol} is not a protocol" }
       end
 
       # Create a module with the given contents
-      defmodule name do
+      defmodule __name do
         def __impl__, do: unquote(protocol)
         unquote(block)
       end
 
       # Check if the implemented protocol was valid
-      exports   = name.module_info(:exports)
-      remaining = funs -- exports
+      __remaining = __funs -- __name.module_info(:exports)
 
-      if remaining != [], do:
-        error { :badarg, "#{name} did not implement #{protocol}, missing: #{remaining}" }
+      if __remaining != [], do:
+        error { :badarg, "#{__name} did not implement #{__protocol}, missing: #{__remaining}" }
     end
   end
 

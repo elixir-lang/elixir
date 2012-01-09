@@ -905,9 +905,9 @@ defmodule Elixir::Macros do
   # Unfortunately cannot be used in macros.
   defmacro :||.(left, right) do
     quote {
-      case !(__oror_var = unquote(left)) do
+      case !(__EX_oror_var = unquote(left)) do
       match: false
-        __oror_var
+        __EX_oror_var
       else:
         unquote(right)
       end
