@@ -52,5 +52,6 @@ compile_main() ->
     "lib/protocol.ex",
     "lib/enum.ex",
     "lib/record.ex",
-    "lib/string/inspect.ex"
+    "lib/string/inspect.ex",
+    "lib/list/inspect.ex"
   ].

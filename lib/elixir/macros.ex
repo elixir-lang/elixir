@@ -583,7 +583,7 @@ defmodule Elixir::Macros do
   # that it will be tail recursive.
   defmacro loop(args)
 
-  # Inspect the given arguments according to the Inspect protocol.
+  # Inspect the given arguments according to the String::Inspect protocol.
   #
   # ## Examples
   #
@@ -594,7 +594,7 @@ defmodule Elixir::Macros do
     quote { ::String::Inspect.inspect(unquote(arg)) }
   end
 
-  # Convert the argument to a string according to the Inspect protocol.
+  # Convert the argument to a string according to the String::Inspect protocol.
   # This is the function invoked when there is string interpolation.
   #
   # ## Examples
@@ -604,6 +604,17 @@ defmodule Elixir::Macros do
   #
   defmacro to_binary(arg) do
     quote { ::String::Inspect.to_binary(unquote(arg)) }
+  end
+
+  # Convert the argument to a list according to the List::Inspect protocol.
+  #
+  # ## Examples
+  #
+  #     to_list(:foo)
+  #     #=> 'foo'
+  #
+  defmacro to_list(arg) do
+    quote { ::List::Inspect.to_list(unquote(arg)) }
   end
 
   # Define elem to get Tuple element according to Elixir conventions.

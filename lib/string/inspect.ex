@@ -1,7 +1,7 @@
 require ::Elixir::Macros, except: [to_binary: 1, inspect: 1]
 
 defprotocol String::Inspect, [to_binary(thing), inspect(thing)],
-  only: [BitString, Tuple, Atom, Number, List]
+  only: [BitString, List, Tuple, Atom, Number]
 
 defimpl String::Inspect, for: Atom do
   def inspect(false), do: "false"

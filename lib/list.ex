@@ -26,10 +26,6 @@ defmodule List do
     _uniq(list, [])
   end
 
-  def wrap(list) when is_list(list), do: list
-  def wrap(nil),   do: []
-  def wrap(other), do: [other]
-
   ## Private
 
   defp _flatten([h|t], tail) when is_list(h) do

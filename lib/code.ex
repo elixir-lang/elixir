@@ -95,9 +95,6 @@ defmodule Code do
     end
   end
 
-  defp to_list(list) when is_list(list),  do: list
-  defp to_list(bin)  when is_binary(bin), do: binary_to_list(bin)
-
   defp server_call(args) do
     Erlang.gen_server.call(:elixir_code_server, args)
   end
