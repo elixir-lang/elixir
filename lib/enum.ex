@@ -1,3 +1,39 @@
+# Evalutes the items in the given collection according to the
+# Enum::Iterator protocol. Most functions in this module
+# will automatically retrieve the protocol given the collection
+# and iterator, for example:
+#
+#     Enum.map [1,2,3], fun(x) { x * 2 }
+#
+# However, one can use their own iteration function for any
+# collection by passing the iterator function as the first
+# argument:
+# 
+#     Enum.map my_iteration_function, [1,2,3], fun(x) { x * 2 }
+#
+# ## The protocol
+#
+# When `Enum.map` is invoked without the iterator function,
+# it invokes `Enum::Iterator.iterator(collection)` with the
+# given collection in order to retrieve the default iterator
+# for that collection. You can implement the protocol for any
+# data type you wish. Elixir ships with a default iterator
+# for lists, implemented as follow:
+#
+#     defimpl Enum::Iterator, for: List do
+#       def iterator(_), do: iterate(_)
+#     
+#       defp iterate([h|t]) do
+#         { h, t }
+#       end
+#     
+#       defp iterate([]) do
+#         __STOP_ITERATOR__
+#       end
+#     end
+#
+# The __STOP_ITERATOR__ is a special Elixir token that
+# marks when iteration should finish.
 defmodule Enum do
   defprotocol Iterator, [iterator(collection)], only: [List, Tuple]
   refer Enum::Iterator, as: I
@@ -21,7 +57,11 @@ defmodule Enum do
   #     Enum.all? [1,nil,3] #=> false
   #
   def all?(collection, fun // fn(x) { x }) do
-    _all?(I.iterator(collection).(), fun)
+    all?(I.iterator(collection), collection, fun)
+  end
+
+  def all?(iterator, collection, fun) do
+    do_all?(iterator.(collection), iterator, fun)
   end
 
   # Invokes the given `fun` for each item in the `collection`
@@ -43,7 +83,11 @@ defmodule Enum do
   #     Enum.any? [false,true,false]  #=> true
   #
   def any?(collection, fun // fn(x) { x }) do
-    _any?(I.iterator(collection).(), fun)
+    any?(I.iterator(collection), collection, fun)
+  end
+
+  def any?(iterator, collection, fun) do
+    do_any?(iterator.(collection), iterator, fun)
   end
 
   # Invokes the `fun` for each item in collection
@@ -62,7 +106,11 @@ defmodule Enum do
   #     # => 3
   #
   def detect(collection, ifnone // nil, fun) do
-    _detect(I.iterator(collection).(), ifnone, fun)
+    detect(I.iterator(collection), collection, ifnone, fun)
+  end
+
+  def detect(iterator, collection, ifnone, fun) do
+    do_detect(iterator.(collection), iterator, ifnone, fun)
   end
 
   # Similar to detect, but returns the value of the function
@@ -80,7 +128,11 @@ defmodule Enum do
   #     # => true
   #
   def detect_value(collection, ifnone // nil, fun) do
-    _detect_value(I.iterator(collection).(), ifnone, fun)
+    detect_value(I.iterator(collection), collection, ifnone, fun)
+  end
+
+  def detect_value(iterator, collection, ifnone, fun) do
+    do_detect_value(iterator.(collection), iterator, ifnone, fun)
   end
 
   # Invokes the given `fun` for each item in the `collection`.
@@ -91,7 +143,11 @@ defmodule Enum do
   #     Enum.each ['some', 'example'], fn(x) { IO.puts x }
   #
   def each(collection, fun) do
-    _each(I.iterator(collection).(), fun)
+    each(I.iterator(collection), collection, fun)
+  end
+
+  def each(iterator, collection, fun) do
+    do_each(iterator.(collection), iterator, fun)
     collection
   end
 
@@ -103,7 +159,11 @@ defmodule Enum do
   #     Enum.empty? [1,2,3] #=> false
   #
   def empty?(collection) do
-    I.iterator(collection).() == __STOP_ITERATOR__
+    empty?(I.iterator(collection), collection)
+  end
+
+  def empty?(iterator, collection) do
+    iterator.(collection) == __STOP_ITERATOR__
   end
 
   # Invokes the given `fun` for each item in the `collection`.
@@ -115,7 +175,11 @@ defmodule Enum do
   #     #=> [2]
   #
   def filter(collection, fun) do
-    _filter(I.iterator(collection).(), fun)
+    filter(I.iterator(collection), collection, fun)
+  end
+
+  def filter(iterator, collection, fun) do
+    do_filter(iterator.(collection), iterator, fun)
   end
 
   # Iterates the collection from left to right passing an
@@ -127,7 +191,11 @@ defmodule Enum do
   #     #=> 6
   #
   def foldl(collection, acc, f) do
-    _foldl(I.iterator(collection).(), acc, f)
+    foldl(I.iterator(collection), collection, acc, f)
+  end
+
+  def foldl(iterator, collection, acc, f) do
+    do_foldl(iterator.(collection), iterator, acc, f)
   end
 
   # Join the given `collection` according to `joiner`.
@@ -139,12 +207,16 @@ defmodule Enum do
   #     Enum.join([1,2,3], " = ") #=> "1 = 2 = 3"
   #     Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
   #
-  def join(collection, joiner) when is_list(joiner) do
-    binary_to_list join(collection, list_to_binary(joiner))
+  def join(collection, joiner) do
+    join(I.iterator(collection), collection, joiner)
   end
 
-  def join(collection, joiner) do
-    _join(I.iterator(collection).(), joiner, nil)
+  def join(iterator, collection, joiner) when is_list(joiner) do
+    binary_to_list join(iterator, collection, list_to_binary(joiner))
+  end
+
+  def join(iterator, collection, joiner) do
+    do_join(iterator.(collection), iterator, joiner, nil)
   end
 
   # Invokes the given `fun` for each item in the `collection`.
@@ -156,7 +228,11 @@ defmodule Enum do
   #     #=> [2, 4, 6]
   #
   def map(collection, fun) do
-    _map(I.iterator(collection).(), fun)
+    map(I.iterator(collection), collection, fun)
+  end
+
+  def map(iterator, collection, fun) do
+    do_map(iterator.(collection), iterator, fun)
   end
 
   # Invokes the given `fun` for each item in the `collection`
@@ -170,170 +246,172 @@ defmodule Enum do
   #     #=> { [2, 4, 6], 6 }
   #
   def mapfoldl(collection, acc, fun) do
-    _mapfoldl(I.iterator(collection).(), acc, fun)
+    mapfoldl(I.iterator(collection), collection, acc, fun)
+  end
+
+  def mapfoldl(iterator, collection, acc, fun) do
+    do_mapfoldl(iterator.(collection), iterator, acc, fun)
   end
 
   ## Implementations
 
   ## all?
 
-  defp _all?({ h, next }, fun) do
+  defp do_all?({ h, next }, iterator, fun) do
     case fun.(h) do
     match: false
       false
     match: nil
       false
     else:
-      _all?(next.(), fun)
+      do_all?(iterator.(next), iterator, fun)
     end
   end
 
-  defp _all?(__STOP_ITERATOR__, _) do
+  defp do_all?(__STOP_ITERATOR__, _, _) do
     true
   end
 
   ## any?
 
-  defp _any?({ h, next }, fun) do
+  defp do_any?({ h, next }, iterator, fun) do
     case fun.(h) do
     match: false
-      _any?(next.(), fun)
+      do_any?(iterator.(next), iterator, fun)
     match: nil
-      _any?(next.(), fun)
+      do_any?(iterator.(next), iterator, fun)
     else:
       true
     end
   end
 
-  defp _any?(__STOP_ITERATOR__, _) do
+  defp do_any?(__STOP_ITERATOR__, _, _) do
     false
   end
 
   ## detect
 
-  defp _detect({ h, next }, ifnone, fun) do
+  defp do_detect({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
     match: false
-      _detect(next.(), ifnone, fun)
+      do_detect(iterator.(next), iterator, ifnone, fun)
     match: nil
-      _detect(next.(), ifnone, fun)
+      do_detect(iterator.(next), iterator, ifnone, fun)
     else:
       h
     end
   end
 
-  defp _detect(__STOP_ITERATOR__, ifnone, _) do
+  defp do_detect(__STOP_ITERATOR__, _, ifnone, _) do
     ifnone
   end
 
   ## detect_value
 
-  defp _detect_value({ h, next }, ifnone, fun) do
+  defp do_detect_value({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
     match: false
-      _detect_value(next.(), ifnone, fun)
+      do_detect_value(iterator.(next), iterator, ifnone, fun)
     match: nil
-      _detect_value(next.(), ifnone, fun)
+      do_detect_value(iterator.(next), iterator, ifnone, fun)
     match: other
       other
     end
   end
 
-  defp _detect_value(__STOP_ITERATOR__, ifnone, _) do
+  defp do_detect_value(__STOP_ITERATOR__, _, ifnone, _) do
     ifnone
   end
 
   ## each
 
-  defp _each({ h, next }, fun) do
+  defp do_each({ h, next }, iterator, fun) do
     fun.(h)
-    _each(next.(), fun)
+    do_each(iterator.(next), iterator, fun)
   end
 
-  defp _each(__STOP_ITERATOR__, _fun) do
+  defp do_each(__STOP_ITERATOR__, _, _) do
     []
   end
 
   ## filter
 
-  defp _filter({ h, next }, fun) do
+  defp do_filter({ h, next }, iterator, fun) do
     case fun.(h) do
     match: false
-      _filter(next.(), fun)
+      do_filter(iterator.(next), iterator, fun)
     match: nil
-      _filter(next.(), fun)
+      do_filter(iterator.(next), iterator, fun)
     else:
-      [h|_filter(next.(), fun)]
+      [h|do_filter(iterator.(next), iterator, fun)]
     end
   end
 
-  defp _filter(__STOP_ITERATOR__, _fun) do
+  defp do_filter(__STOP_ITERATOR__, _, _) do
     []
   end
 
   ## foldl
 
-  defp _foldl({ h, next }, acc, f) do
-    _foldl(next.(), f.(h, acc), f)
+  defp do_foldl({ h, next }, iterator, acc, fun) do
+    do_foldl(iterator.(next), iterator, fun.(h, acc), fun)
   end
 
-  defp _foldl(__STOP_ITERATOR__, acc, _f) do
+  defp do_foldl(__STOP_ITERATOR__, _, acc, _) do
     acc
   end
 
   ## join
 
   # The first item is simply stringified unless ...
-  defp _join({ h, next }, joiner, nil) do
-    _join(next.(), joiner, to_binary(h))
+  defp do_join({ h, next }, iterator, joiner, nil) do
+    do_join(iterator.(next), iterator, joiner, to_binary(h))
   end
 
   # The first item is __STOP_ITERATOR__, then we return an empty string;
-  defp _join(__STOP_ITERATOR__, _joiner, nil) do
+  defp do_join(__STOP_ITERATOR__, _, _joiner, nil) do
     ""
   end
 
   # All other items are concatenated to acc, by first adding the joiner;
-  defp _join({ h, next }, joiner, acc) do
+  defp do_join({ h, next }, iterator, joiner, acc) do
     acc = << acc | :binary, joiner | :binary, to_binary(h) | :binary >>
-    _join(next.(), joiner, acc)
+    do_join(iterator.(next), iterator, joiner, acc)
   end
 
   # Until we have to stop iteration, then we return acc.
-  defp _join(__STOP_ITERATOR__, _joiner, acc) do
+  defp do_join(__STOP_ITERATOR__, _, _joiner, acc) do
     acc
   end
 
   ## map
 
-  defp _map({ h, next }, fun) do
-    [fun.(h)|_map(next.(), fun)]
+  defp do_map({ h, next }, iterator, fun) do
+    [fun.(h)|do_map(iterator.(next), iterator, fun)]
   end
 
-  defp _map(__STOP_ITERATOR__, _fun) do
+  defp do_map(__STOP_ITERATOR__, _, _) do
     []
   end
 
   ## mapfoldl
 
-  defp _mapfoldl({ h, next }, acc, f) do
+  defp do_mapfoldl({ h, next }, iterator, acc, f) do
     { result, acc } = f.(h, acc)
-    { rest, acc }   = _mapfoldl(next.(), acc, f)
+    { rest, acc }   = do_mapfoldl(iterator.(next), iterator, acc, f)
     { [result|rest], acc }
   end
 
-  defp _mapfoldl(__STOP_ITERATOR__, acc, _f) do
+  defp do_mapfoldl(__STOP_ITERATOR__, _, acc, _f) do
     { [], acc }
   end
 end
 
 defimpl Enum::Iterator, for: List do
-  def iterator(list) do
-    fn { iterate(list) }
-  end
+  def iterator(_), do: iterate(_)
 
   defp iterate([h|t]) do
-    { h, fn { iterate(t) } }
+    { h, t }
   end
 
   defp iterate([]) do
