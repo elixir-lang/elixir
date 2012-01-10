@@ -45,7 +45,7 @@ file(Filepath, Binding) ->
 % Read a file as utf8
 
 read_file(Filename) ->
-  case file:open(Filename, [read, {encoding, utf8}]) of
+  case file:open(Filename, [read]) of
     {ok, Device} -> read_file(Device, []);
     Error -> erlang:error({badfile, list_to_binary(Filename), Error})
   end.
