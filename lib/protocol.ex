@@ -37,14 +37,14 @@ defmodule Protocol do
       try do
         __protocol.module_info
       catch: { :error, :undef, _ }
-        error { :badarg, "#{protocol} is not loaded" }
+        error { :badarg, "#{__protocol} is not loaded" }
       end
 
       # Check if protocol is really a protocol
       __funs = try do
         __protocol.__protocol__
       catch: { :error, :undef, _ }
-        error { :badarg, "#{protocol} is not a protocol" }
+        error { :badarg, "#{__protocol} is not a protocol" }
       end
 
       # Create a module with the given contents
