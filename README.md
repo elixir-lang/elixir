@@ -179,7 +179,7 @@ The tuple above represents a function call to sum passing 1, 2 and 3 as argument
 
 * The first element of the tuple is always an atom or another tuple in the same representation;
 * The second element of the tuple is always an integer representing the line number;
-* The third element of the tuple are the arguments for the function call. The third argument may also be false, meaning that it may be a variable call.
+* The third element of the tuple are the arguments for the function call. The third argument may also be an atom (nil or quoted), meaning that it may be a variable call.
 
 You can get the representation of any expression by using the quote macro:
 
@@ -223,7 +223,7 @@ However, there is a common mistake when quoting expressions which is that develo
 
 When called, our `unless` would then return:
 
-    { :if, 0, [{ :!, 0, [{:custom, 0, false}]}, do: {:options, 0, false}] }
+    { :if, 0, [{ :!, 0, [{:custom, 0, nil}]}, do: {:options, 0, nil}] }
 
 Notice that the tree structure returned by unless is trying to access `custom` and `options` as variables instead of using the `2 + 2 == 5` and `call_function()` expressions we gave to it. This is because we forgot to unquote! If we bring unquote back:
 

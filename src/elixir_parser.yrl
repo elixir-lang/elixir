@@ -127,7 +127,7 @@ call_expr -> dot_curly_identifier long_tuple_call_args : build_identifier('$1', 
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
-call_expr -> dot_do_identifier : build_identifier('$1', false).
+call_expr -> dot_do_identifier : build_identifier('$1', nil).
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
@@ -137,7 +137,7 @@ max_expr -> open_paren expr_list close_paren : build_block('$2').
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
 base_expr -> atom : build_atom('$1').
-base_expr -> var : build_identifier('$1', false).
+base_expr -> var : build_identifier('$1', nil).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> module_ref : '$1'.
@@ -438,13 +438,13 @@ build_identifier({ '.', DotLine, [Expr, { Kind, _, Identifier }] }, Args) when
 
 build_identifier({ '.', Line, _ } = Dot, Args) ->
   FArgs = case Args of
-    false -> [];
+    nil -> [];
     _ -> Args
   end,
   { Dot, Line, build_args(FArgs) };
 
-build_identifier({ _, Line, Identifier }, false) ->
-  { Identifier, Line, false };
+build_identifier({ _, Line, Identifier }, nil) ->
+  { Identifier, Line, nil };
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, build_args(Args) }.

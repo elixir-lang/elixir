@@ -14,7 +14,7 @@ build_erl(Line, #elixir_scope{counter=Counter} = S) ->
 
 build_ex(Line, #elixir_scope{counter=Counter} = S) ->
   NS = S#elixir_scope{counter=Counter+1},
-  Var = { ?ELIXIR_ATOM_CONCAT(["X", Counter]), Line, false },
+  Var = { ?ELIXIR_ATOM_CONCAT(["X", Counter]), Line, nil },
   { Var, NS }.
 
 % Provides a tuple with only the scope information we want to serialize.

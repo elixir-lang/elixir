@@ -206,7 +206,7 @@ translate_macro({recur, Line, Args}, S) when is_list(Args) ->
     [] ->
       syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop. invalid scope for: ", "recur");
     Recur ->
-      ExVar = { Recur, Line, false },
+      ExVar = { Recur, Line, nil },
       Call = { { '.', Line, [ExVar] }, Line, [ExVar|Args] },
       translate_each(Call, S)
   end;

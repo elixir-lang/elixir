@@ -478,7 +478,7 @@ defmodule Elixir::Macros do
   #
   # Which would then return:
   #
-  #     { :sum, 0, [1, { :value, 0, false }, 3] }
+  #     { :sum, 0, [1, { :value, 0, quoted }, 3] }
   #
   # Which is not the expected result. For this, we use unquote:
   #

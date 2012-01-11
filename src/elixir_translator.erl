@@ -132,17 +132,17 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 
 %% Arg-less macros
 
-translate_each({'__MODULE__', Line, false}, S) ->
+translate_each({'__MODULE__', Line, nil}, S) ->
   { _, Module } = S#elixir_scope.module,
   { { atom, Line, Module }, S };
 
-translate_each({'__LINE__', Line, false}, S) ->
+translate_each({'__LINE__', Line, nil}, S) ->
   { { integer, Line, Line }, S };
 
-translate_each({'__FILE__', _Line, false}, S) ->
+translate_each({'__FILE__', _Line, nil}, S) ->
   translate_each(list_to_binary(S#elixir_scope.filename), S);
 
-translate_each({'__STOP_ITERATOR__', Line, false}, S) ->
+translate_each({'__STOP_ITERATOR__', Line, nil}, S) ->
   { { atom, Line, '__STOP_ITERATOR__' }, S };
 
 %% References
@@ -190,7 +190,7 @@ translate_each({quote, Line, [_]}, S) ->
 
 translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
   Result = case Args of
-    false ->
+    nil ->
       case S#elixir_scope.assign of
         false -> "non-assignment scope for: ";
         true  ->
@@ -210,7 +210,7 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
       Result
   end;
 
-translate_each({Name, Line, false}, S) when is_atom(Name) ->
+translate_each({Name, Line, nil}, S) when is_atom(Name) ->
   Match = S#elixir_scope.assign,
   Vars = S#elixir_scope.vars,
   TempVars = S#elixir_scope.temp_vars,
@@ -387,7 +387,7 @@ handle_partials(Line, Original, S) ->
 %% function definition and the third one is the new scope.
 convert_partials(Line, List, S) -> convert_partials(Line, List, S, [], []).
 
-convert_partials(Line, [{'_', _, false}|T], S, CallAcc, DefAcc) ->
+convert_partials(Line, [{'_', _, nil}|T], S, CallAcc, DefAcc) ->
   { Var, SC } = elixir_variables:build_ex(Line, S),
   convert_partials(Line, T, SC, [Var|CallAcc], [Var|DefAcc]);
 

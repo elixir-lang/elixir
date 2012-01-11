@@ -58,7 +58,7 @@ extract_last_guards(Args) ->
 % Extract name and args from the given expression.
 
 extract_args({ { '.', _, [Name] }, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
-extract_args({ Name, _, false }) when is_atom(Name) -> { Name, [] };
+extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] };
 extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args }.
 
 % Function for translating macros for try's catch.
@@ -149,7 +149,7 @@ handle_else(Kind, Line, Clauses) ->
       end,
 
       TClauses = orddict:erase(else, Clauses),
-      ElseExpr = {[{'_', Line, false}], Expr},
+      ElseExpr = {[{'_', Line, nil}], Expr},
 
       FinalClause = case orddict:find(Kind, TClauses) of
         { ok, KindClause } ->

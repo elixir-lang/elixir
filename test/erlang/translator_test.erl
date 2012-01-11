@@ -15,10 +15,10 @@ eval(Forms, Binding) ->
 %% Assignment Operator
 
 assignment_test() ->
-  {13, [{a,13}]} = eval([{'=', 1, [{a, 1, false},13]}], []).
+  {13, [{a,13}]} = eval([{'=', 1, [{a, 1, nil},13]}], []).
 
 assigning_twice_test() ->
-  23 = eval([{'=', 1, [{a, 1, false},13]}, {'=', 2, [{a, 2, false}, {'+', 2, [{a, 2, false}, 10]}]}]).
+  23 = eval([{'=', 1, [{a, 1, nil},13]}, {'=', 2, [{a, 2, nil}, {'+', 2, [{a, 2, nil}, 10]}]}]).
 
 assignment_match_test() ->
   ?assertError({badmatch, 2}, eval([{'=', 1, [13, 2]}])).
@@ -46,13 +46,13 @@ if_do_else_test() ->
   failed = eval([{ 'if', 1, [false, [{do, example},{else, failed}] ] }]).
 
 if_vars_test() ->
-  {true,[{foo,1}]} = eval([{ 'if', 1, [{'=', 1, [{foo,1,false},1]}, [{do,true},{else,false}] ] }], []).
+  {true,[{foo,1}]} = eval([{ 'if', 1, [{'=', 1, [{foo,1,nil},1]}, [{do,true},{else,false}] ] }], []).
 
 %% Functions
 
 functions_test() ->
-  Keywords = [{do, { '+', 1, [{ x, 1, false }, { y, 1, false }]}}],
-  Args = [{ x, 1, false }, { y, 1, false }, Keywords],
+  Keywords = [{do, { '+', 1, [{ x, 1, nil }, { y, 1, nil }]}}],
+  Args = [{ x, 1, nil }, { y, 1, nil }, Keywords],
   Fun = eval([{ fn, 1, Args }]),
   3 = Fun(1, 2).
 
