@@ -6,13 +6,18 @@
 %% Ensure a reference is loaded before its usage.
 
 ensure_loaded(Line, Ref, S, Force) ->
-  case not Force andalso lists:member(Ref, S#elixir_scope.scheduled) of
+  Scheduled = lists:member(Ref, S#elixir_scope.scheduled),
+  case not Force andalso Scheduled of
     true  -> ok;
     false ->
       case code:ensure_loaded(Ref) of
         { module, _ }   -> ok;
         { error, What } ->
-          elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { unloaded_module, { Ref, What } })
+          Kind = case Scheduled of
+            true  -> scheduled_module;
+            false -> unloaded_module
+          end,
+          elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { Kind, { Ref, What } })
       end
   end.
 
@@ -47,4 +52,7 @@ lookup(Else, Dict) ->
 %% Errors
 
 format_error({unloaded_module,{ Module, What }}) ->
-  io_lib:format("module ~s is not loaded, reason: ~s", [Module, What]).
+  io_lib:format("module ~s is not loaded, reason: ~s", [Module, What]);
+
+format_error({scheduled_module,{ Module, _ }}) ->
+  io_lib:format("module ~s is not loaded but defined. This may happen because the module is nested inside another module. Try defining the module outside the context that requires it.", [Module]).

@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Elixir::LoopTest do
+defmodule Kernel::LoopTest do
   use ExUnit::Case
 
   def test_do_loop do

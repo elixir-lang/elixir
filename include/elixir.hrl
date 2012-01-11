@@ -18,6 +18,7 @@
   vars=dict:new(),                          %% a dict of defined variables and their alias
   temp_vars=dict:new(),                     %% a dict of all variables defined in a particular assign
   clause_vars=dict:new(),                   %% a dict of all variables defined in a particular clause
+  quote_vars=dict:new(),                    %% a dict of all quoted variables
   counter=0,                                %% a counter for the variables defined
   filename="nofile",                        %% the current scope filename
   refer=[                                   %% an orddict with references by new -> old names

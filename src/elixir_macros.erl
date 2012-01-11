@@ -227,6 +227,14 @@ translate_macro({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   translate_apply(Line, TLeft, TRight, Args, S, SL, SR);
 
+%% Handle forced variables
+
+translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_atom(Atom) ->
+  elixir_variables:translate_each(Line, Name, S);
+
+translate_macro({ 'var!', Line, [_] }, S) ->
+  syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "var!");
+
 %% Else
 
 translate_macro({ Atom, Line, Args }, S) ->

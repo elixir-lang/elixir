@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Elixir::ComprehensionTest do
+defmodule Kernel::ComprehensionTest do
   use ExUnit::Case
 
   def test_list_comprehensions do

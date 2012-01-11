@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Elixir::PartialApplicationTest do
+defmodule Kernel::PartialApplicationTest do
   use ExUnit::Case
 
   def test_partial_with_simple_call_and_one_item do

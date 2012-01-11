@@ -253,7 +253,8 @@ in_erlang_macros() ->
     {'loop','*'},
     {'recur','*'},
     {'for','*'},
-    {'bitfor','*'}
+    {'bitfor','*'},
+    {'var!','1'}
   ]).
 
 %% Those macros will always raise an error if one defines them

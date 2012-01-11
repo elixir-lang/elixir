@@ -1,11 +1,11 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Elixir::MessedBitwise do
+defmodule Kernel::MessedBitwise do
   defmacro bnot(x),   do: x
   defmacro bor(x, _), do: x
 end
 
-defmodule Elixir::RequireTest do
+defmodule Kernel::RequireTest do
   use ExUnit::Case
 
   require Bitwise, import: true
@@ -18,7 +18,7 @@ defmodule Elixir::RequireTest do
 
   def test_function_import_with_only do
     require Bitwise, except: [bnot: 1]
-    require Elixir::MessedBitwise, only: [bnot: 1]
+    require Kernel::MessedBitwise, only: [bnot: 1]
     0 = bnot(0)
     1 = bor(0, 1)
   end

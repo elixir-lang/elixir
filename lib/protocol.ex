@@ -168,7 +168,7 @@ defmodule Protocol do
 
   defp generate_args(counter, acc) do
     name = binary_to_atom(<<?x, counter + 64>>, :utf8)
-    generate_args(counter - 1, [{ name, 0, nil }|acc])
+    generate_args(counter - 1, [{ name, 0, :quoted }|acc])
   end
 
   # Returns the default conversions according to the given only/except options.

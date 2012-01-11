@@ -132,17 +132,17 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 
 %% Arg-less macros
 
-translate_each({'__MODULE__', Line, nil}, S) ->
+translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
   { _, Module } = S#elixir_scope.module,
   { { atom, Line, Module }, S };
 
-translate_each({'__LINE__', Line, nil}, S) ->
+translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
   { { integer, Line, Line }, S };
 
-translate_each({'__FILE__', _Line, nil}, S) ->
+translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
   translate_each(list_to_binary(S#elixir_scope.filename), S);
 
-translate_each({'__STOP_ITERATOR__', Line, nil}, S) ->
+translate_each({'__STOP_ITERATOR__', Line, Atom}, S) when is_atom(Atom) ->
   { { atom, Line, '__STOP_ITERATOR__' }, S };
 
 %% References
@@ -186,7 +186,7 @@ translate_each({quote, Line, [_]}, S) ->
   record(quote, S),
   syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "quote");
 
-%% Variables & Function calls
+%% Variables
 
 translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
   Result = case Args of
@@ -210,32 +210,19 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
       Result
   end;
 
-translate_each({Name, Line, nil}, S) when is_atom(Name) ->
-  Match = S#elixir_scope.assign,
-  Vars = S#elixir_scope.vars,
-  TempVars = S#elixir_scope.temp_vars,
-  ClauseVars = S#elixir_scope.clause_vars,
+translate_each({Name, Line, quoted}, S) when is_atom(Name) ->
+  NewS = S#elixir_scope{vars=S#elixir_scope.quote_vars,noname=true},
+  { TVar, VS } = elixir_variables:translate_each(Line, Name, NewS),
+  { TVar, VS#elixir_scope{
+    quote_vars=VS#elixir_scope.vars,
+    noname=S#elixir_scope.noname,
+    vars=S#elixir_scope.vars
+  } };
 
-  case Name of
-    '_' -> { {var, Line, Name}, S };
-    _ ->
-      case { Match, dict:is_key(Name, Vars), dict:is_key(Name, TempVars) } of
-        { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
-        { true, Else, _ } ->
-          { NewVar, NS } = case Else or S#elixir_scope.noname of
-            true -> elixir_variables:build_erl(Line, S);
-            false -> { {var, Line, Name}, S }
-          end,
-          RealName = element(3, NewVar),
-          { NewVar, NS#elixir_scope{
-            vars=dict:store(Name, RealName, Vars),
-            temp_vars=dict:store(Name, RealName, TempVars),
-            clause_vars=dict:store(Name, RealName, ClauseVars)
-          } };
-        { false, false, _ } -> translate_each({Name, Line, []}, S);
-        { false, true, _ }  -> { {var, Line, dict:fetch(Name, Vars) }, S }
-      end
-  end;
+translate_each({Name, Line, nil}, S) when is_atom(Name) ->
+  elixir_variables:translate_each(Line, Name, S);
+
+%% Local calls
 
 translate_each({Atom, Line, _} = Original, S) when is_atom(Atom) ->
   case handle_partials(Line, Original, S) of

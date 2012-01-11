@@ -8,6 +8,10 @@ translate(Forms, S) ->
 translate_each({ unquote, _Line, [Expr] }, S) ->
   elixir_translator:translate_each(Expr, S);
 
+translate_each({ Left, Line, Right }, S) when is_atom(Left), is_atom(Right) -> %% Variables
+  Tuple = { tuple, Line, [{ atom, Line, Left }, { integer, Line, 0 }, { atom, Line, quoted }] },
+  { Tuple, S };
+
 translate_each({ Left, Line, Right }, S) ->
   { TLeft, LS } = translate_each(Left, S),
   { TRight, RS } = translate_each(Right, LS),

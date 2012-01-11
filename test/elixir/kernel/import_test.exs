@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Elixir::ImportOnlyTest do
+defmodule Kernel::ImportOnlyTest do
   use ExUnit::Case
 
   import Erlang.lists, only: [flatten: 1]
@@ -11,7 +11,7 @@ defmodule Elixir::ImportOnlyTest do
   end
 end
 
-defmodule Elixir::ImportAllTest do
+defmodule Kernel::ImportAllTest do
   use ExUnit::Case
 
   import Erlang.lists
@@ -21,7 +21,7 @@ defmodule Elixir::ImportAllTest do
   end
 end
 
-defmodule Elixir::ImportExceptTest do
+defmodule Kernel::ImportExceptTest do
   use ExUnit::Case
 
   import Erlang.lists, except: [each: 1]
