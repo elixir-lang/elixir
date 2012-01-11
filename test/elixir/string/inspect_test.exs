@@ -56,6 +56,11 @@ defmodule String::Inspect::BitStringTest do
     "abc"     = to_binary(<<?a, ?b, ?c>>)
   end
 
+  def test_escape do
+    "\"f\\no\""  = inspect("f\no")
+    "\"f\\\\o\"" = inspect("f\\o")
+  end
+
   def test_unprintable do
     "<<1>>" = inspect(<<1>>)
   end
