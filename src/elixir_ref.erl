@@ -1,5 +1,20 @@
 -module(elixir_ref).
--export([last/1, concat/1, lookup/2]).
+-export([last/1, concat/1, lookup/2,
+  format_error/1, ensure_loaded/4]).
+-include("elixir.hrl").
+
+%% Ensure a reference is loaded before its usage.
+
+ensure_loaded(Line, Ref, S, Force) ->
+  case not Force andalso lists:member(Ref, S#elixir_scope.scheduled) of
+    true  -> ok;
+    false ->
+      case code:ensure_loaded(Ref) of
+        { module, _ }   -> ok;
+        { error, What } ->
+          elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { unloaded_module, { Ref, What } })
+      end
+  end.
 
 %% Receives an atom and returns the last reference.
 
@@ -28,3 +43,8 @@ lookup(Else, Dict) ->
     { ok, Value } when Value /= Else -> lookup(Value, Dict);
     _ -> Else
   end.
+
+%% Errors
+
+format_error({unloaded_module,{ Module, What }}) ->
+  io_lib:format("module ~s is not loaded, reason: ~s", [Module, What]).

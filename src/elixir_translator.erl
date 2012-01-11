@@ -117,7 +117,7 @@ translate_each({require, Line, [Left,Opts]}, S) ->
   Truthy = fun(X) -> proplists:get_value(X, Opts, false ) /= false end,
   Import = lists:any(Truthy, [import, only, except]),
 
-  elixir_module:ensure_loaded(Line, Ref, SR, Import),
+  elixir_ref:ensure_loaded(Line, Ref, SR, Import),
 
   IS = case Import of
     true ->

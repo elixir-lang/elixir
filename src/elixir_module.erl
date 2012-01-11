@@ -1,18 +1,7 @@
 -module(elixir_module).
--export([transform/4, compile/4, format_error/1,
-  ensure_loaded/4, binding_and_scope_for_eval/4]).
+-export([transform/4, compile/4,
+   format_error/1, binding_and_scope_for_eval/4]).
 -include("elixir.hrl").
-
-ensure_loaded(Line, Module, S, Force) ->
-  case not Force andalso lists:member(Module, S#elixir_scope.scheduled) of
-    true  -> ok;
-    false ->
-      case code:ensure_loaded(Module) of
-        { module, _ }   -> ok;
-        { error, What } ->
-          elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { unloaded_module, { Module, What } })
-      end
-  end.
 
 binding_and_scope_for_eval(Line, Filename, Module, Binding) ->
   binding_and_scope_for_eval(Line, Filename, Module, Binding, #elixir_scope{filename=Filename}).
@@ -219,9 +208,6 @@ destructive_read(Table, Attribute) ->
 
 format_error({internal_function_overridden,{Name,Arity}}) ->
   io_lib:format("function ~s/~B is internal and should not be overriden", [Name, Arity]);
-
-format_error({unloaded_module,{ Module, What }}) ->
-  io_lib:format("module ~s is not loaded, reason: ~s", [Module, What]);
 
 format_error({invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
