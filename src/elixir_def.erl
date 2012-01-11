@@ -50,10 +50,7 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
   MetaArgs   = elixir_tree_helpers:abstract_syntax(Args),
   MetaGuards = elixir_tree_helpers:abstract_syntax(Guards),
   MetaExpr   = elixir_tree_helpers:abstract_syntax(Expr),
-
-  % Remove vars that we are not going to use from scope to make it "lighter"
-  CleanS = S#elixir_scope{vars=nil, clause_vars=nil, temp_vars=nil, counter=0},
-  MetaS  = elixir_tree_helpers:abstract_syntax(CleanS),
+  MetaS      = elixir_variables:serialize_scope(S),
 
   Invoke = [
     {atom, Line, Kind},
@@ -71,10 +68,12 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, S) ->
+store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
+  S = elixir_variables:deserialize_scope(RawS),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module. invalid scope for: ", atom_to_list(Kind));
 
-store_definition(Kind, Line, Module, Name, Args, Guards, Expr, S) ->
+store_definition(Kind, Line, Module, Name, Args, Guards, Expr, RawS) ->
+  S = elixir_variables:deserialize_scope(RawS),
   { Function, Defaults } = translate_definition(Line, Module, Name, Args, Guards, Expr, S),
 
   Filename      = S#elixir_scope.filename,

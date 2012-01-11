@@ -4,14 +4,15 @@
 -export([match/3, try_catch/3,
   assigns/3, assigns_block/5, assigns_block/6,
   extract_args/1, extract_guards/1, extract_last_guards/1]).
--import(elixir_tree_helpers, [umergec/2]).
+-import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
 
 % Function for translating assigns.
+assigns(Fun, Args, #elixir_scope{assign=false} = S) ->
+  { Result, NewS } = assigns(Fun, Args, S#elixir_scope{assign=true, temp_vars=dict:new()}),
+  { Result, NewS#elixir_scope{assign=false} };
 
-assigns(Fun, Args, S) ->
-  { Result, NewS } = Fun(Args, S#elixir_scope{assign=true,temp_vars=dict:new()}),
-  { Result, NewS#elixir_scope{assign=S#elixir_scope.assign, temp_vars=S#elixir_scope.temp_vars} }.
+assigns(Fun, Args, S) -> Fun(Args, S).
 
 %% Function for translating a block that is preceeded by an
 %% assignment and optional guards. This is used by def* and fn.
@@ -103,7 +104,7 @@ match(Line, Clauses, RawS) ->
 
           % Defines a tuple that will be used as left side of the match operator
           LeftTuple = { tuple, Line, [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars] },
-          { StorageVar, SS } = elixir_tree_helpers:build_erl_var(Line, FS),
+          { StorageVar, SS } = elixir_variables:build_erl(Line, FS),
 
           % Expand all clauses by adding a match operation at the end that assigns
           % variables missing in one clause to the others.
@@ -198,7 +199,7 @@ has_match_tuple(_) -> false.
 % Normalize the given var checking its existence in the scope var dictionary.
 
 normalize_vars(Var, #elixir_scope{vars=Dict} = S) ->
-  { { _, _, NewValue }, NS } = elixir_tree_helpers:build_erl_var(0, S),
+  { { _, _, NewValue }, NS } = elixir_variables:build_erl(0, S),
   FS = NS#elixir_scope{vars=dict:store(Var, NewValue, Dict)},
 
   Expr = case dict:find(Var, Dict) of

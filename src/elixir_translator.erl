@@ -1,6 +1,6 @@
 -module(elixir_translator).
 -export([translate/2, translate_each/2, translate_args/2, translate_apply/7, forms/3]).
--import(elixir_tree_helpers, [umergev/2, umergec/2]).
+-import(elixir_variables, [umergev/2, umergec/2]).
 -import(elixir_errors, [syntax_error/4]).
 -include("elixir.hrl").
 
@@ -65,7 +65,8 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { {tuple, Line, TArgs}, SE };
 
-%% require and refer are lexical and cannot be partially applied or overwritten
+%% Lexical
+
 translate_each({refer, Line, [Ref|T]}, S) ->
   record(refer, S),
 
@@ -89,7 +90,7 @@ translate_each({refer, Line, [Ref|T]}, S) ->
       { TOther, SA } = translate_each(Other, SR#elixir_scope{noref=true}),
       { Extractor(TOther), SA };
     error ->
-      { elixir_ref:split(Old), SR }
+      { elixir_ref:last(Old), SR }
   end,
 
   Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
@@ -222,7 +223,7 @@ translate_each({Name, Line, false}, S) when is_atom(Name) ->
         { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
         { true, Else, _ } ->
           { NewVar, NS } = case Else or S#elixir_scope.noname of
-            true -> elixir_tree_helpers:build_erl_var(Line, S);
+            true -> elixir_variables:build_erl(Line, S);
             false -> { {var, Line, Name}, S }
           end,
           RealName = element(3, NewVar),
@@ -387,7 +388,7 @@ handle_partials(Line, Original, S) ->
 convert_partials(Line, List, S) -> convert_partials(Line, List, S, [], []).
 
 convert_partials(Line, [{'_', _, false}|T], S, CallAcc, DefAcc) ->
-  { Var, SC } = elixir_tree_helpers:build_ex_var(Line, S),
+  { Var, SC } = elixir_variables:build_ex(Line, S),
   convert_partials(Line, T, SC, [Var|CallAcc], [Var|DefAcc]);
 
 convert_partials(Line, [H|T], S, CallAcc, DefAcc) ->

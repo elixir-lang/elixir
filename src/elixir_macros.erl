@@ -3,7 +3,7 @@
 -module(elixir_macros).
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
--import(elixir_tree_helpers, [umergec/2]).
+-import(elixir_variables, [umergec/2]).
 -import(elixir_errors, [syntax_error/4]).
 -include("elixir.hrl").
 
@@ -177,7 +177,7 @@ translate_macro({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
   case lists:split(length(RawArgs) - 1, RawArgs) of
     { Args, [KV] } when is_list(KV) ->
       %% Generate a variable that will store the function
-      { FunVar, VS }  = elixir_tree_helpers:build_ex_var(Line, S),
+      { FunVar, VS }  = elixir_variables:build_ex(Line, S),
 
       %% Add this new variable to all match clauses
       [{match, KVBlock}] = elixir_kv_block:normalize(orddict:erase(do, KV)),

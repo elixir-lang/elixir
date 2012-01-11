@@ -38,19 +38,16 @@ table(Module) ->
 %% will be passed to the invoked function.
 
 transform(Line, Ref, Block, S) ->
-  NewS = #elixir_scope{
-    filename=S#elixir_scope.filename,
-    imports=S#elixir_scope.imports,
-    refer=S#elixir_scope.refer
-  },
-  Tree = elixir_tree_helpers:abstract_syntax(Block),
-  AbsS = elixir_tree_helpers:abstract_syntax(NewS),
-  Args = [{integer, Line, Line}, Ref, Tree, AbsS],
+  MetaBlock = elixir_tree_helpers:abstract_syntax(Block),
+  MetaS     = elixir_variables:serialize_scope(S),
+
+  Args = [{integer, Line, Line}, Ref, MetaBlock, MetaS],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 %% The compilation hook.
 
-compile(Line, Module, Block, S) when is_atom(Module) ->
+compile(Line, Module, Block, RawS) when is_atom(Module) ->
+  S = elixir_variables:deserialize_scope(RawS),
   Filename = S#elixir_scope.filename,
   check_module_availability(Line, Filename, Module),
   build(Module),
@@ -74,7 +71,8 @@ compile(Line, Module, Block, S) when is_atom(Module) ->
     elixir_import:delete_table(Module)
   end;
 
-compile(Line, Other, _Block, S) ->
+compile(Line, Other, _Block, RawS) ->
+  S = elixir_variables:deserialize_scope(RawS),
   elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { invalid_module, Other }).
 
 %% Hook that builds both attribute and functions and set up common hooks.

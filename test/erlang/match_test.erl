@@ -18,6 +18,7 @@ not_single_assignment_test() ->
   {2, [{a, 2}]} = elixir:eval("a = 1\n{^a,a} = {1,2}\na"),
   ?assertError({badmatch, _}, elixir:eval("{a,a} = {1,2}")),
   ?assertError({badmatch, _}, elixir:eval("{1 = a,a} = {1,2}")),
+  ?assertError({badmatch, _}, elixir:eval("{a = 1,a} = {1,2}")),
   ?assertError({badmatch, _}, elixir:eval("a = 0;{a,a} = {1,2}")),
   ?assertError({badmatch, _}, elixir:eval("a = 0;{1 = a,a} = {1,2}")),
   ?assertError({badmatch, _}, elixir:eval("a = 1\n^a = 2")).

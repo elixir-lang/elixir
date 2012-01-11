@@ -1,27 +1,15 @@
 %% Convenience functions used around elixir source code
-%% that needs to tree manipulations and does not really
-%% fit into modules of their own.
+%% to generate erlang abstract format for basic structures
+%% as binaries, lists, condition clauses, etc.
+
 -module(elixir_tree_helpers).
--export([abstract_syntax/1,
-  build_erl_var/2, build_ex_var/2,
-  build_bitstr/4,
-  build_list/4, build_list/5, build_simple_list/2,
-  build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2,
-  umergev/2, umergec/2, convert_to_boolean/3]).
+-export([abstract_syntax/1, convert_to_boolean/3,
+  build_bitstr/4, build_list/4, build_list/5, build_simple_list/2,
+  build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
 
 abstract_syntax(Tree) ->
   erl_syntax:revert(erl_syntax:abstract(Tree)).
-
-build_erl_var(Line, #elixir_scope{counter=Counter} = S) ->
-  NS = S#elixir_scope{counter=Counter+1},
-  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) },
-  { Var, NS }.
-
-build_ex_var(Line, #elixir_scope{counter=Counter} = S) ->
-  NS = S#elixir_scope{counter=Counter+1},
-  Var = { ?ELIXIR_ATOM_CONCAT(["X", Counter]), Line, false },
-  { Var, NS }.
 
 % Build a list transforming each expression and accumulating
 % vars in one pass. It uses tail-recursive form.
@@ -118,34 +106,7 @@ extract_bin_values(_Line, Value, Int, Types, _S) when is_atom(Value) ->
 extract_bin_values(Line, _Value, _Int, _Types, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid specifier for: ", "<<>>").
 
-%% Handle variable scopes
-
-% Receives two scopes and return a new scope based on the second
-% with their variables merged.
-umergev(S1, S2) ->
-  V1 = S1#elixir_scope.vars,
-  V2 = S2#elixir_scope.vars,
-  C1 = S1#elixir_scope.clause_vars,
-  C2 = S2#elixir_scope.clause_vars,
-  S2#elixir_scope{
-    vars=dict:merge(fun var_merger/3, V1, V2),
-    clause_vars=dict:merge(fun var_merger/3, C1, C2)
-  }.
-
-% Receives two scopes and return a new scope based on the first
-% with the counter values from the first one.
-umergec(S1, S2) ->
-  S1#elixir_scope{counter=S2#elixir_scope.counter}.
-
-% Merge variables trying to find the most recently created.
-var_merger(Var, Var, K2) -> K2;
-var_merger(Var, K1, Var) -> K1;
-var_merger(_Var, K1, K2) ->
-  V1 = list_to_integer(tl(atom_to_list(K1))),
-  V2 = list_to_integer(tl(atom_to_list(K2))),
-  if V1 > V2 -> K1;
-     true -> K2
-  end.
+%% Others
 
 convert_to_boolean(Line, Expr, Bool) ->
   Any   = [{var, Line, '_'}],
