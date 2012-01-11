@@ -31,7 +31,7 @@ defmodule CodeTest do
     try do
       Code.require_file "code_sample"
       error { :bad_assertion, "Expected code_sample to not be available" }
-    catch: { :error, { :enoent, ^expanded }, _ }
+    catch: :error, { :enoent, ^expanded }
     end
   end
 end

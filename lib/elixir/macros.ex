@@ -711,9 +711,9 @@ defmodule Elixir::Macros do
   #
   #     try do
   #       do_something_that_may_fail(some_arg)
-  #     catch: { :error, :badarg, _ }
+  #     catch: :error, :badarg
   #       IO.puts "Invalid argument given"
-  #     catch: { :throw, value, _ }
+  #     catch: :throw, value
   #       IO.puts "caught #{value}"
   #     after:
   #       IO.puts "This is printed regardless if it failed or succeed"
@@ -736,7 +736,7 @@ defmodule Elixir::Macros do
   #       x = 1
   #       do_something_that_may_fail(same_arg)
   #       :ok
-  #     catch: _
+  #     catch: _, _
   #       :failed
   #     end
   #

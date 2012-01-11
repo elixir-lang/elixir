@@ -71,7 +71,7 @@ defmodule ExUnit::Server do
   defp check(function) do
     try do
       function.()
-    catch: { :exit, { :noproc, _ }, _ }
+    catch: :exit, { :noproc, _ }
       exit "ExUnit::Server is not running. Are you sure you used exunit from command line?"
     end
   end

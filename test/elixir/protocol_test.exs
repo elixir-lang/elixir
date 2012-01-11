@@ -83,7 +83,7 @@ defmodule ProtocolTest do
     try do
       target.blank(thing)
       error("Expected invocation to fail")
-    catch: { :error, :undef, [stack|_] }
+    catch: :error, :undef, [stack|_]
       ref = target :: impl
       case hd(stack) do
       match: { ^ref, :blank, [^thing] }

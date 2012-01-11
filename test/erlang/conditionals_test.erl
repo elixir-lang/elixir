@@ -44,7 +44,7 @@ multi_assigned_if_test() ->
 % Try
 
 try_test() ->
-  {2, _} = elixir:eval("try do\nErlang.foo.bar\ncatch: { :error, :undef, _ }; 2\nend").
+  {2, _} = elixir:eval("try do\nErlang.foo.bar\ncatch: :error, :undef; 2\nend").
 
 % Receive
 

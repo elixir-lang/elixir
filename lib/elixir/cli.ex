@@ -17,9 +17,9 @@ defmodule Elixir::CLI do
 
     try do
       Enum.map all_commands, process_command(_, config)
-    catch: { :exit, reason, _ } when is_integer(reason)
+    catch: :exit, reason when is_integer(reason)
       halt(reason)
-    catch: { kind, reason, _ }
+    catch: kind, reason
       IO.puts :standard_error, "** #{kind} #{format_catch(kind, reason)}"
       print_stacktrace(Code.stacktrace)
       halt(1)

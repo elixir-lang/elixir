@@ -36,14 +36,14 @@ defmodule Protocol do
       # Check if protocol is loaded
       try do
         __protocol.module_info
-      catch: { :error, :undef, _ }
+      catch: :error, :undef
         error { :badarg, "#{__protocol} is not loaded" }
       end
 
       # Check if protocol is really a protocol
       __funs = try do
         __protocol.__protocol__
-      catch: { :error, :undef, _ }
+      catch: :error, :undef
         error { :badarg, "#{__protocol} is not a protocol" }
       end
 
@@ -131,7 +131,7 @@ defmodule Protocol do
         match: unquote(module)::Record
           try do
             apply unquote(module)::element(1, xA), unquote(name), args
-          catch: { :error, :undef, _ }
+          catch: :error, :undef
             apply unquote(module)::Tuple, unquote(name), args
           end
         match: other

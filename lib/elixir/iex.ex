@@ -18,15 +18,15 @@ defmodule Elixir::IEx do
     code = code_cache ++ Erlang.io.get_line(prompt)
 
     {binding_to_return, code_cache_to_return} = try do
-      {result, new_binding} = Erlang.elixir.eval(code, binding)
+      { result, new_binding } = Erlang.elixir.eval(code, binding)
       IO.puts inspect(result)
-      {new_binding, ''}
-    catch: { :error, {:badsyntax, {_, _, _, []}}, _}
-      {binding, code}
-    catch: { kind, error, _ }
+      { new_binding, '' }
+    catch: :error, { :badsyntax, {_, _, _, []} }
+      { binding, code }
+    catch: kind, error
       IO.puts :standard_error, "** #{kind} #{format_catch(kind, error)}"
       Enum.each Code.stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
-      {binding, ''}
+      { binding, '' }
     end
 
     do_loop(binding_to_return, code_cache_to_return)

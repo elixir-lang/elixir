@@ -155,7 +155,7 @@ defmodule Elixir::ErrorsTest do
     try do
       Erlang.elixir.eval(expr)
       error { :bad_assertion, "Expected function given to format_catch to fail" }
-    catch: { kind, error, _ }
+    catch: kind, error
       Elixir::Formatter.format_catch(kind, error)
     end
   end

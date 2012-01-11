@@ -169,13 +169,29 @@ handle_else(Kind, Line, Clauses) ->
 translate_each(_Line, {Key,[],Expr}, S) when Key == do ->
   elixir_translator:translate_each(Expr, S);
 
+translate_each(Line, {'catch',Raw,Expr}, S) ->
+  { Args, Guards } = extract_last_guards(Raw),
+
+  Final = case Args of
+    [X]     -> [throw, X, { '_', Line, nil }];
+    [X,Y]   -> [X, Y, { '_', Line, nil }];
+    [_,_,_] -> Args;
+    [] ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for: ", "catch");
+    _ ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for: ", "catch")
+  end,
+
+  Condition = { '{}', Line, Final },
+  assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], Guards, S);
+
 translate_each(Line, {Key,[Condition],Expr}, S) when Key == match; Key == 'catch'; Key == 'after' ->
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
 translate_each(Line, {Key,[],_}, S) when Key == match; Key == 'catch'; Key == 'after' ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for: ", atom_to_list(Key));
 
-translate_each(Line, {Key,_,_}, S) when Key == match; Key == 'catch'; Key == 'after' ->
+translate_each(Line, {Key,_,_}, S) when Key == match; Key == 'after' ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid comma arguments for: ", atom_to_list(Key));
 
 translate_each(Line, {Key,_,_}, S) ->
