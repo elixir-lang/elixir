@@ -448,7 +448,7 @@ defmodule Elixir::Macros do
   # * The second element of the tuple is always an integer
   #   representing the line number;
   # * The third element of the tuple are the arguments for the
-  #   function call. The third argument may also be false, meaning
+  #   function call. The third argument may be an atom, meaning
   #   that it may be a variable.
   #
   # ## Macro literals
@@ -462,6 +462,51 @@ defmodule Elixir::Macros do
   #     [1,2]        #=> Lists
   #     "binaries"   #=> Binaries
   #     {key, value} #=> Key-value pairs (i.e. a tuple with two elements)
+  #
+  # ## Hygiene
+  #
+  # Elixir macros are hygienic regarding to variables. This means
+  # a variable defined in a macro cannot affect the scope where
+  # the macro is included. Consider the following example:
+  #
+  #     defmodule Hygiene do
+  #       defmacro no_interference do
+  #         quote { a = 1 }
+  #       end
+  #     end
+  #
+  #     require Hygiene
+  #
+  #     a = 10
+  #     Hygiene.no_interference
+  #     a # => 10
+  #
+  # In the example above, `a` returns 10 even if the macro
+  # is apparently setting it to 1 because the variables defined
+  # in the macro does not affect the context the macro is
+  # executed. If you want to set or get a variable, you can do
+  # it with the help of the `var!` macro:
+  #
+  #     defmodule NoHygiene do
+  #       defmacro interference do
+  #         quote { var!(a) = 1 }
+  #       end
+  #     end
+  #
+  #     require NoHygiene
+  #
+  #     a = 10
+  #     NoHygiene.interference
+  #     a # => 11
+  #
+  # Notice that references are not hygienic in Elixir unless
+  # you explicitly prepend :: to the reference name.
+  #
+  #     quote do
+  #       ::Foo # => Access the root Foo
+  #       Foo   # => Access the Foo reference in the current
+  #                  module (if any is set), then fallback to root
+  #     end
   #
   defmacro quote(do: contents)
 
@@ -905,9 +950,9 @@ defmodule Elixir::Macros do
   # Unfortunately cannot be used in macros.
   defmacro :||.(left, right) do
     quote {
-      case !(__EX_oror_var = unquote(left)) do
+      case !(oror = unquote(left)) do
       match: false
-        __EX_oror_var
+        oror
       else:
         unquote(right)
       end
