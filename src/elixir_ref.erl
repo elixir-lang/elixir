@@ -55,4 +55,4 @@ format_error({unloaded_module,{ Module, What }}) ->
   io_lib:format("module ~s is not loaded, reason: ~s", [Module, What]);
 
 format_error({scheduled_module,{ Module, _ }}) ->
-  io_lib:format("module ~s is not loaded but defined. This may happen because the module is nested inside another module. Try defining the module outside the context that requires it.", [Module]).
+  io_lib:format("module ~s is not loaded but was defined. This may happen because the module is nested inside another module. Try defining the module outside the context that requires it.", [Module]).

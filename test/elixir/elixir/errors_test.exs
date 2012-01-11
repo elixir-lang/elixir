@@ -103,6 +103,11 @@ defmodule Elixir::ErrorsTest do
       format_catch 'require Certainly::Doesnt::Exist, import: true'
   end
 
+  def test_scheduled_module do
+    "nofile:1: module ::Hygiene is not loaded but was defined. This may happen because the module is nested inside another module. Try defining the module outside the context that requires it."
+      format_catch 'defmodule Foo do; defmodule Hygiene do; end; require Hygiene, import: true; end'
+  end
+
   def test_already_compiled_module do
     "{:module_already_compiled, \"could not call eval_quoted on module ::Record because it was already compiled\"}" =
       format_catch 'Module.eval_quoted ::Record, quote { 1 }, [], __FILE__, __LINE__'
