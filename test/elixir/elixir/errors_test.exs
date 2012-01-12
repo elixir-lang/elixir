@@ -99,12 +99,12 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_unloaded_module do
-    "nofile:2: module ::Certainly::Doesnt::Exist is not loaded, reason: nofile"
+    "nofile:1: module ::Certainly::Doesnt::Exist is not loaded, reason: nofile" =
       format_catch 'require Certainly::Doesnt::Exist, import: true'
   end
 
   def test_scheduled_module do
-    "nofile:1: module ::Hygiene is not loaded but was defined. This may happen because the module is nested inside another module. Try defining the module outside the context that requires it."
+    "nofile:1: module ::Hygiene is not loaded but was defined. This may happen because the module is nested inside another module. Try defining the module outside the context that requires it." =
       format_catch 'defmodule Foo do; defmodule Hygiene do; end; require Hygiene, import: true; end'
   end
 

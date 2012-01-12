@@ -93,9 +93,7 @@ translate_each({refer, Line, [Ref|T]}, S) ->
       { elixir_ref:last(Old), SR }
   end,
 
-  Tuple = { tuple, Line, [{atom, Line, Old}, {atom, Line, New}] },
-
-  { Tuple, SF#elixir_scope{
+  { { nil, Line }, SF#elixir_scope{
     refer=orddict:store(New, Old, S#elixir_scope.refer),
     noref=S#elixir_scope.noref
   } };

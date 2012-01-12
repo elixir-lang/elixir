@@ -31,8 +31,6 @@ handle_file_warning(Filename, {Line,Module,{unused_var,Var} = Desc}) ->
 handle_file_warning(_Filename, {_Line,sys_core_fold,nomatch_clause_type}) ->
   [];
 
-handle_file_warning(_Filename, {_Line,sys_core_fold,useless_building}) ->
-  [];
 
 handle_file_warning(Filename, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
