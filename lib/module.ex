@@ -35,7 +35,7 @@ defmodule Module do
   #     Module.compiled?(Foo) #=> true
   #
   def compiled?(module) do
-    table = table_for(module)
+    table = attribute_table_for(module)
     table == ETS.info(table, :name)
   end
 
@@ -53,7 +53,7 @@ defmodule Module do
   #
   def read_data(module) do
     assert_already_compiled!(:read_data, module)
-    ETS.lookup_element(table_for(module), :data, 2)
+    ETS.lookup_element(attribute_table_for(module), :data, 2)
   end
 
   # Reads the data from `module` at the given key `at`.
@@ -69,7 +69,6 @@ defmodule Module do
     Orddict.fetch read_data(module), at, nil
   end
 
-
   # Merge the given `new` data to the module, overriding
   # any previous one.
   #
@@ -83,11 +82,47 @@ defmodule Module do
   #
   def merge_data(module, new) do
     assert_already_compiled!(:merge_data, module)
-    table = table_for(module)
+    table = attribute_table_for(module)
     old   = ETS.lookup_element(table, :data, 2)
     final = Orddict.merge(old, new)
     ETS.insert(table, { :data,  final })
     final
+  end
+
+  # Checks if a function was defined, regardless if it is
+  # a macro or a private function. Use function_defined?/3
+  # to assert for an specific type.
+  #
+  # ## Examples
+  #
+  #     defmodule Example do
+  #       Module.function_defined? __MODULE__, version: 0 #=> false
+  #       def version, do: 1
+  #       Module.function_defined? __MODULE__, version: 0 #=> true
+  #     end
+  #
+  def function_defined?(module, tuple) when is_tuple(tuple) do
+    assert_already_compiled!(:function_defined?, module)
+    table = function_table_for(module)
+    ETS.lookup(table, tuple) != []
+  end
+
+  # Checks if a function was defined and also for its `kind`.
+  # `kind` can be either :def, :defp or :defmacro.
+  #
+  # ## Examples
+  #
+  #     defmodule Example do
+  #       Module.function_defined? __MODULE__, version: 0, :defp #=> false
+  #       def version, do: 1
+  #       Module.function_defined? __MODULE__, version: 0, :defp #=> false
+  #     end
+  #
+  def function_defined?(module, tuple, kind) do
+    function_defined?(module, tuple) andalso
+      (table = function_table_for(module)
+       entry = kind_to_entry(kind)
+       List.member? ETS.lookup_element(table, entry, 2), tuple)
   end
 
   # Adds a compilation callback hook that is invoked
@@ -126,7 +161,7 @@ defmodule Module do
   def add_compile_callback(module, target, fun // :__compiling__) do
     assert_already_compiled!(:add_compile_callback, module)
     new   = { target, fun }
-    table = table_for(module)
+    table = attribute_table_for(module)
     old   = ETS.lookup_element(table, :callbacks, 2)
     ETS.insert(table, { :callbacks,  [new|old] })
     new
@@ -134,11 +169,19 @@ defmodule Module do
 
   ## Helpers
 
+  defp kind_to_entry(:def),      do: :public
+  defp kind_to_entry(:defp),     do: :private
+  defp kind_to_entry(:defmacro), do: :macros
+
   defp to_list(list) when is_list(list),  do: list
   defp to_list(bin)  when is_binary(bin), do: binary_to_list(bin)
 
-  defp table_for(module) do
+  defp attribute_table_for(module) do
     list_to_atom Erlang.lists.concat([:a, module])
+  end
+
+  defp function_table_for(module) do
+    list_to_atom Erlang.lists.concat([:f, module])
   end
 
   defp assert_already_compiled!(fun, module) do

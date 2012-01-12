@@ -2,6 +2,9 @@
 # and cannot be part of the Enum protocol. In general,
 # favor using the Enum API instead of List.
 defmodule List do
+  # Bifs: member/2, reverse/2
+  # Bifs: keymember/3, keysearch/3, keyfind/3
+
   def append(list) do
     Erlang.lists.append(list)
   end
@@ -20,6 +23,10 @@ defmodule List do
 
   def reverse(list) when is_list(list) do
     Erlang.lists.reverse(list)
+  end
+
+  def member?(list, thing) when is_list(list) do
+    Erlang.lists.member(thing, list)
   end
 
   def uniq(list) when is_list(list) do

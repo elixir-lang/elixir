@@ -40,7 +40,7 @@ defmodule Code do
   # Elixir automatically adds it for you.
   def require_file(file, relative_to // nil) do
     file = find_file(file, relative_to)
-    if Erlang.lists.member(file, loaded_files) do
+    if List.member?(loaded_files, file) do
       nil
     else:
       load_and_push_file file

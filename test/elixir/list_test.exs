@@ -12,6 +12,12 @@ defmodule ListTest do
     [] = List.flatten([[]])
   end
 
+  def test_member? do
+    true  = List.member? [1,2,3], 1
+    false = List.member? [1,2,3], 0
+    false = List.member? [], 0
+  end
+
   def test_flatten_with_tail do
     [1,2,3,4,5] = List.flatten([1,2,3], [4,5])
     [1,2,3,4,5] = List.flatten([1,[2],3], [4,5])
