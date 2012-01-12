@@ -69,8 +69,8 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_unrequired_macro do
-    "nofile:2: tried to use ::Record.getters_and_setters/3 but module was not required. Required: ['::Elixir::Macros']" =
-      format_catch 'defmodule Foo do\nRecord.getters_and_setters([], 0, [])\nend'
+    "nofile:2: tried to use ::Record.getters_and_setters/4 but module was not required. Required: ['::Elixir::Macros']" =
+      format_catch 'defmodule Foo do\nRecord.getters_and_setters([], 0, [], Foo)\nend'
   end
 
   def test_def_defmacro_clause_change do

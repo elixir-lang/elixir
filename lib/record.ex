@@ -1,12 +1,13 @@
 defmodule Record do
   # Main entry point for records definition.
   def defrecord(name, values, opts) do
-    as = Orddict.fetch(opts, :as, name)
+    as       = Orddict.fetch(opts, :as, name)
+    extensor = Orddict.fetch(opts, :extensor, Record::Extensor)
 
     quote do
       defmodule __MODULE__ :: unquote(name) do
         require ::Record
-        Record.getters_and_setters(unquote(values), 1, [])
+        Record.getters_and_setters(unquote(values), 1, [], unquote(extensor))
         Record.initializers(unquote(values))
       end
 
@@ -80,7 +81,7 @@ defmodule Record do
   # syntax as `unquote(key)(record)` wouldn't be valid (as Elixir
   # allows you to parenthesis just on specific cases as `foo()`
   # and `foo.bar()`)
-  defmacro getters_and_setters([{ key, default }|t], i, acc) do
+  defmacro getters_and_setters([{ key, default }|t], i, acc, extensor) do
     i = i + 1
 
     contents = quote do
@@ -93,15 +94,18 @@ defmodule Record do
       end
     end
 
-    typed = typed_functions(key, default, i)
-    getters_and_setters(t, i, [contents, typed | acc])
+    typed = extensor.extension_for(key, default, i)
+    getters_and_setters(t, i, [contents, typed | acc], extensor)
   end
 
-  defmacro getters_and_setters([], _i, acc), do: acc
+  defmacro getters_and_setters([], _i, acc, _), do: acc
+end
 
-  ## Private
-
-  defp typed_functions(key, default, i) when is_list(default) do
+# Provides default extensions for a regular record.
+# It adds append_, prepend_ and merge_ helpers for lists
+# and increment_ for numbers.
+defmodule Record::Extensor do
+  def extension_for(key, default, i) when is_list(default) do
     bin_key = atom_to_binary(key, :utf8)
     append  = :"append_#{bin_key}"
     prepend = :"prepend_#{bin_key}"
@@ -125,7 +129,7 @@ defmodule Record do
     end
   end
 
-  defp typed_functions(key, default, i) when is_number(default) do
+  def extension_for(key, default, i) when is_number(default) do
     bin_key   = atom_to_binary(key, :utf8)
     increment = :"increment_#{bin_key}"
 
@@ -137,5 +141,5 @@ defmodule Record do
     end
   end
 
-  defp typed_functions(_, _, _), do: nil
+  def extension_for(_, _, _), do: nil
 end
