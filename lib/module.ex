@@ -42,7 +42,7 @@ defmodule Module do
   # Reads the data for the given module. This is used
   # to read data of uncompiled modules. If the module
   # was already compiled, you shoul access the data
-  # directly by invoking `__data__` in that module.
+  # directly by invoking `__info__(:data)` in that module.
   #
   # ## Examples
   #
@@ -79,7 +79,7 @@ defmodule Module do
   #       Module.merge_data __MODULE__, value: 1
   #     end
   #
-  #     Foo.__data__ #=> [value: 1]
+  #     Foo.__info__(:data) #=> [value: 1]
   #
   def merge_data(module, new) do
     assert_already_compiled!(:merge_data, module)

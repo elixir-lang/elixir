@@ -89,13 +89,13 @@ eval_form(Line, Filename, Module, Block, RawBinding, RawS) ->
 %% Return the form with exports and function declarations.
 
 functions_form(Line, Filename, Module) ->
-  { E0, Private, Macros, F0 } = elixir_def:unwrap_stored_definitions(Module),
+  { Export, Private, Macros, Functions } = elixir_def:unwrap_stored_definitions(Module),
 
-  { E1, F1 } = add_extra_function(Line, Filename, E0, F0, {'__macros__', 0}, macros_function(Line, Macros)),
-  { E2, F2 } = add_extra_function(Line, Filename, E1, F1, {'__data__', 0}, data_function(Line, Module)),
+  { FinalExport, FinalFunctions } =
+    add_info_function(Line, Filename, Module, Export, Functions, Macros),
 
-  { E2 ++ Private, [
-    {attribute, Line, export, E2} | F2
+  { FinalExport ++ Private, [
+    {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
   ] }.
 
 %% Add imports handling to the form
@@ -143,30 +143,32 @@ check_module_availability(Line, Filename, Module) ->
 
 % EXTRA FUNCTIONS
 
-add_extra_function(Line, Filename, Exported, Functions, Pair, Contents) ->
-  case lists:member(Pair, Exported) of
-    true -> elixir_errors:form_error(Line, Filename, ?MODULE, {internal_function_overridden, Pair});
-    false -> { [Pair|Exported], [Contents|Functions] }
+add_info_function(Line, Filename, Module, Export, Functions, Macros) ->
+  Pair = { '__info__', 1 },
+  case lists:member(Pair, Export) of
+    true  -> elixir_errors:form_error(Line, Filename, ?MODULE, {internal_function_overridden, Pair});
+    false ->
+      Contents = { function, Line, '__info__', 1, [
+        macros_clause(Line, Macros),
+        data_clause(Line, Module),
+        else_clause(Line)
+      ] },
+      { [Pair|Export], [Contents|Functions] }
   end.
 
-macros_function(Line, Macros) ->
+macros_clause(Line, Macros) ->
   SortedMacros = lists:sort(Macros),
+  { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(SortedMacros)] }.
 
-  { Tuples, [] } = elixir_tree_helpers:build_list(fun({Name, Arity}, Y) ->
-    { { tuple, Line, [ {atom, Line, Name}, { integer, Line, Arity } ] }, Y }
-  end, SortedMacros, Line, []),
-
-  { function, Line, '__macros__', 0,
-    [{ clause, Line, [], [], [Tuples]}]
-  }.
-
-data_function(Line, Module) ->
+data_clause(Line, Module) ->
   Table = table(Module),
   Data  = destructive_read(Table, data),
+  SortedData = lists:sort(Data),
+  { clause, Line, [{ atom, Line, data }], [], [elixir_tree_helpers:abstract_syntax(SortedData)] }.
 
-  { function, Line, '__data__', 0,
-    [{ clause, Line, [], [], [elixir_tree_helpers:abstract_syntax(Data)]}]
-  }.
+else_clause(Line) ->
+  Info = { call, Line, { atom, Line, module_info }, [{ var, Line, atom }] },
+  { clause, Line, [{ var, Line, atom }], [], [Info] }.
 
 % HELPERS
 

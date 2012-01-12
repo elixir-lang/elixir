@@ -172,7 +172,7 @@ format_error({import_conflict,{Receiver, Name, Arity}}) ->
 %% Does not raise if a macro can't be found.
 macros_for(Ref) ->
   try
-    Ref:'__macros__'()
+    Ref:'__info__'(macros)
   catch
     error:undef -> []
   end.
@@ -183,8 +183,7 @@ internal_funs() ->
   [
     { module_info, 0 },
     { module_info, 1 },
-    { '__data__', 0 },
-    { '__macros__', 0 },
+    { '__info__', 1 },
     { '__using__', 1 }
   ].
 

@@ -55,15 +55,15 @@ defmodule ModuleTest do
   end
 
   def test_merge_data do
-    [other_value: 2, value: 1] == __MODULE__.__data__
+    [other_value: 2, value: 1] == __MODULE__.__info__(:data)
   end
 
   def test_compile_callback_hook do
     false = ModuleTest::ToUse.original_value
-    true  = Orddict.fetch ModuleTest::ToUse.__data__, :callback, false
+    true  = Orddict.fetch ModuleTest::ToUse.__info__(:data), :callback, false
   end
 
   def test_default_compile_callback_hook do
-    true  = Orddict.fetch ModuleTest::ToUse.__data__, :compiling, false
+    true  = Orddict.fetch ModuleTest::ToUse.__info__(:data), :compiling, false
   end
 end

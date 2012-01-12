@@ -89,8 +89,8 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_internal_function_overriden do
-    "nofile:1: function __macros__/0 is internal and should not be overriden" =
-      format_catch 'defmodule Foo do\ndef __macros__, do: []\nend'
+    "nofile:1: function __info__/1 is internal and should not be overriden" =
+      format_catch 'defmodule Foo do\ndef __info__(_), do: []\nend'
   end
 
   def test_no_macros do

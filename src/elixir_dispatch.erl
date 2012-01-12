@@ -8,7 +8,7 @@
 
 get_macros(Line, Module, S) ->
   try
-    Module:'__macros__'()
+    Module:'__info__'(macros)
   catch
     error:undef ->
       Tuple = { no_macros, Module },
@@ -36,7 +36,7 @@ dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
   %% user friendly. That said, if there are no macro,
   %% don't bother, simply skip.
   Macros = try
-    Receiver:'__macros__'()
+    Receiver:'__info__'(macros)
   catch
     error:undef -> []
   end,
