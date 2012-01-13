@@ -26,16 +26,16 @@ delete_table(Module) ->
   ets:delete(import_table(Module)),
   ets:delete(internal_table(Module)).
 
-record(_Kind, _Tuple, _Receiver, #elixir_scope{module={0, nil}}) ->
+record(_Kind, _Tuple, _Receiver, #elixir_scope{module=nil}) ->
   [];
 
-record(macro, Tuple, Receiver, #elixir_scope{module={_,Module}}) ->
+record(macro, Tuple, Receiver, #elixir_scope{module=Module}) ->
   ets:insert(macro_table(Module), { Tuple, Receiver });
 
 record(internal, _Tuple, _Receiver, #elixir_scope{function=[]}) ->
   [];
 
-record(internal, Tuple, _Receiver, #elixir_scope{module={_,Module}}) ->
+record(internal, Tuple, _Receiver, #elixir_scope{module=Module}) ->
   ets:insert(internal_table(Module), Tuple).
 
 %% Handle the import macro declaration.

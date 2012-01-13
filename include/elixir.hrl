@@ -14,7 +14,7 @@
   macro=[],                                 %% the current macro being transformed
   function=[],                              %% the current function
   recur=[],                                 %% the current loop function to be recurred
-  module={0,nil},                           %% the current module
+  module=nil,                               %% the current module
   vars=dict:new(),                          %% a dict of defined variables and their alias
   temp_vars=dict:new(),                     %% a dict of all variables defined in a particular assign
   clause_vars=dict:new(),                   %% a dict of all variables defined in a particular clause

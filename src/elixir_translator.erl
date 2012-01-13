@@ -131,7 +131,7 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 %% Arg-less macros
 
 translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
-  { _, Module } = S#elixir_scope.module,
+  Module = S#elixir_scope.module,
   { { atom, Line, Module }, S };
 
 translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
@@ -151,7 +151,7 @@ translate_each({'__STOP_ITERATOR__', Line, Atom}, S) when is_atom(Atom) ->
 
 translate_each({module_ref, Line, [Ref]}, S) when is_atom(Ref) ->
   Atom = list_to_atom("::" ++ atom_to_list(Ref)),
-  { _, Module } = S#elixir_scope.module,
+  Module = S#elixir_scope.module,
 
   Final = case S#elixir_scope.noref or (Module == nil) of
     true  -> Atom;

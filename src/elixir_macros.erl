@@ -146,9 +146,9 @@ translate_macro({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
 translate_macro({use, Line, [Ref|Args]}, S) ->
   record(use, S),
   case S#elixir_scope.module of
-    {0,nil} ->
+    nil ->
       syntax_error(Line, S#elixir_scope.filename, "cannot invoke use outside module. invalid scope for: ", "use");
-    {_,Module} ->
+    Module ->
       Call = { block, Line, [
         { require, Line, [Ref] },
         { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
@@ -162,11 +162,11 @@ translate_macro({import, Line, [Arg]}, S) ->
 translate_macro({import, Line, [_,_] = Args}, S) ->
   record(import, S),
   Module = S#elixir_scope.module,
-  case (Module == {0,nil}) or (S#elixir_scope.function /= []) of
+  case (Module == nil) or (S#elixir_scope.function /= []) of
     true  ->
       syntax_error(Line, S#elixir_scope.filename, "cannot invoke import outside module. invalid scope for: ", "import");
     false ->
-      NewArgs = [Line, S#elixir_scope.filename, element(2, Module)|Args],
+      NewArgs = [Line, S#elixir_scope.filename, Module|Args],
       translate_each({{'.', Line, [elixir_import, handle_import]}, Line, NewArgs}, S)
   end;
 

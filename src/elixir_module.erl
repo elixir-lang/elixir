@@ -6,14 +6,14 @@
 binding_and_scope_for_eval(Line, Filename, Module, Binding) ->
   binding_and_scope_for_eval(Line, Filename, Module, Binding, #elixir_scope{filename=Filename}).
 
-binding_and_scope_for_eval(Line, _Filename, Module, Binding, S) ->
+binding_and_scope_for_eval(_Line, _Filename, Module, Binding, S) ->
   {
     binding_for_eval(Module, Binding),
-    scope_for_eval(Line, Module, S)
+    scope_for_eval(Module, S)
   }.
 
 binding_for_eval(Module, Binding) -> [{'XMODULE',Module}|Binding].
-scope_for_eval(Line, Module, S) -> S#elixir_scope{module={Line,Module}}.
+scope_for_eval(Module, S) -> S#elixir_scope{module=Module}.
 
 %% TABLE METHODS
 
