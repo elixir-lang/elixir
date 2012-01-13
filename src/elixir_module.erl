@@ -81,9 +81,9 @@ build(Module) ->
 
 eval_form(Line, Filename, Module, Block, RawBinding, RawS) ->
   { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, RawBinding, RawS),
-  { Value, NewBinding, NewS } = elixir:raw_eval([Block], Binding, S),
+  { Value, NewBinding, NewS } = elixir:eval_forms([Block], Binding, S),
   { Callbacks, FinalS } = callbacks_for(Line, Module, NewS),
-  elixir:raw_eval(Callbacks, binding_for_eval(Module, NewBinding), FinalS),
+  elixir:eval_forms(Callbacks, binding_for_eval(Module, NewBinding), FinalS),
   { Value, NewBinding }.
 
 %% Return the form with exports and function declarations.

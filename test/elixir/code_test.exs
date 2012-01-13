@@ -9,13 +9,10 @@ defmodule CodeTest do
     end
   end
 
-  Code.eval_quoted contents, [], __FILE__, __LINE__
+  Code.eval_quoted contents, [], "sample.ex", 13
 
   def test_eval_quoted do
-    # We do not assert on the line here because macros
-    # always ignore the line numbers. We need to revaluate
-    # the situation on Erlang R15.
-    { ::CodeTest::Sample, __FILE__, _ } = CodeTest::Sample.eval_quoted_info()
+    { ::CodeTest::Sample, "sample.ex", 13 } = CodeTest::Sample.eval_quoted_info()
   end
 
   def test_require do

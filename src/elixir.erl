@@ -1,7 +1,7 @@
 -module(elixir).
 -export([start/0, start_app/0, file/1, file/2,
-  eval/1, eval/2, eval/3, eval/4, eval/5, raw_eval/3,
-  eval_quoted/1, eval_quoted/2, eval_quoted/3]).
+  eval/1, eval/2, eval/3, eval/4, eval/5,
+  eval_quoted/4, eval_forms/3]).
 -include("elixir.hrl").
 
 % OTP APPLICATION API
@@ -59,6 +59,15 @@ read_file(Device, Acc) ->
       read_file(Device, [Line|Acc])
   end.
 
+% Exposed API for eval quoted
+
+eval_quoted(Tree, Binding, Line, Filename) when is_list(Filename) ->
+  eval_quoted(Tree, Binding, Line, #elixir_scope{filename=Filename});
+
+eval_quoted(Tree, Binding, Line, #elixir_scope{} = RawScope) ->
+  { Value, NewBinding, _S } = eval_forms(Tree, Binding, RawScope#elixir_scope{line=Line}),
+  { Value, NewBinding }.
+
 % Evaluates a string
 
 eval(String) -> eval(String, []).
@@ -67,17 +76,13 @@ eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
 eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, #elixir_scope{}).
 eval(String, Binding, Filename, Line, Scope) ->
   Forms = elixir_translator:forms(String, Line, Filename),
-  eval_quoted(Forms, Binding, Scope#elixir_scope{filename=Filename}).
+  { Value, NewBinding, _ } = eval_forms(Forms, Binding, Scope#elixir_scope{filename=Filename}),
+  { Value, NewBinding }.
 
-eval_quoted(Tree) -> eval_quoted(Tree, []).
-eval_quoted(Tree, Binding) -> eval_quoted(Tree, Binding, #elixir_scope{}).
-eval_quoted(Tree, Binding, #elixir_scope{} = RawScope) ->
-  { Value, NewBinding, _S } = raw_eval(Tree, Binding, RawScope),
-  { Value, NewBinding };
-eval_quoted(Tree, Binding, Filename) ->
-  eval_quoted(Tree, Binding, #elixir_scope{filename=Filename}).
+%% Handle forms evaluation internally, it is an internal
+%% API not meant for external usage.
 
-raw_eval(Tree, Binding, RawScope) ->
+eval_forms(Tree, Binding, RawScope) ->
   Scope = RawScope#elixir_scope{vars=binding_dict(Binding)},
   { ParseTree, NewScope } = elixir_translator:translate(Tree, Scope),
   case ParseTree of

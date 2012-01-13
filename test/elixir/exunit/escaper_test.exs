@@ -5,6 +5,6 @@ defmodule ExUnit::EscaperTest do
 
   def test_escape do
     escaped  = ExUnit::Escaper.escape({ :{}, 1, [2, { :_, 2, false }] })
-    "{2, _}" = inspect Code.eval_quoted(escaped, [], __FILE__, __LINE__)
+    "{2, _}" = inspect elem Code.eval_quoted(escaped, [], __FILE__, __LINE__), 1
   end
 end

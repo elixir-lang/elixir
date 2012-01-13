@@ -135,7 +135,11 @@ translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
   { { atom, Line, Module }, S };
 
 translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
-  { { integer, Line, Line }, S };
+  Int = case is_integer(S#elixir_scope.line) of
+    true  -> S#elixir_scope.line;
+    false -> Line
+  end,
+  { { integer, Line, Int }, S };
 
 translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
   translate_each(list_to_binary(S#elixir_scope.filename), S);
