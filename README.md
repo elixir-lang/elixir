@@ -2,9 +2,9 @@
 
 Elixir is a programming language built on top of Erlang. As Erlang, it is a functional language with strict evaluation and dynamic typing built to support distributed, fault-tolerant, non-stop applications with hot swapping.
 
-The main difference between Elixir and Erlang is its more natural homoiconic syntax that allows meta-programming. Support for more features like polymorphism, import mechanisms is upcoming.
+The main difference between Elixir and Erlang is its more natural homoiconic syntax that supports meta-programming. Elixir also supports polymorphism via protocols (similar to Clojure's), dynamic records and a reference mechanism.
 
-Elixir and Erlang shares the same bytecode and data types. This means you can invoke Erlang code from Elixir (and vice-versa) without any performance hit.
+Elixir and Erlang shares the same bytecode and data types. This means you can invoke Erlang code from Elixir (and vice-versa) without any ceremony or performance hit.
 
 # Usage
 
@@ -221,11 +221,11 @@ However, there is a common mistake when quoting expressions which is that develo
       quote { if(!clause, options) }
     end
 
-When called, our `unless` would then return:
+When called as `unless 2 + 2 == 5, do: call_function()`, our `unless` would then return:
 
-    { :if, 0, [{ :!, 0, [{:custom, 0, nil}]}, do: {:options, 0, nil}] }
+    { :if, 0, [{ :!, 0, [{:custom, 0, quoted}]}, do: {:options, 0, quoted}] }
 
-Notice that the tree structure returned by unless is trying to access `custom` and `options` as variables instead of using the `2 + 2 == 5` and `call_function()` expressions we gave to it. This is because we forgot to unquote! If we bring unquote back:
+Notice that the tree structure returned by unless is trying to access `custom` and `options` as variables instead of using the `2 + 2 == 5` and `call_function()` expressions we passed as parameters. This is because we forgot to unquote! If we add unquote back:
 
     defmacro unless(clause, options) do
       quote { if(!unquote(clause), unquote(options)) }
@@ -236,29 +236,18 @@ It would return:
     { :if, 0, [{ :!, 0, [{:==, 1, [{:+, 1, [2, 2]}, 5]}]},
       do: { :call_function, 1, [] }] }
 
-In other words, unquote is a mechanism to inject expressions into the tree being quoted and is essential to the meta-programming mechanism. Elixir also provides `unquote_splice`, but we will discuss it some other time.
+In other words, unquote is a mechanism to inject expressions into the tree being quoted and is essential to the meta-programming mechanism. Elixir also provides `unquote_splice`.
 
 ### Locals and macros
 
-When building macros, one may usually want to do some kind of recursion. For example, let's implement the `delegate` macro which delegates some function calls to a given target. For example, we could invoke:
-
-    delegate [values: 1], to: List
-
-One way to implement this delegate would be by recursively calling each function, as in:
-
-    defmacro delegate([h|t], to: target) do
-      # Setup delegation for the head `h` of the list
-      # ...
-      delegate(t, to: target)
-    end
-
-Notice that, in the example above we are calling the `delegate` macro and one would expect the macro to be then expanded, giving us the wrong behavior. Since this is a common idiom in Elixir, Elixir decided that local macro calls are **never** expanded. This is important because one cannot write:
+In order to support recursion, macros cannot be called locally. For example, one cannot write:
 
     defmodule MyMacros
       defmacro delegate([h|t], to: target) do
         # ...
       end
 
+      # Call the macro delegate just defined above
       delegate [values: 1], to: List
     end
 
