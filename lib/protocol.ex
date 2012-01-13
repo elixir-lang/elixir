@@ -129,10 +129,18 @@ defmodule Protocol do
         args = [unquote_splice(args)]
         case __protocol_for__(xA) do
         match: unquote(module)::Record
-          try do
-            apply unquote(module)::element(1, xA), unquote(name), args
-          catch: :error, :undef
+          result =
+            try do
+              { apply(unquote(module)::element(1, xA), unquote(name), args), true }
+            catch: :error, :undef
+              :error
+            end
+
+          case result do
+          match: :error
             apply unquote(module)::Tuple, unquote(name), args
+          match: { value, true }
+            value
           end
         match: other
           apply other, unquote(name), args
