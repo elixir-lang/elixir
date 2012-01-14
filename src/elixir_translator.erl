@@ -9,8 +9,10 @@ forms(String, StartLine, Filename) ->
     {ok, Tokens} ->
       case elixir_parser:parse(Tokens) of
         {ok, Forms} -> Forms;
+        % TODO: Use format_error
         {error, {Line, _, [Error, Token]}} -> syntax_error(Line, Filename, Error, Token)
       end;
+    % TODO: Use format_error
     {error, {Line, Error, Token}} -> syntax_error(Line, Filename, Error, Token)
   catch
     { interpolation_error, { Line, Error, Token } } -> syntax_error(Line, Filename, Error, Token)
