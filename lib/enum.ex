@@ -34,10 +34,9 @@
 #
 # The __STOP_ITERATOR__ is a special Elixir token that
 # marks when iteration should finish.
-defmodule Enum do
-  defprotocol Iterator, [iterator(collection)], only: [List, Tuple]
-  refer Enum::Iterator, as: I
+defprotocol Enum::Iterator, [iterator(collection)], only: [List, Tuple], as: I
 
+defmodule Enum do
   # Invokes the given `fun` for each item in the `collection`
   # checking if all results evalutes to true. If any does not,
   # abort and return false. Otherwise, true.

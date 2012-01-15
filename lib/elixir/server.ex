@@ -1,6 +1,6 @@
-defmodule Elixir::Server do
-  defrecord Config, argv: [], loaded: []
+defrecord Elixir::Server::Config, argv: [], loaded: []
 
+defmodule Elixir::Server do
   def start_link do
     { :ok, _ } = Erlang.gen_server.start_link({:local, :elixir_code_server}, __MODULE__, [], [])
   end

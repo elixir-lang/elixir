@@ -1,6 +1,6 @@
-defmodule ExUnit::Runner do
-  defrecord Config, formatter: ExUnit::Formatter, cases: [], max_cases: 4, taken_cases: 0, sync_cases: []
+defrecord ExUnit::Runner::Config, formatter: ExUnit::Formatter, cases: [], max_cases: 4, taken_cases: 0, sync_cases: []
 
+defmodule ExUnit::Runner do
   # The runner entry point. At first, it will simply spawn cases and start
   # looping expecting messages. When all the cases are spawned and finished,
   # we start running the sync cases. When sync cases finish, tell the formatter

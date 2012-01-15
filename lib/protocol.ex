@@ -13,13 +13,17 @@ defmodule Protocol do
   #                          according to the only/except rules
   #
   def defprotocol(name, args, opts) do
+    as = Orddict.fetch(opts, :as, true)
     kv = to_kv(args)
+
     quote do
-      defmodule __MODULE__ :: unquote(name) do
+      defmodule unquote(name) do
         def __protocol__, do: unquote(kv)
         Protocol.functions(__MODULE__, unquote(kv))
         Protocol.protocol_for(__MODULE__, unquote(opts))
       end
+
+      require unquote(name), as: unquote(as)
     end
   end
 

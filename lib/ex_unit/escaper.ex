@@ -7,9 +7,9 @@
 # For such cases, we can use `ExUnit::Escaper.escape`
 # to escape the expression replacing all "_" by a flag
 # that when inspected returns "_".
-defmodule ExUnit::Escaper do
-  defrecord Flag, as: nil
+defrecord ExUnit::Escaper::Flag, as: nil
 
+defmodule ExUnit::Escaper do
   defimpl String::Inspect, for: Flag do
     def inspect(record),   do: record.as
     def to_binary(record), do: record.as

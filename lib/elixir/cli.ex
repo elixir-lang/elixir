@@ -1,7 +1,7 @@
+defrecord Elixir::CLI::Config, commands: [], close: [], halt: true, output: '.', compile: false
+
 defmodule Elixir::CLI do
   import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
-
-  defrecord Config, commands: [], close: [], halt: true, output: '.', compile: false
 
   # Invoked directly from erlang boot process. It parses all argv
   # options and execute them in the order they are specified.

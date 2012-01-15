@@ -56,32 +56,3 @@ record_increment_test() ->
     { { '::Foo', -2 }, _ } = elixir:eval("Foo.new.increment_a -2")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
-
-nested_record_test() ->
-  F = fun() ->
-    elixir:eval("defmodule Foo, do: defrecord(Bar, a: 1, b: 2, c: 3)"),
-    { { '::Foo::Bar', 1, 2, 3 }, _ } = elixir:eval("Foo::Bar.new"),
-    { 1, _ } = elixir:eval("Foo::Bar.new.a")
-  end,
-  test_helper:run_and_remove(F, ['::Foo', '::Foo::Bar']).
-
-nested_record_refer_test() ->
-  F = fun() ->
-    elixir:eval("defmodule Foo do\ndefrecord(Bar, a: 1)\ndef bar, do: Bar.new\nend"),
-    { { '::Foo::Bar', 1 }, _ } = elixir:eval("Foo.bar")
-  end,
-  test_helper:run_and_remove(F, ['::Foo', '::Foo::Bar']).
-
-nested_record_no_refer_test() ->
-  F = fun() ->
-    elixir:eval("defmodule Foo do\ndefrecord(Bar, [a: 1], as: false)\ndef bar, do: Bar.new\nend"),
-    ?assertError(undef, elixir:eval("Foo.bar"))
-  end,
-  test_helper:run_and_remove(F, ['::Foo', '::Foo::Bar']).
-
-nested_record_custom_refer_test() ->
-  F = fun() ->
-    elixir:eval("defmodule Foo do\ndefrecord(Bar, [a: 1], as: Baz)\ndef bar, do: Baz.new\nend"),
-    { { '::Foo::Bar', 1 }, _ } = elixir:eval("Foo.bar")
-  end,
-  test_helper:run_and_remove(F, ['::Foo', '::Foo::Bar']).

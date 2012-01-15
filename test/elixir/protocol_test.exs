@@ -1,19 +1,19 @@
 Code.require_file "../test_helper", __FILE__
 
+defprotocol ProtocolTest::WithAll, [blank(thing)]
+defprotocol ProtocolTest::WithExcept, [blank(thing)], except: [Atom, Number, List]
+defprotocol ProtocolTest::WithOnly, [blank(thing)], only: [Tuple, Function]
+
+defrecord ProtocolTest::Foo, a: 0, b: 0
+
+defimpl WithAll, for: Foo do
+  def blank(record) do
+    record.a + record.b == 0
+  end
+end
+
 defmodule ProtocolTest do
   use ExUnit::Case
-
-  defprotocol WithAll, [blank(thing)]
-  defprotocol WithExcept, [blank(thing)], except: [Atom, Number, List]
-  defprotocol WithOnly, [blank(thing)], only: [Tuple, Function]
-
-  defrecord Foo, a: 0, b: 0
-
-  defimpl __MODULE__ :: WithAll, for: Foo do
-    def blank(record) do
-      record.a + record.b == 0
-    end
-  end
 
   def test_protocol_with_all do
     assert_undef(ProtocolTest::WithAll, Atom, :foo)

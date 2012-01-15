@@ -128,19 +128,18 @@ defmodule Elixir::Macros do
   #     file_info.atime(now())  #=> Updates the value of atime
   #
   # FileInfo is simply a module with functions specific for
-  # the record. Notice that the name of the module is sensitive
-  # to the current context. For instance:
+  # the record. In case the name of the record is nested, Elixir
+  # will automatically setup a refer alias for it in the current
+  # scope:
   #
-  #     defrecord FileInfo, atime: nil, mtime: nil
+  #     defrecord MyLib::FileInfo, atime: nil, mtime: nil
+  #     IO.puts FileInfo #=> ::MyLib::FileInfo
   #
-  # ... will define a module named FileInfo. However, if invoked
-  # inside a module, the name will be nested:
+  # This can be turned off by passing a second options dictionary
+  # with `as:` equals to false:
   #
-  #     defmodule Foo::Bar do
-  #       defrecord FileInfo, atime: nil, mtime: nil
-  #     end
+  #     defrecord MyLib::FileInfo, [atime: nil, mtime: nil], as: false
   #
-  #     Foo::Bar::FileInfo.new # Nested
   #
   # ## Default based functions
   #
@@ -236,7 +235,7 @@ defmodule Elixir::Macros do
   # * Port
   # * Reference
   #
-  # ## Selecting protocols
+  # ## Selecting implementations
   #
   # Implement the protocol for all 9 types above can be cumbersome.
   # Even more if you consider that Number, Function, PID, Port and
@@ -253,7 +252,7 @@ defmodule Elixir::Macros do
   #       def blank?(_), do: false
   #     end
   #
-  # Now, all data types that we not specified in only will be automatically
+  # Now, all data types that we have not specified will be automatically
   # considered non blank.
   #
   # ## Protocols + Records
@@ -270,8 +269,9 @@ defmodule Elixir::Macros do
   # In the example above, we have implemented `blank?` for the custom
   # dictionary that simply delegates to `RedBlack.empty?`.
   #
-  # Finally, notice that since records are simply tuples, the default
-  # implementation for records can be given in the tuple implementation.
+  # Since records are simply tuples, the default implementation for
+  # records can be given in the tuple implementation. Similarly,
+  # not passing `Tuple` to `only:` disables all records lookup.
   defmacro defprotocol(name, args, opts // []) do
     Protocol.defprotocol(name, args, opts)
   end

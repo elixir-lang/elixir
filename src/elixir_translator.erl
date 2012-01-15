@@ -88,6 +88,8 @@ translate_each({refer, Line, [Ref|T]}, S) ->
   { New, SF } = case orddict:find(as, KV) of
     { ok, false } ->
       { Old, SR };
+    { ok, true } ->
+      { elixir_ref:last(Old), SR };
     { ok, Other } ->
       { TOther, SA } = translate_each(Other, SR#elixir_scope{noref=true}),
       { Extractor(TOther), SA };
@@ -153,9 +155,8 @@ translate_each({'__STOP_ITERATOR__', Line, Atom}, S) when is_atom(Atom) ->
 
 translate_each({module_ref, Line, [Ref]}, S) when is_atom(Ref) ->
   Atom = list_to_atom("::" ++ atom_to_list(Ref)),
-  Module = S#elixir_scope.module,
 
-  Final = case S#elixir_scope.noref or (Module == nil) of
+  Final = case S#elixir_scope.noref of
     true  -> Atom;
     false -> elixir_ref:lookup(Atom, S#elixir_scope.refer)
   end,
