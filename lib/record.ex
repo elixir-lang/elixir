@@ -47,8 +47,8 @@ defmodule Record do
 
     quote do
       def new(), do: new([])
-      def new([]), do: { __MODULE__, unquote_splice(defaults) }
-      def new(opts), do: { __MODULE__, unquote_splice(selective) }
+      def new([]), do: { __MODULE__, unquote_splicing(defaults) }
+      def new(opts), do: { __MODULE__, unquote_splicing(selective) }
     end
   end
 

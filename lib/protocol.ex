@@ -125,8 +125,8 @@ defmodule Protocol do
     args = generate_args(arity, [])
 
     contents = quote do
-      def unquote(name).(unquote_splice(args)) do
-        args = [unquote_splice(args)]
+      def unquote(name).(unquote_splicing(args)) do
+        args = [unquote_splicing(args)]
         case __protocol_for__(xA) do
         match: unquote(module)::Record
           result =

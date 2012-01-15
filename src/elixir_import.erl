@@ -244,7 +244,7 @@ in_erlang_macros() ->
     {'defmacro','*'},
     {'quote',1},
     {'unquote',1},
-    {'unquote_splice',1},
+    {'unquote_splicing',1},
     {'fn','*'},
     {'case',2},
     {'receive',1},

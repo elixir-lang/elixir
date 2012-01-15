@@ -539,10 +539,10 @@ defmodule Elixir::Macros do
   # ## Examples
   #
   #     values = [2,3,4]
-  #     quote { sum(1, unquote_splice(values), 5) }
+  #     quote { sum(1, unquote_splicing(values), 5) }
   #     #=> { :sum, 0, [1, 2, 3, 4, 5] }
   #
-  defmacro unquote_splice(expr)
+  defmacro unquote_splicing(expr)
 
   # Returns an anonymous function based on the given arguments.
   #

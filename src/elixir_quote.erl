@@ -42,9 +42,9 @@ translate_each(Atom, S) when is_atom(Atom) ->
 translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
 
-% Loop through the list finding each unquote_splice entry.
+% Loop through the list finding each unquote_splicing entry.
 
-splice([{ unquote_splice, _, [Args] }|T], Buffer, Acc, S) ->
+splice([{ unquote_splicing, _, [Args] }|T], Buffer, Acc, S) ->
   { NewAcc, NewS } = from_buffer_to_acc(Buffer, Acc, S),
   { TArgs, TS } = elixir_translator:translate_each(Args, NewS),
   splice(T, [], [TArgs|NewAcc], TS);

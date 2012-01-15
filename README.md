@@ -236,7 +236,7 @@ It would return:
     { :if, 0, [{ :!, 0, [{:==, 1, [{:+, 1, [2, 2]}, 5]}]},
       do: { :call_function, 1, [] }] }
 
-In other words, unquote is a mechanism to inject expressions into the tree being quoted and is essential to the meta-programming mechanism. Elixir also provides `unquote_splice`.
+In other words, unquote is a mechanism to inject expressions into the tree being quoted and is essential to the meta-programming mechanism. Elixir also provides `unquote_splicing`.
 
 ### Locals and macros
 
