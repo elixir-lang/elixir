@@ -65,14 +65,14 @@ defmodule Protocol do
   # It simply detects the protocol using __protocol_for__ and
   # then dispatches to it.
   def functions(module, funs) do
-    for fun in L.reverse(funs), do: each_function(module, fun)
+    lc fun in L.reverse(funs), do: each_function(module, fun)
   end
 
   # Implements the method that detects the protocol and returns
   # the module to dispatch to. Returns module::Record for records
   # which should be properly handled by the dispatching function.
   def protocol_for(module, opts) do
-    for kind in conversions_for(opts), do: each_protocol_for(module, kind)
+    lc kind in conversions_for(opts), do: each_protocol_for(module, kind)
   end
 
   ## Helpers
@@ -154,7 +154,7 @@ defmodule Protocol do
   # Converts the protocol expressions as [each(collection), length(collection)]
   # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
   defp to_kv(args) do
-    Orddict.from_list for(x in args) {
+    Orddict.from_list lc(x in args) {
       case x do
       match: { _, _, args } when args == [] or args == false
         error({ :badarg, "protocol functions expect at least one argument" })

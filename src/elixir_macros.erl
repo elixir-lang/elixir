@@ -213,11 +213,8 @@ translate_macro({recur, Line, Args}, S) when is_list(Args) ->
 
 %% Comprehensions
 
-translate_macro({ for, Line, Args }, S) when is_list(Args) ->
-  translate_comprehension(Line, lc, Args, S);
-
-translate_macro({ bitfor, Line, Args }, S) when is_list(Args) ->
-  translate_comprehension(Line, bc, Args, S);
+translate_macro({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
+  translate_comprehension(Line, Kind, Args, S);
 
 translate_macro({ ec, Line, RawArgs }, S) when is_list(RawArgs) ->
   case lists:split(length(RawArgs) - 1, RawArgs) of

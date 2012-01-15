@@ -50,7 +50,7 @@ defmodule Elixir::Formatter do
       end
 
     if is_list(arity) do
-      inspected = for x in arity, do: inspect(x)
+      inspected = lc x in arity, do: inspect(x)
       "#{module}#{separator}#{fun}(#{Enum.join(inspected, ", ")})"
     else:
       "#{module}#{separator}#{fun}/#{arity}"
