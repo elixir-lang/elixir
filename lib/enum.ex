@@ -8,7 +8,7 @@
 # However, one can use their own iteration function for any
 # collection by passing the iterator function as the first
 # argument:
-# 
+#
 #     Enum.map my_iteration_function, [1,2,3], fun(x) { x * 2 }
 #
 # ## The protocol
@@ -22,11 +22,11 @@
 #
 #     defimpl Enum::Iterator, for: List do
 #       def iterator(_), do: iterate(_)
-#     
+#
 #       defp iterate([h|t]) do
 #         { h, t }
 #       end
-#     
+#
 #       defp iterate([]) do
 #         __STOP_ITERATOR__
 #       end
@@ -88,6 +88,18 @@ defmodule Enum do
 
   def any?(iterator, collection, fun) do
     do_any?(iterator.(collection), iterator, fun)
+  end
+
+  # Receives a list of enums and a function and recursively
+  # invokes the function with an accumulutaor plus each item
+  # in each enum as argument in reverse order. Therefore, the
+  # arity of the fun must be 1 + number of enums.
+  #
+  # This is used internally by enum comprehensions and should not
+  # be used directly.
+  def c([h|t], fun) do
+    iterator = Enum::Iterator.iterator(h)
+    first_comprehension_each iterator, iterator.(h), t, [], fun
   end
 
   # Invokes the `fun` for each item in collection
@@ -404,6 +416,33 @@ defmodule Enum do
 
   defp do_mapfoldl(__STOP_ITERATOR__, _, acc, _f) do
     { [], acc }
+  end
+
+  ## Comprehensions
+
+  defp first_comprehension_each(iterator, { h, next }, t, acc, fun) do
+    first_comprehension_each iterator, iterator.(next), t, next_comprehension(t, acc, fun, [h]), fun
+  end
+
+  defp first_comprehension_each(_iterator, __STOP_ITERATOR__, _t, acc, _fun) do
+    List.reverse(acc)
+  end
+
+  defp next_comprehension([h|t], acc, fun, args) do
+    iterator = Enum::Iterator.iterator(h)
+    next_comprehension_each iterator, iterator.(h), t, acc, fun, args
+  end
+
+  defp next_comprehension([], acc, fun, args) do
+    apply fun, [acc|args]
+  end
+
+  defp next_comprehension_each(iterator, { h, next }, t, acc, fun, args) do
+    next_comprehension_each iterator, iterator.(next), t, next_comprehension(t, acc, fun, [h|args]), fun, args
+  end
+
+  defp next_comprehension_each(_iterator, __STOP_ITERATOR__, _t, acc, _fun, _args) do
+    acc
   end
 end
 

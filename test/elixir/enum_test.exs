@@ -80,4 +80,17 @@ defmodule EnumTest do
     { [], 1 } = Enum.mapfoldl [], 1, fn(x, acc) { { x * 2, x + acc } }
     { [2,4,6], 7 } = Enum.mapfoldl [1,2,3], 1, fn(x, acc) { { x * 2, x + acc } }
   end
+
+  def test_enum_c do
+    [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = Enum.c [[1,2],[3,4]], fn(acc, y, x) { [{x,y}|acc] }
+  end
+
+  def test_ec do
+    [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = ec x in [1,2], y in [3,4], do: {x,y}
+
+    lists = [1,{1,2},2,{2,1}]
+    [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = ec {x,_} in lists, y in [3,4], do: {x,y}
+    [{1, 3}, {1, 4}] = ec {x,_} in lists, y in [3,4], x == 1, do: {x,y}
+  end
+
 end

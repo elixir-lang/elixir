@@ -219,6 +219,55 @@ translate_macro({ for, Line, Args }, S) when is_list(Args) ->
 translate_macro({ bitfor, Line, Args }, S) when is_list(Args) ->
   translate_comprehension(Line, bc, Args, S);
 
+translate_macro({ ec, Line, RawArgs }, S) when is_list(RawArgs) ->
+  case lists:split(length(RawArgs) - 1, RawArgs) of
+    { Cases, [[{do,Expr}]] } ->
+      { Generators, Filters } = lists:splitwith(fun
+        ({ 'in', _, _ }) -> true;
+        (_) -> false
+      end, Cases),
+
+      case Generators of
+        [] -> syntax_error(Line, S#elixir_scope.filename, "expected one generator for comprehension: ", "ec");
+        _  -> []
+      end,
+
+      Args  = [X || { _, _, [X, _] } <- Generators],
+      Enums = [Y || { _, _, [_, Y] } <- Generators],
+
+      { AccVar, VS } = elixir_variables:build_ex(Line, S),
+      Tail = [{ '|', Line, [Expr, AccVar] }],
+
+      Fun = case lists:all(fun is_var/1, Args) andalso Filters == [] of
+        true  ->
+          { fn, Line, [AccVar|lists:reverse(Args)] ++ [[{do,Tail}]] };
+        false ->
+          Condition  = lists:reverse(Args),
+          Underscore = [{ '_', Line, nil } || _ <- Args],
+
+          Body = case Filters of
+            [] -> Tail;
+            _  ->
+              Guard = lists:foldl(fun(X, Acc) ->
+                { '&&', Line, [X, Acc] }
+              end, hd(Filters), tl(Filters)),
+
+              { 'if', Line, [Guard, [{do,Tail},{else,AccVar}]] }
+          end,
+
+          { fn, Line, [[
+            { match, { kv_block, Line, [
+              { [AccVar|Condition], Body },
+              { [AccVar|Underscore], AccVar }
+            ] } }
+          ]] }
+      end,
+
+      translate_each({ { '.', Line, ['::Enum', c] }, Line, [Enums, Fun] }, VS);
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "no block given for comprehension: ", "ec")
+  end;
+
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
 translate_macro({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
@@ -282,6 +331,9 @@ translate_each_comprehension(X, S) ->
 unpack_try(_, [{ block, _, Exprs }]) -> Exprs;
 unpack_try('after', [{ nil, _ }])    -> [];
 unpack_try(_, Exprs)                 -> Exprs.
+
+is_var({ Name, _Line, Atom }) when is_atom(Name), is_atom(Atom) -> true;
+is_var(_) -> false.
 
 % We need to record macros invoked so we raise users
 % a nice error in case they define a local that overrides
