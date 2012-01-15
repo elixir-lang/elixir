@@ -95,9 +95,8 @@ defmodule Enum do
   # in each enum as argument in reverse order. Therefore, the
   # arity of the fun must be 1 + number of enums.
   #
-  # This is used internally by enum comprehensions and should not
-  # be used directly.
-  def c([h|t], fun) do
+  # This is used internally by `for` and should not be used directly.
+  def for([h|t], fun) do
     iterator = Enum::Iterator.iterator(h)
     first_comprehension_each iterator, iterator.(h), t, [], fun
   end

@@ -216,7 +216,7 @@ translate_macro({recur, Line, Args}, S) when is_list(Args) ->
 translate_macro({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
   translate_comprehension(Line, Kind, Args, S);
 
-translate_macro({ ec, Line, RawArgs }, S) when is_list(RawArgs) ->
+translate_macro({ for, Line, RawArgs }, S) when is_list(RawArgs) ->
   case lists:split(length(RawArgs) - 1, RawArgs) of
     { Cases, [[{do,Expr}]] } ->
       { Generators, Filters } = lists:splitwith(fun
@@ -225,7 +225,7 @@ translate_macro({ ec, Line, RawArgs }, S) when is_list(RawArgs) ->
       end, Cases),
 
       case Generators of
-        [] -> syntax_error(Line, S#elixir_scope.filename, "expected one generator for comprehension: ", "ec");
+        [] -> syntax_error(Line, S#elixir_scope.filename, "expected at least one generator for: ", "for");
         _  -> []
       end,
 
@@ -260,9 +260,9 @@ translate_macro({ ec, Line, RawArgs }, S) when is_list(RawArgs) ->
           ]] }
       end,
 
-      translate_each({ { '.', Line, ['::Enum', c] }, Line, [Enums, Fun] }, VS);
+      translate_each({ { '.', Line, ['::Enum', for] }, Line, [Enums, Fun] }, VS);
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "no block given for comprehension: ", "ec")
+      syntax_error(Line, S#elixir_scope.filename, "no block given for: ", "for")
   end;
 
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
