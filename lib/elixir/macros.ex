@@ -620,6 +620,48 @@ defmodule Elixir::Macros do
   # that it will be tail recursive.
   defmacro loop(args)
 
+  # Receives a sequence of generators and filters and execute the
+  # given block to the matching combination. This is a higher level
+  # implementation of list comprehensions that follows the Enum::Iterator
+  # protocol.
+  #
+  # ## Examples
+  #
+  # An example with one generator:
+  #
+  #     [2,4] = for x in [1,2], do: x * 2
+  #
+  # Generators can also pattern match:
+  #
+  #     list = [{1,2},{0,3},{1,4}]
+  #     [4,8] = for {1,x} in list, do: x * 2
+  #
+  # Two generators:
+  #
+  #     [1,2,2,4] = for x in [1,2], y in [1,2], do: x * y
+  #
+  # Two generators and one filter:
+  #
+  #     [1,4] = for x in [1,2], y in [1,2], x == y do
+  #       x * y
+  #     end
+  #
+  # A filter can return any value. All values except nil and false
+  # evalutes to true.
+  #
+  # ## Comprehensions
+  #
+  # Elixir also provides `lc` and `bc` as comprehensions. Both `lc`
+  # and `bc` collect items in the stack, while `for` collects item
+  # in a list that is reversed. `lc` and `bc` must be used when the
+  # focus is performance and you don't expect different kinds of
+  # enumerables as arguments.
+  #
+  # Also, binary generators are not supported by `for` since Elixir
+  # doesn't treat binaries as enumerables. That said, if you need
+  # to manipulate binaries, you need to resort to comprehensions.
+  defmacro for(args)
+
   # Inspect the given arguments according to the String::Inspect protocol.
   #
   # ## Examples

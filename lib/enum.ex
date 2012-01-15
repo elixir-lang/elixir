@@ -96,8 +96,9 @@ defmodule Enum do
   # arity of the fun must be 1 + number of enums.
   #
   # This is used internally by `for` and should not be used directly.
-  def for([h|t], fun) do
-    iterator = Enum::Iterator.iterator(h)
+  def for(lists, fun) do
+    iterators = lc list in lists, do: { list, Enum::Iterator.iterator(list) }
+    [{h,iterator}|t] = iterators
     first_comprehension_each iterator, iterator.(h), t, [], fun
   end
 
@@ -427,8 +428,7 @@ defmodule Enum do
     List.reverse(acc)
   end
 
-  defp next_comprehension([h|t], acc, fun, args) do
-    iterator = Enum::Iterator.iterator(h)
+  defp next_comprehension([{h,iterator}|t], acc, fun, args) do
     next_comprehension_each iterator, iterator.(h), t, acc, fun, args
   end
 
