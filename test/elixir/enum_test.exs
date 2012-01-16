@@ -81,11 +81,11 @@ defmodule EnumTest do
     { [2,4,6], 7 } = Enum.mapfoldl [1,2,3], 1, fn(x, acc) { { x * 2, x + acc } }
   end
 
-  def test_enum_c do
+  def test_enum_for do
     [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = Enum.for [[1,2],[3,4]], fn(acc, y, x) { [{x,y}|acc] }
   end
 
-  def test_ec do
+  def test_for do
     [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = for x in [1,2], y in [3,4], do: {x,y}
 
     lists = [1,{1,2},2,{2,1}]

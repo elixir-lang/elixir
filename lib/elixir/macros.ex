@@ -658,8 +658,8 @@ defmodule Elixir::Macros do
   # enumerables as arguments.
   #
   # Also, binary generators are not supported by `for` since Elixir
-  # doesn't treat binaries as enumerables. That said, if you need
-  # to manipulate binaries, you need to resort to comprehensions.
+  # doesn't treat binaries as enumerables. If you need to manipulate
+  # binaries, you need to resort to comprehensions.
   defmacro for(args)
 
   # Inspect the given arguments according to the String::Inspect protocol.
