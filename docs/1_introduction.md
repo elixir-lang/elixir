@@ -165,4 +165,6 @@ In Elixir, we can compare two different data types and they will follow this ord
 
 You actually don't need to memorize this ordering, it is important just to know an order exists.
 
-Well, that is it for introduction. In the next chapter, we are going to discuss some basic functions, data types conversions and a bit of control-flow.
+Well, that is it for the introduction. In the next chapter, we are going to discuss some basic functions, data types conversions and a bit of control-flow.
+
+[Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 2: Dipping the toes](https://github.com/josevalim/elixir/blob/master/docs/2_dipping_the_toes)
