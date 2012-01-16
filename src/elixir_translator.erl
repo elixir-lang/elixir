@@ -163,24 +163,6 @@ translate_each({module_ref, Line, [Ref]}, S) when is_atom(Ref) ->
 
   { {atom, Line, Final }, S };
 
-%% ::
-
-translate_each({'::', Line, [Left]}, S) ->
-  translate_each({'::', Line, [nil,Left]}, S);
-
-translate_each({'::', Line, [Left|Right]}, S) ->
-  { TLeft, LS } = translate_each(Left, S),
-  { TRight, RS } = translate_args(Right, (umergec(S, LS))#elixir_scope{noref=true}),
-  TArgs = [TLeft|TRight],
-  Atoms = [Atom || { atom, _, Atom } <- TArgs],
-  Final = case length(Atoms) == length(TArgs) of
-    true  -> { atom, Line, elixir_ref:concat(Atoms) };
-    false ->
-      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
-  end,
-  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
-
 %% Quoting
 
 translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->

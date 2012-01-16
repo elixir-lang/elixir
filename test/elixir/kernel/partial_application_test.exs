@@ -47,7 +47,12 @@ defmodule Kernel::PartialApplicationTest do
   end
 
   def test_partial_application_for_operator do
-    [2,4,6] = Enum.map [1,2,3], :*.(_, 2)
+    [2,4,6] = Enum.map [1,2,3], _ * 2
+  end
+
+  def test_partial_application_for_const_op do
+    fun = Foo::_
+    ::Foo::Bar = fun.(Bar)
   end
 
   defp minus(x, y) do
