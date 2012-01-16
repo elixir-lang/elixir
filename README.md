@@ -4,12 +4,13 @@ Elixir is a programming language built on top of Erlang. As Erlang, it is a func
 
 The main difference between Elixir and Erlang is its more natural homoiconic syntax that supports meta-programming. Elixir also supports polymorphism via protocols (similar to Clojure's), dynamic records and a reference mechanism.
 
-Elixir and Erlang shares the same bytecode and data types. This means you can invoke Erlang code from Elixir (and vice-versa) without any ceremony or performance hit.
+Elixir and Erlang share the same bytecode and data types. This means you can invoke Erlang code from Elixir (and vice-versa) without any conversion or performance hit.
 
 # Usage
 
-Elixir is still in development but ready to try out! First, you need to
-clone this repository to your machine, compile and test it:
+You can run and learn about Elixir in the [Getting Started guide](https://github.com/josevalim/elixir/blob/master/docs/0_index.md).
+
+But if you just want to compile and try Elixir, with no compromises, you can clone this repository to your machine, compile and test it:
 
     $ git clone https://github.com/josevalim/elixir.git
     $ cd elixir
@@ -18,7 +19,7 @@ clone this repository to your machine, compile and test it:
     $ bin/elixir -v
     Elixir 0.4.0.dev
 
-If tests pass, you are ready to move on to the [Getting Started guide](https://github.com/josevalim/elixir/blob/master/docs/1_getting_started.md) or to try Interactive Elixir by running: `bin/iex` in your terminal.
+If tests pass, you are ready to move on to the  or to try Interactive Elixir by running: `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang R14B03 or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
 
@@ -43,7 +44,7 @@ We usually keep a list of features and bugs (in the issues tracker)[https://gith
 # Important links
 
 * #elixir-lang on freenode IRC
-* [Getting Started Guide](https://github.com/josevalim/elixir/blob/master/docs/1_getting_started.md)
+* [Getting Started Guide](https://github.com/josevalim/elixir/blob/master/docs/0_index.md)
 * [Mailing list](http://groups.google.com/group/elixir-lang-core)
 * [Issues tracker](https://github.com/josevalim/elixir/issues)
 * [Textmate Bundle for Elixir](https://github.com/josevalim/elixir-tmbundle)

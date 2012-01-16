@@ -1,4 +1,4 @@
-# 1 Getting Started with Elixir
+# 1 Introduction
 
 Welcome! In this tutorial we are going to show you how to get started with Elixir. In later sections, we are even going to discuss more advanced subjects as macros, protocols and other features provided by Elixir.
 
@@ -23,7 +23,7 @@ If you have the correct version and tests still fail, feel free to open an issue
 
 ## 1.2 Interactive mode
 
-We can start Elixir interactive mode by running `bin/iex` in the same directory you compiled it. In interactive mode, we can type any Elixir expression. Let's warm up with some basic arithmetic expressions:
+We can start Elixir interactive mode by running `bin/iex` in the same directory you compiled Elixir. In interactive mode, we can type any Elixir expression. Let's warm up with some basic arithmetic expressions:
 
     iex> 1 + 1
     2
@@ -165,4 +165,4 @@ In Elixir, we can compare two different data types and they will follow this ord
 
 You actually don't need to memorize this ordering, it is important just to know an order exists.
 
-Well, that is it for the getting started chapter. In the next chapter, we are going to discuss some basic functions, data types conversions and a bit of control-flow.
+Well, that is it for introduction. In the next chapter, we are going to discuss some basic functions, data types conversions and a bit of control-flow.
