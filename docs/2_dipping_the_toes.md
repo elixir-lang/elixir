@@ -222,29 +222,147 @@ Which is then parsed as:
       x * 2
     })
 
-A good rule of thumb is: inside a function call, always use curly brackets key-value blocks. To sum it up, all those calls equivalent:
-
-    if false, do: 1 + 2, else: 10 + 3
-
-    if(false) {
-      1 + 2
-    else:
-      10 + 3
-    }
-
-    if false do
-      1 + 2
-    else:
-      10 + 3
-    end
+A good rule of thumb is: when providing arguments to a function, always use curly brackets.
 
 ## 2.5 Control flow structures
 
+In this section we are going to describe Elixir main control structures.
+
 ### 2.5.1 If
 
-### 2.5.2 Short-circuit
+Refreshing from the section above, all those calls are equivalent:
+
+   if false, do: 1 + 2, else: 10 + 3
+
+   if(false) {
+     1 + 2
+   else:
+     10 + 3
+   }
+
+   if false do
+     1 + 2
+   else:
+     10 + 3
+   end
+
+`if` also accepts many `elsif:` clauses:
+
+    if 1 + 1 == 3 do
+      IO.puts "Impossible"
+    elsif: 1 + 1 == 2
+      IO.puts "This will match"
+    elsif: true
+      IO.puts "This won't because the one above matched"
+    else:
+      IO.puts "This won't"
+    end
+
+In Elixir, all values except `false` and `nil` evaluates to true. So there is no need to convert them to false.
+
+### 2.5.2 Other boolean operators
+
+In the previous chapter, we discussed the boolean operators `and`, `or`, `not`, `andalso` and `orelse`. Those operators are strict in the sense they only accept booleans as arguments.
+
+To work around this limitation, Elixir provides three operators with similar functionality but that accept any argument: `||`, `&&` and `!`. For those operators, all values except `false` and `nil` will evaluate to true.
+
+    # Short-circuit or
+    iex> 1 || true
+    1
+    iex> false || 11
+    11
+
+    # Short-circuit and
+    iex> nil && 13
+    nil
+    iex> true && 17
+    17
+
+    # Short-circuit !
+    iex> !true
+    false
+    iex> !1
+    false
+    iex> !nil
+    true
 
 ### 2.5.3 Case
+
+In this section we have introduced pattern matching via the `=` operator. Sometimes however it is convenient to match an expression against several expressions until we find a matching one. For such cases, we use `case` (pun intended):
+
+    case { 1, 2, 3 } do
+    match: { 4, 5, 6 }
+      IO.puts "This won't match"
+    match: { 1, x, 3 }
+      IO.puts "This will match and assign x"
+    else:
+      IO.puts "No match"
+    end
+
+As in the `=` operator, any assigned variable will be overridden in the match clause. In case you want to pattern match against a variable, you need to use the `^` operator:
+
+    x = 1
+    case 10 do
+    match: ^x
+      IO.puts "Won't match"
+    else:
+      IO.puts "Will match"
+    end
+
+Each match clause also supports special conditions to be given via guards:
+
+    case { 1, 2, 3 } do
+    match: { 4, 5, 6 }
+      IO.puts "This won't match"
+    match: { 1, x, 3 } when x > 0
+      IO.puts "This will match and assign x"
+    else:
+      IO.puts "No match"
+    end
+
+In the example above, the second clause will only match if x is positive. The Erlang VM machine only allows few expressions as guards, they are:
+
+* comparison operators (`==`, `!=`, `===`, `!===`, `>`, `<`, `<=`, `>=`);
+* strict boolean operators (`and`, `or`, `not`, `andalso`, `orelse`);
+* arithmetic operators (`+`, `-`, `*`, `/`);
+* all the following type check functions:
+
+    is_atom/1
+    is_binary/1
+    is_bitstring/1
+    is_boolean/1
+    is_float/1
+    is_function/1
+    is_function/2
+    is_integer/1
+    is_list/1
+    is_number/1
+    is_pid/1
+    is_port/1
+    is_record/2
+    is_record/3
+    is_reference/1
+    is_tuple/1
+
+* plus these functions:
+
+    abs(Number)
+    bit_size(Bitstring)
+    byte_size(Bitstring)
+    elem(Tuple, n)
+    float(Term)
+    hd(List)
+    length(List)
+    node()
+    node(Pid|Ref|Port)
+    round(Number)
+    self()
+    size(Tuple|Bitstring)
+    tl(List)
+    trunc(Number)
+    tuple_size(Tuple)
+
+Custom macros can be invoked in guard clauses as long as they expand to expressions that are a subset of the ones described above.
 
 ### 2.5.4 Functions and loops
 

@@ -119,7 +119,7 @@ Since single-quoted strings are lists, we can also use `++` and `--` as operator
 
 Notice that `++` and `--` cannot be used to manipulate double quoted strings, as they are binaries.
 
-Elixir also provides several boolean operators: `or`, `and`, `not`, `andalso`, `orelse`. Those operators are strict in the sense those operators expects only booleans (true or false) as arguments:
+Elixir also provides three boolean operators: `or`, `and` and `not`. Those operators are strict in the sense those operators expects only booleans (true or false) as arguments:
 
     iex> true and true
     true
@@ -132,7 +132,7 @@ Giving a non-boolean as argument will raise an exception:
     ** error :badarg
         erlang:and(1, true)
 
-`or` and `and` are eager operators. They will execute both left and right sides of the expression. `andalso` and `orelse` are short-circuit operators. They just execute the right side in case the left side is not enough to determine the result:
+`or` and `and` are eager operators. They will execute both left and right sides of the expression. Elixir also provides `andalso` and `orelse` which are short-circuit operators. They just execute the right side in case the left side is not enough to determine the result:
 
     iex> false and error("This error will be raised")
     ** error "This error will be raised"
