@@ -9,10 +9,10 @@ defmodule Orddict do
 
   # Fetches value from the dictionary for specific key.
   # If key not exist return default value
-  def fetch([{k, _}|_], key, default) when key < k, do: default
-  def fetch([{k, _}|d], key, default) when key > k, do: fetch(d, key, default)
-  def fetch([{_k, value}|_], _key, _default),    do: value
-  def fetch([], _, default),                    do: default
+  def get([{k, _}|_], key, default) when key < k, do: default
+  def get([{k, _}|d], key, default) when key > k, do: get(d, key, default)
+  def get([{_k, value}|_], _key, _default),       do: value
+  def get([], _, default // nil),                 do: default
 
   # Returns all keys of dictionary
   def keys([{k, _}|t]), do: [k|keys(t)]

@@ -28,9 +28,9 @@ defmodule Elixir::Formatter do
   defp format_token(token), do: list_to_binary(token)
 
   defp format_file_line(file_line) do
-    if file = Orddict.fetch(file_line, :file, nil) do
+    if file = Orddict.get(file_line, :file) do
       file = list_to_binary(file)
-      if line = Orddict.fetch(file_line, :line, nil) do
+      if line = Orddict.get(file_line, :line) do
         "#{file}:#{line}: "
       else:
         "#{file}: "

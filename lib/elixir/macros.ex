@@ -924,11 +924,11 @@ defmodule Elixir::Macros do
     # do_clause to a key-value block. Get the other values
     # from the tail orddict.
     if_clause   = { :kv_block, 0, [ { [condition], do_clause } ] }
-    else_clause = Orddict.fetch(tail, :else, nil)
+    else_clause = Orddict.get(tail, :else)
 
     # Merge if and elsif clauses, as they will all become match clauses.
     merged =
-      case Orddict.fetch(tail, :elsif, nil) do
+      case Orddict.get(tail, :elsif) do
       match: nil
         [match: if_clause]
       match: elsif_clause

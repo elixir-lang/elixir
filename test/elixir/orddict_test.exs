@@ -8,10 +8,10 @@ defmodule OrddictTest do
   end
 
   def test_fetch do
-    1         = Orddict.fetch(create_dict, :first_key, nil)
-    2         = Orddict.fetch(create_dict, :second_key, nil)
-    nil       = Orddict.fetch(create_dict, :other_key, nil)
-    "default" = Orddict.fetch(create_empty_dict, :first_key, "default")
+    1         = Orddict.get(create_dict, :first_key)
+    2         = Orddict.get(create_dict, :second_key)
+    nil       = Orddict.get(create_dict, :other_key)
+    "default" = Orddict.get(create_empty_dict, :first_key, "default")
   end
 
   def test_keys do

@@ -1,8 +1,8 @@
 defmodule Record do
   # Main entry point for records definition.
   def defrecord(name, values, opts) do
-    as       = Orddict.fetch(opts, :as, true)
-    extensor = Orddict.fetch(opts, :extensor, Record::Extensor)
+    as       = Orddict.get(opts, :as, true)
+    extensor = Orddict.get(opts, :extensor, Record::Extensor)
 
     quote do
       defmodule unquote(name) do
@@ -30,7 +30,7 @@ defmodule Record do
   #     end
   #
   #     def new(opts) do
-  #       { FileInfo, Orddict.fetch(opts, :atime, nil), Orddict.fetch(opts, :mtime, nil) }
+  #       { FileInfo, Orddict.get(opts, :atime), Orddict.get(opts, :mtime) }
   #     end
   #
   defmacro initializers(values) do
@@ -42,7 +42,7 @@ defmodule Record do
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
     selective = Enum.map values, fn({k,v}) {
-      quote { ::Orddict.fetch(opts, unquote(k), unquote(v)) }
+      quote { ::Orddict.get(opts, unquote(k), unquote(v)) }
     }
 
     quote do

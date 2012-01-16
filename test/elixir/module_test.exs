@@ -73,10 +73,10 @@ defmodule ModuleTest do
 
   def test_compile_callback_hook do
     false = ModuleTest::ToUse.original_value
-    true  = Orddict.fetch ModuleTest::ToUse.__info__(:data), :callback, false
+    true  = Orddict.get ModuleTest::ToUse.__info__(:data), :callback, false
   end
 
   def test_default_compile_callback_hook do
-    true  = Orddict.fetch ModuleTest::ToUse.__info__(:data), :compiling, false
+    true  = Orddict.get ModuleTest::ToUse.__info__(:data), :compiling, false
   end
 end

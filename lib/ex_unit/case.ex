@@ -1,6 +1,6 @@
 defmodule ExUnit::Case do
   defmacro __using__(module, opts // []) do
-    if Orddict.fetch(opts, :sync, false) do
+    if Orddict.get(opts, :sync, false) do
       ExUnit::Server.add_sync_case(module)
     else:
       ExUnit::Server.add_case(module)

@@ -1,7 +1,6 @@
 defmodule Protocol do
   # We need to use Erlang.lists because Enum is not available yet
   refer Erlang.lists, as: L
-  import Orddict, only: [fetch: 3]
 
   # Handle `defprotocol`. It will define a function for each
   # protocol plus two extra functions:
@@ -13,7 +12,7 @@ defmodule Protocol do
   #                          according to the only/except rules
   #
   def defprotocol(name, args, opts) do
-    as = Orddict.fetch(opts, :as, true)
+    as = Orddict.get(opts, :as, true)
     kv = to_kv(args)
 
     quote do
@@ -197,10 +196,10 @@ defmodule Protocol do
       { Reference, :is_reference }
     ]
 
-    if only = fetch(opts, :only, false) do
+    if only = Orddict.get(opts, :only, false) do
       selected = L.map fn(i) { L.keyfind(i, 1, kinds) }, only
       selected ++ [{ Any, :is_any }]
-    elsif: except = fetch(opts, :except, false)
+    elsif: except = Orddict.get(opts, :except, false)
       selected = L.foldl fn(i, list) { L.keydelete(i, 1, list) }, kinds, except
       selected ++ [{ Any, :is_any }]
     else:

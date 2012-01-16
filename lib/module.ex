@@ -66,7 +66,7 @@ defmodule Module do
   #     end
   #
   def read_data(module, at) do
-    Orddict.fetch read_data(module), at, nil
+    Orddict.get read_data(module), at
   end
 
   # Merge the given `new` data to the module, overriding
@@ -143,7 +143,7 @@ defmodule Module do
   #       end
   #
   #       defmacro __callback__(target) do
-  #         value = Orddict.fetch(Module.read_data(target), :some_data, [])
+  #         value = Orddict.get(Module.read_data(target), :some_data, [])
   #         quote { def my_lib_value, do: unquote(value) }
   #       end
   #     end
