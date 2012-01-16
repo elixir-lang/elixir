@@ -242,4 +242,14 @@ A good rule of thumb is: inside a function call, always use curly brackets key-v
 
 ### 2.5.1 If
 
+### 2.5.2 Short-circuit
+
+### 2.5.3 Case
+
+### 2.5.4 Functions and loops
+
+### 2.5.5 Try
+
+### 2.5.6 Receive
+
 ## 2.6 Default Erlang functions

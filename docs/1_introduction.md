@@ -53,7 +53,7 @@ Some basic types are:
     iex> {1,2,3}    # tuple
     iex> [1,2,3]    # list
 
-Elixir also provides functions:
+Elixir also provides functions (note the dot between the variable and arguments when calling a function):
 
     # function
     iex> x = fn(a, b) { a + b }
