@@ -21,6 +21,11 @@ If tests pass, we are ready to go. But if tests fail it is likely you have an ou
 
 If you have the correct version and tests still fail, feel free to open an issue in the issues tracker on Github.
 
+> Note: if you are planning to develop projects with Elixir, we recommend adding the bin directory in Elixir git repository to your PATH for easier access to binaries.
+>
+>     export PATH="$PATH:/path/to/elixir/bin"
+>
+
 ## 1.2 Interactive mode
 
 We can start Elixir interactive mode by running `bin/iex` in the same directory you compiled Elixir. In interactive mode, we can type any Elixir expression. Let's warm up with some basic arithmetic expressions:
@@ -167,4 +172,4 @@ You actually don't need to memorize this ordering, it is important just to know 
 
 Well, that is it for the introduction. In the next chapter, we are going to discuss some basic functions, data types conversions and a bit of control-flow.
 
-[Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 2: Dipping the toes](https://github.com/josevalim/elixir/blob/master/docs/2_dipping_the_toes)
+[Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 2: Dipping the toes](https://github.com/josevalim/elixir/blob/master/docs/2_dipping_the_toes.md)
