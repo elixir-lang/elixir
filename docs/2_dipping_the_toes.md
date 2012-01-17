@@ -366,8 +366,106 @@ Custom macros can be invoked in guard clauses as long as they expand to expressi
 
 ### 2.5.4 Functions and loops
 
+Throughout this guide, we have created many functions in examples. The syntax for creating functions is:
+
+    fn(a, b, do: a + b)
+
+Which is the same as:
+
+    fn(a, b) { a + b }
+
+In some cases though, it is convenient that a function has many clauses, similarly to `case`. In such scenarios, we can use `match:` to specify many clauses:
+
+    fun = fn do
+    match: a, b when b < 0
+      a - b
+    match: a, b
+      a + b
+    end
+
+    fun.(1, 2)  #=> 3
+    fun.(1, -2) #=> 3
+
+Notice the number of arguments given to each `match:` needs to be the same. In the example above, each clause expects two arguments. Guards can also be used.
+
+As an immutable language, the binding of the function is also immutable. This means that setting a variable inside the function does not affect its outer scope:
+
+    x = 1
+    (fn { x = 2 }).()
+    x #=> 1
+
+Also, due to data structure immutability Loops in Elixir (and in functional programming languages) are written differently that conventional imperative languages. For example, in an imperative language, one would write:
+
+    for(i = 0; i < array.length; i++) {
+      array[i] = array[i] * 2
+    }
+
+In the example above, we are mutating the array. In Elixir, we would write the same using recursion:
+
+    iex> loop [1,2,3] do
+    ...> match: [h|t]
+    ...>   [h * 2 | recur(t)]
+    ...> match: []
+    ...>   []
+    ...> end
+    [4,5,6]
+
+In the example above, we pass a list to loop which is the initial loop argument. The list `[1,2,3]` is then matched against `[h|t]` which assigns `h = 1` and `t = [2,3]`. Then, the head is multiplied by two and the loop is triggered again via the `recur` function passing the tail as argument. The tail will once again match the `[h|t]` until the list empty, matching the final clause which returns an empty list and finishes the recursion. At the end, the final result is:
+
+    [1 | [2 | [3 | []]]]
+
+Which is exactly the same as `[1, 2, 3]`. Remember lists are linked lists, so each `[h|t]` above is an item pointing to a list, which is another item pointing to another list and so recursively.
+
+> Note: `loop/recur` is also a Clojure idiom, although differently from Clojure, `recur` in Elixir does not ensure a tail call was made.
+
+The `match:` syntax above is rarely used with functions, although we have discussed them in order to explain loops. Anonymous loops aren't used frequently as well as Elixir developers usually write named functions, as we will see in the next chapter.
+
 ### 2.5.5 Try
+
+The next control-flow mechanism is `try/catch/after`:
+
+    iex> try do
+    ...>   throw 13
+    ...> catch: number
+    ...>   number
+    ...> end
+    13
+
+`try/catch` is the main mechanism for catching values thrown by Elixir runtime. It also supports an `after` clause that is invoked regardless if the value was caught or not:
+
+    iex> try do
+    ...>   throw 13
+    ...> catch: nan when not is_number(nan)
+    ...>   nan
+    ...> after:
+    ...>   IO.puts "Didn't catch"
+    ...> end
+    Didn't catch
+    ** throw 13
+        erl_eval:expr/3
+
+`try/catch` not only handles thrown values, but is also the mechanism to catch errors and exits. In such cases, we need to explicitly pass to try that an error/exit is being caught:
+
+    iex> try do
+    ...>   error :failure
+    ...> catch: :error, :failure
+    ...>   IO.puts "Ah, error caught"
+    ...> end
+    Ah, error caught
+
+There is one particularity that applies to `try/catch/after` when compared to other control-flow expressions. The Erlang VM machine considers such clauses unsafe (since they may fail or not) and do not export variables from try variable defined inside `try/catch/after` cannot be accessed from the outer scope:
+
+    iex> try do
+    ...>   new_var = 1
+    ...> catch: value
+    ...>   value
+    ...> end
+    1
+    iex> new_var
+    ** error :undef
 
 ### 2.5.6 Receive
 
-## 2.6 Default Erlang functions
+
+
+## 2.6 Default functions
