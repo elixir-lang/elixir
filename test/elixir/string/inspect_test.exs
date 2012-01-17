@@ -54,6 +54,8 @@ defmodule String::Inspect::BitStringTest do
 
     "\"abc\"" = inspect(<<?a, ?b, ?c>>)
     "abc"     = to_binary(<<?a, ?b, ?c>>)
+
+    "我今天要学习." = to_binary("我今天要学习.")
   end
 
   def test_escape do

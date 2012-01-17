@@ -1,4 +1,5 @@
 -module(elixir).
+-behaviour(application).
 -export([start/0, start_app/0, file/1, file/2,
   eval/1, eval/2, eval/3, eval/4, eval/5,
   eval_quoted/4, eval_forms/3]).
@@ -18,13 +19,13 @@ stop(_S) ->
 config_change(_Changed, _New, _Remove) ->
   ok.
 
-%% ELIXIR MAIN ENTRY POINTS
+%% ELIXIR ENTRY POINTS
 
 % Start the Elixir app. This is the proper way to boot Elixir from
 % inside an Erlang process.
 
 start_app() ->
-  case lists:keyfind(?MODULE,1, application:loaded_applications()) of
+  case lists:keyfind(?MODULE, 1, application:loaded_applications()) of
     false -> application:start(?MODULE);
     _ -> ok
   end.
@@ -35,40 +36,9 @@ start() ->
   start_app(),
   '::Elixir::CLI':process_argv(init:get_plain_arguments()).
 
-file(Filepath) ->
-  file(Filepath, []).
+%% EVAL HOOKS
 
-file(Filepath, Binding) ->
-  List = read_file(Filepath),
-  eval(List, Binding, Filepath).
-
-% Read a file as utf8
-
-read_file(Filename) ->
-  case file:open(Filename, [read]) of
-    {ok, Device} -> read_file(Device, []);
-    Error -> erlang:error({badfile, list_to_binary(Filename), Error})
-  end.
-
-read_file(Device, Acc) ->
-  case io:get_line(Device, "") of
-    eof  ->
-      file:close(Device),
-      lists:append(lists:reverse(Acc));
-    Line ->
-      read_file(Device, [Line|Acc])
-  end.
-
-% Exposed API for eval quoted
-
-eval_quoted(Tree, Binding, Line, Filename) when is_list(Filename) ->
-  eval_quoted(Tree, Binding, Line, #elixir_scope{filename=Filename});
-
-eval_quoted(Tree, Binding, Line, #elixir_scope{} = RawScope) ->
-  { Value, NewBinding, _S } = eval_forms(Tree, Binding, RawScope#elixir_scope{line=Line}),
-  { Value, NewBinding }.
-
-% Evaluates a string
+%% String evaluation
 
 eval(String) -> eval(String, []).
 eval(String, Binding) -> eval(String, Binding, "nofile").
@@ -79,8 +49,30 @@ eval(String, Binding, Filename, Line, Scope) ->
   { Value, NewBinding, _ } = eval_forms(Forms, Binding, Scope#elixir_scope{filename=Filename}),
   { Value, NewBinding }.
 
-%% Handle forms evaluation internally, it is an internal
-%% API not meant for external usage.
+%% File evaluation
+
+file(Filepath) ->
+  file(Filepath, []).
+
+file(Filepath, Binding) ->
+  List = case file:read_file(Filepath) of
+    {ok, File} -> binary_to_list(File);
+    Error -> erlang:error(Error)
+  end,
+
+  eval(List, Binding, Filepath).
+
+%% Quoted evaluation
+
+eval_quoted(Tree, Binding, Line, Filename) when is_list(Filename) ->
+  eval_quoted(Tree, Binding, Line, #elixir_scope{filename=Filename});
+
+eval_quoted(Tree, Binding, Line, #elixir_scope{} = RawScope) ->
+  { Value, NewBinding, _S } = eval_forms(Tree, Binding, RawScope#elixir_scope{line=Line}),
+  { Value, NewBinding }.
+
+%% Handle forms evaluation internally, it is an
+%% internal API not meant for external usage.
 
 eval_forms(Tree, Binding, RawScope) ->
   Scope = RawScope#elixir_scope{vars=binding_dict(Binding)},
@@ -92,7 +84,7 @@ eval_forms(Tree, Binding, RawScope) ->
       {Value, final_binding(NewBinding, NewScope#elixir_scope.vars), NewScope }
   end.
 
-%% Helpers
+%% INTERNAL HELPERS
 
 binding_dict(List) -> binding_dict(List, dict:new()).
 binding_dict([{H,_}|T], Dict) -> binding_dict(T, dict:store(H, H, Dict));
