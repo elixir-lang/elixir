@@ -466,6 +466,37 @@ There is one particularity that applies to `try/catch/after` when compared to ot
 
 ### 2.5.6 Receive
 
+The last control-flow mechanism we are going to discuss is essential to Elixir's and Erlang's actor mechanism. In Elixir, every code run in processes that exchange messages between them. Those processes are not Operating System processes (they are actually quite light-weight) but called so since they do not share state with each other.
 
+In order to exchange messages, each process has a mailbox were the received messages are stored. The `receive` mechanism allows us to go throw this mailbox searching for a message that matches the given pattern. Here is an example that uses the arrow operator `<-` to send a message to the current process and then collects this message from this mailbox:
+
+    # Get the current process id
+    iex> current_pid = self()
+
+    # Spawn another process that will send a message to current_pid
+    iex> spawn fn() { current_pid <- { :hello, self() } }
+
+    # Collect the message
+    iex> receive do
+    ...> match: { :hello, pid }
+    ...>   IO.puts "Hello from #{pid}"
+    ...> end
+    Hello from <0.36.0>
+
+You may not see exactly `<0.36.0>` back, but something similar. If there are no messages in the mailbox, the current process will hand until a matching message arrives, unless an after clause is given:
+
+    iex> receive do
+    ...> match: :waiting
+    ...>   IO.puts "This may never come"
+    ...> after: 1000 # 1 second
+    ...>   IO.puts "Too late"
+    ...> end
+    Too late
+
+In most cases, we don't send messages directly with `<-` nor write `receive` control expressions. Instead, we use many of the abstractions provided by OTP which will be discussed later.
 
 ## 2.6 Default functions
+
+Elixir ships with many default functions automatically available in the current scope. Besides all the control flow expressions seen above, Elixir also adds: `elem` and `setelem` to read and set values in tuples, `inspect` that returns the representation of a given data type as string and many others. [A list of all those functions with documentation and examples are available here](github.com/josevalim/elixir/tree/master/lib/elixir/macros.ex).
+
+Besides the functions provided by Elixir, all the root functions from Erlang are also available. The function `length`, `is_list`, `is_number` and many others we discussed above comes from Erlang. [The full documented list is available on the OTP documentation page](http://www.erlang.org/doc/man/erlang.html).
