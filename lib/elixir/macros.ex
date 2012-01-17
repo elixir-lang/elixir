@@ -119,27 +119,21 @@ defmodule Elixir::Macros do
   #
   #     defrecord FileInfo, atime: nil, mtime: nil
   #
-  # This macro will then define a module named FileInfo
-  # which will contain getters and setters for each attribute
-  # and initialization methods. Therefore, one can do:
+  # The line above will define a module named `FileInfo` which
+  # contains a function named `new` that returns a new record
+  # and other functions to read and set the values in the
+  # record. Therefore, we can do:
   #
   #     file_info = FileInfo.new(atime: now())
   #     file_info.atime         #=> Returns the value of atime
   #     file_info.atime(now())  #=> Updates the value of atime
   #
-  # FileInfo is simply a module with functions specific for
-  # the record. In case the name of the record is nested, Elixir
-  # will automatically setup a refer alias for it in the current
-  # scope:
+  # Internally, a record is simply a tuple where the first element is
+  # always the record module name. This can be noticed if we print
+  # the record:
   #
-  #     defrecord MyLib::FileInfo, atime: nil, mtime: nil
-  #     IO.puts FileInfo #=> ::MyLib::FileInfo
-  #
-  # This can be turned off by passing a second options dictionary
-  # with `as:` equals to false:
-  #
-  #     defrecord MyLib::FileInfo, [atime: nil, mtime: nil], as: false
-  #
+  #     IO.puts FileInfo.new
+  #     { ::FileInfo, nil, nil }
   #
   # ## Default based functions
   #
@@ -165,15 +159,6 @@ defmodule Elixir::Macros do
   # * `prepend_field` - Receives another list and prepend its values
   # * `append_field` - Receives another list and append its values
   #
-  # ## Record as tuples
-  #
-  # A record is nothing more than a tuple. That said, if you create a
-  # record an inspect it, this is what you should see on console:
-  #
-  #     IO.puts FileInfo.new
-  #     #=> { ::FileInfo, nil, nil }
-  #
-  # The first element of the tuple is always the record name.
   defmacro defrecord(name, values, opts // []) do
     Record.defrecord(name, values, opts)
   end
@@ -192,31 +177,24 @@ defmodule Elixir::Macros do
   #
   # We could implement this protocol as follow:
   #
-  #     defmodule Presence do
-  #       defprotocol Blank, [blank?(data)]
-  #
-  #       # The opposite of blank?
-  #       def present?(data) do
-  #         !blank?(data)
-  #       end
-  #     end
+  #     defprotocol Blank, [blank?(data)]
   #
   # Now that the protocol is defined, we can implement it. We need
   # to implement the protocol for each Elixir type. For example:
   #
   #     # Numbers are never blank
-  #     defimpl Presence::Blank, for: Number do
+  #     defimpl Blank, for: Number do
   #       def blank?(number), do: false
   #     end
   #
   #     # Just empty list is blank
-  #     defimpl Presence::Blank, for: List do
+  #     defimpl Blank, for: List do
   #       def blank?([]), do: true
   #       def blank?(_),  do: false
   #     end
   #
   #     # Just the atoms false and nil are blank
-  #     defimpl Presence::Blank, for: Atom do
+  #     defimpl Blank, for: Atom do
   #       def blank?(false), do: true
   #       def blank?(nil),   do: true
   #       def blank?(_),     do: false
@@ -237,7 +215,7 @@ defmodule Elixir::Macros do
   #
   # ## Selecting implementations
   #
-  # Implement the protocol for all 9 types above can be cumbersome.
+  # Implementing the protocol for all 9 types above can be cumbersome.
   # Even more if you consider that Number, Function, PID, Port and
   # Reference are never going to be blank. For this reason, Elixir
   # allows you to point out that you are going to implement the protocols
@@ -248,7 +226,7 @@ defmodule Elixir::Macros do
   # And for all other types, Elixir will now dispatch to Any. That said,
   # the default behavior could be implemented as:
   #
-  #     defimpl Presence::Blank, for: Any do
+  #     defimpl Blank, for: Any do
   #       def blank?(_), do: false
   #     end
   #
@@ -262,7 +240,7 @@ defmodule Elixir::Macros do
   # dictionary should also be considered as blank in case it has no items.
   # That said, he just needs to implement the protocol for this dictionary:
   #
-  #     defimpl Presence::Blank, for: RedBlack::Dict do
+  #     defimpl Blank, for: RedBlack::Dict do
   #       def blank?(dict), do: RedBlack.empty?(dict)
   #     end
   #

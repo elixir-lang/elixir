@@ -16,6 +16,8 @@ In order to create our own modules in Elixir, all we have to do is to call the `
     iex> Math.sum(1, 2)
     3
 
+Before diving into modules, let's first have a quick talk about compilation.
+
 ## 3.1 Compilation
 
 Most of the times it is convenient to write modules into files so they can be compiled and re-used. Let's assume we have a file named `math.ex` with the following contents:
@@ -65,9 +67,9 @@ And execute it as:
 
 The file will be compiled in memory and executed, printing 3 as result. No byte-code file will be created.
 
-## 3.3 Functions, privates and macros
+## 3.3 Functions and private functions
 
-Inside a module, we can define functions (with `def`), a private function (with `defp`) and macros (with `defmacro`). A function defined with `def` is available to be invoked from other modules while a private function can only be invoked locally.
+Inside a module, we can define functions (with `def`) and private function (with `defp`). A function defined with `def` is available to be invoked from other modules while a private function can only be invoked locally.
 
     defmodule Math do
       def sum(a, b) do
@@ -100,7 +102,19 @@ Function declarations also supports guards and multiple clauses. If a function h
     Math.zero?([1,2,3])
     #=> error :function_clause
 
-Notice that giving an argument that does not match any of the clauses raises an error. Macros are going to be described in the chapter 5.
+Notice that giving an argument that does not match any of the clauses raises an error. This mechanism of matching different functions of a clause is also the preferred way to do recursion in Elixir. A simple example that multiples each element in an list by two could be done as follow:
+
+    defmodule List::Multiplier do
+      def by_2([h|t]) do
+        [ h * 2 | by_2(t) ]
+      end
+
+      def by_2([]) do
+        []
+      end
+    end
+
+In the example above, we recursively multiply each element of the list until the list is empty. With this example, we finish this section and now we are going to move on to module directives.
 
 ## 3.4 Directives
 

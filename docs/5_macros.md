@@ -1,3 +1,5 @@
+## THIS IS A DRAFT, WIP. COME BACK LATER PADAWAN.
+
 ## Meta-programming in Elixir
 
 Elixir is an homoiconic language. Any Elixir program can be represented using its own data structures. This section describes the Elixir language specification for such data structures.
