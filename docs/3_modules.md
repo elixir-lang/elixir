@@ -67,14 +67,40 @@ The file will be compiled in memory and executed, printing 3 as result. No byte-
 
 ## 3.3 Functions, privates and macros
 
-There are many definitions available inside Elixir modules. They are:
+Inside a module, we can define functions (with `def`), a private function (with `defp`) and macros (with `defmacro`). A function defined with `def` is available to be invoked from other modules while a private function can only be invoked locally.
 
-* `def`  - defines a function;
-* `defp` - defines a private function;
-* `defmacro` - defines a macro;
-* `defrecord` - defines a record;
-* `defprotocol` - defines a protocol;
-* `defimpl` - defines an implementation for a protocol
+    defmodule Math do
+      def sum(a, b) do
+        do_sum(a, b)
+      end
+
+      defp do_sum(a, b) do
+        a + b
+      end
+    end
+
+    Math.sum(1, 2)    #=> 3
+    Math.do_sum(1, 2) #=> error :undef
+
+Function declarations also supports guards and multiple clauses. If a function has several clauses, Elixir will try each clause until find one that matches. For example, here is the implementation for a function that checks if the given number is zero or not:
+
+    defmodule Math do
+      def zero?(0) do
+        true
+      end
+
+      def zero?(x) when is_number(x) do
+        false
+      end
+    end
+
+    Math.zero?(0)  #=> true
+    Math.zero?(1)  #=> false
+
+    Math.zero?([1,2,3])
+    #=> error :function_clause
+
+Notice that giving an argument that does not match any of the clauses raises an error. Macros are going to be described in the chapter 5.
 
 ## 3.4 Directives
 
@@ -82,7 +108,7 @@ In order to support software-reuse, Elixir supports four directives:
 
 ### 3.4.1 import
 
-You must use `import` whenever you want to easily access functions from others modules without using the qualified name. For instance, if you want to use the `values` function from `Orddict` several times in your module and you don't want to always type `Orddict.values`, you can simply import it:
+We use `import` whenever we want to easily access functions from others modules without using the qualified name. For instance, if we want to use the `values` function from `Orddict` several times in a module and we don't want to always type `Orddict.values`, we can simply import it:
 
     defmodule Math do
       import Orddict, only: [values: 1]
@@ -92,7 +118,7 @@ You must use `import` whenever you want to easily access functions from others m
       end
     end
 
-In this case, we are importing only the function `values` (with arity 1) from `Orddict`. Although `only` is optional, its usage is recommended. `except` could also be given as an option.
+In this case, we are importing only the function `values` (with arity 1) from `Orddict`. Although `only:` is optional, its usage is recommended. `except` could also be given as an option.
 
 This mechanism cannot be used to import macros. Only functions.
 
@@ -111,23 +137,23 @@ And now, any reference to `Orddict` will be automatically replaced by `MyOrddict
 
 ### 3.4.3 require
 
-`require` allows you to enable the given module macros. For instance, suppose you created your own `if` implementation called in the module `MyMacros`. If you want to invoke it, you need to first explicitly require the `MyMacros`:
+`require` allows us to enable macros from a given module. For instance, suppose we created our own `my_if` implementation in a module named `MyMacros`. If we want to invoke it, we need to first explicitly require `MyMacros`:
 
     defmodule Math do
       require MyMacros
-      MyMacros.if do_something, it_works
+      MyMacros.my_if do_something, it_works
     end
 
-An attempt to call a macro that was not loaded will raise an error. It is important to note that `require` is the only directive that is **lexical**. This means you can require specific macros inside specific functions:
+An attempt to call a macro that was not loaded will raise an error. It is important to note that `require` and `refer` are the only directives that are **lexical**. This means we can require specific macros inside specific functions:
 
     defmodule Math do
       def some_function do
         require MyMacros, import: true
-        if do_something, it_works
+        my_if do_something, it_works
       end
     end
 
-In the example above, we required and imported macros from `MyMacro`, replacing the original `if` implementation by our own during that specific function. All other functions in that module will still be able to use the original one.
+In the example above, we required and imported macros from `MyMacro` during that specific function. `my_if` won't be available in any other functions in that module.
 
 Finally, `require` also accepts `only` and `except` as options to select which macros to import. Consecutive calls to `require` passing the same models override previous definitions.
 
@@ -136,15 +162,15 @@ Finally, `require` also accepts `only` and `except` as options to select which m
       require Bitwise, only: [bor: 2, band: 2]
       def some_func(x, y, z), do: x bor y band z
 
-      # Import all, except bxor, overriding previous
+      # Import all, except bxor, overriding previous call
       require Bitwise, except: [bxor: 2]
     end
 
-You can read more about creating your own macros in the "Meta-programming in Elixir" section.
+We are going to discuss the creation of macros in chapter 5.
 
 ### 3.4.4 use
 
-`use` is the simplest mechanism of all three as it simply intends to be a common API for extension. For instance, in order to use `ExUnit` test framework, you simply need to use `ExUnit::Case` in your module:
+`use` is the simplest directive of all four as it simply intends to be a common API for extension. For instance, in order to use the `ExUnit` test framework that ships with Elixir, you simply need to use `ExUnit::Case` in your module:
 
     defmodule AssertionTest do
       use ExUnit::Case
@@ -158,7 +184,7 @@ By calling `use`, a hook called `__using__` will be invoked in `ExUnit::Case` wh
 
     defmodule AssertionTest do
       require ExUnit::Case
-      ExUnit::Case.__using__(:"::AssertionTest")
+      ExUnit::Case.__using__(::AssertionTest)
 
       def test_always_pass do
         true = true
@@ -177,5 +203,41 @@ In Elixir, nesting a module inside the other does not affect the its name:
 The example above will define two modules `Foo` and `Bar`. Notice that the second module is **not** called `Foo::Bar`. In general, nesting modules is discouraged in Elixir.
 
 ## 3.6 References
+
+In Erlang (and consequently in the Erlang VM), modules and functions are represented by atoms. For instance, this is valid Erlang code:
+
+    Mod = lists,
+    Mod:flatten([1,[2],3]).
+
+In the example above, we store the atom `lists` in the variable `Mod` and then invoked the function flatten in it. In Elixir, exactly the same idiom is allowed. In fact, we could call the same function `flatten` in `lists` as:
+
+    iex> :lists.flatten([1,[2],3])
+    [1,2,3]
+
+This mechanism is exactly what empowers Elixir references. Elixir references are uppercase identifiers (like `List`, `Orddict`, etc) that are converted to an atom representing a module at compilation time. For instance, by default `List` translates to the atom `::List`:
+
+    iex> List
+    ::List
+    iex> is_atom(List)
+    true
+
+References are powerful when used with the `refer` directive discussed above. For instance, let's imagine our Math module relies heavily on the `Orddict` module. If, at some point, we find out most algorithms in `Orddict` could be implemented in a much faster way, we could implement `FastOrddict` and use it as a drop-in replacement:
+
+    defmodule Math do
+      refer FastOrddict, as: Orddict
+      # ...
+    end
+
+Now any reference to `Orddict` will be automatically replaced by `FastOrddict`. In case one wants to access the original `Orddict`, it can be done by prefixing the module name with `::`:
+
+    Orddict.values   #=> uses ::FastOrddict.values
+    ::Orddict.values #=> uses ::Orddict.values
+
+Finally, in Elixir `::` is simply an operator (like `+`). It is used to concatenate two references:
+
+    iex> Foo::Bar
+    ::Foo::Bar
+    iex> Foo :: Bar
+    ::Foo::Bar
 
 [Chapter 2: Dipping the toes](https://github.com/josevalim/elixir/blob/master/docs/2_dipping_the_toes.md) | [Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 4: Protocols & Records](https://github.com/josevalim/elixir/blob/master/docs/4_protocols_and_records.md)

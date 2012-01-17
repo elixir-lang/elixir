@@ -501,4 +501,6 @@ Elixir ships with many default functions automatically available in the current 
 
 Besides the functions provided by Elixir, all the root functions from Erlang are also available. The function `length`, `is_list`, `is_number` and many others we discussed above comes from Erlang. [The full documented list is available on the OTP documentation page](http://www.erlang.org/doc/man/erlang.html).
 
+All those functions and control flow expressions are essential for building Elixir programs. The next chapter will then discuss how to organize our code into modules, so it can be easily re-used between different components.
+
 [Chapter 1: Introduction](https://github.com/josevalim/elixir/blob/master/docs/1_introduction.md) | [Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 3: Modules](https://github.com/josevalim/elixir/blob/master/docs/3_modules.md)
