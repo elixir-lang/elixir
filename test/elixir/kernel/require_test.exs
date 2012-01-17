@@ -31,8 +31,10 @@ defmodule Kernel::RequireTest do
     -1 = bnot(0)
   end
 
-  def test_require_erlang do
-    require Erlang.lists, as: MyList
+  def test_refer_erlang do
+    refer Erlang.lists, as: MyList
     [1,2,3] = MyList.flatten([1,[2],3])
+    :"::MyList::Bar" = ::MyList::Bar
+    :"::lists::Bar" = MyList::Bar
   end
 end
