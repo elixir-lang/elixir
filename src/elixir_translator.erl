@@ -361,7 +361,7 @@ handle_partials(Line, Original, S) ->
 %% function definition and the third one is the new scope.
 convert_partials(Line, List, S) -> convert_partials(Line, List, S, [], []).
 
-convert_partials(Line, [{'_', _, nil}|T], S, CallAcc, DefAcc) ->
+convert_partials(Line, [{'_', _, Args}|T], S, CallAcc, DefAcc) when is_atom(Args) ->
   { Var, SC } = elixir_variables:build_ex(Line, S),
   convert_partials(Line, T, SC, [Var|CallAcc], [Var|DefAcc]);
 
