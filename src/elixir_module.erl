@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([transform/4, compile/4,
+-export([translate/4, compile/4,
    format_error/1, binding_and_scope_for_eval/4]).
 -include("elixir.hrl").
 
@@ -26,7 +26,7 @@ table(Module) ->
 %% The abstract form for extra arguments may be given and they
 %% will be passed to the invoked function.
 
-transform(Line, Ref, Block, S) ->
+translate(Line, Ref, Block, S) ->
   MetaBlock = elixir_tree_helpers:abstract_syntax(Block),
   MetaS     = elixir_variables:serialize_scope(S),
 
@@ -102,7 +102,7 @@ functions_form(Line, Filename, Module) ->
 
 imports_form(Line, Filename, Module, Funs, Current) ->
   LocalImports = elixir_import:local_imports(Module),
-  Transform = fun(X, Acc) -> transform_import(Line, X, Acc) end,
+  Transform = fun(X, Acc) -> translate_import(Line, X, Acc) end,
   { Imported, Forms } = lists:mapfoldr(Transform, Current, LocalImports),
 
   All = lists:append([Funs|Imported]),
@@ -114,7 +114,7 @@ imports_form(Line, Filename, Module, Funs, Current) ->
 %% Add attributes handling to the form
 
 attributes_form(Line, _Filename, Module, Current) ->
-  Transform = fun(X, Acc) -> [transform_attribute(Line, X)|Acc] end,
+  Transform = fun(X, Acc) -> [translate_attribute(Line, X)|Acc] end,
   ets:foldr(Transform, Current, table(Module)).
 
 %% Loads the form into the code server.
@@ -192,13 +192,13 @@ each_callback_for(Line, Module, {M,F}, Acc) ->
 
 % ATTRIBUTES
 
-transform_import(_Line, {_,[]}, Acc) ->
+translate_import(_Line, {_,[]}, Acc) ->
   { [], Acc };
 
-transform_import(Line, X, Acc) ->
+translate_import(Line, X, Acc) ->
   { element(2, X), [{attribute, Line, import, X}|Acc] }.
 
-transform_attribute(Line, X) ->
+translate_attribute(Line, X) ->
   {attribute, Line, element(1, X), element(2, X)}.
 
 destructive_read(Table, Attribute) ->

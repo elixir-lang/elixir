@@ -21,11 +21,20 @@ You can get the representation of any expression by using the quote macro:
     iex> quote { sum(1, 2, 3) }
     { :sum, 0, [1, 2, 3] }
 
-Besides the tuple, Elixir has a few literals. Literals are data types that when quoted return themselves. They are:
+Everything in Elixir is a function call and can be represented by such tuples. For example, operators are represented as such:
+
+    iex> quote { 1 + 2 }
+    { :"+", 0, [1, 2] }
+
+Even a tuple is represented as a call to `{}`:
+
+    iex> quote { { 1, 2, 3 } }
+    { :"{}", 0, [1, 2, 3] }
+
+The only exception to this rule are the five Elixir literals below. Literals are data types that when quoted return themselves. They are:
 
     :sum         #=> Atoms
-    1            #=> Integers
-    2.0          #=> Floats
+    1.0          #=> Numbers
     [1,2]        #=> Lists
     "binaries"   #=> Binaries
     {key, value} #=> Key-value pairs (i.e. a tuple with two elements)

@@ -109,7 +109,7 @@ translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
     _ -> S
   end,
 
-  { elixir_module:transform(Line, TRef, Block, S), NS };
+  { elixir_module:translate(Line, TRef, Block, S), NS };
 
 translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   record(Kind, S),

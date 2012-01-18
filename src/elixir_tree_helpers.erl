@@ -11,10 +11,10 @@
 abstract_syntax(Tree) ->
   erl_syntax:revert(erl_syntax:abstract(Tree)).
 
-% Build a list transforming each expression and accumulating
+% Build a list translating each expression and accumulating
 % vars in one pass. It uses tail-recursive form.
 %
-% It receives a function to transform each expression given
+% It receives a function to translate each expression given
 % in Exprs, a Line used to build the List and the variables
 % scope V is passed down item by item.
 %
@@ -34,7 +34,7 @@ build_reverse_list(Fun, Exprs, Line, S) ->
 build_reverse_list(Fun, Exprs, Line, S, Tail) ->
   build_list_each(Fun, Exprs, Line, S, Tail).
 
-% Builds a simple list, without transformation, just by generating the cons-cell.
+% Builds a simple list, without translatation, just by generating the cons-cell.
 build_simple_list(Line, Args) ->
   { List, [] } = build_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
   List.
@@ -54,7 +54,7 @@ build_list_each(Fun, [H|T], Line, S, Acc) ->
 %
 % * If a bitstring or a list is given, we just append its items
 % * If '|' is given, extract the bitstring information
-% * All the other types are simply transformed and handled with Erlang's default
+% * All the other types are simply translated and handled with Erlang's default
 %
 build_bitstr(Fun, Exprs, Line, S) ->
   { Final, FinalS } = build_bitstr_each(Fun, Exprs, Line, S, []),
