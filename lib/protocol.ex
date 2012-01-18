@@ -125,7 +125,13 @@ defmodule Protocol do
 
   # Implement the protocol invocation callbacks for each function.
   defp each_function(module, { name, arity }) do
-    args = generate_args(arity, [])
+    # Generate arguments according the arity. The arguments
+    # are named xa, xb and so forth. We cannot use string
+    # interpolation to generate the arguments because of compile
+    # dependencies, so we use the <<>> instead.
+    args = lc i in :lists.seq(1, arity) do
+      { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+    end
 
     contents = quote do
       def unquote(name).(unquote_splicing(args)) do
@@ -167,19 +173,6 @@ defmodule Protocol do
         error({ :badarg, "invalid args for defprotocol", x })
       end
     }
-  end
-
-  # Geenerate arguments according the arity. The arguments
-  # are named xa, xb and so forth. We cannot use string
-  # interpolation to generate the arguments because of compile
-  # dependencies, so we use the <<>> instead.
-  defp generate_args(0, acc) do
-    acc
-  end
-
-  defp generate_args(counter, acc) do
-    name = binary_to_atom(<<?x, counter + 64>>, :utf8)
-    generate_args(counter - 1, [{ name, 0, :quoted }|acc])
   end
 
   # Returns the default conversions according to the given only/except options.

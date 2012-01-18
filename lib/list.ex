@@ -58,9 +58,7 @@ defmodule List do
   #     List.reverse [1,2,3]
   #     #=> [3,2,1]
   #
-  def reverse(list) when is_list(list) do
-    Erlang.lists.reverse(list)
-  end
+  defdelegate [reverse: 1], to: Erlang.lists
 
   # Checks if the given `term` is included in the list.
   # This function simply delegates to `lists:member`
@@ -78,6 +76,19 @@ defmodule List do
     Erlang.lists.member(term, list)
   end
 
+  # Returns a list as a sequence from first to last.
+  # Raises an error if first is higher than last.
+  #
+  # ## Examples
+  #
+  #     List.seq(1, 3) #=> [1,2,3]
+  #     List.seq(1, 1) #=> [1]
+  #
+  def seq(first, last) when is_integer(first) andalso
+    is_integer(last) andalso first <= last do
+    do_seq(last - first + 1, last, [])
+  end
+
   # Returns a list without duplicated items.
   #
   # ## Examples
@@ -91,6 +102,8 @@ defmodule List do
 
   ## Private
 
+  # flatten
+
   defp do_flatten([h|t], tail) when is_list(h) do
     do_flatten(h, do_flatten(t, tail))
   end
@@ -102,6 +115,26 @@ defmodule List do
   defp do_flatten([], tail) do
     tail
   end
+
+  # seq
+
+  defp do_seq(n, x, l) when n >= 4 do
+    do_seq(n-4, x-4, [x-3,x-2,x-1,x|l])
+  end
+
+  defp do_seq(n, x, l) when n >= 2 do
+    do_seq(n-2, x-2, [x-1,x|l])
+  end
+
+  defp do_seq(1, x, l) do
+    [x|l]
+  end
+
+  defp do_seq(0, _, l) do
+    l
+  end
+
+  # uniq
 
   defp do_uniq([h|t], acc) do
     case Erlang.lists.member(h, acc) do

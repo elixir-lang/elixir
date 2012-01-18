@@ -24,6 +24,11 @@ defmodule ListTest do
     false = List.member? [], 0
   end
 
+  def test_seq do
+    [1,2,3] = List.seq(1,3)
+    [1]     = List.seq(1,1)
+  end
+
   def test_append_1 do
     [1,[2],3,4,5,6] = List.append [[1,[2],3], [4], [5,6]]
   end

@@ -260,6 +260,35 @@ defmodule Elixir::Macros do
     Protocol.defimpl(name, [for: for], [do: block])
   end
 
+  # Defines that the tuples delegates to the given target.
+  # Functions defined with defdelegate are available to be
+  # invoked from external.
+  #
+  # Currently supports delegating only to functions (not macros).
+  #
+  # ## Examples
+  #
+  #     defmodule MyList do
+  #       defdelegate [reverse: 1], to: Erlang.lists
+  #     end
+  #
+  #     MyList.reverse([1,2,3])
+  #     #=> [3,2,1]
+  #
+  defmacro defdelegate(tuples, to: target) do
+    lc { name, arity } in tuples do
+      args = lc i in :lists.seq(1, arity) do
+        { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+      end
+
+      quote {
+        def unquote(name).(unquote_splicing(args)) do
+          apply unquote(target), unquote(name), [unquote_splicing(args)]
+        end
+      }
+    end
+  end
+
   # `import` allows one to easily access functions from others modules
   # without using the qualified name.
   #
