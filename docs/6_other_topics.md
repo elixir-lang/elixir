@@ -37,6 +37,63 @@ The only exception are data structures that cannot be partially applied:
 
 # 6.2 Comprehensions
 
+Elixir also provide list and bit comprehensions. List comprehensions allow you to quickly build a list from another list:
+
+    iex> lc n in [1,2,3,4], do: n * 2
+    [2,4,6,8]
+
+Or, using key-value blocks:
+
+    lc n in [1,2,3,4] do
+      n * 2
+    end
+
+A comprehension accepts several expressions. Those expressions can be generators, as in `x in [1,2,3,4]`, or filters:
+
+    # A comprehension with a generator and a filter
+    iex> lc n in [1,2,3,4,5,6], rem(n, 2) == 0, do: n
+    [2,4,6]
+
+    # A comprehension with two generators
+    iex> lc x in [1,2], y in [2,3], do: x*y
+    [2,3,4,6]
+
+Elixir provides generators for both lists and bitstrings (a bitstring is a sequence of bits. An Elixir binary, for example, is a bitstring where the number of bits is multiple of 8):
+
+    # A list generator:
+    iex> lc n in [1,2,3,4], do: n * 2
+    [2,4,6,8]
+
+    # A bit string generator:
+    iex> lc <<n>> in <<1,2,3,4>>, do: n * 2
+    [2,4,6,8]
+
+Bit string generators are quite useful when you need to organize bit string streams:
+
+    iex> pixels = <<213,45,132,64,76,32,76,0,0,234,32,15>>
+    iex> lc <<r:8,g:8,b:8>> in pixels, do: {r,g,b}
+    [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
+
+Remember, as strings are binaries and a binary is a bitstring, we can also use strings on comprehensions. For instance, the example below removes all white space characters from a string via bit comprehensions:
+
+    iex> bc <<c>> in " hello world ", c != ?\s, do: c
+    "helloworld"
+
+Elixir does its best to hide the differences between list and bit string generators. However, there is a special case due to Erlang limitation that we need to explicitly tell Erlang that a list is being given as argument:
+
+    # This will fail because when Elixir sees that the left side
+    # of the in expression is a bit string, it expects the right side
+    # to be a bit string as well:
+    iex> lc <<n>> in [<<1>>,<<2>>,<<3>>], do: n*2
+    ** error {:bad_generator,[<<1>>,<<2>>,<<3>>]}
+
+    # You need to be explicit and use inlist:
+    iex> lc inlist(<<n>>, [<<1>>,<<2>>,<<3>>]), do: n*2
+    [2,4,6]
+
+    # For consistency, inbin is also available:
+    iex> lc inbin(<<n>>, <<1,2,3>>), do: n*2
+    [2,4,6]
 
 # 6.3 Native compilation
 
