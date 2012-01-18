@@ -38,12 +38,12 @@ translate_each(Line, Name, S) ->
 
 build_erl(Line, #elixir_scope{counter=Counter} = S) ->
   NS = S#elixir_scope{counter=Counter+1},
-  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["X", Counter]) },
+  Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["_EX", Counter]) },
   { Var, NS }.
 
 build_ex(Line, #elixir_scope{counter=Counter} = S) ->
   NS = S#elixir_scope{counter=Counter+1},
-  Var = { ?ELIXIR_ATOM_CONCAT(["X", Counter]), Line, nil },
+  Var = { ?ELIXIR_ATOM_CONCAT(["_EX", Counter]), Line, nil },
   { Var, NS }.
 
 % Provides a tuple with only the scope information we want to serialize.
@@ -92,8 +92,10 @@ umergec(S1, S2) ->
 var_merger(Var, Var, K2) -> K2;
 var_merger(Var, K1, Var) -> K1;
 var_merger(_Var, K1, K2) ->
-  V1 = list_to_integer(tl(atom_to_list(K1))),
-  V2 = list_to_integer(tl(atom_to_list(K2))),
+  V1 = list_to_integer(var_number(atom_to_list(K1))),
+  V2 = list_to_integer(var_number(atom_to_list(K2))),
   if V1 > V2 -> K1;
      true -> K2
   end.
+
+var_number([_,_,_|T]) -> T.

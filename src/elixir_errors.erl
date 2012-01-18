@@ -26,15 +26,8 @@ form_error(Line, Filename, Module, Desc) ->
 
 %% Handle warnings and errors (called during module compilation)
 
-handle_file_warning(Filename, {Line,Module,{unused_var,Var} = Desc}) ->
-  case hd(atom_to_list(Var)) == $X of
-    true  -> [];
-    false -> io:format(file_format(Line, Filename, format_error(Module, Desc)) ++ [$\n])
-  end;
-
 handle_file_warning(_Filename, {_Line,sys_core_fold,nomatch_clause_type}) ->
   [];
-
 
 handle_file_warning(Filename, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),

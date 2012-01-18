@@ -93,7 +93,7 @@ binding_dict([], Dict) -> Dict.
 final_binding(Binding, Vars) -> final_binding(Binding, [], Binding, Vars).
 final_binding([{Var,_}|T], Acc, Binding, Vars) ->
   case atom_to_list(Var) of
-    [$X|_] -> final_binding(T, Acc, Binding, Vars);
+    "_EX" ++ _ -> final_binding(T, Acc, Binding, Vars);
     _ ->
       RealName = dict:fetch(Var, Vars),
       RealValue = proplists:get_value(RealName, Binding, nil),
@@ -104,7 +104,7 @@ final_binding([], Acc, _Binding, _Vars) -> lists:reverse(Acc).
 
 normalize_binding(Binding) ->
   Orddict = orddict:from_list(Binding),
-  case orddict:find('XMODULE', Orddict) of
+  case orddict:find('_EXMODULE', Orddict) of
     { ok, _ } -> Orddict;
-    _ -> orddict:store('XMODULE', nil, Orddict)
+    _ -> orddict:store('_EXMODULE', nil, Orddict)
   end.

@@ -12,7 +12,7 @@ binding_and_scope_for_eval(_Line, _Filename, Module, Binding, S) ->
     scope_for_eval(Module, S)
   }.
 
-binding_for_eval(Module, Binding) -> [{'XMODULE',Module}|Binding].
+binding_for_eval(Module, Binding) -> [{'_EXMODULE',Module}|Binding].
 scope_for_eval(Module, S) -> S#elixir_scope{module=Module}.
 
 %% TABLE METHODS
