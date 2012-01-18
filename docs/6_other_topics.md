@@ -76,7 +76,7 @@ Bit string generators are quite useful when you need to organize bit string stre
 
 Remember, as strings are binaries and a binary is a bitstring, we can also use strings on comprehensions. For instance, the example below removes all white space characters from a string via bit comprehensions:
 
-    iex> bc <<c>> in " hello world ", c != ?\s, do: c
+    iex> bc <<c>> in " hello world ", c != ?\s, do: <<c>>
     "helloworld"
 
 Elixir does its best to hide the differences between list and bit string generators. However, there is a special case due to Erlang limitation that we need to explicitly tell Erlang that a list is being given as argument:
