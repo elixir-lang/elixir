@@ -92,13 +92,13 @@ defmodule String::Inspect::TupleTest do
   use ExUnit::Case
 
   def test_basic do
-    "{1, \"b\", 3}" = inspect({ 1, "b", 3 })
-    "{1, \"b\", 3}" = to_binary({ 1, "b", 3 })
+    "{1,\"b\",3}" = inspect({ 1, "b", 3 })
+    "{1,\"b\",3}" = to_binary({ 1, "b", 3 })
   end
 
   def test_record_like do
-    "{:foo, :bar}" = inspect({ :foo, :bar })
-    "{:foo, :bar}" = to_binary({ :foo, :bar })
+    "{:foo,:bar}" = inspect({ :foo, :bar })
+    "{:foo,:bar}" = to_binary({ :foo, :bar })
   end
 
   def test_empty do
@@ -111,7 +111,7 @@ defmodule String::Inspect::ListTest do
   use ExUnit::Case
 
   def test_basic do
-    "[1, \"b\", 3]" = inspect([ 1, "b", 3 ])
+    "[1,\"b\",3]" = inspect([ 1, "b", 3 ])
     <<1,98,3>> = to_binary([ 1, "b", 3 ])
   end
 

@@ -104,7 +104,7 @@ defimpl String::Inspect, for: List do
   end
 
   def container_join([h|t], acc, last) do
-    acc = << acc | :binary, String::Inspect.inspect(h) | :binary, ', ' >>
+    acc = << acc | :binary, String::Inspect.inspect(h) | :binary, ?, >>
     container_join(t, acc, last)
   end
 

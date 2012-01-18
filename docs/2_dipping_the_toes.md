@@ -21,20 +21,20 @@ This means that accessing a tuple element is very fast (constant time) and can b
 On the other hand, updating a tuple is expensive as it needs to duplicate the tuple contents in memory. Updating a tuple can be done with the `setelem` function:
 
     iex> setelem { :a, :b, :c }, 1, :d
-    {:d, :b, :c}
+    {:d,:b,:c}
 
 > If you are an Erlang developer, you will notice that we used the `elem` and `setelem` functions instead of Erlang's `element` and `setelement`. The reason for this choice is that Elixir attempts to normalize Erlang API's to always receive the `subject` of the function as the first argument.
 
 Since updating a tuple is expensive, when we want to iterate, add or remove elements, we usually use lists. Since lists are linked, it means accessing the first element of the list is very cheap, however, accessing the n-th element will require the algorithm to pass to n-1 nodes before reaching the n-th. For this reason, Elixir allows you to easily retrieve the first element of the list (called head):
 
     iex> [h | t] = [1,2,3]
-    [1, 2, 3]
+    [1,2,3]
     iex> h
     1
     iex> t
-    [2, 3]
+    [2,3]
     iex> [h | t]
-    [1, 2, 3]
+    [1,2,3]
     iex> length [h | t]
     2
 
@@ -45,7 +45,37 @@ In the example above, we have assigned the head of the list to `h` and the tail 
     iex> List.flatten [1,[2],3]
     [4,5,6]
 
-## 2.2 Calling Erlang functions
+## 2.2 Lists and binaries
+
+In the previous chapter we have discussed double- and single-quoted strings. Double quoted strings are binaries while single-quoted strings are lists:
+
+    iex> "string" == 'string'
+    false
+    iex> is_binary "string"
+    true
+    iex> is_list 'string'
+    true
+
+In fact, both double- and single-quoted representations are just a shorter representation of binaries and lists. Considering that `?a` in Elixir returns the ASCII integer for the letter `a`, we could also write:
+
+    iex> <<?a, ?b, ?c>>
+    "abc"
+    iex> [?a, ?b, ?c]
+    'abc'
+
+In such cases, Elixir is smart enough to detect all characters in the list and in the binary are printable and returns the quoted representation. However, adding a non-printable character forces them to be printed differently:
+
+    iex> <<?a, ?b, ?c, 1>>
+    <<97,98,99,1>>
+
+    iex> [?a, ?b, ?c, 1]
+    [97,98,99,1]
+
+Since lists are implemented as linked lists, it means a string represented as list usually takes a lot of space in memory (in ASCII, it would be one byte for each character and another byte to point to the next character). For this reason, binary (double-quoted) strings is preferred unless you want to explicitly iterate over the string as a list. Iterating over a string as a list may be convenient when counting characters or doing other list like operations.
+
+Currently Elixir does not ship with any library for doing string manipulation, but this will be amended soon.
+
+## 2.3 Calling Erlang functions
 
 Elixir's plans is to provide a small standard library responsible for handling most basic structures (lists, ordered dicts, strings and so forth) and IO. That said, complex applications will require the developer to use Erlang's libraries.
 
@@ -59,7 +89,7 @@ Erlang's OTP is very well documented and a developer should not have problems go
 * [OTP docs](http://www.erlang.org/doc/)
 * [Standard library docs](http://www.erlang.org/doc/man/STDLIB_app.html)
 
-## 2.3 Pattern matching
+## 2.4 Pattern matching
 
 When discussing lists, we saw the following example:
 
@@ -128,7 +158,7 @@ Although pattern matching allow powerful constructs, its usage is limited. For i
     iex> Erlang.lists.flatten([1,[2],3]) = [1,2,3]
     ** error :illegal_pattern
 
-## 2.4 Key-values
+## 2.5 Key-values
 
 One of the first control flow constructs we usually learn is the conditional `if`. In Elixir, we can write `if` in three different ways, all equivalent:
 
@@ -224,11 +254,11 @@ Which is then parsed as:
 
 A good rule of thumb is: when providing arguments to a function, always use curly brackets.
 
-## 2.5 Control flow structures
+## 2.6 Control flow structures
 
 In this section we are going to describe Elixir main control structures.
 
-### 2.5.1 If
+### 2.6.1 If
 
 Refreshing from the section above, all those calls are equivalent:
 
@@ -260,7 +290,7 @@ Refreshing from the section above, all those calls are equivalent:
 
 In Elixir, all values except `false` and `nil` evaluates to true. So there is no need to convert them to false.
 
-### 2.5.2 Other boolean operators
+### 2.6.2 Other boolean operators
 
 In the previous chapter, we discussed the boolean operators `and`, `or`, `not`, `andalso` and `orelse`. Those operators are strict in the sense they only accept booleans as arguments.
 
@@ -286,7 +316,7 @@ To work around this limitation, Elixir provides three operators with similar fun
     iex> !nil
     true
 
-### 2.5.3 Case
+### 2.6.3 Case
 
 In this section we have introduced pattern matching via the `=` operator. Sometimes however it is convenient to match an expression against several expressions until we find a matching one. For such cases, we use `case` (pun intended):
 
@@ -364,7 +394,7 @@ In the example above, the second clause will only match if x is positive. The Er
 
 Custom macros can be invoked in guard clauses as long as they expand to expressions that are a subset of the ones described above.
 
-### 2.5.4 Functions and loops
+### 2.6.4 Functions and loops
 
 Throughout this guide, we have created many functions in examples. The syntax for creating functions is:
 
@@ -420,7 +450,7 @@ Which is exactly the same as `[1, 2, 3]`. Remember lists are linked lists, so ea
 
 The `match:` syntax above is rarely used with functions, although we have discussed them in order to explain loops. Anonymous loops aren't used frequently as well as Elixir developers usually write named functions, as we will see in the next chapter.
 
-### 2.5.5 Try
+### 2.6.5 Try
 
 The next control-flow mechanism is `try/catch/after`:
 
@@ -464,7 +494,7 @@ There is one particularity that applies to `try/catch/after` when compared to ot
     iex> new_var
     ** error :undef
 
-### 2.5.6 Receive
+### 2.6.6 Receive
 
 The last control-flow mechanism we are going to discuss is essential to Elixir's and Erlang's actor mechanism. In Elixir, every code run in processes that exchange messages between them. Those processes are not Operating System processes (they are actually quite light-weight) but called so since they do not share state with each other.
 
@@ -495,7 +525,7 @@ You may not see exactly `<0.36.0>` back, but something similar. If there are no 
 
 In most cases, we don't send messages directly with `<-` nor write `receive` control expressions. Instead, we use many of the abstractions provided by OTP which will be discussed later.
 
-## 2.6 Default functions
+## 2.7 Default functions
 
 Elixir ships with many default functions automatically available in the current scope. Besides all the control flow expressions seen above, Elixir also adds: `elem` and `setelem` to read and set values in tuples, `inspect` that returns the representation of a given data type as string and many others. [A list of all those functions with documentation and examples are available here](github.com/josevalim/elixir/tree/master/lib/elixir/macros.ex).
 

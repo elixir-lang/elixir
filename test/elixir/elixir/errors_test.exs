@@ -109,7 +109,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_already_compiled_module do
-    "{:module_already_compiled, \"could not call eval_quoted on module ::Record because it was already compiled\"}" =
+    "{:module_already_compiled,\"could not call eval_quoted on module ::Record because it was already compiled\"}" =
       format_catch 'Module.eval_quoted ::Record, quote { 1 }, [], __FILE__, __LINE__'
   end
 

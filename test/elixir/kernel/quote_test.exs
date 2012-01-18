@@ -12,7 +12,6 @@ defmodule Kernel::QuoteTest::Hygiene do
   defmacro read_interference do
     quote { 10 = var!(a) }
   end
-
 end
 
 defmodule Kernel::QuoteTest do

@@ -112,7 +112,15 @@ The real benefit of protocols comes when mixed with records. For instance, one m
 
 In the example above, we have implemented `blank?` for the custom dictionary that simply delegates to `RedBlack.empty?`. Since records are simply tuples, the default implementation for records can be given in the tuple implementation.
 
-With this note, we have finally finished this section which has described `defrecord`, `defprotocol` and `defimpl`. Next, we are going to discuss macros with `defmacro`!
+### 4.2.3 Built-in protocols
+
+Elixir ships with three built-in protocols, they are:
+
+* Enum::Iterator - specifies an iteration contract for any data structure
+* String::Inspect - specifies how to represent and convert data structures to strings
+* List::Inspect - specifies how to convert data structures to lists
+
+You can check the source code of those files for more information about how the protocol is used and how to implement your own. With this, we have finally finished this section which has described `defrecord`, `defprotocol` and `defimpl`. Next, we are going to discuss macros with `defmacro`!
 
 [Chapter 3: Modules](https://github.com/josevalim/elixir/blob/master/docs/3_modules.md) | [Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) |
 [Chapter 5: Macros](https://github.com/josevalim/elixir/blob/master/docs/5_macros.md)

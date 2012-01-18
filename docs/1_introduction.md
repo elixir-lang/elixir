@@ -88,7 +88,12 @@ We can use the `is_binary` and `is_list` helpers to detect if a given string is 
     iex> is_list 'string'
     true
 
-Keep in mind that double-quoted and single-quoted strings are different. Most of the times, you want to use double-quoted strings.
+Although they represent the same thing, double-quoted and single-quoted strings are different and best suited for different scenarios:
+
+    iex> "string" == 'string'
+    false
+
+Most of the cases, developers should use double-quoted strings as their representation is more compact. We are going to discuss this subject with more detail in the next chapter.
 
 Elixir also provides `true` and `false` as booleans:
 
@@ -102,7 +107,7 @@ Booleans are represented internally as atoms:
     iex> is_atom(true)
     true
 
-Elixir also provides Port, References and PIDs as data types but they are going to be discussed when we start to talk about process communication. For now, let's take a look at the basic operators in Elixir before we move on to the next chapter.
+Elixir also provides Port, References and PIDs as data types (usually used in process communication) but they are out of the scope of a getting started tutorial. For now, let's take a look at the basic operators in Elixir before we move on to the next chapter.
 
 ## 1.4 Operators
 
