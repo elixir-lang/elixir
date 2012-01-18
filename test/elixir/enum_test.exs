@@ -81,6 +81,27 @@ defmodule EnumTest do
     { [2,4,6], 7 } = Enum.mapfoldl [1,2,3], 1, fn(x, acc) { { x * 2, x + acc } }
   end
 
+  def test_times_with_arity_0 do
+    put(:times_with_arity, nil)
+    0 = Enum.times 0, fn { put(:times_with_arity, :ok) }
+    nil = get(:times_with_arity)
+    3 = Enum.times 3, fn { put(:times_with_arity, :ok) }
+    :ok = get(:times_with_arity)
+  after:
+    erase(:times_with_arity)
+  end
+
+  def test_times_with_arity_1 do
+    5 = Enum.times 5, fn(x) { put(:times_with_arity, x) }
+    4 = get(:times_with_arity)
+  after:
+    erase(:times_with_arity)
+  end
+
+  def test_times_with_arity_2 do
+    10 = Enum.times 5, 0, fn(acc, x) { acc + x }
+  end
+
   def test_enum_for do
     [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = Enum.for [[1,2],[3,4]], fn(acc, y, x) { [{x,y}|acc] }
   end
@@ -92,5 +113,4 @@ defmodule EnumTest do
     [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = for {x,_} in lists, y in [3,4], do: {x,y}
     [{1, 3}, {1, 4}] = for {x,_} in lists, y in [3,4], x == 1, do: {x,y}
   end
-
 end

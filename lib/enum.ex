@@ -264,6 +264,39 @@ defmodule Enum do
     do_mapfoldl(iterator.(collection), iterator, acc, fun)
   end
 
+  # Iterates the given function n times, passing values from zero
+  # to n - 1.
+  #
+  # ## Examples
+  #
+  #    Enum.times 3, fn(x) { IO.puts x }
+  #    0
+  #    1
+  #    2
+  #
+  def times(times, function) when times >= 0 do
+    case :erlang.fun_info(function, :arity) do
+    match: { :arity, 0 }
+      do_times_0(times, 0, function)
+    else:
+      do_times_1(times, 0, function)
+    end
+    times
+  end
+
+  # Iterates the given function n times, passing values from zero
+  # to n - 1. Also has an accumulator similar to fold to store the
+  # value between computations.
+  #
+  # ## Examples
+  #
+  #    Enum.times 5, 0, fn(acc, x) { acc + x }
+  #    #=> 10
+  #
+  def times(times, acc, function) when times >= 0 do
+    do_times_2(times, 0, function, acc)
+  end
+
   ## Implementations
 
   ## all?
@@ -417,7 +450,34 @@ defmodule Enum do
     { [], acc }
   end
 
-  ## Comprehensions
+  ## times
+
+  defp do_times_0(limit, limit, _function) do
+  end
+
+  defp do_times_0(limit, counter, function) do
+    function.()
+    do_times_0(limit, 1 + counter, function)
+  end
+
+  defp do_times_1(limit, limit, _function) do
+  end
+
+  defp do_times_1(limit, counter, function) do
+    function.(counter)
+    do_times_1(limit, 1 + counter, function)
+  end
+
+  defp do_times_2(limit, limit, _function, acc) do
+    acc
+  end
+
+  defp do_times_2(limit, counter, function, acc) do
+    new_acc = function.(counter, acc)
+    do_times_2(limit, 1 + counter, function, new_acc)
+  end
+
+  ## comprehensions
 
   defp first_comprehension_each(iterator, { h, next }, t, acc, fun) do
     first_comprehension_each iterator, iterator.(next), t, next_comprehension(t, acc, fun, [h]), fun
