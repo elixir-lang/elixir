@@ -53,8 +53,8 @@ A macro can be define using `defmacro`. For instance, we can define a macro call
 
 Similarly to `if`, `unless` expects two arguments: a `clause` and `options`:
 
-     if var, do: IO.puts "true"
-     unless var, do: IO.puts "false"
+    require MyMacro
+    MyMacro.unless var, do: IO.puts "false"
 
 However, since `unless` is a macro, it won't receive values when invoked, but instead, its expressions. For example, if one calls:
 
@@ -99,6 +99,8 @@ Elixir macros follow Scheme conventions and are hygienic. This means a variable 
       end
     end
 
+    require Hygiene
+
     a = 13
     Hygiene.no_interference
     a # => 13
@@ -110,6 +112,8 @@ In the example above, even if the macro injects `a = 1`, it does not affect the 
         quote { var!(a) = 1 }
       end
     end
+
+    require Hygiene
 
     a = 13
     Hygiene.interference
@@ -131,6 +135,8 @@ Notice that the third element is :quoted. It means that x may be a function call
     end
 
 In the example above, we have defined a macro called `quoted` that returns an unquoted variable, a quoted variable and a function call. Calling this macro will return:
+
+    require Hygiene
 
     Hygiene.quoted(x)
     #=> {
