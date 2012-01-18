@@ -157,7 +157,7 @@ defmodule Protocol do
   # Converts the protocol expressions as [each(collection), length(collection)]
   # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
   defp to_kv(args) do
-    Orddict.from_list lc(x in args) {
+    :orddict.from_list lc(x in args) {
       case x do
       match: { _, _, args } when args == [] or args == false
         error({ :badarg, "protocol functions expect at least one argument" })

@@ -3,8 +3,8 @@ Code.require_file "../test_helper", __FILE__
 defmodule OrddictTest do
   use ExUnit::Case
 
-  def test_from_list do
-    [first_key: 1, second_key: 2] = Orddict.from_list([{:second_key, 2}, {:first_key, 1}])
+  def test_from_enum do
+    [first_key: 1, second_key: 2] = Orddict.from_enum([{:second_key, 2}, {:first_key, 1}])
   end
 
   def test_fetch do
@@ -31,8 +31,8 @@ defmodule OrddictTest do
   end
 
   def test_store do
-    [first_key: 1]                = Orddict.store(create_empty_dict, :first_key, 1)
-    [first_key: 1, second_key: 2] = Orddict.store(create_dict, :first_key, 1)
+    [first_key: 1]                = Orddict.set(create_empty_dict, :first_key, 1)
+    [first_key: 1, second_key: 2] = Orddict.set(create_dict, :first_key, 1)
   end
 
   def test_merge do
@@ -43,5 +43,5 @@ defmodule OrddictTest do
   end
 
   defp create_empty_dict, do: create_dict([])
-  defp create_dict(list // [first_key: 1, second_key: 2]), do: Orddict.from_list(list)
+  defp create_dict(list // [first_key: 1, second_key: 2]), do: Orddict.from_enum(list)
 end

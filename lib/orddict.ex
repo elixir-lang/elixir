@@ -1,10 +1,13 @@
 defmodule Orddict do
-  def from_list(pairs) do
-    Erlang.lists.foldl fn({k, v}, dict){ store(dict, k, v) }, [], pairs
-  end
-
+  # Creates an Orddict from an enumerable.
+  #
+  # ## Examples
+  #
+  #     Orddict.from_enum [{b,1},{a,2}]
+  #     #=> [a: 2, b: 1]
+  #
   def from_enum(pairs) do
-    Enum.foldl pairs, [], fn({k, v}, dict){ store(dict, k, v) }
+    Enum.foldl pairs, [], fn({k, v}, dict){ set(dict, k, v) }
   end
 
   # Gets value from the dictionary for specific key.
@@ -27,6 +30,7 @@ defmodule Orddict do
   # ## Examples
   #
   #     Orddict.keys [a: 1, b: 2] #=> [:a,:b]
+  #
   def keys(dict) do
     lc { key, _ } in dict, do: key
   end
@@ -36,6 +40,7 @@ defmodule Orddict do
   # ## Examples
   #
   #     Orddict.values [a: 1, b: 2] #=> [1,2]
+  #
   def values(dict) do
     lc { _, value } in dict, do: value
   end
@@ -53,13 +58,27 @@ defmodule Orddict do
   def delete([{_k, _v}|dict], _key), do: dict
   def delete([], _), do: []
 
-  # Stores key, value entry in dictionary
-  def store([{k, _} = e|dict], key, value) when key < k, do: [{key, value},e|dict]
-  def store([{k, _} = e|dict], key, value) when key > k, do: [e|store(dict, key, value)]
-  def store([{_, _}|dict], key, value), do: [{key, value}|dict]
-  def store([], key, value), do: [{key, value}]
+  # Sets the given `value` under `key` for the given dictionary.
+  # If a previous value is already stored, it is overriden.
+  #
+  # ## Examples
+  #
+  #     Orddict.set [a: 1, b: 2], :a, 3
+  #     #=> [a: 3, b: 2]
+  #
+  def set([{k, _} = e|dict], key, value) when key < k, do: [{key, value},e|dict]
+  def set([{k, _} = e|dict], key, value) when key > k, do: [e|set(dict, key, value)]
+  def set([{_, _}|dict], key, value), do: [{key, value}|dict]
+  def set([], key, value), do: [{key, value}]
 
-  # Merges two dictionaries in one
+  # Merges two dictionaries into one. If the dictionaries have
+  # duplicated entries, the one given as second argument wins.
+  #
+  # ## Examples
+  #
+  #     Orddict.merge [a: 1, b: 2], [a: 3, d: 4]
+  #     #=> [a:3, b:2, d: 4]
+  #
   def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2]) when k1 < k2, do: [e1|merge(d1, [e2|d2])];
   def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2]) when k1 > k2, do: [e2|merge([e1|d1], d2)];
   def merge([{k1, _v1}|d1], [{_k2, v2}|d2]), do: [{k1, v2}|merge(d1, d2)];
