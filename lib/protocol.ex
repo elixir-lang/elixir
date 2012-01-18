@@ -29,7 +29,7 @@ defmodule Protocol do
   # Implement the given protocol for the given module.
   # It also defines a `__impl__` function which
   # returns the protocol being implemented.
-  def defimpl(protocol, do: block, for: for) do
+  def defimpl(protocol, [for: for], [do: block]) do
     quote do
       # Build up the name, protocol and block
       protocol = unquote(protocol)

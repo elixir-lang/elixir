@@ -432,25 +432,12 @@ build_arg({ '[:]', _Line, Args }) -> sort_kv(Args);
 build_arg(Else) -> Else.
 
 %% Identifiers
-% Those helpers are responsible to:
-%
-%   + Merge kv args and kv blocks arguments
-%   + Handle dot operators and transform them in the proper function call
+
 build_identifier(Expr, [], Block) ->
   build_identifier(Expr, [Block]);
 
 build_identifier(Expr, Args, Block) ->
-  { Reverse, Last } = last(Args, []),
-  Final = case is_kv(Last) of
-    true  ->
-      { '[:]', Line, Left } = Last,
-      { '[:]', _, Right }  = Block,
-      KV = { '[:]', Line, elixir_kv_block:merge(Line, Left, Right) },
-      lists:reverse([KV|Reverse]);
-    false ->
-      lists:reverse([Block,Last|Reverse])
-  end,
-  build_identifier(Expr, Final).
+  build_identifier(Expr, Args ++ [Block]).
 
 build_identifier({ '.', DotLine, [Expr, { Kind, _, Identifier }] }, Args) when
   Kind == identifier; Kind == punctuated_identifier;
@@ -483,15 +470,6 @@ build_atom({ atom, _Line, [H] }) when is_list(H) -> list_to_atom(H);
 build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ '<<>>', Line, Args}, utf8] }.
 
 %% Helpers
-
-last([L], Acc)   -> { Acc, L };
-last([H|T], Acc) -> last(T, [H|Acc]).
-
-is_kv({'[:]', _, Args}) -> lists:all(fun is_kv_tuple/1, Args);
-is_kv(_) -> false.
-
-is_kv_tuple({ Key, _ }) when is_atom(Key) -> true;
-is_kv_tuple(_) -> false.
 
 sort_kv(List) -> lists:sort(fun sort_kv/2, List).
 sort_kv({ A, _ }, { B, _ }) -> A =< B.

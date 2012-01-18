@@ -256,8 +256,8 @@ defmodule Elixir::Macros do
 
   # Defines an implementation for the given protocol. See
   # `defprotocol/2` for examples.
-  defmacro defimpl(name, do: block, for: for) do
-    Protocol.defimpl(name, do: block, for: for)
+  defmacro defimpl(name, [for: for], [do: block]) do
+    Protocol.defimpl(name, [for: for], [do: block])
   end
 
   # `import` allows one to easily access functions from others modules
