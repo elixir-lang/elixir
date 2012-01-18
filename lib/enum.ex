@@ -96,7 +96,7 @@ defmodule Enum do
   #
   # This is used internally by `for` and should not be used directly.
   def for(lists, fun) do
-    iterators = lc list in lists, do: { list, Enum::Iterator.iterator(list) }
+    iterators = lc list in lists, do: { list, I.iterator(list) }
     [{h,iterator}|t] = iterators
     first_comprehension_each iterator, iterator.(h), t, [], fun
   end
@@ -169,6 +169,10 @@ defmodule Enum do
   #     Enum.empty? [] #=> true
   #     Enum.empty? [1,2,3] #=> false
   #
+  def empty?(collection) when is_list(collection) do
+    collection == []
+  end
+
   def empty?(collection) do
     empty?(I.iterator(collection), collection)
   end
@@ -201,6 +205,10 @@ defmodule Enum do
   #     Enum.foldl [1, 2, 3], 0, fn(x, acc) { x + acc }
   #     #=> 6
   #
+  def foldl(collection, acc, f) when is_list(collection) do
+    :lists.foldl(f, acc, collection)
+  end
+
   def foldl(collection, acc, f) do
     foldl(I.iterator(collection), collection, acc, f)
   end
@@ -238,6 +246,10 @@ defmodule Enum do
   #     Enum.map [1, 2, 3], fn(x) { x * 2 }
   #     #=> [2, 4, 6]
   #
+  def map(collection, fun) when is_list(collection) do
+    :lists.map(fun, collection)
+  end
+
   def map(collection, fun) do
     map(I.iterator(collection), collection, fun)
   end
@@ -256,6 +268,10 @@ defmodule Enum do
   #     Enum.mapfoldl [1, 2, 3], 0, fn(x, acc) { { x * 2, x + acc } }
   #     #=> { [2, 4, 6], 6 }
   #
+  def mapfoldl(collection, acc, f) when is_list(collection) do
+    :lists.mapfoldl(f, acc, collection)
+  end
+
   def mapfoldl(collection, acc, fun) do
     mapfoldl(I.iterator(collection), collection, acc, fun)
   end
