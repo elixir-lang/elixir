@@ -168,4 +168,4 @@ You actually don't need to memorize this ordering, it is important just to know 
 
 Well, that is it for the introduction. In the next chapter, we are going to discuss some basic functions, data types conversions and a bit of control-flow.
 
-[Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 2: Dipping the toes](https://github.com/josevalim/elixir/blob/master/docs/2_dipping_the_toes.md)
+[Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 2: Diving in](https://github.com/josevalim/elixir/blob/master/docs/2_diving_in.md)

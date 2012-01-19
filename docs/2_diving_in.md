@@ -1,4 +1,4 @@
-# 2 Dipping the toes
+# 2 Diving in
 
 In this section we are going a bit deeper into the basic data-types, learn some control flow mechanisms and basic functions.
 
