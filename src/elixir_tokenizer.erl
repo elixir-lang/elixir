@@ -239,6 +239,12 @@ tokenize(Line, ";" ++ Rest, []) ->
 tokenize(Line, ";" ++ Rest, [Top|Tokens]) when element(1, Top) /= eol ->
   tokenize(Line, Rest, eol(Line, [Top|Tokens]));
 
+tokenize(Line, "\\\n" ++ Rest, Tokens) ->
+  tokenize(Line + 1, Rest, Tokens);
+
+tokenize(Line, "\\\r\n" ++ Rest, Tokens) ->
+  tokenize(Line + 1, Rest, Tokens);
+
 tokenize(Line, "\n" ++ Rest, Tokens) ->
   tokenize(Line + 1, Rest, eol(Line, Tokens));
 

@@ -6,5 +6,7 @@ defmodule StringTest do
   def test_implicit_string_concat do
     "foobar" = "foo" "bar"
     "foobar" = "foo" "#{:bar}"
+    "foobar" = "foo" \
+      "#{:bar}"
   end
 end
