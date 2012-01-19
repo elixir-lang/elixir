@@ -967,9 +967,9 @@ defmodule Elixir::Macros do
   #     true && 1            #=> 1
   #     false && error(:bad) #=> false
   #
-  # Notice that, differently from Erlang `and` and `andalso` operators,
-  # this operator accepts any expression as arguments, not only booleans.
-  # Unfortunately cannot be used in macros.
+  # Notice that, differently from Erlang `and` operator, this operator
+  # accepts any expression as arguments, not only booleans, but
+  # cannot be used in macros.
   defmacro :&&.(left, right) do
     quote do
       case unquote(left) do
@@ -994,9 +994,9 @@ defmodule Elixir::Macros do
   #     false || 1           #=> 1
   #     true || error(:bad)  #=> true
   #
-  # Notice that, differently from Erlang `or` and `orelse` operators,
-  # this operator accepts any expression as arguments, not only booleans.
-  # Unfortunately cannot be used in macros.
+  # Notice that, differently from Erlang `or` operator, this operator
+  # accepts any expression as arguments, not only booleans, but
+  # cannot be used in macros.
   defmacro :||.(left, right) do
     quote {
       case !(oror = unquote(left)) do

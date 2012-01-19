@@ -24,7 +24,7 @@ defmodule File do
   # Normalize the given path by removing "..".
   defp normalize(path), do: normalize(FN.split(path), [])
 
-  defp normalize([top|t], [_|acc]) when top == ".." orelse top == '..' do
+  defp normalize([top|t], [_|acc]) when top == ".." | top == '..' do
     normalize t, acc
   end
 

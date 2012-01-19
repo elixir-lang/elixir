@@ -119,7 +119,7 @@ defmodule Module do
   #     end
   #
   def function_defined?(module, tuple, kind) do
-    function_defined?(module, tuple) andalso
+    function_defined?(module, tuple) &&
       (table = function_table_for(module)
        entry = kind_to_entry(kind)
        List.member? ETS.lookup_element(table, entry, 2), tuple)
@@ -185,7 +185,7 @@ defmodule Module do
   end
 
   defp assert_already_compiled!(fun, module) do
-    compiled?(module) orelse
+    compiled?(module) ||
       error { :module_already_compiled,
         "could not call #{fun} on module #{module} because it was already compiled" }
   end

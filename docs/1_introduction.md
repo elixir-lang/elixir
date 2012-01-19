@@ -142,16 +142,7 @@ Giving a non-boolean as argument will raise an exception:
     ** error :badarg
         erlang:and(1, true)
 
-`or` and `and` are eager operators. They will execute both left and right sides of the expression. Elixir also provides `andalso` and `orelse` which are short-circuit operators. They just execute the right side in case the left side is not enough to determine the result:
-
-    iex> false and error("This error will be raised")
-    ** error "This error will be raised"
-
-    iex> false andalso error("This error will never be raised")
-    false
-
-    iex> true orelse error("This error will never be raised")
-    true
+`or` and `and` are eager operators. They always execute both left and right sides of the expression.
 
 Elixir also provides `==`, `!=`, `===`, `!===`, `<=`, `>=`, `<` and `>` as comparison operators:
 

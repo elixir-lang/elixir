@@ -40,8 +40,7 @@ defimpl String::Inspect, for: Atom do
   # Detect if atom is :letter_or_underscore
 
   defp valid_identifier?([h|t]) when
-    (h >= ?a andalso h <= ?z) orelse
-    (h >= ?A andalso h <= ?Z) orelse (h == ?_) do
+    (h >= ?a & h <= ?z) | (h >= ?A & h <= ?Z) | (h == ?_) do
     valid_identifier? t
   end
 
