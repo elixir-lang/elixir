@@ -20,7 +20,7 @@ Nonterminals
   do_eol end_eol kv_item kv_list do_block curly_block
   dot_op dot_identifier dot_do_identifier dot_curly_identifier
   dot_paren_identifier dot_punctuated_identifier parens_call
-  var list bit_string
+  var list bit_string list_strings bin_strings
   tuple long_tuple long_tuple_op_expr long_tuple_call_args
   .
 
@@ -159,9 +159,15 @@ base_expr -> module_ref : '$1'.
 base_expr -> 'true' : ?op('$1').
 base_expr -> 'false' : ?op('$1').
 base_expr -> 'nil' : ?op('$1').
-base_expr -> bin_string  : build_bin_string('$1').
-base_expr -> list_string : build_list_string('$1').
+base_expr -> bin_strings  : build_bin_string('$1').
+base_expr -> list_strings : build_list_string('$1').
 base_expr -> bit_string : '$1'.
+
+bin_strings -> bin_string : '$1'.
+bin_strings -> bin_strings bin_string : { bin_string, ?line('$1'), ?exprs('$1') ++ ?exprs('$2') }.
+
+list_strings -> list_string : '$1'.
+list_strings -> list_strings list_string : { list_string, ?line('$1'), ?exprs('$1') ++ ?exprs('$2') }.
 
 %% Helpers
 
@@ -452,11 +458,17 @@ build_identifier({ _, Line, Identifier }, Args) ->
 
 %% Interpolation aware
 
-build_bin_string({ bin_string, _Line, [H] }) when is_list(H) -> list_to_binary(H);
-build_bin_string({ bin_string, Line, Args }) -> { '<<>>', Line, Args }.
+build_bin_string({ bin_string, Line, Args }) ->
+  case lists:all(fun is_list/1, Args) of
+    true  -> iolist_to_binary(Args);
+    false -> { '<<>>', Line, Args }
+  end.
 
-build_list_string({ list_string, _Line, [H] }) when is_list(H) -> H;
-build_list_string({ list_string, Line, Args }) -> { binary_to_list, Line, [{ '<<>>', Line, Args}] }.
+build_list_string({ list_string, Line, Args }) ->
+  case lists:all(fun is_list/1, Args) of
+    true  -> lists:flatten(Args);
+    false -> { binary_to_list, Line, [{'<<>>', Line, Args}] }
+  end.
 
 build_atom({ atom, _Line, [H] }) when is_atom(H) -> H;
 build_atom({ atom, _Line, [H] }) when is_list(H) -> list_to_atom(H);

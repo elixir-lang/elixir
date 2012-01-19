@@ -3,6 +3,11 @@ Code.require_file "../test_helper", __FILE__
 defmodule ListTest do
   use ExUnit::Case
 
+  def test_implicit_char_list_concat do
+    'foobar' = 'foo' 'bar'
+    'foobar' = 'foo' '#{:bar}'
+  end
+
   def test_flatten do
     [1,2,3] = List.flatten([1,2,3])
     [1,2,3] = List.flatten([1,[2],3])
