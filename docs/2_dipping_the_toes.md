@@ -350,7 +350,7 @@ Each match clause also supports special conditions to be given via guards:
       IO.puts "No match"
     end
 
-In the example above, the second clause will only match if x is positive. The Erlang VM machine only allows few expressions as guards, they are:
+In the example above, the second clause will only match when x is positive. The Erlang VM machine only allows few expressions as guards, they are:
 
 * comparison operators (`==`, `!=`, `===`, `!===`, `>`, `<`, `<=`, `>=`);
 * strict boolean operators (`and`, `or`, `not`, `andalso`, `orelse`);
@@ -391,6 +391,22 @@ In the example above, the second clause will only match if x is positive. The Er
     tl(List)
     trunc(Number)
     tuple_size(Tuple)
+
+Besides, guards also allow the usage of the special `&` and `|` operators. They are different from the `&&` and `||` we saw above, as they are also strict regarding booleans, but they are also different from `andalso`, `orelse` and friends. The difference is that `&` and `|` will catch exceptions while the others won't. Consider this example:
+
+    def first_is_zero?(tuple_or_list) when
+      elem(tuple_or_list, 1) == 0 or hd(tuple_or_list) == 0 do
+      true
+    end
+
+This example will always fail because calling `elem` in a list or `hd` in a tuple will always raise an error. This is where the `&` and `|` operators come in. By using `|`, if the first clause raises an error, the second will still evaluate:
+
+    def first_is_zero?(tuple_or_list) when
+      elem(tuple_or_list, 1) == 0 | hd(tuple_or_list) == 0 do
+      true
+    end
+
+Finally, `&` and `|` can cannot be nested, so `(condition | other) & another` is invalid while `(condition orelse other) andalso another` works fine. Given their different use, the best strategy is to mix those operators as we see fit.
 
 Custom macros can be invoked in guard clauses as long as they expand to expressions that are a subset of the ones described above.
 

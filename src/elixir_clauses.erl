@@ -22,17 +22,11 @@ assigns_block(Line, Fun, BareArgs, Exprs, S) ->
   assigns_block(Line, Fun, Args, Exprs, Guards, S).
 
 assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
-  { TArgs, SA }    = elixir_clauses:assigns(Fun, Args, S),
-  { TGuards, SG }  = elixir_translator:translate(Guards, SA#elixir_scope{guard=true}),
-  { TExprs, SE }   = elixir_translator:translate(Exprs, SG#elixir_scope{guard=false}),
+  { TArgs, SA }  = elixir_clauses:assigns(Fun, Args, S),
+  { TExprs, SE } = elixir_translator:translate(Exprs, SA),
 
-  FArgs = listify(TArgs),
-
-  % Properly listify guards
-  FGuards = case TGuards of
-    [] -> [];
-    _  -> [TGuards]
-  end,
+  FArgs   = listify(TArgs),
+  FGuards = [element(1, elixir_translator:translate(Guard, SA#elixir_scope{guard=true})) || Guard <- Guards],
 
   % Uncompact expressions from the block.
   case TExprs of
@@ -44,8 +38,18 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
 
 % Extract guards from the given expression.
 
-extract_guards({ 'when', _, [Left, Right] }) -> { Left, [Right] };
+extract_guards({ 'when', _, [Left, Right] }) -> { Left, extract_guard_clauses(Right) };
 extract_guards(Else) -> { Else, [] }.
+
+extract_guard_clauses(Term) ->
+  Or = extract_or_clauses(Term, []),
+  [extract_and_clauses(Item, []) || Item <- Or].
+
+extract_or_clauses({ '|', _, [Left, Right] }, Acc) -> extract_or_clauses(Left, [Right|Acc]);
+extract_or_clauses(Term, Acc) -> [Term|Acc].
+
+extract_and_clauses({ '&', _, [Left, Right] }, Acc) -> extract_and_clauses(Left, [Right|Acc]);
+extract_and_clauses(Term, Acc) -> [Term|Acc].
 
 % Extract guards when it is in the last element of the args
 
