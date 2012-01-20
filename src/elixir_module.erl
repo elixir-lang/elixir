@@ -199,7 +199,7 @@ translate_import(Line, X, Acc) ->
   { element(2, X), [{attribute, Line, import, X}|Acc] }.
 
 translate_data(Table, [{K,V}|T]) when K == visibility; V == nil ->
-  translate_data(Table, T)];
+  translate_data(Table, T);
 
 translate_data(Table, [{K,V}|T]) ->
   case reserved_data(K) of
@@ -225,7 +225,6 @@ reserved_data(type)        -> true;
 reserved_data(export_type) -> true;
 reserved_data(spec)        -> true;
 reserved_data(vsn)         -> true;
-reserved_data(on_load)     -> true;
 reserved_data(_)           -> false.
 
 % ERROR HANDLING

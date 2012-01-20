@@ -233,7 +233,6 @@ The following are also reserved by Elixir (as they have special semantics to the
 * `@compile` - provides options for the module compilation;
 * `@type` - provides a type to be used in @spec;
 * `@export_type` - provides a type to be used in @spec that can be accessed from external specs;
-* `@on_load` - invoke the given hook when the module is loaded;
 
 Besides the built-in data above, any developer can also add custom data:
 
@@ -242,9 +241,11 @@ Besides the built-in data above, any developer can also add custom data:
       IO.puts @my_data #=> 13
     end
 
-After the module is compiled, the stored data can be accessed via `__info__(:data)`:
+After the module is compiled, the stored custom data can be accessed via `__info__(:data)` and it will return an `Orddict`:
 
     MyServer.__info__(:data) #=> [my_data: 13]
+
+Setting a data to nil automatically discards it from the `Orddict`.
 
 ## 3.6 Module nesting
 
