@@ -48,6 +48,8 @@ translate_macro({'::', Line, [Left|Right]}, S) ->
 
 translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
   record('@', S),
+  assert_module_scope(Line, '@', S),
+  assert_no_function_scope(Line, '@', S),
   case Args of
     [Arg] ->
       translate_each({
@@ -134,6 +136,7 @@ translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
 
 translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   record(Kind, S),
+  assert_module_scope(Line, Kind, S),
   { Name, Args } = elixir_clauses:extract_args(Call),
   { { tuple, Line, [{ atom, Line, Name }, { integer, Line, length(Args) }] }, S };
 
@@ -144,17 +147,13 @@ translate_macro({Kind, Line, [Call, KV]}, S) when Kind == def; Kind == defp; Kin
 
 translate_macro({Kind, Line, [Name, Args, Guards, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   record(Kind, S),
-  case S#elixir_scope.function /= [] of
-    true ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid function scope for: ", atom_to_list(Kind));
-    _ ->
-      case KV of
-        [{do, Expr}] -> [];
-        _ -> Expr = { 'try', Line, [KV]}
-      end,
-      { TName, TS } = translate_each(Name, S),
-      { elixir_def:wrap_definition(Kind, Line, TName, Args, Guards, Expr, TS), TS }
-  end;
+  assert_module_scope(Line, Kind, S),
+  case KV of
+    [{do, Expr}] -> [];
+    _ -> Expr = { 'try', Line, [KV]}
+  end,
+  { TName, TS } = translate_each(Name, S),
+  { elixir_def:wrap_definition(Kind, Line, TName, Args, Guards, Expr, TS), TS };
 
 translate_macro({Kind, Line, Args}, S) when is_list(Args), Kind == def; Kind == defmacro; Kind == defp ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", atom_to_list(Kind));
@@ -184,30 +183,24 @@ translate_macro({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
 
 translate_macro({use, Line, [Ref|Args]}, S) ->
   record(use, S),
-  case S#elixir_scope.module of
-    nil ->
-      syntax_error(Line, S#elixir_scope.filename, "cannot invoke use outside module. invalid scope for: ", "use");
-    Module ->
-      Call = { block, Line, [
-        { require, Line, [Ref] },
-        { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
-      ] },
-      translate_each(Call, S)
-  end;
+  assert_module_scope(Line, use, S),
+  Module = S#elixir_scope.module,
+  Call = { block, Line, [
+    { require, Line, [Ref] },
+    { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
+  ] },
+  translate_each(Call, S);
 
 translate_macro({import, Line, [Arg]}, S) ->
   translate_macro({import, Line, [Arg, []]}, S);
 
 translate_macro({import, Line, [_,_] = Args}, S) ->
   record(import, S),
+  assert_module_scope(Line, import, S),
+  assert_no_function_scope(Line, import, S),
   Module = S#elixir_scope.module,
-  case (Module == nil) or (S#elixir_scope.function /= []) of
-    true  ->
-      syntax_error(Line, S#elixir_scope.filename, "cannot invoke import outside module. invalid scope for: ", "import");
-    false ->
-      NewArgs = [Line, S#elixir_scope.filename, Module|Args],
-      translate_each({{'.', Line, [elixir_import, handle_import]}, Line, NewArgs}, S)
-  end;
+  NewArgs = [Line, S#elixir_scope.filename, Module|Args],
+  translate_each({{'.', Line, [elixir_import, handle_import]}, Line, NewArgs}, S);
 
 %% Loop and recur
 
@@ -387,3 +380,13 @@ convert_op('!=')  ->  '/=';
 convert_op('<=')  ->  '=<';
 convert_op('<-')  ->  '!';
 convert_op(Else)  ->  Else.
+
+%% Assertions
+
+assert_no_function_scope(_Line, _Kind, #elixir_scope{function=[]}) -> [];
+assert_no_function_scope(Line, Kind, S) ->
+  syntax_error(Line, S#elixir_scope.filename, "cannot invoke inside function: ", atom_to_list(Kind)).
+
+assert_module_scope(Line, Kind, #elixir_scope{module=[],filename=Filename}) ->
+  syntax_error(Line, Filename, "cannot invoke outside module: ", atom_to_list(Kind));
+assert_module_scope(_Line, _Kind, _S) -> [].

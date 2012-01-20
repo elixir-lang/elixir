@@ -135,7 +135,10 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 %% Arg-less macros
 
 translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
-  Module = S#elixir_scope.module,
+  Module = case S#elixir_scope.module of
+    [] -> nil;
+    Other -> Other
+  end,
   { { atom, Line, Module }, S };
 
 translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->

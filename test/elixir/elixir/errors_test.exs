@@ -41,8 +41,8 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_invalid_scope_for_function do
-    "nofile:1: cannot define function outside module. invalid scope for: def" = format_catch 'def Foo, do: 2'
-    "nofile:3: cannot define function outside module. invalid scope for: defmacro" = format_catch '\n\ndefmacro Foo, do: 2'
+    "nofile:1: cannot invoke outside module: def" = format_catch 'def Foo, do: 2'
+    "nofile:3: cannot invoke outside module: defmacro" = format_catch '\n\ndefmacro Foo, do: 2'
   end
 
   def test_invalid_quote_args do

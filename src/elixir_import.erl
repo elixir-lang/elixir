@@ -26,7 +26,7 @@ delete_table(Module) ->
   ets:delete(import_table(Module)),
   ets:delete(internal_table(Module)).
 
-record(_Kind, _Tuple, _Receiver, #elixir_scope{module=nil}) ->
+record(_Kind, _Tuple, _Receiver, #elixir_scope{module=[]}) ->
   [];
 
 record(macro, Tuple, Receiver, #elixir_scope{module=Module}) ->
