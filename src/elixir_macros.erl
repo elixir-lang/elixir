@@ -57,7 +57,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
           Line,
           [ { '__MODULE__', Line, false }, [{ Name, Arg }] ]
       }, S);
-    _ when is_atom(Args) or Args == [] ->
+    _ when is_atom(Args) or (Args == []) ->
         translate_each({
           { '.', Line, ['::Module', read_data] },
           Line,
