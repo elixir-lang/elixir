@@ -42,6 +42,8 @@ defmodule OrddictTest do
     [] = Orddict.merge(create_empty_dict, create_empty_dict)
   end
 
-  defp create_empty_dict, do: create_dict([])
-  defp create_dict(list // [first_key: 1, second_key: 2]), do: Orddict.from_enum(list)
+  @visibility :private
+
+  def create_empty_dict, do: create_dict([])
+  def create_dict(list // [first_key: 1, second_key: 2]), do: Orddict.from_enum(list)
 end

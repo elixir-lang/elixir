@@ -94,25 +94,6 @@ defmodule Elixir::Macros do
   #
   defmacro def(name, do: contents)
 
-  # Defines a function that is private. Private functions
-  # can only be accessible from the same module it is defined.
-  #
-  # Check `def/2` for more information
-  #
-  # ## Examples
-  #
-  #     defmodule Foo do
-  #       def bar do
-  #         sum(1, 2)
-  #       end
-  #
-  #       defp sum(a, b), do: a + b
-  #     end
-  #
-  # In the example above, `sum` is private and accessing it
-  # through `Foo.sum` will raise an error.
-  defmacro defp(name, do: contents)
-
   # Define a record given by name and values.
   #
   # ## Examples
@@ -1048,6 +1029,7 @@ defmodule Elixir::Macros do
   end
 
   ## Private functions
+  :elixir_module.set_visibility __MODULE__, :private
 
   # Build if clauses by nesting them recursively.
   # For instance, the following clause:
@@ -1074,7 +1056,7 @@ defmodule Elixir::Macros do
   #       end
   #     end
   #
-  defp build_if_clauses([{ :match, [condition], clause }|t], acc) do
+  def build_if_clauses([{ :match, [condition], clause }|t], acc) do
     new_acc = quote {
       case !unquote(condition) do
       match: false
@@ -1087,9 +1069,9 @@ defmodule Elixir::Macros do
     build_if_clauses(t, new_acc)
   end
 
-  defp build_if_clauses([{ :match, [], _clause }|_], _) do
+  def build_if_clauses([{ :match, [], _clause }|_], _) do
     error { :badarg, "No conditions given to elsif clause" }
   end
 
-  defp build_if_clauses([], acc), do: acc
+  def build_if_clauses([], acc), do: acc
 end

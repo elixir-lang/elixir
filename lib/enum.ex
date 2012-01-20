@@ -25,11 +25,11 @@ defprotocol Enum::Iterator, [iterator(collection)], only: [List, Tuple], as: I
 #     defimpl Enum::Iterator, for: List do
 #       def iterator(_), do: iterate(_)
 #
-#       defp iterate([h|t]) do
+#       def iterate([h|t]) do
 #         { h, t }
 #       end
 #
-#       defp iterate([]) do
+#       def iterate([]) do
 #         __STOP_ITERATOR__
 #       end
 #     end
@@ -314,10 +314,11 @@ defmodule Enum do
   end
 
   ## Implementations
+  @visibility :private
 
   ## all?
 
-  defp do_all?({ h, next }, iterator, fun) do
+  def do_all?({ h, next }, iterator, fun) do
     case fun.(h) do
     match: false
       false
@@ -328,13 +329,13 @@ defmodule Enum do
     end
   end
 
-  defp do_all?(__STOP_ITERATOR__, _, _) do
+  def do_all?(__STOP_ITERATOR__, _, _) do
     true
   end
 
   ## any?
 
-  defp do_any?({ h, next }, iterator, fun) do
+  def do_any?({ h, next }, iterator, fun) do
     case fun.(h) do
     match: false
       do_any?(iterator.(next), iterator, fun)
@@ -345,13 +346,13 @@ defmodule Enum do
     end
   end
 
-  defp do_any?(__STOP_ITERATOR__, _, _) do
+  def do_any?(__STOP_ITERATOR__, _, _) do
     false
   end
 
   ## detect
 
-  defp do_detect({ h, next }, iterator, ifnone, fun) do
+  def do_detect({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
     match: false
       do_detect(iterator.(next), iterator, ifnone, fun)
@@ -362,13 +363,13 @@ defmodule Enum do
     end
   end
 
-  defp do_detect(__STOP_ITERATOR__, _, ifnone, _) do
+  def do_detect(__STOP_ITERATOR__, _, ifnone, _) do
     ifnone
   end
 
   ## detect_value
 
-  defp do_detect_value({ h, next }, iterator, ifnone, fun) do
+  def do_detect_value({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
     match: false
       do_detect_value(iterator.(next), iterator, ifnone, fun)
@@ -379,24 +380,24 @@ defmodule Enum do
     end
   end
 
-  defp do_detect_value(__STOP_ITERATOR__, _, ifnone, _) do
+  def do_detect_value(__STOP_ITERATOR__, _, ifnone, _) do
     ifnone
   end
 
   ## each
 
-  defp do_each({ h, next }, iterator, fun) do
+  def do_each({ h, next }, iterator, fun) do
     fun.(h)
     do_each(iterator.(next), iterator, fun)
   end
 
-  defp do_each(__STOP_ITERATOR__, _, _) do
+  def do_each(__STOP_ITERATOR__, _, _) do
     []
   end
 
   ## filter
 
-  defp do_filter({ h, next }, iterator, fun) do
+  def do_filter({ h, next }, iterator, fun) do
     case fun.(h) do
     match: false
       do_filter(iterator.(next), iterator, fun)
@@ -407,115 +408,115 @@ defmodule Enum do
     end
   end
 
-  defp do_filter(__STOP_ITERATOR__, _, _) do
+  def do_filter(__STOP_ITERATOR__, _, _) do
     []
   end
 
   ## foldl
 
-  defp do_foldl({ h, next }, iterator, acc, fun) do
+  def do_foldl({ h, next }, iterator, acc, fun) do
     do_foldl(iterator.(next), iterator, fun.(h, acc), fun)
   end
 
-  defp do_foldl(__STOP_ITERATOR__, _, acc, _) do
+  def do_foldl(__STOP_ITERATOR__, _, acc, _) do
     acc
   end
 
   ## join
 
   # The first item is simply stringified unless ...
-  defp do_join({ h, next }, iterator, joiner, nil) do
+  def do_join({ h, next }, iterator, joiner, nil) do
     do_join(iterator.(next), iterator, joiner, to_binary(h))
   end
 
   # The first item is __STOP_ITERATOR__, then we return an empty string;
-  defp do_join(__STOP_ITERATOR__, _, _joiner, nil) do
+  def do_join(__STOP_ITERATOR__, _, _joiner, nil) do
     ""
   end
 
   # All other items are concatenated to acc, by first adding the joiner;
-  defp do_join({ h, next }, iterator, joiner, acc) do
+  def do_join({ h, next }, iterator, joiner, acc) do
     acc = << acc | :binary, joiner | :binary, to_binary(h) | :binary >>
     do_join(iterator.(next), iterator, joiner, acc)
   end
 
   # Until we have to stop iteration, then we return acc.
-  defp do_join(__STOP_ITERATOR__, _, _joiner, acc) do
+  def do_join(__STOP_ITERATOR__, _, _joiner, acc) do
     acc
   end
 
   ## map
 
-  defp do_map({ h, next }, iterator, fun) do
+  def do_map({ h, next }, iterator, fun) do
     [fun.(h)|do_map(iterator.(next), iterator, fun)]
   end
 
-  defp do_map(__STOP_ITERATOR__, _, _) do
+  def do_map(__STOP_ITERATOR__, _, _) do
     []
   end
 
   ## mapfoldl
 
-  defp do_mapfoldl({ h, next }, iterator, acc, f) do
+  def do_mapfoldl({ h, next }, iterator, acc, f) do
     { result, acc } = f.(h, acc)
     { rest, acc }   = do_mapfoldl(iterator.(next), iterator, acc, f)
     { [result|rest], acc }
   end
 
-  defp do_mapfoldl(__STOP_ITERATOR__, _, acc, _f) do
+  def do_mapfoldl(__STOP_ITERATOR__, _, acc, _f) do
     { [], acc }
   end
 
   ## times
 
-  defp do_times_0(limit, limit, _function) do
+  def do_times_0(limit, limit, _function) do
   end
 
-  defp do_times_0(limit, counter, function) do
+  def do_times_0(limit, counter, function) do
     function.()
     do_times_0(limit, 1 + counter, function)
   end
 
-  defp do_times_1(limit, limit, _function) do
+  def do_times_1(limit, limit, _function) do
   end
 
-  defp do_times_1(limit, counter, function) do
+  def do_times_1(limit, counter, function) do
     function.(counter)
     do_times_1(limit, 1 + counter, function)
   end
 
-  defp do_times_2(limit, limit, _function, acc) do
+  def do_times_2(limit, limit, _function, acc) do
     acc
   end
 
-  defp do_times_2(limit, counter, function, acc) do
+  def do_times_2(limit, counter, function, acc) do
     new_acc = function.(counter, acc)
     do_times_2(limit, 1 + counter, function, new_acc)
   end
 
   ## comprehensions
 
-  defp first_comprehension_each(iterator, { h, next }, t, acc, fun) do
+  def first_comprehension_each(iterator, { h, next }, t, acc, fun) do
     first_comprehension_each iterator, iterator.(next), t, next_comprehension(t, acc, fun, [h]), fun
   end
 
-  defp first_comprehension_each(_iterator, __STOP_ITERATOR__, _t, acc, _fun) do
+  def first_comprehension_each(_iterator, __STOP_ITERATOR__, _t, acc, _fun) do
     List.reverse(acc)
   end
 
-  defp next_comprehension([{h,iterator}|t], acc, fun, args) do
+  def next_comprehension([{h,iterator}|t], acc, fun, args) do
     next_comprehension_each iterator, iterator.(h), t, acc, fun, args
   end
 
-  defp next_comprehension([], acc, fun, args) do
+  def next_comprehension([], acc, fun, args) do
     apply fun, [acc|args]
   end
 
-  defp next_comprehension_each(iterator, { h, next }, t, acc, fun, args) do
+  def next_comprehension_each(iterator, { h, next }, t, acc, fun, args) do
     next_comprehension_each iterator, iterator.(next), t, next_comprehension(t, acc, fun, [h|args]), fun, args
   end
 
-  defp next_comprehension_each(_iterator, __STOP_ITERATOR__, _t, acc, _fun, _args) do
+  def next_comprehension_each(_iterator, __STOP_ITERATOR__, _t, acc, _fun, _args) do
     acc
   end
 end
@@ -523,11 +524,13 @@ end
 defimpl Enum::Iterator, for: List do
   def iterator(_), do: iterate(_)
 
-  defp iterate([h|t]) do
+  @visibility :private
+
+  def iterate([h|t]) do
     { h, t }
   end
 
-  defp iterate([]) do
+  def iterate([]) do
     __STOP_ITERATOR__
   end
 end

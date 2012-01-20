@@ -100,42 +100,43 @@ defmodule List do
   end
 
   ## Private
+  @visibility :private
 
   # flatten
 
-  defp do_flatten([h|t], tail) when is_list(h) do
+  def do_flatten([h|t], tail) when is_list(h) do
     do_flatten(h, do_flatten(t, tail))
   end
 
-  defp do_flatten([h|t], tail) do
+  def do_flatten([h|t], tail) do
     [h|do_flatten(t, tail)]
   end
 
-  defp do_flatten([], tail) do
+  def do_flatten([], tail) do
     tail
   end
 
   # seq
 
-  defp do_seq(n, x, l) when n >= 4 do
+  def do_seq(n, x, l) when n >= 4 do
     do_seq(n-4, x-4, [x-3,x-2,x-1,x|l])
   end
 
-  defp do_seq(n, x, l) when n >= 2 do
+  def do_seq(n, x, l) when n >= 2 do
     do_seq(n-2, x-2, [x-1,x|l])
   end
 
-  defp do_seq(1, x, l) do
+  def do_seq(1, x, l) do
     [x|l]
   end
 
-  defp do_seq(0, _, l) do
+  def do_seq(0, _, l) do
     l
   end
 
   # uniq
 
-  defp do_uniq([h|t], acc) do
+  def do_uniq([h|t], acc) do
     case Erlang.lists.member(h, acc) do
     match: true
       do_uniq(t, acc)
@@ -144,7 +145,7 @@ defmodule List do
     end
   end
 
-  defp do_uniq([], _acc) do
+  def do_uniq([], _acc) do
     []
   end
 end

@@ -69,20 +69,24 @@ The file will be compiled in memory and executed, printing 3 as result. No byte-
 
 ## 3.3 Functions and private functions
 
-Inside a module, we can define functions (with `def`) and private function (with `defp`). A function defined with `def` is available to be invoked from other modules while a private function can only be invoked locally.
+Inside a module, we can define functions using `def`:
 
     defmodule Math do
       def sum(a, b) do
         do_sum(a, b)
       end
 
-      defp do_sum(a, b) do
+      @visibility :private
+
+      def do_sum(a, b) do
         a + b
       end
     end
 
     Math.sum(1, 2)    #=> 3
     Math.do_sum(1, 2) #=> error :undef
+
+In the example above, we define a function called `sum`, then we changed the visibility of functions to private and defined a function called `do_sum`. As we can see in the following lines, `sum` can be called from external, but the private function `do_sum` cannot.
 
 Function declarations also supports guards and multiple clauses. If a function has several clauses, Elixir will try each clause until find one that matches. For example, here is the implementation for a function that checks if the given number is zero or not:
 
@@ -207,16 +211,23 @@ By calling `use`, a hook called `__using__` will be invoked in `ExUnit::Case` wh
 
 ## 3.5 Module data
 
-Elixir also allows module to store their own data. The canonical example for such data is annotating that a module implements the OTP behavior called `gen_server`:
+Elixir also allows module to store their own data. The canonical example for such data is annotating the function visibility as we did above:
 
-    defmodule MyServer do
-      @behavior :gen_server
-      # ... callbacks ...
+    defmodule Math do
+      def sum(a, b) do
+        do_sum(a, b)
+      end
+
+      @visibility :private
+
+      def do_sum(a, b) do
+        a + b
+      end
     end
 
-Now if the module above does not implement any of the callbacks required by `gen_server`, a warning will be raised. Another data used internally by Elixir is is the `@vsn`:
+Another data used internally by Elixir is is the `@vsn`:
 
-    defmodule MyServer do
+    defmodule Math do
       @vsn 2
     end
 
@@ -236,14 +247,14 @@ The following are also reserved by Elixir (as they have special semantics to the
 
 Besides the built-in data above, any developer can also add custom data:
 
-    defmodule MyServer do
+    defmodule Math do
       @my_data 13
       IO.puts @my_data #=> 13
     end
 
 After the module is compiled, the stored custom data can be accessed via `__info__(:data)` and it will return an `Orddict`:
 
-    MyServer.__info__(:data) #=> [my_data: 13]
+    Math.__info__(:data) #=> [my_data: 13]
 
 Setting a data to nil automatically discards it from the `Orddict`.
 

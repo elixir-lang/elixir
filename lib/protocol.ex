@@ -78,11 +78,11 @@ defmodule Protocol do
     lc kind in conversions_for(opts), do: each_protocol_for(module, kind)
   end
 
-  ## Helpers
+  @visibility :private
 
   # Specially handle tuples as they can also be record.
   # If this is the case, module::Record will be returned.
-  defp each_protocol_for(module, { Tuple, :is_tuple }) do
+  def each_protocol_for(module, { Tuple, :is_tuple }) do
     contents = quote do
       def __protocol_for__({}) do
         unquote(module)::Tuple
@@ -102,7 +102,7 @@ defmodule Protocol do
   end
 
   # Special case any as we don't need to generate a guard.
-  defp each_protocol_for(module, { _, :is_any }) do
+  def each_protocol_for(module, { _, :is_any }) do
     contents = quote do
       def __protocol_for__(_) do
         unquote(module)::Any
@@ -113,7 +113,7 @@ defmodule Protocol do
   end
 
   # Generate all others protocols.
-  defp each_protocol_for(module, { kind, fun }) do
+  def each_protocol_for(module, { kind, fun }) do
     contents = quote do
       def __protocol_for__(arg) when unquote(fun).(arg) do
         unquote(module)::unquote(kind)
@@ -124,7 +124,7 @@ defmodule Protocol do
   end
 
   # Implement the protocol invocation callbacks for each function.
-  defp each_function(module, { name, arity }) do
+  def each_function(module, { name, arity }) do
     # Generate arguments according the arity. The arguments
     # are named xa, xb and so forth. We cannot use string
     # interpolation to generate the arguments because of compile
@@ -162,7 +162,7 @@ defmodule Protocol do
 
   # Converts the protocol expressions as [each(collection), length(collection)]
   # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
-  defp to_kv(args) do
+  def to_kv(args) do
     :orddict.from_list lc(x in args) {
       case x do
       match: { _, _, args } when args == [] or args == false
@@ -176,7 +176,7 @@ defmodule Protocol do
   end
 
   # Returns the default conversions according to the given only/except options.
-  defp conversions_for(opts) do
+  def conversions_for(opts) do
     kinds = [
       { Tuple,     :is_tuple },
       { Atom,      :is_atom },

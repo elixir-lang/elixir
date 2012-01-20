@@ -29,22 +29,24 @@ defimpl String::Inspect, for: Atom do
     atom_to_binary(atom, :utf8)
   end
 
+  @visibility :private
+
   # Detect if atom is a module reference (::Foo::Bar::Baz)
 
-  defp valid_const_identifier?([?:,?:,h|t]) when h >= ?A & h <= ?Z do
+  def valid_const_identifier?([?:,?:,h|t]) when h >= ?A & h <= ?Z do
     valid_const_identifier? valid_identifier?(t)
   end
 
-  defp valid_const_identifier?(else), do: else
+  def valid_const_identifier?(else), do: else
 
   # Detect if atom is :letter_or_underscore
 
-  defp valid_identifier?([h|t]) when
+  def valid_identifier?([h|t]) when
     (h >= ?a & h <= ?z) | (h >= ?A & h <= ?Z) | (h == ?_) do
     valid_identifier? t
   end
 
-  defp valid_identifier?(else), do: else
+  def valid_identifier?(else), do: else
 end
 
 defimpl String::Inspect, for: BitString do
@@ -69,17 +71,17 @@ defimpl String::Inspect, for: BitString do
     as_bitstring(thing)
   end
 
-  ## Helpers
+  @visibility :private
 
-  defp as_bitstring(thing) do
+  def as_bitstring(thing) do
     erlang = Erlang.io_lib.format('~p', [thing])
     list_to_binary List.reverse(replace(erlang, []))
   end
 
-  defp replace([?:|t], acc),                do: replace(t, [?||acc])
-  defp replace([h|t], acc) when is_list(h), do: replace(t, replace(h, acc))
-  defp replace([h|t], acc),                 do: replace(t, [h|acc])
-  defp replace([], acc),                    do: acc
+  def replace([?:|t], acc),                do: replace(t, [?||acc])
+  def replace([h|t], acc) when is_list(h), do: replace(t, replace(h, acc))
+  def replace([h|t], acc),                 do: replace(t, [h|acc])
+  def replace([], acc),                    do: acc
 end
 
 defimpl String::Inspect, for: List do

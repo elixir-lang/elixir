@@ -1,4 +1,4 @@
-% Holds the logic responsible for functions definition (def, defp and defmacro).
+% Holds the logic responsible for functions definition (def and defmacro).
 -module(elixir_def).
 -export([build_table/1,
   delete_table/1,
@@ -79,19 +79,13 @@ store_definition(Kind, Line, Module, Name, Args, Guards, Expr, RawS) ->
   Filename      = S#elixir_scope.filename,
   FunctionTable = table(Module),
   FunctionName  = element(3, Function),
-
-  %% Normalize visibility and kind
-  { Final, Visibility } = case Kind of
-    defmacro -> { defmacro, public };
-    defp     -> { def, private };
-    def      -> { def, public }
-  end,
+  Visibility    = elixir_module:visibility(Module),
 
   %% Store function
-  store_each(true, Final, FunctionTable, Visibility, Filename, Function),
+  store_each(true, Kind, FunctionTable, Visibility, Filename, Function),
 
   %% Store defaults
-  [store_each(false, Final, FunctionTable, Visibility, Filename,
+  [store_each(false, Kind, FunctionTable, Visibility, Filename,
     function_for_clause(FunctionName, Default)) || Default <- Defaults],
 
   %% Return stored function name and its arity

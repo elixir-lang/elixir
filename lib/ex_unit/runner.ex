@@ -60,19 +60,20 @@ defmodule ExUnit::Runner do
   end
 
   ## Private
+  @visibility :private
 
-  defp call_formatter(config, message) do
+  def call_formatter(config, message) do
     Erlang.gen_server.call(config.formatter, message)
   end
 
   # Run each test case in its own process.
-  defp spawn_case(test_case) do
+  def spawn_case(test_case) do
     pid = self()
     spawn_link fn { run_tests(pid, test_case, test_case.__tests__) }
   end
 
   # For each instanciated object, dispatch each test in it.
-  defp run_tests(pid, test_case, [test|t]) do
+  def run_tests(pid, test_case, [test|t]) do
     final = try do
       # test_case.setup(test)
 
@@ -94,7 +95,7 @@ defmodule ExUnit::Runner do
   end
 
   # When all tests in a testcase were run, notify the runner.
-  defp run_tests(pid, test_case, []) do
+  def run_tests(pid, test_case, []) do
     pid <- { self(), :each_case, test_case }
   end
 end

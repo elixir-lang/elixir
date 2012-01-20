@@ -57,7 +57,9 @@ defmodule ExUnit::Formatter do
     { :ok, config }
   end
 
-  defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
+  @visibility :private
+
+  def print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
     IO.puts "#{acc}) #{test} (#{test_case})"
     IO.puts "  #{kind} #{format_catch(kind, reason)}\n  stacktrace:"
     Enum.each stacktrace, fn(s){ IO.puts "    #{format_stacktrace(s)}" }

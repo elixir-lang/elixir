@@ -64,9 +64,9 @@ defmodule Code do
     Erlang.erlang.get_stacktrace
   end
 
-  ## Helpers
+  @visibility :private
 
-  defp load_and_push_file(file) do
+  def load_and_push_file(file) do
     server_call { :loaded, file }
     Erlang.elixir.file to_list(file)
     file
@@ -74,7 +74,7 @@ defmodule Code do
 
   # Finds the file given the relative_to path.
   # If the file is found, returns its path in binary, fails otherwise.
-  defp find_file(file, relative_to) do
+  def find_file(file, relative_to) do
     file = to_binary(file)
 
     file = if relative_to do
@@ -95,7 +95,7 @@ defmodule Code do
     end
   end
 
-  defp server_call(args) do
+  def server_call(args) do
     Erlang.gen_server.call(:elixir_code_server, args)
   end
 end
