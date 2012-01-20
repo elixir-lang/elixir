@@ -21,9 +21,8 @@ defmodule ExUnit::Case do
   end
 
   ## Private
-  @visibility :private
 
-  def tests_for([{function,0}|t], acc) do
+  defp tests_for([{function,0}|t], acc) do
     list = atom_to_list(function)
     case list do
     match: 'test_' ++ _
@@ -33,6 +32,6 @@ defmodule ExUnit::Case do
     end
   end
 
-  def tests_for([_|t], acc), do: tests_for t, acc
-  def tests_for([], acc),    do: List.reverse(acc)
+  defp tests_for([_|t], acc), do: tests_for t, acc
+  defp tests_for([], acc),    do: List.reverse(acc)
 end

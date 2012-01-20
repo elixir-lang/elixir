@@ -70,10 +70,8 @@ defmodule ProtocolTest do
     assert_protocol_for(ProtocolTest::WithAll, Reference, make_ref)
   end
 
-  @visibility :private
-
   # Assert that the given protocol is going to be dispatched.
-  def assert_protocol_for(target, impl, thing) do
+  defp assert_protocol_for(target, impl, thing) do
     joined  = target::impl
     ^joined = target.__protocol_for__ thing
   end
@@ -81,7 +79,7 @@ defmodule ProtocolTest do
   # Dispatch `blank(thing)` to the given `target`
   # and check if it will dispatch (and successfully fail)
   # to the proper implementation `impl`.
-  def assert_undef(target, impl, thing) do
+  defp assert_undef(target, impl, thing) do
     try do
       target.blank(thing)
       error("Expected invocation to fail")

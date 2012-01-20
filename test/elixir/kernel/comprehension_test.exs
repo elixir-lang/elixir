@@ -79,7 +79,5 @@ defmodule Kernel::ComprehensionTest do
     end
   end
 
-  @visibility :private
-
-  def nilly, do: nil
+  defp nilly, do: nil
 end

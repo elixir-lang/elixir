@@ -196,7 +196,6 @@ in_elixir_macros() -> macros_for('::Elixir::Macros').
 in_erlang_macros() ->
   orddict:from_list([
     {'=',2},
-    {'@',1},
     {'+',1},
     {'+',2},
     {'-',1},
@@ -241,6 +240,7 @@ in_erlang_macros() ->
     {'module_ref',1},
     {'::','*'},
     {'def','*'},
+    {'defp','*'},
     {'defmacro','*'},
     {'quote',1},
     {'unquote',1},

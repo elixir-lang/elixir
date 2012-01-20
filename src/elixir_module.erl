@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/4, compile/4, visibility/1, set_visibility/2,
+-export([translate/4, compile/4,
    format_error/1, binding_and_scope_for_eval/4]).
 -include("elixir.hrl").
 
@@ -19,22 +19,6 @@ scope_for_eval(Module, S) -> S#elixir_scope{module=Module}.
 
 table(Module) ->
   ?ELIXIR_ATOM_CONCAT([a, Module]).
-
-%% Visibility convenience
-
-visibility(Module) ->
-  Table = ?ELIXIR_ATOM_CONCAT([a, Module]),
-  Data  = ets:lookup_element(Table, data, 2),
-  case orddict:find(visibility, Data) of
-    { ok, Value } -> Value;
-    _ -> public
-  end.
-
-set_visibility(Module, New) ->
-  Table = ?ELIXIR_ATOM_CONCAT([a, Module]),
-  Data  = ets:lookup_element(Table, data, 2),
-  Final = orddict:store(visibility, New, Data),
-  ets:insert(Table, { data, Final }).
 
 %% TRANSFORMATION METHODS
 
@@ -86,7 +70,7 @@ build(Module) ->
   %% Attribute table with defaults
   Table = table(Module),
   ets:new(Table, [set, named_table, private]),
-  ets:insert(Table, { data, [{ visibility, public }] }),
+  ets:insert(Table, { data, [] }),
   ets:insert(Table, { compile_callbacks, [] }),
 
   %% Function and imports table

@@ -79,8 +79,8 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_visibility_clause_change do
-    "nofile:4: function foo/1 already defined with visibility public" =
-      format_catch 'defmodule Foo do\ndef foo(1), do: 1\n@visibility :private\ndef foo(x), do: x\nend'
+    "nofile:3: function foo/1 already defined with visibility public" =
+      format_catch 'defmodule Foo do\ndef foo(1), do: 1\ndefp foo(x), do: x\nend'
   end
 
   def test_clause_change do
@@ -155,9 +155,8 @@ defmodule Elixir::ErrorsTest do
   end
 
   ## Helpers
-  @visibility :private
 
-  def format_catch(expr) do
+  defp format_catch(expr) do
     try do
       Erlang.elixir.eval(expr)
       error { :bad_assertion, "Expected function given to format_catch to fail" }

@@ -23,12 +23,11 @@ defmodule Elixir::Formatter do
   end
 
   ## Private
-  @visibility :private
 
-  def format_token([]),    do: ""
-  def format_token(token), do: list_to_binary(token)
+  defp format_token([]),    do: ""
+  defp format_token(token), do: list_to_binary(token)
 
-  def format_file_line(file_line) do
+  defp format_file_line(file_line) do
     if file = Orddict.get(file_line, :file) do
       file = list_to_binary(file)
       if line = Orddict.get(file_line, :line) do
@@ -41,7 +40,7 @@ defmodule Elixir::Formatter do
     end
   end
 
-  def format_module_fun_arity(module, fun, arity) do
+  defp format_module_fun_arity(module, fun, arity) do
     separator =
       case atom_to_list(module) do
       match: '::' ++ _

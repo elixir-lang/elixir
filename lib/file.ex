@@ -20,20 +20,19 @@ defmodule File do
   end
 
   ## Helpers
-  @visibility :private
 
   # Normalize the given path by removing "..".
-  def normalize(path), do: normalize(FN.split(path), [])
+  defp normalize(path), do: normalize(FN.split(path), [])
 
-  def normalize([top|t], [_|acc]) when top == ".." | top == '..' do
+  defp normalize([top|t], [_|acc]) when top == ".." | top == '..' do
     normalize t, acc
   end
 
-  def normalize([h|t], acc) do
+  defp normalize([h|t], acc) do
     normalize t, [h|acc]
   end
 
-  def normalize([], acc) do
+  defp normalize([], acc) do
     FN.join List.reverse(acc)
   end
 end

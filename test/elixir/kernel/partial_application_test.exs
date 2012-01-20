@@ -55,9 +55,7 @@ defmodule Kernel::PartialApplicationTest do
     ::Foo::Bar = fun.(Bar)
   end
 
-  @visibility :private
-
-  def minus(x, y) do
+  defp minus(x, y) do
     x - y
   end
 end

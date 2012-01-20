@@ -33,17 +33,17 @@ defmodule ModuleTest do
   use ExUnit::Case
 
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :public
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :private
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :macro
+  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
+  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
+  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
 
   contents = quote { def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ } }
   Module.eval_quoted __MODULE__, contents, [], "sample.ex", 13
 
   true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
-  true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :public
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :private
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :macro
+  true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
+  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
+  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
 
   Module.merge_data __MODULE__, value: 1
   Module.merge_data __MODULE__, other_value: 1

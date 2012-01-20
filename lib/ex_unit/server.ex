@@ -70,9 +70,7 @@ defmodule ExUnit::Server do
     { :ok, config }
   end
 
-  @visibility :private
-
-  def check(function) do
+  defp check(function) do
     try do
       function.()
     catch: :exit, { :noproc, _ }

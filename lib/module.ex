@@ -108,14 +108,14 @@ defmodule Module do
   end
 
   # Checks if a function was defined and also for its `kind`.
-  # `kind` can be either :def, :def or :defmacro.
+  # `kind` can be either :def, :defp or :defmacro.
   #
   # ## Examples
   #
   #     defmodule Example do
-  #       Module.function_defined? __MODULE__, version: 0, :def #=> false
+  #       Module.function_defined? __MODULE__, version: 0, :defp #=> false
   #       def version, do: 1
-  #       Module.function_defined? __MODULE__, version: 0, :def #=> false
+  #       Module.function_defined? __MODULE__, version: 0, :defp #=> false
   #     end
   #
   def function_defined?(module, tuple, kind) do
@@ -167,25 +167,24 @@ defmodule Module do
     new
   end
 
-  # Private
-  :elixir_module.set_visibility __MODULE__, :private
+  ## Helpers
 
-  def kind_to_entry(:public),   do: :public
-  def kind_to_entry(:private),  do: :private
-  def kind_to_entry(:macro),    do: :macros
+  defp kind_to_entry(:def),      do: :public
+  defp kind_to_entry(:defp),     do: :private
+  defp kind_to_entry(:defmacro), do: :macros
 
-  def to_list(list) when is_list(list),  do: list
-  def to_list(bin)  when is_binary(bin), do: binary_to_list(bin)
+  defp to_list(list) when is_list(list),  do: list
+  defp to_list(bin)  when is_binary(bin), do: binary_to_list(bin)
 
-  def attribute_table_for(module) do
+  defp attribute_table_for(module) do
     list_to_atom Erlang.lists.concat([:a, module])
   end
 
-  def function_table_for(module) do
+  defp function_table_for(module) do
     list_to_atom Erlang.lists.concat([:f, module])
   end
 
-  def assert_already_compiled!(fun, module) do
+  defp assert_already_compiled!(fun, module) do
     compiled?(module) ||
       error { :module_already_compiled,
         "could not call #{fun} on module #{module} because it was already compiled" }
