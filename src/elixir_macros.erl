@@ -44,6 +44,27 @@ translate_macro({'::', Line, [Left|Right]}, S) ->
   end,
   { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
 
+%% @
+
+translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
+  record('@', S),
+  case Args of
+    [Arg] ->
+      translate_each({
+        { '.', Line, ['::Module', merge_data] },
+          Line,
+          [ { '__MODULE__', Line, false }, [{ Name, Arg }] ]
+      }, S);
+    _ when is_atom(Args) or Args == [] ->
+        translate_each({
+          { '.', Line, ['::Module', read_data] },
+          Line,
+          [ { '__MODULE__', Line, false }, Name ]
+        }, S);
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "expected 0 or 1 argument for: ", [$@|atom_to_list(Name)])
+  end;
+
 %% Erlang Operators
 
 translate_macro({ erlang_op, Line, [Op, Expr] }, S) when is_atom(Op) ->

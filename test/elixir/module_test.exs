@@ -16,8 +16,8 @@ defmodule ModuleTest::ToBeUsed do
 
   defmacro callback(target) do
     value = Module.read_data(target, :has_callback)
-    Module.merge_data target, has_callback: true
     quote do
+      @has_callback true
       name = :original_value
       def name, [], [], do: unquote(value)
     end
@@ -78,5 +78,9 @@ defmodule ModuleTest do
 
   def test_default_compile_callback_hook do
     true  = Orddict.get ModuleTest::ToUse.__info__(:data), :compiling, false
+  end
+
+  def test_reserved_attributes do
+    {:behavior,[:gen_server]} = :lists.keyfind(:behavior, 1, Elixir::Server.__info__(:attributes))
   end
 end

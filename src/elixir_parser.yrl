@@ -33,7 +33,7 @@ Terminals
   'not' 'and' 'or' 'xor' 'when' 'in' 'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
-  eol ','  '&' '|'  '.' '::' '^' '<-'
+  eol ','  '&' '|'  '.' '::' '^' '@' '<-'
   '&&' '||' '!'
   .
 
@@ -231,6 +231,8 @@ unary_op -> 'not' : '$1'.
 unary_op -> 'not' eol : '$1'.
 unary_op -> '::' : '$1'.
 unary_op -> '::' eol : '$1'.
+unary_op -> '@' : '$1'.
+unary_op -> '@' eol : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.

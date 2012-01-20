@@ -1,6 +1,8 @@
 defrecord ExUnit::Server::Config, options: [], cases: [], sync_cases: []
 
 defmodule ExUnit::Server do
+  @behavior :gen_server
+
   def start_link do
     { :ok, _ } = Erlang.gen_server.start_link({:local, :exunit_server}, __MODULE__, [], [])
   end
