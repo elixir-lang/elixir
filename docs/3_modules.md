@@ -205,7 +205,29 @@ By calling `use`, a hook called `__using__` will be invoked in `ExUnit::Case` wh
       end
     end
 
-## 3.5 Module nesting
+## 3.5 Module data
+
+Elixir also allows module to store their own data. The canonical example for such data is annotating that a module implements the OTP behavior called `gen_server`:
+
+    defmodule MyServer do
+      @behavior :gen_server
+      # ... callbacks ...
+    end
+
+Now if the module above does not implement any of the callbacks required by `gen_server`, a warning will be raised. Any developer can also add custom data:
+
+    defmodule MyServer do
+      @custom 13
+      IO.puts @custom #=> 13
+    end
+
+After the module is compiled, the stored data can be accessed via `__info__(:data)`:
+
+    MyServer.__info__(:data) #=> [custom: 13]
+
+> Note: Erlang developers may notice that Elixir currently does not support the `@spec` and `@compile` data attributes. If this is a feature you currently need for your project, please make yourself heard in the issues tracker.
+
+## 3.6 Module nesting
 
 In Elixir, nesting a module inside the other does not affect the its name:
 
@@ -216,7 +238,7 @@ In Elixir, nesting a module inside the other does not affect the its name:
 
 The example above will define two modules `Foo` and `Bar`. Notice that the second module is **not** called `Foo::Bar`. In general, nesting modules is discouraged in Elixir.
 
-## 3.6 References
+## 3.7 References
 
 In Erlang (and consequently in the Erlang VM), modules and functions are represented by atoms. For instance, this is valid Erlang code:
 
