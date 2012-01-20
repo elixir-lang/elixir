@@ -4,7 +4,7 @@ defmodule ModuleTest::ToBeUsed do
   def value, do: 1
 
   defmacro __using__(target) do
-    Module.merge_data target, callback: false
+    Module.merge_data target, has_callback: false
     Module.add_compile_callback(target, __MODULE__)
     Module.add_compile_callback(target, __MODULE__, :callback)
     quote { def line, do: __LINE__ }
@@ -15,8 +15,8 @@ defmodule ModuleTest::ToBeUsed do
   end
 
   defmacro callback(target) do
-    value = Module.read_data(target, :callback)
-    Module.merge_data target, callback: true
+    value = Module.read_data(target, :has_callback)
+    Module.merge_data target, has_callback: true
     quote do
       name = :original_value
       def name, [], [], do: unquote(value)
@@ -73,7 +73,7 @@ defmodule ModuleTest do
 
   def test_compile_callback_hook do
     false = ModuleTest::ToUse.original_value
-    true  = Orddict.get ModuleTest::ToUse.__info__(:data), :callback, false
+    true  = Orddict.get ModuleTest::ToUse.__info__(:data), :has_callback, false
   end
 
   def test_default_compile_callback_hook do

@@ -162,8 +162,8 @@ defmodule Module do
     assert_already_compiled!(:add_compile_callback, module)
     new   = { target, fun }
     table = attribute_table_for(module)
-    old   = ETS.lookup_element(table, :callbacks, 2)
-    ETS.insert(table, { :callbacks,  [new|old] })
+    old   = ETS.lookup_element(table, :compile_callbacks, 2)
+    ETS.insert(table, { :compile_callbacks,  [new|old] })
     new
   end
 

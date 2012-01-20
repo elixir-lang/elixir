@@ -71,7 +71,7 @@ build(Module) ->
   Table = table(Module),
   ets:new(Table, [set, named_table, private]),
   ets:insert(Table, { data, [] }),
-  ets:insert(Table, { callbacks, [] }),
+  ets:insert(Table, { compile_callbacks, [] }),
 
   %% Function and imports table
   elixir_def:build_table(Module),
@@ -82,7 +82,7 @@ build(Module) ->
 eval_form(Line, Filename, Module, Block, RawBinding, RawS) ->
   { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, RawBinding, RawS),
   { Value, NewBinding, NewS } = elixir:eval_forms([Block], Binding, S),
-  { Callbacks, FinalS } = callbacks_for(Line, Module, NewS),
+  { Callbacks, FinalS } = callbacks_for(Line, compile_callbacks, Module, [Module], NewS),
   elixir:eval_forms(Callbacks, binding_for_eval(Module, NewBinding), FinalS),
   { Value, NewBinding }.
 
@@ -157,14 +157,14 @@ add_info_function(Line, Filename, Module, Export, Functions, Macros) ->
   end.
 
 macros_clause(Line, Macros) ->
-  SortedMacros = lists:sort(Macros),
-  { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(SortedMacros)] }.
+  Sorted = lists:sort(Macros),
+  { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
 
 data_clause(Line, Module) ->
-  Table = table(Module),
-  Data  = destructive_read(Table, data),
-  SortedData = lists:sort(Data),
-  { clause, Line, [{ atom, Line, data }], [], [elixir_tree_helpers:abstract_syntax(SortedData)] }.
+  Table  = table(Module),
+  Data   = orddict:from_list(destructive_read(Table, data)),
+  Pruned = translate_data(Table, Data),
+  { clause, Line, [{ atom, Line, data }], [], [elixir_tree_helpers:abstract_syntax(Pruned)] }.
 
 else_clause(Line) ->
   Info = { call, Line, { atom, Line, module_info }, [{ var, Line, atom }] },
@@ -172,18 +172,18 @@ else_clause(Line) ->
 
 % HELPERS
 
-callbacks_for(Line, Module, S) ->
+callbacks_for(Line, Kind, Module, Args, S) ->
   Table = table(Module),
-  Callbacks = destructive_read(Table, callbacks),
+  Callbacks = destructive_read(Table, Kind),
 
   { Exprs, Refers } = lists:mapfoldl(
-    fun (X, Acc) -> each_callback_for(Line, Module, X, Acc) end,
+    fun (X, Acc) -> each_callback_for(Line, Args, X, Acc) end,
     S#elixir_scope.refer, Callbacks),
 
   { Exprs, S#elixir_scope{refer=Refers} }.
 
-each_callback_for(Line, Module, {M,F}, Acc) ->
-  Expr = { { '.', Line, [M,F] }, Line, [ Module ] },
+each_callback_for(Line, Args, {M,F}, Acc) ->
+  Expr = { { '.', Line, [M,F] }, Line, Args },
   Refer = case orddict:find(M, Acc) of
     { ok, _ } -> Acc;
     _ -> orddict:store(M, M, Acc)
@@ -198,6 +198,14 @@ translate_import(_Line, {_,[]}, Acc) ->
 translate_import(Line, X, Acc) ->
   { element(2, X), [{attribute, Line, import, X}|Acc] }.
 
+translate_data(Table, [{K,V}|T]) ->
+  case reserved_data(K) of
+    true  -> ets:insert(Table, { K, V });
+    false -> [{K,V}|translate_data(Table, T)]
+  end;
+
+translate_data(_, []) -> [].
+
 translate_attribute(Line, X) ->
   {attribute, Line, element(1, X), element(2, X)}.
 
@@ -205,6 +213,16 @@ destructive_read(Table, Attribute) ->
   Value = ets:lookup_element(Table, Attribute, 2),
   ets:delete(Table, Attribute),
   Value.
+
+reserved_data(behaviour)   -> true;
+reserved_data(behavior)    -> true;
+reserved_data(callback)    -> true;
+reserved_data(compile)     -> true;
+reserved_data(type)        -> true;
+reserved_data(export_type) -> true;
+reserved_data(spec)        -> true;
+reserved_data(vsn)         -> true;
+reserved_data(_)           -> false.
 
 % ERROR HANDLING
 
