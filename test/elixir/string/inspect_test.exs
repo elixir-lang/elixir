@@ -120,6 +120,11 @@ defmodule String::Inspect::ListTest do
     "abc"   = to_binary('abc')
   end
 
+  def test_non_printable do
+    "[{:a,1}]" = inspect([{:a,1}])
+    "[{:a,1}]" = to_binary([{:a,1}])
+  end
+
   def test_empty do
     "[]" = inspect([])
     ""   = to_binary([])

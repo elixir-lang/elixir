@@ -93,7 +93,15 @@ defimpl String::Inspect, for: List do
     end
   end
 
-  def to_binary(thing), do: list_to_binary(thing)
+  def to_binary(thing) do
+    result = try do
+      iolist_to_binary(thing)
+    catch: :error, :badarg
+      nil
+    end
+
+    result || container_join(thing, "[", "]")
+  end
 
   ## Helpers
 
