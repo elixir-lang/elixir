@@ -125,6 +125,11 @@ defmodule String::Inspect::ListTest do
     "[{:a,1}]" = to_binary([{:a,1}])
   end
 
+  def test_unproper do
+    "[:foo|:bar]" = inspect([:foo | :bar])
+    "[:foo|:bar]" = to_binary([:foo | :bar])
+  end
+
   def test_empty do
     "[]" = inspect([])
     ""   = to_binary([])

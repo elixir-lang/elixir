@@ -106,12 +106,16 @@ defimpl String::Inspect, for: List do
   ## Helpers
 
   def container_join([h], acc, last) do
-    acc = << acc | :binary, String::Inspect.inspect(h) | :binary, last | :binary >>
+    << acc | :binary, String::Inspect.inspect(h) | :binary, last | :binary >>
+  end
+
+  def container_join([h|t], acc, last) when is_list(t) do
+    acc = << acc | :binary, String::Inspect.inspect(h) | :binary, ?, >>
+    container_join(t, acc, last)
   end
 
   def container_join([h|t], acc, last) do
-    acc = << acc | :binary, String::Inspect.inspect(h) | :binary, ?, >>
-    container_join(t, acc, last)
+    << acc | :binary, String::Inspect.inspect(h) | :binary, ?|, String::Inspect.inspect(t) | :binary, last | :binary >>
   end
 
   def container_join([], acc, last) do
