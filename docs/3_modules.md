@@ -214,18 +214,37 @@ Elixir also allows module to store their own data. The canonical example for suc
       # ... callbacks ...
     end
 
-Now if the module above does not implement any of the callbacks required by `gen_server`, a warning will be raised. Any developer can also add custom data:
+Now if the module above does not implement any of the callbacks required by `gen_server`, a warning will be raised. Another data used internally by Elixir is is the `@vsn`:
 
     defmodule MyServer do
-      @custom 13
-      IO.puts @custom #=> 13
+      @vsn 2
+    end
+
+`@vsn` refers to version is used by the code reloading mechanism to check if a module is updated or not. If no version is specified, the version is set to the MD5 of the module functions. Elixir has a handful of reserved data attributes. The following are currently functional in Elixir:
+
+* `@behaviour` and `@behavior` - used for specifying an OTP or user-defined behavior;
+* `@vsn` - used for specifying the module version;
+* `@visibility` - sets the current function visibility;
+
+The following are also reserved by Elixir (as they have special semantics to the Erlang VM) but not currently supported (if you need support to any of these in your current projects, please make yourself heard in the issues tracker):
+
+* `@spec` - provides an specification for the next function to be defined;
+* `@callback` - provides an specification for the behavior callback;
+* `@compile` - provides options for the module compilation;
+* `@type` - provides a type to be used in @spec;
+* `@export_type` - provides a type to be used in @spec that can be accessed from external specs;
+* `@on_load` - invoke the given hook when the module is loaded;
+
+Besides the built-in data above, any developer can also add custom data:
+
+    defmodule MyServer do
+      @my_data 13
+      IO.puts @my_data #=> 13
     end
 
 After the module is compiled, the stored data can be accessed via `__info__(:data)`:
 
-    MyServer.__info__(:data) #=> [custom: 13]
-
-> Note: Erlang developers may notice that Elixir currently does not support the `@spec` and `@compile` data attributes. If this is a feature you currently need for your project, please make yourself heard in the issues tracker.
+    MyServer.__info__(:data) #=> [my_data: 13]
 
 ## 3.6 Module nesting
 
