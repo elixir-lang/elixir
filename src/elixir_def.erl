@@ -81,6 +81,11 @@ store_definition(Kind, Line, Module, Name, Args, Guards, Expr, RawS) ->
   FunctionName  = element(3, Function),
   Visibility    = elixir_module:visibility(Module),
 
+  case (Visibility == private) and (Kind == defmacro) of
+    true -> elixir_errors:form_error(Line, Filename, ?MODULE, {invalid_visibility, {Name, length(Args)}});
+    false -> []
+  end,
+
   %% Store function
   store_each(true, Kind, FunctionTable, Visibility, Filename, Function),
 
@@ -218,6 +223,9 @@ format_error({changed_clause,{Name,Arity}}) ->
 
 format_error({changed_visibility,{Name,Arity,Previous}}) ->
   io_lib:format("function ~s/~B already defined with visibility ~s", [Name, Arity, Previous]);
+
+format_error({invalid_visibility,{Name,Arity}}) ->
+  io_lib:format("macros ~s/~B cannot be defined as macro", [Name, Arity]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
   io_lib:format("~s ~s/~B already defined as ~s", [Current, Name, Arity, Previous]).
