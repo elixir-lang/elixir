@@ -54,8 +54,8 @@ eval(String, Binding, Filename, Line, Scope) ->
 eval_quoted(Tree, Binding, Line, Filename) when is_list(Filename) ->
   eval_quoted(Tree, Binding, Line, #elixir_scope{filename=Filename});
 
-eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) ->
-  { Value, NewBinding, _S } = eval_forms(elixir_quote:linify(Line, Tree), Binding, S),
+eval_quoted(Tree, Binding, Line, #elixir_scope{} = RawScope) ->
+  { Value, NewBinding, _S } = eval_forms(Tree, Binding, RawScope#elixir_scope{line=Line}),
   { Value, NewBinding }.
 
 %% Handle forms evaluation internally, it is an

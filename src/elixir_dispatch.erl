@@ -51,9 +51,9 @@ dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
 dispatch(Line, Receiver, Name, Arity, Args, S) ->
   ensure_required(Line, Receiver, Name, Arity, S),
   Tree = apply(Receiver, Name, Args),
-  NewS = S#elixir_scope{macro={Receiver,Name,Arity}},
-  { TTree, TS } = elixir_translator:translate_each(elixir_quote:linify(Line, Tree), NewS),
-  { TTree, TS#elixir_scope{macro=[]} }.
+  NewS = S#elixir_scope{macro={Receiver,Name,Arity}, line=Line},
+  { TTree, TS } = elixir_translator:translate_each(Tree, NewS),
+  { TTree, TS#elixir_scope{macro=[],line=[]} }.
 
 find_macro(Tuple, [{ Name, Values }|T]) ->
   case lists:member(Tuple, Values) of
