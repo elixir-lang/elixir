@@ -1,13 +1,13 @@
 %% Convenience functions used to manipulate variables
 %% and the variables escope.
 -module(elixir_variables).
--export([translate/3,
+-export([translate_each/3,
   build_erl/2, build_ex/2,
   umergev/2, umergec/2,
   serialize_scope/1, deserialize_scope/1]).
 -include("elixir.hrl").
 
-translate(Line, Name, S) ->
+translate_each(Line, Name, S) ->
   Match = S#elixir_scope.assign,
   Vars = S#elixir_scope.vars,
   TempVars = S#elixir_scope.temp_vars,
@@ -50,16 +50,16 @@ build_ex(Line, #elixir_scope{counter=Counter} = S) ->
 
 serialize_scope(S) ->
   elixir_tree_helpers:abstract_syntax(
-    { S#elixir_scope.line, S#elixir_scope.filename, S#elixir_scope.module,
+    { S#elixir_scope.line, S#elixir_scope.filename,
       S#elixir_scope.imports, S#elixir_scope.refer, S#elixir_scope.scheduled }
   ).
 
 % Fill in the scope with the variables serialization set in serialize_scope.
-deserialize_scope({ Line, Filename, Module, Imports, Refer, Scheduled }) ->
+
+deserialize_scope({ Line, Filename, Imports, Refer, Scheduled }) ->
   #elixir_scope{
     line=Line,
     filename=Filename,
-    module=Module,
     imports=Imports,
     refer=Refer,
     scheduled=Scheduled

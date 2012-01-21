@@ -127,6 +127,14 @@ single_ref_test() ->
 nested_ref_test() ->
   { '::Foo::Bar::Baz', _ } = elixir:eval("Foo::Bar::Baz").
 
+dynamic_defmodule_test() ->
+  F = fun() ->
+    elixir:eval("defmodule Foo do\ndef a(name) do\ndefmodule name, do: (def x, do: 1)\nend\nend"),
+    {_,_} = elixir:eval("Foo.a(Bar)"),
+    {1,_} = elixir:eval("Bar.x")
+  end,
+  test_helper:run_and_remove(F, ['::Foo', '::Bar']).
+
 dynamic_ref_test() ->
   { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\nx::y::z"),
   { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\n:\"::\".(x, y, z)").

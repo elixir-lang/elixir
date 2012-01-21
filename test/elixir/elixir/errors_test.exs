@@ -37,7 +37,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_name_for_defmodule do
-    "nofile:1: invalid name for: defmodule" = format_catch 'defmodule 1 + 2, do: 3'
+    "nofile:1: invalid module name: 3" = format_catch 'defmodule 1 + 2, do: 3'
   end
 
   def test_invalid_scope_for_function do

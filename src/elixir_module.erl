@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/3, compile/3,
+-export([translate/4, compile/4,
    format_error/1, binding_and_scope_for_eval/4]).
 -include("elixir.hrl").
 
@@ -26,17 +26,17 @@ table(Module) ->
 %% The abstract form for extra arguments may be given and they
 %% will be passed to the invoked function.
 
-translate(Line, Block, S) ->
+translate(Line, Ref, Block, S) ->
   MetaBlock = elixir_tree_helpers:abstract_syntax(Block),
   MetaS     = elixir_variables:serialize_scope(S),
-  Args = [{integer, Line, Line}, MetaBlock, MetaS],
+
+  Args = [{integer, Line, Line}, Ref, MetaBlock, MetaS],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 %% The compilation hook.
 
-compile(Line, Block, RawS) ->
+compile(Line, Module, Block, RawS) when is_atom(Module) ->
   S = elixir_variables:deserialize_scope(RawS),
-  Module = S#elixir_scope.module,
   Filename = S#elixir_scope.filename,
   check_module_availability(Line, Filename, Module),
   build(Module),
@@ -58,7 +58,11 @@ compile(Line, Block, RawS) ->
     ets:delete(table(Module)),
     elixir_def:delete_table(Module),
     elixir_import:delete_table(Module)
-  end.
+  end;
+
+compile(Line, Other, _Block, RawS) ->
+  S = elixir_variables:deserialize_scope(RawS),
+  elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { invalid_module, Other }).
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
@@ -221,6 +225,9 @@ reserved_data(_)           -> false.
 
 format_error({internal_function_overridden,{Name,Arity}}) ->
   io_lib:format("function ~s/~B is internal and should not be overriden", [Name, Arity]);
+
+format_error({invalid_module, Module}) ->
+  io_lib:format("invalid module name: ~p", [Module]);
 
 format_error({module_defined, Module}) ->
   io_lib:format("module ~s already defined", [Module]).
