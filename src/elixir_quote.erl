@@ -1,20 +1,34 @@
 -module(elixir_quote).
--export([translate/2, translate_each/2]).
+-export([quote/2, linify/2]).
 -include("elixir.hrl").
 
-translate(Forms, S) ->
-  lists:mapfoldl(fun translate_each/2, S, Forms).
+%% Add lines to quoted contents
 
-translate_each({ unquote, _Line, [Expr] }, S) ->
+linify(Line, Forms) when is_list(Forms) ->
+  [linify(Line, X) || X <- Forms];
+
+linify(Line, { Left, 0, Right }) ->
+  LLeft  = linify(Line, Left),
+  LRight = linify(Line, Right),
+  { LLeft, Line, LRight };
+
+linify(Line, Tuple) when is_tuple(Tuple) ->
+  list_to_tuple(linify(Line, tuple_to_list(Tuple)));
+
+linify(_Line, Else) -> Else.
+
+%% Quoting
+
+quote({ unquote, _Line, [Expr] }, S) ->
   elixir_translator:translate_each(Expr, S);
 
-translate_each({ Left, Line, Right }, S) when is_atom(Left), is_atom(Right) -> %% Variables
+quote({ Left, Line, Right }, S) when is_atom(Left), is_atom(Right) -> %% Variables
   Tuple = { tuple, Line, [{ atom, Line, Left }, { integer, Line, 0 }, { atom, Line, quoted }] },
   { Tuple, S };
 
-translate_each({ Left, Line, Right }, S) ->
-  { TLeft, LS } = translate_each(Left, S),
-  { TRight, RS } = translate_each(Right, LS),
+quote({ Left, Line, Right }, S) ->
+  { TLeft, LS } = quote(Left, S),
+  { TRight, RS } = quote(Right, LS),
 
   % We need to remove line numbers from quoted exprs otherwise
   % the line number quotes in the macro will get mixed with the
@@ -22,24 +36,24 @@ translate_each({ Left, Line, Right }, S) ->
   Tuple = { tuple, Line, [TLeft, { integer, Line, 0 }, TRight] },
   { Tuple, RS };
 
-translate_each({ Left, Right }, S) ->
-  { TLeft, LS } = translate_each(Left, S),
-  { TRight, RS } = translate_each(Right, LS),
+quote({ Left, Right }, S) ->
+  { TLeft, LS } = quote(Left, S),
+  { TRight, RS } = quote(Right, LS),
   { { tuple, 0, [TLeft, TRight] }, RS };
 
-translate_each(List, S) when is_list(List) ->
+quote(List, S) when is_list(List) ->
   splice(List, [], [], S);
 
-translate_each(Number, S) when is_integer(Number) ->
+quote(Number, S) when is_integer(Number) ->
   { { integer, 0, Number }, S };
 
-translate_each(Number, S) when is_float(Number) ->
+quote(Number, S) when is_float(Number) ->
   { { float, 0, Number }, S };
 
-translate_each(Atom, S) when is_atom(Atom) ->
+quote(Atom, S) when is_atom(Atom) ->
   { { atom, 0, Atom }, S };
 
-translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
+quote(Bitstring, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
 
 % Loop through the list finding each unquote_splicing entry.
@@ -65,5 +79,5 @@ from_buffer_to_acc([], Acc, S) ->
   { Acc, S };
 
 from_buffer_to_acc(Buffer, Acc, S) ->
-  { New, NewS } = elixir_tree_helpers:build_reverse_list(fun translate_each/2, Buffer, 0, S),
+  { New, NewS } = elixir_tree_helpers:build_reverse_list(fun quote/2, Buffer, 0, S),
   { [New|Acc], NewS }.
