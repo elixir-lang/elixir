@@ -38,7 +38,7 @@ defmodule Protocol do
 
       # Check if protocol is loaded
       try do
-        protocol.module_info
+        protocol.__info__(:data)
       catch: :error, :undef
         error { :badarg, "#{protocol} is not loaded" }
       end
@@ -57,7 +57,7 @@ defmodule Protocol do
       end
 
       # Check if the implemented protocol was valid
-      remaining = funs -- name.module_info(:exports)
+      remaining = funs -- name.__info__(:exports)
 
       if remaining != [], do:
         error { :badarg, "#{name} did not implement #{protocol}, missing: #{remaining}" }

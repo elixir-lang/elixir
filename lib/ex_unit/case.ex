@@ -16,7 +16,7 @@ defmodule ExUnit::Case do
   end
 
   def tests_for(mod) do
-    exports = mod.module_info(:exports)
+    exports = mod.__info__(:exports)
     tests_for exports, []
   end
 
