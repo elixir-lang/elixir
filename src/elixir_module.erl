@@ -120,20 +120,14 @@ attributes_form(Line, _Filename, Module, Current) ->
 %% Loads the form into the code server.
 
 load_form(Forms, Filename) ->
-  case compile:forms(Forms, [return]) of
-    {ok, ModuleName, Binary, Warnings} ->
-      case get(elixir_compiled) of
-        Current when is_list(Current) ->
-          put(elixir_compiled, [{ModuleName,Binary}|Current]);
-        _ ->
-          []
-      end,
-      format_warnings(Filename, Warnings),
-      code:load_binary(ModuleName, Filename, Binary);
-    {error, Errors, Warnings} ->
-      format_warnings(Filename, Warnings),
-      format_errors(Filename, Errors)
-  end.
+  elixir_compiler:module(Forms, Filename, fun(ModuleName, Binary) ->
+    case get(elixir_compiled) of
+      Current when is_list(Current) ->
+        put(elixir_compiled, [{ModuleName,Binary}|Current]);
+      _ ->
+        []
+    end
+  end).
 
 check_module_availability(Line, Filename, Module) ->
   case code:ensure_loaded(Module) of
@@ -237,16 +231,3 @@ format_error({invalid_module, Module}) ->
 
 format_error({module_defined, Module}) ->
   io_lib:format("module ~s already defined", [Module]).
-
-format_errors(_Filename, []) ->
-  exit({nocompile, "compilation failed but no error was raised"});
-
-format_errors(Filename, Errors) ->
-  lists:foreach(fun ({_, Each}) ->
-    lists:foreach(fun (Error) -> elixir_errors:handle_file_error(Filename, Error) end, Each)
-  end, Errors).
-
-format_warnings(Filename, Warnings) ->
-  lists:foreach(fun ({_, Each}) ->
-    lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Filename, Warning) end, Each)
-  end, Warnings).

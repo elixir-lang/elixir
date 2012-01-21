@@ -1,6 +1,6 @@
 -module(elixir).
 -behaviour(application).
--export([start/0, start_app/0, file/1, file/2,
+-export([start/0, start_app/0,
   eval/1, eval/2, eval/3, eval/4, eval/5,
   eval_quoted/4, eval_forms/3]).
 -include("elixir.hrl").
@@ -48,19 +48,6 @@ eval(String, Binding, Filename, Line, Scope) ->
   Forms = elixir_translator:forms(String, Line, Filename),
   { Value, NewBinding, _ } = eval_forms(Forms, Binding, Scope#elixir_scope{filename=Filename}),
   { Value, NewBinding }.
-
-%% File evaluation
-
-file(Filepath) ->
-  file(Filepath, []).
-
-file(Filepath, Binding) ->
-  List = case file:read_file(Filepath) of
-    {ok, File} -> binary_to_list(File);
-    Error -> erlang:error(Error)
-  end,
-
-  eval(List, Binding, Filepath).
 
 %% Quoted evaluation
 

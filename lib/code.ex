@@ -49,8 +49,8 @@ defmodule Code do
 
   # Compiles `file` and returns a list of tuples where the first element
   # is the module name and the second one is its binary.
-  def compile_file(file, binding // []) do
-    Erlang.elixir_compiler.file to_list(file), binding
+  def compile_file(file) do
+    Erlang.elixir_compiler.file to_list(file)
   end
 
   # Compiles `file` and add the result to the given `destination`.
@@ -68,7 +68,7 @@ defmodule Code do
 
   defp load_and_push_file(file) do
     server_call { :loaded, file }
-    Erlang.elixir.file to_list(file)
+    compile_file file
     file
   end
 

@@ -224,7 +224,6 @@ Now if the module above does not implement any of the callbacks required by `gen
 
 * `@behaviour` and `@behavior` - used for specifying an OTP or user-defined behavior;
 * `@vsn` - used for specifying the module version;
-* `@visibility` - sets the visibility for the following functions (accepts :public or :private as argument);
 
 The following are also reserved by Elixir (as they have special semantics to the Erlang VM) but not currently supported (if you need support to any of these in your current projects, please make yourself heard in the issues tracker):
 
