@@ -33,8 +33,6 @@ defmodule Protocol do
     quote do
       # Build up the name, protocol and block
       protocol = unquote(protocol)
-      for      = unquote(for)
-      name     = protocol::for
 
       # Check if protocol is loaded
       try do
@@ -51,9 +49,10 @@ defmodule Protocol do
       end
 
       # Create a module with the given contents
-      defmodule name do
+      name = defmodule ref!(unquote(protocol))::ref!(unquote(for)) do
         def __impl__, do: unquote(protocol)
         unquote(block)
+        __MODULE__
       end
 
       # Check if the implemented protocol was valid

@@ -124,15 +124,16 @@ translate_macro({'receive', Line, [RawClauses] }, S) ->
 
 translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
   record(defmodule, S),
-  { TRef, _ } = translate_each(Ref, S#elixir_scope{noref=true}),
+  { TRef, _ } = translate_each(Ref, S),
 
-  NS = case TRef of
+  case TRef of
     { atom, _, Module } ->
-      S#elixir_scope{scheduled=[Module|S#elixir_scope.scheduled]};
-    _ -> S
-  end,
-
-  { elixir_module:translate(Line, TRef, Block, S), NS };
+      SS = S#elixir_scope{scheduled=[Module|S#elixir_scope.scheduled]},
+      MS = S#elixir_scope{module=Module},
+      { elixir_module:translate(Line, Block, MS), SS };
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "defmodule")
+  end;
 
 translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   record(Kind, S),
@@ -308,10 +309,16 @@ translate_macro({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
 %% Handle forced variables
 
 translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_atom(Atom) ->
-  elixir_variables:translate_each(Line, Name, S);
+  elixir_variables:translate(Line, Name, S);
 
 translate_macro({ 'var!', Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "var!");
+
+%% Handle forced expansions
+
+translate_macro({ 'ref!', _, [Term] }, S) ->
+  { TTerm, TS } = translate_each(Term, S#elixir_scope{noref=false}),
+  { TTerm, TS#elixir_scope{noref=S#elixir_scope.noref} };
 
 %% Else
 

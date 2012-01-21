@@ -7,7 +7,6 @@
   ensure_no_macro_conflict/4, ensure_no_local_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
--compile({inline,[in_erlang_macros/0]}).
 
 %% Create tables that are responsible to store
 %% import and macro invocations.

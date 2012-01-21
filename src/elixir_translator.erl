@@ -91,15 +91,14 @@ translate_each({refer, Line, [Ref|T]}, S) ->
     { ok, true } ->
       { elixir_ref:last(Old), SR };
     { ok, Other } ->
-      { TOther, SA } = translate_each(Other, SR#elixir_scope{noref=true}),
+      { TOther, SA } = translate_each(Other, SR),
       { Extractor(TOther), SA };
     error ->
       { elixir_ref:last(Old), SR }
   end,
 
   { { nil, Line }, SF#elixir_scope{
-    refer=orddict:store(New, Old, S#elixir_scope.refer),
-    noref=S#elixir_scope.noref
+    refer=orddict:store(New, Old, S#elixir_scope.refer)
   } };
 
 translate_each({require, Line, [Left]}, S) ->
@@ -202,7 +201,7 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
 
 translate_each({Name, Line, quoted}, S) when is_atom(Name) ->
   NewS = S#elixir_scope{vars=S#elixir_scope.quote_vars,noname=true},
-  { TVar, VS } = elixir_variables:translate_each(Line, Name, NewS),
+  { TVar, VS } = elixir_variables:translate(Line, Name, NewS),
   { TVar, VS#elixir_scope{
     quote_vars=VS#elixir_scope.vars,
     noname=S#elixir_scope.noname,
@@ -210,7 +209,7 @@ translate_each({Name, Line, quoted}, S) when is_atom(Name) ->
   } };
 
 translate_each({Name, Line, nil}, S) when is_atom(Name) ->
-  elixir_variables:translate_each(Line, Name, S);
+  elixir_variables:translate(Line, Name, S);
 
 %% Local calls
 
