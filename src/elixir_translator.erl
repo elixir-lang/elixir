@@ -91,15 +91,14 @@ translate_each({refer, Line, [Ref|T]}, S) ->
     { ok, true } ->
       { elixir_ref:last(Old), SR };
     { ok, Other } ->
-      { TOther, SA } = translate_each(Other, SR#elixir_scope{noref=true}),
+      { TOther, SA } = translate_each(Other, SR),
       { Extractor(TOther), SA };
     error ->
       { elixir_ref:last(Old), SR }
   end,
 
   { { nil, Line }, SF#elixir_scope{
-    refer=orddict:store(New, Old, S#elixir_scope.refer),
-    noref=S#elixir_scope.noref
+    refer=orddict:store(New, Old, S#elixir_scope.refer)
   } };
 
 translate_each({require, Line, [Left]}, S) ->

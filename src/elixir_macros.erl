@@ -124,7 +124,7 @@ translate_macro({'receive', Line, [RawClauses] }, S) ->
 
 translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
   record(defmodule, S),
-  { TRef, _ } = translate_each(Ref, S#elixir_scope{noref=true}),
+  { TRef, _ } = translate_each(Ref, S),
 
   NS = case TRef of
     { atom, _, Module } ->
