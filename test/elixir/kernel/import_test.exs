@@ -3,8 +3,8 @@ Code.require_file "../../test_helper", __FILE__
 defmodule Kernel::ImportOnlyTest do
   use ExUnit::Case
 
-  import Erlang.lists, only: [flatten: 1]
-  import Erlang.other, only: []
+  ximport Erlang.lists, only: [flatten: 1]
+  ximport Erlang.other, only: []
 
   def test_import_erlang do
     [1,2,3] = flatten [1,[2],3]
@@ -14,7 +14,7 @@ end
 defmodule Kernel::ImportAllTest do
   use ExUnit::Case
 
-  import Erlang.lists
+  ximport Erlang.lists
 
   def test_import_erlang do
     [1,2,3] = flatten [1,[2],3]
@@ -24,7 +24,7 @@ end
 defmodule Kernel::ImportExceptTest do
   use ExUnit::Case
 
-  import Erlang.lists, except: [each: 1]
+  ximport Erlang.lists, except: [each: 1]
 
   def test_import_erlang do
     [1,2,3] = flatten [1,[2],3]

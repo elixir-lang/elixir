@@ -25,5 +25,6 @@
   refer=[                                   %% an orddict with references by new -> old names
     {'::Elixir::Macros','::Elixir::Macros'}
   ],
-  imports=elixir_import:macro_imports(),    %% a list with macros imported by module
+  macros=elixir_import:macro_imports(),     %% a list with macros imported by module
+  functions=[],                             %% a list with functions imported by module
   scheduled=[]}).                           %% scheduled modules to be loaded
