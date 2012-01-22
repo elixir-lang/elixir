@@ -352,7 +352,7 @@ defmodule Elixir::Macros do
   # `require` is used to require the presence of external modules and
   # also to setup aliases.
   #
-  # ## Aliases scope
+  # ## Aliases example
   #
   # `require` can be used to setup an alias for any module:
   #

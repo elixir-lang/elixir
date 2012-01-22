@@ -118,11 +118,11 @@ In the example above, we recursively multiply each element of the list until the
 
 ## 3.4 Directives
 
-In order to support software-reuse, Elixir supports four directives:
+In order to support software-reuse, Elixir supports three directives:
 
 ### 3.4.1 import
 
-We use `import` whenever we want to easily access functions from others modules without using the qualified name. For instance, if we want to use the `values` function from `Orddict` several times in a module and we don't want to always type `Orddict.values`, we can simply import it:
+We use `import` whenever we want to easily access functions or macros from others modules without using the qualified name. For instance, if we want to use the `values` function from `Orddict` several times in a module and we don't want to always type `Orddict.values`, we can simply import it:
 
     defmodule Math do
       import Orddict, only: [values: 1]
@@ -134,31 +134,11 @@ We use `import` whenever we want to easily access functions from others modules 
 
 In this case, we are importing only the function `values` (with arity 1) from `Orddict`. Although `only:` is optional, its usage is recommended. `except` could also be given as an option.
 
-This mechanism cannot be used to import macros. Only functions.
+If we want to import only `:functions` or `:macros` from a given module, we can also pass a first argument selecting the scope:
 
-### 3.4.2 refer
+    import :macros, MyMacros
 
-`refer` is responsible to setup references aliases for a given module. For instance, one can do:
-
-    defmodule Math do
-      refer MyOrddict, as: Orddict
-    end
-
-And now, any reference to `Orddict` will be automatically replaced by `MyOrddict`. In case one wants to access the original `Orddict`, it can be done by prefixing the module name with `::`:
-
-    Orddict.values   #=> uses ::MyOrddict.values
-    ::Orddict.values #=> uses ::Orddict.values
-
-### 3.4.3 require
-
-`require` allows us to enable macros from a given module. For instance, suppose we created our own `my_if` implementation in a module named `MyMacros`. If we want to invoke it, we need to first explicitly require `MyMacros`:
-
-    defmodule Math do
-      require MyMacros
-      MyMacros.my_if do_something, it_works
-    end
-
-An attempt to call a macro that was not loaded will raise an error. It is important to note that `require` and `refer` are the only directives that are **lexical**. This means we can require specific macros inside specific functions:
+And then we can then use `only` or `except` to filter the macros being included. Finally, note that `import` is **lexical**, this means we can import specific macros inside specific functions:
 
     defmodule Math do
       def some_function do
@@ -167,22 +147,31 @@ An attempt to call a macro that was not loaded will raise an error. It is import
       end
     end
 
-In the example above, we required and imported macros from `MyMacro` during that specific function. `my_if` won't be available in any other functions in that module.
+In the example above, we imported macros from `MyMacro` during that specific function. `my_if` won't be available in any other functions in that module.
 
-Finally, `require` also accepts `only` and `except` as options to select which macros to import. Consecutive calls to `require` passing the same models override previous definitions.
+### 3.4.2 require
 
-    defmodule MyIo
-      # Import bit-or and bit-and from Bitwise
-      require Bitwise, only: [bor: 2, band: 2]
-      def some_func(x, y, z), do: x bor y band z
+`require` is responsible to enforce a module is loaded and to also setup references aliases for a given module. For instance, one can do:
 
-      # Import all, except bxor, overriding previous call
-      require Bitwise, except: [bxor: 2]
+    defmodule Math do
+      require MyOrddict, as: Orddict
     end
 
-We are going to discuss the creation of macros in chapter 5.
+And now, any reference to `Orddict` will be automatically replaced by `MyOrddict`. In case one wants to access the original `Orddict`, it can be done by prefixing the module name with `::`:
 
-### 3.4.4 use
+    Orddict.values   #=> uses ::MyOrddict.values
+    ::Orddict.values #=> uses ::Orddict.values
+
+In general, a module does not need to be required before usage, except if we want to use the macros available in that module. For instance, suppose we created our own `my_if` implementation in a module named `MyMacros`. If we want to invoke it, we need to first explicitly require `MyMacros`:
+
+    defmodule Math do
+      require MyMacros
+      MyMacros.my_if do_something, it_works
+    end
+
+An attempt to call a macro that was not loaded will raise an error. Note that, as the `import` directive, `require` is lexical.
+
+### 3.4.3 use
 
 `use` is the simplest directive of all four as it simply intends to be a common API for extension. For instance, in order to use the `ExUnit` test framework that ships with Elixir, you simply need to use `ExUnit::Case` in your module:
 
@@ -197,7 +186,7 @@ We are going to discuss the creation of macros in chapter 5.
 By calling `use`, a hook called `__using__` will be invoked in `ExUnit::Case` which will then do the proper setup. In other words, `use` is simply a translation to:
 
     defmodule AssertionTest do
-      require ExUnit::Case
+      require ExUnit::Case, as: false
       ExUnit::Case.__using__(::AssertionTest)
 
       def test_always_pass do
