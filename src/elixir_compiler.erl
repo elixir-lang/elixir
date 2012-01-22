@@ -75,7 +75,7 @@ core() ->
   [core_file(File) || File <- core_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
   Files = lists:append(AllLists) -- core_main(),
-  [core_file(File) || File <- Files].
+  [core_file(File) || File <- '::List':uniq(Files)].
 
 %% HELPERS
 
@@ -116,8 +116,9 @@ core_file(File) ->
 
 core_list() ->
   [
-    "lib/*.ex",
-    "lib/*/*.ex"
+    "lib/elixir/formatter.ex",
+    "lib/*/*.ex",
+    "lib/*.ex"
   ].
 
 core_main() ->

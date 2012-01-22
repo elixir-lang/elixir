@@ -1,13 +1,22 @@
-%% Helpers related to macro dispatch.
+%% Helpers related to dispatching to imports.
 -module(elixir_dispatch).
--export([get_functions/1, get_macros/3, format_error/1, dispatch_refer/6, dispatch_imports/5]).
+-export([get_functions/1, get_macros/3, get_optional_macros/1,
+  default_macros/0, default_functions/0, default_refer/0,
+  format_error/1, dispatch_refer/6, dispatch_imports/5]).
 -include("elixir.hrl").
 
-%% Get macros from the given module and raise an
-%% exception in case it can't be found
+default_functions() ->
+  [].
+default_macros() ->
+  [ {'::Elixir::Macros', get_optional_macros('::Elixir::Macros')}].
+default_refer() ->
+  [ {'::Elixir::Macros','::Elixir::Macros'} ].
+
+%% Get macros/functions from the given module and
+%% raise an exception if appropriated.
 
 get_functions(Module) ->
-  Module:module_info(exports) -- optional_macros(Module).
+  Module:module_info(exports) -- get_optional_macros(Module).
 
 get_macros(Line, Module, S) ->
   try
@@ -16,6 +25,13 @@ get_macros(Line, Module, S) ->
     error:undef ->
       Tuple = { no_macros, Module },
       elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
+  end.
+
+get_optional_macros(Receiver) ->
+  try
+    Receiver:'__info__'(macros)
+  catch
+    error:undef -> []
   end.
 
 %% Dispatch based on scope's imports
@@ -40,19 +56,12 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
 dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
   Arity = length(Args),
 
-  case lists:member({Name, Arity}, optional_macros(Receiver)) of
+  case lists:member({Name, Arity}, get_optional_macros(Receiver)) of
     true  -> dispatch_macro(Line, Receiver, Name, Arity, Args, S);
     false -> Callback()
   end.
 
 %% HELPERS
-
-optional_macros(Receiver) ->
-  try
-    Receiver:'__info__'(macros)
-  catch
-    error:undef -> []
-  end.
 
 dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
   ensure_required(Line, Receiver, Name, Arity, S),

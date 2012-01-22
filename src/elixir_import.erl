@@ -1,15 +1,13 @@
-%% There are two kind of imports. One done by `import` and
-%% another by `require`. The first one matters only for local
-%% calls and the second one for macros.
+%% Module responsible for handling imports and conflicts.
+%% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([macro_imports/0, local_imports/1,
-  calculate/7, format_error/1,
+-export([calculate/6, format_error/1,
   ensure_no_import_conflict/4, ensure_no_local_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
 
 %% Create tables that are responsible to store
-%% import and macro invocations.
+%% import and internal invocations.
 
 import_table(Module)   -> ?ELIXIR_ATOM_CONCAT([i, Module]).
 internal_table(Module) -> ?ELIXIR_ATOM_CONCAT([e, Module]).
@@ -34,61 +32,41 @@ record(internal, _Tuple, _Receiver, #elixir_scope{function=[]}) ->
 record(internal, Tuple, _Receiver, #elixir_scope{module=Module}) ->
   ets:insert(internal_table(Module), Tuple).
 
-%% Calculate the new { Key, List } tuple of imports
-%% according to the function and options given.
-%% If the Kind option is not false, we also check if the
-%% only options given are valid and raise an error
-%% if not. We usually pass the Kind option for require
-%% but not for import because we want to allow importing
-%% of not defined modules (similar to Erlang).
+%% Update the old entry according to the optins given
+%% and the values returned by fun.
 
-calculate(Line, Filename, Key, Opts, All, Fun, Kind) ->
+calculate(_Line, Key, _Opts, Old, [], _S) ->
+  keydelete(Key, Old);
+
+calculate(Line, Key, Opts, Old, Available, S) ->
+  Filename = S#elixir_scope.filename,
+  All = keydelete(Key, Old),
+
   New = case orddict:find(only, Opts) of
     { ok, Only } ->
-      Condition = Kind /= false andalso (Only -- Fun()),
-      case Condition of
+      case Only -- Key:module_info(exports) of
         [{Name,Arity}|_] ->
-          Tuple = { invalid_import, { Key, Name, Arity, Kind } },
+          Tuple = { invalid_import, { Key, Name, Arity } },
           elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
-        _ -> Only
+        _ -> intersection(Only, Available)
       end;
     error ->
       case orddict:find(except, Opts) of
-        { ok, Except } -> Fun() -- Except;
-        error -> Fun()
+        { ok, Except } -> difference(Except, Available);
+        error -> Available
       end
   end,
+
   Final = New -- internal_funs(),
-  ensure_no_conflicts(Line, Filename, Final, All),
-  ensure_no_in_erlang_macro_conflict(Line, Filename, Key, Final, internal_conflict),
-  { Key, Final }.
 
-%% Return configured imports and defaults
-
-local_imports(Module) -> ets:tab2list(import_table(Module)).
-
-macro_imports() ->
-  [
-    { '::Elixir::Macros', in_elixir_macros() }
-  ].
-
-%% Ensure the given functions don't clash with any
-%% of Elixir "implemented in Erlang" macros.
-
-ensure_no_in_erlang_macro_conflict(Line, Filename, Key, [{Name,Arity}|T], Reason) ->
-  InErlang = in_erlang_macros(),
-  case orddict:find(Name, InErlang) of
-    { ok, Value } ->
-      case (Value == '*') or (Value == Arity) of
-        true  ->
-          Tuple = { Reason, { Key, Name, Arity } },
-          elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
-        false -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
-      end;
-    error -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
-  end;
-
-ensure_no_in_erlang_macro_conflict(_Line, _Filename, _Key, [], _) -> ok.
+  case Final of
+    [] -> All;
+    _  ->
+      ensure_no_conflicts(Line, Filename, Final, keydelete(Key, S#elixir_scope.macros)),
+      ensure_no_conflicts(Line, Filename, Final, keydelete(Key, S#elixir_scope.functions)),
+      ensure_no_in_erlang_macro_conflict(Line, Filename, Key, Final, internal_conflict),
+      [{ Key, Final }|All]
+  end.
 
 %% Check if any of the locals defined conflicts with an invoked
 %% Elixir "implemented in Erlang" macro. Checking if a local
@@ -118,6 +96,26 @@ ensure_no_import_conflict(Line, Filename, Module, AllDefined) ->
       ok
   end.
 
+%% Conflict helpers
+
+%% Ensure the given functions don't clash with any
+%% of Elixir "implemented in Erlang" macros.
+
+ensure_no_in_erlang_macro_conflict(Line, Filename, Key, [{Name,Arity}|T], Reason) ->
+  InErlang = in_erlang_macros(),
+  case orddict:find(Name, InErlang) of
+    { ok, Value } ->
+      case (Value == '*') or (Value == Arity) of
+        true  ->
+          Tuple = { Reason, { Key, Name, Arity } },
+          elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
+        false -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
+      end;
+    error -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
+  end;
+
+ensure_no_in_erlang_macro_conflict(_Line, _Filename, _Key, [], _) -> ok.
+
 %% Find conlicts in the given list of functions with the set of imports.
 %% Used internally to ensure a newly imported fun or macro does not
 %% conflict with an already imported set.
@@ -139,8 +137,8 @@ ensure_no_conflicts(_Line, _Filename, _Functions, _S) -> ok.
 format_error({already_imported,{Receiver, Name, Arity}}) ->
   io_lib:format("function ~s/~B already imported from ~s", [Name, Arity, Receiver]);
 
-format_error({invalid_import,{Receiver, Name, Arity, macro}}) ->
-  io_lib:format("~s.~s/~B isn't a macro and can't be imported using require. Maybe you wanted to use import?", [Receiver, Name, Arity]);
+format_error({invalid_import,{Receiver, Name, Arity}}) ->
+  io_lib:format("cannot import ~s.~s/~B because it doesn't exist", [Receiver, Name, Arity]);
 
 format_error({import_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("imported ~s.~s/~B conflicts with local function", [Receiver, Name, Arity]);
@@ -151,16 +149,23 @@ format_error({local_conflict,{_, Name, Arity}}) ->
 format_error({internal_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir macros", [Receiver, Name, Arity]).
 
-%% Returns all the macros for the given reference.
-%% Does not raise if a macro can't be found.
-macros_for(Ref) ->
-  try
-    Ref:'__info__'(macros)
-  catch
-    error:undef -> []
-  end.
+%% Deletes all the entries in the list with the given key.
 
-%% Internal funs, never imported, required, etc
+keydelete(Key, List) ->
+  lists:keydelete(Key, 1, List).
+
+difference(Except, All) ->
+  All -- Except.
+
+intersection([H|T], All) ->
+  case lists:member(H, All) of
+    true  -> [H|intersection(T, All)];
+    false -> intersection(T, All)
+  end;
+
+intersection([], _All) -> [].
+
+%% Internal funs that are never imported etc.
 
 internal_funs() ->
   [
@@ -169,10 +174,6 @@ internal_funs() ->
     { '__info__', 1 },
     { '__using__', 1 }
   ].
-
-%% Macros implemented in Elixir - imported by default
-
-in_elixir_macros() -> macros_for('::Elixir::Macros').
 
 %% Macros implemented in Erlang - imported and non overridable by default
 
@@ -241,8 +242,7 @@ in_erlang_macros() ->
     {'var!','1'}
   ]).
 
-%% Those macros will always raise an error if one defines them
-%% because they are called internally many times.
+%% Those macros will always raise an error if one defines them.
 in_erlang_macros_always_conflict() ->
   ['__BLOCK__', '__KVBLOCK__', '__OP__', '<<>>', '{}', '__MODULE__',
    '__FILE__', '__LINE__', '__REF__', '::', '^'].

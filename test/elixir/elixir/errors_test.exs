@@ -64,7 +64,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_require_invalid_macro do
-    "nofile:2: ::Elixir::Macros.invalid/1 isn't a macro and can't be imported using require. Maybe you wanted to use import?" =
+    "nofile:2: cannot import ::Elixir::Macros.invalid/1 because it doesn't exist" =
       format_catch 'defmodule Foo do\nrequire Elixir::Macros, only: [invalid: 1]\nend'
   end
 

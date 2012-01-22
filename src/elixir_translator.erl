@@ -122,10 +122,15 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 
   IS = case Import of
     true ->
-      OldImports = lists:keydelete(Ref, 1, SR#elixir_scope.macros),
-      NewImports = elixir_import:calculate(Line, SR#elixir_scope.filename, Ref,
-        Opts, OldImports, fun() -> elixir_dispatch:get_macros(Line, Ref, SR) end, macro),
-      SR#elixir_scope{macros=[NewImports|OldImports]};
+      Macros = elixir_import:calculate(
+        Line,
+        Ref,
+        Opts,
+        SR#elixir_scope.macros,
+        elixir_dispatch:get_macros(Line, Ref, SR),
+        SR
+      ),
+      SR#elixir_scope{macros=Macros};
     false -> SR
   end,
 
@@ -134,26 +139,56 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 translate_each({import, Line, [Left]}, S) ->
   translate_each({ import, Line, [Left, []]}, S);
 
-translate_each({import, Line, [Left,Opts]}, S) ->
+translate_each({import, Line, [Left,Opts]}, S) when is_list(Opts) ->
+  translate_each({ import, Line, [all, Left, Opts]}, S);
+
+translate_each({import, Line, [Selector, Left]}, S) ->
+  translate_each({ import, Line, [Selector, Left, []]}, S);
+
+translate_each({import, Line, [Left, Right, Opts]}, S) ->
   record(import, S),
-  { TRef, SR } = translate_each(Left, S),
+  { TSelector, SL } = translate_each(Left, S),
+  { TRef, SR } = translate_each(Right, SL),
+
+  Selector = case TSelector of
+    { atom, _,  SelectorAtom } -> SelectorAtom;
+    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid selector for: ", "import")
+  end,
 
   Ref = case TRef of
-    { atom, _,  Atom } -> Atom;
+    { atom, _, RefAtom } -> RefAtom;
     _ -> syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "import")
   end,
 
-  Falsy = fun(X) -> proplists:get_value(X, Opts, false) == false end,
-  case lists:all(Falsy, [only, except]) of
-    true  -> elixir_ref:ensure_loaded(Line, Ref, SR, true);
-    false -> []
+  case is_list(Opts) of
+    true -> [];
+    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid options for: ", "import")
   end,
 
-  OldImports = lists:keydelete(Ref, 1, SR#elixir_scope.functions),
-  NewImports = elixir_import:calculate(Line, SR#elixir_scope.filename, Ref,
-    Opts, OldImports, fun() -> elixir_dispatch:get_functions(Ref) end, false),
+  elixir_ref:ensure_loaded(Line, Ref, SR, true),
 
-  { { nil, Line }, SR#elixir_scope{functions=[NewImports|OldImports]} };
+  SF = case (Selector == all) or (Selector == functions) of
+    false -> SR;
+    true  ->
+      Functions = elixir_import:calculate(
+        Line, Ref, Opts, SR#elixir_scope.functions,
+        elixir_dispatch:get_functions(Ref), SR),
+      SR#elixir_scope{functions=Functions}
+  end,
+
+  SM = case (Selector == all) or (Selector == macros) of
+    false -> SF;
+    true  ->
+      Available = case Selector of
+        all -> elixir_dispatch:get_optional_macros(Ref);
+        _ -> elixir_dispatch:get_macros(Line, Ref, SF)
+      end,
+      Macros = elixir_import:calculate(
+        Line, Ref, Opts, SF#elixir_scope.macros, Available, SF),
+      SF#elixir_scope{macros=Macros}
+  end,
+
+  { { nil, Line }, SM };
 
 %% Arg-less macros
 
