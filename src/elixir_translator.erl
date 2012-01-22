@@ -131,11 +131,11 @@ translate_each({require, Line, [Left,Opts]}, S) ->
 
   translate_each({ refer, Line, [Ref, [{as,As}]] }, IS);
 
-translate_each({ximport, Line, [Left]}, S) ->
-  translate_each({ ximport, Line, [Left, []]}, S);
+translate_each({import, Line, [Left]}, S) ->
+  translate_each({ import, Line, [Left, []]}, S);
 
-translate_each({ximport, Line, [Left,Opts]}, S) ->
-  record(ximport, S),
+translate_each({import, Line, [Left,Opts]}, S) ->
+  record(import, S),
   { TRef, SR } = translate_each(Left, S),
 
   Ref = case TRef of

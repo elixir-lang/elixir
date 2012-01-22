@@ -27,11 +27,11 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
       case find_dispatch({Name, Arity}, S#elixir_scope.functions) of
         nil -> Callback();
         Receiver ->
-          % elixir_import:record(function, { Name, Arity }, Receiver, S),
+          elixir_import:record(import, { Name, Arity }, Receiver, S),
           elixir_translator:translate_each({ { '.', Line, [Receiver, Name] }, Line, Args }, S)
       end;
     Receiver ->
-      elixir_import:record(macro, { Name, Arity }, Receiver, S),
+      elixir_import:record(import, { Name, Arity }, Receiver, S),
       dispatch_macro(Line, Receiver, Name, Arity, Args, S)
   end.
 
@@ -81,7 +81,7 @@ ensure_required(Line, Receiver, Name, Arity, S) ->
   end.
 
 format_error({ unrequired_module,{Receiver, Name, Arity, Required }}) ->
-  io_lib:format("tried to use ~s.~s/~B but module was not required. Required: ~p", [Receiver, Name, Arity, Required]);
+  io_lib:format("tried to invoke macro ~s.~s/~B but module was not required. Required: ~p", [Receiver, Name, Arity, Required]);
 
 format_error({ no_macros, Module }) ->
   io_lib:format("could not load macros from module ~s", [Module]).

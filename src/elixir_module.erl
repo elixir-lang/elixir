@@ -44,12 +44,14 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
   try
     Result           = eval_form(Line, Filename, Module, Block, S),
     { Funs, Forms0 } = functions_form(Line, Filename, Module),
-    { _All, Forms1 } = imports_form(Line, Filename, Module, Funs, Forms0),
-    Forms2           = attributes_form(Line, Filename, Module, Forms1),
+    Forms1           = attributes_form(Line, Filename, Module, Forms0),
+
+    elixir_import:ensure_no_local_conflict(Line, Filename, Module, Funs),
+    elixir_import:ensure_no_import_conflict(Line, Filename, Module, Funs),
 
     Final = [
       {attribute, Line, module, Module},
-      {attribute, Line, file, {Filename,Line}} | Forms2
+      {attribute, Line, file, {Filename,Line}} | Forms1
     ],
 
     load_form(Final, Filename),
@@ -98,19 +100,6 @@ functions_form(Line, Filename, Module) ->
   { FinalExport ++ Private, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
   ] }.
-
-%% Add imports handling to the form
-
-imports_form(Line, Filename, Module, Funs, Current) ->
-  LocalImports = elixir_import:local_imports(Module),
-  Transform = fun(X, Acc) -> translate_import(Line, X, Acc) end,
-  { Imported, Forms } = lists:mapfoldr(Transform, Current, LocalImports),
-
-  All = lists:append([Funs|Imported]),
-  elixir_import:ensure_no_local_conflict(Line, Filename, Module, All),
-  elixir_import:ensure_no_macro_conflict(Line, Filename, Module, All),
-
-  { All, Forms }.
 
 %% Add attributes handling to the form
 
@@ -187,12 +176,6 @@ each_callback_for(Line, Args, {M,F}, Acc) ->
 
 % ATTRIBUTES
 
-translate_import(_Line, {_,[]}, Acc) ->
-  { [], Acc };
-
-translate_import(Line, X, Acc) ->
-  { element(2, X), [{attribute, Line, import, X}|Acc] }.
-
 translate_data(Table, [{K,V}|T]) when K == visibility; V == nil ->
   translate_data(Table, T);
 
@@ -205,7 +188,7 @@ translate_data(Table, [{K,V}|T]) ->
 translate_data(_, []) -> [].
 
 translate_attribute(Line, X) ->
-  {attribute, Line, element(1, X), element(2, X)}.
+  { attribute, Line, element(1, X), element(2, X) }.
 
 destructive_read(Table, Attribute) ->
   Value = ets:lookup_element(Table, Attribute, 2),

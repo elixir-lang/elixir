@@ -3,51 +3,36 @@
 %% calls and the second one for macros.
 -module(elixir_import).
 -export([macro_imports/0, local_imports/1,
-  calculate/7, handle_import/5, format_error/1,
-  ensure_no_macro_conflict/4, ensure_no_local_conflict/4,
+  calculate/7, format_error/1,
+  ensure_no_import_conflict/4, ensure_no_local_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
 
 %% Create tables that are responsible to store
 %% import and macro invocations.
 
-macro_table(Module)    -> ?ELIXIR_ATOM_CONCAT([m, Module]).
 import_table(Module)   -> ?ELIXIR_ATOM_CONCAT([i, Module]).
 internal_table(Module) -> ?ELIXIR_ATOM_CONCAT([e, Module]).
 
 build_table(Module) ->
-  ets:new(macro_table(Module),    [set, named_table, private]),
   ets:new(import_table(Module),   [set, named_table, private]),
   ets:new(internal_table(Module), [bag, named_table, private]).
 
 delete_table(Module) ->
-  ets:delete(macro_table(Module)),
   ets:delete(import_table(Module)),
   ets:delete(internal_table(Module)).
 
 record(_Kind, _Tuple, _Receiver, #elixir_scope{module=[]}) ->
   [];
 
-record(macro, Tuple, Receiver, #elixir_scope{module=Module}) ->
-  ets:insert(macro_table(Module), { Tuple, Receiver });
+record(import, Tuple, Receiver, #elixir_scope{module=Module}) ->
+  ets:insert(import_table(Module), { Tuple, Receiver });
 
 record(internal, _Tuple, _Receiver, #elixir_scope{function=[]}) ->
   [];
 
 record(internal, Tuple, _Receiver, #elixir_scope{module=Module}) ->
   ets:insert(internal_table(Module), Tuple).
-
-%% Handle the import macro declaration.
-
-handle_import(Line, Filename, Module, Ref, Opts) when is_atom(Ref), is_list(Opts) ->
-  Table = import_table(Module),
-  ets:delete(Table, Ref),
-  All = ets:tab2list(Table),
-  Imports = calculate(Line, Filename, Ref, Opts, All, fun() -> Ref:module_info(exports) -- macros_for(Ref) end, false),
-  ets:insert(Table, Imports);
-
-handle_import(Line, Filename, _Module, _Ref, _Opts) ->
-  elixir_errors:syntax_error(Line, Filename, "invalid args for: ", "import").
 
 %% Calculate the new { Key, List } tuple of imports
 %% according to the function and options given.
@@ -75,7 +60,7 @@ calculate(Line, Filename, Key, Opts, All, Fun, Kind) ->
   end,
   Final = New -- internal_funs(),
   ensure_no_conflicts(Line, Filename, Final, All),
-  ensure_no_in_erlang_macro_conflict(Line, Filename, Key, Final, import_conflict),
+  ensure_no_in_erlang_macro_conflict(Line, Filename, Key, Final, internal_conflict),
   { Key, Final }.
 
 %% Return configured imports and defaults
@@ -117,18 +102,17 @@ ensure_no_local_conflict(Line, Filename, Module, AllDefined) ->
   Matches = [{X,Y} || {X,Y} <- AllDefined, (ets:member(Table, X) orelse lists:member(X, AlwaysConflict))],
   ensure_no_in_erlang_macro_conflict(Line, Filename, Module, Matches, local_conflict).
 
-%% Find conlicts in the given list of functions with the recorded set
-%% of macros. Erlang automatically checks for conflict with imported
-%% locals, so we need to handle the case just with macros.
+%% Find conlicts in the given list of functions with
+%% the recorded set of imports.
 
-ensure_no_macro_conflict(Line, Filename, Module, AllDefined) ->
-  Table = macro_table(Module),
+ensure_no_import_conflict(Line, Filename, Module, AllDefined) ->
+  Table = import_table(Module),
   Matches = [X || X <- AllDefined, ets:member(Table, X)],
 
   case Matches of
     [{Name,Arity}|_] ->
       Key = ets:lookup_element(Table, {Name, Arity }, 2),
-      Tuple = { macro_conflict, { Key, Name, Arity } },
+      Tuple = { import_conflict, { Key, Name, Arity } },
       elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
     [] ->
       ok
@@ -158,14 +142,14 @@ format_error({already_imported,{Receiver, Name, Arity}}) ->
 format_error({invalid_import,{Receiver, Name, Arity, macro}}) ->
   io_lib:format("~s.~s/~B isn't a macro and can't be imported using require. Maybe you wanted to use import?", [Receiver, Name, Arity]);
 
-format_error({macro_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("imported macro ~s.~s/~B conflicts with local function or import", [Receiver, Name, Arity]);
+format_error({import_conflict,{Receiver, Name, Arity}}) ->
+  io_lib:format("imported ~s.~s/~B conflicts with local function", [Receiver, Name, Arity]);
 
 format_error({local_conflict,{_, Name, Arity}}) ->
-  io_lib:format("cannot invoke local ~s/~B because it conflicts with Elixir internal macros", [Name, Arity]);
+  io_lib:format("cannot invoke local ~s/~B because it conflicts with Elixir macros", [Name, Arity]);
 
-format_error({import_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir internal macros", [Receiver, Name, Arity]).
+format_error({internal_conflict,{Receiver, Name, Arity}}) ->
+  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir macros", [Receiver, Name, Arity]).
 
 %% Returns all the macros for the given reference.
 %% Does not raise if a macro can't be found.

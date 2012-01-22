@@ -193,16 +193,6 @@ translate_macro({use, Line, [Ref|Args]}, S) ->
   ] },
   translate_each(Call, S);
 
-translate_macro({import, Line, [Arg]}, S) ->
-  translate_macro({import, Line, [Arg, []]}, S);
-
-translate_macro({import, Line, [_,_] = Args}, S) ->
-  record(import, S),
-  assert_module_scope(Line, import, S),
-  Module = S#elixir_scope.module,
-  NewArgs = [Line, S#elixir_scope.filename, Module|Args],
-  translate_each({{'.', Line, [elixir_import, handle_import]}, Line, NewArgs}, S);
-
 %% Loop and recur
 
 translate_macro({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
