@@ -140,7 +140,7 @@ forms(String, StartLine) ->
     {ok, Tokens} ->
       case elixir_parser:parse(Tokens) of
         {ok, [Forms]} when not is_list(Forms) -> Forms;
-        {ok, Forms} -> { block, StartLine, Forms };
+        {ok, Forms} -> { '__BLOCK__', StartLine, Forms };
         {error, {Line, _, [Error, Token]}} -> throw({ interpolation_error, { Line, Error, Token } })
       end;
     {error, {Line, Error, Token}} -> throw({ interpolation_error, { Line, Error, Token } })

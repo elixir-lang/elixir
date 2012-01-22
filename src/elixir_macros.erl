@@ -24,7 +24,7 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
   Op == '<'; Op == '>'; Op == '<='; Op == '>=';
   Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
   record(Op, S),
-  translate_macro({ erlang_op, Line, [Op|Exprs] }, S);
+  translate_macro({ '__OP__', Line, [Op|Exprs] }, S);
 
 %% ::
 
@@ -69,13 +69,13 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
 
 %% Erlang Operators
 
-translate_macro({ erlang_op, Line, [Op, Expr] }, S) when is_atom(Op) ->
-  record(erlang_op, S),
+translate_macro({ '__OP__', Line, [Op, Expr] }, S) when is_atom(Op) ->
+  record('__OP__', S),
   { TExpr, NS } = translate_each(Expr, S),
   { { op, Line, convert_op(Op), TExpr }, NS };
 
-translate_macro({ erlang_op, Line, [Op|Args] }, S) when is_atom(Op) ->
-  record(erlang_op, S),
+translate_macro({ '__OP__', Line, [Op|Args] }, S) when is_atom(Op) ->
+  record('__OP__', S),
   { [TLeft, TRight], NS }  = translate_args(Args, S),
   { { op, Line, convert_op(Op), TLeft, TRight }, NS };
 
@@ -184,7 +184,7 @@ translate_macro({use, Line, [Ref|Args]}, S) ->
   record(use, S),
   assert_module_scope(Line, use, S),
   Module = S#elixir_scope.module,
-  Call = { block, Line, [
+  Call = { '__BLOCK__', Line, [
     { require, Line, [Ref] },
     { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
   ] },
@@ -220,7 +220,7 @@ translate_macro({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
 
       %% Finally, assign the function to a variable and
       %% invoke it passing the function itself as first arg
-      Block = { block, Line, [
+      Block = { '__BLOCK__', Line, [
         { '=', Line, [FunVar, Function] },
         { { '.', Line, [FunVar] }, Line, [FunVar|Args] }
       ] },
@@ -284,7 +284,7 @@ translate_macro({ for, Line, RawArgs }, S) when is_list(RawArgs) ->
           end,
 
           { fn, Line, [[
-            { match, { kv_block, Line, [
+            { match, { '__KVBLOCK__', Line, [
               { [AccVar|Condition], Body },
               { [AccVar|Underscore], AccVar }
             ] } }
@@ -356,9 +356,9 @@ translate_each_comprehension(X, S) ->
 
 % Unpack a list of expressions from a block.
 % Return an empty list in case it is an empty expression on after.
-unpack_try(_, [{ block, _, Exprs }]) -> Exprs;
-unpack_try('after', [{ nil, _ }])    -> [];
-unpack_try(_, Exprs)                 -> Exprs.
+unpack_try(_, [{ '__BLOCK__', _, Exprs }]) -> Exprs;
+unpack_try('after', [{ nil, _ }])          -> [];
+unpack_try(_, Exprs)                       -> Exprs.
 
 is_var({ Name, _Line, Atom }) when is_atom(Name), is_atom(Atom) -> true;
 is_var(_) -> false.

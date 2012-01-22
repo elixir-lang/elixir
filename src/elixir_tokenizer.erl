@@ -187,7 +187,7 @@ tokenize(Line, [T|Rest], Tokens) when T == $+; T == $-; T == $*;
 
 tokenize(Line, [H|_] = String, Tokens) when H >= $A andalso H =< $Z ->
   { Rest, { _, Identifier } } = tokenize_identifier(String, [], false),
-  tokenize(Line, Rest, [{module_ref,Line,[Identifier]}|Tokens]);
+  tokenize(Line, Rest, [{'__REF__',Line,[Identifier]}|Tokens]);
 
 % Identifier
 

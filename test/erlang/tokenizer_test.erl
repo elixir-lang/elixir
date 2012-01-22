@@ -69,12 +69,12 @@ dot_test() ->
    {identifier,1,baz}] = tokenize("foo.bar.baz").
 
 ref_test() ->
-  [{module_ref,1,['Foo']}] = tokenize("Foo"),
-  [{module_ref,1,['Foo']},
+  [{'__REF__',1,['Foo']}] = tokenize("Foo"),
+  [{'__REF__',1,['Foo']},
    {'::',1},
-   {module_ref,1,['Bar']},
+   {'__REF__',1,['Bar']},
    {'::',1},
-   {module_ref,1,['Baz']}] = tokenize("Foo::Bar::Baz").
+   {'__REF__',1,['Baz']}] = tokenize("Foo::Bar::Baz").
 
 dynamic_ref_test() ->
  [{identifier,1,x},

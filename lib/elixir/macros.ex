@@ -736,7 +736,7 @@ defmodule Elixir::Macros do
   #     5 div 2 #=> 2
   #
   defmacro div(left, right), do:
-    quote { erlang_op :div, unquote(left), unquote(right) }
+    quote { __OP__ :div, unquote(left), unquote(right) }
 
   # Provides an integer remainder macro according to Erlang semantics.
   # Raises an error if one of the arguments is not an integer.
@@ -747,7 +747,7 @@ defmodule Elixir::Macros do
   #     5 rem 2 #=> 1
   #
   defmacro rem(left, right), do:
-    quote { erlang_op :rem, unquote(left), unquote(right) }
+    quote { __OP__ :rem, unquote(left), unquote(right) }
 
   # Matches the given condition against the match clauses.
   #
@@ -930,7 +930,7 @@ defmodule Elixir::Macros do
     # Transform the condition and the expressions in the
     # do_clause to a key-value block. Get the other values
     # from the tail orddict.
-    if_clause   = { :kv_block, 0, [ { [condition], do_clause } ] }
+    if_clause   = { :__KVBLOCK__, 0, [ { [condition], do_clause } ] }
     else_clause = Orddict.get(tail, :else)
 
     # Merge if and elsif clauses, as they will all become match clauses.

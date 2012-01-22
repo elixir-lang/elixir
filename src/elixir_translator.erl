@@ -35,20 +35,20 @@ translate_each({'=', Line, [Left, Right]}, S) ->
 
 %% Blocks
 
-translate_each({ block, Line, [] }, S) ->
+translate_each({ '__BLOCK__', Line, [] }, S) ->
   { { atom, Line, nil }, S };
 
-translate_each({ block, _Line, [Arg] }, S) ->
+translate_each({ '__BLOCK__', _Line, [Arg] }, S) ->
   translate_each(Arg, S);
 
-translate_each({ block, Line, Args }, S) when is_list(Args) ->
+translate_each({ '__BLOCK__', Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
 
-translate_each({ kv_block, _, [{[Expr],nil}] }, S) ->
+translate_each({ '__KVBLOCK__', _, [{[Expr],nil}] }, S) ->
   translate_each(Expr, S);
 
-translate_each({ kv_block, Line, Args }, S) when is_list(Args) ->
+translate_each({ '__KVBLOCK__', Line, Args }, S) when is_list(Args) ->
   case S#elixir_scope.macro of
     { Receiver, Name, Arity } ->
       Desc = io_lib:format("~s.~s/~B", [Receiver, Name, Arity]),
@@ -155,7 +155,7 @@ translate_each({'__STOP_ITERATOR__', Line, Atom}, S) when is_atom(Atom) ->
 
 %% References
 
-translate_each({module_ref, Line, [Ref]}, S) when is_atom(Ref) ->
+translate_each({'__REF__', Line, [Ref]}, S) when is_atom(Ref) ->
   Atom = list_to_atom("::" ++ atom_to_list(Ref)),
 
   Final = case S#elixir_scope.noref of

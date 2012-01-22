@@ -26,10 +26,10 @@ assignment_match_test() ->
 %% References
 
 single_reference_test() ->
-  {'::Foo', _} = eval([{module_ref, 1, ['Foo']}], []).
+  {'::Foo', _} = eval([{'__REF__', 1, ['Foo']}], []).
 
 nested_reference_test() ->
-  {'::Foo::Bar::Baz', _} = eval([{'::',1,[{module_ref,1,['Foo']},{'::',1,[{module_ref,1,['Bar']},{module_ref,1,['Baz']}]}]}], []).
+  {'::Foo::Bar::Baz', _} = eval([{'::',1,[{'__REF__',1,['Foo']},{'::',1,[{'__REF__',1,['Bar']},{'__REF__',1,['Baz']}]}]}], []).
 
 %% Containers
 
@@ -127,6 +127,6 @@ local_call_test() ->
 
 expressions_test() ->
   nil = eval([nil]),
-  3   = eval([{ block, 0, [1, 2, 3]}]),
+  3   = eval([{ '__BLOCK__', 0, [1, 2, 3]}]),
   5   = eval([{'+', 1, [{'+', 1, [1, 2]}, 2]}]),
-  7   = eval([{'+', 1, [{block, 0, [{'+', 1, [1, 2]}, {'+', 1, [2, 3]}]}, 2]}]).
+  7   = eval([{'+', 1, [{'__BLOCK__', 0, [{'+', 1, [1, 2]}, {'+', 1, [2, 3]}]}, 2]}]).

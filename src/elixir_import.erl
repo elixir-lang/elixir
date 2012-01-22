@@ -7,7 +7,6 @@
   ensure_no_macro_conflict/4, ensure_no_local_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
--compile({inline,[in_erlang_macros/0]}).
 
 %% Create tables that are responsible to store
 %% import and macro invocations.
@@ -195,6 +194,7 @@ in_elixir_macros() -> macros_for('::Elixir::Macros').
 
 in_erlang_macros() ->
   orddict:from_list([
+    {'@',1},
     {'=',2},
     {'+',1},
     {'+',2},
@@ -221,10 +221,10 @@ in_erlang_macros() ->
     {'===',2},
     {'!==',2},
     {'^',1},
-    {erlang_op,2},
-    {erlang_op,3},
-    {'block','*'},
-    {'kv_block','*'},
+    {'__OP__',2},
+    {'__OP__',3},
+    {'__BLOCK__','*'},
+    {'__KVBLOCK__','*'},
     {'<<>>','*'},
     {'{}','*'},
     {'use','*'},
@@ -237,7 +237,7 @@ in_erlang_macros() ->
     {'__FILE__',0},
     {'__LINE__',0},
     {'import',2},
-    {'module_ref',1},
+    {'__REF__',1},
     {'::','*'},
     {'def','*'},
     {'defp','*'},
@@ -260,5 +260,5 @@ in_erlang_macros() ->
 %% Those macros will always raise an error if one defines them
 %% because they are called internally many times.
 in_erlang_macros_always_conflict() ->
-  [block, kv_block, erlang_op, '<<>>', '{}', '__MODULE__',
-   '__FILE__', '__LINE__', 'module_ref', '::', '^'].
+  ['__BLOCK__', '__KVBLOCK__', '__OP__', '<<>>', '{}', '__MODULE__',
+   '__FILE__', '__LINE__', '__REF__', '::', '^'].
