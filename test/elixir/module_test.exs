@@ -19,7 +19,7 @@ defmodule ModuleTest::ToBeUsed do
     quote do
       @has_callback true
       name = :original_value
-      def name, [], [], do: unquote(value)
+      def name, [], true, do: unquote(value)
     end
   end
 end

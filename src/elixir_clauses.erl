@@ -3,7 +3,7 @@
 -module(elixir_clauses).
 -export([match/3, try_catch/3,
   assigns/3, assigns_block/5, assigns_block/6,
-  extract_args/1, extract_guards/1, extract_last_guards/1]).
+  extract_args/1, extract_guards/1, extract_guard_clauses/1, extract_last_guards/1]).
 -import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
 
@@ -19,7 +19,7 @@ assigns(Fun, Args, S) -> Fun(Args, S).
 
 assigns_block(Line, Fun, BareArgs, Exprs, S) ->
   { Args, Guards } = extract_guards(BareArgs),
-  assigns_block(Line, Fun, Args, Exprs, Guards, S).
+  assigns_block(Line, Fun, Args, Exprs, extract_guard_clauses(Guards), S).
 
 assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
   { TArgs, SA }  = elixir_clauses:assigns(Fun, Args, S),
@@ -38,9 +38,10 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
 
 % Extract guards from the given expression.
 
-extract_guards({ 'when', _, [Left, Right] }) -> { Left, extract_guard_clauses(Right) };
-extract_guards(Else) -> { Else, [] }.
+extract_guards({ 'when', _, [Left, Right] }) -> { Left, Right };
+extract_guards(Else) -> { Else, true }.
 
+extract_guard_clauses(true) -> [];
 extract_guard_clauses(Term) ->
   Or = extract_or_clauses(Term, []),
   [extract_and_clauses(Item, []) || Item <- Or].
@@ -56,8 +57,8 @@ extract_and_clauses(Term, Acc) -> [Term|Acc].
 extract_last_guards([]) -> { [], [] };
 extract_last_guards(Args) ->
   { Left, [Right] } = lists:split(length(Args) - 1, Args),
-  { Bare, Guards } = elixir_clauses:extract_guards(Right),
-  { Left ++ [Bare], Guards }.
+  { Bare, Guards } = extract_guards(Right),
+  { Left ++ [Bare], extract_guard_clauses(Guards) }.
 
 % Extract name and args from the given expression.
 

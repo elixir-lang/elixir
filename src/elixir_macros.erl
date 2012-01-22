@@ -144,6 +144,10 @@ translate_macro({Kind, Line, [Call, KV]}, S) when Kind == def; Kind == defp; Kin
   { Name, Args } = elixir_clauses:extract_args(TCall),
   translate_macro({ Kind, Line, [ Name, Args, Guards, KV ] }, S);
 
+translate_macro({Kind, Line, [Call, Args, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+  { Name, Args } = elixir_clauses:extract_args(Call),
+  translate_macro({ Kind, Line, [ Name, Args, true, KV ] }, S);
+
 translate_macro({Kind, Line, [Name, Args, Guards, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   record(Kind, S),
   assert_module_scope(Line, Kind, S),
@@ -152,7 +156,7 @@ translate_macro({Kind, Line, [Name, Args, Guards, KV]}, S) when Kind == def; Kin
     _ -> Expr = { 'try', Line, [KV]}
   end,
   { TName, TS } = translate_each(Name, S),
-  { elixir_def:wrap_definition(Kind, Line, TName, Args, Guards, Expr, TS), TS };
+  { elixir_def:wrap_definition(Kind, Line, TName, Args, elixir_clauses:extract_guard_clauses(Guards), Expr, TS), TS };
 
 translate_macro({Kind, Line, Args}, S) when is_list(Args), Kind == def; Kind == defmacro; Kind == defp ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", atom_to_list(Kind));
