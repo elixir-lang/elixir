@@ -144,8 +144,7 @@ translate_macro({Kind, Line, [Call, KV]}, S) when Kind == def; Kind == defp; Kin
   { Name, Args } = elixir_clauses:extract_args(TCall),
   translate_macro({ Kind, Line, [ Name, Args, Guards, KV ] }, S);
 
-translate_macro({Kind, Line, [Call, Args, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
-  { Name, Args } = elixir_clauses:extract_args(Call),
+translate_macro({Kind, Line, [Name, Args, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   translate_macro({ Kind, Line, [ Name, Args, true, KV ] }, S);
 
 translate_macro({Kind, Line, [Name, Args, Guards, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->

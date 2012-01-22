@@ -19,13 +19,14 @@ defmodule ModuleTest::ToBeUsed do
     quote do
       @has_callback true
       name = :original_value
+      def :value, [1],    do: 1
       def name, [], true, do: unquote(value)
     end
   end
 end
 
 defmodule ModuleTest::ToUse do
-  28 = __LINE__ # Moving the next line around can make tests fail
+  29 = __LINE__ # Moving the next line around can make tests fail
   use ModuleTest::ToBeUsed
 end
 
@@ -54,7 +55,7 @@ defmodule ModuleTest do
   end
 
   def test_line_from_macro do
-    29 = ModuleTest::ToUse.line
+    30 = ModuleTest::ToUse.line
   end
 
   def test_refer_with_one_arg do
@@ -72,6 +73,7 @@ defmodule ModuleTest do
   end
 
   def test_compile_callback_hook do
+    1     = ModuleTest::ToUse.value(1)
     false = ModuleTest::ToUse.original_value
     true  = Orddict.get ModuleTest::ToUse.__info__(:data), :has_callback, false
   end
