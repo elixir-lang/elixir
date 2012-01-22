@@ -16,7 +16,7 @@ end
 
 defmodule Kernel::QuoteTest do
   use ExUnit::Case
-  require __MODULE__::Hygiene, import: true
+  import __MODULE__::Hygiene
 
   def test_no_interference do
     a = 10

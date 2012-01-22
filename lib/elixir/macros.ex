@@ -289,8 +289,8 @@ defmodule Elixir::Macros do
     end
   end
 
-  # `import` allows one to easily access functions from others modules
-  # without using the qualified name.
+  # `import` allows one to easily access functions or macros from
+  # others modules without using the qualified name.
   #
   # ## Examples
   #
@@ -309,11 +309,90 @@ defmodule Elixir::Macros do
   # In this case, we are importing only the function `values` (with arity 1)
   # from `Orddict`. Although `only` is optional, its usage is recommended.
   # `except` could also be given as an option. If no option is given, all
-  # functions are imported.
+  # functions and macros are imported.
   #
-  # This mechanism cannot be used to import macros. Only functions.
-  # Check `require/2` for more information on how to import macros.
+  # In case you want to import only functions or macros, you can pass a
+  # first argument selecting the scope:
+  #
+  #     import :macros, MyMacros
+  #
+  # And you can then use `only` or `except` to filter the macros being
+  # included.
+  #
+  # ## Lexical scope
+  #
+  # It is important to notice that `import` is lexical. This means you
+  # can import specific macros inside specific functions:
+  #
+  #     defmodule Math do
+  #       def some_function do
+  #         # 1) Disable `if/2` from Elixir::Macros
+  #         import Elixir::Macros, except: [if: 2]
+  #
+  #         # 2) Require the new `if` macro from MyMacros
+  #         import MyMacros
+  #
+  #         # 3) Use the new macro
+  #         if do_something, it_works
+  #       end
+  #     end
+  #
+  # In the example above, we imported macros from `MyMacros`, replacing
+  # the original `if/2` implementation by our own during that
+  # specific function. All other functions in that module will still
+  # be able to use the original one.
+  #
+  # ## Require shortcut
+  #
+  # You may optional pass `as:` an option to import and it will
+  # automatically invoke `require` creating the desired shortcut.
+  # Read `require` for more information.
   defmacro import(module, opts // [])
+
+  # `require` is used to require the presence of external modules and
+  # also to setup aliases.
+  #
+  # ## Aliases scope
+  #
+  # `require` can be used to setup an alias for any module:
+  #
+  #     defmodule Math do
+  #       require MyOrddict, as: Orddict
+  #     end
+  #
+  # In the example above, we have set up `MyOrdict` to be referenced
+  # as `Orddict`. So now, any reference to `Orddict` will be
+  # automatically replaced by `MyOrddict`.
+  #
+  # In case one wants to access the original `Orddict`, it can be done
+  # by prefixing the module name with `::`:
+  #
+  #     Orddict.values   #=> uses ::MyOrddict.values
+  #     ::Orddict.values #=> uses ::Orddict.values
+  #
+  # ## Macros example
+  #
+  # Notice that usually modules should not be required before usage,
+  # the only exception is if you want to use the macros from a module.
+  # In such cases, you need to explicitly require them.
+  #
+  # Let's suppose you created your own `if` implementation in the module
+  # `MyMacros`. If you want to invoke it, you need to first explicitly
+  # require the `MyMacros`:
+  #
+  #     defmodule Math do
+  #       require MyMacros
+  #       MyMacros.if do_something, it_works
+  #     end
+  #
+  # An attempt to call a macro that was not loaded will raise an error.
+  #
+  # ## Lexical scope
+  #
+  # As `import`, it is important to note that `require` is **lexical**.
+  # This means you can set up aliases for specific functions not affecting
+  # the overall scope.
+  defmacro require(module, opts // [])
 
   # `use` is a simple mechanism for extending the current module with the
   # given module.
@@ -333,7 +412,7 @@ defmodule Elixir::Macros do
   # `use` is simply a translation to:
   #
   #     defmodule AssertionTest do
-  #       require ExUnit::Case
+  #       require ExUnit::Case, as: false
   #       ExUnit::Case.__using__(::AssertionTest)
   #
   #       def test_always_pass do
@@ -342,86 +421,6 @@ defmodule Elixir::Macros do
   #     end
   #
   defmacro use(module, args // [])
-
-  # `refer` allows you to to setup references aliases for a given module.
-  #
-  # ## Example
-  #
-  #     defmodule Math do
-  #       refer MyOrddict, as: Orddict
-  #     end
-  #
-  # In the example above, we have set up `MyOrdict` to be referenced
-  # as `Orddict`. So now, any reference to `Orddict` will be
-  # automatically replaced by `MyOrddict`.
-  #
-  # In case one wants to access the original `Orddict`, it can be done
-  # by prefixing the module name with `::`:
-  #
-  #     Orddict.values   #=> uses ::MyOrddict.values
-  #     ::Orddict.values #=> uses ::Orddict.values
-  #
-  # Note that `refer` is **lexical**. This means that the mapping set
-  # with `refer` will be available from the moment `refer` is called.
-  defmacro refer(old, as: new)
-
-  # `require` enables macros usage from a given module.
-  #
-  # ## Macros example
-  #
-  # Let's suppose you created your own `if` implementation in the module
-  # `MyMacros`. If you want to invoke it, you need to first explicitly
-  # require the `MyMacros`:
-  #
-  #     defmodule Math do
-  #       require MyMacros
-  #       MyMacros.if do_something, it_works
-  #     end
-  #
-  # An attempt to call a macro that was not loaded will raise an error.
-  #
-  # ## Lexical scope
-  #
-  # It is important to note that `require` is **lexical**. This means you
-  # can require specific macros inside specific functions:
-  #
-  #     defmodule Math do
-  #       def some_function do
-  #         # 1) Disable `if/2` from Elixir::Macros
-  #         require Elixir::Macros, except: [if: 2]
-  #
-  #         # 2) Require the new `if` macro from MyMacros
-  #         require MyMacros, import: true
-  #
-  #         # 3) Use the new macro
-  #         if do_something, it_works
-  #       end
-  #     end
-  #
-  # In the example above, we required and imported macros from `MyMacros`,
-  # replacing the original `if/2` implementation by our own during that
-  # specific function. All other functions in that module will still
-  # be able to use the original one.
-  #
-  # `require` also accepts `only` and `except` as options to select
-  # which macros to import. Consecutive calls to `require` passing
-  # the same models override previous definitions.
-  #
-  #     defmodule MyIo
-  #       # Import bit-or and bit-and from Bitwise
-  #       require Bitwise, only: [bor: 2, band: 2]
-  #       def some_func(x, y, z), do: x bor y band z
-  #
-  #       # Import all, except bxor, overriding previous
-  #       require Bitwise, except: [bxor: 2]
-  #     end
-  #
-  # ## Reference shortcut
-  #
-  # Note that, if `as:` is given as option to `require`, it will
-  # automatically invoke `refer` creating the desired reference.
-  #
-  defmacro require(module, opts // [])
 
   # Returns the current module name as an atom or nil otherwise.
   defmacro __MODULE__

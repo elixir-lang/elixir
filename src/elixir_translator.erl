@@ -69,8 +69,8 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 
 %% Lexical
 
-translate_each({refer, Line, [Ref|T]}, S) ->
-  record(refer, S),
+translate_each({require, Line, [Ref|T]}, S) ->
+  record(require, S),
 
   KV = case T of
     [NotEmpty] -> NotEmpty;
@@ -79,7 +79,7 @@ translate_each({refer, Line, [Ref|T]}, S) ->
 
   Extractor = fun
     ({ atom, _, Atom }) -> Atom;
-    (_) -> syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "refer")
+    (_) -> syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "require")
   end,
 
   { TRef, SR } = translate_each(Ref, S),
@@ -100,41 +100,6 @@ translate_each({refer, Line, [Ref|T]}, S) ->
   { { nil, Line }, SF#elixir_scope{
     refer=orddict:store(New, Old, S#elixir_scope.refer)
   } };
-
-translate_each({require, Line, [Left]}, S) ->
-  translate_each({ require, Line, [Left, []]}, S);
-
-translate_each({require, Line, [Left,Opts]}, S) ->
-  record(require, S),
-
-  As = proplists:get_value(as, Opts, false),
-  { TRef, SR }  = translate_each(Left, S),
-
-  Ref = case TRef of
-    { atom, _,  Atom } -> Atom;
-    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "require")
-  end,
-
-  Truthy = fun(X) -> proplists:get_value(X, Opts, false ) /= false end,
-  Import = lists:any(Truthy, [import, only, except]),
-
-  elixir_ref:ensure_loaded(Line, Ref, SR, Import),
-
-  IS = case Import of
-    true ->
-      Macros = elixir_import:calculate(
-        Line,
-        Ref,
-        Opts,
-        SR#elixir_scope.macros,
-        elixir_dispatch:get_macros(Line, Ref, SR),
-        SR
-      ),
-      SR#elixir_scope{macros=Macros};
-    false -> SR
-  end,
-
-  translate_each({ refer, Line, [Ref, [{as,As}]] }, IS);
 
 translate_each({import, Line, [Left]}, S) ->
   translate_each({ import, Line, [Left, []]}, S);
@@ -165,6 +130,7 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
     _ -> syntax_error(Line, S#elixir_scope.filename, "invalid options for: ", "import")
   end,
 
+  As = proplists:get_value(as, Opts, false),
   elixir_ref:ensure_loaded(Line, Ref, SR, true),
 
   SF = case (Selector == all) or (Selector == functions) of
@@ -188,7 +154,7 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
       SF#elixir_scope{macros=Macros}
   end,
 
-  { { nil, Line }, SM };
+  translate_each({ require, Line, [Ref, [{ as, As }]] }, SM);
 
 %% Arg-less macros
 

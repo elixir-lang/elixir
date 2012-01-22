@@ -1,6 +1,6 @@
 defmodule Protocol do
   # We need to use Erlang.lists because Enum is not available yet
-  refer Erlang.lists, as: L
+  require Erlang.lists, as: L
 
   # Handle `defprotocol`. It will define a function for each
   # protocol plus two extra functions:

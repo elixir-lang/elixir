@@ -1,9 +1,9 @@
 # We cannot use to_list because it depends on inspect,
 # which depends on protocol, which depends on this module.
-require Elixir::Macros, except: [to_list: 1]
+import Elixir::Macros, except: [to_list: 1]
 
 defmodule Module do
-  refer Erlang.ets, as: ETS
+  require Erlang.ets, as: ETS
 
   # Evalutes the quotes contents in the given module context.
   # Raises an error if the module was already compiled.

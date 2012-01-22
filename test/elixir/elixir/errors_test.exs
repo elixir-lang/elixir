@@ -63,9 +63,9 @@ defmodule Elixir::ErrorsTest do
       format_catch 'defmodule Foo do\ndefrecord(::Elixir::ErrorsTest::MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
-  def test_require_invalid_macro do
+  def test_import_invalid_macro do
     "nofile:2: cannot import ::Elixir::Macros.invalid/1 because it doesn't exist" =
-      format_catch 'defmodule Foo do\nrequire Elixir::Macros, only: [invalid: 1]\nend'
+      format_catch 'defmodule Foo do\nimport Elixir::Macros, only: [invalid: 1]\nend'
   end
 
   def test_unrequired_macro do
@@ -95,17 +95,17 @@ defmodule Elixir::ErrorsTest do
 
   def test_no_macros do
     "nofile:2: could not load macros from module lists" =
-      format_catch 'defmodule Foo do\nrequire Erlang.lists, import: true\nend'
+      format_catch 'defmodule Foo do\nimport :macros, Erlang.lists\nend'
   end
 
   def test_unloaded_module do
     "nofile:1: module ::Certainly::Doesnt::Exist is not loaded, reason: nofile" =
-      format_catch 'require Certainly::Doesnt::Exist, import: true'
+      format_catch 'import Certainly::Doesnt::Exist'
   end
 
   def test_scheduled_module do
     "nofile:1: module ::Hygiene is not loaded but was defined. This may happen because the module is nested inside another module. Try defining the module outside the context that requires it." =
-      format_catch 'defmodule Foo do; defmodule Hygiene do; end; require Hygiene, import: true; end'
+      format_catch 'defmodule Foo do; defmodule Hygiene do; end; import Hygiene; end'
   end
 
   def test_already_compiled_module do
@@ -120,11 +120,6 @@ defmodule Elixir::ErrorsTest do
   def test_invalid_kv_for_match do
     "nofile:1: invalid key: invalid" =
       format_catch 'case true do\ninvalid: 2\nafter: 3\nend'
-  end
-
-  def test_cant_import_in_erlang_macros_with_require do
-    "nofile:1: cannot import ::Elixir::ErrorsTest::UnproperMacro.case/2 because it conflicts with Elixir macros" =
-      format_catch 'require Elixir::ErrorsTest::UnproperMacro, import: true'
   end
 
   def test_cant_import_in_erlang_macros_with_import do

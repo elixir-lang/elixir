@@ -58,11 +58,6 @@ defmodule ModuleTest do
     30 = ModuleTest::ToUse.line
   end
 
-  def test_refer_with_one_arg do
-    refer ModuleTest::ToBeUsed
-    1 = ToBeUsed.value
-  end
-
   def test___MODULE__ do
     __MODULE__ = :"::ModuleTest"
     :"::ModuleTest" = __MODULE__

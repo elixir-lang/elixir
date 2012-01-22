@@ -1,4 +1,4 @@
-require ::Elixir::Macros, except: [to_binary: 1, inspect: 1]
+import ::Elixir::Macros, except: [to_binary: 1, inspect: 1]
 
 defprotocol String::Inspect, [to_binary(thing), inspect(thing)],
   only: [BitString, List, Tuple, Atom, Number]

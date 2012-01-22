@@ -1,6 +1,6 @@
 defmodule File do
-  refer Erlang.filename, as: FN
-  refer Erlang.filelib,  as: FL
+  require Erlang.filename, as: FN
+  require Erlang.filelib,  as: FL
 
   def expand_path(path) do
     normalize FN.absname(path)
