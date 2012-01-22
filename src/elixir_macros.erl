@@ -134,11 +134,10 @@ translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
 
   { elixir_module:translate(Line, TRef, Block, S), NS };
 
-translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
+translate_macro({Kind, Line, [_Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   record(Kind, S),
   assert_module_scope(Line, Kind, S),
-  { Name, Args } = elixir_clauses:extract_args(Call),
-  { { tuple, Line, [{ atom, Line, Name }, { integer, Line, length(Args) }] }, S };
+  { { nil, Line }, S };
 
 translate_macro({Kind, Line, [Call, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   { TCall, Guards } = elixir_clauses:extract_guards(Call),

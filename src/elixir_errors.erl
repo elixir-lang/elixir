@@ -26,7 +26,8 @@ form_error(Line, Filename, Module, Desc) ->
 
 %% Handle warnings and errors (called during module compilation)
 
-handle_file_warning(_Filename, {_Line,sys_core_fold,nomatch_clause_type}) ->
+handle_file_warning(_Filename, {_Line,sys_core_fold,Ignore}) when
+  Ignore == nomatch_clause_type; Ignore == useless_building ->
   [];
 
 handle_file_warning(Filename, {Line,Module,Desc}) ->

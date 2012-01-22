@@ -42,7 +42,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
   build(Module),
 
   try
-    { Result, _ }    = eval_form(Line, Filename, Module, Block, [], S),
+    Result           = eval_form(Line, Filename, Module, Block, S),
     { Funs, Forms0 } = functions_form(Line, Filename, Module),
     { _All, Forms1 } = imports_form(Line, Filename, Module, Funs, Forms0),
     Forms2           = attributes_form(Line, Filename, Module, Forms1),
@@ -79,12 +79,13 @@ build(Module) ->
 
 %% Receives the module representation and evaluates it.
 
-eval_form(Line, Filename, Module, Block, RawBinding, RawS) ->
-  { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, RawBinding, RawS),
-  { Value, NewBinding, NewS } = elixir:eval_forms([Block], Binding, S),
+eval_form(Line, Filename, Module, Block, RawS) ->
+  Temp = ?ELIXIR_ATOM_CONCAT(['COMPILE-',Module]),
+  { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, [], RawS),
+  { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
   { Callbacks, FinalS } = callbacks_for(Line, compile_callbacks, Module, [Module], NewS),
-  elixir:eval_forms(Callbacks, binding_for_eval(Module, NewBinding), FinalS),
-  { Value, NewBinding }.
+  elixir:eval_forms(Callbacks, binding_for_eval(Module, Binding), FinalS),
+  Value.
 
 %% Return the form with exports and function declarations.
 

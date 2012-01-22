@@ -1,5 +1,5 @@
 -module(elixir_compiler).
--export([file/1, file_to_path/2, core/0, module/3]).
+-export([file/1, file_to_path/2, core/0, module/3, eval/4, eval_forms/4]).
 -include("elixir.hrl").
 
 %% Public API
@@ -16,13 +16,8 @@ file(Filename) ->
       Error -> erlang:error(Error)
     end,
 
-    elixir:eval(Contents, [], Filename),
-    % Forms = module_form(Filename, Contents),
-    % module(Forms, Filename, fun(Module, _) ->
-    %   Module:'BOOTSTRAP'(nil),
-    %   code:purge(Module),
-    %   code:delete(Module)
-    % end),
+    % elixir:eval(Contents, [], Filename),
+    eval(Contents, 1, Filename, list_to_atom(filename_to_module(Filename))),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
@@ -33,6 +28,29 @@ file(Filename) ->
 file_to_path(File, Path) ->
   Lists = file(File),
   [binary_to_path(X, Path) || X <- Lists].
+
+%% Evaluates the contents/forms by compiling them to an Erlang module.
+
+eval(String, Line, Filename, Module) ->
+  Forms = elixir_translator:forms(String, Line, Filename),
+  eval_forms(Forms, Line, Module, #elixir_scope{filename=Filename}).
+
+eval_forms(Forms, Line, Module, #elixir_scope{module=[]} = S) ->
+  eval_forms(Forms, Line, Module, nil, S);
+
+eval_forms(Forms, Line, Module, #elixir_scope{module=Value} = S) ->
+  eval_forms(Forms, Line, Module, Value, S).
+
+eval_forms(Forms, Line, Module, Value, S) ->
+  Filename = S#elixir_scope.filename,
+  { Exprs, FS } = elixir_translator:translate(Forms, S),
+  ModuleForm = module_form(Exprs, Line, Filename, Module),
+  { module(ModuleForm, Filename, fun(Mod, _) ->
+    Res = Mod:'BOOTSTRAP'(Value),
+    code:purge(Module),
+    code:delete(Module),
+    Res
+  end), FS }.
 
 %% Internal API
 
@@ -61,13 +79,8 @@ core() ->
 
 %% HELPERS
 
-module_form(Filename, Contents) ->
-  Line         = 1,
-  Forms        = elixir_translator:forms(Contents, Line, Filename),
-  { Exprs, _ } = elixir_translator:translate(Forms, #elixir_scope{filename=Filename}),
-
-  Module = list_to_atom(filename_to_module(Filename)),
-  Args   = [{ var, Line, '_EXMODULE'}],
+module_form(Exprs, Line, Filename, Module) ->
+  Args = [{ var, Line, '_EXMODULE'}],
 
   [
     { attribute, Line, module, Module },

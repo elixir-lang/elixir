@@ -31,42 +31,52 @@ defmodule Protocol do
   # returns the protocol being implemented.
   def defimpl(protocol, [for: for], [do: block]) do
     quote do
-      # Build up the name, protocol and block
       protocol = unquote(protocol)
       for      = unquote(for)
       name     = protocol::for
 
-      # Check if protocol is loaded
-      try do
-        protocol.__info__(:data)
-      catch: :error, :undef
-        error { :badarg, "#{protocol} is not loaded" }
-      end
+      Protocol.assert_protocol(protocol)
 
-      # Check if protocol is really a protocol
-      funs = try do
-        protocol.__protocol__
-      catch: :error, :undef
-        error { :badarg, "#{protocol} is not a protocol" }
-      end
-
-      # Create a module with the given contents
       defmodule name do
         def __impl__, do: unquote(protocol)
         unquote(block)
       end
 
-      # Check if the implemented protocol was valid
-      remaining = funs -- name.__info__(:exports)
-
-      if remaining != [], do:
-        error { :badarg, "#{name} did not implement #{protocol}, missing: #{remaining}" }
+      Protocol.assert_impl(name, protocol)
     end
+  end
+
+  # Check if the given module is a protocol. Raises an error
+  # if not loaded or not a protocol.
+  # :api: private
+  def assert_protocol(module) do
+    try do
+      module.__info__(:data)
+    catch: :error, :undef
+      error { :badarg, "#{module} is not loaded" }
+    end
+
+    try do
+      module.__protocol__
+    catch: :error, :undef
+      error { :badarg, "#{module} is not a protocol" }
+    end
+  end
+
+  # Check if the given `impl` is a valid impl for `protocol`.
+  # Raises an error if not.
+  # :api: private
+  def assert_impl(impl, protocol) do
+    remaining = protocol.__protocol__ -- impl.__info__(:exports)
+
+    if remaining != [], do:
+      error { :badarg, "#{impl} did not implement #{protocol}, missing: #{remaining}" }
   end
 
   # Callback entrypoint that defines the protocol functions.
   # It simply detects the protocol using __protocol_for__ and
   # then dispatches to it.
+  # :api: private
   def functions(module, funs) do
     lc fun in L.reverse(funs), do: each_function(module, fun)
   end
@@ -74,6 +84,7 @@ defmodule Protocol do
   # Implements the method that detects the protocol and returns
   # the module to dispatch to. Returns module::Record for records
   # which should be properly handled by the dispatching function.
+  # :api: private
   def protocol_for(module, opts) do
     lc kind in conversions_for(opts), do: each_protocol_for(module, kind)
   end

@@ -14,19 +14,19 @@ extract_interpolations_with_escaped_interpolation_test() ->
   ["f#{o}o"] = extract_interpolations("f\\#{o}o").
 
 extract_interpolations_with_interpolation_test() ->
-  ["f", {'|',1,[{to_binary,1,[o]}, binary]}, "o"] = extract_interpolations("f#{:o}o").
+  ["f", {'|',1,[{{'.',1,['::String::Inspect',to_binary]},1,[o]}, binary]}, "o"] = extract_interpolations("f#{:o}o").
 
 extract_interpolations_with_two_interpolations_test() ->
-  ["f", {'|',1,[{to_binary,1,[o]}, binary]}, {'|',1,[{to_binary,1,[o]}, binary]}, "o"] = extract_interpolations("f#{:o}#{:o}o").
+  ["f", {'|',1,[{{'.',1,['::String::Inspect',to_binary]},1,[o]}, binary]}, {'|',1,[{{'.',1,['::String::Inspect',to_binary]},1,[o]}, binary]}, "o"] = extract_interpolations("f#{:o}#{:o}o").
 
 extract_interpolations_with_only_two_interpolations_test() ->
-  [{'|',1,[{to_binary,1,[o]}, binary]}, {'|',1,[{to_binary,1,[o]}, binary]}] = extract_interpolations("#{:o}#{:o}").
+  [{'|',1,[{{'.',1,['::String::Inspect',to_binary]},1,[o]}, binary]}, {'|',1,[{{'.',1,['::String::Inspect',to_binary]},1,[o]}, binary]}] = extract_interpolations("#{:o}#{:o}").
 
 extract_interpolations_with_tuple_inside_interpolation_test() ->
-  ["f", {'|',1,[{to_binary,1,[{'{}',1,[1]}]}, binary]}, "o"] = extract_interpolations("f#{{1}}o").
+  ["f", {'|',1,[{{'.',1,['::String::Inspect',to_binary]},1,[{'{}',1,[1]}]}, binary]}, "o"] = extract_interpolations("f#{{1}}o").
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
-  ["f", {'|',2,[{to_binary,2,[{block,2,[1,2]}]}, binary]}, "o"] = extract_interpolations("f#{1\n2}o").
+  ["f", {'|',2,[{{'.',2,['::String::Inspect',to_binary]},2,[{block,2,[1,2]}]}, binary]}, "o"] = extract_interpolations("f#{1\n2}o").
 
 extract_interpolations_with_string_inside_interpolation_test() ->
   ["f", <<"foo">>, "o"] = extract_interpolations("f#{\"foo\"}o").
