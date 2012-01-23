@@ -61,10 +61,16 @@ defmodule Code do
 
   # Get the stacktrace.
   def stacktrace do
-    Erlang.erlang.get_stacktrace
+    filter_stacktrace Erlang.erlang.get_stacktrace
   end
 
   ## Helpers
+
+  # Filter stacktrace by removing internal BOOTSTRAP calls.
+  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _, _ }|t]), do: filter_stacktrace(t)
+  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _ }|t]),    do: filter_stacktrace(t)
+  defp filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
+  defp filter_stacktrace([]), do: []
 
   defp load_and_push_file(file) do
     server_call { :loaded, file }
