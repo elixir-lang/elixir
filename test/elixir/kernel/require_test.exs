@@ -18,4 +18,13 @@ defmodule Kernel::RequireTest do
     require Kernel::RequireTest::Nested
     1 = Nested.value
   end
+
+  # def test_default_required do
+  #   true = Elixir::Macros.case 1 do
+  #   match: 1
+  #     true
+  #   else:
+  #     false
+  #   end
+  # end
 end

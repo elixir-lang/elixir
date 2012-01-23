@@ -95,7 +95,7 @@ defmodule Enum do
   # arity of the fun must be 1 + number of enums.
   #
   # This is used internally by `for` and should not be used directly.
-  def for(lists, fun) do
+  def __for__(lists, fun) do
     iterators = lc list in lists, do: { list, I.iterator(list) }
     [{h,iterator}|t] = iterators
     first_comprehension_each iterator, iterator.(h), t, [], fun

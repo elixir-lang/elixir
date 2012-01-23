@@ -1,169 +1,21 @@
 %% Those macros are local and can be partially applied.
 %% In the future, they may even be overriden by imports.
 -module(elixir_macros).
--export([translate_macro/2]).
+-export([translate_macro/2, translate_builtin/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
 -import(elixir_variables, [umergec/2, umergev/2]).
 -import(elixir_errors, [syntax_error/4]).
 -include("elixir.hrl").
 
-%% Operators
+translate_macro(Args, S) -> translate_splat(Args, S).
 
-translate_macro({ '+', _Line, [Expr] }, S) when is_number(Expr) ->
-  record('+', S),
-  translate_each(Expr, S);
-
-translate_macro({ '-', _Line, [Expr] }, S) when is_number(Expr) ->
-  record('-', S),
-  translate_each(-1 * Expr, S);
-
-translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
-  Op == '+'; Op == '-'; Op == '*'; Op == '/'; Op == '<-';
-  Op == '++'; Op == '--'; Op == 'andalso'; Op == 'orelse';
-  Op == 'not'; Op == 'and'; Op == 'or'; Op == 'xor';
-  Op == '<'; Op == '>'; Op == '<='; Op == '>=';
-  Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
-  record(Op, S),
-  translate_macro({ '__OP__', Line, [Op|Exprs] }, S);
-
-%% ::
-
-translate_macro({'::', Line, [Left]}, S) ->
-  translate_macro({'::', Line, [nil,Left]}, S);
-
-translate_macro({'::', Line, [Left|Right]}, S) ->
-  { TLeft, LS } = translate_each(Left, S),
-  { TRight, RS } = translate_args(Right, (umergec(S, LS))#elixir_scope{noref=true}),
-  TArgs = [TLeft|TRight],
-  Atoms = [Atom || { atom, _, Atom } <- TArgs],
-  Final = case length(Atoms) == length(TArgs) of
-    true  -> { atom, Line, elixir_ref:concat(Atoms) };
-    false ->
-      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
-  end,
-  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
-
-%% @
-
-translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
-  record('@', S),
-  assert_module_scope(Line, '@', S),
-  assert_no_function_scope(Line, '@', S),
-  case Args of
-    [Arg] ->
-      translate_each({
-        { '.', Line, ['::Module', merge_data] },
-          Line,
-          [ { '__MODULE__', Line, false }, [{ Name, Arg }] ]
-      }, S);
-    _ when is_atom(Args) or (Args == []) ->
-        translate_each({
-          { '.', Line, ['::Module', read_data] },
-          Line,
-          [ { '__MODULE__', Line, false }, Name ]
-        }, S);
-    _ ->
-      syntax_error(Line, S#elixir_scope.filename, "expected 0 or 1 argument for: ", [$@|atom_to_list(Name)])
-  end;
-
-%% Erlang Operators
-
-translate_macro({ '__OP__', Line, [Op, Expr] }, S) when is_atom(Op) ->
-  record('__OP__', S),
-  { TExpr, NS } = translate_each(Expr, S),
-  { { op, Line, convert_op(Op), TExpr }, NS };
-
-translate_macro({ '__OP__', Line, [Op|Args] }, S) when is_atom(Op) ->
-  record('__OP__', S),
-  { [TLeft, TRight], NS }  = translate_args(Args, S),
-  { { op, Line, convert_op(Op), TLeft, TRight }, NS };
-
-%% Case
-
-translate_macro({'case', Line, [Expr, RawClauses]}, S) ->
-  record('case', S),
-  Clauses = orddict:erase(do, RawClauses),
-  { TExpr, NS } = translate_each(Expr, S),
-  { TClauses, TS } = elixir_clauses:match(Line, Clauses, NS),
-  { { 'case', Line, TExpr, TClauses }, TS };
-
-%% Try
-
-translate_macro({'try', Line, [Clauses]}, RawS) ->
-  record('try', RawS),
-  Do    = proplists:get_value('do',    Clauses, []),
-  After = proplists:get_value('after', Clauses, []),
-  Catch = orddict:erase('after', orddict:erase('do', Clauses)),
-
-  S = RawS#elixir_scope{noname=true},
-
-  { TDo, SB }    = translate([Do], S),
-  { TCatch, SC } = elixir_clauses:try_catch(Line, Catch, umergec(S, SB)),
-  { TAfter, SA } = translate([After], umergec(S, SC)),
-  { { 'try', Line, unpack_try(do, TDo), [], TCatch, unpack_try('after', TAfter) }, umergec(RawS, SA) };
-
-%% Receive
-
-translate_macro({'receive', Line, [RawClauses] }, S) ->
-  record('receive', S),
-  Clauses = orddict:erase(do, RawClauses),
-  case orddict:find('after', Clauses) of
-    { ok, After } ->
-      AClauses = orddict:erase('after', Clauses),
-      { TClauses, SC } = elixir_clauses:match(Line, AClauses ++ [{'after',After}], S),
-      { FClauses, [TAfter] } = lists:split(length(TClauses) - 1, TClauses),
-      { _, _, [FExpr], _, FAfter } = TAfter,
-      { { 'receive', Line, FClauses, FExpr, FAfter }, SC };
-    error ->
-      { TClauses, SC } = elixir_clauses:match(Line, Clauses, S),
-      { { 'receive', Line, TClauses }, SC }
-  end;
-
-%% Definitions
-
-translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
-  record(defmodule, S),
-  { TRef, _ } = translate_each(Ref, S),
-
-  NS = case TRef of
-    { atom, _, Module } ->
-      S#elixir_scope{scheduled=[Module|S#elixir_scope.scheduled]};
-    _ -> S
-  end,
-
-  { elixir_module:translate(Line, TRef, Block, S), NS };
-
-translate_macro({Kind, Line, [_Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
-  record(Kind, S),
-  assert_module_scope(Line, Kind, S),
-  { { nil, Line }, S };
-
-translate_macro({Kind, Line, [Call, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
-  { TCall, Guards } = elixir_clauses:extract_guards(Call),
-  { Name, Args } = elixir_clauses:extract_args(TCall),
-  translate_macro({ Kind, Line, [ Name, Args, Guards, KV ] }, S);
-
-translate_macro({Kind, Line, [Name, Args, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
-  translate_macro({ Kind, Line, [ Name, Args, true, KV ] }, S);
-
-translate_macro({Kind, Line, [Name, Args, Guards, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
-  record(Kind, S),
-  assert_module_scope(Line, Kind, S),
-  case KV of
-    [{do, Expr}] -> [];
-    _ -> Expr = { 'try', Line, [KV]}
-  end,
-  { TName, TS } = translate_each(Name, S),
-  { elixir_def:wrap_definition(Kind, Line, TName, Args, elixir_clauses:extract_guard_clauses(Guards), Expr, TS), TS };
-
-translate_macro({Kind, Line, Args}, S) when is_list(Args), Kind == def; Kind == defmacro; Kind == defp ->
-  syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", atom_to_list(Kind));
+%% TRANSLATE_SPLAT
+%% Macros that can be partially applied but not overridable
+%% since the expect any number of arguments
 
 %% Functions
 
-translate_macro({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
-  record(fn, S),
+translate_splat({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
   Clauses = case lists:split(length(RawArgs) - 1, RawArgs) of
     { Args, [[{do,Expr}]] } ->
       [{match,Args,Expr}];
@@ -181,22 +33,9 @@ translate_macro({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
   { { 'fun', Line, {clauses, TClauses} }, umergec(S, NS) };
 
-%% Modules directives
-
-translate_macro({use, Line, [Ref|Args]}, S) ->
-  record(use, S),
-  assert_module_scope(Line, use, S),
-  Module = S#elixir_scope.module,
-  Call = { '__BLOCK__', Line, [
-    { require, Line, [Ref,[{as,false}]] },
-    { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
-  ] },
-  translate_each(Call, S);
-
 %% Loop and recur
 
-translate_macro({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
-  record(loop, S),
+translate_splat({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
   case lists:split(length(RawArgs) - 1, RawArgs) of
     { Args, [KV] } when is_list(KV) ->
       %% Generate a variable that will store the function
@@ -223,8 +62,7 @@ translate_macro({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
       syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "loop")
   end;
 
-translate_macro({recur, Line, Args}, S) when is_list(Args) ->
-  record(recur, S),
+translate_splat({recur, Line, Args}, S) when is_list(Args) ->
   case S#elixir_scope.recur of
     [] ->
       syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop. invalid scope for: ", "recur");
@@ -236,10 +74,10 @@ translate_macro({recur, Line, Args}, S) when is_list(Args) ->
 
 %% Comprehensions
 
-translate_macro({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
+translate_splat({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
   translate_comprehension(Line, Kind, Args, S);
 
-translate_macro({ for, Line, RawArgs }, S) when is_list(RawArgs) ->
+translate_splat({ for, Line, RawArgs }, S) when is_list(RawArgs) ->
   case lists:split(length(RawArgs) - 1, RawArgs) of
     { Cases, [[{do,Expr}]] } ->
       { Generators, Filters } = lists:splitwith(fun
@@ -283,37 +121,182 @@ translate_macro({ for, Line, RawArgs }, S) when is_list(RawArgs) ->
           ]] }
       end,
 
-      translate_each({ { '.', Line, ['::Enum', for] }, Line, [Enums, Fun] }, VS);
+      translate_each({ { '.', Line, ['::Enum', '__for__'] }, Line, [Enums, Fun] }, VS);
     _ ->
       syntax_error(Line, S#elixir_scope.filename, "no block given for: ", "for")
   end;
 
-%% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
-
-translate_macro({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
-  record(apply, S),
-  { TLeft,  SL } = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
-  translate_apply(Line, TLeft, TRight, Args, S, SL, SR);
-
-%% Handle forced variables
-
-translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_atom(Atom) ->
-  elixir_variables:translate_each(Line, Name, S);
-
-translate_macro({ 'var!', Line, [_] }, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "var!");
-
-%% Else
-
-translate_macro({ Atom, Line, Args }, S) ->
+translate_splat({ Atom, Line, Args }, S) ->
   Callback = fun() ->
     { TArgs, NS } = translate_args(Args, S),
     { { call, Line, { atom, Line, Atom }, TArgs }, NS }
   end,
   elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback).
 
-%% Helpers
+%% TRANSLATE BUILTIN
+%% They are part of ::Elixir::Macros but need to be implemented
+%% in Erlang.
+
+%% Operators
+
+translate_builtin({ '+', _Line, [Expr] }, S) when is_number(Expr) ->
+  translate_each(Expr, S);
+
+translate_builtin({ '-', _Line, [Expr] }, S) when is_number(Expr) ->
+  translate_each(-1 * Expr, S);
+
+translate_builtin({ Op, Line, Exprs }, S) when is_list(Exprs),
+  Op == '+'; Op == '-'; Op == '*'; Op == '/'; Op == '<-';
+  Op == '++'; Op == '--'; Op == 'andalso'; Op == 'orelse';
+  Op == 'not'; Op == 'and'; Op == 'or'; Op == 'xor';
+  Op == '<'; Op == '>'; Op == '<='; Op == '>=';
+  Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
+  translate_each({ '__OP__', Line, [Op|Exprs] }, S);
+
+%% ::
+
+translate_builtin({'::', Line, [Left]}, S) ->
+  translate_builtin({'::', Line, [nil,Left]}, S);
+
+translate_builtin({'::', Line, [Left|Right]}, S) ->
+  { TLeft, LS } = translate_each(Left, S),
+  { TRight, RS } = translate_args(Right, (umergec(S, LS))#elixir_scope{noref=true}),
+  TArgs = [TLeft|TRight],
+  Atoms = [Atom || { atom, _, Atom } <- TArgs],
+  Final = case length(Atoms) == length(TArgs) of
+    true  -> { atom, Line, elixir_ref:concat(Atoms) };
+    false ->
+      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
+      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
+  end,
+  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
+
+%% @
+
+translate_builtin({'@', Line, [{ Name, _, Args }]}, S) ->
+  assert_module_scope(Line, '@', S),
+  assert_no_function_scope(Line, '@', S),
+  case Args of
+    [Arg] ->
+      translate_each({
+        { '.', Line, ['::Module', merge_data] },
+          Line,
+          [ { '__MODULE__', Line, false }, [{ Name, Arg }] ]
+      }, S);
+    _ when is_atom(Args) or (Args == []) ->
+        translate_each({
+          { '.', Line, ['::Module', read_data] },
+          Line,
+          [ { '__MODULE__', Line, false }, Name ]
+        }, S);
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "expected 0 or 1 argument for: ", [$@|atom_to_list(Name)])
+  end;
+
+
+%% Case
+
+translate_builtin({'case', Line, [Expr, RawClauses]}, S) ->
+  Clauses = orddict:erase(do, RawClauses),
+  { TExpr, NS } = translate_each(Expr, S),
+  { TClauses, TS } = elixir_clauses:match(Line, Clauses, NS),
+  { { 'case', Line, TExpr, TClauses }, TS };
+
+%% Try
+
+translate_builtin({'try', Line, [Clauses]}, RawS) ->
+  Do    = proplists:get_value('do',    Clauses, []),
+  After = proplists:get_value('after', Clauses, []),
+  Catch = orddict:erase('after', orddict:erase('do', Clauses)),
+
+  S = RawS#elixir_scope{noname=true},
+
+  { TDo, SB }    = translate([Do], S),
+  { TCatch, SC } = elixir_clauses:try_catch(Line, Catch, umergec(S, SB)),
+  { TAfter, SA } = translate([After], umergec(S, SC)),
+  { { 'try', Line, unpack_try(do, TDo), [], TCatch, unpack_try('after', TAfter) }, umergec(RawS, SA) };
+
+%% Receive
+
+translate_builtin({'receive', Line, [RawClauses] }, S) ->
+  Clauses = orddict:erase(do, RawClauses),
+  case orddict:find('after', Clauses) of
+    { ok, After } ->
+      AClauses = orddict:erase('after', Clauses),
+      { TClauses, SC } = elixir_clauses:match(Line, AClauses ++ [{'after',After}], S),
+      { FClauses, [TAfter] } = lists:split(length(TClauses) - 1, TClauses),
+      { _, _, [FExpr], _, FAfter } = TAfter,
+      { { 'receive', Line, FClauses, FExpr, FAfter }, SC };
+    error ->
+      { TClauses, SC } = elixir_clauses:match(Line, Clauses, S),
+      { { 'receive', Line, TClauses }, SC }
+  end;
+
+%% Definitions
+
+translate_builtin({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
+  { TRef, _ } = translate_each(Ref, S),
+
+  NS = case TRef of
+    { atom, _, Module } ->
+      S#elixir_scope{scheduled=[Module|S#elixir_scope.scheduled]};
+    _ -> S
+  end,
+
+  { elixir_module:translate(Line, TRef, Block, S), NS };
+
+translate_builtin({Kind, Line, [_Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
+  assert_module_scope(Line, Kind, S),
+  { { nil, Line }, S };
+
+translate_builtin({Kind, Line, [Call, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+  { TCall, Guards } = elixir_clauses:extract_guards(Call),
+  { Name, Args } = elixir_clauses:extract_args(TCall),
+  translate_builtin({ Kind, Line, [ Name, Args, Guards, KV ] }, S);
+
+translate_builtin({Kind, Line, [Name, Args, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+  translate_builtin({ Kind, Line, [ Name, Args, true, KV ] }, S);
+
+translate_builtin({Kind, Line, [Name, Args, Guards, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+  assert_module_scope(Line, Kind, S),
+  case KV of
+    [{do, Expr}] -> [];
+    _ -> Expr = { 'try', Line, [KV]}
+  end,
+  { TName, TS } = translate_each(Name, S),
+  { elixir_def:wrap_definition(Kind, Line, TName, Args, elixir_clauses:extract_guard_clauses(Guards), Expr, TS), TS };
+
+%% Modules directives
+
+translate_builtin({use, Line, [Ref|Args]}, S) when length(Args) =< 1 ->
+  assert_module_scope(Line, use, S),
+  Module = S#elixir_scope.module,
+  Call = { '__BLOCK__', Line, [
+    { require, Line, [Ref,[{as,false}]] },
+    { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
+  ] },
+  translate_each(Call, S);
+
+%% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
+
+translate_builtin({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
+  { TLeft,  SL } = translate_each(Left, S),
+  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+  translate_apply(Line, TLeft, TRight, Args, S, SL, SR);
+
+%% Handle forced variables
+
+translate_builtin({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_atom(Atom) ->
+  elixir_variables:translate_each(Line, Name, S);
+
+translate_builtin({ 'var!', Line, [_] }, S) ->
+  syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "var!");
+
+translate_builtin({ Atom, Line, Args }, S) ->
+  { TArgs, NS } = translate_args(Args, S),
+  { { call, Line, { atom, Line, Atom }, TArgs }, NS }.
+
+%% HELPERS
 
 translate_comprehension(Line, Kind, Args, S) ->
   case lists:split(length(Args) - 1, Args) of
@@ -354,23 +337,6 @@ unpack_try(_, Exprs)                       -> Exprs.
 
 is_var({ Name, _Line, Atom }) when is_atom(Name), is_atom(Atom) -> true;
 is_var(_) -> false.
-
-% We need to record macros invoked so we raise users
-% a nice error in case they define a local that overrides
-% an invoked macro instead of silently failing.
-%
-% Some macros are not recorded because they will always
-% raise an error to users if they define something similar
-% regardless if they invoked it or not.
-record(Atom, S) ->
-  elixir_import:record(internal, { Atom, nil }, in_erlang_macros, S).
-
-convert_op('!==') -> '=/=';
-convert_op('===') -> '=:=';
-convert_op('!=')  ->  '/=';
-convert_op('<=')  ->  '=<';
-convert_op('<-')  ->  '!';
-convert_op(Else)  ->  Else.
 
 %% Assertions
 

@@ -136,8 +136,7 @@ dynamic_defmodule_test() ->
   test_helper:run_and_remove(F, ['::Foo', '::Bar']).
 
 dynamic_ref_test() ->
-  { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\nx::y::z"),
-  { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\n:\"::\".(x, y, z)").
+  { '::Foo::Bar::Baz', _ } = elixir:eval("x = Foo\ny = Bar\nz = :\"Baz\"\nx::y::z").
 
 dynamic_ref_precedence_test() ->
   F = fun() ->

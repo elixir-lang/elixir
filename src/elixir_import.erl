@@ -10,27 +10,18 @@
 %% import and internal invocations.
 
 import_table(Module)   -> ?ELIXIR_ATOM_CONCAT([i, Module]).
-internal_table(Module) -> ?ELIXIR_ATOM_CONCAT([e, Module]).
 
 build_table(Module) ->
-  ets:new(import_table(Module),   [set, named_table, private]),
-  ets:new(internal_table(Module), [bag, named_table, private]).
+  ets:new(import_table(Module),   [set, named_table, private]).
 
 delete_table(Module) ->
-  ets:delete(import_table(Module)),
-  ets:delete(internal_table(Module)).
+  ets:delete(import_table(Module)).
 
 record(_Kind, _Tuple, _Receiver, #elixir_scope{module=[]}) ->
   [];
 
 record(import, Tuple, Receiver, #elixir_scope{module=Module}) ->
-  ets:insert(import_table(Module), { Tuple, Receiver });
-
-record(internal, _Tuple, _Receiver, #elixir_scope{function=[]}) ->
-  [];
-
-record(internal, Tuple, _Receiver, #elixir_scope{module=Module}) ->
-  ets:insert(internal_table(Module), Tuple).
+  ets:insert(import_table(Module), { Tuple, Receiver }).
 
 %% Update the old entry according to the optins given
 %% and the values returned by fun.
@@ -73,12 +64,7 @@ calculate(Line, Key, Opts, Old, Available, S) ->
 %% conflicts with an import is automatically done by Erlang.
 
 ensure_no_local_conflict(Line, Filename, Module, AllDefined) ->
-  Table = internal_table(Module),
-  AlwaysConflict = in_erlang_macros_always_conflict(),
-
-  %% Get all defined functions that conflicts with an invoked internal macro
-  Matches = [{X,Y} || {X,Y} <- AllDefined, (ets:member(Table, X) orelse lists:member(X, AlwaysConflict))],
-  ensure_no_in_erlang_macro_conflict(Line, Filename, Module, Matches, local_conflict).
+  ensure_no_in_erlang_macro_conflict(Line, Filename, Module, AllDefined, local_conflict).
 
 %% Find conlicts in the given list of functions with
 %% the recorded set of imports.
@@ -99,19 +85,18 @@ ensure_no_import_conflict(Line, Filename, Module, AllDefined) ->
 %% Conflict helpers
 
 %% Ensure the given functions don't clash with any
-%% of Elixir "implemented in Erlang" macros.
+%% of Elixir non overridable macros.
 
 ensure_no_in_erlang_macro_conflict(Line, Filename, Key, [{Name,Arity}|T], Reason) ->
-  InErlang = in_erlang_macros(),
-  case orddict:find(Name, InErlang) of
-    { ok, Value } ->
-      case (Value == '*') or (Value == Arity) of
-        true  ->
-          Tuple = { Reason, { Key, Name, Arity } },
-          elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
-        false -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
-      end;
-    error -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
+  Values = lists:filter(fun({X,Y}) ->
+    (Name == X) andalso ((Y == '*') orelse (Y == Arity))
+  end, non_overridable_macros()),
+
+  case Values /= [] of
+    true  ->
+      Tuple = { Reason, { Key, Name, Arity } },
+      elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
+    false -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
   end;
 
 ensure_no_in_erlang_macro_conflict(_Line, _Filename, _Key, [], _) -> ok.
@@ -144,10 +129,10 @@ format_error({import_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("imported ~s.~s/~B conflicts with local function", [Receiver, Name, Arity]);
 
 format_error({local_conflict,{_, Name, Arity}}) ->
-  io_lib:format("cannot invoke local ~s/~B because it conflicts with Elixir macros", [Name, Arity]);
+  io_lib:format("cannot define local ~s/~B because it conflicts with Elixir internal macros", [Name, Arity]);
 
 format_error({internal_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir macros", [Receiver, Name, Arity]).
+  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir internal macros", [Receiver, Name, Arity]).
 
 %% Deletes all the entries in the list with the given key.
 
@@ -175,74 +160,34 @@ internal_funs() ->
     { '__using__', 1 }
   ].
 
-%% Macros implemented in Erlang - imported and non overridable by default
+%% Macros implemented in Erlang that are not overridable.
 
-in_erlang_macros() ->
-  orddict:from_list([
-    {'@',1},
-    {'=',2},
-    {'+',1},
-    {'+',2},
-    {'-',1},
-    {'-',2},
-    {'*',2},
-    {'/',2},
-    {'<-',2},
-    {'++',2},
-    {'--',2},
-    {'apply',3},
-    {'andalso',2},
-    {'orelse',2},
-    {'not',1},
-    {'and',2},
-    {'or',2},
-    {'xor',2},
-    {'<',2},
-    {'>',2},
-    {'<=',2},
-    {'>=',2},
-    {'==',2},
-    {'!=',2},
-    {'===',2},
-    {'!==',2},
+non_overridable_macros() ->
+  [
     {'^',1},
+    {'=',2},
     {'__OP__',2},
     {'__OP__',3},
     {'__BLOCK__','*'},
     {'__KVBLOCK__','*'},
     {'<<>>','*'},
     {'{}','*'},
-    {'use','*'},
     {'require',1},
     {'require',2},
     {'import',1},
     {'import',2},
     {'import',3},
-    {'defmodule','*'},
     {'__MODULE__',0},
     {'__FILE__',0},
     {'__LINE__',0},
     {'__REF__',1},
-    {'::','*'},
-    {'def','*'},
-    {'defp','*'},
-    {'defmacro','*'},
     {'quote',1},
     {'unquote',1},
     {'unquote_splicing',1},
     {'fn','*'},
-    {'case',2},
-    {'receive',1},
-    {'try',1},
     {'loop','*'},
     {'recur','*'},
     {'for','*'},
     {'bc','*'},
-    {'lc','*'},
-    {'var!','1'}
-  ]).
-
-%% Those macros will always raise an error if one defines them.
-in_erlang_macros_always_conflict() ->
-  ['__BLOCK__', '__KVBLOCK__', '__OP__', '<<>>', '{}', '__MODULE__',
-   '__FILE__', '__LINE__', '__REF__', '::', '^'].
+    {'lc','*'}
+  ].

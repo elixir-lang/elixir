@@ -103,7 +103,7 @@ defmodule EnumTest do
   end
 
   def test_enum_for do
-    [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = Enum.for [[1,2],[3,4]], fn(acc, y, x) { [{x,y}|acc] }
+    [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = Enum.__for__ [[1,2],[3,4]], fn(acc, y, x) { [{x,y}|acc] }
   end
 
   def test_for do

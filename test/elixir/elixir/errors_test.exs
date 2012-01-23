@@ -5,7 +5,6 @@ defmodule Elixir::ErrorsTest do
 
   defmodule __MODULE__ :: UnproperMacro do
     defmacro unproper(args), do: args
-    defmacro case(x, _), do: x
   end
 
   def test_invalid_token do
@@ -122,13 +121,8 @@ defmodule Elixir::ErrorsTest do
       format_catch 'case true do\ninvalid: 2\nafter: 3\nend'
   end
 
-  def test_cant_import_in_erlang_macros_with_import do
-    "nofile:1: cannot import ::Elixir::ErrorsTest::UnproperMacro.case/2 because it conflicts with Elixir macros" =
-      format_catch 'defmodule Foo, do: import Elixir::ErrorsTest::UnproperMacro, only: [case: 2]'
-  end
-
   def test_cant_define_local_due_to_in_erlang_macros_conflict do
-    "nofile:1: cannot invoke local quote/1 because it conflicts with Elixir macros" =
+    "nofile:1: cannot define local quote/1 because it conflicts with Elixir internal macros" =
       format_catch 'defmodule Foo do\ndef quote(x), do: x\ndef bar(x), do: quote(do: x)\nend'
   end
 

@@ -28,7 +28,6 @@ translate(Forms, S) ->
 %% Assignment operator
 
 translate_each({'=', Line, [Left, Right]}, S) ->
-  record('=', S),
   { TRight, SR } = translate_each(Right, S),
   { TLeft, SL } = elixir_clauses:assigns(fun translate_each/2, Left, SR),
   { { match, Line, TLeft, TRight }, SL };
@@ -54,8 +53,19 @@ translate_each({ '__KVBLOCK__', Line, Args }, S) when is_list(Args) ->
       Desc = io_lib:format("~s.~s/~B", [Receiver, Name, Arity]),
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "key value blocks not supported by: ", Desc);
     _ ->
+      % TODO: This shuold be raised at runtime
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "unhandled key value blocks", "")
   end;
+
+%% Erlang op
+
+translate_each({ '__OP__', Line, [Op, Expr] }, S) when is_atom(Op) ->
+  { TExpr, NS } = translate_each(Expr, S),
+  { { op, Line, convert_op(Op), TExpr }, NS };
+
+translate_each({ '__OP__', Line, [Op|Args] }, S) when is_atom(Op) ->
+  { [TLeft, TRight], NS }  = translate_args(Args, S),
+  { { op, Line, convert_op(Op), TLeft, TRight }, NS };
 
 %% Containers
 
@@ -70,8 +80,6 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
 %% Lexical
 
 translate_each({require, Line, [Ref|T]}, S) ->
-  record(require, S),
-
   KV = case T of
     [NotEmpty] -> NotEmpty;
     [] -> []
@@ -111,7 +119,6 @@ translate_each({import, Line, [Selector, Left]}, S) ->
   translate_each({ import, Line, [Selector, Left, []]}, S);
 
 translate_each({import, Line, [Left, Right, Opts]}, S) ->
-  record(import, S),
   { TSelector, SL } = translate_each(Left, S),
   { TRef, SR } = translate_each(Right, SL),
 
@@ -193,11 +200,9 @@ translate_each({'__REF__', Line, [Ref]}, S) when is_atom(Ref) ->
 %% Quoting
 
 translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->
-  record(quote, S),
   elixir_quote:translate_each(Exprs, S);
 
 translate_each({quote, Line, [_]}, S) ->
-  record(quote, S),
   syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "quote");
 
 %% Variables
@@ -398,12 +403,9 @@ convert_partials(Line, [H|T], S, CallAcc, DefAcc) ->
 convert_partials(_Line, [], S, CallAcc, DefAcc) ->
   { lists:reverse(CallAcc), lists:reverse(DefAcc), S }.
 
-% We need to record macros invoked so we raise users
-% a nice error in case they define a local that overrides
-% an invoked macro instead of silently failing.
-%
-% Some macros are not recorded because they will always
-% raise an error to users if they define something similar
-% regardless if they invoked it or not.
-record(Atom, S) ->
-  elixir_import:record(internal, { Atom, nil }, in_erlang_macros, S).
+convert_op('!==') -> '=/=';
+convert_op('===') -> '=:=';
+convert_op('!=')  ->  '/=';
+convert_op('<=')  ->  '=<';
+convert_op('<-')  ->  '!';
+convert_op(Else)  ->  Else.
