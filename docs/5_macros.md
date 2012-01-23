@@ -89,6 +89,8 @@ Which will then return:
 
 In other words, unquote is a mechanism to inject expressions into the tree being quoted and is essential to the meta-programming mechanism. Elixir also provides `unquote_splicing` allowing us to inject many expressions at once.
 
+We can define any macro we want, including override the built-in macros provided by Elixir. The only exceptions are Elixir special forms that cannot be overridden, [the full list of special forms is available in `Elixir::SpecialForms`](https://github.com/josevalim/elixir/tree/master/lib/elixir/special_forms.ex).
+
 ## 5.3 Macros hygiene
 
 Elixir macros follow Scheme conventions and are hygienic. This means a variable defined inside a macro won't conflict with a variable defined in the context the macro is inserted. For example:

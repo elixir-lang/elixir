@@ -19,12 +19,12 @@ defmodule Kernel::RequireTest do
     1 = Nested.value
   end
 
-  # def test_default_required do
-  #   true = Elixir::Macros.case 1 do
-  #   match: 1
-  #     true
-  #   else:
-  #     false
-  #   end
-  # end
+  def test_default_required do
+    true = Elixir::Macros.case 1 do
+    match: 1
+      true
+    else:
+      false
+    end
+  end
 end

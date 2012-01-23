@@ -77,7 +77,7 @@ dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
 
 dispatch_macro(Line, '::Elixir::Macros' = Receiver, { Name, Arity } = Tuple, Args, S) ->
   case lists:member(Tuple, in_erlang_macros()) of
-    true  -> elixir_macros:translate_builtin({ Name, Line, Args }, S);
+    true  -> elixir_macros:translate_macro({ Name, Line, Args }, S);
     false -> dispatch_macro(Line, Receiver, Name, Arity, Args, S)
   end;
 

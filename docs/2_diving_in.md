@@ -549,7 +549,7 @@ In most cases, we don't send messages directly with `<-` nor write `receive` con
 
 ## 2.7 Default functions
 
-Elixir ships with many default functions automatically available in the current scope. Besides all the control flow expressions seen above, Elixir also adds: `elem` and `setelem` to read and set values in tuples, `inspect` that returns the representation of a given data type as string and many others. [A list of all those functions with documentation and examples are available here](github.com/josevalim/elixir/tree/master/lib/elixir/macros.ex).
+Elixir ships with many default functions automatically available in the current scope. Besides all the control flow expressions seen above, Elixir also adds: `elem` and `setelem` to read and set values in tuples, `inspect` that returns the representation of a given data type as string and many others. [Many of these functions with documentation and examples are available in `Elixir::Macros`](https://github.com/josevalim/elixir/tree/master/lib/elixir/macros.ex) and [Elixir special forms are available in `Elixir::SpecialForms`](https://github.com/josevalim/elixir/tree/master/lib/elixir/special_forms.ex).
 
 Besides the functions provided by Elixir, all the root functions from Erlang are also available. The function `length`, `is_list`, `is_number` and many others we discussed above comes from Erlang. [The full documented list is available on the OTP documentation page](http://www.erlang.org/doc/man/erlang.html).
 

@@ -1,3 +1,5 @@
+%% Main entry point for translations. Are macros that cannot be
+%% overriden are defined in this file.
 -module(elixir_translator).
 -export([translate/2, translate_each/2, translate_args/2, translate_apply/7, forms/3]).
 -import(elixir_variables, [umergev/2, umergec/2]).
@@ -245,7 +247,7 @@ translate_each({Name, Line, nil}, S) when is_atom(Name) ->
 
 translate_each({Atom, Line, _} = Original, S) when is_atom(Atom) ->
   case handle_partials(Line, Original, S) of
-    error -> elixir_macros:translate_macro(Original, S);
+    error -> translate_splat(Original, S);
     Else  -> Else
   end;
 
@@ -331,6 +333,129 @@ translate_each(Atom, S) when is_atom(Atom) ->
 translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
 
+%% Translate splat
+
+%% Macros that can be partially applied but not overridable
+%% since the expect any number of arguments
+
+translate_splat({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
+  Clauses = case lists:split(length(RawArgs) - 1, RawArgs) of
+    { Args, [[{do,Expr}]] } ->
+      [{match,Args,Expr}];
+    { [], [KV] } when is_list(KV) ->
+      elixir_kv_block:decouple(orddict:erase(do, KV));
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "no block given for: ", "fn")
+  end,
+
+  Transformer = fun({ match, ArgsWithGuards, Expr }, Acc) ->
+    { FinalArgs, Guards } = elixir_clauses:extract_last_guards(ArgsWithGuards),
+    elixir_clauses:assigns_block(Line, fun elixir_translator:translate/2, FinalArgs, [Expr], Guards, umergec(S, Acc))
+  end,
+
+  { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
+  { { 'fun', Line, {clauses, TClauses} }, umergec(S, NS) };
+
+%% Loop and recur
+
+translate_splat({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
+  case lists:split(length(RawArgs) - 1, RawArgs) of
+    { Args, [KV] } when is_list(KV) ->
+      %% Generate a variable that will store the function
+      { FunVar, VS }  = elixir_variables:build_ex(Line, S),
+
+      %% Add this new variable to all match clauses
+      [{match, KVBlock}] = elixir_kv_block:normalize(orddict:erase(do, KV)),
+      Values = [{ [FunVar|Conds], Expr } || { Conds, Expr } <- element(3, KVBlock)],
+      NewKVBlock = setelement(3, KVBlock, Values),
+
+      %% Generate a function with the match blocks
+      Function = { fn, Line, [[{match,NewKVBlock}]] },
+
+      %% Finally, assign the function to a variable and
+      %% invoke it passing the function itself as first arg
+      Block = { '__BLOCK__', Line, [
+        { '=', Line, [FunVar, Function] },
+        { { '.', Line, [FunVar] }, Line, [FunVar|Args] }
+      ] },
+
+      { TBlock, TS } = translate_each(Block, VS#elixir_scope{recur=element(1,FunVar)}),
+      { TBlock, TS#elixir_scope{recur=[]} };
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "loop")
+  end;
+
+translate_splat({recur, Line, Args}, S) when is_list(Args) ->
+  case S#elixir_scope.recur of
+    [] ->
+      syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop. invalid scope for: ", "recur");
+    Recur ->
+      ExVar = { Recur, Line, nil },
+      Call = { { '.', Line, [ExVar] }, Line, [ExVar|Args] },
+      translate_each(Call, S)
+  end;
+
+%% Comprehensions
+
+translate_splat({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
+  translate_comprehension(Line, Kind, Args, S);
+
+translate_splat({ for, Line, RawArgs }, S) when is_list(RawArgs) ->
+  case lists:split(length(RawArgs) - 1, RawArgs) of
+    { Cases, [[{do,Expr}]] } ->
+      { Generators, Filters } = lists:splitwith(fun
+        ({ 'in', _, _ }) -> true;
+        (_) -> false
+      end, Cases),
+
+      case Generators of
+        [] -> syntax_error(Line, S#elixir_scope.filename, "expected at least one generator for: ", "for");
+        _  -> []
+      end,
+
+      Args  = [X || { _, _, [X, _] } <- Generators],
+      Enums = [Y || { _, _, [_, Y] } <- Generators],
+
+      { AccVar, VS } = elixir_variables:build_ex(Line, S),
+      Tail = [{ '|', Line, [Expr, AccVar] }],
+
+      Fun = case lists:all(fun is_var/1, Args) andalso Filters == [] of
+        true  ->
+          { fn, Line, [AccVar|lists:reverse(Args)] ++ [[{do,Tail}]] };
+        false ->
+          Condition  = lists:reverse(Args),
+          Underscore = [{ '_', Line, nil } || _ <- Args],
+
+          Body = case Filters of
+            [] -> Tail;
+            _  ->
+              Guard = lists:foldl(fun(X, Acc) ->
+                { '&&', Line, [X, Acc] }
+              end, hd(Filters), tl(Filters)),
+
+              { 'if', Line, [Guard, [{do,Tail},{else,AccVar}]] }
+          end,
+
+          { fn, Line, [[
+            { match, { '__KVBLOCK__', Line, [
+              { [AccVar|Condition], Body },
+              { [AccVar|Underscore], AccVar }
+            ] } }
+          ]] }
+      end,
+
+      translate_each({ { '.', Line, ['::Enum', '__for__'] }, Line, [Enums, Fun] }, VS);
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "no block given for: ", "for")
+  end;
+
+translate_splat({ Atom, Line, Args }, S) ->
+  Callback = fun() ->
+    { TArgs, NS } = translate_args(Args, S),
+    { { call, Line, { atom, Line, Atom }, TArgs }, NS }
+  end,
+  elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback).
+
 %% Helpers
 
 % Variables in arguments are not propagated from one
@@ -382,7 +507,7 @@ handle_partials(Line, Original, S) ->
   case convert_partials(Line, element(3, Original), S) of
     { Call, Def, SC } when Def /= [] ->
       Block = [{do, setelement(3, Original, Call)}],
-      elixir_macros:translate_macro({ fn, Line, Def ++ [Block] }, SC);
+      translate_splat({ fn, Line, Def ++ [Block] }, SC);
     _ -> error
   end.
 
@@ -403,9 +528,47 @@ convert_partials(Line, [H|T], S, CallAcc, DefAcc) ->
 convert_partials(_Line, [], S, CallAcc, DefAcc) ->
   { lists:reverse(CallAcc), lists:reverse(DefAcc), S }.
 
+%% Convert operators
+
 convert_op('!==') -> '=/=';
 convert_op('===') -> '=:=';
 convert_op('!=')  ->  '/=';
 convert_op('<=')  ->  '=<';
 convert_op('<-')  ->  '!';
 convert_op(Else)  ->  Else.
+
+is_var({ Name, _Line, Atom }) when is_atom(Name), is_atom(Atom) -> true;
+is_var(_) -> false.
+
+%% Comprehensions
+
+translate_comprehension(Line, Kind, Args, S) ->
+  case lists:split(length(Args) - 1, Args) of
+    { Cases, [[{do,Expr}]] } ->
+      { TCases, SC } = lists:mapfoldl(fun translate_each_comprehension/2, S, Cases),
+      { TExpr, SE } = translate_each(Expr, SC),
+      { { Kind, Line, TExpr, TCases }, umergec(S, SE) };
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "no block given for comprehension: ", atom_to_list(Kind))
+  end.
+
+translate_each_comprehension({ in, Line, [{'<<>>', _, _} = Left, Right] }, S) ->
+  translate_each_comprehension({ inbin, Line, [Left, Right]}, S);
+
+translate_each_comprehension({inbin, Line, [Left, Right]}, S) ->
+  { TRight, SR } = translate_each(Right, S),
+  { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
+  { { b_generate, Line, TLeft, TRight }, SL };
+
+translate_each_comprehension({Kind, Line, [Left, Right]}, S) when Kind == in; Kind == inlist ->
+  { TRight, SR } = translate_each(Right, S),
+  { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
+  { { generate, Line, TLeft, TRight }, SL };
+
+translate_each_comprehension(X, S) ->
+  { TX, TS } = translate_each(X, S),
+  Line = case X of
+    { _, L, _ } -> L;
+    _ -> 0
+  end,
+  { elixir_tree_helpers:convert_to_boolean(Line, TX, true), TS }.
