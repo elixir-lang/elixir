@@ -39,7 +39,7 @@ If you want to contribute, the code is organized as follow:
 
 * `test/erlang` - Contains tests for Elixir, written in Erlang. Usually, just internal stuff is tested here. The preferred way to test is in Elixir itself.
 
-We usually keep a list of features and bugs (in the issues tracker)[https://github.com/josevalim/elixir/issues].
+We usually keep a list of features and bugs [in the issues tracker](https://github.com/josevalim/elixir/issues).
 
 # Important links
 
