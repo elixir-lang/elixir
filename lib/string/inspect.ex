@@ -147,6 +147,6 @@ defimpl String::Inspect, for: Any do
   def inspect(thing), do: to_binary(thing)
 
   def to_binary(thing) do
-    list_to_binary Erlang.io_lib.format('~p', [thing])
+    iolist_to_binary Erlang.io_lib.format('~p', [thing])
   end
 end
