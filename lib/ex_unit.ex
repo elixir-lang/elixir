@@ -23,7 +23,7 @@
 # script that ships with Elixir. Assuming you named your file
 # assertion_test.exs, you can run it as:
 #
-#     bin/exunit assertion_test.exs
+#     bin/elixir assertion_test.exs
 #
 # ## Assertions
 #

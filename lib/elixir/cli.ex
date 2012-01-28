@@ -84,8 +84,10 @@ defmodule Elixir::CLI do
     process_shared t, config
   end
 
-  defp process_shared(['-f',h|t], config) do
-    process_shared t, config.prepend_close [{:eval,h}]
+  defp process_shared(['-r'|t], config) do
+    { switches, files } = until_switch(t, [])
+    commands = lc file in files, do: { :require, file }
+    process_shared switches, config.prepend_commands(commands)
   end
 
   defp process_shared(list, config) do
@@ -107,7 +109,7 @@ defmodule Elixir::CLI do
     match: '-' ++ _
       shared_option? list, config, process_options(_, _)
     else:
-      { config.prepend_commands([{:load, h}]), t }
+      { config.prepend_commands([{:require, h}]), t }
     end
   end
 
@@ -138,14 +140,30 @@ defmodule Elixir::CLI do
     { config, [] }
   end
 
+  # Parse inputs until we have a switch.
+  # Return non-switches in reverse order.
+
+  defp until_switch([h|t], acc) do
+    case h do
+    match: '-' ++ _
+      { [h|t], acc }
+    else:
+      until_switch t, [h|acc]
+    end
+  end
+
+  defp until_switch([], acc) do
+    { [], acc }
+  end
+
   # Process commands
 
   defp process_command({:eval, expr}, _config) do
     Erlang.elixir.eval(expr, [])
   end
 
-  defp process_command({:load, file}, _config) do
-    Code.require_file file
+  defp process_command({:require, file}, _config) do
+    Enum.each File.wildcard(file), Code.require_file(_)
   end
 
   defp process_command({:compile, pattern}, config) do
