@@ -75,19 +75,17 @@ defmodule Elixir::CLI do
   end
 
   defp process_shared(['-pa',h|t], config) do
-    Erlang.code.add_patha(h)
+    Code.prepend_path(h)
     process_shared t, config
   end
 
   defp process_shared(['-pz',h|t], config) do
-    Erlang.code.add_pathz(h)
+    Code.append_path(h)
     process_shared t, config
   end
 
-  defp process_shared(['-r'|t], config) do
-    { switches, files } = until_switch(t, [])
-    commands = lc file in files, do: { :require, file }
-    process_shared switches, config.prepend_commands(commands)
+  defp process_shared(['-r',h|t], config) do
+    process_shared t, config.prepend_commands [{:require,h}]
   end
 
   defp process_shared(list, config) do
@@ -138,22 +136,6 @@ defmodule Elixir::CLI do
 
   defp process_compiler([], config) do
     { config, [] }
-  end
-
-  # Parse inputs until we have a switch.
-  # Return non-switches in reverse order.
-
-  defp until_switch([h|t], acc) do
-    case h do
-    match: '-' ++ _
-      { [h|t], acc }
-    else:
-      until_switch t, [h|acc]
-    end
-  end
-
-  defp until_switch([], acc) do
-    { [], acc }
   end
 
   # Process commands

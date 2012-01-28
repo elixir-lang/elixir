@@ -21,6 +21,14 @@ defmodule Code do
     server_call { :at_exit, fun }
   end
 
+  def append_path(path) do
+    Erlang.code.add_pathz(to_list(path))
+  end
+
+  def prepend_path(path) do
+    Erlang.code.add_patha(to_list(path))
+  end
+
   # Evalutes the quotes contents.
   #
   # ## Examples
