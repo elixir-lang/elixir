@@ -28,12 +28,7 @@ Since operators are also function calls they can also be partially applied:
     iex> Enum.map [1,2,3], _ * 2
     [2,4,6]
 
-The only exception are data structures that cannot be partially applied:
-
-    iex> { 1, _ }
-    ** error {:unbound_var,:_}
-    iex> [ 1 | _ ]
-    ** error {:unbound_var,:_}
+All functions can be partially applied, except [Elixir's special forms](https://github.com/josevalim/elixir/tree/master/lib/elixir/special_forms.ex).
 
 # 6.2 Comprehensions
 
