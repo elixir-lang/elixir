@@ -5,6 +5,7 @@ defmodule Elixir::IEx do
     IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
     function = fn { do_loop([], '') }
     Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
+    Erlang.timer.sleep(:infinity)
   end
 
   def do_loop(binding, code_cache) do

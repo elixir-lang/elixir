@@ -6,8 +6,8 @@
 #
 #     # File: assertion_test.exs
 #
-#     # 1) If you wish to configure ExUnit. See a list of options below.
-#     ExUnit.configure
+#     # 1) Start ExUnit. You can pass some options as argument (list below)
+#     ExUnit.start
 #
 #     # 2) Next we create a new TestCase and add ExUnit::Case to it
 #     defmodule AssertionTest do
@@ -38,8 +38,10 @@
 # * `:max_cases` - Maximum number of cases to run in parallel
 #
 defmodule ExUnit do
-  def start do
+  def start(options // []) do
     ExUnit::Server.start_link
+    configure(options)
+    Code.at_exit fn(_){ ExUnit.run }
   end
 
   def configure(options) do
