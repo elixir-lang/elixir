@@ -11,6 +11,16 @@ defmodule Code do
     server_call :loaded
   end
 
+  # Registers a function that will be invoked
+  # at the end of program execution. Useful for
+  # invoking a hook on scripted mode.
+  #
+  # The function must expect the exit status code
+  # as argument.
+  def at_exit(fun) when is_function(fun, 1) do
+    server_call { :at_exit, fun }
+  end
+
   # Evalutes the quotes contents.
   #
   # ## Examples

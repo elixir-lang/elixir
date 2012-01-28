@@ -1,4 +1,4 @@
-defrecord Elixir::CLI::Config, commands: [], close: [], halt: true, output: '.', compile: false
+defrecord Elixir::CLI::Config, commands: [], close: [], output: '.', compile: false
 
 defmodule Elixir::CLI do
   import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
@@ -18,21 +18,32 @@ defmodule Elixir::CLI do
     try do
       Enum.map all_commands, process_command(_, config)
     catch: :exit, reason when is_integer(reason)
+      at_exit(reason)
       halt(reason)
     catch: kind, reason
+      at_exit(1)
       IO.puts :standard_error, "** #{kind} #{format_catch(kind, reason)}"
       print_stacktrace(Code.stacktrace)
       halt(1)
     end
 
-    if config.halt do
-      halt(0)
-    else:
-      Erlang.timer.sleep(:infinity)
-    end
+    at_exit(0)
+    halt(0)
   end
 
   ## Private
+
+  defp at_exit(status) do
+    hooks = Erlang.gen_server.call(:elixir_code_server, :at_exit)
+    lc hook in hooks do
+      try do
+        hook.(status)
+      catch: kind, reason
+        IO.puts :standard_error, "** #{kind} #{format_catch(kind, reason)}"
+        print_stacktrace(Code.stacktrace)
+      end
+    end
+  end
 
   defp invalid_option(option) do
     IO.puts(:standard_error, "Unknown option #{list_to_binary(option)}")
@@ -82,10 +93,6 @@ defmodule Elixir::CLI do
   end
 
   # Process init options
-
-  defp process_options(['--no-halt'|t], config) do
-    process_options t, config.halt(false)
-  end
 
   defp process_options(['--'|t], config) do
     { config, t }
