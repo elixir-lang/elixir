@@ -43,10 +43,10 @@ defmodule EnumTest do
   def test_each do
     [] = Enum.each [], fn(x) { x }
 
-    [1,2,3] = Enum.each [1,2,3], fn(x) { put(:enum_test_each, x * 2) }
-    6 = get(:enum_test_each)
+    [1,2,3] = Enum.each [1,2,3], fn(x) { Process.put(:enum_test_each, x * 2) }
+    6 = Process.get(:enum_test_each)
   after:
-    erase(:enum_test_each)
+    Process.erase(:enum_test_each)
   end
 
   def test_filter do
@@ -83,19 +83,19 @@ defmodule EnumTest do
 
   def test_times_with_arity_0 do
     put(:times_with_arity, nil)
-    0 = Enum.times 0, fn { put(:times_with_arity, :ok) }
-    nil = get(:times_with_arity)
-    3 = Enum.times 3, fn { put(:times_with_arity, :ok) }
-    :ok = get(:times_with_arity)
+    0 = Enum.times 0, fn { Process.put(:times_with_arity, :ok) }
+    nil = Process.get(:times_with_arity)
+    3 = Enum.times 3, fn { Process.put(:times_with_arity, :ok) }
+    :ok = Process.get(:times_with_arity)
   after:
-    erase(:times_with_arity)
+    Process.erase(:times_with_arity)
   end
 
   def test_times_with_arity_1 do
-    5 = Enum.times 5, fn(x) { put(:times_with_arity, x) }
-    4 = get(:times_with_arity)
+    5 = Enum.times 5, fn(x) { Process.put(:times_with_arity, x) }
+    4 = Process.get(:times_with_arity)
   after:
-    erase(:times_with_arity)
+    Process.erase(:times_with_arity)
   end
 
   def test_times_with_arity_2 do

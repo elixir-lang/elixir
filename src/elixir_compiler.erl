@@ -59,7 +59,7 @@ eval_forms(Forms, Line, Module, Value, S) ->
 %% automatically handles errors and warnings.
 %% Used by this module and elixir_module.
 module(Forms, Filename, Callback) ->
-  case compile:forms(Forms, [return]) of
+  case compile:forms([no_auto_import()|Forms], [return]) of
     {ok, ModuleName, Binary, Warnings} ->
       format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary),
@@ -78,6 +78,16 @@ core() ->
   [core_file(File) || File <- '::List':uniq(Files)].
 
 %% HELPERS
+
+no_auto_import() ->
+  { attribute, 0, compile, {
+    no_auto_import, [
+      {get,0}, {get,1}, {get_keys,1}, {is_process_alive,1},
+      {erase,0}, {erase,1}, {processes,0}, {put,1},
+      {process_info,1}, {process_info,2}, {process_flag,2},
+      {process_flag,3}
+    ]
+  } }.
 
 module_form(Exprs, Line, Filename, Module) ->
   Args = [{ var, Line, '_EXMODULE'}],
