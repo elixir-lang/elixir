@@ -36,8 +36,8 @@ defmodule Elixir::SpecialForms do
   #
   #     defmodule Math do
   #       def some_function do
-  #         # 1) Disable `if/2` from Elixir::Macros
-  #         import Elixir::Macros, except: [if: 2]
+  #         # 1) Disable `if/2` from Elixir::Builtin
+  #         import Elixir::Builtin, except: [if: 2]
   #
   #         # 2) Require the new `if` macro from MyMacros
   #         import MyMacros

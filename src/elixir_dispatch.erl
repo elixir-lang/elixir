@@ -7,20 +7,21 @@
 
 default_functions() ->
   [
-    { '::Elixir::Functions', get_functions('::Elixir::Functions') },
+    { '::Elixir::Builtin', get_functions('::Elixir::Builtin') },
     { erlang, in_erlang_functions() }
   ].
 default_macros() ->
-  [ { '::Elixir::Macros', get_optional_macros('::Elixir::Macros') } ].
+  [ { '::Elixir::Builtin', get_optional_macros('::Elixir::Builtin') } ].
 default_refer() ->
-  [ { '::Elixir::Macros', '::Elixir::Macros' } ].
+  [ { '::Elixir::Builtin', '::Elixir::Builtin' } ].
 
 %% Get macros/functions from the given module and
 %% raise an exception if appropriated.
 
-get_functions('::Elixir::Functions') ->
+get_functions('::Elixir::Builtin' = Module) ->
   try
-    '::Elixir::Functions':module_info(exports) -- [{module_info,0},{module_info,1},{'__info__',1}]
+    (Module:module_info(exports) -- get_optional_macros(Module)) --
+      [{module_info,0},{module_info,1},{'__info__',1}]
   catch
     error:undef -> []
   end;
@@ -28,8 +29,8 @@ get_functions('::Elixir::Functions') ->
 get_functions(Module) ->
   Module:module_info(exports) -- get_optional_macros(Module).
 
-get_macros(_Line, '::Elixir::Macros', _S) ->
-  get_optional_macros('::Elixir::Macros');
+get_macros(_Line, '::Elixir::Builtin', _S) ->
+  get_optional_macros('::Elixir::Builtin');
 
 get_macros(Line, Module, S) ->
   try
@@ -40,9 +41,9 @@ get_macros(Line, Module, S) ->
       elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
   end.
 
-get_optional_macros('::Elixir::Macros') ->
+get_optional_macros('::Elixir::Builtin') ->
   try
-    '::Elixir::Macros':'__info__'(macros) ++ in_erlang_macros()
+    '::Elixir::Builtin':'__info__'(macros) ++ in_erlang_macros()
   catch
     error:undef -> in_erlang_macros()
   end;
@@ -86,7 +87,7 @@ dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
 
 %% HELPERS
 
-dispatch_macro(Line, '::Elixir::Macros' = Receiver, { Name, Arity } = Tuple, Args, S) ->
+dispatch_macro(Line, '::Elixir::Builtin' = Receiver, { Name, Arity } = Tuple, Args, S) ->
   case lists:member(Tuple, in_erlang_macros()) of
     true  -> elixir_macros:translate_macro({ Name, Line, Args }, S);
     false -> dispatch_macro(Line, Receiver, Name, Arity, Args, S)

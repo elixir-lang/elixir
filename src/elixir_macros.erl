@@ -1,4 +1,4 @@
-%% Those macros behave like they belong to Elixir::Macros,
+%% Those macros behave like they belong to Elixir::Builtin,
 %% but do not since they need to be implemented in Erlang.
 -module(elixir_macros).
 -export([translate_macro/2]).

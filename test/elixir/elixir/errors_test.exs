@@ -59,7 +59,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_macro_conflict do
-    "nofile:1: imported ::Elixir::Macros.defrecord/2 conflicts with local function" =
+    "nofile:1: imported ::Elixir::Builtin.defrecord/2 conflicts with local function" =
       format_catch 'defmodule Foo do\ndefrecord(::Elixir::ErrorsTest::MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
@@ -69,12 +69,12 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_import_invalid_macro do
-    "nofile:2: cannot import ::Elixir::Macros.invalid/1 because it doesn't exist" =
-      format_catch 'defmodule Foo do\nimport Elixir::Macros, only: [invalid: 1]\nend'
+    "nofile:2: cannot import ::Elixir::Builtin.invalid/1 because it doesn't exist" =
+      format_catch 'defmodule Foo do\nimport Elixir::Builtin, only: [invalid: 1]\nend'
   end
 
   def test_unrequired_macro do
-    "nofile:2: tried to invoke macro ::Record.getters_and_setters/4 but module was not required. Required: ['::Elixir::Macros']" =
+    "nofile:2: tried to invoke macro ::Record.getters_and_setters/4 but module was not required. Required: ['::Elixir::Builtin']" =
       format_catch 'defmodule Foo do\nRecord.getters_and_setters([], 0, [], Foo)\nend'
   end
 

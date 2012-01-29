@@ -133,7 +133,7 @@ core_list() ->
 
 core_main() ->
   [
-    "lib/elixir/macros.ex",
+    "lib/elixir/builtin.ex",
     "lib/module.ex",
     "lib/orddict.ex",
     "lib/list.ex",

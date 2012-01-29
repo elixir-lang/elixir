@@ -215,7 +215,7 @@ not_test() ->
 andand_test() ->
   F = fun() ->
     elixir:eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = elixir:eval("Elixir::Macros.&&(true, true)"),
+    {true, _} = elixir:eval("Elixir::Builtin.&&(true, true)"),
     {true, _} = elixir:eval("true && true"),
     {false, _} = elixir:eval("true && false"),
     {false, _} = elixir:eval("false && true"),
@@ -239,7 +239,7 @@ andand_test() ->
 oror_test() ->
   F = fun() ->
     elixir:eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = elixir:eval("Elixir::Macros.||(false, true)"),
+    {true, _} = elixir:eval("Elixir::Builtin.||(false, true)"),
     {true, _} = elixir:eval("true || true"),
     {true, _} = elixir:eval("true || false"),
     {true, _} = elixir:eval("false || true"),

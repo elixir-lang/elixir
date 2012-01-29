@@ -1,6 +1,6 @@
 # We cannot use to_list because it depends on inspect,
 # which depends on protocol, which depends on this module.
-import Elixir::Macros, except: [to_list: 1]
+import Elixir::Builtin, except: [to_list: 1]
 
 defmodule Module do
   require Erlang.ets, as: ETS
