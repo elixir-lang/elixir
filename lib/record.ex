@@ -1,6 +1,7 @@
 defmodule Record do
   # Main entry point for records definition.
   def defrecord(name, values, opts) do
+    block    = Orddict.get(opts, :do)
     as       = Orddict.get(opts, :as, true)
     extensor = Orddict.get(opts, :extensor, Record::Extensor)
 
@@ -9,6 +10,7 @@ defmodule Record do
         require ::Record
         Record.getters_and_setters(unquote(values), 1, [], unquote(extensor))
         Record.initializers(unquote(values))
+        unquote(block)
       end
 
       require unquote(name), as: unquote(as)
@@ -34,8 +36,7 @@ defmodule Record do
   #     end
   #
   defmacro initializers(values) do
-    # Get default values from the dictionary.
-    defaults = Orddict.values(values)
+    defaults = Enum.map values, elem(_, 2)
 
     # For each value, define a piece of code that will receive
     # an ordered dict of options (opts) and it will try to fetch
