@@ -291,8 +291,8 @@ defmodule Enum do
   #    2
   #
   def times(times, function) when times >= 0 do
-    case :erlang.fun_info(function, :arity) do
-    match: { :arity, 0 }
+    case is_function(function, 0) do
+    match: true
       do_times_0(times, 0, function)
     else:
       do_times_1(times, 0, function)
