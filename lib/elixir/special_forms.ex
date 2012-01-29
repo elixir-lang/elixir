@@ -349,4 +349,35 @@ defmodule Elixir::SpecialForms do
   # doesn't treat binaries as enumerables. If you need to manipulate
   # binaries, you need to resort to comprehensions.
   defmacro for(args)
+
+  # Keeps one of the given expressions depending in the context
+  # of evaluation is a guard or not. This is useful when creating
+  # macro that should work both inside and outside guards but
+  # still hold some characteristics.
+  #
+  # ## Example
+  #
+  # A good example is the `is_exception/1` macro defined in Elixir:
+  #
+  #      defmacro is_exception(thing) do
+  #        quote do
+  #          in_guard do
+  #            andalso(is_tuple(unquote(thing)), element(2, unquote(thing)) == __EXCEPTION__)
+  #          else:
+  #            result = unquote(thing)
+  #            andalso(is_tuple(result), element(2, result) == __EXCEPTION__)
+  #          end
+  #        end
+  #      end
+  #
+  # Notice that if inside a guard, we unquote the same element twice.
+  # This will cause the same element to be evaluted twice, but this is
+  # fine for guards since we cannot assign variables in guards and
+  # we cannot call expressions inside guards. However, when outside
+  # of a guard, evaluating the arguments twice can be harmful and
+  # unexpected, for this reason, we save the result in a variable.
+  #
+  # In the example above, `in_guard` is allowing us to customize
+  # the same macro to work inside and outside guards.
+  defmacro is_guard(do: do_block, else: else_block)
 end

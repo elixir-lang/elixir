@@ -373,6 +373,7 @@ In the example above, the second clause will only match when x is positive. The 
     is_record/3
     is_reference/1
     is_tuple/1
+    is_exception/1
 
 * plus these functions:
 

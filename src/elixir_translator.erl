@@ -206,6 +206,12 @@ translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->
 translate_each({quote, Line, [_]}, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "quote");
 
+translate_each({in_guard, _, [[{do,Guard},{else,Else}]]}, S) ->
+  case S#elixir_scope.guard of
+    true  -> translate_each(Guard, S);
+    false -> translate_each(Else, S)
+  end;
+
 %% Functions
 
 translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->

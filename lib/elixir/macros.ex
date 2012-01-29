@@ -183,7 +183,14 @@ defmodule Elixir::Macros do
   #     is_exception(1)         #=> false
   #
   defmacro is_exception(thing) do
-    quote { andalso(is_tuple(unquote(thing)), element(2, unquote(thing)) == __EXCEPTION__) }
+    quote do
+      in_guard do
+        andalso(is_tuple(unquote(thing)), element(2, unquote(thing)) == __EXCEPTION__)
+      else:
+        result = unquote(thing)
+        andalso(is_tuple(result), element(2, result) == __EXCEPTION__)
+      end
+    end
   end
 
   # Defines the current module as a protocol and specifies the API
