@@ -1,5 +1,5 @@
 %% Convenience functions used to manipulate variables
-%% and the variables escope.
+%% and the variables scope.
 -module(elixir_variables).
 -export([translate_each/3,
   build_erl/2, build_ex/2,

@@ -82,7 +82,7 @@ translate_macro({'try', Line, [Clauses]}, RawS) ->
   S = RawS#elixir_scope{noname=true},
 
   { TDo, SB }    = translate([Do], S),
-  { TCatch, SC } = elixir_clauses:try_catch(Line, Catch, umergec(S, SB)),
+  { TCatch, SC } = elixir_try:clauses(Line, Catch, umergec(S, SB)),
   { TAfter, SA } = translate([After], umergec(S, SC)),
   { { 'try', Line, unpack_try(do, TDo), [], TCatch, unpack_try('after', TAfter) }, umergec(RawS, SA) };
 

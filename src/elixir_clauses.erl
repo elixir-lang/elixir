@@ -1,8 +1,8 @@
-%% Handle code related to match/after/catch/else clauses
-%% for receive/try/fn and friends.
+%% Handle code related to match/after/else and args/guard
+%% clauses for receive/case/fn and friends. try is
+%% handled in elixir_try.
 -module(elixir_clauses).
--export([match/3, try_catch/3,
-  assigns/3, assigns_block/5, assigns_block/6,
+-export([match/3, assigns/3, assigns_block/5, assigns_block/6,
   extract_args/1, extract_guards/1, extract_guard_clauses/1, extract_last_guards/1]).
 -import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
@@ -65,14 +65,6 @@ extract_last_guards(Args) ->
 extract_args({ { '.', _, [Name] }, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
 extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] };
 extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args }.
-
-% Function for translating macros for try's catch.
-
-try_catch(Line, Clauses, S) ->
-  DecoupledClauses = elixir_kv_block:decouple(Clauses),
-  % Just pass the variable counter forward between each clause.
-  Transformer = fun(X, Acc) -> translate_each(Line, X, umergec(S, Acc)) end,
-  lists:mapfoldl(Transformer, S, DecoupledClauses).
 
 % Function for translating macros with match style like case and receive.
 
@@ -174,26 +166,10 @@ handle_else(Kind, Line, Clauses) ->
 translate_each(_Line, {Key,[],Expr}, S) when Key == do ->
   elixir_translator:translate_each(Expr, S);
 
-translate_each(Line, {'catch',Raw,Expr}, S) ->
-  { Args, Guards } = extract_last_guards(Raw),
-
-  Final = case Args of
-    [X]     -> [throw, X, { '_', Line, nil }];
-    [X,Y]   -> [X, Y, { '_', Line, nil }];
-    [_,_,_] -> Args;
-    [] ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for: ", "catch");
-    _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for: ", "catch")
-  end,
-
-  Condition = { '{}', Line, Final },
-  assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], Guards, S);
-
-translate_each(Line, {Key,[Condition],Expr}, S) when Key == match; Key == 'catch'; Key == 'after' ->
+translate_each(Line, {Key,[Condition],Expr}, S) when Key == match; Key == 'after' ->
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
-translate_each(Line, {Key,[],_}, S) when Key == match; Key == 'catch'; Key == 'after' ->
+translate_each(Line, {Key,[],_}, S) when Key == match; Key == 'after' ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for: ", atom_to_list(Key));
 
 translate_each(Line, {Key,_,_}, S) when Key == match; Key == 'after' ->
