@@ -159,8 +159,17 @@ defmodule Elixir::Macros do
   # * `prepend_field` - Receives another list and prepend its values
   # * `append_field` - Receives another list and append its values
   #
-  defmacro defrecord(name, values, opts // []) do
-    Record.defrecord(name, values, opts)
+  defmacro defrecord(name, values, opts // [], do_block // []) do
+    Record.defrecord(name, values, Orddict.merge(opts, do_block))
+  end
+
+  defmacro defexception(name, values, opts // [], do_block // []) do
+    opts   = Orddict.merge(opts, do_block)
+    values = [{ :__exception__, __EXCEPTION__ }|values]
+    Record.defrecord(name, values, opts) ++ quote {
+      unless List.member?(unquote(name).__info__(:exports), { :message, 1 }), do:
+        error("Expected #{name} to implement message/1")
+    }
   end
 
   # Defines the current module as a protocol and specifies the API

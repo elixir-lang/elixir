@@ -187,6 +187,9 @@ translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
 translate_each({'__STOP_ITERATOR__', Line, Atom}, S) when is_atom(Atom) ->
   { { atom, Line, '__STOP_ITERATOR__' }, S };
 
+translate_each({'__EXCEPTION__', Line, Atom}, S) when is_atom(Atom) ->
+  { { atom, Line, '__EXCEPTION__' }, S };
+
 %% References
 
 translate_each({'__REF__', Line, [Ref]}, S) when is_atom(Ref) ->
