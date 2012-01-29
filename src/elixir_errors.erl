@@ -9,10 +9,6 @@
 syntax_error(Line, Filename, user, Token) ->
   syntax_error(Line, Filename, Token, "");
 
-%% TODO: Sometimes, the line information will be in the scope (when
-%% evaluating macros). We need to take that into account when we
-%% refactor the error messages.
-%% TODO: We shouldn't should line+file if line == 0
 syntax_error(Line, Filename, Error, Token) ->
   Message = if
     (Token == []) and (Error == "syntax error before: ") -> "syntax error";

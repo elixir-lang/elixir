@@ -1,6 +1,21 @@
 -module(elixir_quote).
--export([translate/2, translate_each/2]).
+-export([translate/2, translate_each/2, linify/2]).
 -include("elixir.hrl").
+
+%% Apply the line from site call on quoted contents.
+
+linify(Line, { Left, _, Right }) ->
+  { linify(Line, Left), Line, linify(Line, Right) };
+
+linify(Line, Tuple) when is_tuple(Tuple) ->
+  list_to_tuple(linify(Line, tuple_to_list(Tuple)));
+
+linify(Line, List) when is_list(List) ->
+  [linify(Line, X) || X <- List];
+
+linify(_, Else) -> Else.
+
+%% Translation
 
 translate(Forms, S) ->
   lists:mapfoldl(fun translate_each/2, S, Forms).

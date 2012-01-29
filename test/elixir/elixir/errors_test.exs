@@ -5,6 +5,7 @@ defmodule Elixir::ErrorsTest do
 
   defmodule __MODULE__ :: UnproperMacro do
     defmacro unproper(args), do: args
+    defmacro exit(args), do: args
   end
 
   def test_invalid_token do
@@ -53,13 +54,18 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_unproper_macro do
-    "nofile:4: key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
+    "nofile:3: key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
       format_catch 'defmodule Foo do\nrequire Elixir::ErrorsTest::UnproperMacro\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
   end
 
   def test_macro_conflict do
     "nofile:1: imported ::Elixir::Macros.defrecord/2 conflicts with local function" =
       format_catch 'defmodule Foo do\ndefrecord(::Elixir::ErrorsTest::MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
+  end
+
+  def test_erlang_function_conflict do
+    "nofile:1: function exit/1 already imported from erlang" =
+      format_catch 'defmodule Foo do import Elixir::ErrorsTest::UnproperMacro, only: [exit: 1]\nend'
   end
 
   def test_import_invalid_macro do

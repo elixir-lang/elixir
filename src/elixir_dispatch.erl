@@ -6,7 +6,10 @@
 -include("elixir.hrl").
 
 default_functions() ->
-  [].
+  [
+    { '::Elixir::Functions', get_functions('::Elixir::Functions') },
+    { erlang, in_erlang_functions() }
+  ].
 default_macros() ->
   [ { '::Elixir::Macros', get_optional_macros('::Elixir::Macros') } ].
 default_refer() ->
@@ -14,6 +17,13 @@ default_refer() ->
 
 %% Get macros/functions from the given module and
 %% raise an exception if appropriated.
+
+get_functions('::Elixir::Functions') ->
+  try
+    '::Elixir::Functions':module_info(exports) -- [{module_info,0},{module_info,1},{'__info__',1}]
+  catch
+    error:undef -> []
+  end;
 
 get_functions(Module) ->
   Module:module_info(exports) -- get_optional_macros(Module).
@@ -53,6 +63,7 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
     nil ->
       case find_dispatch(Tuple, S#elixir_scope.functions) of
         nil -> Callback();
+        erlang -> Callback();
         Receiver ->
           elixir_import:record(import, Tuple, Receiver, S),
           elixir_translator:translate_each({ { '.', Line, [Receiver, Name] }, Line, Args }, S)
@@ -87,9 +98,9 @@ dispatch_macro(Line, Receiver, { Name, Arity }, Args, S) ->
 dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
   ensure_required(Line, Receiver, Name, Arity, S),
   Tree = apply(Receiver, Name, Args),
-  NewS = S#elixir_scope{macro={Receiver,Name,Arity}, line=Line},
-  { TTree, TS } = elixir_translator:translate_each(Tree, NewS),
-  { TTree, TS#elixir_scope{macro=[],line=[]} }.
+  NewS = S#elixir_scope{macro={Receiver,Name,Arity}},
+  { TTree, TS } = elixir_translator:translate_each(elixir_quote:linify(Line, Tree), NewS),
+  { TTree, TS#elixir_scope{macro=[]} }.
 
 find_dispatch(Tuple, [{ Name, Values }|T]) ->
   case lists:member(Tuple, Values) of
@@ -116,7 +127,18 @@ format_error({ unrequired_module,{Receiver, Name, Arity, Required }}) ->
 format_error({ no_macros, Module }) ->
   io_lib:format("could not load macros from module ~s", [Module]).
 
-%% Macros implemented in Erlang.
+%% Implemented in Erlang.
+
+%% TODO: Is there a way to automatically detect all functions
+%% automatically imported by Erlang?
+in_erlang_functions() ->
+  [
+    {exit,1},
+    {exit,2},
+    {error,1},
+    {error,2},
+    {throw,1}
+  ].
 
 in_erlang_macros() ->
   [

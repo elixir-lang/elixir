@@ -163,13 +163,27 @@ defmodule Elixir::Macros do
     Record.defrecord(name, values, Orddict.merge(opts, do_block))
   end
 
+  # Defines an exception. It follows exactly the same API as record.
+  # The defined record must implement `message/1` as API, otherwise
+  # an error is raised. Check exceptions.ex for examples.
   defmacro defexception(name, values, opts // [], do_block // []) do
     opts   = Orddict.merge(opts, do_block)
-    values = [{ :__exception__, __EXCEPTION__ }|values]
-    Record.defrecord(name, values, opts) ++ quote {
+    values = [{ :__exception__, __EXCEPTION__ }, { :stacktrace, nil } | values]
+    [Record.defrecord(name, values, opts), quote {
       unless List.member?(unquote(name).__info__(:exports), { :message, 1 }), do:
-        error("Expected #{name} to implement message/1")
-    }
+        raise "Expected #{unquote(name)} to implement message/1"
+    }]
+  end
+
+  # Check if the given structure is an exception.
+  #
+  # ## Examples
+  #
+  #     is_exception(Error.new) #=> true
+  #     is_exception(1)         #=> false
+  #
+  defmacro is_exception(thing) do
+    quote { andalso(is_tuple(unquote(thing)), element(2, unquote(thing)) == __EXCEPTION__) }
   end
 
   # Defines the current module as a protocol and specifies the API

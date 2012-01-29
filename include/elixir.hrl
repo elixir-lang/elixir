@@ -21,7 +21,6 @@
   quote_vars=dict:new(),                         %% a dict of all quoted variables
   counter=0,                                     %% a counter for the variables defined
   filename="nofile",                             %% the current scope filename
-  line=[],                                       %% the line from eval
   refer=elixir_dispatch:default_refer(),         %% an orddict with references by new -> old names
   macros=elixir_dispatch:default_macros(),       %% a list with macros imported by module
   functions=elixir_dispatch:default_functions(), %% a list with functions imported by module
