@@ -761,16 +761,15 @@ defmodule Elixir::Builtin do
     error exception
   end
 
-  # Receives a reference for an exception
-  # and instantiates a new exception record
-  # with the given message.
+  # Receives a reference for an exception and
+  # instantiates a new exception with the given args.
   #
   # ## Examples
   #
-  #     raise ArgumentError, "Expected a protocol"
+  #     raise ArgumentError, message: "Expected a protocol"
   #
-  def raise(atom, msg) when is_atom(atom) & is_binary(msg) do
-    error atom.new(message: msg)
+  def raise(atom, args) when is_atom(atom) do
+    error atom.new(args)
   end
 
   ## Private functions

@@ -73,7 +73,7 @@ defmodule Kernel::RescueTest do
     expected = RuntimeError
 
     "an exception" = try do
-      raise "an exception"
+      raise RuntimeError, message: "an exception"
     rescue: x in [^expected, AnotherError]
       x.message
     catch: :error, _
