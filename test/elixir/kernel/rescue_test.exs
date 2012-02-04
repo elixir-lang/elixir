@@ -56,4 +56,28 @@ defmodule Kernel::RescueTest do
       x.message
     end
   end
+
+  def test_rescue_defined_variable do
+    expected = RuntimeError
+
+    true = try do
+      raise "an exception"
+    rescue: ^expected
+      true
+    catch: :error, _
+      false
+    end
+  end
+
+  def test_rescue_named_defined_variable do
+    expected = RuntimeError
+
+    "an exception" = try do
+      raise "an exception"
+    rescue: x in [^expected, AnotherError]
+      x.message
+    catch: :error, _
+      false
+    end
+  end
 end

@@ -123,10 +123,17 @@ rescue_guards(Line, Var, Guards) ->
 %% an Erlang exception or not.
 
 rescue_each_guard(Line, Var, [H|T], Elixir, Erlang) ->
-  Expr = { '==', Line, [
-    { element, Line, [1, Var] }, H
+  Expr = case H of
+    { '^', _, [Expected] } -> Expected;
+    _ -> H
+  end,
+
+  Comparison = { '==', Line, [
+    { element, Line, [1, Var] },
+    Expr
   ] },
-  rescue_each_guard(Line, Var, T, [Expr|Elixir], Erlang);
+
+  rescue_each_guard(Line, Var, T, [Comparison|Elixir], Erlang);
 
 rescue_each_guard(_, _, [], Elixir, Erlang) ->
   { Elixir, Erlang }.
