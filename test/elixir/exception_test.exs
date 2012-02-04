@@ -26,6 +26,6 @@ defmodule Kernel::ExceptionTest do
   end
 
   def test_erlang_error_message do
-    "erlang error :sample" = ErlangError.new(original: :sample).message
+    "erlang error: :sample" = ErlangError.new(original: :sample).message
   end
 end

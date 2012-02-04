@@ -193,7 +193,13 @@ erlang_rescue_guard_for(Line, Var, '::UndefinedFunctionError') ->
   { '==', Line, [Var, undef] };
 
 erlang_rescue_guard_for(Line, Var, '::ArgumentError') ->
-  { '==', Line, [Var, badarg] };
+  { 'orelse', Line, [
+    { '==', Line, [Var, badarg] },
+    { 'andalso', Line, [
+      { is_tuple, Line, [Var] },
+      exception_compare(Line, Var, badarg)
+    ] }
+  ] };
 
 erlang_rescue_guard_for(Line, Var, '::ErlangError') ->
   IsNotTuple  = { 'not', Line, [{ is_tuple, Line, [Var] }] },

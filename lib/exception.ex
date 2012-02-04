@@ -13,6 +13,10 @@ defmodule Exception do
     UndefinedFunctionError.new from_stacktrace(Code.stacktrace)
   end
 
+  def normalize({ :badarg, payload }) do
+    ArgumentError.new message: "argument error: #{inspect(payload)}"
+  end
+
   def normalize(else) do
     ErlangError.new original: else
   end
@@ -68,6 +72,6 @@ end
 
 defexception ErlangError, original: nil do
   def message(exception) do
-    "erlang error #{inspect(exception.original)}"
+    "erlang error: #{inspect(exception.original)}"
   end
 end

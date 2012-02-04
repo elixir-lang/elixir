@@ -82,7 +82,7 @@ defmodule Kernel::RescueTest do
   end
 
   def test_wrap_custom_erlang_error do
-    "erlang error :sample" = try do
+    "erlang error: :sample" = try do
       error(:sample)
     rescue: x in [RuntimeError, ErlangError]
       x.message
@@ -100,6 +100,14 @@ defmodule Kernel::RescueTest do
   def test_badarg_error do
     "argument error" = try do
       error(:badarg)
+    rescue: x in [ArgumentError]
+      x.message
+    end
+  end
+
+  def test_tuple_badarg_error do
+    "argument error: [1,2,3]" = try do
+      error({ :badarg, [1,2,3] })
     rescue: x in [ArgumentError]
       x.message
     end
