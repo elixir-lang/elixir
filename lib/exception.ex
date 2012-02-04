@@ -1,47 +1,58 @@
-# Wildcard exception raised in runtime.
 defmodule Exception do
+  # Normalize an exception converting Erlang exceptions
+  # to Elixir style exceptions.
   def normalize(exception) when is_exception(exception) do
     exception
   end
 
   def normalize(:undef) do
-    UndefinedError.from_stacktrace(Code.stacktrace)
+    UndefinedFunctionError.new from_stacktrace(Code.stacktrace)
   end
 
   def normalize(else) do
-    ErlangError.new(original: else)
+    ErlangError.new original: else
   end
-end
 
-defexception RuntimeError, message: nil
+  # Format module, fun and arity to inspection.
 
-defexception UndefinedFunctionError, module: nil, function: nil, arity: nil do
-  # Erlang > R15
+  def format_module_fun_arity(module, fun, arity) do
+    separator =
+      case atom_to_list(module) do
+      match: '::' ++ _
+        "."
+      else:
+        ":"
+      end
+
+    "#{module}#{separator}#{fun}/#{arity}"
+  end
+
+  # Private
+
+  # Erlang >= R15
   def from_stacktrace([{ module, function, arity, _ }|_]) do
-    new(module: module, function: function, arity: to_arity(arity))
+    [module: module, function: function, arity: arity]
   end
 
   # Erlang < R15
   def from_stacktrace([{ module, function, arity }|_]) do
-    new(module: module, function: function, arity: to_arity(arity))
+    [module: module, function: function, arity: arity]
   end
 
   # Safe clause
   def from_stacktrace(_) do
-    new()
+    []
   end
+end
 
+# Wildcard exception raised in runtime.
+defexception RuntimeError, message: nil
+
+defexception UndefinedFunctionError, module: nil, function: nil, arity: nil do
   def message(exception) do
     if exception.function do
-      separator =
-        case atom_to_list(exception.module) do
-        match: '::' ++ _
-          "."
-        else:
-          ":"
-        end
-
-      "undefined function #{exception.module}#{separator}#{exception.function}/#{exception.arity}"
+      formatted = Exception.format_module_fun_arity exception.module, exception.function, to_arity(exception.arity)
+      "undefined function #{formatted}"
     else:
       "undefined function"
     end

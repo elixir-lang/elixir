@@ -51,6 +51,7 @@ release: compile test
 	dialyzer --src src $(DIALYZER_WARNINGS)
 
 exbin: lib/*.ex lib/*/*.ex
+	@ rm -rf exbin
 	@ mkdir -p exbin
 	@ touch exbin
 	$(ERL) -s elixir_compiler core -s erlang halt
