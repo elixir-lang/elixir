@@ -168,7 +168,7 @@ defmodule Elixir::Builtin do
   # an error is raised. Check exceptions.ex for examples.
   defmacro defexception(name, values, opts // [], do_block // []) do
     opts   = Orddict.merge(opts, do_block)
-    values = [{ :__exception__, __EXCEPTION__ }, { :stacktrace, nil } | values]
+    values = [{ :__exception__, __EXCEPTION__ }|values]
     [Record.defrecord(name, values, opts), quote {
       unless List.member?(unquote(name).__info__(:exports), { :message, 1 }), do:
         raise "Expected #{unquote(name)} to implement message/1"

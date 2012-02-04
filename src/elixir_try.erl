@@ -34,24 +34,20 @@ each_clause(Line, { rescue, Args, Expr }, S) ->
   validate_args(rescue, Line, Args, 3, S),
   [Condition] = Args,
   { Left, Right } = normalize_rescue(Line, Condition, S),
+
   case Left of
-    { '_', _, LeftAtom } when is_atom(LeftAtom) ->
+    { '_', _, _ } ->
       case Right of
         nil ->
           each_clause(Line, { 'catch', [error, Left], Expr }, S);
         _ ->
-          { Var, SV } = elixir_variables:build_ex(Line, S),
-          Guards = rescue_guards(Line, Var, Right),
-          each_clause(Line, { 'catch', [error, { 'when', Line, [Var, Guards] }], Expr }, SV)
+          { ClauseVar, CS } = elixir_variables:build_ex(Line, S),
+          Clause = rescue_guards(Line, ClauseVar, Right),
+          each_clause(Line, { 'catch', [error, Clause], Expr }, CS)
       end;
     _ ->
-      case Right of
-        nil ->
-          each_clause(Line, { 'catch', [error, Left], Expr }, S);
-        _ ->
-          Guards = rescue_guards(Line, Left, Right),
-          each_clause(Line, { 'catch', [error, { 'when', Line, [Left, Guards] }], Expr }, S)
-      end
+      Clause = rescue_guards(Line, Left, Right),
+      each_clause(Line, { 'catch', [error, Clause], Expr }, S)
   end;
 
 each_clause(Line, {Key,_,_}, S) ->
@@ -101,6 +97,7 @@ normalize_rescue(Line, _, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid condition for: ", "rescue").
 
 %% Convert rescue clauses into guards.
+rescue_guards(_, Var, nil) -> Var;
 
 rescue_guards(Line, Var, Guards) ->
   { Elixir, Erlang } = rescue_each_guard(Line, Var, Guards, [], []),
@@ -117,7 +114,7 @@ rescue_guards(Line, Var, Guards) ->
       [join(Line, '&', [IsTuple, IsException, OrElse])|Erlang]
   end,
 
-  join(Line, '|', Final).
+  { 'when', Line, [Var, join(Line, '|', Final)] }.
 
 %% Handle each clause expression detecting if it is
 %% an Erlang exception or not.
