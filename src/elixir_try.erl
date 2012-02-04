@@ -112,7 +112,8 @@ normalize_rescue(Line, _, S) ->
 rescue_guards(_, Var, nil, _) -> { Var, false };
 
 rescue_guards(Line, Var, Guards, S) ->
-  { Elixir, Erlang, Safe } = rescue_each_guard(Line, Var, Guards, [], [], true, S),
+  { RawElixir, RawErlang } = rescue_each_var(Line, Var, Guards),
+  { Elixir, Erlang, Safe } = rescue_each_ref(Line, Var, Guards, RawElixir, RawErlang, RawErlang == [], S),
 
   Final = case Elixir == [] of
     true  -> Erlang;
@@ -131,40 +132,59 @@ rescue_guards(Line, Var, Guards, S) ->
     Safe
   }.
 
-%% Handle each clause expression detecting if it is
-%% an Erlang exception or not.
+%% Handle ^variables in the right side of rescue.
 
-rescue_each_guard(Line, { '_', _, _ } = Var, [{ '^', _, [H]}|T], Elixir, Erlang, _Safe, S) ->
-  rescue_each_guard(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, false, S);
+rescue_each_var(Line, ClauseVar, Guards) ->
+  Vars = [Var || { '^', _, [Var] } <- Guards],
 
-rescue_each_guard(Line, Var, [{ '^', _, [H]}|T], Elixir, Erlang, _Safe, S) ->
-  NewElixir = exception_compare(Line, Var, H),
-  NewErlang = lists:map(fun(X) ->
-    { 'andalso', Line, [
-      { '==', Line, [X, H] },
-      erlang_rescue_guard_for(Line, Var, X)
-    ] }
-  end, defined_erlang_rescue()),
-  rescue_each_guard(Line, Var, T, [NewElixir|Elixir], NewErlang ++ Erlang, false, S);
+  case Vars == [] of
+    true  -> { [], [] };
+    false ->
+      Elixir = [exception_compare(Line, ClauseVar, Var) || Var <- Vars],
+      Erlang = lists:map(fun(X) ->
+        Compares = [{ '==', Line, [X, Var] } || Var <- Vars],
+        { 'andalso', Line, [
+          join(Line, 'orelse', Compares),
+          erlang_rescue_guard_for(Line, ClauseVar, X)
+        ] }
+      end, erlang_rescues()),
+      { Elixir, Erlang }
+  end.
 
-rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
+%% Rescue each reference considering their Erlang or Elixir matches.
+%% Matching of ^variables is done separatewith Erlang exceptions is done in another
+%% method for optimization.
+
+%% Ignore ^
+rescue_each_ref(Line, Var, [{ '^', _, _}|T], Elixir, Erlang, Safe, S) ->
+  rescue_each_ref(Line, Var, T, Elixir, Erlang, Safe, S);
+
+rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
   (H == '::UndefinedFunctionError') orelse (H == '::ErlangError') ->
   Expr = erlang_rescue_guard_for(Line, Var, H),
-  rescue_each_guard(Line, Var, T, Elixir, [Expr|Erlang], false, S);
+  rescue_each_ref(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
-rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
-  rescue_each_guard(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, Safe, S);
+rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
+  rescue_each_ref(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, Safe, S);
 
-rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe, S) ->
+rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, Safe, S) ->
   case translate_each(H, S) of
     { { atom, _, Atom }, _ } ->
-      rescue_each_guard(Line, Var, [Atom|T], Elixir, Erlang, Safe, S);
+      rescue_each_ref(Line, Var, [Atom|T], Elixir, Erlang, Safe, S);
     _ ->
-      rescue_each_guard(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, Safe, S)
+      rescue_each_ref(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, Safe, S)
   end;
 
-rescue_each_guard(_, _, [], Elixir, Erlang, Safe, _) ->
+rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
   { Elixir, Erlang, Safe }.
+
+%% Handle erlang rescue matches.
+
+erlang_rescues() ->
+  [
+    '::UndefinedFunctionError',
+    '::ErlangError'
+  ].
 
 erlang_rescue_guard_for(Line, Var, '::UndefinedFunctionError') ->
   { '==', Line, [Var, undef] };
@@ -176,12 +196,6 @@ erlang_rescue_guard_for(Line, Var, '::ErlangError') ->
     { '__EXCEPTION__', Line, nil }
   ] },
   { 'orelse', Line, [IsNotTuple, IsException] }.
-
-defined_erlang_rescue() ->
-  [
-    '::UndefinedFunctionError',
-    '::ErlangError'
-  ].
 
 %% Join the given expression forming a tree according to the given kind.
 
