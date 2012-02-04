@@ -80,4 +80,12 @@ defmodule Kernel::RescueTest do
       false
     end
   end
+
+  def test_wrap_custom_erlang_error do
+    "erlang error :sample" = try do
+      error(:sample)
+    rescue: x in [RuntimeError, ErlangError]
+      x.message
+    end
+  end
 end

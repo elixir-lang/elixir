@@ -3,7 +3,7 @@
 %% handled in elixir_try.
 -module(elixir_try).
 -export([clauses/3]).
--import(elixir_translator, [translate/2]).
+-import(elixir_translator, [translate/2, translate_each/2]).
 -import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
 
@@ -42,17 +42,17 @@ each_clause(Line, { rescue, Args, Expr }, S) ->
           each_clause(Line, { 'catch', [error, Left], Expr }, S);
         _ ->
           { ClauseVar, CS } = elixir_variables:build_ex(Line, S),
-          { Clause, _ } = rescue_guards(Line, ClauseVar, Right),
+          { Clause, _ } = rescue_guards(Line, ClauseVar, Right, S),
           each_clause(Line, { 'catch', [error, Clause], Expr }, CS)
       end;
     _ ->
-      { Clause, Safe } = rescue_guards(Line, Left, Right),
+      { Clause, Safe } = rescue_guards(Line, Left, Right, S),
       case Safe of
         true ->
           each_clause(Line, { 'catch', [error, Clause], Expr }, S);
         false ->
           { ClauseVar, CS }  = elixir_variables:build_ex(Line, S),
-          { FinalClause, _ } = rescue_guards(Line, ClauseVar, Right),
+          { FinalClause, _ } = rescue_guards(Line, ClauseVar, Right, S),
           Match = { '=', Line, [
             Left,
             { { '.', Line, ['::Exception', normalize] }, Line, [ClauseVar] }
@@ -109,10 +109,10 @@ normalize_rescue(Line, _, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid condition for: ", "rescue").
 
 %% Convert rescue clauses into guards.
-rescue_guards(_, Var, nil) -> { Var, false };
+rescue_guards(_, Var, nil, _) -> { Var, false };
 
-rescue_guards(Line, Var, Guards) ->
-  { Elixir, Erlang, Safe } = rescue_each_guard(Line, Var, Guards, [], [], true),
+rescue_guards(Line, Var, Guards, S) ->
+  { Elixir, Erlang, Safe } = rescue_each_guard(Line, Var, Guards, [], [], true, S),
 
   Final = case Elixir == [] of
     true  -> Erlang;
@@ -134,13 +134,31 @@ rescue_guards(Line, Var, Guards) ->
 %% Handle each clause expression detecting if it is
 %% an Erlang exception or not.
 
-rescue_each_guard(Line, Var, [{ '^', _, [H]}|T], Elixir, Erlang, _Safe) ->
-  rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, false);
+rescue_each_guard(Line, Var, [{ '^', _, [H]}|T], Elixir, Erlang, _Safe, S) ->
+  rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, false, S);
 
-rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe) ->
-  rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, Safe);
+rescue_each_guard(Line, Var, ['::ErlangError'|T], Elixir, Erlang, _Safe, S) ->
+  IsNotTuple  = { 'not', Line, [{ is_tuple, Line, [Var] }] },
+  IsException = { '!=', Line, [
+    { element, Line, [2, Var] },
+    { '__EXCEPTION__', Line, nil }
+  ] },
 
-rescue_each_guard(_, _, [], Elixir, Erlang, Safe) ->
+  OrElse = { 'orelse', Line, [IsNotTuple, IsException] },
+  rescue_each_guard(Line, Var, T, Elixir, [OrElse|Erlang], false, S);
+
+rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
+  rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, Safe, S);
+
+rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe, S) ->
+  case translate_each(H, S) of
+    { { atom, _, Atom }, _ } ->
+      rescue_each_guard(Line, Var, [Atom|T], Elixir, Erlang, Safe, S);
+    _ ->
+      rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, Safe, S)
+  end;
+
+rescue_each_guard(_, _, [], Elixir, Erlang, Safe, _) ->
   { Elixir, Erlang, Safe }.
 
 %% Join the given expression forming a tree according to the given kind.
