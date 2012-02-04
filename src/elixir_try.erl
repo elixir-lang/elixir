@@ -126,7 +126,6 @@ rescue_guards(Line, Var, Guards, S) ->
       OrElse = join(Line, 'orelse', Elixir),
       [join(Line, '&', [IsTuple, IsException, OrElse])|Erlang]
   end,
-
   {
     { 'when', Line, [Var, join(Line, '|', Final)] },
     Safe
@@ -141,11 +140,11 @@ rescue_each_var(Line, ClauseVar, Guards) ->
     true  -> { [], [] };
     false ->
       Elixir = [exception_compare(Line, ClauseVar, Var) || Var <- Vars],
-      Erlang = lists:map(fun(X) ->
-        Compares = [{ '==', Line, [X, Var] } || Var <- Vars],
+      Erlang = lists:map(fun({ Rescues, _ } = X) ->
+        Compares = [{ '==', Line, [Rescue, Var] } || Var <- Vars, Rescue <- Rescues],
         { 'andalso', Line, [
           join(Line, 'orelse', Compares),
-          erlang_rescue_guard_for(Line, ClauseVar, X)
+          erlang_rescues_guard_for(Line, ClauseVar, X)
         ] }
       end, erlang_rescues()),
       { Elixir, Erlang }
@@ -160,7 +159,8 @@ rescue_each_ref(Line, Var, [{ '^', _, _}|T], Elixir, Erlang, Safe, S) ->
   rescue_each_ref(Line, Var, T, Elixir, Erlang, Safe, S);
 
 rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
-  (H == '::UndefinedFunctionError') orelse (H == '::ErlangError') ->
+  H == '::UndefinedFunctionError'; H == '::ErlangError';
+  H == '::ArgumentError' ->
   Expr = erlang_rescue_guard_for(Line, Var, H),
   rescue_each_ref(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
@@ -182,12 +182,18 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
 
 erlang_rescues() ->
   [
-    '::UndefinedFunctionError',
-    '::ErlangError'
+    { ['::UndefinedFunctionError', '::ArgumentError'], false },
+    { ['::ErlangError'], false }
   ].
+
+erlang_rescues_guard_for(Line, Var, { List, false }) ->
+  join(Line, 'orelse', [erlang_rescue_guard_for(Line, Var, X) || X <- List]).
 
 erlang_rescue_guard_for(Line, Var, '::UndefinedFunctionError') ->
   { '==', Line, [Var, undef] };
+
+erlang_rescue_guard_for(Line, Var, '::ArgumentError') ->
+  { '==', Line, [Var, badarg] };
 
 erlang_rescue_guard_for(Line, Var, '::ErlangError') ->
   IsNotTuple  = { 'not', Line, [{ is_tuple, Line, [Var] }] },

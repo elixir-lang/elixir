@@ -5,6 +5,10 @@ defmodule Exception do
     exception
   end
 
+  def normalize(:badarg) do
+    ArgumentError.new
+  end
+
   def normalize(:undef) do
     UndefinedFunctionError.new from_stacktrace(Code.stacktrace)
   end
@@ -45,8 +49,8 @@ defmodule Exception do
   end
 end
 
-# Wildcard exception raised in runtime.
-defexception RuntimeError, message: nil
+defexception RuntimeError,  message: "runtime error"
+defexception ArgumentError, message: "argument error"
 
 defexception UndefinedFunctionError, module: nil, function: nil, arity: nil do
   def message(exception) do

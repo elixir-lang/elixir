@@ -97,6 +97,14 @@ defmodule Kernel::RescueTest do
     end
   end
 
+  def test_badarg_error do
+    "argument error" = try do
+      error(:badarg)
+    rescue: x in [ArgumentError]
+      x.message
+    end
+  end
+
   def test_undefined_function_error_from_expected_variable do
     expected = UndefinedFunctionError
     "undefined function ::DoNotExist.for_sure/0" = try do

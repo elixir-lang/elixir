@@ -101,6 +101,11 @@ defmodule String::Inspect::TupleTest do
     "{:foo,:bar}" = to_binary({ :foo, :bar })
   end
 
+  def test_exception do
+    "::RuntimeError{\"runtime error\"}" = inspect(RuntimeError.new)
+    "::RuntimeError{\"runtime error\"}" = to_binary(RuntimeError.new)
+  end
+
   def test_empty do
     "{}" = inspect({})
     "{}" = to_binary({})

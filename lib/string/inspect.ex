@@ -126,6 +126,12 @@ end
 defimpl String::Inspect, for: Tuple do
   def inspect(thing), do: to_binary(thing)
 
+  def to_binary(exception) when is_exception(exception) do
+    [name,_|tail] = tuple_to_list(exception)
+    << atom_to_binary(name, :utf8) | :binary,
+       String::Inspect::List.container_join(tail, "{", "}") | :binary >>
+  end
+
   def to_binary(thing) do
     String::Inspect::List.container_join(tuple_to_list(thing), "{", "}")
   end
