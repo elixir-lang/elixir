@@ -13,6 +13,10 @@ defmodule Exception do
     ArithmeticError.new
   end
 
+  def normalize({ :badarity, { fun, args } }) do
+    BadArityError.new(function: fun, args: args)
+  end
+
   def normalize(:undef) do
     UndefinedFunctionError.new from_stacktrace(Code.stacktrace)
   end
@@ -60,6 +64,12 @@ end
 defexception RuntimeError,    message: "runtime error"
 defexception ArgumentError,   message: "argument error"
 defexception ArithmeticError, message: "bad argument in arithmetic expression"
+
+defexception BadArityError, function: nil, args: nil do
+  def message(exception) do
+    "bad arity error: #{inspect(exception.function)} called with #{inspect(exception.args)}"
+  end
+end
 
 defexception UndefinedFunctionError, module: nil, function: nil, arity: nil do
   def message(exception) do
