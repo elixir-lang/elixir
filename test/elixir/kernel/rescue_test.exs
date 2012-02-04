@@ -113,6 +113,14 @@ defmodule Kernel::RescueTest do
     end
   end
 
+  def test_badarith_error do
+    "bad argument in arithmetic expression" = try do
+      error(:badarith)
+    rescue: x in [ArithmeticError]
+      x.message
+    end
+  end
+
   def test_undefined_function_error_from_expected_variable do
     expected = UndefinedFunctionError
     "undefined function ::DoNotExist.for_sure/0" = try do

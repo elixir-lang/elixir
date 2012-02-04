@@ -160,7 +160,7 @@ rescue_each_ref(Line, Var, [{ '^', _, _}|T], Elixir, Erlang, Safe, S) ->
 
 rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
   H == '::UndefinedFunctionError'; H == '::ErlangError';
-  H == '::ArgumentError' ->
+  H == '::ArgumentError'; H == '::ArithmeticError' ->
   Expr = erlang_rescue_guard_for(Line, Var, H),
   rescue_each_ref(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
@@ -182,7 +182,7 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
 
 erlang_rescues() ->
   [
-    { ['::UndefinedFunctionError', '::ArgumentError'], false },
+    { ['::UndefinedFunctionError', '::ArgumentError', '::ArithmeticError'], false },
     { ['::ErlangError'], false }
   ].
 
@@ -191,6 +191,9 @@ erlang_rescues_guard_for(Line, Var, { List, false }) ->
 
 erlang_rescue_guard_for(Line, Var, '::UndefinedFunctionError') ->
   { '==', Line, [Var, undef] };
+
+erlang_rescue_guard_for(Line, Var, '::ArithmeticError') ->
+  { '==', Line, [Var, badarith] };
 
 erlang_rescue_guard_for(Line, Var, '::ArgumentError') ->
   { 'orelse', Line, [

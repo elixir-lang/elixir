@@ -9,6 +9,10 @@ defmodule Exception do
     ArgumentError.new
   end
 
+  def normalize(:badarith) do
+    ArithmeticError.new
+  end
+
   def normalize(:undef) do
     UndefinedFunctionError.new from_stacktrace(Code.stacktrace)
   end
@@ -53,8 +57,9 @@ defmodule Exception do
   end
 end
 
-defexception RuntimeError,  message: "runtime error"
-defexception ArgumentError, message: "argument error"
+defexception RuntimeError,    message: "runtime error"
+defexception ArgumentError,   message: "argument error"
+defexception ArithmeticError, message: "bad argument in arithmetic expression"
 
 defexception UndefinedFunctionError, module: nil, function: nil, arity: nil do
   def message(exception) do
