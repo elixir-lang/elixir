@@ -163,7 +163,7 @@ rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
   H == '::ArgumentError'; H == '::ArithmeticError';
   H == '::BadArityError'; H == '::BadFunctionError';
   H == '::MatchError'; H == '::CaseClauseError';
-  H == '::FunctionClauseError' ->
+  H == '::FunctionClauseError'; H == '::SystemLimitError' ->
   Expr = erlang_rescue_guard_for(Line, Var, H),
   rescue_each_ref(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
@@ -186,7 +186,8 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
 erlang_rescues() ->
   [
     ['::UndefinedFunctionError', '::ArgumentError', '::ArithmeticError', '::BadArityError',
-     '::BadFunctionError', '::MatchError', '::CaseClauseError', '::FunctionClauseError'],
+     '::BadFunctionError', '::MatchError', '::CaseClauseError', '::FunctionClauseError',
+     '::SystemLimitError'],
     ['::ErlangError']
   ].
 
@@ -198,6 +199,9 @@ erlang_rescue_guard_for(Line, Var, '::UndefinedFunctionError') ->
 
 erlang_rescue_guard_for(Line, Var, '::FunctionClauseError') ->
   { '==', Line, [Var, function_clause] };
+
+erlang_rescue_guard_for(Line, Var, '::SystemLimitError') ->
+  { '==', Line, [Var, system_limit] };
 
 erlang_rescue_guard_for(Line, Var, '::ArithmeticError') ->
   { '==', Line, [Var, badarith] };

@@ -13,6 +13,10 @@ defmodule Exception do
     ArithmeticError.new
   end
 
+  def normalize(:system_limit) do
+    SystemLimitError.new
+  end
+
   def normalize({ :badarity, { fun, args } }) do
     BadArityError.new(function: fun, args: args)
   end
@@ -82,9 +86,10 @@ defmodule Exception do
   end
 end
 
-defexception RuntimeError,    message: "runtime error"
-defexception ArgumentError,   message: "argument error"
-defexception ArithmeticError, message: "bad argument in arithmetic expression"
+defexception RuntimeError,     message: "runtime error"
+defexception ArgumentError,    message: "argument error"
+defexception ArithmeticError,  message: "bad argument in arithmetic expression"
+defexception SystemLimitError, message: "a system limit has been reached"
 
 defexception BadFunctionError, actual: nil do
   def message(exception) do
