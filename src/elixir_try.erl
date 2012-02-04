@@ -35,8 +35,15 @@ each_clause(Line, { rescue, Args, Expr }, S) ->
   [Condition] = Args,
   { Left, Right } = normalize_rescue(Line, Condition, S),
   case Left of
-    { '_', _, Atom } when is_atom(Atom) ->
-      each_clause(Line, { 'catch', [error, Left], Expr }, S)
+    { '_', _, LeftAtom } when is_atom(LeftAtom) ->
+      case Right of
+        nil ->
+          each_clause(Line, { 'catch', [error, Left], Expr }, S);
+        _ ->
+          { Var, SV } = elixir_variables:build_ex(Line, S),
+          Guards = rescue_guards(Line, Var, Right),
+          each_clause(Line, { 'catch', [error, { 'when', Line, [Var, Guards] }], Expr }, SV)
+      end
   end;
 
 each_clause(Line, {Key,_,_}, S) ->
@@ -67,10 +74,10 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
   case Right of
     { '_', _, _ } ->
       { Left, nil };
-    _ when is_list(Right) ->
+    _ when is_list(Right), Right /= [] ->
       { _, Refs } = lists:partition(fun(X) -> element(1, X) == '^' end, Right),
       { TRefs, _ } = translate(Refs, S),
-      case lists:all(fun is_atom/1, TRefs) of
+      case lists:all(fun(X) -> is_tuple(X) andalso element(1, X) == atom end, TRefs) of
         true -> { Left, Right };
         false -> normalize_rescue(Line, nil, S)
       end;
@@ -80,7 +87,43 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
 %% rescue ^var -> _ in [^var]
 %% rescue ErlangError -> _ in [ErlangError]
 normalize_rescue(_, { Name, Line, _ } = Rescue, S) when is_atom(Name) ->
-  normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, Rescue] }, S);
+  normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, [Rescue]] }, S);
 
 normalize_rescue(Line, _, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid condition for: ", "rescue").
+
+%% Convert rescue clauses into guards.
+
+rescue_guards(Line, Var, Guards) ->
+  { Elixir, Erlang } = rescue_each_guard(Line, Var, Guards, [], []),
+
+  Final = case Elixir == [] of
+    true  -> Erlang;
+    false ->
+      IsTuple     = { is_tuple, Line, [Var] },
+      IsException = { '==', Line, [
+        { element, Line, [2, Var] },
+        { '__EXCEPTION__', Line, nil }
+      ] },
+      OrElse = join(Line, 'orelse', Elixir),
+      [join(Line, '&', [IsTuple, IsException, OrElse])|Erlang]
+  end,
+
+  join(Line, '|', Final).
+
+%% Handle each clause expression detecting if it is
+%% an Erlang exception or not.
+
+rescue_each_guard(Line, Var, [H|T], Elixir, Erlang) ->
+  Expr = { '==', Line, [
+    { element, Line, [1, Var] }, H
+  ] },
+  rescue_each_guard(Line, Var, T, [Expr|Elixir], Erlang);
+
+rescue_each_guard(_, _, [], Elixir, Erlang) ->
+  { Elixir, Erlang }.
+
+%% Join the given expression forming a tree according to the given kind.
+
+join(Line, Kind, [H|T]) ->
+  lists:foldl(fun(X, Acc) -> { Kind, Line, [Acc, X] } end, H, T).

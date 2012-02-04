@@ -732,7 +732,7 @@ defmodule Elixir::Builtin do
   #     raise "Given values do not match"
   #
   def raise(msg) when is_binary(msg) do
-    error Error.new(message: msg)
+    error RuntimeError.new(message: msg)
   end
 
   # Receives a reference for an exception

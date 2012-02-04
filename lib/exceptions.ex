@@ -1,2 +1,2 @@
-# Raised everytime raise with a string is called
-defexception Error, message: nil
+# Wildcard exception raised in runtime.
+defexception RuntimeError, message: nil
