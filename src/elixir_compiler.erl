@@ -85,7 +85,8 @@ no_auto_import() ->
       {get,0}, {get,1}, {get_keys,1}, {is_process_alive,1},
       {erase,0}, {erase,1}, {processes,0}, {put,1},
       {process_info,1}, {process_info,2}, {process_flag,2},
-      {process_flag,3}
+      {process_flag,3}, {link,1}, {unlink,1}, {register,2},
+      {unregister,1}, {whereis,1}, {registered,0}
     ]
   } }.
 

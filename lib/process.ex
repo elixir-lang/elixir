@@ -13,6 +13,11 @@ defmodule Process do
     :erlang.is_process_alive(pid)
   end
 
+  # Returns the current process.
+  def self do
+    :erlang.self
+  end
+
   # Returns all key-values in the dictionary.
   def get do
     :erlang.get()
@@ -58,6 +63,52 @@ defmodule Process do
   # See http://www.erlang.org/doc/man/erlang.html#processes-0 for more info.
   def list do
     :erlang.processes
+  end
+
+  # Creates a link between the calling process and another process
+  # (or port) `pid`, if there is not such a link already.
+  #
+  # See http://www.erlang.org/doc/man/erlang.html#link-1 for more info.
+  def link(pid) do
+    :erlang.link(pid)
+  end
+
+  # Removes the link, if there is one, between the calling process and
+  # the process or port referred to by `pid`. Returns true and does not
+  # fail, even if there is no link or `id` does not exist
+  #
+  # See http://www.erlang.org/doc/man/erlang.html#unlink-1 for more info.
+  def unlink(pid) do
+    :erlang.unlink(pid)
+  end
+
+  # Associates the name with a pid or a port identifier. name, which must
+  # be an atom, can be used instead of the pid / port identifier in the
+  # send operator (name <- message).
+  #
+  # See http://www.erlang.org/doc/man/erlang.html#register-2 for more info.
+  def register(name, pid) do
+    :erlang.register(name, pid)
+  end
+
+  # Removes the registered name, associated with a pid or a port identifier.
+  #
+  # See http://www.erlang.org/doc/man/erlang.html#unregister-1 for more info.
+  def unregister(name) do
+    :erlang.unregister(name)
+  end
+
+  # Returns the pid or port identifier with the registered name.
+  # Returns undefined if the name is not registered.
+  #
+  # See http://www.erlang.org/doc/man/erlang.html#whereis-1 for more info.
+  def whereis(name) do
+    :erlang.whereis(name)
+  end
+
+  # Returns a list of names which have been registered using register/2.
+  def registered() do
+    :erlang.registered
   end
 
   # Sets certain flags for the process which calls this function.
