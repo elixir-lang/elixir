@@ -33,6 +33,10 @@ defmodule Exception do
     UndefinedFunctionError.new from_stacktrace(Code.stacktrace)
   end
 
+  def normalize(:function_clause) do
+    FunctionClauseError.new from_stacktrace(Code.stacktrace)
+  end
+
   def normalize({ :badarg, payload }) do
     ArgumentError.new message: "argument error: #{inspect(payload)}"
   end
@@ -52,7 +56,12 @@ defmodule Exception do
         ":"
       end
 
-    "#{module}#{separator}#{fun}/#{arity}"
+    if is_list(arity) do
+      inspected = lc x in arity, do: inspect(x)
+      "#{module}#{separator}#{fun}(#{Enum.join(inspected, ", ")})"
+    else:
+      "#{module}#{separator}#{fun}/#{arity}"
+    end
   end
 
   # Private
@@ -65,10 +74,6 @@ defmodule Exception do
   # Erlang < R15
   def from_stacktrace([{ module, function, arity }|_]) do
     [module: module, function: function, arity: arity]
-  end
-
-  def from_stacktrace([{ function, arity }|_]) do
-    [function: function, arity: arity]
   end
 
   # Safe clause
@@ -109,7 +114,7 @@ defexception UndefinedFunctionError, module: nil, function: nil, arity: nil do
   def message(exception) do
     if exception.function do
       formatted = Exception.format_module_fun_arity exception.module, exception.function, to_arity(exception.arity)
-      "undefined function #{formatted}"
+      "undefined function: #{formatted}"
     else:
       "undefined function"
     end
@@ -117,6 +122,17 @@ defexception UndefinedFunctionError, module: nil, function: nil, arity: nil do
 
   defp to_arity(arity) when is_integer(arity), do: arity
   defp to_arity(list)  when is_list(list),     do: length(list)
+end
+
+defexception FunctionClauseError, module: nil, function: nil, arity: nil do
+  def message(exception) do
+    if exception.function do
+      formatted = Exception.format_module_fun_arity exception.module, exception.function, exception.arity
+      "no function clause matching: #{formatted}"
+    else:
+      "no function clause matches"
+    end
+  end
 end
 
 defexception ErlangError, original: nil do

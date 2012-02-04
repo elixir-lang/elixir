@@ -90,9 +90,17 @@ defmodule Kernel::RescueTest do
   end
 
   def test_undefined_function_error do
-    "undefined function ::DoNotExist.for_sure/0" = try do
+    "undefined function: ::DoNotExist.for_sure/0" = try do
       DoNotExist.for_sure()
     rescue: x in [UndefinedFunctionError]
+      x.message
+    end
+  end
+
+  def test_function_clause_error do
+    "no function clause matching: ::Kernel::RescueTest.zero(1)" = try do
+      zero(1)
+    rescue: x in [FunctionClauseError]
       x.message
     end
   end
@@ -163,7 +171,7 @@ defmodule Kernel::RescueTest do
 
   def test_undefined_function_error_from_expected_variable do
     expected = UndefinedFunctionError
-    "undefined function ::DoNotExist.for_sure/0" = try do
+    "undefined function: ::DoNotExist.for_sure/0" = try do
       DoNotExist.for_sure()
     rescue: x in [^expected]
       x.message
@@ -171,10 +179,12 @@ defmodule Kernel::RescueTest do
   end
 
   def test_undefined_function_error_as_erlang_error do
-    "undefined function ::DoNotExist.for_sure/0" = try do
+    "undefined function: ::DoNotExist.for_sure/0" = try do
       DoNotExist.for_sure()
     rescue: x in [ErlangError]
       x.message
     end
   end
+
+  defp zero(0), do: 0
 end

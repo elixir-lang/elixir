@@ -162,7 +162,8 @@ rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
   H == '::UndefinedFunctionError'; H == '::ErlangError';
   H == '::ArgumentError'; H == '::ArithmeticError';
   H == '::BadArityError'; H == '::BadFunctionError';
-  H == '::MatchError'; H == '::CaseClauseError' ->
+  H == '::MatchError'; H == '::CaseClauseError';
+  H == '::FunctionClauseError' ->
   Expr = erlang_rescue_guard_for(Line, Var, H),
   rescue_each_ref(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
@@ -185,7 +186,7 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
 erlang_rescues() ->
   [
     ['::UndefinedFunctionError', '::ArgumentError', '::ArithmeticError', '::BadArityError',
-     '::BadFunctionError', '::MatchError', '::CaseClauseError'],
+     '::BadFunctionError', '::MatchError', '::CaseClauseError', '::FunctionClauseError'],
     ['::ErlangError']
   ].
 
@@ -194,6 +195,9 @@ erlang_rescue_guard_for(Line, Var, List) when is_list(List) ->
 
 erlang_rescue_guard_for(Line, Var, '::UndefinedFunctionError') ->
   { '==', Line, [Var, undef] };
+
+erlang_rescue_guard_for(Line, Var, '::FunctionClauseError') ->
+  { '==', Line, [Var, function_clause] };
 
 erlang_rescue_guard_for(Line, Var, '::ArithmeticError') ->
   { '==', Line, [Var, badarith] };

@@ -8,6 +8,12 @@ defmodule Kernel::ExceptionTest do
     false = is_exception({ :foo, :bar })
   end
 
+  def test_format_module_function_arity do
+    "::Foo.bar/1"   = Exception.format_module_fun_arity ::Foo, :bar, 1
+    "::Foo.bar()"   = Exception.format_module_fun_arity ::Foo, :bar, []
+    "foo:bar(1, 2)" = Exception.format_module_fun_arity :foo,  :bar, [1,2]
+  end
+
   def test_runtime_error_message do
     "runtime error" = RuntimeError.new.message
     "exception"     = RuntimeError.new(message: "exception").message
@@ -20,9 +26,16 @@ defmodule Kernel::ExceptionTest do
 
   def test_undefined_function_message do
     "undefined function" = UndefinedFunctionError.new.message
-    "undefined function ::Foo.bar/1" = UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: 1).message
-    "undefined function ::Foo.bar/0" = UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: []).message
-    "undefined function foo:bar/0"   = UndefinedFunctionError.new(module: :foo,  function: :bar, arity: []).message
+    "undefined function: ::Foo.bar/1" = UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: 1).message
+    "undefined function: ::Foo.bar/0" = UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: []).message
+    "undefined function: foo:bar/0"   = UndefinedFunctionError.new(module: :foo,  function: :bar, arity: []).message
+  end
+
+  def test_function_clause_message do
+    "no function clause matches" = FunctionClauseError.new.message
+    "no function clause matching: ::Foo.bar/1" = FunctionClauseError.new(module: ::Foo, function: :bar, arity: 1).message
+    "no function clause matching: ::Foo.bar()" = FunctionClauseError.new(module: ::Foo, function: :bar, arity: []).message
+    "no function clause matching: foo:bar()"   = FunctionClauseError.new(module: :foo,  function: :bar, arity: []).message
   end
 
   def test_erlang_error_message do
