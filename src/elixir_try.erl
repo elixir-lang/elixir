@@ -43,6 +43,14 @@ each_clause(Line, { rescue, Args, Expr }, S) ->
           { Var, SV } = elixir_variables:build_ex(Line, S),
           Guards = rescue_guards(Line, Var, Right),
           each_clause(Line, { 'catch', [error, { 'when', Line, [Var, Guards] }], Expr }, SV)
+      end;
+    _ ->
+      case Right of
+        nil ->
+          each_clause(Line, { 'catch', [error, Left], Expr }, S);
+        _ ->
+          Guards = rescue_guards(Line, Left, Right),
+          each_clause(Line, { 'catch', [error, { 'when', Line, [Left, Guards] }], Expr }, S)
       end
   end;
 

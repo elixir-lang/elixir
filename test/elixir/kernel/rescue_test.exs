@@ -38,4 +38,22 @@ defmodule Kernel::RescueTest do
       false
     end
   end
+
+  def test_rescue_named_runtime_error do
+    "an exception" = try do
+      raise "an exception"
+    rescue: x in [RuntimeError]
+      x.message
+    catch: :error, _
+      false
+    end
+  end
+
+  def test_rescue_named_with_underscore do
+    "an exception" = try do
+      raise "an exception"
+    rescue: x in _
+      x.message
+    end
+  end
 end
