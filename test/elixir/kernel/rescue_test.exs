@@ -88,4 +88,20 @@ defmodule Kernel::RescueTest do
       x.message
     end
   end
+
+  def test_undefined_function_error do
+    "undefined function ::DoNotExist.for_sure/0" = try do
+      DoNotExist.for_sure()
+    rescue: x in [UndefinedFunctionError]
+      x.message
+    end
+  end
+
+  def test_undefined_function_error_as_erlang_error do
+    "undefined function ::DoNotExist.for_sure/0" = try do
+      DoNotExist.for_sure()
+    rescue: x in [ErlangError]
+      x.message
+    end
+  end
 end

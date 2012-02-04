@@ -135,7 +135,11 @@ rescue_guards(Line, Var, Guards, S) ->
 %% an Erlang exception or not.
 
 rescue_each_guard(Line, Var, [{ '^', _, [H]}|T], Elixir, Erlang, _Safe, S) ->
-  rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, false, S);
+  rescue_each_guard(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, false, S);
+
+rescue_each_guard(Line, Var, ['::UndefinedFunctionError'|T], Elixir, Erlang, _Safe, S) ->
+  Expr = { '==', Line, [Var, undef] },
+  rescue_each_guard(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
 rescue_each_guard(Line, Var, ['::ErlangError'|T], Elixir, Erlang, _Safe, S) ->
   IsNotTuple  = { 'not', Line, [{ is_tuple, Line, [Var] }] },
@@ -144,18 +148,18 @@ rescue_each_guard(Line, Var, ['::ErlangError'|T], Elixir, Erlang, _Safe, S) ->
     { '__EXCEPTION__', Line, nil }
   ] },
 
-  OrElse = { 'orelse', Line, [IsNotTuple, IsException] },
-  rescue_each_guard(Line, Var, T, Elixir, [OrElse|Erlang], false, S);
+  Expr = { 'orelse', Line, [IsNotTuple, IsException] },
+  rescue_each_guard(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
 rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
-  rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, Safe, S);
+  rescue_each_guard(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, Safe, S);
 
 rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe, S) ->
   case translate_each(H, S) of
     { { atom, _, Atom }, _ } ->
       rescue_each_guard(Line, Var, [Atom|T], Elixir, Erlang, Safe, S);
     _ ->
-      rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, Safe, S)
+      rescue_each_guard(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, Safe, S)
   end;
 
 rescue_each_guard(_, _, [], Elixir, Erlang, Safe, _) ->
@@ -163,7 +167,7 @@ rescue_each_guard(_, _, [], Elixir, Erlang, Safe, _) ->
 
 %% Join the given expression forming a tree according to the given kind.
 
-compare(Line, Var, Expr) ->
+exception_compare(Line, Var, Expr) ->
   { '==', Line, [
     { element, Line, [1, Var] },
     Expr
