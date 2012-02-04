@@ -161,7 +161,8 @@ rescue_each_ref(Line, Var, [{ '^', _, _}|T], Elixir, Erlang, Safe, S) ->
 rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
   H == '::UndefinedFunctionError'; H == '::ErlangError';
   H == '::ArgumentError'; H == '::ArithmeticError';
-  H == '::BadArityError' ->
+  H == '::BadArityError'; H == '::BadFunctionError';
+  H == '::MatchError'; H == '::CaseClauseError' ->
   Expr = erlang_rescue_guard_for(Line, Var, H),
   rescue_each_ref(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
@@ -183,7 +184,8 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
 
 erlang_rescues() ->
   [
-    ['::UndefinedFunctionError', '::ArgumentError', '::ArithmeticError', '::BadArityError'],
+    ['::UndefinedFunctionError', '::ArgumentError', '::ArithmeticError', '::BadArityError',
+     '::BadFunctionError', '::MatchError', '::CaseClauseError'],
     ['::ErlangError']
   ].
 
@@ -200,6 +202,24 @@ erlang_rescue_guard_for(Line, Var, '::BadArityError') ->
   { 'andalso', Line, [
     { is_tuple, Line, [Var] },
     exception_compare(Line, Var, badarity)
+  ] };
+
+erlang_rescue_guard_for(Line, Var, '::BadFunctionError') ->
+  { 'andalso', Line, [
+    { is_tuple, Line, [Var] },
+    exception_compare(Line, Var, badfun)
+  ] };
+
+erlang_rescue_guard_for(Line, Var, '::MatchError') ->
+  { 'andalso', Line, [
+    { is_tuple, Line, [Var] },
+    exception_compare(Line, Var, badmatch)
+  ] };
+
+erlang_rescue_guard_for(Line, Var, '::CaseClauseError') ->
+  { 'andalso', Line, [
+    { is_tuple, Line, [Var] },
+    exception_compare(Line, Var, case_clause)
   ] };
 
 erlang_rescue_guard_for(Line, Var, '::ArgumentError') ->

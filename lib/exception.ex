@@ -17,6 +17,18 @@ defmodule Exception do
     BadArityError.new(function: fun, args: args)
   end
 
+  def normalize({ :badfun, actual }) do
+    BadFunctionError.new(actual: actual)
+  end
+
+  def normalize({ :badmatch, actual }) do
+    MatchError.new(actual: actual)
+  end
+
+  def normalize({ :case_clause, actual }) do
+    CaseClauseError.new(actual: actual)
+  end
+
   def normalize(:undef) do
     UndefinedFunctionError.new from_stacktrace(Code.stacktrace)
   end
@@ -55,6 +67,10 @@ defmodule Exception do
     [module: module, function: function, arity: arity]
   end
 
+  def from_stacktrace([{ function, arity }|_]) do
+    [function: function, arity: arity]
+  end
+
   # Safe clause
   def from_stacktrace(_) do
     []
@@ -64,6 +80,24 @@ end
 defexception RuntimeError,    message: "runtime error"
 defexception ArgumentError,   message: "argument error"
 defexception ArithmeticError, message: "bad argument in arithmetic expression"
+
+defexception BadFunctionError, actual: nil do
+  def message(exception) do
+    "bad function: #{inspect(exception.actual)}"
+  end
+end
+
+defexception MatchError, actual: nil do
+  def message(exception) do
+    "no match of right hand side value: #{inspect(exception.actual)}"
+  end
+end
+
+defexception CaseClauseError, actual: nil do
+  def message(exception) do
+    "no case clause matching: #{inspect(exception.actual)}"
+  end
+end
 
 defexception BadArityError, function: nil, args: nil do
   def message(exception) do

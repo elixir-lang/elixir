@@ -132,6 +132,35 @@ defmodule Kernel::RescueTest do
     end
   end
 
+  def test_badfun_error do
+    x = :example
+    "bad function: :example" = try do
+      x.(2)
+    rescue: x in [BadFunctionError]
+      x.message
+    end
+  end
+
+  def test_badmatch_error do
+    x = :example
+    "no match of right hand side value: :other" = try do
+      ^x = :other
+    rescue: x in [MatchError]
+      x.message
+    end
+  end
+
+  def test_case_clause_error do
+    x = :example
+    "no case clause matching: :other" = try do
+      case :other do
+      match: ^x
+      end
+    rescue: x in [CaseClauseError]
+      x.message
+    end
+  end
+
   def test_undefined_function_error_from_expected_variable do
     expected = UndefinedFunctionError
     "undefined function ::DoNotExist.for_sure/0" = try do
