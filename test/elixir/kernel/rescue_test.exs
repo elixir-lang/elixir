@@ -97,6 +97,15 @@ defmodule Kernel::RescueTest do
     end
   end
 
+  def test_undefined_function_error_from_expected_variable do
+    expected = UndefinedFunctionError
+    "undefined function ::DoNotExist.for_sure/0" = try do
+      DoNotExist.for_sure()
+    rescue: x in [^expected]
+      x.message
+    end
+  end
+
   def test_undefined_function_error_as_erlang_error do
     "undefined function ::DoNotExist.for_sure/0" = try do
       DoNotExist.for_sure()

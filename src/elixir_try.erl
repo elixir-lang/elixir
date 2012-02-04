@@ -134,21 +134,22 @@ rescue_guards(Line, Var, Guards, S) ->
 %% Handle each clause expression detecting if it is
 %% an Erlang exception or not.
 
-rescue_each_guard(Line, Var, [{ '^', _, [H]}|T], Elixir, Erlang, _Safe, S) ->
+rescue_each_guard(Line, { '_', _, _ } = Var, [{ '^', _, [H]}|T], Elixir, Erlang, _Safe, S) ->
   rescue_each_guard(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, false, S);
 
-rescue_each_guard(Line, Var, ['::UndefinedFunctionError'|T], Elixir, Erlang, _Safe, S) ->
-  Expr = { '==', Line, [Var, undef] },
-  rescue_each_guard(Line, Var, T, Elixir, [Expr|Erlang], false, S);
+rescue_each_guard(Line, Var, [{ '^', _, [H]}|T], Elixir, Erlang, _Safe, S) ->
+  NewElixir = exception_compare(Line, Var, H),
+  NewErlang = lists:map(fun(X) ->
+    { 'andalso', Line, [
+      { '==', Line, [X, H] },
+      erlang_rescue_guard_for(Line, Var, X)
+    ] }
+  end, defined_erlang_rescue()),
+  rescue_each_guard(Line, Var, T, [NewElixir|Elixir], NewErlang ++ Erlang, false, S);
 
-rescue_each_guard(Line, Var, ['::ErlangError'|T], Elixir, Erlang, _Safe, S) ->
-  IsNotTuple  = { 'not', Line, [{ is_tuple, Line, [Var] }] },
-  IsException = { '!=', Line, [
-    { element, Line, [2, Var] },
-    { '__EXCEPTION__', Line, nil }
-  ] },
-
-  Expr = { 'orelse', Line, [IsNotTuple, IsException] },
+rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
+  (H == '::UndefinedFunctionError') orelse (H == '::ErlangError') ->
+  Expr = erlang_rescue_guard_for(Line, Var, H),
   rescue_each_guard(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
 rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
@@ -164,6 +165,23 @@ rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe, S) ->
 
 rescue_each_guard(_, _, [], Elixir, Erlang, Safe, _) ->
   { Elixir, Erlang, Safe }.
+
+erlang_rescue_guard_for(Line, Var, '::UndefinedFunctionError') ->
+  { '==', Line, [Var, undef] };
+
+erlang_rescue_guard_for(Line, Var, '::ErlangError') ->
+  IsNotTuple  = { 'not', Line, [{ is_tuple, Line, [Var] }] },
+  IsException = { '!=', Line, [
+    { element, Line, [2, Var] },
+    { '__EXCEPTION__', Line, nil }
+  ] },
+  { 'orelse', Line, [IsNotTuple, IsException] }.
+
+defined_erlang_rescue() ->
+  [
+    '::UndefinedFunctionError',
+    '::ErlangError'
+  ].
 
 %% Join the given expression forming a tree according to the given kind.
 
