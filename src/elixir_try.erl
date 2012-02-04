@@ -42,12 +42,24 @@ each_clause(Line, { rescue, Args, Expr }, S) ->
           each_clause(Line, { 'catch', [error, Left], Expr }, S);
         _ ->
           { ClauseVar, CS } = elixir_variables:build_ex(Line, S),
-          Clause = rescue_guards(Line, ClauseVar, Right),
+          { Clause, _ } = rescue_guards(Line, ClauseVar, Right),
           each_clause(Line, { 'catch', [error, Clause], Expr }, CS)
       end;
     _ ->
-      Clause = rescue_guards(Line, Left, Right),
-      each_clause(Line, { 'catch', [error, Clause], Expr }, S)
+      { Clause, Safe } = rescue_guards(Line, Left, Right),
+      case Safe of
+        true ->
+          each_clause(Line, { 'catch', [error, Clause], Expr }, S);
+        false ->
+          { ClauseVar, CS }  = elixir_variables:build_ex(Line, S),
+          { FinalClause, _ } = rescue_guards(Line, ClauseVar, Right),
+          Match = { '=', Line, [
+            Left,
+            { { '.', Line, ['::Exception', normalize] }, Line, [ClauseVar] }
+          ] },
+          FinalExpr = prepend_to_block(Line, Match, Expr),
+          each_clause(Line, { 'catch', [error, FinalClause], FinalExpr }, CS)
+      end
   end;
 
 each_clause(Line, {Key,_,_}, S) ->
@@ -97,10 +109,10 @@ normalize_rescue(Line, _, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid condition for: ", "rescue").
 
 %% Convert rescue clauses into guards.
-rescue_guards(_, Var, nil) -> Var;
+rescue_guards(_, Var, nil) -> { Var, false };
 
 rescue_guards(Line, Var, Guards) ->
-  { Elixir, Erlang } = rescue_each_guard(Line, Var, Guards, [], []),
+  { Elixir, Erlang, Safe } = rescue_each_guard(Line, Var, Guards, [], [], true),
 
   Final = case Elixir == [] of
     true  -> Erlang;
@@ -114,28 +126,36 @@ rescue_guards(Line, Var, Guards) ->
       [join(Line, '&', [IsTuple, IsException, OrElse])|Erlang]
   end,
 
-  { 'when', Line, [Var, join(Line, '|', Final)] }.
+  {
+    { 'when', Line, [Var, join(Line, '|', Final)] },
+    Safe
+  }.
 
 %% Handle each clause expression detecting if it is
 %% an Erlang exception or not.
 
-rescue_each_guard(Line, Var, [H|T], Elixir, Erlang) ->
-  Expr = case H of
-    { '^', _, [Expected] } -> Expected;
-    _ -> H
-  end,
+rescue_each_guard(Line, Var, [{ '^', _, [H]}|T], Elixir, Erlang, _Safe) ->
+  rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, false);
 
-  Comparison = { '==', Line, [
-    { element, Line, [1, Var] },
-    Expr
-  ] },
+rescue_each_guard(Line, Var, [H|T], Elixir, Erlang, Safe) ->
+  rescue_each_guard(Line, Var, T, [compare(Line, Var, H)|Elixir], Erlang, Safe);
 
-  rescue_each_guard(Line, Var, T, [Comparison|Elixir], Erlang);
-
-rescue_each_guard(_, _, [], Elixir, Erlang) ->
-  { Elixir, Erlang }.
+rescue_each_guard(_, _, [], Elixir, Erlang, Safe) ->
+  { Elixir, Erlang, Safe }.
 
 %% Join the given expression forming a tree according to the given kind.
 
+compare(Line, Var, Expr) ->
+  { '==', Line, [
+    { element, Line, [1, Var] },
+    Expr
+  ] }.
+
 join(Line, Kind, [H|T]) ->
   lists:foldl(fun(X, Acc) -> { Kind, Line, [Acc, X] } end, H, T).
+
+prepend_to_block(_Line, Expr, { '__BLOCK__', Line, Args }) ->
+  { '__BLOCK__', Line, [Expr|Args] };
+
+prepend_to_block(Line, Expr, Args) ->
+  { '__BLOCK__', Line, [Expr, Args] }.

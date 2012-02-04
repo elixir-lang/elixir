@@ -140,6 +140,7 @@ core_main() ->
     "lib/protocol.ex",
     "lib/enum.ex",
     "lib/record.ex",
+    "lib/exception.ex",
     "lib/string/inspect.ex",
     "lib/list/inspect.ex"
   ].
