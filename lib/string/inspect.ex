@@ -96,7 +96,7 @@ defimpl String::Inspect, for: List do
   def to_binary(thing) do
     result = try do
       iolist_to_binary(thing)
-    catch: :error, :badarg
+    rescue: ArgumentError
       nil
     end
 

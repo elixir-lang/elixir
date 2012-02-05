@@ -52,14 +52,14 @@ defmodule Protocol do
   def assert_protocol(module) do
     try do
       module.__info__(:data)
-    catch: :error, :undef
-      error { :badarg, "#{module} is not loaded" }
+    rescue: UndefinedFunctionError
+      raise ArgumentError, message: "#{module} is not loaded"
     end
 
     try do
       module.__protocol__
-    catch: :error, :undef
-      error { :badarg, "#{module} is not a protocol" }
+    rescue: UndefinedFunctionError
+      raise ArgumentError, message: "#{module} is not a protocol"
     end
   end
 
@@ -70,7 +70,7 @@ defmodule Protocol do
     remaining = elem(protocol.__protocol__, 2) -- impl.__info__(:exports)
 
     if remaining != [], do:
-      error { :badarg, "#{impl} did not implement #{protocol}, missing: #{remaining}" }
+      raise ArgumentError, message: "#{impl} did not implement #{protocol}, missing: #{remaining}"
   end
 
   # Callback entrypoint that defines the protocol functions.
@@ -152,7 +152,7 @@ defmodule Protocol do
           result =
             try do
               { apply(unquote(module)::element(1, xA), unquote(name), args), true }
-            catch: :error, :undef
+            rescue: UndefinedFunctionError
               :error
             end
 
@@ -177,11 +177,11 @@ defmodule Protocol do
     :orddict.from_list lc(x in args) {
       case x do
       match: { _, _, args } when args == [] or args == false
-        error({ :badarg, "protocol functions expect at least one argument" })
+        raise ArgumentError, message: "protocol functions expect at least one argument"
       match: { name, _, args } when is_atom(name) and is_list(args)
         { name, length(args) }
       else:
-        error({ :badarg, "invalid args for defprotocol", x })
+        raise ArgumentError, message: "invalid args for defprotocol"
       end
     }
   end
