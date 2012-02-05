@@ -15,9 +15,9 @@ Elixir isn't available in any distribution yet, but you can download and compile
     $ bin/elixir -v
     Elixir 0.4.0.dev
 
-If tests pass, we are ready to go. But if tests fail it is likely you have an outdated Erlang version (Elixir requires Erlang R14B03 or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
+If tests pass, we are ready to go. But if tests fail it is likely you have an outdated Erlang version (Elixir requires Erlang R15B or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
 
-    Erlang R14B03 (erts-5.8.4) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
+    Erlang R15B (erts-5.8.4) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
 
 If you have the correct version and tests still fail, feel free to open an issue in the issues tracker on Github.
 
