@@ -46,7 +46,7 @@ defmodule List do
   #     List.flatten [1,[[2],3]], [4,5]
   #     # => [1,2,3,4,5]
   #
-  def flatten(list, tail // []) when is_list(list) & is_list(tail) do
+  def flatten(list, tail // []) when is_list(list) andalso is_list(tail) do
     do_flatten(list, tail)
   end
 
@@ -84,7 +84,7 @@ defmodule List do
   #     List.seq(1, 3) #=> [1,2,3]
   #     List.seq(1, 1) #=> [1]
   #
-  def seq(first, last) when is_integer(first) & is_integer(last) & first <= last do
+  def seq(first, last) when is_integer(first) andalso is_integer(last) andalso first <= last do
     do_seq(last - first + 1, last, [])
   end
 

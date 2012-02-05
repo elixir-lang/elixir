@@ -127,10 +127,10 @@ rescue_guards(Line, Var, Guards, S) ->
         { '__EXCEPTION__', Line, nil }
       ] },
       OrElse = join(Line, 'orelse', Elixir),
-      [join(Line, '&', [IsTuple, IsException, OrElse])|Erlang]
+      [join(Line, 'andalso', [IsTuple, IsException, OrElse])|Erlang]
   end,
   {
-    { 'when', Line, [Var, join(Line, '|', Final)] },
+    { 'when', Line, [Var, reverse_join(Line, 'when', Final)] },
     Safe
   }.
 
@@ -263,6 +263,9 @@ exception_compare(Line, Var, Expr) ->
 
 join(Line, Kind, [H|T]) ->
   lists:foldl(fun(X, Acc) -> { Kind, Line, [Acc, X] } end, H, T).
+
+reverse_join(Line, Kind, [H|T]) ->
+  lists:foldl(fun(X, Acc) -> { Kind, Line, [X, Acc] } end, H, T).
 
 prepend_to_block(_Line, Expr, { '__BLOCK__', Line, Args }) ->
   { '__BLOCK__', Line, [Expr|Args] };

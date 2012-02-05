@@ -31,7 +31,7 @@ defimpl String::Inspect, for: Atom do
 
   # Detect if atom is a module reference (::Foo::Bar::Baz)
 
-  defp valid_const_identifier?([?:,?:,h|t]) when h >= ?A & h <= ?Z do
+  defp valid_const_identifier?([?:,?:,h|t]) when h >= ?A andalso h <= ?Z do
     valid_const_identifier? valid_identifier?(t)
   end
 
@@ -39,9 +39,10 @@ defimpl String::Inspect, for: Atom do
 
   # Detect if atom is :letter_or_underscore
 
-  defp valid_identifier?([h|t]) when
-    (h >= ?a andalso h <= ?z) orelse
-    (h >= ?A andalso h <= ?Z) orelse (h == ?_) do
+  defp valid_identifier?([h|t])  \
+    when h >= ?a andalso h <= ?z \
+    when h >= ?A andalso h <= ?Z \
+    when h == ?_ do
     valid_identifier? t
   end
 

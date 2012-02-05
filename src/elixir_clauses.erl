@@ -42,15 +42,10 @@ extract_guards({ 'when', _, [Left, Right] }) -> { Left, Right };
 extract_guards(Else) -> { Else, true }.
 
 extract_guard_clauses(true) -> [];
-extract_guard_clauses(Term) ->
-  Or = extract_or_clauses(Term, []),
-  [extract_and_clauses(Item, []) || Item <- Or].
+extract_guard_clauses(Term) -> extract_or_clauses(Term, []).
 
-extract_or_clauses({ '|', _, [Left, Right] }, Acc) -> extract_or_clauses(Left, [Right|Acc]);
-extract_or_clauses(Term, Acc) -> [Term|Acc].
-
-extract_and_clauses({ '&', _, [Left, Right] }, Acc) -> extract_and_clauses(Left, [Right|Acc]);
-extract_and_clauses(Term, Acc) -> [Term|Acc].
+extract_or_clauses({ 'when', _, [Left, Right] }, Acc) -> extract_or_clauses(Right, [[Left]|Acc]);
+extract_or_clauses(Term, Acc) -> [[Term]|Acc].
 
 % Extract guards when it is in the last element of the args
 

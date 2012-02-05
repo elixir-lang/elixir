@@ -185,10 +185,10 @@ defmodule Elixir::Builtin do
   defmacro is_exception(thing) do
     quote do
       in_guard do
-        andalso(is_tuple(unquote(thing)), element(2, unquote(thing)) == __EXCEPTION__)
+        is_tuple(unquote(thing)) andalso element(2, unquote(thing)) == __EXCEPTION__
       else:
         result = unquote(thing)
-        andalso(is_tuple(result), element(2, result) == __EXCEPTION__)
+        is_tuple(result) andalso element(2, result) == __EXCEPTION__
       end
     end
   end
@@ -807,7 +807,7 @@ defmodule Elixir::Builtin do
   #       raise x
   #     end
   #
-  def raise(exception) when is_tuple(exception) & element(2, exception) == __EXCEPTION__ do
+  def raise(exception) when is_tuple(exception) andalso element(2, exception) == __EXCEPTION__ do
     error exception
   end
 
