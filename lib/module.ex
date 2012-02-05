@@ -119,7 +119,7 @@ defmodule Module do
   #     end
   #
   def function_defined?(module, tuple, kind) do
-    function_defined?(module, tuple) &&
+    function_defined?(module, tuple) andalso
       (table = function_table_for(module)
        entry = kind_to_entry(kind)
        List.member? ETS.lookup_element(table, entry, 2), tuple)

@@ -346,6 +346,8 @@ keyword('not')     -> true;
 keyword('and')     -> true;
 keyword('or')      -> true;
 keyword('xor')     -> true;
+keyword('andalso') -> true;
+keyword('orelse')  -> true;
 keyword('when')    -> true;
 keyword('in')      -> true;
 keyword(_)         -> false.
