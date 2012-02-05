@@ -79,12 +79,16 @@ defmodule ExUnit::Runner do
       partial = try do
         apply test_case, test, []
         nil
+      rescue: error1
+        { :error, error1, Code.stacktrace }
       catch: kind1, error1
         { kind1, error1, Code.stacktrace }
       end
 
       # test_case.teardown(test)
       partial
+    rescue: error2
+      { :error, error2, Code.stacktrace }
     catch: kind2, error2
       { kind2, error2, Code.stacktrace }
     end

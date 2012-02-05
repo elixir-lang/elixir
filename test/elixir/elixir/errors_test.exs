@@ -17,7 +17,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_syntax_error_with_no_token do
-    "syntax error" = format_rescue 'case 1 do'
+    "syntax error: expression is incomplete" = format_rescue 'case 1 do'
   end
 
   def test_bad_form do

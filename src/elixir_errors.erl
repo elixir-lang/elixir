@@ -9,6 +9,9 @@
 syntax_error(Line, Filename, user, Token) ->
   syntax_error(Line, Filename, Token, "");
 
+syntax_error(Line, Filename, _Error, []) ->
+  raise(Line, Filename, '::TokenMissingError', <<"syntax error: expression is incomplete">>);
+
 syntax_error(Line, Filename, Error, Token) ->
   BinError = if
     (Token == []) and (Error == "syntax error before: ") -> <<"syntax error">>;

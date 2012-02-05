@@ -1,5 +1,5 @@
 defmodule Elixir::IEx do
-  import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
+  import Exception, only: [format_stacktrace: 1]
 
   def start do
     IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
@@ -18,18 +18,26 @@ defmodule Elixir::IEx do
 
     code = code_cache ++ Erlang.io.get_line(prompt)
 
-    {binding_to_return, code_cache_to_return} = try do
+    { binding_to_return, code_cache_to_return } = try do
       { result, new_binding } = Erlang.elixir.eval(code, binding)
       IO.puts inspect(result)
       { new_binding, '' }
-    catch: :error, { :badsyntax, {_, _, _, []} }
+    rescue: TokenMissingError
       { binding, code }
+    rescue: exception
+      IO.puts :standard_error, "** (#{exception.__record__}) #{exception.message}"
+      print_stacktrace Code.stacktrace
+      { binding, '' }
     catch: kind, error
-      IO.puts :standard_error, "** #{kind} #{format_catch(kind, error)}"
-      Enum.each Code.stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
+      IO.puts :standard_error, "** (#{kind}) #{inspect(error)}"
+      print_stacktrace Code.stacktrace
       { binding, '' }
     end
 
     do_loop(binding_to_return, code_cache_to_return)
+  end
+
+  defp print_stacktrace(stacktrace) do
+    Enum.each stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
   end
 end

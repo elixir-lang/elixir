@@ -96,12 +96,13 @@ defmodule Exception do
   defp from_stacktrace(_), do: []
 end
 
-defexception RuntimeError,     message: "runtime error"
-defexception ArgumentError,    message: "argument error"
-defexception ArithmeticError,  message: "bad argument in arithmetic expression"
-defexception SystemLimitError, message: "a system limit has been reached"
-defexception SyntaxError,      message: "syntax error"
-defexception CompileError,     message: "compile error"
+defexception RuntimeError,      message: "runtime error"
+defexception ArgumentError,     message: "argument error"
+defexception ArithmeticError,   message: "bad argument in arithmetic expression"
+defexception SystemLimitError,  message: "a system limit has been reached"
+defexception SyntaxError,       message: "syntax error"
+defexception TokenMissingError, message: "syntax error: expression is incomplete"
+defexception CompileError,      message: "compile error"
 
 defexception BadFunctionError, actual: nil do
   def message(exception) do

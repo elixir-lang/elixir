@@ -1,5 +1,5 @@
 defmodule ExUnit::Formatter do
-  import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
+  import Exception, only: [format_stacktrace: 1]
 
   defrecord Config, counter: 0, failures: []
 
@@ -59,9 +59,17 @@ defmodule ExUnit::Formatter do
 
   defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
     IO.puts "#{acc}) #{test} (#{test_case})"
-    IO.puts "  #{kind} #{format_catch(kind, reason)}\n  stacktrace:"
+    IO.puts "  ** #{format_catch(kind, reason)}\n  stacktrace:"
     Enum.each stacktrace, fn(s){ IO.puts "    #{format_stacktrace(s)}" }
     IO.print "\n"
     acc + 1
+  end
+
+  defp format_catch(:error, exception) do
+    "(#{exception.__record__}) #{exception.message}"
+  end
+
+  defp format_catch(kind, reason) do
+    "(#{kind}) #{inspect(reason)}"
   end
 end
