@@ -497,7 +497,7 @@ The next control-flow mechanism is `try/catch/after`:
     ** throw 13
         erl_eval:expr/3
 
-`try/catch` not only handles thrown values, but is also the mechanism to catch errors and exits. In such cases, we need to explicitly pass to try that an error/exit is being caught:
+`try/catch` not only handles thrown values, but also the mechanism to catch errors and exits. In such cases, we need to explicitly pass to try that an error/exit is being caught:
 
     iex> try do
     ...>   error :failure
@@ -506,7 +506,9 @@ The next control-flow mechanism is `try/catch/after`:
     ...> end
     Ah, error caught
 
-There is one particularity that applies to `try/catch/after` when compared to other control-flow expressions. The Erlang VM machine considers such clauses unsafe (since they may fail or not) and do not export variables from try variable defined inside `try/catch/after` cannot be accessed from the outer scope:
+However the syntax above is rarely used in Elixir. Instead, Elixir programmers should use raise/try/rescue mechanism to handle exceptions, as described in next section.
+
+Finally, there is one particularity that applies to `try/catch/after` when compared to other control-flow expressions. The Erlang VM machine considers such clauses unsafe (since they may fail or not) and do not export variables from try variable defined inside `try/catch/after` cannot be accessed from the outer scope:
 
     iex> try do
     ...>   new_var = 1
@@ -517,7 +519,40 @@ There is one particularity that applies to `try/catch/after` when compared to ot
     iex> new_var
     ** error :undef
 
-### 2.6.6 Receive
+### 2.6.6 Rescue
+
+While `catch` clause inside `try` are simply a pattern matching mechanism, `rescue` provides a higher abstraction around exceptions. `rescue` allows a developer to rescue an exception by its name and not by its internal contents. Some examples are:
+
+    try do
+      raise "some error"
+    rescue RuntimeError
+      "rescued"
+    end
+
+    try do
+      raise "some error"
+    rescue [RuntimeError]
+      "rescued"
+    end
+
+    # rescue and assign to x
+    try do
+      raise "some error"
+    rescue x in [RuntimeError]
+      # all exceptions respond to message
+      x.message
+    end
+
+    # rescue all and assign to x
+    try do
+      raise ArgumentError, message: "unexpected argument"
+    rescue x in _
+      x.message
+    end
+
+Custom exceptions can be defined using the `defexception` macro. Check [the exceptions file for some examples](https://github.com/josevalim/elixir/tree/master/lib/exception.ex).
+
+### 2.6.7 Receive
 
 The last control-flow mechanism we are going to discuss is essential to Elixir's and Erlang's actor mechanism. In Elixir, every code run in processes that exchange messages between them. Those processes are not Operating System processes (they are actually quite light-weight) but called so since they do not share state with each other.
 

@@ -165,7 +165,7 @@ defmodule Elixir::Builtin do
 
   # Defines an exception. It follows exactly the same API as record.
   # The defined record must implement `message/1` as API, otherwise
-  # an error is raised. Check exceptions.ex for examples.
+  # an error is raised. Check exception.ex for examples.
   defmacro defexception(name, values, opts // [], do_block // []) do
     opts   = Orddict.merge(opts, do_block)
     values = [{ :__exception__, __EXCEPTION__ }|values]
@@ -497,6 +497,35 @@ defmodule Elixir::Builtin do
   #
   # Note that calls inside `try` are not tail recursive since the VM
   # needs to keep the stacktrace in case an exception happens.
+  #
+  # ## Rescue clauses
+  #
+  # While `catch` is simply a pattern matching mechanism, rescue
+  # provides a higher abstraction around exceptions that allows
+  # one to rescue an exception by its name and not by its internal
+  # contents. All the following formats are valid rescue expressions:
+  #
+  #     try do
+  #       UndefinedModule.undefined_function
+  #     rescue UndefinedFunctionError
+  #     end
+  #
+  #     try do
+  #       UndefinedModule.undefined_function
+  #     rescue [UndefinedFunctionError]
+  #     end
+  #
+  #     # rescue and assign to x
+  #     try do
+  #       UndefinedModule.undefined_function
+  #     rescue x in [UndefinedFunctionError]
+  #     end
+  #
+  #     # rescue all and assign to x
+  #     try do
+  #       UndefinedModule.undefined_function
+  #     rescue x in _
+  #     end
   #
   # ## Variable visibility
   #
