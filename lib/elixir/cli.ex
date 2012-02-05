@@ -1,7 +1,7 @@
 defrecord Elixir::CLI::Config, commands: [], close: [], output: '.', compile: false
 
 defmodule Elixir::CLI do
-  import Elixir::Formatter, only: [format_catch: 2, format_stacktrace: 1]
+  import Exception, only: [format_stacktrace: 1]
 
   # Invoked directly from erlang boot process. It parses all argv
   # options and execute them in the order they are specified.
@@ -17,12 +17,17 @@ defmodule Elixir::CLI do
 
     try do
       Enum.map all_commands, process_command(_, config)
+    rescue: exception
+      at_exit(1)
+      IO.puts :standard_error, "** (#{exception.__record__}) #{exception.message}"
+      print_stacktrace(Code.stacktrace)
+      halt(1)
     catch: :exit, reason when is_integer(reason)
       at_exit(reason)
       halt(reason)
     catch: kind, reason
       at_exit(1)
-      IO.puts :standard_error, "** #{kind} #{format_catch(kind, reason)}"
+      IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
       print_stacktrace(Code.stacktrace)
       halt(1)
     end
@@ -38,8 +43,11 @@ defmodule Elixir::CLI do
     lc hook in hooks do
       try do
         hook.(status)
+      rescue: exception
+        IO.puts :standard_error, "** #{exception.message} (#{exception.__record__})"
+        print_stacktrace(Code.stacktrace)
       catch: kind, reason
-        IO.puts :standard_error, "** #{kind} #{format_catch(kind, reason)}"
+        IO.puts :standard_error, "** #{kind} #{inspect(reason)}"
         print_stacktrace(Code.stacktrace)
       end
     end

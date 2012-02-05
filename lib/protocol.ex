@@ -17,7 +17,7 @@ defmodule Protocol do
 
     quote do
       defmodule unquote(name) do
-        def __protocol__, do: unquote(kv)
+        def __protocol__, do: { unquote(name), unquote(kv) }
         Protocol.functions(__MODULE__, unquote(kv))
         Protocol.protocol_for(__MODULE__, unquote(opts))
       end
@@ -67,7 +67,7 @@ defmodule Protocol do
   # Raises an error if not.
   # :api: private
   def assert_impl(impl, protocol) do
-    remaining = protocol.__protocol__ -- impl.__info__(:exports)
+    remaining = elem(protocol.__protocol__, 2) -- impl.__info__(:exports)
 
     if remaining != [], do:
       error { :badarg, "#{impl} did not implement #{protocol}, missing: #{remaining}" }

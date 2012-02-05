@@ -68,28 +68,40 @@ defmodule Exception do
     end
   end
 
+  # Format stacktrace for inspection.
+
+  def format_stacktrace({module, fun, arity, file_line}) do
+    "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
+  end
+
   # Private
 
-  # Erlang >= R15
-  def from_stacktrace([{ module, function, arity, _ }|_]) do
+  defp format_file_line(file_line) do
+    if file = Orddict.get(file_line, :file) do
+      file = list_to_binary(file)
+      if line = Orddict.get(file_line, :line) do
+        "#{file}:#{line}: "
+      else:
+        "#{file}: "
+      end
+    else:
+      ""
+    end
+  end
+
+  defp from_stacktrace([{ module, function, arity, _ }|_]) do
     [module: module, function: function, arity: arity]
   end
 
-  # Erlang < R15
-  def from_stacktrace([{ module, function, arity }|_]) do
-    [module: module, function: function, arity: arity]
-  end
-
-  # Safe clause
-  def from_stacktrace(_) do
-    []
-  end
+  defp from_stacktrace(_), do: []
 end
 
 defexception RuntimeError,     message: "runtime error"
 defexception ArgumentError,    message: "argument error"
 defexception ArithmeticError,  message: "bad argument in arithmetic expression"
 defexception SystemLimitError, message: "a system limit has been reached"
+defexception SyntaxError,      message: "syntax error"
+defexception CompileError,     message: "compile error"
 
 defexception BadFunctionError, actual: nil do
   def message(exception) do

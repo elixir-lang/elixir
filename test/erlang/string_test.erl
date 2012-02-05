@@ -73,7 +73,7 @@ bin_string_with_escaped_interpolation_test() ->
   {<<"f#{'o}o">>, _} = elixir:eval("\"f\\#{'o}o\"").
 
 invalid_string_interpolation_test() ->
-  ?assertError({badsyntax, {1, "nofile", _, _}}, elixir:eval("\"f#{{}o\"")).
+  ?assertError({'::SyntaxError', _, _}, elixir:eval("\"f#{{}o\"")).
 
 %% List strings
 

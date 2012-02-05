@@ -186,7 +186,7 @@ defmodule Module do
 
   defp assert_already_compiled!(fun, module) do
     compiled?(module) ||
-      error { :module_already_compiled,
-        "could not call #{fun} on module #{module} because it was already compiled" }
+      raise ArgumentError, message:
+        "could not call #{fun} on module #{module} because it was already compiled"
   end
 end

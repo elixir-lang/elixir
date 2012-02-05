@@ -8,6 +8,8 @@ defmodule Record do
     quote do
       defmodule unquote(name) do
         require ::Record
+        def __record__,    do: unquote(name)
+        def __record__(_), do: unquote(name)
         Record.getters_and_setters(unquote(values), 1, [], unquote(extensor))
         Record.initializers(unquote(values))
         unquote(block)
