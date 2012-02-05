@@ -170,13 +170,13 @@ translate_each(Line, {Key,[Condition],Expr}, S) when Key == match; Key == 'after
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
 translate_each(Line, {Key,[],_}, S) when Key == match; Key == 'after' ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for: ", atom_to_list(Key));
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for ~s", [Key]);
 
 translate_each(Line, {Key,_,_}, S) when Key == match; Key == 'after' ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid comma arguments for: ", atom_to_list(Key));
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid comma arguments for ~s", [Key]);
 
 translate_each(Line, {Key,_,_}, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key: ", atom_to_list(Key)).
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key ~s", [Key]).
 
 % Check if the given expression is a match tuple.
 % This is a small optimization to allow us to change

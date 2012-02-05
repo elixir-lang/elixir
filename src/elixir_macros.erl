@@ -4,7 +4,7 @@
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
 -import(elixir_variables, [umergec/2, umergev/2]).
--import(elixir_errors, [syntax_error/4]).
+-import(elixir_errors, [syntax_error/3, syntax_error/4]).
 -include("elixir.hrl").
 
 %% Operators
@@ -60,7 +60,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
           [ { '__MODULE__', Line, false }, Name ]
         }, S);
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "expected 0 or 1 argument for: ", [$@|atom_to_list(Name)])
+      syntax_error(Line, S#elixir_scope.filename, "expected 0 or 1 argument for @~s, got: ~p", [Name, length(Args)])
   end;
 
 
@@ -160,7 +160,7 @@ translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_a
   elixir_variables:translate_each(Line, Name, S);
 
 translate_macro({ 'var!', Line, [_] }, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "var!");
+  syntax_error(Line, S#elixir_scope.filename, "invalid args for var!");
 
 translate_macro({ Atom, Line, Args }, S) ->
   { TArgs, NS } = translate_args(Args, S),
@@ -178,8 +178,8 @@ unpack_try(_, Exprs)                       -> Exprs.
 
 assert_no_function_scope(_Line, _Kind, #elixir_scope{function=[]}) -> [];
 assert_no_function_scope(Line, Kind, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "cannot invoke inside function: ", atom_to_list(Kind)).
+  syntax_error(Line, S#elixir_scope.filename, "cannot invoke ~s inside a function", [Kind]).
 
 assert_module_scope(Line, Kind, #elixir_scope{module=[],filename=Filename}) ->
-  syntax_error(Line, Filename, "cannot invoke outside module: ", atom_to_list(Kind));
+  syntax_error(Line, Filename, "cannot invoke ~s outside module", [Kind]);
 assert_module_scope(_Line, _Kind, _S) -> [].

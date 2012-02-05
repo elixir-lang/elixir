@@ -25,15 +25,15 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_unbound_var do
-    "unbound variable: ^x" = format_rescue('^x = 1')
+    "unbound variable ^x" = format_rescue('^x = 1')
   end
 
   def test_unbound_not_assignment do
-    "non-assignment scope for: ^x" = format_rescue('^x')
+    "cannot access variable ^x outside of assignment" = format_rescue('^x')
   end
 
   def test_unbound_expr do
-    "cannot bind expression at token: ^x" = format_rescue('^x(1)')
+    "cannot use ^ with expression at ^x, ^ must be used only with variables" = format_rescue('^x(1)')
   end
 
   def test_name_for_defmodule do
@@ -41,20 +41,20 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_invalid_scope_for_function do
-    "cannot invoke outside module: def" = format_rescue 'def Foo, do: 2'
-    "cannot invoke outside module: defmacro" = format_rescue '\n\ndefmacro Foo, do: 2'
+    "cannot invoke def outside module" = format_rescue 'def Foo, do: 2'
+    "cannot invoke defmacro outside module" = format_rescue '\n\ndefmacro Foo, do: 2'
   end
 
   def test_invalid_quote_args do
-    "invalid args for: quote" = format_rescue 'quote 1'
+    "invalid args for quote" = format_rescue 'quote 1'
   end
 
   def test_invalid_fn_args do
-    "no block given for: fn" = format_rescue 'fn 1'
+    "no block given to fn" = format_rescue 'fn 1'
   end
 
   def test_unproper_macro do
-    "key value blocks not supported by: ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
+    "key value blocks not supported by ::Elixir::ErrorsTest::UnproperMacro.unproper/1" =
       format_rescue 'defmodule Foo do\nrequire Elixir::ErrorsTest::UnproperMacro\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
   end
 
@@ -123,7 +123,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_invalid_kv_for_match do
-    "invalid key: invalid" =
+    "invalid key invalid" =
       format_rescue 'case true do\ninvalid: 2\nafter: 3\nend'
   end
 
@@ -137,11 +137,11 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_duplicated_bitstring_size do
-    "duplicated size specifier for: <<>>" = format_rescue '<<1|12-12>>'
+    "duplicated size specifier 12 in <<>>" = format_rescue '<<1|12-12>>'
   end
 
   def test_invalid_bitstring_specified do
-    "invalid specifier for: <<>>" = format_rescue '<<1|12-binary()>>'
+    "invalid specifier for <<>>" = format_rescue '<<1|12-binary()>>'
   end
 
   ## Helpers

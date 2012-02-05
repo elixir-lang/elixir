@@ -70,7 +70,7 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
 
 store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module. invalid scope for: ", atom_to_list(Kind));
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
 store_definition(Kind, Line, Module, Name, Args, Guards, Expr, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),

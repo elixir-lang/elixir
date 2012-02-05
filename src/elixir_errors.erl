@@ -1,20 +1,30 @@
 % A bunch of helpers to help to deal with errors in Elixir source code.
 % This is not exposed in the Elixir language.
 -module(elixir_errors).
--export([syntax_error/4, form_error/4,
-  handle_file_warning/2, handle_file_error/2,
-  format_error/2]).
+-export([syntax_error/3, syntax_error/4,
+  form_error/4, parse_error/4,
+  handle_file_warning/2, handle_file_error/2]).
 -include("elixir.hrl").
 
-syntax_error(Line, Filename, user, Token) ->
-  syntax_error(Line, Filename, Token, "");
+%% Raised during macros translation.
 
-syntax_error(Line, Filename, _Error, []) ->
+syntax_error(Line, Filename, Message) when is_list(Message) ->
+  syntax_error(Line, Filename, iolist_to_binary(Message));
+
+syntax_error(Line, Filename, Message) when is_binary(Message) ->
+  raise(Line, Filename, '::SyntaxError', Message).
+
+syntax_error(Line, Filename, Format, Args)  ->
+  Message = io_lib:format(Format, Args),
+  raise(Line, Filename, '::SyntaxError', iolist_to_binary(Message)).
+
+%% Raised on tokenizing/parsing
+
+parse_error(Line, Filename, _Error, []) ->
   raise(Line, Filename, '::TokenMissingError', <<"syntax error: expression is incomplete">>);
 
-syntax_error(Line, Filename, Error, Token) ->
+parse_error(Line, Filename, Error, Token) ->
   BinError = if
-    (Token == []) and (Error == "syntax error before: ") -> <<"syntax error">>;
     is_atom(Error) -> atom_to_binary(Error, utf8);
     true -> iolist_to_binary(Error)
   end,
@@ -26,6 +36,8 @@ syntax_error(Line, Filename, Error, Token) ->
 
   Message = <<BinError / binary, BinToken / binary >>,
   raise(Line, Filename, '::SyntaxError', Message).
+
+%% Raised during compilation
 
 form_error(Line, Filename, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),
@@ -44,14 +56,6 @@ handle_file_warning(Filename, {Line,Module,Desc}) ->
 handle_file_error(Filename, {Line,Module,Desc}) ->
   form_error(Line, Filename, Module, Desc).
 
-%% Format each error or warning in the format { Line, Module, Desc }
-
-format_error([], Desc) ->
-  io_lib:format("~p", [Desc]);
-
-format_error(Module, Desc) ->
-  Module:format_error(Desc).
-
 %% Helpers
 
 raise(Line, Filename, Kind, Message) ->
@@ -61,3 +65,9 @@ raise(Line, Filename, Kind, Message) ->
 
 file_format(Line, Filename, Message) ->
   lists:flatten(io_lib:format("~ts:~w: ~ts", [Filename, Line, Message])).
+
+format_error([], Desc) ->
+  io_lib:format("~p", [Desc]);
+
+format_error(Module, Desc) ->
+  Module:format_error(Desc).

@@ -3,7 +3,7 @@
 -module(elixir_translator).
 -export([translate/2, translate_each/2, translate_args/2, translate_apply/7, forms/3]).
 -import(elixir_variables, [umergev/2, umergec/2]).
--import(elixir_errors, [syntax_error/4]).
+-import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4]).
 -include("elixir.hrl").
 
 forms(String, StartLine, Filename) ->
@@ -11,13 +11,11 @@ forms(String, StartLine, Filename) ->
     {ok, Tokens} ->
       case elixir_parser:parse(Tokens) of
         {ok, Forms} -> Forms;
-        % TODO: Use format_error
-        {error, {Line, _, [Error, Token]}} -> syntax_error(Line, Filename, Error, Token)
+        {error, {Line, _, [Error, Token]}} -> parse_error(Line, Filename, Error, Token)
       end;
-    % TODO: Use format_error
-    {error, {Line, Error, Token}} -> syntax_error(Line, Filename, Error, Token)
+    {error, {Line, Error, Token}} -> parse_error(Line, Filename, Error, Token)
   catch
-    { interpolation_error, { Line, Error, Token } } -> syntax_error(Line, Filename, Error, Token)
+    { interpolation_error, { Line, Error, Token } } -> parse_error(Line, Filename, Error, Token)
   end.
 
 translate(Forms, S) ->
@@ -52,11 +50,11 @@ translate_each({ '__KVBLOCK__', _, [{[Expr],nil}] }, S) ->
 translate_each({ '__KVBLOCK__', Line, Args }, S) when is_list(Args) ->
   case S#elixir_scope.macro of
     { Receiver, Name, Arity } ->
-      Desc = io_lib:format("~s.~s/~B", [Receiver, Name, Arity]),
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "key value blocks not supported by: ", Desc);
+      Desc = [Receiver, Name, Arity],
+      syntax_error(Line, S#elixir_scope.filename, "key value blocks not supported by ~s.~s/~B", Desc);
     _ ->
       % TODO: This shuold be raised at runtime
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "unhandled key value blocks", "")
+      syntax_error(Line, S#elixir_scope.filename, "unhandled key value blocks", "")
   end;
 
 %% Erlang op
@@ -89,7 +87,7 @@ translate_each({require, Line, [Ref|T]}, S) ->
 
   Extractor = fun
     ({ atom, _, Atom }) -> Atom;
-    (_) -> syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "require")
+    (_) -> syntax_error(Line, S#elixir_scope.filename, "invalid args for require")
   end,
 
   { TRef, SR } = translate_each(Ref, S),
@@ -126,17 +124,17 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
 
   Selector = case TSelector of
     { atom, _,  SelectorAtom } -> SelectorAtom;
-    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid selector for: ", "import")
+    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid selector for import")
   end,
 
   Ref = case TRef of
     { atom, _, RefAtom } -> RefAtom;
-    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid name for: ", "import")
+    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid name for import")
   end,
 
   case is_list(Opts) of
     true -> [];
-    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid options for: ", "import")
+    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid options for import")
   end,
 
   As = proplists:get_value(as, Opts, false),
@@ -204,7 +202,7 @@ translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->
   elixir_quote:translate_each(Exprs, S);
 
 translate_each({quote, Line, [_]}, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "quote");
+  syntax_error(Line, S#elixir_scope.filename, "invalid args for quote");
 
 translate_each({in_guard, _, [[{do,Guard},{else,Else}]]}, S) ->
   case S#elixir_scope.guard of
@@ -221,7 +219,7 @@ translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
     { [], [KV] } when is_list(KV) ->
       elixir_kv_block:decouple(orddict:erase(do, KV));
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "no block given for: ", "fn")
+      syntax_error(Line, S#elixir_scope.filename, "no block given to fn")
   end,
 
   Transformer = fun({ match, ArgsWithGuards, Expr }, Acc) ->
@@ -258,13 +256,13 @@ translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
       { TBlock, TS } = translate_each(Block, VS#elixir_scope{recur=element(1,FunVar)}),
       { TBlock, TS#elixir_scope{recur=[]} };
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid args for: ", "loop")
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for loop")
   end;
 
 translate_each({recur, Line, Args}, S) when is_list(Args) ->
   case S#elixir_scope.recur of
     [] ->
-      syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop. invalid scope for: ", "recur");
+      syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop");
     Recur ->
       ExVar = { Recur, Line, nil },
       Call = { { '.', Line, [ExVar] }, Line, [ExVar|Args] },
@@ -285,7 +283,7 @@ translate_each({ for, Line, RawArgs }, S) when is_list(RawArgs) ->
       end, Cases),
 
       case Generators of
-        [] -> syntax_error(Line, S#elixir_scope.filename, "expected at least one generator for: ", "for");
+        [] -> syntax_error(Line, S#elixir_scope.filename, "expected at least one generator in for");
         _  -> []
       end,
 
@@ -322,7 +320,7 @@ translate_each({ for, Line, RawArgs }, S) when is_list(RawArgs) ->
 
       translate_each({ { '.', Line, ['::Enum', '__for__'] }, Line, [Enums, Fun] }, VS);
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "no block given for: ", "for")
+      syntax_error(Line, S#elixir_scope.filename, "no block given to for")
   end;
 
 %% Variables
@@ -331,20 +329,19 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
   Result = case Args of
     nil ->
       case S#elixir_scope.assign of
-        false -> "non-assignment scope for: ";
+        false -> "cannot access variable ^~s outside of assignment";
         true  ->
           case dict:find(Name, S#elixir_scope.vars) of
-            error -> "unbound variable: ";
+            error -> "unbound variable ^~s";
             { ok, Value } -> { {var, Line, Value}, S }
           end
       end;
-    _ -> "cannot bind expression at token: "
+    _ -> "cannot use ^ with expression at ^~s, ^ must be used only with variables"
   end,
 
   case is_list(Result) of
     true ->
-      Desc = io_lib:format("^~s", [Name]),
-      syntax_error(Line, S#elixir_scope.filename, Result, Desc);
+      syntax_error(Line, S#elixir_scope.filename, Result, [Name]);
     false ->
       Result
   end;
@@ -389,8 +386,8 @@ translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) ->
           case Args of
             [] -> { { atom, Line, Atom }, S };
             _ ->
-              Message = "invalid args for Erlang.MODULE expression: ",
-              syntax_error(Line, S#elixir_scope.filename, Message, atom_to_list(Atom))
+              Message = "invalid args for Erlang.~s expression",
+              syntax_error(Line, S#elixir_scope.filename, Message, [Atom])
           end;
         { { atom, _, Receiver }, { atom, _, Atom } }  ->
           elixir_dispatch:dispatch_refer(Line, Receiver, Atom, Args, umergev(SL, SR), Callback);
@@ -549,7 +546,7 @@ translate_comprehension(Line, Kind, Args, S) ->
       { TExpr, SE } = translate_each(Expr, SC),
       { { Kind, Line, TExpr, TCases }, umergec(S, SE) };
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "no block given for comprehension: ", atom_to_list(Kind))
+      syntax_error(Line, S#elixir_scope.filename, "no block given to comprehension ~s", [Kind])
   end.
 
 translate_each_comprehension({ in, Line, [{'<<>>', _, _} = Left, Right] }, S) ->

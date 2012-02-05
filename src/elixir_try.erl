@@ -22,9 +22,9 @@ each_clause(Line, {'catch',Raw,Expr}, S) ->
     [X,Y]   -> [X, Y, { '_', Line, nil }];
     [_,_,_] -> Args;
     [] ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for: ", "catch");
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for catch");
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for: ", "catch")
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for catch")
   end,
 
   Condition = { '{}', Line, Final },
@@ -63,15 +63,15 @@ each_clause(Line, { rescue, Args, Expr }, S) ->
   end;
 
 each_clause(Line, {Key,_,_}, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key: ", atom_to_list(Key)).
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key ~s in try", [Key]).
 
 %% Helpers
 
 validate_args(Clause, Line, [], _, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for: ", atom_to_list(Clause));
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for ~s in try", [Clause]);
 
 validate_args(Clause, Line, List, Max, S) when length(List) > Max ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for: ", atom_to_list(Clause));
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for ~s in try", [Clause]);
 
 validate_args(_, _, _, _, _) -> [].
 
@@ -106,7 +106,7 @@ normalize_rescue(_, { Name, Line, _ } = Rescue, S) when is_atom(Name) ->
   normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, [Rescue]] }, S);
 
 normalize_rescue(Line, _, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid condition for: ", "rescue").
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid condition given for rescue in try").
 
 %% Convert rescue clauses into guards.
 rescue_guards(_, Var, nil, _) -> { Var, false };
