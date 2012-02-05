@@ -483,25 +483,26 @@ defmodule Elixir::Builtin do
   #
   #     try do
   #       do_something_that_may_fail(some_arg)
-  #     catch: :error, :badarg
+  #     rescue: ArgumentError
   #       IO.puts "Invalid argument given"
-  #     catch: :throw, value
+  #     catch: value
   #       IO.puts "caught #{value}"
   #     after:
   #       IO.puts "This is printed regardless if it failed or succeed"
   #     end
   #
-  # Each `catch` clause must be followed by a tuple with three elements.
-  # The first one is the kind of exception: `:error`, `:throw` or `:exit`.
-  # The second one is the value given to error, throw or exit and the third
-  # one is the stacktrace (which one usually wants to ignore).
+  # The rescue clause is used to handle errors, while the catch clause
+  # can be used to catch throw values. The catch clause accepts the same
+  # pattern matching rules as match.
   #
-  # Note that calls inside `try` are not tail recursive.
+  # Note that calls inside `try` are not tail recursive since the VM
+  # needs to keep the stacktrace in case an exception happens.
   #
   # ## Variable visibility
   #
-  # Since an expression inside `try` may not have been properly evaluted,
-  # any variable created inside `try` cannot be accessed externaly.
+  # Since an expression inside `try` may not have been evaluted
+  # due to an exception, any variable created inside `try` cannot
+  # be accessed externaly.
   # For instance:
   #
   #     try do
@@ -516,6 +517,26 @@ defmodule Elixir::Builtin do
   #
   # In the example above, `x` cannot be accessed since it was defined
   # inside the `try` clause.
+  #
+  # ## Catching exits and errors
+  #
+  # The catch clause works exactly the same as in Erlang. Therefore,
+  # one can also handle exits/errors coming from Erlang as below:
+  #
+  #     try do
+  #       exit(1)
+  #     catch :exit, 1
+  #       IO.puts "Exited with 1"
+  #     end
+  #
+  #     try do
+  #       error(:sample)
+  #     catch :error, :sample
+  #       IO.puts "sample error"
+  #     end
+  #
+  # Although the second form should be avoided in favor of raise/rescue
+  # control mechanisms.
   defmacro try(args)
 
   # The current process will hang until it receives a message
