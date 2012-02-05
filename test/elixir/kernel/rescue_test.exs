@@ -74,7 +74,7 @@ defmodule Kernel::RescueTest do
 
     "an exception" = try do
       raise RuntimeError, message: "an exception"
-    rescue: x in [^expected, AnotherError]
+    rescue: x in [expected, AnotherError]
       x.message
     catch: :error, _
       false
@@ -173,7 +173,7 @@ defmodule Kernel::RescueTest do
     expected = UndefinedFunctionError
     "undefined function: ::DoNotExist.for_sure/0" = try do
       DoNotExist.for_sure()
-    rescue: x in [^expected]
+    rescue: x in [expected]
       x.message
     end
   end

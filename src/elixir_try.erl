@@ -79,6 +79,10 @@ validate_args(_, _, _, _, _) -> [].
 normalize_rescue(Line, List, S) when is_list(List) ->
   normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, List] }, S);
 
+%% rescue ^var -> _ in [var]
+normalize_rescue(_, { '^', Line, [Var] }, S) ->
+  normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, [Var]] }, S);
+
 %% rescue _    -> _ in _
 %% rescue var  -> var in _
 normalize_rescue(_, { Name, Line, Atom } = Rescue, S) when is_atom(Name), is_atom(Atom) ->
@@ -91,7 +95,7 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
     { '_', _, _ } ->
       { Left, nil };
     _ when is_list(Right), Right /= [] ->
-      { _, Refs } = lists:partition(fun(X) -> element(1, X) == '^' end, Right),
+      { _, Refs } = lists:partition(fun(X) -> is_var(X) end, Right),
       { TRefs, _ } = translate(Refs, S),
       case lists:all(fun(X) -> is_tuple(X) andalso element(1, X) == atom end, TRefs) of
         true -> { Left, Right };
@@ -100,7 +104,6 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
     _ -> normalize_rescue(Line, nil, S)
   end;
 
-%% rescue ^var -> _ in [^var]
 %% rescue ErlangError -> _ in [ErlangError]
 normalize_rescue(_, { Name, Line, _ } = Rescue, S) when is_atom(Name) ->
   normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, [Rescue]] }, S);
@@ -131,10 +134,10 @@ rescue_guards(Line, Var, Guards, S) ->
     Safe
   }.
 
-%% Handle ^variables in the right side of rescue.
+%% Handle variables in the right side of rescue.
 
 rescue_each_var(Line, ClauseVar, Guards) ->
-  Vars = [Var || { '^', _, [Var] } <- Guards],
+  Vars = [Var || Var <- Guards, is_var(Var)],
 
   case Vars == [] of
     true  -> { [], [] };
@@ -151,11 +154,11 @@ rescue_each_var(Line, ClauseVar, Guards) ->
   end.
 
 %% Rescue each reference considering their Erlang or Elixir matches.
-%% Matching of ^variables is done separatewith Erlang exceptions is done in another
+%% Matching of variables is done separatewith Erlang exceptions is done in another
 %% method for optimization.
 
-%% Ignore ^
-rescue_each_ref(Line, Var, [{ '^', _, _}|T], Elixir, Erlang, Safe, S) ->
+%% Ignore variables
+rescue_each_ref(Line, Var, [{ Name, _, Atom }|T], Elixir, Erlang, Safe, S) when is_atom(Name), is_atom(Atom) ->
   rescue_each_ref(Line, Var, T, Elixir, Erlang, Safe, S);
 
 rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
@@ -248,6 +251,9 @@ erlang_rescue_guard_for(Line, Var, '::ErlangError') ->
   { 'orelse', Line, [IsNotTuple, IsException] }.
 
 %% Join the given expression forming a tree according to the given kind.
+
+is_var({ Name, _, Atom }) when is_atom(Name), is_atom(Atom) -> true;
+is_var(_) -> false.
 
 exception_compare(Line, Var, Expr) ->
   { '==', Line, [
