@@ -22,11 +22,11 @@ defmodule Code do
   end
 
   def append_path(path) do
-    Erlang.code.add_pathz(to_list(path))
+    Erlang.code.add_pathz(to_char_list(path))
   end
 
   def prepend_path(path) do
-    Erlang.code.add_patha(to_list(path))
+    Erlang.code.add_patha(to_char_list(path))
   end
 
   # Evalutes the quotes contents.
@@ -37,7 +37,7 @@ defmodule Code do
   #     Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => 3
   #
   def eval_quoted(quoted, binding, filename, line) do
-    Erlang.elixir.eval_quoted [quoted], binding, line, to_list(filename)
+    Erlang.elixir.eval_quoted [quoted], binding, line, to_char_list(filename)
   end
 
   # Loads the given `file`. Accepts `relative_to` as an argument to tell
@@ -68,13 +68,13 @@ defmodule Code do
   # Compiles `file` and returns a list of tuples where the first element
   # is the module name and the second one is its binary.
   def compile_file(file) do
-    Erlang.elixir_compiler.file to_list(file)
+    Erlang.elixir_compiler.file to_char_list(file)
   end
 
   # Compiles `file` and add the result to the given `destination`.
   # Destination needs to be a directory.
   def compile_file_to_dir(file, destination) do
-    Erlang.elixir_compiler.file_to_path to_list(file), to_list(destination)
+    Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination)
   end
 
   # Get the stacktrace.

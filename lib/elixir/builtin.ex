@@ -374,11 +374,11 @@ defmodule Elixir::Builtin do
   #
   # ## Examples
   #
-  #     to_list(:foo)
+  #     to_char_list(:foo)
   #     #=> 'foo'
   #
-  defmacro to_list(arg) do
-    quote { ::List::Inspect.to_list(unquote(arg)) }
+  defmacro to_char_list(arg) do
+    quote { ::List::Inspect.to_char_list(unquote(arg)) }
   end
 
   # Define elem to get Tuple element according to Elixir conventions.

@@ -1,6 +1,6 @@
-# We cannot use to_list because it depends on inspect,
+# We cannot use to_char_list because it depends on inspect,
 # which depends on protocol, which depends on this module.
-import Elixir::Builtin, except: [to_list: 1]
+import Elixir::Builtin, except: [to_char_list: 1]
 
 defmodule Module do
   require Erlang.ets, as: ETS
@@ -19,7 +19,7 @@ defmodule Module do
   #
   def eval_quoted(module, quoted, binding, filename, line) do
     assert_already_compiled!(:eval_quoted, module)
-    { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(line, to_list(filename), module, binding)
+    { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(line, to_char_list(filename), module, binding)
     Erlang.elixir_def.reset_last(module)
     Erlang.elixir.eval_quoted([quoted], binding, line, scope)
   end
@@ -173,8 +173,8 @@ defmodule Module do
   defp kind_to_entry(:defp),     do: :private
   defp kind_to_entry(:defmacro), do: :macros
 
-  defp to_list(list) when is_list(list),  do: list
-  defp to_list(bin)  when is_binary(bin), do: binary_to_list(bin)
+  defp to_char_list(list) when is_list(list),  do: list
+  defp to_char_list(bin)  when is_binary(bin), do: binary_to_list(bin)
 
   defp attribute_table_for(module) do
     list_to_atom Erlang.lists.concat([:a, module])
