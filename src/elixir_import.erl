@@ -172,6 +172,7 @@ non_overridable_macros() ->
     {'__KVBLOCK__','*'},
     {'<<>>','*'},
     {'{}','*'},
+    {'[]','*'},
     {'require',1},
     {'require',2},
     {'import',1},

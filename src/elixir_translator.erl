@@ -77,6 +77,9 @@ translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { {tuple, Line, TArgs}, SE };
 
+translate_each({'[]', _Line, Args}, S) when is_list(Args) ->
+  translate_each(Args, S);
+
 %% Lexical
 
 translate_each({require, Line, [Ref|T]}, S) ->
