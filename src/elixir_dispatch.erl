@@ -98,7 +98,13 @@ dispatch_macro(Line, Receiver, { Name, Arity }, Args, S) ->
 
 dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
   ensure_required(Line, Receiver, Name, Arity, S),
-  Tree = apply(Receiver, Name, Args),
+  Tree = try
+    apply(Receiver, Name, Args)
+  catch
+    Kind:Reason ->
+      Info = { Receiver, Name, length(Args), [{ file, S#elixir_scope.filename }, { line, Line }] },
+      erlang:raise(Kind, Reason, insert_before_dispatch_macro(Info, erlang:get_stacktrace()))
+  end,
   NewS = S#elixir_scope{macro={Receiver,Name,Arity}},
   { TTree, TS } = elixir_translator:translate_each(elixir_quote:linify(Line, Tree), NewS),
   { TTree, TS#elixir_scope{macro=[]} }.
@@ -110,6 +116,17 @@ find_dispatch(Tuple, [{ Name, Values }|T]) ->
   end;
 
 find_dispatch(_Tuple, []) -> nil.
+
+%% Insert call site into backtrace right after dispatch macro
+
+insert_before_dispatch_macro(Info, [{ elixir_dispatch, dispatch_macro, _, _ }|_] = T) ->
+  [Info|T];
+
+insert_before_dispatch_macro(Info, [H|T]) ->
+  [H|insert_before_dispatch_macro(Info, T)];
+
+insert_before_dispatch_macro(_, []) ->
+  [].
 
 %% ERROR HANDLING
 

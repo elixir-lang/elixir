@@ -899,8 +899,8 @@ defmodule Elixir::Builtin do
     build_if_clauses(t, new_acc)
   end
 
-  defp build_if_clauses([{ :match, [], _clause }|_], _) do
-    error { :badarg, "No conditions given to elsif clause" }
+  defp build_if_clauses([{ :match, _, _clause }|_], _) do
+    raise ArgumentError, message: "No or too many conditions given to elsif clause"
   end
 
   defp build_if_clauses([], acc), do: acc
