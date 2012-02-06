@@ -105,7 +105,7 @@ In Elixir, `=` does not mean assignment as in programming languages like Java an
     iex> { 1, 2, 3 } = { 1, 2, 3 }
     { 1, 2, 3 }
     iex> { 1, 2, 3 } = { 1, 4, 3 }
-    ** error {:badmatch, {1, 4, 3}}
+    ** (::MatchError) no match of right hand side value: {1,4,3}
 
 If the tuples given on the left and right side do not match, an error is raised. If any of the tuples contain a variable, this variable will always be assigned:
 
@@ -128,7 +128,7 @@ We have assigned the head of the list to `h` and the tail to `t`. In fact, we co
     iex> [1 | t] = [1,2,3]
     [1, 2, 3]
     iex> [0 | t] = [1,2,3]
-    ** error {:badmatch, [1, 2, 3]}
+    ** (::MatchError) no match of right hand side value: [1,2,3]
 
 In case you want to pattern match against the value of a variable, you can use the `^` operator:
 
@@ -137,7 +137,7 @@ In case you want to pattern match against the value of a variable, you can use t
     iex> ^x = 1
     1
     iex> ^x = 2
-    ** error {:badmatch, 2}
+    ** (::MatchError) no match of right hand side value: 2
     iex> x = 2
     2
 
@@ -151,12 +151,12 @@ In Elixir, it is a common practice to assign a variable to underscore `_` if we 
 The variable `_` in Elixir is special in the sense it can never be assigned. Trying to read from it gives an unbound variable error:
 
     iex> _
-    ** error {:unbound_var, :_}
+    ** (ErlangError) erlang error {:unbound_var, :_}
 
 Although pattern matching allow powerful constructs, its usage is limited. For instance, you cannot make function calls on the left side of the match. The following example is invalid:
 
     iex> Erlang.lists.flatten([1,[2],3]) = [1,2,3]
-    ** error :illegal_pattern
+    ** (ErlangError) erlang error :illegal_pattern
 
 ## 2.5 Key-values
 

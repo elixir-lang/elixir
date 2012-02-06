@@ -74,7 +74,12 @@ However, there is a common mistake when quoting expressions which is that develo
 
 When called as `unless 2 + 2 == 5, do: call_function()`, our `unless` would then return:
 
-    { :if, 0, [{ :!, 0, [{:custom, 0, quoted}]}, do: {:options, 0, quoted}] }
+    { :if, 0, [
+      { :!, 0, [
+        {:custom, 0, quoted}
+      ]},
+      do: {:options, 0, quoted}
+    ] }
 
 Notice that the tree structure returned by unless is trying to access `custom` and `options` as variables instead of using the `2 + 2 == 5` and `call_function()` expressions we passed as parameters. This is because we forgot to unquote. If we add `unquote` back:
 
@@ -84,8 +89,15 @@ Notice that the tree structure returned by unless is trying to access `custom` a
 
 Which will then return:
 
-    { :if, 0, [{ :!, 0, [{:==, 1, [{:+, 1, [2, 2]}, 5]}]},
-      do: { :call_function, 1, [] }] }
+    { :if, 0, [
+      { :!, 0, [
+        {:==, 1, [
+          {:+, 1, [2, 2]},
+          5
+        ] }
+      ] },
+      do: { :call_function, 1, [] }
+    ] }
 
 In other words, unquote is a mechanism to inject expressions into the tree being quoted and is essential to the meta-programming mechanism. Elixir also provides `unquote_splicing` allowing us to inject many expressions at once.
 
