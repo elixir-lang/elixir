@@ -677,22 +677,31 @@ defmodule Elixir::Builtin do
     build_if_clauses(List.reverse(all), else_clause)
   end
 
-  # Provide a unless macro that executes the expression
+  # Provides a unless macro that executes the expression
   # unless a value evalutes to true. Check `if` for examples
   # and documentation.
   defmacro unless(clause, options) do
     quote { if(!unquote(clause), unquote(options)) }
   end
 
-  defmacro :<>.(left, right) when is_binary(left) do
-    quote { << unquote(left), unquote(right) | :binary >> }
-  end
-
+  # Concatenates two binaries.
+  #
+  # ## Examples
+  #
+  #     "foo" <> "bar" #=> "foobar"
+  #
+  # The `<>` operator can also be used in guard clauses as
+  # long as the first part is a literal binary:
+  #
+  #     "foo" <> x = "foobar"
+  #     x #=> "bar"
+  #
   defmacro :<>.(left, right) do
-    quote { << unquote(left) | :binary, unquote(right) | :binary >> }
+    concats = extract_concatenations({ :<>, 0, [left, right] })
+    quote { << unquote_splicing(concats) >> }
   end
 
-  # Provide a short-circuit operator that executes the second
+  # Provides a short-circuit operator that executes the second
   # expression only if the first one evalutes to true (i.e. it is
   # not nil nor false). Returns the first expression otherwise.
   #
@@ -719,7 +728,7 @@ defmodule Elixir::Builtin do
     end
   end
 
-  # Provide a short-circuit operator that executes the second
+  # Provides a short-circuit operator that executes the second
   # expression only if the first one does not evalute to true (i.e. it
   # is not nil nor false). Returns the first expression otherwise.
   #
@@ -744,7 +753,7 @@ defmodule Elixir::Builtin do
     }
   end
 
-  # Optimize !! to avoid generating case twice.
+  # Optimizes !! to avoid generating case twice.
   # :nodoc:
   defmacro :!.({:!, _, [expr]}) do
     quote {
@@ -832,7 +841,27 @@ defmodule Elixir::Builtin do
 
   ## Private functions
 
-  # Build if clauses by nesting them recursively.
+  # Extracts concatenations in order to optimize many
+  # concatenations into one single clause.
+  defp extract_concatenations({ :<>, _, [left, right] }) do
+    [wrap_concatenation(left) | extract_concatenations(right)]
+  end
+
+  defp extract_concatenations(other) do
+    [wrap_concatenation(other)]
+  end
+
+  # If it is a binary, we don't need to add the binary
+  # tag. This allows us to use <> function signatures.
+  defp wrap_concatenation(binary) when is_binary(binary) do
+    binary
+  end
+
+  defp wrap_concatenation(other) do
+    { :|, 0, [other, :binary] }
+  end
+
+  # Builds if clauses by nesting them recursively.
   # For instance, the following clause:
   #
   #     if foo do

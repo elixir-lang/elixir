@@ -9,4 +9,9 @@ defmodule StringTest do
     "foobar" = "foo" \
       "#{:bar}"
   end
+
+  def test_string_concatenation do
+    "foo" <> x = "foobar"
+    "bar" = x
+  end
 end

@@ -355,6 +355,7 @@ In the example above, the second clause will only match when x is positive. The 
 * comparison operators (`==`, `!=`, `===`, `!===`, `>`, `<`, `<=`, `>=`);
 * strict boolean operators (`and`, `or`, `not`, `andalso`, `orelse`);
 * arithmetic operators (`+`, `-`, `*`, `/`);
+* `<>` and `++` as long as the left side is a literal;
 * all the following type check functions:
 
     is_atom/1
