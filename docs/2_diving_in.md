@@ -228,31 +228,31 @@ Those key-value blocks are similar to Ruby blocks. Parenthesis can be added as f
 
 Key-value blocks are an important feature that allow developers to create their own control structures as if they were part of the language itself. For instance, none of the control structures we are going to see in the next section are keywords. They are all implemented using key-values blocks.
 
-Elixir supports two types of key-value blocks, one using `do`/`end` and another one using curly brackets `{`/`}`. Their only difference is function call precedence. For example, consider this:
+Elixir supports two syntaxes for key-value blocks: `do`/`end` and `->`/`end`. The first one always binds to the farthest function call, while the latter to the closest. For example, the following expression:
 
     Enum.map [1,2,3], fn(x) do
       x * 2
     end
 
-This would be parsed as:
+Would be parsed as:
 
     Enum.map([1,2,3], fn(x)) do
       x * 2
     end
 
-Which is not what we want since `do` is applying to the `Enum.map` call. We can fix this by using curly brackets:
+Which is not what we want since `do` is binding to the farthest function call, in this case: `Enum.map`. We can fix this by using `->`, forcing the key-value block to bind to the `fn`:
 
-    Enum.map [1,2,3], fn(x) {
+    Enum.map [1,2,3], fn(x) ->
       x * 2
-    }
+    end
 
 Which is then parsed as:
 
-    Enum.map([1,2,3], fn(x) {
+    Enum.map([1,2,3], fn(x) ->
       x * 2
-    })
+    end)
 
-A good rule of thumb is: when providing arguments to a function, always use curly brackets.
+For this reason, a good rule of thumb is to always use the stab version `->` when defining functions.
 
 ## 2.6 Control flow structures
 
@@ -440,7 +440,7 @@ Notice the number of arguments given to each `match:` needs to be the same. In t
 As an immutable language, the binding of the function is also immutable. This means that setting a variable inside the function does not affect its outer scope:
 
     x = 1
-    (fn { x = 2 }).()
+    (fn(do: x = 2).()
     x #=> 1
 
 Also, due to data structure immutability Loops in Elixir (and in functional programming languages) are written differently that conventional imperative languages. For example, in an imperative language, one would write:

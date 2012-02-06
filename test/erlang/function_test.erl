@@ -13,6 +13,10 @@ function_assignment_test() ->
   {_, [{a, Fun}]} = elixir:eval("a = fn do: 1 + 2"),
   3 = Fun().
 
+function_stab_end_test() ->
+  {_, [{a, Fun}]} = elixir:eval("a = fn -> 1 + 2 end"),
+  3 = Fun().
+
 function_with_args_test() ->
   {Fun, _} = elixir:eval("fn(a, b, do: a + b)"),
   3 = Fun(1,2).

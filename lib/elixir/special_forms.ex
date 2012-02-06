@@ -117,7 +117,7 @@ defmodule Elixir::SpecialForms do
   #
   # ## Examples
   #
-  #     quote { sum(1, 2, 3) }
+  #     quote do: sum(1, 2, 3)
   #     #=> { :sum, 0, [1, 2, 3] }
   #
   # ## Homoiconicity
@@ -159,7 +159,7 @@ defmodule Elixir::SpecialForms do
   #
   #     defmodule Hygiene do
   #       defmacro no_interference do
-  #         quote { a = 1 }
+  #         quote do: a = 1
   #       end
   #     end
   #
@@ -177,7 +177,7 @@ defmodule Elixir::SpecialForms do
   #
   #     defmodule NoHygiene do
   #       defmacro interference do
-  #         quote { var!(a) = 1 }
+  #         quote do: var!(a) = 1
   #       end
   #     end
   #
@@ -207,7 +207,7 @@ defmodule Elixir::SpecialForms do
   # would be:
   #
   #     value = 13
-  #     quote { sum(1, value, 3) }
+  #     quote do: sum(1, value, 3)
   #
   # Which would then return:
   #
@@ -216,7 +216,7 @@ defmodule Elixir::SpecialForms do
   # Which is not the expected result. For this, we use unquote:
   #
   #     value = 13
-  #     quote { sum(1, unquote(value), 3) }
+  #     quote do: sum(1, unquote(value), 3)
   #     #=> { :sum, 0, [1, 13, 3] }
   #
   defmacro unquote(expr)
@@ -227,7 +227,7 @@ defmodule Elixir::SpecialForms do
   # ## Examples
   #
   #     values = [2,3,4]
-  #     quote { sum(1, unquote_splicing(values), 5) }
+  #     quote do: sum(1, unquote_splicing(values), 5)
   #     #=> { :sum, 0, [1, 2, 3, 4, 5] }
   #
   defmacro unquote_splicing(expr)
@@ -236,38 +236,29 @@ defmodule Elixir::SpecialForms do
   #
   # ## Examples
   #
-  #     sum = fn(x, y) { x + y }
+  #     sum = fn(x, y, do: x + y)
   #     sum.(1, 2) #=> 3
   #
   # Notice that a function needs to be invoked using the dot between
-  # th function and the arguments.
+  # the function and the arguments.
   #
-  # A function could also be defined using `do/end` syntax, although
-  # this is not recommended in order to avoid ambiguity. For example,
-  # consider this case:
+  # A function could also be defined using the `end` syntax, although
+  # it is recommend to use it only with the stab operator in order to
+  # avoid ambiguity. For example, consider this case:
   #
-  #     Enum.map [1,2,3], fn(x){ x * 2 }
+  #     Enum.map [1,2,3], fn(x) ->
+  #       x * 2
+  #     end
   #
-  # The example works fine, but if we replace it by `do/end`, it will fail:
+  # The example works fine because `->` binds to the closest function call,
+  # which is `fn`, but if we replace it by `do/end`, it will fail:
   #
   #     Enum.map [1,2,3], fn(x) do
   #       x * 2
   #     end
   #
   # The reason it fails is because do/end always bind to the farthest
-  # function call. It is easy to see the problem if we add parentheis
-  # to the outer call. For example, the example using curly brackets
-  # would translate to:
-  #
-  #     Enum.map([1,2,3], fn(x){ x * 2 })
-  #
-  # Which is the expected result, however using `do/end` blocks:
-  #
-  #     Enum.map([1,2,3], fn(x)) do
-  #       x * 2
-  #     end
-  #
-  # Which is not what we expect.
+  # function call.
   #
   # ## Function with multiple clauses
   #

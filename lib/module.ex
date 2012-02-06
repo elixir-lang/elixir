@@ -11,7 +11,7 @@ defmodule Module do
   # ## Examples
   #
   #     defmodule Foo do
-  #       contents = quote { def sum(a, b), do: a + b }
+  #       contents = quote do: (def sum(a, b), do: a + b)
   #       Module.eval_quoted __MODULE__, contents, [], __FILE__, __LINE__
   #     end
   #
@@ -144,7 +144,7 @@ defmodule Module do
   #
   #       defmacro __callback__(target) do
   #         value = Orddict.get(Module.read_data(target), :some_data, [])
-  #         quote { def my_lib_value, do: unquote(value) }
+  #         quote do: (def my_lib_value, do: unquote(value))
   #       end
   #     end
   #
