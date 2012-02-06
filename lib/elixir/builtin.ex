@@ -169,10 +169,14 @@ defmodule Elixir::Builtin do
   defmacro defexception(name, values, opts // [], do_block // []) do
     opts   = Orddict.merge(opts, do_block)
     values = [{ :__exception__, __EXCEPTION__ }|values]
-    [Record.defrecord(name, values, opts), quote {
+
+    record = Record.defrecord(name, values, opts)
+    check  = quote do
       unless List.member?(unquote(name).__info__(:exports), { :message, 1 }), do:
         raise "Expected #{unquote(name)} to implement message/1"
-    }]
+    end
+
+    [record, check]
   end
 
   # Check if the given structure is an exception.
@@ -311,11 +315,11 @@ defmodule Elixir::Builtin do
         { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
       end
 
-      quote {
+      quote do
         def unquote(name).(unquote_splicing(args)) do
           apply unquote(target), unquote(name), [unquote_splicing(args)]
         end
-      }
+      end
     end
   end
 
@@ -355,7 +359,7 @@ defmodule Elixir::Builtin do
   #     #=> ":foo"
   #
   defmacro inspect(arg) do
-    quote { ::String::Inspect.inspect(unquote(arg)) }
+    quote do: ::String::Inspect.inspect(unquote(arg))
   end
 
   # Convert the argument to a string according to the String::Inspect protocol.
@@ -367,7 +371,7 @@ defmodule Elixir::Builtin do
   #     #=> "foo"
   #
   defmacro to_binary(arg) do
-    quote { ::String::Inspect.to_binary(unquote(arg)) }
+    quote do: ::String::Inspect.to_binary(unquote(arg))
   end
 
   # Convert the argument to a list according to the List::Inspect protocol.
@@ -378,7 +382,7 @@ defmodule Elixir::Builtin do
   #     #=> 'foo'
   #
   defmacro to_char_list(arg) do
-    quote { ::List::Inspect.to_char_list(unquote(arg)) }
+    quote do: ::List::Inspect.to_char_list(unquote(arg))
   end
 
   # Define elem to get Tuple element according to Elixir conventions.
@@ -390,7 +394,7 @@ defmodule Elixir::Builtin do
   #    elem(tuple, 1) #=> :foo
   #
   defmacro elem(tuple, index) do
-    quote { element(unquote(index), unquote(tuple)) }
+    quote do: element(unquote(index), unquote(tuple))
   end
 
   # Define setelem to set Tuple element according to Elixir conventions.
@@ -402,7 +406,7 @@ defmodule Elixir::Builtin do
   #    setelem(tuple, 1, :baz) #=> { :baz, :bar, 3 }
   #
   defmacro setelem(tuple, index, value) do
-    quote { setelement(unquote(index), unquote(tuple), unquote(value)) }
+    quote do: setelement(unquote(index), unquote(tuple), unquote(value))
   end
 
   # Provides an integer division macro according to Erlang semantics.
@@ -413,8 +417,9 @@ defmodule Elixir::Builtin do
   #
   #     5 div 2 #=> 2
   #
-  defmacro div(left, right), do:
-    quote { __OP__ :div, unquote(left), unquote(right) }
+  defmacro div(left, right) do
+    quote do: __OP__ :div, unquote(left), unquote(right)
+  end
 
   # Provides an integer remainder macro according to Erlang semantics.
   # Raises an error if one of the arguments is not an integer.
@@ -424,8 +429,9 @@ defmodule Elixir::Builtin do
   #
   #     5 rem 2 #=> 1
   #
-  defmacro rem(left, right), do:
-    quote { __OP__ :rem, unquote(left), unquote(right) }
+  defmacro rem(left, right) do
+    quote do: __OP__ :rem, unquote(left), unquote(right)
+  end
 
   # Matches the given condition against the match clauses.
   #
@@ -681,7 +687,7 @@ defmodule Elixir::Builtin do
   # unless a value evalutes to true. Check `if` for examples
   # and documentation.
   defmacro unless(clause, options) do
-    quote { if(!unquote(clause), unquote(options)) }
+    quote do: if(!unquote(clause), unquote(options))
   end
 
   # Concatenates two binaries.
@@ -698,7 +704,7 @@ defmodule Elixir::Builtin do
   #
   defmacro :<>.(left, right) do
     concats = extract_concatenations({ :<>, 0, [left, right] })
-    quote { << unquote_splicing(concats) >> }
+    quote do: << unquote_splicing(concats) >>
   end
 
   # Provides a short-circuit operator that executes the second
@@ -743,20 +749,20 @@ defmodule Elixir::Builtin do
   # this operator accepts any expression as arguments, not only booleans.
   # Unfortunately cannot be used in macros.
   defmacro :||.(left, right) do
-    quote {
+    quote do
       case !(oror = unquote(left)) do
       match: false
         oror
       else:
         unquote(right)
       end
-    }
+    end
   end
 
   # Optimizes !! to avoid generating case twice.
   # :nodoc:
   defmacro :!.({:!, _, [expr]}) do
-    quote {
+    quote do
       case unquote(expr) do
       match: false
         false
@@ -765,7 +771,7 @@ defmodule Elixir::Builtin do
       else:
         true
       end
-    }
+    end
   end
 
   # Implements the unary operator ! as a macro. It receives any
@@ -887,14 +893,14 @@ defmodule Elixir::Builtin do
   #     end
   #
   defp build_if_clauses([{ :match, [condition], clause }|t], acc) do
-    new_acc = quote {
+    new_acc = quote do
       case !unquote(condition) do
       match: false
         unquote(clause)
       else:
         unquote(acc)
       end
-    }
+    end
 
     build_if_clauses(t, new_acc)
   end

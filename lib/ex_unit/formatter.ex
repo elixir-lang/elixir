@@ -29,7 +29,7 @@ defmodule ExUnit::Formatter do
 
   def handle_call(:finish, _from, config) do
     IO.print "\n\n"
-    Enum.foldl List.reverse(config.failures), 1, fn(x, acc) { print_failure(x, acc) }
+    Enum.foldl List.reverse(config.failures), 1, print_failure(_, _)
     failures_count = length(config.failures)
     IO.puts "#{config.counter} tests, #{failures_count} failures."
     { :reply, failures_count, config }
@@ -60,7 +60,7 @@ defmodule ExUnit::Formatter do
   defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
     IO.puts "#{acc}) #{test} (#{test_case})"
     IO.puts "  ** #{format_catch(kind, reason)}\n  stacktrace:"
-    Enum.each stacktrace, fn(s){ IO.puts "    #{format_stacktrace(s)}" }
+    Enum.each stacktrace, fn(s, do: IO.puts "    #{format_stacktrace(s)}")
     IO.print "\n"
     acc + 1
   end

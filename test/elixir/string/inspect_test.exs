@@ -145,10 +145,10 @@ defmodule String::Inspect::AnyTest do
   use ExUnit::Case
 
   def test_funs do
-    bin = inspect(fn(x){ x + 1 })
+    bin = inspect(fn(x, do: x + 1))
     '#Fun<' ++ _ = binary_to_list(bin)
 
-    bin = to_binary(fn(x){ x + 1 })
+    bin = to_binary(fn(x, do: x + 1))
     '#Fun<' ++ _ = binary_to_list(bin)
   end
 end

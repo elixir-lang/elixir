@@ -43,10 +43,10 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.all? [2,4,6], fn(x) { rem(x, 2) == 0 }
+  #     Enum.all? [2,4,6], fn(x, do: rem(x, 2) == 0)
   #     #=> true
   #
-  #     Enum.all? [2,3,4], fn(x) { rem(x, 2) == 0 }
+  #     Enum.all? [2,3,4], fn(x, do: rem(x, 2) == 0)
   #     #=> false
   #
   # If no function is given, it defaults to checking if
@@ -55,7 +55,7 @@ defmodule Enum do
   #     Enum.all? [1,2,3]   #=> true
   #     Enum.all? [1,nil,3] #=> false
   #
-  def all?(collection, fun // fn(x) { x }) do
+  def all?(collection, fun // fn(x, do: x)) do
     all?(I.iterator(collection), collection, fun)
   end
 
@@ -69,10 +69,10 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.any? [2,4,6], fn(x) { rem(x, 2) == 1 }
+  #     Enum.any? [2,4,6], fn(x, do: rem(x, 2) == 1)
   #     #=> false
   #
-  #     Enum.any? [2,3,4], fn(x) { rem(x, 2) == 1 }
+  #     Enum.any? [2,3,4], fn(x, do: rem(x, 2) == 1)
   #     #=> true
   #
   # If no function is given, it defaults to checking if
@@ -81,7 +81,7 @@ defmodule Enum do
   #     Enum.any? [false,false,false] #=> false
   #     Enum.any? [false,true,false]  #=> true
   #
-  def any?(collection, fun // fn(x) { x }) do
+  def any?(collection, fun // fn(x, do: x)) do
     any?(I.iterator(collection), collection, fun)
   end
 
@@ -107,13 +107,13 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.detect [2,4,6], fn(x) { rem(x, 2) == 1 }
+  #     Enum.detect [2,4,6], fn(x, do: rem(x, 2) == 1)
   #     # => nil
   #
-  #     Enum.detect [2,4,6], 0, fn(x) { rem(x, 2) == 1 }
+  #     Enum.detect [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
   #     # => 0
   #
-  #     Enum.detect [2,3,4], fn(x) { rem(x, 2) == 1 }
+  #     Enum.detect [2,3,4], fn(x, do: rem(x, 2) == 1)
   #     # => 3
   #
   def detect(collection, ifnone // nil, fun) do
@@ -129,13 +129,13 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.detect_value [2,4,6], fn(x) { rem(x, 2) == 1 }
+  #     Enum.detect_value [2,4,6], fn(x, do: rem(x, 2) == 1)
   #     # => nil
   #
-  #     Enum.detect_value [2,4,6], 0, fn(x) { rem(x, 2) == 1 }
+  #     Enum.detect_value [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
   #     # => 0
   #
-  #     Enum.detect_value [2,3,4], fn(x) { rem(x, 2) == 1 }
+  #     Enum.detect_value [2,3,4], fn(x, do: rem(x, 2) == 1)
   #     # => true
   #
   def detect_value(collection, ifnone // nil, fun) do
@@ -151,7 +151,7 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.each ['some', 'example'], fn(x) { IO.puts x }
+  #     Enum.each ['some', 'example'], fn(x, do: IO.puts x)
   #
   def each(collection, fun) do
     each(I.iterator(collection), collection, fun)
@@ -186,7 +186,7 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.filter [1, 2, 3], fn(x) { rem(x, 2) == 0 }
+  #     Enum.filter [1, 2, 3], fn(x, do: rem(x, 2) == 0)
   #     #=> [2]
   #
   def filter(collection, fun) do
@@ -202,7 +202,7 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.foldl [1, 2, 3], 0, fn(x, acc) { x + acc }
+  #     Enum.foldl [1, 2, 3], 0, fn(x, acc, do: x + acc)
   #     #=> 6
   #
   def foldl(collection, acc, f) when is_list(collection) do
@@ -243,7 +243,7 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.map [1, 2, 3], fn(x) { x * 2 }
+  #     Enum.map [1, 2, 3], fn(x, do: x * 2)
   #     #=> [2, 4, 6]
   #
   def map(collection, fun) when is_list(collection) do
@@ -265,7 +265,7 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.mapfoldl [1, 2, 3], 0, fn(x, acc) { { x * 2, x + acc } }
+  #     Enum.mapfoldl [1, 2, 3], 0, fn(x, acc, do: { x * 2, x + acc })
   #     #=> { [2, 4, 6], 6 }
   #
   def mapfoldl(collection, acc, f) when is_list(collection) do
@@ -285,7 +285,7 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #    Enum.times 3, fn(x) { IO.puts x }
+  #    Enum.times 3, fn(x, do: IO.puts x)
   #    0
   #    1
   #    2
@@ -306,7 +306,7 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #    Enum.times 5, 0, fn(acc, x) { acc + x }
+  #    Enum.times 5, 0, fn(x, acc, do: acc + x)
   #    #=> 10
   #
   def times(times, acc, function) when times >= 0 do

@@ -7,7 +7,7 @@ defmodule ModuleTest::ToBeUsed do
     Module.merge_data target, has_callback: false
     Module.add_compile_callback(target, __MODULE__)
     Module.add_compile_callback(target, __MODULE__, :callback)
-    quote { def line, do: __LINE__ }
+    quote do: (def line, do: __LINE__)
   end
 
   def __compiling__(target) do
@@ -38,7 +38,7 @@ defmodule ModuleTest do
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
 
-  contents = quote { def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ } }
+  contents = quote do: (def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ })
   Module.eval_quoted __MODULE__, contents, [], "sample.ex", 13
 
   true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }

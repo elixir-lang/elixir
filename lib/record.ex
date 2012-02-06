@@ -44,9 +44,9 @@ defmodule Record do
     # an ordered dict of options (opts) and it will try to fetch
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
-    selective = Enum.map values, fn({k,v}) {
-      quote { ::Orddict.get(opts, unquote(k), unquote(v)) }
-    }
+    selective = Enum.map values, fn({k,v}) ->
+      quote do: ::Orddict.get(opts, unquote(k), unquote(v))
+    end
 
     quote do
       def new(), do: new([])

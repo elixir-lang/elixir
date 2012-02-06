@@ -16,7 +16,7 @@ end
 defmodule Elixir::CLI::AtExitTest do
   use ExUnit::Case
 
-  def test_at_exir do
+  def test_at_exit do
     'goodbye cruel world with status 0\n' = OS.cmd('bin/elixir test/elixir/fixtures/at_exit.exs')
   end
 end

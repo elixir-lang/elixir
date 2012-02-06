@@ -130,7 +130,7 @@ defmodule Kernel::RescueTest do
   end
 
   def test_badarity_error do
-    fun    = fn(x) { x }
+    fun    = fn(x, do: x)
     string = "bad arity error: #{inspect(fun)} called with [1,2]"
 
     ^string = try do

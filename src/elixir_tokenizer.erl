@@ -29,6 +29,11 @@ tokenize(Line, [$?,H|T], Tokens) ->
   Chars = elixir_interpolation:unescape_chars(true, [H]),
   tokenize(Line, T, [{number,Line,lists:last(Chars)}|Tokens]);
 
+% Stab
+
+tokenize(Line, "->" ++ Rest, Tokens) ->
+  tokenize(Line, Rest, [{'->',Line}|Tokens]);
+
 % Dot operators
 
 % ## Exception for .( as it needs to be treated specially in the parser
@@ -194,7 +199,7 @@ tokenize(Line, [H|_] = String, Tokens) when H >= $A andalso H =< $Z ->
 
 tokenize(Line, [H|_] = String, Tokens) when H >= $a andalso H =< $z; H == $_ ->
   { Rest, { Kind, _, Identifier } } = tokenize_many_identifier(Line, String, []),
-  HasKeyword = Kind == identifier orelse Kind == do_identifier orelse Kind == curly_identifier,
+  HasKeyword = Kind == identifier orelse Kind == do_identifier,
   case HasKeyword andalso keyword(Identifier) of
     true  ->
       tokenize(Line, Rest, [{Identifier,Line}|Tokens]);
@@ -325,12 +330,6 @@ next_is_block([$d,$o,H|_]) when
 
 next_is_block([$d,$o|_]) ->
   do_identifier;
-
-next_is_block([${,$},$:|_]) ->
-  [];
-
-next_is_block([${|_]) ->
-  curly_identifier;
 
 next_is_block(_) ->
   [].

@@ -7,7 +7,7 @@ defmodule Orddict do
   #     #=> [a: 2, b: 1]
   #
   def from_enum(pairs) do
-    Enum.foldl pairs, [], fn({k, v}, dict){ set(dict, k, v) }
+    Enum.foldl pairs, [], fn({k, v}, dict, do: set(dict, k, v))
   end
 
   # Gets value from the dictionary for specific key.

@@ -68,7 +68,7 @@ defmodule ExUnit::Runner do
   # Run each test case in its own process.
   defp spawn_case(test_case) do
     pid = self()
-    spawn_link fn { run_tests(pid, test_case, test_case.__tests__) }
+    spawn_link fn(do: run_tests(pid, test_case, test_case.__tests__))
   end
 
   # For each instanciated object, dispatch each test in it.

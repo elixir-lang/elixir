@@ -68,7 +68,7 @@ defmodule Elixir::CLI do
   end
 
   defp print_stacktrace(stacktrace) do
-    Enum.each stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
+    Enum.each stacktrace, fn(s, do: IO.puts :standard_error, "    #{format_stacktrace(s)}")
   end
 
   # Process shared options
@@ -164,9 +164,9 @@ defmodule Elixir::CLI do
     lines  = Enum.map lines, File.wildcard(_)
     concat = List.uniq(List.append(lines))
 
-    Enum.map concat, fn(file) {
+    Enum.map concat, fn(file) ->
       IO.puts "Compiling #{list_to_binary(file)}"
       Code.compile_file_to_dir(file, config.output)
-    }
+    end
   end
 end

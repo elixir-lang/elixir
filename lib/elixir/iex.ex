@@ -3,7 +3,7 @@ defmodule Elixir::IEx do
 
   def start do
     IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
-    function = fn { do_loop([], '') }
+    function = fn(do: do_loop([], ''))
     Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
     Erlang.timer.sleep(:infinity)
   end
@@ -38,6 +38,6 @@ defmodule Elixir::IEx do
   end
 
   defp print_stacktrace(stacktrace) do
-    Enum.each stacktrace, fn(s) { IO.puts :standard_error, "    #{format_stacktrace(s)}" }
+    Enum.each stacktrace, fn(s, do: IO.puts :standard_error, "    #{format_stacktrace(s)}")
   end
 end
