@@ -22,9 +22,9 @@ defmodule ProtocolTest do
     assert_undef(ProtocolTest::WithAll, Number, 1.1)
     assert_undef(ProtocolTest::WithAll, List, [])
     assert_undef(ProtocolTest::WithAll, List, [1,2,3])
-    assert_undef(ProtocolTest::WithAll, Tuple, {})
-    assert_undef(ProtocolTest::WithAll, Tuple, {1,2,3})
-    assert_undef(ProtocolTest::WithAll, Tuple, {Bar,2,3})
+    assert_undef(ProtocolTest::WithAll, Tuple, %{})
+    assert_undef(ProtocolTest::WithAll, Tuple, %{1,2,3})
+    assert_undef(ProtocolTest::WithAll, Tuple, %{Bar,2,3})
     assert_undef(ProtocolTest::WithAll, BitString, "foo")
     assert_undef(ProtocolTest::WithAll, BitString, <<1>>)
     assert_undef(ProtocolTest::WithAll, PID, self())
@@ -37,7 +37,7 @@ defmodule ProtocolTest do
     assert_undef(ProtocolTest::WithExcept, Any, 1)
     assert_undef(ProtocolTest::WithExcept, Any, [1,2,3])
     assert_undef(ProtocolTest::WithExcept, Function, fn(x, do: x))
-    assert_undef(ProtocolTest::WithExcept, Tuple, {})
+    assert_undef(ProtocolTest::WithExcept, Tuple, %{})
   end
 
   def test_protocol_with_only do
@@ -45,7 +45,7 @@ defmodule ProtocolTest do
     assert_undef(ProtocolTest::WithOnly, Any, 1)
     assert_undef(ProtocolTest::WithOnly, Any, [1,2,3])
     assert_undef(ProtocolTest::WithOnly, Function, fn(x, do: x))
-    assert_undef(ProtocolTest::WithOnly, Tuple, {})
+    assert_undef(ProtocolTest::WithOnly, Tuple, %{})
   end
 
   def test_protocol_with_record do
@@ -60,9 +60,9 @@ defmodule ProtocolTest do
     assert_protocol_for(ProtocolTest::WithAll, Number, 1.1)
     assert_protocol_for(ProtocolTest::WithAll, List, [])
     assert_protocol_for(ProtocolTest::WithAll, List, [1,2,3])
-    assert_protocol_for(ProtocolTest::WithAll, Tuple, {})
-    assert_protocol_for(ProtocolTest::WithAll, Tuple, {1,2,3})
-    assert_protocol_for(ProtocolTest::WithAll, Record, {Bar,2,3})
+    assert_protocol_for(ProtocolTest::WithAll, Tuple, %{})
+    assert_protocol_for(ProtocolTest::WithAll, Tuple, %{1,2,3})
+    assert_protocol_for(ProtocolTest::WithAll, Record, %{Bar,2,3})
     assert_protocol_for(ProtocolTest::WithAll, BitString, "foo")
     assert_protocol_for(ProtocolTest::WithAll, BitString, <<1>>)
     assert_protocol_for(ProtocolTest::WithAll, PID, self())
@@ -86,9 +86,9 @@ defmodule ProtocolTest do
     catch: :error, :undef, [stack|_]
       ref = target :: impl
       case hd(stack) do
-      match: { ^ref, :blank, [^thing] }
+      match: %{ ^ref, :blank, [^thing] }
         :ok
-      match: { ^ref, :blank, [^thing], []}
+      match: %{ ^ref, :blank, [^thing], []}
         :ok
       else:
         error("Invalid stack #{stack}. Expected: { #{ref}, :blank, [#{thing}] }")

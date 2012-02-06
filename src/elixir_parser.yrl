@@ -20,8 +20,7 @@ Nonterminals
   do_eol end_eol kv_item kv_list do_block curly_block
   dot_op dot_identifier dot_do_identifier dot_curly_identifier
   dot_paren_identifier dot_punctuated_identifier parens_call
-  var list bit_string
-  tuple long_tuple long_tuple_op_expr long_tuple_call_args
+  var list bit_string tuple
   .
 
 Terminals
@@ -34,7 +33,7 @@ Terminals
   'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
-  eol ','  '&' '|'  '.' '::' '^' '@' '<-' '<>'
+  eol ','  '&' '|'  '.' '::' '^' '@' '<-' '<>' '%'
   '&&' '||' '!'
   .
 
@@ -116,30 +115,8 @@ matched_op_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
 matched_op_expr -> special_op matched_expr : build_special_op('$1', '$2').
 matched_op_expr -> curly_expr : '$1'.
 
-long_tuple_op_expr -> long_tuple match_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple add_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple mult_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple addadd_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple multmult_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple andand_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple oror_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple andalso_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple orelse_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple and_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple or_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple pipe_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple and_pipe_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple bin_concat_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple in_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple when_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple arrow_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple module_ref_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple default_op matched_expr : build_op('$2', '$1', '$3').
-long_tuple_op_expr -> long_tuple comp_expr_op matched_expr : build_expr_op('$2', '$1', '$3').
-
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
-block_expr -> dot_curly_identifier long_tuple_call_args do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_do_identifier do_block : build_identifier('$1', [], '$2').
 block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
 
@@ -148,7 +125,6 @@ curly_expr -> dot_curly_identifier curly_block : build_identifier('$1', [], '$2'
 curly_expr -> call_expr : '$1'.
 
 call_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
-call_expr -> dot_curly_identifier long_tuple_call_args : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
@@ -378,20 +354,9 @@ list -> open_bracket expr close_bracket : ['$2'].
 list -> open_bracket expr comma_separator call_args close_bracket : ['$2'|'$4'].
 
 % Tuple
-% We need to break call_args apart here to solve
-% ambiguity between p { }, p { 1 } and p { 1, ... }
 
-tuple -> open_curly '}' : { '{}', ?line('$1'), [] }.
-tuple -> open_curly expr close_curly :  { '{}', ?line('$1'), build_args(['$2']) }.
-tuple -> open_curly base_orddict close_curly :  { '{}', ?line('$1'), build_args(['$2']) }.
-tuple -> long_tuple : '$1'.
-
-long_tuple -> open_curly expr comma_separator call_args close_curly :  { '{}', ?line('$1'), ['$2'|'$4'] }.
-
-long_tuple_call_args -> long_tuple : ['$1'].
-long_tuple_call_args -> long_tuple_op_expr : ['$1'].
-long_tuple_call_args -> long_tuple comma_separator call_args_no_parens : ['$1'|'$3'].
-long_tuple_call_args -> long_tuple_op_expr comma_separator call_args_no_parens : ['$1'|'$3'].
+tuple -> '%' open_curly '}' : { '%{}', ?line('$1'), [] }.
+tuple -> '%' open_curly call_args close_curly :  { '%{}', ?line('$1'), '$3' }.
 
 % Bitstrings
 

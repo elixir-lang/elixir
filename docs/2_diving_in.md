@@ -8,20 +8,20 @@ Elixir provides both lists and tuples:
 
     iex> is_list [1,2,3]
     true
-    iex> is_tuple {1,2,3}
+    iex> is_tuple %{1,2,3}
     true
 
 While both are used to store items, they differ on how those items are stored in memory. Lists are implemented as linked lists (each item in the list simply points to the next item in memory) and tuples are stored contiguously in memory.
 
 This means that accessing a tuple element is very fast (constant time) and can be achieved using the `elem` function (notice that indexes in Elixir data-types start with `1`):
 
-    iex> elem { :a, :b, :c }, 1
+    iex> elem %{ :a, :b, :c }, 1
     :a
 
 On the other hand, updating a tuple is expensive as it needs to duplicate the tuple contents in memory. Updating a tuple can be done with the `setelem` function:
 
-    iex> setelem { :a, :b, :c }, 1, :d
-    {:d,:b,:c}
+    iex> setelem %{ :a, :b, :c }, 1, :d
+    %{:d,:b,:c}
 
 > If you are an Erlang developer, you will notice that we used the `elem` and `setelem` functions instead of Erlang's `element` and `setelement`. The reason for this choice is that Elixir attempts to normalize Erlang API's to always receive the `subject` of the function as the first argument.
 
@@ -102,19 +102,19 @@ When discussing lists, we saw the following example:
 
 In Elixir, `=` does not mean assignment as in programming languages like Java and Ruby. `=` is actually a match operator which will check if the expressions on both left and right side match. Consider this example:
 
-    iex> { 1, 2, 3 } = { 1, 2, 3 }
-    { 1, 2, 3 }
-    iex> { 1, 2, 3 } = { 1, 4, 3 }
-    ** error {:badmatch, {1, 4, 3}}
+    iex> %{ 1, 2, 3 } = %{ 1, 2, 3 }
+    %{ 1, 2, 3 }
+    iex> %{ 1, 2, 3 } = %{ 1, 4, 3 }
+    ** (::MatchError) no match of right hand side value: %{1,4,3}
 
 If the tuples given on the left and right side do not match, an error is raised. If any of the tuples contain a variable, this variable will always be assigned:
 
-    iex> { 1, x, 3 } = { 1, 2, 3 }
-    { 1, 2, 3 }
+    iex> %{ 1, x, 3 } = %{ 1, 2, 3 }
+    %{ 1, 2, 3 }
     iex> x
     2
-    iex> { 1, x, 3 } = { 1, 4, 3 }
-    { 1, 4, 3 }
+    iex> %{ 1, x, 3 } = %{ 1, 4, 3 }
+    %{ 1, 4, 3 }
     iex> x
     4
 
@@ -128,7 +128,7 @@ We have assigned the head of the list to `h` and the tail to `t`. In fact, we co
     iex> [1 | t] = [1,2,3]
     [1, 2, 3]
     iex> [0 | t] = [1,2,3]
-    ** error {:badmatch, [1, 2, 3]}
+    ** (::MatchError) no match of right hand side value: [1,2,3]
 
 In case you want to pattern match against the value of a variable, you can use the `^` operator:
 
@@ -137,7 +137,7 @@ In case you want to pattern match against the value of a variable, you can use t
     iex> ^x = 1
     1
     iex> ^x = 2
-    ** error {:badmatch, 2}
+    ** (::MatchError) no match of right hand side value: 2
     iex> x = 2
     2
 
@@ -151,12 +151,12 @@ In Elixir, it is a common practice to assign a variable to underscore `_` if we 
 The variable `_` in Elixir is special in the sense it can never be assigned. Trying to read from it gives an unbound variable error:
 
     iex> _
-    ** error {:unbound_var, :_}
+    ** (ErlangError) erlang error %{:unbound_var, :_}
 
 Although pattern matching allow powerful constructs, its usage is limited. For instance, you cannot make function calls on the left side of the match. The following example is invalid:
 
     iex> Erlang.lists.flatten([1,[2],3]) = [1,2,3]
-    ** error :illegal_pattern
+    ** (ErlangError) erlang error :illegal_pattern
 
 ## 2.5 Key-values
 
@@ -174,12 +174,12 @@ One of the first control flow constructs we usually learn is the conditional `if
 All those three formats are simply different ways of expressing key-value arguments. Key-value arguments are simply a list of two-item tuples, where the first element is an atom representing the key and the second is the value. Elixir provides a syntax-shortcut for creating such key-values:
 
     iex> [a: 1, b: 2]
-    [{:a, 1}, {:b, 2}]
+    [%{:a, 1}, %{:b, 2}]
 
 Notice that a key-value argument is a special kind of Ordered Dictionary where the keys are always atoms. For this reason we usually use the [`Orddict` module](https://github.com/josevalim/elixir/blob/master/lib/orddict.ex) to manipulate key-value arguments:
 
     iex> x = [a: 1, b: 2]
-    [{:a, 1}, {:b, 2}]
+    [%{:a, 1}, %{:b, 2}]
     iex> Orddict.get x, :a
     1
     iex> Orddict.get x, :c
@@ -320,10 +320,10 @@ To work around this limitation, Elixir provides three operators with similar fun
 
 In this section we have introduced pattern matching via the `=` operator. Sometimes however it is convenient to match an expression against several expressions until we find a matching one. For such cases, we use `case` (pun intended):
 
-    case { 1, 2, 3 } do
-    match: { 4, 5, 6 }
+    case %{ 1, 2, 3 } do
+    match: %{ 4, 5, 6 }
       IO.puts "This won't match"
-    match: { 1, x, 3 }
+    match: %{ 1, x, 3 }
       IO.puts "This will match and assign x"
     else:
       IO.puts "No match"
@@ -341,10 +341,10 @@ As in the `=` operator, any assigned variable will be overridden in the match cl
 
 Each match clause also supports special conditions to be given via guards:
 
-    case { 1, 2, 3 } do
-    match: { 4, 5, 6 }
+    case %{ 1, 2, 3 } do
+    match: %{ 4, 5, 6 }
       IO.puts "This won't match"
-    match: { 1, x, 3 } when x > 0
+    match: %{ 1, x, 3 } when x > 0
       IO.puts "This will match and assign x"
     else:
       IO.puts "No match"
@@ -562,7 +562,7 @@ In order to exchange messages, each process has a mailbox were the received mess
 
     # Collect the message
     iex> receive do
-    ...> match: { :hello, pid }
+    ...> match: %{ :hello, pid }
     ...>   IO.puts "Hello from #{pid}"
     ...> end
     Hello from <0.36.0>

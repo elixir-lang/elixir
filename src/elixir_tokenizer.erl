@@ -36,8 +36,11 @@ tokenize(Line, [$.,$(|Rest], Tokens) ->
   tokenize(Line, [$(|Rest], [{dot_call_op,Line,'.'}|Tokens]);
 
 % ## Containers
-tokenize(Line, [$.,T1,T2|Rest], Tokens) when T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
-  tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
+tokenize(Line, [$.,$%,T1,T2|Rest], Tokens) when
+  T1 == $[ andalso T2 == $];
+  T1 == ${ andalso T2 == $};
+  T1 == $( andalso T2 == $) ->
+  tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([$%,T1,T2]), Rest),{'.',Line}|Tokens]);
 
 tokenize(Line, ".<<>>" ++ Rest, Tokens) ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, '<<>>', Rest),{'.',Line}|Tokens]);
@@ -98,8 +101,16 @@ tokenize(Line, [$:,H|T], Tokens) when H == $"; H == $' ->
 % Atom operators
 
 % ## Containers
+
+%% REMOVE ME
 tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
   tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
+
+tokenize(Line, [$:,$%,T1,T2|Rest], Tokens) when
+  T1 == $[ andalso T2 == $];
+  T1 == ${ andalso T2 == $};
+  T1 == $( andalso T2 == $) ->
+  tokenize(Line, Rest, [{atom,Line,[list_to_atom([$%,T1,T2])]}|Tokens]);
 
 tokenize(Line, ":<<>>" ++ Rest, Tokens) ->
   tokenize(Line, Rest, [{atom,Line,['<<>>']}|Tokens]);
@@ -144,6 +155,9 @@ tokenize(Line, [Space,$:,$:,NotMarker|T], [{Identifier,_,_}|_] = Tokens) when Sp
 % Stand-alone tokens
 
 % ## Containers + punctuation tokens
+tokenize(Line, [$%,T|Rest], Tokens) when T == $(; T == ${; T == $[ ->
+  tokenize(Line, Rest, [{list_to_atom([T]), Line},{'%', Line}|Tokens]);
+
 tokenize(Line, [T|Rest], Tokens) when T == $(;
   T == ${; T == $}; T == $[; T == $]; T == $);
   T == $,; T == $. ->

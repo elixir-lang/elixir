@@ -22,7 +22,7 @@ defmodule ExUnit::Case do
 
   ## Private
 
-  defp tests_for([{function,0}|t], acc) do
+  defp tests_for([%{function,0}|t], acc) do
     list = atom_to_list(function)
     case list do
     match: 'test_' ++ _

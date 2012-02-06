@@ -27,7 +27,7 @@ each_clause(Line, {'catch',Raw,Expr}, S) ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for catch")
   end,
 
-  Condition = { '{}', Line, Final },
+  Condition = { '%{}', Line, Final },
   elixir_clauses:assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], Guards, S);
 
 each_clause(Line, { rescue, Args, Expr }, S) ->

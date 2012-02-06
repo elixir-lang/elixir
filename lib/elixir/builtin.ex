@@ -168,9 +168,9 @@ defmodule Elixir::Builtin do
   # an error is raised. Check exception.ex for examples.
   defmacro defexception(name, values, opts // [], do_block // []) do
     opts   = Orddict.merge(opts, do_block)
-    values = [{ :__exception__, __EXCEPTION__ }|values]
+    values = [%{ :__exception__, __EXCEPTION__ }|values]
     [Record.defrecord(name, values, opts), quote {
-      unless List.member?(unquote(name).__info__(:exports), { :message, 1 }), do:
+      unless List.member?(unquote(name).__info__(:exports), %{ :message, 1 }), do:
         raise "Expected #{unquote(name)} to implement message/1"
     }]
   end
@@ -306,9 +306,9 @@ defmodule Elixir::Builtin do
   #     #=> [3,2,1]
   #
   defmacro defdelegate(tuples, to: target) do
-    lc { name, arity } in tuples do
+    lc %{ name, arity } in tuples do
       args = lc i in :lists.seq(1, arity) do
-        { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+        %{ binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
       end
 
       quote {
@@ -654,11 +654,11 @@ defmodule Elixir::Builtin do
   #       baz
   #     end
   #
-  defmacro if(condition, [{:do,do_clause}|tail]) do
+  defmacro if(condition, [%{:do,do_clause}|tail]) do
     # Transform the condition and the expressions in the
     # do_clause to a key-value block. Get the other values
     # from the tail orddict.
-    if_clause   = { :__KVBLOCK__, 0, [ { [condition], do_clause } ] }
+    if_clause   = %{ :__KVBLOCK__, 0, [ %{ [condition], do_clause } ] }
     else_clause = Orddict.get(tail, :else)
 
     # Merge if and elsif clauses, as they will all become match clauses.
@@ -697,7 +697,7 @@ defmodule Elixir::Builtin do
   #     x #=> "bar"
   #
   defmacro :<>.(left, right) do
-    concats = extract_concatenations({ :<>, 0, [left, right] })
+    concats = extract_concatenations(%{ :<>, 0, [left, right] })
     quote { << unquote_splicing(concats) >> }
   end
 
@@ -755,7 +755,7 @@ defmodule Elixir::Builtin do
 
   # Optimizes !! to avoid generating case twice.
   # :nodoc:
-  defmacro :!.({:!, _, [expr]}) do
+  defmacro :!.(%{:!, _, [expr]}) do
     quote {
       case unquote(expr) do
       match: false
@@ -843,7 +843,7 @@ defmodule Elixir::Builtin do
 
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
-  defp extract_concatenations({ :<>, _, [left, right] }) do
+  defp extract_concatenations(%{ :<>, _, [left, right] }) do
     [wrap_concatenation(left) | extract_concatenations(right)]
   end
 
@@ -858,7 +858,7 @@ defmodule Elixir::Builtin do
   end
 
   defp wrap_concatenation(other) do
-    { :|, 0, [other, :binary] }
+    %{ :|, 0, [other, :binary] }
   end
 
   # Builds if clauses by nesting them recursively.
@@ -886,7 +886,7 @@ defmodule Elixir::Builtin do
   #       end
   #     end
   #
-  defp build_if_clauses([{ :match, [condition], clause }|t], acc) do
+  defp build_if_clauses([%{ :match, [condition], clause }|t], acc) do
     new_acc = quote {
       case !unquote(condition) do
       match: false
@@ -899,7 +899,7 @@ defmodule Elixir::Builtin do
     build_if_clauses(t, new_acc)
   end
 
-  defp build_if_clauses([{ :match, _, _clause }|_], _) do
+  defp build_if_clauses([%{ :match, _, _clause }|_], _) do
     raise ArgumentError, message: "No or too many conditions given to elsif clause"
   end
 

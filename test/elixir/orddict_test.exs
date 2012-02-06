@@ -4,7 +4,7 @@ defmodule OrddictTest do
   use ExUnit::Case
 
   def test_from_enum do
-    [first_key: 1, second_key: 2] = Orddict.from_enum([{:second_key, 2}, {:first_key, 1}])
+    [first_key: 1, second_key: 2] = Orddict.from_enum([%{:second_key, 2}, %{:first_key, 1}])
   end
 
   def test_fetch do

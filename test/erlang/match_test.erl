@@ -13,21 +13,21 @@ assignment_test() ->
 
 not_single_assignment_test() ->
   {2, [{a, 2}]} = elixir:eval("a = 1\na = 2\na"),
-  {1, [{a, 1}]} = elixir:eval("{a,a} = {1,1}\na"),
-  {1, [{a, 1}]} = elixir:eval("{a,a} = :{}.(1, 1)\na"),
-  {2, [{a, 2}]} = elixir:eval("a = 1\n{^a,a} = {1,2}\na"),
-  ?assertError({badmatch, _}, elixir:eval("{a,a} = {1,2}")),
-  ?assertError({badmatch, _}, elixir:eval("{1 = a,a} = {1,2}")),
-  ?assertError({badmatch, _}, elixir:eval("{a = 1,a} = {1,2}")),
-  ?assertError({badmatch, _}, elixir:eval("a = 0;{a,a} = {1,2}")),
-  ?assertError({badmatch, _}, elixir:eval("a = 0;{1 = a,a} = {1,2}")),
+  {1, [{a, 1}]} = elixir:eval("%{a,a} = %{1,1}\na"),
+  {1, [{a, 1}]} = elixir:eval("%{a,a} = :%{}.(1, 1)\na"),
+  {2, [{a, 2}]} = elixir:eval("a = 1\n%{^a,a} = %{1,2}\na"),
+  ?assertError({badmatch, _}, elixir:eval("%{a,a} = %{1,2}")),
+  ?assertError({badmatch, _}, elixir:eval("%{1 = a,a} = %{1,2}")),
+  ?assertError({badmatch, _}, elixir:eval("%{a = 1,a} = %{1,2}")),
+  ?assertError({badmatch, _}, elixir:eval("a = 0;%{a,a} = %{1,2}")),
+  ?assertError({badmatch, _}, elixir:eval("a = 0;%{1 = a,a} = %{1,2}")),
   ?assertError({badmatch, _}, elixir:eval("a = 1\n^a = 2")).
 
 duplicated_assignment_on_module_with_tuple_test() ->
   F = fun() ->
-    elixir:eval("defmodule Foo do\ndef v({ a, _left }, { a, _right }), do: a\nend"),
-    {1,_} = elixir:eval("Foo.v({ 1, :foo }, { 1, :bar })"),
-    ?assertError(function_clause, elixir:eval("Foo.v({ 1, :foo }, { 2, :bar })"))
+    elixir:eval("defmodule Foo do\ndef v(%{ a, _left }, %{ a, _right }), do: a\nend"),
+    {1,_} = elixir:eval("Foo.v(%{ 1, :foo }, %{ 1, :bar })"),
+    ?assertError(function_clause, elixir:eval("Foo.v(%{ 1, :foo }, %{ 2, :bar })"))
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
@@ -66,14 +66,14 @@ assignment_precedence_test() ->
 
 % Tuples match
 simple_tuple_test() ->
-  {{}, _} = elixir:eval("a = {}"),
-  {{1,2,3}, _} = elixir:eval("a = {1, 2, 3}"),
-  {{1,2,3}, _} = elixir:eval("a = {1, 1 + 1, 3}"),
-  {{1,{2},3}, _} = elixir:eval("a = {1, {2}, 3}").
+  {{}, _} = elixir:eval("a = %{}"),
+  {{1,2,3}, _} = elixir:eval("a = %{1, 2, 3}"),
+  {{1,2,3}, _} = elixir:eval("a = %{1, 1 + 1, 3}"),
+  {{1,{2},3}, _} = elixir:eval("a = %{1, %{2}, 3}").
 
 tuple_match_test() ->
-  {_, _} = elixir:eval("{1,2,3} = {1, 2, 3}"),
-  ?assertError({badmatch, _}, elixir:eval("{1, 3, 2} = {1, 2, 3}")).
+  {_, _} = elixir:eval("%{1,2,3} = %{1, 2, 3}"),
+  ?assertError({badmatch, _}, elixir:eval("%{1, 3, 2} = %{1, 2, 3}")).
 
 % Lists match
 simple_list_test() ->
@@ -81,7 +81,7 @@ simple_list_test() ->
   {[1,2,3], _} = elixir:eval("a = [1, 2, 3]"),
   {[1,2,3], _} = elixir:eval("a = [1, 1 + 1, 3]"),
   {[1,[2],3], _} = elixir:eval("a = [1, [2], 3]"),
-  {[1,{2},3], _} = elixir:eval("a = [1, {2}, 3]").
+  {[1,{2},3], _} = elixir:eval("a = [1, %{2}, 3]").
 
 list_match_test() ->
   {_, _} = elixir:eval("[1, 2, 3] = [1, 2, 3]"),
@@ -108,7 +108,7 @@ orrdict_match_test() ->
 
 function_clause_test() ->
   F = fun() ->
-    elixir:eval("defmodule Foo do\ndef a([{_k,_}=e|_]), do: e\nend"),
-    {{foo,bar},_} = elixir:eval("Foo.a([{:foo,:bar}])")
+    elixir:eval("defmodule Foo do\ndef a([%{_k,_}=e|_]), do: e\nend"),
+    {{foo,bar},_} = elixir:eval("Foo.a([%{:foo,:bar}])")
   end,
   test_helper:run_and_remove(F, ['::Foo']).

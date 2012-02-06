@@ -17,7 +17,7 @@ defmodule Protocol do
 
     quote do
       defmodule unquote(name) do
-        def __protocol__, do: { unquote(name), unquote(kv) }
+        def __protocol__, do: %{ unquote(name), unquote(kv) }
         Protocol.functions(__MODULE__, unquote(kv))
         Protocol.protocol_for(__MODULE__, unquote(opts))
       end
@@ -93,9 +93,9 @@ defmodule Protocol do
 
   # Specially handle tuples as they can also be record.
   # If this is the case, module::Record will be returned.
-  defp each_protocol_for(module, { Tuple, :is_tuple }) do
+  defp each_protocol_for(module, %{ Tuple, :is_tuple }) do
     contents = quote do
-      def __protocol_for__({}) do
+      def __protocol_for__(%{}) do
         unquote(module)::Tuple
       end
 
@@ -113,7 +113,7 @@ defmodule Protocol do
   end
 
   # Special case any as we don't need to generate a guard.
-  defp each_protocol_for(module, { _, :is_any }) do
+  defp each_protocol_for(module, %{ _, :is_any }) do
     contents = quote do
       def __protocol_for__(_) do
         unquote(module)::Any
@@ -124,7 +124,7 @@ defmodule Protocol do
   end
 
   # Generate all others protocols.
-  defp each_protocol_for(module, { kind, fun }) do
+  defp each_protocol_for(module, %{ kind, fun }) do
     contents = quote do
       def __protocol_for__(arg) when unquote(fun).(arg) do
         unquote(module)::unquote(kind)
@@ -135,13 +135,13 @@ defmodule Protocol do
   end
 
   # Implement the protocol invocation callbacks for each function.
-  defp each_function(module, { name, arity }) do
+  defp each_function(module, %{ name, arity }) do
     # Generate arguments according the arity. The arguments
     # are named xa, xb and so forth. We cannot use string
     # interpolation to generate the arguments because of compile
     # dependencies, so we use the <<>> instead.
     args = lc i in :lists.seq(1, arity) do
-      { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+      %{ binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
     end
 
     contents = quote do
@@ -151,7 +151,7 @@ defmodule Protocol do
         match: unquote(module)::Record
           result =
             try do
-              { apply(unquote(module)::element(1, xA), unquote(name), args), true }
+              %{ apply(unquote(module)::element(1, xA), unquote(name), args), true }
             rescue: UndefinedFunctionError
               :error
             end
@@ -159,7 +159,7 @@ defmodule Protocol do
           case result do
           match: :error
             apply unquote(module)::Tuple, unquote(name), args
-          match: { value, true }
+          match: %{ value, true }
             value
           end
         match: other
@@ -176,10 +176,10 @@ defmodule Protocol do
   defp to_kv(args) do
     :orddict.from_list lc(x in args) {
       case x do
-      match: { _, _, args } when args == [] or args == false
+      match: %{ _, _, args } when args == [] or args == false
         raise ArgumentError, message: "protocol functions expect at least one argument"
-      match: { name, _, args } when is_atom(name) and is_list(args)
-        { name, length(args) }
+      match: %{ name, _, args } when is_atom(name) and is_list(args)
+        %{ name, length(args) }
       else:
         raise ArgumentError, message: "invalid args for defprotocol"
       end
@@ -189,23 +189,23 @@ defmodule Protocol do
   # Returns the default conversions according to the given only/except options.
   defp conversions_for(opts) do
     kinds = [
-      { Tuple,     :is_tuple },
-      { Atom,      :is_atom },
-      { List,      :is_list },
-      { BitString, :is_bitstring },
-      { Number,    :is_number },
-      { Function,  :is_function },
-      { PID,       :is_pid },
-      { Port,      :is_port },
-      { Reference, :is_reference }
+      %{ Tuple,     :is_tuple },
+      %{ Atom,      :is_atom },
+      %{ List,      :is_list },
+      %{ BitString, :is_bitstring },
+      %{ Number,    :is_number },
+      %{ Function,  :is_function },
+      %{ PID,       :is_pid },
+      %{ Port,      :is_port },
+      %{ Reference, :is_reference }
     ]
 
     if only = Orddict.get(opts, :only, false) do
       selected = L.map fn(i) { L.keyfind(i, 1, kinds) }, only
-      selected ++ [{ Any, :is_any }]
+      selected ++ [%{ Any, :is_any }]
     elsif: except = Orddict.get(opts, :except, false)
       selected = L.foldl fn(i, list) { L.keydelete(i, 1, list) }, kinds, except
-      selected ++ [{ Any, :is_any }]
+      selected ++ [%{ Any, :is_any }]
     else:
       kinds
     end

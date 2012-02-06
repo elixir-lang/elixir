@@ -19,7 +19,7 @@ defmodule Module do
   #
   def eval_quoted(module, quoted, binding, filename, line) do
     assert_already_compiled!(:eval_quoted, module)
-    { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(line, to_char_list(filename), module, binding)
+    %{ binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(line, to_char_list(filename), module, binding)
     Erlang.elixir_def.reset_last(module)
     Erlang.elixir.eval_quoted([quoted], binding, line, scope)
   end
@@ -85,7 +85,7 @@ defmodule Module do
     table = attribute_table_for(module)
     old   = ETS.lookup_element(table, :data, 2)
     final = Orddict.merge(old, new)
-    ETS.insert(table, { :data,  final })
+    ETS.insert(table, %{ :data,  final })
     final
   end
 
@@ -160,10 +160,10 @@ defmodule Module do
   # which will read the final value of :some_data and compile to a function.
   def add_compile_callback(module, target, fun // :__compiling__) do
     assert_already_compiled!(:add_compile_callback, module)
-    new   = { target, fun }
+    new   = %{ target, fun }
     table = attribute_table_for(module)
     old   = ETS.lookup_element(table, :compile_callbacks, 2)
-    ETS.insert(table, { :compile_callbacks,  [new|old] })
+    ETS.insert(table, %{ :compile_callbacks,  [new|old] })
     new
   end
 

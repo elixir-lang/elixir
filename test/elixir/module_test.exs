@@ -33,25 +33,25 @@ end
 defmodule ModuleTest do
   use ExUnit::Case
 
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
+  false = Module.function_defined? __MODULE__, %{ :eval_quoted_info, 0 }
+  false = Module.function_defined? __MODULE__, %{ :eval_quoted_info, 0 }, :def
+  false = Module.function_defined? __MODULE__, %{ :eval_quoted_info, 0 }, :defp
+  false = Module.function_defined? __MODULE__, %{ :eval_quoted_info, 0 }, :defmacro
 
-  contents = quote { def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ } }
+  contents = quote { def eval_quoted_info, do: %{ __MODULE__, __FILE__, __LINE__ } }
   Module.eval_quoted __MODULE__, contents, [], "sample.ex", 13
 
-  true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
-  true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
+  true  = Module.function_defined? __MODULE__, %{ :eval_quoted_info, 0 }
+  true  = Module.function_defined? __MODULE__, %{ :eval_quoted_info, 0 }, :def
+  false = Module.function_defined? __MODULE__, %{ :eval_quoted_info, 0 }, :defp
+  false = Module.function_defined? __MODULE__, %{ :eval_quoted_info, 0 }, :defmacro
 
   Module.merge_data __MODULE__, value: 1
   Module.merge_data __MODULE__, other_value: 1
   Module.merge_data __MODULE__, other_value: 2
 
   def test_eval_quoted do
-    { ::ModuleTest, "sample.ex", 13 } = eval_quoted_info()
+    %{ ::ModuleTest, "sample.ex", 13 } = eval_quoted_info()
   end
 
   def test_line_from_macro do
@@ -78,6 +78,6 @@ defmodule ModuleTest do
   end
 
   def test_reserved_attributes do
-    {:behavior,[:gen_server]} = :lists.keyfind(:behavior, 1, Elixir::Server.__info__(:attributes))
+    %{:behavior,[:gen_server]} = :lists.keyfind(:behavior, 1, Elixir::Server.__info__(:attributes))
   end
 end

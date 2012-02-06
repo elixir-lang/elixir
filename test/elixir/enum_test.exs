@@ -62,13 +62,13 @@ defmodule EnumTest do
   def test_join_with_bin do
     ""            = Enum.join [], " = "
     "1 = 2 = 3"   = Enum.join [1,2,3], " = "
-    "1 = {2} = 3" = Enum.join [1,{ 2 },3], " = "
+    "1 = %{2} = 3" = Enum.join [1,%{2},3], " = "
   end
 
   def test_join_with_list do
     ''            = Enum.join [], ' = '
     '1 = 2 = 3'   = Enum.join [1,2,3], ' = '
-    '1 = {2} = 3' = Enum.join [1,{ 2 },3], ' = '
+    '1 = %{2} = 3' = Enum.join [1,%{2},3], ' = '
   end
 
   def test_map do
@@ -77,8 +77,8 @@ defmodule EnumTest do
   end
 
   def test_mapfoldl do
-    { [], 1 } = Enum.mapfoldl [], 1, fn(x, acc) { { x * 2, x + acc } }
-    { [2,4,6], 7 } = Enum.mapfoldl [1,2,3], 1, fn(x, acc) { { x * 2, x + acc } }
+    %{ [], 1 } = Enum.mapfoldl [], 1, fn(x, acc) { %{ x * 2, x + acc } }
+    %{ [2,4,6], 7 } = Enum.mapfoldl [1,2,3], 1, fn(x, acc) { %{ x * 2, x + acc } }
   end
 
   def test_times_with_arity_0 do
@@ -103,14 +103,14 @@ defmodule EnumTest do
   end
 
   def test_enum_for do
-    [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = Enum.__for__ [[1,2],[3,4]], fn(acc, y, x) { [{x,y}|acc] }
+    [%{1, 3}, %{1, 4}, %{2, 3}, %{2, 4}] = Enum.__for__ [[1,2],[3,4]], fn(acc, y, x) { [%{x,y}|acc] }
   end
 
   def test_for do
-    [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = for x in [1,2], y in [3,4], do: {x,y}
+    [%{1, 3}, %{1, 4}, %{2, 3}, %{2, 4}] = for x in [1,2], y in [3,4], do: %{x,y}
 
-    lists = [1,{1,2},2,{2,1}]
-    [{1, 3}, {1, 4}, {2, 3}, {2, 4}] = for {x,_} in lists, y in [3,4], do: {x,y}
-    [{1, 3}, {1, 4}] = for {x,_} in lists, y in [3,4], x == 1, do: {x,y}
+    lists = [1,%{1,2},2,%{2,1}]
+    [%{1, 3}, %{1, 4}, %{2, 3}, %{2, 4}] = for %{x,_} in lists, y in [3,4], do: %{x,y}
+    [%{1, 3}, %{1, 4}] = for %{x,_} in lists, y in [3,4], x == 1, do: %{x,y}
   end
 end
