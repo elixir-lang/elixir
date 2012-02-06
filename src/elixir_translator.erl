@@ -73,7 +73,7 @@ translate_each({ '<<>>', Line, Args }, S) when is_list(Args) ->
   { TArgs, { SC, SV } } = elixir_tree_helpers:build_bitstr(fun translate_arg/2, Args, Line, { S, S }),
   { TArgs, umergec(SV, SC) };
 
-translate_each({'%{}', Line, Args}, S) when is_list(Args) ->
+translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { {tuple, Line, TArgs}, SE };
 

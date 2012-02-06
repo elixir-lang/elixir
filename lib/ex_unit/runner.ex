@@ -26,11 +26,11 @@ defmodule ExUnit::Runner do
   # TODO Add timeout.
   def do_loop(config) do
     receive do
-    match: %{ pid, :each, %{ test_case, test, final } }
-      call_formatter config, %{ :each, test_case, test, final }
+    match: { pid, :each, { test_case, test, final } }
+      call_formatter config, { :each, test_case, test, final }
       do_loop config
-    match: %{ pid, :each_case, test_case }
-      call_formatter config, %{ :each_case, test_case }
+    match: { pid, :each_case, test_case }
+      call_formatter config, { :each_case, test_case }
       start config.increment_taken_cases(-1)
     end
   end
@@ -80,25 +80,25 @@ defmodule ExUnit::Runner do
         apply test_case, test, []
         nil
       rescue: error1
-        %{ :error, error1, Code.stacktrace }
+        { :error, error1, Code.stacktrace }
       catch: kind1, error1
-        %{ kind1, error1, Code.stacktrace }
+        { kind1, error1, Code.stacktrace }
       end
 
       # test_case.teardown(test)
       partial
     rescue: error2
-      %{ :error, error2, Code.stacktrace }
+      { :error, error2, Code.stacktrace }
     catch: kind2, error2
-      %{ kind2, error2, Code.stacktrace }
+      { kind2, error2, Code.stacktrace }
     end
 
-    pid <- %{ self(), :each, %{ test_case, test, final } }
+    pid <- { self(), :each, { test_case, test, final } }
     run_tests(pid, test_case, t)
   end
 
   # When all tests in a testcase were run, notify the runner.
   defp run_tests(pid, test_case, []) do
-    pid <- %{ self(), :each_case, test_case }
+    pid <- { self(), :each_case, test_case }
   end
 end

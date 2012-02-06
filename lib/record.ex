@@ -44,14 +44,14 @@ defmodule Record do
     # an ordered dict of options (opts) and it will try to fetch
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
-    selective = Enum.map values, fn(%{k,v}) {
+    selective = Enum.map values, fn({k,v}) {
       quote { ::Orddict.get(opts, unquote(k), unquote(v)) }
     }
 
     quote do
       def new(), do: new([])
-      def new([]), do: %{ __MODULE__, unquote_splicing(defaults) }
-      def new(opts), do: %{ __MODULE__, unquote_splicing(selective) }
+      def new([]), do: { __MODULE__, unquote_splicing(defaults) }
+      def new(opts), do: { __MODULE__, unquote_splicing(selective) }
     end
   end
 
@@ -84,7 +84,7 @@ defmodule Record do
   # syntax as `unquote(key)(record)` wouldn't be valid (as Elixir
   # allows you to parenthesis just on specific cases as `foo()`
   # and `foo.bar()`)
-  defmacro getters_and_setters([%{ key, default }|t], i, acc, extensor) do
+  defmacro getters_and_setters([{ key, default }|t], i, acc, extensor) do
     i = i + 1
 
     contents = quote do

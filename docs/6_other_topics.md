@@ -7,7 +7,7 @@ Elixir supports partial application. Partial application is also sometimes calle
     iex> _ = 1
     1
     iex> _
-    ** (ErlangError) erlang error %{:unbound_var,:_}
+    ** error {:unbound_var,:_}
 
 When used inside function calls, the underscore means that we don't have the argument and that it should then be partially applied. For example, let's suppose we have a list of strings and we want to calculate the size for each them. We could do it as follow:
 
@@ -66,8 +66,8 @@ Elixir provides generators for both lists and bitstrings (a bitstring is a seque
 Bit string generators are quite useful when you need to organize bit string streams:
 
     iex> pixels = <<213,45,132,64,76,32,76,0,0,234,32,15>>
-    iex> lc <<r:8,g:8,b:8>> in pixels, do: %{r,g,b}
-    [%{213,45,132},%{64,76,32},%{76,0,0},%{234,32,15}]
+    iex> lc <<r:8,g:8,b:8>> in pixels, do: {r,g,b}
+    [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
 
 Remember, as strings are binaries and a binary is a bitstring, we can also use strings on comprehensions. For instance, the example below removes all white space characters from a string via bit comprehensions:
 
@@ -80,7 +80,7 @@ Elixir does its best to hide the differences between list and bit string generat
     # of the in expression is a bit string, it expects the right side
     # to be a bit string as well:
     iex> lc <<n>> in [<<1>>,<<2>>,<<3>>], do: n*2
-    ** (ErlangError) erlang error {:bad_generator,[<<1>>,<<2>>,<<3>>]}
+    ** error {:bad_generator,[<<1>>,<<2>>,<<3>>]}
 
     # You need to be explicit and use inlist:
     iex> lc inlist(<<n>>, [<<1>>,<<2>>,<<3>>]), do: n*2

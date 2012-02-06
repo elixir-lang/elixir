@@ -112,7 +112,7 @@ defimpl String::Inspect, for: List do
   end
 
   def container_join([h|t], acc, last) when is_list(t) do
-    acc = acc <> String::Inspect.inspect(h) <> ", "
+    acc = acc <> String::Inspect.inspect(h) <> ","
     container_join(t, acc, last)
   end
 
@@ -131,11 +131,11 @@ defimpl String::Inspect, for: Tuple do
   def to_binary(exception) when is_exception(exception) do
     [name,_|tail] = tuple_to_list(exception)
     atom_to_binary(name, :utf8) <>
-       String::Inspect::List.container_join(tail, "%{", "}")
+       String::Inspect::List.container_join(tail, "{", "}")
   end
 
   def to_binary(thing) do
-    String::Inspect::List.container_join(tuple_to_list(thing), "%{", "}")
+    String::Inspect::List.container_join(tuple_to_list(thing), "{", "}")
   end
 end
 

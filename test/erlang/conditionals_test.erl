@@ -62,8 +62,8 @@ vars_receive_test() ->
 
 case_test() ->
   {true, _} = elixir:eval("case 1 do\nmatch: 2; false\nmatch: 1; true\nend"),
-  {true, [{x,1}]} = elixir:eval("case 1 do\nmatch: %{x,y}; false\nmatch: x; true\nend"),
-  {true, _} = elixir:eval("case %{1,2} do;match: %{3,4}\nfalse\nelse: true\nend").
+  {true, [{x,1}]} = elixir:eval("case 1 do\nmatch: {x,y}; false\nmatch: x; true\nend"),
+  {true, _} = elixir:eval("case {1,2} do;match: {3,4}\nfalse\nelse: true\nend").
 
 case_with_do_ambiguity_test() ->
   {true,_} = elixir:eval("case atom_to_list(true) do\nmatch: _; true\nend").
@@ -93,16 +93,16 @@ vars_case_test() ->
 equal_test() ->
   {true,_} = elixir:eval(":a == :a"),
   {true,_} = elixir:eval("1 == 1"),
-  {true,_} = elixir:eval("%{1,2} == %{1,2}"),
+  {true,_} = elixir:eval("{1,2} == {1,2}"),
   {false,_} = elixir:eval("1 == 2"),
-  {false,_} = elixir:eval("%{1,2} == %{1,3}").
+  {false,_} = elixir:eval("{1,2} == {1,3}").
 
 not_equal_test() ->
   {false,_} = elixir:eval(":a != :a"),
   {false,_} = elixir:eval("1 != 1"),
-  {false,_} = elixir:eval("%{1,2} != %{1,2}"),
+  {false,_} = elixir:eval("{1,2} != {1,2}"),
   {true,_} = elixir:eval("1 != 2"),
-  {true,_} = elixir:eval("%{1,2} != %{1,3}").
+  {true,_} = elixir:eval("{1,2} != {1,3}").
 
 not_exclamation_mark_test() ->
   {false,_} = elixir:eval("! :a"),

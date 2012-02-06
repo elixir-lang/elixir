@@ -6,8 +6,8 @@ defmodule Elixir::CLI do
   # Invoked directly from erlang boot process. It parses all argv
   # options and execute them in the order they are specified.
   def process_argv(options) do
-    %{ config, argv } = process_options(options, Elixir::CLI::Config.new)
-    Erlang.gen_server.call(:elixir_code_server, %{ :argv, argv })
+    { config, argv } = process_options(options, Elixir::CLI::Config.new)
+    Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
 
     if config.compile do
       Erlang.file.make_dir(config.output)
@@ -60,9 +60,9 @@ defmodule Elixir::CLI do
 
   defp shared_option?(list, config, callback) do
     case process_shared(list, config) do
-    match: %{ [h|t], _ } when h == hd(list)
+    match: { [h|t], _ } when h == hd(list)
       invalid_option h
-    match: %{ new_list, new_config }
+    match: { new_list, new_config }
       callback.(new_list, new_config)
     end
   end
@@ -79,7 +79,7 @@ defmodule Elixir::CLI do
   end
 
   defp process_shared(['-e',h|t], config) do
-    process_shared t, config.prepend_commands [eval: h]
+    process_shared t, config.prepend_commands [{:eval,h}]
   end
 
   defp process_shared(['-pa',h|t], config) do
@@ -93,17 +93,17 @@ defmodule Elixir::CLI do
   end
 
   defp process_shared(['-r',h|t], config) do
-    process_shared t, config.prepend_commands [require: h]
+    process_shared t, config.prepend_commands [{:require,h}]
   end
 
   defp process_shared(list, config) do
-    %{ list, config }
+    { list, config }
   end
 
   # Process init options
 
   defp process_options(['--'|t], config) do
-    %{ config, t }
+    { config, t }
   end
 
   defp process_options(['+compile'|t], config) do
@@ -115,18 +115,18 @@ defmodule Elixir::CLI do
     match: '-' ++ _
       shared_option? list, config, process_options(_, _)
     else:
-      %{ config.prepend_commands([require: h]), t }
+      { config.prepend_commands([{:require, h}]), t }
     end
   end
 
   defp process_options([], config) do
-    %{ config, [] }
+    { config, [] }
   end
 
   # Process compiler options
 
   defp process_compiler(['--'|t], config) do
-    %{ config, t }
+    { config, t }
   end
 
   defp process_compiler(['-o',h|t], config) do
@@ -138,25 +138,25 @@ defmodule Elixir::CLI do
     match: '-' ++ _
       shared_option? list, config, process_compiler(_, _)
     else:
-      process_compiler t, config.prepend_commands([compile: h])
+      process_compiler t, config.prepend_commands[{:compile,h}]
     end
   end
 
   defp process_compiler([], config) do
-    %{ config, [] }
+    { config, [] }
   end
 
   # Process commands
 
-  defp process_command(%{:eval, expr}, _config) do
+  defp process_command({:eval, expr}, _config) do
     Erlang.elixir.eval(expr, [])
   end
 
-  defp process_command(%{:require, file}, _config) do
+  defp process_command({:require, file}, _config) do
     Enum.each File.wildcard(file), Code.require_file(_)
   end
 
-  defp process_command(%{:compile, pattern}, config) do
+  defp process_command({:compile, pattern}, config) do
     compile_patterns [pattern], config
   end
 

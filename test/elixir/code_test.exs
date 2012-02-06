@@ -5,14 +5,14 @@ defmodule CodeTest do
 
   contents = quote do
     defmodule CodeTest::Sample do
-      def eval_quoted_info, do: %{ __MODULE__, __FILE__, __LINE__ }
+      def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ }
     end
   end
 
   Code.eval_quoted contents, [], "sample.ex", 13
 
   def test_eval_quoted do
-    %{ ::CodeTest::Sample, "sample.ex", 13 } = CodeTest::Sample.eval_quoted_info()
+    { ::CodeTest::Sample, "sample.ex", 13 } = CodeTest::Sample.eval_quoted_info()
   end
 
   def test_require do
@@ -27,8 +27,8 @@ defmodule CodeTest do
 
     try do
       Code.require_file "code_sample"
-      raise AssertionError, message: "Expected code_sample to not be available"
-    catch: :error, %{ :enoent, ^expanded }
+      error { :bad_assertion, "Expected code_sample to not be available" }
+    catch: :error, { :enoent, ^expanded }
     end
   end
 end

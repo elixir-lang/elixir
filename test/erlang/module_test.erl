@@ -29,7 +29,7 @@ quote_unquote_test() ->
   test_helper:run_and_remove(F, ['::Foo::Bar::Baz']).
 
 quote_unquote_splicing_test() ->
-  { { '%{}', 0, [1,2,3,4,5] }, _ } = elixir:eval("x = [2,3,4]\nquote { %{ 1, unquote_splicing(x), 5} }").
+  { { '{}', 0, [1,2,3,4,5] }, _ } = elixir:eval("x = [2,3,4]\nquote { { 1, unquote_splicing(x), 5} }").
 
 operator_macro_test() ->
   F = fun() ->
@@ -44,12 +44,12 @@ curly_call_test() ->
     {[{do,nil}],_} = elixir:eval("Foo.ok { }"),
     {[{do,1}],_} = elixir:eval("Foo.ok { 1 }"),
     {[{do,3}],_} = elixir:eval("Foo.ok { 1\n2\n3 }"),
-    {{1,2},_} = elixir:eval("Foo.ok %{ 1, 2 }"),
+    {{1,2},_} = elixir:eval("Foo.ok { 1, 2 }"),
     {[{do,1}],_} = elixir:eval("Foo.ok() { \n1 }"),
     {[{do,3}],_} = elixir:eval("Foo.ok() { \n1\n2\n3 }"),
-    {{},_} = elixir:eval("Foo.ok(%{ })"),
-    {{1},_} = elixir:eval("Foo.ok(%{ 1 })"),
-    {{1,2},_} = elixir:eval("Foo.ok(%{ 1, 2 })")
+    {{},_} = elixir:eval("Foo.ok({ })"),
+    {{1},_} = elixir:eval("Foo.ok({ 1 })"),
+    {{1,2},_} = elixir:eval("Foo.ok({ 1, 2 })")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 

@@ -20,7 +20,7 @@ defmodule List::Inspect::TupleTest do
   use ExUnit::Case
 
   def test_basic do
-    [1, "b", 3] = to_char_list(%{ 1, "b", 3 })
+    [1, "b", 3] = to_char_list({ 1, "b", 3 })
   end
 end
 

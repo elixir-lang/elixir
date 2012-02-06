@@ -92,23 +92,23 @@ defmodule String::Inspect::TupleTest do
   use ExUnit::Case
 
   def test_basic do
-    "%{1, \"b\", 3}" = inspect(%{ 1, "b", 3 })
-    "%{1, \"b\", 3}" = to_binary(%{ 1, "b", 3 })
+    "{1,\"b\",3}" = inspect({ 1, "b", 3 })
+    "{1,\"b\",3}" = to_binary({ 1, "b", 3 })
   end
 
   def test_record_like do
-    "%{:foo, :bar}" = inspect(%{ :foo, :bar })
-    "%{:foo, :bar}" = to_binary(%{ :foo, :bar })
+    "{:foo,:bar}" = inspect({ :foo, :bar })
+    "{:foo,:bar}" = to_binary({ :foo, :bar })
   end
 
   def test_exception do
-    "::RuntimeError%{\"runtime error\"}" = inspect(RuntimeError.new)
-    "::RuntimeError%{\"runtime error\"}" = to_binary(RuntimeError.new)
+    "::RuntimeError{\"runtime error\"}" = inspect(RuntimeError.new)
+    "::RuntimeError{\"runtime error\"}" = to_binary(RuntimeError.new)
   end
 
   def test_empty do
-    "%{}" = inspect(%{})
-    "%{}" = to_binary(%{})
+    "{}" = inspect({})
+    "{}" = to_binary({})
   end
 end
 
@@ -116,7 +116,7 @@ defmodule String::Inspect::ListTest do
   use ExUnit::Case
 
   def test_basic do
-    "[1, \"b\", 3]" = inspect([ 1, "b", 3 ])
+    "[1,\"b\",3]" = inspect([ 1, "b", 3 ])
     <<1,98,3>> = to_binary([ 1, "b", 3 ])
   end
 
@@ -126,8 +126,8 @@ defmodule String::Inspect::ListTest do
   end
 
   def test_non_printable do
-    "[%{:a, 1}]" = inspect([%{:a,1}])
-    "[%{:a, 1}]" = to_binary([%{:a,1}])
+    "[{:a,1}]" = inspect([{:a,1}])
+    "[{:a,1}]" = to_binary([{:a,1}])
   end
 
   def test_unproper do

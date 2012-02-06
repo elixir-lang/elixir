@@ -16,7 +16,7 @@ defmodule ExUnit::Escaper do
   end
 
   # Replace _ by a record that when inspected prints "_"
-  def escape(%{ :_, _, args }) when is_atom(args) do
+  def escape({ :_, _, args }) when is_atom(args) do
     Flag.new(as: "_")
   end
 

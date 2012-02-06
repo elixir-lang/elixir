@@ -8,7 +8,7 @@ erlang_atoms_test() ->
   {abs, []} = elixir:eval("Erlang.abs").
 
 erlang_tuple_test() ->
-  {[erlang,1,2], []} = elixir:eval("%{ :erlang, 1, 2 }.tuple_to_list").
+  {[erlang,1,2], []} = elixir:eval("{ :erlang, 1, 2 }.tuple_to_list").
 
 erlang_local_test() ->
   {1, []} = elixir:eval(":abs.(-1)").

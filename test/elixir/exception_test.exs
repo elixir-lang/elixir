@@ -5,25 +5,25 @@ defmodule Kernel::ExceptionTest do
 
   def test_is_exception do
     true  = is_exception(RuntimeError.new)
-    false = is_exception(%{ :foo, :bar })
+    false = is_exception({ :foo, :bar })
   end
 
   def test_format_stacktrace_with_no_file_or_line do
-    "::Foo.bar(1, 2, 3)" = Exception.format_stacktrace(%{::Foo, :bar, [1, 2, 3], []})
-    "::Foo.bar()" = Exception.format_stacktrace(%{::Foo, :bar, [], []})
-    "::Foo.bar/1" = Exception.format_stacktrace(%{::Foo, :bar, 1, []})
+    "::Foo.bar(1, 2, 3)" = Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], []})
+    "::Foo.bar()" = Exception.format_stacktrace({::Foo, :bar, [], []})
+    "::Foo.bar/1" = Exception.format_stacktrace({::Foo, :bar, 1, []})
   end
 
   def test_format_stacktrace_with_file_and_line do
-    "file.ex:10: ::Foo.bar()" = Exception.format_stacktrace(%{::Foo, :bar, [], [file: 'file.ex', line: 10]})
-    "file.ex:10: ::Foo.bar(1, 2, 3)" = Exception.format_stacktrace(%{::Foo, :bar, [1, 2, 3], [file: 'file.ex', line: 10]})
-    "file.ex:10: ::Foo.bar/1" = Exception.format_stacktrace(%{::Foo, :bar, 1, [file: 'file.ex', line: 10]})
+    "file.ex:10: ::Foo.bar()" = Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex', line: 10]})
+    "file.ex:10: ::Foo.bar(1, 2, 3)" = Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], [file: 'file.ex', line: 10]})
+    "file.ex:10: ::Foo.bar/1" = Exception.format_stacktrace({::Foo, :bar, 1, [file: 'file.ex', line: 10]})
   end
 
   def test_format_stacktrace_with_file_no_line do
-    "file.ex: ::Foo.bar()" = Exception.format_stacktrace(%{::Foo, :bar, [], [file: 'file.ex']})
-    "file.ex: ::Foo.bar(1, 2, 3)" = Exception.format_stacktrace(%{::Foo, :bar, [1, 2, 3], [file: 'file.ex']})
-    "file.ex: ::Foo.bar/1" = Exception.format_stacktrace(%{::Foo, :bar, 1, [file: 'file.ex']})
+    "file.ex: ::Foo.bar()" = Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex']})
+    "file.ex: ::Foo.bar(1, 2, 3)" = Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], [file: 'file.ex']})
+    "file.ex: ::Foo.bar/1" = Exception.format_stacktrace({::Foo, :bar, 1, [file: 'file.ex']})
   end
 
   def test_format_module_function_arity do

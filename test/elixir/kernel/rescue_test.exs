@@ -114,8 +114,8 @@ defmodule Kernel::RescueTest do
   end
 
   def test_tuple_badarg_error do
-    "argument error: [1, 2, 3]" = try do
-      error(%{ :badarg, [1,2,3] })
+    "argument error: [1,2,3]" = try do
+      error({ :badarg, [1,2,3] })
     rescue: x in [ArgumentError]
       x.message
     end
@@ -131,7 +131,7 @@ defmodule Kernel::RescueTest do
 
   def test_badarity_error do
     fun    = fn(x) { x }
-    string = "bad arity error: #{inspect(fun)} called with [1, 2]"
+    string = "bad arity error: #{inspect(fun)} called with [1,2]"
 
     ^string = try do
       fun.(1,2)

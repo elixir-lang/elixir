@@ -96,8 +96,8 @@ defmodule Enum do
   #
   # This is used internally by `for` and should not be used directly.
   def __for__(lists, fun) do
-    iterators = lc list in lists, do: %{ list, I.iterator(list) }
-    [%{h,iterator}|t] = iterators
+    iterators = lc list in lists, do: { list, I.iterator(list) }
+    [{h,iterator}|t] = iterators
     first_comprehension_each iterator, iterator.(h), t, [], fun
   end
 
@@ -317,7 +317,7 @@ defmodule Enum do
 
   ## all?
 
-  defp do_all?(%{ h, next }, iterator, fun) do
+  defp do_all?({ h, next }, iterator, fun) do
     case fun.(h) do
     match: false
       false
@@ -334,7 +334,7 @@ defmodule Enum do
 
   ## any?
 
-  defp do_any?(%{ h, next }, iterator, fun) do
+  defp do_any?({ h, next }, iterator, fun) do
     case fun.(h) do
     match: false
       do_any?(iterator.(next), iterator, fun)
@@ -351,7 +351,7 @@ defmodule Enum do
 
   ## detect
 
-  defp do_detect(%{ h, next }, iterator, ifnone, fun) do
+  defp do_detect({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
     match: false
       do_detect(iterator.(next), iterator, ifnone, fun)
@@ -368,7 +368,7 @@ defmodule Enum do
 
   ## detect_value
 
-  defp do_detect_value(%{ h, next }, iterator, ifnone, fun) do
+  defp do_detect_value({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
     match: false
       do_detect_value(iterator.(next), iterator, ifnone, fun)
@@ -385,7 +385,7 @@ defmodule Enum do
 
   ## each
 
-  defp do_each(%{ h, next }, iterator, fun) do
+  defp do_each({ h, next }, iterator, fun) do
     fun.(h)
     do_each(iterator.(next), iterator, fun)
   end
@@ -396,7 +396,7 @@ defmodule Enum do
 
   ## filter
 
-  defp do_filter(%{ h, next }, iterator, fun) do
+  defp do_filter({ h, next }, iterator, fun) do
     case fun.(h) do
     match: false
       do_filter(iterator.(next), iterator, fun)
@@ -413,7 +413,7 @@ defmodule Enum do
 
   ## foldl
 
-  defp do_foldl(%{ h, next }, iterator, acc, fun) do
+  defp do_foldl({ h, next }, iterator, acc, fun) do
     do_foldl(iterator.(next), iterator, fun.(h, acc), fun)
   end
 
@@ -424,7 +424,7 @@ defmodule Enum do
   ## join
 
   # The first item is simply stringified unless ...
-  defp do_join(%{ h, next }, iterator, joiner, nil) do
+  defp do_join({ h, next }, iterator, joiner, nil) do
     do_join(iterator.(next), iterator, joiner, to_binary(h))
   end
 
@@ -434,8 +434,8 @@ defmodule Enum do
   end
 
   # All other items are concatenated to acc, by first adding the joiner;
-  defp do_join(%{ h, next }, iterator, joiner, acc) do
-    acc = acc <> joiner <> to_binary(h)
+  defp do_join({ h, next }, iterator, joiner, acc) do
+    acc = << acc | :binary, joiner | :binary, to_binary(h) | :binary >>
     do_join(iterator.(next), iterator, joiner, acc)
   end
 
@@ -446,7 +446,7 @@ defmodule Enum do
 
   ## map
 
-  defp do_map(%{ h, next }, iterator, fun) do
+  defp do_map({ h, next }, iterator, fun) do
     [fun.(h)|do_map(iterator.(next), iterator, fun)]
   end
 
@@ -456,14 +456,14 @@ defmodule Enum do
 
   ## mapfoldl
 
-  defp do_mapfoldl(%{ h, next }, iterator, acc, f) do
-    %{ result, acc } = f.(h, acc)
-    %{ rest, acc }   = do_mapfoldl(iterator.(next), iterator, acc, f)
-    %{ [result|rest], acc }
+  defp do_mapfoldl({ h, next }, iterator, acc, f) do
+    { result, acc } = f.(h, acc)
+    { rest, acc }   = do_mapfoldl(iterator.(next), iterator, acc, f)
+    { [result|rest], acc }
   end
 
   defp do_mapfoldl(__STOP_ITERATOR__, _, acc, _f) do
-    %{ [], acc }
+    { [], acc }
   end
 
   ## times
@@ -495,7 +495,7 @@ defmodule Enum do
 
   ## comprehensions
 
-  defp first_comprehension_each(iterator, %{ h, next }, t, acc, fun) do
+  defp first_comprehension_each(iterator, { h, next }, t, acc, fun) do
     first_comprehension_each iterator, iterator.(next), t, next_comprehension(t, acc, fun, [h]), fun
   end
 
@@ -503,7 +503,7 @@ defmodule Enum do
     List.reverse(acc)
   end
 
-  defp next_comprehension([%{h,iterator}|t], acc, fun, args) do
+  defp next_comprehension([{h,iterator}|t], acc, fun, args) do
     next_comprehension_each iterator, iterator.(h), t, acc, fun, args
   end
 
@@ -511,7 +511,7 @@ defmodule Enum do
     apply fun, [acc|args]
   end
 
-  defp next_comprehension_each(iterator, %{ h, next }, t, acc, fun, args) do
+  defp next_comprehension_each(iterator, { h, next }, t, acc, fun, args) do
     next_comprehension_each iterator, iterator.(next), t, next_comprehension(t, acc, fun, [h|args]), fun, args
   end
 
@@ -524,7 +524,7 @@ defimpl Enum::Iterator, for: List do
   def iterator(_), do: iterate(_)
 
   defp iterate([h|t]) do
-    %{ h, t }
+    { h, t }
   end
 
   defp iterate([]) do

@@ -18,7 +18,7 @@ Internally, a record is simply a tuple where the first element is always the rec
 
     iex> defrecord FileInfo, atime: nil, mtime: nil
     iex> FileInfo.new
-    %{::FileInfo, nil, nil}
+    {::FileInfo, nil, nil}
 
 ### 4.1.1 Default based functions
 
@@ -29,14 +29,14 @@ Depending on the default value, Elixir will define helpers to interact with the 
 Since `counter` is an integer, Elixir automatically defines a helper named `increment_counter` that will increase the counter value:
 
     iex> new_config = Config.new.increment_counter
-    %{::Config, 1, []}
+    {::Config, 1, []}
     iex> new_config.counter
     1
 
 `increment_counter` also accepts a number to increment as argument:
 
     iex> new_config = Config.new.increment_counter 10
-    %{::Config, 10, []}
+    {::Config, 10, []}
     iex> new_config.counter
     10
 

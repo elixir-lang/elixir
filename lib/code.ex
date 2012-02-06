@@ -18,7 +18,7 @@ defmodule Code do
   # The function must expect the exit status code
   # as argument.
   def at_exit(fun) when is_function(fun, 1) do
-    server_call %{ :at_exit, fun }
+    server_call { :at_exit, fun }
   end
 
   def append_path(path) do
@@ -85,13 +85,13 @@ defmodule Code do
   ## Helpers
 
   # Filter stacktrace by removing internal BOOTSTRAP calls.
-  defp filter_stacktrace([%{ _mod, :BOOTSTRAP, _, _ }|t]), do: filter_stacktrace(t)
-  defp filter_stacktrace([%{ _mod, :BOOTSTRAP, _ }|t]),    do: filter_stacktrace(t)
+  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _, _ }|t]), do: filter_stacktrace(t)
+  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _ }|t]),    do: filter_stacktrace(t)
   defp filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
   defp filter_stacktrace([]), do: []
 
   defp load_and_push_file(file) do
-    server_call %{ :loaded, file }
+    server_call { :loaded, file }
     compile_file file
     file
   end
@@ -114,7 +114,7 @@ defmodule Code do
       if File.regular?(file) do
         file
       else:
-        error %{ :enoent, file }
+        error { :enoent, file }
       end
     end
   end

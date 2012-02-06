@@ -4,7 +4,7 @@ defmodule Elixir::IEx do
   def start do
     IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
     function = fn { do_loop([], '') }
-    Erlang.user_drv.start([:"tty_sl -c -e", %{:erlang, :spawn, [function]}])
+    Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
     Erlang.timer.sleep(:infinity)
   end
 
@@ -18,20 +18,20 @@ defmodule Elixir::IEx do
 
     code = code_cache ++ Erlang.io.get_line(prompt)
 
-    %{ binding_to_return, code_cache_to_return } = try do
-      %{ result, new_binding } = Erlang.elixir.eval(code, binding)
+    { binding_to_return, code_cache_to_return } = try do
+      { result, new_binding } = Erlang.elixir.eval(code, binding)
       IO.puts inspect(result)
-      %{ new_binding, '' }
+      { new_binding, '' }
     rescue: TokenMissingError
-      %{ binding, code }
+      { binding, code }
     rescue: exception
       IO.puts :standard_error, "** (#{exception.__record__}) #{exception.message}"
       print_stacktrace Code.stacktrace
-      %{ binding, '' }
+      { binding, '' }
     catch: kind, error
       IO.puts :standard_error, "** (#{kind}) #{inspect(error)}"
       print_stacktrace Code.stacktrace
-      %{ binding, '' }
+      { binding, '' }
     end
 
     do_loop(binding_to_return, code_cache_to_return)

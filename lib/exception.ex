@@ -17,19 +17,19 @@ defmodule Exception do
     SystemLimitError.new
   end
 
-  def normalize(%{ :badarity, %{ fun, args } }) do
+  def normalize({ :badarity, { fun, args } }) do
     BadArityError.new(function: fun, args: args)
   end
 
-  def normalize(%{ :badfun, actual }) do
+  def normalize({ :badfun, actual }) do
     BadFunctionError.new(actual: actual)
   end
 
-  def normalize(%{ :badmatch, actual }) do
+  def normalize({ :badmatch, actual }) do
     MatchError.new(actual: actual)
   end
 
-  def normalize(%{ :case_clause, actual }) do
+  def normalize({ :case_clause, actual }) do
     CaseClauseError.new(actual: actual)
   end
 
@@ -41,7 +41,7 @@ defmodule Exception do
     FunctionClauseError.new from_stacktrace(Code.stacktrace)
   end
 
-  def normalize(%{ :badarg, payload }) do
+  def normalize({ :badarg, payload }) do
     ArgumentError.new message: "argument error: #{inspect(payload)}"
   end
 
@@ -70,7 +70,7 @@ defmodule Exception do
 
   # Format stacktrace for inspection.
 
-  def format_stacktrace(%{module, fun, arity, file_line}) do
+  def format_stacktrace({module, fun, arity, file_line}) do
     "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
   end
 
@@ -89,7 +89,7 @@ defmodule Exception do
     end
   end
 
-  defp from_stacktrace([%{ module, function, arity, _ }|_]) do
+  defp from_stacktrace([{ module, function, arity, _ }|_]) do
     [module: module, function: function, arity: arity]
   end
 
