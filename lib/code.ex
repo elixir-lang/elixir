@@ -33,7 +33,7 @@ defmodule Code do
   #
   # ## Examples
   #
-  #     contents = quote { a + b }
+  #     contents = quote do: a + b
   #     Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => 3
   #
   def eval_quoted(quoted, binding, filename, line) do
