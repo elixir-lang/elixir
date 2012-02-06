@@ -684,6 +684,14 @@ defmodule Elixir::Builtin do
     quote { if(!unquote(clause), unquote(options)) }
   end
 
+  defmacro :<>.(left, right) when is_binary(left) do
+    quote { << unquote(left), unquote(right) | :binary >> }
+  end
+
+  defmacro :<>.(left, right) do
+    quote { << unquote(left) | :binary, unquote(right) | :binary >> }
+  end
+
   # Provide a short-circuit operator that executes the second
   # expression only if the first one evalutes to true (i.e. it is
   # not nil nor false). Returns the first expression otherwise.

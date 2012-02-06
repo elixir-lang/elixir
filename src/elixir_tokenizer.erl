@@ -55,7 +55,7 @@ tokenize(Line, [$.,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
   T1 == $< andalso T2 == $=; T1 == $> andalso T2 == $=;
   T1 == $+ andalso T2 == $+; T1 == $- andalso T2 == $-;
   T1 == $* andalso T2 == $*; T1 == $/ andalso T2 == $/;
-  T1 == $< andalso T2 == $- ->
+  T1 == $< andalso T2 == $-; T1 == $< andalso T2 == $> ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
 
 % ## Single Token Operators
@@ -117,7 +117,7 @@ tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
   T1 == $< andalso T2 == $=; T1 == $> andalso T2 == $=;
   T1 == $+ andalso T2 == $+; T1 == $- andalso T2 == $-;
   T1 == $* andalso T2 == $*; T1 == $/ andalso T2 == $/;
-  T1 == $< andalso T2 == $- ->
+  T1 == $< andalso T2 == $-; T1 == $< andalso T2 == $> ->
   tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
 
 % ## Single Token Operators
@@ -171,7 +171,8 @@ tokenize(Line, [T1,T2|Rest], Tokens) when
 tokenize(Line, [T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
   T1 == $| andalso T2 == $|; T1 == $: andalso T2 == $:;
   T1 == $+ andalso T2 == $+; T1 == $- andalso T2 == $-;
-  T1 == $* andalso T2 == $*; T1 == $/ andalso T2 == $/ ->
+  T1 == $* andalso T2 == $*; T1 == $/ andalso T2 == $/;
+  T1 == $< andalso T2 == $> ->
   tokenize(Line, Rest, [{list_to_atom([T1,T2]), Line}|Tokens]);
 
 % ## Comparison single token operators

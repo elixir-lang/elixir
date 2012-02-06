@@ -13,7 +13,7 @@ defimpl String::Inspect, for: Atom do
     list = atom_to_list(atom)
 
     if valid_identifier?(list) == [] do
-      << ?:, atom_to_binary(atom, :utf8) | :binary >>
+      ":" <> atom_to_binary(atom, :utf8)
     elsif: valid_const_identifier?(list) == []
       atom_to_binary(atom, :utf8)
     else:
@@ -108,20 +108,20 @@ defimpl String::Inspect, for: List do
   ## Helpers
 
   def container_join([h], acc, last) do
-    << acc | :binary, String::Inspect.inspect(h) | :binary, last | :binary >>
+    acc <> String::Inspect.inspect(h) <> last
   end
 
   def container_join([h|t], acc, last) when is_list(t) do
-    acc = << acc | :binary, String::Inspect.inspect(h) | :binary, ?, >>
+    acc = acc <> String::Inspect.inspect(h) <> ","
     container_join(t, acc, last)
   end
 
   def container_join([h|t], acc, last) do
-    << acc | :binary, String::Inspect.inspect(h) | :binary, ?|, String::Inspect.inspect(t) | :binary, last | :binary >>
+    acc <> String::Inspect.inspect(h) <> "|" <> String::Inspect.inspect(t) <> last
   end
 
   def container_join([], acc, last) do
-    << acc | :binary, last | :binary >>
+    acc <> last
   end
 end
 
@@ -130,8 +130,8 @@ defimpl String::Inspect, for: Tuple do
 
   def to_binary(exception) when is_exception(exception) do
     [name,_|tail] = tuple_to_list(exception)
-    << atom_to_binary(name, :utf8) | :binary,
-       String::Inspect::List.container_join(tail, "{", "}") | :binary >>
+    atom_to_binary(name, :utf8) <>
+       String::Inspect::List.container_join(tail, "{", "}")
   end
 
   def to_binary(thing) do

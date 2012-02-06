@@ -6,7 +6,7 @@ Nonterminals
   expr block_expr curly_expr call_expr max_expr base_expr
   matched_expr matched_op_expr unmatched_expr unmatched_op_expr
   comma_separator kv_eol
-  add_op mult_op unary_op addadd_op multmult_op
+  add_op mult_op unary_op addadd_op multmult_op bin_concat_op
   match_op arrow_op module_ref_op default_op when_op pipe_op and_pipe_op in_op
   andand_op oror_op andalso_op orelse_op and_op or_op comp_expr_op
   open_paren close_paren
@@ -34,7 +34,7 @@ Terminals
   'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
-  eol ','  '&' '|'  '.' '::' '^' '@' '<-'
+  eol ','  '&' '|'  '.' '::' '^' '@' '<-' '<>'
   '&&' '||' '!'
   .
 
@@ -58,6 +58,7 @@ Left     150 and_op.
 Left     160 comp_expr_op.
 Left     170 add_op.
 Left     180 mult_op.
+Right    190 bin_concat_op.
 Right    200 addadd_op.
 Right    210 multmult_op.
 Left     260 dot_call_op.
@@ -104,6 +105,7 @@ matched_op_expr -> matched_expr and_op matched_expr : build_op('$2', '$1', '$3')
 matched_op_expr -> matched_expr or_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr pipe_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr and_pipe_op matched_expr : build_op('$2', '$1', '$3').
+matched_op_expr -> matched_expr bin_concat_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr in_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr when_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr arrow_op matched_expr : build_op('$2', '$1', '$3').
@@ -127,6 +129,7 @@ long_tuple_op_expr -> long_tuple and_op matched_expr : build_op('$2', '$1', '$3'
 long_tuple_op_expr -> long_tuple or_op matched_expr : build_op('$2', '$1', '$3').
 long_tuple_op_expr -> long_tuple pipe_op matched_expr : build_op('$2', '$1', '$3').
 long_tuple_op_expr -> long_tuple and_pipe_op matched_expr : build_op('$2', '$1', '$3').
+long_tuple_op_expr -> long_tuple bin_concat_op matched_expr : build_op('$2', '$1', '$3').
 long_tuple_op_expr -> long_tuple in_op matched_expr : build_op('$2', '$1', '$3').
 long_tuple_op_expr -> long_tuple when_op matched_expr : build_op('$2', '$1', '$3').
 long_tuple_op_expr -> long_tuple arrow_op matched_expr : build_op('$2', '$1', '$3').
@@ -269,6 +272,9 @@ pipe_op -> '|' eol : '$1'.
 
 and_pipe_op -> '&' : '$1'.
 and_pipe_op -> '&' eol : '$1'.
+
+bin_concat_op -> '<>' : '$1'.
+bin_concat_op -> '<>' eol : '$1'.
 
 in_op -> 'in' : '$1'.
 in_op -> 'in' eol : '$1'.
