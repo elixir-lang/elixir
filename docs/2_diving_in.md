@@ -40,7 +40,7 @@ Since updating a tuple is expensive, when we want to iterate, add or remove elem
 
 In the example above, we have assigned the head of the list to `h` and the tail of the list to `t`. The [`Enum` module](https://github.com/josevalim/elixir/blob/master/lib/enum.ex) provides several helpers to manipulate lists (and other enumerables in general that we will discuss later) while the [List module](https://github.com/josevalim/elixir/blob/master/lib/list.ex) provides several helpers specific to lists:
 
-    iex> Enum.map [1,2,3], fn(x) { x * 2 }
+    iex> Enum.map [1,2,3], fn(x, do: x * 2)
     [4,5,6]
     iex> List.flatten [1,[2],3]
     [4,5,6]
@@ -160,23 +160,21 @@ Although pattern matching allow powerful constructs, its usage is limited. For i
 
 ## 2.5 Key-values
 
-One of the first control flow constructs we usually learn is the conditional `if`. In Elixir, we can write `if` in three different ways, all equivalent:
+One of the first control flow constructs we usually learn is the conditional `if`. In Elixir, we can write `if` in those two equivalent ways:
 
     iex> if true, do: 1 + 2
-    3
-    iex> if(true) { 1 + 2 }
     3
     iex> if true do
     ...>   1 + 2
     ...> end
     3
 
-All those three formats are simply different ways of expressing key-value arguments. Key-value arguments are simply a list of two-item tuples, where the first element is an atom representing the key and the second is the value. Elixir provides a syntax-shortcut for creating such key-values:
+Both formats are simply different ways of expressing key-value arguments. Key-value arguments are simply a list of two-item tuples, where the first element is an atom representing the key and the second is the value. Elixir provides a syntax-shortcut for creating such key-values:
 
     iex> [a: 1, b: 2]
     [{:a, 1}, {:b, 2}]
 
-Notice that a key-value argument is a special kind of Ordered Dictionary where the keys are always atoms. For this reason we usually use the [`Orddict` module](https://github.com/josevalim/elixir/blob/master/lib/orddict.ex) to manipulate key-value arguments:
+Notice that a key-value argument is simply an Ordered Dictionary. For this reason we usually use the [`Orddict` module](https://github.com/josevalim/elixir/blob/master/lib/orddict.ex) to manipulate key-value arguments:
 
     iex> x = [a: 1, b: 2]
     [{:a, 1}, {:b, 2}]
@@ -204,7 +202,7 @@ Besides, we can also pass an `else` clause to `if`:
     iex> if false, do: 1 + 2, else: 10 + 3
     13
 
-However, most of the times if clauses are much longer than the examples above. In such cases, we usually use the block format:
+However, most of the times `if` clauses are longer than the examples above. In such cases, we usually use the block format:
 
     iex> if true do
     ...>   1 + 2
@@ -264,11 +262,11 @@ Refreshing from the section above, all those calls are equivalent:
 
    if false, do: 1 + 2, else: 10 + 3
 
-   if(false) {
+   if(false) ->
      1 + 2
    else:
      10 + 3
-   }
+   end
 
    if false do
      1 + 2
@@ -419,10 +417,6 @@ Throughout this guide, we have created many functions in examples. The syntax fo
 
     fn(a, b, do: a + b)
 
-Which is the same as:
-
-    fn(a, b) { a + b }
-
 In some cases though, it is convenient that a function has many clauses, similarly to `case`. In such scenarios, we can use `match:` to specify many clauses:
 
     fun = fn do
@@ -558,7 +552,7 @@ In order to exchange messages, each process has a mailbox were the received mess
     iex> current_pid = self()
 
     # Spawn another process that will send a message to current_pid
-    iex> spawn fn() { current_pid <- { :hello, self() } }
+    iex> spawn fn(do: current_pid <- { :hello, self() })
 
     # Collect the message
     iex> receive do

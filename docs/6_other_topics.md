@@ -13,7 +13,7 @@ When used inside function calls, the underscore means that we don't have the arg
 
     iex> list = ["foo", "bar", "baz"]
     ["foo","bar","baz"]
-    iex> Enum.map list, fn(x) { length x }
+    iex> Enum.map list, fn(x, do: length(x))
     [3,3,3]
 
 However, with partial application, we could also do:

@@ -5,13 +5,13 @@ defprotocol Enum::Iterator, [iterator(collection)], only: [List, Tuple], as: I
 # will automatically retrieve the protocol given the collection
 # and iterator, for example:
 #
-#     Enum.map [1,2,3], fun(x) { x * 2 }
+#     Enum.map [1,2,3], fun(x, do: x * 2)
 #
 # However, one can use their own iteration function for any
 # collection by passing the iterator function as the first
 # argument:
 #
-#     Enum.map my_iteration_function, [1,2,3], fun(x) { x * 2 }
+#     Enum.map my_iteration_function, [1,2,3], fun(x, do: x * 2)
 #
 # ## The protocol
 #
