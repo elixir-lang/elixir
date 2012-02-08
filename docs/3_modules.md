@@ -213,12 +213,12 @@ Now if the module above does not implement any of the callbacks required by `gen
 
 * `@behaviour` and `@behavior` - used for specifying an OTP or user-defined behavior;
 * `@vsn` - used for specifying the module version;
+* `@compile` - provides options for the module compilation;
 
 The following are also reserved by Elixir (as they have special semantics to the Erlang VM) but not currently supported (if you need support to any of these in your current projects, please make yourself heard in the issues tracker):
 
 * `@spec` - provides an specification for the next function to be defined;
 * `@callback` - provides an specification for the behavior callback;
-* `@compile` - provides options for the module compilation;
 * `@type` - provides a type to be used in @spec;
 * `@export_type` - provides a type to be used in @spec that can be accessed from external specs;
 
@@ -233,7 +233,9 @@ After the module is compiled, the stored custom data can be accessed via `__info
 
     MyServer.__info__(:data) #=> [my_data: 13]
 
-Setting a data to nil automatically discards it from the `Orddict`.
+Setting a data to nil automatically discards it from the dictionary.
+
+Note: Erlang developers may be wondering why Elixir provides its own data abstraction instead of using Erlang attributes. Erlang attributes are basically a list which also support duplicated values. For Elixir, since the same attribute may be read and updated several times during compilation, it makes more sense to have a dictionary structure instead of a list. Erlang developers can still add Erlang attributes though, via the `Module.add_attribute` API.
 
 ## 3.6 Module nesting
 
