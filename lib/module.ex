@@ -166,9 +166,8 @@ defmodule Module do
     ETS.insert(table, { :compile_callbacks,  [new|old] })
   end
 
-  # Adds an Erlang attribute to the given module
-  # with the given key and value. The same attribute
-  # can be added more than once.
+  # Adds an Erlang attribute to the given module with the given
+  # key and value. The same attribute can be added more than once.
   #
   # ## Examples
   #
@@ -197,8 +196,8 @@ defmodule Module do
     ETS.delete(table, key)
   end
 
-  # Register an attribute. This allows a developer to use the data API
-  # but Elixir will registered the data as an attribute automatically.
+  # Registers an attribute. This allows a developer to use the data API
+  # but Elixir will register the data as an attribute automatically.
   # By default, `vsn`, `behavior` and other Erlang attributes are
   # automatically registered.
   #
