@@ -18,7 +18,7 @@ defmodule Module do
   #     Foo.sum(1, 2) #=> 3
   #
   def eval_quoted(module, quoted, binding, filename, line) do
-    assert_already_compiled!(:eval_quoted, module)
+    assert_not_compiled!(:eval_quoted, module)
     { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(line, to_char_list(filename), module, binding)
     Erlang.elixir_def.reset_last(module)
     Erlang.elixir.eval_quoted([quoted], binding, line, scope)
@@ -52,7 +52,7 @@ defmodule Module do
   #     end
   #
   def read_data(module) do
-    assert_already_compiled!(:read_data, module)
+    assert_not_compiled!(:read_data, module)
     ETS.lookup_element(attribute_table_for(module), :data, 2)
   end
 
@@ -81,7 +81,7 @@ defmodule Module do
   #     Foo.__info__(:data) #=> [value: 1]
   #
   def merge_data(module, new) do
-    assert_already_compiled!(:merge_data, module)
+    assert_not_compiled!(:merge_data, module)
     table = attribute_table_for(module)
     old   = ETS.lookup_element(table, :data, 2)
     final = Orddict.merge(old, new)
@@ -96,13 +96,13 @@ defmodule Module do
   # ## Examples
   #
   #     defmodule Example do
-  #       Module.function_defined? __MODULE__, version: 0 #=> false
+  #       Module.function_defined? __MODULE__, { :version, 0 } #=> false
   #       def version, do: 1
-  #       Module.function_defined? __MODULE__, version: 0 #=> true
+  #       Module.function_defined? __MODULE__, { :version, 0 } #=> true
   #     end
   #
   def function_defined?(module, tuple) when is_tuple(tuple) do
-    assert_already_compiled!(:function_defined?, module)
+    assert_not_compiled!(:function_defined?, module)
     table = function_table_for(module)
     ETS.lookup(table, tuple) != []
   end
@@ -113,9 +113,9 @@ defmodule Module do
   # ## Examples
   #
   #     defmodule Example do
-  #       Module.function_defined? __MODULE__, version: 0, :defp #=> false
+  #       Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
   #       def version, do: 1
-  #       Module.function_defined? __MODULE__, version: 0, :defp #=> false
+  #       Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
   #     end
   #
   def function_defined?(module, tuple, kind) do
@@ -159,12 +159,61 @@ defmodule Module do
   # value of the data can only be compiled using a compiation callback,
   # which will read the final value of :some_data and compile to a function.
   def add_compile_callback(module, target, fun // :__compiling__) do
-    assert_already_compiled!(:add_compile_callback, module)
+    assert_not_compiled!(:add_compile_callback, module)
     new   = { target, fun }
     table = attribute_table_for(module)
     old   = ETS.lookup_element(table, :compile_callbacks, 2)
     ETS.insert(table, { :compile_callbacks,  [new|old] })
-    new
+  end
+
+  # Adds an Erlang attribute to the given module
+  # with the given key and value. The same attribute
+  # can be added more than once.
+  #
+  # ## Examples
+  #
+  #     defmodule MyModule do
+  #       Module.add_attribute __MODULE__, :custom_threshold_for_lib, 10
+  #     end
+  #
+  def add_attribute(module, key, value) do
+    assert_not_compiled!(:add_attribute, module)
+    table = attribute_table_for(module)
+    ETS.insert(table, { key, value })
+  end
+
+  # Deletes all attributes that matches the given key.
+  #
+  # ## Examples
+  #
+  #     defmodule MyModule do
+  #       Module.add_attribute __MODULE__, :custom_threshold_for_lib, 10
+  #       Module.delete_attribute __MODULE__, :custom_threshold_for_lib
+  #     end
+  #
+  def delete_attribute(module, key) do
+    assert_not_compiled!(:delete_attribute, module)
+    table = attribute_table_for(module)
+    ETS.delete(table, key)
+  end
+
+  # Register an attribute. This allows a developer to use the data API
+  # but Elixir will registered the data as an attribute automatically.
+  # By default, `vsn`, `behavior` and other Erlang attributes are
+  # automatically registered.
+  #
+  # ## Examples
+  #
+  #     defmodule MyModule do
+  #       Module.register_attribute __MODULE__, :custom_threshold_for_lib
+  #       @custom_threshold_for_lib 10
+  #     end
+  #
+  def register_attribute(module, new) do
+    assert_not_compiled!(:register_attribute, module)
+    table = attribute_table_for(module)
+    old = ETS.lookup_element(table, :registered_attributes, 2)
+    ETS.insert(table, { :registered_attributes,  [new|old] })
   end
 
   ## Helpers
@@ -184,7 +233,7 @@ defmodule Module do
     list_to_atom Erlang.lists.concat([:f, module])
   end
 
-  defp assert_already_compiled!(fun, module) do
+  defp assert_not_compiled!(fun, module) do
     compiled?(module) ||
       raise ArgumentError, message:
         "could not call #{fun} on module #{module} because it was already compiled"

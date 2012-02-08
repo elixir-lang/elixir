@@ -74,6 +74,7 @@ build(Module) ->
   ets:new(Table, [set, named_table, private]),
   ets:insert(Table, { data, [] }),
   ets:insert(Table, { compile_callbacks, [] }),
+  ets:insert(Table, { registered_attributes, [behavior, behaviour, compile, vsn] }),
 
   %% Function and imports table
   elixir_def:build_table(Module),
@@ -145,9 +146,10 @@ macros_clause(Line, Macros) ->
   { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
 
 data_clause(Line, Module) ->
-  Table  = table(Module),
-  Data   = orddict:from_list(destructive_read(Table, data)),
-  Pruned = translate_data(Table, Data),
+  Table      = table(Module),
+  Data       = orddict:from_list(destructive_read(Table, data)),
+  Registered = destructive_read(Table, registered_attributes),
+  Pruned     = translate_data(Table, Registered, Data),
   { clause, Line, [{ atom, Line, data }], [], [elixir_tree_helpers:abstract_syntax(Pruned)] }.
 
 else_clause(Line) ->
@@ -176,16 +178,16 @@ each_callback_for(Line, Args, {M,F}, Acc) ->
 
 % ATTRIBUTES
 
-translate_data(Table, [{K,V}|T]) when K == visibility; V == nil ->
-  translate_data(Table, T);
+translate_data(Table, Registered, [{_,nil}|T]) ->
+  translate_data(Table, Registered, T);
 
-translate_data(Table, [{K,V}|T]) ->
-  case reserved_data(K) of
+translate_data(Table, Registered, [{K,V}|T]) ->
+  case reserved_data(Registered, K) of
     true  -> ets:insert(Table, { K, V });
-    false -> [{K,V}|translate_data(Table, T)]
+    false -> [{K,V}|translate_data(Table, Registered, T)]
   end;
 
-translate_data(_, []) -> [].
+translate_data(_, _, []) -> [].
 
 translate_attribute(Line, X) ->
   { attribute, Line, element(1, X), element(2, X) }.
@@ -195,15 +197,11 @@ destructive_read(Table, Attribute) ->
   ets:delete(Table, Attribute),
   Value.
 
-reserved_data(behaviour)   -> true;
-reserved_data(behavior)    -> true;
-reserved_data(callback)    -> true;
-reserved_data(compile)     -> true;
-reserved_data(type)        -> true;
-reserved_data(export_type) -> true;
-reserved_data(spec)        -> true;
-reserved_data(vsn)         -> true;
-reserved_data(_)           -> false.
+reserved_data(_, callback)     -> true;
+reserved_data(_, type)         -> true;
+reserved_data(_, export_type)  -> true;
+reserved_data(_, spec)         -> true;
+reserved_data(Registered, Key) -> lists:member(Key, Registered).
 
 % ERROR HANDLING
 

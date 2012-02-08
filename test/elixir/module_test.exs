@@ -33,6 +33,9 @@ end
 defmodule ModuleTest do
   use ExUnit::Case
 
+  Module.register_attribute __MODULE__, :register_example
+  @register_example :it_works
+
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
@@ -79,5 +82,9 @@ defmodule ModuleTest do
 
   def test_reserved_attributes do
     {:behavior,[:gen_server]} = :lists.keyfind(:behavior, 1, Elixir::Server.__info__(:attributes))
+  end
+
+  def test_registered_attributes do
+    {:register_example,[:it_works]} = :lists.keyfind(:register_example, 1, __MODULE__.__info__(:attributes))
   end
 end
