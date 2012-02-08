@@ -35,7 +35,7 @@ defmodule Module do
   #     Module.compiled?(Foo) #=> true
   #
   def compiled?(module) do
-    table = attribute_table_for(module)
+    table = data_table_for(module)
     table == ETS.info(table, :name)
   end
 
@@ -53,7 +53,7 @@ defmodule Module do
   #
   def read_data(module) do
     assert_not_compiled!(:read_data, module)
-    ETS.lookup_element(attribute_table_for(module), :data, 2)
+    ETS.lookup_element(data_table_for(module), :data, 2)
   end
 
   # Reads the data from `module` at the given key `at`.
@@ -82,7 +82,7 @@ defmodule Module do
   #
   def merge_data(module, new) do
     assert_not_compiled!(:merge_data, module)
-    table = attribute_table_for(module)
+    table = data_table_for(module)
     old   = ETS.lookup_element(table, :data, 2)
     final = Orddict.merge(old, new)
     ETS.insert(table, { :data,  final })
@@ -161,7 +161,7 @@ defmodule Module do
   def add_compile_callback(module, target, fun // :__compiling__) do
     assert_not_compiled!(:add_compile_callback, module)
     new   = { target, fun }
-    table = attribute_table_for(module)
+    table = data_table_for(module)
     old   = ETS.lookup_element(table, :compile_callbacks, 2)
     ETS.insert(table, { :compile_callbacks,  [new|old] })
   end
@@ -211,7 +211,7 @@ defmodule Module do
   #
   def register_attribute(module, new) do
     assert_not_compiled!(:register_attribute, module)
-    table = attribute_table_for(module)
+    table = data_table_for(module)
     old = ETS.lookup_element(table, :registered_attributes, 2)
     ETS.insert(table, { :registered_attributes,  [new|old] })
   end
@@ -227,6 +227,10 @@ defmodule Module do
 
   defp attribute_table_for(module) do
     list_to_atom Erlang.lists.concat([:a, module])
+  end
+
+  defp data_table_for(module) do
+    list_to_atom Erlang.lists.concat([:d, module])
   end
 
   defp function_table_for(module) do

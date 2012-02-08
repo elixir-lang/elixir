@@ -17,7 +17,10 @@ scope_for_eval(Module, S) -> S#elixir_scope{module=Module}.
 
 %% TABLE METHODS
 
-table(Module) ->
+data_table(Module) ->
+  ?ELIXIR_ATOM_CONCAT([d, Module]).
+
+attribute_table(Module) ->
   ?ELIXIR_ATOM_CONCAT([a, Module]).
 
 %% TRANSFORMATION METHODS
@@ -57,7 +60,8 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
     load_form(Final, Filename),
     Result
   after
-    ets:delete(table(Module)),
+    ets:delete(data_table(Module)),
+    ets:delete(attribute_table(Module)),
     elixir_def:delete_table(Module),
     elixir_import:delete_table(Module)
   end;
@@ -70,11 +74,14 @@ compile(Line, Other, _Block, RawS) ->
 
 build(Module) ->
   %% Attribute table with defaults
-  Table = table(Module),
-  ets:new(Table, [set, named_table, private]),
-  ets:insert(Table, { data, [] }),
-  ets:insert(Table, { compile_callbacks, [] }),
-  ets:insert(Table, { registered_attributes, [behavior, behaviour, compile, vsn] }),
+  DataTable = data_table(Module),
+  ets:new(DataTable, [set, named_table, private]),
+  ets:insert(DataTable, { data, [] }),
+  ets:insert(DataTable, { compile_callbacks, [] }),
+  ets:insert(DataTable, { registered_attributes, [behavior, behaviour, compile, vsn] }),
+
+  AttrTable = attribute_table(Module),
+  ets:new(AttrTable, [bag, named_table, private]),
 
   %% Function and imports table
   elixir_def:build_table(Module),
@@ -106,7 +113,7 @@ functions_form(Line, Filename, Module) ->
 
 attributes_form(Line, _Filename, Module, Current) ->
   Transform = fun(X, Acc) -> [translate_attribute(Line, X)|Acc] end,
-  ets:foldr(Transform, Current, table(Module)).
+  ets:foldr(Transform, Current, attribute_table(Module)).
 
 %% Loads the form into the code server.
 
@@ -146,10 +153,11 @@ macros_clause(Line, Macros) ->
   { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
 
 data_clause(Line, Module) ->
-  Table      = table(Module),
-  Data       = orddict:from_list(destructive_read(Table, data)),
-  Registered = destructive_read(Table, registered_attributes),
-  Pruned     = translate_data(Table, Registered, Data),
+  AttrTable  = attribute_table(Module),
+  DataTable  = data_table(Module),
+  Data       = ets:lookup_element(DataTable, data, 2),
+  Registered = ets:lookup_element(DataTable, registered_attributes, 2),
+  Pruned     = translate_data(AttrTable, Registered, Data),
   { clause, Line, [{ atom, Line, data }], [], [elixir_tree_helpers:abstract_syntax(Pruned)] }.
 
 else_clause(Line) ->
@@ -159,8 +167,8 @@ else_clause(Line) ->
 % HELPERS
 
 callbacks_for(Line, Kind, Module, Args, S) ->
-  Table = table(Module),
-  Callbacks = destructive_read(Table, Kind),
+  Table = data_table(Module),
+  Callbacks = ets:lookup_element(Table, Kind, 2),
 
   { Exprs, Refers } = lists:mapfoldl(
     fun (X, Acc) -> each_callback_for(Line, Args, X, Acc) end,
@@ -191,11 +199,6 @@ translate_data(_, _, []) -> [].
 
 translate_attribute(Line, X) ->
   { attribute, Line, element(1, X), element(2, X) }.
-
-destructive_read(Table, Attribute) ->
-  Value = ets:lookup_element(Table, Attribute, 2),
-  ets:delete(Table, Attribute),
-  Value.
 
 reserved_data(_, callback)     -> true;
 reserved_data(_, type)         -> true;

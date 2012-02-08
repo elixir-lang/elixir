@@ -30,6 +30,12 @@ defmodule ModuleTest::ToUse do
   use ModuleTest::ToBeUsed
 end
 
+defmodule ModuleTest::DuplicateAttribute do
+  Module.add_attribute __MODULE__, :foo, 1
+  Module.add_attribute __MODULE__, :foo, 2
+  Module.add_attribute __MODULE__, :foo, 3
+end
+
 defmodule ModuleTest do
   use ExUnit::Case
 
@@ -86,5 +92,9 @@ defmodule ModuleTest do
 
   def test_registered_attributes do
     {:register_example,[:it_works]} = :lists.keyfind(:register_example, 1, __MODULE__.__info__(:attributes))
+  end
+
+  def test_duplicated_attributes do
+    [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest::DuplicateAttribute.__info__(:attributes)
   end
 end
