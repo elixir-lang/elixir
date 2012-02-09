@@ -25,7 +25,7 @@ defmodule Elixir::IEx do
     rescue: TokenMissingError
       { binding, code }
     rescue: exception
-      IO.puts :standard_error, "** (#{exception.__record__}) #{exception.message}"
+      IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
       print_stacktrace Code.stacktrace
       { binding, '' }
     catch: kind, error

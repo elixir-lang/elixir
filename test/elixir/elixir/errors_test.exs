@@ -74,8 +74,8 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_unrequired_macro do
-    "tried to invoke macro ::Record.getters_and_setters/4 but module was not required. Required: ['::Elixir::Builtin']" =
-      format_rescue 'defmodule Foo do\nRecord.getters_and_setters([], 0, [], Foo)\nend'
+    "tried to invoke macro ::Record.define_functions/3 but module was not required. Required: ['::Elixir::Builtin']" =
+      format_rescue 'defmodule Foo do\nRecord.define_functions([], [], Foo)\nend'
   end
 
   def test_def_defmacro_clause_change do

@@ -66,7 +66,7 @@ defmodule ExUnit::Formatter do
   end
 
   defp format_catch(:error, exception) do
-    "(#{exception.__record__}) #{exception.message}"
+    "(#{exception.__record__(:name)}) #{exception.message}"
   end
 
   defp format_catch(kind, reason) do

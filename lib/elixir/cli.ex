@@ -19,7 +19,7 @@ defmodule Elixir::CLI do
       Enum.map all_commands, process_command(_, config)
     rescue: exception
       at_exit(1)
-      IO.puts :standard_error, "** (#{exception.__record__}) #{exception.message}"
+      IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
       print_stacktrace(Code.stacktrace)
       halt(1)
     catch: :exit, reason when is_integer(reason)
@@ -44,7 +44,7 @@ defmodule Elixir::CLI do
       try do
         hook.(status)
       rescue: exception
-        IO.puts :standard_error, "** #{exception.message} (#{exception.__record__})"
+        IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
         print_stacktrace(Code.stacktrace)
       catch: kind, reason
         IO.puts :standard_error, "** #{kind} #{inspect(reason)}"

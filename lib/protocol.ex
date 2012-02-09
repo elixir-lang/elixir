@@ -17,7 +17,8 @@ defmodule Protocol do
 
     quote do
       defmodule unquote(name) do
-        def __protocol__, do: { unquote(name), unquote(kv) }
+        def __protocol__(:name),      do: unquote(name)
+        def __protocol__(:functions), do: unquote(kv)
         Protocol.functions(__MODULE__, unquote(kv))
         Protocol.protocol_for(__MODULE__, unquote(opts))
       end
@@ -57,7 +58,7 @@ defmodule Protocol do
     end
 
     try do
-      module.__protocol__
+      module.__protocol__(:name)
     rescue: UndefinedFunctionError
       raise ArgumentError, message: "#{module} is not a protocol"
     end
@@ -67,7 +68,7 @@ defmodule Protocol do
   # Raises an error if not.
   # :api: private
   def assert_impl(impl, protocol) do
-    remaining = elem(protocol.__protocol__, 2) -- impl.__info__(:exports)
+    remaining = protocol.__protocol__(:functions) -- impl.__info__(:exports)
 
     if remaining != [], do:
       raise ArgumentError, message: "#{impl} did not implement #{protocol}, missing: #{remaining}"

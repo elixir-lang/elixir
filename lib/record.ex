@@ -8,14 +8,38 @@ defmodule Record do
     quote do
       defmodule unquote(name) do
         require ::Record
-        def __record__,    do: unquote(name)
-        def __record__(_), do: unquote(name)
-        Record.getters_and_setters(unquote(values), 1, [], unquote(extensor))
-        Record.initializers(unquote(values))
+        Record.define_functions(unquote(name), unquote(values), unquote(extensor))
         unquote(block)
       end
 
       require unquote(name), as: unquote(as)
+    end
+  end
+
+  # Private endpoint that defines the functions for the Record.
+  defmacro define_functions(name, values, extensor) do
+    [
+      reflection(name, values),
+      getters_and_setters(values, 1, [], extensor),
+      initializers(values)
+    ]
+  end
+
+  # Define __record__/1 and __record__/2 as reflection functions
+  # that returns the record names and fields.
+  #
+  # ## Examples
+  #
+  #     defrecord FileInfo, atime: nil, mtime: nil
+  #
+  #     FileInfo.__record__(:name)   #=> ::FileInfo
+  #     FileInfo.__record__(:fields) #=> [atime: nil, mtime: nil]
+  #
+  defp reflection(name, values) do
+    quote do
+      def __record__(kind),       do: __record__(kind, nil)
+      def __record__(:name, _),   do: unquote(name)
+      def __record__(:fields, _), do: unquote(values)
     end
   end
 
@@ -37,7 +61,7 @@ defmodule Record do
   #       { FileInfo, Orddict.get(opts, :atime), Orddict.get(opts, :mtime) }
   #     end
   #
-  defmacro initializers(values) do
+  defp initializers(values) do
     defaults = Enum.map values, elem(_, 2)
 
     # For each value, define a piece of code that will receive
@@ -84,7 +108,7 @@ defmodule Record do
   # syntax as `unquote(key)(record)` wouldn't be valid (as Elixir
   # allows you to parenthesis just on specific cases as `foo()`
   # and `foo.bar()`)
-  defmacro getters_and_setters([{ key, default }|t], i, acc, extensor) do
+  defp getters_and_setters([{ key, default }|t], i, acc, extensor) do
     i = i + 1
 
     contents = quote do
@@ -101,7 +125,7 @@ defmodule Record do
     getters_and_setters(t, i, [contents, typed | acc], extensor)
   end
 
-  defmacro getters_and_setters([], _i, acc, _), do: acc
+  defp getters_and_setters([], _i, acc, _), do: acc
 end
 
 # Provides default extensions for a regular record.
