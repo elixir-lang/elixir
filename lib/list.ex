@@ -50,6 +50,11 @@ defmodule List do
     do_flatten(list, tail)
   end
 
+  # TODO: Write docs + tests
+  def foldr(list, acc, function) do
+    Erlang.lists.foldr(function, acc, list)
+  end
+
   # Reverses the given list. This function simply delegates
   # to `lists:reverse` which is implemented in C for performance.
   #

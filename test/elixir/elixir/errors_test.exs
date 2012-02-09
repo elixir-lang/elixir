@@ -74,8 +74,8 @@ defmodule Elixir::ErrorsTest do
   end
 
   def test_unrequired_macro do
-    "tried to invoke macro ::Record.define_functions/3 but module was not required. Required: ['::Elixir::Builtin']" =
-      format_rescue 'defmodule Foo do\nRecord.define_functions([], [], Foo)\nend'
+    "tried to invoke macro ::Elixir::ErrorsTest::UnproperMacro.unproper/1 but module was not required. Required: ['::Elixir::Builtin']" =
+      format_rescue 'defmodule Foo do\nElixir::ErrorsTest::UnproperMacro.unproper([])\nend'
   end
 
   def test_def_defmacro_clause_change do

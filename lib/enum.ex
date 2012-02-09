@@ -238,6 +238,11 @@ defmodule Enum do
     do_join(iterator.(collection), iterator, joiner, nil)
   end
 
+  # TODO: Write docs + tests
+  def keyfind(collection, key, position) when is_list(collection) do
+    Erlang.lists.keyfind(key, position, collection)
+  end
+
   # Invokes the given `fun` for each item in the `collection`.
   # Returns the result of all function calls.
   #
