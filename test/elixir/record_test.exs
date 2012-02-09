@@ -3,6 +3,9 @@ Code.require_file "../test_helper", __FILE__
 defrecord RecordTest::FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
+name = RecordTest::DynamicName
+defrecord name, a: 0, b: 1
+
 defmodule RecordTest do
   use ExUnit::Case
 
@@ -19,6 +22,12 @@ defmodule RecordTest do
 
     new_record = record.access :read
     :read = new_record.access
+  end
+
+  def test_dynamic_record_name do
+    record = RecordTest::DynamicName.new
+    0 = record.a
+    1 = record.b
   end
 
   defp file_info do

@@ -18,19 +18,21 @@ defmodule Record do
     extensor = Orddict.get(opts, :extensor, Record::Extensor)
 
     quote do
-      defmodule unquote(name) do
-        Record.define_functions(__MODULE__, unquote(name), unquote(values), unquote(extensor))
+      name = unquote(name)
+
+      defmodule name do
+        Record.define_functions(__MODULE__, unquote(values), unquote(extensor))
         unquote(block)
       end
 
-      require unquote(name), as: unquote(as)
+      require unquote(name), as: unquote(as), raise: false
     end
   end
 
   # Private endpoint that defines the functions for the Record.
-  def define_functions(module, name, values, extensor) do
+  def define_functions(module, values, extensor) do
     contents = [
-      reflection(name, values),
+      reflection(module, values),
       getters_and_setters(values, 1, [], extensor),
       initializers(values)
     ]

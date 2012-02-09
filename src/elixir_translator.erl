@@ -88,29 +88,36 @@ translate_each({require, Line, [Ref|T]}, S) ->
     [] -> []
   end,
 
-  Extractor = fun
-    ({ atom, _, Atom }) -> Atom;
-    (_) -> syntax_error(Line, S#elixir_scope.filename, "invalid args for require")
-  end,
-
   { TRef, SR } = translate_each(Ref, S),
-  Old = Extractor(TRef),
 
-  { New, SF } = case orddict:find(as, KV) of
-    { ok, false } ->
-      { Old, SR };
-    { ok, true } ->
-      { elixir_ref:last(Old), SR };
-    { ok, Other } ->
-      { TOther, SA } = translate_each(Other, SR),
-      { Extractor(TOther), SA };
-    error ->
-      { elixir_ref:last(Old), SR }
-  end,
+  case TRef of
+    { atom, _, Old } ->
+      { New, SF } = case orddict:find(as, KV) of
+        { ok, false } ->
+          { Old, SR };
+        { ok, true } ->
+          { elixir_ref:last(Old), SR };
+        { ok, Other } ->
+          { TOther, SA } = translate_each(Other, SR),
+          case TOther of
+            { atom, _, Atom } -> { Atom, SA };
+            _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for require")
+          end;
+        error ->
+          { elixir_ref:last(Old), SR }
+      end,
 
-  { { nil, Line }, SF#elixir_scope{
-    refer=orddict:store(New, Old, S#elixir_scope.refer)
-  } };
+      { { nil, Line }, SF#elixir_scope{
+        refer=orddict:store(New, Old, S#elixir_scope.refer)
+      } };
+    _ ->
+      case orddict:find(raise, KV) of
+        { ok, false } ->
+          { { nil, Line }, S };
+        _ ->
+          syntax_error(Line, S#elixir_scope.filename, "invalid args for require")
+      end
+  end;
 
 translate_each({import, Line, [Left]}, S) ->
   translate_each({ import, Line, [Left, []]}, S);

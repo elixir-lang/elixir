@@ -23,7 +23,7 @@ defmodule Protocol do
         Protocol.protocol_for(__MODULE__, unquote(opts))
       end
 
-      require unquote(name), as: unquote(as)
+      require unquote(name), as: unquote(as), raise: false
     end
   end
 
