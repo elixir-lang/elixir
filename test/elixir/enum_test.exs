@@ -93,13 +93,13 @@ defmodule EnumTest do
 
   def test_times_with_arity_1 do
     5 = Enum.times 5, fn(x, do: Process.put(:times_with_arity, x))
-    4 = Process.get(:times_with_arity)
+    5 = Process.get(:times_with_arity)
   after:
     Process.erase(:times_with_arity)
   end
 
   def test_times_with_arity_2 do
-    10 = Enum.times 5, 0, fn(acc, x) -> acc + x end
+    15 = Enum.times 5, 0, fn(acc, x) -> acc + x end
   end
 
   def test_enum_for do

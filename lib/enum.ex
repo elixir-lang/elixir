@@ -285,37 +285,37 @@ defmodule Enum do
     do_mapfoldl(iterator.(collection), iterator, acc, fun)
   end
 
-  # Iterates the given function n times, passing values from zero
-  # to n - 1.
+  # Iterates the given function n times, passing values from 1
+  # to n.
   #
   # ## Examples
   #
   #    Enum.times 3, fn(x, do: IO.puts x)
-  #    0
   #    1
   #    2
+  #    3
   #
   def times(times, function) when times >= 0 do
     case is_function(function, 0) do
     match: true
-      do_times_0(times, 0, function)
+      do_times_0(times, 1, function)
     else:
-      do_times_1(times, 0, function)
+      do_times_1(times, 1, function)
     end
     times
   end
 
-  # Iterates the given function n times, passing values from zero
-  # to n - 1. Also has an accumulator similar to fold to store the
+  # Iterates the given function n times, passing values from 1
+  # to n. Also has an accumulator similar to fold to store the
   # value between computations.
   #
   # ## Examples
   #
   #    Enum.times 5, 0, fn(x, acc, do: acc + x)
-  #    #=> 10
+  #    #=> 15
   #
   def times(times, acc, function) when times >= 0 do
-    do_times_2(times, 0, function, acc)
+    do_times_2(times, 1, function, acc)
   end
 
   ## Implementations
@@ -473,7 +473,7 @@ defmodule Enum do
 
   ## times
 
-  defp do_times_0(limit, limit, _function) do
+  defp do_times_0(limit, counter, _function) when counter > limit do
   end
 
   defp do_times_0(limit, counter, function) do
@@ -481,7 +481,7 @@ defmodule Enum do
     do_times_0(limit, 1 + counter, function)
   end
 
-  defp do_times_1(limit, limit, _function) do
+  defp do_times_1(limit, counter, _function) when counter > limit do
   end
 
   defp do_times_1(limit, counter, function) do
@@ -489,7 +489,7 @@ defmodule Enum do
     do_times_1(limit, 1 + counter, function)
   end
 
-  defp do_times_2(limit, limit, _function, acc) do
+  defp do_times_2(limit, counter, _function, acc) when counter > limit do
     acc
   end
 
