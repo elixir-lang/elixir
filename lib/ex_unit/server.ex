@@ -61,8 +61,8 @@ defmodule ExUnit::Server do
   end
 
   def terminate(reason, config) do
-    IO.puts "[FATAL] ExUnit::Server crashed:\n#{reason}"
-    IO.puts "[FATAL] ExUnit::Server snapshot:\n#{config}"
+    IO.puts "[FATAL] ExUnit::Server crashed:\n#{inspect reason}"
+    IO.puts "[FATAL] ExUnit::Server snapshot:\n#{inspect config}"
     :ok
   end
 

@@ -48,7 +48,7 @@ defmodule ExUnit::Assertions do
     assert(expected, "Expected #{inspect expected} to be true")
   end
 
-  def assert(expected, message) do
+  def assert(expected, message) when is_binary(message) do
     unless expected, do:
       raise ExUnit::AssertionError, message: message
     true

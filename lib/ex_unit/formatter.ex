@@ -1,7 +1,7 @@
+defrecord ExUnit::Formatter::Config, counter: 0, failures: []
+
 defmodule ExUnit::Formatter do
   import Exception, only: [format_stacktrace: 1]
-
-  defrecord Config, counter: 0, failures: []
 
   def start do
     { :ok, pid } = Erlang.gen_server.start_link(__MODULE__, [], [])
@@ -48,8 +48,8 @@ defmodule ExUnit::Formatter do
   end
 
   def terminate(reason, config) do
-    IO.puts "[FATAL] ExUnit::Formatter crashed:\n#{reason}"
-    IO.puts "[FATAL] ExUnit::Formatter snapshot:\n#{config}"
+    IO.puts "[FATAL] ExUnit::Formatter crashed:\n#{inspect reason}"
+    IO.puts "[FATAL] ExUnit::Formatter snapshot:\n#{inspect config}"
     :ok
   end
 

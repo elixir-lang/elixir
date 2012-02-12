@@ -48,8 +48,8 @@ defmodule Elixir::Server do
   end
 
   def terminate(reason, config) do
-    IO.puts "[FATAL] Elixir::Server crashed:\n#{reason}"
-    IO.puts "[FATAL] Elixir::Server snapshot:\n#{config}"
+    IO.puts "[FATAL] Elixir::Server crashed:\n#{inspect reason}"
+    IO.puts "[FATAL] Elixir::Server snapshot:\n#{inspect config}"
     :ok
   end
 

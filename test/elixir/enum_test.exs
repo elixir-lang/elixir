@@ -60,6 +60,11 @@ defmodule EnumTest do
     assert_equal [1,2,3], Enum.filter [1,2,3], match?(_, &1)
   end
 
+  def test_filter_map do
+    assert_equal [4], Enum.filter_map [1,2,3], fn(x, do: rem(x, 2) == 0), &1 * 2
+    assert_equal [4,8,12], Enum.filter_map [2,4,6], fn(x, do: rem(x, 2) == 0), &1 * 2
+  end
+
   def test_foldl do
     assert_equal 1, Enum.reduce([], 1, fn(x, acc, do: x + acc))
     assert_equal 7, Enum.reduce([1,2,3], 1, fn(x, acc, do: x + acc))
@@ -89,8 +94,8 @@ defmodule EnumTest do
   end
 
   def test_mapfoldl do
-    assert_equal { [], 1 }, Enum.mapreduce([], 1, fn(x, acc, do: { x * 2, x + acc }))
-    assert_equal { [2,4,6], 7 }, Enum.mapreduce([1,2,3], 1, fn(x, acc, do: { x * 2, x + acc }))
+    assert_equal { [], 1 }, Enum.map_reduce([], 1, fn(x, acc, do: { x * 2, x + acc }))
+    assert_equal { [2,4,6], 7 }, Enum.map_reduce([1,2,3], 1, fn(x, acc, do: { x * 2, x + acc }))
   end
 
   def test_times_with_arity_0 do
