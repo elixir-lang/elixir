@@ -61,18 +61,18 @@ defmodule ExUnit::AssertionsTest do
     "This should be equal" = error.message
   end
 
-  def test_assert_included_when_included do
-    true = assert_included('foo', 'foobar')
+  def test_assert_member_when_is_member do
+    true = assert_member('foo', 'foobar')
   end
 
-  def test_assert_included_when_not_included do
-    "This should never be tested" = assert_included('foo', 'bar')
+  def test_assert_member_when_is_not_member do
+    "This should never be tested" = assert_member('foo', 'bar')
   rescue: error in [ExUnit::AssertionError]
     "Expected 'bar' to include 'foo'" = error.message
   end
 
-  def test_assert_included_with_message_when_not_included do
-    "This should never be tested" = assert_included('foo', 'bar', "This should be included")
+  def test_assert_member_with_message_when_is_not_member do
+    "This should never be tested" = assert_member('foo', 'bar', "This should be included")
   rescue: error in [ExUnit::AssertionError]
     "This should be included" = error.message
   end

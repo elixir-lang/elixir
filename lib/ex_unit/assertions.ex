@@ -19,18 +19,17 @@ defmodule ExUnit::Assertions do
     end
   end
 
-  # FIXME: Make this works with double quoted strings
-  # Asserts the `base` value is included in `container`.
+  # Asserts the `base` value is member of `container`.
   #
   # ## Examples
   #
-  #     assert_include 'foo', 'foobar'
+  #     assert_member 'foo', 'foobar'
   #
-  def assert_included(base, container) do
-    assert_included(base, container, "Expected #{inspect container} to include #{inspect base}")
+  def assert_member(base, container) do
+    assert_member(base, container, "Expected #{inspect container} to include #{inspect base}")
   end
 
-  def assert_included(base, container, message) do
+  def assert_member(base, container, message) do
     assert(Erlang.string.str(container, base) != 0, message)
   end
 
