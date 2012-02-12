@@ -237,7 +237,7 @@ defmodule Elixir::Builtin do
   # And we would have to define the implementation for all types.
   # The types available are:
   #
-  # * Recprd
+  # * Record
   # * Tuple
   # * Atom
   # * List
