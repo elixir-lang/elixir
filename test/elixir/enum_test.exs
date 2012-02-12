@@ -61,8 +61,8 @@ defmodule EnumTest do
   end
 
   def test_foldl do
-    assert_equal 1, Enum.foldl([], 1, fn(x, acc, do: x + acc))
-    assert_equal 7, Enum.foldl([1,2,3], 1, fn(x, acc, do: x + acc))
+    assert_equal 1, Enum.reduce([], 1, fn(x, acc, do: x + acc))
+    assert_equal 7, Enum.reduce([1,2,3], 1, fn(x, acc, do: x + acc))
   end
 
   def test_join_with_bin do
@@ -89,8 +89,8 @@ defmodule EnumTest do
   end
 
   def test_mapfoldl do
-    assert_equal { [], 1 }, Enum.mapfoldl([], 1, fn(x, acc, do: { x * 2, x + acc }))
-    assert_equal { [2,4,6], 7 }, Enum.mapfoldl([1,2,3], 1, fn(x, acc, do: { x * 2, x + acc }))
+    assert_equal { [], 1 }, Enum.mapreduce([], 1, fn(x, acc, do: { x * 2, x + acc }))
+    assert_equal { [2,4,6], 7 }, Enum.mapreduce([1,2,3], 1, fn(x, acc, do: { x * 2, x + acc }))
   end
 
   def test_times_with_arity_0 do

@@ -197,24 +197,24 @@ defmodule Enum do
     do_filter(iterator.(collection), iterator, fun)
   end
 
-  # Iterates the collection from left to right passing an
-  # accumulator as parameter. Returns the accumulator.
+  # Iterates the collection passing an accumulator as parameter.
+  # Returns the accumulator.
   #
   # ## Examples
   #
-  #     Enum.foldl [1, 2, 3], 0, fn(x, acc, do: x + acc)
+  #     Enum.reduce [1, 2, 3], 0, fn(x, acc, do: x + acc)
   #     #=> 6
   #
-  def foldl(collection, acc, f) when is_list(collection) do
+  def reduce(collection, acc, f) when is_list(collection) do
     :lists.foldl(f, acc, collection)
   end
 
-  def foldl(collection, acc, f) do
-    foldl(I.iterator(collection), collection, acc, f)
+  def reduce(collection, acc, f) do
+    reduce(I.iterator(collection), collection, acc, f)
   end
 
-  def foldl(iterator, collection, acc, f) do
-    do_foldl(iterator.(collection), iterator, acc, f)
+  def reduce(iterator, collection, acc, f) do
+    do_reduce(iterator.(collection), iterator, acc, f)
   end
 
   # Join the given `collection` according to `joiner`.
@@ -289,19 +289,19 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.mapfoldl [1, 2, 3], 0, fn(x, acc, do: { x * 2, x + acc })
+  #     Enum.mapreduce [1, 2, 3], 0, fn(x, acc, do: { x * 2, x + acc })
   #     #=> { [2, 4, 6], 6 }
   #
-  def mapfoldl(collection, acc, f) when is_list(collection) do
+  def mapreduce(collection, acc, f) when is_list(collection) do
     :lists.mapfoldl(f, acc, collection)
   end
 
-  def mapfoldl(collection, acc, fun) do
-    mapfoldl(I.iterator(collection), collection, acc, fun)
+  def mapreduce(collection, acc, fun) do
+    mapreduce(I.iterator(collection), collection, acc, fun)
   end
 
-  def mapfoldl(iterator, collection, acc, fun) do
-    do_mapfoldl(iterator.(collection), iterator, acc, fun)
+  def mapreduce(iterator, collection, acc, fun) do
+    do_mapreduce(iterator.(collection), iterator, acc, fun)
   end
 
   # Iterates the given function n times, passing values from 1
@@ -435,13 +435,13 @@ defmodule Enum do
     []
   end
 
-  ## foldl
+  ## reduce
 
-  defp do_foldl({ h, next }, iterator, acc, fun) do
-    do_foldl(iterator.(next), iterator, fun.(h, acc), fun)
+  defp do_reduce({ h, next }, iterator, acc, fun) do
+    do_reduce(iterator.(next), iterator, fun.(h, acc), fun)
   end
 
-  defp do_foldl(__STOP_ITERATOR__, _, acc, _) do
+  defp do_reduce(__STOP_ITERATOR__, _, acc, _) do
     acc
   end
 
@@ -492,15 +492,15 @@ defmodule Enum do
     []
   end
 
-  ## mapfoldl
+  ## mapreduce
 
-  defp do_mapfoldl({ h, next }, iterator, acc, f) do
+  defp do_mapreduce({ h, next }, iterator, acc, f) do
     { result, acc } = f.(h, acc)
-    { rest, acc }   = do_mapfoldl(iterator.(next), iterator, acc, f)
+    { rest, acc }   = do_mapreduce(iterator.(next), iterator, acc, f)
     { [result|rest], acc }
   end
 
-  defp do_mapfoldl(__STOP_ITERATOR__, _, acc, _f) do
+  defp do_mapreduce(__STOP_ITERATOR__, _, acc, _f) do
     { [], acc }
   end
 
