@@ -65,7 +65,7 @@ tokenize(Line, [$.,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
 
 % ## Single Token Operators
 tokenize(Line, [$.,T|Rest], Tokens) when T == $+; T == $-; T == $*;
-  T == $/; T == $=; T == $&; T == $|; T == $!; T == $<; T == $>; T == $^; T == $@ ->
+  T == $/; T == $=; T == $|; T == $!; T == $<; T == $>; T == $^; T == $@ ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T]), Rest),{'.',Line}|Tokens]);
 
 % Strings
@@ -127,7 +127,7 @@ tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
 
 % ## Single Token Operators
 tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*;
-  T == $/; T == $=; T == $&; T == $|; T == $!; T == $<; T == $>; T == $^; T == $@ ->
+  T == $/; T == $=; T == $|; T == $!; T == $<; T == $>; T == $^; T == $@ ->
   tokenize(Line, Rest, [{atom,Line,[list_to_atom([T])]}|Tokens]);
 
 % Ambiguous unary/binary operators tokens
@@ -186,9 +186,15 @@ tokenize(Line, [T|Rest], Tokens) when T == $<; T == $> ->
   tokenize(Line, Rest, [{comp_op, Line, list_to_atom([T])}|Tokens]);
 
 % ## Single Token Operators
+
 tokenize(Line, [T|Rest], Tokens) when T == $+; T == $-; T == $*;
-  T == $/; T == $=; T == $&; T == $|; T == $!; T == $^; T == $@ ->
+  T == $/; T == $=; T == $|; T == $!; T == $^; T == $@ ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
+
+% &
+
+tokenize(Line, [$&,H|Rest], Tokens) when H >= $0 andalso H =< $9 ->
+  tokenize(Line, Rest, [{'&', Line, [list_to_integer([H])]}|Tokens]);
 
 % References
 

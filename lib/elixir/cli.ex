@@ -16,7 +16,7 @@ defmodule Elixir::CLI do
     all_commands = List.reverse(config.commands) ++ List.reverse(config.close)
 
     try do
-      Enum.map all_commands, process_command(_, config)
+      Enum.map all_commands, process_command(&1, config)
     rescue: exception
       at_exit(1)
       IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
@@ -113,7 +113,7 @@ defmodule Elixir::CLI do
   defp process_options([h|t] = list, config) do
     case h do
     match: '-' ++ _
-      shared_option? list, config, process_options(_, _)
+      shared_option? list, config, process_options(&1, &2)
     else:
       { config.prepend_commands([{:require, h}]), t }
     end
@@ -136,7 +136,7 @@ defmodule Elixir::CLI do
   defp process_compiler([h|t] = list, config) do
     case h do
     match: '-' ++ _
-      shared_option? list, config, process_compiler(_, _)
+      shared_option? list, config, process_compiler(&1, &2)
     else:
       process_compiler t, config.prepend_commands[{:compile,h}]
     end
@@ -153,7 +153,7 @@ defmodule Elixir::CLI do
   end
 
   defp process_command({:require, file}, _config) do
-    Enum.each File.wildcard(file), Code.require_file(_)
+    Enum.each File.wildcard(file), Code.require_file(&1)
   end
 
   defp process_command({:compile, pattern}, config) do
@@ -161,7 +161,7 @@ defmodule Elixir::CLI do
   end
 
   defp compile_patterns(lines, config) do
-    lines  = Enum.map lines, File.wildcard(_)
+    lines  = Enum.map lines, File.wildcard(&1)
     concat = List.uniq(List.append(lines))
 
     Enum.map concat, fn(file) ->

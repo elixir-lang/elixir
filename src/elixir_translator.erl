@@ -513,10 +513,23 @@ handle_partials(_Line, _Original, #elixir_scope{assign=true}) ->
 handle_partials(Line, Original, S) ->
   case convert_partials(Line, element(3, Original), S) of
     { Call, Def, SC } when Def /= [] ->
+      Final = validate_partials(Line, Def, SC),
       Block = [{do, setelement(3, Original, Call)}],
-      translate_each({ fn, Line, Def ++ [Block] }, SC);
+      translate_each({ fn, Line, Final ++ [Block] }, SC);
     _ -> error
   end.
+
+validate_partials(Line, Def, S) ->
+  validate_partials(Line, lists:sort(Def), 1, S).
+
+validate_partials(Line, [{ Pos, Item }|T], Pos, S) ->
+  [Item|validate_partials(Line, T, Pos + 1, S)];
+
+validate_partials(Line, [{ Pos, _ }|_], Expected, S) ->
+  syntax_error(Line, S#elixir_scope.filename, "partial variable &~w cannot be defined without &~w", [Pos, Expected]);
+
+validate_partials(_Line, [], _Pos, _S) ->
+  [].
 
 %% This function receives arguments and then checks
 %% the args for partial application. It returns a tuple
@@ -525,9 +538,14 @@ handle_partials(Line, Original, S) ->
 %% function definition and the third one is the new scope.
 convert_partials(Line, List, S) -> convert_partials(Line, List, S, [], []).
 
-convert_partials(Line, [{'_', _, Args}|T], S, CallAcc, DefAcc) when is_atom(Args) ->
-  { Var, SC } = elixir_variables:build_ex(Line, S),
-  convert_partials(Line, T, SC, [Var|CallAcc], [Var|DefAcc]);
+convert_partials(Line, [{'&', _, [Pos]}|T], S, CallAcc, DefAcc) ->
+  case lists:keyfind(Pos, 1, DefAcc) of
+    false ->
+      { Var, SC } = elixir_variables:build_ex(Line, S),
+      convert_partials(Line, T, SC, [Var|CallAcc], [{Pos,Var}|DefAcc]);
+    {Pos,Var} ->
+      convert_partials(Line, T, S, [Var|CallAcc], DefAcc)
+  end;
 
 convert_partials(Line, [H|T], S, CallAcc, DefAcc) ->
   convert_partials(Line, T, S, [H|CallAcc], DefAcc);

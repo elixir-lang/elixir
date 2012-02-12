@@ -77,7 +77,7 @@ defmodule Record do
   #     end
   #
   defp initializers(values) do
-    defaults = Enum.map values, elem(_, 2)
+    defaults = Enum.map values, elem(&1, 2)
 
     # For each value, define a piece of code that will receive
     # an ordered dict of options (opts) and it will try to fetch

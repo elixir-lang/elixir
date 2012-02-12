@@ -25,7 +25,7 @@ defmodule ExUnit::Escaper do
   end
 
   def escape(expr) when is_list(expr) do
-    Enum.map expr, escape(_)
+    Enum.map expr, escape(&1)
   end
 
   def escape(expr) do

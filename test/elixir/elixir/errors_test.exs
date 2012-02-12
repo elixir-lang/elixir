@@ -12,6 +12,10 @@ defmodule Elixir::ErrorsTest do
     assert_equal "invalid token: \end", format_rescue '\end'
   end
 
+  def test_invalid_partial do
+    assert_equal "partial variable &2 cannot be defined without &1", format_rescue '&2 + 3'
+  end
+
   def test_syntax_error do
     assert_equal "syntax error before: '}'", format_rescue 'case 1 do }'
   end

@@ -7,7 +7,7 @@ Nonterminals
   matched_expr matched_op_expr unmatched_expr unmatched_op_expr
   comma_separator kv_eol
   add_op mult_op unary_op addadd_op multmult_op bin_concat_op
-  match_op arrow_op module_ref_op default_op when_op pipe_op and_pipe_op in_op
+  match_op arrow_op module_ref_op default_op when_op pipe_op in_op
   andand_op oror_op andalso_op orelse_op and_op or_op comp_expr_op
   open_paren close_paren
   open_bracket close_bracket
@@ -44,7 +44,6 @@ Right     30 default_op.
 Right     40 when_op.
 Left      50 in_op.
 Left      60 pipe_op.
-Right     70 and_pipe_op.
 Right     80 match_op.
 Right     90 arrow_op.
 Left     100 oror_op.
@@ -102,7 +101,6 @@ matched_op_expr -> matched_expr orelse_op matched_expr : build_op('$2', '$1', '$
 matched_op_expr -> matched_expr and_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr or_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr pipe_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr and_pipe_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr bin_concat_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr in_op matched_expr : build_op('$2', '$1', '$3').
 matched_op_expr -> matched_expr when_op matched_expr : build_op('$2', '$1', '$3').
@@ -148,6 +146,7 @@ base_expr -> 'nil' : ?op('$1').
 base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
 base_expr -> bit_string : '$1'.
+base_expr -> '&' : '$1'.
 
 %% Helpers
 
@@ -239,9 +238,6 @@ or_op -> 'xor' eol : '$1'.
 
 pipe_op -> '|' : '$1'.
 pipe_op -> '|' eol : '$1'.
-
-and_pipe_op -> '&' : '$1'.
-and_pipe_op -> '&' eol : '$1'.
 
 bin_concat_op -> '<>' : '$1'.
 bin_concat_op -> '<>' eol : '$1'.

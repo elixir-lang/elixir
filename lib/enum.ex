@@ -23,7 +23,7 @@ defprotocol Enum::Iterator, [iterator(collection)], only: [List, Record], as: I
 # for lists, implemented as follow:
 #
 #     defimpl Enum::Iterator, for: List do
-#       def iterator(_), do: iterate(_)
+#       def iterator(_), do: iterate(&1)
 #
 #       defp iterate([h|t]) do
 #         { h, t }
@@ -220,6 +220,9 @@ defmodule Enum do
   # Join the given `collection` according to `joiner`.
   # Joiner can be either a binary or a list and the
   # result will be of the same type of joiner.
+  #
+  # All items in the collection must be convertable
+  # to binary, otherwise an error is raised.
   #
   # ## Examples
   #
@@ -526,7 +529,7 @@ defmodule Enum do
 end
 
 defimpl Enum::Iterator, for: List do
-  def iterator(_), do: iterate(_)
+  def iterator(_), do: iterate(&1)
 
   defp iterate([h|t]) do
     { h, t }
