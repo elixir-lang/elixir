@@ -515,20 +515,20 @@ While `catch` clause inside `try` are simply a pattern matching mechanism, `resc
 
     try do
       raise "some error"
-    rescue RuntimeError
+    rescue: RuntimeError
       "rescued"
     end
 
     try do
       raise "some error"
-    rescue [RuntimeError]
+    rescue: [RuntimeError]
       "rescued"
     end
 
     # rescue and assign to x
     try do
       raise "some error"
-    rescue x in [RuntimeError]
+    rescue: x in [RuntimeError]
       # all exceptions respond to message
       x.message
     end
@@ -536,7 +536,7 @@ While `catch` clause inside `try` are simply a pattern matching mechanism, `resc
     # rescue all and assign to x
     try do
       raise ArgumentError, message: "unexpected argument"
-    rescue x in _
+    rescue: x in _
       x.message
     end
 
