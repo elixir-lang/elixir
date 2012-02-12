@@ -11,23 +11,23 @@ defmodule RecordTest do
 
   def test_record_constructor_with_dict do
     record   = RecordTest::FileInfo.new(type: :regular)
-    :regular = record.type
-    nil      = record.access
+    assert_equal :regular, record.type
+    assert_equal nil, record.access
   end
 
   def test_record_accessors do
     record = RecordTest::FileInfo.new(file_info)
-    :regular    = record.type
-    :read_write = record.access
+    assert_equal :regular, record.type
+    assert_equal :read_write, record.access
 
     new_record = record.access :read
-    :read = new_record.access
+    assert_equal :read, new_record.access
   end
 
   def test_dynamic_record_name do
     record = RecordTest::DynamicName.new
-    0 = record.a
-    1 = record.b
+    assert_equal 0, record.a
+    assert_equal 1, record.b
   end
 
   defp file_info do

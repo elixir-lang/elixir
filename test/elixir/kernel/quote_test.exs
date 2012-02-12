@@ -21,12 +21,12 @@ defmodule Kernel::QuoteTest do
   def test_no_interference do
     a = 10
     no_interference
-    10 = a
+    assert_equal 10, a
   end
 
   def test_write_interference do
     write_interference
-    1 = a
+    assert_equal 1, a
   end
 
   def test_read_interference do
