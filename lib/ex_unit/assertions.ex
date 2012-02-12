@@ -1,27 +1,39 @@
 defexception ExUnit::AssertionError, message: "assertion failed"
 
 defmodule ExUnit::Assertions do
+  # FIXME: Make this works with double quoted strings
   def assert_included(base, container) do
-    if Erlang.string.str(container, base) == 0 do
-      raise ExUnit::AssertionError, message: "Expected #{inspect container} to include #{inspect base}"
-    end
+    assert_included(base, container, "Expected #{inspect container} to include #{inspect base}")
+  end
+
+  def assert_included(base, container, message) do
+    assert(Erlang.string.str(container, base) != 0, message)
   end
 
   def assert_equal(expected, received) do
-    if expected != received do
-      raise ExUnit::AssertionError, message: "Expected #{inspect received} to be equal to #{inspect expected}"
-    end
+    assert_equal(expected, received, "Expected #{inspect received} to be equal to #{inspect expected}")
+  end
+
+  def assert_equal(expected, received, message) do
+    assert(expected == received, message)
+  end
+
+  def refute(not_expected) do
+    refute(not_expected, "Expected #{inspect not_expected} to be false")
+  end
+
+  def refute(not_expected, message) do
+    not assert(!not_expected, message)
   end
 
   def assert(expected) do
-    unless expected do
-      raise ExUnit::AssertionError, message: "Expected #{inspect expected} to be true"
-    end
+    assert(expected, "Expected #{inspect expected} to be true")
   end
 
-  def refute(expected) do
-    if expected do
-      raise ExUnit::AssertionError, message: "Expected #{inspect expected} to be false"
+  def assert(expected, message) do
+    unless expected do
+      raise ExUnit::AssertionError, message: message
     end
+    true
   end
 end
