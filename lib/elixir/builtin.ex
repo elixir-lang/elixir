@@ -513,24 +513,24 @@ defmodule Elixir::Builtin do
   #
   #     try do
   #       UndefinedModule.undefined_function
-  #     rescue UndefinedFunctionError
+  #     rescue: UndefinedFunctionError
   #     end
   #
   #     try do
   #       UndefinedModule.undefined_function
-  #     rescue [UndefinedFunctionError]
+  #     rescue: [UndefinedFunctionError]
   #     end
   #
   #     # rescue and assign to x
   #     try do
   #       UndefinedModule.undefined_function
-  #     rescue x in [UndefinedFunctionError]
+  #     rescue: x in [UndefinedFunctionError]
   #     end
   #
   #     # rescue all and assign to x
   #     try do
   #       UndefinedModule.undefined_function
-  #     rescue x in _
+  #     rescue: x in _
   #     end
   #
   # ## Variable visibility
@@ -560,13 +560,13 @@ defmodule Elixir::Builtin do
   #
   #     try do
   #       exit(1)
-  #     catch :exit, 1
+  #     catch: :exit, 1
   #       IO.puts "Exited with 1"
   #     end
   #
   #     try do
   #       error(:sample)
-  #     catch :error, :sample
+  #     catch: :error, :sample
   #       IO.puts "sample error"
   #     end
   #
