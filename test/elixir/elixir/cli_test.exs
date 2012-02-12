@@ -25,8 +25,8 @@ defmodule Elixir::CLI::ErrorTest do
   use ExUnit::Case
 
   def test_code_error do
-    assert_included '** (throw) 1',  OS.cmd('bin/elixir -e "throw 1"')
-    assert_included '** (::ErlangError) erlang error: 1',  OS.cmd('bin/elixir -e "error 1"')
+    assert_member '** (throw) 1',  OS.cmd('bin/elixir -e "throw 1"')
+    assert_member '** (::ErlangError) erlang error: 1',  OS.cmd('bin/elixir -e "error 1"')
 
     # It does not catch exits with integers nor strings...
     assert_equal '', OS.cmd('bin/elixir -e "exit 1"')
@@ -37,8 +37,8 @@ defmodule Elixir::CLI::SyntaxErrorTest do
   use ExUnit::Case
 
   def test_syntax_code_error do
-    assert_included '** (::TokenMissingError) syntax error: expression is incomplete', OS.cmd('bin/elixir -e "[1,2"')
-    assert_included '** (::SyntaxError) syntax error before: \'end\'', OS.cmd('bin/elixir -e "case 1 end"')
+    assert_member '** (::TokenMissingError) syntax error: expression is incomplete', OS.cmd('bin/elixir -e "[1,2"')
+    assert_member '** (::SyntaxError) syntax error before: \'end\'', OS.cmd('bin/elixir -e "case 1 end"')
   end
 end
 

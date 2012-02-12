@@ -8,13 +8,13 @@ defmodule ExUnit::AssertionsTest do
   end
 
   def test_assert_when_value_is_false do
-    assert false
+    "This should never be tested" = assert false
   rescue: error in [ExUnit::AssertionError]
     "Expected false to be true" = error.message
   end
 
   def test_assert_with_message_when_value_is_false do
-    assert false, "This should be true"
+    "This should never be tested" = assert false, "This should be true"
   rescue: error in [ExUnit::AssertionError]
     "This should be true" = error.message
   end
@@ -24,13 +24,13 @@ defmodule ExUnit::AssertionsTest do
   end
 
   def test_refute_when_value_is_true do
-    refute true
+    "This should never be tested" = refute true
   rescue: error in [ExUnit::AssertionError]
     "Expected true to be false" = error.message
   end
 
   def test_refute_with_message_when_value_is_true do
-    refute true, "This should be false"
+    "This should never be tested" = refute true, "This should be false"
   rescue: error in [ExUnit::AssertionError]
     "This should be false" = error.message
   end
@@ -40,7 +40,7 @@ defmodule ExUnit::AssertionsTest do
   end
 
   def test_assert_match_when_different do
-    assert_match({_, 2}, {2, 1})
+    "This should never be tested" = assert_match({_, 2}, {2, 1})
   rescue: error in [ExUnit::AssertionError]
     "Expected {2,1} to match {_,2}" = error.message
   end
@@ -50,30 +50,42 @@ defmodule ExUnit::AssertionsTest do
   end
 
   def test_assert_equal_when_different do
-    assert_equal(0, 1)
+    "This should never be tested" = assert_equal(0, 1)
   rescue: error in [ExUnit::AssertionError]
     "Expected 1 to be equal to 0" = error.message
   end
 
   def test_assert_equal_with_message_when_different do
-    assert_equal(0, 1, "This should be equal")
+    "This should never be tested" = assert_equal(0, 1, "This should be equal")
   rescue: error in [ExUnit::AssertionError]
     "This should be equal" = error.message
   end
 
-  def test_assert_included_when_included do
-    true = assert_included('foo', 'foobar')
+  def test_assert_member_when_is_member do
+    true = assert_member('foo', 'foobar')
   end
 
-  def test_assert_included_when_not_included do
-    assert_included('foo', 'bar')
+  def test_assert_member_when_is_not_member do
+    "This should never be tested" = assert_member('foo', 'bar')
   rescue: error in [ExUnit::AssertionError]
     "Expected 'bar' to include 'foo'" = error.message
   end
 
-  def test_assert_included_with_message_when_not_included do
-    assert_included('foo', 'bar', "This should be included")
+  def test_assert_member_with_message_when_is_not_member do
+    "This should never be tested" = assert_member('foo', 'bar', "This should be included")
   rescue: error in [ExUnit::AssertionError]
     "This should be included" = error.message
+  end
+
+  def test_flunk do
+    "This should never be tested" = flunk
+  rescue: error in [ExUnit::AssertionError]
+    "Epic Fail!" = error.message
+  end
+
+  def test_flunk_with_message do
+    "This should never be tested" = flunk "This should raise an error"
+  rescue: error in [ExUnit::AssertionError]
+    "This should raise an error" = error.message
   end
 end
