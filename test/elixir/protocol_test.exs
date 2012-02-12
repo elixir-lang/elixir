@@ -2,11 +2,17 @@ Code.require_file "../test_helper", __FILE__
 
 defprotocol ProtocolTest::WithAll, [blank(thing)]
 defprotocol ProtocolTest::WithExcept, [blank(thing)], except: [Atom, Number, List]
-defprotocol ProtocolTest::WithOnly, [blank(thing)], only: [Tuple, Function]
+defprotocol ProtocolTest::WithOnly, [blank(thing)], only: [Record, Function]
 
 defrecord ProtocolTest::Foo, a: 0, b: 0
 
 defimpl WithAll, for: Foo do
+  def blank(record) do
+    record.a + record.b == 0
+  end
+end
+
+defimpl WithOnly, for: Foo do
   def blank(record) do
     record.a + record.b == 0
   end
@@ -44,8 +50,9 @@ defmodule ProtocolTest do
     assert_undef(ProtocolTest::WithOnly, Any, :foo)
     assert_undef(ProtocolTest::WithOnly, Any, 1)
     assert_undef(ProtocolTest::WithOnly, Any, [1,2,3])
+    assert_undef(ProtocolTest::WithOnly, Any, {})
     assert_undef(ProtocolTest::WithOnly, Function, fn(x, do: x))
-    assert_undef(ProtocolTest::WithOnly, Tuple, {})
+    true  = ProtocolTest::WithOnly.blank(ProtocolTest::Foo.new)
   end
 
   def test_protocol_with_record do
@@ -82,7 +89,7 @@ defmodule ProtocolTest do
   defp assert_undef(target, impl, thing) do
     try do
       target.blank(thing)
-      error("Expected invocation to fail")
+      raise "Expected invocation to fail"
     catch: :error, :undef, [stack|_]
       ref = target :: impl
       case hd(stack) do
@@ -91,7 +98,7 @@ defmodule ProtocolTest do
       match: { ^ref, :blank, [^thing], []}
         :ok
       else:
-        error("Invalid stack #{stack}. Expected: { #{ref}, :blank, [#{thing}] }")
+        raise "Invalid stack #{inspect stack}. Expected: { #{ref}, :blank, [#{inspect thing}] }"
       end
     end
   end

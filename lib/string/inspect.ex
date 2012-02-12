@@ -1,7 +1,7 @@
 import ::Elixir::Builtin, except: [inspect: 1]
 
 defprotocol String::Inspect, [inspect(thing)],
-  only: [BitString, List, Tuple, Atom, Number]
+  only: [BitString, List, Record, Tuple, Atom, Number]
 
 defimpl String::Inspect, for: Atom do
   def inspect(false), do: "false"

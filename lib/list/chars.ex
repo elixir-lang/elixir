@@ -1,5 +1,5 @@
 defprotocol List::Chars, [to_char_list(thing)],
-  only: [BitString, List, Atom, Number, Tuple]
+  only: [BitString, List, Atom, Number, Record]
 
 defimpl List::Chars, for: Atom do
   def to_char_list(atom), do: atom_to_list(atom)

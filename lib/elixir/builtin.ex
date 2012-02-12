@@ -237,6 +237,7 @@ defmodule Elixir::Builtin do
   # And we would have to define the implementation for all types.
   # The types available are:
   #
+  # * Recprd
   # * Tuple
   # * Atom
   # * List
@@ -280,10 +281,6 @@ defmodule Elixir::Builtin do
   #
   # In the example above, we have implemented `blank?` for the custom
   # dictionary that simply delegates to `RedBlack.empty?`.
-  #
-  # Since records are simply tuples, the default implementation for
-  # records can be given in the tuple implementation. Similarly,
-  # not passing `Tuple` to `only:` disables all records lookup.
   defmacro defprotocol(name, args, opts // []) do
     Protocol.defprotocol(name, args, opts)
   end

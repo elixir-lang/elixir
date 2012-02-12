@@ -19,8 +19,9 @@ defmodule Protocol do
       defmodule unquote(name) do
         def __protocol__(:name),      do: unquote(name)
         def __protocol__(:functions), do: unquote(kv)
-        Protocol.functions(__MODULE__, unquote(kv))
-        Protocol.protocol_for(__MODULE__, unquote(opts))
+        conversions = Protocol.conversions_for(unquote(opts))
+        Protocol.functions(__MODULE__, conversions, unquote(kv))
+        Protocol.protocol_for(__MODULE__, conversions)
       end
 
       require unquote(name), as: unquote(as), raise: false
@@ -78,118 +79,27 @@ defmodule Protocol do
   # It simply detects the protocol using __protocol_for__ and
   # then dispatches to it.
   # :api: private
-  def functions(module, funs) do
-    lc fun in L.reverse(funs), do: each_function(module, fun)
+  def functions(module, conversions, funs) do
+    fallback = if L.keyfind(Tuple, 1, conversions), do: Tuple, else: Any
+    contents = lc fun in L.reverse(funs), do: each_function(fun, fallback)
+    Module.eval_quoted module, contents, [], __FILE__, __LINE__
   end
 
   # Implements the method that detects the protocol and returns
   # the module to dispatch to. Returns module::Record for records
   # which should be properly handled by the dispatching function.
   # :api: private
-  def protocol_for(module, opts) do
-    lc kind in conversions_for(opts), do: each_protocol_for(module, kind)
-  end
-
-  ## Helpers
-
-  # Specially handle tuples as they can also be record.
-  # If this is the case, module::Record will be returned.
-  defp each_protocol_for(module, { Tuple, :is_tuple }) do
-    contents = quote do
-      def __protocol_for__({}) do
-        unquote(module)::Tuple
-      end
-
-      def __protocol_for__(arg) when is_tuple(arg) do
-        case is_atom(element(1, arg)) do
-        match: true
-          unquote(module)::Record
-        else:
-          unquote(module)::Tuple
-        end
-      end
-    end
-
+  def protocol_for(module, conversions) do
+    contents = lc kind in conversions, do: each_protocol_for(kind)
     Module.eval_quoted module, contents, [], __FILE__, __LINE__
   end
 
-  # Special case any as we don't need to generate a guard.
-  defp each_protocol_for(module, { _, :is_any }) do
-    contents = quote do
-      def __protocol_for__(_) do
-        unquote(module)::Any
-      end
-    end
-
-    Module.eval_quoted module, contents, [], __FILE__, __LINE__
-  end
-
-  # Generate all others protocols.
-  defp each_protocol_for(module, { kind, fun }) do
-    contents = quote do
-      def __protocol_for__(arg) when unquote(fun).(arg) do
-        unquote(module)::unquote(kind)
-      end
-    end
-
-    Module.eval_quoted module, contents, [], __FILE__, __LINE__
-  end
-
-  # Implement the protocol invocation callbacks for each function.
-  defp each_function(module, { name, arity }) do
-    # Generate arguments according the arity. The arguments
-    # are named xa, xb and so forth. We cannot use string
-    # interpolation to generate the arguments because of compile
-    # dependencies, so we use the <<>> instead.
-    args = lc i in :lists.seq(1, arity) do
-      { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
-    end
-
-    contents = quote do
-      def unquote(name).(unquote_splicing(args)) do
-        args = [unquote_splicing(args)]
-        case __protocol_for__(xA) do
-        match: unquote(module)::Record
-          result =
-            try do
-              { apply(unquote(module)::element(1, xA), unquote(name), args), true }
-            rescue: UndefinedFunctionError
-              :error
-            end
-
-          case result do
-          match: :error
-            apply unquote(module)::Tuple, unquote(name), args
-          match: { value, true }
-            value
-          end
-        match: other
-          apply other, unquote(name), args
-        end
-      end
-    end
-
-    Module.eval_quoted module, contents, [], __FILE__, __LINE__
-  end
-
-  # Converts the protocol expressions as [each(collection), length(collection)]
-  # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
-  defp to_kv(args) do
-    :orddict.from_list lc(x in args) ->
-      case x do
-      match: { _, _, args } when args == [] or args == false
-        raise ArgumentError, message: "protocol functions expect at least one argument"
-      match: { name, _, args } when is_atom(name) and is_list(args)
-        { name, length(args) }
-      else:
-        raise ArgumentError, message: "invalid args for defprotocol"
-      end
-    end
-  end
-
-  # Returns the default conversions according to the given only/except options.
-  defp conversions_for(opts) do
+  # Returns the default conversions according to the given
+  # only/except options.
+  # :api: private
+  def conversions_for(opts) do
     kinds = [
+      { Record,    :is_record },
       { Tuple,     :is_tuple },
       { Atom,      :is_atom },
       { List,      :is_list },
@@ -209,6 +119,86 @@ defmodule Protocol do
       selected ++ [{ Any, :is_any }]
     else:
       kinds
+    end
+  end
+
+  ## Helpers
+
+  # Specially handle tuples as they can also be record.
+  # If this is the case, module::Record will be returned.
+  defp each_protocol_for({ _, :is_record }) do
+    quote do
+      def __protocol_for__(arg) when is_tuple(arg) andalso is_atom(element(1, arg)) do
+        __MODULE__::Record
+      end
+    end
+  end
+
+  # Special case any as we don't need to generate a guard.
+  defp each_protocol_for({ _, :is_any }) do
+    quote do
+      def __protocol_for__(_) do
+        __MODULE__::Any
+      end
+    end
+  end
+
+  # Generate all others protocols.
+  defp each_protocol_for({ kind, fun }) do
+    quote do
+      def __protocol_for__(arg) when unquote(fun).(arg) do
+        __MODULE__::unquote(kind)
+      end
+    end
+  end
+
+  # Implement the protocol invocation callbacks for each function.
+  defp each_function({ name, arity }, fallback) do
+    # Generate arguments according the arity. The arguments
+    # are named xa, xb and so forth. We cannot use string
+    # interpolation to generate the arguments because of compile
+    # dependencies, so we use the <<>> instead.
+    args = lc i in :lists.seq(1, arity) do
+      { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+    end
+
+    quote do
+      def unquote(name).(unquote_splicing(args)) do
+        args = [unquote_splicing(args)]
+        case __protocol_for__(xA) do
+        match: __MODULE__::Record
+          result =
+            try do
+              { apply(__MODULE__::element(1, xA), unquote(name), args), true }
+            rescue: UndefinedFunctionError
+              :error
+            end
+
+          case result do
+          match: :error
+            apply __MODULE__::unquote(fallback), unquote(name), args
+          match: { value, true }
+            value
+          end
+        match: other
+          apply other, unquote(name), args
+        end
+      end
+    end
+  end
+
+  # Converts the protocol expressions as [each(collection), length(collection)]
+  # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
+  defp to_kv(args) do
+    :orddict.from_list lc(x in args) ->
+      case x do
+      match: { _, _, args } when args == [] or args == false
+        raise ArgumentError, message: "protocol functions expect at least one argument"
+      match: { name, _, args } when is_atom(name) and is_list(args)
+        { name, length(args) }
+      else:
+        raise ArgumentError, message: "invalid args for defprotocol"
+      end
     end
   end
 end

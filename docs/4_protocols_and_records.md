@@ -78,6 +78,7 @@ The protocol expects a function called blank? expecting one argument to be imple
 
 And we would have to define the implementation for all native data types. The types available are:
 
+* Record
 * Tuple
 * Atom
 * List

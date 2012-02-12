@@ -1,7 +1,7 @@
 import ::Elixir::Builtin, except: [to_binary: 1]
 
 defprotocol String::Chars, [to_binary(thing)],
-  only: [BitString, List, Number, Atom, Tuple]
+  only: [BitString, List, Number, Atom, Record]
 
 defimpl String::Chars, for: Atom do
   def to_binary(atom) do
