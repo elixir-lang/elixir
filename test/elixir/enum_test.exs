@@ -77,6 +77,12 @@ defmodule EnumTest do
     assert_equal '1 = 2 = 3', Enum.join([1,"2",3], ' = ')
   end
 
+  def test_keyfind do
+    list = [{ :a, 1 }, { :b, 2 }, { :c, 3 }]
+    assert_equal { :a, 1 },  Enum.keyfind(list, :a, 1)
+    assert_equal true, Enum.keyfind(list, :a, 2, true)
+  end
+
   def test_map do
     assert_equal [], Enum.map([], fn(x) -> x * 2 end)
     assert_equal [2,4,6], Enum.map([1,2,3], fn(x) -> x * 2 end)

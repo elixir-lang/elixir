@@ -241,9 +241,25 @@ defmodule Enum do
     do_join(iterator.(collection), iterator, joiner, nil)
   end
 
-  # TODO: Write docs + tests
-  def keyfind(collection, key, position) when is_list(collection) do
-    Erlang.lists.keyfind(key, position, collection)
+  # Finds the first item in collection of tuples where the element
+  # `position` in the tuple is equal to `key`. If none is found,
+  # returns `default` (which defaults to nil).
+  #
+  # ## Examples
+  #
+  #     list = [{:a,1},{:b,2},{:a,3}]
+  #     Enum.keyfind list, :a, 1 #=> {:a, 1}
+  #
+  def keyfind(collection, key, position, default) when is_list(collection) do
+    :lists.keyfind(key, position, collection) || default
+  end
+
+  def keyfind(collection, key, position, default // nil) do
+    keyfind(I.iterator(collection), collection, key, position, default)
+  end
+
+  def keyfind(iterator, collection, key, position, default) do
+    do_keyfind(iterator.(collection), iterator, key, position, default)
   end
 
   # Invokes the given `fun` for each item in the `collection`.
@@ -450,6 +466,20 @@ defmodule Enum do
   # Until we have to stop iteration, then we return acc.
   defp do_join(__STOP_ITERATOR__, _, _joiner, acc) do
     acc
+  end
+
+  ## keyfind
+
+  defp do_keyfind({ h, _next }, _iterator, key, position, _ifnone) when elem(h, position) == key do
+    h
+  end
+
+  defp do_keyfind({ _h, next }, iterator, key, position, ifnone) do
+    do_keyfind(iterator.(next), iterator, key, position, ifnone)
+  end
+
+  defp do_keyfind(__STOP_ITERATOR__, _, _, _, ifnone) do
+    ifnone
   end
 
   ## map
