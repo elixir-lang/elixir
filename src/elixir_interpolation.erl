@@ -127,7 +127,7 @@ wrap_interpol(_Line, Form) when is_binary(Form) ->
   Form;
 
 wrap_interpol(Line, Form) ->
-  { '|', Line, [{ { '.', Line, ['::String::Inspect', to_binary] }, Line, [Form]}, binary]}.
+  { '|', Line, [{ { '.', Line, ['::String::Chars', to_binary] }, Line, [Form]}, binary]}.
 
 extract_integers([H|T], Acc) when H >= 48 andalso H =< 57 ->
   extract_integers(T, [H|Acc]);

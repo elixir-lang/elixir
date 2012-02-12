@@ -118,7 +118,7 @@ Elixir ships with three built-in protocols, they are:
 
 * Enum::Iterator - specifies an iteration contract for any data structure
 * String::Inspect - specifies how to represent and convert data structures to strings
-* List::Inspect - specifies how to convert data structures to lists
+* List::Chars - specifies how to convert data structures to lists
 
 You can check the source code of those files for more information about how the protocol is used and how to implement your own. With this, we have finally finished this section which has described `defrecord`, `defprotocol` and `defimpl`. Next, we are going to discuss macros with `defmacro`!
 

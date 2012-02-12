@@ -143,7 +143,8 @@ core_main() ->
     "lib/record.ex",
     "lib/exception.ex",
     "lib/string/inspect.ex",
-    "lib/list/inspect.ex"
+    "lib/string/chars.ex",
+    "lib/list/chars.ex"
   ].
 
 %% ERROR HANDLING

@@ -371,10 +371,10 @@ defmodule Elixir::Builtin do
   #     #=> "foo"
   #
   defmacro to_binary(arg) do
-    quote do: ::String::Inspect.to_binary(unquote(arg))
+    quote do: ::String::Chars.to_binary(unquote(arg))
   end
 
-  # Convert the argument to a list according to the List::Inspect protocol.
+  # Convert the argument to a list according to the List::Chars protocol.
   #
   # ## Examples
   #
@@ -382,7 +382,7 @@ defmodule Elixir::Builtin do
   #     #=> 'foo'
   #
   defmacro to_char_list(arg) do
-    quote do: ::List::Inspect.to_char_list(unquote(arg))
+    quote do: ::List::Chars.to_char_list(unquote(arg))
   end
 
   # Define elem to get Tuple element according to Elixir conventions.

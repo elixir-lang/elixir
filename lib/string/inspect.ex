@@ -1,6 +1,6 @@
-import ::Elixir::Builtin, except: [to_binary: 1, inspect: 1]
+import ::Elixir::Builtin, except: [inspect: 1]
 
-defprotocol String::Inspect, [to_binary(thing), inspect(thing)],
+defprotocol String::Inspect, [inspect(thing)],
   only: [BitString, List, Tuple, Atom, Number]
 
 defimpl String::Inspect, for: Atom do
@@ -19,14 +19,6 @@ defimpl String::Inspect, for: Atom do
     else:
       list_to_binary [?:, String.escape(list, ?")]
     end
-  end
-
-  def to_binary(nil) do
-    ""
-  end
-
-  def to_binary(atom) do
-    atom_to_binary(atom, :utf8)
   end
 
   # Detect if atom is a module reference (::Foo::Bar::Baz)
@@ -63,14 +55,6 @@ defimpl String::Inspect, for: BitString do
     as_bitstring(thing)
   end
 
-  def to_binary(thing) when is_binary(thing) do
-    thing
-  end
-
-  def to_binary(thing) do
-    as_bitstring(thing)
-  end
-
   ## Helpers
 
   defp as_bitstring(thing) do
@@ -95,16 +79,6 @@ defimpl String::Inspect, for: List do
     end
   end
 
-  def to_binary(thing) do
-    result = try do
-      iolist_to_binary(thing)
-    rescue: ArgumentError
-      nil
-    end
-
-    result || container_join(thing, "[", "]")
-  end
-
   ## Helpers
 
   def container_join([h], acc, last) do
@@ -126,35 +100,29 @@ defimpl String::Inspect, for: List do
 end
 
 defimpl String::Inspect, for: Tuple do
-  def inspect(thing), do: to_binary(thing)
-
-  def to_binary(exception) when is_exception(exception) do
+  def inspect(exception) when is_exception(exception) do
     [name,_|tail] = tuple_to_list(exception)
     atom_to_binary(name, :utf8) <>
        String::Inspect::List.container_join(tail, "{", "}")
   end
 
-  def to_binary(thing) do
+  def inspect(thing) do
     String::Inspect::List.container_join(tuple_to_list(thing), "{", "}")
   end
 end
 
 defimpl String::Inspect, for: Number do
-  def inspect(thing), do: to_binary(thing)
-
-  def to_binary(thing) when is_integer(thing) do
+  def inspect(thing) when is_integer(thing) do
     list_to_binary integer_to_list(thing)
   end
 
-  def to_binary(thing) do
+  def inspect(thing) do
     list_to_binary float_to_list(thing)
   end
 end
 
 defimpl String::Inspect, for: Any do
-  def inspect(thing), do: to_binary(thing)
-
-  def to_binary(thing) do
+  def inspect(thing) do
     iolist_to_binary Erlang.io_lib.format('~p', [thing])
   end
 end
