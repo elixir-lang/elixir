@@ -107,43 +107,43 @@ defmodule Enum do
   #
   # ## Examples
   #
-  #     Enum.detect [2,4,6], fn(x, do: rem(x, 2) == 1)
+  #     Enum.find [2,4,6], fn(x, do: rem(x, 2) == 1)
   #     # => nil
   #
-  #     Enum.detect [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
+  #     Enum.find [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
   #     # => 0
   #
-  #     Enum.detect [2,3,4], fn(x, do: rem(x, 2) == 1)
+  #     Enum.find [2,3,4], fn(x, do: rem(x, 2) == 1)
   #     # => 3
   #
-  def detect(collection, ifnone // nil, fun) do
-    detect(I.iterator(collection), collection, ifnone, fun)
+  def find(collection, ifnone // nil, fun) do
+    find(I.iterator(collection), collection, ifnone, fun)
   end
 
-  def detect(iterator, collection, ifnone, fun) do
-    do_detect(iterator.(collection), iterator, ifnone, fun)
+  def find(iterator, collection, ifnone, fun) do
+    do_find(iterator.(collection), iterator, ifnone, fun)
   end
 
-  # Similar to detect, but returns the value of the function
+  # Similar to find, but returns the value of the function
   # invocation instead of the element iterated.
   #
   # ## Examples
   #
-  #     Enum.detect_value [2,4,6], fn(x, do: rem(x, 2) == 1)
+  #     Enum.find_value [2,4,6], fn(x, do: rem(x, 2) == 1)
   #     # => nil
   #
-  #     Enum.detect_value [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
+  #     Enum.find_value [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
   #     # => 0
   #
-  #     Enum.detect_value [2,3,4], fn(x, do: rem(x, 2) == 1)
+  #     Enum.find_value [2,3,4], fn(x, do: rem(x, 2) == 1)
   #     # => true
   #
-  def detect_value(collection, ifnone // nil, fun) do
-    detect_value(I.iterator(collection), collection, ifnone, fun)
+  def find_value(collection, ifnone // nil, fun) do
+    find_value(I.iterator(collection), collection, ifnone, fun)
   end
 
-  def detect_value(iterator, collection, ifnone, fun) do
-    do_detect_value(iterator.(collection), iterator, ifnone, fun)
+  def find_value(iterator, collection, ifnone, fun) do
+    do_find_value(iterator.(collection), iterator, ifnone, fun)
   end
 
   # Invokes the given `fun` for each item in the `collection`.
@@ -357,37 +357,37 @@ defmodule Enum do
     false
   end
 
-  ## detect
+  ## find
 
-  defp do_detect({ h, next }, iterator, ifnone, fun) do
+  defp do_find({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
     match: false
-      do_detect(iterator.(next), iterator, ifnone, fun)
+      do_find(iterator.(next), iterator, ifnone, fun)
     match: nil
-      do_detect(iterator.(next), iterator, ifnone, fun)
+      do_find(iterator.(next), iterator, ifnone, fun)
     else:
       h
     end
   end
 
-  defp do_detect(__STOP_ITERATOR__, _, ifnone, _) do
+  defp do_find(__STOP_ITERATOR__, _, ifnone, _) do
     ifnone
   end
 
-  ## detect_value
+  ## find_value
 
-  defp do_detect_value({ h, next }, iterator, ifnone, fun) do
+  defp do_find_value({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
     match: false
-      do_detect_value(iterator.(next), iterator, ifnone, fun)
+      do_find_value(iterator.(next), iterator, ifnone, fun)
     match: nil
-      do_detect_value(iterator.(next), iterator, ifnone, fun)
+      do_find_value(iterator.(next), iterator, ifnone, fun)
     match: other
       other
     end
   end
 
-  defp do_detect_value(__STOP_ITERATOR__, _, ifnone, _) do
+  defp do_find_value(__STOP_ITERATOR__, _, ifnone, _) do
     ifnone
   end
 

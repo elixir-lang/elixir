@@ -23,16 +23,16 @@ defmodule EnumTest do
     refute Enum.any?([])
   end
 
-  def test_detect do
-    assert_equal nil, Enum.detect([2,4,6], fn(x, do: rem(x, 2) == 1))
-    assert_equal 0, Enum.detect([2,4,6], 0, fn(x, do: rem(x, 2) == 1))
-    assert_equal 3, Enum.detect([2,3,4], fn(x, do: rem(x, 2) == 1))
+  def test_find do
+    assert_equal nil, Enum.find([2,4,6], fn(x, do: rem(x, 2) == 1))
+    assert_equal 0, Enum.find([2,4,6], 0, fn(x, do: rem(x, 2) == 1))
+    assert_equal 3, Enum.find([2,3,4], fn(x, do: rem(x, 2) == 1))
   end
 
-  def test_detect_value do
-    assert_equal nil, Enum.detect_value([2,4,6], fn(x, do: rem(x, 2) == 1))
-    assert_equal 0, Enum.detect_value([2,4,6], 0, fn(x, do: rem(x, 2) == 1))
-    assert Enum.detect_value([2,3,4], fn(x, do: rem(x, 2) == 1))
+  def test_find_value do
+    assert_equal nil, Enum.find_value([2,4,6], fn(x, do: rem(x, 2) == 1))
+    assert_equal 0, Enum.find_value([2,4,6], 0, fn(x, do: rem(x, 2) == 1))
+    assert Enum.find_value([2,3,4], fn(x, do: rem(x, 2) == 1))
   end
 
   def test_empty? do
