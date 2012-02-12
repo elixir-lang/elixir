@@ -89,18 +89,6 @@ defmodule Enum do
     do_any?(iterator.(collection), iterator, fun)
   end
 
-  # Receives a list of enums and a function and recursively
-  # invokes the function with an accumulutaor plus each item
-  # in each enum as argument in reverse order. Therefore, the
-  # arity of the fun must be 1 + number of enums.
-  #
-  # This is used internally by `for` and should not be used directly.
-  def __for__(lists, fun) do
-    iterators = lc list in lists, do: { list, I.iterator(list) }
-    [{h,iterator}|t] = iterators
-    first_comprehension_each iterator, iterator.(h), t, [], fun
-  end
-
   # Invokes the `fun` for each item in collection
   # and returns the first the function returns a truthy
   # value. If no item is found, returns `ifnone`.
@@ -529,32 +517,6 @@ defmodule Enum do
   defp do_times_2(limit, counter, function, acc) do
     new_acc = function.(counter, acc)
     do_times_2(limit, 1 + counter, function, new_acc)
-  end
-
-  ## comprehensions
-
-  defp first_comprehension_each(iterator, { h, next }, t, acc, fun) do
-    first_comprehension_each iterator, iterator.(next), t, next_comprehension(t, acc, fun, [h]), fun
-  end
-
-  defp first_comprehension_each(_iterator, __STOP_ITERATOR__, _t, acc, _fun) do
-    List.reverse(acc)
-  end
-
-  defp next_comprehension([{h,iterator}|t], acc, fun, args) do
-    next_comprehension_each iterator, iterator.(h), t, acc, fun, args
-  end
-
-  defp next_comprehension([], acc, fun, args) do
-    apply fun, [acc|args]
-  end
-
-  defp next_comprehension_each(iterator, { h, next }, t, acc, fun, args) do
-    next_comprehension_each iterator, iterator.(next), t, next_comprehension(t, acc, fun, [h|args]), fun, args
-  end
-
-  defp next_comprehension_each(_iterator, __STOP_ITERATOR__, _t, acc, _fun, _args) do
-    acc
   end
 end
 

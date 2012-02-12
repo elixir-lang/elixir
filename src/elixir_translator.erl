@@ -284,55 +284,6 @@ translate_each({recur, Line, Args}, S) when is_list(Args) ->
 translate_each({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
   translate_comprehension(Line, Kind, Args, S);
 
-translate_each({ for, Line, RawArgs }, S) when is_list(RawArgs) ->
-  case lists:split(length(RawArgs) - 1, RawArgs) of
-    { Cases, [[{do,Expr}]] } ->
-      { Generators, Filters } = lists:splitwith(fun
-        ({ 'in', _, _ }) -> true;
-        (_) -> false
-      end, Cases),
-
-      case Generators of
-        [] -> syntax_error(Line, S#elixir_scope.filename, "expected at least one generator in for");
-        _  -> []
-      end,
-
-      Args  = [X || { _, _, [X, _] } <- Generators],
-      Enums = [Y || { _, _, [_, Y] } <- Generators],
-
-      { AccVar, VS } = elixir_variables:build_ex(Line, S),
-      Tail = [{ '|', Line, [Expr, AccVar] }],
-
-      Fun = case lists:all(fun is_var/1, Args) andalso Filters == [] of
-        true  ->
-          { fn, Line, [AccVar|lists:reverse(Args)] ++ [[{do,Tail}]] };
-        false ->
-          Condition  = lists:reverse(Args),
-          Underscore = [{ '_', Line, nil } || _ <- Args],
-
-          Body = case Filters of
-            [] -> Tail;
-            _  ->
-              Guard = lists:foldl(fun(X, Acc) ->
-                { '&&', Line, [X, Acc] }
-              end, hd(Filters), tl(Filters)),
-
-              { 'if', Line, [Guard, [{do,Tail},{else,AccVar}]] }
-          end,
-
-          { fn, Line, [[
-            { match, { '__KVBLOCK__', Line, [
-              { [AccVar|Condition], Body },
-              { [AccVar|Underscore], AccVar }
-            ] } }
-          ]] }
-      end,
-
-      translate_each({ { '.', Line, ['::Enum', '__for__'] }, Line, [Enums, Fun] }, VS);
-    _ ->
-      syntax_error(Line, S#elixir_scope.filename, "no block given to for")
-  end;
-
 %% Variables
 
 translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
@@ -561,9 +512,6 @@ convert_op('!=')  ->  '/=';
 convert_op('<=')  ->  '=<';
 convert_op('<-')  ->  '!';
 convert_op(Else)  ->  Else.
-
-is_var({ Name, _Line, Atom }) when is_atom(Name), is_atom(Atom) -> true;
-is_var(_) -> false.
 
 %% Comprehensions
 

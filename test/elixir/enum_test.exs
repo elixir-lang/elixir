@@ -113,16 +113,4 @@ defmodule EnumTest do
   def test_times_with_arity_2 do
     assert_equal 15, Enum.times(5, 0, fn(acc, x) -> acc + x end)
   end
-
-  def test_enum_for do
-    assert_equal [{1, 3}, {1, 4}, {2, 3}, {2, 4}], Enum.__for__([[1,2],[3,4]], fn(acc, y, x) -> [{x,y}|acc] end)
-  end
-
-  def test_for do
-    assert_equal [{1, 3}, {1, 4}, {2, 3}, {2, 4}], for x in [1,2], y in [3,4], do: {x,y}
-
-    lists = [1,{1,2},2,{2,1}]
-    assert_equal [{1, 3}, {1, 4}, {2, 3}, {2, 4}], for {x,_} in lists, y in [3,4], do: {x,y}
-    assert_equal [{1, 3}, {1, 4}], for {x,_} in lists, y in [3,4], x == 1, do: {x,y}
-  end
 end
