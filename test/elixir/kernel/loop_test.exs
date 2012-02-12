@@ -6,12 +6,14 @@ defmodule Kernel::LoopTest do
   def test_do_loop do
     list = [1,2,3]
 
-    [6,4,2] = loop list, [] do
+    result = loop list, [] do
     match: [h|t], acc
       recur t, [h*2|acc]
     match: [], acc
       acc
     end
+
+    assert_equal [6,4,2], result
   end
 
   def test_do_loop_base do
@@ -22,7 +24,7 @@ defmodule Kernel::LoopTest do
       2
     end
 
-    1 = fun.({ 1, 2 }, [])
-    2 = fun.([], [])
+    assert_equal 1, fun.({ 1, 2 }, [])
+    assert_equal 2, fun.([], [])
   end
 end
