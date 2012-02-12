@@ -430,6 +430,41 @@ defmodule Elixir::Builtin do
     quote do: __OP__ :rem, unquote(left), unquote(right)
   end
 
+  # A convenient macro that checks if the right side matches
+  # the left side. The left side is allowed to be a match pattern.
+  #
+  # ## Examples
+  #
+  #     match?(1, 1) #=> true
+  #     match?(1, 2) #=> false
+  #     match?({1,_}, {1,2}) #=> true
+  #
+  # Match can also be used to filter or fina a value in an enumerable:
+  #
+  #     list = [{:a,1},{:b,2},{:a,3}]
+  #     Enum.filter list, match?({:a, _}, _)
+  #
+  # Guard clauses can also be given to the match:
+  #
+  #     list = [{:a,1},{:b,2},{:a,3}]
+  #     Enum.filter list, match?({:a, x } when x < 2, &1)
+  #
+  defmacro match?({ :_, _, atom }, _right) when is_atom(atom) do
+    # Special case underscore since it always matches.
+    true
+  end
+
+  defmacro match?(left, right) do
+    quote do
+      case unquote(right) do
+      match: unquote(left)
+        true
+      else:
+        false
+      end
+    end
+  end
+
   # Matches the given condition against the match clauses.
   #
   # ## Examples

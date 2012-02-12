@@ -13,13 +13,9 @@ defmodule ExUnit::Assertions do
   defmacro assert_match(expected, received) do
     escaped = ExUnit::Escaper.escape(expected)
     quote do
-      case value = unquote(received) do
-      match: unquote(expected)
-        true
-      match: _
-        raise ExUnit::AssertionError, message:
-          "Expected #{inspect value} to match #{inspect unquote(escaped)}"
-      end
+      value = unquote(received)
+      assert match?(unquote(expected), value),
+        "Expected #{inspect value} to match #{inspect unquote(escaped)}"
     end
   end
 

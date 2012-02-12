@@ -54,6 +54,12 @@ defmodule EnumTest do
     assert_equal [2,4,6], Enum.filter([2,4,6], fn(x, do: rem(x, 2) == 0))
   end
 
+  def test_filter_with_match do
+    assert_equal [1], Enum.filter [1,2,3], match?(1, &1)
+    assert_equal [1,2], Enum.filter [1,2,3], match?(x when x < 3, &1)
+    assert_equal [1,2,3], Enum.filter [1,2,3], match?(_, &1)
+  end
+
   def test_foldl do
     assert_equal 1, Enum.foldl([], 1, fn(x, acc, do: x + acc))
     assert_equal 7, Enum.foldl([1,2,3], 1, fn(x, acc, do: x + acc))
