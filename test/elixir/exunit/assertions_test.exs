@@ -76,4 +76,16 @@ defmodule ExUnit::AssertionsTest do
   rescue: error in [ExUnit::AssertionError]
     "This should be included" = error.message
   end
+
+  def test_flunk do
+    "This should never be tested" = flunk
+  rescue: error in [ExUnit::AssertionError]
+    "Epic Fail!" = error.message
+  end
+
+  def test_flunk_with_message do
+    "This should never be tested" = flunk "This should raise an error"
+  rescue: error in [ExUnit::AssertionError]
+    "This should raise an error" = error.message
+  end
 end

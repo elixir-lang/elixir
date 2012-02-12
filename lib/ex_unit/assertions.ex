@@ -61,6 +61,20 @@ defmodule ExUnit::Assertions do
     not assert(!not_expected, message)
   end
 
+  # Fails with a message.
+  #
+  # ## Examples
+  #
+  #     flunk "This should raise an error"
+  #
+  def flunk do
+    flunk "Epic Fail!"
+  end
+
+  def flunk(message) do
+    assert false, message
+  end
+
   # Asserts the `expected` value is true.
   #
   # ## Examples
