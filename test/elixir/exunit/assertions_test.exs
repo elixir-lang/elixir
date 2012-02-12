@@ -35,6 +35,15 @@ defmodule ExUnit::AssertionsTest do
     "This should be false" = error.message
   end
 
+  def test_assert_match_when_equal do
+    true = assert_match(1, 1)
+  end
+
+  def test_assert_match_when_different do
+    assert_match({_, 2}, {2, 1})
+  rescue: error in [ExUnit::AssertionError]
+    "Expected {2,1} to match {_,2}" = error.message
+  end
 
   def test_assert_equal_when_equal do
     true = assert_equal(0, 0)

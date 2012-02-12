@@ -1,6 +1,28 @@
 defexception ExUnit::AssertionError, message: "assertion failed"
 
 defmodule ExUnit::Assertions do
+  # Asserts the `expected` value matches `received`. Differently
+  # from `assert_equal`, `assert_match` uses underscore and
+  # therefore allows a developer to match against a specific
+  # part of the `received` structure.
+  #
+  # ## Examples
+  #
+  #     assert_match { 1, _, 3 }, { 1, 2, 3 }
+  #
+  defmacro assert_match(expected, received) do
+    escaped = ExUnit::Escaper.escape(expected)
+    quote do
+      case value = unquote(received) do
+      match: unquote(expected)
+        true
+      match: _
+        raise ExUnit::AssertionError, message:
+          "Expected #{inspect value} to match #{inspect unquote(escaped)}"
+      end
+    end
+  end
+
   # FIXME: Make this works with double quoted strings
   def assert_included(base, container) do
     assert_included(base, container, "Expected #{inspect container} to include #{inspect base}")
@@ -31,9 +53,8 @@ defmodule ExUnit::Assertions do
   end
 
   def assert(expected, message) do
-    unless expected do
+    unless expected, do:
       raise ExUnit::AssertionError, message: message
-    end
     true
   end
 end
