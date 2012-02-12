@@ -20,6 +20,12 @@ defmodule ExUnit::Assertions do
   end
 
   # FIXME: Make this works with double quoted strings
+  # Asserts the `base` value is included in `container`.
+  #
+  # ## Examples
+  #
+  #     assert_include 'foo', 'foobar'
+  #
   def assert_included(base, container) do
     assert_included(base, container, "Expected #{inspect container} to include #{inspect base}")
   end
@@ -28,6 +34,12 @@ defmodule ExUnit::Assertions do
     assert(Erlang.string.str(container, base) != 0, message)
   end
 
+  # Asserts the `expected` value is equal to `received`.
+  #
+  # ## Examples
+  #
+  #     assert_equal 0, 0
+  #
   def assert_equal(expected, received) do
     assert_equal(expected, received, "Expected #{inspect received} to be equal to #{inspect expected}")
   end
@@ -36,6 +48,12 @@ defmodule ExUnit::Assertions do
     assert(expected == received, message)
   end
 
+  # Asserts the `not_expected` value is false.
+  #
+  # ## Examples
+  #
+  #     refute false
+  #
   def refute(not_expected) do
     refute(not_expected, "Expected #{inspect not_expected} to be false")
   end
@@ -44,6 +62,12 @@ defmodule ExUnit::Assertions do
     not assert(!not_expected, message)
   end
 
+  # Asserts the `expected` value is true.
+  #
+  # ## Examples
+  #
+  #     assert true
+  #
   def assert(expected) do
     assert(expected, "Expected #{inspect expected} to be true")
   end
