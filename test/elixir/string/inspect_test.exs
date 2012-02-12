@@ -4,39 +4,39 @@ defmodule String::Inspect::AtomTest do
   use ExUnit::Case
 
   def test_basic do
-    ":foo" = inspect(:foo)
-    "foo"  = to_binary(:foo)
+    assert_equal ":foo", inspect(:foo)
+    assert_equal "foo", to_binary(:foo)
   end
 
   def test_empty do
-    ":\"\"" = inspect(:"")
-    ""     = to_binary(:"")
+    assert_equal ":\"\"", inspect(:"")
+    assert_equal "", to_binary(:"")
   end
 
   def test_true_false_nil do
-    "false" = inspect(false)
-    "true"  = inspect(true)
-    "nil"   = inspect(nil)
+    assert_equal "false", inspect(false)
+    assert_equal "true", inspect(true)
+    assert_equal "nil", inspect(nil)
 
-    "false" = to_binary(false)
-    "true"  = to_binary(true)
-    ""      = to_binary(nil)
+    assert_equal "false", to_binary(false)
+    assert_equal "true", to_binary(true)
+    assert_equal "", to_binary(nil)
   end
 
   def test_with_uppercase do
-    ":fOO" = inspect(:fOO)
-    "fOO"  = to_binary(:fOO)
-    ":FOO" = inspect(:FOO)
-    "FOO"  = to_binary(:FOO)
+    assert_equal ":fOO", inspect(:fOO)
+    assert_equal "fOO", to_binary(:fOO)
+    assert_equal ":FOO", inspect(:FOO)
+    assert_equal "FOO", to_binary(:FOO)
   end
 
   def test_reference_atom do
-    "::Foo::Bar" = inspect(::Foo::Bar)
-    "::Foo::Bar" = to_binary(::Foo::Bar)
+    assert_equal "::Foo::Bar", inspect(::Foo::Bar)
+    assert_equal "::Foo::Bar", to_binary(::Foo::Bar)
   end
 
   def test_impl do
-    String::Inspect = String::Inspect::Atom.__impl__
+    assert_equal String::Inspect, String::Inspect::Atom.__impl__
   end
 end
 
@@ -44,27 +44,27 @@ defmodule String::Inspect::BitStringTest do
   use ExUnit::Case
 
   def test_bitstring do
-    "<<0,1|4>>" = inspect(<<1|12-integer-signed>>)
-    "<<0,1|4>>" = to_binary(<<1|12-integer-signed>>)
+    assert_equal "<<0,1|4>>", inspect(<<1|12-integer-signed>>)
+    assert_equal "<<0,1|4>>", to_binary(<<1|12-integer-signed>>)
   end
 
   def test_binary do
-    "\"foo\"" = inspect("foo")
-    "foo"     = to_binary("foo")
+    assert_equal "\"foo\"", inspect("foo")
+    assert_equal "foo", to_binary("foo")
 
-    "\"abc\"" = inspect(<<?a, ?b, ?c>>)
-    "abc"     = to_binary(<<?a, ?b, ?c>>)
+    assert_equal "\"abc\"", inspect(<<?a, ?b, ?c>>)
+    assert_equal "abc", to_binary(<<?a, ?b, ?c>>)
 
-    "我今天要学习." = to_binary("我今天要学习.")
+    assert_equal "我今天要学习.", to_binary("我今天要学习.")
   end
 
   def test_escape do
-    "\"f\\no\""  = inspect("f\no")
-    "\"f\\\\o\"" = inspect("f\\o")
+    assert_equal "\"f\\no\"" , inspect("f\no")
+    assert_equal "\"f\\\\o\"", inspect("f\\o")
   end
 
   def test_unprintable do
-    "<<1>>" = inspect(<<1>>)
+    assert_equal "<<1>>", inspect(<<1>>)
   end
 end
 
@@ -72,19 +72,19 @@ defmodule String::Inspect::NumberTest do
   use ExUnit::Case
 
   def test_integer do
-    "100" = inspect(100)
-    "100" = to_binary(100)
+    assert_equal "100", inspect(100)
+    assert_equal "100", to_binary(100)
   end
 
   def test_float do
-    "1.00000000000000000000e+00" = inspect(1.0)
-    "1.00000000000000000000e+00" = to_binary(1.0)
+    assert_equal "1.00000000000000000000e+00", inspect(1.0)
+    assert_equal "1.00000000000000000000e+00", to_binary(1.0)
 
-    "1.00000000000000000000e+10" = inspect(1.0e10)
-    "1.00000000000000000000e+10" = to_binary(1.0e10)
+    assert_equal "1.00000000000000000000e+10", inspect(1.0e10)
+    assert_equal "1.00000000000000000000e+10", to_binary(1.0e10)
 
-    "1.00000000000000000000e+10" = inspect(1.0e+10)
-    "1.00000000000000000000e+10" = to_binary(1.0e+10)
+    assert_equal "1.00000000000000000000e+10", inspect(1.0e+10)
+    assert_equal "1.00000000000000000000e+10", to_binary(1.0e+10)
   end
 end
 
@@ -92,23 +92,23 @@ defmodule String::Inspect::TupleTest do
   use ExUnit::Case
 
   def test_basic do
-    "{1,\"b\",3}" = inspect({ 1, "b", 3 })
-    "{1,\"b\",3}" = to_binary({ 1, "b", 3 })
+    assert_equal "{1,\"b\",3}", inspect({ 1, "b", 3 })
+    assert_equal "{1,\"b\",3}", to_binary({ 1, "b", 3 })
   end
 
   def test_record_like do
-    "{:foo,:bar}" = inspect({ :foo, :bar })
-    "{:foo,:bar}" = to_binary({ :foo, :bar })
+    assert_equal "{:foo,:bar}", inspect({ :foo, :bar })
+    assert_equal "{:foo,:bar}", to_binary({ :foo, :bar })
   end
 
   def test_exception do
-    "::RuntimeError{\"runtime error\"}" = inspect(RuntimeError.new)
-    "::RuntimeError{\"runtime error\"}" = to_binary(RuntimeError.new)
+    assert_equal "::RuntimeError{\"runtime error\"}", inspect(RuntimeError.new)
+    assert_equal "::RuntimeError{\"runtime error\"}", to_binary(RuntimeError.new)
   end
 
   def test_empty do
-    "{}" = inspect({})
-    "{}" = to_binary({})
+    assert_equal "{}", inspect({})
+    assert_equal "{}", to_binary({})
   end
 end
 
@@ -116,28 +116,28 @@ defmodule String::Inspect::ListTest do
   use ExUnit::Case
 
   def test_basic do
-    "[1,\"b\",3]" = inspect([ 1, "b", 3 ])
-    <<1,98,3>> = to_binary([ 1, "b", 3 ])
+    assert_equal "[1,\"b\",3]", inspect([ 1, "b", 3 ])
+    assert_equal <<1,98,3>>, to_binary([ 1, "b", 3 ])
   end
 
   def test_printable do
-    "'abc'" = inspect('abc')
-    "abc"   = to_binary('abc')
+    assert_equal "'abc'", inspect('abc')
+    assert_equal "abc"  , to_binary('abc')
   end
 
   def test_non_printable do
-    "[{:a,1}]" = inspect([{:a,1}])
-    "[{:a,1}]" = to_binary([{:a,1}])
+    assert_equal "[{:a,1}]", inspect([{:a,1}])
+    assert_equal "[{:a,1}]", to_binary([{:a,1}])
   end
 
   def test_unproper do
-    "[:foo|:bar]" = inspect([:foo | :bar])
-    "[:foo|:bar]" = to_binary([:foo | :bar])
+    assert_equal "[:foo|:bar]", inspect([:foo | :bar])
+    assert_equal "[:foo|:bar]", to_binary([:foo | :bar])
   end
 
   def test_empty do
-    "[]" = inspect([])
-    ""   = to_binary([])
+    assert_equal "[]", inspect([])
+    assert_equal "", to_binary([])
   end
 end
 

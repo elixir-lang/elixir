@@ -73,7 +73,7 @@ defmodule ProtocolTest do
   # Assert that the given protocol is going to be dispatched.
   defp assert_protocol_for(target, impl, thing) do
     joined  = target::impl
-    ^joined = target.__protocol_for__ thing
+    assert_equal joined, target.__protocol_for__ thing
   end
 
   # Dispatch `blank(thing)` to the given `target`

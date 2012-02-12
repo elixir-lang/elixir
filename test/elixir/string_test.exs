@@ -5,6 +5,6 @@ defmodule StringTest do
 
   def test_string_concatenation_as_match do
     "foo" <> x = "foobar"
-    "bar" = x
+    assert_equal "bar", x
   end
 end

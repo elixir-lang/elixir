@@ -9,22 +9,24 @@ defmodule Kernel::RequireTest do
 
   def test_require_erlang do
     require Erlang.lists, as: MyList
-    [1,2,3] = MyList.flatten([1,[2],3])
-    :"::MyList::Bar" = ::MyList::Bar
-    :"::lists::Bar" = MyList::Bar
+    assert_equal [1,2,3], MyList.flatten([1,[2],3])
+    assert_equal :"::MyList::Bar", ::MyList::Bar
+    assert_equal :"::lists::Bar", MyList::Bar
   end
 
   def test_require_with_one_arg do
     require Kernel::RequireTest::Nested
-    1 = Nested.value
+    assert_equal 1, Nested.value
   end
 
   def test_default_required do
-    true = Elixir::Builtin.case 1 do
+    result = Elixir::Builtin.case 1 do
     match: 1
       true
     else:
       false
     end
+
+    assert result
   end
 end
