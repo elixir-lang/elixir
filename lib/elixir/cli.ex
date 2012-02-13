@@ -21,22 +21,26 @@ defmodule Elixir::CLI do
       at_exit(1)
       IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
       print_stacktrace(Code.stacktrace)
-      halt(1)
+      stop(1)
     catch: :exit, reason when is_integer(reason)
       at_exit(reason)
-      halt(reason)
+      stop(reason)
     catch: kind, reason
       at_exit(1)
       IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
       print_stacktrace(Code.stacktrace)
-      halt(1)
+      stop(1)
+    else:
+      at_exit(0)
+      stop(0)
     end
-
-    at_exit(0)
-    halt(0)
   end
 
   ## Private
+
+  defp stop(status) do
+    Erlang.init.stop(status)
+  end
 
   defp at_exit(status) do
     hooks = Erlang.gen_server.call(:elixir_code_server, :at_exit)
@@ -55,7 +59,7 @@ defmodule Elixir::CLI do
 
   defp invalid_option(option) do
     IO.puts(:standard_error, "Unknown option #{list_to_binary(option)}")
-    halt(1)
+    stop(1)
   end
 
   defp shared_option?(list, config, callback) do

@@ -75,16 +75,30 @@ translate_macro({'case', Line, [Expr, RawClauses]}, S) ->
 %% Try
 
 translate_macro({'try', Line, [Clauses]}, RawS) ->
-  Do    = proplists:get_value('do',    Clauses, []),
-  After = proplists:get_value('after', Clauses, []),
-  Catch = orddict:erase('after', orddict:erase('do', Clauses)),
+  Do    = proplists:get_value('do', Clauses, []),
+  Catch = orddict:erase('after', orddict:erase('else', orddict:erase('do', Clauses))),
 
   S = RawS#elixir_scope{noname=true},
 
-  { TDo, SB }    = translate([Do], S),
-  { TCatch, SC } = elixir_try:clauses(Line, Catch, umergec(S, SB)),
-  { TAfter, SA } = translate([After], umergec(S, SC)),
-  { { 'try', Line, unpack_try(do, TDo), [], TCatch, unpack_try('after', TAfter) }, umergec(RawS, SA) };
+  { TDo, SB } = translate([Do], S),
+
+  case orddict:find('else', Clauses) of
+    { ok, Else } ->
+      { TElse, SE } = translate([Else], SB),
+      TClause = [ { clause, Line, [{ var, Line, '_' }], [], unpack(TElse) } ];
+    error ->
+      TClause = [],
+      SE = SB
+  end,
+
+  { TCatch, SC } = elixir_try:clauses(Line, Catch, umergec(S, SE)),
+
+  { TAfter, SA } = case orddict:find('after', Clauses) of
+    { ok, After } -> translate([After], umergec(S, SC));
+    error -> { [], SC }
+  end,
+
+  { { 'try', Line, unpack(TDo), TClause, TCatch, unpack(TAfter) }, umergec(RawS, SA) };
 
 %% Receive
 
@@ -170,10 +184,8 @@ translate_macro({ Atom, Line, Args }, S) ->
 %% HELPERS
 
 % Unpack a list of expressions from a block.
-% Return an empty list in case it is an empty expression on after.
-unpack_try(_, [{ '__BLOCK__', _, Exprs }]) -> Exprs;
-unpack_try('after', [{ nil, _ }])          -> [];
-unpack_try(_, Exprs)                       -> Exprs.
+unpack([{ '__BLOCK__', _, Exprs }]) -> Exprs;
+unpack(Exprs)                       -> Exprs.
 
 %% Assertions
 
