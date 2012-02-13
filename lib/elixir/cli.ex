@@ -1,4 +1,4 @@
-defrecord Elixir::CLI::Config, commands: [], close: [], output: '.', compile: false
+defrecord Elixir::CLI::Config, commands: [], close: [], output: '.', compile: false, stop: true
 
 defmodule Elixir::CLI do
   import Exception, only: [format_stacktrace: 1]
@@ -31,8 +31,10 @@ defmodule Elixir::CLI do
       print_stacktrace(Code.stacktrace)
       stop(1)
     else:
-      at_exit(0)
-      stop(0)
+      if config.stop do
+        at_exit(0)
+        stop(0)
+      end
     end
   end
 
@@ -108,6 +110,10 @@ defmodule Elixir::CLI do
 
   defp process_options(['--'|t], config) do
     { config, t }
+  end
+
+  defp process_options(['--no-stop'|t], config) do
+    process_compiler t, config.stop(false)
   end
 
   defp process_options(['+compile'|t], config) do

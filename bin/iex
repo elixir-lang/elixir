@@ -2,4 +2,4 @@
 SELF=`readlink $0 || echo $0`
 SCRIPT_PATH=`dirname $SELF`
 ELIXIR_PATH=`cd $SCRIPT_PATH; pwd`
-$ELIXIR_PATH/elixir -e "Elixir::IEx.start" "$@"
+$ELIXIR_PATH/elixir --no-stop -e "Elixir::IEx.start" "$@"
