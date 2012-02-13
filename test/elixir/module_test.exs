@@ -69,7 +69,6 @@ defmodule ModuleTest do
   end
 
   test :__MODULE__ do
-    __MODULE__ = :"::ModuleTest"
     assert_equal :"::ModuleTest", __MODULE__
   end
 

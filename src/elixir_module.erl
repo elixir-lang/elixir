@@ -191,7 +191,9 @@ translate_data(Table, Registered, [{_,nil}|T]) ->
 
 translate_data(Table, Registered, [{K,V}|T]) ->
   case reserved_data(Registered, K) of
-    true  -> ets:insert(Table, { K, V });
+    true  ->
+      ets:insert(Table, { K, V }),
+      translate_data(Table, Registered, T);
     false -> [{K,V}|translate_data(Table, Registered, T)]
   end;
 
