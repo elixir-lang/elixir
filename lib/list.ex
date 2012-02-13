@@ -26,10 +26,6 @@ defmodule List do
   #     List.append [1,2,3], [4,5,6]
   #     #=> [1,2,3,4,5,6]
   #
-  def append([h], right) when is_list(right) do
-    [h|right]
-  end
-
   def append(left, right) do
     left ++ right
   end
@@ -79,6 +75,27 @@ defmodule List do
   #
   def member?(list, term) when is_list(list) do
     Erlang.lists.member(term, list)
+  end
+
+  # Prepend the items given as first argument to list
+  # as right argument. Note that items are prepended in
+  # reverse order. This function does not modify the tail
+  # and therefore does not duplicate the entries in memory.
+  #
+  # ## Examples
+  #
+  #     List.prepend [1], [2, 3]
+  #     #=> [1,2,3]
+  #
+  #     List.prepend [1,0], [2, 3]
+  #     #=> [0,1,2,3]
+  #
+  def prepend([h|t], other) do
+    prepend(t, [h|other])
+  end
+
+  def prepend([], other) do
+    other
   end
 
   # Returns a list as a sequence from first to last.

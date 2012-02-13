@@ -33,6 +33,10 @@ defmodule ListTest do
     assert_equal [1], List.seq(1,1)
   end
 
+  def test_prepend do
+    assert_equal [0,1,2,3], List.prepend [1,0], [2,3]
+  end
+
   def test_append_1 do
     assert_equal [1,[2],3,4,5,6], List.append [[1,[2],3], [4], [5,6]]
   end

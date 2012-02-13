@@ -30,6 +30,11 @@ defmodule RecordTest do
     assert_equal 1, record.b
   end
 
+  def test_dynamic_update do
+    record = RecordTest::DynamicName.new
+    assert_equal 10, record.update_a(10 + &1).a
+  end
+
   defp file_info do
     { :ok, file_info } = Erlang.file.read_file_info(__FILE__)
     file_info

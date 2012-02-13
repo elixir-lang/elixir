@@ -6,13 +6,19 @@ Elixir provides both protocols and records. This section will outline the main f
 
 Records are simple structures that holds values. For example, we can define a `FileInfo` record that is supposed to store information about files as follow:
 
-    defrecord FileInfo, atime: nil, mtime: nil
+    defrecord FileInfo, atime: nil, mtime: nil, accesses: 0
 
 The line above will define a module named `FileInfo` which contain a function named `new` that returns a new record and other functions to read and set the values in the record. Therefore, we can do:
 
     file_info = FileInfo.new(atime: now())
     file_info.atime         #=> Returns the value of atime
     file_info.atime(now())  #=> Updates the value of atime
+
+Elixir will also define a `update_#{field}` function that accepts a function as argument that will receive the old value and update the current value with the result of the function:
+
+    file_info = FileInfo.new(accesses: 10)
+    file_info = file_info.update_accesses(fn(x, do: x + 1))
+    file_info.accesses #=> 11
 
 Internally, a record is simply a tuple where the first element is always the record module name. This can be noticed if we create and print the record in Interactive Elixir (`bin/iex`):
 
@@ -43,7 +49,6 @@ Since `counter` is an integer, Elixir automatically defines a helper named `incr
 On the other hand, if the default value is a list, Elixir will define three helpers:
 
 * `prepend_field` - Receives another list and prepend its values
-* `append_field` - Receives another list and append its values
 * `merge_field` - Receives an orddict (which is a list of tuples) and merge it into the current value;
 
 ## 4.2 Protocols

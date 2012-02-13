@@ -157,7 +157,6 @@ defmodule Elixir::Builtin do
   #
   # * `merge_field` - Receives an orddict and merge it into the current value;
   # * `prepend_field` - Receives another list and prepend its values
-  # * `append_field` - Receives another list and append its values
   #
   defmacro defrecord(name, values, opts // [], do_block // []) do
     Record.defrecord(name, values, Orddict.merge(opts, do_block))

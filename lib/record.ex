@@ -127,6 +127,9 @@ defmodule Record do
   defp getters_and_setters([{ key, default }|t], i, acc, extensor) do
     i = i + 1
 
+    bin_update = "update_" <> atom_to_binary(key, :utf8)
+    update     = binary_to_atom(bin_update, :utf8)
+
     contents = quote do
       def unquote(key).(record) do
         element(unquote(i), record)
@@ -134,6 +137,11 @@ defmodule Record do
 
       def unquote(key).(value, record) do
         setelement(unquote(i), record, value)
+      end
+
+      def unquote(update).(function, record) do
+        current = element(unquote(i), record)
+        setelement(unquote(i), record, function.(current))
       end
     end
 
@@ -225,24 +233,18 @@ defmodule Record::Extractor do
 end
 
 # Provides default extensions for a regular record.
-# It adds append_, prepend_ and merge_ helpers for lists
-# and increment_ for numbers.
+# It adds prepend_ and merge_ helpers for lists and
+# increment_ for numbers.
 defmodule Record::Extensor do
   def extension_for(key, default, i) when is_list(default) do
     bin_key = atom_to_binary(key, :utf8)
-    append  = :"append_#{bin_key}"
     prepend = :"prepend_#{bin_key}"
     merge   = :"merge_#{bin_key}"
 
     quote do
-      def unquote(append).(value, record) do
-        current = element(unquote(i), record)
-        setelement(unquote(i), record, List.append(current, value))
-      end
-
       def unquote(prepend).(value, record) do
         current = element(unquote(i), record)
-        setelement(unquote(i), record, List.append(value, current))
+        setelement(unquote(i), record, List.prepend(value, current))
       end
 
       def unquote(merge).(value, record) do

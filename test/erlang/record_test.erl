@@ -33,11 +33,10 @@ record_new_selective_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
-record_append_prepend_test() ->
+record_prepend_test() ->
   F = fun() ->
     elixir:eval("defrecord Foo, a: 1, b: [3], c: 3"),
-    { { '::Foo', 1, [3,4,5], 3 }, _ } = elixir:eval("Foo.new.append_b  [4,5]"),
-    { { '::Foo', 1, [1,2,3], 3 }, _ } = elixir:eval("Foo.new.prepend_b [1,2]")
+    { { '::Foo', 1, [1,2,3], 3 }, _ } = elixir:eval("Foo.new.prepend_b [2,1]")
   end,
   test_helper:run_and_remove(F, ['::Foo']).
 
