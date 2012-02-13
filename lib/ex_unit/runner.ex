@@ -68,7 +68,7 @@ defmodule ExUnit::Runner do
   # Run each test case in its own process.
   defp spawn_case(test_case) do
     pid = self()
-    spawn_link fn(do: run_tests(pid, test_case, test_case.__tests__))
+    spawn_link fn(do: run_tests(pid, test_case, tests_for(test_case)))
   end
 
   # For each instanciated object, dispatch each test in it.
@@ -101,4 +101,22 @@ defmodule ExUnit::Runner do
   defp run_tests(pid, test_case, []) do
     pid <- { self(), :each_case, test_case }
   end
+
+  # Retrieves test functions from the module.
+  defp tests_for(mod) do
+    exports = mod.__info__(:exports)
+    tests_for exports, []
+  end
+
+  defp tests_for([{function,0}|t], acc) do
+    list = atom_to_list(function)
+    if match?('test_' ++ _, list) || match?('test ' ++ _, list) do
+      tests_for t, [function|acc]
+    else:
+      tests_for t, acc
+    end
+  end
+
+  defp tests_for([_|t], acc), do: tests_for t, acc
+  defp tests_for([], acc),    do: List.reverse(acc)
 end

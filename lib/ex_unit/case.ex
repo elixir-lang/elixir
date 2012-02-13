@@ -8,30 +8,50 @@ defmodule ExUnit::Case do
 
     quote do
       import ExUnit::Assertions
+      import ExUnit::Case
+    end
+  end
 
-      def __tests__ do
-        ExUnit::Case.tests_for(__MODULE__)
+  # Provides a convenient macro that allows a test to be
+  # defined with a string. This macro automatically inserts
+  # the atom :ok as the last line of the test. That said,
+  # a passing test always returns :ok, but, more important,
+  # it forces Elixir to not tail call optimize the test and
+  # therefore avoiding hiding lines from the backtrace.
+  #
+  # ## Examples
+  #
+  #     test "true is equal to true" do
+  #       assert_equal true, true
+  #     end
+  #
+  defmacro test(message, contents) do
+    contents =
+      case contents do
+      match: [do: block]
+        [do: append_to_block(block, :ok)]
+      else:
+        contents
       end
+
+    quote do
+      message = unquote(message)
+      message = if is_binary(message) do
+        :"test #{message}"
+      else:
+        :"test_#{message}"
+      end
+      def message, [], true, unquote(contents)
     end
   end
 
-  def tests_for(mod) do
-    exports = mod.__info__(:exports)
-    tests_for exports, []
+  ## Helpers
+
+  defp append_to_block({ :__BLOCK__, line, exprs }, other) do
+    { :__BLOCK__, line, exprs ++ [other] }
   end
 
-  ## Private
-
-  defp tests_for([{function,0}|t], acc) do
-    list = atom_to_list(function)
-    case list do
-    match: 'test_' ++ _
-      tests_for t, [function|acc]
-    else:
-      tests_for t, acc
-    end
+  defp append_to_block(expr, other) do
+    { :__BLOCK__, 0, [expr, other] }
   end
-
-  defp tests_for([_|t], acc), do: tests_for t, acc
-  defp tests_for([], acc),    do: List.reverse(acc)
 end

@@ -33,6 +33,10 @@ defmodule Kernel::ExceptionTest do
     assert_equal "foo:bar(1, 2)", Exception.format_module_fun_arity :foo,  :bar, [1,2]
   end
 
+  def test_format_module_function_arity_with_special_function_name do
+    assert_equal "::Foo.\"bar baz\"/1", Exception.format_module_fun_arity ::Foo, :"bar baz", 1
+  end
+
   def test_runtime_error_message do
     assert_equal "runtime error", RuntimeError.new.message
     assert_equal "exception", RuntimeError.new(message: "exception").message

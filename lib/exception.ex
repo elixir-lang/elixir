@@ -60,6 +60,8 @@ defmodule Exception do
         ":"
       end
 
+    << ?:, fun | :binary >> = inspect(fun)
+
     if is_list(arity) do
       inspected = lc x in arity, do: inspect(x)
       "#{module}#{separator}#{fun}(#{Enum.join(inspected, ", ")})"
