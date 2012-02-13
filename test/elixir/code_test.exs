@@ -11,18 +11,18 @@ defmodule CodeTest do
 
   Code.eval_quoted contents, [], "sample.ex", 13
 
-  def test_eval_quoted do
+  test :eval_quoted do
     assert_equal { ::CodeTest::Sample, "sample.ex", 13 }, CodeTest::Sample.eval_quoted_info()
   end
 
-  def test_require do
+  test :require do
     Code.require_file "../fixtures/code_sample", __FILE__
 
     expanded = File.expand_path("test/elixir/fixtures/code_sample.exs")
     assert Erlang.lists.member(expanded, Code.loaded_files)
   end
 
-  def test_require_on_failure do
+  test :require_on_failure do
     expanded = File.expand_path("code_sample.exs")
 
     try do

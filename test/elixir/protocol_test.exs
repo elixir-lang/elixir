@@ -21,7 +21,7 @@ end
 defmodule ProtocolTest do
   use ExUnit::Case
 
-  def test_protocol_with_all do
+  test :protocol_with_all do
     assert_undef(ProtocolTest::WithAll, Atom, :foo)
     assert_undef(ProtocolTest::WithAll, Function, fn(x, do: x))
     assert_undef(ProtocolTest::WithAll, Number, 1)
@@ -38,7 +38,7 @@ defmodule ProtocolTest do
     assert_undef(ProtocolTest::WithAll, Reference, make_ref)
   end
 
-  def test_protocol_with_except do
+  test :protocol_with_except do
     assert_undef(ProtocolTest::WithExcept, Any, :foo)
     assert_undef(ProtocolTest::WithExcept, Any, 1)
     assert_undef(ProtocolTest::WithExcept, Any, [1,2,3])
@@ -46,7 +46,7 @@ defmodule ProtocolTest do
     assert_undef(ProtocolTest::WithExcept, Tuple, {})
   end
 
-  def test_protocol_with_only do
+  test :protocol_with_only do
     assert_undef(ProtocolTest::WithOnly, Any, :foo)
     assert_undef(ProtocolTest::WithOnly, Any, 1)
     assert_undef(ProtocolTest::WithOnly, Any, [1,2,3])
@@ -55,12 +55,12 @@ defmodule ProtocolTest do
     true  = ProtocolTest::WithOnly.blank(ProtocolTest::Foo.new)
   end
 
-  def test_protocol_with_record do
+  test :protocol_with_record do
     true  = ProtocolTest::WithAll.blank(ProtocolTest::Foo.new)
     false = ProtocolTest::WithAll.blank(ProtocolTest::Foo.new(a: 1))
   end
 
-  def test_protocol_for do
+  test :protocol_for do
     assert_protocol_for(ProtocolTest::WithAll, Atom, :foo)
     assert_protocol_for(ProtocolTest::WithAll, Function, fn(x, do: x))
     assert_protocol_for(ProtocolTest::WithAll, Number, 1)

@@ -24,23 +24,23 @@ defmodule Kernel::QuoteTest do
   use ExUnit::Case
   import __MODULE__::Hygiene
 
-  def test_no_interference do
+  test :no_interference do
     a = 10
     no_interference
     assert_equal 10, a
   end
 
-  def test_no_hygiene do
+  test :no_hygiene do
     no_hygiene
     assert_equal 1, a
   end
 
-  def test_write_interference do
+  test :write_interference do
     write_interference
     assert_equal 1, a
   end
 
-  def test_read_interference do
+  test :read_interference do
     a = 10
     read_interference
   end

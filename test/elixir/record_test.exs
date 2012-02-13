@@ -9,13 +9,13 @@ defrecord name, a: 0, b: 1
 defmodule RecordTest do
   use ExUnit::Case
 
-  def test_record_constructor_with_dict do
+  test :record_constructor_with_dict do
     record   = RecordTest::FileInfo.new(type: :regular)
     assert_equal :regular, record.type
     assert_equal nil, record.access
   end
 
-  def test_record_accessors do
+  test :record_accessors do
     record = RecordTest::FileInfo.new(file_info)
     assert_equal :regular, record.type
     assert_equal :read_write, record.access
@@ -24,13 +24,13 @@ defmodule RecordTest do
     assert_equal :read, new_record.access
   end
 
-  def test_dynamic_record_name do
+  test :dynamic_record_name do
     record = RecordTest::DynamicName.new
     assert_equal 0, record.a
     assert_equal 1, record.b
   end
 
-  def test_dynamic_update do
+  test :dynamic_update do
     record = RecordTest::DynamicName.new
     assert_equal 10, record.update_a(10 + &1).a
   end

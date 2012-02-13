@@ -60,41 +60,41 @@ defmodule ModuleTest do
   Module.merge_data __MODULE__, other_value: 1
   Module.merge_data __MODULE__, other_value: 2
 
-  def test_eval_quoted do
+  test :eval_quoted do
     assert_equal { ::ModuleTest, "sample.ex", 13 }, eval_quoted_info()
   end
 
-  def test_line_from_macro do
+  test :line_from_macro do
     assert_equal 31, ModuleTest::ToUse.line
   end
 
-  def test___MODULE__ do
+  test :__MODULE__ do
     __MODULE__ = :"::ModuleTest"
     assert_equal :"::ModuleTest", __MODULE__
   end
 
-  def test_merge_data do
-    [other_value: 2, value: 1] == __MODULE__.__info__(:data)
+  test :merge_data do
+    assert_equal [other_value: 2, value: 1], __MODULE__.__info__(:data)
   end
 
-  def test_compile_callback_hook do
+  test :compile_callback_hook do
     refute ModuleTest::ToUse.original_value
     assert Orddict.get ModuleTest::ToUse.__info__(:data), :has_callback, false
   end
 
-  def test_default_compile_callback_hook do
+  test :default_compile_callback_hook do
     assert Orddict.get ModuleTest::ToUse.__info__(:data), :compiling, false
   end
 
-  def test_reserved_attributes do
+  test :reserved_attributes do
     assert_equal {:behavior,[:gen_server]}, :lists.keyfind(:behavior, 1, Elixir::Server.__info__(:attributes))
   end
 
-  def test_registered_attributes do
+  test :registered_attributes do
     assert_equal {:register_example,[:it_works]}, :lists.keyfind(:register_example, 1, __MODULE__.__info__(:attributes))
   end
 
-  def test_duplicated_attributes do
+  test :duplicated_attributes do
     [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest::DuplicateAttribute.__info__(:attributes)
   end
 end

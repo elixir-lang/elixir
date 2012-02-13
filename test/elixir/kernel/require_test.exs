@@ -7,19 +7,19 @@ end
 defmodule Kernel::RequireTest do
   use ExUnit::Case
 
-  def test_require_erlang do
+  test :require_erlang do
     require Erlang.lists, as: MyList
     assert_equal [1,2,3], MyList.flatten([1,[2],3])
     assert_equal :"::MyList::Bar", ::MyList::Bar
     assert_equal :"::lists::Bar", MyList::Bar
   end
 
-  def test_require_with_one_arg do
+  test :require_with_one_arg do
     require Kernel::RequireTest::Nested
     assert_equal 1, Nested.value
   end
 
-  def test_default_required do
+  test :default_required do
     result = Elixir::Builtin.case 1 do
     match: 1
       true

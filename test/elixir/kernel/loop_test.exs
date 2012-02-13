@@ -3,7 +3,7 @@ Code.require_file "../../test_helper", __FILE__
 defmodule Kernel::LoopTest do
   use ExUnit::Case
 
-  def test_do_loop do
+  test :do_loop do
     list = [1,2,3]
 
     result = loop list, [] do
@@ -16,7 +16,7 @@ defmodule Kernel::LoopTest do
     assert_equal [6,4,2], result
   end
 
-  def test_do_loop_base do
+  test :do_loop_base do
     fun = fn do
     match: { 1, 2 }, []
       1
