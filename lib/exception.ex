@@ -50,7 +50,6 @@ defmodule Exception do
   end
 
   # Format module, fun and arity to inspection.
-
   def format_module_fun_arity(module, fun, arity) do
     separator =
       case atom_to_list(module) do
@@ -71,17 +70,20 @@ defmodule Exception do
   end
 
   # Format stacktrace for inspection.
-
   def format_stacktrace({module, fun, arity, file_line}) do
     "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
   end
 
-  # Private
+  # Formats the given file and line given as an Orddict.
+  def format_file_line(file_line) do
+    format_file_line(Orddict.get(file_line, :file), Orddict.get(file_line, :line))
+  end
 
-  defp format_file_line(file_line) do
-    if file = Orddict.get(file_line, :file) do
-      file = list_to_binary(file)
-      if (line = Orddict.get(file_line, :line)) && line != 0 do
+  # Formats the given file and line.
+  def format_file_line(file, line) do
+    if file do
+      file = to_binary(file)
+      if line && line != 0 do
         "#{file}:#{line}: "
       else:
         "#{file}: "
@@ -90,6 +92,8 @@ defmodule Exception do
       ""
     end
   end
+
+  ## Helpers
 
   defp from_stacktrace([{ module, function, arity, _ }|_]) do
     [module: module, function: function, arity: arity]
@@ -102,9 +106,24 @@ defexception RuntimeError,      message: "runtime error"
 defexception ArgumentError,     message: "argument error"
 defexception ArithmeticError,   message: "bad argument in arithmetic expression"
 defexception SystemLimitError,  message: "a system limit has been reached"
-defexception SyntaxError,       message: "syntax error"
-defexception TokenMissingError, message: "syntax error: expression is incomplete"
-defexception CompileError,      message: "compile error"
+
+defexception SyntaxError, file: nil, line: nil, description: "syntax error" do
+  def message(exception) do
+    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
+  end
+end
+
+defexception TokenMissingError, file: nil, line: nil, description: "expression is incomplete" do
+  def message(exception) do
+    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
+  end
+end
+
+defexception CompileError, file: nil, line: nil, description: "compile error" do
+  def message(exception) do
+    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
+  end
+end
 
 defexception BadFunctionError, actual: nil do
   def message(exception) do

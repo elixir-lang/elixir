@@ -37,8 +37,8 @@ defmodule Elixir::CLI::SyntaxErrorTest do
   use ExUnit::Case
 
   test :syntax_code_error do
-    assert_member '** (::TokenMissingError) syntax error: expression is incomplete', OS.cmd('bin/elixir -e "[1,2"')
-    assert_member '** (::SyntaxError) syntax error before: \'end\'', OS.cmd('bin/elixir -e "case 1 end"')
+    assert_member '** (::TokenMissingError) nofile:1: syntax error: expression is incomplete', OS.cmd('bin/elixir -e "[1,2"')
+    assert_member '** (::SyntaxError) nofile:1: syntax error before: \'end\'', OS.cmd('bin/elixir -e "case 1 end"')
   end
 end
 

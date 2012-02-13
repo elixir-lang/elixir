@@ -59,9 +59,8 @@ handle_file_error(Filename, {Line,Module,Desc}) ->
 %% Helpers
 
 raise(Line, Filename, Kind, Message) ->
-  Stacktrace0 = erlang:get_stacktrace(),
-  Stacktrace1 = [{ elixir_errors, raise, 4, [{file, Filename},{line, Line}]} | Stacktrace0],
-  erlang:raise(error, { Kind, '__EXCEPTION__', Message }, Stacktrace1).
+  Stacktrace = erlang:get_stacktrace(),
+  erlang:raise(error, { Kind, '__EXCEPTION__', Message, iolist_to_binary(Filename), Line }, Stacktrace).
 
 file_format(Line, Filename, Message) ->
   lists:flatten(io_lib:format("~ts:~w: ~ts", [Filename, Line, Message])).
