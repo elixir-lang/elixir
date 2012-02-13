@@ -17,6 +17,10 @@ defmodule Elixir::CLI do
 
     try do
       Enum.map all_commands, process_command(&1, config)
+      if config.stop do
+        at_exit(0)
+        stop(0)
+      end
     rescue: exception
       at_exit(1)
       IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
@@ -30,11 +34,6 @@ defmodule Elixir::CLI do
       IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
       print_stacktrace(Code.stacktrace)
       stop(1)
-    else:
-      if config.stop do
-        at_exit(0)
-        stop(0)
-      end
     end
   end
 
