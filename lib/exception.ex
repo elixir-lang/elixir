@@ -79,7 +79,7 @@ defmodule Exception do
   defp format_file_line(file_line) do
     if file = Orddict.get(file_line, :file) do
       file = list_to_binary(file)
-      if line = Orddict.get(file_line, :line) do
+      if (line = Orddict.get(file_line, :line)) && line != 0 do
         "#{file}:#{line}: "
       else:
         "#{file}: "

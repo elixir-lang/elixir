@@ -22,6 +22,7 @@ defmodule Kernel::ExceptionTest do
 
   def test_format_stacktrace_with_file_no_line do
     assert_equal "file.ex: ::Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex']})
+    assert_equal "file.ex: ::Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex', line: 0]})
     assert_equal "file.ex: ::Foo.bar(1, 2, 3)", Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], [file: 'file.ex']})
     assert_equal "file.ex: ::Foo.bar/1", Exception.format_stacktrace({::Foo, :bar, 1, [file: 'file.ex']})
   end

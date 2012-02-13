@@ -196,7 +196,13 @@ defmodule Elixir::SpecialForms do
   #                  module (if any is set), then fallback to root
   #     end
   #
-  defmacro quote(do: contents)
+  # ## Options
+  #
+  # `quote` also accepts some options as arguments. For example,
+  # hygiene can be turned off via `hygiene: false` which is useful
+  # when one is generating a code that should be inserted into
+  # some function.
+  defmacro quote(opts // [], do: contents)
 
   # Unquotes the given expression from inside a macro.
   #
