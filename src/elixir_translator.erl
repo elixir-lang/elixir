@@ -208,8 +208,15 @@ translate_each({'__REF__', Line, [Ref]}, S) when is_atom(Ref) ->
 
 %% Quoting
 
-translate_each({quote, _Line, [[{do,Exprs}]]}, S) ->
-  elixir_quote:translate_each(Exprs, S);
+translate_each({quote, Line, [Left, Right]}, S) ->
+  translate_each({ quote, Line, [orddict:from_list(Left ++ Right)] }, S);
+
+translate_each({quote, _Line, [[{do,Exprs}|T]]}, S) ->
+  Marker = case T of
+    [{hygiene,false}] -> nil;
+    _ -> quoted
+  end,
+  elixir_quote:translate_each(Exprs, Marker, S);
 
 translate_each({quote, Line, [_]}, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for quote");

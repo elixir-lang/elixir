@@ -5,6 +5,12 @@ defmodule Kernel::QuoteTest::Hygiene do
     quote do: a = 1
   end
 
+  defmacro no_hygiene do
+    quote hygiene: false do
+      a = 1
+    end
+  end
+
   defmacro write_interference do
     quote do: var!(a) = 1
   end
@@ -22,6 +28,11 @@ defmodule Kernel::QuoteTest do
     a = 10
     no_interference
     assert_equal 10, a
+  end
+
+  def test_no_hygiene do
+    no_hygiene
+    assert_equal 1, a
   end
 
   def test_write_interference do

@@ -183,6 +183,7 @@ non_overridable_macros() ->
     {'__LINE__',0},
     {'__REF__',1},
     {'quote',1},
+    {'quote',2},
     {'unquote',1},
     {'unquote_splicing',1},
     {'fn','*'},
