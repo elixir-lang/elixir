@@ -86,9 +86,11 @@ defmodule Elixir::Builtin do
   # This can be done by explicitly passing the function name, arguments
   # and guard:
   #
-  #     name = :some_function
+  #     name   = :some_function
+  #     args   = quote(do: [first_arg, second_arg])
+  #     guards = quote(do: is_list(first_arg))
   #
-  #     def name, [first_arg, second_arg], [is_list(first_arg)] do
+  #     def name, args, guards do
   #       # ...
   #     end
   #

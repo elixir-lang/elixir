@@ -212,11 +212,17 @@ translate_each({quote, Line, [Left, Right]}, S) ->
   translate_each({ quote, Line, [orddict:from_list(Left ++ Right)] }, S);
 
 translate_each({quote, _Line, [[{do,Exprs}|T]]}, S) ->
-  Marker = case T of
-    [{hygiene,false}] -> nil;
+  Marker = case orddict:find(hygiene, T) of
+    { ok, false } -> nil;
     _ -> quoted
   end,
-  elixir_quote:translate_each(Exprs, Marker, S);
+
+  Line = case orddict:find(line, T) of
+    { ok, Value } -> Value;
+    _ -> 0
+  end,
+
+  elixir_quote:translate_each(Exprs, Marker, Line, S);
 
 translate_each({quote, Line, [_]}, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for quote");

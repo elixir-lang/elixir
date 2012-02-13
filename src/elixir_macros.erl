@@ -121,11 +121,10 @@ translate_macro({Kind, Line, [_Call]}, S) when Kind == def; Kind == defmacro; Ki
 
 translate_macro({Kind, Line, [Call, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   { TCall, Guards } = elixir_clauses:extract_guards(Call),
-  { Name, Args } = elixir_clauses:extract_args(TCall),
-  translate_macro({ Kind, Line, [ Name, Args, Guards, KV ] }, S);
-
-translate_macro({Kind, Line, [Name, Args, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
-  translate_macro({ Kind, Line, [ Name, Args, true, KV ] }, S);
+  { Name, Args }    = elixir_clauses:extract_args(TCall),
+  MetaArgs   = { quote, Line, [[{ do, Args },   { hygiene, false }, { line, Line }]] },
+  MetaGuards = { quote, Line, [[{ do, Guards }, { hygiene, false }, { line, Line }]] },
+  translate_macro({ Kind, Line, [ Name, MetaArgs, MetaGuards, KV ] }, S);
 
 translate_macro({Kind, Line, [Name, Args, Guards, KV]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   assert_module_scope(Line, Kind, S),
@@ -133,8 +132,10 @@ translate_macro({Kind, Line, [Name, Args, Guards, KV]}, S) when Kind == def; Kin
     [{do, Expr}] -> [];
     _ -> Expr = { 'try', Line, [KV]}
   end,
-  { TName, TS } = translate_each(Name, S),
-  { elixir_def:wrap_definition(Kind, Line, TName, Args, elixir_clauses:extract_guard_clauses(Guards), Expr, TS), TS };
+  { TName, NS }   = translate_each(Name, S),
+  { TArgs, AS }   = translate_each(Args, NS),
+  { TGuards, TS } = translate_each(Guards, AS),
+  { elixir_def:wrap_definition(Kind, Line, TName, TArgs, TGuards, Expr, TS), TS };
 
 %% Modules directives
 
