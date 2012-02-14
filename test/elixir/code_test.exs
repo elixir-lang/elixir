@@ -21,14 +21,4 @@ defmodule CodeTest do
     expanded = File.expand_path("test/elixir/fixtures/code_sample.exs")
     assert Erlang.lists.member(expanded, Code.loaded_files)
   end
-
-  test :require_on_failure do
-    expanded = File.expand_path("code_sample.exs")
-
-    try do
-      Code.require_file "code_sample"
-      error { :bad_assertion, "Expected code_sample to not be available" }
-    catch: :error, { :enoent, ^expanded }
-    end
-  end
 end

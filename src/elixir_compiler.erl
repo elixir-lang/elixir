@@ -86,6 +86,8 @@ no_auto_import() ->
       {apply,3},
       {erase,0},
       {erase,1},
+      { error, 1 },
+      { error, 2 },
       {get,0},
       {get,1},
       {get_keys,1},

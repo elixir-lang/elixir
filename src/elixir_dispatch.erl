@@ -171,8 +171,6 @@ in_erlang_functions() ->
     { demonitor, 2 },
     { disconnect_node, 1 },
     { element, 2 },
-    { error, 1 },
-    { error, 2 },
     { exit, 1 },
     { exit, 2 },
     { float, 1 },

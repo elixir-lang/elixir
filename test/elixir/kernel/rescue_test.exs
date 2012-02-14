@@ -99,7 +99,7 @@ defmodule Kernel::RescueTest do
 
   test :wrap_custom_erlang_error do
     result = try do
-      error(:sample)
+      :erlang.error(:sample)
     rescue: x in [RuntimeError, ErlangError]
       x.message
     end
@@ -129,7 +129,7 @@ defmodule Kernel::RescueTest do
 
   test :badarg_error do
     result = try do
-      error(:badarg)
+      :erlang.error(:badarg)
     rescue: x in [ArgumentError]
       x.message
     end
@@ -139,7 +139,7 @@ defmodule Kernel::RescueTest do
 
   test :tuple_badarg_error do
     result = try do
-      error({ :badarg, [1,2,3] })
+      :erlang.error({ :badarg, [1,2,3] })
     rescue: x in [ArgumentError]
       x.message
     end
@@ -149,7 +149,7 @@ defmodule Kernel::RescueTest do
 
   test :badarith_error do
     result = try do
-      error(:badarith)
+      :erlang.error(:badarith)
     rescue: x in [ArithmeticError]
       x.message
     end

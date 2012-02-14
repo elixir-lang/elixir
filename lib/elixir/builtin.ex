@@ -921,7 +921,7 @@ defmodule Elixir::Builtin do
   #     raise "Given values do not match"
   #
   def raise(msg) when is_binary(msg) do
-    error RuntimeError.new(message: msg)
+    :erlang.error RuntimeError.new(message: msg)
   end
 
   # Receives a reference for an exception
@@ -932,7 +932,7 @@ defmodule Elixir::Builtin do
   #     raise ArgumentError
   #
   def raise(atom) when is_atom(atom) do
-    error atom.new
+    :erlang.error atom.new
   end
 
   # Receives an already existing exception and re-raises it.
@@ -947,7 +947,7 @@ defmodule Elixir::Builtin do
   #     end
   #
   def raise(exception) when is_tuple(exception) andalso element(2, exception) == __EXCEPTION__ do
-    error exception
+    :erlang.error exception
   end
 
   # Receives a reference for an exception and
@@ -958,7 +958,7 @@ defmodule Elixir::Builtin do
   #     raise ArgumentError, message: "Expected a protocol"
   #
   def raise(atom, args) when is_atom(atom) do
-    error atom.new(args)
+    :erlang.error atom.new(args)
   end
 
   ## Private functions

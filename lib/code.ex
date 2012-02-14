@@ -114,7 +114,7 @@ defmodule Code do
       if File.regular?(file) do
         file
       else:
-        error { :enoent, file }
+        raise ArgumentError, message: "could not load #{file}"
       end
     end
   end
