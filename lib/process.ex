@@ -53,6 +53,21 @@ defmodule Process do
     nillify :erlang.erase(key)
   end
 
+  # The calling process starts monitoring the item given.
+  # It returns the monitor reference.
+  # See http://www.erlang.org/doc/man/erlang.html#monitor-2 for more info.
+  def monitor(item) do
+    :erlang.monitor(:process, item)
+  end
+
+  # If monitor_ref is a reference which the calling process
+  # obtained by calling monitor/1, this monitoring is turned off.
+  # If the monitoring is already turned off, nothing happens.
+  # See http://www.erlang.org/doc/man/erlang.html#demonitor-2 for more info.
+  def demonitor(monitor_ref, options // []) do
+    :erlang.demonitor(monitor_ref, options)
+  end
+
   # Returns a list of process identifiers corresponding to all the
   # processes currently existing on the local node.
   #

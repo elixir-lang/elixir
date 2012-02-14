@@ -20,21 +20,21 @@ default_refer() ->
 
 get_functions('::Elixir::Builtin' = Module) ->
   try
-    (Module:module_info(exports) -- get_optional_macros(Module)) --
-      [{module_info,0},{module_info,1},{'__info__',1}]
+    ordsets:from_list((Module:module_info(exports) -- get_optional_macros(Module)) --
+      [{module_info,0},{module_info,1},{'__info__',1}])
   catch
     error:undef -> []
   end;
 
 get_functions(Module) ->
-  Module:module_info(exports) -- get_optional_macros(Module).
+  ordsets:from_list(Module:module_info(exports) -- get_optional_macros(Module)).
 
 get_macros(_Line, '::Elixir::Builtin', _S) ->
-  get_optional_macros('::Elixir::Builtin');
+  ordsets:from_list(get_optional_macros('::Elixir::Builtin'));
 
 get_macros(Line, Module, S) ->
   try
-    Module:'__info__'(macros)
+    ordsets:from_list(Module:'__info__'(macros))
   catch
     error:undef ->
       Tuple = { no_macros, Module },
@@ -43,14 +43,14 @@ get_macros(Line, Module, S) ->
 
 get_optional_macros('::Elixir::Builtin') ->
   try
-    '::Elixir::Builtin':'__info__'(macros) ++ in_erlang_macros()
+    ordsets:from_list('::Elixir::Builtin':'__info__'(macros) ++ in_erlang_macros())
   catch
-    error:undef -> in_erlang_macros()
+    error:undef -> ordsets:from_list(in_erlang_macros())
   end;
 
 get_optional_macros(Receiver) ->
   try
-    Receiver:'__info__'(macros)
+    ordsets:from_list(Receiver:'__info__'(macros))
   catch
     error:undef -> []
   end.
@@ -60,18 +60,17 @@ get_optional_macros(Receiver) ->
 dispatch_imports(Line, Name, Args, S, Callback) ->
   Arity = length(Args),
   Tuple = { Name, Arity },
-  case find_dispatch(Tuple, S#elixir_scope.macros) of
+  case find_dispatch(Tuple, S#elixir_scope.functions) of
     nil ->
-      case find_dispatch(Tuple, S#elixir_scope.functions) of
+      case find_dispatch(Tuple, S#elixir_scope.macros) of
         nil -> Callback();
-        erlang -> Callback();
         Receiver ->
           elixir_import:record(import, Tuple, Receiver, S),
-          elixir_translator:translate_each({ { '.', Line, [Receiver, Name] }, Line, Args }, S)
+          dispatch_macro(Line, Receiver, Tuple, Args, S)
       end;
     Receiver ->
       elixir_import:record(import, Tuple, Receiver, S),
-      dispatch_macro(Line, Receiver, Tuple, Args, S)
+      elixir_translator:translate_each({ { '.', Line, [Receiver, Name] }, Line, Args }, S)
   end.
 
 %% Dispatch based on scope's refer
@@ -110,7 +109,7 @@ dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
   { TTree, TS#elixir_scope{macro=[]} }.
 
 find_dispatch(Tuple, [{ Name, Values }|T]) ->
-  case lists:member(Tuple, Values) of
+  case ordsets:is_element(Tuple, Values) of
     true  -> Name;
     false -> find_dispatch(Tuple, T)
   end;
@@ -146,7 +145,6 @@ format_error({ no_macros, Module }) ->
   io_lib:format("could not load macros from module ~s", [Module]).
 
 %% Implemented in Erlang.
-
 in_erlang_functions() ->
   [
     { abs, 1 },
@@ -167,8 +165,6 @@ in_erlang_functions() ->
     { check_process_code, 2 },
     { date, 0 },
     { delete_module, 1 },
-    { demonitor, 1 },
-    { demonitor, 2 },
     { disconnect_node, 1 },
     { element, 2 },
     { exit, 1 },
@@ -218,7 +214,6 @@ in_erlang_functions() ->
     { max, 2 },
     { min, 2 },
     { module_loaded, 1 },
-    { monitor, 2 },
     { monitor_node, 2 },
     { node, 0 },
     { node, 1 },
