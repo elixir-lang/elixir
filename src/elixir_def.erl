@@ -47,8 +47,7 @@ reset_last(Module) ->
 %% If we just analyzed the compiled structure (i.e. the function availables
 %% before evaluating the function body), we would see both definitions.
 wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
-  MetaExpr = elixir_tree_helpers:abstract_syntax(Expr),
-  MetaS    = elixir_variables:serialize_scope(S),
+  MetaS = elixir_variables:serialize_scope(S),
 
   Invoke = [
     {atom, Line, Kind},
@@ -57,7 +56,7 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
     Name,
     Args,
     Guards,
-    MetaExpr,
+    Expr,
     MetaS
   ],
 
@@ -70,7 +69,12 @@ store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
-store_definition(Kind, Line, Module, Name, Args, RawGuards, Expr, RawS) ->
+store_definition(Kind, Line, Module, Name, Args, RawGuards, KV, RawS) ->
+  case KV of
+    [{do, Expr}] -> [];
+    _ -> Expr = { 'try', Line, [KV]}
+  end,
+
   Guards = elixir_clauses:extract_guard_clauses(RawGuards),
   S = elixir_variables:deserialize_scope(RawS),
   { Function, Defaults } = translate_definition(Line, Module, Name, Args, Guards, Expr, S),

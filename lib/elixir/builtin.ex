@@ -94,6 +94,8 @@ defmodule Elixir::Builtin do
   #       # ...
   #     end
   #
+  # Notice that as arguments needs to be evaluated, they need to be
+  # properly quoted.
   defmacro def(name, do: contents)
 
   # Defines a function that is private. Private functions
