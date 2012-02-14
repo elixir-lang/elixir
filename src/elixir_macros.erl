@@ -153,10 +153,14 @@ translate_macro({use, Line, [Ref|Args]}, S) when length(Args) =< 1 ->
 
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
-translate_macro({apply, Line, [Left, Right, Args]}, S) when is_list(Args) ->
+translate_macro({ apply, Line, [Left, Right, Args] }, S) when is_list(Args) ->
   { TLeft,  SL } = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   translate_apply(Line, TLeft, TRight, Args, S, SL, SR);
+
+translate_macro({ apply, Line, Args }, S) ->
+  { TArgs, NS } = translate_args(Args, S),
+  { ?ELIXIR_WRAP_CALL(Line, erlang, apply, TArgs), NS };
 
 %% Handle forced variables
 
@@ -164,11 +168,7 @@ translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_a
   elixir_variables:translate_each(Line, Name, S);
 
 translate_macro({ 'var!', Line, [_] }, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "invalid args for var!");
-
-translate_macro({ Atom, Line, Args }, S) ->
-  { TArgs, NS } = translate_args(Args, S),
-  { { call, Line, { atom, Line, Atom }, TArgs }, NS }.
+  syntax_error(Line, S#elixir_scope.filename, "invalid args for var!").
 
 %% HELPERS
 

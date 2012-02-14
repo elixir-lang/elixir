@@ -465,15 +465,26 @@ translate_args(Args, S) ->
 % Translate apply. Used by both apply and
 % external function invocation macros.
 translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
-  { TArgs, SA } = translate_args(Args, umergec(S, SR)),
-  FS = umergev(SL, umergev(SR,SA)),
-
-  case { TLeft, TRight } of
-    { { Kind, _, _ }, { atom, _, _ } } when Kind == var; Kind == tuple; Kind == atom ->
-      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, FS };
+  Optimize = case (Args == []) orelse lists:last(Args) of
+    { '|', _, _ } -> false;
     _ ->
-      Apply = [TLeft, TRight, elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      { { call, Line, { atom, Line, apply }, Apply }, FS }
+      case { TLeft, TRight } of
+        { { Kind, _, _ }, { atom, _, _ } } when Kind == var; Kind == tuple; Kind == atom ->
+          true;
+        _ ->
+          false
+      end
+  end,
+
+  case Optimize of
+    true ->
+      { TArgs, SA } = translate_args(Args, umergec(S, SR)),
+      FS = umergev(SL, umergev(SR,SA)),
+      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, FS };
+    false ->
+      { TArgs, SA } = translate_each(Args, umergec(S, SR)),
+      FS = umergev(SL, umergev(SR,SA)),
+      { ?ELIXIR_WRAP_CALL(Line, erlang, apply, [TLeft, TRight, TArgs]), FS }
   end.
 
 %% Handle partials by automatically wrapping them in a function.

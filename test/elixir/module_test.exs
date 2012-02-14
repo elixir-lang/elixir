@@ -102,4 +102,8 @@ defmodule ModuleTest do
   test :__FUNCTION__ do
     assert_equal { :test___FUNCTION__, 0 }, __FUNCTION__
   end
+
+  test :apply do
+    assert_equal [3,2,1], apply(List, :reverse, [[1|[2,3]]])
+  end
 end
