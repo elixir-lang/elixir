@@ -166,6 +166,13 @@ defmodule Module do
     ETS.insert(table, { :compile_callbacks,  [new|old] })
   end
 
+  # Adds a forwarding to the current module. This is the backend
+  # API used by defforward.
+  #
+  # ## Examples
+  #
+  #     Module.add_forwarding __MODULE__, [sample: 1], :public, TargetModule
+  #
   def add_forwarding(module, pairs, visibility, target) do
     assert_not_compiled!(:add_forwarding, module)
     table = data_table_for(module)
@@ -180,6 +187,8 @@ defmodule Module do
     ETS.insert(table, { :forwardings,  final })
   end
 
+  # Internal callback that compiles all the forwarding
+  # for the given module.
   def compile_forwardings(module, forwardings) do
     contents = Enum.map forwardings, fn({ tuple, other }) ->
       case function_defined?(module, tuple) do
