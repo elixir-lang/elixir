@@ -82,12 +82,27 @@ core() ->
 no_auto_import() ->
   { attribute, 0, compile, {
     no_auto_import, [
-      {get,0}, {get,1}, {get_keys,1}, {is_process_alive,1},
-      {erase,0}, {erase,1}, {processes,0}, {put,1},
-      {process_info,1}, {process_info,2}, {process_flag,2},
-      {process_flag,3}, {link,1}, {unlink,1}, {register,2},
-      {unregister,1}, {whereis,1}, {registered,0}, {apply,2},
-      {apply,3}
+      {apply,2},
+      {apply,3},
+      {erase,0},
+      {erase,1},
+      {get,0},
+      {get,1},
+      {get_keys,1},
+      {is_process_alive,1},
+      {link,1},
+      {put,2},
+      {processes,0},
+      {process_flag,2},
+      {process_flag,3},
+      {process_info,1},
+      {process_info,2},
+      {register,2},
+      {registered,0},
+      {statistics,1},
+      {unlink,1},
+      {unregister,1},
+      {whereis,1}
     ]
   } }.
 

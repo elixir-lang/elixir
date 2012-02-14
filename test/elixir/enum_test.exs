@@ -99,7 +99,7 @@ defmodule EnumTest do
   end
 
   test :times_with_arity_0 do
-    put(:times_with_arity, nil)
+    Process.put(:times_with_arity, nil)
     assert_equal 0, Enum.times(0, fn do: Process.put(:times_with_arity, :ok))
     assert_equal nil, Process.get(:times_with_arity)
     assert_equal 3, Enum.times(3, fn do: Process.put(:times_with_arity, :ok))
