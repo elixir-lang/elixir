@@ -78,6 +78,7 @@ build(Module) ->
   ets:new(DataTable, [set, named_table, private]),
   ets:insert(DataTable, { data, [] }),
   ets:insert(DataTable, { compile_callbacks, [] }),
+  ets:insert(DataTable, { forwardings, [] }),
   ets:insert(DataTable, { registered_attributes, [behavior, behaviour, compile, vsn] }),
 
   AttrTable = attribute_table(Module),
@@ -95,6 +96,11 @@ eval_form(Line, Filename, Module, Block, RawS) ->
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
   { Callbacks, FinalS } = callbacks_for(Line, compile_callbacks, Module, [Module], NewS),
   elixir:eval_forms(Callbacks, binding_for_eval(Module, Binding), FinalS),
+  Forwardings = ets:lookup_element(data_table(Module), forwardings, 2),
+  case Forwardings of
+    [] -> [];
+    _  -> '::Module':compile_forwardings(Module, Forwardings)
+  end,
   Value.
 
 %% Return the form with exports and function declarations.

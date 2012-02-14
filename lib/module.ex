@@ -166,6 +166,24 @@ defmodule Module do
     ETS.insert(table, { :compile_callbacks,  [new|old] })
   end
 
+  def add_forwarding(module, pairs, visibility, target) do
+    assert_not_compiled!(:add_forwarding, module)
+    table = data_table_for(module)
+    old   = ETS.lookup_element(table, :forwardings, 2)
+
+    info  = { visibility, target }
+    new   = Orddict.from_enum(pairs, fn(x) -> {x, info} end)
+    final = Orddict.merge old, new, fn({ name, arity }, { _, old_target }, _current) ->
+      raise ArgumentError, message: "forwarding to #{name}/#{arity} already defined by #{inspect(old_target)}"
+    end
+
+    ETS.insert(table, { :forwardings,  final })
+  end
+
+  def compile_forwardings(module, forwardings) do
+
+  end
+
   # Adds an Erlang attribute to the given module with the given
   # key and value. The same attribute can be added more than once.
   #

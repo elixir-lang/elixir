@@ -292,11 +292,14 @@ defmodule Elixir::Builtin do
     Protocol.defimpl(name, [for: for], [do: block])
   end
 
-  # Defines that the tuples delegates to the given target.
-  # Functions defined with defdelegate are available to be
-  # invoked from external.
+  # Defines the given functions in the current module that will
+  # delegate to the given `target`. Functions defined with defdelegate
+  # are public and should be purposedly allowed to be invoked from
+  # external. If you find yourself wishing to define a delegation
+  # as private, you should likely use import instead.
   #
-  # Currently supports delegating only to functions (not macros).
+  # Delegation only works with functions, delegating to macros
+  # is not supported.
   #
   # ## Examples
   #
@@ -318,6 +321,86 @@ defmodule Elixir::Builtin do
           apply unquote(target), unquote(name), [unquote_splicing(args)]
         end
       end
+    end
+  end
+
+  # Forwarding is a mechanism that allows a library or framework
+  # developer to provide a default implementation for some function.
+  #
+  # If the target module defines the forwarding function, `defforward`
+  # works as noop. However, if not, a default implementation of the
+  # function will be added, forwarding it to target function.
+  #
+  # ## Examples
+  #
+  # First, let's  define a custom MyLibrary code that will invoke
+  # `defforward` once used:
+  #
+  #     defmodule MyLibrary do
+  #       defmacro __using__(module, _) do
+  #         quote do
+  #           defforward [handle_failure: 1], to: ::MyLibrary
+  #         end
+  #       end
+  #
+  #       # Default behavior for handling failure. The forwarded function
+  #       # always receive the target module as first argument.
+  #       def handle_failure(_module, arg)
+  #         raise inspect(arg)
+  #       end
+  #     end
+  #
+  # In this case, we define `MyLibrary.handle_failure/2` as the **forwarded**
+  # function. Now, a module using `MyLibrary` can either use the default
+  # implementation for failure:
+  #
+  #     defmodule MyModule do
+  #       use MyLibrary
+  #     end
+  #
+  # Or define its own:
+  #
+  #     defmodule MyModule do
+  #       use MyLibrary
+  #
+  #       def handle_failure(arg) do
+  #         raise "error was: #{inspect arg}"
+  #       end
+  #     end
+  #
+  # We call `MyModule.handle_failure/1` the **forwarding** function.
+  #
+  # ## Using super
+  #
+  # In some cases, a forwarding function specified by a developer may
+  # actually want to call the fowarded function. In such cases, to avoid
+  # coupling both functions, a developer can use the `super` macro:
+  #
+  #     defmodule MyModule do
+  #       use MyLibrary
+  #
+  #       def handle_failure(arg) do
+  #         super "error was: #{inspect arg}"
+  #       end
+  #     end
+  #
+  # `super` will automatically be replaced by a call to the forwarded
+  # module + function.
+  #
+  # ## Defining private forwardings
+  #
+  # `defforward` accepts an optional first argument as the
+  # visibility of the function. For instance, the example
+  # below will define the forwarding function as a private
+  # function:
+  #
+  #   defforward :private, [handle_failure: 1], to: ::MyLibrary
+  #
+  # Since the forwarded function must always be called from external,
+  # it needs to be necessarily a public function.
+  defmacro defforward(visibility // :public, tuples, to: target) do
+    quote do
+      Module.add_forwarding __MODULE__, unquote(tuples), unquote(visibility), unquote(target)
     end
   end
 
