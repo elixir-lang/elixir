@@ -25,3 +25,9 @@
   macros=elixir_dispatch:default_macros(),       %% a list with macros imported by module
   functions=elixir_dispatch:default_functions(), %% a list with functions imported by module
   scheduled=[]}).                                %% scheduled modules to be loaded
+
+-record(elixir_quote, {
+  line=0,
+  marker=quoted,
+  unquote=true
+}).
