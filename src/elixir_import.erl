@@ -181,6 +181,7 @@ non_overridable_macros() ->
     {'__MODULE__',0},
     {'__FILE__',0},
     {'__LINE__',0},
+    {'__FUNCTION__',0},
     {'__REF__',1},
     {'quote',1},
     {'quote',2},

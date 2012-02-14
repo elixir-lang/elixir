@@ -182,6 +182,14 @@ translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
   end,
   { { atom, Line, Module }, S };
 
+translate_each({'__FUNCTION__', Line, Atom}, S) when is_atom(Atom) ->
+  case S#elixir_scope.function of
+    [] ->
+      { { atom, Line, nil }, S };
+    { Name, Arity } ->
+      { { tuple, Line, [ { atom, Line, Name }, { integer, Line, Arity } ] }, S }
+  end;
+
 translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
   { { integer, Line, Line }, S };
 

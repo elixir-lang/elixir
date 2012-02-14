@@ -100,13 +100,14 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, Expr, RawS) ->
 %% and then store it in memory.
 
 translate_definition(Line, Module, Name, Args, Guards, Expr, S) ->
-  ClauseScope = S#elixir_scope{function=Name, module=Module},
+  Arity = length(Args),
+
+  ClauseScope = S#elixir_scope{function={Name,Arity}, module=Module},
   { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, Args, ClauseScope),
 
   { TClause, _ } = elixir_clauses:assigns_block(Line,
     fun elixir_translator:translate/2, Unpacked, [Expr], Guards, ClauseScope),
 
-  Arity = length(element(3, TClause)),
   Function = { function, Line, Name, Arity, [TClause] },
   { Function, Defaults }.
 

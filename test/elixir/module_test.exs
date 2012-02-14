@@ -60,6 +60,8 @@ defmodule ModuleTest do
   Module.merge_data __MODULE__, other_value: 1
   Module.merge_data __MODULE__, other_value: 2
 
+  nil = __FUNCTION__
+
   test :eval_quoted do
     assert_equal { ::ModuleTest, "sample.ex", 13 }, eval_quoted_info()
   end
@@ -95,5 +97,9 @@ defmodule ModuleTest do
 
   test :duplicated_attributes do
     [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest::DuplicateAttribute.__info__(:attributes)
+  end
+
+  test :__FUNCTION__ do
+    assert_equal { :test___FUNCTION__, 0 }, __FUNCTION__
   end
 end
