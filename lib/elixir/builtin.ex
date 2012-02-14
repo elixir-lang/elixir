@@ -730,6 +730,24 @@ defmodule Elixir::Builtin do
   # will occur immediately.
   defmacro receive(args)
 
+  # Invokes the given `fun` with the array of arguments `args`.
+  #
+  # ## Examples
+  #
+  #     apply fn(x) -> x * 2 end, [2]
+  #     #=> 4
+  #
+  def apply(fun, args)
+
+  # Invokes the given `fun` from `module` with the array of arguments `args`.
+  #
+  # ## Examples
+  #
+  #     apply List, reverse, [[1,2,3]]
+  #     #=> [3,2,1]
+  #
+  def apply(module, fun, args)
+
   # Provides an `if` macro. The macro expects the first argument to
   # be a condition and the rest are key-value arguments.
   #
