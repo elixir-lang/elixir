@@ -181,7 +181,16 @@ defmodule Module do
   end
 
   def compile_forwardings(module, forwardings) do
+    contents = Enum.map forwardings, fn({ tuple, other }) ->
+      case function_defined?(module, tuple) do
+      match: true
+        nil
+      else:
+        contents_for_compile_forwarding(tuple, other)
+      end
+    end
 
+    eval_quoted module, contents, [], __FILE__, __LINE__
   end
 
   # Adds an Erlang attribute to the given module with the given
@@ -234,6 +243,27 @@ defmodule Module do
   end
 
   ## Helpers
+
+  defp contents_for_compile_forwarding { name, arity }, { visibility, target } do
+    args = lc i in List.seq(1, arity) do
+      { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+    end
+
+    invoke = quote do
+      apply unquote(target), unquote(name), [__MODULE__, unquote_splicing(args)]
+    end
+
+    case visibility do
+    match: :private
+      quote do
+        defp unquote(name).(unquote_splicing(args)), do: unquote(invoke)
+      end
+    match: :public
+      quote do
+        def unquote(name).(unquote_splicing(args)), do: unquote(invoke)
+      end
+    end
+  end
 
   defp kind_to_entry(:def),      do: :public
   defp kind_to_entry(:defp),     do: :private
