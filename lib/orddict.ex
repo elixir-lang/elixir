@@ -12,6 +12,21 @@ defmodule Orddict do
     end
   end
 
+  # Creates an Orddict from an enumerable with the
+  # help of the transformation function.
+  #
+  # ## Examples
+  #
+  #     Orddict.from_enum [:a, :b], fn(x) -> {x,x} end
+  #     #=> [a: :a, b: :b]
+  # 
+  def from_enum(pairs, transform) do
+    Enum.reduce pairs, [], fn(i, dict) ->
+      { k, v } = transform.(i)
+      put(dict, k, v)
+    end
+  end
+
   # Gets value from the dictionary for specific key.
   # If key not exist return default value (nil if no default value)
   # exists.
@@ -81,9 +96,24 @@ defmodule Orddict do
   #     Orddict.merge [a: 1, b: 2], [a: 3, d: 4]
   #     #=> [a:3, b:2, d: 4]
   #
-  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2]) when k1 < k2, do: [e1|merge(d1, [e2|d2])];
-  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2]) when k1 > k2, do: [e2|merge([e1|d1], d2)];
-  def merge([{k1, _v1}|d1], [{_k2, v2}|d2]), do: [{k1, v2}|merge(d1, d2)];
-  def merge([], d2), do: d2
-  def merge(d1, []), do: d1
+  def merge(d1, d2) do
+    merge(d1, d2, fn(_k, _v1, v2) -> v2 end)
+  end
+
+  # Merges two dictionaries into one. If the dictionaries have
+  # duplicated entries, the given function is invoked to solve
+  # conflicts.
+  #
+  # ## Examples
+  #
+  #     Orddict.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+  #       v1 + v2
+  #     end
+  #     #=> [a:4, b:2, d: 4]
+  #
+  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2], fun) when k1 < k2, do: [e1|merge(d1, [e2|d2], fun)];
+  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2], fun) when k1 > k2, do: [e2|merge([e1|d1], d2, fun)];
+  def merge([{k1, v1}|d1], [{k1, v2}|d2], fun), do: [{k1, fun.(k1, v1, v2)}|merge(d1, d2, fun)];
+  def merge([], d2, _fun), do: d2
+  def merge(d1, [], _fun), do: d1
 end

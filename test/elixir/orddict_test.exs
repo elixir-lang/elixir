@@ -7,6 +7,10 @@ defmodule OrddictTest do
     assert_equal [first_key: 1, second_key: 2], Orddict.from_enum([{:second_key, 2}, {:first_key, 1}])
   end
 
+  test :from_enum_with_function do
+    assert_equal [a: :a, b: :b], Orddict.from_enum([:a, :b], fn(x) -> { x, x } end)
+  end
+
   test :fetch do
     assert_equal 1, Orddict.get(create_dict, :first_key)
     assert_equal 2, Orddict.get(create_dict, :second_key)
@@ -40,6 +44,13 @@ defmodule OrddictTest do
     assert_equal [first_key: 1, second_key: 2], Orddict.merge(create_dict, create_empty_dict)
     assert_equal [first_key: 1, second_key: 2], Orddict.merge(create_dict, create_dict)
     assert_equal [], Orddict.merge(create_empty_dict, create_empty_dict)
+  end
+
+  test :merge_with_function do
+    result = Orddict.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+      v1 + v2
+    end
+    assert_equal [a:4, b:2, d: 4], result
   end
 
   defp create_empty_dict, do: create_dict([])
