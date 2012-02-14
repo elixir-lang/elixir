@@ -40,7 +40,7 @@ Since updating a tuple is expensive, when we want to iterate, add or remove elem
 
 In the example above, we have assigned the head of the list to `h` and the tail of the list to `t`. The [`Enum` module](https://github.com/josevalim/elixir/blob/master/lib/enum.ex) provides several helpers to manipulate lists (and other enumerables in general that we will discuss later) while the [List module](https://github.com/josevalim/elixir/blob/master/lib/list.ex) provides several helpers specific to lists:
 
-    iex> Enum.map [1,2,3], fn(x, do: x * 2)
+    iex> Enum.map [1,2,3], fn(x) -> x * 2 end
     [4,5,6]
     iex> List.flatten [1,[2],3]
     [4,5,6]
@@ -169,7 +169,7 @@ One of the first control flow constructs we usually learn is the conditional `if
     ...> end
     3
 
-Both formats are simply different ways of expressing key-value arguments. Key-value arguments are simply a list of two-item tuples, where the first element is an atom representing the key and the second is the value. Elixir provides a syntax-shortcut for creating such key-values:
+Both formats are simply different ways of expressing key-value arguments. Key-value arguments are a list of two-item tuples, where the first element is an atom representing the key and the second is the value. Elixir provides a syntax-shortcut for creating such key-values:
 
     iex> [a: 1, b: 2]
     [{:a, 1}, {:b, 2}]
@@ -260,19 +260,20 @@ In this section we are going to describe Elixir main control structures.
 
 Refreshing from the section above, all those calls are equivalent:
 
-   if false, do: 1 + 2, else: 10 + 3
+    if false, do: 1 + 2, else: 10 + 3
 
-   if(false) ->
-     1 + 2
-   else:
-     10 + 3
-   end
+    if false do
+      1 + 2
+    else:
+      10 + 3
+    end
 
-   if false do
-     1 + 2
-   else:
-     10 + 3
-   end
+    # Although this is valid, its usage is discouraged.
+    if(false) ->
+      1 + 2
+    else:
+      10 + 3
+    end
 
 `if` also accepts many `elsif:` clauses:
 
@@ -415,11 +416,19 @@ Finally, custom macros can be invoked in guard clauses as long as they expand to
 
 Throughout this guide, we have created many functions in examples. The syntax for creating functions is:
 
+    fn(a, b) -> a + b end
+
+But it could also be written as (although the previous example is preferred):
+
     fn(a, b, do: a + b)
+
+    fn(a, b) do
+      a + b
+    end
 
 In some cases though, it is convenient that a function has many clauses, similarly to `case`. In such scenarios, we can use `match:` to specify many clauses:
 
-    fun = fn do
+    fun = fn ->
     match: a, b when b < 0
       a - b
     match: a, b
@@ -434,10 +443,10 @@ Notice the number of arguments given to each `match:` needs to be the same. In t
 As an immutable language, the binding of the function is also immutable. This means that setting a variable inside the function does not affect its outer scope:
 
     x = 1
-    (fn(do: x = 2).()
+    (fn -> x = 2 end).()
     x #=> 1
 
-Also, due to data structure immutability Loops in Elixir (and in functional programming languages) are written differently that conventional imperative languages. For example, in an imperative language, one would write:
+Also, due to data structure immutability, loops in Elixir (and in functional programming languages) are written differently that conventional imperative languages. For example, in an imperative language, one would write:
 
     for(i = 0; i < array.length; i++) {
       array[i] = array[i] * 2

@@ -6,7 +6,7 @@ Elixir also supports partial application. Let's suppose we have a list of string
 
     iex> list = ["foo", "bar", "baz"]
     ["foo","bar","baz"]
-    iex> Enum.map list, fn(x, do: size(x))
+    iex> Enum.map list, fn(x) -> size(x) end
     [3,3,3]
 
 However, with partial application, we could also do:

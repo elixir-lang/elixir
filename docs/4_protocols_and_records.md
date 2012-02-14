@@ -17,7 +17,7 @@ The line above will define a module named `FileInfo` which contain a function na
 Elixir will also define a `update_#{field}` function that accepts a function as argument that will receive the old value and update the current value with the result of the function:
 
     file_info = FileInfo.new(accesses: 10)
-    file_info = file_info.update_accesses(fn(x, do: x + 1))
+    file_info = file_info.update_accesses(fn(x) -> x + 1 end)
     file_info.accesses #=> 11
 
 Internally, a record is simply a tuple where the first element is always the record module name. This can be noticed if we create and print the record in Interactive Elixir (`bin/iex`):

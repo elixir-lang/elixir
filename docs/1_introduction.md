@@ -61,7 +61,7 @@ Some basic types are:
 Elixir also provides functions (note the dot between the variable and arguments when calling a function):
 
     # function
-    iex> x = fn(a, b, do: a + b)
+    iex> x = fn(a, b) -> a + b end
     #Fun<erl_eval.12.111823515>
     iex> x.(1, 2)
     3
