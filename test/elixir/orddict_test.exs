@@ -25,14 +25,14 @@ defmodule OrddictTest do
   end
 
   test :delete do
-    assert_equal [first_key: 1], Orddict.delete(create_dict, :second_key)
-    assert_equal [first_key: 1, second_key: 2], Orddict.delete(create_dict, :other_key)
-    assert_equal [], Orddict.delete(create_empty_dict, :other_key)
+    assert_equal [first_key: 1], Orddict.erase(create_dict, :second_key)
+    assert_equal [first_key: 1, second_key: 2], Orddict.erase(create_dict, :other_key)
+    assert_equal [], Orddict.erase(create_empty_dict, :other_key)
   end
 
   test :store do
-    assert_equal [first_key: 1], Orddict.set(create_empty_dict, :first_key, 1)
-    assert_equal [first_key: 1, second_key: 2], Orddict.set(create_dict, :first_key, 1)
+    assert_equal [first_key: 1], Orddict.put(create_empty_dict, :first_key, 1)
+    assert_equal [first_key: 1, second_key: 2], Orddict.put(create_dict, :first_key, 1)
   end
 
   test :merge do

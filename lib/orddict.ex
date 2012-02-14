@@ -7,7 +7,9 @@ defmodule Orddict do
   #     #=> [a: 2, b: 1]
   #
   def from_enum(pairs) do
-    Enum.reduce pairs, [], fn({k, v}, dict, do: set(dict, k, v))
+    Enum.reduce pairs, [], fn({k, v}, dict) ->
+      put(dict, k, v)
+    end
   end
 
   # Gets value from the dictionary for specific key.
@@ -50,26 +52,26 @@ defmodule Orddict do
   #
   # ## Examples
   #
-  #     Orddict.delete [a: 1, b: 2], :a   #=> [b: 2]
-  #     Orddict.delete [b: 2], :a         #=> [b: 2]
+  #     Orddict.erase [a: 1, b: 2], :a   #=> [b: 2]
+  #     Orddict.erase [b: 2], :a         #=> [b: 2]
   #
-  def delete([{k, _} = e|dict], key) when key < k, do: [e|dict]
-  def delete([{k, _} = e|dict], key) when key > k, do: [e|delete(dict, key)]
-  def delete([{_k, _v}|dict], _key), do: dict
-  def delete([], _), do: []
+  def erase([{k, _} = e|dict], key) when key < k, do: [e|dict]
+  def erase([{k, _} = e|dict], key) when key > k, do: [e|erase(dict, key)]
+  def erase([{_k, _v}|dict], _key), do: dict
+  def erase([], _), do: []
 
   # Sets the given `value` under `key` for the given dictionary.
   # If a previous value is already stored, it is overriden.
   #
   # ## Examples
   #
-  #     Orddict.set [a: 1, b: 2], :a, 3
+  #     Orddict.put [a: 1, b: 2], :a, 3
   #     #=> [a: 3, b: 2]
   #
-  def set([{k, _} = e|dict], key, value) when key < k, do: [{key, value},e|dict]
-  def set([{k, _} = e|dict], key, value) when key > k, do: [e|set(dict, key, value)]
-  def set([{_, _}|dict], key, value), do: [{key, value}|dict]
-  def set([], key, value), do: [{key, value}]
+  def put([{k, _} = e|dict], key, value) when key < k, do: [{key, value},e|dict]
+  def put([{k, _} = e|dict], key, value) when key > k, do: [e|put(dict, key, value)]
+  def put([{_, _}|dict], key, value), do: [{key, value}|dict]
+  def put([], key, value), do: [{key, value}]
 
   # Merges two dictionaries into one. If the dictionaries have
   # duplicated entries, the one given as second argument wins.
