@@ -4,9 +4,9 @@
 Nonterminals
   grammar expr_list
   expr block_expr stab_expr call_expr max_expr base_expr
-  matched_expr matched_op_expr unmatched_expr unmatched_op_expr
+  matched_expr matched_op_expr unmatched_expr op_expr
   comma_separator kv_eol
-  add_op mult_op unary_op ref_unary_op addadd_op multmult_op bin_concat_op
+  add_op mult_op unary_op unary_ref_op addadd_op multmult_op bin_concat_op
   match_op arrow_op module_ref_op default_op when_op pipe_op in_op
   andand_op oror_op andalso_op orelse_op and_op or_op comp_expr_op
   open_paren close_paren
@@ -63,9 +63,8 @@ Nonassoc 290 special_op.
 Left     300 dot_call_op.
 Left     300 dot_op.
 Right    310 module_ref_op.
-Nonassoc 320 ref_unary_op.
+Nonassoc 320 unary_ref_op.
 Nonassoc 330 var.
-
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -83,38 +82,58 @@ expr_list -> expr_list eol expr : ['$3'|'$1'].
 expr -> matched_expr : '$1'.
 expr -> unmatched_expr : '$1'.
 
-matched_expr   -> matched_op_expr   : '$1'.
-unmatched_expr -> unmatched_op_expr : '$1'.
+matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
+matched_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
+matched_expr -> special_op matched_expr : build_special_op('$1', '$2').
+matched_expr -> unary_ref_op matched_expr : build_unary_op('$1', '$2').
+matched_expr -> stab_expr : '$1'.
 
-unmatched_op_expr -> matched_expr match_op unmatched_expr : build_op('$2', '$1', '$3').
-unmatched_op_expr -> unary_op expr : build_unary_op('$1', '$2').
-unmatched_op_expr -> special_op expr : build_special_op('$1', '$2').
-unmatched_op_expr -> ref_unary_op expr : build_unary_op('$1', '$2').
-unmatched_op_expr -> block_expr : '$1'.
+unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
+unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
+unmatched_expr -> unary_op expr : build_unary_op('$1', '$2').
+unmatched_expr -> special_op expr : build_special_op('$1', '$2').
+unmatched_expr -> unary_ref_op expr : build_unary_op('$1', '$2').
+unmatched_expr -> block_expr : '$1'.
 
-matched_op_expr -> matched_expr match_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr add_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr mult_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr addadd_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr multmult_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr andand_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr oror_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr andalso_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr orelse_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr and_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr or_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr pipe_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr bin_concat_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr in_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr when_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr arrow_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr module_ref_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr default_op matched_expr : build_op('$2', '$1', '$3').
-matched_op_expr -> matched_expr comp_expr_op matched_expr : build_expr_op('$2', '$1', '$3').
-matched_op_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
-matched_op_expr -> special_op matched_expr : build_special_op('$1', '$2').
-matched_op_expr -> ref_unary_op matched_expr : build_unary_op('$1', '$2').
-matched_op_expr -> stab_expr : '$1'.
+op_expr -> match_op expr : { '$1', '$2' }.
+op_expr -> add_op expr : { '$1', '$2' }.
+op_expr -> mult_op expr : { '$1', '$2' }.
+op_expr -> addadd_op expr : { '$1', '$2' }.
+op_expr -> multmult_op expr : { '$1', '$2' }.
+op_expr -> andand_op expr : { '$1', '$2' }.
+op_expr -> oror_op expr : { '$1', '$2' }.
+op_expr -> andalso_op expr : { '$1', '$2' }.
+op_expr -> orelse_op expr : { '$1', '$2' }.
+op_expr -> and_op expr : { '$1', '$2' }.
+op_expr -> or_op expr : { '$1', '$2' }.
+op_expr -> pipe_op expr : { '$1', '$2' }.
+op_expr -> bin_concat_op expr : { '$1', '$2' }.
+op_expr -> in_op expr : { '$1', '$2' }.
+op_expr -> when_op expr : { '$1', '$2' }.
+op_expr -> arrow_op expr : { '$1', '$2' }.
+op_expr -> module_ref_op expr : { '$1', '$2' }.
+op_expr -> default_op expr : { '$1', '$2' }.
+op_expr -> comp_expr_op expr : { '$1', '$2' }.
+
+matched_op_expr -> match_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> add_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> mult_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> addadd_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> multmult_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> andand_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> oror_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> andalso_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> orelse_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> and_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> or_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> pipe_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> bin_concat_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> in_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> when_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> arrow_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> module_ref_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> default_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> comp_expr_op matched_expr : { '$1', '$2' }.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2', '$3').
 block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2', '$3').
@@ -215,8 +234,8 @@ unary_op -> 'not' eol : '$1'.
 unary_op -> '@' : '$1'.
 unary_op -> '@' eol : '$1'.
 
-ref_unary_op -> '::' : '$1'.
-ref_unary_op -> '::' eol : '$1'.
+unary_ref_op -> '::' : '$1'.
+unary_ref_op -> '::' eol : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.
@@ -376,11 +395,11 @@ Erlang code.
 
 %% Operators
 
+build_op(Op, Left, Right) when size(Op) == 3 ->
+  { ?exprs(Op), ?line(Op), [Left, Right] };
+
 build_op(Op, Left, Right) ->
   { ?op(Op), ?line(Op), [Left, Right] }.
-
-build_expr_op(Op, Left, Right) ->
-  { ?exprs(Op), ?line(Op), [Left, Right] }.
 
 build_unary_op(Op, Expr) ->
   { ?op(Op), ?line(Op), [Expr] }.
