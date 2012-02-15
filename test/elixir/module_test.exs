@@ -3,7 +3,7 @@ Code.require_file "../test_helper", __FILE__
 defmodule ModuleTest::ToBeUsed do
   def value, do: 1
 
-  defmacro __using__(target) do
+  defmacro __using__(target, _) do
     Module.merge_data target, has_callback: false
     Module.add_compile_callback(target, __MODULE__)
     Module.add_compile_callback(target, __MODULE__, :callback)

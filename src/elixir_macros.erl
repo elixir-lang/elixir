@@ -146,8 +146,8 @@ translate_macro({use, Line, [Ref|Args]}, S) when length(Args) =< 1 ->
   assert_module_scope(Line, use, S),
   Module = S#elixir_scope.module,
   Call = { '__BLOCK__', Line, [
-    { require, Line, [Ref,[{as,false}]] },
-    { { '.', Line, [Ref, '__using__'] }, Line, [Module|Args] }
+    { require, Line, [Ref] },
+    { { '.', Line, [Ref, '__using__'] }, Line, [Module, Args] }
   ] },
   translate_each(Call, S);
 

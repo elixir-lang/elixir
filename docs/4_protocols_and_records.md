@@ -93,6 +93,7 @@ And we would do so for all native data types. The types available are:
 * PID
 * Port
 * Reference
+* Any
 
 ### 4.2.1 Selecting implementations
 

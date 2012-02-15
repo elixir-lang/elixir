@@ -250,16 +250,17 @@ defmodule Elixir::Builtin do
   # * PID
   # * Port
   # * Reference
+  # * Any
   #
   # ## Selecting implementations
   #
-  # Implementing the protocol for all 9 types above can be cumbersome.
+  # Implementing the protocol for all default 9 types can be cumbersome.
   # Even more if you consider that Number, Function, PID, Port and
   # Reference are never going to be blank. For this reason, Elixir
   # allows you to point out that you are going to implement the protocols
   # just for some types, as follows:
   #
-  #     defprotocol Blank, [blank?(data)], only: [Atom, Tuple, List, BitString]
+  #     defprotocol Blank, [blank?(data)], only: [Atom, Tuple, List, BitString, Any]
   #
   # And for all other types, Elixir will now dispatch to Any. That said,
   # the default behavior could be implemented as:

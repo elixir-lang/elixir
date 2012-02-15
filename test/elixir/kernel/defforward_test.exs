@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel::ForwardingLibrary do
-  defmacro __using__(_) do
+  defmacro __using__(_, _) do
     quote do
       defforward [sample: 1], to: unquote(__MODULE__)
       defforward :private, [other: 1], to: unquote(__MODULE__)
