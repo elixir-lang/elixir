@@ -91,6 +91,15 @@ defmodule Protocol do
   # :api: private
   def protocol_for(module, conversions) do
     contents = lc kind in conversions, do: each_protocol_for(kind)
+
+    # if !L.member({ Any, :is_any }, conversions) && length(conversions) == 10 do
+    #   contents = contents ++ [quote do
+    #     def __protocol_for__(arg) do
+    #       raise ::Protocol::UndefinedError, structure: arg
+    #     end
+    #   end]
+    # end
+
     Module.eval_quoted module, contents, [], __FILE__, __LINE__
   end
 
@@ -98,7 +107,20 @@ defmodule Protocol do
   # only/except options.
   # :api: private
   def conversions_for(opts) do
-    kinds = [
+    kinds = all_types
+
+    if only = Orddict.get(opts, :only, false) do
+      L.map(fn(i) -> L.keyfind(i, 1, kinds) end, only)
+    else:
+      except = Orddict.get(opts, :except, [Any])
+      L.foldl(fn(i, list) -> L.keydelete(i, 1, list) end, kinds, except)
+    end
+  end
+
+  ## Helpers
+
+  defp all_types do
+    [
       { Record,    :is_record },
       { Tuple,     :is_tuple },
       { Atom,      :is_atom },
@@ -108,21 +130,10 @@ defmodule Protocol do
       { Function,  :is_function },
       { PID,       :is_pid },
       { Port,      :is_port },
-      { Reference, :is_reference }
+      { Reference, :is_reference },
+      { Any,       :is_any }
     ]
-
-    if only = Orddict.get(opts, :only, false) do
-      selected = L.map fn(i, do: L.keyfind(i, 1, kinds)), only
-      selected ++ [{ Any, :is_any }]
-    elsif: except = Orddict.get(opts, :except, false)
-      selected = L.foldl fn(i, list, do: L.keydelete(i, 1, list)), kinds, except
-      selected ++ [{ Any, :is_any }]
-    else:
-      kinds
-    end
   end
-
-  ## Helpers
 
   # Specially handle tuples as they can also be record.
   # If this is the case, module::Record will be returned.

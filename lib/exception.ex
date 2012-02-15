@@ -174,6 +174,12 @@ defexception FunctionClauseError, module: nil, function: nil, arity: nil do
   end
 end
 
+defexception Protocol::UndefinedError, structure: nil do
+  def message(exception) do
+    "protocol not implemented for #{inspect exception.structure}"
+  end
+end
+
 defexception ErlangError, original: nil do
   def message(exception) do
     "erlang error: #{inspect(exception.original)}"
