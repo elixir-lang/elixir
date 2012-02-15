@@ -6,7 +6,7 @@ Nonterminals
   expr block_expr stab_expr call_expr max_expr base_expr
   matched_expr matched_op_expr unmatched_expr unmatched_op_expr
   comma_separator kv_eol
-  add_op mult_op unary_op addadd_op multmult_op bin_concat_op
+  add_op mult_op unary_op ref_unary_op addadd_op multmult_op bin_concat_op
   match_op arrow_op module_ref_op default_op when_op pipe_op in_op
   andand_op oror_op andalso_op orelse_op and_op or_op comp_expr_op
   open_paren close_paren
@@ -58,12 +58,14 @@ Left     180 mult_op.
 Right    190 bin_concat_op.
 Right    200 addadd_op.
 Right    210 multmult_op.
-Left     260 dot_call_op.
-Left     260 dot_op.
-Right    270 module_ref_op.
 Nonassoc 280 unary_op.
-Nonassoc 290 var.
-Nonassoc 300 special_op.
+Nonassoc 290 special_op.
+Left     300 dot_call_op.
+Left     300 dot_op.
+Right    310 module_ref_op.
+Nonassoc 320 ref_unary_op.
+Nonassoc 330 var.
+
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -87,6 +89,7 @@ unmatched_expr -> unmatched_op_expr : '$1'.
 unmatched_op_expr -> matched_expr match_op unmatched_expr : build_op('$2', '$1', '$3').
 unmatched_op_expr -> unary_op expr : build_unary_op('$1', '$2').
 unmatched_op_expr -> special_op expr : build_special_op('$1', '$2').
+unmatched_op_expr -> ref_unary_op expr : build_unary_op('$1', '$2').
 unmatched_op_expr -> block_expr : '$1'.
 
 matched_op_expr -> matched_expr match_op matched_expr : build_op('$2', '$1', '$3').
@@ -110,6 +113,7 @@ matched_op_expr -> matched_expr default_op matched_expr : build_op('$2', '$1', '
 matched_op_expr -> matched_expr comp_expr_op matched_expr : build_expr_op('$2', '$1', '$3').
 matched_op_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
 matched_op_expr -> special_op matched_expr : build_special_op('$1', '$2').
+matched_op_expr -> ref_unary_op matched_expr : build_unary_op('$1', '$2').
 matched_op_expr -> stab_expr : '$1'.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2', '$3').
@@ -208,10 +212,11 @@ unary_op -> '^' : '$1'.
 unary_op -> '^' eol : '$1'.
 unary_op -> 'not' : '$1'.
 unary_op -> 'not' eol : '$1'.
-unary_op -> '::' : '$1'.
-unary_op -> '::' eol : '$1'.
 unary_op -> '@' : '$1'.
 unary_op -> '@' eol : '$1'.
+
+ref_unary_op -> '::' : '$1'.
+ref_unary_op -> '::' eol : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.

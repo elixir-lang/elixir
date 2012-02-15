@@ -92,13 +92,13 @@ defmodule Protocol do
   def protocol_for(module, conversions) do
     contents = lc kind in conversions, do: each_protocol_for(kind)
 
-    # if !L.member({ Any, :is_any }, conversions) && length(conversions) == 10 do
-    #   contents = contents ++ [quote do
-    #     def __protocol_for__(arg) do
-    #       raise ::Protocol::UndefinedError, structure: arg
-    #     end
-    #   end]
-    # end
+    if !L.member({ Any, :is_any }, conversions) && length(conversions) < 10 do
+      contents = contents ++ [quote do
+        def __protocol_for__(arg) do
+          raise ::Protocol::UndefinedError, protocol: __MODULE__, structure: arg
+        end
+      end]
+    end
 
     Module.eval_quoted module, contents, [], __FILE__, __LINE__
   end

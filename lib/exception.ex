@@ -174,9 +174,9 @@ defexception FunctionClauseError, module: nil, function: nil, arity: nil do
   end
 end
 
-defexception Protocol::UndefinedError, structure: nil do
+defexception Protocol::UndefinedError, protocol: nil, structure: nil do
   def message(exception) do
-    "protocol not implemented for #{inspect exception.structure}"
+    "protocol #{exception.protocol} not implemented for #{inspect exception.structure}"
   end
 end
 
