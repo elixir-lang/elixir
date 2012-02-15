@@ -14,8 +14,8 @@ defmodule Kernel::RequireTest do
     assert_equal :"::lists::Bar", MyList::Bar
   end
 
-  test :require_with_one_arg do
-    require Kernel::RequireTest::Nested
+  test :require_with_as_true do
+    require Kernel::RequireTest::Nested, as: true
     assert_equal 1, Nested.value
   end
 

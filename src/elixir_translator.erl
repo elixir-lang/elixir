@@ -104,7 +104,7 @@ translate_each({require, Line, [Ref|T]}, S) ->
             _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for require")
           end;
         error ->
-          { elixir_ref:last(Old), SR }
+          { Old, SR }
       end,
 
       { { nil, Line }, SF#elixir_scope{
