@@ -37,7 +37,7 @@ We can start Elixir interactive mode by running `bin/iex` in the same directory 
     iex> 10 / 2
     5.0
 
-Notice `10 / 2` returned a float `5.0` instead of an integer. This is expected, in Elixir, the operator `/` always returns a float. In case you want to do integer division or get the division remainder, you can invoke the `div` and `rem` functions:
+Notice `10 / 2` returned a float `5.0` instead of an integer. This is expected, in Elixir the operator `/` always returns a float. In case you want to do integer division or get the division remainder, you can invoke the `div` and `rem` functions:
 
     iex> div(10, 2)
     5
@@ -127,7 +127,10 @@ Since single-quoted strings are lists, we can also use `++` and `--` as operator
     iex> 'some' -- 'oe'
     'sm'
 
-Notice that `++` and `--` cannot be used to manipulate double quoted strings, as they are binaries.
+Notice that `++` and `--` cannot be used to manipulate double quoted strings, as they are binaries. That said, string concatenation is done via `<>`:
+
+    iex> "foo" <> "bar"
+    "foobar"
 
 Elixir also provides three boolean operators: `or`, `and` and `not`. Those operators are strict in the sense those operators expects only booleans (true or false) as arguments:
 
@@ -139,7 +142,7 @@ Elixir also provides three boolean operators: `or`, `and` and `not`. Those opera
 Giving a non-boolean as argument will raise an exception:
 
     iex> 1 and true
-    ** error :badarg
+    ** (::ArgumentError) argument error
         erlang:and(1, true)
 
 `or` and `and` are eager operators. They will execute both left and right sides of the expression. Elixir also provides `andalso` and `orelse` which are short-circuit operators. They just execute the right side in case the left side is not enough to determine the result:
@@ -169,7 +172,12 @@ The difference between `==` and `===` is that the latter is more strict when com
     iex> 1 === 1.0
     false
 
-In Elixir, we can compare two different data types and they will follow this ordering:
+In Elixir, we can compare two different data types:
+
+    iex> 1 < :atom
+    true
+
+The reason we can compare different data types is for pragmatism. Sorting algorithms don't need to worry about different data types in order to sort. The overall sorting order is defined below:
 
     number < atom < reference < functions < port < pid < tuple < list < bit string
 

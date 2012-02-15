@@ -1,6 +1,6 @@
 # 6 Other topics
 
-# 6.1 Partial application
+## 6.1 Partial application
 
 Elixir also supports partial application. Let's suppose we have a list of strings and we want to calculate the size for each them. We could do it as follow:
 
@@ -23,9 +23,32 @@ Since operators are also function calls they can also be partially applied:
 
 All functions can be partially applied, except [Elixir's special forms](https://github.com/josevalim/elixir/tree/master/lib/elixir/special_forms.ex).
 
-# 6.2 Comprehensions
+## 6.2 Use
 
-Elixir also provide list and bit comprehensions. List comprehensions allow you to quickly build a list from another list:
+`use` is a function intended to a common API for extension. For instance, in order to use the `ExUnit` test framework that ships with Elixir, you simply need to use `ExUnit::Case` in your module:
+
+    defmodule AssertionTest do
+      use ExUnit::Case
+
+      def test_always_pass do
+        true = true
+      end
+    end
+
+By calling `use`, a hook called `__using__` will be invoked in `ExUnit::Case` which will then do the proper setup. In general, `use` is simply a translation to:
+
+    defmodule AssertionTest do
+      require ExUnit::Case, as: false
+      ExUnit::Case.__using__(::AssertionTest)
+
+      def test_always_pass do
+        true = true
+      end
+    end
+
+## 6.3 Comprehensions
+
+Elixir also provides list and bit comprehensions. List comprehensions allow you to quickly build a list from another list:
 
     iex> lc n in [1,2,3,4], do: n * 2
     [2,4,6,8]
@@ -46,7 +69,7 @@ A comprehension accepts several expressions. Those expressions can be generators
     iex> lc x in [1,2], y in [2,3], do: x*y
     [2,3,4,6]
 
-Elixir provides generators for both lists and bitstrings (a bitstring is a sequence of bits. An Elixir binary, for example, is a bitstring where the number of bits is multiple of 8):
+Elixir provides generators for both lists and bitstrings:
 
     # A list generator:
     iex> lc n in [1,2,3,4], do: n * 2
@@ -83,7 +106,7 @@ Elixir does its best to hide the differences between list and bit string generat
     iex> lc inbin(<<n>>, <<1,2,3>>), do: n*2
     [2,4,6]
 
-# 6.3 Native compilation
+## 6.4 Native compilation
 
 Elixir can compile to native code using the Hipe compiler. All you need to do is to export the following before running your code:
 

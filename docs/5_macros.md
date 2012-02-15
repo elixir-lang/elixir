@@ -66,22 +66,17 @@ Our `unless` macro will receive the following:
 
 Then our `unless` macro will call `quote`, to return a tree representation of the `if` clause. This means we are transforming our `unless` in a `if`!
 
-However, there is a common mistake when quoting expressions which is that developers usually forget to `unquote` the proper expression. In order to understand what `unquote` does, let's simply remove it:
+There is a common mistake when quoting expressions which is that developers usually forget to `unquote` the proper expression. In order to understand what `unquote` does, let's simply remove it:
 
     defmacro unless(clause, options) do
       quote do: if(!clause, options)
     end
 
-When called as `unless 2 + 2 == 5, do: call_function()`, our `unless` would then return:
+When called as `unless 2 + 2 == 5, do: call_function()`, our `unless` would then literally return:
 
-    { :if, 0, [
-      { :!, 0, [
-        {:custom, 0, quoted}
-      ]},
-      do: {:options, 0, quoted}
-    ] }
+    if(!clause, options)
 
-Notice that the tree structure returned by unless is trying to access `custom` and `options` as variables instead of using the `2 + 2 == 5` and `call_function()` expressions we passed as parameters. This is because we forgot to unquote. If we add `unquote` back:
+Which would fail because the clause and options variables are not defined in the current scope. If we add `unquote` back:
 
     defmacro unless(clause, options) do
       quote do: if(!unquote(clause), unquote(options))
@@ -89,15 +84,7 @@ Notice that the tree structure returned by unless is trying to access `custom` a
 
 Which will then return:
 
-    { :if, 0, [
-      { :!, 0, [
-        {:==, 1, [
-          {:+, 1, [2, 2]},
-          5
-        ] }
-      ] },
-      do: { :call_function, 1, [] }
-    ] }
+    if(!(2 + 2 == 5), do: call_function())
 
 In other words, unquote is a mechanism to inject expressions into the tree being quoted and is essential to the meta-programming mechanism. Elixir also provides `unquote_splicing` allowing us to inject many expressions at once.
 
@@ -138,7 +125,7 @@ Macros hygiene only works because Elixir marks a variable as coming from the quo
     iex> quote do: x
     { :x, 0, :quoted }
 
-Notice that the third element is :quoted. It means that x may be a function call with 0 arguments or a variable coming from a quote. On the other hand, an unquoted variable would have the third element equals to nil. Let's consider this final example:
+Notice that the third element is `:quoted`. It means that x may be a function call with 0 arguments or a variable coming from a quote. On the other hand, an unquoted variable would have the third element equals to nil. Let's consider this final example:
 
     defmodule Hygiene do
       defmacro quoted(x) do
@@ -159,7 +146,7 @@ In the example above, we have defined a macro called `quoted` that returns an un
       { :x, 1, [] }
     }
 
-Summing up: if the third element is a list, it is certainly a function call. If not, it may be a variable or a function call. The variable is treated differently depending if it comes from a quote, or not.
+Summing up: if the third element is a list, it is certainly a function call. If not, it may be a variable (coming from a quote or not) or a function call.
 
 ## 5.4 Local functions and macros
 

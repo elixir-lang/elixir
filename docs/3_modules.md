@@ -16,7 +16,7 @@ In order to create our own modules in Elixir, all we have to do is to call the `
     iex> Math.sum(1, 2)
     3
 
-Before diving into modules, let's first have a quick talk about compilation.
+Before diving into modules, let's first have a brief overview about compilation.
 
 ## 3.1 Compilation
 
@@ -32,7 +32,7 @@ This file can be compiled using `bin/elixirc`:
 
     bin/elixirc math.ex
 
-Which will then generate a file named `::Math.beam` containing the byte code for the defined module. Now, if we start `bin/iex` again, our module definition will be available (considering `bin/iex` is being started in the same directory the byte code file is):
+Which will then generate a file named `::Math.beam` containing the bytecode for the defined module. Now, if we start `bin/iex` again, our module definition will be available (considering `bin/iex` is being started in the same directory the bytecode file is):
 
     iex> Math.sum(1, 2)
     3
@@ -43,7 +43,7 @@ Elixir projects are usually organized into three directories:
 * lib - holds elixir code (usually `.ex` files)
 * test - holds tests (usually `.exs` files)
 
-In such cases, since the byte code is in `ebin`, you need to explicitly tell Elixir to lookup for code in the `ebin` directory:
+In many cases, since the bytecode is in `ebin`, you need to explicitly tell Elixir to lookup for code in the `ebin` directory:
 
     bin/iex -pa ebin
 
@@ -51,7 +51,7 @@ Where `-pa` stands for `path append`. The same option can also be passed to `eli
 
 ## 3.2 Scripted mode
 
-Besides the Elixir file `.ex`, Elixir also supports `.exs` files for scripting. Elixir treats both files exactly the same way, the only difference is intention. `.ex` files are meant to be compiled while `.exs` files are used for scripting, without a need for compilation. For instance, one can create a file called `math.exs`:
+Besides the Elixir file `.ex`, Elixir also supports `.exs` files for scripting. Elixir treats both files exactly the same way, the only difference is in intention. `.ex` files are meant to be compiled while `.exs` files are used for scripting, without a need for compilation. For instance, one can create a file called `math.exs`:
 
     defmodule Math do
       def sum(a, b) do
@@ -65,11 +65,11 @@ And execute it as:
 
     bin/elixir math.exs
 
-The file will be compiled in memory and executed, printing 3 as result. No byte-code file will be created.
+The file will be compiled in memory and executed, printing 3 as result. No bytecode file will be created.
 
 ## 3.3 Functions and private functions
 
-Inside a module, we can define functions (with `def`) and private function (with `defp`). A function defined with `def` is available to be invoked from other modules while a private function can only be invoked locally.
+Inside a module, we can define functions with `def` and private functions with `defp`. A function defined with `def` is available to be invoked from other modules while a private function can only be invoked locally.
 
     defmodule Math do
       def sum(a, b) do
@@ -82,7 +82,7 @@ Inside a module, we can define functions (with `def`) and private function (with
     end
 
     Math.sum(1, 2)    #=> 3
-    Math.do_sum(1, 2) #=> error :undef
+    Math.do_sum(1, 2) #=> ** (UndefinedFunctionError)
 
 Function declarations also supports guards and multiple clauses. If a function has several clauses, Elixir will try each clause until find one that matches. For example, here is the implementation for a function that checks if the given number is zero or not:
 
@@ -100,25 +100,13 @@ Function declarations also supports guards and multiple clauses. If a function h
     Math.zero?(1)  #=> false
 
     Math.zero?([1,2,3])
-    #=> error :function_clause
+    #=> ** (FunctionClauseError)
 
-Notice that giving an argument that does not match any of the clauses raises an error. This mechanism of matching different functions of a clause is also the preferred way to do recursion in Elixir. A simple example that multiples each element in an list by two could be done as follow:
-
-    defmodule List::Multiplier do
-      def by_2([h|t]) do
-        [ h * 2 | by_2(t) ]
-      end
-
-      def by_2([]) do
-        []
-      end
-    end
-
-In the example above, we recursively multiply each element of the list until the list is empty. With this example, we finish this section and now we are going to move on to module directives.
+Notice that giving an argument that does not match any of the clauses raises an error.
 
 ## 3.4 Directives
 
-In order to support software-reuse, Elixir supports three directives:
+In order to support software-reuse, Elixir supports two directives. As we are going to see below, they are called directives because they are the only functions in Elixir that are **lexical**.
 
 ### 3.4.1 import
 
@@ -138,20 +126,20 @@ If we want to import only `:functions` or `:macros` from a given module, we can 
 
     import :macros, MyMacros
 
-And then we can then use `only` or `except` to filter the macros being included. Finally, note that `import` is **lexical**, this means we can import specific macros inside specific functions:
+And then we can use `only` or `except` to filter the macros being included. Finally, note that `import` is **lexical**, this means we can import specific macros inside specific functions:
 
     defmodule Math do
       def some_function do
-        require MyMacros, import: true
-        my_if do_something, it_works
+        import Orddict, only: [values: 1]
+        # call values(orddict)
       end
     end
 
-In the example above, we imported macros from `MyMacro` during that specific function. `my_if` won't be available in any other functions in that module.
+In the example above, we imported `Orddict.values` only for during that specific function. `values` won't be available in any other functions in that module.
 
 ### 3.4.2 require
 
-`require` is responsible to enforce a module is loaded and to also setup references aliases for a given module. For instance, one can do:
+`require` is responsible to enforce a module is loaded and to setup references aliases for a given module. For instance, one can do:
 
     defmodule Math do
       require MyOrddict, as: Orddict
@@ -169,30 +157,7 @@ In general, a module does not need to be required before usage, except if we wan
       MyMacros.my_if do_something, it_works
     end
 
-An attempt to call a macro that was not loaded will raise an error. Note that, as the `import` directive, `require` is lexical.
-
-### 3.4.3 use
-
-`use` is the simplest directive of all four as it simply intends to be a common API for extension. For instance, in order to use the `ExUnit` test framework that ships with Elixir, you simply need to use `ExUnit::Case` in your module:
-
-    defmodule AssertionTest do
-      use ExUnit::Case
-
-      def test_always_pass do
-        true = true
-      end
-    end
-
-By calling `use`, a hook called `__using__` will be invoked in `ExUnit::Case` which will then do the proper setup. In other words, `use` is simply a translation to:
-
-    defmodule AssertionTest do
-      require ExUnit::Case, as: false
-      ExUnit::Case.__using__(::AssertionTest)
-
-      def test_always_pass do
-        true = true
-      end
-    end
+An attempt to call a macro that was not loaded will raise an error. Note that, as the import directive, `require` is lexical.
 
 ## 3.5 Module data
 
@@ -209,7 +174,9 @@ Now if the module above does not implement any of the callbacks required by `gen
       @vsn 2
     end
 
-`@vsn` refers to version is used by the code reloading mechanism to check if a module is updated or not. If no version is specified, the version is set to the MD5 of the module functions. Elixir has a handful of reserved data attributes. The following are currently functional in Elixir:
+`@vsn` refers to version and is used by the code reloading mechanism to check if a module is updated or not. If no version is specified, the version is set to the MD5 of the module functions.
+
+Elixir has a handful of reserved data attributes. The following are currently functional in Elixir:
 
 * `@behaviour` and `@behavior` - used for specifying an OTP or user-defined behavior;
 * `@vsn` - used for specifying the module version;
@@ -233,9 +200,7 @@ After the module is compiled, the stored custom data can be accessed via `__info
 
     MyServer.__info__(:data) #=> [my_data: 13]
 
-Setting a data to nil automatically discards it from the dictionary.
-
-Note: Erlang developers may be wondering why Elixir provides its own data abstraction instead of using Erlang attributes. Erlang attributes are basically a list which also support duplicated values. For Elixir, since the same attribute may be read and updated several times during compilation, it makes more sense to have a dictionary structure instead of a list. Erlang developers can still add Erlang attributes though, via the `Module.add_attribute` API.
+> Note: Erlang developers may be wondering why Elixir provides its own data abstraction instead of using Erlang attributes. Erlang attributes are basically a list which also support duplicated values. For Elixir, since the same attributes may be read and updated several times during compilation, it makes more sense to have a dictionary structure instead of a list. Erlang developers can still add Erlang attributes though, via the `Module.add_attribute(module, attribute, value)` API.
 
 ## 3.6 Module nesting
 
@@ -267,10 +232,10 @@ This mechanism is exactly what empowers Elixir references. Elixir references are
     iex> is_atom(List)
     true
 
-References are powerful when used with the `refer` directive discussed above. For instance, let's imagine our Math module relies heavily on the `Orddict` module. If, at some point, we find out most algorithms in `Orddict` could be implemented in a much faster way, we could implement `FastOrddict` and use it as a drop-in replacement:
+References are powerful when used with the `require` directive discussed above. For instance, let's imagine our Math module relies heavily on the `Orddict` module. If, at some point, we find out most algorithms in `Orddict` could be implemented in a much faster way, we could implement `FastOrddict` and use it as a drop-in replacement:
 
     defmodule Math do
-      refer FastOrddict, as: Orddict
+      require FastOrddict, as: Orddict
       # ...
     end
 

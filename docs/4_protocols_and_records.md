@@ -46,7 +46,7 @@ Since `counter` is an integer, Elixir automatically defines a helper named `incr
     iex> new_config.counter
     10
 
-On the other hand, if the default value is a list, Elixir will define three helpers:
+On the other hand, if the default value is a list Elixir will define the two following helpers:
 
 * `prepend_field` - Receives another list and prepend its values
 * `merge_field` - Receives an orddict (which is a list of tuples) and merge it into the current value;
@@ -55,13 +55,13 @@ On the other hand, if the default value is a list, Elixir will define three help
 
 Protocols allows us to define contracts. Dispatching a protocol is available to any data type as long as it implements the prototype. Let's consider a practical example.
 
-In Elixir, only `false` and `nil` are considered falsy values. Everything else evaluates to true. Depending on the application, it may be important to specify a `blank?` protocol that returns a boolean for other data types that should be considered `blank?`. For instance, an empty list or an empty binary could be considered blanks.
+In Elixir, only `false` and `nil` are considered falsy values. Everything else evaluates to true. Depending on the application, it may be important to specify a `blank?` protocol that returns a boolean for other data types that should be considered blank. For instance, an empty list or an empty binary could be considered blanks.
 
 We could implement this protocol as follow:
 
     defprotocol Blank, [ blank?(data) ]
 
-The protocol expects a function called blank? expecting one argument to be implemented. For instance, we can implement for some Elixir types:
+The protocol expects a function called `blank?` expecting one argument to be implemented. We can implement this protocol for some Elixir data types as follow:
 
     # Numbers are never blank
     defimpl Blank, for: Number do
@@ -81,7 +81,7 @@ The protocol expects a function called blank? expecting one argument to be imple
       def blank?(_),     do: false
     end
 
-And we would have to define the implementation for all native data types. The types available are:
+And we would do so for all native data types. The types available are:
 
 * Record
 * Tuple
@@ -98,9 +98,9 @@ And we would have to define the implementation for all native data types. The ty
 
 Implementing the protocol for all 9 types above can be cumbersome. Even more if you consider that Number, Function, PID, Port and Reference are never going to be blank. For this reason, Elixir allows us to declare that we are going to implement the protocol just for some types, as follows:
 
-    defprotocol Blank, [blank?(data)], only: [Atom, Tuple, List, BitString]
+    defprotocol Blank, [blank?(data)], only: [Atom, Tuple, List, BitString, Any]
 
-Now for all data types not specified in `only:` Elixir will dispatch to `Any` which could be implemented as follow:
+Since we also specified `Any` as a data type, if the data type is not any of Atom, Tuple, List or BitString, it will automatically fallback to Any:
 
     defimpl Blank, for: Any do
       def blank?(_), do: false
@@ -116,15 +116,16 @@ The real benefit of protocols comes when mixed with records. For instance, one m
       def blank?(dict), do: RedBlack.empty?(dict)
     end
 
-In the example above, we have implemented `blank?` for the custom dictionary that simply delegates to `RedBlack.empty?`. Since records are simply tuples, the default implementation for records can be given in the tuple implementation.
+In the example above, we have implemented `blank?` for the custom dictionary that simply delegates to `RedBlack.empty?`. Finally, since records are simply tuples, the default implementation for records can be given in the tuple implementation.
 
 ### 4.2.3 Built-in protocols
 
 Elixir ships with three built-in protocols, they are:
 
 * Enum::Iterator - specifies an iteration contract for any data structure
-* String::Inspect - specifies how to represent and convert data structures to strings
-* List::Chars - specifies how to convert data structures to lists
+* String::Chars - specifies how to convert a data structure with characters to binary
+* List::Chars - specifies how to convert a data structures with characters to lists
+* String::Inspect - specifies how to convert any data structure to a string for inspection
 
 You can check the source code of those files for more information about how the protocol is used and how to implement your own. With this, we have finally finished this section which has described `defrecord`, `defprotocol` and `defimpl`. Next, we are going to discuss macros with `defmacro`!
 

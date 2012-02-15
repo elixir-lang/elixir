@@ -11,7 +11,7 @@ Elixir provides both lists and tuples:
     iex> is_tuple {1,2,3}
     true
 
-While both are used to store items, they differ on how those items are stored in memory. Lists are implemented as linked lists (each item in the list simply points to the next item in memory) and tuples are stored contiguously in memory.
+While both are used to store items, they differ on how those items are stored in memory. Lists are implemented as linked lists (where each item in the list points to the next item) while tuples are stored contiguously in memory.
 
 This means that accessing a tuple element is very fast (constant time) and can be achieved using the `elem` function (notice that indexes in Elixir data-types start with `1`):
 
@@ -23,22 +23,22 @@ On the other hand, updating a tuple is expensive as it needs to duplicate the tu
     iex> setelem { :a, :b, :c }, 1, :d
     {:d,:b,:c}
 
-> If you are an Erlang developer, you will notice that we used the `elem` and `setelem` functions instead of Erlang's `element` and `setelement`. The reason for this choice is that Elixir attempts to normalize Erlang API's to always receive the `subject` of the function as the first argument.
+> Note: If you are an Erlang developer, you will notice that we used the `elem` and `setelem` functions instead of Erlang's `element` and `setelement`. The reason for this choice is that Elixir attempts to normalize Erlang API's to always receive the `subject` of the function as the first argument.
 
-Since updating a tuple is expensive, when we want to iterate, add or remove elements, we usually use lists. Since lists are linked, it means accessing the first element of the list is very cheap, however, accessing the n-th element will require the algorithm to pass to n-1 nodes before reaching the n-th. For this reason, Elixir allows you to easily retrieve the first element of the list (called head):
+Since updating a tuple is expensive, when we want to iterate, add or remove elements, we use lists. Since lists are linked, it means accessing the first element of the list is very cheap, however, accessing the n-th element will require the algorithm to pass to n-1 nodes before reaching the n-th. We can access the `head` of the list as follow:
 
-    iex> [h | t] = [1,2,3]
+    iex> [head | tail] = [1,2,3]
     [1,2,3]
-    iex> h
+    iex> head
     1
-    iex> t
+    iex> tail
     [2,3]
-    iex> [h | t]
+    iex> [head | tail]
     [1,2,3]
-    iex> length [h | t]
-    2
+    iex> length [head | tail]
+    3
 
-In the example above, we have assigned the head of the list to `h` and the tail of the list to `t`. The [`Enum` module](https://github.com/josevalim/elixir/blob/master/lib/enum.ex) provides several helpers to manipulate lists (and other enumerables in general that we will discuss later) while the [List module](https://github.com/josevalim/elixir/blob/master/lib/list.ex) provides several helpers specific to lists:
+In the example above, we have assigned the head of the list to the variable `head` and the tail of the list to the variable `tail`. The [`Enum` module](https://github.com/josevalim/elixir/blob/master/lib/enum.ex) provides several helpers to manipulate lists (and other enumerables in general) while the [List module](https://github.com/josevalim/elixir/blob/master/lib/list.ex) provides several helpers specific to lists:
 
     iex> Enum.map [1,2,3], fn(x) -> x * 2 end
     [4,5,6]
@@ -63,7 +63,7 @@ In fact, both double- and single-quoted representations are just a shorter repre
     iex> [?a, ?b, ?c]
     'abc'
 
-In such cases, Elixir is smart enough to detect all characters in the list and in the binary are printable and returns the quoted representation. However, adding a non-printable character forces them to be printed differently:
+In such cases, Elixir is detects all characters in the list and in the binary are printable and returns the quoted representation. However, adding a non-printable character forces them to be printed differently:
 
     iex> <<?a, ?b, ?c, 1>>
     <<97,98,99,1>>
@@ -71,7 +71,7 @@ In such cases, Elixir is smart enough to detect all characters in the list and i
     iex> [?a, ?b, ?c, 1]
     [97,98,99,1]
 
-Since lists are implemented as linked lists, it means a string represented as list usually takes a lot of space in memory (in ASCII, it would be one byte for each character and another byte to point to the next character). For this reason, binary (double-quoted) strings is preferred unless you want to explicitly iterate over the string as a list. Iterating over a string as a list may be convenient when counting characters or doing other list like operations.
+Since lists are implemented as linked lists, it means a string represented as list usually takes a lot of space in memory (in ASCII, it would be one byte for each character and another byte to point to the next character). For this reason, binary (double-quoted) strings is preferred unless you want to explicitly iterate over the string as a list.
 
 Currently Elixir does not ship with any library for doing string manipulation, but this will be amended soon.
 
@@ -118,12 +118,12 @@ If the tuples given on the left and right side do not match, an error is raised.
     iex> x
     4
 
-This is exactly what happened in our list example:
+This is exactly what happened in the list example:
 
     iex> [h | t] = [1,2,3]
     [1, 2, 3]
 
-We have assigned the head of the list to `h` and the tail to `t`. In fact, we could check if the head of the list is `1` and just then assign by doing:
+We have assigned the head of the list to `h` and the tail to `t`. In fact, if we want to check if the head of the list is `1` and assign the tail, we could do:
 
     iex> [1 | t] = [1,2,3]
     [1, 2, 3]
@@ -169,12 +169,12 @@ One of the first control flow constructs we usually learn is the conditional `if
     ...> end
     3
 
-Both formats are simply different ways of expressing key-value arguments. Key-value arguments are a list of two-item tuples, where the first element is an atom representing the key and the second is the value. Elixir provides a syntax-shortcut for creating such key-values:
+Both examples above are simply different ways of expressing key-value arguments. Key-value arguments are a list of two-item tuples, where the first element is an atom representing the key and the second is the value. Elixir provides a syntax-shortcut for creating such key-values:
 
     iex> [a: 1, b: 2]
     [{:a, 1}, {:b, 2}]
 
-Notice that a key-value argument is simply an Ordered Dictionary. For this reason we usually use the [`Orddict` module](https://github.com/josevalim/elixir/blob/master/lib/orddict.ex) to manipulate key-value arguments:
+In order to manipulate those key-value arguments, we can use the [`Orddict` module](https://github.com/josevalim/elixir/blob/master/lib/orddict.ex):
 
     iex> x = [a: 1, b: 2]
     [{:a, 1}, {:b, 2}]
@@ -250,7 +250,7 @@ Which is then parsed as:
       x * 2
     end)
 
-For this reason, a good rule of thumb is to always use the stab version `->` when defining functions.
+A good rule of thumb is: always use `->/end` when defining functions with `fn`, use `do/end` for all other structures. If we follow this rule, everything works transparently.
 
 ## 2.6 Control flow structures
 
@@ -317,7 +317,7 @@ To work around this limitation, Elixir provides three operators with similar fun
 
 ### 2.6.3 Case
 
-In this section we have introduced pattern matching via the `=` operator. Sometimes however it is convenient to match an expression against several expressions until we find a matching one. For such cases, we use `case` (pun intended):
+In this section we have introduced pattern matching via the `=` operator. Sometimes however it is convenient to match an expression against several expressions until we find a matching one. For such cases, we use `case`:
 
     case { 1, 2, 3 } do
     match: { 4, 5, 6 }
@@ -393,32 +393,30 @@ In the example above, the second clause will only match when x is positive. The 
     trunc(Number)
     tuple_size(Tuple)
 
-Guards also allow many clauses to be given by passing `when` many times. This is useful because if one clause fail, the other is still evaluated. Consider this example:
+Many independent guards clauses can also be given at the same time. For example, consider a function that checks if the first element of a tuple or a list is zero. It could be written as:
 
     def first_is_zero?(tuple_or_list) when
       elem(tuple_or_list, 1) == 0 or hd(tuple_or_list) == 0 do
       true
     end
 
-This example will always fail because calling `elem` in a list or `hd` in a tuple will always raise an error. That said, we can rewrite it to become two different clauses:
+However, the example above will always fail because, if the argument is a list, calling `elem` in a list will raise an error. On the other hand, if the element is a tuple, calling `hd` in a tuple will also raise an error. That said, we can rewrite it to become two different clauses:
 
-    def first_is_zero?(tuple_or_list) \
-      when elem(tuple_or_list, 1) == 0 \
-      when hd(tuple_or_list) == 0 do
+    def first_is_zero?(tuple_or_list) when
+      elem(tuple_or_list, 1) == 0 when
+      hd(tuple_or_list) == 0 do
       true
     end
 
-Note: the `\` at the end of the line means that the expression did not finish and will continue in the next line.
+In such cases, if there is an error in one of the guards, it won't affect the next one.
 
-Finally, custom macros can be invoked in guard clauses as long as they expand to expressions that are a subset of the ones described above.
-
-### 2.6.4 Functions and loops
+### 2.6.4 Functions
 
 Throughout this guide, we have created many functions in examples. The syntax for creating functions is:
 
     fn(a, b) -> a + b end
 
-But it could also be written as (although the previous example is preferred):
+But it could also be written as (the previous example is preferred though):
 
     fn(a, b, do: a + b)
 
@@ -426,53 +424,42 @@ But it could also be written as (although the previous example is preferred):
       a + b
     end
 
-In some cases though, it is convenient that a function has many clauses, similarly to `case`. In such scenarios, we can use `match:` to specify many clauses:
-
-    fun = fn ->
-    match: a, b when b < 0
-      a - b
-    match: a, b
-      a + b
-    end
-
-    fun.(1, 2)  #=> 3
-    fun.(1, -2) #=> 3
-
-Notice the number of arguments given to each `match:` needs to be the same. In the example above, each clause expects two arguments. Guards can also be used.
-
 As an immutable language, the binding of the function is also immutable. This means that setting a variable inside the function does not affect its outer scope:
 
     x = 1
     (fn -> x = 2 end).()
     x #=> 1
 
-Also, due to data structure immutability, loops in Elixir (and in functional programming languages) are written differently that conventional imperative languages. For example, in an imperative language, one would write:
+### 2.6.5 Loops
+
+Due to data structure immutability, loops in Elixir (and in functional programming languages) are written differently from conventional imperative languages. For example, in an imperative language, one would write:
 
     for(i = 0; i < array.length; i++) {
       array[i] = array[i] * 2
     }
 
-In the example above, we are mutating the array. In Elixir, we would write the same using recursion:
+In the example above, we are mutating the array which is not possible in Elixir. Therefore, in functional languages recursion happens by calling an anonymous or a named function recursively, until we reach a condition. Consider the example below that manually sums all the items in the list:
 
-    iex> loop [1,2,3] do
-    ...> match: [h|t]
-    ...>   [h * 2 | recur(t)]
-    ...> match: []
-    ...>   []
+    iex> loop [1,2,3], 0 do
+    ...> match: [h|t], acc
+    ...>   recur(t, h + acc)
+    ...> match: [], acc
+    ...>   acc
     ...> end
-    [4,5,6]
+    6
 
-In the example above, we pass a list to loop which is the initial loop argument. The list `[1,2,3]` is then matched against `[h|t]` which assigns `h = 1` and `t = [2,3]`. Then, the head is multiplied by two and the loop is triggered again via the `recur` function passing the tail as argument. The tail will once again match the `[h|t]` until the list empty, matching the final clause which returns an empty list and finishes the recursion. At the end, the final result is:
+In the example above, we pass  a list `[1,2,3]` and the initial value `0` as arguments to loop. The list `[1,2,3]` is then matched against `[h|t]` which assigns `h = 1` and `t = [2,3]` and 0 is assigned to `acc`.
 
-    [1 | [2 | [3 | []]]]
+Then, we add the head of the list to the accumulator `h + acc` and call the loop again using the recur function, passing the tail of the list as argument. The tail will once again match the `[h|t]` until the list empty, matching the final clause which returns the final result of `6`. In other words, the loop is called 4 times until the list is empty and the recursion stops:
 
-Which is exactly the same as `[1, 2, 3]`. Remember lists are linked lists, so each `[h|t]` above is an item pointing to a list, which is another item pointing to another list and so recursively.
+    loop [1,2,3], 0
+    loop [2,3], 1
+    loop [3], 3
+    loop [], 6
 
 > Note: `loop/recur` is also a Clojure idiom, although differently from Clojure, `recur` in Elixir does not ensure a tail call was made.
 
-The `match:` syntax above is rarely used with functions, although we have discussed them in order to explain loops. Anonymous loops aren't used frequently as well as Elixir developers usually write named functions, as we will see in the next chapter.
-
-### 2.6.5 Try
+### 2.6.6 Try
 
 The next control-flow mechanism is `try/catch/after`:
 
@@ -496,18 +483,7 @@ The next control-flow mechanism is `try/catch/after`:
     ** throw 13
         erl_eval:expr/3
 
-`try/catch` not only handles thrown values, but also the mechanism to catch errors and exits. In such cases, we need to explicitly pass to try that an error/exit is being caught:
-
-    iex> try do
-    ...>   error :failure
-    ...> catch: :error, :failure
-    ...>   IO.puts "Ah, error caught"
-    ...> end
-    Ah, error caught
-
-However the syntax above is rarely used in Elixir. Instead, Elixir programmers should use raise/try/rescue mechanism to handle exceptions, as described in next section.
-
-Finally, there is one particularity that applies to `try/catch/after` when compared to other control-flow expressions. The Erlang VM machine considers such clauses unsafe (since they may fail or not) and do not export variables from try variable defined inside `try/catch/after` cannot be accessed from the outer scope:
+There is one particularity that applies to `try/catch/after` when compared to other control-flow expressions. The Erlang VM machine considers such clauses unsafe (since they may fail or not) and do not allow variables defined inside `try/catch/after` to be accessed from the outer scope:
 
     iex> try do
     ...>   new_var = 1
@@ -518,9 +494,21 @@ Finally, there is one particularity that applies to `try/catch/after` when compa
     iex> new_var
     ** error :undef
 
-### 2.6.6 Rescue
+The common strategy then is to explicitly all arguments that are required after the `try`:
 
-While `catch` clause inside `try` are simply a pattern matching mechanism, `rescue` provides a higher abstraction around exceptions. `rescue` allows a developer to rescue an exception by its name and not by its internal contents. Some examples are:
+    { x, y } = try do
+      x = calculate_some_value()
+      y = some_other_value()
+      { x, y }
+    catch: _
+      { nil, nil }
+    end
+
+    x #=> returns the value of x or nil for failures
+
+### 2.6.7 Rescue
+
+While `catch` clauses inside `try` are simply a pattern matching mechanism, `rescue` provides a higher abstraction around exceptions. `rescue` allows a developer to rescue an exception by its name and not by its internal contents. Consider the following examples:
 
     try do
       raise "some error"
@@ -542,7 +530,7 @@ While `catch` clause inside `try` are simply a pattern matching mechanism, `resc
       x.message
     end
 
-    # rescue all and assign to x
+    # rescue all (discouraged) and assign to x
     try do
       raise ArgumentError, message: "unexpected argument"
     rescue: x in _
@@ -551,17 +539,18 @@ While `catch` clause inside `try` are simply a pattern matching mechanism, `resc
 
 Custom exceptions can be defined using the `defexception` macro. Check [the exceptions file for some examples](https://github.com/josevalim/elixir/tree/master/lib/exception.ex).
 
-### 2.6.7 Receive
+### 2.6.8 Receive
 
 The last control-flow mechanism we are going to discuss is essential to Elixir's and Erlang's actor mechanism. In Elixir, every code run in processes that exchange messages between them. Those processes are not Operating System processes (they are actually quite light-weight) but called so since they do not share state with each other.
 
-In order to exchange messages, each process has a mailbox were the received messages are stored. The `receive` mechanism allows us to go throw this mailbox searching for a message that matches the given pattern. Here is an example that uses the arrow operator `<-` to send a message to the current process and then collects this message from this mailbox:
+In order to exchange messages, each process has a mailbox where the received messages are stored. The `receive` mechanism allows us to go throw this mailbox searching for a message that matches the given pattern. Here is an example that uses the arrow operator `<-` to send a message to the current process and then collects this message from this mailbox:
 
     # Get the current process id
     iex> current_pid = self()
 
     # Spawn another process that will send a message to current_pid
     iex> spawn fn(do: current_pid <- { :hello, self() })
+    <0.36.0>
 
     # Collect the message
     iex> receive do
@@ -570,7 +559,7 @@ In order to exchange messages, each process has a mailbox were the received mess
     ...> end
     Hello from <0.36.0>
 
-You may not see exactly `<0.36.0>` back, but something similar. If there are no messages in the mailbox, the current process will hand until a matching message arrives, unless an after clause is given:
+You may not see exactly `<0.36.0>` back, but something similar. If there are no messages in the mailbox, the current process will hang until a matching message arrives, unless an after clause is given:
 
     iex> receive do
     ...> match: :waiting
@@ -586,7 +575,7 @@ In most cases, we don't send messages directly with `<-` nor write `receive` con
 
 Elixir ships with many default functions automatically available in the current scope. Besides all the control flow expressions seen above, Elixir also adds: `elem` and `setelem` to read and set values in tuples, `inspect` that returns the representation of a given data type as string and many others. [Many of these functions with documentation and examples are available in `Elixir::Builtin`](https://github.com/josevalim/elixir/tree/master/lib/elixir/builtin.ex) and [Elixir special forms are available in `Elixir::SpecialForms`](https://github.com/josevalim/elixir/tree/master/lib/elixir/special_forms.ex).
 
-Besides the functions provided by Elixir, all the root functions from Erlang are also available. The function `length`, `is_list`, `is_number` and many others we discussed above comes from Erlang. [The full documented list is available on the OTP documentation page](http://www.erlang.org/doc/man/erlang.html).
+Besides the functions provided by Elixir, most of the root functions from Erlang are also available. The function `length`, `is_list`, `is_number` and many others we discussed above comes from Erlang. [The full documented list is available on the OTP documentation page](http://www.erlang.org/doc/man/erlang.html).
 
 All those functions and control flow expressions are essential for building Elixir programs. The next chapter will then discuss how to organize our code into modules, so it can be easily re-used between different components.
 
