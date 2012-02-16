@@ -23,12 +23,12 @@ translate(Forms, Q, S) ->
 translate_each({ unquote, _Line, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
 
-translate_each({ Left, Line, Right }, Q, S) when is_atom(Left), is_atom(Right) -> %% Variables
-  Final = case Right of
-    quoted -> quoted;
-    _ -> Q#elixir_quote.marker
-  end,
-  Tuple = { tuple, Line, [{ atom, Line, Left }, { integer, Line, Q#elixir_quote.line }, { atom, Line, Final }] },
+translate_each({ Left, Line, nil }, Q, S) when is_atom(Left) ->
+  Tuple = { tuple, Line, [
+    { atom, Line, Left },
+    { integer, Line, Q#elixir_quote.line },
+    { atom, Line, Q#elixir_quote.marker }
+  ] },
   { Tuple, S };
 
 translate_each({ Left, Line, Right }, Q, S) ->

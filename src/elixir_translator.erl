@@ -313,8 +313,8 @@ translate_each({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse 
 %% Variables
 
 translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
-  Result = case Args of
-    nil ->
+  Result = case is_atom(Args) of
+    true ->
       case S#elixir_scope.assign of
         false -> "cannot access variable ^~s outside of assignment";
         true  ->
@@ -323,7 +323,7 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
             { ok, Value } -> { {var, Line, Value}, S }
           end
       end;
-    _ -> "cannot use ^ with expression at ^~s, ^ must be used only with variables"
+    false -> "cannot use ^ with expression at ^~s, ^ must be used only with variables"
   end,
 
   case is_list(Result) of
