@@ -7,6 +7,12 @@ defmodule ListTest do
     assert_equal [1,2,3], :[].(1,2,3)
   end
 
+  test :wrap do
+    assert_equal [1,2,3], List.wrap [1,2,3]
+    assert_equal [1], List.wrap 1
+    assert_equal [], List.wrap nil
+  end
+
   test :flatten do
     assert_equal [1,2,3], List.flatten([1,2,3])
     assert_equal [1,2,3], List.flatten([1,[2],3])

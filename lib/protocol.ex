@@ -92,8 +92,8 @@ defmodule Protocol do
 
     if !L.member({ Any, :is_any }, conversions) && length(conversions) < 10 do
       contents = contents ++ [quote do
-        def __protocol_for__(arg) do
-          raise ::Protocol::UndefinedError, protocol: __MODULE__, structure: arg
+        def __protocol_for__(_) do
+          nil
         end
       end]
     end
@@ -189,6 +189,8 @@ defmodule Protocol do
           match: { value, true }
             value
           end
+        match: nil
+          raise ::Protocol::UndefinedError, protocol: __MODULE__, structure: xA
         match: other
           apply other, unquote(name), args
         end

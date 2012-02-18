@@ -47,8 +47,12 @@ defmodule ProtocolTest do
   end
 
   test :protocol_with_only do
-    assert_undef(ProtocolTest::WithOnly, Function, fn(x, do: x))
-    true  = ProtocolTest::WithOnly.blank(ProtocolTest::Foo.new)
+    assert_undef ProtocolTest::WithOnly, Function, fn(x, do: x)
+    assert_equal true, ProtocolTest::WithOnly.blank(ProtocolTest::Foo.new)
+  end
+
+  test :protocol_with_only_with_undefined do
+    assert_equal nil, ProtocolTest::WithOnly.__protocol_for__(:foo)
 
     assert_equal "protocol ::ProtocolTest::WithOnly not implemented for :foo", try ->
       ProtocolTest::WithOnly.blank(:foo)
