@@ -95,7 +95,7 @@ eval_form(Line, Filename, Module, Block, RawS) ->
   { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, [], RawS),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
   { Callbacks, FinalS } = callbacks_for(Line, compile_callbacks, Module, [Module], NewS),
-  elixir:eval_forms(Callbacks, binding_for_eval(Module, Binding), FinalS),
+  elixir:eval_forms(Callbacks, binding_for_eval(Module, Binding), FinalS#elixir_scope{check_clauses=false}),
   Forwardings = ets:lookup_element(data_table(Module), forwardings, 2),
   case Forwardings of
     [] -> [];

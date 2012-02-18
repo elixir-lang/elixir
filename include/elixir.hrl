@@ -10,7 +10,8 @@
   assign=false,                                  %% when true, new variables can be defined in that subtree
   guard=false,                                   %% when true, we are inside a guard
   noref=false,                                   %% when true, don't resolve references
-  noname=false,                                  %% when true, don't add new names. used by try.
+  noname=false,                                  %% when true, don't add new names (used by try)
+  check_clauses=true,                            %% when true, check def clauses ordering
   macro=[],                                      %% the current macro being transformed
   function=[],                                   %% the current function
   recur=[],                                      %% the current loop function to be recurred

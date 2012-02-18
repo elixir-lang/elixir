@@ -93,7 +93,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   test :clause_change do
-    assert_equal "nofile:4: function foo/1 does not match previous clause",
+    assert_equal "nofile:4: function foo/1 does not match previous clause bar/1",
       format_rescue 'defmodule Foo do\ndef foo(1), do: 1\ndef bar(x), do: x\ndef foo(x), do: x\nend'
   end
 

@@ -90,8 +90,10 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, KV, RawS) ->
     def      -> { def, public }
   end,
 
+  CheckClauses = S#elixir_scope.check_clauses,
+
   %% Store function
-  store_each(true, Final, FunctionTable, Visibility, Filename, Function),
+  store_each(CheckClauses, Final, FunctionTable, Visibility, Filename, Function),
 
   %% Store defaults
   [store_each(false, Final, FunctionTable, Visibility, Filename,
@@ -218,13 +220,14 @@ check_valid_clause(Line, Filename, Name, Arity, Table) ->
   case ets:lookup_element(Table, last, 2) of
     {Name,Arity} -> [];
     [] -> [];
-    _ -> elixir_errors:form_error(Line, Filename, ?MODULE, { changed_clause, {Name, Arity} })
+    {ElseName, ElseArity} -> elixir_errors:form_error(Line, Filename, ?MODULE,
+      { changed_clause, { {Name, Arity}, {ElseName, ElseArity} } })
   end.
 
 %% Format errors
 
-format_error({changed_clause,{Name,Arity}}) ->
-  io_lib:format("function ~s/~B does not match previous clause", [Name, Arity]);
+format_error({changed_clause,{{Name,Arity},{ElseName,ElseArity}}}) ->
+  io_lib:format("function ~s/~B does not match previous clause ~s/~B", [Name, Arity, ElseName, ElseArity]);
 
 format_error({changed_visibility,{Name,Arity,Previous}}) ->
   io_lib:format("function ~s/~B already defined with visibility ~s", [Name, Arity, Previous]);

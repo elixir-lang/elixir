@@ -106,7 +106,7 @@ dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
   end,
   NewS = S#elixir_scope{macro={Receiver,Name,Arity}},
   { TTree, TS } = elixir_translator:translate_each(elixir_quote:linify(Line, Tree), NewS),
-  { TTree, TS#elixir_scope{macro=[]} }.
+  { TTree, TS#elixir_scope{macro=S#elixir_scope.macro} }.
 
 find_dispatch(Tuple, [{ Name, Values }|T]) ->
   case ordsets:is_element(Tuple, Values) of
