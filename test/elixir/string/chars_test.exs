@@ -14,7 +14,7 @@ defmodule String::Chars::AtomTest do
   test :true_false_nil do
     assert_equal "false", to_binary(false)
     assert_equal "true", to_binary(true)
-    assert_equal "nil", to_binary(nil)
+    assert_equal "", to_binary(nil)
   end
 
   test :with_uppercase do

@@ -4,6 +4,10 @@ defprotocol String::Chars, [to_binary(thing)],
   only: [BitString, List, Number, Atom, Record]
 
 defimpl String::Chars, for: Atom do
+  def to_binary(nil) do
+    ""
+  end
+
   def to_binary(atom) do
     atom_to_binary(atom, :utf8)
   end
