@@ -118,7 +118,7 @@ defmodule List do
   end
 
   # Returns a list as a sequence from first to last.
-  # Raises an error if first is higher than last.
+  # Returns an empty list if last is lower than first.
   #
   # ## Examples
   #
@@ -127,6 +127,10 @@ defmodule List do
   #
   def seq(first, last) when is_integer(first) andalso is_integer(last) andalso first <= last do
     do_seq(last - first + 1, last, [])
+  end
+
+  def seq(first, last) when is_integer(first) andalso is_integer(last) do
+    []
   end
 
   # Returns a list without duplicated items.

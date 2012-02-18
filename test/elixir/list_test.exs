@@ -37,6 +37,7 @@ defmodule ListTest do
   test :seq do
     assert_equal [1,2,3], List.seq(1,3)
     assert_equal [1], List.seq(1,1)
+    assert_equal [], List.seq(1,0)
   end
 
   test :prepend do

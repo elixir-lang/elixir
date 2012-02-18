@@ -187,6 +187,20 @@ defmodule Module do
     ETS.insert(table, { :forwardings,  final })
   end
 
+  # Remove a prevously stablished forwarding.
+  #
+  # ## Examples
+  #
+  #     Module.remove_forwarding __MODULE__, [sample: 1]
+  #
+  def remove_forwarding(module, pair) do
+    assert_not_compiled!(:remove_forwarding, module)
+    table = data_table_for(module)
+    old   = ETS.lookup_element(table, :forwardings, 2)
+    final = Enum.reduce pair, old, Orddict.erase(&2, &1)
+    ETS.insert(table, { :forwardings,  final })
+  end
+
   # Internal callback that compiles all the forwarding
   # for the given module.
   def compile_forwardings(module, forwardings) do

@@ -134,10 +134,12 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
 
 translate_macro({Kind, Line, [_Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   assert_module_scope(Line, Kind, S),
+  assert_no_function_scope(Line, Kind, S),
   { { nil, Line }, S };
 
 translate_macro({Kind, Line, [Call, Expr]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   assert_module_scope(Line, Kind, S),
+  assert_no_function_scope(Line, Kind, S),
   { TCall, Guards } = elixir_clauses:extract_guards(Call),
   { Name, Args }    = elixir_clauses:extract_args(TCall),
   TName             = elixir_tree_helpers:abstract_syntax(Name),
@@ -148,6 +150,7 @@ translate_macro({Kind, Line, [Call, Expr]}, S) when Kind == def; Kind == defp; K
 
 translate_macro({Kind, Line, [Name, Args, Guards, Expr]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   assert_module_scope(Line, Kind, S),
+  assert_no_function_scope(Line, Kind, S),
   { TName, NS }   = translate_each(Name, S),
   { TArgs, AS }   = translate_each(Args, NS),
   { TGuards, TS } = translate_each(Guards, AS),
