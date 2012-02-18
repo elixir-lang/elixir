@@ -14,9 +14,14 @@ defmodule Kernel::RequireTest do
     assert_equal :"::lists::Bar", MyList::Bar
   end
 
-  test :require_with_as_true do
-    require Kernel::RequireTest::Nested, as: true
+  test :automatic_require do
     assert_equal 1, Nested.value
+  end
+
+  test :double_named_require do
+    require Kernel::RequireTest::Nested, as: Nested2
+    assert_equal 1, Nested.value
+    assert_equal 1, Nested2.value
   end
 
   test :default_required do

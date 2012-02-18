@@ -18,14 +18,10 @@ defmodule Record do
     extensor = Orddict.get(opts, :extensor, Record::Extensor)
 
     quote do
-      name = unquote(name)
-
-      defmodule name do
+      defmodule unquote(name), as: unquote(as) do
         Record.define_functions(__MODULE__, unquote(values), unquote(extensor))
         unquote(block)
       end
-
-      require unquote(name), as: unquote(as), raise: false
     end
   end
 

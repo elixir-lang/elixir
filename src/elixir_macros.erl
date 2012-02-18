@@ -107,8 +107,21 @@ translate_macro({'receive', Line, [RawClauses] }, S) ->
 
 %% Definitions
 
-translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
+translate_macro({defmodule, Line, [Ref, Left, Right]}, S) ->
+  translate_macro({defmodule, Line, [Ref, orddict:from_list(Left ++ Right)]}, S);
+
+translate_macro({defmodule, Line, [Ref, KV]}, S) ->
   { TRef, _ } = translate_each(Ref, S),
+
+  Block = case orddict:find(do, KV) of
+    { ok, DoValue } -> DoValue;
+    error -> syntax_error(Line, S#elixir_scope.filename, "expected do: argument in defmodule")
+  end,
+
+  As = case orddict:find(as, KV) of
+    { ok, AsValue } -> AsValue;
+    error -> true
+  end,
 
   NS = case TRef of
     { atom, _, Module } ->
@@ -116,7 +129,8 @@ translate_macro({defmodule, Line, [Ref, [{do,Block}]]}, S) ->
     _ -> S
   end,
 
-  { elixir_module:translate(Line, TRef, Block, S), NS };
+  { _, RS } = translate_each({ require, Line, [Ref, [{as,As},{raise,false}]] }, NS),
+  { elixir_module:translate(Line, TRef, Block, S), RS };
 
 translate_macro({Kind, Line, [_Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   assert_module_scope(Line, Kind, S),

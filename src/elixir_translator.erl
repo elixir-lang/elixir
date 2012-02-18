@@ -101,7 +101,7 @@ translate_each({require, Line, [Ref|T]}, S) ->
           { TOther, SA } = translate_each(Other, SR),
           case TOther of
             { atom, _, Atom } -> { Atom, SA };
-            _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for require")
+            _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected a reference as argument")
           end;
         error ->
           { Old, SR }
@@ -115,7 +115,7 @@ translate_each({require, Line, [Ref|T]}, S) ->
         { ok, false } ->
           { { nil, Line }, S };
         _ ->
-          syntax_error(Line, S#elixir_scope.filename, "invalid args for require")
+          syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected a reference as argument")
       end
   end;
 
@@ -147,7 +147,11 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
     _ -> syntax_error(Line, S#elixir_scope.filename, "invalid options for import")
   end,
 
-  As = proplists:get_value(as, Opts, false),
+  As = case orddict:find(as, Opts) of
+    { ok, Value } -> Value;
+    error -> false
+  end,
+
   elixir_ref:ensure_loaded(Line, Ref, SR, true),
 
   SF = case (Selector == all) or (Selector == functions) of

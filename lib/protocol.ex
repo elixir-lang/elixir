@@ -16,15 +16,13 @@ defmodule Protocol do
     kv = to_kv(args)
 
     quote do
-      defmodule unquote(name) do
+      defmodule unquote(name), as: unquote(as) do
         def __protocol__(:name),      do: unquote(name)
         def __protocol__(:functions), do: unquote(kv)
         conversions = Protocol.conversions_for(unquote(opts))
         Protocol.functions(__MODULE__, conversions, unquote(kv))
         Protocol.protocol_for(__MODULE__, conversions)
       end
-
-      require unquote(name), as: unquote(as), raise: false
     end
   end
 
