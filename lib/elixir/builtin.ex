@@ -352,10 +352,9 @@ defmodule Elixir::Builtin do
 
   # Forwarding is a mechanism that allows a library or framework
   # developer to provide a default implementation for some function.
-  #
   # If the target module defines the forwarding function, `defforward`
-  # works as noop. However, if not, a default implementation of the
-  # function will be added, forwarding it to target function.
+  # works as noop. However if not, a default implementation of the
+  # function will be added, forwarding it to the target function.
   #
   # ## Examples
   #
@@ -396,6 +395,22 @@ defmodule Elixir::Builtin do
   #
   # We call `MyModule.handle_failure/1` the **forwarding** function.
   #
+  # ## defforward x defdelegate
+  #
+  # `defforward` is mainly a callback mechanism used by library developers
+  # to provide a default behavior for user code. Since the default function
+  # receives the target module as argument, the default function is usually
+  # created with the defforward mechanism in mind.
+  #
+  # `defdelegate` however is simply a public API concern. For example, a
+  # developer providing his own helpers for handling lists, called `MyList`
+  # may desire to delegate few functions to the original `List` module:
+  #
+  #     defmodule MyList do
+  #       defdelegate [reverse: 1], to: List
+  #       # Other MyList related functions
+  #     end
+  #
   # ## Using super
   #
   # In some cases, a forwarding function specified by a developer may
@@ -415,18 +430,16 @@ defmodule Elixir::Builtin do
   #
   # ## Defining private forwardings
   #
-  # `defforward` accepts an optional first argument as the
-  # visibility of the function. For instance, the example
-  # below will define the forwarding function as a private
-  # function:
+  # `defforward` accepts another option called :via that allows you
+  # to define the visibility of the forwarding function.
   #
-  #   defforward :private, [handle_failure: 1], to: ::MyLibrary
+  #   defforward [handle_failure: 1], to: ::MyLibrary, via: :defp
   #
   # Since the forwarded function must always be called from external,
   # it needs to be necessarily a public function.
-  defmacro defforward(visibility // :public, tuples, to: target) do
+  defmacro defforward(tuples, options) do
     quote do
-      Module.add_forwarding __MODULE__, unquote(tuples), unquote(visibility), unquote(target)
+      Module.add_forwarding __MODULE__, unquote(tuples), unquote(options)
     end
   end
 

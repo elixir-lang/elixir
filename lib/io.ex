@@ -7,4 +7,8 @@ defmodule IO do
     print(device, item)
     Erlang.io.format("~n")
   end
+
+  def inspect(device // :standard_io, item) do
+    puts device, Elixir::Builtin.inspect(item)
+  end
 end

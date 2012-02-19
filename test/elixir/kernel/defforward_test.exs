@@ -5,7 +5,7 @@ defmodule Kernel::ForwardingLibrary do
     quote do
       defforward [sample: 1], to: unquote(__MODULE__)
       defforward [final: 0], to: unquote(__MODULE__)
-      defforward :private, [other: 1], to: unquote(__MODULE__)
+      defforward [other: 1], to: unquote(__MODULE__), via: :defp
       def pointer(arg), do: other(arg)
     end
   end

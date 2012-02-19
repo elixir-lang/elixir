@@ -38,6 +38,13 @@ defmodule ModuleTest::DuplicateAttribute do
   Module.add_attribute __MODULE__, :foo, 3
 end
 
+defmodule ModuleTest::DefinedFunctions do
+  def foo(1,2,3), do: 4
+  @defined_functions Module.defined_functions __MODULE__
+  @defined_def  Module.defined_functions __MODULE__, :def
+  @defined_defp Module.defined_functions __MODULE__, :defp
+end
+
 defmodule ModuleTest do
   use ExUnit::Case
 
@@ -107,5 +114,11 @@ defmodule ModuleTest do
 
   test :apply do
     assert_equal [3,2,1], apply(List, :reverse, [[1|[2,3]]])
+  end
+
+  test :defined_functions do
+    assert_equal [{:foo, 3}], Orddict.get(ModuleTest::DefinedFunctions.__info__(:data), :defined_functions)
+    assert_equal [{:foo, 3}], Orddict.get(ModuleTest::DefinedFunctions.__info__(:data), :defined_def)
+    assert_equal [], Orddict.get(ModuleTest::DefinedFunctions.__info__(:data), :defined_defp)
   end
 end

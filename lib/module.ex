@@ -119,10 +119,40 @@ defmodule Module do
   #     end
   #
   def function_defined?(module, tuple, kind) do
-    function_defined?(module, tuple) andalso
-      (table = function_table_for(module)
-       entry = kind_to_entry(kind)
-       List.member? ETS.lookup_element(table, entry, 2), tuple)
+    List.member? defined_functions(module, kind), tuple
+  end
+
+  # Return all functions defined in the given module.
+  #
+  # ## Examples
+  #
+  #     defmodule Example do
+  #       def version, do: 1
+  #       Module.defined_functions __MODULE__ #=> [{:version,1}]
+  #     end
+  #
+  def defined_functions(module) do
+    assert_not_compiled!(:defined_functions, module)
+    table = function_table_for(module)
+    lc { tuple, _, _ } in ETS.tab2list(table), do: tuple
+  end
+
+  # Return all functions defined in te given module according
+  # to its kind.
+  #
+  # ## Examples
+  #
+  #     defmodule Example do
+  #       def version, do: 1
+  #       Module.defined_functions __MODULE__, :def  #=> [{:version,1}]
+  #       Module.defined_functions __MODULE__, :defp #=> []
+  #     end
+  #
+  def defined_functions(module, kind) do
+    assert_not_compiled!(:defined_functions, module)
+    table = function_table_for(module)
+    entry = kind_to_entry(kind)
+    ETS.lookup_element(table, entry, 2)
   end
 
   # Adds a compilation callback hook that is invoked
@@ -171,14 +201,25 @@ defmodule Module do
   #
   # ## Examples
   #
-  #     Module.add_forwarding __MODULE__, [sample: 1], :public, TargetModule
+  #     Module.add_forwarding __MODULE__, [sample: 1], to: TargetModule, via: :defp
   #
-  def add_forwarding(module, pairs, visibility, target) do
+  def add_forwarding(module, pairs, options) do
     assert_not_compiled!(:add_forwarding, module)
+
+    target = Orddict.get options, :to
+    via    = Orddict.get options, :via, :def
+
+    case target do
+    match: nil
+      raise ArgumentError, message: "expected to: parameter in defforward"
+    else:
+      nil
+    end
+
     table = data_table_for(module)
     old   = ETS.lookup_element(table, :forwardings, 2)
 
-    info  = { visibility, target }
+    info  = { via, target }
     new   = Orddict.from_enum(pairs, fn(x) -> {x, info} end)
     final = Orddict.merge old, new, fn({ name, arity }, { _, old_target }, _current) ->
       raise ArgumentError, message: "forwarding to #{name}/#{arity} already defined by #{inspect(old_target)}"
@@ -204,8 +245,9 @@ defmodule Module do
   # Internal callback that compiles all the forwarding
   # for the given module.
   def compile_forwardings(module, forwardings) do
+    defined  = defined_functions(module)
     contents = Enum.map forwardings, fn({ tuple, other }) ->
-      case function_defined?(module, tuple) do
+      case List.member?(defined, tuple) do
       match: true
         nil
       else:
@@ -267,7 +309,7 @@ defmodule Module do
 
   ## Helpers
 
-  defp contents_for_compile_forwarding { name, arity }, { visibility, target } do
+  defp contents_for_compile_forwarding { name, arity }, { via, target } do
     args = lc i in List.seq(1, arity) do
       { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
     end
@@ -276,15 +318,8 @@ defmodule Module do
       apply unquote(target), unquote(name), [__MODULE__, unquote_splicing(args)]
     end
 
-    case visibility do
-    match: :private
-      quote do
-        defp unquote(name).(unquote_splicing(args)), do: unquote(invoke)
-      end
-    match: :public
-      quote do
-        def unquote(name).(unquote_splicing(args)), do: unquote(invoke)
-      end
+    quote do
+      unquote(via).(unquote(name).(unquote_splicing(args)), do: unquote(invoke))
     end
   end
 

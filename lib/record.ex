@@ -13,23 +13,23 @@ defmodule Record do
   # Main entry point for records definition.
   # This is invoked directly by Elixir::Builtin.defrecord.
   def defrecord(name, values, opts) do
-    block    = Orddict.get(opts, :do)
-    as       = Orddict.get(opts, :as, true)
-    extensor = Orddict.get(opts, :extensor, Record::Extensor)
+    block      = Orddict.get(opts, :do)
+    as         = Orddict.get(opts, :as, true)
+    definition = Orddict.get(opts, :definition, Record::Definition)
 
     quote do
       defmodule unquote(name), as: unquote(as) do
-        Record.define_functions(__MODULE__, unquote(values), unquote(extensor))
+        Record.define_functions(__MODULE__, unquote(values), unquote(definition))
         unquote(block)
       end
     end
   end
 
   # Private endpoint that defines the functions for the Record.
-  def define_functions(module, values, extensor) do
+  def define_functions(module, values, definition) do
     contents = [
       reflection(module, values),
-      getters_and_setters(values, 1, [], extensor),
+      getters_and_setters(values, 1, [], definition),
       initializers(values)
     ]
 
@@ -120,29 +120,10 @@ defmodule Record do
   # syntax as `unquote(key)(record)` wouldn't be valid (as Elixir
   # allows you to parenthesis just on specific cases as `foo()`
   # and `foo.bar()`)
-  defp getters_and_setters([{ key, default }|t], i, acc, extensor) do
+  defp getters_and_setters([{ key, default }|t], i, acc, definition) do
     i = i + 1
-
-    bin_update = "update_" <> atom_to_binary(key, :utf8)
-    update     = binary_to_atom(bin_update, :utf8)
-
-    contents = quote do
-      def unquote(key).(record) do
-        element(unquote(i), record)
-      end
-
-      def unquote(key).(value, record) do
-        setelement(unquote(i), record, value)
-      end
-
-      def unquote(update).(function, record) do
-        current = element(unquote(i), record)
-        setelement(unquote(i), record, function.(current))
-      end
-    end
-
-    typed = extensor.extension_for(key, default, i)
-    getters_and_setters(t, i, [contents, typed | acc], extensor)
+    functions = definition.functions_for(key, default, i)
+    getters_and_setters(t, i, [functions | acc], definition)
   end
 
   defp getters_and_setters([], _i, acc, _), do: acc
@@ -228,10 +209,39 @@ defmodule Record::Extractor do
   end
 end
 
-# Provides default extensions for a regular record.
-# It adds prepend_ and merge_ helpers for lists and
-# increment_ for numbers.
-defmodule Record::Extensor do
+# Module responsible for defining functions for each field.
+defmodule Record::Definition do
+  # Main entry point. It defines both default functions
+  # via `default_for` and extensions via `extension_for`.
+  def functions_for(key, default, i) do
+    [
+      default_for(key, default, i),
+      extension_for(key, default, i)
+    ]
+  end
+
+  # Define the default functions for each field.
+  def default_for(key, _default, i) do
+    bin_update = "update_" <> atom_to_binary(key, :utf8)
+    update     = binary_to_atom(bin_update, :utf8)
+
+    quote do
+      def unquote(key).(record) do
+        element(unquote(i), record)
+      end
+
+      def unquote(key).(value, record) do
+        setelement(unquote(i), record, value)
+      end
+
+      def unquote(update).(function, record) do
+        current = element(unquote(i), record)
+        setelement(unquote(i), record, function.(current))
+      end
+    end
+  end
+
+  # Define extensions based on the default type.
   def extension_for(key, default, i) when is_list(default) do
     bin_key = atom_to_binary(key, :utf8)
     prepend = :"prepend_#{bin_key}"
