@@ -72,8 +72,10 @@ tokenize(Line, [$.,T|Rest], Tokens) when T == $+; T == $-; T == $*;
 
 tokenize(Line, [H,H,H|T], Tokens) when H == $"; H == $' ->
   case extract_heredoc(Line, T, H) of
-    { Body, Rest, Spaces } ->
-      case elixir_interpolation:extract(Line, string, lists:reverse([0|Body]), 0) of
+    { error, _ } = Error ->
+      Error;
+    { Body, Rest } ->
+      case elixir_interpolation:extract(Line, string, Body, 0) of
         { _, Parts, [] } ->
           Kind = case H == $" of
             true  -> bin_string;
@@ -81,8 +83,7 @@ tokenize(Line, [H,H,H|T], Tokens) when H == $"; H == $' ->
           end,
           tokenize(Line, Rest, [{Kind,Line,Parts}|Tokens]);
         Else -> Else
-      end;
-    Else -> Else
+      end
   end;
 
 % Strings
@@ -275,15 +276,38 @@ eol(Line, Tokens) ->
 extract_heredoc(Line0, Rest0, Marker) ->
   case extract_heredoc_line(Rest0, []) of
     { ok, Extra, Rest1 } ->
-      case extract_heredoc_body(Line0 + 1, Marker, Rest1, []) of
+      %% We prepend a new line so we can transparently remove
+      %% spaces later. This new line is removed by calling `tl`
+      %% in the final heredoc body three lines below.
+      case extract_heredoc_body(Line0, Marker, [$\n|Rest1], []) of
         { Line1, Body, Rest2, Spaces } ->
-          { Body, merge_heredoc_extra(Line1, Extra, Rest2), Spaces };
+          { tl(remove_heredoc_spaces(Body, Spaces)), merge_heredoc_extra(Line1, Extra, Rest2) };
         { error, _ } = Reason ->
           Reason
       end;
     { error, eof } ->
       { error, { Line0, "unexpected end of file. invalid token: ", "EOF" } }
   end.
+
+%% Remove spaces from heredoc based on the position of the final quotes.
+
+remove_heredoc_spaces(Body, 0) ->
+  lists:reverse([0|Body]);
+
+remove_heredoc_spaces(Body, Spaces) ->
+  remove_heredoc_spaces([0|Body], [], Spaces, Spaces).
+
+remove_heredoc_spaces([H,$\n|T], [Backtrack|Buffer], Spaces, Original) when Spaces > 0, H == $\s orelse H == $\t ->
+  remove_heredoc_spaces([Backtrack,$\n|T], Buffer, Spaces - 1, Original);
+
+remove_heredoc_spaces([$\n=H|T], Buffer, _Spaces, Original) ->
+  remove_heredoc_spaces(T, [H|Buffer], Original, Original);
+
+remove_heredoc_spaces([H|T], Buffer, Spaces, Original) ->
+  remove_heredoc_spaces(T, [H|Buffer], Spaces, Original);
+
+remove_heredoc_spaces([], Buffer, _Spaces, _Original) ->
+  Buffer.
 
 %% Extract heredoc body. It returns the heredoc body (in reverse order),
 %% the remaining of the document and the number of spaces the heredoc

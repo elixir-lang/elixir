@@ -39,6 +39,13 @@ bar
 """
   end
 
+  test :double_quoted_aligned_heredoc do
+    assert_equal "foo\nbar\nbar\n", """ <> "bar\n"
+    foo
+    bar
+    """
+  end
+
   test :string_concatenation_as_match do
     "foo" <> x = "foobar"
     assert_equal "bar", x
