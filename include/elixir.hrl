@@ -12,6 +12,7 @@
   noref=false,                                   %% when true, don't resolve references
   noname=false,                                  %% when true, don't add new names (used by try)
   check_clauses=true,                            %% when true, check def clauses ordering
+  docs=false,                                    %% when true, attach docs to the defined module
   macro=[],                                      %% the current macro being transformed
   function=[],                                   %% the current function
   recur=[],                                      %% the current loop function to be recurred

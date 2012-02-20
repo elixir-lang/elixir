@@ -1,5 +1,5 @@
 -module(elixir_compiler).
--export([file/1, file_to_path/2, core/0, module/3, eval/4, eval_forms/4]).
+-export([file/2, file_to_path/3, core/0, module/3, eval_forms/4]).
 -include("elixir.hrl").
 
 %% Public API
@@ -7,7 +7,7 @@
 %% Compiles the given file. Returns a list of tuples
 %% with module names and binaries.
 
-file(Filename) ->
+file(Filename, Docs) ->
   Previous = get(elixir_compiled),
   try
     put(elixir_compiled, []),
@@ -16,8 +16,7 @@ file(Filename) ->
       Error -> erlang:error(Error)
     end,
 
-    % elixir:eval(Contents, [], Filename),
-    eval(Contents, 1, Filename, list_to_atom(filename_to_module(Filename))),
+    eval(Contents, 1, Filename, list_to_atom(filename_to_module(Filename)), Docs),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
@@ -25,15 +24,15 @@ file(Filename) ->
 
 %% Compiles a file to the given path (directory).
 
-file_to_path(File, Path) ->
-  Lists = file(File),
+file_to_path(File, Path, Docs) ->
+  Lists = file(File, Docs),
   [binary_to_path(X, Path) || X <- Lists].
 
 %% Evaluates the contents/forms by compiling them to an Erlang module.
 
-eval(String, Line, Filename, Module) ->
+eval(String, Line, Filename, Module, Docs) ->
   Forms = elixir_translator:forms(String, Line, Filename),
-  eval_forms(Forms, Line, Module, #elixir_scope{filename=Filename}).
+  eval_forms(Forms, Line, Module, #elixir_scope{filename=Filename,docs=Docs}).
 
 eval_forms(Forms, Line, Module, #elixir_scope{module=[]} = S) ->
   eval_forms(Forms, Line, Module, nil, S);
@@ -248,7 +247,7 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 core_file(File) ->
   io:format("Compiling ~s~n", [File]),
   try
-    file_to_path(File, "exbin")
+    file_to_path(File, "exbin", false)
   catch
     Kind:Reason ->
       io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, erlang:get_stacktrace()]),

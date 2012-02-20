@@ -1,4 +1,5 @@
-defrecord Elixir::CLI::Config, commands: [], close: [], output: '.', compile: false, stop: true
+defrecord Elixir::CLI::Config, commands: [], close: [],
+  output: '.', compile: false, stop: true, docs: false
 
 defmodule Elixir::CLI do
   import Exception, only: [format_stacktrace: 1]
@@ -142,6 +143,10 @@ defmodule Elixir::CLI do
     process_compiler t, config.output(h)
   end
 
+  defp process_compiler(['--docs'|t], config) do
+    process_compiler t, config.docs(true)
+  end
+
   defp process_compiler([h|t] = list, config) do
     case h do
     match: '-' ++ _
@@ -175,7 +180,7 @@ defmodule Elixir::CLI do
 
     Enum.map concat, fn(file) ->
       IO.puts "Compiling #{list_to_binary(file)}"
-      Code.compile_file_to_dir(file, config.output)
+      Code.compile_file_to_dir(file, config.output, docs: config.docs)
     end
   end
 end

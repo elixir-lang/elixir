@@ -65,16 +65,19 @@ defmodule Code do
     end
   end
 
-  # Compiles `file` and returns a list of tuples where the first element
-  # is the module name and the second one is its binary.
-  def compile_file(file) do
-    Erlang.elixir_compiler.file to_char_list(file)
+  # Compiles `file` and returns a list of tuples where
+  # the first element is the module name and the second
+  # one is its binary. Can optional pass docs: true
+  # so the compiled files retain their documentation,
+  # otherwise documentation is discarded on compilation.
+  def compile_file(file, [docs: docs] // [docs: false]) do
+    Erlang.elixir_compiler.file to_char_list(file), docs
   end
 
   # Compiles `file` and add the result to the given `destination`.
   # Destination needs to be a directory.
-  def compile_file_to_dir(file, destination) do
-    Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination)
+  def compile_file_to_dir(file, destination, [docs: docs] // [docs: false]) do
+    Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination), docs
   end
 
   # Get the stacktrace.
