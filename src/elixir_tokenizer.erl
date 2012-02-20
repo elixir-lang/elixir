@@ -68,6 +68,23 @@ tokenize(Line, [$.,T|Rest], Tokens) when T == $+; T == $-; T == $*;
   T == $/; T == $=; T == $|; T == $!; T == $<; T == $>; T == $^; T == $@ ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T]), Rest),{'.',Line}|Tokens]);
 
+% Heredocs
+
+tokenize(Line, [H,H,H|T], Tokens) when H == $"; H == $' ->
+  case extract_heredoc(Line, T, H) of
+    { Body, Rest, Spaces } ->
+      case elixir_interpolation:extract(Line, string, lists:reverse([0|Body]), 0) of
+        { _, Parts, [] } ->
+          Kind = case H == $" of
+            true  -> bin_string;
+            false -> list_string
+          end,
+          tokenize(Line, Rest, [{Kind,Line,Parts}|Tokens]);
+        Else -> Else
+      end;
+    Else -> Else
+  end;
+
 % Strings
 
 tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
@@ -239,6 +256,9 @@ tokenize(Line, "\r\n" ++ Rest, Tokens) ->
 tokenize(Line, [T|Rest], Tokens) when T == $ ; T == $\r; T == $\t ->
   tokenize(Line, Rest, Tokens);
 
+tokenize(_, [{line,Line}|Rest], Tokens) ->
+  tokenize(Line, Rest, Tokens);
+
 tokenize(Line, T, _) ->
   { error, { Line, "invalid token: ", T } }.
 
@@ -249,6 +269,75 @@ eol(Line, Tokens) ->
     [{eol,_}|_] -> Tokens;
     _ -> [{eol,Line}|Tokens]
   end.
+
+% Extract heredocs
+
+extract_heredoc(Line0, Rest0, Marker) ->
+  case extract_heredoc_line(Rest0, []) of
+    { ok, Extra, Rest1 } ->
+      case extract_heredoc_body(Line0 + 1, Marker, Rest1, []) of
+        { Line1, Body, Rest2, Spaces } ->
+          { Body, merge_heredoc_extra(Line1 + 1, Extra, Rest2), Spaces };
+        { error, _ } = Reason ->
+          Reason
+      end;
+    { error, eof } ->
+      { error, { Line0, "unexpected end of file. invalid token: ", "EOF" } }
+  end.
+
+%% Extract heredoc body. It returns the heredoc body (in reverse order),
+%% the remaining of the document and the number of spaces the heredoc
+%% is aligned.
+
+extract_heredoc_body(Line, Marker, Rest, Buffer) ->
+  case extract_heredoc_line(Marker, Rest, Buffer, 0) of
+    { ok, NewBuffer, NewRest } ->
+      extract_heredoc_body(Line + 1, Marker, NewRest, NewBuffer);
+    { ok, NewBuffer, NewRest, Spaces } ->
+      { Line + 1, NewBuffer, NewRest, Spaces };
+    { error, eof } ->
+      { error, { Line, "unexpected end of file. invalid token: ", "EOF" } }
+  end.
+
+%% Extract a line from the heredoc prepending its contents to a buffer.
+
+extract_heredoc_line("\r\n" ++ Rest, Buffer) ->
+  { ok, [$\n|Buffer], Rest };
+
+extract_heredoc_line("\n" ++ Rest, Buffer) ->
+  { ok, [$\n|Buffer], Rest };
+
+extract_heredoc_line([H|T], Buffer) ->
+  extract_heredoc_line(T, [H|Buffer]);
+
+extract_heredoc_line(_, _) ->
+  { error, eof }.
+
+%% Extract each heredoc line trying to find a match according to the marker.
+
+extract_heredoc_line(Marker, [H|T], Buffer, Counter) when H == $\t; H == $\s ->
+  extract_heredoc_line(Marker, T, [H|Buffer], Counter + 1);
+
+extract_heredoc_line(Marker, [Marker,Marker,Marker,$\n|T], Buffer, Counter) ->
+  { ok, Buffer, T, Counter };
+
+extract_heredoc_line(Marker, [Marker,Marker,Marker,$\r,$\n|T], Buffer, Counter) ->
+  { ok, Buffer, T, Counter };
+
+extract_heredoc_line(_Marker, Rest, Buffer, _Counter) ->
+  extract_heredoc_line(Rest, Buffer).
+
+%% Merge heredoc extra by replying it on the buffer. It also adds
+%% a special { line, Line } token to force a line change along the way.
+
+merge_heredoc_extra(Line, Extra, Buffer) ->
+  merge_heredoc_extra(Extra, [{line,Line}|Buffer]).
+
+merge_heredoc_extra([H|T], Buffer) ->
+  merge_heredoc_extra(T, [H|Buffer]);
+
+merge_heredoc_extra([], Buffer) ->
+  Buffer.
 
 % Integers and floats
 % At this point, we are at least sure the first digit is a number.
@@ -285,8 +374,8 @@ tokenize_number(Rest, Acc, false) ->
 
 tokenize_comment("\r\n" ++ _ = Rest) -> Rest;
 tokenize_comment("\n" ++ _ = Rest)   -> Rest;
-tokenize_comment([_|Rest])       -> tokenize_comment(Rest);
-tokenize_comment([])             -> [].
+tokenize_comment([_|Rest])           -> tokenize_comment(Rest);
+tokenize_comment([])                 -> [].
 
 % Identifiers
 % At this point, the validity of the first character was already verified.
