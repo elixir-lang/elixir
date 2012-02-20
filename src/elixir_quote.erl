@@ -4,7 +4,7 @@
 
 %% Apply the line from site call on quoted contents.
 
-linify(Line, { Left, _, Right }) ->
+linify(Line, { Left, 0, Right }) ->
   { linify(Line, Left), Line, linify(Line, Right) };
 
 linify(Line, Tuple) when is_tuple(Tuple) ->

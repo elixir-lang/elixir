@@ -277,7 +277,7 @@ extract_heredoc(Line0, Rest0, Marker) ->
     { ok, Extra, Rest1 } ->
       case extract_heredoc_body(Line0 + 1, Marker, Rest1, []) of
         { Line1, Body, Rest2, Spaces } ->
-          { Body, merge_heredoc_extra(Line1 + 1, Extra, Rest2), Spaces };
+          { Body, merge_heredoc_extra(Line1, Extra, Rest2), Spaces };
         { error, _ } = Reason ->
           Reason
       end;
