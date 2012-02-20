@@ -67,7 +67,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
       {attribute, Line, file, {Filename,Line}} | Forms1
     ],
 
-    load_form(Final, Filename),
+    load_form(Final, S),
     Result
   after
     ets:delete(data_table(Module)),
@@ -133,8 +133,8 @@ attributes_form(Line, _Filename, Module, Current) ->
 
 %% Loads the form into the code server.
 
-load_form(Forms, Filename) ->
-  elixir_compiler:module(Forms, Filename, fun(ModuleName, Binary) ->
+load_form(Forms, S) ->
+  elixir_compiler:module(Forms, S, fun(ModuleName, Binary) ->
     case get(elixir_compiled) of
       Current when is_list(Current) ->
         put(elixir_compiled, [{ModuleName,Binary}|Current]);

@@ -41,10 +41,9 @@ eval_forms(Forms, Line, Module, #elixir_scope{module=Value} = S) ->
   eval_forms(Forms, Line, Module, Value, S).
 
 eval_forms(Forms, Line, Module, Value, S) ->
-  Filename = S#elixir_scope.filename,
   { Exprs, FS } = elixir_translator:translate(Forms, S),
-  ModuleForm = module_form(Exprs, Line, Filename, Module),
-  { module(ModuleForm, Filename, fun(Mod, _) ->
+  ModuleForm = module_form(Exprs, Line, S#elixir_scope.filename, Module),
+  { module(ModuleForm, S, fun(Mod, _) ->
     Res = Mod:'BOOTSTRAP'(Value),
     code:purge(Module),
     code:delete(Module),
@@ -53,12 +52,18 @@ eval_forms(Forms, Line, Module, Value, S) ->
 
 %% Internal API
 
-%% Compile the module by forms at the filename and
-%% executes the callback in case of success. This
-%% automatically handles errors and warnings.
-%% Used by this module and elixir_module.
-module(Forms, Filename, Callback) ->
-  case compile:forms([no_auto_import()|Forms], [return]) of
+%% Compile the module by forms based on the scope information
+%% executes the callback in case of success. This automatically
+%% handles errors and warnings. Used by this module and elixir_module.
+module(Forms, #elixir_scope{} = S, Callback) ->
+  Options = case S#elixir_scope.docs of
+    true -> [debug_info];
+    _ -> []
+  end,
+  module(Forms, S#elixir_scope.filename, Options, Callback).
+
+module(Forms, Filename, Options, Callback) ->
+  case compile:forms([no_auto_import()|Forms], [return|Options]) of
     {ok, ModuleName, Binary, Warnings} ->
       format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary),
