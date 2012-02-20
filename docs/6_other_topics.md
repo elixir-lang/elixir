@@ -38,7 +38,7 @@ All functions can be partially applied, except [Elixir's special forms](https://
 By calling `use`, a hook called `__using__` will be invoked in `ExUnit::Case` which will then do the proper setup. In general, `use` is simply a translation to:
 
     defmodule AssertionTest do
-      require ExUnit::Case, as: false
+      require ExUnit::Case
       ExUnit::Case.__using__(::AssertionTest)
 
       def test_always_pass do

@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/4, compile/4,
+-export([translate/4, compile/4, super/4,
    format_error/1, binding_and_scope_for_eval/4]).
 -include("elixir.hrl").
 
@@ -14,6 +14,16 @@ binding_and_scope_for_eval(_Line, _Filename, Module, Binding, S) ->
 
 binding_for_eval(Module, Binding) -> [{'_EXMODULE',Module}|Binding].
 scope_for_eval(Module, S) -> S#elixir_scope{module=Module}.
+
+super(Line, Module, Function, S) ->
+  Table = data_table(Module),
+  Forwardings = ets:lookup_element(Table, forwardings, 2),
+  case orddict:find(Function, Forwardings) of
+    { ok, { _Via, To } } -> To;
+    error ->
+      Defined = [element(1, X) || X <- Forwardings],
+      elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { no_super, Function, Module, Defined })
+  end.
 
 %% TABLE METHODS
 
@@ -216,11 +226,21 @@ reserved_data(Registered, Key) -> lists:member(Key, Registered).
 
 % ERROR HANDLING
 
-format_error({internal_function_overridden,{Name,Arity}}) ->
+format_error({ internal_function_overridden, { Name, Arity } }) ->
   io_lib:format("function ~s/~B is internal and should not be overriden", [Name, Arity]);
 
-format_error({invalid_module, Module}) ->
+format_error({ invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
 
-format_error({module_defined, Module}) ->
+format_error({ no_super, { Name, Arity }, Module, Defined }) ->
+  Bins = [ joined(X,Y) || { X, Y } <- Defined],
+  Joined = '::Enum':join(Bins, <<", ">>),
+  io_lib:format("no super defined for ~s/~B in module ~p. Forwardings defined are: ~s", [Name, Arity, Module, Joined]);
+
+format_error({ module_defined, Module }) ->
   io_lib:format("module ~s already defined", [Module]).
+
+joined(X, Y) ->
+  A = atom_to_binary(X, utf8),
+  B = list_to_binary(integer_to_list(Y)),
+  << A/binary, $/, B/binary >>.

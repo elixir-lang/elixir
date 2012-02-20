@@ -309,6 +309,29 @@ translate_each({recur, Line, Args}, S) when is_list(Args) ->
       translate_each(Call, S)
   end;
 
+%% Super
+
+translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) when is_list(Args) ->
+  Module = case S#elixir_scope.module of
+    [] -> syntax_error(Line, Filename, "cannot invoke super outside module");
+    M  -> M
+  end,
+
+  Function = case S#elixir_scope.function of
+    [] -> syntax_error(Line, Filename, "cannot invoke super outside function");
+    F  -> F
+  end,
+
+  { Name, Arity } = Function,
+
+  case length(Args) == Arity of
+    true  -> [];
+    false -> syntax_error(Line, Filename, "super must be called with the same number of arguments as the current function")
+  end,
+
+  Super = elixir_module:super(Line, Module, Function, S),
+  translate_each({ { '.', Line, [Super, Name] }, Line, [Module|Args] }, S);
+
 %% Comprehensions
 
 translate_each({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->

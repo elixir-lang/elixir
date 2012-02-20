@@ -44,7 +44,7 @@ defmodule Kernel::ForwardedExample do
   end
 
   def other(arg) do
-    arg
+    { super(arg), arg }
   end
 end
 
@@ -58,6 +58,10 @@ defmodule Kernel::ForwardingTest do
 
   test "defforward is a noop when forwarding function is explicitly defined" do
     assert_equal 1, Kernel::ForwardedExample.sample(1)
+  end
+
+  test "defforward with super invokes the forwarded function" do
+    assert_equal { { Kernel::ForwardedExample, 1 }, 1 }, Kernel::ForwardedExample.other(1)
   end
 
   test "defforward defines a function when one is not defined" do
@@ -75,6 +79,15 @@ defmodule Kernel::ForwardingTest do
       Kernel::ForwardingExample.other(1)
       flunk "expected function to be private"
     rescue: UndefinedFunctionError
+    end
+  end
+
+  test "invalid super call" do
+    try do
+      Erlang.elixir.eval 'defmodule Foo::Forwarding do\nuse Kernel::ForwardingLibrary\ndef foo, do: super\nend'
+      flunk "expected eval to fail"
+    rescue: error
+      assert_match("nofile:3: no super defined for foo/0 in module '::Foo::Forwarding'." <> _, error.message)
     end
   end
 end

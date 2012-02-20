@@ -1,5 +1,9 @@
 Code.require_file "../../test_helper", __FILE__
 
+defmodule ExUnit::AssertionsTest::Value do
+  def tuple, do: { 2, 1 }
+end
+
 defmodule ExUnit::AssertionsTest do
   use ExUnit::Case
 
@@ -36,13 +40,14 @@ defmodule ExUnit::AssertionsTest do
   end
 
   test :assert_match_when_equal do
-    true = assert_match(1, 1)
+    assert_match({ 2, 1 }, Value.tuple)
+    true = assert_match({ 2, 1 }, Value.tuple)
   end
 
   test :assert_match_when_different do
-    "This should never be tested" = assert_match({_, 2}, {2, 1})
+    "This should never be tested" = assert_match({_, 2}, Value.tuple)
   rescue: error in [ExUnit::AssertionError]
-    "Expected {2,1} to match {_,2}" = error.message
+    "no match of right hand side value: {2,1}" = error.message
   end
 
   test :assert_equal_when_equal do

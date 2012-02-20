@@ -190,7 +190,7 @@ non_overridable_macros() ->
     {'fn','*'},
     {'loop','*'},
     {'recur','*'},
-    {'for','*'},
+    {'super','*'},
     {'bc','*'},
     {'lc','*'}
   ].

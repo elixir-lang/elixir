@@ -11,11 +11,13 @@ defmodule ExUnit::Assertions do
   #     assert_match { 1, _, 3 }, { 1, 2, 3 }
   #
   defmacro assert_match(expected, received) do
-    escaped = ExUnit::Escaper.escape(expected)
     quote do
-      value = unquote(received)
-      assert match?(unquote(expected), value),
-        "Expected #{inspect value} to match #{inspect unquote(escaped)}"
+      try do
+        unquote(expected) = unquote(received)
+        true
+      rescue: x in [MatchError]
+        raise ExUnit::AssertionError, message: x.message
+      end
     end
   end
 

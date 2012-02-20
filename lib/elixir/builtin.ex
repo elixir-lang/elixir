@@ -364,7 +364,7 @@ defmodule Elixir::Builtin do
   #     defmodule MyLibrary do
   #       defmacro __using__(module, _) do
   #         quote do
-  #           defforward [handle_failure: 1], to: ::MyLibrary
+  #           defforward [handle_failure: 1], to: MyLibrary
   #         end
   #       end
   #
@@ -395,7 +395,7 @@ defmodule Elixir::Builtin do
   #
   # We call `MyModule.handle_failure/1` the **forwarding** function.
   #
-  # ## defforward x defdelegate
+  # ## defforward x defdelegate x import
   #
   # `defforward` is mainly a callback mechanism used by library developers
   # to provide a default behavior for user code. Since the default function
@@ -410,6 +410,10 @@ defmodule Elixir::Builtin do
   #       defdelegate [reverse: 1], to: List
   #       # Other MyList related functions
   #     end
+  #
+  # Finally, `import` is an implementation concern. A developer or a library
+  # use import when they want to invoke functions without referencing their
+  # prefix every time. An imported function is never available from outside.
   #
   # ## Using super
   #
