@@ -274,7 +274,8 @@ core_main() ->
     "lib/exception.ex",
     "lib/string/inspect.ex",
     "lib/string/chars.ex",
-    "lib/list/chars.ex"
+    "lib/list/chars.ex",
+    "lib/gen_server/behavior.ex"
   ].
 
 %% ERROR HANDLING

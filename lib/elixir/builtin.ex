@@ -437,7 +437,7 @@ defmodule Elixir::Builtin do
   # `defforward` accepts another option called :via that allows you
   # to define the visibility of the forwarding function.
   #
-  #   defforward [handle_failure: 1], to: ::MyLibrary, via: :defp
+  #     defforward [handle_failure: 1], to: ::MyLibrary, via: :defp
   #
   # Since the forwarded function must always be called from external,
   # it needs to be necessarily a public function.

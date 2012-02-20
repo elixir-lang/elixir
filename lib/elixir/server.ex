@@ -1,7 +1,7 @@
 defrecord Elixir::Server::Config, argv: [], loaded: [], at_exit: []
 
 defmodule Elixir::Server do
-  @behavior :gen_server
+  use GenServer::Behavior
 
   def start_link do
     { :ok, _ } = Erlang.gen_server.start_link({:local, :elixir_code_server}, __MODULE__, [], [])
@@ -35,25 +35,7 @@ defmodule Elixir::Server do
     { :reply, config.argv, config }
   end
 
-  def handle_call(_request, _from, config) do
-    { :reply, :undef, config }
-  end
-
-  def handle_info(_msg, config) do
-    { :noreply, config }
-  end
-
-  def handle_cast(_msg, config) do
-    { :noreply, config }
-  end
-
-  def terminate(reason, config) do
-    IO.puts "[FATAL] Elixir::Server crashed:\n#{inspect reason}"
-    IO.puts "[FATAL] Elixir::Server snapshot:\n#{inspect config}"
-    :ok
-  end
-
-  def code_change(_old, config, _extra) do
-    { :ok, config }
+  def handle_call(request, from, config) do
+    super(request, from, config)
   end
 end

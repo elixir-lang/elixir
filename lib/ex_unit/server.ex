@@ -1,7 +1,7 @@
 defrecord ExUnit::Server::Config, options: [], cases: [], sync_cases: []
 
 defmodule ExUnit::Server do
-  @behavior :gen_server
+  use GenServer::Behavior
 
   def start_link do
     { :ok, _ } = Erlang.gen_server.start_link({:local, :exunit_server}, __MODULE__, [], [])
@@ -48,26 +48,8 @@ defmodule ExUnit::Server do
     { :reply, options, config }
   end
 
-  def handle_call(_request, _from, config) do
-    { :reply, :undef, config }
-  end
-
-  def handle_info(_msg, config) do
-    { :noreply, config }
-  end
-
-  def handle_cast(_msg, config) do
-    { :noreply, config }
-  end
-
-  def terminate(reason, config) do
-    IO.puts "[FATAL] ExUnit::Server crashed:\n#{inspect reason}"
-    IO.puts "[FATAL] ExUnit::Server snapshot:\n#{inspect config}"
-    :ok
-  end
-
-  def code_change(_old, config, _extra) do
-    { :ok, config }
+  def handle_call(request, from, config) do
+    super(request, from, config)
   end
 
   defp check(function) do
