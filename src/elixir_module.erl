@@ -33,6 +33,9 @@ data_table(Module) ->
 attribute_table(Module) ->
   ?ELIXIR_ATOM_CONCAT([a, Module]).
 
+docs_table(Module) ->
+  ?ELIXIR_ATOM_CONCAT([o, Module]).
+
 %% TRANSFORMATION METHODS
 
 %% Transformation of args and scope into a compiled erlang call.
@@ -71,6 +74,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
     Result
   after
     ets:delete(data_table(Module)),
+    ets:delete(docs_table(Module)),
     ets:delete(attribute_table(Module)),
     elixir_def:delete_table(Module),
     elixir_import:delete_table(Module)
@@ -83,7 +87,7 @@ compile(Line, Other, _Block, RawS) ->
 %% Hook that builds both attribute and functions and set up common hooks.
 
 build(Module) ->
-  %% Attribute table with defaults
+  %% Data table with defaults
   DataTable = data_table(Module),
   ets:new(DataTable, [set, named_table, private]),
   ets:insert(DataTable, { data, [] }),
@@ -93,6 +97,9 @@ build(Module) ->
 
   AttrTable = attribute_table(Module),
   ets:new(AttrTable, [bag, named_table, private]),
+
+  DocsTable = docs_table(Module),
+  ets:new(DocsTable, [set, named_table, private]),
 
   %% Function and imports table
   elixir_def:build_table(Module),

@@ -89,6 +89,13 @@ defmodule Module do
     final
   end
 
+  # Add documentation to a given function.
+  def add_doc(module, line, kind, tuple, doc) do
+    assert_not_compiled!(:add_doc, module)
+    table = docs_table_for(module)
+    ETS.insert(table, { tuple, line, kind, doc })
+  end
+
   # Checks if a function was defined, regardless if it is
   # a macro or a private function. Use function_defined?/3
   # to assert for an specific type.
@@ -258,6 +265,19 @@ defmodule Module do
     eval_quoted module, contents, [], __FILE__, __LINE__
   end
 
+  # Compiles documentation.
+  def compile_doc(module, line, kind, pair) do
+    case read_data(module, :doc) do
+    match: doc when is_binary(doc) orelse doc == false
+      add_doc(module, line, kind, pair, doc)
+      merge_data(module, doc: nil)
+    match: nil
+      []
+    match: other
+      raise CompileError, description: "Expected @doc to be a binary or false, got #{inspect other}"
+    end
+  end
+
   # Adds an Erlang attribute to the given module with the given
   # key and value. The same attribute can be added more than once.
   #
@@ -340,6 +360,10 @@ defmodule Module do
 
   defp function_table_for(module) do
     list_to_atom Erlang.lists.concat([:f, module])
+  end
+
+  defp docs_table_for(module) do
+    list_to_atom Erlang.lists.concat([:o, module])
   end
 
   defp assert_not_compiled!(fun, module) do

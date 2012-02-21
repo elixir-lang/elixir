@@ -8,6 +8,7 @@
 
 -record(elixir_compile, {
   docs=false,                  %% when true, attach docs to the defined module
+  internal=false,              %% when true, skip features in order to compile internal modules
   debug_info=false,            %% when true, attach debug info to the defined module
   ignore_module_conflict=false %% when true, module conflicts are ignored
 }).

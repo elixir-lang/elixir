@@ -80,8 +80,8 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, KV, RawS) ->
   { Function, Defaults } = translate_definition(Line, Module, Name, Args, Guards, Expr, S),
 
   Filename      = S#elixir_scope.filename,
+  Arity         = element(4, Function),
   FunctionTable = table(Module),
-  FunctionName  = element(3, Function),
 
   %% Normalize visibility and kind
   { Final, Visibility } = case Kind of
@@ -92,15 +92,19 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, KV, RawS) ->
 
   CheckClauses = S#elixir_scope.check_clauses,
 
+  case S#elixir_scope.compile#elixir_compile.internal of
+    true -> [];
+    _ -> '::Module':compile_doc(Module, Line, Kind, { Name, Arity })
+  end,
+
   %% Store function
   store_each(CheckClauses, Final, FunctionTable, Visibility, Filename, Function),
 
   %% Store defaults
   [store_each(false, Final, FunctionTable, Visibility, Filename,
-    function_for_clause(FunctionName, Default)) || Default <- Defaults],
+    function_for_clause(Name, Default)) || Default <- Defaults],
 
-  %% Return stored function name and its arity
-  { FunctionName, element(4, Function) }.
+  { Name, Arity }.
 
 %% Translate the given call and expression given
 %% and then store it in memory.

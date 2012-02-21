@@ -7,7 +7,7 @@
 %% Compiles the given file. Returns a list of tuples
 %% with module names and binaries.
 
-file(Filename, Opts) ->
+file(Filename, #elixir_compile{} = C) ->
   Previous = get(elixir_compiled),
   try
     put(elixir_compiled, []),
@@ -16,17 +16,18 @@ file(Filename, Opts) ->
       Error -> erlang:error(Error)
     end,
 
-    C = #elixir_compile {
-      docs=get_value(Opts, docs, false),
-      debug_info=get_value(Opts, debug_info, false),
-      ignore_module_conflict=get_value(Opts, ignore_module_conflict, false)
-    },
-
     eval(Contents, 1, Filename, list_to_atom(filename_to_module(Filename)), C),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
-  end.
+  end;
+
+file(Filename, Opts) ->
+  file(Filename, #elixir_compile {
+    docs=get_value(Opts, docs, false),
+    debug_info=get_value(Opts, debug_info, false),
+    ignore_module_conflict=get_value(Opts, ignore_module_conflict, false)
+  }).
 
 %% Compiles a file to the given path (directory).
 
@@ -264,7 +265,8 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 core_file(File) ->
   io:format("Compiling ~s~n", [File]),
   try
-    file_to_path(File, "exbin", [])
+    Lists = file(File, #elixir_compile{internal=true}),
+    [binary_to_path(X, "exbin") || X <- Lists]
   catch
     Kind:Reason ->
       io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, erlang:get_stacktrace()]),

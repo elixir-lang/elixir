@@ -46,23 +46,27 @@ translate_macro({'::', Line, [Left|Right]}, S) ->
 translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
   assert_module_scope(Line, '@', S),
   assert_no_function_scope(Line, '@', S),
-  case Args of
-    [Arg] ->
-      translate_each({
-        { '.', Line, ['::Module', merge_data] },
-          Line,
-          [ { '__MODULE__', Line, false }, [{ Name, Arg }] ]
-      }, S);
-    _ when is_atom(Args) or (Args == []) ->
-        translate_each({
-          { '.', Line, ['::Module', read_data] },
-          Line,
-          [ { '__MODULE__', Line, false }, Name ]
-        }, S);
+  case is_reserved_data(Name) andalso S#elixir_scope.compile#elixir_compile.internal of
+    true ->
+      { { nil, Line }, S };
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "expected 0 or 1 argument for @~s, got: ~p", [Name, length(Args)])
+      case Args of
+        [Arg] ->
+          translate_each({
+            { '.', Line, ['::Module', merge_data] },
+              Line,
+              [ { '__MODULE__', Line, false }, [{ Name, Arg }] ]
+          }, S);
+        _ when is_atom(Args) or (Args == []) ->
+            translate_each({
+              { '.', Line, ['::Module', read_data] },
+              Line,
+              [ { '__MODULE__', Line, false }, Name ]
+            }, S);
+        _ ->
+          syntax_error(Line, S#elixir_scope.filename, "expected 0 or 1 argument for @~s, got: ~p", [Name, length(Args)])
+      end
   end;
-
 
 %% Case
 
@@ -188,6 +192,9 @@ translate_macro({ 'var!', Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for var!").
 
 %% HELPERS
+
+is_reserved_data(doc) -> true;
+is_reserved_data(_)   -> false.
 
 % Unpack a list of expressions from a block.
 unpack([{ '__BLOCK__', _, Exprs }]) -> Exprs;
