@@ -14,9 +14,14 @@ defmodule Kernel::DocTest do
 
       assert_equal [], CompiledWithDocs.__info__(:data)
       assert_equal [{{:example,0},5,:def,"Some example"}], CompiledWithDocs.__info__(:docs)
-      assert_equal "moduledoc", CompiledWithDocs.__info__(:moduledoc)
+      assert_equal { 1, "moduledoc" }, CompiledWithDocs.__info__(:moduledoc)
     after:
       :os.cmd('rm -rf #{tmp}')
     end
+  end
+
+  test :compiled_no_docs do
+    assert_equal nil, __MODULE__.__info__(:docs)
+    assert_equal nil, __MODULE__.__info__(:moduledoc)
   end
 end

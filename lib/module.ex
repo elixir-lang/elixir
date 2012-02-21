@@ -98,11 +98,33 @@ defmodule Module do
     final
   end
 
-  # Add documentation to a given function.
-  def add_doc(module, line, kind, tuple, doc) do
+    @doc """
+    Attaches documentation to a given function. It expects
+    the module the function belongs to, the line (a non negative
+    integer), the kind (def or defmacro), a tuple representing
+    the function and its arity and the documentation, which should
+    be either a binary or a boolean.
+
+    ## Examples
+
+        defmodule MyModule do
+          Module.add_doc(__MODULE__, __LINE__ + 1, :def, { :version, 0}, "Manually added docs")
+          def version, do: 1
+        end
+
+
+    """
+    def add_doc(module, line, kind, tuple, doc) when
+      is_binary(doc) orelse is_boolean(doc) do
     assert_not_compiled!(:add_doc, module)
-    table = docs_table_for(module)
-    ETS.insert(table, { tuple, line, kind, doc })
+    case kind do
+    match: :defp
+      :warn
+    else:
+      table = docs_table_for(module)
+      ETS.insert(table, { tuple, line, kind, doc })
+      :ok
+    end
   end
 
   @doc """
@@ -283,7 +305,7 @@ defmodule Module do
       end
 
   """
-  def add_attribute(module, key, value) do
+  def add_attribute(module, key, value) when is_atom(key) do
     assert_not_compiled!(:add_attribute, module)
     table = attribute_table_for(module)
     ETS.insert(table, { key, value })
@@ -300,7 +322,7 @@ defmodule Module do
       end
 
   """
-  def delete_attribute(module, key) do
+  def delete_attribute(module, key) when is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
     table = attribute_table_for(module)
     ETS.delete(table, key)
@@ -349,19 +371,12 @@ defmodule Module do
   # is private and must be used only internally.
   def compile_doc(module, line, kind, pair) do
     case read_data(module, :doc) do
-    match: doc when is_binary(doc) orelse doc == false
-      case kind do
-      match: :defp
-        :warn
-      else:
-        add_doc(module, line, kind, pair, doc)
-        merge_data(module, doc: nil)
-        :ok
-      end
     match: nil
-      []
-    match: other
-      raise CompileError, description: "Expected @doc to be a binary or false, got #{inspect other}"
+      # We simply discard nil
+    match: doc
+      result = add_doc(module, line, kind, pair, doc)
+      merge_data(module, doc: nil)
+      result
     end
   end
 
