@@ -43,7 +43,7 @@ In the example above, we have assigned the head of the list to the variable `hea
     iex> Enum.map [1,2,3], fn(x) -> x * 2 end
     [4,5,6]
     iex> List.flatten [1,[2],3]
-    [4,5,6]
+    [1,2,3]
 
 ## 2.2 Lists and binaries
 
