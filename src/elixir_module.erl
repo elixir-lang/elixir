@@ -53,13 +53,15 @@ translate(Line, Ref, Block, S) ->
 
 compile(Line, Module, Block, RawS) when is_atom(Module) ->
   S = elixir_variables:deserialize_scope(RawS),
+  C = S#elixir_scope.compile,
   Filename = S#elixir_scope.filename,
+
   check_module_availability(Line, Filename, Module, S#elixir_scope.compile),
   build(Module),
 
   try
     Result           = eval_form(Line, Filename, Module, Block, S),
-    { Funs, Forms0 } = functions_form(Line, Filename, Module),
+    { Funs, Forms0 } = functions_form(Line, Filename, Module, C),
     Forms1           = attributes_form(Line, Filename, Module, Forms0),
 
     elixir_import:ensure_no_local_conflict(Line, Filename, Module, Funs),
@@ -99,7 +101,7 @@ build(Module) ->
   ets:new(AttrTable, [bag, named_table, private]),
 
   DocsTable = docs_table(Module),
-  ets:new(DocsTable, [set, named_table, private]),
+  ets:new(DocsTable, [ordered_set, named_table, private]),
 
   %% Function and imports table
   elixir_def:build_table(Module),
@@ -122,11 +124,11 @@ eval_form(Line, Filename, Module, Block, RawS) ->
 
 %% Return the form with exports and function declarations.
 
-functions_form(Line, Filename, Module) ->
+functions_form(Line, Filename, Module, C) ->
   { Export, Private, Macros, Functions } = elixir_def:unwrap_stored_definitions(Module),
 
   { FinalExport, FinalFunctions } =
-    add_info_function(Line, Filename, Module, Export, Functions, Macros),
+    add_info_function(Line, Filename, Module, Export, Functions, Macros, C),
 
   { FinalExport ++ Private, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
@@ -161,7 +163,7 @@ check_module_availability(_Line, _Filename, _Module, _C) ->
 
 % EXTRA FUNCTIONS
 
-add_info_function(Line, Filename, Module, Export, Functions, Macros) ->
+add_info_function(Line, Filename, Module, Export, Functions, Macros, C) ->
   Pair = { '__info__', 1 },
   case lists:member(Pair, Export) of
     true  -> elixir_errors:form_error(Line, Filename, ?MODULE, {internal_function_overridden, Pair});
@@ -169,6 +171,8 @@ add_info_function(Line, Filename, Module, Export, Functions, Macros) ->
       Contents = { function, Line, '__info__', 1, [
         macros_clause(Line, Macros),
         data_clause(Line, Module),
+        docs_clause(Line, Module, C),
+        moduledoc_clause(Line, Module, C),
         else_clause(Line)
       ] },
       { [Pair|Export], [Contents|Functions] }
@@ -177,6 +181,20 @@ add_info_function(Line, Filename, Module, Export, Functions, Macros) ->
 macros_clause(Line, Macros) ->
   Sorted = lists:sort(Macros),
   { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
+
+docs_clause(Line, Module, #elixir_compile { docs = true }) ->
+  Docs = ets:tab2list(docs_table(Module)),
+  { clause, Line, [{ atom, Line, docs }], [], [elixir_tree_helpers:abstract_syntax(Docs)] };
+
+docs_clause(Line, _Module, _) ->
+  { clause, Line, [{ atom, Line, docs }], [], [{ atom, Line, nil }] }.
+
+moduledoc_clause(Line, Module, #elixir_compile { docs = true }) ->
+  Docs = '::Module':read_data(Module, moduledoc),
+  { clause, Line, [{ atom, Line, moduledoc }], [], [elixir_tree_helpers:abstract_syntax(Docs)] };
+
+moduledoc_clause(Line, _Module, _) ->
+  { clause, Line, [{ atom, Line, moduledoc }], [], [{ atom, Line, nil }] }.
 
 data_clause(Line, Module) ->
   AttrTable  = attribute_table(Module),
@@ -213,6 +231,9 @@ each_callback_for(Line, Args, {M,F}, Acc) ->
 % ATTRIBUTES
 
 translate_data(Table, Registered, [{_,nil}|T]) ->
+  translate_data(Table, Registered, T);
+
+translate_data(Table, Registered, [{Skip,_}|T]) when Skip == doc; Skip == moduledoc ->
   translate_data(Table, Registered, T);
 
 translate_data(Table, Registered, [{K,V}|T]) ->
