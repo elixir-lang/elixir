@@ -15,6 +15,13 @@ defmodule EEx::Compiler do
     generate_buffer(t, engine, buffer)
   end
 
+  # TODO: use line and filename
+  defp generate_buffer([{ :expr, mark, chars }|t], engine, buffer) do
+    expr = { :__BLOCK__, 0, Erlang.elixir_translator.forms(chars, 1, 'nofile') }
+    buffer = engine.handle_expr(buffer, mark, expr)
+    generate_buffer(t, engine, buffer)
+  end
+
   defp generate_buffer([], _engine, buffer) do
     buffer
   end
