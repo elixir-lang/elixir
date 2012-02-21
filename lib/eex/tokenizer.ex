@@ -1,13 +1,19 @@
 defmodule EEx::Tokenizer do
+  # TODO: Add errors scenarios
+
   @doc """
   Tokenizes the given char list. It returns 4 tokens as result:
-  
+
   * { :text, contents }
   * { :expr, marker, contents}
   * { :start_expr, marker, contents}
   * { :end_expr, marker, contents}
 
   """
+  def tokenize(bin) when is_binary(bin) do
+    tokenize(binary_to_list(bin))
+  end
+
   def tokenize(list) do
     List.reverse(tokenize(list, [], []))
   end
@@ -24,7 +30,7 @@ defmodule EEx::Tokenizer do
       token = middle_expr_token_name(expr)
 
     acc = tokenize_text(buffer, acc)
-    tokenize rest, [], [ { token, marker, expr } | acc]
+    tokenize rest, [], [ { token, marker, list_to_binary(expr) } | acc]
   end
 
   defp tokenize([h|t], buffer, acc) do
@@ -121,6 +127,6 @@ defmodule EEx::Tokenizer do
   end
 
   defp tokenize_text(buffer, acc) do
-    [{ :text, List.reverse buffer } | acc]
+    [{ :text, list_to_binary(List.reverse(buffer)) } | acc]
   end
 end
