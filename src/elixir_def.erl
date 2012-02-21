@@ -92,9 +92,14 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, KV, RawS) ->
 
   CheckClauses = S#elixir_scope.check_clauses,
 
+  %% Compile documentation
   case S#elixir_scope.compile#elixir_compile.internal of
     true -> [];
-    _ -> '::Module':compile_doc(Module, Line, Kind, { Name, Arity })
+    _ ->
+      case '::Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
+        warn -> elixir_errors:handle_file_warning(Filename, { Line, ?MODULE, { invalid_doc, { Name, Arity } } });
+        _ -> []
+      end
   end,
 
   %% Store function
@@ -229,6 +234,9 @@ check_valid_clause(Line, Filename, Name, Arity, Table) ->
   end.
 
 %% Format errors
+
+format_error({invalid_doc,{Name,Arity}}) ->
+  io_lib:format("function ~s/~B is private. @doc's are always discarded for private functions", [Name, Arity]);
 
 format_error({changed_clause,{{Name,Arity},{ElseName,ElseArity}}}) ->
   io_lib:format("function ~s/~B does not match previous clause ~s/~B", [Name, Arity, ElseName, ElseArity]);

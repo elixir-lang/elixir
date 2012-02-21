@@ -3,6 +3,7 @@
 /src/*_parser.erl
 /test/ebin
 /test/tmp
+/test/elixir/tmp
 /ebin/*
 /exbin/*.beam
 /src/*rl.old

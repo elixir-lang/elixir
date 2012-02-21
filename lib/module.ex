@@ -5,18 +5,19 @@ import Elixir::Builtin, except: [to_char_list: 1]
 defmodule Module do
   require Erlang.ets, as: ETS
 
-  # Evalutes the quotes contents in the given module context.
-  # Raises an error if the module was already compiled.
-  #
-  # ## Examples
-  #
-  #     defmodule Foo do
-  #       contents = quote do: (def sum(a, b), do: a + b)
-  #       Module.eval_quoted __MODULE__, contents, [], __FILE__, __LINE__
-  #     end
-  #
-  #     Foo.sum(1, 2) #=> 3
-  #
+  @doc """
+  Evalutes the quotes contents in the given module context.
+  Raises an error if the module was already compiled.
+
+  ## Examples
+
+      defmodule Foo do
+        contents = quote do: (def sum(a, b), do: a + b)
+        Module.eval_quoted __MODULE__, contents, [], __FILE__, __LINE__
+      end
+
+      Foo.sum(1, 2) #=> 3
+  """
   def eval_quoted(module, quoted, binding, filename, line) do
     assert_not_compiled!(:eval_quoted, module)
     { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(line, to_char_list(filename), module, binding)
@@ -24,62 +25,70 @@ defmodule Module do
     Erlang.elixir.eval_quoted([quoted], binding, line, scope)
   end
 
-  # Checks if the module is compiled or not.
-  #
-  # ## Examples
-  #
-  #     defmodule Foo do
-  #       Module.compiled?(__MODULE__) #=> false
-  #     end
-  #
-  #     Module.compiled?(Foo) #=> true
-  #
+  @doc """
+  Checks if the module is compiled or not.
+
+  ## Examples
+
+      defmodule Foo do
+        Module.compiled?(__MODULE__) #=> false
+      end
+
+      Module.compiled?(Foo) #=> true
+
+  """
   def compiled?(module) do
     table = data_table_for(module)
     table == ETS.info(table, :name)
   end
 
-  # Reads the data for the given module. This is used
-  # to read data of uncompiled modules. If the module
-  # was already compiled, you shoul access the data
-  # directly by invoking `__info__(:data)` in that module.
-  #
-  # ## Examples
-  #
-  #     defmodule Foo do
-  #       Module.merge_data __MODULE__, value: 1
-  #       Module.read_data __MODULE__ #=> [value: 1]
-  #     end
-  #
+  @doc """
+  Reads the data for the given module. This is used
+  to read data of uncompiled modules. If the module
+  was already compiled, you shoul access the data
+  directly by invoking `__info__(:data)` in that module.
+
+  ## Examples
+
+      defmodule Foo do
+        Module.merge_data __MODULE__, value: 1
+        Module.read_data __MODULE__ #=> [value: 1]
+      end
+
+  """
   def read_data(module) do
     assert_not_compiled!(:read_data, module)
     ETS.lookup_element(data_table_for(module), :data, 2)
   end
 
-  # Reads the data from `module` at the given key `at`.
-  #
-  # ## Examples
-  #
-  #     defmodule Foo do
-  #       Module.merge_data __MODULE__, value: 1
-  #       Module.read_data __MODULE__, :value #=> 1
-  #     end
-  #
+  @doc """
+  Reads the data from `module` at the given key `at`.
+
+  ## Examples
+
+      defmodule Foo do
+        Module.merge_data __MODULE__, value: 1
+        Module.read_data __MODULE__, :value #=> 1
+      end
+
+  """
   def read_data(module, at) do
     Orddict.get read_data(module), at
   end
 
-  # Merge the given `new` data to the module, overriding
-  # any previous one.
-  #
-  # ## Examples
-  #
-  #     defmodule Foo do
-  #       Module.merge_data __MODULE__, value: 1
-  #     end
-  #
-  #     Foo.__info__(:data) #=> [value: 1]
-  #
+  @doc """
+  Merge the given `new` data to the module, overriding
+  any previous one.
+
+  ## Examples
+
+      defmodule Foo do
+        Module.merge_data __MODULE__, value: 1
+      end
+
+      Foo.__info__(:data) #=> [value: 1]
+
+  """
   def merge_data(module, new) do
     assert_not_compiled!(:merge_data, module)
     table = data_table_for(module)
@@ -96,65 +105,73 @@ defmodule Module do
     ETS.insert(table, { tuple, line, kind, doc })
   end
 
-  # Checks if a function was defined, regardless if it is
-  # a macro or a private function. Use function_defined?/3
-  # to assert for an specific type.
-  #
-  # ## Examples
-  #
-  #     defmodule Example do
-  #       Module.function_defined? __MODULE__, { :version, 0 } #=> false
-  #       def version, do: 1
-  #       Module.function_defined? __MODULE__, { :version, 0 } #=> true
-  #     end
-  #
+  @doc """
+  Checks if a function was defined, regardless if it is
+  a macro or a private function. Use function_defined?/3
+  to assert for an specific type.
+
+  ## Examples
+
+      defmodule Example do
+        Module.function_defined? __MODULE__, { :version, 0 } #=> false
+        def version, do: 1
+        Module.function_defined? __MODULE__, { :version, 0 } #=> true
+      end
+
+  """
   def function_defined?(module, tuple) when is_tuple(tuple) do
     assert_not_compiled!(:function_defined?, module)
     table = function_table_for(module)
     ETS.lookup(table, tuple) != []
   end
 
-  # Checks if a function was defined and also for its `kind`.
-  # `kind` can be either :def, :defp or :defmacro.
-  #
-  # ## Examples
-  #
-  #     defmodule Example do
-  #       Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
-  #       def version, do: 1
-  #       Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
-  #     end
-  #
+  @doc """
+  Checks if a function was defined and also for its `kind`.
+  `kind` can be either :def, :defp or :defmacro.
+
+  ## Examples
+
+      defmodule Example do
+        Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
+        def version, do: 1
+        Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
+      end
+
+  """
   def function_defined?(module, tuple, kind) do
     List.member? defined_functions(module, kind), tuple
   end
 
-  # Return all functions defined in the given module.
-  #
-  # ## Examples
-  #
-  #     defmodule Example do
-  #       def version, do: 1
-  #       Module.defined_functions __MODULE__ #=> [{:version,1}]
-  #     end
-  #
+  @doc """
+  Return all functions defined in the given module.
+
+  ## Examples
+
+      defmodule Example do
+        def version, do: 1
+        Module.defined_functions __MODULE__ #=> [{:version,1}]
+      end
+
+  """
   def defined_functions(module) do
     assert_not_compiled!(:defined_functions, module)
     table = function_table_for(module)
     lc { tuple, _, _ } in ETS.tab2list(table), do: tuple
   end
 
-  # Return all functions defined in te given module according
-  # to its kind.
-  #
-  # ## Examples
-  #
-  #     defmodule Example do
-  #       def version, do: 1
-  #       Module.defined_functions __MODULE__, :def  #=> [{:version,1}]
-  #       Module.defined_functions __MODULE__, :defp #=> []
-  #     end
-  #
+  @doc """
+  Return all functions defined in te given module according
+  to its kind.
+
+  ## Examples
+
+      defmodule Example do
+        def version, do: 1
+        Module.defined_functions __MODULE__, :def  #=> [{:version,1}]
+        Module.defined_functions __MODULE__, :defp #=> []
+      end
+
+  """
   def defined_functions(module, kind) do
     assert_not_compiled!(:defined_functions, module)
     table = function_table_for(module)
@@ -162,39 +179,41 @@ defmodule Module do
     ETS.lookup_element(table, entry, 2)
   end
 
-  # Adds a compilation callback hook that is invoked
-  # exactly before the module is compiled.
-  #
-  # This callback is useful when used with `use` as a mechanism
-  # to clean up any internal data in the module before it is compiled.
-  #
-  # ## Examples
-  #
-  # Imagine you are creating a module/library that is meant for
-  # external usage called `MyLib`. It could be defined as:
-  #
-  #     defmodule MyLib do
-  #       def __using__(target) do
-  #         Module.merge_data target, some_data: true
-  #         Module.add_compile_callback(target, __MODULE__, :__callback__)
-  #       end
-  #
-  #       defmacro __callback__(target) do
-  #         value = Orddict.get(Module.read_data(target), :some_data, [])
-  #         quote do: (def my_lib_value, do: unquote(value))
-  #       end
-  #     end
-  #
-  # And a module could use `MyLib` with:
-  #
-  #     defmodule App do
-  #       use ModuleTest::ToBeUsed
-  #     end
-  #
-  # In the example above, `MyLib` defines a data to the target. This data
-  # can be updated throughout the module definition and therefore, the final
-  # value of the data can only be compiled using a compiation callback,
-  # which will read the final value of :some_data and compile to a function.
+  @doc """
+  Adds a compilation callback hook that is invoked
+  exactly before the module is compiled.
+
+  This callback is useful when used with `use` as a mechanism
+  to clean up any internal data in the module before it is compiled.
+
+  ## Examples
+
+  Imagine you are creating a module/library that is meant for
+  external usage called `MyLib`. It could be defined as:
+
+      defmodule MyLib do
+        def __using__(target) do
+          Module.merge_data target, some_data: true
+          Module.add_compile_callback(target, __MODULE__, :__callback__)
+        end
+
+        defmacro __callback__(target) do
+          value = Orddict.get(Module.read_data(target), :some_data, [])
+          quote do: (def my_lib_value, do: unquote(value))
+        end
+      end
+
+  And a module could use `MyLib` with:
+
+      defmodule App do
+        use ModuleTest::ToBeUsed
+      end
+
+  In the example above, `MyLib` defines a data to the target. This data
+  can be updated throughout the module definition and therefore, the final
+  value of the data can only be compiled using a compiation callback,
+  which will read the final value of :some_data and compile to a function.
+  """
   def add_compile_callback(module, target, fun // :__compiling__) do
     assert_not_compiled!(:add_compile_callback, module)
     new   = { target, fun }
@@ -203,13 +222,15 @@ defmodule Module do
     ETS.insert(table, { :compile_callbacks,  [new|old] })
   end
 
-  # Adds a forwarding to the current module. This is the backend
-  # API used by defforward.
-  #
-  # ## Examples
-  #
-  #     Module.add_forwarding __MODULE__, [sample: 1], to: TargetModule, via: :defp
-  #
+  @doc """
+  Adds a forwarding to the current module. This is the backend
+  API used by defforward.
+
+  ## Examples
+
+      Module.add_forwarding __MODULE__, [sample: 1], to: TargetModule, via: :defp
+
+  """
   def add_forwarding(module, pairs, options) do
     assert_not_compiled!(:add_forwarding, module)
 
@@ -235,12 +256,14 @@ defmodule Module do
     ETS.insert(table, { :forwardings,  final })
   end
 
-  # Remove a prevously stablished forwarding.
-  #
-  # ## Examples
-  #
-  #     Module.remove_forwarding __MODULE__, [sample: 1]
-  #
+  @doc """
+  Remove a prevously stablished forwarding.
+
+  ## Examples
+
+      Module.remove_forwarding __MODULE__, [sample: 1]
+
+  """
   def remove_forwarding(module, pair) do
     assert_not_compiled!(:remove_forwarding, module)
     table = data_table_for(module)
@@ -249,8 +272,64 @@ defmodule Module do
     ETS.insert(table, { :forwardings,  final })
   end
 
-  # Internal callback that compiles all the forwarding
-  # for the given module.
+  @doc """
+  Adds an Erlang attribute to the given module with the given
+  key and value. The same attribute can be added more than once.
+
+  ## Examples
+
+      defmodule MyModule do
+        Module.add_attribute __MODULE__, :custom_threshold_for_lib, 10
+      end
+
+  """
+  def add_attribute(module, key, value) do
+    assert_not_compiled!(:add_attribute, module)
+    table = attribute_table_for(module)
+    ETS.insert(table, { key, value })
+  end
+
+  @doc """
+  Deletes all attributes that matches the given key.
+
+  ## Examples
+
+      defmodule MyModule do
+        Module.add_attribute __MODULE__, :custom_threshold_for_lib, 10
+        Module.delete_attribute __MODULE__, :custom_threshold_for_lib
+      end
+
+  """
+  def delete_attribute(module, key) do
+    assert_not_compiled!(:delete_attribute, module)
+    table = attribute_table_for(module)
+    ETS.delete(table, key)
+  end
+
+  @doc """
+  Registers an attribute. This allows a developer to use the data API
+  but Elixir will register the data as an attribute automatically.
+  By default, `vsn`, `behavior` and other Erlang attributes are
+  automatically registered.
+
+  ## Examples
+
+      defmodule MyModule do
+        Module.register_attribute __MODULE__, :custom_threshold_for_lib
+        @custom_threshold_for_lib 10
+      end
+
+  """
+  def register_attribute(module, new) do
+    assert_not_compiled!(:register_attribute, module)
+    table = data_table_for(module)
+    old = ETS.lookup_element(table, :registered_attributes, 2)
+    ETS.insert(table, { :registered_attributes,  [new|old] })
+  end
+
+  @doc false
+  # Used internally to compile forwardings. This function
+  # is private and must be used only internally.
   def compile_forwardings(module, forwardings) do
     defined  = defined_functions(module)
     contents = Enum.map forwardings, fn({ tuple, other }) ->
@@ -265,66 +344,25 @@ defmodule Module do
     eval_quoted module, contents, [], __FILE__, __LINE__
   end
 
-  # Compiles documentation.
+  @doc false
+  # Used internally to compile documentation. This function
+  # is private and must be used only internally.
   def compile_doc(module, line, kind, pair) do
     case read_data(module, :doc) do
     match: doc when is_binary(doc) orelse doc == false
-      add_doc(module, line, kind, pair, doc)
-      merge_data(module, doc: nil)
+      case kind do
+      match: :defp
+        :warn
+      else:
+        add_doc(module, line, kind, pair, doc)
+        merge_data(module, doc: nil)
+        :ok
+      end
     match: nil
       []
     match: other
       raise CompileError, description: "Expected @doc to be a binary or false, got #{inspect other}"
     end
-  end
-
-  # Adds an Erlang attribute to the given module with the given
-  # key and value. The same attribute can be added more than once.
-  #
-  # ## Examples
-  #
-  #     defmodule MyModule do
-  #       Module.add_attribute __MODULE__, :custom_threshold_for_lib, 10
-  #     end
-  #
-  def add_attribute(module, key, value) do
-    assert_not_compiled!(:add_attribute, module)
-    table = attribute_table_for(module)
-    ETS.insert(table, { key, value })
-  end
-
-  # Deletes all attributes that matches the given key.
-  #
-  # ## Examples
-  #
-  #     defmodule MyModule do
-  #       Module.add_attribute __MODULE__, :custom_threshold_for_lib, 10
-  #       Module.delete_attribute __MODULE__, :custom_threshold_for_lib
-  #     end
-  #
-  def delete_attribute(module, key) do
-    assert_not_compiled!(:delete_attribute, module)
-    table = attribute_table_for(module)
-    ETS.delete(table, key)
-  end
-
-  # Registers an attribute. This allows a developer to use the data API
-  # but Elixir will register the data as an attribute automatically.
-  # By default, `vsn`, `behavior` and other Erlang attributes are
-  # automatically registered.
-  #
-  # ## Examples
-  #
-  #     defmodule MyModule do
-  #       Module.register_attribute __MODULE__, :custom_threshold_for_lib
-  #       @custom_threshold_for_lib 10
-  #     end
-  #
-  def register_attribute(module, new) do
-    assert_not_compiled!(:register_attribute, module)
-    table = data_table_for(module)
-    old = ETS.lookup_element(table, :registered_attributes, 2)
-    ETS.insert(table, { :registered_attributes,  [new|old] })
   end
 
   ## Helpers
