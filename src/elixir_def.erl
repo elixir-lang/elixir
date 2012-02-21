@@ -69,6 +69,10 @@ store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
+store_definition(Kind, Line, Module, Name, Args, _RawGuards, skip_definition, RawS) ->
+  S = elixir_variables:deserialize_scope(RawS),
+  compile_docs(Kind, Line, Module, Name, length(Args), S);
+
 store_definition(Kind, Line, Module, Name, Args, RawGuards, KV, RawS) ->
   case KV of
     [{do, Expr}] -> [];
@@ -93,14 +97,7 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, KV, RawS) ->
   CheckClauses = S#elixir_scope.check_clauses,
 
   %% Compile documentation
-  case S#elixir_scope.compile#elixir_compile.internal of
-    true -> [];
-    _ ->
-      case '::Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
-        warn -> elixir_errors:handle_file_warning(Filename, { Line, ?MODULE, { invalid_doc, { Name, Arity } } });
-        _ -> []
-      end
-  end,
+  compile_docs(Kind, Line, Module, Name, Arity, S),
 
   %% Store function
   store_each(CheckClauses, Final, FunctionTable, Visibility, Filename, Function),
@@ -110,6 +107,17 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, KV, RawS) ->
     function_for_clause(Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
+
+compile_docs(Kind, Line, Module, Name, Arity, S) ->
+  case S#elixir_scope.compile#elixir_compile.internal of
+    true -> [];
+    _ ->
+      case '::Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
+        warn -> elixir_errors:handle_file_warning(S#elixir_scope.filename,
+          { Line, ?MODULE, { invalid_doc, { Name, Arity } } });
+        _ -> []
+      end
+  end.
 
 %% Translate the given call and expression given
 %% and then store it in memory.

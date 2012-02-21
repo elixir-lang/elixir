@@ -136,10 +136,8 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
   { _, RS } = translate_each({ require, Line, [Ref, [{as,As},{raise,false}]] }, NS),
   { elixir_module:translate(Line, TRef, Block, S), RS };
 
-translate_macro({Kind, Line, [_Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
-  assert_module_scope(Line, Kind, S),
-  assert_no_function_scope(Line, Kind, S),
-  { { nil, Line }, S };
+translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
+  translate_macro({Kind, Line, [Call, skip_definition]}, S);
 
 translate_macro({Kind, Line, [Call, Expr]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
   assert_module_scope(Line, Kind, S),
@@ -193,8 +191,9 @@ translate_macro({ 'var!', Line, [_] }, S) ->
 
 %% HELPERS
 
-is_reserved_data(doc) -> true;
-is_reserved_data(_)   -> false.
+is_reserved_data(moduledoc) -> true;
+is_reserved_data(doc)       -> true;
+is_reserved_data(_)         -> false.
 
 % Unpack a list of expressions from a block.
 unpack([{ '__BLOCK__', _, Exprs }]) -> Exprs;
