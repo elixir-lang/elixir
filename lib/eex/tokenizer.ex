@@ -30,7 +30,7 @@ defmodule EEx::Tokenizer do
       token = middle_expr_token_name(expr)
 
     acc = tokenize_text(buffer, acc)
-    tokenize rest, [], [ { token, marker, list_to_binary(expr) } | acc]
+    tokenize rest, [], [ { token, marker, expr } | acc]
   end
 
   defp tokenize([h|t], buffer, acc) do
