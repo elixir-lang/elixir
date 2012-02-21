@@ -181,6 +181,8 @@ Elixir has a handful of reserved data attributes. The following are currently fu
 * `@behaviour` and `@behavior` - used for specifying an OTP or user-defined behavior;
 * `@vsn` - used for specifying the module version;
 * `@compile` - provides options for the module compilation;
+* `@moduledoc` - provides documentation to the current module;
+* `@doc` - provides documentation to the next function;
 
 The following are also reserved by Elixir (as they have special semantics to the Erlang VM) but not currently supported (if you need support to any of these in your current projects, please make yourself heard in the issues tracker):
 
