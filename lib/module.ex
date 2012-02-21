@@ -112,7 +112,6 @@ defmodule Module do
           def version, do: 1
         end
 
-
     """
     def add_doc(module, line, kind, tuple, doc) when
       is_binary(doc) orelse is_boolean(doc) do

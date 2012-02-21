@@ -41,7 +41,6 @@ In case `--docs` is not provided during compilation, both calls would return nil
           def version, do: 1
         end
 
-
     """
     def add_doc(module, line, kind, tuple, doc)
 
