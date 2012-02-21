@@ -67,17 +67,26 @@ defmodule Code do
 
   # Compiles `file` and returns a list of tuples where
   # the first element is the module name and the second
-  # one is its binary. Can optional pass docs: true
-  # so the compiled files retain their documentation,
-  # otherwise documentation is discarded on compilation.
-  def compile_file(file, [docs: docs] // [docs: false]) do
-    Erlang.elixir_compiler.file to_char_list(file), docs
+  # one is its binary.
+  #
+  # ## Options
+  #
+  # Available options are:
+  #
+  # * docs - when true, retain documentation in the compiled module;
+  # * debug_info - when true, retain debug information in the compiled module.
+  #   Notice debug information can be used to reconstruct the source code;
+  #
+  def compile_file(file, opts // []) do
+    Erlang.elixir_compiler.file to_char_list(file), opts
   end
 
   # Compiles `file` and add the result to the given `destination`.
   # Destination needs to be a directory.
-  def compile_file_to_dir(file, destination, [docs: docs] // [docs: false]) do
-    Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination), docs
+  #
+  # See compile_file/2 for available options.
+  def compile_file_to_dir(file, destination, opts // []) do
+    Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination), opts
   end
 
   # Get the stacktrace.

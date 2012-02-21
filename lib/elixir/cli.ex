@@ -1,5 +1,5 @@
 defrecord Elixir::CLI::Config, commands: [], close: [],
-  output: '.', compile: false, stop: true, docs: false
+  output: '.', compile: false, stop: true, compile_options: []
 
 defmodule Elixir::CLI do
   import Exception, only: [format_stacktrace: 1]
@@ -144,7 +144,11 @@ defmodule Elixir::CLI do
   end
 
   defp process_compiler(['--docs'|t], config) do
-    process_compiler t, config.docs(true)
+    process_compiler t, config.merge_compile_options(docs: true)
+  end
+
+  defp process_compiler(['--debug-info'|t], config) do
+    process_compiler t, config.merge_compile_options(debug_info: true)
   end
 
   defp process_compiler([h|t] = list, config) do
@@ -180,7 +184,7 @@ defmodule Elixir::CLI do
 
     Enum.map concat, fn(file) ->
       IO.puts "Compiling #{list_to_binary(file)}"
-      Code.compile_file_to_dir(file, config.output, docs: config.docs)
+      Code.compile_file_to_dir(file, config.output, config.compile_options)
     end
   end
 end

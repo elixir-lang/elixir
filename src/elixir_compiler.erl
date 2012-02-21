@@ -7,7 +7,7 @@
 %% Compiles the given file. Returns a list of tuples
 %% with module names and binaries.
 
-file(Filename, Docs) ->
+file(Filename, Opts) ->
   Previous = get(elixir_compiled),
   try
     put(elixir_compiled, []),
@@ -16,7 +16,12 @@ file(Filename, Docs) ->
       Error -> erlang:error(Error)
     end,
 
-    eval(Contents, 1, Filename, list_to_atom(filename_to_module(Filename)), Docs),
+    C = #elixir_compile {
+      docs=get_value(Opts, docs, false),
+      debug_info=get_value(Opts, debug_info, false)
+    },
+
+    eval(Contents, 1, Filename, list_to_atom(filename_to_module(Filename)), C),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
@@ -24,15 +29,15 @@ file(Filename, Docs) ->
 
 %% Compiles a file to the given path (directory).
 
-file_to_path(File, Path, Docs) ->
-  Lists = file(File, Docs),
+file_to_path(File, Path, Opts) ->
+  Lists = file(File, Opts),
   [binary_to_path(X, Path) || X <- Lists].
 
 %% Evaluates the contents/forms by compiling them to an Erlang module.
 
-eval(String, Line, Filename, Module, Docs) ->
+eval(String, Line, Filename, Module, C) ->
   Forms = elixir_translator:forms(String, Line, Filename),
-  eval_forms(Forms, Line, Module, #elixir_scope{filename=Filename,docs=Docs}).
+  eval_forms(Forms, Line, Module, #elixir_scope{filename=Filename,compile=C}).
 
 eval_forms(Forms, Line, Module, #elixir_scope{module=[]} = S) ->
   eval_forms(Forms, Line, Module, nil, S);
@@ -55,8 +60,8 @@ eval_forms(Forms, Line, Module, Value, S) ->
 %% Compile the module by forms based on the scope information
 %% executes the callback in case of success. This automatically
 %% handles errors and warnings. Used by this module and elixir_module.
-module(Forms, #elixir_scope{} = S, Callback) ->
-  Options = case S#elixir_scope.docs of
+module(Forms, #elixir_scope{compile=C} = S, Callback) ->
+  Options = case C#elixir_compile.debug_info of
     true -> [debug_info];
     _ -> []
   end,
@@ -82,6 +87,12 @@ core() ->
   [core_file(File) || File <- '::List':uniq(Files)].
 
 %% HELPERS
+
+get_value(Orddict, Key, Default) ->
+  case orddict:find(Key, Orddict) of
+    { ok, Value } -> Value;
+    error -> Default
+  end.
 
 no_auto_import() ->
   { attribute, 0, compile, {
@@ -252,7 +263,7 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 core_file(File) ->
   io:format("Compiling ~s~n", [File]),
   try
-    file_to_path(File, "exbin", false)
+    file_to_path(File, "exbin", [])
   catch
     Kind:Reason ->
       io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, erlang:get_stacktrace()]),
