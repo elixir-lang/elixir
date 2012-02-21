@@ -18,7 +18,8 @@ file(Filename, Opts) ->
 
     C = #elixir_compile {
       docs=get_value(Opts, docs, false),
-      debug_info=get_value(Opts, debug_info, false)
+      debug_info=get_value(Opts, debug_info, false),
+      ignore_module_conflict=get_value(Opts, ignore_module_conflict, false)
     },
 
     eval(Contents, 1, Filename, list_to_atom(filename_to_module(Filename)), C),

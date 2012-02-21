@@ -7,8 +7,9 @@
 -define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
 
 -record(elixir_compile, {
-  docs=false,       %% when true, attach docs to the defined module
-  debug_info=false  %% when true, attach debug info to the defined module
+  docs=false,                  %% when true, attach docs to the defined module
+  debug_info=false,            %% when true, attach debug info to the defined module
+  ignore_module_conflict=false %% when true, module conflicts are ignored
 }).
 
 -record(elixir_scope, {

@@ -151,6 +151,10 @@ defmodule Elixir::CLI do
     process_compiler t, config.merge_compile_options(debug_info: true)
   end
 
+  defp process_compiler(['--ignore-module-conflict'|t], config) do
+    process_compiler t, config.merge_compile_options(ignore_module_conflict: true)
+  end
+
   defp process_compiler([h|t] = list, config) do
     case h do
     match: '-' ++ _

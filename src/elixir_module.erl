@@ -51,7 +51,7 @@ translate(Line, Ref, Block, S) ->
 compile(Line, Module, Block, RawS) when is_atom(Module) ->
   S = elixir_variables:deserialize_scope(RawS),
   Filename = S#elixir_scope.filename,
-  check_module_availability(Line, Filename, Module),
+  check_module_availability(Line, Filename, Module, S#elixir_scope.compile),
   build(Module),
 
   try
@@ -143,11 +143,14 @@ load_form(Forms, S) ->
     end
   end).
 
-check_module_availability(Line, Filename, Module) ->
+check_module_availability(Line, Filename, Module, #elixir_compile{ignore_module_conflict=false}) ->
   case code:ensure_loaded(Module) of
     { module, _ } -> elixir_errors:form_error(Line, Filename, ?MODULE, { module_defined, Module });
     { error, _ }  -> []
-  end.
+  end;
+
+check_module_availability(_Line, _Filename, _Module, _C) ->
+  [].
 
 % EXTRA FUNCTIONS
 
