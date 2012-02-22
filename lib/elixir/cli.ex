@@ -151,6 +151,8 @@ defmodule Elixir::CLI do
     process_compiler t, config.merge_compile_options(debug_info: true)
   end
 
+  # This option is used internally so we can compile
+  # Elixir with Elixir without raising module conflicts
   defp process_compiler(['--ignore-module-conflict'|t], config) do
     process_compiler t, config.merge_compile_options(ignore_module_conflict: true)
   end
