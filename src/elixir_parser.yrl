@@ -8,7 +8,7 @@ Nonterminals
   comma_separator kv_eol
   add_op mult_op unary_op unary_ref_op addadd_op multmult_op bin_concat_op
   match_op arrow_op module_ref_op default_op when_op pipe_op in_op
-  andand_op oror_op andalso_op orelse_op and_op or_op comp_expr_op
+  andand_op oror_op and_op or_op comp_expr_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
@@ -28,7 +28,7 @@ Terminals
   identifier kv_identifier punctuated_identifier paren_identifier do_identifier
   number signed_number atom bin_string list_string
   dot_call_op special_op comp_op
-  'not' 'and' 'or' 'xor' 'andalso' 'orelse' 'when' 'in'
+  'not' 'and' 'or' 'xor' 'when' 'in'
   'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
@@ -48,8 +48,6 @@ Right     80 match_op.
 Right     90 arrow_op.
 Left     100 oror_op.
 Left     110 andand_op.
-Left     120 orelse_op.
-Left     130 andalso_op.
 Left     140 or_op.
 Left     150 and_op.
 Left     160 comp_expr_op.
@@ -102,8 +100,6 @@ op_expr -> addadd_op expr : { '$1', '$2' }.
 op_expr -> multmult_op expr : { '$1', '$2' }.
 op_expr -> andand_op expr : { '$1', '$2' }.
 op_expr -> oror_op expr : { '$1', '$2' }.
-op_expr -> andalso_op expr : { '$1', '$2' }.
-op_expr -> orelse_op expr : { '$1', '$2' }.
 op_expr -> and_op expr : { '$1', '$2' }.
 op_expr -> or_op expr : { '$1', '$2' }.
 op_expr -> pipe_op expr : { '$1', '$2' }.
@@ -122,8 +118,6 @@ matched_op_expr -> addadd_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> multmult_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> andand_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> oror_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> andalso_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> orelse_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> and_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> or_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> pipe_op matched_expr : { '$1', '$2' }.
@@ -245,12 +239,6 @@ andand_op -> '&&' eol : '$1'.
 
 oror_op -> '||' : '$1'.
 oror_op -> '||' eol : '$1'.
-
-andalso_op -> 'andalso' : '$1'.
-andalso_op -> 'andalso' eol : '$1'.
-
-orelse_op -> 'orelse' : '$1'.
-orelse_op -> 'orelse' eol : '$1'.
 
 and_op -> 'and' : '$1'.
 and_op -> 'and' eol : '$1'.

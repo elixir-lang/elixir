@@ -240,10 +240,10 @@ defmodule Elixir::Builtin do
   defmacro is_exception(thing) do
     quote do
       in_guard do
-        is_tuple(unquote(thing)) andalso element(2, unquote(thing)) == __EXCEPTION__
+        is_tuple(unquote(thing)) and element(2, unquote(thing)) == __EXCEPTION__
       else:
         result = unquote(thing)
-        is_tuple(result) andalso element(2, result) == __EXCEPTION__
+        is_tuple(result) and element(2, result) == __EXCEPTION__
       end
     end
   end
@@ -963,7 +963,7 @@ defmodule Elixir::Builtin do
       true && 1            #=> 1
       false && error(:bad) #=> false
 
-  Notice that, differently from Erlang `and` and `andalso` operators,
+  Notice that, differently from Erlang `and` and `and` operators,
   this operator accepts any expression as arguments, not only booleans.
   Unfortunately cannot be used in macros.
   """
@@ -992,7 +992,7 @@ defmodule Elixir::Builtin do
       false || 1           #=> 1
       true || error(:bad)  #=> true
 
-  Notice that, differently from Erlang `or` and `orelse` operators,
+  Notice that, differently from Erlang `or` and `or` operators,
   this operator accepts any expression as arguments, not only booleans.
   Unfortunately cannot be used in macros.
   """
@@ -1078,7 +1078,7 @@ defmodule Elixir::Builtin do
     :erlang.error atom.new
   end
 
-  def raise(exception) when is_tuple(exception) andalso element(2, exception) == __EXCEPTION__ do
+  def raise(exception) when is_tuple(exception) and element(2, exception) == __EXCEPTION__ do
     :erlang.error exception
   end
 

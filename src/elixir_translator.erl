@@ -570,12 +570,16 @@ convert_partials(_Line, [], S, CallAcc, DefAcc) ->
 
 %% Convert operators
 
-convert_op('!==') -> '=/=';
-convert_op('===') -> '=:=';
-convert_op('!=')  ->  '/=';
-convert_op('<=')  ->  '=<';
-convert_op('<-')  ->  '!';
-convert_op(Else)  ->  Else.
+convert_op('and')  -> 'andalso';
+convert_op('or')   -> 'orelse';
+convert_op('and!') -> 'and';
+convert_op('or!')  -> 'or';
+convert_op('!==')  -> '=/=';
+convert_op('===')  -> '=:=';
+convert_op('!=')   ->  '/=';
+convert_op('<=')   ->  '=<';
+convert_op('<-')   ->  '!';
+convert_op(Else)   ->  Else.
 
 %% Comprehensions
 

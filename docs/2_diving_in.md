@@ -291,7 +291,7 @@ In Elixir, all values except `false` and `nil` evaluates to true. So there is no
 
 ### 2.6.2 Other boolean operators
 
-In the previous chapter, we discussed the boolean operators `and`, `or`, `not`, `andalso` and `orelse`. Those operators are strict in the sense they only accept booleans as arguments.
+In the previous chapter, we discussed the boolean operators `and`, `or` and `not`. Those operators are strict in the sense they only accept booleans as arguments.
 
 To work around this limitation, Elixir provides three operators with similar functionality but that accept any argument: `||`, `&&` and `!`. For those operators, all values except `false` and `nil` will evaluate to true.
 
@@ -352,7 +352,7 @@ Each match clause also supports special conditions to be given via guards:
 In the example above, the second clause will only match when x is positive. The Erlang VM machine only allows few expressions as guards, they are:
 
 * comparison operators (`==`, `!=`, `===`, `!===`, `>`, `<`, `<=`, `>=`);
-* strict boolean operators (`and`, `or`, `not`, `andalso`, `orelse`);
+* strict boolean operators (`and`, `or`, `not`). Note that `||` and `&&` are not allowed;
 * arithmetic operators (`+`, `-`, `*`, `/`);
 * `<>` and `++` as long as the left side is a literal;
 * all the following type check functions:

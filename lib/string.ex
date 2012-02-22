@@ -12,11 +12,11 @@ defmodule String do
   end
 
   defp do_escape([h|t], char) when
-    h == ?#  orelse h == ?\b orelse
-    h == ?\d orelse h == ?\e orelse
-    h == ?\f orelse h == ?\n orelse
-    h == ?\r orelse h == ?\\ orelse
-    h == ?\t orelse h == ?\v do
+    h == ?#  or h == ?\b or
+    h == ?\d or h == ?\e or
+    h == ?\f or h == ?\n or
+    h == ?\r or h == ?\\ or
+    h == ?\t or h == ?\v do
     [?\\,escape_map(h)|do_escape(t, char)]
   end
 

@@ -17,10 +17,10 @@ translate_macro({ '-', _Line, [Expr] }, S) when is_number(Expr) ->
 
 translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
   Op == '+'; Op == '-'; Op == '*'; Op == '/'; Op == '<-';
-  Op == '++'; Op == '--'; Op == 'andalso'; Op == 'orelse';
-  Op == 'not'; Op == 'and'; Op == 'or'; Op == 'xor';
-  Op == '<'; Op == '>'; Op == '<='; Op == '>=';
-  Op == '=='; Op == '!='; Op == '==='; Op == '!==' ->
+  Op == '++'; Op == '--'; Op == 'not'; Op == 'and';
+  Op == 'or'; Op == 'xor'; Op == '<'; Op == '>';
+  Op == '<='; Op == '>='; Op == '=='; Op == '!=';
+  Op == '==='; Op == '!==' ->
   translate_each({ '__OP__', Line, [Op|Exprs] }, S);
 
 %% ::

@@ -382,10 +382,10 @@ defmodule Elixir::SpecialForms do
        defmacro is_exception(thing) do
          quote do
            in_guard do
-             andalso(is_tuple(unquote(thing)), element(2, unquote(thing)) == __EXCEPTION__)
+             is_tuple(unquote(thing)) and element(2, unquote(thing)) == __EXCEPTION__
            else:
              result = unquote(thing)
-             andalso(is_tuple(result), element(2, result) == __EXCEPTION__)
+             is_tuple(result) and element(2, result) == __EXCEPTION__
            end
          end
        end

@@ -126,8 +126,8 @@ rescue_guards(Line, Var, Guards, S) ->
         { element, Line, [2, Var] },
         { '__EXCEPTION__', Line, nil }
       ] },
-      OrElse = join(Line, 'orelse', Elixir),
-      [join(Line, 'andalso', [IsTuple, IsException, OrElse])|Erlang]
+      OrElse = join(Line, 'or', Elixir),
+      [join(Line, 'and', [IsTuple, IsException, OrElse])|Erlang]
   end,
   {
     { 'when', Line, [Var, reverse_join(Line, 'when', Final)] },
@@ -145,8 +145,8 @@ rescue_each_var(Line, ClauseVar, Guards) ->
       Elixir = [exception_compare(Line, ClauseVar, Var) || Var <- Vars],
       Erlang = lists:map(fun(Rescues) ->
         Compares = [{ '==', Line, [Rescue, Var] } || Var <- Vars, Rescue <- Rescues],
-        { 'andalso', Line, [
-          join(Line, 'orelse', Compares),
+        { 'and', Line, [
+          join(Line, 'or', Compares),
           erlang_rescue_guard_for(Line, ClauseVar, Rescues)
         ] }
       end, erlang_rescues()),
@@ -195,7 +195,7 @@ erlang_rescues() ->
   ].
 
 erlang_rescue_guard_for(Line, Var, List) when is_list(List) ->
-  join(Line, 'orelse', [erlang_rescue_guard_for(Line, Var, X) || X <- List]);
+  join(Line, 'or', [erlang_rescue_guard_for(Line, Var, X) || X <- List]);
 
 erlang_rescue_guard_for(Line, Var, '::UndefinedFunctionError') ->
   { '==', Line, [Var, undef] };
@@ -210,33 +210,33 @@ erlang_rescue_guard_for(Line, Var, '::ArithmeticError') ->
   { '==', Line, [Var, badarith] };
 
 erlang_rescue_guard_for(Line, Var, '::BadArityError') ->
-  { 'andalso', Line, [
+  { 'and', Line, [
     { is_tuple, Line, [Var] },
     exception_compare(Line, Var, badarity)
   ] };
 
 erlang_rescue_guard_for(Line, Var, '::BadFunctionError') ->
-  { 'andalso', Line, [
+  { 'and', Line, [
     { is_tuple, Line, [Var] },
     exception_compare(Line, Var, badfun)
   ] };
 
 erlang_rescue_guard_for(Line, Var, '::MatchError') ->
-  { 'andalso', Line, [
+  { 'and', Line, [
     { is_tuple, Line, [Var] },
     exception_compare(Line, Var, badmatch)
   ] };
 
 erlang_rescue_guard_for(Line, Var, '::CaseClauseError') ->
-  { 'andalso', Line, [
+  { 'and', Line, [
     { is_tuple, Line, [Var] },
     exception_compare(Line, Var, case_clause)
   ] };
 
 erlang_rescue_guard_for(Line, Var, '::ArgumentError') ->
-  { 'orelse', Line, [
+  { 'or', Line, [
     { '==', Line, [Var, badarg] },
-    { 'andalso', Line, [
+    { 'and', Line, [
       { is_tuple, Line, [Var] },
       exception_compare(Line, Var, badarg)
     ] }
@@ -248,7 +248,7 @@ erlang_rescue_guard_for(Line, Var, '::ErlangError') ->
     { element, Line, [2, Var] },
     { '__EXCEPTION__', Line, nil }
   ] },
-  { 'orelse', Line, [IsNotTuple, IsException] }.
+  { 'or', Line, [IsNotTuple, IsException] }.
 
 %% Join the given expression forming a tree according to the given kind.
 

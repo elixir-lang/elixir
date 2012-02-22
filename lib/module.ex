@@ -114,7 +114,7 @@ defmodule Module do
 
     """
     def add_doc(module, line, kind, tuple, doc) when
-      is_binary(doc) orelse is_boolean(doc) do
+      is_binary(doc) or is_boolean(doc) do
     assert_not_compiled!(:add_doc, module)
     case kind do
     match: :defp

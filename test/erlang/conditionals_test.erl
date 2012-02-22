@@ -150,39 +150,6 @@ integer_and_float_test() ->
   {false,_} = elixir:eval("1 === 1.0"),
   {true,_} = elixir:eval("1 !== 1.0").
 
-and_test() ->
-  F = fun() ->
-    elixir:eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = elixir:eval("true and true"),
-    {false, _} = elixir:eval("true and false"),
-    {false, _} = elixir:eval("false and true"),
-    {false, _} = elixir:eval("false and false"),
-    {true, _} = elixir:eval("Bar.foo and Bar.foo"),
-    {false, _} = elixir:eval("Bar.foo and Bar.bar"),
-    {true, _} = elixir:eval("Bar.foo and Bar.baz 1"),
-    {false, _} = elixir:eval("Bar.foo and Bar.baz 2"),
-    {true, _} = elixir:eval("1 == 1 and 2 < 3"),
-    {true, _} = elixir:eval("false and false or true"),
-    ?assertError(badarg, elixir:eval("1 and 2"))
-  end,
-  test_helper:run_and_remove(F, ['::Bar']).
-
-or_test() ->
-  F = fun() ->
-    elixir:eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = elixir:eval("true or true"),
-    {true, _} = elixir:eval("true or false"),
-    {true, _} = elixir:eval("false or true"),
-    {false, _} = elixir:eval("false or false"),
-    {true, _} = elixir:eval("Bar.foo or Bar.foo"),
-    {true, _} = elixir:eval("Bar.foo or Bar.bar"),
-    {false, _} = elixir:eval("Bar.bar or Bar.bar"),
-    {true, _} = elixir:eval("Bar.bar or Bar.baz 1"),
-    {false, _} = elixir:eval("Bar.bar or Bar.baz 2"),
-    ?assertError(badarg, elixir:eval("1 or 2"))
-  end,
-  test_helper:run_and_remove(F, ['::Bar']).
-
 xor_test() ->
   F = fun() ->
     elixir:eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
@@ -199,39 +166,39 @@ xor_test() ->
   end,
   test_helper:run_and_remove(F, ['::Bar']).
 
-andalso_test() ->
+and_test() ->
   F = fun() ->
     elixir:eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = elixir:eval("true andalso true"),
-    {false, _} = elixir:eval("true andalso false"),
-    {false, _} = elixir:eval("false andalso true"),
-    {false, _} = elixir:eval("false andalso false"),
-    {true, _} = elixir:eval("Bar.foo andalso Bar.foo"),
-    {false, _} = elixir:eval("Bar.foo andalso Bar.bar"),
-    {true, _} = elixir:eval("Bar.foo andalso Bar.baz 1"),
-    {false, _} = elixir:eval("Bar.foo andalso Bar.baz 2"),
-    {true, _} = elixir:eval("false andalso false orelse true"),
-    {3, _} = elixir:eval("Bar.foo andalso 1 + 2"),
-    {false, _} = elixir:eval("Bar.bar andalso error(:bad)"),
-    ?assertError({badarg, 1}, elixir:eval("1 andalso 2"))
+    {true, _} = elixir:eval("true and true"),
+    {false, _} = elixir:eval("true and false"),
+    {false, _} = elixir:eval("false and true"),
+    {false, _} = elixir:eval("false and false"),
+    {true, _} = elixir:eval("Bar.foo and Bar.foo"),
+    {false, _} = elixir:eval("Bar.foo and Bar.bar"),
+    {true, _} = elixir:eval("Bar.foo and Bar.baz 1"),
+    {false, _} = elixir:eval("Bar.foo and Bar.baz 2"),
+    {true, _} = elixir:eval("false and false or true"),
+    {3, _} = elixir:eval("Bar.foo and 1 + 2"),
+    {false, _} = elixir:eval("Bar.bar and error(:bad)"),
+    ?assertError({badarg, 1}, elixir:eval("1 and 2"))
   end,
   test_helper:run_and_remove(F, ['::Bar']).
 
-orelse_test() ->
+or_test() ->
   F = fun() ->
     elixir:eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = elixir:eval("true orelse true"),
-    {true, _} = elixir:eval("true orelse false"),
-    {true, _} = elixir:eval("false orelse true"),
-    {false, _} = elixir:eval("false orelse false"),
-    {true, _} = elixir:eval("Bar.foo orelse Bar.foo"),
-    {true, _} = elixir:eval("Bar.foo orelse Bar.bar"),
-    {false, _} = elixir:eval("Bar.bar orelse Bar.bar"),
-    {true, _} = elixir:eval("Bar.bar orelse Bar.baz 1"),
-    {false, _} = elixir:eval("Bar.bar orelse Bar.baz 2"),
-    {3, _} = elixir:eval("Bar.bar orelse 1 + 2"),
-    {true, _} = elixir:eval("Bar.foo orelse error(:bad)"),
-    ?assertError({badarg, 1}, elixir:eval("1 orelse 2"))
+    {true, _} = elixir:eval("true or true"),
+    {true, _} = elixir:eval("true or false"),
+    {true, _} = elixir:eval("false or true"),
+    {false, _} = elixir:eval("false or false"),
+    {true, _} = elixir:eval("Bar.foo or Bar.foo"),
+    {true, _} = elixir:eval("Bar.foo or Bar.bar"),
+    {false, _} = elixir:eval("Bar.bar or Bar.bar"),
+    {true, _} = elixir:eval("Bar.bar or Bar.baz 1"),
+    {false, _} = elixir:eval("Bar.bar or Bar.baz 2"),
+    {3, _} = elixir:eval("Bar.bar or 1 + 2"),
+    {true, _} = elixir:eval("Bar.foo or error(:bad)"),
+    ?assertError({badarg, 1}, elixir:eval("1 or 2"))
   end,
   test_helper:run_and_remove(F, ['::Bar']).
 

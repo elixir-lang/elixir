@@ -137,7 +137,7 @@ defmodule Protocol do
   # If this is the case, module::Record will be returned.
   defp each_protocol_for({ _, :is_record }) do
     quote do
-      def __protocol_for__(arg) when is_tuple(arg) andalso is_atom(element(1, arg)) do
+      def __protocol_for__(arg) when is_tuple(arg) and is_atom(element(1, arg)) do
         __MODULE__::Record
       end
     end
