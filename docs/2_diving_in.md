@@ -56,7 +56,7 @@ In the previous chapter we have discussed double- and single-quoted strings. Dou
     iex> is_list 'string'
     true
 
-In fact, both double- and single-quoted representations are just a shorter representation of binaries and lists. Considering that `?a` in Elixir returns the ASCII integer for the letter `a`, we could also write:
+In fact, both double-quoted and single-quoted representations are just a shorter representation of binaries and lists. Considering that `?a` in Elixir returns the ASCII integer for the letter `a`, we could also write:
 
     iex> <<?a, ?b, ?c>>
     "abc"
