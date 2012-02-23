@@ -30,7 +30,7 @@ defmodule Kernel::ForwardingLibrary do
     { module, arg }
   end
 
-  defforwarded nested_super(arg) do
+  defcallback nested_super(arg) do
     { super?, __TARGET__, arg }
   end
 end
@@ -42,7 +42,7 @@ defmodule Kernel::NestedLibrary do
     end
   end
 
-  defforwarded nested_super(arg) do
+  defcallback nested_super(arg) do
     { super, super?, arg + 1 }
   end
 end

@@ -136,7 +136,7 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
   { _, RS } = translate_each({ require, Line, [Ref, [{as,As},{raise,false}]] }, NS),
   { elixir_module:translate(Line, TRef, Block, S), RS };
 
-translate_macro({defforwarded, Line, Args}, S) when is_list(Args), length(Args) >= 2 orelse length(Args) =< 4 ->
+translate_macro({defcallback, Line, Args}, S) when is_list(Args), length(Args) >= 2 orelse length(Args) =< 4 ->
   { TE, TS } = translate_macro({def, Line, Args}, S#elixir_scope{forwarded=true}),
   { TE, TS#elixir_scope{forwarded=false} };
 

@@ -385,12 +385,12 @@ defmodule Elixir::Builtin do
   Forwarding is a mechanism that allows a library or framework
   developer to provide a default implementation for some function.
   If the target module defines the forwarding function, `defforward`
-  works as noop. However if not, a default implementation of the
-  function will be added, forwarding it to the target function.
+  works as noop. However if not, a default implementation that
+  forwards to the given module will be added.
 
   ## Examples
 
-  First, let's  define a custom MyLibrary code that will invoke
+  First, let's define a custom MyLibrary code that will invoke
   `defforward` once used:
 
       defmodule MyLibrary do
@@ -401,15 +401,14 @@ defmodule Elixir::Builtin do
         end
 
         # Default behavior for handling failure.
-        # The forwarded function always receive the target
+        # The callback function always receive the target
         # module and a set of callbacks as extra arguments.
         def handle_failure(_module, _callbacks, arg) do
           raise inspect(arg)
         end
       end
 
-  In this case, we call `MyLibrary.handle_failure/3` as the **forwarded**
-  function. Now, a module using `MyLibrary` can either use the default
+  Now, a module using `MyLibrary` can either use the default
   implementation for failure:
 
       defmodule MyModule do
@@ -447,12 +446,12 @@ defmodule Elixir::Builtin do
 
   Finally, `import` is an implementation concern. A developer or a library
   use import when they want to invoke functions without referencing their
-  prefix every time. An imported function is never available from outside.
+  module every time. An imported function is never available from outside.
 
   ## Using super
 
   In some cases, a forwarding function specified by a developer may
-  actually want to call the fowarded function. In such cases, to avoid
+  actually want to call the callback function. In such cases, to avoid
   coupling both functions, a developer can use the `super` macro:
 
       defmodule MyModule do
@@ -463,11 +462,10 @@ defmodule Elixir::Builtin do
         end
       end
 
-  `super` will automatically be replaced by a call to the forwarded
-  module + function.
+  `super` will automatically be replaced by a call to the callback function.
 
-  Calling super without arguments implicitly passes the arguments
-  received to the forwarded function:
+  Calling `super` without arguments implicitly passes the received arguments
+  to the callback function:
 
       defmodule MyModule do
         use MyLibrary
@@ -482,8 +480,8 @@ defmodule Elixir::Builtin do
 
   It may happen that two different modules are defining a forwarding
   to the same function as a mechanism to decorate behavior. In this case,
-  calling super should trigger all forwarded functions and not the immediate
-  parent. Consider the `MyLibrary` example above:
+  calling super should trigger all callback functions and not the immediate
+  parent callback. Consider the `MyLibrary` example above:
 
       defmodule MyLibrary do
         defmacro __using__(module, _) do
@@ -497,7 +495,7 @@ defmodule Elixir::Builtin do
         end
       end
 
-  Now, let's assume we have a new module that is intended to decorate
+  Now let's assume we have a new module that is intended to decorate
   the handle failure to add logging:
 
       defmodule MyLibrary::Logging do
@@ -520,13 +518,13 @@ defmodule Elixir::Builtin do
         use MyLibrary::Logging
       end
 
-  The exaple above is bad because `MyLibrary::Logging` is actually
-  hardcoding a call to `MyLibrary.handle_failure`, ignoring the fact
+  The example above is bad because `MyLibrary::Logging` is actually
+  hardcoding a call to `MyLibrary.handle_failure` ignoring the fact
   that other forwardings could be made between `MyLibrary` and itself.
   For this reason we have the `callbacks` arguments.
 
   The callbacks argument tell the forwarded function which is the parent
-  module to invoke. The proper way to rewrite handle_failure for logging
+  module to invoke. The proper way to rewrite `handle_failure` for logging
   would be as follow:
 
       def handle_failure(module, [h|t], arg) do
@@ -534,12 +532,12 @@ defmodule Elixir::Builtin do
         h.handle_failure(module, t, arg)
       end
 
-  Since this pattern repeats many times, Elixir provides a defforwarded
-  macro that allows developers to write forwarded functions without worrying
-  about callbacks and with proper super semantics. Using defforwarded,
+  Since this pattern repeats many times, Elixir provides a `defcallback`
+  macro that allows developers to write callback functions without worrying
+  about callbacks and with proper super semantics. Using `defcallback`
   our `MyLibrary::Logging.handle_failure` could be rewritten as:
 
-      defforwarded handle_failure(arg) do
+      defcallback handle_failure(arg) do
         IO.puts :standard_error, "Error: #{inspect arg} on #{__TARGET__}"
         super
       end
@@ -547,10 +545,9 @@ defmodule Elixir::Builtin do
   Notice that now we don't need to explicitly receive the module and
   callbacks as arguments. Elixir will automatically wrap it for you
   and make the target module available under the variable `__TARGET__`.
-  You can also implicitly invoke the callbacks by calling super.
+  You can also implicitly invoke the callbacks by calling `super`.
 
-  In general, it is recommended to use defforwarded to define
-  forwarded functions.
+  In general, it is recommended to use defcallback to define callbacks.
 
   ## Defining private forwardings
 
@@ -572,7 +569,7 @@ defmodule Elixir::Builtin do
   Defines a function to be forwarded to with defforward.
   See defforward/0 for more information.
   """
-  defmacro defforwarded(signature, contents)
+  defmacro defcallback(signature, contents)
 
   @doc """
   `use` is a simple mechanism for extending the current module with the
