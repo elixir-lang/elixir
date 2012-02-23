@@ -400,14 +400,15 @@ defmodule Elixir::Builtin do
           end
         end
 
-        # Default behavior for handling failure. The forwarded function
-        # always receive the target module as first argument.
-        def handle_failure(_module, arg)
+        # Default behavior for handling failure.
+        # The forwarded function always receive the target
+        # module and a set of callbacks as extra arguments.
+        def handle_failure(_module, _callbacks, arg) do
           raise inspect(arg)
         end
       end
 
-  In this case, we define `MyLibrary.handle_failure/2` as the **forwarded**
+  In this case, we call `MyLibrary.handle_failure/3` as the **forwarded**
   function. Now, a module using `MyLibrary` can either use the default
   implementation for failure:
 
@@ -429,14 +430,15 @@ defmodule Elixir::Builtin do
 
   ## defforward x defdelegate x import
 
-  `defforward` is mainly a callback mechanism used by library developers
-  to provide a default behavior for user code. Since the default function
-  receives the target module as argument, the default function is usually
-  created with the defforward mechanism in mind.
+  `defforward` is a callback mechanism used by library developers to
+  provide a default behavior for user code. Since the default function
+  receives the target module and some callbacks as argument, the default
+  function is usually created with the defforward mechanism in mind.
 
   `defdelegate` however is simply a public API concern. For example, a
-  developer providing his own helpers for handling lists, called `MyList`
-  may desire to delegate few functions to the original `List` module:
+  developer providing his own helpers for handling lists called `MyList`
+  may desire to delegate few functions to the original `List` module for
+  convenience:
 
       defmodule MyList do
         defdelegate [reverse: 1], to: List
@@ -463,6 +465,89 @@ defmodule Elixir::Builtin do
 
   `super` will automatically be replaced by a call to the forwarded
   module + function.
+
+  Calling super without arguments implicitly passes the arguments
+  received to the forwarded function:
+
+      defmodule MyModule do
+        use MyLibrary
+
+        def handle_failure(arg) do
+          IO.puts :standard_error, "Error: #{inspect arg}"
+          super
+        end
+      end
+
+  ## Forward chains
+
+  It may happen that two different modules are defining a forwarding
+  to the same function as a mechanism to decorate behavior. In this case,
+  calling super should trigger all forwarded functions and not the immediate
+  parent. Consider the `MyLibrary` example above:
+
+      defmodule MyLibrary do
+        defmacro __using__(module, _) do
+          quote do
+            defforward [handle_failure: 1], to: MyLibrary
+          end
+        end
+
+        def handle_failure(_module, _callbacks, arg) do
+          raise inspect(arg)
+        end
+      end
+
+  Now, let's assume we have a new module that is intended to decorate
+  the handle failure to add logging:
+
+      defmodule MyLibrary::Logging do
+        defmacro __using__(module, _) do
+          quote do
+            defforward [handle_failure: 1], to: MyLibrary::Logging
+          end
+        end
+
+        def handle_failure(module, callbacks, arg) do
+          IO.puts :standard_error, "Error: #{inspect arg}"
+          MyLibrary.handle_failure(module, callbacks, arg)
+        end
+      end
+
+  And our module can now use both of them:
+
+      defmodule MyModule do
+        use MyLibrary
+        use MyLibrary::Logging
+      end
+
+  The exaple above is bad because `MyLibrary::Logging` is actually
+  hardcoding a call to `MyLibrary.handle_failure`, ignoring the fact
+  that other forwardings could be made between `MyLibrary` and itself.
+  For this reason we have the `callbacks` arguments.
+
+  The callbacks arguments tell the forwarded function which is the parent
+  module to invoke. The proper way to rewrite handle_failure for logging
+  would be as follow:
+
+      def handle_failure(module, [h|t], arg) do
+        IO.puts :standard_error, "Error: #{inspect arg}"
+        h.handle_failure(module, t, arg)
+      end
+
+  Since this pattern repeats many times, Elixir provided a defforwarded
+  macro that allows developers to write forwarded functions without worrying
+  about callbacks and with proper super semantics. Using defforwarded,
+  our `MyLibrary::Logging.handle_failure` could be rewritten as:
+
+      defforwarded handle_failure(arg) do
+        IO.puts :standard_error, "Error: #{inspect arg} on #{__TARGET__}"
+        super
+      end
+
+  Notice that now we don't need to explicitly receive the module and
+  callbacks as arguments. Elixir will automatically wrap it for you
+  and make the module available under the variable `__TARGET__`. You
+  can also implicitly invoke the callbacks by calling super.
 
   ## Defining private forwardings
 

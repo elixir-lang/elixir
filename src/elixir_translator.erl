@@ -336,7 +336,7 @@ translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) ->
       syntax_error(Line, Filename, "super must be called with the same number of arguments as the current function")
   end,
 
-  { Super, Callbacks } = elixir_module:super(Line, Module, Function, FS),
+  [Super|Callbacks] = elixir_module:super(Line, Module, Function, FS),
   { List, LS } = elixir_tree_helpers:build_list(fun translate_each/2, Callbacks, Line, FS),
   FArgs = [ { atom, Line, Module }, List | Vars ],
   { ?ELIXIR_WRAP_CALL(Line, Super, Name, FArgs), LS };

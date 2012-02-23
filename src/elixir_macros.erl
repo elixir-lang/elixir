@@ -136,6 +136,10 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
   { _, RS } = translate_each({ require, Line, [Ref, [{as,As},{raise,false}]] }, NS),
   { elixir_module:translate(Line, TRef, Block, S), RS };
 
+
+translate_macro({defforwarded, Line, Args}, S) when is_list(Args), length(Args) >= 2 orelse length(Args) =< 4 ->
+  translate_macro({def, Line, Args}, S#elixir_scope{forwarded=true});
+
 translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   translate_macro({Kind, Line, [Call, skip_definition]}, S);
 

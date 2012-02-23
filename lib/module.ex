@@ -256,7 +256,7 @@ defmodule Module do
     assert_not_compiled!(:add_forwarding, module)
 
     target = Orddict.get options, :to
-    via    = Orddict.get options, :via, :def
+    via    = Orddict.get options, :via
 
     case target do
     match: nil
@@ -268,10 +268,10 @@ defmodule Module do
     table = data_table_for(module)
     old   = ETS.lookup_element(table, :forwardings, 2)
 
-    info  = { via, target }
+    info  = { via || :def, [target] }
     new   = Orddict.from_enum(pairs, fn(x) -> {x, info} end)
-    final = Orddict.merge old, new, fn({ name, arity }, { _, old_target }, _current) ->
-      raise ArgumentError, message: "forwarding to #{name}/#{arity} already defined by #{inspect(old_target)}"
+    final = Orddict.merge old, new, fn(_, { old_via, old_target }, { _, _ }) ->
+      { via || old_via, [target|old_target] }
     end
 
     ETS.insert(table, { :forwardings,  final })
@@ -381,13 +381,13 @@ defmodule Module do
 
   ## Helpers
 
-  defp contents_for_compile_forwarding { name, arity }, { via, target } do
+  defp contents_for_compile_forwarding { name, arity }, { via, [target|callbacks] } do
     args = lc i in List.seq(1, arity) do
       { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
     end
 
     invoke = quote do
-      apply unquote(target), unquote(name), [__MODULE__, [], unquote_splicing(args)]
+      apply unquote(target), unquote(name), [__MODULE__, unquote(callbacks), unquote_splicing(args)]
     end
 
     quote do

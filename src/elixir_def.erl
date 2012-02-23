@@ -73,14 +73,21 @@ store_definition(Kind, Line, Module, Name, Args, _RawGuards, skip_definition, Ra
   S = elixir_variables:deserialize_scope(RawS),
   compile_docs(Kind, Line, Module, Name, length(Args), S);
 
-store_definition(Kind, Line, Module, Name, Args, RawGuards, KV, RawS) ->
-  case KV of
-    [{do, Expr}] -> [];
-    _ -> Expr = { 'try', Line, [KV]}
+store_definition(Kind, Line, Module, Name, RawArgs, RawGuards, RawExpr, RawS) ->
+  S = elixir_variables:deserialize_scope(RawS),
+
+  Args = case S#elixir_scope.forwarded of
+    true  -> [{ '__TARGET__', Line, nil }, { '__CALLBACKS__', Line, nil } | RawArgs];
+    false -> RawArgs
   end,
 
   Guards = elixir_clauses:extract_guard_clauses(RawGuards),
-  S = elixir_variables:deserialize_scope(RawS),
+
+  case RawExpr of
+    [{ do, Expr }] -> [];
+    _ -> Expr = { 'try', Line, [RawExpr] }
+  end,
+
   { Function, Defaults } = translate_definition(Line, Module, Name, Args, Guards, Expr, S),
 
   Filename      = S#elixir_scope.filename,
