@@ -19,7 +19,7 @@ super(Line, Module, Function, S) ->
   Table = data_table(Module),
   Forwardings = ets:lookup_element(Table, forwardings, 2),
   case orddict:find(Function, Forwardings) of
-    { ok, { _Via, To } } -> To;
+    { ok, { _Via, To } } -> { To, [] };
     error ->
       Defined = [element(1, X) || X <- Forwardings],
       elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { no_super, Function, Module, Defined })

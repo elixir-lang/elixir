@@ -14,19 +14,19 @@ defmodule Kernel::ForwardingLibrary do
     end
   end
 
-  def sample(module, arg) do
+  def sample(module, _, arg) do
     { module, arg }
   end
 
-  def with_super(module, arg) do
+  def with_super(module, _, arg) do
     { module, arg }
   end
 
-  def argless_super(module) do
+  def argless_super(module, _) do
     module
   end
 
-  def implicit_super(module, arg) do
+  def implicit_super(module, _, arg) do
     { module, arg }
   end
 end

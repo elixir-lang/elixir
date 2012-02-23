@@ -387,7 +387,7 @@ defmodule Module do
     end
 
     invoke = quote do
-      apply unquote(target), unquote(name), [__MODULE__, unquote_splicing(args)]
+      apply unquote(target), unquote(name), [__MODULE__, [], unquote_splicing(args)]
     end
 
     quote do
