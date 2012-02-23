@@ -3,10 +3,14 @@ Code.require_file "../../test_helper", __FILE__
 defmodule Kernel::ForwardingLibrary do
   defmacro __using__(_, _) do
     quote do
-      defforward [sample: 1], to: unquote(__MODULE__)
-      defforward [final: 0], to: unquote(__MODULE__)
-      defforward [other: 1], to: unquote(__MODULE__), via: :defp
-      def pointer(arg), do: other(arg)
+      defforward [sample: 1],     to: unquote(__MODULE__)
+      defforward [with_super: 1], to: unquote(__MODULE__), via: :defp
+
+      defforward [implicit_super: 1], to: unquote(__MODULE__)
+      defforward [argless_super: 0],  to: unquote(__MODULE__)
+      defforward [nested_super: 1],   to: unquote(__MODULE__)
+
+      def pointer(arg), do: with_super(arg)
     end
   end
 
@@ -14,25 +18,16 @@ defmodule Kernel::ForwardingLibrary do
     { module, arg }
   end
 
-  def other(module, arg) do
+  def with_super(module, arg) do
     { module, arg }
   end
 
-  def final(module) do
-    { 1, module }
-  end
-end
-
-defmodule Kernel::XForwardingLibrary do
-  defmacro __using__(_, _) do
-    quote do
-      Module.remove_forwarding __MODULE__, [final: 0]
-      defforward [final: 0], to: unquote(__MODULE__)
-    end
+  def argless_super(module) do
+    module
   end
 
-  def final(module) do
-    { 2, module }
+  def implicit_super(module, arg) do
+    { module, arg }
   end
 end
 
@@ -43,14 +38,21 @@ defmodule Kernel::ForwardedExample do
     arg
   end
 
-  def other(arg) do
-    { super(arg), arg }
+  def with_super(arg) do
+    { super(arg), arg + 1 }
+  end
+
+  def argless_super do
+    { :ok, super }
+  end
+
+  def implicit_super({ x, y }) do
+    { :ok, super, x + y }
   end
 end
 
 defmodule Kernel::ForwardingExample do
   use Kernel::ForwardingLibrary
-  use Kernel::XForwardingLibrary
 end
 
 defmodule Kernel::ForwardingTest do
@@ -60,16 +62,8 @@ defmodule Kernel::ForwardingTest do
     assert_equal 1, Kernel::ForwardedExample.sample(1)
   end
 
-  test "defforward with super invokes the forwarded function" do
-    assert_equal { { Kernel::ForwardedExample, 1 }, 1 }, Kernel::ForwardedExample.other(1)
-  end
-
   test "defforward defines a function when one is not defined" do
     assert_equal { Kernel::ForwardingExample, 1 }, Kernel::ForwardingExample.sample(1)
-  end
-
-  test "defforward can be overriden in a later module" do
-    assert_equal { 2, Kernel::ForwardingExample }, Kernel::ForwardingExample.final
   end
 
   test "defforward also defines private functions" do
@@ -80,6 +74,19 @@ defmodule Kernel::ForwardingTest do
       flunk "expected function to be private"
     rescue: UndefinedFunctionError
     end
+  end
+
+  test "defforward with super invokes the forwarded function" do
+    assert_equal { { Kernel::ForwardedExample, 1 }, 2 }, Kernel::ForwardedExample.with_super(1)
+  end
+
+  test "defforward with super without arguments also invokes the forwarded function" do
+    assert_equal { :ok, Kernel::ForwardedExample }, Kernel::ForwardedExample.argless_super
+  end
+
+  test "defforward with anonymous super automtically forwards arguments" do
+    assert_equal { :ok, { Kernel::ForwardedExample, { 1, 2 } }, 3 },
+      Kernel::ForwardedExample.implicit_super({ 1, 2 })
   end
 
   test "invalid super call" do

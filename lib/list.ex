@@ -125,12 +125,8 @@ defmodule List do
   #     List.seq(1, 3) #=> [1,2,3]
   #     List.seq(1, 1) #=> [1]
   #
-  def seq(first, last) when is_integer(first) and is_integer(last) and first <= last do
+  def seq(first, last) when is_integer(first) and is_integer(last) and first <= last + 1 do
     do_seq(last - first + 1, last, [])
-  end
-
-  def seq(first, last) when is_integer(first) and is_integer(last) do
-    []
   end
 
   # Returns a list without duplicated items.

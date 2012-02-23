@@ -311,7 +311,7 @@ translate_each({recur, Line, Args}, S) when is_list(Args) ->
 
 %% Super
 
-translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) when is_list(Args) ->
+translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) ->
   Module = case S#elixir_scope.module of
     [] -> syntax_error(Line, Filename, "cannot invoke super outside module");
     M  -> M
@@ -324,13 +324,21 @@ translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) when
 
   { Name, Arity } = Function,
 
-  case length(Args) == Arity of
-    true  -> [];
-    false -> syntax_error(Line, Filename, "super must be called with the same number of arguments as the current function")
+  { Vars, FS } = if
+    is_atom(Args) ->
+      {
+        [ { var, Line, ?ELIXIR_ATOM_CONCAT(['_EXS', X]) } || X <- lists:seq(1, Arity) ],
+        S#elixir_scope{super=true}
+      };
+    length(Args) == Arity ->
+      translate_args(Args, S);
+    true ->
+      syntax_error(Line, Filename, "super must be called with the same number of arguments as the current function")
   end,
 
-  Super = elixir_module:super(Line, Module, Function, S),
-  translate_each({ { '.', Line, [Super, Name] }, Line, [Module|Args] }, S);
+  FArgs = [ { atom, Line, Module } | Vars ],
+  Super = elixir_module:super(Line, Module, Function, FS),
+  { ?ELIXIR_WRAP_CALL(Line, Super, Name, FArgs), FS };
 
 %% Comprehensions
 

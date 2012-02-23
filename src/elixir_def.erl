@@ -128,11 +128,25 @@ translate_definition(Line, Module, Name, Args, Guards, Expr, S) ->
   ClauseScope = S#elixir_scope{function={Name,Arity}, module=Module},
   { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, Args, ClauseScope),
 
-  { TClause, _ } = elixir_clauses:assigns_block(Line,
+  { TClause, FS } = elixir_clauses:assigns_block(Line,
     fun elixir_translator:translate/2, Unpacked, [Expr], Guards, ClauseScope),
 
-  Function = { function, Line, Name, Arity, [TClause] },
+  FClause = case FS#elixir_scope.super of
+    true  ->
+      ErlArgs = element(3, TClause),
+      { FArgs, _ } = lists:mapfoldl(fun(X, Acc) -> assign_super(Line, X, Acc) end, 1, ErlArgs),
+      setelement(3, TClause, FArgs);
+    false -> TClause
+  end,
+
+  Function = { function, Line, Name, Arity, [FClause] },
   { Function, Defaults }.
+
+% Assign super variables to each of the arguments for anonymous forwarding.
+assign_super(Line, X, Acc) ->
+  Name  = ?ELIXIR_ATOM_CONCAT(['_EXS', Acc]),
+  Match = { match, Line, X, { var, Line, Name } },
+  { Match, Acc + 1 }.
 
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,

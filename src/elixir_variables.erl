@@ -87,7 +87,10 @@ umergev(S1, S2) ->
 % with the counter values from the first one.
 
 umergec(S1, S2) ->
-  S1#elixir_scope{counter=S2#elixir_scope.counter}.
+  S1#elixir_scope{
+    counter=S2#elixir_scope.counter,
+    super=S1#elixir_scope.super or S2#elixir_scope.super
+  }.
 
 % Merge variables trying to find the most recently created.
 
