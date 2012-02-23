@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/4, compile/4, super/4,
+-export([translate/4, compile/4, forwardings/1,
    format_error/1, binding_and_scope_for_eval/4]).
 -include("elixir.hrl").
 
@@ -15,15 +15,8 @@ binding_and_scope_for_eval(_Line, _Filename, Module, Binding, S) ->
 binding_for_eval(Module, Binding) -> [{'_EXMODULE',Module}|Binding].
 scope_for_eval(Module, S) -> S#elixir_scope{module=Module}.
 
-super(Line, Module, Function, S) ->
-  Table = data_table(Module),
-  Forwardings = ets:lookup_element(Table, forwardings, 2),
-  case orddict:find(Function, Forwardings) of
-    { ok, { _Via, To } } -> To;
-    error ->
-      Defined = [element(1, X) || X <- Forwardings],
-      elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { no_super, Function, Module, Defined })
-  end.
+forwardings(Module) ->
+  ets:lookup_element(data_table(Module), forwardings, 2).
 
 %% TABLE METHODS
 

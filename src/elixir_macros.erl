@@ -4,7 +4,7 @@
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
 -import(elixir_variables, [umergec/2, umergev/2]).
--import(elixir_errors, [syntax_error/3, syntax_error/4]).
+-import(elixir_errors, [syntax_error/3, syntax_error/4, assert_no_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
 
 %% Operators
@@ -136,9 +136,9 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
   { _, RS } = translate_each({ require, Line, [Ref, [{as,As},{raise,false}]] }, NS),
   { elixir_module:translate(Line, TRef, Block, S), RS };
 
-
 translate_macro({defforwarded, Line, Args}, S) when is_list(Args), length(Args) >= 2 orelse length(Args) =< 4 ->
-  translate_macro({def, Line, Args}, S#elixir_scope{forwarded=true});
+  { TE, TS } = translate_macro({def, Line, Args}, S#elixir_scope{forwarded=true}),
+  { TE, TS#elixir_scope{forwarded=false} };
 
 translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   translate_macro({Kind, Line, [Call, skip_definition]}, S);
@@ -202,13 +202,3 @@ is_reserved_data(_)         -> false.
 % Unpack a list of expressions from a block.
 unpack([{ '__BLOCK__', _, Exprs }]) -> Exprs;
 unpack(Exprs)                       -> Exprs.
-
-%% Assertions
-
-assert_no_function_scope(_Line, _Kind, #elixir_scope{function=[]}) -> [];
-assert_no_function_scope(Line, Kind, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "cannot invoke ~s inside a function", [Kind]).
-
-assert_module_scope(Line, Kind, #elixir_scope{module=[],filename=Filename}) ->
-  syntax_error(Line, Filename, "cannot invoke ~s outside module", [Kind]);
-assert_module_scope(_Line, _Kind, _S) -> [].

@@ -29,10 +29,28 @@ defmodule Kernel::ForwardingLibrary do
   def implicit_super(module, _, arg) do
     { module, arg }
   end
+
+  defforwarded nested_super(arg) do
+    { super?, __TARGET__, arg }
+  end
 end
+
+defmodule Kernel::NestedLibrary do
+  defmacro __using__(_, _) do
+    quote do
+      defforward [nested_super: 1], to: unquote(__MODULE__)
+    end
+  end
+
+  defforwarded nested_super(arg) do
+    { super, super?, arg + 1 }
+  end
+end
+
 
 defmodule Kernel::ForwardedExample do
   use Kernel::ForwardingLibrary
+  use Kernel::NestedLibrary
 
   def sample(arg) do
     arg
@@ -43,16 +61,24 @@ defmodule Kernel::ForwardedExample do
   end
 
   def argless_super do
-    { :ok, super }
+    { :ok, super, super? }
   end
 
   def implicit_super({ x, y }) do
     { :ok, super, x + y }
   end
+
+  def nested_super(arg) do
+    { super, arg + 2 }
+  end
 end
 
 defmodule Kernel::ForwardingExample do
   use Kernel::ForwardingLibrary
+
+  def other do
+    super?
+  end
 end
 
 defmodule Kernel::ForwardingTest do
@@ -81,12 +107,27 @@ defmodule Kernel::ForwardingTest do
   end
 
   test "defforward with super without arguments also invokes the forwarded function" do
-    assert_equal { :ok, Kernel::ForwardedExample }, Kernel::ForwardedExample.argless_super
+    assert_equal { :ok, Kernel::ForwardedExample, true }, Kernel::ForwardedExample.argless_super
   end
 
-  test "defforward with anonymous super automtically forwards arguments" do
+  test "defforward with anonymous super automatically forwards arguments" do
     assert_equal { :ok, { Kernel::ForwardedExample, { 1, 2 } }, 3 },
       Kernel::ForwardedExample.implicit_super({ 1, 2 })
+  end
+
+  test "defforward with implicit nested super and explicit forwarding" do
+    assert_equal {
+      {
+        { false, ForwardedExample, 0 },
+        true,
+        1
+      },
+      2
+    }, Kernel::ForwardedExample.nested_super(0)
+  end
+
+  test "super? checks if super is available" do
+    assert_equal false, Kernel::ForwardingExample.other
   end
 
   test "invalid super call" do

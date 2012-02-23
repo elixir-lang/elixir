@@ -525,7 +525,7 @@ defmodule Elixir::Builtin do
   that other forwardings could be made between `MyLibrary` and itself.
   For this reason we have the `callbacks` arguments.
 
-  The callbacks arguments tell the forwarded function which is the parent
+  The callbacks argument tell the forwarded function which is the parent
   module to invoke. The proper way to rewrite handle_failure for logging
   would be as follow:
 
@@ -534,7 +534,7 @@ defmodule Elixir::Builtin do
         h.handle_failure(module, t, arg)
       end
 
-  Since this pattern repeats many times, Elixir provided a defforwarded
+  Since this pattern repeats many times, Elixir provides a defforwarded
   macro that allows developers to write forwarded functions without worrying
   about callbacks and with proper super semantics. Using defforwarded,
   our `MyLibrary::Logging.handle_failure` could be rewritten as:
@@ -546,8 +546,11 @@ defmodule Elixir::Builtin do
 
   Notice that now we don't need to explicitly receive the module and
   callbacks as arguments. Elixir will automatically wrap it for you
-  and make the module available under the variable `__TARGET__`. You
-  can also implicitly invoke the callbacks by calling super.
+  and make the target module available under the variable `__TARGET__`.
+  You can also implicitly invoke the callbacks by calling super.
+
+  In general, it is recommended to use defforwarded to define
+  forwarded functions.
 
   ## Defining private forwardings
 
@@ -564,6 +567,12 @@ defmodule Elixir::Builtin do
       Module.add_forwarding __MODULE__, unquote(tuples), unquote(options)
     end
   end
+
+  @doc """
+  Defines a function to be forwarded to with defforward.
+  See defforward/0 for more information.
+  """
+  defmacro defforwarded(signature, contents)
 
   @doc """
   `use` is a simple mechanism for extending the current module with the

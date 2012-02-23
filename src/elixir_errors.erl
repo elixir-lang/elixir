@@ -2,7 +2,8 @@
 % This is not exposed in the Elixir language.
 -module(elixir_errors).
 -export([syntax_error/3, syntax_error/4,
-  form_error/4, parse_error/4,
+  form_error/4, parse_error/4, assert_module_scope/3,
+  assert_no_function_scope/3, assert_function_scope/3,
   handle_file_warning/2, handle_file_error/2]).
 -include("elixir.hrl").
 
@@ -55,6 +56,20 @@ handle_file_warning(Filename, {Line,Module,Desc}) ->
 
 handle_file_error(Filename, {Line,Module,Desc}) ->
   form_error(Line, Filename, Module, Desc).
+
+%% Assertions
+
+assert_no_function_scope(_Line, _Kind, #elixir_scope{function=[]}) -> [];
+assert_no_function_scope(Line, Kind, S) ->
+  syntax_error(Line, S#elixir_scope.filename, "cannot invoke ~s inside a function", [Kind]).
+
+assert_module_scope(Line, Kind, #elixir_scope{module=[],filename=Filename}) ->
+  syntax_error(Line, Filename, "cannot invoke ~s outside module", [Kind]);
+assert_module_scope(_Line, _Kind, #elixir_scope{module=Module}) -> Module.
+
+assert_function_scope(Line, Kind, #elixir_scope{function=[],filename=Filename}) ->
+  syntax_error(Line, Filename, "cannot invoke ~s outside function", [Kind]);
+assert_function_scope(_Line, _Kind, #elixir_scope{function=Function}) -> Function.
 
 %% Helpers
 

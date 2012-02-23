@@ -141,7 +141,7 @@ translate_definition(Line, Module, Name, Args, Guards, Expr, S) ->
   FClause = case FS#elixir_scope.super of
     true  ->
       ErlArgs = element(3, TClause),
-      { FArgs, _ } = lists:mapfoldl(fun(X, Acc) -> assign_super(Line, X, Acc) end, 1, ErlArgs),
+      { FArgs, _ } = lists:mapfoldl(fun(X, Acc) -> assign_super(Line, X, Acc, S) end, 1, ErlArgs),
       setelement(3, TClause, FArgs);
     false -> TClause
   end,
@@ -149,8 +149,15 @@ translate_definition(Line, Module, Name, Args, Guards, Expr, S) ->
   Function = { function, Line, Name, Arity, [FClause] },
   { Function, Defaults }.
 
-% Assign super variables to each of the arguments for anonymous forwarding.
-assign_super(Line, X, Acc) ->
+%% Assign super variables to each of the arguments for anonymous forwarding.
+%% Notice we skip the assignment if we are inside a forwarded function and
+%% the argument is the target or the callback variable.
+
+assign_super(_, { var, _, Name } = Var, Acc, #elixir_scope{forwarded=true}) when
+    Name == '__TARGET__'; Name == '__CALLBACKS__' ->
+  { Var, Acc };
+
+assign_super(Line, X, Acc, _) ->
   Name  = ?ELIXIR_ATOM_CONCAT(['_EXS', Acc]),
   Match = { match, Line, X, { var, Line, Name } },
   { Match, Acc + 1 }.
