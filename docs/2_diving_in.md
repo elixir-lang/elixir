@@ -25,7 +25,7 @@ On the other hand, updating a tuple is expensive as it needs to duplicate the tu
 
 > Note: If you are an Erlang developer, you will notice that we used the `elem` and `setelem` functions instead of Erlang's `element` and `setelement`. The reason for this choice is that Elixir attempts to normalize Erlang API's to always receive the `subject` of the function as the first argument.
 
-Since updating a tuple is expensive, when we want to iterate, add or remove elements, we use lists. Since lists are linked, it means accessing the first element of the list is very cheap, however, accessing the n-th element will require the algorithm to pass to n-1 nodes before reaching the n-th. We can access the `head` of the list as follow:
+Since updating a tuple is expensive, when we want to iterate, add or remove elements, we use lists. Since lists are linked, it means accessing the first element of the list is very cheap, however, accessing the n-th element will require the algorithm to pass through n-1 nodes before reaching the n-th. We can access the `head` of the list as follows:
 
     iex> [head | tail] = [1,2,3]
     [1,2,3]
@@ -63,7 +63,7 @@ In fact, both double-quoted and single-quoted representations are just a shorter
     iex> [?a, ?b, ?c]
     'abc'
 
-In such cases, Elixir is detects all characters in the list and in the binary are printable and returns the quoted representation. However, adding a non-printable character forces them to be printed differently:
+In such cases, Elixir detects that all characters in the list and in the binary are printable and returns the quoted representation. However, adding a non-printable character forces them to be printed differently:
 
     iex> <<?a, ?b, ?c, 1>>
     <<97,98,99,1>>
@@ -71,15 +71,15 @@ In such cases, Elixir is detects all characters in the list and in the binary ar
     iex> [?a, ?b, ?c, 1]
     [97,98,99,1]
 
-Since lists are implemented as linked lists, it means a string represented as list usually takes a lot of space in memory (in ASCII, it would be one byte for each character and another byte to point to the next character). For this reason, binary (double-quoted) strings is preferred unless you want to explicitly iterate over the string as a list.
+Since lists are implemented as linked lists, it means a string represented as list usually takes a lot of space in memory (in ASCII, it would be one byte for each character and another byte to point to the next character). For this reason, binary (double-quoted) strings are preferred unless you want to explicitly iterate over the string as a list.
 
-Currently Elixir does not ship with any library for doing string manipulation, but this will be amended soon.
+Currently, Elixir does not ship with any library for doing string manipulation, but this will be amended soon.
 
 ## 2.3 Calling Erlang functions
 
 Elixir's plans is to provide a small standard library responsible for handling most basic structures (lists, ordered dicts, strings and so forth) and IO. That said, complex applications will require the developer to use Erlang's libraries.
 
-Erlang ships with a group of libraries called OTP (Open Telecom Platform). Besides an standard library, OTP provides several facilities to build OTP applications with supervisors that are robust, distributed and fault-tolerant. Invoking those libraries from Elixir is quite straight-forward, for example, we can call the [function `flatten` from the module `lists`](www.erlang.org/doc/man/lists.html) as follow:
+Erlang ships with a group of libraries called OTP (Open Telecom Platform). Besides an standard library, OTP provides several facilities to build OTP applications with supervisors that are robust, distributed and fault-tolerant. Invoking those libraries from Elixir is quite straight-forward, for example, we can call the [function `flatten` from the module `lists`](http://www.erlang.org/doc/man/lists.html#flatten-1) as follows:
 
     iex> Erlang.lists.flatten [1,[2],3]
     [1,2,3]
@@ -141,7 +141,7 @@ In case you want to pattern match against the value of a variable, you can use t
     iex> x = 2
     2
 
-In Elixir, it is a common practice to assign a variable to underscore `_` if we don't intend to use it. For example, if the only the head of the list matters to us, we can assign the tail to underscore:
+In Elixir, it is a common practice to assign a variable to underscore `_` if we don't intend to use it. For example, if only the head of the list matters to us, we can assign the tail to underscore:
 
     iex> [h | _] = [1,2,3]
     [1, 2, 3]
@@ -160,7 +160,7 @@ Although pattern matching allow powerful constructs, its usage is limited. For i
 
 ## 2.5 Key-values
 
-One of the first control flow constructs we usually learn is the conditional `if`. In Elixir, we can write `if` in those two equivalent ways:
+One of the first control flow constructs we usually learn is the conditional `if`. In Elixir, we can write `if` in these two equivalent ways:
 
     iex> if true, do: 1 + 2
     3
@@ -188,7 +188,7 @@ Going back to the `if` example, we invoked it passing a condition (`true`) and a
     iex> if true, do: 1 + 2
     3
 
-Since the key-value argument is the last argument, the brackets are optional. Those are all equivalent:
+Since the key-value argument is the last argument, the brackets are optional. These are all equivalent:
 
     iex> if true, do: 1 + 2
     3
@@ -216,7 +216,7 @@ Internally, this is converted to the same key-value arguments as above. This fea
       10 + 3
     end
 
-Those key-value blocks are similar to Ruby blocks. Parenthesis can be added as follow:
+Key-value blocks are similar to Ruby blocks. Parenthesis can be added as follows:
 
     if(false) do
       1 + 2
@@ -258,7 +258,7 @@ In this section we are going to describe Elixir main control structures.
 
 ### 2.6.1 If
 
-Refreshing from the section above, all those calls are equivalent:
+Refreshing from the section above, all these calls are equivalent:
 
     if false, do: 1 + 2, else: 10 + 3
 
@@ -349,7 +349,7 @@ Each match clause also supports special conditions to be given via guards:
       IO.puts "No match"
     end
 
-In the example above, the second clause will only match when x is positive. The Erlang VM machine only allows few expressions as guards, they are:
+In the example above, the second clause will only match when x is positive. The Erlang VM only allows few expressions as guards, they are:
 
 * comparison operators (`==`, `!=`, `===`, `!===`, `>`, `<`, `<=`, `>=`);
 * strict boolean operators (`and`, `or`, `not`). Note that `||` and `&&` are not allowed;
@@ -393,7 +393,7 @@ In the example above, the second clause will only match when x is positive. The 
     trunc(Number)
     tuple_size(Tuple)
 
-Many independent guards clauses can also be given at the same time. For example, consider a function that checks if the first element of a tuple or a list is zero. It could be written as:
+Many independent guard clauses can also be given at the same time. For example, consider a function that checks if the first element of a tuple or a list is zero. It could be written as:
 
     def first_is_zero?(tuple_or_list) when
       elem(tuple_or_list, 1) == 0 or hd(tuple_or_list) == 0 do
@@ -450,7 +450,7 @@ In the example above, we are mutating the array which is not possible in Elixir.
 
 In the example above, we pass  a list `[1,2,3]` and the initial value `0` as arguments to loop. The list `[1,2,3]` is then matched against `[h|t]` which assigns `h = 1` and `t = [2,3]` and 0 is assigned to `acc`.
 
-Then, we add the head of the list to the accumulator `h + acc` and call the loop again using the recur function, passing the tail of the list as argument. The tail will once again match the `[h|t]` until the list empty, matching the final clause which returns the final result of `6`. In other words, the loop is called 4 times until the list is empty and the recursion stops:
+Then, we add the head of the list to the accumulator `h + acc` and call the loop again using the `recur` function, passing the tail of the list as argument. The tail will once again match the `[h|t]` until the list is empty, matching the final clause which returns the final result of `6`. In other words, the loop is called 4 times until the list is empty and the recursion stops:
 
     loop [1,2,3], 0
     loop [2,3], 1
@@ -483,7 +483,7 @@ The next control-flow mechanism is `try/catch/after`:
     ** throw 13
         erl_eval:expr/3
 
-There is one particularity that applies to `try/catch/after` when compared to other control-flow expressions. The Erlang VM machine considers such clauses unsafe (since they may fail or not) and do not allow variables defined inside `try/catch/after` to be accessed from the outer scope:
+There is one particularity that applies to `try/catch/after` when compared to other control-flow expressions. The Erlang VM considers such clauses unsafe (since they may fail or not) and do not allow variables defined inside `try/catch/after` to be accessed from the outer scope:
 
     iex> try do
     ...>   new_var = 1
@@ -494,7 +494,7 @@ There is one particularity that applies to `try/catch/after` when compared to ot
     iex> new_var
     ** error :undef
 
-The common strategy then is to explicitly all arguments that are required after the `try`:
+The common strategy then is to make explicit all arguments that are required after the `try`:
 
     { x, y } = try do
       x = calculate_some_value()
@@ -543,7 +543,7 @@ Custom exceptions can be defined using the `defexception` macro. Check [the exce
 
 The last control-flow mechanism we are going to discuss is essential to Elixir's and Erlang's actor mechanism. In Elixir, every code run in processes that exchange messages between them. Those processes are not Operating System processes (they are actually quite light-weight) but called so since they do not share state with each other.
 
-In order to exchange messages, each process has a mailbox where the received messages are stored. The `receive` mechanism allows us to go throw this mailbox searching for a message that matches the given pattern. Here is an example that uses the arrow operator `<-` to send a message to the current process and then collects this message from this mailbox:
+In order to exchange messages, each process has a mailbox where the received messages are stored. The `receive` mechanism allows us to go through this mailbox searching for a message that matches the given pattern. Here is an example that uses the arrow operator `<-` to send a message to the current process and then collects this message from its mailbox:
 
     # Get the current process id
     iex> current_pid = self()
@@ -577,6 +577,6 @@ Elixir ships with many default functions automatically available in the current 
 
 Besides the functions provided by Elixir, most of the root functions from Erlang are also available. The function `length`, `is_list`, `is_number` and many others we discussed above comes from Erlang. [The full documented list is available on the OTP documentation page](http://www.erlang.org/doc/man/erlang.html).
 
-All those functions and control flow expressions are essential for building Elixir programs. The next chapter will then discuss how to organize our code into modules, so it can be easily re-used between different components.
+All those functions and control flow expressions are essential for building Elixir programs. The next chapter will discuss how to organize our code into modules, so it can be easily re-used between different components.
 
 [Chapter 1: Introduction](https://github.com/josevalim/elixir/blob/master/docs/1_introduction.md) | [Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 3: Modules](https://github.com/josevalim/elixir/blob/master/docs/3_modules.md)
