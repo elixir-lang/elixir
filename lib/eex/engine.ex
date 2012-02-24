@@ -5,9 +5,13 @@ defmodule EEx::Engine do
     end
   end
 
-  def handle_expr(buffer, _, expr) do
+  def handle_expr(buffer, '=', expr) do
     quote do
       unquote(buffer) <> to_binary(unquote(expr))
     end
+  end
+
+  def handle_expr(buffer, '', _) do
+    buffer
   end
 end

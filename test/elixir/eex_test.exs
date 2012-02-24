@@ -19,6 +19,14 @@ defmodule EExTest do
     assert_eval "foo ", "foo <% if false do %>bar<% end %>"
   end
 
+  test "compile with embedded do end and nested print expression" do
+    assert_eval "foo bar", "foo <% if true do %><%= :bar %><% end %>"
+  end
+
+  test "compile with embedded do end and nested expression" do
+    assert_eval "foo ", "foo <% if true do %><% 1 + 2 %><% end %>"
+  end
+
   defp assert_eval(expected, atual) do
     compiled = EEx.compile(atual)
     { result, _ } = Code.eval_quoted(compiled, [], __FILE__, __LINE__)

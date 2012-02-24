@@ -22,9 +22,9 @@ defmodule EEx::Compiler do
     generate_buffer(t, engine, buffer, scope)
   end
 
-  defp generate_buffer([{ :start_expr, mark, chars }|t], engine, buffer, scope) do
+  defp generate_buffer([{ :start_expr, _mark, chars }|t], engine, buffer, scope) do
     { contents, t } = generate_buffer(t, engine, "", [chars|scope])
-    buffer = engine.handle_expr(buffer, mark, contents)
+    buffer = engine.handle_expr(buffer, '=', contents)
     generate_buffer(t, engine, buffer, scope)
   end
 
