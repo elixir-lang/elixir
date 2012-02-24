@@ -1,6 +1,6 @@
 # 3 Modules
 
-In Elixir, you can group several functions into a module. In previous chapter, we have invoked for example functions from the module List:
+In Elixir, you can group several functions into a module. In the previous chapter, we have invoked for example functions from the module List:
 
     iex> List.flatten [1,[2],3]
     [1, 2, 3]
@@ -139,7 +139,7 @@ In the example above, we imported `Orddict.values` only for during that specific
 
 ### 3.4.2 require
 
-`require` is responsible to enforce a module is loaded and to setup references aliases for a given module. For instance, one can do:
+`require` is responsible to enforce that a module is loaded and to setup references aliases for a given module. For instance, one can do:
 
     defmodule Math do
       require MyOrddict, as: Orddict
@@ -206,7 +206,7 @@ After the module is compiled, the stored custom data can be accessed via `__info
 
 ## 3.6 Module nesting
 
-In Elixir, nesting a module inside the other does not affect the its name:
+In Elixir, nesting a module inside the other does not affect its name:
 
     defmodule Foo do
       defmodule Bar do
