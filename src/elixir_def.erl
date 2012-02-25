@@ -159,7 +159,14 @@ translate_definition(Line, Name, Args, Guards, Expr, S) ->
   { TClause, TS } = elixir_clauses:assigns_block(Line,
     fun elixir_translator:translate/2, Unpacked, [Expr], Guards, S),
 
-  Function = { function, Line, Name, Arity, [TClause] },
+  FClause = case TS#elixir_scope.name_args of
+    true  ->
+      FArgs = elixir_def_overridable:assign_args(Line, element(3, TClause), TS),
+      setelement(3, TClause, FArgs);
+    false -> TClause
+  end,
+
+  Function = { function, Line, Name, Arity, [FClause] },
   { Function, Defaults, TS }.
 
 % Unwrap the functions stored in the functions table.

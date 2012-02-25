@@ -26,6 +26,27 @@ defmodule Kernel::Overridable do
     { super, super?, 1 }
   end
 
+  @overridable true
+  def implicit_nested_super do
+    { super?, 1 }
+  end
+
+  @overridable true
+  def implicit_nested_super do
+    { super, super?, 0 }
+  end
+
+  @overridable true
+  def super_with_explicit_args(x, y) do
+    x + y
+  end
+
+  @overridable true
+  def super_with_implicit_args(x, y) do
+    x + y
+  end
+
+
   def without_super do
     :without_super
   end
@@ -41,12 +62,20 @@ defmodule Kernel::Overridable do
   def explicit_nested_super do
     { super, super?, 0 }
   end
+
+  def super_with_explicit_args(x, y) do
+    super x, y * 2
+  end
+
+  def super_with_implicit_args(x, y) do
+    x + y + super
+  end
 end
 
 defmodule Kernel::OverridableTest do
   use ExUnit::Case
 
-  test "overridable function is made concrete if no other is defined" do
+  test "overridable is made concrete if no other is defined" do
     assert_equal 1, Overridable.sample
   end
 
@@ -60,6 +89,18 @@ defmodule Kernel::OverridableTest do
 
   test "overridable overriden with nested super" do
     assert_equal { { { false, 2 }, true, 1 }, true, 0 }, Overridable.explicit_nested_super
+  end
+
+  test "overridable node overriden with nested super" do
+    assert_equal { { false, 1 }, true, 0 }, Overridable.implicit_nested_super
+  end
+
+  test "calling super with explicit args" do
+    assert_equal 5, Overridable.super_with_explicit_args(1, 2)
+  end
+
+  test "calling super with implicit args" do
+    assert_equal 6, Overridable.super_with_implicit_args(1, 2)
   end
 
   test "function without overridable returns false for super?" do

@@ -324,7 +324,7 @@ translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) ->
 
   { TArgs, TS } = if
     is_atom(Args) ->
-      { [], S };
+      elixir_def_overridable:retrieve_args(Line, Arity, S);
     length(Args) == Arity ->
       translate_args(Args, S);
     true ->

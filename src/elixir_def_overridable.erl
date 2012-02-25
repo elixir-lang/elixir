@@ -1,6 +1,7 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_def_overridable).
--export([define/3, store_pending/1, is_defined/2, name/2, store/3]).
+-export([define/3, store_pending/1, is_defined/2,
+  assign_args/3, retrieve_args/3, name/2, store/3]).
 -include("elixir.hrl").
 
 overridable(Module) ->
@@ -25,6 +26,27 @@ is_defined(Module, Tuple) ->
     { ok, [_|_] } -> true;
     _ -> false
   end.
+
+%% Retrieve args defined for the given arity.
+
+retrieve_args(Line, Arity, S) ->
+  {
+    [ { var, Line, super_arg(X) } || X <- lists:seq(1, Arity) ],
+    S#elixir_scope{name_args=true}
+  }.
+
+%% Assign pseudo variables to the given vars.
+
+assign_args(Line, Args, S) ->
+  { FArgs, _ } = lists:mapfoldl(fun(X, Acc) -> assign_args(Line, X, Acc, S) end, 1, Args),
+  FArgs.
+
+assign_args(Line, X, Acc, _) ->
+  Match = { match, Line, X, { var, Line, super_arg(Acc) } },
+  { Match, Acc + 1 }.
+
+super_arg(Counter) ->
+  ?ELIXIR_ATOM_CONCAT(['_EXS', Counter]).
 
 %% Gets the name based on the function and stored overridables
 
