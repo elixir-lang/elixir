@@ -85,8 +85,8 @@ build(Module) ->
   DataTable = data_table(Module),
   ets:new(DataTable, [set, named_table, private]),
   ets:insert(DataTable, { data, [] }),
-  ets:insert(DataTable, { abstract, [] }),
   ets:insert(DataTable, { attributes, [] }),
+  ets:insert(DataTable, { overridable, [] }),
   ets:insert(DataTable, { compile_callbacks, [] }),
   ets:insert(DataTable, { registered_attributes, [behavior, behaviour, compile, vsn, on_load] }),
 
@@ -108,7 +108,7 @@ eval_form(Line, Filename, Module, Block, RawS) ->
   Temp = ?ELIXIR_ATOM_CONCAT(['COMPILE-',Module]),
   { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, [], RawS),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
-  elixir_def_abstract:store_pending(Module),
+  elixir_def_overridable:store_pending(Module),
   { Callbacks, FinalS } = callbacks_for(Line, compile_callbacks, Module, [Module], NewS),
   elixir:eval_forms(Callbacks, binding_for_eval(Module, Binding), FinalS#elixir_scope{check_clauses=false}),
   Value.
@@ -228,7 +228,7 @@ insert_attribute(DataTable, Attribute) ->
 translate_data(Table, Registered, [{_,nil}|T]) ->
   translate_data(Table, Registered, T);
 
-translate_data(Table, Registered, [{Skip,_}|T]) when Skip == doc; Skip == moduledoc ->
+translate_data(Table, Registered, [{Skip,_}|T]) when Skip == doc; Skip == moduledoc; Skip == overridable ->
   translate_data(Table, Registered, T);
 
 translate_data(Table, Registered, [{on_load,V}|T]) when is_atom(V) ->

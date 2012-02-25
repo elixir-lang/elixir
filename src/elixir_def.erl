@@ -73,7 +73,7 @@ handle_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
 handle_definition(Kind, Line, Module, Name, Args, _RawGuards, skip_definition, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
   Data = elixir_module:data(Module),
-  elixir_module:data(Module, orddict:erase(abstract, Data)),
+  elixir_module:data(Module, orddict:erase(overridable, Data)),
   compile_docs(Kind, Line, Module, Name, length(Args), S),
   { Name, length(Args) };
 
@@ -81,10 +81,10 @@ handle_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS) ->
   Data  = elixir_module:data(Module),
   Arity = length(Args),
 
-  case orddict:find(abstract, Data) of
+  case orddict:find(overridable, Data) of
     { ok, true } ->
-      elixir_def_abstract:define(Module, { Name, Arity}, { Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS }),
-      elixir_module:data(Module, orddict:erase(abstract, Data));
+      elixir_def_overridable:define(Module, { Name, Arity}, { Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS }),
+      elixir_module:data(Module, orddict:erase(overridable, Data));
     _ ->
       S1 = elixir_variables:deserialize_scope(RawS),
       S2 = S1#elixir_scope{function={Name,Arity}, module=Module},

@@ -1,24 +1,24 @@
-% Holds the logic responsible for defining abstract functions and handling super.
--module(elixir_def_abstract).
+% Holds the logic responsible for defining overridable functions and handling super.
+-module(elixir_def_overridable).
 -export([define/3, store_pending/1]).
 -include("elixir.hrl").
 
-abstract(Module) ->
-  ets:lookup_element(elixir_module:data_table(Module), abstract, 2).
+overridable(Module) ->
+  ets:lookup_element(elixir_module:data_table(Module), overridable, 2).
 
-abstract(Module, Value) ->
-  ets:insert(elixir_module:data_table(Module), { abstract, Value }).
+overridable(Module, Value) ->
+  ets:insert(elixir_module:data_table(Module), { overridable, Value }).
 
 define(Module, Tuple, Args) ->
-  Old = abstract(Module),
+  Old = overridable(Module),
   New = [{ Tuple, [Args] }],
   Abstract = orddict:merge(fun(_K, V1, _V2) -> [Args|V1] end, Old, New),
-  abstract(Module, Abstract).
+  overridable(Module, Abstract).
 
 %% Store pending declarations that were not manually made concrete.
 
 store_pending(Module) ->
-  [store_pending(Module, X) || X <- abstract(Module)].
+  [store_pending(Module, X) || X <- overridable(Module)].
 
 store_pending(_Module, { _, [] }) -> [];
 
