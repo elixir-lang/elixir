@@ -184,7 +184,7 @@ Elixir has a handful of reserved data attributes. The following are currently fu
 * `@moduledoc` - provides documentation to the current module;
 * `@doc` - provides documentation to the next function;
 * `@on_load` - provides a function, with arity 0, that will be invoked whenever the module is loaded. The function needs to return `:ok`, otherwise the loading of the function is aborted;
-* `@overridable` - when true, the function can be overridden and re-references later with super;
+* `@overridable` - when true, the function can be overridden and referenced later using the special form `super`;
 
 The following are also reserved by Elixir (as they have special semantics to the Erlang VM) but not currently supported (if you need support to any of these in your current projects, please make yourself heard in the issues tracker):
 
