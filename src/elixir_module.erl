@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/4, compile/4, data/1, data/2,
+-export([translate/4, compile/4, data/1, data/2, data_table/1,
    format_error/1, binding_and_scope_for_eval/4]).
 -include("elixir.hrl").
 
@@ -25,9 +25,6 @@ data(Module, Value) ->
 
 data_table(Module) ->
   ?ELIXIR_ATOM_CONCAT([d, Module]).
-
-attribute_table(Module) ->
-  ?ELIXIR_ATOM_CONCAT([a, Module]).
 
 docs_table(Module) ->
   ?ELIXIR_ATOM_CONCAT([o, Module]).
@@ -73,7 +70,6 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
   after
     ets:delete(data_table(Module)),
     ets:delete(docs_table(Module)),
-    ets:delete(attribute_table(Module)),
     elixir_def:delete_table(Module),
     elixir_import:delete_table(Module)
   end;
@@ -85,20 +81,24 @@ compile(Line, Other, _Block, RawS) ->
 %% Hook that builds both attribute and functions and set up common hooks.
 
 build(Module) ->
-  %% Data table with defaults
+  %% Table with meta information about the module.
   DataTable = data_table(Module),
   ets:new(DataTable, [set, named_table, private]),
   ets:insert(DataTable, { data, [] }),
+  ets:insert(DataTable, { abstracts, [] }),
+  ets:insert(DataTable, { attributes, [] }),
   ets:insert(DataTable, { compile_callbacks, [] }),
   ets:insert(DataTable, { registered_attributes, [behavior, behaviour, compile, vsn, on_load] }),
 
-  AttrTable = attribute_table(Module),
-  ets:new(AttrTable, [bag, named_table, private]),
-
+  %% Keep docs in another table since we don't want to pull out
+  %% all the binaries every time a new documentation is stored.
   DocsTable = docs_table(Module),
   ets:new(DocsTable, [ordered_set, named_table, private]),
 
-  %% Function and imports table
+  %% We keep a separated table for function definitions
+  %% and another one for imports. We keep them in different
+  %% tables for organization and speed purpose (since the
+  %% imports table is frequently written to).
   elixir_def:build_table(Module),
   elixir_import:build_table(Module).
 
@@ -128,7 +128,8 @@ functions_form(Line, Filename, Module, C) ->
 
 attributes_form(Line, _Filename, Module, Current) ->
   Transform = fun(X, Acc) -> [translate_attribute(Line, X)|Acc] end,
-  ets:foldr(Transform, Current, attribute_table(Module)).
+  Attributes = ets:lookup_element(data_table(Module), attributes, 2),
+  lists:foldl(Transform, Current, Attributes).
 
 %% Loads the form into the code server.
 
@@ -187,11 +188,10 @@ moduledoc_clause(Line, _Module, _) ->
   { clause, Line, [{ atom, Line, moduledoc }], [], [{ atom, Line, nil }] }.
 
 data_clause(Line, Module) ->
-  AttrTable  = attribute_table(Module),
   DataTable  = data_table(Module),
   Data       = ets:lookup_element(DataTable, data, 2),
   Registered = ets:lookup_element(DataTable, registered_attributes, 2),
-  Pruned     = translate_data(AttrTable, Registered, Data),
+  Pruned     = translate_data(DataTable, Registered, Data),
   { clause, Line, [{ atom, Line, data }], [], [elixir_tree_helpers:abstract_syntax(Pruned)] }.
 
 else_clause(Line) ->
@@ -218,7 +218,11 @@ each_callback_for(Line, Args, {M,F}, Acc) ->
   end,
   { Expr, Refer }.
 
-% ATTRIBUTES
+% ATTRIBUTES & DATA
+
+insert_attribute(DataTable, Attribute) ->
+  Current = ets:lookup_element(DataTable, attributes, 2),
+  ets:insert(DataTable, { attributes , [Attribute|Current] }).
 
 translate_data(Table, Registered, [{_,nil}|T]) ->
   translate_data(Table, Registered, T);
@@ -232,7 +236,7 @@ translate_data(Table, Registered, [{on_load,V}|T]) when is_atom(V) ->
 translate_data(Table, Registered, [{K,V}|T]) ->
   case reserved_data(Registered, K) of
     true  ->
-      ets:insert(Table, { K, V }),
+      insert_attribute(Table, { K, V }),
       translate_data(Table, Registered, T);
     false -> [{K,V}|translate_data(Table, Registered, T)]
   end;

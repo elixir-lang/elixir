@@ -78,15 +78,16 @@ handle_definition(Kind, Line, Module, Name, Args, _RawGuards, skip_definition, R
   { Name, length(Args) };
 
 handle_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS) ->
-  Data = elixir_module:data(Module),
+  Data  = elixir_module:data(Module),
+  Arity = length(Args),
 
   case orddict:find(abstract, Data) of
     { ok, true } ->
-      elixir_abstract:store([Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS]),
+      elixir_def_abstract:store({ Name, Arity}, [Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS]),
       elixir_module:data(Module, orddict:erase(abstract, Data));
     _ ->
       S1 = elixir_variables:deserialize_scope(RawS),
-      S2 = S1#elixir_scope{function={Name,length(Args)}, module=Module},
+      S2 = S1#elixir_scope{function={Name,Arity}, module=Module},
       store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S2)
   end.
 

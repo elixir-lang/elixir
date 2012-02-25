@@ -98,22 +98,22 @@ defmodule Module do
     final
   end
 
-    @doc """
-    Attaches documentation to a given function. It expects
-    the module the function belongs to, the line (a non negative
-    integer), the kind (def or defmacro), a tuple representing
-    the function and its arity and the documentation, which should
-    be either a binary or a boolean.
+  @doc """
+  Attaches documentation to a given function. It expects
+  the module the function belongs to, the line (a non negative
+  integer), the kind (def or defmacro), a tuple representing
+  the function and its arity and the documentation, which should
+  be either a binary or a boolean.
 
-    ## Examples
+  ## Examples
 
-        defmodule MyModule do
-          Module.add_doc(__MODULE__, __LINE__ + 1, :def, { :version, 0}, "Manually added docs")
-          def version, do: 1
-        end
+      defmodule MyModule do
+        Module.add_doc(__MODULE__, __LINE__ + 1, :def, { :version, 0 }, "Manually added docs")
+        def version, do: 1
+      end
 
-    """
-    def add_doc(module, line, kind, tuple, doc) when
+  """
+  def add_doc(module, line, kind, tuple, doc) when
       is_binary(doc) or is_boolean(doc) do
     assert_not_compiled!(:add_doc, module)
     case kind do
@@ -256,8 +256,9 @@ defmodule Module do
   """
   def add_attribute(module, key, value) when is_atom(key) do
     assert_not_compiled!(:add_attribute, module)
-    table = attribute_table_for(module)
-    ETS.insert(table, { key, value })
+    table = data_table_for(module)
+    attrs = ETS.lookup_element(table, :attributes, 2)
+    ETS.insert(table, { :attributes, [{key, value}|attrs] })
   end
 
   @doc """
@@ -273,8 +274,10 @@ defmodule Module do
   """
   def delete_attribute(module, key) when is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
-    table = attribute_table_for(module)
-    ETS.delete(table, key)
+    table = data_table_for(module)
+    attrs = ETS.lookup_element(table, :attributes, 2)
+    final = lc {k,v} in attrs, k != key, do: {k,v}
+    ETS.insert(table, { :attributes, final })
   end
 
   @doc """
@@ -320,10 +323,6 @@ defmodule Module do
 
   defp to_char_list(list) when is_list(list),  do: list
   defp to_char_list(bin)  when is_binary(bin), do: binary_to_list(bin)
-
-  defp attribute_table_for(module) do
-    list_to_atom Erlang.lists.concat([:a, module])
-  end
 
   defp data_table_for(module) do
     list_to_atom Erlang.lists.concat([:d, module])

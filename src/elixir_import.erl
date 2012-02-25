@@ -6,22 +6,19 @@
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
 
-%% Create tables that are responsible to store
-%% import and internal invocations.
-
-import_table(Module)   -> ?ELIXIR_ATOM_CONCAT([i, Module]).
+table(Module) -> ?ELIXIR_ATOM_CONCAT([i, Module]).
 
 build_table(Module) ->
-  ets:new(import_table(Module),   [set, named_table, private]).
+  ets:new(table(Module), [set, named_table, private]).
 
 delete_table(Module) ->
-  ets:delete(import_table(Module)).
+  ets:delete(table(Module)).
 
 record(_Kind, _Tuple, _Receiver, #elixir_scope{module=[]}) ->
   [];
 
 record(import, Tuple, Receiver, #elixir_scope{module=Module}) ->
-  ets:insert(import_table(Module), { Tuple, Receiver }).
+  ets:insert(table(Module), { Tuple, Receiver }).
 
 %% Update the old entry according to the optins given
 %% and the values returned by fun.
@@ -70,7 +67,7 @@ ensure_no_local_conflict(Line, Filename, Module, AllDefined) ->
 %% the recorded set of imports.
 
 ensure_no_import_conflict(Line, Filename, Module, AllDefined) ->
-  Table = import_table(Module),
+  Table = table(Module),
   Matches = [X || X <- AllDefined, ets:member(Table, X)],
 
   case Matches of
