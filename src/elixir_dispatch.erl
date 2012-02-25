@@ -217,7 +217,6 @@ in_erlang_functions() ->
     { now, 0 },
     { pid_to_list, 1 },
     { round, 1 },
-    { self, 0 },
     { setelement, 3 },
     { size, 1 },
     { spawn, 1 },

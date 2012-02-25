@@ -67,7 +67,7 @@ defmodule ExUnit::Runner do
 
   # Run each test case in its own process.
   defp spawn_case(test_case) do
-    pid = self()
+    pid = Process.self
     spawn_link fn(do: run_tests(pid, test_case, tests_for(test_case)))
   end
 
@@ -93,13 +93,13 @@ defmodule ExUnit::Runner do
       { kind2, error2, Code.stacktrace }
     end
 
-    pid <- { self(), :each, { test_case, test, final } }
+    pid <- { Process.self, :each, { test_case, test, final } }
     run_tests(pid, test_case, t)
   end
 
   # When all tests in a testcase were run, notify the runner.
   defp run_tests(pid, test_case, []) do
-    pid <- { self(), :each_case, test_case }
+    pid <- { Process.self, :each_case, test_case }
   end
 
   # Retrieves test functions from the module.
