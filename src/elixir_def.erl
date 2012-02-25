@@ -83,7 +83,7 @@ handle_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS) ->
 
   case orddict:find(abstract, Data) of
     { ok, true } ->
-      elixir_def_abstract:store({ Name, Arity}, [Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS]),
+      elixir_def_abstract:define(Module, { Name, Arity}, { Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS }),
       elixir_module:data(Module, orddict:erase(abstract, Data));
     _ ->
       S1 = elixir_variables:deserialize_scope(RawS),
@@ -101,7 +101,7 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
     _ -> Expr = { 'try', Line, [RawExpr] }
   end,
 
-  { Function, Defaults } = translate_definition(Line, Module, Name, Args, Guards, Expr, S),
+  { Function, Defaults } = translate_definition(Line, Name, Args, Guards, Expr, S),
 
   Filename      = S#elixir_scope.filename,
   Arity         = element(4, Function),
@@ -144,7 +144,7 @@ compile_docs(Kind, Line, Module, Name, Arity, S) ->
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Line, Module, Name, Args, Guards, Expr, S) ->
+translate_definition(Line, Name, Args, Guards, Expr, S) ->
   Arity = length(Args),
   { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, Args, S),
 
