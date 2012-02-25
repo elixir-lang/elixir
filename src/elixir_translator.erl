@@ -315,29 +315,30 @@ translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) ->
   Module = assert_module_scope(Line, super, S),
   Function = assert_function_scope(Line, super, S),
 
-  { _, Arity } = Function,
-  Expected = Arity,
+  case elixir_def_overridable:is_defined(Module, Function) of
+    true -> [];
+    _ -> syntax_error(Line, Filename, "invalid usage of super. there isn't an overridable definition for ~s/~B")
+  end,
 
-  if
+  { _, Arity } = Function,
+
+  { TArgs, TS } = if
     is_atom(Args) ->
-      { { nil, Line }, S };
-    length(Args) == Expected ->
-      % translate_args(Args, S);
-      { { nil, Line }, S };
+      { [], S };
+    length(Args) == Arity ->
+      translate_args(Args, S);
     true ->
       syntax_error(Line, Filename, "super must be called with the same number of arguments as the current function")
-  end;
+  end,
+
+  Super = elixir_def_overridable:name(Module, Function),
+  { { call, Line, { atom, Line, Super }, TArgs }, TS#elixir_scope{super=true} };
 
 translate_each({ 'super?', Line, [] }, S) ->
   Module = assert_module_scope(Line, 'super?', S),
   Function = assert_function_scope(Line, 'super?', S),
-
-  Final = case orddict:find(Function, []) of
-    { ok, _ } -> { atom, Line, true };
-    error -> { atom, Line, false }
-  end,
-
-  { Final, S };
+  Bool = elixir_def_overridable:is_defined(Module, Function),
+  { { atom, Line, Bool }, S };
 
 %% Comprehensions
 

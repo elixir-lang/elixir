@@ -105,7 +105,7 @@ build(Module) ->
 %% Receives the module representation and evaluates it.
 
 eval_form(Line, Filename, Module, Block, RawS) ->
-  Temp = ?ELIXIR_ATOM_CONCAT(['COMPILE-',Module]),
+  Temp = ?ELIXIR_ATOM_CONCAT(["COMPILE-",Module]),
   { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, [], RawS),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
   elixir_def_overridable:store_pending(Module),

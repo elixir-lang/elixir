@@ -176,18 +176,10 @@ defmodule Protocol do
         args = [unquote_splicing(args)]
         case __protocol_for__(xA) do
         match: __MODULE__::Record
-          result =
-            try do
-              { apply(__MODULE__::element(1, xA), unquote(name), args), true }
-            rescue: UndefinedFunctionError
-              :error
-            end
-
-          case result do
-          match: :error
+          try do
+            apply __MODULE__::element(1, xA), unquote(name), args
+          rescue: UndefinedFunctionError
             apply __MODULE__::unquote(fallback), unquote(name), args
-          match: { value, true }
-            value
           end
         match: nil
           raise ::Protocol::UndefinedError, protocol: __MODULE__, structure: xA
