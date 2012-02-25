@@ -261,15 +261,5 @@ format_error({ internal_function_overridden, { Name, Arity } }) ->
 format_error({ invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
 
-format_error({ no_super, { Name, Arity }, Module, Defined }) ->
-  Bins = [ joined(X,Y) || { X, Y } <- Defined],
-  Joined = '::Enum':join(Bins, <<", ">>),
-  io_lib:format("no super defined for ~s/~B in module ~p. Forwardings defined are: ~s", [Name, Arity, Module, Joined]);
-
 format_error({ module_defined, Module }) ->
   io_lib:format("module ~s already defined", [Module]).
-
-joined(X, Y) ->
-  A = atom_to_binary(X, utf8),
-  B = list_to_binary(integer_to_list(Y)),
-  << A/binary, $/, B/binary >>.

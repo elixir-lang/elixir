@@ -1,7 +1,7 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_def_overridable).
--export([define/3, store_pending/1, is_defined/2,
-  assign_args/3, retrieve_args/3, name/2, store/3]).
+-export([define/3, store_pending/1, is_defined/2, ensure_defined/4,
+  assign_args/3, retrieve_args/3, name/2, store/3, format_error/1]).
 -include("elixir.hrl").
 
 overridable(Module) ->
@@ -25,6 +25,12 @@ is_defined(Module, Tuple) ->
   case orddict:find(Tuple, Overridable) of
     { ok, [_|_] } -> true;
     _ -> false
+  end.
+
+ensure_defined(Line, Module, Tuple, S) ->
+  case elixir_def_overridable:is_defined(Module, Tuple) of
+    true -> [];
+    _    -> elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { no_super, Module, Tuple })
   end.
 
 %% Retrieve args defined for the given arity.
@@ -78,3 +84,15 @@ store(Module, Function, GenerateName) ->
 
 store_pending(Module) ->
   [store(Module, X, false) || { X, [_|_] } <- overridable(Module), not '::Module':'function_defined?'(Module, X)].
+
+%% Error handling
+
+format_error({ no_super, Module, { Name, Arity } }) ->
+  Bins   = [ format_fa(X) || { X, [_|_] } <- overridable(Module)],
+  Joined = '::Enum':join(Bins, <<", ">>),
+  io_lib:format("no super defined for ~s/~B in module ~p. Overridable functions available are: ~s", [Name, Arity, Module, Joined]).
+
+format_fa({ Name, Arity }) ->
+  A = atom_to_binary(Name, utf8),
+  B = list_to_binary(integer_to_list(Arity)),
+  << A/binary, $/, B/binary >>.

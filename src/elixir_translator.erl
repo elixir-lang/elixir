@@ -314,11 +314,7 @@ translate_each({recur, Line, Args}, S) when is_list(Args) ->
 translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) ->
   Module = assert_module_scope(Line, super, S),
   Function = assert_function_scope(Line, super, S),
-
-  case elixir_def_overridable:is_defined(Module, Function) of
-    true -> [];
-    _ -> syntax_error(Line, Filename, "invalid usage of super. there isn't an overridable definition for ~s/~B")
-  end,
+  elixir_def_overridable:ensure_defined(Line, Module, Function, S),
 
   { _, Arity } = Function,
 
