@@ -98,22 +98,22 @@ defmodule Module do
     final
   end
 
-    @doc """
-    Attaches documentation to a given function. It expects
-    the module the function belongs to, the line (a non negative
-    integer), the kind (def or defmacro), a tuple representing
-    the function and its arity and the documentation, which should
-    be either a binary or a boolean.
+  @doc """
+  Attaches documentation to a given function. It expects
+  the module the function belongs to, the line (a non negative
+  integer), the kind (def or defmacro), a tuple representing
+  the function and its arity and the documentation, which should
+  be either a binary or a boolean.
 
-    ## Examples
+  ## Examples
 
-        defmodule MyModule do
-          Module.add_doc(__MODULE__, __LINE__ + 1, :def, { :version, 0}, "Manually added docs")
-          def version, do: 1
-        end
+      defmodule MyModule do
+        Module.add_doc(__MODULE__, __LINE__ + 1, :def, { :version, 0 }, "Manually added docs")
+        def version, do: 1
+      end
 
-    """
-    def add_doc(module, line, kind, tuple, doc) when
+  """
+  def add_doc(module, line, kind, tuple, doc) when
       is_binary(doc) or is_boolean(doc) do
     assert_not_compiled!(:add_doc, module)
     case kind do
@@ -244,56 +244,6 @@ defmodule Module do
   end
 
   @doc """
-  Adds a forwarding to the current module. This is the backend
-  API used by defforward.
-
-  ## Examples
-
-      Module.add_forwarding __MODULE__, [sample: 1], to: TargetModule, via: :defp
-
-  """
-  def add_forwarding(module, pairs, options) do
-    assert_not_compiled!(:add_forwarding, module)
-
-    target = Orddict.get options, :to
-    via    = Orddict.get options, :via
-
-    case target do
-    match: nil
-      raise ArgumentError, message: "expected to: parameter in defforward"
-    else:
-      nil
-    end
-
-    table = data_table_for(module)
-    old   = ETS.lookup_element(table, :forwardings, 2)
-
-    info  = { via || :def, [target] }
-    new   = Orddict.from_enum(pairs, fn(x) -> {x, info} end)
-    final = Orddict.merge old, new, fn(_, { old_via, old_target }, { _, _ }) ->
-      { via || old_via, [target|old_target] }
-    end
-
-    ETS.insert(table, { :forwardings,  final })
-  end
-
-  @doc """
-  Remove a prevously stablished forwarding.
-
-  ## Examples
-
-      Module.remove_forwarding __MODULE__, [sample: 1]
-
-  """
-  def remove_forwarding(module, pair) do
-    assert_not_compiled!(:remove_forwarding, module)
-    table = data_table_for(module)
-    old   = ETS.lookup_element(table, :forwardings, 2)
-    final = Enum.reduce pair, old, Orddict.erase(&2, &1)
-    ETS.insert(table, { :forwardings,  final })
-  end
-
-  @doc """
   Adds an Erlang attribute to the given module with the given
   key and value. The same attribute can be added more than once.
 
@@ -306,8 +256,9 @@ defmodule Module do
   """
   def add_attribute(module, key, value) when is_atom(key) do
     assert_not_compiled!(:add_attribute, module)
-    table = attribute_table_for(module)
-    ETS.insert(table, { key, value })
+    table = data_table_for(module)
+    attrs = ETS.lookup_element(table, :attributes, 2)
+    ETS.insert(table, { :attributes, [{key, value}|attrs] })
   end
 
   @doc """
@@ -323,8 +274,10 @@ defmodule Module do
   """
   def delete_attribute(module, key) when is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
-    table = attribute_table_for(module)
-    ETS.delete(table, key)
+    table = data_table_for(module)
+    attrs = ETS.lookup_element(table, :attributes, 2)
+    final = lc {k,v} in attrs, k != key, do: {k,v}
+    ETS.insert(table, { :attributes, final })
   end
 
   @doc """
@@ -349,23 +302,6 @@ defmodule Module do
   end
 
   @doc false
-  # Used internally to compile forwardings. This function
-  # is private and must be used only internally.
-  def compile_forwardings(module, forwardings) do
-    defined  = defined_functions(module)
-    contents = Enum.map forwardings, fn({ tuple, other }) ->
-      case List.member?(defined, tuple) do
-      match: true
-        nil
-      else:
-        contents_for_compile_forwarding(tuple, other)
-      end
-    end
-
-    eval_quoted module, contents, [], __FILE__, __LINE__
-  end
-
-  @doc false
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
   def compile_doc(module, line, kind, pair) do
@@ -381,30 +317,12 @@ defmodule Module do
 
   ## Helpers
 
-  defp contents_for_compile_forwarding { name, arity }, { via, [target|callbacks] } do
-    args = lc i in List.seq(1, arity) do
-      { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
-    end
-
-    invoke = quote do
-      apply unquote(target), unquote(name), [__MODULE__, unquote(callbacks), unquote_splicing(args)]
-    end
-
-    quote do
-      unquote(via).(unquote(name).(unquote_splicing(args)), do: unquote(invoke))
-    end
-  end
-
   defp kind_to_entry(:def),      do: :public
   defp kind_to_entry(:defp),     do: :private
   defp kind_to_entry(:defmacro), do: :macros
 
   defp to_char_list(list) when is_list(list),  do: list
   defp to_char_list(bin)  when is_binary(bin), do: binary_to_list(bin)
-
-  defp attribute_table_for(module) do
-    list_to_atom Erlang.lists.concat([:a, module])
-  end
 
   defp data_table_for(module) do
     list_to_atom Erlang.lists.concat([:d, module])

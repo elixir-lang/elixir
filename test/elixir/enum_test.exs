@@ -46,7 +46,7 @@ defmodule EnumTest do
     assert_equal [1,2,3], Enum.each([1,2,3], fn(x, do: Process.put(:enum_test_each, x * 2)))
     assert_equal 6, Process.get(:enum_test_each)
   after:
-    Process.erase(:enum_test_each)
+    Process.delete(:enum_test_each)
   end
 
   test :filter do
@@ -105,14 +105,14 @@ defmodule EnumTest do
     assert_equal 3, Enum.times(3, fn do: Process.put(:times_with_arity, :ok))
     assert_equal :ok, Process.get(:times_with_arity)
   after:
-    Process.erase(:times_with_arity)
+    Process.delete(:times_with_arity)
   end
 
   test :times_with_arity_1 do
     assert_equal 5, Enum.times(5, fn(x, do: Process.put(:times_with_arity, x)))
     assert_equal 5, Process.get(:times_with_arity)
   after:
-    Process.erase(:times_with_arity)
+    Process.delete(:times_with_arity)
   end
 
   test :times_with_arity_2 do

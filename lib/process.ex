@@ -43,13 +43,13 @@ defmodule Process do
     nillify :erlang.put(key, value)
   end
 
-  # Erase all items in the dictionary.
-  def erase() do
+  # Deletes all items in the dictionary.
+  def delete() do
     :erlang.erase()
   end
 
-  # Erase the given key from the dictionary.
-  def erase(key) do
+  # Deletes the given key from the dictionary.
+  def delete(key) do
     nillify :erlang.erase(key)
   end
 

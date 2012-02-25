@@ -4,6 +4,7 @@
   delete_table/1,
   reset_last/1,
   wrap_definition/7,
+  handle_definition/8,
   store_definition/8,
   unwrap_stored_definitions/1,
   format_error/1]).
@@ -60,27 +61,39 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
     MetaS
   ],
 
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_definition, Invoke).
+  ?ELIXIR_WRAP_CALL(Line, ?MODULE, handle_definition, Invoke).
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
+handle_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
-store_definition(Kind, Line, Module, Name, Args, _RawGuards, skip_definition, RawS) ->
+handle_definition(Kind, Line, Module, Name, Args, _RawGuards, skip_definition, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
-  compile_docs(Kind, Line, Module, Name, length(Args), S);
+  Data = elixir_module:data(Module),
+  elixir_module:data(Module, orddict:erase(overridable, Data)),
+  compile_docs(Kind, Line, Module, Name, length(Args), S),
+  { Name, length(Args) };
 
-store_definition(Kind, Line, Module, Name, RawArgs, RawGuards, RawExpr, RawS) ->
-  S = elixir_variables:deserialize_scope(RawS),
+handle_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS) ->
+  Data  = elixir_module:data(Module),
+  Arity = length(Args),
 
-  Args = case S#elixir_scope.forwarded of
-    true  -> [{ '__TARGET__', Line, nil }, { '__CALLBACKS__', Line, nil } | RawArgs];
-    false -> RawArgs
-  end,
+  case orddict:find(overridable, Data) of
+    { ok, true } ->
+      elixir_def_overridable:define(Module, { Name, Arity}, { Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS }),
+      elixir_module:data(Module, orddict:erase(overridable, Data));
+    _ ->
+      S1 = elixir_variables:deserialize_scope(RawS),
+      S2 = S1#elixir_scope{function={Name,Arity}, module=Module},
+      store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S2)
+  end.
 
+%% Store the definition after is is handled.
+
+store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
   Guards = elixir_clauses:extract_guard_clauses(RawGuards),
 
   case RawExpr of
@@ -88,9 +101,9 @@ store_definition(Kind, Line, Module, Name, RawArgs, RawGuards, RawExpr, RawS) ->
     _ -> Expr = { 'try', Line, [RawExpr] }
   end,
 
-  { Function, Defaults } = translate_definition(Line, Module, Name, Args, Guards, Expr, S),
+  { Function, Defaults, TS } = translate_definition(Line, Name, Args, Guards, Expr, S),
 
-  Filename      = S#elixir_scope.filename,
+  Filename      = TS#elixir_scope.filename,
   Arity         = element(4, Function),
   FunctionTable = table(Module),
 
@@ -104,7 +117,10 @@ store_definition(Kind, Line, Module, Name, RawArgs, RawGuards, RawExpr, RawS) ->
   CheckClauses = S#elixir_scope.check_clauses,
 
   %% Compile documentation
-  compile_docs(Kind, Line, Module, Name, Arity, S),
+  compile_docs(Kind, Line, Module, Name, Arity, TS),
+
+  %% Compile super calls
+  compile_super(Module, TS),
 
   %% Store function
   store_each(CheckClauses, Final, FunctionTable, Visibility, Filename, Function),
@@ -114,6 +130,13 @@ store_definition(Kind, Line, Module, Name, RawArgs, RawGuards, RawExpr, RawS) ->
     function_for_clause(Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
+
+%% Compile the documentation related to the module.
+
+compile_super(Module, #elixir_scope{function=Function, super=true}) ->
+  elixir_def_overridable:store(Module, Function, true);
+
+compile_super(_Module, _S) -> [].
 
 compile_docs(Kind, Line, Module, Name, Arity, S) ->
   case S#elixir_scope.compile#elixir_compile.internal of
@@ -129,38 +152,22 @@ compile_docs(Kind, Line, Module, Name, Arity, S) ->
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Line, Module, Name, Args, Guards, Expr, S) ->
+translate_definition(Line, Name, Args, Guards, Expr, S) ->
   Arity = length(Args),
+  { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, Args, S),
 
-  ClauseScope = S#elixir_scope{function={Name,Arity}, module=Module},
-  { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, Args, ClauseScope),
+  { TClause, TS } = elixir_clauses:assigns_block(Line,
+    fun elixir_translator:translate/2, Unpacked, [Expr], Guards, S),
 
-  { TClause, FS } = elixir_clauses:assigns_block(Line,
-    fun elixir_translator:translate/2, Unpacked, [Expr], Guards, ClauseScope),
-
-  FClause = case FS#elixir_scope.super of
+  FClause = case TS#elixir_scope.name_args of
     true  ->
-      ErlArgs = element(3, TClause),
-      { FArgs, _ } = lists:mapfoldl(fun(X, Acc) -> assign_super(Line, X, Acc, S) end, 1, ErlArgs),
+      FArgs = elixir_def_overridable:assign_args(Line, element(3, TClause), TS),
       setelement(3, TClause, FArgs);
     false -> TClause
   end,
 
   Function = { function, Line, Name, Arity, [FClause] },
-  { Function, Defaults }.
-
-%% Assign super variables to each of the arguments for anonymous forwarding.
-%% Notice we skip the assignment if we are inside a forwarded function and
-%% the argument is the target or the callback variable.
-
-assign_super(_, { var, _, Name } = Var, Acc, #elixir_scope{forwarded=true}) when
-    Name == '__TARGET__'; Name == '__CALLBACKS__' ->
-  { Var, Acc };
-
-assign_super(Line, X, Acc, _) ->
-  Name  = ?ELIXIR_ATOM_CONCAT(['_EXS', Acc]),
-  Match = { match, Line, X, { var, Line, Name } },
-  { Match, Acc + 1 }.
+  { Function, Defaults, TS }.
 
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,
@@ -191,36 +198,40 @@ function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
 %% This function also checks and emit warnings in case
 %% the kind, of the visibility of the function changes.
 
-store_each(Check, Kind, FunctionTable, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
-  FinalClauses = case ets:lookup(FunctionTable, {Name, Arity}) of
+store_each(Check, Kind, Table, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
+  FinalClauses = case ets:lookup(Table, {Name, Arity}) of
     [{{Name, Arity}, FinalLine, OtherClauses}] ->
-      check_valid_visibility(Line, Filename, Name, Arity, Visibility, FunctionTable),
-      check_valid_kind(Line, Filename, Name, Arity, Kind, FunctionTable),
+      check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table),
+      check_valid_kind(Line, Filename, Name, Arity, Kind, Table),
 
       case Check of
         false -> [];
-        true -> check_valid_clause(Line, Filename, Name, Arity, FunctionTable)
+        true -> check_valid_clause(Line, Filename, Name, Arity, Table)
       end,
 
       Clauses ++ OtherClauses;
     [] ->
-      add_visibility_entry(Name, Arity, Visibility, FunctionTable),
-      add_function_entry(Name, Arity, Kind, FunctionTable),
+      add_visibility_entry(Name, Arity, Visibility, Table),
+      add_function_entry(Name, Arity, Kind, Table),
+
+      case Check of
+        false -> [];
+        true  -> ets:insert(Table, {last, { Name, Arity }})
+      end,
+
       FinalLine = Line,
       Clauses
   end,
-  ets:insert(FunctionTable, {{Name, Arity}, FinalLine, FinalClauses}).
+  ets:insert(Table, {{Name, Arity}, FinalLine, FinalClauses}).
 
 %% Handle kind (def/defmacro) entries in the table
 
 add_function_entry(Name, Arity, defmacro, Table) ->
   Tuple = { Name, Arity },
   Current= ets:lookup_element(Table, macros, 2),
-  ets:insert(Table, {last, Tuple}),
   ets:insert(Table, {macros, [Tuple|Current]});
 
-add_function_entry(Name, Arity, def, Table) ->
-  ets:insert(Table, {last, {Name,Arity}}).
+add_function_entry(_Name, _Arity, def, _Table) -> ok.
 
 check_valid_kind(Line, Filename, Name, Arity, Kind, Table) ->
   List = ets:lookup_element(Table, macros, 2),

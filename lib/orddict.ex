@@ -67,13 +67,13 @@ defmodule Orddict do
   #
   # ## Examples
   #
-  #     Orddict.erase [a: 1, b: 2], :a   #=> [b: 2]
-  #     Orddict.erase [b: 2], :a         #=> [b: 2]
+  #     Orddict.delete [a: 1, b: 2], :a   #=> [b: 2]
+  #     Orddict.delete [b: 2], :a         #=> [b: 2]
   #
-  def erase([{k, _} = e|dict], key) when key < k, do: [e|dict]
-  def erase([{k, _} = e|dict], key) when key > k, do: [e|erase(dict, key)]
-  def erase([{_k, _v}|dict], _key), do: dict
-  def erase([], _), do: []
+  def delete([{k, _} = e|dict], key) when key < k, do: [e|dict]
+  def delete([{k, _} = e|dict], key) when key > k, do: [e|delete(dict, key)]
+  def delete([{_k, _v}|dict], _key), do: dict
+  def delete([], _), do: []
 
   # Sets the given `value` under `key` for the given dictionary.
   # If a previous value is already stored, it is overriden.

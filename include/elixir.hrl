@@ -18,9 +18,9 @@
   guard=false,                                   %% when true, we are inside a guard
   noref=false,                                   %% when true, don't resolve references
   noname=false,                                  %% when true, don't add new names (used by try)
-  super=false,                                   %% when true, it means super was invoked in the function body
   check_clauses=true,                            %% when true, check def clauses ordering
-  forwarded=false,                               %% when true, we are inside a forwarded function
+  super=false,                                   %% when true, it means super was invoked
+  name_args=false,                               %% when true, it means arguments should be named
   compile=#elixir_compile{},                     %% holds compilation options (do not change during scope evaluation)
   macro=[],                                      %% the current macro being transformed
   function=[],                                   %% the current function
