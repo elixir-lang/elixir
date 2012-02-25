@@ -183,6 +183,8 @@ Elixir has a handful of reserved data attributes. The following are currently fu
 * `@compile` - provides options for the module compilation;
 * `@moduledoc` - provides documentation to the current module;
 * `@doc` - provides documentation to the next function;
+* `@on_load` - provides a function, with arity 0, that will be invoked whenever the module is loaded. the function needs to return `:ok`, otherwise the loading of the function is aborted;
+* `@abstract` - when true, marks the next function as abstract. An abstract function is lazily defined, allowing many different modules to define the same abstract function in the same module without raising errors.
 
 The following are also reserved by Elixir (as they have special semantics to the Erlang VM) but not currently supported (if you need support to any of these in your current projects, please make yourself heard in the issues tracker):
 

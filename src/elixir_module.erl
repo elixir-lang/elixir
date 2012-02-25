@@ -88,7 +88,7 @@ build(Module) ->
   ets:insert(DataTable, { data, [] }),
   ets:insert(DataTable, { compile_callbacks, [] }),
   ets:insert(DataTable, { forwardings, [] }),
-  ets:insert(DataTable, { registered_attributes, [behavior, behaviour, compile, vsn] }),
+  ets:insert(DataTable, { registered_attributes, [behavior, behaviour, compile, vsn, on_load] }),
 
   AttrTable = attribute_table(Module),
   ets:new(AttrTable, [bag, named_table, private]),
@@ -228,6 +228,9 @@ translate_data(Table, Registered, [{_,nil}|T]) ->
 
 translate_data(Table, Registered, [{Skip,_}|T]) when Skip == doc; Skip == moduledoc ->
   translate_data(Table, Registered, T);
+
+translate_data(Table, Registered, [{on_load,V}|T]) when is_atom(V) ->
+  translate_data(Table, Registered, [{on_load,{V,0}}|T]);
 
 translate_data(Table, Registered, [{K,V}|T]) ->
   case reserved_data(Registered, K) of
