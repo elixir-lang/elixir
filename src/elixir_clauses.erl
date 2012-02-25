@@ -26,7 +26,8 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
   { TExprs, SE } = elixir_translator:translate(Exprs, SA),
 
   FArgs   = listify(TArgs),
-  FGuards = [element(1, elixir_translator:translate(Guard, SA#elixir_scope{guard=true})) || Guard <- Guards],
+  SG      = SA#elixir_scope{guard=true},
+  FGuards = [translate_guard(Line, Guard, SG) || Guard <- Guards],
 
   % Uncompact expressions from the block.
   case TExprs of
@@ -36,7 +37,10 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
 
   { { clause, Line, FArgs, FGuards, FExprs }, SE }.
 
-% Extract guards from the given expression.
+% Translate/Extract guards from the given expression.
+
+translate_guard(Line, Guard, S) ->
+  element(1, elixir_translator:translate(elixir_quote:linify(Line, Guard), S)).
 
 extract_guards({ 'when', _, [Left, Right] }) -> { Left, Right };
 extract_guards(Else) -> { Else, true }.
