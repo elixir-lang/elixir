@@ -50,13 +50,13 @@ build_ex(Line, #elixir_scope{counter=Counter} = S) ->
 
 serialize_scope(S) ->
   elixir_tree_helpers:abstract_syntax(
-    { S#elixir_scope.filename, S#elixir_scope.functions, S#elixir_scope.check_clauses, S#elixir_scope.forwarded,
+    { S#elixir_scope.filename, S#elixir_scope.functions, S#elixir_scope.check_clauses,
       S#elixir_scope.macros, S#elixir_scope.refer, S#elixir_scope.scheduled, S#elixir_scope.compile }
   ).
 
 % Fill in the scope with the variables serialization set in serialize_scope.
 
-deserialize_scope({ Filename, Functions, CheckClauses, Forwarded, Macros, Refer, Scheduled, Compile }) ->
+deserialize_scope({ Filename, Functions, CheckClauses, Macros, Refer, Scheduled, Compile }) ->
   #elixir_scope{
     filename=Filename,
     functions=Functions,
@@ -64,8 +64,7 @@ deserialize_scope({ Filename, Functions, CheckClauses, Forwarded, Macros, Refer,
     macros=Macros,
     refer=Refer,
     scheduled=Scheduled,
-    compile=Compile,
-    forwarded=Forwarded
+    compile=Compile
   }.
 
 % Receives two scopes and return a new scope based on the second
@@ -88,10 +87,7 @@ umergev(S1, S2) ->
 % with the counter values from the first one.
 
 umergec(S1, S2) ->
-  S1#elixir_scope{
-    counter=S2#elixir_scope.counter,
-    super=S1#elixir_scope.super or S2#elixir_scope.super
-  }.
+  S1#elixir_scope{counter=S2#elixir_scope.counter}.
 
 % Merge variables trying to find the most recently created.
 

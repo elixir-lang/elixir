@@ -316,38 +316,25 @@ translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) ->
   Function = assert_function_scope(Line, super, S),
 
   { _, Arity } = Function,
+  Expected = Arity,
 
-  Expected = case S#elixir_scope.forwarded of
-    true  -> Arity - 2;
-    false -> Arity
-  end,
-
-  { Vars, FS } = if
+  if
     is_atom(Args) ->
-      {
-        [ { var, Line, ?ELIXIR_ATOM_CONCAT(['_EXS', X]) } || X <- lists:seq(1, Expected) ],
-        S#elixir_scope{super=true}
-      };
+      { { nil, Line }, S };
     length(Args) == Expected ->
-      translate_args(Args, S);
+      % translate_args(Args, S);
+      { { nil, Line }, S };
     true ->
       syntax_error(Line, Filename, "super must be called with the same number of arguments as the current function")
-  end,
-
-  translate_super(Line, Module, Function, Vars, FS);
+  end;
 
 translate_each({ 'super?', Line, [] }, S) ->
   Module = assert_module_scope(Line, 'super?', S),
   Function = assert_function_scope(Line, 'super?', S),
-  Forwardings = elixir_module:forwardings(Module),
 
-  Final = case orddict:find(Function, Forwardings) of
+  Final = case orddict:find(Function, []) of
     { ok, _ } -> { atom, Line, true };
-    error ->
-      case S#elixir_scope.forwarded of
-        true  -> { op, Line, '/=', { var, Line, '__CALLBACKS__' }, { nil, Line } };
-        false -> { atom, Line, false }
-      end
+    error -> { atom, Line, false }
   end,
 
   { Final, S };
@@ -600,34 +587,6 @@ convert_op('!=')   ->  '/=';
 convert_op('<=')   ->  '=<';
 convert_op('<-')   ->  '!';
 convert_op(Else)   ->  Else.
-
-%% Handle super
-
-translate_super(Line, Module, { Name, _ } = Function, Args, S) ->
-  Forwardings = elixir_module:forwardings(Module),
-  case orddict:find(Function, Forwardings) of
-    %% In case we are inside a forwarding function
-    { ok, { _Via, [Super|Callbacks] } } ->
-      { List, FS } = elixir_tree_helpers:build_list(fun translate_each/2, Callbacks, Line, S),
-      Final = [ { atom, Line, Module }, List | Args ],
-      { ?ELIXIR_WRAP_CALL(Line, Super, Name, Final), FS };
-    error ->
-      case S#elixir_scope.forwarded of
-        %% In case we are inside a forwarded function.
-        true ->
-          { Var, VS } = elixir_variables:build_erl(Line, S),
-          Callbacks   = { var, Line, '__CALLBACKS__' },
-          Match       = { match, Line, Var, ?ELIXIR_WRAP_CALL(Line, erlang, hd, [Callbacks]) },
-          Final       = [ { var, Line, '__TARGET__' }, ?ELIXIR_WRAP_CALL(Line, erlang, tl, [Callbacks]) | Args ],
-          Call        = { call, Line, { remote, Line, Var, { atom, Line, Name } }, Final },
-          { { block, Line, [Match, Call] }, VS };
-        %% Error
-        false ->
-          Defined = [element(1, X) || X <- Forwardings],
-          Info = { no_super, Function, Module, Defined },
-          elixir_errors:form_error(Line, S#elixir_scope.filename, elixir_module, Info)
-      end
-  end.
 
 %% Comprehensions
 

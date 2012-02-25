@@ -4,6 +4,7 @@
   delete_table/1,
   reset_last/1,
   wrap_definition/7,
+  handle_definition/8,
   store_definition/8,
   unwrap_stored_definitions/1,
   format_error/1]).
@@ -60,27 +61,38 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
     MetaS
   ],
 
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_definition, Invoke).
+  ?ELIXIR_WRAP_CALL(Line, ?MODULE, handle_definition, Invoke).
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
+handle_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
-store_definition(Kind, Line, Module, Name, Args, _RawGuards, skip_definition, RawS) ->
+handle_definition(Kind, Line, Module, Name, Args, _RawGuards, skip_definition, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
-  compile_docs(Kind, Line, Module, Name, length(Args), S);
+  Data = elixir_module:data(Module),
+  elixir_module:data(Module, orddict:erase(abstract, Data)),
+  compile_docs(Kind, Line, Module, Name, length(Args), S),
+  { Name, length(Args) };
 
-store_definition(Kind, Line, Module, Name, RawArgs, RawGuards, RawExpr, RawS) ->
-  S = elixir_variables:deserialize_scope(RawS),
+handle_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS) ->
+  Data = elixir_module:data(Module),
 
-  Args = case S#elixir_scope.forwarded of
-    true  -> [{ '__TARGET__', Line, nil }, { '__CALLBACKS__', Line, nil } | RawArgs];
-    false -> RawArgs
-  end,
+  case orddict:find(abstract, Data) of
+    { ok, true } ->
+      elixir_abstract:store([Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS]),
+      elixir_module:data(Module, orddict:erase(abstract, Data));
+    _ ->
+      S1 = elixir_variables:deserialize_scope(RawS),
+      S2 = S1#elixir_scope{function={Name,length(Args)}, module=Module},
+      store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S2)
+  end.
 
+%% Store the definition after is is handled.
+
+store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
   Guards = elixir_clauses:extract_guard_clauses(RawGuards),
 
   case RawExpr of
@@ -115,6 +127,8 @@ store_definition(Kind, Line, Module, Name, RawArgs, RawGuards, RawExpr, RawS) ->
 
   { Name, Arity }.
 
+%% Compile the documentation related to the module.
+
 compile_docs(Kind, Line, Module, Name, Arity, S) ->
   case S#elixir_scope.compile#elixir_compile.internal of
     true -> [];
@@ -131,36 +145,13 @@ compile_docs(Kind, Line, Module, Name, Arity, S) ->
 
 translate_definition(Line, Module, Name, Args, Guards, Expr, S) ->
   Arity = length(Args),
+  { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, Args, S),
 
-  ClauseScope = S#elixir_scope{function={Name,Arity}, module=Module},
-  { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, Args, ClauseScope),
+  { TClause, _ } = elixir_clauses:assigns_block(Line,
+    fun elixir_translator:translate/2, Unpacked, [Expr], Guards, S),
 
-  { TClause, FS } = elixir_clauses:assigns_block(Line,
-    fun elixir_translator:translate/2, Unpacked, [Expr], Guards, ClauseScope),
-
-  FClause = case FS#elixir_scope.super of
-    true  ->
-      ErlArgs = element(3, TClause),
-      { FArgs, _ } = lists:mapfoldl(fun(X, Acc) -> assign_super(Line, X, Acc, S) end, 1, ErlArgs),
-      setelement(3, TClause, FArgs);
-    false -> TClause
-  end,
-
-  Function = { function, Line, Name, Arity, [FClause] },
+  Function = { function, Line, Name, Arity, [TClause] },
   { Function, Defaults }.
-
-%% Assign super variables to each of the arguments for anonymous forwarding.
-%% Notice we skip the assignment if we are inside a forwarded function and
-%% the argument is the target or the callback variable.
-
-assign_super(_, { var, _, Name } = Var, Acc, #elixir_scope{forwarded=true}) when
-    Name == '__TARGET__'; Name == '__CALLBACKS__' ->
-  { Var, Acc };
-
-assign_super(Line, X, Acc, _) ->
-  Name  = ?ELIXIR_ATOM_CONCAT(['_EXS', Acc]),
-  Match = { match, Line, X, { var, Line, Name } },
-  { Match, Acc + 1 }.
 
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,

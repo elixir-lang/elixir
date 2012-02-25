@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/4, compile/4, forwardings/1,
+-export([translate/4, compile/4, data/1, data/2,
    format_error/1, binding_and_scope_for_eval/4]).
 -include("elixir.hrl").
 
@@ -15,8 +15,11 @@ binding_and_scope_for_eval(_Line, _Filename, Module, Binding, S) ->
 binding_for_eval(Module, Binding) -> [{'_EXMODULE',Module}|Binding].
 scope_for_eval(Module, S) -> S#elixir_scope{module=Module}.
 
-forwardings(Module) ->
-  ets:lookup_element(data_table(Module), forwardings, 2).
+data(Module) ->
+  ets:lookup_element(data_table(Module), data, 2).
+
+data(Module, Value) ->
+  ets:insert(data_table(Module), { data, Value }).
 
 %% TABLE METHODS
 
@@ -87,7 +90,6 @@ build(Module) ->
   ets:new(DataTable, [set, named_table, private]),
   ets:insert(DataTable, { data, [] }),
   ets:insert(DataTable, { compile_callbacks, [] }),
-  ets:insert(DataTable, { forwardings, [] }),
   ets:insert(DataTable, { registered_attributes, [behavior, behaviour, compile, vsn, on_load] }),
 
   AttrTable = attribute_table(Module),
@@ -108,11 +110,6 @@ eval_form(Line, Filename, Module, Block, RawS) ->
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
   { Callbacks, FinalS } = callbacks_for(Line, compile_callbacks, Module, [Module], NewS),
   elixir:eval_forms(Callbacks, binding_for_eval(Module, Binding), FinalS#elixir_scope{check_clauses=false}),
-  Forwardings = ets:lookup_element(data_table(Module), forwardings, 2),
-  case Forwardings of
-    [] -> [];
-    _  -> '::Module':compile_forwardings(Module, Forwardings)
-  end,
   Value.
 
 %% Return the form with exports and function declarations.

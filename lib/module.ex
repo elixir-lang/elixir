@@ -244,56 +244,6 @@ defmodule Module do
   end
 
   @doc """
-  Adds a forwarding to the current module. This is the backend
-  API used by defforward.
-
-  ## Examples
-
-      Module.add_forwarding __MODULE__, [sample: 1], to: TargetModule, via: :defp
-
-  """
-  def add_forwarding(module, pairs, options) do
-    assert_not_compiled!(:add_forwarding, module)
-
-    target = Orddict.get options, :to
-    via    = Orddict.get options, :via
-
-    case target do
-    match: nil
-      raise ArgumentError, message: "expected to: parameter in defforward"
-    else:
-      nil
-    end
-
-    table = data_table_for(module)
-    old   = ETS.lookup_element(table, :forwardings, 2)
-
-    info  = { via || :def, [target] }
-    new   = Orddict.from_enum(pairs, fn(x) -> {x, info} end)
-    final = Orddict.merge old, new, fn(_, { old_via, old_target }, { _, _ }) ->
-      { via || old_via, [target|old_target] }
-    end
-
-    ETS.insert(table, { :forwardings,  final })
-  end
-
-  @doc """
-  Remove a prevously stablished forwarding.
-
-  ## Examples
-
-      Module.remove_forwarding __MODULE__, [sample: 1]
-
-  """
-  def remove_forwarding(module, pair) do
-    assert_not_compiled!(:remove_forwarding, module)
-    table = data_table_for(module)
-    old   = ETS.lookup_element(table, :forwardings, 2)
-    final = Enum.reduce pair, old, Orddict.erase(&2, &1)
-    ETS.insert(table, { :forwardings,  final })
-  end
-
-  @doc """
   Adds an Erlang attribute to the given module with the given
   key and value. The same attribute can be added more than once.
 
@@ -349,23 +299,6 @@ defmodule Module do
   end
 
   @doc false
-  # Used internally to compile forwardings. This function
-  # is private and must be used only internally.
-  def compile_forwardings(module, forwardings) do
-    defined  = defined_functions(module)
-    contents = Enum.map forwardings, fn({ tuple, other }) ->
-      case List.member?(defined, tuple) do
-      match: true
-        nil
-      else:
-        contents_for_compile_forwarding(tuple, other)
-      end
-    end
-
-    eval_quoted module, contents, [], __FILE__, __LINE__
-  end
-
-  @doc false
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
   def compile_doc(module, line, kind, pair) do
@@ -380,20 +313,6 @@ defmodule Module do
   end
 
   ## Helpers
-
-  defp contents_for_compile_forwarding { name, arity }, { via, [target|callbacks] } do
-    args = lc i in List.seq(1, arity) do
-      { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
-    end
-
-    invoke = quote do
-      apply unquote(target), unquote(name), [__MODULE__, unquote(callbacks), unquote_splicing(args)]
-    end
-
-    quote do
-      unquote(via).(unquote(name).(unquote_splicing(args)), do: unquote(invoke))
-    end
-  end
 
   defp kind_to_entry(:def),      do: :public
   defp kind_to_entry(:defp),     do: :private
