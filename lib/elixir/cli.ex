@@ -113,7 +113,7 @@ defmodule Elixir::CLI do
   end
 
   defp process_options(['--no-stop'|t], config) do
-    process_compiler t, config.stop(false)
+    process_options t, config.stop(false)
   end
 
   defp process_options(['+compile'|t], config) do
