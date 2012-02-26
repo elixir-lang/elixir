@@ -161,13 +161,23 @@ translate_macro({Kind, Line, [Name, Args, Guards, Expr]}, S) when Kind == def; K
 
 %% Modules directives
 
-translate_macro({use, Line, [Ref|Args]}, S) when length(Args) =< 1 ->
+translate_macro({use, Line, [Raw|Args]}, S) when length(Args) =< 1 ->
   assert_module_scope(Line, use, S),
   Module = S#elixir_scope.module,
+  { TRef, SR } = translate_each(Raw, S),
+
+  Ref = case TRef of
+    { atom, _, RefAtom } -> RefAtom;
+    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for use, expected a reference as argument")
+  end,
+
+  elixir_ref:ensure_loaded(Line, Ref, SR, true),
+
   Call = { '__BLOCK__', Line, [
     { require, Line, [Ref] },
     { { '.', Line, [Ref, '__using__'] }, Line, [Module, Args] }
   ] },
+
   translate_each(Call, S);
 
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically

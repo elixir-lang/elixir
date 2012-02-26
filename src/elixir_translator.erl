@@ -90,8 +90,15 @@ translate_each({require, Line, [Ref|T]}, S) ->
 
   { TRef, SR } = translate_each(Ref, S),
 
+  Raise = case orddict:find(raise, KV) of
+    { ok, false } -> false;
+    _ -> true
+  end,
+
   case TRef of
     { atom, _, Old } ->
+      elixir_ref:ensure_loaded(Line, Old, SR, Raise),
+
       { New, SF } = case orddict:find(as, KV) of
         { ok, false } ->
           { Old, SR };
@@ -111,10 +118,9 @@ translate_each({require, Line, [Ref|T]}, S) ->
         refer=orddict:store(New, Old, S#elixir_scope.refer)
       } };
     _ ->
-      case orddict:find(raise, KV) of
-        { ok, false } ->
-          { { nil, Line }, S };
-        _ ->
+      case Raise of
+        false -> { { nil, Line }, S };
+        true ->
           syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected a reference as argument")
       end
   end;
