@@ -197,14 +197,18 @@ Besides the built-in data above, any developer can also add custom data:
 
     defmodule MyServer do
       @my_data 13
-      IO.puts @my_data #=> 13
+      IO.inspect @my_data #=> 13
     end
 
 After the module is compiled, the stored custom data can be accessed via `__info__(:data)` and it will return an `Orddict`:
 
     MyServer.__info__(:data) #=> [my_data: 13]
 
-> Note: Erlang developers may be wondering why Elixir provides its own data abstraction instead of using Erlang attributes. Erlang attributes are basically a list which also support duplicated values. For Elixir, since the same attributes may be read and updated several times during compilation, it makes more sense to have a dictionary structure instead of a list. Erlang developers can still add Erlang attributes though, via the `Module.add_attribute(module, attribute, value)` API.
+> Note: Erlang developers may be wondering why Elixir provides its own data abstraction instead of using Erlang attributes. Erlang attributes are basically a list which also allow duplicated entries. For Elixir, since the same data may be read and updated several times during compilation, it makes more sense to have a dictionary structure instead of a list. Erlang developers wishing to have the attributes functionality have two options:
+>
+> 1) Manually add Erlang attributes via the `Module.add_attribute(module, attribute, value)` API;
+>
+> 2) Register a name as an attribute via the `Module.register_attribute(module, attr)` API; For instance, `@behavior` seen above is registered as Erlang attribute, allowing it to be written to more than once;
 
 ## 3.6 Module nesting
 

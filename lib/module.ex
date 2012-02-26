@@ -5,6 +5,17 @@ import Elixir::Builtin, except: [to_char_list: 1]
 defmodule Module do
   require Erlang.ets, as: ETS
 
+  @moduledoc """
+  This module provides many functions to deal with modules during
+  compilation time. It allows a developer to dynamically attach
+  documentation, merge data, register attributes and so forth.
+
+  After the module is compiled, using many of the functions in
+  this module will raise errors, since it is out of their purpose
+  to inspect runtime data. Most of the runtime data can be inspected
+  via the `__info__(attr)` function attached to each compiled module.
+  """
+
   @doc """
   Evalutes the quotes contents in the given module context.
   Raises an error if the module was already compiled.
@@ -77,8 +88,13 @@ defmodule Module do
   end
 
   @doc """
-  Merge the given `new` data to the module, overriding
-  any previous one.
+  Merge the given data into the module, overriding any
+  previous one.
+
+  If any of the given data is a registered attribute, it is
+  automatically added to the attribute set, instead of marking
+  it as data. See register_attribute/2 and add_attribute/3 for
+  more info.
 
   ## Examples
 
@@ -89,13 +105,16 @@ defmodule Module do
       Foo.__info__(:data) #=> [value: 1]
 
   """
-  def merge_data(module, new) do
+  def merge_data(module, data) do
     assert_not_compiled!(:merge_data, module)
-    table = data_table_for(module)
-    old   = ETS.lookup_element(table, :data, 2)
-    final = Orddict.merge(old, new)
-    ETS.insert(table, { :data,  final })
-    final
+
+    table      = data_table_for(module)
+    old        = ETS.lookup_element(table, :data, 2)
+    registered = ETS.lookup_element(table, :registered_attributes, 2)
+
+    { attrs, new } = Enum.partition data, fn({k,_}) -> List.member?(registered, k) end
+    Enum.each attrs, fn({k,v}) -> add_attribute(module, k, v) end
+    ETS.insert(table, { :data,  Orddict.merge(old, new) })
   end
 
   @doc """
@@ -181,7 +200,7 @@ defmodule Module do
   end
 
   @doc """
-  Return all functions defined in te given module according
+  Returns all functions defined in te given module according
   to its kind.
 
   ## Examples

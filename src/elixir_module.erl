@@ -191,8 +191,7 @@ moduledoc_clause(Line, _Module, _) ->
 data_clause(Line, Module) ->
   DataTable  = data_table(Module),
   Data       = ets:lookup_element(DataTable, data, 2),
-  Registered = ets:lookup_element(DataTable, registered_attributes, 2),
-  Pruned     = translate_data(DataTable, Registered, Data),
+  Pruned     = translate_data(Data),
   { clause, Line, [{ atom, Line, data }], [], [elixir_tree_helpers:abstract_syntax(Pruned)] }.
 
 else_clause(Line) ->
@@ -221,37 +220,19 @@ each_callback_for(Line, Args, {M,F}, Acc) ->
 
 % ATTRIBUTES & DATA
 
-insert_attribute(DataTable, Attribute) ->
-  Current = ets:lookup_element(DataTable, attributes, 2),
-  ets:insert(DataTable, { attributes , [Attribute|Current] }).
-
-translate_data(Table, Registered, [{_,nil}|T]) ->
-  translate_data(Table, Registered, T);
-
-translate_data(Table, Registered, [{Skip,_}|T]) when Skip == doc; Skip == moduledoc; Skip == overridable ->
-  translate_data(Table, Registered, T);
-
-translate_data(Table, Registered, [{on_load,V}|T]) when is_atom(V) ->
-  translate_data(Table, Registered, [{on_load,{V,0}}|T]);
-
-translate_data(Table, Registered, [{K,V}|T]) ->
-  case reserved_data(Registered, K) of
-    true  ->
-      insert_attribute(Table, { K, V }),
-      translate_data(Table, Registered, T);
-    false -> [{K,V}|translate_data(Table, Registered, T)]
-  end;
-
-translate_data(_, _, []) -> [].
-
 translate_attribute(Line, X) ->
   { attribute, Line, element(1, X), element(2, X) }.
 
-reserved_data(_, callback)     -> true;
-reserved_data(_, type)         -> true;
-reserved_data(_, export_type)  -> true;
-reserved_data(_, spec)         -> true;
-reserved_data(Registered, Key) -> lists:member(Key, Registered).
+translate_data([{K,V}|T]) when
+  K == doc; K == moduledoc; K == spec; K == type;
+  K == export_type; K == callbacks; K == overridable;
+  V == nil ->
+  translate_data(T);
+
+translate_data([{K,V}|T]) ->
+  [{K,V}|translate_data(T)];
+
+translate_data([]) -> [].
 
 % ERROR HANDLING
 

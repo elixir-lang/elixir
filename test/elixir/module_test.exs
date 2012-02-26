@@ -50,6 +50,7 @@ defmodule ModuleTest do
 
   Module.register_attribute __MODULE__, :register_example
   @register_example :it_works
+  @register_example :still_works
 
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
@@ -101,7 +102,8 @@ defmodule ModuleTest do
   end
 
   test :registered_attributes do
-    assert_equal {:register_example,[:it_works]}, :lists.keyfind(:register_example, 1, __MODULE__.__info__(:attributes))
+    assert_equal [{:register_example,[:it_works]},{:register_example,[:still_works]}],
+      Enum.filter __MODULE__.__info__(:attributes), match?({ :register_example, _ }, &1)
   end
 
   test :duplicated_attributes do
