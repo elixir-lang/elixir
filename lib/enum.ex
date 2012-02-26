@@ -307,6 +307,22 @@ defmodule Enum do
     do_map_reduce(iterator.(collection), iterator, acc, fun)
   end
 
+  # Invokes the given `fun` for each item in the `collection`
+  # partitioning it in two lists.
+  #
+  # ## Examples
+  #
+  #     Enum.partition [1, 2, 3], fn(x, do: rem(x, 2) == 0)
+  #     #=> { [2], [1,3] }
+  #
+  def partition(collection, fun) do
+    partition(I.iterator(collection), collection, fun)
+  end
+
+  def partition(iterator, collection, fun) do
+    do_partition(iterator.(collection), iterator, fun, [], [])
+  end
+
   # Iterates the given function n times, passing values from 1
   # to n.
   #
@@ -522,6 +538,23 @@ defmodule Enum do
 
   defp do_map_reduce(__STOP_ITERATOR__, _, acc, _f) do
     { [], acc }
+  end
+
+  ## partition
+
+  defp do_partition({ h, next }, iterator, fun, acc1, acc2) do
+    case fun.(h) do
+    match: false
+      do_partition(iterator.(next), iterator, fun, acc1, [h|acc2])
+    match: nil
+      do_partition(iterator.(next), iterator, fun, acc1, [h|acc2])
+    else:
+      do_partition(iterator.(next), iterator, fun, [h|acc1], acc2)
+    end
+  end
+
+  defp do_partition(__STOP_ITERATOR__, _, _, acc1, acc2) do
+    { :lists.reverse(acc1), :lists.reverse(acc2) }
   end
 
   ## times

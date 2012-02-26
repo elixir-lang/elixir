@@ -3,7 +3,7 @@ Code.require_file "../test_helper", __FILE__
 defmodule EnumTest do
   use ExUnit::Case
 
-  def test_all? do
+  test :all? do
     assert Enum.all?([2,4,6], fn(x, do: rem(x, 2) == 0))
     refute Enum.all?([2,3,4], fn(x, do: rem(x, 2) == 0))
 
@@ -13,7 +13,7 @@ defmodule EnumTest do
     assert Enum.all?([])
   end
 
-  def test_any? do
+  test :any? do
     refute Enum.any?([2,4,6], fn(x, do: rem(x, 2) == 1))
     assert Enum.any?([2,3,4], fn(x, do: rem(x, 2) == 1))
 
@@ -35,7 +35,7 @@ defmodule EnumTest do
     assert Enum.find_value([2,3,4], fn(x, do: rem(x, 2) == 1))
   end
 
-  def test_empty? do
+  test :empty? do
     assert Enum.empty?([])
     refute Enum.empty?([1,2,3])
   end
@@ -96,6 +96,11 @@ defmodule EnumTest do
   test :mapfoldl do
     assert_equal { [], 1 }, Enum.map_reduce([], 1, fn(x, acc, do: { x * 2, x + acc }))
     assert_equal { [2,4,6], 7 }, Enum.map_reduce([1,2,3], 1, fn(x, acc, do: { x * 2, x + acc }))
+  end
+
+  test :partition do
+    assert_equal { [2], [1,3] }, Enum.partition([1,2,3], fn(x, do: rem(x, 2) == 0))
+    assert_equal { [2,4,6], [] }, Enum.partition([2,4,6], fn(x, do: rem(x, 2) == 0))
   end
 
   test :times_with_arity_0 do
