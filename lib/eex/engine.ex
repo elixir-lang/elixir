@@ -13,12 +13,4 @@ defmodule EEx::Engine do
       unquote(buffer)
     end
   end
-
-  def wrap_expr(current, buffer, chars, dict) do
-    key = length(dict)
-    placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
-    dict = Orddict.put(dict, key, buffer)
-
-    { current ++ placeholder ++ chars, dict }
-  end
 end

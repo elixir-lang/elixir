@@ -29,12 +29,12 @@ defmodule EEx::Compiler do
   end
 
   defp generate_buffer([{ :middle_expr, _, chars }|t], engine, buffer, [current|scope], dict) do
-    { wrapped, dict } = engine.wrap_expr(current, buffer, chars, dict)
+    { wrapped, dict } = wrap_expr(current, buffer, chars, dict)
     generate_buffer(t, engine, "", [wrapped|scope], dict)
   end
 
-  defp generate_buffer([{ :end_expr, _, chars }|t], engine, buffer, [current|_], dict) do
-    { wrapped, dict } = engine.wrap_expr(current, buffer, chars, dict)
+  defp generate_buffer([{ :end_expr, _, chars }|t], _engine, buffer, [current|_], dict) do
+    { wrapped, dict } = wrap_expr(current, buffer, chars, dict)
     tuples = { :__BLOCK__, 0, Erlang.elixir_translator.forms(wrapped, 1, 'nofile') }
     buffer = insert_quotes(tuples, dict)
     { buffer, t }
@@ -45,6 +45,16 @@ defmodule EEx::Compiler do
   end
 
   ####
+
+  def wrap_expr(current, buffer, chars, dict) do
+    key = length(dict)
+    placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
+    dict = Orddict.put(dict, key, buffer)
+
+    { current ++ placeholder ++ chars, dict }
+  end
+
+  ###
 
   def insert_quotes( { :__EEX__, _, [key] }, dict) do
     Orddict.get(dict, key)
