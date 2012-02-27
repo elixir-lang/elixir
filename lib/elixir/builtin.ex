@@ -240,10 +240,10 @@ defmodule Elixir::Builtin do
   defmacro is_exception(thing) do
     quote do
       in_guard do
-        is_tuple(unquote(thing)) and element(2, unquote(thing)) == __EXCEPTION__
+        is_tuple(unquote(thing)) and :erlang.element(2, unquote(thing)) == __EXCEPTION__
       else:
         result = unquote(thing)
-        is_tuple(result) and element(2, result) == __EXCEPTION__
+        is_tuple(result) and :erlang.element(2, result) == __EXCEPTION__
       end
     end
   end
@@ -264,10 +264,10 @@ defmodule Elixir::Builtin do
   defmacro is_record(thing, kind) do
     quote do
       in_guard do
-        is_tuple(unquote(thing)) and element(1, unquote(thing)) == unquote(kind)
+        is_tuple(unquote(thing)) and :erlang.element(1, unquote(thing)) == unquote(kind)
       else:
         result = unquote(thing)
-        is_tuple(result) and element(1, result) == unquote(kind)
+        is_tuple(result) and :erlang.element(1, result) == unquote(kind)
       end
     end
   end
@@ -486,7 +486,7 @@ defmodule Elixir::Builtin do
 
   """
   defmacro elem(tuple, index) do
-    quote do: element(unquote(index), unquote(tuple))
+    quote do: :erlang.element(unquote(index), unquote(tuple))
   end
 
   @doc """
@@ -500,7 +500,7 @@ defmodule Elixir::Builtin do
 
   """
   defmacro setelem(tuple, index, value) do
-    quote do: setelement(unquote(index), unquote(tuple), unquote(value))
+    quote do: :erlang.setelement(unquote(index), unquote(tuple), unquote(value))
   end
 
   @doc """
@@ -1003,7 +1003,7 @@ defmodule Elixir::Builtin do
     :erlang.error atom.new
   end
 
-  def raise(exception) when is_tuple(exception) and element(2, exception) == __EXCEPTION__ do
+  def raise(exception) when is_tuple(exception) and :erlang.element(2, exception) == __EXCEPTION__ do
     :erlang.error exception
   end
 

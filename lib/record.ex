@@ -99,19 +99,19 @@ defmodule Record do
   # It will define four methods:
   #
   #     def :atime.(record) do
-  #       element(2, record)
+  #       elem(record, 2)
   #     end
   #
   #     def :atime.(record, value) do
-  #       setelement(2, value, record)
+  #       setelem(record, 2, value)
   #     end
   #
   #     def :mtime.(record) do
-  #       element(3, record)
+  #       elem(record, 3)
   #     end
   #
   #     def :mtime.(record, value) do
-  #       setelement(3, value, record)
+  #       setelem(record, value, 3)
   #     end
   #
   # `element` and `setelement` will simply get and set values
@@ -227,16 +227,16 @@ defmodule Record::Definition do
 
     quote do
       def unquote(key).(record) do
-        element(unquote(i), record)
+        :erlang.element(unquote(i), record)
       end
 
       def unquote(key).(value, record) do
-        setelement(unquote(i), record, value)
+        :erlang.setelement(unquote(i), record, value)
       end
 
       def unquote(update).(function, record) do
-        current = element(unquote(i), record)
-        setelement(unquote(i), record, function.(current))
+        current = :erlang.element(unquote(i), record)
+        :erlang.setelement(unquote(i), record, function.(current))
       end
     end
   end
@@ -249,13 +249,13 @@ defmodule Record::Definition do
 
     quote do
       def unquote(prepend).(value, record) do
-        current = element(unquote(i), record)
-        setelement(unquote(i), record, List.prepend(value, current))
+        current = :erlang.element(unquote(i), record)
+        :erlang.setelement(unquote(i), record, List.prepend(value, current))
       end
 
       def unquote(merge).(value, record) do
-        current = element(unquote(i), record)
-        setelement(unquote(i), record, Orddict.merge(current, value))
+        current = :erlang.element(unquote(i), record)
+        :erlang.setelement(unquote(i), record, Orddict.merge(current, value))
       end
     end
   end
@@ -266,8 +266,8 @@ defmodule Record::Definition do
 
     quote do
       def unquote(increment).(value // 1, record) do
-        current = element(unquote(i), record)
-        setelement(unquote(i), record, current + value)
+        current = :erlang.element(unquote(i), record)
+        :erlang.setelement(unquote(i), record, current + value)
       end
     end
   end

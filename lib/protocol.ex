@@ -137,7 +137,7 @@ defmodule Protocol do
   # If this is the case, module::Record will be returned.
   defp each_protocol_for({ _, :is_record }) do
     quote do
-      def __protocol_for__(arg) when is_tuple(arg) and is_atom(element(1, arg)) do
+      def __protocol_for__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
         __MODULE__::Record
       end
     end
@@ -177,7 +177,7 @@ defmodule Protocol do
         case __protocol_for__(xA) do
         match: __MODULE__::Record
           try do
-            apply __MODULE__::element(1, xA), unquote(name), args
+            apply __MODULE__::(:erlang.element(1, xA)), unquote(name), args
           rescue: UndefinedFunctionError
             apply __MODULE__::unquote(fallback), unquote(name), args
           end

@@ -48,6 +48,9 @@ get_optional_macros('::Elixir::Builtin') ->
     error:undef -> ordsets:from_list(in_erlang_macros())
   end;
 
+%% Do not try to get macros from Erlang. Speeds up compilation a bit.
+get_optional_macros(erlang) -> [];
+
 get_optional_macros(Receiver) ->
   try
     ordsets:from_list(Receiver:'__info__'(macros))
@@ -163,7 +166,6 @@ in_erlang_functions() ->
     { byte_size, 1 },
     { date, 0 },
     { disconnect_node, 1 },
-    { element, 2 },
     { exit, 1 },
     { exit, 2 },
     { float, 1 },
@@ -215,7 +217,6 @@ in_erlang_functions() ->
     { now, 0 },
     { pid_to_list, 1 },
     { round, 1 },
-    { setelement, 3 },
     { size, 1 },
     { spawn, 1 },
     { spawn, 2 },
