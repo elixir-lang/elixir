@@ -1,60 +1,65 @@
 defprotocol Enum::Iterator, [iterator(collection)], only: [List, Record], as: I
 
-# Evalutes the items in the given collection according to the
-# Enum::Iterator protocol. Most functions in this module
-# will automatically retrieve the protocol given the collection
-# and iterator, for example:
-#
-#     Enum.map [1,2,3], fun(x, do: x * 2)
-#
-# However, one can use their own iteration function for any
-# collection by passing the iterator function as the first
-# argument:
-#
-#     Enum.map my_iteration_function, [1,2,3], fun(x, do: x * 2)
-#
-# ## The protocol
-#
-# When `Enum.map` is invoked without the iterator function,
-# it invokes `Enum::Iterator.iterator(collection)` with the
-# given collection in order to retrieve the default iterator
-# for that collection. You can implement the protocol for any
-# data type you wish. Elixir ships with a default iterator
-# for lists, implemented as follow:
-#
-#     defimpl Enum::Iterator, for: List do
-#       def iterator(list), do: { iterate(&1), iterate(list) }
-#
-#       defp iterate([h|t]) do
-#         { h, t }
-#       end
-#
-#       defp iterate([]) do
-#         __STOP_ITERATOR__
-#       end
-#     end
-#
-# The __STOP_ITERATOR__ is a special Elixir token that
-# marks when iteration should finish.
 defmodule Enum do
-  # Invokes the given `fun` for each item in the `collection`
-  # checking if all results evalutes to true. If any does not,
-  # abort and return false. Otherwise, true.
-  #
-  # ## Examples
-  #
-  #     Enum.all? [2,4,6], fn(x, do: rem(x, 2) == 0)
-  #     #=> true
-  #
-  #     Enum.all? [2,3,4], fn(x, do: rem(x, 2) == 0)
-  #     #=> false
-  #
-  # If no function is given, it defaults to checking if
-  # all items in the collection evalutes to true.
-  #
-  #     Enum.all? [1,2,3]   #=> true
-  #     Enum.all? [1,nil,3] #=> false
-  #
+  @moduledoc """
+  Evalutes the items in the given collection according to the
+  Enum::Iterator protocol. Most functions in this module
+  will automatically retrieve the protocol given the collection
+  and iterator, for example:
+
+      Enum.map [1,2,3], fun(x, do: x * 2)
+
+  However, one can use their own iteration function for any
+  collection by passing the iterator function as the first
+  argument:
+
+      Enum.map my_iteration_function, [1,2,3], fun(x, do: x * 2)
+
+  ## The protocol
+
+  When `Enum.map` is invoked without the iterator function,
+  it invokes `Enum::Iterator.iterator(collection)` with the
+  given collection in order to retrieve the default iterator
+  for that collection. You can implement the protocol for any
+  data type you wish. Elixir ships with a default iterator
+  for lists, implemented as follow:
+
+      defimpl Enum::Iterator, for: List do
+        def iterator(list), do: { iterate(&1), iterate(list) }
+
+        defp iterate([h|t]) do
+          { h, t }
+        end
+
+        defp iterate([]) do
+          __STOP_ITERATOR__
+        end
+      end
+
+  The __STOP_ITERATOR__ is a special Elixir token that
+  marks when iteration should finish.
+  """
+
+  @doc """
+  Invokes the given `fun` for each item in the `collection`
+  checking if all results evalutes to true. If any does not,
+  abort and return false. Otherwise, true.
+
+  ## Examples
+
+      Enum.all? [2,4,6], fn(x, do: rem(x, 2) == 0)
+      #=> true
+
+      Enum.all? [2,3,4], fn(x, do: rem(x, 2) == 0)
+      #=> false
+
+  If no function is given, it defaults to checking if
+  all items in the collection evalutes to true.
+
+      Enum.all? [1,2,3]   #=> true
+      Enum.all? [1,nil,3] #=> false
+
+  """
   def all?(collection, fun // fn(x, do: x)) do
     { iterator, pointer } = I.iterator(collection)
     all?(iterator, pointer, fun)
@@ -64,24 +69,26 @@ defmodule Enum do
     do_all?(pointer, iterator, fun)
   end
 
-  # Invokes the given `fun` for each item in the `collection`
-  # checking if any of the results returns true. If one does,
-  # aborts and returns true. If not, returns false.
-  #
-  # ## Examples
-  #
-  #     Enum.any? [2,4,6], fn(x, do: rem(x, 2) == 1)
-  #     #=> false
-  #
-  #     Enum.any? [2,3,4], fn(x, do: rem(x, 2) == 1)
-  #     #=> true
-  #
-  # If no function is given, it defaults to checking if
-  # any item in the collection evalutes to true.
-  #
-  #     Enum.any? [false,false,false] #=> false
-  #     Enum.any? [false,true,false]  #=> true
-  #
+  @doc """
+  Invokes the given `fun` for each item in the `collection`
+  checking if any of the results returns true. If one does,
+  aborts and returns true. If not, returns false.
+
+  ## Examples
+
+      Enum.any? [2,4,6], fn(x, do: rem(x, 2) == 1)
+      #=> false
+
+      Enum.any? [2,3,4], fn(x, do: rem(x, 2) == 1)
+      #=> true
+
+  If no function is given, it defaults to checking if
+  any item in the collection evalutes to true.
+
+      Enum.any? [false,false,false] #=> false
+      Enum.any? [false,true,false]  #=> true
+
+  """
   def any?(collection, fun // fn(x, do: x)) do
     { iterator, pointer } = I.iterator(collection)
     any?(iterator, pointer, fun)
@@ -91,14 +98,16 @@ defmodule Enum do
     do_any?(pointer, iterator, fun)
   end
 
-  # Drops the first *count* items from the collection.
-  #
-  # ## Examples
-  #
-  #     Enum.drop [1,2,3], 2  #=> [3]
-  #     Enum.drop [1,2,3], 10 #=> []
-  #     Enum.drop [1,2,3], 0  #=> [1,2,3]
-  #
+  @doc """
+  Drops the first *count* items from the collection.
+
+  ## Examples
+
+      Enum.drop [1,2,3], 2  #=> [3]
+      Enum.drop [1,2,3], 10 #=> []
+      Enum.drop [1,2,3], 0  #=> [1,2,3]
+
+  """
   def drop(collection, count) do
     { iterator, pointer } = I.iterator(collection)
     drop(iterator, pointer, count)
@@ -108,13 +117,15 @@ defmodule Enum do
     do_drop(pointer, iterator, count)
   end
 
-  # Invokes the given `fun` for each item in the `collection`.
-  # Returns the `collection` itself.
-  #
-  # ## Examples
-  #
-  #     Enum.each ['some', 'example'], fn(x, do: IO.puts x)
-  #
+  @doc """
+  Invokes the given `fun` for each item in the `collection`.
+  Returns the `collection` itself.
+
+  ## Examples
+
+      Enum.each ['some', 'example'], fn(x, do: IO.puts x)
+
+  """
   def each(collection, fun) do
     { iterator, pointer } = I.iterator(collection)
     each(iterator, pointer, fun)
@@ -126,13 +137,15 @@ defmodule Enum do
     pointer
   end
 
-  # Returns all the entries in the collection. It is the equivalent
-  # to calling map with an identify function.
-  #
-  # ## Examples
-  #
-  #     Enum.entries [1,2,3] #=> [1,2,3]
-  #
+  @doc """
+  Returns all the entries in the collection. It is the equivalent
+  to calling map with an identify function.
+
+  ## Examples
+
+      Enum.entries [1,2,3] #=> [1,2,3]
+
+  """
   def entries(collection) when is_list(collection) do
     collection
   end
@@ -141,13 +154,15 @@ defmodule Enum do
     map(collection, fn(x) -> x end)
   end
 
-  # Returns if the collection is empty or not.
-  #
-  # ## Examples
-  #
-  #     Enum.empty? [] #=> true
-  #     Enum.empty? [1,2,3] #=> false
-  #
+  @doc """
+  Returns if the collection is empty or not.
+
+  ## Examples
+
+      Enum.empty? [] #=> true
+      Enum.empty? [1,2,3] #=> false
+
+  """
   def empty?(collection) when is_list(collection) do
     collection == []
   end
@@ -161,14 +176,16 @@ defmodule Enum do
     pointer == __STOP_ITERATOR__
   end
 
-  # Invokes the given `fun` for each item in the `collection`.
-  # Returns only the items the function evalutes to true.
-  #
-  # ## Examples
-  #
-  #     Enum.filter [1, 2, 3], fn(x, do: rem(x, 2) == 0)
-  #     #=> [2]
-  #
+  @doc """
+  Invokes the given `fun` for each item in the `collection`.
+  Returns only the items the function evalutes to true.
+
+  ## Examples
+
+      Enum.filter [1, 2, 3], fn(x, do: rem(x, 2) == 0)
+      #=> [2]
+
+  """
   def filter(collection, fun) do
     { iterator, pointer } = I.iterator(collection)
     filter(iterator, pointer, fun)
@@ -178,13 +195,15 @@ defmodule Enum do
     do_filter(pointer, iterator, fun)
   end
 
-  # Filters the collection and maps its values in one pass.
-  #
-  # ## Examples
-  #
-  #     Enum.filter_map [1, 2, 3], fn(x, do: rem(x, 2) == 0), &1 * 2
-  #     #=> [4]
+  @doc """
+  Filters the collection and maps its values in one pass.
 
+  ## Examples
+
+      Enum.filter_map [1, 2, 3], fn(x, do: rem(x, 2) == 0), &1 * 2
+      #=> [4]
+
+  """
   def filter_map(collection, filter, mapper) do
     { iterator, pointer } = I.iterator(collection)
     filter_map(iterator, pointer, filter, mapper)
@@ -194,21 +213,23 @@ defmodule Enum do
     do_filter_map(pointer, iterator, filter, mapper)
   end
 
-  # Invokes the `fun` for each item in collection
-  # and returns the first the function returns a truthy
-  # value. If no item is found, returns `ifnone`.
-  #
-  # ## Examples
-  #
-  #     Enum.find [2,4,6], fn(x, do: rem(x, 2) == 1)
-  #     # => nil
-  #
-  #     Enum.find [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
-  #     # => 0
-  #
-  #     Enum.find [2,3,4], fn(x, do: rem(x, 2) == 1)
-  #     # => 3
-  #
+  @doc """
+  Invokes the `fun` for each item in collection
+  and returns the first the function returns a truthy
+  value. If no item is found, returns `ifnone`.
+
+  ## Examples
+
+      Enum.find [2,4,6], fn(x, do: rem(x, 2) == 1)
+      # => nil
+
+      Enum.find [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
+      # => 0
+
+      Enum.find [2,3,4], fn(x, do: rem(x, 2) == 1)
+      # => 3
+
+  """
   def find(collection, ifnone // nil, fun) do
     { iterator, pointer } = I.iterator(collection)
     find(iterator, pointer, ifnone, fun)
@@ -218,20 +239,22 @@ defmodule Enum do
     do_find(pointer, iterator, ifnone, fun)
   end
 
-  # Similar to find, but returns the value of the function
-  # invocation instead of the element iterated.
-  #
-  # ## Examples
-  #
-  #     Enum.find_value [2,4,6], fn(x, do: rem(x, 2) == 1)
-  #     # => nil
-  #
-  #     Enum.find_value [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
-  #     # => 0
-  #
-  #     Enum.find_value [2,3,4], fn(x, do: rem(x, 2) == 1)
-  #     # => true
-  #
+  @doc """
+  Similar to find, but returns the value of the function
+    invocation instead of the element iterated.
+
+    ## Examples
+
+        Enum.find_value [2,4,6], fn(x, do: rem(x, 2) == 1)
+        # => nil
+
+        Enum.find_value [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
+        # => 0
+
+        Enum.find_value [2,3,4], fn(x, do: rem(x, 2) == 1)
+        # => true
+
+  """
   def find_value(collection, ifnone // nil, fun) do
     { iterator, pointer } = I.iterator(collection)
     find_value(iterator, pointer, ifnone, fun)
@@ -241,18 +264,20 @@ defmodule Enum do
     do_find_value(pointer, iterator, ifnone, fun)
   end
 
-  # Join the given `collection` according to `joiner`.
-  # Joiner can be either a binary or a list and the
-  # result will be of the same type of joiner.
-  #
-  # All items in the collection must be convertable
-  # to binary, otherwise an error is raised.
-  #
-  # ## Examples
-  #
-  #     Enum.join([1,2,3], " = ") #=> "1 = 2 = 3"
-  #     Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
-  #
+  @doc """
+  Join the given `collection` according to `joiner`.
+  Joiner can be either a binary or a list and the
+  result will be of the same type of joiner.
+
+  All items in the collection must be convertable
+  to binary, otherwise an error is raised.
+
+  ## Examples
+
+      Enum.join([1,2,3], " = ") #=> "1 = 2 = 3"
+      Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
+
+  """
   def join(collection, joiner) do
     { iterator, pointer } = I.iterator(collection)
     join(iterator, pointer, joiner)
@@ -266,15 +291,17 @@ defmodule Enum do
     do_join(pointer, iterator, joiner, nil)
   end
 
-  # Finds the first item in collection of tuples where the element
-  # `position` in the tuple is equal to `key`. If none is found,
-  # returns `default` (which defaults to nil).
-  #
-  # ## Examples
-  #
-  #     list = [{:a,1},{:b,2},{:a,3}]
-  #     Enum.keyfind list, :a, 1 #=> {:a, 1}
-  #
+  @doc """
+  Finds the first item in collection of tuples where the element
+    `position` in the tuple is equal to `key`. If none is found,
+    returns `default` (which defaults to nil).
+
+    ## Examples
+
+        list = [{:a,1},{:b,2},{:a,3}]
+        Enum.keyfind list, :a, 1 #=> {:a, 1}
+
+  """
   def keyfind(collection, key, position, default) when is_list(collection) do
     :lists.keyfind(key, position, collection) || default
   end
@@ -288,14 +315,16 @@ defmodule Enum do
     do_keyfind(pointer, iterator, key, position, default)
   end
 
-  # Invokes the given `fun` for each item in the `collection`.
-  # Returns the result of all function calls.
-  #
-  # ## Examples
-  #
-  #     Enum.map [1, 2, 3], fn(x, do: x * 2)
-  #     #=> [2, 4, 6]
-  #
+  @doc """
+  Invokes the given `fun` for each item in the `collection`.
+    Returns the result of all function calls.
+
+    ## Examples
+
+        Enum.map [1, 2, 3], fn(x, do: x * 2)
+        #=> [2, 4, 6]
+
+  """
   def map(collection, fun) when is_list(collection) do
     lc item in collection, do: fun.(item)
   end
@@ -309,16 +338,18 @@ defmodule Enum do
     do_map(pointer, iterator, fun)
   end
 
-  # Invokes the given `fun` for each item in the `collection`
-  # while also keeping an accumulator. Returns a tuple where
-  # the first element is the iterated collection and the second
-  # one is the final accumulator.
-  #
-  # ## Examples
-  #
-  #     Enum.map_reduce [1, 2, 3], 0, fn(x, acc, do: { x * 2, x + acc })
-  #     #=> { [2, 4, 6], 6 }
-  #
+  @doc """
+  Invokes the given `fun` for each item in the `collection`
+  while also keeping an accumulator. Returns a tuple where
+  the first element is the iterated collection and the second
+  one is the final accumulator.
+
+  ## Examples
+
+      Enum.map_reduce [1, 2, 3], 0, fn(x, acc, do: { x * 2, x + acc })
+      #=> { [2, 4, 6], 6 }
+
+  """
   def map_reduce(collection, acc, f) when is_list(collection) do
     :lists.mapfoldl(f, acc, collection)
   end
@@ -332,14 +363,16 @@ defmodule Enum do
     do_map_reduce(pointer, iterator, acc, fun)
   end
 
-  # Invokes the given `fun` for each item in the `collection`
-  # partitioning it in two lists.
-  #
-  # ## Examples
-  #
-  #     Enum.partition [1, 2, 3], fn(x, do: rem(x, 2) == 0)
-  #     #=> { [2], [1,3] }
-  #
+  @doc """
+  Invokes the given `fun` for each item in the `collection`
+  partitioning it in two lists.
+
+  ## Examples
+
+      Enum.partition [1, 2, 3], fn(x, do: rem(x, 2) == 0)
+      #=> { [2], [1,3] }
+
+  """
   def partition(collection, fun) do
     { iterator, pointer } = I.iterator(collection)
     partition(iterator, pointer, fun)
@@ -349,14 +382,16 @@ defmodule Enum do
     do_partition(pointer, iterator, fun, [], [])
   end
 
-  # Iterates the collection passing an accumulator as parameter.
-  # Returns the accumulator.
-  #
-  # ## Examples
-  #
-  #     Enum.reduce [1, 2, 3], 0, fn(x, acc, do: x + acc)
-  #     #=> 6
-  #
+  @doc """
+  Iterates the collection passing an accumulator as parameter.
+  Returns the accumulator.
+
+  ## Examples
+
+      Enum.reduce [1, 2, 3], 0, fn(x, acc, do: x + acc)
+      #=> 6
+
+  """
   def reduce(collection, acc, f) when is_list(collection) do
     :lists.foldl(f, acc, collection)
   end
@@ -370,16 +405,18 @@ defmodule Enum do
     do_reduce(pointer, iterator, acc, f)
   end
 
-  # Iterates the given function n times, passing values from 1
-  # to n.
-  #
-  # ## Examples
-  #
-  #    Enum.times 3, fn(x, do: IO.puts x)
-  #    1
-  #    2
-  #    3
-  #
+  @doc """
+  Iterates the given function n times, passing values from 1
+  to n.
+
+  ## Examples
+
+     Enum.times 3, fn(x, do: IO.puts x)
+     1
+     2
+     3
+
+  """
   def times(times, function) when times >= 0 do
     case is_function(function, 0) do
     match: true
@@ -390,15 +427,17 @@ defmodule Enum do
     times
   end
 
-  # Iterates the given function n times, passing values from 1
-  # to n. Also has an accumulator similar to fold to store the
-  # value between computations.
-  #
-  # ## Examples
-  #
-  #    Enum.times 5, 0, fn(x, acc, do: acc + x)
-  #    #=> 15
-  #
+  @doc """
+  Iterates the given function n times, passing values from 1
+  to n. Also has an accumulator similar to fold to store the
+  value between computations.
+
+  ## Examples
+
+     Enum.times 5, 0, fn(x, acc, do: acc + x)
+     #=> 15
+
+  """
   def times(times, acc, function) when times >= 0 do
     do_times_2(times, 1, function, acc)
   end
