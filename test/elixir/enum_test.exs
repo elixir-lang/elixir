@@ -23,6 +23,15 @@ defmodule EnumTest do
     refute Enum.any?([])
   end
 
+  test :drop do
+    assert_equal [1,2,3], Enum.drop [1,2,3], 0
+    assert_equal [2,3], Enum.drop [1,2,3], 1
+    assert_equal [3], Enum.drop [1,2,3], 2
+    assert_equal [], Enum.drop [1,2,3], 3
+    assert_equal [], Enum.drop [1,2,3], 4
+    assert_equal [], Enum.drop [], 3
+  end
+
   test :find do
     assert_equal nil, Enum.find([2,4,6], fn(x, do: rem(x, 2) == 1))
     assert_equal 0, Enum.find([2,4,6], 0, fn(x, do: rem(x, 2) == 1))
@@ -47,6 +56,10 @@ defmodule EnumTest do
     assert_equal 6, Process.get(:enum_test_each)
   after:
     Process.delete(:enum_test_each)
+  end
+
+  test :entries do
+    assert_equal [1,2,3], Enum.entries([1,2,3])
   end
 
   test :filter do

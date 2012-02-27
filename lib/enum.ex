@@ -89,49 +89,20 @@ defmodule Enum do
     do_any?(iterator.(collection), iterator, fun)
   end
 
-  # Invokes the `fun` for each item in collection
-  # and returns the first the function returns a truthy
-  # value. If no item is found, returns `ifnone`.
+  # Drops the first *count* items from the collection.
   #
   # ## Examples
   #
-  #     Enum.find [2,4,6], fn(x, do: rem(x, 2) == 1)
-  #     # => nil
+  #     Enum.drop [1,2,3], 2  #=> [3]
+  #     Enum.drop [1,2,3], 10 #=> []
+  #     Enum.drop [1,2,3], 0  #=> [1,2,3]
   #
-  #     Enum.find [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
-  #     # => 0
-  #
-  #     Enum.find [2,3,4], fn(x, do: rem(x, 2) == 1)
-  #     # => 3
-  #
-  def find(collection, ifnone // nil, fun) do
-    find(I.iterator(collection), collection, ifnone, fun)
+  def drop(collection, count) do
+    drop(I.iterator(collection), collection, count)
   end
 
-  def find(iterator, collection, ifnone, fun) do
-    do_find(iterator.(collection), iterator, ifnone, fun)
-  end
-
-  # Similar to find, but returns the value of the function
-  # invocation instead of the element iterated.
-  #
-  # ## Examples
-  #
-  #     Enum.find_value [2,4,6], fn(x, do: rem(x, 2) == 1)
-  #     # => nil
-  #
-  #     Enum.find_value [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
-  #     # => 0
-  #
-  #     Enum.find_value [2,3,4], fn(x, do: rem(x, 2) == 1)
-  #     # => true
-  #
-  def find_value(collection, ifnone // nil, fun) do
-    find_value(I.iterator(collection), collection, ifnone, fun)
-  end
-
-  def find_value(iterator, collection, ifnone, fun) do
-    do_find_value(iterator.(collection), iterator, ifnone, fun)
+  def drop(iterator, collection, count) when count >= 0 do
+    do_drop(iterator.(collection), iterator, count, is_list(collection))
   end
 
   # Invokes the given `fun` for each item in the `collection`.
@@ -148,6 +119,21 @@ defmodule Enum do
   def each(iterator, collection, fun) do
     do_each(iterator.(collection), iterator, fun)
     collection
+  end
+
+  # Returns all the entries in the collection. It is the equivalent
+  # to calling map with an identify function.
+  #
+  # ## Examples
+  #
+  #     Enum.entries [1,2,3] #=> [1,2,3]
+  #
+  def entries(collection) when is_list(collection) do
+    collection
+  end
+
+  def entries(collection) do
+    map(collection, fn(x) -> x end)
   end
 
   # Returns if the collection is empty or not.
@@ -200,24 +186,49 @@ defmodule Enum do
     do_filter_map(iterator.(collection), iterator, filter, mapper)
   end
 
-  # Iterates the collection passing an accumulator as parameter.
-  # Returns the accumulator.
+  # Invokes the `fun` for each item in collection
+  # and returns the first the function returns a truthy
+  # value. If no item is found, returns `ifnone`.
   #
   # ## Examples
   #
-  #     Enum.reduce [1, 2, 3], 0, fn(x, acc, do: x + acc)
-  #     #=> 6
+  #     Enum.find [2,4,6], fn(x, do: rem(x, 2) == 1)
+  #     # => nil
   #
-  def reduce(collection, acc, f) when is_list(collection) do
-    :lists.foldl(f, acc, collection)
+  #     Enum.find [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
+  #     # => 0
+  #
+  #     Enum.find [2,3,4], fn(x, do: rem(x, 2) == 1)
+  #     # => 3
+  #
+  def find(collection, ifnone // nil, fun) do
+    find(I.iterator(collection), collection, ifnone, fun)
   end
 
-  def reduce(collection, acc, f) do
-    reduce(I.iterator(collection), collection, acc, f)
+  def find(iterator, collection, ifnone, fun) do
+    do_find(iterator.(collection), iterator, ifnone, fun)
   end
 
-  def reduce(iterator, collection, acc, f) do
-    do_reduce(iterator.(collection), iterator, acc, f)
+  # Similar to find, but returns the value of the function
+  # invocation instead of the element iterated.
+  #
+  # ## Examples
+  #
+  #     Enum.find_value [2,4,6], fn(x, do: rem(x, 2) == 1)
+  #     # => nil
+  #
+  #     Enum.find_value [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
+  #     # => 0
+  #
+  #     Enum.find_value [2,3,4], fn(x, do: rem(x, 2) == 1)
+  #     # => true
+  #
+  def find_value(collection, ifnone // nil, fun) do
+    find_value(I.iterator(collection), collection, ifnone, fun)
+  end
+
+  def find_value(iterator, collection, ifnone, fun) do
+    do_find_value(iterator.(collection), iterator, ifnone, fun)
   end
 
   # Join the given `collection` according to `joiner`.
@@ -323,6 +334,26 @@ defmodule Enum do
     do_partition(iterator.(collection), iterator, fun, [], [])
   end
 
+  # Iterates the collection passing an accumulator as parameter.
+  # Returns the accumulator.
+  #
+  # ## Examples
+  #
+  #     Enum.reduce [1, 2, 3], 0, fn(x, acc, do: x + acc)
+  #     #=> 6
+  #
+  def reduce(collection, acc, f) when is_list(collection) do
+    :lists.foldl(f, acc, collection)
+  end
+
+  def reduce(collection, acc, f) do
+    reduce(I.iterator(collection), collection, acc, f)
+  end
+
+  def reduce(iterator, collection, acc, f) do
+    do_reduce(iterator.(collection), iterator, acc, f)
+  end
+
   # Iterates the given function n times, passing values from 1
   # to n.
   #
@@ -391,6 +422,25 @@ defmodule Enum do
   defp do_any?(__STOP_ITERATOR__, _, _) do
     false
   end
+
+  ## drop
+
+  defp do_drop({ _, next }, iterator, counter, bool) when counter > 0 do
+    do_drop(iterator.(next), iterator, counter - 1, bool)
+  end
+
+  defp do_drop({ h, next }, _iterator, 0, true) do
+    [h|next]
+  end
+
+  defp do_drop({ h, next }, iterator, 0, _) do
+    [h|map(iterator, next, fn(x) -> x end)]
+  end
+
+  defp do_drop(__STOP_ITERATOR__, _, _, _) do
+    []
+  end
+
 
   ## find
 
