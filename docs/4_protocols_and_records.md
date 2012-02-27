@@ -4,7 +4,7 @@ Elixir provides both protocols and records. This section will outline the main f
 
 ## 4.1 Records
 
-Records are simple structures that holds values. For example, we can define a `FileInfo` record that is supposed to store information about files as follow:
+Records are simple structures that holds values. For example, we can define a `FileInfo` record that is supposed to store information about files as follows:
 
     defrecord FileInfo, atime: nil, mtime: nil, accesses: 0
 
@@ -57,11 +57,11 @@ Protocols allows us to define contracts. Dispatching a protocol is available to 
 
 In Elixir, only `false` and `nil` are considered falsy values. Everything else evaluates to true. Depending on the application, it may be important to specify a `blank?` protocol that returns a boolean for other data types that should be considered blank. For instance, an empty list or an empty binary could be considered blanks.
 
-We could implement this protocol as follow:
+We could implement this protocol as follows:
 
     defprotocol Blank, [ blank?(data) ]
 
-The protocol expects a function called `blank?` expecting one argument to be implemented. We can implement this protocol for some Elixir data types as follow:
+The protocol expects a function called `blank?` expecting one argument to be implemented. We can implement this protocol for some Elixir data types as follows:
 
     # Numbers are never blank
     defimpl Blank, for: Number do
@@ -125,7 +125,7 @@ Elixir ships with three built-in protocols, they are:
 
 * Enum::Iterator - specifies an iteration contract for any data structure
 * String::Chars - specifies how to convert a data structure with characters to binary
-* List::Chars - specifies how to convert a data structures with characters to lists
+* List::Chars - specifies how to convert a data structure with characters to lists
 * String::Inspect - specifies how to convert any data structure to a string for inspection
 
 You can check the source code of those files for more information about how the protocol is used and how to implement your own. With this, we have finally finished this section which has described `defrecord`, `defprotocol` and `defimpl`. Next, we are going to discuss macros with `defmacro`!
