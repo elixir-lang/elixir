@@ -9,6 +9,12 @@ defmodule ExUnit::Case do
     quote do
       import ExUnit::Assertions
       import ExUnit::Case
+
+      @overridable true
+      def setup_all, do: :ok
+
+      @overridable true
+      def teardown_all, do: :ok
     end
   end
 
