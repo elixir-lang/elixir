@@ -116,6 +116,24 @@ defmodule EnumTest do
     assert_equal { [2,4,6], [] }, Enum.partition([2,4,6], fn(x, do: rem(x, 2) == 0))
   end
 
+  test :split do
+    assert_equal { [], [1,2,3] }, Enum.split [1,2,3], 0
+    assert_equal { [1], [2,3] }, Enum.split [1,2,3], 1
+    assert_equal { [1,2], [3] }, Enum.split [1,2,3], 2
+    assert_equal { [1,2,3], [] }, Enum.split [1,2,3], 3
+    assert_equal { [1,2,3], [] }, Enum.split [1,2,3], 4
+    assert_equal { [], [] }, Enum.split [], 3
+  end
+
+  test :take do
+    assert_equal [], Enum.take [1,2,3], 0
+    assert_equal [1], Enum.take [1,2,3], 1
+    assert_equal [1,2], Enum.take [1,2,3], 2
+    assert_equal [1,2,3], Enum.take [1,2,3], 3
+    assert_equal [1,2,3], Enum.take [1,2,3], 4
+    assert_equal [], Enum.take [], 3
+  end
+
   test :times_with_arity_0 do
     Process.put(:times_with_arity, nil)
     assert_equal 0, Enum.times(0, fn do: Process.put(:times_with_arity, :ok))

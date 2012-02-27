@@ -113,8 +113,8 @@ defmodule Enum do
     drop(iterator, pointer, count)
   end
 
-  def drop(iterator, pointer, count) when count >= 0 do
-    do_drop(pointer, iterator, count)
+  def drop(iterator, pointer, count) do
+    elem split(iterator, pointer, count), 2
   end
 
   @doc """
@@ -406,6 +406,44 @@ defmodule Enum do
   end
 
   @doc """
+  Splits the enumerable in the given counter.
+
+  ## Examples
+
+      Enum.split [1,2,3], 2  #=> { [1,2], [3] }
+      Enum.split [1,2,3], 10 #=> { [1,2,3], [] }
+      Enum.split [1,2,3], 0  #=> { [], [1,2,3] }
+
+  """
+  def split(collection, count) do
+    { iterator, pointer } = I.iterator(collection)
+    split(iterator, pointer, count)
+  end
+
+  def split(iterator, pointer, count) when count >= 0 do
+    do_split(pointer, iterator, count, [])
+  end
+
+  @doc """
+  Takes the first *count* items from the collection.
+
+  ## Examples
+
+      Enum.take [1,2,3], 2  #=> [1,2]
+      Enum.take [1,2,3], 10 #=> [1,2,3]
+      Enum.take [1,2,3], 0  #=> []
+
+  """
+  def take(collection, count) do
+    { iterator, pointer } = I.iterator(collection)
+    take(iterator, pointer, count)
+  end
+
+  def take(iterator, pointer, count) do
+    elem split(iterator, pointer, count), 1
+  end
+
+  @doc """
   Iterates the given function n times, passing values from 1
   to n.
 
@@ -477,25 +515,6 @@ defmodule Enum do
   defp do_any?(__STOP_ITERATOR__, _, _) do
     false
   end
-
-  ## drop
-
-  defp do_drop({ _, next }, iterator, counter) when counter > 0 do
-    do_drop(iterator.(next), iterator, counter - 1)
-  end
-
-  defp do_drop({ h, next }, _iterator, 0) when is_list(next) do
-    [h|next]
-  end
-
-  defp do_drop({ h, next }, iterator, 0) do
-    [h|map(iterator, next, fn(x) -> x end)]
-  end
-
-  defp do_drop(__STOP_ITERATOR__, _, _) do
-    []
-  end
-
 
   ## find
 
@@ -660,6 +679,24 @@ defmodule Enum do
 
   defp do_partition(__STOP_ITERATOR__, _, _, acc1, acc2) do
     { :lists.reverse(acc1), :lists.reverse(acc2) }
+  end
+
+  ## split
+
+  defp do_split({ h, next }, iterator, counter, acc) when counter > 0 do
+    do_split(iterator.(next), iterator, counter - 1, [h|acc])
+  end
+
+  defp do_split({ h, next }, _iterator, 0, acc) when is_list(next) do
+    { List.reverse(acc), [h|next] }
+  end
+
+  defp do_split({ h, next }, iterator, 0, acc) do
+    { List.reverse(acc), [h|map(iterator, next, fn(x) -> x end)] }
+  end
+
+  defp do_split(__STOP_ITERATOR__, _, _, acc) do
+    { List.reverse(acc), [] }
   end
 
   ## times
