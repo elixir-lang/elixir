@@ -192,8 +192,6 @@ in_erlang_functions() ->
     { is_number, 1 },
     { is_pid, 1 },
     { is_port, 1 },
-    { is_record, 2 },
-    { is_record, 3 },
     { is_reference, 1 },
     { is_tuple, 1 },
     { length, 1 },

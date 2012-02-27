@@ -249,6 +249,30 @@ defmodule Elixir::Builtin do
   end
 
   @doc """
+  Check if the given structure is a record. It is basically
+  a convenient macro that checks the structure is a tuple and
+  the first element matches the given kind.
+
+  ## Examples
+
+      defrecord Config, sample: nil
+
+      is_record(Config.new, Config) #=> true
+      is_record(Config.new, List)   #=> false
+
+  """
+  defmacro is_record(thing, kind) do
+    quote do
+      in_guard do
+        is_tuple(unquote(thing)) and element(1, unquote(thing)) == unquote(kind)
+      else:
+        result = unquote(thing)
+        is_tuple(result) and element(1, result) == unquote(kind)
+      end
+    end
+  end
+
+  @doc """
   Defines the current module as a protocol and specifies the API
   that should be implemented.
 
