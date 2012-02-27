@@ -66,15 +66,15 @@ defmodule EEx::Tokenizer do
   # Start tokens finish with `do` or `->`
   # while end tokens contain only the end word.
 
-  defp tip_expr_token_name([h|t]) when h == ?\s orelse h == ?\t do
+  defp tip_expr_token_name([h|t]) when h == ?\s or h == ?\t do
     tip_expr_token_name(t)
   end
 
-  defp tip_expr_token_name('od' ++ [h|_]) when h == ?\s orelse h == ?\t orelse h == ?) do
+  defp tip_expr_token_name('od' ++ [h|_]) when h == ?\s or h == ?\t or h == ?) do
     :start_expr
   end
 
-  defp tip_expr_token_name('>-' ++ [h|_]) when h == ?\s orelse h == ?\t orelse h == ?) do
+  defp tip_expr_token_name('>-' ++ [h|_]) when h == ?\s or h == ?\t or h == ?) do
     :start_expr
   end
 
@@ -89,11 +89,11 @@ defmodule EEx::Tokenizer do
   # Receive an expression contents and see if it matches
   # a key-value arg syntax, like elsif: foo.
 
-  defp middle_expr_token_name([h|t]) when h == ?\s orelse h == ?\t do
+  defp middle_expr_token_name([h|t]) when h == ?\s or h == ?\t do
     middle_expr_token_name(t)
   end
 
-  defp middle_expr_token_name([h|t]) when h >= ?a andalso h <= ?z do
+  defp middle_expr_token_name([h|t]) when h >= ?a and h <= ?z do
     if valid_key_identifier?(t), do: :middle_expr, else: :expr
   end
 
@@ -102,9 +102,9 @@ defmodule EEx::Tokenizer do
   end
 
   defp valid_key_identifier?([h|t]) \
-      when h >= ?a andalso h <= ?z   \
-      when h >= ?A andalso h <= ?Z   \
-      when h >= ?0 andalso h <= ?9 do
+      when h >= ?a and h <= ?z   \
+      when h >= ?A and h <= ?Z   \
+      when h >= ?0 and h <= ?9 do
     valid_key_identifier?(t)
   end
 
@@ -116,7 +116,7 @@ defmodule EEx::Tokenizer do
     false
   end
 
-  defp only_spaces?([h|t]) when h == ?\s orelse h == ?\t, do: only_spaces?(t)
+  defp only_spaces?([h|t]) when h == ?\s or h == ?\t, do: only_spaces?(t)
   defp only_spaces?(other), do: other == []
 
   # Tokenize the buffered text by appending
