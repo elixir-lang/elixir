@@ -36,6 +36,14 @@ defmodule EExTest do
     assert_eval "foo baz", "foo <% if false do %>bar<% else: %>baz<% end %>"
   end
 
+  test "compile with nested start expression" do
+    assert_eval "foo bar", "foo <% if true do %><% if true do %>bar<% end %><% end %>"
+  end
+
+  test "compile with nested middle expression" do
+    assert_eval "foo baz", "foo <% if true do %><% if false do %>bar<% else: %>baz<% end %><% end %>"
+  end
+
   defp assert_eval(expected, atual) do
     compiled = EEx.compile(atual)
     { result, _ } = Code.eval_quoted(compiled, [], __FILE__, __LINE__)
