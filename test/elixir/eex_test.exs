@@ -23,8 +23,9 @@ defmodule EExTest do
     assert_eval "foo bar", "foo <% if true do %><%= :bar %><% end %>"
   end
 
-  test "compile with embedded do end and nested expression" do
-    assert_eval "foo ", "foo <% if true do %><% 1 + 2 %><% end %>"
+  test "compile with embedded do end and nested expressions" do
+    assert_eval "foo bar baz", "foo <% if true do %>bar <% Process.put(:eex_text, 1) %><%= :baz %><% end %>"
+    assert_equal 1, Process.get(:eex_text)
   end
 
   test "compile with embedded middle expression" do
