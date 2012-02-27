@@ -23,7 +23,7 @@ defprotocol Enum::Iterator, [iterator(collection)], only: [List, Record], as: I
 # for lists, implemented as follow:
 #
 #     defimpl Enum::Iterator, for: List do
-#       def iterator(_), do: iterate(&1)
+#       def iterator(list), do: { iterate(&1), iterate(list) }
 #
 #       defp iterate([h|t]) do
 #         { h, t }
@@ -56,11 +56,12 @@ defmodule Enum do
   #     Enum.all? [1,nil,3] #=> false
   #
   def all?(collection, fun // fn(x, do: x)) do
-    all?(I.iterator(collection), collection, fun)
+    { iterator, pointer } = I.iterator(collection)
+    all?(iterator, pointer, fun)
   end
 
-  def all?(iterator, collection, fun) do
-    do_all?(iterator.(collection), iterator, fun)
+  def all?(iterator, pointer, fun) do
+    do_all?(pointer, iterator, fun)
   end
 
   # Invokes the given `fun` for each item in the `collection`
@@ -82,11 +83,12 @@ defmodule Enum do
   #     Enum.any? [false,true,false]  #=> true
   #
   def any?(collection, fun // fn(x, do: x)) do
-    any?(I.iterator(collection), collection, fun)
+    { iterator, pointer } = I.iterator(collection)
+    any?(iterator, pointer, fun)
   end
 
-  def any?(iterator, collection, fun) do
-    do_any?(iterator.(collection), iterator, fun)
+  def any?(iterator, pointer, fun) do
+    do_any?(pointer, iterator, fun)
   end
 
   # Drops the first *count* items from the collection.
@@ -98,11 +100,12 @@ defmodule Enum do
   #     Enum.drop [1,2,3], 0  #=> [1,2,3]
   #
   def drop(collection, count) do
-    drop(I.iterator(collection), collection, count)
+    { iterator, pointer } = I.iterator(collection)
+    drop(iterator, pointer, count)
   end
 
-  def drop(iterator, collection, count) when count >= 0 do
-    do_drop(iterator.(collection), iterator, count, is_list(collection))
+  def drop(iterator, pointer, count) when count >= 0 do
+    do_drop(pointer, iterator, count)
   end
 
   # Invokes the given `fun` for each item in the `collection`.
@@ -113,12 +116,14 @@ defmodule Enum do
   #     Enum.each ['some', 'example'], fn(x, do: IO.puts x)
   #
   def each(collection, fun) do
-    each(I.iterator(collection), collection, fun)
+    { iterator, pointer } = I.iterator(collection)
+    each(iterator, pointer, fun)
+    collection
   end
 
-  def each(iterator, collection, fun) do
-    do_each(iterator.(collection), iterator, fun)
-    collection
+  def each(iterator, pointer, fun) do
+    do_each(pointer, iterator, fun)
+    pointer
   end
 
   # Returns all the entries in the collection. It is the equivalent
@@ -148,11 +153,12 @@ defmodule Enum do
   end
 
   def empty?(collection) do
-    empty?(I.iterator(collection), collection)
+    { iterator, pointer } = I.iterator(collection)
+    empty?(iterator, pointer)
   end
 
-  def empty?(iterator, collection) do
-    iterator.(collection) == __STOP_ITERATOR__
+  def empty?(_iterator, pointer) do
+    pointer == __STOP_ITERATOR__
   end
 
   # Invokes the given `fun` for each item in the `collection`.
@@ -164,11 +170,12 @@ defmodule Enum do
   #     #=> [2]
   #
   def filter(collection, fun) do
-    filter(I.iterator(collection), collection, fun)
+    { iterator, pointer } = I.iterator(collection)
+    filter(iterator, pointer, fun)
   end
 
-  def filter(iterator, collection, fun) do
-    do_filter(iterator.(collection), iterator, fun)
+  def filter(iterator, pointer, fun) do
+    do_filter(pointer, iterator, fun)
   end
 
   # Filters the collection and maps its values in one pass.
@@ -179,11 +186,12 @@ defmodule Enum do
   #     #=> [4]
 
   def filter_map(collection, filter, mapper) do
-    filter_map(I.iterator(collection), collection, filter, mapper)
+    { iterator, pointer } = I.iterator(collection)
+    filter_map(iterator, pointer, filter, mapper)
   end
 
-  def filter_map(iterator, collection, filter, mapper) do
-    do_filter_map(iterator.(collection), iterator, filter, mapper)
+  def filter_map(iterator, pointer, filter, mapper) do
+    do_filter_map(pointer, iterator, filter, mapper)
   end
 
   # Invokes the `fun` for each item in collection
@@ -202,11 +210,12 @@ defmodule Enum do
   #     # => 3
   #
   def find(collection, ifnone // nil, fun) do
-    find(I.iterator(collection), collection, ifnone, fun)
+    { iterator, pointer } = I.iterator(collection)
+    find(iterator, pointer, ifnone, fun)
   end
 
-  def find(iterator, collection, ifnone, fun) do
-    do_find(iterator.(collection), iterator, ifnone, fun)
+  def find(iterator, pointer, ifnone, fun) do
+    do_find(pointer, iterator, ifnone, fun)
   end
 
   # Similar to find, but returns the value of the function
@@ -224,11 +233,12 @@ defmodule Enum do
   #     # => true
   #
   def find_value(collection, ifnone // nil, fun) do
-    find_value(I.iterator(collection), collection, ifnone, fun)
+    { iterator, pointer } = I.iterator(collection)
+    find_value(iterator, pointer, ifnone, fun)
   end
 
-  def find_value(iterator, collection, ifnone, fun) do
-    do_find_value(iterator.(collection), iterator, ifnone, fun)
+  def find_value(iterator, pointer, ifnone, fun) do
+    do_find_value(pointer, iterator, ifnone, fun)
   end
 
   # Join the given `collection` according to `joiner`.
@@ -244,15 +254,16 @@ defmodule Enum do
   #     Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
   #
   def join(collection, joiner) do
-    join(I.iterator(collection), collection, joiner)
+    { iterator, pointer } = I.iterator(collection)
+    join(iterator, pointer, joiner)
   end
 
   def join(iterator, collection, joiner) when is_list(joiner) do
     binary_to_list join(iterator, collection, list_to_binary(joiner))
   end
 
-  def join(iterator, collection, joiner) do
-    do_join(iterator.(collection), iterator, joiner, nil)
+  def join(iterator, pointer, joiner) do
+    do_join(pointer, iterator, joiner, nil)
   end
 
   # Finds the first item in collection of tuples where the element
@@ -269,11 +280,12 @@ defmodule Enum do
   end
 
   def keyfind(collection, key, position, default // nil) do
-    keyfind(I.iterator(collection), collection, key, position, default)
+    { iterator, pointer } = I.iterator(collection)
+    keyfind(iterator, pointer, key, position, default)
   end
 
-  def keyfind(iterator, collection, key, position, default) do
-    do_keyfind(iterator.(collection), iterator, key, position, default)
+  def keyfind(iterator, pointer, key, position, default) do
+    do_keyfind(pointer, iterator, key, position, default)
   end
 
   # Invokes the given `fun` for each item in the `collection`.
@@ -289,11 +301,12 @@ defmodule Enum do
   end
 
   def map(collection, fun) do
-    map(I.iterator(collection), collection, fun)
+    { iterator, pointer } = I.iterator(collection)
+    map(iterator, pointer, fun)
   end
 
-  def map(iterator, collection, fun) do
-    do_map(iterator.(collection), iterator, fun)
+  def map(iterator, pointer, fun) do
+    do_map(pointer, iterator, fun)
   end
 
   # Invokes the given `fun` for each item in the `collection`
@@ -311,11 +324,12 @@ defmodule Enum do
   end
 
   def map_reduce(collection, acc, fun) do
-    map_reduce(I.iterator(collection), collection, acc, fun)
+    { iterator, pointer } = I.iterator(collection)
+    map_reduce(iterator, pointer, acc, fun)
   end
 
-  def map_reduce(iterator, collection, acc, fun) do
-    do_map_reduce(iterator.(collection), iterator, acc, fun)
+  def map_reduce(iterator, pointer, acc, fun) do
+    do_map_reduce(pointer, iterator, acc, fun)
   end
 
   # Invokes the given `fun` for each item in the `collection`
@@ -327,11 +341,12 @@ defmodule Enum do
   #     #=> { [2], [1,3] }
   #
   def partition(collection, fun) do
-    partition(I.iterator(collection), collection, fun)
+    { iterator, pointer } = I.iterator(collection)
+    partition(iterator, pointer, fun)
   end
 
-  def partition(iterator, collection, fun) do
-    do_partition(iterator.(collection), iterator, fun, [], [])
+  def partition(iterator, pointer, fun) do
+    do_partition(pointer, iterator, fun, [], [])
   end
 
   # Iterates the collection passing an accumulator as parameter.
@@ -347,11 +362,12 @@ defmodule Enum do
   end
 
   def reduce(collection, acc, f) do
-    reduce(I.iterator(collection), collection, acc, f)
+    { iterator, pointer } = I.iterator(collection)
+    reduce(iterator, pointer, acc, f)
   end
 
-  def reduce(iterator, collection, acc, f) do
-    do_reduce(iterator.(collection), iterator, acc, f)
+  def reduce(iterator, pointer, acc, f) do
+    do_reduce(pointer, iterator, acc, f)
   end
 
   # Iterates the given function n times, passing values from 1
@@ -425,19 +441,19 @@ defmodule Enum do
 
   ## drop
 
-  defp do_drop({ _, next }, iterator, counter, bool) when counter > 0 do
-    do_drop(iterator.(next), iterator, counter - 1, bool)
+  defp do_drop({ _, next }, iterator, counter) when counter > 0 do
+    do_drop(iterator.(next), iterator, counter - 1)
   end
 
-  defp do_drop({ h, next }, _iterator, 0, true) do
+  defp do_drop({ h, next }, _iterator, 0) when is_list(next) do
     [h|next]
   end
 
-  defp do_drop({ h, next }, iterator, 0, _) do
+  defp do_drop({ h, next }, iterator, 0) do
     [h|map(iterator, next, fn(x) -> x end)]
   end
 
-  defp do_drop(__STOP_ITERATOR__, _, _, _) do
+  defp do_drop(__STOP_ITERATOR__, _, _) do
     []
   end
 
@@ -636,7 +652,7 @@ defmodule Enum do
 end
 
 defimpl Enum::Iterator, for: List do
-  def iterator(_), do: iterate(&1)
+  def iterator(list), do: { iterate(&1), iterate(list) }
 
   defp iterate([h|t]) do
     { h, t }
