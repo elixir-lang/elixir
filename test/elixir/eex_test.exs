@@ -44,6 +44,14 @@ defmodule EExTest do
     assert_eval "foo baz", "foo <% if true do %><% if false do %>bar<% else: %>baz<% end %><% end %>"
   end
 
+  test "compile with defined variable" do
+    assert_eval "foo 1", "foo <% bar = 1 %><%= bar %>"
+  end
+
+  test "compile with require code" do
+    assert_eval "foo 1,2,3", "foo <% require Enum, as: E %><%= E.join [1,2,3], \",\" %>"
+  end
+
   defp assert_eval(expected, atual) do
     compiled = EEx.compile(atual)
     { result, _ } = Code.eval_quoted(compiled, [], __FILE__, __LINE__)
