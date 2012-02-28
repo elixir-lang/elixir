@@ -1,6 +1,6 @@
 # Variables definitions:
 
-#  variable definition ecursively expanded when the variable is used,
+#  variable definition recursively expanded when the variable is used,
 #  not when it's declared
 REBAR =$(shell which rebar || echo ./rebar)
 
