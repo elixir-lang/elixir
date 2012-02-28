@@ -33,13 +33,13 @@ defmodule EEx::Compiler do
     generate_buffer(t, buffer, scope, state.dict([]))
   end
 
-  defp generate_buffer([{ :middle_expr, _, _, chars }|t], buffer, [current|scope], state) do
-    { wrapped, state } = wrap_expr(current, buffer, chars, state)
+  defp generate_buffer([{ :middle_expr, line, _, chars }|t], buffer, [current|scope], state) do
+    { wrapped, state } = wrap_expr(current, line, buffer, chars, state)
     generate_buffer(t, "", [wrapped|scope], state)
   end
 
-  defp generate_buffer([{ :end_expr, _, _, chars }|t], buffer, [current|_], state) do
-    { wrapped, state } = wrap_expr(current, buffer, chars, state)
+  defp generate_buffer([{ :end_expr, line, _, chars }|t], buffer, [current|_], state) do
+    { wrapped, state } = wrap_expr(current, line, buffer, chars, state)
     tuples = { :__BLOCK__, 0, Erlang.elixir_translator.forms(wrapped, state.line, 'nofile') }
     buffer = insert_quotes(tuples, state.dict)
     { buffer, t }
@@ -59,11 +59,13 @@ defmodule EEx::Compiler do
 
   ####
 
-  def wrap_expr(current, buffer, chars, state) do
+  def wrap_expr(current, line, buffer, chars, state) do
     key = length(state.dict)
+    # TODO: Implement list duplicate
+    new_lines = :lists.duplicate(line - state.line, ?\n)
     placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
 
-    { current ++ placeholder ++ chars, state.merge_dict([{key, buffer}]) }
+    { current ++ new_lines ++ placeholder ++ chars, state.merge_dict([{key, buffer}]) }
   end
 
   ###

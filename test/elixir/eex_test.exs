@@ -80,7 +80,7 @@ defmodule EExTest do
     assert_equal "unexpected token: ' end '", error.message
   end
 
-  test "compile respect the lines" do
+  test "respects line numbers" do
     expected = """
 foo
 2
@@ -94,7 +94,7 @@ foo
     assert_eval expected, string
   end
 
-  test "compile respect the lines if start expressions" do
+  test "respects line numbers inside nested expressions" do
     expected = """
 foo
 
@@ -114,7 +114,49 @@ foo
     assert_eval expected, string
   end
 
-  test "compile respect the lines if middle expressions" do
+  test "respects line numbers inside start expression" do
+    expected = """
+foo
+
+true
+
+5
+"""
+
+    string = """
+foo
+<% if __LINE__ == 2 do %>
+<%= true %>
+<% end %>
+<%= __LINE__ %>
+"""
+
+    assert_eval expected, string
+  end
+
+  test "respects line numbers inside middle expression" do
+    expected = """
+foo
+
+true
+
+7
+"""
+
+    string = """
+foo
+<% if false do %>
+<%= false %>
+<% elsif: __LINE__ == 4 %>
+<%= true %>
+<% end %>
+<%= __LINE__ %>
+"""
+
+    assert_eval expected, string
+  end
+
+  test "respects line number inside nested expressions with many clauses" do
     expected = """
 foo
 

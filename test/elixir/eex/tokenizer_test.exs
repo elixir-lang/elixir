@@ -20,12 +20,12 @@ defmodule EEx::TokenizerTest do
     assert_equal [ { :text, 1, "foo " }, { :expr, 1, '=', ' bar ' } ], T.tokenize('foo <%= bar %>', 1)
   end
 
-  test "strings with embedded equals code 1" do
+  test "strings with more than one line" do
     assert_equal [ { :text, 1, "foo\n" },{ :expr, 2, '=', ' bar ' } ], T.tokenize('foo\n<%= bar %>', 1)
   end
 
-  test "strings with embedded equals code 2" do
-  string = '''
+  test "strings with more than one line and expression with more than one line" do
+    string = '''
 foo <%= bar
 
 baz %>

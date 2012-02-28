@@ -116,8 +116,8 @@ defmodule EEx::Tokenizer do
   end
 
   defp valid_key_identifier?([h|t]) \
-      when h >= ?a and h <= ?z   \
-      when h >= ?A and h <= ?Z   \
+      when h >= ?a and h <= ?z      \
+      when h >= ?A and h <= ?Z      \
       when h >= ?0 and h <= ?9 do
     valid_key_identifier?(t)
   end
