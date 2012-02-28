@@ -51,6 +51,4 @@ We usually keep a list of features and bugs [in the issues tracker](https://gith
 
 # License
 
-See COPYING file.
-
-Copyright (c) 2011-2012 José Valim, jose.valim@gmail.com
+Copyright (c) 2012 Plataformatec. See LICENSE file.

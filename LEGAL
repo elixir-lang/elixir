@@ -2,7 +2,7 @@ LEGAL NOTICE INFORMATION
 ------------------------
 
 All the files in this distribution are covered under either the Elixir's
-license (see the file COPYING) except some files mentioned below that contains
+license (see the file LICENSE) except some files mentioned below that contains
 sections that are under Erlang's License (EPL):
 
 src/elixir_glob.erl
