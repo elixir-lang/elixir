@@ -67,7 +67,7 @@ Since operators are also function calls they can also be partially applied:
     iex> Enum.map [1,2,3], &1 * 2
     [2,4,6]
 
-All functions can be partially applied, except [Elixir's special forms](https://github.com/josevalim/elixir/tree/master/lib/elixir/special_forms.ex).
+All functions can be partially applied, except [Elixir's special forms](https://github.com/elixir-lang/elixir/tree/master/lib/elixir/special_forms.ex).
 
 ## 6.3 Use
 
@@ -160,4 +160,4 @@ Elixir can compile to native code using the Hipe compiler. All you need to do is
 
     export ERL_COMPILER_OPTIONS=native
 
-[Chapter 5: Macros](https://github.com/josevalim/elixir/blob/master/docs/5_macros.md) | [Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md)
+[Chapter 5: Macros](https://github.com/elixir-lang/elixir/blob/master/docs/5_macros.md) | [Index](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md)

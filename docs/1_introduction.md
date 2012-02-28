@@ -2,13 +2,13 @@
 
 Welcome! In this tutorial we are going to show you how to get started with Elixir. In later sections, we are even going to discuss more advanced subjects as macros, protocols and other features provided by Elixir.
 
-Keep in mind that Elixir is still in development and sometimes you may get poorly written error messages. If, at any point, you receive an error message and you are not sure on how to proceed, [please let us know in the issues tracker](https://github.com/josevalim/elixir/issues). Having explanative and consistent error messages is one of the many features we aim for Elixir.
+Keep in mind that Elixir is still in development and sometimes you may get poorly written error messages. If, at any point, you receive an error message and you are not sure on how to proceed, [please let us know in the issues tracker](https://github.com/elixir-lang/elixir/issues). Having explanative and consistent error messages is one of the many features we aim for Elixir.
 
 ## 1.1 Installation
 
 Elixir isn't available in any distribution yet, but you can download and compile it in few steps:
 
-    $ git clone https://github.com/josevalim/elixir.git
+    $ git clone https://github.com/elixir-lang/elixir.git
     $ cd elixir
     $ make test
 
@@ -183,4 +183,4 @@ You actually don't need to memorize this ordering, it is important just to know 
 
 Well, that is it for the introduction. In the next chapter, we are going to discuss some basic functions, data types conversions and a bit of control-flow.
 
-[Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 2: Diving in](https://github.com/josevalim/elixir/blob/master/docs/2_diving_in.md)
+[Index](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md) | [Chapter 2: Diving in](https://github.com/elixir-lang/elixir/blob/master/docs/2_diving_in.md)

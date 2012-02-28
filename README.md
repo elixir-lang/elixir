@@ -8,24 +8,24 @@ Elixir and Erlang share the same bytecode and data types. This means you can inv
 
 # Usage
 
-You can run and learn about Elixir in the [Getting Started guide](https://github.com/josevalim/elixir/blob/master/docs/0_index.md).
+You can run and learn about Elixir in the [Getting Started guide](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md).
 
 But if you just want to compile and try Elixir, with no compromises, you can clone this repository to your machine, compile and test it:
 
-    $ git clone https://github.com/josevalim/elixir.git
+    $ git clone https://github.com/elixir-lang/elixir.git
     $ cd elixir
     $ make test
 
     $ bin/elixir -v
     Elixir 0.4.0.dev
 
-If tests pass, you are ready to move on to the [Getting Started guide](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) or to try Interactive Elixir by running: `bin/iex` in your terminal.
+If tests pass, you are ready to move on to the [Getting Started guide](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md) or to try Interactive Elixir by running: `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang R15B or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
 
     Erlang R15B (erts-5.8.4) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
 
-If you have the correct version and tests still fail, feel free to open an issue [in the issues tracker on Github](https://github.com/josevalim/elixir/issues).
+If you have the correct version and tests still fail, feel free to open an issue [in the issues tracker on Github](https://github.com/elixir-lang/elixir/issues).
 
 # Contributing & Roadmap
 
@@ -39,15 +39,15 @@ If you want to contribute, the code is organized as follow:
 
 * `test/erlang` - Contains tests for Elixir, written in Erlang. Usually, just internal stuff is tested here. The preferred way to test is in Elixir itself.
 
-We usually keep a list of features and bugs [in the issues tracker](https://github.com/josevalim/elixir/issues).
+We usually keep a list of features and bugs [in the issues tracker](https://github.com/elixir-lang/elixir/issues).
 
 # Important links
 
 * #elixir-lang on freenode IRC
-* [Getting Started Guide](https://github.com/josevalim/elixir/blob/master/docs/0_index.md)
+* [Getting Started Guide](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md)
 * [Mailing list](http://groups.google.com/group/elixir-lang-core)
-* [Issues tracker](https://github.com/josevalim/elixir/issues)
-* [Textmate Bundle for Elixir](https://github.com/josevalim/elixir-tmbundle)
+* [Issues tracker](https://github.com/elixir-lang/elixir/issues)
+* [Textmate Bundle for Elixir](https://github.com/elixir-lang/elixir-tmbundle)
 
 # License
 

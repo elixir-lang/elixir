@@ -88,7 +88,7 @@ Which will then return:
 
 In other words, unquote is a mechanism to inject expressions into the tree being quoted and is essential to the meta-programming mechanism. Elixir also provides `unquote_splicing` allowing us to inject many expressions at once.
 
-We can define any macro we want, including override the built-in macros provided by Elixir. The only exceptions are Elixir special forms that cannot be overridden, [the full list of special forms is available in `Elixir::SpecialForms`](https://github.com/josevalim/elixir/tree/master/lib/elixir/special_forms.ex).
+We can define any macro we want, including override the built-in macros provided by Elixir. The only exceptions are Elixir special forms that cannot be overridden, [the full list of special forms is available in `Elixir::SpecialForms`](https://github.com/elixir-lang/elixir/tree/master/lib/elixir/special_forms.ex).
 
 ## 5.3 Macros hygiene
 
@@ -176,5 +176,5 @@ In order to access the macro, it needs to be defined in an outer module:
 
 With this note, we finish our introduction to macros. Next, let's move to the next chapter which will discuss several topics as native code compilation, partial application and others.
 
-[Chapter 4: Protocols & Records](https://github.com/josevalim/elixir/blob/master/docs/4_protocols_and_records.md) | [Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) |
-[Chapter 6: Other topics](https://github.com/josevalim/elixir/blob/master/docs/6_other_topics.md)
+[Chapter 4: Protocols & Records](https://github.com/elixir-lang/elixir/blob/master/docs/4_protocols_and_records.md) | [Index](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md) |
+[Chapter 6: Other topics](https://github.com/elixir-lang/elixir/blob/master/docs/6_other_topics.md)

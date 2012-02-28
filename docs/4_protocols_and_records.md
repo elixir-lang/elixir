@@ -130,5 +130,5 @@ Elixir ships with three built-in protocols, they are:
 
 You can check the source code of those files for more information about how the protocol is used and how to implement your own. With this, we have finally finished this section which has described `defrecord`, `defprotocol` and `defimpl`. Next, we are going to discuss macros with `defmacro`!
 
-[Chapter 3: Modules](https://github.com/josevalim/elixir/blob/master/docs/3_modules.md) | [Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) |
-[Chapter 5: Macros](https://github.com/josevalim/elixir/blob/master/docs/5_macros.md)
+[Chapter 3: Modules](https://github.com/elixir-lang/elixir/blob/master/docs/3_modules.md) | [Index](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md) |
+[Chapter 5: Macros](https://github.com/elixir-lang/elixir/blob/master/docs/5_macros.md)

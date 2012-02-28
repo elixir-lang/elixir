@@ -38,7 +38,7 @@ Since updating a tuple is expensive, when we want to iterate, add or remove elem
     iex> length [head | tail]
     3
 
-In the example above, we have assigned the head of the list to the variable `head` and the tail of the list to the variable `tail`. The [`Enum` module](https://github.com/josevalim/elixir/blob/master/lib/enum.ex) provides several helpers to manipulate lists (and other enumerables in general) while the [List module](https://github.com/josevalim/elixir/blob/master/lib/list.ex) provides several helpers specific to lists:
+In the example above, we have assigned the head of the list to the variable `head` and the tail of the list to the variable `tail`. The [`Enum` module](https://github.com/elixir-lang/elixir/blob/master/lib/enum.ex) provides several helpers to manipulate lists (and other enumerables in general) while the [List module](https://github.com/elixir-lang/elixir/blob/master/lib/list.ex) provides several helpers specific to lists:
 
     iex> Enum.map [1,2,3], fn(x) -> x * 2 end
     [4,5,6]
@@ -174,7 +174,7 @@ Both examples above are simply different ways of expressing key-value arguments.
     iex> [a: 1, b: 2]
     [{:a, 1}, {:b, 2}]
 
-In order to manipulate those key-value arguments, we can use the [`Orddict` module](https://github.com/josevalim/elixir/blob/master/lib/orddict.ex):
+In order to manipulate those key-value arguments, we can use the [`Orddict` module](https://github.com/elixir-lang/elixir/blob/master/lib/orddict.ex):
 
     iex> x = [a: 1, b: 2]
     [{:a, 1}, {:b, 2}]
@@ -537,7 +537,7 @@ While `catch` clauses inside `try` are simply a pattern matching mechanism, `res
       x.message
     end
 
-Custom exceptions can be defined using the `defexception` macro. Check [the exceptions file for some examples](https://github.com/josevalim/elixir/tree/master/lib/exception.ex).
+Custom exceptions can be defined using the `defexception` macro. Check [the exceptions file for some examples](https://github.com/elixir-lang/elixir/tree/master/lib/exception.ex).
 
 ### 2.6.8 Receive
 
@@ -573,10 +573,10 @@ In most cases, we don't send messages directly with `<-` nor write `receive` con
 
 ## 2.7 Default functions
 
-Elixir ships with many default functions automatically available in the current scope. Besides all the control flow expressions seen above, Elixir also adds: `elem` and `setelem` to read and set values in tuples, `inspect` that returns the representation of a given data type as string and many others. [Many of these functions with documentation and examples are available in `Elixir::Builtin`](https://github.com/josevalim/elixir/tree/master/lib/elixir/builtin.ex) and [Elixir special forms are available in `Elixir::SpecialForms`](https://github.com/josevalim/elixir/tree/master/lib/elixir/special_forms.ex).
+Elixir ships with many default functions automatically available in the current scope. Besides all the control flow expressions seen above, Elixir also adds: `elem` and `setelem` to read and set values in tuples, `inspect` that returns the representation of a given data type as string and many others. [Many of these functions with documentation and examples are available in `Elixir::Builtin`](https://github.com/elixir-lang/elixir/tree/master/lib/elixir/builtin.ex) and [Elixir special forms are available in `Elixir::SpecialForms`](https://github.com/elixir-lang/elixir/tree/master/lib/elixir/special_forms.ex).
 
 Besides the functions provided by Elixir, most of the root functions from Erlang are also available. The function `length`, `is_list`, `is_number` and many others we discussed above comes from Erlang. [The full documented list is available on the OTP documentation page](http://www.erlang.org/doc/man/erlang.html).
 
 All those functions and control flow expressions are essential for building Elixir programs. The next chapter will discuss how to organize our code into modules, so it can be easily re-used between different components.
 
-[Chapter 1: Introduction](https://github.com/josevalim/elixir/blob/master/docs/1_introduction.md) | [Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 3: Modules](https://github.com/josevalim/elixir/blob/master/docs/3_modules.md)
+[Chapter 1: Introduction](https://github.com/elixir-lang/elixir/blob/master/docs/1_introduction.md) | [Index](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md) | [Chapter 3: Modules](https://github.com/elixir-lang/elixir/blob/master/docs/3_modules.md)

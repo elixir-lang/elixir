@@ -259,4 +259,4 @@ Finally, in Elixir `::` is simply an operator (like `+`). It is used to concaten
     iex> Foo :: Bar
     ::Foo::Bar
 
-[Chapter 2: Diving in](https://github.com/josevalim/elixir/blob/master/docs/2_diving_in.md) | [Index](https://github.com/josevalim/elixir/blob/master/docs/0_index.md) | [Chapter 4: Protocols & Records](https://github.com/josevalim/elixir/blob/master/docs/4_protocols_and_records.md)
+[Chapter 2: Diving in](https://github.com/elixir-lang/elixir/blob/master/docs/2_diving_in.md) | [Index](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md) | [Chapter 4: Protocols & Records](https://github.com/elixir-lang/elixir/blob/master/docs/4_protocols_and_records.md)
