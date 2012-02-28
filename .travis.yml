@@ -2,6 +2,5 @@ language: erlang
 notifications:
   recipients:
     - jose.valim@plataformatec.com.br
-    - andrzej.sliwa@i-tool.eu
 otp_release:
   - R15B
