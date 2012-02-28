@@ -48,4 +48,10 @@ defmodule EEx::TokenizerTest do
       { :end_expr, '', ' end ' }
     ], T.tokenize('foo <% if true do %>bar<% elsif: false %>baz<% end %>')
   end
+
+  test "raise syntax error when there is start mark and no end mark" do
+    T.tokenize('foo <% :bar', 1)
+  rescue: error in [EEx::SyntaxError]
+    assert_equal "invalid token: ' :bar'", error.message
+  end
 end

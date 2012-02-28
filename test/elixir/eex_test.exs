@@ -52,6 +52,34 @@ defmodule EExTest do
     assert_eval "foo 1,2,3", "foo <% require Enum, as: E %><%= E.join [1,2,3], \",\" %>"
   end
 
+  test "compile with end of token" do
+    assert_eval "foo bar %>", "foo bar %>"
+  end
+
+  test "raises a syntax error when the token is invalid" do
+    EEx.compile "foo <%= bar"
+  rescue: error in [EEx::SyntaxError]
+    assert_equal "invalid token: ' bar'", error.message
+  end
+
+  test "raises a syntax error when end expression is found without a start expression" do
+    EEx.compile "foo <% end %>"
+  rescue: error in [EEx::SyntaxError]
+    assert_equal "unexpected token: ' end '", error.message
+  end
+
+  test "raises a syntax error when start expression is found without an end expression" do
+    EEx.compile "foo <% if true do %>"
+  rescue: error in [EEx::SyntaxError]
+    assert_equal "undetermined end of string", error.message
+  end
+
+  test "raises a syntax error when nested end expression is found without an start expression" do
+    EEx.compile "foo <%if true do %><% end %><% end %>"
+  rescue: error in [EEx::SyntaxError]
+    assert_equal "unexpected token: ' end '", error.message
+  end
+
   defp assert_eval(expected, atual) do
     compiled = EEx.compile(atual)
     { result, _ } = Code.eval_quoted(compiled, [], __FILE__, __LINE__)

@@ -4,6 +4,8 @@ defmodule EEx do
   end
 end
 
+defexception EEx::SyntaxError, message: nil
+
 defmodule EEx::Compiler do
   def compile(source, engine) do
     tokens = EEx::Tokenizer.tokenize(source)
@@ -40,8 +42,16 @@ defmodule EEx::Compiler do
     { buffer, t }
   end
 
-  defp generate_buffer([], _engine, buffer, _scope, _dict) do
+  defp generate_buffer([{ :end_expr, _, chars }|_], _engine, _buffer, [], _dict) do
+    raise SyntaxError, message: "unexpected token: #{inspect chars}"
+  end
+
+  defp generate_buffer([], _engine, buffer, [], _dict) do
     buffer
+  end
+
+  defp generate_buffer([], _engine, _buffer, _scope, _dict) do
+    raise SyntaxError, message: "undetermined end of string"
   end
 
   ####

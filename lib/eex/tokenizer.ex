@@ -61,6 +61,12 @@ defmodule EEx::Tokenizer do
     tokenize_expr t, [h|buffer]
   end
 
+  # Raise an error if the %> is not found
+
+  defp tokenize_expr([], buffer) do
+    raise EEx::SyntaxError, message: "invalid token: #{inspect List.reverse(buffer)}"
+  end
+
   # Receive an expression content and check
   # if it is a start or an end token.
   # Start tokens finish with `do` or `->`
