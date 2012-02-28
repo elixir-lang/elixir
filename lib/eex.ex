@@ -6,62 +6,64 @@ end
 
 defexception EEx::SyntaxError, message: nil
 
+defrecord EEx::State, engine: nil, dict: [], filename: nil, line: 0
+
 defmodule EEx::Compiler do
   def compile(source, engine) do
-    tokens = EEx::Tokenizer.tokenize(source)
-    generate_buffer(tokens, engine, "", [], [])
+    tokens = EEx::Tokenizer.tokenize(source, 1)
+    state = EEx::State.new(engine: engine)
+    generate_buffer(tokens, "", [], state)
   end
 
-  defp generate_buffer([{ :text, chars }|t], engine, buffer, scope, dict) do
-    buffer = engine.handle_text(buffer, chars)
-    generate_buffer(t, engine, buffer, scope, dict)
+  defp generate_buffer([{ :text, _line, chars }|t], buffer, scope, state) do
+    buffer = state.engine.handle_text(buffer, chars)
+    generate_buffer(t, buffer, scope, state)
   end
 
-  # TODO: use line and filename
-  defp generate_buffer([{ :expr, mark, chars }|t], engine, buffer, scope, dict) do
-    expr = { :__BLOCK__, 0, Erlang.elixir_translator.forms(chars, 1, 'nofile') }
-    buffer = engine.handle_expr(buffer, mark, expr)
-    generate_buffer(t, engine, buffer, scope, dict)
+  # TODO: use filename
+  defp generate_buffer([{ :expr, line, mark, chars }|t], buffer, scope, state) do
+    expr = { :__BLOCK__, 0, Erlang.elixir_translator.forms(chars, line, 'nofile') }
+    buffer = state.engine.handle_expr(buffer, mark, expr)
+    generate_buffer(t, buffer, scope, state)
   end
 
-  defp generate_buffer([{ :start_expr, _, chars }|t], engine, buffer, scope, _dict) do
-    { contents, t } = generate_buffer(t, engine, "", [chars|scope], [])
-    buffer = engine.handle_expr(buffer, '=', contents)
-    generate_buffer(t, engine, buffer, scope, [])
+  defp generate_buffer([{ :start_expr, line, _, chars }|t], buffer, scope, state) do
+    { contents, t } = generate_buffer(t, "", [chars|scope], state.dict([]).line(line))
+    buffer = state.engine.handle_expr(buffer, '=', contents)
+    generate_buffer(t, buffer, scope, state.dict([]))
   end
 
-  defp generate_buffer([{ :middle_expr, _, chars }|t], engine, buffer, [current|scope], dict) do
-    { wrapped, dict } = wrap_expr(current, buffer, chars, dict)
-    generate_buffer(t, engine, "", [wrapped|scope], dict)
+  defp generate_buffer([{ :middle_expr, _, _, chars }|t], buffer, [current|scope], state) do
+    { wrapped, state } = wrap_expr(current, buffer, chars, state)
+    generate_buffer(t, "", [wrapped|scope], state)
   end
 
-  defp generate_buffer([{ :end_expr, _, chars }|t], _engine, buffer, [current|_], dict) do
-    { wrapped, dict } = wrap_expr(current, buffer, chars, dict)
-    tuples = { :__BLOCK__, 0, Erlang.elixir_translator.forms(wrapped, 1, 'nofile') }
-    buffer = insert_quotes(tuples, dict)
+  defp generate_buffer([{ :end_expr, _, _, chars }|t], buffer, [current|_], state) do
+    { wrapped, state } = wrap_expr(current, buffer, chars, state)
+    tuples = { :__BLOCK__, 0, Erlang.elixir_translator.forms(wrapped, state.line, 'nofile') }
+    buffer = insert_quotes(tuples, state.dict)
     { buffer, t }
   end
 
-  defp generate_buffer([{ :end_expr, _, chars }|_], _engine, _buffer, [], _dict) do
+  defp generate_buffer([{ :end_expr, _, _, chars }|_], _buffer, [], _state) do
     raise SyntaxError, message: "unexpected token: #{inspect chars}"
   end
 
-  defp generate_buffer([], _engine, buffer, [], _dict) do
+  defp generate_buffer([], buffer, [], _state) do
     buffer
   end
 
-  defp generate_buffer([], _engine, _buffer, _scope, _dict) do
+  defp generate_buffer([], _buffer, _scope, _state) do
     raise SyntaxError, message: "undetermined end of string"
   end
 
   ####
 
-  def wrap_expr(current, buffer, chars, dict) do
-    key = length(dict)
+  def wrap_expr(current, buffer, chars, state) do
+    key = length(state.dict)
     placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
-    dict = Orddict.put(dict, key, buffer)
 
-    { current ++ placeholder ++ chars, dict }
+    { current ++ placeholder ++ chars, state.merge_dict([{key, buffer}]) }
   end
 
   ###

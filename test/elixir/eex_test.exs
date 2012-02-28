@@ -80,6 +80,62 @@ defmodule EExTest do
     assert_equal "unexpected token: ' end '", error.message
   end
 
+  test "compile respect the lines" do
+    expected = """
+foo
+2
+"""
+
+    string = """
+foo
+<%= __LINE__ %>
+"""
+
+    assert_eval expected, string
+  end
+
+  test "compile respect the lines if start expressions" do
+    expected = """
+foo
+
+3
+
+5
+"""
+
+    string = """
+foo
+<% if true do %>
+<%= __LINE__ %>
+<% end %>
+<%= __LINE__ %>
+"""
+
+    assert_eval expected, string
+  end
+
+  test "compile respect the lines if middle expressions" do
+    expected = """
+foo
+
+5
+
+7
+"""
+
+    string = """
+foo
+<% if false do %>
+<%= __LINE__ %>
+<% else: %>
+<%= __LINE__ %>
+<% end %>
+<%= __LINE__ %>
+"""
+
+    assert_eval expected, string
+  end
+
   defp assert_eval(expected, atual) do
     compiled = EEx.compile(atual)
     { result, _ } = Code.eval_quoted(compiled, [], __FILE__, __LINE__)

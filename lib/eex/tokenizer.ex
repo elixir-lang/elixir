@@ -10,17 +10,17 @@ defmodule EEx::Tokenizer do
   * { :end_expr, marker, contents}
 
   """
-  def tokenize(bin) when is_binary(bin) do
-    tokenize(binary_to_list(bin))
+  def tokenize(bin, line) when is_binary(bin) do
+    tokenize(binary_to_list(bin), line)
   end
 
-  def tokenize(list) do
-    List.reverse(tokenize(list, [], []))
+  def tokenize(list, line) do
+    List.reverse(tokenize(list, line, line, [], []))
   end
 
-  defp tokenize('<%' ++ t, buffer, acc) do
+  defp tokenize('<%' ++ t, current_line, line, buffer, acc) do
     { marker, t }  = retrieve_marker(t)
-    { expr, rest } = tokenize_expr t, []
+    { expr, new_line, rest } = tokenize_expr t, line, []
 
     token = tip_expr_token_name(expr)
     expr  = List.reverse(expr)
@@ -29,16 +29,20 @@ defmodule EEx::Tokenizer do
     if token == :expr, do:
       token = middle_expr_token_name(expr)
 
-    acc = tokenize_text(buffer, acc)
-    tokenize rest, [], [ { token, marker, expr } | acc]
+    acc = tokenize_text(current_line, buffer, acc)
+    tokenize rest, new_line, new_line, [], [ { token, line, marker, expr } | acc]
   end
 
-  defp tokenize([h|t], buffer, acc) do
-    tokenize t, [h|buffer], acc
+  defp tokenize('\n' ++ t, current_line, line, buffer, acc) do
+    tokenize t, current_line, line + 1, [?\n|buffer], acc
   end
 
-  defp tokenize([], buffer, acc) do
-    tokenize_text(buffer, acc)
+  defp tokenize([h|t], current_line, line, buffer, acc) do
+    tokenize t, current_line, line, [h|buffer], acc
+  end
+
+  defp tokenize([], current_line, _line, buffer, acc) do
+    tokenize_text(current_line, buffer, acc)
   end
 
   # Retrieve marker for <%
@@ -53,17 +57,21 @@ defmodule EEx::Tokenizer do
 
   # Tokenize an expression until we find %>
 
-  defp tokenize_expr('%>' ++ t, buffer) do
-    { buffer, t }
+  defp tokenize_expr('%>' ++ t, line, buffer) do
+    { buffer, line, t }
   end
 
-  defp tokenize_expr([h|t], buffer) do
-    tokenize_expr t, [h|buffer]
+  defp tokenize_expr('\n' ++ t, line, buffer) do
+    tokenize_expr t, line + 1, [?\n|buffer]
+  end
+
+  defp tokenize_expr([h|t], line, buffer) do
+    tokenize_expr t, line, [h|buffer]
   end
 
   # Raise an error if the %> is not found
 
-  defp tokenize_expr([], buffer) do
+  defp tokenize_expr([], _line, buffer) do
     raise EEx::SyntaxError, message: "invalid token: #{inspect List.reverse(buffer)}"
   end
 
@@ -128,11 +136,11 @@ defmodule EEx::Tokenizer do
   # Tokenize the buffered text by appending
   # it to the given accumulator.
 
-  defp tokenize_text([], acc) do
+  defp tokenize_text(_line, [], acc) do
     acc
   end
 
-  defp tokenize_text(buffer, acc) do
-    [{ :text, list_to_binary(List.reverse(buffer)) } | acc]
+  defp tokenize_text(line, buffer, acc) do
+    [{ :text, line, list_to_binary(List.reverse(buffer)) } | acc]
   end
 end
