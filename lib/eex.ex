@@ -9,11 +9,17 @@ defexception EEx::SyntaxError, message: nil
 defrecord EEx::State, engine: nil, dict: [], filename: nil, line: 0
 
 defmodule EEx::Compiler do
+  @moduledoc """
+  Get a string source and generate the correspondents quotes
+  to be evaluated by Elixir.
+  """
   def compile(source, engine) do
     tokens = EEx::Tokenizer.tokenize(source, 1)
     state = EEx::State.new(engine: engine)
     generate_buffer(tokens, "", [], state)
   end
+
+  # Generates the buffers
 
   defp generate_buffer([{ :text, _line, chars }|t], buffer, scope, state) do
     buffer = state.engine.handle_text(buffer, chars)
@@ -57,9 +63,9 @@ defmodule EEx::Compiler do
     raise SyntaxError, message: "undetermined end of string"
   end
 
-  ####
+  # Creates a placeholder and wrap it inside the expression block
 
-  def wrap_expr(current, line, buffer, chars, state) do
+  defp wrap_expr(current, line, buffer, chars, state) do
     key = length(state.dict)
     # TODO: Implement list duplicate
     new_lines = :lists.duplicate(line - state.line, ?\n)
@@ -68,25 +74,25 @@ defmodule EEx::Compiler do
     { current ++ new_lines ++ placeholder ++ chars, state.merge_dict([{key, buffer}]) }
   end
 
-  ###
+  # Changes placeholder to real expression
 
-  def insert_quotes( { :__EEX__, _, [key] }, dict) do
+  defp insert_quotes({ :__EEX__, _, [key] }, dict) do
     Orddict.get(dict, key)
   end
 
-  def insert_quotes({ left, line, right }, dict) do
+  defp insert_quotes({ left, line, right }, dict) do
     { insert_quotes(left, dict), line, insert_quotes(right, dict) }
   end
 
-  def insert_quotes({ left, right }, dict) do
+  defp insert_quotes({ left, right }, dict) do
     { insert_quotes(left, dict), insert_quotes(right, dict) }
   end
 
-  def insert_quotes(list, dict) when is_list(list) do
+  defp insert_quotes(list, dict) when is_list(list) do
     Enum.map list, insert_quotes(&1, dict)
   end
 
-  def insert_quotes(other, _dict) do
+  defp insert_quotes(other, _dict) do
     other
   end
 end

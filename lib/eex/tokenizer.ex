@@ -4,10 +4,10 @@ defmodule EEx::Tokenizer do
   @doc """
   Tokenizes the given char list. It returns 4 tokens as result:
 
-  * { :text, contents }
-  * { :expr, marker, contents}
-  * { :start_expr, marker, contents}
-  * { :end_expr, marker, contents}
+  * { :text, line, contents }
+  * { :expr, line, marker, contents}
+  * { :start_expr, line, marker, contents}
+  * { :end_expr, line, marker, contents}
 
   """
   def tokenize(bin, line) when is_binary(bin) do
