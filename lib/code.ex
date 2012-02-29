@@ -33,8 +33,8 @@ defmodule Code do
   #
   # ## Examples
   #
-  #     contents = quote do: a + b
-  #     Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => 3
+  #     contents = quote hygiene: false, do: a + b
+  #     Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => { 3, [ {:a,1},{:b,2} ] }
   #
   def eval_quoted(quoted, binding, filename, line) do
     Erlang.elixir.eval_quoted [quoted], binding, line, to_char_list(filename)
