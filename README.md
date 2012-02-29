@@ -44,7 +44,7 @@ We usually keep a list of features and bugs [in the issues tracker](https://gith
 # Important links
 
 * #elixir-lang on freenode IRC
-* [Getting Started Guide](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md)
+* [Getting Started Guide](http://elixir-lang.org/getting_started/1.html)
 * [Mailing list](http://groups.google.com/group/elixir-lang-core)
 * [Issues tracker](https://github.com/elixir-lang/elixir/issues)
 * [Textmate Bundle for Elixir](https://github.com/elixir-lang/elixir-tmbundle)
