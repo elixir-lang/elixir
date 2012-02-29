@@ -1,14 +1,14 @@
 # Elixir [![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.png "Build Status")](http://travis-ci.org/josevalim/elixir)
 
-Elixir is a programming language built on top of Erlang. As Erlang, it is a functional language with strict evaluation and dynamic typing built to support distributed, fault-tolerant, non-stop applications with hot swapping.
+Elixir is a programming language built on top of the Erlang VM. As Erlang, it is a functional language built to support distributed, fault-tolerant, non-stop applications with hot code swapping.
 
-The main difference between Elixir and Erlang is its more natural homoiconic syntax that supports meta-programming. Elixir also supports polymorphism via protocols (similar to Clojure's), dynamic records and a reference mechanism.
+Elixir is also dynamic typed but, differently from Erlang, it is also homoiconic, allowing meta-programming via macros. Elixir also supports polymorphism via protocols (similar to Clojure's), dynamic records and provides a reference mechanism.
 
-Elixir and Erlang share the same bytecode and data types. This means you can invoke Erlang code from Elixir (and vice-versa) without any conversion or performance hit.
+Finally, Elixir and Erlang share the same bytecode and data types. This means you can invoke Erlang code from Elixir (and vice-versa) without any conversion or performance hit. This allows a developer to mix the expressiveness of Elixir with the robustness and performance of Erlang.
 
 # Usage
 
-You can run and learn about Elixir in the [Getting Started guide](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md).
+You can run and learn about Elixir in the [Getting Started guide](http://elixir-lang.org/getting_started/1.html).
 
 But if you just want to compile and try Elixir, with no compromises, you can clone this repository to your machine, compile and test it:
 
@@ -19,7 +19,7 @@ But if you just want to compile and try Elixir, with no compromises, you can clo
     $ bin/elixir -v
     Elixir 0.4.0.dev
 
-If tests pass, you are ready to move on to the [Getting Started guide](https://github.com/elixir-lang/elixir/blob/master/docs/0_index.md) or to try Interactive Elixir by running: `bin/iex` in your terminal.
+If tests pass, you are ready to move on to the [Getting Started guide](http://elixir-lang.org/getting_started/1.html) or to try Interactive Elixir by running: `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang R15B or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
 
