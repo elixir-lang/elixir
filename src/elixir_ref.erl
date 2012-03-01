@@ -4,6 +4,8 @@
 -include("elixir.hrl").
 
 %% Ensure a reference is loaded before its usage.
+ensure_loaded(_Line, '::Elixir::Builtin', _S, _Force) ->
+  ok;
 
 ensure_loaded(Line, Ref, S, Force) ->
   Scheduled = lists:member(Ref, S#elixir_scope.scheduled),
