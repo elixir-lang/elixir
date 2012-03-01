@@ -16,6 +16,6 @@ if [ $# -eq 0 ]; then
 ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS." >&2
   exit 1
 fi
-SELF=`readlink $0 || echo $0`
-SCRIPT_PATH=`dirname $SELF`
+
+SCRIPT_PATH=`dirname $0`
 $SCRIPT_PATH/elixir +compile "$@"

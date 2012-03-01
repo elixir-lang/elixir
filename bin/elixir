@@ -17,6 +17,6 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-SELF=`readlink $0 || echo $0`
-SCRIPT_PATH=`dirname $SELF`
+SCRIPT_PATH=`dirname $0`
+
 erl -pa $SCRIPT_PATH/../ebin $SCRIPT_PATH/../exbin -noshell -noinput $ELIXIR_ERL_OPTS -s elixir start -extra "$@"
