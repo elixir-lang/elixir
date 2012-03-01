@@ -65,19 +65,19 @@ defmodule EExTest do
   test "raises a syntax error when end expression is found without a start expression" do
     EEx.compile "foo <% end %>"
   rescue: error in [EEx::SyntaxError]
-    assert_equal "unexpected token: ' end '", error.message
+    assert_equal "unexpected token: ' end ' at line 1", error.message
   end
 
   test "raises a syntax error when start expression is found without an end expression" do
     EEx.compile "foo <% if true do %>"
   rescue: error in [EEx::SyntaxError]
-    assert_equal "undetermined end of string", error.message
+    assert_equal "unexpected end of string. expecting a closing <% end %>.", error.message
   end
 
   test "raises a syntax error when nested end expression is found without an start expression" do
     EEx.compile "foo <%if true do %><% end %><% end %>"
   rescue: error in [EEx::SyntaxError]
-    assert_equal "unexpected token: ' end '", error.message
+    assert_equal "unexpected token: ' end ' at line 1", error.message
   end
 
   test "respects line numbers" do

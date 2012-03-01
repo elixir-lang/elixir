@@ -1,6 +1,8 @@
 defrecord ExUnit::Formatter::Config, counter: 0, failures: []
 
 defmodule ExUnit::Formatter do
+  use GenServer::Behavior
+
   import Exception, only: [format_stacktrace: 1]
 
   def start do
@@ -33,28 +35,6 @@ defmodule ExUnit::Formatter do
     failures_count = length(config.failures)
     IO.puts "#{config.counter} tests, #{failures_count} failures."
     { :reply, failures_count, config }
-  end
-
-  def handle_call(_request, _from, config) do
-    { :reply, :undef, config }
-  end
-
-  def handle_info(_msg, config) do
-    { :noreply, config }
-  end
-
-  def handle_cast(_msg, config) do
-    { :noreply, config }
-  end
-
-  def terminate(reason, config) do
-    IO.puts "[FATAL] ExUnit::Formatter crashed:\n#{inspect reason}"
-    IO.puts "[FATAL] ExUnit::Formatter snapshot:\n#{inspect config}"
-    :ok
-  end
-
-  def code_change(_old, config, _extra) do
-    { :ok, config }
   end
 
   defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do

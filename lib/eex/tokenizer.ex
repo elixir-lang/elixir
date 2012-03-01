@@ -1,13 +1,14 @@
 defmodule EEx::Tokenizer do
-  # TODO: Add errors scenarios
+  @moduledoc false
 
   @doc """
-  Tokenizes the given char list. It returns 4 tokens as result:
+  Tokenizes the given char list or binary.
+  It returns 4 different types of tokens as result:
 
   * { :text, line, contents }
-  * { :expr, line, marker, contents}
-  * { :start_expr, line, marker, contents}
-  * { :end_expr, line, marker, contents}
+  * { :expr, line, marker, contents }
+  * { :start_expr, line, marker, contents }
+  * { :end_expr, line, marker, contents }
 
   """
   def tokenize(bin, line) when is_binary(bin) do

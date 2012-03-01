@@ -35,9 +35,15 @@ defmodule ExUnit::Case do
     contents =
       case contents do
       match: [do: block]
-        [do: append_to_block(block, :ok)]
+        quote do
+          unquote(contents)
+          :ok
+        end
       else:
-        contents
+        quote do
+          try(unquote(contents))
+          :ok
+        end
       end
 
     quote do
@@ -47,7 +53,7 @@ defmodule ExUnit::Case do
       else:
         :"test_#{message}"
       end
-      def message, [], true, unquote(contents)
+      def message, [], true, do: unquote(contents)
     end
   end
 
