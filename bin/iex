@@ -1,3 +1,4 @@
 #!/bin/sh
-SCRIPT_PATH=`dirname $0`
+SELF=`readlink $0 || echo $0`
+SCRIPT_PATH=`dirname $SELF`
 $SCRIPT_PATH/elixir --no-stop -e "Elixir::IEx.start" "$@"
