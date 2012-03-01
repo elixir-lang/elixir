@@ -16,7 +16,7 @@ unpack_each(Name, [{'//', Line, [Expr, _]}|T] = List, Acc, Clauses, S) ->
   Base = build_match(Acc, Line, []),
   { Args, Invoke } = extract_defaults(List, [], []),
 
-  Call = { Name, Line, Base ++ Invoke },
+  Call = { { '.', Line, [{'__LOCAL__', Line, nil}, Name] }, Line, Base ++ Invoke },
   { Clause, _ } = elixir_clauses:assigns_block(Line,
     fun elixir_translator:translate/2, Base ++ Args, [Call], [], S),
 

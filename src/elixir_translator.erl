@@ -395,6 +395,16 @@ translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
     Else  -> Else
   end;
 
+%% __LOCAL__ proxy calls
+
+translate_each({{'.', _, [{'__LOCAL__', _, Atom}, Name]}, Line, Args} = Original, S) when is_atom(Atom), is_atom(Name) ->
+  case handle_partials(Line, Original, S) of
+    error ->
+      { TArgs, NS } = translate_args(Args, S),
+      { { call, Line, { atom, Line, Name }, TArgs }, NS };
+    Else  -> Else
+  end;
+
 %% Dot calls
 
 translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) ->

@@ -24,12 +24,14 @@ defmodule Elixir::IEx do
     rescue: TokenMissingError
       { binding, code }
     rescue: exception
+      stacktrace = Code.stacktrace
       IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
-      print_stacktrace Code.stacktrace
+      print_stacktrace stacktrace
       { binding, '' }
     catch: kind, error
+      stacktrace = Code.stacktrace
       IO.puts :standard_error, "** (#{kind}) #{inspect(error)}"
-      print_stacktrace Code.stacktrace
+      print_stacktrace stacktrace
       { binding, '' }
     end
 

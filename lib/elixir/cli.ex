@@ -24,16 +24,18 @@ defmodule Elixir::CLI do
       end
     rescue: exception
       at_exit(1)
+      stacktrace = Code.stacktrace
       IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
-      print_stacktrace(Code.stacktrace)
+      print_stacktrace(stacktrace)
       stop(1)
     catch: :exit, reason when is_integer(reason)
       at_exit(reason)
       stop(reason)
     catch: kind, reason
       at_exit(1)
+      stacktrace = Code.stacktrace
       IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
-      print_stacktrace(Code.stacktrace)
+      print_stacktrace(stacktrace)
       stop(1)
     end
   end

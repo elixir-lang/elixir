@@ -56,14 +56,4 @@ defmodule ExUnit::Case do
       def message, [], true, do: unquote(contents)
     end
   end
-
-  ## Helpers
-
-  defp append_to_block({ :__BLOCK__, line, exprs }, other) do
-    { :__BLOCK__, line, exprs ++ [other] }
-  end
-
-  defp append_to_block(expr, other) do
-    { :__BLOCK__, 0, [expr, other] }
-  end
 end

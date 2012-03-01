@@ -1,3 +1,5 @@
+import Elixir::Builtin, except: [raise: 1, raise: 2]
+
 defmodule Elixir::Builtin do
   @moduledoc """
   `Elixir::Builtin` provides the default macros and functions
@@ -64,7 +66,7 @@ defmodule Elixir::Builtin do
   Elixir module names can be dynamically generated. This is very
   useful for macros. For instance, one could write:
 
-      defmodule binary_to_atom("Foo#{1}", :utf8) do
+      defmodule binary_to_atom("Foo\#{1}", :utf8) do
         # contents ...
       end
 
@@ -630,7 +632,7 @@ defmodule Elixir::Builtin do
       rescue: ArgumentError
         IO.puts "Invalid argument given"
       catch: value
-        IO.puts "caught #{value}"
+        IO.puts "caught \#{value}"
       after:
         IO.puts "This is printed regardless if it failed or succeed"
       end
