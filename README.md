@@ -1,4 +1,4 @@
-![Elixir](https://github.com/tarcieri/elixir/raw/master/logo.png)
+![Elixir](https://github.com/elixir-lang/elixir/raw/master/logo.png)
 =========
 [![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.png "Build Status")](http://travis-ci.org/josevalim/elixir)
 
