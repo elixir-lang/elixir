@@ -1,4 +1,6 @@
-# Elixir [![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.png "Build Status")](http://travis-ci.org/josevalim/elixir)
+![Elixir](https://github.com/tarcieri/elixir/raw/master/logo.png)
+=========
+[![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.png "Build Status")](http://travis-ci.org/josevalim/elixir)
 
 Elixir is a programming language built on top of the Erlang VM. As Erlang, it is a functional language built to support distributed, fault-tolerant, non-stop applications with hot code swapping.
 
