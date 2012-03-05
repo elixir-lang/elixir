@@ -12,7 +12,7 @@ Finally, Elixir and Erlang share the same bytecode and data types. This means yo
 
 You can run and learn about Elixir in the [Getting Started guide](http://elixir-lang.org/getting_started/1.html).
 
-But if you just want to try it out, with no strings attached, clone this repository to your machine, compile and test it:
+But if you just want to try it out, clone this repository to your machine, compile and test it:
 
     $ git clone https://github.com/elixir-lang/elixir.git
     $ cd elixir
