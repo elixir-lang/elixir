@@ -49,6 +49,24 @@ defmodule ExUnit::Assertions do
     assert(expected == received, message)
   end
 
+  # Asserts the `exception` is raised during `function` execution.
+  #
+  # ## Examples
+  #
+  #     assert_raises MatchError, fn ->
+  #       1 + "test"
+  #     end
+  #
+  def assert_raises(exception, function) do
+    function.()
+    flunk "#{exception} exception expected but nothing was raised"
+  rescue: error in [exception]
+    error
+  catch: :error, other when not is_record(other, AssertionError)
+    [other_name,_|tail] = tuple_to_list(other)
+    flunk "#{exception} exception expected, not #{other_name}"
+  end
+
   # Asserts the `not_expected` value is false.
   #
   # ## Examples
