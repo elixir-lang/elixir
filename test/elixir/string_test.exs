@@ -50,4 +50,21 @@ bar
     "foo" <> x = "foobar"
     assert_equal "bar", x
   end
+
+  test :string_join do
+    assert_equal "Hello, World!", String.join(["Hello,", "World!"], " ")
+    assert_equal "a,b,  c, d, e", String.join(["a", "b", "  c", " d", " e"], ",")
+  end
+
+  test :string_join_empty_list do
+    assert_equal "", String.join([], " ")
+  end
+
+  test :string_join_newline do
+    assert_equal "1\n2\n3\n4", String.join(["1", "2", "3", "4"], "\n")
+  end
+
+  test :string_join_long_separator do
+    assert_equal "1asdf2asdf3asdf4", String.join(["1", "2", "3", "4"], "asdf")
+  end
 end
