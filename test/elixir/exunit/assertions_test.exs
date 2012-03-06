@@ -82,6 +82,16 @@ defmodule ExUnit::AssertionsTest do
     "This should be included" = error.message
   end
 
+  test :refute_equal_when_equal do
+    "This should never be tested" = refute_equal(1, 1)
+  rescue: error in [ExUnit::AssertionError]
+    "Expected 1 to not be equal to 1" = error.message
+  end
+
+  test :refute_equal_when_different do
+    false = refute_equal(0, 1)
+  end
+
   test :flunk do
     "This should never be tested" = flunk
   rescue: error in [ExUnit::AssertionError]
