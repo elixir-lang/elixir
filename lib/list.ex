@@ -65,7 +65,29 @@ defmodule List do
     do_flatten(list, tail)
   end
 
-  # TODO: Write docs + tests
+  # Folds (reduces) the given list to the left with
+  # a function. Requires an accumulator.
+  #
+  # ## Examples
+  #
+  #     List.foldl [5,5], 10, fn(x, acc) -> x + acc end
+  #     #=> 20
+  #
+  #     List.foldl [1,2,3,4], 0, fn(x, acc) -> x - acc end
+  #     #=> 2
+  #
+  def foldl(list, acc, function) do
+    Erlang.lists.foldl(function, acc, list)
+  end
+
+  # Folds (reduces) the given list to the right with
+  # a function. Requires an accumulator.
+  #
+  # ## Examples
+  #
+  #     List.foldl [1,2,3,4], 0, fn(x, acc) -> x - acc end
+  #     #=> -2
+  #
   def foldr(list, acc, function) do
     Erlang.lists.foldr(function, acc, list)
   end
