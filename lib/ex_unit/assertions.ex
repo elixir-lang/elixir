@@ -63,6 +63,20 @@ defmodule ExUnit::Assertions do
     not assert(!not_expected, message)
   end
 
+  # Asserts the `expected` value is not equal to `received`.
+  #
+  # ## Examples
+  #
+  #     refute_equal 0, 1
+  #
+  def refute_equal(expected, received) do
+    refute_equal(expected, received, "Expected #{inspect received} to not be equal to #{inspect expected}")
+  end
+
+  def refute_equal(expected, received, message) do
+    refute(expected == received, message)
+  end
+
   # Fails with a message.
   #
   # ## Examples
