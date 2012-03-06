@@ -30,10 +30,10 @@ end
 defmodule String::Chars::BitStringTest do
   use ExUnit::Case
 
-  # TODO: Use flunk or assert_raises
   test :bitstring do
-    assert_equal "<<0,1|4>>", to_binary(<<1|12-integer-signed>>)
-  rescue: FunctionClauseError
+    assert_raises FunctionClauseError, fn ->
+      to_binary(<<1|12-integer-signed>>)
+    end
   end
 
   test :binary do

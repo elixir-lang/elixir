@@ -57,27 +57,27 @@ defmodule EExTest do
   end
 
   test "raises a syntax error when the token is invalid" do
-    EEx.compile "foo <%= bar"
-  rescue: error in [EEx::SyntaxError]
-    assert_equal "invalid token: ' bar'", error.message
+    assert_raises EEx::SyntaxError, "invalid token: ' bar'", fn ->
+      EEx.compile "foo <%= bar"
+    end
   end
 
   test "raises a syntax error when end expression is found without a start expression" do
-    EEx.compile "foo <% end %>"
-  rescue: error in [EEx::SyntaxError]
-    assert_equal "unexpected token: ' end ' at line 1", error.message
+    assert_raises EEx::SyntaxError, "unexpected token: ' end ' at line 1",  fn ->
+      EEx.compile "foo <% end %>"
+    end
   end
 
   test "raises a syntax error when start expression is found without an end expression" do
-    EEx.compile "foo <% if true do %>"
-  rescue: error in [EEx::SyntaxError]
-    assert_equal "unexpected end of string. expecting a closing <% end %>.", error.message
+    assert_raises EEx::SyntaxError, "unexpected end of string. expecting a closing <% end %>.", fn ->
+      EEx.compile "foo <% if true do %>"
+    end
   end
 
   test "raises a syntax error when nested end expression is found without an start expression" do
-    EEx.compile "foo <%if true do %><% end %><% end %>"
-  rescue: error in [EEx::SyntaxError]
-    assert_equal "unexpected token: ' end ' at line 1", error.message
+    assert_raises EEx::SyntaxError, "unexpected token: ' end ' at line 1", fn ->
+      EEx.compile "foo <%if true do %><% end %><% end %>"
+    end
   end
 
   test "respects line numbers" do
