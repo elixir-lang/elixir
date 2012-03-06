@@ -1,4 +1,5 @@
 language: erlang
+script: "make test"
 notifications:
   recipients:
     - jose.valim@plataformatec.com.br
