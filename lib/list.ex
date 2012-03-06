@@ -97,7 +97,7 @@ defmodule List do
 
   ## Examples
 
-      List.foldl [1,2,3,4], 0, fn(x, acc) -> x - acc end
+      List.foldr [1,2,3,4], 0, fn(x, acc) -> x - acc end
       #=> -2
 
   """
