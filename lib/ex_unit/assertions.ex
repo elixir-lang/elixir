@@ -1,15 +1,17 @@
 defexception ExUnit::AssertionError, message: "assertion failed"
 
 defmodule ExUnit::Assertions do
-  # Asserts the `expected` value matches `received`. Differently
-  # from `assert_equal`, `assert_match` uses underscore and
-  # therefore allows a developer to match against a specific
-  # part of the `received` structure.
-  #
-  # ## Examples
-  #
-  #     assert_match { 1, _, 3 }, { 1, 2, 3 }
-  #
+  @doc """
+  Asserts the `expected` value matches `received`. Differently
+  from `assert_equal`, `assert_match` uses underscore and
+  therefore allows a developer to match against a specific
+  part of the `received` structure.
+
+  ## Examples
+
+      assert_match { 1, _, 3 }, { 1, 2, 3 }
+
+  """
   defmacro assert_match(expected, received) do
     quote do
       try do
@@ -21,12 +23,14 @@ defmodule ExUnit::Assertions do
     end
   end
 
-  # Asserts the `base` value is member of `container`.
-  #
-  # ## Examples
-  #
-  #     assert_member 'foo', 'foobar'
-  #
+  @doc """
+  Asserts the `base` value is member of `container`.
+
+  ## Examples
+
+      assert_member 'foo', 'foobar'
+
+  """
   def assert_member(base, container) do
     assert_member(base, container, "Expected #{inspect container} to include #{inspect base}")
   end
@@ -35,12 +39,14 @@ defmodule ExUnit::Assertions do
     assert(Erlang.string.str(container, base) != 0, message)
   end
 
-  # Asserts the `expected` value is equal to `received`.
-  #
-  # ## Examples
-  #
-  #     assert_equal 0, 0
-  #
+  @doc """
+  Asserts the `expected` value is equal to `received`.
+
+  ## Examples
+
+      assert_equal 0, 0
+
+  """
   def assert_equal(expected, received) do
     assert_equal(expected, received, "Expected #{inspect received} to be equal to #{inspect expected}")
   end
@@ -49,14 +55,16 @@ defmodule ExUnit::Assertions do
     assert(expected == received, message)
   end
 
-  # Asserts the `exception` is raised during `function` execution.
-  #
-  # ## Examples
-  #
-  #     assert_raises MatchError, fn ->
-  #       1 + "test"
-  #     end
-  #
+  @doc """
+  Asserts the `exception` is raised during `function` execution.
+
+  ## Examples
+
+      assert_raises MatchError, fn ->
+        1 + "test"
+      end
+
+  """
   def assert_raises(exception, function) do
     function.()
     flunk "Expected #{exception} exception but nothing was raised"
@@ -72,12 +80,14 @@ defmodule ExUnit::Assertions do
     end
   end
 
-  # Asserts the `not_expected` value is false.
-  #
-  # ## Examples
-  #
-  #     refute false
-  #
+  @doc """
+  Asserts the `not_expected` value is false.
+
+  ## Examples
+
+      refute false
+
+  """
   def refute(not_expected) do
     refute(not_expected, "Expected #{inspect not_expected} to be false")
   end
@@ -86,12 +96,14 @@ defmodule ExUnit::Assertions do
     not assert(!not_expected, message)
   end
 
-  # Asserts the `expected` value is not equal to `received`.
-  #
-  # ## Examples
-  #
-  #     refute_equal 0, 1
-  #
+  @doc """
+  Asserts the `expected` value is not equal to `received`.
+
+  ## Examples
+
+      refute_equal 0, 1
+
+  """
   def refute_equal(expected, received) do
     refute_equal(expected, received, "Expected #{inspect received} to not be equal to #{inspect expected}")
   end
@@ -100,12 +112,14 @@ defmodule ExUnit::Assertions do
     refute(expected == received, message)
   end
 
-  # Fails with a message.
-  #
-  # ## Examples
-  #
-  #     flunk "This should raise an error"
-  #
+  @doc """
+  Fails with a message.
+
+  ## Examples
+
+      flunk "This should raise an error"
+
+  """
   def flunk do
     flunk "Epic Fail!"
   end
@@ -114,12 +128,14 @@ defmodule ExUnit::Assertions do
     assert false, message
   end
 
-  # Asserts the `expected` value is true.
-  #
-  # ## Examples
-  #
-  #     assert true
-  #
+  @doc """
+  Asserts the `expected` value is true.
+
+  ## Examples
+
+      assert true
+
+  """
   def assert(expected) do
     assert(expected, "Expected #{inspect expected} to be true")
   end
