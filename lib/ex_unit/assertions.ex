@@ -59,12 +59,17 @@ defmodule ExUnit::Assertions do
   #
   def assert_raises(exception, function) do
     function.()
-    flunk "#{exception} exception expected but nothing was raised"
+    flunk "Expected #{exception} exception but nothing was raised"
   rescue: error in [exception]
     error
-  catch: :error, other when not is_record(other, AssertionError)
-    other_name = elem(other, 1)
-    flunk "#{exception} exception expected, not #{other_name}"
+  rescue: error
+    name = error.__record__(:name)
+
+    if name == ExUnit::AssertionError do
+      raise(error)
+    else:
+      flunk "Expected exception #{exception}, got #{name}"
+    end
   end
 
   # Asserts the `not_expected` value is false.
