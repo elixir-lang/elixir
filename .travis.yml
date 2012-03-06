@@ -1,6 +1,7 @@
 language: erlang
 script: "make test"
 notifications:
+  irc: "irc.freenode.org#elixir-lang"
   recipients:
     - jose.valim@plataformatec.com.br
 otp_release:
