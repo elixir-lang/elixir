@@ -63,7 +63,7 @@ defmodule ExUnit::Assertions do
   rescue: error in [exception]
     error
   catch: :error, other when not is_record(other, AssertionError)
-    [other_name,_|tail] = tuple_to_list(other)
+    other_name = elem(other, 1)
     flunk "#{exception} exception expected, not #{other_name}"
   end
 
