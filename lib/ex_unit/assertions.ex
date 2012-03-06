@@ -56,11 +56,25 @@ defmodule ExUnit::Assertions do
   end
 
   @doc """
+  Asserts the `exception` is raised during `function` execution with the expected message.
+
+  ## Examples
+
+      assert_raises ArithmeticError, "bad argument in arithmetic expression", fn ->
+        1 + "test"
+      end
+  """
+  def assert_raises(exception, expected_message, function) do
+    error = assert_raises(exception, function)
+    assert_equal expected_message, error.message
+  end
+
+  @doc """
   Asserts the `exception` is raised during `function` execution.
 
   ## Examples
 
-      assert_raises MatchError, fn ->
+      assert_raises ArithmeticError, fn ->
         1 + "test"
       end
 
