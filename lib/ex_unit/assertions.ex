@@ -55,6 +55,11 @@ defmodule ExUnit::Assertions do
     assert(expected == received, message)
   end
 
+  def assert_raises(exception, expected_message, function) do
+    error = assert_raises(exception, function)
+    assert_equal expected_message, error.message
+  end
+
   @doc """
   Asserts the `exception` is raised during `function` execution.
 
