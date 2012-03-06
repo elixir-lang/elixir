@@ -28,6 +28,18 @@ defmodule ListTest do
     assert_equal [1,2,3,4,5], List.flatten([[1,[2],3]], [4,5])
   end
 
+  test :foldl do
+    assert_equal 6, List.foldl([1,2,3], 0, fn(x,y) -> x + y end)
+    assert_equal 16, List.foldl([1,2,3], 10, fn(x,y) -> x + y end)
+    assert_equal 2, List.foldl([1,2,3,4], 0, fn(x,y) -> x - y end)
+  end
+
+  test :foldr do
+    assert_equal 6, List.foldr([1,2,3], 0, fn(x,y) -> x + y end)
+    assert_equal 16, List.foldr([1,2,3], 10, fn(x,y) -> x + y end)
+    assert_equal -2, List.foldr([1,2,3,4], 0, fn(x,y) -> x - y end)
+  end
+
   def test_member? do
     assert List.member? [1,2,3], 1
     refute List.member? [1,2,3], 0
