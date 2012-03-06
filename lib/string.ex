@@ -5,7 +5,25 @@ defmodule String do
     [char|do_escape(other, char)]
   end
 
+  @doc """
+  Returns a string with the strings in `strings`
+  separated by `separator`
+  """
+  def join([], _separator // " ") do
+    ""
+  end
+  def join([h|t], separator) do
+    do_join(t, separator, h)
+  end
+
   ## Helpers
+
+  defp do_join([h|t], separator, acc) do
+    do_join(t, separator, acc <> separator <> h)
+  end
+  defp do_join([], _separator, acc) do
+    acc
+  end
 
   defp do_escape([char|t], char) do
     [?\\,char|do_escape(t, char)]
