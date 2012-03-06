@@ -82,6 +82,30 @@ defmodule ExUnit::AssertionsTest do
     "This should be included" = error.message
   end
 
+  test :assert_raises_when_no_error do
+    "This should never be tested" = assert_raises ArgumentError, fn ->
+      # nothing
+    end
+  rescue: error in [ExUnit::AssertionError]
+    "::ArgumentError exception expected but nothing was raised" = error.message
+  end
+
+  test :assert_raises_when_error do
+    error = assert_raises ArgumentError, fn ->
+      raise ArgumentError, message: "test error"
+    end
+
+    "test error" = error.message
+  end
+
+  test :assert_raises_when_other_error do
+    "This should never be tested" = assert_raises ArgumentError, fn ->
+      raise MatchError, message: "test error"
+    end
+  rescue: error in [ExUnit::AssertionError]
+    "::ArgumentError exception expected, not ::MatchError" = error.message
+  end
+
   test :refute_equal_when_equal do
     "This should never be tested" = refute_equal(1, 1)
   rescue: error in [ExUnit::AssertionError]
