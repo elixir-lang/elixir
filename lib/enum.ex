@@ -32,11 +32,11 @@ defmodule Enum do
         end
 
         defp iterate([]) do
-          __STOP_ITERATOR__
+          :stop
         end
       end
 
-  The __STOP_ITERATOR__ is a special Elixir token that
+  The :stop is a special Elixir token that
   marks when iteration should finish.
   """
 
@@ -173,7 +173,7 @@ defmodule Enum do
   end
 
   def empty?(_iterator, pointer) do
-    pointer == __STOP_ITERATOR__
+    pointer == :stop
   end
 
   @doc """
@@ -495,7 +495,7 @@ defmodule Enum do
     end
   end
 
-  defp do_all?(__STOP_ITERATOR__, _, _) do
+  defp do_all?(:stop, _, _) do
     true
   end
 
@@ -512,7 +512,7 @@ defmodule Enum do
     end
   end
 
-  defp do_any?(__STOP_ITERATOR__, _, _) do
+  defp do_any?(:stop, _, _) do
     false
   end
 
@@ -529,7 +529,7 @@ defmodule Enum do
     end
   end
 
-  defp do_find(__STOP_ITERATOR__, _, ifnone, _) do
+  defp do_find(:stop, _, ifnone, _) do
     ifnone
   end
 
@@ -546,7 +546,7 @@ defmodule Enum do
     end
   end
 
-  defp do_find_value(__STOP_ITERATOR__, _, ifnone, _) do
+  defp do_find_value(:stop, _, ifnone, _) do
     ifnone
   end
 
@@ -557,7 +557,7 @@ defmodule Enum do
     do_each(iterator.(next), iterator, fun)
   end
 
-  defp do_each(__STOP_ITERATOR__, _, _) do
+  defp do_each(:stop, _, _) do
     []
   end
 
@@ -574,7 +574,7 @@ defmodule Enum do
     end
   end
 
-  defp do_filter(__STOP_ITERATOR__, _, _) do
+  defp do_filter(:stop, _, _) do
     []
   end
 
@@ -591,7 +591,7 @@ defmodule Enum do
     end
   end
 
-  defp do_filter_map(__STOP_ITERATOR__, _, _, _) do
+  defp do_filter_map(:stop, _, _, _) do
     []
   end
 
@@ -601,7 +601,7 @@ defmodule Enum do
     do_reduce(iterator.(next), iterator, fun.(h, acc), fun)
   end
 
-  defp do_reduce(__STOP_ITERATOR__, _, acc, _) do
+  defp do_reduce(:stop, _, acc, _) do
     acc
   end
 
@@ -612,8 +612,8 @@ defmodule Enum do
     do_join(iterator.(next), iterator, joiner, to_binary(h))
   end
 
-  # The first item is __STOP_ITERATOR__, then we return an empty string;
-  defp do_join(__STOP_ITERATOR__, _, _joiner, nil) do
+  # The first item is :stop, then we return an empty string;
+  defp do_join(:stop, _, _joiner, nil) do
     ""
   end
 
@@ -624,7 +624,7 @@ defmodule Enum do
   end
 
   # Until we have to stop iteration, then we return acc.
-  defp do_join(__STOP_ITERATOR__, _, _joiner, acc) do
+  defp do_join(:stop, _, _joiner, acc) do
     acc
   end
 
@@ -638,7 +638,7 @@ defmodule Enum do
     do_keyfind(iterator.(next), iterator, key, position, ifnone)
   end
 
-  defp do_keyfind(__STOP_ITERATOR__, _, _, _, ifnone) do
+  defp do_keyfind(:stop, _, _, _, ifnone) do
     ifnone
   end
 
@@ -648,7 +648,7 @@ defmodule Enum do
     [fun.(h)|do_map(iterator.(next), iterator, fun)]
   end
 
-  defp do_map(__STOP_ITERATOR__, _, _) do
+  defp do_map(:stop, _, _) do
     []
   end
 
@@ -660,7 +660,7 @@ defmodule Enum do
     { [result|rest], acc }
   end
 
-  defp do_map_reduce(__STOP_ITERATOR__, _, acc, _f) do
+  defp do_map_reduce(:stop, _, acc, _f) do
     { [], acc }
   end
 
@@ -677,7 +677,7 @@ defmodule Enum do
     end
   end
 
-  defp do_partition(__STOP_ITERATOR__, _, _, acc1, acc2) do
+  defp do_partition(:stop, _, _, acc1, acc2) do
     { :lists.reverse(acc1), :lists.reverse(acc2) }
   end
 
@@ -695,7 +695,7 @@ defmodule Enum do
     { List.reverse(acc), [h|map(iterator, next, fn(x) -> x end)] }
   end
 
-  defp do_split(__STOP_ITERATOR__, _, _, acc) do
+  defp do_split(:stop, _, _, acc) do
     { List.reverse(acc), [] }
   end
 
@@ -735,6 +735,6 @@ defimpl Enum::Iterator, for: List do
   end
 
   defp iterate([]) do
-    __STOP_ITERATOR__
+    :stop
   end
 end

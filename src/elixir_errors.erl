@@ -75,7 +75,7 @@ assert_function_scope(_Line, _Kind, #elixir_scope{function=Function}) -> Functio
 
 raise(Line, Filename, Kind, Message) ->
   Stacktrace = erlang:get_stacktrace(),
-  erlang:raise(error, { Kind, '__EXCEPTION__', Message, iolist_to_binary(Filename), Line }, Stacktrace).
+  erlang:raise(error, { Kind, '__exception__', Message, iolist_to_binary(Filename), Line }, Stacktrace).
 
 file_format(Line, Filename, Message) ->
   lists:flatten(io_lib:format("~ts:~w: ~ts", [Filename, Line, Message])).

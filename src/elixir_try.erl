@@ -123,8 +123,7 @@ rescue_guards(Line, Var, Guards, S) ->
     false ->
       IsTuple     = { is_tuple, Line, [Var] },
       IsException = { '==', Line, [
-        { { '.', Line, [erlang, element] }, Line, [2, Var] },
-        { '__EXCEPTION__', Line, nil }
+        { { '.', Line, [erlang, element] }, Line, [2, Var] }, '__exception__'
       ] },
       OrElse = join(Line, 'or', Elixir),
       [join(Line, 'and', [IsTuple, IsException, OrElse])|Erlang]
@@ -245,8 +244,7 @@ erlang_rescue_guard_for(Line, Var, '::ArgumentError') ->
 erlang_rescue_guard_for(Line, Var, '::ErlangError') ->
   IsNotTuple  = { 'not', Line, [{ is_tuple, Line, [Var] }] },
   IsException = { '!=', Line, [
-    { { '.', Line, [ erlang, element ] }, Line, [2, Var] },
-    { '__EXCEPTION__', Line, nil }
+    { { '.', Line, [ erlang, element ] }, Line, [2, Var] }, '__exception__'
   ] },
   { 'or', Line, [IsNotTuple, IsException] }.
 

@@ -219,7 +219,7 @@ defmodule Elixir::Builtin do
   """
   defmacro defexception(name, values, opts // [], do_block // []) do
     opts   = Orddict.merge(opts, do_block)
-    values = [{ :__exception__, __EXCEPTION__ }|values]
+    values = [{ :__exception__, :__exception__ }|values]
 
     record = Record.defrecord(name, values, opts)
     check  = quote do
@@ -242,10 +242,10 @@ defmodule Elixir::Builtin do
   defmacro is_exception(thing) do
     quote do
       in_guard do
-        is_tuple(unquote(thing)) and :erlang.element(2, unquote(thing)) == __EXCEPTION__
+        is_tuple(unquote(thing)) and :erlang.element(2, unquote(thing)) == :__exception__
       else:
         result = unquote(thing)
-        is_tuple(result) and :erlang.element(2, result) == __EXCEPTION__
+        is_tuple(result) and :erlang.element(2, result) == :__exception__
       end
     end
   end
@@ -1005,7 +1005,7 @@ defmodule Elixir::Builtin do
     :erlang.error atom.new
   end
 
-  def raise(exception) when is_tuple(exception) and :erlang.element(2, exception) == __EXCEPTION__ do
+  def raise(exception) when is_tuple(exception) and :erlang.element(2, exception) == :__exception__ do
     :erlang.error exception
   end
 

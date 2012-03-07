@@ -206,12 +206,6 @@ translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
 translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
   translate_each(list_to_binary(S#elixir_scope.filename), S);
 
-translate_each({'__STOP_ITERATOR__', Line, Atom}, S) when is_atom(Atom) ->
-  { { atom, Line, '__STOP_ITERATOR__' }, S };
-
-translate_each({'__EXCEPTION__', Line, Atom}, S) when is_atom(Atom) ->
-  { { atom, Line, '__EXCEPTION__' }, S };
-
 %% References
 
 translate_each({'__ref__', Line, [Ref]}, S) when is_atom(Ref) ->
