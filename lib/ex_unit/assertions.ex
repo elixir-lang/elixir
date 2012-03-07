@@ -170,6 +170,30 @@ defmodule ExUnit::Assertions do
   end
 
   @doc """
+  Asserts the `expected` and `received` are within `delta`.
+
+  ## Examples
+
+      assert_in_delta 1.1, 1.5, 0.2
+      assert_in_delta 10, 15, 4
+
+  """
+  def assert_in_delta(expected, received, delta) do
+    diff = abs(expected - received)
+    message = "Expected |#{inspect expected} - #{inspect received}| (#{inspect diff}) to be < #{inspect delta}"
+    assert diff < delta, message
+  end
+
+  @doc """
+  Asserts the `expected` and `received` are within `delta` with the expected `message`.
+
+  """
+  def assert_in_delta(expected, received, delta, message) do
+    diff = abs(expected - received)
+    assert diff < delta, message
+  end
+
+  @doc """
   Asserts the `not_expected` value is false.
 
   ## Examples
@@ -240,6 +264,30 @@ defmodule ExUnit::Assertions do
   """
   def refute_nil(value, message) do
     refute value == nil, message
+  end
+
+  @doc """
+  Asserts the `expected` and `received` are not within `delta`.
+
+  ## Examples
+
+      refute_in_delta 1.1, 1.2, 0.2
+      refute_in_delta 10, 11, 2
+
+  """
+  def refute_in_delta(expected, received, delta) do
+    diff = abs(expected - received)
+    message = "Expected |#{inspect expected} - #{inspect received}| (#{inspect diff}) to not be < #{inspect delta}"
+    refute diff < delta, message
+  end
+
+  @doc """
+  Asserts the `expected` and `received` are not within `delta` with the expected `message`.
+
+  """
+  def refute_in_delta(expected, received, delta, message) do
+    diff = abs(expected - received)
+    refute diff < delta, message
   end
 
   @doc """
