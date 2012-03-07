@@ -114,6 +114,37 @@ defmodule ExUnit::AssertionsTest do
     "Expected exception ::SyntaxError, got ::FunctionClauseError" = error.message
   end
 
+  test :assert_operator_greater_pass do
+    true = assert_operator 2 > 1
+  end
+
+  test :assert_operator_greater_fail do
+    "This should never be tested" = assert_operator 1 > 2
+  rescue: error in [ExUnit::AssertionError]
+    "Expected 1 to be > 2" = error.message
+  end
+
+  test :assert_operator_less_or_equal_than_pass do
+    true = assert_operator 1 <= 2
+  end
+
+  test :assert_operator_less_or_equal_than_fail do
+    "This should never be tested" = assert_operator 2 <= 1
+  rescue: error in [ExUnit::AssertionError]
+    "Expected 2 to be <= 1" = error.message
+  end
+
+  test :assert_operator_with_expressions do
+    greater = 5
+    true = assert_operator 1 + 2 < greater
+  end
+
+  test :assert_operator_with_message do
+    "This should never be tested" = assert_operator 1 > 2, "assertion"
+  rescue: error in [ExUnit::AssertionError]
+    "assertion" = error.message
+  end
+
   test :refute_equal_when_equal do
     "This should never be tested" = refute_equal(1, 1)
   rescue: error in [ExUnit::AssertionError]
