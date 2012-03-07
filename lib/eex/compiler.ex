@@ -62,8 +62,7 @@ defmodule EEx::Compiler do
 
   defp wrap_expr(current, line, buffer, chars, state) do
     key = length(state.dict)
-    # TODO: Implement list duplicate
-    new_lines = :lists.duplicate(line - state.line, ?\n)
+    new_lines = List.duplicate(?\n, line - state.line)
     placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
 
     { current ++ new_lines ++ placeholder ++ chars, state.merge_dict([{key, buffer}]) }
