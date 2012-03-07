@@ -32,7 +32,7 @@ defmodule Protocol do
   def defimpl(protocol, [for: for], [do: block]) do
     quote do
       protocol = unquote(protocol)
-      for      = unquote(for)
+      for      = Protocol.wrap_builtin(unquote(for))
       name     = protocol::for
 
       Protocol.assert_protocol(protocol)
@@ -48,7 +48,7 @@ defmodule Protocol do
 
   # Check if the given module is a protocol. Raises an error
   # if not loaded or not a protocol.
-  # :api: private
+  @doc false
   def assert_protocol(module) do
     try do
       module.__info__(:data)
@@ -65,7 +65,7 @@ defmodule Protocol do
 
   # Check if the given `impl` is a valid impl for `protocol`.
   # Raises an error if not.
-  # :api: private
+  @doc false
   def assert_impl(impl, protocol) do
     remaining = protocol.__protocol__(:functions) -- impl.__info__(:exports)
 
@@ -76,7 +76,7 @@ defmodule Protocol do
   # Callback entrypoint that defines the protocol functions.
   # It simply detects the protocol using __protocol_for__ and
   # then dispatches to it.
-  # :api: private
+  @doc false
   def functions(module, conversions, funs) do
     fallback = if L.keyfind(Tuple, 1, conversions), do: Tuple, else: Any
     contents = lc fun in L.reverse(funs), do: each_function(fun, fallback)
@@ -86,7 +86,7 @@ defmodule Protocol do
   # Implements the method that detects the protocol and returns
   # the module to dispatch to. Returns module::Record for records
   # which should be properly handled by the dispatching function.
-  # :api: private
+  @doc false
   def protocol_for(module, conversions) do
     contents = lc kind in conversions, do: each_protocol_for(kind)
 
@@ -103,7 +103,7 @@ defmodule Protocol do
 
   # Returns the default conversions according to the given
   # only/except options.
-  # :api: private
+  @doc false
   def conversions_for(opts) do
     kinds = all_types
 
@@ -113,6 +113,12 @@ defmodule Protocol do
       except = Orddict.get(opts, :except, [Any])
       L.foldl(fn(i, list) -> L.keydelete(i, 1, list) end, kinds, except)
     end
+  end
+
+  # Wrap a builtin type inside the builtin namespace.
+  @doc false
+  def wrap_builtin(for) do
+    if L.keyfind(for, 1, all_types), do: Builtin::for, else: for
   end
 
   ## Helpers
@@ -138,7 +144,7 @@ defmodule Protocol do
   defp each_protocol_for({ _, :is_record }) do
     quote do
       def __protocol_for__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
-        __MODULE__::Record
+        __MODULE__::Builtin::Record
       end
     end
   end
@@ -147,7 +153,7 @@ defmodule Protocol do
   defp each_protocol_for({ _, :is_any }) do
     quote do
       def __protocol_for__(_) do
-        __MODULE__::Any
+        __MODULE__::Builtin::Any
       end
     end
   end
@@ -156,7 +162,7 @@ defmodule Protocol do
   defp each_protocol_for({ kind, fun }) do
     quote do
       def __protocol_for__(arg) when unquote(fun).(arg) do
-        __MODULE__::unquote(kind)
+        __MODULE__::Builtin::unquote(kind)
       end
     end
   end
@@ -175,11 +181,11 @@ defmodule Protocol do
       def unquote(name).(unquote_splicing(args)) do
         args = [unquote_splicing(args)]
         case __protocol_for__(xA) do
-        match: __MODULE__::Record
+        match: __MODULE__::Builtin::Record
           try do
             apply __MODULE__::(:erlang.element(1, xA)), unquote(name), args
           rescue: UndefinedFunctionError
-            apply __MODULE__::unquote(fallback), unquote(name), args
+            apply __MODULE__::Builtin::unquote(fallback), unquote(name), args
           end
         match: nil
           raise ::Protocol::UndefinedError, protocol: __MODULE__, structure: xA

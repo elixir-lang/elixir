@@ -22,32 +22,32 @@ defmodule ProtocolTest do
   use ExUnit::Case
 
   test :protocol_with_all do
-    assert_undef(ProtocolTest::WithAll, Atom, :foo)
-    assert_undef(ProtocolTest::WithAll, Function, fn(x, do: x))
-    assert_undef(ProtocolTest::WithAll, Number, 1)
-    assert_undef(ProtocolTest::WithAll, Number, 1.1)
-    assert_undef(ProtocolTest::WithAll, List, [])
-    assert_undef(ProtocolTest::WithAll, List, [1,2,3])
-    assert_undef(ProtocolTest::WithAll, Tuple, {})
-    assert_undef(ProtocolTest::WithAll, Tuple, {1,2,3})
-    assert_undef(ProtocolTest::WithAll, Tuple, {Bar,2,3})
-    assert_undef(ProtocolTest::WithAll, BitString, "foo")
-    assert_undef(ProtocolTest::WithAll, BitString, <<1>>)
-    assert_undef(ProtocolTest::WithAll, PID, Process.self)
-    assert_undef(ProtocolTest::WithAll, Port, hd(:erlang.ports))
-    assert_undef(ProtocolTest::WithAll, Reference, make_ref)
+    assert_undef(ProtocolTest::WithAll, Builtin::Atom, :foo)
+    assert_undef(ProtocolTest::WithAll, Builtin::Function, fn(x, do: x))
+    assert_undef(ProtocolTest::WithAll, Builtin::Number, 1)
+    assert_undef(ProtocolTest::WithAll, Builtin::Number, 1.1)
+    assert_undef(ProtocolTest::WithAll, Builtin::List, [])
+    assert_undef(ProtocolTest::WithAll, Builtin::List, [1,2,3])
+    assert_undef(ProtocolTest::WithAll, Builtin::Tuple, {})
+    assert_undef(ProtocolTest::WithAll, Builtin::Tuple, {1,2,3})
+    assert_undef(ProtocolTest::WithAll, Builtin::Tuple, {Bar,2,3})
+    assert_undef(ProtocolTest::WithAll, Builtin::BitString, "foo")
+    assert_undef(ProtocolTest::WithAll, Builtin::BitString, <<1>>)
+    assert_undef(ProtocolTest::WithAll, Builtin::PID, Process.self)
+    assert_undef(ProtocolTest::WithAll, Builtin::Port, hd(:erlang.ports))
+    assert_undef(ProtocolTest::WithAll, Builtin::Reference, make_ref)
   end
 
   test :protocol_with_except do
-    assert_undef(ProtocolTest::WithExcept, Any, :foo)
-    assert_undef(ProtocolTest::WithExcept, Any, 1)
-    assert_undef(ProtocolTest::WithExcept, Any, [1,2,3])
-    assert_undef(ProtocolTest::WithExcept, Function, fn(x, do: x))
-    assert_undef(ProtocolTest::WithExcept, Tuple, {})
+    assert_undef(ProtocolTest::WithExcept, Builtin::Any, :foo)
+    assert_undef(ProtocolTest::WithExcept, Builtin::Any, 1)
+    assert_undef(ProtocolTest::WithExcept, Builtin::Any, [1,2,3])
+    assert_undef(ProtocolTest::WithExcept, Builtin::Function, fn(x, do: x))
+    assert_undef(ProtocolTest::WithExcept, Builtin::Tuple, {})
   end
 
   test :protocol_with_only do
-    assert_undef ProtocolTest::WithOnly, Function, fn(x, do: x)
+    assert_undef ProtocolTest::WithOnly, Builtin::Function, fn(x, do: x)
     assert_equal true, ProtocolTest::WithOnly.blank(ProtocolTest::Foo.new)
   end
 
@@ -65,20 +65,20 @@ defmodule ProtocolTest do
   end
 
   test :protocol_for do
-    assert_protocol_for(ProtocolTest::WithAll, Atom, :foo)
-    assert_protocol_for(ProtocolTest::WithAll, Function, fn(x, do: x))
-    assert_protocol_for(ProtocolTest::WithAll, Number, 1)
-    assert_protocol_for(ProtocolTest::WithAll, Number, 1.1)
-    assert_protocol_for(ProtocolTest::WithAll, List, [])
-    assert_protocol_for(ProtocolTest::WithAll, List, [1,2,3])
-    assert_protocol_for(ProtocolTest::WithAll, Tuple, {})
-    assert_protocol_for(ProtocolTest::WithAll, Tuple, {1,2,3})
-    assert_protocol_for(ProtocolTest::WithAll, Record, {Bar,2,3})
-    assert_protocol_for(ProtocolTest::WithAll, BitString, "foo")
-    assert_protocol_for(ProtocolTest::WithAll, BitString, <<1>>)
-    assert_protocol_for(ProtocolTest::WithAll, PID, Process.self)
-    assert_protocol_for(ProtocolTest::WithAll, Port, hd(:erlang.ports))
-    assert_protocol_for(ProtocolTest::WithAll, Reference, make_ref)
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::Atom, :foo)
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::Function, fn(x, do: x))
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::Number, 1)
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::Number, 1.1)
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::List, [])
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::List, [1,2,3])
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::Tuple, {})
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::Tuple, {1,2,3})
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::Record, {Bar,2,3})
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::BitString, "foo")
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::BitString, <<1>>)
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::PID, Process.self)
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::Port, hd(:erlang.ports))
+    assert_protocol_for(ProtocolTest::WithAll, Builtin::Reference, make_ref)
   end
 
   # Assert that the given protocol is going to be dispatched.
