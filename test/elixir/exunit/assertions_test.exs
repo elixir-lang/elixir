@@ -187,6 +187,38 @@ defmodule ExUnit::AssertionsTest do
     "test message" = error.message
   end
 
+  test :assert_nil_when_nil do
+    true = assert_nil nil
+  end
+
+  test :assert_nil_when_not_nil do
+    "This should never be tested" = assert_nil true
+  rescue: error in [ExUnit::AssertionError]
+    "Expected true to be nil" = error.message
+  end
+
+  test :assert_nil_with_message do
+    "This should never be tested" = assert_nil false, "test message"
+  rescue: error in [ExUnit::AssertionError]
+    "test message" = error.message
+  end
+
+  test :refute_nil_when_not_nil do
+    false = refute_nil true
+  end
+
+  test :refute_nil_when_nil do
+    "This should never be tested" = refute_nil nil
+  rescue: error in [ExUnit::AssertionError]
+    "Expected nil to not be nil" = error.message
+  end
+
+  test :refute_nil_with_message do
+    "This should never be tested" = refute_nil nil, "test message"
+  rescue: error in [ExUnit::AssertionError]
+    "test message" = error.message
+  end
+
   test :flunk do
     "This should never be tested" = flunk
   rescue: error in [ExUnit::AssertionError]
