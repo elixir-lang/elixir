@@ -145,6 +145,22 @@ defmodule ExUnit::AssertionsTest do
     "assertion" = error.message
   end
 
+  test :assert_empty_when_empty do
+    true = assert_empty []
+  end
+
+  test :assert_empty_when_not_empty do
+    "This should never be tested" = assert_empty [1, 2]
+  rescue: error in [ExUnit::AssertionError]
+    "Expected [1,2] to be empty" = error.message
+  end
+
+  test :assert_empty_with_message do
+    "This should never be tested" = assert_empty [1, 2], "test message"
+  rescue: error in [ExUnit::AssertionError]
+    "test message" = error.message
+  end
+
   test :refute_equal_when_equal do
     "This should never be tested" = refute_equal(1, 1)
   rescue: error in [ExUnit::AssertionError]
@@ -153,6 +169,22 @@ defmodule ExUnit::AssertionsTest do
 
   test :refute_equal_when_different do
     false = refute_equal(0, 1)
+  end
+
+  test :refute_empty_when_not_empty do
+    false = refute_empty [1, 2]
+  end
+
+  test :refute_empty_when_empty do
+    "This should never be tested" = refute_empty []
+  rescue: error in [ExUnit::AssertionError]
+    "Expected [] to not be empty" = error.message
+  end
+
+  test :refute_empty_with_message do
+    "This should never be tested" = refute_empty [], "test message"
+  rescue: error in [ExUnit::AssertionError]
+    "test message" = error.message
   end
 
   test :flunk do
