@@ -154,6 +154,22 @@ defmodule ExUnit::Assertions do
   end
 
   @doc """
+  Asserts the `value` is nil.
+
+  """
+  def assert_nil(value) do
+    assert_nil value, "Expected #{inspect value} to be nil"
+  end
+
+  @doc """
+  Asserts the `value` is nil with the expected `message`.
+
+  """
+  def assert_nil(value, message) do
+    assert value == nil, message
+  end
+
+  @doc """
   Asserts the `not_expected` value is false.
 
   ## Examples
@@ -208,6 +224,22 @@ defmodule ExUnit::Assertions do
   """
   def refute_empty(enum, message) do
     refute Enum.empty?(enum), message
+  end
+
+  @doc """
+  Asserts the `value` is not nil.
+
+  """
+  def refute_nil(value) do
+    refute_nil value, "Expected #{inspect value} to not be nil"
+  end
+
+  @doc """
+  Asserts the `value` is not nil with the expected `message`.
+
+  """
+  def refute_nil(value, message) do
+    refute value == nil, message
   end
 
   @doc """
