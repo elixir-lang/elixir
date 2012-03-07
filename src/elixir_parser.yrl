@@ -24,7 +24,7 @@ Nonterminals
   .
 
 Terminals
-  'do' 'end' '__REF__'
+  'do' 'end' '__ref__'
   identifier kv_identifier punctuated_identifier paren_identifier do_identifier
   number signed_number atom bin_string list_string
   dot_call_op special_op comp_op
@@ -156,7 +156,7 @@ base_expr -> atom : build_atom('$1').
 base_expr -> var : build_identifier('$1', nil).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
-base_expr -> '__REF__' : '$1'.
+base_expr -> '__ref__' : '$1'.
 base_expr -> 'true' : ?op('$1').
 base_expr -> 'false' : ?op('$1').
 base_expr -> 'nil' : ?op('$1').
@@ -337,9 +337,9 @@ stab_eol -> '->' eol : '$1'.
 end_eol -> 'end' : '$1'.
 end_eol -> eol 'end' : '$2'.
 
-kv_item -> kv_identifier comma_expr eol : { ?exprs('$1'), { '__KVBLOCK__', ?line('$1'), [{lists:reverse('$2'),nil}] } }.
+kv_item -> kv_identifier comma_expr eol : { ?exprs('$1'), { '__kvblock__', ?line('$1'), [{lists:reverse('$2'),nil}] } }.
 kv_item -> kv_identifier eol expr_list eol : { ?exprs('$1'), build_block('$3') }.
-kv_item -> kv_identifier comma_expr eol expr_list eol : { ?exprs('$1'), { '__KVBLOCK__', ?line('$1'), [{lists:reverse('$2'),build_block('$4')}] } }.
+kv_item -> kv_identifier comma_expr eol expr_list eol : { ?exprs('$1'), { '__kvblock__', ?line('$1'), [{lists:reverse('$2'),build_block('$4')}] } }.
 
 kv_list -> kv_item : ['$1'].
 kv_list -> kv_item kv_list : ['$1'|'$2'].
@@ -399,9 +399,9 @@ build_special_op(Op, Expr) ->
 
 % Handle args that expects blocks of code
 build_block([])                            -> nil;
-build_block([nil])                         -> { '__BLOCK__', 0, [nil] };
+build_block([nil])                         -> { '__block__', 0, [nil] };
 build_block([Expr]) when not is_list(Expr) -> Expr;
-build_block(Exprs)                         -> { '__BLOCK__', 0, lists:reverse(Exprs) }.
+build_block(Exprs)                         -> { '__block__', 0, lists:reverse(Exprs) }.
 
 % Handle key value blocks
 build_kv_block(Delimiter, Contents, IncompleteList) ->

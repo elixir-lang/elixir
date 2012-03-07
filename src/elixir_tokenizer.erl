@@ -218,7 +218,7 @@ tokenize(Line, [$&,H|Rest], Tokens) when H >= $0 andalso H =< $9 ->
 
 tokenize(Line, [H|_] = String, Tokens) when H >= $A andalso H =< $Z ->
   { Rest, { _, Identifier } } = tokenize_identifier(String, [], false),
-  tokenize(Line, Rest, [{'__REF__',Line,[Identifier]}|Tokens]);
+  tokenize(Line, Rest, [{'__ref__',Line,[Identifier]}|Tokens]);
 
 % Identifier
 

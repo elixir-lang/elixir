@@ -21,7 +21,7 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
   Op == 'or'; Op == 'xor'; Op == '<'; Op == '>';
   Op == '<='; Op == '>='; Op == '=='; Op == '!=';
   Op == '==='; Op == '!==' ->
-  translate_each({ '__OP__', Line, [Op|Exprs] }, S);
+  translate_each({ '__op__', Line, [Op|Exprs] }, S);
 
 %% ::
 
@@ -173,7 +173,7 @@ translate_macro({use, Line, [Raw|Args]}, S) when length(Args) =< 1 ->
 
   elixir_ref:ensure_loaded(Line, Ref, SR, true),
 
-  Call = { '__BLOCK__', Line, [
+  Call = { '__block__', Line, [
     { require, Line, [Ref] },
     { { '.', Line, [Ref, '__using__'] }, Line, [Module, Args] }
   ] },
@@ -206,5 +206,5 @@ is_reserved_data(doc)       -> true;
 is_reserved_data(_)         -> false.
 
 % Unpack a list of expressions from a block.
-unpack([{ '__BLOCK__', _, Exprs }]) -> Exprs;
+unpack([{ '__block__', _, Exprs }]) -> Exprs;
 unpack(Exprs)                       -> Exprs.

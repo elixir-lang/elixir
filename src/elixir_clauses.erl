@@ -139,9 +139,9 @@ handle_else(Kind, Line, Clauses) ->
       %% Get else expression from the kv_block and normalize it
       %% TODO: raise an error for else foo, bar
       Expr = case Else of
-        { '__KVBLOCK__', _, [{ [Left], nil }] }   -> Left;
-        { '__KVBLOCK__', _, [{ [], Right }] }     -> Right;
-        { '__KVBLOCK__', _, [{ [Left], Right }] } -> prepend_to_block(Line, Left, Right)
+        { '__kvblock__', _, [{ [Left], nil }] }   -> Left;
+        { '__kvblock__', _, [{ [], Right }] }     -> Right;
+        { '__kvblock__', _, [{ [Left], Right }] } -> prepend_to_block(Line, Left, Right)
       end,
 
       TClauses = orddict:erase(else, Clauses),
@@ -149,10 +149,10 @@ handle_else(Kind, Line, Clauses) ->
 
       FinalClause = case orddict:find(Kind, TClauses) of
         { ok, KindClause } ->
-          { '__KVBLOCK__', _, KindExprs } = KindClause,
+          { '__kvblock__', _, KindExprs } = KindClause,
           setelement(3, KindClause, KindExprs ++ [ElseExpr]);
         _ ->
-          { '__KVBLOCK__', Line, [ElseExpr] }
+          { '__kvblock__', Line, [ElseExpr] }
       end,
 
       orddict:store(Kind, FinalClause, TClauses);
@@ -221,8 +221,8 @@ listify(Expr) -> Expr.
 
 %% Prepend a given expression to a block.
 
-prepend_to_block(_Line, Expr, { '__BLOCK__', Line, Args }) ->
-  { '__BLOCK__', Line, [Expr|Args] };
+prepend_to_block(_Line, Expr, { '__block__', Line, Args }) ->
+  { '__block__', Line, [Expr|Args] };
 
 prepend_to_block(Line, Expr, Args) ->
-  { '__BLOCK__', Line, [Expr, Args] }.
+  { '__block__', Line, [Expr, Args] }.

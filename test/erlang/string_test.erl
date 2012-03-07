@@ -26,7 +26,7 @@ extract_interpolations_with_tuple_inside_interpolation_test() ->
   ["f", {'|',1,[{{'.',1,['::String::Chars',to_binary]},1,[{'{}',1,[1]}]}, binary]}, "o"] = extract_interpolations("f#{{1}}o").
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
-  ["f", {'|',2,[{{'.',2,['::String::Chars',to_binary]},2,[{'__BLOCK__',2,[1,2]}]}, binary]}, "o"] = extract_interpolations("f#{1\n2}o").
+  ["f", {'|',2,[{{'.',2,['::String::Chars',to_binary]},2,[{'__block__',2,[1,2]}]}, binary]}, "o"] = extract_interpolations("f#{1\n2}o").
 
 extract_interpolations_with_string_inside_interpolation_test() ->
   ["f", <<"foo">>, "o"] = extract_interpolations("f#{\"foo\"}o").

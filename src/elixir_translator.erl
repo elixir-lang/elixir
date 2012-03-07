@@ -34,20 +34,20 @@ translate_each({'=', Line, [Left, Right]}, S) ->
 
 %% Blocks
 
-translate_each({ '__BLOCK__', Line, [] }, S) ->
+translate_each({ '__block__', Line, [] }, S) ->
   { { atom, Line, nil }, S };
 
-translate_each({ '__BLOCK__', _Line, [Arg] }, S) ->
+translate_each({ '__block__', _Line, [Arg] }, S) ->
   translate_each(Arg, S);
 
-translate_each({ '__BLOCK__', Line, Args }, S) when is_list(Args) ->
+translate_each({ '__block__', Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
 
-translate_each({ '__KVBLOCK__', _, [{[Expr],nil}] }, S) ->
+translate_each({ '__kvblock__', _, [{[Expr],nil}] }, S) ->
   translate_each(Expr, S);
 
-translate_each({ '__KVBLOCK__', Line, Args }, S) when is_list(Args) ->
+translate_each({ '__kvblock__', Line, Args }, S) when is_list(Args) ->
   case S#elixir_scope.macro of
     { Receiver, Name, Arity } ->
       Desc = [Receiver, Name, Arity],
@@ -59,11 +59,11 @@ translate_each({ '__KVBLOCK__', Line, Args }, S) when is_list(Args) ->
 
 %% Erlang op
 
-translate_each({ '__OP__', Line, [Op, Expr] }, S) when is_atom(Op) ->
+translate_each({ '__op__', Line, [Op, Expr] }, S) when is_atom(Op) ->
   { TExpr, NS } = translate_each(Expr, S),
   { { op, Line, convert_op(Op), TExpr }, NS };
 
-translate_each({ '__OP__', Line, [Op|Args] }, S) when is_atom(Op) ->
+translate_each({ '__op__', Line, [Op|Args] }, S) when is_atom(Op) ->
   { [TLeft, TRight], NS }  = translate_args(Args, S),
   { { op, Line, convert_op(Op), TLeft, TRight }, NS };
 
@@ -214,7 +214,7 @@ translate_each({'__EXCEPTION__', Line, Atom}, S) when is_atom(Atom) ->
 
 %% References
 
-translate_each({'__REF__', Line, [Ref]}, S) when is_atom(Ref) ->
+translate_each({'__ref__', Line, [Ref]}, S) when is_atom(Ref) ->
   Atom = list_to_atom("::" ++ atom_to_list(Ref)),
 
   Final = case S#elixir_scope.noref of
@@ -294,7 +294,7 @@ translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
 
       %% Finally, assign the function to a variable and
       %% invoke it passing the function itself as first arg
-      Block = { '__BLOCK__', Line, [
+      Block = { '__block__', Line, [
         { '=', Line, [FunVar, Function] },
         { { '.', Line, [FunVar] }, Line, [FunVar|Args] }
       ] },

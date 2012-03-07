@@ -516,7 +516,7 @@ defmodule Elixir::Builtin do
 
   """
   defmacro div(left, right) do
-    quote do: __OP__ :div, unquote(left), unquote(right)
+    quote do: __op__ :div, unquote(left), unquote(right)
   end
 
   @doc """
@@ -530,7 +530,7 @@ defmodule Elixir::Builtin do
 
   """
   defmacro rem(left, right) do
-    quote do: __OP__ :rem, unquote(left), unquote(right)
+    quote do: __op__ :rem, unquote(left), unquote(right)
   end
 
   @doc """
@@ -831,7 +831,7 @@ defmodule Elixir::Builtin do
     # Transform the condition and the expressions in the
     # do_clause to a key-value block. Get the other values
     # from the tail orddict.
-    if_clause   = { :__KVBLOCK__, 0, [ { [condition], do_clause } ] }
+    if_clause   = { :__kvblock__, 0, [ { [condition], do_clause } ] }
     else_clause = Orddict.get(tail, :else)
 
     # Merge if and elsif clauses, as they will all become match clauses.

@@ -267,8 +267,8 @@ join(Line, Kind, [H|T]) ->
 reverse_join(Line, Kind, [H|T]) ->
   lists:foldl(fun(X, Acc) -> { Kind, Line, [X, Acc] } end, H, T).
 
-prepend_to_block(_Line, Expr, { '__BLOCK__', Line, Args }) ->
-  { '__BLOCK__', Line, [Expr|Args] };
+prepend_to_block(_Line, Expr, { '__block__', Line, Args }) ->
+  { '__block__', Line, [Expr|Args] };
 
 prepend_to_block(Line, Expr, Args) ->
-  { '__BLOCK__', Line, [Expr, Args] }.
+  { '__block__', Line, [Expr, Args] }.

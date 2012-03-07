@@ -23,7 +23,7 @@ defmodule EEx::Compiler do
   end
 
   defp generate_buffer([{ :expr, line, mark, chars }|t], buffer, scope, state) do
-    expr = { :__BLOCK__, 0, Erlang.elixir_translator.forms(chars, line, 'nofile') }
+    expr = { :__block__, 0, Erlang.elixir_translator.forms(chars, line, 'nofile') }
     buffer = state.engine.handle_expr(buffer, mark, expr)
     generate_buffer(t, buffer, scope, state)
   end
@@ -41,7 +41,7 @@ defmodule EEx::Compiler do
 
   defp generate_buffer([{ :end_expr, line, _, chars }|t], buffer, [current|_], state) do
     { wrapped, state } = wrap_expr(current, line, buffer, chars, state)
-    tuples = { :__BLOCK__, 0, Erlang.elixir_translator.forms(wrapped, state.line, 'nofile') }
+    tuples = { :__block__, 0, Erlang.elixir_translator.forms(wrapped, state.line, 'nofile') }
     buffer = insert_quotes(tuples, state.dict)
     { buffer, t }
   end
