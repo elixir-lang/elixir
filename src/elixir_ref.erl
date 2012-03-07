@@ -40,7 +40,7 @@ concat(Args) -> list_to_atom(lists:concat([concat_(Arg) || Arg <- Args, Arg /= n
 concat_(Arg) ->
   case Ref = atom_to_list(Arg) of
     "::" ++ _ -> Ref;
-    _ -> list_to_atom("::" ++ Ref)
+    _ -> "::" ++ Ref
   end.
 
 %% Lookup a reference in the current scope

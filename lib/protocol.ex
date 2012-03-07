@@ -32,7 +32,7 @@ defmodule Protocol do
   def defimpl(protocol, [for: for], [do: block]) do
     quote do
       protocol = unquote(protocol)
-      for      = Protocol.wrap_builtin(unquote(for))
+      for      = unquote(for)
       name     = protocol::for
 
       Protocol.assert_protocol(protocol)
@@ -115,12 +115,6 @@ defmodule Protocol do
     end
   end
 
-  # Wrap a builtin type inside the builtin namespace.
-  @doc false
-  def wrap_builtin(for) do
-    if L.keyfind(for, 1, all_types), do: Builtin::for, else: for
-  end
-
   ## Helpers
 
   defp all_types do
@@ -144,7 +138,12 @@ defmodule Protocol do
   defp each_protocol_for({ _, :is_record }) do
     quote do
       def __protocol_for__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
-        __MODULE__::Builtin::Record
+        case atom_to_list(:erlang.element(1, arg)) do
+        match: '::' ++ _
+          __MODULE__::Record
+        else:
+          __MODULE__::Tuple
+        end
       end
     end
   end
@@ -153,7 +152,7 @@ defmodule Protocol do
   defp each_protocol_for({ _, :is_any }) do
     quote do
       def __protocol_for__(_) do
-        __MODULE__::Builtin::Any
+        __MODULE__::Any
       end
     end
   end
@@ -162,7 +161,7 @@ defmodule Protocol do
   defp each_protocol_for({ kind, fun }) do
     quote do
       def __protocol_for__(arg) when unquote(fun).(arg) do
-        __MODULE__::Builtin::unquote(kind)
+        __MODULE__::unquote(kind)
       end
     end
   end
@@ -181,11 +180,12 @@ defmodule Protocol do
       def unquote(name).(unquote_splicing(args)) do
         args = [unquote_splicing(args)]
         case __protocol_for__(xA) do
-        match: __MODULE__::Builtin::Record
+        match: __MODULE__::Record
           try do
-            apply __MODULE__::(:erlang.element(1, xA)), unquote(name), args
+            target = :lists.concat [__MODULE__, :erlang.element(1, xA)]
+            apply list_to_atom(target), unquote(name), args
           rescue: UndefinedFunctionError
-            apply __MODULE__::Builtin::unquote(fallback), unquote(name), args
+            apply __MODULE__::unquote(fallback), unquote(name), args
           end
         match: nil
           raise ::Protocol::UndefinedError, protocol: __MODULE__, structure: xA

@@ -27,7 +27,7 @@ defmodule String::Inspect::AtomTest do
   end
 
   test :impl do
-    assert_equal String::Inspect, String::Inspect::Builtin::Atom.__impl__
+    assert_equal String::Inspect, String::Inspect::Atom.__impl__
   end
 end
 
@@ -74,12 +74,12 @@ defmodule String::Inspect::TupleTest do
     assert_equal "{1,\"b\",3}", inspect({ 1, "b", 3 })
   end
 
-  test :with_builtin_like_record do
-    assert_equal "{:list,1}", inspect({ :list, 1 })
-  end
-
   test :record_like do
     assert_equal "{:foo,:bar}", inspect({ :foo, :bar })
+  end
+
+  test :with_builtin_like_record do
+    assert_equal "{:list,1}", inspect({ :list, 1 })
   end
 
   test :exception do

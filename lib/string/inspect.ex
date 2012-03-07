@@ -103,11 +103,11 @@ defimpl String::Inspect, for: Tuple do
   def inspect(exception) when is_exception(exception) do
     [name,_|tail] = tuple_to_list(exception)
     atom_to_binary(name, :utf8) <>
-       String::Inspect::Builtin::List.container_join(tail, "{", "}")
+       String::Inspect::List.container_join(tail, "{", "}")
   end
 
   def inspect(thing) do
-    String::Inspect::Builtin::List.container_join(tuple_to_list(thing), "{", "}")
+    String::Inspect::List.container_join(tuple_to_list(thing), "{", "}")
   end
 end
 
