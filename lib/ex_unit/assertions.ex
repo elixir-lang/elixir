@@ -95,6 +95,40 @@ defmodule ExUnit::Assertions do
   end
 
   @doc """
+  Asserts the `expression` with binary operator.
+
+  ## Examples
+
+      assert_operator 2 > 1
+      assert_operator 1 < 2
+
+  """
+  defmacro assert_operator(expression) do
+    {operator, _, [left, right]} = expression
+    quote do
+      left  = unquote(left)
+      right = unquote(right)
+      message = "Expected #{left} to be #{unquote(operator)} #{right}"
+      assert unquote(operator).(left, right), message
+    end
+  end
+
+  @doc """
+  Asserts the `expression` with binary operator and uses the expected `message.
+
+  ## Examples
+
+      assert_operator 2 > 1, "2 is always greater than 1"
+
+  """
+  defmacro assert_operator(expression, message) do
+    {operator, _, [left, right]} = expression
+    quote do
+      assert unquote(operator).(unquote(left), unquote(right)), unquote(message)
+    end
+  end
+
+  @doc """
   Asserts the `not_expected` value is false.
 
   ## Examples
