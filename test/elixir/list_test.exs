@@ -71,4 +71,9 @@ defmodule ListTest do
   test :uniq do
     assert_equal [1,2,3], List.uniq [1,2,3,2,1]
   end
+
+  test :duplicate do
+    assert_equal [1,1,1], List.duplicate 1, 3
+    assert_equal [[1]], List.duplicate [1], 1
+  end
 end

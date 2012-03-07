@@ -185,6 +185,22 @@ defmodule List do
     do_uniq(list, [])
   end
 
+  @doc """
+  Duplicates the given element n times in a list.
+
+  ## Examples
+
+      List.duplicate "hello", 3
+      #=> ["hello","hello","hello"]
+
+      List.duplicate [1,2], 2
+      #=> [[1,2],[1,2]]
+
+  """
+  def duplicate(elem, n) do
+    Erlang.lists.duplicate(n, elem)
+  end
+
   ## Private
 
   # flatten
