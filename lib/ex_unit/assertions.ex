@@ -129,6 +129,31 @@ defmodule ExUnit::Assertions do
   end
 
   @doc """
+  Asserts the `enum` collection is empty.
+
+  ## Examples
+
+      assert_empty []
+      assert_empty [1, 2]
+
+  """
+  def assert_empty enum do
+    assert_empty enum, "Expected #{inspect enum} to be empty"
+  end
+
+  @doc """
+  Asserts the `enum` collection is empty with the expected `message`.
+
+  ## Examples
+
+      assert_empty [], "expected to be empty"
+
+  """
+  def assert_empty enum, message do
+    assert Enum.empty?(enum), message
+  end
+
+  @doc """
   Asserts the `not_expected` value is false.
 
   ## Examples
@@ -158,6 +183,31 @@ defmodule ExUnit::Assertions do
 
   def refute_equal(expected, received, message) do
     refute(expected == received, message)
+  end
+
+  @doc """
+  Asserts the `enum` collection is not empty.
+
+  ## Examples
+
+      refute_empty []
+      refute_empty [1, 2]
+
+  """
+  def refute_empty(enum) do
+    refute_empty enum, "Expected #{inspect enum} to not be empty"
+  end
+
+  @doc """
+  Asserts the `enum` collection is not empty with the expected `message`.
+
+  ## Examples
+
+      refute_empty [], "expected to be empty"
+
+  """
+  def refute_empty(enum, message) do
+    refute Enum.empty?(enum), message
   end
 
   @doc """
