@@ -219,6 +219,38 @@ defmodule ExUnit::AssertionsTest do
     "test message" = error.message
   end
 
+  test :assert_in_delta_pass do
+    true = assert_in_delta(1.1, 1.2, 0.2)
+  end
+
+  test :assert_in_delta_fail do
+    "This should never be tested" = assert_in_delta(10, 12, 1)
+  rescue: error in [ExUnit::AssertionError]
+    "Expected |10 - 12| (2) to be < 1" = error.message
+  end
+
+  test :assert_in_delta_with_message do
+    "This should never be tested" = assert_in_delta(10, 12, 1, "test message")
+  rescue: error in [ExUnit::AssertionError]
+    "test message" = error.message
+  end
+
+  test :refute_in_delta_pass do
+    false = refute_in_delta(1.1, 1.5, 0.2)
+  end
+
+  test :refute_in_delta_fail do
+    "This should never be tested" = refute_in_delta(10, 11, 2)
+  rescue: error in [ExUnit::AssertionError]
+    "Expected |10 - 11| (1) to not be < 2" = error.message
+  end
+
+  test :refute_in_delta_with_message do
+    "This should never be tested" = refute_in_delta(10, 11, 2, "test message")
+  rescue: error in [ExUnit::AssertionError]
+    "test message" = error.message
+  end
+
   test :flunk do
     "This should never be tested" = flunk
   rescue: error in [ExUnit::AssertionError]
