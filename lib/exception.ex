@@ -51,21 +51,13 @@ defmodule Exception do
 
   # Format module, fun and arity to inspection.
   def format_module_fun_arity(module, fun, arity) do
-    separator =
-      case atom_to_list(module) do
-      match: '::' ++ _
-        "."
-      else:
-        ":"
-      end
-
     << ?:, fun | :binary >> = inspect(fun)
 
     if is_list(arity) do
       inspected = lc x in arity, do: inspect(x)
-      "#{module}#{separator}#{fun}(#{Enum.join(inspected, ", ")})"
+      "#{inspect module}.#{fun}(#{Enum.join(inspected, ", ")})"
     else:
-      "#{module}#{separator}#{fun}/#{arity}"
+      "#{inspect module}.#{fun}/#{arity}"
     end
   end
 

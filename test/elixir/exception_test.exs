@@ -30,7 +30,7 @@ defmodule Kernel::ExceptionTest do
   test :format_module_function_arity do
     assert_equal "::Foo.bar/1", Exception.format_module_fun_arity ::Foo, :bar, 1
     assert_equal "::Foo.bar()", Exception.format_module_fun_arity ::Foo, :bar, []
-    assert_equal "foo:bar(1, 2)", Exception.format_module_fun_arity :foo,  :bar, [1,2]
+    assert_equal ":foo.bar(1, 2)", Exception.format_module_fun_arity :foo,  :bar, [1,2]
   end
 
   test :format_module_function_arity_with_special_function_name do
@@ -51,14 +51,14 @@ defmodule Kernel::ExceptionTest do
     assert_equal "undefined function", UndefinedFunctionError.new.message
     assert_equal "undefined function: ::Foo.bar/1", UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: 1).message
     assert_equal "undefined function: ::Foo.bar/0", UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: []).message
-    assert_equal "undefined function: foo:bar/0", UndefinedFunctionError.new(module: :foo,  function: :bar, arity: []).message
+    assert_equal "undefined function: :foo.bar/0", UndefinedFunctionError.new(module: :foo,  function: :bar, arity: []).message
   end
 
   test :function_clause_message do
     assert_equal "no function clause matches", FunctionClauseError.new.message
     assert_equal "no function clause matching: ::Foo.bar/1", FunctionClauseError.new(module: ::Foo, function: :bar, arity: 1).message
     assert_equal "no function clause matching: ::Foo.bar()", FunctionClauseError.new(module: ::Foo, function: :bar, arity: []).message
-    assert_equal "no function clause matching: foo:bar()", FunctionClauseError.new(module: :foo,  function: :bar, arity: []).message
+    assert_equal "no function clause matching: :foo.bar()", FunctionClauseError.new(module: :foo,  function: :bar, arity: []).message
   end
 
   test :erlang_error_message do
