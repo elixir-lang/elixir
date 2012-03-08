@@ -50,6 +50,7 @@ We usually keep a list of features and bugs [in the issue tracker](https://githu
 * [Mailing list](http://groups.google.com/group/elixir-lang-core)
 * [Issue tracker](https://github.com/elixir-lang/elixir/issues)
 * [Textmate Bundle for Elixir](https://github.com/elixir-lang/elixir-tmbundle)
+* [Vim Elixir](https://github.com/elixir-lang/vim-elixir)
 
 # License
 
