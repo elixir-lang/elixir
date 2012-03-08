@@ -194,6 +194,57 @@ defmodule ExUnit::Assertions do
   end
 
   @doc """
+  Asserts the throw `expected` during `function` execution.
+
+  ## Examples
+
+      assert_throw 1, fn ->
+        throw 1
+      end
+
+  """
+  def assert_throw(expected, function) do
+    assert_catch(:throw, expected, function)
+  end
+
+  @doc """
+  Asserts the exit `expected` during `function` execution.
+
+  ## Examples
+
+      assert_exit 1, fn ->
+        exit 1
+      end
+
+  """
+  def assert_exit(expected, function) do
+    assert_catch(:exit, expected, function)
+  end
+
+  @doc """
+  Asserts the error `expected` during `function` execution.
+
+  ## Examples
+
+      assert_error :function_clause, fn ->
+        List.flatten(1)
+      end
+
+  """
+  def assert_error(expected, function) do
+    assert_catch(:error, expected, function)
+  end
+
+  defp assert_catch(expected_type, expected_value, function) do
+    function.()
+    flunk "Expected #{expected_type} #{inspect expected_value}, got nothing"
+  catch: ^expected_type, ^expected_value
+    expected_value
+  catch: ^expected_type, actual_value
+    flunk "Expected #{expected_type} #{inspect expected_value}, got #{inspect actual_value}"
+  end
+
+  @doc """
   Asserts the `not_expected` value is false.
 
   ## Examples
