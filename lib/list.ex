@@ -1,6 +1,10 @@
 # Implements functions that only makes sense to lists
 # and cannot be part of the Enum protocol. In general,
 # favor using the Enum API instead of List.
+#
+# A decision was taken to delegate most functions to
+# Erlang's standard lib. Small performance gains
+# might be acquired by re-implementing them in Elixir.
 defmodule List do
   # Bifs: member/2, reverse/2
   # Bifs: keymember/3, keysearch/3, keyfind/3
@@ -36,7 +40,7 @@ defmodule List do
       #=> [1,[2],3,4,5,6]
 
   """
-  def append(list) do
+  def append(list) when is_list(list) do
     Erlang.lists.append(list)
   end
 
@@ -52,8 +56,8 @@ defmodule List do
       #=> [1,2,3,4,5,6]
 
   """
-  def append(left, right) do
-    left ++ right
+  def append(list, elements) when is_list(list) and is_list(elements) do
+    list ++ elements
   end
 
   @doc """
@@ -70,8 +74,12 @@ defmodule List do
       # => [1,2,3,4,5]
 
   """
-  def flatten(list, tail // []) when is_list(list) and is_list(tail) do
-    do_flatten(list, tail)
+  def flatten(list) when is_list(list) do
+    Erlang.lists.flatten(list)
+  end
+
+  def flatten(list, tail) when is_list(list) and is_list(tail) do
+    Erlang.lists.flatten(list, tail)
   end
 
   @doc """
@@ -87,7 +95,7 @@ defmodule List do
       #=> 2
 
   """
-  def foldl(list, acc, function) do
+  def foldl(list, acc, function) when is_list(list) and is_function(function) do
     Erlang.lists.foldl(function, acc, list)
   end
 
@@ -101,7 +109,7 @@ defmodule List do
       #=> -2
 
   """
-  def foldr(list, acc, function) do
+  def foldr(list, acc, function) when is_list(list) and is_function(function) do
     Erlang.lists.foldr(function, acc, list)
   end
 
@@ -169,7 +177,7 @@ defmodule List do
 
   """
   def seq(first, last) when is_integer(first) and is_integer(last) and first <= last + 1 do
-    do_seq(last - first + 1, last, [])
+    Erlang.lists.seq(first, last)
   end
 
   @doc """
@@ -197,43 +205,11 @@ defmodule List do
       #=> [[1,2],[1,2]]
 
   """
-  def duplicate(elem, n) do
+  def duplicate(elem, n) when is_integer(n) do
     Erlang.lists.duplicate(n, elem)
   end
 
   ## Private
-
-  # flatten
-
-  defp do_flatten([h|t], tail) when is_list(h) do
-    do_flatten(h, do_flatten(t, tail))
-  end
-
-  defp do_flatten([h|t], tail) do
-    [h|do_flatten(t, tail)]
-  end
-
-  defp do_flatten([], tail) do
-    tail
-  end
-
-  # seq
-
-  defp do_seq(n, x, l) when n >= 4 do
-    do_seq(n-4, x-4, [x-3,x-2,x-1,x|l])
-  end
-
-  defp do_seq(n, x, l) when n >= 2 do
-    do_seq(n-2, x-2, [x-1,x|l])
-  end
-
-  defp do_seq(1, x, l) do
-    [x|l]
-  end
-
-  defp do_seq(0, _, l) do
-    l
-  end
 
   # uniq
 
