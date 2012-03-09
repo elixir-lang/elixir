@@ -28,6 +28,10 @@ defmodule File do
     normalize t, acc
   end
 
+  defp normalize([top|t], acc) when top == "." or top == '.' do
+    normalize t, acc
+  end
+
   defp normalize([h|t], acc) do
     normalize t, [h|acc]
   end
