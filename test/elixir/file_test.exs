@@ -3,7 +3,7 @@ Code.require_file "../test_helper", __FILE__
 defmodule FileTest do
   use ExUnit::Case
 
-  def expand_path_test do
+  test "expand_path" do
     assert_equal "/foo/bar", File.expand_path("/foo/bar")
     assert_equal "/foo/bar", File.expand_path("/foo/bar/")
     assert_equal "/foo/bar", File.expand_path("/foo/bar/.")
@@ -19,18 +19,7 @@ defmodule FileTest do
     assert_equal full, File.expand_path("bar/../bar", "foo")
   end
 
-  # def join_test
-  #   "foo/bar" = File.join("foo", "bar")
-  #   "foo/bar/baz" = File.join(["foo", "bar", "baz"])
-  # end
-  #
-  # def split_test
-  #   ["foo"] = File.split("foo")
-  #   ["foo", "bar"] = File.split("foo/bar")
-  #   ["foo", "bar", "baz"] = File.split("foo/bar/baz")
-  # end
-
-  def regular_test do
+  test "regular" do
     assert File.regular?(__FILE__)
     refute File.regular?("#{__FILE__}.unknown")
   end
