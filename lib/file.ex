@@ -14,6 +14,45 @@ defmodule File do
     Erlang.filelib.is_regular(filename)
   end
 
+  @doc """
+  Returns the last component of the `filename` or the file
+  name itself if it does not contain any directory separators.
+
+  ## Examples
+
+      File.basename("foo")
+      #=> "foo"
+
+      File.basename("foo/bar")
+      #=> "bar"
+
+      File.basename("/")
+      #=> ""
+
+  """
+  def basename(path) do
+    FN.basename(path)
+  end
+
+  @doc """
+  Returns the last component of `filename` with the `extension`
+  stripped. This function should be used to remove a specific extension
+  which might, or might not, be there.
+
+  ## Examples
+
+      File.basename("~/foo/bar.ex", ".ex")
+      #=> "bar"
+      File.basename("~/foo/bar.exs", ".ex")
+      #=> "bar.ecs"
+      File.basename("~/foo/bar.old.ex", ".ex")
+      #=> "kalle.old"
+
+  """
+  def basename(path, extension) do
+    FN.basename(path, extension)
+  end
+
   # Points to Elixir wildcard version that also handles "**".
   def wildcard(path, relative_to // '.') do
     Erlang.elixir_glob.wildcard(path, relative_to)
