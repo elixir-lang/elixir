@@ -251,6 +251,56 @@ defmodule ExUnit::AssertionsTest do
     "test message" = error.message
   end
 
+  test :assert_throw_when_no_throw do
+    "This should never be tested" = assert_throw 1, fn ->
+      # nothing
+    end
+  rescue: error in [ExUnit::AssertionError]
+    "Expected throw 1, got nothing" = error.message
+  end
+
+  test :assert_throw_when_throw do
+    1 = assert_throw 1, fn ->
+      throw 1
+    end
+  end
+
+  test :assert_throw_when_other_throw do
+    "This should never be tested" = assert_throw 1, fn ->
+      throw 2
+    end
+  rescue: error in [ExUnit::AssertionError]
+    "Expected throw 1, got 2" = error.message
+  end
+
+  test :assert_exit_when_no_exit do
+    "This should never be tested" = assert_exit 1, fn ->
+      # nothing
+    end
+  rescue: error in [ExUnit::AssertionError]
+    "Expected exit 1, got nothing" = error.message
+  end
+
+  test :assert_exit_when_exit do
+    1 = assert_exit 1, fn ->
+      exit 1
+    end
+  end
+
+  test :assert_exit_when_other_exit do
+    "This should never be tested" = assert_exit 1, fn ->
+      exit 2
+    end
+  rescue: error in [ExUnit::AssertionError]
+    "Expected exit 1, got 2" = error.message
+  end
+
+  test :assert_error_when_error do
+    :function_clause = assert_error :function_clause, fn ->
+      List.flatten(1)
+    end
+  end
+
   test :flunk do
     "This should never be tested" = flunk
   rescue: error in [ExUnit::AssertionError]
