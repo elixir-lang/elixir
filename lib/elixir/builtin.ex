@@ -721,7 +721,7 @@ defmodule Elixir::Builtin do
 
   ## Examples
 
-      receive
+      receive do
       match: { :selector, i, value } when is_integer(i)
         value
       match: value when is_atom(value)
@@ -735,7 +735,7 @@ defmodule Elixir::Builtin do
   An optional after clause can be given in case the message was not
   received after the specified period of time:
 
-      receive
+      receive do
       match: { :selector, i, value } when is_integer(i)
         value
       match: value when is_atom(value)
