@@ -161,7 +161,10 @@ translate_macro({Kind, Line, [Name, Args, Guards, Expr]}, S) when Kind == def; K
 
 %% Modules directives
 
-translate_macro({use, Line, [Raw|Args]}, S) when length(Args) =< 1 ->
+translate_macro({use, Line, [Raw]}, S) ->
+  translate_macro({use, Line, [Raw, []]}, S);
+
+translate_macro({use, Line, [Raw, Args]}, S) ->
   assert_module_scope(Line, use, S),
   Module = S#elixir_scope.module,
   { TRef, SR } = translate_each(Raw, S),

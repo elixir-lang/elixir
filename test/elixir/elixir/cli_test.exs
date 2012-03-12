@@ -14,7 +14,7 @@ defmodule Elixir::CLI::InitTest do
 end
 
 defmodule Elixir::CLI::AtExitTest do
-  use ExUnit::Case
+  use ExUnit::Case, sync: true
 
   test :at_exit do
     assert_equal 'goodbye cruel world with status 0\n', OS.cmd('bin/elixir test/elixir/fixtures/at_exit.exs')
