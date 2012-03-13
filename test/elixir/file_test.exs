@@ -29,8 +29,22 @@ defmodule FileTest do
     assert_equal "bar", File.basename("/foo/bar")
     assert_equal "", File.basename("/")
 
-    assert_equal "bar" , File.basename("~/foo/bar.ex", ".ex")
+    assert_equal "bar", File.basename("~/foo/bar.ex", ".ex")
     assert_equal "bar.exs", File.basename("~/foo/bar.exs", ".ex")
     assert_equal "bar.old", File.basename("~/for/bar.old.ex", ".ex")
   end
+
+  test :join do
+    assert_equal "", File.join([""])
+    assert_equal "foo", File.join(["foo"])
+    assert_equal "/foo/bar", File.join(["/", "foo", "bar"])
+    assert_equal "~/foo/bar", File.join(["~", "foo", "bar"])
+  end
+
+  test :split do
+    assert_equal ["/"], File.split("")
+    assert_equal ["foo"], File.split("foo")
+    assert_equal ["/", "foo", "bar"], File.split("/foo/bar")
+  end
+
 end
