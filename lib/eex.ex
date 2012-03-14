@@ -13,5 +13,13 @@ defmodule EEx do
   def compile(source, engine // EEx::Engine) do
     EEx::Compiler.compile(source, engine)
   end
+
+  @doc """
+  Get a file and generate the correspondents quotes to
+  be evaluated by Elixir.
+  """
+  def file(filename, engine // EEx::Engine) do
+    EEx.compile(File.read!(filename), engine)
+  end
 end
 

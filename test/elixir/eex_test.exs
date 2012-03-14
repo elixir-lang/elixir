@@ -178,6 +178,20 @@ foo
     assert_eval expected, string
   end
 
+  test "compiles the source from a given file" do
+    filename = File.expand_path("../fixtures/eex_template.eex", __FILE__)
+    compiled = EEx.file(filename)
+    { result, _ } = Code.eval_quoted(compiled, [], __FILE__, __LINE__)
+    assert_equal "foo bar.\n", result
+  end
+
+  test "raises an Exception when there's an error with the given file" do
+    assert_raises File::Exception, "could not read file non-existent.eex: no such file or directory", fn ->
+      filename = "non-existent.eex"
+      EEx.file(filename)
+    end
+  end
+
   defp assert_eval(expected, atual) do
     compiled = EEx.compile(atual)
     { result, _ } = Code.eval_quoted(compiled, [], __FILE__, __LINE__)
