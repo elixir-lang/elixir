@@ -15,7 +15,7 @@ defmodule FileTest do
     assert_equal "/foo/bar", File.expand_path("bar/../bar", "/foo")
     assert_equal "/bar", File.expand_path("../bar/../bar", "/foo/../foo/../foo")
 
-    full  = File.expand_path("foo/bar")
+    full = File.expand_path("foo/bar")
     assert_equal full, File.expand_path("bar/../bar", "foo")
   end
 
@@ -47,4 +47,19 @@ defmodule FileTest do
     assert_equal ["/", "foo", "bar"], File.split("/foo/bar")
   end
 
+  test :read do
+    assert_match { :ok, "FOO\n" }, File.read(File.expand_path('../../fixtures/foo.txt', __FILE__))
+
+    assert_match { :error, :enoent }, File.read(File.expand_path('../../fixtures/missing.txt', __FILE__))
+  end
+
+  test :read! do
+    assert_equal "FOO\n", File.read!(File.expand_path('../../fixtures/foo.txt', __FILE__))
+
+    expected_message = "could not read file fixtures/missing.txt: no such file or directory"
+
+    assert_raises File::Exception, expected_message, fn ->
+      File.read!("fixtures/missing.txt")
+    end
+  end
 end
