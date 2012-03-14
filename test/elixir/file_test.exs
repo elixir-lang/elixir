@@ -52,4 +52,14 @@ defmodule FileTest do
 
     assert_match { :error, :enoent }, File.read(File.expand_path('../../fixtures/missing.txt', __FILE__))
   end
+
+  test :read! do
+    assert_equal "FOO\n", File.read!(File.expand_path('../../fixtures/foo.txt', __FILE__))
+
+    expected_message = "could not read file fixtures/missing.txt: no such file or directory"
+
+    assert_raises File::Exception, expected_message, fn ->
+      File.read!("fixtures/missing.txt")
+    end
+  end
 end

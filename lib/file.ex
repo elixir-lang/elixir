@@ -1,3 +1,9 @@
+defexception File::Exception, reason: nil, action: "", path: nil do
+  def message(exception) do
+    "could not " <> exception.action <> " " <> exception.path <> ": " <> list_to_binary(:file.format_error(exception.reason))
+  end
+end
+
 defmodule File do
   require Erlang.file, as: F
   require Erlang.filename, as: FN
@@ -87,6 +93,21 @@ defmodule File do
   """
   def read(filename) do
     F.read_file(filename)
+  end
+
+  @doc """
+  Returns `binary`, where `binary` is a binary data object that contains the contents
+  of `filename`, or raises a `File::Exception` if an error occurs.
+  """
+  def read!(filename) do
+    result = read(filename)
+
+    case result do
+    match: { :ok, binary }
+      binary
+    match: { :error, reason }
+      raise Exception, reason: reason, action: "read file", path: filename
+    end
   end
 
   @doc """
