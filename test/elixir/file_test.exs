@@ -46,4 +46,10 @@ defmodule FileTest do
     assert_equal ["foo"], File.split("foo")
     assert_equal ["/", "foo", "bar"], File.split("/foo/bar")
   end
+
+  test :read do
+    assert_match { :ok, "FOO\n" }, File.read(File.expand_path('../../fixtures/foo.txt', __FILE__))
+
+    assert_match { :error, :enoent }, File.read(File.expand_path('../../fixtures/missing.txt', __FILE__))
+  end
 end

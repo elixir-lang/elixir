@@ -1,4 +1,5 @@
 defmodule File do
+  require Erlang.file, as: F
   require Erlang.filename, as: FN
   require Erlang.filelib,  as: FL
 
@@ -68,6 +69,24 @@ defmodule File do
   """
   def join(paths) do
     FN.join(paths)
+  end
+
+  @doc """
+  Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
+  of `filename`, or `{:error, reason}` if an error occurs.
+
+  Typical error reasons:
+
+  * :enoent - The file does not exist.
+  * :eacces - Missing permission for reading the file, or for searching one of the parent directories.
+  * :eisdir - The named file is a directory.
+  * :enotdir - A component of the file name is not a directory. On some platforms, enoent is returned instead.
+  * :enomem - There is not enough memory for the contents of the file.
+
+  You can use `Erlang.file.format_error(reason)` to get a descriptive string of the error.
+  """
+  def read(filename) do
+    F.read_file(filename)
   end
 
   @doc """
