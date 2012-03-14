@@ -96,7 +96,7 @@ defmodule File do
   ## Helpers
 
   # Normalize the given path by removing "..".
-  defp normalize(path), do: normalize(FN.split(path), [])
+  defp normalize(path), do: normalize(split(path), [])
 
   defp normalize([top|t], [_|acc]) when top == ".." or top == '..' do
     normalize t, acc
@@ -111,6 +111,6 @@ defmodule File do
   end
 
   defp normalize([], acc) do
-    FN.join List.reverse(acc)
+    join List.reverse(acc)
   end
 end
