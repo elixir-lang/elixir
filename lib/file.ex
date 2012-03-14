@@ -1,4 +1,11 @@
+defexception File::Exception, reason: nil, action: "", path: nil do
+  def message(exception) do
+    "could not " <> exception.action <> " " <> exception.path <> ": " <> list_to_binary(:file.format_error(exception.reason))
+  end
+end
+
 defmodule File do
+  require Erlang.file, as: F
   require Erlang.filename, as: FN
   require Erlang.filelib,  as: FL
 
@@ -71,6 +78,39 @@ defmodule File do
   end
 
   @doc """
+  Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
+  of `filename`, or `{:error, reason}` if an error occurs.
+
+  Typical error reasons:
+
+  * :enoent - The file does not exist.
+  * :eacces - Missing permission for reading the file, or for searching one of the parent directories.
+  * :eisdir - The named file is a directory.
+  * :enotdir - A component of the file name is not a directory. On some platforms, enoent is returned instead.
+  * :enomem - There is not enough memory for the contents of the file.
+
+  You can use `Erlang.file.format_error(reason)` to get a descriptive string of the error.
+  """
+  def read(filename) do
+    F.read_file(filename)
+  end
+
+  @doc """
+  Returns `binary`, where `binary` is a binary data object that contains the contents
+  of `filename`, or raises a `File::Exception` if an error occurs.
+  """
+  def read!(filename) do
+    result = read(filename)
+
+    case result do
+    match: { :ok, binary }
+      binary
+    match: { :error, reason }
+      raise Exception, reason: reason, action: "read file", path: filename
+    end
+  end
+
+  @doc """
   Returns a list with the path splitted by the path separator. If an empty string
   is given, then it returns the root path.
 
@@ -96,7 +136,7 @@ defmodule File do
   ## Helpers
 
   # Normalize the given path by removing "..".
-  defp normalize(path), do: normalize(FN.split(path), [])
+  defp normalize(path), do: normalize(split(path), [])
 
   defp normalize([top|t], [_|acc]) when top == ".." or top == '..' do
     normalize t, acc
@@ -111,6 +151,6 @@ defmodule File do
   end
 
   defp normalize([], acc) do
-    FN.join List.reverse(acc)
+    join List.reverse(acc)
   end
 end
