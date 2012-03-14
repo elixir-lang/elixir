@@ -15,7 +15,7 @@ defmodule FileTest do
     assert_equal "/foo/bar", File.expand_path("bar/../bar", "/foo")
     assert_equal "/bar", File.expand_path("../bar/../bar", "/foo/../foo/../foo")
 
-    full  = File.expand_path("foo/bar")
+    full = File.expand_path("foo/bar")
     assert_equal full, File.expand_path("bar/../bar", "foo")
   end
 
@@ -46,5 +46,4 @@ defmodule FileTest do
     assert_equal ["foo"], File.split("foo")
     assert_equal ["/", "foo", "bar"], File.split("/foo/bar")
   end
-
 end
