@@ -58,25 +58,25 @@ defmodule EExTest do
 
   test "raises a syntax error when the token is invalid" do
     assert_raises EEx::SyntaxError, "invalid token: ' bar'", fn ->
-      EEx.compile "foo <%= bar"
+      EEx.compile_string "foo <%= bar"
     end
   end
 
   test "raises a syntax error when end expression is found without a start expression" do
     assert_raises EEx::SyntaxError, "unexpected token: ' end ' at line 1",  fn ->
-      EEx.compile "foo <% end %>"
+      EEx.compile_string "foo <% end %>"
     end
   end
 
   test "raises a syntax error when start expression is found without an end expression" do
     assert_raises EEx::SyntaxError, "unexpected end of string. expecting a closing <% end %>.", fn ->
-      EEx.compile "foo <% if true do %>"
+      EEx.compile_string "foo <% if true do %>"
     end
   end
 
   test "raises a syntax error when nested end expression is found without an start expression" do
     assert_raises EEx::SyntaxError, "unexpected token: ' end ' at line 1", fn ->
-      EEx.compile "foo <%if true do %><% end %><% end %>"
+      EEx.compile_string "foo <%if true do %><% end %><% end %>"
     end
   end
 
@@ -180,7 +180,7 @@ foo
 
   test "compiles the source from a given file" do
     filename = File.expand_path("../fixtures/eex_template.eex", __FILE__)
-    compiled = EEx.file(filename)
+    compiled = EEx.compile_file(filename)
     { result, _ } = Code.eval_quoted(compiled, [], __FILE__, __LINE__)
     assert_equal "foo bar.\n", result
   end
@@ -188,12 +188,12 @@ foo
   test "raises an Exception when there's an error with the given file" do
     assert_raises File::Exception, "could not read file non-existent.eex: no such file or directory", fn ->
       filename = "non-existent.eex"
-      EEx.file(filename)
+      EEx.compile_file(filename)
     end
   end
 
   defp assert_eval(expected, atual) do
-    compiled = EEx.compile(atual)
+    compiled = EEx.compile_string(atual)
     { result, _ } = Code.eval_quoted(compiled, [], __FILE__, __LINE__)
     assert_equal expected, result
   end

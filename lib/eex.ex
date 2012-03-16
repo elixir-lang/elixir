@@ -10,7 +10,7 @@ defmodule EEx do
   Get a string source and generate the correspondents
   quotes to be evaluated by Elixir.
   """
-  def compile(source, engine // EEx::Engine) do
+  def compile_string(source, engine // EEx::Engine) do
     EEx::Compiler.compile(source, engine)
   end
 
@@ -18,8 +18,8 @@ defmodule EEx do
   Get a file and generate the correspondents quotes to
   be evaluated by Elixir.
   """
-  def file(filename, engine // EEx::Engine) do
-    EEx.compile(File.read!(filename), engine)
+  def compile_file(filename, engine // EEx::Engine) do
+    EEx.compile_string(File.read!(filename), engine)
   end
 end
 
