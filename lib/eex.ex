@@ -7,7 +7,7 @@ defmodule EEx do
   """
 
   @doc """
-  Get a string source and generate the correspondents
+  Get a string `source` and generate the correspondents
   quotes to be evaluated by Elixir.
   """
   def compile_string(source, engine // EEx::Engine, filename // 'nofile', line // 1) do
@@ -15,11 +15,34 @@ defmodule EEx do
   end
 
   @doc """
-  Get a file and generate the correspondents quotes to
+  Get a `filename` and generate the correspondents quotes to
   be evaluated by Elixir.
   """
   def compile_file(filename, engine // EEx::Engine) do
-    EEx.compile_string(File.read!(filename), engine, filename)
+    compile_string(File.read!(filename), engine, filename)
+  end
+
+  @doc """
+  Get a string `source` and evaluate the values using the `bindings`
+  """
+  def eval_string(source, bindings // [], engine // EEx::Engine, filename // 'nofile', line // 1) do
+    compiled = compile_string(source, engine, filename, line)
+    do_eval(compiled, bindings, filename, line)
+  end
+
+  @doc """
+  Get a `filename` and evaluate the values using the `bindings`
+  """
+  def eval_file(filename, bindings // [], engine // EEx::Engine) do
+    compiled = compile_file(filename, engine)
+    do_eval(compiled, bindings, filename)
+  end
+
+  ### Helpers
+
+  defp do_eval(compiled, bindings, filename, line // 1) do
+    { result, _ } = Code.eval_quoted(compiled, bindings, filename, line)
+    result
   end
 end
 
