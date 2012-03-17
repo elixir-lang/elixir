@@ -5,7 +5,7 @@ defmodule ExUnit::AssertionsTest::Value do
 end
 
 defmodule ExUnit::AssertionsTest do
-  use ExUnit::Case
+  use ExUnit::Case, sync: false
 
   test :assert_when_value_is_true do
     true = assert true
