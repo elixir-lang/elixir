@@ -125,4 +125,17 @@ defmodule Orddict do
   def merge([{k1, v1}|d1], [{k1, v2}|d2], fun), do: [{k1, fun.(k1, v1, v2)}|merge(d1, d2, fun)];
   def merge([], d2, _fun), do: d2
   def merge(d1, [], _fun), do: d1
+
+  @doc """
+  Returns whether a given key exists in the given orddict.
+
+  ### Examples
+      Orddict.key?([a:, 1], :a)
+      #=> true
+      Orddict.key?([a:, 1], :b)
+      #=> false
+  """
+  def key?(orddict, key) do
+    :orddict.is_key(key, orddict)
+  end
 end
