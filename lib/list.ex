@@ -203,10 +203,31 @@ defmodule List do
 
       List.duplicate [1,2], 2
       #=> [[1,2],[1,2]]
-
   """
   def duplicate(elem, n) when is_integer(n) do
     Erlang.lists.duplicate(n, elem)
+  end
+
+  @doc """
+  Looks for a term in a list and returns its position.
+  If term is found in the first position, return 1.
+  For not terms not found in list, the return value is nil.
+
+  ### Examples
+  
+      List.find_index ['a'], 'b'
+      #=> nil
+      List.find_index ['a'], 'a'
+      #=> 1
+  """
+  def find_index(list, term) do
+    index = Erlang.string.str(list, [term])
+    case index == 0 do
+    match: true
+      nil
+    match: false
+      index
+    end
   end
 
   ## Private
