@@ -76,4 +76,11 @@ defmodule ListTest do
     assert_equal [1,1,1], List.duplicate 1, 3
     assert_equal [[1]], List.duplicate [1], 1
   end
+
+  test :find_index do
+    assert_equal nil, List.find_index([], 'a')
+    assert_equal nil, List.find_index(['a'], 'b')
+    assert_equal 1, List.find_index(['a'], 'a')
+    assert_equal 4, List.find_index([1,2,4,3], 3)
+  end
 end

@@ -53,6 +53,11 @@ defmodule OrddictTest do
     assert_equal [a:4, b:2, d: 4], result
   end
 
+  test :key do
+    assert_equal true, Orddict.key?([a: 1], :a)
+    assert_equal false, Orddict.key?([a: 1], :b)
+  end
+
   defp create_empty_dict, do: create_dict([])
   defp create_dict(list // [first_key: 1, second_key: 2]), do: Orddict.from_enum(list)
 end
