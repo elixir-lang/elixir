@@ -214,7 +214,7 @@ defmodule List do
   For not terms not found in list, the return value is nil.
 
   ### Examples
-  
+
       List.find_index ['a'], 'b'
       #=> nil
       List.find_index ['a'], 'a'

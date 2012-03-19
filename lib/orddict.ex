@@ -1,9 +1,9 @@
 defmodule Orddict do
   @doc """
   Creates an Orddict from an enumerable.
-  
+
   ## Examples
-  
+
       Orddict.from_enum [{b,1},{a,2}]
       #=> [a: 2, b: 1]
   """
@@ -16,9 +16,9 @@ defmodule Orddict do
   @doc """
   Creates an Orddict from an enumerable with the
   help of the transformation function.
-  
+
   ## Examples
-  
+
       Orddict.from_enum [:a, :b], fn(x) -> {x,x} end
       #=> [a: :a, b: :b]
   """
@@ -33,9 +33,9 @@ defmodule Orddict do
   Gets value from the dictionary for specific key.
   If key not exist return default value (nil if no default value)
   exists.
-  
+
   ## Examples
-  
+
       Orddict.get [a: 1], :a      #=> 1
       Orddict.get [a: 1], :b      #=> nil
       Orddict.get [a: 1], :b, 3   #=> 3
@@ -47,9 +47,9 @@ defmodule Orddict do
 
   @doc """
   Returns all keys of dictionary.
-  
+
   ## Examples
-  
+
       Orddict.keys [a: 1, b: 2] #=> [:a,:b]
   """
   def keys(dict) do
@@ -58,9 +58,9 @@ defmodule Orddict do
 
   @doc """
   Returns all values of dictionary.
-  
+
   ## Examples
-  
+
       Orddict.values [a: 1, b: 2] #=> [1,2]
   """
   def values(dict) do
@@ -70,9 +70,9 @@ defmodule Orddict do
   @doc """
   Deletes key, value entry from dictionary for specific key.
   If the key does not exist, returns the dictionary unchanged.
-  
+
   ## Examples
-  
+
       Orddict.delete [a: 1, b: 2], :a   #=> [b: 2]
       Orddict.delete [b: 2], :a         #=> [b: 2]
   """
@@ -84,9 +84,9 @@ defmodule Orddict do
   @doc """
   Sets the given `value` under `key` for the given dictionary.
   If a previous value is already stored, it is overriden.
-  
+
   ## Examples
-  
+
       Orddict.put [a: 1, b: 2], :a, 3
       #=> [a: 3, b: 2]
   """
@@ -98,9 +98,9 @@ defmodule Orddict do
   @doc """
   Merges two dictionaries into one. If the dictionaries have
   duplicated entries, the one given as second argument wins.
-  
+
   ## Examples
-  
+
       Orddict.merge [a: 1, b: 2], [a: 3, d: 4]
       #=> [a:3, b:2, d: 4]
   """
@@ -112,9 +112,9 @@ defmodule Orddict do
   Merges two dictionaries into one. If the dictionaries have
   duplicated entries, the given function is invoked to solve
   conflicts.
-  
+
   ## Examples
-  
+
       Orddict.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
         v1 + v2
       end
