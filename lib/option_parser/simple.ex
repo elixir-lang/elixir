@@ -1,28 +1,31 @@
 defmodule OptionParser::Simple do
-  def parse([h|t], dict // []) do
-    dict = do_parse(h, dict)
-    parse(t, dict)
+  def parse(['--' ++ option,h|t], dict // []) do
+    option = list_to_atom(option)
+
+    case h do
+    match: '-' ++ _
+      dict = Orddict.put dict, option, true
+      parse([h|t], dict)
+    else:
+      dict = key_value(option, h, dict)
+      parse(t, dict)
+    end
+  end
+
+  def parse(['--' ++ option], dict) do
+    dict = Orddict.put dict, list_to_atom(option), true
   end
 
   def parse([], dict) do
     dict
   end
 
-  defp do_parse('--' ++ option, dict) do
-    Orddict.put dict, list_to_atom(option), true
+  defp key_value(key, boolean, dict) when boolean == 'false' \
+                                     when boolean == 'true' do
+    Orddict.put dict, key, list_to_atom(boolean)
   end
 
-  defp do_parse('false', dict) do
-    key = List.last Orddict.keys(dict)
-    Orddict.put dict, key, false
-  end
-
-  defp do_parse('true', dict) do
-    dict
-  end
-
-  defp do_parse(value, dict) do
-    key = List.last Orddict.keys(dict)
+  defp key_value(key, value, dict) do
     Orddict.put dict, key, value
   end
 end
