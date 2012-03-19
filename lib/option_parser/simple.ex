@@ -1,4 +1,21 @@
 defmodule OptionParser::Simple do
+
+  @doc """
+  Parses the argv and return an Orddict with the parsed options.
+  It also ignores the not option arguments.
+
+  ## Example
+
+      OptionParser::Simple.parse(['--debug'])
+      #=> [debug: true]
+
+      OptionParser::Simple.parse(['--source', 'lib'])
+      #=> [source: 'lib']
+
+      OptionParser::Simple.parse(['--source', 'lib', 'test/enum_test.exs'])
+      #=> [source: 'lib']
+
+  """
   def parse(['-' ++ option,h|t], dict // []) do
     option = normalize_option(option)
 
