@@ -40,4 +40,9 @@ defmodule OptionParser::SimpleTest do
     options = OptionParser::Simple.parse(['--source', 'from_docs/', '--docs', 'false', '--compile', '-x'])
     assert_equal [docs: false, source: 'from_docs/', compile: true, x: true], options
   end
+
+  test "ignores not option arguments" do
+    options = OptionParser::Simple.parse(['--source', 'from_docs/', 'test/enum_test.exs'])
+    assert_equal [source: 'from_docs/'], options
+  end
 end

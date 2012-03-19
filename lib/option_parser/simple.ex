@@ -16,7 +16,7 @@ defmodule OptionParser::Simple do
     dict = Orddict.put dict, normalize_option(option), true
   end
 
-  def parse([], dict) do
+  def parse(_, dict) do
     dict
   end
 
