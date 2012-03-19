@@ -83,4 +83,10 @@ defmodule ListTest do
     assert_equal 1, List.find_index(['a'], 'a')
     assert_equal 4, List.find_index([1,2,4,3], 3)
   end
+
+  test :last do
+    assert_equal nil, List.last []
+    assert_equal 1, List.last [1]
+    assert_equal 3, List.last [1, 2, 3]
+  end
 end

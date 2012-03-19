@@ -126,6 +126,23 @@ defmodule List do
   defdelegate [reverse: 1], to: Erlang.lists
 
   @doc """
+  Returns the last element in `list` or nil if the `list` is empty.
+
+  ## Examples
+
+      List.last []
+      #=> nil
+      List.last [1]
+      #=> 1
+      List.last [1, 2, 3]
+      #=> 3
+
+  """
+  def last([]), do: nil
+
+  defdelegate [last: 1], to: Erlang.lists
+
+  @doc """
   Checks if the given `term` is included in the list.
   This function simply delegates to `lists:member`
   which is implemented in C for performance.
