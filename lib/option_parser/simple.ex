@@ -1,40 +1,41 @@
 defmodule OptionParser::Simple do
 
   @doc """
-  Parses the argv and return an Orddict with the parsed options.
-  It also ignores the not option arguments.
+  Parses the argv and returns one Tuple with parsed options
+  and the arguments.
 
   ## Example
 
       OptionParser::Simple.parse(['--debug'])
-      #=> [debug: true]
+      #=> { [debug: true], [] }
 
       OptionParser::Simple.parse(['--source', 'lib'])
-      #=> [source: 'lib']
+      #=> { [source: 'lib'], [] }
 
       OptionParser::Simple.parse(['--source', 'lib', 'test/enum_test.exs'])
-      #=> [source: 'lib']
+      #=> { [source: 'lib'], ['test/enum_test.exs'] }
 
   """
-  def parse(['-' ++ option,h|t], dict // []) do
+  def parse(['-' ++ option,h|t], dict // [], args // []) do
     option = normalize_option(option)
 
     case h do
     match: '-' ++ _
       dict = Orddict.put dict, option, true
-      parse([h|t], dict)
+      parse([h|t], dict, args)
     else:
       dict = key_value(option, h, dict)
-      parse(t, dict)
+      parse(t, dict, args)
     end
   end
 
-  def parse(['-' ++ option], dict) do
+  def parse(['-' ++ option], dict, args) do
     dict = Orddict.put dict, normalize_option(option), true
+    { dict, args }
   end
 
-  def parse(_, dict) do
-    dict
+  def parse(value, dict, args) do
+    { dict, List.append args, value }
   end
 
   ## Helpers
