@@ -1,22 +1,28 @@
 defmodule Code do
   def version, do: "0.4.0.dev"
 
-  # Returns the current ARGV.
+  @doc """
+  Returns the current ARGV.
+  """
   def argv do
     server_call :argv
   end
 
-  # Returns all the loaded files.
+  @doc """
+  Returns all the loaded files.
+  """
   def loaded_files do
     server_call :loaded
   end
 
-  # Registers a function that will be invoked
-  # at the end of program execution. Useful for
-  # invoking a hook on scripted mode.
-  #
-  # The function must expect the exit status code
-  # as argument.
+  @doc """
+  Registers a function that will be invoked
+  at the end of program execution. Useful for
+  invoking a hook on scripted mode.
+
+  The function must expect the exit status code
+  as argument.
+  """
   def at_exit(fun) when is_function(fun, 1) do
     server_call { :at_exit, fun }
   end
@@ -29,33 +35,39 @@ defmodule Code do
     Erlang.code.add_patha(to_char_list(path))
   end
 
-  # Evalutes the quotes contents.
-  #
-  # ## Examples
-  #
-  #     contents = quote hygiene: false, do: a + b
-  #     Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => { 3, [ {:a,1},{:b,2} ] }
-  #
+  @doc """
+  Evalutes the quotes contents.
+
+  ## Examples
+
+      contents = quote hygiene: false, do: a + b
+      Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => { 3, [ {:a, 1}, {:b, 2} ] }
+
+  """
   def eval_quoted(quoted, binding, filename, line) do
     Erlang.elixir.eval_quoted [quoted], binding, line, to_char_list(filename)
   end
 
-  # Loads the given `file`. Accepts `relative_to` as an argument to tell
-  # where the file is located. If the file was already required/loaded,
-  # loads it again. It returns the full path of the loaded file.
-  #
-  # When loading a file, you may skip passing .exs as extension as Elixir
-  # automatically adds it for you.
+  @doc """
+  Loads the given `file`. Accepts `relative_to` as an argument to tell
+  where the file is located. If the file was already required/loaded,
+  loads it again. It returns the full path of the loaded file.
+
+  When loading a file, you may skip passing .exs as extension as Elixir
+  automatically adds it for you.
+  """
   def load_file(file, relative_to // nil) do
     load_and_push_file find_file(file, relative_to)
   end
 
-  # Requires the given `file`. Accepts `relative_to` as an argument to tell
-  # where the file is located. If the file was already required/loaded,
-  # returns nil, otherwise the full path of the loaded file.
-  #
-  # When requiring a file, you may skip passing .exs as extension as
-  # Elixir automatically adds it for you.
+  @doc """
+  Requires the given `file`. Accepts `relative_to` as an argument to tell
+  where the file is located. If the file was already required/loaded,
+  returns nil, otherwise the full path of the loaded file.
+
+  When requiring a file, you may skip passing .exs as extension as
+  Elixir automatically adds it for you.
+  """
   def require_file(file, relative_to // nil) do
     file = find_file(file, relative_to)
     if List.member?(loaded_files, file) do
@@ -65,31 +77,37 @@ defmodule Code do
     end
   end
 
-  # Compiles `file` and returns a list of tuples where
-  # the first element is the module name and the second
-  # one is its binary.
-  #
-  # ## Options
-  #
-  # Available options are:
-  #
-  # * docs - when true, retain documentation in the compiled module;
-  # * debug_info - when true, retain debug information in the compiled module.
-  #   Notice debug information can be used to reconstruct the source code;
-  #
+  @doc """
+  Compiles `file` and returns a list of tuples where
+  the first element is the module name and the second
+  one is its binary.
+
+  ## Options
+
+  Available options are:
+
+  * docs       - when true, retain documentation in the compiled module;
+  * debug_info - when true, retain debug information in the compiled module.
+    Notice debug information can be used to reconstruct the source code;
+
+  """
   def compile_file(file, opts // []) do
     Erlang.elixir_compiler.file to_char_list(file), opts
   end
 
-  # Compiles `file` and add the result to the given `destination`.
-  # Destination needs to be a directory.
-  #
-  # See compile_file/2 for available options.
+  @doc """
+  Compiles `file` and add the result to the given `destination`.
+  Destination needs to be a directory.
+
+  See compile_file/2 for available options.
+  """
   def compile_file_to_dir(file, destination, opts // []) do
     Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination), opts
   end
 
-  # Get the stacktrace.
+  @doc """
+  Get the stacktrace.
+  """
   def stacktrace do
     filter_stacktrace Erlang.erlang.get_stacktrace
   end
