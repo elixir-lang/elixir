@@ -1,4 +1,4 @@
-defmodule OptionParser do
+defmodule OptionParser::Simple do
   def parse([h|t], dict // []) do
     dict = do_parse(h, dict)
     parse(t, dict)
