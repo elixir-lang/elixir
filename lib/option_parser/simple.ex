@@ -1,6 +1,6 @@
 defmodule OptionParser::Simple do
-  def parse(['--' ++ option,h|t], dict // []) do
-    option = list_to_atom(option)
+  def parse(['-' ++ option,h|t], dict // []) do
+    option = normalize_option(option)
 
     case h do
     match: '-' ++ _
@@ -12,13 +12,15 @@ defmodule OptionParser::Simple do
     end
   end
 
-  def parse(['--' ++ option], dict) do
-    dict = Orddict.put dict, list_to_atom(option), true
+  def parse(['-' ++ option], dict) do
+    dict = Orddict.put dict, normalize_option(option), true
   end
 
   def parse([], dict) do
     dict
   end
+
+  ## Helpers
 
   defp key_value(key, boolean, dict) when boolean == 'false' \
                                      when boolean == 'true' do
@@ -27,5 +29,13 @@ defmodule OptionParser::Simple do
 
   defp key_value(key, value, dict) do
     Orddict.put dict, key, value
+  end
+
+  defp normalize_option('-' ++ option) do
+    list_to_atom(option)
+  end
+
+  defp normalize_option(option) do
+    list_to_atom(option)
   end
 end
