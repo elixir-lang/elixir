@@ -36,6 +36,11 @@ distclean:
 doc:
 	@ $(REBAR) doc skip_deps=true
 
+docs: deps compile
+	@ bin/elixirc "lib/**/*.ex" --ignore-module-conflict --docs -o for_docs
+	@ rm -rf exbin
+	@ mv for_docs exbin
+
 test: test_erlang test_elixir
 
 test_erlang: deps compile
