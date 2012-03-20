@@ -29,6 +29,15 @@ function_as_clojure_test() ->
   {_, [{a, Res1}|_]} = elixir:eval("b = 1; a = fn do: b + 2"),
   3 = Res1().
 
+function_apply_test() ->
+  {3,_} = elixir:eval("a = fn do: 3; apply a, []").
+
+function_apply_with_args_test() ->
+  {3,_} = elixir:eval("a = fn(b) -> b + 2 end; apply a, [1]").
+
+function_apply_and_clojure_test() ->
+  {3,_} = elixir:eval("b = 1; a = fn -> b + 2 end; apply a, []").
+
 %% Function calls
 
 function_call_test() ->
