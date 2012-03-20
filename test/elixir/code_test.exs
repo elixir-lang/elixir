@@ -21,4 +21,8 @@ defmodule CodeTest do
     expanded = File.expand_path("test/elixir/fixtures/code_sample.exs")
     assert Erlang.lists.member(expanded, Code.loaded_files)
   end
+
+  test :file do
+    assert_equal __FILE__, :filename.absname(__FILE__)
+  end
 end
