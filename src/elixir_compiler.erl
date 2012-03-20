@@ -7,7 +7,8 @@
 %% Compiles the given file. Returns a list of tuples
 %% with module names and binaries.
 
-file(Filename, #elixir_compile{} = C) ->
+file(Relative, #elixir_compile{} = C) ->
+  Filename = filename:absname(Relative),
   Previous = get(elixir_compiled),
   try
     put(elixir_compiled, []),
