@@ -1,42 +1,40 @@
 # Variables definitions:
 
-#  variable definition recursively expanded when the variable is used,
-#  not when it's declared
-REBAR =$(shell which rebar || echo ./rebar)
+# Variable definition recursively expanded when the variable is used,
+# Not when it's declared
+REBAR = $(shell which rebar || echo ./rebar)
 
 DIALYZER = dialyzer
 DIALYZER_WARNINGS = -Wunmatched_returns -Werror_handling \
                     -Wrace_conditions -Wunderspecs
 
-#  conditional variable definition, assign only if not yet assigned.
 ERL = erl -I include -noshell -pa ebin
 
-#  variable definition expanded when it's declared
+# Variable definition expanded when it's declared
 APP := elixir
+
+# Mark deps and ebin as phony because
+# they are managed by rebar.
+.PHONY: deps ebin
 
 # Makefile targets format:
 #
 # 	target: dependencies
 # 	[tab] system command
-
-.PHONY: deps
-
-# Compile erlang source and then
-# compile elixir as a post-hook
-compile: deps
-	@$(REBAR) compile
+#
+compile: deps ebin exbin
 
 deps:
-	@$(REBAR) get-deps
+	@ $(REBAR) get-deps
 
 clean:
-	@$(REBAR) clean
+	@ $(REBAR) clean
 
 distclean:
-	@$(REBAR) delete-deps
+	@ $(REBAR) delete-deps
 
 doc:
-	@$(REBAR) doc skip_deps=true
+	@ $(REBAR) doc skip_deps=true
 
 test: test_erlang test_elixir
 
@@ -49,6 +47,9 @@ test_elixir: deps compile
 
 release: compile test
 	dialyzer --src src $(DIALYZER_WARNINGS)
+
+ebin:
+	@ $(REBAR) compile
 
 exbin: lib/*.ex lib/*/*.ex
 	@ rm -rf exbin
