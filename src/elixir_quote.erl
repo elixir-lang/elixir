@@ -41,10 +41,16 @@ translate_each({ Left, Line, Right }, Q, S) ->
   Tuple = { tuple, Line, [TLeft, { integer, Line, Q#elixir_quote.line }, TRight] },
   { Tuple, RS };
 
-translate_each({ Left, Right }, Q, S) ->
+% Handle two item tuples but still allow them to be spliced.
+translate_each({ Left, Right }, Q, S) when
+  not is_tuple(Left)  orelse (element(1, Left) /= unquote_splicing),
+  not is_tuple(Right) orelse (element(1, Right) /= unquote_splicing) ->
   { TLeft, LS } = translate_each(Left, Q, S),
   { TRight, RS } = translate_each(Right, Q, LS),
   { { tuple, 0, [TLeft, TRight] }, RS };
+
+translate_each({ Left, Right }, Q, S) ->
+  translate_each({ '{}', 0, [Left, Right] }, Q, S);
 
 translate_each(List, Q, S) when is_list(List) ->
   splice(List, Q, [], [], S);

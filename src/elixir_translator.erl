@@ -444,9 +444,7 @@ translate_each({{'.', _, [Expr]}, Line, Args} = Original, S) ->
 %% Literals
 
 translate_each({ Left, Right }, S) ->
-  { TLeft, SL }  = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, SL),
-  { { tuple, 0, [TLeft, TRight] }, SR };
+  translate_each({ '{}', 0, [Left, Right]}, S);
 
 translate_each([], S) ->
   { { nil, 0 }, S };
