@@ -44,4 +44,12 @@ defmodule Kernel::QuoteTest do
     a = 10
     read_interference
   end
+
+  test :list do
+    assert_equal [1,2,3], quote do: [1,2,3]
+  end
+
+  test :tuple do
+    assert_equal {:a,1}, quote do: { :a, 1 }
+  end
 end

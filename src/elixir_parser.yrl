@@ -363,8 +363,8 @@ list -> open_bracket expr comma_separator call_args close_bracket : ['$2'|'$4'].
 
 % Tuple
 
-tuple -> open_curly '}' : { '{}', ?line('$1'), [] }.
-tuple -> open_curly call_args close_curly :  { '{}', ?line('$1'), '$2' }.
+tuple -> open_curly '}' : build_tuple('$1', []).
+tuple -> open_curly call_args close_curly :  build_tuple('$1', '$2').
 
 % Bitstrings
 
@@ -394,6 +394,12 @@ build_unary_op(Op, Expr) ->
 
 build_special_op(Op, Expr) ->
   { ?exprs(Op), ?line(Op), [Expr] }.
+
+build_tuple(_Marker, [Left, Right]) ->
+  { Left, Right };
+
+build_tuple(Marker, Args) ->
+  { '{}', ?line(Marker), Args }.
 
 %% Blocks
 
