@@ -97,35 +97,72 @@ defmodule Elixir::Builtin do
   In the example above, we defined a function `sum` that receives
   two arguments and sum them.
 
-  ## Function invocation
+  ## Dynamic generation with atoms
 
   Elixir follows the same rule as Erlang when it comes to
   function invocations. Calling a function is the same thing
-  as "invoking at atom". That said, one could write:
-
-      defmodule Foo do
-        def bar do
-          :sum.(1, 2)
-        end
-
-        def sum(a, b), do: a + b
-      end
-
-  In the example above, sum is invoked by invoking an atom
-  passing arguments 1 and 2. Since this syntax is a bit verbose,
-  Elixir also support the more conventional:
+  as "invoking at atom". That said, we could invoke a function
+  named sum in these two equivalent ways:
 
       sum(1, 2)
+      :sum.(1, 2)
 
-  Invoking a function in another module is equally easy:
+  We can also use the atom format to define functions:
 
-      Foo.sum(1, 2) #=> 3
+      defmodule Foo do
+        def :sum.(a, b) do
+          a + b
+        end
+      end
 
-  ## Dynamic function definition
+  In general, a developer never needs to use the format above
+  except when he wants to dynamically define functions with macros.
+  In such scenarios, the name needs to be given dynamically via
+  the unquoting mechanism.
 
-  In macros it may be convenient to dynamically generate a function.
-  This can be done by explicitly passing the function name, arguments
-  and guard:
+  Imagine a macro that receives an orddict and defines a function
+  for each entry in the orddict, using the key as function name
+  and the value as the value returned by the function:
+
+      defmacro defkv(orddict) do
+        Enum.map orddict, fn({k,v}) ->
+          quote do
+            def unquote(k).() do
+              unquote(v)
+            end
+          end
+        end
+      end
+
+  This macro could be invoked as:
+
+      defkv one: 1, two: 2
+
+  Notice in the example above, we define the function as `def unquote(k).()`
+  because each entry `k` is a an atom and invoking `def unquote(k)()`
+  would be invalid Elixir syntax.
+  """
+  defmacro def(name, do: contents)
+
+  @doc """
+  This macro allows a function to be defined more explicitly
+  by accepting the name, args and guards as different entries.
+
+  Differently from `def/2`, the macro arguments are evaluated
+  and therefore requires quoting.
+
+  ## Examples
+
+  The most common mistake when using this macro is to pass the
+  arguments without quoting:
+
+      def :some_function, [first_arg, second_arg], is_list(first_arg) do
+        # ...
+      end
+
+  However, the example above will fail because it will attempt to
+  evaluate `[first_arg, second_arg]` and fail because the variable
+  `first_arg` is not defined. Therefore, we need to use quote:
 
       name   = :some_function
       args   = quote(do: [first_arg, second_arg])
@@ -135,10 +172,8 @@ defmodule Elixir::Builtin do
         # ...
       end
 
-  Notice that as arguments needs to be evaluated, they need to be
-  properly quoted.
   """
-  defmacro def(name, do: contents)
+  defmacro def(name, args, guards, do: contents)
 
   @doc """
   Defines a function that is private. Private functions
@@ -162,6 +197,11 @@ defmodule Elixir::Builtin do
   defmacro defp(name, do: contents)
 
   @doc """
+  The same as `def/4` but generates a private function.
+  """
+  defmacro defp(name, args, guards, do: contents)
+
+  @doc """
   Define a record given by name and values.
 
   ## Examples
@@ -178,8 +218,7 @@ defmodule Elixir::Builtin do
       file_info.atime(now())  #=> Updates the value of atime
 
   Internally, a record is simply a tuple where the first element is
-  always the record module name. This can be noticed if we print
-  the record:
+  the record module name. This can be noticed if we print the record:
 
       IO.puts FileInfo.new
       { ::FileInfo, nil, nil }
@@ -329,37 +368,46 @@ defmodule Elixir::Builtin do
 
   ## Selecting implementations
 
-  Implementing the protocol for all default 9 types can be cumbersome.
-  Even more if you consider that Number, Function, PID, Port and
-  Reference are never going to be blank. For this reason, Elixir
-  allows you to point out that you are going to implement the protocols
-  just for some types, as follows:
+  Implementing the protocol for all default types can be cumbersome.
+  Even more, if you consider that Number, Function, PID, Port and
+  Reference are never going to be blank, it would be easier if we
+  could simply provide a default implementation.
+
+  This can be achieved with Elixir as follows:
 
       defprotocol Blank, [blank?(data)], only: [Atom, Tuple, List, BitString, Any]
 
-  And for all other types, Elixir will now dispatch to Any. That said,
-  the default behavior could be implemented as:
+  If the protocol is invoked with a data type that is not an Atom,
+  nor Tuple, nor List, nor BitString, Elixir will now dispatch to
+  Any. That said, the default behavior could be implemented as:
 
       defimpl Blank, for: Any do
         def blank?(_), do: false
       end
 
-  Now, all data types that we have not specified will be automatically
-  considered non blank.
+  Now, all data types that we have not specified will be
+  automatically considered non blank.
 
   ## Protocols + Records
 
   The real benefit of protocols comes when mixed with records. For instance,
-  one may implement a custom dictionary as a Red-Black tree and this
-  dictionary should also be considered as blank in case it has no items.
-  That said, he just needs to implement the protocol for this dictionary:
+  imagine we have a module called `RedBlack` that provides an API to create
+  and manipulate Red-Black trees. This module represents such trees via a
+  record named `RedBlack::Tree` and we want this tree to be considered blank
+  in case it has no items. To achieve this, the developer just needs to
+  implement the protocol for `RedBlack::Tree`:
 
-      defimpl Blank, for: RedBlack::Dict do
-        def blank?(dict), do: RedBlack.empty?(dict)
+      defimpl Blank, for: RedBlack::Tree do
+        def blank?(tree), do: RedBlack.empty?(tree)
       end
 
-  In the example above, we have implemented `blank?` for the custom
-  dictionary that simply delegates to `RedBlack.empty?`.
+  In the example above, we have implemented `blank?` for `RedBlack::Tree`
+  that simply delegates to `RedBlack.empty?` passing the tree as argument.
+  This implementation doesn't need to be defined inside the `RedBlack`
+  tree or inside the record, but anywhere in the code.
+
+  Finally, since records are simply tuples, one can add a default protocol
+  implementation to any record by defining a default implementation for tuples.
   """
   defmacro defprotocol(name, args, opts // []) do
     Protocol.defprotocol(name, args, opts)
@@ -543,7 +591,7 @@ defmodule Elixir::Builtin do
       match?(1, 2) #=> false
       match?({1,_}, {1,2}) #=> true
 
-  Match can also be used to filter or fina a value in an enumerable:
+  Match can also be used to filter or find a value in an enumerable:
 
       list = [{:a,1},{:b,2},{:a,3}]
       Enum.filter list, match?({:a, _}, _)
