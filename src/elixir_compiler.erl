@@ -71,7 +71,7 @@ module(Forms, #elixir_scope{compile=C} = S, Callback) ->
   module(Forms, S#elixir_scope.filename, Options, Callback).
 
 module(Forms, Filename, Options, Callback) ->
-  case compile:forms([no_auto_import()|Forms], [return|Options]) of
+  case compile:forms([no_auto_import()|Forms], [return,{source,Filename}|Options]) of
     {ok, ModuleName, Binary, Warnings} ->
       format_warnings(Filename, Warnings),
       code:load_binary(ModuleName, Filename, Binary),

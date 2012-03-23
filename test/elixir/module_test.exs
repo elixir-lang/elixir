@@ -116,6 +116,7 @@ defmodule ModuleTest do
 
   test :apply do
     assert_equal [3,2,1], apply(List, :reverse, [[1|[2,3]]])
+    assert_equal 4, apply(fn(x) -> x * 2 end, [2])
   end
 
   test :defined_functions do

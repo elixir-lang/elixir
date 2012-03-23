@@ -25,4 +25,18 @@ defmodule CodeTest do
   test :file do
     assert_equal __FILE__, :filename.absname(__FILE__)
   end
+
+  test :compile_source do
+    compile = __MODULE__.__info__(:compile)
+
+    # Erlang has a bug that does not allow us to set the source
+    # when compiling forms. In such cases, the source will be
+    # under compile option. This is fixed and future Erlang
+    # version will return the proper source always (source2).
+    options = :proplists.get_value(:options, compile, [])
+    source1 = :proplists.get_value(:source, options, nil)
+    source2 = :proplists.get_value(:source, compile, nil)
+
+    assert_equal binary_to_list(__FILE__), source1 || source2
+  end
 end
