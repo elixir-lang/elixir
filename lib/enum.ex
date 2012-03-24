@@ -269,14 +269,14 @@ defmodule Enum do
   Joiner can be either a binary or a list and the
   result will be of the same type of joiner. If
   joiner is not passed at all, it defaults to an
-  empty list.
+  empty binary.
 
   All items in the collection must be convertable
   to binary, otherwise an error is raised.
 
   ## Examples
 
-      Enum.join([1,2,3]) => '123'
+      Enum.join([1,2,3]) => "123"
       Enum.join([1,2,3], " = ") #=> "1 = 2 = 3"
       Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
 
