@@ -281,7 +281,7 @@ defmodule Enum do
       Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
 
   """
-  def join(collection, joiner // []) do
+  def join(collection, joiner // "") do
     { iterator, pointer } = I.iterator(collection)
     join(iterator, pointer, joiner)
   end
