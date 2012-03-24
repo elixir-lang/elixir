@@ -10,7 +10,7 @@ Finally, Elixir and Erlang share the same bytecode and data types. This means yo
 
 # Usage
 
-You can run and learn about Elixir in the [Getting Started guide](http://elixir-lang.org/getting_started/1.html).
+You can run and learn about Elixir in the [Getting Started guide][1].
 
 But if you just want to try it out, clone this repository to your machine, compile and test it:
 
@@ -21,13 +21,13 @@ But if you just want to try it out, clone this repository to your machine, compi
     $ bin/elixir -v
     Elixir 0.4.0.dev
 
-If tests pass, you are ready to move on to the [Getting Started guide](http://elixir-lang.org/getting_started/1.html) or to try Interactive Elixir by running: `bin/iex` in your terminal.
+If tests pass, you are ready to move on to the [Getting Started guide][1] or to try Interactive Elixir by running: `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang R15B or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
 
     Erlang R15B (erts-5.8.4) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
 
-If you have the correct version and tests still fail, feel free to [open an issue](https://github.com/elixir-lang/elixir/issues).
+If you have the correct version and tests still fail, feel free to [open an issue][2].
 
 # Contributing & Roadmap
 
@@ -41,16 +41,19 @@ If you want to contribute, the code is organized as follows:
 
 * `test/erlang` - Contains tests for Elixir, written in Erlang. Usually, just internal stuff is tested here. The preferred way to test is in Elixir itself.
 
-We usually keep a list of features and bugs [in the issue tracker](https://github.com/elixir-lang/elixir/issues).
+We usually keep a list of features and bugs [in the issue tracker][2].
 
 # Important links
 
 * #elixir-lang on freenode IRC
-* [Getting Started Guide](http://elixir-lang.org/getting_started/1.html)
+* [Getting Started Guide][1]
 * [Mailing list](http://groups.google.com/group/elixir-lang-core)
-* [Issue tracker](https://github.com/elixir-lang/elixir/issues)
+* [Issue tracker][2]
 * [Textmate Bundle for Elixir](https://github.com/elixir-lang/elixir-tmbundle)
 * [Vim Elixir](https://github.com/elixir-lang/vim-elixir)
+
+  [1]: http://elixir-lang.org/getting_started/1.html
+  [2]: https://github.com/elixir-lang/elixir/issues
 
 # License
 
