@@ -87,6 +87,7 @@ defmodule EnumTest do
     assert_equal "", Enum.join([], " = ")
     assert_equal "1 = 2 = 3", Enum.join([1,2,3], " = ")
     assert_equal "1 = 2 = 3", Enum.join([1,"2",3], " = ")
+    assert_equal "123", Enum.join([1,2,3])
   end
 
   test :join_with_list do
