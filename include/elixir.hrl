@@ -1,6 +1,8 @@
--define(ELIXIR_WRAP_CALL(Line, Module, Method, Args),
+-define(ELIXIR_WRAP_CALL(Line, Module, Function, Args),
   { call, Line,
-    { remote, Line, { atom, Line, Module }, { atom, Line, Method} },
+    { remote, Line,
+      { record_field, 1, { atom, 1, '' }, { atom, Line, Module } },
+      { atom, Line, Function } },
     Args
   }).
 

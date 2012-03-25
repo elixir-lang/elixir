@@ -537,7 +537,12 @@ translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
     true ->
       { TArgs, SA } = translate_args(Args, umergec(S, SR)),
       FS = umergev(SL, umergev(SR,SA)),
-      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, FS };
+      Remote = case TLeft of
+        { atom, _, Atom } when Atom /= erlang ->
+          { record_field, 1, { atom, 1, '' }, TLeft };
+        _ -> TLeft
+      end,
+      { { call, Line, { remote, Line, Remote, TRight }, TArgs }, FS };
     false ->
       { TArgs, SA } = translate_each(Args, umergec(S, SR)),
       FS = umergev(SL, umergev(SR,SA)),
