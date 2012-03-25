@@ -17,6 +17,9 @@ APP := elixir
 # they are managed by rebar.
 .PHONY: deps ebin
 
+# Disable parallel in compile
+.NOTPARALLEL: compile
+
 # Makefile targets format:
 #
 # 	target: dependencies
