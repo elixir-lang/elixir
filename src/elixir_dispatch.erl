@@ -1,8 +1,8 @@
 %% Helpers related to dispatching to imports.
 -module(elixir_dispatch).
 -export([get_functions/1, get_macros/3, get_optional_macros/1,
-  default_macros/0, default_functions/0, default_refer/0,
-  format_error/1, dispatch_refer/6, dispatch_imports/5]).
+  default_macros/0, default_functions/0, default_requires/0,
+  format_error/1, dispatch_require/6, dispatch_imports/5]).
 -include("elixir.hrl").
 -define(BUILTIN, '__MAIN__.Elixir.Builtin').
 
@@ -13,8 +13,8 @@ default_functions() ->
   ].
 default_macros() ->
   [ { ?BUILTIN, get_optional_macros(?BUILTIN) } ].
-default_refer() ->
-  [ { ?BUILTIN, ?BUILTIN } ].
+default_requires() ->
+  [ ?BUILTIN ].
 
 %% Get macros/functions from the given module and
 %% raise an exception if appropriated.
@@ -79,7 +79,7 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
 
 %% Dispatch based on scope's refer
 
-dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
+dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
   Arity = length(Args),
   Tuple = {Name, Arity},
 
@@ -134,11 +134,11 @@ insert_before_dispatch_macro(_, []) ->
 %% ERROR HANDLING
 
 ensure_required(Line, Receiver, Name, Arity, S) ->
-  Required = [V || { _, V } <- S#elixir_scope.refer],
-  case lists:member(Receiver, Required) of
+  Requires = S#elixir_scope.requires,
+  case ordsets:is_element(Receiver, Requires) of
     true  -> ok;
     false ->
-      Tuple = { unrequired_module, { Receiver, Name, Arity, Required } },
+      Tuple = { unrequired_module, { Receiver, Name, Arity, Requires } },
       elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
   end.
 

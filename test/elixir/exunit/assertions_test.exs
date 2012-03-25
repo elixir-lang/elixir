@@ -4,8 +4,9 @@ defmodule ExUnit.AssertionsTest.Value do
   def tuple, do: { 2, 1 }
 end
 
+refer ExUnit.AssertionsTest.Value
+
 defmodule ExUnit.AssertionsTest do
-  require ExUnit.AssertionsTest.Value, as: Value
   use ExUnit.Case, sync: false
 
   test :assert_when_value_is_true do

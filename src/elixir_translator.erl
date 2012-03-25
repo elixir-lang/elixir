@@ -82,7 +82,7 @@ translate_each({'[]', _Line, Args}, S) when is_list(Args) ->
 
 %% Lexical
 
-translate_each({require, Line, [Ref|T]}, S) ->
+translate_each({refer, Line, [Ref|T]}, S) ->
   KV = case T of
     [NotEmpty] -> NotEmpty;
     [] -> []
@@ -90,15 +90,8 @@ translate_each({require, Line, [Ref|T]}, S) ->
 
   { TRef, SR } = translate_each(Ref, S),
 
-  Raise = case orddict:find(raise, KV) of
-    { ok, false } -> false;
-    _ -> true
-  end,
-
   case TRef of
     { atom, _, Old } ->
-      elixir_ref:ensure_loaded(Line, Old, SR, Raise),
-
       { New, SF } = case orddict:find(as, KV) of
         { ok, false } ->
           { Old, SR };
@@ -108,21 +101,43 @@ translate_each({require, Line, [Ref|T]}, S) ->
           { TOther, SA } = translate_each(Other, SR),
           case TOther of
             { atom, _, Atom } -> { Atom, SA };
-            _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected a reference as argument")
+            _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for refer, expected a reference as argument")
           end;
         error ->
-          { Old, SR }
+          { elixir_ref:last(Old), SR }
       end,
 
       { { nil, Line }, SF#elixir_scope{
         refer=orddict:store(New, Old, S#elixir_scope.refer)
       } };
     _ ->
-      case Raise of
-        false -> { { nil, Line }, S };
-        true ->
-          syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected a reference as argument")
-      end
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for refer, expected a reference as argument")
+  end;
+
+translate_each({require, Line, [Ref|T]}, S) ->
+  KV = case T of
+    [NotEmpty] -> NotEmpty;
+    [] -> []
+  end,
+
+  { TRef, SR } = translate_each(Ref, S),
+
+  As = case orddict:find(as, KV) of
+    { ok, Value } -> Value;
+    error -> false
+  end,
+
+  case TRef of
+    { atom, _, Old } ->
+      elixir_ref:ensure_loaded(Line, Old, SR, true),
+
+      SF = SR#elixir_scope{
+        requires=ordsets:add_element(Old, S#elixir_scope.requires)
+      },
+
+      translate_each({ refer, Line, [Ref, [{ as, As }]] }, SF);
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected a reference as argument")
   end;
 
 translate_each({import, Line, [Left]}, S) ->
@@ -421,7 +436,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom
               syntax_error(Line, S#elixir_scope.filename, Message, [Atom])
           end;
         { { atom, _, Receiver }, { atom, _, Atom } }  ->
-          elixir_dispatch:dispatch_refer(Line, Receiver, Atom, Args, umergev(SL, SR), Callback);
+          elixir_dispatch:dispatch_require(Line, Receiver, Atom, Args, umergev(SL, SR), Callback);
         _ ->
           Callback()
       end;

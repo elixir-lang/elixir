@@ -50,18 +50,19 @@ build_ex(Line, #elixir_scope{counter=Counter} = S) ->
 
 serialize_scope(S) ->
   elixir_tree_helpers:abstract_syntax(
-    { S#elixir_scope.filename, S#elixir_scope.functions, S#elixir_scope.check_clauses,
+    { S#elixir_scope.filename, S#elixir_scope.functions, S#elixir_scope.check_clauses, S#elixir_scope.requires,
       S#elixir_scope.macros, S#elixir_scope.refer, S#elixir_scope.scheduled, S#elixir_scope.compile }
   ).
 
 % Fill in the scope with the variables serialization set in serialize_scope.
 
-deserialize_scope({ Filename, Functions, CheckClauses, Macros, Refer, Scheduled, Compile }) ->
+deserialize_scope({ Filename, Functions, CheckClauses, Requires, Macros, Refer, Scheduled, Compile }) ->
   #elixir_scope{
     filename=Filename,
     functions=Functions,
     check_clauses=CheckClauses,
     macros=Macros,
+    requires=Requires,
     refer=Refer,
     scheduled=Scheduled,
     compile=Compile
