@@ -1,5 +1,5 @@
 defmodule Code do
-  def version, do: "0.4.0.dev"
+  def version, do: "0.9.0.dev"
 
   @doc """
   Returns the current ARGV.
