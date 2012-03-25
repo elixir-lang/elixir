@@ -11,6 +11,9 @@ extract(Line, Escaping, String, Last) ->
 extract(Line, Escaping, [], Buffer, [], Output, []) ->
   finish_extraction(Line, Escaping, Buffer, Output, []);
 
+extract(Line, _Escaping, [], _Buffer, [], _Output, Last) ->
+  { error, { Line, io_lib:format("missing string terminator, expected ~ts", [[Last]]), [] } };
+
 extract(Line, Escaping, [Last|Remaining], Buffer, [], Output, Last) ->
   finish_extraction(Line, Escaping, Buffer, Output, Remaining);
 

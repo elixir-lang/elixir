@@ -15,7 +15,7 @@ forms(String, StartLine, Filename) ->
       end;
     {error, {Line, Error, Token}} -> parse_error(Line, Filename, Error, Token)
   catch
-    { interpolation_error, { Line, Error, Token } } -> parse_error(Line, Filename, Error, Token)
+    {interpolation_error, {Line, Error, Token}} -> parse_error(Line, Filename, Error, Token)
   end.
 
 translate(Forms, S) ->

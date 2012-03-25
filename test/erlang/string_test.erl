@@ -79,6 +79,9 @@ bin_string_with_escaped_interpolation_test() ->
 invalid_string_interpolation_test() ->
   ?assertError({'::SyntaxError', _, _, _, _}, eval("\"f#{{}o\"")).
 
+unterminated_string_interpolation_test() ->
+  ?assertError({'::TokenMissingError', _, _, _, _}, eval("\"foo")).
+
 %% List strings
 
 empty_list_string_test() ->

@@ -50,7 +50,7 @@ defmodule Elixir::IEx do
         IO.puts inspect(result)
         config.binding(new_binding).cache('').scope(scope)
       rescue: TokenMissingError
-        config
+        config.cache(code)
       rescue: exception
         stacktrace = Code.stacktrace
         IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
