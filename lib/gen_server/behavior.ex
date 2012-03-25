@@ -2,7 +2,7 @@
 # for handle_call, handle_info, handle_cast, terminate and
 # code_change. init still needs to be implemented by the
 # developer. This module also tags the behavior as :gen_server.
-defmodule GenServer::Behavior do
+defmodule GenServer.Behavior do
   defmacro __using__(_, _) do
     quote do
       @behavior :gen_server

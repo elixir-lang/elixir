@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule EExTest do
-  use ExUnit::Case
+  use ExUnit.Case
 
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"
@@ -61,25 +61,25 @@ defmodule EExTest do
   end
 
   test "raises a syntax error when the token is invalid" do
-    assert_raises EEx::SyntaxError, "invalid token: ' bar'", fn ->
+    assert_raises EEx.SyntaxError, "invalid token: ' bar'", fn ->
       EEx.compile_string "foo <%= bar"
     end
   end
 
   test "raises a syntax error when end expression is found without a start expression" do
-    assert_raises EEx::SyntaxError, "unexpected token: ' end ' at line 1",  fn ->
+    assert_raises EEx.SyntaxError, "unexpected token: ' end ' at line 1",  fn ->
       EEx.compile_string "foo <% end %>"
     end
   end
 
   test "raises a syntax error when start expression is found without an end expression" do
-    assert_raises EEx::SyntaxError, "unexpected end of string. expecting a closing <% end %>.", fn ->
+    assert_raises EEx.SyntaxError, "unexpected end of string. expecting a closing <% end %>.", fn ->
       EEx.compile_string "foo <% if true do %>"
     end
   end
 
   test "raises a syntax error when nested end expression is found without an start expression" do
-    assert_raises EEx::SyntaxError, "unexpected token: ' end ' at line 1", fn ->
+    assert_raises EEx.SyntaxError, "unexpected token: ' end ' at line 1", fn ->
       EEx.compile_string "foo <%if true do %><% end %><% end %>"
     end
   end
@@ -195,14 +195,14 @@ foo
   end
 
   test "raises an Exception when there's an error with the given file" do
-    assert_raises File::Exception, "could not read file non-existent.eex: no such file or directory", fn ->
+    assert_raises File.Exception, "could not read file non-existent.eex: no such file or directory", fn ->
       filename = "non-existent.eex"
       EEx.compile_file(filename)
     end
   end
 
   defp assert_eval(expected, atual) do
-    result = EEx.eval_string(atual, [], EEx::Engine, __FILE__)
+    result = EEx.eval_string(atual, [], EEx.Engine, __FILE__)
     assert_equal expected, result
   end
 end

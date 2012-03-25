@@ -182,7 +182,7 @@ docs_clause(Line, _Module, _) ->
   { clause, Line, [{ atom, Line, docs }], [], [{ atom, Line, nil }] }.
 
 moduledoc_clause(Line, Module, #elixir_compile { docs = true }) ->
-  Docs = '::Module':read_data(Module, moduledoc),
+  Docs = '__MAIN__.Module':read_data(Module, moduledoc),
   { clause, Line, [{ atom, Line, moduledoc }], [], [elixir_tree_helpers:abstract_syntax({ Line, Docs })] };
 
 moduledoc_clause(Line, _Module, _) ->

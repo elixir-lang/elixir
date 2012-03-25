@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Kernel::LoopTest do
-  use ExUnit::Case
+defmodule Kernel.LoopTest do
+  use ExUnit.Case
 
   test :do_loop do
     list = [1,2,3]

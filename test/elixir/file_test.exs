@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule FileTest do
-  use ExUnit::Case
+  use ExUnit.Case
 
   test :expand_path do
     assert_equal "/foo/bar", File.expand_path("/foo/bar")
@@ -58,7 +58,7 @@ defmodule FileTest do
 
     expected_message = "could not read file fixtures/missing.txt: no such file or directory"
 
-    assert_raises File::Exception, expected_message, fn ->
+    assert_raises File.Exception, expected_message, fn ->
       File.read!("fixtures/missing.txt")
     end
   end

@@ -1,9 +1,9 @@
-%% Those macros behave like they belong to Elixir::Builtin,
+%% Those macros behave like they belong to Elixir.Builtin,
 %% but do not since they need to be implemented in Erlang.
 -module(elixir_macros).
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
--import(elixir_variables, [umergec/2, umergev/2]).
+-import(elixir_variables, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, assert_no_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
 
@@ -23,24 +23,6 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
   Op == '==='; Op == '!==' ->
   translate_each({ '__op__', Line, [Op|Exprs] }, S);
 
-%% ::
-
-translate_macro({'::', Line, [Left]}, S) ->
-  translate_macro({'::', Line, [nil,Left]}, S);
-
-translate_macro({'::', Line, [Left|Right]}, S) ->
-  { TLeft, LS } = translate_each(Left, S),
-  { TRight, RS } = translate_args(Right, (umergec(S, LS))#elixir_scope{noref=true}),
-  TArgs = [TLeft|TRight],
-  Atoms = [Atom || { atom, _, Atom } <- TArgs],
-  Final = case length(Atoms) == length(TArgs) of
-    true  -> { atom, Line, elixir_ref:concat(Atoms) };
-    false ->
-      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
-  end,
-  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
-
 %% @
 
 translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
@@ -53,13 +35,13 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
       case Args of
         [Arg] ->
           translate_each({
-            { '.', Line, ['::Module', merge_data] },
+            { '.', Line, ['__MAIN__.Module', merge_data] },
               Line,
               [ { '__MODULE__', Line, false }, [{ Name, Arg }] ]
           }, S);
         _ when is_atom(Args) or (Args == []) ->
             translate_each({
-              { '.', Line, ['::Module', read_data] },
+              { '.', Line, ['__MAIN__.Module', read_data] },
               Line,
               [ { '__MODULE__', Line, false }, Name ]
             }, S);
@@ -111,9 +93,6 @@ translate_macro({'receive', Line, [RawClauses] }, S) ->
 
 %% Definitions
 
-translate_macro({defmodule, Line, [Ref, Left, Right]}, S) ->
-  translate_macro({defmodule, Line, [Ref, orddict:from_list(Left ++ Right)]}, S);
-
 translate_macro({defmodule, Line, [Ref, KV]}, S) ->
   { TRef, _ } = translate_each(Ref, S),
 
@@ -122,19 +101,13 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
     error -> syntax_error(Line, S#elixir_scope.filename, "expected do: argument in defmodule")
   end,
 
-  As = case orddict:find(as, KV) of
-    { ok, AsValue } -> AsValue;
-    error -> true
-  end,
-
   NS = case TRef of
     { atom, _, Module } ->
       S#elixir_scope{scheduled=[Module|S#elixir_scope.scheduled]};
     _ -> S
   end,
 
-  { _, RS } = translate_each({ require, Line, [Ref, [{as,As},{raise,false}]] }, NS),
-  { elixir_module:translate(Line, TRef, Block, S), RS };
+  { elixir_module:translate(Line, TRef, Block, S), NS };
 
 translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   translate_macro({Kind, Line, [Call, skip_definition]}, S);

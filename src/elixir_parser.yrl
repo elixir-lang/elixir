@@ -6,8 +6,8 @@ Nonterminals
   expr block_expr stab_expr call_expr max_expr base_expr
   matched_expr matched_op_expr unmatched_expr op_expr
   comma_separator kv_eol
-  add_op mult_op unary_op unary_ref_op addadd_op multmult_op bin_concat_op
-  match_op arrow_op module_ref_op default_op when_op pipe_op in_op
+  add_op mult_op unary_op addadd_op multmult_op bin_concat_op
+  match_op arrow_op default_op when_op pipe_op in_op
   andand_op oror_op and_op or_op comp_expr_op
   open_paren close_paren
   open_bracket close_bracket
@@ -18,7 +18,7 @@ Nonterminals
   kv_comma base_orddict
   matched_kv_comma matched_base_orddict
   do_eol end_eol kv_item kv_list do_block stab_eol stab_block
-  dot_op dot_identifier dot_do_identifier
+  dot_op dot_identifier dot_do_identifier dot_ref
   dot_paren_identifier dot_punctuated_identifier parens_call
   var list bit_string tuple
   .
@@ -32,7 +32,7 @@ Terminals
   'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
-  eol ','  '&' '|'  '.' '::' '^' '@' '<-' '<>' '->'
+  eol ','  '&' '|'  '.' '^' '@' '<-' '<>' '->'
   '&&' '||' '!'
   .
 
@@ -60,9 +60,7 @@ Nonassoc 280 unary_op.
 Nonassoc 290 special_op.
 Left     300 dot_call_op.
 Left     300 dot_op.
-Right    310 module_ref_op.
-Nonassoc 320 unary_ref_op.
-Nonassoc 330 var.
+Nonassoc 310 var.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -83,14 +81,12 @@ expr -> unmatched_expr : '$1'.
 matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 matched_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
 matched_expr -> special_op matched_expr : build_special_op('$1', '$2').
-matched_expr -> unary_ref_op matched_expr : build_unary_op('$1', '$2').
 matched_expr -> stab_expr : '$1'.
 
 unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unary_op expr : build_unary_op('$1', '$2').
 unmatched_expr -> special_op expr : build_special_op('$1', '$2').
-unmatched_expr -> unary_ref_op expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
 op_expr -> match_op expr : { '$1', '$2' }.
@@ -107,7 +103,6 @@ op_expr -> bin_concat_op expr : { '$1', '$2' }.
 op_expr -> in_op expr : { '$1', '$2' }.
 op_expr -> when_op expr : { '$1', '$2' }.
 op_expr -> arrow_op expr : { '$1', '$2' }.
-op_expr -> module_ref_op expr : { '$1', '$2' }.
 op_expr -> default_op expr : { '$1', '$2' }.
 op_expr -> comp_expr_op expr : { '$1', '$2' }.
 
@@ -125,7 +120,6 @@ matched_op_expr -> bin_concat_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> in_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> when_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> arrow_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> module_ref_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> default_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> comp_expr_op matched_expr : { '$1', '$2' }.
 
@@ -144,6 +138,7 @@ call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', nil).
+call_expr -> dot_ref : build_identifier('$1', nil).
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
@@ -228,9 +223,6 @@ unary_op -> 'not' eol : '$1'.
 unary_op -> '@' : '$1'.
 unary_op -> '@' eol : '$1'.
 
-unary_ref_op -> '::' : '$1'.
-unary_ref_op -> '::' eol : '$1'.
-
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.
 
@@ -266,11 +258,6 @@ arrow_op -> '<-' eol : '$1'.
 comp_expr_op -> comp_op : '$1'.
 comp_expr_op -> comp_op eol : '$1'.
 
-% Ref operator
-
-module_ref_op -> '::' : '$1'.
-module_ref_op -> '::' eol : '$1'.
-
 % Dot operator
 
 dot_op -> '.' : '$1'.
@@ -278,6 +265,8 @@ dot_op -> '.' eol : '$1'.
 
 dot_identifier -> identifier : '$1'.
 dot_identifier -> matched_expr dot_op identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+
+dot_ref -> matched_expr dot_op '__ref__' : { '.', ?line('$2'), ['$1', '$3'] }.
 
 dot_do_identifier -> do_identifier : '$1'.
 dot_do_identifier -> matched_expr dot_op do_identifier : { '.', ?line('$2'), ['$1', '$3'] }.

@@ -1,4 +1,71 @@
-defmodule Elixir::SpecialForms do
+defmodule Elixir.SpecialForms do
+  @doc """
+  `refer` is used to setup aliases between modules.
+
+  ## Examples
+
+  `refer` can be used to setup an alias for any module:
+
+      defmodule Math do
+        refer MyOrddict, as: Orddict
+      end
+
+  In the example above, we have set up `MyOrdict` to be referenced
+  as `Orddict`. So now, any reference to `Orddict` will be
+  automatically replaced by `MyOrddict`.
+
+  In case one wants to access the original `Orddict`, it can be done
+  by accessing __MAIN__:
+
+      Orddict.values   #=> uses MyOrddict.values
+      __MAIN__.Orddict.values #=> uses Orddict.values
+
+  Notice that calling `refer` without the `as:` option automatically
+  sets an alias based on the last part of the module. For example:
+
+      refer Foo::Bar::Baz
+
+  Is the same as:
+
+      refer Foo::Bar::Baz, as: Baz
+
+  ## Lexical scope
+
+  `import`, `require` and `refer` are called directives and all
+  have lexical scope. This means you can set up aliases inside
+  specific functions and it won't affect the overall scope.
+  """
+  defmacro refer(module, opts // [])
+
+  @doc """
+  `require` is used to require the presence of external
+  modules so macros can be invoked.
+
+  ## Examples
+
+  Notice that usually modules should not be required before usage,
+  the only exception is if you want to use the macros from a module.
+  In such cases, you need to explicitly require them.
+
+  Let's suppose you created your own `if` implementation in the module
+  `MyMacros`. If you want to invoke it, you need to first explicitly
+  require the `MyMacros`:
+
+      defmodule Math do
+        require MyMacros
+        MyMacros.if do_something, it_works
+      end
+
+  An attempt to call a macro that was not loaded will raise an error.
+
+  ## Refer shortcut
+
+  `require` also accepts `as:` as an option so it automatically sets
+  up an alias. Please check `refer` for more information.
+
+  """
+  defmacro require(module, opts // [])
+
   @doc """
   `import` allows one to easily access functions or macros from
   others modules without using the qualified name.
@@ -37,8 +104,8 @@ defmodule Elixir::SpecialForms do
 
       defmodule Math do
         def some_function do
-          # 1) Disable `if/2` from Elixir::Builtin
-          import Elixir::Builtin, except: [if: 2]
+          # 1) Disable `if/2` from Elixir.Builtin
+          import Elixir.Builtin, except: [if: 2]
 
           # 2) Require the new `if` macro from MyMacros
           import MyMacros
@@ -53,60 +120,13 @@ defmodule Elixir::SpecialForms do
   specific function. All other functions in that module will still
   be able to use the original one.
 
-  ## Require shortcut
+  ## Refer/Require shortcut
 
-  You may optional pass `as:` an option to import and it will
-  automatically invoke `require` creating the desired shortcut.
-  Read `require` for more information.
+  All imported modules are also required by default. `import`
+  also accepts `as:` as an option so it automatically sets up
+  an alias. Please check `refer` for more information.
   """
   defmacro import(module, opts // [])
-
-  @doc """
-  `require` is used to require the presence of external modules and
-  also to setup aliases.
-
-  ## Aliases example
-
-  `require` can be used to setup an alias for any module:
-
-      defmodule Math do
-        require MyOrddict, as: Orddict
-      end
-
-  In the example above, we have set up `MyOrdict` to be referenced
-  as `Orddict`. So now, any reference to `Orddict` will be
-  automatically replaced by `MyOrddict`.
-
-  In case one wants to access the original `Orddict`, it can be done
-  by prefixing the module name with `::`:
-
-      Orddict.values   #=> uses ::MyOrddict.values
-      ::Orddict.values #=> uses ::Orddict.values
-
-  ## Macros example
-
-  Notice that usually modules should not be required before usage,
-  the only exception is if you want to use the macros from a module.
-  In such cases, you need to explicitly require them.
-
-  Let's suppose you created your own `if` implementation in the module
-  `MyMacros`. If you want to invoke it, you need to first explicitly
-  require the `MyMacros`:
-
-      defmodule Math do
-        require MyMacros
-        MyMacros.if do_something, it_works
-      end
-
-  An attempt to call a macro that was not loaded will raise an error.
-
-  ## Lexical scope
-
-  As `import`, it is important to note that `require` is **lexical**.
-  This means you can set up aliases for specific functions not affecting
-  the overall scope.
-  """
-  defmacro require(module, opts // [])
 
   @doc """
   Returns the current module name as an atom or nil otherwise.
@@ -199,10 +219,10 @@ defmodule Elixir::SpecialForms do
       a # => 11
 
   Notice that references are not hygienic in Elixir unless
-  you explicitly prepend :: to the reference name.
+  you explicitly access it via __MAIN__ to the reference name.
 
       quote do
-        ::Foo # => Access the root Foo
+        __MAIN__.Foo # => Access the root Foo
         Foo   # => Access the Foo reference in the current
                    module (if any is set), then fallback to root
       end

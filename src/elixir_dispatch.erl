@@ -1,24 +1,25 @@
 %% Helpers related to dispatching to imports.
 -module(elixir_dispatch).
 -export([get_functions/1, get_macros/3, get_optional_macros/1,
-  default_macros/0, default_functions/0, default_refer/0,
-  format_error/1, dispatch_refer/6, dispatch_imports/5]).
+  default_macros/0, default_functions/0, default_requires/0,
+  format_error/1, dispatch_require/6, dispatch_imports/5]).
 -include("elixir.hrl").
+-define(BUILTIN, '__MAIN__.Elixir.Builtin').
 
 default_functions() ->
   [
-    { '::Elixir::Builtin', get_functions('::Elixir::Builtin') },
+    { ?BUILTIN, get_functions(?BUILTIN) },
     { erlang, in_erlang_functions() }
   ].
 default_macros() ->
-  [ { '::Elixir::Builtin', get_optional_macros('::Elixir::Builtin') } ].
-default_refer() ->
-  [ { '::Elixir::Builtin', '::Elixir::Builtin' } ].
+  [ { ?BUILTIN, get_optional_macros(?BUILTIN) } ].
+default_requires() ->
+  [ ?BUILTIN ].
 
 %% Get macros/functions from the given module and
 %% raise an exception if appropriated.
 
-get_functions('::Elixir::Builtin' = Module) ->
+get_functions(?BUILTIN = Module) ->
   try
     ordsets:from_list((Module:module_info(exports) -- get_optional_macros(Module)) --
       [{module_info,0},{module_info,1},{'__info__',1}])
@@ -29,8 +30,8 @@ get_functions('::Elixir::Builtin' = Module) ->
 get_functions(Module) ->
   ordsets:from_list(Module:module_info(exports) -- get_optional_macros(Module)).
 
-get_macros(_Line, '::Elixir::Builtin', _S) ->
-  ordsets:from_list(get_optional_macros('::Elixir::Builtin'));
+get_macros(_Line, ?BUILTIN, _S) ->
+  ordsets:from_list(get_optional_macros(?BUILTIN));
 
 get_macros(Line, Module, S) ->
   try
@@ -41,9 +42,9 @@ get_macros(Line, Module, S) ->
       elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
   end.
 
-get_optional_macros('::Elixir::Builtin') ->
+get_optional_macros(?BUILTIN) ->
   try
-    ordsets:from_list('::Elixir::Builtin':'__info__'(macros) ++ in_erlang_macros())
+    ordsets:from_list(?BUILTIN:'__info__'(macros) ++ in_erlang_macros())
   catch
     error:undef -> ordsets:from_list(in_erlang_macros())
   end;
@@ -78,7 +79,7 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
 
 %% Dispatch based on scope's refer
 
-dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
+dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
   Arity = length(Args),
   Tuple = {Name, Arity},
 
@@ -89,7 +90,7 @@ dispatch_refer(Line, Receiver, Name, Args, S, Callback) ->
 
 %% HELPERS
 
-dispatch_macro(Line, '::Elixir::Builtin' = Receiver, { Name, Arity } = Tuple, Args, S) ->
+dispatch_macro(Line, ?BUILTIN = Receiver, { Name, Arity } = Tuple, Args, S) ->
   case lists:member(Tuple, in_erlang_macros()) of
     true  -> elixir_macros:translate_macro({ Name, Line, Args }, S);
     false -> dispatch_macro(Line, Receiver, Name, Arity, Args, S)
@@ -133,11 +134,11 @@ insert_before_dispatch_macro(_, []) ->
 %% ERROR HANDLING
 
 ensure_required(Line, Receiver, Name, Arity, S) ->
-  Required = [V || { _, V } <- S#elixir_scope.refer],
-  case lists:member(Receiver, Required) of
+  Requires = S#elixir_scope.requires,
+  case ordsets:is_element(Receiver, Requires) of
     true  -> ok;
     false ->
-      Tuple = { unrequired_module, { Receiver, Name, Arity, Required } },
+      Tuple = { unrequired_module, { Receiver, Name, Arity, Requires } },
       elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
   end.
 
@@ -238,7 +239,6 @@ in_erlang_macros() ->
   [
     {'@',1},
     {'+',1},
-    {'::',1},
     {'+',2},
     {'-',1},
     {'-',2},
@@ -247,7 +247,6 @@ in_erlang_macros() ->
     {'<-',2},
     {'++',2},
     {'--',2},
-    {'::',2},
     {'<',2},
     {'>',2},
     {'<=',2},

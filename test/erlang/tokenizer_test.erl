@@ -71,17 +71,10 @@ dot_test() ->
 ref_test() ->
   [{'__ref__',1,['Foo']}] = tokenize("Foo"),
   [{'__ref__',1,['Foo']},
-   {'::',1},
+   {'.',1},
    {'__ref__',1,['Bar']},
-   {'::',1},
-   {'__ref__',1,['Baz']}] = tokenize("Foo::Bar::Baz").
-
-dynamic_ref_test() ->
- [{identifier,1,x},
-  {'::',1},
-  {identifier,1,y},
-  {'::',1},
-  {identifier,1,z}] = tokenize("x::y::z").
+   {'.',1},
+   {'__ref__',1,['Baz']}] = tokenize("Foo.Bar.Baz").
 
 string_test() ->
   [{bin_string,1,["foo"]}] = tokenize("\"foo\""),

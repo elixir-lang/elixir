@@ -37,7 +37,7 @@ vars_if_test() ->
     {1, _} = eval("Bar.bar(false)"),
     {2, _} = eval("Bar.bar(true)")
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__.Bar']).
 
 multi_assigned_if_test() ->
   {3, _} = eval("x = 1\nif true do\nx = 2\nx = 3\nelse: true\nend\nx"),
@@ -78,10 +78,6 @@ case_with_match_do_ambiguity_test() ->
 case_with_unary_do_ambiguity_test() ->
   {false,_} = eval("! case atom_to_list(true) do\nmatch: _; true\nend").
 
-case_with_unary_ref_ambiguity_test() ->
-  {false,_} = eval("!List.reverse([1,2,3])"),
-  {false,_} = eval("!::List.reverse([1,2,3])").
-
 multi_assigned_case_test() ->
   {3, _} = eval("x = 1\ncase true do\n match: true\nx = 2\nx = 3\nelse: true\nend\nx"),
   {3, _} = eval("x = 1\ncase 1 do\n match: ^x\nx = 2\nx = 3\nelse: true\nend\nx"),
@@ -94,7 +90,7 @@ vars_case_test() ->
     {1, _} = eval("Bar.bar(false)"),
     {2, _} = eval("Bar.bar(true)")
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__.Bar']).
 
 % Comparison
 
@@ -168,7 +164,7 @@ xor_test() ->
     {false, _} = eval("Bar.bar xor Bar.baz 2"),
     ?assertError(badarg, eval("1 xor 2"))
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__.Bar']).
 
 and_test() ->
   F = fun() ->
@@ -186,7 +182,7 @@ and_test() ->
     {false, _} = eval("Bar.bar and error(:bad)"),
     ?assertError({badarg, 1}, eval("1 and 2"))
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__.Bar']).
 
 or_test() ->
   F = fun() ->
@@ -204,7 +200,7 @@ or_test() ->
     {true, _} = eval("Bar.foo or error(:bad)"),
     ?assertError({badarg, 1}, eval("1 or 2"))
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__.Bar']).
 
 not_test() ->
   {false, _} = eval("not true"),
@@ -214,7 +210,7 @@ not_test() ->
 andand_test() ->
   F = fun() ->
     eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = eval("Elixir::Builtin.&&(true, true)"),
+    {true, _} = eval("Elixir.Builtin.&&(true, true)"),
     {true, _} = eval("true && true"),
     {false, _} = eval("true && false"),
     {false, _} = eval("false && true"),
@@ -233,12 +229,12 @@ andand_test() ->
     {nil, _} = eval("nil && 2"),
     {false, _} = eval("false && false or true")
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__.Bar']).
 
 oror_test() ->
   F = fun() ->
     eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = eval("Elixir::Builtin.||(false, true)"),
+    {true, _} = eval("Elixir.Builtin.||(false, true)"),
     {true, _} = eval("true || true"),
     {true, _} = eval("true || false"),
     {true, _} = eval("false || true"),
@@ -258,4 +254,4 @@ oror_test() ->
     {2, _} = eval("nil || 2"),
     {true, _} = eval("false && false || true")
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__.Bar']).

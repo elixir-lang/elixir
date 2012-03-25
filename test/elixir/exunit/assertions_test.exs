@@ -1,11 +1,13 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule ExUnit::AssertionsTest::Value do
+defmodule ExUnit.AssertionsTest.Value do
   def tuple, do: { 2, 1 }
 end
 
-defmodule ExUnit::AssertionsTest do
-  use ExUnit::Case, sync: false
+refer ExUnit.AssertionsTest.Value
+
+defmodule ExUnit.AssertionsTest do
+  use ExUnit.Case, sync: false
 
   test :assert_when_value_is_true do
     true = assert true
@@ -13,13 +15,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_when_value_is_false do
     "This should never be tested" = assert false
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected false to be true" = error.message
   end
 
   test :assert_with_message_when_value_is_false do
     "This should never be tested" = assert false, "This should be true"
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "This should be true" = error.message
   end
 
@@ -29,13 +31,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :refute_when_value_is_true do
     "This should never be tested" = refute true
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected true to be false" = error.message
   end
 
   test :refute_with_message_when_value_is_true do
     "This should never be tested" = refute true, "This should be false"
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "This should be false" = error.message
   end
 
@@ -46,7 +48,7 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_match_when_different do
     "This should never be tested" = assert_match({_, 2}, Value.tuple)
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "no match of right hand side value: {2,1}" = error.message
   end
 
@@ -56,13 +58,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_equal_when_different do
     "This should never be tested" = assert_equal(0, 1)
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected 1 to be equal to 0" = error.message
   end
 
   test :assert_equal_with_message_when_different do
     "This should never be tested" = assert_equal(0, 1, "This should be equal")
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "This should be equal" = error.message
   end
 
@@ -72,13 +74,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_member_when_is_not_member do
     "This should never be tested" = assert_member('foo', 'bar')
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected 'bar' to include 'foo'" = error.message
   end
 
   test :assert_member_with_message_when_is_not_member do
     "This should never be tested" = assert_member('foo', 'bar', "This should be included")
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "This should be included" = error.message
   end
 
@@ -86,8 +88,8 @@ defmodule ExUnit::AssertionsTest do
     "This should never be tested" = assert_raises ArgumentError, fn ->
       # nothing
     end
-  rescue: error in [ExUnit::AssertionError]
-    "Expected ::ArgumentError exception but nothing was raised" = error.message
+  rescue: error in [ExUnit.AssertionError]
+    "Expected ArgumentError exception but nothing was raised" = error.message
   end
 
   test :assert_raises_when_error do
@@ -102,16 +104,16 @@ defmodule ExUnit::AssertionsTest do
     "This should never be tested" = assert_raises ArgumentError, fn ->
       raise MatchError, message: "test error"
     end
-  rescue: error in [ExUnit::AssertionError]
-    "Expected exception ::ArgumentError, got ::MatchError" = error.message
+  rescue: error in [ExUnit.AssertionError]
+    "Expected exception ArgumentError, got MatchError" = error.message
   end
 
   test :assert_raises_when_erlang_error do
     assert_raises SyntaxError, fn ->
       List.flatten(1)
     end
-  rescue: error in [ExUnit::AssertionError]
-    "Expected exception ::SyntaxError, got ::FunctionClauseError" = error.message
+  rescue: error in [ExUnit.AssertionError]
+    "Expected exception SyntaxError, got FunctionClauseError" = error.message
   end
 
   test :assert_operator_greater_pass do
@@ -120,7 +122,7 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_operator_greater_fail do
     "This should never be tested" = assert_operator 1 > 2
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected 1 to be > 2" = error.message
   end
 
@@ -130,7 +132,7 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_operator_less_or_equal_than_fail do
     "This should never be tested" = assert_operator 2 <= 1
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected 2 to be <= 1" = error.message
   end
 
@@ -141,7 +143,7 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_operator_with_message do
     "This should never be tested" = assert_operator 1 > 2, "assertion"
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "assertion" = error.message
   end
 
@@ -151,19 +153,19 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_empty_when_not_empty do
     "This should never be tested" = assert_empty [1, 2]
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected [1,2] to be empty" = error.message
   end
 
   test :assert_empty_with_message do
     "This should never be tested" = assert_empty [1, 2], "test message"
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "test message" = error.message
   end
 
   test :refute_equal_when_equal do
     "This should never be tested" = refute_equal(1, 1)
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected 1 to not be equal to 1" = error.message
   end
 
@@ -177,13 +179,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :refute_empty_when_empty do
     "This should never be tested" = refute_empty []
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected [] to not be empty" = error.message
   end
 
   test :refute_empty_with_message do
     "This should never be tested" = refute_empty [], "test message"
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "test message" = error.message
   end
 
@@ -193,13 +195,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_nil_when_not_nil do
     "This should never be tested" = assert_nil true
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected true to be nil" = error.message
   end
 
   test :assert_nil_with_message do
     "This should never be tested" = assert_nil false, "test message"
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "test message" = error.message
   end
 
@@ -209,13 +211,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :refute_nil_when_nil do
     "This should never be tested" = refute_nil nil
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected nil to not be nil" = error.message
   end
 
   test :refute_nil_with_message do
     "This should never be tested" = refute_nil nil, "test message"
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "test message" = error.message
   end
 
@@ -225,13 +227,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :assert_in_delta_fail do
     "This should never be tested" = assert_in_delta(10, 12, 1)
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected |10 - 12| (2) to be < 1" = error.message
   end
 
   test :assert_in_delta_with_message do
     "This should never be tested" = assert_in_delta(10, 12, 1, "test message")
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "test message" = error.message
   end
 
@@ -241,13 +243,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :refute_in_delta_fail do
     "This should never be tested" = refute_in_delta(10, 11, 2)
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected |10 - 11| (1) to not be < 2" = error.message
   end
 
   test :refute_in_delta_with_message do
     "This should never be tested" = refute_in_delta(10, 11, 2, "test message")
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "test message" = error.message
   end
 
@@ -255,7 +257,7 @@ defmodule ExUnit::AssertionsTest do
     "This should never be tested" = assert_throw 1, fn ->
       # nothing
     end
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected throw 1, got nothing" = error.message
   end
 
@@ -269,7 +271,7 @@ defmodule ExUnit::AssertionsTest do
     "This should never be tested" = assert_throw 1, fn ->
       throw 2
     end
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected throw 1, got 2" = error.message
   end
 
@@ -277,7 +279,7 @@ defmodule ExUnit::AssertionsTest do
     "This should never be tested" = assert_exit 1, fn ->
       # nothing
     end
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected exit 1, got nothing" = error.message
   end
 
@@ -291,7 +293,7 @@ defmodule ExUnit::AssertionsTest do
     "This should never be tested" = assert_exit 1, fn ->
       exit 2
     end
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Expected exit 1, got 2" = error.message
   end
 
@@ -303,13 +305,13 @@ defmodule ExUnit::AssertionsTest do
 
   test :flunk do
     "This should never be tested" = flunk
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "Epic Fail!" = error.message
   end
 
   test :flunk_with_message do
     "This should never be tested" = flunk "This should raise an error"
-  rescue: error in [ExUnit::AssertionError]
+  rescue: error in [ExUnit.AssertionError]
     "This should raise an error" = error.message
   end
 end

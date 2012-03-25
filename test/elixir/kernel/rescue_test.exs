@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Kernel::RescueTest do
-  use ExUnit::Case
+defmodule Kernel.RescueTest do
+  use ExUnit.Case
 
   test :rescue_with_underscore_no_exception do
     result = try do
@@ -114,7 +114,7 @@ defmodule Kernel::RescueTest do
       x.message
     end
 
-    assert_equal "undefined function: ::DoNotExist.for_sure/0", result
+    assert_equal "undefined function: DoNotExist.for_sure/0", result
   end
 
   test :function_clause_error do
@@ -124,7 +124,7 @@ defmodule Kernel::RescueTest do
       x.message
     end
 
-    assert_equal "no function clause matching: ::Kernel::RescueTest.zero(1)", result
+    assert_equal "no function clause matching: Kernel.RescueTest.zero(1)", result
   end
 
   test :badarg_error do
@@ -213,7 +213,7 @@ defmodule Kernel::RescueTest do
       x.message
     end
 
-    assert_equal "undefined function: ::DoNotExist.for_sure/0", result
+    assert_equal "undefined function: DoNotExist.for_sure/0", result
   end
 
   test :undefined_function_error_as_erlang_error do
@@ -223,7 +223,7 @@ defmodule Kernel::RescueTest do
       x.message
     end
 
-    assert_equal "undefined function: ::DoNotExist.for_sure/0", result
+    assert_equal "undefined function: DoNotExist.for_sure/0", result
   end
 
   defp zero(0), do: 0

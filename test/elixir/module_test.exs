@@ -1,6 +1,6 @@
 Code.require_file "../test_helper", __FILE__
 
-defmodule ModuleTest::ToBeUsed do
+defmodule ModuleTest.ToBeUsed do
   def value, do: 1
 
   defmacro __using__(target, _) do
@@ -26,19 +26,19 @@ defmodule ModuleTest::ToBeUsed do
   end
 end
 
-defmodule ModuleTest::ToUse do
+defmodule ModuleTest.ToUse do
   30 = __LINE__ # Moving the next line around can make tests fail
   def original_value(2), do: true
-  use ModuleTest::ToBeUsed
+  use ModuleTest.ToBeUsed
 end
 
-defmodule ModuleTest::DuplicateAttribute do
+defmodule ModuleTest.DuplicateAttribute do
   Module.add_attribute __MODULE__, :foo, 1
   Module.add_attribute __MODULE__, :foo, 2
   Module.add_attribute __MODULE__, :foo, 3
 end
 
-defmodule ModuleTest::DefinedFunctions do
+defmodule ModuleTest.DefinedFunctions do
   def foo(1,2,3), do: 4
   @defined_functions Module.defined_functions __MODULE__
   @defined_def  Module.defined_functions __MODULE__, :def
@@ -46,7 +46,7 @@ defmodule ModuleTest::DefinedFunctions do
 end
 
 defmodule ModuleTest do
-  use ExUnit::Case
+  use ExUnit.Case
 
   Module.register_attribute __MODULE__, :register_example
   @register_example :it_works
@@ -72,15 +72,15 @@ defmodule ModuleTest do
   nil = __FUNCTION__
 
   test :eval_quoted do
-    assert_equal { ::ModuleTest, "sample.ex", 13 }, eval_quoted_info()
+    assert_equal { ModuleTest, "sample.ex", 13 }, eval_quoted_info()
   end
 
   test :line_from_macro do
-    assert_equal 32, ModuleTest::ToUse.line
+    assert_equal 32, ModuleTest.ToUse.line
   end
 
   test :__MODULE__ do
-    assert_equal :"::ModuleTest", __MODULE__
+    assert_equal :"__MAIN__.ModuleTest", __MODULE__
   end
 
   test :merge_data do
@@ -88,17 +88,17 @@ defmodule ModuleTest do
   end
 
   test :compile_callback_hook do
-    refute ModuleTest::ToUse.original_value(1)
-    assert ModuleTest::ToUse.original_value(2)
-    assert Orddict.get ModuleTest::ToUse.__info__(:data), :has_callback, false
+    refute ModuleTest.ToUse.original_value(1)
+    assert ModuleTest.ToUse.original_value(2)
+    assert Orddict.get ModuleTest.ToUse.__info__(:data), :has_callback, false
   end
 
   test :default_compile_callback_hook do
-    assert Orddict.get ModuleTest::ToUse.__info__(:data), :compiling, false
+    assert Orddict.get ModuleTest.ToUse.__info__(:data), :compiling, false
   end
 
   test :reserved_attributes do
-    assert_equal {:behavior,[:gen_server]}, :lists.keyfind(:behavior, 1, Elixir::Server.__info__(:attributes))
+    assert_equal {:behavior,[:gen_server]}, :lists.keyfind(:behavior, 1, Elixir.Server.__info__(:attributes))
   end
 
   test :registered_attributes do
@@ -107,7 +107,7 @@ defmodule ModuleTest do
   end
 
   test :duplicated_attributes do
-    [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest::DuplicateAttribute.__info__(:attributes)
+    [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest.DuplicateAttribute.__info__(:attributes)
   end
 
   test :__FUNCTION__ do
@@ -120,8 +120,8 @@ defmodule ModuleTest do
   end
 
   test :defined_functions do
-    assert_equal [{:foo, 3}], Orddict.get(ModuleTest::DefinedFunctions.__info__(:data), :defined_functions)
-    assert_equal [{:foo, 3}], Orddict.get(ModuleTest::DefinedFunctions.__info__(:data), :defined_def)
-    assert_equal [], Orddict.get(ModuleTest::DefinedFunctions.__info__(:data), :defined_defp)
+    assert_equal [{:foo, 3}], Orddict.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_functions)
+    assert_equal [{:foo, 3}], Orddict.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_def)
+    assert_equal [], Orddict.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_defp)
   end
 end

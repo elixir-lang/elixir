@@ -5,7 +5,7 @@
 /test/tmp
 /test/elixir/tmp
 /ebin/*
-/exbin/*.beam
+/exbin/*
 /src/*rl.old
 /.eunit/*
 /deps/*

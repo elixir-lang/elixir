@@ -1,17 +1,17 @@
-import Elixir::Builtin, except: [raise: 1, raise: 2]
+import Elixir.Builtin, except: [raise: 1, raise: 2]
 
-defmodule Elixir::Builtin do
+defmodule Elixir.Builtin do
   @moduledoc """
-  `Elixir::Builtin` provides the default macros and functions
+  `Elixir.Builtin` provides the default macros and functions
   Elixir imports to your environment. Those macros and functions
   can be skipped or cherry-picked via the import function. For
   instance, if you want to tell Elixir to not import the `case`
   macro, you can do:
 
-      import Elixir::Builtin, except: [case: 2]
+      import Elixir.Builtin, except: [case: 2]
 
   Elixir also has special forms that are always imported and
-  cannot be skipped. These are described in `Elixir::SpecialForms`.
+  cannot be skipped. These are described in `Elixir.SpecialForms`.
   """
 
   @doc """
@@ -25,29 +25,6 @@ defmodule Elixir::Builtin do
 
       Foo.bar #=> :baz
 
-  ## Automatic aliases
-
-  When defining modules, Elixir automatically sets up aliases
-  for the defined module:
-
-      defmodule MyNamespace::Foo do
-        def value, do: 1
-      end
-
-      Foo.value #=> 1
-
-  In the example above, Elixir automatically aliased `MyNamespace::Foo`
-  to `Foo` in that lexical context. You can change or turn off the
-  aliasing via the `:as` option:
-
-      defmodule MyNamespace::Foo, as: Bar do
-        def value, do: 1
-      end
-
-      Bar.value #=> 1
-
-  Read about `require/2` below for more information.
-
   ## Nesting
 
   Nesting a module inside the other does not affect its name:
@@ -58,7 +35,7 @@ defmodule Elixir::Builtin do
       end
 
   In the example above, two modules `Foo` and `Bar`. Notice that
-  the second module is **not** called `Foo::Bar`. In general,
+  the second module is **not** called `Foo.Bar`. In general,
   nesting modules is discouraged in Elixir.
 
   ## Dynamic names
@@ -221,7 +198,7 @@ defmodule Elixir::Builtin do
   the record module name. This can be noticed if we print the record:
 
       IO.puts FileInfo.new
-      { ::FileInfo, nil, nil }
+      { FileInfo, nil, nil }
 
   ## Default based functions
 
@@ -393,15 +370,15 @@ defmodule Elixir::Builtin do
   The real benefit of protocols comes when mixed with records. For instance,
   imagine we have a module called `RedBlack` that provides an API to create
   and manipulate Red-Black trees. This module represents such trees via a
-  record named `RedBlack::Tree` and we want this tree to be considered blank
+  record named `RedBlack.Tree` and we want this tree to be considered blank
   in case it has no items. To achieve this, the developer just needs to
-  implement the protocol for `RedBlack::Tree`:
+  implement the protocol for `RedBlack.Tree`:
 
-      defimpl Blank, for: RedBlack::Tree do
+      defimpl Blank, for: RedBlack.Tree do
         def blank?(tree), do: RedBlack.empty?(tree)
       end
 
-  In the example above, we have implemented `blank?` for `RedBlack::Tree`
+  In the example above, we have implemented `blank?` for `RedBlack.Tree`
   that simply delegates to `RedBlack.empty?` passing the tree as argument.
   This implementation doesn't need to be defined inside the `RedBlack`
   tree or inside the record, but anywhere in the code.
@@ -462,7 +439,7 @@ defmodule Elixir::Builtin do
   == Examples
 
       defmodule AssertionTest do
-        use ExUnit::Case
+        use ExUnit.Case
 
         def test_always_pass do
           true = true
@@ -470,12 +447,12 @@ defmodule Elixir::Builtin do
       end
 
   By calling `use`, a hook called `__using__` will be invoked in
-  `ExUnit::Case` which will then do the proper setup. In other words,
+  `ExUnit.Case` which will then do the proper setup. In other words,
   `use` is simply a translation to:
 
       defmodule AssertionTest do
-        require ExUnit::Case, as: false
-        ExUnit::Case.__using__(::AssertionTest)
+        require ExUnit.Case
+        ExUnit.Case.__using__(AssertionTest)
 
         def test_always_pass do
           true = true
@@ -486,7 +463,7 @@ defmodule Elixir::Builtin do
   defmacro use(module, args // [])
 
   @doc """
-  Inspect the given arguments according to the String::Inspect protocol.
+  Inspect the given arguments according to the String.Inspect protocol.
 
   ## Examples
 
@@ -495,11 +472,11 @@ defmodule Elixir::Builtin do
 
   """
   defmacro inspect(arg) do
-    quote do: ::String::Inspect.inspect(unquote(arg))
+    quote do: __MAIN__.String.Inspect.inspect(unquote(arg))
   end
 
   @doc """
-  Convert the argument to a string according to the String::Inspect protocol.
+  Convert the argument to a string according to the String.Inspect protocol.
   This is the function invoked when there is string interpolation.
 
   ## Examples
@@ -509,11 +486,11 @@ defmodule Elixir::Builtin do
 
   """
   defmacro to_binary(arg) do
-    quote do: ::String::Chars.to_binary(unquote(arg))
+    quote do: __MAIN__.String.Chars.to_binary(unquote(arg))
   end
 
   @doc """
-  Convert the argument to a list according to the List::Chars protocol.
+  Convert the argument to a list according to the List.Chars protocol.
 
   ## Examples
 
@@ -522,7 +499,7 @@ defmodule Elixir::Builtin do
 
   """
   defmacro to_char_list(arg) do
-    quote do: ::List::Chars.to_char_list(unquote(arg))
+    quote do: __MAIN__.List.Chars.to_char_list(unquote(arg))
   end
 
   @doc """

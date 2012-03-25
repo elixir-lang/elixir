@@ -1,6 +1,6 @@
-defexception ExUnit::AssertionError, message: "assertion failed"
+defexception ExUnit.AssertionError, message: "assertion failed"
 
-defmodule ExUnit::Assertions do
+defmodule ExUnit.Assertions do
   @doc """
   Asserts the `expected` value matches `received`. Differently
   from `assert_equal`, `assert_match` uses underscore and
@@ -18,7 +18,7 @@ defmodule ExUnit::Assertions do
         unquote(expected) = unquote(received)
         true
       rescue: x in [MatchError]
-        raise ExUnit::AssertionError, message: x.message
+        raise ExUnit.AssertionError, message: x.message
       end
     end
   end
@@ -81,16 +81,16 @@ defmodule ExUnit::Assertions do
   """
   def assert_raises(exception, function) do
     function.()
-    flunk "Expected #{exception} exception but nothing was raised"
+    flunk "Expected #{inspect exception} exception but nothing was raised"
   rescue: error in [exception]
     error
   rescue: error
     name = error.__record__(:name)
 
-    if name == ExUnit::AssertionError do
+    if name == ExUnit.AssertionError do
       raise(error)
     else:
-      flunk "Expected exception #{exception}, got #{name}"
+      flunk "Expected exception #{inspect exception}, got #{inspect name}"
     end
   end
 
@@ -371,7 +371,7 @@ defmodule ExUnit::Assertions do
 
   def assert(expected, message) when is_binary(message) do
     unless expected, do:
-      raise ExUnit::AssertionError, message: message
+      raise ExUnit.AssertionError, message: message
     true
   end
 end

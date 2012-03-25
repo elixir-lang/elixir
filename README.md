@@ -19,7 +19,7 @@ But if you just want to try it out, clone this repository to your machine, compi
     $ make test
 
     $ bin/elixir -v
-    Elixir 0.4.0.dev
+    Elixir 0.9.0.dev
 
 If tests pass, you are ready to move on to the [Getting Started guide][1] or to try Interactive Elixir by running: `bin/iex` in your terminal.
 

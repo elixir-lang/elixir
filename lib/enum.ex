@@ -1,9 +1,11 @@
-defprotocol Enum::Iterator, [iterator(collection)], only: [List, Record], as: I
+defprotocol Enum.Iterator, [iterator(collection)], only: [List, Record]
 
 defmodule Enum do
+  require Enum.Iterator, as: I
+
   @moduledoc """
   Evalutes the items in the given collection according to the
-  Enum::Iterator protocol. Most functions in this module
+  Enum.Iterator protocol. Most functions in this module
   will automatically retrieve the protocol given the collection
   and iterator, for example:
 
@@ -18,13 +20,13 @@ defmodule Enum do
   ## The protocol
 
   When `Enum.map` is invoked without the iterator function,
-  it invokes `Enum::Iterator.iterator(collection)` with the
+  it invokes `Enum.Iterator.iterator(collection)` with the
   given collection in order to retrieve the default iterator
   for that collection. You can implement the protocol for any
   data type you wish. Elixir ships with a default iterator
   for lists, implemented as follow:
 
-      defimpl Enum::Iterator, for: List do
+      defimpl Enum.Iterator, for: List do
         def iterator(list), do: { iterate(&1), iterate(list) }
 
         defp iterate([h|t]) do
@@ -730,7 +732,7 @@ defmodule Enum do
   end
 end
 
-defimpl Enum::Iterator, for: List do
+defimpl Enum.Iterator, for: List do
   def iterator(list), do: { iterate(&1), iterate(list) }
 
   defp iterate([h|t]) do

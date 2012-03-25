@@ -17,7 +17,9 @@ file(Relative, #elixir_compile{} = C) ->
       Error -> erlang:error(Error)
     end,
 
-    eval(Contents, 1, Filename, list_to_atom(filename_to_module(Filename)), C),
+    Forms = elixir_translator:forms(Contents, 1, Filename),
+    eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename,compile=C}),
+
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
@@ -38,17 +40,14 @@ file_to_path(File, Path, Opts) ->
 
 %% Evaluates the contents/forms by compiling them to an Erlang module.
 
-eval(String, Line, Filename, Module, C) ->
-  Forms = elixir_translator:forms(String, Line, Filename),
-  eval_forms(Forms, Line, Module, #elixir_scope{filename=Filename,compile=C}).
-
 eval_forms(Forms, Line, Module, #elixir_scope{module=[]} = S) ->
   eval_forms(Forms, Line, Module, nil, S);
 
 eval_forms(Forms, Line, Module, #elixir_scope{module=Value} = S) ->
   eval_forms(Forms, Line, Module, Value, S).
 
-eval_forms(Forms, Line, Module, Value, S) ->
+eval_forms(Forms, Line, RawModule, Value, S) ->
+  Module = escape_module(RawModule),
   { Exprs, FS } = elixir_translator:translate(Forms, S),
   ModuleForm = module_form(Exprs, Line, S#elixir_scope.filename, Module),
   { module(ModuleForm, S, fun(Mod, _) ->
@@ -83,11 +82,12 @@ module(Forms, Filename, Options, Callback) ->
 
 %% Compile core files for bootstrap.
 %% Invoked from the Makefile.
+
 core() ->
   [core_file(File) || File <- core_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
   Files = lists:append(AllLists) -- core_main(),
-  [core_file(File) || File <- '::List':uniq(Files)].
+  [core_file(File) || File <- '__MAIN__.List':uniq(Files)].
 
 %% HELPERS
 
@@ -250,18 +250,48 @@ module_form(Exprs, Line, Filename, Module) ->
     ] }
   ].
 
-filename_to_module([H|T]) when H >= $A, H =< $Z; H >= $a, H =< $z; H >= $0, H =< $9 ->
-  [H|filename_to_module(T)];
+%% Escape the module name, removing slashes, dots,
+%% so it can be loaded by Erlang.
 
-filename_to_module([_|T]) ->
-  [$_|filename_to_module(T)];
+escape_module(Module) when is_atom(Module) ->
+  escape_module(atom_to_list(Module));
 
-filename_to_module([]) -> [].
+escape_module(Module) when is_list(Module) ->
+  list_to_atom(escape_each(Module)).
+
+escape_each([H|T]) when H >= $A, H =< $Z; H >= $a, H =< $z; H >= $0, H =< $9 ->
+  [H|escape_each(T)];
+
+escape_each([_|T]) ->
+  [$_|escape_each(T)];
+
+escape_each([]) -> [].
+
+%% Receives a module Binary and outputs it in the given path.
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->
-  Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
+  Path = make_dir(CompilePath, atom_to_list(ModuleName), []),
   ok = file:write_file(Path, Binary),
-  CompilePath.
+  Path.
+
+%% Loops through a module name creating the directories
+%% in the destination. Returns the final filename with .beam.
+
+make_dir(Current, [$.|T], Buffer) ->
+  NewCurrent = filename:join(Current, lists:reverse(Buffer)),
+  case file:make_dir(NewCurrent) of
+    { error, eexist } -> [];
+    ok -> []
+  end,
+  make_dir(NewCurrent, T, []);
+
+make_dir(Current, [H|T], Buffer) ->
+  make_dir(Current, T, [H|Buffer]);
+
+make_dir(Current, [], Buffer) ->
+  filename:join(Current, lists:reverse(Buffer) ++ ".beam").
+
+%% CORE FILES COMPILATION
 
 core_file(File) ->
   io:format("Compiling ~s~n", [File]),

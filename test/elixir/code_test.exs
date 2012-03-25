@@ -1,10 +1,10 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule CodeTest do
-  use ExUnit::Case
+  use ExUnit.Case
 
   contents = quote do
-    defmodule CodeTest::Sample do
+    defmodule CodeTest.Sample do
       def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ }
     end
   end
@@ -12,7 +12,7 @@ defmodule CodeTest do
   Code.eval_quoted contents, [], "sample.ex", 13
 
   test :eval_quoted do
-    assert_equal { ::CodeTest::Sample, "sample.ex", 13 }, CodeTest::Sample.eval_quoted_info()
+    assert_equal { CodeTest.Sample, "sample.ex", 13 }, CodeTest.Sample.eval_quoted_info()
   end
 
   test :require do

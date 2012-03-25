@@ -1,9 +1,9 @@
-import ::Elixir::Builtin, except: [to_binary: 1]
+import Elixir.Builtin, except: [to_binary: 1]
 
-defprotocol String::Chars, [to_binary(thing)],
+defprotocol String.Chars, [to_binary(thing)],
   only: [BitString, List, Number, Atom, Record]
 
-defimpl String::Chars, for: Atom do
+defimpl String.Chars, for: Atom do
   def to_binary(nil) do
     ""
   end
@@ -13,19 +13,19 @@ defimpl String::Chars, for: Atom do
   end
 end
 
-defimpl String::Chars, for: BitString do
+defimpl String.Chars, for: BitString do
   def to_binary(thing) when is_binary(thing) do
     thing
   end
 end
 
-defimpl String::Chars, for: List do
+defimpl String.Chars, for: List do
   def to_binary(thing) do
     iolist_to_binary(thing)
   end
 end
 
-defimpl String::Chars, for: Number do
+defimpl String.Chars, for: Number do
   def to_binary(thing) when is_integer(thing) do
     list_to_binary integer_to_list(thing)
   end

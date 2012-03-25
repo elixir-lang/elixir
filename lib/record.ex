@@ -7,18 +7,17 @@ defmodule Record do
   #     defrecord FileInfo, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
   #
   def extract(name, opts) do
-    Record::Extractor.retrieve(name, opts)
+    Record.Extractor.retrieve(name, opts)
   end
 
   # Main entry point for records definition.
-  # This is invoked directly by Elixir::Builtin.defrecord.
+  # This is invoked directly by Elixir.Builtin.defrecord.
   def defrecord(name, values, opts) do
     block      = Orddict.get(opts, :do)
-    as         = Orddict.get(opts, :as, true)
-    definition = Orddict.get(opts, :definition, Record::Definition)
+    definition = Orddict.get(opts, :definition, Record.Definition)
 
     quote do
-      defmodule unquote(name), as: unquote(as) do
+      defmodule unquote(name) do
         Record.define_functions(__MODULE__, unquote(values), unquote(definition))
         unquote(block)
       end
@@ -43,7 +42,7 @@ defmodule Record do
   #
   #     defrecord FileInfo, atime: nil, mtime: nil
   #
-  #     FileInfo.__record__(:name)   #=> ::FileInfo
+  #     FileInfo.__record__(:name)   #=> FileInfo
   #     FileInfo.__record__(:fields) #=> [atime: nil, mtime: nil]
   #
   defp reflection(name, values) do
@@ -80,7 +79,7 @@ defmodule Record do
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
     selective = Enum.map values, fn({k,v}) ->
-      quote do: ::Orddict.get(opts, unquote(k), unquote(v))
+      quote do: Orddict.get(opts, unquote(k), unquote(v))
     end
 
     quote do
@@ -131,7 +130,7 @@ end
 
 # Module responsible for extracting record definitions
 # from Erlang files.
-defmodule Record::Extractor do
+defmodule Record.Extractor do
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include* attribute from Erlang modules.
   def retrieve(name, from: string) do
@@ -210,7 +209,7 @@ defmodule Record::Extractor do
 end
 
 # Module responsible for defining functions for each field.
-defmodule Record::Definition do
+defmodule Record.Definition do
   # Main entry point. It defines both default functions
   # via `default_for` and extensions via `extension_for`.
   def functions_for(key, default, i) do

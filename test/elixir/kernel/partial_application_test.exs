@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Kernel::PartialApplicationTest do
-  use ExUnit::Case
+defmodule Kernel.PartialApplicationTest do
+  use ExUnit.Case
 
   test :partial_with_simple_call_and_one_item do
     fun = minus(10, &1)
@@ -60,11 +60,6 @@ defmodule Kernel::PartialApplicationTest do
 
   test :partial_application_for_operator do
     assert_equal [2,4,6], Enum.map [1,2,3], &1 * 2
-  end
-
-  test :partial_application_for_const_op do
-    fun = Foo::&1
-    assert_equal ::Foo::Bar, fun.(Bar)
   end
 
   defp minus(x, y) do

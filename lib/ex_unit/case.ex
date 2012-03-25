@@ -1,14 +1,14 @@
-defmodule ExUnit::Case do
+defmodule ExUnit.Case do
   defmacro __using__(module, opts // []) do
     if Orddict.get(opts, :sync, false) do
-      ExUnit::Server.add_sync_case(module)
+      ExUnit.Server.add_sync_case(module)
     else:
-      ExUnit::Server.add_case(module)
+      ExUnit.Server.add_case(module)
     end
 
     quote do
-      import ExUnit::Assertions
-      import ExUnit::Case
+      import ExUnit.Assertions
+      import ExUnit.Case
 
       @overridable true
       def setup_all, do: :ok

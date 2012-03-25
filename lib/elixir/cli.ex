@@ -1,13 +1,13 @@
-defrecord Elixir::CLI::Config, commands: [], close: [],
+defrecord Elixir.CLI.Config, commands: [], close: [],
   output: '.', compile: false, stop: true, compile_options: []
 
-defmodule Elixir::CLI do
+defmodule Elixir.CLI do
   import Exception, only: [format_stacktrace: 1]
 
   # Invoked directly from erlang boot process. It parses all argv
   # options and execute them in the order they are specified.
   def process_argv(options) do
-    { config, argv } = process_options(options, Elixir::CLI::Config.new)
+    { config, argv } = process_options(options, Elixir.CLI.Config.new)
     Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
 
     if config.compile do
@@ -25,7 +25,7 @@ defmodule Elixir::CLI do
     rescue: exception
       at_exit(1)
       stacktrace = Code.stacktrace
-      IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
+      IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
       print_stacktrace(stacktrace)
       stop(1)
     catch: :exit, reason when is_integer(reason)
@@ -52,7 +52,7 @@ defmodule Elixir::CLI do
       try do
         hook.(status)
       rescue: exception
-        IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
+        IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
         print_stacktrace(Code.stacktrace)
       catch: kind, reason
         IO.puts :standard_error, "** #{kind} #{inspect(reason)}"

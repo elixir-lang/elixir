@@ -1,4 +1,4 @@
-defmodule EEx::Engine do
+defmodule EEx.Engine do
   @moduledoc """
   This is the basic EEx engine that ships with Elixir.
   An engine needs to implement two functions:

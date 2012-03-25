@@ -83,13 +83,13 @@ store(Module, Function, GenerateName) ->
 %% Store pending declarations that were not manually made concrete.
 
 store_pending(Module) ->
-  [store(Module, X, false) || { X, [_|_] } <- overridable(Module), not '::Module':'function_defined?'(Module, X)].
+  [store(Module, X, false) || { X, [_|_] } <- overridable(Module), not '__MAIN__.Module':'function_defined?'(Module, X)].
 
 %% Error handling
 
 format_error({ no_super, Module, { Name, Arity } }) ->
   Bins   = [ format_fa(X) || { X, [_|_] } <- overridable(Module)],
-  Joined = '::Enum':join(Bins, <<", ">>),
+  Joined = '__MAIN__.Enum':join(Bins, <<", ">>),
   io_lib:format("no super defined for ~s/~B in module ~p. Overridable functions available are: ~s", [Name, Arity, Module, Joined]).
 
 format_fa({ Name, Arity }) ->

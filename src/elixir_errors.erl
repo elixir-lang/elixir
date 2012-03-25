@@ -13,16 +13,16 @@ syntax_error(Line, Filename, Message) when is_list(Message) ->
   syntax_error(Line, Filename, iolist_to_binary(Message));
 
 syntax_error(Line, Filename, Message) when is_binary(Message) ->
-  raise(Line, Filename, '::SyntaxError', Message).
+  raise(Line, Filename, '__MAIN__.SyntaxError', Message).
 
 syntax_error(Line, Filename, Format, Args)  ->
   Message = io_lib:format(Format, Args),
-  raise(Line, Filename, '::SyntaxError', iolist_to_binary(Message)).
+  raise(Line, Filename, '__MAIN__.SyntaxError', iolist_to_binary(Message)).
 
 %% Raised on tokenizing/parsing
 
 parse_error(Line, Filename, _Error, []) ->
-  raise(Line, Filename, '::TokenMissingError', <<"syntax error: expression is incomplete">>);
+  raise(Line, Filename, '__MAIN__.TokenMissingError', <<"syntax error: expression is incomplete">>);
 
 parse_error(Line, Filename, Error, Token) ->
   BinError = if
@@ -36,13 +36,13 @@ parse_error(Line, Filename, Error, Token) ->
   end,
 
   Message = <<BinError / binary, BinToken / binary >>,
-  raise(Line, Filename, '::SyntaxError', Message).
+  raise(Line, Filename, '__MAIN__.SyntaxError', Message).
 
 %% Raised during compilation
 
 form_error(Line, Filename, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),
-  raise(Line, Filename, '::CompileError', Message).
+  raise(Line, Filename, '__MAIN__.CompileError', Message).
 
 %% Handle warnings and errors (called during module compilation)
 

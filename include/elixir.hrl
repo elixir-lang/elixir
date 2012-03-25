@@ -1,6 +1,8 @@
--define(ELIXIR_WRAP_CALL(Line, Module, Method, Args),
+-define(ELIXIR_WRAP_CALL(Line, Module, Function, Args),
   { call, Line,
-    { remote, Line, { atom, Line, Module }, { atom, Line, Method} },
+    { remote, Line,
+      { record_field, 1, { atom, 1, '' }, { atom, Line, Module } },
+      { atom, Line, Function } },
     Args
   }).
 
@@ -32,7 +34,8 @@
   quote_vars=dict:new(),                         %% a dict of all quoted variables
   counter=0,                                     %% a counter for the variables defined
   filename="nofile",                             %% the current scope filename
-  refer=elixir_dispatch:default_refer(),         %% an orddict with references by new -> old names
+  refer=[],                                      %% an orddict with references by new -> old names
+  requires=elixir_dispatch:default_requires(),   %% a set with modules required
   macros=elixir_dispatch:default_macros(),       %% a list with macros imported by module
   functions=elixir_dispatch:default_functions(), %% a list with functions imported by module
   scheduled=[]}).                                %% scheduled modules to be loaded
