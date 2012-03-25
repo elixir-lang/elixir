@@ -401,7 +401,7 @@ translate_each({{'.', _, [{'__LOCAL__', _, Atom}, Name]}, Line, Args} = Original
 
 %% Dot calls
 
-translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) ->
+translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom(Right) ->
   case handle_partials(Line, Original, S) of
     error ->
       { TLeft,  SL } = translate_each(Left, S),
@@ -424,6 +424,19 @@ translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) ->
       end;
     Else -> Else
   end;
+
+translate_each({{'.', _, [Left, Right]}, Line, _Args}, S) ->
+  { TLeft, LS } = translate_each(Left, S),
+  { TRight, RS } = translate_each(Right, (umergec(S, LS))#elixir_scope{noref=true}),
+  TArgs = [TLeft, TRight],
+  Atoms = [Atom || { atom, _, Atom } <- TArgs],
+  Final = case length(Atoms) == length(TArgs) of
+    true  -> { atom, Line, elixir_ref:concat(Atoms) };
+    false ->
+      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
+      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
+  end,
+  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
 
 %% Anonymous function calls
 

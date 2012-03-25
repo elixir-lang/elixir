@@ -109,6 +109,12 @@ do_end_test() ->
   end,
   test_helper:run_and_remove(F, ['::Foo', '::Bar']).
 
+dot_ref_test() ->
+  { '::Foo::Bar::Baz', _ } = eval("Foo.Bar.Baz").
+
+dot_dyn_ref_test() ->
+  { '::Foo::Bar::Baz', _ } = eval("a = Foo.Bar; a.Baz").
+
 single_ref_test() ->
   { '::Foo', _ } = eval("Foo"),
   { '::Foo', _ } = eval("::Foo").

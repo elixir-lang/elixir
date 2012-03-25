@@ -18,7 +18,7 @@ Nonterminals
   kv_comma base_orddict
   matched_kv_comma matched_base_orddict
   do_eol end_eol kv_item kv_list do_block stab_eol stab_block
-  dot_op dot_identifier dot_do_identifier
+  dot_op dot_identifier dot_do_identifier dot_ref
   dot_paren_identifier dot_punctuated_identifier parens_call
   var list bit_string tuple
   .
@@ -144,6 +144,7 @@ call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', nil).
+call_expr -> dot_ref : build_identifier('$1', nil).
 call_expr -> max_expr : '$1'.
 
 max_expr -> base_expr : '$1'.
@@ -278,6 +279,8 @@ dot_op -> '.' eol : '$1'.
 
 dot_identifier -> identifier : '$1'.
 dot_identifier -> matched_expr dot_op identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+
+dot_ref -> matched_expr dot_op '__ref__' : { '.', ?line('$2'), ['$1', '$3'] }.
 
 dot_do_identifier -> do_identifier : '$1'.
 dot_do_identifier -> matched_expr dot_op do_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
