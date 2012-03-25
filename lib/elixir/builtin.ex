@@ -25,29 +25,6 @@ defmodule Elixir.Builtin do
 
       Foo.bar #=> :baz
 
-  ## Automatic aliases
-
-  When defining modules, Elixir automatically sets up aliases
-  for the defined module:
-
-      defmodule MyNamespace.Foo do
-        def value, do: 1
-      end
-
-      Foo.value #=> 1
-
-  In the example above, Elixir automatically aliased `MyNamespace.Foo`
-  to `Foo` in that lexical context. You can change or turn off the
-  aliasing via the `:as` option:
-
-      defmodule MyNamespace.Foo, as: Bar do
-        def value, do: 1
-      end
-
-      Bar.value #=> 1
-
-  Read about `require/2` below for more information.
-
   ## Nesting
 
   Nesting a module inside the other does not affect its name:
@@ -474,7 +451,7 @@ defmodule Elixir.Builtin do
   `use` is simply a translation to:
 
       defmodule AssertionTest do
-        require ExUnit.Case, as: false
+        require ExUnit.Case
         ExUnit.Case.__using__(AssertionTest)
 
         def test_always_pass do

@@ -12,11 +12,10 @@ defmodule Protocol do
   #                          according to the only/except rules
   #
   def defprotocol(name, args, opts) do
-    as = Orddict.get(opts, :as, true)
     kv = to_kv(args)
 
     quote do
-      defmodule unquote(name), as: unquote(as) do
+      defmodule unquote(name) do
         def __protocol__(:name),      do: unquote(name)
         def __protocol__(:functions), do: unquote(kv)
         conversions = Protocol.conversions_for(unquote(opts))

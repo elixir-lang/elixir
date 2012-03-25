@@ -36,9 +36,9 @@ defmodule RecordTest do
   end
 
   test :is_record do
-    assert is_record(FileInfo.new, FileInfo)
-    refute is_record(a_list, FileInfo)
-    refute is_record(FileInfo.new, List)
+    assert is_record(RecordTest.FileInfo.new, RecordTest.FileInfo)
+    refute is_record(a_list, RecordTest.FileInfo)
+    refute is_record(RecordTest.FileInfo.new, List)
   end
 
   defp file_info do

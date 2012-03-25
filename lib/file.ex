@@ -84,9 +84,11 @@ defmodule File do
   Typical error reasons:
 
   * :enoent - The file does not exist.
-  * :eacces - Missing permission for reading the file, or for searching one of the parent directories.
+  * :eacces - Missing permission for reading the file,
+              or for searching one of the parent directories.
   * :eisdir - The named file is a directory.
-  * :enotdir - A component of the file name is not a directory. On some platforms, enoent is returned instead.
+  * :enotdir - A component of the file name is not a directory.
+               On some platforms, enoent is returned instead.
   * :enomem - There is not enough memory for the contents of the file.
 
   You can use `Erlang.file.format_error(reason)` to get a descriptive string of the error.
@@ -96,8 +98,8 @@ defmodule File do
   end
 
   @doc """
-  Returns `binary`, where `binary` is a binary data object that contains the contents
-  of `filename`, or raises a `File.Exception` if an error occurs.
+  Returns binary with the contents of the given filename or raises
+  File.Exception if an error occurs.
   """
   def read!(filename) do
     result = read(filename)
@@ -106,7 +108,7 @@ defmodule File do
     match: { :ok, binary }
       binary
     match: { :error, reason }
-      raise Exception, reason: reason, action: "read file", path: filename
+      raise File.Exception, reason: reason, action: "read file", path: filename
     end
   end
 

@@ -14,11 +14,10 @@ defmodule Record do
   # This is invoked directly by Elixir.Builtin.defrecord.
   def defrecord(name, values, opts) do
     block      = Orddict.get(opts, :do)
-    as         = Orddict.get(opts, :as, true)
     definition = Orddict.get(opts, :definition, Record.Definition)
 
     quote do
-      defmodule unquote(name), as: unquote(as) do
+      defmodule unquote(name) do
         Record.define_functions(__MODULE__, unquote(values), unquote(definition))
         unquote(block)
       end

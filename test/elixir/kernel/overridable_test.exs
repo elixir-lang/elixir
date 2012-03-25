@@ -46,7 +46,6 @@ defmodule Kernel.Overridable do
     x + y
   end
 
-
   def without_super do
     :without_super
   end
@@ -73,6 +72,7 @@ defmodule Kernel.Overridable do
 end
 
 defmodule Kernel.OverridableTest do
+  require Kernel.Overridable, as: Overridable
   use ExUnit.Case
 
   test "overridable is made concrete if no other is defined" do

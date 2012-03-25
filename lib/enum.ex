@@ -1,6 +1,8 @@
-defprotocol Enum.Iterator, [iterator(collection)], only: [List, Record], as: I
+defprotocol Enum.Iterator, [iterator(collection)], only: [List, Record]
 
 defmodule Enum do
+  require Enum.Iterator, as: I
+
   @moduledoc """
   Evalutes the items in the given collection according to the
   Enum.Iterator protocol. Most functions in this module

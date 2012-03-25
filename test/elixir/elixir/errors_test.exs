@@ -113,7 +113,7 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :scheduled_module do
-    assert_equal "nofile:1: module __MAIN__.Hygiene is not loaded but was defined. This may happen because the module is nested inside another module. Try defining the module outside the context that requires it.",
+    assert_equal "nofile:1: module __MAIN__.Hygiene is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
       format_rescue 'defmodule Foo do; defmodule Hygiene do; end; import Hygiene; end'
   end
 

@@ -5,6 +5,7 @@ defmodule Kernel.RequireTest.Nested do
 end
 
 defmodule Kernel.RequireTest do
+  require Kernel.RequireTest.Nested, as: Nested
   use ExUnit.Case
 
   test :require_erlang do
