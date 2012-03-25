@@ -23,11 +23,11 @@ defmodule Elixir.SpecialForms do
   Notice that calling `refer` without the `as:` option automatically
   sets an alias based on the last part of the module. For example:
 
-      refer Foo::Bar::Baz
+      refer Foo.Bar.Baz
 
   Is the same as:
 
-      refer Foo::Bar::Baz, as: Baz
+      refer Foo.Bar.Baz, as: Baz
 
   ## Lexical scope
 
