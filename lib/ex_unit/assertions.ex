@@ -81,7 +81,7 @@ defmodule ExUnit.Assertions do
   """
   def assert_raises(exception, function) do
     function.()
-    flunk "Expected #{exception} exception but nothing was raised"
+    flunk "Expected #{inspect exception} exception but nothing was raised"
   rescue: error in [exception]
     error
   rescue: error
@@ -90,7 +90,7 @@ defmodule ExUnit.Assertions do
     if name == ExUnit.AssertionError do
       raise(error)
     else:
-      flunk "Expected exception #{exception}, got #{name}"
+      flunk "Expected exception #{inspect exception}, got #{inspect name}"
     end
   end
 

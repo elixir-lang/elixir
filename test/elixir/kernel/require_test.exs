@@ -10,8 +10,8 @@ defmodule Kernel.RequireTest do
   test :require_erlang do
     require Erlang.lists, as: MyList
     assert_equal [1,2,3], MyList.flatten([1,[2],3])
-    assert_equal :"MyList.Bar", MyList.Bar
-    assert_equal :"lists.Bar", MyList.Bar
+    assert_equal :"__MAIN__.MyList.Bar", __MAIN__.MyList.Bar
+    assert_equal :"__MAIN__.lists.Bar", MyList.Bar
   end
 
   test :automatic_require do

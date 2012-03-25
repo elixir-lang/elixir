@@ -23,7 +23,7 @@ defmodule String.Chars.AtomTest do
   end
 
   test :reference_atom do
-    assert_equal "Foo.Bar", to_binary(Foo.Bar)
+    assert_equal "__MAIN__.Foo.Bar", to_binary(Foo.Bar)
   end
 end
 

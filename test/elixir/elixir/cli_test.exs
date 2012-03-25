@@ -48,7 +48,7 @@ defmodule Elixir.CLI.CompileTest do
   test :compile_code do
     assert_equal 'Compiling test/elixir/fixtures/compile_sample.exs\n',
       OS.cmd('bin/elixirc test/elixir/fixtures/compile_sample.exs -o test/tmp/')
-    assert File.regular?("test/tmp/CompileSample.beam")
+    assert File.regular?("test/tmp/__MAIN__/CompileSample.beam")
   after:
     Erlang.file.del_dir("test/tmp/")
   end
