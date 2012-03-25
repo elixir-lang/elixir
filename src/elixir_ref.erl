@@ -28,7 +28,7 @@ ensure_loaded(Line, Ref, S, Force) ->
 last(Atom) ->
   list_to_atom(last(lists:reverse(atom_to_list(Atom)), [])).
 
-last([$:,$:|_], Acc) -> [$:,$:|Acc];
+last([$:,$:|_], Acc) -> "__MAIN__::" ++ Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
 last([], Acc) -> Acc.
 

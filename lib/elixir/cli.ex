@@ -52,7 +52,7 @@ defmodule Elixir::CLI do
       try do
         hook.(status)
       rescue: exception
-        IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
+        IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
         print_stacktrace(Code.stacktrace)
       catch: kind, reason
         IO.puts :standard_error, "** #{kind} #{inspect(reason)}"

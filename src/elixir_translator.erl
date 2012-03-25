@@ -121,7 +121,6 @@ translate_each({require, Line, [Ref|T]}, S) ->
       case Raise of
         false -> { { nil, Line }, S };
         true ->
-          io:format("~p~n", [TRef]),
           syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected a reference as argument")
       end
   end;

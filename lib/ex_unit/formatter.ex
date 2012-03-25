@@ -11,7 +11,7 @@ defmodule ExUnit::Formatter do
   end
 
   def init(_args) do
-    { :ok, Config.new }
+    { :ok, ExUnit::Formatter::Config.new }
   end
 
   def handle_call({:each, _test_case, _test, nil }, _from, config) do

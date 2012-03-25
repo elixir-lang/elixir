@@ -14,20 +14,29 @@ defimpl String::Inspect, for: Atom do
 
     if valid_identifier?(list) == [] do
       ":" <> atom_to_binary(atom, :utf8)
-    elsif: valid_const_identifier?(list) == []
-      atom_to_binary(atom, :utf8)
+    elsif: valid_ref_identifier?(list) == []
+      '__MAIN__' ++ rest = list
+      list_to_binary rest
     else:
       list_to_binary [?:, String.escape(list, ?")]
     end
   end
 
-  # Detect if atom is a module reference (::Foo::Bar::Baz)
+  # Detect if atom is a module reference (__MAIN__::Foo::Bar::Baz)
 
-  defp valid_const_identifier?([?:,?:,h|t]) when h >= ?A and h <= ?Z do
-    valid_const_identifier? valid_identifier?(t)
+  defp valid_ref_identifier?('__MAIN__' ++ rest) do
+    valid_ref_piece?(rest)
   end
 
-  defp valid_const_identifier?(else), do: else
+  defp valid_ref_identifier?(rest) do
+    rest
+  end
+
+  defp valid_ref_piece?([?:,?:,h|t]) when h >= ?A and h <= ?Z do
+    valid_ref_piece? valid_identifier?(t)
+  end
+
+  defp valid_ref_piece?(else), do: else
 
   # Detect if atom is :letter_or_underscore
 
@@ -102,7 +111,7 @@ end
 defimpl String::Inspect, for: Tuple do
   def inspect(exception) when is_exception(exception) do
     [name,_|tail] = tuple_to_list(exception)
-    atom_to_binary(name, :utf8) <>
+    String::Inspect::Atom.inspect(name) <>
        String::Inspect::List.container_join(tail, "{", "}")
   end
 
