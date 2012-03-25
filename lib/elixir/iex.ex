@@ -53,7 +53,7 @@ defmodule Elixir.IEx do
         config.cache(code)
       rescue: exception
         stacktrace = Code.stacktrace
-        IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
+        IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
         print_stacktrace stacktrace
         config.cache('')
       catch: kind, error

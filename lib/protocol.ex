@@ -185,10 +185,10 @@ defmodule Protocol do
             target = :lists.concat [__MODULE__, :erlang.element(1, xA)]
             apply list_to_atom(target), unquote(name), args
           rescue: UndefinedFunctionError
-            apply __MODULE__::unquote(fallback), unquote(name), args
+            apply Module.concat(__MODULE__, unquote(fallback)), unquote(name), args
           end
         match: nil
-          raise ::Protocol.UndefinedError, protocol: __MODULE__, structure: xA
+          raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
         match: other
           apply other, unquote(name), args
         end

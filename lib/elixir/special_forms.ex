@@ -78,10 +78,10 @@ defmodule Elixir.SpecialForms do
   automatically replaced by `MyOrddict`.
 
   In case one wants to access the original `Orddict`, it can be done
-  by prefixing the module name with `::`:
+  by accessing __MAIN__:
 
-      Orddict.values   #=> uses ::MyOrddict.values
-      ::Orddict.values #=> uses ::Orddict.values
+      Orddict.values   #=> uses MyOrddict.values
+      __MAIN__.Orddict.values #=> uses Orddict.values
 
   ## Macros example
 
@@ -199,10 +199,10 @@ defmodule Elixir.SpecialForms do
       a # => 11
 
   Notice that references are not hygienic in Elixir unless
-  you explicitly prepend :: to the reference name.
+  you explicitly access it via __MAIN__ to the reference name.
 
       quote do
-        ::Foo # => Access the root Foo
+        __MAIN__.Foo # => Access the root Foo
         Foo   # => Access the Foo reference in the current
                    module (if any is set), then fallback to root
       end

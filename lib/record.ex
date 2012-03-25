@@ -80,7 +80,7 @@ defmodule Record do
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
     selective = Enum.map values, fn({k,v}) ->
-      quote do: ::Orddict.get(opts, unquote(k), unquote(v))
+      quote do: Orddict.get(opts, unquote(k), unquote(v))
     end
 
     quote do

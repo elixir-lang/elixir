@@ -9,32 +9,32 @@ defmodule Kernel.ExceptionTest do
   end
 
   test :format_stacktrace_with_no_file_or_line do
-    assert_equal "::Foo.bar(1, 2, 3)", Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], []})
-    assert_equal "::Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], []})
-    assert_equal "::Foo.bar/1", Exception.format_stacktrace({::Foo, :bar, 1, []})
+    assert_equal "Foo.bar(1, 2, 3)", Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], []})
+    assert_equal "Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], []})
+    assert_equal "Foo.bar/1", Exception.format_stacktrace({::Foo, :bar, 1, []})
   end
 
   test :format_stacktrace_with_file_and_line do
-    assert_equal "file.ex:10: ::Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex', line: 10]})
-    assert_equal "file.ex:10: ::Foo.bar(1, 2, 3)", Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], [file: 'file.ex', line: 10]})
-    assert_equal "file.ex:10: ::Foo.bar/1", Exception.format_stacktrace({::Foo, :bar, 1, [file: 'file.ex', line: 10]})
+    assert_equal "file.ex:10: Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex', line: 10]})
+    assert_equal "file.ex:10: Foo.bar(1, 2, 3)", Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], [file: 'file.ex', line: 10]})
+    assert_equal "file.ex:10: Foo.bar/1", Exception.format_stacktrace({::Foo, :bar, 1, [file: 'file.ex', line: 10]})
   end
 
   test :format_stacktrace_with_file_no_line do
-    assert_equal "file.ex: ::Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex']})
-    assert_equal "file.ex: ::Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex', line: 0]})
-    assert_equal "file.ex: ::Foo.bar(1, 2, 3)", Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], [file: 'file.ex']})
-    assert_equal "file.ex: ::Foo.bar/1", Exception.format_stacktrace({::Foo, :bar, 1, [file: 'file.ex']})
+    assert_equal "file.ex: Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex']})
+    assert_equal "file.ex: Foo.bar()", Exception.format_stacktrace({::Foo, :bar, [], [file: 'file.ex', line: 0]})
+    assert_equal "file.ex: Foo.bar(1, 2, 3)", Exception.format_stacktrace({::Foo, :bar, [1, 2, 3], [file: 'file.ex']})
+    assert_equal "file.ex: Foo.bar/1", Exception.format_stacktrace({::Foo, :bar, 1, [file: 'file.ex']})
   end
 
   test :format_module_function_arity do
-    assert_equal "::Foo.bar/1", Exception.format_module_fun_arity ::Foo, :bar, 1
-    assert_equal "::Foo.bar()", Exception.format_module_fun_arity ::Foo, :bar, []
+    assert_equal "Foo.bar/1", Exception.format_module_fun_arity ::Foo, :bar, 1
+    assert_equal "Foo.bar()", Exception.format_module_fun_arity ::Foo, :bar, []
     assert_equal ":foo.bar(1, 2)", Exception.format_module_fun_arity :foo,  :bar, [1,2]
   end
 
   test :format_module_function_arity_with_special_function_name do
-    assert_equal "::Foo.\"bar baz\"/1", Exception.format_module_fun_arity ::Foo, :"bar baz", 1
+    assert_equal "Foo.\"bar baz\"/1", Exception.format_module_fun_arity ::Foo, :"bar baz", 1
   end
 
   test :runtime_error_message do
@@ -49,15 +49,15 @@ defmodule Kernel.ExceptionTest do
 
   test :undefined_function_message do
     assert_equal "undefined function", UndefinedFunctionError.new.message
-    assert_equal "undefined function: ::Foo.bar/1", UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: 1).message
-    assert_equal "undefined function: ::Foo.bar/0", UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: []).message
+    assert_equal "undefined function: Foo.bar/1", UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: 1).message
+    assert_equal "undefined function: Foo.bar/0", UndefinedFunctionError.new(module: ::Foo, function: :bar, arity: []).message
     assert_equal "undefined function: :foo.bar/0", UndefinedFunctionError.new(module: :foo,  function: :bar, arity: []).message
   end
 
   test :function_clause_message do
     assert_equal "no function clause matches", FunctionClauseError.new.message
-    assert_equal "no function clause matching: ::Foo.bar/1", FunctionClauseError.new(module: ::Foo, function: :bar, arity: 1).message
-    assert_equal "no function clause matching: ::Foo.bar()", FunctionClauseError.new(module: ::Foo, function: :bar, arity: []).message
+    assert_equal "no function clause matching: Foo.bar/1", FunctionClauseError.new(module: ::Foo, function: :bar, arity: 1).message
+    assert_equal "no function clause matching: Foo.bar()", FunctionClauseError.new(module: ::Foo, function: :bar, arity: []).message
     assert_equal "no function clause matching: :foo.bar()", FunctionClauseError.new(module: :foo,  function: :bar, arity: []).message
   end
 

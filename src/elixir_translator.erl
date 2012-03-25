@@ -206,6 +206,9 @@ translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
 translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
   translate_each(list_to_binary(S#elixir_scope.filename), S);
 
+translate_each({'__MAIN__', Line, Atom}, S) when is_atom(Atom) ->
+  { {atom, Line, '__MAIN__' }, S };
+
 %% References
 
 translate_each({'__ref__', Line, [Ref]}, S) when is_atom(Ref) ->

@@ -26,7 +26,7 @@ defmodule Elixir.CLI.ErrorTest do
 
   test :code_error do
     assert_member '** (throw) 1',  OS.cmd('bin/elixir -e "throw 1"')
-    assert_member '** (::ErlangError) erlang error: 1',  OS.cmd('bin/elixir -e "error 1"')
+    assert_member '** (ErlangError) erlang error: 1',  OS.cmd('bin/elixir -e "error 1"')
 
     # It does not catch exits with integers nor strings...
     assert_equal '', OS.cmd('bin/elixir -e "exit 1"')

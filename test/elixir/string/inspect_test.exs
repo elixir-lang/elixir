@@ -23,7 +23,7 @@ defmodule String.Inspect.AtomTest do
   end
 
   test :reference_atom do
-    assert_equal "::Foo.Bar", inspect(::Foo.Bar)
+    assert_equal "Foo.Bar", inspect(Foo.Bar)
   end
 
   test :impl do
@@ -83,7 +83,7 @@ defmodule String.Inspect.TupleTest do
   end
 
   test :exception do
-    assert_equal "::RuntimeError{\"runtime error\"}", inspect(RuntimeError.new)
+    assert_equal "RuntimeError{\"runtime error\"}", inspect(RuntimeError.new)
   end
 
   test :empty do

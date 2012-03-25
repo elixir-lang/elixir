@@ -25,7 +25,7 @@ defmodule Elixir.CLI do
     rescue: exception
       at_exit(1)
       stacktrace = Code.stacktrace
-      IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
+      IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
       print_stacktrace(stacktrace)
       stop(1)
     catch: :exit, reason when is_integer(reason)

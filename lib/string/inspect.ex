@@ -1,4 +1,4 @@
-import ::Elixir.Builtin, except: [inspect: 1]
+import Elixir.Builtin, except: [inspect: 1]
 
 defprotocol String.Inspect, [inspect(thing)],
   only: [BitString, List, Record, Tuple, Atom, Number, Any]
@@ -15,7 +15,7 @@ defimpl String.Inspect, for: Atom do
     if valid_identifier?(list) == [] do
       ":" <> atom_to_binary(atom, :utf8)
     elsif: valid_ref_identifier?(list) == []
-      '__MAIN__' ++ rest = list
+      '__MAIN__.' ++ rest = list
       list_to_binary rest
     else:
       list_to_binary [?:, String.escape(list, ?")]
@@ -32,7 +32,7 @@ defimpl String.Inspect, for: Atom do
     rest
   end
 
-  defp valid_ref_piece?([?:,?:,h|t]) when h >= ?A and h <= ?Z do
+  defp valid_ref_piece?([?.,h|t]) when h >= ?A and h <= ?Z do
     valid_ref_piece? valid_identifier?(t)
   end
 

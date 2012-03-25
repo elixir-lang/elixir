@@ -1,4 +1,4 @@
-import ::Elixir.Builtin, except: [to_binary: 1]
+import Elixir.Builtin, except: [to_binary: 1]
 
 defprotocol String.Chars, [to_binary(thing)],
   only: [BitString, List, Number, Atom, Record]

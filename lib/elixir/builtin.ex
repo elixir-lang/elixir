@@ -221,7 +221,7 @@ defmodule Elixir.Builtin do
   the record module name. This can be noticed if we print the record:
 
       IO.puts FileInfo.new
-      { ::FileInfo, nil, nil }
+      { FileInfo, nil, nil }
 
   ## Default based functions
 
@@ -495,7 +495,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro inspect(arg) do
-    quote do: ::String.Inspect.inspect(unquote(arg))
+    quote do: __MAIN__.String.Inspect.inspect(unquote(arg))
   end
 
   @doc """
@@ -509,7 +509,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro to_binary(arg) do
-    quote do: ::String.Chars.to_binary(unquote(arg))
+    quote do: __MAIN__.String.Chars.to_binary(unquote(arg))
   end
 
   @doc """
@@ -522,7 +522,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro to_char_list(arg) do
-    quote do: ::List.Chars.to_char_list(unquote(arg))
+    quote do: __MAIN__.List.Chars.to_char_list(unquote(arg))
   end
 
   @doc """

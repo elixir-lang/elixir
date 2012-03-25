@@ -37,6 +37,14 @@ defmodule Module do
     { value, binding }
   end
 
+  def concat(list) when is_list(list) do
+    Erlang.elixir_ref.concat(list)
+  end
+
+  def concat(left, right) do
+    Erlang.elixir_ref.concat([left, right])
+  end
+
   @doc """
   Checks if the module is compiled or not.
 
