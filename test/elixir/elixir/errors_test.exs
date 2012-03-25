@@ -78,7 +78,7 @@ defmodule Elixir::ErrorsTest do
   end
 
   test :unrequired_macro do
-    assert_equal "nofile:2: tried to invoke macro ::Elixir::ErrorsTest::UnproperMacro.unproper/1 but module was not required. Required: ['::Elixir::Builtin']",
+    assert_equal "nofile:2: tried to invoke macro ::Elixir::ErrorsTest::UnproperMacro.unproper/1 but module was not required. Required: ['__MAIN__::Elixir::Builtin']",
       format_rescue 'defmodule Foo do\nElixir::ErrorsTest::UnproperMacro.unproper([])\nend'
   end
 

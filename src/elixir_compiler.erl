@@ -87,7 +87,7 @@ core() ->
   [core_file(File) || File <- core_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
   Files = lists:append(AllLists) -- core_main(),
-  [core_file(File) || File <- '::List':uniq(Files)].
+  [core_file(File) || File <- '__MAIN__::List':uniq(Files)].
 
 %% HELPERS
 

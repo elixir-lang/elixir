@@ -37,7 +37,7 @@ vars_if_test() ->
     {1, _} = eval("Bar.bar(false)"),
     {2, _} = eval("Bar.bar(true)")
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__::Bar']).
 
 multi_assigned_if_test() ->
   {3, _} = eval("x = 1\nif true do\nx = 2\nx = 3\nelse: true\nend\nx"),
@@ -94,7 +94,7 @@ vars_case_test() ->
     {1, _} = eval("Bar.bar(false)"),
     {2, _} = eval("Bar.bar(true)")
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__::Bar']).
 
 % Comparison
 
@@ -168,7 +168,7 @@ xor_test() ->
     {false, _} = eval("Bar.bar xor Bar.baz 2"),
     ?assertError(badarg, eval("1 xor 2"))
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__::Bar']).
 
 and_test() ->
   F = fun() ->
@@ -186,7 +186,7 @@ and_test() ->
     {false, _} = eval("Bar.bar and error(:bad)"),
     ?assertError({badarg, 1}, eval("1 and 2"))
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__::Bar']).
 
 or_test() ->
   F = fun() ->
@@ -204,7 +204,7 @@ or_test() ->
     {true, _} = eval("Bar.foo or error(:bad)"),
     ?assertError({badarg, 1}, eval("1 or 2"))
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__::Bar']).
 
 not_test() ->
   {false, _} = eval("not true"),
@@ -233,7 +233,7 @@ andand_test() ->
     {nil, _} = eval("nil && 2"),
     {false, _} = eval("false && false or true")
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__::Bar']).
 
 oror_test() ->
   F = fun() ->
@@ -258,4 +258,4 @@ oror_test() ->
     {2, _} = eval("nil || 2"),
     {true, _} = eval("false && false || true")
   end,
-  test_helper:run_and_remove(F, ['::Bar']).
+  test_helper:run_and_remove(F, ['__MAIN__::Bar']).

@@ -121,6 +121,7 @@ translate_each({require, Line, [Ref|T]}, S) ->
       case Raise of
         false -> { { nil, Line }, S };
         true ->
+          io:format("~p~n", [TRef]),
           syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected a reference as argument")
       end
   end;
@@ -209,7 +210,7 @@ translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
 %% References
 
 translate_each({'__ref__', Line, [Ref]}, S) when is_atom(Ref) ->
-  Atom = list_to_atom("::" ++ atom_to_list(Ref)),
+  Atom = list_to_atom("__MAIN__::" ++ atom_to_list(Ref)),
 
   Final = case S#elixir_scope.noref of
     true  -> Atom;
@@ -410,7 +411,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom
       Callback = fun() -> translate_apply(Line, TLeft, TRight, Args, S, SL, SR) end,
 
       case { TLeft, TRight } of
-        { { atom, _, '::Erlang' }, { atom, _, Atom } } ->
+        { { atom, _, '__MAIN__::Erlang' }, { atom, _, Atom } } ->
           case Args of
             [] -> { { atom, Line, Atom }, S };
             _ ->

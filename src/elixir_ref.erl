@@ -4,7 +4,7 @@
 -include("elixir.hrl").
 
 %% Ensure a reference is loaded before its usage.
-ensure_loaded(_Line, '::Elixir::Builtin', _S, _Force) ->
+ensure_loaded(_Line, '__MAIN__::Elixir::Builtin', _S, _Force) ->
   ok;
 
 ensure_loaded(Line, Ref, S, Force) ->
@@ -35,10 +35,13 @@ last([], Acc) -> Acc.
 %% Receives a list of atoms representing modules
 %% and concatenate them.
 
-concat(Args) -> list_to_atom(lists:concat([concat_(Arg) || Arg <- Args, Arg /= nil])).
+concat(Args) ->
+  Refs = [concat_(Arg) || Arg <- Args, Arg /= nil],
+  list_to_atom(lists:concat(['__MAIN__'|Refs])).
 
 concat_(Arg) ->
   case Ref = atom_to_list(Arg) of
+    "__MAIN__" ++ Rest -> Rest;
     "::" ++ _ -> Ref;
     _ -> "::" ++ Ref
   end.
