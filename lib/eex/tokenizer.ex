@@ -1,4 +1,4 @@
-defmodule EEx::Tokenizer do
+defmodule EEx.Tokenizer do
   @moduledoc false
 
   @doc """
@@ -73,7 +73,7 @@ defmodule EEx::Tokenizer do
   # Raise an error if the %> is not found
 
   defp tokenize_expr([], _line, buffer) do
-    raise EEx::SyntaxError, message: "invalid token: #{inspect List.reverse(buffer)}"
+    raise EEx.SyntaxError, message: "invalid token: #{inspect List.reverse(buffer)}"
   end
 
   # Receive an expression content and check

@@ -9,9 +9,9 @@
 #     # 1) Start ExUnit. You can pass some options as argument (list below)
 #     ExUnit.start
 #
-#     # 2) Next we create a new TestCase and add ExUnit::Case to it
+#     # 2) Next we create a new TestCase and add ExUnit.Case to it
 #     defmodule AssertionTest do
-#       use ExUnit::Case
+#       use ExUnit.Case
 #
 #       # 3) A test is a method which name finishes with _test
 #       def test_always_pass
@@ -28,7 +28,7 @@
 # ## Assertions
 #
 # Most of ExUnit assertions can be done with pattern matching.
-# However, there are a few assertions over ExUnit::Assertions to aid testing.
+# However, there are a few assertions over ExUnit.Assertions to aid testing.
 #
 # ## Options
 #
@@ -39,7 +39,7 @@
 #
 defmodule ExUnit do
   def start(options // []) do
-    ExUnit::Server.start_link
+    ExUnit.Server.start_link
     configure(options)
     Code.at_exit fn(status) ->
       if status == 0, do: ExUnit.run
@@ -47,13 +47,13 @@ defmodule ExUnit do
   end
 
   def configure(options) do
-    ExUnit::Server.merge_options(options)
+    ExUnit.Server.merge_options(options)
   end
 
   def run do
-    config = ExUnit::Runner::Config.new ExUnit::Server.options
+    config = ExUnit.Runner.Config.new ExUnit.Server.options
     config = config.formatter(config.formatter.start)
-    failures = ExUnit::Runner.start config
+    failures = ExUnit.Runner.start config
     if failures > 0, do: halt(1), else: halt(0)
   end
 end

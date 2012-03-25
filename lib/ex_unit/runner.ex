@@ -1,6 +1,6 @@
-defrecord ExUnit::Runner::Config, formatter: ExUnit::Formatter, cases: [], max_cases: 4, taken_cases: 0, sync_cases: []
+defrecord ExUnit.Runner.Config, formatter: ExUnit.Formatter, cases: [], max_cases: 4, taken_cases: 0, sync_cases: []
 
-defmodule ExUnit::Runner do
+defmodule ExUnit.Runner do
   @moduledoc false
 
   # The runner entry point. At first, it will simply spawn async cases

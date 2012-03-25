@@ -1,4 +1,4 @@
-defmodule Elixir::IEx::UnicodeIO do
+defmodule Elixir.IEx.UnicodeIO do
   @moduledoc false
 
   @doc """
@@ -25,14 +25,14 @@ defmodule Elixir::IEx::UnicodeIO do
   end
 end
 
-defrecord Elixir::IEx::Config, io: nil, binding: nil, cache: '', counter: 0, scope: nil
+defrecord Elixir.IEx.Config, io: nil, binding: nil, cache: '', counter: 0, scope: nil
 
-defmodule Elixir::IEx do
+defmodule Elixir.IEx do
   import Exception, only: [format_stacktrace: 1]
 
-  def start(binding // [], io // Elixir::IEx::UnicodeIO) do
+  def start(binding // [], io // Elixir.IEx.UnicodeIO) do
     IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
-    config = Elixir::IEx::Config.new(io: io, binding: binding, scope: Erlang.elixir.scope_for_eval)
+    config = Elixir.IEx.Config.new(io: io, binding: binding, scope: Erlang.elixir.scope_for_eval)
     function = fn -> do_loop(config) end
     Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
   end

@@ -1,8 +1,8 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule EEx::TokenizerTest do
-  use ExUnit::Case
-  require EEx::Tokenizer, as: T
+defmodule EEx.TokenizerTest do
+  use ExUnit.Case
+  require EEx.Tokenizer, as: T
 
   test "simple chars lists" do
     assert_equal [ { :text, 1, "foo" } ], T.tokenize('foo', 1)
@@ -71,7 +71,7 @@ baz %>
   end
 
   test "raise syntax error when there is start mark and no end mark" do
-    assert_raises EEx::SyntaxError, "invalid token: ' :bar'", fn ->
+    assert_raises EEx.SyntaxError, "invalid token: ' :bar'", fn ->
       T.tokenize('foo <% :bar', 1)
     end
   end

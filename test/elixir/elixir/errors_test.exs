@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Elixir::ErrorsTest do
-  use ExUnit::Case
+defmodule Elixir.ErrorsTest do
+  use ExUnit.Case
 
   defmodule __MODULE__ :: UnproperMacro do
     defmacro unproper(args), do: args
@@ -58,28 +58,28 @@ defmodule Elixir::ErrorsTest do
   end
 
   test :unproper_macro do
-    assert_equal "nofile:4: key value blocks not supported by ::Elixir::ErrorsTest::UnproperMacro.unproper/1",
-      format_rescue 'defmodule Foo do\nrequire Elixir::ErrorsTest::UnproperMacro\nElixir::ErrorsTest::UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
+    assert_equal "nofile:4: key value blocks not supported by ::Elixir.ErrorsTest.UnproperMacro.unproper/1",
+      format_rescue 'defmodule Foo do\nrequire Elixir.ErrorsTest.UnproperMacro\nElixir.ErrorsTest.UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
   end
 
   test :macro_conflict do
-    assert_equal "nofile:1: imported ::Elixir::Builtin.defrecord/2 conflicts with local function",
-      format_rescue 'defmodule Foo do\ndefrecord(::Elixir::ErrorsTest::MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
+    assert_equal "nofile:1: imported ::Elixir.Builtin.defrecord/2 conflicts with local function",
+      format_rescue 'defmodule Foo do\ndefrecord(::Elixir.ErrorsTest.MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
   test :erlang_function_conflict do
     assert_equal "nofile:1: function exit/1 already imported from erlang",
-      format_rescue 'defmodule Foo do import Elixir::ErrorsTest::UnproperMacro, only: [exit: 1]\nend'
+      format_rescue 'defmodule Foo do import Elixir.ErrorsTest.UnproperMacro, only: [exit: 1]\nend'
   end
 
   test :import_invalid_macro do
-    assert_equal "nofile:2: cannot import ::Elixir::Builtin.invalid/1 because it doesn't exist",
-      format_rescue 'defmodule Foo do\nimport Elixir::Builtin, only: [invalid: 1]\nend'
+    assert_equal "nofile:2: cannot import ::Elixir.Builtin.invalid/1 because it doesn't exist",
+      format_rescue 'defmodule Foo do\nimport Elixir.Builtin, only: [invalid: 1]\nend'
   end
 
   test :unrequired_macro do
-    assert_equal "nofile:2: tried to invoke macro ::Elixir::ErrorsTest::UnproperMacro.unproper/1 but module was not required. Required: ['__MAIN__::Elixir::Builtin']",
-      format_rescue 'defmodule Foo do\nElixir::ErrorsTest::UnproperMacro.unproper([])\nend'
+    assert_equal "nofile:2: tried to invoke macro ::Elixir.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: ['__MAIN__.Elixir.Builtin']",
+      format_rescue 'defmodule Foo do\nElixir.ErrorsTest.UnproperMacro.unproper([])\nend'
   end
 
   test :def_defmacro_clause_change do
@@ -108,8 +108,8 @@ defmodule Elixir::ErrorsTest do
   end
 
   test :unloaded_module do
-    assert_equal "nofile:1: module ::Certainly::Doesnt::Exist is not loaded, reason: nofile",
-      format_rescue 'import Certainly::Doesnt::Exist'
+    assert_equal "nofile:1: module ::Certainly.Doesnt.Exist is not loaded, reason: nofile",
+      format_rescue 'import Certainly.Doesnt.Exist'
   end
 
   test :scheduled_module do
@@ -158,6 +158,6 @@ defmodule Elixir::ErrorsTest do
       error.message
     end
 
-    result || raise(ExUnit::AssertionError, message: "Expected function given to format_rescue to fail")
+    result || raise(ExUnit.AssertionError, message: "Expected function given to format_rescue to fail")
   end
 end

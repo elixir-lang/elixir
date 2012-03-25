@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule StringTest do
-  use ExUnit::Case
+  use ExUnit.Case
 
   test :double_quoted_heredoc do
     assert_equal 7, __LINE__

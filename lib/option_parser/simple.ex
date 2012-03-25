@@ -1,4 +1,4 @@
-defmodule OptionParser::Simple do
+defmodule OptionParser.Simple do
 
   @doc """
   Parses the argv and returns one Tuple with parsed options
@@ -6,13 +6,13 @@ defmodule OptionParser::Simple do
 
   ## Example
 
-      OptionParser::Simple.parse(['--debug'])
+      OptionParser.Simple.parse(['--debug'])
       #=> { [debug: true], [] }
 
-      OptionParser::Simple.parse(['--source', 'lib'])
+      OptionParser.Simple.parse(['--source', 'lib'])
       #=> { [source: 'lib'], [] }
 
-      OptionParser::Simple.parse(['--source', 'lib', 'test/enum_test.exs'])
+      OptionParser.Simple.parse(['--source', 'lib', 'test/enum_test.exs'])
       #=> { [source: 'lib'], ['test/enum_test.exs'] }
 
   """

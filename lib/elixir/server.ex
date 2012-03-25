@@ -1,14 +1,14 @@
-defrecord Elixir::Server::Config, argv: [], loaded: [], at_exit: []
+defrecord Elixir.Server.Config, argv: [], loaded: [], at_exit: []
 
-defmodule Elixir::Server do
-  use GenServer::Behavior
+defmodule Elixir.Server do
+  use GenServer.Behavior
 
   def start_link do
     { :ok, _ } = Erlang.gen_server.start_link({:local, :elixir_code_server}, __MODULE__, [], [])
   end
 
   def init(_args) do
-    { :ok, Elixir::Server::Config.new }
+    { :ok, Elixir.Server.Config.new }
   end
 
   def handle_call({:loaded, path}, _from, config) do

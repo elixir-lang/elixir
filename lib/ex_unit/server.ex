@@ -1,7 +1,7 @@
-defrecord ExUnit::Server::Config, options: [], cases: [], sync_cases: []
+defrecord ExUnit.Server.Config, options: [], cases: [], sync_cases: []
 
-defmodule ExUnit::Server do
-  use GenServer::Behavior
+defmodule ExUnit.Server do
+  use GenServer.Behavior
 
   def start_link do
     { :ok, _ } = Erlang.gen_server.start_link({:local, :exunit_server}, __MODULE__, [], [])
@@ -26,7 +26,7 @@ defmodule ExUnit::Server do
   ## Callbacks
 
   def init(_args) do
-    { :ok, ExUnit::Server::Config.new }
+    { :ok, ExUnit.Server.Config.new }
   end
 
   def handle_call({:add_case, name}, _from, config) do
@@ -56,7 +56,7 @@ defmodule ExUnit::Server do
     try do
       function.()
     catch: :exit, { :noproc, _ }
-      exit "ExUnit::Server is not running. Are you sure you used exunit from command line?"
+      exit "ExUnit.Server is not running. Are you sure you used exunit from command line?"
     end
   end
 end

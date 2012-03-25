@@ -1,6 +1,6 @@
-defrecord EEx::State, engine: nil, dict: [], filename: nil, line: 0
+defrecord EEx.State, engine: nil, dict: [], filename: nil, line: 0
 
-defmodule EEx::Compiler do
+defmodule EEx.Compiler do
   @moduledoc false
 
   @doc """
@@ -9,8 +9,8 @@ defmodule EEx::Compiler do
   the engine every time a full expression or text is received.
   """
   def compile(source, engine, filename, line) do
-    tokens = EEx::Tokenizer.tokenize(source, line)
-    state = EEx::State.new(engine: engine, filename: filename)
+    tokens = EEx.Tokenizer.tokenize(source, line)
+    state = EEx.State.new(engine: engine, filename: filename)
     generate_buffer(tokens, "", [], state)
   end
 
@@ -46,7 +46,7 @@ defmodule EEx::Compiler do
   end
 
   defp generate_buffer([{ :end_expr, line, _, chars }|_], _buffer, [], _state) do
-    raise EEx::SyntaxError, message: "unexpected token: #{inspect chars} at line #{inspect line}"
+    raise EEx.SyntaxError, message: "unexpected token: #{inspect chars} at line #{inspect line}"
   end
 
   defp generate_buffer([], buffer, [], _state) do
@@ -54,7 +54,7 @@ defmodule EEx::Compiler do
   end
 
   defp generate_buffer([], _buffer, _scope, _state) do
-    raise EEx::SyntaxError, message: "unexpected end of string. expecting a closing <% end %>."
+    raise EEx.SyntaxError, message: "unexpected end of string. expecting a closing <% end %>."
   end
 
   # Creates a placeholder and wrap it inside the expression block

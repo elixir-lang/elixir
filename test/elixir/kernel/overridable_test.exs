@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Kernel::Overridable do
+defmodule Kernel.Overridable do
   @overridable true
   def sample do
     1
@@ -72,8 +72,8 @@ defmodule Kernel::Overridable do
   end
 end
 
-defmodule Kernel::OverridableTest do
-  use ExUnit::Case
+defmodule Kernel.OverridableTest do
+  use ExUnit.Case
 
   test "overridable is made concrete if no other is defined" do
     assert_equal 1, Overridable.sample
@@ -109,10 +109,10 @@ defmodule Kernel::OverridableTest do
 
   test "invalid super call" do
     try do
-      Erlang.elixir.eval 'defmodule Foo::Forwarding do\n@overridable true\ndef bar, do: 1\ndef foo, do: super\nend', []
+      Erlang.elixir.eval 'defmodule Foo.Forwarding do\n@overridable true\ndef bar, do: 1\ndef foo, do: super\nend', []
       flunk "expected eval to fail"
     rescue: error
-      assert_equal "nofile:4: no super defined for foo/0 in module '__MAIN__::Foo::Forwarding'. " <>
+      assert_equal "nofile:4: no super defined for foo/0 in module '__MAIN__.Foo.Forwarding'. " <>
         "Overridable functions available are: bar/0", error.message
     end
   end

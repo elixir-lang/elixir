@@ -84,7 +84,7 @@ defmodule Protocol do
   end
 
   # Implements the method that detects the protocol and returns
-  # the module to dispatch to. Returns module::Record for records
+  # the module to dispatch to. Returns module.Record for records
   # which should be properly handled by the dispatching function.
   @doc false
   def protocol_for(module, conversions) do
@@ -134,15 +134,15 @@ defmodule Protocol do
   end
 
   # Specially handle tuples as they can also be record.
-  # If this is the case, module::Record will be returned.
+  # If this is the case, module.Record will be returned.
   defp each_protocol_for({ _, :is_record }) do
     quote do
       def __protocol_for__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
         case atom_to_list(:erlang.element(1, arg)) do
         match: '::' ++ _
-          __MODULE__::Record
+          __MODULE__.Record
         else:
-          __MODULE__::Tuple
+          __MODULE__.Tuple
         end
       end
     end
@@ -152,7 +152,7 @@ defmodule Protocol do
   defp each_protocol_for({ _, :is_any }) do
     quote do
       def __protocol_for__(_) do
-        __MODULE__::Any
+        __MODULE__.Any
       end
     end
   end
@@ -180,7 +180,7 @@ defmodule Protocol do
       def unquote(name).(unquote_splicing(args)) do
         args = [unquote_splicing(args)]
         case __protocol_for__(xA) do
-        match: __MODULE__::Record
+        match: __MODULE__.Record
           try do
             target = :lists.concat [__MODULE__, :erlang.element(1, xA)]
             apply list_to_atom(target), unquote(name), args
@@ -188,7 +188,7 @@ defmodule Protocol do
             apply __MODULE__::unquote(fallback), unquote(name), args
           end
         match: nil
-          raise ::Protocol::UndefinedError, protocol: __MODULE__, structure: xA
+          raise ::Protocol.UndefinedError, protocol: __MODULE__, structure: xA
         match: other
           apply other, unquote(name), args
         end

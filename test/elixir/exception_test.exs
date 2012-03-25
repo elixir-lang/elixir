@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
-defmodule Kernel::ExceptionTest do
-  use ExUnit::Case
+defmodule Kernel.ExceptionTest do
+  use ExUnit.Case
 
   test :is_exception do
     assert is_exception(RuntimeError.new)

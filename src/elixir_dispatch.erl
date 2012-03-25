@@ -4,7 +4,7 @@
   default_macros/0, default_functions/0, default_refer/0,
   format_error/1, dispatch_refer/6, dispatch_imports/5]).
 -include("elixir.hrl").
--define(BUILTIN, '__MAIN__::Elixir::Builtin').
+-define(BUILTIN, '__MAIN__.Elixir.Builtin').
 
 default_functions() ->
   [

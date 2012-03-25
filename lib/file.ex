@@ -1,4 +1,4 @@
-defexception File::Exception, reason: nil, action: "", path: nil do
+defexception File.Exception, reason: nil, action: "", path: nil do
   def message(exception) do
     "could not " <> exception.action <> " " <> exception.path <> ": " <> list_to_binary(:file.format_error(exception.reason))
   end
@@ -97,7 +97,7 @@ defmodule File do
 
   @doc """
   Returns `binary`, where `binary` is a binary data object that contains the contents
-  of `filename`, or raises a `File::Exception` if an error occurs.
+  of `filename`, or raises a `File.Exception` if an error occurs.
   """
   def read!(filename) do
     result = read(filename)

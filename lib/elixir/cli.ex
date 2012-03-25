@@ -1,13 +1,13 @@
-defrecord Elixir::CLI::Config, commands: [], close: [],
+defrecord Elixir.CLI.Config, commands: [], close: [],
   output: '.', compile: false, stop: true, compile_options: []
 
-defmodule Elixir::CLI do
+defmodule Elixir.CLI do
   import Exception, only: [format_stacktrace: 1]
 
   # Invoked directly from erlang boot process. It parses all argv
   # options and execute them in the order they are specified.
   def process_argv(options) do
-    { config, argv } = process_options(options, Elixir::CLI::Config.new)
+    { config, argv } = process_options(options, Elixir.CLI.Config.new)
     Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
 
     if config.compile do

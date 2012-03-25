@@ -4,7 +4,7 @@
 -include("elixir.hrl").
 
 %% Ensure a reference is loaded before its usage.
-ensure_loaded(_Line, '__MAIN__::Elixir::Builtin', _S, _Force) ->
+ensure_loaded(_Line, '__MAIN__.Elixir.Builtin', _S, _Force) ->
   ok;
 
 ensure_loaded(Line, Ref, S, Force) ->
@@ -28,7 +28,7 @@ ensure_loaded(Line, Ref, S, Force) ->
 last(Atom) ->
   list_to_atom(last(lists:reverse(atom_to_list(Atom)), [])).
 
-last([$:,$:|_], Acc) -> "__MAIN__::" ++ Acc;
+last([$.|_], Acc) -> "__MAIN__." ++ Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
 last([], Acc) -> Acc.
 
@@ -42,8 +42,8 @@ concat(Args) ->
 concat_(Arg) ->
   case Ref = atom_to_list(Arg) of
     "__MAIN__" ++ Rest -> Rest;
-    "::" ++ _ -> Ref;
-    _ -> "::" ++ Ref
+    "." ++ _ -> Ref;
+    _ -> "." ++ Ref
   end.
 
 %% Lookup a reference in the current scope

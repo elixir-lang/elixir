@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule String::Chars::AtomTest do
-  use ExUnit::Case
+defmodule String.Chars.AtomTest do
+  use ExUnit.Case
 
   test :basic do
     assert_equal "foo", to_binary(:foo)
@@ -23,12 +23,12 @@ defmodule String::Chars::AtomTest do
   end
 
   test :reference_atom do
-    assert_equal "::Foo::Bar", to_binary(::Foo::Bar)
+    assert_equal "::Foo.Bar", to_binary(::Foo.Bar)
   end
 end
 
-defmodule String::Chars::BitStringTest do
-  use ExUnit::Case
+defmodule String.Chars.BitStringTest do
+  use ExUnit.Case
 
   test :bitstring do
     assert_raises FunctionClauseError, fn ->
@@ -43,8 +43,8 @@ defmodule String::Chars::BitStringTest do
   end
 end
 
-defmodule String::Chars::NumberTest do
-  use ExUnit::Case
+defmodule String.Chars.NumberTest do
+  use ExUnit.Case
 
   test :integer do
     assert_equal "100", to_binary(100)
@@ -57,8 +57,8 @@ defmodule String::Chars::NumberTest do
   end
 end
 
-defmodule String::Chars::ListTest do
-  use ExUnit::Case
+defmodule String.Chars.ListTest do
+  use ExUnit.Case
 
   test :basic do
     assert_equal <<1,98,3>>, to_binary([ 1, "b", 3 ])

@@ -9,6 +9,6 @@ defmodule IO do
   end
 
   def inspect(device // :standard_io, item) do
-    puts device, Elixir::Builtin.inspect(item)
+    puts device, Elixir.Builtin.inspect(item)
   end
 end

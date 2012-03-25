@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule EnumTest do
-  use ExUnit::Case
+  use ExUnit.Case
 
   test :all? do
     assert Enum.all?([2,4,6], fn(x, do: rem(x, 2) == 0))

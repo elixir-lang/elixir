@@ -142,7 +142,7 @@ compile_docs(Kind, Line, Module, Name, Arity, S) ->
   case S#elixir_scope.compile#elixir_compile.internal of
     true -> [];
     _ ->
-      case '__MAIN__::Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
+      case '__MAIN__.Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
         warn -> elixir_errors:handle_file_warning(S#elixir_scope.filename,
           { Line, ?MODULE, { invalid_doc, { Name, Arity } } });
         _ -> []

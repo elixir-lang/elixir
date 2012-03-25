@@ -1,4 +1,4 @@
-%% Those macros behave like they belong to Elixir::Builtin,
+%% Those macros behave like they belong to Elixir.Builtin,
 %% but do not since they need to be implemented in Erlang.
 -module(elixir_macros).
 -export([translate_macro/2]).
@@ -53,13 +53,13 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
       case Args of
         [Arg] ->
           translate_each({
-            { '.', Line, ['__MAIN__::Module', merge_data] },
+            { '.', Line, ['__MAIN__.Module', merge_data] },
               Line,
               [ { '__MODULE__', Line, false }, [{ Name, Arg }] ]
           }, S);
         _ when is_atom(Args) or (Args == []) ->
             translate_each({
-              { '.', Line, ['__MAIN__::Module', read_data] },
+              { '.', Line, ['__MAIN__.Module', read_data] },
               Line,
               [ { '__MODULE__', Line, false }, Name ]
             }, S);

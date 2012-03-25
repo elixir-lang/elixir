@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule OrddictTest do
-  use ExUnit::Case
+  use ExUnit.Case
 
   test :from_enum do
     assert_equal [first_key: 1, second_key: 2], Orddict.from_enum([{:second_key, 2}, {:first_key, 1}])

@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Kernel::DocTest do
-  use ExUnit::Case
+defmodule Kernel.DocTest do
+  use ExUnit.Case
 
   test :compiled_docs do
     tmp  = File.expand_path("../../tmp", __FILE__)

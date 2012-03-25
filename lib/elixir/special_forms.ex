@@ -1,4 +1,4 @@
-defmodule Elixir::SpecialForms do
+defmodule Elixir.SpecialForms do
   @doc """
   `import` allows one to easily access functions or macros from
   others modules without using the qualified name.
@@ -37,8 +37,8 @@ defmodule Elixir::SpecialForms do
 
       defmodule Math do
         def some_function do
-          # 1) Disable `if/2` from Elixir::Builtin
-          import Elixir::Builtin, except: [if: 2]
+          # 1) Disable `if/2` from Elixir.Builtin
+          import Elixir.Builtin, except: [if: 2]
 
           # 2) Require the new `if` macro from MyMacros
           import MyMacros
