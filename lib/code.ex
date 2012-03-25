@@ -45,7 +45,9 @@ defmodule Code do
 
   """
   def eval_quoted(quoted, binding, filename, line) do
-    Erlang.elixir.eval_quoted [quoted], binding, line, to_char_list(filename)
+    { value, binding, _scope } =
+      Erlang.elixir.eval_quoted [quoted], binding, line, to_char_list(filename)
+    { value, binding }
   end
 
   @doc """

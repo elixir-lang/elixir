@@ -25,28 +25,30 @@ defmodule Elixir::IEx::UnicodeIO do
   end
 end
 
-defrecord Elixir::IEx::Config, io: nil, binding: nil, cache: '', counter: 0
+defrecord Elixir::IEx::Config, io: nil, binding: nil, cache: '', counter: 0, scope: nil
 
 defmodule Elixir::IEx do
   import Exception, only: [format_stacktrace: 1]
 
   def start(binding // [], io // Elixir::IEx::UnicodeIO) do
     IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
-    config   = Elixir::IEx::Config.new(binding: binding, io: io)
+    config = Elixir::IEx::Config.new(io: io, binding: binding, scope: Erlang.elixir.scope_for_eval)
     function = fn -> do_loop(config) end
     Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
   end
 
-  def do_loop(config) do
-    config = config.increment_counter
-    cache  = config.cache
-    code   = cache ++ config.io.get(cache, config.counter)
+  defp do_loop(config) do
+    config  = config.increment_counter
+    counter = config.counter
+    cache   = config.cache
+    code    = cache ++ config.io.get(cache, counter)
 
     new_config =
       try do
-        { result, new_binding } = Erlang.elixir.eval(code, config.binding)
+        { result, new_binding, scope } =
+          Erlang.elixir.eval(code, config.binding, "iex", counter, config.scope)
         IO.puts inspect(result)
-        config.binding(new_binding).cache('')
+        config.binding(new_binding).cache('').scope(scope)
       rescue: TokenMissingError
         config
       rescue: exception

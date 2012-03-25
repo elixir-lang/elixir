@@ -1,7 +1,7 @@
 -module(elixir).
 -behaviour(application).
--export([start/0, start_app/0,
-  eval/1, eval/2, eval/3, eval/4, eval/5,
+-export([start/0, start_app/0, scope_for_eval/0,
+  eval/2, eval/3, eval/4, eval/5,
   eval_quoted/4, eval_forms/3]).
 -include("elixir.hrl").
 
@@ -38,16 +38,16 @@ start() ->
 
 %% EVAL HOOKS
 
+scope_for_eval() -> #elixir_scope{}.
+
 %% String evaluation
 
-eval(String) -> eval(String, []).
 eval(String, Binding) -> eval(String, Binding, "nofile").
 eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
 eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, #elixir_scope{}).
 eval(String, Binding, Filename, Line, Scope) ->
   Forms = elixir_translator:forms(String, Line, Filename),
-  { Value, NewBinding, _ } = eval_forms(Forms, Binding, Scope#elixir_scope{filename=Filename}),
-  { Value, NewBinding }.
+  eval_forms(Forms, Binding, Scope#elixir_scope{filename=Filename}).
 
 %% Quoted evaluation
 
@@ -55,8 +55,7 @@ eval_quoted(Tree, Binding, Line, Filename) when is_list(Filename) ->
   eval_quoted(Tree, Binding, Line, #elixir_scope{filename=Filename});
 
 eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) ->
-  { Value, NewBinding, _ } = eval_forms(elixir_quote:linify(Line, Tree), Binding, S),
-  { Value, NewBinding }.
+  eval_forms(elixir_quote:linify(Line, Tree), Binding, S).
 
 %% Handle forms evaluation internally, it is an
 %% internal API not meant for external usage.

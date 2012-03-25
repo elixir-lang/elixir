@@ -3,24 +3,28 @@
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
+eval(Content) ->
+  { Value, Binding, _ } = elixir:eval(Content, []),
+  { Value, Binding }.
+
 kv([{Key,nil}]) -> Key.
 
 atom_with_punctuation_test() ->
-  {'a?',[]} = elixir:eval(":a?"),
-  {'a!',[]} = elixir:eval(":a!"),
-  {'||',[]} = elixir:eval(":||").
+  {'a?',[]} = eval(":a?"),
+  {'a!',[]} = eval(":a!"),
+  {'||',[]} = eval(":||").
 
 kv_with_punctuation_test() ->
-  {'a?',[]} = elixir:eval("Erlang.atom_test.kv(a?: nil)"),
-  {'a!',[]} = elixir:eval("Erlang.atom_test.kv(a!: nil)"),
-  {'foo bar',[]} = elixir:eval("Erlang.atom_test.kv(\"foo bar\": nil)").
+  {'a?',[]} = eval("Erlang.atom_test.kv(a?: nil)"),
+  {'a!',[]} = eval("Erlang.atom_test.kv(a!: nil)"),
+  {'foo bar',[]} = eval("Erlang.atom_test.kv(\"foo bar\": nil)").
 
 quoted_atom_test() ->
-  {foo,[]} = elixir:eval(":\"foo\""),
-  {foo,[]} = elixir:eval(":'foo'").
+  {foo,[]} = eval(":\"foo\""),
+  {foo,[]} = eval(":'foo'").
 
 atom_with_interpolation_test() ->
-  {foo,[]} = elixir:eval(":\"f#{\"o\"}o\"").
+  {foo,[]} = eval(":\"f#{\"o\"}o\"").
 
 quoted_atom_chars_are_escaped_test() ->
-  {'"',[]} = elixir:eval(":\"\\\"\"").
+  {'"',[]} = eval(":\"\\\"\"").

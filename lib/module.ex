@@ -33,7 +33,8 @@ defmodule Module do
     assert_not_compiled!(:eval_quoted, module)
     { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(line, to_char_list(filename), module, binding)
     Erlang.elixir_def.reset_last(module)
-    Erlang.elixir.eval_quoted([quoted], binding, line, scope)
+    { value, binding, _scope } = Erlang.elixir.eval_quoted([quoted], binding, line, scope)
+    { value, binding }
   end
 
   @doc """

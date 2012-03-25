@@ -152,7 +152,7 @@ defmodule Elixir::ErrorsTest do
 
   defp format_rescue(expr) do
     result = try do
-      Erlang.elixir.eval(expr)
+      Erlang.elixir.eval(expr, [])
       nil
     rescue: error
       error.message

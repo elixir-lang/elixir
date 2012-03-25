@@ -2,6 +2,10 @@
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
+eval(Content) ->
+  { Value, Binding, _ } = elixir:eval(Content, []),
+  { Value, Binding }.
+
 extract_interpolations(String) ->
   element(2, elixir_interpolation:extract(1, true, String ++ [$"], $")).
 
@@ -40,79 +44,79 @@ extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
 %% Bin strings
 
 empty_bin_string_test() ->
-  {<<"">>, _} = elixir:eval("\"\"").
+  {<<"">>, _} = eval("\"\"").
 
 simple_bin_string_test() ->
-  {<<"foo">>, _} = elixir:eval("\"foo\"").
+  {<<"foo">>, _} = eval("\"foo\"").
 
 bin_string_with_double_quotes_test() ->
-  {<<"f\"o\"o">>, _} = elixir:eval("\"f\\\"o\\\"o\"").
+  {<<"f\"o\"o">>, _} = eval("\"f\\\"o\\\"o\"").
 
 bin_string_with_newline_test() ->
-  {<<"f\no">>, _} = elixir:eval("\"f\no\"").
+  {<<"f\no">>, _} = eval("\"f\no\"").
 
 bin_string_with_slash_test() ->
-  {<<"f\\o">>, _} = elixir:eval("\"f\\\\o\"").
+  {<<"f\\o">>, _} = eval("\"f\\\\o\"").
 
 bin_string_with_interpolation_test() ->
-  {<<"foo">>, _} = elixir:eval("\"f#{\"o\"}o\"").
+  {<<"foo">>, _} = eval("\"f#{\"o\"}o\"").
 
 bin_string_with_another_string_inside_string_inside_interpolation_test() ->
-  {<<"fbaro">>, _} = elixir:eval("\"f#{\"b#{\"a\"}r\"}o\"").
+  {<<"fbaro">>, _} = eval("\"f#{\"b#{\"a\"}r\"}o\"").
 
 bin_string_with_another_string_with_curly_inside_interpolation_test() ->
-  {<<"fb}ro">>, _} = elixir:eval("\"f#{\"b}r\"}o\"").
+  {<<"fb}ro">>, _} = eval("\"f#{\"b}r\"}o\"").
 
 bin_string_with_atom_with_separator_inside_interpolation_test() ->
-  {<<"f}o">>, _} = elixir:eval("\"f#{\"}\"}o\"").
+  {<<"f}o">>, _} = eval("\"f#{\"}\"}o\"").
 
 bin_string_without_interpolation_and_escaped_test() ->
-  {<<"f#o">>, _} = elixir:eval("\"f\\#o\"").
+  {<<"f#o">>, _} = eval("\"f\\#o\"").
 
 bin_string_with_escaped_interpolation_test() ->
-  {<<"f#{'o}o">>, _} = elixir:eval("\"f\\#{'o}o\"").
+  {<<"f#{'o}o">>, _} = eval("\"f\\#{'o}o\"").
 
 invalid_string_interpolation_test() ->
-  ?assertError({'::SyntaxError', _, _, _, _}, elixir:eval("\"f#{{}o\"")).
+  ?assertError({'::SyntaxError', _, _, _, _}, eval("\"f#{{}o\"")).
 
 %% List strings
 
 empty_list_string_test() ->
-  {[], _} = elixir:eval("\'\'").
+  {[], _} = eval("\'\'").
 
 simple_list_string_test() ->
-  {"foo", _} = elixir:eval("'foo'").
+  {"foo", _} = eval("'foo'").
 
 list_string_with_double_quotes_test() ->
-  {"f'o'o", _} = elixir:eval("'f\\'o\\'o'").
+  {"f'o'o", _} = eval("'f\\'o\\'o'").
 
 list_string_with_newline_test() ->
-  {"f\no", _} = elixir:eval("'f\no'").
+  {"f\no", _} = eval("'f\no'").
 
 list_string_with_slash_test() ->
-  {"f\\o", _} = elixir:eval("'f\\\\o'").
+  {"f\\o", _} = eval("'f\\\\o'").
 
 list_string_with_interpolation_test() ->
-  {"foo", _} = elixir:eval("'f#{\"o\"}o'").
+  {"foo", _} = eval("'f#{\"o\"}o'").
 
 list_string_with_another_string_with_curly_inside_interpolation_test() ->
-  {"fb}ro", _} = elixir:eval("'f#{\"b}r\"}o'").
+  {"fb}ro", _} = eval("'f#{\"b}r\"}o'").
 
 list_string_with_atom_with_separator_inside_interpolation_test() ->
-  {"f}o", _} = elixir:eval("'f#{\"}\"}o'").
+  {"f}o", _} = eval("'f#{\"}\"}o'").
 
 list_string_without_interpolation_and_escaped_test() ->
-  {"f#o", _} = elixir:eval("'f\\#o'").
+  {"f#o", _} = eval("'f\\#o'").
 
 list_string_with_escaped_interpolation_test() ->
-  {"f#{\"o}o", _} = elixir:eval("'f\\#{\"o}o'").
+  {"f#{\"o}o", _} = eval("'f\\#{\"o}o'").
 
 char_test() ->
-  {99,[]} = elixir:eval("?1 + ?2"),
-  {10,[]} = elixir:eval("?\\n"),
-  {40,[]} = elixir:eval("?\\(").
+  {99,[]} = eval("?1 + ?2"),
+  {10,[]} = eval("?\\n"),
+  {40,[]} = eval("?\\(").
 
 %% Binaries
 
 bitstr_with_integer_test() ->
-  {<<"fdo">>, _} = elixir:eval("<< \"f\", 50+50, \"o\" >>").
+  {<<"fdo">>, _} = eval("<< \"f\", 50+50, \"o\" >>").
