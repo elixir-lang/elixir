@@ -182,8 +182,8 @@ defmodule Protocol do
         case __protocol_for__(xA) do
         match: __MODULE__.Record
           try do
-            target = :lists.concat [__MODULE__, :erlang.element(1, xA)]
-            apply list_to_atom(target), unquote(name), args
+            target = Module.concat(__MODULE__, :erlang.element(1, xA))
+            apply target, unquote(name), args
           rescue: UndefinedFunctionError
             apply Module.concat(__MODULE__, unquote(fallback)), unquote(name), args
           end
