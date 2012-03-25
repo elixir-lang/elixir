@@ -62,11 +62,6 @@ defmodule Kernel.PartialApplicationTest do
     assert_equal [2,4,6], Enum.map [1,2,3], &1 * 2
   end
 
-  test :partial_application_for_const_op do
-    fun = Foo::&1
-    assert_equal ::Foo.Bar, fun.(Bar)
-  end
-
   defp minus(x, y) do
     x - y
   end

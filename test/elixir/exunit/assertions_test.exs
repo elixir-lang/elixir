@@ -87,7 +87,7 @@ defmodule ExUnit.AssertionsTest do
       # nothing
     end
   rescue: error in [ExUnit.AssertionError]
-    "Expected ::ArgumentError exception but nothing was raised" = error.message
+    "Expected ArgumentError exception but nothing was raised" = error.message
   end
 
   test :assert_raises_when_error do
@@ -103,7 +103,7 @@ defmodule ExUnit.AssertionsTest do
       raise MatchError, message: "test error"
     end
   rescue: error in [ExUnit.AssertionError]
-    "Expected exception ::ArgumentError, got ::MatchError" = error.message
+    "Expected exception ArgumentError, got MatchError" = error.message
   end
 
   test :assert_raises_when_erlang_error do
@@ -111,7 +111,7 @@ defmodule ExUnit.AssertionsTest do
       List.flatten(1)
     end
   rescue: error in [ExUnit.AssertionError]
-    "Expected exception ::SyntaxError, got ::FunctionClauseError" = error.message
+    "Expected exception SyntaxError, got FunctionClauseError" = error.message
   end
 
   test :assert_operator_greater_pass do

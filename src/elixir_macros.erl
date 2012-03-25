@@ -3,7 +3,7 @@
 -module(elixir_macros).
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
--import(elixir_variables, [umergec/2, umergev/2]).
+-import(elixir_variables, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, assert_no_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
 
@@ -22,24 +22,6 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
   Op == '<='; Op == '>='; Op == '=='; Op == '!=';
   Op == '==='; Op == '!==' ->
   translate_each({ '__op__', Line, [Op|Exprs] }, S);
-
-%% ::
-
-translate_macro({'::', Line, [Left]}, S) ->
-  translate_macro({'::', Line, [nil,Left]}, S);
-
-translate_macro({'::', Line, [Left|Right]}, S) ->
-  { TLeft, LS } = translate_each(Left, S),
-  { TRight, RS } = translate_args(Right, (umergec(S, LS))#elixir_scope{noref=true}),
-  TArgs = [TLeft|TRight],
-  Atoms = [Atom || { atom, _, Atom } <- TArgs],
-  Final = case length(Atoms) == length(TArgs) of
-    true  -> { atom, Line, elixir_ref:concat(Atoms) };
-    false ->
-      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
-  end,
-  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
 
 %% @
 

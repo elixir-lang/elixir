@@ -43,7 +43,7 @@ defmodule Record do
   #
   #     defrecord FileInfo, atime: nil, mtime: nil
   #
-  #     FileInfo.__record__(:name)   #=> ::FileInfo
+  #     FileInfo.__record__(:name)   #=> FileInfo
   #     FileInfo.__record__(:fields) #=> [atime: nil, mtime: nil]
   #
   defp reflection(name, values) do

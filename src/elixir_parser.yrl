@@ -6,8 +6,8 @@ Nonterminals
   expr block_expr stab_expr call_expr max_expr base_expr
   matched_expr matched_op_expr unmatched_expr op_expr
   comma_separator kv_eol
-  add_op mult_op unary_op unary_ref_op addadd_op multmult_op bin_concat_op
-  match_op arrow_op module_ref_op default_op when_op pipe_op in_op
+  add_op mult_op unary_op addadd_op multmult_op bin_concat_op
+  match_op arrow_op default_op when_op pipe_op in_op
   andand_op oror_op and_op or_op comp_expr_op
   open_paren close_paren
   open_bracket close_bracket
@@ -32,7 +32,7 @@ Terminals
   'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
-  eol ','  '&' '|'  '.' '::' '^' '@' '<-' '<>' '->'
+  eol ','  '&' '|'  '.' '^' '@' '<-' '<>' '->'
   '&&' '||' '!'
   .
 
@@ -60,9 +60,7 @@ Nonassoc 280 unary_op.
 Nonassoc 290 special_op.
 Left     300 dot_call_op.
 Left     300 dot_op.
-Right    310 module_ref_op.
-Nonassoc 320 unary_ref_op.
-Nonassoc 330 var.
+Nonassoc 310 var.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -83,14 +81,12 @@ expr -> unmatched_expr : '$1'.
 matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 matched_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
 matched_expr -> special_op matched_expr : build_special_op('$1', '$2').
-matched_expr -> unary_ref_op matched_expr : build_unary_op('$1', '$2').
 matched_expr -> stab_expr : '$1'.
 
 unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unary_op expr : build_unary_op('$1', '$2').
 unmatched_expr -> special_op expr : build_special_op('$1', '$2').
-unmatched_expr -> unary_ref_op expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
 op_expr -> match_op expr : { '$1', '$2' }.
@@ -107,7 +103,6 @@ op_expr -> bin_concat_op expr : { '$1', '$2' }.
 op_expr -> in_op expr : { '$1', '$2' }.
 op_expr -> when_op expr : { '$1', '$2' }.
 op_expr -> arrow_op expr : { '$1', '$2' }.
-op_expr -> module_ref_op expr : { '$1', '$2' }.
 op_expr -> default_op expr : { '$1', '$2' }.
 op_expr -> comp_expr_op expr : { '$1', '$2' }.
 
@@ -125,7 +120,6 @@ matched_op_expr -> bin_concat_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> in_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> when_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> arrow_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> module_ref_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> default_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> comp_expr_op matched_expr : { '$1', '$2' }.
 
@@ -229,9 +223,6 @@ unary_op -> 'not' eol : '$1'.
 unary_op -> '@' : '$1'.
 unary_op -> '@' eol : '$1'.
 
-unary_ref_op -> '::' : '$1'.
-unary_ref_op -> '::' eol : '$1'.
-
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.
 
@@ -266,11 +257,6 @@ arrow_op -> '<-' eol : '$1'.
 
 comp_expr_op -> comp_op : '$1'.
 comp_expr_op -> comp_op eol : '$1'.
-
-% Ref operator
-
-module_ref_op -> '::' : '$1'.
-module_ref_op -> '::' eol : '$1'.
 
 % Dot operator
 

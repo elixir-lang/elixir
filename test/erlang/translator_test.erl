@@ -27,9 +27,6 @@ assignment_match_test() ->
 single_reference_test() ->
   {'__MAIN__.Foo', _} = eval([{'__ref__', 1, ['Foo']}], []).
 
-nested_reference_test() ->
-  {'__MAIN__.Foo.Bar.Baz', _} = eval([{'::',1,[{'__ref__',1,['Foo']},{'::',1,[{'__ref__',1,['Bar']},{'__ref__',1,['Baz']}]}]}], []).
-
 %% Containers
 
 tuple_test() ->

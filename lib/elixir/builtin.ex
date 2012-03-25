@@ -475,7 +475,7 @@ defmodule Elixir.Builtin do
 
       defmodule AssertionTest do
         require ExUnit.Case, as: false
-        ExUnit.Case.__using__(::AssertionTest)
+        ExUnit.Case.__using__(AssertionTest)
 
         def test_always_pass do
           true = true

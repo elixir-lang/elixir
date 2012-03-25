@@ -37,8 +37,8 @@ defmodule Elixir.CLI.SyntaxErrorTest do
   use ExUnit.Case
 
   test :syntax_code_error do
-    assert_member '** (::TokenMissingError) nofile:1: syntax error: expression is incomplete', OS.cmd('bin/elixir -e "[1,2"')
-    assert_member '** (::SyntaxError) nofile:1: syntax error before: \'end\'', OS.cmd('bin/elixir -e "case 1 end"')
+    assert_member '** (TokenMissingError) nofile:1: syntax error: expression is incomplete', OS.cmd('bin/elixir -e "[1,2"')
+    assert_member '** (SyntaxError) nofile:1: syntax error before: \'end\'', OS.cmd('bin/elixir -e "case 1 end"')
   end
 end
 
@@ -48,7 +48,7 @@ defmodule Elixir.CLI.CompileTest do
   test :compile_code do
     assert_equal 'Compiling test/elixir/fixtures/compile_sample.exs\n',
       OS.cmd('bin/elixirc test/elixir/fixtures/compile_sample.exs -o test/tmp/')
-    assert File.regular?("test/tmp/::CompileSample.beam")
+    assert File.regular?("test/tmp/CompileSample.beam")
   after:
     Erlang.file.del_dir("test/tmp/")
   end

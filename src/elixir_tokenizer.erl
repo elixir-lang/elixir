@@ -55,12 +55,12 @@ tokenize(Line, [$.,T1,T2,T3|Rest], Tokens) when
 
 % ## Two Token Operators
 tokenize(Line, [$.,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
-  T1 == $| andalso T2 == $|; T1 == $: andalso T2 == $:;
+  T1 == $| andalso T2 == $|; T1 == $< andalso T2 == $>;
   T1 == $= andalso T2 == $=; T1 == $! andalso T2 == $=;
   T1 == $< andalso T2 == $=; T1 == $> andalso T2 == $=;
   T1 == $+ andalso T2 == $+; T1 == $- andalso T2 == $-;
   T1 == $* andalso T2 == $*; T1 == $/ andalso T2 == $/;
-  T1 == $< andalso T2 == $-; T1 == $< andalso T2 == $> ->
+  T1 == $< andalso T2 == $- ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
 
 % ## Single Token Operators
@@ -135,12 +135,12 @@ tokenize(Line, [$:,T1,T2,T3|Rest], Tokens) when
 
 % ## Two Token Operators
 tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
-  T1 == $| andalso T2 == $|; T1 == $: andalso T2 == $:;
+  T1 == $| andalso T2 == $|; T1 == $< andalso T2 == $>;
   T1 == $= andalso T2 == $=; T1 == $! andalso T2 == $=;
   T1 == $< andalso T2 == $=; T1 == $> andalso T2 == $=;
   T1 == $+ andalso T2 == $+; T1 == $- andalso T2 == $-;
   T1 == $* andalso T2 == $*; T1 == $/ andalso T2 == $/;
-  T1 == $< andalso T2 == $-; T1 == $< andalso T2 == $> ->
+  T1 == $< andalso T2 == $- ->
   tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
 
 % ## Single Token Operators
@@ -157,13 +157,6 @@ tokenize(Line, [Space,Sign,NotMarker|T], [{Identifier,_,_}|_] = Tokens) when Sig
   Identifier == identifier orelse Identifier == punctuated_identifier ->
   Rest = [NotMarker|T],
   tokenize(Line, Rest, [{special_op,Line,list_to_atom([Sign])}|Tokens]);
-
-tokenize(Line, [Space,$:,$:,NotMarker|T], [{Identifier,_,_}|_] = Tokens) when Space == $\s orelse Space == $\t,
-  NotMarker /= $\s andalso NotMarker /= $\t andalso
-  NotMarker /= $\n andalso NotMarker /= $: andalso NotMarker /= $(,
-  Identifier == identifier orelse Identifier == punctuated_identifier ->
-  Rest = [NotMarker|T],
-  tokenize(Line, Rest, [{special_op,Line,'::'}|Tokens]);
 
 % Stand-alone tokens
 
@@ -193,10 +186,9 @@ tokenize(Line, [T1,T2|Rest], Tokens) when
 
 % ## Two Token Operators
 tokenize(Line, [T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
-  T1 == $| andalso T2 == $|; T1 == $: andalso T2 == $:;
+  T1 == $| andalso T2 == $|; T1 == $< andalso T2 == $>;
   T1 == $+ andalso T2 == $+; T1 == $- andalso T2 == $-;
-  T1 == $* andalso T2 == $*; T1 == $/ andalso T2 == $/;
-  T1 == $< andalso T2 == $> ->
+  T1 == $* andalso T2 == $*; T1 == $/ andalso T2 == $/ ->
   tokenize(Line, Rest, [{list_to_atom([T1,T2]), Line}|Tokens]);
 
 % ## Comparison single token operators

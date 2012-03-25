@@ -33,7 +33,7 @@ defmodule Protocol do
     quote do
       protocol = unquote(protocol)
       for      = unquote(for)
-      name     = protocol::for
+      name     = Module.concat(protocol, for)
 
       Protocol.assert_protocol(protocol)
 
@@ -139,7 +139,7 @@ defmodule Protocol do
     quote do
       def __protocol_for__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
         case atom_to_list(:erlang.element(1, arg)) do
-        match: '::' ++ _
+        match: '__MAIN__' ++ _
           __MODULE__.Record
         else:
           __MODULE__.Tuple
@@ -161,7 +161,7 @@ defmodule Protocol do
   defp each_protocol_for({ kind, fun }) do
     quote do
       def __protocol_for__(arg) when unquote(fun).(arg) do
-        __MODULE__::unquote(kind)
+        Module.concat __MODULE__, unquote(kind)
       end
     end
   end

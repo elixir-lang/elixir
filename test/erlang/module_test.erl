@@ -117,7 +117,7 @@ dot_dyn_ref_test() ->
 
 single_ref_test() ->
   { '__MAIN__.Foo', _ } = eval("Foo"),
-  { '__MAIN__.Foo', _ } = eval("::Foo").
+  { '__MAIN__.Foo', _ } = eval("__MAIN__.Foo").
 
 nested_ref_test() ->
   { '__MAIN__.Foo.Bar.Baz', _ } = eval("Foo.Bar.Baz").
@@ -129,6 +129,3 @@ dynamic_defmodule_test() ->
     {1,_} = eval("Bar.x")
   end,
   test_helper:run_and_remove(F, ['__MAIN__.Foo', '__MAIN__.Bar']).
-
-dynamic_ref_test() ->
-  { '__MAIN__.Foo.Bar.Baz', _ } = eval("x = Foo\ny = Bar\nz = :\"Baz\"\nx::y::z").

@@ -72,7 +72,7 @@ defmodule ModuleTest do
   nil = __FUNCTION__
 
   test :eval_quoted do
-    assert_equal { ::ModuleTest, "sample.ex", 13 }, eval_quoted_info()
+    assert_equal { ModuleTest, "sample.ex", 13 }, eval_quoted_info()
   end
 
   test :line_from_macro do
@@ -80,7 +80,7 @@ defmodule ModuleTest do
   end
 
   test :__MODULE__ do
-    assert_equal :"::ModuleTest", __MODULE__
+    assert_equal :"__MAIN__.ModuleTest", __MODULE__
   end
 
   test :merge_data do

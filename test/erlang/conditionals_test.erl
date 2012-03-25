@@ -78,10 +78,6 @@ case_with_match_do_ambiguity_test() ->
 case_with_unary_do_ambiguity_test() ->
   {false,_} = eval("! case atom_to_list(true) do\nmatch: _; true\nend").
 
-case_with_unary_ref_ambiguity_test() ->
-  {false,_} = eval("!List.reverse([1,2,3])"),
-  {false,_} = eval("!::List.reverse([1,2,3])").
-
 multi_assigned_case_test() ->
   {3, _} = eval("x = 1\ncase true do\n match: true\nx = 2\nx = 3\nelse: true\nend\nx"),
   {3, _} = eval("x = 1\ncase 1 do\n match: ^x\nx = 2\nx = 3\nelse: true\nend\nx"),
