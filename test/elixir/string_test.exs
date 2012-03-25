@@ -50,4 +50,8 @@ bar
     "foo" <> x = "foobar"
     assert_equal "bar", x
   end
+
+  test :utf8 do
+    13 = size(" ゆんゆん")
+  end
 end

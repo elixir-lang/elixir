@@ -1,41 +1,67 @@
-defmodule Elixir::IEx do
-  import Exception, only: [format_stacktrace: 1]
+defmodule Elixir::IEx::UnicodeIO do
+  @moduledoc false
 
-  def start do
-    IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
-    function = fn(do: do_loop([], ''))
-    Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
-  end
-
-  def do_loop(binding, code_cache) do
-    prompt = case code_cache do
+  @doc """
+  Implements the get IO API used by IEX. It receives the
+  code cache, the instructions counter and needs to
+  return a list with the new characters inserted.
+  """
+  def get(cache, _count) do
+    prompt = case cache do
     match: []
       "iex> "
     match: _
       "...> "
     end
+    binary_to_list(:unicode.characters_to_binary(Erlang.io.get_line(prompt)))
+  end
 
-    code = code_cache ++ Erlang.io.get_line(prompt)
+  @doc """
+  Implements the put IO API used by IEX. It receives the
+  result and prints it.
+  """
+  def put(result) do
+    IO.inspect result
+  end
+end
 
-    { binding_to_return, code_cache_to_return } = try do
-      { result, new_binding } = Erlang.elixir.eval(code, binding)
-      IO.puts inspect(result)
-      { new_binding, '' }
-    rescue: TokenMissingError
-      { binding, code }
-    rescue: exception
-      stacktrace = Code.stacktrace
-      IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
-      print_stacktrace stacktrace
-      { binding, '' }
-    catch: kind, error
-      stacktrace = Code.stacktrace
-      IO.puts :standard_error, "** (#{kind}) #{inspect(error)}"
-      print_stacktrace stacktrace
-      { binding, '' }
-    end
+defrecord Elixir::IEx::Config, io: nil, binding: nil, cache: '', counter: 0
 
-    do_loop(binding_to_return, code_cache_to_return)
+defmodule Elixir::IEx do
+  import Exception, only: [format_stacktrace: 1]
+
+  def start(binding // [], io // Elixir::IEx::UnicodeIO) do
+    IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
+    config   = Elixir::IEx::Config.new(binding: binding, io: io)
+    function = fn -> do_loop(config) end
+    Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
+  end
+
+  def do_loop(config) do
+    config = config.increment_counter
+    cache  = config.cache
+    code   = cache ++ config.io.get(cache, config.counter)
+
+    new_config =
+      try do
+        { result, new_binding } = Erlang.elixir.eval(code, config.binding)
+        IO.puts inspect(result)
+        config.binding(new_binding).cache('')
+      rescue: TokenMissingError
+        config
+      rescue: exception
+        stacktrace = Code.stacktrace
+        IO.puts :standard_error, "** (#{exception.__record__(:name)}) #{exception.message}"
+        print_stacktrace stacktrace
+        config.cache('')
+      catch: kind, error
+        stacktrace = Code.stacktrace
+        IO.puts :standard_error, "** (#{kind}) #{inspect(error)}"
+        print_stacktrace stacktrace
+        config.cache('')
+      end
+
+    do_loop(new_config)
   end
 
   defp print_stacktrace(stacktrace) do
