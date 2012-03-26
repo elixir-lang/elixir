@@ -321,9 +321,9 @@ core_main() ->
     "lib/enum.ex",
     "lib/record.ex",
     "lib/exception.ex",
-    "lib/string/inspect.ex",
-    "lib/string/chars.ex",
-    "lib/list/chars.ex",
+    "lib/binary/inspect.ex",
+    "lib/binary/chars.ex",
+    "lib/char_list/chars.ex",
     "lib/gen_server/behavior.ex"
   ].
 

@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule String.Inspect.AtomTest do
+defmodule Binary.Inspect.AtomTest do
   use ExUnit.Case
 
   test :basic do
@@ -27,11 +27,11 @@ defmodule String.Inspect.AtomTest do
   end
 
   test :impl do
-    assert_equal String.Inspect, String.Inspect.Atom.__impl__
+    assert_equal Binary.Inspect, Binary.Inspect.Atom.__impl__
   end
 end
 
-defmodule String.Inspect.BitStringTest do
+defmodule Binary.Inspect.BitStringTest do
   use ExUnit.Case
 
   test :bitstring do
@@ -53,7 +53,7 @@ defmodule String.Inspect.BitStringTest do
   end
 end
 
-defmodule String.Inspect.NumberTest do
+defmodule Binary.Inspect.NumberTest do
   use ExUnit.Case
 
   test :integer do
@@ -67,7 +67,7 @@ defmodule String.Inspect.NumberTest do
   end
 end
 
-defmodule String.Inspect.TupleTest do
+defmodule Binary.Inspect.TupleTest do
   use ExUnit.Case
 
   test :basic do
@@ -91,7 +91,7 @@ defmodule String.Inspect.TupleTest do
   end
 end
 
-defmodule String.Inspect.ListTest do
+defmodule Binary.Inspect.ListTest do
   use ExUnit.Case
 
   test :basic do
@@ -115,7 +115,7 @@ defmodule String.Inspect.ListTest do
   end
 end
 
-defmodule String.Inspect.AnyTest do
+defmodule Binary.Inspect.AnyTest do
   use ExUnit.Case
 
   test :funs do

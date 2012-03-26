@@ -1,7 +1,14 @@
-defmodule String do
+defmodule CharList do
   @doc %B"""
-  Receives a string as a list and escapes all
-  special chars (like \n) and interpolation markers.
+  Receives a char list and escapes all special chars (like \n)
+  and interpolation markers. A last argument is given and wraps
+  the whole char list given.
+  
+  ## Examples
+
+      CharList.escape 'foo', ?"
+      #=> '"foo"'
+
   """
   def escape(other, char) do
     [char|do_escape(other, char)]

@@ -133,7 +133,7 @@ wrap_interpol(_Line, Form) when is_binary(Form) ->
   Form;
 
 wrap_interpol(Line, Form) ->
-  { '|', Line, [{ { '.', Line, ['__MAIN__.String.Chars', to_binary] }, Line, [Form]}, binary]}.
+  { '|', Line, [{ { '.', Line, ['__MAIN__.Binary.Chars', to_binary] }, Line, [Form]}, binary]}.
 
 forms(String, StartLine) ->
   case elixir_tokenizer:tokenize(String, StartLine) of

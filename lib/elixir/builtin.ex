@@ -463,7 +463,7 @@ defmodule Elixir.Builtin do
   defmacro use(module, args // [])
 
   @doc """
-  Inspect the given arguments according to the String.Inspect protocol.
+  Inspect the given arguments according to the Binary.Inspect protocol.
 
   ## Examples
 
@@ -472,11 +472,11 @@ defmodule Elixir.Builtin do
 
   """
   defmacro inspect(arg) do
-    quote do: __MAIN__.String.Inspect.inspect(unquote(arg))
+    quote do: __MAIN__.Binary.Inspect.inspect(unquote(arg))
   end
 
   @doc """
-  Convert the argument to a string according to the String.Inspect protocol.
+  Convert the argument to a string according to the Binary.Chars protocol.
   This is the function invoked when there is string interpolation.
 
   ## Examples
@@ -486,11 +486,11 @@ defmodule Elixir.Builtin do
 
   """
   defmacro to_binary(arg) do
-    quote do: __MAIN__.String.Chars.to_binary(unquote(arg))
+    quote do: __MAIN__.Binary.Chars.to_binary(unquote(arg))
   end
 
   @doc """
-  Convert the argument to a list according to the List.Chars protocol.
+  Convert the argument to a list according to the CharList.Chars protocol.
 
   ## Examples
 
@@ -499,7 +499,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro to_char_list(arg) do
-    quote do: __MAIN__.List.Chars.to_char_list(unquote(arg))
+    quote do: __MAIN__.CharList.Chars.to_char_list(unquote(arg))
   end
 
   @doc """
