@@ -38,8 +38,7 @@ defmodule Enum do
         end
       end
 
-  The :stop is a special Elixir token that
-  marks when iteration should finish.
+  The `:stop` marks when iteration should finish.
   """
 
   @doc """
@@ -454,10 +453,10 @@ defmodule Enum do
 
   ## Examples
 
-     Enum.times 3, fn(x, do: IO.puts x)
-     1
-     2
-     3
+      Enum.times 3, fn(x, do: IO.puts x)
+      1
+      2
+      3
 
   """
   def times(times, function) when times >= 0 do
@@ -477,8 +476,8 @@ defmodule Enum do
 
   ## Examples
 
-     Enum.times 5, 0, fn(x, acc, do: acc + x)
-     #=> 15
+      Enum.times 5, 0, fn(x, acc, do: acc + x)
+      #=> 15
 
   """
   def times(times, acc, function) when times >= 0 do

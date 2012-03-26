@@ -436,7 +436,7 @@ defmodule Elixir.Builtin do
   `use` is a simple mechanism for extending the current module with the
   given module.
 
-  == Examples
+  ## Examples
 
       defmodule AssertionTest do
         use ExUnit.Case
