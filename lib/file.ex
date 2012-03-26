@@ -131,8 +131,14 @@ defmodule File do
   end
 
   # Points to Elixir wildcard version that also handles "**".
-  def wildcard(path, relative_to // '.') do
-    Erlang.elixir_glob.wildcard(path, relative_to)
+
+  def wildcard(glob) when is_binary(glob) do
+    paths = Erlang.elixir_glob.wildcard binary_to_list(glob)
+    Enum.map paths, list_to_binary(&1)
+  end
+
+  def wildcard(path) when is_list(path) do
+    Erlang.elixir_glob.wildcard(path)
   end
 
   ## Helpers
