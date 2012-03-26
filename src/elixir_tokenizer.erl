@@ -5,6 +5,7 @@
 -define(is_digit(S), S >= $0 andalso S =< $9).
 -define(is_upcase(S), S >= $A andalso S =< $Z).
 -define(is_downcase(S), S >= $a andalso S =< $z).
+-define(is_word(S), ?is_digit(S) orelse ?is_upcase(S) orelse ?is_downcase(S)).
 
 tokenize(String, Line) ->
   tokenize(Line, String, []).
@@ -35,7 +36,7 @@ tokenize(Line, [$%,S,H,H,H|T], Tokens) when H == $", ?is_upcase(S) orelse ?is_do
       tokenize(Line, Final, [{sigil,Line,S,Parts,Modifiers}|Tokens])
   end;
 
-tokenize(Line, [$%,S,H|T], Tokens) when ?is_upcase(S); ?is_downcase(S) ->
+tokenize(Line, [$%,S,H|T], Tokens) when not(?is_word(H)), ?is_upcase(S) orelse ?is_downcase(S) ->
   case elixir_interpolation:extract(Line, ?is_downcase(S), T, terminator(H)) of
     { NewLine, Parts, Rest } ->
       { Final, Modifiers } = collect_modifiers(Rest, []),

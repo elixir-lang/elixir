@@ -57,6 +57,11 @@ bar
 
   test :__B__ do
     "foo" = %B(foo)
+    "foo" = %B[foo]
+    "foo" = %B{foo}
+    "foo" = %B'foo'
+    "foo" = %B"foo"
+    "foo" = %B|foo|
     "f\#{o}o" = %B(f#{o}o)
     "f\\no" = %B(f\no)
   end
