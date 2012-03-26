@@ -85,7 +85,7 @@ umergev(S1, S2) ->
   }.
 
 % Receives two scopes and return a new scope based on the first
-% with the counter values from the first one.
+% with the counter values from the second one.
 
 umergec(S1, S2) ->
   S1#elixir_scope{
