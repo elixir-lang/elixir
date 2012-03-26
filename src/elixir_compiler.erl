@@ -1,15 +1,40 @@
 -module(elixir_compiler).
--export([file/2, file_to_path/3, core/0, module/3, eval_forms/4]).
+-export([with_opts/2, set_opts/1, get_opts/0, file/1, file_to_path/2]).
+-export([core/0, module/3, eval_forms/4]).
 -include("elixir.hrl").
 
 %% Public API
 
-%% Compiles the given file. Returns a list of tuples
-%% with module names and binaries.
+%% Set and get compilation options.
 
-file(Relative, #elixir_compile{} = C) ->
+with_opts(Opts, Function) ->
+  Previous = get(elixir_compiler_opts),
+  try
+    set_opts(Opts),
+    Function()
+  after
+    put(elixir_compiler_opts, Previous)
+  end.
+
+set_opts(Opts) ->
+  put(elixir_compiler_opts, #elixir_compile {
+    docs=get_value(Opts, docs, false),
+    debug_info=get_value(Opts, debug_info, false),
+    ignore_module_conflict=get_value(Opts, ignore_module_conflict, false)
+  }).
+
+get_opts() ->
+  case get(elixir_compiler_opts) of
+    undefined -> #elixir_compile{};
+    Else -> Else
+  end.
+
+%% Compile a file, return a tuple of module names and binaries.
+
+file(Relative) ->
   Filename = filename:absname(Relative),
   Previous = get(elixir_compiled),
+
   try
     put(elixir_compiled, []),
     Contents = case file:read_file(Filename) of
@@ -18,24 +43,16 @@ file(Relative, #elixir_compile{} = C) ->
     end,
 
     Forms = elixir_translator:forms(Contents, 1, Filename),
-    eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename,compile=C}),
-
+    eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename}),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
-  end;
-
-file(Filename, Opts) ->
-  file(Filename, #elixir_compile {
-    docs=get_value(Opts, docs, false),
-    debug_info=get_value(Opts, debug_info, false),
-    ignore_module_conflict=get_value(Opts, ignore_module_conflict, false)
-  }).
+  end.
 
 %% Compiles a file to the given path (directory).
 
-file_to_path(File, Path, Opts) ->
-  Lists = file(File, Opts),
+file_to_path(File, Path) ->
+  Lists = file(File),
   [binary_to_path(X, Path) || X <- Lists].
 
 %% Evaluates the contents/forms by compiling them to an Erlang module.
@@ -62,8 +79,8 @@ eval_forms(Forms, Line, RawModule, Value, S) ->
 %% Compile the module by forms based on the scope information
 %% executes the callback in case of success. This automatically
 %% handles errors and warnings. Used by this module and elixir_module.
-module(Forms, #elixir_scope{compile=C} = S, Callback) ->
-  Options = case C#elixir_compile.debug_info of
+module(Forms, S, Callback) ->
+  Options = case (get_opts())#elixir_compile.debug_info of
     true -> [debug_info];
     _ -> []
   end,
@@ -84,6 +101,7 @@ module(Forms, Filename, Options, Callback) ->
 %% Invoked from the Makefile.
 
 core() ->
+  put(elixir_compiler_opts, #elixir_compile{internal=true}),
   [core_file(File) || File <- core_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
   Files = lists:append(AllLists) -- core_main(),
@@ -296,7 +314,7 @@ make_dir(Current, [], Buffer) ->
 core_file(File) ->
   io:format("Compiling ~s~n", [File]),
   try
-    Lists = file(File, #elixir_compile{internal=true}),
+    Lists = file(File),
     [binary_to_path(X, "exbin") || X <- Lists]
   catch
     Kind:Reason ->

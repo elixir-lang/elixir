@@ -139,7 +139,7 @@ compile_super(Module, #elixir_scope{function=Function, super=true}) ->
 compile_super(_Module, _S) -> [].
 
 compile_docs(Kind, Line, Module, Name, Arity, S) ->
-  case S#elixir_scope.compile#elixir_compile.internal of
+  case (elixir_compiler:get_opts())#elixir_compile.internal of
     true -> [];
     _ ->
       case '__MAIN__.Module':compile_doc(Module, Line, Kind, { Name, Arity }) of

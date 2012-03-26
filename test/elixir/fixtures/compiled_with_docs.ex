@@ -3,4 +3,6 @@ defmodule CompiledWithDocs do
 
   @doc "Some example"
   def example, do: 1
+
+  def nodoc, do: 2
 end

@@ -94,7 +94,9 @@ defmodule Code do
 
   """
   def compile_file(file, opts // []) do
-    Erlang.elixir_compiler.file to_char_list(file), opts
+    Erlang.elixir_compiler.with_opts opts, fn ->
+      Erlang.elixir_compiler.file to_char_list(file)
+    end
   end
 
   @doc """
@@ -104,7 +106,9 @@ defmodule Code do
   See compile_file/2 for available options.
   """
   def compile_file_to_dir(file, destination, opts // []) do
-    Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination), opts
+    Erlang.elixir_compiler.with_opts opts, fn ->
+      Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination)
+    end
   end
 
   @doc """

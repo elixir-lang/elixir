@@ -142,10 +142,10 @@ defmodule Module do
 
   """
   def add_doc(module, line, kind, tuple, doc) when
-      is_binary(doc) or is_boolean(doc) do
+      is_binary(doc) or is_boolean(doc) or doc == nil do
     assert_not_compiled!(:add_doc, module)
-    case kind do
-    match: :defp
+    case kind == :defp and doc != nil do
+    match: true
       :warn
     else:
       table = docs_table_for(module)
@@ -333,14 +333,10 @@ defmodule Module do
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
   def compile_doc(module, line, kind, pair) do
-    case read_data(module, :doc) do
-    match: nil
-      # We simply discard nil
-    match: doc
-      result = add_doc(module, line, kind, pair, doc)
-      merge_data(module, doc: nil)
-      result
-    end
+    doc = read_data(module, :doc)
+    result = add_doc(module, line, kind, pair, doc)
+    merge_data(module, doc: nil)
+    result
   end
 
   ## Helpers

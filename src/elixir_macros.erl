@@ -28,7 +28,7 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
 translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
   assert_module_scope(Line, '@', S),
   assert_no_function_scope(Line, '@', S),
-  case is_reserved_data(Name) andalso S#elixir_scope.compile#elixir_compile.internal of
+  case is_reserved_data(Name) andalso (elixir_compiler:get_opts())#elixir_compile.internal of
     true ->
       { { nil, Line }, S };
     _ ->

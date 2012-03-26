@@ -190,9 +190,11 @@ defmodule Elixir.CLI do
     lines  = Enum.map lines, File.wildcard(&1)
     concat = List.uniq(List.append(lines))
 
+    Erlang.elixir_compiler.set_opts(config.compile_options)
+
     Enum.map concat, fn(file) ->
       IO.puts "Compiling #{list_to_binary(file)}"
-      Code.compile_file_to_dir(file, config.output, config.compile_options)
+      Erlang.elixir_compiler.file_to_path(file, config.output)
     end
   end
 end

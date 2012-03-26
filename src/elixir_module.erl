@@ -46,10 +46,10 @@ translate(Line, Ref, Block, S) ->
 
 compile(Line, Module, Block, RawS) when is_atom(Module) ->
   S = elixir_variables:deserialize_scope(RawS),
-  C = S#elixir_scope.compile,
+  C = elixir_compiler:get_opts(),
   Filename = S#elixir_scope.filename,
 
-  check_module_availability(Line, Filename, Module, S#elixir_scope.compile),
+  check_module_availability(Line, Filename, Module, C),
   build(Module),
 
   try
