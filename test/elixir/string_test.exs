@@ -54,4 +54,9 @@ bar
   test :utf8 do
     13 = size(" ゆんゆん")
   end
+
+  test :__Q__ do
+    "foo" = %Q(foo)
+    "f\#{o}o" = %Q(f#{o}o)
+  end
 end

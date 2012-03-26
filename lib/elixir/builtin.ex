@@ -1042,10 +1042,23 @@ defmodule Elixir.Builtin do
 
       raise ArgumentError, message: "Expected a protocol"
 
-
   """
   def raise(atom, args) when is_atom(atom) do
     :erlang.error atom.new(args)
+  end
+
+  @doc """
+  Handles the sigil %Q. It simples returns the string
+  without unquoting characters and without interpolations.
+
+  ## Examples
+
+      %Q(foo)      #=> "foo"
+      %Q(f\#{o}o)  #=> "f\#{o}o"
+
+  """
+  def __Q__(string) do
+    string
   end
 
   ## Private functions

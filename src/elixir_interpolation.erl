@@ -1,66 +1,66 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
--export([extract/4, unescape_chars/2]).
+-export([extract/4, unescape_chars/1]).
 -include("elixir.hrl").
 
 % Extract string interpolations
 
-extract(Line, Escaping, String, Last) ->
-  extract(Line, Escaping, String, [], [], [], Last).
+extract(Line, Interpol, String, Last) ->
+  extract(Line, Interpol, String, [], [], [], Last).
 
-extract(Line, Escaping, [], Buffer, [], Output, []) ->
-  finish_extraction(Line, Escaping, Buffer, Output, []);
+extract(Line, _Interpol, [], Buffer, [], Output, []) ->
+  finish_extraction(Line, Buffer, Output, []);
 
-extract(Line, _Escaping, [], _Buffer, [], _Output, Last) ->
+extract(Line, _Interpol, [], _Buffer, [], _Output, Last) ->
   { error, { Line, io_lib:format("missing string terminator, expected ~ts", [[Last]]), [] } };
 
-extract(Line, Escaping, [Last|Remaining], Buffer, [], Output, Last) ->
-  finish_extraction(Line, Escaping, Buffer, Output, Remaining);
+extract(Line, _Interpol, [Last|Remaining], Buffer, [], Output, Last) ->
+  finish_extraction(Line, Buffer, Output, Remaining);
 
-extract(Line, _Escaping, [Last], _Buffer, Search, _Output, Last) ->
+extract(Line, _Interpol, [Last], _Buffer, Search, _Output, Last) ->
   { error, { Line, io_lib:format("unexpected end of string, expected ~ts", [[hd(Search)]]), [Last] } };
 
-extract(Line, Escaping, [$\n|Rest], Buffer, Search, Output, Last) ->
-  extract(Line+1, Escaping, Rest, [$\n|Buffer], Search, Output, Last);
+extract(Line, Interpol, [$\n|Rest], Buffer, Search, Output, Last) ->
+  extract(Line+1, Interpol, Rest, [$\n|Buffer], Search, Output, Last);
 
-extract(Line, Escaping, [$\\, $#, ${|Rest], Buffer, [], Output, Last) ->
-  extract(Line, Escaping, Rest, [${,$#|Buffer], [], Output, Last);
+extract(Line, Interpol, [$\\, $#, ${|Rest], Buffer, [], Output, Last) ->
+  extract(Line, Interpol, Rest, [${,$#|Buffer], [], Output, Last);
 
-extract(Line, Escaping, [$\\,Char|Rest], Buffer, [], Output, Last) ->
-  extract(Line, Escaping, Rest, [Char,$\\|Buffer], [], Output, Last);
+extract(Line, Interpol, [$\\,Char|Rest], Buffer, [], Output, Last) ->
+  extract(Line, Interpol, Rest, [Char,$\\|Buffer], [], Output, Last);
 
-extract(Line, Escaping, [$#, ${|Rest], Buffer, [], Output, Last) ->
-  NewOutput = build_interpol(s, Line, Escaping, Buffer, Output),
-  extract(Line, Escaping, Rest, [], [$}], NewOutput, Last);
+extract(Line, true, [$#, ${|Rest], Buffer, [], Output, Last) ->
+  NewOutput = build_interpol(s, Line, Buffer, Output),
+  extract(Line, true, Rest, [], [$}], NewOutput, Last);
 
-extract(Line, Escaping, [$}|Rest], Buffer, [$}], Output, Last) ->
-  NewOutput = build_interpol(i, Line, Escaping, Buffer, Output),
-  extract(Line, Escaping, Rest, [], [], NewOutput, Last);
+extract(Line, true, [$}|Rest], Buffer, [$}], Output, Last) ->
+  NewOutput = build_interpol(i, Line, Buffer, Output),
+  extract(Line, true, Rest, [], [], NewOutput, Last);
 
 % Check for available separators "", {}, [] and () inside interpolation
 
-extract(Line, Escaping, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $"; C == $' ->
-  extract(Line, Escaping, Rest, [C|Buffer], Search, Output, Last);
+extract(Line, Interpol, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $"; C == $' ->
+  extract(Line, Interpol, Rest, [C|Buffer], Search, Output, Last);
 
-extract(Line, Escaping, [C|Rest], Buffer, [_|_] = Search, Output, Last) when C == $"; C == $' ->
-  extract(Line, Escaping, Rest, [C|Buffer], [C|Search], Output, Last);
+extract(Line, Interpol, [C|Rest], Buffer, [_|_] = Search, Output, Last) when C == $"; C == $' ->
+  extract(Line, Interpol, Rest, [C|Buffer], [C|Search], Output, Last);
 
-extract(Line, Escaping, [${|Rest], Buffer, [_|_] = Search, Output, Last) ->
-  extract(Line, Escaping, Rest, [${|Buffer], [$}|Search], Output, Last);
+extract(Line, Interpol, [${|Rest], Buffer, [_|_] = Search, Output, Last) ->
+  extract(Line, Interpol, Rest, [${|Buffer], [$}|Search], Output, Last);
 
-extract(Line, Escaping, [$[|Rest], Buffer, [_|_] = Search, Output, Last) ->
-  extract(Line, Escaping, Rest, [$[|Buffer], [$]|Search], Output, Last);
+extract(Line, Interpol, [$[|Rest], Buffer, [_|_] = Search, Output, Last) ->
+  extract(Line, Interpol, Rest, [$[|Buffer], [$]|Search], Output, Last);
 
-extract(Line, Escaping, [$(|Rest], Buffer, [_|_] = Search, Output, Last) ->
-  extract(Line, Escaping, Rest, [$(|Buffer], [$)|Search], Output, Last);
+extract(Line, Interpol, [$(|Rest], Buffer, [_|_] = Search, Output, Last) ->
+  extract(Line, Interpol, Rest, [$(|Buffer], [$)|Search], Output, Last);
 
 % Else
 
-extract(Line, Escaping, [Char|Rest], Buffer, Search, Output, Last) ->
-  extract(Line, Escaping, Rest, [Char|Buffer], Search, Output, Last).
+extract(Line, Interpol, [Char|Rest], Buffer, Search, Output, Last) ->
+  extract(Line, Interpol, Rest, [Char|Buffer], Search, Output, Last).
 
-finish_extraction(Line, Escaping, Buffer, Output, Remaining) ->
-  case build_interpol(s, Line, Escaping, Buffer, Output) of
+finish_extraction(Line, Buffer, Output, Remaining) ->
+  case build_interpol(s, Line, Buffer, Output) of
     []    -> Final = [[]];
     Final -> []
   end,
@@ -68,29 +68,29 @@ finish_extraction(Line, Escaping, Buffer, Output, Remaining) ->
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
-unescape_chars(Escaping, String) -> unescape_chars(Escaping, String, []).
+unescape_chars(String) -> unescape_chars(String, []).
 
-unescape_chars(false, [$\\, Escaped|Rest], Output) ->
-  case extract_integers([Escaped|Rest], []) of
-    {_,[]} ->
-      Char = case Escaped of
-        $f  -> $\f;
-        $n  -> $\n;
-        $r  -> $\r;
-        $t  -> $\t;
-        $v  -> $\v;
-        _   -> []
-      end,
+% unescape_chars(false, [$\\, Escaped|Rest], Output) ->
+%   case extract_integers([Escaped|Rest], []) of
+%     {_,[]} ->
+%       Char = case Escaped of
+%         $f  -> $\f;
+%         $n  -> $\n;
+%         $r  -> $\r;
+%         $t  -> $\t;
+%         $v  -> $\v;
+%         _   -> []
+%       end,
+%
+%       case Char of
+%         [] -> unescape_chars(false, Rest, [Escaped, $\\|Output]);
+%         _  -> unescape_chars(false, Rest, [Char|Output])
+%       end;
+%     {RealRest,Integer} ->
+%       unescape_chars(true, RealRest, [list_to_integer(Integer)|Output])
+%   end;
 
-      case Char of
-        [] -> unescape_chars(false, Rest, [Escaped, $\\|Output]);
-        _  -> unescape_chars(false, Rest, [Char|Output])
-      end;
-    {RealRest,Integer} ->
-      unescape_chars(true, RealRest, [list_to_integer(Integer)|Output])
-  end;
-
-unescape_chars(_, [$\\, Escaped|Rest], Output) ->
+unescape_chars([$\\, Escaped|Rest], Output) ->
   case extract_integers([Escaped|Rest], []) of
     {_,[]} ->
       Char = case Escaped of
@@ -105,25 +105,25 @@ unescape_chars(_, [$\\, Escaped|Rest], Output) ->
         $v  -> $\v;
         _   -> Escaped
       end,
-      unescape_chars(true, Rest, [Char|Output]);
+      unescape_chars(Rest, [Char|Output]);
     {RealRest,Integer} ->
-      unescape_chars(true, RealRest, [list_to_integer(Integer)|Output])
+      unescape_chars(RealRest, [list_to_integer(Integer)|Output])
   end;
 
-unescape_chars(Escaping, [Char|Rest], Output) ->
-  unescape_chars(Escaping, Rest, [Char|Output]);
+unescape_chars([Char|Rest], Output) ->
+  unescape_chars(Rest, [Char|Output]);
 
-unescape_chars(_Escaping, [], Output) -> lists:reverse(Output).
+unescape_chars([], Output) -> lists:reverse(Output).
 
 % Helpers
 
-build_interpol(_Kind, _Line, _Escaping, [], Output) ->
+build_interpol(_Kind, _Line, [], Output) ->
   Output;
 
-build_interpol(s, _Line, Escaping, Buffer, Output) ->
-  [unescape_chars(Escaping, lists:reverse(Buffer))|Output];
+build_interpol(s, _Line, Buffer, Output) ->
+  [unescape_chars(lists:reverse(Buffer))|Output];
 
-build_interpol(i, Line, _Escaping, Buffer, Output) ->
+build_interpol(i, Line, Buffer, Output) ->
   [wrap_interpol(Line, forms(lists:reverse(Buffer), Line))| Output].
 
 wrap_interpol(_Line, Form) when is_binary(Form) ->
@@ -132,7 +132,7 @@ wrap_interpol(_Line, Form) when is_binary(Form) ->
 wrap_interpol(Line, Form) ->
   { '|', Line, [{ { '.', Line, ['__MAIN__.String.Chars', to_binary] }, Line, [Form]}, binary]}.
 
-extract_integers([H|T], Acc) when H >= 48 andalso H =< 57 ->
+extract_integers([H|T], Acc) when H >= $0 andalso H =< $9 ->
   extract_integers(T, [H|Acc]);
 
 extract_integers(Remaining, Acc) ->

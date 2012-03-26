@@ -1,6 +1,10 @@
 -module(elixir_tokenizer).
 -export([tokenize/2]).
 
+-define(is_digit(S), S >= $0 andalso S =< $9).
+-define(is_upcase(S), S >= $A andalso S =< $Z).
+-define(is_downcase(S), S >= $a andalso S =< $z).
+
 tokenize(String, Line) ->
   tokenize(Line, String, []).
 
@@ -9,7 +13,7 @@ tokenize(_, [], Tokens) ->
 
 % Integers and floats
 
-tokenize(Line, [H|_] = String, Tokens) when H >= $0 andalso H =< $9 ->
+tokenize(Line, [H|_] = String, Tokens) when ?is_digit(H) ->
   { Rest, Number } = tokenize_number(String, [], false),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 
@@ -19,14 +23,23 @@ tokenize(Line, [$#|String], Tokens) ->
   Rest = tokenize_comment(String),
   tokenize(Line, Rest, Tokens);
 
+% Sigils
+
+tokenize(Line, [$%,S,H|T], Tokens) when ?is_upcase(S); ?is_downcase(S) ->
+  case elixir_interpolation:extract(Line, ?is_downcase(S), T, terminator(H)) of
+    { NewLine, Parts, Rest } ->
+      tokenize(NewLine, Rest, [{sigil,Line,S,Parts}|Tokens]);
+    Else -> Else
+  end;
+
 % Char tokens
 
 tokenize(Line, [$?,$\\,H|T], Tokens) ->
-  Chars = elixir_interpolation:unescape_chars(true, [$\\,H]),
+  Chars = elixir_interpolation:unescape_chars([$\\,H]),
   tokenize(Line, T, [{number,Line,lists:last(Chars)}|Tokens]);
 
 tokenize(Line, [$?,H|T], Tokens) ->
-  Chars = elixir_interpolation:unescape_chars(true, [H]),
+  Chars = elixir_interpolation:unescape_chars([H]),
   tokenize(Line, T, [{number,Line,lists:last(Chars)}|Tokens]);
 
 % Stab
@@ -75,7 +88,7 @@ tokenize(Line, [H,H,H|T], Tokens) when H == $"; H == $' ->
     { error, _ } = Error ->
       Error;
     { Body, Rest } ->
-      case elixir_interpolation:extract(Line, string, Body, 0) of
+      case elixir_interpolation:extract(Line, true, Body, 0) of
         { _, Parts, [] } ->
           Kind = case H == $" of
             true  -> bin_string;
@@ -89,7 +102,7 @@ tokenize(Line, [H,H,H|T], Tokens) when H == $"; H == $' ->
 % Strings
 
 tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
-  case elixir_interpolation:extract(Line, string, T, H) of
+  case elixir_interpolation:extract(Line, true, T, H) of
     { NewLine, Parts, [$:|Rest] } ->
       case Parts of
         [List] when is_list(List) ->
@@ -108,12 +121,12 @@ tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
 
 % Atoms
 
-tokenize(Line, [$:,T|String], Tokens) when T >= $A andalso T =< $Z; T >= $a andalso T =< $z; T == $_ ->
+tokenize(Line, [$:,T|String], Tokens) when ?is_upcase(T); ?is_downcase(T); T == $_ ->
   { Rest, { _, Atom } } = tokenize_identifier([T|String], []),
   tokenize(Line, Rest, [{atom,Line,[Atom]}|Tokens]);
 
 tokenize(Line, [$:,H|T], Tokens) when H == $"; H == $' ->
-  case elixir_interpolation:extract(Line, atom, T, H) of
+  case elixir_interpolation:extract(Line, true, T, H) of
     { NewLine, Parts, Rest } -> tokenize(NewLine, Rest, [{atom,Line,Parts}|Tokens]);
     Else -> Else
   end;
@@ -203,18 +216,18 @@ tokenize(Line, [T|Rest], Tokens) when T == $+; T == $-; T == $*;
 
 % &
 
-tokenize(Line, [$&,H|Rest], Tokens) when H >= $0 andalso H =< $9 ->
+tokenize(Line, [$&,H|Rest], Tokens) when ?is_digit(H) ->
   tokenize(Line, Rest, [{'&', Line, [list_to_integer([H])]}|Tokens]);
 
 % References
 
-tokenize(Line, [H|_] = String, Tokens) when H >= $A andalso H =< $Z ->
+tokenize(Line, [H|_] = String, Tokens) when ?is_upcase(H) ->
   { Rest, { _, Identifier } } = tokenize_identifier(String, [], false),
   tokenize(Line, Rest, [{'__ref__',Line,[Identifier]}|Tokens]);
 
 % Identifier
 
-tokenize(Line, [H|_] = String, Tokens) when H >= $a andalso H =< $z; H == $_ ->
+tokenize(Line, [H|_] = String, Tokens) when ?is_downcase(H); H == $_ ->
   { Rest, { Kind, _, Identifier } } = tokenize_many_identifier(Line, String, []),
   HasKeyword = Kind == identifier orelse Kind == do_identifier,
   case HasKeyword andalso keyword(Identifier) of
@@ -359,23 +372,23 @@ merge_heredoc_extra([], Buffer) ->
 % At this point, we are at least sure the first digit is a number.
 
 % Check if we have a point followed by a number;
-tokenize_number([$.,H|T], Acc, false) when H >= $0 andalso H =< $9 ->
+tokenize_number([$.,H|T], Acc, false) when ?is_digit(H) ->
   tokenize_number(T, [H,$.|Acc], true);
 
 % Check if we have an underscore followed by a number;
-tokenize_number([$_,H|T], Acc, Bool) when H >= $0 andalso H =< $9 ->
+tokenize_number([$_,H|T], Acc, Bool) when ?is_digit(H) ->
   tokenize_number(T, [H|Acc], Bool);
 
 % Check if we have e- followed by numbers. Valid only for floats.
-tokenize_number([$e,S,H|T], Acc, true) when H >= $0 andalso H =< $9, S == $+ orelse S == $- ->
+tokenize_number([$e,S,H|T], Acc, true) when ?is_digit(H), S == $+ orelse S == $- ->
   tokenize_number(T, [H,S,$e|Acc], true);
 
 % Check if we have e followed by numbers. Valid only for floats.
-tokenize_number([$e,H|T], Acc, true) when H >= $0 andalso H =< $9 ->
+tokenize_number([$e,H|T], Acc, true) when ?is_digit(H) ->
   tokenize_number(T, [H,$e|Acc], true);
 
 % Just numbers;
-tokenize_number([H|T], Acc, Bool) when H >= $0 andalso H =< $9 ->
+tokenize_number([H|T], Acc, Bool) when ?is_digit(H) ->
   tokenize_number(T, [H|Acc], Bool);
 
 % Cast to float...
@@ -399,7 +412,7 @@ tokenize_comment([])                 -> [].
 tokenize_identifier(String, Acc) ->
   tokenize_identifier(String, Acc, true).
 
-tokenize_identifier([H|T], Acc, Bool) when H >= $0 andalso H =< $9; H >= $A andalso H =< $Z; H >= $a andalso H =< $z; H == $_ ->
+tokenize_identifier([H|T], Acc, Bool) when ?is_digit(H); ?is_upcase(H); ?is_downcase(H); H == $_ ->
   tokenize_identifier(T, [H|Acc], Bool);
 
 tokenize_identifier([H|Rest], Acc, true) when H == $?; H == $! ->
@@ -436,8 +449,7 @@ next_is_block([Space|Tokens]) when Space == $\t; Space == $\s ->
   next_is_block(Tokens);
 
 next_is_block([$d,$o,H|_]) when
-  H >= $0 andalso H =< $9; H >= $A andalso H =< $Z;
-  H >= $a andalso H =< $z; H == $_; H == $: ->
+  ?is_digit(H); ?is_upcase(H); ?is_downcase(H); H == $_; H == $: ->
   [];
 
 next_is_block([$d,$o|_]) ->
@@ -445,6 +457,13 @@ next_is_block([$d,$o|_]) ->
 
 next_is_block(_) ->
   [].
+
+% Terminator
+terminator($() -> $);
+terminator($[) -> $];
+terminator(${) -> $};
+terminator($<) -> $>;
+terminator(O) -> O.
 
 % Keywords
 keyword('do')      -> true;

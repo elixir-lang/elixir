@@ -26,7 +26,7 @@ Nonterminals
 Terminals
   'do' 'end' '__ref__'
   identifier kv_identifier punctuated_identifier paren_identifier do_identifier
-  number signed_number atom bin_string list_string
+  number signed_number atom bin_string list_string sigil
   dot_call_op special_op comp_op
   'not' 'and' 'or' 'xor' 'when' 'in'
   'true' 'false' 'nil'
@@ -159,6 +159,7 @@ base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
 base_expr -> bit_string : '$1'.
 base_expr -> '&' : '$1'.
+base_expr -> sigil : build_sigil('$1').
 
 %% Helpers
 
@@ -440,6 +441,9 @@ build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, build_args(Args) }.
 
 %% Interpolation aware
+
+build_sigil({ sigil, Line, Sigil, Parts }) ->
+  { list_to_atom([$_,$_,Sigil,$_,$_]), Line, [ { '<<>>', Line, Parts } ] }.
 
 build_bin_string({ bin_string, _Line, [H] }) when is_list(H) -> list_to_binary(H);
 build_bin_string({ bin_string, Line, Args }) -> { '<<>>', Line, Args }.
