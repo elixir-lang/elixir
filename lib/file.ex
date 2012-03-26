@@ -130,8 +130,39 @@ defmodule File do
     FN.split(path)
   end
 
-  # Points to Elixir wildcard version that also handles "**".
+  @doc """
+  Traverses files and directories according to the given glob expression.
 
+  The wildcard string looks like an ordinary filename, except that certain
+  "wildcard characters" are interpreted in a special way. The following
+  characters are special:
+
+  * `?` - Matches one character.
+  * `*` - Matches any number of characters up to the end of
+          the filename, the next dot, or the next slash.
+  * `**` - Two adjacent <c>*</c>'s used as a single pattern will
+           match all files and zero or more directories and subdirectories.
+  * `[char1,char2,...]` - Matches any of the characters listed. Two characters
+                          separated by a hyphen will match a range of characters.
+  * `{item1,item2,...}` - Matches one of the alternatives.
+
+  Other characters represent themselves. Only filenames that have exactly
+  the same character in the same position will match. Note that matching
+  is case-sensitive; i.e. "a" will not match "A".
+
+  ## Examples
+
+  Imagine you have a directory called `projects` with three Elixir projects
+  inside of it: `elixir`, `exdoc` and `dynamo`. You can find all `.beam` files
+  inside their ebin directories all projects as follows:
+
+      File.wildcard("projects/*/ebin/**/*.beam")
+
+  If you want to search for both `.beam` and `.app` files, you could do:
+
+      File.wildcard("projects/*/ebin/**/*.{beam,app}")
+
+  """
   def wildcard(glob) when is_binary(glob) do
     paths = Erlang.elixir_glob.wildcard binary_to_list(glob)
     Enum.map paths, list_to_binary(&1)
