@@ -442,8 +442,8 @@ build_identifier({ _, Line, Identifier }, Args) ->
 
 %% Interpolation aware
 
-build_sigil({ sigil, Line, Sigil, Parts }) ->
-  { list_to_atom([$_,$_,Sigil,$_,$_]), Line, [ { '<<>>', Line, Parts } ] }.
+build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) ->
+  { list_to_atom([$_,$_,Sigil,$_,$_]), Line, [ { '<<>>', Line, Parts }, Modifiers ] }.
 
 build_bin_string({ bin_string, _Line, [H] }) when is_list(H) -> list_to_binary(H);
 build_bin_string({ bin_string, Line, Args }) -> { '<<>>', Line, Args }.

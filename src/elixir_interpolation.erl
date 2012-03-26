@@ -1,6 +1,8 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
--export([extract/4, unescape_chars/1, unescape_tokens/1]).
+-export([extract/4, unescape_chars/1, unescape_chars/2,
+unescape_tokens/1, unescape_tokens/2]).
+-define(is_octal(S), S >= $0 andalso S =< $7).
 -include("elixir.hrl").
 
 %% Extract string interpolations
@@ -62,47 +64,52 @@ extract(Line, Interpol, [Char|Rest], Buffer, Search, Output, Last) ->
 %% Unescape a series of tokens as returned by extract.
 
 unescape_tokens(Tokens) ->
-  [unescape_token(Token) || Token <- Tokens].
+  unescape_tokens(Tokens, fun unescape_map/1).
 
-unescape_token(Token) when is_list(Token) -> unescape_chars(Token);
-unescape_token(Other) -> Other.
+unescape_tokens(Tokens, Map) ->
+  [unescape_token(Token, Map) || Token <- Tokens].
+
+unescape_token(Token, Map) when is_list(Token) -> unescape_chars(Token, Map);
+unescape_token(Other, _Map) -> Other.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
-unescape_chars(String) -> unescape_chars(String, []).
+unescape_chars(String) -> unescape_chars(String, fun unescape_map/1).
 
-unescape_chars([$\\, Escaped|Rest], Output) ->
-  case extract_integers([Escaped|Rest], []) of
-    {_,[]} ->
-      Char = case Escaped of
-        $b  -> $\b;
-        $d  -> $\d;
-        $e  -> $\e;
-        $f  -> $\f;
-        $n  -> $\n;
-        $r  -> $\r;
-        $s  -> $\s;
-        $t  -> $\t;
-        $v  -> $\v;
-        _   -> Escaped
-      end,
-      unescape_chars(Rest, [Char|Output]);
-    {RealRest,Integer} ->
-      unescape_chars(RealRest, [list_to_integer(Integer)|Output])
-  end;
+-define(to_octal(List),
+  { ok, [Integer], [] } = io_lib:fread("~8u", List),
+  [Integer|unescape_chars(Rest, Map)]
+).
 
-unescape_chars([Char|Rest], Output) ->
-  unescape_chars(Rest, [Char|Output]);
+unescape_chars([$\\,A,B,C|Rest], Map) when ?is_octal(A), ?is_octal(B), ?is_octal(C) ->
+  ?to_octal([A,B,C]);
 
-unescape_chars([], Output) -> lists:reverse(Output).
+unescape_chars([$\\,A,B|Rest], Map) when ?is_octal(A), ?is_octal(B) ->
+  ?to_octal([A,B]);
+
+unescape_chars([$\\,A|Rest], Map) when ?is_octal(A) ->
+  ?to_octal([A]);
+
+unescape_chars([$\\,Escaped|Rest], Map) ->
+  [Map(Escaped)|unescape_chars(Rest, Map)];
+
+unescape_chars([Char|Rest], Map) ->
+  [Char|unescape_chars(Rest, Map)];
+
+unescape_chars([], _Map) -> [].
 
 % Unescape Helpers
 
-extract_integers([H|T], Acc) when H >= $0 andalso H =< $9 ->
-  extract_integers(T, [H|Acc]);
-
-extract_integers(Remaining, Acc) ->
-  { Remaining, lists:reverse(Acc) }.
+unescape_map($b) -> $\b;
+unescape_map($d) -> $\d;
+unescape_map($e) -> $\e;
+unescape_map($f) -> $\f;
+unescape_map($n) -> $\n;
+unescape_map($r) -> $\r;
+unescape_map($s) -> $\s;
+unescape_map($t) -> $\t;
+unescape_map($v) -> $\v;
+unescape_map(E)  -> E.
 
 % Extract Helpers
 

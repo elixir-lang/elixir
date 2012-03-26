@@ -1,6 +1,8 @@
 defmodule String do
-  # Receives a string as a list and escapes all occorrences
-  # of char and any string interpolation
+  @doc %B"""
+  Receives a string as a list and escapes all
+  special chars (like \n) and interpolation markers.
+  """
   def escape(other, char) do
     [char|do_escape(other, char)]
   end

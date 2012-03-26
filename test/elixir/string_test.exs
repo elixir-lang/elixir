@@ -78,4 +78,10 @@ bar
       f#{:o}o\n
     """
   end
+
+  test :octals do
+    "S" = "\123"
+    "\n8" = "\128"
+    <<1, ?8>> = "\18"
+  end
 end

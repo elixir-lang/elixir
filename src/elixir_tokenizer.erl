@@ -26,18 +26,20 @@ tokenize(Line, [$#|String], Tokens) ->
 
 % Sigils
 
-tokenize(Line, [$%,S,H,H,H|T], Tokens) when H == $" orelse H == $', ?is_upcase(S) orelse ?is_downcase(S) ->
+tokenize(Line, [$%,S,H,H,H|T], Tokens) when H == $", ?is_upcase(S) orelse ?is_downcase(S) ->
   case extract_heredoc_with_interpolation(Line, ?is_downcase(S), T, H) of
     { error, _ } = Error ->
       Error;
     { Parts, Rest } ->
-      tokenize(Line, Rest, [{sigil,Line,S,Parts}|Tokens])
+      { Final, Modifiers } = collect_modifiers(Rest, []),
+      tokenize(Line, Final, [{sigil,Line,S,Parts,Modifiers}|Tokens])
   end;
 
 tokenize(Line, [$%,S,H|T], Tokens) when ?is_upcase(S); ?is_downcase(S) ->
   case elixir_interpolation:extract(Line, ?is_downcase(S), T, terminator(H)) of
     { NewLine, Parts, Rest } ->
-      tokenize(NewLine, Rest, [{sigil,Line,S,Parts}|Tokens]);
+      { Final, Modifiers } = collect_modifiers(Rest, []),
+      tokenize(NewLine, Final, [{sigil,Line,S,Parts,Modifiers}|Tokens]);
     Else -> Else
   end;
 
@@ -280,6 +282,12 @@ eol(Line, Tokens) ->
     [{eol,_}|_] -> Tokens;
     _ -> [{eol,Line}|Tokens]
   end.
+
+collect_modifiers([H|T], Buffer) when ?is_downcase(H) ->
+  collect_modifiers(T, [H|Buffer]);
+
+collect_modifiers(Rest, Buffer) ->
+  { Rest, lists:reverse(Buffer) }.
 
 % Extract heredocs
 

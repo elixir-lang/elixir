@@ -1057,7 +1057,7 @@ defmodule Elixir.Builtin do
       %B(f#{o}o)  #=> "f\#{o}o"
 
   """
-  def __B__(string) do
+  def __B__(string, []) do
     string
   end
 
@@ -1071,7 +1071,7 @@ defmodule Elixir.Builtin do
       %b(f#{:o}o)  #=> "foo"
 
   """
-  defmacro __b__({ :<<>>, line, pieces }) do
+  defmacro __b__({ :<<>>, line, pieces }, []) do
     { :<<>>, line, Erlang.elixir_interpolation.unescape_tokens(pieces) }
   end
 
