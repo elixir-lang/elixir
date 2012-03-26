@@ -646,7 +646,7 @@ defmodule Elixir.Builtin do
   """
   defmacro case(condition, blocks)
 
-  @doc """
+  @doc %B"""
   Execute the given expressions and catch any error, exit
   or throw that may have happened.
 
@@ -657,7 +657,7 @@ defmodule Elixir.Builtin do
       rescue: ArgumentError
         IO.puts "Invalid argument given"
       catch: value
-        IO.puts "caught \#{value}"
+        IO.puts "caught #{value}"
       after:
         IO.puts "This is printed regardless if it failed or succeed"
       end
@@ -1048,7 +1048,7 @@ defmodule Elixir.Builtin do
   end
 
   @doc %B"""
-  Handles the sigil %B. It simples returns the string
+  Handles the sigil %B. It simples returns a binary
   without escaping characters and without interpolations.
 
   ## Examples
@@ -1057,13 +1057,13 @@ defmodule Elixir.Builtin do
       %B(f#{o}o)  #=> "f\#{o}o"
 
   """
-  def __B__(string, []) do
+  defmacro __B__(string, []) do
     string
   end
 
   @doc %B"""
-  Handles the sigil %b. It returns the string as if it was
-  double quoted, unescaping characters and replacing interpolations.
+  Handles the sigil %b. It returns a binary as if it was double quoted
+  string, unescaping characters and replacing interpolations.
 
   ## Examples
 
@@ -1072,7 +1072,43 @@ defmodule Elixir.Builtin do
 
   """
   defmacro __b__({ :<<>>, line, pieces }, []) do
-    { :<<>>, line, Erlang.elixir_interpolation.unescape_tokens(pieces) }
+    { :<<>>, line, CharList.unescape_tokens(pieces) }
+  end
+
+  @doc %B"""
+  Handles the sigil %C. It simples returns a char list
+  without escaping characters and without interpolations.
+
+  ## Examples
+
+      %C(foo)     #=> 'foo'
+      %C(f#{o}o)  #=> 'f\#{o}o'
+
+  """
+  defmacro __C__({ :<<>>, _line, [string] }, []) do
+    string
+  end
+
+  @doc %B"""
+  Handles the sigil %c. It returns a char list as if it was single
+  quoted string, unescaping characters and replacing interpolations.
+
+  ## Examples
+
+      %c(foo)      #=> 'foo'
+      %c(f#{:o}o)  #=> 'foo'
+
+  """
+
+  # We can skip the runtime conversion if we are
+  # creating a binary made solely of series of chars.
+  defmacro __c__({ :<<>>, _line, [string] }, []) when is_list(string) do
+    CharList.unescape(string)
+  end
+
+  defmacro __c__({ :<<>>, line, pieces }, []) do
+    binary = { :<<>>, line, CharList.unescape_tokens(pieces) }
+    quote do: binary_to_list(unquote(binary))
   end
 
   ## Private functions

@@ -26,4 +26,21 @@ bar '''
     assert_equal '\n8', '\128'
     assert_equal [1, ?8], '\18'
   end
+
+  test :__C__ do
+    assert_equal 'foo', %C(foo)
+    assert_equal 'foo', %C[foo]
+    assert_equal 'foo', %C{foo}
+    assert_equal 'foo', %C'foo'
+    assert_equal 'foo', %C"foo"
+    assert_equal 'foo', %C|foo|
+    assert_equal 'f\#{o}o', %C(f#{o}o)
+    assert_equal 'f\\no', %C(f\no)
+  end
+
+  test :__c__ do
+    assert_equal 'foo', %c(foo)
+    assert_equal 'foo', %c(f#{:o}o)
+    assert_equal 'f\no', %c(f\no)
+  end
 end
