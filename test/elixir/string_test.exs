@@ -60,4 +60,22 @@ bar
     "f\#{o}o" = %B(f#{o}o)
     "f\\no" = %B(f\no)
   end
+
+  test :__b__ do
+    "foo" = %b(foo)
+    "foo" = %b(f#{:o}o)
+    "f\no" = %b(f\no)
+  end
+
+  test :__B__with_heredoc do
+    "  f\#{o}o\\n\n" = %B"""
+      f#{o}o\n
+    """
+  end
+
+  test :__b__with_heredoc do
+    "  foo\n\n" = %b"""
+      f#{:o}o\n
+    """
+  end
 end

@@ -1047,18 +1047,32 @@ defmodule Elixir.Builtin do
     :erlang.error atom.new(args)
   end
 
-  @doc """
-  Handles the sigil %Q. It simples returns the string
-  without unquoting characters and without interpolations.
+  @doc %B"""
+  Handles the sigil %B. It simples returns the string
+  without escaping characters and without interpolations.
 
   ## Examples
 
-      %Q(foo)      #=> "foo"
-      %Q(f\#{o}o)  #=> "f\#{o}o"
+      %B(foo)     #=> "foo"
+      %B(f#{o}o)  #=> "f\#{o}o"
 
   """
   def __B__(string) do
     string
+  end
+
+  @doc %B"""
+  Handles the sigil %b. It returns the string as if it was
+  double quoted, unescaping characters and replacing interpolations.
+
+  ## Examples
+
+      %b(foo)      #=> "foo"
+      %b(f#{:o}o)  #=> "foo"
+
+  """
+  defmacro __b__({ :<<>>, line, pieces }) do
+    { :<<>>, line, Erlang.elixir_interpolation.unescape_tokens(pieces) }
   end
 
   ## Private functions

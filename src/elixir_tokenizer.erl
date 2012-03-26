@@ -26,6 +26,14 @@ tokenize(Line, [$#|String], Tokens) ->
 
 % Sigils
 
+tokenize(Line, [$%,S,H,H,H|T], Tokens) when H == $" orelse H == $', ?is_upcase(S) orelse ?is_downcase(S) ->
+  case extract_heredoc_with_interpolation(Line, ?is_downcase(S), T, H) of
+    { error, _ } = Error ->
+      Error;
+    { Parts, Rest } ->
+      tokenize(Line, Rest, [{sigil,Line,S,Parts}|Tokens])
+  end;
+
 tokenize(Line, [$%,S,H|T], Tokens) when ?is_upcase(S); ?is_downcase(S) ->
   case elixir_interpolation:extract(Line, ?is_downcase(S), T, terminator(H)) of
     { NewLine, Parts, Rest } ->
@@ -85,19 +93,15 @@ tokenize(Line, [$.,T|Rest], Tokens) when T == $+; T == $-; T == $*;
 % Heredocs
 
 tokenize(Line, [H,H,H|T], Tokens) when H == $"; H == $' ->
-  case extract_heredoc(Line, T, H) of
+  case extract_heredoc_with_interpolation(Line, true, T, H) of
     { error, _ } = Error ->
       Error;
-    { Body, Rest } ->
-      case elixir_interpolation:extract(Line, true, Body, 0) of
-        { _, Parts, [] } ->
-          Kind = case H == $" of
-            true  -> bin_string;
-            false -> list_string
-          end,
-          tokenize(Line, Rest, [{Kind,Line,unescape_tokens(Parts)}|Tokens]);
-        Else -> Else
-      end
+    { Parts, Rest } ->
+      Kind = case H == $" of
+        true  -> bin_string;
+        false -> list_string
+      end,
+      tokenize(Line, Rest, [{Kind,Line,unescape_tokens(Parts)}|Tokens])
   end;
 
 % Strings
@@ -278,6 +282,17 @@ eol(Line, Tokens) ->
   end.
 
 % Extract heredocs
+
+extract_heredoc_with_interpolation(Line, Interpol, T, H) ->
+  case extract_heredoc(Line, T, H) of
+    { error, _ } = Error ->
+      Error;
+    { Body, Rest } ->
+      case elixir_interpolation:extract(Line, Interpol, Body, 0) of
+        { _, Parts, [] } -> { Parts, Rest };
+        Else -> Else
+      end
+  end.
 
 extract_heredoc(Line0, Rest0, Marker) ->
   case extract_heredoc_line(Rest0, []) of
