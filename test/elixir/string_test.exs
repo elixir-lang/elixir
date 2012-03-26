@@ -55,9 +55,9 @@ bar
     13 = size(" ゆんゆん")
   end
 
-  test :__Q__ do
-    "foo" = %Q(foo)
-    "f\#{o}o" = %Q(f#{o}o)
-    "f\\no" = %Q(f\no)
+  test :__B__ do
+    "foo" = %B(foo)
+    "f\#{o}o" = %B(f#{o}o)
+    "f\\no" = %B(f\no)
   end
 end

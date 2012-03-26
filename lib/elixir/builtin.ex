@@ -1057,7 +1057,7 @@ defmodule Elixir.Builtin do
       %Q(f\#{o}o)  #=> "f\#{o}o"
 
   """
-  def __Q__(string) do
+  def __B__(string) do
     string
   end
 
