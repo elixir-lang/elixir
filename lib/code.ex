@@ -117,8 +117,9 @@ defmodule Code do
   ## Helpers
 
   # Filter stacktrace by removing internal BOOTSTRAP calls.
+  defp filter_stacktrace([{ Elixir.Builtin, :raise, _, _ }|t]), do: filter_stacktrace(t)
   defp filter_stacktrace([{ _mod, :BOOTSTRAP, _, _ }|t]), do: filter_stacktrace(t)
-  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _ }|t]),    do: filter_stacktrace(t)
+  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _ }|t]), do: filter_stacktrace(t)
   defp filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
   defp filter_stacktrace([]), do: []
 

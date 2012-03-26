@@ -24,11 +24,12 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts the `base` value is member of `container`.
+  Asserts the value is a member of the given enumerable.
+  Used to check if an item belongs to a list.
 
   ## Examples
 
-      assert_member 'foo', 'foobar'
+      assert_member "foo", ["foo", "bar"]
 
   """
   def assert_member(base, container) do
@@ -36,7 +37,7 @@ defmodule ExUnit.Assertions do
   end
 
   def assert_member(base, container, message) do
-    assert(Erlang.string.str(container, base) != 0, message)
+    assert(Enum.find(container, fn(x) -> x == base end), message)
   end
 
   @doc """

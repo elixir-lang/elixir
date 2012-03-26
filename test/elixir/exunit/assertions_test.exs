@@ -69,7 +69,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test :assert_member_when_is_member do
-    true = assert_member('foo', 'foobar')
+    true = assert_member('foo', ['foo', 'bar'])
   end
 
   test :assert_member_when_is_not_member do
