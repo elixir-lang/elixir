@@ -646,7 +646,7 @@ defmodule Elixir.Builtin do
   """
   defmacro case(condition, blocks)
 
-  @doc %B"""
+  @doc """
   Execute the given expressions and catch any error, exit
   or throw that may have happened.
 
@@ -657,7 +657,7 @@ defmodule Elixir.Builtin do
       rescue: ArgumentError
         IO.puts "Invalid argument given"
       catch: value
-        IO.puts "caught #{value}"
+        IO.puts "caught \#{value}"
       after:
         IO.puts "This is printed regardless if it failed or succeed"
       end
@@ -1047,56 +1047,56 @@ defmodule Elixir.Builtin do
     :erlang.error atom.new(args)
   end
 
-  @doc %B"""
+  @doc """
   Handles the sigil %B. It simples returns a binary
   without escaping characters and without interpolations.
 
   ## Examples
 
-      %B(foo)     #=> "foo"
-      %B(f#{o}o)  #=> "f\#{o}o"
+      %B(foo)      #=> "foo"
+      %B(f\#{o}o)  #=> "f\\\#{o}o"
 
   """
   defmacro __B__(string, []) do
     string
   end
 
-  @doc %B"""
+  @doc """
   Handles the sigil %b. It returns a binary as if it was double quoted
   string, unescaping characters and replacing interpolations.
 
   ## Examples
 
-      %b(foo)      #=> "foo"
-      %b(f#{:o}o)  #=> "foo"
+      %b(foo)       #=> "foo"
+      %b(f\#{:o}o)  #=> "foo"
 
   """
   defmacro __b__({ :<<>>, line, pieces }, []) do
     { :<<>>, line, CharList.unescape_tokens(pieces) }
   end
 
-  @doc %B"""
+  @doc """
   Handles the sigil %C. It simples returns a char list
   without escaping characters and without interpolations.
 
   ## Examples
 
-      %C(foo)     #=> 'foo'
-      %C(f#{o}o)  #=> 'f\#{o}o'
+      %C(foo)      #=> 'foo'
+      %C(f\#{o}o)  #=> 'f\\\#{o}o'
 
   """
   defmacro __C__({ :<<>>, _line, [string] }, []) do
     string
   end
 
-  @doc %B"""
+  @doc """
   Handles the sigil %c. It returns a char list as if it was single
   quoted string, unescaping characters and replacing interpolations.
 
   ## Examples
 
-      %c(foo)      #=> 'foo'
-      %c(f#{:o}o)  #=> 'foo'
+      %c(foo)       #=> 'foo'
+      %c(f\#{:o}o)  #=> 'foo'
 
   """
 
