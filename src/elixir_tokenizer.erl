@@ -1,5 +1,6 @@
 -module(elixir_tokenizer).
 -export([tokenize/2]).
+-import(elixir_interpolation, [unescape_chars/1, unescape_tokens/1]).
 
 -define(is_digit(S), S >= $0 andalso S =< $9).
 -define(is_upcase(S), S >= $A andalso S =< $Z).
@@ -94,7 +95,7 @@ tokenize(Line, [H,H,H|T], Tokens) when H == $"; H == $' ->
             true  -> bin_string;
             false -> list_string
           end,
-          tokenize(Line, Rest, [{Kind,Line,Parts}|Tokens]);
+          tokenize(Line, Rest, [{Kind,Line,unescape_tokens(Parts)}|Tokens]);
         Else -> Else
       end
   end;
@@ -106,7 +107,7 @@ tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
     { NewLine, Parts, [$:|Rest] } ->
       case Parts of
         [List] when is_list(List) ->
-          tokenize(NewLine, Rest, [{kv_identifier,Line,list_to_atom(List)}|Tokens]);
+          tokenize(NewLine, Rest, [{kv_identifier,Line,list_to_atom(unescape_chars(List))}|Tokens]);
         _ ->
           { error, { Line, "invalid interpolation in key", [$"|T] } }
       end;
@@ -115,7 +116,7 @@ tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
         true  -> bin_string;
         false -> list_string
       end,
-      tokenize(NewLine, Rest, [{Kind,Line,Parts}|Tokens]);
+      tokenize(NewLine, Rest, [{Kind,Line,unescape_tokens(Parts)}|Tokens]);
     Else -> Else
   end;
 
@@ -127,7 +128,7 @@ tokenize(Line, [$:,T|String], Tokens) when ?is_upcase(T); ?is_downcase(T); T == 
 
 tokenize(Line, [$:,H|T], Tokens) when H == $"; H == $' ->
   case elixir_interpolation:extract(Line, true, T, H) of
-    { NewLine, Parts, Rest } -> tokenize(NewLine, Rest, [{atom,Line,Parts}|Tokens]);
+    { NewLine, Parts, Rest } -> tokenize(NewLine, Rest, [{atom,Line,unescape_tokens(Parts)}|Tokens]);
     Else -> Else
   end;
 

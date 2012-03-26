@@ -58,5 +58,6 @@ bar
   test :__Q__ do
     "foo" = %Q(foo)
     "f\#{o}o" = %Q(f#{o}o)
+    "f\\no" = %Q(f\no)
   end
 end

@@ -1,9 +1,9 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
--export([extract/4, unescape_chars/1]).
+-export([extract/4, unescape_chars/1, unescape_tokens/1]).
 -include("elixir.hrl").
 
-% Extract string interpolations
+%% Extract string interpolations
 
 extract(Line, Interpol, String, Last) ->
   extract(Line, Interpol, String, [], [], [], Last).
@@ -37,7 +37,7 @@ extract(Line, true, [$}|Rest], Buffer, [$}], Output, Last) ->
   NewOutput = build_interpol(i, Line, Buffer, Output),
   extract(Line, true, Rest, [], [], NewOutput, Last);
 
-% Check for available separators "", {}, [] and () inside interpolation
+%% Check for available separators "", {}, [] and () inside interpolation
 
 extract(Line, Interpol, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $"; C == $' ->
   extract(Line, Interpol, Rest, [C|Buffer], Search, Output, Last);
@@ -54,41 +54,22 @@ extract(Line, Interpol, [$[|Rest], Buffer, [_|_] = Search, Output, Last) ->
 extract(Line, Interpol, [$(|Rest], Buffer, [_|_] = Search, Output, Last) ->
   extract(Line, Interpol, Rest, [$(|Buffer], [$)|Search], Output, Last);
 
-% Else
+%% Else
 
 extract(Line, Interpol, [Char|Rest], Buffer, Search, Output, Last) ->
   extract(Line, Interpol, Rest, [Char|Buffer], Search, Output, Last).
 
-finish_extraction(Line, Buffer, Output, Remaining) ->
-  case build_interpol(s, Line, Buffer, Output) of
-    []    -> Final = [[]];
-    Final -> []
-  end,
-  { Line, lists:reverse(Final), Remaining }.
+%% Unescape a series of tokens as returned by extract.
+
+unescape_tokens(Tokens) ->
+  [unescape_token(Token) || Token <- Tokens].
+
+unescape_token(Token) when is_list(Token) -> unescape_chars(Token);
+unescape_token(Other) -> Other.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
 unescape_chars(String) -> unescape_chars(String, []).
-
-% unescape_chars(false, [$\\, Escaped|Rest], Output) ->
-%   case extract_integers([Escaped|Rest], []) of
-%     {_,[]} ->
-%       Char = case Escaped of
-%         $f  -> $\f;
-%         $n  -> $\n;
-%         $r  -> $\r;
-%         $t  -> $\t;
-%         $v  -> $\v;
-%         _   -> []
-%       end,
-%
-%       case Char of
-%         [] -> unescape_chars(false, Rest, [Escaped, $\\|Output]);
-%         _  -> unescape_chars(false, Rest, [Char|Output])
-%       end;
-%     {RealRest,Integer} ->
-%       unescape_chars(true, RealRest, [list_to_integer(Integer)|Output])
-%   end;
 
 unescape_chars([$\\, Escaped|Rest], Output) ->
   case extract_integers([Escaped|Rest], []) of
@@ -115,13 +96,28 @@ unescape_chars([Char|Rest], Output) ->
 
 unescape_chars([], Output) -> lists:reverse(Output).
 
-% Helpers
+% Unescape Helpers
+
+extract_integers([H|T], Acc) when H >= $0 andalso H =< $9 ->
+  extract_integers(T, [H|Acc]);
+
+extract_integers(Remaining, Acc) ->
+  { Remaining, lists:reverse(Acc) }.
+
+% Extract Helpers
+
+finish_extraction(Line, Buffer, Output, Remaining) ->
+  case build_interpol(s, Line, Buffer, Output) of
+    []    -> Final = [[]];
+    Final -> []
+  end,
+  { Line, lists:reverse(Final), Remaining }.
 
 build_interpol(_Kind, _Line, [], Output) ->
   Output;
 
 build_interpol(s, _Line, Buffer, Output) ->
-  [unescape_chars(lists:reverse(Buffer))|Output];
+  [lists:reverse(Buffer)|Output];
 
 build_interpol(i, Line, Buffer, Output) ->
   [wrap_interpol(Line, forms(lists:reverse(Buffer), Line))| Output].
@@ -131,12 +127,6 @@ wrap_interpol(_Line, Form) when is_binary(Form) ->
 
 wrap_interpol(Line, Form) ->
   { '|', Line, [{ { '.', Line, ['__MAIN__.String.Chars', to_binary] }, Line, [Form]}, binary]}.
-
-extract_integers([H|T], Acc) when H >= $0 andalso H =< $9 ->
-  extract_integers(T, [H|Acc]);
-
-extract_integers(Remaining, Acc) ->
-  { Remaining, lists:reverse(Acc) }.
 
 forms(String, StartLine) ->
   case elixir_tokenizer:tokenize(String, StartLine) of
