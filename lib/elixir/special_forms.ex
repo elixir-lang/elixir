@@ -376,5 +376,5 @@ defmodule Elixir.SpecialForms do
   In the example above, `in_guard` is allowing us to customize
   the same macro to work inside and outside guards.
   """
-  defmacro is_guard(do: do_block, else: else_block)
+  defmacro in_guard(do: do_block, else: else_block)
 end
