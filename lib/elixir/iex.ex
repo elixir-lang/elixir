@@ -46,7 +46,7 @@ defmodule Elixir.IEx do
     new_config =
       try do
         { result, new_binding, scope } =
-          Erlang.elixir.eval(code, config.binding, "iex", counter, config.scope)
+          Erlang.elixir.eval(code, config.binding, 'iex', counter, config.scope)
         IO.puts inspect(result)
         config.binding(new_binding).cache('').scope(scope)
       rescue: TokenMissingError
