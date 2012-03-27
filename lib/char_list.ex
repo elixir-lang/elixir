@@ -57,6 +57,9 @@ defmodule CharList do
       def unescape_map(?v), do: ?\v
       def unescape_map(e), do: e
 
+  If the `unescape_map` function returns false. The char is
+  not escaped and `\` is kept in the char list.
+
   ## Examples
 
   Using the unescape_map defined above is easy:

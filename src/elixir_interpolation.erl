@@ -91,7 +91,10 @@ unescape_chars([$\\,A|Rest], Map) when ?is_octal(A) ->
   ?to_octal([A]);
 
 unescape_chars([$\\,Escaped|Rest], Map) ->
-  [Map(Escaped)|unescape_chars(Rest, Map)];
+  case Map(Escaped) of
+    false -> [$\\,Escaped|unescape_chars(Rest, Map)];
+    Other -> [Other|unescape_chars(Rest, Map)]
+  end;
 
 unescape_chars([Char|Rest], Map) ->
   [Char|unescape_chars(Rest, Map)];

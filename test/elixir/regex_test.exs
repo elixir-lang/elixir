@@ -11,6 +11,7 @@ defmodule Regex.BinaryTest do
     assert Regex.match?(%r/foo/, "foo")
     assert !Regex.match?(%r/foo/, "FOO")
     assert Regex.match?(%r/foo/i, "FOO")
+    assert Regex.match?(%r/\d{1,3}/i, "123")
 
     assert Regex.match?(%r/foo/,   "afooa")
     assert !Regex.match?(%r/^foo/, "afooa")
@@ -70,6 +71,7 @@ defmodule Regex.ListTest do
     assert Regex.match?(%r(foo), 'foo')
     assert !Regex.match?(%r(foo), 'FOO')
     assert Regex.match?(%r(foo)i, 'FOO')
+    assert Regex.match?(%r/\d{1,3}/i, '123')
 
     assert Regex.match?(%r(foo),   'afooa')
     assert !Regex.match?(%r(^foo), 'afooa')
