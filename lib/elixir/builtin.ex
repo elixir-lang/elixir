@@ -1112,7 +1112,7 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
-  handles the sigil %r. It returns a Regexp pattern.
+  handles the sigil %r. It returns a Regex pattern.
 
   ## Examples
 

@@ -45,6 +45,8 @@ defmodule Regex do
 
   @doc """
   Compile the regular expression according to the given options.
+  The tuple returned representing the regular expression is internal
+  and can be modified in future releases.
   Check the module documentation for more information.
   """
   def compile(string, options) when is_binary(options) do
@@ -68,6 +70,115 @@ defmodule Regex do
   """
   def match?(compiled, target) do
     :nomatch != Erlang.re.run(target, compiled)
+  end
+
+  @doc """
+  Runs the regular expression against the given string.
+  It returns a list with all matches or nil if no match ocurred.
+
+  ## Examples
+
+      Regex.run %r"c(d)", "abcd"  #=> ["cd", "d"]
+      Regex.run %r"e", "abcd"     #=> nil
+
+  """
+  def run(compiled, target) do
+    case Erlang.re.run(target, compiled, [{:capture, :all, :binary}]) do
+    match: :nomatch
+      nil
+    match: { :match, results }
+      results
+    end
+  end
+
+  @doc """
+  Returns a list with the match indexes in the given string.
+  The matches are tuples where the first element is the index
+  (zero indexed) the match happened and the second is the length
+  of the match.
+
+  ## Examples
+
+      Regex.run %r"c(d)", "abcd"  #=> [{2,2},{3,1}]
+      Regex.run %r"e", "abcd"     #=> nil
+
+  """
+  def indexes(compiled, target) do
+    case Erlang.re.run(target, compiled, [{ :capture, :all, :index }, { :offset, 0 }]) do
+    match: :nomatch
+      nil
+    match: { :match, results }
+      results
+    end
+  end
+
+  @doc """
+  Same as run, but scans the target several times collecting all matches of
+  the regular expression. A list is returned with each match. If the item in
+  the list is a binary, it means there were no captures. If the item is another
+  list, each element in this secondary list is a capture.
+
+  ## Examples
+
+      Regex.scan %r"c(d|e)", "abcd abce"   #=> [["d"], ["e"]]
+      Regex.scan %r"c(?:d|e)", "abcd abce" #=> ["cd", "ce"]
+      Regex.scan %r"e", "abcd"             #=> []
+
+  """
+  def scan(compiled, target) do
+    options = [{ :capture, :all, :binary }, :global, { :offset, 0 }]
+    case Erlang.re.run(target, compiled, options) do
+    match: :nomatch
+      []
+    match: { :match, results }
+      lc result in results do
+        case result do
+        match: [t]
+          t
+        match: [h|t]
+          t
+        end
+      end
+    end
+  end
+
+  @doc """
+  Split the given target in the number of parts specified. If no ammount
+  of parts is given, it defaults to :infinity.
+  """
+  def split(compiled, target, parts // :infinity) do
+    options = [{ :return, :binary }, :trim, { :parts, parts }]
+    list = Erlang.re.split(target, compiled, options)
+    lc l in list, l != "", do: l
+  end
+
+  @doc %B"""
+  Receives a string and a replacement and returns a string where the
+  first match of the regular expressions is replaced by replacement.
+  Inside the replacement, you can either give "&" to access the whole
+  regular expression or \N, where N is in integer to access an specific
+  matching parens.
+
+  ## Examples
+
+      "abc"   = ~r(d).replace("abc", "d")
+      "adc"   = ~r(b).replace("abc", "d")
+      "a[b]c" = ~r(b).replace("abc", "[&]")
+      "a[&]c" = ~r(b).replace("abc", "[\\&]")
+      "a[b]c" = ~r[(b)].replace("abc", "[\\1]")
+
+  """
+  def replace(compiled, string, replacement) do
+    Erlang.re.replace(string, compiled, replacement, [{ :return, :binary }])
+  end
+
+  @doc """
+  The same as replace, but replaces all parts where the regular
+  expressions matches in the string. Please read `replace/2` for
+  documentation and examples.
+  """
+  def replace_all(compiled, string, replacement) do
+    Erlang.re.replace(string, compiled, replacement, [{ :return, :binary }, :global])
   end
 
   # Helpers
