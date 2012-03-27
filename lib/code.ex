@@ -36,7 +36,22 @@ defmodule Code do
   end
 
   @doc """
-  Evalutes the quotes contents.
+  Evalutes the contents given by string. The second argument is the binding
+  (which should be an Orddict), followed by the filename and the line.
+
+  ## Examples
+
+      Code.eval "a + b", [a: 1, b: 2], __FILE__, __LINE__ # => { 3, [ {:a, 1}, {:b, 2} ] }
+
+  """
+  def eval(string, binding // [], filename // "nofile", line // 1) do
+    { value, binding, _scope } =
+      Erlang.elixir.eval to_char_list(string), binding, to_char_list(filename), line
+    { value, binding }
+  end
+
+  @doc """
+  Evalutes the quoted contents.
 
   ## Examples
 
@@ -44,7 +59,7 @@ defmodule Code do
       Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
-  def eval_quoted(quoted, binding, filename, line) do
+  def eval_quoted(quoted, binding // [], filename // "nofile", line // 1) do
     { value, binding, _scope } =
       Erlang.elixir.eval_quoted [quoted], binding, line, to_char_list(filename)
     { value, binding }

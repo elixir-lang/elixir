@@ -11,7 +11,13 @@ defmodule CodeTest do
 
   Code.eval_quoted contents, [], "sample.ex", 13
 
+  test :eval do
+    assert_equal { 3, [] }, Code.eval("1 + 2")
+    assert_match { 3, _ }, Code.eval("a + b", [a: 1, b: 2], __FILE__, __LINE__)
+  end
+
   test :eval_quoted do
+    assert_equal { 3, [] }, Code.eval_quoted(quote(do: 1 + 2))
     assert_equal { CodeTest.Sample, "sample.ex", 13 }, CodeTest.Sample.eval_quoted_info()
   end
 
