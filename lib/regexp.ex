@@ -1,3 +1,0 @@
-defmodule Regexp do
-  
-end

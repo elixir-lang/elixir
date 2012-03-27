@@ -1090,7 +1090,7 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
-  Handles the sigil %c. It returns a char list as if it was single
+  Handles the sigil %c. It returns a char list as if it was a single
   quoted string, unescaping characters and replacing interpolations.
 
   ## Examples
@@ -1109,6 +1109,19 @@ defmodule Elixir.Builtin do
   defmacro __c__({ :<<>>, line, pieces }, []) do
     binary = { :<<>>, line, CharList.unescape_tokens(pieces) }
     quote do: binary_to_list(unquote(binary))
+  end
+
+  @doc """
+  handles the sigil %r. It returns a Regexp pattern.
+
+  ## Examples
+
+      Regex.match? %r(foo), "foo"  #=> true
+
+  """
+  defmacro __r__({ :<<>>, line, pieces }, options) do
+    binary = { :<<>>, line, CharList.unescape_tokens(pieces, Regex.unescape_map(&1)) }
+    quote do: Regex.compile(unquote(binary), unquote(options))
   end
 
   ## Private functions
