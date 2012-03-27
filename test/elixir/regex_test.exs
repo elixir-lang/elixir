@@ -8,15 +8,15 @@ defmodule Regex.BinaryTest do
   end
 
   test :match? do
-    assert Regex.match?(%r(foo), "foo")
-    assert !Regex.match?(%r(foo), "FOO")
-    assert Regex.match?(%r(foo)i, "FOO")
+    assert Regex.match?(%r/foo/, "foo")
+    assert !Regex.match?(%r/foo/, "FOO")
+    assert Regex.match?(%r/foo/i, "FOO")
 
-    assert Regex.match?(%r(foo),   "afooa")
-    assert !Regex.match?(%r(^foo), "afooa")
-    assert Regex.match?(%r(^foo),  "fooa")
-    assert !Regex.match?(%r(foo$), "afooa")
-    assert Regex.match?(%r(foo$),  "afoo")
+    assert Regex.match?(%r/foo/,   "afooa")
+    assert !Regex.match?(%r/^foo/, "afooa")
+    assert Regex.match?(%r/^foo/,  "fooa")
+    assert !Regex.match?(%r/foo$/, "afooa")
+    assert Regex.match?(%r/foo$/,  "afoo")
   end
 
   test :run do

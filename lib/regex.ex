@@ -8,10 +8,10 @@ defmodule Regex do
   or using the special form with `%r`:
 
       # A simple regular expressions that matches foo anywhere in the string
-      %r(foo)
+      %r/foo/
 
       # A regular expression with case insensitive options and handle unicode chars
-      %r(foo)iu
+      %r/foo/iu
 
   The re module provides several options, some of them are not
   available in Elixir while others are enabled by default. The
@@ -70,8 +70,8 @@ defmodule Regex do
 
   ## Examples
 
-      Regex.match? %r(foo), "foo" #=> true
-      Regex.match? %r(foo), "bar" #=> false
+      Regex.match? %r/foo/, "foo" #=> true
+      Regex.match? %r/foo/, "bar" #=> false
 
   """
   def match?(compiled, string) do
@@ -84,8 +84,8 @@ defmodule Regex do
 
   ## Examples
 
-      Regex.run %r"c(d)", "abcd"  #=> ["cd", "d"]
-      Regex.run %r"e", "abcd"     #=> nil
+      Regex.run %r/c(d)/, "abcd"  #=> ["cd", "d"]
+      Regex.run %r/e/, "abcd"     #=> nil
 
   """
   def run(compiled, string) do
@@ -105,8 +105,8 @@ defmodule Regex do
 
   ## Examples
 
-      Regex.run %r"c(d)", "abcd"  #=> [{2,2},{3,1}]
-      Regex.run %r"e", "abcd"     #=> nil
+      Regex.run %r/c(d)/, "abcd"  #=> [{2,2},{3,1}]
+      Regex.run %r/e/, "abcd"     #=> nil
 
   """
   def indexes(compiled, string) do
@@ -126,9 +126,9 @@ defmodule Regex do
 
   ## Examples
 
-      Regex.scan %r"c(d|e)", "abcd abce"   #=> [["d"], ["e"]]
-      Regex.scan %r"c(?:d|e)", "abcd abce" #=> ["cd", "ce"]
-      Regex.scan %r"e", "abcd"             #=> []
+      Regex.scan %r/c(d|e)/, "abcd abce"   #=> [["d"], ["e"]]
+      Regex.scan %r/c(?:d|e)/, "abcd abce" #=> ["cd", "ce"]
+      Regex.scan %r/e/, "abcd"             #=> []
 
   """
   def scan(compiled, string) do
@@ -168,11 +168,11 @@ defmodule Regex do
 
   ## Examples
 
-      "abc"   = ~r(d).replace("abc", "d")
-      "adc"   = ~r(b).replace("abc", "d")
-      "a[b]c" = ~r(b).replace("abc", "[&]")
-      "a[&]c" = ~r(b).replace("abc", "[\\&]")
-      "a[b]c" = ~r[(b)].replace("abc", "[\\1]")
+      "abc"   = ~r/d/.replace("abc", "d")
+      "adc"   = ~r/b/.replace("abc", "d")
+      "a[b]c" = ~r/b/.replace("abc", "[&]")
+      "a[&]c" = ~r/b/.replace("abc", "[\\&]")
+      "a[b]c" = ~r/(b)/.replace("abc", "[\\1]")
 
   """
   def replace(compiled, string, replacement) do
