@@ -45,7 +45,7 @@ scope_for_eval() -> #elixir_scope{}.
 eval(String, Binding) -> eval(String, Binding, "nofile").
 eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
 eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, #elixir_scope{}).
-eval(String, Binding, Filename, Line, Scope) ->
+eval(String, Binding, Filename, Line, Scope) when is_list(Filename) ->
   Forms = elixir_translator:forms(String, Line, Filename),
   eval_forms(Forms, Binding, Scope#elixir_scope{filename=Filename}).
 
