@@ -5,7 +5,7 @@ defmodule Regex do
   on re documentation: http://www.erlang.org/doc/man/re.html
 
   Regular expressions in Elixir can be created using Regex.compile
-  (check their documentation) or using the special form with `%r`:
+  or using the special form with `%r`:
 
       # A simple regular expressions that matches foo anywhere in the string
       %r(foo)
@@ -41,19 +41,25 @@ defmodule Regex do
   * no_auto_capture - not available, use `?:` instead
   * newline - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or `(*ANYCRLF)`
     or `(*ANY)` at the beginning of the regexp according to the re documentation
+
+  Most of the functions in this module accept either a binary or a char list
+  as string subject. The result is based on the argument (a binary will return
+  a binary, a char list will return a char list).
   """
 
   @doc """
   Compile the regular expression according to the given options.
-  The tuple returned representing the regular expression is internal
-  and can be modified in future releases.
-  Check the module documentation for more information.
+  The result returned is a record named :re_pattern and its
+  length can be modified in future releases.
+
+  Check the module documentation for more information
+  about the options supported by compile.
   """
   def compile(string, options) when is_binary(options) do
     compile(string, binary_to_list(options))
   end
 
-  def compile(string, options) do
+  def compile(string, options // []) do
     options = [:multiline|translate_options(options)]
     { :ok, compiled } = Erlang.re.compile(string, options)
     compiled
@@ -68,8 +74,8 @@ defmodule Regex do
       Regex.match? %r(foo), "bar" #=> false
 
   """
-  def match?(compiled, target) do
-    :nomatch != Erlang.re.run(target, compiled)
+  def match?(compiled, string) do
+    :nomatch != Erlang.re.run(string, compiled)
   end
 
   @doc """
@@ -82,8 +88,8 @@ defmodule Regex do
       Regex.run %r"e", "abcd"     #=> nil
 
   """
-  def run(compiled, target) do
-    case Erlang.re.run(target, compiled, [{:capture, :all, :binary}]) do
+  def run(compiled, string) do
+    case Erlang.re.run(string, compiled, [{ :capture, :all, return_for(string) }]) do
     match: :nomatch
       nil
     match: { :match, results }
@@ -103,8 +109,8 @@ defmodule Regex do
       Regex.run %r"e", "abcd"     #=> nil
 
   """
-  def indexes(compiled, target) do
-    case Erlang.re.run(target, compiled, [{ :capture, :all, :index }, { :offset, 0 }]) do
+  def indexes(compiled, string) do
+    case Erlang.re.run(string, compiled, [{ :capture, :all, :index }, { :offset, 0 }]) do
     match: :nomatch
       nil
     match: { :match, results }
@@ -125,9 +131,9 @@ defmodule Regex do
       Regex.scan %r"e", "abcd"             #=> []
 
   """
-  def scan(compiled, target) do
-    options = [{ :capture, :all, :binary }, :global, { :offset, 0 }]
-    case Erlang.re.run(target, compiled, options) do
+  def scan(compiled, string) do
+    options = [{ :capture, :all, return_for(string) }, :global, { :offset, 0 }]
+    case Erlang.re.run(string, compiled, options) do
     match: :nomatch
       []
     match: { :match, results }
@@ -146,10 +152,11 @@ defmodule Regex do
   Split the given target in the number of parts specified. If no ammount
   of parts is given, it defaults to :infinity.
   """
-  def split(compiled, target, parts // :infinity) do
-    options = [{ :return, :binary }, :trim, { :parts, parts }]
-    list = Erlang.re.split(target, compiled, options)
-    lc l in list, l != "", do: l
+  def split(compiled, string, parts // :infinity) do
+    options = [{ :return, return_for(string) }, :trim, { :parts, parts }]
+    list  = Erlang.re.split(string, compiled, options)
+    blank = blank_for(string)
+    lc l in list, l != blank, do: l
   end
 
   @doc %B"""
@@ -169,7 +176,7 @@ defmodule Regex do
 
   """
   def replace(compiled, string, replacement) do
-    Erlang.re.replace(string, compiled, replacement, [{ :return, :binary }])
+    Erlang.re.replace(string, compiled, replacement, [{ :return, return_for(string) }])
   end
 
   @doc """
@@ -178,7 +185,7 @@ defmodule Regex do
   documentation and examples.
   """
   def replace_all(compiled, string, replacement) do
-    Erlang.re.replace(string, compiled, replacement, [{ :return, :binary }, :global])
+    Erlang.re.replace(string, compiled, replacement, [{ :return, return_for(string) }, :global])
   end
 
   # Helpers
@@ -193,6 +200,12 @@ defmodule Regex do
   def unescape_map(o),  do: o
 
   # Private Helpers
+
+  defp blank_for(element) when is_binary(element), do: ""
+  defp blank_for(element) when is_list(element),   do: ''
+
+  defp return_for(element) when is_binary(element), do: :binary
+  defp return_for(element) when is_list(element),   do: :list
 
   defp translate_options([?u|t]), do: [:unicode|translate_options(t)]
   defp translate_options([?i|t]), do: [:caseless|translate_options(t)]
