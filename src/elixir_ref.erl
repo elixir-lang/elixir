@@ -36,14 +36,16 @@ last([], Acc) -> Acc.
 %% and concatenate them.
 
 concat(Args) ->
-  Refs = [concat_(Arg) || Arg <- Args, Arg /= nil],
+  Refs = [concat_(Arg) || Arg <- Args],
   list_to_atom(lists:concat(['__MAIN__'|Refs])).
 
-concat_(Arg) ->
-  case Ref = atom_to_list(Arg) of
+concat_(Arg) when is_binary(Arg) -> concat_(binary_to_list(Arg));
+concat_(Arg) when is_atom(Arg) -> concat_(atom_to_list(Arg));
+concat_(Arg) when is_list(Arg) ->
+  case Arg of
     "__MAIN__" ++ Rest -> Rest;
-    "." ++ _ -> Ref;
-    _ -> "." ++ Ref
+    "." ++ _ -> Arg;
+    _ -> "." ++ Arg
   end.
 
 %% Lookup a reference in the current scope

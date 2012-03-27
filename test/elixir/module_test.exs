@@ -119,6 +119,13 @@ defmodule ModuleTest do
     assert_equal 4, apply(fn(x) -> x * 2 end, [2])
   end
 
+  test :concat do
+    assert_equal Foo.Bar, Module.concat Foo, Bar
+    assert_equal Foo.Bar, Module.concat Foo, :Bar
+    assert_equal Foo.Bar, Module.concat Foo, "Bar"
+    assert_equal Foo.Bar, Module.concat Foo, 'Bar'
+  end
+
   test :defined_functions do
     assert_equal [{:foo, 3}], Orddict.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_functions)
     assert_equal [{:foo, 3}], Orddict.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_def)

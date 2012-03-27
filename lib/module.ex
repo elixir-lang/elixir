@@ -37,10 +37,32 @@ defmodule Module do
     { value, binding }
   end
 
+  @doc """
+  Concatenates the list of arguments and returns the module name.
+  It handles char lists, binaries and atoms.
+
+  ## Examples
+
+      Module.concat [Foo, Bar]    #=> Foo.Bar
+      Module.concat [Foo, "Bar"]  #=> Foo.Bar
+      Module.concat [Foo, 'Bar']  #=> Foo.Bar
+
+  """
   def concat(list) when is_list(list) do
     Erlang.elixir_ref.concat(list)
   end
 
+  @doc """
+  Concatenates two arguments and returns the module name.
+  It handles char lists, binaries and atoms.
+
+  ## Examples
+
+      Module.concat Foo, Bar    #=> Foo.Bar
+      Module.concat Foo, "Bar"  #=> Foo.Bar
+      Module.concat Foo, 'Bar'  #=> Foo.Bar
+
+  """
   def concat(left, right) do
     Erlang.elixir_ref.concat([left, right])
   end
