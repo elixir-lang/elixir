@@ -1,7 +1,7 @@
 import Elixir.Builtin, except: [to_binary: 1]
 
 defprotocol Binary.Chars, [to_binary(thing)],
-  only: [BitString, List, Number, Atom, Record]
+  only: [BitString, List, Number, Atom, Record, Any]
 
 defimpl Binary.Chars, for: Atom do
   def to_binary(nil) do
@@ -32,5 +32,11 @@ defimpl Binary.Chars, for: Number do
 
   def to_binary(thing) do
     list_to_binary float_to_list(thing)
+  end
+end
+
+defimpl Binary.Chars, for: Any do
+  def to_binary(thing) do
+    iolist_to_binary Erlang.io_lib.format('~p', [thing])
   end
 end
