@@ -113,9 +113,8 @@ defmodule URI do
     [userinfo: userinfo, host: host, port: port]
   end
 
-  # find/2 returns empty strings sometimes. We want
-  # to replace those with nil for consistency and ease
-  # of use.
+  # Regex.run returns empty strings sometimes. We want
+  # to replace those with nil for consistency.
   defp nillify(l) do
     lc s in l do
       if :erlang.size(s) > 0 do
