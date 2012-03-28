@@ -324,6 +324,7 @@ core_file(File) ->
 
 core_list() ->
   [
+    "lib/uri/parser.ex",
     "lib/elixir/formatter.ex",
     "lib/*/*.ex",
     "lib/*.ex"
