@@ -84,7 +84,7 @@ defmodule URI do
     scheme = Orddict.get(parsed_uri, :scheme)
     if scheme do
       # TODO: A better way of looking up modules.
-      module = Module.concat(URI, list_to_atom(:string.to_upper(binary_to_list(scheme))))
+      module = Module.concat(URI, :string.to_upper(binary_to_list(scheme)))
       case :code.ensure_loaded(module) do
       match: {:error, _}
         parsed_uri
