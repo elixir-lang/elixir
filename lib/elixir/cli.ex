@@ -127,7 +127,8 @@ defmodule Elixir.CLI do
     match: '-' ++ _
       shared_option? list, config, process_options(&1, &2)
     else:
-      { config.prepend_commands([{:require, h}]), t }
+      # Allow requiring multiple files without the -r option
+      process_options t, config.prepend_commands([{:require, h}])
     end
   end
 
