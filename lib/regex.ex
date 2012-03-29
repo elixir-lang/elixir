@@ -168,11 +168,11 @@ defmodule Regex do
 
   ## Examples
 
-      "abc"   = ~r/d/.replace("abc", "d")
-      "adc"   = ~r/b/.replace("abc", "d")
-      "a[b]c" = ~r/b/.replace("abc", "[&]")
-      "a[&]c" = ~r/b/.replace("abc", "[\\&]")
-      "a[b]c" = ~r/(b)/.replace("abc", "[\\1]")
+      Regex.replace(~r/d/, "abc", "d")       #=> "abc"
+      Regex.replace(~r/b/, "abc", "d")       #=> "adc"
+      Regex.replace(~r/b/, "abc", "[&]")     #=> "a[b]c"
+      Regex.replace(~r/b/, "abc", "[\\&]")   #=> "a[&]c"
+      Regex.replace(~r/(b)/, "abc", "[\\1]") #=> "a[b]c"
 
   """
   def replace(compiled, string, replacement) do
@@ -181,7 +181,7 @@ defmodule Regex do
 
   @doc """
   The same as replace, but replaces all parts where the regular
-  expressions matches in the string. Please read `replace/2` for
+  expressions matches in the string. Please read `replace/3` for
   documentation and examples.
   """
   def replace_all(compiled, string, replacement) do
