@@ -100,12 +100,28 @@ defmodule Elixir.CLI do
     process_shared t, config
   end
 
-  defp process_shared(['-r',h|t], config) do
-    process_shared t, config.prepend_commands [{:require,h}]
+  defp process_shared(['-r'|t], config) do
+    { rest, files } = process_list(t, [])
+    requires = lc file in files, do: {:require,file}
+    process_shared rest, config.prepend_commands(requires)
   end
 
   defp process_shared(list, config) do
     { list, config }
+  end
+
+  # Process list
+
+  defp process_list(['-'++_|_] = list, acc) do
+    { list, List.reverse(acc) }
+  end
+
+  defp process_list([h|t], acc) do
+    process_list t, [h|acc]
+  end
+
+  defp process_list([], acc) do
+    { [], List.reverse(acc) }
   end
 
   # Process init options
