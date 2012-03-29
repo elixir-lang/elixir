@@ -60,7 +60,8 @@ receive_test() ->
 vars_receive_test() ->
   {10, _} = eval("self() <- :foo\nreceive do\nmatch: :foo\na = 10\nmatch: :bar\nend\na"),
   {nil, _} = eval("self() <- :bar\nreceive do\nmatch: :foo\nb = 10\nelse: 20\nend\nb"),
-  {30, _} = eval("receive do\nmatch: :foo\nafter: 1\nc = 30\nend\nc").
+  {30, _} = eval("receive do\nmatch: :foo\nafter: 1\nc = 30\nend\nc"),
+  {30, _} = eval("x = 1\nreceive do\nmatch: :foo\nafter: x\nc = 30\nend\nc").
 
 % Case
 

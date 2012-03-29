@@ -162,17 +162,22 @@ handle_else(Kind, Line, Clauses) ->
 % Handle each key/value clause pair and translate them accordingly.
 
 % Do clauses have no conditions. So we are done.
-translate_each(_Line, {Key,[],Expr}, S) when Key == do ->
+translate_each(Line, { do, _, _ } = Block, S) ->
+  elixir_kv_block:validate(Line, Block, 0, S),
+  { _, [], Expr } = Block,
   elixir_translator:translate_each(Expr, S);
 
-translate_each(Line, {Key,[Condition],Expr}, S) when Key == match; Key == 'after' ->
+translate_each(Line, { match, _, _ } = Block, S) ->
+  elixir_kv_block:validate(Line, Block, 1, S),
+  { _, [Condition], Expr } = Block,
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
-translate_each(Line, {Key,[],_}, S) when Key == match; Key == 'after' ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for ~s", [Key]);
-
-translate_each(Line, {Key,_,_}, S) when Key == match; Key == 'after' ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid comma arguments for ~s", [Key]);
+translate_each(Line, { 'after', _, _ } = Block, S) ->
+  elixir_kv_block:validate(Line, Block, 1, S),
+  { _, [Condition], Expr } = Block,
+  { TCondition, SC } = elixir_translator:translate_each(Condition, S),
+  { TBody, SB } = elixir_translator:translate([Expr], SC),
+  { { clause, Line, [TCondition], [], TBody }, SB };
 
 translate_each(Line, {Key,_,_}, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key ~s", [Key]).

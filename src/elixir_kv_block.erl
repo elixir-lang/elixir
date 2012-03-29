@@ -1,12 +1,12 @@
 %% Helpers related to key-value blocks.
 -module(elixir_kv_block).
--export([merge/2, merge/3, normalize/1, decouple/2, decouple/1]).
+-export([merge/2, merge/3, normalize/1, decouple/2, decouple/1, validate/4]).
 -include("elixir.hrl").
 
 merge(Left, Right) -> merge(0, Left, Right).
 
 %% Merge the given list of key-values on the left
-%% to the orddict key-values on te right resulting
+%% to the orddict key-values on the right resulting
 %% in an orddict.
 merge(Line, Acc, [{Key,Value}|T]) ->
   NewAcc = orddict:update(Key, fun(Old) -> merge_each(Line, Old, Value) end, Value, Acc),
@@ -35,3 +35,15 @@ decouple_each([{Key,{'__kvblock__',_,Value}}|T], Clauses) ->
   decouple_each(T, Final);
 
 decouple_each([], Acc) -> lists:reverse(Acc).
+
+%% validate
+validate(Line, {Key,[],_}, Count, S) when Count > 0 ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for ~s", [Key]);
+
+validate(Line, {Key,List,_}, 0, S) when List /= [] ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid conditions for ~s", [Key]);
+
+validate(Line, {Key,List,_}, 1, S) when length(List) > 1 ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid comma arguments for ~s", [Key]);
+
+validate(_, _, _, _) -> ok.
