@@ -5,11 +5,14 @@ defmodule Protocol do
   # Handle `defprotocol`. It will define a function for each
   # protocol plus two extra functions:
   #
-  # * `__protocol__/0` - returns a key-value pair with the protocol functions
+  # * `__protocol__/1` - returns the protocol name when :name is given,
+  #                      and key-value pair with the protocol functions
+  #                      when :functions is given;
   #
   # * `__protocol_for__/1` - receives one argument and returns the protocol
   #                          module that the function should be dispatched to
-  #                          according to the only/except rules
+  #                          according to the only/except rules. If no protocol
+  #                          matches, returns nil;
   #
   def defprotocol(name, args, opts) do
     kv = to_kv(args)
@@ -82,13 +85,15 @@ defmodule Protocol do
     Module.eval_quoted module, contents, [], __FILE__, __LINE__
   end
 
-  # Implements the method that detects the protocol and returns
+  # Implements the function that detects the protocol and returns
   # the module to dispatch to. Returns module.Record for records
   # which should be properly handled by the dispatching function.
   @doc false
   def protocol_for(module, conversions) do
-    contents = lc kind in conversions, do: each_protocol_for(kind)
+    contents = lc kind in conversions, do: each_protocol_for(kind, conversions)
 
+    # If we don't implement all protocols and any is not in the
+    # list, we need to add a final clause that returns nil.
     if !L.member({ Any, :is_any }, conversions) && length(conversions) < 10 do
       contents = contents ++ [quote do
         def __protocol_for__(_) do
@@ -132,23 +137,43 @@ defmodule Protocol do
     ]
   end
 
+  # Returns a quoted expression that allow to checks
+  # if a variable named first is built or not.
+  defp is_builtin?([{h,_}]) do
+    quote do
+      first == unquote(h)
+    end
+  end
+
+  defp is_builtin?([{h,_}|t]) do
+    quote do
+      first == unquote(h) or unquote(is_builtin?(t))
+    end
+  end
+
   # Specially handle tuples as they can also be record.
   # If this is the case, module.Record will be returned.
-  defp each_protocol_for({ _, :is_record }) do
+  defp each_protocol_for({ _, :is_record }, conversions) do
     quote do
       def __protocol_for__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
-        case atom_to_list(:erlang.element(1, arg)) do
-        match: '__MAIN__' ++ _
-          __MODULE__.Record
-        else:
+        first = :erlang.element(1, arg)
+        case unquote(is_builtin?(conversions)) do
+        match: true
           __MODULE__.Tuple
+        match: false
+          case atom_to_list(first) do
+          match: '__MAIN__' ++ _
+            __MODULE__.Record
+          else:
+            __MODULE__.Tuple
+          end
         end
       end
     end
   end
 
   # Special case any as we don't need to generate a guard.
-  defp each_protocol_for({ _, :is_any }) do
+  defp each_protocol_for({ _, :is_any }, _) do
     quote do
       def __protocol_for__(_) do
         __MODULE__.Any
@@ -157,7 +182,7 @@ defmodule Protocol do
   end
 
   # Generate all others protocols.
-  defp each_protocol_for({ kind, fun }) do
+  defp each_protocol_for({ kind, fun }, _) do
     quote do
       def __protocol_for__(arg) when unquote(fun).(arg) do
         Module.concat __MODULE__, unquote(kind)

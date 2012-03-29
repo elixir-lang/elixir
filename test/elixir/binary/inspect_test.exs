@@ -82,6 +82,10 @@ defmodule Binary.Inspect.TupleTest do
     assert_equal "{:list,1}", inspect({ :list, 1 })
   end
 
+  test :with_record_like_tuple do
+    assert_equal "{List,1}", inspect({ List, 1 })
+  end
+
   test :exception do
     assert_equal "RuntimeError{\"runtime error\"}", inspect(RuntimeError.new)
   end
