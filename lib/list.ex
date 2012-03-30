@@ -201,8 +201,60 @@ defmodule List do
   end
 
   @doc """
+  Returns a list of integers in the given range (both ends included). An
+  optional step can be provided as well (defaults to 1).
+  """
+  def range_a(first, last, step // 1) when is_integer(first) and is_integer(last) and first <= last do
+    case step > 0 do
+    match: true
+      Erlang.lists.seq(first, last, step)
+    else:
+      []
+    end
+  end
+
+  def range_a(first, last, step) when is_integer(first) and is_integer(last) and first > last do
+    case step < 0 do
+    match: true
+      Erlang.lists.seq(first, last, step)
+    else:
+      []
+    end
+  end
+
+  @doc """
+  Returns a list of integers in the given range (both ends included). An
+  optional step can be provided as well (defaults to 1).
+
+  This variant automatically counts downwards, if first > last.
+  """
+  def range_b(first, last, step // nil) when is_integer(first) and is_integer(last) and first <= last do
+    step = case step do
+    match: nil
+      Erlang.lists.seq(first, last, 1)
+    match: x when x < 0
+      []
+    else:
+      Erlang.lists.seq(first, last, step)
+    end
+  end
+
+  def range_b(first, last, step // nil) when is_integer(first) and is_integer(last) and first > last do
+    step = case step do
+    match: nil
+      Erlang.lists.seq(first, last, -1)
+    match: x when x > 0
+      []
+    else:
+      Erlang.lists.seq(first, last, step)
+    end
+  end
+
+  @doc """
   Returns a list as a sequence from first to last.
   Returns an empty list if last is lower than first.
+
+  FIXME: proposing to deprecate this one
 
   ## Examples
 
