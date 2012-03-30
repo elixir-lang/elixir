@@ -8,6 +8,8 @@ defmodule Elixir.ErrorsTest do
     defmacro exit(args), do: args
   end
 
+  defrecord __MODULE__.Config, integer: 0
+
   test :invalid_token do
     assert_equal "nofile:1: invalid token: \end", format_rescue '\end'
   end
@@ -146,6 +148,26 @@ defmodule Elixir.ErrorsTest do
 
   test :invalid_bitstring_specified do
     assert_equal "nofile:1: invalid specifier for <<>>", format_rescue '<<1|12-binary()>>'
+  end
+
+  test :invalid_access_protocol_not_reference do
+    assert_equal "nofile:2: invalid usage of access protocol in signature",
+      format_rescue 'defmodule Foo do\ndef sample(config[integer: 0]), do: true\nend'
+  end
+
+  test :invalid_access_protocol_not_available do
+    assert_equal "nofile:2: module __MAIN__.Unknown is not loaded, reason: nofile",
+      format_rescue 'defmodule Foo do\ndef sample(Unknown[integer: 0]), do: true\nend'
+  end
+
+  test :invalid_access_protocol_not_record do
+    assert_equal "nofile:2: cannot use module __MAIN__.Elixir.ErrorsTest in access protocol because it doesn't represent a record",
+      format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest[integer: 0]), do: true\nend'
+  end
+
+  test :invalid_access_protocol_not_orddict do
+    assert_equal "nofile:2: expected contents inside brackets to be an Orddict",
+      format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[0]), do: true\nend'
   end
 
   ## Helpers
