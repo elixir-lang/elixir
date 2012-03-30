@@ -8,7 +8,7 @@ defmodule Elixir.CLI.InitTest do
   test :code_init do
     assert_equal '3\n', OS.cmd('bin/elixir -e "IO.puts 1 + 2"')
 
-    expected = '#{inspect ['-o', '1', '2', '3']}\n3\n'
+    expected = '#{inspect ["-o", "1", "2", "3"]}\n3\n'
     assert_equal expected, OS.cmd('bin/elixir -e "IO.puts inspect(Code.argv)" test/elixir/fixtures/init_sample.exs -o 1 2 3')
   end
 end

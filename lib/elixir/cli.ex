@@ -8,6 +8,8 @@ defmodule Elixir.CLI do
   # options and execute them in the order they are specified.
   def process_argv(options) do
     { config, argv } = process_options(options, Elixir.CLI.Config.new)
+
+    argv = lc arg in argv, do: list_to_binary(arg)
     Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
 
     if config.compile do
