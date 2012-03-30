@@ -1,11 +1,14 @@
-# Implements functions that only makes sense to lists
-# and cannot be part of the Enum protocol. In general,
-# favor using the Enum API instead of List.
-#
-# A decision was taken to delegate most functions to
-# Erlang's standard lib. Small performance gains
-# might be acquired by re-implementing them in Elixir.
 defmodule List do
+  @moduledoc """
+  Implements functions that only make sense for lists
+  and cannot be part of the Enum protocol. In general,
+  favor using the Enum API instead of List.
+
+  A decision was taken to delegate most functions to
+  Erlang's standard lib. Small performance gains
+  might be acquired by re-implementing them in Elixir.
+  """
+
   # Bifs: member/2, reverse/2
   # Bifs: keymember/3, keysearch/3, keyfind/3
 
@@ -38,11 +41,13 @@ defmodule List do
   end
 
   @doc """
-  Appends the list of lists all the given lists together.
+  Given a list of lists, splices its sublists into a single list.
+
+  FIXME: prosing to rename it to 'splice'
 
   ## Examples
 
-      List.append [[1,[2],3], [4], [5,6]]
+      List.splice [[1,[2],3], [4], [5,6]]
       #=> [1,[2],3,4,5,6]
 
   """
@@ -52,22 +57,29 @@ defmodule List do
 
   @doc """
   Appends the list on the right to the list on the left.
-  If the list on the left contains only one element, the
-  we simply add it as a head as an optimization. This
-  function does the same as the `++` operator.
+
+  This function produces the same result the `++` operator. The only difference
+  is a minor optimization: when the first list contains only one element, we
+  simply add it as a head to the second list.
+
+  FIXME: prosing to rename it to 'splice'
 
   ## Examples
 
-      List.append [1,2,3], [4,5,6]
+      List.splice [1,2,3], [4,5,6]
       #=> [1,2,3,4,5,6]
 
   """
+  def append([h], elements) when is_list(elements) do
+    [h|elements]
+  end
+
   def append(list, elements) when is_list(list) and is_list(elements) do
     list ++ elements
   end
 
   @doc """
-  Flattens the given `list` of lists. An optional
+  Flattens the given `list` of nested lists. An optional
   tail can be given that will be added at the end of
   the flattened list.
 
@@ -167,10 +179,9 @@ defmodule List do
   end
 
   @doc """
-  Prepend the items given as first argument to list
-  as right argument. Note that items are prepended in
-  reverse order. This function does not modify the tail
-  and therefore does not duplicate the entries in memory.
+  Prepends the items from the list of the left to the list on the right.
+  Note that items are prepended in reverse order. This function does not modify
+  the tail and therefore does not duplicate the entries in memory.
 
   ## Examples
 
