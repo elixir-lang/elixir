@@ -114,3 +114,13 @@ defimpl Access, for: Atom do
     atom.new(orddict)
   end
 end
+
+defimpl Access, for: Function do
+  @doc """
+  A function access simply executes it passing the
+  the access item as argument.
+  """
+  def access(function, item) do
+    function.(item)
+  end
+end

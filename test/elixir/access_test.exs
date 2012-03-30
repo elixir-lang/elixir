@@ -115,3 +115,13 @@ defmodule Access.AtomTest do
     assert_equal { Access.Config, 1 }, Access.Config[integer: 1]
   end
 end
+
+defmodule Access.FunctionTest do
+  use ExUnit.Case
+
+  test :any do
+    function = fn(x) -> x == :foo end
+    assert_equal true,  function[:foo]
+    assert_equal false, function[:bar]
+  end
+end
