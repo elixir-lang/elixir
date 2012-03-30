@@ -12,10 +12,11 @@ defmodule Enum do
       Enum.map [1,2,3], fun(x, do: x * 2)
 
   However, one can use their own iteration function for any
-  collection by passing the iterator function as the first
-  argument:
+  collection by passing their own iterator function with the
+  head of iteration:
 
-      Enum.map my_iteration_function, [1,2,3], fun(x, do: x * 2)
+      current = my_iteration_function.([1,2,3)
+      Enum.map my_iteration_function, current, fun(x, do: x * 2)
 
   ## The protocol
 
