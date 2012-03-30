@@ -104,3 +104,14 @@ defmodule Access.BinaryTest do
     assert_equal ?c, Binary.access "abc", -1
   end
 end
+
+defrecord Access.Config, integer: 0
+
+defmodule Access.AtomTest do
+  use ExUnit.Case
+
+  test :orddict do
+    assert_equal { Access.Config, 0 }, Access.Config[]
+    assert_equal { Access.Config, 1 }, Access.Config[integer: 1]
+  end
+end

@@ -1,7 +1,7 @@
 import Elixir.Builtin, except: [access: 2]
 
 defprotocol Access, [access(element, qualifier)],
-  only: [List, BitString, Record, Tuple, Atom, PID, Function]
+  only: [List, BitString, Record, Tuple, Atom, Function]
 
 defimpl Access, for: Tuple do
   def access(tuple, integer) when is_integer(integer) and integer > 0 and integer <= size(tuple) do
@@ -101,5 +101,16 @@ defimpl Access, for: BitString do
     match: { :match, [result] }
       result
     end
+  end
+end
+
+defimpl Access, for: Atom do
+  @doc """
+  An atom access can only be done via orddict. We assume the
+  atom represents a record module that implements new and
+  receives an orddict as argument.
+  """
+  def access(atom, orddict) when is_list(orddict) do
+    atom.new(orddict)
   end
 end

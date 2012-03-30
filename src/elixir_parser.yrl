@@ -351,8 +351,9 @@ stab_block -> stab_eol expr_list eol kv_list 'end' : build_kv_block('$1', '$2', 
 
 % Lists
 
-bracket_access -> open_bracket kv_comma close_bracket : { sort_kv('$2'), ?line('$1') }.
+bracket_access -> open_bracket ']' : { [], ?line('$1') }.
 bracket_access -> open_bracket expr close_bracket : { '$2', ?line('$1') }.
+bracket_access -> open_bracket kv_comma close_bracket : { sort_kv('$2'), ?line('$1') }.
 
 list -> open_bracket ']' : [].
 list -> open_bracket kv_comma close_bracket : sort_kv('$2').
