@@ -156,6 +156,45 @@ translate_macro({use, Line, [Raw, Args]}, S) ->
 
   translate_each(Call, S);
 
+%% Access
+
+translate_macro({ access, Line, [Element, Orddict] }, S) ->
+  case S#elixir_scope.guard of
+    true ->
+      case translate_each(Element, S) of
+        { { atom, _, Atom }, _ } ->
+          case is_orddict(Orddict) of
+            true -> [];
+            false ->
+              Message0 = "expected contents inside brackets to be an Orddict",
+              syntax_error(Line, S#elixir_scope.filename, Message0)
+          end,
+
+          elixir_ref:ensure_loaded(Line, Atom, S, true),
+
+          try Atom:'__record__'(fields) of
+            Fields ->
+              Match = lists:map(fun({Field,_}) ->
+                case orddict:find(Field, Orddict) of
+                  { ok, Value } -> Value;
+                  error -> { '_', Line, nil }
+                end
+              end, Fields),
+
+              translate_each({ '{}', Line, [Atom|Match] }, S)
+          catch
+            error:undef ->
+              Message1 = "cannot use module ~s in access protocol because it doesn't represent a record",
+              syntax_error(Line, S#elixir_scope.filename, Message1, [Atom])
+          end;
+        _ ->
+          syntax_error(Line, S#elixir_scope.filename, "invalid usage of access protocol in signature")
+      end;
+    false ->
+      Fallback = { { '.', Line, ['__MAIN__.Access', access] }, Line, [Element, Orddict] },
+      translate_each(Fallback, S)
+  end;
+
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
 translate_macro({ apply, Line, [Left, Right, Args] }, S) when is_list(Args) ->
@@ -176,6 +215,11 @@ translate_macro({ 'var!', Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for var!").
 
 %% HELPERS
+
+is_orddict(Orddict) -> is_list(Orddict) andalso lists:all(fun is_orddict_tuple/1, Orddict).
+
+is_orddict_tuple({X,_}) when is_atom(X) -> true;
+is_orddict_tuple(_) -> false.
 
 is_reserved_data(moduledoc) -> true;
 is_reserved_data(doc)       -> true;

@@ -481,6 +481,18 @@ defmodule Elixir.Builtin do
   protocol, so check the protocol documentation for more
   information.
 
+  It is important to notice the access protocol is also
+  allowed in function signatures when applying to references.
+  This is useful when working with records to allow to match
+  against an specific part of a record:
+
+      def uri_parse(Uri.Config[schema: :http])
+
+  In the example above, the schema clause will only match if
+  the config schema is `:http`. Using the access protocol with
+  a reference that does not point to a record module will
+  generate a compilation exception.
+
   ## Examples
 
       a = { :a, :b, :c }
@@ -488,9 +500,7 @@ defmodule Elixir.Builtin do
       access a, 1 #=> :a
 
   """
-  defmacro access(element, qualifier) do
-    quote do: __MAIN__.Access.access(unquote(element), unquote(qualifier))
-  end
+  defmacro access(element, qualifier)
 
   @doc """
   Convert the argument to a string according to the Binary.Chars protocol.
