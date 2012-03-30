@@ -22,12 +22,12 @@ assigns_block(Line, Fun, BareArgs, Exprs, S) ->
   assigns_block(Line, Fun, Args, Exprs, extract_guard_clauses(Guards), S).
 
 assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
-  { TArgs, SA }  = elixir_clauses:assigns(Fun, Args, S),
-  { TExprs, SE } = elixir_translator:translate(Exprs, SA),
+  { TArgs, SA }  = elixir_clauses:assigns(Fun, Args, S#elixir_scope{guard=true}),
 
   FArgs   = listify(TArgs),
-  SG      = SA#elixir_scope{guard=true},
-  FGuards = [translate_guard(Line, Guard, SG) || Guard <- Guards],
+  FGuards = [translate_guard(Line, Guard, SA) || Guard <- Guards],
+
+  { TExprs, SE } = elixir_translator:translate(Exprs, SA#elixir_scope{guard=false}),
 
   % Uncompact expressions from the block.
   case TExprs of
