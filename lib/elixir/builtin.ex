@@ -477,13 +477,14 @@ defmodule Elixir.Builtin do
 
   @doc """
   Access the given element according the qualifier according
-  to the `Access` protocol.
+  to the `Access` protocol. Many types implement the access
+  protocol, so check the protocol documentation for more
+  information.
 
   ## Examples
 
       a = { :a, :b, :c }
       a[1] #=> :a
-
       access a, 1 #=> :a
 
   """
