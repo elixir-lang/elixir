@@ -206,7 +206,7 @@ defmodule Elixir.CLI do
 
   defp compile_patterns(lines, config) do
     lines  = Enum.map lines, File.wildcard(&1)
-    concat = List.uniq(List.append(lines))
+    concat = List.uniq(List.concat(lines))
 
     Erlang.elixir_compiler.set_opts(config.compile_options)
 

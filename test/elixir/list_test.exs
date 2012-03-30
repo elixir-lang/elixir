@@ -63,12 +63,12 @@ defmodule ListTest do
     assert_equal [0,1,2,3], List.prepend [1,0], [2,3]
   end
 
-  test :append_1 do
-    assert_equal [1,[2],3,4,5,6], List.append [[1,[2],3], [4], [5,6]]
+  test :concat_1 do
+    assert_equal [1,[2],3,4,5,6], List.concat [[1,[2],3], [4], [5,6]]
   end
 
-  test :append_2 do
-    assert_equal [1,[2],3,4,5], List.append [1,[2],3], [4,5]
+  test :concat_2 do
+    assert_equal [1,[2],3,4,5], List.concat [1,[2],3], [4,5]
   end
 
   test :reverse do

@@ -41,40 +41,36 @@ defmodule List do
   end
 
   @doc """
-  Given a list of lists, splices its sublists into a single list.
-
-  FIXME: prosing to rename it to 'splice'
+  Given a list of lists, concatenates the sublists into a single list.
 
   ## Examples
 
-      List.splice [[1,[2],3], [4], [5,6]]
+      List.concat [[1,[2],3], [4], [5,6]]
       #=> [1,[2],3,4,5,6]
 
   """
-  def append(list) when is_list(list) do
+  def concat(list) when is_list(list) do
     Erlang.lists.append(list)
   end
 
   @doc """
-  Appends the list on the right to the list on the left.
+  Concatenates the list on the right with the list on the left.
 
   This function produces the same result the `++` operator. The only difference
   is a minor optimization: when the first list contains only one element, we
   simply add it as a head to the second list.
 
-  FIXME: prosing to rename it to 'splice'
-
   ## Examples
 
-      List.splice [1,2,3], [4,5,6]
+      List.concat [1,2,3], [4,5,6]
       #=> [1,2,3,4,5,6]
 
   """
-  def append([h], elements) when is_list(elements) do
+  def concat([h], elements) when is_list(elements) do
     [h|elements]
   end
 
-  def append(list, elements) when is_list(list) and is_list(elements) do
+  def concat(list, elements) when is_list(list) and is_list(elements) do
     list ++ elements
   end
 
