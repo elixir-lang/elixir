@@ -154,8 +154,9 @@ in_erlang_functions() ->
     { abs, 1 },
     { atom_to_binary, 2 },
     { atom_to_list, 1 },
-    { binary_part, 2 },
-    { binary_part, 3 },
+    % Those are allowed in guard clauses, so we need to bring them back.
+    % { binary_part, 2 },
+    % { binary_part, 3 },
     { binary_to_atom, 2 },
     { binary_to_existing_atom, 2 },
     { binary_to_list, 1 },
