@@ -223,7 +223,7 @@ defmodule List do
     end
   end
 
-  def range(first, last, step // nil) when is_integer(first) and is_integer(last) and first > last do
+  def range(first, last, step) when is_integer(first) and is_integer(last) and first > last do
     step = case step do
     match: nil
       Erlang.lists.seq(first, last, -1)
