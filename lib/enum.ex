@@ -445,7 +445,24 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the first *count* items from the collection.
+  Splits `collection` at the first element, for which `fun` returns true.
+
+  ## Examples
+
+      Enum.split_with [1,2,3,4], fn(x) -> x == 2 end
+      #=> { [1], [2, 3, 4] }
+  """
+  def split_with(collection, fun) do
+    { iterator, pointer } = I.iterator(collection)
+    split_with(iterator, pointer, fun)
+  end
+
+  def split_with(iterator, pointer, fun) do
+    do_split_with(pointer, iterator, fun, [])
+  end
+
+  @doc """
+  Takes the first `count` items from the collection.
 
   ## Examples
 
@@ -658,6 +675,23 @@ defmodule Enum do
 
   defp do_reduce(:stop, _, acc, _) do
     acc
+  end
+
+  ## split_with
+
+  defp do_split_with({ h, next }, iterator, fun, acc) do
+    case fun.(h) do
+    match: false
+      do_split_with(iterator.(next), iterator, fun, [h|acc])
+    match: nil
+      do_split_with(iterator.(next), iterator, fun, [h|acc])
+    else:
+      { List.reverse(acc), map(iterator, { h, next }, fn(x) -> x end) }
+    end
+  end
+
+  defp do_split_with(:stop, _, _, acc) do
+    { List.reverse(acc), [] }
   end
 
   ## join

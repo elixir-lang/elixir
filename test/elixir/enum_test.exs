@@ -133,6 +133,14 @@ defmodule EnumTest do
     assert_equal { [], [] }, Enum.split [], 3
   end
 
+  test :split_with do
+    assert_equal { [1,2,3], [] }, Enum.split_with [1,2,3], fn(_, do: false)
+    assert_equal { [], [1,2,3] }, Enum.split_with [1,2,3], fn(_, do: true)
+    assert_equal { [1,2], [3] }, Enum.split_with [1,2,3], fn(x, do: x > 2)
+    assert_equal { [1,2,3], [] }, Enum.split_with [1,2,3], fn(x, do: x > 3)
+    assert_equal { [], [] }, Enum.split_with [], fn(_, do: true)
+  end
+
   test :take do
     assert_equal [], Enum.take [1,2,3], 0
     assert_equal [1], Enum.take [1,2,3], 1
