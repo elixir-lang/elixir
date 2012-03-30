@@ -118,7 +118,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops items at the beginning of `collection` while `pred` returns true.
+  Drops items at the beginning of `collection` while `fun` returns true.
 
   ## Examples
 
@@ -484,7 +484,7 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the items at the beginning of `collection` while `pred` returns true.
+  Takes the items at the beginning of `collection` while `fun` returns true.
 
   ## Examples
 
