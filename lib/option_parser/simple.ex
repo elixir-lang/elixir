@@ -35,7 +35,7 @@ defmodule OptionParser.Simple do
   end
 
   def parse(value, dict, args) do
-    { dict, List.append args, value }
+    { dict, List.concat args, value }
   end
 
   ## Helpers

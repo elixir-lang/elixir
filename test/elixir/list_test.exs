@@ -46,22 +46,29 @@ defmodule ListTest do
     refute List.member? [], 0
   end
 
-  test :seq do
-    assert_equal [1,2,3], List.seq(1,3)
-    assert_equal [1], List.seq(1,1)
-    assert_equal [], List.seq(1,0)
+  test :range do
+    assert_equal [1,2,3], List.range(1,3)
+    assert_equal [1], List.range(1, 1)
+    assert_equal [5,4,3,2,1,0], List.range(5, 0)
+    assert_equal [1,0], List.range(1, 0, -1)
+    assert_equal [1,3,5,7], List.range(1,8,2)
+    assert_equal [7,4,1], List.range(7,-1,-3)
+    assert_equal [], List.range(2,1,1)
+    assert_equal [], List.range(8,1,1)
+    assert_equal [], List.range(1,8,-1)
+    assert_equal [], List.range(1,1,-1)
   end
 
   test :prepend do
     assert_equal [0,1,2,3], List.prepend [1,0], [2,3]
   end
 
-  test :append_1 do
-    assert_equal [1,[2],3,4,5,6], List.append [[1,[2],3], [4], [5,6]]
+  test :concat_1 do
+    assert_equal [1,[2],3,4,5,6], List.concat [[1,[2],3], [4], [5,6]]
   end
 
-  test :append_2 do
-    assert_equal [1,[2],3,4,5], List.append [1,[2],3], [4,5]
+  test :concat_2 do
+    assert_equal [1,[2],3,4,5], List.concat [1,[2],3], [4,5]
   end
 
   test :reverse do
