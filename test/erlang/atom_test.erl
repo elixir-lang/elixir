@@ -14,9 +14,7 @@ atom_with_punctuation_test() ->
   {'a!',[]} = eval(":a!"),
   {'||',[]} = eval(":||").
 
-kv_with_punctuation_test() ->
-  {'a?',[]} = eval("Erlang.atom_test.kv(a?: nil)"),
-  {'a!',[]} = eval("Erlang.atom_test.kv(a!: nil)"),
+kv_with_quotes_test() ->
   {'foo bar',[]} = eval("Erlang.atom_test.kv(\"foo bar\": nil)").
 
 quoted_atom_test() ->

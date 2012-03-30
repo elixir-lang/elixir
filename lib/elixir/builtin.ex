@@ -476,6 +476,22 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  Access the given element according the qualifier according
+  to the `Access` protocol.
+
+  ## Examples
+
+      a = { :a, :b, :c }
+      a[1] #=> :a
+
+      access a, 1 #=> :a
+
+  """
+  defmacro access(element, qualifier) do
+    quote do: __MAIN__.Access.access(unquote(element), unquote(qualifier))
+  end
+
+  @doc """
   Convert the argument to a string according to the Binary.Chars protocol.
   This is the function invoked when there is string interpolation.
 

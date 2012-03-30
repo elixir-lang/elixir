@@ -1,4 +1,5 @@
 -module(elixir_tokenizer).
+-include("elixir.hrl").
 -export([tokenize/2]).
 -import(elixir_interpolation, [unescape_chars/1, unescape_tokens/1]).
 
@@ -130,7 +131,7 @@ tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
 % Atoms
 
 tokenize(Line, [$:,T|String], Tokens) when ?is_upcase(T); ?is_downcase(T); T == $_ ->
-  { Rest, { _, Atom } } = tokenize_identifier([T|String], []),
+  { Rest, Atom } = tokenize_atom([T|String], []),
   tokenize(Line, Rest, [{atom,Line,[Atom]}|Tokens]);
 
 tokenize(Line, [$:,H|T], Tokens) when H == $"; H == $' ->
@@ -230,13 +231,13 @@ tokenize(Line, [$&,H|Rest], Tokens) when ?is_digit(H) ->
 % References
 
 tokenize(Line, [H|_] = String, Tokens) when ?is_upcase(H) ->
-  { Rest, { _, Identifier } } = tokenize_identifier(String, [], false),
-  tokenize(Line, Rest, [{'__ref__',Line,[Identifier]}|Tokens]);
+  { Rest, Ref } = tokenize_identifier(String, []),
+  tokenize(Line, Rest, [{'__ref__',Line,[list_to_atom(Ref)]}|Tokens]);
 
 % Identifier
 
 tokenize(Line, [H|_] = String, Tokens) when ?is_downcase(H); H == $_ ->
-  { Rest, { Kind, _, Identifier } } = tokenize_many_identifier(Line, String, []),
+  { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(Line, String, []),
   HasKeyword = Kind == identifier orelse Kind == do_identifier,
   case HasKeyword andalso keyword(Identifier) of
     true  ->
@@ -432,37 +433,49 @@ tokenize_comment([_|Rest])           -> tokenize_comment(Rest);
 tokenize_comment([])                 -> [].
 
 % Identifiers
-% At this point, the validity of the first character was already verified.
 
-tokenize_identifier(String, Acc) ->
-  tokenize_identifier(String, Acc, true).
+% Tokenize identifier. At this point, the validity of
+% the first character was already verified.
 
-tokenize_identifier([H|T], Acc, Bool) when ?is_digit(H); ?is_upcase(H); ?is_downcase(H); H == $_ ->
-  tokenize_identifier(T, [H|Acc], Bool);
+tokenize_identifier([H|T], Acc) when ?is_digit(H); ?is_upcase(H); ?is_downcase(H); H == $_ ->
+  tokenize_identifier(T, [H|Acc]);
 
-tokenize_identifier([H|Rest], Acc, true) when H == $?; H == $! ->
-  { Rest, { punctuated_identifier, list_to_atom(lists:reverse([H|Acc])) } };
+tokenize_identifier([], Acc) ->
+  { [], lists:reverse(Acc) };
 
-tokenize_identifier(Rest, Acc, _) ->
-  { Rest, { identifier, list_to_atom(lists:reverse(Acc)) } }.
+tokenize_identifier(Rest, Acc) ->
+  { Rest, lists:reverse(Acc) }.
 
-% Tokenize identifier checking if it is a kv_identifier or a call_identifier.
-tokenize_many_identifier(Line, String, Acc) ->
-  { Rest, { Kind, Atom } } = tokenize_identifier(String, Acc),
+% Tokenize atom identifier, which also accepts punctuated identifiers
+tokenize_atom(String, Acc) ->
+  { Rest, Identifier } = tokenize_identifier(String, Acc),
   case Rest of
-    [$:|T] ->
-      case T of
-        [$:|_] -> { [$:|T], { identifier, Line, Atom } };
-        _ -> { T, { kv_identifier, Line, Atom } }
-      end;
+    [H|T] when H == $?; H == $! ->
+      { T, ?ELIXIR_ATOM_CONCAT([Identifier, [H]]) };
     _ ->
-      { Rest, tokenize_call_identifier(Kind, Line, Atom, Rest) }
+      { Rest, list_to_atom(Identifier) }
   end.
 
-% Tokenize identifier checking if it is a call_identifier.
+% Tokenize any identifier, handling kv, punctuated, paren, bracket and do identifiers.
+tokenize_any_identifier(Line, String, Acc) ->
+  { Rest, Identifier } = tokenize_identifier(String, Acc),
+  case Rest of
+    [H|T] when H == $?; H == $! ->
+      Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
+      { T, tokenize_call_identifier(punctuated_identifier, Line, Atom, T) };
+    [$:,$:|_] ->
+      { Rest, { identifier, Line, list_to_atom(Identifier) } };
+    [$:|T] ->
+      { T, { kv_identifier, Line, list_to_atom(Identifier) } };
+    _ ->
+      { Rest, tokenize_call_identifier(identifier, Line, list_to_atom(Identifier), Rest) }
+  end.
+
+% Tokenize identifiers related to function calls. Doesn't emit kv_identifiers.
 tokenize_call_identifier(Kind, Line, Atom, Rest) ->
   case Rest of
     [$(|_] -> { paren_identifier, Line, Atom };
+    [$[|_] -> { bracket_identifier, Line, Atom };
     _ ->
       case next_is_block(Rest) of
         []              -> { Kind, Line, Atom };
