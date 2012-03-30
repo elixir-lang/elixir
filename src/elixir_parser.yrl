@@ -3,8 +3,8 @@
 
 Nonterminals
   grammar expr_list
-  expr block_expr stab_expr call_expr max_expr base_expr
-  matched_expr matched_op_expr unmatched_expr op_expr
+  expr block_expr stab_expr bracket_expr call_expr max_expr
+  base_expr matched_expr matched_op_expr unmatched_expr op_expr
   comma_separator kv_eol
   add_op mult_op unary_op addadd_op multmult_op bin_concat_op
   match_op arrow_op default_op when_op pipe_op in_op
@@ -20,12 +20,13 @@ Nonterminals
   do_eol end_eol kv_item kv_list do_block stab_eol stab_block
   dot_op dot_identifier dot_do_identifier dot_ref
   dot_paren_identifier dot_punctuated_identifier parens_call
-  var list bit_string tuple
+  var list bracket_access bit_string tuple
   .
 
 Terminals
   'do' 'end' '__ref__'
-  identifier kv_identifier punctuated_identifier paren_identifier do_identifier
+  identifier kv_identifier punctuated_identifier
+  bracket_identifier paren_identifier do_identifier
   number signed_number atom bin_string list_string sigil
   dot_call_op special_op comp_op
   'not' 'and' 'or' 'xor' 'when' 'in'
@@ -133,14 +134,19 @@ stab_expr -> dot_punctuated_identifier stab_block : build_identifier('$1', [], '
 stab_expr -> dot_identifier stab_block : build_identifier('$1', [], '$2').
 stab_expr -> call_expr : '$1'.
 
-call_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', nil).
-call_expr -> dot_ref : build_identifier('$1', nil).
-call_expr -> max_expr : '$1'.
+call_expr -> var : build_identifier('$1', nil).
+call_expr -> bracket_expr : '$1'.
 
+bracket_expr -> bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
+bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
+bracket_expr -> max_expr : '$1'.
+
+max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
+max_expr -> dot_ref : build_identifier('$1', nil).
 max_expr -> base_expr : '$1'.
 max_expr -> open_paren ')' : build_block([]).
 max_expr -> open_paren expr_list close_paren : build_block('$2').
@@ -148,7 +154,6 @@ max_expr -> open_paren expr_list close_paren : build_block('$2').
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
 base_expr -> atom : build_atom('$1').
-base_expr -> var : build_identifier('$1', nil).
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
 base_expr -> '__ref__' : '$1'.
@@ -346,6 +351,10 @@ stab_block -> stab_eol expr_list eol kv_list 'end' : build_kv_block('$1', '$2', 
 
 % Lists
 
+bracket_access -> open_bracket ']' : { [], ?line('$1') }.
+bracket_access -> open_bracket expr close_bracket : { '$2', ?line('$1') }.
+bracket_access -> open_bracket kv_comma close_bracket : { sort_kv('$2'), ?line('$1') }.
+
 list -> open_bracket ']' : [].
 list -> open_bracket kv_comma close_bracket : sort_kv('$2').
 list -> open_bracket expr close_bracket : ['$2'].
@@ -439,6 +448,11 @@ build_identifier({ _, Line, Identifier }, nil) ->
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, build_args(Args) }.
+
+%% Access
+
+build_access(Expr, Access) ->
+  { access, ?line(Access), [ Expr, ?op(Access) ] }.
 
 %% Interpolation aware
 

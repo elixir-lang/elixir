@@ -182,7 +182,7 @@ defmodule Elixir.CLI do
     match: '-' ++ _
       shared_option? list, config, process_compiler(&1, &2)
     else:
-      process_compiler t, config.prepend_commands[{:compile,h}]
+      process_compiler t, config.prepend_commands [{:compile,h}]
     end
   end
 

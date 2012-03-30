@@ -32,12 +32,22 @@ defmodule ExUnit.Assertions do
       assert_member "foo", ["foo", "bar"]
 
   """
-  def assert_member(base, container) do
-    assert_member(base, container, "Expected #{inspect container} to include #{inspect base}")
+  def assert_member(base, container, message // nil) do
+    message = message || "Expected #{inspect container} to include #{inspect base}"
+    assert(Enum.find(container, &1 == base), message)
   end
 
-  def assert_member(base, container, message) do
-    assert(Enum.find(container, fn(x) -> x == base end), message)
+  @doc """
+  Asserts the value is a valid accessor of the container.
+
+  ## Examples
+
+      assert_access %r"foo", "foobar"
+
+  """
+  def assert_access(base, container, message // nil) do
+    message = message || "Expected #{inspect base} to access #{inspect container}"
+    assert(container[base], message)
   end
 
   @doc """
@@ -48,11 +58,8 @@ defmodule ExUnit.Assertions do
       assert_equal 0, 0
 
   """
-  def assert_equal(expected, received) do
-    assert_equal(expected, received, "Expected #{inspect received} to be equal to #{inspect expected}")
-  end
-
-  def assert_equal(expected, received, message) do
+  def assert_equal(expected, received, message // nil) do
+    message = message || "Expected #{inspect received} to be equal to #{inspect expected}"
     assert(expected == received, message)
   end
 
@@ -104,28 +111,13 @@ defmodule ExUnit.Assertions do
       assert_operator 1 < 2
 
   """
-  defmacro assert_operator(expression) do
+  defmacro assert_operator(expression, message // nil) do
     {operator, _, [left, right]} = expression
     quote do
-      left  = unquote(left)
-      right = unquote(right)
-      message = "Expected #{left} to be #{unquote(operator)} #{right}"
+      left    = unquote(left)
+      right   = unquote(right)
+      message = unquote(message) || "Expected #{left} to be #{unquote(operator)} #{right}"
       assert unquote(operator).(left, right), message
-    end
-  end
-
-  @doc """
-  Asserts the `expression` with binary operator and uses the expected `message.
-
-  ## Examples
-
-      assert_operator 2 > 1, "2 is always greater than 1"
-
-  """
-  defmacro assert_operator(expression, message) do
-    {operator, _, [left, right]} = expression
-    quote do
-      assert unquote(operator).(unquote(left), unquote(right)), unquote(message)
     end
   end
 
@@ -138,19 +130,8 @@ defmodule ExUnit.Assertions do
       assert_empty [1, 2]
 
   """
-  def assert_empty enum do
-    assert_empty enum, "Expected #{inspect enum} to be empty"
-  end
-
-  @doc """
-  Asserts the `enum` collection is empty with the expected `message`.
-
-  ## Examples
-
-      assert_empty [], "expected to be empty"
-
-  """
-  def assert_empty enum, message do
+  def assert_empty(enum, message // nil) do
+    message = message || "Expected #{inspect enum} to be empty"
     assert Enum.empty?(enum), message
   end
 
@@ -158,15 +139,8 @@ defmodule ExUnit.Assertions do
   Asserts the `value` is nil.
 
   """
-  def assert_nil(value) do
-    assert_nil value, "Expected #{inspect value} to be nil"
-  end
-
-  @doc """
-  Asserts the `value` is nil with the expected `message`.
-
-  """
-  def assert_nil(value, message) do
+  def assert_nil(value, message // nil) do
+    message = message || "Expected #{inspect value} to be nil"
     assert value == nil, message
   end
 
@@ -179,18 +153,10 @@ defmodule ExUnit.Assertions do
       assert_in_delta 10, 15, 4
 
   """
-  def assert_in_delta(expected, received, delta) do
+  def assert_in_delta(expected, received, delta, message // nil) do
     diff = abs(expected - received)
-    message = "Expected |#{inspect expected} - #{inspect received}| (#{inspect diff}) to be < #{inspect delta}"
-    assert diff < delta, message
-  end
-
-  @doc """
-  Asserts the `expected` and `received` are within `delta` with the expected `message`.
-
-  """
-  def assert_in_delta(expected, received, delta, message) do
-    diff = abs(expected - received)
+    message = message ||
+      "Expected |#{inspect expected} - #{inspect received}| (#{inspect diff}) to be < #{inspect delta}"
     assert diff < delta, message
   end
 
@@ -253,11 +219,8 @@ defmodule ExUnit.Assertions do
       refute false
 
   """
-  def refute(not_expected) do
-    refute(not_expected, "Expected #{inspect not_expected} to be false")
-  end
-
-  def refute(not_expected, message) do
+  def refute(not_expected, message // nil) do
+    message = message || "Expected #{inspect not_expected} to be false"
     not assert(!not_expected, message)
   end
 
@@ -269,11 +232,8 @@ defmodule ExUnit.Assertions do
       refute_equal 0, 1
 
   """
-  def refute_equal(expected, received) do
-    refute_equal(expected, received, "Expected #{inspect received} to not be equal to #{inspect expected}")
-  end
-
-  def refute_equal(expected, received, message) do
+  def refute_equal(expected, received, message // nil) do
+    message = message || "Expected #{inspect received} to not be equal to #{inspect expected}"
     refute(expected == received, message)
   end
 
@@ -286,35 +246,16 @@ defmodule ExUnit.Assertions do
       refute_empty [1, 2]
 
   """
-  def refute_empty(enum) do
-    refute_empty enum, "Expected #{inspect enum} to not be empty"
-  end
-
-  @doc """
-  Asserts the `enum` collection is not empty with the expected `message`.
-
-  ## Examples
-
-      refute_empty [], "expected to be empty"
-
-  """
-  def refute_empty(enum, message) do
+  def refute_empty(enum, message // nil) do
+    message = message || "Expected #{inspect enum} to not be empty"
     refute Enum.empty?(enum), message
   end
 
   @doc """
   Asserts the `value` is not nil.
-
   """
-  def refute_nil(value) do
-    refute_nil value, "Expected #{inspect value} to not be nil"
-  end
-
-  @doc """
-  Asserts the `value` is not nil with the expected `message`.
-
-  """
-  def refute_nil(value, message) do
+  def refute_nil(value, message // nil) do
+    message = message || "Expected #{inspect value} to not be nil"
     refute value == nil, message
   end
 
@@ -327,19 +268,38 @@ defmodule ExUnit.Assertions do
       refute_in_delta 10, 11, 2
 
   """
-  def refute_in_delta(expected, received, delta) do
+  def refute_in_delta(expected, received, delta, message // nil) do
     diff = abs(expected - received)
-    message = "Expected |#{inspect expected} - #{inspect received}| (#{inspect diff}) to not be < #{inspect delta}"
+    message = message ||
+      "Expected |#{inspect expected} - #{inspect received}| (#{inspect diff}) to not be < #{inspect delta}"
     refute diff < delta, message
   end
 
   @doc """
-  Asserts the `expected` and `received` are not within `delta` with the expected `message`.
+  Asserts the value is not a member of the given enumerable.
+  Used to check if an item belongs to a list.
+
+  ## Examples
+
+      refute_member "baz", ["foo", "bar"]
 
   """
-  def refute_in_delta(expected, received, delta, message) do
-    diff = abs(expected - received)
-    refute diff < delta, message
+  def refute_member(base, container, message // nil) do
+    message = message || "Expected #{inspect container} to not include #{inspect base}"
+    refute(Enum.find(container, &1 == base), message)
+  end
+
+  @doc """
+  Asserts the value is not a valid accessor of the container.
+
+  ## Examples
+
+      refute_access %r"baz", "foobar"
+
+  """
+  def refute_access(base, container, message // nil) do
+    message = message || "Expected #{inspect base} to not access #{inspect container}"
+    refute(container[base], message)
   end
 
   @doc """
@@ -350,11 +310,7 @@ defmodule ExUnit.Assertions do
       flunk "This should raise an error"
 
   """
-  def flunk do
-    flunk "Epic Fail!"
-  end
-
-  def flunk(message) do
+  def flunk(message // "Epic Fail!") do
     assert false, message
   end
 

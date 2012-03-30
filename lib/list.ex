@@ -10,25 +10,31 @@ defmodule List do
   # Bifs: keymember/3, keysearch/3, keyfind/3
 
   @doc """
-  Wraps the argument in a list.
-  If the argument is already a list, returns the list.
-  If the argument is nil, returns an empty list.
+  Access the list via a predicate.
+
+  If an integer, it does an index lookup with the index
+  starting with 1. Negative indexes performs a reverse
+  lookup, for example, -1 can be used to retrieve the
+  last element in the list. Returns nil if an out of
+  bounds access occurs.
+
+  If a regular expression, it returns a list with the
+  matched contents.
+
+  If an atom, assumes the list is wrapping an orddict
+  and access the key in the orddict equals to the given
+  atom.
+
+  This implements the same API as the `Access` protocol.
 
   ## Examples
 
-      List.wrap [1,2,3] #=> [1,2,3]
+      list = [ :a, :b, :c ]
+      List.access list, -1 #=> :c
 
   """
-  def wrap(list) when is_list(list) do
-    list
-  end
-
-  def wrap(nil) do
-    []
-  end
-
-  def wrap(else) do
-    [else]
+  def access(list, access) when is_list(list) do
+    Access.List.access(list, access)
   end
 
   @doc """
@@ -245,6 +251,28 @@ defmodule List do
     match: false
       index
     end
+  end
+
+  @doc """
+  Wraps the argument in a list.
+  If the argument is already a list, returns the list.
+  If the argument is nil, returns an empty list.
+
+  ## Examples
+
+      List.wrap [1,2,3] #=> [1,2,3]
+
+  """
+  def wrap(list) when is_list(list) do
+    list
+  end
+
+  def wrap(nil) do
+    []
+  end
+
+  def wrap(else) do
+    [else]
   end
 
   ## Private
