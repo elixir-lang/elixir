@@ -360,7 +360,7 @@ defmodule Enum do
   @doc """
   Invokes the given `fun` for each item in the `collection`
   while also keeping an accumulator. Returns a tuple where
-  the first element is the iterated collection and the second
+  the first element is the mapped collection and the second
   one is the final accumulator.
 
   ## Examples
@@ -383,8 +383,9 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`
-  partitioning it in two lists.
+  Partitions `collection` into two lists where the first one contains elements
+  for which `fun` returns a truthy value, and the second one -- for which `fun`
+  returns false or nil.
 
   ## Examples
 
@@ -402,7 +403,8 @@ defmodule Enum do
   end
 
   @doc """
-  Iterates the collection passing an accumulator as parameter.
+  Invokes `fun` for each element in the collection passing the accumulator
+  `acc` and the element as arguments. The return value is stored in `acc`.
   Returns the accumulator.
 
   ## Examples
@@ -411,17 +413,17 @@ defmodule Enum do
       #=> 6
 
   """
-  def reduce(collection, acc, f) when is_list(collection) do
-    :lists.foldl(f, acc, collection)
+  def reduce(collection, acc, fun) when is_list(collection) do
+    :lists.foldl(fun, acc, collection)
   end
 
-  def reduce(collection, acc, f) do
+  def reduce(collection, acc, fun) do
     { iterator, pointer } = I.iterator(collection)
-    reduce(iterator, pointer, acc, f)
+    reduce(iterator, pointer, acc, fun)
   end
 
-  def reduce(iterator, pointer, acc, f) do
-    do_reduce(pointer, iterator, acc, f)
+  def reduce(iterator, pointer, acc, fun) do
+    do_reduce(pointer, iterator, acc, fun)
   end
 
   @doc """
