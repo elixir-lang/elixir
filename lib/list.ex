@@ -201,34 +201,22 @@ defmodule List do
   end
 
   @doc """
-  Returns a list of integers in the given range (both ends included). An
-  optional step can be provided as well (defaults to 1).
+  Returns a list of integers in the given range (both ends included when
+  possible). An optional step can be provided as well (defaults to 1).
+
+  If first > last and no step is provided, the numbers will be in descending
+  order.
+
+  ## Examples
+
+      List.range 1, 3     #=> [1,2,3]
+      List.range 1, 8, 2  #=> [1,3,5,7]
+      List.range 1, 0     #=> []
+      List.range 3, 1     #=> [3,2,1]
+      List.range 5, 1, -2 #=> [5, 3, 1]
+
   """
-  def range_a(first, last, step // 1) when is_integer(first) and is_integer(last) and first <= last do
-    case step > 0 do
-    match: true
-      Erlang.lists.seq(first, last, step)
-    else:
-      []
-    end
-  end
-
-  def range_a(first, last, step) when is_integer(first) and is_integer(last) and first > last do
-    case step < 0 do
-    match: true
-      Erlang.lists.seq(first, last, step)
-    else:
-      []
-    end
-  end
-
-  @doc """
-  Returns a list of integers in the given range (both ends included). An
-  optional step can be provided as well (defaults to 1).
-
-  This variant automatically counts downwards, if first > last.
-  """
-  def range_b(first, last, step // nil) when is_integer(first) and is_integer(last) and first <= last do
+  def range(first, last, step // nil) when is_integer(first) and is_integer(last) and first <= last do
     step = case step do
     match: nil
       Erlang.lists.seq(first, last, 1)
@@ -239,7 +227,7 @@ defmodule List do
     end
   end
 
-  def range_b(first, last, step // nil) when is_integer(first) and is_integer(last) and first > last do
+  def range(first, last, step // nil) when is_integer(first) and is_integer(last) and first > last do
     step = case step do
     match: nil
       Erlang.lists.seq(first, last, -1)
@@ -248,22 +236,6 @@ defmodule List do
     else:
       Erlang.lists.seq(first, last, step)
     end
-  end
-
-  @doc """
-  Returns a list as a sequence from first to last.
-  Returns an empty list if last is lower than first.
-
-  FIXME: proposing to deprecate this one
-
-  ## Examples
-
-      List.seq(1, 3) #=> [1,2,3]
-      List.seq(1, 1) #=> [1]
-
-  """
-  def seq(first, last) when is_integer(first) and is_integer(last) and first <= last + 1 do
-    Erlang.lists.seq(first, last)
   end
 
   @doc """
