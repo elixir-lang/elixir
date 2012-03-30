@@ -114,7 +114,7 @@ defmodule EnumTest do
     assert_equal [2,4,6], Enum.map([1,2,3], fn(x) -> x * 2 end)
   end
 
-  test :mapfoldl do
+  test :map_reduce do
     assert_equal { [], 1 }, Enum.map_reduce([], 1, fn(x, acc, do: { x * 2, x + acc }))
     assert_equal { [2,4,6], 7 }, Enum.map_reduce([1,2,3], 1, fn(x, acc, do: { x * 2, x + acc }))
   end
