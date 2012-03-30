@@ -82,6 +82,12 @@ defmodule Access.BinaryTest do
     assert_equal ?c,  binary[-1]
   end
 
+  test :re_pattern do
+    binary = "abc"
+    assert_equal "b", binary[%r(b)]
+    assert_equal nil, binary[%r(d)]
+  end
+
   test :access do
     assert_equal ?c, Binary.access "abc", -1
   end

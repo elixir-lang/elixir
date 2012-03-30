@@ -10,9 +10,13 @@ defmodule List do
   # Bifs: keymember/3, keysearch/3, keyfind/3
 
   @doc """
-  Access the list via an integer. Negative indexes
-  performs an inverted lookup, for example, -1 can be
-  used to retrieve the last item in the list.
+  Access the list via a predicate.
+
+  If an integer, it does an index lookup with the index
+  starting with 1. Negative indexes performs a reverse
+  lookup, for example, -1 can be used to retrieve the
+  last element in the list. Returns nil if an out of
+  bounds access occurs.
 
   This implements the same API as the `Access` protocol.
 

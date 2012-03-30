@@ -49,6 +49,8 @@ defimpl Access, for: List do
 end
 
 defimpl Access, for: BitString do
+  ## Integer
+
   def access(binary, integer) when is_binary(binary) and
       is_integer(integer) and integer > 0 and integer <= size(binary) do
     :binary.at(binary, integer - 1)
@@ -64,5 +66,16 @@ defimpl Access, for: BitString do
 
   def access(binary, integer) when is_binary(binary) and is_integer(integer) do
     nil
+  end
+
+  ## re_pattern
+
+  def access(binary, re) when is_binary(binary) and is_record(re, :re_pattern) do
+    case Erlang.re.run(binary, re, [{ :capture, :first, :binary }]) do
+    match: :nomatch
+      nil
+    match: { :match, [result] }
+      result
+    end
   end
 end
