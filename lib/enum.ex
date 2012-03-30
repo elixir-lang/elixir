@@ -4,28 +4,26 @@ defmodule Enum do
   require Enum.Iterator, as: I
 
   @moduledoc """
-  Evalutes the items in the given collection according to the
-  Enum.Iterator protocol. Most functions in this module
-  will automatically retrieve the protocol given the collection
-  and iterator, for example:
+  Provides a set of algorithms that enumerate over collections according to the
+  Enum.Iterator protocol. Most functions in this module will automatically
+  retrieve the protocol given the collection and FIXME(iterator), for example:
 
-      Enum.map [1,2,3], fun(x, do: x * 2)
+      Enum.map [1,2,3], fn(x, do: x * 2)
 
   However, one can use their own iteration function for any
-  collection by passing their own iterator function with the
-  head of iteration:
+  collection by passing it along with the head of iteration:
 
-      current = my_iteration_function.([1,2,3)
+      current = my_iteration_function.([1,2,3])
       Enum.map my_iteration_function, current, fun(x, do: x * 2)
 
   ## The protocol
 
-  When `Enum.map` is invoked without the iterator function,
-  it invokes `Enum.Iterator.iterator(collection)` with the
+  When `Enum.<function>` is invoked without the iteration function,
+  it invokes `Enum.Iterator.iterator(collection)` on the
   given collection in order to retrieve the default iterator
   for that collection. You can implement the protocol for any
   data type you wish. Elixir ships with a default iterator
-  for lists, implemented as follow:
+  for lists, implemented as follows:
 
       defimpl Enum.Iterator, for: List do
         def iterator(list), do: { iterate(&1), iterate(list) }
@@ -39,13 +37,13 @@ defmodule Enum do
         end
       end
 
-  The `:stop` marks when iteration should finish.
+  The `:stop` marks the end of iteration loop.
   """
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`
-  checking if all results evalutes to true. If any does not,
-  abort and return false. Otherwise, true.
+  Invokes the given `fun` for each item in the `collection` and returns true if
+  each invocation returns true as well, otherwise it shirt-circuits and returns
+  false.
 
   ## Examples
 
@@ -56,7 +54,7 @@ defmodule Enum do
       #=> false
 
   If no function is given, it defaults to checking if
-  all items in the collection evalutes to true.
+  all items in the collection evaluate to true.
 
       Enum.all? [1,2,3]   #=> true
       Enum.all? [1,nil,3] #=> false
@@ -72,9 +70,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`
-  checking if any of the results returns true. If one does,
-  aborts and returns true. If not, returns false.
+  Invokes the given `fun` for each item in the `collection` and returns true if
+  at least one invocation returns true.  Returns false otherwise.
 
   ## Examples
 
@@ -85,7 +82,7 @@ defmodule Enum do
       #=> true
 
   If no function is given, it defaults to checking if
-  any item in the collection evalutes to true.
+  at least one item in the collection evaluates to true.
 
       Enum.any? [false,false,false] #=> false
       Enum.any? [false,true,false]  #=> true
@@ -101,7 +98,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops the first *count* items from the collection.
+  Drops the first `count` items from the collection.
 
   ## Examples
 
@@ -141,7 +138,7 @@ defmodule Enum do
 
   @doc """
   Returns all the entries in the collection. It is the equivalent
-  to calling map with an identify function.
+  of calling `map` with an identify function.
 
   ## Examples
 
@@ -157,11 +154,11 @@ defmodule Enum do
   end
 
   @doc """
-  Returns if the collection is empty or not.
+  Returns true if the collection is empty, otherwise false.
 
   ## Examples
 
-      Enum.empty? [] #=> true
+      Enum.empty? []      #=> true
       Enum.empty? [1,2,3] #=> false
 
   """
@@ -179,8 +176,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`.
-  Returns only the items the function evalutes to true.
+  Filters the collection, i.e. returns only those elements
+  for which `fun` returns true.
 
   ## Examples
 
@@ -216,9 +213,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the `fun` for each item in collection
-  and returns the first the function returns a truthy
-  value. If no item is found, returns `ifnone`.
+  Returns the first item for which `fun` returns a truthy value. If no such
+  item is found, returns `ifnone`.
 
   ## Examples
 
@@ -243,7 +239,7 @@ defmodule Enum do
 
   @doc """
   Similar to find, but returns the value of the function
-    invocation instead of the element iterated.
+  invocation instead of the element itself.
 
     ## Examples
 
@@ -267,18 +263,18 @@ defmodule Enum do
   end
 
   @doc """
-  Join the given `collection` according to `joiner`.
+  Joins the given `collection` according to `joiner`.
   Joiner can be either a binary or a list and the
-  result will be of the same type of joiner. If
+  result will be of the same type as joiner. If
   joiner is not passed at all, it defaults to an
   empty binary.
 
-  All items in the collection must be convertable
+  All items in the collection must be convertible
   to binary, otherwise an error is raised.
 
   ## Examples
 
-      Enum.join([1,2,3]) => "123"
+      Enum.join([1,2,3])        #=> "123"
       Enum.join([1,2,3], " = ") #=> "1 = 2 = 3"
       Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
 
@@ -297,14 +293,15 @@ defmodule Enum do
   end
 
   @doc """
-  Finds the first item in collection of tuples where the element
-    `position` in the tuple is equal to `key`. If none is found,
-    returns `default` (which defaults to nil).
+  Finds the first item in `collection` of tuples where the element
+  `position` in the tuple is equal to `key`. If none is found,
+  returns `default` (which defaults to nil).
 
     ## Examples
 
         list = [{:a,1},{:b,2},{:a,3}]
         Enum.keyfind list, :a, 1 #=> {:a, 1}
+        Enum.keyfind list, 3, 2  #=> {:a, 3}
 
   """
   def keyfind(collection, key, position, default) when is_list(collection) do
@@ -321,8 +318,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`.
-    Returns the result of all function calls.
+  Returns a new collection, where each item is the result
+  of invoking `fun` on each corresponding item of `collection`.
 
     ## Examples
 
@@ -411,7 +408,8 @@ defmodule Enum do
   end
 
   @doc """
-  Splits the enumerable in the given counter.
+  Splits the enumerable into two lists, leaving `count` elements in the first
+  one.
 
   ## Examples
 
@@ -472,7 +470,7 @@ defmodule Enum do
 
   @doc """
   Iterates the given function n times, passing values from 1
-  to n. Also has an accumulator similar to fold to store the
+  to n. Also has an accumulator similar to reduce to store the
   value between computations.
 
   ## Examples
