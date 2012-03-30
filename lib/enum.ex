@@ -5,13 +5,14 @@ defmodule Enum do
 
   @moduledoc """
   Provides a set of algorithms that enumerate over collections according to the
-  Enum.Iterator protocol. Most functions in this module will automatically
-  retrieve the protocol given the collection and FIXME(iterator), for example:
+  Enum.Iterator protocol. Most of the functions in this module have two
+  flavours. If a given collection implements the mentioned protocol (like
+  list, for instance), you can do
 
       Enum.map [1,2,3], fn(x, do: x * 2)
 
-  However, one can use their own iteration function for any
-  collection by passing it along with the head of iteration:
+  You can also use a custom iteration function for any collection by passing it
+  along with the head of iteration:
 
       current = my_iteration_function.([1,2,3])
       Enum.map my_iteration_function, current, fun(x, do: x * 2)
@@ -20,7 +21,7 @@ defmodule Enum do
 
   When `Enum.<function>` is invoked without the iteration function,
   it invokes `Enum.Iterator.iterator(collection)` on the
-  given collection in order to retrieve the default iterator
+  given collection in order to retrieve the iterator
   for that collection. You can implement the protocol for any
   data type you wish. Elixir ships with a default iterator
   for lists, implemented as follows:
