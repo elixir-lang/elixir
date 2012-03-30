@@ -1,11 +1,14 @@
-# Implements functions that only makes sense to lists
-# and cannot be part of the Enum protocol. In general,
-# favor using the Enum API instead of List.
-#
-# A decision was taken to delegate most functions to
-# Erlang's standard lib. Small performance gains
-# might be acquired by re-implementing them in Elixir.
 defmodule List do
+  @moduledoc """
+  Implements functions that only make sense for lists
+  and cannot be part of the Enum protocol. In general,
+  favor using the Enum API instead of List.
+
+  A decision was taken to delegate most functions to
+  Erlang's standard lib. Small performance gains
+  might be acquired by re-implementing them in Elixir.
+  """
+
   # Bifs: member/2, reverse/2
   # Bifs: keymember/3, keysearch/3, keyfind/3
 
@@ -38,36 +41,41 @@ defmodule List do
   end
 
   @doc """
-  Appends the list of lists all the given lists together.
+  Given a list of lists, concatenates the sublists into a single list.
 
   ## Examples
 
-      List.append [[1,[2],3], [4], [5,6]]
+      List.concat [[1,[2],3], [4], [5,6]]
       #=> [1,[2],3,4,5,6]
 
   """
-  def append(list) when is_list(list) do
+  def concat(list) when is_list(list) do
     Erlang.lists.append(list)
   end
 
   @doc """
-  Appends the list on the right to the list on the left.
-  If the list on the left contains only one element, the
-  we simply add it as a head as an optimization. This
-  function does the same as the `++` operator.
+  Concatenates the list on the right with the list on the left.
+
+  This function produces the same result the `++` operator. The only difference
+  is a minor optimization: when the first list contains only one element, we
+  simply add it as a head to the second list.
 
   ## Examples
 
-      List.append [1,2,3], [4,5,6]
+      List.concat [1,2,3], [4,5,6]
       #=> [1,2,3,4,5,6]
 
   """
-  def append(list, elements) when is_list(list) and is_list(elements) do
+  def concat([h], elements) when is_list(elements) do
+    [h|elements]
+  end
+
+  def concat(list, elements) when is_list(list) and is_list(elements) do
     list ++ elements
   end
 
   @doc """
-  Flattens the given `list` of lists. An optional
+  Flattens the given `list` of nested lists. An optional
   tail can be given that will be added at the end of
   the flattened list.
 
@@ -167,10 +175,9 @@ defmodule List do
   end
 
   @doc """
-  Prepend the items given as first argument to list
-  as right argument. Note that items are prepended in
-  reverse order. This function does not modify the tail
-  and therefore does not duplicate the entries in memory.
+  Prepends the items from the list of the left to the list on the right.
+  Note that items are prepended in reverse order. This function does not modify
+  the tail and therefore does not duplicate the entries in memory.
 
   ## Examples
 
@@ -190,17 +197,41 @@ defmodule List do
   end
 
   @doc """
-  Returns a list as a sequence from first to last.
-  Returns an empty list if last is lower than first.
+  Returns a list of integers in the given range (both ends included when
+  possible). An optional step can be provided as well (defaults to 1).
+
+  If first > last and no step is provided, the numbers will be in descending
+  order.
 
   ## Examples
 
-      List.seq(1, 3) #=> [1,2,3]
-      List.seq(1, 1) #=> [1]
+      List.range 1, 3     #=> [1,2,3]
+      List.range 1, 8, 2  #=> [1,3,5,7]
+      List.range 1, 0     #=> []
+      List.range 3, 1     #=> [3,2,1]
+      List.range 5, 1, -2 #=> [5, 3, 1]
 
   """
-  def seq(first, last) when is_integer(first) and is_integer(last) and first <= last + 1 do
-    Erlang.lists.seq(first, last)
+  def range(first, last, step // nil) when is_integer(first) and is_integer(last) and first <= last do
+    step = case step do
+    match: nil
+      Erlang.lists.seq(first, last, 1)
+    match: x when x < 0
+      []
+    else:
+      Erlang.lists.seq(first, last, step)
+    end
+  end
+
+  def range(first, last, step) when is_integer(first) and is_integer(last) and first > last do
+    step = case step do
+    match: nil
+      Erlang.lists.seq(first, last, -1)
+    match: x when x > 0
+      []
+    else:
+      Erlang.lists.seq(first, last, step)
+    end
   end
 
   @doc """

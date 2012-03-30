@@ -4,28 +4,27 @@ defmodule Enum do
   require Enum.Iterator, as: I
 
   @moduledoc """
-  Evalutes the items in the given collection according to the
-  Enum.Iterator protocol. Most functions in this module
-  will automatically retrieve the protocol given the collection
-  and iterator, for example:
+  Provides a set of algorithms that enumerate over collections according to the
+  Enum.Iterator protocol. Most of the functions in this module have two
+  flavours. If a given collection implements the mentioned protocol (like
+  list, for instance), you can do
 
-      Enum.map [1,2,3], fun(x, do: x * 2)
+      Enum.map [1,2,3], fn(x, do: x * 2)
 
-  However, one can use their own iteration function for any
-  collection by passing their own iterator function with the
-  head of iteration:
+  You can also use a custom iteration function for any collection by passing it
+  along with the head of iteration:
 
-      current = my_iteration_function.([1,2,3)
+      current = my_iteration_function.([1,2,3])
       Enum.map my_iteration_function, current, fun(x, do: x * 2)
 
   ## The protocol
 
-  When `Enum.map` is invoked without the iterator function,
-  it invokes `Enum.Iterator.iterator(collection)` with the
-  given collection in order to retrieve the default iterator
+  When `Enum.<function>` is invoked without the iteration function,
+  it invokes `Enum.Iterator.iterator(collection)` on the
+  given collection in order to retrieve the iterator
   for that collection. You can implement the protocol for any
   data type you wish. Elixir ships with a default iterator
-  for lists, implemented as follow:
+  for lists, implemented as follows:
 
       defimpl Enum.Iterator, for: List do
         def iterator(list), do: { iterate(&1), iterate(list) }
@@ -39,13 +38,13 @@ defmodule Enum do
         end
       end
 
-  The `:stop` marks when iteration should finish.
+  The `:stop` marks the end of iteration loop.
   """
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`
-  checking if all results evalutes to true. If any does not,
-  abort and return false. Otherwise, true.
+  Invokes the given `fun` for each item in the `collection` and returns true if
+  each invocation returns true as well, otherwise it shirt-circuits and returns
+  false.
 
   ## Examples
 
@@ -56,7 +55,7 @@ defmodule Enum do
       #=> false
 
   If no function is given, it defaults to checking if
-  all items in the collection evalutes to true.
+  all items in the collection evaluate to true.
 
       Enum.all? [1,2,3]   #=> true
       Enum.all? [1,nil,3] #=> false
@@ -72,9 +71,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`
-  checking if any of the results returns true. If one does,
-  aborts and returns true. If not, returns false.
+  Invokes the given `fun` for each item in the `collection` and returns true if
+  at least one invocation returns true.  Returns false otherwise.
 
   ## Examples
 
@@ -85,7 +83,7 @@ defmodule Enum do
       #=> true
 
   If no function is given, it defaults to checking if
-  any item in the collection evalutes to true.
+  at least one item in the collection evaluates to true.
 
       Enum.any? [false,false,false] #=> false
       Enum.any? [false,true,false]  #=> true
@@ -101,7 +99,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops the first *count* items from the collection.
+  Drops the first `count` items from the collection.
 
   ## Examples
 
@@ -117,6 +115,23 @@ defmodule Enum do
 
   def drop(iterator, pointer, count) do
     elem split(iterator, pointer, count), 2
+  end
+
+  @doc """
+  Drops items at the beginning of `collection` while `pred` returns true.
+
+  ## Examples
+
+      Enum.drop_while [1,2,3,4,5], fn(x, do: x < 3)
+      #=> [3,4,5]
+  """
+  def drop_while(collection, fun) do
+    { iterator, pointer } = I.iterator(collection)
+    drop_while(iterator, pointer, fun)
+  end
+
+  def drop_while(iterator, pointer, fun) do
+    do_drop_while(pointer, iterator, fun)
   end
 
   @doc """
@@ -141,7 +156,7 @@ defmodule Enum do
 
   @doc """
   Returns all the entries in the collection. It is the equivalent
-  to calling map with an identify function.
+  of calling `map` with an identify function.
 
   ## Examples
 
@@ -157,11 +172,11 @@ defmodule Enum do
   end
 
   @doc """
-  Returns if the collection is empty or not.
+  Returns true if the collection is empty, otherwise false.
 
   ## Examples
 
-      Enum.empty? [] #=> true
+      Enum.empty? []      #=> true
       Enum.empty? [1,2,3] #=> false
 
   """
@@ -179,8 +194,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`.
-  Returns only the items the function evalutes to true.
+  Filters the collection, i.e. returns only those elements
+  for which `fun` returns true.
 
   ## Examples
 
@@ -216,9 +231,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the `fun` for each item in collection
-  and returns the first the function returns a truthy
-  value. If no item is found, returns `ifnone`.
+  Returns the first item for which `fun` returns a truthy value. If no such
+  item is found, returns `ifnone`.
 
   ## Examples
 
@@ -243,7 +257,7 @@ defmodule Enum do
 
   @doc """
   Similar to find, but returns the value of the function
-    invocation instead of the element iterated.
+  invocation instead of the element itself.
 
     ## Examples
 
@@ -267,18 +281,18 @@ defmodule Enum do
   end
 
   @doc """
-  Join the given `collection` according to `joiner`.
+  Joins the given `collection` according to `joiner`.
   Joiner can be either a binary or a list and the
-  result will be of the same type of joiner. If
+  result will be of the same type as joiner. If
   joiner is not passed at all, it defaults to an
   empty binary.
 
-  All items in the collection must be convertable
+  All items in the collection must be convertible
   to binary, otherwise an error is raised.
 
   ## Examples
 
-      Enum.join([1,2,3]) => "123"
+      Enum.join([1,2,3])        #=> "123"
       Enum.join([1,2,3], " = ") #=> "1 = 2 = 3"
       Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
 
@@ -297,14 +311,15 @@ defmodule Enum do
   end
 
   @doc """
-  Finds the first item in collection of tuples where the element
-    `position` in the tuple is equal to `key`. If none is found,
-    returns `default` (which defaults to nil).
+  Finds the first item in `collection` of tuples where the element
+  `position` in the tuple is equal to `key`. If none is found,
+  returns `default` (which defaults to nil).
 
     ## Examples
 
         list = [{:a,1},{:b,2},{:a,3}]
         Enum.keyfind list, :a, 1 #=> {:a, 1}
+        Enum.keyfind list, 3, 2  #=> {:a, 3}
 
   """
   def keyfind(collection, key, position, default) when is_list(collection) do
@@ -321,8 +336,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`.
-    Returns the result of all function calls.
+  Returns a new collection, where each item is the result
+  of invoking `fun` on each corresponding item of `collection`.
 
     ## Examples
 
@@ -346,7 +361,7 @@ defmodule Enum do
   @doc """
   Invokes the given `fun` for each item in the `collection`
   while also keeping an accumulator. Returns a tuple where
-  the first element is the iterated collection and the second
+  the first element is the mapped collection and the second
   one is the final accumulator.
 
   ## Examples
@@ -369,8 +384,9 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection`
-  partitioning it in two lists.
+  Partitions `collection` into two lists where the first one contains elements
+  for which `fun` returns a truthy value, and the second one -- for which `fun`
+  returns false or nil.
 
   ## Examples
 
@@ -388,7 +404,8 @@ defmodule Enum do
   end
 
   @doc """
-  Iterates the collection passing an accumulator as parameter.
+  Invokes `fun` for each element in the collection passing the accumulator
+  `acc` and the element as arguments. The return value is stored in `acc`.
   Returns the accumulator.
 
   ## Examples
@@ -397,21 +414,22 @@ defmodule Enum do
       #=> 6
 
   """
-  def reduce(collection, acc, f) when is_list(collection) do
-    :lists.foldl(f, acc, collection)
+  def reduce(collection, acc, fun) when is_list(collection) do
+    :lists.foldl(fun, acc, collection)
   end
 
-  def reduce(collection, acc, f) do
+  def reduce(collection, acc, fun) do
     { iterator, pointer } = I.iterator(collection)
-    reduce(iterator, pointer, acc, f)
+    reduce(iterator, pointer, acc, fun)
   end
 
-  def reduce(iterator, pointer, acc, f) do
-    do_reduce(pointer, iterator, acc, f)
+  def reduce(iterator, pointer, acc, fun) do
+    do_reduce(pointer, iterator, acc, fun)
   end
 
   @doc """
-  Splits the enumerable in the given counter.
+  Splits the enumerable into two lists, leaving `count` elements in the first
+  one.
 
   ## Examples
 
@@ -430,7 +448,24 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the first *count* items from the collection.
+  Splits `collection` at the first element, for which `fun` returns true.
+
+  ## Examples
+
+      Enum.split_with [1,2,3,4], fn(x) -> x == 2 end
+      #=> { [1], [2, 3, 4] }
+  """
+  def split_with(collection, fun) do
+    { iterator, pointer } = I.iterator(collection)
+    split_with(iterator, pointer, fun)
+  end
+
+  def split_with(iterator, pointer, fun) do
+    do_split_with(pointer, iterator, fun, [])
+  end
+
+  @doc """
+  Takes the first `count` items from the collection.
 
   ## Examples
 
@@ -446,6 +481,24 @@ defmodule Enum do
 
   def take(iterator, pointer, count) do
     elem split(iterator, pointer, count), 1
+  end
+
+  @doc """
+  Takes the items at the beginning of `collection` while `pred` returns true.
+
+  ## Examples
+
+      Enum.take_while [1,2,3], fn(x, do: x < 3)
+      #=> [1, 2]
+
+  """
+  def take_while(collection, fun // fn(x, do: x)) do
+    { iterator, pointer } = I.iterator(collection)
+    take_while(iterator, pointer, fun)
+  end
+
+  def take_while(iterator, pointer, fun) do
+    do_take_while(pointer, iterator, fun, [])
   end
 
   @doc """
@@ -472,7 +525,7 @@ defmodule Enum do
 
   @doc """
   Iterates the given function n times, passing values from 1
-  to n. Also has an accumulator similar to fold to store the
+  to n. Also has an accumulator similar to reduce to store the
   value between computations.
 
   ## Examples
@@ -519,6 +572,23 @@ defmodule Enum do
 
   defp do_any?(:stop, _, _) do
     false
+  end
+
+  ## drop_while
+
+  defp do_drop_while({ h, next }, iterator, fun) do
+    case fun.(h) do
+    match: false
+      [h|map(iterator, iterator.(next), fn(x) -> x end)]
+    match: nil
+      [h|map(iterator, iterator.(next), fn(x) -> x end)]
+    else:
+      do_drop_while(iterator.(next), iterator, fun)
+    end
+  end
+
+  defp do_drop_while(:stop, _, _) do
+    []
   end
 
   ## find
@@ -608,6 +678,23 @@ defmodule Enum do
 
   defp do_reduce(:stop, _, acc, _) do
     acc
+  end
+
+  ## split_with
+
+  defp do_split_with({ h, next }, iterator, fun, acc) do
+    case fun.(h) do
+    match: false
+      do_split_with(iterator.(next), iterator, fun, [h|acc])
+    match: nil
+      do_split_with(iterator.(next), iterator, fun, [h|acc])
+    else:
+      { List.reverse(acc), map(iterator, { h, next }, fn(x) -> x end) }
+    end
+  end
+
+  defp do_split_with(:stop, _, _, acc) do
+    { List.reverse(acc), [] }
   end
 
   ## join
@@ -702,6 +789,23 @@ defmodule Enum do
 
   defp do_split(:stop, _, _, acc) do
     { List.reverse(acc), [] }
+  end
+
+  ## take_while
+
+  defp do_take_while({ h, next }, iterator, fun, acc) do
+    case fun.(h) do
+    match: false
+      List.reverse acc
+    match: nil
+      List.reverse acc
+    else:
+      do_take_while(iterator.(next), iterator, fun, [h|acc])
+    end
+  end
+
+  defp do_take_while(:stop, _, _, acc) do
+    List.reverse acc
   end
 
   ## times
