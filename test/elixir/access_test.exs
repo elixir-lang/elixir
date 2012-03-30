@@ -57,3 +57,32 @@ defmodule Access.ListTest do
     assert_equal :c, List.access [ :a, :b, :c ], -1
   end
 end
+
+defmodule Access.BinaryTest do
+  use ExUnit.Case
+
+  test :literal do
+    assert_equal ?a, "abc"[1]
+  end
+
+  test :positive_integer do
+    binary = "abc"
+    assert_equal nil, binary[0]
+    assert_equal ?a,  binary[1]
+    assert_equal ?b,  binary[2]
+    assert_equal ?c,  binary[3]
+    assert_equal nil, binary[4]
+  end
+
+  test :negative_integer do
+    binary = "abc"
+    assert_equal nil, binary[-4]
+    assert_equal ?a,  binary[-3]
+    assert_equal ?b,  binary[-2]
+    assert_equal ?c,  binary[-1]
+  end
+
+  test :access do
+    assert_equal ?c, Binary.access "abc", -1
+  end
+end

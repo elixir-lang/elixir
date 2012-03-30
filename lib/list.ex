@@ -10,30 +10,8 @@ defmodule List do
   # Bifs: keymember/3, keysearch/3, keyfind/3
 
   @doc """
-  Wraps the argument in a list.
-  If the argument is already a list, returns the list.
-  If the argument is nil, returns an empty list.
-
-  ## Examples
-
-      List.wrap [1,2,3] #=> [1,2,3]
-
-  """
-  def wrap(list) when is_list(list) do
-    list
-  end
-
-  def wrap(nil) do
-    []
-  end
-
-  def wrap(else) do
-    [else]
-  end
-
-  @doc """
   Access the list via an integer. Negative indexes
-  performs a inverted lookup, for example, -1 can be
+  performs an inverted lookup, for example, -1 can be
   used to retrieve the last item in the list.
 
   This implements the same API as the `Access` protocol.
@@ -262,6 +240,28 @@ defmodule List do
     match: false
       index
     end
+  end
+
+  @doc """
+  Wraps the argument in a list.
+  If the argument is already a list, returns the list.
+  If the argument is nil, returns an empty list.
+
+  ## Examples
+
+      List.wrap [1,2,3] #=> [1,2,3]
+
+  """
+  def wrap(list) when is_list(list) do
+    list
+  end
+
+  def wrap(nil) do
+    []
+  end
+
+  def wrap(else) do
+    [else]
   end
 
   ## Private
