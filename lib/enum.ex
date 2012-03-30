@@ -117,6 +117,23 @@ defmodule Enum do
   end
 
   @doc """
+  Drops items at the beginning of `collection` while `pred` returns true.
+
+  ## Examples
+
+      Enum.drop_while [1,2,3,4,5], fn(x, do: x < 3)
+      #=> [3,4,5]
+  """
+  def drop_while(collection, fun) do
+    { iterator, pointer } = I.iterator(collection)
+    drop_while(iterator, pointer, fun)
+  end
+
+  def drop_while(iterator, pointer, fun) do
+    do_drop_while(pointer, iterator, fun)
+  end
+
+  @doc """
   Invokes the given `fun` for each item in the `collection`.
   Returns the `collection` itself.
 
@@ -517,6 +534,23 @@ defmodule Enum do
 
   defp do_any?(:stop, _, _) do
     false
+  end
+
+  ## drop_while
+
+  defp do_drop_while({ h, next }, iterator, fun) do
+    case fun.(h) do
+    match: false
+      [h|map(iterator, iterator.(next), fn(x) -> x end)]
+    match: nil
+      [h|map(iterator, iterator.(next), fn(x) -> x end)]
+    else:
+      do_drop_while(iterator.(next), iterator, fun)
+    end
+  end
+
+  defp do_drop_while(:stop, _, _) do
+    []
   end
 
   ## find

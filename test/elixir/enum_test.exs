@@ -32,6 +32,13 @@ defmodule EnumTest do
     assert_equal [], Enum.drop [], 3
   end
 
+  test :drop_while do
+    assert_equal [4,3,2,1], Enum.drop_while [1,2,3,4,3,2,1], fn(x, do: x <= 3)
+    assert_equal [1,2,3], Enum.drop_while [1,2,3], fn(_, do: false)
+    assert_equal [], Enum.drop_while [1,2,3], fn(x, do: x <= 3)
+    assert_equal [], Enum.drop_while [], fn(_, do: false)
+  end
+
   test :find do
     assert_equal nil, Enum.find([2,4,6], fn(x, do: rem(x, 2) == 1))
     assert_equal 0, Enum.find([2,4,6], 0, fn(x, do: rem(x, 2) == 1))
