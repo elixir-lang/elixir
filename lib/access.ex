@@ -19,3 +19,31 @@ defimpl Access, for: Tuple do
     nil
   end
 end
+
+defimpl Access, for: List do
+  def access(list, integer) when is_integer(integer) and integer > 0 do
+    integer_access(list, integer - 1)
+  end
+
+  def access(list, integer) when is_integer(integer) and integer < 0 do
+    integer_access(Erlang.lists.reverse(list), - integer - 1)
+  end
+
+  def access(_list, integer) when is_integer(integer) do
+    nil
+  end
+
+  ## Helpers
+
+  defp integer_access([h|_], 0) do
+    h
+  end
+
+  defp integer_access([_|t], counter) do
+    integer_access t, counter - 1
+  end
+
+  defp integer_access([], _) do
+    nil
+  end
+end

@@ -32,6 +32,23 @@ defmodule List do
   end
 
   @doc """
+  Access the list via an integer. Negative indexes
+  performs a inverted lookup, for example, -1 can be
+  used to retrieve the last item in the list.
+
+  This implements the same API as the `Access` protocol.
+
+  ## Examples
+
+      list = [ :a, :b, :c ]
+      List.access list, -1 #=> :c
+
+  """
+  def access(list, access) when is_list(list) do
+    Access.List.access(list, access)
+  end
+
+  @doc """
   Appends the list of lists all the given lists together.
 
   ## Examples
