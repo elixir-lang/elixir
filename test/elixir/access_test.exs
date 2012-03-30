@@ -53,6 +53,18 @@ defmodule Access.ListTest do
     assert_equal :c,  list[-1]
   end
 
+  test :re_pattern do
+    list = 'abc'
+    assert_equal 'b', list[%r(b)]
+    assert_equal nil, list[%r(d)]
+  end
+
+  test :atom do
+    list = [foo: "bar"]
+    assert_equal "bar", list[:foo]
+    assert_equal nil,   list[:bar]
+  end
+
   test :access do
     assert_equal :c, List.access [ :a, :b, :c ], -1
   end

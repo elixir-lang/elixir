@@ -21,6 +21,14 @@ defimpl Access, for: Tuple do
 end
 
 defimpl Access, for: List do
+  ## Atom
+
+  def access(list, atom) when is_atom(atom) do
+    atom_access(list, atom)
+  end
+
+  ## Integers
+
   def access(list, integer) when is_integer(integer) and integer > 0 do
     integer_access(list, integer - 1)
   end
@@ -33,7 +41,23 @@ defimpl Access, for: List do
     nil
   end
 
+  ## re_pattern
+
+  def access(list, re) when is_record(re, :re_pattern) do
+    case Erlang.re.run(list, re, [{ :capture, :first, :list }]) do
+    match: :nomatch
+      nil
+    match: { :match, [result] }
+      result
+    end
+  end
+
   ## Helpers
+
+  defp atom_access([{k, _}|_], key) when key < k, do: nil
+  defp atom_access([{k, _}|d], key) when key > k, do: atom_access(d, key)
+  defp atom_access([{_k, value}|_], _key),        do: value
+  defp atom_access([], _),                        do: nil
 
   defp integer_access([h|_], 0) do
     h

@@ -18,6 +18,13 @@ defmodule List do
   last element in the list. Returns nil if an out of
   bounds access occurs.
 
+  If a regular expression, it returns a list with the
+  matched contents.
+
+  If an atom, assumes the list is wrapping an orddict
+  and access the key in the orddict equals to the given
+  atom.
+
   This implements the same API as the `Access` protocol.
 
   ## Examples
