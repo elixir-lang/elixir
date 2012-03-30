@@ -464,6 +464,24 @@ defmodule Enum do
   end
 
   @doc """
+  Takes the items at the beginning of `collection` while `pred` returns true.
+
+  ## Examples
+
+      Enum.take_while [1,2,3], fn(x, do: x < 3)
+      #=> [1, 2]
+
+  """
+  def take_while(collection, fun // fn(x, do: x)) do
+    { iterator, pointer } = I.iterator(collection)
+    take_while(iterator, pointer, fun)
+  end
+
+  def take_while(iterator, pointer, fun) do
+    do_take_while(pointer, iterator, fun, [])
+  end
+
+  @doc """
   Iterates the given function n times, passing values from 1
   to n.
 
@@ -734,6 +752,23 @@ defmodule Enum do
 
   defp do_split(:stop, _, _, acc) do
     { List.reverse(acc), [] }
+  end
+
+  ## take_while
+
+  defp do_take_while({ h, next }, iterator, fun, acc) do
+    case fun.(h) do
+    match: false
+      List.reverse acc
+    match: nil
+      List.reverse acc
+    else:
+      do_take_while(iterator.(next), iterator, fun, [h|acc])
+    end
+  end
+
+  defp do_take_while(:stop, _, _, acc) do
+    List.reverse acc
   end
 
   ## times

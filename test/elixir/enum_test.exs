@@ -142,6 +142,13 @@ defmodule EnumTest do
     assert_equal [], Enum.take [], 3
   end
 
+  test :take_while do
+    assert_equal [], Enum.take_while [1,2,3], fn(x, do: x > 3)
+    assert_equal [1], Enum.take_while [1,2,3], fn(x, do: x <= 1)
+    assert_equal [1,2,3], Enum.take_while [1,2,3], fn(x, do: x <= 3)
+    assert_equal [], Enum.take_while [], fn(_, do: true)
+  end
+
   test :times_with_arity_0 do
     Process.put(:times_with_arity, nil)
     assert_equal 0, Enum.times(0, fn do: Process.put(:times_with_arity, :ok))
