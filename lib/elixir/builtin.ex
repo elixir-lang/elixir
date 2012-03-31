@@ -944,25 +944,13 @@ defmodule Elixir.Builtin do
   The example above will only work if x matches
   the first value from the right side.
   """
-  defmacro destructure([head|tail], right) do
-    # For the first match, we need to ensure the element given
-    # is an array. For the other matches, we don't care because
-    # we have validated it is a list.
-    head = quote do
-      case unquote(right) do
-      match: [unquote(head)|t]
-        t
-      match: []
-        unquote(head) = nil
-      end
-    end
-
-    List.foldl tail, head, fn(item, acc) ->
+  defmacro destructure(left, right) when is_list(left) do
+    List.foldl left, right, fn(item, acc) ->
       quote do
         case unquote(acc) do
         match: [unquote(item)|t]
           t
-        match: _
+        match: other when other == [] or other == nil
           unquote(item) = nil
         end
       end

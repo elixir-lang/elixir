@@ -38,6 +38,13 @@ defmodule Kernel.DestructureTest do
     assert_equal 2, b
   end
 
+  test :nil do
+    destructure [a,b,c], a_nil
+    assert_equal nil, a
+    assert_equal nil, b
+    assert_equal nil, c
+  end
+
   test :invalid_match do
     a = 3
     assert_raises MatchError, fn ->
@@ -46,4 +53,5 @@ defmodule Kernel.DestructureTest do
   end
 
   defp a_list, do: [1,2,3]
+  defp a_nil, do: nil
 end
