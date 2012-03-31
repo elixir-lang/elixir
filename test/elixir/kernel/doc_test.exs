@@ -13,7 +13,7 @@ defmodule Kernel.DocTest do
       Code.prepend_path(tmp)
 
       assert_equal [], CompiledWithDocs.__info__(:data)
-      expected = [{{:example,0},5,:def,"Some example"},{{:nodoc,0},7,:def,nil}]
+      expected = [{{:example,1},5,:def,"Some example"},{{:nodoc,0},7,:def,nil}]
       assert_equal expected, CompiledWithDocs.__info__(:docs)
       assert_equal { 1, "moduledoc" }, CompiledWithDocs.__info__(:moduledoc)
     after:
