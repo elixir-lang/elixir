@@ -33,6 +33,12 @@ defmodule Kernel.DestructureTest do
     assert_equal nil, c
   end
 
+  test :nil do
+    assert_equal nil, destructure(nil, nil)
+    assert_equal nil, destructure([], nil)
+    assert_equal nil, destructure([a, b, c], nil)
+  end
+
   test :match do
     destructure [1,b,_], [1,2,3]
     assert_equal 2, b
