@@ -171,8 +171,13 @@ defmodule Module do
       :warn
     else:
       table = docs_table_for(module)
-      ETS.insert(table, { tuple, line, kind, doc })
-      :ok
+      case ETS.lookup(table, tuple) do
+      match: []
+        ETS.insert(table, { tuple, line, kind, doc })
+        :ok
+      else:
+        :already_exists
+      end
     end
   end
 
