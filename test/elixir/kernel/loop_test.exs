@@ -16,6 +16,25 @@ defmodule Kernel.LoopTest do
     assert_equal [6,4,2], result
   end
 
+  test :do_nested_loop do
+    list = [[1,2],[2,3],[3,4]]
+
+    result = loop list, [] do
+    match: [h|t], acc
+      result = loop h, 0 do
+      match: [h|t], acc
+        recur t, acc + h*2
+      match: [], acc
+        acc
+      end
+      recur t, [result|acc]
+    match: [], acc
+      acc
+    end
+
+    assert_equal [14,10,6], result
+  end
+
   test :do_loop_base do
     fun = fn do
     match: { 1, 2 }, []

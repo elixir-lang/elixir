@@ -312,7 +312,7 @@ translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
       ] },
 
       { TBlock, TS } = translate_each(Block, VS#elixir_scope{recur=element(1,FunVar)}),
-      { TBlock, TS#elixir_scope{recur=[]} };
+      { TBlock, TS#elixir_scope{recur=S#elixir_scope.recur} };
     _ ->
       syntax_error(Line, S#elixir_scope.filename, "invalid args for loop")
   end;
