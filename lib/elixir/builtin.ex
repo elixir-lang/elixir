@@ -944,6 +944,7 @@ defmodule Elixir.Builtin do
   The example above will only work if x matches
   the first value from the right side.
   """
+  defmacro destructure(_, nil), do: nil
   defmacro destructure([head|tail], right) do
     # For the first match, we need to ensure the element given
     # is an array. For the other matches, we don't care because
