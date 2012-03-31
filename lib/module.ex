@@ -168,15 +168,17 @@ defmodule Module do
     assert_not_compiled!(:add_doc, module)
     case kind == :defp and doc != nil do
     match: true
-      :warn
+      { :error, :private_doc }
     else:
       table = docs_table_for(module)
-      case ETS.lookup(table, tuple) do
-      match: []
+      case { ETS.lookup(table, tuple), doc } do
+      match: { [], _ }
         ETS.insert(table, { tuple, line, kind, doc })
         :ok
+      match: { _, nil }
+        :ok
       else:
-        :already_exists
+        { :error, :existing_doc }
       end
     end
   end

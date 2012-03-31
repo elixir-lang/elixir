@@ -143,8 +143,8 @@ compile_docs(Kind, Line, Module, Name, Arity, S) ->
     true -> [];
     _ ->
       case '__MAIN__.Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
-        warn -> elixir_errors:handle_file_warning(S#elixir_scope.filename,
-          { Line, ?MODULE, { invalid_doc, { Name, Arity } } });
+        { error, Message } -> elixir_errors:handle_file_warning(S#elixir_scope.filename,
+          { Line, ?MODULE, { Message, { Name, Arity } } });
         _ -> []
       end
   end.
@@ -282,8 +282,11 @@ check_valid_clause(Line, Filename, Name, Arity, Table) ->
 
 %% Format errors
 
-format_error({invalid_doc,{Name,Arity}}) ->
-  io_lib:format("function ~s/~B is private. @doc's are always discarded for private functions", [Name, Arity]);
+format_error({private_doc,{Name,Arity}}) ->
+  io_lib:format("function ~s/~B is private, @doc's are always discarded for private functions", [Name, Arity]);
+
+format_error({existing_doc,{Name,Arity}}) ->
+  io_lib:format("@doc's for function ~s/~B have been given more than once, the first version is being kept", [Name, Arity]);
 
 format_error({changed_clause,{{Name,Arity},{ElseName,ElseArity}}}) ->
   io_lib:format("function ~s/~B does not match previous clause ~s/~B", [Name, Arity, ElseName, ElseArity]);
