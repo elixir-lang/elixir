@@ -1,11 +1,7 @@
-defmodule Env do
-  Env.Compiler.generate
-end
-
 defmodule Env.Compiler do
   @moduledoc false
 
-  def generate do
+  defmacro generate do
     quote do
       @moduledoc """
       Provides functions for obtaining information about Elixir runtime.
@@ -40,4 +36,9 @@ defmodule Env.Compiler do
   defp trim(string) do
     :re.replace string, '\n' , '', [{:return,:list}]
   end
+end
+
+defmodule Env do
+  require Env.Compiler
+  Env.Compiler.generate
 end
