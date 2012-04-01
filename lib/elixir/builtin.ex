@@ -27,16 +27,18 @@ defmodule Elixir.Builtin do
 
   ## Nesting
 
-  Nesting a module inside the other does not affect its name:
+  Nesting a module inside the other affects its name:
 
       defmodule Foo do
         defmodule Bar do
         end
       end
 
-  In the example above, two modules `Foo` and `Bar`. Notice that
-  the second module is **not** called `Foo.Bar`. In general,
-  nesting modules is discouraged in Elixir.
+  In the example above, two modules `Foo` and `Foo.Bar`. The
+  second can be accessed as `Bar` inside `Foo` in the same
+  lexical scope. If the module Bar is moved away to another
+  file, it needs to be referenced via the full name or a
+  reference need to be set with the help of `refer/2`.
 
   ## Dynamic names
 
