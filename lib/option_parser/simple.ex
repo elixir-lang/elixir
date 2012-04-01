@@ -6,21 +6,21 @@ defmodule OptionParser.Simple do
 
   ## Example
 
-      OptionParser.Simple.parse(['--debug'])
+      OptionParser.Simple.parse(["--debug"])
       #=> { [debug: true], [] }
 
-      OptionParser.Simple.parse(['--source', 'lib'])
-      #=> { [source: 'lib'], [] }
+      OptionParser.Simple.parse(["--source", "lib"])
+      #=> { [source: "lib"], [] }
 
-      OptionParser.Simple.parse(['--source', 'lib', 'test/enum_test.exs'])
-      #=> { [source: 'lib'], ['test/enum_test.exs'] }
+      OptionParser.Simple.parse(["--source", "lib", "test/enum_test.exs"])
+      #=> { [source: "lib"], ["test/enum_test.exs"] }
 
   """
-  def parse(['-' ++ option,h|t], dict // [], args // []) do
+  def parse([<<?-, option|binary>>, h|t], dict // [], args // []) do
     option = normalize_option(option)
 
     case h do
-    match: '-' ++ _
+    match: <<?-, _|binary>>
       dict = Keyword.put dict, option, true
       parse([h|t], dict, args)
     else:
@@ -29,31 +29,31 @@ defmodule OptionParser.Simple do
     end
   end
 
-  def parse(['-' ++ option], dict, args) do
+  def parse([<<?-, option|binary>>], dict, args) do
     dict = Keyword.put dict, normalize_option(option), true
     { dict, args }
   end
 
   def parse(value, dict, args) do
-    { dict, List.concat args, value }
+    { dict, List.concat(args, value) }
   end
 
   ## Helpers
 
-  defp key_value(key, boolean, dict) when boolean == 'false' \
-                                     when boolean == 'true' do
-    Keyword.put dict, key, list_to_atom(boolean)
+  defp key_value(key, boolean, dict) when boolean == "false" \
+                                     when boolean == "true" do
+    Keyword.put dict, key, binary_to_atom(boolean, :utf8)
   end
 
   defp key_value(key, value, dict) do
     Keyword.put dict, key, value
   end
 
-  defp normalize_option('-' ++ option) do
-    list_to_atom(option)
+  defp normalize_option(<<?-, option|binary>>) do
+    binary_to_atom(option, :utf8)
   end
 
   defp normalize_option(option) do
-    list_to_atom(option)
+    binary_to_atom(option, :utf8)
   end
 end
