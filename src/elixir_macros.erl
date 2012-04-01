@@ -101,13 +101,25 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
     error -> syntax_error(Line, S#elixir_scope.filename, "expected do: argument in defmodule")
   end,
 
-  NS = case TRef of
+  { FRef, FS } = case TRef of
     { atom, _, Module } ->
-      S#elixir_scope{scheduled=[Module|S#elixir_scope.scheduled]};
-    _ -> S
+      NewModule = module_ref(Ref, Module, S#elixir_scope.module),
+
+      RS = case Module == NewModule of
+        true  -> S;
+        false ->
+          element(2, translate_each({ refer, Line, [NewModule, [{as,Module}]] }, S))
+      end,
+
+      {
+        { atom, Line, NewModule },
+        RS#elixir_scope{scheduled=[NewModule|S#elixir_scope.scheduled]}
+      };
+    _ ->
+      { TRef, S }
   end,
 
-  { elixir_module:translate(Line, TRef, Block, S), NS };
+  { elixir_module:translate(Line, FRef, Block, S), FS };
 
 translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
   translate_macro({Kind, Line, [Call, skip_definition]}, S);
@@ -215,6 +227,15 @@ translate_macro({ 'var!', Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for var!").
 
 %% HELPERS
+
+module_ref(_Raw, Module, []) ->
+  Module;
+
+module_ref({{ '.', _, [{ '__MAIN__', _, Atom }, _]}, _, _}, Module, _Nesting) when is_atom(Atom) ->
+  Module;
+
+module_ref(_, Module, Nesting) ->
+  elixir_ref:concat([Nesting, Module]).
 
 is_orddict(Keyword) -> is_list(Keyword) andalso lists:all(fun is_orddict_tuple/1, Keyword).
 

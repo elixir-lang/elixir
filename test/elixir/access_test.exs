@@ -105,40 +105,40 @@ defmodule Access.BinaryTest do
   end
 end
 
-defrecord Access.Config, integer: 0
-
 defmodule Access.AtomTest do
   use ExUnit.Case
 
+  defrecord Config, integer: 0
+
   test :keywords do
-    assert_equal { Access.Config, 0 }, Access.Config[]
-    assert_equal { Access.Config, 1 }, Access.Config[integer: 1]
+    assert_equal { Config, 0 }, Config[]
+    assert_equal { Config, 1 }, Config[integer: 1]
   end
 
   test :in_guard_with_variable do
-    assert_equal 0, get_var(Access.Config.new)
-    assert_equal 1, get_var(Access.Config.new(integer: 1))
+    assert_equal 0, get_var(Config.new)
+    assert_equal 1, get_var(Config.new(integer: 1))
   end
 
   test :in_guard_with_record_match do
-    assert_equal true,  is_config(Access.Config.new)
+    assert_equal true,  is_config(Config.new)
     assert_equal false, is_config({ Access.AtomTest, 1 })
-    assert_equal false, is_config({ Access.Config, 1, 2 })
+    assert_equal false, is_config({ Config, 1, 2 })
   end
 
   test :in_guard_with_field_match do
-    assert_equal true,  is_zero(Access.Config.new)
-    assert_equal false, is_zero(Access.Config.new(integer: 1))
+    assert_equal true,  is_zero(Config.new)
+    assert_equal false, is_zero(Config.new(integer: 1))
   end
 
-  defp get_var(Access.Config[integer: integer]) do
+  defp get_var(Config[integer: integer]) do
     integer
   end
 
-  defp is_zero(Access.Config[integer: 0]), do: true
-  defp is_zero(Access.Config[integer: _]),  do: false
+  defp is_zero(Config[integer: 0]), do: true
+  defp is_zero(Config[integer: _]),  do: false
 
-  defp is_config(Access.Config[]), do: true
+  defp is_config(Config[]), do: true
   defp is_config(_), do: false
 end
 

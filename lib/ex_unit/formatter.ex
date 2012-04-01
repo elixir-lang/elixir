@@ -1,7 +1,7 @@
-defrecord ExUnit.Formatter.Config, counter: 0, failures: []
-
 defmodule ExUnit.Formatter do
   use GenServer.Behavior
+
+  defrecord Config, counter: 0, failures: []
 
   import Exception, only: [format_stacktrace: 1]
 
@@ -11,7 +11,7 @@ defmodule ExUnit.Formatter do
   end
 
   def init(_args) do
-    { :ok, ExUnit.Formatter.Config.new }
+    { :ok, Config.new }
   end
 
   def handle_call({:each, _test_case, _test, nil }, _from, config) do

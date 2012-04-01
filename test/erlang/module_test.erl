@@ -104,8 +104,15 @@ do_end_test() ->
   F = fun() ->
     eval("defmodule Foo do\ndef a, do: 1\ndefmodule Bar do\ndef b, do: 2\nend\ndef c, do: 3\nend"),
     {1,_} = eval("Foo.a"),
-    {2,_} = eval("Bar.b"),
+    {2,_} = eval("Foo.Bar.b"),
     {3,_} = eval("Foo.c")
+  end,
+  test_helper:run_and_remove(F, ['__MAIN__.Foo', '__MAIN__.Foo.Bar']).
+
+nesting_test() ->
+  F = fun() ->
+    eval("defmodule Foo do\ndefmodule __MAIN__.Bar do\ndef b, do: 2\nend\nend"),
+    {2,_} = eval("Bar.b")
   end,
   test_helper:run_and_remove(F, ['__MAIN__.Foo', '__MAIN__.Bar']).
 

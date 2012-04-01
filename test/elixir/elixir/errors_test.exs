@@ -3,12 +3,12 @@ Code.require_file "../../test_helper", __FILE__
 defmodule Elixir.ErrorsTest do
   use ExUnit.Case
 
-  defmodule __MODULE__.UnproperMacro do
+  defmodule UnproperMacro do
     defmacro unproper(args), do: args
     defmacro exit(args), do: args
   end
 
-  defrecord __MODULE__.Config, integer: 0
+  defrecord Config, integer: 0
 
   test :invalid_token do
     assert_equal "nofile:1: invalid token: \end", format_rescue '\end'
@@ -115,8 +115,8 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :scheduled_module do
-    assert_equal "nofile:1: module __MAIN__.Hygiene is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
-      format_rescue 'defmodule Foo do; defmodule Hygiene do; end; import Hygiene; end'
+    assert_equal "nofile:1: module __MAIN__.Foo.Hygiene is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
+      format_rescue 'defmodule Foo do; defmodule Hygiene do; end; import Foo.Hygiene; end'
   end
 
   test :already_compiled_module do
