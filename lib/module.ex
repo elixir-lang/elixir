@@ -115,7 +115,7 @@ defmodule Module do
 
   """
   def read_data(module, at) do
-    Orddict.get read_data(module), at
+    Keyword.get read_data(module), at
   end
 
   @doc """
@@ -145,7 +145,7 @@ defmodule Module do
 
     { attrs, new } = Enum.partition data, fn({k,_}) -> List.member?(registered, k) end
     Enum.each attrs, fn({k,v}) -> add_attribute(module, k, v) end
-    ETS.insert(table, { :data,  Orddict.merge(old, new) })
+    ETS.insert(table, { :data,  Keyword.merge(old, new) })
   end
 
   @doc """
@@ -276,7 +276,7 @@ defmodule Module do
         end
 
         defmacro __callback__(target) do
-          value = Orddict.get(Module.read_data(target), :some_data, [])
+          value = Keyword.get(Module.read_data(target), :some_data, [])
           quote do: (def my_lib_value, do: unquote(value))
         end
       end

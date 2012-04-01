@@ -13,8 +13,8 @@ defmodule Record do
   # Main entry point for records definition.
   # This is invoked directly by Elixir.Builtin.defrecord.
   def defrecord(name, values, opts) do
-    block      = Orddict.get(opts, :do)
-    definition = Orddict.get(opts, :definition, Record.Definition)
+    block      = Keyword.get(opts, :do)
+    definition = Keyword.get(opts, :definition, Record.Definition)
 
     quote do
       defmodule unquote(name) do
@@ -68,7 +68,7 @@ defmodule Record do
   #     end
   #
   #     def new(opts) do
-  #       { FileInfo, Orddict.get(opts, :atime), Orddict.get(opts, :mtime) }
+  #       { FileInfo, Keyword.get(opts, :atime), Keyword.get(opts, :mtime) }
   #     end
   #
   defp initializers(values) do
@@ -79,7 +79,7 @@ defmodule Record do
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
     selective = Enum.map values, fn({k,v}) ->
-      quote do: Orddict.get(opts, unquote(k), unquote(v))
+      quote do: Keyword.get(opts, unquote(k), unquote(v))
     end
 
     quote do
@@ -254,7 +254,7 @@ defmodule Record.Definition do
 
       def unquote(merge).(value, record) do
         current = :erlang.element(unquote(i), record)
-        :erlang.setelement(unquote(i), record, Orddict.merge(current, value))
+        :erlang.setelement(unquote(i), record, Keyword.merge(current, value))
       end
     end
   end

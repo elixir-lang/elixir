@@ -64,13 +64,14 @@ defmodule EEx.Compiler do
     new_lines = List.duplicate(?\n, line - state.line)
     placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
 
-    { current ++ new_lines ++ placeholder ++ chars, state.merge_dict([{key, buffer}]) }
+    { current ++ new_lines ++ placeholder ++ chars, state.prepend_dict([{key, buffer}]) }
   end
 
   # Changes placeholder to real expression
 
   defp insert_quotes({ :__EEX__, _, [key] }, dict) do
-    Orddict.get(dict, key)
+    { ^key, value } = Enum.keyfind dict, key, 1
+    value
   end
 
   defp insert_quotes({ left, line, right }, dict) do

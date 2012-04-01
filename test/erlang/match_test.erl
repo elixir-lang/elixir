@@ -104,7 +104,7 @@ head_and_tail_test() ->
   {_,[{t,[2,3]}]} = eval("[+1|t] = [1,2,3]"),
   ?assertError({badmatch, _}, eval("[2,h|t] = [1,2,3]")).
 
-% Orddict match
+% Keyword match
 
 orrdict_match_test() ->
   {[{a,1},{b,2}], _} = eval("a = [a: 1, b: 2]"),

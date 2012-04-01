@@ -165,8 +165,8 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest[integer: 0]), do: true\nend'
   end
 
-  test :invalid_access_protocol_not_orddict do
-    assert_equal "nofile:2: expected contents inside brackets to be an Orddict",
+  test :invalid_access_protocol_not_keywords do
+    assert_equal "nofile:2: expected contents inside brackets to be a Keyword",
       format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[0]), do: true\nend'
   end
 

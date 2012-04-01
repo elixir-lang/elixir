@@ -90,11 +90,11 @@ defmodule ModuleTest do
   test :compile_callback_hook do
     refute ModuleTest.ToUse.original_value(1)
     assert ModuleTest.ToUse.original_value(2)
-    assert Orddict.get ModuleTest.ToUse.__info__(:data), :has_callback, false
+    assert Keyword.get ModuleTest.ToUse.__info__(:data), :has_callback, false
   end
 
   test :default_compile_callback_hook do
-    assert Orddict.get ModuleTest.ToUse.__info__(:data), :compiling, false
+    assert Keyword.get ModuleTest.ToUse.__info__(:data), :compiling, false
   end
 
   test :reserved_attributes do
@@ -127,8 +127,8 @@ defmodule ModuleTest do
   end
 
   test :defined_functions do
-    assert_equal [{:foo, 3}], Orddict.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_functions)
-    assert_equal [{:foo, 3}], Orddict.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_def)
-    assert_equal [], Orddict.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_defp)
+    assert_equal [{:foo, 3}], Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_functions)
+    assert_equal [{:foo, 3}], Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_def)
+    assert_equal [], Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_defp)
   end
 end

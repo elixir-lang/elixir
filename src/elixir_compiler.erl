@@ -109,8 +109,8 @@ core() ->
 
 %% HELPERS
 
-get_value(Orddict, Key, Default) ->
-  case orddict:find(Key, Orddict) of
+get_value(Keyword, Key, Default) ->
+  case orddict:find(Key, Keyword) of
     { ok, Value } -> Value;
     error -> Default
   end.
@@ -334,7 +334,7 @@ core_main() ->
   [
     "lib/elixir/builtin.ex",
     "lib/module.ex",
-    "lib/orddict.ex",
+    "lib/keyword.ex",
     "lib/list.ex",
     "lib/protocol.ex",
     "lib/enum.ex",

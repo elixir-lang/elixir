@@ -106,12 +106,12 @@ end
 
 defimpl Access, for: Atom do
   @doc """
-  An atom access can only be done via orddict. We assume the
+  An atom access can only be done via keywords. We assume the
   atom represents a record module that implements new and
-  receives an orddict as argument.
+  receives keywords as argument.
   """
-  def access(atom, orddict) when is_list(orddict) do
-    atom.new(orddict)
+  def access(atom, keywords) when is_list(keywords) do
+    atom.new(keywords)
   end
 end
 

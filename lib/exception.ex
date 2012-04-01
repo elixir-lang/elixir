@@ -66,9 +66,9 @@ defmodule Exception do
     "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
   end
 
-  # Formats the given file and line given as an Orddict.
+  # Formats the given file and line given as a Keyword.
   def format_file_line(file_line) do
-    format_file_line(Orddict.get(file_line, :file), Orddict.get(file_line, :line))
+    format_file_line(Keyword.get(file_line, :file), Keyword.get(file_line, :line))
   end
 
   # Formats the given file and line.

@@ -7,18 +7,18 @@ defmodule Elixir.SpecialForms do
   `refer` can be used to setup an alias for any module:
 
       defmodule Math do
-        refer MyOrddict, as: Orddict
+        refer MyKeyword, as: Keyword
       end
 
   In the example above, we have set up `MyOrdict` to be referenced
-  as `Orddict`. So now, any reference to `Orddict` will be
-  automatically replaced by `MyOrddict`.
+  as `Keyword`. So now, any reference to `Keyword` will be
+  automatically replaced by `MyKeyword`.
 
-  In case one wants to access the original `Orddict`, it can be done
+  In case one wants to access the original `Keyword`, it can be done
   by accessing __MAIN__:
 
-      Orddict.values   #=> uses MyOrddict.values
-      __MAIN__.Orddict.values #=> uses Orddict.values
+      Keyword.values   #=> uses MyKeyword.values
+      __MAIN__.Keyword.values #=> uses Keyword.values
 
   Notice that calling `refer` without the `as:` option automatically
   sets an alias based on the last part of the module. For example:
@@ -72,12 +72,12 @@ defmodule Elixir.SpecialForms do
 
   ## Examples
 
-  If you want to use the `values` function from `Orddict` several times
-  in your module and you don't want to always type `Orddict.values`,
+  If you want to use the `values` function from `Keyword` several times
+  in your module and you don't want to always type `Keyword.values`,
   you can simply import it:
 
       defmodule Math do
-        import Orddict, only: [values: 1]
+        import Keyword, only: [values: 1]
 
         def some_function do
           # call values(orddict)
@@ -85,7 +85,7 @@ defmodule Elixir.SpecialForms do
       end
 
   In this case, we are importing only the function `values` (with arity 1)
-  from `Orddict`. Although `only` is optional, its usage is recommended.
+  from `Keyword`. Although `only` is optional, its usage is recommended.
   `except` could also be given as an option. If no option is given, all
   functions and macros are imported.
 

@@ -42,7 +42,7 @@ defmodule ExUnit.Server do
   end
 
   def handle_call(:options, _from, config) do
-    options = Orddict.merge config.options,
+    options = Keyword.merge config.options,
       cases: List.reverse(config.cases),
       sync_cases: List.reverse(config.sync_cases)
     { :reply, options, config }

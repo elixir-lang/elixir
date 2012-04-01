@@ -24,8 +24,8 @@ defmodule List do
   If a regular expression, it returns a list with the
   matched contents.
 
-  If an atom, assumes the list is wrapping an orddict
-  and access the key in the orddict equals to the given
+  If an atom, assumes the list is a keywords list and
+  access the key in the keywords equals to the given
   atom.
 
   This implements the same API as the `Access` protocol.

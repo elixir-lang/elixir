@@ -158,15 +158,15 @@ translate_macro({use, Line, [Raw, Args]}, S) ->
 
 %% Access
 
-translate_macro({ access, Line, [Element, Orddict] }, S) ->
+translate_macro({ access, Line, [Element, Keyword] }, S) ->
   case S#elixir_scope.guard of
     true ->
       case translate_each(Element, S) of
         { { atom, _, Atom }, _ } ->
-          case is_orddict(Orddict) of
+          case is_orddict(Keyword) of
             true -> [];
             false ->
-              Message0 = "expected contents inside brackets to be an Orddict",
+              Message0 = "expected contents inside brackets to be a Keyword",
               syntax_error(Line, S#elixir_scope.filename, Message0)
           end,
 
@@ -175,7 +175,7 @@ translate_macro({ access, Line, [Element, Orddict] }, S) ->
           try Atom:'__record__'(fields) of
             Fields ->
               Match = lists:map(fun({Field,_}) ->
-                case orddict:find(Field, Orddict) of
+                case orddict:find(Field, Keyword) of
                   { ok, Value } -> Value;
                   error -> { '_', Line, nil }
                 end
@@ -191,7 +191,7 @@ translate_macro({ access, Line, [Element, Orddict] }, S) ->
           syntax_error(Line, S#elixir_scope.filename, "invalid usage of access protocol in signature")
       end;
     false ->
-      Fallback = { { '.', Line, ['__MAIN__.Access', access] }, Line, [Element, Orddict] },
+      Fallback = { { '.', Line, ['__MAIN__.Access', access] }, Line, [Element, Keyword] },
       translate_each(Fallback, S)
   end;
 
@@ -216,7 +216,7 @@ translate_macro({ 'var!', Line, [_] }, S) ->
 
 %% HELPERS
 
-is_orddict(Orddict) -> is_list(Orddict) andalso lists:all(fun is_orddict_tuple/1, Orddict).
+is_orddict(Keyword) -> is_list(Keyword) andalso lists:all(fun is_orddict_tuple/1, Keyword).
 
 is_orddict_tuple({X,_}) when is_atom(X) -> true;
 is_orddict_tuple(_) -> false.

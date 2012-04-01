@@ -111,10 +111,10 @@ defmodule Protocol do
   def conversions_for(opts) do
     kinds = all_types
 
-    if only = Orddict.get(opts, :only, false) do
+    if only = Keyword.get(opts, :only, false) do
       L.map(fn(i) -> L.keyfind(i, 1, kinds) end, only)
     else:
-      except = Orddict.get(opts, :except, [Any])
+      except = Keyword.get(opts, :except, [Any])
       L.foldl(fn(i, list) -> L.keydelete(i, 1, list) end, kinds, except)
     end
   end

@@ -89,8 +89,8 @@ final_binding([{Var,_}|T], Acc, Binding, Vars) ->
 final_binding([], Acc, _Binding, _Vars) -> lists:reverse(Acc).
 
 normalize_binding(Binding) ->
-  Orddict = orddict:from_list(Binding),
-  case orddict:find('_EXMODULE', Orddict) of
-    { ok, _ } -> Orddict;
-    _ -> orddict:store('_EXMODULE', nil, Orddict)
+  Keyword = orddict:from_list(Binding),
+  case orddict:find('_EXMODULE', Keyword) of
+    { ok, _ } -> Keyword;
+    _ -> orddict:store('_EXMODULE', nil, Keyword)
   end.

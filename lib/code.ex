@@ -37,7 +37,7 @@ defmodule Code do
 
   @doc """
   Evalutes the contents given by string. The second argument is the binding
-  (which should be an Orddict), followed by the filename and the line.
+  (which should be a Keyword), followed by the filename and the line.
 
   ## Examples
 

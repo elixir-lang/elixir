@@ -97,12 +97,12 @@ defmodule Elixir.Builtin do
   In such scenarios, the name needs to be given dynamically via
   the unquoting mechanism.
 
-  Imagine a macro that receives an orddict and defines a function
-  for each entry in the orddict, using the key as function name
+  Imagine a macro that receives keywords and defines a function
+  for each entry in the keyword, using the key as function name
   and the value as the value returned by the function:
 
-      defmacro defkv(orddict) do
-        Enum.map orddict, fn({k,v}) ->
+      defmacro defkv(keywords) do
+        Enum.map keywords, fn({k,v}) ->
           quote do
             def unquote(k).() do
               unquote(v)
@@ -220,12 +220,12 @@ defmodule Elixir.Builtin do
 
   Besides, if the default is a list, Elixir will define three helpers:
 
-  * `merge_field` - Receives an orddict and merge it into the current value;
+  * `merge_field` - Receives keywords and merge it into the current value;
   * `prepend_field` - Receives another list and prepend its values
 
   """
   defmacro defrecord(name, values, opts // [], do_block // []) do
-    Record.defrecord(name, values, Orddict.merge(opts, do_block))
+    Record.defrecord(name, values, Keyword.merge(opts, do_block))
   end
 
   @doc """
@@ -234,7 +234,7 @@ defmodule Elixir.Builtin do
   an error is raised. Check exception.ex for examples.
   """
   defmacro defexception(name, values, opts // [], do_block // []) do
-    opts   = Orddict.merge(opts, do_block)
+    opts   = Keyword.merge(opts, do_block)
     values = [{ :__exception__, :__exception__ }|values]
 
     record = Record.defrecord(name, values, opts)
@@ -882,13 +882,13 @@ defmodule Elixir.Builtin do
   defmacro if(condition, [{:do,do_clause}|tail]) do
     # Transform the condition and the expressions in the
     # do_clause to a key-value block. Get the other values
-    # from the tail orddict.
+    # from the tail keyword.
     if_clause   = { :__kvblock__, 0, [ { [condition], do_clause } ] }
-    else_clause = Orddict.get(tail, :else)
+    else_clause = Keyword.get(tail, :else)
 
     # Merge if and elsif clauses, as they will all become match clauses.
     merged =
-      case Orddict.get(tail, :elsif) do
+      case Keyword.get(tail, :elsif) do
       match: nil
         [match: if_clause]
       match: elsif_clause

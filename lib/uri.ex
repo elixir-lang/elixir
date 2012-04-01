@@ -4,10 +4,10 @@ defmodule URI do
   """
 
   @doc """
-  Takes an orddict and returns a string of
-  k=v&k2=v2... where keys and values are URL
-  encoded as per url_encode. Keys and values
-  can be a mixture of atoms, lists, and binaries.
+  Takes an enumerable (containing a sequence of two-item tuples)
+  and returns a string of k=v&k2=v2... where keys and values are
+  URL encoded as per url_encode. Keys and values can be a mixture
+  of atoms, lists, and binaries.
   """
   def encode_query(l), do: Enum.join(Enum.map(l, pair(&1)), "&")
 
@@ -75,13 +75,13 @@ defmodule URI do
     regex = %r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
     destructure([_, _, scheme, _, authority, path, _, query, _, fragment],
                 nillify(Regex.run(regex, s)))
-    scheme_specific(Orddict.merge([scheme: scheme, path: path, query: query,
+    scheme_specific(Keyword.merge([scheme: scheme, path: path, query: query,
                                   fragment: fragment, authority: authority],
                                   split_authority(authority)))
   end
 
   defp scheme_specific(parsed_uri) do
-    scheme = Orddict.get(parsed_uri, :scheme)
+    scheme = Keyword.get(parsed_uri, :scheme)
     if scheme do
       # TODO: A better way of looking up modules.
       module = Module.concat(URI, :string.to_upper(binary_to_list(scheme)))
@@ -97,10 +97,10 @@ defmodule URI do
   end
 
   defp default_port(parsed_uri, port) do
-    if Orddict.get(parsed_uri, :port) do
+    if Keyword.get(parsed_uri, :port) do
       parsed_uri
     else:
-      Orddict.put(parsed_uri, :port, port)
+      Keyword.put(parsed_uri, :port, port)
     end
   end
 

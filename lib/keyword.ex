@@ -1,11 +1,12 @@
-defmodule Orddict do
+defmodule Keyword do
   @doc """
-  Creates an Orddict from an enumerable.
+  Creates a Keyword from an enumerable.
 
   ## Examples
 
-      Orddict.from_enum [{b,1},{a,2}]
+      Keyword.from_enum [{b,1},{a,2}]
       #=> [a: 2, b: 1]
+
   """
   def from_enum(pairs) do
     Enum.reduce pairs, [], fn({k, v}, dict) ->
@@ -14,12 +15,12 @@ defmodule Orddict do
   end
 
   @doc """
-  Creates an Orddict from an enumerable with the
+  Creates a Keyword from an enumerable with the
   help of the transformation function.
 
   ## Examples
 
-      Orddict.from_enum [:a, :b], fn(x) -> {x,x} end
+      Keyword.from_enum [:a, :b], fn(x) -> {x,x} end
       #=> [a: :a, b: :b]
   """
   def from_enum(pairs, transform) do
@@ -36,9 +37,9 @@ defmodule Orddict do
 
   ## Examples
 
-      Orddict.get [a: 1], :a      #=> 1
-      Orddict.get [a: 1], :b      #=> nil
-      Orddict.get [a: 1], :b, 3   #=> 3
+      Keyword.get [a: 1], :a      #=> 1
+      Keyword.get [a: 1], :b      #=> nil
+      Keyword.get [a: 1], :b, 3   #=> 3
   """
   def get([{k, _}|_], key, default) when key < k, do: default
   def get([{k, _}|d], key, default) when key > k, do: get(d, key, default)
@@ -50,7 +51,7 @@ defmodule Orddict do
 
   ## Examples
 
-      Orddict.keys [a: 1, b: 2] #=> [:a,:b]
+      Keyword.keys [a: 1, b: 2] #=> [:a,:b]
   """
   def keys(dict) do
     lc { key, _ } in dict, do: key
@@ -61,7 +62,7 @@ defmodule Orddict do
 
   ## Examples
 
-      Orddict.values [a: 1, b: 2] #=> [1,2]
+      Keyword.values [a: 1, b: 2] #=> [1,2]
   """
   def values(dict) do
     lc { _, value } in dict, do: value
@@ -73,8 +74,8 @@ defmodule Orddict do
 
   ## Examples
 
-      Orddict.delete [a: 1, b: 2], :a   #=> [b: 2]
-      Orddict.delete [b: 2], :a         #=> [b: 2]
+      Keyword.delete [a: 1, b: 2], :a   #=> [b: 2]
+      Keyword.delete [b: 2], :a         #=> [b: 2]
   """
   def delete([{k, _} = e|dict], key) when key < k, do: [e|dict]
   def delete([{k, _} = e|dict], key) when key > k, do: [e|delete(dict, key)]
@@ -87,13 +88,24 @@ defmodule Orddict do
 
   ## Examples
 
-      Orddict.put [a: 1, b: 2], :a, 3
+      Keyword.put [a: 1, b: 2], :a, 3
       #=> [a: 3, b: 2]
   """
-  def put([{k, _} = e|dict], key, value) when key < k, do: [{key, value},e|dict]
-  def put([{k, _} = e|dict], key, value) when key > k, do: [e|put(dict, key, value)]
-  def put([{_, _}|dict], key, value), do: [{key, value}|dict]
-  def put([], key, value), do: [{key, value}]
+  def put([{k, _} = e|dict], key, value) when key < k and is_atom(key) do
+    [{key, value},e|dict]
+  end
+
+  def put([{k, _} = e|dict], key, value) when key > k do
+    [e|put(dict, key, value)]
+  end
+
+  def put([{_, _}|dict], key, value) when is_atom(key) do
+    [{key, value}|dict]
+  end
+
+  def put([], key, value) when is_atom(key) do
+    [{key, value}]
+  end
 
   @doc """
   Merges two dictionaries into one. If the dictionaries have
@@ -101,7 +113,7 @@ defmodule Orddict do
 
   ## Examples
 
-      Orddict.merge [a: 1, b: 2], [a: 3, d: 4]
+      Keyword.merge [a: 1, b: 2], [a: 3, d: 4]
       #=> [a:3, b:2, d: 4]
   """
   def merge(d1, d2) do
@@ -115,27 +127,37 @@ defmodule Orddict do
 
   ## Examples
 
-      Orddict.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+      Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
         v1 + v2
       end
       #=> [a:4, b:2, d: 4]
   """
-  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2], fun) when k1 < k2, do: [e1|merge(d1, [e2|d2], fun)];
-  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2], fun) when k1 > k2, do: [e2|merge([e1|d1], d2, fun)];
-  def merge([{k1, v1}|d1], [{k1, v2}|d2], fun), do: [{k1, fun.(k1, v1, v2)}|merge(d1, d2, fun)];
+  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2], fun) when k1 < k2 and is_atom(k1) do
+    [e1|merge(d1, [e2|d2], fun)]
+  end
+
+  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2], fun) when k1 > k2 and is_atom(k2) do
+    [e2|merge([e1|d1], d2, fun)]
+  end
+
+  def merge([{k1, v1}|d1], [{k1, v2}|d2], fun) do
+    [{k1, fun.(k1, v1, v2)}|merge(d1, d2, fun)]
+  end
+
   def merge([], d2, _fun), do: d2
   def merge(d1, [], _fun), do: d1
 
   @doc """
-  Returns whether a given key exists in the given orddict.
+  Returns whether a given key exists in the given keywords.
 
   ### Examples
-      Orddict.key?([a:, 1], :a)
+      Keyword.key?([a:, 1], :a)
       #=> true
-      Orddict.key?([a:, 1], :b)
+      Keyword.key?([a:, 1], :b)
       #=> false
   """
-  def key?(orddict, key) do
-    :orddict.is_key(key, orddict)
-  end
+  def key?([{k, _}|_], key) when key < k, do: false
+  def key?([{k, _}|d], key) when key > k, do: key?(d, key)
+  def key?([{_, _}|_], _key),             do: true
+  def key?([], _),                        do: false
 end
