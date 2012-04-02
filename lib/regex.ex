@@ -55,14 +55,16 @@ defmodule Regex do
   Check the module documentation for more information
   about the options supported by compile.
   """
-  def compile(string, options) when is_binary(options) do
-    compile(string, binary_to_list(options))
+  def compile(source, options) when is_binary(options) do
+    compile(source, binary_to_list(options))
   end
 
-  def compile(string, options // []) do
-    options = [:multiline|translate_options(options)]
-    { :ok, compiled } = Erlang.re.compile(string, options)
-    compiled
+  def compile(source, options // []) do
+    source  = to_binary(source)
+    options = Enum.entries(options)
+    re_opts = [:multiline|translate_options(options)]
+    { :ok, compiled } = Erlang.re.compile(source, re_opts)
+    { Regex, compiled, source, options }
   end
 
   @doc """
@@ -74,7 +76,7 @@ defmodule Regex do
       Regex.match? %r/foo/, "bar" #=> false
 
   """
-  def match?(compiled, string) do
+  def match?({ Regex, compiled, _, _ }, string) do
     :nomatch != Erlang.re.run(string, compiled)
   end
 
@@ -88,7 +90,7 @@ defmodule Regex do
       Regex.run %r/e/, "abcd"     #=> nil
 
   """
-  def run(compiled, string) do
+  def run({ Regex, compiled, _, _ }, string) do
     case Erlang.re.run(string, compiled, [{ :capture, :all, return_for(string) }]) do
     match: :nomatch
       nil
@@ -109,13 +111,44 @@ defmodule Regex do
       Regex.run %r/e/, "abcd"     #=> nil
 
   """
-  def indexes(compiled, string) do
+  def indexes({ Regex, compiled, _, _ }, string) do
     case Erlang.re.run(string, compiled, [{ :capture, :all, :index }, { :offset, 0 }]) do
     match: :nomatch
       nil
     match: { :match, results }
       results
     end
+  end
+
+  @doc """
+  Returns the underlying re_pattern in the regular expression.
+  """
+  def re_pattern({ Regex, compiled, _, _ }) do
+    compiled
+  end
+
+  @doc """
+  Returns the regex source as binary.
+
+  ## Examples
+
+      Regex.source %r(foo) #=> "foo"
+
+  """
+  def source({ Regex, _, source, _ }) do
+    source
+  end
+
+  @doc """
+  Returns the regex options as a list.
+
+  ## Examples
+
+      Regex.opts %r(foo)m #=> 'm'
+
+  """
+  def opts({ Regex, _, _, opts }) do
+    opts
   end
 
   @doc """
@@ -131,7 +164,7 @@ defmodule Regex do
       Regex.scan %r/e/, "abcd"             #=> []
 
   """
-  def scan(compiled, string) do
+  def scan({ Regex, compiled, _, _ }, string) do
     options = [{ :capture, :all, return_for(string) }, :global, { :offset, 0 }]
     case Erlang.re.run(string, compiled, options) do
     match: :nomatch
@@ -152,7 +185,7 @@ defmodule Regex do
   Split the given target in the number of parts specified. If no ammount
   of parts is given, it defaults to :infinity.
   """
-  def split(compiled, string, parts // :infinity) do
+  def split({ Regex, compiled, _, _ }, string, parts // :infinity) do
     options = [{ :return, return_for(string) }, :trim, { :parts, parts }]
     list  = Erlang.re.split(string, compiled, options)
     blank = blank_for(string)
@@ -175,7 +208,7 @@ defmodule Regex do
       Regex.replace(~r/(b)/, "abc", "[\\1]") #=> "a[b]c"
 
   """
-  def replace(compiled, string, replacement) do
+  def replace({ Regex, compiled, _, _ }, string, replacement) do
     Erlang.re.replace(string, compiled, replacement, [{ :return, return_for(string) }])
   end
 
@@ -184,7 +217,7 @@ defmodule Regex do
   expressions matches in the string. Please read `replace/3` for
   documentation and examples.
   """
-  def replace_all(compiled, string, replacement) do
+  def replace_all({ Regex, compiled, _, _ }, string, replacement) do
     Erlang.re.replace(string, compiled, replacement, [{ :return, return_for(string) }, :global])
   end
 
@@ -213,6 +246,5 @@ defmodule Regex do
   defp translate_options([?f|t]), do: [:firstline|translate_options(t)]
   defp translate_options([?r|t]), do: [:ungreedy|translate_options(t)]
   defp translate_options([?m|t]), do: [:dotall,{:newline,:anycrlf}|translate_options(t)]
-  defp translate_options([h|t]),  do: [h|translate_options(t)]
   defp translate_options([]),     do: []
 end

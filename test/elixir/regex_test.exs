@@ -4,7 +4,16 @@ defmodule Regex.BinaryTest do
   use ExUnit.Case
 
   test :compile do
-    assert is_record(Regex.compile("foo"), :re_pattern)
+    assert is_record(Regex.compile("foo"), Regex)
+    assert is_regex(Regex.compile("foo"))
+  end
+
+  test :source do
+    assert_equal "foo", Regex.source(Regex.compile("foo"))
+  end
+
+  test :opts do
+    assert_equal 'u', Regex.opts(Regex.compile("foo", "u"))
   end
 
   test :match? do
@@ -63,9 +72,17 @@ defmodule Regex.ListTest do
   use ExUnit.Case
 
   test :compile do
-    assert is_record(Regex.compile("foo"), :re_pattern)
+    assert is_record(Regex.compile('foo'), Regex)
+    assert is_regex(Regex.compile('foo'))
   end
 
+  test :source do
+    assert_equal "foo", Regex.source(Regex.compile('foo'))
+  end
+
+  test :opts do
+    assert_equal 'u', Regex.opts(Regex.compile('foo', 'u'))
+  end
 
   test :match? do
     assert Regex.match?(%r(foo), 'foo')

@@ -292,6 +292,12 @@ defmodule Elixir.Builtin do
     end
   end
 
+  defmacro is_regex(thing) do
+    quote do
+      is_record(unquote(thing), Regex)
+    end
+  end
+
   @doc """
   Defines the current module as a protocol and specifies the API
   that should be implemented.

@@ -41,10 +41,10 @@ defimpl Access, for: List do
     nil
   end
 
-  ## re_pattern
+  ## Regex
 
-  def access(list, re) when is_record(re, :re_pattern) do
-    case Erlang.re.run(list, re, [{ :capture, :first, :list }]) do
+  def access(list, re) when is_regex(re) do
+    case Erlang.re.run(list, Regex.re_pattern(re), [{ :capture, :first, :list }]) do
     match: :nomatch
       nil
     match: { :match, [result] }
@@ -92,10 +92,10 @@ defimpl Access, for: BitString do
     nil
   end
 
-  ## re_pattern
+  ## Regex
 
-  def access(binary, re) when is_binary(binary) and is_record(re, :re_pattern) do
-    case Erlang.re.run(binary, re, [{ :capture, :first, :binary }]) do
+  def access(binary, re) when is_binary(binary) and is_regex(re) do
+    case Erlang.re.run(binary, Regex.re_pattern(re), [{ :capture, :first, :binary }]) do
     match: :nomatch
       nil
     match: { :match, [result] }
