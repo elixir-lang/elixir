@@ -105,29 +105,29 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test :assert_access_when_is_not_member do
-    "This should never be tested" = assert_access(10, [1,2,3])
+    "This should never be tested" = assert_access(10, {1,2,3})
   rescue: error in [ExUnit.AssertionError]
-    "Expected 10 to access [1,2,3]" = error.message
+    "Expected 10 to access {1,2,3}" = error.message
   end
 
   test :assert_access_with_message_when_is_not_member do
-    "This should never be tested" = assert_access(10, [1,2,3], "should access")
+    "This should never be tested" = assert_access(10, {1,2,3}, "should access")
   rescue: error in [ExUnit.AssertionError]
     "should access" = error.message
   end
 
   test :refute_access_when_is_not_member do
-    false = refute_access(10, [1,2,3])
+    false = refute_access(10, {1,2,3})
   end
 
   test :refute_access_when_is_member do
-    "This should never be tested" = refute_access(1, [1,2,3])
+    "This should never be tested" = refute_access(1, {1,2,3})
   rescue: error in [ExUnit.AssertionError]
-    "Expected 1 to not access [1,2,3]" = error.message
+    "Expected 1 to not access {1,2,3}" = error.message
   end
 
   test :refute_access_with_message_when_is_member do
-    "This should never be tested" = refute_access(1, [1,2,3], "This should be included")
+    "This should never be tested" = refute_access(1, {1,2,3}, "This should be included")
   rescue: error in [ExUnit.AssertionError]
     "This should be included" = error.message
   end

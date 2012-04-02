@@ -15,12 +15,6 @@ defmodule List do
   @doc """
   Access the list via a predicate.
 
-  If an integer, it does an index lookup with the index
-  starting with 1. Negative indexes performs a reverse
-  lookup, for example, -1 can be used to retrieve the
-  last element in the list. Returns nil if an out of
-  bounds access occurs.
-
   If a regular expression, it returns a list with the
   matched contents.
 

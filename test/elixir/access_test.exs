@@ -33,27 +33,10 @@ defmodule Access.ListTest do
   use ExUnit.Case
 
   test :literal do
-    assert_equal :a, [ :a, :b, :c ][1]
+    assert_equal 'a', 'abc'[%r(a)]
   end
 
-  test :positive_integer do
-    list = [ :a, :b, :c ]
-    assert_equal nil, list[0]
-    assert_equal :a,  list[1]
-    assert_equal :b,  list[2]
-    assert_equal :c,  list[3]
-    assert_equal nil, list[4]
-  end
-
-  test :negative_integer do
-    list = [ :a, :b, :c ]
-    assert_equal nil, list[-4]
-    assert_equal :a,  list[-3]
-    assert_equal :b,  list[-2]
-    assert_equal :c,  list[-1]
-  end
-
-  test :re_pattern do
+  test :regex do
     list = 'abc'
     assert_equal 'b', list[%r(b)]
     assert_equal nil, list[%r(d)]
@@ -66,7 +49,7 @@ defmodule Access.ListTest do
   end
 
   test :access do
-    assert_equal :c, List.access [ :a, :b, :c ], -1
+    assert_equal :bar, List.access [ foo: :bar ], :foo
   end
 end
 
@@ -74,34 +57,17 @@ defmodule Access.BinaryTest do
   use ExUnit.Case
 
   test :literal do
-    assert_equal ?a, "abc"[1]
+    assert_equal "a", "abc"[%r(a)]
   end
 
-  test :positive_integer do
-    binary = "abc"
-    assert_equal nil, binary[0]
-    assert_equal ?a,  binary[1]
-    assert_equal ?b,  binary[2]
-    assert_equal ?c,  binary[3]
-    assert_equal nil, binary[4]
-  end
-
-  test :negative_integer do
-    binary = "abc"
-    assert_equal nil, binary[-4]
-    assert_equal ?a,  binary[-3]
-    assert_equal ?b,  binary[-2]
-    assert_equal ?c,  binary[-1]
-  end
-
-  test :re_pattern do
+  test :regex do
     binary = "abc"
     assert_equal "b", binary[%r(b)]
     assert_equal nil, binary[%r(d)]
   end
 
   test :access do
-    assert_equal ?c, Binary.access "abc", -1
+    assert_equal "a", Binary.access "abc", %r"a"
   end
 end
 
