@@ -72,6 +72,43 @@ defmodule Process do
   end
 
   @doc """
+  Returns the pid of a new process started by the application of `fun` to the
+  empty list []. Otherwise works like spawn/3.
+  """
+  def spawn(fun) do
+    :erlang.spawn fun
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of
+  `module.function` to `args`. The new process created will be placed in the system
+  scheduler queue and be run some time later.
+
+  See http://www.erlang.org/doc/man/erlang.html#spawn-3 for more info.
+  """
+  def spawn(module, function, args) do
+    :erlang.spawn module, function, args
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of `fun` to the
+  empty list []. A link is created between the calling process and the new
+  process, atomically. Otherwise works like spawn/3.
+  """
+  def spawn_link(fun) do
+    :erlang.spawn_link fun
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of
+  `module.function` to `args`. A link is created between the calling process
+  and the new process, atomically. Otherwise works like spawn/3.
+  """
+  def spawn_link(module, function, args) do
+    :erlang.spawn_link module, function, args
+  end
+
+  @doc """
   The calling process starts monitoring the item given.
   It returns the monitor reference.
 
