@@ -1,9 +1,10 @@
 defmodule Process do
   @moduledoc """
-  This module provides convenience methods around processes and the process
-  dictionary.  In Erlang, most of these functions are auto-imported, but in
-  Elixir they were moved to a module for convenience.  Notice that Elixir
-  helpers always return nil instead of undefined, you can use their Erlang
+  This module provides convenience functions around processes and
+  the process dictionary. In Erlang, most of these functions are
+  auto-imported, but in Elixir they are grouped in a module for
+  convenience. Notice that these functions, different from Erlang's,
+  always return nil instead of undefined. You can use their Erlang
   version if you want the undefined value.
   """
 
