@@ -21,7 +21,7 @@ defmodule Elixir.IEx.UnicodeIO do
   result and prints it.
   """
   def put(result) do
-    Erlang.io.format :standard_io, "~ts~n", [inspect(result)]
+    IO.inspect result
   end
 
   @doc """
