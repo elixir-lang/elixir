@@ -124,6 +124,14 @@ defmodule Binary.Inspect.AnyTest do
 
   test :funs do
     bin = inspect(fn(x, do: x + 1))
-    '#Fun<' ++ _ = binary_to_list(bin)
+    assert_match '#Fun<' ++ _, binary_to_list(bin)
+  end
+end
+
+defmodule Binary.Inspect.RegexTest do
+  use ExUnit.Case
+
+  test :regex do
+    "%r\"foo\"m" = inspect(%r(foo)m)
   end
 end

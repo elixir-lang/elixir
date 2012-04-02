@@ -130,6 +130,12 @@ defimpl Binary.Inspect, for: Number do
   end
 end
 
+defimpl Binary.Inspect, for: Regex do
+  def inspect(thing) do
+    "%r" <> Binary.Inspect.inspect(Regex.source(thing)) <> Regex.opts(thing)
+  end
+end
+
 defimpl Binary.Inspect, for: Any do
   def inspect(thing) do
     iolist_to_binary Erlang.io_lib.format('~p', [thing])

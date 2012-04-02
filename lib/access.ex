@@ -44,18 +44,6 @@ defimpl Access, for: List do
   defp atom_access([{k, _}|d], key) when key > k, do: atom_access(d, key)
   defp atom_access([{_k, value}|_], _key),        do: value
   defp atom_access([], _),                        do: nil
-
-  defp integer_access([h|_], 0) do
-    h
-  end
-
-  defp integer_access([_|t], counter) do
-    integer_access t, counter - 1
-  end
-
-  defp integer_access([], _) do
-    nil
-  end
 end
 
 defimpl Access, for: BitString do
