@@ -80,6 +80,15 @@ defmodule Process do
   end
 
   @doc """
+  Returns the pid of a new process started by the application of `fun` to the
+  empty list [] on `node`. If `node` does not exist, a useless pid is returned.
+  Otherwise works like spawn/3.
+  """
+  def spawn(node, fun) do
+    :erlang.spawn node, fun
+  end
+
+  @doc """
   Returns the pid of a new process started by the application of
   `module.function` to `args`. The new process created will be placed in the system
   scheduler queue and be run some time later.
@@ -88,6 +97,15 @@ defmodule Process do
   """
   def spawn(module, function, args) do
     :erlang.spawn module, function, args
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of
+  `module.function` to `args` on `node`. If `node` does not exists, a useless
+  pid is returned. Otherwise works like spawn/3.
+  """
+  def spawn(node, module, function, args) do
+    :erlang.spawn node, module, function, args
   end
 
   @doc """
@@ -100,12 +118,34 @@ defmodule Process do
   end
 
   @doc """
+  Returns the pid of a new process started by the application of `fun` to the
+  empty list [] on `node`. A link is created between the calling process and the
+  new process, atomically. If `node` does not exist, a useless pid is returned
+  (and due to the link, an exit signal with exit reason :noconnection will be
+  received). Otherwise works like spawn/3.
+  """
+  def spawn_link(node, fun) do
+    :erlang.spawn_link node, fun
+  end
+
+  @doc """
   Returns the pid of a new process started by the application of
   `module.function` to `args`. A link is created between the calling process
   and the new process, atomically. Otherwise works like spawn/3.
   """
   def spawn_link(module, function, args) do
     :erlang.spawn_link module, function, args
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of
+  `module.function` to `args` on `node`. A link is created between the calling
+  process and the new process, atomically. If `node` does not exist, a useless
+  pid is returned (and due to the link, an exit signal with exit reason
+  :noconnection will be received). Otherwise works like spawn/3.
+  """
+  def spawn_link(node, module, function, args) do
+    :erlang.spawn_link node, module, function, args
   end
 
   @doc """
