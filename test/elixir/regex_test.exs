@@ -13,7 +13,7 @@ defmodule Regex.BinaryTest do
   end
 
   test :opts do
-    assert_equal 'u', Regex.opts(Regex.compile("foo", "u"))
+    assert_equal "u", Regex.opts(Regex.compile("foo", "u"))
   end
 
   test :match? do
@@ -81,7 +81,7 @@ defmodule Regex.ListTest do
   end
 
   test :opts do
-    assert_equal 'u', Regex.opts(Regex.compile('foo', 'u'))
+    assert_equal "u", Regex.opts(Regex.compile('foo', 'u'))
   end
 
   test :match? do

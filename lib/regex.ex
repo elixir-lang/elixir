@@ -55,13 +55,9 @@ defmodule Regex do
   Check the module documentation for more information
   about the options supported by compile.
   """
-  def compile(source, options) when is_binary(options) do
-    compile(source, binary_to_list(options))
-  end
-
-  def compile(source, options // []) do
+  def compile(source, options // "") do
     source  = to_binary(source)
-    options = Enum.entries(options)
+    options = to_binary(options)
     re_opts = [:multiline|translate_options(options)]
     { :ok, compiled } = Erlang.re.compile(source, re_opts)
     { Regex, compiled, source, options }
@@ -240,11 +236,11 @@ defmodule Regex do
   defp return_for(element) when is_binary(element), do: :binary
   defp return_for(element) when is_list(element),   do: :list
 
-  defp translate_options([?u|t]), do: [:unicode|translate_options(t)]
-  defp translate_options([?i|t]), do: [:caseless|translate_options(t)]
-  defp translate_options([?x|t]), do: [:extended|translate_options(t)]
-  defp translate_options([?f|t]), do: [:firstline|translate_options(t)]
-  defp translate_options([?r|t]), do: [:ungreedy|translate_options(t)]
-  defp translate_options([?m|t]), do: [:dotall,{:newline,:anycrlf}|translate_options(t)]
-  defp translate_options([]),     do: []
+  defp translate_options(<<?u, t|binary>>), do: [:unicode|translate_options(t)]
+  defp translate_options(<<?i, t|binary>>), do: [:caseless|translate_options(t)]
+  defp translate_options(<<?x, t|binary>>), do: [:extended|translate_options(t)]
+  defp translate_options(<<?f, t|binary>>), do: [:firstline|translate_options(t)]
+  defp translate_options(<<?r, t|binary>>), do: [:ungreedy|translate_options(t)]
+  defp translate_options(<<?m, t|binary>>), do: [:dotall,{:newline,:anycrlf}|translate_options(t)]
+  defp translate_options(<<>>), do: []
 end
