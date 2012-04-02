@@ -2,7 +2,7 @@ defmodule Elixir.IEx.UnicodeIO do
   @moduledoc false
 
   @doc """
-  Implements the get IO API used by IEX. It receives the
+  Implements the get IO API used by IEx. It receives the
   code cache, the instructions counter and needs to
   return a list with the new characters inserted.
   """
@@ -13,15 +13,23 @@ defmodule Elixir.IEx.UnicodeIO do
     match: _
       "...> "
     end
-    binary_to_list(:unicode.characters_to_binary(Erlang.io.get_line(prompt)))
+    :unicode.characters_to_list(Erlang.io.get_line(prompt))
   end
 
   @doc """
-  Implements the put IO API used by IEX. It receives the
+  Implements the put IO API used by IEx. It receives the
   result and prints it.
   """
   def put(result) do
     IO.inspect result
+  end
+
+  @doc """
+  Implements the error IO API used by IEx. It prints error
+  messages.
+  """
+  def error(result) do
+    IO.puts :standard_error, result
   end
 end
 
@@ -38,35 +46,37 @@ defmodule Elixir.IEx do
   end
 
   defp do_loop(config) do
+    io = config.io
+
     config  = config.increment_counter
     counter = config.counter
     cache   = config.cache
-    code    = cache ++ config.io.get(cache, counter)
+    code    = cache ++ io.get(cache, counter)
 
     new_config =
       try do
         { result, new_binding, scope } =
           Erlang.elixir.eval(code, config.binding, 'iex', counter, config.scope)
-        IO.puts inspect(result)
+        io.put result
         config.binding(new_binding).cache('').scope(scope)
       rescue: TokenMissingError
         config.cache(code)
       rescue: exception
         stacktrace = Code.stacktrace
-        IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        print_stacktrace stacktrace
+        io.error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+        print_stacktrace io, stacktrace
         config.cache('')
       catch: kind, error
         stacktrace = Code.stacktrace
-        IO.puts :standard_error, "** (#{kind}) #{inspect(error)}"
-        print_stacktrace stacktrace
+        io.error "** (#{kind}) #{inspect(error)}"
+        print_stacktrace io, stacktrace
         config.cache('')
       end
 
     do_loop(new_config)
   end
 
-  defp print_stacktrace(stacktrace) do
-    Enum.each stacktrace, fn(s, do: IO.puts :standard_error, "    #{format_stacktrace(s)}")
+  defp print_stacktrace(io, stacktrace) do
+    Enum.each stacktrace, fn(s, do: io.error "    #{format_stacktrace(s)}")
   end
 end
