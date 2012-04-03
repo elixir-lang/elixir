@@ -2,13 +2,6 @@ defmodule Code do
   def version, do: "0.9.0.dev"
 
   @doc """
-  Returns the current ARGV.
-  """
-  def argv do
-    server_call :argv
-  end
-
-  @doc """
   Returns all the loaded files.
   """
   def loaded_files do
