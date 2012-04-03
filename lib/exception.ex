@@ -34,11 +34,11 @@ defmodule Exception do
   end
 
   def normalize(:undef) do
-    UndefinedFunctionError.new from_stacktrace(Code.stacktrace)
+    UndefinedFunctionError.new from_stacktrace(System.stacktrace)
   end
 
   def normalize(:function_clause) do
-    FunctionClauseError.new from_stacktrace(Code.stacktrace)
+    FunctionClauseError.new from_stacktrace(System.stacktrace)
   end
 
   def normalize({ :badarg, payload }) do

@@ -62,12 +62,12 @@ defmodule Elixir.IEx do
       rescue: TokenMissingError
         config.cache(code)
       rescue: exception
-        stacktrace = Code.stacktrace
+        stacktrace = System.stacktrace
         io.error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
         print_stacktrace io, stacktrace
         config.cache('')
       catch: kind, error
-        stacktrace = Code.stacktrace
+        stacktrace = System.stacktrace
         io.error "** (#{kind}) #{inspect(error)}"
         print_stacktrace io, stacktrace
         config.cache('')

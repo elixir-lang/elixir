@@ -26,7 +26,7 @@ defmodule Elixir.CLI do
       end
     rescue: exception
       at_exit(1)
-      stacktrace = Code.stacktrace
+      stacktrace = System.stacktrace
       IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
       print_stacktrace(stacktrace)
       halt(1)
@@ -35,7 +35,7 @@ defmodule Elixir.CLI do
       halt(reason)
     catch: kind, reason
       at_exit(1)
-      stacktrace = Code.stacktrace
+      stacktrace = System.stacktrace
       IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
       print_stacktrace(stacktrace)
       halt(1)
@@ -51,10 +51,10 @@ defmodule Elixir.CLI do
         hook.(status)
       rescue: exception
         IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        print_stacktrace(Code.stacktrace)
+        print_stacktrace(System.stacktrace)
       catch: kind, reason
         IO.puts :standard_error, "** #{kind} #{inspect(reason)}"
-        print_stacktrace(Code.stacktrace)
+        print_stacktrace(System.stacktrace)
       end
     end
   end

@@ -78,16 +78,16 @@ defmodule ExUnit.Runner do
         apply test_case, test, []
         nil
       rescue: error1
-        { :error, error1, Code.stacktrace }
+        { :error, error1, System.stacktrace }
       catch: kind1, error1
-        { kind1, error1, Code.stacktrace }
+        { kind1, error1, System.stacktrace }
       end
 
       partial
     rescue: error2
-      { :error, error2, Code.stacktrace }
+      { :error, error2, System.stacktrace }
     catch: kind2, error2
-      { kind2, error2, Code.stacktrace }
+      { kind2, error2, System.stacktrace }
     end
 
     pid <- { Process.self, :each, { test_case, test, final } }

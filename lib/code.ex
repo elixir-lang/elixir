@@ -1,5 +1,8 @@
 defmodule Code do
-  def version, do: "0.9.0.dev"
+  @moduledoc """
+  The Code module is responsible to manage code compilation,
+  evaluation and loading.
+  """
 
   @doc """
   Returns all the loaded files.
@@ -9,21 +12,15 @@ defmodule Code do
   end
 
   @doc """
-  Registers a function that will be invoked
-  at the end of program execution. Useful for
-  invoking a hook on scripted mode.
-
-  The function must expect the exit status code
-  as argument.
+  Appends a path to Erlang VM code path.
   """
-  def at_exit(fun) when is_function(fun, 1) do
-    server_call { :at_exit, fun }
-  end
-
   def append_path(path) do
     Erlang.code.add_pathz(to_char_list(path))
   end
 
+  @doc """
+  Prepends a path to Erlang VM code path.
+  """
   def prepend_path(path) do
     Erlang.code.add_patha(to_char_list(path))
   end
@@ -119,21 +116,7 @@ defmodule Code do
     end
   end
 
-  @doc """
-  Get the stacktrace.
-  """
-  def stacktrace do
-    filter_stacktrace Erlang.erlang.get_stacktrace
-  end
-
   ## Helpers
-
-  # Filter stacktrace by removing internal BOOTSTRAP calls.
-  defp filter_stacktrace([{ Elixir.Builtin, :raise, _, _ }|t]), do: filter_stacktrace(t)
-  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _, _ }|t]), do: filter_stacktrace(t)
-  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _ }|t]), do: filter_stacktrace(t)
-  defp filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
-  defp filter_stacktrace([]), do: []
 
   defp load_and_push_file(file) do
     server_call { :loaded, file }
