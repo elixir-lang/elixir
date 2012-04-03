@@ -12,7 +12,7 @@ echo  -e command    Evaluates the given command (*)
 echo  -r command    Requires the given file/pattern (*)
 echo  -pa path     Prepend the given path to Erlang code path (*)
 echo  -pz path      Append the given path to Erlang code path (*)
-echo  --no-stop       Do not stop the Erlang VM after execution
+echo  --no-halt       Do not halt the Erlang VM after execution
 echo.
 echo ** Options marked with (*) can be given more than once;
 echo.

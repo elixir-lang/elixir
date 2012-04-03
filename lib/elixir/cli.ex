@@ -1,5 +1,5 @@
 defrecord Elixir.CLI.Config, commands: [], close: [],
-  output: '.', compile: false, stop: true, compile_options: []
+  output: '.', compile: false, halt: true, compile_options: []
 
 defmodule Elixir.CLI do
   import Exception, only: [format_stacktrace: 1]
@@ -20,33 +20,29 @@ defmodule Elixir.CLI do
 
     try do
       Enum.map all_commands, process_command(&1, config)
-      if config.stop do
+      if config.halt do
         at_exit(0)
-        stop(0)
+        halt(0)
       end
     rescue: exception
       at_exit(1)
       stacktrace = Code.stacktrace
       IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
       print_stacktrace(stacktrace)
-      stop(1)
+      halt(1)
     catch: :exit, reason when is_integer(reason)
       at_exit(reason)
-      stop(reason)
+      halt(reason)
     catch: kind, reason
       at_exit(1)
       stacktrace = Code.stacktrace
       IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
       print_stacktrace(stacktrace)
-      stop(1)
+      halt(1)
     end
   end
 
   ## Private
-
-  defp stop(status) do
-    Erlang.init.stop(status)
-  end
 
   defp at_exit(status) do
     hooks = Erlang.gen_server.call(:elixir_code_server, :at_exit)
@@ -65,7 +61,7 @@ defmodule Elixir.CLI do
 
   defp invalid_option(option) do
     IO.puts(:standard_error, "Unknown option #{list_to_binary(option)}")
-    stop(1)
+    halt(1)
   end
 
   defp shared_option?(list, config, callback) do
@@ -132,8 +128,8 @@ defmodule Elixir.CLI do
     { config, t }
   end
 
-  defp process_options(['--no-stop'|t], config) do
-    process_options t, config.stop(false)
+  defp process_options(['--no-halt'|t], config) do
+    process_options t, config.halt(false)
   end
 
   defp process_options(['+compile'|t], config) do
