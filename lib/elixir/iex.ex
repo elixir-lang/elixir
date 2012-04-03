@@ -40,7 +40,8 @@ defmodule Elixir.IEx do
 
   def start(binding // [], io // Elixir.IEx.UnicodeIO) do
     IO.puts "Interactive Elixir (#{Code.version}) - press Ctrl+C to exit"
-    config = Elixir.IEx.Config.new(io: io, binding: binding, scope: Erlang.elixir.scope_for_eval)
+    scope  = Erlang.elixir.scope_for_eval(file: 'iex')
+    config = Elixir.IEx.Config.new(io: io, binding: binding, scope: scope)
     function = fn -> do_loop(config) end
     Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
   end
@@ -56,7 +57,7 @@ defmodule Elixir.IEx do
     new_config =
       try do
         { result, new_binding, scope } =
-          Erlang.elixir.eval(code, config.binding, 'iex', counter, config.scope)
+          Erlang.elixir.eval(code, config.binding, counter, config.scope)
         io.put result
         config.binding(new_binding).cache('').scope(scope)
       rescue: TokenMissingError

@@ -9,11 +9,11 @@ defmodule CodeTest do
     end
   end
 
-  Code.eval_quoted contents, [], "sample.ex", 13
+  Code.eval_quoted contents, [], file: "sample.ex", line: 13
 
   test :eval do
     assert_equal { 3, [] }, Code.eval("1 + 2")
-    assert_match { 3, _ }, Code.eval("a + b", [a: 1, b: 2], __FILE__, __LINE__)
+    assert_match { 3, _ }, Code.eval("a + b", [a: 1, b: 2], file: __FILE__, line: __LINE__)
   end
 
   test :eval_quoted do

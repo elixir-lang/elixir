@@ -41,7 +41,7 @@ defmodule EEx do
   ### Helpers
 
   defp do_eval(compiled, bindings, filename, line // 1) do
-    { result, _ } = Code.eval_quoted(compiled, bindings, filename, line)
+    { result, _ } = Code.eval_quoted(compiled, bindings, file: filename, line: line)
     result
   end
 end

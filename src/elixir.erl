@@ -1,8 +1,9 @@
 -module(elixir).
 -behaviour(application).
--export([start/0, start_app/0, scope_for_eval/0,
-  eval/2, eval/3, eval/4, eval/5,
-  eval_quoted/4, eval_forms/3]).
+-export([start/0, start_app/0,
+  scope_for_eval/1, eval/2, eval/3, eval/4,
+  eval_quoted/2, eval_quoted/3, eval_quoted/4,
+  eval_forms/3]).
 -include("elixir.hrl").
 
 % OTP APPLICATION API
@@ -40,21 +41,38 @@ start() ->
 
 %% EVAL HOOKS
 
-scope_for_eval() -> #elixir_scope{}.
+scope_for_eval(Opts) ->
+  Filename = case orddict:find(file, Opts) of
+    { ok, F } -> to_char_list(F);
+    error -> "nofile"
+  end,
+  #elixir_scope{filename=Filename}.
 
 %% String evaluation
 
-eval(String, Binding) -> eval(String, Binding, "nofile").
-eval(String, Binding, Filename) -> eval(String, Binding, Filename, 1).
-eval(String, Binding, Filename, Line) -> eval(String, Binding, Filename, Line, #elixir_scope{}).
-eval(String, Binding, Filename, Line, Scope) when is_list(Filename) ->
+eval(String, Binding) -> eval(String, Binding, []).
+
+eval(String, Binding, Opts) ->
+  case orddict:find(line, Opts) of
+    { ok, Line } -> [];
+    error -> Line = 1
+  end,
+  eval(String, Binding, Line, scope_for_eval(Opts)).
+
+eval(String, Binding, Line, #elixir_scope{filename=Filename} = S) ->
   Forms = elixir_translator:forms(String, Line, Filename),
-  eval_forms(Forms, Binding, Scope#elixir_scope{filename=Filename}).
+  eval_forms(Forms, Binding, S).
 
 %% Quoted evaluation
 
-eval_quoted(Tree, Binding, Line, Filename) when is_list(Filename) ->
-  eval_quoted(Tree, Binding, Line, #elixir_scope{filename=Filename});
+eval_quoted(Tree, Binding) -> eval_quoted(Tree, Binding, []).
+
+eval_quoted(Tree, Binding, Opts) ->
+  case orddict:find(line, Opts) of
+    { ok, Line } -> [];
+    error -> Line = 1
+  end,
+  eval_quoted(Tree, Binding, Line, scope_for_eval(Opts)).
 
 eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) ->
   eval_forms(elixir_quote:linify(Line, Tree), Binding, S).
@@ -73,6 +91,9 @@ eval_forms(Tree, Binding, RawScope) ->
   end.
 
 %% INTERNAL HELPERS
+
+to_char_list(Bin)  when is_binary(Bin) -> binary_to_list(Bin);
+to_char_list(List) when is_list(List) -> List.
 
 binding_dict(List) -> binding_dict(List, dict:new()).
 binding_dict([{H,_}|T], Dict) -> binding_dict(T, dict:store(H, H, Dict));

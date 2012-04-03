@@ -31,12 +31,13 @@ defmodule Code do
 
   ## Examples
 
-      Code.eval "a + b", [a: 1, b: 2], __FILE__, __LINE__ # => { 3, [ {:a, 1}, {:b, 2} ] }
+      Code.eval "a + b", [a: 1, b: 2], file: __FILE__, line: __LINE__
+      # => { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
-  def eval(string, binding // [], filename // "nofile", line // 1) do
+  def eval(string, binding // [], opts // []) do
     { value, binding, _scope } =
-      Erlang.elixir.eval to_char_list(string), binding, to_char_list(filename), line
+      Erlang.elixir.eval to_char_list(string), binding, opts
     { value, binding }
   end
 
@@ -46,12 +47,13 @@ defmodule Code do
   ## Examples
 
       contents = quote hygiene: false, do: a + b
-      Code.eval_quoted contents, [a: 1, b: 2], __FILE__, __LINE__ # => { 3, [ {:a, 1}, {:b, 2} ] }
+      Code.eval_quoted contents, [a: 1, b: 2], file: __FILE__, line: __LINE__
+      # => { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
-  def eval_quoted(quoted, binding // [], filename // "nofile", line // 1) do
+  def eval_quoted(quoted, binding // [], opts // []) do
     { value, binding, _scope } =
-      Erlang.elixir.eval_quoted [quoted], binding, line, to_char_list(filename)
+      Erlang.elixir.eval_quoted [quoted], binding, opts
     { value, binding }
   end
 
