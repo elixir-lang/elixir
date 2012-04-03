@@ -46,7 +46,13 @@ scope_for_eval(Opts) ->
     { ok, F } -> to_char_list(F);
     error -> "nofile"
   end,
-  #elixir_scope{filename=Filename}.
+
+  Local = case orddict:find(delegate_locals_to, Opts) of
+    { ok, L } -> L;
+    error -> []
+  end,
+
+  #elixir_scope{filename=Filename,local=Local}.
 
 %% String evaluation
 

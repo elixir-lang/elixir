@@ -399,10 +399,7 @@ translate_each({Name, Line, nil}, S) when is_atom(Name) ->
 translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
   case handle_partials(Line, Original, S) of
     error ->
-      Callback = fun() ->
-        { TArgs, NS } = translate_args(Args, S),
-        { { call, Line, { atom, Line, Atom }, TArgs }, NS }
-      end,
+      Callback = fun() -> translate_local(Line, Atom, Args, S) end,
       elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback);
     Else  -> Else
   end;
@@ -411,9 +408,7 @@ translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
 
 translate_each({{'.', _, [{'__LOCAL__', _, Atom}, Name]}, Line, Args} = Original, S) when is_atom(Atom), is_atom(Name) ->
   case handle_partials(Line, Original, S) of
-    error ->
-      { TArgs, NS } = translate_args(Args, S),
-      { { call, Line, { atom, Line, Name }, TArgs }, NS };
+    error -> translate_local(Line, Name, Args, S);
     Else  -> Else
   end;
 
@@ -511,6 +506,18 @@ translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
 
 %% Helpers
+
+translate_local(Line, Name, Args, #elixir_scope{local=[]} = S) ->
+  { TArgs, NS } = translate_args(Args, S),
+  { { call, Line, { atom, Line, Name }, TArgs }, NS };
+
+translate_local(Line, Name, Args, S) ->
+  { TArgs, NS } = translate_args(Args, S),
+  Remote = { remote, Line,
+    { atom, Line, S#elixir_scope.local },
+    { atom, Line, Name }
+  },
+  { { call, Line, Remote, TArgs }, NS }.
 
 % Variables in arguments are not propagated from one
 % argument to the other. For instance:

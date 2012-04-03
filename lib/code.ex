@@ -27,7 +27,13 @@ defmodule Code do
 
   @doc """
   Evalutes the contents given by string. The second argument is the binding
-  (which should be a Keyword), followed by the filename and the line.
+  (which should be a Keyword) followed by a keyword list of options. The
+  options can be:
+
+  * `:file` - the file to be considered in the evaluation
+  * `:line` - the line the script starts
+  * `:delegate_locals_to` - delegate local calls to the given module,
+    otherwise functions are evaluated inside Erlang's default scope.
 
   ## Examples
 
@@ -37,7 +43,7 @@ defmodule Code do
   """
   def eval(string, binding // [], opts // []) do
     { value, binding, _scope } =
-      Erlang.elixir.eval to_char_list(string), binding, opts
+      Erlang.elixir.eval :unicode.characters_to_list(string), binding, opts
     { value, binding }
   end
 
