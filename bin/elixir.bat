@@ -7,12 +7,12 @@ if "%*" == "" (
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
-echo  -v              Prints version and exit
-echo  -e command    Evaluates the given command (*)
-echo  -r command    Requires the given file/pattern (*)
-echo  -pa path     Prepend the given path to Erlang code path (*)
-echo  -pz path      Append the given path to Erlang code path (*)
-echo  --no-halt       Do not halt the Erlang VM after execution
+echo  -v                   Prints version and exit
+echo  -e command           Evaluates the given command (*)
+echo  -r command           Requires the given file/pattern (*)
+echo  -pa dir1 dir2 ...    Prepend the given path to Erlang code path (*)
+echo  -pz dir1 dir2 ...    Append the given path to Erlang code path (*)
+echo  --no-halt            Do not halt the Erlang VM after execution
 echo.
 echo ** Options marked with (*) can be given more than once;
 echo.

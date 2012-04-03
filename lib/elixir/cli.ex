@@ -88,14 +88,16 @@ defmodule Elixir.CLI do
     process_shared t, config.prepend_commands [{:eval,h}]
   end
 
-  defp process_shared(['-pa',h|t], config) do
-    Code.prepend_path(h)
-    process_shared t, config
+  defp process_shared(['-pa'|t], config) do
+    { rest, paths } = process_list(t, [])
+    Enum.each paths, Code.prepend_path(&1)
+    process_shared rest, config
   end
 
-  defp process_shared(['-pz',h|t], config) do
-    Code.append_path(h)
-    process_shared t, config
+  defp process_shared(['-pz'|t], config) do
+    { rest, paths } = process_list(t, [])
+    Enum.each paths, Code.append_path(&1)
+    process_shared rest, config
   end
 
   defp process_shared(['-r'|t], config) do
