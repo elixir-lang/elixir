@@ -1,19 +1,18 @@
 -module(elixir_module).
 -export([translate/4, compile/4, data/1, data/2, data_table/1,
-   format_error/1, binding_and_scope_for_eval/4]).
+   format_error/1, binding_and_scope_for_eval/3]).
 -include("elixir.hrl").
 
-binding_and_scope_for_eval(Line, Filename, Module, Binding) ->
-  binding_and_scope_for_eval(Line, Filename, Module, Binding, #elixir_scope{filename=Filename}).
+binding_and_scope_for_eval(Opts, Module, Binding) ->
+  binding_and_scope_for_eval(Opts, Module, Binding, elixir:scope_for_eval(Opts)).
 
-binding_and_scope_for_eval(_Line, _Filename, Module, Binding, S) ->
+binding_and_scope_for_eval(_Opts, Module, Binding, S) ->
   {
     binding_for_eval(Module, Binding),
-    scope_for_eval(Module, S)
+    S#elixir_scope{module=Module}
   }.
 
 binding_for_eval(Module, Binding) -> [{'_EXMODULE',Module}|Binding].
-scope_for_eval(Module, S) -> S#elixir_scope{module=Module}.
 
 data(Module) ->
   ets:lookup_element(data_table(Module), data, 2).
@@ -106,7 +105,7 @@ build(Module) ->
 
 eval_form(Line, Filename, Module, Block, RawS) ->
   Temp = ?ELIXIR_ATOM_CONCAT(["COMPILE-",Module]),
-  { Binding, S } = binding_and_scope_for_eval(Line, Filename, Module, [], RawS),
+  { Binding, S } = binding_and_scope_for_eval([{file,Filename}], Module, [], RawS),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
   elixir_def_overridable:store_pending(Module),
   { Callbacks, FinalS } = callbacks_for(Line, compile_callbacks, Module, [Module], NewS),

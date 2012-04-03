@@ -58,7 +58,7 @@ defmodule ModuleTest do
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
 
   contents = quote do: (def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ })
-  Module.eval_quoted __MODULE__, contents, [], "sample.ex", 13
+  Module.eval_quoted __MODULE__, contents, [], file: "sample.ex", line: 13
 
   true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
   true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :def

@@ -121,7 +121,7 @@ defmodule Elixir.ErrorsTest do
 
   test :already_compiled_module do
     assert_equal "could not call eval_quoted on module __MAIN__.Record because it was already compiled",
-      format_rescue 'Module.eval_quoted Record, quote(do: 1), [], __FILE__, __LINE__'
+      format_rescue 'Module.eval_quoted Record, quote(do: 1), [], file: __FILE__, line: __LINE__'
   end
 
   test :interpolation_error do

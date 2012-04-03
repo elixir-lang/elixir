@@ -32,7 +32,7 @@ defmodule Record do
       initializers(values)
     ]
 
-    Module.eval_quoted module, contents, [], __FILE__, __LINE__
+    Module.eval_quoted module, contents, [], file: __FILE__, line: __LINE__
   end
 
   # Define __record__/1 and __record__/2 as reflection functions

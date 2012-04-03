@@ -82,7 +82,7 @@ defmodule Protocol do
   def functions(module, conversions, funs) do
     fallback = if L.keyfind(Tuple, 1, conversions), do: Tuple, else: Any
     contents = lc fun in L.reverse(funs), do: each_function(fun, fallback)
-    Module.eval_quoted module, contents, [], __FILE__, __LINE__
+    Module.eval_quoted module, contents, [], file: __FILE__, line: __LINE__
   end
 
   # Implements the function that detects the protocol and returns
@@ -102,7 +102,7 @@ defmodule Protocol do
       end]
     end
 
-    Module.eval_quoted module, contents, [], __FILE__, __LINE__
+    Module.eval_quoted module, contents, [], file: __FILE__, line: __LINE__
   end
 
   # Returns the default conversions according to the given
