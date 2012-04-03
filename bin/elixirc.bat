@@ -13,6 +13,7 @@ echo  -pa path      Prepend the given path to Erlang code path (*)
 echo  -pz path      Append the given path to Erlang code path (*)
 echo  --docs          Attach documentation to compiled modules
 echo  --debug-info    Attach debug info to compiled modules
+echo  --ignore-module-conflict
 echo.
 echo ** Options marked with (*) can be given more than once;
 echo.
