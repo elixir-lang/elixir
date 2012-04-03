@@ -13,7 +13,7 @@ defmodule Elixir.IEx.UnicodeIO do
     match: _
       "...> "
     end
-    binary_to_list(:unicode.characters_to_binary(Erlang.io.get_line(prompt)))
+    :unicode.characters_to_list(Erlang.io.get_line(prompt))
   end
 
   @doc """

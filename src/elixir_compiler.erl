@@ -38,7 +38,7 @@ file(Relative) ->
   try
     put(elixir_compiled, []),
     Contents = case file:read_file(Filename) of
-      {ok, Bin} -> binary_to_list(Bin);
+      {ok, Bin} -> unicode:characters_to_list(Bin);
       Error -> erlang:error(Error)
     end,
 

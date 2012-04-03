@@ -36,6 +36,10 @@ bar
     assert_equal 13, size(" ゆんゆん")
   end
 
+  test :utf8_char do
+    assert_equal 12422, ?ゆ
+  end
+
   test :string_concatenation_as_match do
     "foo" <> x = "foobar"
     assert_equal "bar", x
