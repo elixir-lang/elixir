@@ -2,12 +2,12 @@
 if [ $# -eq 0 ]; then
   echo "Usage: `basename $0` [options] [.exs file] [data]
 
-  -v                          Prints version and exit
-  -e \"command\"                Evaluates the given command (*)
-  -r \"file1\" \"file2\" ...      Requires the given files/patterns (*)
-  -pa \"dir1\" \"dir2\" ...       Prepend the given paths to Erlang code path (*)
-  -pz \"dir1\" \"dir2\" ...       Append the given paths to Erlang code path (*)
-  --no-halt                   Do not halt the Erlang VM after execution
+  -v                Prints version and exit
+  -e \"command\"      Evaluates the given command (*)
+  -r \"file\" \"file\"  Requires the given files/patterns (*)
+  -pa \"path\"        Prepend the given path to Erlang code path (*)
+  -pz \"path\"        Append the given path to Erlang code path (*)
+  --no-halt         Do not halt the Erlang VM after execution
 
 ** Options marked with (*) can be given more than once;
 
