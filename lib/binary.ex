@@ -20,6 +20,16 @@ defmodule Binary do
     Access.BitString.access(binary, access)
   end
 
+  @doc """
+  Check if a binary is printable considering it is encoded
+  as UTF-8. Returns true if so, false otherwise.
+
+  ## Examples
+
+      Binary.printable?("abc") #=> true
+
+  """
+
   # Allow basic ascii chars
   def printable?(<<c, t|binary>>) when c >= ?\s and c <= ?~ do
     printable?(t)
@@ -99,8 +109,8 @@ defmodule Binary do
 
   ## Examples
 
-      CharList.escape 'foo', ?"
-      #=> '"foo"'
+      Binary.escape "foo", ?'
+      #=> "'foo'"
 
   """
   def escape(other, char) do

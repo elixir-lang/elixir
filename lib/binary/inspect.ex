@@ -10,21 +10,21 @@ defimpl Binary.Inspect, for: Atom do
   def inspect(:""),   do: ":\"\""
 
   def inspect(atom) do
-    list = atom_to_list(atom)
+    binary = atom_to_binary(atom, :utf8)
 
-    if valid_identifier?(list) == [] do
-      ":" <> atom_to_binary(atom, :utf8)
-    elsif: valid_ref_identifier?(list) == []
-      '__MAIN__.' ++ rest = list
-      list_to_binary rest
+    if valid_identifier?(binary) == <<>> do
+      ":" <> binary
+    elsif: valid_ref_identifier?(binary) == <<>>
+      "__MAIN__." <> rest = binary
+      rest
     else:
-      list_to_binary [?:, CharList.escape(list, ?")]
+      ":" <> Binary.escape(binary, ?")
     end
   end
 
   # Detect if atom is a module reference (__MAIN__.Foo.Bar.Baz)
 
-  defp valid_ref_identifier?('__MAIN__' ++ rest) do
+  defp valid_ref_identifier?("__MAIN__" <> rest) do
     valid_ref_piece?(rest)
   end
 
@@ -32,7 +32,7 @@ defimpl Binary.Inspect, for: Atom do
     rest
   end
 
-  defp valid_ref_piece?([?.,h|t]) when h >= ?A and h <= ?Z do
+  defp valid_ref_piece?(<<?., h, t|binary>>) when h >= ?A and h <= ?Z do
     valid_ref_piece? valid_identifier?(t)
   end
 
@@ -40,7 +40,7 @@ defimpl Binary.Inspect, for: Atom do
 
   # Detect if atom is :letter_or_underscore
 
-  defp valid_identifier?([h|t])  \
+  defp valid_identifier?(<<h, t|binary>>) \
     when h >= ?a and h <= ?z \
     when h >= ?A and h <= ?Z \
     when h == ?_ do
@@ -81,7 +81,7 @@ defimpl Binary.Inspect, for: List do
 
   def inspect(thing) do
     if Erlang.io_lib.printable_list(thing) do
-      list_to_binary CharList.escape(thing, ?')
+      Binary.escape(list_to_binary(thing), ?')
     else:
       container_join(thing, "[", "]")
     end
