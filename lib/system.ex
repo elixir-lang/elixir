@@ -118,7 +118,7 @@ defmodule System do
   end
 
   def put_env(varname, value) do
-   put_env to_char_list(varname), to_char_list(value)
+   :os.putenv to_char_list(varname), to_char_list(value)
   end
 
   @doc """
