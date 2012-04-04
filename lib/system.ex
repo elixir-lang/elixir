@@ -68,8 +68,12 @@ defmodule System do
   Executes `command` in a command shell of the target OS, captures the standard
   output of the command and returns this result as a string.
 
-  `command` can be an atom or a charlist
+  `command` can be an atom, a charlist or a binary.
   """
+  def cmd(command) when is_binary(command) do
+      cmd binary_to_list(command)
+  end
+
   def cmd(command), do: :os.cmd command
 
   @doc """
@@ -83,6 +87,10 @@ defmodule System do
   Returns the Value of the environment variable `varname`, or nil if the
   environment variable is undefined.
   """
+  def get_env(varname) when is_binary(varname) do
+    get_env binary_to_list(varname)
+  end
+
   def get_env(varname) do
     case :os.getenv(varname) do
     match: false
