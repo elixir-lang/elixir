@@ -7,7 +7,10 @@ defmodule System.GitCompiler do
   defmacro generate do
     quote do
       @doc """
-      Returns a tuple { Elixir version, commit sha-1, build date }
+      Returns a tuple { Elixir version, commit sha-1, build date }.
+
+      The format of the return value may change in a future release. Please
+      make sure your code doesn't depend on it.
       """
       def build_info do
         { System.version,
@@ -18,6 +21,19 @@ defmodule System.GitCompiler do
   end
 
   defp get_head_sha do
+    # The following failures are possible:
+    #
+    #  1) there is no `git` command
+    #  2) pwd is not a git repository
+    #
+    # In order to add proper checks, we should replace :os.cmd with ports which
+    # will then have to be tested separately on Windows, Linux, Mac.
+    #
+    # Here's a discussion that has a couple of code snippets we might use.
+    # http://erlang.2086793.n4.nabble.com/Executing-external-commands-td2094235.html
+    #
+    # I'll come back to this issue soon.
+    # <alcosholik@gmail.com>
     normalize :os.cmd 'git rev-parse HEAD'
   end
 
