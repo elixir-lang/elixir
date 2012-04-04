@@ -70,8 +70,13 @@ translate_each({ '__op__', Line, [Op|Args] }, S) when is_atom(Op) ->
 %% Containers
 
 translate_each({ '<<>>', Line, Args }, S) when is_list(Args) ->
-  { TArgs, { SC, SV } } = elixir_tree_helpers:build_bitstr(fun translate_arg/2, Args, Line, { S, S }),
-  { TArgs, umergec(SV, SC) };
+  case S#elixir_scope.assign of
+    true ->
+      elixir_tree_helpers:build_bitstr(fun translate_each/2, Args, Line, S);
+    false ->
+      { TArgs, { SC, SV } } = elixir_tree_helpers:build_bitstr(fun translate_arg/2, Args, Line, { S, S }),
+      { TArgs, umergec(SV, SC) }
+  end;
 
 translate_each({'{}', Line, Args}, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
@@ -490,8 +495,16 @@ translate_each(Args, S) when is_list(Args) ->
       ListS = S
   end,
 
-  { TExprs, { SC, SV } } = elixir_tree_helpers:build_reverse_list(fun translate_arg/2, Exprs, 0, { ListS, ListS }, Tail),
-  { TExprs, umergev(ST, umergec(SV, SC)) };
+  { FExprs, FS } = case S#elixir_scope.assign of
+    true ->
+      elixir_tree_helpers:build_reverse_list(fun translate_each/2, Exprs, 0, ListS, Tail);
+    false ->
+      { TArgs, { SC, SV } } =
+        elixir_tree_helpers:build_reverse_list(fun translate_arg/2, Exprs, 0, { ListS, ListS }, Tail),
+      { TArgs, umergec(SV, SC) }
+  end,
+
+  { FExprs, umergev(ST, FS) };
 
 translate_each(Number, S) when is_integer(Number) ->
   { { integer, 0, Number }, S };

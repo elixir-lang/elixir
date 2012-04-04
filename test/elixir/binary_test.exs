@@ -79,4 +79,17 @@ bar
     assert_equal "\n8", "\128"
     assert_equal <<1, ?8>>, "\18"
   end
+
+  test :match do
+    assert is_match?("ab", ?a)
+    assert not is_match?("cd", ?a)
+  end
+
+  defp is_match?(<<char, _|binary>>, char) do
+    true
+  end
+
+  defp is_match?(_, _) do
+    false
+  end
 end
