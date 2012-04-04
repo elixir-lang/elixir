@@ -119,7 +119,7 @@ defmodule System do
   `dict`.
   """
   def put_env(dict) do
-    Enum.each dict, :os.putenv(&1, &2)
+    Enum.each dict, fn({key, val}) -> put_env key, val end
   end
 
   @doc """
