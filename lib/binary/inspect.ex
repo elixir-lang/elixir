@@ -52,9 +52,8 @@ end
 
 defimpl Binary.Inspect, for: BitString do
   def inspect(thing) when is_binary(thing) do
-    list = binary_to_list(thing)
-    if Erlang.io_lib.printable_list(list) do
-      list_to_binary CharList.escape(list, ?")
+    if Binary.printable?(thing) do
+      Binary.escape(thing, ?")
     else:
       as_bitstring(thing)
     end

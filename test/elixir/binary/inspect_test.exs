@@ -48,6 +48,10 @@ defmodule Binary.Inspect.BitStringTest do
     assert_equal "\"f\\\\o\"", inspect("f\\o")
   end
 
+  test :utf8 do
+    assert_equal "\" ゆんゆん\"", inspect(" ゆんゆん")
+  end
+
   test :unprintable do
     assert_equal "<<1>>", inspect(<<1>>)
   end

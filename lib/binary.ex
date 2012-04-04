@@ -113,7 +113,7 @@ defmodule Binary do
     <<?\\, char, do_escape(t, char)|binary>>
   end
 
-  defp do_escape([h|t], char) when
+  defp do_escape(<<h, t|binary>>, char) when
     h == ?#  or h == ?\b or
     h == ?\d or h == ?\e or
     h == ?\f or h == ?\n or
@@ -122,11 +122,11 @@ defmodule Binary do
     <<?\\, escape_map(h), do_escape(t, char)|binary>>
   end
 
-  defp do_escape([h|t], char) do
+  defp do_escape(<<h, t|binary>>, char) do
     <<h, do_escape(t,char)|binary>>
   end
 
-  defp do_escape([], char) do
+  defp do_escape(<<>>, char) do
     <<char>>
   end
 
