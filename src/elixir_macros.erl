@@ -171,7 +171,7 @@ translate_macro({use, Line, [Raw, Args]}, S) ->
 %% Access
 
 translate_macro({ access, Line, [Element, Keyword] }, S) ->
-  case S#elixir_scope.guard of
+  case S#elixir_scope.assign of
     true ->
       case translate_each(Element, S) of
         { { atom, _, Atom }, _ } ->

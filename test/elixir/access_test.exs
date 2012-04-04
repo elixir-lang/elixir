@@ -97,6 +97,11 @@ defmodule Access.AtomTest do
     assert_equal false, is_zero(Config.new(integer: 1))
   end
 
+  test :match do
+    assert_match Config[integer: 1], Config.new(integer: 1)
+    refute_match Config[integer: 1], Config.new(integer: 0)
+  end
+
   defp get_var(Config[integer: integer]) do
     integer
   end

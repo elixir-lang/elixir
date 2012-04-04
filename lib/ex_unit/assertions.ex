@@ -2,10 +2,8 @@ defexception ExUnit.AssertionError, message: "assertion failed"
 
 defmodule ExUnit.Assertions do
   @doc """
-  Asserts the `expected` value matches `received`. Differently
-  from `assert_equal`, `assert_match` uses underscore and
-  therefore allows a developer to match against a specific
-  part of the `received` structure.
+  Asserts the `expected` value matches `received`. This relies
+  on Elixir's pattern match instead of simply comparing terms.
 
   ## Examples
 
@@ -209,6 +207,26 @@ defmodule ExUnit.Assertions do
     expected_value
   catch: ^expected_type, actual_value
     flunk "Expected #{expected_type} #{inspect expected_value}, got #{inspect actual_value}"
+  end
+
+  @doc """
+  Assets the `expected` value does not match `received`. This uses
+  Elixir's pattern matching instead of simply comparing terms.
+
+  ## Examples
+
+      refute_match { 1, _, 3 }, { 1, 2, 3 }
+
+  """
+  defmacro refute_match(expected, received) do
+    quote do
+      try do
+        unquote(expected) = unquote(received)
+        flunk "Unexpected right side #{inspect unquote(received)} match"
+      rescue: x in [MatchError]
+        true
+      end
+    end
   end
 
   @doc """
