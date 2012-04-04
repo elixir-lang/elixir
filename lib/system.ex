@@ -66,29 +66,31 @@ defmodule System do
 
   @doc """
   Executes `command` in a command shell of the target OS, captures the standard
-  output of the command and returns this result as a string.
+  output of the command and returns this result.
 
-  `command` can be an atom, a charlist or a binary.
+  `command` can a charlist or a binary.
   """
   def cmd(command) when is_binary(command) do
-      cmd binary_to_list(command)
+      list_to_binary cmd(binary_to_list(command))
   end
 
   def cmd(command), do: :os.cmd command
 
   @doc """
   Returns a list of all environment variables. Each environment variable is
-  given as a single string on the format "VarName=Value", where VarName is the
+  given as a single string of the format "VarName=Value", where VarName is the
   name of the variable and Value its value.
   """
-  def get_env, do: :os.getenv
+  def get_env do
+    Enum.map :os.getenv, list_to_binary &1
+  end
 
   @doc """
   Returns the Value of the environment variable `varname`, or nil if the
   environment variable is undefined.
   """
   def get_env(varname) when is_binary(varname) do
-    get_env binary_to_list(varname)
+    list_to_binary get_env(binary_to_list(varname))
   end
 
   def get_env(varname) do
@@ -106,7 +108,7 @@ defmodule System do
 
   See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
   """
-  def get_pid, do: :os.getpid
+  def get_pid, do: list_to_binary(:os.getpid)
 
   @doc """
   Sets a new `value` for the environment variable `varname`. Both arguments are
