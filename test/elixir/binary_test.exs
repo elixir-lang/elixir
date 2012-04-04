@@ -38,6 +38,7 @@ bar
 
   test :utf8_char do
     assert_equal 12422, ?ゆ
+    assert_equal 12422, ?\ゆ
   end
 
   test :string_concatenation_as_match do

@@ -48,12 +48,11 @@ tokenize(Line, [$%,S,H|T], Tokens) when not(?is_word(H)), ?is_upcase(S) orelse ?
 % Char tokens
 
 tokenize(Line, [$?,$\\,H|T], Tokens) ->
-  Chars = elixir_interpolation:unescape_chars([$\\,H]),
-  tokenize(Line, T, [{number,Line,lists:last(Chars)}|Tokens]);
+  Char = elixir_interpolation:unescape_map(H),
+  tokenize(Line, T, [{number,Line,Char}|Tokens]);
 
-tokenize(Line, [$?,H|T], Tokens) ->
-  Chars = elixir_interpolation:unescape_chars([H]),
-  tokenize(Line, T, [{number,Line,lists:last(Chars)}|Tokens]);
+tokenize(Line, [$?,Char|T], Tokens) ->
+  tokenize(Line, T, [{number,Line,Char}|Tokens]);
 
 % Stab
 
@@ -114,8 +113,9 @@ tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
   case elixir_interpolation:extract(Line, true, T, H) of
     { NewLine, Parts, [$:|Rest] } ->
       case Parts of
-        [List] when is_list(List) ->
-          tokenize(NewLine, Rest, [{kv_identifier,Line,list_to_atom(unescape_chars(List))}|Tokens]);
+        [Bin] when is_binary(Bin) ->
+          Atom = binary_to_atom(unescape_chars(Bin), utf8),
+          tokenize(NewLine, Rest, [{kv_identifier,Line,Atom}|Tokens]);
         _ ->
           { error, { Line, "invalid interpolation in key", [$"|T] } }
       end;

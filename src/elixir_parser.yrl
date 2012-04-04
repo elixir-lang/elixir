@@ -459,14 +459,14 @@ build_access(Expr, Access) ->
 build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) ->
   { list_to_atom([$_,$_,Sigil,$_,$_]), Line, [ { '<<>>', Line, Parts }, Modifiers ] }.
 
-build_bin_string({ bin_string, _Line, [H] }) when is_list(H) -> unicode:characters_to_binary(H);
+build_bin_string({ bin_string, _Line, [H] }) when is_binary(H) -> H;
 build_bin_string({ bin_string, Line, Args }) -> { '<<>>', Line, Args }.
 
-build_list_string({ list_string, _Line, [H] }) when is_list(H) -> binary_to_list(unicode:characters_to_binary(H));
+build_list_string({ list_string, _Line, [H] }) when is_binary(H) -> binary_to_list(H);
 build_list_string({ list_string, Line, Args }) -> { binary_to_list, Line, [{ '<<>>', Line, Args}] }.
 
 build_atom({ atom, _Line, [H] }) when is_atom(H) -> H;
-build_atom({ atom, _Line, [H] }) when is_list(H) -> binary_to_atom(unicode:characters_to_binary(H), utf8);
+build_atom({ atom, _Line, [H] }) when is_binary(H) -> binary_to_atom(H, utf8);
 build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ '<<>>', Line, Args}, utf8] }.
 
 %% Helpers

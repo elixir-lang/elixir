@@ -220,7 +220,7 @@ defmodule Regex do
   # Helpers
 
   @doc false
-  # Unescape map function used by CharList.unescape.
+  # Unescape map function used by Binary.unescape.
   def unescape_map(?f), do: ?\f
   def unescape_map(?n), do: ?\n
   def unescape_map(?r), do: ?\r

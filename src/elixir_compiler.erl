@@ -342,7 +342,7 @@ core_main() ->
     "lib/exception.ex",
     "lib/binary/inspect.ex",
     "lib/binary/chars.ex",
-    "lib/char_list/chars.ex",
+    "lib/list/chars.ex",
     "lib/gen_server/behavior.ex"
   ].
 

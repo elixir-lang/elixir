@@ -1,7 +1,7 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
 -export([extract/4, unescape_chars/1, unescape_chars/2,
-unescape_tokens/1, unescape_tokens/2]).
+unescape_tokens/1, unescape_tokens/2, unescape_map/1]).
 -define(is_octal(S), S >= $0 andalso S =< $7).
 -include("elixir.hrl").
 
@@ -69,7 +69,7 @@ unescape_tokens(Tokens) ->
 unescape_tokens(Tokens, Map) ->
   [unescape_token(Token, Map) || Token <- Tokens].
 
-unescape_token(Token, Map) when is_list(Token) -> unescape_chars(Token, Map);
+unescape_token(Token, Map) when is_binary(Token) -> unescape_chars(Token, Map);
 unescape_token(Other, _Map) -> Other.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
@@ -78,28 +78,28 @@ unescape_chars(String) -> unescape_chars(String, fun unescape_map/1).
 
 -define(to_octal(List),
   { ok, [Integer], [] } = io_lib:fread("~8u", List),
-  [Integer|unescape_chars(Rest, Map)]
+  <<Integer, (unescape_chars(Rest, Map))/binary>>
 ).
 
-unescape_chars([$\\,A,B,C|Rest], Map) when ?is_octal(A), ?is_octal(B), ?is_octal(C) ->
+unescape_chars(<<$\\,A,B,C,Rest/binary>>, Map) when ?is_octal(A), ?is_octal(B), ?is_octal(C) ->
   ?to_octal([A,B,C]);
 
-unescape_chars([$\\,A,B|Rest], Map) when ?is_octal(A), ?is_octal(B) ->
+unescape_chars(<<$\\,A,B,Rest/binary>>, Map) when ?is_octal(A), ?is_octal(B) ->
   ?to_octal([A,B]);
 
-unescape_chars([$\\,A|Rest], Map) when ?is_octal(A) ->
+unescape_chars(<<$\\,A,Rest/binary>>, Map) when ?is_octal(A) ->
   ?to_octal([A]);
 
-unescape_chars([$\\,Escaped|Rest], Map) ->
+unescape_chars(<<$\\,Escaped,Rest/binary>>, Map) ->
   case Map(Escaped) of
-    false -> [$\\,Escaped|unescape_chars(Rest, Map)];
-    Other -> [Other|unescape_chars(Rest, Map)]
+    false -> <<$\\,Escaped,(unescape_chars(Rest, Map))/binary>>;
+    Other -> <<Other,(unescape_chars(Rest, Map))/binary>>
   end;
 
-unescape_chars([Char|Rest], Map) ->
-  [Char|unescape_chars(Rest, Map)];
+unescape_chars(<<Char, Rest/binary>>, Map) ->
+  <<Char, (unescape_chars(Rest, Map))/binary>>;
 
-unescape_chars([], _Map) -> [].
+unescape_chars(<<>>, _Map) -> <<>>.
 
 % Unescape Helpers
 
@@ -118,7 +118,7 @@ unescape_map(E)  -> E.
 
 finish_extraction(Line, Buffer, Output, Remaining) ->
   case build_interpol(s, Line, Buffer, Output) of
-    []    -> Final = [[]];
+    []    -> Final = [<<>>];
     Final -> []
   end,
   { Line, lists:reverse(Final), Remaining }.
@@ -127,7 +127,7 @@ build_interpol(_Kind, _Line, [], Output) ->
   Output;
 
 build_interpol(s, _Line, Buffer, Output) ->
-  [lists:reverse(Buffer)|Output];
+  [unicode:characters_to_binary(lists:reverse(Buffer))|Output];
 
 build_interpol(i, Line, Buffer, Output) ->
   [wrap_interpol(Line, forms(lists:reverse(Buffer), Line))| Output].

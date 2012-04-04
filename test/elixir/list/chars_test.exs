@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule CharList.Chars.AtomTest do
+defmodule List.Chars.AtomTest do
   use ExUnit.Case
 
   test :basic do
@@ -8,7 +8,7 @@ defmodule CharList.Chars.AtomTest do
   end
 end
 
-defmodule CharList.Chars.BitStringTest do
+defmodule List.Chars.BitStringTest do
   use ExUnit.Case
 
   test :basic do
@@ -16,7 +16,7 @@ defmodule CharList.Chars.BitStringTest do
   end
 end
 
-defmodule CharList.Chars.NumberTest do
+defmodule List.Chars.NumberTest do
   use ExUnit.Case
 
   test :integer do
@@ -28,7 +28,7 @@ defmodule CharList.Chars.NumberTest do
   end
 end
 
-defmodule CharList.Chars.ListTest do
+defmodule List.Chars.ListTest do
   use ExUnit.Case
 
   test :basic do

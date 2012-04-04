@@ -525,7 +525,7 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
-  Convert the argument to a list according to the CharList.Chars protocol.
+  Convert the argument to a list according to the List.Chars protocol.
 
   ## Examples
 
@@ -534,7 +534,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro to_char_list(arg) do
-    quote do: __MAIN__.CharList.Chars.to_char_list(unquote(arg))
+    quote do: __MAIN__.List.Chars.to_char_list(unquote(arg))
   end
 
   @doc """
@@ -1153,7 +1153,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro __b__({ :<<>>, line, pieces }, []) do
-    { :<<>>, line, CharList.unescape_tokens(pieces) }
+    { :<<>>, line, Binary.unescape_tokens(pieces) }
   end
 
   @doc """
@@ -1167,7 +1167,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro __C__({ :<<>>, _line, [string] }, []) do
-    string
+    binary_to_list(string)
   end
 
   @doc """
@@ -1184,11 +1184,11 @@ defmodule Elixir.Builtin do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro __c__({ :<<>>, _line, [string] }, []) when is_list(string) do
-    CharList.unescape(string)
+    Binary.unescape(string)
   end
 
   defmacro __c__({ :<<>>, line, pieces }, []) do
-    binary = { :<<>>, line, CharList.unescape_tokens(pieces) }
+    binary = { :<<>>, line, Binary.unescape_tokens(pieces) }
     quote do: binary_to_list(unquote(binary))
   end
 
@@ -1201,7 +1201,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro __r__({ :<<>>, line, pieces }, options) do
-    binary = { :<<>>, line, CharList.unescape_tokens(pieces, Regex.unescape_map(&1)) }
+    binary = { :<<>>, line, Binary.unescape_tokens(pieces, Regex.unescape_map(&1)) }
     quote do: Regex.compile(unquote(binary), unquote(options))
   end
 
