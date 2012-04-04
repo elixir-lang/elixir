@@ -65,6 +65,53 @@ defmodule System do
   end
 
   @doc """
+  Executes `command` in a command shell of the target OS, captures the standard
+  output of the command and returns this result as a string.
+
+  `command` can be an atom or a charlist
+  """
+  def cmd(command), do: :os.cmd command
+
+  @doc """
+  Returns a list of all environment variables. Each environment variable is
+  given as a single string on the format "VarName=Value", where VarName is the
+  name of the variable and Value its value.
+  """
+  def get_env, do: :os.getenv
+
+  @doc """
+  Returns the Value of the environment variable `varname`, or nil if the
+  environment variable is undefined.
+  """
+  def get_env(varname) do
+    case :os.getenv(varname) do
+    match: false
+      nil
+    match: other
+      other
+    end
+  end
+
+  @doc """
+  Returns the process identifier of the current Erlang emulator in the format
+  most commonly used by the operating system environment.
+
+  See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
+  """
+  def get_pid, do: :os.getpid
+
+  @doc """
+  Sets a new `value` for the environment variable `varname`. Both arguments are
+  expected to be of type charlist.
+  """
+  def put_env(varname, value), do: :os.putenv varname, value
+
+  @doc """
+  Returns the current working directory as a binary.
+  """
+  def pwd, do: :filename.absname("")
+
+  @doc """
   Get the stacktrace.
   """
   def stacktrace do
