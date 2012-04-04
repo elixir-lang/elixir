@@ -115,6 +115,14 @@ defmodule System do
   def put_env(varname, value), do: :os.putenv varname, value
 
   @doc """
+  Sets a new value for each environment variable corresponding to each key in
+  `dict`.
+  """
+  def put_env(dict) do
+    Enum.each dict, :os.putenv(&1, &2)
+  end
+
+  @doc """
   Returns the current working directory as a binary.
   """
   def pwd, do: :filename.absname("")
