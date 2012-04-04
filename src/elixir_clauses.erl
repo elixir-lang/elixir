@@ -70,6 +70,7 @@ extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Arg
 match(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
   DecoupledClauses = elixir_kv_block:decouple(Clauses, fun(X) -> handle_else(match, Line, X) end),
+
   case DecoupledClauses of
     [DecoupledClause] ->
       { TDecoupledClause, TS } = translate_each(Line, DecoupledClause, S),
@@ -185,6 +186,15 @@ translate_each(Line, {Key,_,_}, S) ->
 % Check if the given expression is a match tuple.
 % This is a small optimization to allow us to change
 % existing assignments instead of creating new ones every time.
+
+has_match_tuple({'receive', _, _, _, _}) ->
+  true;
+
+has_match_tuple({'receive', _, _}) ->
+  true;
+
+has_match_tuple({'case', _, _, _}) ->
+  true;
 
 has_match_tuple({match, _, _, _}) ->
   true;
