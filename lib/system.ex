@@ -111,10 +111,15 @@ defmodule System do
   def get_pid, do: list_to_binary(:os.getpid)
 
   @doc """
-  Sets a new `value` for the environment variable `varname`. Both arguments are
-  expected to be of type charlist.
+  Sets a new `value` for the environment variable `varname`.
   """
-  def put_env(varname, value), do: :os.putenv varname, value
+  def put_env(varname, value) when is_list(varname) and is_list(value) do
+   :os.putenv varname, value
+  end
+
+  def put_env(varname, value) do
+   put_env to_char_list(varname), to_char_list(value)
+  end
 
   @doc """
   Sets a new value for each environment variable corresponding to each key in
