@@ -9,7 +9,7 @@ defmodule System.GitCompiler do
       @doc """
       Returns a tuple { Elixir version, commit sha-1, build date }
       """
-      def build_version do
+      def build_info do
         { System.version,
           unquote(get_head_sha),
           unquote(get_date) }
