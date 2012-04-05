@@ -176,41 +176,54 @@ defmodule File do
 
   @doc """
   Returns information about a file. Info is returned
-  as a FileInfo record containing the following elements:
+  as a `FileInfo` record containing the following elements:
 
-  size: Size of file in bytes.
-  type: :device, :directory, :regular, :other. The type of the file.
-  access: :read, :write, :read_write, :none. The current system access to
-          the file.
-  atime: The last time the file was read.
-  mtime: The last time the file was written.
-  ctime: The interpretation of this time field depends on the operating
-         system. On Unix, it is the last time the file or the inode was
-         changed. in Windows, it is the create time.
-  mode: The file permissions.
-  links: The number of links to this file. This is always 1 for file
-         systems which have no concept of links.
-  major_device: Identifies the file system where the file is located.
-                In windows, the number indicates a drive as follows:
-                0 means A:, 1 means B:, and so on.
-  minor_device: Only valid for character devices on Unix. In all other
-                cases, this field is zero.
-  inode: Gives the inode number. On non-Unix file systems, this field
-         will be zero.
-  uid: Indicates the owner of the file.
-  gid: Gives the group that the owner of the file belongs to. Will be
-       zero for non-Unix file systems.
+  `size` - Size of file in bytes.
+  `type` - `:device`, `:directory`, `:regular`, `:other`. The type of the file.
+  `access` - `:read`, `:write`, `:read_write`, `:none`. The current system access to
+             the file.
+  `atime` - The last time the file was read.
+  `mtime` - The last time the file was written.
+  `ctime` - The interpretation of this time field depends on the operating
+            system. On Unix, it is the last time the file or the inode was
+            changed. in Windows, it is the create time.
+  `mode` - The file permissions.
+  `links` - The number of links to this file. This is always 1 for file
+            systems which have no concept of links.
+  `major_device` - Identifies the file system where the file is located.
+                   In windows, the number indicates a drive as follows:
+                   0 means A:, 1 means B:, and so on.
+  `minor_device` - Only valid for character devices on Unix. In all other
+                   cases, this field is zero.
+  `inode` - Gives the inode number. On non-Unix file systems, this field
+            will be zero.
+  `uid` - Indicates the owner of the file.
+  `gid` - Gives the group that the owner of the file belongs to. Will be
+          zero for non-Unix file systems.
 
   The time type returned in atime, mtime, and ctime is dependent on the
-  time type set in options. {:time, type} where type can be local,
+  time type set in options. `{:time, type}` where type can be local,
   universal, or posix. Default is local.
   """
   def file_info(path, opts // []) do
     case :file.read_file_info(path, opts) do
     match: {:ok, fileinfo}
-      FileInfo.new fileinfo
+      {:ok, FileInfo.new fileinfo}
+    match: error
+      error
+    end
+  end
+
+  @doc """
+  Same as `file_info` but returns only the FileInfo and
+  throws an exception if an error occurs.
+  """
+  def file_info!(path, opts // []) do
+    case file_info(path, opts) do
+    match: {:ok, info}
+      info
     match: {:error, reason}
-      raise File.Exception, reason: reason, action: "read file info", path: path
+      raise File.Exception, reason: reason, action: "read info of file", path: path
     end
   end
 
