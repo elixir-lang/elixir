@@ -89,17 +89,20 @@ defmodule Elixir.CLI do
   end
 
   defp process_shared(['-pa',h|t], config) do
-    Code.prepend_path(h)
+    Enum.each File.wildcard(h), Code.prepend_path(&1)
     process_shared t, config
   end
 
   defp process_shared(['-pz',h|t], config) do
-    Code.append_path(h)
+    Enum.each File.wildcard(h), Code.append_path(&1)
     process_shared t, config
   end
 
   defp process_shared(['-r',h|t], config) do
-    process_shared t, config.prepend_commands [{:require,h}]
+    config = Enum.reduce File.wildcard(h), config, fn(path, config) ->
+      config.prepend_commands [{:require, path}]
+    end
+    process_shared t, config
   end
 
   defp process_shared(list, config) do
@@ -108,19 +111,19 @@ defmodule Elixir.CLI do
 
   # Process init options
 
-  defp process_options(['--'|t], config) do
+  def process_options(['--'|t], config) do
     { config, t }
   end
 
-  defp process_options(['--no-halt'|t], config) do
+  def process_options(['--no-halt'|t], config) do
     process_options t, config.halt(false)
   end
 
-  defp process_options(['+compile'|t], config) do
+  def process_options(['+compile'|t], config) do
     process_compiler t, config.compile(true)
   end
 
-  defp process_options([h|t] = list, config) do
+  def process_options([h|t] = list, config) do
     case h do
     match: '-' ++ _
       shared_option? list, config, process_options(&1, &2)
@@ -129,7 +132,7 @@ defmodule Elixir.CLI do
     end
   end
 
-  defp process_options([], config) do
+  def process_options([], config) do
     { config, [] }
   end
 
