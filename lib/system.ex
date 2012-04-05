@@ -38,7 +38,7 @@ defmodule System.GitCompiler do
     output = read_port port
     case output do
     match: { 0, data }
-      normalize data
+      Regex.replace_all %r/\n/, to_binary(data), ""
     else:
       ""
     end
@@ -59,10 +59,6 @@ defmodule System.GitCompiler do
 
   defp get_date do
     list_to_binary :httpd_util.rfc1123_date
-  end
-
-  defp normalize(string) do
-    Regex.replace_all %r(\n), to_binary(string), ""
   end
 end
 
