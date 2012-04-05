@@ -99,7 +99,7 @@ defmodule Elixir.CLI do
   end
 
   defp process_shared(['-r',h|t], config) do
-    Enum.reduce File.wildcard(h), config, fn(path, config) ->
+    config = Enum.reduce File.wildcard(h), config, fn(path, config) ->
       config.prepend_commands [{:require, path}]
     end
     process_shared t, config
