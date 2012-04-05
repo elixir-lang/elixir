@@ -16,22 +16,11 @@ end
 defmodule Elixir.CLI.OptionParsingTest do
   use ExUnit.Case
 
-  test :bogus_options do
-    options = ['-r','non-existent', '-r', '/never/gonna/*/up', '-pz', 'there is no spoon', '-pa', '*/unshell']
-    { config, _argv } = Elixir.CLI.process_options(options, Elixir.CLI.Config.new)
-    expected = Elixir.CLI.Config.new commands: [], close: [], output: '.', compile: false, halt: true, compile_options: []
-    assert_equal expected, config
-  end
+  test :path do
+    list = OS.cmd('bin/elixir -e "IO.inspect Erlang.code.get_path" -pa "*" -pz "exbin/*"')
+    { path, _ } = Code.eval list, []
 
-  test :wildcard do
-    options = ['-r', 'lib/list/*', '-pa', '*', '-pz', 'exbin/*']
-    { config, _argv } = Elixir.CLI.process_options(options, Elixir.CLI.Config.new)
-    expected = Elixir.CLI.Config.new commands: [{:require, 'lib/list/chars.ex'}],
-                 close: [], output: '.', compile: false, halt: true, compile_options: []
-    assert_equal expected, config
-
-    path = Erlang.code.get_path
-    # -pa
+    # pa
     assert_member 'bin', path
     assert_member 'ebin', path
     assert_member 'exbin', path
@@ -40,8 +29,14 @@ defmodule Elixir.CLI.OptionParsingTest do
     assert_member 'include', path
     assert_member 'test', path
 
-    # -pz
+    # pz
     assert_member 'exbin/__MAIN__', path
+  end
+
+  test :require do
+    options = ['-r', 'lib/list/*', '-r', '/never/gonna/*/up']
+    { config, _argv } = Elixir.CLI.process_options(options, Elixir.CLI.Config.new)
+    assert_member {:require, 'lib/list/chars.ex'}, config.commands
   end
 end
 
