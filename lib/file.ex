@@ -205,7 +205,7 @@ defmodule File do
   time type set in options. `{:time, type}` where type can be local,
   universal, or posix. Default is local.
   """
-  def file_info(path, opts // []) do
+  def read_info(path, opts // []) do
     case :file.read_file_info(path, opts) do
     match: {:ok, fileinfo}
       {:ok, FileInfo.new fileinfo}
@@ -215,11 +215,11 @@ defmodule File do
   end
 
   @doc """
-  Same as `file_info` but returns only the FileInfo and
+  Same as `read_info` but returns only the FileInfo and
   throws an exception if an error occurs.
   """
-  def file_info!(path, opts // []) do
-    case file_info(path, opts) do
+  def read_info!(path, opts // []) do
+    case read_info(path, opts) do
     match: {:ok, info}
       info
     match: {:error, reason}
