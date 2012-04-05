@@ -89,17 +89,20 @@ defmodule Elixir.CLI do
   end
 
   defp process_shared(['-pa',h|t], config) do
-    Code.prepend_path(h)
+    Enum.each File.wildcard(h), Code.prepend_path(&1)
     process_shared t, config
   end
 
   defp process_shared(['-pz',h|t], config) do
-    Code.append_path(h)
+    Enum.each File.wildcard(h), Code.append_path(&1)
     process_shared t, config
   end
 
   defp process_shared(['-r',h|t], config) do
-    process_shared t, config.prepend_commands [{:require,h}]
+    Enum.reduce File.wildcard(h), config, fn(path, config) ->
+      config.prepend_commands [{:require, path}]
+    end
+    process_shared t, config
   end
 
   defp process_shared(list, config) do
