@@ -58,7 +58,7 @@ defmodule System.GitCompiler do
   end
 
   defp get_date do
-    normalize :os.cmd 'TZ=GMT date'
+    list_to_binary :httpd_util.rfc1123_date
   end
 
   defp normalize(string) do
