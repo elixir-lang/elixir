@@ -13,6 +13,38 @@ defmodule Elixir.CLI.InitTest do
   end
 end
 
+defmodule Elixir.CLI.OptionParsingTest do
+  use ExUnit.Case
+
+  test :bogus_options do
+    options = ['-r','non-existent', '-r', '/never/gonna/*/up', '-pz', 'there is no spoon', '-pa', '*/unshell']
+    { config, _argv } = Elixir.CLI.process_options(options, Elixir.CLI.Config.new)
+    expected = Elixir.CLI.Config.new commands: [], close: [], output: '.', compile: false, halt: true, compile_options: []
+    assert_equal expected, config
+  end
+
+  test :wildcard do
+    options = ['-r', 'lib/list/*', '-pa', '*', '-pz', 'exbin/*']
+    { config, _argv } = Elixir.CLI.process_options(options, Elixir.CLI.Config.new)
+    expected = Elixir.CLI.Config.new commands: [{:require, 'lib/list/chars.ex'}],
+                 close: [], output: '.', compile: false, halt: true, compile_options: []
+    assert_equal expected, config
+
+    path = Erlang.code.get_path
+    # -pa
+    assert_member 'bin', path
+    assert_member 'ebin', path
+    assert_member 'exbin', path
+    assert_member 'src', path
+    assert_member 'lib', path
+    assert_member 'include', path
+    assert_member 'test', path
+
+    # -pz
+    assert_member 'exbin/__MAIN__', path
+  end
+end
+
 defmodule Elixir.CLI.AtExitTest do
   use ExUnit.Case
 

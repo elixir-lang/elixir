@@ -111,19 +111,19 @@ defmodule Elixir.CLI do
 
   # Process init options
 
-  defp process_options(['--'|t], config) do
+  def process_options(['--'|t], config) do
     { config, t }
   end
 
-  defp process_options(['--no-halt'|t], config) do
+  def process_options(['--no-halt'|t], config) do
     process_options t, config.halt(false)
   end
 
-  defp process_options(['+compile'|t], config) do
+  def process_options(['+compile'|t], config) do
     process_compiler t, config.compile(true)
   end
 
-  defp process_options([h|t] = list, config) do
+  def process_options([h|t] = list, config) do
     case h do
     match: '-' ++ _
       shared_option? list, config, process_options(&1, &2)
@@ -132,7 +132,7 @@ defmodule Elixir.CLI do
     end
   end
 
-  defp process_options([], config) do
+  def process_options([], config) do
     { config, [] }
   end
 
