@@ -180,7 +180,7 @@ defmodule Elixir.CLI do
   end
 
   defp process_command({:require, file}, _config) do
-    Enum.each File.wildcard(file), Code.require_file(&1)
+    Code.require_file(file)
   end
 
   defp process_command({:compile, pattern}, config) do

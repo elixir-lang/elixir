@@ -146,9 +146,9 @@ defmodule Code do
     if File.regular?(file) do
       file
     else:
-      file = "#{file}.exs"
-      if File.regular?(file) do
-        file
+      prefix = "#{file}.exs"
+      if File.regular?(prefix) do
+        prefix
       else:
         raise ArgumentError, message: "could not load #{file}"
       end
