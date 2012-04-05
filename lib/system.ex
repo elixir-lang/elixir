@@ -20,21 +20,41 @@ defmodule System.GitCompiler do
     end
   end
 
+  @doc """
+  Tries to run `git rev-parse HEAD`. In case of success returns the
+  commit sha, otherwise returns an empty string.
+  """
   defp get_head_sha do
     # The following failures are possible:
     #
     #  1) there is no `git` command
     #  2) pwd is not a git repository
     #
-    # In order to add proper checks, we should replace :os.cmd with ports which
-    # will then have to be tested separately on Windows, Linux, Mac.
-    #
-    # Here's a discussion that has a couple of code snippets we might use.
-    # http://erlang.2086793.n4.nabble.com/Executing-external-commands-td2094235.html
-    #
-    # I'll come back to this issue soon.
-    # <alcosholik@gmail.com>
-    normalize :os.cmd 'git rev-parse HEAD'
+    command = 'git rev-parse HEAD'
+    opts = [:stream, :exit_status, :use_stdio,
+            :stderr_to_stdout, :in, :eof]
+    port = :erlang.open_port {:spawn, command}, opts
+
+    output = read_port port
+    case output do
+    match: { 0, data }
+      normalize data
+    else:
+      ""
+    end
+  end
+
+  defp read_port(port, data // []) do
+    receive do
+    match: {^port, {:data, new_data}}
+      read_port port, [new_data|data]
+    match: {^port, :eof}
+      :erlang.port_close port
+      receive do
+      match: {^port, {:exit_status, exit_status}}
+        {exit_status, List.reverse data}
+      end
+    end
   end
 
   defp get_date do
