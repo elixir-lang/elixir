@@ -96,4 +96,13 @@ defmodule FileTest do
       File.read!("fixtures/missing.txt")
     end
   end
+
+  test :read_info do
+    {:ok, info} = File.read_info("lib")
+    assert info.mtime
+  end
+
+  test :read_info! do
+    assert File.read_info!("lib").mtime
+  end
 end
