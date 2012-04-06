@@ -241,8 +241,9 @@ defmodule Elixir.Builtin do
 
     record = Record.defrecord(name, values, opts)
     check  = quote do
-      unless List.member?(unquote(name).__info__(:exports), { :message, 1 }), do:
-        raise "Expected #{unquote(name)} to implement message/1"
+      name = Module.concat __MODULE__, unquote(name)
+      unless List.member?(name.__info__(:exports), { :message, 1 }), do:
+        raise "Expected #{name} to implement message/1"
     end
 
     [record, check]

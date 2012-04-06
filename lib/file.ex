@@ -1,15 +1,16 @@
-defexception File.Exception, reason: nil, action: "", path: nil do
-  def message(exception) do
-    "could not " <> exception.action <> " " <> exception.path <> ": " <> list_to_binary(:file.format_error(exception.reason))
-  end
-end
-
-defrecord FileInfo, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
-
 defmodule File do
-  require Erlang.file, as: F
+  require Erlang.file,     as: F
   require Erlang.filename, as: FN
   require Erlang.filelib,  as: FL
+
+  defrecord Info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+
+  defexception Exception, reason: nil, action: "", path: nil do
+    def message(exception) do
+      formatted = list_to_binary(F.format_error(exception.reason))
+      "could not #{exception.action} #{exception.path}: #{formatted}"
+    end
+  end
 
   def expand_path(path) do
     normalize FN.absname(path)
@@ -110,7 +111,7 @@ defmodule File do
     match: { :ok, binary }
       binary
     match: { :error, reason }
-      raise File.Exception, reason: reason, action: "read file", path: filename
+      raise Exception, reason: reason, action: "read file", path: filename
     end
   end
 
@@ -208,7 +209,7 @@ defmodule File do
   def read_info(path, opts // []) do
     case :file.read_file_info(path, opts) do
     match: {:ok, fileinfo}
-      {:ok, FileInfo.new fileinfo}
+      {:ok, Info.new fileinfo}
     match: error
       error
     end
@@ -223,7 +224,7 @@ defmodule File do
     match: {:ok, info}
       info
     match: {:error, reason}
-      raise File.Exception, reason: reason, action: "read info of file", path: path
+      raise Exception, reason: reason, action: "read info of file", path: path
     end
   end
 

@@ -36,7 +36,7 @@ last([], Acc) -> Acc.
 %% and concatenate them.
 
 concat(Args) ->
-  Refs = [concat_(Arg) || Arg <- Args],
+  Refs = [concat_(Arg) || Arg <- Args, Arg /= nil],
   list_to_atom(lists:concat(['__MAIN__'|Refs])).
 
 concat_(Arg) when is_binary(Arg) -> concat_(binary_to_list(Arg));
