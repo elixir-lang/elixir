@@ -80,7 +80,7 @@ defmodule Elixir.CLI do
   # Process shared options
 
   defp process_shared(['-v'|t], config) do
-    IO.puts "Elixir #{Code.version}"
+    IO.puts "Elixir #{System.version}"
     process_shared t, config
   end
 
