@@ -991,6 +991,19 @@ defmodule Elixir.Builtin do
       binary_to_existing_atom(unquote(some_binary), :utf8)
     end
   end
+  
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_atom` in UTF8 encoding.
+
+      atom_to_binary :my_atom #=> "my_atom"
+
+  """
+  defmacro atom_to_binary(some_atom) do
+    quote do
+      atom_to_binary(unquote(some_atom), :utf8)
+    end
+  end
 
   @doc """
   Concatenates two binaries.
