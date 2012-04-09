@@ -970,6 +970,8 @@ defmodule Elixir.Builtin do
   Returns the atom whose text representation is
   `some_binary` in UTF8 encoding.
 
+  ## Examples
+
       binary_to_atom "my_atom" #=> :my_atom
 
   """
@@ -981,6 +983,8 @@ defmodule Elixir.Builtin do
 
   @doc """
   Works like `binary_to_atom` but the atom must exist.
+
+  ## Examples
 
       :my_atom                          #=> :my_atom
       binary_to_existing_atom "my_atom" #=> :my_atom
@@ -995,6 +999,8 @@ defmodule Elixir.Builtin do
   @doc """
   Returns a binary which corresponds to the text representation
   of `some_atom` in UTF8 encoding.
+
+  ## Examples
 
       atom_to_binary :my_atom #=> "my_atom"
 
