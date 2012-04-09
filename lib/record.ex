@@ -221,8 +221,8 @@ defmodule Record.Definition do
 
   # Define the default functions for each field.
   def default_for(key, _default, i) do
-    bin_update = "update_" <> atom_to_binary(key, :utf8)
-    update     = binary_to_atom(bin_update, :utf8)
+    bin_update = "update_" <> atom_to_binary(key)
+    update     = binary_to_atom(bin_update)
 
     quote do
       def unquote(key).(record) do
@@ -242,7 +242,7 @@ defmodule Record.Definition do
 
   # Define extensions based on the default type.
   def extension_for(key, default, i) when is_list(default) do
-    bin_key = atom_to_binary(key, :utf8)
+    bin_key = atom_to_binary(key)
     prepend = :"prepend_#{bin_key}"
     merge   = :"merge_#{bin_key}"
 
@@ -260,7 +260,7 @@ defmodule Record.Definition do
   end
 
   def extension_for(key, default, i) when is_number(default) do
-    bin_key   = atom_to_binary(key, :utf8)
+    bin_key   = atom_to_binary(key)
     increment = :"increment_#{bin_key}"
 
     quote do

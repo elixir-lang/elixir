@@ -9,7 +9,7 @@ defimpl Binary.Chars, for: Atom do
   end
 
   def to_binary(atom) do
-    atom_to_binary(atom, :utf8)
+    atom_to_binary(atom)
   end
 end
 

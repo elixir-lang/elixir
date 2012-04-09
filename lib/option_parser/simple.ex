@@ -42,7 +42,7 @@ defmodule OptionParser.Simple do
 
   defp key_value(key, boolean, dict) when boolean == "false" \
                                      when boolean == "true" do
-    Keyword.put dict, key, binary_to_atom(boolean, :utf8)
+    Keyword.put dict, key, binary_to_atom(boolean)
   end
 
   defp key_value(key, value, dict) do
@@ -50,10 +50,10 @@ defmodule OptionParser.Simple do
   end
 
   defp normalize_option(<<?-, option|binary>>) do
-    binary_to_atom(option, :utf8)
+    binary_to_atom(option)
   end
 
   defp normalize_option(option) do
-    binary_to_atom(option, :utf8)
+    binary_to_atom(option)
   end
 end
