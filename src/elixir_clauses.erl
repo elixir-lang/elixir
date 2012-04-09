@@ -118,8 +118,13 @@ match(Line, Clauses, RawS) ->
             % final clause in order to keep it tail call optimized.
             FinalClauseExprs = case has_match_tuple(Final) of
               true ->
-                StorageExpr = { match, Line, StorageVar, Final },
-                [StorageVar,AssignExpr,StorageExpr|RawClauseExprs];
+                case Final of
+                  { match, _, { var, _, UserVarName } = UserVar, _ } when UserVarName /= '_' ->
+                    [UserVar,AssignExpr,Final|RawClauseExprs];
+                  _ ->
+                    StorageExpr = { match, Line, StorageVar, Final },
+                    [StorageVar,AssignExpr,StorageExpr|RawClauseExprs]
+                end;
               false ->
                 [Final,AssignExpr|RawClauseExprs]
             end,
