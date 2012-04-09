@@ -1,10 +1,17 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Kernek.CaseTest do
+defmodule Kernel.CaseTest do
   use ExUnit.Case
 
   test :nested_case do
     assert_equal 2, get_case
+  end
+
+  test :nested_variables do
+    assert_equal { 400, 1 },  vars_case(400, 1)
+    assert_equal { 400, -1 }, vars_case(401, 1)
+    assert_equal { 0, -1 },   vars_case(0, -1)
+    assert_equal { 0, 1 },    vars_case(-1, -1)
   end
 
   defp get_case do
@@ -26,5 +33,22 @@ defmodule Kernek.CaseTest do
 
   defp other_internal do
     2
+  end
+
+  defp vars_case(x, vx) do
+    case x > 400 do
+    match: true
+      x = 400
+      vx = -vx
+    else:
+      case x < 0 do
+      match: true
+        x = 0
+        vx = -vx
+      else:
+        nil
+      end
+    end
+    {x, vx}
   end
 end

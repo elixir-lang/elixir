@@ -209,11 +209,15 @@ has_match_tuple(_) -> false.
 
 % Normalize the given var checking its existence in the scope var dictionary.
 
-normalize_vars(Var, #elixir_scope{vars=Dict} = S) ->
+normalize_vars(Var, #elixir_scope{vars=Vars, clause_vars=ClauseVars} = S) ->
   { { _, _, NewValue }, NS } = elixir_variables:build_erl(0, S),
-  FS = NS#elixir_scope{vars=dict:store(Var, NewValue, Dict)},
 
-  Expr = case dict:find(Var, Dict) of
+  FS = NS#elixir_scope{
+    vars=dict:store(Var, NewValue, Vars),
+    clause_vars=dict:store(Var, NewValue, ClauseVars)
+  },
+
+  Expr = case dict:find(Var, Vars) of
     { ok, OldValue } -> { var, 0, OldValue };
     error -> { atom, 0, nil }
   end,
