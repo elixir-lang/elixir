@@ -100,16 +100,16 @@ match(Line, Clauses, RawS) ->
           { FinalVars, FS } = lists:mapfoldl(fun normalize_vars/2, TS, NewVars),
 
           % Defines a tuple that will be used as left side of the match operator
-          LeftTuple = { tuple, Line, [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars] },
+          LeftVars = [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars],
           { StorageVar, SS } = elixir_variables:build_erl(Line, FS),
 
           % Expand all clauses by adding a match operation at the end that assigns
           % variables missing in one clause to the others.
           Expander = fun(Clause, Counter) ->
             ClauseVars = lists:nth(Counter, CV),
-            RightTuple = [normalize_clause_var(Var, OldValue, ClauseVars) || {Var, _, OldValue} <- FinalVars],
+            RightVars = [normalize_clause_var(Var, OldValue, ClauseVars) || {Var, _, OldValue} <- FinalVars],
 
-            AssignExpr = { match, Line, LeftTuple, { tuple, Line, RightTuple } },
+            AssignExpr = generate_match(Line, LeftVars, RightVars),
             ClauseExprs = element(5, Clause),
             [Final|RawClauseExprs] = lists:reverse(ClauseExprs),
 
@@ -232,6 +232,14 @@ normalize_clause_var(Var, OldValue, ClauseVars) ->
     { ok, ClauseValue } -> { var, 0, ClauseValue };
     error -> OldValue
   end.
+
+%% generate_match
+
+generate_match(Line, [Left], [Right]) ->
+  { match, Line, Left, Right };
+
+generate_match(Line, LeftVars, RightVars) ->
+  { match, Line, { tuple, Line, LeftVars }, { tuple, Line, RightVars } }.
 
 %% Listify
 
