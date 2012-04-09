@@ -991,7 +991,7 @@ defmodule Elixir.Builtin do
       binary_to_existing_atom(unquote(some_binary), :utf8)
     end
   end
-  
+
   @doc """
   Returns a binary which corresponds to the text representation
   of `some_atom` in UTF8 encoding.
