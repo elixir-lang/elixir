@@ -77,8 +77,7 @@ unescape_token(Other, _Map) -> Other.
 unescape_chars(String) -> unescape_chars(String, fun unescape_map/1).
 
 -define(to_octal(List),
-  { ok, [Integer], [] } = io_lib:fread("~8u", List),
-  <<Integer, (unescape_chars(Rest, Map))/binary>>
+  <<(list_to_integer(List, 8))/integer, (unescape_chars(Rest, Map))/binary>>
 ).
 
 unescape_chars(<<$\\,A,B,C,Rest/binary>>, Map) when ?is_octal(A), ?is_octal(B), ?is_octal(C) ->

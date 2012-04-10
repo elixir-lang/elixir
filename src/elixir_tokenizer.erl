@@ -4,6 +4,9 @@
 -import(elixir_interpolation, [unescape_chars/1, unescape_tokens/1]).
 
 -define(is_digit(S), S >= $0 andalso S =< $9).
+-define(is_hex(S), ?is_digit(S) orelse (S >= $A andalso S =< $F)).
+-define(is_bin(S), S >= $0 andalso S =< $1).
+-define(is_octal(S), S >= $0 andalso S =< $7).
 -define(is_upcase(S), S >= $A andalso S =< $Z).
 -define(is_downcase(S), S >= $a andalso S =< $z).
 -define(is_word(S), ?is_digit(S) orelse ?is_upcase(S) orelse ?is_downcase(S)).
@@ -15,6 +18,18 @@ tokenize(_, [], Tokens) ->
   { ok, lists:reverse(Tokens) };
 
 % Integers and floats
+
+tokenize(Line, [$0,$x,H|T], Tokens) when ?is_hex(H) ->
+  { Rest, Number } = tokenize_hex([H|T], []),
+  tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
+
+tokenize(Line, [$0,$o,H|T], Tokens) when ?is_octal(H) ->
+  { Rest, Number } = tokenize_octal([H|T], []),
+  tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
+
+tokenize(Line, [$0,$b,H|T], Tokens) when ?is_bin(H) ->
+  { Rest, Number } = tokenize_bin([H|T], []),
+  tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 
 tokenize(Line, [H|_] = String, Tokens) when ?is_digit(H) ->
   { Rest, Number } = tokenize_number(String, [], false),
@@ -419,11 +434,23 @@ tokenize_number([H|T], Acc, Bool) when ?is_digit(H) ->
 
 % Cast to float...
 tokenize_number(Rest, Acc, true) ->
-  { Rest, erlang:list_to_float(lists:reverse(Acc)) };
+  { Rest, list_to_float(lists:reverse(Acc)) };
 
 % Or integer.
 tokenize_number(Rest, Acc, false) ->
-  { Rest, erlang:list_to_integer(lists:reverse(Acc)) }.
+  { Rest, list_to_integer(lists:reverse(Acc)) }.
+
+% Hex
+tokenize_hex([H|T], Acc) when ?is_hex(H) -> tokenize_hex(T, [H|Acc]);
+tokenize_hex(Rest, Acc) -> { Rest, list_to_integer(lists:reverse(Acc), 16) }.
+
+% Octal
+tokenize_octal([H|T], Acc) when ?is_octal(H) -> tokenize_octal(T, [H|Acc]);
+tokenize_octal(Rest, Acc) -> { Rest, list_to_integer(lists:reverse(Acc), 8) }.
+
+% Bin
+tokenize_bin([H|T], Acc) when ?is_bin(H) -> tokenize_bin(T, [H|Acc]);
+tokenize_bin(Rest, Acc) -> { Rest, list_to_integer(lists:reverse(Acc), 2) }.
 
 % Comments
 
