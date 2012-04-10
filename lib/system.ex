@@ -97,16 +97,13 @@ defmodule System do
   end
 
   @doc """
-  Executes `command` in a command shell of the target OS, captures the standard
-  output of the command and returns this result.
-
-  `command` can a charlist or a binary.
+  Executes `command` in a command shell of the target OS,
+  captures the standard output of the command and returns
+  the result as a binary.
   """
-  def cmd(command) when is_binary(command) do
-      list_to_binary cmd(binary_to_list(command))
+  def cmd(command) do
+    list_to_binary :os.cmd(to_char_list(command))
   end
-
-  def cmd(command), do: :os.cmd command
 
   @doc """
   Returns a list of all environment variables. Each environment variable is
@@ -118,25 +115,22 @@ defmodule System do
   end
 
   @doc """
-  Returns the Value of the environment variable `varname`, or nil if the
-  environment variable is undefined.
+  Returns the value of the environment variable
+  `varname` as a binary, or nil if the environment
+  variable is undefined.
   """
-  def get_env(varname) when is_binary(varname) do
-    list_to_binary get_env(binary_to_list(varname))
-  end
-
   def get_env(varname) do
-    case :os.getenv(varname) do
+    case :os.getenv(to_char_list(varname)) do
     match: false
       nil
     match: other
-      other
+      list_to_binary(other)
     end
   end
 
   @doc """
-  Returns the process identifier of the current Erlang emulator in the format
-  most commonly used by the operating system environment.
+  Returns the process identifier of the current Erlang emulator
+  in the format most commonly used by the operating system environment.
 
   See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
   """
@@ -145,17 +139,13 @@ defmodule System do
   @doc """
   Sets a new `value` for the environment variable `varname`.
   """
-  def put_env(varname, value) when is_list(varname) and is_list(value) do
-   :os.putenv varname, value
-  end
-
   def put_env(varname, value) do
    :os.putenv to_char_list(varname), to_char_list(value)
   end
 
   @doc """
-  Sets a new value for each environment variable corresponding to each key in
-  `dict`.
+  Sets a new value for each environment variable corresponding
+  to each key in `dict`.
   """
   def put_env(dict) do
     Enum.each dict, fn({key, val}) -> put_env key, val end
