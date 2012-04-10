@@ -70,15 +70,16 @@ store(Module, Function, GenerateName) ->
   [H|T] = orddict:fetch(Function, Overridable),
   overridable(Module, orddict:store(Function, T, Overridable)),
 
-  Name = case GenerateName of
-    true  -> name(Module, Function, Overridable);
-    false -> element(1, Function)
+  { Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS } = H,
+
+  { FinalKind, FinalName } = case GenerateName of
+    true  -> { defp, name(Module, Function, Overridable) };
+    false -> { Kind, Name }
   end,
 
-  { Kind, Line, Module, _Name, Args, RawGuards, RawExpr, RawS } = H,
   S1 = elixir_variables:deserialize_scope(RawS),
   S2 = S1#elixir_scope{function=Function, module=Module, check_clauses=false},
-  elixir_def:store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S2).
+  elixir_def:store_definition(FinalKind, Line, Module, FinalName, Args, RawGuards, RawExpr, S2).
 
 %% Store pending declarations that were not manually made concrete.
 

@@ -107,6 +107,10 @@ defmodule Kernel.OverridableTest do
     assert_equal { :no_overridable, false }, Overridable.no_overridable
   end
 
+  test "overridable definitions are private" do
+    refute_member {:"OVERRIDABLE-0-with_super",0}, Overridable.__info__(:exports)
+  end
+
   test "invalid super call" do
     try do
       Erlang.elixir.eval 'defmodule Foo.Forwarding do\n@overridable true\ndef bar, do: 1\ndef foo, do: super\nend', []
