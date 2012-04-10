@@ -197,7 +197,7 @@ defmodule Protocol do
     # interpolation to generate the arguments because of compile
     # dependencies, so we use the <<>> instead.
     args = lc i in :lists.seq(1, arity) do
-      { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+      { binary_to_atom(<<?x, i + 64>>), 0, :quoted }
     end
 
     quote do

@@ -10,7 +10,7 @@ defimpl Binary.Inspect, for: Atom do
   def inspect(:""),   do: ":\"\""
 
   def inspect(atom) do
-    binary = atom_to_binary(atom, :utf8)
+    binary = atom_to_binary(atom)
 
     if valid_identifier?(binary) == <<>> do
       ":" <> binary
