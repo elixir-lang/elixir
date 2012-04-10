@@ -3,8 +3,11 @@ Code.require_file "../test_helper", __FILE__
 defmodule Access.TupleTest do
   use ExUnit.Case
 
+  defrecord Config, other: { :a, :b }
+
   test :literal do
     assert_equal :a, { :a, :b, :c }[1]
+    assert_equal :a, Config.new.other[1]
   end
 
   test :positive_integer do

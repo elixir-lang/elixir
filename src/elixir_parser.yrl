@@ -18,8 +18,8 @@ Nonterminals
   kv_comma base_orddict
   matched_kv_comma matched_base_orddict
   do_eol end_eol kv_item kv_list do_block stab_eol stab_block
-  dot_op dot_identifier dot_do_identifier dot_ref
-  dot_paren_identifier dot_punctuated_identifier parens_call
+  parens_call dot_op dot_identifier dot_do_identifier dot_ref
+  dot_paren_identifier dot_punctuated_identifier dot_bracket_identifier
   var list bracket_access bit_string tuple
   .
 
@@ -141,7 +141,7 @@ call_expr -> dot_do_identifier : build_identifier('$1', nil).
 call_expr -> var : build_identifier('$1', nil).
 call_expr -> bracket_expr : '$1'.
 
-bracket_expr -> bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
+bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
 bracket_expr -> max_expr : '$1'.
 
@@ -276,6 +276,9 @@ dot_ref -> matched_expr dot_op '__ref__' : { '.', ?line('$2'), ['$1', '$3'] }.
 
 dot_do_identifier -> do_identifier : '$1'.
 dot_do_identifier -> matched_expr dot_op do_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+
+dot_bracket_identifier -> bracket_identifier : '$1'.
+dot_bracket_identifier -> matched_expr dot_op bracket_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
 
 dot_paren_identifier -> paren_identifier : '$1'.
 dot_paren_identifier -> matched_expr dot_op paren_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
@@ -432,7 +435,7 @@ build_identifier(Expr, Args, Block) ->
   build_identifier(Expr, Args ++ [Block]).
 
 build_identifier({ '.', DotLine, [Expr, { Kind, _, Identifier }] }, Args) when
-  Kind == identifier; Kind == punctuated_identifier;
+  Kind == identifier; Kind == punctuated_identifier; Kind == bracket_identifier;
   Kind == paren_identifier; Kind == do_identifier; Kind == curly_identifier ->
   build_identifier({ '.', DotLine, [Expr, Identifier] }, Args);
 
