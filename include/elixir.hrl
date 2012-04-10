@@ -8,13 +8,6 @@
 
 -define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
 
--record(elixir_compile, {
-  docs=false,                  %% when true, attach docs to the defined module
-  internal=false,              %% when true, skip features in order to compile internal modules
-  debug_info=false,            %% when true, attach debug info to the defined module
-  ignore_module_conflict=false %% when true, module conflicts are ignored
-}).
-
 -record(elixir_scope, {
   assign=false,                                  %% when true, new variables can be defined in that subtree
   guard=false,                                   %% when true, we are inside a guard

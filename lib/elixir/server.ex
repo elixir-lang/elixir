@@ -1,6 +1,8 @@
-defrecord Elixir.Server.Config, argv: [], loaded: [], at_exit: []
+defrecord Elixir.Server.Config, argv: [], loaded: [], at_exit: [], compiler_options: []
 
 defmodule Elixir.Server do
+  @moduledoc false
+
   use GenServer.Behavior
 
   def start_link do
@@ -23,6 +25,10 @@ defmodule Elixir.Server do
     { :reply, :ok, config.argv(argv) }
   end
 
+  def handle_call({:compiler_options, record}, _from, config) do
+    { :reply, :ok, config.compiler_options(record) }
+  end
+
   def handle_call(:loaded, _from, config) do
     { :reply, config.loaded, config }
   end
@@ -33,6 +39,10 @@ defmodule Elixir.Server do
 
   def handle_call(:argv, _from, config) do
     { :reply, config.argv, config }
+  end
+
+  def handle_call(:compiler_options, _from, config) do
+    { :reply, config.compiler_options, config }
   end
 
   def handle_call(request, from, config) do

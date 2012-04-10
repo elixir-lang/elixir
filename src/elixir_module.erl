@@ -143,14 +143,16 @@ load_form(Forms, S) ->
     end
   end).
 
-check_module_availability(Line, Filename, Module, #elixir_compile{ignore_module_conflict=false}) ->
-  case code:ensure_loaded(Module) of
-    { module, _ } -> elixir_errors:form_error(Line, Filename, ?MODULE, { module_defined, Module });
-    { error, _ }  -> []
-  end;
-
-check_module_availability(_Line, _Filename, _Module, _C) ->
-  [].
+check_module_availability(Line, Filename, Module, Compiler) ->
+  case elixir_compiler:get_opt(ignore_module_conflict, Compiler) of
+    false ->
+      case code:ensure_loaded(Module) of
+        { module, _ } -> elixir_errors:form_error(Line, Filename, ?MODULE, { module_defined, Module });
+        { error, _ }  -> []
+      end;
+    true ->
+      []
+  end.
 
 % EXTRA FUNCTIONS
 
@@ -159,11 +161,12 @@ add_info_function(Line, Filename, Module, Export, Functions, Macros, C) ->
   case lists:member(Pair, Export) of
     true  -> elixir_errors:form_error(Line, Filename, ?MODULE, {internal_function_overridden, Pair});
     false ->
+      Docs = elixir_compiler:get_opt(docs, C),
       Contents = { function, Line, '__info__', 1, [
         macros_clause(Line, Macros),
         data_clause(Line, Module),
-        docs_clause(Line, Module, C),
-        moduledoc_clause(Line, Module, C),
+        docs_clause(Line, Module, Docs),
+        moduledoc_clause(Line, Module, Docs),
         else_clause(Line)
       ] },
       { [Pair|Export], [Contents|Functions] }
@@ -173,14 +176,14 @@ macros_clause(Line, Macros) ->
   Sorted = lists:sort(Macros),
   { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
 
-docs_clause(Line, Module, #elixir_compile { docs = true }) ->
+docs_clause(Line, Module, true) ->
   Docs = ets:tab2list(docs_table(Module)),
   { clause, Line, [{ atom, Line, docs }], [], [elixir_tree_helpers:abstract_syntax(Docs)] };
 
 docs_clause(Line, _Module, _) ->
   { clause, Line, [{ atom, Line, docs }], [], [{ atom, Line, nil }] }.
 
-moduledoc_clause(Line, Module, #elixir_compile { docs = true }) ->
+moduledoc_clause(Line, Module, true) ->
   Docs = '__MAIN__.Module':read_data(Module, moduledoc),
   { clause, Line, [{ atom, Line, moduledoc }], [], [elixir_tree_helpers:abstract_syntax({ Line, Docs })] };
 

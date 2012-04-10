@@ -1,7 +1,9 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.DocTest do
-  use ExUnit.Case
+  # Since this module is changing the code
+  # server state, we need to run it in sync.
+  use ExUnit.Case, sync: true
 
   test :compiled_docs do
     tmp  = File.expand_path("../../tmp", __FILE__)
@@ -9,7 +11,8 @@ defmodule Kernel.DocTest do
 
     try do
       :file.make_dir(tmp)
-      Code.compile_file_to_dir(path, tmp, docs: true)
+      Code.compiler_options(docs: true)
+      Code.compile_file_to_dir(path, tmp)
       Code.prepend_path(tmp)
 
       assert_equal [], CompiledWithDocs.__info__(:data)
@@ -17,6 +20,7 @@ defmodule Kernel.DocTest do
       assert_equal expected, CompiledWithDocs.__info__(:docs)
       assert_equal { 1, "moduledoc" }, CompiledWithDocs.__info__(:moduledoc)
     after:
+      Code.compiler_options(docs: false)
       :os.cmd('rm -rf #{tmp}')
     end
   end

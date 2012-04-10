@@ -93,23 +93,36 @@ defmodule Code do
   end
 
   @doc """
-  Compiles `file` and returns a list of tuples where
-  the first element is the module name and the second
-  one is its binary.
+  Loads the compilation options from the code server.
+  Check compiler_options/1 for more information.
+  """
+  def compiler_options do
+    server_call :compiler_options
+  end
 
-  ## Options
+  @doc """
+  Sets compilation options. Those options are global
+  since they are stored by Elixir's Code Server.
 
   Available options are:
 
   * docs       - when true, retain documentation in the compiled module;
   * debug_info - when true, retain debug information in the compiled module.
     Notice debug information can be used to reconstruct the source code;
+  * ignore_module_conflict - when true, override modules that were already defined;
 
   """
-  def compile_file(file, opts // []) do
-    Erlang.elixir_compiler.with_opts opts, fn ->
-      Erlang.elixir_compiler.file to_char_list(file)
-    end
+  def compiler_options(opts) do
+    server_call { :compiler_options, opts }
+  end
+
+  @doc """
+  Compiles `file` and returns a list of tuples where
+  the first element is the module name and the second
+  one is its binary.
+  """
+  def compile_file(file) do
+    Erlang.elixir_compiler.file to_char_list(file)
   end
 
   @doc """
@@ -118,10 +131,8 @@ defmodule Code do
 
   See compile_file/2 for available options.
   """
-  def compile_file_to_dir(file, destination, opts // []) do
-    Erlang.elixir_compiler.with_opts opts, fn ->
-      Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination)
-    end
+  def compile_file_to_dir(file, destination) do
+    Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination)
   end
 
   ## Helpers

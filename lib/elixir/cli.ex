@@ -1,5 +1,5 @@
 defrecord Elixir.CLI.Config, commands: [], close: [],
-  output: '.', compile: false, halt: true, compile_options: []
+  output: '.', compile: false, halt: true, compiler_options: []
 
 defmodule Elixir.CLI do
   import Exception, only: [format_stacktrace: 1]
@@ -147,17 +147,17 @@ defmodule Elixir.CLI do
   end
 
   defp process_compiler(['--docs'|t], config) do
-    process_compiler t, config.merge_compile_options(docs: true)
+    process_compiler t, config.merge_compiler_options(docs: true)
   end
 
   defp process_compiler(['--debug-info'|t], config) do
-    process_compiler t, config.merge_compile_options(debug_info: true)
+    process_compiler t, config.merge_compiler_options(debug_info: true)
   end
 
   # This option is used internally so we can compile
   # Elixir with Elixir without raising module conflicts
   defp process_compiler(['--ignore-module-conflict'|t], config) do
-    process_compiler t, config.merge_compile_options(ignore_module_conflict: true)
+    process_compiler t, config.merge_compiler_options(ignore_module_conflict: true)
   end
 
   defp process_compiler([h|t] = list, config) do
@@ -191,7 +191,7 @@ defmodule Elixir.CLI do
     lines  = Enum.map lines, File.wildcard(&1)
     concat = List.uniq(List.concat(lines))
 
-    Erlang.elixir_compiler.set_opts(config.compile_options)
+    Code.compiler_options(config.compiler_options)
 
     Enum.map concat, fn(file) ->
       IO.puts "Compiling #{list_to_binary(file)}"

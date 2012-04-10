@@ -1,32 +1,25 @@
 -module(elixir_compiler).
--export([with_opts/2, set_opts/1, get_opts/0, file/1, file_to_path/2]).
+-export([get_opts/0, get_opt/1, get_opt/2, file/1, file_to_path/2]).
 -export([core/0, module/3, eval_forms/4]).
 -include("elixir.hrl").
 
 %% Public API
 
-%% Set and get compilation options.
+%% Get compilation options.
 
-with_opts(Opts, Function) ->
-  Previous = get(elixir_compiler_opts),
-  try
-    set_opts(Opts),
-    Function()
-  after
-    put(elixir_compiler_opts, Previous)
+get_opt(Key) -> get_opt(Key, get_opts()).
+
+get_opt(Key, Dict) ->
+  case orddict:find(Key, Dict) of
+    { ok, Value } -> Value;
+    error -> false
   end.
 
-set_opts(Opts) ->
-  put(elixir_compiler_opts, #elixir_compile {
-    docs=get_value(Opts, docs, false),
-    debug_info=get_value(Opts, debug_info, false),
-    ignore_module_conflict=get_value(Opts, ignore_module_conflict, false)
-  }).
-
 get_opts() ->
-  case get(elixir_compiler_opts) of
-    undefined -> #elixir_compile{};
-    Else -> Else
+  try
+    gen_server:call(elixir_code_server, compiler_options)
+  catch
+    exit:{ noproc, _ } -> [{internal,true}]
   end.
 
 %% Compile a file, return a tuple of module names and binaries.
@@ -80,7 +73,7 @@ eval_forms(Forms, Line, RawModule, Value, S) ->
 %% executes the callback in case of success. This automatically
 %% handles errors and warnings. Used by this module and elixir_module.
 module(Forms, S, Callback) ->
-  Options = case (get_opts())#elixir_compile.debug_info of
+  Options = case get_opt(debug_info) of
     true -> [debug_info];
     _ -> []
   end,
@@ -101,19 +94,12 @@ module(Forms, Filename, Options, Callback) ->
 %% Invoked from the Makefile.
 
 core() ->
-  put(elixir_compiler_opts, #elixir_compile{internal=true}),
   [core_file(File) || File <- core_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
   Files = lists:append(AllLists) -- core_main(),
   [core_file(File) || File <- '__MAIN__.List':uniq(Files)].
 
 %% HELPERS
-
-get_value(Keyword, Key, Default) ->
-  case orddict:find(Key, Keyword) of
-    { ok, Value } -> Value;
-    error -> Default
-  end.
 
 no_auto_import() ->
   { attribute, 0, compile, {
