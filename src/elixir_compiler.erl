@@ -338,6 +338,7 @@ core_main() ->
     "lib/list.ex",
     "lib/protocol.ex",
     "lib/enum.ex",
+    "lib/macro.ex",
     "lib/record.ex",
     "lib/exception.ex",
     "lib/binary/inspect.ex",

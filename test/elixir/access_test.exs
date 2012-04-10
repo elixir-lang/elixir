@@ -3,7 +3,7 @@ Code.require_file "../test_helper", __FILE__
 defmodule Access.TupleTest do
   use ExUnit.Case
 
-  defrecord Config, other: { :a, :b }
+  defrecord Config, other: { :a, :b, :c }
 
   test :literal do
     assert_equal :a, { :a, :b, :c }[1]

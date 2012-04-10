@@ -26,6 +26,9 @@ defmodule Record do
 
   # Private endpoint that defines the functions for the Record.
   def define_functions(module, values, definition) do
+    # Escape the values so they are valid syntax nodes
+    values = Macro.escape(values)
+
     contents = [
       reflection(module, values),
       getters_and_setters(values, 1, [], definition),
