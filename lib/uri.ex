@@ -16,7 +16,7 @@ defmodule URI do
   end
 
   defp normalize(x) when is_list(x), do: :unicode.characters_to_binary(x)
-  defp normalize(x) when is_atom(x), do: :erlang.atom_to_binary(x, :utf8)
+  defp normalize(x) when is_atom(x), do: atom_to_binary(x)
   defp normalize(x) when is_binary(x), do: x
   defp normalize(_), do: raise "Not a list, binary, nor atom."
 
