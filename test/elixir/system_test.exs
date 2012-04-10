@@ -33,6 +33,5 @@ defmodule SystemTest do
 
   test :pwd do
     assert is_binary(System.pwd)
-    assert_equal Regex.replace_all(%r/\n/, OS.cmd('pwd'), ""), binary_to_list(System.pwd)
   end
 end
