@@ -20,10 +20,8 @@ defmodule System.GitCompiler do
     end
   end
 
-  @doc """
-  Tries to run `git rev-parse HEAD`. In case of success returns the
-  commit sha, otherwise returns an empty string.
-  """
+  # Tries to run `git rev-parse HEAD`. In case of success returns the
+  # commit sha, otherwise returns an empty string.
   defp get_head_sha do
     # The following failures are possible:
     #
