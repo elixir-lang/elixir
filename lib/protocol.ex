@@ -19,10 +19,12 @@ defmodule Protocol do
 
     quote do
       defmodule unquote(name) do
+        @doc false
         def __protocol__(:name),      do: unquote(name)
         def __protocol__(:functions), do: unquote(kv)
         conversions = Protocol.conversions_for(unquote(opts))
         Protocol.functions(__MODULE__, conversions, unquote(kv))
+        @doc false
         Protocol.protocol_for(__MODULE__, conversions)
       end
     end
@@ -40,6 +42,7 @@ defmodule Protocol do
       Protocol.assert_protocol(protocol)
 
       defmodule name do
+        @doc false
         def __impl__, do: unquote(protocol)
         unquote(block)
       end
@@ -201,6 +204,7 @@ defmodule Protocol do
     end
 
     quote do
+      @doc false
       def unquote(name).(unquote_splicing(args)) do
         args = [unquote_splicing(args)]
         case __protocol_for__(xA) do

@@ -50,7 +50,10 @@ defmodule Record do
   #
   defp reflection(name, values) do
     quote do
+      @doc false
       def __record__(kind),       do: __record__(kind, nil)
+
+      @doc false
       def __record__(:name, _),   do: unquote(name)
       def __record__(:fields, _), do: unquote(values)
     end
@@ -86,7 +89,10 @@ defmodule Record do
     end
 
     quote do
+      @doc false
       def new(), do: new([])
+
+      @doc false
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
       def new(tuple) when is_tuple(tuple), do: setelem(tuple, 1, __MODULE__)
@@ -228,14 +234,17 @@ defmodule Record.Definition do
     update     = binary_to_atom(bin_update)
 
     quote do
+      @doc false
       def unquote(key).(record) do
         :erlang.element(unquote(i), record)
       end
 
+      @doc false
       def unquote(key).(value, record) do
         :erlang.setelement(unquote(i), record, value)
       end
 
+      @doc false
       def unquote(update).(function, record) do
         current = :erlang.element(unquote(i), record)
         :erlang.setelement(unquote(i), record, function.(current))
@@ -250,11 +259,13 @@ defmodule Record.Definition do
     merge   = :"merge_#{bin_key}"
 
     quote do
+      @doc false
       def unquote(prepend).(value, record) do
         current = :erlang.element(unquote(i), record)
         :erlang.setelement(unquote(i), record, List.prepend(value, current))
       end
 
+      @doc false
       def unquote(merge).(value, record) do
         current = :erlang.element(unquote(i), record)
         :erlang.setelement(unquote(i), record, Keyword.merge(current, value))
