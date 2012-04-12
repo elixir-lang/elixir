@@ -321,12 +321,33 @@ defmodule List do
   Zips corresponding elements from two lists into one list of tuples. The
   number of elements in the resulting list is equal to the length of the
   shortest list among the given ones.
+
+  ## Examples
+
+      List.zip [1, 2, 3], [4, 5, 6]
+      #=> [{1, 4}, {2, 5}, {3, 6}]
+
+      List.zip [1, 2], [4, 5, 6]
+      #=> [{1, 4}, {2, 5}]
+
   """
-  def zip(list1, list2) do
+  def zip(list1, list2) when is_list(list1) and is_list(list2) do
     do_zip(list1, list2, [])
   end
 
-  def zip(list_of_lists) do
+  @doc """
+  Zips corresponding elements from each list in `list_of_lists`.
+
+  ## Examples
+
+      List.zip [[1, 2], [3, 4], [5, 6]]
+      #=> [{1, 3, 5}, {2, 4, 6}]
+
+      List.zip [[1, 2], [3], [5, 6]]
+      #=> [{1, 3, 5}]
+
+  """
+  def zip(list_of_lists) when is_list(list_of_lists) do
     do_zip(list_of_lists, [])
   end
 
