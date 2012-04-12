@@ -332,6 +332,7 @@ core_list() ->
   [
     "lib/uri/parser.ex",
     "lib/elixir/formatter.ex",
+    "lib/dict/gen_dict.ex",
     "lib/*/*.ex",
     "lib/*.ex"
   ].
