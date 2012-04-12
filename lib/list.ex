@@ -317,6 +317,19 @@ defmodule List do
     [else]
   end
 
+  @doc """
+  Zips corresponding elements from two lists into one list of tuples. The
+  number of elements in the resulting list is equal to the length of the
+  shortest list among the given ones.
+  """
+  def zip(list1, list2) do
+    do_zip(list1, list2, [])
+  end
+
+  def zip(list_of_lists) do
+    do_zip(list_of_lists, [])
+  end
+
   ## Private
 
   # uniq
@@ -332,5 +345,34 @@ defmodule List do
 
   defp do_uniq([], _acc) do
     []
+  end
+
+  # zip
+
+  defp do_zip([h1|t1], [h2|t2], acc) do
+    do_zip t1, t2, [{h1, h2}|acc]
+  end
+
+  defp do_zip(_, _, acc) do
+    reverse acc
+  end
+
+  defp do_zip(list, acc) do
+    {mlist, heads} =
+      :lists.mapfoldl (fn do
+      match: _, nil
+        {nil, nil}
+      match: [h|t], acc
+        {t, [h|acc]}
+      match: [], _
+        {nil, nil}
+      end), [], list
+
+    case heads do
+    match: nil
+      :lists.reverse acc
+    else:
+      do_zip mlist, [list_to_tuple(:lists.reverse(heads))|acc]
+    end
   end
 end
