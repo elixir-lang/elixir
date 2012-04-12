@@ -77,17 +77,25 @@ defmodule DictTest do
   end
 
   test :merge do
-    assert_equal [first_key: 1, second_key: 2], Keyword.merge(create_empty_dict, create_dict)
-    assert_equal [first_key: 1, second_key: 2], Keyword.merge(create_dict, create_empty_dict)
-    assert_equal [first_key: 1, second_key: 2], Keyword.merge(create_dict, create_dict)
-    assert_equal [], Keyword.merge(create_empty_dict, create_empty_dict)
+    empty_dict = create_empty_dict
+    dict = create_dict
+    assert_equal dict, GenDict.merge empty_dict, dict
+    assert_equal dict, GenDict.merge dict, empty_dict
+    assert_equal dict, GenDict.merge dict, dict
+    assert_equal [], GenDict.merge empty_dict, empty_dict
+
+    dict1 = Dict.new ["a", "b", "c"], [1, 2, 3]
+    dict2 = Dict.new ["a", "c", "d"], [3, :a, 0]
+    assert_equal Dict.new(["a", "b", "c", "d"], [3, 2, :a, 0]), GenDict.merge(dict1, dict2)
   end
 
   test :merge_with_function do
-    result = Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+    dict1 = Dict.new ["a", "b"], [1, 2]
+    dict2 = Dict.new ["a", "d"], [3, 4]
+    result = GenDict.merge dict1, dict2, fn(_k, v1, v2) ->
       v1 + v2
     end
-    assert_equal [a:4, b:2, d: 4], result
+    assert_equal Dict.new(["a", "b", "d"], [4, 2, 4]), result
   end
 
   test :has_key do
