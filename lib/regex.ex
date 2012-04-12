@@ -197,11 +197,11 @@ defmodule Regex do
 
   ## Examples
 
-      Regex.replace(~r/d/, "abc", "d")       #=> "abc"
-      Regex.replace(~r/b/, "abc", "d")       #=> "adc"
-      Regex.replace(~r/b/, "abc", "[&]")     #=> "a[b]c"
-      Regex.replace(~r/b/, "abc", "[\\&]")   #=> "a[&]c"
-      Regex.replace(~r/(b)/, "abc", "[\\1]") #=> "a[b]c"
+      Regex.replace(%r/d/, "abc", "d")       #=> "abc"
+      Regex.replace(%r/b/, "abc", "d")       #=> "adc"
+      Regex.replace(%r/b/, "abc", "[&]")     #=> "a[b]c"
+      Regex.replace(%r/b/, "abc", "[\\&]")   #=> "a[&]c"
+      Regex.replace(%r/(b)/, "abc", "[\\1]") #=> "a[b]c"
 
   """
   def replace({ Regex, compiled, _, _ }, string, replacement) do
