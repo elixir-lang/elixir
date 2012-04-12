@@ -229,6 +229,23 @@ defmodule List do
   end
 
   @doc """
+  Sorts the list. Accepts an optional ordering function. fun(a, b) should
+  return true if `a` compares less than or equal to `b`, false otherwise.
+
+  ## Examples
+
+      List.sort [3, 4, 2, 1, 7]
+      #=> [1, 2, 3, 4, 7]
+
+      List.sort [3, 4, 2, 1, 7], fn(a, b) -> b <= a end
+      #=> [7, 4, 3, 2, 1]
+
+  """
+  def sort(list, fun // &1 <= &2) when is_list(list) and is_function(fun) do
+    :lists.sort fun, list
+  end
+
+  @doc """
   Returns a list without duplicated items.
 
   ## Examples
