@@ -59,6 +59,17 @@ defmodule ListTest do
     assert_equal [], List.range(1,1,-1)
   end
 
+  test :sort do
+    assert_equal [1,2,3,4,5], List.sort [3, 5, 1, 2, 4]
+    assert_equal [5,4,3,2,1], List.sort [3, 5, 1, 2, 4], &2 <= &1
+    assert_equal ['0', '10', '11', '2', '3'], List.sort ['2', '3', '0', '11', '10']
+    assert_equal ['0', '2', '3', '10', '11'], List.sort ['2', '3', '0', '11', '10'], fn(a, b) ->
+      {na, _} = :string.to_integer a
+      {nb, _} = :string.to_integer b
+      na <= nb
+    end
+  end
+
   test :prepend do
     assert_equal [0,1,2,3], List.prepend [1,0], [2,3]
   end
@@ -95,5 +106,21 @@ defmodule ListTest do
     assert_equal nil, List.last []
     assert_equal 1, List.last [1]
     assert_equal 3, List.last [1, 2, 3]
+  end
+
+  test :zip do
+    assert_equal [{:a, 1}, {:b, 2}], List.zip [:a, :b], [1, 2]
+    assert_equal [{:a, 1}, {:b, 2}], List.zip [:a, :b], [1, 2, 3, 4]
+    assert_equal [{:a, 1}, {:b, 2}], List.zip [:a, :b, :c, :d], [1, 2]
+    assert_equal [], List.zip [], [1]
+    assert_equal [], List.zip [1], []
+    assert_equal [], List.zip [], []
+  end
+
+  test :zip_lists do
+    assert_equal [{1, 2, 3}, {4, 5, 6}], List.zip [[1, 4], [2, 5], [3, 6]]
+    assert_equal [{1, 2, 3}, {4, 5, 6}], List.zip [[1, 4], [2, 5, 0], [3, 6]]
+    assert_equal [{1, 2, 3}], List.zip [[1], [2, 5], [3, 6]]
+    assert_equal [], List.zip [[1, 4], [2, 5], []]
   end
 end
