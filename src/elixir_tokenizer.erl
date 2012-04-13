@@ -4,7 +4,7 @@
 -import(elixir_interpolation, [unescape_chars/1, unescape_tokens/1]).
 
 -define(is_digit(S), S >= $0 andalso S =< $9).
--define(is_hex(S), ?is_digit(S) orelse (S >= $A andalso S =< $F)).
+-define(is_hex(S), ?is_digit(S) orelse (S >= $A andalso S =< $F) orelse (S >= $a andalso S =< $f)).
 -define(is_bin(S), S >= $0 andalso S =< $1).
 -define(is_octal(S), S >= $0 andalso S =< $7).
 -define(is_upcase(S), S >= $A andalso S =< $Z).
@@ -19,15 +19,15 @@ tokenize(_, [], Tokens) ->
 
 % Integers and floats
 
-tokenize(Line, [$0,$x,H|T], Tokens) when ?is_hex(H) ->
+tokenize(Line, [$0,X,H|T], Tokens) when (X =:= $x orelse X =:= $X), ?is_hex(H) ->
   { Rest, Number } = tokenize_hex([H|T], []),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 
-tokenize(Line, [$0,$o,H|T], Tokens) when ?is_octal(H) ->
+tokenize(Line, [$0,O,H|T], Tokens) when (O =:= $o orelse O =:= $O), ?is_octal(H) ->
   { Rest, Number } = tokenize_octal([H|T], []),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 
-tokenize(Line, [$0,$b,H|T], Tokens) when ?is_bin(H) ->
+tokenize(Line, [$0,B,H|T], Tokens) when (B =:= $b orelse B =:= $B), ?is_bin(H) ->
   { Rest, Number } = tokenize_bin([H|T], []),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 

@@ -14,8 +14,11 @@ scientific_test() ->
 
 hex_bin_octal_test() ->
   [{number,1,255}] = tokenize("0xFF"),
+  [{number,1,255}] = tokenize("0Xff"),
   [{number,1,63}] = tokenize("0o77"),
-  [{number,1,3}] = tokenize("0b11").
+  [{number,1,63}] = tokenize("0O77"),
+  [{number,1,3}] = tokenize("0b11"),
+  [{number,1,3}] = tokenize("0B11").
 
 unquoted_atom_test() ->
   [{atom, 1, ['+']}] = tokenize(":+"),
