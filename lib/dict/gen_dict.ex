@@ -159,9 +159,9 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.update [a: 1, b: 2], 3, :c, fn(val) -> -val end
+#      GenDict.update [a: 1, b: 2], :c, 3, fn(val) -> -val end
 #      #=> [a: 1, b: 2, c: 3]
 #
 #  """
   update(dict, key, initial, fun)
-], only: [Record]
+], only: [Record, List]
