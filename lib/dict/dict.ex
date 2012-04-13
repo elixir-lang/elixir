@@ -127,5 +127,11 @@ defmodule Dict do
   def new(keys, values) when is_list(keys) and is_list(values) do
     GenDict.extend new(), keys, values
   end
-end
 
+  @doc """
+  Creates a new dict from Erlang's dict.
+  """
+  def from_dict(erlang_dict) do
+    Dict.Record.new [d: erlang_dict]
+  end
+end
