@@ -331,20 +331,8 @@ defmodule List do
       #=> [{1, 4}, {2, 5}]
 
   """
-  def zip(list1, list2) when is_list(list1) and is_list(list2) do
-    do_zip(list1, list2, [])
-  end
-
-  def zip(list, tuple) when is_list(list) and is_tuple(tuple) do
-    do_zip(list, tuple_to_list(tuple), [])
-  end
-
-  def zip(tuple, list) when is_list(list) and is_tuple(tuple) do
-    do_zip(tuple_to_list(tuple), list, [])
-  end
-
-  def zip(tuple1, tuple2) when is_tuple(tuple1) and is_tuple(tuple2) do
-    do_zip(tuple_to_list(tuple1), tuple_to_list(tuple2), [])
+  def zip(item1, item2) do
+    do_zip(to_list(item1), to_list(item2), [])
   end
 
   @doc """
@@ -408,24 +396,8 @@ defmodule List do
   end
 
   defp do_zip(list, acc) do
-    list = :lists.map fn(list_or_tuple) ->
-      case is_tuple(list_or_tuple) do
-      match: true
-        tuple_to_list list_or_tuple
-      else:
-        list_or_tuple
-      end
-    end, list
-
-    {mlist, heads} =
-      :lists.mapfoldl (fn do
-      match: _, nil
-        {nil, nil}
-      match: [h|t], acc
-        {t, [h|acc]}
-      match: [], _
-        {nil, nil}
-      end), [], list
+    converter = fn(x, acc) -> do_zip_each(to_list(x), acc) end
+    {mlist, heads} = :lists.mapfoldl converter, [], list
 
     case heads do
     match: nil
@@ -434,4 +406,19 @@ defmodule List do
       do_zip mlist, [list_to_tuple(:lists.reverse(heads))|acc]
     end
   end
+
+  defp do_zip_each(_, nil) do
+    { nil, nil }
+  end
+
+  defp do_zip_each([h|t], acc) do
+    { t, [h|acc] }
+  end
+
+  defp do_zip_each([], _) do
+    { nil, nil }
+  end
+
+  defp to_list(tuple) when is_tuple(tuple), do: tuple_to_list(tuple)
+  defp to_list(list)  when is_list(list),   do: list
 end
