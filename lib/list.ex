@@ -229,6 +229,23 @@ defmodule List do
   end
 
   @doc """
+  Sorts the list. Accepts an optional ordering function. fun(a, b) should
+  return true if `a` compares less than or equal to `b`, false otherwise.
+
+  ## Examples
+
+      List.sort [3, 4, 2, 1, 7]
+      #=> [1, 2, 3, 4, 7]
+
+      List.sort [3, 4, 2, 1, 7], fn(a, b) -> b <= a end
+      #=> [7, 4, 3, 2, 1]
+
+  """
+  def sort(list, fun // &1 <= &2) when is_list(list) and is_function(fun) do
+    :lists.sort fun, list
+  end
+
+  @doc """
   Returns a list without duplicated items.
 
   ## Examples
@@ -300,6 +317,40 @@ defmodule List do
     [else]
   end
 
+  @doc """
+  Zips corresponding elements from two lists into one list of tuples. The
+  number of elements in the resulting list is equal to the length of the
+  shortest list among the given ones.
+
+  ## Examples
+
+      List.zip [1, 2, 3], [4, 5, 6]
+      #=> [{1, 4}, {2, 5}, {3, 6}]
+
+      List.zip [1, 2], [4, 5, 6]
+      #=> [{1, 4}, {2, 5}]
+
+  """
+  def zip(list1, list2) when is_list(list1) and is_list(list2) do
+    do_zip(list1, list2, [])
+  end
+
+  @doc """
+  Zips corresponding elements from each list in `list_of_lists`.
+
+  ## Examples
+
+      List.zip [[1, 2], [3, 4], [5, 6]]
+      #=> [{1, 3, 5}, {2, 4, 6}]
+
+      List.zip [[1, 2], [3], [5, 6]]
+      #=> [{1, 3, 5}]
+
+  """
+  def zip(list_of_lists) when is_list(list_of_lists) do
+    do_zip(list_of_lists, [])
+  end
+
   ## Private
 
   # uniq
@@ -315,5 +366,34 @@ defmodule List do
 
   defp do_uniq([], _acc) do
     []
+  end
+
+  # zip
+
+  defp do_zip([h1|t1], [h2|t2], acc) do
+    do_zip t1, t2, [{h1, h2}|acc]
+  end
+
+  defp do_zip(_, _, acc) do
+    reverse acc
+  end
+
+  defp do_zip(list, acc) do
+    {mlist, heads} =
+      :lists.mapfoldl (fn do
+      match: _, nil
+        {nil, nil}
+      match: [h|t], acc
+        {t, [h|acc]}
+      match: [], _
+        {nil, nil}
+      end), [], list
+
+    case heads do
+    match: nil
+      :lists.reverse acc
+    else:
+      do_zip mlist, [list_to_tuple(:lists.reverse(heads))|acc]
+    end
   end
 end
