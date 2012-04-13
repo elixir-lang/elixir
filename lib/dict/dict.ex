@@ -1,26 +1,24 @@
-defrecord Dict.Record, d: nil
-
-defimpl GenDict, for: Dict.Record do
+defimpl PDict, for: Tuple do
   def keys(dict) do
-    :dict.fetch_keys dict.d
+    :dict.fetch_keys dict
   end
 
   def values(dict) do
     :dict.fold fn(_key, value, acc) ->
       [value|acc]
-    end, [], dict.d
+    end, [], dict
   end
 
   def size(dict) do
-    :dict.size dict.d
+    :dict.size dict
   end
 
   def has_key?(dict, key) do
-    :dict.is_key key, dict.d
+    :dict.is_key key, dict
   end
 
   def get(dict, key, default // nil) do
-    case :dict.find(key, dict.d) do
+    case :dict.find(key, dict) do
     match: {:ok, value}
       value
     match: :error
@@ -29,109 +27,45 @@ defimpl GenDict, for: Dict.Record do
   end
 
   def put(dict, key, value) do
-    dict.update_d(:dict.store key, value, &1)
+    :dict.store key, value, dict
   end
 
   def put(dict, {key, value}) do
-    dict.update_d(:dict.store key, value, &1)
+    :dict.store key, value, dict
   end
 
   def delete(dict, key) do
-    dict.update_d(:dict.erase key, &1)
+    :dict.erase key, dict
   end
 
   def merge(d1, d2) do
-    d1.update_d(:dict.merge fn(_k, _v1, v2) -> v2 end, &1, d2.d)
+    :dict.merge fn(_k, _v1, v2) -> v2 end, d1, d2
   end
 
   def merge(d1, d2, fun) do
-    d1.update_d(:dict.merge fun, &1, d2.d)
-  end
-
-  def extend(dict, pairs) when is_list(pairs) do
-    Enum.reduce pairs, dict, fn(pair, dict) ->
-      put(dict, pair)
-    end
-  end
-
-  def extend(dict, pairs, transform) when is_list(pairs) and is_function(transform) do
-    Enum.reduce pairs, dict, fn(i, dict) ->
-      pair = transform.(i)
-      put(dict, pair)
-    end
-  end
-
-  def extend(dict, keys, values) when is_list(keys) and is_list(values) do
-    if :erlang.length(keys) !== :erlang.length(values) do
-      raise ArgumentError, "Both arguments must have equal size"
-    else:
-      extend(dict, List.zip(keys, values))
-    end
+    :dict.merge fun, d1, d2
   end
 
   def update(dict, key, fun) do
-    dict.update_d(:dict.update key, fun, &1)
+    :dict.update key, fun, dict
   end
 
   def update(dict, key, initial, fun) do
-    dict.update_d(:dict.update key, fun, initial, &1)
+    :dict.update key, fun, initial, dict
+  end
+
+  def empty(_) do
+    :dict.new
   end
 end
 
 defmodule Dict do
+  use Dict.Common
+
   @doc """
   Creates a new empty Dict.
   """
   def new do
-    Dict.Record.new [d: :dict.new]
-  end
-
-  @doc """
-  Creates a new Dict with one entry.
-  """
-  def new({key, value}) do
-    GenDict.put new(), {key, value}
-  end
-
-  @doc """
-  Creates a new Dict from a list of pairs.
-
-  ## Examples
-
-      Dict.new [{:b,1},{:a,2}]
-      #=> [a: 1, b: 2]
-
-  """
-  def new(pairs) when is_list(pairs) do
-    GenDict.extend new(), pairs
-  end
-
-  @doc """
-  Creates a new Dict from a list of elements with the
-  help of the transformation function.
-
-  ## Examples
-
-      Dict.new ["a", "b"], fn(x) -> {x, x} end
-      #=> ["a": "a", "b": "b"]
-  """
-  def new(list, transform) when is_list(list) and is_function(transform) do
-    GenDict.extend new(), list, transform
-  end
-
-  @doc """
-  Creates a new Dict with one entry for each element in `keys` and a
-  corresponding element in `values`. Raises an error if `keys` and `values`
-  have different size.
-  """
-  def new(keys, values) when is_list(keys) and is_list(values) do
-    GenDict.extend new(), keys, values
-  end
-
-  @doc """
-  Creates a new Dict from Erlang's dict.
-  """
-  def from_dict(erlang_dict) do
-    Dict.Record.new [d: erlang_dict]
+    :dict.new
   end
 end

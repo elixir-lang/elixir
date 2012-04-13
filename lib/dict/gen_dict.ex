@@ -1,4 +1,4 @@
-defprotocol GenDict, [
+defprotocol PDict, [
 #  @doc """
 #  Returns a list containing all dict's keys.
 #
@@ -7,7 +7,7 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.keys [a: 1, b: 2]  #=> [:a,:b]
+#      PDict.keys [a: 1, b: 2]  #=> [:a,:b]
 #
 #  """
   keys(dict),
@@ -17,7 +17,7 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.values [a: 1, b: 2]  #=> [1,2]
+#      PDict.values [a: 1, b: 2]  #=> [1,2]
 #
 #  """
   values(dict),
@@ -27,7 +27,7 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.size [a: 1, b: 2]  #=> 2
+#      PDict.size [a: 1, b: 2]  #=> 2
 #
 #  """
   size(dict),
@@ -37,8 +37,8 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.has_key?([a:, 1], :a)  #=> true
-#      GenDict.has_key?([a:, 1], :b)  #=> false
+#      PDict.has_key?([a:, 1], :a)  #=> true
+#      PDict.has_key?([a:, 1], :b)  #=> false
 #  """
   has_key?(dict, key),
 
@@ -48,10 +48,11 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.get [a: 1], :a     #=> 1
-#      GenDict.get [a: 1], :b     #=> nil
-#      GenDict.get [a: 1], :b, 3  #=> 3
+#      PDict.get [a: 1], :a     #=> 1
+#      PDict.get [a: 1], :b     #=> nil
+#      PDict.get [a: 1], :b, 3  #=> 3
 #  """
+  get(dict, key),
   get(dict, key, default),
 
 #  @doc """
@@ -60,9 +61,9 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.put [a: 1, b: 2], :a, 3
+#      PDict.put [a: 1, b: 2], :a, 3
 #      #=> [a: 3, b: 2]
-#      GenDict.put [a: 1, b: 2], {:c, 3}
+#      PDict.put [a: 1, b: 2], {:c, 3}
 #      #=> [a: 1, b: 2, c: 3]
 #  """
   put(dict, key, val),
@@ -74,8 +75,8 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.delete [a: 1, b: 2], :a  #=> [b: 2]
-#      GenDict.delete [b: 2], :a        #=> [b: 2]
+#      PDict.delete [a: 1, b: 2], :a  #=> [b: 2]
+#      PDict.delete [b: 2], :a        #=> [b: 2]
 #  """
   delete(dict, key),
 
@@ -85,7 +86,7 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.merge [a: 1, b: 2], [a: 3, d: 4]
+#      PDict.merge [a: 1, b: 2], [a: 3, d: 4]
 #      #=> [a:3, b:2, d: 4]
 #  """
   merge(dict1, dict2),
@@ -96,7 +97,7 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+#      PDict.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
 #        v1 + v2
 #      end
 #      #=> [a: 4, b: 2, d: 4]
@@ -104,49 +105,12 @@ defprotocol GenDict, [
   merge(dict1, dict2, fun),
 
 #  @doc """
-#  Extends the dict with entries from the list of pairs `pairs`. Values for
-#  existing keys are replaced by the new values from the `pairs` list.
-#
-#  ## Examples
-#
-#      GenDict.extend [a: 1, b: 2], [{:a, 3}, {:c, 4}]
-#      #=> [a: 3, b: 2, c: 4]
-#
-#  """
-  extend(dict, pairs),
-
-#  @doc """
-#  Extends the dict with entries obtained by applying the transformation
-#  function `transform` to each element in `list`. The overwrite semantics is
-#  similar to extend/2.
-#
-#  ## Examples
-#
-#      GenDict.extend [a: 1, b: 2], [:a, :c], fn(x) -> {x, x} end
-#      #=> [a: :a, b: 1, c: :c]
-#
-#  """
-  extend(dict, list, transform),
-
-#  @doc """
-#  Extends the dict with entries formed by corresponding elements from `keys`
-#  and `values`. Raises an error if `keys` and `values` have different size.
-#
-#  ## Examples
-#
-#      GenDict.extend [a: 1, b: 2], [:b, :c], [3, 4]
-#      #=> [a: 1, b: 3, c: 4]
-#
-#  """
-  extend(dict, keys, values),
-
-#  @doc """
 #  Update a value in `dict` by calling `fun` on the value to get a new
 #  value. An exception is generated if `key` is not present in the dict.
 #
 #  ## Examples
 #
-#      GenDict.update [a: 1, b: 2], :a, fn(val) -> -val end
+#      PDict.update [a: 1, b: 2], :a, fn(val) -> -val end
 #      #=> [a: -1, b: 2]
 #
 #  """
@@ -159,9 +123,72 @@ defprotocol GenDict, [
 #
 #  ## Examples
 #
-#      GenDict.update [a: 1, b: 2], :c, 3, fn(val) -> -val end
+#      PDict.update [a: 1, b: 2], :c, 3, fn(val) -> -val end
 #      #=> [a: 1, b: 2, c: 3]
 #
 #  """
-  update(dict, key, initial, fun)
+  update(dict, key, initial, fun),
+
+#  @doc """
+#  Returns an empty dict of the same type as `dict`.
+#  """
+  empty(dict)
 ], only: [Record, List]
+
+
+defmodule Dict.Common do
+  defmacro __using__(module, _opts // []) do
+    quote do
+      @doc """
+      Creates a new dict with one entry.
+      """
+      def new({key, value}) do
+        PDict.put unquote(module).new(), {key, value}
+      end
+
+      @doc """
+      Creates a new dict from a list of pairs.
+
+      ## Examples
+
+          Dict.new [{:b,1},{:a,2}]
+          #=> [a: 1, b: 2]
+
+      """
+      def new(pairs) when is_list(pairs) do
+        Enum.reduce pairs, unquote(module).new(), fn(pair, dict) ->
+          PDict.put(dict, pair)
+        end
+      end
+
+      @doc """
+      Creates a new dict from a list of elements with the
+      help of the transformation function.
+
+      ## Examples
+
+          Dict.new ["a", "b"], fn(x) -> {x, x} end
+          #=> ["a": "a", "b": "b"]
+      """
+      def new(list, transform) when is_list(list) and is_function(transform) do
+        Enum.reduce list, unquote(module).new(), fn(i, dict) ->
+          pair = transform.(i)
+          PDict.put(dict, pair)
+        end
+      end
+
+      @doc """
+      Creates a new dict with one entry for each element in `keys` and a
+      corresponding element in `values`. Raises an error if `keys` and `values`
+      have different size.
+      """
+      def new(keys, values) when is_list(keys) and is_list(values) do
+        if :erlang.length(keys) !== :erlang.length(values) do
+          raise ArgumentError, message: "Both arguments must have equal size"
+        else:
+          unquote(module).new List.zip(keys, values)
+        end
+      end
+    end
+  end
+end
