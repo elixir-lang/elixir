@@ -66,8 +66,8 @@ defprotocol PDict, [
 #      PDict.put [a: 1, b: 2], {:c, 3}
 #      #=> [a: 1, b: 2, c: 3]
 #  """
-  put(dict, key, val),
   put(dict, pair),
+  put(dict, key, val),
 
 #  @doc """
 #  Removes the entry stored under the given key from `dict`.
@@ -140,6 +140,13 @@ defmodule Dict.Common do
   defmacro __using__(module, impl_ref) do
     ref = Module.concat(PDict, impl_ref)
     quote do
+      @doc """
+      Creates a new empty dict.
+      """
+      def new do
+        unquote(ref).empty(nil)
+      end
+
       @doc """
       Creates a new dict with one entry.
       """

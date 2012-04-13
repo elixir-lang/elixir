@@ -61,11 +61,4 @@ end
 
 defmodule Dict do
   use Dict.Common, :Tuple
-
-  @doc """
-  Creates a new empty Dict.
-  """
-  def new do
-    :dict.new
-  end
 end

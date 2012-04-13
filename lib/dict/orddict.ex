@@ -60,11 +60,4 @@ end
 
 defmodule Orddict do
   use Dict.Common, :List
-
-  @doc """
-  Creates a new empty Orddict.
-  """
-  def new do
-    []
-  end
 end
