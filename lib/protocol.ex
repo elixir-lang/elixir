@@ -15,14 +15,14 @@ defmodule Protocol do
   #                          matches, returns nil;
   #
   def defprotocol(name, args, opts) do
-    kv = to_kv(args)
+    funs = to_funs(args)
 
     quote do
       defmodule unquote(name) do
         def __protocol__(:name),      do: unquote(name)
-        def __protocol__(:functions), do: unquote(kv)
+        def __protocol__(:functions), do: unquote(funs)
         conversions = Protocol.conversions_for(unquote(opts))
-        Protocol.functions(__MODULE__, conversions, unquote(kv))
+        Protocol.functions(__MODULE__, conversions, unquote(funs))
         Protocol.protocol_for(__MODULE__, conversions)
       end
     end
@@ -222,8 +222,8 @@ defmodule Protocol do
 
   # Converts the protocol expressions as [each(collection), length(collection)]
   # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
-  defp to_kv(args) do
-    :orddict.from_list lc(x in args) ->
+  defp to_funs(args) do
+    lc(x in args) ->
       case x do
       match: { _, _, args } when args == [] or args == false
         raise ArgumentError, message: "protocol functions expect at least one argument"

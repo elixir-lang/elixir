@@ -4,6 +4,8 @@ defprotocol ProtocolTest.WithAll, [blank(thing)]
 defprotocol ProtocolTest.WithExcept, [blank(thing)], except: [Atom, Number, List]
 defprotocol ProtocolTest.WithOnly, [blank(thing)], only: [Record, Function]
 
+defprotocol ProtocolTest.Plus, [plus(thing), plus(thing, other)], only: [Number]
+
 defrecord ProtocolTest.Foo, a: 0, b: 0
 
 defimpl ProtocolTest.WithAll, for: ProtocolTest.Foo do
@@ -16,6 +18,11 @@ defimpl ProtocolTest.WithOnly, for: ProtocolTest.Foo do
   def blank(record) do
     record.a + record.b == 0
   end
+end
+
+defimpl ProtocolTest.Plus, for: Number do
+  def plus(thing), do: thing + 1
+  def plus(thing, other), do: thing + other
 end
 
 defmodule ProtocolTest do
@@ -79,6 +86,11 @@ defmodule ProtocolTest do
     assert_protocol_for(ProtocolTest.WithAll, PID, Process.self)
     assert_protocol_for(ProtocolTest.WithAll, Port, hd(:erlang.ports))
     assert_protocol_for(ProtocolTest.WithAll, Reference, make_ref)
+  end
+
+  test :protocol_with_two_items do
+    assert_equal 2, ProtocolTest.Plus.plus 1
+    assert_equal 3, ProtocolTest.Plus.plus 1, 2
   end
 
   # Assert that the given protocol is going to be dispatched.
