@@ -131,9 +131,17 @@ end
 defmodule DictTest do
   require DictTest.Common
   DictTest.Common.__using__(Dict)
+
+  test :new do
+    assert_equal :dict.new, Dict.new
+  end
 end
 
 defmodule OrddictTest do
   require DictTest.Common
   DictTest.Common.__using__(Orddict)
+
+  test :new do
+    assert_equal [], Orddict.new
+  end
 end
