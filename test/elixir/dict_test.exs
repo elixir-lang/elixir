@@ -45,6 +45,15 @@ defmodule DictTest.Common do
         assert_equal "default", PDict.get(empty_dict, "first_key", "default")
       end
 
+      test :put do
+        dict = PDict.put(empty_dict, {"first_key", 1})
+        assert_equal 1, PDict.get dict, "first_key"
+
+        dict = PDict.put(new_dict, "first_key", {1})
+        assert_equal {1}, PDict.get dict, "first_key"
+        assert_equal 2, PDict.get dict, "second_key"
+      end
+
       test :keys do
         assert_equal ["first_key", "second_key"], List.sort PDict.keys new_dict
         assert_equal [], PDict.keys empty_dict
@@ -64,15 +73,6 @@ defmodule DictTest.Common do
         mdict = PDict.delete(new_dict, "other_key")
         assert_equal mdict, new_dict
         assert_equal 0, PDict.size PDict.delete(empty_dict, "other_key")
-      end
-
-      test :put do
-        dict = PDict.put(empty_dict, {"first_key", 1})
-        assert_equal 1, PDict.get dict, "first_key"
-
-        dict = PDict.put(new_dict, {"first_key", {1}})
-        assert_equal {1}, PDict.get dict, "first_key"
-        assert_equal 2, PDict.get dict, "second_key"
       end
 
       test :merge do
@@ -100,6 +100,23 @@ defmodule DictTest.Common do
         dict = new_dict [{"a", 1}]
         assert PDict.has_key?(dict, "a")
         refute PDict.has_key?(dict, "b")
+      end
+
+      test :size do
+        assert_equal 2, PDict.size new_dict
+        assert_equal 0, PDict.size empty_dict
+      end
+
+      test :update do
+        dict = PDict.update new_dict, "first_key", fn(val) -> -val end
+        assert_equal -1, PDict.get dict, "first_key"
+
+        dict = PDict.update dict, "non-existent", "...", fn(val) -> -val end
+        assert_equal "...", PDict.get dict, "non-existent"
+      end
+
+      test :empty do
+        assert_equal empty_dict, PDict.empty new_dict
       end
 
       defp empty_dict, do: unquote(module).new
