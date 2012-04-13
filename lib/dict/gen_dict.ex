@@ -137,13 +137,14 @@ defprotocol PDict, [
 
 
 defmodule Dict.Common do
-  defmacro __using__(module, _opts // []) do
+  defmacro __using__(module, impl_ref) do
+    ref = Module.concat(PDict, impl_ref)
     quote do
       @doc """
       Creates a new dict with one entry.
       """
       def new({key, value}) do
-        PDict.put unquote(module).new(), {key, value}
+        unquote(ref).put unquote(module).new(), {key, value}
       end
 
       @doc """
@@ -157,7 +158,7 @@ defmodule Dict.Common do
       """
       def new(pairs) when is_list(pairs) do
         Enum.reduce pairs, unquote(module).new(), fn(pair, dict) ->
-          PDict.put(dict, pair)
+          unquote(ref).put(dict, pair)
         end
       end
 
@@ -173,7 +174,7 @@ defmodule Dict.Common do
       def new(list, transform) when is_list(list) and is_function(transform) do
         Enum.reduce list, unquote(module).new(), fn(i, dict) ->
           pair = transform.(i)
-          PDict.put(dict, pair)
+          unquote(ref).put(dict, pair)
         end
       end
 

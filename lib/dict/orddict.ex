@@ -59,7 +59,7 @@ defimpl PDict, for: List do
 end
 
 defmodule Orddict do
-  use Dict.Common
+  use Dict.Common, :List
 
   @doc """
   Creates a new empty Orddict.

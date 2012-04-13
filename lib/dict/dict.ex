@@ -60,7 +60,7 @@ defimpl PDict, for: Tuple do
 end
 
 defmodule Dict do
-  use Dict.Common
+  use Dict.Common, :Tuple
 
   @doc """
   Creates a new empty Dict.
