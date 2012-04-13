@@ -318,7 +318,7 @@ defmodule List do
   end
 
   @doc """
-  Zips corresponding elements from two lists into one list of tuples. The
+  Zips corresponding elements from two lists (or tuples) into one list of tuples. The
   number of elements in the resulting list is equal to the length of the
   shortest list among the given ones.
 
@@ -335,6 +335,18 @@ defmodule List do
     do_zip(list1, list2, [])
   end
 
+  def zip(list, tuple) when is_list(list) and is_tuple(tuple) do
+    do_zip(list, tuple_to_list(tuple), [])
+  end
+
+  def zip(tuple, list) when is_list(list) and is_tuple(tuple) do
+    do_zip(tuple_to_list(tuple), list, [])
+  end
+
+  def zip(tuple1, tuple2) when is_tuple(tuple1) and is_tuple(tuple2) do
+    do_zip(tuple_to_list(tuple1), tuple_to_list(tuple2), [])
+  end
+
   @doc """
   Zips corresponding elements from each list in `list_of_lists`.
 
@@ -349,6 +361,23 @@ defmodule List do
   """
   def zip(list_of_lists) when is_list(list_of_lists) do
     do_zip(list_of_lists, [])
+  end
+
+  @doc """
+  Unzips the given list of lists or tuples into separate lists and returns a
+  list of lists.
+
+  ## Examples
+
+      List.unzip [{1, 2}, {3, 4}]
+      #=> [[1, 3], [2, 4]]
+
+      List.unzip [{1, :a, "apple"}, {2, :b, "banana"}, {3, :c}]
+      #=> [[1, 2, 3], [:a, :b, :c]]
+
+  """
+  def unzip(list) when is_list(list) do
+    :lists.map tuple_to_list(&1), zip(list)
   end
 
   ## Private
@@ -379,6 +408,15 @@ defmodule List do
   end
 
   defp do_zip(list, acc) do
+    list = :lists.map fn(list_or_tuple) ->
+      case is_tuple(list_or_tuple) do
+      match: true
+        tuple_to_list list_or_tuple
+      else:
+        list_or_tuple
+      end
+    end, list
+
     {mlist, heads} =
       :lists.mapfoldl (fn do
       match: _, nil

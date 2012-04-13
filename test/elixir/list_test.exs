@@ -117,10 +117,22 @@ defmodule ListTest do
     assert_equal [], List.zip [], []
   end
 
+  test :zip_tuples do
+    assert_equal [{:a, 1}, {:b, 2}], List.zip {:a, :b}, {1, 2}
+    assert_equal [{:a, 1}, {:b, 2}], List.zip [:a, :b], {1, 2}
+    assert_equal [{:a, 1}, {:b, 2}], List.zip {:a, :b}, [1, 2]
+  end
+
   test :zip_lists do
     assert_equal [{1, 2, 3}, {4, 5, 6}], List.zip [[1, 4], [2, 5], [3, 6]]
     assert_equal [{1, 2, 3}, {4, 5, 6}], List.zip [[1, 4], [2, 5, 0], [3, 6]]
     assert_equal [{1, 2, 3}], List.zip [[1], [2, 5], [3, 6]]
     assert_equal [], List.zip [[1, 4], [2, 5], []]
+  end
+
+  test :unzip do
+    assert_equal [[1, 4], [2, 5], [3, 6]], List.unzip [{1, 2, 3}, {4, 5, 6}]
+    assert_equal [[1, 4], [2, 5]], List.unzip [{1, 2, 3}, {4, 5}]
+    assert_equal [[1, 4], [2, 5]], List.unzip [[1, 2, 3], [4, 5]]
   end
 end
