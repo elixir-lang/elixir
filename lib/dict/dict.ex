@@ -47,6 +47,35 @@ defimpl GenDict, for: Dict.Record do
   def merge(d1, d2, fun) do
     d1.update_d(:dict.merge fun, &1, d2.d)
   end
+
+  def extend(dict, pairs) when is_list(pairs) do
+    Enum.reduce pairs, dict, fn(pair, dict) ->
+      put(dict, pair)
+    end
+  end
+
+  def extend(dict, pairs, transform) when is_list(pairs) and is_function(transform) do
+    Enum.reduce pairs, dict, fn(i, dict) ->
+      pair = transform.(i)
+      put(dict, pair)
+    end
+  end
+
+  def extend(dict, keys, values) when is_list(keys) and is_list(values) do
+    if :erlang.length(keys) !== :erlang.length(values) do
+      raise ArgumentError, "Both arguments must have equal size"
+    else:
+      extend(dict, List.zip(keys, values))
+    end
+  end
+
+  def update(dict, key, fun) do
+    dict.update_d(:dict.update key, fun, &1)
+  end
+
+  def update(dict, key, initial, fun) do
+    dict.update_d(:dict.update key, fun, initial, &1)
+  end
 end
 
 defmodule Dict do
@@ -74,13 +103,11 @@ defmodule Dict do
 
   """
   def new(pairs) when is_list(pairs) do
-    Enum.reduce pairs, new(), fn(pair, dict) ->
-      GenDict.put(dict, pair)
-    end
+    GenDict.extend new(), pairs
   end
 
   @doc """
-  Creates a new dict from a list of pairs with the
+  Creates a new dict from a list of elements with the
   help of the transformation function.
 
   ## Examples
@@ -88,11 +115,8 @@ defmodule Dict do
       Dict.new ["a", "b"], fn(x) -> {x, x} end
       #=> ["a": "a", "b": "b"]
   """
-  def new(pairs, transform) when is_list(pairs) and is_function(transform) do
-    Enum.reduce pairs, new(), fn(i, dict) ->
-      pair = transform.(i)
-      GenDict.put(dict, pair)
-    end
+  def new(list, transform) when is_list(list) and is_function(transform) do
+    GenDict.extend new(), list, transform
   end
 
   @doc """
@@ -101,12 +125,7 @@ defmodule Dict do
   have different size.
   """
   def new(keys, values) when is_list(keys) and is_list(values) do
-    if :erlang.length(keys) !== :erlang.length(values) do
-      raise ArgumentError, "Both arguments must have equal size"
-    else:
-      new List.zip(keys, values)
-    end
+    GenDict.extend new(), keys, values
   end
-
 end
 

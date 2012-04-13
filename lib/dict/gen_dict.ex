@@ -101,5 +101,67 @@ defprotocol GenDict, [
 #      end
 #      #=> [a: 4, b: 2, d: 4]
 #  """
-  merge(dict1, dict2, fun)
+  merge(dict1, dict2, fun),
+
+#  @doc """
+#  Extends the dict with entries from the list of pairs `pairs`. Values for
+#  existing keys are replaced by the new values from the `pairs` list.
+#
+#  ## Examples
+#
+#      GenDict.extend [a: 1, b: 2], [{:a, 3}, {:c, 4}]
+#      #=> [a: 3, b: 2, c: 4]
+#
+#  """
+  extend(dict, pairs),
+
+#  @doc """
+#  Extends the dict with entries obtained by applying the transformation
+#  function `transform` to each element in `list`. The overwrite semantics is
+#  similar to extend/2.
+#
+#  ## Examples
+#
+#      GenDict.extend [a: 1, b: 2], [:a, :c], fn(x) -> {x, x} end
+#      #=> [a: :a, b: 1, c: :c]
+#
+#  """
+  extend(dict, list, transform),
+
+#  @doc """
+#  Extends the dict with entries formed by corresponding elements from `keys`
+#  and `values`. Raises an error if `keys` and `values` have different size.
+#
+#  ## Examples
+#
+#      GenDict.extend [a: 1, b: 2], [:b, :c], [3, 4]
+#      #=> [a: 1, b: 3, c: 4]
+#
+#  """
+  extend(dict, keys, values),
+
+#  @doc """
+#  Update a value in `dict` by calling `fun` on the value to get a new
+#  value. An exception is generated if `key` is not present in the dict.
+#
+#  ## Examples
+#
+#      GenDict.update [a: 1, b: 2], :a, fn(val) -> -val end
+#      #=> [a: -1, b: 2]
+#
+#  """
+  update(dict, key, fun),
+
+#  @doc """
+#  Update a value in `dict` by calling `fun` on the value to get a new value. If
+#  `key` is not present in `dict` then `initial` will be stored as the first
+#  value.
+#
+#  ## Examples
+#
+#      GenDict.update [a: 1, b: 2], 3, :c, fn(val) -> -val end
+#      #=> [a: 1, b: 2, c: 3]
+#
+#  """
+  update(dict, key, initial, fun)
 ], only: [Record]
