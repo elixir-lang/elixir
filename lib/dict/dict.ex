@@ -80,21 +80,21 @@ end
 
 defmodule Dict do
   @doc """
-  Creates a new empty dict.
+  Creates a new empty Dict.
   """
   def new do
     Dict.Record.new [d: :dict.new]
   end
 
   @doc """
-  Creates a new dict with one entry.
+  Creates a new Dict with one entry.
   """
   def new({key, value}) do
     GenDict.put new(), {key, value}
   end
 
   @doc """
-  Creates a new dict from a list of pairs.
+  Creates a new Dict from a list of pairs.
 
   ## Examples
 
@@ -107,7 +107,7 @@ defmodule Dict do
   end
 
   @doc """
-  Creates a new dict from a list of elements with the
+  Creates a new Dict from a list of elements with the
   help of the transformation function.
 
   ## Examples
@@ -120,7 +120,7 @@ defmodule Dict do
   end
 
   @doc """
-  Creates a new dict with one entry for each element in `keys` and a
+  Creates a new Dict with one entry for each element in `keys` and a
   corresponding element in `values`. Raises an error if `keys` and `values`
   have different size.
   """
@@ -129,7 +129,7 @@ defmodule Dict do
   end
 
   @doc """
-  Creates a new dict from Erlang's dict.
+  Creates a new Dict from Erlang's dict.
   """
   def from_dict(erlang_dict) do
     Dict.Record.new [d: erlang_dict]
