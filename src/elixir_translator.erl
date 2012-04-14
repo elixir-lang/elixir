@@ -50,7 +50,7 @@ translate_each({ '__kvblock__', _, [{[Expr],nil}] }, S) ->
 translate_each({ '__kvblock__', Line, Args }, S) when is_list(Args) ->
   case S#elixir_scope.macro of
     { Receiver, Name, Arity } ->
-      Desc = [Receiver, Name, Arity],
+      Desc = [elixir_errors:inspect(Receiver), Name, Arity],
       syntax_error(Line, S#elixir_scope.filename, "key value blocks not supported by ~s.~s/~B", Desc);
     _ ->
       % TODO: This shuold be raised at runtime

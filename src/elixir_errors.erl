@@ -1,11 +1,21 @@
 % A bunch of helpers to help to deal with errors in Elixir source code.
 % This is not exposed in the Elixir language.
 -module(elixir_errors).
--export([syntax_error/3, syntax_error/4,
+-export([syntax_error/3, syntax_error/4, inspect/1,
   form_error/4, parse_error/4, assert_module_scope/3,
   assert_no_function_scope/3, assert_function_scope/3,
   handle_file_warning/2, handle_file_error/2]).
 -include("elixir.hrl").
+
+%% Handle inspecting for exceptions
+
+inspect(Atom) when is_atom(Atom) ->
+  case atom_to_list(Atom) of
+    "__MAIN__." ++ Rest -> list_to_atom(Rest);
+    _ -> Atom
+  end;
+
+inspect(Other) -> Other.
 
 %% Raised during macros translation.
 

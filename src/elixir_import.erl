@@ -117,19 +117,22 @@ ensure_no_conflicts(_Line, _Filename, _Functions, _S) -> ok.
 %% Error handling
 
 format_error({already_imported,{Receiver, Name, Arity}}) ->
-  io_lib:format("function ~s/~B already imported from ~s", [Name, Arity, Receiver]);
+  io_lib:format("function ~s/~B already imported from ~s", [Name, Arity, elixir_errors:inspect(Receiver)]);
 
 format_error({invalid_import,{Receiver, Name, Arity}}) ->
-  io_lib:format("cannot import ~s.~s/~B because it doesn't exist", [Receiver, Name, Arity]);
+  io_lib:format("cannot import ~s.~s/~B because it doesn't exist",
+    [elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({import_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("imported ~s.~s/~B conflicts with local function", [Receiver, Name, Arity]);
+  io_lib:format("imported ~s.~s/~B conflicts with local function",
+    [elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({local_conflict,{_, Name, Arity}}) ->
   io_lib:format("cannot define local ~s/~B because it conflicts with Elixir internal macros", [Name, Arity]);
 
 format_error({internal_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir internal macros", [Receiver, Name, Arity]).
+  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir internal macros",
+    [elixir_errors:inspect(Receiver), Name, Arity]).
 
 %% Deletes all the entries in the list with the given key.
 

@@ -245,4 +245,5 @@ format_error({ invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
 
 format_error({ module_defined, Module }) ->
-  io_lib:format("module ~s already defined", [Module]).
+  io_lib:format("module ~s already defined (please ensure remove compiled files before recompiling a module)",
+    [elixir_errors:inspect(Module)]).

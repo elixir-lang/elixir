@@ -197,7 +197,7 @@ translate_macro({ access, Line, [Element, Keyword] }, S) ->
           catch
             error:undef ->
               Message1 = "cannot use module ~s in access protocol because it doesn't represent a record",
-              syntax_error(Line, S#elixir_scope.filename, Message1, [Atom])
+              syntax_error(Line, S#elixir_scope.filename, Message1, [elixir_errors:inspect(Atom)])
           end;
         _ ->
           syntax_error(Line, S#elixir_scope.filename, "invalid usage of access protocol in signature")

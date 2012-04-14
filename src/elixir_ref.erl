@@ -59,7 +59,8 @@ lookup(Else, Dict) ->
 %% Errors
 
 format_error({unloaded_module,{ Module, What }}) ->
-  io_lib:format("module ~s is not loaded, reason: ~s", [Module, What]);
+  io_lib:format("module ~s is not loaded, reason: ~s", [elixir_errors:inspect(Module), What]);
 
 format_error({scheduled_module,{ Module, _ }}) ->
-  io_lib:format("module ~s is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.", [Module]).
+  io_lib:format("module ~s is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
+    [elixir_errors:inspect(Module)]).

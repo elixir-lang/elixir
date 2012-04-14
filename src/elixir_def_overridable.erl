@@ -91,7 +91,8 @@ store_pending(Module) ->
 format_error({ no_super, Module, { Name, Arity } }) ->
   Bins   = [ format_fa(X) || { X, [_|_] } <- overridable(Module)],
   Joined = '__MAIN__.Enum':join(Bins, <<", ">>),
-  io_lib:format("no super defined for ~s/~B in module ~p. Overridable functions available are: ~s", [Name, Arity, Module, Joined]).
+  io_lib:format("no super defined for ~s/~B in module ~p. Overridable functions available are: ~s",
+    [Name, Arity, elixir_errors:inspect(Module), Joined]).
 
 format_fa({ Name, Arity }) ->
   A = atom_to_binary(Name, utf8),

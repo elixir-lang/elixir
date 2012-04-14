@@ -143,10 +143,11 @@ ensure_required(Line, Receiver, Name, Arity, S) ->
   end.
 
 format_error({ unrequired_module,{Receiver, Name, Arity, Required }}) ->
-  io_lib:format("tried to invoke macro ~s.~s/~B but module was not required. Required: ~p", [Receiver, Name, Arity, Required]);
+  io_lib:format("tried to invoke macro ~s.~s/~B but module was not required. Required: ~p",
+    [elixir_errors:inspect(Receiver), Name, Arity, [elixir_errors:inspect(R) || R <- Required]]);
 
 format_error({ no_macros, Module }) ->
-  io_lib:format("could not load macros from module ~s", [Module]).
+  io_lib:format("could not load macros from module ~s", [elixir_errors:inspect(Module)]).
 
 %% Implemented in Erlang.
 in_erlang_functions() ->

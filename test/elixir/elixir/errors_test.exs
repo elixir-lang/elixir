@@ -60,12 +60,12 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :unproper_macro do
-    assert_equal "nofile:4: key value blocks not supported by __MAIN__.Elixir.ErrorsTest.UnproperMacro.unproper/1",
+    assert_equal "nofile:4: key value blocks not supported by Elixir.ErrorsTest.UnproperMacro.unproper/1",
       format_rescue 'defmodule Foo do\nrequire Elixir.ErrorsTest.UnproperMacro\nElixir.ErrorsTest.UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
   end
 
   test :macro_conflict do
-    assert_equal "nofile:1: imported __MAIN__.Elixir.Builtin.defrecord/2 conflicts with local function",
+    assert_equal "nofile:1: imported Elixir.Builtin.defrecord/2 conflicts with local function",
       format_rescue 'defmodule Foo do\ndefrecord(Elixir.ErrorsTest.MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
@@ -75,12 +75,12 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :import_invalid_macro do
-    assert_equal "nofile:2: cannot import __MAIN__.Elixir.Builtin.invalid/1 because it doesn't exist",
+    assert_equal "nofile:2: cannot import Elixir.Builtin.invalid/1 because it doesn't exist",
       format_rescue 'defmodule Foo do\nimport Elixir.Builtin, only: [invalid: 1]\nend'
   end
 
   test :unrequired_macro do
-    assert_equal "nofile:2: tried to invoke macro __MAIN__.Elixir.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: ['__MAIN__.Elixir.Builtin']",
+    assert_equal "nofile:2: tried to invoke macro Elixir.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: ['Elixir.Builtin']",
       format_rescue 'defmodule Foo do\nElixir.ErrorsTest.UnproperMacro.unproper([])\nend'
   end
 
@@ -110,17 +110,17 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :unloaded_module do
-    assert_equal "nofile:1: module __MAIN__.Certainly.Doesnt.Exist is not loaded, reason: nofile",
+    assert_equal "nofile:1: module Certainly.Doesnt.Exist is not loaded, reason: nofile",
       format_rescue 'import Certainly.Doesnt.Exist'
   end
 
   test :scheduled_module do
-    assert_equal "nofile:1: module __MAIN__.Foo.Hygiene is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
+    assert_equal "nofile:1: module Foo.Hygiene is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
       format_rescue 'defmodule Foo do; defmodule Hygiene do; end; import Foo.Hygiene; end'
   end
 
   test :already_compiled_module do
-    assert_equal "could not call eval_quoted on module __MAIN__.Record because it was already compiled",
+    assert_equal "could not call eval_quoted on module Record because it was already compiled",
       format_rescue 'Module.eval_quoted Record, quote(do: 1), [], file: __FILE__, line: __LINE__'
   end
 
@@ -139,7 +139,8 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :already_defined_module do
-    assert_equal "nofile:1: module __MAIN__.Record already defined", format_rescue 'defmodule Record, do: true'
+    assert_equal "nofile:1: module Record already defined (please ensure remove compiled files before recompiling a module)",
+      format_rescue 'defmodule Record, do: true'
   end
 
   test :duplicated_bitstring_size do
@@ -156,12 +157,12 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_available do
-    assert_equal "nofile:2: module __MAIN__.Unknown is not loaded, reason: nofile",
+    assert_equal "nofile:2: module Unknown is not loaded, reason: nofile",
       format_rescue 'defmodule Foo do\ndef sample(Unknown[integer: 0]), do: true\nend'
   end
 
   test :invalid_access_protocol_not_record do
-    assert_equal "nofile:2: cannot use module __MAIN__.Elixir.ErrorsTest in access protocol because it doesn't represent a record",
+    assert_equal "nofile:2: cannot use module Elixir.ErrorsTest in access protocol because it doesn't represent a record",
       format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest[integer: 0]), do: true\nend'
   end
 
