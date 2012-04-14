@@ -27,7 +27,7 @@ defmodule DictTest.Common do
         assert_equal 1, PDict.get dict, "first key"
         assert_equal 2, PDict.get dict, "second key"
 
-        assert_raises ArgumentError, new_dict(["first key"], [1, 2])
+        assert_raises ArgumentError, fn() -> new_dict(["first key"], [1, 2]) end
       end
 
       test :new_pairs_with_transform do
