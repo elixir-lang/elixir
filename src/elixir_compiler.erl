@@ -304,7 +304,7 @@ core_file(File) ->
         io:format("Compiled ~s~n", [File])
     catch
         Kind:Reason ->
-            io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, erlang:get_stacktrace()]),
+            io:format("~s ~p: ~p~nstacktrace: ~p~n", [File, Kind, Reason, erlang:get_stacktrace()]),
             exit(1)
     end.
 
