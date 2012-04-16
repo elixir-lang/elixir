@@ -138,6 +138,8 @@ defprotocol PDict, [
 
 defmodule Dict.Common do
   defmacro __using__(module, impl_ref) do
+    # This is an optimization trick that allows us to reference the
+    # implementation module directly
     ref = Module.concat(PDict, impl_ref)
     quote do
       @doc """
