@@ -57,6 +57,10 @@ defimpl PDict, for: Tuple do
   def empty(_) do
     :dict.new
   end
+
+  def to_list(dict) do
+    :dict.to_list dict
+  end
 end
 
 defmodule Dict do

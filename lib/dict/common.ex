@@ -132,7 +132,13 @@ defprotocol PDict, [
 #  @doc """
 #  Returns an empty dict of the same type as `dict`.
 #  """
-  empty(dict)
+  empty(dict),
+
+#  @doc """
+#  Returns a list of key-value pairs stored in `dict`. The pairs are ordered by
+#  key if `dict` is an Orddict, otherwise no particular order is enforced.
+#  """
+  to_list(dict)
 ], only: [Record, List]
 
 

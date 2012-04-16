@@ -56,6 +56,10 @@ defimpl PDict, for: List do
   def empty(_) do
     []
   end
+
+  def to_list(dict) do
+    dict
+  end
 end
 
 defmodule Orddict do
