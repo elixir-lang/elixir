@@ -1,6 +1,8 @@
 defprotocol Enum.Iterator do
   @only [List, Record]
+
   def iterator(collection)
+  def to_list(collection)
 end
 
 defmodule Enum do
@@ -158,8 +160,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns all the entries in the collection. It is the equivalent
-  of calling `map` with an identify function.
+  Returns a list of all the entries in the collection.
 
   ## Examples
 
@@ -171,7 +172,7 @@ defmodule Enum do
   end
 
   def entries(collection) do
-    map(collection, fn(x) -> x end)
+    I.to_list(collection)
   end
 
   @doc """
@@ -193,7 +194,7 @@ defmodule Enum do
   end
 
   def empty?(_iterator, pointer) do
-    pointer == :stop
+    elem(pointer, 1) === :stop
   end
 
   @doc """
@@ -212,7 +213,7 @@ defmodule Enum do
   end
 
   def filter(iterator, pointer, fun) do
-    do_filter(pointer, iterator, fun)
+    do_filter(pointer, iterator, [], fun)
   end
 
   @doc """
@@ -230,7 +231,7 @@ defmodule Enum do
   end
 
   def filter_map(iterator, pointer, filter, mapper) do
-    do_filter_map(pointer, iterator, filter, mapper)
+    do_filter_map(pointer, iterator, [], filter, mapper)
   end
 
   @doc """
@@ -318,11 +319,13 @@ defmodule Enum do
   `position` in the tuple is equal to `key`. If none is found,
   returns `default` (which defaults to nil).
 
-    ## Examples
+  Usage for dicts is limited and is discouraged. Use Enum.find instead.
 
-        list = [{:a,1},{:b,2},{:a,3}]
-        Enum.keyfind list, :a, 1 #=> {:a, 1}
-        Enum.keyfind list, 3, 2  #=> {:a, 3}
+  ## Examples
+
+      list = [{:a,1},{:b,2},{:a,3}]
+      Enum.keyfind list, :a, 1 #=> {:a, 1}
+      Enum.keyfind list, 3, 2  #=> {:a, 3}
 
   """
   def keyfind(collection, key, position, default // nil)
@@ -344,10 +347,16 @@ defmodule Enum do
   Returns a new collection, where each item is the result
   of invoking `fun` on each corresponding item of `collection`.
 
-    ## Examples
+  For dicts, the function accepts a key-value tuple and it should return a
+  tuple as well.
 
-        Enum.map [1, 2, 3], fn(x, do: x * 2)
-        #=> [2, 4, 6]
+  ## Examples
+
+      Enum.map [1, 2, 3], fn(x, do: x * 2)
+      #=> [2, 4, 6]
+
+      Enum.map [a: 1, b: 2], fn({k, v}, do: { k, -v })
+      #=> [a: -1, b: -2]
 
   """
   def map(collection, fun) when is_list(collection) do
@@ -360,7 +369,7 @@ defmodule Enum do
   end
 
   def map(iterator, pointer, fun) do
-    do_map(pointer, iterator, fun)
+    do_map(pointer, iterator, [], fun)
   end
 
   @doc """
@@ -385,7 +394,7 @@ defmodule Enum do
   end
 
   def map_reduce(iterator, pointer, acc, fun) do
-    do_map_reduce(pointer, iterator, acc, fun)
+    do_map_reduce(pointer, iterator, [], acc, fun)
   end
 
   @doc """
@@ -558,7 +567,7 @@ defmodule Enum do
     end
   end
 
-  defp do_all?(:stop, _, _) do
+  defp do_all?({ :stop, _, _ }, _, _) do
     true
   end
 
@@ -575,7 +584,7 @@ defmodule Enum do
     end
   end
 
-  defp do_any?(:stop, _, _) do
+  defp do_any?({ :stop, _, _ }, _, _) do
     false
   end
 
@@ -592,7 +601,7 @@ defmodule Enum do
     end
   end
 
-  defp do_drop_while(:stop, _, _) do
+  defp do_drop_while({ :stop, _, _ }, _, _) do
     []
   end
 
@@ -609,7 +618,7 @@ defmodule Enum do
     end
   end
 
-  defp do_find(:stop, _, ifnone, _) do
+  defp do_find({ :stop, _, _ }, _, ifnone, _) do
     ifnone
   end
 
@@ -626,7 +635,7 @@ defmodule Enum do
     end
   end
 
-  defp do_find_value(:stop, _, ifnone, _) do
+  defp do_find_value({ :stop, _, _ }, _, ifnone, _) do
     ifnone
   end
 
@@ -637,42 +646,42 @@ defmodule Enum do
     do_each(iterator.(next), iterator, fun)
   end
 
-  defp do_each(:stop, _, _) do
+  defp do_each({ :stop, _, _ }, _, _) do
     []
   end
 
   ## filter
 
-  defp do_filter({ h, next }, iterator, fun) do
+  defp do_filter({ h, next }, iterator, acc, fun) do
     case fun.(h) do
     match: false
-      do_filter(iterator.(next), iterator, fun)
+      do_filter(iterator.(next), iterator, acc, fun)
     match: nil
-      do_filter(iterator.(next), iterator, fun)
+      do_filter(iterator.(next), iterator, acc, fun)
     else:
-      [h|do_filter(iterator.(next), iterator, fun)]
+      do_filter(iterator.(next), iterator, [h|acc], fun)
     end
   end
 
-  defp do_filter(:stop, _, _) do
-    []
+  defp do_filter({ :stop, ctor, _ }, _, acc, _) do
+    ctor.(List.reverse(acc))
   end
 
   ## filter_map
 
-  defp do_filter_map({ h, next }, iterator, filter, mapper) do
+  defp do_filter_map({ h, next }, iterator, acc, filter, mapper) do
     case filter.(h) do
     match: false
-      do_filter_map(iterator.(next), iterator, filter, mapper)
+      do_filter_map(iterator.(next), iterator, acc, filter, mapper)
     match: nil
-      do_filter_map(iterator.(next), iterator, filter, mapper)
+      do_filter_map(iterator.(next), iterator, acc, filter, mapper)
     else:
-      [mapper.(h)|do_filter_map(iterator.(next), iterator, filter, mapper)]
+      do_filter_map(iterator.(next), iterator, [mapper.(h)|acc], filter, mapper)
     end
   end
 
-  defp do_filter_map(:stop, _, _, _) do
-    []
+  defp do_filter_map({ :stop, ctor, _ }, _, acc, _, _) do
+    ctor.(List.reverse(acc))
   end
 
   ## reduce
@@ -681,7 +690,7 @@ defmodule Enum do
     do_reduce(iterator.(next), iterator, fun.(h, acc), fun)
   end
 
-  defp do_reduce(:stop, _, acc, _) do
+  defp do_reduce({ :stop, _, _ }, _, acc, _) do
     acc
   end
 
@@ -698,7 +707,7 @@ defmodule Enum do
     end
   end
 
-  defp do_split_with(:stop, _, _, acc) do
+  defp do_split_with({ :stop, _, _ }, _, _, acc) do
     { List.reverse(acc), [] }
   end
 
@@ -710,7 +719,7 @@ defmodule Enum do
   end
 
   # The first item is :stop, then we return an empty string;
-  defp do_join(:stop, _, _joiner, nil) do
+  defp do_join({ :stop, _, _ }, _, _joiner, nil) do
     ""
   end
 
@@ -721,7 +730,7 @@ defmodule Enum do
   end
 
   # Until we have to stop iteration, then we return acc.
-  defp do_join(:stop, _, _joiner, acc) do
+  defp do_join({ :stop, _, _ }, _, _joiner, acc) do
     acc
   end
 
@@ -735,30 +744,29 @@ defmodule Enum do
     do_keyfind(iterator.(next), iterator, key, position, ifnone)
   end
 
-  defp do_keyfind(:stop, _, _, _, ifnone) do
+  defp do_keyfind({ :stop, _, _ }, _, _, _, ifnone) do
     ifnone
   end
 
   ## map
 
-  defp do_map({ h, next }, iterator, fun) do
-    [fun.(h)|do_map(iterator.(next), iterator, fun)]
+  defp do_map({ h, next }, iterator, acc, fun) do
+    do_map(iterator.(next), iterator, [fun.(h)|acc], fun)
   end
 
-  defp do_map(:stop, _, _) do
-    []
+  defp do_map({ :stop, ctor, _ }, _, acc, _) do
+    ctor.(List.reverse(acc))
   end
 
   ## map_reduce
 
-  defp do_map_reduce({ h, next }, iterator, acc, f) do
+  defp do_map_reduce({ h, next }, iterator, list_acc, acc, f) do
     { result, acc } = f.(h, acc)
-    { rest, acc }   = do_map_reduce(iterator.(next), iterator, acc, f)
-    { [result|rest], acc }
+    do_map_reduce(iterator.(next), iterator, [result|list_acc], acc, f)
   end
 
-  defp do_map_reduce(:stop, _, acc, _f) do
-    { [], acc }
+  defp do_map_reduce({ :stop, ctor, _}, _, list_acc, acc, _f) do
+    { ctor.(List.reverse(list_acc)), acc }
   end
 
   ## partition
@@ -774,8 +782,8 @@ defmodule Enum do
     end
   end
 
-  defp do_partition(:stop, _, _, acc1, acc2) do
-    { :lists.reverse(acc1), :lists.reverse(acc2) }
+  defp do_partition({ :stop, ctor, _ }, _, _, acc1, acc2) do
+    { ctor.(:lists.reverse(acc1)), ctor.(:lists.reverse(acc2)) }
   end
 
   ## split
@@ -784,16 +792,12 @@ defmodule Enum do
     do_split(iterator.(next), iterator, counter - 1, [h|acc])
   end
 
-  defp do_split({ h, next }, _iterator, 0, acc) when is_list(next) do
-    { List.reverse(acc), [h|next] }
+  defp do_split({ h, { t, ctor } }, _iterator, 0, acc) do
+    { ctor.(List.reverse(acc)), ctor.([h|t]) }
   end
 
-  defp do_split({ h, next }, iterator, 0, acc) do
-    { List.reverse(acc), [h|map(iterator, next, fn(x) -> x end)] }
-  end
-
-  defp do_split(:stop, _, _, acc) do
-    { List.reverse(acc), [] }
+  defp do_split({ :stop, ctor, _ }, _, _, acc) do
+    { ctor.(List.reverse(acc)), ctor.([]) }
   end
 
   ## take_while
@@ -809,8 +813,8 @@ defmodule Enum do
     end
   end
 
-  defp do_take_while(:stop, _, _, acc) do
-    List.reverse acc
+  defp do_take_while({ :stop, ctor, _ }, _, _, acc) do
+    ctor.(List.reverse(acc))
   end
 
   ## times
@@ -842,13 +846,37 @@ defmodule Enum do
 end
 
 defimpl Enum.Iterator, for: List do
-  def iterator(list), do: { iterate(&1), iterate(list) }
+  def iterator(list), do: { iterate(&1), iterate({ list, fn(list, do: list) }) }
 
-  defp iterate([h|t]) do
-    { h, t }
+  def to_list(list), do: list
+
+  def iterate({ [h|t], ctor }) do
+    { h, {t, ctor} }
   end
 
-  defp iterate([]) do
-    :stop
+  def iterate({ [], ctor }) do
+    # Here we return a 3-tuple intentionally, so that it has a different
+    # structure from the return value of the previous `iterate` clause.
+    #
+    # `ctor` is a constructor function that takes a list of elements and
+    # produces a new enumerable of the same type as the initial one.
+    { :stop, ctor, nil}
+  end
+end
+
+# An implementation for Dict
+defimpl Enum.Iterator, for: Tuple do
+  import Enum.Iterator.List, only: [iterate: 1]
+
+  def iterator(dict), do: { iterate(&1),
+                            iterate({ to_list(dict),
+                                      fn(pairs, do: extend(PDict.empty(dict), pairs)) }) }
+
+  def to_list(dict), do: PDict.to_list(dict)
+
+  defp extend(dict, pairs) do
+    List.foldl pairs, dict, fn(pair, dict) ->
+      PDict.put dict, pair
+    end
   end
 end
