@@ -301,8 +301,15 @@ translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
       %% Generate a variable that will store the function
       { FunVar, VS }  = elixir_variables:build_ex(Line, S),
 
+      %% If there are no args and no match clause, generate one
+      KVFinal = case { Args, KV } of
+        { [], [{do, SingleBlock}] } ->
+          [{match, SingleBlock}];
+        _ -> orddict:erase(do, KV)
+      end,
+
       %% Add this new variable to all match clauses
-      [{match, KVBlock}] = elixir_kv_block:normalize(orddict:erase(do, KV)),
+      [{match, KVBlock}] = elixir_kv_block:normalize(KVFinal),
       Values = [{ [FunVar|Conds], Expr } || { Conds, Expr } <- element(3, KVBlock)],
       NewKVBlock = setelement(3, KVBlock, Values),
 
