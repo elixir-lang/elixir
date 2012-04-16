@@ -51,6 +51,14 @@ defmodule Access.ListTest do
     assert_equal nil, list[:bar]
   end
 
+  test :key do
+    list = [{{:bar}, 2}, {'foo', 1}, {"key", 0}]
+    assert_equal 0, list["key"]
+    assert_equal 1, list['foo']
+    assert_equal 2, list[{:bar}]
+    assert_equal nil, list['baz']
+  end
+
   test :access do
     assert_equal :bar, List.access([foo: :bar ], :foo)
   end

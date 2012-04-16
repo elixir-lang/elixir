@@ -23,12 +23,6 @@ defimpl Access, for: Tuple do
 end
 
 defimpl Access, for: List do
-  ## Atom
-
-  def access(list, atom) when is_atom(atom) do
-    atom_access(list, atom)
-  end
-
   ## Regex
 
   def access(list, re) when is_regex(re) do
@@ -40,12 +34,19 @@ defimpl Access, for: List do
     end
   end
 
+  ## Key
+
+  def access(list, key) do
+    key_access(list, key)
+  end
+
+
   ## Helpers
 
-  defp atom_access([{k, _}|_], key) when key < k, do: nil
-  defp atom_access([{k, _}|d], key) when key > k, do: atom_access(d, key)
-  defp atom_access([{_k, value}|_], _key),        do: value
-  defp atom_access([], _),                        do: nil
+  defp key_access([{k, _}|_], key) when key < k, do: nil
+  defp key_access([{k, _}|d], key) when key > k, do: key_access(d, key)
+  defp key_access([{_k, value}|_], _key),        do: value
+  defp key_access([], _),                        do: nil
 end
 
 defimpl Access, for: BitString do
