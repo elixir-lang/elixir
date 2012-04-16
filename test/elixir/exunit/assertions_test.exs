@@ -164,6 +164,18 @@ defmodule ExUnit.AssertionsTest do
     "Expected exception SyntaxError, got FunctionClauseError" = error.message
   end
 
+  test :assert_raises_with_expr do
+    assert_raises SyntaxError, List.flatten(1)
+  rescue: error in [ExUnit.AssertionError]
+    "Expected exception SyntaxError, got FunctionClauseError" = error.message
+  end
+
+  test :assert_raises_with_raise_expr do
+    "This should never be tested" = assert_raises ArgumentError, raise(MatchError, message: "test error")
+  rescue: error in [ExUnit.AssertionError]
+    "Expected exception ArgumentError, got MatchError" = error.message
+  end
+
   test :assert_operator_greater_pass do
     true = assert_operator 2 > 1
   end

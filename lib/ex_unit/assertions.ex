@@ -70,10 +70,17 @@ defmodule ExUnit.Assertions do
         1 + "test"
       end
   """
-  def assert_raises(exception, expected_message, function) do
-    error = assert_raises(exception, function)
-    assert_equal expected_message, error.message
+
+  defmacro assert_raises(exception, expected_message, {:fn, _, _} = function) do
+    quote do
+      assert_raises_p(unquote(exception), unquote(expected_message), unquote(function))
+    end
   end
+
+  defmacro assert_raises(exception, expected_message, expr) do
+    assert_raises(exception, expected_message, quote do: fn -> unquote(expr) end)
+  end
+
 
   @doc """
   Asserts the `exception` is raised during `function` execution.
@@ -85,7 +92,24 @@ defmodule ExUnit.Assertions do
       end
 
   """
-  def assert_raises(exception, function) do
+  defmacro assert_raises(exception, {:fn, _, _} = function) do
+    quote do
+      assert_raises_p unquote(exception), unquote(function)
+    end
+  end
+
+  defmacro assert_raises(exception, expr) do
+    assert_raises(exception, quote do: fn -> unquote(expr) end)
+  end
+
+  ###
+
+  def assert_raises_p(exception, expected_message, function) do
+    error = assert_raises_p(exception, function)
+    assert_equal expected_message, error.message
+  end
+
+  def assert_raises_p(exception, function) do
     function.()
     flunk "Expected #{inspect exception} exception but nothing was raised"
   rescue: error in [exception]
