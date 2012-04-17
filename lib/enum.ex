@@ -114,7 +114,7 @@ defmodule Enum do
 
   """
   def drop(collection, count) do
-    { iterator, pointer } = I.iterator(collection)
+    { iterator, pointer } = I.ordered_iterator(collection)
     drop(iterator, pointer, count)
   end
 
@@ -131,7 +131,7 @@ defmodule Enum do
       #=> [3,4,5]
   """
   def drop_while(collection, fun) do
-    { iterator, pointer } = I.iterator(collection)
+    { iterator, pointer } = I.ordered_iterator(collection)
     drop_while(iterator, pointer, fun)
   end
 
@@ -302,7 +302,7 @@ defmodule Enum do
 
   """
   def join(collection, joiner // "") do
-    { iterator, pointer } = I.iterator(collection)
+    { iterator, pointer } = I.ordered_iterator(collection)
     join(iterator, pointer, joiner)
   end
 
@@ -453,7 +453,7 @@ defmodule Enum do
 
   """
   def split(collection, count) do
-    { iterator, pointer } = I.iterator(collection)
+    { iterator, pointer } = I.ordered_iterator(collection)
     split(iterator, pointer, count)
   end
 
@@ -470,7 +470,7 @@ defmodule Enum do
       #=> { [1], [2, 3, 4] }
   """
   def split_with(collection, fun) do
-    { iterator, pointer } = I.iterator(collection)
+    { iterator, pointer } = I.ordered_iterator(collection)
     split_with(iterator, pointer, fun)
   end
 
@@ -489,7 +489,7 @@ defmodule Enum do
 
   """
   def take(collection, count) do
-    { iterator, pointer } = I.iterator(collection)
+    { iterator, pointer } = I.ordered_iterator(collection)
     take(iterator, pointer, count)
   end
 
@@ -507,7 +507,7 @@ defmodule Enum do
 
   """
   def take_while(collection, fun // fn(x, do: x)) do
-    { iterator, pointer } = I.iterator(collection)
+    { iterator, pointer } = I.ordered_iterator(collection)
     take_while(iterator, pointer, fun)
   end
 
@@ -848,6 +848,8 @@ end
 defimpl Enum.Iterator, for: List do
   def iterator(list), do: { iterate(&1), iterate({ list, fn(list, do: list) }) }
 
+  def ordered_iterator(list), do: iterator(list)
+
   def to_list(list), do: list
 
   def iterate({ [h|t], ctor }) do
@@ -868,9 +870,13 @@ end
 defimpl Enum.Iterator, for: Tuple do
   import Enum.Iterator.List, only: [iterate: 1]
 
-  def iterator(dict), do: { iterate(&1),
-                            iterate({ to_list(dict),
-                                      fn(pairs, do: extend(PDict.empty(dict), pairs)) }) }
+  def iterator(dict) do
+    { iterate(&1), iterate({ to_list(dict), fn(pairs, do: extend(PDict.empty(dict), pairs)) }) }
+  end
+
+  def ordered_iterator(_) do
+    raise ArgumentError, message: "Dict does not support ordering"
+  end
 
   def to_list(dict), do: PDict.to_list(dict)
 
