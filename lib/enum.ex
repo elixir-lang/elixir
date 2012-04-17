@@ -16,6 +16,10 @@ defmodule Enum do
 
       Enum.map [1,2,3], fn(x, do: x * 2)
 
+  Depending on the type of the collection, the user-provided function will
+  accept a certain type of argument. For dicts, the argument is always a
+  { key, value } tuple.
+
   You can also use a custom iteration function for any collection by passing it
   along with the head of iteration:
 
@@ -24,26 +28,14 @@ defmodule Enum do
 
   ## The protocol
 
-  When `Enum.<function>` is invoked without the iteration function,
-  it invokes `Enum.Iterator.iterator(collection)` on the
-  given collection in order to retrieve the iterator
-  for that collection. You can implement the protocol for any
-  data type you wish. Elixir ships with a default iterator
-  for lists, implemented as follows:
+  When `Enum.<function>` is invoked without the iteration function, it invokes
+  `Enum.Iterator.iterator(collection)` on the given collection in order to
+  retrieve the iterator for that collection. Some functions expect the
+  collection to define an ordering for its elements. Those functions use
+  `Enum.Iterator.ordered_iterator(collection)` instead. You can implement the
+  protocol for any data type you wish. Elixir ships with a default iterator for
+  lists and dicts.
 
-      defimpl Enum.Iterator, for: List do
-        def iterator(list), do: { iterate(&1), iterate(list) }
-
-        defp iterate([h|t]) do
-          { h, t }
-        end
-
-        defp iterate([]) do
-          :stop
-        end
-      end
-
-  The `:stop` marks the end of iteration loop.
   """
 
   @doc """
@@ -77,7 +69,7 @@ defmodule Enum do
 
   @doc """
   Invokes the given `fun` for each item in the `collection` and returns true if
-  at least one invocation returns true.  Returns false otherwise.
+  at least one invocation returns true. Returns false otherwise.
 
   ## Examples
 
@@ -104,7 +96,8 @@ defmodule Enum do
   end
 
   @doc """
-  Drops the first `count` items from the collection.
+  Drops the first `count` items from the collection. Expects an ordered
+  collection.
 
   ## Examples
 
@@ -124,6 +117,7 @@ defmodule Enum do
 
   @doc """
   Drops items at the beginning of `collection` while `fun` returns true.
+  Expects an ordered collection.
 
   ## Examples
 
@@ -294,6 +288,8 @@ defmodule Enum do
   All items in the collection must be convertible
   to binary, otherwise an error is raised.
 
+  Expects an ordered collection.
+
   ## Examples
 
       Enum.join([1,2,3])        #=> "123"
@@ -378,6 +374,9 @@ defmodule Enum do
   the first element is the mapped collection and the second
   one is the final accumulator.
 
+  For dicts, the first tuple element has to be a { key, value }
+  tuple itself.
+
   ## Examples
 
       Enum.map_reduce [1, 2, 3], 0, fn(x, acc, do: { x * 2, x + acc })
@@ -398,7 +397,7 @@ defmodule Enum do
   end
 
   @doc """
-  Partitions `collection` into two lists where the first one contains elements
+  Partitions `collection` into two where the first one contains elements
   for which `fun` returns a truthy value, and the second one -- for which `fun`
   returns false or nil.
 
@@ -442,8 +441,8 @@ defmodule Enum do
   end
 
   @doc """
-  Splits the enumerable into two lists, leaving `count` elements in the first
-  one.
+  Splits the enumerable into two collections, leaving `count` elements in the
+  first one. Expects an ordered collection.
 
   ## Examples
 
@@ -463,6 +462,7 @@ defmodule Enum do
 
   @doc """
   Splits `collection` at the first element, for which `fun` returns true.
+  Expects an ordered collection.
 
   ## Examples
 
@@ -479,7 +479,8 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the first `count` items from the collection.
+  Takes the first `count` items from the collection. Expects an ordered
+  collection.
 
   ## Examples
 
@@ -499,6 +500,7 @@ defmodule Enum do
 
   @doc """
   Takes the items at the beginning of `collection` while `fun` returns true.
+  Expects an ordered collection.
 
   ## Examples
 
@@ -862,6 +864,8 @@ defimpl Enum.Iterator, for: List do
     #
     # `ctor` is a constructor function that takes a list of elements and
     # produces a new enumerable of the same type as the initial one.
+    #
+    # The :stop atom is mandatory, it signifies the end of the iteration.
     { :stop, ctor, nil}
   end
 end
