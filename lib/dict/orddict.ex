@@ -6,9 +6,10 @@ defimpl Dict, for: Orddict.Record do
   end
 
   def values(dict) do
-    :orddict.fold fn(_key, value, acc) ->
+    list = :orddict.fold fn(_key, value, acc) ->
       [value|acc]
     end, [], dict.data
+    List.reverse list
   end
 
   def size(dict) do
