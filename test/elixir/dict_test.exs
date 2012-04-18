@@ -133,7 +133,7 @@ defmodule DictTest do
   DictTest.Common.__using__(HashDict)
 
   test :new do
-    assert_equal :dict.new, (HashDict.new).data
+    assert_equal :dict.new, HashDict.new.data
   end
 end
 
@@ -142,6 +142,6 @@ defmodule OrddictTest do
   DictTest.Common.__using__(Orddict)
 
   test :new do
-    assert_equal [], Orddict.new
+    assert_equal [], Orddict.new.data
   end
 end

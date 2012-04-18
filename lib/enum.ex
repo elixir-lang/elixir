@@ -5,8 +5,15 @@ defprotocol Enum.Iterator do
   def to_list(collection)
 end
 
+defprotocol Enum.OrdIterator do
+  @only [List, Record]
+
+  def ordered_iterator(collection)
+end
+
 defmodule Enum do
   require Enum.Iterator, as: I
+  require Enum.OrdIterator, as: O
 
   @moduledoc """
   Provides a set of algorithms that enumerate over collections according to the
@@ -107,7 +114,7 @@ defmodule Enum do
 
   """
   def drop(collection, count) do
-    { iterator, pointer } = I.ordered_iterator(collection)
+    { iterator, pointer } = O.ordered_iterator(collection)
     drop(iterator, pointer, count)
   end
 
@@ -125,7 +132,7 @@ defmodule Enum do
       #=> [3,4,5]
   """
   def drop_while(collection, fun) do
-    { iterator, pointer } = I.ordered_iterator(collection)
+    { iterator, pointer } = O.ordered_iterator(collection)
     drop_while(iterator, pointer, fun)
   end
 
@@ -298,7 +305,7 @@ defmodule Enum do
 
   """
   def join(collection, joiner // "") do
-    { iterator, pointer } = I.ordered_iterator(collection)
+    { iterator, pointer } = O.ordered_iterator(collection)
     join(iterator, pointer, joiner)
   end
 
@@ -452,7 +459,7 @@ defmodule Enum do
 
   """
   def split(collection, count) do
-    { iterator, pointer } = I.ordered_iterator(collection)
+    { iterator, pointer } = O.ordered_iterator(collection)
     split(iterator, pointer, count)
   end
 
@@ -470,7 +477,7 @@ defmodule Enum do
       #=> { [1], [2, 3, 4] }
   """
   def split_with(collection, fun) do
-    { iterator, pointer } = I.ordered_iterator(collection)
+    { iterator, pointer } = O.ordered_iterator(collection)
     split_with(iterator, pointer, fun)
   end
 
@@ -490,7 +497,7 @@ defmodule Enum do
 
   """
   def take(collection, count) do
-    { iterator, pointer } = I.ordered_iterator(collection)
+    { iterator, pointer } = O.ordered_iterator(collection)
     take(iterator, pointer, count)
   end
 
@@ -509,7 +516,7 @@ defmodule Enum do
 
   """
   def take_while(collection, fun // fn(x, do: x)) do
-    { iterator, pointer } = I.ordered_iterator(collection)
+    { iterator, pointer } = O.ordered_iterator(collection)
     take_while(iterator, pointer, fun)
   end
 
@@ -592,19 +599,19 @@ defmodule Enum do
 
   ## drop_while
 
-  defp do_drop_while({ h, next }, iterator, fun) do
+  defp do_drop_while({ h, { t, ctor } = next }, iterator, fun) do
     case fun.(h) do
     match: false
-      [h|map(iterator, iterator.(next), fn(x) -> x end)]
+      ctor.([h|t])
     match: nil
-      [h|map(iterator, iterator.(next), fn(x) -> x end)]
+      ctor.([h|t])
     else:
       do_drop_while(iterator.(next), iterator, fun)
     end
   end
 
-  defp do_drop_while({ :stop, _, _ }, _, _) do
-    []
+  defp do_drop_while({ :stop, ctor, _ }, _, _) do
+    ctor.([])
   end
 
   ## find
@@ -698,19 +705,19 @@ defmodule Enum do
 
   ## split_with
 
-  defp do_split_with({ h, next }, iterator, fun, acc) do
+  defp do_split_with({ h, { _, ctor } = next }, iterator, fun, acc) do
     case fun.(h) do
     match: false
       do_split_with(iterator.(next), iterator, fun, [h|acc])
     match: nil
       do_split_with(iterator.(next), iterator, fun, [h|acc])
     else:
-      { List.reverse(acc), map(iterator, { h, next }, fn(x) -> x end) }
+      { ctor.(List.reverse(acc)), map(iterator, { h, next }, fn(x) -> x end) }
     end
   end
 
-  defp do_split_with({ :stop, _, _ }, _, _, acc) do
-    { List.reverse(acc), [] }
+  defp do_split_with({ :stop, ctor, _ }, _, _, acc) do
+    { ctor.(List.reverse(acc)), ctor.([]) }
   end
 
   ## join
@@ -804,12 +811,12 @@ defmodule Enum do
 
   ## take_while
 
-  defp do_take_while({ h, next }, iterator, fun, acc) do
+  defp do_take_while({ h, {_, ctor} = next }, iterator, fun, acc) do
     case fun.(h) do
     match: false
-      List.reverse acc
+      ctor.(List.reverse(acc))
     match: nil
-      List.reverse acc
+      ctor.(List.reverse(acc))
     else:
       do_take_while(iterator.(next), iterator, fun, [h|acc])
     end
@@ -867,5 +874,55 @@ defimpl Enum.Iterator, for: List do
     #
     # The :stop atom is mandatory, it signifies the end of the iteration.
     { :stop, ctor, nil}
+  end
+end
+
+defimpl Enum.OrdIterator, for: List do
+  def ordered_iterator(list) do
+    Enum.Iterator.List.iterator(list)
+  end
+end
+
+defimpl Enum.Iterator, for: HashDict.Record do
+  import Enum.Iterator.List, only: [iterate: 1]
+
+  def iterator(dict) do
+    { iterate(&1), iterate({ to_list(dict), fn(pairs, do: extend(Dict.empty(dict), pairs)) }) }
+  end
+
+  def to_list(dict), do: Dict.to_list(dict)
+
+  defp extend(dict, pairs) do
+    List.foldl pairs, dict, fn(pair, dict) ->
+      Dict.put dict, pair
+    end
+  end
+end
+
+defimpl Enum.Iterator, for: Orddict.Record do
+  import Enum.Iterator.List, only: [iterate: 1]
+
+  def iterator(dict) do
+    { iterate(&1), iterate({ to_list(dict), fn(pairs, do: extend(Dict.empty(dict), pairs)) }) }
+  end
+
+  def to_list(dict), do: Dict.to_list(dict)
+
+  defp extend(dict, pairs) do
+    List.foldl pairs, dict, fn(pair, dict) ->
+      Dict.put dict, pair
+    end
+  end
+end
+
+defimpl Enum.OrdIterator, for: HashDict.Record do
+  def ordered_iterator(_) do
+    raise ArgumentError, message: "HashDict does not support ordering"
+  end
+end
+
+defimpl Enum.OrdIterator, for: Orddict.Record do
+  def ordered_iterator(dict) do
+    Enum.Iterator.iterator(dict)
   end
 end

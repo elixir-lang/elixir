@@ -68,23 +68,3 @@ end
 defmodule HashDict do
   use Dict.Common, :"HashDict.Record"
 end
-
-defimpl Enum.Iterator, for: HashDict.Record do
-  import Enum.Iterator.List, only: [iterate: 1]
-
-  def iterator(dict) do
-    { iterate(&1), iterate({ to_list(dict), fn(pairs, do: extend(Dict.HashDict.Record.empty(dict), pairs)) }) }
-  end
-
-  def ordered_iterator(_) do
-    raise ArgumentError, message: "Dict does not support ordering"
-  end
-
-  def to_list(dict), do: Dict.HashDict.Record.to_list(dict)
-
-  defp extend(dict, pairs) do
-    List.foldl pairs, dict, fn(pair, dict) ->
-      Dict.HashDict.Record.put dict, pair
-    end
-  end
-end
