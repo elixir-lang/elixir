@@ -1,5 +1,5 @@
 # We're assuming that the List contains sorted pairs of key-value entries
-defimpl PDict, for: List do
+defimpl Dict, for: List do
   def keys(dict) do
     :orddict.fetch_keys dict
   end

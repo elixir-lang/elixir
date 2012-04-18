@@ -869,24 +869,3 @@ defimpl Enum.Iterator, for: List do
     { :stop, ctor, nil}
   end
 end
-
-# An implementation for Dict
-defimpl Enum.Iterator, for: Tuple do
-  import Enum.Iterator.List, only: [iterate: 1]
-
-  def iterator(dict) do
-    { iterate(&1), iterate({ to_list(dict), fn(pairs, do: extend(PDict.empty(dict), pairs)) }) }
-  end
-
-  def ordered_iterator(_) do
-    raise ArgumentError, message: "Dict does not support ordering"
-  end
-
-  def to_list(dict), do: PDict.to_list(dict)
-
-  defp extend(dict, pairs) do
-    List.foldl pairs, dict, fn(pair, dict) ->
-      PDict.put dict, pair
-    end
-  end
-end

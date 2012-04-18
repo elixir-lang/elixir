@@ -1,4 +1,4 @@
-defprotocol PDict, [
+defprotocol Dict, [
 #  @doc """
 #  Returns a list containing all dict's keys.
 #
@@ -7,7 +7,7 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.keys [a: 1, b: 2]  #=> [:a,:b]
+#      Dict.keys [a: 1, b: 2]  #=> [:a,:b]
 #
 #  """
   keys(dict),
@@ -17,7 +17,7 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.values [a: 1, b: 2]  #=> [1,2]
+#      Dict.values [a: 1, b: 2]  #=> [1,2]
 #
 #  """
   values(dict),
@@ -27,7 +27,7 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.size [a: 1, b: 2]  #=> 2
+#      Dict.size [a: 1, b: 2]  #=> 2
 #
 #  """
   size(dict),
@@ -37,8 +37,8 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.has_key?([a:, 1], :a)  #=> true
-#      PDict.has_key?([a:, 1], :b)  #=> false
+#      Dict.has_key?([a:, 1], :a)  #=> true
+#      Dict.has_key?([a:, 1], :b)  #=> false
 #  """
   has_key?(dict, key),
 
@@ -48,9 +48,9 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.get [a: 1], :a     #=> 1
-#      PDict.get [a: 1], :b     #=> nil
-#      PDict.get [a: 1], :b, 3  #=> 3
+#      Dict.get [a: 1], :a     #=> 1
+#      Dict.get [a: 1], :b     #=> nil
+#      Dict.get [a: 1], :b, 3  #=> 3
 #  """
   get(dict, key),
   get(dict, key, default),
@@ -61,9 +61,9 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.put [a: 1, b: 2], :a, 3
+#      Dict.put [a: 1, b: 2], :a, 3
 #      #=> [a: 3, b: 2]
-#      PDict.put [a: 1, b: 2], {:c, 3}
+#      Dict.put [a: 1, b: 2], {:c, 3}
 #      #=> [a: 1, b: 2, c: 3]
 #  """
   put(dict, pair),
@@ -75,8 +75,8 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.delete [a: 1, b: 2], :a  #=> [b: 2]
-#      PDict.delete [b: 2], :a        #=> [b: 2]
+#      Dict.delete [a: 1, b: 2], :a  #=> [b: 2]
+#      Dict.delete [b: 2], :a        #=> [b: 2]
 #  """
   delete(dict, key),
 
@@ -86,7 +86,7 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.merge [a: 1, b: 2], [a: 3, d: 4]
+#      Dict.merge [a: 1, b: 2], [a: 3, d: 4]
 #      #=> [a:3, b:2, d: 4]
 #  """
   merge(dict1, dict2),
@@ -97,7 +97,7 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+#      Dict.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
 #        v1 + v2
 #      end
 #      #=> [a: 4, b: 2, d: 4]
@@ -110,7 +110,7 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.update [a: 1, b: 2], :a, fn(val) -> -val end
+#      Dict.update [a: 1, b: 2], :a, fn(val) -> -val end
 #      #=> [a: -1, b: 2]
 #
 #  """
@@ -123,7 +123,7 @@ defprotocol PDict, [
 #
 #  ## Examples
 #
-#      PDict.update [a: 1, b: 2], :c, 3, fn(val) -> -val end
+#      Dict.update [a: 1, b: 2], :c, 3, fn(val) -> -val end
 #      #=> [a: 1, b: 2, c: 3]
 #
 #  """
@@ -146,7 +146,7 @@ defmodule Dict.Common do
   defmacro __using__(module, impl_ref) do
     # This is an optimization trick that allows us to reference the
     # implementation module directly
-    ref = Module.concat(PDict, impl_ref)
+    ref = Module.concat(Dict, impl_ref)
     quote do
       @doc """
       Creates a new empty dict.

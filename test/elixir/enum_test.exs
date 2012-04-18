@@ -183,39 +183,39 @@ defmodule EnumTest.List do
   end
 end
 
-defmodule EnumTest.Dict do
+defmodule EnumTest.HashDict do
   use ExUnit.Case
 
   test :all? do
-    dict = Dict.new [2, 3, 4], [2, 4, 6]
+    dict = HashDict.new [2, 3, 4], [2, 4, 6]
     assert Enum.all?(dict, fn({_, v}, do: rem(v, 2) == 0))
     refute Enum.all?(dict, fn({k, _}, do: rem(k, 2) == 0))
 
-    assert Enum.all?(Dict.new)
+    assert Enum.all?(HashDict.new)
   end
 
   test :any? do
-    dict = Dict.new [2, 3, 4], [2, 4, 6]
+    dict = HashDict.new [2, 3, 4], [2, 4, 6]
     refute Enum.any?(dict, fn({_, v}, do: rem(v, 2) == 1))
     assert Enum.any?(dict, fn({k, _}, do: rem(k, 2) == 1))
 
-    refute Enum.any?(Dict.new)
+    refute Enum.any?(HashDict.new)
   end
 
   test :drop do
     assert_raises ArgumentError, fn ->
-      Enum.drop Dict.new, 5
+      Enum.drop HashDict.new, 5
     end
   end
 
   test :drop_while do
     assert_raises ArgumentError, fn ->
-      Enum.drop_while Dict.new, fn(x, do: x)
+      Enum.drop_while HashDict.new, fn(x, do: x)
     end
   end
 
   test :find do
-    dict = Dict.new [:a, :b, :c], [1, 2, 3]
+    dict = HashDict.new [:a, :b, :c], [1, 2, 3]
     assert_equal nil, Enum.find(dict, fn({_, v}, do: v == 0))
     assert_equal :ok, Enum.find(dict, :ok, fn({_, v}, do: v == 0))
     assert_equal {:a, 1}, Enum.find(dict, fn({_, v}, do: rem(v, 2) == 1))
@@ -223,22 +223,22 @@ defmodule EnumTest.Dict do
   end
 
   test :find_value do
-    dict = Dict.new [:a, :b, :c], [1, 2, 3]
+    dict = HashDict.new [:a, :b, :c], [1, 2, 3]
     assert_equal nil, Enum.find_value(dict, fn({_, v}, do: v == 0))
     assert_equal :ok, Enum.find_value(dict, :ok, fn({_, v}, do: v == 0))
     assert Enum.find_value(dict, fn({_, v}, do: rem(v, 2) == 1))
   end
 
   test :empty? do
-    assert Enum.empty?(Dict.new)
-    refute Enum.empty?(Dict.new {:a, 1})
+    assert Enum.empty?(HashDict.new)
+    refute Enum.empty?(HashDict.new {:a, 1})
   end
 
   test :each do
-    empty_dict = Dict.new
+    empty_dict = HashDict.new
     assert_equal empty_dict, Enum.each(empty_dict, fn(x, do: x))
 
-    dict = Dict.new ["one", "two", "three"], [1, 2, 3]
+    dict = HashDict.new ["one", "two", "three"], [1, 2, 3]
     assert_equal dict, Enum.each(dict, fn({_k, v}, do: Process.put(:enum_test_each, v * 2)))
     assert_equal 6, Process.get(:enum_test_each)
   after:
@@ -246,14 +246,14 @@ defmodule EnumTest.Dict do
   end
 
   test :entries do
-    dict = Dict.new ["one", "two", "three"], [1, 2, 3]
+    dict = HashDict.new ["one", "two", "three"], [1, 2, 3]
     assert_equal [{"one", 1}, {"three", 3}, {"two", 2}], List.sort Enum.entries(dict)
   end
 
   test :filter do
-    dict = Dict.new ['a', 'b', 'c', 'd'], [1, 2, 3, 4]
-    odd_dict = Dict.new ['a', 'c'], [1, 3]
-    even_dict = Dict.new ['b', 'd'], [2, 4]
+    dict = HashDict.new ['a', 'b', 'c', 'd'], [1, 2, 3, 4]
+    odd_dict = HashDict.new ['a', 'c'], [1, 3]
+    even_dict = HashDict.new ['b', 'd'], [2, 4]
 
     assert_equal odd_dict, Enum.filter dict, fn({_, v}, do: rem(v, 2) == 1)
     assert_equal even_dict, Enum.filter dict, fn({_, v}, do: rem(v, 2) == 0)
@@ -261,87 +261,87 @@ defmodule EnumTest.Dict do
   end
 
   test :filter_with_match do
-    dict = Dict.new ['a', 'b', 'c', 'd'], [1, 2, 3, 4]
-    dict_2 = Dict.new ['a', 'b'], [1, 2]
+    dict = HashDict.new ['a', 'b', 'c', 'd'], [1, 2, 3, 4]
+    dict_2 = HashDict.new ['a', 'b'], [1, 2]
 
-    assert_equal Dict.new({'a', 1}), Enum.filter dict, match?({_, 1}, &1)
+    assert_equal HashDict.new({'a', 1}), Enum.filter dict, match?({_, 1}, &1)
     assert_equal dict_2, Enum.filter dict, match?({_, v} when v < 3, &1)
     assert_equal dict, Enum.filter dict, match?(_, &1)
   end
 
   test :filter_map do
-    odd_dict = Dict.new [a: 1, b: 2, c: 3]
-    even_dict = Dict.new [a: 2, b: 4, c: 6]
+    odd_dict = HashDict.new [a: 1, b: 2, c: 3]
+    even_dict = HashDict.new [a: 2, b: 4, c: 6]
 
-    assert_equal Dict.new(b: 4), Enum.filter_map(odd_dict,
+    assert_equal HashDict.new(b: 4), Enum.filter_map(odd_dict,
                                                  fn({_, v}, do: rem(v, 2) == 0),
                                                  fn({k, v}, do: { k, v * 2 }))
-    assert_equal Dict.new(a: 4, b: 8, c: 12), Enum.filter_map(even_dict,
+    assert_equal HashDict.new(a: 4, b: 8, c: 12), Enum.filter_map(even_dict,
                                                               fn({_, v}, do: rem(v, 2) == 0),
                                                               fn({k, v}, do: { k, v * 2 }))
   end
 
   test :reduce do
-    dict = Dict.new [a: 1, b: 2, c: 3]
-    assert_equal 1, Enum.reduce(Dict.new, 1, fn(x, acc, do: x + acc))
+    dict = HashDict.new [a: 1, b: 2, c: 3]
+    assert_equal 1, Enum.reduce(HashDict.new, 1, fn(x, acc, do: x + acc))
     assert_equal 7, Enum.reduce(dict, 1, fn({_, v}, acc, do: v + acc))
   end
 
   test :join do
     assert_raises ArgumentError, fn ->
-      Enum.join Dict.new, ""
+      Enum.join HashDict.new, ""
     end
   end
 
   test :keyfind do
-    dict = Dict.new [a: 1, b: 2, c: 3]
+    dict = HashDict.new [a: 1, b: 2, c: 3]
     assert_equal {:b, 2}, Enum.keyfind dict, 2, 2
   end
 
   test :map do
-    dict = Dict.new [a: 1, b: 2, c: 3]
-    double_dict = Dict.new [a: 2, b: 4, c: 6]
+    dict = HashDict.new [a: 1, b: 2, c: 3]
+    double_dict = HashDict.new [a: 2, b: 4, c: 6]
     assert_equal double_dict, Enum.map(dict, fn({k, v}) -> { k, v * 2 } end)
-    assert_equal Dict.new, Enum.map(Dict.new, fn(x) -> x * 2 end)
+    assert_equal HashDict.new, Enum.map(HashDict.new, fn(x) -> x * 2 end)
   end
 
   test :map_reduce do
-    dict = Dict.new [a: 1, b: 2, c: 3]
-    double_dict = Dict.new [a: 2, b: 4, c: 6]
+    dict = HashDict.new [a: 1, b: 2, c: 3]
+    double_dict = HashDict.new [a: 2, b: 4, c: 6]
     assert_equal { double_dict, 7 }, Enum.map_reduce(dict, 1, fn({k, v}, acc, do: { {k, v * 2}, v + acc }))
-    assert_equal { Dict.new, 1 }, Enum.map_reduce(Dict.new, 1, fn(x, acc, do: { x * 2, x + acc }))
+    assert_equal { HashDict.new, 1 }, Enum.map_reduce(HashDict.new, 1, fn(x, acc, do: { x * 2, x + acc }))
   end
 
   test :partition do
-    dict = Dict.new [:a, :b, :c, :d, :e, :f, :g], [1, 2, 3, 4, 5, 6, 7]
-    below_4 = Dict.new [{:a, 1}, {:b, 2}, {:c, 3}]
-    above_4 = Dict.new [{:d, 4}, {:e, 5}, {:f, 6}, {:g, 7}]
+    dict = HashDict.new [:a, :b, :c, :d, :e, :f, :g], [1, 2, 3, 4, 5, 6, 7]
+    below_4 = HashDict.new [{:a, 1}, {:b, 2}, {:c, 3}]
+    above_4 = HashDict.new [{:d, 4}, {:e, 5}, {:f, 6}, {:g, 7}]
 
     assert_equal { below_4, above_4 }, Enum.partition(dict, fn({_k, v}, do: v < 4))
-    assert_equal { dict, Dict.new }, Enum.partition(dict, fn({_k, v}, do: v < 10))
+    assert_equal { dict, HashDict.new }, Enum.partition(dict, fn({_k, v}, do: v < 10))
   end
 
   test :split do
     assert_raises ArgumentError, fn ->
-      Enum.split Dict.new, 5
+      Enum.split HashDict.new, 5
     end
   end
 
   test :split_with do
     assert_raises ArgumentError, fn ->
-      Enum.split_with Dict.new, fn(x, do: x)
+      Enum.split_with HashDict.new, fn(x, do: x)
     end
   end
 
   test :take do
     assert_raises ArgumentError, fn ->
-      Enum.take Dict.new, 5
+      Enum.take HashDict.new, 5
     end
   end
 
   test :take_while do
     assert_raises ArgumentError, fn ->
-      Enum.take_while Dict.new, fn(x, do: x)
+      Enum.take_while HashDict.new, fn(x, do: x)
     end
   end
 end
