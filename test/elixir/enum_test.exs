@@ -377,9 +377,14 @@ defmodule EnumTest.Orddict do
     assert_equal short_dict, Enum.drop_while dict, fn({_k, v}, do: v < 3)
   end
 
-  test :join_binary do
+  test :join do
     dict = Orddict.new [:a, :b, :c], [1, 2, 3]
-    assert_equal "{a,1} . {b,2} . {c,3}", Enum.join dict, " . "
+    assert_raises UndefinedFunctionError, fn ->
+      Enum.join dict, ","
+    end
+    assert_raises UndefinedFunctionError, fn ->
+      Enum.join dict, ','
+    end
   end
 
   test :split do
