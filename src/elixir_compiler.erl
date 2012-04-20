@@ -57,6 +57,16 @@ eval_forms(Forms, Line, Module, #elixir_scope{module=Value} = S) ->
   eval_forms(Forms, Line, Module, Value, S).
 
 eval_forms(Forms, Line, RawModule, Value, S) ->
+  case (Value == nil) and allows_fast_compilation(Forms) of
+    true  -> eval_compilation(Forms, Line, S);
+    false -> code_loading_compilation(Forms, Line, RawModule, Value, S)
+  end.
+
+eval_compilation(Forms, Line, S) ->
+  { Result, _Binding, FS } = elixir:eval_quoted(Forms, [{'_EXMODULE',nil}], Line, S),
+  { Result, FS }.
+
+code_loading_compilation(Forms, Line, RawModule, Value, S) ->
   Module = escape_module(RawModule),
   { Exprs, FS } = elixir_translator:translate(Forms, S),
   ModuleForm = module_form(Exprs, Line, S#elixir_scope.filename, Module),
@@ -253,6 +263,12 @@ module_form(Exprs, Line, Filename, Module) ->
       { clause, Line, Args, [], Exprs }
     ] }
   ].
+
+%% Fast compilation is available?
+
+allows_fast_compilation([{defmodule,_,_}|T]) -> allows_fast_compilation(T);
+allows_fast_compilation([]) -> true;
+allows_fast_compilation(_) -> false.
 
 %% Escape the module name, removing slashes, dots,
 %% so it can be loaded by Erlang.
