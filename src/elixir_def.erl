@@ -70,13 +70,6 @@ handle_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
-handle_definition(Kind, Line, Module, Name, Args, _RawGuards, skip_definition, RawS) ->
-  S = elixir_variables:deserialize_scope(RawS),
-  Data = elixir_module:data(Module),
-  elixir_module:data(Module, orddict:erase(overridable, Data)),
-  compile_docs(Kind, Line, Module, Name, length(Args), S),
-  { Name, length(Args) };
-
 handle_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS) ->
   Data  = elixir_module:data(Module),
   Arity = length(Args),
@@ -97,6 +90,7 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
   Guards = elixir_clauses:extract_guard_clauses(RawGuards),
 
   case RawExpr of
+    skip_definition -> Expr = nil;
     [{ do, Expr }] -> [];
     _ -> Expr = { 'try', Line, [RawExpr] }
   end,
@@ -114,16 +108,17 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
     def      -> { def, public }
   end,
 
-  CheckClauses = S#elixir_scope.check_clauses,
-
   %% Compile documentation
   compile_docs(Kind, Line, Module, Name, Arity, TS),
 
-  %% Compile super calls
-  compile_super(Module, TS),
-
   %% Store function
-  store_each(CheckClauses, Final, FunctionTable, Visibility, Filename, Function),
+  case RawExpr of
+    skip_definition -> [];
+    _ ->
+      compile_super(Module, TS),
+      CheckClauses = S#elixir_scope.check_clauses,
+      store_each(CheckClauses, Final, FunctionTable, Visibility, Filename, Function)
+  end,
 
   %% Store defaults
   [store_each(false, Final, FunctionTable, Visibility, Filename,

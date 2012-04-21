@@ -35,7 +35,7 @@ defmodule Elixir.SpecialForms do
   have lexical scope. This means you can set up aliases inside
   specific functions and it won't affect the overall scope.
   """
-  defmacro refer(module, opts // [])
+  defmacro refer(module, opts)
 
   @doc """
   `require` is used to require the presence of external
@@ -64,7 +64,7 @@ defmodule Elixir.SpecialForms do
   up an alias. Please check `refer` for more information.
 
   """
-  defmacro require(module, opts // [])
+  defmacro require(module, opts)
 
   @doc """
   `import` allows one to easily access functions or macros from
@@ -126,7 +126,7 @@ defmodule Elixir.SpecialForms do
   also accepts `as:` as an option so it automatically sets up
   an alias. Please check `refer` for more information.
   """
-  defmacro import(module, opts // [])
+  defmacro import(module, opts)
 
   @doc """
   Returns the current module name as an atom or nil otherwise.
@@ -234,7 +234,7 @@ defmodule Elixir.SpecialForms do
   when one is generating a code that should be inserted into
   some function.
   """
-  defmacro quote(opts // [], do: contents)
+  defmacro quote(opts, do: contents)
 
   @doc """
   Unquotes the given expression from inside a macro.

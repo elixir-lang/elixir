@@ -469,7 +469,7 @@ defmodule Elixir.Builtin do
       end
 
   """
-  defmacro use(module, args // [])
+  defmacro use(module, args)
 
   @doc """
   Inspect the given arguments according to the Binary.Inspect protocol.
