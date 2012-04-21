@@ -117,11 +117,11 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
     _ ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
-      store_each(CheckClauses, Final, FunctionTable, Visibility, Filename, Function)
+      store_each(CheckClauses, Final, FunctionTable, Visibility, length(Defaults), Filename, Function)
   end,
 
   %% Store defaults
-  [store_each(false, Final, FunctionTable, Visibility, Filename,
+  [store_each(false, Final, FunctionTable, Visibility, 0, Filename,
     function_for_clause(Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
@@ -179,7 +179,7 @@ unwrap_stored_definitions(Module) ->
   Functions = ets:foldl(fun(X, Acc) -> unwrap_stored_definition(X, Acc, Private) end, [], Table),
   { Public, Private, Macros, Functions }.
 
-unwrap_stored_definition({{Name, Arity}, Line, Clauses}, Acc, _Private) ->
+unwrap_stored_definition({{Name, Arity}, Line, _, Clauses}, Acc, _Private) ->
   [{function, Line, Name, Arity, lists:reverse(Clauses) }|Acc].
 
 %% Helpers
@@ -193,38 +193,30 @@ function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
 %% This function also checks and emit warnings in case
 %% the kind, of the visibility of the function changes.
 
-store_each(Check, Kind, Table, Visibility, Filename, {function, Line, Name, Arity, Clauses}) ->
-  FinalClauses = case ets:lookup(Table, {Name, Arity}) of
-    [{{Name, Arity}, FinalLine, OtherClauses}] ->
+store_each(Check, Kind, Table, Visibility, Defaults, Filename, {function, Line, Name, Arity, Clauses}) ->
+  case ets:lookup(Table, {Name, Arity}) of
+    [{{Name, Arity}, _, StoredDefaults, StoredClauses}] ->
+      FinalDefaults = Defaults + StoredDefaults,
+      FinalClauses  = Clauses ++ StoredClauses,
       check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table),
       check_valid_kind(Line, Filename, Name, Arity, Kind, Table),
-
-      case Check of
-        false -> [];
-        true -> check_valid_clause(Line, Filename, Name, Arity, Table)
-      end,
-
-      Clauses ++ OtherClauses;
+      check_valid_defaults(Line, Filename, Name, Arity, Defaults),
+      Check andalso check_valid_clause(Line, Filename, Name, Arity, Table);
     [] ->
+      FinalDefaults = Defaults,
+      FinalClauses  = Clauses,
       add_visibility_entry(Name, Arity, Visibility, Table),
       add_function_entry(Name, Arity, Kind, Table),
-
-      case Check of
-        false -> [];
-        true  -> ets:insert(Table, {last, { Name, Arity }})
-      end,
-
-      FinalLine = Line,
-      Clauses
+      Check andalso ets:insert(Table, { last, { Name, Arity } })
   end,
-  ets:insert(Table, {{Name, Arity}, FinalLine, FinalClauses}).
+  ets:insert(Table, {{Name, Arity}, Line, FinalDefaults, FinalClauses}).
 
 %% Handle kind (def/defmacro) entries in the table
 
 add_function_entry(Name, Arity, defmacro, Table) ->
   Tuple = { Name, Arity },
   Current= ets:lookup_element(Table, macros, 2),
-  ets:insert(Table, {macros, [Tuple|Current]});
+  ets:insert(Table, { macros, [Tuple|Current] });
 
 add_function_entry(_Name, _Arity, def, _Table) -> ok.
 
@@ -275,7 +267,14 @@ check_valid_clause(Line, Filename, Name, Arity, Table) ->
       { changed_clause, { {Name, Arity}, {ElseName, ElseArity} } })
   end.
 
+check_valid_defaults(_Line, _Filename, _Name, _Arity, 0) -> [];
+check_valid_defaults(Line, Filename, Name, Arity, _) ->
+  elixir_errors:handle_file_warning(Filename, { Line, ?MODULE, { clauses_with_docs, { Name, Arity } } }).
+
 %% Format errors
+
+format_error({clauses_with_docs,{Name,Arity}}) ->
+  io_lib:format("function ~s/~B has default values and multiple clauses, it is recommended to use a separate clause for declaring defalts", [Name, Arity]);
 
 format_error({private_doc,{Name,Arity}}) ->
   io_lib:format("function ~s/~B is private, @doc's are always discarded for private functions", [Name, Arity]);

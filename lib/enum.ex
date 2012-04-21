@@ -322,11 +322,13 @@ defmodule Enum do
         Enum.keyfind list, 3, 2  #=> {:a, 3}
 
   """
+  def keyfind(collection, key, position, default // nil)
+
   def keyfind(collection, key, position, default) when is_list(collection) do
     :lists.keyfind(key, position, collection) || default
   end
 
-  def keyfind(collection, key, position, default // nil) do
+  def keyfind(collection, key, position, default) do
     { iterator, pointer } = I.iterator(collection)
     keyfind(iterator, pointer, key, position, default)
   end

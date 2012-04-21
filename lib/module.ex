@@ -237,7 +237,7 @@ defmodule Module do
   def defined_functions(module) do
     assert_not_compiled!(:defined_functions, module)
     table = function_table_for(module)
-    lc { tuple, _, _ } in ETS.tab2list(table), do: tuple
+    lc { tuple, _, _, _ } in ETS.tab2list(table), do: tuple
   end
 
   @doc """

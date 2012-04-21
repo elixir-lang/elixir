@@ -41,10 +41,11 @@ defmodule Keyword do
       Keyword.get [a: 1], :b      #=> nil
       Keyword.get [a: 1], :b, 3   #=> 3
   """
+  def get(dict, key, default // nil)
   def get([{k, _}|_], key, default) when key < k, do: default
   def get([{k, _}|d], key, default) when key > k, do: get(d, key, default)
   def get([{_k, value}|_], _key, _default),       do: value
-  def get([], _, default // nil),                 do: default
+  def get([], _, default),                        do: default
 
   @doc """
   Returns all keys of dictionary.
