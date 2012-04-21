@@ -214,7 +214,7 @@ store_each(Check, Kind, Table, Defaults, Filename, {function, Line, Name, Arity,
 
 %% Validations
 
-check_valid_kind(Line, Filename, Name, Arity, Kind, Kind) -> [];
+check_valid_kind(_Line, _Filename, _Name, _Arity, Kind, Kind) -> [];
 check_valid_kind(Line, Filename, Name, Arity, Kind, StoredKind) ->
   elixir_errors:form_error(Line, Filename, ?MODULE, {changed_kind, {Name, Arity, StoredKind, Kind}}).
 
