@@ -89,11 +89,6 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'defmodule Foo do\ndef foo(1), do: 1\ndefmacro foo(x), do: x\nend'
   end
 
-  test :visibility_clause_change do
-    assert_equal "nofile:3: function foo/1 already defined with visibility public",
-      format_rescue 'defmodule Foo do\ndef foo(1), do: 1\ndefp foo(x), do: x\nend'
-  end
-
   test :clause_change do
     assert_equal "nofile:4: function foo/1 does not match previous clause bar/1",
       format_rescue 'defmodule Foo do\ndef foo(1), do: 1\ndef bar(x), do: x\ndef foo(x), do: x\nend'

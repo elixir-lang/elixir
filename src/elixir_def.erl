@@ -17,9 +17,6 @@ table(Module) -> ?ELIXIR_ATOM_CONCAT([f, Module]).
 build_table(Module) ->
   FunctionTable = table(Module),
   ets:new(FunctionTable, [set, named_table, private]),
-  ets:insert(FunctionTable, { public, [] }),
-  ets:insert(FunctionTable, { private, [] }),
-  ets:insert(FunctionTable, { macros, [] }),
   ets:insert(FunctionTable, { last, [] }),
   FunctionTable.
 
@@ -101,13 +98,6 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
   Arity         = element(4, Function),
   FunctionTable = table(Module),
 
-  %% Normalize visibility and kind
-  { Final, Visibility } = case Kind of
-    defmacro -> { defmacro, public };
-    defp     -> { def, private };
-    def      -> { def, public }
-  end,
-
   %% Compile documentation
   compile_docs(Kind, Line, Module, Name, Arity, TS),
 
@@ -117,11 +107,11 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
     _ ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
-      store_each(CheckClauses, Final, FunctionTable, Visibility, length(Defaults), Filename, Function)
+      store_each(CheckClauses, Kind, FunctionTable, length(Defaults), Filename, Function)
   end,
 
   %% Store defaults
-  [store_each(false, Final, FunctionTable, Visibility, 0, Filename,
+  [store_each(false, Kind, FunctionTable, 0, Filename,
     function_for_clause(Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
@@ -168,19 +158,33 @@ translate_definition(Line, Name, Args, Guards, Expr, S) ->
 % It returns a list of all functions to be exported, plus the macros,
 % and the body of all functions.
 unwrap_stored_definitions(Module) ->
-  Table     = table(Module),
-  Public    = ets:lookup_element(Table, public, 2),
-  Private   = ets:lookup_element(Table, private, 2),
-  Macros    = ets:lookup_element(Table, macros, 2),
-  ets:delete(Table, public),
-  ets:delete(Table, private),
-  ets:delete(Table, macros),
+  Table = table(Module),
   ets:delete(Table, last),
-  Functions = ets:foldl(fun(X, Acc) -> unwrap_stored_definition(X, Acc, Private) end, [], Table),
-  { Public, Private, Macros, Functions }.
+  unwrap_stored_definition(ets:tab2list(Table), [], [], [], []).
 
-unwrap_stored_definition({{Name, Arity}, Line, _, Clauses}, Acc, _Private) ->
-  [{function, Line, Name, Arity, lists:reverse(Clauses) }|Acc].
+unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == def ->
+  unwrap_stored_definition(
+    T, [element(1, Def)|Public], Private, Macros,
+    [function_for_stored_definition(Def)|Functions]
+  );
+
+unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == defmacro ->
+  unwrap_stored_definition(
+    T, [element(1, Def)|Public], Private, [element(1, Def)|Macros],
+    [function_for_stored_definition(Def)|Functions]
+  );
+
+unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == defp; element(3, Def) == defmacrop ->
+  unwrap_stored_definition(
+    T, Public, [element(1, Def)|Private], Macros,
+    [function_for_stored_definition(Def)|Functions]
+  );
+
+unwrap_stored_definition([], Public, Private, Macros, Functions) ->
+  { lists:reverse(Public), lists:reverse(Private), lists:reverse(Macros), lists:reverse(Functions) }.
+
+function_for_stored_definition({{Name, Arity}, Line, _, _, Clauses}) ->
+  {function, Line, Name, Arity, lists:reverse(Clauses) }.
 
 %% Helpers
 
@@ -193,71 +197,26 @@ function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
 %% This function also checks and emit warnings in case
 %% the kind, of the visibility of the function changes.
 
-store_each(Check, Kind, Table, Visibility, Defaults, Filename, {function, Line, Name, Arity, Clauses}) ->
+store_each(Check, Kind, Table, Defaults, Filename, {function, Line, Name, Arity, Clauses}) ->
   case ets:lookup(Table, {Name, Arity}) of
-    [{{Name, Arity}, _, StoredDefaults, StoredClauses}] ->
+    [{{Name, Arity}, _, StoredKind, StoredDefaults, StoredClauses}] ->
       FinalDefaults = Defaults + StoredDefaults,
       FinalClauses  = Clauses ++ StoredClauses,
-      check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table),
-      check_valid_kind(Line, Filename, Name, Arity, Kind, Table),
+      check_valid_kind(Line, Filename, Name, Arity, Kind, StoredKind),
       check_valid_defaults(Line, Filename, Name, Arity, Defaults),
       Check andalso check_valid_clause(Line, Filename, Name, Arity, Table);
     [] ->
       FinalDefaults = Defaults,
       FinalClauses  = Clauses,
-      add_visibility_entry(Name, Arity, Visibility, Table),
-      add_function_entry(Name, Arity, Kind, Table),
       Check andalso ets:insert(Table, { last, { Name, Arity } })
   end,
-  ets:insert(Table, {{Name, Arity}, Line, FinalDefaults, FinalClauses}).
+  ets:insert(Table, {{Name, Arity}, Line, Kind, FinalDefaults, FinalClauses}).
 
-%% Handle kind (def/defmacro) entries in the table
+%% Validations
 
-add_function_entry(Name, Arity, defmacro, Table) ->
-  Tuple = { Name, Arity },
-  Current= ets:lookup_element(Table, macros, 2),
-  ets:insert(Table, { macros, [Tuple|Current] });
-
-add_function_entry(_Name, _Arity, def, _Table) -> ok.
-
-check_valid_kind(Line, Filename, Name, Arity, Kind, Table) ->
-  List = ets:lookup_element(Table, macros, 2),
-
-  Previous = case lists:member({Name, Arity}, List) of
-    true -> defmacro;
-    false -> def
-  end,
-
-  case Kind == Previous of
-    false -> elixir_errors:form_error(Line, Filename, ?MODULE, {changed_kind, {Name, Arity, Previous, Kind}});
-    true -> []
-  end.
-
-%% Handle visibility (public/private) entries in the table
-
-add_visibility_entry(Name, Arity, Visibility, Table) ->
-  Current= ets:lookup_element(Table, Visibility, 2),
-  ets:insert(Table, {Visibility, [{Name, Arity}|Current]}).
-
-check_valid_visibility(Line, Filename, Name, Arity, Visibility, Table) ->
-  Available = [public, private],
-  Previous = find_visibility(Name, Arity, Available, Table),
-  case Visibility == Previous of
-    false -> elixir_errors:form_error(Line, Filename, ?MODULE, {changed_visibility, {Name, Arity, Previous}});
-    true -> []
-  end.
-
-find_visibility(_Name, _Arity, [H|[]], _Table) ->
-  H;
-
-find_visibility(Name, Arity, [Visibility|T], Table) ->
-  List = ets:lookup_element(Table, Visibility, 2),
-  case lists:member({Name, Arity}, List) of
-    true  -> Visibility;
-    false -> find_visibility(Name, Arity, T, Table)
-  end.
-
-%% Handle clause order
+check_valid_kind(Line, Filename, Name, Arity, Kind, Kind) -> [];
+check_valid_kind(Line, Filename, Name, Arity, Kind, StoredKind) ->
+  elixir_errors:form_error(Line, Filename, ?MODULE, {changed_kind, {Name, Arity, StoredKind, Kind}}).
 
 check_valid_clause(Line, Filename, Name, Arity, Table) ->
   case ets:lookup_element(Table, last, 2) of
@@ -284,9 +243,6 @@ format_error({existing_doc,{Name,Arity}}) ->
 
 format_error({changed_clause,{{Name,Arity},{ElseName,ElseArity}}}) ->
   io_lib:format("function ~s/~B does not match previous clause ~s/~B", [Name, Arity, ElseName, ElseArity]);
-
-format_error({changed_visibility,{Name,Arity,Previous}}) ->
-  io_lib:format("function ~s/~B already defined with visibility ~s", [Name, Arity, Previous]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
   io_lib:format("~s ~s/~B already defined as ~s", [Current, Name, Arity, Previous]).

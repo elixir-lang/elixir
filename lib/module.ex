@@ -237,7 +237,7 @@ defmodule Module do
   def defined_functions(module) do
     assert_not_compiled!(:defined_functions, module)
     table = function_table_for(module)
-    lc { tuple, _, _, _ } in ETS.tab2list(table), do: tuple
+    lc { tuple, _, _, _, _ } in ETS.tab2list(table), do: tuple
   end
 
   @doc """
@@ -256,8 +256,7 @@ defmodule Module do
   def defined_functions(module, kind) do
     assert_not_compiled!(:defined_functions, module)
     table = function_table_for(module)
-    entry = kind_to_entry(kind)
-    ETS.lookup_element(table, entry, 2)
+    lc { tuple, _, stored_kind, _, _ } in ETS.tab2list(table), stored_kind == kind, do: tuple
   end
 
   @doc """
@@ -372,10 +371,6 @@ defmodule Module do
   end
 
   ## Helpers
-
-  defp kind_to_entry(:def),      do: :public
-  defp kind_to_entry(:defp),     do: :private
-  defp kind_to_entry(:defmacro), do: :macros
 
   defp data_table_for(module) do
     list_to_atom Erlang.lists.concat([:d, module])
