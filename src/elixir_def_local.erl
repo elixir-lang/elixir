@@ -27,7 +27,9 @@ function_for(Module, Name, Arity) ->
       Fun = { 'fun', Line, {clauses, lists:reverse(RewrittenClauses)} },
       { value, Result, _Binding } = erl_eval:exprs([Fun], []),
       Result;
-    _ -> error(ops)
+    _ ->
+      [_|T] = erlang:get_stacktrace(),
+      erlang:raise(error, undef, [{Module,Name,Arity,[]}|T])
   end.
 
 %% Helpers

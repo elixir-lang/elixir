@@ -69,6 +69,11 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'defmodule Foo do\ndefrecord(Elixir.ErrorsTest.MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
+  test :macro_with_undefined_local do
+    assert_equal "undefined function: Foo.unknown/1",
+      format_rescue 'defmodule Foo do\ndefmacrop bar, do: unknown(1)\ndef baz, do: bar()\nend'
+  end
+
   test :erlang_function_conflict do
     assert_equal "nofile:1: function exit/1 already imported from erlang",
       format_rescue 'defmodule Foo do import Elixir.ErrorsTest.UnproperMacro, only: [exit: 1]\nend'
