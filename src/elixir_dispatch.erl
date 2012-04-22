@@ -65,9 +65,14 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
   Arity = length(Args),
   Tuple = { Name, Arity },
   case find_dispatch(Tuple, S#elixir_scope.functions) of
-    nil ->
+    false ->
       case find_dispatch(Tuple, S#elixir_scope.macros) of
-        nil -> Callback();
+        false ->
+          Fun = (S#elixir_scope.function /= Tuple) andalso elixir_def:local_macro_for(Line, Tuple, S),
+          case Fun of
+            false -> Callback();
+            _ -> dispatch_macro_fun(Line, Fun, S#elixir_scope.module, Name, Arity, Args, S)
+          end;
         Receiver ->
           elixir_import:record(import, Tuple, Receiver, S),
           dispatch_macro(Line, Receiver, Tuple, Args, S)
@@ -93,16 +98,16 @@ dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
 dispatch_macro(Line, ?BUILTIN = Receiver, { Name, Arity } = Tuple, Args, S) ->
   case lists:member(Tuple, in_erlang_macros()) of
     true  -> elixir_macros:translate_macro({ Name, Line, Args }, S);
-    false -> dispatch_macro(Line, Receiver, Name, Arity, Args, S)
+    false -> dispatch_macro_fun(Line, fun Receiver:Name/Arity, Receiver, Name, Arity, Args, S)
   end;
 
 dispatch_macro(Line, Receiver, { Name, Arity }, Args, S) ->
-  dispatch_macro(Line, Receiver, Name, Arity, Args, S).
+  dispatch_macro_fun(Line, fun Receiver:Name/Arity, Receiver, Name, Arity, Args, S).
 
-dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
+dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) ->
   ensure_required(Line, Receiver, Name, Arity, S),
   Tree = try
-    apply(Receiver, Name, Args)
+    apply(Fun, Args)
   catch
     Kind:Reason ->
       Info = { Receiver, Name, length(Args), [{ file, S#elixir_scope.filename }, { line, Line }] },
@@ -118,7 +123,7 @@ find_dispatch(Tuple, [{ Name, Values }|T]) ->
     false -> find_dispatch(Tuple, T)
   end;
 
-find_dispatch(_Tuple, []) -> nil.
+find_dispatch(_Tuple, []) -> false.
 
 %% Insert call site into backtrace right after dispatch macro
 
@@ -133,6 +138,7 @@ insert_before_dispatch_macro(_, []) ->
 
 %% ERROR HANDLING
 
+ensure_required(_Line, Receiver, _Name, _Arity, #elixir_scope{module=Receiver}) -> ok;
 ensure_required(Line, Receiver, Name, Arity, S) ->
   Requires = S#elixir_scope.requires,
   case ordsets:is_element(Receiver, Requires) of

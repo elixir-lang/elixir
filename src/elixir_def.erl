@@ -3,6 +3,7 @@
 -export([build_table/1,
   delete_table/1,
   reset_last/1,
+  local_macro_for/3,
   wrap_definition/7,
   handle_definition/8,
   store_definition/8,
@@ -26,6 +27,18 @@ delete_table(Module) ->
 %% Reset the last item. Useful when evaling code.
 reset_last(Module) ->
   ets:insert(table(Module), { last, [] }).
+
+%% Retrieves a local macro for the given module.
+local_macro_for(_Line, _Tuple, #elixir_scope{module=[]}) -> false;
+
+local_macro_for(Line, Tuple, #elixir_scope{module=Module}) ->
+  case ets:lookup(table(Module), Tuple) of
+    [{Tuple, _, Kind, _, Clauses}] when Kind == defmacro; Kind == defmacrop ->
+      Fun = { 'fun', Line, {clauses, lists:reverse(Clauses)} },
+      { value, Result, _Binding } = erl_eval:exprs([Fun], []),
+      Result;
+    _ -> false
+  end.
 
 %% Wraps the function into a call to store_definition once the function
 %% definition is read. The function is compiled into a meta tree to ensure

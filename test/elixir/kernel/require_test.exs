@@ -9,6 +9,10 @@ refer Kernel.RequireTest.Nested
 defmodule Kernel.RequireTest do
   use ExUnit.Case
 
+  defmacro my_macro do
+    quote do: 1 + 1
+  end
+
   test :require_erlang do
     require Erlang.lists, as: MyList
     assert_equal [1,2,3], MyList.flatten([1,[2],3])
@@ -35,5 +39,9 @@ defmodule Kernel.RequireTest do
     end
 
     assert result
+  end
+
+  test :locals_are_always_required do
+    assert_equal 2, my_macro
   end
 end
