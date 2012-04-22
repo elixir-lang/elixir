@@ -4,7 +4,7 @@
   build_table/1,
   delete_table/1,
   record/4,
-  macro_for/2,
+  macro_for/3,
   function_for/3,
   format_error/1,
   check_unused_local_macros/3,
@@ -22,18 +22,18 @@ build_table(Module) ->
 delete_table(Module) ->
   ets:delete(table(Module)).
 
-record(_Line, _Tuple, _IsMacro, #elixir_scope{module=[]}) -> [];
+record(_Line, _Tuple, _IsMacro, []) -> [];
 
-record(Line, Tuple, IsMacro, #elixir_scope{module=Module}) ->
+record(Line, Tuple, IsMacro, Module) ->
   ets:insert(table(Module), { Tuple, Line, IsMacro }).
 
 %% Reading
 
-macro_for(_Tuple, #elixir_scope{module=[]}) -> false;
+macro_for(_Tuple, _All, #elixir_scope{module=[]}) -> false;
 
-macro_for(Tuple, #elixir_scope{module=Module}) ->
+macro_for(Tuple, All, #elixir_scope{module=Module}) ->
   case ets:lookup(elixir_def:table(Module), Tuple) of
-    [{Tuple, Line, Kind, _, Clauses}] when Kind == defmacro; Kind == defmacrop ->
+    [{Tuple, Line, Kind, _, Clauses}] when Kind == defmacro; All, Kind == defmacrop ->
       RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
       Fun = { 'fun', Line, {clauses, lists:reverse(RewrittenClauses)} },
       { value, Result, _Binding } = erl_eval:exprs([Fun], []),
@@ -45,6 +45,7 @@ function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case ets:lookup(elixir_def:table(Module), Tuple) of
     [{Tuple, Line, _, _, Clauses}] ->
+      % elixir_def_local:record(Line, Tuple, false, Module),
       RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
       Fun = { 'fun', Line, {clauses, lists:reverse(RewrittenClauses)} },
       { value, Result, _Binding } = erl_eval:exprs([Fun], []),

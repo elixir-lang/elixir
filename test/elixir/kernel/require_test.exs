@@ -50,7 +50,7 @@ defmodule Kernel.RequireTest do
   end
 
   test :locals_are_always_required do
-    assert_equal 2, my_macro
+    assert_equal 2, __MODULE__.my_macro
   end
 
   test :locals_and_private_are_always_required do

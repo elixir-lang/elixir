@@ -68,12 +68,12 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
     false ->
       case find_dispatch(Tuple, S#elixir_scope.macros) of
         false ->
-          Fun = (S#elixir_scope.function /= Tuple) andalso elixir_def_local:macro_for(Tuple, S),
+          Fun = (S#elixir_scope.function /= Tuple) andalso elixir_def_local:macro_for(Tuple, true, S),
           case Fun of
             false -> Callback();
             _ ->
               Receiver = S#elixir_scope.module,
-              elixir_def_local:record(Line, Tuple, true, S),
+              elixir_def_local:record(Line, Tuple, true, Receiver),
               dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S)
           end;
         Receiver ->
@@ -91,9 +91,18 @@ dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
   Arity = length(Args),
   Tuple = {Name, Arity},
 
-  case lists:member(Tuple, get_optional_macros(Receiver)) of
-    true  -> dispatch_macro(Line, Receiver, Tuple, Args, S);
-    false -> Callback()
+  Fun = (S#elixir_scope.module == Receiver) andalso (S#elixir_scope.function /= Tuple) andalso
+    elixir_def_local:macro_for(Tuple, false, S),
+
+  case Fun of
+    false ->
+      case lists:member(Tuple, get_optional_macros(Receiver)) of
+        true  -> dispatch_macro(Line, Receiver, Tuple, Args, S);
+        false -> Callback()
+      end;
+    _ ->
+      elixir_def_local:record(Line, Tuple, true, Receiver),
+      dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S)
   end.
 
 %% HELPERS
