@@ -6,6 +6,7 @@
 -import(elixir_variables, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, assert_no_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
+-define(FUNS(), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
 
 %% Operators
 
@@ -121,10 +122,10 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
 
   { elixir_module:translate(Line, FRef, Block, S), FS };
 
-translate_macro({Kind, Line, [Call]}, S) when Kind == def; Kind == defmacro; Kind == defp ->
+translate_macro({Kind, Line, [Call]}, S) when ?FUNS() ->
   translate_macro({Kind, Line, [Call, skip_definition]}, S);
 
-translate_macro({Kind, Line, [Call, Expr]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+translate_macro({Kind, Line, [Call, Expr]}, S) when ?FUNS() ->
   assert_module_scope(Line, Kind, S),
   assert_no_function_scope(Line, Kind, S),
   { TCall, Guards } = elixir_clauses:extract_guards(Call),
@@ -135,7 +136,7 @@ translate_macro({Kind, Line, [Call, Expr]}, S) when Kind == def; Kind == defp; K
   TExpr             = elixir_tree_helpers:abstract_syntax(Expr),
   { elixir_def:wrap_definition(Kind, Line, TName, TArgs, TGuards, TExpr, S), S };
 
-translate_macro({Kind, Line, [Name, Args, Guards, Expr]}, S) when Kind == def; Kind == defp; Kind == defmacro ->
+translate_macro({Kind, Line, [Name, Args, Guards, Expr]}, S) when ?FUNS() ->
   assert_module_scope(Line, Kind, S),
   assert_no_function_scope(Line, Kind, S),
   { TName, NS }   = translate_each(Name, S),

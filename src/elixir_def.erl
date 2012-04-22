@@ -1,4 +1,4 @@
-% Holds the logic responsible for functions definition (def, defp and defmacro).
+% Holds the logic responsible for functions definition (def(p) and defmacro(p)).
 -module(elixir_def).
 -export([build_table/1,
   delete_table/1,
@@ -47,12 +47,10 @@ local_macro_for(Line, Tuple, #elixir_scope{module=Module}) ->
 %% We need to wrap functions instead of eagerly defining them to ensure
 %% functions inside branches won't propagate, for example:
 %%
-%%   ns Foo
-%%
 %%   if false do
-%%     def bar: [], do: 1
+%%     def bar, do: 1
 %%   else:
-%%     def bar: [], do: 2
+%%     def bar, do: 2
 %%   end
 %%
 %% If we just analyzed the compiled structure (i.e. the function availables
@@ -187,21 +185,24 @@ unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when eleme
     [function_for_stored_definition(Def)|Functions]
   );
 
-unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == defp; element(3, Def) == defmacrop ->
+unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == defp ->
   unwrap_stored_definition(
     T, Public, [element(1, Def)|Private], Macros,
     [function_for_stored_definition(Def)|Functions]
   );
 
+unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == defmacrop ->
+  unwrap_stored_definition(
+    T, Public, [element(1, Def)|Private], Macros, Functions
+  );
+
 unwrap_stored_definition([], Public, Private, Macros, Functions) ->
   { lists:reverse(Public), lists:reverse(Private), lists:reverse(Macros), lists:reverse(Functions) }.
 
-function_for_stored_definition({{Name, Arity}, Line, _, _, Clauses}) ->
-  {function, Line, Name, Arity, lists:reverse(Clauses) }.
-
 %% Helpers
 
-%% Generates a function for the given clause.
+function_for_stored_definition({{Name, Arity}, Line, _, _, Clauses}) ->
+  {function, Line, Name, Arity, lists:reverse(Clauses) }.
 
 function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
   { function, Line, Name, length(Args), [Clause] }.
