@@ -3,11 +3,12 @@
 -export([
   build_table/1,
   delete_table/1,
-  record/3,
+  record/4,
   macro_for/2,
   function_for/3,
   format_error/1,
-  check_unused_local_macros/3
+  check_unused_local_macros/3,
+  check_macros_at_runtime/4
 ]).
 -include("elixir.hrl").
 
@@ -16,15 +17,15 @@
 table(Module) -> ?ELIXIR_ATOM_CONCAT([l, Module]).
 
 build_table(Module) ->
-  ets:new(table(Module), [set, named_table, private]).
+  ets:new(table(Module), [duplicate_bag, named_table, private]).
 
 delete_table(Module) ->
   ets:delete(table(Module)).
 
-record(_Line, _Tuple, #elixir_scope{module=[]}) -> [];
+record(_Line, _Tuple, _IsMacro, #elixir_scope{module=[]}) -> [];
 
-record(Line, Tuple, #elixir_scope{module=Module}) ->
-  ets:insert(table(Module), { Tuple, Line }).
+record(Line, Tuple, IsMacro, #elixir_scope{module=Module}) ->
+  ets:insert(table(Module), { Tuple, Line, IsMacro }).
 
 %% Reading
 
@@ -80,5 +81,15 @@ check_unused_local_macros(Filename, Module, PMacros) ->
   [elixir_errors:handle_file_warning(Filename,
     { Line, ?MODULE, { unused_macro, Fun } }) || { Fun, Line } <- PMacros, not ets:member(Table, Fun)].
 
+check_macros_at_runtime(Filename, Module, Macros, PMacros) ->
+  Table = table(Module),
+  [elixir_errors:form_error(Line, Filename, ?MODULE, { runtime_macro, Fun }) ||
+    Fun <- Macros, [Line] <- ets:match(Table, { Fun, '$1', false })],
+  [elixir_errors:form_error(Line, Filename, ?MODULE, { runtime_macro, Fun }) ||
+    { Fun, _ } <- PMacros, [Line] <- ets:match(Table, { Fun, '$1', false })].
+
 format_error({unused_macro,{Name, Arity}}) ->
-  io_lib:format("macro ~s/~B is unused", [Name, Arity]).
+  io_lib:format("macro ~s/~B is unused", [Name, Arity]);
+
+format_error({runtime_macro,{Name, Arity}}) ->
+  io_lib:format("macro ~s/~B is being invoked before it is defined", [Name, Arity]).

@@ -73,7 +73,7 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
             false -> Callback();
             _ ->
               Receiver = S#elixir_scope.module,
-              elixir_def_local:record(Line, Tuple, S),
+              elixir_def_local:record(Line, Tuple, true, S),
               dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S)
           end;
         Receiver ->

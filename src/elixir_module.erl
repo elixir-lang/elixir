@@ -123,6 +123,7 @@ functions_form(Line, Filename, Module, C) ->
   { FinalExport, FinalFunctions } =
     add_info_function(Line, Filename, Module, Export, Functions, Macros, C),
 
+  elixir_def_local:check_macros_at_runtime(Filename, Module, Macros, PMacros),
   elixir_def_local:check_unused_local_macros(Filename, Module, PMacros),
 
   { FinalExport ++ Private, [
