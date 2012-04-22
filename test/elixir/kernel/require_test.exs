@@ -17,6 +17,10 @@ defmodule Kernel.RequireTest do
     quote do: 1 + 3
   end
 
+  defmacro my_macro_with_default(value // 5) do
+    quote do: 1 + unquote(value)
+  end
+
   test :require_erlang do
     require Erlang.lists, as: MyList
     assert_equal [1,2,3], MyList.flatten([1,[2],3])
@@ -51,5 +55,9 @@ defmodule Kernel.RequireTest do
 
   test :locals_and_private_are_always_required do
     assert_equal 4, my_private_macro
+  end
+
+  test :locals_with_default_are_always_required do
+    assert_equal 6, my_macro_with_default
   end
 end

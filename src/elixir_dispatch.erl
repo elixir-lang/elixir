@@ -68,7 +68,7 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
     false ->
       case find_dispatch(Tuple, S#elixir_scope.macros) of
         false ->
-          Fun = (S#elixir_scope.function /= Tuple) andalso elixir_def:local_macro_for(Line, Tuple, S),
+          Fun = (S#elixir_scope.function /= Tuple) andalso elixir_def_local:macro_for(Tuple, S),
           case Fun of
             false -> Callback();
             _ -> dispatch_macro_fun(Line, Fun, S#elixir_scope.module, Name, Arity, Args, S)
