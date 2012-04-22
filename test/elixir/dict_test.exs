@@ -121,7 +121,8 @@ defmodule DictTest.Common do
 
       defp empty_dict, do: unquote(module).new
       defp new_dict({k, v}), do: unquote(module).new {k, v}
-      defp new_dict(list // [{"first_key", 1}, {"second_key", 2}]), do: unquote(module).new list
+      defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
+      defp new_dict(list), do: unquote(module).new list
       defp new_dict(list, transform) when is_function(transform), do: unquote(module).new list, transform
       defp new_dict(keys, values), do: unquote(module).new keys, values
     end
