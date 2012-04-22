@@ -70,6 +70,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
     ets:delete(data_table(Module)),
     ets:delete(docs_table(Module)),
     elixir_def:delete_table(Module),
+    elixir_def_local:delete_table(Module),
     elixir_import:delete_table(Module)
   end;
 
@@ -94,11 +95,13 @@ build(Module) ->
   DocsTable = docs_table(Module),
   ets:new(DocsTable, [ordered_set, named_table, private]),
 
-  %% We keep a separated table for function definitions
-  %% and another one for imports. We keep them in different
-  %% tables for organization and speed purpose (since the
-  %% imports table is frequently written to).
+  %% We keep a separated table for function definitions,
+  %% another for locals calls and another one for imports.
+  %% We keep them in different tables for organization
+  %% and speed purpose (since the imports and locals ones
+  %% are frequently written to).
   elixir_def:build_table(Module),
+  elixir_def_local:build_table(Module),
   elixir_import:build_table(Module).
 
 %% Receives the module representation and evaluates it.
@@ -115,10 +118,12 @@ eval_form(Line, Filename, Module, Block, RawS) ->
 %% Return the form with exports and function declarations.
 
 functions_form(Line, Filename, Module, C) ->
-  { Export, Private, Macros, Functions } = elixir_def:unwrap_stored_definitions(Module),
+  { Export, Private, Macros, PMacros, Functions } = elixir_def:unwrap_stored_definitions(Module),
 
   { FinalExport, FinalFunctions } =
     add_info_function(Line, Filename, Module, Export, Functions, Macros, C),
+
+  elixir_def_local:check_unused_local_macros(Filename, Module, PMacros),
 
   { FinalExport ++ Private, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions

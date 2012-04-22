@@ -159,33 +159,34 @@ translate_definition(Line, Name, Args, Guards, Expr, S) ->
 unwrap_stored_definitions(Module) ->
   Table = table(Module),
   ets:delete(Table, last),
-  unwrap_stored_definition(ets:tab2list(Table), [], [], [], []).
+  unwrap_stored_definition(ets:tab2list(Table), [], [], [], [], []).
 
-unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == def ->
+unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == def ->
   unwrap_stored_definition(
-    T, [element(1, Def)|Public], Private, Macros,
+    T, [element(1, Def)|Public], Private, Macros, PMacros,
     [function_for_stored_definition(Def)|Functions]
   );
 
-unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == defmacro ->
+unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == defmacro ->
   unwrap_stored_definition(
-    T, [element(1, Def)|Public], Private, [element(1, Def)|Macros],
+    T, [element(1, Def)|Public], Private, [element(1, Def)|Macros], PMacros,
     [function_for_stored_definition(Def)|Functions]
   );
 
-unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == defp ->
+unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == defp ->
+  unwrap_stored_definition(
+    T, Public, [element(1, Def)|Private], Macros, PMacros,
+    [function_for_stored_definition(Def)|Functions]
+  );
+
+unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == defmacrop ->
   unwrap_stored_definition(
     T, Public, [element(1, Def)|Private], Macros,
-    [function_for_stored_definition(Def)|Functions]
+    [{ element(1, Def), element(2, Def) }|PMacros], Functions
   );
 
-unwrap_stored_definition([Def|T], Public, Private, Macros, Functions) when element(3, Def) == defmacrop ->
-  unwrap_stored_definition(
-    T, Public, [element(1, Def)|Private], Macros, Functions
-  );
-
-unwrap_stored_definition([], Public, Private, Macros, Functions) ->
-  { lists:reverse(Public), lists:reverse(Private), lists:reverse(Macros), lists:reverse(Functions) }.
+unwrap_stored_definition([], Public, Private, Macros, PMacros, Functions) ->
+  { Public, Private, Macros, PMacros, lists:reverse(Functions) }.
 
 %% Helpers
 

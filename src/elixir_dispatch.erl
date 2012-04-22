@@ -71,7 +71,10 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
           Fun = (S#elixir_scope.function /= Tuple) andalso elixir_def_local:macro_for(Tuple, S),
           case Fun of
             false -> Callback();
-            _ -> dispatch_macro_fun(Line, Fun, S#elixir_scope.module, Name, Arity, Args, S)
+            _ ->
+              Receiver = S#elixir_scope.module,
+              elixir_def_local:record(Line, Tuple, S),
+              dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S)
           end;
         Receiver ->
           elixir_import:record(import, Tuple, Receiver, S),

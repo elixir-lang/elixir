@@ -1,11 +1,32 @@
 %% Module responsible for local invocation of macros and functions.
 -module(elixir_def_local).
 -export([
-  % table/1, build_table/1, delete_table/1, format_error/1
+  build_table/1,
+  delete_table/1,
+  record/3,
   macro_for/2,
-  function_for/3
-  ]).
+  function_for/3,
+  format_error/1,
+  check_unused_local_macros/3
+]).
 -include("elixir.hrl").
+
+%% Table
+
+table(Module) -> ?ELIXIR_ATOM_CONCAT([l, Module]).
+
+build_table(Module) ->
+  ets:new(table(Module), [set, named_table, private]).
+
+delete_table(Module) ->
+  ets:delete(table(Module)).
+
+record(_Line, _Tuple, #elixir_scope{module=[]}) -> [];
+
+record(Line, Tuple, #elixir_scope{module=Module}) ->
+  ets:insert(table(Module), { Tuple, Line }).
+
+%% Reading
 
 macro_for(_Tuple, #elixir_scope{module=[]}) -> false;
 
@@ -33,6 +54,7 @@ function_for(Module, Name, Arity) ->
   end.
 
 %% Helpers
+%% TODO: Consider caching functions in a table for performance.
 
 rewrite_clause({ call, Line, { atom, Line, _ } = Atom, Args }, Module) ->
   Remote = { remote, Line,
@@ -50,3 +72,13 @@ rewrite_clause(List, Module) when is_list(List) ->
   [rewrite_clause(Item, Module) || Item <- List];
 
 rewrite_clause(Else, _) -> Else.
+
+%% Error handling
+
+check_unused_local_macros(Filename, Module, PMacros) ->
+  Table = table(Module),
+  [elixir_errors:handle_file_warning(Filename,
+    { Line, ?MODULE, { unused_macro, Fun } }) || { Fun, Line } <- PMacros, not ets:member(Table, Fun)].
+
+format_error({unused_macro,{Name, Arity}}) ->
+  io_lib:format("macro ~s/~B is unused", [Name, Arity]).
