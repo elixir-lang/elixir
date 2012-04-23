@@ -87,7 +87,9 @@ defmodule Elixir.CLI.AutoDiscoveryTest do
   use ExUnit.Case
 
   test :compile_code do
-    OS.cmd('bin/elixirc test/elixir/fixtures/autodiscovery -o test/tmp/')
+    output = OS.cmd('bin/elixirc test/elixir/fixtures/autodiscovery -o test/tmp/')
+    assert Erlang.string.str('message_from_foo', output) > 0,
+      "Expected #{inspect output} to contain 'message_from_foo'"
     assert File.regular?("test/tmp/__MAIN__/Foo.beam")
     assert File.regular?("test/tmp/__MAIN__/Bar.beam")
   after:

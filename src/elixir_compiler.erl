@@ -41,10 +41,14 @@ file(Relative) ->
       true ->
         Parent = self(),
         Child  = spawn_link(fun() ->
+          process_flag(error_handler, elixir_error_handler),
           Result = eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename}),
           Parent ! { compiled, self(), Result }
         end),
-        receive { compiled, Child, Result} -> Result end;
+        receive
+          { compiled, Child, Result } -> Result;
+          { 'EXIT', Child, { Reason, Where } } -> erlang:raise(error, Reason, Where)
+        end;
       false ->
         eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename})
     end,
