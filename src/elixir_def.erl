@@ -91,7 +91,7 @@ store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
     _ -> Expr = { 'try', Line, [RawExpr] }
   end,
 
-  { Function, Defaults, TS } = translate_definition(Line, Name, Args, Guards, Expr, S),
+  { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Expr, S),
 
   Filename      = TS#elixir_scope.filename,
   Arity         = element(4, Function),
@@ -136,9 +136,9 @@ compile_docs(Kind, Line, Module, Name, Arity, S) ->
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Line, Name, Args, Guards, Expr, S) ->
+translate_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
   Arity = length(Args),
-  { Unpacked, Defaults } = elixir_def_defaults:unpack(Name, Args, S),
+  { Unpacked, Defaults } = elixir_def_defaults:unpack(Kind, Name, Args, S),
 
   { TClause, TS } = elixir_clauses:assigns_block(Line,
     fun elixir_translator:translate/2, Unpacked, [Expr], Guards, S),

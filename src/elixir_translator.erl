@@ -413,17 +413,9 @@ translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
     error ->
       Callback = fun() ->
         elixir_def_local:record(Line, { Atom, length(Args) }, false, S#elixir_scope.module),
-        translate_atom_call(Line, Atom, Args, S)
+        translate_local(Line, Atom, Args, S)
       end,
       elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback);
-    Else  -> Else
-  end;
-
-%% __RUNTIME__ proxy calls
-
-translate_each({{'.', _, [{'__RUNTIME__', _, Atom}, Name]}, Line, Args} = Original, S) when is_atom(Atom), is_atom(Name) ->
-  case handle_partials(Line, Original, S) of
-    error -> translate_atom_call(Line, Name, Args, S);
     Else  -> Else
   end;
 
@@ -530,11 +522,11 @@ translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
 
 %% Helpers
 
-translate_atom_call(Line, Name, Args, #elixir_scope{local=[]} = S) ->
+translate_local(Line, Name, Args, #elixir_scope{local=[]} = S) ->
   { TArgs, NS } = translate_args(Args, S),
   { { call, Line, { atom, Line, Name }, TArgs }, NS };
 
-translate_atom_call(Line, Name, Args, S) ->
+translate_local(Line, Name, Args, S) ->
   { TArgs, NS } = translate_args(Args, S),
   Remote = { remote, Line,
     { atom, Line, S#elixir_scope.local },
