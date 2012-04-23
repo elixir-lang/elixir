@@ -58,7 +58,7 @@ calculate(Line, Key, Opts, Old, Available, S) ->
 
 get_exports(Module) ->
   try
-    Module:'__info__'(exports) ++ Module:'__info__'(macros)
+    Module:'__info__'(functions) ++ Module:'__info__'(macros)
   catch
     error:undef -> Module:module_info(exports)
   end.
@@ -163,8 +163,7 @@ internal_funs() ->
   [
     { module_info, 0 },
     { module_info, 1 },
-    { '__info__', 1 },
-    { '__using__', 1 }
+    { '__info__', 1 }
   ].
 
 %% Macros implemented in Erlang that are not overridable.

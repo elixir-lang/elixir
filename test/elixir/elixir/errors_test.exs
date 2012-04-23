@@ -74,11 +74,6 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'defmodule Foo do\ndefmacrop bar, do: unknown(1)\ndef baz, do: bar()\nend'
   end
 
-  test :undefined_macro do
-    assert_equal "nofile:2: macro undefined/0 is being invoked before it is defined",
-      format_rescue 'defmodule Foo do\ndef foo, do: undefined\ndefmacro undefined, do: 13\nend'
-  end
-
   test :private_macro do
     assert_equal "undefined function: Foo.foo/0",
       format_rescue 'defmodule Foo do\ndefmacrop foo, do: 1\ndefmacro bar, do: __MODULE__.foo\ndefmacro baz, do: bar\nend'

@@ -99,7 +99,7 @@ defmodule ExUnit.Runner do
 
   # Retrieves test functions from the module.
   defp tests_for(mod) do
-    exports = mod.__info__(:exports)
+    exports = mod.__info__(:functions)
     tests_for exports, []
   end
 

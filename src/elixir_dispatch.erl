@@ -21,14 +21,17 @@ default_requires() ->
 
 get_functions(?BUILTIN = Module) ->
   try
-    ordsets:from_list((Module:module_info(exports) -- get_optional_macros(Module)) --
-      [{module_info,0},{module_info,1},{'__info__',1}])
+    Module:'__info__'(functions) -- [{'__info__',1}]
   catch
     error:undef -> []
   end;
 
 get_functions(Module) ->
-  ordsets:from_list(Module:module_info(exports) -- get_optional_macros(Module)).
+  try
+    Module:'__info__'(functions)
+  catch
+    error:undef -> ordsets:from_list(Module:module_info(exports))
+  end.
 
 get_macros(_Line, ?BUILTIN, _S) ->
   ordsets:from_list(get_optional_macros(?BUILTIN));

@@ -159,45 +159,43 @@ translate_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
 unwrap_stored_definitions(Module) ->
   Table = table(Module),
   ets:delete(Table, last),
-  unwrap_stored_definition(ets:tab2list(Table), [], [], [], [], []).
+  unwrap_stored_definition(ets:tab2list(Table), [], [], [], [], [], []).
 
-unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == def ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(3, Fun) == def ->
+  Tuple = element(1, Fun),
   unwrap_stored_definition(
-    T, [element(1, Def)|Public], Private, Macros, PMacros,
-    [function_for_stored_definition(Def)|Functions]
+    T, [Tuple|Exports], Private, [Tuple|Def], Defmacro, Defmacrop,
+    [function_for_stored_definition(Fun)|Functions]
   );
 
-unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == defmacro ->
-  Tuple = element(1, Def),
-  { DefinedName, Arity } = Tuple,
-  Macro = { ?ELIXIR_MACRO(DefinedName), Arity },
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(3, Fun) == defmacro ->
+  Tuple = element(1, Fun),
+  Macro = { ?ELIXIR_MACRO(element(1, Tuple)), element(2, Tuple) },
+
   unwrap_stored_definition(
-    T, [Macro|Public], Private, [Tuple|Macros], PMacros,
-    [function_for_stored_macro(Def)|Functions]
+    T, [Macro|Exports], Private, Def, [Tuple|Defmacro], Defmacrop,
+    [function_for_stored_definition(setelement(1, Fun, Macro))|Functions]
   );
 
-unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == defp ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(3, Fun) == defp ->
   unwrap_stored_definition(
-    T, Public, [element(1, Def)|Private], Macros, PMacros,
-    [function_for_stored_definition(Def)|Functions]
+    T, Exports, [element(1, Fun)|Private], Def, Defmacro, Defmacrop,
+    [function_for_stored_definition(Fun)|Functions]
   );
 
-unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == defmacrop ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(3, Fun) == defmacrop ->
   unwrap_stored_definition(
-    T, Public, [element(1, Def)|Private], Macros,
-    [{ element(1, Def), element(2, Def) }|PMacros], Functions
+    T, Exports, [element(1, Fun)|Private], Def, Defmacro,
+    [{ element(1, Fun), element(2, Fun) }|Defmacrop], Functions
   );
 
-unwrap_stored_definition([], Public, Private, Macros, PMacros, Functions) ->
-  { Public, Private, Macros, PMacros, lists:reverse(Functions) }.
+unwrap_stored_definition([], Exports, Private, Def, Defmacro, Defmacrop, Functions) ->
+  { Exports, Private, Def, Defmacro, Defmacrop, lists:reverse(Functions) }.
 
 %% Helpers
 
 function_for_stored_definition({{Name, Arity}, Line, _, _, Clauses}) ->
   {function, Line, Name, Arity, lists:reverse(Clauses) }.
-
-function_for_stored_macro({{Name, Arity}, Line, _, _, Clauses}) ->
-  {function, Line, ?ELIXIR_MACRO(Name), Arity, lists:reverse(Clauses) }.
 
 function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
   { function, Line, Name, length(Args), [Clause] }.

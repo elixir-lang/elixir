@@ -7,8 +7,7 @@
   macro_for/3,
   function_for/3,
   format_error/1,
-  check_unused_local_macros/3,
-  check_macros_at_runtime/4
+  check_unused_local_macros/3
 ]).
 -include("elixir.hrl").
 
@@ -85,13 +84,6 @@ check_unused_local_macros(Filename, Module, PMacros) ->
   Table = table(Module),
   [elixir_errors:handle_file_warning(Filename,
     { Line, ?MODULE, { unused_macro, Fun } }) || { Fun, Line } <- PMacros, not ets:member(Table, Fun)].
-
-check_macros_at_runtime(Filename, Module, Macros, PMacros) ->
-  Table = table(Module),
-  [elixir_errors:form_error(Line, Filename, ?MODULE, { runtime_macro, Fun }) ||
-    Fun <- Macros, [Line] <- ets:match(Table, { Fun, '$1', false })],
-  [elixir_errors:form_error(Line, Filename, ?MODULE, { runtime_macro, Fun }) ||
-    { Fun, _ } <- PMacros, [Line] <- ets:match(Table, { Fun, '$1', false })].
 
 format_error({unused_macro,{Name, Arity}}) ->
   io_lib:format("macro ~s/~B is unused", [Name, Arity]);

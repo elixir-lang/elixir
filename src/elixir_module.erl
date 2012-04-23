@@ -118,13 +118,12 @@ eval_form(Line, Filename, Module, Block, RawS) ->
 %% Return the form with exports and function declarations.
 
 functions_form(Line, Filename, Module, C) ->
-  { Export, Private, Macros, PMacros, Functions } = elixir_def:unwrap_stored_definitions(Module),
+  { Export, Private, Def, Defmacro, Defmacrop, Functions } = elixir_def:unwrap_stored_definitions(Module),
 
   { FinalExport, FinalFunctions } =
-    add_info_function(Line, Filename, Module, Export, Functions, Macros, C),
+    add_info_function(Line, Filename, Module, Export, Functions, Def, Defmacro, C),
 
-  elixir_def_local:check_macros_at_runtime(Filename, Module, Macros, PMacros),
-  elixir_def_local:check_unused_local_macros(Filename, Module, PMacros),
+  elixir_def_local:check_unused_local_macros(Filename, Module, Defmacrop),
 
   { FinalExport ++ Private, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
@@ -162,14 +161,15 @@ check_module_availability(Line, Filename, Module, Compiler) ->
 
 % EXTRA FUNCTIONS
 
-add_info_function(Line, Filename, Module, Export, Functions, Macros, C) ->
+add_info_function(Line, Filename, Module, Export, Functions, Def, Defmacro, C) ->
   Pair = { '__info__', 1 },
   case lists:member(Pair, Export) of
     true  -> elixir_errors:form_error(Line, Filename, ?MODULE, {internal_function_overridden, Pair});
     false ->
       Docs = elixir_compiler:get_opt(docs, C),
       Contents = { function, Line, '__info__', 1, [
-        macros_clause(Line, Macros),
+        functions_clause(Line, Def),
+        macros_clause(Line, Defmacro),
         data_clause(Line, Module),
         docs_clause(Line, Module, Docs),
         moduledoc_clause(Line, Module, Docs),
@@ -178,8 +178,12 @@ add_info_function(Line, Filename, Module, Export, Functions, Macros, C) ->
       { [Pair|Export], [Contents|Functions] }
   end.
 
-macros_clause(Line, Macros) ->
-  Sorted = lists:sort(Macros),
+functions_clause(Line, Def) ->
+  Sorted = lists:sort([{'__info__',1}|Def]),
+  { clause, Line, [{ atom, Line, functions }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
+
+macros_clause(Line, Defmacro) ->
+  Sorted = lists:sort(Defmacro),
   { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
 
 docs_clause(Line, Module, true) ->
