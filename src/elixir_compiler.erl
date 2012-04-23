@@ -16,11 +16,7 @@ get_opt(Key, Dict) ->
   end.
 
 get_opts() ->
-  try
-    gen_server:call(elixir_code_server, compiler_options)
-  catch
-    exit:{ noproc, _ } -> [{internal,true}]
-  end.
+  gen_server:call(elixir_code_server, compiler_options).
 
 %% Compile a file, return a tuple of module names and binaries.
 
@@ -120,6 +116,8 @@ module(Forms, Filename, Options, Callback) ->
 %% Invoked from the Makefile.
 
 core() ->
+  elixir:start_app(),
+  gen_server:call(elixir_code_server, { compiler_options, [{internal,true}] }),
   [core_file(File) || File <- core_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
   Files = lists:append(AllLists) -- core_main(),

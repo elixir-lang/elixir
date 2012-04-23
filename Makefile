@@ -10,6 +10,17 @@ DIALYZER_WARNINGS = -Wunmatched_returns -Werror_handling \
 
 ERL = erl -I include -noshell -pa ebin
 
+EBIN_DIR=ebin
+EXBIN_DIR=exbin
+TEST_DIR=test
+INCLUDE_DIR=include
+
+TEST_SOURCE_DIR=$(TEST_DIR)/erlang
+TEST_EBIN_DIR=$(TEST_DIR)/ebin
+
+ERLC=erlc -I $(INCLUDE_DIR) -W0
+ERL=erl -I $(INCLUDE_DIR) -noshell -pa $(EBIN_DIR)
+
 # Variable definition expanded when it's declared
 APP := elixir
 
@@ -47,7 +58,13 @@ docs: deps compile
 test: test_erlang test_elixir
 
 test_erlang: deps compile
-	@ $(REBAR) skip_deps=true eunit
+	@ echo "==> erlang (eunit)"
+	@ mkdir -p $(TEST_EBIN_DIR)
+	@ # Compile test files
+	@ $(ERLC) -o $(TEST_EBIN_DIR) $(TEST_SOURCE_DIR)/*.erl
+	@ # Look and execute each file
+	time $(ERL) $(TEST_EBIN_DIR) -pa exbin -s test_helper test -s erlang halt
+	@ echo
 
 test_elixir: deps compile
 	@ echo "==> elixir (exunit)"

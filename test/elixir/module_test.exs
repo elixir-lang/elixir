@@ -98,7 +98,7 @@ defmodule ModuleTest do
   end
 
   test :reserved_attributes do
-    assert_equal {:behavior,[:gen_server]}, :lists.keyfind(:behavior, 1, Elixir.Server.__info__(:attributes))
+    assert_equal {:behavior,[:gen_server]}, :lists.keyfind(:behavior, 1, ExUnit.Server.__info__(:attributes))
   end
 
   test :registered_attributes do

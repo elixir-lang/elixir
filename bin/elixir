@@ -29,4 +29,4 @@ readlink_f () {
 
 SELF=`readlink_f $0`
 SCRIPT_PATH=`dirname $SELF`
-erl -pa $SCRIPT_PATH/../ebin $SCRIPT_PATH/../exbin -noshell -noinput $ELIXIR_ERL_OPTS -s elixir start -extra "$@"
+erl -pa $SCRIPT_PATH/../ebin $SCRIPT_PATH/../exbin -noshell -noinput $ELIXIR_ERL_OPTS -s elixir start_cli -extra "$@"

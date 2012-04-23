@@ -1,6 +1,6 @@
 -module(elixir).
 -behaviour(application).
--export([start/0, start_app/0,
+-export([start_cli/0, start_app/0,
   scope_for_eval/1, eval/2, eval/3, eval/4,
   eval_quoted/2, eval_quoted/3, eval_quoted/4,
   eval_forms/3]).
@@ -35,7 +35,7 @@ start_app() ->
 
 % Boot and process given options. Invoked by Elixir's script.
 
-start() ->
+start_cli() ->
   start_app(),
   '__MAIN__.Elixir.CLI':process_argv(init:get_plain_arguments()).
 
