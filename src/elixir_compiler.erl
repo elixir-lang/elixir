@@ -36,7 +36,19 @@ file(Relative) ->
     end,
 
     Forms = elixir_translator:forms(Contents, 1, Filename),
-    eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename}),
+
+    case get_opt(discovery) of
+      true ->
+        Parent = self(),
+        Child  = spawn_link(fun() ->
+          Result = eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename}),
+          Parent ! { compiled, self(), Result }
+        end),
+        receive { compiled, Child, Result} -> Result end;
+      false ->
+        eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename})
+    end,
+
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)

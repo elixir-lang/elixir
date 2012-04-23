@@ -184,7 +184,11 @@ defmodule Elixir.CLI do
   end
 
   defp process_command({:compile, pattern}, config) do
-    compile_patterns [pattern], config
+    if File.dir?(pattern) do
+      compile_patterns ["#{pattern}/**/*"], config.merge_compiler_options(autodiscovery: true)
+    else:
+      compile_patterns [pattern], config
+    end
   end
 
   defp compile_patterns(lines, config) do

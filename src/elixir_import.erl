@@ -9,7 +9,7 @@
 table(Module) -> ?ELIXIR_ATOM_CONCAT([i, Module]).
 
 build_table(Module) ->
-  ets:new(table(Module), [set, named_table, private]).
+  ets:new(table(Module), [set, named_table, public]).
 
 delete_table(Module) ->
   ets:delete(table(Module)).

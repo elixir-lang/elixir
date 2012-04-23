@@ -21,7 +21,11 @@ defmodule File do
   end
 
   def regular?(filename) do
-    Erlang.filelib.is_regular(filename)
+    FL.is_regular(filename)
+  end
+
+  def dir?(directory) do
+    FL.is_dir(directory)
   end
 
   @doc """
