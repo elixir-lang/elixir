@@ -1,12 +1,12 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.RequireTest.Nested do
-  def value, do: 1
+  defmacro value, do: 1
 end
 
-refer Kernel.RequireTest.Nested
-
 defmodule Kernel.RequireTest do
+  require Kernel.RequireTest.Nested, as: Nested
+
   use ExUnit.Case
 
   defmacro my_macro do
@@ -26,10 +26,6 @@ defmodule Kernel.RequireTest do
     assert_equal [1,2,3], MyList.flatten([1,[2],3])
     assert_equal :"__MAIN__.MyList.Bar", __MAIN__.MyList.Bar
     assert_equal :"__MAIN__.lists.Bar", MyList.Bar
-  end
-
-  test :automatic_require do
-    assert_equal 1, Nested.value
   end
 
   test :double_named_require do
@@ -59,5 +55,10 @@ defmodule Kernel.RequireTest do
 
   test :locals_with_default_are_always_required do
     assert_equal 6, my_macro_with_default
+  end
+
+  test :cannot_be_called_dynamically_even_if_required do
+    x = Nested
+    assert_raises UndefinedFunctionError, fn -> x.value end
   end
 end
