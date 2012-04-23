@@ -3,7 +3,7 @@
 -export([
   build_table/1,
   delete_table/1,
-  record/4,
+  record/3,
   macro_for/3,
   function_for/3,
   format_error/1,
@@ -16,15 +16,15 @@
 table(Module) -> ?ELIXIR_ATOM_CONCAT([l, Module]).
 
 build_table(Module) ->
-  ets:new(table(Module), [duplicate_bag, named_table, private]).
+  ets:new(table(Module), [set, named_table, private]).
 
 delete_table(Module) ->
   ets:delete(table(Module)).
 
-record(_Line, _Tuple, _IsMacro, []) -> [];
+record(_Line, _Tuple, []) -> [];
 
-record(Line, Tuple, IsMacro, Module) ->
-  ets:insert(table(Module), { Tuple, Line, IsMacro }).
+record(Line, Tuple, Module) ->
+  ets:insert(table(Module), { Tuple, Line }).
 
 %% Reading
 
@@ -86,7 +86,4 @@ check_unused_local_macros(Filename, Module, PMacros) ->
     { Line, ?MODULE, { unused_macro, Fun } }) || { Fun, Line } <- PMacros, not ets:member(Table, Fun)].
 
 format_error({unused_macro,{Name, Arity}}) ->
-  io_lib:format("macro ~s/~B is unused", [Name, Arity]);
-
-format_error({runtime_macro,{Name, Arity}}) ->
-  io_lib:format("macro ~s/~B is being invoked before it is defined", [Name, Arity]).
+  io_lib:format("macro ~s/~B is unused", [Name, Arity]).

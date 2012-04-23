@@ -411,10 +411,7 @@ translate_each({Name, Line, nil}, S) when is_atom(Name) ->
 translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
   case handle_partials(Line, Original, S) of
     error ->
-      Callback = fun() ->
-        elixir_def_local:record(Line, { Atom, length(Args) }, false, S#elixir_scope.module),
-        translate_local(Line, Atom, Args, S)
-      end,
+      Callback = fun() -> translate_local(Line, Atom, Args, S) end,
       elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback);
     Else  -> Else
   end;
