@@ -58,13 +58,14 @@ function_for(Module, Name, Arity) ->
 %% Helpers
 %% TODO: Consider caching functions in a table for performance.
 
-rewrite_clause({ call, Line, { atom, Line, _ } = Atom, Args }, Module) ->
+rewrite_clause({ call, Line, { atom, Line, RawName }, Args }, Module) ->
   Remote = { remote, Line,
     { atom, Line, ?MODULE },
     { atom, Line, function_for }
   },
   Arity   = { integer, Line, length(Args) },
-  FunCall = { call, Line, Remote, [{ atom, Line, Module }, Atom, Arity] },
+  Name    = { atom, Line, rewrite_name(atom_to_list(RawName), RawName) },
+  FunCall = { call, Line, Remote, [{ atom, Line, Module }, Name, Arity] },
   { call, Line, FunCall, Args };
 
 rewrite_clause(Tuple, Module) when is_tuple(Tuple) ->
@@ -74,6 +75,9 @@ rewrite_clause(List, Module) when is_list(List) ->
   [rewrite_clause(Item, Module) || Item <- List];
 
 rewrite_clause(Else, _) -> Else.
+
+rewrite_name("MACRO_" ++ Rest, _) -> list_to_atom(Rest);
+rewrite_name(_, Name) -> Name.
 
 %% Error handling
 

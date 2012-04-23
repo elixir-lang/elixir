@@ -32,7 +32,7 @@ calculate(Line, Key, Opts, Old, Available, S) ->
 
   New = case orddict:find(only, Opts) of
     { ok, Only } ->
-      case Only -- Key:module_info(exports) of
+      case Only -- get_exports(Key) of
         [{Name,Arity}|_] ->
           Tuple = { invalid_import, { Key, Name, Arity } },
           elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
@@ -54,6 +54,13 @@ calculate(Line, Key, Opts, Old, Available, S) ->
       ensure_no_conflicts(Line, Filename, Final, keydelete(Key, S#elixir_scope.functions)),
       ensure_no_in_erlang_macro_conflict(Line, Filename, Key, Final, internal_conflict),
       [{ Key, Final }|All]
+  end.
+
+get_exports(Module) ->
+  try
+    Module:'__info__'(exports) ++ Module:'__info__'(macros)
+  catch
+    error:undef -> Module:module_info(exports)
   end.
 
 %% Check if any of the locals defined conflicts with an invoked

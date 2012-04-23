@@ -30,7 +30,7 @@ unpack_each(Kind, Name, [{'//', Line, [Expr, _]}|T] = List, Acc, Clauses, S) ->
 unpack_each(Kind, Name, [H|T], Acc, Clauses, S) ->
   unpack_each(Kind, Name, T, [H|Acc], Clauses, S);
 
-unpack_each(Kind, _Name, [], Acc, Clauses, _S) ->
+unpack_each(_Kind, _Name, [], Acc, Clauses, _S) ->
   { lists:reverse(Acc), lists:reverse(Clauses) }.
 
 % Extract default values from args following the current default clause.
@@ -54,5 +54,5 @@ build_match([_|T], Line, Acc) ->
 
 % Given the invoked function name based on the kind
 
-name_for_kind(Kind, Name) when Kind == defmacro; Kind == defmacrop -> Name;
+name_for_kind(Kind, Name) when Kind == defmacro; Kind == defmacrop -> ?ELIXIR_MACRO(Name);
 name_for_kind(_Kind, Name) -> Name.

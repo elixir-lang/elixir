@@ -28,7 +28,7 @@ dynamic_function_test() ->
 quote_unquote_test() ->
   F = fun() ->
     eval("defmodule Foo.Bar.Baz do\ndefmacro sum(a, b), do: quote(do: unquote(a) + unquote(b))\nend"),
-    {'+',0,[1,2]} = '__MAIN__.Foo.Bar.Baz':sum(1, 2)
+    {'+',0,[1,2]} = '__MAIN__.Foo.Bar.Baz':'MACRO_sum'(1, 2)
   end,
   test_helper:run_and_remove(F, ['__MAIN__.Foo.Bar.Baz']).
 
@@ -38,7 +38,7 @@ quote_unquote_splicing_test() ->
 operator_macro_test() ->
   F = fun() ->
     eval("defmodule Foo.Bar.Baz do\ndefmacro :+.(a, b), do: quote(do: unquote(a) - unquote(b))\nend"),
-    {'-',0,[1,2]} = '__MAIN__.Foo.Bar.Baz':'+'(1, 2)
+    {'-',0,[1,2]} = '__MAIN__.Foo.Bar.Baz':'MACRO_+'(1, 2)
   end,
   test_helper:run_and_remove(F, ['__MAIN__.Foo.Bar.Baz']).
 

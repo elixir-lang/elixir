@@ -110,11 +110,14 @@ dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
 dispatch_macro(Line, ?BUILTIN = Receiver, { Name, Arity } = Tuple, Args, S) ->
   case lists:member(Tuple, in_erlang_macros()) of
     true  -> elixir_macros:translate_macro({ Name, Line, Args }, S);
-    false -> dispatch_macro_fun(Line, fun Receiver:Name/Arity, Receiver, Name, Arity, Args, S)
+    false ->
+      Macro = ?ELIXIR_MACRO(Name),
+      dispatch_macro_fun(Line, fun Receiver:Macro/Arity, Receiver, Name, Arity, Args, S)
   end;
 
 dispatch_macro(Line, Receiver, { Name, Arity }, Args, S) ->
-  dispatch_macro_fun(Line, fun Receiver:Name/Arity, Receiver, Name, Arity, Args, S).
+  Macro = ?ELIXIR_MACRO(Name),
+  dispatch_macro_fun(Line, fun Receiver:Macro/Arity, Receiver, Name, Arity, Args, S).
 
 dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) ->
   ensure_required(Line, Receiver, Name, Arity, S),

@@ -168,9 +168,12 @@ unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) w
   );
 
 unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == defmacro ->
+  Tuple = element(1, Def),
+  { DefinedName, Arity } = Tuple,
+  Macro = { ?ELIXIR_MACRO(DefinedName), Arity },
   unwrap_stored_definition(
-    T, [element(1, Def)|Public], Private, [element(1, Def)|Macros], PMacros,
-    [function_for_stored_definition(Def)|Functions]
+    T, [Macro|Public], Private, [Tuple|Macros], PMacros,
+    [function_for_stored_macro(Def)|Functions]
   );
 
 unwrap_stored_definition([Def|T], Public, Private, Macros, PMacros, Functions) when element(3, Def) == defp ->
@@ -192,6 +195,9 @@ unwrap_stored_definition([], Public, Private, Macros, PMacros, Functions) ->
 
 function_for_stored_definition({{Name, Arity}, Line, _, _, Clauses}) ->
   {function, Line, Name, Arity, lists:reverse(Clauses) }.
+
+function_for_stored_macro({{Name, Arity}, Line, _, _, Clauses}) ->
+  {function, Line, ?ELIXIR_MACRO(Name), Arity, lists:reverse(Clauses) }.
 
 function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
   { function, Line, Name, length(Args), [Clause] }.
