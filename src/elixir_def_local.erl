@@ -1,30 +1,12 @@
 %% Module responsible for local invocation of macros and functions.
 -module(elixir_def_local).
 -export([
-  build_table/1,
-  delete_table/1,
-  record/3,
   macro_for/3,
   function_for/3,
   format_error/1,
   check_unused_local_macros/3
 ]).
 -include("elixir.hrl").
-
-%% Table
-
-table(Module) -> ?ELIXIR_ATOM_CONCAT([l, Module]).
-
-build_table(Module) ->
-  ets:new(table(Module), [set, named_table, private]).
-
-delete_table(Module) ->
-  ets:delete(table(Module)).
-
-record(_Line, _Tuple, []) -> [];
-
-record(Line, Tuple, Module) ->
-  ets:insert(table(Module), { Tuple, Line }).
 
 %% Reading
 
@@ -80,10 +62,9 @@ rewrite_name(_, Name) -> Name.
 
 %% Error handling
 
-check_unused_local_macros(Filename, Module, PMacros) ->
-  Table = table(Module),
+check_unused_local_macros(Filename, Recorded, PMacros) ->
   [elixir_errors:handle_file_warning(Filename,
-    { Line, ?MODULE, { unused_macro, Fun } }) || { Fun, Line } <- PMacros, not ets:member(Table, Fun)].
+    { Line, ?MODULE, { unused_macro, Fun } }) || { Fun, Line } <- PMacros, not lists:member(Fun, Recorded)].
 
 format_error({unused_macro,{Name, Arity}}) ->
   io_lib:format("macro ~s/~B is unused", [Name, Arity]).

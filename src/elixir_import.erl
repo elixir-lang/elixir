@@ -1,7 +1,7 @@
 %% Module responsible for handling imports and conflicts.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([calculate/6, format_error/1,
+-export([calculate/6, recorded_locals/1, format_error/1,
   ensure_no_import_conflict/4, ensure_no_local_conflict/4,
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
@@ -19,6 +19,13 @@ record(_Kind, _Tuple, _Receiver, #elixir_scope{module=[]}) ->
 
 record(import, Tuple, Receiver, #elixir_scope{module=Module}) ->
   ets:insert(table(Module), { Tuple, Receiver }).
+
+recorded_locals(Module) ->
+  Table  = table(Module),
+  Match  = { '$1', Module },
+  Result = ets:match(Table, Match),
+  ets:match_delete(Table, Match),
+  lists:append(Result).
 
 %% Update the old entry according to the optins given
 %% and the values returned by fun.
