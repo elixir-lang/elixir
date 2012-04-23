@@ -1,0 +1,2 @@
+defmodule Bar do
+end

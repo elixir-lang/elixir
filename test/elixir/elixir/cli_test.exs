@@ -82,3 +82,15 @@ defmodule Elixir.CLI.CompileTest do
     Erlang.file.del_dir("test/tmp/")
   end
 end
+
+defmodule Elixir.CLI.AutoDiscoveryTest do
+  use ExUnit.Case
+
+  test :compile_code do
+    OS.cmd('bin/elixirc test/elixir/fixtures/autodiscovery -o test/tmp/')
+    assert File.regular?("test/tmp/__MAIN__/Foo.beam")
+    assert File.regular?("test/tmp/__MAIN__/Bar.beam")
+  after:
+    Erlang.file.del_dir("test/tmp/")
+  end
+end

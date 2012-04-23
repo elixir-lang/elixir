@@ -185,7 +185,7 @@ defmodule Elixir.CLI do
 
   defp process_command({:compile, pattern}, config) do
     if File.dir?(pattern) do
-      compile_patterns ["#{pattern}/**/*"], config.merge_compiler_options(autodiscovery: true)
+      compile_patterns ['#{pattern}/**/*'], config.merge_compiler_options(autodiscovery: true)
     else:
       compile_patterns [pattern], config
     end
@@ -198,7 +198,7 @@ defmodule Elixir.CLI do
     Code.compiler_options(config.compiler_options)
 
     Enum.map concat, fn(file) ->
-      IO.puts "Compiling #{list_to_binary(file)}"
+      IO.puts "Compiling #{to_binary(file)}"
       Erlang.elixir_compiler.file_to_path(file, config.output)
     end
   end
