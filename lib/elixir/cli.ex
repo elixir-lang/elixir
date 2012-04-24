@@ -190,7 +190,7 @@ defmodule Elixir.CLI do
       files = List.uniq(files)
 
       Code.compiler_options(config.compiler_options)
-      Erlang.elixir_compiler.files_to_path(files, config.output)
+      Elixir.ParallelCompiler.files_to_path(files, config.output)
     else:
       compile_patterns [pattern], config
     end
