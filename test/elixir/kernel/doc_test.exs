@@ -12,7 +12,7 @@ defmodule Kernel.DocTest do
     try do
       :file.make_dir(tmp)
       Code.compiler_options(docs: true)
-      Code.compile_file_to_dir(path, tmp)
+      Elixir.ParallelCompiler.files_to_path([path], tmp)
       Code.prepend_path(tmp)
 
       assert_equal [], CompiledWithDocs.__info__(:data)

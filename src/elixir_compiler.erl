@@ -1,5 +1,5 @@
 -module(elixir_compiler).
--export([get_opts/0, get_opt/1, get_opt/2, file/1, file_to_path/2]).
+-export([get_opts/0, get_opt/1, get_opt/2, string/2, file/1, file_to_path/2]).
 -export([core/0, module/3, eval_forms/4]).
 -include("elixir.hrl").
 
@@ -18,24 +18,29 @@ get_opt(Key, Dict) ->
 get_opts() ->
   gen_server:call(elixir_code_server, compiler_options).
 
-%% Compile a file, return a tuple of module names and binaries.
+%% Compiles the given string.
 
-file(Relative) ->
-  Filename = filename:absname(Relative),
+string(Contents, Filename) ->
   Previous = get(elixir_compiled),
 
   try
     put(elixir_compiled, []),
-    Contents = case file:read_file(Filename) of
-      {ok, Bin} -> unicode:characters_to_list(Bin);
-      Error -> erlang:error(Error)
-    end,
-
     Forms = elixir_translator:forms(Contents, 1, Filename),
     eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename}),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
+  end.
+
+%% Compile a file, return a tuple of module names and binaries.
+
+file(Relative) ->
+  Filename = filename:absname(Relative),
+  case file:read_file(Filename) of
+    {ok, Bin} ->
+      string(unicode:characters_to_list(Bin), Filename);
+    Error ->
+      erlang:error(Error)
   end.
 
 %% Compiles a file to the given path (directory).
