@@ -13,6 +13,7 @@ start_link() ->
   { ok, _ } = gen_server:start_link({local, elixir_code_server}, ?MODULE, [], []).
 
 init(_args) ->
+  process_flag(trap_exit, true),
   { ok, #elixir_code_server{} }.
   
 handle_call({loaded, Path}, _From, Config) ->

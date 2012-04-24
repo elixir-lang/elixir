@@ -1,5 +1,5 @@
 -module(elixir_compiler).
--export([get_opts/0, get_opt/1, get_opt/2, file/1, file_to_path/2]).
+-export([get_opts/0, get_opt/1, get_opt/2, file/1, file_to_path/2, files_to_path/2]).
 -export([core/0, module/3, eval_forms/4]).
 -include("elixir.hrl").
 
@@ -19,6 +19,56 @@ get_opts() ->
   gen_server:call(elixir_code_server, compiler_options).
 
 %% Compile a file, return a tuple of module names and binaries.
+files_to_path(Files, Path) ->
+  Filenames = [filename:absname(X) || X <- Files],
+  spawn_compilers(Filenames, Path, [], []).
+
+spawn_compilers([H|T], Output, Waiting, Queued) ->
+  Parent = self(),
+  code:ensure_loaded(elixir_error_handler),
+  Child = spawn_link(fun() ->
+    io:format("Compiling parallel ~ts~n", [H]),
+    put(elixir_parent_compiler, Parent),
+    process_flag(error_handler, elixir_error_handler),
+    Result = file_to_path(H, Output),
+    Parent ! { compiled, self(), Result }
+  end),
+  wait_for_message(T, Output, Waiting, [Child|Queued]);
+
+%% No more files, nothing waiting, queue is empty, we are done.
+spawn_compilers([], _Output, [], []) -> ok;
+
+%% No more files, nothing waiting, queue is not empty, wait to fnish.
+spawn_compilers([], Output, [], Queued) -> wait_for_message([], Output, [], Queued);
+
+%% No more files, but we are waiting: no file or cyclic dependencies.
+spawn_compilers([], _Output, Waiting, Queued) -> error(waiting_forever).
+
+wait_for_message(Files, Output, Waiting, Queued) ->
+  receive
+    { compiled, Child, Result } ->
+      NewWaiting = lists:foldl(fun release_waiting_processes/2, Waiting, Result),
+      NewQueued  = lists:delete(Child, Queued),
+
+      case NewWaiting == [] orelse NewWaiting == Waiting of
+        %% Nobody was unblocked or we are not waiting on anyone
+        true  -> spawn_compilers(Files, Output, NewWaiting, NewQueued);
+        %% Let's wait for messages before queueing more
+        false -> wait_for_message(Files, Output, NewWaiting, NewQueued)
+      end;
+    { waiting, Child, On } ->
+      spawn_compilers(Files, Output, orddict:store(Child, On, Waiting), Queued);
+    { 'EXIT', _Child, { Reason, Where } } ->
+      erlang:raise(error, Reason, Where)
+  end.
+
+release_waiting_processes({ Module, _Binary }, Waiting) ->
+  lists:filter(fun({ Child, WaitingModule }) ->
+    case WaitingModule /= Module of
+      true  -> true;
+      false -> Child ! { release, self() }, false
+    end
+  end, Waiting).
 
 file(Relative) ->
   Filename = filename:absname(Relative),
@@ -32,23 +82,7 @@ file(Relative) ->
     end,
 
     Forms = elixir_translator:forms(Contents, 1, Filename),
-
-    case get_opt(discovery) of
-      true ->
-        Parent = self(),
-        Child  = spawn_link(fun() ->
-          process_flag(error_handler, elixir_error_handler),
-          Result = eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename}),
-          Parent ! { compiled, self(), Result }
-        end),
-        receive
-          { compiled, Child, Result } -> Result;
-          { 'EXIT', Child, { Reason, Where } } -> erlang:raise(error, Reason, Where)
-        end;
-      false ->
-        eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename})
-    end,
-
+    eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename}),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
@@ -58,7 +92,8 @@ file(Relative) ->
 
 file_to_path(File, Path) ->
   Lists = file(File),
-  [binary_to_path(X, Path) || X <- Lists].
+  [binary_to_path(X, Path) || X <- Lists],
+  Lists.
 
 %% Evaluates the contents/forms by compiling them to an Erlang module.
 

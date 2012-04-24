@@ -185,7 +185,12 @@ defmodule Elixir.CLI do
 
   defp process_command({:compile, pattern}, config) do
     if File.dir?(pattern) do
-      compile_patterns ['#{pattern}/**/*'], config.merge_compiler_options(discovery: true)
+
+      files = File.wildcard('#{pattern}/**/*')
+      files = List.uniq(files)
+
+      Code.compiler_options(config.compiler_options)
+      Erlang.elixir_compiler.files_to_path(files, config.output)
     else:
       compile_patterns [pattern], config
     end
