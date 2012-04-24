@@ -115,7 +115,7 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :unloaded_module do
-    assert_equal "nofile:1: module Certainly.Doesnt.Exist is not loaded, reason: nofile",
+    assert_equal "nofile:1: module Certainly.Doesnt.Exist is not loaded and could not be found",
       format_rescue 'import Certainly.Doesnt.Exist'
   end
 
@@ -162,7 +162,7 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_available do
-    assert_equal "nofile:2: module Unknown is not loaded, reason: nofile",
+    assert_equal "nofile:2: module Unknown is not loaded and could not be found",
       format_rescue 'defmodule Foo do\ndef sample(Unknown[integer: 0]), do: true\nend'
   end
 

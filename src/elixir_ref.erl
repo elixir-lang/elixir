@@ -12,14 +12,15 @@ ensure_loaded(Line, Ref, S, Force) ->
   case not Force andalso Scheduled of
     true  -> ok;
     false ->
-      case code:ensure_loaded(Ref) of
-        { module, _ }   -> ok;
-        { error, What } ->
+      try
+        Ref:module_info(compile)
+      catch
+        error:undef ->
           Kind = case Scheduled of
             true  -> scheduled_module;
             false -> unloaded_module
           end,
-          elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { Kind, { Ref, What } })
+          elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { Kind, Ref })
       end
   end.
 
@@ -58,9 +59,9 @@ lookup(Else, Dict) ->
 
 %% Errors
 
-format_error({unloaded_module,{ Module, What }}) ->
-  io_lib:format("module ~s is not loaded, reason: ~s", [elixir_errors:inspect(Module), What]);
+format_error({unloaded_module, Module}) ->
+  io_lib:format("module ~s is not loaded and could not be found", [elixir_errors:inspect(Module)]);
 
-format_error({scheduled_module,{ Module, _ }}) ->
+format_error({scheduled_module, Module}) ->
   io_lib:format("module ~s is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
     [elixir_errors:inspect(Module)]).
