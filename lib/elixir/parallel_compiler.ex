@@ -31,7 +31,7 @@ defmodule Elixir.ParallelCompiler do
   Read files/2 for more information.
   """
   def files_to_path(files, path, callback // default_callback) do
-    Erlang.code.ensure_loaded(:elixir_error_handler)
+    Code.ensure_loaded(Elixir.ErrorHandler)
     files = Enum.map(files, to_char_list(&1))
     path  = if path, do: to_char_list(path)
     spawn_compilers(files, path, callback, [], [], [])
@@ -42,7 +42,7 @@ defmodule Elixir.ParallelCompiler do
     parent = Process.self()
     child  = spawn_link fn ->
       Process.put(:elixir_parent_compiler, parent)
-      Process.flag(:error_handler, :elixir_error_handler)
+      Process.flag(:error_handler, Elixir.ErrorHandler)
       result = if output do
         Erlang.elixir_compiler.file_to_path(h, output)
       else:

@@ -127,6 +127,17 @@ defmodule Code do
     Erlang.elixir_compiler.string :unicode.characters_to_list(string), to_char_list(file)
   end
 
+  @doc """
+  Ensure if the given module is loaded. If the module is already loaded,
+  it works as no-op. If the module was not loaded yet, it tries to load it.
+
+  If it succeeds loading the module anyhow, it returns `{ :module, module }`.
+  If not, returns `{ :error, reason }` with the error reason.
+  """
+  def ensure_loaded(module) when is_atom(module) do
+    Erlang.code.ensure_loaded(module)
+  end
+
   ## Helpers
 
   defp load_and_push_file(file) do
