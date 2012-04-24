@@ -82,7 +82,7 @@ compile(Line, Other, _Block, RawS) ->
 build(Module) ->
   %% Table with meta information about the module.
   DataTable = data_table(Module),
-  ets:new(DataTable, [set, named_table, private]),
+  ets:new(DataTable, [set, named_table, public]),
   ets:insert(DataTable, { data, [] }),
   ets:insert(DataTable, { attributes, [] }),
   ets:insert(DataTable, { overridable, [] }),
@@ -92,7 +92,7 @@ build(Module) ->
   %% Keep docs in another table since we don't want to pull out
   %% all the binaries every time a new documentation is stored.
   DocsTable = docs_table(Module),
-  ets:new(DocsTable, [ordered_set, named_table, private]),
+  ets:new(DocsTable, [ordered_set, named_table, public]),
 
   %% We keep a separated table for function definitions
   %% and another one for imports. We keep them in different

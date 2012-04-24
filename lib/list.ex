@@ -69,6 +69,21 @@ defmodule List do
   end
 
   @doc """
+  Deletes the given item from the list. Returns a list without the item.
+  If the item occurs more than once in the list, just the first occurrence
+  is removed.
+
+  ## Examples
+
+      List.delete([1,2,3], 1)
+      #=> [2,3]
+
+  """
+  def delete(list, item) when is_list(list) do
+    Erlang.lists.delete(item, list)
+  end
+
+  @doc """
   Flattens the given `list` of nested lists. An optional
   tail can be given that will be added at the end of
   the flattened list.

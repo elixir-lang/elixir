@@ -17,7 +17,7 @@ table(Module) -> ?ELIXIR_ATOM_CONCAT([f, Module]).
 
 build_table(Module) ->
   FunctionTable = table(Module),
-  ets:new(FunctionTable, [set, named_table, private]),
+  ets:new(FunctionTable, [set, named_table, public]),
   ets:insert(FunctionTable, { last, [] }),
   FunctionTable.
 

@@ -9,7 +9,7 @@ init(Args) ->
   Supervisors = [
     {
       elixir_code_server_sup,
-      { '__MAIN__.Elixir.Server', start_link, Args },
+      { elixir_code_server, start_link, Args },
 
       permanent,                    % Restart  = permanent | transient | temporary
       2000,                         % Shutdown = brutal_kill | int() >= 0 | infinity

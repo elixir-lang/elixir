@@ -79,17 +79,17 @@ defmodule FileTest do
   end
 
   test :read_with_binary do
-    assert_match { :ok, "FOO\n" }, File.read(File.expand_path("../../fixtures/foo.txt", __FILE__))
-    assert_match { :error, :enoent }, File.read(File.expand_path("../../fixtures/missing.txt", __FILE__))
+    assert_match { :ok, "FOO\n" }, File.read(File.expand_path("../fixtures/foo.txt", __FILE__))
+    assert_match { :error, :enoent }, File.read(File.expand_path("../fixtures/missing.txt", __FILE__))
   end
 
   test :read_with_list do
-    assert_match { :ok, "FOO\n" }, File.read(File.expand_path('../../fixtures/foo.txt', __FILE__))
-    assert_match { :error, :enoent }, File.read(File.expand_path('../../fixtures/missing.txt', __FILE__))
+    assert_match { :ok, "FOO\n" }, File.read(File.expand_path('../fixtures/foo.txt', __FILE__))
+    assert_match { :error, :enoent }, File.read(File.expand_path('../fixtures/missing.txt', __FILE__))
   end
 
   test :read! do
-    assert_equal "FOO\n", File.read!(File.expand_path("../../fixtures/foo.txt", __FILE__))
+    assert_equal "FOO\n", File.read!(File.expand_path("../fixtures/foo.txt", __FILE__))
     expected_message = "could not read file fixtures/missing.txt: no such file or directory"
 
     assert_raises File.Exception, expected_message, fn ->

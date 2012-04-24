@@ -117,29 +117,21 @@ defmodule Code do
   end
 
   @doc """
-  Compiles `file` and returns a list of tuples where
-  the first element is the module name and the second
-  one is its binary.
-  """
-  def compile_file(file) do
-    Erlang.elixir_compiler.file to_char_list(file)
-  end
+  Compiles the given string and returns a list of tuples where
+  the first element is the module name and the second one is its
+  binary.
 
-  @doc """
-  Compiles `file` and add the result to the given `destination`.
-  Destination needs to be a directory.
-
-  See compile_file/2 for available options.
+  For compiling many files at once, check `Elixir.ParallelCompiler`.
   """
-  def compile_file_to_dir(file, destination) do
-    Erlang.elixir_compiler.file_to_path to_char_list(file), to_char_list(destination)
+  def compile_string(string, file // 'nofile') do
+    Erlang.elixir_compiler.string :unicode.characters_to_list(string), to_char_list(file)
   end
 
   ## Helpers
 
   defp load_and_push_file(file) do
     server_call { :loaded, file }
-    compile_file file
+    Erlang.elixir_compiler.file to_char_list(file)
     file
   end
 

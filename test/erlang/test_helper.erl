@@ -3,14 +3,14 @@
 -export([test/0, run_and_remove/2, throw_elixir/1, throw_erlang/1]).
 
 test() ->
-  elixir:start(),
+  elixir:start_app(),
   eunit:test([
     atom_test,
     conditionals_test,
     erlang_call_test,
     function_test,
     match_test,
-    namespace_test,
+    module_test,
     operators_test,
     record_test,
     string_test,
