@@ -313,10 +313,10 @@ make_dir(Current, [], Buffer) ->
 %% CORE FILES COMPILATION
 
 core_file(File) ->
-  io:format("Compiling ~s~n", [File]),
   try
     Lists = file(File),
-    [binary_to_path(X, "exbin") || X <- Lists]
+    [binary_to_path(X, "exbin") || X <- Lists],
+    io:format("Compiled ~s~n", [File])
   catch
     Kind:Reason ->
       io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, erlang:get_stacktrace()]),

@@ -185,26 +185,18 @@ defmodule Elixir.CLI do
 
   defp process_command({:compile, pattern}, config) do
     if File.dir?(pattern) do
-
-      files = File.wildcard('#{pattern}/**/*')
-      files = List.uniq(files)
-
-      Code.compiler_options(config.compiler_options)
-      Elixir.ParallelCompiler.files_to_path(files, config.output)
+      compile_patterns ['#{pattern}/**/*'], config
     else:
       compile_patterns [pattern], config
     end
   end
 
-  defp compile_patterns(lines, config) do
-    lines  = Enum.map lines, File.wildcard(&1)
-    concat = List.uniq(List.concat(lines))
+  defp compile_patterns(patterns, config) do
+    files = Enum.map patterns, File.wildcard(&1)
+    files = List.uniq(List.concat(files))
 
     Code.compiler_options(config.compiler_options)
-
-    Enum.map concat, fn(file) ->
-      IO.puts "Compiling #{to_binary(file)}"
-      Erlang.elixir_compiler.file_to_path(file, config.output)
-    end
+    Elixir.ParallelCompiler.files_to_path(files, config.output,
+      fn(file, _) -> IO.puts "Compiled #{file}" end)
   end
 end
