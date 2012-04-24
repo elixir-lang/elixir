@@ -83,16 +83,23 @@ defmodule Elixir.CLI.CompileTest do
   end
 end
 
-defmodule Elixir.CLI.AutoDiscoveryTest do
+defmodule Elixir.CLI.ParallelCompilerTest do
   use ExUnit.Case
 
   test :compile_code do
-    output = OS.cmd('bin/elixirc test/elixir/fixtures/autodiscovery -o test/tmp/')
+    output = OS.cmd('bin/elixirc test/elixir/fixtures/parallel_compiler -o test/tmp/')
     assert Erlang.string.str(output, 'message_from_foo') > 0,
       "Expected #{inspect output} to contain 'message_from_foo'"
     assert File.regular?("test/tmp/__MAIN__/Foo.beam")
     assert File.regular?("test/tmp/__MAIN__/Bar.beam")
   after:
     Erlang.file.del_dir("test/tmp/")
+  end
+
+  test :deadlock_failure do
+    output = OS.cmd('bin/elixirc test/elixir/fixtures/parallel_deadlock -o test/tmp/')
+    expected = '** (Elixir.ParallelCompiler.Error) compilation failed: the following modules were not found or there is a cyclic dependency between them: [Foo,Bar]'
+    assert Erlang.string.str(output, expected) > 0,
+      "Expected #{inspect output} to contain '#{inspect expected}'"
   end
 end

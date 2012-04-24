@@ -1,5 +1,5 @@
 defrecord Elixir.CLI.Config, commands: [], close: [],
-  output: '.', compile: false, halt: true, compiler_options: []
+  output: '.', compile: [], halt: true, compiler_options: []
 
 defmodule Elixir.CLI do
   import Exception, only: [format_stacktrace: 1]
@@ -11,10 +11,6 @@ defmodule Elixir.CLI do
 
     argv = lc arg in argv, do: list_to_binary(arg)
     Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
-
-    if config.compile do
-      Erlang.file.make_dir(config.output)
-    end
 
     all_commands = List.reverse(config.commands) ++ List.reverse(config.close)
 
@@ -120,7 +116,7 @@ defmodule Elixir.CLI do
   end
 
   def process_options(['+compile'|t], config) do
-    process_compiler t, config.compile(true)
+    process_compiler t, config
   end
 
   def process_options([h|t] = list, config) do
@@ -165,12 +161,13 @@ defmodule Elixir.CLI do
     match: '-' ++ _
       shared_option? list, config, process_compiler(&1, &2)
     else:
-      process_compiler t, config.prepend_commands [{:compile,h}]
+      pattern = if File.dir?(h), do: '#{h}/**/*.ex', else: h
+      process_compiler t, config.prepend_compile [pattern]
     end
   end
 
   defp process_compiler([], config) do
-    { config, [] }
+    { config.prepend_commands([{:compile, config.compile}]), [] }
   end
 
   # Process commands
@@ -183,17 +180,12 @@ defmodule Elixir.CLI do
     Code.require_file(file)
   end
 
-  defp process_command({:compile, pattern}, config) do
-    if File.dir?(pattern) do
-      compile_patterns ['#{pattern}/**/*'], config
-    else:
-      compile_patterns [pattern], config
-    end
-  end
+  defp process_command({:compile, patterns}, config) do
+    Erlang.file.make_dir(config.output)
 
-  defp compile_patterns(patterns, config) do
     files = Enum.map patterns, File.wildcard(&1)
     files = List.uniq(List.concat(files))
+    files = Enum.filter files, File.regular?(&1)
 
     Code.compiler_options(config.compiler_options)
     Elixir.ParallelCompiler.files_to_path(files, config.output,

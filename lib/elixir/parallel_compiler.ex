@@ -61,9 +61,9 @@ defmodule Elixir.ParallelCompiler do
     wait_for_messages([], output, callback, [], queued, result)
   end
 
-  # No more files, but we are waiting: no file or cyclic dependencies
+  # No more files, but we are waiting: ERROR!
   defp spawn_compilers([], _output, _callback, waiting, _queued, _result) do
-    raise Error, Enum.map(waiting, elem(&1, 2))
+    raise Error, modules: Enum.map(waiting, elem(&1, 2))
   end
 
   # Wait for messages from child processes
