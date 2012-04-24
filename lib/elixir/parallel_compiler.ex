@@ -56,7 +56,7 @@ defmodule Elixir.ParallelCompiler do
   # No more files, nothing waiting, queue is empty, we are done
   defp spawn_compilers([], _output, _callback, [], [], result), do: result
 
-  # No more files, nothing waiting, queue is not empty, wait to fnish
+  # No more files, nothing waiting, queue is not empty, wait to finish
   defp spawn_compilers([], output, callback, [], queued, result) do
     wait_for_messages([], output, callback, [], queued, result)
   end
