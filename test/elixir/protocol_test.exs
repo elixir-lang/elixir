@@ -80,7 +80,7 @@ defmodule ProtocolTest do
     assert_protocol_for(ProtocolTest.WithAll, List, [1,2,3])
     assert_protocol_for(ProtocolTest.WithAll, Tuple, {})
     assert_protocol_for(ProtocolTest.WithAll, Tuple, {1,2,3})
-    assert_protocol_for(ProtocolTest.WithAll, Record, {Bar,2,3})
+    assert_protocol_for(ProtocolTest.WithAll, Tuple, {Bar,2,3})
     assert_protocol_for(ProtocolTest.WithAll, BitString, "foo")
     assert_protocol_for(ProtocolTest.WithAll, BitString, <<1>>)
     assert_protocol_for(ProtocolTest.WithAll, PID, Process.self)
