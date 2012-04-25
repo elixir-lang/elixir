@@ -13,7 +13,7 @@ defmodule Kernel.LoopTest do
       acc
     end
 
-    assert_equal [6,4,2], result
+    assert result == [6,4,2]
   end
 
   test :do_nested_loop do
@@ -32,7 +32,7 @@ defmodule Kernel.LoopTest do
       acc
     end
 
-    assert_equal [14,10,6], result
+    assert result == [14,10,6]
   end
 
   test :do_loop_base do
@@ -43,8 +43,8 @@ defmodule Kernel.LoopTest do
       2
     end
 
-    assert_equal 1, fun.({ 1, 2 }, [])
-    assert_equal 2, fun.([], [])
+    assert fun.({ 1, 2 }, []) == 1
+    assert fun.([], []) == 2
   end
 
   test :do_argless_loop do
@@ -62,10 +62,10 @@ defmodule Kernel.LoopTest do
       end
     end
 
-    assert_equal :ok, result
-    assert_equal -1, Process.get(1)
-    assert_equal -2, Process.get(2)
-    assert_equal -3, Process.get(3)
+    assert result == :ok
+    assert Process.get(1) == -1
+    assert Process.get(2) == -2
+    assert Process.get(3) == -3
   after:
     Process.delete(1)
     Process.delete(2)

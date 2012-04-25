@@ -5,44 +5,44 @@ defmodule Kernel.DestructureTest do
 
   test :less do
     destructure [x,y,z], [1,2,3,4,5]
-    assert_equal 1, x
-    assert_equal 2, y
-    assert_equal 3, z
+    assert x == 1
+    assert y == 2
+    assert z == 3
   end
 
   test :more do
     destructure [a,b,c,d,e], [1,2,3]
-    assert_equal 1,   a
-    assert_equal 2,   b
-    assert_equal 3,   c
-    assert_equal nil, d
-    assert_equal nil, e
+    assert a == 1
+    assert b == 2
+    assert c == 3
+    assert d == nil
+    assert e == nil
   end
 
   test :equal do
     destructure [a,b,c], [1,2,3]
-    assert_equal 1, a
-    assert_equal 2, b
-    assert_equal 3, c
+    assert a == 1
+    assert b == 2
+    assert c == 3
   end
 
   test :none do
     destructure [a,b,c], []
-    assert_equal nil, a
-    assert_equal nil, b
-    assert_equal nil, c
+    assert a == nil
+    assert b == nil
+    assert c == nil
   end
 
   test :match do
     destructure [1,b,_], [1,2,3]
-    assert_equal 2, b
+    assert b == 2
   end
 
   test :nil do
     destructure [a,b,c], a_nil
-    assert_equal nil, a
-    assert_equal nil, b
-    assert_equal nil, c
+    assert a == nil
+    assert b == nil
+    assert c == nil
   end
 
   test :invalid_match do

@@ -8,10 +8,10 @@ defmodule Kernel.CaseTest do
   end
 
   test :nested_variables do
-    assert_equal { 400, 1 },  vars_case(400, 1)
-    assert_equal { 400, -1 }, vars_case(401, 1)
-    assert_equal { 0, -1 },   vars_case(0, -1)
-    assert_equal { 0, 1 },    vars_case(-1, -1)
+    assert vars_case(400, 1) == { 400, 1 }
+    assert vars_case(401, 1) == { 400, -1 }
+    assert vars_case(0, -1)  == { 0, -1 }
+    assert vars_case(-1, -1) == { 0, 1 }
   end
 
   defp get_case do

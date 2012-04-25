@@ -23,15 +23,15 @@ defmodule Kernel.RequireTest do
 
   test :require_erlang do
     require Erlang.lists, as: MyList
-    assert_equal [1,2,3], MyList.flatten([1,[2],3])
-    assert_equal :"__MAIN__.MyList.Bar", __MAIN__.MyList.Bar
-    assert_equal :"__MAIN__.lists.Bar", MyList.Bar
+    assert MyList.flatten([1,[2],3]) == [1,2,3]
+    assert __MAIN__.MyList.Bar == :"__MAIN__.MyList.Bar"
+    assert MyList.Bar == :"__MAIN__.lists.Bar"
   end
 
   test :double_named_require do
     require Kernel.RequireTest.Nested, as: Nested2
-    assert_equal 1, Nested.value
-    assert_equal 1, Nested2.value
+    assert Nested.value == 1
+    assert Nested2.value == 1
   end
 
   test :default_required do
@@ -46,15 +46,15 @@ defmodule Kernel.RequireTest do
   end
 
   test :locals_are_always_required do
-    assert_equal 2, __MODULE__.my_macro
+    assert __MODULE__.my_macro == 2
   end
 
   test :locals_and_private_are_always_required do
-    assert_equal 4, my_private_macro
+    assert my_private_macro == 4
   end
 
   test :locals_with_default_are_always_required do
-    assert_equal 6, my_macro_with_default
+    assert my_macro_with_default == 6
   end
 
   test :cannot_be_called_dynamically_even_if_required do

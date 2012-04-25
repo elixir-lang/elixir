@@ -27,17 +27,17 @@ defmodule Kernel.QuoteTest do
   test :no_interference do
     a = 10
     no_interference
-    assert_equal 10, a
+    assert a == 10
   end
 
   test :no_hygiene do
     no_hygiene
-    assert_equal 1, a
+    assert a == 1
   end
 
   test :write_interference do
     write_interference
-    assert_equal 1, a
+    assert a == 1
   end
 
   test :read_interference do
@@ -46,10 +46,10 @@ defmodule Kernel.QuoteTest do
   end
 
   test :list do
-    assert_equal [1,2,3], quote do: [1,2,3]
+    assert quote(do: [1,2,3]) == [1,2,3]
   end
 
   test :tuple do
-    assert_equal {:a,1}, quote do: { :a, 1 }
+    assert quote(do: { :a, 1 }) == {:a,1}
   end
 end
