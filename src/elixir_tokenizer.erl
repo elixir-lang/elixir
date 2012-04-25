@@ -19,15 +19,15 @@ tokenize(_, [], Tokens) ->
 
 % Integers and floats
 
-tokenize(Line, [$0,X,H|T], Tokens) when (X =:= $x orelse X =:= $X), ?is_hex(H) ->
+tokenize(Line, [$0,X,H|T], Tokens) when (X == $x orelse X == $X), ?is_hex(H) ->
   { Rest, Number } = tokenize_hex([H|T], []),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 
-tokenize(Line, [$0,O,H|T], Tokens) when (O =:= $o orelse O =:= $O), ?is_octal(H) ->
+tokenize(Line, [$0,O,H|T], Tokens) when (O == $o orelse O == $O), ?is_octal(H) ->
   { Rest, Number } = tokenize_octal([H|T], []),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 
-tokenize(Line, [$0,B,H|T], Tokens) when (B =:= $b orelse B =:= $B), ?is_bin(H) ->
+tokenize(Line, [$0,B,H|T], Tokens) when (B == $b orelse B == $B), ?is_bin(H) ->
   { Rest, Number } = tokenize_bin([H|T], []),
   tokenize(Line, Rest, [{number,Line,Number}|Tokens]);
 
@@ -246,7 +246,7 @@ tokenize(Line, [$&,H|Rest], Tokens) when ?is_digit(H) ->
 % References
 
 tokenize(Line, [H|_] = String, Tokens) when ?is_upcase(H) ->
-  { Rest, Ref } = tokenize_identifier(String, []),
+  { Rest, Ref } = tokenize_identifier(String, [], false),
   tokenize(Line, Rest, [{'__ref__',Line,[list_to_atom(Ref)]}|Tokens]);
 
 % Identifier
@@ -464,18 +464,19 @@ tokenize_comment([])                 -> [].
 % Tokenize identifier. At this point, the validity of
 % the first character was already verified.
 
-tokenize_identifier([H|T], Acc) when ?is_digit(H); ?is_upcase(H); ?is_downcase(H); H == $_ ->
-  tokenize_identifier(T, [H|Acc]);
+tokenize_identifier([H|T], Acc, Marker) when Marker == atom, H == $@;
+    ?is_digit(H); ?is_upcase(H); ?is_downcase(H); H == $_ ->
+  tokenize_identifier(T, [H|Acc], Marker);
 
-tokenize_identifier([], Acc) ->
+tokenize_identifier([], Acc, _Marker) ->
   { [], lists:reverse(Acc) };
 
-tokenize_identifier(Rest, Acc) ->
+tokenize_identifier(Rest, Acc, _Marker) ->
   { Rest, lists:reverse(Acc) }.
 
 % Tokenize atom identifier, which also accepts punctuated identifiers
 tokenize_atom(String, Acc) ->
-  { Rest, Identifier } = tokenize_identifier(String, Acc),
+  { Rest, Identifier } = tokenize_identifier(String, Acc, atom),
   case Rest of
     [H|T] when H == $?; H == $! ->
       { T, ?ELIXIR_ATOM_CONCAT([Identifier, [H]]) };
@@ -485,7 +486,7 @@ tokenize_atom(String, Acc) ->
 
 % Tokenize any identifier, handling kv, punctuated, paren, bracket and do identifiers.
 tokenize_any_identifier(Line, String, Acc) ->
-  { Rest, Identifier } = tokenize_identifier(String, Acc),
+  { Rest, Identifier } = tokenize_identifier(String, Acc, false),
   case Rest of
     [H|T] when H == $?; H == $! ->
       Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),

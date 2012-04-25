@@ -10,6 +10,7 @@ eval(Content) ->
 kv([{Key,nil}]) -> Key.
 
 atom_with_punctuation_test() ->
+  {foo@bar,[]} = eval(":foo@bar"),
   {'a?',[]} = eval(":a?"),
   {'a!',[]} = eval(":a!"),
   {'||',[]} = eval(":||").
