@@ -69,19 +69,6 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts the value is a valid accessor of the container.
-
-  ## Examples
-
-      assert_access %r"foo", "foobar"
-
-  """
-  def assert_access(base, container, message // nil) do
-    message = message || "Expected #{inspect base} to access #{inspect container}"
-    assert(container[base], message)
-  end
-
-  @doc """
   Asserts the `expected` value is equal to `received`.
 
   ## Examples
@@ -322,19 +309,6 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts the value is not a valid accessor of the container.
-
-  ## Examples
-
-      refute_access %r"baz", "foobar"
-
-  """
-  def refute_access(base, container, message // nil) do
-    message = message || "Expected #{inspect base} to not access #{inspect container}"
-    refute(container[base], message)
-  end
-
-  @doc """
   Fails with a message.
 
   ## Examples
@@ -347,6 +321,10 @@ defmodule ExUnit.Assertions do
   end
 
   ## Helpers
+
+  defmacrop negation?(op) do
+    quote do: (var!(op) == :! or var!(op) == :not)
+  end
 
   defp translate_assertion({ :==, _, [expected, actual] }) do
     assert_operator :==, expected, actual, "equal to (==)"
@@ -378,6 +356,22 @@ defmodule ExUnit.Assertions do
 
   defp translate_assertion({ :!=, _, [expected, actual] }) do
     assert_operator :!=, expected, actual, "not equal to (!=)"
+  end
+
+  defp translate_assertion({ :access, _, [container, base] }) do
+    quote do
+      container = unquote(container)
+      base = unquote(base)
+      assert(container[base], "Expected #{inspect base} to access #{inspect container}")
+    end
+  end
+
+  defp translate_assertion({ op, _, [{ :access, _, [container, base] }] }) when negation?(op) do
+    quote do
+      container = unquote(container)
+      base = unquote(base)
+      assert(!container[base], "Expected #{inspect base} to not access #{inspect container}")
+    end
   end
 
   defp translate_assertion(expected) do
