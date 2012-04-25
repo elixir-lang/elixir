@@ -4,30 +4,30 @@ defmodule Binary.Inspect.AtomTest do
   use ExUnit.Case
 
   test :basic do
-    assert_equal ":foo", inspect(:foo)
+    assert inspect(:foo) == ":foo"
   end
 
   test :empty do
-    assert_equal ":\"\"", inspect(:"")
+    assert inspect(:"") == ":\"\""
   end
 
   test :true_false_nil do
-    assert_equal "false", inspect(false)
-    assert_equal "true", inspect(true)
-    assert_equal "nil", inspect(nil)
+    assert inspect(false) == "false"
+    assert inspect(true) == "true"
+    assert inspect(nil) == "nil"
   end
 
   test :with_uppercase do
-    assert_equal ":fOO", inspect(:fOO)
-    assert_equal ":FOO", inspect(:FOO)
+    assert inspect(:fOO) == ":fOO"
+    assert inspect(:FOO) == ":FOO"
   end
 
   test :reference_atom do
-    assert_equal "Foo.Bar", inspect(Foo.Bar)
+    assert inspect(Foo.Bar) == "Foo.Bar"
   end
 
   test :impl do
-    assert_equal Binary.Inspect, Binary.Inspect.Atom.__impl__
+    assert Binary.Inspect.Atom.__impl__ == Binary.Inspect
   end
 end
 
@@ -35,25 +35,25 @@ defmodule Binary.Inspect.BitStringTest do
   use ExUnit.Case
 
   test :bitstring do
-    assert_equal "<<0,1|4>>", inspect(<<1|12-integer-signed>>)
+    assert inspect(<<1|12-integer-signed>>) == "<<0,1|4>>"
   end
 
   test :binary do
-    assert_equal "\"foo\"", inspect("foo")
-    assert_equal "\"abc\"", inspect(<<?a, ?b, ?c>>)
+    assert inspect("foo") == "\"foo\""
+    assert inspect(<<?a, ?b, ?c>>) == "\"abc\""
   end
 
   test :escape do
-    assert_equal "\"f\\no\"" , inspect("f\no")
-    assert_equal "\"f\\\\o\"", inspect("f\\o")
+    assert inspect("f\no") == "\"f\\no\"" 
+    assert inspect("f\\o") == "\"f\\\\o\""
   end
 
   test :utf8 do
-    assert_equal "\" ゆんゆん\"", inspect(" ゆんゆん")
+    assert inspect(" ゆんゆん") == "\" ゆんゆん\""
   end
 
   test :unprintable do
-    assert_equal "<<1>>", inspect(<<1>>)
+    assert inspect(<<1>>) == "<<1>>"
   end
 end
 
@@ -61,13 +61,13 @@ defmodule Binary.Inspect.NumberTest do
   use ExUnit.Case
 
   test :integer do
-    assert_equal "100", inspect(100)
+    assert inspect(100) == "100"
   end
 
   test :float do
-    assert_equal "1.00000000000000000000e+00", inspect(1.0)
-    assert_equal "1.00000000000000000000e+10", inspect(1.0e10)
-    assert_equal "1.00000000000000000000e+10", inspect(1.0e+10)
+    assert inspect(1.0) == "1.00000000000000000000e+00"
+    assert inspect(1.0e10) == "1.00000000000000000000e+10"
+    assert inspect(1.0e+10) == "1.00000000000000000000e+10"
   end
 end
 
@@ -75,27 +75,27 @@ defmodule Binary.Inspect.TupleTest do
   use ExUnit.Case
 
   test :basic do
-    assert_equal "{1,\"b\",3}", inspect({ 1, "b", 3 })
+    assert inspect({ 1, "b", 3 }) == "{1,\"b\",3}"
   end
 
   test :record_like do
-    assert_equal "{:foo,:bar}", inspect({ :foo, :bar })
+    assert inspect({ :foo, :bar }) == "{:foo,:bar}"
   end
 
   test :with_builtin_like_record do
-    assert_equal "{:list,1}", inspect({ :list, 1 })
+    assert inspect({ :list, 1 }) == "{:list,1}"
   end
 
   test :with_record_like_tuple do
-    assert_equal "{List,1}", inspect({ List, 1 })
+    assert inspect({ List, 1 }) == "{List,1}"
   end
 
   test :exception do
-    assert_equal "RuntimeError{\"runtime error\"}", inspect(RuntimeError.new)
+    assert inspect(RuntimeError.new) == "RuntimeError{\"runtime error\"}"
   end
 
   test :empty do
-    assert_equal "{}", inspect({})
+    assert inspect({}) == "{}"
   end
 end
 
@@ -103,23 +103,23 @@ defmodule Binary.Inspect.ListTest do
   use ExUnit.Case
 
   test :basic do
-    assert_equal "[1,\"b\",3]", inspect([ 1, "b", 3 ])
+    assert inspect([ 1, "b", 3 ]) == "[1,\"b\",3]"
   end
 
   test :printable do
-    assert_equal "'abc'", inspect('abc')
+    assert inspect('abc') == "'abc'"
   end
 
   test :non_printable do
-    assert_equal "[{:a,1}]", inspect([{:a,1}])
+    assert inspect([{:a,1}]) == "[{:a,1}]"
   end
 
   test :unproper do
-    assert_equal "[:foo|:bar]", inspect([:foo | :bar])
+    assert inspect([:foo | :bar]) == "[:foo|:bar]"
   end
 
   test :empty do
-    assert_equal "[]", inspect([])
+    assert inspect([]) == "[]"
   end
 end
 

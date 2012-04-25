@@ -4,81 +4,81 @@ defmodule BinaryTest do
   use ExUnit.Case
 
   test :heredoc do
-    assert_equal 7, __LINE__
-    assert_equal "foo\nbar\n", """
+    assert 7 == __LINE__
+    assert "foo\nbar\n" == """
 foo
 bar
 """
 
-    assert_equal 13, __LINE__
-    assert_equal "foo\nbar \"\"\"\n", """
+    assert 13 == __LINE__
+    assert "foo\nbar \"\"\"\n" == """
 foo
 bar """
 """
   end
 
   test :heredoc_with_extra do
-    assert_equal 21, __LINE__
-    assert_equal "foo\nbar\nbar\n", """ <> "bar\n"
+    assert 21 == __LINE__
+    assert "foo\nbar\nbar\n" == """ <> "bar\n"
 foo
 bar
 """
   end
 
   test :aligned_heredoc do
-    assert_equal "foo\nbar\nbar\n", """ <> "bar\n"
+    assert "foo\nbar\nbar\n" == """ <> "bar\n"
     foo
     bar
     """
   end
 
   test :utf8 do
-    assert_equal 13, size(" ゆんゆん")
+    assert size(" ゆんゆん") == 13
   end
 
   test :utf8_char do
-    assert_equal 12422, ?ゆ
-    assert_equal 12422, ?\ゆ
+    assert ?ゆ == 12422
+    assert ?\ゆ == 12422
   end
 
   test :string_concatenation_as_match do
     "foo" <> x = "foobar"
-    assert_equal "bar", x
+    assert x == "bar"
   end
 
   test :__B__ do
-    assert_equal "foo", %B(foo)
-    assert_equal "foo", %B[foo]
-    assert_equal "foo", %B{foo}
-    assert_equal "foo", %B'foo'
-    assert_equal "foo", %B"foo"
-    assert_equal "foo", %B|foo|
-    assert_equal "f\#{o}o", %B(f#{o}o)
-    assert_equal "f\\no", %B(f\no)
+    assert %B(foo) == "foo"
+    assert %B[foo] == "foo"
+    assert %B{foo} == "foo"
+    assert %B'foo' == "foo"
+    assert %B"foo" == "foo"
+    assert %B|foo| == "foo"
+    assert %B(f#{o}o) == "f\#{o}o"
+    assert %B(f\no) == "f\\no"
   end
 
   test :__b__ do
-    assert_equal "foo", %b(foo)
-    assert_equal "foo", %b(f#{:o}o)
-    assert_equal "f\no", %b(f\no)
+    assert %b(foo) == "foo"
+    assert %b(f#{:o}o) == "foo"
+    assert %b(f\no) == "f\no"
   end
 
   test :__B__with_heredoc do
-    assert_equal "  f\#{o}o\\n\n", %B"""
+    assert "  f\#{o}o\\n\n" == %B"""
       f#{o}o\n
     """
   end
 
   test :__b__with_heredoc do
-    assert_equal "  foo\n\n", %b"""
+    assert "  foo\n\n" == %b"""
       f#{:o}o\n
     """
   end
 
   test :octals do
-    assert_equal "S", "\123"
-    assert_equal "\n8", "\128"
-    assert_equal <<1, ?8>>, "\18"
+    assert "\123" == "S"
+    assert "\128" == "\n8"
+    assert "\18"  == <<1,?8>>
   end
 
   test :match do
