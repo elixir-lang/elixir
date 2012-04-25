@@ -340,8 +340,23 @@ defmodule ExUnit.Assertions do
       assert true
 
   """
-  def assert(expected) do
-    assert(expected, "Expected #{inspect expected} to be true")
+  defmacro assert(expected) do
+    message = assertion_message(expected)
+    quote do
+      assert(unquote(expected), unquote(message))
+    end
+  end
+
+  defp assertion_message({ :"==", _, [actual, expected] }) do
+    quote do: "Expected #{inspect unquote(actual)} to be equal to #{inspect unquote(expected)}"
+  end
+
+  defp assertion_message({ {:".", _, [{:__ref__, _, [:List]}, :"member?"]}, _, [list, elem] }) do
+    quote do: "Expected #{inspect unquote(list)} to include #{inspect unquote(elem)}"
+  end
+
+  defp assertion_message(expected) do
+    quote do: "Expected #{inspect unquote(expected)} to be true"
   end
 
   def assert(expected, message) when is_binary(message) do

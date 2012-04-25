@@ -25,6 +25,26 @@ defmodule ExUnit.AssertionsTest do
     "This should be true" = error.message
   end
 
+  test :assert_with_equality do
+    "This should never be tested" = assert 1 + 1 == 1
+  rescue: error in [ExUnit.AssertionError]
+    "Expected 2 to be equal to 1" = error.message
+  end
+
+  test :assert_with_list_member do
+    "This should never be tested" = assert List.member?([1, 2], 3)
+  rescue: error in [ExUnit.AssertionError]
+    "Expected [1,2] to include 3" = error.message
+  end
+
+  test :assert_with_list_member_with_variables do
+    expected_element = 3
+    actual_list      = [1, 2]
+    "This should never be tested" = assert List.member?(actual_list, expected_element)
+  rescue: error in [ExUnit.AssertionError]
+    "Expected [1,2] to include 3" = error.message
+  end
+
   test :refute_when_value_is_false do
     false = refute false
   end
