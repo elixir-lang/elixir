@@ -4,10 +4,10 @@ defmodule TupleTest do
   use ExUnit.Case
 
   test :elem do
-    assert_equal :b, elem({ :a, :b, :c }, 2)
+    assert elem({ :a, :b, :c }, 2) == :b
   end
 
   test :setelem do
-    assert_equal { :a, :d, :c }, setelem({ :a, :b, :c }, 2, :d)
+    assert setelem({ :a, :b, :c }, 2, :d) == { :a, :d, :c }
   end
 end
