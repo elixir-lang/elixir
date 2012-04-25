@@ -75,7 +75,7 @@ defmodule ProtocolTest do
   test :protocol_with_only_with_undefined do
     assert_equal nil, ProtocolTest.WithOnly.__impl_for__(:foo)
 
-    assert_raises Protocol.UndefinedError, "protocol ProtocolTest.WithOnly not implemented for :foo", fn ->
+    assert_raise Protocol.UndefinedError, "protocol ProtocolTest.WithOnly not implemented for :foo", fn ->
       ProtocolTest.WithOnly.blank(:foo)
     end
   end

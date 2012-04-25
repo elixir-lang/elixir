@@ -128,7 +128,7 @@ defmodule ModuleTest do
 
   test :safe_concat do
     assert_equal Foo.Bar, Module.safe_concat Foo, :Bar
-    assert_raises ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       Module.safe_concat SafeConcat, Doesnt.Exist
     end
   end

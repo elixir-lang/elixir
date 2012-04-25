@@ -2,6 +2,39 @@ defexception ExUnit.AssertionError, message: "assertion failed"
 
 defmodule ExUnit.Assertions do
   @doc """
+  Asserts the `expected` value is true.
+
+  `assert` in general tries to be smart and provide a good
+  reporting whenever there is a failure. For example,
+  `assert 10 > 15` is going to fail with a message:
+
+      Expected 10 to be more than 15
+
+  ## Examples
+
+      assert true
+
+  """
+  defmacro assert(expected) do
+    translate_assertion(expected)
+  end
+
+  @doc """
+  Asserts the `expected` value is true.
+  If it fails, raises the given message.
+
+  ## Examples
+
+      assert false, "it will never be true"
+
+  """
+  def assert(expected, message) when is_binary(message) do
+    unless expected, do:
+      raise ExUnit.AssertionError, message: message
+    true
+  end
+
+  @doc """
   Asserts the `expected` value matches `received`. This relies
   on Elixir's pattern match instead of simply comparing terms.
 
@@ -66,12 +99,12 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      assert_raises ArithmeticError, "bad argument in arithmetic expression", fn ->
+      assert_raise ArithmeticError, "bad argument in arithmetic expression", fn ->
         1 + "test"
       end
   """
-  def assert_raises(exception, expected_message, function) do
-    error = assert_raises(exception, function)
+  def assert_raise(exception, expected_message, function) do
+    error = assert_raise(exception, function)
     assert_equal expected_message, error.message
   end
 
@@ -80,12 +113,12 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      assert_raises ArithmeticError, fn ->
+      assert_raise ArithmeticError, fn ->
         1 + "test"
       end
 
   """
-  def assert_raises(exception, function) do
+  def assert_raise(exception, function) do
     function.()
     flunk "Expected #{inspect exception} exception but nothing was raised"
   rescue: error in [exception]
@@ -97,25 +130,6 @@ defmodule ExUnit.Assertions do
       raise(error)
     else:
       flunk "Expected exception #{inspect exception}, got #{inspect name}"
-    end
-  end
-
-  @doc """
-  Asserts the `expression` with binary operator.
-
-  ## Examples
-
-      assert_operator 2 > 1
-      assert_operator 1 < 2
-
-  """
-  defmacro assert_operator(expression, message // nil) do
-    {operator, _, [left, right]} = expression
-    quote do
-      left    = unquote(left)
-      right   = unquote(right)
-      message = unquote(message) || "Expected #{left} to be #{unquote(operator)} #{right}"
-      assert unquote(operator).(left, right), message
     end
   end
 
@@ -210,6 +224,19 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
+  Asserts the `not_expected` value is false.
+
+  ## Examples
+
+      refute false
+
+  """
+  def refute(not_expected, message // nil) do
+    message = message || "Expected #{inspect not_expected} to be false"
+    not assert(!not_expected, message)
+  end
+
+  @doc """
   Assets the `expected` value does not match `received`. This uses
   Elixir's pattern matching instead of simply comparing terms.
 
@@ -227,19 +254,6 @@ defmodule ExUnit.Assertions do
         true
       end
     end
-  end
-
-  @doc """
-  Asserts the `not_expected` value is false.
-
-  ## Examples
-
-      refute false
-
-  """
-  def refute(not_expected, message // nil) do
-    message = message || "Expected #{inspect not_expected} to be false"
-    not assert(!not_expected, message)
   end
 
   @doc """
@@ -332,36 +346,53 @@ defmodule ExUnit.Assertions do
     assert false, message
   end
 
-  @doc """
-  Asserts the `expected` value is true.
+  ## Helpers
 
-  ## Examples
+  defp translate_assertion({ :==, _, [expected, actual] }) do
+    assert_operator :==, expected, actual, "equal to (==)"
+  end
 
-      assert true
+  defp translate_assertion({ :<, _, [expected, actual] }) do
+    assert_operator :<, expected, actual, "less than"
+  end
 
-  """
-  defmacro assert(expected) do
-    message = assertion_message(expected)
+  defp translate_assertion({ :>, _, [expected, actual] }) do
+    assert_operator :>, expected, actual, "more than"
+  end
+
+  defp translate_assertion({ :<=, _, [expected, actual] }) do
+    assert_operator :<=, expected, actual, "less than or equal to"
+  end
+
+  defp translate_assertion({ :>=, _, [expected, actual] }) do
+    assert_operator :>=, expected, actual, "more than or equal to"
+  end
+
+  defp translate_assertion({ :===, _, [expected, actual] }) do
+    assert_operator :===, expected, actual, "equal to (===)"
+  end
+
+  defp translate_assertion({ :!==, _, [expected, actual] }) do
+    assert_operator :!==, expected, actual, "not equal to (!==)"
+  end
+
+  defp translate_assertion({ :!=, _, [expected, actual] }) do
+    assert_operator :!=, expected, actual, "not equal to (!=)"
+  end
+
+  defp translate_assertion(expected) do
     quote do
-      assert(unquote(expected), unquote(message))
+      value = unquote(expected)
+      assert value, "Expected #{inspect value} to be true"
     end
   end
 
-  defp assertion_message({ :"==", _, [actual, expected] }) do
-    quote do: "Expected #{inspect unquote(actual)} to be equal to #{inspect unquote(expected)}"
-  end
-
-  defp assertion_message({ {:".", _, [{:__ref__, _, [:List]}, :"member?"]}, _, [list, elem] }) do
-    quote do: "Expected #{inspect unquote(list)} to include #{inspect unquote(elem)}"
-  end
-
-  defp assertion_message(expected) do
-    quote do: "Expected #{inspect unquote(expected)} to be true"
-  end
-
-  def assert(expected, message) when is_binary(message) do
-    unless expected, do:
-      raise ExUnit.AssertionError, message: message
-    true
+  defp assert_operator(operator, expected, actual, text) do
+    quote do
+      left  = unquote(expected)
+      right = unquote(actual)
+      assert unquote(operator).(left, right),
+        "Expected #{inspect left} to be #{unquote(text)} #{inspect right}"
+    end
   end
 end

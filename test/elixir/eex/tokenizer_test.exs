@@ -71,7 +71,7 @@ baz %>
   end
 
   test "raise syntax error when there is start mark and no end mark" do
-    assert_raises EEx.SyntaxError, "invalid token: ' :bar'", fn ->
+    assert_raise EEx.SyntaxError, "invalid token: ' :bar'", fn ->
       T.tokenize('foo <% :bar', 1)
     end
   end

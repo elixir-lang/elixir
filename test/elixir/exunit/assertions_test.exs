@@ -28,21 +28,7 @@ defmodule ExUnit.AssertionsTest do
   test :assert_with_equality do
     "This should never be tested" = assert 1 + 1 == 1
   rescue: error in [ExUnit.AssertionError]
-    "Expected 2 to be equal to 1" = error.message
-  end
-
-  test :assert_with_list_member do
-    "This should never be tested" = assert List.member?([1, 2], 3)
-  rescue: error in [ExUnit.AssertionError]
-    "Expected [1,2] to include 3" = error.message
-  end
-
-  test :assert_with_list_member_with_variables do
-    expected_element = 3
-    actual_list      = [1, 2]
-    "This should never be tested" = assert List.member?(actual_list, expected_element)
-  rescue: error in [ExUnit.AssertionError]
-    "Expected [1,2] to include 3" = error.message
+    "Expected 2 to be equal to (==) 1" = error.message
   end
 
   test :refute_when_value_is_false do
@@ -152,32 +138,32 @@ defmodule ExUnit.AssertionsTest do
     "This should be included" = error.message
   end
 
-  test :assert_raises_when_no_error do
-    "This should never be tested" = assert_raises ArgumentError, fn ->
+  test :assert_raise_when_no_error do
+    "This should never be tested" = assert_raise ArgumentError, fn ->
       # nothing
     end
   rescue: error in [ExUnit.AssertionError]
     "Expected ArgumentError exception but nothing was raised" = error.message
   end
 
-  test :assert_raises_when_error do
-    error = assert_raises ArgumentError, fn ->
+  test :assert_raise_when_error do
+    error = assert_raise ArgumentError, fn ->
       raise ArgumentError, message: "test error"
     end
 
     "test error" = error.message
   end
 
-  test :assert_raises_when_other_error do
-    "This should never be tested" = assert_raises ArgumentError, fn ->
+  test :assert_raise_when_other_error do
+    "This should never be tested" = assert_raise ArgumentError, fn ->
       raise MatchError, message: "test error"
     end
   rescue: error in [ExUnit.AssertionError]
     "Expected exception ArgumentError, got MatchError" = error.message
   end
 
-  test :assert_raises_when_erlang_error do
-    assert_raises SyntaxError, fn ->
+  test :assert_raise_when_erlang_error do
+    assert_raise SyntaxError, fn ->
       List.flatten(1)
     end
   rescue: error in [ExUnit.AssertionError]
@@ -185,32 +171,32 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test :assert_operator_greater_pass do
-    true = assert_operator 2 > 1
+    true = assert 2 > 1
   end
 
   test :assert_operator_greater_fail do
-    "This should never be tested" = assert_operator 1 > 2
+    "This should never be tested" = assert 1 > 2
   rescue: error in [ExUnit.AssertionError]
-    "Expected 1 to be > 2" = error.message
+    "Expected 1 to be more than 2" = error.message
   end
 
   test :assert_operator_less_or_equal_than_pass do
-    true = assert_operator 1 <= 2
+    true = assert 1 <= 2
   end
 
   test :assert_operator_less_or_equal_than_fail do
-    "This should never be tested" = assert_operator 2 <= 1
+    "This should never be tested" = assert 2 <= 1
   rescue: error in [ExUnit.AssertionError]
-    "Expected 2 to be <= 1" = error.message
+    "Expected 2 to be less than or equal to 1" = error.message
   end
 
   test :assert_operator_with_expressions do
     greater = 5
-    true = assert_operator 1 + 2 < greater
+    true = assert 1 + 2 < greater
   end
 
   test :assert_operator_with_message do
-    "This should never be tested" = assert_operator 1 > 2, "assertion"
+    "This should never be tested" = assert 1 > 2, "assertion"
   rescue: error in [ExUnit.AssertionError]
     "assertion" = error.message
   end
