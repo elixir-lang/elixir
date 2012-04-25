@@ -1,4 +1,6 @@
 defmodule URI do
+  @on_load { :preload_parsers, 0 }
+
   @moduledoc """
   Utilities for working with and creating URIs.
   """
@@ -82,14 +84,19 @@ defmodule URI do
 
   defp scheme_specific(parsed_uri) do
     scheme = Keyword.get(parsed_uri, :scheme)
+
     if scheme do
-      # TODO: A better way of looking up modules.
-      module = Module.concat(URI, :string.to_upper(binary_to_list(scheme)))
-      case :code.ensure_loaded(module) do
-      match: {:error, _}
-        parsed_uri
-      match: {:module, _}
+      module =
+        try do
+          Module.safe_concat(URI, :string.to_upper(binary_to_list(scheme)))
+        rescue: ArgumentError
+          nil
+        end
+
+      if module && match?({:module, ^module}, Code.ensure_loaded(module)) do
         module.parse(default_port(parsed_uri, module.default_port))
+      else:
+        parsed_uri
       end
     else:
       parsed_uri
@@ -123,5 +130,13 @@ defmodule URI do
         nil
       end
     end
+  end
+
+  # Reference parsers so the parse/1 doesn't fail
+  # on safe_concat.
+  defp preload_parsers do
+    parsers = [URI.FTP, URI.HTTP, URI.HTTPS, URI.LDAP, URI.SFTP, URI.TFTP]
+    Enum.each parsers, Code.ensure_loaded(&1)
+    :ok
   end
 end
