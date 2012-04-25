@@ -108,7 +108,7 @@ head_and_tail_test() ->
 
 orrdict_match_test() ->
   {[{a,1},{b,2}], _} = eval("a = [a: 1, b: 2]"),
-  {[{a,3},{b,2}], _} = eval("a = [a: 1, b: 2, a: 3]").
+  {[{a,3},{a,1},{b,2}], _} = eval("a = [a: 3, b: 2, a: 1]").
 
 % Function match
 

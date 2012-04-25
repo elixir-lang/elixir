@@ -24,9 +24,9 @@ defmodule Protocol do
         # Remove "harmful" macros
         # We don't want to allow function definition inside protocols
         import Elixir.Builtin, except: [
-          {:defmacro,1}, {:defmacro,2}, {:defmacro,4},
-          {:defp,1}, {:defp,2}, {:defp,4},
-          {:def,1}, {:def,2}, {:def,4}
+          defmacro: 1, defmacro: 2, defmacro: 4,
+          defp: 1, defp: 2, defp: 4,
+          def: 1, def: 2, def: 4
         ]
 
         # Import the new dsl that holds the new def

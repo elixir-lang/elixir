@@ -1,6 +1,25 @@
 defmodule Keyword do
+  @moduledoc """
+  A keyword is a list of tuples where the first element
+  of the tuple is an atom and the second element can be
+  any value. The list is sorted by the first element of
+  each tuple.
+
+  A keyword may have duplicated keys, so it is not strictly
+  a keywordsionary. However most of the functions in this module
+  allows it to behave exactly as a keywordsionary. For example,
+  `Keyword.get` will get the first entry matching the given
+  key, regardless if duplicated entries exist.  Similarly,
+  `Keyword.put` and `Keyword.delete` ensure all duplicated
+  entries for a given key are removed when invoked.
+
+  This module uses `==` as operator to check if two keys
+  are equal or not.
+  """
+
   @doc """
-  Creates a Keyword from an enumerable.
+  Creates a Keyword from an enumerable. Duplicated
+  entries are removed, the latest one prevails.
 
   ## Examples
 
@@ -9,14 +28,15 @@ defmodule Keyword do
 
   """
   def from_enum(pairs) do
-    Enum.reduce pairs, [], fn({k, v}, dict) ->
-      put(dict, k, v)
+    Enum.reduce pairs, [], fn({k, v}, keywords) ->
+      put(keywords, k, v)
     end
   end
 
   @doc """
   Creates a Keyword from an enumerable with the
-  help of the transformation function.
+  help of the transformation function. Duplicated
+  entries are removed, the latest one prevails.
 
   ## Examples
 
@@ -24,16 +44,20 @@ defmodule Keyword do
       #=> [a: :a, b: :b]
   """
   def from_enum(pairs, transform) do
-    Enum.reduce pairs, [], fn(i, dict) ->
+    Enum.reduce pairs, [], fn(i, keywords) ->
       { k, v } = transform.(i)
-      put(dict, k, v)
+      put(keywords, k, v)
     end
   end
 
   @doc """
-  Gets value from the dictionary for specific key.
+  Gets the value for specific key.
+
   If key not exist return default value (nil if no default value)
   exists.
+
+  If duplicated entries exist, the first one is returned.
+  Use get_values/2 to retrieve all entries.
 
   ## Examples
 
@@ -41,67 +65,76 @@ defmodule Keyword do
       Keyword.get [a: 1], :b      #=> nil
       Keyword.get [a: 1], :b, 3   #=> 3
   """
-  def get(dict, key, default // nil)
+  def get(keywords, key, default // nil)
   def get([{k, _}|_], key, default) when key < k, do: default
   def get([{k, _}|d], key, default) when key > k, do: get(d, key, default)
-  def get([{_k, value}|_], _key, _default),       do: value
+  def get([{_, value}|_], _key, _default),        do: value
   def get([], _, default),                        do: default
 
   @doc """
-  Returns all keys of dictionary.
+  Returns all keys from the keywords list. Duplicated
+  keys appear duplicated in the final list of keys.
 
   ## Examples
 
       Keyword.keys [a: 1, b: 2] #=> [:a,:b]
+
   """
-  def keys(dict) do
-    lc { key, _ } in dict, do: key
+  def keys(keywords) do
+    lc { key, _ } in keywords, do: key
   end
 
   @doc """
-  Returns all values of dictionary.
+  Returns all values.
 
   ## Examples
 
       Keyword.values [a: 1, b: 2] #=> [1,2]
   """
-  def values(dict) do
-    lc { _, value } in dict, do: value
+  def values(keywords) do
+    lc { _, value } in keywords, do: value
   end
 
   @doc """
-  Deletes key, value entry from dictionary for specific key.
-  If the key does not exist, returns the dictionary unchanged.
+  Deletes all entries in the keywords list for a specific key.
+  If the key does not exist, returns the keywords list unchanged.
+  Use `delete_first` to delete just the first entry in case of
+  duplicated keys.
 
   ## Examples
 
       Keyword.delete [a: 1, b: 2], :a   #=> [b: 2]
       Keyword.delete [b: 2], :a         #=> [b: 2]
   """
-  def delete([{k, _} = e|dict], key) when key < k, do: [e|dict]
-  def delete([{k, _} = e|dict], key) when key > k, do: [e|delete(dict, key)]
-  def delete([{_k, _v}|dict], _key), do: dict
+  def delete([{k, _}|_] = keywords, key) when key < k, do: keywords
+  def delete([{k, _} = e|tail], key) when key > k, do: [e|delete(tail, key)]
+  def delete([{_, _}|tail], key),                  do: delete(tail, key)
   def delete([], _), do: []
 
   @doc """
-  Sets the given `value` under `key` for the given dictionary.
-  If a previous value is already stored, it is overriden.
+  Sets the given `value` under `key`.
+
+  If a previous value is already stored, all entries are
+  removed and the value is overriden.
+
+  Use `prepend/3` to add a new value for an existing key
+  without removing previous ones.
 
   ## Examples
 
       Keyword.put [a: 1, b: 2], :a, 3
       #=> [a: 3, b: 2]
   """
-  def put([{k, _} = e|dict], key, value) when key < k and is_atom(key) do
-    [{key, value},e|dict]
+  def put([{k, _} = e|keywords], key, value) when key < k and is_atom(key) do
+    [{key, value},e|keywords]
   end
 
-  def put([{k, _} = e|dict], key, value) when key > k do
-    [e|put(dict, key, value)]
+  def put([{k, _} = e|keywords], key, value) when key > k do
+    [e|put(keywords, key, value)]
   end
 
-  def put([{_, _}|dict], key, value) when is_atom(key) do
-    [{key, value}|dict]
+  def put([{key, _}|keywords], key, value) when is_atom(key) do
+    [{key, value}|delete(keywords, key)]
   end
 
   def put([], key, value) when is_atom(key) do
@@ -109,8 +142,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Merges two dictionaries into one. If the dictionaries have
-  duplicated entries, the one given as second argument wins.
+  Merges two keywords lists into one. If they have duplicated
+  entries, the one given as second argument wins.
 
   ## Examples
 
@@ -122,9 +155,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Merges two dictionaries into one. If the dictionaries have
-  duplicated entries, the given function is invoked to solve
-  conflicts.
+  Merges two keywords lists into one. If they have duplicated
+  entries, the given function is invoked to solve conflicts.
 
   ## Examples
 
