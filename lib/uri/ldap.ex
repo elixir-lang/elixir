@@ -3,5 +3,5 @@ defmodule URI.LDAP do
   def default_port(), do: 389
 
   # TODO: LDAP specific parsing.
-  def parse(parsed_uri), do: parsed_uri
+  def parse(info), do: info
 end

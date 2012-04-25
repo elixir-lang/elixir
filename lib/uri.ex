@@ -1,6 +1,11 @@
 defmodule URI do
   @on_load { :preload_parsers, 0 }
 
+  defrecord Info, [scheme: nil, path: nil, query: nil,
+                   fragment: nil, authority: nil,
+                   userinfo: nil, host: nil, port: nil,
+                   specifics: nil]
+
   @moduledoc """
   Utilities for working with and creating URIs.
   """
@@ -75,16 +80,21 @@ defmodule URI do
   def parse(s) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
     regex = %r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
-    destructure([_, _, scheme, _, authority, path, _, query, _, fragment],
-                nillify(Regex.run(regex, s)))
-    scheme_specific(Keyword.merge([scheme: scheme, path: path, query: query,
-                                  fragment: fragment, authority: authority],
-                                  split_authority(authority)))
+    parts = nillify(Regex.run(regex, s))
+
+    destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
+    { userinfo, host, port } = split_authority(authority)
+
+    info = URI.Info[
+      scheme: scheme, path: path, query: query,
+      fragment: fragment, authority: authority,
+      userinfo: userinfo, host: host, port: port
+    ]
+
+    scheme_specific(scheme, info)
   end
 
-  defp scheme_specific(parsed_uri) do
-    scheme = Keyword.get(parsed_uri, :scheme)
-
+  defp scheme_specific(scheme, info) do
     if scheme do
       module =
         try do
@@ -93,31 +103,27 @@ defmodule URI do
           nil
         end
 
-      if module && match?({:module, ^module}, Code.ensure_loaded(module)) do
-        module.parse(default_port(parsed_uri, module.default_port))
+      if module && match?({:module,^module}, Code.ensure_loaded(module)) do
+        module.parse(default_port(info, module))
       else:
-        parsed_uri
+        info
       end
     else:
-      parsed_uri
+      info
     end
   end
 
-  defp default_port(parsed_uri, port) do
-    if Keyword.get(parsed_uri, :port) do
-      parsed_uri
-    else:
-      Keyword.put(parsed_uri, :port, port)
-    end
+  defp default_port(info, module) do
+    if info.port, do: info, else: info.port(module.default_port)
   end
 
   # Split an authority into its userinfo, host and port parts.
   defp split_authority(s) do
     s = s || ""
     components = Regex.run %r/(^(.*)@)?([^:]*)(:(\d*))?/, s
-    destructure([_, _, userinfo, host, _, port], nillify(components))
+    destructure [_, _, userinfo, host, _, port], nillify(components)
     port = if port, do: list_to_integer(binary_to_list(port))
-    [userinfo: userinfo, host: host, port: port]
+    { userinfo, host, port }
   end
 
   # Regex.run returns empty strings sometimes. We want
