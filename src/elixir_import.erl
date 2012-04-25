@@ -47,7 +47,11 @@ calculate(Line, Key, Opts, Old, Available, S) ->
       end;
     error ->
       case orddict:find(except, Opts) of
-        { ok, Except } -> difference(Except, Available);
+        { ok, Except } ->
+          case lists:keyfind(Key, 1, Old) of
+            false -> Available -- Except;
+            {Key,ToRemove} -> ToRemove -- Except
+          end;
         error -> Available
       end
   end,
@@ -148,13 +152,10 @@ format_error({internal_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir internal macros",
     [elixir_errors:inspect(Receiver), Name, Arity]).
 
-%% Deletes all the entries in the list with the given key.
+%% List helpers
 
 keydelete(Key, List) ->
   lists:keydelete(Key, 1, List).
-
-difference(Except, All) ->
-  All -- Except.
 
 intersection([H|T], All) ->
   case lists:member(H, All) of

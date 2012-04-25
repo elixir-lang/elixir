@@ -23,11 +23,24 @@ end
 defmodule Kernel.ImportExceptTest do
   use ExUnit.Case
 
-  import Erlang.lists, except: [each: 1]
+  import Erlang.lists, except: [each: 2]
 
   test :import_erlang do
     assert_equal [1,2,3], flatten [1,[2],3]
   end
+end
+
+defmodule Kernel.ImportTwiceWithExceptTest do
+  use ExUnit.Case
+
+  import Erlang.lists, except: [flatten: 1]
+  import Erlang.lists, except: [each: 2]
+
+  test :import_erlang do
+    assert_equal [1,[2],3], flatten [1,[2],3]
+  end
+
+  def flatten(list), do: list
 end
 
 defmodule Kernel.MessedBitwise do
