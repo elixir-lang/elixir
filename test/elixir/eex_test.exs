@@ -12,7 +12,7 @@ defmodule EExTest do
   end
 
   test "evaluates with embedded and the binding" do
-    assert EEx.eval_string("foo <%= bar %>", [bar: 1]) == "foo 1"
+    assert_equal "foo 1", EEx.eval_string("foo <%= bar %>", [bar: 1])
   end
 
   test "evaluates with embedded do end" do
@@ -29,7 +29,7 @@ defmodule EExTest do
 
   test "evaluates with embedded do end and nested expressions" do
     assert_eval "foo bar baz", "foo <% if true do %>bar <% Process.put(:eex_text, 1) %><%= :baz %><% end %>"
-    assert Process.get(:eex_text) == 1
+    assert_equal 1, Process.get(:eex_text)
   end
 
   test "evaluates with embedded middle expression" do
@@ -185,13 +185,13 @@ foo
   test "evaluates the source from a given file" do
     filename = File.expand_path("../fixtures/eex_template.eex", __FILE__)
     result = EEx.eval_file(filename)
-    assert result == "foo bar.\n"
+    assert_equal "foo bar.\n", result
   end
 
   test "evaluates the source from a given file with bindings" do
     filename = File.expand_path("../fixtures/eex_template_with_bindings.eex", __FILE__)
     result = EEx.eval_file(filename, [bar: 1])
-    assert result == "foo 1\n"
+    assert_equal "foo 1\n", result
   end
 
   test "raises an Exception when there's an error with the given file" do
@@ -203,6 +203,6 @@ foo
 
   defp assert_eval(expected, atual) do
     result = EEx.eval_string(atual, [], EEx.Engine, __FILE__)
-    assert result == expected
+    assert_equal expected, result
   end
 end

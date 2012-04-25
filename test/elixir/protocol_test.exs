@@ -69,11 +69,11 @@ defmodule ProtocolTest do
 
   test :protocol_with_only do
     assert_undef ProtocolTest.WithOnly, Function, fn(x, do: x)
-    assert ProtocolTest.WithOnly.blank(ProtocolTest.Foo.new) == true
+    assert_equal true, ProtocolTest.WithOnly.blank(ProtocolTest.Foo.new)
   end
 
   test :protocol_with_only_with_undefined do
-    assert ProtocolTest.WithOnly.__impl_for__(:foo) == nil
+    assert_equal nil, ProtocolTest.WithOnly.__impl_for__(:foo)
 
     assert_raise Protocol.UndefinedError, "protocol ProtocolTest.WithOnly not implemented for :foo", fn ->
       ProtocolTest.WithOnly.blank(:foo)
@@ -103,14 +103,14 @@ defmodule ProtocolTest do
   end
 
   test :protocol_with_two_items do
-    assert ProtocolTest.Plus.plus(1) == 2
-    assert ProtocolTest.Plus.plus(1, 2) == 3
+    assert_equal 2, ProtocolTest.Plus.plus 1
+    assert_equal 3, ProtocolTest.Plus.plus 1, 2
   end
 
   # Assert that the given protocol is going to be dispatched.
   defp assert_protocol_for(target, impl, thing) do
     joined  = Module.concat(target, impl)
-    assert target.__impl_for__(thing) == joined
+    assert_equal joined, target.__impl_for__ thing
   end
 
   # Dispatch `blank(thing)` to the given `target`

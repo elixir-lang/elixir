@@ -56,7 +56,7 @@ defmodule Kernel.RescueTest do
       false
     end
 
-    assert result == "an exception"
+    assert_equal "an exception", result
   end
 
   test :rescue_named_with_underscore do
@@ -66,7 +66,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "an exception"
+    assert_equal "an exception", result
   end
 
   test :rescue_defined_variable do
@@ -94,7 +94,7 @@ defmodule Kernel.RescueTest do
       false
     end
 
-    assert result == "an exception"
+    assert_equal "an exception", result
   end
 
   test :wrap_custom_erlang_error do
@@ -104,7 +104,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "erlang error: :sample"
+    assert_equal "erlang error: :sample", result
   end
 
   test :undefined_function_error do
@@ -114,7 +114,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "undefined function: DoNotExist.for_sure/0"
+    assert_equal "undefined function: DoNotExist.for_sure/0", result
   end
 
   test :function_clause_error do
@@ -124,7 +124,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "no function clause matching: Kernel.RescueTest.zero(1)"
+    assert_equal "no function clause matching: Kernel.RescueTest.zero(1)", result
   end
 
   test :badarg_error do
@@ -134,7 +134,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "argument error"
+    assert_equal "argument error", result
   end
 
   test :tuple_badarg_error do
@@ -144,7 +144,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "argument error: [1,2,3]"
+    assert_equal "argument error: [1,2,3]", result
   end
 
   test :badarith_error do
@@ -154,7 +154,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "bad argument in arithmetic expression"
+    assert_equal "bad argument in arithmetic expression", result
   end
 
   test :badarity_error do
@@ -167,7 +167,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == string
+    assert_equal string, result
   end
 
   test :badfun_error do
@@ -178,7 +178,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "bad function: :example"
+    assert_equal "bad function: :example", result
   end
 
   test :badmatch_error do
@@ -189,7 +189,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "no match of right hand side value: :other"
+    assert_equal "no match of right hand side value: :other", result
   end
 
   test :case_clause_error do
@@ -202,7 +202,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "no case clause matching: :other"
+    assert_equal "no case clause matching: :other", result
   end
 
   test :undefined_function_error_from_expected_variable do
@@ -213,7 +213,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "undefined function: DoNotExist.for_sure/0"
+    assert_equal "undefined function: DoNotExist.for_sure/0", result
   end
 
   test :undefined_function_error_as_erlang_error do
@@ -223,7 +223,7 @@ defmodule Kernel.RescueTest do
       x.message
     end
 
-    assert result == "undefined function: DoNotExist.for_sure/0"
+    assert_equal "undefined function: DoNotExist.for_sure/0", result
   end
 
   defp zero(0), do: 0

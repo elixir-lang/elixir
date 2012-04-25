@@ -14,17 +14,17 @@ defmodule CodeTest do
   Code.eval_quoted contents, [], file: "sample.ex", line: 13
 
   test :eval do
-    assert Code.eval("1 + 2") == { 3, [] }
+    assert_equal { 3, [] }, Code.eval("1 + 2")
     assert_match { 3, _ }, Code.eval("a + b", [a: 1, b: 2], file: __FILE__, line: __LINE__)
   end
 
   test :eval_with_scope do
-    assert Code.eval("one", [], delegate_locals_to: __MODULE__) == { 1, [] }
+    assert_equal { 1, [] }, Code.eval("one", [], delegate_locals_to: __MODULE__)
   end
 
   test :eval_quoted do
-    assert Code.eval_quoted(quote(do: 1 + 2)) == { 3, [] }
-    assert CodeTest.Sample.eval_quoted_info() == { CodeTest.Sample, "sample.ex", 13 }
+    assert_equal { 3, [] }, Code.eval_quoted(quote(do: 1 + 2))
+    assert_equal { CodeTest.Sample, "sample.ex", 13 }, CodeTest.Sample.eval_quoted_info()
   end
 
   test :require do
@@ -35,7 +35,7 @@ defmodule CodeTest do
   end
 
   test :file do
-    assert :filename.absname(__FILE__) == __FILE__
+    assert_equal __FILE__, :filename.absname(__FILE__)
   end
 
   test :compile_source do
@@ -49,6 +49,6 @@ defmodule CodeTest do
     source1 = :proplists.get_value(:source, options, nil)
     source2 = :proplists.get_value(:source, compile, nil)
 
-    assert (source1 || source2) == binary_to_list(__FILE__)
+    assert_equal binary_to_list(__FILE__), source1 || source2
   end
 end

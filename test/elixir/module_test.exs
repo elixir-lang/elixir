@@ -72,19 +72,19 @@ defmodule ModuleTest do
   nil = __FUNCTION__
 
   test :eval_quoted do
-    assert eval_quoted_info() == { ModuleTest, "sample.ex", 13 }
+    assert_equal { ModuleTest, "sample.ex", 13 }, eval_quoted_info()
   end
 
   test :line_from_macro do
-    assert ModuleTest.ToUse.line == 32
+    assert_equal 32, ModuleTest.ToUse.line
   end
 
   test :__MODULE__ do
-    assert __MODULE__ == :"__MAIN__.ModuleTest"
+    assert_equal :"__MAIN__.ModuleTest", __MODULE__
   end
 
   test :merge_data do
-    assert __MODULE__.__info__(:data) == [other_value: 2, value: 1]
+    assert_equal [other_value: 2, value: 1], __MODULE__.__info__(:data)
   end
 
   test :compile_callback_hook do
@@ -98,44 +98,44 @@ defmodule ModuleTest do
   end
 
   test :reserved_attributes do
-    assert :lists.keyfind(:behavior, 1, ExUnit.Server.__info__(:attributes)) == {:behavior,[:gen_server]}
+    assert_equal {:behavior,[:gen_server]}, :lists.keyfind(:behavior, 1, ExUnit.Server.__info__(:attributes))
   end
 
   test :registered_attributes do
-    assert [{:register_example,[:it_works]},{:register_example,[:still_works]}] ==
+    assert_equal [{:register_example,[:it_works]},{:register_example,[:still_works]}],
       Enum.filter __MODULE__.__info__(:attributes), match?({ :register_example, _ }, &1)
   end
 
   test :duplicated_attributes do
-    assert_match [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}], ModuleTest.DuplicateAttribute.__info__(:attributes)
+    [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest.DuplicateAttribute.__info__(:attributes)
   end
 
   test :__FUNCTION__ do
-    assert __FUNCTION__ == { :test___FUNCTION__, 0 }
+    assert_equal { :test___FUNCTION__, 0 }, __FUNCTION__
   end
 
   test :apply do
-    assert apply(List, :reverse, [[1|[2,3]]]) == [3,2,1]
-    assert apply(fn(x) -> x * 2 end, [2]) == 4
+    assert_equal [3,2,1], apply(List, :reverse, [[1|[2,3]]])
+    assert_equal 4, apply(fn(x) -> x * 2 end, [2])
   end
 
   test :concat do
-    assert Module.concat(Foo, Bar)  == Foo.Bar
-    assert Module.concat(Foo, :Bar) == Foo.Bar
-    assert Module.concat(Foo, "Bar") == Foo.Bar
-    assert Module.concat(Foo, 'Bar') == Foo.Bar
+    assert_equal Foo.Bar, Module.concat Foo, Bar
+    assert_equal Foo.Bar, Module.concat Foo, :Bar
+    assert_equal Foo.Bar, Module.concat Foo, "Bar"
+    assert_equal Foo.Bar, Module.concat Foo, 'Bar'
   end
 
   test :safe_concat do
-    assert Module.safe_concat(Foo, :Bar) == Foo.Bar
+    assert_equal Foo.Bar, Module.safe_concat Foo, :Bar
     assert_raise ArgumentError, fn ->
       Module.safe_concat SafeConcat, Doesnt.Exist
     end
   end
 
   test :defined_functions do
-    assert Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_functions) == [{:foo, 3}]
-    assert Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_def) == [{:foo, 3}]
-    assert Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_defp) == []
+    assert_equal [{:foo, 3}], Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_functions)
+    assert_equal [{:foo, 3}], Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_def)
+    assert_equal [], Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_defp)
   end
 end

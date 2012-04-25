@@ -5,61 +5,61 @@ defmodule Kernel.PartialApplicationTest do
 
   test :partial_with_simple_call_and_one_item do
     fun = minus(10, &1)
-    assert fun.(5) == 5
-    assert fun.(3) == 7
+    assert_equal 5, fun.(5)
+    assert_equal 7, fun.(3)
   end
 
   test :partial_with_simple_call_and_all_items do
     fun = minus(&1, &2)
-    assert fun.(10, 5) == 5
-    assert fun.(13, 6) == 7
+    assert_equal 5, fun.(10, 5)
+    assert_equal 7, fun.(13, 6)
   end
 
   test :partial_with_atom_call_and_one_item do
     fun = :minus.(10, &1)
-    assert fun.(5) == 5
-    assert fun.(3) == 7
+    assert_equal 5, fun.(5)
+    assert_equal 7, fun.(3)
   end
 
   test :partial_with_funcall_and_one_item do
     fun = minus(&1, &2)
     fun = fun.(10, &1)
-    assert fun.(5) == 5
-    assert fun.(3) == 7
+    assert_equal 5, fun.(5)
+    assert_equal 7, fun.(3)
   end
 
   test :partial_with_funcall_and_all_items do
     fun = minus(&1, &2)
     fun = fun.(&1, &2)
-    assert fun.(10, 5) == 5
-    assert fun.(13, 6) == 7
+    assert_equal 5, fun.(10, 5)
+    assert_equal 7, fun.(13, 6)
   end
 
   test :partial_with_opposite_order do
     fun = minus(&2, &1)
-    assert fun.(10, 5) == -5
-    assert fun.(13, 6) == -7
+    assert_equal -5, fun.(10, 5)
+    assert_equal -7, fun.(13, 6)
   end
 
   test :partial_with_duplicated do
     fun = minus(&1, &1)
-    assert fun.(10) == 0
-    assert fun.(13) == 0
+    assert_equal 0, fun.(10)
+    assert_equal 0, fun.(13)
   end
 
   test :partial_with_internal_macro do
     fun = if(&1, do: 1, else: 2)
-    assert fun.(20) == 1
-    assert fun.(nil) == 2
+    assert_equal 1, fun.(20)
+    assert_equal 2, fun.(nil)
   end
 
   test :partial_application_for_module_calls do
     fun = List.reverse(&1)
-    assert fun.([1,2,3]) == [3,2,1]
+    assert_equal [3,2,1], fun.([1,2,3])
   end
 
   test :partial_application_for_operator do
-    assert Enum.map([1,2,3], &1 * 2) == [2,4,6]
+    assert_equal [2,4,6], Enum.map [1,2,3], &1 * 2
   end
 
   defp minus(x, y) do

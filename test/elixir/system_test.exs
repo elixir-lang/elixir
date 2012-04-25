@@ -8,7 +8,8 @@ defmodule System.ARGVTest do
   test :argv do
     list = OS.cmd('bin/elixir -e "IO.inspect System.argv" -- -o opt arg1 arg2 --long-opt 10')
     { args, _ } = Code.eval list, []
-    assert args == ["-o", "opt", "arg1", "arg2", "--long-opt", "10"]
+    expected = ["-o", "opt", "arg1", "arg2", "--long-opt", "10"]
+    assert_equal expected, args
   end
 end
 
@@ -17,13 +18,13 @@ defmodule SystemTest do
 
   test :at_exit do
     output = OS.cmd('bin/elixir -e "System.at_exit(fn(x) -> IO.inspect x end)"')
-    assert output == '0\n'
+    assert_equal '0\n', output
   end
 
   test :env do
-    assert System.get_env("SYSTEM_ENV_TEST_VAR") == nil
+    assert_equal nil, System.get_env("SYSTEM_ENV_TEST_VAR")
     System.put_env('SYSTEM_ENV_TEST_VAR', 'SAMPLE')
-    assert System.get_env("SYSTEM_ENV_TEST_VAR") == "SAMPLE"
+    assert_equal "SAMPLE", System.get_env("SYSTEM_ENV_TEST_VAR")
   end
 
   test :cmd do

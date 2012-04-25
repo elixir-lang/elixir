@@ -6,10 +6,10 @@ defmodule Elixir.CLI.InitTest do
   use ExUnit.Case
 
   test :code_init do
-    assert OS.cmd('bin/elixir -e "IO.puts 1 + 2"') == '3\n'
+    assert_equal '3\n', OS.cmd('bin/elixir -e "IO.puts 1 + 2"')
 
-    result = OS.cmd('bin/elixir -e "IO.puts inspect(System.argv)" test/elixir/fixtures/init_sample.exs -o 1 2 3')
-    assert result == '#{inspect ["-o", "1", "2", "3"]}\n3\n'
+    expected = '#{inspect ["-o", "1", "2", "3"]}\n3\n'
+    assert_equal expected, OS.cmd('bin/elixir -e "IO.puts inspect(System.argv)" test/elixir/fixtures/init_sample.exs -o 1 2 3')
   end
 end
 
@@ -44,8 +44,7 @@ defmodule Elixir.CLI.AtExitTest do
   use ExUnit.Case
 
   test :at_exit do
-    assert OS.cmd('bin/elixir test/elixir/fixtures/at_exit.exs') ==
-      'goodbye cruel world with status 0\n'
+    assert_equal 'goodbye cruel world with status 0\n', OS.cmd('bin/elixir test/elixir/fixtures/at_exit.exs')
   end
 end
 
@@ -57,7 +56,7 @@ defmodule Elixir.CLI.ErrorTest do
     assert Erlang.string.str('** (ErlangError) erlang error: 1', OS.cmd('bin/elixir -e "error 1"')) == 0
 
     # It does not catch exits with integers nor strings...
-    assert OS.cmd('bin/elixir -e "exit 1"') == ''
+    assert_equal '', OS.cmd('bin/elixir -e "exit 1"')
   end
 end
 
@@ -76,8 +75,8 @@ defmodule Elixir.CLI.CompileTest do
   use ExUnit.Case
 
   test :compile_code do
-    assert OS.cmd('bin/elixirc test/elixir/fixtures/compile_sample.exs -o test/tmp/') ==
-      'Compiled test/elixir/fixtures/compile_sample.exs\n'
+    assert_equal 'Compiled test/elixir/fixtures/compile_sample.exs\n',
+      OS.cmd('bin/elixirc test/elixir/fixtures/compile_sample.exs -o test/tmp/')
     assert File.regular?("test/tmp/__MAIN__/CompileSample.beam")
   after:
     Erlang.file.del_dir("test/tmp/")

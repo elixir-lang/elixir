@@ -4,26 +4,26 @@ defmodule FileTest do
   use ExUnit.Case
 
   test :expand_path_with_binary do
-    assert File.expand_path("/foo/bar") == "/foo/bar"
-    assert File.expand_path("/foo/bar/") == "/foo/bar"
-    assert File.expand_path("/foo/bar/.") == "/foo/bar"
-    assert File.expand_path("/foo/bar/../bar") == "/foo/bar"
+    assert_equal "/foo/bar", File.expand_path("/foo/bar")
+    assert_equal "/foo/bar", File.expand_path("/foo/bar/")
+    assert_equal "/foo/bar", File.expand_path("/foo/bar/.")
+    assert_equal "/foo/bar", File.expand_path("/foo/bar/../bar")
 
-    assert File.expand_path("bar", "/foo") == "/foo/bar"
-    assert File.expand_path("bar/", "/foo") == "/foo/bar"
-    assert File.expand_path("bar/.", "/foo") == "/foo/bar"
-    assert File.expand_path("bar/../bar", "/foo") == "/foo/bar"
-    assert File.expand_path("../bar/../bar", "/foo/../foo/../foo") == "/bar"
+    assert_equal "/foo/bar", File.expand_path("bar", "/foo")
+    assert_equal "/foo/bar", File.expand_path("bar/", "/foo")
+    assert_equal "/foo/bar", File.expand_path("bar/.", "/foo")
+    assert_equal "/foo/bar", File.expand_path("bar/../bar", "/foo")
+    assert_equal "/bar", File.expand_path("../bar/../bar", "/foo/../foo/../foo")
 
     full = File.expand_path("foo/bar")
-    assert File.expand_path("bar/../bar", "foo") == full
+    assert_equal full, File.expand_path("bar/../bar", "foo")
   end
 
   test :expand_path_with_list do
-    assert File.expand_path('/foo/bar') == '/foo/bar'
-    assert File.expand_path('/foo/bar/') == '/foo/bar'
-    assert File.expand_path('/foo/bar/.') == '/foo/bar'
-    assert File.expand_path('/foo/bar/../bar') == '/foo/bar'
+    assert_equal '/foo/bar', File.expand_path('/foo/bar')
+    assert_equal '/foo/bar', File.expand_path('/foo/bar/')
+    assert_equal '/foo/bar', File.expand_path('/foo/bar/.')
+    assert_equal '/foo/bar', File.expand_path('/foo/bar/../bar')
   end
 
   test :regular do
@@ -33,49 +33,49 @@ defmodule FileTest do
   end
 
   test :basename_with_binary do
-    assert File.basename("foo") == "foo"
-    assert File.basename("/foo/bar") == "bar"
-    assert File.basename("/") == ""
+    assert_equal "foo", File.basename("foo")
+    assert_equal "bar", File.basename("/foo/bar")
+    assert_equal "", File.basename("/")
 
-    assert File.basename("~/foo/bar.ex", ".ex") == "bar"
-    assert File.basename("~/foo/bar.exs", ".ex") == "bar.exs"
-    assert File.basename("~/for/bar.old.ex", ".ex") == "bar.old"
+    assert_equal "bar", File.basename("~/foo/bar.ex", ".ex")
+    assert_equal "bar.exs", File.basename("~/foo/bar.exs", ".ex")
+    assert_equal "bar.old", File.basename("~/for/bar.old.ex", ".ex")
   end
 
   test :basename_with_list do
-    assert File.basename('foo') == 'foo'
-    assert File.basename('/foo/bar') == 'bar'
-    assert File.basename('/') == ''
+    assert_equal 'foo', File.basename('foo')
+    assert_equal 'bar', File.basename('/foo/bar')
+    assert_equal '', File.basename('/')
 
-    assert File.basename('~/foo/bar.ex', '.ex') == 'bar'
-    assert File.basename('~/foo/bar.exs', '.ex') == 'bar.exs'
-    assert File.basename('~/for/bar.old.ex', '.ex') == 'bar.old'
+    assert_equal 'bar', File.basename('~/foo/bar.ex', '.ex')
+    assert_equal 'bar.exs', File.basename('~/foo/bar.exs', '.ex')
+    assert_equal 'bar.old', File.basename('~/for/bar.old.ex', '.ex')
   end
 
   test :join_with_binary do
-    assert File.join([""]) == ""
-    assert File.join(["foo"]) == "foo"
-    assert File.join(["/", "foo", "bar"]) == "/foo/bar"
-    assert File.join(["~", "foo", "bar"]) == "~/foo/bar"
+    assert_equal "", File.join([""])
+    assert_equal "foo", File.join(["foo"])
+    assert_equal "/foo/bar", File.join(["/", "foo", "bar"])
+    assert_equal "~/foo/bar", File.join(["~", "foo", "bar"])
   end
 
   test :join_with_list do
-    assert File.join(['']) == ''
-    assert File.join(['foo']) == 'foo'
-    assert File.join(['/', 'foo', 'bar']) == '/foo/bar'
-    assert File.join(['~', 'foo', 'bar']) == '~/foo/bar'
+    assert_equal '', File.join([''])
+    assert_equal 'foo', File.join(['foo'])
+    assert_equal '/foo/bar', File.join(['/', 'foo', 'bar'])
+    assert_equal '~/foo/bar', File.join(['~', 'foo', 'bar'])
   end
 
   test :split_with_binary do
-    assert File.split("") == ["/"]
-    assert File.split("foo") == ["foo"]
-    assert File.split("/foo/bar") == ["/", "foo", "bar"]
+    assert_equal ["/"], File.split("")
+    assert_equal ["foo"], File.split("foo")
+    assert_equal ["/", "foo", "bar"], File.split("/foo/bar")
   end
 
   test :split_with_list do
-    assert File.split('') == ''
-    assert File.split('foo') == ['foo']
-    assert File.split('/foo/bar') == ['/', 'foo', 'bar']
+    assert_equal '', File.split('')
+    assert_equal ['foo'], File.split('foo')
+    assert_equal ['/', 'foo', 'bar'], File.split('/foo/bar')
   end
 
   test :read_with_binary do
@@ -89,7 +89,7 @@ defmodule FileTest do
   end
 
   test :read! do
-    assert File.read!(File.expand_path("../fixtures/foo.txt", __FILE__)) == "FOO\n"
+    assert_equal "FOO\n", File.read!(File.expand_path("../fixtures/foo.txt", __FILE__))
     expected_message = "could not read file fixtures/missing.txt: no such file or directory"
 
     assert_raise File.Exception, expected_message, fn ->

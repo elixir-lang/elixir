@@ -4,30 +4,30 @@ defmodule Binary.Inspect.AtomTest do
   use ExUnit.Case
 
   test :basic do
-    assert inspect(:foo) == ":foo"
+    assert_equal ":foo", inspect(:foo)
   end
 
   test :empty do
-    assert inspect(:"") == ":\"\""
+    assert_equal ":\"\"", inspect(:"")
   end
 
   test :true_false_nil do
-    assert inspect(false) == "false"
-    assert inspect(true) == "true"
-    assert inspect(nil) == "nil"
+    assert_equal "false", inspect(false)
+    assert_equal "true", inspect(true)
+    assert_equal "nil", inspect(nil)
   end
 
   test :with_uppercase do
-    assert inspect(:fOO) == ":fOO"
-    assert inspect(:FOO) == ":FOO"
+    assert_equal ":fOO", inspect(:fOO)
+    assert_equal ":FOO", inspect(:FOO)
   end
 
   test :reference_atom do
-    assert inspect(Foo.Bar) == "Foo.Bar"
+    assert_equal "Foo.Bar", inspect(Foo.Bar)
   end
 
   test :impl do
-    assert Binary.Inspect.Atom.__impl__ == Binary.Inspect
+    assert_equal Binary.Inspect, Binary.Inspect.Atom.__impl__
   end
 end
 
@@ -35,25 +35,25 @@ defmodule Binary.Inspect.BitStringTest do
   use ExUnit.Case
 
   test :bitstring do
-    assert inspect(<<1|12-integer-signed>>) == "<<0,1|4>>"
+    assert_equal "<<0,1|4>>", inspect(<<1|12-integer-signed>>)
   end
 
   test :binary do
-    assert inspect("foo") == "\"foo\""
-    assert inspect(<<?a, ?b, ?c>>) == "\"abc\""
+    assert_equal "\"foo\"", inspect("foo")
+    assert_equal "\"abc\"", inspect(<<?a, ?b, ?c>>)
   end
 
   test :escape do
-    assert inspect("f\no") == "\"f\\no\"" 
-    assert inspect("f\\o") == "\"f\\\\o\""
+    assert_equal "\"f\\no\"" , inspect("f\no")
+    assert_equal "\"f\\\\o\"", inspect("f\\o")
   end
 
   test :utf8 do
-    assert inspect(" ゆんゆん") == "\" ゆんゆん\""
+    assert_equal "\" ゆんゆん\"", inspect(" ゆんゆん")
   end
 
   test :unprintable do
-    assert inspect(<<1>>) == "<<1>>"
+    assert_equal "<<1>>", inspect(<<1>>)
   end
 end
 
@@ -61,13 +61,13 @@ defmodule Binary.Inspect.NumberTest do
   use ExUnit.Case
 
   test :integer do
-    assert inspect(100) == "100"
+    assert_equal "100", inspect(100)
   end
 
   test :float do
-    assert inspect(1.0) == "1.00000000000000000000e+00"
-    assert inspect(1.0e10) == "1.00000000000000000000e+10"
-    assert inspect(1.0e+10) == "1.00000000000000000000e+10"
+    assert_equal "1.00000000000000000000e+00", inspect(1.0)
+    assert_equal "1.00000000000000000000e+10", inspect(1.0e10)
+    assert_equal "1.00000000000000000000e+10", inspect(1.0e+10)
   end
 end
 
@@ -75,27 +75,27 @@ defmodule Binary.Inspect.TupleTest do
   use ExUnit.Case
 
   test :basic do
-    assert inspect({ 1, "b", 3 }) == "{1,\"b\",3}"
+    assert_equal "{1,\"b\",3}", inspect({ 1, "b", 3 })
   end
 
   test :record_like do
-    assert inspect({ :foo, :bar }) == "{:foo,:bar}"
+    assert_equal "{:foo,:bar}", inspect({ :foo, :bar })
   end
 
   test :with_builtin_like_record do
-    assert inspect({ :list, 1 }) == "{:list,1}"
+    assert_equal "{:list,1}", inspect({ :list, 1 })
   end
 
   test :with_record_like_tuple do
-    assert inspect({ List, 1 }) == "{List,1}"
+    assert_equal "{List,1}", inspect({ List, 1 })
   end
 
   test :exception do
-    assert inspect(RuntimeError.new) == "RuntimeError{\"runtime error\"}"
+    assert_equal "RuntimeError{\"runtime error\"}", inspect(RuntimeError.new)
   end
 
   test :empty do
-    assert inspect({}) == "{}"
+    assert_equal "{}", inspect({})
   end
 end
 
@@ -103,23 +103,23 @@ defmodule Binary.Inspect.ListTest do
   use ExUnit.Case
 
   test :basic do
-    assert inspect([ 1, "b", 3 ]) == "[1,\"b\",3]"
+    assert_equal "[1,\"b\",3]", inspect([ 1, "b", 3 ])
   end
 
   test :printable do
-    assert inspect('abc') == "'abc'"
+    assert_equal "'abc'", inspect('abc')
   end
 
   test :non_printable do
-    assert inspect([{:a,1}]) == "[{:a,1}]"
+    assert_equal "[{:a,1}]", inspect([{:a,1}])
   end
 
   test :unproper do
-    assert inspect([:foo | :bar]) == "[:foo|:bar]"
+    assert_equal "[:foo|:bar]", inspect([:foo | :bar])
   end
 
   test :empty do
-    assert inspect([]) == "[]"
+    assert_equal "[]", inspect([])
   end
 end
 
