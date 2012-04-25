@@ -72,6 +72,20 @@ defmodule Keyword do
   def get([], _, default),                        do: default
 
   @doc """
+  Gets all values for a specific key.
+
+  ## Examples
+
+      Keyword.get_values [a: 1, a: 2]
+      #=> [1,2]
+
+  """
+  def get_values([{k, _}|_], key) when key < k, do: []
+  def get_values([{k, _}|d], key) when key > k, do: get_values(d, key)
+  def get_values([{_, value}|d], key),          do: [value|get_values(d, key)]
+  def get_values([], _),                        do: []
+
+  @doc """
   Returns all keys from the keywords list. Duplicated
   keys appear duplicated in the final list of keys.
 

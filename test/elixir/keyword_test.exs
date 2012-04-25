@@ -76,6 +76,12 @@ defmodule Keyword.DuplicatedTest do
     assert_equal "default", Keyword.get(create_empty_keywords, :first_key, "default")
   end
 
+  test :get_values do
+    assert_equal [1,2], Keyword.get_values(create_keywords, :first_key)
+    assert_equal [2], Keyword.get_values(create_keywords, :second_key)
+    assert_equal [], Keyword.get_values(create_keywords, :other_key)
+  end
+
   test :keys do
     assert_equal [:first_key, :first_key, :second_key], Keyword.keys(create_keywords)
     assert_equal [], Keyword.keys(create_empty_keywords)
