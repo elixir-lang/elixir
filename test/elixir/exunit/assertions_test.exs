@@ -28,7 +28,13 @@ defmodule ExUnit.AssertionsTest do
   test :assert_with_equality do
     "This should never be tested" = assert 1 + 1 == 1
   rescue: error in [ExUnit.AssertionError]
-    "Expected 2 to be equal to (==) 1" = error.message
+    "Expected 1 to be equal to (==) 2" = error.message
+  end
+
+  test :assert_with_equality_in_reverse do
+    "This should never be tested" = assert 1 == 1 + 1
+  rescue: error in [ExUnit.AssertionError]
+    "Expected 1 to be equal to (==) 2" = error.message
   end
 
   test :refute_when_value_is_false do

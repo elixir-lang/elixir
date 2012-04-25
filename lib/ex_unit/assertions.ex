@@ -326,35 +326,39 @@ defmodule ExUnit.Assertions do
     quote do: (var!(op) == :! or var!(op) == :not)
   end
 
-  defp translate_assertion({ :==, _, [expected, actual] }) do
+  defp translate_assertion({ :==, _, [left, right] }) do
+    { expected, actual } = guess_expected_and_actual(left, right)
     assert_operator :==, expected, actual, "equal to (==)"
   end
 
-  defp translate_assertion({ :<, _, [expected, actual] }) do
-    assert_operator :<, expected, actual, "less than"
+  defp translate_assertion({ :<, _, [left, right] }) do
+    assert_operator :<, left, right, "less than"
   end
 
-  defp translate_assertion({ :>, _, [expected, actual] }) do
-    assert_operator :>, expected, actual, "more than"
+  defp translate_assertion({ :>, _, [left, right] }) do
+    assert_operator :>, left, right, "more than"
   end
 
-  defp translate_assertion({ :<=, _, [expected, actual] }) do
-    assert_operator :<=, expected, actual, "less than or equal to"
+  defp translate_assertion({ :<=, _, [left, right] }) do
+    assert_operator :<=, left, right, "less than or equal to"
   end
 
-  defp translate_assertion({ :>=, _, [expected, actual] }) do
-    assert_operator :>=, expected, actual, "more than or equal to"
+  defp translate_assertion({ :>=, _, [left, right] }) do
+    assert_operator :>=, left, right, "more than or equal to"
   end
 
-  defp translate_assertion({ :===, _, [expected, actual] }) do
+  defp translate_assertion({ :===, _, [left, right] }) do
+    { expected, actual } = guess_expected_and_actual(left, right)
     assert_operator :===, expected, actual, "equal to (===)"
   end
 
-  defp translate_assertion({ :!==, _, [expected, actual] }) do
+  defp translate_assertion({ :!==, _, [left, right] }) do
+    { expected, actual } = guess_expected_and_actual(left, right)
     assert_operator :!==, expected, actual, "not equal to (!==)"
   end
 
-  defp translate_assertion({ :!=, _, [expected, actual] }) do
+  defp translate_assertion({ :!=, _, [left, right] }) do
+    { expected, actual } = guess_expected_and_actual(left, right)
     assert_operator :!=, expected, actual, "not equal to (!=)"
   end
 
@@ -378,6 +382,15 @@ defmodule ExUnit.Assertions do
     quote do
       value = unquote(expected)
       assert value, "Expected #{inspect value} to be true"
+    end
+  end
+
+  defp guess_expected_and_actual(left, right) do
+    case right do
+    match: { fun, i, _ } when is_integer(i) and (fun != :<<>> or fun != :{}) 
+      { left, right }
+    else:
+      { right, left }
     end
   end
 
