@@ -1,6 +1,25 @@
 defexception ExUnit.AssertionError, message: "assertion failed"
 
 defmodule ExUnit.Assertions do
+  @moduledoc """
+  This module contains a set of assertions functions that are
+  imported by default into your test cases.
+
+  In general, a developer will want to use the general
+  `assert` macro in tests. The macro tries to be smart
+  and provide good reporting whenever there is a failure.
+  For example, `assert some_fun() == 10` will fail (assuming
+  `some_fun()` returns 13):
+
+      Expected 10 to be equal to 13
+
+  This module also provides other small convenient functions
+  like `assert_match`, `assert_member` and `assert_raise` to
+  easily handle other common cases as, respectively, asserting
+  if two terms match, asserting if an item belongs to a list or
+  if a function raises an exception.
+  """
+
   @doc """
   Asserts the `expected` value is true.
 
