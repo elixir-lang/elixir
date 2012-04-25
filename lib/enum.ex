@@ -1,4 +1,7 @@
-defprotocol Enum.Iterator, [iterator(collection)], only: [List, Record]
+defprotocol Enum.Iterator do
+  @only [List, Record]
+  def iterator(collection)
+end
 
 defmodule Enum do
   require Enum.Iterator, as: I

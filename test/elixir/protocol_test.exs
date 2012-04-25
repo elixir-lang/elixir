@@ -1,10 +1,24 @@
 Code.require_file "../test_helper", __FILE__
 
-defprotocol ProtocolTest.WithAll, [blank(thing)]
-defprotocol ProtocolTest.WithExcept, [blank(thing)], except: [Atom, Number, List]
-defprotocol ProtocolTest.WithOnly, [blank(thing)], only: [Record, Function]
+defprotocol ProtocolTest.WithAll do
+  def blank(thing)
+end
 
-defprotocol ProtocolTest.Plus, [plus(thing), plus(thing, other)], only: [Number]
+defprotocol ProtocolTest.WithExcept do
+  @except [Atom, Number, List]
+  def blank(thing)
+end
+
+defprotocol ProtocolTest.WithOnly do
+  @only [Record, Function]
+  def blank(thing)
+end
+
+defprotocol ProtocolTest.Plus do
+  @only [Number]
+  def plus(thing)
+  def plus(thing, other)
+end
 
 defrecord ProtocolTest.Foo, a: 0, b: 0
 

@@ -1,5 +1,7 @@
-defprotocol List.Chars, [to_char_list(thing)],
-  only: [BitString, List, Atom, Number, Record]
+defprotocol List.Chars do
+  @only [BitString, List, Atom, Number, Record]
+  def to_char_list(thing)
+end
 
 defimpl List.Chars, for: Atom do
   def to_char_list(atom), do: atom_to_list(atom)

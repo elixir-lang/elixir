@@ -1,7 +1,9 @@
 import Elixir.Builtin, except: [access: 2]
 
-defprotocol Access, [access(element, qualifier)],
-  only: [List, BitString, Record, Tuple, Atom, Function]
+defprotocol Access do
+  @only [List, BitString, Record, Tuple, Atom, Function]
+  def access(element, qualifier)
+end
 
 defimpl Access, for: Tuple do
   def access(tuple, integer) when is_integer(integer) and integer > 0 and integer <= size(tuple) do

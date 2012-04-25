@@ -314,7 +314,10 @@ defmodule Elixir.Builtin do
 
   We could implement this protocol as follow:
 
-      defprotocol Blank, [blank?(data)]
+      defprotocol Blank do
+        @doc "Returns true if data is considered blank/empty"
+        def blank?(data)
+      end
 
   Now that the protocol is defined, we can implement it. We need
   to implement the protocol for each Elixir type. For example:
@@ -361,7 +364,10 @@ defmodule Elixir.Builtin do
 
   This can be achieved with Elixir as follows:
 
-      defprotocol Blank, [blank?(data)], only: [Atom, Tuple, List, BitString, Any]
+      defprotocol Blank do
+        @only [Atom, Tuple, List, BitString, Any]
+        def blank?(data)
+      end
 
   If the protocol is invoked with a data type that is not an Atom,
   nor Tuple, nor List, nor BitString, Elixir will now dispatch to
@@ -395,8 +401,8 @@ defmodule Elixir.Builtin do
   Finally, since records are simply tuples, one can add a default protocol
   implementation to any record by defining a default implementation for tuples.
   """
-  defmacro defprotocol(name, args, opts // []) do
-    Protocol.defprotocol(name, args, opts)
+  defmacro defprotocol(name, [do: block]) do
+    Protocol.defprotocol(name, [do: block])
   end
 
   @doc """

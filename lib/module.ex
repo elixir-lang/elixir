@@ -146,8 +146,8 @@ defmodule Module do
     old        = ETS.lookup_element(table, :data, 2)
     registered = ETS.lookup_element(table, :registered_attributes, 2)
 
-    { attrs, new } = Enum.partition data, fn({k,_}) -> List.member?(registered, k) end
-    Enum.each attrs, fn({k,v}) -> add_attribute(module, k, v) end
+    { attrs, new } = :lists.partition fn({k,_}) -> List.member?(registered, k) end, data
+    lc {k,v} in attrs, do: add_attribute(module, k, v)
     ETS.insert(table, { :data,  Keyword.merge(old, new) })
   end
 

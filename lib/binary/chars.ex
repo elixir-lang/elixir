@@ -1,7 +1,9 @@
 import Elixir.Builtin, except: [to_binary: 1]
 
-defprotocol Binary.Chars, [to_binary(thing)],
-  only: [BitString, List, Number, Atom, Record]
+defprotocol Binary.Chars do
+  @only [BitString, List, Number, Atom, Record]
+  def to_binary(thing)
+end
 
 defimpl Binary.Chars, for: Atom do
   def to_binary(nil) do

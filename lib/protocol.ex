@@ -18,16 +18,30 @@ defmodule Protocol do
 
   * `__impl_for__!/1` - same as above but raises an error if an implementation is not found
   """
-  def defprotocol(name, args, opts) do
-    funs = to_funs(args)
-
+  def defprotocol(name, [do: block]) do
     quote do
       defmodule unquote(name) do
-        def __protocol__(:name),      do: unquote(name)
-        def __protocol__(:functions), do: unquote(funs)
-        { conversions, fallback } = Protocol.conversions_for(unquote(opts))
-        Protocol.functions(__MODULE__, unquote(funs), fallback)
-        Protocol.impl_for(__MODULE__, conversions, fallback)
+        # Remove "harmful" macros
+        # We don't want to allow function definition inside protocols
+        import Elixir.Builtin, except: [
+          {:defmacro,1}, {:defmacro,2}, {:defmacro,4},
+          {:defp,1}, {:defp,2}, {:defp,4},
+          {:def,1}, {:def,2}, {:def,4}
+        ]
+
+        # Import the new dsl that holds the new def
+        import Protocol.DSL
+
+        # Set up a clear slate to store defined functions
+        @functions []
+
+        # Invoke the user given block
+        unquote(block)
+
+        # Define callbacks and meta information
+        { conversions, fallback } = Protocol.conversions_for(@only, @except)
+        Protocol.impl_for(__MODULE__, conversions)
+        Protocol.meta(__MODULE__, @functions, fallback)
       end
     end
   end
@@ -85,35 +99,13 @@ defmodule Protocol do
   end
 
   @doc """
-  Callback entrypoint that defines the protocol functions.
-  It simply detects the protocol using __impl_for__ and
-  then dispatches to it.
+  Defines meta information about the protocol and internal callbacks.
   """
-  def functions(module, funs, fallback) do
-    contents = lc fun in L.reverse(funs), do: each_function(fun, fallback)
-    Module.eval_quoted module, contents, [], file: __FILE__, line: __LINE__
-  end
+  def meta(module, functions, fallback) do
+    contents = quote do
+      def __protocol__(:name),      do: __MODULE__
+      def __protocol__(:functions), do: unquote(functions)
 
-  @doc """
-  Implements the function that detects the protocol and returns
-  the module to dispatch to. Returns module.Record for records
-  which should be properly handled by the dispatching function.
-  """
-  def impl_for(module, conversions, fallback) do
-    contents = lc kind in conversions, do: each_impl_for(kind, conversions)
-
-    # If we don't implement all protocols and any is not in the
-    # list, we need to add a final clause that returns nil.
-    if !L.member({ Any, :is_any }, conversions) && length(conversions) < 10 do
-      contents = contents ++ [quote do
-        defp __raw_impl__(_) do
-          nil
-        end
-      end]
-    end
-
-    # Finally add __impl_for__ and __impl_for__!
-    contents = contents ++ [quote do
       def __impl_for__(arg) do
         case __raw_impl__(arg) do
         match: __MODULE__.Record
@@ -135,7 +127,30 @@ defmodule Protocol do
           raise Protocol.UndefinedError, protocol: __MODULE__, structure: arg
         end
       end
-    end]
+
+      defp __fallback__, do: unquote(fallback)
+    end
+
+    Module.eval_quoted module, contents, [], file: __FILE__, line: __LINE__
+  end
+
+  @doc """
+  Implements the function that detects the protocol and returns
+  the module to dispatch to. Returns module.Record for records
+  which should be properly handled by the dispatching function.
+  """
+  def impl_for(module, conversions) do
+    contents = lc kind in conversions, do: each_impl_for(kind, conversions)
+
+    # If we don't implement all protocols and any is not in the
+    # list, we need to add a final clause that returns nil.
+    if !L.member({ Any, :is_any }, conversions) && length(conversions) < 10 do
+      contents = contents ++ [quote do
+        defp __raw_impl__(_) do
+          nil
+        end
+      end]
+    end
 
     Module.eval_quoted module, contents, [], file: __FILE__, line: __LINE__
   end
@@ -144,14 +159,14 @@ defmodule Protocol do
   Returns the default conversions according to the given
   only/except options.
   """
-  def conversions_for(opts) do
+  def conversions_for(only, except) do
     kinds = all_types
 
     conversions =
-      if only = Keyword.get(opts, :only, false) do
+      if only do
         L.map(fn(i) -> L.keyfind(i, 1, kinds) end, only)
       else:
-        except = Keyword.get(opts, :except, [Any])
+        except = except || [Any]
         L.foldl(fn(i, list) -> L.keydelete(i, 1, list) end, kinds, except)
       end
 
@@ -229,9 +244,20 @@ defmodule Protocol do
       end
     end
   end
+end
 
-  # Implement the protocol invocation callbacks for each function.
-  defp each_function({ name, arity }, fallback) do
+defmodule Protocol.DSL do
+  defmacro def(expression) do
+    { name, arity } =
+      case expression do
+      match: { _, _, args } when args == [] or is_atom(args)
+        raise ArgumentError, message: "protocol functions expect at least one argument"
+      match: { name, _, args } when is_atom(name) and is_list(args)
+        { name, length(args) }
+      else:
+        raise ArgumentError, message: "invalid args for defprotocol"
+      end
+
     # Generate arguments according the arity. The arguments
     # are named xa, xb and so forth. We cannot use string
     # interpolation to generate the arguments because of compile
@@ -241,7 +267,10 @@ defmodule Protocol do
     end
 
     quote do
-      def unquote(name).(unquote_splicing(args)) do
+      # Append new function to the list
+      @functions [unquote({name, arity})|@functions]
+
+      Elixir.Builtin.def unquote(name).(unquote_splicing(args)) do
         args = [unquote_splicing(args)]
         case __raw_impl__(xA) do
         match: __MODULE__.Record
@@ -249,28 +278,13 @@ defmodule Protocol do
             target = Module.concat(__MODULE__, :erlang.element(1, xA))
             apply target, unquote(name), args
           rescue: UndefinedFunctionError
-            apply Module.concat(__MODULE__, unquote(fallback)), unquote(name), args
+            apply Module.concat(__MODULE__, __fallback__), unquote(name), args
           end
         match: nil
           raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
         match: other
           apply other, unquote(name), args
         end
-      end
-    end
-  end
-
-  # Converts the protocol expressions as [each(collection), length(collection)]
-  # to an ordered dictionary [each: 1, length: 1] also checking for invalid args
-  defp to_funs(args) do
-    lc(x in args) ->
-      case x do
-      match: { _, _, args } when args == [] or args == false
-        raise ArgumentError, message: "protocol functions expect at least one argument"
-      match: { name, _, args } when is_atom(name) and is_list(args)
-        { name, length(args) }
-      else:
-        raise ArgumentError, message: "invalid args for defprotocol"
       end
     end
   end
