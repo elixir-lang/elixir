@@ -116,8 +116,8 @@ defmodule Kernel.OverridableTest do
       Erlang.elixir.eval 'defmodule Foo.Forwarding do\n@overridable true\ndef bar, do: 1\ndef foo, do: super\nend', []
       flunk "expected eval to fail"
     rescue: error
-      assert_equal "nofile:4: no super defined for foo/0 in module 'Foo.Forwarding'. " <>
-        "Overridable functions available are: bar/0", error.message
+      assert error.message == ("nofile:4: no super defined for foo/0 in module 'Foo.Forwarding'. " <>
+        "Overridable functions available are: bar/0")
     end
   end
 end

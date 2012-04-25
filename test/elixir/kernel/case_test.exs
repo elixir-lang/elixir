@@ -4,7 +4,7 @@ defmodule Kernel.CaseTest do
   use ExUnit.Case
 
   test :nested_case do
-    assert_equal 2, get_case
+    assert get_case == 2
   end
 
   test :nested_variables do

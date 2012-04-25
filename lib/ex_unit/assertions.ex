@@ -34,6 +34,91 @@ defmodule ExUnit.Assertions do
     true
   end
 
+  ## START HELPERS
+
+  defmacrop negation?(op) do
+    quote do: (var!(op) == :! or var!(op) == :not)
+  end
+
+  defp translate_assertion({ :==, _, [left, right] }) do
+    { expected, actual } = guess_expected_and_actual(left, right)
+    assert_operator :==, expected, actual, "equal to (==)"
+  end
+
+  defp translate_assertion({ :<, _, [left, right] }) do
+    assert_operator :<, left, right, "less than"
+  end
+
+  defp translate_assertion({ :>, _, [left, right] }) do
+    assert_operator :>, left, right, "more than"
+  end
+
+  defp translate_assertion({ :<=, _, [left, right] }) do
+    assert_operator :<=, left, right, "less than or equal to"
+  end
+
+  defp translate_assertion({ :>=, _, [left, right] }) do
+    assert_operator :>=, left, right, "more than or equal to"
+  end
+
+  defp translate_assertion({ :===, _, [left, right] }) do
+    { expected, actual } = guess_expected_and_actual(left, right)
+    assert_operator :===, expected, actual, "equal to (===)"
+  end
+
+  defp translate_assertion({ :!==, _, [left, right] }) do
+    { expected, actual } = guess_expected_and_actual(left, right)
+    assert_operator :!==, expected, actual, "not equal to (!==)"
+  end
+
+  defp translate_assertion({ :!=, _, [left, right] }) do
+    { expected, actual } = guess_expected_and_actual(left, right)
+    assert_operator :!=, expected, actual, "not equal to (!=)"
+  end
+
+  defp translate_assertion({ :access, _, [container, base] }) do
+    quote do
+      container = unquote(container)
+      base = unquote(base)
+      assert(container[base], "Expected #{inspect base} to access #{inspect container}")
+    end
+  end
+
+  defp translate_assertion({ op, _, [{ :access, _, [container, base] }] }) when negation?(op) do
+    quote do
+      container = unquote(container)
+      base = unquote(base)
+      assert(!container[base], "Expected #{inspect base} to not access #{inspect container}")
+    end
+  end
+
+  defp translate_assertion(expected) do
+    quote do
+      value = unquote(expected)
+      assert value, "Expected #{inspect value} to be true"
+    end
+  end
+
+  defp guess_expected_and_actual(left, right) do
+    case right do
+    match: { fun, i, _ } when is_integer(i) and (fun != :<<>> or fun != :{})
+      { left, right }
+    else:
+      { right, left }
+    end
+  end
+
+  defp assert_operator(operator, expected, actual, text) do
+    quote do
+      left  = unquote(expected)
+      right = unquote(actual)
+      assert unquote(operator).(left, right),
+        "Expected #{inspect left} to be #{unquote(text)} #{inspect right}"
+    end
+  end
+
+  ## END HELPERS
+
   @doc """
   Asserts the `expected` value matches `received`. This relies
   on Elixir's pattern match instead of simply comparing terms.
@@ -69,19 +154,6 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts the `expected` value is equal to `received`.
-
-  ## Examples
-
-      assert_equal 0, 0
-
-  """
-  def assert_equal(expected, received, message // nil) do
-    message = message || "Expected #{inspect received} to be equal to #{inspect expected}"
-    assert(expected == received, message)
-  end
-
-  @doc """
   Asserts the `exception` is raised during `function` execution with the expected message.
 
   ## Examples
@@ -92,7 +164,7 @@ defmodule ExUnit.Assertions do
   """
   def assert_raise(exception, expected_message, function) do
     error = assert_raise(exception, function)
-    assert_equal expected_message, error.message
+    assert expected_message == error.message
   end
 
   @doc """
@@ -244,19 +316,6 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts the `expected` value is not equal to `received`.
-
-  ## Examples
-
-      refute_equal 0, 1
-
-  """
-  def refute_equal(expected, received, message // nil) do
-    message = message || "Expected #{inspect received} to not be equal to #{inspect expected}"
-    refute(expected == received, message)
-  end
-
-  @doc """
   Asserts the `enum` collection is not empty.
 
   ## Examples
@@ -318,88 +377,5 @@ defmodule ExUnit.Assertions do
   """
   def flunk(message // "Epic Fail!") do
     assert false, message
-  end
-
-  ## Helpers
-
-  defmacrop negation?(op) do
-    quote do: (var!(op) == :! or var!(op) == :not)
-  end
-
-  defp translate_assertion({ :==, _, [left, right] }) do
-    { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :==, expected, actual, "equal to (==)"
-  end
-
-  defp translate_assertion({ :<, _, [left, right] }) do
-    assert_operator :<, left, right, "less than"
-  end
-
-  defp translate_assertion({ :>, _, [left, right] }) do
-    assert_operator :>, left, right, "more than"
-  end
-
-  defp translate_assertion({ :<=, _, [left, right] }) do
-    assert_operator :<=, left, right, "less than or equal to"
-  end
-
-  defp translate_assertion({ :>=, _, [left, right] }) do
-    assert_operator :>=, left, right, "more than or equal to"
-  end
-
-  defp translate_assertion({ :===, _, [left, right] }) do
-    { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :===, expected, actual, "equal to (===)"
-  end
-
-  defp translate_assertion({ :!==, _, [left, right] }) do
-    { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :!==, expected, actual, "not equal to (!==)"
-  end
-
-  defp translate_assertion({ :!=, _, [left, right] }) do
-    { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :!=, expected, actual, "not equal to (!=)"
-  end
-
-  defp translate_assertion({ :access, _, [container, base] }) do
-    quote do
-      container = unquote(container)
-      base = unquote(base)
-      assert(container[base], "Expected #{inspect base} to access #{inspect container}")
-    end
-  end
-
-  defp translate_assertion({ op, _, [{ :access, _, [container, base] }] }) when negation?(op) do
-    quote do
-      container = unquote(container)
-      base = unquote(base)
-      assert(!container[base], "Expected #{inspect base} to not access #{inspect container}")
-    end
-  end
-
-  defp translate_assertion(expected) do
-    quote do
-      value = unquote(expected)
-      assert value, "Expected #{inspect value} to be true"
-    end
-  end
-
-  defp guess_expected_and_actual(left, right) do
-    case right do
-    match: { fun, i, _ } when is_integer(i) and (fun != :<<>> or fun != :{}) 
-      { left, right }
-    else:
-      { right, left }
-    end
-  end
-
-  defp assert_operator(operator, expected, actual, text) do
-    quote do
-      left  = unquote(expected)
-      right = unquote(actual)
-      assert unquote(operator).(left, right),
-        "Expected #{inspect left} to be #{unquote(text)} #{inspect right}"
-    end
   end
 end
