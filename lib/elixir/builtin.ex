@@ -902,7 +902,7 @@ defmodule Elixir.Builtin do
 
     # Convert all :elsif clauses into matches
     converted   = lc {:elsif,rest} in tail, do: {:match,rest}
-    merged      = [match: if_clause] ++ converted
+    merged      = [{:match,if_clause}|converted]
 
     # Decouple all if and elsif clauses into an array of tuples.
     # Those tuples are made of three elements, the key-block key,
