@@ -61,7 +61,7 @@ defmodule Elixir.ErrorsTest do
 
   test :unproper_macro do
     assert_equal "nofile:4: key value blocks not supported by Elixir.ErrorsTest.UnproperMacro.unproper/1",
-      format_rescue 'defmodule Foo do\nrequire Elixir.ErrorsTest.UnproperMacro\nElixir.ErrorsTest.UnproperMacro.unproper do\nmatch: 1\nmatch: 2\nend\nend'
+      format_rescue 'defmodule Foo do\nrequire Elixir.ErrorsTest.UnproperMacro\nElixir.ErrorsTest.UnproperMacro.unproper do\nmatch: 1\n2\nmatch: 3\nend\nend'
   end
 
   test :macro_conflict do

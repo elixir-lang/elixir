@@ -309,12 +309,12 @@ translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
       end,
 
       %% Add this new variable to all match clauses
-      [{match, KVBlock}] = elixir_kv_block:normalize(KVFinal),
-      Values = [{ [FunVar|Conds], Expr } || { Conds, Expr } <- element(3, KVBlock)],
-      NewKVBlock = setelement(3, KVBlock, Values),
+      Normalized = elixir_kv_block:normalize(KVFinal),
+      NewMatches = [{ match, { '__kvblock__', BlockLine, [{ [FunVar|Conds], Expr }] } } ||
+        { match, { '__kvblock__', BlockLine, [{ Conds, Expr }] } } <- Normalized],
 
       %% Generate a function with the match blocks
-      Function = { fn, Line, [[{match,NewKVBlock}]] },
+      Function = { fn, Line, [NewMatches] },
 
       %% Finally, assign the function to a variable and
       %% invoke it passing the function itself as first arg

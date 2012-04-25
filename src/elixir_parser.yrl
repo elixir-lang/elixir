@@ -413,10 +413,9 @@ build_block(Exprs)                         -> { '__block__', 0, lists:reverse(Ex
 
 % Handle key value blocks
 build_kv_block(Delimiter, Contents, IncompleteList) ->
-  Line  = ?line(Delimiter),
-  List  = [{do,build_block(Contents)}|IncompleteList],
-  Final = lists:reverse(elixir_kv_block:merge(Line, [], List)),
-  {'[:]', Line, Final}.
+  Line = ?line(Delimiter),
+  List = [{do,build_block(Contents)}|IncompleteList],
+  {'[:]', Line, sort_kv(List)}.
 
 %% Args
 % Build args by transforming [:] into the final form []
@@ -474,5 +473,4 @@ build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ '<<>>', Line, Arg
 
 %% Helpers
 
-sort_kv(List) -> lists:sort(fun sort_kv/2, List).
-sort_kv({ A, _ }, { B, _ }) -> A =< B.
+sort_kv(List) -> elixir_kv_block:sort(List).

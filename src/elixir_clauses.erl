@@ -69,7 +69,7 @@ extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Arg
 
 match(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
-  DecoupledClauses = elixir_kv_block:decouple(Clauses, fun(X) -> handle_else(match, Line, X) end),
+  DecoupledClauses = elixir_kv_block:decouple(handle_else(Clauses)),
 
   case DecoupledClauses of
     [DecoupledClause] ->
@@ -139,29 +139,9 @@ match(Line, Clauses, RawS) ->
   end.
 
 % Handle else clauses by moving them under the given Kind.
-handle_else(Kind, Line, Clauses) ->
+handle_else(Clauses) ->
   case orddict:find(else, Clauses) of
-    { ok, Else } ->
-      %% Get else expression from the kv_block and normalize it
-      %% TODO: raise an error for else foo, bar
-      Expr = case Else of
-        { '__kvblock__', _, [{ [Left], nil }] }   -> Left;
-        { '__kvblock__', _, [{ [], Right }] }     -> Right;
-        { '__kvblock__', _, [{ [Left], Right }] } -> prepend_to_block(Line, Left, Right)
-      end,
-
-      TClauses = orddict:erase(else, Clauses),
-      ElseExpr = {[{'_', Line, nil}], Expr},
-
-      FinalClause = case orddict:find(Kind, TClauses) of
-        { ok, KindClause } ->
-          { '__kvblock__', _, KindExprs } = KindClause,
-          setelement(3, KindClause, KindExprs ++ [ElseExpr]);
-        _ ->
-          { '__kvblock__', Line, [ElseExpr] }
-      end,
-
-      orddict:store(Kind, FinalClause, TClauses);
+    { ok, Else } -> orddict:erase(else, Clauses) ++ [{else,Else}];
     _ -> Clauses
   end.
 
@@ -177,6 +157,15 @@ translate_each(Line, { match, _, _ } = Block, S) ->
   elixir_kv_block:validate(Line, Block, 1, S),
   { _, [Condition], Expr } = Block,
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
+
+translate_each(Line, { else, [], Exprs }, S) ->
+  translate_each(Line, { match, [{'_', Line, nil}], Exprs }, S);
+
+translate_each(Line, { else, [Expr], nil }, S) ->
+  translate_each(Line, { match, [{'_', Line, nil}], Expr }, S);
+
+translate_each(Line, { else, [Expr], Other }, S) ->
+  translate_each(Line, { match, [{'_', Line, nil}], prepend_to_block(Line, Expr, Other) }, S);
 
 translate_each(Line, { 'after', _, _ } = Block, S) ->
   elixir_kv_block:validate(Line, Block, 1, S),

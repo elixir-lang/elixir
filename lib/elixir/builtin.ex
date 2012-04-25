@@ -896,19 +896,13 @@ defmodule Elixir.Builtin do
   """
   defmacro if(condition, [{:do,do_clause}|tail]) do
     # Transform the condition and the expressions in the
-    # do_clause to a key-value block. Get the other values
-    # from the tail keyword.
+    # do_clause to a key-value block. Get the else clause.
     if_clause   = { :__kvblock__, 0, [ { [condition], do_clause } ] }
-    else_clause = Keyword.get(tail, :else)
+    else_clause = Keyword.get(tail, :else, nil)
 
-    # Merge if and elsif clauses, as they will all become match clauses.
-    merged =
-      case Keyword.get(tail, :elsif) do
-      match: nil
-        [match: if_clause]
-      match: elsif_clause
-        Erlang.elixir_kv_block.merge([match: if_clause], [match: elsif_clause])
-      end
+    # Convert all :elsif clauses into matches
+    converted   = lc {:elsif,rest} in tail, do: {:match,rest}
+    merged      = [match: if_clause] ++ converted
 
     # Decouple all if and elsif clauses into an array of tuples.
     # Those tuples are made of three elements, the key-block key,
