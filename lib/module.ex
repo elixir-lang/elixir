@@ -71,6 +71,38 @@ defmodule Module do
   end
 
   @doc """
+  Concatenates the list arguments and returns the module
+  name only if the module was already referenced.
+  If the module was not referenced yet, fails with ArgumentError.
+  It handles char lists, binaries and atoms.
+
+  ## Examples
+
+      Module.safe_concat [Unknown, Module]
+      #=> ArgumentError
+
+  """
+  def safe_concat(list) when is_list(list) do
+    Erlang.elixir_ref.safe_concat(list)
+  end
+
+  @doc """
+  Concatenates two arguments and returns the module
+  name only if the module was already referenced.
+  If the module was not referenced yet, fails with ArgumentError.
+  It handles char lists, binaries and atoms.
+
+  ## Examples
+
+      Module.safe_concat Unknown, Module
+      #=> ArgumentError
+
+  """
+  def safe_concat(left, right) do
+    Erlang.elixir_ref.safe_concat([left, right])
+  end
+
+  @doc """
   Checks if the module is compiled or not.
 
   ## Examples

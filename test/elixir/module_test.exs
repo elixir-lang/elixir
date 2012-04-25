@@ -126,6 +126,13 @@ defmodule ModuleTest do
     assert_equal Foo.Bar, Module.concat Foo, 'Bar'
   end
 
+  test :safe_concat do
+    assert_equal Foo.Bar, Module.safe_concat Foo, :Bar
+    assert_raises ArgumentError, fn ->
+      Module.safe_concat SafeConcat, Doesnt.Exist
+    end
+  end
+
   test :defined_functions do
     assert_equal [{:foo, 3}], Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_functions)
     assert_equal [{:foo, 3}], Keyword.get(ModuleTest.DefinedFunctions.__info__(:data), :defined_def)

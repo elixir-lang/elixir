@@ -1,5 +1,5 @@
 -module(elixir_ref).
--export([last/1, concat/1, lookup/2,
+-export([last/1, concat/1, safe_concat/1, lookup/2,
   format_error/1, ensure_loaded/4]).
 -include("elixir.hrl").
 
@@ -36,18 +36,18 @@ last([], Acc) -> Acc.
 %% Receives a list of atoms representing modules
 %% and concatenate them.
 
-concat(Args) ->
-  Refs = [concat_(Arg) || Arg <- Args, Arg /= nil],
-  list_to_atom(lists:concat(['__MAIN__'|Refs])).
+concat(Args) -> list_to_atom(raw_concat(Args)).
+safe_concat(Args) -> list_to_existing_atom(raw_concat(Args)).
 
-concat_(Arg) when is_binary(Arg) -> concat_(binary_to_list(Arg));
-concat_(Arg) when is_atom(Arg) -> concat_(atom_to_list(Arg));
-concat_(Arg) when is_list(Arg) ->
-  case Arg of
-    "__MAIN__" ++ Rest -> Rest;
-    "." ++ _ -> Arg;
-    _ -> "." ++ Arg
-  end.
+raw_concat(Args) ->
+  Refs = [to_partial_ref(Arg) || Arg <- Args, Arg /= nil],
+  [$_, $_, $M, $A, $I, $N, $_, $_ | lists:concat(Refs)].
+
+to_partial_ref(Arg) when is_binary(Arg) -> to_partial_ref(binary_to_list(Arg));
+to_partial_ref(Arg) when is_atom(Arg)   -> to_partial_ref(atom_to_list(Arg));
+to_partial_ref("__MAIN__" ++ Arg)       -> Arg;
+to_partial_ref([$.|_] = Arg)            -> Arg;
+to_partial_ref(Arg) when is_list(Arg)   -> [$.|Arg].
 
 %% Lookup a reference in the current scope
 
