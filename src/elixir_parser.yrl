@@ -335,9 +335,9 @@ stab_eol -> '->' eol : '$1'.
 end_eol -> 'end' : '$1'.
 end_eol -> eol 'end' : '$2'.
 
-kv_item -> kv_identifier comma_expr eol : { ?exprs('$1'), { '__kvblock__', ?line('$1'), [{lists:reverse('$2'),nil}] } }.
+kv_item -> kv_identifier comma_expr eol : { ?exprs('$1'), { '__kvblock__', ?line('$1'), [lists:reverse('$2'),nil] } }.
 kv_item -> kv_identifier eol expr_list eol : { ?exprs('$1'), build_block('$3') }.
-kv_item -> kv_identifier comma_expr eol expr_list eol : { ?exprs('$1'), { '__kvblock__', ?line('$1'), [{lists:reverse('$2'),build_block('$4')}] } }.
+kv_item -> kv_identifier comma_expr eol expr_list eol : { ?exprs('$1'), { '__kvblock__', ?line('$1'), [lists:reverse('$2'),build_block('$4')] } }.
 
 kv_list -> kv_item : ['$1'].
 kv_list -> kv_item kv_list : ['$1'|'$2'].

@@ -44,7 +44,7 @@ translate_each({ '__block__', Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
 
-translate_each({ '__kvblock__', _, [{[Expr],nil}] }, S) ->
+translate_each({ '__kvblock__', _, [[Expr],nil] }, S) ->
   translate_each(Expr, S);
 
 translate_each({ '__kvblock__', Line, Args }, S) when is_list(Args) ->
@@ -310,8 +310,8 @@ translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
 
       %% Add this new variable to all match clauses
       Normalized = elixir_kv_block:normalize(KVFinal),
-      NewMatches = [{ match, { '__kvblock__', BlockLine, [{ [FunVar|Conds], Expr }] } } ||
-        { match, { '__kvblock__', BlockLine, [{ Conds, Expr }] } } <- Normalized],
+      NewMatches = [{ match, { '__kvblock__', BlockLine, [ [FunVar|Conds], Expr ] } } ||
+        { match, { '__kvblock__', BlockLine, [ Conds, Expr ] } } <- Normalized],
 
       %% Generate a function with the match blocks
       Function = { fn, Line, [NewMatches] },

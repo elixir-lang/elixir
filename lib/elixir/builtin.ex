@@ -897,7 +897,7 @@ defmodule Elixir.Builtin do
   defmacro if(condition, [{:do,do_clause}|tail]) do
     # Transform the condition and the expressions in the
     # do_clause to a key-value block. Get the else clause.
-    if_clause   = { :__kvblock__, 0, [ { [condition], do_clause } ] }
+    if_clause   = { :__kvblock__, 0, [ [condition], do_clause ] }
     else_clause = Keyword.get(tail, :else, nil)
 
     # Convert all :elsif clauses into matches

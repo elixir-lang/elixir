@@ -13,18 +13,18 @@ normalize(Line, List) ->
   [{Key,normalize_each(Line, Value)} || {Key,Value} <- List].
 
 normalize_each(_Line, { '__kvblock__', _, _} = Value) -> Value;
-normalize_each(Line, Value) -> { '__kvblock__', Line, [{[],Value}] }.
+normalize_each(Line, Value) -> { '__kvblock__', Line, [[],Value] }.
 
 %% Decouple clauses from kv_blocks
 decouple(List) -> decouple_each(normalize(List)).
-decouple_each([{Key,{'__kvblock__',_,[{K,V}]}}|T]) -> [{Key,K,V}|decouple_each(T)];
+decouple_each([{Key,{'__kvblock__',_,[K,V]}}|T]) -> [{Key,K,V}|decouple_each(T)];
 decouple_each([]) -> [].
 
 %% validate
 validate(Line, {Key,[],_}, Count, S) when Count > 0 ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for ~s", [Key]);
 
-validate(Line, {Key,List,_}=Block, 0, S) when List /= [] ->
+validate(Line, {Key,List,_}, 0, S) when List /= [] ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid conditions for ~s", [Key]);
 
 validate(Line, {Key,List,_}, 1, S) when length(List) > 1 ->
