@@ -72,7 +72,10 @@ defmodule Code do
   automatically adds it for you.
   """
   def load_file(file, relative_to // nil) do
-    load_and_push_file find_file(file, relative_to)
+    file = find_file(file, relative_to)
+    server_call { :loaded, file }
+    Erlang.elixir_compiler.file to_char_list(file)
+    file
   end
 
   @doc """
@@ -85,10 +88,13 @@ defmodule Code do
   """
   def require_file(file, relative_to // nil) do
     file = find_file(file, relative_to)
-    if List.member?(loaded_files, file) do
+
+    case server_call { :loaded, file } do
+    match: :ok
+      Erlang.elixir_compiler.file to_char_list(file)
+      file
+    match: :duplicated
       nil
-    else:
-      load_and_push_file file
     end
   end
 
@@ -139,12 +145,6 @@ defmodule Code do
   end
 
   ## Helpers
-
-  defp load_and_push_file(file) do
-    server_call { :loaded, file }
-    Erlang.elixir_compiler.file to_char_list(file)
-    file
-  end
 
   # Finds the file given the relative_to path.
   # If the file is found, returns its path in binary, fails otherwise.

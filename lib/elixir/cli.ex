@@ -101,6 +101,13 @@ defmodule Elixir.CLI do
     process_shared t, config
   end
 
+  # defp process_shared(['-pr',h|t], config) do
+  #   config = Enum.reduce File.wildcard(h), config, fn(path, config) ->
+  #     config.prepend_commands [{:parallel_require, path}]
+  #   end
+  #   process_shared t, config
+  # end
+
   defp process_shared(list, config) do
     { list, config }
   end

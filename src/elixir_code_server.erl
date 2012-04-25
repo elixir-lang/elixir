@@ -15,9 +15,15 @@ start_link() ->
 init(_args) ->
   process_flag(trap_exit, true),
   { ok, #elixir_code_server{} }.
-  
+
 handle_call({loaded, Path}, _From, Config) ->
-  { reply, ok, Config#elixir_code_server{loaded=[Path|Config#elixir_code_server.loaded]} };
+  Current = Config#elixir_code_server.loaded,
+  case lists:member(Path, Current) of
+    true  ->
+      { reply, duplicated, Config#elixir_code_server{loaded=Current} };
+    false ->
+      { reply, ok, Config#elixir_code_server{loaded=[Path|Current]} }
+  end;
 
 handle_call({at_exit, AtExit}, _From, Config) ->
   { reply, ok, Config#elixir_code_server{at_exit=[AtExit|Config#elixir_code_server.at_exit]} };
