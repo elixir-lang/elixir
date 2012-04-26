@@ -27,19 +27,13 @@ defmodule Enum do
   accept a certain type of argument. For dicts, the argument is always a
   { key, value } tuple.
 
-  You can also use a custom iteration function for any collection by passing it
-  along with the head of iteration:
-
-      current = my_iteration_function.([1,2,3])
-      Enum.map my_iteration_function, current, fun(x, do: x * 2)
-
   ## The protocol
 
   When `Enum.<function>` is invoked without the iteration function, it invokes
   `Enum.Iterator.iterator(collection)` on the given collection in order to
   retrieve the iterator for that collection. Some functions expect the
   collection to define an ordering for its elements. Those functions use
-  `Enum.Iterator.ordered_iterator(collection)` instead. You can implement the
+  `Enum.OrdIterator.ordered_iterator(collection)` instead. You can implement the
   protocol for any data type you wish. Elixir ships with a default iterator for
   lists and dicts.
 
