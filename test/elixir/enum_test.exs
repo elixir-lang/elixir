@@ -245,34 +245,26 @@ defmodule EnumTest.Dict.Common do
       end
 
       test :filter do
-        dict = unquote(module).new ['a', 'b', 'c', 'd'], [1, 2, 3, 4]
-        odd_dict = unquote(module).new ['a', 'c'], [1, 3]
-        even_dict = unquote(module).new ['b', 'd'], [2, 4]
+        dict      = [{'a',1}, {'b',2}, {'c',3}, {'d',4}]
+        odd_dict  = [{'a',1}, {'c',3}]
+        even_dict = [{'b',2}, {'d',4}]
 
-        assert odd_dict == Enum.filter dict, fn({_, v}, do: rem(v, 2) == 1)
-        assert even_dict == Enum.filter dict, fn({_, v}, do: rem(v, 2) == 0)
-        assert dict == Enum.filter dict, fn(x, do: x)
-      end
-
-      test :filter_with_match do
-        dict = unquote(module).new ['a', 'b', 'c', 'd'], [1, 2, 3, 4]
-        dict_2 = unquote(module).new ['a', 'b'], [1, 2]
-
-        assert unquote(module).new({'a', 1}) == Enum.filter dict, match?({_, 1}, &1)
-        assert dict_2 == Enum.filter dict, match?({_, v} when v < 3, &1)
-        assert dict == Enum.filter dict, match?(_, &1)
+        assert Enum.filter(dict, fn({_, v}, do: rem(v, 2) == 1)) == odd_dict
+        assert Enum.filter(dict, fn({_, v}, do: rem(v, 2) == 0)) == even_dict
+        assert Enum.filter(dict, fn(x, do: x)) == dict
       end
 
       test :filter_map do
-        odd_dict = unquote(module).new [a: 1, b: 2, c: 3]
-        even_dict = unquote(module).new [a: 2, b: 4, c: 6]
+        odd_dict  = [a: 1, b: 2, c: 3]
+        even_dict = [a: 2, b: 4, c: 6]
 
-        assert unquote(module).new(b: 4) == Enum.filter_map(odd_dict,
-                                               fn({_, v}, do: rem(v, 2) == 0),
-                                               fn({k, v}, do: { k, v * 2 }))
-        assert unquote(module).new(a: 4, b: 8, c: 12) == Enum.filter_map(even_dict,
-                                                                  fn({_, v}, do: rem(v, 2) == 0),
-                                                                  fn({k, v}, do: { k, v * 2 }))
+        assert Enum.filter_map(odd_dict,
+                 fn({_, v}, do: rem(v, 2) == 0),
+                 fn({k, v}, do: { k, v * 2 })) == [b: 4]
+
+        assert Enum.filter_map(even_dict,
+                 fn({_, v}, do: rem(v, 2) == 0),
+                 fn({k, v}, do: { k, v * 2 })) == [a: 4, b: 8, c: 12]
       end
 
       test :reduce do
@@ -288,25 +280,25 @@ defmodule EnumTest.Dict.Common do
 
       test :map do
         dict = unquote(module).new [a: 1, b: 2, c: 3]
-        double_dict = unquote(module).new [a: 2, b: 4, c: 6]
-        assert double_dict == Enum.map(dict, fn({k, v}) -> { k, v * 2 } end)
-        assert unquote(module).new == Enum.map(unquote(module).new, fn(x) -> x * 2 end)
+        assert Enum.map(dict, fn({k, v}) -> { k, v * 2 } end) == [a: 2, b: 4, c: 6]
+        assert Enum.map(unquote(module).new, fn(x) -> x * 2 end) == []
       end
 
       test :map_reduce do
-        dict = unquote(module).new [a: 1, b: 2, c: 3]
-        double_dict = unquote(module).new [a: 2, b: 4, c: 6]
-        assert { double_dict, 7 } == Enum.map_reduce(dict, 1, fn({k, v}, acc, do: { {k, v * 2}, v + acc }))
-        assert { unquote(module).new, 1 } == Enum.map_reduce(unquote(module).new, 1, fn(x, acc, do: { x * 2, x + acc }))
+        dict = [a: 1, b: 2, c: 3]
+        double_dict = [a: 2, b: 4, c: 6]
+        assert Enum.map_reduce(dict, 1, fn({k, v}, acc, do: { {k, v * 2}, v + acc })) == { double_dict, 7 }
+        assert Enum.map_reduce(unquote(module).new, 1, fn(x, acc, do: { x * 2, x + acc })) == { [], 1 }
       end
 
       test :partition do
-        dict = unquote(module).new [:a, :b, :c, :d, :e, :f, :g], [1, 2, 3, 4, 5, 6, 7]
-        below_4 = unquote(module).new [{:a, 1}, {:b, 2}, {:c, 3}]
-        above_4 = unquote(module).new [{:d, 4}, {:e, 5}, {:f, 6}, {:g, 7}]
+        all     = [a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7]
+        below_4 = [a: 1, b: 2, c: 3]
+        above_4 = [d: 4, e: 5, f: 6, g: 7]
+        dict    = unquote(module).new all
 
         assert { below_4, above_4 } == Enum.partition(dict, fn({_k, v}, do: v < 4))
-        assert { dict, unquote(module).new } == Enum.partition(dict, fn({_k, v}, do: v < 10))
+        assert { all, [] } == Enum.partition(dict, fn({_k, v}, do: v < 10))
       end
     end
   end
@@ -365,20 +357,19 @@ defmodule EnumTest.Orddict do
 
   test :drop do
     dict = Orddict.new [:a, :b, :c], [1, 2, 3]
-    short_dict = Orddict.new {:c, 3}
-    assert short_dict == Enum.drop dict, 2
-    assert Orddict.new == Enum.drop dict, 3
-    assert Orddict.new == Enum.drop dict, 4
+    assert Enum.drop(dict, 2) == [c: 3]
+    assert Enum.drop(dict, 3) == []
+    assert Enum.drop(dict, 4) == []
   end
 
   test :drop_while do
     dict = Orddict.new [:a, :b, :c], [1, 2, 3]
-    short_dict = Orddict.new {:c, 3}
-    assert short_dict == Enum.drop_while dict, fn({_k, v}, do: v < 3)
+    assert Enum.drop_while(dict, fn({_k, v}, do: v < 3)) == [c: 3]
   end
 
   test :join do
     dict = Orddict.new [:a, :b, :c], [1, 2, 3]
+
     assert_raise UndefinedFunctionError, fn ->
       Enum.join dict, ","
     end
@@ -389,33 +380,29 @@ defmodule EnumTest.Orddict do
 
   test :split do
     dict = Orddict.new [:a, :b, :c], [1,2,3]
-    assert { Orddict.new([a: 1]), Orddict.new([b: 2, c: 3]) } == Enum.split dict, 1
-    assert { Orddict.new(), Orddict.new([a: 1, b: 2, c: 3]) } == Enum.split dict, 0
-    assert { Orddict.new([a: 1, b: 2, c: 3]), Orddict.new() } == Enum.split dict, 3
-    assert { Orddict.new([a: 1, b: 2, c: 3]), Orddict.new() } == Enum.split dict, 4
+    assert Enum.split(dict, 1) == { [a: 1], [b: 2, c: 3] }
+    assert Enum.split(dict, 0) == { [], [a: 1, b: 2, c: 3] }
+    assert Enum.split(dict, 3) == { [a: 1, b: 2, c: 3], [] }
+    assert Enum.split(dict, 4) == { [a: 1, b: 2, c: 3], [] }
   end
 
   test :split_with do
     dict = Orddict.new [:a, :b, :c, :d], [1, 3, 2, 4]
-    odd_dict = Orddict.new [:a, :b], [1, 3]
-    even_dict = Orddict.new [:c, :d], [2, 4]
-    assert { odd_dict, even_dict } == Enum.split_with dict, fn({_k, v}, do: rem(v, 2) == 0)
+    assert Enum.split_with(dict, fn({_k, v}, do: rem(v, 2) == 0)) == { [a: 1, b: 3], [c: 2, d: 4] }
   end
 
   test :take do
-    dict = Orddict.new [:a, :b, :c, :d], [1, 3, 2, 4]
-    short_dict = Orddict.new [:a, :b], [1, 3]
-    assert short_dict == Enum.take dict, 2
-    assert Orddict.new == Enum.take dict, 0
-    assert dict == Enum.take dict, 4
-    assert dict == Enum.take dict, 5
+    dict = Orddict.new [a: 1, b: 2, c: 3, d: 4]
+    assert Enum.take(dict, 2) == [a: 1, b: 2]
+    assert Enum.take(dict, 0) == []
+    assert Enum.take(dict, 4) == [a: 1, b: 2, c: 3, d: 4]
+    assert Enum.take(dict, 5) == [a: 1, b: 2, c: 3, d: 4]
   end
 
   test :take_while do
     dict = Orddict.new [:a, :b, :c, :d], [1, 3, 2, 4]
-    short_dict = Orddict.new [:a, :b], [1, 3]
-    assert short_dict == Enum.take_while dict, fn({_k, v}, do: rem(v, 2) == 1)
-    assert dict == Enum.take_while dict, fn({_k, v}, do: v < 10)
-    assert Orddict.new == Enum.take_while dict, fn({_k, v}, do: v < 1)
+    assert Enum.take_while(dict, fn({_k, v}, do: rem(v, 2) == 1)) == [a: 1, b: 3]
+    assert Enum.take_while(dict, fn({_k, v}, do: v < 10)) == [a: 1, b: 3, c: 2, d: 4]
+    assert Enum.take_while(dict, fn({_k, v}, do: v < 1)) == []
   end
 end
