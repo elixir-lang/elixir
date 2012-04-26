@@ -62,11 +62,15 @@ translate_macro({'case', Line, [Expr, RawClauses]}, S) ->
 %% Try
 
 translate_macro({'try', Line, [Clauses]}, RawS) ->
-  Do    = proplists:get_value('do', Clauses, []),
-  Catch = orddict:erase('after', orddict:erase('do', Clauses)),
-  S     = RawS#elixir_scope{noname=true},
+  S  = RawS#elixir_scope{noname=true},
 
+  Do = proplists:get_value('do', Clauses, []),
   { TDo, SB } = translate([Do], S),
+
+  % Match = [Tuple || { X, _ } = Tuple <- Clauses, X == 'match' orelse X == 'else'],
+  % { TMatch, SM } = elixir_clauses:simple_match(Line, Match, umergec(S, SB)),
+
+  Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
   { TCatch, SC } = elixir_try:clauses(Line, Catch, umergec(S, SB)),
 
   { TAfter, SA } = case orddict:find('after', Clauses) of

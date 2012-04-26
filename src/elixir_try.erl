@@ -1,6 +1,5 @@
 -module(elixir_try).
 -export([clauses/3]).
--import(elixir_translator, [translate/2, translate_each/2]).
 -import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
 
@@ -93,7 +92,7 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
       { Left, nil };
     _ when is_list(Right), Right /= [] ->
       { _, Refs } = lists:partition(fun(X) -> is_var(X) end, Right),
-      { TRefs, _ } = translate(Refs, S),
+      { TRefs, _ } = elixir_translator:translate(Refs, S),
       case lists:all(fun(X) -> is_tuple(X) andalso element(1, X) == atom end, TRefs) of
         true -> { Left, Right };
         false -> normalize_rescue(Line, nil, S)
@@ -170,7 +169,7 @@ rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
   rescue_each_ref(Line, Var, T, [exception_compare(Line, Var, H)|Elixir], Erlang, Safe, S);
 
 rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, Safe, S) ->
-  case translate_each(H, S) of
+  case elixir_translator:translate_each(H, S) of
     { { atom, _, Atom }, _ } ->
       rescue_each_ref(Line, Var, [Atom|T], Elixir, Erlang, Safe, S);
     _ ->

@@ -713,10 +713,11 @@ defmodule Elixir.Builtin do
 
   ## Rescue clauses
 
-  While `catch` is simply a pattern matching mechanism, rescue
-  provides a higher abstraction around exceptions that allows
-  one to rescue an exception by its name and not by its internal
-  contents. All the following formats are valid rescue expressions:
+  While `catch` is simply a pattern matching mechanism for thrown
+  values, rescue provides a higher abstraction around exceptions
+  that allows one to rescue an exception by its name and not by
+  its internal contents. All the following formats are valid
+  rescue expressions:
 
       try do
         UndefinedModule.undefined_function

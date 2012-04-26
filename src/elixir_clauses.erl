@@ -2,7 +2,7 @@
 %% clauses for receive/case/fn and friends. try is
 %% handled in elixir_try.
 -module(elixir_clauses).
--export([match/3, assigns/3, assigns_block/5, assigns_block/6,
+-export([match/3, simple_match/3, assigns/3, assigns_block/5, assigns_block/6,
   extract_args/1, extract_guards/1, extract_guard_clauses/1, extract_last_guards/1]).
 -import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
@@ -65,6 +65,11 @@ extract_args({ { '.', _, [Name] }, _, Args }) when is_atom(Name), is_list(Args) 
 extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] };
 extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args }.
 
+simple_match(Line, Clauses, S) ->
+  Decoupled = elixir_kv_block:decouple(handle_else(Clauses)),
+  Transformer = fun(X, Acc) -> each_clause(Line, X, umergec(S, Acc)) end,
+  lists:mapfoldl(Transformer, S, Decoupled).
+
 % Function for translating macros with match style like case and receive.
 
 match(Line, Clauses, RawS) ->
@@ -73,13 +78,13 @@ match(Line, Clauses, RawS) ->
 
   case DecoupledClauses of
     [DecoupledClause] ->
-      { TDecoupledClause, TS } = translate_each(Line, DecoupledClause, S),
+      { TDecoupledClause, TS } = each_clause(Line, DecoupledClause, S),
       { [TDecoupledClause], TS };
     _ ->
       % Transform tree just passing the variables counter forward
       % and storing variables defined inside each clause.
       Transformer = fun(X, {Acc, CV}) ->
-        { TX, TAcc } = translate_each(Line, X, Acc),
+        { TX, TAcc } = each_clause(Line, X, Acc),
         { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
       end,
 
@@ -148,33 +153,33 @@ handle_else(Clauses) ->
 % Handle each key/value clause pair and translate them accordingly.
 
 % Do clauses have no conditions. So we are done.
-translate_each(Line, { do, _, _ } = Block, S) ->
+each_clause(Line, { do, _, _ } = Block, S) ->
   elixir_kv_block:validate(Line, Block, 0, S),
   { _, [], Expr } = Block,
   elixir_translator:translate_each(Expr, S);
 
-translate_each(Line, { match, _, _ } = Block, S) ->
+each_clause(Line, { match, _, _ } = Block, S) ->
   elixir_kv_block:validate(Line, Block, 1, S),
   { _, [Condition], Expr } = Block,
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
-translate_each(Line, { else, [], Exprs }, S) ->
-  translate_each(Line, { match, [{'_', Line, nil}], Exprs }, S);
+each_clause(Line, { else, [], Exprs }, S) ->
+  each_clause(Line, { match, [{'_', Line, nil}], Exprs }, S);
 
-translate_each(Line, { else, [Expr], nil }, S) ->
-  translate_each(Line, { match, [{'_', Line, nil}], Expr }, S);
+each_clause(Line, { else, [Expr], nil }, S) ->
+  each_clause(Line, { match, [{'_', Line, nil}], Expr }, S);
 
-translate_each(Line, { else, [Expr], Other }, S) ->
-  translate_each(Line, { match, [{'_', Line, nil}], prepend_to_block(Line, Expr, Other) }, S);
+each_clause(Line, { else, [Expr], Other }, S) ->
+  each_clause(Line, { match, [{'_', Line, nil}], prepend_to_block(Line, Expr, Other) }, S);
 
-translate_each(Line, { 'after', _, _ } = Block, S) ->
+each_clause(Line, { 'after', _, _ } = Block, S) ->
   elixir_kv_block:validate(Line, Block, 1, S),
   { _, [Condition], Expr } = Block,
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TBody, SB } = elixir_translator:translate([Expr], SC),
   { { clause, Line, [TCondition], [], TBody }, SB };
 
-translate_each(Line, {Key,_,_}, S) ->
+each_clause(Line, {Key,_,_}, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key ~s", [Key]).
 
 % Check if the given expression is a match tuple.

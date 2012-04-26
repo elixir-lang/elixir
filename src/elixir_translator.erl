@@ -262,7 +262,7 @@ translate_each({quote, _Line, [[{do,Exprs}|T]]}, S) ->
     _ -> true
   end,
 
-  elixir_quote:translate_each(Exprs, #elixir_quote{marker=Marker, line=Line, unquote=Unquote}, S);
+  elixir_quote:quote(Exprs, #elixir_quote{marker=Marker, line=Line, unquote=Unquote}, S);
 
 translate_each({quote, Line, [_]}, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for quote");
