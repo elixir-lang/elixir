@@ -353,9 +353,9 @@ defmodule EnumTest.HashDict do
   end
 
   test :take_while do
-    assert_raise ArgumentError, fn ->
+    #assert_raise ArgumentError, fn ->
       Enum.take_while HashDict.new, fn(x, do: x)
-    end
+      #end
   end
 end
 
