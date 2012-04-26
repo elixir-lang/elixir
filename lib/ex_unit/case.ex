@@ -28,7 +28,7 @@ defmodule ExUnit.Case do
   # ## Examples
   #
   #     test "true is equal to true" do
-  #       assert_equal true, true
+  #       assert true == true
   #     end
   #
   defmacro test(message, contents) do

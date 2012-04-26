@@ -15,10 +15,10 @@ defmodule Kernel.DocTest do
       Elixir.ParallelCompiler.files_to_path([path], tmp)
       Code.prepend_path(tmp)
 
-      assert_equal [], CompiledWithDocs.__info__(:data)
+      assert CompiledWithDocs.__info__(:data) == []
       expected = [{{:example,1},5,:def,"Some example"},{{:nodoc,0},8,:def,nil}]
-      assert_equal expected, CompiledWithDocs.__info__(:docs)
-      assert_equal { 1, "moduledoc" }, CompiledWithDocs.__info__(:moduledoc)
+      assert CompiledWithDocs.__info__(:docs) == expected
+      assert CompiledWithDocs.__info__(:moduledoc) == { 1, "moduledoc" }
     after:
       Code.compiler_options(docs: false)
       :os.cmd('rm -rf #{tmp}')
@@ -26,7 +26,7 @@ defmodule Kernel.DocTest do
   end
 
   test :compiled_no_docs do
-    assert_equal nil, __MODULE__.__info__(:docs)
-    assert_equal nil, __MODULE__.__info__(:moduledoc)
+    assert __MODULE__.__info__(:docs) == nil
+    assert __MODULE__.__info__(:moduledoc) == nil
   end
 end

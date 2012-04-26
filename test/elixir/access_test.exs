@@ -6,29 +6,29 @@ defmodule Access.TupleTest do
   defrecord Config, other: { :a, :b, :c }
 
   test :literal do
-    assert_equal :a, { :a, :b, :c }[1]
-    assert_equal :a, Config.new.other[1]
+    assert { :a, :b, :c }[1] == :a
+    assert Config.new.other[1] == :a
   end
 
   test :positive_integer do
     tuple = { :a, :b, :c }
-    assert_equal nil, tuple[0]
-    assert_equal :a, tuple[1]
-    assert_equal :b, tuple[2]
-    assert_equal :c, tuple[3]
-    assert_equal nil, tuple[4]
+    assert tuple[0] == nil
+    assert tuple[1] == :a
+    assert tuple[2] == :b
+    assert tuple[3] == :c
+    assert tuple[4] == nil
   end
 
   test :negative_integer do
     tuple = { :a, :b, :c }
-    assert_equal nil, tuple[-4]
-    assert_equal :a, tuple[-3]
-    assert_equal :b, tuple[-2]
-    assert_equal :c, tuple[-1]
+    assert tuple[-4] == nil
+    assert tuple[-3] == :a
+    assert tuple[-2] == :b
+    assert tuple[-1] == :c
   end
 
   test :access do
-    assert_equal :c, Tuple.access({ :a, :b, :c }, -1)
+    assert Tuple.access({ :a, :b, :c }, -1) == :c
   end
 end
 
@@ -36,23 +36,23 @@ defmodule Access.ListTest do
   use ExUnit.Case
 
   test :literal do
-    assert_equal 'a', 'abc'[%r(a)]
+    assert 'abc'[%r(a)] == 'a'
   end
 
   test :regex do
     list = 'abc'
-    assert_equal 'b', list[%r(b)]
-    assert_equal nil, list[%r(d)]
+    assert list[%r(b)] == 'b'
+    assert list[%r(d)] == nil
   end
 
   test :atom do
     list = [foo: "bar"]
-    assert_equal "bar", list[:foo]
-    assert_equal nil, list[:bar]
+    assert list[:foo] == "bar"
+    assert list[:bar] == nil
   end
 
   test :access do
-    assert_equal :bar, List.access([foo: :bar ], :foo)
+    assert List.access([foo: :bar ], :foo) == :bar
   end
 end
 
@@ -60,17 +60,17 @@ defmodule Access.BinaryTest do
   use ExUnit.Case
 
   test :literal do
-    assert_equal "a", "abc"[%r(a)]
+    assert "abc"[%r(a)] == "a"
   end
 
   test :regex do
     binary = "abc"
-    assert_equal "b", binary[%r(b)]
-    assert_equal nil, binary[%r(d)]
+    assert binary[%r(b)] == "b"
+    assert binary[%r(d)] == nil
   end
 
   test :access do
-    assert_equal "a", Binary.access("abc", %r"a")
+    assert Binary.access("abc", %r"a") == "a"
   end
 end
 
@@ -80,24 +80,24 @@ defmodule Access.AtomTest do
   defrecord Config, integer: 0
 
   test :keywords do
-    assert_equal { Config, 0 }, Config[]
-    assert_equal { Config, 1 }, Config[integer: 1]
+    assert Config[] == { Config, 0 }
+    assert Config[integer: 1] == { Config, 1 }
   end
 
   test :in_guard_with_variable do
-    assert_equal 0, get_var(Config.new)
-    assert_equal 1, get_var(Config.new(integer: 1))
+    assert get_var(Config.new) == 0
+    assert get_var(Config.new(integer: 1)) == 1
   end
 
   test :in_guard_with_record_match do
-    assert_equal true, is_config(Config.new)
-    assert_equal false, is_config({ Access.AtomTest, 1 })
-    assert_equal false, is_config({ Config, 1, 2 })
+    assert is_config(Config.new) == true
+    assert is_config({ Access.AtomTest, 1 }) == false
+    assert is_config({ Config, 1, 2 }) == false
   end
 
   test :in_guard_with_field_match do
-    assert_equal true, is_zero(Config.new)
-    assert_equal false, is_zero(Config.new(integer: 1))
+    assert is_zero(Config.new) == true
+    assert is_zero(Config.new(integer: 1)) == false
   end
 
   test :match do
@@ -110,7 +110,7 @@ defmodule Access.AtomTest do
   end
 
   defp is_zero(Config[integer: 0]), do: true
-  defp is_zero(Config[integer: _]), do: false
+  defp is_zero(Config[integer: _]),  do: false
 
   defp is_config(Config[]), do: true
   defp is_config(_), do: false
@@ -121,7 +121,7 @@ defmodule Access.FunctionTest do
 
   test :any do
     function = fn(x) -> x == :foo end
-    assert_equal true, function[:foo]
-    assert_equal false, function[:bar]
+    assert function[:foo] == true
+    assert function[:bar] == false
   end
 end

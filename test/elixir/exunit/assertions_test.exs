@@ -64,22 +64,6 @@ defmodule ExUnit.AssertionsTest do
     "no match of right hand side value: {2,1}" = error.message
   end
 
-  test :assert_equal_when_equal do
-    true = assert_equal(0, 0)
-  end
-
-  test :assert_equal_when_different do
-    "This should never be tested" = assert_equal(0, 1)
-  rescue: error in [ExUnit.AssertionError]
-    "Expected 1 to be equal to 0" = error.message
-  end
-
-  test :assert_equal_with_message_when_different do
-    "This should never be tested" = assert_equal(0, 1, "This should be equal")
-  rescue: error in [ExUnit.AssertionError]
-    "This should be equal" = error.message
-  end
-
   test :assert_member_when_is_member do
     true = assert_member('foo', ['foo', 'bar'])
   end
@@ -221,16 +205,6 @@ defmodule ExUnit.AssertionsTest do
     "This should never be tested" = assert_empty [1, 2], "test message"
   rescue: error in [ExUnit.AssertionError]
     "test message" = error.message
-  end
-
-  test :refute_equal_when_equal do
-    "This should never be tested" = refute_equal(1, 1)
-  rescue: error in [ExUnit.AssertionError]
-    "Expected 1 to not be equal to 1" = error.message
-  end
-
-  test :refute_equal_when_different do
-    false = refute_equal(0, 1)
   end
 
   test :refute_empty_when_not_empty do

@@ -4,40 +4,40 @@ defmodule ListTest do
   use ExUnit.Case
 
   test :brackets_function do
-    assert_equal [1,2,3], :[].(1,2,3)
+    assert :[].(1,2,3) == [1,2,3]
   end
 
   test :wrap do
-    assert_equal [1,2,3], List.wrap [1,2,3]
-    assert_equal [1], List.wrap 1
-    assert_equal [], List.wrap nil
+    assert List.wrap([1,2,3]) == [1,2,3]
+    assert List.wrap(1) == [1]
+    assert List.wrap(nil) == []
   end
 
   test :flatten do
-    assert_equal [1,2,3], List.flatten([1,2,3])
-    assert_equal [1,2,3], List.flatten([1,[2],3])
-    assert_equal [1,2,3], List.flatten([[1,[2],3]])
+    assert List.flatten([1,2,3]) == [1,2,3]
+    assert List.flatten([1,[2],3]) == [1,2,3]
+    assert List.flatten([[1,[2],3]]) == [1,2,3]
 
-    assert_equal [], List.flatten([])
-    assert_equal [], List.flatten([[]])
+    assert List.flatten([]) == []
+    assert List.flatten([[]]) == []
   end
 
   test :flatten_with_tail do
-    assert_equal [1,2,3,4,5], List.flatten([1,2,3], [4,5])
-    assert_equal [1,2,3,4,5], List.flatten([1,[2],3], [4,5])
-    assert_equal [1,2,3,4,5], List.flatten([[1,[2],3]], [4,5])
+    assert List.flatten([1,2,3], [4,5]) == [1,2,3,4,5]
+    assert List.flatten([1,[2],3], [4,5]) == [1,2,3,4,5]
+    assert List.flatten([[1,[2],3]], [4,5]) == [1,2,3,4,5]
   end
 
   test :foldl do
-    assert_equal 6, List.foldl([1,2,3], 0, fn(x,y) -> x + y end)
-    assert_equal 16, List.foldl([1,2,3], 10, fn(x,y) -> x + y end)
-    assert_equal 2, List.foldl([1,2,3,4], 0, fn(x,y) -> x - y end)
+    assert List.foldl([1,2,3], 0, fn(x,y) -> x + y end) == 6
+    assert List.foldl([1,2,3], 10, fn(x,y) -> x + y end) == 16
+    assert List.foldl([1,2,3,4], 0, fn(x,y) -> x - y end) == 2
   end
 
   test :foldr do
-    assert_equal 6, List.foldr([1,2,3], 0, fn(x,y) -> x + y end)
-    assert_equal 16, List.foldr([1,2,3], 10, fn(x,y) -> x + y end)
-    assert_equal -2, List.foldr([1,2,3,4], 0, fn(x,y) -> x - y end)
+    assert List.foldr([1,2,3], 0, fn(x,y) -> x + y end) == 6
+    assert List.foldr([1,2,3], 10, fn(x,y) -> x + y end) == 16
+    assert List.foldr([1,2,3,4], 0, fn(x,y) -> x - y end) == -2
   end
 
   def test_member? do
@@ -47,23 +47,23 @@ defmodule ListTest do
   end
 
   test :range do
-    assert_equal [1,2,3], List.range(1,3)
-    assert_equal [1], List.range(1, 1)
-    assert_equal [5,4,3,2,1,0], List.range(5, 0)
-    assert_equal [1,0], List.range(1, 0, -1)
-    assert_equal [1,3,5,7], List.range(1,8,2)
-    assert_equal [7,4,1], List.range(7,-1,-3)
-    assert_equal [], List.range(2,1,1)
-    assert_equal [], List.range(8,1,1)
-    assert_equal [], List.range(1,8,-1)
-    assert_equal [], List.range(1,1,-1)
+    assert List.range(1,3) == [1,2,3]
+    assert List.range(1, 1) == [1]
+    assert List.range(5, 0) == [5,4,3,2,1,0]
+    assert List.range(1, 0, -1) == [1,0]
+    assert List.range(1,8,2) == [1,3,5,7]
+    assert List.range(7,-1,-3) == [7,4,1]
+    assert List.range(2,1,1) == []
+    assert List.range(8,1,1) == []
+    assert List.range(1,8,-1) == []
+    assert List.range(1,1,-1) == []
   end
 
   test :sort do
-    assert_equal [1,2,3,4,5], List.sort [3, 5, 1, 2, 4]
-    assert_equal [5,4,3,2,1], List.sort [3, 5, 1, 2, 4], &2 <= &1
-    assert_equal ['0', '10', '11', '2', '3'], List.sort ['2', '3', '0', '11', '10']
-    assert_equal ['0', '2', '3', '10', '11'], List.sort ['2', '3', '0', '11', '10'], fn(a, b) ->
+    assert List.sort([3, 5, 1, 2, 4]) == [1,2,3,4,5]
+    assert List.sort([3, 5, 1, 2, 4], &2 <= &1) == [5,4,3,2,1]
+    assert List.sort(['2', '3', '0', '11', '10']) == ['0', '10', '11', '2', '3']
+    assert ['0', '2', '3', '10', '11'] == List.sort ['2', '3', '0', '11', '10'], fn(a, b) ->
       {na, _} = :string.to_integer a
       {nb, _} = :string.to_integer b
       na <= nb
@@ -71,68 +71,68 @@ defmodule ListTest do
   end
 
   test :prepend do
-    assert_equal [0,1,2,3], List.prepend [1,0], [2,3]
+    assert List.prepend([1,0], [2,3]) == [0,1,2,3]
   end
 
   test :concat_1 do
-    assert_equal [1,[2],3,4,5,6], List.concat [[1,[2],3], [4], [5,6]]
+    assert List.concat([[1,[2],3], [4], [5,6]]) == [1,[2],3,4,5,6]
   end
 
   test :concat_2 do
-    assert_equal [1,[2],3,4,5], List.concat [1,[2],3], [4,5]
+    assert List.concat([1,[2],3], [4,5]) == [1,[2],3,4,5]
   end
 
   test :reverse do
-    assert_equal [3,2,1], List.reverse [1,2,3]
+    assert List.reverse([1,2,3]) == [3,2,1]
   end
 
   test :uniq do
-    assert_equal [1,2,3], List.uniq [1,2,3,2,1]
+    assert List.uniq([1,2,3,2,1]) == [1,2,3]
   end
 
   test :duplicate do
-    assert_equal [1,1,1], List.duplicate 1, 3
-    assert_equal [[1]], List.duplicate [1], 1
+    assert List.duplicate(1, 3) == [1,1,1]
+    assert List.duplicate([1], 1) == [[1]]
   end
 
   test :find_index do
-    assert_equal nil, List.find_index([], 'a')
-    assert_equal nil, List.find_index(['a'], 'b')
-    assert_equal 1, List.find_index(['a'], 'a')
-    assert_equal 4, List.find_index([1,2,4,3], 3)
+    assert List.find_index([], 'a') == nil
+    assert List.find_index(['a'], 'b') == nil
+    assert List.find_index(['a'], 'a') == 1
+    assert List.find_index([1,2,4,3], 3) == 4
   end
 
   test :last do
-    assert_equal nil, List.last []
-    assert_equal 1, List.last [1]
-    assert_equal 3, List.last [1, 2, 3]
+    assert List.last([]) == nil
+    assert List.last([1]) == 1
+    assert List.last([1, 2, 3]) == 3
   end
 
   test :zip do
-    assert_equal [{:a, 1}, {:b, 2}], List.zip [:a, :b], [1, 2]
-    assert_equal [{:a, 1}, {:b, 2}], List.zip [:a, :b], [1, 2, 3, 4]
-    assert_equal [{:a, 1}, {:b, 2}], List.zip [:a, :b, :c, :d], [1, 2]
-    assert_equal [], List.zip [], [1]
-    assert_equal [], List.zip [1], []
-    assert_equal [], List.zip [], []
+    assert List.zip([:a, :b], [1, 2]) == [{:a, 1}, {:b, 2}]
+    assert List.zip([:a, :b], [1, 2, 3, 4]) == [{:a, 1}, {:b, 2}]
+    assert List.zip([:a, :b, :c, :d], [1, 2]) == [{:a, 1}, {:b, 2}]
+    assert List.zip([], [1]) == []
+    assert List.zip([1], []) == []
+    assert List.zip([], []) == []
   end
 
   test :zip_tuples do
-    assert_equal [{:a, 1}, {:b, 2}], List.zip {:a, :b}, {1, 2}
-    assert_equal [{:a, 1}, {:b, 2}], List.zip [:a, :b], {1, 2}
-    assert_equal [{:a, 1}, {:b, 2}], List.zip {:a, :b}, [1, 2]
+    assert List.zip({:a, :b}, {1, 2}) == [{:a, 1}, {:b, 2}]
+    assert List.zip([:a, :b], {1, 2}) == [{:a, 1}, {:b, 2}]
+    assert List.zip({:a, :b}, [1, 2]) == [{:a, 1}, {:b, 2}]
   end
 
   test :zip_lists do
-    assert_equal [{1, 2, 3}, {4, 5, 6}], List.zip [[1, 4], [2, 5], [3, 6]]
-    assert_equal [{1, 2, 3}, {4, 5, 6}], List.zip [[1, 4], [2, 5, 0], [3, 6]]
-    assert_equal [{1, 2, 3}], List.zip [[1], [2, 5], [3, 6]]
-    assert_equal [], List.zip [[1, 4], [2, 5], []]
+    assert List.zip([[1, 4], [2, 5], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
+    assert List.zip([[1, 4], [2, 5, 0], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
+    assert List.zip([[1], [2, 5], [3, 6]]) == [{1, 2, 3}]
+    assert List.zip([[1, 4], [2, 5], []]) == []
   end
 
   test :unzip do
-    assert_equal [[1, 4], [2, 5], [3, 6]], List.unzip [{1, 2, 3}, {4, 5, 6}]
-    assert_equal [[1, 4], [2, 5]], List.unzip [{1, 2, 3}, {4, 5}]
-    assert_equal [[1, 4], [2, 5]], List.unzip [[1, 2, 3], [4, 5]]
+    assert List.unzip([{1, 2, 3}, {4, 5, 6}]) == [[1, 4], [2, 5], [3, 6]]
+    assert List.unzip([{1, 2, 3}, {4, 5}]) == [[1, 4], [2, 5]]
+    assert List.unzip([[1, 2, 3], [4, 5]]) == [[1, 4], [2, 5]]
   end
 end
