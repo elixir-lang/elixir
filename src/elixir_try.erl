@@ -1,6 +1,3 @@
-%% Handle code related to match/after/else and guard
-%% clauses for receive/case/fn and friends. try is
-%% handled in elixir_try.
 -module(elixir_try).
 -export([clauses/3]).
 -import(elixir_translator, [translate/2, translate_each/2]).
@@ -142,18 +139,18 @@ rescue_each_var(Line, ClauseVar, Guards) ->
     true  -> { [], [] };
     false ->
       Elixir = [exception_compare(Line, ClauseVar, Var) || Var <- Vars],
-      Erlang = lists:map(fun(Rescues) ->
-        Compares = [{ '==', Line, [Rescue, Var] } || Var <- Vars, Rescue <- Rescues],
+      Erlang = lists:map(fun(Rescue) ->
+        Compares = [{ '==', Line, [Rescue, Var] } || Var <- Vars],
         { 'and', Line, [
-          join(Line, 'or', Compares),
-          erlang_rescue_guard_for(Line, ClauseVar, Rescues)
+          erlang_rescue_guard_for(Line, ClauseVar, Rescue),
+          join(Line, 'or', Compares)
         ] }
       end, erlang_rescues()),
       { Elixir, Erlang }
   end.
 
 %% Rescue each reference considering their Erlang or Elixir matches.
-%% Matching of variables is done separatewith Erlang exceptions is done in another
+%% Matching of variables is done with Erlang exceptions is done in another
 %% method for optimization.
 
 %% Ignore variables
@@ -187,10 +184,9 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
 
 erlang_rescues() ->
   [
-    ['__MAIN__.UndefinedFunctionError', '__MAIN__.ArgumentError', '__MAIN__.ArithmeticError', '__MAIN__.BadArityError',
-     '__MAIN__.BadFunctionError', '__MAIN__.MatchError', '__MAIN__.CaseClauseError', '__MAIN__.FunctionClauseError',
-     '__MAIN__.SystemLimitError'],
-    ['__MAIN__.ErlangError']
+    '__MAIN__.UndefinedFunctionError', '__MAIN__.ArgumentError', '__MAIN__.ArithmeticError', '__MAIN__.BadArityError',
+    '__MAIN__.BadFunctionError', '__MAIN__.MatchError', '__MAIN__.CaseClauseError', '__MAIN__.FunctionClauseError',
+    '__MAIN__.SystemLimitError', '__MAIN__.ErlangError'
   ].
 
 erlang_rescue_guard_for(Line, Var, List) when is_list(List) ->

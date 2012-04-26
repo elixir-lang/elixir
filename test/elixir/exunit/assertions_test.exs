@@ -146,10 +146,10 @@ defmodule ExUnit.AssertionsTest do
 
   test :assert_raise_when_other_error do
     "This should never be tested" = assert_raise ArgumentError, fn ->
-      raise MatchError, message: "test error"
+      Certainly.Undefined.function(1,2,3)
     end
   rescue: error in [ExUnit.AssertionError]
-    "Expected exception ArgumentError, got MatchError" = error.message
+    "Expected exception ArgumentError, got UndefinedFunctionError" = error.message
   end
 
   test :assert_raise_when_erlang_error do

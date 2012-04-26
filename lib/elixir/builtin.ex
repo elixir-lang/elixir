@@ -951,7 +951,8 @@ defmodule Elixir.Builtin do
       destructure [^x,y,z], [1,2,3]
 
   The example above will only work if x matches
-  the first value from the right side.
+  the first value from the right side. Otherwise,
+  it will raise a CaseClauseError.
   """
   defmacro destructure(left, right) when is_list(left) do
     List.foldl left, right, fn(item, acc) ->

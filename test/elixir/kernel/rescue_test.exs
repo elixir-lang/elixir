@@ -59,6 +59,20 @@ defmodule Kernel.RescueTest do
     assert result == "an exception"
   end
 
+  test :rescue_argument_error_and_undefined_function_error do
+    named = ArgumentError
+
+    result = try do
+      Certainly.Undefined.function(1,2,3)
+    rescue: x in [named]
+      x.message
+    catch: :error, _
+      "didn't catch it"
+    end
+
+    assert result == "didn't catch it"
+  end
+
   test :rescue_named_with_underscore do
     result = try do
       raise "an exception"

@@ -183,7 +183,7 @@ defmodule ExUnit.Assertions do
   """
   def assert_raise(exception, expected_message, function) do
     error = assert_raise(exception, function)
-    assert expected_message == error.message
+    assert error.message == expected_message
   end
 
   @doc """
