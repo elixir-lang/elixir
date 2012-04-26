@@ -317,43 +317,43 @@ defmodule EnumTest.HashDict do
   EnumTest.Dict.Common.__using__(HashDict)
 
   test :drop do
-    assert_raises ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       Enum.drop HashDict.new, 5
     end
   end
 
   test :drop_while do
-    assert_raises ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       Enum.drop_while HashDict.new, fn(x, do: x)
     end
   end
 
   test :join do
-    assert_raises ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       Enum.join HashDict.new, ""
     end
   end
 
   test :split do
-    assert_raises ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       Enum.split HashDict.new, 5
     end
   end
 
   test :split_with do
-    assert_raises ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       Enum.split_with HashDict.new, fn(x, do: x)
     end
   end
 
   test :take do
-    assert_raises ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       Enum.take HashDict.new, 5
     end
   end
 
   test :take_while do
-    assert_raises ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       Enum.take_while HashDict.new, fn(x, do: x)
     end
   end
@@ -379,16 +379,16 @@ defmodule EnumTest.Orddict do
 
   test :join do
     dict = Orddict.new [:a, :b, :c], [1, 2, 3]
-    assert_raises UndefinedFunctionError, fn ->
+    assert_raise UndefinedFunctionError, fn ->
       Enum.join dict, ","
     end
-    assert_raises UndefinedFunctionError, fn ->
+    assert_raise UndefinedFunctionError, fn ->
       Enum.join dict, ','
     end
   end
 
   test :split do
-    assert_raises ArgumentError, fn ->
+    assert_raise ArgumentError, fn ->
       Enum.split HashDict.new, 5
     end
   end

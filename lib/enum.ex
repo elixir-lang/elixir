@@ -915,12 +915,6 @@ defimpl Enum.Iterator, for: Orddict.Record do
   end
 end
 
-defimpl Enum.OrdIterator, for: HashDict.Record do
-  def ordered_iterator(_) do
-    raise ArgumentError, message: "HashDict does not support ordering"
-  end
-end
-
 defimpl Enum.OrdIterator, for: Orddict.Record do
   def ordered_iterator(dict) do
     Enum.Iterator.iterator(dict)
