@@ -187,18 +187,24 @@ translate_macro({ access, Line, [Element, Keyword] }, S) ->
 
           try Atom:'__record__'(fields) of
             Fields ->
-              Match = lists:map(fun({Field,_}) ->
-                case orddict:find(Field, Keyword) of
+              { Match, Remaining } = lists:mapfoldl(fun({Field,_}, KeywordEach) ->
+                { case orddict:find(Field, KeywordEach) of
                   { ok, Value } -> Value;
                   error -> { '_', Line, nil }
-                end
-              end, Fields),
+                end, orddict:erase(Field, KeywordEach) }
+              end, Keyword, Fields),
 
-              translate_each({ '{}', Line, [Atom|Match] }, S)
+              case Remaining of
+                [] -> translate_each({ '{}', Line, [Atom|Match] }, S);
+                _ ->
+                  Keys = [Key || {Key,_} <- Remaining],
+                  Message1 = "record ~s does not have some of the given keys: ~p",
+                  syntax_error(Line, S#elixir_scope.filename, Message1, [elixir_errors:inspect(Atom), Keys])
+              end
           catch
             error:undef ->
-              Message1 = "cannot use module ~s in access protocol because it doesn't represent a record",
-              syntax_error(Line, S#elixir_scope.filename, Message1, [elixir_errors:inspect(Atom)])
+              Message2 = "cannot use module ~s in access protocol because it doesn't represent a record",
+              syntax_error(Line, S#elixir_scope.filename, Message2, [elixir_errors:inspect(Atom)])
           end;
         _ ->
           syntax_error(Line, S#elixir_scope.filename, "invalid usage of access protocol in signature")

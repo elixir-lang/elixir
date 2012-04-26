@@ -176,6 +176,11 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[0]), do: true\nend'
   end
 
+  test :invalid_access_protocol_invalid_keywords do
+    assert "nofile:2: record Elixir.ErrorsTest.Config does not have some of the given keys: [foo]" ==
+      format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[foo: :bar]), do: true\nend'
+  end
+
   ## Helpers
 
   defp format_rescue(expr) do
