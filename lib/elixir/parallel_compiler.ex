@@ -37,7 +37,13 @@ defmodule Elixir.ParallelCompiler do
     spawn_compilers(files, path, callback, [], [], [])
   end
 
-  # Spawn a compiler for each file in the list and wait for messages
+  # We already have 4 currently running, don't spawn new ones
+  defp spawn_compilers(files, output, callback, waiting, queued, result) when
+      length(queued) - length(waiting) >= 4 do
+    wait_for_messages(files, output, callback, waiting, queued, result)
+  end
+
+  # Spawn a compiler for each file in the list until we reach the limit
   defp spawn_compilers([h|t], output, callback, waiting, queued, result) do
     parent = Process.self()
     child  = spawn_link fn ->
@@ -50,20 +56,20 @@ defmodule Elixir.ParallelCompiler do
       end
       parent <- { :compiled, Process.self(), h, result }
     end
-    wait_for_messages(t, output, callback, waiting, [child|queued], result)
+    spawn_compilers(t, output, callback, waiting, [child|queued], result)
   end
 
   # No more files, nothing waiting, queue is empty, we are done
   defp spawn_compilers([], _output, _callback, [], [], result), do: result
 
-  # No more files, nothing waiting, queue is not empty, wait to finish
-  defp spawn_compilers([], output, callback, [], queued, result) do
-    wait_for_messages([], output, callback, [], queued, result)
+  # Queued x, waiting for x: ERROR!
+  defp spawn_compilers([], _output, _callback, waiting, queued, _result) when length(waiting) == length(queued) do
+    raise Error, modules: Enum.map(waiting, elem(&1, 2))
   end
 
-  # No more files, but we are waiting: ERROR!
-  defp spawn_compilers([], _output, _callback, waiting, _queued, _result) do
-    raise Error, modules: Enum.map(waiting, elem(&1, 2))
+  # No more files, but queue and waiting are not full or do not match
+  defp spawn_compilers([], output, callback, waiting, queued, result) do
+    wait_for_messages([], output, callback, waiting, queued, result)
   end
 
   # Wait for messages from child processes
@@ -76,17 +82,16 @@ defmodule Elixir.ParallelCompiler do
       new_queued  = List.delete(queued, child)
       new_result  = result ++ new
 
-      # Nobody was unblocked or we are not waiting on anyone
-      if new_waiting == [] or new_waiting == waiting do
-        spawn_compilers(files, output, callback, new_waiting, new_queued, new_result)
-      else:
-        wait_for_messages(files, output, callback, new_waiting, new_queued, new_result)
-      end
+      spawn_compilers(files, output, callback, new_waiting, new_queued, new_result)
     match: { :waiting, child, on }
       new_waiting = Orddict.store(child, on, waiting)
       spawn_compilers(files, output, callback, new_waiting, queued, result)
+    match: { :EXIT, _child, :normal }
+      wait_for_messages(files, output, callback, waiting, queued, result)
     match: { :EXIT, _child, { reason, where } }
       Erlang.erlang.raise(:error, reason, where)
+    match: { :EXIT, _child, other } when other
+      Erlang.erlang.error(other)
     end
   end
 

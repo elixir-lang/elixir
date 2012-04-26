@@ -33,7 +33,7 @@ test_erlang: compile
 
 test_elixir: compile
 	@ echo "==> elixir (exunit)"
-	@ time bin/elixir -r "test/elixir/**/*_test.exs"
+	@ time bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"
 
 ebin:
 	@ $(REBAR) compile

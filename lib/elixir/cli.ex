@@ -101,12 +101,9 @@ defmodule Elixir.CLI do
     process_shared t, config
   end
 
-  # defp process_shared(['-pr',h|t], config) do
-  #   config = Enum.reduce File.wildcard(h), config, fn(path, config) ->
-  #     config.prepend_commands [{:parallel_require, path}]
-  #   end
-  #   process_shared t, config
-  # end
+  defp process_shared(['-pr',h|t], config) do
+    process_shared t, config.prepend_commands [{:parallel_require, h}]
+  end
 
   defp process_shared(list, config) do
     { list, config }
@@ -187,6 +184,13 @@ defmodule Elixir.CLI do
     Code.require_file(file)
   end
 
+  defp process_command({:parallel_require, pattern}, _config) do
+    files = File.wildcard(pattern)
+    files = List.uniq(files)
+    files = Enum.filter files, File.regular?(&1)
+    spawn_requires(files, [])
+  end
+
   defp process_command({:compile, patterns}, config) do
     Erlang.file.make_dir(config.output)
 
@@ -197,5 +201,31 @@ defmodule Elixir.CLI do
     Code.compiler_options(config.compiler_options)
     Elixir.ParallelCompiler.files_to_path(files, config.output,
       fn(file, _) -> IO.puts "Compiled #{file}" end)
+  end
+
+  # Responsible for spawning requires in parallel
+  # For now, we spawn at maximum four process at the same time
+
+  defp spawn_requires([], []),      do: :done
+  defp spawn_requires([], waiting), do: wait_for_messages([], waiting)
+
+  defp spawn_requires(files, waiting) when length(waiting) >= 4 do
+    wait_for_messages(files, waiting)
+  end
+
+  defp spawn_requires([h|t], waiting) do
+    child  = spawn_link fn -> Code.require_file(h) end
+    spawn_requires(t, [child|waiting])
+  end
+
+  defp wait_for_messages(files, waiting) do
+    receive do
+    match: { :EXIT, child, :normal }
+      spawn_requires(files, List.delete(waiting, child))
+    match: { :EXIT, _child, { reason, where } }
+      Erlang.erlang.raise(:error, reason, where)
+    match: { :EXIT, _child, other }
+      Erlang.erlang.error(other)
+    end
   end
 end
