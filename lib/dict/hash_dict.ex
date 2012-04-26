@@ -1,26 +1,28 @@
 defrecord HashDict.Record, data: nil
 
 defimpl Dict, for: HashDict.Record do
-  def keys(dict) do
-    :dict.fetch_keys dict.data
+  refer HashDict.Record, as: HD
+
+  def keys(HD[data: data]) do
+    :dict.fetch_keys data
   end
 
-  def values(dict) do
+  def values(HD[data: data]) do
     :dict.fold fn(_key, value, acc) ->
       [value|acc]
-    end, [], dict.data
+    end, [], data
   end
 
-  def size(dict) do
-    :dict.size dict.data
+  def size(HD[data: data]) do
+    :dict.size data
   end
 
-  def has_key?(dict, key) do
-    :dict.is_key key, dict.data
+  def has_key?(HD[data: data], key) do
+    :dict.is_key key, data
   end
 
-  def get(dict, key, default // nil) do
-    case :dict.find(key, dict.data) do
+  def get(HD[data: data], key, default // nil) do
+    case :dict.find(key, data) do
     match: {:ok, value}
       value
     match: :error
@@ -57,14 +59,14 @@ defimpl Dict, for: HashDict.Record do
   end
 
   def empty(_) do
-    HashDict.Record.new(data: :dict.new)
+    HD[data: :dict.new]
   end
 
-  def to_list(dict) do
-    :dict.to_list dict.data
+  def to_list(HD[data: data]) do
+    :dict.to_list data
   end
 end
 
 defmodule HashDict do
-  use Dict.Common, :"HashDict.Record"
+  use Dict.Common, Dict.HashDict.Record
 end

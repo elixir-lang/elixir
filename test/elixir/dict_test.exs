@@ -21,15 +21,6 @@ defmodule DictTest.Common do
         assert [1, 2] == List.sort Dict.values dict
       end
 
-      test :new_two_lists do
-        dict = new_dict ["first key", "second key"], [1, 2]
-        assert 2 == Dict.size dict
-        assert 1 == Dict.get dict, "first key"
-        assert 2 == Dict.get dict, "second key"
-
-        assert_raise ArgumentError, fn() -> new_dict(["first key"], [1, 2]) end
-      end
-
       test :new_pairs_with_transform do
         dict = new_dict [{1}, {2}, {3}], fn({x}) -> { {x}, x } end
         assert 3 == Dict.size dict
@@ -82,18 +73,18 @@ defmodule DictTest.Common do
         assert dict == Dict.merge dict, dict
         assert empty_dict == Dict.merge empty_dict, empty_dict
 
-        dict1 = new_dict ["a", "b", "c"], [1, 2, 3]
-        dict2 = new_dict ["a", "c", "d"], [3, :a, 0]
-        assert new_dict(["a", "b", "c", "d"], [3, 2, :a, 0]) == Dict.merge(dict1, dict2)
+        dict1 = new_dict List.zip ["a", "b", "c"], [1, 2, 3]
+        dict2 = new_dict List.zip ["a", "c", "d"], [3, :a, 0]
+        assert new_dict(List.zip ["a", "b", "c", "d"], [3, 2, :a, 0]) == Dict.merge(dict1, dict2)
       end
 
       test :merge_with_function do
-        dict1 = new_dict ["a", "b"], [1, 2]
-        dict2 = new_dict ["a", "d"], [3, 4]
+        dict1 = new_dict List.zip ["a", "b"], [1, 2]
+        dict2 = new_dict List.zip ["a", "d"], [3, 4]
         result = Dict.merge dict1, dict2, fn(_k, v1, v2) ->
           v1 + v2
         end
-        assert new_dict(["a", "b", "d"], [4, 2, 4]) == result
+        assert new_dict(List.zip ["a", "b", "d"], [4, 2, 4]) == result
       end
 
       test :has_key do

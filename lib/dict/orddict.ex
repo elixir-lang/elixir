@@ -1,27 +1,26 @@
 defrecord Orddict.Record, data: nil
 
 defimpl Dict, for: Orddict.Record do
-  def keys(dict) do
-    :orddict.fetch_keys dict.data
+  refer Orddict.Record, as: O
+
+  def keys(O[data: data]) do
+    lc { k, _ } in data, do: k
   end
 
-  def values(dict) do
-    list = :orddict.fold fn(_key, value, acc) ->
-      [value|acc]
-    end, [], dict.data
-    List.reverse list
+  def values(O[data: data]) do
+    lc { _, v } in data, do: v
   end
 
-  def size(dict) do
-    :orddict.size dict.data
+  def size(O[data: data]) do
+    length(data)
   end
 
-  def has_key?(dict, key) do
-    :orddict.is_key key, dict.data
+  def has_key?(O[data: data], key) do
+    :orddict.is_key key, data
   end
 
-  def get(dict, key, default // nil) do
-    case :orddict.find(key, dict.data) do
+  def get(O[data: data], key, default // nil) do
+    case :orddict.find(key, data) do
     match: {:ok, value}
       value
     match: :error
@@ -58,14 +57,14 @@ defimpl Dict, for: Orddict.Record do
   end
 
   def empty(_) do
-    Orddict.Record.new(data: [])
+    O[data: []]
   end
 
-  def to_list(dict) do
-    dict.data
+  def to_list(O[data: data]) do
+    data
   end
 end
 
 defmodule Orddict do
-  use Dict.Common, :"Orddict.Record"
+  use Dict.Common, Dict.Orddict.Record
 end

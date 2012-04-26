@@ -9,7 +9,7 @@ end
 defprotocol Enum.OrdIterator do
   @only [List, Record]
 
-  def ordered_iterator(collection)
+  def iterator(collection)
 end
 
 defmodule Enum do
@@ -34,7 +34,7 @@ defmodule Enum do
   `Enum.Iterator.iterator(collection)` on the given collection in order to
   retrieve the iterator for that collection. Some functions expect the
   collection to define an ordering for its elements. Those functions use
-  `Enum.OrdIterator.ordered_iterator(collection)` instead. You can implement the
+  `Enum.OrdIterator.iterator(collection)` instead. You can implement the
   protocol for any data type you wish. Elixir ships with a default iterator for
   lists and dicts.
 
@@ -114,7 +114,7 @@ defmodule Enum do
       #=> [3,4,5]
   """
   def drop_while(collection, fun) do
-    { iterator, pointer } = O.ordered_iterator(collection)
+    { iterator, pointer } = O.iterator(collection)
     module = I.__impl_for__!(collection)
     do_drop_while(pointer, iterator, fun, module)
   end
@@ -259,7 +259,7 @@ defmodule Enum do
 
   """
   def join(collection, joiner // "") do
-    { iterator, pointer } = O.ordered_iterator(collection)
+    { iterator, pointer } = I.iterator(collection)
     join(iterator, pointer, joiner)
   end
 
@@ -393,7 +393,7 @@ defmodule Enum do
 
   """
   def split(collection, count) when count >= 0 do
-    { iterator, pointer } = O.ordered_iterator(collection)
+    { iterator, pointer } = O.iterator(collection)
     module = I.__impl_for__!(collection)
     do_split(pointer, iterator, count, [], module)
   end
@@ -408,7 +408,7 @@ defmodule Enum do
       #=> { [1], [2, 3, 4] }
   """
   def split_with(collection, fun) do
-    { iterator, pointer } = O.ordered_iterator(collection)
+    { iterator, pointer } = O.iterator(collection)
     module = I.__impl_for__!(collection)
     do_split_with(pointer, iterator, fun, [], module)
   end
@@ -439,7 +439,7 @@ defmodule Enum do
 
   """
   def take_while(collection, fun // fn(x, do: x)) do
-    { iterator, pointer } = O.ordered_iterator(collection)
+    { iterator, pointer } = O.iterator(collection)
     do_take_while(pointer, iterator, fun)
   end
 
@@ -758,45 +758,30 @@ defimpl Enum.Iterator, for: List do
   def to_list(list),    do: list
   def to_list(h, next), do: [h|next]
 
-  def iterate([h|t]) do
-    { h, t }
-  end
-
-  def iterate([]) do
-    :stop # The :stop atom is the end of the iteration.
-  end
+  defp iterate([h|t]),  do: { h, t }
+  defp iterate([]),     do: :stop # The :stop atom is the end of the iteration.
 end
 
 defimpl Enum.OrdIterator, for: List do
-  def ordered_iterator(list) do
+  def iterator(list) do
     Enum.Iterator.List.iterator(list)
   end
 end
 
 defimpl Enum.Iterator, for: HashDict.Record do
-  import Enum.Iterator.List, only: [iterate: 1]
-
-  def iterator(dict) do
-    { iterate(&1), iterate(to_list(dict)) }
-  end
-
-  def to_list(dict),    do: Dict.to_list(dict)
+  def iterator(dict),   do: Enum.Iterator.List.iterator(to_list(dict))
+  def to_list(dict),    do: Dict.HashDict.Record.to_list(dict)
   def to_list(h, next), do: [h|next]
 end
 
 defimpl Enum.Iterator, for: Orddict.Record do
-  import Enum.Iterator.List, only: [iterate: 1]
-
-  def iterator(dict) do
-    { iterate(&1), iterate(to_list(dict)) }
-  end
-
-  def to_list(dict),    do: Dict.to_list(dict)
+  def iterator(dict),   do: Enum.Iterator.List.iterator(to_list(dict))
+  def to_list(dict),    do: Dict.Orddict.Record.to_list(dict)
   def to_list(h, next), do: [h|next]
 end
 
 defimpl Enum.OrdIterator, for: Orddict.Record do
-  def ordered_iterator(dict) do
+  def iterator(dict) do
     Enum.Iterator.Orddict.Record.iterator(dict)
   end
 end
