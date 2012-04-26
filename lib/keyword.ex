@@ -18,6 +18,13 @@ defmodule Keyword do
   """
 
   @doc """
+  Returns an empty keywords list, i.e. an empty list.
+  """
+  def new do
+    []
+  end
+
+  @doc """
   Creates a Keyword from an enumerable. Duplicated
   entries are removed, the latest one prevails.
 
@@ -27,7 +34,7 @@ defmodule Keyword do
       #=> [a: 2, b: 1]
 
   """
-  def from_enum(pairs) do
+  def new(pairs) do
     Enum.reduce pairs, [], fn({k, v}, keywords) ->
       put(keywords, k, v)
     end
@@ -43,7 +50,7 @@ defmodule Keyword do
       Keyword.from_enum [:a, :b], fn(x) -> {x,x} end
       #=> [a: :a, b: :b]
   """
-  def from_enum(pairs, transform) do
+  def new(pairs, transform) do
     Enum.reduce pairs, [], fn(i, keywords) ->
       { k, v } = transform.(i)
       put(keywords, k, v)

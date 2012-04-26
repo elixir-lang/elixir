@@ -5,14 +5,6 @@ defmodule DictTest.Common do
     quote do
       use ExUnit.Case
 
-      test :new_pair do
-        dict = new_dict {"a", 0}
-        assert 1 == Dict.size dict
-
-        assert Dict.has_key? dict, "a"
-        assert 0 == Dict.get dict, "a"
-      end
-
       test :new_pairs do
         dict = new_dict [{"first key", 1}, {"second key", 2}]
         assert 2 == Dict.size dict

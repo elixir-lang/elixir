@@ -1,5 +1,5 @@
 defprotocol Dict do
-  @only [Record, List]
+  @only [Record]
 
   @doc """
   Returns a list containing all dict's keys.

@@ -30,32 +30,32 @@ defimpl Dict, for: HashDict.Record do
     end
   end
 
-  def put(dict, key, value) do
-    dict.update_data(:dict.store key, value, &1)
+  def put(HD[data: data], key, value) do
+    HD[data: :dict.store key, value, data]
   end
 
-  def put(dict, {key, value}) do
-    dict.update_data(:dict.store key, value, &1)
+  def put(HD[data: data], {key, value}) do
+    HD[data: :dict.store key, value, data]
   end
 
-  def delete(dict, key) do
-    dict.update_data(:dict.erase key, &1)
+  def delete(HD[data: data], key) do
+    HD[data: :dict.erase key, data]
   end
 
-  def merge(d1, d2) do
-    d1.update_data(:dict.merge fn(_k, _v1, v2) -> v2 end, &1, d2.data)
+  def merge(HD[data: d1], HD[data: d2]) do
+    HD[data: :dict.merge fn(_k, _v1, v2) -> v2 end, d1, d2]
   end
 
-  def merge(d1, d2, fun) do
-    d1.update_data(:dict.merge fun, &1, d2.data)
+  def merge(HD[data: d1], HD[data: d2], fun) do
+    HD[data: :dict.merge fun, d1, d2]
   end
 
-  def update(dict, key, fun) do
-    dict.update_data(:dict.update key, fun, &1)
+  def update(HD[data: data], key, fun) do
+    HD[data: :dict.update key, fun, data]
   end
 
-  def update(dict, key, initial, fun) do
-    dict.update_data(:dict.update key, fun, initial, &1)
+  def update(HD[data: data], key, initial, fun) do
+    HD[data: :dict.update key, fun, initial, data]
   end
 
   def empty(_) do

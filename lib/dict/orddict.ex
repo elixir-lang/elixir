@@ -28,32 +28,32 @@ defimpl Dict, for: Orddict.Record do
     end
   end
 
-  def put(dict, key, value) do
-    dict.update_data(:orddict.store key, value, &1)
+  def put(O[data: data], key, value) do
+    O[data: :orddict.store key, value, data]
   end
 
-  def put(dict, {key, value}) do
-    dict.update_data(:orddict.store key, value, &1)
+  def put(O[data: data], {key, value}) do
+    O[data: :orddict.store key, value, data]
   end
 
-  def delete(dict, key) do
-    dict.update_data(:orddict.erase key, &1)
+  def delete(O[data: data], key) do
+    O[data: :orddict.erase key, data]
   end
 
-  def merge(d1, d2) do
-    d1.update_data(:orddict.merge fn(_k, _v1, v2) -> v2 end, &1, d2.data)
+  def merge(O[data: d1], O[data: d2]) do
+    O[data: :orddict.merge fn(_k, _v1, v2) -> v2 end, d1, d2]
   end
 
-  def merge(d1, d2, fun) do
-    d1.update_data(:orddict.merge fun, &1, d2.data)
+  def merge(O[data: d1], O[data: d2], fun) do
+    O[data: :orddict.merge fun, d1, d2]
   end
 
-  def update(dict, key, fun) do
-    dict.update_data(:orddict.update key, fun, &1)
+  def update(O[data: data], key, fun) do
+    O[data: :orddict.update key, fun, data]
   end
 
-  def update(dict, key, initial, fun) do
-    dict.update_data(:orddict.update key, fun, initial, &1)
+  def update(O[data: data], key, initial, fun) do
+    O[data: :orddict.update key, fun, initial, data]
   end
 
   def empty(_) do

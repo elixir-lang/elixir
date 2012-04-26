@@ -9,13 +9,6 @@ defmodule Dict.Common do
       end
 
       @doc """
-      Creates a new dict with one entry.
-      """
-      def new({key, value}) do
-        unquote(ref).put new, {key, value}
-      end
-
-      @doc """
       Creates a new dict from a list of pairs.
 
       ## Examples

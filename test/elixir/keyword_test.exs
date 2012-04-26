@@ -3,12 +3,16 @@ Code.require_file "../test_helper", __FILE__
 defmodule KeywordTest do
   use ExUnit.Case
 
-  test :from_enum do
-    assert Keyword.from_enum([{:second_key, 2}, {:first_key, 1}]) == [first_key: 1, second_key: 2]
+  test :new do
+    assert Keyword.new == []
   end
 
-  test :from_enum_with_function do
-    assert Keyword.from_enum([:a, :b], fn(x) -> { x, x } end) == [a: :a, b: :b]
+  test :new_with_pairs do
+    assert Keyword.new([{:second_key, 2}, {:first_key, 1}]) == [first_key: 1, second_key: 2]
+  end
+
+  test :new_with_function do
+    assert Keyword.new([:a, :b], fn(x) -> { x, x } end) == [a: :a, b: :b]
   end
 
   test :get do
