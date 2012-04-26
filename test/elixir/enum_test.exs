@@ -309,43 +309,43 @@ defmodule EnumTest.HashDict do
   EnumTest.Dict.Common.__using__(HashDict)
 
   test :drop do
-    assert_raise UndefinedFunctionError, fn ->
+    assert_raise Protocol.UndefinedError, fn ->
       Enum.drop HashDict.new, 5
     end
   end
 
   test :drop_while do
-    assert_raise UndefinedFunctionError, fn ->
+    assert_raise Protocol.UndefinedError, fn ->
       Enum.drop_while HashDict.new, fn(x, do: x)
     end
   end
 
   test :join do
-    assert_raise UndefinedFunctionError, fn ->
+    assert_raise Protocol.UndefinedError, fn ->
       Enum.join HashDict.new, ""
     end
   end
 
   test :split do
-    assert_raise UndefinedFunctionError, fn ->
+    assert_raise Protocol.UndefinedError, fn ->
       Enum.split HashDict.new, 5
     end
   end
 
   test :split_with do
-    assert_raise UndefinedFunctionError, fn ->
+    assert_raise Protocol.UndefinedError, fn ->
       Enum.split_with HashDict.new, fn(x, do: x)
     end
   end
 
   test :take do
-    assert_raise UndefinedFunctionError, fn ->
+    assert_raise Protocol.UndefinedError, fn ->
       Enum.take HashDict.new, 5
     end
   end
 
   test :take_while do
-    assert_raise UndefinedFunctionError, fn ->
+    assert_raise Protocol.UndefinedError, fn ->
       Enum.take_while HashDict.new, fn(x, do: x)
     end
   end

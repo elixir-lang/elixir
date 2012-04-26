@@ -3,6 +3,7 @@ defprotocol Enum.Iterator do
 
   def iterator(collection)
   def to_list(collection)
+  def to_list(pointer, iterator)
 end
 
 defprotocol Enum.OrdIterator do
@@ -114,7 +115,8 @@ defmodule Enum do
   """
   def drop_while(collection, fun) do
     { iterator, pointer } = O.ordered_iterator(collection)
-    do_drop_while(pointer, iterator, fun)
+    module = I.__impl_for__!(collection)
+    do_drop_while(pointer, iterator, fun, module)
   end
 
   @doc """
@@ -392,7 +394,8 @@ defmodule Enum do
   """
   def split(collection, count) when count >= 0 do
     { iterator, pointer } = O.ordered_iterator(collection)
-    do_split(pointer, iterator, count, [])
+    module = I.__impl_for__!(collection)
+    do_split(pointer, iterator, count, [], module)
   end
 
   @doc """
@@ -406,7 +409,8 @@ defmodule Enum do
   """
   def split_with(collection, fun) do
     { iterator, pointer } = O.ordered_iterator(collection)
-    do_split_with(pointer, iterator, fun, [])
+    module = I.__impl_for__!(collection)
+    do_split_with(pointer, iterator, fun, [], module)
   end
 
   @doc """
@@ -510,16 +514,16 @@ defmodule Enum do
 
   ## drop_while
 
-  defp do_drop_while({ h, next }, iterator, fun) do
+  defp do_drop_while({ h, next }, iterator, fun, module) do
     case fun.(h) do
     match: x when x == false or x == nil
-      [h|next] # FIXME
+      module.to_list(h, next)
     else:
-      do_drop_while(iterator.(next), iterator, fun)
+      do_drop_while(iterator.(next), iterator, fun, module)
     end
   end
 
-  defp do_drop_while(:stop, _, _) do
+  defp do_drop_while(:stop, _, _, _) do
     []
   end
 
@@ -606,16 +610,16 @@ defmodule Enum do
 
   ## split_with
 
-  defp do_split_with({ h, next }, iterator, fun, acc) do
+  defp do_split_with({ h, next }, iterator, fun, acc, module) do
     case fun.(h) do
     match: x when x == false or x == nil
-      do_split_with(iterator.(next), iterator, fun, [h|acc])
+      do_split_with(iterator.(next), iterator, fun, [h|acc], module)
     else:
-      { List.reverse(acc), [h|next] } #FIXME
+      { List.reverse(acc), module.to_list(h, next) }
     end
   end
 
-  defp do_split_with(:stop, _, _, acc) do
+  defp do_split_with(:stop, _, _, acc, _module) do
     { List.reverse(acc), [] }
   end
 
@@ -694,15 +698,15 @@ defmodule Enum do
 
   ## split
 
-  defp do_split({ h, next }, iterator, counter, acc) when counter > 0 do
-    do_split(iterator.(next), iterator, counter - 1, [h|acc])
+  defp do_split({ h, next }, iterator, counter, acc, module) when counter > 0 do
+    do_split(iterator.(next), iterator, counter - 1, [h|acc], module)
   end
 
-  defp do_split({ h, next }, _iterator, 0, acc) do
-    { List.reverse(acc), [h|next] }
+  defp do_split({ h, next }, _iterator, 0, acc, module) do
+    { List.reverse(acc), module.to_list(h, next) }
   end
 
-  defp do_split(:stop, _, _, acc) do
+  defp do_split(:stop, _, _, acc, _module) do
     { List.reverse(acc), [] }
   end
 
@@ -750,17 +754,16 @@ defmodule Enum do
 end
 
 defimpl Enum.Iterator, for: List do
-  def iterator(list), do: { iterate(&1), iterate(list) }
-
-  def to_list(list), do: list
+  def iterator(list),   do: { iterate(&1), iterate(list) }
+  def to_list(list),    do: list
+  def to_list(h, next), do: [h|next]
 
   def iterate([h|t]) do
     { h, t }
   end
 
   def iterate([]) do
-    # The :stop atom signifies the end of the iteration.
-    :stop
+    :stop # The :stop atom is the end of the iteration.
   end
 end
 
@@ -777,7 +780,8 @@ defimpl Enum.Iterator, for: HashDict.Record do
     { iterate(&1), iterate(to_list(dict)) }
   end
 
-  def to_list(dict), do: Dict.to_list(dict)
+  def to_list(dict),    do: Dict.to_list(dict)
+  def to_list(h, next), do: [h|next]
 end
 
 defimpl Enum.Iterator, for: Orddict.Record do
@@ -787,7 +791,8 @@ defimpl Enum.Iterator, for: Orddict.Record do
     { iterate(&1), iterate(to_list(dict)) }
   end
 
-  def to_list(dict), do: Dict.to_list(dict)
+  def to_list(dict),    do: Dict.to_list(dict)
+  def to_list(h, next), do: [h|next]
 end
 
 defimpl Enum.OrdIterator, for: Orddict.Record do

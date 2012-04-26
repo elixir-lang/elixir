@@ -39,7 +39,7 @@ defmodule Protocol do
         unquote(block)
 
         # Define callbacks and meta information
-        { conversions, fallback } = Protocol.conversions_for(@only, @except)
+        { conversions, fallback } = Protocol.conversions_for(__MODULE__, @only, @except)
         Protocol.impl_for(__MODULE__, conversions)
         Protocol.meta(__MODULE__, @functions, fallback)
       end
@@ -110,10 +110,11 @@ defmodule Protocol do
         case __raw_impl__(arg) do
         match: __MODULE__.Record
           target = Module.concat(__MODULE__, :erlang.element(1, arg))
-          if :erlang.function_exported(target, :__protocol__, 1) do
+          try do
+            target.__impl__
             target
-          else:
-            Module.concat(__MODULE__, unquote(fallback))
+          rescue: UndefinedFunctionError
+            __fallback__
           end
         match: other
           other
@@ -159,7 +160,7 @@ defmodule Protocol do
   Returns the default conversions according to the given
   only/except options.
   """
-  def conversions_for(only, except) do
+  def conversions_for(module, only, except) do
     kinds = all_types
 
     conversions =
@@ -170,7 +171,14 @@ defmodule Protocol do
         L.foldl(fn(i, list) -> L.keydelete(i, 1, list) end, kinds, except)
       end
 
-    fallback = if L.keyfind(Tuple, 1, conversions), do: Tuple, else: Any
+    fallback = if L.keyfind(Tuple, 1, conversions) do
+      Module.concat module, Tuple
+    elsif: L.keyfind(Any, 1, conversions)
+      Module.concat module, Any
+    else:
+      nil
+    end
+
     { conversions, fallback }
   end
 
@@ -278,7 +286,12 @@ defmodule Protocol.DSL do
             target = Module.concat(__MODULE__, :erlang.element(1, xA))
             apply target, unquote(name), args
           rescue: UndefinedFunctionError
-            apply Module.concat(__MODULE__, __fallback__), unquote(name), args
+            case __fallback__ do
+            match: nil
+              raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
+            match: other
+              apply other, unquote(name), args
+            end
           end
         match: nil
           raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
