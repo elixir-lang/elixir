@@ -56,10 +56,14 @@ get_optional_macros(?BUILTIN) ->
 get_optional_macros(erlang) -> [];
 
 get_optional_macros(Receiver) ->
-  try
-    ordsets:from_list(Receiver:'__info__'(macros))
-  catch
-    error:undef -> []
+  case code:ensure_loaded(Receiver) of
+    { module, Receiver } ->
+      try
+        ordsets:from_list(Receiver:'__info__'(macros))
+      catch
+        error:undef -> []
+      end;
+    { error, _ } -> []
   end.
 
 %% Dispatch based on scope's imports
