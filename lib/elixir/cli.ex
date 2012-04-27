@@ -2,6 +2,8 @@ defrecord Elixir.CLI.Config, commands: [], close: [],
   output: '.', compile: [], halt: true, compiler_options: []
 
 defmodule Elixir.CLI do
+  @moduledoc false
+
   import Exception, only: [format_stacktrace: 1]
 
   # Invoked directly from erlang boot process. It parses all argv
@@ -214,18 +216,26 @@ defmodule Elixir.CLI do
   end
 
   defp spawn_requires([h|t], waiting) do
-    child  = spawn_link fn -> Code.require_file(h) end
+    parent = Process.self
+
+    child  = spawn_link fn ->
+      try do
+        Code.require_file(h)
+        parent <- { :required, Process.self }
+      catch: kind, reason
+        parent <- { :failure, Process.self, kind, reason, System.stacktrace }
+      end
+    end
+
     spawn_requires(t, [child|waiting])
   end
 
   defp wait_for_messages(files, waiting) do
     receive do
-    match: { :EXIT, child, :normal }
+    match: { :required, child }
       spawn_requires(files, List.delete(waiting, child))
-    match: { :EXIT, _child, { reason, where } }
-      Erlang.erlang.raise(:error, reason, where)
-    match: { :EXIT, _child, other }
-      Erlang.erlang.error(other)
+    match: { :failure, _child, kind, reason, stacktrace }
+      Erlang.erlang.raise(kind, reason, stacktrace)
     end
   end
 end

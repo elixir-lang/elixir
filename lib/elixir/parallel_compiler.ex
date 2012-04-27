@@ -46,16 +46,23 @@ defmodule Elixir.ParallelCompiler do
   # Spawn a compiler for each file in the list until we reach the limit
   defp spawn_compilers([h|t], output, callback, waiting, queued, result) do
     parent = Process.self()
+
     child  = spawn_link fn ->
       Process.put(:elixir_parent_compiler, parent)
       Process.flag(:error_handler, Elixir.ErrorHandler)
-      result = if output do
-        Erlang.elixir_compiler.file_to_path(h, output)
-      else:
-        Erlang.elixir_compiler.file(h)
+
+      try do
+        result = if output do
+          Erlang.elixir_compiler.file_to_path(h, output)
+        else:
+          Erlang.elixir_compiler.file(h)
+        end
+        parent <- { :compiled, Process.self(), h, result }
+      catch: kind, reason
+        parent <- { :failure, Process.self(), kind, reason, System.stacktrace }
       end
-      parent <- { :compiled, Process.self(), h, result }
     end
+
     spawn_compilers(t, output, callback, waiting, [child|queued], result)
   end
 
@@ -86,12 +93,8 @@ defmodule Elixir.ParallelCompiler do
     match: { :waiting, child, on }
       new_waiting = Orddict.store(child, on, waiting)
       spawn_compilers(files, output, callback, new_waiting, queued, result)
-    match: { :EXIT, _child, :normal }
-      wait_for_messages(files, output, callback, waiting, queued, result)
-    match: { :EXIT, _child, { reason, where } }
-      Erlang.erlang.raise(:error, reason, where)
-    match: { :EXIT, _child, other } when other
-      Erlang.erlang.error(other)
+    match: { :failure, _child, kind, reason, stacktrace }
+      Erlang.erlang.raise(kind, reason, stacktrace)
     end
   end
 
