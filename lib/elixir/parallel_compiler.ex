@@ -62,7 +62,7 @@ defmodule Elixir.ParallelCompiler do
   # No more files, nothing waiting, queue is empty, we are done
   defp spawn_compilers([], _output, _callback, [], [], result), do: result
 
-  # Queued x, waiting for x: ERROR! Release processes so we get the failures
+  # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_compilers([], output, callback, waiting, queued, result) when length(waiting) == length(queued) do
     Enum.each queued, fn({ child, _ }) -> child <- { :release, Process.self() } end
     wait_for_messages([], output, callback, waiting, queued, result)
@@ -79,7 +79,10 @@ defmodule Elixir.ParallelCompiler do
     match: { :compiled, child, file }
       callback.(list_to_binary(file))
       new_queued  = :lists.keydelete(child, 1, queued)
-      spawn_compilers(files, output, callback, waiting, new_queued, result)
+      # Sometimes we may have spurious entries in the waiting
+      # list because someone invoked try/rescue UndefinedFunctionError
+      new_waiting = :lists.keydelete(child, 1, waiting)
+      spawn_compilers(files, output, callback, new_waiting, new_queued, result)
     match: { :module_available, child, module, binary }
       new_waiting = release_waiting_processes(module, waiting)
       new_result  = [{module, binary}|result]
