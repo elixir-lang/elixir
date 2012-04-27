@@ -1,14 +1,7 @@
 defmodule Elixir.ParallelCompiler do
   refer Erlang.orddict, as: Orddict
 
-  defexception Error, modules: [] do
-    def message(exception) do
-      "compilation failed: the following modules were not found " <>
-        "or there is a cyclic dependency between them: #{inspect exception.modules}"
-    end
-  end
-
-  defmacrop default_callback, do: quote(do: fn(x, _) -> x end)
+  defmacrop default_callback, do: quote(do: fn(x) -> x end)
 
   @doc """
   Compiles the given files.
@@ -52,26 +45,27 @@ defmodule Elixir.ParallelCompiler do
       Process.flag(:error_handler, Elixir.ErrorHandler)
 
       try do
-        result = if output do
+        if output do
           Erlang.elixir_compiler.file_to_path(h, output)
         else:
           Erlang.elixir_compiler.file(h)
         end
-        parent <- { :compiled, Process.self(), h, result }
+        parent <- { :compiled, Process.self(), h }
       catch: kind, reason
         parent <- { :failure, Process.self(), kind, reason, System.stacktrace }
       end
     end
 
-    spawn_compilers(t, output, callback, waiting, [child|queued], result)
+    spawn_compilers(t, output, callback, waiting, [{child,h}|queued], result)
   end
 
   # No more files, nothing waiting, queue is empty, we are done
   defp spawn_compilers([], _output, _callback, [], [], result), do: result
 
-  # Queued x, waiting for x: ERROR!
-  defp spawn_compilers([], _output, _callback, waiting, queued, _result) when length(waiting) == length(queued) do
-    raise Error, modules: Enum.map(waiting, elem(&1, 2))
+  # Queued x, waiting for x: ERROR! Release processes so we get the failures
+  defp spawn_compilers([], output, callback, waiting, queued, result) when length(waiting) == length(queued) do
+    Enum.each queued, fn({ child, _ }) -> child <- { :release, Process.self() } end
+    wait_for_messages([], output, callback, waiting, queued, result)
   end
 
   # No more files, but queue and waiting are not full or do not match
@@ -82,24 +76,30 @@ defmodule Elixir.ParallelCompiler do
   # Wait for messages from child processes
   defp wait_for_messages(files, output, callback, waiting, queued, result) do
     receive do
-    match: { :compiled, child, file, new }
-      callback.(list_to_binary(file), new)
-
-      new_waiting = List.foldl(new, waiting, release_waiting_processes(&1, &2))
-      new_queued  = List.delete(queued, child)
-      new_result  = result ++ new
-
-      spawn_compilers(files, output, callback, new_waiting, new_queued, new_result)
+    match: { :compiled, child, file }
+      callback.(list_to_binary(file))
+      new_queued  = :lists.keydelete(child, 1, queued)
+      spawn_compilers(files, output, callback, waiting, new_queued, result)
+    match: { :module_available, child, module, binary }
+      new_waiting = release_waiting_processes(module, waiting)
+      new_result  = [{module, binary}|result]
+      wait_for_messages(files, output, callback, new_waiting, queued, new_result)
     match: { :waiting, child, on }
       new_waiting = Orddict.store(child, on, waiting)
       spawn_compilers(files, output, callback, new_waiting, queued, result)
-    match: { :failure, _child, kind, reason, stacktrace }
+    match: { :failure, child, kind, reason, stacktrace }
+      extra = if match?({^child, module}, :lists.keyfind(child, 1, waiting)) do
+        " (undefined module #{inspect module})"
+      end
+
+      {^child, file} = :lists.keyfind(child, 1, queued)
+      IO.puts "== Compilation error on file #{list_to_binary(file)}#{extra} =="
       Erlang.erlang.raise(kind, reason, stacktrace)
     end
   end
 
   # Release waiting processes that are waiting for the given module
-  defp release_waiting_processes({ module, _binary }, waiting) do
+  defp release_waiting_processes(module, waiting) do
     Enum.filter waiting, fn({ child, waiting_module }) ->
       if waiting_module == module do
         child <- { :release, Process.self() }

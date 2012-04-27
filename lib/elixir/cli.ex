@@ -202,7 +202,7 @@ defmodule Elixir.CLI do
 
     Code.compiler_options(config.compiler_options)
     Elixir.ParallelCompiler.files_to_path(files, config.output,
-      fn(file, _) -> IO.puts "Compiled #{file}" end)
+      fn(file) -> IO.puts "Compiled #{file}" end)
   end
 
   # Responsible for spawning requires in parallel

@@ -140,7 +140,11 @@ load_form(Forms, S) ->
   elixir_compiler:module(Forms, S, fun(ModuleName, Binary) ->
     case get(elixir_compiled) of
       Current when is_list(Current) ->
-        put(elixir_compiled, [{ModuleName,Binary}|Current]);
+        put(elixir_compiled, [{ModuleName,Binary}|Current]),
+        case get(elixir_parent_compiler) of
+          undefined -> [];
+          PID -> PID ! { module_available, self(), ModuleName, Binary }
+        end;
       _ ->
         []
     end

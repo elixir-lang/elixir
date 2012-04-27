@@ -99,8 +99,9 @@ defmodule Elixir.CLI.ParallelCompilerTest do
 
   test :deadlock_failure do
     output = OS.cmd('bin/elixirc test/elixir/fixtures/parallel_deadlock -o test/tmp/')
-    expected = '** (Elixir.ParallelCompiler.Error) compilation failed: the following modules were not found or there is a cyclic dependency between them: [Foo,Bar]'
-    assert Erlang.string.str(output, expected) > 0,
-      "Expected #{inspect output} to contain '#{inspect expected}'"
+    foo = '== Compilation error on file test/elixir/fixtures/parallel_deadlock/foo.ex (undefined module Bar) =='
+    bar = '== Compilation error on file test/elixir/fixtures/parallel_deadlock/bar.ex (undefined module Foo) =='
+    assert Erlang.string.str(output, foo) > 0 or Erlang.string.str(output, bar) > 0,
+      "Expected #{inspect output} to contain #{inspect foo} or #{inspect bar}"
   end
 end
