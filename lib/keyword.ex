@@ -30,7 +30,7 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.from_enum [{b,1},{a,2}]
+      Keyword.new [{:b,1},{:a,2}]
       #=> [a: 2, b: 1]
 
   """
@@ -47,7 +47,7 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.from_enum [:a, :b], fn(x) -> {x,x} end
+      Keyword.new [:a, :b], fn(x) -> {x,x} end
       #=> [a: :a, b: :b]
   """
   def new(pairs, transform) do
@@ -83,7 +83,7 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.get_values [a: 1, a: 2]
+      Keyword.get_values [a: 1, a: 2], :a
       #=> [1,2]
 
   """
@@ -205,9 +205,9 @@ defmodule Keyword do
   Returns whether a given key exists in the given keywords.
 
   ### Examples
-      Keyword.key?([a:, 1], :a)
+      Keyword.key?([a: 1], :a)
       #=> true
-      Keyword.key?([a:, 1], :b)
+      Keyword.key?([a: 1], :b)
       #=> false
   """
   def key?([{k, _}|_], key) when key < k, do: false
