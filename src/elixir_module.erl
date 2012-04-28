@@ -181,11 +181,11 @@ add_info_function(Line, Filename, Module, Export, Functions, Def, Defmacro, C) -
   end.
 
 functions_clause(Line, Def) ->
-  Sorted = lists:sort([{'__info__',1}|Def]),
+  Sorted = ordsets:from_list([{'__info__',1}|Def]),
   { clause, Line, [{ atom, Line, functions }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
 
 macros_clause(Line, Defmacro) ->
-  Sorted = lists:sort(Defmacro),
+  Sorted = ordsets:from_list(Defmacro),
   { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
 
 docs_clause(Line, Module, true) ->

@@ -1,70 +1,19 @@
-%% Helpers related to dispatching to imports.
+%% Helpers related to dispatching to imports and references.
+%% This module access the information stored on the scope
+%% by elixir_import and therefore assumes it is normalized (ordsets)
 -module(elixir_dispatch).
--export([get_functions/1, get_macros/3, get_optional_macros/1,
-  default_macros/0, default_functions/0, default_requires/0,
+-export([default_macros/0, default_functions/0, default_requires/0,
   format_error/1, dispatch_require/6, dispatch_imports/5]).
 -include("elixir.hrl").
+-import(ordsets, [is_element/2]).
 -define(BUILTIN, '__MAIN__.Elixir.Builtin').
 
 default_functions() ->
-  [
-    { ?BUILTIN, get_functions(?BUILTIN) },
-    { erlang, in_erlang_functions() }
-  ].
+  [ { ?BUILTIN, ordsets:union(in_elixir_functions(), in_erlang_functions()) } ].
 default_macros() ->
-  [ { ?BUILTIN, get_optional_macros(?BUILTIN) } ].
+  [ { ?BUILTIN, ordsets:union(in_elixir_macros(), in_erlang_macros()) } ].
 default_requires() ->
   [ ?BUILTIN ].
-
-%% Get macros/functions from the given module and
-%% raise an exception if appropriated.
-
-get_functions(?BUILTIN = Module) ->
-  try
-    Module:'__info__'(functions) -- [{'__info__',1}]
-  catch
-    error:undef -> []
-  end;
-
-get_functions(Module) ->
-  try
-    Module:'__info__'(functions)
-  catch
-    error:undef -> ordsets:from_list(Module:module_info(exports))
-  end.
-
-get_macros(_Line, ?BUILTIN, _S) ->
-  ordsets:from_list(get_optional_macros(?BUILTIN));
-
-get_macros(Line, Module, S) ->
-  try
-    ordsets:from_list(Module:'__info__'(macros))
-  catch
-    error:undef ->
-      Tuple = { no_macros, Module },
-      elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
-  end.
-
-get_optional_macros(?BUILTIN) ->
-  try
-    ordsets:from_list(?BUILTIN:'__info__'(macros) ++ in_erlang_macros())
-  catch
-    error:undef -> ordsets:from_list(in_erlang_macros())
-  end;
-
-%% Do not try to get macros from Erlang. Speeds up compilation a bit.
-get_optional_macros(erlang) -> [];
-
-get_optional_macros(Receiver) ->
-  case code:ensure_loaded(Receiver) of
-    { module, Receiver } ->
-      try
-        ordsets:from_list(Receiver:'__info__'(macros))
-      catch
-        error:undef -> []
-      end;
-    { error, _ } -> []
-  end.
 
 %% Dispatch based on scope's imports
 
@@ -83,16 +32,37 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
               elixir_import:record(import, Tuple, Receiver, S),
               dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S)
           end;
+        ?BUILTIN ->
+          elixir_import:record(import, Tuple, ?BUILTIN, S),
+          dispatch_builtin_macro(Line, Tuple, Args, S);
         Receiver ->
           elixir_import:record(import, Tuple, Receiver, S),
-          dispatch_macro(Line, Receiver, Tuple, Args, S)
+          dispatch_macro(Line, Receiver, Name, Arity, Args, S)
       end;
     Receiver ->
       elixir_import:record(import, Tuple, Receiver, S),
-      elixir_translator:translate_each({ { '.', Line, [Receiver, Name] }, Line, Args }, S)
+      Endpoint = case (Receiver == ?BUILTIN) andalso is_element(Tuple, in_erlang_functions()) of
+        true  -> erlang;
+        false -> Receiver
+      end,
+      elixir_translator:translate_each({ { '.', Line, [Endpoint, Name] }, Line, Args }, S)
   end.
 
-%% Dispatch based on scope's refer
+%% Dispatch based on scope's require
+
+dispatch_require(Line, ?BUILTIN, Name, Args, S, Callback) ->
+  Arity = length(Args),
+  Tuple = {Name, Arity},
+
+  case is_element(Tuple, in_erlang_functions()) of
+    true ->
+      elixir_translator:translate_each({ { '.', Line, [erlang, Name] }, Line, Args }, S);
+    false ->
+      case dispatch_builtin_macro(Line, Tuple, Args, S) of
+        false -> Callback();
+        Else -> Else
+      end
+  end;
 
 dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
   Arity = length(Args),
@@ -103,8 +73,8 @@ dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
 
   case Fun of
     false ->
-      case lists:member(Tuple, get_optional_macros(Receiver)) of
-        true  -> dispatch_macro(Line, Receiver, Tuple, Args, S);
+      case is_element(Tuple, get_optional_macros(Receiver)) of
+        true  -> dispatch_macro(Line, Receiver, Name, Arity, Args, S);
         false -> Callback()
       end;
     _ ->
@@ -114,15 +84,17 @@ dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
 
 %% HELPERS
 
-dispatch_macro(Line, ?BUILTIN = Receiver, { Name, Arity } = Tuple, Args, S) ->
-  case lists:member(Tuple, in_erlang_macros()) of
+dispatch_builtin_macro(Line, { Name, Arity } = Tuple, Args, S) ->
+  case is_element(Tuple, in_erlang_macros()) of
     true  -> elixir_macros:translate_macro({ Name, Line, Args }, S);
     false ->
-      Macro = ?ELIXIR_MACRO(Name),
-      dispatch_macro_fun(Line, fun Receiver:Macro/Arity, Receiver, Name, Arity, Args, S)
-  end;
+      case is_element(Tuple, in_elixir_macros()) of
+        true -> dispatch_macro(Line, ?BUILTIN, Name, Arity, Args, S);
+        false -> false
+      end
+  end.
 
-dispatch_macro(Line, Receiver, { Name, Arity }, Args, S) ->
+dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
   Macro = ?ELIXIR_MACRO(Name),
   dispatch_macro_fun(Line, fun Receiver:Macro/Arity, Receiver, Name, Arity, Args, S).
 
@@ -140,7 +112,7 @@ dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) ->
   { TTree, TS#elixir_scope{macro=S#elixir_scope.macro} }.
 
 find_dispatch(Tuple, [{ Name, Values }|T]) ->
-  case ordsets:is_element(Tuple, Values) of
+  case is_element(Tuple, Values) of
     true  -> Name;
     false -> find_dispatch(Tuple, T)
   end;
@@ -163,7 +135,7 @@ insert_before_dispatch_macro(_, []) ->
 ensure_required(_Line, Receiver, _Name, _Arity, #elixir_scope{module=Receiver}) -> ok;
 ensure_required(Line, Receiver, Name, Arity, S) ->
   Requires = S#elixir_scope.requires,
-  case ordsets:is_element(Receiver, Requires) of
+  case is_element(Receiver, Requires) of
     true  -> ok;
     false ->
       Tuple = { unrequired_module, { Receiver, Name, Arity, Requires } },
@@ -172,12 +144,43 @@ ensure_required(Line, Receiver, Name, Arity, S) ->
 
 format_error({ unrequired_module,{Receiver, Name, Arity, Required }}) ->
   io_lib:format("tried to invoke macro ~s.~s/~B but module was not required. Required: ~p",
-    [elixir_errors:inspect(Receiver), Name, Arity, [elixir_errors:inspect(R) || R <- Required]]);
+    [elixir_errors:inspect(Receiver), Name, Arity, [elixir_errors:inspect(R) || R <- Required]]).
 
-format_error({ no_macros, Module }) ->
-  io_lib:format("could not load macros from module ~s", [elixir_errors:inspect(Module)]).
+%% INTROSPECTION
 
-%% Implemented in Erlang.
+%% Do not try to get macros from Erlang. Speeds up compilation a bit.
+get_optional_macros(erlang) -> [];
+
+get_optional_macros(Receiver) ->
+  case code:ensure_loaded(Receiver) of
+    { module, Receiver } ->
+      try
+        Receiver:'__info__'(macros)
+      catch
+        error:undef -> []
+      end;
+    { error, _ } -> []
+  end.
+
+%% Functions imported from Elixit.Builtin module. Sorted on compilation.
+
+in_elixir_functions() ->
+  try
+    ?BUILTIN:'__info__'(functions) -- [{'__info__',1}]
+  catch
+    error:undef -> []
+  end.
+
+%% Macros imported from Elixit.Builtin module. Sorted on compilation.
+
+in_elixir_macros() ->
+  try
+    ?BUILTIN:'__info__'(macros)
+  catch
+    error:undef -> []
+  end.
+
+%% Functions imported from Erlang module. MUST BE SORTED.
 in_erlang_functions() ->
   [
     { abs, 1 },
@@ -265,51 +268,51 @@ in_erlang_functions() ->
     { tuple_to_list, 1 }
   ].
 
+%% Macros implemented in Erlang. MUST BE SORTED.
 in_erlang_macros() ->
   [
-    {'@',1},
+    {'!=',2},
+    {'!==',2},
+    {'*',2},
     {'+',1},
     {'+',2},
+    {'++',2},
     {'-',1},
     {'-',2},
-    {'*',2},
-    {'/',2},
-    {'<-',2},
-    {'++',2},
     {'--',2},
+    {'/',2},
     {'<',2},
-    {'>',2},
+    {'<-',2},
     {'<=',2},
-    {'>=',2},
     {'==',2},
-    {'!=',2},
     {'===',2},
-    {'!==',2},
-    {'access',2},
-    {'apply',2},
-    {'apply',3},
-    {'not',1},
+    {'>',2},
+    {'>=',2},
+    {'@',1},
+    {access,2},
     {'and',2},
-    {'or',2},
-    {'xor',2},
-    {'use',1},
-    {'use',2},
-    {'defmodule',2},
-    {'defmodule',3},
-    {'def',1},
-    {'def',2},
-    {'def',4},
-    {'defp',1},
-    {'defp',2},
-    {'defp',4},
-    {'defmacro',1},
-    {'defmacro',2},
-    {'defmacro',4},
-    {'defmacrop',1},
-    {'defmacrop',2},
-    {'defmacrop',4},
+    {apply,2},
+    {apply,3},
     {'case',2},
+    {def,1},
+    {def,2},
+    {def,4},
+    {defmacro,1},
+    {defmacro,2},
+    {defmacro,4},
+    {defmacrop,1},
+    {defmacrop,2},
+    {defmacrop,4},
+    {defmodule,2},
+    {defp,1},
+    {defp,2},
+    {defp,4},
+    {'not',1},
+    {'or',2},
     {'receive',1},
     {'try',1},
-    {'var!',1}
+    {use,1},
+    {use,2},
+    {'var!',1},
+    {'xor',2}
   ].

@@ -1,27 +1,22 @@
 -module(elixir_ref).
 -export([last/1, concat/1, safe_concat/1, lookup/2,
-  format_error/1, ensure_loaded/4]).
+  format_error/1, ensure_loaded/3]).
 -include("elixir.hrl").
 
 %% Ensure a reference is loaded before its usage.
-ensure_loaded(_Line, '__MAIN__.Elixir.Builtin', _S, _Force) ->
+ensure_loaded(_Line, '__MAIN__.Elixir.Builtin', _S) ->
   ok;
 
-ensure_loaded(Line, Ref, S, Force) ->
-  Scheduled = lists:member(Ref, S#elixir_scope.scheduled),
-  case not Force andalso Scheduled of
-    true  -> ok;
-    false ->
-      try
-        Ref:module_info(compile)
-      catch
-        error:undef ->
-          Kind = case Scheduled of
-            true  -> scheduled_module;
-            false -> unloaded_module
-          end,
-          elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { Kind, Ref })
-      end
+ensure_loaded(Line, Ref, S) ->
+  try
+    Ref:module_info(compile)
+  catch
+    error:undef ->
+      Kind = case lists:member(Ref, S#elixir_scope.scheduled) of
+        true  -> scheduled_module;
+        false -> unloaded_module
+      end,
+      elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { Kind, Ref })
   end.
 
 %% Receives an atom and returns the last reference.

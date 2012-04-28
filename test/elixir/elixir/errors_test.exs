@@ -80,7 +80,7 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :erlang_function_conflict do
-    assert "nofile:1: function exit/1 already imported from erlang" ==
+    assert "nofile:1: function exit/1 already imported from Elixir.Builtin" ==
       format_rescue 'defmodule Foo do import Elixir.ErrorsTest.UnproperMacro, only: [exit: 1]\nend'
   end
 

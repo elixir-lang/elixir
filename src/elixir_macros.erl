@@ -164,7 +164,7 @@ translate_macro({use, Line, [Raw, Args]}, S) ->
     _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for use, expected a reference as argument")
   end,
 
-  elixir_ref:ensure_loaded(Line, Ref, SR, true),
+  elixir_ref:ensure_loaded(Line, Ref, SR),
 
   Call = { '__block__', Line, [
     { require, Line, [Ref] },
@@ -187,7 +187,7 @@ translate_macro({ access, Line, [Element, Keyword] }, S) ->
               syntax_error(Line, S#elixir_scope.filename, Message0)
           end,
 
-          elixir_ref:ensure_loaded(Line, Atom, S, true),
+          elixir_ref:ensure_loaded(Line, Atom, S),
 
           try Atom:'__record__'(fields) of
             Fields ->

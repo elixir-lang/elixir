@@ -134,7 +134,7 @@ translate_each({require, Line, [Ref|T]}, S) ->
 
   case TRef of
     { atom, _, Old } ->
-      elixir_ref:ensure_loaded(Line, Old, SR, true),
+      elixir_ref:ensure_loaded(Line, Old, SR),
 
       SF = SR#elixir_scope{
         requires=ordsets:add_element(Old, S#elixir_scope.requires)
@@ -178,30 +178,9 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
     error -> false
   end,
 
-  elixir_ref:ensure_loaded(Line, Ref, SR, true),
-
-  SF = case (Selector == all) or (Selector == functions) of
-    false -> SR;
-    true  ->
-      Functions = elixir_import:calculate(
-        Line, Ref, Opts, SR#elixir_scope.functions,
-        elixir_dispatch:get_functions(Ref), SR),
-      SR#elixir_scope{functions=Functions}
-  end,
-
-  SM = case (Selector == all) or (Selector == macros) of
-    false -> SF;
-    true  ->
-      Available = case Selector of
-        all -> elixir_dispatch:get_optional_macros(Ref);
-        _ -> elixir_dispatch:get_macros(Line, Ref, SF)
-      end,
-      Macros = elixir_import:calculate(
-        Line, Ref, Opts, SF#elixir_scope.macros, Available, SF),
-      SF#elixir_scope{macros=Macros}
-  end,
-
-  translate_each({ require, Line, [Ref, [{ as, As }]] }, SM);
+  elixir_ref:ensure_loaded(Line, Ref, SR),
+  SF = elixir_import:import(Line, Ref, Opts, Selector, SR),
+  translate_each({ require, Line, [Ref, [{ as, As }]] }, SF);
 
 %% Arg-less macros
 
