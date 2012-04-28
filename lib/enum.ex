@@ -52,9 +52,14 @@ end
 defprotocol Enum.OrdIterator do
   @moduledoc """
   This protocol is invoked by some functions in Enum which
-  requires ordering in order to function correctly. For
+  requires an ordered collection to function correctly. For
   instance, `Enum.split_with/2`, `Enum.take_while` all rely
-  on this protocol
+  on this protocol.
+
+  An ordered collection does not mean the items are ordered
+  according to the Elixir ordering but simply that any two
+  distinct instances of the same collection with exactly
+  the same items always yield the same order when iterated.
   """
 
   @only [List, Record]
