@@ -90,8 +90,8 @@ defmodule EnumTest.List do
     Process.delete(:enum_test_each)
   end
 
-  test :entries do
-    assert Enum.entries([1,2,3]) == [1,2,3]
+  test :to_list do
+    assert Enum.to_list([1,2,3]) == [1,2,3]
   end
 
   test :filter do
@@ -239,9 +239,9 @@ defmodule EnumTest.Dict.Common do
         Process.delete("three")
       end
 
-      test :entries do
+      test :to_list do
         dict = unquote(module).new [{"one",1}, {"two",2}, {"three",3}]
-        assert [{"one", 1}, {"three", 3}, {"two", 2}] == List.sort Enum.entries(dict)
+        assert [{"one", 1}, {"three", 3}, {"two", 2}] == List.sort Enum.to_list(dict)
       end
 
       test :filter do

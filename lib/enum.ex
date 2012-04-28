@@ -1,15 +1,83 @@
 defprotocol Enum.Iterator do
+  @moduledoc """
+  This is the protocol used by the `Enum` module.
+  Usually, when you invoke a function in the module `Enum`,
+  the first argument passed to `Enum` is a collection which
+  is forwarded to this protocol in order to retrieve information
+  on how to iterate the collection. That said, when:
+
+      Enum.map [1,2,3], &1 * 2
+
+  Is invoked, it invokes Enum.Iterator.iterator([1,2,3])
+  which returns all the information required by Enum.
+  Read each function documentation below for more information.
+  """
+
   @only [List, Record]
 
+  @doc """
+  Iteration in Elixir happens with the help of a iterator
+  function. Every time this function is called, it must
+  return a tuple with two elements. The first element
+  is the next item and the second can be any Elixir term
+  which the function is going to receive as argument the
+  next time it is invoked.
+
+  When there are no more items to be iterated, the function
+  must return the atom `:stop`.
+
+  In order to retrieve this iterator function, Elixir invokes
+  `Enum.Iterator.iterator(collection)` which should return a
+  tuple with two elements: the first element is the iterator
+  function and the second is the first step of iteration.
+
+  As an example, here is the implementation of iterator for lists:
+
+      def iterator(list),   do: { iterate(&1), iterate(list) }
+      defp iterate([h|t]),  do: { h, t }
+      defp iterate([]),     do: :stop
+
+  """
   def iterator(collection)
+
+  @doc """
+  This function is responsible to receive a collection and
+  convert it to a list. It is called directly by `Enum.to_list`.
+  An implementation may choose to raise an error if it cannot
+  be converted to list.
+  """
   def to_list(collection)
-  def to_list(pointer, iterator)
 end
 
 defprotocol Enum.OrdIterator do
+  @moduledoc """
+  This protocol is invoked by some functions in Enum which
+  requires ordering in order to function correctly. For
+  instance, `Enum.split_with/2`, `Enum.take_while` all rely
+  on this protocol
+  """
+
   @only [List, Record]
 
+  @doc """
+  Must return a tuple under the same conditions as
+  `Enum.Iterator.iterator`.
+  """
   def iterator(collection)
+
+  @doc """
+  On each step, the iterator function returned by `iterator/1`
+  returns a tuple with two elements. This function receives
+  those two elements and must return a list back.
+
+  This is used in order to quicky return a list from any point
+  during iteration. For example, consider the function `Enum.drop`.
+  `Enum.drop collection, 3` should drop 3 items and return a list
+  back. While we could loop over the remaining items to get a list
+  back, this function is invoked allowing us to get a result
+  back without a need to loop the remaining items.
+  """
+  def to_list(current, next)
 end
 
 defmodule Enum do
@@ -18,7 +86,7 @@ defmodule Enum do
 
   @moduledoc """
   Provides a set of algorithms that enumerate over collections according to the
-  Enum.Iterator protocol. Most of the functions in this module have two
+  `Enum.Iterator` protocol. Most of the functions in this module have two
   flavours. If a given collection implements the mentioned protocol (like
   list, for instance), you can do
 
@@ -26,18 +94,7 @@ defmodule Enum do
 
   Depending on the type of the collection, the user-provided function will
   accept a certain type of argument. For dicts, the argument is always a
-  { key, value } tuple.
-
-  ## The protocol
-
-  When `Enum.<function>` is invoked without the iteration function, it invokes
-  `Enum.Iterator.iterator(collection)` on the given collection in order to
-  retrieve the iterator for that collection. Some functions expect the
-  collection to define an ordering for its elements. Those functions use
-  `Enum.OrdIterator.iterator(collection)` instead. You can implement the
-  protocol for any data type you wish. Elixir ships with a default iterator for
-  lists and dicts.
-
+  `{ key, value }` tuple.
   """
 
   @doc """
@@ -115,7 +172,7 @@ defmodule Enum do
   """
   def drop_while(collection, fun) do
     { iterator, pointer } = O.iterator(collection)
-    module = I.__impl_for__!(collection)
+    module = O.__impl_for__!(collection)
     do_drop_while(pointer, iterator, fun, module)
   end
 
@@ -139,14 +196,14 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.entries [1,2,3] #=> [1,2,3]
+      Enum.to_list [1,2,3] #=> [1,2,3]
 
   """
-  def entries(collection) when is_list(collection) do
+  def to_list(collection) when is_list(collection) do
     collection
   end
 
-  def entries(collection) do
+  def to_list(collection) do
     I.to_list(collection)
   end
 
@@ -248,8 +305,6 @@ defmodule Enum do
 
   All items in the collection must be convertible
   to binary, otherwise an error is raised.
-
-  Expects an ordered collection.
 
   ## Examples
 
@@ -394,7 +449,7 @@ defmodule Enum do
   """
   def split(collection, count) when count >= 0 do
     { iterator, pointer } = O.iterator(collection)
-    module = I.__impl_for__!(collection)
+    module = O.__impl_for__!(collection)
     do_split(pointer, iterator, count, [], module)
   end
 
@@ -409,7 +464,7 @@ defmodule Enum do
   """
   def split_with(collection, fun) do
     { iterator, pointer } = O.iterator(collection)
-    module = I.__impl_for__!(collection)
+    module = O.__impl_for__!(collection)
     do_split_with(pointer, iterator, fun, [], module)
   end
 
@@ -756,7 +811,6 @@ end
 defimpl Enum.Iterator, for: List do
   def iterator(list),   do: { iterate(&1), iterate(list) }
   def to_list(list),    do: list
-  def to_list(h, next), do: [h|next]
 
   defp iterate([h|t]),  do: { h, t }
   defp iterate([]),     do: :stop # The :stop atom is the end of the iteration.
@@ -766,22 +820,24 @@ defimpl Enum.OrdIterator, for: List do
   def iterator(list) do
     Enum.Iterator.List.iterator(list)
   end
+
+  def to_list(h, next), do: [h|next]
 end
 
 defimpl Enum.Iterator, for: HashDict.Record do
   def iterator(dict),   do: Enum.Iterator.List.iterator(to_list(dict))
   def to_list(dict),    do: Dict.HashDict.Record.to_list(dict)
-  def to_list(h, next), do: [h|next]
 end
 
 defimpl Enum.Iterator, for: Orddict.Record do
   def iterator(dict),   do: Enum.Iterator.List.iterator(to_list(dict))
   def to_list(dict),    do: Dict.Orddict.Record.to_list(dict)
-  def to_list(h, next), do: [h|next]
 end
 
 defimpl Enum.OrdIterator, for: Orddict.Record do
   def iterator(dict) do
     Enum.Iterator.Orddict.Record.iterator(dict)
   end
+
+  def to_list(h, next), do: [h|next]
 end
