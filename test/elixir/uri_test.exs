@@ -24,6 +24,12 @@ defmodule URITest do
     assert URI.encode_query([{:foo, 'bar'}]) == "foo=bar"
   end
 
+  test :url_decode do
+    data_to_be_decoded = "%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
+    expected = "&<>\" ゆんゆん"
+    assert URI.url_decode(data_to_be_decoded) == expected
+  end
+
   test :parse_http do
     assert URI.Info[scheme: "http", host: "foo.com", path: "/path/to/something",
                     query: "foo=bar&bar=foo", fragment: "fragment", port: 80,
