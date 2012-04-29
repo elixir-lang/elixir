@@ -46,28 +46,28 @@ defmodule Binary do
   """
 
   # Allow basic ascii chars
-  def printable?(<<c, t|binary>>) when c >= ?\s and c <= ?~ do
+  def printable?(<<c, t|:binary>>) when c >= ?\s and c <= ?~ do
     printable?(t)
   end
 
   # From 16#A0 to 16#BF
-  def printable?(<<194, c, t|binary>>) when c >= 160 and c <= 191 do
+  def printable?(<<194, c, t|:binary>>) when c >= 160 and c <= 191 do
     printable?(t)
   end
 
   # From 16#C0 to 16#7FF
-  def printable?(<<m, o1, t|binary>>) when m >= 195 and m <= 223 and o1 >= 128 and o1 < 192  do
+  def printable?(<<m, o1, t|:binary>>) when m >= 195 and m <= 223 and o1 >= 128 and o1 < 192  do
     printable?(t)
   end
 
   # From 16#800 to 16#CFFF
-  def printable?(<<m, o1, o2, t|binary>>) when m >= 224 and m <= 236 and
+  def printable?(<<m, o1, o2, t|:binary>>) when m >= 224 and m <= 236 and
       o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 do
     printable?(t)
   end
 
   # From 16#D000 to 16#D7FF
-  def printable?(<<237, o1, o2, t|binary>>) when
+  def printable?(<<237, o1, o2, t|:binary>>) when
       o1 >= 128 and o1 < 160 and o2 >= 128 and o2 < 192 do
     printable?(t)
   end
@@ -78,41 +78,41 @@ defmodule Binary do
   end
 
   # From 16#E000 to 16#EFFF
-  def printable?(<<m, o1, o2, t|binary>>) when (m == 238 or m == 239) and
+  def printable?(<<m, o1, o2, t|:binary>>) when (m == 238 or m == 239) and
       o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 do
     printable?(t)
   end
 
   # From 16#F000 to 16#FFFD
-  def printable?(<<239, o1, o2, t|binary>>) when
+  def printable?(<<239, o1, o2, t|:binary>>) when
       o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 do
     printable?(t)
   end
 
   # From 16#10000 to 16#3FFFF
-  def printable?(<<240, o1, o2, o3, t|binary>>) when
+  def printable?(<<240, o1, o2, o3, t|:binary>>) when
       o1 >= 144 and o1 < 192 and o2 >= 128 and o2 < 192 and o3 >= 128 and o3 < 192 do
     printable?(t)
   end
 
   # Reject 16#110000 onwards
-  def printable?(<<244, o1, _, _, _|binary>>) when o1 >= 144 do
+  def printable?(<<244, o1, _, _, _|:binary>>) when o1 >= 144 do
     false
   end
 
   # From 16#4000 to 16#10FFFF
-  def printable?(<<m, o1, o2, o3, t|binary>>) when m >= 241 and m <= 244 and
+  def printable?(<<m, o1, o2, o3, t|:binary>>) when m >= 241 and m <= 244 and
       o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 and o3 >= 128 and o3 < 192 do
     printable?(t)
   end
 
-  def printable?(<<?\n, t|binary>>), do: printable?(t)
-  def printable?(<<?\r, t|binary>>), do: printable?(t)
-  def printable?(<<?\t, t|binary>>), do: printable?(t)
-  def printable?(<<?\v, t|binary>>), do: printable?(t)
-  def printable?(<<?\b, t|binary>>), do: printable?(t)
-  def printable?(<<?\f, t|binary>>), do: printable?(t)
-  def printable?(<<?\e, t|binary>>), do: printable?(t)
+  def printable?(<<?\n, t|:binary>>), do: printable?(t)
+  def printable?(<<?\r, t|:binary>>), do: printable?(t)
+  def printable?(<<?\t, t|:binary>>), do: printable?(t)
+  def printable?(<<?\v, t|:binary>>), do: printable?(t)
+  def printable?(<<?\b, t|:binary>>), do: printable?(t)
+  def printable?(<<?\f, t|:binary>>), do: printable?(t)
+  def printable?(<<?\e, t|:binary>>), do: printable?(t)
 
   def printable?(<<>>), do: true
   def printable?(_),    do: false
@@ -196,21 +196,21 @@ defmodule Binary do
 
   ## Helpers
 
-  defp do_escape(<<char, t|binary>>, char) do
-    <<?\\, char, do_escape(t, char)|binary>>
+  defp do_escape(<<char, t|:binary>>, char) do
+    <<?\\, char, do_escape(t, char)|:binary>>
   end
 
-  defp do_escape(<<h, t|binary>>, char) when
+  defp do_escape(<<h, t|:binary>>, char) when
     h == ?#  or h == ?\b or
     h == ?\d or h == ?\e or
     h == ?\f or h == ?\n or
     h == ?\r or h == ?\\ or
     h == ?\t or h == ?\v do
-    <<?\\, escape_map(h), do_escape(t, char)|binary>>
+    <<?\\, escape_map(h), do_escape(t, char)|:binary>>
   end
 
-  defp do_escape(<<h, t|binary>>, char) do
-    <<h, do_escape(t,char)|binary>>
+  defp do_escape(<<h, t|:binary>>, char) do
+    <<h, do_escape(t,char)|:binary>>
   end
 
   defp do_escape(<<>>, char) do

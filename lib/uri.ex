@@ -32,7 +32,7 @@ defmodule URI do
     binary_to_list encode(list_to_binary(s))
   end
 
-  def encode(s), do: bc <<c>> in s, do: <<percent(c)|binary>>
+  def encode(s), do: bc <<c>> in s, do: <<percent(c)|:binary>>
 
   defp percent(32), do: <<?+>>
   defp percent(?-), do: <<?->>
@@ -63,11 +63,11 @@ defmodule URI do
     binary_to_list decode(list_to_binary(s))
   end
 
-  def decode(<<?%, hex1, hex2, tail | binary >>) do
+  def decode(<<?%, hex1, hex2, tail |:binary >>) do
     << bsl(hex2dec(hex1), 4) + hex2dec(hex2) >> <> decode(tail)
   end
 
-  def decode(<<head, tail | binary >>) do
+  def decode(<<head, tail |:binary >>) do
     <<check_plus(head)>> <> decode(tail)
   end
 

@@ -16,11 +16,11 @@ defmodule OptionParser.Simple do
       #=> { [source: "lib"], ["test/enum_test.exs"] }
 
   """
-  def parse([<<?-, option|binary>>, h|t], dict // [], args // []) do
+  def parse([<<?-, option|:binary>>, h|t], dict // [], args // []) do
     option = normalize_option(option)
 
     case h do
-    match: <<?-, _|binary>>
+    match: <<?-, _|:binary>>
       dict = Keyword.put dict, option, true
       parse([h|t], dict, args)
     else:
@@ -29,7 +29,7 @@ defmodule OptionParser.Simple do
     end
   end
 
-  def parse([<<?-, option|binary>>], dict, args) do
+  def parse([<<?-, option|:binary>>], dict, args) do
     dict = Keyword.put dict, normalize_option(option), true
     { dict, args }
   end
@@ -49,7 +49,7 @@ defmodule OptionParser.Simple do
     Keyword.put dict, key, value
   end
 
-  defp normalize_option(<<?-, option|binary>>) do
+  defp normalize_option(<<?-, option|:binary>>) do
     binary_to_atom(option)
   end
 

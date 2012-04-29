@@ -74,11 +74,21 @@ build_bitstr_each(Fun, [H|T], Line, S, Acc) when is_bitstring(H) ->
 
 build_bitstr_each(Fun, [{'|',_,[H,V]}|T], Line, S, Acc) ->
   { Expr, NS } = Fun(H, S),
-  { Int, Types } = extract_bin_values(Line, V, default, [], element(1, S)),
+
+  %% Just variables defined outside the binary can be accounted on subparts
+  case NS of
+    { ES, _ } -> [];
+    ES -> []
+  end,
+
+  %% Assigns can be made in subparts
+  { Int, Types } = extract_bin_values(Line, V, default, [], ES#elixir_scope{assign=false}),
+
   Final = case Types of
     [] -> default;
     _  -> Types
   end,
+
   build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, Int, Final }|Acc]);
 
 build_bitstr_each(Fun, [H|T], Line, S, Acc) ->
@@ -94,11 +104,12 @@ extract_bin_values(Line, { '-', Line, [Left, Right] }, Int, Types, S) ->
 extract_bin_values(Line, Value, default, Types, _S) when is_integer(Value) ->
   { { integer, Line, Value }, Types };
 
+extract_bin_values(_Line, { Value, _, Atom } = Expr, default, Types, S) when is_atom(Value), is_atom(Atom) ->
+  Translated = element(1, elixir_translator:translate_each(Expr, S)),
+  { Translated, Types };
+
 extract_bin_values(Line, Value, _Int, _Types, S) when is_integer(Value) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "duplicated size specifier ~p in <<>>", [Value]);
-
-extract_bin_values(_Line, { Value, _, Atom }, Int, Types, _S) when is_atom(Value), is_atom(Atom) ->
-  { Int, [Value|Types] };
 
 extract_bin_values(_Line, Value, Int, Types, _S) when is_atom(Value) ->
   { Int, [Value|Types] };

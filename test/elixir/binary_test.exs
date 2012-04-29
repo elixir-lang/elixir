@@ -86,7 +86,12 @@ bar
     assert not is_match?("cd", ?a)
   end
 
-  defp is_match?(<<char, _|binary>>, char) do
+  test :pattern_match do
+    s = 16
+    assert_match <<a, b|s>>, "foo"
+  end
+
+  defp is_match?(<<char, _|:binary>>, char) do
     true
   end
 

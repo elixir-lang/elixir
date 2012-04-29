@@ -32,7 +32,7 @@ defmodule Binary.Chars.BitStringTest do
 
   test :bitstring do
     assert_raise FunctionClauseError, fn ->
-      to_binary(<<1|12-integer-signed>>)
+      to_binary(<<1|12-:integer-:signed>>)
     end
   end
 
