@@ -63,10 +63,15 @@ defmodule URI do
   @doc """
   Unpercent (URL) decodes a URI.
   """
-  def url_decode(s) when is_binary(s), do: :unicode.characters_to_binary(list_to_binary(url_decode(binary_to_list(s))))
-  def url_decode([?%, hex1, hex2 | tail]), do: [bsl(hex2dec(hex1), 4) + hex2dec(hex2) | url_decode(tail)]
-  def url_decode([head | tail]), do: [check_plus(head) | url_decode(tail)]
-  def url_decode([]), do: []
+  def url_decode(<<?%, hex1, hex2, tail | binary >>) do
+    << bsl(hex2dec(hex1), 4) + hex2dec(hex2) >> <> url_decode(tail)
+  end
+
+  def url_decode(<<head, tail | binary >>) do
+    <<check_plus(head)>> <> url_decode(tail)
+  end
+
+  def url_decode(<<>>), do: <<>>
 
   defp hex2dec(n) when n >= ?A and n <= ?F, do: n - ?A + 10
   defp hex2dec(n) when n >= ?0 and n <= ?9, do: n - ?0
