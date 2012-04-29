@@ -6,10 +6,10 @@ defmodule Keyword do
   each tuple.
 
   A keyword may have duplicated keys, so it is not strictly
-  a keywordsionary. However most of the functions in this module
-  allows it to behave exactly as a keywordsionary. For example,
+  a dictionary. However most of the functions in this module
+  allows it to behave exactly as a dictionary. For example,
   `Keyword.get` will get the first entry matching the given
-  key, regardless if duplicated entries exist.  Similarly,
+  key, regardless if duplicated entries exist. Similarly,
   `Keyword.put` and `Keyword.delete` ensure all duplicated
   entries for a given key are removed when invoked.
 
@@ -25,8 +25,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Creates a Keyword from an enumerable. Duplicated
-  entries are removed, the latest one prevails.
+  Creates a Keyword from an enumerable. Similarly to dicts,
+  duplicated entries are removed, the latest one prevails.
 
   ## Examples
 

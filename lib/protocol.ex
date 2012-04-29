@@ -9,7 +9,7 @@ defmodule Protocol do
   protocol plus two extra functions:
 
   * `__protocol__/1` - returns the protocol name when :name is given,
-                       and key-value pair with the protocol functions
+                       and a keywords list with the protocol functions
                        when :functions is given;
 
   * `__impl_for__/1` - receives one argument and returns a module
@@ -104,7 +104,7 @@ defmodule Protocol do
   def meta(module, functions, fallback) do
     contents = quote do
       def __protocol__(:name),      do: __MODULE__
-      def __protocol__(:functions), do: unquote(functions)
+      def __protocol__(:functions), do: unquote(:lists.sort(functions))
 
       def __impl_for__(arg) do
         case __raw_impl__(arg) do

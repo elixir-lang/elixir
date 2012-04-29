@@ -44,17 +44,17 @@ translate_each({ '__block__', Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
 
-translate_each({ '__kvblock__', _, [[Expr],nil] }, S) ->
+translate_each({ '__kwblock__', _, [[Expr],nil] }, S) ->
   translate_each(Expr, S);
 
-translate_each({ '__kvblock__', Line, Args }, S) when is_list(Args) ->
+translate_each({ '__kwblock__', Line, Args }, S) when is_list(Args) ->
   case S#elixir_scope.macro of
     { Receiver, Name, Arity } ->
       Desc = [elixir_errors:inspect(Receiver), Name, Arity],
-      syntax_error(Line, S#elixir_scope.filename, "key value blocks not supported by ~s.~s/~B", Desc);
+      syntax_error(Line, S#elixir_scope.filename, "keywords block not supported by ~s.~s/~B", Desc);
     _ ->
       % TODO: This shuold be raised at runtime
-      syntax_error(Line, S#elixir_scope.filename, "unhandled key value blocks", "")
+      syntax_error(Line, S#elixir_scope.filename, "unhandled keywords block", "")
   end;
 
 %% Erlang op
@@ -259,7 +259,7 @@ translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
     { Args, [[{do,Expr}]] } ->
       [{match,Args,Expr}];
     { [], [KV] } when is_list(KV) ->
-      elixir_kv_block:decouple(orddict:erase(do, KV));
+      elixir_kw_block:decouple(orddict:erase(do, KV));
     _ ->
       syntax_error(Line, S#elixir_scope.filename, "no block given to fn")
   end,
@@ -288,9 +288,9 @@ translate_each({loop, Line, RawArgs}, S) when is_list(RawArgs) ->
       end,
 
       %% Add this new variable to all match clauses
-      Normalized = elixir_kv_block:normalize(KVFinal),
-      NewMatches = [{ match, { '__kvblock__', BlockLine, [ [FunVar|Conds], Expr ] } } ||
-        { match, { '__kvblock__', BlockLine, [ Conds, Expr ] } } <- Normalized],
+      Normalized = elixir_kw_block:normalize(KVFinal),
+      NewMatches = [{ match, { '__kwblock__', BlockLine, [ [FunVar|Conds], Expr ] } } ||
+        { match, { '__kwblock__', BlockLine, [ Conds, Expr ] } } <- Normalized],
 
       %% Generate a function with the match blocks
       Function = { fn, Line, [NewMatches] },

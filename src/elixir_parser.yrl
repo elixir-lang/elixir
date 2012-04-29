@@ -335,22 +335,22 @@ stab_eol -> '->' eol : '$1'.
 end_eol -> 'end' : '$1'.
 end_eol -> eol 'end' : '$2'.
 
-kv_item -> kv_identifier comma_expr eol : { ?exprs('$1'), { '__kvblock__', ?line('$1'), [lists:reverse('$2'),nil] } }.
+kv_item -> kv_identifier comma_expr eol : { ?exprs('$1'), { '__kwblock__', ?line('$1'), [lists:reverse('$2'),nil] } }.
 kv_item -> kv_identifier eol expr_list eol : { ?exprs('$1'), build_block('$3') }.
-kv_item -> kv_identifier comma_expr eol expr_list eol : { ?exprs('$1'), { '__kvblock__', ?line('$1'), [lists:reverse('$2'),build_block('$4')] } }.
+kv_item -> kv_identifier comma_expr eol expr_list eol : { ?exprs('$1'), { '__kwblock__', ?line('$1'), [lists:reverse('$2'),build_block('$4')] } }.
 
 kv_list -> kv_item : ['$1'].
 kv_list -> kv_item kv_list : ['$1'|'$2'].
 
-do_block -> do_eol 'end'                       : build_kv_block('$1', [], []).
-do_block -> do eol kv_list 'end'               : build_kv_block('$1', [], '$3').
-do_block -> do_eol expr_list end_eol           : build_kv_block('$1', '$2', []).
-do_block -> do_eol expr_list eol kv_list 'end' : build_kv_block('$1', '$2', '$4').
+do_block -> do_eol 'end'                       : build_kw_block('$1', [], []).
+do_block -> do eol kv_list 'end'               : build_kw_block('$1', [], '$3').
+do_block -> do_eol expr_list end_eol           : build_kw_block('$1', '$2', []).
+do_block -> do_eol expr_list eol kv_list 'end' : build_kw_block('$1', '$2', '$4').
 
-stab_block -> stab_eol 'end'                       : build_kv_block('$1', [], []).
-stab_block -> '->' eol kv_list 'end'               : build_kv_block('$1', [], '$3').
-stab_block -> stab_eol expr_list end_eol           : build_kv_block('$1', '$2', []).
-stab_block -> stab_eol expr_list eol kv_list 'end' : build_kv_block('$1', '$2', '$4').
+stab_block -> stab_eol 'end'                       : build_kw_block('$1', [], []).
+stab_block -> '->' eol kv_list 'end'               : build_kw_block('$1', [], '$3').
+stab_block -> stab_eol expr_list end_eol           : build_kw_block('$1', '$2', []).
+stab_block -> stab_eol expr_list eol kv_list 'end' : build_kw_block('$1', '$2', '$4').
 
 % Lists
 
@@ -411,8 +411,8 @@ build_block([nil])                         -> { '__block__', 0, [nil] };
 build_block([Expr]) when not is_list(Expr) -> Expr;
 build_block(Exprs)                         -> { '__block__', 0, lists:reverse(Exprs) }.
 
-% Handle key value blocks
-build_kv_block(Delimiter, Contents, IncompleteList) ->
+% Handle keywords blocks
+build_kw_block(Delimiter, Contents, IncompleteList) ->
   Line = ?line(Delimiter),
   List = [{do,build_block(Contents)}|IncompleteList],
   {'[:]', Line, sort_kv(List)}.
@@ -473,4 +473,4 @@ build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ '<<>>', Line, Arg
 
 %% Helpers
 
-sort_kv(List) -> elixir_kv_block:sort(List).
+sort_kv(List) -> elixir_kw_block:sort(List).

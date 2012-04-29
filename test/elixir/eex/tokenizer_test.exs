@@ -59,7 +59,7 @@ baz %>
     ]
   end
 
-  test "strings with embedded key-value blocks" do
+  test "strings with embedded keywords blocks" do
     assert T.tokenize('foo <% if true do %>bar<% elsif: false %>baz<% end %>', 1) == [
       { :text, 1, "foo " },
       { :start_expr, 1, '', ' if true do ' },

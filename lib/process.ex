@@ -26,7 +26,9 @@ defmodule Process do
   end
 
   @doc """
-  Returns all key-values in the dictionary.
+  Returns all key-values in the dictionary
+  with no specific ordering (i.e. they are
+  not a keywords list).
   """
   def get do
     :erlang.get()

@@ -1,23 +1,23 @@
-%% Helpers related to key-value blocks.
--module(elixir_kv_block).
+%% Helpers related to keywords blocks.
+-module(elixir_kw_block).
 -export([sort/1, normalize/1, normalize/2, decouple/1, validate/4]).
 -include("elixir.hrl").
 
 sort(List) -> lists:sort(fun sort/2, List).
 sort({ A, _ }, { B, _ }) -> A =< B.
 
-%% Normalize the list of key-value so at the
-%% end all values are key-value blocks
+%% Normalize the list of keywords so at the
+%% end all values are keywords blocks
 normalize(List) -> normalize(0, List).
 normalize(Line, List) ->
   [{Key,normalize_each(Line, Value)} || {Key,Value} <- List].
 
-normalize_each(_Line, { '__kvblock__', _, _} = Value) -> Value;
-normalize_each(Line, Value) -> { '__kvblock__', Line, [[],Value] }.
+normalize_each(_Line, { '__kwblock__', _, _} = Value) -> Value;
+normalize_each(Line, Value) -> { '__kwblock__', Line, [[],Value] }.
 
 %% Decouple clauses from kv_blocks
 decouple(List) -> decouple_each(normalize(List)).
-decouple_each([{Key,{'__kvblock__',_,[K,V]}}|T]) -> [{Key,K,V}|decouple_each(T)];
+decouple_each([{Key,{'__kwblock__',_,[K,V]}}|T]) -> [{Key,K,V}|decouple_each(T)];
 decouple_each([]) -> [].
 
 %% validate

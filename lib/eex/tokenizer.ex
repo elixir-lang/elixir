@@ -102,7 +102,7 @@ defmodule EEx.Tokenizer do
   end
 
   # Receive an expression contents and see if it matches
-  # a key-value arg syntax, like elsif: foo.
+  # a keyword block syntax, like elsif: foo.
 
   defp middle_expr_token_name([h|t]) when h == ?\s or h == ?\t do
     middle_expr_token_name(t)

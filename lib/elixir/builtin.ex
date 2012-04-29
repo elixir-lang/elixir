@@ -849,7 +849,7 @@ defmodule Elixir.Builtin do
 
   @doc """
   Provides an `if` macro. The macro expects the first argument to
-  be a condition and the rest are key-value arguments.
+  be a condition and the rest are keywords arguments.
 
   ## One-liner examples
 
@@ -865,7 +865,7 @@ defmodule Elixir.Builtin do
   ## Key-value blocks examples
 
   When several expressions must be passed to if, the most appropriate
-  form is thorugh key-value blocks. The first example above would then
+  form is thorugh keywords blocks. The first example above would then
   be translated to:
 
       if foo do
@@ -897,8 +897,8 @@ defmodule Elixir.Builtin do
   """
   defmacro if(condition, [{:do,do_clause}|tail]) do
     # Transform the condition and the expressions in the
-    # do_clause to a key-value block. Get the else clause.
-    if_clause   = { :__kvblock__, 0, [ [condition], do_clause ] }
+    # do_clause to a keywords block. Get the else clause.
+    if_clause   = { :__kwblock__, 0, [ [condition], do_clause ] }
     else_clause = Keyword.get(tail, :else, nil)
 
     # Convert all :elsif clauses into matches
@@ -908,7 +908,7 @@ defmodule Elixir.Builtin do
     # Decouple all if and elsif clauses into an array of tuples.
     # Those tuples are made of three elements, the key-block key,
     # the given condition and the block expressions
-    all = Erlang.elixir_kv_block.decouple(merged)
+    all = Erlang.elixir_kw_block.decouple(merged)
     build_if_clauses(List.reverse(all), else_clause)
   end
 

@@ -66,7 +66,7 @@ extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] 
 extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args }.
 
 simple_match(Line, Clauses, S) ->
-  Decoupled = elixir_kv_block:decouple(handle_else(Clauses)),
+  Decoupled = elixir_kw_block:decouple(handle_else(Clauses)),
   Transformer = fun(X, Acc) -> each_clause(Line, X, umergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, Decoupled).
 
@@ -74,7 +74,7 @@ simple_match(Line, Clauses, S) ->
 
 match(Line, Clauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
-  DecoupledClauses = elixir_kv_block:decouple(handle_else(Clauses)),
+  DecoupledClauses = elixir_kw_block:decouple(handle_else(Clauses)),
 
   case DecoupledClauses of
     [DecoupledClause] ->
@@ -154,12 +154,12 @@ handle_else(Clauses) ->
 
 % Do clauses have no conditions. So we are done.
 each_clause(Line, { do, _, _ } = Block, S) ->
-  elixir_kv_block:validate(Line, Block, 0, S),
+  elixir_kw_block:validate(Line, Block, 0, S),
   { _, [], Expr } = Block,
   elixir_translator:translate_each(Expr, S);
 
 each_clause(Line, { match, _, _ } = Block, S) ->
-  elixir_kv_block:validate(Line, Block, 1, S),
+  elixir_kw_block:validate(Line, Block, 1, S),
   { _, [Condition], Expr } = Block,
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
@@ -173,7 +173,7 @@ each_clause(Line, { else, [Expr], Other }, S) ->
   each_clause(Line, { match, [{'_', Line, nil}], prepend_to_block(Line, Expr, Other) }, S);
 
 each_clause(Line, { 'after', _, _ } = Block, S) ->
-  elixir_kv_block:validate(Line, Block, 1, S),
+  elixir_kw_block:validate(Line, Block, 1, S),
   { _, [Condition], Expr } = Block,
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TBody, SB } = elixir_translator:translate([Expr], SC),
