@@ -26,7 +26,7 @@ defmodule URITest do
 
   test :url_decode do
     data_to_be_decoded = "%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
-    expected = [38,60,62,34,32,227,130,134,227,130,147,227,130,134,227,130,147]
+    expected = "&<>\" ゆんゆん"
     assert URI.url_decode(data_to_be_decoded) == expected
   end
 
