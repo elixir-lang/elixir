@@ -1,12 +1,16 @@
 defmodule URITest do
   use ExUnit.Case
 
-  test :url_encode do
+  test :encode_with_binary do
+    raw = <<38,60,62,34,32,227,130,134,227,130,147,227,130,134,227,130,147>>
     expected = "%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
-    list_expected = binary_to_list expected
-    assert URI.url_encode(<<38,60,62,34,32,227,130,134,227,
-                            130,147,227,130,134,227,130,147>>) == expected
-    assert URI.url_encode([38,60,62,34,32,12422,12435,12422,12435]) == list_expected
+    assert URI.encode(raw) == expected
+  end
+
+  test :encode_with_list do
+    raw = [38,60,62,34,32,227,130,134,227,130,147,227,130,134,227,130,147]
+    expected = '%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93'
+    assert URI.encode(raw) == expected
   end
 
   test :encode_query do
@@ -24,10 +28,10 @@ defmodule URITest do
     assert URI.encode_query([{:foo, 'bar'}]) == "foo=bar"
   end
 
-  test :url_decode do
+  test :decode do
     data_to_be_decoded = "%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
-    expected = "&<>\" ゆんゆん"
-    assert URI.url_decode(data_to_be_decoded) == expected
+    assert URI.decode(data_to_be_decoded) == "&<>\" ゆんゆん"
+    assert URI.decode(binary_to_list(data_to_be_decoded)) == '&<>" ゆんゆん'
   end
 
   test :parse_http do

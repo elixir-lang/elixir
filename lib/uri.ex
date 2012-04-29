@@ -15,28 +15,24 @@ defmodule URI do
   @doc """
   Takes an enumerable (containing a sequence of two-item tuples)
   and returns a string of k=v&k2=v2... where keys and values are
-  URL encoded as per url_encode. Keys and values can be a mixture
-  of atoms, lists, and binaries.
+  URL encoded as per encode. Keys and values can be any term
+  that implements the Binary.Chars protocol (i.e. can be converted
+  to binary).
   """
   def encode_query(l), do: Enum.join(Enum.map(l, pair(&1)), "&")
 
   defp pair({k, v}) do
-    url_encode(normalize(k)) <> "=" <> url_encode(normalize(v))
+    encode(to_binary(k)) <> "=" <> encode(to_binary(v))
   end
-
-  defp normalize(x) when is_list(x), do: :unicode.characters_to_binary(x)
-  defp normalize(x) when is_atom(x), do: atom_to_binary(x)
-  defp normalize(x) when is_binary(x), do: x
-  defp normalize(_), do: raise "Not a list, binary, nor atom."
 
   @doc """
   Percent (URL) encodes a URI.
   """
-  def url_encode(s) when is_list(s) do
-    binary_to_list url_encode(:unicode.characters_to_binary(s))
+  def encode(s) when is_list(s) do
+    binary_to_list encode(list_to_binary(s))
   end
 
-  def url_encode(s), do: bc <<c>> in s, do: <<percent(c)|binary>>
+  def encode(s), do: bc <<c>> in s, do: <<percent(c)|binary>>
 
   defp percent(32), do: <<?+>>
   defp percent(?-), do: <<?->>
@@ -63,15 +59,19 @@ defmodule URI do
   @doc """
   Unpercent (URL) decodes a URI.
   """
-  def url_decode(<<?%, hex1, hex2, tail | binary >>) do
-    << bsl(hex2dec(hex1), 4) + hex2dec(hex2) >> <> url_decode(tail)
+  def decode(s) when is_list(s) do
+    binary_to_list decode(list_to_binary(s))
   end
 
-  def url_decode(<<head, tail | binary >>) do
-    <<check_plus(head)>> <> url_decode(tail)
+  def decode(<<?%, hex1, hex2, tail | binary >>) do
+    << bsl(hex2dec(hex1), 4) + hex2dec(hex2) >> <> decode(tail)
   end
 
-  def url_decode(<<>>), do: <<>>
+  def decode(<<head, tail | binary >>) do
+    <<check_plus(head)>> <> decode(tail)
+  end
+
+  def decode(<<>>), do: <<>>
 
   defp hex2dec(n) when n >= ?A and n <= ?F, do: n - ?A + 10
   defp hex2dec(n) when n >= ?0 and n <= ?9, do: n - ?0
