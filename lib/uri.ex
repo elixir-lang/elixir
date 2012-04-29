@@ -59,6 +59,23 @@ defmodule URI do
   defp hex(n), do: <<n + ?A - 10>>
 
   @doc """
+  Unpercent (URL) decodes a URI.
+  """
+  # TODO: should this return a binary, or a list of unicode charactesrs?
+  # list_to_binary(list)
+  # binary_to_list(:unicode.characters_to_binary(list_to_binary(list)))
+  def url_decode(s) when is_binary(s), do: url_decode binary_to_list(s)
+  def url_decode([?%, hex1, hex2 | tail]), do: [:erlang.bsl(hex2dec(hex1), 4) + hex2dec(hex2) | url_decode(tail)]
+  def url_decode([head | tail]), do: [check_plus(head) | url_decode(tail)]
+  def url_decode([]), do: []
+
+  defp hex2dec(n) when n >= ?A and n <= ?F, do: n - ?A + 10
+  defp hex2dec(n) when n >= ?0 and n <= ?9, do: n - ?0
+
+  defp check_plus(?+), do: 32
+  defp check_plus(c), do: c
+
+  @doc """
   Parses a URI into components.
 
   URIs have portions that are handled specially for the
