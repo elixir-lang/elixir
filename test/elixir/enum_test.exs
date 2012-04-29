@@ -149,6 +149,10 @@ defmodule EnumTest.List do
     assert Enum.partition([2,4,6], fn(x, do: rem(x, 2) == 0)) == { [2,4,6], [] }
   end
 
+  test :qsort do
+    assert Enum.qsort([5,3,2,4,1]) == [1,2,3,4,5]
+  end
+
   test :split do
     assert Enum.split([1,2,3], 0) == { [], [1,2,3] }
     assert Enum.split([1,2,3], 1) == { [1], [2,3] }
@@ -311,6 +315,11 @@ defmodule EnumTest.Dict.Common do
 
         assert { below_4, above_4 } == Enum.partition(dict, fn({_k, v}, do: v < 4))
         assert { all, [] } == Enum.partition(dict, fn({_k, v}, do: v < 10))
+      end
+
+      test :qsort do
+        dict = unquote(module).new [{:b,2},{:c,3},{:a,1},{:d,4}]
+        assert Enum.qsort(dict) == [a: 1, b: 2, c: 3, d: 4]
       end
     end
   end

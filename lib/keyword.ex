@@ -18,6 +18,15 @@ defmodule Keyword do
   """
 
   @doc """
+  Creates a Keyword from enum. Differently from `Keyword.new`
+  that behaves as a dict, `Keyword.from_enum` do not remove
+  duplicated entries.
+  """
+  def from_enum(enum) do
+    Enum.qsort(enum)
+  end
+
+  @doc """
   Returns an empty keywords list, i.e. an empty list.
   """
   def new do
@@ -138,7 +147,7 @@ defmodule Keyword do
   If a previous value is already stored, all entries are
   removed and the value is overriden.
 
-  Use `prepend/3` to add a new value for an existing key
+  Use `put_other/3` to add a new value for an existing key
   without removing previous ones.
 
   ## Examples

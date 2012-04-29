@@ -359,9 +359,7 @@ defmodule Enum do
   @doc """
   Returns a new collection, where each item is the result
   of invoking `fun` on each corresponding item of `collection`.
-
-  For dicts, the function accepts a key-value tuple and it should return a
-  tuple as well.
+  For dicts, the function accepts a key-value tuple.
 
   ## Examples
 
@@ -439,6 +437,23 @@ defmodule Enum do
   def reduce(collection, acc, fun) do
     { iterator, pointer } = I.iterator(collection)
     do_reduce(pointer, iterator, acc, fun)
+  end
+
+  @doc """
+  Sorts the collection according to the quick sort algorithm.
+
+  ## Examples
+
+      Enum.qsort [3,2,1] #=> [1,2,3]
+
+  """
+  def qsort(collection) when is_list(collection) do
+    do_list_qsort(collection, [])
+  end
+
+  def qsort(collection) do
+    { iterator, pointer } = I.iterator(collection)
+    do_qsort(pointer, iterator, [])
   end
 
   @doc """
@@ -754,6 +769,54 @@ defmodule Enum do
 
   defp do_partition(:stop, _, _, acc1, acc2) do
     { List.reverse(acc1), List.reverse(acc2) }
+  end
+
+  ## qsort (lists)
+
+  defp do_list_qsort([], acc) do
+    acc
+  end
+
+  defp do_list_qsort([h|t], acc) do
+    do_list_qsort_part(h, t, {[], [h], []}, acc)
+  end
+
+  defp do_list_qsort_part(_, [], { l, e, g }, acc) do
+    do_list_qsort(l, e ++ do_list_qsort(g, acc))
+  end
+
+  defp do_list_qsort_part(x, [h|t], { l, e, g }, acc) do
+    if h < x do
+      do_list_qsort_part(x, t, { [h|l], e, g }, acc)
+    elsif: h > x
+      do_list_qsort_part(x, t, { l, e, [h|g] }, acc)
+    else:
+      do_list_qsort_part(x, t, { l, [h|e], g }, acc)
+    end
+  end
+
+  ## qsort (iterator)
+
+  defp do_qsort({ h, next }, iterator, acc) do
+    do_qsort_part(h, iterator.(next), iterator, {[], [h], []}, acc)
+  end
+
+  defp do_qsort(:stop, _iterator, acc) do
+    acc
+  end
+
+  defp do_qsort_part(_, :stop, _iterator, { l, e, g }, acc) do
+    do_list_qsort(l, e ++ do_list_qsort(g, acc))
+  end
+
+  defp do_qsort_part(x, { h, next }, iterator, { l, e, g }, acc) do
+    if h < x do
+      do_qsort_part(x, iterator.(next), iterator, { [h|l], e, g }, acc)
+    elsif: h > x
+      do_qsort_part(x, iterator.(next), iterator, { l, e, [h|g] }, acc)
+    else:
+      do_qsort_part(x, iterator.(next), iterator, { l, [h|e], g }, acc)
+    end
   end
 
   ## split
