@@ -6,6 +6,8 @@ defmodule URI do
                    userinfo: nil, host: nil, port: nil,
                    specifics: nil]
 
+  import Bitwise
+
   @moduledoc """
   Utilities for working with and creating URIs.
   """
@@ -54,7 +56,7 @@ defmodule URI do
 
   defp hex(n) when n <= 9, do: <<n + ?0>>
   defp hex(n) when n > 15 do
-    hex(:erlang.bsr(n, 4)) <> hex(:erlang.band(n, 15))
+    hex(bsr(n, 4)) <> hex(band(n, 15))
   end
   defp hex(n), do: <<n + ?A - 10>>
 
@@ -62,7 +64,7 @@ defmodule URI do
   Unpercent (URL) decodes a URI.
   """
   def url_decode(s) when is_binary(s), do: :unicode.characters_to_binary(list_to_binary(url_decode(binary_to_list(s))))
-  def url_decode([?%, hex1, hex2 | tail]), do: [:erlang.bsl(hex2dec(hex1), 4) + hex2dec(hex2) | url_decode(tail)]
+  def url_decode([?%, hex1, hex2 | tail]), do: [bsl(hex2dec(hex1), 4) + hex2dec(hex2) | url_decode(tail)]
   def url_decode([head | tail]), do: [check_plus(head) | url_decode(tail)]
   def url_decode([]), do: []
 
@@ -144,7 +146,7 @@ defmodule URI do
   # to replace those with nil for consistency.
   defp nillify(l) do
     lc s in l do
-      if :erlang.size(s) > 0 do
+      if size(s) > 0 do
         s
       else:
         nil
