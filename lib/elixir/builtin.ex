@@ -130,6 +130,10 @@ defmodule Elixir.Builtin do
   Differently from `def/2`, the macro arguments are evaluated
   and therefore requires quoting.
 
+  The `name` must be an atom, the `arguments` a list where each
+  element represents another argument and `guards` a list of
+  clauses, where each clause is disjunct.
+
   ## Examples
 
   The most common mistake when using this macro is to pass the

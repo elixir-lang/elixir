@@ -20,7 +20,7 @@ defmodule ModuleTest.ToBeUsed do
       @has_callback true
       name  = :original_value
       args  = [1]
-      guard = true
+      guard = []
       def name, args, guard, do: unquote(value)
     end
   end

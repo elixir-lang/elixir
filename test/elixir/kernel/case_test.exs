@@ -14,6 +14,13 @@ defmodule Kernel.CaseTest do
     assert vars_case(-1, -1) == { 0, 1 }
   end
 
+  test :match_with_in do
+    assert(case 3 do
+    match: x in [1,2,3]
+      true
+    end)
+  end
+
   defp get_case do
     case internal do
     match: :invalid

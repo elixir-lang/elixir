@@ -53,7 +53,7 @@ defmodule ExUnit.Case do
       else:
         :"test_#{message}"
       end
-      def message, [], true, do: unquote(contents)
+      def message, [], [], do: unquote(contents)
     end
   end
 end

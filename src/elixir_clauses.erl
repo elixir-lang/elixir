@@ -3,7 +3,7 @@
 %% handled in elixir_try.
 -module(elixir_clauses).
 -export([match/3, simple_match/3, assigns/3, assigns_block/5, assigns_block/6,
-  extract_args/1, extract_guards/1, extract_guard_clauses/1, extract_last_guards/1]).
+  extract_args/1, extract_guards/1, extract_last_guards/1]).
 -import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
 
@@ -19,7 +19,7 @@ assigns(Fun, Args, S) -> Fun(Args, S).
 
 assigns_block(Line, Fun, BareArgs, Exprs, S) ->
   { Args, Guards } = extract_guards(BareArgs),
-  assigns_block(Line, Fun, Args, Exprs, extract_guard_clauses(Guards), S).
+  assigns_block(Line, Fun, Args, Exprs, Guards, S).
 
 assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
   { TArgs, SA }  = elixir_clauses:assigns(Fun, Args, S),
@@ -40,16 +40,14 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
 % Translate/Extract guards from the given expression.
 
 translate_guard(Line, Guard, S) ->
-  element(1, elixir_translator:translate(elixir_quote:linify(Line, Guard), S)).
+  [element(1, elixir_translator:translate_each(elixir_quote:linify(Line, Guard), S))].
 
-extract_guards({ 'when', _, [Left, Right] }) -> { Left, Right };
-extract_guards(Else) -> { Else, true }.
+extract_guards({ 'when', _, [Left, Right] }) -> { Left, extract_or_clauses(Right, []) };
+extract_guards({ 'in', _, [Left, _] } = Expr) -> { Left, [Expr] };
+extract_guards(Else) -> { Else, [] }.
 
-extract_guard_clauses(true) -> [];
-extract_guard_clauses(Term) -> extract_or_clauses(Term, []).
-
-extract_or_clauses({ 'when', _, [Left, Right] }, Acc) -> extract_or_clauses(Right, [[Left]|Acc]);
-extract_or_clauses(Term, Acc) -> [[Term]|Acc].
+extract_or_clauses({ 'when', _, [Left, Right] }, Acc) -> extract_or_clauses(Right, [Left|Acc]);
+extract_or_clauses(Term, Acc) -> [Term|Acc].
 
 % Extract guards when it is in the last element of the args
 
@@ -57,7 +55,7 @@ extract_last_guards([]) -> { [], [] };
 extract_last_guards(Args) ->
   { Left, [Right] } = lists:split(length(Args) - 1, Args),
   { Bare, Guards } = extract_guards(Right),
-  { Left ++ [Bare], extract_guard_clauses(Guards) }.
+  { Left ++ [Bare], Guards }.
 
 % Extract name and args from the given expression.
 

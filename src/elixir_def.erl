@@ -82,9 +82,7 @@ handle_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS) ->
 
 %% Store the definition after is is handled.
 
-store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S) ->
-  Guards = elixir_clauses:extract_guard_clauses(RawGuards),
-
+store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, S) ->
   case RawExpr of
     skip_definition -> Expr = nil;
     [{ do, Expr }] -> [];
