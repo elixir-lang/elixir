@@ -30,7 +30,7 @@ defmodule Kernel.RescueTest do
       raise "an exception"
     rescue: RuntimeError
       true
-    catch: :error, _
+    catch: :error, value
       false
     end
 
@@ -84,17 +84,15 @@ defmodule Kernel.RescueTest do
   end
 
   test :rescue_defined_variable do
-    expected = RuntimeError
+    var = Protocol.UndefinedError[protocol: Foo]
 
     result = try do
-      raise "an exception"
-    rescue: ^expected
+      raise Protocol.UndefinedError, protocol: Foo
+    rescue: ^var
       true
-    catch: :error, _
-      false
     end
 
-    assert result
+    assert result, "Expected to rescue with success"
   end
 
   test :rescue_named_defined_variable do
@@ -238,6 +236,18 @@ defmodule Kernel.RescueTest do
     end
 
     assert result == "undefined function: DoNotExist.for_sure/0"
+  end
+
+  test :pattern_matching do
+    result = try do
+      raise Protocol.UndefinedError, protocol: Foo
+    rescue: Protocol.UndefinedError[protocol: Bar]
+      false
+    rescue: Protocol.UndefinedError[protocol: Foo] = x
+      x.message
+    end
+
+    assert result == "protocol Foo not implemented for nil"
   end
 
   defp zero(0), do: 0

@@ -181,6 +181,11 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[foo: :bar]), do: true\nend'
   end
 
+  test :invalid_access_protocol_on_rescue do
+    assert "nofile:1: cannot (yet) pattern match against erlang exceptions" ==
+      format_rescue 'try do\n1\nrescue: UndefinedFunctionError[arity: 1]\nfalse\nend'
+  end
+
   ## Helpers
 
   defp format_rescue(expr) do

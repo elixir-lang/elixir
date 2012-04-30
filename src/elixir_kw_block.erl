@@ -30,5 +30,7 @@ validate(Line, {Key,List,_}, 0, S) when List /= [] ->
 validate(Line, {Key,List,_}, 1, S) when length(List) > 1 ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid comma arguments for ~s", [Key]);
 
-validate(_, _, _, _) -> ok.
+validate(Line, {Key,List,_}, Count, S) when length(List) > Count ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for ~s", [Key]);
 
+validate(_, _, _, _) -> ok.

@@ -709,16 +709,16 @@ defmodule Elixir.Builtin do
       end
 
   The rescue clause is used to handle errors, while the catch clause
-  can be used to catch throw values. The catch clause accepts the same
-  pattern matching rules as match.
+  can be used to catch throw values. Both catch and rescue clauses
+  accepts the same pattern matching rules as match.
 
   Note that calls inside `try` are not tail recursive since the VM
   needs to keep the stacktrace in case an exception happens.
 
   ## Rescue clauses
 
-  While `catch` is simply a pattern matching mechanism for thrown
-  values, rescue provides a higher abstraction around exceptions
+  Besides accepting the same pattern matching rules as `match`
+  clauses, rescue provides some conveniences around exceptions
   that allows one to rescue an exception by its name and not by
   its internal contents. All the following formats are valid
   rescue expressions:
@@ -742,7 +742,7 @@ defmodule Elixir.Builtin do
       # rescue all and assign to x
       try do
         UndefinedModule.undefined_function
-      rescue: x in _
+      rescue: x
       end
 
   ## Variable visibility
@@ -765,7 +765,7 @@ defmodule Elixir.Builtin do
   In the example above, `x` cannot be accessed since it was defined
   inside the `try` clause.
 
-  ## Catching exits and errors
+  ## Catching exits and Erlang errors
 
   The catch clause works exactly the same as in Erlang. Therefore,
   one can also handle exits/errors coming from Erlang as below:

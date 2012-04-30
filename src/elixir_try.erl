@@ -9,9 +9,9 @@ clauses(Line, Clauses, S) ->
   Transformer = fun(X, Acc) -> each_clause(Line, X, umergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, Rescue ++ Catch).
 
-each_clause(Line, {'catch',Raw,Expr}, S) ->
+each_clause(Line, {'catch',Raw,Expr} = Catch, S) ->
   { Args, Guards } = elixir_clauses:extract_last_guards(Raw),
-  validate_args('catch', Line, Args, 3, S),
+  elixir_kw_block:validate(Line, Catch, 3, S),
 
   Final = case Args of
     [X]     -> [throw, X, { '_', Line, nil }];
@@ -26,36 +26,36 @@ each_clause(Line, {'catch',Raw,Expr}, S) ->
   Condition = { '{}', Line, Final },
   elixir_clauses:assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], Guards, S);
 
-each_clause(Line, { rescue, Args, Expr }, S) ->
-  validate_args(rescue, Line, Args, 3, S),
+each_clause(Line, { rescue, Args, Expr } = Rescue, S) ->
+  elixir_kw_block:validate(Line, Rescue, 1, S),
   [Condition] = Args,
-  { Left, Right } = normalize_rescue(Line, Condition, S),
-
-  case Left of
-    { '_', _, _ } ->
-      case Right of
-        nil ->
-          each_clause(Line, { 'catch', [error, Left], Expr }, S);
-        _ ->
+  case normalize_rescue(Line, Condition, S) of
+    { Left, Right } ->
+      case Left of
+        { '_', _, _ } ->
           { ClauseVar, CS } = elixir_variables:build_ex(Line, S),
           { Clause, _ } = rescue_guards(Line, ClauseVar, Right, S),
-          each_clause(Line, { 'catch', [error, Clause], Expr }, CS)
+          each_clause(Line, { 'catch', [error, Clause], Expr }, CS);
+        _ ->
+          { Clause, Safe } = rescue_guards(Line, Left, Right, S),
+          case Safe of
+            true ->
+              each_clause(Line, { 'catch', [error, Clause], Expr }, S);
+            false ->
+              { ClauseVar, CS }  = elixir_variables:build_ex(Line, S),
+              { FinalClause, _ } = rescue_guards(Line, ClauseVar, Right, S),
+              Match = { '=', Line, [
+                Left,
+                { { '.', Line, ['__MAIN__.Exception', normalize] }, Line, [ClauseVar] }
+              ] },
+              FinalExpr = prepend_to_block(Line, Match, Expr),
+              each_clause(Line, { 'catch', [error, FinalClause], FinalExpr }, CS)
+          end
       end;
     _ ->
-      { Clause, Safe } = rescue_guards(Line, Left, Right, S),
-      case Safe of
-        true ->
-          each_clause(Line, { 'catch', [error, Clause], Expr }, S);
-        false ->
-          { ClauseVar, CS }  = elixir_variables:build_ex(Line, S),
-          { FinalClause, _ } = rescue_guards(Line, ClauseVar, Right, S),
-          Match = { '=', Line, [
-            Left,
-            { { '.', Line, ['__MAIN__.Exception', normalize] }, Line, [ClauseVar] }
-          ] },
-          FinalExpr = prepend_to_block(Line, Match, Expr),
-          each_clause(Line, { 'catch', [error, FinalClause], FinalExpr }, CS)
-      end
+      Result = each_clause(Line, { 'catch', [error, Condition], Expr }, S),
+      validate_rescue_access(Line, Condition, S),
+      Result
   end;
 
 each_clause(Line, {Key,_,_}, S) ->
@@ -63,28 +63,14 @@ each_clause(Line, {Key,_,_}, S) ->
 
 %% Helpers
 
-validate_args(Clause, Line, [], _, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for ~s in try", [Clause]);
-
-validate_args(Clause, Line, List, Max, S) when length(List) > Max ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for ~s in try", [Clause]);
-
-validate_args(_, _, _, _, _) -> [].
-
 %% rescue [Error] -> _ in [Error]
 normalize_rescue(Line, List, S) when is_list(List) ->
   normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, List] }, S);
 
-%% rescue ^var -> _ in [var]
-normalize_rescue(_, { '^', Line, [Var] }, S) ->
-  normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, [Var]] }, S);
-
-%% rescue _    -> _ in _
-%% rescue var  -> var in _
-normalize_rescue(_, { Name, Line, Atom } = Rescue, S) when is_atom(Name), is_atom(Atom) ->
+%% rescue var -> var in _
+normalize_rescue(_, { Name, Line, Atom } = Rescue, S) when is_atom(Name), is_atom(Atom), Name /= '_' ->
   normalize_rescue(Line, { in, Line, [Rescue, { '_', Line, nil }] }, S);
 
-%% rescue var in _
 %% rescue var in [Exprs]
 normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
   case Right of
@@ -97,15 +83,17 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
         true -> { Left, Right };
         false -> normalize_rescue(Line, nil, S)
       end;
-    _ -> normalize_rescue(Line, nil, S)
+    _ ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid use of operator \"in\" in rescue inside try")
   end;
 
-%% rescue ErlangError -> _ in [ErlangError]
-normalize_rescue(_, { Name, Line, _ } = Rescue, S) when is_atom(Name) ->
-  normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, [Rescue]] }, S);
-
-normalize_rescue(Line, _, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid condition given for rescue in try").
+normalize_rescue(Line, Condition, S) ->
+  case elixir_translator:translate_each(Condition, S#elixir_scope{assign=true}) of
+    { { atom, _, Atom }, _ } ->
+      normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, [Atom]] }, S);
+    _ ->
+      false
+  end.
 
 %% Convert rescue clauses into guards.
 rescue_guards(_, Var, nil, _) -> { Var, false };
@@ -243,7 +231,25 @@ erlang_rescue_guard_for(Line, Var, '__MAIN__.ErlangError') ->
   ] },
   { 'or', Line, [IsNotTuple, IsException] }.
 
-%% Join the given expression forming a tree according to the given kind.
+%% Validate rescue access
+
+validate_rescue_access(Line, { '=', _, [Left, Right] }, S) ->
+  validate_rescue_access(Line, Left, S),
+  validate_rescue_access(Line, Right, S);
+
+validate_rescue_access(Line, { 'access', _, [Element, _] }, S) ->
+  case elixir_translator:translate_each(Element, S) of
+    { { atom, _, Atom }, _ } ->
+      case lists:member(Atom, erlang_rescues()) of
+        false -> [];
+        true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot (yet) pattern match against erlang exceptions")
+      end;
+    _ -> []
+  end;
+
+validate_rescue_access(_, _, _) -> [].
+
+%% Helpers
 
 is_var({ Name, _, Atom }) when is_atom(Name), is_atom(Atom) -> true;
 is_var(_) -> false.
