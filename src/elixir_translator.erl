@@ -632,27 +632,36 @@ convert_op(Else)   ->  Else.
 translate_comprehension(Line, Kind, Args, S) ->
   case lists:split(length(Args) - 1, Args) of
     { Cases, [[{do,Expr}]] } ->
-      { TCases, SC } = lists:mapfoldl(fun translate_each_comprehension/2, S, Cases),
-      { TExpr, SE } = translate_each(Expr, SC),
-      { { Kind, Line, TExpr, TCases }, umergec(S, SE) };
+      { Generators, Filters } = case lists:reverse(Cases) of
+        [{'when', _, [Left, Right]}|T] -> { lists:reverse([Left|T]), [Right] };
+        _ -> { Cases, [] }
+      end,
+
+      { TGenerators, SG } = lists:mapfoldl(fun(X, Acc) -> translate_generators(Line, X, Acc) end, S, Generators),
+      { TFilters, SF } = lists:mapfoldl(fun translate_filters/2, SG, Filters),
+      { TExpr, SE } = translate_each(Expr, SF),
+      { { Kind, Line, TExpr, TGenerators ++ TFilters }, umergec(S, SE) };
     _ ->
       syntax_error(Line, S#elixir_scope.filename, "no block given to comprehension ~s", [Kind])
   end.
 
-translate_each_comprehension({ in, Line, [{'<<>>', _, _} = Left, Right] }, S) ->
-  translate_each_comprehension({ inbin, Line, [Left, Right]}, S);
+translate_generators(_Line, { in, Line, [{'<<>>', _, _} = Left, Right] }, S) ->
+  translate_generators(_Line, { inbin, Line, [Left, Right]}, S);
 
-translate_each_comprehension({inbin, Line, [Left, Right]}, S) ->
+translate_generators(_Line, {inbin, Line, [Left, Right]}, S) ->
   { TRight, SR } = translate_each(Right, S),
   { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
   { { b_generate, Line, TLeft, TRight }, SL };
 
-translate_each_comprehension({Kind, Line, [Left, Right]}, S) when Kind == in; Kind == inlist ->
+translate_generators(_Line, {Kind, Line, [Left, Right]}, S) when Kind == in; Kind == inlist ->
   { TRight, SR } = translate_each(Right, S),
   { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
   { { generate, Line, TLeft, TRight }, SL };
 
-translate_each_comprehension(X, S) ->
+translate_generators(Line, _Else, S) ->
+  syntax_error(Line, S#elixir_scope.filename, "invalid generator given to comprehension").
+
+translate_filters(X, S) ->
   { TX, TS } = translate_each(X, S),
   Line = case X of
     { _, L, _ } -> L;

@@ -288,7 +288,7 @@ defmodule Module do
   def defined_functions(module, kind) do
     assert_not_compiled!(:defined_functions, module)
     table = function_table_for(module)
-    lc { tuple, _, stored_kind, _, _ } in ETS.tab2list(table), stored_kind == kind, do: tuple
+    lc { tuple, _, stored_kind, _, _ } in ETS.tab2list(table) when stored_kind == kind, do: tuple
   end
 
   @doc """
@@ -367,7 +367,7 @@ defmodule Module do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
     attrs = ETS.lookup_element(table, :attributes, 2)
-    final = lc {k,v} in attrs, k != key, do: {k,v}
+    final = lc {k,v} in attrs when k != key, do: {k,v}
     ETS.insert(table, { :attributes, final })
   end
 

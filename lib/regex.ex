@@ -185,7 +185,7 @@ defmodule Regex do
     options = [{ :return, return_for(string) }, :trim, { :parts, parts }]
     list  = Erlang.re.split(string, compiled, options)
     blank = blank_for(string)
-    lc l in list, l != blank, do: l
+    lc l in list when l != blank, do: l
   end
 
   @doc %B"""

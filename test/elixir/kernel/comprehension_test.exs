@@ -4,15 +4,15 @@ defmodule Kernel.ComprehensionTest do
   use ExUnit.Case
 
   test :list_comprehensions do
-    assert [4] == lc x in [1,2,3], rem(x, 2) == 0, do: x * 2
+    assert [4] == lc x in [1,2,3] when rem(x, 2) == 0, do: x * 2
   end
 
   test :list_comprehensions_with_nil do
-    assert [] == lc x in [1,2,3], nilly, do: x * 2
+    assert [] == lc x in [1,2,3] when nilly, do: x * 2
   end
 
   test :list_comprehensions_with_truthy_object do
-    assert [2,4,6] == lc x in [1,2,3], 1, do: x * 2
+    assert [2,4,6] == lc x in [1,2,3] when 1, do: x * 2
   end
 
   test :list_comprehensions_with_inlist do
@@ -44,15 +44,15 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test :bin_comprehensions do
-    assert <<4>> == bc x in [1,2,3], rem(x, 2) == 0, do: <<x * 2>>
+    assert <<4>> == bc x in [1,2,3] when rem(x, 2) == 0, do: <<x * 2>>
   end
 
   test :bin_comprehensions_with_nil do
-    assert <<>> == bc x in [1,2,3], nilly, do: <<x * 2>>
+    assert <<>> == bc x in [1,2,3] when nilly, do: <<x * 2>>
   end
 
   test :bin_comprehensions_with_truthy_object do
-    assert <<2,4,6>> == bc x in [1,2,3], 1, do: <<x * 2>>
+    assert <<2,4,6>> == bc x in [1,2,3] when 1, do: <<x * 2>>
   end
 
   test :bin_comprehensions_with_inlist do
