@@ -43,39 +43,39 @@ defmodule Kernel.ComprehensionTest do
     assert [2,4,6] == result
   end
 
-  test :bin_comprehensions do
+  test :bit_comprehensions do
     assert <<4>> == bc x in [1,2,3] when rem(x, 2) == 0, do: <<x * 2>>
   end
 
-  test :bin_comprehensions_with_nil do
+  test :bit_comprehensions_with_nil do
     assert <<>> == bc x in [1,2,3] when nilly, do: <<x * 2>>
   end
 
-  test :bin_comprehensions_with_truthy_object do
+  test :bit_comprehensions_with_truthy_object do
     assert <<2,4,6>> == bc x in [1,2,3] when 1, do: <<x * 2>>
   end
 
-  test :bin_comprehensions_with_inlist do
+  test :bit_comprehensions_with_inlist do
     assert <<2,4,6>> == bc inlist(x, [1,2,3]), do: <<x * 2>>
   end
 
-  test :bin_comprehensions_with_inlist_of_bins do
+  test :bit_comprehensions_with_inlist_of_bins do
     assert <<2,4,6>> == bc inlist(<<x>>, [<<1>>,<<2>>,<<3>>]), do: <<x * 2>>
   end
 
-  test :bin_comprehensions_with_implicit_inbin do
+  test :bit_comprehensions_with_implicit_inbin do
     assert <<2,4,6>> == bc <<x>> in <<1,2,3>>, do: <<x * 2>>
   end
 
-  test :bin_comprehensions_with_explicit_inbin do
+  test :bit_comprehensions_with_explicit_inbin do
     assert <<2,4,6>> == bc inbin(<<x>>, <<1,2,3>>), do: <<x * 2>>
   end
 
-  test :bin_comprehensions_with_two_generators do
+  test :bit_comprehensions_with_two_generators do
     assert <<4, 5, 6, 8, 10, 12, 12, 15, 18>> == bc x in [1,2,3], y in [4,5,6], do: <<x*y>>
   end
 
-  test :bin_comprehension_multiline do
+  test :bit_comprehension_multiline do
     result = bc x in [1,2,3] do
       <<x * 2>>
     end
