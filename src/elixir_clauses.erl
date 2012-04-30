@@ -42,8 +42,16 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
 translate_guard(Line, Guard, S) ->
   [element(1, elixir_translator:translate_each(elixir_quote:linify(Line, Guard), S))].
 
-extract_guards({ 'when', _, [Left, Right] }) -> { Left, extract_or_clauses(Right, []) };
-extract_guards({ 'in', _, [Left, _] } = Expr) -> { Left, [Expr] };
+extract_guards({ 'when', _, [Left, Right] }) ->
+  Clauses = extract_or_clauses(Right, []),
+  case Left of
+    { 'in', Line, [Var, _] } ->
+      { Var, [{ 'and', Line, [Left, Clause] } || Clause <- Clauses] };
+    _ ->
+      { Left, Clauses }
+  end;
+
+extract_guards({ 'in', _, [Var, _] } = Expr) -> { Var, [Expr] };
 extract_guards(Else) -> { Else, [] }.
 
 extract_or_clauses({ 'when', _, [Left, Right] }, Acc) -> extract_or_clauses(Right, [Left|Acc]);

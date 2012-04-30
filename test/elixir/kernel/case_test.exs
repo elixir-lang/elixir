@@ -19,6 +19,15 @@ defmodule Kernel.CaseTest do
     match: x in [1,2,3]
       true
     end)
+
+    y = 3
+
+    assert(case 3 do
+    match: x in [1,2,3] when y == 2
+      false
+    match: x in [1,2,3] when y == 1 when y == 3
+      true
+    end)
   end
 
   defp get_case do

@@ -561,7 +561,7 @@ defmodule Enum do
 
   defp do_all?({ h, next }, iterator, fun) do
     case fun.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       false
     else:
       do_all?(iterator.(next), iterator, fun)
@@ -576,7 +576,7 @@ defmodule Enum do
 
   defp do_any?({ h, next }, iterator, fun) do
     case fun.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       do_any?(iterator.(next), iterator, fun)
     else:
       true
@@ -591,7 +591,7 @@ defmodule Enum do
 
   defp do_drop_while({ h, next }, iterator, fun, module) do
     case fun.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       module.to_list(h, next)
     else:
       do_drop_while(iterator.(next), iterator, fun, module)
@@ -606,7 +606,7 @@ defmodule Enum do
 
   defp do_find({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       do_find(iterator.(next), iterator, ifnone, fun)
     else:
       h
@@ -621,7 +621,7 @@ defmodule Enum do
 
   defp do_find_value({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       do_find_value(iterator.(next), iterator, ifnone, fun)
     match: other
       other
@@ -647,7 +647,7 @@ defmodule Enum do
 
   defp do_filter({ h, next }, iterator, fun) do
     case fun.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       do_filter(iterator.(next), iterator, fun)
     else:
       [h|do_filter(iterator.(next), iterator, fun)]
@@ -662,7 +662,7 @@ defmodule Enum do
 
   defp do_filter_map({ h, next }, iterator, filter, mapper) do
     case filter.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       do_filter_map(iterator.(next), iterator, filter, mapper)
     else:
       [mapper.(h)|do_filter_map(iterator.(next), iterator, filter, mapper)]
@@ -687,7 +687,7 @@ defmodule Enum do
 
   defp do_split_with({ h, next }, iterator, fun, acc, module) do
     case fun.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       do_split_with(iterator.(next), iterator, fun, [h|acc], module)
     else:
       { List.reverse(acc), module.to_list(h, next) }
@@ -760,7 +760,7 @@ defmodule Enum do
 
   defp do_partition({ h, next }, iterator, fun, acc1, acc2) do
     case fun.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       do_partition(iterator.(next), iterator, fun, acc1, [h|acc2])
     else:
       do_partition(iterator.(next), iterator, fun, [h|acc1], acc2)
@@ -837,7 +837,7 @@ defmodule Enum do
 
   defp do_take_while({ h, next }, iterator, fun) do
     case fun.(h) do
-    match: x when x == false or x == nil
+    match: x in [false, nil]
       []
     else:
       [h|do_take_while(iterator.(next), iterator, fun)]

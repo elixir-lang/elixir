@@ -1108,9 +1108,9 @@ defmodule Elixir.Builtin do
 
   """
   defmacro :in.(left, [h|t]) do
-    Enum.reduce t, { :==, 0, [left, h] }, fn(x, acc) ->
+    :lists.foldl fn(x, acc) ->
       { :or, 0, [acc, { :==, 0, [left, x] }] }
-    end
+    end, { :==, 0, [left, h] }, t
   end
 
   @doc """
