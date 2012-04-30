@@ -186,6 +186,11 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'try do\n1\nrescue: UndefinedFunctionError[arity: 1]\nfalse\nend'
   end
 
+  test :invalid_bc do
+    assert "nofile:1: a bit comprehension expects a bit string << >> to be returned" ==
+      format_rescue 'bc x in [1,2,3], do: x'
+  end
+
   ## Helpers
 
   defp format_rescue(expr) do

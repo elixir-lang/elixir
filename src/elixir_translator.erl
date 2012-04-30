@@ -639,11 +639,20 @@ translate_comprehension(Line, Kind, Args, S) ->
 
       { TGenerators, SG } = lists:mapfoldl(fun(X, Acc) -> translate_generators(Line, X, Acc) end, S, Generators),
       { TFilters, SF } = lists:mapfoldl(fun translate_filters/2, SG, Filters),
-      { TExpr, SE } = translate_each(Expr, SF),
+      { TExpr, SE } = translate_comprehension_do(Line, Kind, Expr, SF),
       { { Kind, Line, TExpr, TGenerators ++ TFilters }, umergec(S, SE) };
     _ ->
       syntax_error(Line, S#elixir_scope.filename, "no block given to comprehension ~s", [Kind])
   end.
+
+translate_comprehension_do(_Line, bc, { '<<>>', _, _ } = Expr, S) ->
+  translate_each(Expr, S);
+
+translate_comprehension_do(Line, bc, _Expr, S) ->
+  syntax_error(Line, S#elixir_scope.filename, "a bit comprehension expects a bit string << >> to be returned");
+
+translate_comprehension_do(_Line, _Kind, Expr, S) ->
+  translate_each(Expr, S).
 
 translate_generators(_Line, { in, Line, [{'<<>>', _, _} = Left, Right] }, S) ->
   translate_generators(_Line, { inbin, Line, [Left, Right]}, S);
