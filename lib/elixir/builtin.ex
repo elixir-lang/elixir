@@ -1089,6 +1089,27 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  Returns true if the element on the left is equal (==) to
+  any of the items in the right. For now, it only accepts
+  a list as the right argument. Useful in guard clauses.
+
+  ## Examples
+
+      x = 1
+      x in [1,2,3] #=> true
+
+  This macro simply translates the expression above to:
+
+      x == 1 or x == 2 or x == 3
+
+  """
+  defmacro :in.(left, [h|t]) do
+    Enum.reduce t, { :==, 0, [left, h] }, fn(x, acc) ->
+      { :or, 0, [acc, { :==, 0, [left, x] }] }
+    end
+  end
+
+  @doc """
   Implements the unary operator ! as a macro. It receives any
   argument and returns true if it is false or nil. Returns false
   otherwise.

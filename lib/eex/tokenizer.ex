@@ -81,15 +81,15 @@ defmodule EEx.Tokenizer do
   # Start tokens finish with `do` or `->`
   # while end tokens contain only the end word.
 
-  defp tip_expr_token_name([h|t]) when h == ?\s or h == ?\t do
+  defp tip_expr_token_name([h|t]) when h in [?\s, ?\t] do
     tip_expr_token_name(t)
   end
 
-  defp tip_expr_token_name('od' ++ [h|_]) when h == ?\s or h == ?\t or h == ?) do
+  defp tip_expr_token_name('od' ++ [h|_]) when h in [?\s, ?\t, ?)] do
     :start_expr
   end
 
-  defp tip_expr_token_name('>-' ++ [h|_]) when h == ?\s or h == ?\t or h == ?) do
+  defp tip_expr_token_name('>-' ++ [h|_]) when h in [?\s, ?\t, ?)] do
     :start_expr
   end
 
@@ -104,7 +104,7 @@ defmodule EEx.Tokenizer do
   # Receive an expression contents and see if it matches
   # a keyword block syntax, like elsif: foo.
 
-  defp middle_expr_token_name([h|t]) when h == ?\s or h == ?\t do
+  defp middle_expr_token_name([h|t]) when h in [?\s, ?\t] do
     middle_expr_token_name(t)
   end
 
@@ -131,7 +131,7 @@ defmodule EEx.Tokenizer do
     false
   end
 
-  defp only_spaces?([h|t]) when h == ?\s or h == ?\t, do: only_spaces?(t)
+  defp only_spaces?([h|t]) when h in [?\s, ?\t], do: only_spaces?(t)
   defp only_spaces?(other), do: other == []
 
   # Tokenize the buffered text by appending
