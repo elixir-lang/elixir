@@ -1,4 +1,4 @@
-defrecord EEx.State, engine: nil, dict: [], filename: nil, line: 0
+defrecord EEx.State, engine: EEx.Engine, dict: [], file: 'nofile', line: 1
 
 defmodule EEx.Compiler do
   @moduledoc false
@@ -8,9 +8,10 @@ defmodule EEx.Compiler do
   and the engine together by handling the tokens and invoking
   the engine every time a full expression or text is received.
   """
-  def compile(source, engine, filename, line) do
+  def compile(source, options) do
+    line   = Keyword.get(options, :line, 1)
     tokens = EEx.Tokenizer.tokenize(source, line)
-    state = EEx.State.new(engine: engine, filename: filename)
+    state  = EEx.State.new(options)
     generate_buffer(tokens, "", [], state)
   end
 
@@ -22,7 +23,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{ :expr, line, mark, chars }|t], buffer, scope, state) do
-    expr = { :__block__, 0, Erlang.elixir_translator.forms(chars, line, state.filename) }
+    expr = { :__block__, 0, Erlang.elixir_translator.forms(chars, line, state.file) }
     buffer = state.engine.handle_expr(buffer, mark, expr)
     generate_buffer(t, buffer, scope, state)
   end
@@ -40,7 +41,7 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{ :end_expr, line, _, chars }|t], buffer, [current|_], state) do
     { wrapped, state } = wrap_expr(current, line, buffer, chars, state)
-    tuples = { :__block__, 0, Erlang.elixir_translator.forms(wrapped, state.line, state.filename) }
+    tuples = { :__block__, 0, Erlang.elixir_translator.forms(wrapped, state.line, state.file) }
     buffer = insert_quotes(tuples, state.dict)
     { buffer, t }
   end

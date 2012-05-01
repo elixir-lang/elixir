@@ -202,7 +202,7 @@ foo
   end
 
   defp assert_eval(expected, atual) do
-    result = EEx.eval_string(atual, [], EEx.Engine, __FILE__)
+    result = EEx.eval_string(atual, [], file: __FILE__)
     assert result == expected
   end
 end

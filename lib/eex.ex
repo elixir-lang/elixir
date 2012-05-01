@@ -10,39 +10,40 @@ defmodule EEx do
   Get a string `source` and generate the correspondents
   quotes to be evaluated by Elixir.
   """
-  def compile_string(source, engine // EEx.Engine, filename // 'nofile', line // 1) do
-    EEx.Compiler.compile(source, engine, filename, line)
+  def compile_string(source, options // []) do
+    EEx.Compiler.compile(source, options)
   end
 
   @doc """
   Get a `filename` and generate the correspondents quotes to
   be evaluated by Elixir.
   """
-  def compile_file(filename, engine // EEx.Engine) do
-    compile_string(File.read!(filename), engine, filename)
+  def compile_file(filename, options // []) do
+    options = Keyword.put options, :file, filename
+    compile_string(File.read!(filename), options)
   end
 
   @doc """
   Get a string `source` and evaluate the values using the `bindings`
   """
-  def eval_string(source, bindings // [], engine // EEx.Engine, filename // 'nofile', line // 1) do
-    compiled = compile_string(source, engine, filename, line)
-    do_eval(compiled, bindings, filename, line)
+  def eval_string(source, bindings // [], options // []) do
+    compiled = compile_string(source, options)
+    do_eval(compiled, bindings, options)
   end
 
   @doc """
   Get a `filename` and evaluate the values using the `bindings`
   """
-  def eval_file(filename, bindings // [], engine // EEx.Engine) do
-    compiled = compile_file(filename, engine)
-    do_eval(compiled, bindings, filename)
+  def eval_file(filename, bindings // [], options // []) do
+    options  = Keyword.put options, :file, filename
+    compiled = compile_file(filename, options)
+    do_eval(compiled, bindings, options)
   end
 
   ### Helpers
 
-  defp do_eval(compiled, bindings, filename, line // 1) do
-    { result, _ } = Code.eval_quoted(compiled, bindings, file: filename, line: line)
+  defp do_eval(compiled, bindings, options) do
+    { result, _ } = Code.eval_quoted(compiled, bindings, options)
     result
   end
 end
-
