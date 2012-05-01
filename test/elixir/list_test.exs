@@ -135,4 +135,22 @@ defmodule ListTest do
     assert List.unzip([{1, 2, 3}, {4, 5}]) == [[1, 4], [2, 5]]
     assert List.unzip([[1, 2, 3], [4, 5]]) == [[1, 4], [2, 5]]
   end
+
+  test :keyfind do
+    assert List.keyfind([a: 1, b: 2], :a, 1) == { :a, 1 }
+    assert List.keyfind([a: 1, b: 2], 2, 2) == { :b, 2 }
+    assert List.keyfind([a: 1, b: 2], :c, 1) == nil
+  end
+
+  test :keymember? do
+    assert List.keymember?([a: 1, b: 2], :a, 1) == true
+    assert List.keymember?([a: 1, b: 2], 2, 2) == true
+    assert List.keymember?([a: 1, b: 2], :c, 1) == false
+  end
+
+  test :keydelete do
+    assert List.keydelete([a: 1, b: 2], :a, 1) == [{ :b, 2 }]
+    assert List.keydelete([a: 1, b: 2], 2, 2) == [{ :a, 1 }]
+    assert List.keydelete([a: 1, b: 2], :c, 1) == [{ :a, 1 }, { :b, 2 }]
+  end
 end

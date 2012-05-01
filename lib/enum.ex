@@ -332,31 +332,6 @@ defmodule Enum do
   end
 
   @doc """
-  Finds the first item in `collection` of tuples where the element
-  `position` in the tuple is equal to `key`. If none is found,
-  returns `default` (which defaults to nil).
-
-  Usage for dicts is limited and is discouraged. Use Enum.find instead.
-
-  ## Examples
-
-      list = [{:a,1},{:b,2},{:a,3}]
-      Enum.keyfind list, :a, 1 #=> {:a, 1}
-      Enum.keyfind list, 3, 2  #=> {:a, 3}
-
-  """
-  def keyfind(collection, key, position, default // nil)
-
-  def keyfind(collection, key, position, default) when is_list(collection) do
-    :lists.keyfind(key, position, collection) || default
-  end
-
-  def keyfind(collection, key, position, default) do
-    { iterator, pointer } = I.iterator(collection)
-    do_keyfind(pointer, iterator, key, position, default)
-  end
-
-  @doc """
   Returns a new collection, where each item is the result
   of invoking `fun` on each corresponding item of `collection`.
   For dicts, the function accepts a key-value tuple.
@@ -719,20 +694,6 @@ defmodule Enum do
   # Until we have to stop iteration, then we return acc.
   defp do_join(:stop, _, _joiner, acc) do
     acc
-  end
-
-  ## keyfind
-
-  defp do_keyfind({ h, _next }, _iterator, key, position, _ifnone) when elem(h, position) == key do
-    h
-  end
-
-  defp do_keyfind({ _h, next }, iterator, key, position, ifnone) do
-    do_keyfind(iterator.(next), iterator, key, position, ifnone)
-  end
-
-  defp do_keyfind(:stop, _, _, _, ifnone) do
-    ifnone
   end
 
   ## map

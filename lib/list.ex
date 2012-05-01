@@ -9,9 +9,6 @@ defmodule List do
   might be acquired by re-implementing them in Elixir.
   """
 
-  # Bifs: member/2, reverse/2
-  # Bifs: keymember/3, keysearch/3, keyfind/3
-
   @doc """
   Access the list via a predicate.
 
@@ -181,6 +178,69 @@ defmodule List do
   """
   def member?(list, term) when is_list(list) do
     Erlang.lists.member(term, list)
+  end
+
+  @doc """
+  Receives a list of tuples and returns the first tuple
+  where the item at position `posistion` matches with the
+  given `item`.
+
+  ## Examples
+
+      List.keyfind([a: 1, b: 2], :a, 1)
+      #=> { :a, 1 }
+
+      List.keyfind([a: 1, b: 2], 2, 2)
+      #=> { :b, 2 }
+
+      List.keyfind([a: 1, b: 2], :c, 1)
+      #=> nil
+
+  """
+  def keyfind(list, item, position, default // nil) do
+    Erlang.lists.keyfind(item, position, list) || default
+  end
+
+  @doc """
+  Receives a list of tuples and returns true if there is
+  a tuple where the item at position `posistion` matches
+  with the given `item`.
+
+  ## Examples
+
+      List.keymember?([a: 1, b: 2], :a, 1)
+      #=> true
+
+      List.keymember?([a: 1, b: 2], 2, 2)
+      #=> true
+
+      List.keymember?([a: 1, b: 2], :c, 1)
+      #=> false
+
+  """
+  def keymember?(list, item, position) do
+    Erlang.lists.keymember(item, position, list)
+  end
+
+  @doc """
+  Receives a list of tuples and deletes the first tuple
+  where the item at position `posistion` matches with the
+  given `item`. Returns the new tuple.
+
+  ## Examples
+
+      List.keydelete([a: 1, b: 2], :a, 1)
+      #=> [{ :b, 2 }]
+
+      List.keydelete([a: 1, b: 2], 2, 2)
+      #=> [{ :a, 1 }]
+
+      List.keydelete([a: 1, b: 2], :c, 1)
+      #=> [{ :a, 1 }, { :b, 2 }]
+
+  """
+  def keydelete(list, item, position) do
+    Erlang.lists.keydelete(item, position, list)
   end
 
   @doc """

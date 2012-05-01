@@ -98,7 +98,7 @@ defmodule ModuleTest do
   end
 
   test :reserved_attributes do
-    assert :lists.keyfind(:behavior, 1, ExUnit.Server.__info__(:attributes)) == {:behavior,[:gen_server]}
+    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behavior, 1) == {:behavior,[:gen_server]}
   end
 
   test :registered_attributes do

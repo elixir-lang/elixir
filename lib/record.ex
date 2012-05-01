@@ -163,7 +163,7 @@ defmodule Record.Extractor do
   # Retrieve the record with the given name from the given file
   defp retrieve_record(name, file) do
     records = retrieve_from_file(file)
-    if record = Enum.keyfind(records, name, 1) do
+    if record = List.keyfind(records, name, 1) do
       parse_record(record)
     else:
       raise ArgumentError, "No record #{name} found at #{to_binary(file)}"

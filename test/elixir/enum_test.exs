@@ -128,12 +128,6 @@ defmodule EnumTest.List do
     assert Enum.join([1,"2",3], ' = ') == '1 = 2 = 3'
   end
 
-  test :keyfind do
-    list = [{ :a, 1 }, { :b, 2 }, { :c, 3 }]
-    assert Enum.keyfind(list, :a, 1) == { :a, 1 }
-    assert Enum.keyfind(list, :a, 2, true) == true
-  end
-
   test :map do
     assert Enum.map([], fn(x) -> x * 2 end) == []
     assert Enum.map([1,2,3], fn(x) -> x * 2 end) == [2,4,6]
@@ -287,11 +281,6 @@ defmodule EnumTest.Dict.Common do
         dict = unquote(module).new [a: 1, b: 2, c: 3]
         assert 1 == Enum.reduce(unquote(module).new, 1, fn(x, acc, do: x + acc))
         assert 7 == Enum.reduce(dict, 1, fn({_, v}, acc, do: v + acc))
-      end
-
-      test :keyfind do
-        dict = unquote(module).new [a: 1, b: 2, c: 3]
-        assert {:b, 2} == Enum.keyfind dict, 2, 2
       end
 
       test :map do

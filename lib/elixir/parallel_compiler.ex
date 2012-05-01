@@ -78,10 +78,10 @@ defmodule Elixir.ParallelCompiler do
     receive do
     match: { :compiled, child, file }
       callback.(list_to_binary(file))
-      new_queued  = :lists.keydelete(child, 1, queued)
+      new_queued  = List.keydelete(queued, child, 1)
       # Sometimes we may have spurious entries in the waiting
       # list because someone invoked try/rescue UndefinedFunctionError
-      new_waiting = :lists.keydelete(child, 1, waiting)
+      new_waiting = List.keydelete(waiting, child, 1)
       spawn_compilers(files, output, callback, new_waiting, new_queued, result)
     match: { :module_available, child, module, binary }
       new_waiting = release_waiting_processes(module, waiting)
@@ -91,11 +91,11 @@ defmodule Elixir.ParallelCompiler do
       new_waiting = Orddict.store(child, on, waiting)
       spawn_compilers(files, output, callback, new_waiting, queued, result)
     match: { :failure, child, kind, reason, stacktrace }
-      extra = if match?({^child, module}, :lists.keyfind(child, 1, waiting)) do
+      extra = if match?({^child, module}, List.keyfind(waiting, child, 1)) do
         " (undefined module #{inspect module})"
       end
 
-      {^child, file} = :lists.keyfind(child, 1, queued)
+      {^child, file} = List.keyfind(queued, child, 1)
       IO.puts "== Compilation error on file #{list_to_binary(file)}#{extra} =="
       Erlang.erlang.raise(kind, reason, stacktrace)
     end
