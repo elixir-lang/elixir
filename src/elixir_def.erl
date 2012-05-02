@@ -104,11 +104,11 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, S) ->
     _ ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
-      store_each(CheckClauses, Kind, FunctionTable, length(Defaults), Filename, Function)
+      store_each(CheckClauses, Kind, Filename, FunctionTable, length(Defaults), Function)
   end,
 
   %% Store defaults
-  [store_each(false, Kind, FunctionTable, 0, Filename,
+  [store_each(false, Kind, Filename, FunctionTable, 0,
     function_for_clause(Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
@@ -159,14 +159,14 @@ unwrap_stored_definitions(Module) ->
   ets:delete(Table, last),
   unwrap_stored_definition(ets:tab2list(Table), [], [], [], [], [], []).
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(3, Fun) == def ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(4, Fun) == def ->
   Tuple = element(1, Fun),
   unwrap_stored_definition(
     T, [Tuple|Exports], Private, [Tuple|Def], Defmacro, Defmacrop,
     [function_for_stored_definition(Fun)|Functions]
   );
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(3, Fun) == defmacro ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(4, Fun) == defmacro ->
   Tuple = element(1, Fun),
   Macro = { ?ELIXIR_MACRO(element(1, Tuple)), element(2, Tuple) },
 
@@ -175,13 +175,13 @@ unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Fu
     [function_for_stored_definition(setelement(1, Fun, Macro))|Functions]
   );
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(3, Fun) == defp ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(4, Fun) == defp ->
   unwrap_stored_definition(
     T, Exports, [element(1, Fun)|Private], Def, Defmacro, Defmacrop,
     [function_for_stored_definition(Fun)|Functions]
   );
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(3, Fun) == defmacrop ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(4, Fun) == defmacrop ->
   unwrap_stored_definition(
     T, Exports, [element(1, Fun)|Private], Def, Defmacro,
     [{ element(1, Fun), element(2, Fun) }|Defmacrop], Functions
@@ -192,7 +192,7 @@ unwrap_stored_definition([], Exports, Private, Def, Defmacro, Defmacrop, Functio
 
 %% Helpers
 
-function_for_stored_definition({{Name, Arity}, Line, _, _, Clauses}) ->
+function_for_stored_definition({{Name, Arity}, Line, _, _, _, Clauses}) ->
   {function, Line, Name, Arity, lists:reverse(Clauses) }.
 
 function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
@@ -202,9 +202,9 @@ function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
 %% This function also checks and emit warnings in case
 %% the kind, of the visibility of the function changes.
 
-store_each(Check, Kind, Table, Defaults, Filename, {function, Line, Name, Arity, Clauses}) ->
+store_each(Check, Kind, Filename, Table, Defaults, {function, Line, Name, Arity, Clauses}) ->
   case ets:lookup(Table, {Name, Arity}) of
-    [{{Name, Arity}, _, StoredKind, StoredDefaults, StoredClauses}] ->
+    [{{Name, Arity}, _, _, StoredKind, StoredDefaults, StoredClauses}] ->
       FinalDefaults = Defaults + StoredDefaults,
       FinalClauses  = Clauses ++ StoredClauses,
       check_valid_kind(Line, Filename, Name, Arity, Kind, StoredKind),
@@ -215,7 +215,7 @@ store_each(Check, Kind, Table, Defaults, Filename, {function, Line, Name, Arity,
       FinalClauses  = Clauses,
       Check andalso ets:insert(Table, { last, { Name, Arity } })
   end,
-  ets:insert(Table, {{Name, Arity}, Line, Kind, FinalDefaults, FinalClauses}).
+  ets:insert(Table, {{Name, Arity}, Line, Filename, Kind, FinalDefaults, FinalClauses}).
 
 %% Validations
 
