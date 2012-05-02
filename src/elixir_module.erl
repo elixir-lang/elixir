@@ -175,6 +175,7 @@ add_info_function(Line, Filename, Module, Export, Functions, Def, Defmacro, C) -
         data_clause(Line, Module),
         docs_clause(Line, Module, Docs),
         moduledoc_clause(Line, Module, Docs),
+        compile_clause(Line),
         else_clause(Line)
       ] },
       { [Pair|Export], [Contents|Functions] }
@@ -207,6 +208,11 @@ data_clause(Line, Module) ->
   Data       = ets:lookup_element(DataTable, data, 2),
   Pruned     = translate_data(Data),
   { clause, Line, [{ atom, Line, data }], [], [elixir_tree_helpers:abstract_syntax(Pruned)] }.
+
+compile_clause(Line) ->
+  Info = { call, Line, { atom, Line, module_info }, [{ atom, Line, compile }] },
+  WrappedInfo = ?ELIXIR_WRAP_CALL(Line, '__MAIN__.Keyword', 'from_enum', [Info]),
+  { clause, Line, [{ atom, Line, compile }], [], [WrappedInfo] }.
 
 else_clause(Line) ->
   Info = { call, Line, { atom, Line, module_info }, [{ var, Line, atom }] },
