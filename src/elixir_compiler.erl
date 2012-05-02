@@ -146,7 +146,7 @@ escape_module(Module) when is_atom(Module) ->
 escape_module(Module) when is_list(Module) ->
   list_to_atom(escape_each(Module)).
 
-escape_each([H|T]) when H >= $A, H =< $Z; H >= $a, H =< $z; H >= $0, H =< $9 ->
+escape_each([H|T]) when H >= $A, H =< $Z; H >= $a, H =< $z; H >= $0, H =< $9; H == $- ->
   [H|escape_each(T)];
 
 escape_each([_|T]) ->

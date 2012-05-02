@@ -57,7 +57,7 @@ rewrite_clause(List, Module) when is_list(List) ->
 
 rewrite_clause(Else, _) -> Else.
 
-rewrite_name("MACRO_" ++ Rest, _) -> list_to_atom(Rest);
+rewrite_name("MACRO-" ++ Rest, _) -> list_to_atom(Rest);
 rewrite_name(_, Name) -> Name.
 
 %% Error handling

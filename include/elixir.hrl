@@ -7,7 +7,7 @@
   }).
 
 -define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
--define(ELIXIR_MACRO(Macro), list_to_atom(lists:concat(['MACRO_',Macro]))).
+-define(ELIXIR_MACRO(Macro), list_to_atom(lists:concat(['MACRO-',Macro]))).
 
 -record(elixir_scope, {
   assign=false,                                  %% when true, new variables can be defined in that subtree
