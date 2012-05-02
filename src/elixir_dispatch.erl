@@ -3,7 +3,9 @@
 %% by elixir_import and therefore assumes it is normalized (ordsets)
 -module(elixir_dispatch).
 -export([default_macros/0, default_functions/0, default_requires/0,
-  format_error/1, dispatch_require/6, dispatch_imports/5]).
+  dispatch_require/6, dispatch_imports/5,
+  require_function/5, import_function/4,
+  format_error/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 -define(BUILTIN, '__MAIN__.Elixir.Builtin').
@@ -14,6 +16,39 @@ default_macros() ->
   [ { ?BUILTIN, ordsets:union(in_elixir_macros(), in_erlang_macros()) } ].
 default_requires() ->
   [ ?BUILTIN ].
+
+%% Function retrieval
+
+import_function(Line, Name, Args, S) ->
+  case sequential_partials(Args, 1) of
+    true ->
+      Arity = length(Args),
+      Tuple = { Name, Arity },
+      case find_dispatch(Tuple, S#elixir_scope.functions) of
+        false ->
+          case find_dispatch(Tuple, S#elixir_scope.macros) of
+            false -> { { 'fun', Line, { function, Name, Arity } }, S };
+            _ -> false
+          end;
+        Receiver ->
+          elixir_import:record(import, Tuple, Receiver, S),
+          remote_function(Line, Receiver, Name, Arity, S)
+      end;
+    false -> false
+  end.
+
+require_function(Line, Receiver, Name, Args, S) ->
+  case sequential_partials(Args, 1) of
+    true ->
+      Arity = length(Args),
+      Tuple = { Name, Arity },
+
+      case is_element(Tuple, get_optional_macros(Receiver)) of
+        true  -> false;
+        false -> remote_function(Line, Receiver, Name, Arity, S)
+      end;
+    false -> false
+  end.
 
 %% Dispatch based on scope's imports
 
@@ -147,6 +182,25 @@ format_error({ unrequired_module,{Receiver, Name, Arity, Required }}) ->
     [elixir_errors:inspect(Receiver), Name, Arity, [elixir_errors:inspect(R) || R <- Required]]).
 
 %% INTROSPECTION
+
+sequential_partials([{ '&', _, [Int] }|T], Int) ->
+  sequential_partials(T, Int + 1);
+
+sequential_partials([], Int) when Int > 1 -> true;
+sequential_partials(_, _Int) -> false.
+
+remote_function(Line, Receiver, Name, Arity, S) ->
+  Final =
+    case Receiver == ?BUILTIN andalso is_element({ Name, Arity }, in_erlang_functions()) of
+      true  -> erlang;
+      false -> Receiver
+    end,
+
+  { { 'fun', Line, { function,
+    { atom, Line, Final },
+    { atom, Line, Name },
+    { integer, Line, Arity}
+  } }, S }.
 
 %% Do not try to get macros from Erlang. Speeds up compilation a bit.
 get_optional_macros(erlang) -> [];

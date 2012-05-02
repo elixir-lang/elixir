@@ -388,35 +388,46 @@ translate_each({Name, Line, nil}, S) when is_atom(Name) ->
 %% Local calls
 
 translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
-  case handle_partials(Line, Original, S) of
-    error ->
-      Callback = fun() -> translate_local(Line, Atom, Args, S) end,
-      elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback);
-    Else  -> Else
+  case elixir_dispatch:import_function(Line, Atom, Args, S) of
+    false ->
+      case handle_partials(Line, Original, S) of
+        error ->
+          Callback = fun() -> translate_local(Line, Atom, Args, S) end,
+          elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback);
+        Else  -> Else
+      end;
+    Else -> Else
   end;
 
 %% Dot calls
 
 translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom(Right) ->
-  case handle_partials(Line, Original, S) of
-    error ->
-      { TLeft,  SL } = translate_each(Left, S),
-      { TRight, SR } = translate_each(Right, umergec(S, SL)),
+  { TLeft,  SL } = translate_each(Left, S),
 
-      Callback = fun() -> translate_apply(Line, TLeft, TRight, Args, S, SL, SR) end,
+  Fun = (element(1, TLeft) == atom) andalso
+    elixir_dispatch:require_function(Line, element(3, TLeft), Right, Args, SL),
 
-      case { TLeft, TRight } of
-        { { atom, _, '__MAIN__.Erlang' }, { atom, _, Atom } } ->
-          case Args of
-            [] -> { { atom, Line, Atom }, S };
+  case Fun of
+    false ->
+      case handle_partials(Line, Original, S) of
+        error ->
+          { TRight, SR } = translate_each(Right, umergec(S, SL)),
+          Callback = fun() -> translate_apply(Line, TLeft, TRight, Args, S, SL, SR) end,
+
+          case TLeft of
+            { atom, _, '__MAIN__.Erlang' } ->
+              case Args of
+                [] -> { { atom, Line, Right }, S };
+                _ ->
+                  Message = "invalid args for Erlang.~s expression",
+                  syntax_error(Line, S#elixir_scope.filename, Message, [Right])
+              end;
+            { atom, _, Receiver } ->
+              elixir_dispatch:dispatch_require(Line, Receiver, Right, Args, umergev(SL, SR), Callback);
             _ ->
-              Message = "invalid args for Erlang.~s expression",
-              syntax_error(Line, S#elixir_scope.filename, Message, [Atom])
+              Callback()
           end;
-        { { atom, _, Receiver }, { atom, _, Atom } }  ->
-          elixir_dispatch:dispatch_require(Line, Receiver, Atom, Args, umergev(SL, SR), Callback);
-        _ ->
-          Callback()
+        Else -> Else
       end;
     Else -> Else
   end;

@@ -64,3 +64,15 @@ function_calls_with_multiple_args_with_line_breaks_test() ->
 
 function_calls_with_parenthesis_test() ->
   {3, [{a,_},{b,1}]} = eval("a = fn(x, do: x + 2).(b = 1)").
+
+%% Partial application
+
+require_partial_application_test() ->
+  { Fun, _ } = eval("List.flatten(&1)"),
+  Fun = fun '__MAIN__.List':flatten/1.
+
+import_partial_application_test() ->
+  { Fun, _ } = eval("is_atom(&1)"),
+  io:format("~p~n", [Fun]),
+  io:format("~p~n", [fun is_atom/1]),
+  Fun = fun erlang:is_atom/1.
