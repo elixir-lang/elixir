@@ -5,8 +5,8 @@
   delete_table/1,
   reset_last/1,
   wrap_definition/7,
-  handle_definition/8,
   store_definition/8,
+  store_each/6,
   unwrap_stored_definitions/1,
   format_error/1]).
 -include("elixir.hrl").
@@ -57,32 +57,21 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
     MetaS
   ],
 
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, handle_definition, Invoke).
+  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_definition, Invoke).
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-handle_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
+store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
   S = elixir_variables:deserialize_scope(RawS),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
-handle_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS) ->
-  Data  = elixir_module:data(Module),
+store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   Arity = length(Args),
 
-  case orddict:find(overridable, Data) of
-    { ok, true } ->
-      elixir_def_overridable:define(Module, { Name, Arity}, { Kind, Line, Module, Name, Args, RawGuards, RawExpr, RawS }),
-      elixir_module:data(Module, orddict:erase(overridable, Data));
-    _ ->
-      S1 = elixir_variables:deserialize_scope(RawS),
-      S2 = S1#elixir_scope{function={Name,Arity}, module=Module},
-      store_definition(Kind, Line, Module, Name, Args, RawGuards, RawExpr, S2)
-  end.
+  DS = elixir_variables:deserialize_scope(RawS),
+  S = DS#elixir_scope{function={Name,Arity}, module=Module},
 
-%% Store the definition after is is handled.
-
-store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, S) ->
   case RawExpr of
     skip_definition -> Expr = nil;
     [{ do, Expr }] -> [];
@@ -92,7 +81,6 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, S) ->
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Expr, S),
 
   Filename      = TS#elixir_scope.filename,
-  Arity         = element(4, Function),
   FunctionTable = table(Module),
 
   %% Compile documentation

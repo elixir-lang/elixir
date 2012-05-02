@@ -452,6 +452,17 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  Makes the given functions in the current module overridable.
+  An overridable function is lazily defined, allowing a
+  developer to customize it.
+  """
+  defmacro defoverridable(tuples) do
+    quote do
+      Module.make_overridable(__MODULE__, unquote(tuples))
+    end
+  end
+
+  @doc """
   `use` is a simple mechanism for extending the current module with the
   given module.
 

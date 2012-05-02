@@ -293,6 +293,26 @@ defmodule Module do
   end
 
   @doc """
+  Makes the given functions in the given module overridable.
+  An overridable function is lazily defined, allowing a
+  developer to customize it.
+  """
+  def make_overridable(module, tuples) do
+    assert_not_compiled!(:make_overridable, module)
+    table = function_table_for(module)
+    lc tuple in tuples do
+      case ETS.lookup(table, tuple) do
+      match: [clause]
+        ETS.delete(table, tuple)
+        Erlang.elixir_def_overridable.define(module, tuple, clause)
+      else:
+        { name, arity } = tuple
+        raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
+      end
+    end
+  end
+
+  @doc """
   Adds a compilation callback hook that is invoked
   exactly before the module is compiled.
 
