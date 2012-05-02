@@ -177,6 +177,7 @@ defmodule Module do
     table      = data_table_for(module)
     old        = ETS.lookup_element(table, :data, 2)
     registered = ETS.lookup_element(table, :registered_attributes, 2)
+    data       = lc kv in data, do: normalize_data(kv)
 
     { attrs, new } = :lists.partition fn({k,_}) -> List.member?(registered, k) end, data
     lc {k,v} in attrs, do: add_attribute(module, k, v)
@@ -295,8 +296,9 @@ defmodule Module do
   Adds a compilation callback hook that is invoked
   exactly before the module is compiled.
 
-  This callback is useful when used with `use` as a mechanism
-  to clean up any internal data in the module before it is compiled.
+  This callback is useful, for example, when used with `use`
+  as a mechanism to clean up any internal data in the module
+  before it is compiled.
 
   ## Examples
 
@@ -305,12 +307,12 @@ defmodule Module do
 
       defmodule MyLib do
         def __using__(target) do
-          Module.merge_data target, some_data: true
+          Module.merge_data target, some_data: nil
           Module.add_compile_callback(target, __MODULE__, :__callback__)
         end
 
         defmacro __callback__(target) do
-          value = Keyword.get(Module.read_data(target), :some_data, [])
+          value = Module.read_data(target, :some_data)
           quote do: (def my_lib_value, do: unquote(value))
         end
       end
@@ -319,12 +321,16 @@ defmodule Module do
 
       defmodule App do
         use ModuleTest.ToBeUsed
+        @some_data :new_value
       end
 
-  In the example above, `MyLib` defines a data to the target. This data
-  can be updated throughout the module definition and therefore, the final
-  value of the data can only be compiled using a compiation callback,
-  which will read the final value of :some_data and compile to a function.
+  In the example above, `MyLib` defines a data on the target.
+  This data can be updated throughout the module definition
+  and therefore, the final value of the data can only be retrieved
+  via the compilation callback.
+
+  In this example, the compilation callback reads the value and
+  compile it to a function.
   """
   def add_compile_callback(module, target, fun // :__compiling__) do
     assert_not_compiled!(:add_compile_callback, module)
@@ -403,6 +409,9 @@ defmodule Module do
   end
 
   ## Helpers
+
+  defp normalize_data({ :on_load, atom }) when is_atom(atom), do: { :on_load, { atom, 0 } }
+  defp normalize_data(else), do: else
 
   defp data_table_for(module) do
     list_to_atom Erlang.lists.concat([:d, module])

@@ -1,5 +1,5 @@
 defmodule URI do
-  @on_load { :preload_parsers, 0 }
+  @on_load :preload_parsers
 
   defrecord Info, [scheme: nil, path: nil, query: nil,
                    fragment: nil, authority: nil,
