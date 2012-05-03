@@ -32,6 +32,14 @@ defmodule FileTest do
     refute File.regular?("#{__FILE__}.unknown")
   end
 
+  test :exists do
+    assert File.exists?(__FILE__)
+    assert File.exists?(File.expand_path("../fixtures/foo.txt", __FILE__))
+
+    refute File.exists?("fixtures/missing.txt")
+    refute File.exists?("_missing.txt")
+  end
+
   test :basename_with_binary do
     assert File.basename("foo") == "foo"
     assert File.basename("/foo/bar") == "bar"

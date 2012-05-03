@@ -29,6 +29,21 @@ defmodule File do
   end
 
   @doc """
+  Returns if `file` exists
+
+  ## Examples
+
+    File.exists?("/tmp")
+    #=> true
+
+    File.exists?("missing.txt")
+    #=> false
+  """
+  def exists?(filename) do
+    is_tuple(FL.last_modified(filename))
+  end
+
+  @doc """
   Returns the last component of the `filename` or the file
   name itself if it does not contain any directory separators.
 
