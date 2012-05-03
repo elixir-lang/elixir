@@ -355,6 +355,36 @@ defmodule Enum do
   end
 
   @doc """
+  Maps and joins the given `collection` in one pass.
+  Joiner can be either a binary or a list and the
+  result will be of the same type as joiner. If
+  joiner is not passed at all, it defaults to an
+  empty binary.
+
+  All items in the collection must be convertible
+  to binary, otherwise an error is raised.
+
+  ## Examples
+
+      Enum.map_join([1,2,3], &1 * 2)        #=> "246"
+      Enum.map_join([1,2,3], &1 * 2, " = ") #=> "2 = 4 = 6"
+      Enum.map_join([1,2,3], &1 * 2, ' = ') #=> '2 = 4 = 6'
+
+  """
+  def map_join(collection, joiner // "", mapper) do
+    { iterator, pointer } = I.iterator(collection)
+    map_join(iterator, pointer, mapper, joiner)
+  end
+
+  defp map_join(iterator, collection, mapper, joiner) when is_list(joiner) do
+    binary_to_list map_join(iterator, collection, mapper, list_to_binary(joiner))
+  end
+
+  defp map_join(iterator, pointer, mapper, joiner) do
+    do_map_join(pointer, iterator, mapper, joiner, nil)
+  end
+
+  @doc """
   Invokes the given `fun` for each item in the `collection`
   while also keeping an accumulator. Returns a tuple where
   the first element is the mapped collection and the second
@@ -693,6 +723,29 @@ defmodule Enum do
 
   # Until we have to stop iteration, then we return acc.
   defp do_join(:stop, _, _joiner, acc) do
+    acc
+  end
+
+  ## map join
+
+  # The first item is simply stringified unless ...
+  defp do_map_join({ h, next }, iterator, mapper, joiner, nil) do
+    do_map_join(iterator.(next), iterator, mapper, joiner, to_binary(mapper.(h)))
+  end
+
+  # The first item is :stop, then we return an empty string;
+  defp do_map_join(:stop, _, _mapper, _joiner, nil) do
+    ""
+  end
+
+  # All other items are concatenated to acc, by first adding the joiner;
+  defp do_map_join({ h, next }, iterator, mapper, joiner, acc) do
+    acc = << acc | :binary, joiner | :binary, to_binary(mapper.(h)) | :binary >>
+    do_map_join(iterator.(next), iterator, mapper, joiner, acc)
+  end
+
+  # Until we have to stop iteration, then we return acc.
+  defp do_map_join(:stop, _, _mapper, _joiner, acc) do
     acc
   end
 

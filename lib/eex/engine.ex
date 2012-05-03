@@ -40,7 +40,7 @@ defmodule EEx.Engine do
     end
   end
 
-  def behavior_info(:callbacks) do
+  def behaviour_info(:callbacks) do
     [handle_text: 2, handle_expr: 3]
   end
 end

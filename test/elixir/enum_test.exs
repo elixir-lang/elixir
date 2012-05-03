@@ -128,6 +128,17 @@ defmodule EnumTest.List do
     assert Enum.join([1,"2",3], ' = ') == '1 = 2 = 3'
   end
 
+  test :map_join_with_bin do
+    assert Enum.map_join([], " = ", &1 * 2) == ""
+    assert Enum.map_join([1,2,3], " = ", &1 * 2) == "2 = 4 = 6"
+    assert Enum.map_join([1,2,3], &1 * 2) == "246"
+  end
+
+  test :map_join_with_list do
+    assert Enum.map_join([], ' = ', &1 * 2) == ''
+    assert Enum.map_join([1,2,3], ' = ', &1 * 2) == '2 = 4 = 6'
+  end
+
   test :map do
     assert Enum.map([], fn(x) -> x * 2 end) == []
     assert Enum.map([1,2,3], fn(x) -> x * 2 end) == [2,4,6]
