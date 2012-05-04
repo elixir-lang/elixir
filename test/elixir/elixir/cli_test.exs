@@ -21,16 +21,16 @@ defmodule Elixir.CLI.OptionParsingTest do
     { path, _ } = Code.eval list, []
 
     # pa
-    assert_member 'bin', path
-    assert_member 'ebin', path
-    assert_member 'exbin', path
-    assert_member 'src', path
-    assert_member 'lib', path
-    assert_member 'include', path
-    assert_member 'test', path
+    assert_member File.expand_path('bin'), path
+    assert_member File.expand_path('ebin'), path
+    assert_member File.expand_path('exbin'), path
+    assert_member File.expand_path('src'), path
+    assert_member File.expand_path('lib'), path
+    assert_member File.expand_path('include'), path
+    assert_member File.expand_path('test'), path
 
     # pz
-    assert_member 'exbin/__MAIN__', path
+    assert_member File.expand_path('exbin/__MAIN__'), path
   end
 
   test :require do
