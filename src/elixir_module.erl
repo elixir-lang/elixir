@@ -190,7 +190,7 @@ macros_clause(Line, Defmacro) ->
   { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
 
 docs_clause(Line, Module, true) ->
-  Docs = ets:tab2list(docs_table(Module)),
+  Docs = ordsets:from_list(ets:tab2list(docs_table(Module))),
   { clause, Line, [{ atom, Line, docs }], [], [elixir_tree_helpers:abstract_syntax(Docs)] };
 
 docs_clause(Line, _Module, _) ->

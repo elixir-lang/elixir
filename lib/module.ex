@@ -199,23 +199,27 @@ defmodule Module do
       end
 
   """
+  def add_doc(_module, _line, kind, _tuple, nil) when kind in [:defp, :defmacro] do
+    :ok
+  end
+
+  def add_doc(_module, _line, kind, _tuple, _doc) when kind in [:defp, :defmacro] do
+    { :error, :private_doc }
+  end
+
   def add_doc(module, line, kind, tuple, doc) when
       is_binary(doc) or is_boolean(doc) or doc == nil do
     assert_not_compiled!(:add_doc, module)
-    case kind == :defp and doc != nil do
-    match: true
-      { :error, :private_doc }
+    table = docs_table_for(module)
+
+    case { ETS.lookup(table, tuple), doc } do
+    match: { [], _ }
+      ETS.insert(table, { tuple, line, kind, doc })
+      :ok
+    match: { _, nil }
+      :ok
     else:
-      table = docs_table_for(module)
-      case { ETS.lookup(table, tuple), doc } do
-      match: { [], _ }
-        ETS.insert(table, { tuple, line, kind, doc })
-        :ok
-      match: { _, nil }
-        :ok
-      else:
-        { :error, :existing_doc }
-      end
+      { :error, :existing_doc }
     end
   end
 
