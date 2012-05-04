@@ -181,6 +181,11 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[foo: :bar]), do: true\nend'
   end
 
+  test :invalid_access_protocol_invalid_keywords_outside_assignment do
+    assert "nofile:1: record Elixir.ErrorsTest.Config does not have some of the given keys: [foo]" ==
+      format_rescue 'Elixir.ErrorsTest.Config[foo: :bar]'
+  end
+
   test :invalid_access_protocol_on_rescue do
     assert "nofile:1: cannot (yet) pattern match against erlang exceptions" ==
       format_rescue 'try do\n1\nrescue: UndefinedFunctionError[arity: 1]\nfalse\nend'

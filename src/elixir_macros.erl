@@ -176,46 +176,52 @@ translate_macro({use, Line, [Raw, Args]}, S) ->
 %% Access
 
 translate_macro({ access, Line, [Element, Keyword] }, S) ->
-  case S#elixir_scope.assign of
-    true ->
-      case translate_each(Element, S) of
-        { { atom, _, Atom }, _ } ->
-          case is_orddict(Keyword) of
-            true -> [];
-            false ->
-              Message0 = "expected contents inside brackets to be a Keyword",
-              syntax_error(Line, S#elixir_scope.filename, Message0)
-          end,
+  case translate_each(Element, S) of
+    { { atom, _, Atom }, _ } -> Atom;
+    _ -> Atom = false
+  end,
 
-          elixir_ref:ensure_loaded(Line, Atom, S),
-
-          try Atom:'__record__'(fields) of
-            Fields ->
-              { Match, Remaining } = lists:mapfoldl(fun({Field,_}, KeywordEach) ->
-                { case orddict:find(Field, KeywordEach) of
-                  { ok, Value } -> Value;
-                  error -> { '_', Line, nil }
-                end, orddict:erase(Field, KeywordEach) }
-              end, Keyword, Fields),
-
-              case Remaining of
-                [] -> translate_each({ '{}', Line, [Atom|Match] }, S);
-                _ ->
-                  Keys = [Key || {Key,_} <- Remaining],
-                  Message1 = "record ~s does not have some of the given keys: ~p",
-                  syntax_error(Line, S#elixir_scope.filename, Message1, [elixir_errors:inspect(Atom), Keys])
-              end
-          catch
-            error:undef ->
-              Message2 = "cannot use module ~s in access protocol because it doesn't represent a record",
-              syntax_error(Line, S#elixir_scope.filename, Message2, [elixir_errors:inspect(Atom)])
-          end;
-        _ ->
-          syntax_error(Line, S#elixir_scope.filename, "invalid usage of access protocol in signature")
-      end;
-    false ->
+  case { S#elixir_scope.assign, Atom } of
+    { false, false } ->
       Fallback = { { '.', Line, ['__MAIN__.Access', access] }, Line, [Element, Keyword] },
-      translate_each(Fallback, S)
+      translate_each(Fallback, S);
+    { true, false } ->
+      syntax_error(Line, S#elixir_scope.filename, "invalid usage of access protocol in signature");
+    { Assign, _ } ->
+      case is_orddict(Keyword) of
+        true -> [];
+        false ->
+          Message0 = "expected contents inside brackets to be a Keyword",
+          syntax_error(Line, S#elixir_scope.filename, Message0)
+      end,
+
+      elixir_ref:ensure_loaded(Line, Atom, S),
+
+      try Atom:'__record__'(fields) of
+        Fields ->
+          { Match, Remaining } = lists:mapfoldl(fun({Field, Default}, KeywordEach) ->
+            { case orddict:find(Field, KeywordEach) of
+              { ok, Value } -> Value;
+              error ->
+                case Assign of
+                  true  -> { '_', Line, nil };
+                  false -> '__MAIN__.Macro':escape(Default)
+                end
+            end, orddict:erase(Field, KeywordEach) }
+          end, Keyword, Fields),
+
+          case Remaining of
+            [] -> translate_each({ '{}', Line, [Atom|Match] }, S);
+            _ ->
+              Keys = [Key || {Key,_} <- Remaining],
+              Message1 = "record ~s does not have some of the given keys: ~p",
+              syntax_error(Line, S#elixir_scope.filename, Message1, [elixir_errors:inspect(Atom), Keys])
+          end
+      catch
+        error:undef ->
+          Message2 = "cannot use module ~s in access protocol because it doesn't represent a record",
+          syntax_error(Line, S#elixir_scope.filename, Message2, [elixir_errors:inspect(Atom)])
+      end
   end;
 
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
