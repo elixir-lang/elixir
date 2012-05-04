@@ -199,11 +199,11 @@ defmodule Module do
       end
 
   """
-  def add_doc(_module, _line, kind, _tuple, nil) when kind in [:defp, :defmacro] do
+  def add_doc(_module, _line, kind, _tuple, nil) when kind in [:defp, :defmacrop] do
     :ok
   end
 
-  def add_doc(_module, _line, kind, _tuple, _doc) when kind in [:defp, :defmacro] do
+  def add_doc(_module, _line, kind, _tuple, _doc) when kind in [:defp, :defmacrop] do
     { :error, :private_doc }
   end
 
