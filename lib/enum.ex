@@ -693,9 +693,9 @@ defmodule Enum do
   defp do_split_with({ h, next }, iterator, fun, acc, module) do
     case fun.(h) do
     match: x in [false, nil]
-      do_split_with(iterator.(next), iterator, fun, [h|acc], module)
-    else:
       { List.reverse(acc), module.to_list(h, next) }
+    else:
+      do_split_with(iterator.(next), iterator, fun, [h|acc], module)
     end
   end
 

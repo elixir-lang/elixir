@@ -168,10 +168,11 @@ defmodule EnumTest.List do
   end
 
   test :split_with do
-    assert Enum.split_with([1,2,3], fn(_, do: false)) == { [1,2,3], [] }
-    assert Enum.split_with([1,2,3], fn(_, do: true)) == { [], [1,2,3] }
-    assert Enum.split_with([1,2,3], fn(x, do: x > 2)) == { [1,2], [3] }
-    assert Enum.split_with([1,2,3], fn(x, do: x > 3)) == { [1,2,3], [] }
+    assert Enum.split_with([1,2,3], fn(_, do: false)) == { [], [1,2,3] }
+    assert Enum.split_with([1,2,3], fn(_, do: true)) == { [1,2,3], [] }
+    assert Enum.split_with([1,2,3], fn(x, do: x > 2)) == { [], [1,2,3] }
+    assert Enum.split_with([1,2,3], fn(x, do: x > 3)) == { [], [1,2,3] }
+    assert Enum.split_with([1,2,3], fn(x, do: x < 3)) == { [1,2], [3] }
     assert Enum.split_with([], fn(_, do: true)) == { [], [] }
   end
 
@@ -392,7 +393,7 @@ defmodule EnumTest.Orddict do
 
   test :split_with do
     dict = Orddict.new [a: 1, b: 3, c: 2, d: 4]
-    assert Enum.split_with(dict, fn({_k, v}, do: rem(v, 2) == 0)) == { [a: 1, b: 3], [c: 2, d: 4] }
+    assert Enum.split_with(dict, fn({_k, v}, do: rem(v, 2) == 1)) == { [a: 1, b: 3], [c: 2, d: 4] }
   end
 
   test :take do
