@@ -3,6 +3,8 @@ Code.require_file "../test_helper", __FILE__
 defmodule EExTest do
   use ExUnit.Case
 
+  require EEx
+
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"
   end
@@ -199,6 +201,19 @@ foo
       filename = "non-existent.eex"
       EEx.compile_file(filename)
     end
+  end
+
+  EEx.function_from_string :def, :sample, "<%= a + b %>", [:a, :b]
+
+  filename = File.expand_path("../fixtures/eex_template_with_bindings.eex", __FILE__)
+  EEx.function_from_file :defp, :other_sample, filename, [:bar]
+
+  test "defined from string" do
+    assert sample(1, 2) == "3"
+  end
+
+  test "defined from file" do
+    assert other_sample(1) == "foo 1\n"
   end
 
   defp assert_eval(expected, atual) do
