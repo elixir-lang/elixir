@@ -87,12 +87,12 @@ defmodule Elixir.CLI do
   end
 
   defp process_shared(['-pa',h|t], config) do
-    Enum.each File.wildcard(h), Code.prepend_path(&1)
+    Enum.each File.wildcard(File.expand_path(h)), Code.prepend_path(&1)
     process_shared t, config
   end
 
   defp process_shared(['-pz',h|t], config) do
-    Enum.each File.wildcard(h), Code.append_path(&1)
+    Enum.each File.wildcard(File.expand_path(h)), Code.append_path(&1)
     process_shared t, config
   end
 
