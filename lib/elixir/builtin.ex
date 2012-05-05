@@ -1059,17 +1059,15 @@ defmodule Elixir.Builtin do
       true && 1            #=> 1
       false && error(:bad) #=> false
 
-  Notice that, differently from Erlang `and` and `and` operators,
-  this operator accepts any expression as arguments, not only booleans.
-  Unfortunately cannot be used in macros.
+  Notice that, differently from Erlang `and` operator,
+  this operator accepts any expression as arguments,
+  not only booleans, however it is not allowed in guards.
   """
   defmacro :&&.(left, right) do
     quote do
       case unquote(left) do
-      match: false
-        false
-      match: nil
-        nil
+      match: andand in [false, nil]
+        andand
       match: _
         unquote(right)
       end
@@ -1088,17 +1086,17 @@ defmodule Elixir.Builtin do
       false || 1           #=> 1
       true || error(:bad)  #=> true
 
-  Notice that, differently from Erlang `or` and `or` operators,
-  this operator accepts any expression as arguments, not only booleans.
-  Unfortunately cannot be used in macros.
+  Notice that, differently from Erlang `or` operator,
+  this operator accepts any expression as arguments,
+  not only booleans, however it is not allowed in guards.
   """
   defmacro :||.(left, right) do
     quote do
-      case !(oror = unquote(left)) do
-      match: false
-        oror
-      else:
+      case unquote(left) do
+      match: oror in [false, nil]
         unquote(right)
+      match: oror
+        oror
       end
     end
   end
