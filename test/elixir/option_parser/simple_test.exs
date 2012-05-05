@@ -11,8 +11,16 @@ defmodule OptionParser.SimpleTest do
     assert OptionParser.Simple.parse(["-d"]) == { [d: true], [] }
   end
 
+  test "parses alias boolean option as the alias key" do
+    assert OptionParser.Simple.parse(["-d"], [d: :docs]) == { [docs: true], [] }
+  end
+
   test "parses more than one boolean options" do
     assert OptionParser.Simple.parse(["--docs", "--compile"]) == { [docs: true, compile: true], [] }
+  end
+
+  test "parses more than one boolean options as the alias" do
+    assert OptionParser.Simple.parse(["--d", "--compile"], [d: :docs]) == { [docs: true, compile: true], [] }
   end
 
   test "parses key/value option" do
@@ -21,6 +29,10 @@ defmodule OptionParser.SimpleTest do
 
   test "parses alias key/value option" do
     assert OptionParser.Simple.parse(["-s", "from_docs/"]) == { [s: "from_docs/"], [] }
+  end
+
+  test "parses alias key/value option as the alias" do
+    assert OptionParser.Simple.parse(["-s", "from_docs/"], [s: :source]) == { [source: "from_docs/"], [] }
   end
 
   test "parses key/value option when value is false" do
