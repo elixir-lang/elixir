@@ -16,7 +16,7 @@ defmodule EEx do
 
       defmodule Sample do
         require EEx
-        EEx.def_from_string :def, :sample, "<%= a + b %>", [:a, :b]
+        EEx.function_from_string :def, :sample, "<%= a + b %>", [:a, :b]
       end
 
       Sample.sample(1, 2) #=> "3"
