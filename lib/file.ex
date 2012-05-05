@@ -29,6 +29,31 @@ defmodule File do
   end
 
   @doc """
+  Returns if `file` exists
+  This `file` can be regular file, directory, socket,
+  symbolic link, named pipe or device file.
+
+  ## Examples
+
+    File.exists?("test/")
+    #=> true
+
+    File.exists?("missing.txt")
+    #=> false
+
+    File.exists?("/dev/null")
+    #=> true
+  """
+  def exists?(filename) do
+    case F.read_file_info(filename) do
+    match: {:ok, _}
+      true
+    else:
+      false
+    end
+  end
+
+  @doc """
   Returns the last component of the `filename` or the file
   name itself if it does not contain any directory separators.
 
