@@ -43,8 +43,7 @@ Left      10 do.
 Left      20 ','.  % Solve nested call_args conflicts
 Right     30 default_op.
 Right     40 when_op.
-Left      50 in_op.
-Left      60 pipe_op.
+Left      50 pipe_op.
 Right     80 match_op.
 Right     90 arrow_op.
 Left     100 oror_op.
@@ -59,9 +58,10 @@ Right    200 addadd_op.
 Right    210 multmult_op.
 Nonassoc 280 unary_op.
 Nonassoc 290 special_op.
-Left     300 dot_call_op.
-Left     300 dot_op.
-Nonassoc 310 var.
+Left     300 in_op.
+Left     310 dot_call_op.
+Left     310 dot_op.
+Nonassoc 320 var.
 
 %%% MAIN FLOW OF EXPRESSIONS
 

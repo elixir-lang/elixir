@@ -30,6 +30,13 @@ defmodule Kernel.CaseTest do
     end)
   end
 
+  test :in_operator_outside_case do
+    x = 1
+    y = 4
+    assert x in [1,2,3]
+    assert not y in [1, 2, 3]
+  end
+
   defp get_case do
     case internal do
     match: :invalid
