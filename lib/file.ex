@@ -30,17 +30,27 @@ defmodule File do
 
   @doc """
   Returns if `file` exists
+  This `file` can be regular file, directory, socket,
+  symbolic link, named pipe or device file.
 
   ## Examples
 
-    File.exists?("/tmp")
+    File.exists?("test/")
     #=> true
 
     File.exists?("missing.txt")
     #=> false
+
+    File.exists?("/dev/null")
+    #=> true
   """
   def exists?(filename) do
-    is_tuple(FL.last_modified(filename))
+    case F.read_file_info(filename) do
+    match: {:ok, _}
+      true
+    else:
+      false
+    end
   end
 
   @doc """

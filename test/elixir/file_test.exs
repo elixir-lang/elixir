@@ -35,6 +35,7 @@ defmodule FileTest do
   test :exists do
     assert File.exists?(__FILE__)
     assert File.exists?(File.expand_path("../fixtures/foo.txt", __FILE__))
+    assert File.exists?(File.expand_path("../fixtures/", __FILE__))
 
     refute File.exists?("fixtures/missing.txt")
     refute File.exists?("_missing.txt")
