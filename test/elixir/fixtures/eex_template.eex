@@ -1,1 +1,1 @@
-foo <% if true do %>bar.<% end %>
+foo <%= if true do %>bar.<% end %>

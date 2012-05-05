@@ -28,9 +28,9 @@ defmodule EEx.Compiler do
     generate_buffer(t, buffer, scope, state)
   end
 
-  defp generate_buffer([{ :start_expr, line, _, chars }|t], buffer, scope, state) do
+  defp generate_buffer([{ :start_expr, line, mark, chars }|t], buffer, scope, state) do
     { contents, t } = generate_buffer(t, "", [chars|scope], state.dict([]).line(line))
-    buffer = state.engine.handle_expr(buffer, '=', contents)
+    buffer = state.engine.handle_expr(buffer, mark, contents)
     generate_buffer(t, buffer, scope, state.dict([]))
   end
 

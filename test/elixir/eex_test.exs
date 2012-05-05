@@ -18,36 +18,36 @@ defmodule EExTest do
   end
 
   test "evaluates with embedded do end" do
-    assert_eval "foo bar", "foo <% if true do %>bar<% end %>"
+    assert_eval "foo bar", "foo <%= if true do %>bar<% end %>"
   end
 
   test "evaluates with embedded do end and eval the expression" do
-    assert_eval "foo ", "foo <% if false do %>bar<% end %>"
+    assert_eval "foo ", "foo <%= if false do %>bar<% end %>"
   end
 
   test "evaluates with embedded do end and nested print expression" do
-    assert_eval "foo bar", "foo <% if true do %><%= :bar %><% end %>"
+    assert_eval "foo bar", "foo <%= if true do %><%= :bar %><% end %>"
   end
 
   test "evaluates with embedded do end and nested expressions" do
-    assert_eval "foo bar baz", "foo <% if true do %>bar <% Process.put(:eex_text, 1) %><%= :baz %><% end %>"
+    assert_eval "foo bar baz", "foo <%= if true do %>bar <% Process.put(:eex_text, 1) %><%= :baz %><% end %>"
     assert Process.get(:eex_text) == 1
   end
 
   test "evaluates with embedded middle expression" do
-    assert_eval "foo bar", "foo <% if true do %>bar<% else: %>baz<% end %>"
+    assert_eval "foo bar", "foo <%= if true do %>bar<% else: %>baz<% end %>"
   end
 
   test "evaluates with embedded middle expression and eval the expression" do
-    assert_eval "foo baz", "foo <% if false do %>bar<% else: %>baz<% end %>"
+    assert_eval "foo baz", "foo <%= if false do %>bar<% else: %>baz<% end %>"
   end
 
   test "evaluates with nested start expression" do
-    assert_eval "foo bar", "foo <% if true do %><% if true do %>bar<% end %><% end %>"
+    assert_eval "foo bar", "foo <%= if true do %><%= if true do %>bar<% end %><% end %>"
   end
 
   test "evaluates with nested middle expression" do
-    assert_eval "foo baz", "foo <% if true do %><% if false do %>bar<% else: %>baz<% end %><% end %>"
+    assert_eval "foo baz", "foo <%= if true do %><%= if false do %>bar<% else: %>baz<% end %><% end %>"
   end
 
   test "evaluates with defined variable" do
@@ -82,7 +82,7 @@ defmodule EExTest do
 
   test "raises a syntax error when nested end expression is found without an start expression" do
     assert_raise EEx.SyntaxError, "unexpected token: ' end ' at line 1", fn ->
-      EEx.compile_string "foo <%if true do %><% end %><% end %>"
+      EEx.compile_string "foo <% if true do %><% end %><% end %>"
     end
   end
 
@@ -111,7 +111,7 @@ foo
 
     string = """
 foo
-<% if true do %>
+<%= if true do %>
 <%= __LINE__ %>
 <% end %>
 <%= __LINE__ %>
@@ -131,7 +131,7 @@ true
 
     string = """
 foo
-<% if __LINE__ == 2 do %>
+<%= if __LINE__ == 2 do %>
 <%= true %>
 <% end %>
 <%= __LINE__ %>
@@ -151,7 +151,7 @@ true
 
     string = """
 foo
-<% if false do %>
+<%= if false do %>
 <%= false %>
 <% elsif: __LINE__ == 4 %>
 <%= true %>
@@ -173,7 +173,7 @@ foo
 
     string = """
 foo
-<% if false do %>
+<%= if false do %>
 <%= __LINE__ %>
 <% else: %>
 <%= __LINE__ %>
@@ -216,8 +216,8 @@ foo
     assert other_sample(1) == "foo 1\n"
   end
 
-  defp assert_eval(expected, atual) do
-    result = EEx.eval_string(atual, [], file: __FILE__, engine: EEx.Engine)
+  defp assert_eval(expected, actual) do
+    result = EEx.eval_string(actual, [], file: __FILE__, engine: EEx.Engine)
     assert result == expected
   end
 end
