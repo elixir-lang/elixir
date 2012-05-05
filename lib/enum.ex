@@ -39,14 +39,6 @@ defprotocol Enum.Iterator do
 
   """
   def iterator(collection)
-
-  @doc """
-  This function is responsible to receive a collection and
-  convert it to a list. It is called directly by `Enum.to_list`.
-  An implementation may choose to raise an error if it cannot
-  be converted to list.
-  """
-  def to_list(collection)
 end
 
 defprotocol Enum.OrdIterator do
@@ -194,22 +186,6 @@ defmodule Enum do
     { iterator, pointer } = I.iterator(collection)
     do_each(pointer, iterator, fun)
     collection
-  end
-
-  @doc """
-  Returns a list of all the entries in the collection.
-
-  ## Examples
-
-      Enum.to_list [1,2,3] #=> [1,2,3]
-
-  """
-  def to_list(collection) when is_list(collection) do
-    collection
-  end
-
-  def to_list(collection) do
-    I.to_list(collection)
   end
 
   @doc """
@@ -891,11 +867,9 @@ defmodule Enum do
 end
 
 defimpl Enum.Iterator, for: List do
-  def iterator(list),   do: { iterate(&1), iterate(list) }
-  def to_list(list),    do: list
-
-  defp iterate([h|t]),  do: { h, t }
-  defp iterate([]),     do: :stop # The :stop atom is the end of the iteration.
+  def iterator(list),  do: { iterate(&1), iterate(list) }
+  defp iterate([h|t]), do: { h, t }
+  defp iterate([]),    do: :stop # The :stop atom is the end of the iteration.
 end
 
 defimpl Enum.OrdIterator, for: List do
@@ -907,13 +881,13 @@ defimpl Enum.OrdIterator, for: List do
 end
 
 defimpl Enum.Iterator, for: HashDict.Record do
-  def iterator(dict),   do: Enum.Iterator.List.iterator(to_list(dict))
-  def to_list(dict),    do: Dict.HashDict.Record.to_list(dict)
+  def iterator(dict), do: Enum.Iterator.List.iterator(to_list(dict))
+  defp to_list(dict), do: Dict.HashDict.Record.to_list(dict)
 end
 
 defimpl Enum.Iterator, for: Orddict.Record do
-  def iterator(dict),   do: Enum.Iterator.List.iterator(to_list(dict))
-  def to_list(dict),    do: Dict.Orddict.Record.to_list(dict)
+  def iterator(dict), do: Enum.Iterator.List.iterator(to_list(dict))
+  defp to_list(dict), do: Dict.Orddict.Record.to_list(dict)
 end
 
 defimpl Enum.OrdIterator, for: Orddict.Record do
