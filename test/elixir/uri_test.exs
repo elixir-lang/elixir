@@ -7,12 +7,6 @@ defmodule URITest do
     assert URI.encode(raw) == expected
   end
 
-  test :encode_with_list do
-    raw = [38,60,62,34,32,227,130,134,227,130,147,227,130,134,227,130,147]
-    expected = '%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93'
-    assert URI.encode(raw) == expected
-  end
-
   test :encode_query do
     assert URI.encode_query([{:foo, :bar}, {:baz, :quux}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
@@ -21,9 +15,7 @@ defmodule URITest do
 
   test :encode_query_mixed do
     assert URI.encode_query([{"foo", :bar}]) == "foo=bar"
-    assert URI.encode_query([{'foo', :bar}]) == "foo=bar"
     assert URI.encode_query([{"foo", 'bar'}]) == "foo=bar"
-    assert URI.encode_query([{'foo', "bar"}]) == "foo=bar"
     assert URI.encode_query([{:foo, "bar"}]) == "foo=bar"
     assert URI.encode_query([{:foo, 'bar'}]) == "foo=bar"
   end
@@ -32,22 +24,18 @@ defmodule URITest do
     assert URI.decode_query("q=search%20query&cookie=ab%26cd&block%20buster=") ==
                 Orddict.new [{"block buster", ""}, {"cookie", "ab&cd"}, {"q", "search query"}]
     assert URI.decode_query("") == Orddict.new
-    assert URI.decode_query('list=works') == Orddict.new [{"list", "works"}]
+    assert URI.decode_query("something=weird%3Dhappening") == Orddict.new [{"something", "weird=happening"}]
 
     assert URI.decode_query("", HashDict.new) == HashDict.new
-    assert URI.decode_query('list=works', HashDict.new) == HashDict.new [{"list", "works"}]
 
     assert URI.decode_query("garbage") == nil
     assert URI.decode_query("=value") == nil
     assert URI.decode_query("something=weird=happening") == nil
-
-    assert URI.decode_query("something=weird%3Dhappening") == Orddict.new [{"something", "weird=happening"}]
   end
 
   test :decode do
     data_to_be_decoded = "%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
     assert URI.decode(data_to_be_decoded) == "&<>\" ゆんゆん"
-    assert URI.decode(binary_to_list(data_to_be_decoded)) == '&<>" ゆんゆん'
   end
 
   test :parse_http do
@@ -103,13 +91,6 @@ defmodule URITest do
                     port: 389, query: nil] ==
                  URI.parse("ldap://ldap.example.com/cn=John%20Doe,dc=example,dc=com")
   end
-
-  test :parse_list do
-    assert URI.Info[scheme: "http", host: "foo.com", authority: "foo.com",
-                    query: nil, fragment: nil, port: 80, path: nil, userinfo: nil] ==
-                 URI.parse('http://foo.com')
-  end
-
 
   test :parse_splits_authority do
     assert URI.Info[scheme: "http", host: "foo.com", path: nil,

@@ -58,10 +58,6 @@ defmodule URI do
   @doc """
   Percent (URL) encodes a URI.
   """
-  def encode(s) when is_list(s) do
-    binary_to_list encode(list_to_binary(s))
-  end
-
   def encode(s), do: bc <<c>> in s, do: <<percent(c)|:binary>>
 
   defp percent(32), do: <<?+>>
@@ -89,10 +85,6 @@ defmodule URI do
   @doc """
   Unpercent (URL) decodes a URI.
   """
-  def decode(s) when is_list(s) do
-    binary_to_list decode(list_to_binary(s))
-  end
-
   def decode(<<?%, hex1, hex2, tail |:binary >>) do
     << bsl(hex2dec(hex1), 4) + hex2dec(hex2) >> <> decode(tail)
   end
@@ -127,7 +119,6 @@ defmodule URI do
   for that particular scheme. Take a look at URI.HTTPS for an
   example of one of these extension modules.
   """
-  def parse(s) when is_list(s), do: parse(list_to_binary(s))
   def parse(s) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
     regex = %r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
