@@ -49,6 +49,9 @@ defmodule Regex.BinaryTest do
     assert Regex.split(%r" ", "foo bar baz") == ["foo", "bar", "baz"]
     assert Regex.split(%r" ", "foo bar baz", 2) == ["foo", "bar baz"]
     assert Regex.split(%r"\s", "foobar") == ["foobar"]
+    assert Regex.split(%r" ", "foo bar baz") == ["foo", "bar", "baz"]
+    assert Regex.split(%r"=", "key=") == ["key", ""]
+    assert Regex.split(%r"=", "=value") == ["", "value"]
   end
 
   test :replace do

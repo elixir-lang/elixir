@@ -183,9 +183,7 @@ defmodule Regex do
   """
   def split({ Regex, compiled, _, _ }, string, parts // :infinity) do
     options = [{ :return, return_for(string) }, :trim, { :parts, parts }]
-    list  = Erlang.re.split(string, compiled, options)
-    blank = blank_for(string)
-    lc l in list when l != blank, do: l
+    Erlang.re.split(string, compiled, options)
   end
 
   @doc %B"""
@@ -229,9 +227,6 @@ defmodule Regex do
   def unescape_map(_),  do: false
 
   # Private Helpers
-
-  defp blank_for(element) when is_binary(element), do: ""
-  defp blank_for(element) when is_list(element),   do: ''
 
   defp return_for(element) when is_binary(element), do: :binary
   defp return_for(element) when is_list(element),   do: :list
