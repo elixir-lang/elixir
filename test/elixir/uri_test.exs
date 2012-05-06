@@ -28,6 +28,21 @@ defmodule URITest do
     assert URI.encode_query([{:foo, 'bar'}]) == "foo=bar"
   end
 
+  test :decode_query do
+    error = { :error, "Malformed query string" }
+
+    assert URI.decode_query("q=search%20query&cookie=ab%26cd&block%20buster=") ==
+                Orddict.new [{"block buster", ""}, {"cookie", "ab&cd"}, {"q", "search query"}]
+    assert URI.decode_query("") == Orddict.new
+    assert URI.decode_query('list=works') == Orddict.new [{"list", "works"}]
+    assert URI.decode_query("garbage") == error
+    assert URI.decode_query("=value") == error
+
+    assert URI.decode_query("something=weird=happening") == error
+    assert URI.decode_query("something=weird%3Dhappening") == Orddict.new [{"something", "weird=happening"}]
+
+  end
+
   test :decode do
     data_to_be_decoded = "%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
     assert URI.decode(data_to_be_decoded) == "&<>\" ゆんゆん"
