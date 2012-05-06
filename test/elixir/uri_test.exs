@@ -32,6 +32,7 @@ defmodule URITest do
     assert URI.decode_query("q=search%20query&cookie=ab%26cd&block%20buster=") ==
                 Orddict.new [{"block buster", ""}, {"cookie", "ab&cd"}, {"q", "search query"}]
     assert URI.decode_query("") == Orddict.new
+    assert URI.decode_query('list=works') == Orddict.new [{"list", "works"}]
 
     assert URI.decode_query("something=weird=happening") == nil
     assert URI.decode_query("something=weird%3Dhappening") == Orddict.new [{"something", "weird=happening"}]

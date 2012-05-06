@@ -29,7 +29,7 @@ defmodule URI do
   Returns nil if the query string is malformed.
   """
   def decode_query(q) do
-    parts = Regex.split %r/&/, q
+    parts = Regex.split %r/&/, to_binary(q)
     # Set up a try block to return quickly from List.foldl in case of an error
     try do
       List.foldl parts, Orddict.new, fn(kvstr, dict) ->
