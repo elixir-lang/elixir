@@ -21,6 +21,37 @@ defmodule URI do
   """
   def encode_query(l), do: Enum.join(Enum.map(l, pair(&1)), "&")
 
+  @doc """
+  Given a query string of the form "key1=value1&key=value2...", produces an
+  orddict with one entry for each key-value pair. Each key and value will be a
+  binary. It also does percent-unescaping of both keys and values.
+
+  Returns nil if the query string is malformed.
+  """
+  def decode_query(q) do
+    # If the string is blank, return an empty dict
+    empty_dict = Orddict.new
+    if Regex.match?(%r"^\s*$", q) do
+      empty_dict
+    else:
+      parts = Regex.split %r/&/, to_binary(q)
+      # Set up a try block to return quickly from List.foldl in case of an error
+      try do
+        List.foldl parts, empty_dict, fn(kvstr, dict) ->
+          pair = case Regex.split(%r/=/, kvstr) do
+          match: [ key, value ] when size(key) > 0
+            { decode(key), decode(value) }
+          else:
+            throw { :error, "Malformed query string" }
+          end
+          Dict.Orddict.Record.put dict, pair
+        end
+      catch: x
+        x
+      end
+    end
+  end
+
   defp pair({k, v}) do
     encode(to_binary(k)) <> "=" <> encode(to_binary(v))
   end
