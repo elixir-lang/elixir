@@ -28,26 +28,25 @@ defmodule URI do
 
   Returns nil if the query string is malformed.
   """
-  def decode_query(q) do
-    # If the string is blank, return an empty dict
-    empty_dict = Orddict.new
-    if Regex.match?(%r"^\s*$", q) do
-      empty_dict
+  def decode_query(q, dict // Orddict.new) do
+    if Regex.match?(%r/^\s*$/, q) do
+      dict
     else:
       parts = Regex.split %r/&/, to_binary(q)
-      # Set up a try block to return quickly from List.foldl in case of an error
+      impl  = Dict.__impl_for__!(dict)
+
       try do
-        List.foldl parts, empty_dict, fn(kvstr, dict) ->
+        List.foldl parts, dict, fn(kvstr, acc) ->
           pair = case Regex.split(%r/=/, kvstr) do
-          match: [ key, value ] when size(key) > 0
+          match: [ key, value ] when key != ""
             { decode(key), decode(value) }
           else:
-            throw { :error, "Malformed query string" }
+            throw :malformed_query_string
           end
-          Dict.Orddict.Record.put dict, pair
+          impl.put acc, pair
         end
-      catch: x
-        x
+      catch: :malformed_query_string
+        nil
       end
     end
   end

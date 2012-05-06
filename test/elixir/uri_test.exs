@@ -29,18 +29,19 @@ defmodule URITest do
   end
 
   test :decode_query do
-    error = { :error, "Malformed query string" }
-
     assert URI.decode_query("q=search%20query&cookie=ab%26cd&block%20buster=") ==
                 Orddict.new [{"block buster", ""}, {"cookie", "ab&cd"}, {"q", "search query"}]
     assert URI.decode_query("") == Orddict.new
     assert URI.decode_query('list=works') == Orddict.new [{"list", "works"}]
-    assert URI.decode_query("garbage") == error
-    assert URI.decode_query("=value") == error
 
-    assert URI.decode_query("something=weird=happening") == error
+    assert URI.decode_query("", HashDict.new) == HashDict.new
+    assert URI.decode_query('list=works', HashDict.new) == HashDict.new [{"list", "works"}]
+
+    assert URI.decode_query("garbage") == nil
+    assert URI.decode_query("=value") == nil
+    assert URI.decode_query("something=weird=happening") == nil
+
     assert URI.decode_query("something=weird%3Dhappening") == Orddict.new [{"something", "weird=happening"}]
-
   end
 
   test :decode do
