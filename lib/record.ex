@@ -222,6 +222,11 @@ defmodule Record.Definition do
     ]
   end
 
+  # Skip the __exception__ for defexception.
+  def default_for(:__exception__, _default, _i) do
+    nil
+  end
+
   # Define the default functions for each field.
   def default_for(key, _default, i) do
     bin_update = "update_" <> atom_to_binary(key)

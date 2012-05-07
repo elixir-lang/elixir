@@ -241,9 +241,15 @@ defmodule Elixir.Builtin do
   """
   defmacro defexception(name, values, opts // [], do_block // []) do
     opts   = Keyword.merge(opts, do_block)
-    values = [{ :__exception__, :__exception__ }|values]
+    opts   = Keyword.put opts, :do, quote ->
+      unquote(Keyword.get opts, :do)
+      def exception(args), do: new(args)
+      def exception(args, self), do: self
+    end
 
+    values = [{ :__exception__, :__exception__ }|values]
     record = Record.defrecord(name, values, opts)
+
     check  = quote do
       name = Module.concat __MODULE__, unquote(name)
       unless List.member?(name.__info__(:functions), { :message, 1 }), do:
@@ -1167,13 +1173,9 @@ defmodule Elixir.Builtin do
   Raises an error.
 
   If the argument is a binary, it raises RuntimeError with the message.
-  If an atom, it assumes the atom represents a record and instantiates
-  a new record and raises it.
-  If an exception, it simply re-raises the exception
+  If anything else, becomes a call to raise(argument, []).
 
   ## Examples
-
-      raise ArgumentError
 
       raise "Given values do not match"
 
@@ -1189,25 +1191,29 @@ defmodule Elixir.Builtin do
     :erlang.error RuntimeError.new(message: msg)
   end
 
-  def raise(atom) when is_atom(atom) do
-    :erlang.error atom.new
-  end
-
-  def raise(exception) when is_tuple(exception) and :erlang.element(2, exception) == :__exception__ do
-    :erlang.error exception
+  def raise(exception) do
+    raise(exception, [])
   end
 
   @doc """
-  Receives a reference for an exception and
-  instantiates a new exception with the given args.
+  Raises an error.
+
+  It calls `.exception` on the given argument passing
+  the args in order to retrieve the appropriate exception
+  structure.
+
+  Any module defined via `defexception` automatically
+  defines `exception(args)` that returns a new instance
+  of the record and a `exception(args, current)` that
+  works as no-op.
 
   ## Examples
 
-      raise ArgumentError, message: "Expected a protocol"
+      raise ArgumentError, message: "Sample"
 
   """
-  def raise(atom, args) when is_atom(atom) do
-    :erlang.error atom.new(args)
+  def raise(exception, args) do
+    :erlang.error exception.exception(args)
   end
 
   @doc """
