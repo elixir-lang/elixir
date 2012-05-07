@@ -385,7 +385,7 @@ Erlang code.
 
 %% Operators
 
-build_op(Op, Left, Right) when size(Op) == 3 ->
+build_op(Op, Left, Right) when tuple_size(Op) == 3 ->
   { ?exprs(Op), ?line(Op), [Left, Right] };
 
 build_op(Op, Left, Right) ->

@@ -6,12 +6,12 @@ defprotocol Access do
 end
 
 defimpl Access, for: Tuple do
-  def access(tuple, integer) when is_integer(integer) and integer > 0 and integer <= size(tuple) do
+  def access(tuple, integer) when is_integer(integer) and integer > 0 and integer <= tuple_size(tuple) do
     :erlang.element(integer, tuple)
   end
 
   def access(tuple, integer) when is_integer(integer) and integer < 0 do
-    size     = size(tuple)
+    size     = tuple_size(tuple)
     position = integer + size + 1
     if position > size or position < 1,
       do: nil, else: :erlang.element(position, tuple)
