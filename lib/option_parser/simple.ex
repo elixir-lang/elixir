@@ -16,7 +16,13 @@ defmodule OptionParser.Simple do
       #=> { [source: "lib"], ["test/enum_test.exs"] }
 
   """
-  def parse([<<?-, option|:binary>>, h|t], aliases // [], dict // [], args // []) do
+  def parse(options, aliases // []) when is_list(options) and is_list(aliases) do
+    parse(options, aliases, [], [])
+  end
+
+  ## Helpers
+
+  defp parse([<<?-, option|:binary>>, h|t], aliases, dict, args) do
     option = normalize_option(option, aliases)
 
     case h do
@@ -29,20 +35,17 @@ defmodule OptionParser.Simple do
     end
   end
 
-  def parse([<<?-, option|:binary>>], aliases, dict, args) do
+  defp parse([<<?-, option|:binary>>], aliases, dict, args) do
     option = normalize_option(option, aliases)
     dict = Keyword.put dict, option, true
     { dict, args }
   end
 
-  def parse(value, _, dict, args) do
+  defp parse(value, _, dict, args) do
     { dict, List.concat(args, value) }
   end
 
-  ## Helpers
-
-  defp key_value(key, boolean, dict) when boolean == "false" \
-                                     when boolean == "true" do
+  defp key_value(key, boolean, dict) when boolean in ["false", "true"] do
     Keyword.put dict, key, binary_to_atom(boolean)
   end
 
