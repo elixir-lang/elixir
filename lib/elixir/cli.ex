@@ -31,6 +31,9 @@ defmodule Elixir.CLI do
     catch: :exit, reason when is_integer(reason)
       at_exit(reason)
       halt(reason)
+    catch: :exit, :normal
+      at_exit(0)
+      halt(0)
     catch: kind, reason
       at_exit(1)
       stacktrace = System.stacktrace
