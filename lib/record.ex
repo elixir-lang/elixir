@@ -252,7 +252,7 @@ defmodule Record.Definition do
     quote do
       def unquote(prepend).(value, record) do
         current = :erlang.element(unquote(i), record)
-        :erlang.setelement(unquote(i), record, List.prepend(value, current))
+        :erlang.setelement(unquote(i), record, value ++ current)
       end
 
       def unquote(merge).(value, record) do

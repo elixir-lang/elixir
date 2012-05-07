@@ -70,10 +70,6 @@ defmodule ListTest do
     end
   end
 
-  test :prepend do
-    assert List.prepend([1,0], [2,3]) == [0,1,2,3]
-  end
-
   test :concat_1 do
     assert List.concat([[1,[2],3], [4], [5,6]]) == [1,[2],3,4,5,6]
   end

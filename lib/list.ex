@@ -244,28 +244,6 @@ defmodule List do
   end
 
   @doc """
-  Prepends the items from the list of the left to the list on the right.
-  Note that items are prepended in reverse order. This function does not modify
-  the tail and therefore does not duplicate the entries in memory.
-
-  ## Examples
-
-      List.prepend [1], [2, 3]
-      #=> [1,2,3]
-
-      List.prepend [1,0], [2, 3]
-      #=> [0,1,2,3]
-
-  """
-  def prepend([h|t], other) do
-    prepend(t, [h|other])
-  end
-
-  def prepend([], other) do
-    other
-  end
-
-  @doc """
   Returns a list of integers in the given range (both ends included when
   possible). An optional step can be provided as well (defaults to 1).
 

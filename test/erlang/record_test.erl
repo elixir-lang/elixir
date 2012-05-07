@@ -40,7 +40,7 @@ record_new_selective_test() ->
 record_prepend_test() ->
   F = fun() ->
     eval("defrecord Foo, a: 1, b: [3], c: 3"),
-    { { '__MAIN__.Foo', 1, [1,2,3], 3 }, _ } = eval("Foo.new.prepend_b [2,1]")
+    { { '__MAIN__.Foo', 1, [1,2,3], 3 }, _ } = eval("Foo.new.prepend_b [1,2]")
   end,
   test_helper:run_and_remove(F, ['__MAIN__.Foo']).
 
