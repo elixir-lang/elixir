@@ -5,10 +5,9 @@ ERL=erl -I include -noshell -pa ebin
 .PHONY: ebin
 .NOTPARALLEL: compile
 
-compile: ebin ebin/__MAIN__ app
+compile: ebin ebin/__MAIN__ ebin/elixir.app
 
-app:
-	@ rm -rf ebin/elixir.app
+ebin/elixir.app:
 	@ $(REBAR) compile
 
 ebin:
@@ -17,6 +16,7 @@ ebin:
 ebin/__MAIN__: lib/*.ex lib/*/*.ex
 	@ rm -rf ebin/__MAIN__
 	$(ERL) -s elixir_compiler core -s erlang halt
+	@ rm -rf ebin/elixir.app
 
 clean:
 	@ $(REBAR) clean
