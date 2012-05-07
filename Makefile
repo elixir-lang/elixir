@@ -34,7 +34,7 @@ test_erlang: compile
 	@ # Compile test files
 	@ $(ERLC) -o test/ebin test/erlang/*.erl
 	@ # Look and execute each file
-	@ time $(ERL) -pa test/ebin -pa exbin -s test_helper test -s erlang halt
+	@ time $(ERL) -pa test/ebin -s test_helper test -s erlang halt
 	@ echo
 
 test_elixir: compile
