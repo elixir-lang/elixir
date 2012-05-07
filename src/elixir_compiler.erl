@@ -183,7 +183,7 @@ make_dir(Current, [], Buffer) ->
 core_file(File) ->
   try
     Lists = file(File),
-    [binary_to_path(X, "exbin") || X <- Lists],
+    [binary_to_path(X, "ebin") || X <- Lists],
     io:format("Compiled ~s~n", [File])
   catch
     Kind:Reason ->

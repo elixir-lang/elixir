@@ -11,7 +11,6 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  (catch code:add_pathz(code:lib_dir(?MODULE, exbin))),
   %% Set the shell to unicode so printing inside files work
   io:setopts([{encoding,unicode}]),
   elixir_sup:start_link([]).

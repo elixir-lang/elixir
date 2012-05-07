@@ -10,15 +10,15 @@ ERL=erl -I include -noshell -pa ebin
 # 	target: dependencies
 # 	[tab] system command
 #
-compile: ebin exbin
+compile: ebin ebin/__MAIN__
 
 clean:
 	@ $(REBAR) clean
 
 docs: compile
 	@ bin/elixirc "lib/**/*.ex" --ignore-module-conflict --docs -o for_docs
-	@ rm -rf exbin
-	@ mv for_docs exbin
+	@ rm -rf ebin/__MAIN__
+	@ mv for_docs/__MAIN__ ebin/__MAIN__
 
 test: test_erlang test_elixir
 
@@ -38,8 +38,6 @@ test_elixir: compile
 ebin:
 	@ $(REBAR) compile
 
-exbin: lib/*.ex lib/*/*.ex
-	@ rm -rf exbin
-	@ mkdir -p exbin
-	@ touch exbin
+ebin/__MAIN__: lib/*.ex lib/*/*.ex
+	@ rm -rf ebin/__MAIN__
 	$(ERL) -s elixir_compiler core -s erlang halt
