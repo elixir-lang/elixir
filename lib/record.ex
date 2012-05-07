@@ -41,6 +41,10 @@ defmodule Record do
   # Define __record__/1 and __record__/2 as reflection functions
   # that returns the record names and fields.
   #
+  # Note that fields are *not* keywords. They are in the same
+  # order as given as parameter and reflects the order of the
+  # fields in the tuple.
+  #
   # ## Examples
   #
   #     defrecord FileInfo, atime: nil, mtime: nil
