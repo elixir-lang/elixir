@@ -59,6 +59,16 @@ defmodule Kernel.RescueTest do
     assert result == "an exception"
   end
 
+  test :rescue_argument_error_from_elixir do
+    result = try do
+     raise ArgumentError, message: ""
+    rescue: ArgumentError
+     true
+    end
+
+    assert result
+  end
+
   test :rescue_argument_error_and_undefined_function_error do
     named = ArgumentError
 

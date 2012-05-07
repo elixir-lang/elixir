@@ -150,7 +150,10 @@ rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
   H == '__MAIN__.BadArityError'; H == '__MAIN__.BadFunctionError';
   H == '__MAIN__.MatchError'; H == '__MAIN__.CaseClauseError';
   H == '__MAIN__.FunctionClauseError'; H == '__MAIN__.SystemLimitError' ->
-  Expr = erlang_rescue_guard_for(Line, Var, H),
+  Expr = { 'or', Line, [
+    erlang_rescue_guard_for(Line, Var, H),
+    exception_compare(Line, Var, H)
+  ] },
   rescue_each_ref(Line, Var, T, Elixir, [Expr|Erlang], false, S);
 
 rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
