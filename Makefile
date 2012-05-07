@@ -5,12 +5,18 @@ ERL=erl -I include -noshell -pa ebin
 .PHONY: ebin
 .NOTPARALLEL: compile
 
-# Makefile targets format:
-#
-# 	target: dependencies
-# 	[tab] system command
-#
-compile: ebin ebin/__MAIN__
+compile: ebin ebin/__MAIN__ app
+
+app:
+	@ rm -rf ebin/elixir.app
+	@ $(REBAR) compile
+
+ebin:
+	@ $(REBAR) compile
+
+ebin/__MAIN__: lib/*.ex lib/*/*.ex
+	@ rm -rf ebin/__MAIN__
+	$(ERL) -s elixir_compiler core -s erlang halt
 
 clean:
 	@ $(REBAR) clean
@@ -34,10 +40,3 @@ test_erlang: compile
 test_elixir: compile
 	@ echo "==> elixir (exunit)"
 	@ time bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"
-
-ebin:
-	@ $(REBAR) compile
-
-ebin/__MAIN__: lib/*.ex lib/*/*.ex
-	@ rm -rf ebin/__MAIN__
-	$(ERL) -s elixir_compiler core -s erlang halt
