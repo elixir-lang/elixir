@@ -2,7 +2,7 @@ REBAR = $(shell which rebar || echo ./rebar)
 ERLC=erlc -I include
 ERL=erl -I include -noshell -pa ebin
 
-.PHONY: ebin
+.PHONY: ebin docs
 .NOTPARALLEL: compile
 
 compile: ebin ebin/__MAIN__ ebin/elixir.app
@@ -21,12 +21,16 @@ ebin/__MAIN__: lib/*.ex lib/*/*.ex
 clean:
 	@ $(REBAR) clean
 
-# make docs && ../exdoc/bin/exdoc && mv output ../elixir-lang.github.com/docs
 docs: compile
 	@ bin/elixirc "lib/**/*.ex" --ignore-module-conflict --docs -o for_docs
 	@ rm -rf ebin/__MAIN__
 	@ mv for_docs/__MAIN__ ebin/__MAIN__
 	@ rm -rf for_docs
+
+release_docs: docs
+	bin/elixir ../exdoc/bin/exdoc
+	rm -rf ../elixir-lang.github.com/docs
+	mv output ../elixir-lang.github.com/docs
 
 test: test_erlang test_elixir
 
