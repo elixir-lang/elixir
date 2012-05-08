@@ -15,7 +15,7 @@ defmodule Dict.Common do
 
       ## Examples
 
-          #{unquote(__MODULE__)}.new [{:b,1},{:a,2}]
+          #{unquote(inspect(__MODULE__))}.new [{:b,1},{:a,2}]
           #=> [a: 1, b: 2]
 
       """
@@ -31,7 +31,7 @@ defmodule Dict.Common do
 
       ## Examples
 
-          #{unquote(__MODULE__)}.new ["a", "b"], fn(x) -> {x, x} end
+          #{unquote(inspect(__MODULE__))}.new ["a", "b"], fn(x) -> {x, x} end
           #=> ["a": "a", "b": "b"]
       """
       def new(list, transform) when is_function(transform) do
