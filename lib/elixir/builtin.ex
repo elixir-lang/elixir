@@ -1108,6 +1108,7 @@ defmodule Elixir.Builtin do
   @doc """
   Returns the atom whose text representation is
   `some_binary` in UTF8 encoding.
+  Allowed in guard clauses.
 
   ## Examples
 
@@ -1122,6 +1123,7 @@ defmodule Elixir.Builtin do
 
   @doc """
   Works like `binary_to_atom` but the atom must exist.
+  Allowed in guard clauses.
 
   ## Examples
 
@@ -1137,7 +1139,7 @@ defmodule Elixir.Builtin do
 
   @doc """
   Returns a binary which corresponds to the text representation
-  of `some_atom` in UTF8 encoding.
+  of `some_atom` in UTF8 encoding. Allowed in guard clauses.
 
   ## Examples
 
@@ -1151,7 +1153,7 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
-  Concatenates two binaries.
+  Concatenates two binaries. Allowed in guard clauses.
 
   ## Examples
 
@@ -1247,7 +1249,7 @@ defmodule Elixir.Builtin do
   @doc """
   Implements the unary operator ! as a macro. It receives any
   argument and returns true if it is false or nil. Returns false
-  otherwise.
+  otherwise. Not allowed in guard clauses.
 
   ## Examples
 
