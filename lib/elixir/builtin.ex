@@ -20,17 +20,6 @@ defmodule Elixir.Builtin do
   """
 
   # Functions pending documentation:
-  # { exit, 1 },
-  # { exit, 2 },
-  # { float, 1 },
-  # { float_to_list, 1 },
-  # { halt, 0 },
-  # { halt, 1 },
-  # { hd, 1 },
-  # { integer_to_list, 1 },
-  # { integer_to_list, 2 },
-  # { iolist_size, 1 },
-  # { iolist_to_binary, 1 },
   # { list_to_atom, 1 },
   # { list_to_binary, 1 },
   # { list_to_bitstring, 1 },
@@ -56,12 +45,6 @@ defmodule Elixir.Builtin do
   # { spawn_link, 2 },
   # { spawn_link, 3 },
   # { spawn_link, 4 },
-  # { spawn_monitor, 1 },
-  # { spawn_monitor, 3 },
-  # { spawn_opt, 2 },
-  # { spawn_opt, 3 },
-  # { spawn_opt, 4 },
-  # { spawn_opt, 5 },
   # { term_to_binary, 1 },
   # { term_to_binary, 2 },
   # { throw, 1 },
@@ -460,6 +443,127 @@ defmodule Elixir.Builtin do
   def byte_size(bitstring)
 
   @doc """
+  Stops the execution of the calling process with the given reason.
+  Since evaluating this function causes the process to terminate,
+  it has no return value.
+
+  ## Examples
+
+      exit(:normal)
+      exit(:seems_bad)
+
+  """
+  def exit(reason)
+
+  @doc """
+  Converts the given number to a float. Allowed in guard clauses.
+  """
+  def float(number)
+
+  @doc """
+  Returns a char list which corresponds to the text representation of the given float.
+
+  ## Examples
+
+      float_to_list(7.0)
+      #=> '7.00000000000000000000e+00'
+
+  """
+  def float_to_list(number)
+
+  @doc """
+  The same as halt(0, []).
+  """
+  def halt()
+
+  @doc """
+  The same as halt(status, []).
+  """
+  def halt(status)
+
+  @doc """
+  Halts the Erlang runtime system where the first argument status must be a
+  non-negative integer, a char list, or the atom `:abort`.
+
+  * If an integer, the runtime system exits with the integer value which
+    is returned to the Operating System;
+
+  * If a char list, an erlang crash dump is produced with status as slogan,
+    and then the runtime system exits with status code 1;
+
+  * If `:abort`, the runtime system aborts producing a core dump, if that is
+    enabled in the operating system.
+
+  Note that on many platforms, only the status codes 0-255 are supported
+  by the operating system.
+
+  For integer status, Erlang runtime system closes all ports and allows async
+  threads to finish their operations before exiting. To exit without such
+  flushing, pass options [flush: false] instead.
+
+  ## Examples
+
+      halt(0)
+      halt(1, flush: false)
+      halt(:abort)
+
+  """
+  def halt(status, options)
+
+  @doc """
+  Returns the head of a list, raises badarg if the list is empty.
+  """
+  def hd(list)
+
+  @doc """
+  Returns a char list which corresponds to the text representation of the given integer.
+
+  ## Examples
+
+      integer_to_list(7)
+      #=> '7'
+
+  """
+  def integer_to_list(number)
+
+  @doc """
+  Returns a char list which corresponds to the text representation of the
+  given integer in the given case.
+
+  ## Examples
+
+      integer_to_list(1023, 16).
+      #=> "3FF"
+
+  """
+  def integer_to_list(number, base)
+
+  @doc """
+  Returns the size of an iolist.
+
+  ## Examples
+
+      iolist_size([1,2|<<3,4>>])
+      #=> 4
+
+  """
+  def iolist_size(item)
+
+  @doc """
+  Returns a binary which is made from the integers and binaries in iolist.
+
+  ## Examples
+
+      bin1 = <<1,2,3>>
+      bin2 = <<4,5>>
+      bin3 = <<6>>
+
+      iolist_to_binary([bin1,1,[2,3,bin2],4|bin3])
+      #=> <<1,2,3,1,2,3,4,5,4,6>>
+
+  """
+  def iolist_to_binary(item)
+
   Returns `true` if `term` is an atom; otherwise returns `false`.
 
   Allowed in guard tests.

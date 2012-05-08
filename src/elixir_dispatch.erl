@@ -258,6 +258,7 @@ in_erlang_functions() ->
     { float_to_list, 1 },
     { halt, 0 },
     { halt, 1 },
+    { halt, 2 },
     { hd, 1 },
     { integer_to_list, 1 },
     { integer_to_list, 2 },
