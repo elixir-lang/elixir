@@ -31,21 +31,6 @@ defmodule Elixir.Builtin do
   # { integer_to_list, 2 },
   # { iolist_size, 1 },
   # { iolist_to_binary, 1 },
-  # { is_atom, 1 },
-  # { is_binary, 1 },
-  # { is_bitstring, 1 },
-  # { is_boolean, 1 },
-  # { is_float, 1 },
-  # { is_function, 1 },
-  # { is_function, 2 },
-  # { is_integer, 1 },
-  # { is_list, 1 },
-  # { is_number, 1 },
-  # { is_pid, 1 },
-  # { is_port, 1 },
-  # { is_reference, 1 },
-  # { is_tuple, 1 },
-  # { length, 1 },
   # { list_to_atom, 1 },
   # { list_to_binary, 1 },
   # { list_to_bitstring, 1 },
@@ -473,6 +458,120 @@ defmodule Elixir.Builtin do
 
   """
   def byte_size(bitstring)
+
+  @doc """
+  Returns `true` if `term` is an atom; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_atom(term)
+
+  @doc """
+  Returns `true` if `term` is a binary; otherwise returns `false`.
+
+  A binary always contains a complete number of bytes.
+
+  Allowed in guard tests.
+  """
+  def is_binary(term)
+
+  @doc """
+  Returns `true` if `term` is a bitstring (including a binary); otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_bitstring(term)
+
+  @doc """
+  Returns `true` if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
+  otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_boolean(term)
+
+  @doc """
+  Returns `true` if `term` is a floating point number; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_float(term)
+
+  @doc """
+  Returns `true` if `term` is a function; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_function(term)
+
+  @doc """
+  Returns `true` if `term` is a function that can be applied with `arity` number of arguments;
+  otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_function(term, arity)
+
+  @doc """
+  Returns `true` if `term` is an integer; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_integer(term)
+
+  @doc """
+  Returns `true` if `term` is a list with zero or more elements; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_list(term)
+
+  @doc """
+  Returns `true` if `term` is either an integer or a floating point number;
+  otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_number(term)
+
+  @doc """
+  Returns `true` if `term` is a pid (process identifier); otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_pid(term)
+
+  @doc """
+  Returns `true` if `term` is a port identifier; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_port(term)
+
+  @doc """
+  Returns `true` if `term` is a reference; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_reference(term)
+
+  @doc """
+  Returns `true` if `term` is a tuple; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  def is_tuple(term)
+
+  @doc """
+  Returns the length of `list`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      length([1,2,3,4,5,6,7,8,9]) #=> 9
+  """
+  def length(list)
 
   @doc """
   Defines a module given by name with the given contents.
