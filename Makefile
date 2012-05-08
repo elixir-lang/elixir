@@ -25,6 +25,7 @@ docs: compile
 	@ bin/elixirc "lib/**/*.ex" --ignore-module-conflict --docs -o for_docs
 	@ rm -rf ebin/__MAIN__
 	@ mv for_docs/__MAIN__ ebin/__MAIN__
+	@ rm -rf for_docs
 
 test: test_erlang test_elixir
 
