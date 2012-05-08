@@ -254,7 +254,6 @@ in_erlang_functions() ->
     { byte_size, 1 },
     % { date, 0 },
     { exit, 1 },
-    { exit, 2 },
     { float, 1 },
     { float_to_list, 1 },
     { halt, 0 },
