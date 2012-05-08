@@ -150,11 +150,6 @@ defmodule System do
   end
 
   @doc """
-  Returns the current working directory as a binary.
-  """
-  def pwd, do: :filename.absname("")
-
-  @doc """
   Get the stacktrace.
   """
   def stacktrace do

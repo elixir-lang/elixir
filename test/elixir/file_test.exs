@@ -75,6 +75,16 @@ defmodule FileTest do
     assert File.join(['~', 'foo', 'bar']) == '~/foo/bar'
   end
 
+  test :join_two_with_binary do
+    assert File.join("/foo", "bar") == "/foo/bar"
+    assert File.join("~", "foo") == "~/foo"
+  end
+
+  test :join_two_with_list do
+    assert File.join('/foo', 'bar') == '/foo/bar'
+    assert File.join('~', 'foo') == '~/foo'
+  end
+
   test :split_with_binary do
     assert File.split("") == ["/"]
     assert File.split("foo") == ["foo"]
@@ -101,7 +111,7 @@ defmodule FileTest do
     assert File.read!(File.expand_path("../fixtures/foo.txt", __FILE__)) == "FOO\n"
     expected_message = "could not read file fixtures/missing.txt: no such file or directory"
 
-    assert_raise File.Exception, expected_message, fn ->
+    assert_raise File.Error, expected_message, fn ->
       File.read!("fixtures/missing.txt")
     end
   end
@@ -120,7 +130,7 @@ defmodule FileTest do
   end
 
   test :read_info_with_invalid_file! do
-    assert_raise File.Exception, fn ->
+    assert_raise File.Error, fn ->
       File.read_info!("./invalid_file")
     end
   end

@@ -29,8 +29,4 @@ defmodule SystemTest do
   test :cmd do
     assert is_binary(System.cmd "binary")
   end
-
-  test :pwd do
-    assert is_binary(System.pwd)
-  end
 end

@@ -3,34 +3,93 @@ defmodule File do
   require Erlang.filename, as: FN
   require Erlang.filelib,  as: FL
 
-  defrecord Info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+  defrecord Info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl"), moduledoc: """
+  A record responsible to hold file information. Its fields are:
 
-  defexception Exception, reason: nil, action: "", path: nil do
+  * `size` - Size of file in bytes.
+  * `type` - `:device`, `:directory`, `:regular`, `:other`. The type of the file.
+  * `access` - `:read`, `:write`, `:read_write`, `:none`. The current system access to
+                the file.
+  * `atime` - The last time the file was read.
+  * `mtime` - The last time the file was written.
+  * `ctime` - The interpretation of this time field depends on the operating
+              system. On Unix, it is the last time the file or the inode was
+              changed. In Windows, it is the create time.
+  * `mode` - The file permissions.
+  * `links` - The number of links to this file. This is always 1 for file
+              systems which have no concept of links.
+  * `major_device` - Identifies the file system where the file is located.
+                     In windows, the number indicates a drive as follows:
+                     0 means A:, 1 means B:, and so on.
+  * `minor_device` - Only valid for character devices on Unix. In all other
+                     cases, this field is zero.
+  * `inode` - Gives the inode number. On non-Unix file systems, this field
+              will be zero.
+  * `uid` - Indicates the owner of the file.
+  * `gid` - Gives the group that the owner of the file belongs to. Will be
+            zero for non-Unix file systems.
+
+  The time type returned in `atime`, `mtime`, and `ctime` is dependent on the
+  time type set in options. `{:time, type}` where type can be `:local`,
+  `:universal`, or `:posix`. Default is `:local`.
+  """
+
+  defexception Error, reason: nil, action: "", path: nil do
     def message(exception) do
       formatted = list_to_binary(F.format_error(exception.reason))
       "could not #{exception.action} #{exception.path}: #{formatted}"
     end
   end
 
+  @doc """
+  Expands the path by returning its absolute name and expanding
+  any `.` and `..` characters.
+
+  ## Examples
+
+    File.expand_path("/foo/bar/../bar") == "/foo/bar"
+
+  """
   def expand_path(path) do
     normalize FN.absname(path)
   end
 
+  @doc """
+  Expands the path to the relative location and expanding
+  any `.` and `..` characters. If the path is already an
+  absolute path, the relative location is ignored.
+
+  ## Examples
+
+    File.expand_path("foo/bar/../bar", "/baz") == "/baz/foo/bar"
+    File.expand_path("/foo/bar/../bar", "/baz") == "/foo/bar"
+
+  """
   def expand_path(path, relative_to) do
     normalize FN.absname(FN.absname(path, relative_to))
   end
 
-  def regular?(filename) do
-    FL.is_regular(filename)
-  end
+  @doc """
+  Returns true if the path is a regular file.
 
-  def dir?(directory) do
-    FL.is_dir(directory)
+  ## Examples
+
+      File.regular? __FILE__ #=> true
+  """
+  def regular?(path) do
+    FL.is_regular(path)
   end
 
   @doc """
-  Returns if `file` exists
-  This `file` can be regular file, directory, socket,
+  Returns true if the path is a directory.
+  """
+  def dir?(path) do
+    FL.is_dir(path)
+  end
+
+  @doc """
+  Returns true if the given argument exists.
+  It can be regular file, directory, socket,
   symbolic link, named pipe or device file.
 
   ## Examples
@@ -43,19 +102,15 @@ defmodule File do
 
     File.exists?("/dev/null")
     #=> true
+
   """
-  def exists?(filename) do
-    case F.read_file_info(filename) do
-    match: {:ok, _}
-      true
-    else:
-      false
-    end
+  def exists?(path) do
+    match?({ :ok, _ }, F.read_file_info(path))
   end
 
   @doc """
-  Returns the last component of the `filename` or the file
-  name itself if it does not contain any directory separators.
+  Returns the last component of the path or the path
+  itself if it does not contain any directory separators.
 
   ## Examples
 
@@ -74,18 +129,18 @@ defmodule File do
   end
 
   @doc """
-  Returns the last component of `filename` with the `extension`
-  stripped. This function should be used to remove a specific extension
-  which might, or might not, be there.
+  Returns the last component of `path` with the `extension`
+  stripped. This function should be used to remove a specific
+  extension which might, or might not, be there.
 
   ## Examples
 
       File.basename("~/foo/bar.ex", ".ex")
       #=> "bar"
       File.basename("~/foo/bar.exs", ".ex")
-      #=> "bar.ecs"
+      #=> "bar.exs"
       File.basename("~/foo/bar.old.ex", ".ex")
-      #=> "kalle.old"
+      #=> "bar.old"
 
   """
   def basename(path, extension) do
@@ -110,6 +165,19 @@ defmodule File do
   end
 
   @doc """
+  Join two paths.
+
+  ## Examples
+
+      File.join("foo", "bar")
+      #=> "foo/bar"
+
+  """
+  def join(left, right) do
+    FN.join(left, right)
+  end
+
+  @doc """
   Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
   of `filename`, or `{:error, reason}` if an error occurs.
 
@@ -125,28 +193,26 @@ defmodule File do
 
   You can use `Erlang.file.format_error(reason)` to get a descriptive string of the error.
   """
-  def read(filename) do
-    F.read_file(filename)
+  def read(path) do
+    F.read_file(path)
   end
 
   @doc """
   Returns binary with the contents of the given filename or raises
-  File.Exception if an error occurs.
+  File.Error if an error occurs.
   """
-  def read!(filename) do
-    result = read(filename)
-
-    case result do
+  def read!(path) do
+    case read(path) do
     match: { :ok, binary }
       binary
     match: { :error, reason }
-      raise Exception, reason: reason, action: "read file", path: filename
+      raise File.Error, reason: reason, action: "read file", path: to_binary(path)
     end
   end
 
   @doc """
-  Returns a list with the path splitted by the path separator. If an empty string
-  is given, then it returns the root path.
+  Returns a list with the path splitted by the path separator.
+  If an empty string is given, then it returns the root path.
 
   ## Examples
 
@@ -205,35 +271,10 @@ defmodule File do
   end
 
   @doc """
-  Returns information about a file. Info is returned
-  as a `FileInfo` record containing the following elements:
-
-  * `size` - Size of file in bytes.
-  * `type` - `:device`, `:directory`, `:regular`, `:other`. The type of the file.
-  * `access` - `:read`, `:write`, `:read_write`, `:none`. The current system access to
-               the file.
-  * `atime` - The last time the file was read.
-  * `mtime` - The last time the file was written.
-  * `ctime` - The interpretation of this time field depends on the operating
-              system. On Unix, it is the last time the file or the inode was
-              changed. in Windows, it is the create time.
-  * `mode` - The file permissions.
-  * `links` - The number of links to this file. This is always 1 for file
-              systems which have no concept of links.
-  * `major_device` - Identifies the file system where the file is located.
-                     In windows, the number indicates a drive as follows:
-                     0 means A:, 1 means B:, and so on.
-  * `minor_device` - Only valid for character devices on Unix. In all other
-                     cases, this field is zero.
-  * `inode` - Gives the inode number. On non-Unix file systems, this field
-              will be zero.
-  * `uid` - Indicates the owner of the file.
-  * `gid` - Gives the group that the owner of the file belongs to. Will be
-            zero for non-Unix file systems.
-
-  The time type returned in `atime`, `mtime`, and `ctime` is dependent on the
-  time type set in options. `{:time, type}` where type can be `:local`,
-  `:universal`, or `:posix`. Default is `:local`.
+  Returns information about a file. If the file exists, it
+  returns a `{ :ok, info }` tuple, where info is  as a
+  `File.Info` record. Retuns `{ :error, reason }` with
+  the same reasons as `File.read` if a failure occurs.
   """
   def read_info(path, opts // []) do
     case :file.read_file_info(path, opts) do
@@ -245,15 +286,15 @@ defmodule File do
   end
 
   @doc """
-  Same as `read_info` but returns only the FileInfo and
-  throws an exception if an error occurs.
+  Same as `read_info` but returns the `File.Info` directly and
+  throws `File.Error` if an error is returned.
   """
   def read_info!(path, opts // []) do
     case read_info(path, opts) do
     match: {:ok, info}
       info
     match: {:error, reason}
-      raise Exception, reason: reason, action: "read info of file", path: path
+      raise File.Error, reason: reason, action: "read file info", path: to_binary(path)
     end
   end
 

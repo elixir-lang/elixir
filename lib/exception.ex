@@ -1,6 +1,13 @@
 defmodule Exception do
+  @moduledoc """
+  Several convenience functions to work and pretty print
+  exceptions and backtraces.
+  """
+
   # Normalize an exception converting Erlang exceptions
-  # to Elixir style exceptions.
+  # to Elixir style exceptions. This is meant to be used
+  # internally.
+  @doc false
   def normalize(exception) when is_exception(exception) do
     exception
   end
@@ -49,7 +56,11 @@ defmodule Exception do
     ErlangError.new original: else
   end
 
-  # Format module, fun and arity to inspection.
+  @doc """
+  Receives a module, fun and arity and returns a string
+  representing such invocation. Arity may also be a list
+  of arguments. It follows the same syntax as in stacktraces.
+  """
   def format_module_fun_arity(module, fun, arity) do
     << ?:, fun | :binary >> = inspect(fun)
 
@@ -61,17 +72,24 @@ defmodule Exception do
     end
   end
 
-  # Format stacktrace for inspection.
+  @doc """
+  Formats each line in the stacktrace.
+  """
   def format_stacktrace({module, fun, arity, file_line}) do
     "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
   end
 
-  # Formats the given file and line given as a Keyword.
+  @doc """
+  Formats file and line information present in stacktraces.
+  Expect them to be given in a keywords list.
+  """
   def format_file_line(file_line) do
     format_file_line(Keyword.get(file_line, :file), Keyword.get(file_line, :line))
   end
 
-  # Formats the given file and line.
+  @doc """
+  Formats the given file and line.
+  """
   def format_file_line(file, line) do
     if file do
       file = to_binary(file)
