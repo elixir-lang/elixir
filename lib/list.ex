@@ -10,22 +10,8 @@ defmodule List do
   """
 
   @doc """
-  Access the list via a predicate.
-
-  If a regular expression, it returns a list with the
-  matched contents.
-
-  If an atom, assumes the list is a keywords list and
-  access the key in the keywords equals to the given
-  atom.
-
-  This implements the same API as the `Access` protocol.
-
-  ## Examples
-
-      list = [ :a, :b, :c ]
-      List.access list, -1 #=> :c
-
+  Simply invokes the Access protocol for the given list.
+  Check `Access.List` for more information.
   """
   def access(list, access) when is_list(list) do
     Access.List.access(list, access)

@@ -13,11 +13,13 @@ defmodule Record do
   # Main entry point for records definition.
   # This is invoked directly by Elixir.Builtin.defrecord.
   def defrecord(name, values, opts) do
+    moduledoc  = Keyword.get(opts, :moduledoc)
     block      = Keyword.get(opts, :do)
     definition = Keyword.get(opts, :definition, Record.Definition)
 
     quote do
       defmodule unquote(name) do
+        @moduledoc unquote(moduledoc)
         Record.define_functions(__MODULE__, unquote(values), unquote(definition))
         unquote(block)
       end

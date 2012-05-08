@@ -1,11 +1,37 @@
 import Elixir.Builtin, except: [access: 2]
 
 defprotocol Access do
+  @moduledoc """
+  The Access protocol is the underlying protocol invoked
+  when the brackets syntax is used. For instance, `foo[bar]`
+  is translated to `access foo, bar` which, by default,
+  invokes `Access.access` protocol.
+
+  This protocol is implemented by default for most builtin
+  types, like tuples, atoms, functions, etc.
+  """
+
   @only [List, BitString, Record, Tuple, Atom, Function]
+
+  @doc """
+  Receives the element being accessed and the access item.
+  """
   def access(element, qualifier)
 end
 
 defimpl Access, for: Tuple do
+  @doc """
+  Access the tuple via an integer. Negative indexes
+  performs an inverted lookup, for example, -1 can be
+  used to retrieve the last item in the tuple. Returns
+  nil if an out of bounds access occurs.
+
+  ## Examples
+
+      tuple = { :a, :b, :c }
+      tuple[-1] #=> :c
+
+  """
   def access(tuple, integer) when is_integer(integer) and integer > 0 and integer <= tuple_size(tuple) do
     :erlang.element(integer, tuple)
   end
@@ -23,6 +49,30 @@ defimpl Access, for: Tuple do
 end
 
 defimpl Access, for: List do
+  @doc """
+  Access the list via a predicate.
+
+  If a regular expression, it returns a list with the
+  matched contents.
+
+  If an atom, assumes the list is a keywords list and
+  access the key in the keywords equals to the given
+  atom.
+
+  Notice this protocol does not implement an integer
+  lookup. This is intentional since doing an index
+  based access on lists is usually undesired.
+
+  ## Examples
+
+      list = 'sample'
+      list[%r/a/] #=> 'a'
+
+      keywords = [a: 1, b: 2]
+      keywords[:a] #=> 1
+
+  """
+
   ## Atom
 
   def access(list, atom) when is_atom(atom) do
@@ -49,6 +99,19 @@ defimpl Access, for: List do
 end
 
 defimpl Access, for: BitString do
+  @doc """
+  Access the binary via a predicate.
+
+  If a regular expression, it returns a binary with the
+  matched contents.
+
+  ## Examples
+
+      binary = "abc"
+      Binary.access binary, %r(a) #=> "a"
+
+  """
+
   ## Regex
 
   def access(binary, re) when is_binary(binary) and is_regex(re) do
@@ -63,9 +126,43 @@ end
 
 defimpl Access, for: Atom do
   @doc """
-  An atom access can only be done via keywords. We assume the
-  atom represents a record module that implements new and
-  receives keywords as argument.
+  Access the atom via keywords. Different from other
+  implementations, the Access protocol for atoms is
+  special cased during compilation time to provide
+  faster read and write access for records.
+
+  This pattern can also be used in guards, which is
+  a very useful way to extract information from a
+  record.
+
+  ## Examples
+
+      def increment(State[counter: counter] = state) do
+        state.counter(counter + 1)
+      end
+
+  In the example above, we use the Access protocol on atoms
+  to match the counter field in the record State. Considering
+  the record definition is as follows:
+
+      defrecord State, counter: 0, other: nil
+
+  The clause above is translated to:
+
+      def increment({ State, counter, _ } = state) do
+        state.counter(counter + 1)
+      end
+
+  Which is a very convenient way to pattern match and have
+  faster read times. The same pattern can be used to create
+  a new record:
+
+      def new_state(counter) do
+        State[counter: counter]
+      end
+
+  All fields not specified on creation defaults to their
+  default value.
   """
   def access(atom, keywords) when is_list(keywords) do
     atom.new(keywords)
@@ -74,8 +171,10 @@ end
 
 defimpl Access, for: Function do
   @doc """
-  A function access simply executes it passing the
-  the access item as argument.
+  The Access protocol for functions simply invokes
+  the function passing the item as argument. This
+  is useful because it allows a function to be
+  passed as argument in places a dict would also fit.
   """
   def access(function, item) do
     function.(item)

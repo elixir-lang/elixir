@@ -1,22 +1,9 @@
 defmodule Binary do
   @doc """
-  Access the binary via a predicate.
-
-  If a regular expression, it returns a binary with the
-  matched contents.
-
-  This implements the same API as the `Access` protocol.
-
-  Notice currently Elixir does not provide functions for
-  accessing utf-8 code points.
-
-  ## Examples
-
-      binary = "abc"
-      Binary.access binary, %r(a) #=> "a"
-
+  Simply invokes the Access protocol for the given binary.
+  Check `Access.BitString` for more information.
   """
-  def access(binary, access) do
+  def access(binary, access) when is_binary(binary) do
     Access.BitString.access(binary, access)
   end
 

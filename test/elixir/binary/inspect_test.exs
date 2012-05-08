@@ -91,7 +91,7 @@ defmodule Binary.Inspect.TupleTest do
   end
 
   test :exception do
-    assert inspect(RuntimeError.new) == "RuntimeError{\"runtime error\"}"
+    assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\"]"
   end
 
   test :empty do
