@@ -21,6 +21,7 @@ ebin/__MAIN__: lib/*.ex lib/*/*.ex
 clean:
 	@ $(REBAR) clean
 
+# make docs && ../exdoc/bin/exdoc && mv output ../elixir-lang.github.com/docs
 docs: compile
 	@ bin/elixirc "lib/**/*.ex" --ignore-module-conflict --docs -o for_docs
 	@ rm -rf ebin/__MAIN__
