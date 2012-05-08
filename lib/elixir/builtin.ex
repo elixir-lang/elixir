@@ -19,31 +19,6 @@ defmodule Elixir.Builtin do
   at http://www.erlang.org/doc/man/erlang.html.
   """
 
-  # Functions pending documentation:
-  # { make_ref, 0 },
-  # { max, 2 },
-  # { min, 2 },
-  # { node, 0 },
-  # { node, 1 },
-  # { pid_to_list, 1 },
-  # { round, 1 },
-  # { size, 1 },
-  # { spawn, 1 },
-  # { spawn, 2 },
-  # { spawn, 3 },
-  # { spawn, 4 },
-  # { spawn_link, 1 },
-  # { spawn_link, 2 },
-  # { spawn_link, 3 },
-  # { spawn_link, 4 },
-  # { term_to_binary, 1 },
-  # { term_to_binary, 2 },
-  # { throw, 1 },
-  # { tl, 1 },
-  # { trunc, 1 },
-  # { tuple_size, 1 },
-  # { tuple_to_list, 1 }
-
   @doc """
   Arithmetic plus. Allowed in guard clauses.
 
@@ -832,6 +807,69 @@ defmodule Elixir.Builtin do
   """
   def size(arg)
 
+  @doc """
+  Spawns the given function and returns its pid.
+  Check the module `Process` for other functions that handle
+  process, including spawning functions in nodes.
+
+  ## Examples
+
+      current = Process.self
+      child   = spawn(fn -> current <- { Process.self, 1 + 2 } end)
+
+      receive
+      match: { ^child, 3 }
+        IO.puts "Received 3 back"
+      end
+
+  """
+  def spawn(fun)
+
+  @doc """
+  Spawns the given module and function passing the given args
+  and returns its pid.
+
+  Check the module `Process` for other functions that handle
+  process, including spawning functions in nodes.
+
+  ## Examples
+
+      spawn(SomeModule, :function, [1,2,3])
+
+  """
+  def spawn(module, args, fun)
+
+  @doc """
+  Spawns the given function, links it to the current process and returns its pid.
+  Check the module `Process` for other functions that handle
+  process, including spawning functions in nodes.
+
+  ## Examples
+
+      current = Process.self
+      child   = spawn_link(fn -> current <- { Process.self, 1 + 2 } end)
+
+      receive
+      match: { ^child, 3 }
+        IO.puts "Received 3 back"
+      end
+
+  """
+  def spawn_link(fun)
+
+  @doc """
+  Spawns the given module and function passing the given args,
+  links it to the current process and returns its pid.
+
+  Check the module `Process` for other functions that handle
+  process, including spawning functions in nodes.
+
+  ## Examples
+
+      spawn_link(SomeModule, :function, [1,2,3])
+
+  """
+  def spawn_link(module, args, fun)
 
   @doc """
   Returns a binary data which is the result of encoding the given term
@@ -1189,6 +1227,9 @@ defmodule Elixir.Builtin do
     end
   end
 
+  @doc """
+  Check if the given argument is a regex.
+  """
   defmacro is_regex(thing) do
     quote do
       is_record(unquote(thing), Regex)
