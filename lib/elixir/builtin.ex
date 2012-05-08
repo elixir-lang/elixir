@@ -20,15 +20,6 @@ defmodule Elixir.Builtin do
   """
 
   # Functions pending documentation:
-  # { list_to_atom, 1 },
-  # { list_to_binary, 1 },
-  # { list_to_bitstring, 1 },
-  # { list_to_existing_atom, 1 },
-  # { list_to_float, 1 },
-  # { list_to_integer, 1 },
-  # { list_to_integer, 2 },
-  # { list_to_pid, 1 },
-  # { list_to_tuple, 1 },
   # { make_ref, 0 },
   # { max, 2 },
   # { min, 2 },
@@ -676,6 +667,89 @@ defmodule Elixir.Builtin do
       length([1,2,3,4,5,6,7,8,9]) #=> 9
   """
   def length(list)
+
+  @doc """
+  Returns the atom whose text representation is `char_list`.
+
+  ## Examples
+
+      list_to_atom('elixir') #=> :elixir
+  """
+  def list_to_atom(char_list)
+
+  @doc """
+  Returns a binary which is made from the content of `char_list`.
+
+  ## Examples
+
+      list_to_binary('Elixir') #=> "Elixir"
+  """
+  def list_to_binary(char_list)
+
+  # TODO: JV review this one
+  @doc """
+  Returns a bitstring which is made from the integers and bitstrings in `bitstring_list`.
+  (The last tail in `bitstring_list` is allowed to be a bitstring.)
+
+  ## Examples
+
+      bin1 = <<1,2,3>>  #=> <<1,2,3>>
+      bin2 = <<4,5>>    #=> <<4,5>>
+      bin3 = <<6,7|4,>> #=> <<6>>
+
+      list_to_binary([bin1,1,[2,3,bin2],4|bin3]) #=> <<1,2,3,1,2,3,4,5,4,6,7|46>>
+  """
+  def list_to_bitstring(bitstring_list)
+
+  @doc """
+  Returns the atom whose text representation is `char_list`, but only if there already
+  exists such atom.
+  """
+  def list_to_existing_atom(char_list)
+
+  @doc """
+  Returns the float whose text representation is `char_list`.
+
+  ## Examples
+
+      list_to_float('2.2017764e+0') #=> 2.2017764
+  """
+  def list_to_float(char_list)
+
+  @doc """
+  Returns an integer whose text representation is `char_list`.
+
+  ## Examples
+
+      list_to_integer('123') #=> 123
+  """
+  def list_to_integer(char_list)
+
+  @doc """
+  Returns an integer whose text representation in base `base` is `char_list`.
+
+  ## Examples
+
+      > list_to_integer('3FF', 16) #=> 1023
+  """
+  def list_to_integer(char_list, base)
+
+  @doc """
+  Returns a pid whose text representation is `char_list`.
+
+  ## Examples
+      list_to_pid('<0.41>') #=> <0.4.1>
+  """
+  def list_to_pid(char_list)
+
+  @doc """
+  Returns a tuple which corresponds to `list`. `list` can contain any Erlang terms.
+
+  ## Examples
+
+      list_to_tuple([share, [:elixir, 163]]). #=> {share, [:elixir, 163]}
+  """
+  def list_to_tuple(list)
 
   @doc """
   Defines a module given by name with the given contents.
