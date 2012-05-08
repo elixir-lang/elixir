@@ -1,4 +1,4 @@
-defrecord Orddict.Record, [data: nil], moduledoc: false
+defrecord Orddict.Record, data: nil
 
 defimpl Dict, for: Orddict.Record do
   refer Orddict.Record, as: O

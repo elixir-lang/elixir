@@ -229,6 +229,13 @@ defmodule Elixir.Builtin do
   * `merge_field` - Receives keywords and merge it into the current value;
   * `prepend_field` - Receives another list and prepend its values
 
+  ## Documentation
+
+  By default records are not documented and have @moduledoc set to false.
+  This can be changed by passing a moduledoc option after values:
+
+      defrecord Config, [counter: 0, failures: []], moduledoc: "A simple record"
+
   """
   defmacro defrecord(name, values, opts // [], do_block // []) do
     Record.defrecord(name, values, Keyword.merge(opts, do_block))
@@ -240,11 +247,18 @@ defmodule Elixir.Builtin do
   an error is raised. Check exception.ex for examples.
   """
   defmacro defexception(name, values, opts // [], do_block // []) do
-    opts   = Keyword.merge(opts, do_block)
-    opts   = Keyword.put opts, :do, quote ->
+    opts = Keyword.merge(opts, do_block)
+    opts = Keyword.put(opts, :do, quote do
       unquote(Keyword.get opts, :do)
       def exception(args), do: new(args)
       def exception(args, self), do: self
+    end)
+
+    opts = case Keyword.key?(opts, :moduledoc) do
+    match: false
+      Keyword.put(opts, :moduledoc, nil)
+    else:
+      opts
     end
 
     values = [{ :__exception__, :__exception__ }|values]

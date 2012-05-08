@@ -1,4 +1,4 @@
-defrecord HashDict.Record, [data: nil], moduledoc: false
+defrecord HashDict.Record, data: nil
 
 defimpl Dict, for: HashDict.Record do
   refer HashDict.Record, as: HD

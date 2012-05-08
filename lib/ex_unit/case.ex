@@ -1,4 +1,34 @@
 defmodule ExUnit.Case do
+  @moduledoc """
+  This module is meant to be used in other modules
+  as a way to configure and prepare them for testing.
+
+  When used, it allows the following options:
+
+  * :sync - by default, ExUnit run test cases in parallel
+    to each other. If this test case needs to run in sync,
+    set sync to true.
+
+  ## Callbacks
+
+  This module defines two callbacks. `setup_all` and `teardown_all`
+  which are executed before and after all tests respectively.
+  Those callbacks needs to return :ok, otherwise we assume
+  tests should not be run.
+
+  ## Examples
+
+      defmodule AssertionTest do
+        use ExUnit.Case
+
+        def test_always_pass
+          assert true
+        end
+      end
+
+  """
+
+  @doc false
   defmacro __using__(module, opts // []) do
     if Keyword.get(opts, :sync, false) do
       ExUnit.Server.add_sync_case(module)

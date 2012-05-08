@@ -1,4 +1,8 @@
 defmodule ExUnit.Formatter do
+  # TODO: Eventually we need to come up with a
+  # public API for the formatter to allow customization
+  @moduledoc false
+
   use GenServer.Behavior
 
   defrecord Config, counter: 0, failures: []
