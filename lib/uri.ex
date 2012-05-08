@@ -37,13 +37,12 @@ defmodule URI do
 
       try do
         List.foldl parts, dict, fn(kvstr, acc) ->
-          pair = case Regex.split(%r/=/, kvstr) do
+          case Regex.split(%r/=/, kvstr) do
           match: [ key, value ] when key != ""
-            { decode(key), decode(value) }
+            impl.put acc, decode(key), decode(value)
           else:
             throw :malformed_query_string
           end
-          impl.put acc, pair
         end
       catch: :malformed_query_string
         nil

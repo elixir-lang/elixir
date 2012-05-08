@@ -1,4 +1,4 @@
-defrecord HashDict.Record, data: nil
+defrecord HashDict.Record, [data: nil], moduledoc: false
 
 defimpl Dict, for: HashDict.Record do
   refer HashDict.Record, as: HD
@@ -34,10 +34,6 @@ defimpl Dict, for: HashDict.Record do
     HD[data: :dict.store key, value, data]
   end
 
-  def put(HD[data: data], {key, value}) do
-    HD[data: :dict.store key, value, data]
-  end
-
   def delete(HD[data: data], key) do
     HD[data: :dict.erase key, data]
   end
@@ -68,5 +64,11 @@ defimpl Dict, for: HashDict.Record do
 end
 
 defmodule HashDict do
+  @moduledoc """
+  This module implements a dictionary based on hashing of the keys.
+  It is a simple wrapper around [Erlang's dict module](http://www.erlang.org/doc/man/dict.html)
+  and exposed via the `Dict` protocol.
+  """
+
   use Dict.Common, Dict.HashDict.Record
 end

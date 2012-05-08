@@ -1,7 +1,7 @@
 defmodule Code do
   @moduledoc """
   The Code module is responsible to manage code compilation,
-  evaluation and loading.
+  code evaluation and code loading.
   """
 
   @doc """

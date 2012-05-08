@@ -1,11 +1,16 @@
 defprotocol Dict do
   @only [Record]
 
+  @moduledoc """
+  This module provides the Dict protocol
+  with the goal of being a common API
+  to work with dictionaries.
+  """
+
   @doc """
   Returns a list containing all dict's keys.
-
-  For Keyword and Orddict, the keys are guaranteed to be sorted. For other
-  types of dicts, the order is not enforced.
+  The keys are not guaranteed to be sorted, unless
+  the underlying dict implementation defines so.
 
   ## Examples
 
@@ -67,11 +72,8 @@ defprotocol Dict do
 
       Dict.put [a: 1, b: 2], :a, 3
       #=> [a: 3, b: 2]
-      Dict.put [a: 1, b: 2], {:c, 3}
-      #=> [a: 1, b: 2, c: 3]
 
   """
-  def put(dict, pair)
   def put(dict, key, val)
 
   @doc """

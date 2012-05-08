@@ -1,4 +1,6 @@
 defmodule Dict.Common do
+  @moduledoc false
+
   defmacro __using__(_module, ref) do
     quote do
       @doc """
@@ -13,13 +15,13 @@ defmodule Dict.Common do
 
       ## Examples
 
-          Dict.new [{:b,1},{:a,2}]
+          #{unquote(__MODULE__)}.new [{:b,1},{:a,2}]
           #=> [a: 1, b: 2]
 
       """
       def new(pairs) do
-        Enum.reduce pairs, new, fn(pair, dict) ->
-          unquote(ref).put(dict, pair)
+        Enum.reduce pairs, new, fn({ k, v }, dict) ->
+          unquote(ref).put(dict, k, v)
         end
       end
 
@@ -29,13 +31,13 @@ defmodule Dict.Common do
 
       ## Examples
 
-          Dict.new ["a", "b"], fn(x) -> {x, x} end
+          #{unquote(__MODULE__)}.new ["a", "b"], fn(x) -> {x, x} end
           #=> ["a": "a", "b": "b"]
       """
       def new(list, transform) when is_function(transform) do
         Enum.reduce list, new(), fn(i, dict) ->
-          pair = transform.(i)
-          unquote(ref).put(dict, pair)
+          { k, v } = transform.(i)
+          unquote(ref).put(dict, k, v)
         end
       end
     end

@@ -1,4 +1,4 @@
-defrecord Orddict.Record, data: nil
+defrecord Orddict.Record, [data: nil], moduledoc: false
 
 defimpl Dict, for: Orddict.Record do
   refer Orddict.Record, as: O
@@ -32,10 +32,6 @@ defimpl Dict, for: Orddict.Record do
     O[data: :orddict.store key, value, data]
   end
 
-  def put(O[data: data], {key, value}) do
-    O[data: :orddict.store key, value, data]
-  end
-
   def delete(O[data: data], key) do
     O[data: :orddict.erase key, data]
   end
@@ -66,5 +62,11 @@ defimpl Dict, for: Orddict.Record do
 end
 
 defmodule Orddict do
+  @moduledoc """
+  This module implements a dictionary based that stores items
+  as a list of tuples. It is a simple wrapper around
+  [Erlang's orddict module](http://www.erlang.org/doc/man/orddict.html)
+  and exposed via the `Dict` protocol.
+  """
   use Dict.Common, Dict.Orddict.Record
 end

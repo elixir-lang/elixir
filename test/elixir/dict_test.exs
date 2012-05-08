@@ -29,9 +29,6 @@ defmodule DictTest.Common do
       end
 
       test :put do
-        dict = Dict.put(empty_dict, {"first_key", 1})
-        assert 1 == Dict.get dict, "first_key"
-
         dict = Dict.put(new_dict, "first_key", {1})
         assert {1} == Dict.get dict, "first_key"
         assert 2 == Dict.get dict, "second_key"
