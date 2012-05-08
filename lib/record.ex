@@ -150,10 +150,9 @@ end
 defmodule Record.Extractor do
   @moduledoc false
 
-  @doc """
-  Retrieve a record definition from an Erlang file using
-  the same lookup as the *include* attribute from Erlang modules.
-  """
+
+  # Retrieve a record definition from an Erlang file using
+  # the same lookup as the *include* attribute from Erlang modules.
   def retrieve(name, from: string) do
     file = to_char_list(string)
 
@@ -166,10 +165,8 @@ defmodule Record.Extractor do
     retrieve_record(name, realfile)
   end
 
-  @doc """
-  Retrieve a record definition from an Erlang file using
-  the same lookup as the *include_lib* attribute from Erlang modules.
-  """
+  # Retrieve a record definition from an Erlang file using
+  # the same lookup as the *include_lib* attribute from Erlang modules.
   def retrieve(name, from_lib: file) do
     [app|path] = Erlang.filename.split(to_char_list(file))
     case Erlang.code.lib_dir(to_char_list(app)) do

@@ -255,6 +255,8 @@ defmodule Protocol do
 end
 
 defmodule Protocol.DSL do
+  @moduledoc false
+
   defmacro def(expression) do
     { name, arity } =
       case expression do

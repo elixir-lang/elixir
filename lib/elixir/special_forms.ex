@@ -1,4 +1,40 @@
 defmodule Elixir.SpecialForms do
+  @moduledoc """
+  In this module we define Elixir special forms. Those are called
+  special forms because they cannot be overridden by the developer
+  and sometimes have lexical scope (like refer, require, import, etc).
+  """
+
+  @doc """
+  Defines a new tuple.
+
+  ## Examples
+
+      :{}.(1,2,3)
+      { 1, 2, 3 }
+  """
+  defmacro :{}.(args)
+
+  @doc """
+  Defines a new list.
+
+  ## Examples
+
+      :[].(1,2,3)
+      [ 1, 2, 3 ]
+  """
+  defmacro :[].(args)
+
+  @doc """
+  Defines a new bitstring.
+
+  ## Examples
+
+      :<<>>.(1,2,3)
+      << 1, 2, 3 >>
+  """
+  defmacro :<<>>.(args)
+
   @doc """
   `refer` is used to setup aliases between modules.
 
@@ -142,6 +178,13 @@ defmodule Elixir.SpecialForms do
   Returns the current line number as an integer.
   """
   defmacro __LINE__
+
+  @doc """
+  Returns the current function as a tuple,
+  where the first element is the name as an atom
+  and the second is the arity as an integer.
+  """
+  defmacro __FUNCTION__
 
   @doc """
   Allows you to get the representation of any expression.
@@ -344,6 +387,79 @@ defmodule Elixir.SpecialForms do
   that it will be tail recursive.
   """
   defmacro loop(args)
+
+  @doc """
+  A function that forces the current loop to recur. See `loop/1`
+  for more information.
+  """
+  defmacro recur(args)
+
+  @doc """
+  List comprehensions allow you to quickly build a list from another list:
+
+      lc n in [1,2,3,4], do: n * 2
+      #=> [2,4,6,8]
+
+  A comprehension accepts many generators and also filters. Filters must be given after the when clause:
+
+      # A comprehension with a generator and a filter
+      lc n in [1,2,3,4,5,6] when rem(n, 2) == 0, do: n
+      #=> [2,4,6]
+
+      # A comprehension with two generators
+      lc x in [1,2], y in [2,3], do: x*y
+      #=> [2,3,4,6]
+
+  Elixir provides generators for both lists and bitstrings:
+
+      # A list generator:
+      lc n in [1,2,3,4], do: n * 2
+      #=> [2,4,6,8]
+
+      # A bit string generator:
+      lc <<n>> in <<1,2,3,4>>, do: n * 2
+      #=> [2,4,6,8]
+
+  Bit string generators are quite useful when you need to organize bit string streams:
+
+      iex> pixels = <<213,45,132,64,76,32,76,0,0,234,32,15>>
+      iex> lc <<r:8,g:8,b:8>> in pixels, do: {r,g,b}
+      [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
+
+  Elixir does its best to hide the differences between list and bit string generators.
+  However, there is a special case due to Erlang limitation where we need to explicitly
+  tell Erlang that a list is being given as argument:
+
+      # This will fail because when Elixir sees that the left side
+      # of the in expression is a bit string, it expects the right side
+      # to be a bit string as well:
+      lc <<n>> in [<<1>>,<<2>>,<<3>>], do: n*2
+      #=> ** (ErlangError) erlang error {:bad_generator,[<<1>>,<<2>>,<<3>>]}
+
+      # You need to be explicit and use inlist:
+      lc inlist(<<n>>, [<<1>>,<<2>>,<<3>>]), do: n*2
+      #=> [2,4,6]
+
+      # For consistency, inbin is also available:
+      lc inbin(<<n>>, <<1,2,3>>), do: n*2
+      #=> [2,4,6]
+
+  Notice that although comprehensions uses `when` to specify filters, filters are not
+  guards and therefore accept any expression (they are not limited as guards).
+  """
+  defmacro lc(args)
+
+  @doc """
+  Defines a bit comprehension. It follows the same syntax as
+  a list comprehension but expects each element returned to
+  be a bitstring. For example, here is how to remove all
+  spaces from a string:
+
+      bc <<c>> in " hello world " when c != ?\s, do: <<c>>
+      "helloworld"
+
+  """
+  defmacro bc(args)
 
   @doc """
   Keeps one of the given expressions depending in the context

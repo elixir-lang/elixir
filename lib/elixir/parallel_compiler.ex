@@ -1,6 +1,10 @@
 defmodule Elixir.ParallelCompiler do
   refer Erlang.orddict, as: Orddict
 
+  @moduledoc """
+  A module responsible for compiling files in parallel.
+  """
+
   defmacrop default_callback, do: quote(do: fn(x) -> x end)
 
   @doc """

@@ -36,6 +36,8 @@ end
 defrecord Elixir.IEx.Config, io: nil, binding: nil, cache: '', counter: 0, scope: nil
 
 defmodule Elixir.IEx do
+  @moduledoc false
+
   import Exception, only: [format_stacktrace: 1]
 
   def start(binding // [], io // Elixir.IEx.UnicodeIO) do
