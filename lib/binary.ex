@@ -1,4 +1,8 @@
 defmodule Binary do
+  @moduledoc """
+  Functions for working with binaries.
+  """
+
   @doc """
   Simply invokes the Access protocol for the given binary.
   Check `Access.BitString` for more information.
