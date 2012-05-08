@@ -1,5 +1,5 @@
 defmodule EEx.Engine do
-  @moduledoc """
+  @moduledoc %B"""
   This is the basic EEx engine that ships with Elixir.
   An engine needs to implement two functions:
 
@@ -16,14 +16,25 @@ defmodule EEx.Engine do
     * `''`
     * `'='`
 
-    The semantic of the markers are dictated by the engine. This
-    engine implements both markers above.
+    Read `handle_expr/3` below for more information about the markers
+    implemented by default by this engine.
   """
 
+  @doc """
+  The default implementation simply concatenates text to the buffer.
+  """
   def handle_text(buffer, text) do
     quote do: unquote(buffer) <> unquote(text)
   end
 
+  @doc """
+  Implements expressions according to the markers.
+
+      <% Elixir expression - inline with output %>
+      <%= Elixir expression - replace with result %>
+
+  All other markers are not implemented by this engine.
+  """
   def handle_expr(buffer, '=', expr) do
     quote do
       tmp_1 = unquote(buffer)
