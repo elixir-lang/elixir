@@ -98,21 +98,21 @@ defmodule Process do
   defdelegate [exit: 2], to: :erlang
 
   @doc """
-  Returns the pid of a new process started by the application of `fun` to the
-  empty list []. Otherwise works like spawn/3.
+  Returns the pid of a new process started by the application of `fun`.
+  Otherwise works like spawn/3.
   """
   defdelegate [spawn: 1], to: :erlang
 
   @doc """
-  Returns the pid of a new process started by the application of `fun` to the
-  empty list [] on `node`. If `node` does not exist, a useless pid is returned.
+  Returns the pid of a new process started by the application of `fun`
+  on `node`. If `node` does not exist, a useless pid is returned.
   Otherwise works like spawn/3.
   """
   defdelegate [spawn: 2], to: :erlang
 
   @doc """
   Returns the pid of a new process started by the application of
-  `module.function` to `args`. The new process created will be placed in the system
+  `module.function(args)`. The new process created will be placed in the system
   scheduler queue and be run some time later.
 
   See http://www.erlang.org/doc/man/erlang.html#spawn-3 for more info.
@@ -121,21 +121,21 @@ defmodule Process do
 
   @doc """
   Returns the pid of a new process started by the application of
-  `module.function` to `args` on `node`. If `node` does not exists, a useless
+  `module.function(args)` on `node`. If `node` does not exists, a useless
   pid is returned. Otherwise works like spawn/3.
   """
   defdelegate [spawn: 4], to: :erlang
 
   @doc """
-  Returns the pid of a new process started by the application of `fun` to the
-  empty list []. A link is created between the calling process and the new
+  Returns the pid of a new process started by the application of `fun`.
+  A link is created between the calling process and the new
   process, atomically. Otherwise works like spawn/3.
   """
   defdelegate [spawn_link: 1], to: :erlang
 
   @doc """
-  Returns the pid of a new process started by the application of `fun` to the
-  empty list [] on `node`. A link is created between the calling process and the
+  Returns the pid of a new process started by the application of `fun`
+  on `node`. A link is created between the calling process and the
   new process, atomically. If `node` does not exist, a useless pid is returned
   (and due to the link, an exit signal with exit reason :noconnection will be
   received). Otherwise works like spawn/3.
@@ -144,19 +144,61 @@ defmodule Process do
 
   @doc """
   Returns the pid of a new process started by the application of
-  `module.function` to `args`. A link is created between the calling process
+  `module.function(args)`. A link is created between the calling process
   and the new process, atomically. Otherwise works like spawn/3.
   """
   defdelegate [spawn_link: 3], to: :erlang
 
   @doc """
   Returns the pid of a new process started by the application of
-  `module.function` to `args` on `node`. A link is created between the calling
+  `module.function(args)` on `node`. A link is created between the calling
   process and the new process, atomically. If `node` does not exist, a useless
   pid is returned (and due to the link, an exit signal with exit reason
   :noconnection will be received). Otherwise works like spawn/3.
   """
   defdelegate [spawn_link: 4], to: :erlang
+
+  @doc """
+  Returns the pid of a new process started by the application of `fun`
+  and reference for a monitor created to the new process.
+  Otherwise works like spawn/3.
+  """
+  defdelegate [spawn_monitor: 1], to: :erlang
+
+  @doc """
+  A new process is started by the application of `module.function(args)`
+  and the process is monitored at the same time. Returns the pid and a
+  reference for the monitor. Otherwise works like spawn/3.
+  """
+  defdelegate [spawn_monitor: 3], to: :erlang
+
+  @doc """
+  The same as `spawn/1` but accepts extra options as arguments.
+  Please read http://www.erlang.org/doc/man/erlang.html#spawn_opt-4 for
+  documentation of the options.
+  """
+  defdelegate [spawn_opt: 2], to: :erlang
+
+  @doc """
+  The same as `spawn/2` but accepts extra options as arguments.
+  Please read http://www.erlang.org/doc/man/erlang.html#spawn_opt-4 for
+  documentation of the options.
+  """
+  defdelegate [spawn_opt: 3], to: :erlang
+
+  @doc """
+  The same as `spawn/3` but accepts extra options as arguments.
+  Please read http://www.erlang.org/doc/man/erlang.html#spawn_opt-4 for
+  documentation of the options.
+  """
+  defdelegate [spawn_opt: 4], to: :erlang
+
+  @doc """
+  The same as `spawn/4` but accepts extra options as arguments.
+  Please read http://www.erlang.org/doc/man/erlang.html#spawn_opt-4 for
+  documentation of the options.
+  """
+  defdelegate [spawn_opt: 5], to: :erlang
 
   @doc """
   The calling process starts monitoring the item given.
