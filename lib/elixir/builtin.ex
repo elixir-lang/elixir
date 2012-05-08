@@ -20,18 +20,6 @@ defmodule Elixir.Builtin do
   """
 
   # Functions pending documentation:
-  # { abs, 1 },
-  # { atom_to_binary, 2 },
-  # { atom_to_list, 1 },
-  # { binary_to_atom, 2 },
-  # { binary_to_existing_atom, 2 },
-  # { binary_to_list, 1 },
-  # { binary_to_list, 3 },
-  # { binary_to_term, 1 },
-  # { binary_to_term, 2 },
-  # { bit_size, 1 },
-  # { bitstring_to_list, 1 },
-  # { byte_size, 1 },
   # { exit, 1 },
   # { exit, 2 },
   # { float, 1 },
@@ -351,6 +339,123 @@ defmodule Elixir.Builtin do
   information.
   """
   defmacro var!(var)
+
+  @doc """
+  Returns an integer or float which is the arithmetical absolute value of `number`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      abs(-3.33) #=> 3.33
+      abs(-3)    #=> 3
+  """
+  def abs(number)
+
+  @doc """
+  Returns a binary which corresponds to the text representation of `atom`.
+  If `encoding` is latin1, there will be one byte for each character in the text
+  representation. If `encoding` is utf8 or unicode, the characters will be encoded
+  using UTF-8 (meaning that characters from 16#80 up to 0xFF will be encoded in
+  two bytes).
+
+  ## Examples
+
+      atom_to_binary(:elixir, utf8) #=> "elixir"
+  """
+  def atom_to_binary(atom, encoding)
+
+  @doc """
+  Returns a string which corresponds to the text representation of `atom`.
+
+  ## Examples
+
+      atom_to_list(:elixir) #=> 'Erlang'
+  """
+  def atom_to_list(atom)
+
+  @doc """
+  Returns the atom whose text representation is `binary`. If `encoding` is latin1,
+  no translation of bytes in the binary is done. If `encoding` is utf8 or unicode,
+  the binary must contain valid UTF-8 sequences; furthermore, only Unicode
+  characters up to 0xFF are allowed.
+
+  ## Examples
+
+      binary_to_atom("elixir", utf8) #=> :elixir
+  """
+  def binary_to_atom(binary, encoding)
+
+  @doc """
+  Works like `binary_to_atom/2`, but the atom must already exist.
+  """
+  def binary_to_existing_atom(binary, encoding)
+
+  @doc """
+  Returns a list of integers which correspond to the bytes of `binary`.
+  """
+  def binary_to_list(binary)
+
+  @doc """
+  As binary_to_list/1, but returns a list of integers corresponding to the bytes
+  from position `start` to position `stop` in `binary`. Positions in the binary
+  are numbered starting from 1.
+  """
+  def binary_to_list(binary, start, stop)
+
+  @doc """
+  Returns an Erlang term which is the result of decoding the binary object `binary`,
+  which must be encoded according to the Erlang external term format.
+  """
+  def binary_to_term(binary)
+
+  @doc """
+  As `binary_to_term/1`, but takes `options` that affect decoding of the binary.
+
+  * `safe` - Use this option when receiving binaries from an untrusted source.
+
+  When enabled, it prevents decoding data that may be used to attack the Erlang system.
+  In the event of receiving unsafe data, decoding fails with a badarg error.
+
+  Currently, this prevents creation of new atoms directly, creation of new atoms
+  indirectly (as they are embedded in certain structures like pids, refs, funs, etc.),
+  and creation of new external function references. None of those resources are currently
+  garbage collected, so unchecked creation of them can exhaust available memory.
+  """
+  def binary_to_term(binary, options)
+
+  @doc """
+  Returns an integer which is the size in bits of `bitstring`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      bit_size(<<433:16,3:3>>) #=> 19
+      bit_size(<<1,2,3>>) #=> 24
+  """
+  def bit_size(bitstring)
+
+  @doc """
+  Returns a list of integers which correspond to the bytes of `bitstring`. If the
+  number of bits in the binary is not divisible by 8, the last element of the list will
+  be a bitstring containing the remaining bits (1 up to 7 bits).
+  """
+  def bitstring_to_list(bitstring)
+
+  @doc """
+  Returns an integer which is the number of bytes needed to contain `bitstring`.
+  (That is, if the number of bits in Bitstring is not divisible by 8, the resulting
+  number of bytes will be rounded up.)
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      byte_size(<<433:16,3:3>>) #=> 3
+      byte_size(<<1,2,3>>) #=> 3
+  """
+  def byte_size(bitstring)
 
   @doc """
   Defines a module given by name with the given contents.
