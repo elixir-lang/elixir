@@ -3,8 +3,8 @@ import Elixir.Builtin, except: [raise: 1, raise: 2]
 defmodule Elixir.Builtin do
   @moduledoc """
   `Elixir.Builtin` provides the default macros and functions
-  Elixir imports to your environment. Those macros and functions
-  can be skipped or cherry-picked via the import function. For
+  Elixir imports into your environment. Those macros and functions
+  can be skipped or cherry-picked via the `import` macro. For
   instance, if you want to tell Elixir to not import the `case`
   macro, you can do:
 
@@ -12,6 +12,11 @@ defmodule Elixir.Builtin do
 
   Elixir also has special forms that are always imported and
   cannot be skipped. These are described in `Elixir.SpecialForms`.
+
+  Some of the functions described in this module are simply
+  a proxy to its Erlang counterpart. Although they are documented
+  here for convenience, you can access their original documentation
+  at http://www.erlang.org/doc/man/erlang.html.
   """
 
   # Functions pending documentation:
