@@ -20,25 +20,6 @@ defmodule Elixir.Builtin do
   """
 
   # Functions pending documentation:
-  # { '<-', 2 }
-  # { '+', 2 }
-  # { '-', 2 }
-  # { '*', 2 }
-  # { '/', 2 }
-  # { '++', 2 }
-  # { '--', 2 }
-  # { 'or', 2 }
-  # { 'and', 2 }
-  # { 'xor', 2 }
-  # { 'not', 2 }
-  # { '<', 2 }
-  # { '>', 2 }
-  # { '>=', 2 }
-  # { '<=', 2 }
-  # { '==', 2 }
-  # { '!=', 2 }
-  # { '===', 2 }
-  # { var!, 1 }
   # { abs, 1 },
   # { atom_to_binary, 2 },
   # { atom_to_list, 1 },
@@ -115,6 +96,261 @@ defmodule Elixir.Builtin do
   # { trunc, 1 },
   # { tuple_size, 1 },
   # { tuple_to_list, 1 }
+
+  @doc """
+  Arithmetic plus. Allowed in guard clauses.
+
+  ## Examples
+
+      1 + 2 #=> 3
+
+  """
+  defmacro :+.(left, right)
+
+  @doc """
+  Arithmetic minus. Allowed in guard clauses.
+
+  ## Examples
+
+      1 - 2 #=> -1
+
+  """
+  defmacro :-.(left, right)
+
+  @doc """
+  Arithmetic multiplication. Allowed in guard clauses.
+
+  ## Examples
+
+      1 * 2 #=> 2
+
+  """
+  defmacro :*.(left, right)
+
+  @doc """
+  Arithmetic division. Differently from other languages,
+  the result is always a float. Use div and rem if you want
+  a natural division or the remainder. Allowed in guard clauses.
+
+  ## Examples
+
+      1 / 2 #=> 0.5
+      2 / 1 #=> 2.0
+
+  """
+  defmacro :/.(left, right)
+
+  @doc """
+  Sends a message to the process identified on the left.
+  A process can be identified bu its PID or, if it is registered,
+  by an atom.
+
+  ## Examples
+
+      process = Process.self
+      process <- { :ok, "Sending myself a message" }
+
+  """
+  defmacro :<-.(left, right)
+
+  @doc """
+  Concatenates two lists. Allowed in guard clauses.
+
+  ## Examples
+
+      [1] ++ [2,3]
+      #=> [1,2,3]
+
+      'foo' ++ 'bar'
+      #=> 'foobar'
+
+  """
+  defmacro :++.(left, right)
+
+  @doc """
+  Removes the first occorrence of an item on the left
+  for each item on the right. Allowed in guard clauses.
+
+  ## Examples
+
+      [1,2,3] -- [1,2]
+      #=> [3]
+
+      [1,2,3,2,1] -- [1,2,2]
+      #=> [3,1]
+
+  """
+  defmacro :--.(left, right)
+
+  @doc """
+  Boolean or. Arguments needs to necessarily be booleans.
+  Allowed in guard clauses.
+
+  ## Examples
+
+      true or false
+      #=> true
+
+  """
+  defmacro :or.(left, right)
+
+  @doc """
+  Boolean and. Arguments needs to necessarily be booleans.
+  Allowed in guard clauses.
+
+  ## Examples
+
+      true and false
+      #=> false
+
+  """
+  defmacro :and.(left, right)
+
+  @doc """
+  Boolean xor. Arguments needs to necessarily be booleans.
+  Allowed in guard clauses.
+
+  ## Examples
+
+      true xor false
+      #=> true
+
+  """
+  defmacro :xor.(left, right)
+
+  @doc """
+  Boolean not. Argument needs to necessarily be a boolean.
+  Allowed in guard clauses.
+
+  ## Examples
+
+      not false
+      #=> true
+
+  """
+  defmacro :not.(arg)
+
+  @doc """
+  Return true if left is less than right.
+  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      1 < 2
+      #=> true
+
+  """
+  defmacro :<.(left, right)
+
+  @doc """
+  Return true if left is more than right.
+  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      1 > 2
+      #=> false
+
+  """
+  defmacro :>.(left, right)
+
+  @doc """
+  Return true if left is less than or equal to right.
+  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      1 <= 2
+      #=> true
+
+  """
+  defmacro :<=.(left, right)
+
+  @doc """
+  Return true if left is more than or equal to right.
+  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      1 >= 2
+      #=> false
+
+  """
+  defmacro :>=.(left, right)
+
+  @doc """
+  Returns true if the two items are equal.
+
+  This operator considers 1 and 1.0 to be equal. For strict
+  comparison, use `===` instead.
+
+  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      1 == 2
+      #=> false
+
+      1 == 1.0
+      #=> true
+
+  """
+  defmacro :==.(left, right)
+
+  @doc """
+  Returns true if the two items are not equal.
+
+  This operator considers 1 and 1.0 to be equal. For strict
+  comparison, use `!==` instead.
+
+  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      1 != 2
+      #=> true
+      1 != 1.0
+      #=> false
+
+  """
+  defmacro :!=.(left, right)
+
+  @doc """
+  Returns true if the two items are strictly equal.
+  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      1 === 2
+      #=> false
+
+      1 === 1.0
+      #=> false
+
+  """
+  defmacro :===.(left, right)
+
+  @doc """
+  Returns true if the two items are strictly not equal.
+  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      1 !== 2
+      #=> true
+
+      1 !== 1.0
+      #=> true
+
+  """
+  defmacro :!==.(left, right)
+
+  @doc """
+  When used inside quoting, marks that the variable should not
+  be hygienezed. Check `Elixir.SpecialForms.quote/1` for more
+  information.
+  """
+  defmacro var!(var)
 
   @doc """
   Defines a module given by name with the given contents.
