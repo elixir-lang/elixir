@@ -555,6 +555,7 @@ defmodule Elixir.Builtin do
   """
   def iolist_to_binary(item)
 
+  @doc """
   Returns `true` if `term` is an atom; otherwise returns `false`.
 
   Allowed in guard tests.
@@ -686,18 +687,19 @@ defmodule Elixir.Builtin do
   """
   def list_to_binary(char_list)
 
-  # TODO: JV review this one
   @doc """
   Returns a bitstring which is made from the integers and bitstrings in `bitstring_list`.
-  (The last tail in `bitstring_list` is allowed to be a bitstring.)
+  (the last tail in `bitstring_list` is allowed to be a bitstring.)
 
   ## Examples
 
-      bin1 = <<1,2,3>>  #=> <<1,2,3>>
-      bin2 = <<4,5>>    #=> <<4,5>>
-      bin3 = <<6,7|4,>> #=> <<6>>
+      bin1 = <<1,2,3>>
+      bin2 = <<4,5>>
+      bin3 = <<6,7|4>>
 
-      list_to_binary([bin1,1,[2,3,bin2],4|bin3]) #=> <<1,2,3,1,2,3,4,5,4,6,7|46>>
+      list_to_binary([bin1,1,[2,3,bin2],4|bin3])
+      #=> <<1,2,3,1,2,3,4,5,4,6,7|4>>
+
   """
   def list_to_bitstring(bitstring_list)
 
@@ -750,6 +752,139 @@ defmodule Elixir.Builtin do
       list_to_tuple([share, [:elixir, 163]]). #=> {share, [:elixir, 163]}
   """
   def list_to_tuple(list)
+
+  @doc """
+  Returns an almost unique reference.
+
+  The returned reference will re-occur after approximately 2^82 calls;
+  therefore it is unique enough for practical purposes.
+
+  ## Examples
+
+      make_ref()
+      #=> #Ref<0.0.0.135>
+
+  """
+  def make_ref()
+
+  @doc """
+  Return the biggest of the two given terms according to
+  Erlang's term ordering. If the terms compare equal, the
+  first one is returned.
+
+  ## Examples
+
+      max(1, 2) #=> 2
+
+  """
+  def max(first, second)
+
+  @doc """
+  Return the smallest of the two given terms according to
+  Erlang's term ordering. If the terms compare equal, the
+  first one is returned.
+
+  ## Examples
+
+      min(1, 2) #=> 1
+
+  """
+  def min(first, second)
+
+  @doc """
+  Returns an atom representing the name of the local node.
+  If the node is not alive, nonode@nohost is returned instead.
+
+  Allowed in guard tests.
+  """
+  def node
+
+  @doc """
+  Returns the node where the given argmuent is located.
+  The argument can be a pid, a reference, or a port.
+  If the local node is not alive, nonode@nohost is returned.
+
+  Allowed in guard tests.
+  """
+  def node(arg)
+
+  @doc """
+  Returns a char list which corresponds to the text representation of pid.
+  This function is intended for debugging and for use in the Erlang operating
+  system. It should not be used in application programs.
+  """
+  def pid_to_list(pid)
+
+  @doc """
+  Returns an integer by rounding the given number.
+  Allowed in guard tests.
+
+  ## Examples
+
+      round(5.5) #=> 6
+
+  """
+  def round(number)
+
+  @doc """
+  Returns the size of the given argument, which must be a tuple
+  or a binary. If possible, please use tuple_size or binary_size.
+  """
+  def size(arg)
+
+
+  @doc """
+  Returns a binary data which is the result of encoding the given term
+  according to the Erlang external term format.
+
+  This can be used for a variety of purposes, for example, writing a term
+  to a file in an efficient way, or sending an Erlang term to some type
+  of communications channel not supported by distributed Erlang.
+  """
+  def term_to_binary(term)
+
+
+  @doc """
+  The same as `term_to_binary/1` but also supports two options:
+
+  * compressed: the level of compression to be used from 0 to 9;
+  * minor_version: used to control the details of encoding. Can be 0 or 1,
+    please read http://www.erlang.org/doc/man/erlang.html#term_to_binary-2
+    for more details
+
+  """
+  def term_to_binary(term, opts)
+
+  @doc """
+  A non-local return from a function. Check try/2 for more information.
+  """
+  def throw(term)
+
+  @doc """
+  Returns the tail of a list. Raises ArgumentError if the list is empty.
+  """
+  def tl(list)
+
+  @doc """
+  Returns an integer by the truncating the given number.
+  Allowed in guard clauses.
+
+  ## Examples
+
+      trunc(5.5) #=> 5
+
+  """
+  def trunc(number)
+
+  @doc """
+  Returns the size of a tuple.
+  """
+  def tuple_size(tuple)
+
+  @doc """
+  Converts a tuple to a list.
+  """
+  def tuple_to_list(tuple)
 
   @doc """
   Defines a module given by name with the given contents.
