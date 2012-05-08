@@ -362,6 +362,7 @@ defmodule Elixir.Builtin do
   ## Examples
 
       atom_to_binary(:elixir, utf8) #=> "elixir"
+
   """
   def atom_to_binary(atom, encoding)
 
@@ -370,7 +371,8 @@ defmodule Elixir.Builtin do
 
   ## Examples
 
-      atom_to_list(:elixir) #=> 'Erlang'
+      atom_to_list(:elixir) #=> 'elixir'
+
   """
   def atom_to_list(atom)
 
@@ -382,7 +384,8 @@ defmodule Elixir.Builtin do
 
   ## Examples
 
-      binary_to_atom("elixir", utf8) #=> :elixir
+      binary_to_atom("elixir", :utf8) #=> :elixir
+
   """
   def binary_to_atom(binary, encoding)
 
@@ -404,23 +407,35 @@ defmodule Elixir.Builtin do
   def binary_to_list(binary, start, stop)
 
   @doc """
-  Returns an Erlang term which is the result of decoding the binary object `binary`,
-  which must be encoded according to the Erlang external term format.
+  Returns an Erlang term which is the result of decoding the binary
+  object `binary`, which must be encoded according to the Erlang external
+  term format.
+
+  ## Examples
+
+      binary_to_term(term_to_binary("foo")) #=> true
+
   """
   def binary_to_term(binary)
 
   @doc """
-  As `binary_to_term/1`, but takes `options` that affect decoding of the binary.
+  As `binary_to_term/1`, but accepts a safe option useful when receiving
+  binaries from an untrusted source.
 
-  * `safe` - Use this option when receiving binaries from an untrusted source.
+  When enabled, it prevents decoding data that may be used to attack the
+  Erlang system. In the event of receiving unsafe data, decoding fails
+  with a badarg error.
 
-  When enabled, it prevents decoding data that may be used to attack the Erlang system.
-  In the event of receiving unsafe data, decoding fails with a badarg error.
+  Currently, this prevents creation of new atoms directly, creation of
+  new atoms indirectly (as they are embedded in certain structures like pids,
+  refs, funs, etc), and creation of new external function references. None
+  of those resources are currently garbage collected, so unchecked creation
+  of them can exhaust available memory.
 
-  Currently, this prevents creation of new atoms directly, creation of new atoms
-  indirectly (as they are embedded in certain structures like pids, refs, funs, etc.),
-  and creation of new external function references. None of those resources are currently
-  garbage collected, so unchecked creation of them can exhaust available memory.
+  ## Examples
+
+      binary_to_term(term_to_binary("foo"), [:safe])
+
   """
   def binary_to_term(binary, options)
 
@@ -431,8 +446,9 @@ defmodule Elixir.Builtin do
 
   ## Examples
 
-      bit_size(<<433:16,3:3>>) #=> 19
+      bit_size(<<433|16,3|3>>) #=> 19
       bit_size(<<1,2,3>>) #=> 24
+
   """
   def bit_size(bitstring)
 
@@ -452,8 +468,9 @@ defmodule Elixir.Builtin do
 
   ## Examples
 
-      byte_size(<<433:16,3:3>>) #=> 3
+      byte_size(<<433|16,3|3>>) #=> 3
       byte_size(<<1,2,3>>) #=> 3
+
   """
   def byte_size(bitstring)
 
