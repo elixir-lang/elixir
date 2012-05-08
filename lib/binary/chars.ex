@@ -1,7 +1,7 @@
 import Elixir.Builtin, except: [to_binary: 1]
 
 defprotocol Binary.Chars do
-  @moduledoc """
+  @moduledoc %B"""
   The Binary.Chars protocol is responsible for
   converting a structure to a Binary (only if applicable).
   The only function required to be implemented is
