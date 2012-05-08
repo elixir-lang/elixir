@@ -4,9 +4,9 @@ defmodule Macro do
   """
 
   @doc """
-  Escapes the given value so it can be inserted into a syntax
-  tree. Structures that are valid syntax nodes (like atoms,
-  integers, binaries) are represented by themselves.
+  Recursively escapes the given value so it can be inserted
+  into a syntax tree. Structures that are valid syntax nodes
+  (like atoms, integers, binaries) are represented by themselves.
 
   ## Examples
 

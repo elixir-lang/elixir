@@ -1,17 +1,26 @@
 defmodule Record do
-  # Extract record information from an Erlang file and
-  # return the fields as a list of tuples.
-  #
-  # ## Examples
-  #
-  #     defrecord FileInfo, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
-  #
+  @moduledoc """
+  Functions to define and interact with Erlang records
+  """
+
+  @doc """
+  Extract record information from an Erlang file and
+  return the fields as a list of tuples.
+
+  ## Examples
+
+      defrecord FileInfo, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+
+  """
   def extract(name, opts) do
     Record.Extractor.retrieve(name, opts)
   end
 
-  # Main entry point for records definition.
-  # This is invoked directly by Elixir.Builtin.defrecord.
+  @doc """
+  Main entry point for records definition.
+  This is invoked directly by `Elixir.Builtin.defrecord`.
+  Returns the quoted expression of a module given by name.
+  """
   def defrecord(name, values, opts) do
     moduledoc  = Keyword.get(opts, :moduledoc, false)
     block      = Keyword.get(opts, :do)
@@ -26,6 +35,7 @@ defmodule Record do
     end
   end
 
+  @doc false
   # Private endpoint that defines the functions for the Record.
   def define_functions(module, values, definition) do
     # Escape the values so they are valid syntax nodes
@@ -137,11 +147,13 @@ defmodule Record do
   defp getters_and_setters([], _i, acc, _), do: acc
 end
 
-# Module responsible for extracting record definitions
-# from Erlang files.
 defmodule Record.Extractor do
-  # Retrieve a record definition from an Erlang file using
-  # the same lookup as the *include* attribute from Erlang modules.
+  @moduledoc false
+
+  @doc """
+  Retrieve a record definition from an Erlang file using
+  the same lookup as the *include* attribute from Erlang modules.
+  """
   def retrieve(name, from: string) do
     file = to_char_list(string)
 
@@ -154,8 +166,10 @@ defmodule Record.Extractor do
     retrieve_record(name, realfile)
   end
 
-  # Retrieve a record definition from an Erlang file using
-  # the same lookup as the *include_lib* attribute from Erlang modules.
+  @doc """
+  Retrieve a record definition from an Erlang file using
+  the same lookup as the *include_lib* attribute from Erlang modules.
+  """
   def retrieve(name, from_lib: file) do
     [app|path] = Erlang.filename.split(to_char_list(file))
     case Erlang.code.lib_dir(to_char_list(app)) do
@@ -217,8 +231,9 @@ defmodule Record.Extractor do
   end
 end
 
-# Module responsible for defining functions for each field.
 defmodule Record.Definition do
+  @moduledoc false
+
   # Main entry point. It defines both default functions
   # via `default_for` and extensions via `extension_for`.
   def functions_for(key, default, i) do

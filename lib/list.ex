@@ -5,8 +5,9 @@ defmodule List do
   favor using the Enum API instead of List.
 
   A decision was taken to delegate most functions to
-  Erlang's standard lib. Small performance gains
-  might be acquired by re-implementing them in Elixir.
+  Erlang's standard lib but following Elixir's convention
+  of receiving the target (in this case, a list) as the
+  first argument.
   """
 
   @doc """
@@ -62,7 +63,7 @@ defmodule List do
       #=> [2,3]
 
   """
-  def delete(list, item) when is_list(list) do
+  def delete(list, item) do
     Erlang.lists.delete(item, list)
   end
 
@@ -80,11 +81,11 @@ defmodule List do
       # => [1,2,3,4,5]
 
   """
-  def flatten(list) when is_list(list) do
+  def flatten(list) do
     Erlang.lists.flatten(list)
   end
 
-  def flatten(list, tail) when is_list(list) and is_list(tail) do
+  def flatten(list, tail) do
     Erlang.lists.flatten(list, tail)
   end
 
@@ -162,7 +163,7 @@ defmodule List do
       #=> false
 
   """
-  def member?(list, term) when is_list(list) do
+  def member?(list, term) do
     Erlang.lists.member(term, list)
   end
 
@@ -245,7 +246,9 @@ defmodule List do
       List.range 5, 1, -2 #=> [5, 3, 1]
 
   """
-  def range(first, last, step // nil) when is_integer(first) and is_integer(last) and first <= last do
+  def range(first, last, step // nil)
+
+  def range(first, last, step) when is_integer(first) and is_integer(last) and first <= last do
     step = case step do
     match: nil
       Erlang.lists.seq(first, last, 1)
@@ -268,19 +271,31 @@ defmodule List do
   end
 
   @doc """
-  Sorts the list. Accepts an optional ordering function. fun(a, b) should
-  return true if `a` compares less than or equal to `b`, false otherwise.
+  Sorts the list by comparing each term. For an alternative
+  sorting algorithm, check `Enum.qsort`.
 
   ## Examples
 
       List.sort [3, 4, 2, 1, 7]
       #=> [1, 2, 3, 4, 7]
 
+  """
+  def sort(list) do
+    :lists.sort list
+  end
+
+
+  @doc """
+  Sorts the list according to an ordering function. fun(a, b) should
+  return true if `a` compares less than or equal to `b`, `false` otherwise.
+
+  ## Examples
+
       List.sort [3, 4, 2, 1, 7], fn(a, b) -> b <= a end
       #=> [7, 4, 3, 2, 1]
 
   """
-  def sort(list, fun // &1 <= &2) when is_list(list) and is_function(fun) do
+  def sort(list, fun) do
     :lists.sort fun, list
   end
 
@@ -308,14 +323,14 @@ defmodule List do
       List.duplicate [1,2], 2
       #=> [[1,2],[1,2]]
   """
-  def duplicate(elem, n) when is_integer(n) do
+  def duplicate(elem, n) do
     Erlang.lists.duplicate(n, elem)
   end
 
   @doc """
   Looks for a term in a list and returns its position.
   If term is found in the first position, return 1.
-  For not terms not found in list, the return value is nil.
+  If no terms not found in list, the return value is nil.
 
   ### Examples
 

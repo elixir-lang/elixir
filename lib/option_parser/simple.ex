@@ -1,7 +1,6 @@
 defmodule OptionParser.Simple do
-
   @doc """
-  Parses the argv and returns one Tuple with parsed options
+  Parses the argv and returns one tuple with parsed options
   and the arguments.
 
   ## Example
@@ -14,6 +13,11 @@ defmodule OptionParser.Simple do
 
       OptionParser.Simple.parse(["--source", "lib", "test/enum_test.exs"])
       #=> { [source: "lib"], ["test/enum_test.exs"] }
+
+  A set of aliases can be given as second argument:
+
+      OptionParser.Simple.parse(["-d"], [d: :debug])
+      #=> { [debug: true], [] }
 
   """
   def parse(options, aliases // []) when is_list(options) and is_list(aliases) do
@@ -54,8 +58,7 @@ defmodule OptionParser.Simple do
   end
 
   defp normalize_option(<<?-, option|:binary>>, aliases) do
-    option = binary_to_atom(option)
-    aliases[option] || option
+    normalize_option(option, aliases)
   end
 
   defp normalize_option(option, aliases) do

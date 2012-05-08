@@ -1,4 +1,8 @@
 defmodule Node do
+  @moduledoc """
+  Functions related to Erlang nodes.
+  """
+
   @doc """
   Returns true if the local node is alive; that is, if the node can be
   part of a distributed system. Otherwise, it returns false.

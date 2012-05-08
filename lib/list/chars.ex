@@ -1,5 +1,16 @@
 defprotocol List.Chars do
+  @moduledoc %B"""
+  The List.Chars protocol is responsible for
+  converting a structure to a list (only if applicable).
+  The only function required to be implemented is
+  `to_char_list` which does the conversion.
+
+  The `to_char_list` function automatically imported
+  by Elixir.Builtin invokes this protocol.
+  """
+
   @only [BitString, List, Atom, Number, Record]
+
   def to_char_list(thing)
 end
 
