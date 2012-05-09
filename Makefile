@@ -1,4 +1,4 @@
-REBAR = $(shell which rebar || echo ./rebar)
+REBAR:=$(shell which rebar || echo ./rebar)
 ERLC=erlc -I include
 ERL=erl -I include -noshell -pa ebin
 
