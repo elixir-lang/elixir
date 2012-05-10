@@ -191,20 +191,20 @@ defmodule File do
   end
   
   @doc """
-   Returns the `path` with the `extension` stripped. This function should be used to remove a specific
-   extension which might, or might not, be there.
+  Returns the `path` with the `extension` stripped. This function should be used to 
+  remove a specific extension which might, or might not, be there.
 
-   ## Examples
+  ## Examples
 
-     File.rootname("/foo/bar.erl", ".erl")
-     #=> "/foo/bar"
-     File.rootname("/foo/bar.erl", ".ex")
-     #=> "/foo/bar.erl"
+    File.rootname("/foo/bar.erl", ".erl")
+    #=> "/foo/bar"
+    File.rootname("/foo/bar.erl", ".ex")
+    #=> "/foo/bar.erl"
 
-   """
-   def rootname(path, extension) do
-     FN.rootname(path, extension)
-   end
+  """
+  def rootname(path, extension) do
+   FN.rootname(path, extension)
+  end
   
 
   @doc """
