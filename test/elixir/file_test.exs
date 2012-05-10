@@ -29,13 +29,13 @@ defmodule FileTest do
   test :rootname_with_binary do
     assert File.rootname("~/foo/bar.ex", ".ex") == "~/foo/bar"
     assert File.rootname("~/foo/bar.exs", ".ex") == "~/foo/bar.exs"
-    assert File.rootname("~/for/bar.old.ex", ".ex") == "~/foo/bar.old"
+    assert File.rootname("~/foo/bar.old.ex", ".ex") == "~/foo/bar.old"
   end
   
   test :rootname_with_list do
     assert File.rootname('~/foo/bar.ex', '.ex') == '~/foo/bar'
     assert File.rootname('~/foo/bar.exs', '.ex') == '~/foo/bar.exs'
-    assert File.rootname('~/for/bar.old.ex', '.ex') == '~/foo/bar.old'
+    assert File.rootname('~/foo/bar.old.ex', '.ex') == '~/foo/bar.old'
   end
   
   test :extname_with_binary do
