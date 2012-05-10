@@ -146,6 +146,66 @@ defmodule File do
   def basename(path, extension) do
     FN.basename(path, extension)
   end
+  
+  @doc """
+  Return the `directory` component of `path`.
+  
+  ## Examples
+  
+    File.dirname("/foo/bar.ex")
+    #=> "foo"
+    
+  """
+  def dirname(path) do
+    FN.dirname(path)
+  end
+  
+  @doc """
+  Return the `extension` of the last component of `path`.
+  
+  ## Examples
+    
+    File.extname("foo.erl")
+    #=> ".erl"
+    File.extname("~/foo/bar")
+    #=> ""
+    
+  """
+  def extname(path) do
+    FN.extension(path)
+  end
+  
+  @doc """
+  Returns the `path` with the `extension` stripped.
+  
+  ## Examples
+    
+    File.rootname("/foo/bar")
+    #=> "/foo/bar"
+    File.rootname("/foo/bar.ex")
+    #=> "/foo/bar"
+    
+  """
+  def rootname(path) do
+    FN.rootname(path)
+  end
+  
+  @doc """
+   Returns the `path` with the `extension` stripped. This function should be used to remove a specific
+   extension which might, or might not, be there.
+
+   ## Examples
+
+     File.rootname("/foo/bar.erl", ".erl")
+     #=> "/foo/bar"
+     File.rootname("/foo/bar.erl", ".ex")
+     #=> "/foo/bar.erl"
+
+   """
+   def rootname(path, extension) do
+     FN.rootname(path, extension)
+   end
+  
 
   @doc """
   Returns a string with one or more paths components joint by the path separator.
