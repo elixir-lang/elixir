@@ -25,7 +25,41 @@ defmodule FileTest do
     assert File.expand_path('/foo/bar/.') == '/foo/bar'
     assert File.expand_path('/foo/bar/../bar') == '/foo/bar'
   end
-
+  
+  test :rootname_with_binary do
+    assert File.rootname("~/foo/bar.ex", ".ex") == "~/foo/bar"
+    assert File.rootname("~/foo/bar.exs", ".ex") == "~/foo/bar.exs"
+    assert File.rootname("~/for/bar.old.ex", ".ex") == "~/foo/bar.old"
+  end
+  
+  test :rootname_with_list do
+    assert File.rootname('~/foo/bar.ex', '.ex') == '~/foo/bar'
+    assert File.rootname('~/foo/bar.exs', '.ex') == '~/foo/bar.exs'
+    assert File.rootname('~/for/bar.old.ex', '.ex') == '~/foo/bar.old'
+  end
+  
+  test :extname_with_binary do
+    assert File.extname("foo.erl") == ".erl"
+    assert File.extname("~/foo/bar") == ""
+  end
+  
+  test :extname_with_list do
+    assert File.extname('foo.erl') == '.erl'
+    assert File.extname('~/foo/bar') == ''
+  end
+  
+  test :dirname_with_binary do
+    assert File.dirname("/foo/bar.ex") == "/foo"
+    assert File.dirname("~/foo/bar.ex") == "~/foo"
+    assert File.dirname("/foo/bar/baz/") == "/foo/bar/baz"
+  end
+  
+  test :dirname_with_list do
+    assert File.dirname('/foo/bar.ex') == '/foo'
+    assert File.dirname('~/foo/bar.ex') == '~/foo'
+    assert File.dirname('/foo/bar/baz/') == '/foo/bar/baz'
+  end
+  
   test :regular do
     assert File.regular?(__FILE__)
     assert File.regular?(binary_to_list(__FILE__))
