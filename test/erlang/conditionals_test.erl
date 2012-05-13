@@ -51,9 +51,9 @@ try_test() ->
   {2, _} = eval("try do\nErlang.foo.bar\ncatch: :error, :undef; 2\nend").
 
 % try_match_test() ->
-%   {true, _} = eval("try do\n1\nmatch: 2; false\nmatch: 1; true\nrescue: ErlangError; nil\nend"),
-%   {true, _} = eval("try do\n1\nmatch: {x,y}; false\nmatch: x; true\nrescue: ErlangError; nil\nend"),
-%   {true, _} = eval("try do\n{1,2}\nmatch: {3,4}\nfalse\nelse: true\nrescue: ErlangError; nil\nend").
+%   {true, _} = eval("try do:\n1\nmatch: 2 -> false\nmatch: 1; true\nrescue:\nErlangError -> nil\nend"),
+%   {true, _} = eval("try do:\n1\nmatch: {x,y} -> false\nmatch: x; true\nrescue:\nErlangError -> nil\nend"),
+%   {true, _} = eval("try do:\n{1,2}\nmatch: {3,4} -> false\nelse: true\nrescue:\nErlangError -> nil\nend").
 
 % Receive
 

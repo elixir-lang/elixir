@@ -37,7 +37,7 @@ function_apply_test() ->
   {3,_} = eval("a = fn do: 3; apply a, []").
 
 function_apply_with_args_test() ->
-  {3,_} = eval("a = fn(b) -> b + 2 end; apply a, [1]").
+  {3,_} = eval("a = fn b -> b + 2 end; apply a, [1]").
 
 function_apply_and_clojure_test() ->
   {3,_} = eval("b = 1; a = fn -> b + 2 end; apply a, []").
@@ -73,6 +73,4 @@ require_partial_application_test() ->
 
 import_partial_application_test() ->
   { Fun, _ } = eval("is_atom(&1)"),
-  io:format("~p~n", [Fun]),
-  io:format("~p~n", [fun is_atom/1]),
   Fun = fun erlang:is_atom/1.

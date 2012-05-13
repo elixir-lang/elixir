@@ -4,24 +4,28 @@ defmodule EnumTest.Common do
   use ExUnit.Case
 
   test :times_with_arity_0 do
-    Process.put(:times_with_arity, nil)
-    assert Enum.times(0, fn do: Process.put(:times_with_arity, :ok)) == 0
-    assert Process.get(:times_with_arity) == nil
-    assert Enum.times(3, fn do: Process.put(:times_with_arity, :ok)) == 3
-    assert Process.get(:times_with_arity) == :ok
-  after:
-    Process.delete(:times_with_arity)
+    try do
+      Process.put(:times_with_arity, nil)
+      assert Enum.times(0, fn do: Process.put(:times_with_arity, :ok)) == 0
+      assert Process.get(:times_with_arity) == nil
+      assert Enum.times(3, fn do: Process.put(:times_with_arity, :ok)) == 3
+      assert Process.get(:times_with_arity) == :ok
+    after
+      Process.delete(:times_with_arity)
+    end
   end
 
   test :times_with_arity_1 do
-    assert Enum.times(5, fn(x, do: Process.put(:times_with_arity, x))) == 5
-    assert Process.get(:times_with_arity) == 5
-  after:
-    Process.delete(:times_with_arity)
+    try do
+      assert Enum.times(5, fn(x, do: Process.put(:times_with_arity, x))) == 5
+      assert Process.get(:times_with_arity) == 5
+    after
+      Process.delete(:times_with_arity)
+    end
   end
 
   test :times_with_arity_2 do
-    assert Enum.times(5, 0, fn(acc, x) -> acc + x end) == 15
+    assert Enum.times(5, 0, fn acc, x -> acc + x end) == 15
   end
 end
 
@@ -82,12 +86,14 @@ defmodule EnumTest.List do
   end
 
   test :each do
-    assert Enum.each([], fn(x, do: x)) == []
+    try do
+      assert Enum.each([], fn(x, do: x)) == []
 
-    assert Enum.each([1,2,3], fn(x, do: Process.put(:enum_test_each, x * 2))) == [1,2,3]
-    assert Process.get(:enum_test_each) == 6
-  after:
-    Process.delete(:enum_test_each)
+      assert Enum.each([1,2,3], fn(x, do: Process.put(:enum_test_each, x * 2))) == [1,2,3]
+      assert Process.get(:enum_test_each) == 6
+    after
+      Process.delete(:enum_test_each)
+    end
   end
 
   test :filter do
@@ -136,8 +142,8 @@ defmodule EnumTest.List do
   end
 
   test :map do
-    assert Enum.map([], fn(x) -> x * 2 end) == []
-    assert Enum.map([1,2,3], fn(x) -> x * 2 end) == [2,4,6]
+    assert Enum.map([], fn x -> x * 2 end) == []
+    assert Enum.map([1,2,3], fn x -> x * 2 end) == [2,4,6]
   end
 
   test :map_reduce do
@@ -231,18 +237,20 @@ defmodule EnumTest.Dict.Common do
       end
 
       test :each do
-        empty_dict = unquote(module).new
-        assert empty_dict == Enum.each(empty_dict, fn(x, do: x))
+        try do
+          empty_dict = unquote(module).new
+          assert empty_dict == Enum.each(empty_dict, fn(x, do: x))
 
-        dict = unquote(module).new [{"one",1}, {"two",2}, {"three",3}]
-        assert dict == Enum.each(dict, fn({k, v}, do: Process.put(k, v * 2)))
-        assert 2 == Process.get("one")
-        assert 4 == Process.get("two")
-        assert 6 == Process.get("three")
-      after:
-        Process.delete("one")
-        Process.delete("two")
-        Process.delete("three")
+          dict = unquote(module).new [{"one",1}, {"two",2}, {"three",3}]
+          assert dict == Enum.each(dict, fn({k, v}, do: Process.put(k, v * 2)))
+          assert 2 == Process.get("one")
+          assert 4 == Process.get("two")
+          assert 6 == Process.get("three")
+        after
+          Process.delete("one")
+          Process.delete("two")
+          Process.delete("three")
+        end
       end
 
       test :filter do
@@ -288,8 +296,8 @@ defmodule EnumTest.Dict.Common do
 
       test :map do
         dict = unquote(module).new [a: 1, b: 2, c: 3]
-        assert Enum.map(dict, fn({k, v}) -> { k, v * 2 } end) == [a: 2, b: 4, c: 6]
-        assert Enum.map(unquote(module).new, fn(x) -> x * 2 end) == []
+        assert Enum.map(dict, fn {k, v} -> { k, v * 2 } end) == [a: 2, b: 4, c: 6]
+        assert Enum.map(unquote(module).new, fn x -> x * 2 end) == []
       end
 
       test :map_reduce do

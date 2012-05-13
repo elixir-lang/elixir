@@ -27,8 +27,9 @@ defmodule EEx.Tokenizer do
     expr  = List.reverse(expr)
 
     # If it isn't a start or end token, it may be a middle token.
-    if token == :expr, do:
+    if token == :expr do
       token = middle_expr_token_name(expr)
+    end
 
     acc = tokenize_text(current_line, buffer, acc)
     tokenize rest, new_line, new_line, [], [ { token, line, marker, expr } | acc]

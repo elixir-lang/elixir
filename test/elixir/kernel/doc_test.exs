@@ -19,7 +19,7 @@ defmodule Kernel.DocTest do
       expected = [{{:example,1},5,:def,"Some example"},{{:nodoc,0},8,:def,nil}]
       assert CompiledWithDocs.__info__(:docs) == expected
       assert CompiledWithDocs.__info__(:moduledoc) == { 1, "moduledoc" }
-    after:
+    after
       Code.compiler_options(docs: false)
       :os.cmd('rm -rf #{tmp}')
     end

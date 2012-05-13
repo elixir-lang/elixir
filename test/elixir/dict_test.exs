@@ -14,7 +14,7 @@ defmodule DictTest.Common do
       end
 
       test :new_pairs_with_transform do
-        dict = new_dict [{1}, {2}, {3}], fn({x}) -> { {x}, x } end
+        dict = new_dict [{1}, {2}, {3}], fn {x} -> { {x}, x } end
         assert 3 == Dict.size dict
 
         assert [{1}, {2}, {3}] == List.sort Dict.keys dict
@@ -70,7 +70,7 @@ defmodule DictTest.Common do
       test :merge_with_function do
         dict1 = new_dict List.zip ["a", "b"], [1, 2]
         dict2 = new_dict List.zip ["a", "d"], [3, 4]
-        result = Dict.merge dict1, dict2, fn(_k, v1, v2) ->
+        result = Dict.merge dict1, dict2, fn _k, v1, v2 ->
           v1 + v2
         end
         assert new_dict(List.zip ["a", "b", "d"], [4, 2, 4]) == result
@@ -88,10 +88,10 @@ defmodule DictTest.Common do
       end
 
       test :update do
-        dict = Dict.update new_dict, "first_key", fn(val) -> -val end
+        dict = Dict.update new_dict, "first_key", fn val -> -val end
         assert -1 == Dict.get dict, "first_key"
 
-        dict = Dict.update dict, "non-existent", "...", fn(val) -> -val end
+        dict = Dict.update dict, "non-existent", "...", fn val -> -val end
         assert "..." == Dict.get dict, "non-existent"
       end
 

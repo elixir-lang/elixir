@@ -120,7 +120,7 @@ defmodule Binary do
   ## Examples
 
       Binary.unescape "example\\n"
-      # => "example\n"
+      #=> "example\n"
 
   In the example above, we pass a string with `\n` escaped
   and we return a version with it unescaped.

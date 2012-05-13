@@ -31,21 +31,21 @@ defmodule URI do
   def decode_query(q, dict // Orddict.new) do
     if Regex.match?(%r/^\s*$/, q) do
       dict
-    else:
+    else
       parts = Regex.split %r/&/, to_binary(q)
       impl  = Dict.__impl_for__!(dict)
 
       try do
-        List.foldl parts, dict, fn(kvstr, acc) ->
+        List.foldl parts, dict, fn kvstr, acc ->
           case Regex.split(%r/=/, kvstr) do
-          match: [ key, value ] when key != ""
-            impl.put acc, decode(key), decode(value)
-          else:
-            throw :malformed_query_string
+            [ key, value ] when key != "" ->
+              impl.put acc, decode(key), decode(value)
+            _ ->
+              throw :malformed_query_string
           end
         end
-      catch: :malformed_query_string
-        nil
+      catch
+        :malformed_query_string -> nil
       end
     end
   end
@@ -140,16 +140,16 @@ defmodule URI do
       module =
         try do
           Module.safe_concat(URI, :string.to_upper(binary_to_list(scheme)))
-        rescue: ArgumentError
-          nil
+        rescue
+          ArgumentError -> nil
         end
 
       if module && match?({:module,^module}, Code.ensure_loaded(module)) do
         module.parse(default_port(info, module))
-      else:
+      else
         info
       end
-    else:
+    else
       info
     end
   end
@@ -173,7 +173,7 @@ defmodule URI do
     lc s in l do
       if size(s) > 0 do
         s
-      else:
+      else
         nil
       end
     end

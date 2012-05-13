@@ -106,7 +106,7 @@ defprotocol Dict do
 
   ## Examples
 
-      Dict.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+      Dict.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
         v1 + v2
       end
       #=> [a: 4, b: 2, d: 4]
@@ -120,7 +120,7 @@ defprotocol Dict do
 
   ## Examples
 
-      Dict.update [a: 1, b: 2], :a, fn(val) -> -val end
+      Dict.update [a: 1, b: 2], :a, fn val -> -val end
       #=> [a: -1, b: 2]
 
   """
@@ -133,7 +133,7 @@ defprotocol Dict do
 
   ## Examples
 
-      Dict.update [a: 1, b: 2], :c, 3, fn(val) -> -val end
+      Dict.update [a: 1, b: 2], :c, 3, fn val -> -val end
       #=> [a: 1, b: 2, c: 3]
 
   """

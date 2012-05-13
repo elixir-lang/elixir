@@ -21,10 +21,10 @@ defimpl Dict, for: Orddict.Record do
 
   def get(O[data: data], key, default // nil) do
     case :orddict.find(key, data) do
-    match: {:ok, value}
-      value
-    match: :error
-      default
+      {:ok, value} ->
+        value
+      :error ->
+        default
     end
   end
 
@@ -37,7 +37,7 @@ defimpl Dict, for: Orddict.Record do
   end
 
   def merge(O[data: d1], O[data: d2]) do
-    O[data: :orddict.merge fn(_k, _v1, v2) -> v2 end, d1, d2]
+    O[data: :orddict.merge fn _k, _v1, v2 -> v2 end, d1, d2]
   end
 
   def merge(O[data: d1], O[data: d2], fun) do

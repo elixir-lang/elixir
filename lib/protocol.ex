@@ -51,7 +51,7 @@ defmodule Protocol do
   It also defines a `__impl__` function which
   returns the protocol being implemented.
   """
-  def defimpl(protocol, [for: for], [do: block]) do
+  def defimpl(protocol, [do: block, for: for]) do
     quote do
       protocol = unquote(protocol)
       for      = unquote(for)
@@ -75,14 +75,16 @@ defmodule Protocol do
   def assert_protocol(module) do
     try do
       module.__info__(:data)
-    rescue: UndefinedFunctionError
-      raise ArgumentError, message: "#{module} is not loaded"
+    rescue
+      UndefinedFunctionError ->
+        raise ArgumentError, message: "#{module} is not loaded"
     end
 
     try do
       module.__protocol__(:name)
-    rescue: UndefinedFunctionError
-      raise ArgumentError, message: "#{module} is not a protocol"
+    rescue
+      UndefinedFunctionError ->
+        raise ArgumentError, message: "#{module} is not a protocol"
     end
   end
 
@@ -94,8 +96,10 @@ defmodule Protocol do
   def assert_impl(impl, protocol) do
     remaining = protocol.__protocol__(:functions) -- impl.__info__(:functions)
 
-    if remaining != [], do:
-      raise ArgumentError, message: "#{impl} did not implement #{protocol}, missing: #{remaining}"
+    if remaining != [] do
+      raise ArgumentError,
+        message: "#{impl} did not implement #{protocol}, missing: #{remaining}"
+    end
   end
 
   @doc """
@@ -108,23 +112,23 @@ defmodule Protocol do
 
       def __impl_for__(arg) do
         case __raw_impl__(arg) do
-        match: __MODULE__.Record
-          target = Module.concat(__MODULE__, :erlang.element(1, arg))
-          try do
-            target.__impl__
-            target
-          rescue: UndefinedFunctionError
-            __fallback__
-          end
-        match: other
-          other
+          __MODULE__.Record ->
+            target = Module.concat(__MODULE__, :erlang.element(1, arg))
+            try do
+              target.__impl__
+              target
+            rescue
+              UndefinedFunctionError -> __fallback__
+            end
+          other ->
+            other
         end
       end
 
       def __impl_for__!(arg) do
         if module = __impl_for__(arg) do
           module
-        else:
+        else
           raise Protocol.UndefinedError, protocol: __MODULE__, structure: arg
         end
       end
@@ -165,18 +169,19 @@ defmodule Protocol do
 
     conversions =
       if only do
-        L.map(fn(i) -> L.keyfind(i, 1, kinds) end, only)
-      else:
+        L.map(fn i -> L.keyfind(i, 1, kinds) end, only)
+      else
         except = except || [Any]
-        L.foldl(fn(i, list) -> L.keydelete(i, 1, list) end, kinds, except)
+        L.foldl(fn i, list -> L.keydelete(i, 1, list) end, kinds, except)
       end
 
-    fallback = if L.keyfind(Tuple, 1, conversions) do
-      Module.concat module, Tuple
-    elsif: L.keyfind(Any, 1, conversions)
-      Module.concat module, Any
-    else:
-      nil
+    fallback = cond do
+      L.keyfind(Tuple, 1, conversions) ->
+        Module.concat module, Tuple
+      L.keyfind(Any, 1, conversions) ->
+        Module.concat module, Any
+      true ->
+        nil
     end
 
     { conversions, fallback }
@@ -221,15 +226,12 @@ defmodule Protocol do
       defp __raw_impl__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
         first = :erlang.element(1, arg)
         case unquote(is_builtin?(conversions)) do
-        match: true
-          __MODULE__.Tuple
-        match: false
-          case atom_to_list(first) do
-          match: '__MAIN__' ++ _
-            __MODULE__.Record
-          else:
-            __MODULE__.Tuple
-          end
+          true  -> __MODULE__.Tuple
+          false ->
+            case atom_to_list(first) do
+              '__MAIN__' ++ _ -> __MODULE__.Record
+              _ -> __MODULE__.Tuple
+            end
         end
       end
     end
@@ -260,12 +262,12 @@ defmodule Protocol.DSL do
   defmacro def(expression) do
     { name, arity } =
       case expression do
-      match: { _, _, args } when args == [] or is_atom(args)
-        raise ArgumentError, message: "protocol functions expect at least one argument"
-      match: { name, _, args } when is_atom(name) and is_list(args)
-        { name, length(args) }
-      else:
-        raise ArgumentError, message: "invalid args for defprotocol"
+        { _, _, args } when args == [] or is_atom(args) ->
+          raise ArgumentError, message: "protocol functions expect at least one argument"
+        { name, _, args } when is_atom(name) and is_list(args) ->
+          { name, length(args) }
+        _ ->
+          raise ArgumentError, message: "invalid args for defprotocol"
       end
 
     # Generate arguments according the arity. The arguments
@@ -283,22 +285,23 @@ defmodule Protocol.DSL do
       Elixir.Builtin.def unquote(name).(unquote_splicing(args)) do
         args = [unquote_splicing(args)]
         case __raw_impl__(xA) do
-        match: __MODULE__.Record
-          try do
-            target = Module.concat(__MODULE__, :erlang.element(1, xA))
-            apply target, unquote(name), args
-          rescue: UndefinedFunctionError
-            case __fallback__ do
-            match: nil
-              raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
-            match: other
-              apply other, unquote(name), args
+          __MODULE__.Record ->
+            try do
+              target = Module.concat(__MODULE__, :erlang.element(1, xA))
+              apply target, unquote(name), args
+            rescue
+              UndefinedFunctionError ->
+                case __fallback__ do
+                  nil ->
+                    raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
+                  other ->
+                    apply other, unquote(name), args
+                end
             end
-          end
-        match: nil
-          raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
-        match: other
-          apply other, unquote(name), args
+          nil ->
+            raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
+          other ->
+            apply other, unquote(name), args
         end
       end
     end
