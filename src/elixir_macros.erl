@@ -80,7 +80,7 @@ translate_macro({'try', Line, [Clauses]}, RawS) ->
 %% Receive
 
 translate_macro({'receive', Line, [KV] }, S) ->
-  Do = elixir_clauses:get_pairs(Line, do, KV, S),
+  Do = elixir_clauses:get_pairs(Line, do, KV, S, true),
 
   case orddict:is_key('after', KV) of
     true ->

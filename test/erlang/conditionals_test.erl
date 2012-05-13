@@ -21,34 +21,30 @@ if_else_kv_args_test() ->
   {2, _} = eval("if(false, do: 1, else: 2)").
 
 if_else_kv_blocks_test() ->
-  {2, _} = eval("if(false) do\n1\nelse:\n2\nend"),
-  {2, _} = eval("if(false) do\n1\n3\nelse:\n2\nend"),
-  {2, _} = eval("if(false) do 1;else: 2; end"),
-  {3, _} = eval("if(false) do 1;else: 2; 3; end").
-
-if_elsif_else_test() ->
-  {3, _} = eval("if false do\n 1\nelsif: true\n3\nelse:\n2\nend"),
-  {nil, _} = eval("if false do\n 1\nelsif: [true, 3]\nelse:\n2\nend").
+  {2, _} = eval("if(false) do\n1\nelse\n2\nend"),
+  {2, _} = eval("if(false) do\n1\n3\nelse\n2\nend"),
+  {2, _} = eval("if(false) do 1;else 2; end"),
+  {3, _} = eval("if(false) do 1;else 2; 3; end").
 
 vars_if_test() ->
   F = fun() ->
-    {1, [{foo,1}]} = eval("if foo = 1 do; true; else: false; end; foo"),
-    eval("defmodule Bar do\ndef foo, do: 1\ndef bar(x) do\nif x do; foo = 2; else: foo = foo; end; foo; end\nend"),
+    {1, [{foo,1}]} = eval("if foo = 1 do; true; else false; end; foo"),
+    eval("defmodule Bar do\ndef foo, do: 1\ndef bar(x) do\nif x do; foo = 2; else foo = foo; end; foo; end\nend"),
     {1, _} = eval("Bar.bar(false)"),
     {2, _} = eval("Bar.bar(true)")
   end,
   test_helper:run_and_remove(F, ['__MAIN__.Bar']).
 
 multi_assigned_if_test() ->
-  {3, _} = eval("x = 1\nif true do\nx = 2\nx = 3\nelse: true\nend\nx"),
-  {3, _} = eval("x = 1\nif true do\n^x = 1\nx = 2\nx = 3\nelse: true\nend\nx"),
-  {1, _} = eval("if true do\nx = 1\nelse: true\nend\nx"),
-  {nil, _} = eval("if false do\nx = 1\nelse: true\nend\nx").
+  {3, _} = eval("x = 1\nif true do\nx = 2\nx = 3\nelse true\nend\nx"),
+  {3, _} = eval("x = 1\nif true do\n^x = 1\nx = 2\nx = 3\nelse true\nend\nx"),
+  {1, _} = eval("if true do\nx = 1\nelse true\nend\nx"),
+  {nil, _} = eval("if false do\nx = 1\nelse true\nend\nx").
 
 % Try
 
 try_test() ->
-  {2, _} = eval("try do\nErlang.foo.bar\ncatch: :error, :undef; 2\nend").
+  {2, _} = eval("try do\nErlang.foo.bar\ncatch\n:error | :undef -> 2\nend").
 
 % try_match_test() ->
 %   {true, _} = eval("try do:\n1\nmatch: 2 -> false\nmatch: 1; true\nrescue:\nErlangError -> nil\nend"),
@@ -58,41 +54,41 @@ try_test() ->
 % Receive
 
 receive_test() ->
-  {10, _} = eval("self() <- :foo\nreceive do\nmatch: :foo\n10\nend"),
-  {20, _} = eval("self() <- :bar\nreceive do\nmatch: :foo\n10\nelse: 20\nend"),
-  {30, _} = eval("receive do\nafter: 1\n30\nend").
+  {10, _} = eval("self() <- :foo\nreceive do\n:foo -> 10\nend"),
+  {20, _} = eval("self() <- :bar\nreceive do\n:foo -> 10\n_ -> 20\nend"),
+  {30, _} = eval("receive do\nafter 1 -> 30\nend").
 
 vars_receive_test() ->
-  {10, _} = eval("self() <- :foo\nreceive do\nmatch: :foo\na = 10\nmatch: :bar\nend\na"),
-  {nil, _} = eval("self() <- :bar\nreceive do\nmatch: :foo\nb = 10\nelse: 20\nend\nb"),
-  {30, _} = eval("receive do\nmatch: :foo\nafter: 1\nc = 30\nend\nc"),
-  {30, _} = eval("x = 1\nreceive do\nmatch: :foo\nafter: x\nc = 30\nend\nc").
+  {10, _} = eval("self() <- :foo\nreceive do\n:foo ->\na = 10\n:bar -> nil\nend\na"),
+  {nil, _} = eval("self() <- :bar\nreceive do\n:foo ->\nb = 10\n_ -> 20\nend\nb"),
+  {30, _} = eval("receive do\n:foo -> nil\nafter\n1 -> c = 30\nend\nc"),
+  {30, _} = eval("x = 1\nreceive do\n:foo -> nil\nafter\nx -> c = 30\nend\nc").
 
 % Case
 
 case_test() ->
-  {true, _} = eval("case 1 do\nmatch: 2; false\nmatch: 1; true\nend"),
-  {true, [{x,1}]} = eval("case 1 do\nmatch: {x,y}; false\nmatch: x; true\nend"),
-  {true, _} = eval("case {1,2} do;match: {3,4}\nfalse\nelse: true\nend").
+  {true, _} = eval("case 1 do\n2 -> false\n1 -> true\nend"),
+  {true, [{x,1}]} = eval("case 1 do\n{x,y} -> false\nx -> true\nend"),
+  {true, _} = eval("case {1,2} do;{3,4} -> false\n_ -> true\nend").
 
 case_with_do_ambiguity_test() ->
-  {true,_} = eval("case atom_to_list(true) do\nmatch: _; true\nend").
+  {true,_} = eval("case atom_to_list(true) do\n_ -> true\nend").
 
 case_with_match_do_ambiguity_test() ->
-  {true,_} = eval("case x = atom_to_list(true) do\nmatch: _; true\nend").
+  {true,_} = eval("case x = atom_to_list(true) do\n_ -> true\nend").
 
 case_with_unary_do_ambiguity_test() ->
-  {false,_} = eval("! case atom_to_list(true) do\nmatch: _; true\nend").
+  {false,_} = eval("! case atom_to_list(true) do\n_ -> true\nend").
 
 multi_assigned_case_test() ->
-  {3, _} = eval("x = 1\ncase true do\n match: true\nx = 2\nx = 3\nelse: true\nend\nx"),
-  {3, _} = eval("x = 1\ncase 1 do\n match: ^x\nx = 2\nx = 3\nelse: true\nend\nx"),
-  {1, _} = eval("case true do\nmatch: true\nx = 1\nelse: true\nend\nx"),
-  {nil, _} = eval("case true do\nmatch: false\nx = 1\nelse: true\nend\nx").
+  {3, _} = eval("x = 1\ncase true do\n true ->\nx = 2\nx = 3\n_ -> true\nend\nx"),
+  {3, _} = eval("x = 1\ncase 1 do\n ^x -> x = 2\nx = 3\n_ -> true\nend\nx"),
+  {1, _} = eval("case true do\ntrue -> x = 1\n_ -> true\nend\nx"),
+  {nil, _} = eval("case true do\nfalse -> x = 1\n_ -> true\nend\nx").
 
 vars_case_test() ->
   F = fun() ->
-    eval("defmodule Bar do\ndef foo, do: 1\ndef bar(x) do\ncase x do\nmatch: true; foo = 2\nmatch: false; foo = foo\nend\nfoo\nend\nend"),
+    eval("defmodule Bar do\ndef foo, do: 1\ndef bar(x) do\ncase x do\ntrue -> foo = 2\nfalse -> foo = foo\nend\nfoo\nend\nend"),
     {1, _} = eval("Bar.bar(false)"),
     {2, _} = eval("Bar.bar(true)")
   end,

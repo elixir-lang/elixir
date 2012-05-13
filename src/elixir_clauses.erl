@@ -3,16 +3,21 @@
 -module(elixir_clauses).
 -export([
   assigns/3, assigns_block/5, assigns_block/6,
-  get_pairs/4, match/3, extract_args/1, extract_guards/1]).
+  get_pairs/4, get_pairs/5, match/3, extract_args/1, extract_guards/1]).
 -import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
 
 %% Get pairs from a clause.
 
 get_pairs(Line, Key, Clauses, S) ->
+  get_pairs(Line, Key, Clauses, S, false).
+
+get_pairs(Line, Key, Clauses, S, AllowNil) ->
   case orddict:find(Key, Clauses) of
     { ok, { '->', _, Pairs } } ->
       [{ Key, Left, Right } || { Left, Right } <- Pairs];
+    { ok, nil } when AllowNil ->
+      [];
     { ok, _ } ->
       elixir_errors:syntax_error(Line, S#elixir_scope.filename, "expected pairs with -> for key ~s", [Key]);
     _ ->

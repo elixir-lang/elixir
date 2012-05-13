@@ -177,6 +177,7 @@ fn_block -> '->' grammar 'end' : [[{do,build_block('$2', false)}]].
 
 do_block -> do_eol 'end' : [[{do,nil}]].
 do_block -> do_eol stab_expr_list end_eol : [[{ do, build_stab(lists:reverse('$2')) }]].
+do_block -> do_eol block_list 'end' : [sort_kw([{ do, nil }|'$2'])].
 do_block -> do_eol stab_expr_list eol block_list 'end' : [sort_kw([{ do, build_stab(lists:reverse('$2')) }|'$4'])].
 
 do_eol -> 'do' : '$1'.
