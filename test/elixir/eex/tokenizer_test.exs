@@ -51,27 +51,30 @@ baz %>
   end
 
   test "strings with embedded -> end" do
-    assert T.tokenize('foo <% if(true)-> %>bar<% end %>', 1) == [
+    assert T.tokenize('foo <% cond do %><% false -> %>bar<% true -> %>baz<% end %>', 1) == [
       { :text, 1, "foo " },
-      { :start_expr, 1, '', ' if(true)-> ' },
+      { :start_expr, 1, '', ' cond do ' },
+      { :middle_expr, 1, '', ' false -> ' },
       { :text, 1, "bar" },
+      { :middle_expr, 1, '', ' true -> ' },
+      { :text, 1, "baz" },
       { :end_expr, 1, '', ' end ' }
     ]
   end
 
   test "strings with embedded keywords blocks" do
-    assert T.tokenize('foo <% if true do %>bar<% elsif: false %>baz<% end %>', 1) == [
+    assert T.tokenize('foo <% if true do %>bar<% else %>baz<% end %>', 1) == [
       { :text, 1, "foo " },
       { :start_expr, 1, '', ' if true do ' },
       { :text, 1, "bar" },
-      { :middle_expr, 1, '', ' elsif: false ' },
+      { :middle_expr, 1, '', ' else ' },
       { :text, 1, "baz" },
       { :end_expr, 1, '', ' end ' }
     ]
   end
 
   test "raise syntax error when there is start mark and no end mark" do
-    assert_raise EEx.SyntaxError, "invalid token: ' :bar'", fn ->
+    assert_raise EEx.SyntaxError, "missing token: %>", fn ->
       T.tokenize('foo <% :bar', 1)
     end
   end

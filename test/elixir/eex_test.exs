@@ -35,11 +35,11 @@ defmodule EExTest do
   end
 
   test "evaluates with embedded middle expression" do
-    assert_eval "foo bar", "foo <%= if true do %>bar<% else: %>baz<% end %>"
+    assert_eval "foo bar", "foo <%= if true do %>bar<% else %>baz<% end %>"
   end
 
   test "evaluates with embedded middle expression and eval the expression" do
-    assert_eval "foo baz", "foo <%= if false do %>bar<% else: %>baz<% end %>"
+    assert_eval "foo baz", "foo <%= if false do %>bar<% else %>baz<% end %>"
   end
 
   test "evaluates with nested start expression" do
@@ -47,7 +47,7 @@ defmodule EExTest do
   end
 
   test "evaluates with nested middle expression" do
-    assert_eval "foo baz", "foo <%= if true do %><%= if false do %>bar<% else: %>baz<% end %><% end %>"
+    assert_eval "foo baz", "foo <%= if true do %><%= if false do %>bar<% else %>baz<% end %><% end %>"
   end
 
   test "evaluates with defined variable" do
@@ -63,7 +63,7 @@ defmodule EExTest do
   end
 
   test "raises a syntax error when the token is invalid" do
-    assert_raise EEx.SyntaxError, "invalid token: ' bar'", fn ->
+    assert_raise EEx.SyntaxError, "missing token: %>", fn ->
       EEx.compile_string "foo <%= bar"
     end
   end
@@ -140,7 +140,7 @@ foo
     assert_eval expected, string
   end
 
-  test "respects line numbers inside middle expression" do
+  test "respects line numbers inside middle expression with ->" do
     expected = """
 foo
 
@@ -151,9 +151,9 @@ true
 
     string = """
 foo
-<%= if false do %>
-<%= false %>
-<% elsif: __LINE__ == 4 %>
+<%= cond do %>
+<% false -> %> false
+<% __LINE__ == 4 -> %>
 <%= true %>
 <% end %>
 <%= __LINE__ %>
@@ -162,7 +162,7 @@ foo
     assert_eval expected, string
   end
 
-  test "respects line number inside nested expressions with many clauses" do
+  test "respects line number inside middle expressions with keywords" do
     expected = """
 foo
 
@@ -175,7 +175,7 @@ foo
 foo
 <%= if false do %>
 <%= __LINE__ %>
-<% else: %>
+<% else %>
 <%= __LINE__ %>
 <% end %>
 <%= __LINE__ %>

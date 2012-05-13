@@ -1,4 +1,4 @@
-defrecord EEx.State, engine: EEx.SmartEngine, dict: [], file: 'nofile', line: 1
+defrecord EEx.State, engine: EEx.SmartEngine, dict: [], file: 'nofile', line: 1, start_line: 1
 
 defmodule EEx.Compiler do
   @moduledoc false
@@ -23,25 +23,25 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{ :expr, line, mark, chars }|t], buffer, scope, state) do
-    expr = { :__block__, 0, Erlang.elixir_translator.forms(chars, line, state.file) }
+    expr = maybe_block Erlang.elixir_translator.forms(chars, line, state.file)
     buffer = state.engine.handle_expr(buffer, mark, expr)
     generate_buffer(t, buffer, scope, state)
   end
 
   defp generate_buffer([{ :start_expr, line, mark, chars }|t], buffer, scope, state) do
-    { contents, t } = generate_buffer(t, "", [chars|scope], state.dict([]).line(line))
+    { contents, t } = generate_buffer(t, "", [chars|scope], state.dict([]).line(line).start_line(line))
     buffer = state.engine.handle_expr(buffer, mark, contents)
     generate_buffer(t, buffer, scope, state.dict([]))
   end
 
   defp generate_buffer([{ :middle_expr, line, _, chars }|t], buffer, [current|scope], state) do
     { wrapped, state } = wrap_expr(current, line, buffer, chars, state)
-    generate_buffer(t, "", [wrapped|scope], state)
+    generate_buffer(t, "", [wrapped|scope], state.line(line))
   end
 
   defp generate_buffer([{ :end_expr, line, _, chars }|t], buffer, [current|_], state) do
     { wrapped, state } = wrap_expr(current, line, buffer, chars, state)
-    tuples = { :__block__, 0, Erlang.elixir_translator.forms(wrapped, state.line, state.file) }
+    tuples = maybe_block Erlang.elixir_translator.forms(wrapped, state.start_line, state.file)
     buffer = insert_quotes(tuples, state.dict)
     { buffer, t }
   end
@@ -61,12 +61,36 @@ defmodule EEx.Compiler do
   # Creates a placeholder and wrap it inside the expression block
 
   defp wrap_expr(current, line, buffer, chars, state) do
-    key = length(state.dict)
     new_lines = List.duplicate(?\n, line - state.line)
-    placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
 
-    { current ++ new_lines ++ placeholder ++ chars, state.prepend_dict([{key, buffer}]) }
+    if state.dict == [] and is_empty?(buffer) do
+      { current ++ new_lines ++ chars, state }
+    else
+      key = length(state.dict)
+      placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
+      { current ++ placeholder ++ new_lines ++ chars, state.prepend_dict([{key, buffer}]) }
+    end
   end
+
+  # Check if the syntax node represents an empty string
+
+  defp is_empty?(bin) when is_binary(bin) do
+    bc(<<c>> in bin when not c in [?\s,?\t,?\r,?\n], do: <<c>>) == ""
+  end
+
+  defp is_empty?({ :<>, _, [left, right] }) do
+    is_empty?(left) and is_empty?(right)
+  end
+
+  defp is_empty?(_) do
+    false
+  end
+
+  # Block wrapping
+
+  defp maybe_block([]),    do: nil
+  defp maybe_block([h]),   do: h
+  defp maybe_block(other), do: { :__block__, 0, other }
 
   # Changes placeholder to real expression
 
