@@ -31,7 +31,7 @@ defmodule Kernel.LoopTest do
   end
 
   test :do_loop_base do
-    fun = fn ->
+    fun = fn do
       [{ 1, 2 }, []] -> 1
       [[], x] when x == [] -> 2
     end

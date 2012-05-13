@@ -529,14 +529,17 @@ terminator(O) -> O.
 
 % Keywords check
 
+keyword(Line, do_identifier, fn) ->
+  { do_identifier, Line, fn };
+
+keyword(Line, paren_identifier, fn) ->
+  { 'fn_paren', Line };
+
 keyword(Line, Identifier, Atom) when Identifier ==  identifier; Identifier == do_identifier ->
   case keyword(Atom) of
     true  -> { Atom, Line };
     false -> block_keyword(Atom) andalso { block_identifier, Line, Atom }
   end;
-
-keyword(Line, paren_identifier, 'fn') ->
-  { 'fn_paren', Line };
 
 keyword(_, _, _) -> false.
 

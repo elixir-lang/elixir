@@ -21,8 +21,7 @@ Nonterminals
   parens_call dot_op dot_identifier dot_do_identifier dot_ref
   dot_paren_identifier dot_punctuated_identifier dot_bracket_identifier
   var list bracket_access bit_string tuple
-  stab_eol end_eol fn_block
-  do_block do_eol block_eol block_item block_list
+  fn_block do_block do_eol end_eol block_eol block_item block_list
   .
 
 Terminals
@@ -174,15 +173,11 @@ base_expr -> sigil : build_sigil('$1').
 
 %% Blocks
 
-fn_block -> stab_eol 'end' : [[{do,nil}]].
-fn_block -> stab_eol stab_expr_list end_eol : [[{do,build_stab(lists:reverse('$2'))}]].
+fn_block -> '->' grammar 'end' : [[{do,build_block('$2', false)}]].
 
 do_block -> do_eol 'end' : [[{do,nil}]].
 do_block -> do_eol stab_expr_list end_eol : [[{ do, build_stab(lists:reverse('$2')) }]].
 do_block -> do_eol stab_expr_list eol block_list 'end' : [sort_kw([{ do, build_stab(lists:reverse('$2')) }|'$4'])].
-
-stab_eol -> '->' : '$1'.
-stab_eol -> '->' eol : '$1'.
 
 do_eol -> 'do' : '$1'.
 do_eol -> 'do' eol : '$1'.
