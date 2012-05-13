@@ -10,15 +10,15 @@ defmodule ExUnit.Server do
   end
 
   def add_case(name) do
-    check fn(do: Erlang.gen_server.call(:exunit_server, { :add_case, name }))
+    check fn -> Erlang.gen_server.call(:exunit_server, { :add_case, name }) end
   end
 
   def add_sync_case(name) do
-    check fn(do: Erlang.gen_server.call(:exunit_server, { :add_sync_case, name }))
+    check fn -> Erlang.gen_server.call(:exunit_server, { :add_sync_case, name }) end
   end
 
   def merge_options(options) do
-    check fn(do: Erlang.gen_server.call(:exunit_server, { :merge_options, options }))
+    check fn -> Erlang.gen_server.call(:exunit_server, { :merge_options, options }) end
   end
 
   def options do

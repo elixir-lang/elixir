@@ -322,7 +322,7 @@ defmodule Elixir.SpecialForms do
 
   ## Examples
 
-      sum = fn(x, y, do: x + y)
+      sum = fn(x, y) -> x + y end
       sum.(1, 2) #=> 3
 
   Notice that a function needs to be invoked using the dot between
@@ -351,7 +351,7 @@ defmodule Elixir.SpecialForms do
   One may define a function which expects different clauses as long
   as all clauses expects the same number of arguments:
 
-      fun = fn do:
+      fun = fn do
         [x, y] when y < 0 ->
           x - y
         [x, y] ->

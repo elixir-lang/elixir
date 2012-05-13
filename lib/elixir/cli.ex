@@ -79,7 +79,7 @@ defmodule Elixir.CLI do
   end
 
   defp print_stacktrace(stacktrace) do
-    Enum.each stacktrace, fn(s, do: IO.puts :standard_error, "    #{format_stacktrace(s)}")
+    Enum.each stacktrace, fn s -> IO.puts :standard_error, "    #{format_stacktrace(s)}" end
   end
 
   # Process shared options

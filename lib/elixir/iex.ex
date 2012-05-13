@@ -83,6 +83,6 @@ defmodule Elixir.IEx do
   end
 
   defp print_stacktrace(io, stacktrace) do
-    Enum.each stacktrace, fn(s, do: io.error "    #{format_stacktrace(s)}")
+    Enum.each stacktrace, fn s -> io.error "    #{format_stacktrace(s)}" end
   end
 end
