@@ -60,8 +60,8 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :unproper_macro do
-    assert "nofile:4: keywords block not supported by Elixir.ErrorsTest.UnproperMacro.unproper/1" ==
-      format_rescue 'defmodule Foo do\nrequire Elixir.ErrorsTest.UnproperMacro\nElixir.ErrorsTest.UnproperMacro.unproper do\nmatch: 1\n2\nmatch: 3\nend\nend'
+    assert "nofile:4: use of -> out of context in macro Elixir.ErrorsTest.UnproperMacro.unproper/1" ==
+      format_rescue 'defmodule Foo do\nrequire Elixir.ErrorsTest.UnproperMacro\nElixir.ErrorsTest.UnproperMacro.unproper do\n1 -> 3\nend\nend'
   end
 
   test :macro_conflict do
@@ -133,18 +133,13 @@ defmodule Elixir.ErrorsTest do
     assert "nofile:1: syntax error before: ')'" == format_rescue '"foo\#{case 1 do )}bar"'
   end
 
-  test :invalid_kv_for_match do
-    assert "nofile:1: invalid key invalid" ==
-      format_rescue 'case true do\ninvalid: 2\nafter: 3\nend'
-  end
-
   test :cant_define_local_due_to_in_erlang_macros_conflict do
     assert "nofile:1: cannot define local quote/1 because it conflicts with Elixir internal macros" ==
       format_rescue 'defmodule Foo do\ndef quote(x), do: x\ndef bar(x), do: quote(do: x)\nend'
   end
 
   test :already_defined_module do
-    assert "nofile:1: module Record already defined (please ensure remove compiled files before recompiling a module)" ==
+    assert "nofile:1: module Record already defined (please remove already compiled files before recompiling a module)" ==
       format_rescue 'defmodule Record, do: true'
   end
 
@@ -188,7 +183,7 @@ defmodule Elixir.ErrorsTest do
 
   test :invalid_access_protocol_on_rescue do
     assert "nofile:1: cannot (yet) pattern match against erlang exceptions" ==
-      format_rescue 'try do\n1\nrescue:\nUndefinedFunctionError[arity: 1] -> false\nend'
+      format_rescue 'try do\n1\nrescue\nUndefinedFunctionError[arity: 1] -> false\nend'
   end
 
   test :invalid_bc do

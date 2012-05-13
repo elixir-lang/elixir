@@ -48,10 +48,10 @@ translate_each({ '->', Line, _ }, S) ->
   case S#elixir_scope.macro of
     { Receiver, Name, Arity } ->
       Desc = [elixir_errors:inspect(Receiver), Name, Arity],
-      syntax_error(Line, S#elixir_scope.filename, "usafe of -> out of context in macro ~s.~s/~B", Desc);
+      syntax_error(Line, S#elixir_scope.filename, "use of -> out of context in macro ~s.~s/~B", Desc);
     _ ->
       % TODO: This shuold be raised at runtime
-      syntax_error(Line, S#elixir_scope.filename, "usafe of -> out of context", "")
+      syntax_error(Line, S#elixir_scope.filename, "use of -> out of context", "")
   end;
 
 %% Erlang op
