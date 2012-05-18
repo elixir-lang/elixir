@@ -9,14 +9,15 @@ defmodule ExUnit.Runner do
   # cases finish, tell the formatter we finished and exit.
   def start(config) do
     if config.cases == [] do
-      if config.taken_cases > 0 do
-        do_loop config
-      elsif: config.sync_cases == []
-        call_formatter config, :finish
-      else:
-        do_loop spawn_sync_cases(config)
+      cond do
+        config.taken_cases > 0 ->
+          do_loop config
+        config.sync_cases == [] ->
+          call_formatter config, :finish
+        true ->
+          do_loop spawn_sync_cases(config)
       end
-    else:
+    else
       do_loop spawn_async_cases(config)
     end
   end
@@ -26,27 +27,27 @@ defmodule ExUnit.Runner do
   # attempt to spawn new ones.
   defp do_loop(config) do
     receive do
-    match: { pid, :each, { test_case, test, final } }
-      call_formatter config, { :each, test_case, test, final }
-      do_loop config
-    match: { pid, :each_case, test_case }
-      call_formatter config, { :each_case, test_case }
-      start config.increment_taken_cases(-1)
+      { pid, :each, { test_case, test, final } } ->
+        call_formatter config, { :each, test_case, test, final }
+        do_loop config
+      { pid, :each_case, test_case } ->
+        call_formatter config, { :each_case, test_case }
+        start config.increment_taken_cases(-1)
     end
   end
 
   # Spawn the maximum possible of cases according to the max_cases value.
   defp spawn_async_cases(config) do
     case config.cases do
-    match: [test_case|t]
-      if config.taken_cases < config.max_cases do
-        spawn_case test_case
-        spawn_async_cases config.increment_taken_cases.cases(t)
-      else:
+      [test_case|t] ->
+        if config.taken_cases < config.max_cases do
+          spawn_case test_case
+          spawn_async_cases config.increment_taken_cases.cases(t)
+        else
+          config
+        end
+      [] ->
         config
-      end
-    match: []
-      config
     end
   end
 
@@ -64,12 +65,14 @@ defmodule ExUnit.Runner do
   end
 
   defp run_tests(pid, test_case) do
-    tests = tests_for(test_case)
-    test_case.setup_all
-    Enum.each tests, run_test(pid, test_case, &1)
-    test_case.teardown_all
-  after:
-    pid <- { Process.self, :each_case, test_case }
+    try do
+      tests = tests_for(test_case)
+      test_case.setup_all
+      Enum.each tests, run_test(pid, test_case, &1)
+      test_case.teardown_all
+    after
+      pid <- { Process.self, :each_case, test_case }
+    end
   end
 
   defp run_test(pid, test_case, test) do
@@ -77,17 +80,21 @@ defmodule ExUnit.Runner do
       partial = try do
         apply test_case, test, []
         nil
-      rescue: error1
-        { :error, error1, System.stacktrace }
-      catch: kind1, error1
-        { kind1, error1, System.stacktrace }
+      rescue
+        error1 ->
+          { :error, error1, System.stacktrace }
+      catch
+        kind1, error1 ->
+          { kind1, error1, System.stacktrace }
       end
 
       partial
-    rescue: error2
-      { :error, error2, System.stacktrace }
-    catch: kind2, error2
-      { kind2, error2, System.stacktrace }
+    rescue
+      error2 ->
+        { :error, error2, System.stacktrace }
+    catch
+      kind2, error2 ->
+        { kind2, error2, System.stacktrace }
     end
 
     pid <- { Process.self, :each, { test_case, test, final } }
@@ -107,7 +114,7 @@ defmodule ExUnit.Runner do
     list = atom_to_list(function)
     if match?('test_' ++ _, list) || match?('test ' ++ _, list) do
       tests_for t, [function|acc]
-    else:
+    else
       tests_for t, acc
     end
   end

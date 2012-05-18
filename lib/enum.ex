@@ -87,7 +87,7 @@ defmodule Enum do
   flavours. If a given collection implements the mentioned protocol (like
   list, for instance), you can do
 
-      Enum.map [1,2,3], fn(x, do: x * 2)
+      Enum.map [1,2,3], fn(x) -> x * 2 end
 
   Depending on the type of the collection, the user-provided function will
   accept a certain type of argument. For dicts, the argument is always a
@@ -101,10 +101,10 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.all? [2,4,6], fn(x, do: rem(x, 2) == 0)
+      Enum.all? [2,4,6], fn(x) -> rem(x, 2) == 0 end
       #=> true
 
-      Enum.all? [2,3,4], fn(x, do: rem(x, 2) == 0)
+      Enum.all? [2,3,4], fn(x) -> rem(x, 2) == 0 end
       #=> false
 
   If no function is given, it defaults to checking if
@@ -114,7 +114,7 @@ defmodule Enum do
       Enum.all? [1,nil,3] #=> false
 
   """
-  def all?(collection, fun // fn(x, do: x)) do
+  def all?(collection, fun // fn(x) -> x end) do
     { iterator, pointer } = I.iterator(collection)
     do_all?(pointer, iterator, fun)
   end
@@ -125,10 +125,10 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.any? [2,4,6], fn(x, do: rem(x, 2) == 1)
+      Enum.any? [2,4,6], fn(x) -> rem(x, 2) == 1 end
       #=> false
 
-      Enum.any? [2,3,4], fn(x, do: rem(x, 2) == 1)
+      Enum.any? [2,3,4], fn(x) -> rem(x, 2) == 1 end
       #=> true
 
   If no function is given, it defaults to checking if
@@ -138,7 +138,7 @@ defmodule Enum do
       Enum.any? [false,true,false]  #=> true
 
   """
-  def any?(collection, fun // fn(x, do: x)) do
+  def any?(collection, fun // fn(x) -> x end) do
     { iterator, pointer } = I.iterator(collection)
     do_any?(pointer, iterator, fun)
   end
@@ -164,7 +164,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.drop_while [1,2,3,4,5], fn(x, do: x < 3)
+      Enum.drop_while [1,2,3,4,5], fn(x) -> x < 3 end
       #=> [3,4,5]
   """
   def drop_while(collection, fun) do
@@ -179,7 +179,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.each ['some', 'example'], fn(x, do: IO.puts x)
+      Enum.each ['some', 'example'], fn(x) -> IO.puts x end
 
   """
   def each(collection, fun) do
@@ -212,7 +212,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.filter [1, 2, 3], fn(x, do: rem(x, 2) == 0)
+      Enum.filter [1, 2, 3], fn(x) -> rem(x, 2) == 0 end
       #=> [2]
 
   """
@@ -226,7 +226,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.filter_map [1, 2, 3], fn(x, do: rem(x, 2) == 0), &1 * 2
+      Enum.filter_map [1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &1 * 2
       #=> [4]
 
   """
@@ -241,14 +241,14 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.find [2,4,6], fn(x, do: rem(x, 2) == 1)
-      # => nil
+      Enum.find [2,4,6], fn(x) -> rem(x, 2) == 1 end
+      #=> nil
 
-      Enum.find [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
-      # => 0
+      Enum.find [2,4,6], 0, fn(x) -> rem(x, 2) == 1 end
+      #=> 0
 
-      Enum.find [2,3,4], fn(x, do: rem(x, 2) == 1)
-      # => 3
+      Enum.find [2,3,4], fn(x) -> rem(x, 2) == 1 end
+      #=> 3
 
   """
   def find(collection, ifnone // nil, fun) do
@@ -262,14 +262,14 @@ defmodule Enum do
 
     ## Examples
 
-        Enum.find_value [2,4,6], fn(x, do: rem(x, 2) == 1)
-        # => nil
+        Enum.find_value [2,4,6], fn(x) -> rem(x, 2) == 1 end
+        #=> nil
 
-        Enum.find_value [2,4,6], 0, fn(x, do: rem(x, 2) == 1)
-        # => 0
+        Enum.find_value [2,4,6], 0, fn(x) -> rem(x, 2) == 1 end
+        #=> 0
 
-        Enum.find_value [2,3,4], fn(x, do: rem(x, 2) == 1)
-        # => true
+        Enum.find_value [2,3,4], fn(x) -> rem(x, 2) == 1 end
+        #=> true
 
   """
   def find_value(collection, ifnone // nil, fun) do
@@ -314,10 +314,10 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.map [1, 2, 3], fn(x, do: x * 2)
+      Enum.map [1, 2, 3], fn(x) -> x * 2 end
       #=> [2, 4, 6]
 
-      Enum.map [a: 1, b: 2], fn({k, v}, do: { k, -v })
+      Enum.map [a: 1, b: 2], fn({k, v}) -> { k, -v } end
       #=> [a: -1, b: -2]
 
   """
@@ -371,7 +371,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.map_reduce [1, 2, 3], 0, fn(x, acc, do: { x * 2, x + acc })
+      Enum.map_reduce [1, 2, 3], 0, fn(x, acc) -> { x * 2, x + acc } end
       #=> { [2, 4, 6], 6 }
 
   """
@@ -391,7 +391,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.partition [1, 2, 3], fn(x, do: rem(x, 2) == 0)
+      Enum.partition [1, 2, 3], fn(x) -> rem(x, 2) == 0 end
       #=> { [2], [1,3] }
 
   """
@@ -407,7 +407,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.reduce [1, 2, 3], 0, fn(x, acc, do: x + acc)
+      Enum.reduce [1, 2, 3], 0, fn(x, acc) -> x + acc end
       #=> 6
 
   """
@@ -460,7 +460,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.split_with [1,2,3,4], fn(x) -> x == 2 end
+      Enum.split_with [1,2,3,4], fn x -> x == 2 end
       #=> { [1], [2, 3, 4] }
   """
   def split_with(collection, fun) do
@@ -490,11 +490,11 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.take_while [1,2,3], fn(x, do: x < 3)
+      Enum.take_while [1,2,3], fn(x) -> x < 3 end
       #=> [1, 2]
 
   """
-  def take_while(collection, fun // fn(x, do: x)) do
+  def take_while(collection, fun // fn(x) -> x end) do
     { iterator, pointer } = O.iterator(collection)
     do_take_while(pointer, iterator, fun)
   end
@@ -505,7 +505,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.times 3, fn(x, do: IO.puts x)
+      Enum.times 3, fn(x) -> IO.puts x end
       1
       2
       3
@@ -513,10 +513,10 @@ defmodule Enum do
   """
   def times(times, function) when times >= 0 do
     case is_function(function, 0) do
-    match: true
-      do_times_0(times, 1, function)
-    else:
-      do_times_1(times, 1, function)
+      true ->
+        do_times_0(times, 1, function)
+      _ -> 
+        do_times_1(times, 1, function)
     end
     times
   end
@@ -528,7 +528,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.times 5, 0, fn(x, acc, do: acc + x)
+      Enum.times 5, 0, fn(x, acc) -> acc + x end
       #=> 15
 
   """
@@ -542,10 +542,10 @@ defmodule Enum do
 
   defp do_all?({ h, next }, iterator, fun) do
     case fun.(h) do
-    match: x in [false, nil]
-      false
-    else:
-      do_all?(iterator.(next), iterator, fun)
+      x in [false, nil] ->
+        false
+      _ ->
+        do_all?(iterator.(next), iterator, fun)
     end
   end
 
@@ -557,10 +557,10 @@ defmodule Enum do
 
   defp do_any?({ h, next }, iterator, fun) do
     case fun.(h) do
-    match: x in [false, nil]
-      do_any?(iterator.(next), iterator, fun)
-    else:
-      true
+      x in [false, nil] ->
+        do_any?(iterator.(next), iterator, fun)
+      _ ->
+        true
     end
   end
 
@@ -572,10 +572,10 @@ defmodule Enum do
 
   defp do_drop_while({ h, next }, iterator, fun, module) do
     case fun.(h) do
-    match: x in [false, nil]
-      module.to_list(h, next)
-    else:
-      do_drop_while(iterator.(next), iterator, fun, module)
+      x in [false, nil] ->
+        module.to_list(h, next)
+      _ ->
+        do_drop_while(iterator.(next), iterator, fun, module)
     end
   end
 
@@ -587,10 +587,10 @@ defmodule Enum do
 
   defp do_find({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
-    match: x in [false, nil]
-      do_find(iterator.(next), iterator, ifnone, fun)
-    else:
-      h
+      x in [false, nil] ->
+        do_find(iterator.(next), iterator, ifnone, fun)
+      _ ->
+        h
     end
   end
 
@@ -602,10 +602,10 @@ defmodule Enum do
 
   defp do_find_value({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
-    match: x in [false, nil]
-      do_find_value(iterator.(next), iterator, ifnone, fun)
-    match: other
-      other
+      x in [false, nil] ->
+        do_find_value(iterator.(next), iterator, ifnone, fun)
+      other ->
+        other
     end
   end
 
@@ -628,10 +628,10 @@ defmodule Enum do
 
   defp do_filter({ h, next }, iterator, fun) do
     case fun.(h) do
-    match: x in [false, nil]
-      do_filter(iterator.(next), iterator, fun)
-    else:
-      [h|do_filter(iterator.(next), iterator, fun)]
+      x in [false, nil] ->
+        do_filter(iterator.(next), iterator, fun)
+      _ ->
+        [h|do_filter(iterator.(next), iterator, fun)]
     end
   end
 
@@ -643,10 +643,10 @@ defmodule Enum do
 
   defp do_filter_map({ h, next }, iterator, filter, mapper) do
     case filter.(h) do
-    match: x in [false, nil]
-      do_filter_map(iterator.(next), iterator, filter, mapper)
-    else:
-      [mapper.(h)|do_filter_map(iterator.(next), iterator, filter, mapper)]
+      x in [false, nil] ->
+        do_filter_map(iterator.(next), iterator, filter, mapper)
+      _ ->
+        [mapper.(h)|do_filter_map(iterator.(next), iterator, filter, mapper)]
     end
   end
 
@@ -668,10 +668,10 @@ defmodule Enum do
 
   defp do_split_with({ h, next }, iterator, fun, acc, module) do
     case fun.(h) do
-    match: x in [false, nil]
-      { List.reverse(acc), module.to_list(h, next) }
-    else:
-      do_split_with(iterator.(next), iterator, fun, [h|acc], module)
+      x in [false, nil] ->
+        { List.reverse(acc), module.to_list(h, next) }
+      _ ->
+        do_split_with(iterator.(next), iterator, fun, [h|acc], module)
     end
   end
 
@@ -750,10 +750,10 @@ defmodule Enum do
 
   defp do_partition({ h, next }, iterator, fun, acc1, acc2) do
     case fun.(h) do
-    match: x in [false, nil]
-      do_partition(iterator.(next), iterator, fun, acc1, [h|acc2])
-    else:
-      do_partition(iterator.(next), iterator, fun, [h|acc1], acc2)
+      x in [false, nil] ->
+        do_partition(iterator.(next), iterator, fun, acc1, [h|acc2])
+      _ ->
+        do_partition(iterator.(next), iterator, fun, [h|acc1], acc2)
     end
   end
 
@@ -776,12 +776,13 @@ defmodule Enum do
   end
 
   defp do_list_qsort_part(x, [h|t], { l, e, g }, acc) do
-    if h < x do
-      do_list_qsort_part(x, t, { [h|l], e, g }, acc)
-    elsif: h > x
-      do_list_qsort_part(x, t, { l, e, [h|g] }, acc)
-    else:
-      do_list_qsort_part(x, t, { l, [h|e], g }, acc)
+    cond do
+      h < x ->
+        do_list_qsort_part(x, t, { [h|l], e, g }, acc)
+      h > x ->
+        do_list_qsort_part(x, t, { l, e, [h|g] }, acc)
+      true ->
+        do_list_qsort_part(x, t, { l, [h|e], g }, acc)
     end
   end
 
@@ -800,12 +801,13 @@ defmodule Enum do
   end
 
   defp do_qsort_part(x, { h, next }, iterator, { l, e, g }, acc) do
-    if h < x do
-      do_qsort_part(x, iterator.(next), iterator, { [h|l], e, g }, acc)
-    elsif: h > x
-      do_qsort_part(x, iterator.(next), iterator, { l, e, [h|g] }, acc)
-    else:
-      do_qsort_part(x, iterator.(next), iterator, { l, [h|e], g }, acc)
+    cond do
+      h < x ->
+        do_qsort_part(x, iterator.(next), iterator, { [h|l], e, g }, acc)
+      h > x ->
+        do_qsort_part(x, iterator.(next), iterator, { l, e, [h|g] }, acc)
+      true ->
+        do_qsort_part(x, iterator.(next), iterator, { l, [h|e], g }, acc)
     end
   end
 
@@ -827,10 +829,10 @@ defmodule Enum do
 
   defp do_take_while({ h, next }, iterator, fun) do
     case fun.(h) do
-    match: x in [false, nil]
-      []
-    else:
-      [h|do_take_while(iterator.(next), iterator, fun)]
+      x in [false, nil] ->
+        []
+      _ ->
+        [h|do_take_while(iterator.(next), iterator, fun)]
     end
   end
 

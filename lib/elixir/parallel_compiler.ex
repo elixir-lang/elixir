@@ -5,7 +5,7 @@ defmodule Elixir.ParallelCompiler do
   A module responsible for compiling files in parallel.
   """
 
-  defmacrop default_callback, do: quote(do: fn(x) -> x end)
+  defmacrop default_callback, do: quote(do: fn x -> x end)
 
   @doc """
   Compiles the given files.
@@ -51,12 +51,13 @@ defmodule Elixir.ParallelCompiler do
       try do
         if output do
           Erlang.elixir_compiler.file_to_path(h, output)
-        else:
+        else
           Erlang.elixir_compiler.file(h)
         end
         parent <- { :compiled, Process.self(), h }
-      catch: kind, reason
-        parent <- { :failure, Process.self(), kind, reason, System.stacktrace }
+      catch
+        kind, reason ->
+          parent <- { :failure, Process.self(), kind, reason, System.stacktrace }
       end
     end
 
@@ -68,7 +69,7 @@ defmodule Elixir.ParallelCompiler do
 
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_compilers([], output, callback, waiting, queued, result) when length(waiting) == length(queued) do
-    Enum.each queued, fn({ child, _ }) -> child <- { :release, Process.self() } end
+    Enum.each queued, fn { child, _ } -> child <- { :release, Process.self() } end
     wait_for_messages([], output, callback, waiting, queued, result)
   end
 
@@ -80,24 +81,24 @@ defmodule Elixir.ParallelCompiler do
   # Wait for messages from child processes
   defp wait_for_messages(files, output, callback, waiting, queued, result) do
     receive do
-    match: { :compiled, child, file }
-      callback.(list_to_binary(file))
-      new_queued  = List.keydelete(queued, child, 1)
-      # Sometimes we may have spurious entries in the waiting
-      # list because someone invoked try/rescue UndefinedFunctionError
-      new_waiting = List.keydelete(waiting, child, 1)
-      spawn_compilers(files, output, callback, new_waiting, new_queued, result)
-    match: { :module_available, child, module, binary }
-      new_waiting = release_waiting_processes(module, waiting)
-      new_result  = [{module, binary}|result]
-      wait_for_messages(files, output, callback, new_waiting, queued, new_result)
-    match: { :waiting, child, on }
-      new_waiting = Orddict.store(child, on, waiting)
-      spawn_compilers(files, output, callback, new_waiting, queued, result)
-    match: { :failure, child, kind, reason, stacktrace }
-      extra = if match?({^child, module}, List.keyfind(waiting, child, 1)) do
-        " (undefined module #{inspect module})"
-      end
+      { :compiled, child, file } ->
+        callback.(list_to_binary(file))
+        new_queued  = List.keydelete(queued, child, 1)
+        # Sometimes we may have spurious entries in the waiting
+        # list because someone invoked try/rescue UndefinedFunctionError
+        new_waiting = List.keydelete(waiting, child, 1)
+        spawn_compilers(files, output, callback, new_waiting, new_queued, result)
+      { :module_available, child, module, binary } ->
+        new_waiting = release_waiting_processes(module, waiting)
+        new_result  = [{module, binary}|result]
+        wait_for_messages(files, output, callback, new_waiting, queued, new_result)
+      { :waiting, child, on } ->
+        new_waiting = Orddict.store(child, on, waiting)
+        spawn_compilers(files, output, callback, new_waiting, queued, result)
+      { :failure, child, kind, reason, stacktrace } ->
+        extra = if match?({^child, module}, List.keyfind(waiting, child, 1)) do
+          " (undefined module #{inspect module})"
+        end
 
       {^child, file} = List.keyfind(queued, child, 1)
       IO.puts "== Compilation error on file #{list_to_binary(file)}#{extra} =="
@@ -107,11 +108,11 @@ defmodule Elixir.ParallelCompiler do
 
   # Release waiting processes that are waiting for the given module
   defp release_waiting_processes(module, waiting) do
-    Enum.filter waiting, fn({ child, waiting_module }) ->
+    Enum.filter waiting, fn { child, waiting_module } ->
       if waiting_module == module do
         child <- { :release, Process.self() }
         false
-      else:
+      else
         true
       end
     end

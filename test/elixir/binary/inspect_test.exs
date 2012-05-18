@@ -127,7 +127,7 @@ defmodule Binary.Inspect.AnyTest do
   use ExUnit.Case
 
   test :funs do
-    bin = inspect(fn(x, do: x + 1))
+    bin = inspect(fn(x) -> x + 1 end)
     assert_match '#Fun<' ++ _, binary_to_list(bin)
   end
 end

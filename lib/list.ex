@@ -75,10 +75,10 @@ defmodule List do
   ## Examples
 
       List.flatten [1,[[2],3]]
-      # => [1,2,3]
+      #=> [1,2,3]
 
       List.flatten [1,[[2],3]], [4,5]
-      # => [1,2,3,4,5]
+      #=> [1,2,3,4,5]
 
   """
   def flatten(list) do
@@ -95,10 +95,10 @@ defmodule List do
 
   ## Examples
 
-      List.foldl [5,5], 10, fn(x, acc) -> x + acc end
+      List.foldl [5,5], 10, fn x, acc -> x + acc end
       #=> 20
 
-      List.foldl [1,2,3,4], 0, fn(x, acc) -> x - acc end
+      List.foldl [1,2,3,4], 0, fn x, acc -> x - acc end
       #=> 2
 
   """
@@ -112,7 +112,7 @@ defmodule List do
 
   ## Examples
 
-      List.foldr [1,2,3,4], 0, fn(x, acc) -> x - acc end
+      List.foldr [1,2,3,4], 0, fn x, acc -> x - acc end
       #=> -2
 
   """
@@ -250,23 +250,23 @@ defmodule List do
 
   def range(first, last, step) when is_integer(first) and is_integer(last) and first <= last do
     step = case step do
-    match: nil
-      Erlang.lists.seq(first, last, 1)
-    match: x when x < 0
-      []
-    else:
-      Erlang.lists.seq(first, last, step)
+      nil ->
+        Erlang.lists.seq(first, last, 1)
+      x when x < 0 ->
+        []
+      _ ->
+        Erlang.lists.seq(first, last, step)
     end
   end
 
   def range(first, last, step) when is_integer(first) and is_integer(last) and first > last do
     step = case step do
-    match: nil
-      Erlang.lists.seq(first, last, -1)
-    match: x when x > 0
-      []
-    else:
-      Erlang.lists.seq(first, last, step)
+      nil ->
+        Erlang.lists.seq(first, last, -1)
+      x when x > 0 ->
+        []
+      _ ->
+        Erlang.lists.seq(first, last, step)
     end
   end
 
@@ -291,7 +291,7 @@ defmodule List do
 
   ## Examples
 
-      List.sort [3, 4, 2, 1, 7], fn(a, b) -> b <= a end
+      List.sort [3, 4, 2, 1, 7], fn a, b -> b <= a end
       #=> [7, 4, 3, 2, 1]
 
   """
@@ -342,10 +342,8 @@ defmodule List do
   def find_index(list, term) do
     index = Erlang.string.str(list, [term])
     case index == 0 do
-    match: true
-      nil
-    match: false
-      index
+      true  -> nil
+      false -> index
     end
   end
 
@@ -367,8 +365,8 @@ defmodule List do
     []
   end
 
-  def wrap(else) do
-    [else]
+  def wrap(other) do
+    [other]
   end
 
   @doc """
@@ -428,10 +426,10 @@ defmodule List do
 
   defp do_uniq([h|t], acc) do
     case Erlang.lists.member(h, acc) do
-    match: true
-      do_uniq(t, acc)
-    match: false
-      [h|do_uniq(t, [h|acc])]
+      true ->
+        do_uniq(t, acc)
+      false ->
+        [h|do_uniq(t, [h|acc])]
     end
   end
 
@@ -450,13 +448,13 @@ defmodule List do
   end
 
   defp do_zip(list, acc) do
-    converter = fn(x, acc) -> do_zip_each(to_list(x), acc) end
+    converter = fn x, acc -> do_zip_each(to_list(x), acc) end
     {mlist, heads} = :lists.mapfoldl converter, [], list
 
     case heads do
-    match: nil
-      :lists.reverse acc
-    else:
+      nil ->
+        :lists.reverse acc
+      _ ->
       do_zip mlist, [list_to_tuple(:lists.reverse(heads))|acc]
     end
   end

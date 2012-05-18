@@ -19,7 +19,7 @@ defmodule KeywordTest do
   end
 
   test :new_with_function do
-    assert Keyword.new([:a, :b], fn(x) -> { x, x } end) == [a: :a, b: :b]
+    assert Keyword.new([:a, :b], fn x -> { x, x } end) == [a: :a, b: :b]
   end
 
   test :get do
@@ -58,7 +58,7 @@ defmodule KeywordTest do
   end
 
   test :merge_with_function do
-    result = Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+    result = Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
       v1 + v2
     end
     assert result == [a:4, b:2, d: 4]
@@ -124,7 +124,7 @@ defmodule Keyword.DuplicatedTest do
   end
 
   test :merge_with_function do
-    result = Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+    result = Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
       v1 + v2
     end
     assert result == [a:4, b:2, d: 4]

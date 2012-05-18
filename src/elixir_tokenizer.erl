@@ -130,7 +130,7 @@ tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
       case Parts of
         [Bin] when is_binary(Bin) ->
           Atom = binary_to_atom(unescape_chars(Bin), utf8),
-          tokenize(NewLine, Rest, [{kv_identifier,Line,Atom}|Tokens]);
+          tokenize(NewLine, Rest, [{kw_identifier,Line,Atom}|Tokens]);
         _ ->
           { error, { Line, "invalid interpolation in key", [$"|T] } }
       end;
@@ -253,12 +253,11 @@ tokenize(Line, [H|_] = String, Tokens) when ?is_upcase(H) ->
 
 tokenize(Line, [H|_] = String, Tokens) when ?is_downcase(H); H == $_ ->
   { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(Line, String, []),
-  HasKeyword = Kind == identifier orelse Kind == do_identifier,
-  case HasKeyword andalso keyword(Identifier) of
-    true  ->
-      tokenize(Line, Rest, [{Identifier,Line}|Tokens]);
+  case keyword(Line, Kind, Identifier) of
     false ->
-      tokenize(Line, Rest, [{Kind,Line,Identifier}|Tokens])
+      tokenize(Line, Rest, [{Kind,Line,Identifier}|Tokens]);
+    Else  ->
+      tokenize(Line, Rest, [Else|Tokens])
   end;
 
 % End of line
@@ -491,15 +490,12 @@ tokenize_any_identifier(Line, String, Acc) ->
     [H|T] when H == $?; H == $! ->
       Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
       { T, tokenize_call_identifier(punctuated_identifier, Line, Atom, T) };
-    [$:,$:|_] ->
-      { Rest, { identifier, Line, list_to_atom(Identifier) } };
     [$:|T] ->
-      { T, { kv_identifier, Line, list_to_atom(Identifier) } };
+      { T, { kw_identifier, Line, list_to_atom(Identifier) } };
     _ ->
       { Rest, tokenize_call_identifier(identifier, Line, list_to_atom(Identifier), Rest) }
   end.
 
-% Tokenize identifiers related to function calls. Doesn't emit kv_identifiers.
 tokenize_call_identifier(Kind, Line, Atom, Rest) ->
   case Rest of
     [$(|_] -> { paren_identifier, Line, Atom };
@@ -531,14 +527,31 @@ terminator(${) -> $};
 terminator($<) -> $>;
 terminator(O) -> O.
 
+% Keywords check
+
+keyword(Line, do_identifier, fn) ->
+  { do_identifier, Line, fn };
+
+keyword(Line, paren_identifier, fn) ->
+  { 'fn_paren', Line };
+
+keyword(Line, Identifier, Atom) when Identifier ==  identifier; Identifier == do_identifier ->
+  case keyword(Atom) of
+    true  -> { Atom, Line };
+    false -> block_keyword(Atom) andalso { block_identifier, Line, Atom }
+  end;
+
+keyword(_, _, _) -> false.
+
 % Keywords
+keyword('fn')      -> true;
 keyword('do')      -> true;
 keyword('end')     -> true;
 keyword('true')    -> true;
 keyword('false')   -> true;
 keyword('nil')     -> true;
 
-% Keyword operators
+% Operator keywords
 keyword('not')     -> true;
 keyword('and')     -> true;
 keyword('or')      -> true;
@@ -546,3 +559,10 @@ keyword('xor')     -> true;
 keyword('when')    -> true;
 keyword('in')      -> true;
 keyword(_)         -> false.
+
+% Block keywords
+block_keyword('after')  -> true;
+block_keyword('else')   -> true;
+block_keyword('rescue') -> true;
+block_keyword('catch')  -> true;
+block_keyword(_)        -> false.

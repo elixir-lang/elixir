@@ -52,8 +52,8 @@ defmodule Exception do
     ArgumentError.new message: "argument error: #{inspect(payload)}"
   end
 
-  def normalize(else) do
-    ErlangError.new original: else
+  def normalize(other) do
+    ErlangError.new original: other
   end
 
   @doc """
@@ -67,7 +67,7 @@ defmodule Exception do
     if is_list(arity) do
       inspected = lc x in arity, do: inspect(x)
       "#{inspect module}.#{fun}(#{Enum.join(inspected, ", ")})"
-    else:
+    else
       "#{inspect module}.#{fun}/#{arity}"
     end
   end
@@ -95,10 +95,10 @@ defmodule Exception do
       file = to_binary(file)
       if line && line != 0 do
         "#{file}:#{line}: "
-      else:
+      else
         "#{file}: "
       end
-    else:
+    else
       ""
     end
   end
@@ -117,54 +117,54 @@ defexception ArgumentError,     message: "argument error"
 defexception ArithmeticError,   message: "bad argument in arithmetic expression"
 defexception SystemLimitError,  message: "a system limit has been reached"
 
-defexception SyntaxError, file: nil, line: nil, description: "syntax error" do
+defexception SyntaxError, [file: nil, line: nil, description: "syntax error"] do
   def message(exception) do
     "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
   end
 end
 
-defexception TokenMissingError, file: nil, line: nil, description: "expression is incomplete" do
+defexception TokenMissingError, [file: nil, line: nil, description: "expression is incomplete"] do
   def message(exception) do
     "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
   end
 end
 
-defexception CompileError, file: nil, line: nil, description: "compile error" do
+defexception CompileError, [file: nil, line: nil, description: "compile error"] do
   def message(exception) do
     "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
   end
 end
 
-defexception BadFunctionError, actual: nil do
+defexception BadFunctionError, [actual: nil] do
   def message(exception) do
     "bad function: #{inspect(exception.actual)}"
   end
 end
 
-defexception MatchError, actual: nil do
+defexception MatchError, [actual: nil] do
   def message(exception) do
     "no match of right hand side value: #{inspect(exception.actual)}"
   end
 end
 
-defexception CaseClauseError, actual: nil do
+defexception CaseClauseError, [actual: nil] do
   def message(exception) do
     "no case clause matching: #{inspect(exception.actual)}"
   end
 end
 
-defexception BadArityError, function: nil, args: nil do
+defexception BadArityError, [function: nil, args: nil] do
   def message(exception) do
     "bad arity error: #{inspect(exception.function)} called with #{inspect(exception.args)}"
   end
 end
 
-defexception UndefinedFunctionError, module: nil, function: nil, arity: nil do
+defexception UndefinedFunctionError, [module: nil, function: nil, arity: nil] do
   def message(exception) do
     if exception.function do
       formatted = Exception.format_module_fun_arity exception.module, exception.function, to_arity(exception.arity)
       "undefined function: #{formatted}"
-    else:
+    else
       "undefined function"
     end
   end
@@ -173,24 +173,24 @@ defexception UndefinedFunctionError, module: nil, function: nil, arity: nil do
   defp to_arity(list)  when is_list(list),     do: length(list)
 end
 
-defexception FunctionClauseError, module: nil, function: nil, arity: nil do
+defexception FunctionClauseError, [module: nil, function: nil, arity: nil] do
   def message(exception) do
     if exception.function do
       formatted = Exception.format_module_fun_arity exception.module, exception.function, exception.arity
       "no function clause matching: #{formatted}"
-    else:
+    else
       "no function clause matches"
     end
   end
 end
 
-defexception Protocol.UndefinedError, protocol: nil, structure: nil do
+defexception Protocol.UndefinedError, [protocol: nil, structure: nil] do
   def message(exception) do
     "protocol #{inspect exception.protocol} not implemented for #{inspect exception.structure}"
   end
 end
 
-defexception ErlangError, original: nil do
+defexception ErlangError, [original: nil] do
   def message(exception) do
     "erlang error: #{inspect(exception.original)}"
   end

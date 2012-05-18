@@ -44,7 +44,7 @@ defmodule ProtocolTest do
 
   test :protocol_with_all do
     assert_undef(ProtocolTest.WithAll, Atom, :foo)
-    assert_undef(ProtocolTest.WithAll, Function, fn(x, do: x))
+    assert_undef(ProtocolTest.WithAll, Function, fn(x) -> x end)
     assert_undef(ProtocolTest.WithAll, Number, 1)
     assert_undef(ProtocolTest.WithAll, Number, 1.1)
     assert_undef(ProtocolTest.WithAll, List, [])
@@ -63,12 +63,12 @@ defmodule ProtocolTest do
     assert_undef(ProtocolTest.WithExcept, Any, :foo)
     assert_undef(ProtocolTest.WithExcept, Any, 1)
     assert_undef(ProtocolTest.WithExcept, Any, [1,2,3])
-    assert_undef(ProtocolTest.WithExcept, Function, fn(x, do: x))
+    assert_undef(ProtocolTest.WithExcept, Function, fn(x) -> x end)
     assert_undef(ProtocolTest.WithExcept, Tuple, {})
   end
 
   test :protocol_with_only do
-    assert_undef ProtocolTest.WithOnly, Function, fn(x, do: x)
+    assert_undef ProtocolTest.WithOnly, Function, fn(x) -> x end
     assert ProtocolTest.WithOnly.blank(ProtocolTest.Foo.new) == true
   end
 
@@ -87,7 +87,7 @@ defmodule ProtocolTest do
 
   test :protocol_for do
     assert_protocol_for(ProtocolTest.WithAll, Atom, :foo)
-    assert_protocol_for(ProtocolTest.WithAll, Function, fn(x, do: x))
+    assert_protocol_for(ProtocolTest.WithAll, Function, fn(x) -> x end)
     assert_protocol_for(ProtocolTest.WithAll, Number, 1)
     assert_protocol_for(ProtocolTest.WithAll, Number, 1.1)
     assert_protocol_for(ProtocolTest.WithAll, List, [])
@@ -120,14 +120,14 @@ defmodule ProtocolTest do
     try do
       target.blank(thing)
       raise "Expected invocation to fail"
-    catch: :error, :undef, [stack|_]
-      ref = Module.concat target, impl
-      case hd(stack) do
-      match: { ^ref, :blank, [^thing], _}
-        :ok
-      else:
-        raise "Invalid stack #{inspect stack}. Expected: { #{ref}, :blank, [#{inspect thing}], _ }"
-      end
+    catch
+      :error, :undef, [stack|_] ->
+        ref = Module.concat target, impl
+        case hd(stack) do
+          { ^ref, :blank, [^thing], _} -> :ok
+          _ ->
+            raise "Invalid stack #{inspect stack}. Expected: { #{ref}, :blank, [#{inspect thing}], _ }"
+        end
     end
   end
 end

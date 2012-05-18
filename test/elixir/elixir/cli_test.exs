@@ -75,11 +75,13 @@ defmodule Elixir.CLI.CompileTest do
   use ExUnit.Case
 
   test :compile_code do
-    assert OS.cmd('bin/elixirc test/elixir/fixtures/compile_sample.exs -o test/tmp/') ==
-      'Compiled test/elixir/fixtures/compile_sample.exs\n'
-    assert File.regular?("test/tmp/__MAIN__/CompileSample.beam")
-  after:
-    Erlang.file.del_dir("test/tmp/")
+    try do
+      assert OS.cmd('bin/elixirc test/elixir/fixtures/compile_sample.exs -o test/tmp/') ==
+        'Compiled test/elixir/fixtures/compile_sample.exs\n'
+      assert File.regular?("test/tmp/__MAIN__/CompileSample.beam")
+    after
+      Erlang.file.del_dir("test/tmp/")
+    end
   end
 end
 
@@ -87,13 +89,15 @@ defmodule Elixir.CLI.ParallelCompilerTest do
   use ExUnit.Case
 
   test :compile_code do
-    output = OS.cmd('bin/elixirc test/elixir/fixtures/parallel_compiler -o test/tmp/')
-    assert Erlang.string.str(output, 'message_from_foo') > 0,
-      "Expected #{inspect output} to contain 'message_from_foo'"
-    assert File.regular?("test/tmp/__MAIN__/Foo.beam")
-    assert File.regular?("test/tmp/__MAIN__/Bar.beam")
-  after:
-    Erlang.file.del_dir("test/tmp/")
+    try do
+      output = OS.cmd('bin/elixirc test/elixir/fixtures/parallel_compiler -o test/tmp/')
+      assert Erlang.string.str(output, 'message_from_foo') > 0,
+        "Expected #{inspect output} to contain 'message_from_foo'"
+      assert File.regular?("test/tmp/__MAIN__/Foo.beam")
+      assert File.regular?("test/tmp/__MAIN__/Bar.beam")
+    after
+      Erlang.file.del_dir("test/tmp/")
+    end
   end
 
   test :deadlock_failure do

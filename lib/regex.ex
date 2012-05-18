@@ -88,10 +88,10 @@ defmodule Regex do
   """
   def run({ Regex, compiled, _, _ }, string) do
     case Erlang.re.run(string, compiled, [{ :capture, :all, return_for(string) }]) do
-    match: :nomatch
-      nil
-    match: { :match, results }
-      results
+      :nomatch ->
+        nil
+      { :match, results } ->
+        results
     end
   end
 
@@ -109,10 +109,10 @@ defmodule Regex do
   """
   def indexes({ Regex, compiled, _, _ }, string) do
     case Erlang.re.run(string, compiled, [{ :capture, :all, :index }, { :offset, 0 }]) do
-    match: :nomatch
-      nil
-    match: { :match, results }
-      results
+      :nomatch ->
+        nil
+      { :match, results } ->
+        results
     end
   end
 
@@ -163,17 +163,14 @@ defmodule Regex do
   def scan({ Regex, compiled, _, _ }, string) do
     options = [{ :capture, :all, return_for(string) }, :global, { :offset, 0 }]
     case Erlang.re.run(string, compiled, options) do
-    match: :nomatch
-      []
-    match: { :match, results }
-      lc result in results do
-        case result do
-        match: [t]
-          t
-        match: [h|t]
-          t
+      :nomatch -> []
+      { :match, results } ->
+        lc result in results do
+          case result do
+            [t] -> t
+            [h|t] -> t
+          end
         end
-      end
     end
   end
 

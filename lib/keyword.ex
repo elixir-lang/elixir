@@ -44,7 +44,7 @@ defmodule Keyword do
 
   """
   def new(pairs) do
-    Enum.reduce pairs, [], fn({k, v}, keywords) ->
+    Enum.reduce pairs, [], fn {k, v}, keywords ->
       put(keywords, k, v)
     end
   end
@@ -56,11 +56,11 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.new [:a, :b], fn(x) -> {x,x} end
+      Keyword.new [:a, :b], fn x -> {x,x} end
       #=> [a: :a, b: :b]
   """
   def new(pairs, transform) do
-    Enum.reduce pairs, [], fn(i, keywords) ->
+    Enum.reduce pairs, [], fn i, keywords ->
       { k, v } = transform.(i)
       put(keywords, k, v)
     end
@@ -181,7 +181,7 @@ defmodule Keyword do
       #=> [a:3, b:2, d: 4]
   """
   def merge(d1, d2) do
-    merge(d1, d2, fn(_k, _v1, v2) -> v2 end)
+    merge(d1, d2, fn _k, _v1, v2 -> v2 end)
   end
 
   @doc """
@@ -190,7 +190,7 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn(_k, v1, v2) ->
+      Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
         v1 + v2
       end
       #=> [a:4, b:2, d: 4]

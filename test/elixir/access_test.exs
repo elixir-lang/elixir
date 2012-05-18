@@ -120,7 +120,7 @@ defmodule Access.FunctionTest do
   use ExUnit.Case
 
   test :any do
-    function = fn(x) -> x == :foo end
+    function = fn x -> x == :foo end
     assert function[:foo] == true
     assert function[:bar] == false
   end

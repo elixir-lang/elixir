@@ -818,8 +818,7 @@ defmodule Elixir.Builtin do
       child   = spawn(fn -> current <- { Process.self, 1 + 2 } end)
 
       receive
-      match: { ^child, 3 }
-        IO.puts "Received 3 back"
+        { ^child, 3 } -> IO.puts "Received 3 back"
       end
 
   """
@@ -850,8 +849,8 @@ defmodule Elixir.Builtin do
       child   = spawn_link(fn -> current <- { Process.self, 1 + 2 } end)
 
       receive
-      match: { ^child, 3 }
-        IO.puts "Received 3 back"
+        { ^child, 3 } ->
+          IO.puts "Received 3 back"
       end
 
   """
@@ -1014,7 +1013,7 @@ defmodule Elixir.Builtin do
   and the value as the value returned by the function:
 
       defmacro defkv(keywords) do
-        Enum.map keywords, fn({k,v}) ->
+        Enum.map keywords, fn {k,v} ->
           quote do
             def unquote(k).() do
               unquote(v)
@@ -1165,10 +1164,10 @@ defmodule Elixir.Builtin do
     end)
 
     opts = case Keyword.key?(opts, :moduledoc) do
-    match: false
-      Keyword.put(opts, :moduledoc, nil)
-    else:
-      opts
+      false ->
+        Keyword.put(opts, :moduledoc, nil)
+      _ ->
+        opts
     end
 
     values = [{ :__exception__, :__exception__ }|values]
@@ -1176,8 +1175,8 @@ defmodule Elixir.Builtin do
 
     check  = quote do
       name = Module.concat __MODULE__, unquote(name)
-      unless List.member?(name.__info__(:functions), { :message, 1 }), do:
-        raise "Expected #{name} to implement message/1"
+      unless List.member?(name.__info__(:functions), { :message, 1 }),
+        do: raise "Expected #{name} to implement message/1"
     end
 
     [record, check]
@@ -1196,7 +1195,7 @@ defmodule Elixir.Builtin do
     quote do
       in_guard do
         is_tuple(unquote(thing)) and :erlang.element(2, unquote(thing)) == :__exception__
-      else:
+      else
         result = unquote(thing)
         is_tuple(result) and :erlang.element(2, result) == :__exception__
       end
@@ -1220,7 +1219,7 @@ defmodule Elixir.Builtin do
     quote do
       in_guard do
         is_tuple(unquote(thing)) and :erlang.element(1, unquote(thing)) == unquote(kind)
-      else:
+      else
         result = unquote(thing)
         is_tuple(result) and :erlang.element(1, result) == unquote(kind)
       end
@@ -1346,8 +1345,8 @@ defmodule Elixir.Builtin do
   Defines an implementation for the given protocol. See
   `defprotocol/2` for examples.
   """
-  defmacro defimpl(name, [for: for], [do: block]) do
-    Protocol.defimpl(name, [for: for], [do: block])
+  defmacro defimpl(name, opts, do_block // []) do
+    Protocol.defimpl(name, Keyword.merge(opts, do_block))
   end
 
   @doc """
@@ -1577,10 +1576,10 @@ defmodule Elixir.Builtin do
   defmacro match?(left, right) do
     quote do
       case unquote(right) do
-      match: unquote(left)
-        true
-      else:
-        false
+        unquote(left) ->
+          true
+        _ ->
+          false
       end
     end
   end
@@ -1591,10 +1590,9 @@ defmodule Elixir.Builtin do
   ## Examples
 
       case thing do
-      match: { :selector, i, value } when is_integer(i)
-        value
-      match: value
-        value
+        { :selector, i, value } when is_integer(i) ->
+          value
+        value -> value
       end
 
   In the example above, we compare `thing` with each given
@@ -1607,8 +1605,7 @@ defmodule Elixir.Builtin do
 
       i = 1
       case 10 do
-      match: i
-        i * 2
+        i -> i * 2
       end
 
   The example above will return 20, because `i` is assgined to 10
@@ -1617,8 +1614,7 @@ defmodule Elixir.Builtin do
 
       i = 1
       case 10 do
-      match: ^i
-        i * 2
+        ^i -> i * 2
       end
 
   The example above will actually fail because 10 does not match 1.
@@ -1627,10 +1623,10 @@ defmodule Elixir.Builtin do
   of the clauses match:
 
       case thing do
-      match: { :selector, i, value } when is_integer(i)
-        value
-      else:
-        thing
+        { :selector, i, value } when is_integer(i) ->
+          value
+        _ ->
+          thing
       end
 
   """
@@ -1644,11 +1640,13 @@ defmodule Elixir.Builtin do
 
       try do
         do_something_that_may_fail(some_arg)
-      rescue: ArgumentError
-        IO.puts "Invalid argument given"
-      catch: value
-        IO.puts "caught \#{value}"
-      after:
+      rescue
+        ArgumentError ->
+          IO.puts "Invalid argument given"
+      catch
+        value ->
+          IO.puts "caught \#{value}"
+      after
         IO.puts "This is printed regardless if it failed or succeed"
       end
 
@@ -1669,24 +1667,28 @@ defmodule Elixir.Builtin do
 
       try do
         UndefinedModule.undefined_function
-      rescue: UndefinedFunctionError
+      rescue
+        UndefinedFunctionError -> nil
       end
 
       try do
         UndefinedModule.undefined_function
-      rescue: [UndefinedFunctionError]
+      rescue
+        [UndefinedFunctionError] -> nil
       end
 
       # rescue and assign to x
       try do
         UndefinedModule.undefined_function
-      rescue: x in [UndefinedFunctionError]
+      rescue
+        x in [UndefinedFunctionError] -> nil
       end
 
       # rescue all and assign to x
       try do
         UndefinedModule.undefined_function
-      rescue: x
+      rescue
+        x -> nil
       end
 
   ## Variable visibility
@@ -1700,8 +1702,8 @@ defmodule Elixir.Builtin do
         x = 1
         do_something_that_may_fail(same_arg)
         :ok
-      catch: _, _
-        :failed
+      catch
+        _ | _ -> :failed
       end
 
       x #=> Cannot access `x`
@@ -1716,14 +1718,15 @@ defmodule Elixir.Builtin do
 
       try do
         exit(1)
-      catch: :exit, 1
-        IO.puts "Exited with 1"
+      catch
+        :exit, 1 -> IO.puts "Exited with 1"
       end
 
       try do
         error(:sample)
-      catch: :error, :sample
-        IO.puts "sample error"
+      catch
+        :error, :sample ->
+          IO.puts "sample error"
       end
 
   Although the second form should be avoided in favor of raise/rescue
@@ -1738,12 +1741,12 @@ defmodule Elixir.Builtin do
   ## Examples
 
       receive do
-      match: { :selector, i, value } when is_integer(i)
-        value
-      match: value when is_atom(value)
-        value
-      else:
-        IO.puts :standard_error, "Unexpected message received"
+        { :selector, i, value } when is_integer(i) ->
+          value
+        value when is_atom(value) ->
+          value
+        _ ->
+          IO.puts :standard_error, "Unexpected message received"
       end
 
   The match clauses above follows the same rules as `case/2`.
@@ -1752,18 +1755,19 @@ defmodule Elixir.Builtin do
   received after the specified period of time:
 
       receive do
-      match: { :selector, i, value } when is_integer(i)
-        value
-      match: value when is_atom(value)
-        value
-      else:
-        IO.puts :standard_error, "Unexpected message received"
-      after: 5000
-        IO.puts :standard_error, "No message in 5 seconds"
+        { :selector, i, value } when is_integer(i) ->
+          value
+        value when is_atom(value) ->
+          value
+        _ ->
+          IO.puts :standard_error, "Unexpected message received"
+      after
+        5000 ->
+          IO.puts :standard_error, "No message in 5 seconds"
       end
 
   The `after` clause can be specified even if there are no match clauses.
-  There are two special cases for the timout value given to after:
+  There are two special cases for the timout value given to after
 
   * `:infinity` - The process should wait indefinitely for a matching
   message, this is the same as not using a timeout.
@@ -1778,7 +1782,7 @@ defmodule Elixir.Builtin do
 
   ## Examples
 
-      apply fn(x) -> x * 2 end, [2]
+      apply fn x -> x * 2 end, [2]
       #=> 4
 
   """
@@ -1796,7 +1800,7 @@ defmodule Elixir.Builtin do
   def apply(module, fun, args)
 
   @doc """
-  Provides an `if` macro. The macro expects the first argument to
+  Provides an `if` macro. This macro expects the first argument to
   be a condition and the rest are keywords arguments.
 
   ## One-liner examples
@@ -1810,54 +1814,64 @@ defmodule Elixir.Builtin do
 
       if(foo, do: bar, else: bar)
 
-  ## Key-value blocks examples
+  ## Blocks examples
 
-  When several expressions must be passed to if, the most appropriate
-  form is thorugh keywords blocks. The first example above would then
-  be translated to:
+  Elixir also allows you to pass a block to the if macro. The first
+  example above would be translated to:
 
       if foo do
         bar
       end
 
-  Notice that do/end becomes delimiters. The value given between
-  do/end becomes the expression given to as `do:`. The second example
-  would then translate do:
+  Notice that do/end becomes delimiters. The second example would
+  then translate do:
 
       if foo do
         bar
-      else:
+      else
         baz
       end
 
-  Notice that extra keys follows the regular `else:` form. You can also
-  add extra `elsif:` clauses:
+  If you want to compare more than two clauses, you can use the `cond/1`
+  macro.
+  """
+  defmacro if(condition, [{:do,do_clause}|tail]) do
+    else_clause = Keyword.get(tail, :else, nil)
 
+    quote do
+      case !unquote(condition) do
+        false -> unquote(do_clause)
+        true  -> unquote(else_clause)
+      end
+    end
+  end
 
-      if foo do
-        bar
-      elsif: some_condition
-        bar + baz
-      else:
-        baz
+  @doc """
+  Execute the first clause where the condition returns true,
+  raises an error otherwise.
+
+  ## Examples
+
+      cond do
+        1 + 1 == 2 ->
+          "This will never match"
+        2 * 2 != 4 ->
+          "Nor this"
+        true ->
+          "This will"
       end
 
   """
-  defmacro if(condition, [{:do,do_clause}|tail]) do
-    # Transform the condition and the expressions in the
-    # do_clause to a keywords block. Get the else clause.
-    if_clause   = { :__kwblock__, 0, [ [condition], do_clause ] }
-    else_clause = Keyword.get(tail, :else, nil)
+  defmacro cond([do: { :"->", _, pairs }]) do
+    [{ [condition], clause }|t] = List.reverse pairs
 
-    # Convert all :elsif clauses into matches
-    converted   = lc {:elsif,rest} in tail, do: {:match,rest}
-    merged      = [{:match,if_clause}|converted]
+    new_acc = quote do
+      case !unquote(condition) do
+        false -> unquote(clause)
+      end
+    end
 
-    # Decouple all if and elsif clauses into an array of tuples.
-    # Those tuples are made of three elements, the key-block key,
-    # the given condition and the block expressions
-    all = Erlang.elixir_kw_block.decouple(merged)
-    build_if_clauses(List.reverse(all), else_clause)
+    build_cond_clauses(t, new_acc)
   end
 
   @doc """
@@ -1904,13 +1918,13 @@ defmodule Elixir.Builtin do
   it will raise a CaseClauseError.
   """
   defmacro destructure(left, right) when is_list(left) do
-    List.foldl left, right, fn(item, acc) ->
+    List.foldl left, right, fn item, acc ->
       quote do
         case unquote(acc) do
-        match: [unquote(item)|t]
-          t
-        match: other when other == [] or other == nil
-          unquote(item) = nil
+          [unquote(item)|t] ->
+            t
+          other when other == [] or other == nil ->
+            unquote(item) = nil
         end
       end
     end
@@ -2001,10 +2015,10 @@ defmodule Elixir.Builtin do
   defmacro :&&.(left, right) do
     quote do
       case unquote(left) do
-      match: andand in [false, nil]
-        andand
-      match: _
-        unquote(right)
+        andand in [false, nil] ->
+          andand
+        _ ->
+          unquote(right)
       end
     end
   end
@@ -2028,10 +2042,10 @@ defmodule Elixir.Builtin do
   defmacro :||.(left, right) do
     quote do
       case unquote(left) do
-      match: oror in [false, nil]
-        unquote(right)
-      match: oror
-        oror
+        oror in [false, nil] ->
+          unquote(right)
+        oror ->
+          oror
       end
     end
   end
@@ -2052,7 +2066,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro :in.(left, [h|t]) do
-    :lists.foldl fn(x, acc) ->
+    :lists.foldl fn x, acc ->
       { :or, 0, [acc, { :==, 0, [left, x] }] }
     end, { :==, 0, [left, h] }, t
   end
@@ -2075,12 +2089,9 @@ defmodule Elixir.Builtin do
   defmacro :!.({:!, _, [expr]}) do
     quote do
       case unquote(expr) do
-      match: false
-        false
-      match: nil
-        false
-      else:
-        true
+        false -> false
+        nil -> false
+        _ -> true
       end
     end
   end
@@ -2088,12 +2099,9 @@ defmodule Elixir.Builtin do
   defmacro :!.(expr) do
     quote do
       case unquote(expr) do
-      match: false
-        true
-      match: nil
-        true
-      else:
-        false
+        false -> true
+        nil -> true
+        _ -> false
       end
     end
   end
@@ -2110,9 +2118,10 @@ defmodule Elixir.Builtin do
 
       try do
         1 + :foo
-      rescue: x in [BadargError]
-        IO.puts "that was expected"
-        raise x
+      rescue
+        x in [BadargError] ->
+          IO.puts "that was expected"
+          raise x
       end
 
   """
@@ -2244,47 +2253,27 @@ defmodule Elixir.Builtin do
     { :|, 0, [other, :binary] }
   end
 
-  # Builds if clauses by nesting them recursively.
-  # For instance, the following clause:
-  #
-  #     if foo do
-  #       1
-  #     elsif: bar
-  #       2
-  #     else:
-  #       3
-  #     end
-  #
-  # Becomes:
+  # Builds cond clauses by nesting them recursively.
   #
   #     case !foo do
-  #     match: false
-  #       1
-  #     match: true
-  #       case !bar do
-  #       match: false
-  #         2
-  #       match: true
-  #         3
-  #       end
+  #       false -> 1
+  #       true ->
+  #         case !bar do
+  #           false -> 2
+  #           true -> 3
+  #         end
   #     end
   #
-  defp build_if_clauses([{ :match, [condition], clause }|t], acc) do
+  defp build_cond_clauses([{ [condition], clause }|t], acc) do
     new_acc = quote do
       case !unquote(condition) do
-      match: false
-        unquote(clause)
-      else:
-        unquote(acc)
+        false -> unquote(clause)
+        true  -> unquote(acc)
       end
     end
 
-    build_if_clauses(t, new_acc)
+    build_cond_clauses(t, new_acc)
   end
 
-  defp build_if_clauses([{ :match, _, _clause }|_], _) do
-    raise ArgumentError, message: "No or too many conditions given to elsif clause"
-  end
-
-  defp build_if_clauses([], acc), do: acc
+  defp build_cond_clauses([], acc), do: acc
 end

@@ -4,31 +4,26 @@
 -include("elixir.hrl").
 
 clauses(Line, Clauses, S) ->
-  DecoupledClauses = elixir_kw_block:decouple(Clauses),
-  { Catch, Rescue } = lists:partition(fun(X) -> element(1, X) == 'catch' end, DecoupledClauses),
+  Catch  = elixir_clauses:get_pairs(Line, 'catch', Clauses, S),
+  Rescue = elixir_clauses:get_pairs(Line, rescue, Clauses, S),
   Transformer = fun(X, Acc) -> each_clause(Line, X, umergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, Rescue ++ Catch).
 
-each_clause(Line, {'catch',Raw,Expr} = Catch, S) ->
+each_clause(Line, { 'catch', Raw, Expr }, S) ->
   { Args, Guards } = elixir_clauses:extract_last_guards(Raw),
-  elixir_kw_block:validate(Line, Catch, 3, S),
 
   Final = case Args of
     [X]     -> [throw, X, { '_', Line, nil }];
     [X,Y]   -> [X, Y, { '_', Line, nil }];
     [_,_,_] -> Args;
-    [] ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "no condition given for catch");
-    _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many conditions given for catch")
+    _       ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many arguments given for catch")
   end,
 
   Condition = { '{}', Line, Final },
   elixir_clauses:assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], Guards, S);
 
-each_clause(Line, { rescue, Args, Expr } = Rescue, S) ->
-  elixir_kw_block:validate(Line, Rescue, 1, S),
-  [Condition] = Args,
+each_clause(Line, { rescue, [Condition], Expr }, S) ->
   case normalize_rescue(Line, Condition, S) of
     { Left, Right } ->
       case Left of
@@ -57,6 +52,9 @@ each_clause(Line, { rescue, Args, Expr } = Rescue, S) ->
       validate_rescue_access(Line, Condition, S),
       Result
   end;
+
+each_clause(Line, {rescue,_,_}, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many arguments given for rescue");
 
 each_clause(Line, {Key,_,_}, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key ~s in try", [Key]).

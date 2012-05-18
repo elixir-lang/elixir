@@ -39,10 +39,10 @@ defmodule Process do
   """
   def get(key, default // nil) do
     case :erlang.get(key) do
-    match: :undefined
-      default
-    match: value
-      value
+      :undefined ->
+        default
+      value ->
+        value
     end
   end
 
@@ -315,5 +315,5 @@ defmodule Process do
   end
 
   defp nillify(:undefined), do: nil
-  defp nillify(else),       do: else
+  defp nillify(other),      do: other
 end

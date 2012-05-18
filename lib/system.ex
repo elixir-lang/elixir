@@ -35,23 +35,23 @@ defmodule System.GitCompiler do
 
     output = read_port port
     case output do
-    match: { 0, data }
-      Regex.replace_all %r/\n/, to_binary(data), ""
-    else:
-      ""
+      { 0, data } ->
+        Regex.replace_all %r/\n/, to_binary(data), ""
+      _ ->
+        ""
     end
   end
 
   defp read_port(port, data // []) do
     receive do
-    match: {^port, {:data, new_data}}
-      read_port port, [new_data|data]
-    match: {^port, :eof}
-      :erlang.port_close port
-      receive do
-      match: {^port, {:exit_status, exit_status}}
-        {exit_status, List.reverse data}
-      end
+      {^port, {:data, new_data}} ->
+        read_port port, [new_data|data]
+      {^port, :eof} ->
+        :erlang.port_close port
+        receive do
+          {^port, {:exit_status, exit_status}} ->
+            {exit_status, List.reverse data}
+        end
     end
   end
 
@@ -119,10 +119,8 @@ defmodule System do
   """
   def get_env(varname) do
     case :os.getenv(to_char_list(varname)) do
-    match: false
-      nil
-    match: other
-      list_to_binary(other)
+      false -> nil
+      other -> list_to_binary(other)
     end
   end
 
@@ -146,7 +144,7 @@ defmodule System do
   to each key in `dict`.
   """
   def put_env(dict) do
-    Enum.each dict, fn({key, val}) -> put_env key, val end
+    Enum.each dict, fn {key, val} -> put_env key, val end
   end
 
   @doc """
@@ -160,8 +158,8 @@ defmodule System do
 
   # Filter stacktrace by removing internal BOOTSTRAP calls.
   defp filter_stacktrace([{ Elixir.Builtin, :raise, _, _ }|t]), do: filter_stacktrace(t)
-  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _, info }|t]), do:
-    filter_stacktrace([{ Elixir.Builtin, :defmodule, 2, info }|t])
+  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _, info }|t]),
+    do: filter_stacktrace([{ Elixir.Builtin, :defmodule, 2, info }|t])
   defp filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
   defp filter_stacktrace([]), do: []
 

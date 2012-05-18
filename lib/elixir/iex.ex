@@ -8,10 +8,8 @@ defmodule Elixir.IEx.UnicodeIO do
   """
   def get(cache, _count) do
     prompt = case cache do
-    match: []
-      "iex> "
-    match: _
-      "...> "
+      [] -> "iex> "
+      _ -> "...> "
     end
     :unicode.characters_to_list(Erlang.io.get_line(prompt))
   end
@@ -65,24 +63,26 @@ defmodule Elixir.IEx do
           Erlang.elixir.eval(code, config.binding, counter, config.scope)
         io.put result
         config.binding(new_binding).cache('').scope(scope)
-      rescue: TokenMissingError
-        config.cache(code)
-      rescue: exception
-        stacktrace = System.stacktrace
-        io.error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        print_stacktrace io, stacktrace
-        config.cache('')
-      catch: kind, error
-        stacktrace = System.stacktrace
-        io.error "** (#{kind}) #{inspect(error)}"
-        print_stacktrace io, stacktrace
-        config.cache('')
+      rescue
+        TokenMissingError ->
+          config.cache(code)
+        exception ->
+          stacktrace = System.stacktrace
+          io.error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+          print_stacktrace io, stacktrace
+          config.cache('')
+      catch
+        kind, error ->
+          stacktrace = System.stacktrace
+          io.error "** (#{kind}) #{inspect(error)}"
+          print_stacktrace io, stacktrace
+          config.cache('')
       end
 
     do_loop(new_config)
   end
 
   defp print_stacktrace(io, stacktrace) do
-    Enum.each stacktrace, fn(s, do: io.error "    #{format_stacktrace(s)}")
+    Enum.each stacktrace, fn s -> io.error "    #{format_stacktrace(s)}" end
   end
 end
