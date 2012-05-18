@@ -1814,19 +1814,17 @@ defmodule Elixir.Builtin do
 
       if(foo, do: bar, else: bar)
 
-  ## Keyword blocks examples
+  ## Blocks examples
 
-  When several expressions must be passed to if, the most appropriate
-  form is thorugh keywords blocks. The first example above would then
-  be translated to:
+  Elixir also allows you to pass a block to the if macro. The first
+  example above would be translated to:
 
       if foo do
         bar
       end
 
-  Notice that do/end becomes delimiters. The value given between
-  do/end becomes the expression given to as `do:`. The second example
-  would then translate do:
+  Notice that do/end becomes delimiters. The second example would
+  then translate do:
 
       if foo do
         bar
@@ -1836,7 +1834,6 @@ defmodule Elixir.Builtin do
 
   If you want to compare more than two clauses, you can use the `cond/1`
   macro.
-
   """
   defmacro if(condition, [{:do,do_clause}|tail]) do
     else_clause = Keyword.get(tail, :else, nil)
