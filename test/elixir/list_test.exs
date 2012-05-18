@@ -29,15 +29,15 @@ defmodule ListTest do
   end
 
   test :foldl do
-    assert List.foldl([1,2,3], 0, fn(x,y) -> x + y end) == 6
-    assert List.foldl([1,2,3], 10, fn(x,y) -> x + y end) == 16
-    assert List.foldl([1,2,3,4], 0, fn(x,y) -> x - y end) == 2
+    assert List.foldl([1,2,3], 0, fn x,y -> x + y end) == 6
+    assert List.foldl([1,2,3], 10, fn x,y -> x + y end) == 16
+    assert List.foldl([1,2,3,4], 0, fn x,y -> x - y end) == 2
   end
 
   test :foldr do
-    assert List.foldr([1,2,3], 0, fn(x,y) -> x + y end) == 6
-    assert List.foldr([1,2,3], 10, fn(x,y) -> x + y end) == 16
-    assert List.foldr([1,2,3,4], 0, fn(x,y) -> x - y end) == -2
+    assert List.foldr([1,2,3], 0, fn x,y -> x + y end) == 6
+    assert List.foldr([1,2,3], 10, fn x,y -> x + y end) == 16
+    assert List.foldr([1,2,3,4], 0, fn x,y -> x - y end) == -2
   end
 
   def test_member? do
@@ -63,7 +63,7 @@ defmodule ListTest do
     assert List.sort([3, 5, 1, 2, 4]) == [1,2,3,4,5]
     assert List.sort([3, 5, 1, 2, 4], &2 <= &1) == [5,4,3,2,1]
     assert List.sort(['2', '3', '0', '11', '10']) == ['0', '10', '11', '2', '3']
-    assert ['0', '2', '3', '10', '11'] == List.sort ['2', '3', '0', '11', '10'], fn(a, b) ->
+    assert ['0', '2', '3', '10', '11'] == List.sort ['2', '3', '0', '11', '10'], fn a, b ->
       {na, _} = :string.to_integer a
       {nb, _} = :string.to_integer b
       na <= nb

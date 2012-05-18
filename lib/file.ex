@@ -34,7 +34,7 @@ defmodule File do
   `:universal`, or `:posix`. Default is `:local`.
   """
 
-  defexception Error, reason: nil, action: "", path: nil do
+  defexception Error, [reason: nil, action: "", path: nil] do
     def message(exception) do
       formatted = list_to_binary(F.format_error(exception.reason))
       "could not #{exception.action} #{exception.path}: #{formatted}"
@@ -203,10 +203,10 @@ defmodule File do
   """
   def read!(path) do
     case read(path) do
-    match: { :ok, binary }
-      binary
-    match: { :error, reason }
-      raise File.Error, reason: reason, action: "read file", path: to_binary(path)
+      { :ok, binary } ->
+        binary
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "read file", path: to_binary(path)
     end
   end
 
@@ -278,10 +278,10 @@ defmodule File do
   """
   def read_info(path, opts // []) do
     case :file.read_file_info(path, opts) do
-    match: {:ok, fileinfo}
-      {:ok, Info.new fileinfo}
-    match: error
-      error
+      {:ok, fileinfo} ->
+        {:ok, Info.new fileinfo}
+      error ->
+        error
     end
   end
 
@@ -291,10 +291,10 @@ defmodule File do
   """
   def read_info!(path, opts // []) do
     case read_info(path, opts) do
-    match: {:ok, info}
-      info
-    match: {:error, reason}
-      raise File.Error, reason: reason, action: "read file info", path: to_binary(path)
+      {:ok, info} ->
+        info
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "read file info", path: to_binary(path)
     end
   end
 

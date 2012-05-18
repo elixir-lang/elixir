@@ -179,7 +179,7 @@ defmodule Module do
     registered = ETS.lookup_element(table, :registered_attributes, 2)
     data       = lc kv in data, do: normalize_data(kv)
 
-    { attrs, new } = :lists.partition fn({k,_}) -> List.member?(registered, k) end, data
+    { attrs, new } = :lists.partition fn {k,_} -> List.member?(registered, k) end, data
     lc {k,v} in attrs, do: add_attribute(module, k, v)
     ETS.insert(table, { :data,  Keyword.merge(old, new) })
   end
@@ -213,13 +213,13 @@ defmodule Module do
     table = docs_table_for(module)
 
     case { ETS.lookup(table, tuple), doc } do
-    match: { [], _ }
-      ETS.insert(table, { tuple, line, kind, doc })
-      :ok
-    match: { _, nil }
-      :ok
-    else:
-      { :error, :existing_doc }
+      { [], _ } ->
+        ETS.insert(table, { tuple, line, kind, doc })
+        :ok
+      { _, nil } ->
+        :ok
+      _ ->
+        { :error, :existing_doc }
     end
   end
 
@@ -306,12 +306,12 @@ defmodule Module do
     table = function_table_for(module)
     lc tuple in tuples do
       case ETS.lookup(table, tuple) do
-      match: [clause]
-        ETS.delete(table, tuple)
-        Erlang.elixir_def_overridable.define(module, tuple, clause)
-      else:
-        { name, arity } = tuple
-        raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
+        [clause] ->
+          ETS.delete(table, tuple)
+          Erlang.elixir_def_overridable.define(module, tuple, clause)
+        _ ->
+          { name, arity } = tuple
+          raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
       end
     end
   end
@@ -435,7 +435,7 @@ defmodule Module do
   ## Helpers
 
   defp normalize_data({ :on_load, atom }) when is_atom(atom), do: { :on_load, { atom, 0 } }
-  defp normalize_data(else), do: else
+  defp normalize_data(other), do: other
 
   defp data_table_for(module) do
     list_to_atom Erlang.lists.concat([:d, module])
@@ -451,7 +451,7 @@ defmodule Module do
 
   defp assert_not_compiled!(fun, module) do
     compiled?(module) ||
-      raise ArgumentError, message:
-        "could not call #{fun} on module #{inspect module} because it was already compiled"
+      raise ArgumentError,
+        message: "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
 end

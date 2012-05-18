@@ -223,7 +223,7 @@ defmodule Elixir.SpecialForms do
       2.0          #=> Floats
       [1,2]        #=> Lists
       "binaries"   #=> Binaries
-      {key, value} #=> Key-value pairs (i.e. a tuple with two elements)
+      {key, value} #=> Tuple with two elements
 
   ## Hygiene
 
@@ -241,7 +241,7 @@ defmodule Elixir.SpecialForms do
 
       a = 10
       Hygiene.no_interference
-      a # => 10
+      a #=> 10
 
   In the example above, `a` returns 10 even if the macro
   is apparently setting it to 1 because the variables defined
@@ -259,14 +259,14 @@ defmodule Elixir.SpecialForms do
 
       a = 10
       NoHygiene.interference
-      a # => 11
+      a #=> 11
 
   Notice that references are not hygienic in Elixir unless
   you explicitly access it via __MAIN__ to the reference name.
 
       quote do
-        __MAIN__.Foo # => Access the root Foo
-        Foo   # => Access the Foo reference in the current
+        __MAIN__.Foo #=> Access the root Foo
+        Foo   #=> Access the Foo reference in the current
                    module (if any is set), then fallback to root
       end
 
@@ -322,7 +322,7 @@ defmodule Elixir.SpecialForms do
 
   ## Examples
 
-      sum = fn(x, y, do: x + y)
+      sum = fn(x, y) -> x + y end
       sum.(1, 2) #=> 3
 
   Notice that a function needs to be invoked using the dot between
@@ -332,7 +332,7 @@ defmodule Elixir.SpecialForms do
   it is recommend to use it only with the stab operator in order to
   avoid ambiguity. For example, consider this case:
 
-      Enum.map [1,2,3], fn(x) ->
+      Enum.map [1,2,3], fn x ->
         x * 2
       end
 
@@ -352,10 +352,10 @@ defmodule Elixir.SpecialForms do
   as all clauses expects the same number of arguments:
 
       fun = fn do
-      match: x, y when y < 0
-        x - y
-      match: x, y
-        x + y
+        x, y when y < 0 ->
+          x - y
+        x, y ->
+          x + y
       end
 
       fun.(10, -10) #=> 20
@@ -372,10 +372,10 @@ defmodule Elixir.SpecialForms do
       list = [1,2,3]
 
       loop list, [] do
-      match: [h|t], acc
-        recur t, [h*2|acc]
-      match: [], acc
-        acc
+        [h|t], acc ->
+          recur t, [h*2|acc]
+        [], acc ->
+          acc
       end
       #=> [6,4,2]
 
@@ -473,9 +473,9 @@ defmodule Elixir.SpecialForms do
 
        defmacro is_exception(thing) do
          quote do
-           in_guard do
+           quote do
              is_tuple(unquote(thing)) and elem(unquote(thing), 2) == :__exception__
-           else:
+           else
              result = unquote(thing)
              is_tuple(result) and elem(result, 2) == :__exception__
            end

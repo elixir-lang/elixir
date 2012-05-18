@@ -156,7 +156,7 @@ find_dispatch(_Tuple, []) -> false.
 
 %% Insert call site into backtrace right after dispatch macro
 
-insert_before_dispatch_macro(Info, [{ elixir_dispatch, dispatch_macro, _, _ }|_] = T) ->
+insert_before_dispatch_macro(Info, [{ elixir_dispatch, dispatch_macro_fun, _, _ }|_] = T) ->
   [Info|T];
 
 insert_before_dispatch_macro(Info, [H|T]) ->

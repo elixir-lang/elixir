@@ -31,8 +31,8 @@ unquoted_atom_test() ->
 op_atom_test() ->
   [{atom,1,[f0_1]}] = tokenize(":f0_1").
 
-kv_test() ->
-  [{kv_identifier,1,do}] = tokenize("do:").
+kw_test() ->
+  [{kw_identifier,1,do}] = tokenize("do:").
 
 integer_test() ->
   [{number, 1, 123}] = tokenize("123"),
@@ -91,9 +91,6 @@ string_test() ->
 empty_string_test() ->
   [{bin_string,1,[<<>>]}] = tokenize("\"\""),
   [{list_string,1,[<<>>]}] = tokenize("''").
-
-functions_test() ->
-  [{do_identifier,1,fn},{do,1},{number,1,1}] = tokenize("fn do 1").
 
 default_test() ->
   [{identifier,1,x},{'//',1},{number,1,1}] = tokenize("x // 1").

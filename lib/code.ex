@@ -38,7 +38,7 @@ defmodule Code do
   ## Examples
 
       Code.eval "a + b", [a: 1, b: 2], file: __FILE__, line: __LINE__
-      # => { 3, [ {:a, 1}, {:b, 2} ] }
+      #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
   def eval(string, binding // [], opts // []) do
@@ -54,7 +54,7 @@ defmodule Code do
 
       contents = quote hygiene: false, do: a + b
       Code.eval_quoted contents, [a: 1, b: 2], file: __FILE__, line: __LINE__
-      # => { 3, [ {:a, 1}, {:b, 2} ] }
+      #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
   def eval_quoted(quoted, binding // [], opts // []) do
@@ -89,12 +89,11 @@ defmodule Code do
   def require_file(file, relative_to // nil) do
     file = find_file(file, relative_to)
 
-    case server_call { :loaded, file } do
-    match: :ok
-      Erlang.elixir_compiler.file to_char_list(file)
-      file
-    match: :duplicated
-      nil
+    case server_call({ :loaded, file }) do
+      :ok ->
+        Erlang.elixir_compiler.file to_char_list(file)
+        file
+      :duplicated -> nil
     end
   end
 
@@ -153,17 +152,17 @@ defmodule Code do
 
     file = if relative_to do
       File.expand_path(file, relative_to)
-    else:
+    else
       File.expand_path(file)
     end
 
     if File.regular?(file) do
       file
-    else:
+    else
       prefix = "#{file}.exs"
       if File.regular?(prefix) do
         prefix
-      else:
+      else
         raise ArgumentError, message: "could not load #{file}"
       end
     end

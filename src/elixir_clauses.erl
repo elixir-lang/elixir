@@ -1,13 +1,31 @@
-%% Handle code related to match/after/else and args/guard
-%% clauses for receive/case/fn and friends. try is
-%% handled in elixir_try.
+%% Handle code related to rocket args, guard and -> matching
+%% for case, fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/3, simple_match/3, assigns/3, assigns_block/5, assigns_block/6,
-  extract_args/1, extract_guards/1, extract_last_guards/1]).
+-export([
+  assigns/3, assigns_block/5, assigns_block/6, extract_last_guards/1,
+  get_pairs/4, get_pairs/5, match/3, extract_args/1, extract_guards/1]).
 -import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
 
+%% Get pairs from a clause.
+
+get_pairs(Line, Key, Clauses, S) ->
+  get_pairs(Line, Key, Clauses, S, false).
+
+get_pairs(Line, Key, Clauses, S, AllowNil) ->
+  case orddict:find(Key, Clauses) of
+    { ok, { '->', _, Pairs } } ->
+      [{ Key, Left, Right } || { Left, Right } <- Pairs];
+    { ok, nil } when AllowNil ->
+      [];
+    { ok, _ } ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "expected pairs with -> for key ~s", [Key]);
+    _ ->
+      []
+  end.
+
 % Function for translating assigns.
+
 assigns(Fun, Args, #elixir_scope{assign=false} = S) ->
   { Result, NewS } = assigns(Fun, Args, S#elixir_scope{assign=true, temp_vars=dict:new()}),
   { Result, NewS#elixir_scope{assign=false} };
@@ -57,6 +75,12 @@ extract_guards(Else) -> { Else, [] }.
 extract_or_clauses({ 'when', _, [Left, Right] }, Acc) -> extract_or_clauses(Right, [Left|Acc]);
 extract_or_clauses(Term, Acc) -> [Term|Acc].
 
+% Extract name and args from the given expression.
+
+extract_args({ { '.', _, [Name] }, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
+extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] };
+extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args }.
+
 % Extract guards when it is in the last element of the args
 
 extract_last_guards([]) -> { [], [] };
@@ -65,22 +89,10 @@ extract_last_guards(Args) ->
   { Bare, Guards } = extract_guards(Right),
   { Left ++ [Bare], Guards }.
 
-% Extract name and args from the given expression.
-
-extract_args({ { '.', _, [Name] }, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
-extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] };
-extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args }.
-
-simple_match(Line, Clauses, S) ->
-  Decoupled = elixir_kw_block:decouple(handle_else(Clauses)),
-  Transformer = fun(X, Acc) -> each_clause(Line, X, umergec(S, Acc)) end,
-  lists:mapfoldl(Transformer, S, Decoupled).
-
 % Function for translating macros with match style like case and receive.
 
-match(Line, Clauses, RawS) ->
+match(Line, DecoupledClauses, RawS) ->
   S = RawS#elixir_scope{clause_vars=dict:new()},
-  DecoupledClauses = elixir_kw_block:decouple(handle_else(Clauses)),
 
   case DecoupledClauses of
     [DecoupledClause] ->
@@ -149,43 +161,20 @@ match(Line, Clauses, RawS) ->
       end
   end.
 
-% Handle else clauses by moving them under the given Kind.
-handle_else(Clauses) ->
-  case orddict:find(else, Clauses) of
-    { ok, Else } -> orddict:erase(else, Clauses) ++ [{else,Else}];
-    _ -> Clauses
-  end.
-
 % Handle each key/value clause pair and translate them accordingly.
 
-% Do clauses have no conditions. So we are done.
-each_clause(Line, { do, _, _ } = Block, S) ->
-  elixir_kw_block:validate(Line, Block, 0, S),
-  { _, [], Expr } = Block,
-  elixir_translator:translate_each(Expr, S);
-
-each_clause(Line, { match, _, _ } = Block, S) ->
-  elixir_kw_block:validate(Line, Block, 1, S),
-  { _, [Condition], Expr } = Block,
+each_clause(Line, { do, [Condition], Expr }, S) ->
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
-each_clause(Line, { else, [], Exprs }, S) ->
-  each_clause(Line, { match, [{'_', Line, nil}], Exprs }, S);
-
-each_clause(Line, { else, [Expr], nil }, S) ->
-  each_clause(Line, { match, [{'_', Line, nil}], Expr }, S);
-
-each_clause(Line, { else, [Expr], Other }, S) ->
-  each_clause(Line, { match, [{'_', Line, nil}], prepend_to_block(Line, Expr, Other) }, S);
-
-each_clause(Line, { 'after', _, _ } = Block, S) ->
-  elixir_kw_block:validate(Line, Block, 1, S),
-  { _, [Condition], Expr } = Block,
+each_clause(Line, { 'after', [Condition], Expr }, S) ->
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TBody, SB } = elixir_translator:translate([Expr], SC),
   { { clause, Line, [TCondition], [], TBody }, SB };
 
-each_clause(Line, {Key,_,_}, S) ->
+each_clause(Line, { Key, [_|_], _ }, S) when Key == do; Key == 'after' ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many arguments given for ~s", [Key]);
+
+each_clause(Line, { Key, _, _ }, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key ~s", [Key]).
 
 % Check if the given expression is a match tuple.
@@ -250,11 +239,3 @@ generate_match(Line, LeftVars, RightVars) ->
 
 listify(Expr) when not is_list(Expr) -> [Expr];
 listify(Expr) -> Expr.
-
-%% Prepend a given expression to a block.
-
-prepend_to_block(_Line, Expr, { '__block__', Line, Args }) ->
-  { '__block__', Line, [Expr|Args] };
-
-prepend_to_block(Line, Expr, Args) ->
-  { '__block__', Line, [Expr, Args] }.

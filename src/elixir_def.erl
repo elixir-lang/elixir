@@ -37,7 +37,7 @@ reset_last(Module) ->
 %%
 %%   if false do
 %%     def bar, do: 1
-%%   else:
+%%   else
 %%     def bar, do: 2
 %%   end
 %%

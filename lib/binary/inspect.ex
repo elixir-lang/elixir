@@ -37,13 +37,14 @@ defimpl Binary.Inspect, for: Atom do
   def inspect(atom) do
     binary = atom_to_binary(atom)
 
-    if valid_identifier?(binary) == <<>> do
-      ":" <> binary
-    elsif: valid_ref_identifier?(binary) == <<>>
-      "__MAIN__." <> rest = binary
-      rest
-    else:
-      ":" <> Binary.escape(binary, ?")
+    cond do
+      valid_identifier?(binary) == <<>> ->
+          ":" <> binary
+      valid_ref_identifier?(binary) == <<>> ->
+        "__MAIN__." <> rest = binary
+        rest
+      true ->
+        ":" <> Binary.escape(binary, ?")
     end
   end
 
@@ -61,7 +62,7 @@ defimpl Binary.Inspect, for: Atom do
     valid_ref_piece? valid_identifier?(t)
   end
 
-  defp valid_ref_piece?(else), do: else
+  defp valid_ref_piece?(other), do: other
 
   # Detect if atom is :letter_or_underscore
 
@@ -72,7 +73,7 @@ defimpl Binary.Inspect, for: Atom do
     valid_identifier? t
   end
 
-  defp valid_identifier?(else), do: else
+  defp valid_identifier?(other), do: other
 end
 
 defimpl Binary.Inspect, for: BitString do
@@ -89,7 +90,7 @@ defimpl Binary.Inspect, for: BitString do
   def inspect(thing) when is_binary(thing) do
     if Binary.printable?(thing) do
       Binary.escape(thing, ?")
-    else:
+    else
       as_bitstring(thing)
     end
   end
@@ -131,7 +132,7 @@ defimpl Binary.Inspect, for: List do
   def inspect(thing) do
     if Erlang.io_lib.printable_list(thing) do
       Binary.escape(list_to_binary(thing), ?')
-    else:
+    else
       container_join(thing, "[", "]")
     end
   end
@@ -182,7 +183,7 @@ defimpl Binary.Inspect, for: Tuple do
     if is_record?(name) do
       fields = lc { field, _ } in name.__record__(:fields), do: field
       Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
-    else:
+    else
       Binary.Inspect.List.container_join(list, "{", "}")
     end
   end

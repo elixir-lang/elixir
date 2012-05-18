@@ -32,7 +32,7 @@ defmodule ExUnit.Case do
   defmacro __using__(module, opts // []) do
     if Keyword.get(opts, :sync, false) do
       ExUnit.Server.add_sync_case(module)
-    else:
+    else
       ExUnit.Server.add_case(module)
     end
 
@@ -65,23 +65,23 @@ defmodule ExUnit.Case do
   defmacro test(message, contents) do
     contents =
       case contents do
-      match: [do: block]
-        quote do
-          unquote(contents)
-          :ok
-        end
-      else:
-        quote do
-          try(unquote(contents))
-          :ok
-        end
+        [do: block] ->
+          quote do
+            unquote(contents)
+            :ok
+          end
+        _ ->
+          quote do
+            try(unquote(contents))
+            :ok
+          end
       end
 
     quote do
       message = unquote(message)
       message = if is_binary(message) do
         :"test #{message}"
-      else:
+      else
         :"test_#{message}"
       end
       def message, [], [], do: unquote(contents)

@@ -20,7 +20,7 @@ defmodule Dict.Common do
 
       """
       def new(pairs) do
-        Enum.reduce pairs, new, fn({ k, v }, dict) ->
+        Enum.reduce pairs, new, fn { k, v }, dict ->
           unquote(ref).put(dict, k, v)
         end
       end
@@ -31,11 +31,11 @@ defmodule Dict.Common do
 
       ## Examples
 
-          #{unquote(inspect(__MODULE__))}.new ["a", "b"], fn(x) -> {x, x} end
+          #{unquote(inspect(__MODULE__))}.new ["a", "b"], fn x -> {x, x} end
           #=> ["a": "a", "b": "b"]
       """
       def new(list, transform) when is_function(transform) do
-        Enum.reduce list, new(), fn(i, dict) ->
+        Enum.reduce list, new(), fn i, dict ->
           { k, v } = transform.(i)
           unquote(ref).put(dict, k, v)
         end

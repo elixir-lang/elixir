@@ -44,7 +44,7 @@ defmodule ExUnit.Formatter do
   defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
     IO.puts "#{acc}) #{test} (#{inspect test_case})"
     IO.puts "  ** #{format_catch(kind, reason)}\n  stacktrace:"
-    Enum.each filter_stacktrace(stacktrace), fn(s, do: IO.puts "    #{format_stacktrace(s)}")
+    Enum.each filter_stacktrace(stacktrace), fn(s) -> IO.puts "    #{format_stacktrace(s)}" end
     IO.print "\n"
     acc + 1
   end

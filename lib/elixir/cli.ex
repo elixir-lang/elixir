@@ -22,24 +22,26 @@ defmodule Elixir.CLI do
         at_exit(0)
         halt(0)
       end
-    rescue: exception
-      at_exit(1)
-      stacktrace = System.stacktrace
-      IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-      print_stacktrace(stacktrace)
-      halt(1)
-    catch: :exit, reason when is_integer(reason)
-      at_exit(reason)
-      halt(reason)
-    catch: :exit, :normal
-      at_exit(0)
-      halt(0)
-    catch: kind, reason
-      at_exit(1)
-      stacktrace = System.stacktrace
-      IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
-      print_stacktrace(stacktrace)
-      halt(1)
+    rescue
+      exception ->
+        at_exit(1)
+        stacktrace = System.stacktrace
+        IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+        print_stacktrace(stacktrace)
+        halt(1)
+    catch
+      :exit, reason when is_integer(reason) ->
+        at_exit(reason)
+        halt(reason)
+      :exit, :normal ->
+        at_exit(0)
+        halt(0)
+      kind, reason ->
+        at_exit(1)
+        stacktrace = System.stacktrace
+        IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
+        print_stacktrace(stacktrace)
+        halt(1)
     end
   end
 
@@ -50,12 +52,14 @@ defmodule Elixir.CLI do
     lc hook in hooks do
       try do
         hook.(status)
-      rescue: exception
-        IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        print_stacktrace(System.stacktrace)
-      catch: kind, reason
-        IO.puts :standard_error, "** #{kind} #{inspect(reason)}"
-        print_stacktrace(System.stacktrace)
+      rescue
+        exception ->
+          IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+          print_stacktrace(System.stacktrace)
+      catch
+        kind, reason ->
+          IO.puts :standard_error, "** #{kind} #{inspect(reason)}"
+          print_stacktrace(System.stacktrace)
       end
     end
   end
@@ -67,15 +71,15 @@ defmodule Elixir.CLI do
 
   defp shared_option?(list, config, callback) do
     case process_shared(list, config) do
-    match: { [h|t], _ } when h == hd(list)
-      invalid_option h
-    match: { new_list, new_config }
-      callback.(new_list, new_config)
+      { [h|t], _ } when h == hd(list) ->
+        invalid_option h
+      { new_list, new_config } ->
+        callback.(new_list, new_config)
     end
   end
 
   defp print_stacktrace(stacktrace) do
-    Enum.each stacktrace, fn(s, do: IO.puts :standard_error, "    #{format_stacktrace(s)}")
+    Enum.each stacktrace, fn s -> IO.puts :standard_error, "    #{format_stacktrace(s)}" end
   end
 
   # Process shared options
@@ -100,7 +104,7 @@ defmodule Elixir.CLI do
   end
 
   defp process_shared(['-r',h|t], config) do
-    config = Enum.reduce File.wildcard(h), config, fn(path, config) ->
+    config = Enum.reduce File.wildcard(h), config, fn path, config ->
       config.prepend_commands [{:require, path}]
     end
     process_shared t, config
@@ -130,10 +134,10 @@ defmodule Elixir.CLI do
 
   def process_options([h|t] = list, config) do
     case h do
-    match: '-' ++ _
-      shared_option? list, config, process_options(&1, &2)
-    else:
-      { config.prepend_commands([{:require, h}]), t }
+      '-' ++ _ ->
+        shared_option? list, config, process_options(&1, &2)
+      _ ->
+        { config.prepend_commands([{:require, h}]), t }
     end
   end
 
@@ -167,11 +171,11 @@ defmodule Elixir.CLI do
 
   defp process_compiler([h|t] = list, config) do
     case h do
-    match: '-' ++ _
-      shared_option? list, config, process_compiler(&1, &2)
-    else:
-      pattern = if File.dir?(h), do: '#{h}/**/*.ex', else: h
-      process_compiler t, config.prepend_compile [pattern]
+      '-' ++ _ ->
+        shared_option? list, config, process_compiler(&1, &2)
+      _ ->
+        pattern = if File.dir?(h), do: '#{h}/**/*.ex', else: h
+        process_compiler t, config.prepend_compile [pattern]
     end
   end
 
@@ -205,7 +209,7 @@ defmodule Elixir.CLI do
 
     Code.compiler_options(config.compiler_options)
     Elixir.ParallelCompiler.files_to_path(files, config.output,
-      fn(file) -> IO.puts "Compiled #{file}" end)
+      fn file -> IO.puts "Compiled #{file}" end)
   end
 
   # Responsible for spawning requires in parallel
@@ -225,8 +229,9 @@ defmodule Elixir.CLI do
       try do
         Code.require_file(h)
         parent <- { :required, Process.self }
-      catch: kind, reason
-        parent <- { :failure, Process.self, kind, reason, System.stacktrace }
+      catch
+        kind, reason ->
+          parent <- { :failure, Process.self, kind, reason, System.stacktrace }
       end
     end
 
@@ -235,10 +240,10 @@ defmodule Elixir.CLI do
 
   defp wait_for_messages(files, waiting) do
     receive do
-    match: { :required, child }
-      spawn_requires(files, List.delete(waiting, child))
-    match: { :failure, _child, kind, reason, stacktrace }
-      Erlang.erlang.raise(kind, reason, stacktrace)
+      { :required, child } ->
+        spawn_requires(files, List.delete(waiting, child))
+      { :failure, _child, kind, reason, stacktrace } ->
+        Erlang.erlang.raise(kind, reason, stacktrace)
     end
   end
 end

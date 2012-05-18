@@ -4,24 +4,28 @@ defmodule EnumTest.Common do
   use ExUnit.Case
 
   test :times_with_arity_0 do
-    Process.put(:times_with_arity, nil)
-    assert Enum.times(0, fn do: Process.put(:times_with_arity, :ok)) == 0
-    assert Process.get(:times_with_arity) == nil
-    assert Enum.times(3, fn do: Process.put(:times_with_arity, :ok)) == 3
-    assert Process.get(:times_with_arity) == :ok
-  after:
-    Process.delete(:times_with_arity)
+    try do
+      Process.put(:times_with_arity, nil)
+      assert Enum.times(0, fn -> Process.put(:times_with_arity, :ok) end) == 0
+      assert Process.get(:times_with_arity) == nil
+      assert Enum.times(3, fn -> Process.put(:times_with_arity, :ok) end) == 3
+      assert Process.get(:times_with_arity) == :ok
+    after
+      Process.delete(:times_with_arity)
+    end
   end
 
   test :times_with_arity_1 do
-    assert Enum.times(5, fn(x, do: Process.put(:times_with_arity, x))) == 5
-    assert Process.get(:times_with_arity) == 5
-  after:
-    Process.delete(:times_with_arity)
+    try do
+      assert Enum.times(5, fn x -> Process.put(:times_with_arity, x) end) == 5
+      assert Process.get(:times_with_arity) == 5
+    after
+      Process.delete(:times_with_arity)
+    end
   end
 
   test :times_with_arity_2 do
-    assert Enum.times(5, 0, fn(acc, x) -> acc + x end) == 15
+    assert Enum.times(5, 0, fn acc, x -> acc + x end) == 15
   end
 end
 
@@ -29,8 +33,8 @@ defmodule EnumTest.List do
   use ExUnit.Case
 
   test :all? do
-    assert Enum.all?([2,4,6], fn(x, do: rem(x, 2) == 0))
-    refute Enum.all?([2,3,4], fn(x, do: rem(x, 2) == 0))
+    assert Enum.all?([2,4,6], fn(x) -> rem(x, 2) == 0 end)
+    refute Enum.all?([2,3,4], fn(x) -> rem(x, 2) == 0 end)
 
     assert Enum.all?([2,4,6])
     refute Enum.all?([2,nil,4])
@@ -39,8 +43,8 @@ defmodule EnumTest.List do
   end
 
   test :any? do
-    refute Enum.any?([2,4,6], fn(x, do: rem(x, 2) == 1))
-    assert Enum.any?([2,3,4], fn(x, do: rem(x, 2) == 1))
+    refute Enum.any?([2,4,6], fn(x) -> rem(x, 2) == 1 end)
+    assert Enum.any?([2,3,4], fn(x) -> rem(x, 2) == 1 end)
 
     refute Enum.any?([false,false,false])
     assert Enum.any?([false,true,false])
@@ -58,22 +62,22 @@ defmodule EnumTest.List do
   end
 
   test :drop_while do
-    assert Enum.drop_while([1,2,3,4,3,2,1], fn(x, do: x <= 3)) == [4,3,2,1]
-    assert Enum.drop_while([1,2,3], fn(_, do: false)) == [1,2,3]
-    assert Enum.drop_while([1,2,3], fn(x, do: x <= 3)) == []
-    assert Enum.drop_while([], fn(_, do: false)) == []
+    assert Enum.drop_while([1,2,3,4,3,2,1], fn(x) -> x <= 3 end) == [4,3,2,1]
+    assert Enum.drop_while([1,2,3], fn(_) -> false end) == [1,2,3]
+    assert Enum.drop_while([1,2,3], fn(x) -> x <= 3 end) == []
+    assert Enum.drop_while([], fn(_) -> false end) == []
   end
 
   test :find do
-    assert Enum.find([2,4,6], fn(x, do: rem(x, 2) == 1)) == nil
-    assert Enum.find([2,4,6], 0, fn(x, do: rem(x, 2) == 1)) == 0
-    assert Enum.find([2,3,4], fn(x, do: rem(x, 2) == 1)) == 3
+    assert Enum.find([2,4,6], fn(x) -> rem(x, 2) == 1 end) == nil
+    assert Enum.find([2,4,6], 0, fn(x) -> rem(x, 2) == 1 end) == 0
+    assert Enum.find([2,3,4], fn(x) -> rem(x, 2) == 1 end) == 3
   end
 
   test :find_value do
-    assert Enum.find_value([2,4,6], fn(x, do: rem(x, 2) == 1)) == nil
-    assert Enum.find_value([2,4,6], 0, fn(x, do: rem(x, 2) == 1)) == 0
-    assert Enum.find_value([2,3,4], fn(x, do: rem(x, 2) == 1))
+    assert Enum.find_value([2,4,6], fn(x) -> rem(x, 2) == 1 end) == nil
+    assert Enum.find_value([2,4,6], 0, fn(x) -> rem(x, 2) == 1 end) == 0
+    assert Enum.find_value([2,3,4], fn(x) -> rem(x, 2) == 1 end)
   end
 
   test :empty? do
@@ -82,17 +86,19 @@ defmodule EnumTest.List do
   end
 
   test :each do
-    assert Enum.each([], fn(x, do: x)) == []
+    try do
+      assert Enum.each([], fn(x) -> x end) == []
 
-    assert Enum.each([1,2,3], fn(x, do: Process.put(:enum_test_each, x * 2))) == [1,2,3]
-    assert Process.get(:enum_test_each) == 6
-  after:
-    Process.delete(:enum_test_each)
+      assert Enum.each([1,2,3], fn(x) -> Process.put(:enum_test_each, x * 2) end) == [1,2,3]
+      assert Process.get(:enum_test_each) == 6
+    after
+      Process.delete(:enum_test_each)
+    end
   end
 
   test :filter do
-    assert Enum.filter([1,2,3], fn(x, do: rem(x, 2) == 0)) == [2]
-    assert Enum.filter([2,4,6], fn(x, do: rem(x, 2) == 0)) == [2,4,6]
+    assert Enum.filter([1,2,3], fn(x) -> rem(x, 2) == 0 end) == [2]
+    assert Enum.filter([2,4,6], fn(x) -> rem(x, 2) == 0 end) == [2,4,6]
   end
 
   test :filter_with_match do
@@ -102,13 +108,13 @@ defmodule EnumTest.List do
   end
 
   test :filter_map do
-    assert Enum.filter_map([1,2,3], fn(x, do: rem(x, 2) == 0), &1 * 2) == [4]
-    assert Enum.filter_map([2,4,6], fn(x, do: rem(x, 2) == 0), &1 * 2) == [4,8,12]
+    assert Enum.filter_map([1,2,3], fn(x) -> rem(x, 2) == 0 end, &1 * 2) == [4]
+    assert Enum.filter_map([2,4,6], fn(x) -> rem(x, 2) == 0 end, &1 * 2) == [4,8,12]
   end
 
   test :reduce do
-    assert Enum.reduce([], 1, fn(x, acc, do: x + acc)) == 1
-    assert Enum.reduce([1,2,3], 1, fn(x, acc, do: x + acc)) == 7
+    assert Enum.reduce([], 1, fn(x, acc) -> x + acc end) == 1
+    assert Enum.reduce([1,2,3], 1, fn(x, acc) -> x + acc end) == 7
   end
 
   test :join_with_bin do
@@ -136,18 +142,18 @@ defmodule EnumTest.List do
   end
 
   test :map do
-    assert Enum.map([], fn(x) -> x * 2 end) == []
-    assert Enum.map([1,2,3], fn(x) -> x * 2 end) == [2,4,6]
+    assert Enum.map([], fn x -> x * 2 end) == []
+    assert Enum.map([1,2,3], fn x -> x * 2 end) == [2,4,6]
   end
 
   test :map_reduce do
-    assert Enum.map_reduce([], 1, fn(x, acc, do: { x * 2, x + acc })) == { [], 1 }
-    assert Enum.map_reduce([1,2,3], 1, fn(x, acc, do: { x * 2, x + acc })) == { [2,4,6], 7 }
+    assert Enum.map_reduce([], 1, fn(x, acc) -> { x * 2, x + acc } end) == { [], 1 }
+    assert Enum.map_reduce([1,2,3], 1, fn(x, acc) -> { x * 2, x + acc } end) == { [2,4,6], 7 }
   end
 
   test :partition do
-    assert Enum.partition([1,2,3], fn(x, do: rem(x, 2) == 0)) == { [2], [1,3] }
-    assert Enum.partition([2,4,6], fn(x, do: rem(x, 2) == 0)) == { [2,4,6], [] }
+    assert Enum.partition([1,2,3], fn(x) -> rem(x, 2) == 0 end) == { [2], [1,3] }
+    assert Enum.partition([2,4,6], fn(x) -> rem(x, 2) == 0 end) == { [2,4,6], [] }
   end
 
   test :qsort do
@@ -164,12 +170,12 @@ defmodule EnumTest.List do
   end
 
   test :split_with do
-    assert Enum.split_with([1,2,3], fn(_, do: false)) == { [], [1,2,3] }
-    assert Enum.split_with([1,2,3], fn(_, do: true)) == { [1,2,3], [] }
-    assert Enum.split_with([1,2,3], fn(x, do: x > 2)) == { [], [1,2,3] }
-    assert Enum.split_with([1,2,3], fn(x, do: x > 3)) == { [], [1,2,3] }
-    assert Enum.split_with([1,2,3], fn(x, do: x < 3)) == { [1,2], [3] }
-    assert Enum.split_with([], fn(_, do: true)) == { [], [] }
+    assert Enum.split_with([1,2,3], fn(_) -> false end) == { [], [1,2,3] }
+    assert Enum.split_with([1,2,3], fn(_) -> true end) == { [1,2,3], [] }
+    assert Enum.split_with([1,2,3], fn(x) -> x > 2 end) == { [], [1,2,3] }
+    assert Enum.split_with([1,2,3], fn(x) -> x > 3 end) == { [], [1,2,3] }
+    assert Enum.split_with([1,2,3], fn(x) -> x < 3 end) == { [1,2], [3] }
+    assert Enum.split_with([], fn(_) -> true end) == { [], [] }
   end
 
   test :take do
@@ -182,10 +188,10 @@ defmodule EnumTest.List do
   end
 
   test :take_while do
-    assert Enum.take_while([1,2,3], fn(x, do: x > 3)) == []
-    assert Enum.take_while([1,2,3], fn(x, do: x <= 1)) == [1]
-    assert Enum.take_while([1,2,3], fn(x, do: x <= 3)) == [1,2,3]
-    assert Enum.take_while([], fn(_, do: true)) == []
+    assert Enum.take_while([1,2,3], fn(x) -> x > 3 end) == []
+    assert Enum.take_while([1,2,3], fn(x) -> x <= 1 end) == [1]
+    assert Enum.take_while([1,2,3], fn(x) -> x <= 3 end) == [1,2,3]
+    assert Enum.take_while([], fn(_) -> true end) == []
   end
 end
 
@@ -196,33 +202,33 @@ defmodule EnumTest.Dict.Common do
 
       test :all? do
         dict = unquote(module).new [{2,2}, {3,4}, {4,6}]
-        assert Enum.all?(dict, fn({_, v}, do: rem(v, 2) == 0))
-        refute Enum.all?(dict, fn({k, _}, do: rem(k, 2) == 0))
+        assert Enum.all?(dict, fn({_, v}) -> rem(v, 2) == 0 end)
+        refute Enum.all?(dict, fn({k, _}) -> rem(k, 2) == 0 end)
 
         assert Enum.all?(unquote(module).new)
       end
 
       test :any? do
         dict = unquote(module).new [{2,2}, {3,4}, {4,6}]
-        refute Enum.any?(dict, fn({_, v}, do: rem(v, 2) == 1))
-        assert Enum.any?(dict, fn({k, _}, do: rem(k, 2) == 1))
+        refute Enum.any?(dict, fn({_, v}) -> rem(v, 2) == 1 end)
+        assert Enum.any?(dict, fn({k, _}) -> rem(k, 2) == 1 end)
 
         refute Enum.any?(unquote(module).new)
       end
 
       test :find do
         dict = unquote(module).new [a: 1, b: 2, c: 3]
-        assert nil == Enum.find(dict, fn({_, v}, do: v == 0))
-        assert :ok == Enum.find(dict, :ok, fn({_, v}, do: v == 0))
-        assert {:a, 1} == Enum.find(dict, fn({_, v}, do: rem(v, 2) == 1))
-        assert {:b, 2} == Enum.find(dict, fn({_, v}, do: rem(v, 2) == 0))
+        assert nil == Enum.find(dict, fn({_, v}) -> v == 0 end)
+        assert :ok == Enum.find(dict, :ok, fn({_, v}) -> v == 0 end)
+        assert {:a, 1} == Enum.find(dict, fn({_, v}) -> rem(v, 2) == 1 end)
+        assert {:b, 2} == Enum.find(dict, fn({_, v}) -> rem(v, 2) == 0 end)
       end
 
       test :find_value do
         dict = unquote(module).new [a: 1, b: 2, c: 3]
-        assert nil == Enum.find_value(dict, fn({_, v}, do: v == 0))
-        assert :ok == Enum.find_value(dict, :ok, fn({_, v}, do: v == 0))
-        assert Enum.find_value(dict, fn({_, v}, do: rem(v, 2) == 1))
+        assert nil == Enum.find_value(dict, fn({_, v}) -> v == 0 end)
+        assert :ok == Enum.find_value(dict, :ok, fn({_, v}) -> v == 0 end)
+        assert Enum.find_value(dict, fn({_, v}) -> rem(v, 2) == 1 end)
       end
 
       test :empty? do
@@ -231,18 +237,20 @@ defmodule EnumTest.Dict.Common do
       end
 
       test :each do
-        empty_dict = unquote(module).new
-        assert empty_dict == Enum.each(empty_dict, fn(x, do: x))
+        try do
+          empty_dict = unquote(module).new
+          assert empty_dict == Enum.each(empty_dict, fn(x) -> x end)
 
-        dict = unquote(module).new [{"one",1}, {"two",2}, {"three",3}]
-        assert dict == Enum.each(dict, fn({k, v}, do: Process.put(k, v * 2)))
-        assert 2 == Process.get("one")
-        assert 4 == Process.get("two")
-        assert 6 == Process.get("three")
-      after:
-        Process.delete("one")
-        Process.delete("two")
-        Process.delete("three")
+          dict = unquote(module).new [{"one",1}, {"two",2}, {"three",3}]
+          assert dict == Enum.each(dict, fn({k, v}) -> Process.put(k, v * 2) end)
+          assert 2 == Process.get("one")
+          assert 4 == Process.get("two")
+          assert 6 == Process.get("three")
+        after
+          Process.delete("one")
+          Process.delete("two")
+          Process.delete("three")
+        end
       end
 
       test :filter do
@@ -251,9 +259,9 @@ defmodule EnumTest.Dict.Common do
         even = [b: 2, d: 4]
         dict = unquote(module).new(all)
 
-        assert Enum.filter(dict, fn({_, v}, do: rem(v, 2) == 1)) == odd
-        assert Enum.filter(dict, fn({_, v}, do: rem(v, 2) == 0)) == even
-        assert Enum.filter(dict, fn(x, do: x)) == all
+        assert Enum.filter(dict, fn({_, v}) -> rem(v, 2) == 1 end) == odd
+        assert Enum.filter(dict, fn({_, v}) -> rem(v, 2) == 0 end) == even
+        assert Enum.filter(dict, fn(x) -> x end) == all
       end
 
       test :filter_map do
@@ -261,12 +269,12 @@ defmodule EnumTest.Dict.Common do
         even_dict = unquote(module).new [a: 2, b: 4, c: 6]
 
         assert Enum.filter_map(odd_dict,
-                 fn({_, v}, do: rem(v, 2) == 0),
-                 fn({k, v}, do: { k, v * 2 })) == [b: 4]
+                 fn({_, v}) -> rem(v, 2) == 0 end,
+                 fn({k, v}) -> { k, v * 2 } end) == [b: 4]
 
         assert Enum.filter_map(even_dict,
-                 fn({_, v}, do: rem(v, 2) == 0),
-                 fn({k, v}, do: { k, v * 2 })) == [a: 4, b: 8, c: 12]
+                 fn({_, v}) -> rem(v, 2) == 0 end,
+                 fn({k, v}) -> { k, v * 2 } end) == [a: 4, b: 8, c: 12]
       end
 
       test :join do
@@ -282,21 +290,21 @@ defmodule EnumTest.Dict.Common do
 
       test :reduce do
         dict = unquote(module).new [a: 1, b: 2, c: 3]
-        assert 1 == Enum.reduce(unquote(module).new, 1, fn(x, acc, do: x + acc))
-        assert 7 == Enum.reduce(dict, 1, fn({_, v}, acc, do: v + acc))
+        assert 1 == Enum.reduce(unquote(module).new, 1, fn(x, acc) -> x + acc end)
+        assert 7 == Enum.reduce(dict, 1, fn({_, v}, acc) -> v + acc end)
       end
 
       test :map do
         dict = unquote(module).new [a: 1, b: 2, c: 3]
-        assert Enum.map(dict, fn({k, v}) -> { k, v * 2 } end) == [a: 2, b: 4, c: 6]
-        assert Enum.map(unquote(module).new, fn(x) -> x * 2 end) == []
+        assert Enum.map(dict, fn {k, v} -> { k, v * 2 } end) == [a: 2, b: 4, c: 6]
+        assert Enum.map(unquote(module).new, fn x -> x * 2 end) == []
       end
 
       test :map_reduce do
         dict   = unquote(module).new [a: 1, b: 2, c: 3]
         double = [a: 2, b: 4, c: 6]
-        assert Enum.map_reduce(dict, 1, fn({k, v}, acc, do: { {k, v * 2}, v + acc })) == { double, 7 }
-        assert Enum.map_reduce(unquote(module).new, 1, fn(x, acc, do: { x * 2, x + acc })) == { [], 1 }
+        assert Enum.map_reduce(dict, 1, fn({k, v}, acc) -> { {k, v * 2}, v + acc } end) == { double, 7 }
+        assert Enum.map_reduce(unquote(module).new, 1, fn(x, acc) -> { x * 2, x + acc } end) == { [], 1 }
       end
 
       test :partition do
@@ -305,8 +313,8 @@ defmodule EnumTest.Dict.Common do
         above_4 = [d: 4, e: 5, f: 6, g: 7]
         dict    = unquote(module).new all
 
-        assert { below_4, above_4 } == Enum.partition(dict, fn({_k, v}, do: v < 4))
-        assert { all, [] } == Enum.partition(dict, fn({_k, v}, do: v < 10))
+        assert { below_4, above_4 } == Enum.partition(dict, fn({_k, v}) -> v < 4 end)
+        assert { all, [] } == Enum.partition(dict, fn({_k, v}) -> v < 10 end)
       end
 
       test :qsort do
@@ -329,7 +337,7 @@ defmodule EnumTest.HashDict do
 
   test :drop_while do
     assert_raise Protocol.UndefinedError, fn ->
-      Enum.drop_while HashDict.new, fn(x, do: x)
+      Enum.drop_while HashDict.new, fn(x) -> x end
     end
   end
 
@@ -341,7 +349,7 @@ defmodule EnumTest.HashDict do
 
   test :split_with do
     assert_raise Protocol.UndefinedError, fn ->
-      Enum.split_with HashDict.new, fn(x, do: x)
+      Enum.split_with HashDict.new, fn(x) -> x end
     end
   end
 
@@ -353,7 +361,7 @@ defmodule EnumTest.HashDict do
 
   test :take_while do
     assert_raise Protocol.UndefinedError, fn ->
-      Enum.take_while HashDict.new, fn(x, do: x)
+      Enum.take_while HashDict.new, fn(x) -> x end
     end
   end
 end
@@ -371,7 +379,7 @@ defmodule EnumTest.Orddict do
 
   test :drop_while do
     dict = Orddict.new [a: 1, b: 2, c: 3]
-    assert Enum.drop_while(dict, fn({_k, v}, do: v < 3)) == [c: 3]
+    assert Enum.drop_while(dict, fn({_k, v}) -> v < 3 end) == [c: 3]
   end
 
   test :split do
@@ -384,7 +392,7 @@ defmodule EnumTest.Orddict do
 
   test :split_with do
     dict = Orddict.new [a: 1, b: 3, c: 2, d: 4]
-    assert Enum.split_with(dict, fn({_k, v}, do: rem(v, 2) == 1)) == { [a: 1, b: 3], [c: 2, d: 4] }
+    assert Enum.split_with(dict, fn({_k, v}) -> rem(v, 2) == 1 end) == { [a: 1, b: 3], [c: 2, d: 4] }
   end
 
   test :take do
@@ -397,8 +405,8 @@ defmodule EnumTest.Orddict do
 
   test :take_while do
     dict = Orddict.new [a: 1, b: 3, c: 2, d: 4]
-    assert Enum.take_while(dict, fn({_k, v}, do: rem(v, 2) == 1)) == [a: 1, b: 3]
-    assert Enum.take_while(dict, fn({_k, v}, do: v < 10)) == [a: 1, b: 3, c: 2, d: 4]
-    assert Enum.take_while(dict, fn({_k, v}, do: v < 1)) == []
+    assert Enum.take_while(dict, fn({_k, v}) -> rem(v, 2) == 1 end) == [a: 1, b: 3]
+    assert Enum.take_while(dict, fn({_k, v}) -> v < 10 end) == [a: 1, b: 3, c: 2, d: 4]
+    assert Enum.take_while(dict, fn({_k, v}) -> v < 1 end) == []
   end
 end

@@ -16,7 +16,7 @@ defmodule SystemTest do
   use ExUnit.Case
 
   test :at_exit do
-    output = OS.cmd('bin/elixir -e "System.at_exit(fn(x) -> IO.inspect x end)"')
+    output = OS.cmd('bin/elixir -e "System.at_exit(fn x -> IO.inspect x end)"')
     assert output == '0\n'
   end
 

@@ -39,6 +39,7 @@ defmodule EEx do
   `EEx.SmartEngine` supports the following tags:
 
       <% Elixir expression - inline with output %>
+      <& Elxir matching expression - not printed &>
       <%= Elixir expression - replace with result %>
 
   All expressions that output something to the template
@@ -50,8 +51,16 @@ defmodule EEx do
 
       <%= if true do %>
         It is obviously true
-      <% else: %>
+      <% else %>
         This will never appear
+      <% end %>
+
+  The `<& ... &>` expression is only used in matching clauses.
+  For example, the `cond` macro would be written as:
+
+      <%= cond do %>
+        <& false -> &> Never printed
+        <& true  -> &> always printed
       <% end %>
 
   Notice that different engines may have different rules
@@ -64,12 +73,12 @@ defmodule EEx do
   loop a variable:
 
       EEx.eval_string "<%= for x in [1,2,3] do %><%= x %>\n<% end %>", []
-      # => "1\n2\n3\n"
+      #=> "1\n2\n3\n"
 
   It also adds defines a macro named `@` that allows easy access:
 
       EEx.eval_string "<%= @foo %>", assigns: [foo: 1]
-      # => 1
+      #=> 1
 
   In other words, <%= @foo %> is simply translated to:
 
@@ -187,7 +196,7 @@ defmodule EEx do
 
   @doc false
   def function_from_quoted(module, kind, name, args, source, info) do
-    args  = Enum.map args, fn(arg) -> { arg, 0, nil } end
+    args  = Enum.map args, fn arg -> { arg, 0, nil } end
     quote = quote do
       unquote(kind).(unquote(name).(unquote_splicing(args)), do: unquote(source))
     end
