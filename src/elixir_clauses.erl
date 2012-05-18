@@ -2,7 +2,7 @@
 %% for case, fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
 -export([
-  assigns/3, assigns_block/5, assigns_block/6,
+  assigns/3, assigns_block/5, assigns_block/6, extract_last_guards/1,
   get_pairs/4, get_pairs/5, match/3, extract_args/1, extract_guards/1]).
 -import(elixir_variables, [umergec/2]).
 -include("elixir.hrl").
@@ -81,6 +81,14 @@ extract_args({ { '.', _, [Name] }, _, Args }) when is_atom(Name), is_list(Args) 
 extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] };
 extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args }.
 
+% Extract guards when it is in the last element of the args
+
+extract_last_guards([]) -> { [], [] };
+extract_last_guards(Args) ->
+  { Left, [Right] } = lists:split(length(Args) - 1, Args),
+  { Bare, Guards } = extract_guards(Right),
+  { Left ++ [Bare], Guards }.
+
 % Function for translating macros with match style like case and receive.
 
 match(Line, DecoupledClauses, RawS) ->
@@ -155,15 +163,18 @@ match(Line, DecoupledClauses, RawS) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-each_clause(Line, { do, Condition, Expr }, S) ->
+each_clause(Line, { do, [Condition], Expr }, S) ->
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
-each_clause(Line, { 'after', Condition, Expr }, S) ->
+each_clause(Line, { 'after', [Condition], Expr }, S) ->
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TBody, SB } = elixir_translator:translate([Expr], SC),
   { { clause, Line, [TCondition], [], TBody }, SB };
 
-each_clause(Line, {Key,_,_}, S) ->
+each_clause(Line, { Key, [_|_], _ }, S) when Key == do; Key == 'after' ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many arguments for clause inside key ~s", [Key]);
+
+each_clause(Line, { Key, _, _ }, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key ~s", [Key]).
 
 % Check if the given expression is a match tuple.

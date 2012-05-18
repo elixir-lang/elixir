@@ -1863,7 +1863,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro cond([do: { :"->", _, pairs }]) do
-    [{ condition, clause }|t] = List.reverse pairs
+    [{ [condition], clause }|t] = List.reverse pairs
 
     new_acc = quote do
       case !unquote(condition) do
@@ -2264,7 +2264,7 @@ defmodule Elixir.Builtin do
   #         end
   #     end
   #
-  defp build_cond_clauses([{ condition, clause }|t], acc) do
+  defp build_cond_clauses([{ [condition], clause }|t], acc) do
     new_acc = quote do
       case !unquote(condition) do
         false -> unquote(clause)

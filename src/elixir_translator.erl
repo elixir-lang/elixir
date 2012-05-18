@@ -486,7 +486,7 @@ translate_fn(Line, Left, Right, S, ExtraArgs) ->
   end,
 
   Transformer = fun({ ArgsWithGuards, Expr }, Acc) ->
-    { FinalArgs, Guards } = elixir_clauses:extract_guards(ArgsWithGuards),
+    { FinalArgs, Guards } = elixir_clauses:extract_last_guards(ArgsWithGuards),
     elixir_clauses:assigns_block(Line, fun elixir_translator:translate/2, ExtraArgs ++ FinalArgs, [Expr], Guards, umergec(S, Acc))
   end,
 

@@ -193,7 +193,7 @@ stab_expr_list -> stab_expr : ['$1'].
 stab_expr_list -> stab_expr_list eol stab_expr : ['$3'|'$1'].
 
 stab_expr -> expr : '$1'.
-stab_expr -> comma_expr stab_op expr : build_op('$2', hd('$1'), '$3').
+stab_expr -> comma_expr stab_op expr : build_op('$2', lists:reverse('$1'), '$3').
 
 block_item -> block_eol stab_expr_list eol : { ?exprs('$1'), build_stab(lists:reverse('$2')) }.
 block_item -> block_eol : { ?exprs('$1'), nil }.

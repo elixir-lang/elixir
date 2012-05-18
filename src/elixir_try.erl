@@ -9,10 +9,10 @@ clauses(Line, Clauses, S) ->
   Transformer = fun(X, Acc) -> each_clause(Line, X, umergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, Rescue ++ Catch).
 
-each_clause(Line, {'catch', Raw, Expr}, S) ->
+each_clause(Line, {'catch', [Raw], Expr}, S) ->
   handle_catch(Line, Raw, Expr, S, throw);
 
-each_clause(Line, { rescue, Condition, Expr }, S) ->
+each_clause(Line, { rescue, [Condition], Expr }, S) ->
   case normalize_rescue(Line, Condition, S) of
     { Left, Right } ->
       case Left of
