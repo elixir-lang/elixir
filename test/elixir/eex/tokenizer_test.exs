@@ -51,7 +51,7 @@ baz %>
   end
 
   test "strings with embedded -> end" do
-    assert T.tokenize('foo <% cond do %><% false -> %>bar<% true -> %>baz<% end %>', 1) == [
+    assert T.tokenize('foo <% cond do %><& false -> &>bar<& true -> &>baz<% end %>', 1) == [
       { :text, 1, "foo " },
       { :start_expr, 1, '', ' cond do ' },
       { :middle_expr, 1, '', ' false -> ' },

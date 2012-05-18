@@ -19,11 +19,11 @@ defmodule EEx.Tokenizer do
     List.reverse(tokenize(list, line, line, [], []))
   end
 
-  defp tokenize('<%' ++ t, current_line, line, buffer, acc) do
-    { marker, t }  = retrieve_marker(t)
-    { expr, new_line, rest } = tokenize_expr t, line, []
+  defp tokenize([?<,h|t], current_line, line, buffer, acc) when h in [?&, ?%] do
+    { marker, t }  = retrieve_marker(h, t)
+    { expr, new_line, rest } = tokenize_expr h, t, line, []
 
-    token = tip_expr_token_name(expr)
+    token = token_name(h, expr)
     expr  = List.reverse(expr)
 
     # If it isn't a start or end token, it may be a middle token.
@@ -47,59 +47,63 @@ defmodule EEx.Tokenizer do
     tokenize_text(current_line, buffer, acc)
   end
 
-  # Retrieve marker for <%
+  # Retrieve marker for <%, <& is ignored
 
-  defp retrieve_marker('=' ++ t) do
+  defp retrieve_marker(?%, '=' ++ t) do
     { '=', t }
   end
 
-  defp retrieve_marker(t) do
+  defp retrieve_marker(_, t) do
     { '', t }
   end
 
-  # Tokenize an expression until we find %>
+  # Tokenize an expression until we find %> or &>
 
-  defp tokenize_expr('%>' ++ t, line, buffer) do
+  defp tokenize_expr(char, [char,?>|t], line, buffer) do
     { buffer, line, t }
   end
 
-  defp tokenize_expr('\n' ++ t, line, buffer) do
-    tokenize_expr t, line + 1, [?\n|buffer]
+  defp tokenize_expr(char, '\n' ++ t, line, buffer) do
+    tokenize_expr char, t, line + 1, [?\n|buffer]
   end
 
-  defp tokenize_expr([h|t], line, buffer) do
-    tokenize_expr t, line, [h|buffer]
+  defp tokenize_expr(char, [h|t], line, buffer) do
+    tokenize_expr char, t, line, [h|buffer]
   end
 
-  # Raise an error if the %> is not found
+  # Raise an error if the expected token is not found
 
-  defp tokenize_expr([], _line, _buffer) do
-    raise EEx.SyntaxError, message: "missing token: %>"
+  defp tokenize_expr(char, [], _line, _buffer) do
+    raise EEx.SyntaxError, message: "missing token: " <> <<char, ?>>>
   end
 
   # Receive an expression content and check
   # if it is a start, middle or an end token.
   #
-  # Start tokens finish with `do`,
-  # middle finish with ->,
-  # and end tokens contain only the end word.
-  defp tip_expr_token_name([h|t]) when h in [?\s, ?\t] do
-    tip_expr_token_name(t)
+  # Start tokens finish with `do` and '->'
+  # Middle tokens are marked as <& or keywords
+  # End tokens contain only the end word
+
+  defp token_name(?&, _),    do: :middle_expr
+  defp token_name(?%, rest), do: token_name(rest)
+
+  defp token_name([h|t]) when h in [?\s, ?\t] do
+    token_name(t)
   end
 
-  defp tip_expr_token_name('od' ++ [h|_]) when h in [?\s, ?\t, ?)] do
+  defp token_name('od' ++ [h|_]) when h in [?\s, ?\t, ?)] do
     :start_expr
   end
 
-  defp tip_expr_token_name('>-' ++ _) do
-    :middle_expr
+  defp token_name('>-' ++ _) do
+    :start_expr
   end
 
-  defp tip_expr_token_name('dne' ++ t) do
+  defp token_name('dne' ++ t) do
     if only_spaces?(t), do: :end_expr, else: :expr
   end
 
-  defp tip_expr_token_name(_) do
+  defp token_name(_) do
     :expr
   end
 

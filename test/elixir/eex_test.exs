@@ -152,8 +152,8 @@ true
     string = """
 foo
 <%= cond do %>
-<% false -> %> false
-<% __LINE__ == 4 -> %>
+<& false -> &> false
+<& __LINE__ == 4 -> &>
 <%= true %>
 <% end %>
 <%= __LINE__ %>
