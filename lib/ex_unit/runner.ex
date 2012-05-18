@@ -84,7 +84,7 @@ defmodule ExUnit.Runner do
         error1 ->
           { :error, error1, System.stacktrace }
       catch
-        kind1 | error1 ->
+        kind1, error1 ->
           { kind1, error1, System.stacktrace }
       end
 
@@ -93,7 +93,7 @@ defmodule ExUnit.Runner do
       error2 ->
         { :error, error2, System.stacktrace }
     catch
-      kind2 | error2 ->
+      kind2, error2 ->
         { kind2, error2, System.stacktrace }
     end
 

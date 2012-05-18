@@ -56,7 +56,7 @@ defmodule Elixir.ParallelCompiler do
         end
         parent <- { :compiled, Process.self(), h }
       catch
-        kind | reason ->
+        kind, reason ->
           parent <- { :failure, Process.self(), kind, reason, System.stacktrace }
       end
     end

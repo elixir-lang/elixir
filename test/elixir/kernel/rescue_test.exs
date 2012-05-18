@@ -17,7 +17,7 @@ defmodule Kernel.RescueTest do
     result = try do
       RescueUndefinedModule.go
     catch
-      _ | _ -> false
+      _, _ -> false
     rescue
       _ -> true
     end
@@ -31,7 +31,7 @@ defmodule Kernel.RescueTest do
     rescue
       RuntimeError -> true
     catch
-      :error | value -> false
+      :error, value -> false
     end
 
     assert result
@@ -41,7 +41,7 @@ defmodule Kernel.RescueTest do
     rescue
       AnotherError -> true
     catch
-      :error | _ -> false
+      :error, _ -> false
     end
 
     refute result
@@ -53,7 +53,7 @@ defmodule Kernel.RescueTest do
     rescue
       x in [RuntimeError] -> x.message
     catch
-      :error | _ -> false
+      :error, _ -> false
     end
 
     assert result == "an exception"
@@ -77,7 +77,7 @@ defmodule Kernel.RescueTest do
     rescue
       x in [named] -> x.message
     catch
-      :error | _ -> "didn't catch it"
+      :error, _ -> "didn't catch it"
     end
 
     assert result == "didn't catch it"
@@ -113,7 +113,7 @@ defmodule Kernel.RescueTest do
     rescue
       x in [expected, AnotherError] -> x.message
     catch
-      :error | _ -> false
+      :error, _ -> false
     end
 
     assert result == "an exception"

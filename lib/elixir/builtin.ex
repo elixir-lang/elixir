@@ -1719,13 +1719,13 @@ defmodule Elixir.Builtin do
       try do
         exit(1)
       catch
-        :exit | 1 -> IO.puts "Exited with 1"
+        :exit, 1 -> IO.puts "Exited with 1"
       end
 
       try do
         error(:sample)
       catch
-        :error | :sample ->
+        :error, :sample ->
           IO.puts "sample error"
       end
 

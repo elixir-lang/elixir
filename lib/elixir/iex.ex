@@ -72,7 +72,7 @@ defmodule Elixir.IEx do
           print_stacktrace io, stacktrace
           config.cache('')
       catch
-        kind | error ->
+        kind, error ->
           stacktrace = System.stacktrace
           io.error "** (#{kind}) #{inspect(error)}"
           print_stacktrace io, stacktrace

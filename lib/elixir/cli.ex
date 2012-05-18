@@ -30,13 +30,13 @@ defmodule Elixir.CLI do
         print_stacktrace(stacktrace)
         halt(1)
     catch
-      :exit | reason when is_integer(reason) ->
+      :exit, reason when is_integer(reason) ->
         at_exit(reason)
         halt(reason)
-      :exit | :normal ->
+      :exit, :normal ->
         at_exit(0)
         halt(0)
-      kind | reason ->
+      kind, reason ->
         at_exit(1)
         stacktrace = System.stacktrace
         IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
@@ -57,7 +57,7 @@ defmodule Elixir.CLI do
           IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
           print_stacktrace(System.stacktrace)
       catch
-        kind | reason ->
+        kind, reason ->
           IO.puts :standard_error, "** #{kind} #{inspect(reason)}"
           print_stacktrace(System.stacktrace)
       end
@@ -230,7 +230,7 @@ defmodule Elixir.CLI do
         Code.require_file(h)
         parent <- { :required, Process.self }
       catch
-        kind | reason ->
+        kind, reason ->
           parent <- { :failure, Process.self, kind, reason, System.stacktrace }
       end
     end

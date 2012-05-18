@@ -172,7 +172,7 @@ each_clause(Line, { 'after', [Condition], Expr }, S) ->
   { { clause, Line, [TCondition], [], TBody }, SB };
 
 each_clause(Line, { Key, [_|_], _ }, S) when Key == do; Key == 'after' ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many arguments for clause inside key ~s", [Key]);
+  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many arguments given for ~s", [Key]);
 
 each_clause(Line, { Key, _, _ }, S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key ~s", [Key]).

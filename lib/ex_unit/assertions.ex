@@ -301,9 +301,9 @@ defmodule ExUnit.Assertions do
       function.()
       flunk "Expected #{expected_type} #{inspect expected_value}, got nothing"
     catch
-      ^expected_type | ^expected_value ->
+      ^expected_type, ^expected_value ->
         expected_value
-      ^expected_type | actual_value ->
+      ^expected_type, actual_value ->
         flunk "Expected #{expected_type} #{inspect expected_value}, got #{inspect actual_value}"
     end
   end
