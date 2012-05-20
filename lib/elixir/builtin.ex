@@ -2053,7 +2053,7 @@ defmodule Elixir.Builtin do
   @doc """
   Returns true if the element on the left is equal (==) to
   any of the items in the right. For now, it only accepts
-  a list as the right argument. Useful in guard clauses.
+  a list as the right argument.
 
   ## Examples
 
@@ -2064,6 +2064,25 @@ defmodule Elixir.Builtin do
 
       x == 1 or x == 2 or x == 3
 
+  ## Clauses
+
+  Whenever used inside a function or a case clause, you can
+  optionally omit the variable declaration, for example:
+
+      case 3 do
+        x when x in [1,2] -> x * 2
+        _ -> 0
+      end
+
+  Could be rewritten as:
+
+      case 3 do
+        x in [1,2] -> x * 2
+        _ -> 0
+      end
+
+  In this case, Elixir will automatically expand it and define
+  the variable for us.
   """
   defmacro :in.(left, [h|t]) do
     :lists.foldl fn x, acc ->
