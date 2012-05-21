@@ -94,16 +94,6 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'defmodule Foo do\nElixir.ErrorsTest.UnproperMacro.unproper([])\nend'
   end
 
-  test :def_defmacro_clause_change do
-    assert "nofile:3: defmacro foo/1 already defined as def" ==
-      format_rescue 'defmodule Foo do\ndef foo(1), do: 1\ndefmacro foo(x), do: x\nend'
-  end
-
-  test :clause_change do
-    assert "nofile:4: function foo/1 does not match previous clause bar/1" ==
-      format_rescue 'defmodule Foo do\ndef foo(1), do: 1\ndef bar(x), do: x\ndef foo(x), do: x\nend'
-  end
-
   test :internal_function_overriden do
     assert "nofile:1: function __info__/1 is internal and should not be overriden" ==
       format_rescue 'defmodule Foo do\ndef __info__(_), do: []\nend'
