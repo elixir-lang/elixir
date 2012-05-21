@@ -3,7 +3,6 @@
 -export([table/1,
   build_table/1,
   delete_table/1,
-  reset_last/1,
   wrap_definition/7,
   store_definition/8,
   store_each/6,
@@ -17,16 +16,11 @@ table(Module) -> ?ELIXIR_ATOM_CONCAT([f, Module]).
 
 build_table(Module) ->
   FunctionTable = table(Module),
-  ets:new(FunctionTable, [set, named_table, public]),
-  ets:insert(FunctionTable, { last, [] }),
+  ets:new(FunctionTable, [ordered_set, named_table, public]),
   FunctionTable.
 
 delete_table(Module) ->
   ets:delete(table(Module)).
-
-%% Reset the last item. Useful when evaling code.
-reset_last(Module) ->
-  ets:insert(table(Module), { last, [] }).
 
 %% Wraps the function into a call to store_definition once the function
 %% definition is read. The function is compiled into a meta tree to ensure
@@ -151,7 +145,6 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
 % and the body of all functions.
 unwrap_stored_definitions(Module) ->
   Table = table(Module),
-  ets:delete(Table, last),
   unwrap_stored_definition(ets:tab2list(Table), [], [], [], [], [], []).
 
 unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(4, Fun) == def ->
@@ -204,11 +197,11 @@ store_each(Check, Kind, Filename, Table, Defaults, {function, Line, Name, Arity,
       FinalClauses  = Clauses ++ StoredClauses,
       check_valid_kind(Line, Filename, Name, Arity, Kind, StoredKind),
       check_valid_defaults(Line, Filename, Name, Arity, Defaults),
-      Check andalso check_valid_clause(Line, Filename, Name, Arity, Table);
+      Check;
     [] ->
       FinalDefaults = Defaults,
       FinalClauses  = Clauses,
-      Check andalso ets:insert(Table, { last, { Name, Arity } })
+      Check
   end,
   ets:insert(Table, {{Name, Arity}, Line, Filename, Kind, FinalDefaults, FinalClauses}).
 
@@ -217,14 +210,6 @@ store_each(Check, Kind, Filename, Table, Defaults, {function, Line, Name, Arity,
 check_valid_kind(_Line, _Filename, _Name, _Arity, Kind, Kind) -> [];
 check_valid_kind(Line, Filename, Name, Arity, Kind, StoredKind) ->
   elixir_errors:form_error(Line, Filename, ?MODULE, {changed_kind, {Name, Arity, StoredKind, Kind}}).
-
-check_valid_clause(Line, Filename, Name, Arity, Table) ->
-  case ets:lookup_element(Table, last, 2) of
-    {Name,Arity} -> [];
-    [] -> [];
-    {ElseName, ElseArity} -> elixir_errors:form_error(Line, Filename, ?MODULE,
-      { changed_clause, { {Name, Arity}, {ElseName, ElseArity} } })
-  end.
 
 check_valid_defaults(_Line, _Filename, _Name, _Arity, 0) -> [];
 check_valid_defaults(Line, Filename, Name, Arity, _) ->
@@ -247,9 +232,6 @@ format_error({private_doc,{Name,Arity}}) ->
 
 format_error({existing_doc,{Name,Arity}}) ->
   io_lib:format("@doc's for function ~s/~B have been given more than once, the first version is being kept", [Name, Arity]);
-
-format_error({changed_clause,{{Name,Arity},{ElseName,ElseArity}}}) ->
-  io_lib:format("function ~s/~B does not match previous clause ~s/~B", [Name, Arity, ElseName, ElseArity]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
   io_lib:format("~s ~s/~B already defined as ~s", [Current, Name, Arity, Previous]).
