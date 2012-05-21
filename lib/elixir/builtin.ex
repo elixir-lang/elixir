@@ -2250,6 +2250,8 @@ defmodule Elixir.Builtin do
     quote do: Regex.compile(unquote(binary), unquote(options))
   end
 
+  def fun(m,f,a), do: :erlang.make_fun(m,f,a)
+
   ## Private functions
 
   # Extracts concatenations in order to optimize many
