@@ -6,6 +6,8 @@ defrecord RecordTest.FileInfo,
 name = RecordTest.DynamicName
 defrecord name, a: 0, b: 1
 
+defrecord RecordTest.WithNoField, []
+
 defmodule RecordTest do
   use ExUnit.Case
 
