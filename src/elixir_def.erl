@@ -122,7 +122,14 @@ compile_docs(Kind, Line, Module, Name, Arity, S) ->
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
+translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
+  { Args, Guards } = lists:mapfoldl(fun
+      ({ 'in', _, [Left, _] } = X, Acc) ->
+        { Left, add_to_guards(Line, X, Acc) };
+      (X, Acc) ->
+        { X, Acc }
+    end, RawGuards, RawArgs),
+
   Arity = length(Args),
   { Unpacked, Defaults } = elixir_def_defaults:unpack(Kind, Name, Args, S),
 
@@ -222,6 +229,13 @@ check_valid_clause(Line, Filename, Name, Arity, Table) ->
 check_valid_defaults(_Line, _Filename, _Name, _Arity, 0) -> [];
 check_valid_defaults(Line, Filename, Name, Arity, _) ->
   elixir_errors:handle_file_warning(Filename, { Line, ?MODULE, { clauses_with_docs, { Name, Arity } } }).
+
+%% Helpers
+
+add_to_guards(_Line, Expr, []) ->
+  [Expr];
+add_to_guards(Line, Expr, Clauses) ->
+  [{ 'and', Line, [Expr, Clause] } || Clause <- Clauses].
 
 %% Format errors
 

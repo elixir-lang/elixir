@@ -37,6 +37,12 @@ defmodule Kernel.CaseTest do
     assert not y in [1, 2, 3]
   end
 
+  test :in_operator_in_function_definition do
+    assert with_in(3, :it_works)  == :it_works
+    assert with_in(3, "it fails") == false
+    assert with_in(0, :it_fails)  == false
+  end
+
   defp get_case do
     case internal do
       :invalid ->
@@ -73,4 +79,7 @@ defmodule Kernel.CaseTest do
     end
     {x, vx}
   end
+
+  defp with_in(x in [1,2,3], other) when is_atom(other), do: other
+  defp with_in(_, _), do: false
 end
