@@ -200,7 +200,7 @@ defimpl Binary.Inspect, for: Tuple do
   end
 
   defp records_join([fh|ft], [vh|vt], acc, last) do
-    acc <> atom_to_binary(fh, :utf8) <> ": " <> Binary.Inspect.inspect(vh) <> ","
+    acc = acc <> atom_to_binary(fh, :utf8) <> ": " <> Binary.Inspect.inspect(vh) <> ", "
     records_join(ft, vt, acc, last)
   end
 
