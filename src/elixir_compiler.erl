@@ -123,8 +123,8 @@ module_form(Exprs, Line, Filename, Module) ->
   Args = [{ var, Line, '_EXMODULE'}],
 
   [
-    { attribute, Line, module, Module },
     { attribute, Line, file, { Filename, 1 } },
+    { attribute, Line, module, Module },
     { attribute, Line, export, [{ 'BOOTSTRAP',1 }] },
     { function, Line, 'BOOTSTRAP', length(Args), [
       { clause, Line, Args, [], Exprs }

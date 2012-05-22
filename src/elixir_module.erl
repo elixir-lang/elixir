@@ -60,8 +60,8 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
     elixir_import:ensure_no_import_conflict(Line, Filename, Module, Funs),
 
     Final = [
-      {attribute, Line, module, Module},
-      {attribute, Line, file, {Filename,Line}} | Forms1
+      {attribute, Line, file, {Filename,Line}},
+      {attribute, Line, module, Module} | Forms1
     ],
 
     load_form(Final, S),
