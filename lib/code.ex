@@ -50,6 +50,17 @@ defmodule Code do
   @doc """
   Evalutes the quoted contents.
 
+  ## Options
+
+  This function accepts a list of options. The supported
+  options are:
+
+  * `:file` - The filename to be used in stacktraces
+    or by the __FILE__ macro in case there is an error.
+
+  * `:line` - The line to be used when expanding __LINE__
+    macros and expressions inside the quote.
+
   ## Examples
 
       contents = quote hygiene: false, do: a + b

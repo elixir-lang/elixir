@@ -20,6 +20,19 @@ defmodule Module do
   Evalutes the quotes contents in the given module context.
   Raises an error if the module was already compiled.
 
+  ## Options
+
+  This function accepts a list of options. The supported
+  options are:
+
+  * `:file` - The filename to be used in stacktraces
+    or by the __FILE__ macro in case there is an error.
+
+  * `:line` - The line to be used when expanding __LINE__
+    macros. The stacktrace line information is not affected
+    by this option as the line inside each quoted expression
+    is used instead.
+
   ## Examples
 
       defmodule Foo do

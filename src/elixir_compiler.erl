@@ -64,8 +64,8 @@ eval_forms(Forms, Line, RawModule, Value, S) ->
     false -> code_loading_compilation(Forms, Line, RawModule, Value, S)
   end.
 
-eval_compilation(Forms, Line, S) ->
-  { Result, _Binding, FS } = elixir:eval_quoted(Forms, [{'_EXMODULE',nil}], Line, S),
+eval_compilation(Forms, _Line, S) ->
+  { Result, _Binding, FS } = elixir:eval_forms(Forms, [{'_EXMODULE',nil}], S),
   { Result, FS }.
 
 code_loading_compilation(Forms, Line, RawModule, Value, S) ->

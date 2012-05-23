@@ -19,7 +19,8 @@ defmodule EEx do
   2) Define a function from a string (`function_from_string`)
      or a file (`function_from_file`). This allows you to embed
      the template as a function inside a module which will then
-     be compiled. This is the preferred API;
+     be compiled. This is the preferred API if you have access
+     to the template at compilation time;
 
   3) Compile a string (`compile_string`) or a file (`compile_file`)
      into Elixir syntax tree. This is the API used by both functions
@@ -105,9 +106,9 @@ defmodule EEx do
   """
   defmacro function_from_string(kind, name, source, args // [], options // []) do
     quote do
+      info = Keyword.merge unquote(options), [file: __FILE__, line: __LINE__]
       EEx.function_from_quoted(__MODULE__, unquote(kind), unquote(name),
-        unquote(args), EEx.compile_string(unquote(source), unquote(options)),
-        line: __LINE__, file: __FILE__)
+        unquote(args), EEx.compile_string(unquote(source), info), info)
     end
   end
 
@@ -136,9 +137,10 @@ defmodule EEx do
   """
   defmacro function_from_file(kind, name, filename, args // [], options // []) do
     quote do
+      file = unquote(filename)
+      info = Keyword.merge unquote(options), [file: file, line: 1]
       EEx.function_from_quoted(__MODULE__, unquote(kind), unquote(name),
-        unquote(args), EEx.compile_file(unquote(filename), unquote(options)),
-        line: __LINE__, file: __FILE__)
+        unquote(args), EEx.compile_file(file, info), info)
     end
   end
 
@@ -155,7 +157,7 @@ defmodule EEx do
   that can be evaluated by Elixir or compiled to a function.
   """
   def compile_file(filename, options // []) do
-    options = Keyword.put options, :file, filename
+    options = Keyword.merge options, [file: filename, line: 1]
     compile_string(File.read!(filename), options)
   end
 
