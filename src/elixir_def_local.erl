@@ -14,7 +14,7 @@ macro_for(_Tuple, _All, #elixir_scope{module=[]}) -> false;
 
 macro_for(Tuple, All, #elixir_scope{module=Module}) ->
   case ets:lookup(elixir_def:table(Module), Tuple) of
-    [{Tuple, Line, _, Kind, _, Clauses}] when Kind == defmacro; All, Kind == defmacrop ->
+    [{Tuple, Line, _, _, Kind, _, Clauses}] when Kind == defmacro; All, Kind == defmacrop ->
       RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
       Fun = { 'fun', Line, {clauses, lists:reverse(RewrittenClauses)} },
       { value, Result, _Binding } = erl_eval:exprs([Fun], []),
@@ -25,7 +25,7 @@ macro_for(Tuple, All, #elixir_scope{module=Module}) ->
 function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case ets:lookup(elixir_def:table(Module), Tuple) of
-    [{Tuple, Line, _, _, _, Clauses}] ->
+    [{Tuple, Line, _, _, _, _, Clauses}] ->
       % elixir_def_local:record(Line, Tuple, false, Module),
       RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
       Fun = { 'fun', Line, {clauses, lists:reverse(RewrittenClauses)} },

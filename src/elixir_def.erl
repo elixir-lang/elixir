@@ -6,7 +6,7 @@
   reset_last/1,
   wrap_definition/7,
   store_definition/8,
-  store_each/6,
+  store_each/7,
   unwrap_stored_definitions/1,
   format_error/1]).
 -include("elixir.hrl").
@@ -83,8 +83,9 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   Filename      = TS#elixir_scope.filename,
   FunctionTable = table(Module),
 
-  %% Compile documentation
-  compile_docs(Kind, Line, Module, Name, Arity, TS),
+  CO = elixir_compiler:get_opts(),
+  compile_docs(Kind, Line, Module, Name, Arity, TS, CO),
+  Location = retrieve_file(Module, CO),
 
   %% Store function
   case RawExpr of
@@ -92,11 +93,11 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
     _ ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
-      store_each(CheckClauses, Kind, Filename, FunctionTable, length(Defaults), Function)
+      store_each(CheckClauses, Kind, Filename, Location, FunctionTable, length(Defaults), Function)
   end,
 
   %% Store defaults
-  [store_each(false, Kind, Filename, FunctionTable, 0,
+  [store_each(false, Kind, Filename, Location, FunctionTable, 0,
     function_for_clause(Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
@@ -108,14 +109,29 @@ compile_super(Module, #elixir_scope{function=Function, super=true}) ->
 
 compile_super(_Module, _S) -> [].
 
-compile_docs(Kind, Line, Module, Name, Arity, S) ->
-  case elixir_compiler:get_opt(internal) of
+compile_docs(Kind, Line, Module, Name, Arity, S, CO) ->
+  case elixir_compiler:get_opt(internal, CO) of
     true -> [];
     _ ->
       case '__MAIN__.Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
         { error, Message } -> elixir_errors:handle_file_warning(S#elixir_scope.filename,
           { Line, ?MODULE, { Message, { Name, Arity } } });
         _ -> []
+      end
+  end.
+
+retrieve_file(Module, CO) ->
+  case elixir_compiler:get_opt(internal, CO) of
+    true -> [];
+    _ ->
+      case '__MAIN__.Module':read_data(Module, file) of
+        nil  -> [];
+        Else ->
+          '__MAIN__.Module':merge_data(Module, [{file,nil}]),
+          if
+             is_binary(Else) -> { Else, 1 };
+             is_tuple(Else) -> Else
+          end
       end
   end.
 
@@ -152,43 +168,55 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
 unwrap_stored_definitions(Module) ->
   Table = table(Module),
   ets:delete(Table, last),
-  unwrap_stored_definition(ets:tab2list(Table), [], [], [], [], [], []).
+  unwrap_stored_definition(ets:tab2list(Table), [], [], [], [], [], {[],[]}).
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(4, Fun) == def ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(5, Fun) == def ->
   Tuple = element(1, Fun),
   unwrap_stored_definition(
     T, [Tuple|Exports], Private, [Tuple|Def], Defmacro, Defmacrop,
-    [function_for_stored_definition(Fun)|Functions]
+    function_for_stored_definition(Fun, Functions)
   );
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(4, Fun) == defmacro ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(5, Fun) == defmacro ->
   Tuple = element(1, Fun),
   Macro = { ?ELIXIR_MACRO(element(1, Tuple)), element(2, Tuple) },
 
   unwrap_stored_definition(
     T, [Macro|Exports], Private, Def, [Tuple|Defmacro], Defmacrop,
-    [function_for_stored_definition(setelement(1, Fun, Macro))|Functions]
+    function_for_stored_definition(setelement(1, Fun, Macro), Functions)
   );
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(4, Fun) == defp ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(5, Fun) == defp ->
   unwrap_stored_definition(
     T, Exports, [element(1, Fun)|Private], Def, Defmacro, Defmacrop,
-    [function_for_stored_definition(Fun)|Functions]
+    function_for_stored_definition(Fun, Functions)
   );
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(4, Fun) == defmacrop ->
+unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(5, Fun) == defmacrop ->
   unwrap_stored_definition(
     T, Exports, [element(1, Fun)|Private], Def, Defmacro,
     [{ element(1, Fun), element(2, Fun) }|Defmacrop], Functions
   );
 
-unwrap_stored_definition([], Exports, Private, Def, Defmacro, Defmacrop, Functions) ->
-  { Exports, Private, Def, Defmacro, Defmacrop, lists:reverse(Functions) }.
+unwrap_stored_definition([], Exports, Private, Def, Defmacro, Defmacrop, {Functions,Tail}) ->
+  { Exports, Private, Def, Defmacro, Defmacrop, lists:reverse(Tail ++ Functions) }.
 
 %% Helpers
 
-function_for_stored_definition({{Name, Arity}, Line, _, _, _, Clauses}) ->
-  {function, Line, Name, Arity, lists:reverse(Clauses) }.
+function_for_stored_definition({{Name, Arity}, Line, _, [], _, _, Clauses}, {Functions,Tail}) ->
+  {
+    [{ function, Line, Name, Arity, lists:reverse(Clauses) }|Functions],
+    Tail
+  };
+
+function_for_stored_definition({{Name, Arity}, Line, _, Location, _, _, Clauses}, {Functions,Tail}) ->
+  {
+    Functions,
+    [
+      { function, Line, Name, Arity, lists:reverse(Clauses) },
+      { attribute, Line, file, Location } | Tail
+    ]
+  }.
 
 function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
   { function, Line, Name, length(Args), [Clause] }.
@@ -197,20 +225,22 @@ function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
 %% This function also checks and emit warnings in case
 %% the kind, of the visibility of the function changes.
 
-store_each(Check, Kind, Filename, Table, Defaults, {function, Line, Name, Arity, Clauses}) ->
+store_each(Check, Kind, Filename, Location, Table, Defaults, {function, Line, Name, Arity, Clauses}) ->
   case ets:lookup(Table, {Name, Arity}) of
-    [{{Name, Arity}, _, _, StoredKind, StoredDefaults, StoredClauses}] ->
+    [{{Name, Arity}, _, _, StoredLocation, StoredKind, StoredDefaults, StoredClauses}] ->
+      FinalLocation = StoredLocation,
       FinalDefaults = Defaults + StoredDefaults,
       FinalClauses  = Clauses ++ StoredClauses,
       check_valid_kind(Line, Filename, Name, Arity, Kind, StoredKind),
       check_valid_defaults(Line, Filename, Name, Arity, Defaults),
       Check andalso check_valid_clause(Line, Filename, Name, Arity, Table);
     [] ->
+      FinalLocation = Location,
       FinalDefaults = Defaults,
       FinalClauses  = Clauses,
       Check andalso ets:insert(Table, { last, { Name, Arity } })
   end,
-  ets:insert(Table, {{Name, Arity}, Line, Filename, Kind, FinalDefaults, FinalClauses}).
+  ets:insert(Table, {{Name, Arity}, Line, Filename, FinalLocation, Kind, FinalDefaults, FinalClauses}).
 
 %% Validations
 

@@ -1,9 +1,41 @@
 Code.require_file "../test_helper", __FILE__
 
+require EEx
+
+defmodule EExText.Compiled do
+  def before_compile do
+    fill_in_stacktrace
+    { __LINE__, hd(tl(System.stacktrace)) }
+  end
+
+  EEx.function_from_string :def, :string_sample, "<%= a + b %>", [:a, :b]
+
+  filename = File.expand_path("../fixtures/eex_template_with_bindings.eex", __FILE__)
+  EEx.function_from_file :defp, :private_file_sample, filename, [:bar]
+  def file_sample(arg), do: private_file_sample(arg)
+
+  def after_compile do
+    fill_in_stacktrace
+    { __LINE__, hd(tl(System.stacktrace)) }
+  end
+
+  @file "unknown"
+  def other do
+    fill_in_stacktrace
+    { __LINE__, hd(tl(System.stacktrace)) }
+  end
+
+  defp fill_in_stacktrace do
+    try do
+      Erlang.erlang.error "failed"
+    catch
+      :error, _, stack -> stack
+    end
+  end
+end
+
 defmodule EExTest do
   use ExUnit.Case
-
-  require EEx
 
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"
@@ -203,17 +235,41 @@ foo
     end
   end
 
-  EEx.function_from_string :def, :sample, "<%= a + b %>", [:a, :b]
-
-  filename = File.expand_path("../fixtures/eex_template_with_bindings.eex", __FILE__)
-  EEx.function_from_file :defp, :other_sample, filename, [:bar]
-
   test "defined from string" do
-    assert sample(1, 2) == "3"
+    assert EExText.Compiled.string_sample(1, 2) == "3"
   end
 
   test "defined from file" do
-    assert other_sample(1) == "foo 1\n"
+    assert EExText.Compiled.file_sample(1) == "foo 1\n"
+  end
+
+  test "defined from file do not affect backtrace" do
+    assert EExText.Compiled.before_compile ==
+      { 8,
+        { EExText.Compiled,
+          :before_compile,
+          0,
+          [file: binary_to_list(__FILE__), line: 7]
+        }
+      }
+
+    assert EExText.Compiled.after_compile ==
+      { 19,
+        { EExText.Compiled,
+          :after_compile,
+          0,
+          [file: binary_to_list(__FILE__), line: 18]
+        }
+      }
+
+    assert EExText.Compiled.other ==
+      { 25,
+        { EExText.Compiled,
+          :other,
+          0,
+          [file: 'unknown', line: 24]
+        }
+      }
   end
 
   defp assert_eval(expected, actual) do

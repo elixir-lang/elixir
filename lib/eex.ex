@@ -139,6 +139,8 @@ defmodule EEx do
     quote do
       file = unquote(filename)
       info = Keyword.merge unquote(options), [file: file, line: 1]
+
+      @file file
       EEx.function_from_quoted(__MODULE__, unquote(kind), unquote(name),
         unquote(args), EEx.compile_file(file, info), info)
     end

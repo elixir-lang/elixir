@@ -287,7 +287,7 @@ defmodule Module do
   def defined_functions(module) do
     assert_not_compiled!(:defined_functions, module)
     table = function_table_for(module)
-    lc { tuple, _, _, _, _, _ } in ETS.tab2list(table), do: tuple
+    lc { tuple, _, _, _, _, _, _ } in ETS.tab2list(table), do: tuple
   end
 
   @doc """
@@ -306,7 +306,7 @@ defmodule Module do
   def defined_functions(module, kind) do
     assert_not_compiled!(:defined_functions, module)
     table = function_table_for(module)
-    lc { tuple, _, _, stored_kind, _, _ } in ETS.tab2list(table) when stored_kind == kind, do: tuple
+    lc { tuple, _, _, _, stored_kind, _, _ } in ETS.tab2list(table) when stored_kind == kind, do: tuple
   end
 
   @doc """
