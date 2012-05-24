@@ -10,6 +10,12 @@ defmodule Elixir.Builtin.Test do
   end
 
   test :local_fun do
+    assert is_function(fn(:atl, 1))
+    assert :erlang.fun_info(fn(:atl, 1), :arity) == {:arity, 1}
+    assert fn(:atl, 1).(:a) == 'a'
+  end
+
+  test :imported_fun do
     assert is_function(fn(:atom_to_list, 1))
     assert :erlang.fun_info(fn(:atom_to_list, 1), :arity) == {:arity, 1}
     assert fn(:atom_to_list, 1).(:a) == 'a'
@@ -25,7 +31,7 @@ defmodule Elixir.Builtin.Test do
     assert fn(a, b, c).(:a) == 'a'
   end
 
-  defp atom_to_list(arg) do
+  defp atl(arg) do
     :erlang.atom_to_list arg
   end
 end

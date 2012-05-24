@@ -262,7 +262,10 @@ translate_each({fn, Line, Args} = Original, S) when is_list(Args) ->
     _ when length(Args) == 2 ->
       case translate_args(Args, S) of
         { [{atom,_,Name}, {integer,_,Arity}], SA } ->
-          { { 'fun', Line, { function, Name, Arity } }, SA };
+          case elixir_dispatch:import_function(Line, Name, Arity, SA) of
+            false -> syntax_error(Line, S#elixir_scope.filename, "cannot convert a macro to a function");
+            Else  -> Else
+          end;
         _ ->
           translate_partial_fn({ fn, Line, [{'__MODULE__', 0, nil}|Args] }, S)
       end;
@@ -373,8 +376,9 @@ translate_each({Name, Line, nil}, S) when is_atom(Name) ->
 
 %% Local calls
 
-translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
-  case elixir_dispatch:import_function(Line, Atom, Args, S) of
+translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->  
+  case sequential_partials(Args, 1) andalso
+       elixir_dispatch:import_function(Line, Atom, length(Args), S) of
     false ->
       case handle_partials(Line, Original, S) of
         error ->
@@ -390,8 +394,8 @@ translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
 translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom(Right) ->
   { TLeft,  SL } = translate_each(Left, S),
 
-  Fun = (element(1, TLeft) == atom) andalso
-    elixir_dispatch:require_function(Line, element(3, TLeft), Right, Args, SL),
+  Fun = (element(1, TLeft) == atom) andalso sequential_partials(Args, 1) andalso
+    elixir_dispatch:require_function(Line, element(3, TLeft), Right, length(Args), SL),
 
   case Fun of
     false ->
@@ -636,6 +640,12 @@ convert_partials(Line, [H|T], S, CallAcc, DefAcc) ->
 
 convert_partials(_Line, [], S, CallAcc, DefAcc) ->
   { lists:reverse(CallAcc), lists:reverse(DefAcc), S }.
+
+sequential_partials([{ '&', _, [Int] }|T], Int) ->
+  sequential_partials(T, Int + 1);
+
+sequential_partials([], Int) when Int > 1 -> true;
+sequential_partials(_, _Int) -> false.
 
 %% Convert operators
 

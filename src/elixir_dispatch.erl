@@ -19,35 +19,25 @@ default_requires() ->
 
 %% Function retrieval
 
-import_function(Line, Name, Args, S) ->
-  case sequential_partials(Args, 1) of
-    true ->
-      Arity = length(Args),
-      Tuple = { Name, Arity },
-      case find_dispatch(Tuple, S#elixir_scope.functions) of
-        false ->
-          case find_dispatch(Tuple, S#elixir_scope.macros) of
-            false -> { { 'fun', Line, { function, Name, Arity } }, S };
-            _ -> false
-          end;
-        Receiver ->
-          elixir_import:record(import, Tuple, Receiver, S),
-          remote_function(Line, Receiver, Name, Arity, S)
+import_function(Line, Name, Arity, S) ->
+  Tuple = { Name, Arity },
+  case find_dispatch(Tuple, S#elixir_scope.functions) of
+    false ->
+      case find_dispatch(Tuple, S#elixir_scope.macros) of
+        false -> { { 'fun', Line, { function, Name, Arity } }, S };
+        _ -> false
       end;
-    false -> false
+    Receiver ->
+      elixir_import:record(import, Tuple, Receiver, S),
+      remote_function(Line, Receiver, Name, Arity, S)
   end.
 
-require_function(Line, Receiver, Name, Args, S) ->
-  case sequential_partials(Args, 1) of
-    true ->
-      Arity = length(Args),
-      Tuple = { Name, Arity },
+require_function(Line, Receiver, Name, Arity, S) ->
+  Tuple = { Name, Arity },
 
-      case is_element(Tuple, get_optional_macros(Receiver)) of
-        true  -> false;
-        false -> remote_function(Line, Receiver, Name, Arity, S)
-      end;
-    false -> false
+  case is_element(Tuple, get_optional_macros(Receiver)) of
+    true  -> false;
+    false -> remote_function(Line, Receiver, Name, Arity, S)
   end.
 
 %% Dispatch based on scope's imports
@@ -182,12 +172,6 @@ format_error({ unrequired_module,{Receiver, Name, Arity, Required }}) ->
     [elixir_errors:inspect(Receiver), Name, Arity, [elixir_errors:inspect(R) || R <- Required]]).
 
 %% INTROSPECTION
-
-sequential_partials([{ '&', _, [Int] }|T], Int) ->
-  sequential_partials(T, Int + 1);
-
-sequential_partials([], Int) when Int > 1 -> true;
-sequential_partials(_, _Int) -> false.
 
 remote_function(Line, Receiver, Name, Arity, S) ->
   Final =
