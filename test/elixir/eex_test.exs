@@ -34,6 +34,14 @@ defmodule EExText.Compiled do
   end
 end
 
+defmodule Clause do
+  defmacro defclause(expr, block) do
+    quote do
+      def unquote(expr), unquote(block)
+    end
+  end
+end
+
 defmodule EExTest do
   use ExUnit.Case
 

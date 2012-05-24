@@ -46,12 +46,11 @@ translate_each({ '__block__', Line, Args }, S) when is_list(Args) ->
 
 translate_each({ '->', Line, _ }, S) ->
   case S#elixir_scope.macro of
-    { Receiver, Name, Arity } ->
+    [] -> % TODO: This shuold be raised at runtime
+      syntax_error(Line, S#elixir_scope.filename, "use of -> out of context", "");
+    [{ _Line, Receiver, Name, Arity }|_] ->
       Desc = [elixir_errors:inspect(Receiver), Name, Arity],
-      syntax_error(Line, S#elixir_scope.filename, "use of -> out of context in macro ~s.~s/~B", Desc);
-    _ ->
-      % TODO: This shuold be raised at runtime
-      syntax_error(Line, S#elixir_scope.filename, "use of -> out of context", "")
+      syntax_error(Line, S#elixir_scope.filename, "use of -> out of context in macro ~s.~s/~B", Desc)
   end;
 
 %% Erlang op

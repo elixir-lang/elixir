@@ -142,7 +142,7 @@ dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) ->
       Info = { Receiver, Name, length(Args), [{ file, S#elixir_scope.filename }, { line, Line }] },
       erlang:raise(Kind, Reason, insert_before_dispatch_macro(Info, erlang:get_stacktrace()))
   end,
-  NewS = S#elixir_scope{macro={Receiver,Name,Arity}},
+  NewS = S#elixir_scope{macro=[{Line,Receiver,Name,Arity}|S#elixir_scope.macro]},
   { TTree, TS } = elixir_translator:translate_each(elixir_quote:linify(Line, Tree), NewS),
   { TTree, TS#elixir_scope{macro=S#elixir_scope.macro} }.
 
