@@ -97,8 +97,9 @@ defmodule Protocol do
     remaining = protocol.__protocol__(:functions) -- impl.__info__(:functions)
 
     if remaining != [] do
+      pp = Enum.map_join remaining, ", ", fn {x,y} -> "#{x}/#{y}" end
       raise ArgumentError,
-        message: "#{impl} did not implement #{protocol}, missing: #{remaining}"
+        message: "#{inspect impl} did not implement #{inspect protocol}, missing: #{pp}"
     end
   end
 
