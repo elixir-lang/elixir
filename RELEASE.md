@@ -15,6 +15,5 @@ This document simply outlines the release process:
 ## Places where version is mentioned
 
 * src/elixir.app.src
-* lib/code.ex
-* README
+* lib/system.ex
 * CHANGELOG

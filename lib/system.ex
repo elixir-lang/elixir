@@ -73,7 +73,7 @@ defmodule System do
   @doc """
   Returns Elixir's version as binary.
   """
-  def version, do: "0.5.0.dev"
+  def version, do: "0.5.0"
 
   @doc """
   Returns the list of command-line arguments passed to the program.

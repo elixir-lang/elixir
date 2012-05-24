@@ -18,9 +18,6 @@ But if you just want to try it out, clone this repository to your machine, compi
     $ cd elixir
     $ make test
 
-    $ bin/elixir -v
-    Elixir 0.5.0.dev
-
 If tests pass, you are ready to move on to the [Getting Started guide][1] or to try Interactive Elixir by running: `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang R15B or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
