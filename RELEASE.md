@@ -16,4 +16,5 @@ This document simply outlines the release process:
 
 * src/elixir.app.src
 * lib/system.ex
+* Makefile
 * CHANGELOG

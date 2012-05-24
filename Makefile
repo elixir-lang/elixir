@@ -1,11 +1,17 @@
 REBAR:=$(shell which rebar || echo ./rebar)
 ERLC=erlc -I include
 ERL=erl -I include -noshell -pa ebin
+VERSION=0.5.0
 
-.PHONY: ebin docs
+.PHONY: ebin docs zip
 .NOTPARALLEL: compile
 
 compile: ebin ebin/__MAIN__ ebin/elixir.app
+
+zip:
+	rm -rf v$(VERSION).zip
+	zip -r v$(VERSION).zip ebin `git ls-files`
+	zip v$(VERSION).zip -d .git .gitignore .travis.yml
 
 ebin/elixir.app:
 	@ $(REBAR) compile
