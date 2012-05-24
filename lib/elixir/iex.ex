@@ -49,6 +49,11 @@ defmodule Elixir.IEx do
     do_loop(config)
   end
 
+  def c(files, path // ".") do
+    tuples = Elixir.ParallelCompiler.files_to_path List.wrap(files), path
+    Enum.map tuples, elem(&1, 1)
+  end
+
   ## Helpers
 
   defp boot_config(binding, io) do
