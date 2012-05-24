@@ -11,4 +11,4 @@ readlink_f () {
 
 SELF=`readlink_f $0`
 SCRIPT_PATH=`dirname $SELF`
-$SCRIPT_PATH/elixir --no-halt -e "Elixir.IEx.start" "$@"
+erl -pa $SCRIPT_PATH/../ebin -noinput $ELIXIR_ERL_OPTS -s "__MAIN__.Elixir.IEx" start  -extra "$@"

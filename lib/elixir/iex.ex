@@ -39,14 +39,27 @@ defmodule Elixir.IEx do
   import Exception, only: [format_stacktrace: 1]
 
   def start(binding // [], io // Elixir.IEx.UnicodeIO) do
+    config = boot_config(binding, io)
+    function = fn -> do_loop(config) end
+    Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
+  end
+
+  def simple_start(binding // [], io // Elixir.IEx.UnicodeIO) do
+    config = boot_config(binding, io)
+    do_loop(config)
+  end
+
+  ## Helpers
+
+  defp boot_config(binding, io) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit"
+
     scope  = Erlang.elixir.scope_for_eval(
       file: 'iex',
       delegate_locals_to: __MODULE__
     )
-    config = Elixir.IEx.Config.new(io: io, binding: binding, scope: scope)
-    function = fn -> do_loop(config) end
-    Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
+
+    Elixir.IEx.Config.new(io: io, binding: binding, scope: scope)
   end
 
   defp do_loop(config) do
