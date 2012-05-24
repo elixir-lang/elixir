@@ -3,10 +3,14 @@
 %% as binaries, lists, condition clauses, etc.
 
 -module(elixir_tree_helpers).
--export([abstract_syntax/1, convert_to_boolean/3,
+-export([abstract_syntax/1, convert_to_boolean/3, split_last/1,
   build_bitstr/4, build_list/4, build_list/5, build_simple_list/2,
   build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
+
+split_last(List)       -> split_last(List, []).
+split_last([H], Acc)   -> { lists:reverse(Acc), H };
+split_last([H|T], Acc) -> split_last(T, [H|Acc]).
 
 abstract_syntax(Tree) ->
   erl_syntax:revert(erl_syntax:abstract(Tree)).

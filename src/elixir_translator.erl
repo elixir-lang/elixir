@@ -250,18 +250,41 @@ translate_each({in_guard, _, [[{do,Guard},{else,Else}]]}, S) ->
 
 %% Functions
 
-translate_each({fn, Line, RawArgs}, S) when is_list(RawArgs) ->
-  { Left, Right } = lists:split(length(RawArgs) - 1, RawArgs),
-  translate_fn(Line, Left, hd(Right), S, []);
+translate_each({Key, Line, []}, S) when Key == fn; Key == loop ->
+  syntax_error(Line, S#elixir_scope.filename, "invalid args for ~s", [Key]);
+
+translate_each({fn, Line, Args} = Original, S) when is_list(Args) ->
+  { Left, Right } = elixir_tree_helpers:split_last(Args),
+
+  case Right of
+    [{do,Do}] ->
+      translate_block_fn(Line, fn, Left, Do, S, []);
+    _ when length(Args) == 2 ->
+      case translate_args(Args, S) of
+        { [{atom,_,Name}, {integer,_,Arity}], SA } ->
+          { { 'fun', Line, { function, Name, Arity } }, SA };
+        _ ->
+          translate_partial_fn({ fn, Line, [{'__MODULE__', 0, nil}|Args] }, S)
+      end;
+    _ when length(Args) == 3 ->
+      translate_partial_fn(Original, S);
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for fn")
+  end;
 
 %% Loop and recur
 
 translate_each({loop, Line, RawArgs}, RS) when is_list(RawArgs) ->
-  { Args, KV } = lists:split(length(RawArgs) - 1, RawArgs),
+  { Args, KV } = elixir_tree_helpers:split_last(RawArgs),
   { ExVar, S } = elixir_variables:build_ex(Line, RS),
 
-  FS = S#elixir_scope{recur=element(1,ExVar)},
-  { Function, SE } = translate_fn(Line, [], hd(KV), FS, [ExVar]),
+  { Function, SE } = case KV of
+    [{do,Do}] ->
+      FS = S#elixir_scope{recur=element(1,ExVar)},
+      translate_block_fn(Line, loop, [], Do, FS, [ExVar]);
+    _ ->
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for loop")
+  end,
 
   ErlVar = { var, Line, element(1, ExVar) },
   { TArgs, SA } = translate_args(Args, umergec(S, SE)),
@@ -472,16 +495,14 @@ translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
 
 %% Helpers
 
-translate_fn(Line, Left, Right, S, ExtraArgs) ->
+translate_block_fn(Line, Key, Left, Right, S, ExtraArgs) ->
   Clauses = case { Left, Right } of
-    { [], [{do,{'->',_,Pairs}}] } ->
+    { [], {'->',_,Pairs} } ->
       Pairs;
-    { _, [{do,{'->',_,_}}] } ->
-      syntax_error(Line, S#elixir_scope.filename, "fn does not accept arguments when passing many clauses");
-    { Args, [{do,Expr}] } ->
-      [{Args,Expr}];
-    _ ->
-      syntax_error(Line, S#elixir_scope.filename, "no block given to fn")
+    { _, {'->',_,_} } ->
+      syntax_error(Line, S#elixir_scope.filename, "~s does not accept arguments when passing many clauses", [Key]);
+    { Args, Expr } ->
+      [{ Args, Expr }]
   end,
 
   Transformer = fun({ ArgsWithGuards, Expr }, Acc) ->
@@ -491,6 +512,14 @@ translate_fn(Line, Left, Right, S, ExtraArgs) ->
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
   { { 'fun', Line, {clauses, TClauses} }, umergec(S, NS) }.
+
+translate_partial_fn({ fn, Line, Args } = Original, S) ->
+  case handle_partials(Line, Original, S) of
+    error ->
+      { [A,B,C], SA } = translate_args(Args, S),
+      { { 'fun', Line, { function, A, B, C } }, SA };
+    Else -> Else
+  end.
 
 translate_local(Line, Name, Args, #elixir_scope{local=[]} = S) ->
   { TArgs, NS } = translate_args(Args, S),
@@ -624,8 +653,8 @@ convert_op(Else)   ->  Else.
 %% Comprehensions
 
 translate_comprehension(Line, Kind, Args, S) ->
-  case lists:split(length(Args) - 1, Args) of
-    { Cases, [[{do,Expr}]] } ->
+  case elixir_tree_helpers:split_last(Args) of
+    { Cases, [{do,Expr}] } ->
       { Generators, Filters } = case lists:reverse(Cases) of
         [{'when', _, [Left, Right]}|T] -> { lists:reverse([Left|T]), [Right] };
         _ -> { Cases, [] }
@@ -636,7 +665,7 @@ translate_comprehension(Line, Kind, Args, S) ->
       { TExpr, SE } = translate_comprehension_do(Line, Kind, Expr, SF),
       { { Kind, Line, TExpr, TGenerators ++ TFilters }, umergec(S, SE) };
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "no block given to comprehension ~s", [Kind])
+      syntax_error(Line, S#elixir_scope.filename, "keyword argument :do missing for comprehension ~s", [Kind])
   end.
 
 translate_comprehension_do(_Line, bc, { '<<>>', _, _ } = Expr, S) ->

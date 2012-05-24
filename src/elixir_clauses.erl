@@ -85,7 +85,7 @@ extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Arg
 
 extract_last_guards([]) -> { [], [] };
 extract_last_guards(Args) ->
-  { Left, [Right] } = lists:split(length(Args) - 1, Args),
+  { Left, Right }  = elixir_tree_helpers:split_last(Args),
   { Bare, Guards } = extract_guards(Right),
   { Left ++ [Bare], Guards }.
 

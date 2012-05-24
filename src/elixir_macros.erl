@@ -86,7 +86,7 @@ translate_macro({'receive', Line, [KV] }, S) ->
     true ->
       After = elixir_clauses:get_pairs(Line, 'after', KV, S),
       { TClauses, SC } = elixir_clauses:match(Line, Do ++ After, S),
-      { FClauses, [TAfter] } = lists:split(length(TClauses) - 1, TClauses),
+      { FClauses, TAfter } = elixir_tree_helpers:split_last(TClauses),
       { _, _, [FExpr], _, FAfter } = TAfter,
       { { 'receive', Line, FClauses, FExpr, FAfter }, SC };
     false ->

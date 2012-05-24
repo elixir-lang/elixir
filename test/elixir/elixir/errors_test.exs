@@ -56,7 +56,7 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :invalid_fn_args do
-    assert "nofile:1: no block given to fn" == format_rescue 'fn 1'
+    assert "nofile:1: invalid args for fn" == format_rescue 'fn 1'
   end
 
   test :unproper_macro do
