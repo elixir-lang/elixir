@@ -45,7 +45,7 @@ defmodule Module do
   def eval_quoted(module, quoted, binding // [], opts // []) do
     assert_not_compiled!(:eval_quoted, module)
 
-    { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(opts, module, binding)
+    { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(module, binding, opts)
     Erlang.elixir_def.reset_last(module)
 
     line = Keyword.get opts, :line, 1
