@@ -1434,7 +1434,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro inspect(arg) do
-    quote do: __MAIN__.Binary.Inspect.inspect(unquote(arg))
+    quote do: Binary.Inspect.inspect(unquote(arg))
   end
 
   @doc """
@@ -1475,7 +1475,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro to_binary(arg) do
-    quote do: __MAIN__.Binary.Chars.to_binary(unquote(arg))
+    quote do: Binary.Chars.to_binary(unquote(arg))
   end
 
   @doc """
@@ -1488,7 +1488,7 @@ defmodule Elixir.Builtin do
 
   """
   defmacro to_char_list(arg) do
-    quote do: __MAIN__.List.Chars.to_char_list(unquote(arg))
+    quote do: List.Chars.to_char_list(unquote(arg))
   end
 
   @doc """
@@ -2238,7 +2238,7 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
-  handles the sigil %r. It returns a Regex pattern.
+  Handles the sigil %r. It returns a Regex pattern.
 
   ## Examples
 
@@ -2247,6 +2247,19 @@ defmodule Elixir.Builtin do
   """
   defmacro __r__({ :<<>>, line, pieces }, options) do
     binary = { :<<>>, line, Binary.unescape_tokens(pieces, Regex.unescape_map(&1)) }
+    quote do: Regex.compile(unquote(binary), unquote(options))
+  end
+
+  @doc """
+  Handles the sigil %R. It returns a Regex pattern without escaping
+  nor interpreating interpolations.
+
+  ## Examples
+
+      Regex.match? %R(f\#{1,3}o), "f\#o"  #=> true
+
+  """
+  defmacro __R__(binary, options) do
     quote do: Regex.compile(unquote(binary), unquote(options))
   end
 

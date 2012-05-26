@@ -29,6 +29,10 @@ defmodule Regex.BinaryTest do
     assert Regex.match?(%r/foo$/,  "afoo")
   end
 
+  test :__R__ do
+    assert Regex.match?(%R/f#{1,3}o/, "f#o")
+  end
+
   test :run do
     assert Regex.run(%r"c(d)", "abcd") == ["cd", "d"]
     assert Regex.run(%r"e", "abcd") == nil
