@@ -52,7 +52,7 @@ file_to_path(File, Path) ->
 
 %% Evaluates the contents/forms by compiling them to an Erlang module.
 
-eval_forms(Forms, Line, Module, #elixir_scope{module=[]} = S) ->
+eval_forms(Forms, Line, Module, #elixir_scope{module=nil} = S) ->
   eval_forms(Forms, Line, Module, nil, S);
 
 eval_forms(Forms, Line, Module, #elixir_scope{module=Value} = S) ->

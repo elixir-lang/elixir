@@ -14,7 +14,7 @@ build_table(Module) ->
 delete_table(Module) ->
   ets:delete(table(Module)).
 
-record(_Kind, _Tuple, _Receiver, #elixir_scope{module=[]}) ->
+record(_Kind, _Tuple, _Receiver, #elixir_scope{module=nil}) ->
   [];
 
 record(import, Tuple, Receiver, #elixir_scope{module=Module}) ->

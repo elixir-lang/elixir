@@ -48,7 +48,7 @@ scope_for_eval(Opts) ->
 
   Local = case orddict:find(delegate_locals_to, Opts) of
     { ok, L } -> L;
-    error -> []
+    error -> nil
   end,
 
   #elixir_scope{filename=Filename,local=Local}.

@@ -69,15 +69,15 @@ handle_file_error(Filename, {Line,Module,Desc}) ->
 
 %% Assertions
 
-assert_no_function_scope(_Line, _Kind, #elixir_scope{function=[]}) -> [];
+assert_no_function_scope(_Line, _Kind, #elixir_scope{function=nil}) -> [];
 assert_no_function_scope(Line, Kind, S) ->
   syntax_error(Line, S#elixir_scope.filename, "cannot invoke ~s inside a function", [Kind]).
 
-assert_module_scope(Line, Kind, #elixir_scope{module=[],filename=Filename}) ->
+assert_module_scope(Line, Kind, #elixir_scope{module=nil,filename=Filename}) ->
   syntax_error(Line, Filename, "cannot invoke ~s outside module", [Kind]);
 assert_module_scope(_Line, _Kind, #elixir_scope{module=Module}) -> Module.
 
-assert_function_scope(Line, Kind, #elixir_scope{function=[],filename=Filename}) ->
+assert_function_scope(Line, Kind, #elixir_scope{function=nil,filename=Filename}) ->
   syntax_error(Line, Filename, "cannot invoke ~s outside function", [Kind]);
 assert_function_scope(_Line, _Kind, #elixir_scope{function=Function}) -> Function.
 

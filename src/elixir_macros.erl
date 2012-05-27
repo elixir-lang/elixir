@@ -243,7 +243,7 @@ translate_macro({ 'var!', Line, [_] }, S) ->
 
 %% HELPERS
 
-module_ref(_Raw, Module, []) ->
+module_ref(_Raw, Module, nil) ->
   Module;
 
 module_ref({{ '.', _, [{ '__MAIN__', _, Atom }, _]}, _, _}, Module, _Nesting) when is_atom(Atom) ->

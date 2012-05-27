@@ -181,15 +181,11 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
 %% Arg-less macros
 
 translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
-  Module = case S#elixir_scope.module of
-    [] -> nil;
-    Other -> Other
-  end,
-  { { atom, Line, Module }, S };
+  { { atom, Line, S#elixir_scope.module }, S };
 
 translate_each({'__FUNCTION__', Line, Atom}, S) when is_atom(Atom) ->
   case S#elixir_scope.function of
-    [] ->
+    nil ->
       { { atom, Line, nil }, S };
     { Name, Arity } ->
       { { tuple, Line, [ { atom, Line, Name }, { integer, Line, Arity } ] }, S }
@@ -299,7 +295,7 @@ translate_each({loop, Line, RawArgs}, RS) when is_list(RawArgs) ->
 
 translate_each({recur, Line, Args}, S) when is_list(Args) ->
   case S#elixir_scope.recur of
-    [] ->
+    nil ->
       syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop");
     Recur ->
       ExVar = { Recur, Line, nil },
@@ -525,7 +521,7 @@ translate_partial_fn({ fn, Line, Args } = Original, S) ->
     Else -> Else
   end.
 
-translate_local(Line, Name, Args, #elixir_scope{local=[]} = S) ->
+translate_local(Line, Name, Args, #elixir_scope{local=nil} = S) ->
   { TArgs, NS } = translate_args(Args, S),
   { { call, Line, { atom, Line, Name }, TArgs }, NS };
 
