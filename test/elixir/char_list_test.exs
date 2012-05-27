@@ -4,13 +4,13 @@ defmodule CharListTest do
   use ExUnit.Case
 
   test :heredoc do
-    assert __LINE__ == 7
+    assert __ENV__.line == 7
     assert 'foo\nbar\n' == '''
 foo
 bar
 '''
 
-    assert __LINE__ == 13
+    assert __ENV__.line == 13
     assert 'foo\nbar \'\'\'\n' == '''
 foo
 bar '''

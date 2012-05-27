@@ -57,8 +57,8 @@ macro_test() ->
 
 macro_line_test() ->
   F = fun() ->
-    ?assertMatch({2, []}, eval("defmodule Foo do\ndef line, do: __LINE__\nend\nFoo.line")),
-    ?assertMatch({1, []}, eval("__LINE__"))
+    ?assertMatch({2, []}, eval("defmodule Foo do\ndef line, do: __ENV__.line\nend\nFoo.line")),
+    ?assertMatch({1, []}, eval("__ENV__.line"))
   end,
   test_helper:run_and_remove(F, ['__MAIN__.Foo']).
 

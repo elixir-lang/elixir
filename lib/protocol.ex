@@ -40,8 +40,8 @@ defmodule Protocol do
 
         # Define callbacks and meta information
         { conversions, fallback } = Protocol.conversions_for(__MODULE__, @only, @except)
-        Protocol.impl_for(__MODULE__, conversions)
-        Protocol.meta(__MODULE__, @functions, fallback)
+        Protocol.impl_for(__ENV__, conversions)
+        Protocol.meta(__ENV__, @functions, fallback)
       end
     end
   end
@@ -106,7 +106,7 @@ defmodule Protocol do
   @doc """
   Defines meta information about the protocol and internal callbacks.
   """
-  def meta(module, functions, fallback) do
+  def meta(env, functions, fallback) do
     contents = quote do
       def __protocol__(:name),      do: __MODULE__
       def __protocol__(:functions), do: unquote(:lists.sort(functions))
@@ -137,7 +137,7 @@ defmodule Protocol do
       defp __fallback__, do: unquote(fallback)
     end
 
-    Module.eval_quoted module, contents, [], file: __FILE__, line: __LINE__
+    Module.eval_quoted env, contents
   end
 
   @doc """
@@ -145,7 +145,7 @@ defmodule Protocol do
   the module to dispatch to. Returns module.Record for records
   which should be properly handled by the dispatching function.
   """
-  def impl_for(module, conversions) do
+  def impl_for(env, conversions) do
     contents = lc kind in conversions, do: each_impl_for(kind, conversions)
 
     # If we don't implement all protocols and any is not in the
@@ -158,7 +158,7 @@ defmodule Protocol do
       end]
     end
 
-    Module.eval_quoted module, contents, [], file: __FILE__, line: __LINE__
+    Module.eval_quoted env, contents
   end
 
   @doc """

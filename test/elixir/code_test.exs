@@ -7,7 +7,7 @@ defmodule CodeTest do
 
   contents = quote do
     defmodule CodeTest.Sample do
-      def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ }
+      def eval_quoted_info, do: { __MODULE__, __FILE__, __ENV__.line }
     end
   end
 
@@ -15,7 +15,7 @@ defmodule CodeTest do
 
   test :eval do
     assert Code.eval("1 + 2") == { 3, [] }
-    assert_match { 3, _ }, Code.eval("a + b", [a: 1, b: 2], file: __FILE__, line: __LINE__)
+    assert_match { 3, _ }, Code.eval("a + b", [a: 1, b: 2], __ENV__.location)
   end
 
   test :eval_with_scope do

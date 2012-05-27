@@ -5,9 +5,9 @@ require EEx
 defmodule EExText.Compiled do
   def before_compile do
     fill_in_stacktrace
-    { __LINE__, hd(tl(System.stacktrace)) }
+    { __ENV__.line, hd(tl(System.stacktrace)) }
   end
-
+  { :erlang, 1, 2 }.tuple_to_list
   EEx.function_from_string :def, :string_sample, "<%= a + b %>", [:a, :b]
 
   filename = File.expand_path("../fixtures/eex_template_with_bindings.eex", __FILE__)
@@ -16,13 +16,13 @@ defmodule EExText.Compiled do
 
   def after_compile do
     fill_in_stacktrace
-    { __LINE__, hd(tl(System.stacktrace)) }
+    { __ENV__.line, hd(tl(System.stacktrace)) }
   end
 
   @file "unknown"
   def other do
     fill_in_stacktrace
-    { __LINE__, hd(tl(System.stacktrace)) }
+    { __ENV__.line, hd(tl(System.stacktrace)) }
   end
 
   defp fill_in_stacktrace do
@@ -134,7 +134,7 @@ foo
 
     string = """
 foo
-<%= __LINE__ %>
+<%= __ENV__.line %>
 """
 
     assert_eval expected, string
@@ -152,9 +152,9 @@ foo
     string = """
 foo
 <%= if true do %>
-<%= __LINE__ %>
+<%= __ENV__.line %>
 <% end %>
-<%= __LINE__ %>
+<%= __ENV__.line %>
 """
 
     assert_eval expected, string
@@ -171,10 +171,10 @@ true
 
     string = """
 foo
-<%= if __LINE__ == 2 do %>
+<%= if __ENV__.line == 2 do %>
 <%= true %>
 <% end %>
-<%= __LINE__ %>
+<%= __ENV__.line %>
 """
 
     assert_eval expected, string
@@ -193,10 +193,10 @@ true
 foo
 <%= cond do %>
 <& false -> &> false
-<& __LINE__ == 4 -> &>
+<& __ENV__.line == 4 -> &>
 <%= true %>
 <% end %>
-<%= __LINE__ %>
+<%= __ENV__.line %>
 """
 
     assert_eval expected, string
@@ -214,11 +214,11 @@ foo
     string = """
 foo
 <%= if false do %>
-<%= __LINE__ %>
+<%= __ENV__.line %>
 <% else %>
-<%= __LINE__ %>
+<%= __ENV__.line %>
 <% end %>
-<%= __LINE__ %>
+<%= __ENV__.line %>
 """
 
     assert_eval expected, string

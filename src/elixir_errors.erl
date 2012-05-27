@@ -4,7 +4,8 @@
 -export([syntax_error/3, syntax_error/4, inspect/1,
   form_error/4, parse_error/4, assert_module_scope/3,
   assert_no_function_scope/3, assert_function_scope/3,
-  handle_file_warning/2, handle_file_error/2]).
+  handle_file_warning/2, handle_file_error/2,
+  deprecation/3, deprecation/4]).
 -include("elixir.hrl").
 
 %% Handle inspecting for exceptions
@@ -54,15 +55,26 @@ form_error(Line, Filename, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),
   raise(Line, Filename, '__MAIN__.CompileError', Message).
 
+%% Shows a deprecation message
+
+deprecation(Line, Filename, Message) -> deprecation(Line, Filename, Message, []).
+
+deprecation(Line, Filename, Message, Args) ->
+  io:format(file_format(Line, Filename, io_lib:format(Message, Args))).
+
 %% Handle warnings and errors (called during module compilation)
 
 handle_file_warning(_Filename, {_Line,sys_core_fold,Ignore}) when
   Ignore == nomatch_clause_type; Ignore == useless_building ->
   [];
 
+handle_file_warning(_Filename, {_Line,v3_kernel,Ignore}) when
+  Ignore == bad_call ->
+  [];
+
 handle_file_warning(Filename, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
-  io:format(file_format(Line, Filename, Message) ++ "\n").
+  io:format(file_format(Line, Filename, Message)).
 
 handle_file_error(Filename, {Line,Module,Desc}) ->
   form_error(Line, Filename, Module, Desc).
@@ -88,7 +100,7 @@ raise(Line, Filename, Kind, Message) ->
   erlang:raise(error, { Kind, '__exception__', Message, iolist_to_binary(Filename), Line }, Stacktrace).
 
 file_format(Line, Filename, Message) ->
-  lists:flatten(io_lib:format("~ts:~w: ~ts", [Filename, Line, Message])).
+  io_lib:format("~ts:~w: ~ts~n", [Filename, Line, Message]).
 
 format_error([], Desc) ->
   io_lib:format("~p", [Desc]);

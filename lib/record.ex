@@ -29,7 +29,7 @@ defmodule Record do
     quote do
       defmodule unquote(name) do
         @moduledoc unquote(moduledoc)
-        Record.define_functions(__MODULE__, unquote(values), unquote(definition))
+        Record.define_functions(__ENV__, unquote(values), unquote(definition))
         unquote(block)
       end
     end
@@ -37,17 +37,17 @@ defmodule Record do
 
   @doc false
   # Private endpoint that defines the functions for the Record.
-  def define_functions(module, values, definition) do
+  def define_functions(env, values, definition) do
     # Escape the values so they are valid syntax nodes
     values = Macro.escape(values)
 
     contents = [
-      reflection(module, values),
+      reflection(env, values),
       getters_and_setters(values, 1, [], definition),
       initializers(values)
     ]
 
-    Module.eval_quoted module, contents, [], file: __FILE__, line: __LINE__
+    Module.eval_quoted env, contents
   end
 
   # Define __record__/1 and __record__/2 as reflection functions
@@ -64,10 +64,10 @@ defmodule Record do
   #     FileInfo.__record__(:name)   #=> FileInfo
   #     FileInfo.__record__(:fields) #=> [atime: nil, mtime: nil]
   #
-  defp reflection(name, values) do
+  defp reflection(env, values) do
     quote do
       def __record__(kind),       do: __record__(kind, nil)
-      def __record__(:name, _),   do: unquote(name)
+      def __record__(:name, _),   do: unquote(env.module)
       def __record__(:fields, _), do: unquote(values)
     end
   end

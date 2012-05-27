@@ -183,7 +183,19 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
 translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
   { { atom, Line, S#elixir_scope.module }, S };
 
+translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
+  translate_each(list_to_binary(S#elixir_scope.filename), S);
+
+translate_each({'__MAIN__', Line, Atom}, S) when is_atom(Atom) ->
+  { {atom, Line, '__MAIN__' }, S };
+
+translate_each({'__ENV__', Line, Atom}, S) when is_atom(Atom) ->
+  { elixir_tree_helpers:to_erl_env({ Line, S }), S };
+
+%% Arg-less deprecated macros
+
 translate_each({'__FUNCTION__', Line, Atom}, S) when is_atom(Atom) ->
+  elixir_errors:deprecation(Line, S#elixir_scope.filename, "__FUNCTION__ is deprecated, use __ENV__.function instead"),
   case S#elixir_scope.function of
     nil ->
       { { atom, Line, nil }, S };
@@ -192,13 +204,8 @@ translate_each({'__FUNCTION__', Line, Atom}, S) when is_atom(Atom) ->
   end;
 
 translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
+  elixir_errors:deprecation(Line, S#elixir_scope.filename, "__LINE__ is deprecated, use __ENV__.line instead"),
   { { integer, Line, Line }, S };
-
-translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
-  translate_each(list_to_binary(S#elixir_scope.filename), S);
-
-translate_each({'__MAIN__', Line, Atom}, S) when is_atom(Atom) ->
-  { {atom, Line, '__MAIN__' }, S };
 
 %% References
 

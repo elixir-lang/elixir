@@ -203,6 +203,7 @@ core_list() ->
 core_main() ->
   [
     "lib/elixir/builtin.ex",
+    "lib/macro/env.ex",
     "lib/module.ex",
     "lib/keyword.ex",
     "lib/list.ex",

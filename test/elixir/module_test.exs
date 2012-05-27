@@ -7,7 +7,7 @@ defmodule ModuleTest.ToBeUsed do
     Module.merge_data target, has_callback: false
     Module.add_compile_callback(target, __MODULE__)
     Module.add_compile_callback(target, __MODULE__, :callback)
-    quote do: (def line, do: __LINE__)
+    quote do: (def line, do: __ENV__.line)
   end
 
   def __compiling__(target) do
@@ -27,7 +27,7 @@ defmodule ModuleTest.ToBeUsed do
 end
 
 defmodule ModuleTest.ToUse do
-  30 = __LINE__ # Moving the next line around can make tests fail
+  30 = __ENV__.line # Moving the next line around can make tests fail
   def original_value(2), do: true
   use ModuleTest.ToBeUsed
 end
@@ -57,7 +57,7 @@ defmodule ModuleTest do
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
   false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
 
-  contents = quote do: (def eval_quoted_info, do: { __MODULE__, __FILE__, __LINE__ })
+  contents = quote do: (def eval_quoted_info, do: { __MODULE__, __FILE__, __ENV__.line })
   Module.eval_quoted __MODULE__, contents, [], file: "sample.ex", line: 13
 
   true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
@@ -69,7 +69,7 @@ defmodule ModuleTest do
   Module.merge_data __MODULE__, other_value: 1
   Module.merge_data __MODULE__, other_value: 2
 
-  nil = __FUNCTION__
+  nil = __ENV__.function
 
   test :eval_quoted do
     assert eval_quoted_info() == { ModuleTest, "sample.ex", 13 }
@@ -110,8 +110,8 @@ defmodule ModuleTest do
     assert_match [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}], ModuleTest.DuplicateAttribute.__info__(:attributes)
   end
 
-  test :__FUNCTION__ do
-    assert __FUNCTION__ == { :test___FUNCTION__, 0 }
+  test :function_from___ENV__ do
+    assert __ENV__.function == { :test_function_from___ENV__, 0 }
   end
 
   test :apply do

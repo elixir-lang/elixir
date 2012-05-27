@@ -37,7 +37,13 @@ defmodule Code do
 
   ## Examples
 
-      Code.eval "a + b", [a: 1, b: 2], file: __FILE__, line: __LINE__
+      Code.eval "a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
+      #=> { 3, [ {:a, 1}, {:b, 2} ] }
+
+  When passing the __ENV__'s file and line, we could simply get
+  the location which already returns both fields as a keywords lists:
+
+      Code.eval "a + b", [a: 1, b: 2], __ENV__.location
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
@@ -56,15 +62,21 @@ defmodule Code do
   options are:
 
   * `:file` - The filename to be used in stacktraces
-    or by the __FILE__ macro in case there is an error.
+    and the file reported in the __ENV__ variable.
 
-  * `:line` - The line to be used when expanding __LINE__
-    macros and expressions inside the quote.
+  * `:line` - The line reported in the __ENV__ variable.
 
   ## Examples
 
       contents = quote hygiene: false, do: a + b
-      Code.eval_quoted contents, [a: 1, b: 2], file: __FILE__, line: __LINE__
+
+      Code.eval_quoted contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
+      #=> { 3, [ {:a, 1}, {:b, 2} ] }
+
+  When passing the __ENV__'s file and line, we could simply get
+  the location which already returns both fields as a keywords lists:
+
+      Code.eval_quoted contents, [a: 1, b: 2], __ENV__.location
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
   """

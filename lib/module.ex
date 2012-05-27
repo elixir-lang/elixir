@@ -26,23 +26,37 @@ defmodule Module do
   options are:
 
   * `:file` - The filename to be used in stacktraces
-    or by the __FILE__ macro in case there is an error.
+    and the file reported in the __ENV__ variable.
 
-  * `:line` - The line to be used when expanding __LINE__
-    macros. The stacktrace line information is not affected
-    by this option as the line inside each quoted expression
-    is used instead.
+  * `:line` - The line reported in the __ENV__ variable.
 
   ## Examples
 
       defmodule Foo do
         contents = quote do: (def sum(a, b), do: a + b)
-        Module.eval_quoted __MODULE__, contents, [], file: __FILE__, line: __LINE__
+        Module.eval_quoted __MODULE__, contents, []
       end
 
       Foo.sum(1, 2) #=> 3
+
+  This function also accepts a `Macro.Env` as first argument. This
+  is useful to evalute the quoted contents inside an existing environment:
+
+      defmodule Foo do
+        contents = quote do: (def sum(a, b), do: a + b)
+        Module.eval_quoted __ENV__, contents, []
+      end
+
+      Foo.sum(1, 2) #=> 3
+
   """
-  def eval_quoted(module, quoted, binding // [], opts // []) do
+  def eval_quoted(env, quoted, binding // [], opts // [])
+
+  def eval_quoted(Macro.Env[module: module] = env, quoted, binding, opts) do
+    eval_quoted(module, quoted, binding, Keyword.merge(env.location, opts))
+  end
+
+  def eval_quoted(module, quoted, binding, opts) do
     assert_not_compiled!(:eval_quoted, module)
 
     { binding, scope } = Erlang.elixir_module.binding_and_scope_for_eval(module, binding, opts)
@@ -207,7 +221,7 @@ defmodule Module do
   ## Examples
 
       defmodule MyModule do
-        Module.add_doc(__MODULE__, __LINE__ + 1, :def, { :version, 0 }, "Manually added docs")
+        Module.add_doc(__MODULE__, __ENV__.line + 1, :def, { :version, 0 }, "Manually added docs")
         def version, do: 1
       end
 

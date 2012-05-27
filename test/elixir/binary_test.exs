@@ -4,13 +4,13 @@ defmodule BinaryTest do
   use ExUnit.Case
 
   test :heredoc do
-    assert 7 == __LINE__
+    assert 7 == __ENV__.line
     assert "foo\nbar\n" == """
 foo
 bar
 """
 
-    assert 13 == __LINE__
+    assert 13 == __ENV__.line
     assert "foo\nbar \"\"\"\n" == """
 foo
 bar """
@@ -18,7 +18,7 @@ bar """
   end
 
   test :heredoc_with_extra do
-    assert 21 == __LINE__
+    assert 21 == __ENV__.line
     assert "foo\nbar\nbar\n" == """ <> "bar\n"
 foo
 bar

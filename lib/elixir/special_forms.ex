@@ -165,26 +165,25 @@ defmodule Elixir.SpecialForms do
   defmacro import(module, opts)
 
   @doc """
+  Returns the current environment information as a `Macro.Env`
+  record. In the environment you can access the current filename,
+  line numbers, set up aliases, the current function and others.
+  """
+  defmacro __ENV__
+
+  @doc """
   Returns the current module name as an atom or nil otherwise.
+  Although the module can be accessed in the __ENV__, this macro
+  is a convenient shortcut.
   """
   defmacro __MODULE__
 
   @doc """
   Returns the current file name as a binary.
+  Although the file can be accessed in the __ENV__, this macro
+  is a convenient shortcut.
   """
   defmacro __FILE__
-
-  @doc """
-  Returns the current line number as an integer.
-  """
-  defmacro __LINE__
-
-  @doc """
-  Returns the current function as a tuple,
-  where the first element is the name as an atom
-  and the second is the arity as an integer.
-  """
-  defmacro __FUNCTION__
 
   @doc """
   Allows you to get the representation of any expression.

@@ -106,7 +106,7 @@ defmodule EEx do
   """
   defmacro function_from_string(kind, name, source, args // [], options // []) do
     quote do
-      info = Keyword.merge unquote(options), [file: __FILE__, line: __LINE__]
+      info = Keyword.merge __ENV__.location, unquote(options)
       EEx.function_from_quoted(__MODULE__, unquote(kind), unquote(name),
         unquote(args), EEx.compile_string(unquote(source), info), info)
     end
