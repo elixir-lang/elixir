@@ -260,6 +260,7 @@ non_overridable_macros() ->
     {'import',3},
     {'__MAIN__',0},
     {'__ENV__',0},
+    {'__CALLER__',0},
     {'__MODULE__',0},
     {'__FILE__',0},
     {'__ref__',1},
