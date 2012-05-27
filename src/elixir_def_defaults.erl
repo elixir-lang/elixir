@@ -50,7 +50,7 @@ extract_defaults([], NewArgs, NewInvoke) ->
 build_match([], _Line, Acc) -> Acc;
 
 build_match([_|T], Line, Acc) ->
-  Var = { ?ELIXIR_ATOM_CONCAT(["_EX", length(T)]), Line, nil },
+  Var = { ?ELIXIR_ATOM_CONCAT(["_@", length(T)]), Line, nil },
   build_match(T, Line, [Var|Acc]).
 
 % Given the invoked function name based on the kind

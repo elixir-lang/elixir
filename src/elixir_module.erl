@@ -12,7 +12,7 @@ binding_and_scope_for_eval(Module, Binding, #elixir_scope{} = S) ->
 binding_and_scope_for_eval(Module, Binding, Opts) ->
   binding_and_scope_for_eval(Module, Binding, elixir:scope_for_eval(Opts)).
 
-binding_for_eval(Module, Binding) -> [{'_EXMODULE',Module}|Binding].
+binding_for_eval(Module, Binding) -> [{'_@MODULE',Module}|Binding].
 
 data(Module) ->
   ets:lookup_element(data_table(Module), data, 2).

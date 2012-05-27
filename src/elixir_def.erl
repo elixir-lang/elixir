@@ -49,7 +49,7 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
   Invoke = [
     {atom, Line, Kind},
     {integer, Line, Line},
-    {var, Line, '_EXMODULE'},
+    {var, Line, '_@MODULE'},
     Name,
     Args,
     Guards,

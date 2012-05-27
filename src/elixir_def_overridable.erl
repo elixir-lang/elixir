@@ -52,7 +52,7 @@ assign_args(Line, X, Acc, _) ->
   { Match, Acc + 1 }.
 
 super_arg(Counter) ->
-  ?ELIXIR_ATOM_CONCAT(['_EXS', Counter]).
+  ?ELIXIR_ATOM_CONCAT(['_@S', Counter]).
 
 %% Gets the name based on the function and stored overridables
 

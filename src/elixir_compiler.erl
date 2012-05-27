@@ -65,7 +65,7 @@ eval_forms(Forms, Line, RawModule, Value, S) ->
   end.
 
 eval_compilation(Forms, _Line, S) ->
-  { Result, _Binding, FS } = elixir:eval_forms(Forms, [{'_EXMODULE',nil}], S),
+  { Result, _Binding, FS } = elixir:eval_forms(Forms, [{'_@MODULE',nil}], S),
   { Result, FS }.
 
 code_loading_compilation(Forms, Line, RawModule, Value, S) ->
@@ -120,7 +120,7 @@ no_auto_import() ->
     no_auto_import, erlang:module_info(exports) } }.
 
 module_form(Exprs, Line, Filename, Module) ->
-  Args = [{ var, Line, '_EXMODULE'}],
+  Args = [{ var, Line, '_@MODULE'}],
 
   [
     { attribute, Line, file, { Filename, 1 } },
