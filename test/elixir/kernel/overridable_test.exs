@@ -75,7 +75,11 @@ defmodule Kernel.Overridable do
   end
 
   def super_with_implicit_args(x, y) do
-    x + y + super
+    if true do
+      x + y + super
+    else
+      raise :NEVER
+    end
   end
 
   def many_clauses(2) do
