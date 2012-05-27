@@ -192,6 +192,9 @@ translate_each({'__MAIN__', Line, Atom}, S) when is_atom(Atom) ->
 translate_each({'__ENV__', Line, Atom}, S) when is_atom(Atom) ->
   { elixir_tree_helpers:to_erl_env({ Line, S }), S };
 
+translate_each({'__CALLER__', Line, Atom}, S) when is_atom(Atom) ->
+  { { var, Line, '__CALLER__' }, S#elixir_scope{caller=true} };
+
 %% Arg-less deprecated macros
 
 translate_each({'__FUNCTION__', Line, Atom}, S) when is_atom(Atom) ->

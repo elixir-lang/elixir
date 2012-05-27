@@ -1,7 +1,20 @@
 Code.require_file "../test_helper", __FILE__
 
+defmodule Macro.ExternalTest do
+  defmacro external do
+    17 = __CALLER__.line
+    __FILE__ = __CALLER__.file
+    [line: 17, file: __FILE__] = __CALLER__.location
+  end
+end
+
 defmodule MacroTest do
   use ExUnit.Case
+
+  # Changing the lines above will make compilation
+  # fail since we are assertnig on the caller lines
+  require Macro.ExternalTest
+  Macro.ExternalTest.external()
 
   test :escapes_tuples_with_size_different_than_two do
     assert { :{}, 0, [:a] } == Macro.escape({ :a })

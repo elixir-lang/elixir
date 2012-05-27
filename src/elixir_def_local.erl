@@ -44,9 +44,17 @@ rewrite_clause({ call, Line, { atom, Line, RawName }, Args }, Module) ->
     { atom, Line, ?MODULE },
     { atom, Line, function_for }
   },
-  Arity   = { integer, Line, length(Args) },
-  Name    = { atom, Line, rewrite_name(atom_to_list(RawName), RawName) },
-  FunCall = { call, Line, Remote, [{ atom, Line, Module }, Name, Arity] },
+
+  %% If we have a macro, its arity in the table is
+  %% actually one less than in the function call
+  { Name, Arity } = case atom_to_list(RawName) of
+    "MACRO-" ++ Rest -> { list_to_atom(Rest), length(Args) - 1 };
+    _ -> { RawName, length(Args) }
+  end,
+
+  FunCall = { call, Line, Remote, [
+    { atom, Line, Module }, { atom, Line, Name }, { integer, Line, Arity }
+  ] },
   { call, Line, FunCall, Args };
 
 rewrite_clause(Tuple, Module) when is_tuple(Tuple) ->
@@ -56,9 +64,6 @@ rewrite_clause(List, Module) when is_list(List) ->
   [rewrite_clause(Item, Module) || Item <- List];
 
 rewrite_clause(Else, _) -> Else.
-
-rewrite_name("MACRO-" ++ Rest, _) -> list_to_atom(Rest);
-rewrite_name(_, Name) -> Name.
 
 %% Error handling
 

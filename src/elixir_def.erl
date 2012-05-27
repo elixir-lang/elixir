@@ -101,7 +101,7 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
 
   %% Store defaults
   [store_each(false, Kind, Filename, Location, Stack, FunctionTable, 0,
-    function_for_clause(Name, Default)) || Default <- Defaults],
+    function_for_default(Kind, Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
 
@@ -150,16 +150,36 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
     end, RawGuards, RawArgs),
 
   Arity = length(Args),
-  { Unpacked, Defaults } = elixir_def_defaults:unpack(Kind, Name, Args, S),
+  IsMacro = (Kind == defmacro) orelse (Kind == defmacrop),
+
+  %% Macros receive a special argument on invocation. Notice it does
+  %% not affect the arity of the stored function, but the clause
+  %% already contains it.
+  ExtendedArgs = case IsMacro of
+    true  -> [{ '_@CALLER', Line, nil }|Args];
+    false -> Args
+  end,
+
+  { Unpacked, Defaults } = elixir_def_defaults:unpack(Kind, Name, ExtendedArgs, S),
 
   { TClause, TS } = elixir_clauses:assigns_block(Line,
     fun elixir_translator:translate/2, Unpacked, [Expr], Guards, S),
 
-  FClause = case TS#elixir_scope.name_args of
+  NClause = case TS#elixir_scope.name_args of
     true  ->
-      FArgs = elixir_def_overridable:assign_args(Line, element(3, TClause), TS),
-      setelement(3, TClause, FArgs);
+      NArgs = elixir_def_overridable:assign_args(Line, element(3, TClause), TS),
+      setelement(3, TClause, NArgs);
     false -> TClause
+  end,
+
+  FClause = case IsMacro andalso TS#elixir_scope.caller of
+    true  ->
+      FBody = { 'match', Line,
+        { 'var', Line, '__CALLER__' },
+        ?ELIXIR_WRAP_CALL(Line, elixir_tree_helpers, to_ex_env, [{ var, Line, '_@CALLER' }])
+      },
+      setelement(5, NClause, [FBody|element(5, NClause)]);
+    false -> NClause
   end,
 
   Function = { function, Line, Name, Arity, [FClause] },
@@ -182,7 +202,7 @@ unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Fu
 
 unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacro ->
   { Name, Arity } = Tuple = element(1, Fun),
-  Macro = { ?ELIXIR_MACRO(Name), Arity },
+  Macro = { ?ELIXIR_MACRO(Name), Arity + 1 },
 
   unwrap_stored_definition(
     T, [Macro|Exports], Private, Def, [Tuple|Defmacro], Defmacrop,
@@ -221,7 +241,11 @@ function_for_stored_definition({{Name, Arity}, _, Line, _, Location, _, _, Claus
     ]
   }.
 
-function_for_clause(Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
+function_for_default(Kind, Name, { clause, Line, Args, _Guards, _Exprs } = Clause)
+    when Kind == defmacro; Kind == defmacrop ->
+  { function, Line, Name, length(Args) - 1, [Clause] };
+
+function_for_default(_, Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
   { function, Line, Name, length(Args), [Clause] }.
 
 %% Store each definition in the table.

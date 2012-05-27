@@ -16,6 +16,7 @@
   noname=false,                                  %% when true, don't add new names (used by try)
   check_clauses=true,                            %% when true, check def clauses ordering
   super=false,                                   %% when true, it means super was invoked
+  caller=false,                                  %% when true, it means caller was invoked
   name_args=false,                               %% when true, it means arguments should be named
   macro=[],                                      %% a stack with macros nesting
   module=nil,                                    %% the current module

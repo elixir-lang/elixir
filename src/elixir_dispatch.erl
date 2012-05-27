@@ -120,13 +120,15 @@ dispatch_builtin_macro(Line, { Name, Arity } = Tuple, Args, S) ->
   end.
 
 dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
-  Macro = ?ELIXIR_MACRO(Name),
-  dispatch_macro_fun(Line, fun Receiver:Macro/Arity, Receiver, Name, Arity, Args, S).
+  %% Fix macro name and arity
+  ProperName  = ?ELIXIR_MACRO(Name),
+  ProperArity = Arity + 1,
+  dispatch_macro_fun(Line, fun Receiver:ProperName/ProperArity, Receiver, Name, Arity, Args, S).
 
 dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) ->
   ensure_required(Line, Receiver, Name, Arity, S),
   Tree = try
-    apply(Fun, Args)
+    apply(Fun, [{Line,S}|Args])
   catch
     Kind:Reason ->
       Info = { Receiver, Name, length(Args), [{ file, S#elixir_scope.filename }, { line, Line }] },

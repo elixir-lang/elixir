@@ -91,6 +91,7 @@ umergec(S1, S2) ->
   S1#elixir_scope{
     counter=S2#elixir_scope.counter,
     super=S1#elixir_scope.super orelse S2#elixir_scope.super,
+    caller=S1#elixir_scope.caller orelse S2#elixir_scope.caller,
     name_args=S1#elixir_scope.name_args orelse S2#elixir_scope.name_args
   }.
 
