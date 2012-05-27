@@ -247,7 +247,7 @@ tokenize(Line, [$&,H|Rest], Tokens) when ?is_digit(H) ->
 
 tokenize(Line, [H|_] = String, Tokens) when ?is_upcase(H) ->
   { Rest, Ref } = tokenize_identifier(String, [], false),
-  tokenize(Line, Rest, [{'__ref__',Line,[list_to_atom(Ref)]}|Tokens]);
+  tokenize(Line, Rest, [{'__aliases__',Line,[list_to_atom(Ref)]}|Tokens]);
 
 % Identifier
 

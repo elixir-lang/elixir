@@ -12,7 +12,6 @@
 -record(elixir_scope, {
   assign=false,                                  %% when true, new variables can be defined in that subtree
   guard=false,                                   %% when true, we are inside a guard
-  noref=false,                                   %% when true, don't resolve references
   noname=false,                                  %% when true, don't add new names (used by try)
   check_clauses=true,                            %% when true, check def clauses ordering
   super=false,                                   %% when true, it means super was invoked

@@ -25,7 +25,7 @@ assignment_match_test() ->
 %% References
 
 single_reference_test() ->
-  {'__MAIN__.Foo', _} = eval([{'__ref__', 1, ['Foo']}], []).
+  {'__MAIN__.Foo', _} = eval([{'__aliases__', 1, ['Foo']}], []).
 
 %% Containers
 

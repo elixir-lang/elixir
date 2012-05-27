@@ -263,7 +263,7 @@ non_overridable_macros() ->
     {'__CALLER__',0},
     {'__MODULE__',0},
     {'__FILE__',0},
-    {'__ref__',1},
+    {'__aliases__','*'},
     {'quote',1},
     {'quote',2},
     {'unquote',1},

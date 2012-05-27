@@ -73,13 +73,13 @@ dot_test() ->
    {'.',1},
    {identifier,1,baz}] = tokenize("foo.bar.baz").
 
-ref_test() ->
-  [{'__ref__',1,['Foo']}] = tokenize("Foo"),
-  [{'__ref__',1,['Foo']},
+aliases_test() ->
+  [{'__aliases__',1,['Foo']}] = tokenize("Foo"),
+  [{'__aliases__',1,['Foo']},
    {'.',1},
-   {'__ref__',1,['Bar']},
+   {'__aliases__',1,['Bar']},
    {'.',1},
-   {'__ref__',1,['Baz']}] = tokenize("Foo.Bar.Baz").
+   {'__aliases__',1,['Baz']}] = tokenize("Foo.Bar.Baz").
 
 string_test() ->
   [{bin_string,1,[<<"foo">>]}] = tokenize("\"foo\""),

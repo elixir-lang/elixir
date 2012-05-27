@@ -27,7 +27,7 @@ Nonterminals
 Terminals
   identifier kw_identifier punctuated_identifier
   bracket_identifier paren_identifier do_identifier block_identifier
-  fn fn_paren 'end' '__ref__'
+  fn fn_paren 'end' '__aliases__'
   number signed_number atom bin_string list_string sigil
   dot_call_op special_op comp_op
   'not' 'and' 'or' 'xor' 'when' 'in' 'do'
@@ -151,7 +151,7 @@ bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
 bracket_expr -> max_expr : '$1'.
 
 max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
-max_expr -> dot_ref : build_identifier('$1', nil).
+max_expr -> dot_ref : '$1'.
 max_expr -> base_expr : '$1'.
 max_expr -> open_paren ')' : build_block([]).
 max_expr -> open_paren expr_list close_paren : build_block('$2').
@@ -161,10 +161,10 @@ base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
 base_expr -> atom : build_atom('$1').
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
-base_expr -> '__ref__' : '$1'.
 base_expr -> 'true' : ?op('$1').
 base_expr -> 'false' : ?op('$1').
 base_expr -> 'nil' : ?op('$1').
+base_expr -> '__aliases__' : '$1'.
 base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
 base_expr -> bit_string : '$1'.
@@ -308,21 +308,21 @@ dot_op -> '.' : '$1'.
 dot_op -> '.' eol : '$1'.
 
 dot_identifier -> identifier : '$1'.
-dot_identifier -> matched_expr dot_op identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
-dot_ref -> matched_expr dot_op '__ref__' : { '.', ?line('$2'), ['$1', '$3'] }.
+dot_ref -> matched_expr dot_op '__aliases__' : build_dot_ref('$2', '$1', '$3').
 
 dot_do_identifier -> do_identifier : '$1'.
-dot_do_identifier -> matched_expr dot_op do_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+dot_do_identifier -> matched_expr dot_op do_identifier : build_dot('$2', '$1', '$3').
 
 dot_bracket_identifier -> bracket_identifier : '$1'.
-dot_bracket_identifier -> matched_expr dot_op bracket_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+dot_bracket_identifier -> matched_expr dot_op bracket_identifier : build_dot('$2', '$1', '$3').
 
 dot_paren_identifier -> paren_identifier : '$1'.
-dot_paren_identifier -> matched_expr dot_op paren_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+dot_paren_identifier -> matched_expr dot_op paren_identifier : build_dot('$2', '$1', '$3').
 
 dot_punctuated_identifier -> punctuated_identifier : '$1'.
-dot_punctuated_identifier -> matched_expr dot_op punctuated_identifier : { '.', ?line('$2'), ['$1', '$3'] }.
+dot_punctuated_identifier -> matched_expr dot_op punctuated_identifier : build_dot('$2', '$1', '$3').
 
 parens_call -> dot_paren_identifier : '$1'.
 parens_call -> matched_expr dot_call_op : { '.', ?line('$2'), ['$1'] }. % Fun/local calls
@@ -424,12 +424,18 @@ build_block([Expr], _) when not is_list(Expr) -> Expr;
 build_block(Exprs, true)                      -> { '__block__', 0, lists:reverse(Exprs) };
 build_block(Exprs, false)                     -> { '__block__', 0, Exprs }.
 
-%% Identifiers
+%% Dots
 
-build_identifier({ '.', DotLine, [Expr, { Kind, _, Identifier }] }, Args) when
-  Kind == identifier; Kind == punctuated_identifier; Kind == bracket_identifier;
-  Kind == paren_identifier; Kind == do_identifier ->
-  build_identifier({ '.', DotLine, [Expr, Identifier] }, Args);
+build_dot_ref(Dot, { '__aliases__', _, Left }, { '__aliases__', _, Right }) ->
+  { '__aliases__', ?line(Dot), Left ++ Right };
+
+build_dot_ref(Dot, Other, { '__aliases__', _, Right }) ->
+  { '__aliases__', ?line(Dot), [Other|Right] }.
+
+build_dot(Dot, Left, Right) ->
+  { '.', ?line(Dot), [Left, extract_identifier(Right)] }.
+
+%% Identifiers
 
 build_identifier({ '.', Line, _ } = Dot, Args) ->
   FArgs = case Args of
@@ -443,6 +449,13 @@ build_identifier({ Keyword, Line }, Args) when Keyword == fn; Keyword == fn_pare
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, Args }.
+
+extract_identifier({ Kind, _, Identifier }) when
+    Kind == identifier; Kind == punctuated_identifier; Kind == bracket_identifier;
+    Kind == paren_identifier; Kind == do_identifier ->
+  Identifier;
+
+extract_identifier(Other) -> Other.
 
 %% Access
 

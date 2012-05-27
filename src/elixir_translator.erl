@@ -212,15 +212,29 @@ translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
 
 %% References
 
-translate_each({'__ref__', Line, [Ref]}, S) when is_atom(Ref) ->
-  Atom = list_to_atom("__MAIN__." ++ atom_to_list(Ref)),
+translate_each({ '__aliases__', Line, [H] }, S) ->
+  Atom = list_to_atom("__MAIN__." ++ atom_to_list(H)),
+  { { atom, Line, elixir_ref:lookup(Atom, S#elixir_scope.refer) }, S };
 
-  Final = case S#elixir_scope.noref of
-    true  -> Atom;
-    false -> elixir_ref:lookup(Atom, S#elixir_scope.refer)
+translate_each({ '__aliases__', Line, [H|T] }, S) ->
+  Aliases = case is_atom(H) of
+    true ->
+      Atom = list_to_atom("__MAIN__." ++ atom_to_list(H)),
+      [elixir_ref:lookup(Atom, S#elixir_scope.refer)|T];
+    false ->
+      [H|T]
   end,
 
-  { {atom, Line, Final }, S };
+  { TAliases, SA } = translate_args(Aliases, S),
+
+  case lists:all(fun is_atom_tuple/1, TAliases) of
+    true ->
+      Atoms = [Atom || { atom, _, Atom } <- TAliases],
+      { { atom, Line, elixir_ref:concat(Atoms) }, SA };
+    false ->
+      Args = [elixir_tree_helpers:build_simple_list(Line, TAliases)],
+      { ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, Args), SA }
+  end;
 
 %% Quoting
 
@@ -382,7 +396,7 @@ translate_each({Name, Line, nil}, S) when is_atom(Name) ->
 
 %% Local calls
 
-translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->  
+translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
   case sequential_partials(Args, 1) andalso
        elixir_dispatch:import_function(Line, Atom, length(Args), S) of
     false ->
@@ -427,19 +441,6 @@ translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom
       end;
     Else -> Else
   end;
-
-translate_each({{'.', _, [Left, Right]}, Line, _Args}, S) ->
-  { TLeft, LS } = translate_each(Left, S),
-  { TRight, RS } = translate_each(Right, (umergec(S, LS))#elixir_scope{noref=true}),
-  TArgs = [TLeft, TRight],
-  Atoms = [Atom || { atom, _, Atom } <- TArgs],
-  Final = case length(Atoms) == length(TArgs) of
-    true  -> { atom, Line, elixir_ref:concat(Atoms) };
-    false ->
-      FArgs = [elixir_tree_helpers:build_simple_list(Line, TArgs)],
-      ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, FArgs)
-  end,
-  { Final, (umergev(LS, RS))#elixir_scope{noref=S#elixir_scope.noref} };
 
 %% Anonymous function calls
 
@@ -665,6 +666,9 @@ convert_op('!=')   ->  '/=';
 convert_op('<=')   ->  '=<';
 convert_op('<-')   ->  '!';
 convert_op(Else)   ->  Else.
+
+is_atom_tuple({ atom, _, _ }) -> true;
+is_atom_tuple(_) -> false.
 
 %% Comprehensions
 

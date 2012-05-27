@@ -246,10 +246,10 @@ translate_macro({ 'var!', Line, [_] }, S) ->
 module_ref(_Raw, Module, nil) ->
   Module;
 
-module_ref({{ '.', _, [{ '__MAIN__', _, Atom }, _]}, _, _}, Module, _Nesting) when is_atom(Atom) ->
+module_ref({ '__aliases__', _, [{ '__MAIN__', _, Atom }|_]}, Module, _Nesting) when is_atom(Atom) ->
   Module;
 
-module_ref(_, Module, Nesting) ->
+module_ref(_F, Module, Nesting) ->
   elixir_ref:concat([Nesting, Module]).
 
 is_orddict(Keyword) -> is_list(Keyword) andalso lists:all(fun is_orddict_tuple/1, Keyword).

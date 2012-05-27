@@ -48,7 +48,7 @@ defimpl Binary.Inspect, for: Atom do
     end
   end
 
-  # Detect if atom is a module reference (__MAIN__.Foo.Bar.Baz)
+  # Detect if atom is an atom alias (__MAIN__.Foo.Bar.Baz)
 
   defp valid_ref_identifier?("__MAIN__" <> rest) do
     valid_ref_piece?(rest)
