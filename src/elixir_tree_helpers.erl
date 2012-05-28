@@ -19,8 +19,9 @@ abstract_syntax(Tree) ->
 to_erl_env(Scope) ->
   abstract_syntax(to_ex_env(Scope)).
 
-to_ex_env({ Line, #elixir_scope{module=Module,filename=File,function=Function,refer=Refer} }) ->
-  { '__MAIN__.Macro.Env', Module, File, Line, Function, Refer }.
+to_ex_env({ Line, #elixir_scope{module=Module,filename=File,
+    function=Function,refer=Refer,context=Context} }) ->
+  { '__MAIN__.Macro.Env', Module, File, Line, Function, Refer, Context }.
 
 % Build a list translating each expression and accumulating
 % vars in one pass. It uses tail-recursive form.

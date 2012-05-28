@@ -84,18 +84,18 @@ defmodule Access.AtomTest do
     assert Config[integer: 1] == { Config, 1 }
   end
 
-  test :in_guard_with_variable do
+  test :in_match_with_variable do
     assert get_var(Config.new) == 0
     assert get_var(Config.new(integer: 1)) == 1
   end
 
-  test :in_guard_with_record_match do
+  test :in_match_with_record_match do
     assert is_config(Config.new) == true
     assert is_config({ Access.AtomTest, 1 }) == false
     assert is_config({ Config, 1, 2 }) == false
   end
 
-  test :in_guard_with_field_match do
+  test :in_match_with_field_match do
     assert is_zero(Config.new) == true
     assert is_zero(Config.new(integer: 1)) == false
   end

@@ -14,7 +14,7 @@ defmodule Macro.Env do
   # When adding removing new fields,
   # src/elixir_tree_helpers.erl needs to be changed as well.
   def __record__(:fields, _) do
-    [{:module,nil},{:file,nil},{:line,nil},{:function,nil},{:aliases,nil}]
+    [{:module,nil},{:file,nil},{:line,nil},{:function,nil},{:aliases,nil},{:context,nil}]
   end
 
   @doc """
@@ -44,6 +44,18 @@ defmodule Macro.Env do
   item is the aliased name and the second the actual name.
   """
   def aliases(record), do: elem(record, 6)
+
+  @doc """
+  Returns wether the compilation environment is currently
+  inside a guard.
+  """
+  def in_guard?(record), do: elem(record, 7) == :guard
+
+  @doc """
+  Returns wether the compilation environment is currently
+  inside a match clause.
+  """
+  def in_match?(record), do: elem(record, 7) == :assign
 
   @doc """
   Returns a keywords list containing the file and line

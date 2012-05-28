@@ -262,7 +262,8 @@ translate_each({quote, _Line, [[{do,Exprs}|T]]}, S) ->
 translate_each({quote, Line, [_]}, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for quote");
 
-translate_each({in_guard, _, [[{do,Guard},{else,Else}]]}, S) ->
+translate_each({in_guard, Line, [[{do,Guard},{else,Else}]]}, S) ->
+  elixir_errors:deprecation(Line, S#elixir_scope.filename, "in_guard is deprecated, check __CALLER__.in_guard? instead"),
   case S#elixir_scope.context of
     guard -> translate_each(Guard, S);
     _ -> translate_each(Else, S)

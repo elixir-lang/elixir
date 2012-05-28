@@ -459,37 +459,4 @@ defmodule Elixir.SpecialForms do
 
   """
   defmacro bc(args)
-
-  @doc """
-  Keeps one of the given expressions depending in the context
-  of evaluation is a guard or not. This is useful when creating
-  macro that should work both inside and outside guards but
-  still hold some characteristics.
-
-  ## Example
-
-  A good example is the `is_exception/1` macro defined in Elixir:
-
-       defmacro is_exception(thing) do
-         quote do
-           quote do
-             is_tuple(unquote(thing)) and elem(unquote(thing), 2) == :__exception__
-           else
-             result = unquote(thing)
-             is_tuple(result) and elem(result, 2) == :__exception__
-           end
-         end
-       end
-
-  Notice that if inside a guard, we unquote the same element twice.
-  This will cause the same element to be evaluted twice, but this is
-  fine for guards since we cannot assign variables in guards and
-  we cannot call expressions inside guards. However, when outside
-  of a guard, evaluating the arguments twice can be harmful and
-  unexpected, for this reason, we save the result in a variable.
-
-  In the example above, `in_guard` is allowing us to customize
-  the same macro to work inside and outside guards.
-  """
-  defmacro in_guard(do: do_block, else: else_block)
 end

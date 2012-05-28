@@ -1192,13 +1192,16 @@ defmodule Elixir.Builtin do
 
   """
   defmacro is_exception(thing) do
-    quote do
-      in_guard do
-        is_tuple(unquote(thing)) and :erlang.element(2, unquote(thing)) == :__exception__
-      else
-        result = unquote(thing)
-        is_tuple(result) and :erlang.element(2, result) == :__exception__
-      end
+    case __CALLER__.in_guard? do
+      true ->
+        quote do
+          is_tuple(unquote(thing)) and :erlang.element(2, unquote(thing)) == :__exception__
+        end
+      false ->
+        quote do
+          result = unquote(thing)
+          is_tuple(result) and :erlang.element(2, result) == :__exception__
+        end
     end
   end
 
@@ -1216,13 +1219,16 @@ defmodule Elixir.Builtin do
 
   """
   defmacro is_record(thing, kind) do
-    quote do
-      in_guard do
-        is_tuple(unquote(thing)) and :erlang.element(1, unquote(thing)) == unquote(kind)
-      else
-        result = unquote(thing)
-        is_tuple(result) and :erlang.element(1, result) == unquote(kind)
-      end
+    case __CALLER__.in_guard? do
+      true ->
+        quote do
+          is_tuple(unquote(thing)) and :erlang.element(1, unquote(thing)) == unquote(kind)
+        end
+      false ->
+        quote do
+          result = unquote(thing)
+          is_tuple(result) and :erlang.element(1, result) == unquote(kind)
+        end
     end
   end
 
