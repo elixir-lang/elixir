@@ -146,52 +146,52 @@ defmodule File do
   def basename(path, extension) do
     FN.basename(path, extension)
   end
-  
+
   @doc """
   Return the `directory` component of `path`.
-  
+
   ## Examples
-  
+
     File.dirname("/foo/bar.ex")
     #=> "foo"
-    
+
   """
   def dirname(path) do
     FN.dirname(path)
   end
-  
+
   @doc """
   Return the `extension` of the last component of `path`.
-  
+
   ## Examples
-    
+
     File.extname("foo.erl")
     #=> ".erl"
     File.extname("~/foo/bar")
     #=> ""
-    
+
   """
   def extname(path) do
     FN.extension(path)
   end
-  
+
   @doc """
   Returns the `path` with the `extension` stripped.
-  
+
   ## Examples
-    
+
     File.rootname("/foo/bar")
     #=> "/foo/bar"
     File.rootname("/foo/bar.ex")
     #=> "/foo/bar"
-    
+
   """
   def rootname(path) do
     FN.rootname(path)
   end
-  
+
   @doc """
-  Returns the `path` with the `extension` stripped. This function should be used to 
+  Returns the `path` with the `extension` stripped. This function should be used to
   remove a specific extension which might, or might not, be there.
 
   ## Examples
@@ -205,7 +205,7 @@ defmodule File do
   def rootname(path, extension) do
    FN.rootname(path, extension)
   end
-  
+
 
   @doc """
   Returns a string with one or more paths components joint by the path separator.
@@ -256,17 +256,17 @@ defmodule File do
 
   @doc """
   Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
-  of `filename`, or `{:error, reason}` if an error occurs.
+  of `path`, or `{:error, reason}` if an error occurs.
 
   Typical error reasons:
 
-  * :enoent - The file does not exist.
-  * :eacces - Missing permission for reading the file,
-              or for searching one of the parent directories.
-  * :eisdir - The named file is a directory.
+  * :enoent  - The file does not exist.
+  * :eacces  - Missing permission for reading the file,
+               or for searching one of the parent directories.
+  * :eisdir  - The named file is a directory.
   * :enotdir - A component of the file name is not a directory.
-               On some platforms, enoent is returned instead.
-  * :enomem - There is not enough memory for the contents of the file.
+               On some platforms, `:enoent` is returned instead.
+  * :enomem  - There is not enough memory for the contents of the file.
 
   You can use `Erlang.file.format_error(reason)` to get a descriptive string of the error.
   """
