@@ -179,7 +179,7 @@ translate_macro({ access, Line, [Element, Keyword] }, S) ->
     _ -> Atom = false
   end,
 
-  case { S#elixir_scope.assign, Atom } of
+  case { S#elixir_scope.context == assign, Atom } of
     { false, false } ->
       Fallback = { { '.', Line, ['__MAIN__.Access', access] }, Line, [Element, Keyword] },
       translate_each(Fallback, S);

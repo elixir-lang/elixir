@@ -93,7 +93,7 @@ build_bitstr_each(Fun, [{'|',_,[H,V]}|T], Line, S, Acc) ->
   end,
 
   %% Assigns can be made in subparts
-  { Int, Types } = extract_bin_values(Line, V, default, [], ES#elixir_scope{assign=false}),
+  { Int, Types } = extract_bin_values(Line, V, default, [], ES#elixir_scope{context=nil}),
 
   Final = case Types of
     [] -> default;

@@ -10,8 +10,7 @@
 -define(ELIXIR_MACRO(Macro), list_to_atom(lists:concat(['MACRO-',Macro]))).
 
 -record(elixir_scope, {
-  assign=false,                                  %% when true, new variables can be defined in that subtree
-  guard=false,                                   %% when true, we are inside a guard
+  context=nil,                                   %% can be assign, guards or nil
   noname=false,                                  %% when true, don't add new names (used by try)
   check_clauses=true,                            %% when true, check def clauses ordering
   super=false,                                   %% when true, it means super was invoked

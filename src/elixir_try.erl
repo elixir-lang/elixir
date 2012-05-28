@@ -86,7 +86,7 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
   end;
 
 normalize_rescue(Line, Condition, S) ->
-  case elixir_translator:translate_each(Condition, S#elixir_scope{assign=true}) of
+  case elixir_translator:translate_each(Condition, S#elixir_scope{context=assign}) of
     { { atom, _, Atom }, _ } ->
       normalize_rescue(Line, { in, Line, [{ '_', Line, nil }, [Atom]] }, S);
     _ ->

@@ -26,9 +26,9 @@ get_pairs(Line, Key, Clauses, S, AllowNil) ->
 
 % Function for translating assigns.
 
-assigns(Fun, Args, #elixir_scope{assign=false} = S) ->
-  { Result, NewS } = assigns(Fun, Args, S#elixir_scope{assign=true, temp_vars=dict:new()}),
-  { Result, NewS#elixir_scope{assign=false} };
+assigns(Fun, Args, #elixir_scope{context=Context} = S) when Context /= assign ->
+  { Result, NewS } = assigns(Fun, Args, S#elixir_scope{context=assign, temp_vars=dict:new()}),
+  { Result, NewS#elixir_scope{context=Context} };
 
 assigns(Fun, Args, S) -> Fun(Args, S).
 
@@ -44,7 +44,7 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
   { TExprs, SE } = elixir_translator:translate(Exprs, SA),
 
   FArgs   = listify(TArgs),
-  SG      = SA#elixir_scope{guard=true},
+  SG      = SA#elixir_scope{context=guard},
   FGuards = [translate_guard(Line, Guard, SG) || Guard <- Guards],
 
   % Uncompact expressions from the block.

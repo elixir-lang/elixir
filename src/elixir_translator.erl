@@ -66,10 +66,10 @@ translate_each({ '__op__', Line, [Op|Args] }, S) when is_atom(Op) ->
 %% Containers
 
 translate_each({ '<<>>', Line, Args }, S) when is_list(Args) ->
-  case S#elixir_scope.assign of
-    true ->
+  case S#elixir_scope.context of
+    assign ->
       elixir_tree_helpers:build_bitstr(fun translate_each/2, Args, Line, S);
-    false ->
+    _ ->
       { TArgs, { SC, SV } } = elixir_tree_helpers:build_bitstr(fun translate_arg/2, Args, Line, { S, S }),
       { TArgs, umergec(SV, SC) }
   end;
@@ -263,9 +263,9 @@ translate_each({quote, Line, [_]}, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for quote");
 
 translate_each({in_guard, _, [[{do,Guard},{else,Else}]]}, S) ->
-  case S#elixir_scope.guard of
-    true  -> translate_each(Guard, S);
-    false -> translate_each(Else, S)
+  case S#elixir_scope.context of
+    guard -> translate_each(Guard, S);
+    _ -> translate_each(Else, S)
   end;
 
 %% Functions
@@ -364,13 +364,13 @@ translate_each({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse 
 translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
   Result = case is_atom(Args) of
     true ->
-      case S#elixir_scope.assign of
-        false -> "cannot access variable ^~s outside of assignment";
-        true  ->
+      case S#elixir_scope.context of
+        assign ->
           case dict:find(Name, S#elixir_scope.vars) of
             error -> "unbound variable ^~s";
             { ok, Value } -> { {var, Line, Value}, S }
-          end
+          end;
+        _ -> "cannot access variable ^~s outside of assignment"
       end;
     false -> "cannot use ^ with expression at ^~s, ^ must be used only with variables"
   end,
@@ -481,10 +481,10 @@ translate_each(Args, S) when is_list(Args) ->
       ListS = S
   end,
 
-  { FExprs, FS } = case S#elixir_scope.assign of
-    true ->
+  { FExprs, FS } = case S#elixir_scope.context of
+    assign ->
       elixir_tree_helpers:build_reverse_list(fun translate_each/2, Exprs, 0, ListS, Tail);
-    false ->
+    _ ->
       { TArgs, { SC, SV } } =
         elixir_tree_helpers:build_reverse_list(fun translate_arg/2, Exprs, 0, { ListS, ListS }, Tail),
       { TArgs, umergec(SV, SC) }
@@ -562,7 +562,7 @@ translate_arg(Arg, { Acc, S }) ->
   { TArg, TAcc } = translate_each(Arg, Acc),
   { TArg, { umergec(S, TAcc), umergev(S, TAcc) } }.
 
-translate_args(Args, #elixir_scope{assign=true} = S) ->
+translate_args(Args, #elixir_scope{context=assign} = S) ->
   translate(Args, S);
 
 translate_args(Args, S) ->
@@ -602,7 +602,7 @@ translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
 %% Handle partials by automatically wrapping them in a function.
 %% It also checks if we are in an assignment scope and does not
 %% apply the function if this is the case.
-handle_partials(_Line, _Original, #elixir_scope{assign=true}) ->
+handle_partials(_Line, _Original, #elixir_scope{context=assign}) ->
   error;
 
 handle_partials(Line, Original, S) ->

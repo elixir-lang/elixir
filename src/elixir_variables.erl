@@ -8,7 +8,7 @@
 -include("elixir.hrl").
 
 translate_each(Line, Name, S) ->
-  Match = S#elixir_scope.assign,
+  Match = S#elixir_scope.context == assign,
   Vars = S#elixir_scope.vars,
   TempVars = S#elixir_scope.temp_vars,
   ClauseVars = S#elixir_scope.clause_vars,
