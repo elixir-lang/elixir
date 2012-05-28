@@ -171,57 +171,6 @@ translate_macro({use, Line, [Raw, Args]}, S) ->
 
   translate_each(Call, S);
 
-%% Access
-
-translate_macro({ access, Line, [Element, Keyword] }, S) ->
-  case translate_each(Element, S) of
-    { { atom, _, Atom }, _ } -> Atom;
-    _ -> Atom = false
-  end,
-
-  case { S#elixir_scope.context == assign, Atom } of
-    { false, false } ->
-      Fallback = { { '.', Line, ['__MAIN__.Access', access] }, Line, [Element, Keyword] },
-      translate_each(Fallback, S);
-    { true, false } ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid usage of access protocol in signature");
-    { Assign, _ } ->
-      case is_orddict(Keyword) of
-        true -> [];
-        false ->
-          Message0 = "expected contents inside brackets to be a Keyword",
-          syntax_error(Line, S#elixir_scope.filename, Message0)
-      end,
-
-      elixir_ref:ensure_loaded(Line, Atom, S),
-
-      try Atom:'__record__'(fields) of
-        Fields ->
-          { Match, Remaining } = lists:mapfoldl(fun({Field, Default}, KeywordEach) ->
-            { case orddict:find(Field, KeywordEach) of
-              { ok, Value } -> Value;
-              error ->
-                case Assign of
-                  true  -> { '_', Line, nil };
-                  false -> '__MAIN__.Macro':escape(Default)
-                end
-            end, orddict:erase(Field, KeywordEach) }
-          end, Keyword, Fields),
-
-          case Remaining of
-            [] -> translate_each({ '{}', Line, [Atom|Match] }, S);
-            _ ->
-              Keys = [Key || {Key,_} <- Remaining],
-              Message1 = "record ~s does not have some of the given keys: ~p",
-              syntax_error(Line, S#elixir_scope.filename, Message1, [elixir_errors:inspect(Atom), Keys])
-          end
-      catch
-        error:undef ->
-          Message2 = "cannot use module ~s in access protocol because it doesn't represent a record",
-          syntax_error(Line, S#elixir_scope.filename, Message2, [elixir_errors:inspect(Atom)])
-      end
-  end;
-
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
 translate_macro({ apply, Line, [Left, Right, Args] }, S) when is_list(Args) ->
@@ -251,11 +200,6 @@ module_ref({ '__aliases__', _, [{ '__MAIN__', _, Atom }|_]}, Module, _Nesting) w
 
 module_ref(_F, Module, Nesting) ->
   elixir_ref:concat([Nesting, Module]).
-
-is_orddict(Keyword) -> is_list(Keyword) andalso lists:all(fun is_orddict_tuple/1, Keyword).
-
-is_orddict_tuple({X,_}) when is_atom(X) -> true;
-is_orddict_tuple(_) -> false.
 
 is_reserved_data(moduledoc) -> true;
 is_reserved_data(doc)       -> true;

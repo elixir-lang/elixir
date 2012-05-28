@@ -1444,33 +1444,6 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
-  Access the given element according the qualifier according
-  to the `Access` protocol. Many types implement the access
-  protocol, so check the protocol documentation for more
-  information.
-
-  It is important to notice the access protocol is also
-  allowed in function signatures when applying to references.
-  This is useful when working with records to allow to match
-  against an specific part of a record:
-
-      def uri_parse(Uri.Config[schema: :http])
-
-  In the example above, the schema clause will only match if
-  the config schema is `:http`. Using the access protocol with
-  a reference that does not point to a record module will
-  generate a compilation exception.
-
-  ## Examples
-
-      a = { :a, :b, :c }
-      a[1] #=> :a
-      access a, 1 #=> :a
-
-  """
-  defmacro access(element, qualifier)
-
-  @doc """
   Convert the argument to a string according to the Binary.Chars protocol.
   This is the function invoked when there is string interpolation.
 
@@ -2180,6 +2153,78 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  Access the given element according the qualifier according
+  to the `Access` protocol. Many types implement the access
+  protocol, so check the protocol documentation for more
+  information.
+
+  It is important to notice the access protocol is also
+  allowed in function signatures when applying to references.
+  This is useful when working with records to allow to match
+  against an specific part of a record:
+
+      def uri_parse(Uri.Config[schema: :http])
+
+  In the example above, the schema clause will only match if
+  the config schema is `:http`. Using the access protocol with
+  a reference that does not point to a record module will
+  generate a compilation exception.
+
+  ## Examples
+
+      a = { :a, :b, :c }
+      a[1] #=> :a
+      access a, 1 #=> :a
+
+  """
+  defmacro access(element, keyword) do
+    caller = __CALLER__
+    atom = Macro.expand_aliases(element, caller)
+
+    case { atom, caller.in_match? } do
+      { nil, false } ->
+        quote do: Access.access(unquote(element), unquote(keyword))
+      { nil, true } ->
+        raise "invalid usage of access protocol in signature"
+      { _, in_match } ->
+        case is_orddict(keyword) do
+          true  -> nil
+          false -> raise "expected contents inside brackets to be a Keyword"
+        end
+
+        case :code.ensure_loaded(atom) do
+          { :error, _ } ->
+            raise "expected module #{inspect atom} to be loaded and defined"
+          _ -> nil
+        end
+
+        fields = try do
+          atom.__record__(:fields)
+        rescue
+          UndefinedFunctionError ->
+            raise "cannot use module #{inspect atom} in access protocol because it does not represent a record"
+        end
+
+        iterator = fn({field, default}, each_keyword) ->
+          new_fields = Keyword.get(each_keyword, field) || case(in_match) do
+            true  -> { :_, 0, nil }
+            false -> Macro.escape(default)
+          end
+          { new_fields, Keyword.delete(each_keyword, field) }
+        end
+
+        { match, remaining } = :lists.mapfoldl(iterator, keyword, fields)
+
+        case remaining do
+          [] -> { :{}, caller.line, [atom|match] }
+          _  ->
+            keys = lc { key, _ } in remaining, do: key
+            raise "record #{inspect atom} does not have the keys: #{inspect keys}"
+        end
+    end
+  end
+
+  @doc """
   Handles the sigil %B. It simples returns a binary
   without escaping characters and without interpolations.
 
@@ -2314,4 +2359,10 @@ defmodule Elixir.Builtin do
   end
 
   defp build_cond_clauses([], acc), do: acc
+
+  defp is_orddict(list) when is_list(list), do: :lists.all(is_orddict_tuple(&1), list)
+  defp is_orddict(_), do: false
+
+  defp is_orddict_tuple({ x, _ }) when is_atom(x), do: true
+  defp is_orddict_tuple(_), do: false
 end

@@ -319,7 +319,6 @@ in_erlang_macros() ->
     {'>',2},
     {'>=',2},
     {'@',1},
-    {access,2},
     {'and',2},
     {apply,2},
     {apply,3},

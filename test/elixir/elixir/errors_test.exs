@@ -147,32 +147,32 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_reference do
-    assert "nofile:2: invalid usage of access protocol in signature" ==
+    assert "invalid usage of access protocol in signature" ==
       format_rescue 'defmodule Foo do\ndef sample(config[integer: 0]), do: true\nend'
   end
 
   test :invalid_access_protocol_not_available do
-    assert "nofile:2: module Unknown is not loaded and could not be found" ==
+    assert "expected module Unknown to be loaded and defined" ==
       format_rescue 'defmodule Foo do\ndef sample(Unknown[integer: 0]), do: true\nend'
   end
 
   test :invalid_access_protocol_not_record do
-    assert "nofile:2: cannot use module Elixir.ErrorsTest in access protocol because it doesn't represent a record" ==
+    assert "cannot use module Elixir.ErrorsTest in access protocol because it does not represent a record" ==
       format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest[integer: 0]), do: true\nend'
   end
 
   test :invalid_access_protocol_not_keywords do
-    assert "nofile:2: expected contents inside brackets to be a Keyword" ==
+    assert "expected contents inside brackets to be a Keyword" ==
       format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[0]), do: true\nend'
   end
 
   test :invalid_access_protocol_invalid_keywords do
-    assert "nofile:2: record Elixir.ErrorsTest.Config does not have some of the given keys: [foo]" ==
+    assert "record Elixir.ErrorsTest.Config does not have the keys: [:foo]" ==
       format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[foo: :bar]), do: true\nend'
   end
 
   test :invalid_access_protocol_invalid_keywords_outside_assignment do
-    assert "nofile:1: record Elixir.ErrorsTest.Config does not have some of the given keys: [foo]" ==
+    assert "record Elixir.ErrorsTest.Config does not have the keys: [:foo]" ==
       format_rescue 'Elixir.ErrorsTest.Config[foo: :bar]'
   end
 
