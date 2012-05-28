@@ -204,12 +204,12 @@ core_main() ->
   [
     "lib/elixir/builtin.ex",
     "lib/macro/env.ex",
+    "lib/macro.ex",
     "lib/module.ex",
     "lib/keyword.ex",
     "lib/list.ex",
     "lib/protocol.ex",
     "lib/enum.ex",
-    "lib/macro.ex",
     "lib/record.ex",
     "lib/exception.ex",
     "lib/binary/inspect.ex",
