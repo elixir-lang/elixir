@@ -3,7 +3,7 @@
 -module(elixir_macros).
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
--import(elixir_variables, [umergec/2]).
+-import(elixir_scope, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, assert_no_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
 -define(FUNS(), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
@@ -111,7 +111,7 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
       RS = case Module == NewModule of
         true  -> S;
         false ->
-          element(2, translate_each({ refer, Line, [NewModule, [{as,Module}]] }, S))
+          element(2, translate_each({ alias, Line, [NewModule, [{as,Module}]] }, S))
       end,
 
       {
@@ -161,7 +161,7 @@ translate_macro({ apply, Line, Args }, S) ->
 %% Handle forced variables
 
 translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_atom(Atom) ->
-  elixir_variables:translate_each(Line, Name, S);
+  elixir_scope:translate_var(Line, Name, S);
 
 translate_macro({ 'var!', Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.filename, "invalid args for var!").
@@ -175,7 +175,7 @@ module_ref({ '__aliases__', _, [{ '__MAIN__', _, Atom }|_]}, Module, _Nesting) w
   Module;
 
 module_ref(_F, Module, Nesting) ->
-  elixir_ref:concat([Nesting, Module]).
+  elixir_aliases:concat([Nesting, Module]).
 
 is_reserved_data(moduledoc) -> true;
 is_reserved_data(doc)       -> true;

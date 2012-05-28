@@ -27,7 +27,7 @@
   counter=0,                                     %% a counter for the variables defined
   filename="nofile",                             %% the current scope filename
   local=nil,                                     %% the scope to evaluate local functions against
-  refer=[],                                      %% an orddict with references by new -> old names
+  aliases=[],                                    %% an orddict with aliases by new -> old names
   requires=elixir_dispatch:default_requires(),   %% a set with modules required
   macros=elixir_dispatch:default_macros(),       %% a list with macros imported by module
   functions=elixir_dispatch:default_functions(), %% a list with functions imported by module

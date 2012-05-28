@@ -27,7 +27,7 @@ recorded_locals(Module) ->
   ets:match_delete(Table, Match),
   lists:append(Result).
 
-%% Update the scope to consider the imports for reference
+%% Update the scope to consider the imports for aliases
 %% based on the given options and selector.
 
 import(Line, Ref, Opts, Selector, S) ->
@@ -253,6 +253,8 @@ non_overridable_macros() ->
     {'<<>>','*'},
     {'{}','*'},
     {'[]','*'},
+    {'alias',1},
+    {'alias',2},
     {'require',1},
     {'require',2},
     {'import',1},

@@ -1,5 +1,5 @@
 defmodule Elixir.ParallelCompiler do
-  refer Erlang.orddict, as: Orddict
+  alias Erlang.orddict, as: Orddict
 
   @moduledoc """
   A module responsible for compiling files in parallel.

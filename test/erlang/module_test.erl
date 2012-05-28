@@ -116,10 +116,10 @@ nesting_test() ->
   end,
   test_helper:run_and_remove(F, ['__MAIN__.Foo', '__MAIN__.Bar']).
 
-dot_ref_test() ->
+dot_alias_test() ->
   { '__MAIN__.Foo.Bar.Baz', _ } = eval("Foo.Bar.Baz").
 
-dot_dyn_ref_test() ->
+dot_dyn_alias_test() ->
   { '__MAIN__.Foo.Bar.Baz', _ } = eval("a = Foo.Bar; a.Baz").
 
 single_ref_test() ->

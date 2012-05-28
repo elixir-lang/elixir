@@ -22,7 +22,7 @@ defmodule Binary.Inspect.AtomTest do
     assert inspect(:FOO) == ":FOO"
   end
 
-  test :reference_atom do
+  test :alias_atom do
     assert inspect(Foo.Bar) == "Foo.Bar"
   end
 

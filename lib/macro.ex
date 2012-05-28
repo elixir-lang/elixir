@@ -114,7 +114,7 @@ defmodule Macro do
     end
 
     aliases = lc alias in aliases, do: translate_alias(alias, env)
-    :lists.all(fn x -> x != false end, aliases) && Erlang.elixir_ref.concat(aliases)
+    :lists.all(fn x -> x != false end, aliases) && Erlang.elixir_aliases.concat(aliases)
   end
 
   # In case is not an aliases, it may be __MAIN__, __MODULE__
@@ -127,7 +127,7 @@ defmodule Macro do
 
   defp translate_aliases_head(h, env) do
     atom = list_to_atom('__MAIN__.' ++ atom_to_list(h))
-    Erlang.elixir_ref.lookup(atom, env.aliases)
+    Erlang.elixir_aliases.lookup(atom, env.aliases)
   end
 
   defp translate_alias({ { :".", _, [{ :__aliases__, _, [:Erlang] }, atom] }, _, args }, _env) when

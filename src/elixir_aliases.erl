@@ -1,9 +1,9 @@
--module(elixir_ref).
+-module(elixir_aliases).
 -export([last/1, concat/1, safe_concat/1, lookup/2,
   format_error/1, ensure_loaded/3]).
 -include("elixir.hrl").
 
-%% Ensure a reference is loaded before its usage.
+%% Ensure a module is loaded before its usage.
 ensure_loaded(_Line, '__MAIN__.Elixir.Builtin', _S) ->
   ok;
 
@@ -19,7 +19,7 @@ ensure_loaded(Line, Ref, S) ->
       elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { Kind, Ref })
   end.
 
-%% Receives an atom and returns the last reference.
+%% Receives an atom and returns the last alias.
 
 last(Atom) ->
   list_to_atom(last(lists:reverse(atom_to_list(Atom)), [])).
@@ -35,16 +35,16 @@ concat(Args) -> list_to_atom(raw_concat(Args)).
 safe_concat(Args) -> list_to_existing_atom(raw_concat(Args)).
 
 raw_concat(Args) ->
-  Refs = [to_partial_ref(Arg) || Arg <- Args, Arg /= nil],
-  [$_, $_, $M, $A, $I, $N, $_, $_ | lists:concat(Refs)].
+  Aliases = [to_partial(Arg) || Arg <- Args, Arg /= nil],
+  [$_, $_, $M, $A, $I, $N, $_, $_ | lists:concat(Aliases)].
 
-to_partial_ref(Arg) when is_binary(Arg) -> to_partial_ref(binary_to_list(Arg));
-to_partial_ref(Arg) when is_atom(Arg)   -> to_partial_ref(atom_to_list(Arg));
-to_partial_ref("__MAIN__" ++ Arg)       -> Arg;
-to_partial_ref([$.|_] = Arg)            -> Arg;
-to_partial_ref(Arg) when is_list(Arg)   -> [$.|Arg].
+to_partial(Arg) when is_binary(Arg) -> to_partial(binary_to_list(Arg));
+to_partial(Arg) when is_atom(Arg)   -> to_partial(atom_to_list(Arg));
+to_partial("__MAIN__" ++ Arg)       -> Arg;
+to_partial([$.|_] = Arg)            -> Arg;
+to_partial(Arg) when is_list(Arg)   -> [$.|Arg].
 
-%% Lookup a reference in the current scope
+%% Lookup an alias in the current scope
 
 lookup(Else, Dict) ->
   case orddict:find(Else, Dict) of

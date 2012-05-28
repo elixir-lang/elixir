@@ -4,7 +4,7 @@
 -export([
   assigns/3, assigns_block/5, assigns_block/6, extract_last_guards/1,
   get_pairs/4, get_pairs/5, match/3, extract_args/1, extract_guards/1]).
--import(elixir_variables, [umergec/2]).
+-import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
 
 %% Get pairs from a clause.
@@ -124,7 +124,7 @@ match(Line, DecoupledClauses, RawS) ->
 
           % Defines a tuple that will be used as left side of the match operator
           LeftVars = [{var, Line, NewValue} || {_, NewValue,_} <- FinalVars],
-          { StorageVar, SS } = elixir_variables:build_erl(Line, FS),
+          { StorageVar, SS } = elixir_scope:build_erl_var(Line, FS),
 
           % Expand all clauses by adding a match operation at the end that assigns
           % variables missing in one clause to the others.
@@ -204,7 +204,7 @@ has_match_tuple(_) -> false.
 % Normalize the given var checking its existence in the scope var dictionary.
 
 normalize_vars(Var, #elixir_scope{vars=Vars, clause_vars=ClauseVars} = S) ->
-  { { _, _, NewValue }, NS } = elixir_variables:build_erl(0, S),
+  { { _, _, NewValue }, NS } = elixir_scope:build_erl_var(0, S),
 
   FS = NS#elixir_scope{
     vars=dict:store(Var, NewValue, Vars),

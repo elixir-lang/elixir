@@ -946,8 +946,8 @@ defmodule Elixir.Builtin do
   In the example above, two modules `Foo` and `Foo.Bar`. The
   second can be accessed as `Bar` inside `Foo` in the same
   lexical scope. If the module Bar is moved away to another
-  file, it needs to be referenced via the full name or a
-  reference need to be set with the help of `refer/2`.
+  file, it needs to be referenced via the full name or an
+  alias need to be set with the help of `Elixir.SpecialForms.alias/2`.
 
   ## Dynamic names
 
@@ -1435,7 +1435,7 @@ defmodule Elixir.Builtin do
     end
 
     case Macro.expand_aliases module, __CALLER__ do
-      nil -> raise ArgumentError, message: "invalid arguments for use, expected a name as argument"
+      nil -> raise ArgumentError, message: "invalid arguments for use, expected an atom or alias as argument"
       expanded -> nil
     end
 
@@ -2174,16 +2174,16 @@ defmodule Elixir.Builtin do
   information.
 
   It is important to notice the access protocol is also
-  allowed in function signatures when applying to references.
-  This is useful when working with records to allow to match
-  against an specific part of a record:
+  allowed in function signatures when applying to atoms and
+  atom aliases. This is useful when working with records to
+  allow to match against an specific part of a record:
 
       def uri_parse(Uri.Config[schema: :http])
 
   In the example above, the schema clause will only match if
   the config schema is `:http`. Using the access protocol with
-  a reference that does not point to a record module will
-  generate a compilation exception.
+  an atom or an atom alias that does not point to a record module
+  will generate a compilation exception.
 
   ## Examples
 

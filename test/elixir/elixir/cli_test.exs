@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-refer Erlang.os, as: OS
+alias Erlang.os, as: OS
 
 defmodule Elixir.CLI.InitTest do
   use ExUnit.Case

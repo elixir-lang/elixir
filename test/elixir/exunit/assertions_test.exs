@@ -4,7 +4,7 @@ defmodule ExUnit.AssertionsTest.Value do
   def tuple, do: { 2, 1 }
 end
 
-refer ExUnit.AssertionsTest.Value
+alias ExUnit.AssertionsTest.Value
 
 defmodule ExUnit.AssertionsTest do
   use ExUnit.Case, sync: false

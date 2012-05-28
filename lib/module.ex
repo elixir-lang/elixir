@@ -68,7 +68,7 @@ defmodule Module do
   end
 
   @doc """
-  Concatenates the list of arguments and returns the module name.
+  Concatenates the list of aliases and returns a new alias.
   It handles char lists, binaries and atoms.
 
   ## Examples
@@ -79,11 +79,11 @@ defmodule Module do
 
   """
   def concat(list) when is_list(list) do
-    Erlang.elixir_ref.concat(list)
+    Erlang.elixir_aliases.concat(list)
   end
 
   @doc """
-  Concatenates two arguments and returns the module name.
+  Concatenates the two given aliases and returns a new alias.
   It handles char lists, binaries and atoms.
 
   ## Examples
@@ -94,13 +94,13 @@ defmodule Module do
 
   """
   def concat(left, right) do
-    Erlang.elixir_ref.concat([left, right])
+    Erlang.elixir_aliases.concat([left, right])
   end
 
   @doc """
-  Concatenates the list arguments and returns the module
-  name only if the module was already referenced.
-  If the module was not referenced yet, fails with ArgumentError.
+  Concatenates the list aliases and returns a new alias only
+  if the alias was already referenced. If the alias was not
+  referenced yet, fails with ArgumentError.
   It handles char lists, binaries and atoms.
 
   ## Examples
@@ -108,15 +108,18 @@ defmodule Module do
       Module.safe_concat [Unknown, Module]
       #=> ArgumentError
 
+      Module.safe_concat [List, Chars]
+      #=> List.Chars
+
   """
   def safe_concat(list) when is_list(list) do
-    Erlang.elixir_ref.safe_concat(list)
+    Erlang.elixir_aliases.safe_concat(list)
   end
 
   @doc """
-  Concatenates two arguments and returns the module
-  name only if the module was already referenced.
-  If the module was not referenced yet, fails with ArgumentError.
+  Concatenates the two aliases and returns a new alias only
+  if the alias was already referenced. If the alias was not
+  referenced yet, fails with ArgumentError.
   It handles char lists, binaries and atoms.
 
   ## Examples
@@ -124,9 +127,12 @@ defmodule Module do
       Module.safe_concat Unknown, Module
       #=> ArgumentError
 
+      Module.safe_concat List, Chars
+      #=> List.Chars
+
   """
   def safe_concat(left, right) do
-    Erlang.elixir_ref.safe_concat([left, right])
+    Erlang.elixir_aliases.safe_concat([left, right])
   end
 
   @doc """

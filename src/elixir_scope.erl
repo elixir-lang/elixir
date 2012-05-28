@@ -1,13 +1,15 @@
-%% Convenience functions used to manipulate variables
-%% and the variables scope.
--module(elixir_variables).
--export([translate_each/3,
-  build_erl/2, build_ex/2,
-  umergev/2, umergec/2,
-  serialize_scope/1, deserialize_scope/1]).
+%% Convenience functions used to manipulate scope
+%% and its variables.
+-module(elixir_scope).
+-export([translate_var/3,
+  build_erl_var/2, build_ex_var/2,
+  serialize/1, deserialize/1,
+  to_erl_env/1, to_ex_env/1,
+  umergev/2, umergec/2
+  ]).
 -include("elixir.hrl").
 
-translate_each(Line, Name, S) ->
+translate_var(Line, Name, S) ->
   Match = S#elixir_scope.context == assign,
   Vars = S#elixir_scope.vars,
   TempVars = S#elixir_scope.temp_vars,
@@ -20,7 +22,7 @@ translate_each(Line, Name, S) ->
         { true, true, true } -> { {var, Line, dict:fetch(Name, Vars) }, S };
         { true, Else, _ } ->
           { NewVar, NS } = case Else or S#elixir_scope.noname of
-            true -> build_erl(Line, S);
+            true -> build_erl_var(Line, S);
             false -> { {var, Line, Name}, S }
           end,
           RealName = element(3, NewVar),
@@ -36,27 +38,36 @@ translate_each(Line, Name, S) ->
 
 % Handle variables translation
 
-build_erl(Line, #elixir_scope{counter=Counter} = S) ->
+build_erl_var(Line, #elixir_scope{counter=Counter} = S) ->
   NS = S#elixir_scope{counter=Counter+1},
   Var = { var, Line, ?ELIXIR_ATOM_CONCAT(["_@", Counter]) },
   { Var, NS }.
 
-build_ex(Line, #elixir_scope{counter=Counter} = S) ->
+build_ex_var(Line, #elixir_scope{counter=Counter} = S) ->
   NS = S#elixir_scope{counter=Counter+1},
   Var = { ?ELIXIR_ATOM_CONCAT(["_@", Counter]), Line, nil },
   { Var, NS }.
 
+% Handle Macro.Env conversion
+
+to_erl_env(Scope) ->
+  elixir_tree_helpers:abstract_syntax(to_ex_env(Scope)).
+
+to_ex_env({ Line, #elixir_scope{module=Module,filename=File,
+    function=Function,aliases=Aliases,context=Context} }) ->
+  { '__MAIN__.Macro.Env', Module, File, Line, Function, Aliases, Context }.
+
 % Provides a tuple with only the scope information we want to serialize.
 
-serialize_scope(S) ->
+serialize(S) ->
   elixir_tree_helpers:abstract_syntax(
     { S#elixir_scope.filename, S#elixir_scope.functions, S#elixir_scope.check_clauses, S#elixir_scope.macro,
-      S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.refer, S#elixir_scope.scheduled }
+      S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases, S#elixir_scope.scheduled }
   ).
 
 % Fill in the scope with the variables serialization set in serialize_scope.
 
-deserialize_scope({ Filename, Functions, CheckClauses, Macro, Requires, Macros, Refer, Scheduled }) ->
+deserialize({ Filename, Functions, CheckClauses, Macro, Requires, Macros, Aliases, Scheduled }) ->
   #elixir_scope{
     filename=Filename,
     functions=Functions,
@@ -64,7 +75,7 @@ deserialize_scope({ Filename, Functions, CheckClauses, Macro, Requires, Macros, 
     macro=Macro,
     requires=Requires,
     macros=Macros,
-    refer=Refer,
+    aliases=Aliases,
     scheduled=Scheduled
   }.
 

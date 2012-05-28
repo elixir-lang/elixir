@@ -5,8 +5,7 @@
 -module(elixir_tree_helpers).
 -export([abstract_syntax/1, convert_to_boolean/3, split_last/1,
   build_bitstr/4, build_list/4, build_list/5, build_simple_list/2,
-  build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2,
-  to_erl_env/1, to_ex_env/1]).
+  build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
 
 split_last(List)       -> split_last(List, []).
@@ -15,13 +14,6 @@ split_last([H|T], Acc) -> split_last(T, [H|Acc]).
 
 abstract_syntax(Tree) ->
   erl_syntax:revert(erl_syntax:abstract(Tree)).
-
-to_erl_env(Scope) ->
-  abstract_syntax(to_ex_env(Scope)).
-
-to_ex_env({ Line, #elixir_scope{module=Module,filename=File,
-    function=Function,refer=Refer,context=Context} }) ->
-  { '__MAIN__.Macro.Env', Module, File, Line, Function, Refer, Context }.
 
 % Build a list translating each expression and accumulating
 % vars in one pass. It uses tail-recursive form.

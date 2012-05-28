@@ -22,9 +22,9 @@ assigning_twice_test() ->
 assignment_match_test() ->
   ?assertError({badmatch, 2}, eval([{'=', 1, [13, 2]}])).
 
-%% References
+%% Aliases
 
-single_reference_test() ->
+single_alias_test() ->
   {'__MAIN__.Foo', _} = eval([{'__aliases__', 1, ['Foo']}], []).
 
 %% Containers

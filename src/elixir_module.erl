@@ -36,7 +36,7 @@ docs_table(Module) ->
 
 translate(Line, Ref, Block, S) ->
   MetaBlock = elixir_tree_helpers:abstract_syntax(Block),
-  MetaS     = elixir_variables:serialize_scope(S),
+  MetaS     = elixir_scope:serialize(S),
 
   Args = [{integer, Line, Line}, Ref, MetaBlock, MetaS],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
@@ -44,7 +44,7 @@ translate(Line, Ref, Block, S) ->
 %% The compilation hook.
 
 compile(Line, Module, Block, RawS) when is_atom(Module) ->
-  S = elixir_variables:deserialize_scope(RawS),
+  S = elixir_scope:deserialize(RawS),
   C = elixir_compiler:get_opts(),
   Filename = S#elixir_scope.filename,
 
@@ -74,7 +74,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
   end;
 
 compile(Line, Other, _Block, RawS) ->
-  S = elixir_variables:deserialize_scope(RawS),
+  S = elixir_scope:deserialize(RawS),
   elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { invalid_module, Other }).
 
 %% Hook that builds both attribute and functions and set up common hooks.
@@ -224,11 +224,11 @@ callbacks_for(Line, Kind, Module, Args, S) ->
   Table = data_table(Module),
   Callbacks = ets:lookup_element(Table, Kind, 2),
 
-  { Exprs, Refers } = lists:mapfoldl(
+  { Exprs, Aliases } = lists:mapfoldl(
     fun (X, Acc) -> each_callback_for(Line, Args, X, Acc) end,
-    S#elixir_scope.refer, Callbacks),
+    S#elixir_scope.aliases, Callbacks),
 
-  { Exprs, S#elixir_scope{refer=Refers} }.
+  { Exprs, S#elixir_scope{aliases=Aliases} }.
 
 each_callback_for(Line, Args, {M,F}, Acc) ->
   Expr = { { '.', Line, [M,F] }, Line, Args },

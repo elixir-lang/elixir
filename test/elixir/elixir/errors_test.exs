@@ -146,7 +146,7 @@ defmodule Elixir.ErrorsTest do
     assert "nofile:1: invalid specifier for <<>>" == format_rescue '<<1|12-binary()>>'
   end
 
-  test :invalid_access_protocol_not_reference do
+  test :invalid_access_protocol_not_alias do
     assert "invalid usage of access protocol in signature" ==
       format_rescue 'defmodule Foo do\ndef sample(config[integer: 0]), do: true\nend'
   end

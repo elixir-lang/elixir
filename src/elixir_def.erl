@@ -44,7 +44,7 @@ reset_last(Module) ->
 %% If we just analyzed the compiled structure (i.e. the function availables
 %% before evaluating the function body), we would see both definitions.
 wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
-  MetaS = elixir_variables:serialize_scope(S),
+  MetaS = elixir_scope:serialize(S),
 
   Invoke = [
     {atom, Line, Kind},
@@ -63,13 +63,13 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
 % Each function is then added to the function table.
 
 store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
-  S = elixir_variables:deserialize_scope(RawS),
+  S = elixir_scope:deserialize(RawS),
   elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
 store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   Arity = length(Args),
 
-  DS = elixir_variables:deserialize_scope(RawS),
+  DS = elixir_scope:deserialize(RawS),
   S = DS#elixir_scope{function={Name,Arity}, module=Module},
 
   case RawExpr of
@@ -176,7 +176,7 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
     true  ->
       FBody = { 'match', Line,
         { 'var', Line, '__CALLER__' },
-        ?ELIXIR_WRAP_CALL(Line, elixir_tree_helpers, to_ex_env, [{ var, Line, '_@CALLER' }])
+        ?ELIXIR_WRAP_CALL(Line, elixir_scope, to_ex_env, [{ var, Line, '_@CALLER' }])
       },
       setelement(5, NClause, [FBody|element(5, NClause)]);
     false -> NClause

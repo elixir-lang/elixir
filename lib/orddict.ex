@@ -1,7 +1,7 @@
 defrecord Orddict.Record, data: nil
 
 defimpl Dict, for: Orddict.Record do
-  refer Orddict.Record, as: O
+  alias Orddict.Record, as: O
 
   def keys(O[data: data]) do
     lc { k, _ } in data, do: k

@@ -1,6 +1,6 @@
 -module(elixir_try).
 -export([clauses/3]).
--import(elixir_variables, [umergec/2]).
+-import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
 
 clauses(Line, Clauses, S) ->
@@ -28,7 +28,7 @@ each_clause(Line, { rescue, [Condition], Expr }, S) ->
     { Left, Right } ->
       case Left of
         { '_', _, _ } ->
-          { ClauseVar, CS } = elixir_variables:build_ex(Line, S),
+          { ClauseVar, CS } = elixir_scope:build_ex_var(Line, S),
           { Clause, _ } = rescue_guards(Line, ClauseVar, Right, S),
           each_clause(Line, { 'catch', [error, Clause], Expr }, CS);
         _ ->
@@ -37,7 +37,7 @@ each_clause(Line, { rescue, [Condition], Expr }, S) ->
             true ->
               each_clause(Line, { 'catch', [error, Clause], Expr }, S);
             false ->
-              { ClauseVar, CS }  = elixir_variables:build_ex(Line, S),
+              { ClauseVar, CS }  = elixir_scope:build_ex_var(Line, S),
               { FinalClause, _ } = rescue_guards(Line, ClauseVar, Right, S),
               Match = { '=', Line, [
                 Left,
@@ -75,9 +75,9 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
     { '_', _, _ } ->
       { Left, nil };
     _ when is_list(Right), Right /= [] ->
-      { _, Refs } = lists:partition(fun(X) -> is_var(X) end, Right),
-      { TRefs, _ } = elixir_translator:translate(Refs, S),
-      case lists:all(fun(X) -> is_tuple(X) andalso element(1, X) == atom end, TRefs) of
+      { _, Aliases } = lists:partition(fun(X) -> is_var(X) end, Right),
+      { TAliases, _ } = elixir_translator:translate(Aliases, S),
+      case lists:all(fun(X) -> is_tuple(X) andalso element(1, X) == atom end, TAliases) of
         true -> { Left, Right };
         false -> normalize_rescue(Line, nil, S)
       end;
@@ -134,7 +134,7 @@ rescue_each_var(Line, ClauseVar, Guards) ->
       { Elixir, Erlang }
   end.
 
-%% Rescue each reference considering their Erlang or Elixir matches.
+%% Rescue each atom name considering their Erlang or Elixir matches.
 %% Matching of variables is done with Erlang exceptions is done in another
 %% method for optimization.
 

@@ -2,7 +2,7 @@ defmodule Elixir.SpecialForms do
   @moduledoc """
   In this module we define Elixir special forms. Those are called
   special forms because they cannot be overridden by the developer
-  and sometimes have lexical scope (like refer, require, import, etc).
+  and sometimes have lexical scope (like alias, require, import, etc).
   """
 
   @doc """
@@ -36,17 +36,17 @@ defmodule Elixir.SpecialForms do
   defmacro :<<>>.(args)
 
   @doc """
-  `refer` is used to setup aliases between modules.
+  `alias` is used to setup atom aliases, often useful with modules names.
 
   ## Examples
 
-  `refer` can be used to setup an alias for any module:
+  `alias` can be used to setup an alias for any module:
 
       defmodule Math do
-        refer MyKeyword, as: Keyword
+        alias MyKeyword, as: Keyword
       end
 
-  In the example above, we have set up `MyOrdict` to be referenced
+  In the example above, we have set up `MyOrdict` to be alias
   as `Keyword`. So now, any reference to `Keyword` will be
   automatically replaced by `MyKeyword`.
 
@@ -56,22 +56,22 @@ defmodule Elixir.SpecialForms do
       Keyword.values   #=> uses MyKeyword.values
       __MAIN__.Keyword.values #=> uses Keyword.values
 
-  Notice that calling `refer` without the `as:` option automatically
+  Notice that calling `alias` without the `as:` option automatically
   sets an alias based on the last part of the module. For example:
 
-      refer Foo.Bar.Baz
+      alias Foo.Bar.Baz
 
   Is the same as:
 
-      refer Foo.Bar.Baz, as: Baz
+      alias Foo.Bar.Baz, as: Baz
 
   ## Lexical scope
 
-  `import`, `require` and `refer` are called directives and all
+  `import`, `require` and `alias` are called directives and all
   have lexical scope. This means you can set up aliases inside
   specific functions and it won't affect the overall scope.
   """
-  defmacro refer(module, opts)
+  defmacro alias(module, opts)
 
   @doc """
   `require` is used to require the presence of external
@@ -94,10 +94,10 @@ defmodule Elixir.SpecialForms do
 
   An attempt to call a macro that was not loaded will raise an error.
 
-  ## Refer shortcut
+  ## Alias shortcut
 
   `require` also accepts `as:` as an option so it automatically sets
-  up an alias. Please check `refer` for more information.
+  up an alias. Please check `alias` for more information.
 
   """
   defmacro require(module, opts)
@@ -156,11 +156,11 @@ defmodule Elixir.SpecialForms do
   specific function. All other functions in that module will still
   be able to use the original one.
 
-  ## Refer/Require shortcut
+  ## Alias/Require shortcut
 
   All imported modules are also required by default. `import`
   also accepts `as:` as an option so it automatically sets up
-  an alias. Please check `refer` for more information.
+  an alias. Please check `alias` for more information.
   """
   defmacro import(module, opts)
 
@@ -260,13 +260,13 @@ defmodule Elixir.SpecialForms do
       NoHygiene.interference
       a #=> 11
 
-  Notice that references are not hygienic in Elixir unless
-  you explicitly access it via __MAIN__ to the reference name.
+  Notice that aliases are not hygienic in Elixir, ambiguity
+  must be solved by prepending __MAIN__:
 
       quote do
         __MAIN__.Foo #=> Access the root Foo
-        Foo   #=> Access the Foo reference in the current
-                   module (if any is set), then fallback to root
+        Foo          #=> Access the Foo alias in the current module
+                         (if any is set), then fallback to __MAIN__.Foo
       end
 
   ## Options

@@ -2,7 +2,7 @@
 %% overriden are defined in this file.
 -module(elixir_translator).
 -export([translate/2, translate_each/2, translate_args/2, translate_apply/7, forms/3]).
--import(elixir_variables, [umergev/2, umergec/2]).
+-import(elixir_scope, [umergev/2, umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4, assert_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
 
@@ -83,7 +83,11 @@ translate_each({'[]', _Line, Args}, S) when is_list(Args) ->
 
 %% Lexical
 
-translate_each({refer, Line, [Ref|T]}, S) ->
+translate_each({refer, Line, Args}, S) ->
+  elixir_errors:deprecation(Line, S#elixir_scope.filename, "refer is deprecated, please use alias instead"),
+  translate_each({alias, Line, Args}, S);
+
+translate_each({alias, Line, [Ref|T]}, S) ->
   KV = case T of
     [NotEmpty] -> NotEmpty;
     [] -> []
@@ -97,22 +101,22 @@ translate_each({refer, Line, [Ref|T]}, S) ->
         { ok, false } ->
           { Old, SR };
         { ok, true } ->
-          { elixir_ref:last(Old), SR };
+          { elixir_aliases:last(Old), SR };
         { ok, Other } ->
           { TOther, SA } = translate_each(Other, SR),
           case TOther of
             { atom, _, Atom } -> { Atom, SA };
-            _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for refer, expected a reference as argument")
+            _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for alias, expected an atom or alias as argument")
           end;
         error ->
-          { elixir_ref:last(Old), SR }
+          { elixir_aliases:last(Old), SR }
       end,
 
       { { nil, Line }, SF#elixir_scope{
-        refer=orddict:store(New, Old, S#elixir_scope.refer)
+        aliases=orddict:store(New, Old, S#elixir_scope.aliases)
       } };
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid args for refer, expected a reference as argument")
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for alias, expected an atom or alias as argument")
   end;
 
 translate_each({require, Line, [Ref|T]}, S) ->
@@ -130,15 +134,15 @@ translate_each({require, Line, [Ref|T]}, S) ->
 
   case TRef of
     { atom, _, Old } ->
-      elixir_ref:ensure_loaded(Line, Old, SR),
+      elixir_aliases:ensure_loaded(Line, Old, SR),
 
       SF = SR#elixir_scope{
         requires=ordsets:add_element(Old, S#elixir_scope.requires)
       },
 
-      translate_each({ refer, Line, [Ref, [{ as, As }]] }, SF);
+      translate_each({ alias, Line, [Ref, [{ as, As }]] }, SF);
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected a reference as argument")
+      syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected an atom or alias as argument")
   end;
 
 translate_each({import, Line, [Left]}, S) ->
@@ -174,7 +178,7 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
     error -> false
   end,
 
-  elixir_ref:ensure_loaded(Line, Ref, SR),
+  elixir_aliases:ensure_loaded(Line, Ref, SR),
   SF = elixir_import:import(Line, Ref, Opts, Selector, SR),
   translate_each({ require, Line, [Ref, [{ as, As }]] }, SF);
 
@@ -190,7 +194,7 @@ translate_each({'__MAIN__', Line, Atom}, S) when is_atom(Atom) ->
   { {atom, Line, '__MAIN__' }, S };
 
 translate_each({'__ENV__', Line, Atom}, S) when is_atom(Atom) ->
-  { elixir_tree_helpers:to_erl_env({ Line, S }), S };
+  { elixir_scope:to_erl_env({ Line, S }), S };
 
 translate_each({'__CALLER__', Line, Atom}, S) when is_atom(Atom) ->
   { { var, Line, '__CALLER__' }, S#elixir_scope{caller=true} };
@@ -210,17 +214,17 @@ translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
   elixir_errors:deprecation(Line, S#elixir_scope.filename, "__LINE__ is deprecated, use __ENV__.line instead"),
   { { integer, Line, Line }, S };
 
-%% References
+%% Aliases
 
 translate_each({ '__aliases__', Line, [H] }, S) ->
   Atom = list_to_atom("__MAIN__." ++ atom_to_list(H)),
-  { { atom, Line, elixir_ref:lookup(Atom, S#elixir_scope.refer) }, S };
+  { { atom, Line, elixir_aliases:lookup(Atom, S#elixir_scope.aliases) }, S };
 
 translate_each({ '__aliases__', Line, [H|T] }, S) ->
   Aliases = case is_atom(H) of
     true ->
       Atom = list_to_atom("__MAIN__." ++ atom_to_list(H)),
-      [elixir_ref:lookup(Atom, S#elixir_scope.refer)|T];
+      [elixir_aliases:lookup(Atom, S#elixir_scope.aliases)|T];
     false ->
       [H|T]
   end,
@@ -230,10 +234,10 @@ translate_each({ '__aliases__', Line, [H|T] }, S) ->
   case lists:all(fun is_atom_tuple/1, TAliases) of
     true ->
       Atoms = [Atom || { atom, _, Atom } <- TAliases],
-      { { atom, Line, elixir_ref:concat(Atoms) }, SA };
+      { { atom, Line, elixir_aliases:concat(Atoms) }, SA };
     false ->
       Args = [elixir_tree_helpers:build_simple_list(Line, TAliases)],
-      { ?ELIXIR_WRAP_CALL(Line, elixir_ref, concat, Args), SA }
+      { ?ELIXIR_WRAP_CALL(Line, elixir_aliases, concat, Args), SA }
   end;
 
 %% Quoting
@@ -300,7 +304,7 @@ translate_each({fn, Line, Args} = Original, S) when is_list(Args) ->
 
 translate_each({loop, Line, RawArgs}, RS) when is_list(RawArgs) ->
   { Args, KV } = elixir_tree_helpers:split_last(RawArgs),
-  { ExVar, S } = elixir_variables:build_ex(Line, RS),
+  { ExVar, S } = elixir_scope:build_ex_var(Line, RS),
 
   { Function, SE } = case KV of
     [{do,Do}] ->
@@ -385,7 +389,7 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
 
 translate_each({Name, Line, quoted}, S) when is_atom(Name) ->
   NewS = S#elixir_scope{vars=S#elixir_scope.quote_vars,noname=true},
-  { TVar, VS } = elixir_variables:translate_each(Line, Name, NewS),
+  { TVar, VS } = elixir_scope:translate_var(Line, Name, NewS),
   { TVar, VS#elixir_scope{
     quote_vars=VS#elixir_scope.vars,
     noname=S#elixir_scope.noname,
@@ -393,7 +397,7 @@ translate_each({Name, Line, quoted}, S) when is_atom(Name) ->
   } };
 
 translate_each({Name, Line, nil}, S) when is_atom(Name) ->
-  elixir_variables:translate_each(Line, Name, S);
+  elixir_scope:translate_var(Line, Name, S);
 
 %% Local calls
 
@@ -637,7 +641,7 @@ convert_partials(Line, List, S) -> convert_partials(Line, List, S, [], []).
 convert_partials(Line, [{'&', _, [Pos]}|T], S, CallAcc, DefAcc) ->
   case lists:keyfind(Pos, 1, DefAcc) of
     false ->
-      { Var, SC } = elixir_variables:build_ex(Line, S),
+      { Var, SC } = elixir_scope:build_ex_var(Line, S),
       convert_partials(Line, T, SC, [Var|CallAcc], [{Pos,Var}|DefAcc]);
     {Pos,Var} ->
       convert_partials(Line, T, S, [Var|CallAcc], DefAcc)

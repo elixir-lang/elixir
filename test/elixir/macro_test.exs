@@ -62,12 +62,12 @@ defmodule MacroTest do
   end
 
   test :expand_aliases_with_custom_alias do
-    refer Foo, as: Bar
+    alias Foo, as: Bar
     assert Macro.expand_aliases(quote(do: Bar.Baz), __ENV__) == Foo.Baz
   end
 
   test :expand_aliases_with_main_plus_custom_alias do
-    refer Foo, as: Bar
+    alias Foo, as: Bar
     assert Macro.expand_aliases(quote(do: __MAIN__.Bar.Baz), __ENV__) == __MAIN__.Bar.Baz
   end
 
