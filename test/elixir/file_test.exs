@@ -168,4 +168,30 @@ defmodule FileTest do
       File.read_info!("./invalid_file")
     end
   end
+
+  test :mkdir_with_binary do
+    try do
+      assert !File.exists?("tmp_test")
+      File.mkdir("tmp_test")
+      assert File.exists?("tmp_test")
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_with_list do
+    try do
+      assert !File.exists?('tmp_test')
+      assert File.mkdir('tmp_test') == :ok
+      assert File.exists?('tmp_test')
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_with_invalid_path do
+    assert File.exists?('test/elixir/file_test.exs')
+    assert File.mkdir('test/elixir/file_test.exs/test') == { :error, :enotdir }
+    assert !File.exists?('test/elixir/file_test.exs/test')
+  end
 end

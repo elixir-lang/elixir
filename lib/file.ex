@@ -238,6 +238,23 @@ defmodule File do
   end
 
   @doc """
+  Tries to create the directory `path`. Missing parent directories are not created.
+  Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+
+  Typical error reasons are:
+
+  * :eacces  - Missing search or write permissions for the parent directories of `path`.
+  * :eexist  - There is already a file or directory named `path`.
+  * :enoent  - A component of `path` does not exist.
+  * :enospc  - There is a no space left on the device.
+  * :enotdir - A component of `path` is not a directory
+               On some platforms, `:enoent` is returned instead.
+  """
+  def mkdir(path) do
+    F.make_dir(path)
+  end
+
+  @doc """
   Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
   of `filename`, or `{:error, reason}` if an error occurs.
 
