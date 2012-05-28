@@ -11,7 +11,7 @@ defmodule EEx.TransformerEngine do
   """
 
   @doc false
-  defmacro __using__(_, _) do
+  defmacro __using__(_) do
     quote do
       @behavior EEx.Engine
 
@@ -70,7 +70,7 @@ defmodule EEx.AssignsEngine do
   """
 
   @doc false
-  defmacro __using__(_, _) do
+  defmacro __using__(_) do
     quote [unquote: false] do
       defp transform({ :@, line, [{ name, _, atom }] }) when is_atom(name) and is_atom(atom) do
         quote(do: Keyword.get var!(assigns), unquote(name))
@@ -103,7 +103,7 @@ defmodule EEx.ForEngine do
   """
 
   @doc false
-  defmacro __using__(_, _) do
+  defmacro __using__(_) do
     quote [unquote: false] do
       defp transform({ :for, line, [{ :in, _, [var, collection] }, opts] }) do
         quote do

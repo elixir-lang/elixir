@@ -237,7 +237,7 @@ internal_funs() ->
     { module_info, 0 },
     { module_info, 1 },
     { '__info__', 1 },
-    { '__using__', 2 }
+    { '__using__', 1 }
   ].
 
 %% Macros implemented in Erlang that are not overridable.

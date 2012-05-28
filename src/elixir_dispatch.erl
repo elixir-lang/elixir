@@ -340,8 +340,6 @@ in_erlang_macros() ->
     {'or',2},
     {'receive',1},
     {'try',1},
-    {use,1},
-    {use,2},
     {'var!',1},
     {'xor',2}
   ].

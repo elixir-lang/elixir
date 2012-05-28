@@ -29,11 +29,11 @@ defmodule ExUnit.Case do
   """
 
   @doc false
-  defmacro __using__(module, opts // []) do
+  defmacro __using__(opts // []) do
     if Keyword.get(opts, :sync, false) do
-      ExUnit.Server.add_sync_case(module)
+      ExUnit.Server.add_sync_case(__CALLER__.module)
     else
-      ExUnit.Server.add_case(module)
+      ExUnit.Server.add_case(__CALLER__.module)
     end
 
     quote do

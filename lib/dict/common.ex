@@ -1,7 +1,7 @@
 defmodule Dict.Common do
   @moduledoc false
 
-  defmacro __using__(_module, ref) do
+  defmacro __using__(ref) do
     quote do
       @doc """
       Creates a new empty dict.
@@ -15,7 +15,7 @@ defmodule Dict.Common do
 
       ## Examples
 
-          #{unquote(inspect(__MODULE__))}.new [{:b,1},{:a,2}]
+          #{inspect(__MODULE__)}.new [{:b,1},{:a,2}]
           #=> [a: 1, b: 2]
 
       """
@@ -31,7 +31,7 @@ defmodule Dict.Common do
 
       ## Examples
 
-          #{unquote(inspect(__MODULE__))}.new ["a", "b"], fn x -> {x, x} end
+          #{inspect(__MODULE__)}.new ["a", "b"], fn x -> {x, x} end
           #=> ["a": "a", "b": "b"]
       """
       def new(list, transform) when is_function(transform) do

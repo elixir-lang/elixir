@@ -16,7 +16,7 @@ defmodule GenServer.Behavior do
   http://www.erlang.org/doc/design_principles/gen_server_concepts.html
 
   """
-  defmacro __using__(_, _) do
+  defmacro __using__(_) do
     quote do
       @behavior :gen_server
 

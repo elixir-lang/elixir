@@ -147,30 +147,6 @@ translate_macro({Kind, Line, [Name, Args, Guards, Expr]}, S) when ?FUNS() ->
   TExpr           = elixir_tree_helpers:abstract_syntax(Expr),
   { elixir_def:wrap_definition(Kind, Line, TName, TArgs, TGuards, TExpr, TS), TS };
 
-%% Modules directives
-
-translate_macro({use, Line, [Raw]}, S) ->
-  translate_macro({use, Line, [Raw, []]}, S);
-
-translate_macro({use, Line, [Raw, Args]}, S) ->
-  assert_module_scope(Line, use, S),
-  Module = S#elixir_scope.module,
-  { TRef, SR } = translate_each(Raw, S),
-
-  Ref = case TRef of
-    { atom, _, RefAtom } -> RefAtom;
-    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for use, expected a reference as argument")
-  end,
-
-  elixir_ref:ensure_loaded(Line, Ref, SR),
-
-  Call = { '__block__', Line, [
-    { require, Line, [Ref] },
-    { { '.', Line, [Ref, '__using__'] }, Line, [Module, Args] }
-  ] },
-
-  translate_each(Call, S);
-
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
 translate_macro({ apply, Line, [Left, Right, Args] }, S) when is_list(Args) ->

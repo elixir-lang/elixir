@@ -196,7 +196,7 @@ defmodule EnumTest.List do
 end
 
 defmodule EnumTest.Dict.Common do
-  defmacro __using__(module, _opts // []) do
+  defmacro __using__(module) do
     quote do
       use ExUnit.Case
 
@@ -326,8 +326,7 @@ defmodule EnumTest.Dict.Common do
 end
 
 defmodule EnumTest.HashDict do
-  require EnumTest.Dict.Common
-  EnumTest.Dict.Common.__using__(HashDict)
+  use EnumTest.Dict.Common, HashDict
 
   test :drop do
     assert_raise Protocol.UndefinedError, fn ->
@@ -367,8 +366,7 @@ defmodule EnumTest.HashDict do
 end
 
 defmodule EnumTest.Orddict do
-  require EnumTest.Dict.Common
-  EnumTest.Dict.Common.__using__(Orddict)
+  use EnumTest.Dict.Common, Orddict
 
   test :drop do
     dict = Orddict.new [a: 1, b: 2, c: 3]

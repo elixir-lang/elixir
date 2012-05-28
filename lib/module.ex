@@ -357,8 +357,8 @@ defmodule Module do
   external usage called `MyLib`. It could be defined as:
 
       defmodule MyLib do
-        def __using__(target) do
-          Module.merge_data target, some_data: nil
+        def __using__(args) do
+          Module.merge_data __CALLER__.module, some_data: nil
           Module.add_compile_callback(target, __MODULE__, :__callback__)
         end
 

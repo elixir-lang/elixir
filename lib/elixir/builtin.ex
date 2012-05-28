@@ -1407,7 +1407,7 @@ defmodule Elixir.Builtin do
   ## Examples
 
       defmodule AssertionTest do
-        use ExUnit.Case
+        use ExUnit.Case, sync: true
 
         def test_always_pass do
           true = true
@@ -1420,7 +1420,7 @@ defmodule Elixir.Builtin do
 
       defmodule AssertionTest do
         require ExUnit.Case
-        ExUnit.Case.__using__(AssertionTest)
+        ExUnit.Case.__using__([sync: true])
 
         def test_always_pass do
           true = true
@@ -1428,7 +1428,22 @@ defmodule Elixir.Builtin do
       end
 
   """
-  defmacro use(module, args)
+  defmacro use(module, args // []) do
+    case __CALLER__.module do
+      nil -> raise "use cannot be invoked outside modules"
+      _   -> nil
+    end
+
+    case Macro.expand_aliases module, __CALLER__ do
+      nil -> raise ArgumentError, message: "invalid arguments for use, expected a name as argument"
+      expanded -> nil
+    end
+
+    quote do
+      require unquote(expanded)
+      unquote(expanded).__using__(unquote(args))
+    end
+  end
 
   @doc """
   Inspect the given arguments according to the Binary.Inspect protocol.
