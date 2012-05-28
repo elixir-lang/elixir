@@ -1,6 +1,10 @@
+* backwards incompatible changes
+  * [Builtin] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed in the `__CALLER__`;
+
 * deprecations
   * [Kernel] Deprecated `__LINE__` and `__FUNCTION__` in favor of `__ENV__.line` and `__ENV__.function`;
   * [Kernel] Deprecated `in_guard` in favor of `__CALLER__.in_guard?`;
+  * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
   * [Builtin] Added support to the `%R` sigil. The same as `%r`, but without interpolation or escaping;
