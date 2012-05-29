@@ -141,6 +141,10 @@ defmodule FileTest do
     assert_match { :error, :enoent }, File.read(File.expand_path('../fixtures/missing.txt', __FILE__))
   end
 
+  test :read_with_utf8 do
+    assert_match { :ok, "Русский\n日\n" }, File.read(File.expand_path('../fixtures/utf8.txt', __FILE__))
+  end
+
   test :read! do
     assert File.read!(File.expand_path("../fixtures/foo.txt", __FILE__)) == "FOO\n"
     expected_message = "could not read file fixtures/missing.txt: no such file or directory"
