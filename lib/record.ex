@@ -45,7 +45,7 @@ defmodule Record do
       reflection(env, values),
       getters_and_setters(values, 1, [], definition),
       initializers(values),
-      converters
+      converters(values)
     ]
 
     Module.eval_quoted env, contents
@@ -118,10 +118,10 @@ defmodule Record do
   # 
   #    [atime: nil, mtime: nil]
   #
-  defp converters do
+  defp converters(values) do
     quote do
       def to_keyword(record) do
-        fields = lc {field, _} in record.__record__(:fields), do: field
+        fields = lc {field, _} in unquote(values), do: field
         Keyword.new(List.zip fields, lc i in :lists.seq(2, length(fields)+1), do: elem(record, i))
       end
     end
