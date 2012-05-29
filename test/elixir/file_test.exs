@@ -194,4 +194,54 @@ defmodule FileTest do
     assert File.mkdir('test/elixir/file_test.exs/test') == { :error, :enotdir }
     assert !File.exists?('test/elixir/file_test.exs/test')
   end
+
+  test :mkdir_p_with_one_directory do
+    try do
+      assert !File.exists?("tmp_test")
+      assert File.mkdir_p("tmp_test") == :ok
+      assert File.exists?("tmp_test")
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_p_with_nested_directory_and_binary do
+    try do
+      assert !File.exists?("tmp_test")
+      assert File.mkdir_p("tmp_test/test") == :ok
+      assert File.exists?("tmp_test")
+      assert File.exists?("tmp_test/test")
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_p_with_nested_directory_and_list do
+    try do
+      assert !File.exists?('tmp_test')
+      assert File.mkdir_p('tmp_test/test') == :ok
+      assert File.exists?('tmp_test')
+      assert File.exists?('tmp_test/test')
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_p_with_nested_directory_and_existent_parent do
+    try do
+      assert !File.exists?("tmp_test")
+      File.mkdir("tmp_test")
+      assert File.exists?("tmp_test")
+      assert File.mkdir_p("tmp_test/test") == :ok
+      assert File.exists?("tmp_test/test")
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_p_with_invalid_path do
+    assert File.exists?('test/elixir/file_test.exs')
+    assert File.mkdir('test/elixir/file_test.exs/test/foo') == { :error, :enotdir }
+    assert !File.exists?('test/elixir/file_test.exs/test/foo')
+  end
 end

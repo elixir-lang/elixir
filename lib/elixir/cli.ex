@@ -201,7 +201,7 @@ defmodule Elixir.CLI do
   end
 
   defp process_command({:compile, patterns}, config) do
-    File.mkdir(config.output)
+    File.mkdir_p(config.output)
 
     files = Enum.map patterns, File.wildcard(&1)
     files = List.uniq(List.concat(files))

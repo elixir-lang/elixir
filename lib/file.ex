@@ -255,6 +255,22 @@ defmodule File do
   end
 
   @doc """
+  Tries to create the directory `path`. Missing parent directories are created.
+  Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+
+  Typical error reasons are:
+
+  * :eacces  - Missing search or write permissions for the parent directories of `path`.
+  * :enospc  - There is a no space left on the device.
+  * :enotdir - A component of `path` is not a directory
+               On some platforms, `:enoent` is returned instead.
+  """
+  def mkdir_p(path) do
+    paths = get_recursive_paths(path, [])
+    do_mkdir_p(paths)
+  end
+
+  @doc """
   Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
   of `path`, or `{:error, reason}` if an error occurs.
 
@@ -394,5 +410,25 @@ defmodule File do
 
   defp normalize([], acc) do
     join List.reverse(acc)
+  end
+
+  defp get_recursive_paths(dot, paths) when dot in [".", '.'], do: paths
+
+  defp get_recursive_paths(path, paths) do
+    paths = [path|paths]
+
+    get_recursive_paths(FN.dirname(path), paths)
+  end
+
+  defp do_mkdir_p([path|t]) do
+    case F.make_dir(path) do
+      :ok -> do_mkdir_p(t)
+      { :error, :eexist } -> do_mkdir_p(t)
+      other -> other
+    end
+  end
+
+  defp do_mkdir_p([]) do
+    :ok
   end
 end
