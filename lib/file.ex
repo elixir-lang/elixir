@@ -396,11 +396,11 @@ defmodule File do
   # Normalize the given path by removing "..".
   defp normalize(path), do: normalize(split(path), [])
 
-  defp normalize([top|t], [_|acc]) when top == ".." or top == '..' do
+  defp normalize([top|t], [_|acc]) when top in ["..", '..'] do
     normalize t, acc
   end
 
-  defp normalize([top|t], acc) when top == "." or top == '.' do
+  defp normalize([top|t], acc) when top in [".", '.'] do
     normalize t, acc
   end
 
