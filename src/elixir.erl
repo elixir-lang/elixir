@@ -12,7 +12,8 @@
 
 start(_Type, _Args) ->
   %% Set the shell to unicode so printing inside files work
-  io:setopts([{encoding,unicode}]),
+  io:setopts(standard_io, [{encoding,unicode}]),
+  io:setopts(standard_error, [{encoding,unicode}]),
   elixir_sup:start_link([]).
 
 stop(_S) ->

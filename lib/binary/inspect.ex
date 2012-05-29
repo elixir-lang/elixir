@@ -119,6 +119,12 @@ defimpl Binary.Inspect, for: List do
   If so, a single-quoted representation is returned,
   otherwise the brackets syntax is used.
 
+  Inspecting a list is conservative as it does not try
+  to guess how the list is encoded. That said, `'josé'`
+  will likely be inspected as `[106,111,115,195,169]`
+  because we can't know if it is encoded in utf-8
+  or iso-5569-1, which is common in Erlang libraries.
+
   ## Examples
 
       inspect('bar')       #=> 'bar'
@@ -130,7 +136,7 @@ defimpl Binary.Inspect, for: List do
   def inspect([]), do: "[]"
 
   def inspect(thing) do
-    if Erlang.io_lib.printable_list(thing) do
+    if printable?(thing) do
       Binary.escape(list_to_binary(thing), ?')
     else
       container_join(thing, "[", "]")
@@ -155,6 +161,19 @@ defimpl Binary.Inspect, for: List do
   def container_join([], acc, last) do
     acc <> last
   end
+
+  ## printable?
+
+  defp printable?([c|cs]) when is_integer(c) and c >= 32 and c <= 126 do
+    printable?(cs)
+  end
+
+  defp printable?([c|cs]) when c in [?\n, ?\r, ?\t, ?\v, ?\b, ?\f, ?\e] do
+    printable?(cs)
+  end
+
+  defp printable?([]), do: true
+  defp printable?(_),  do: false
 end
 
 defimpl Binary.Inspect, for: Tuple do

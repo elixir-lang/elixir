@@ -118,6 +118,10 @@ defmodule Binary.Inspect.ListTest do
     assert inspect([:foo | :bar]) == "[:foo|:bar]"
   end
 
+  test :codepoints do
+    assert inspect('é') == "[195,169]"
+  end
+
   test :empty do
     assert inspect([]) == "[]"
   end
