@@ -146,52 +146,52 @@ defmodule File do
   def basename(path, extension) do
     FN.basename(path, extension)
   end
-  
+
   @doc """
   Return the `directory` component of `path`.
-  
+
   ## Examples
-  
+
     File.dirname("/foo/bar.ex")
     #=> "foo"
-    
+
   """
   def dirname(path) do
     FN.dirname(path)
   end
-  
+
   @doc """
   Return the `extension` of the last component of `path`.
-  
+
   ## Examples
-    
+
     File.extname("foo.erl")
     #=> ".erl"
     File.extname("~/foo/bar")
     #=> ""
-    
+
   """
   def extname(path) do
     FN.extension(path)
   end
-  
+
   @doc """
   Returns the `path` with the `extension` stripped.
-  
+
   ## Examples
-    
+
     File.rootname("/foo/bar")
     #=> "/foo/bar"
     File.rootname("/foo/bar.ex")
     #=> "/foo/bar"
-    
+
   """
   def rootname(path) do
     FN.rootname(path)
   end
-  
+
   @doc """
-  Returns the `path` with the `extension` stripped. This function should be used to 
+  Returns the `path` with the `extension` stripped. This function should be used to
   remove a specific extension which might, or might not, be there.
 
   ## Examples
@@ -205,7 +205,7 @@ defmodule File do
   def rootname(path, extension) do
    FN.rootname(path, extension)
   end
-  
+
 
   @doc """
   Returns a string with one or more paths components joint by the path separator.
@@ -238,18 +238,51 @@ defmodule File do
   end
 
   @doc """
+  Tries to create the directory `path`. Missing parent directories are not created.
+  Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+
+  Typical error reasons are:
+
+  * :eacces  - Missing search or write permissions for the parent directories of `path`.
+  * :eexist  - There is already a file or directory named `path`.
+  * :enoent  - A component of `path` does not exist.
+  * :enospc  - There is a no space left on the device.
+  * :enotdir - A component of `path` is not a directory
+               On some platforms, `:enoent` is returned instead.
+  """
+  def mkdir(path) do
+    F.make_dir(path)
+  end
+
+  @doc """
+  Tries to create the directory `path`. Missing parent directories are created.
+  Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+
+  Typical error reasons are:
+
+  * :eacces  - Missing search or write permissions for the parent directories of `path`.
+  * :enospc  - There is a no space left on the device.
+  * :enotdir - A component of `path` is not a directory
+               On some platforms, `:enoent` is returned instead.
+  """
+  def mkdir_p(path) do
+    paths = get_recursive_paths(path, [])
+    do_mkdir_p(paths)
+  end
+
+  @doc """
   Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
-  of `filename`, or `{:error, reason}` if an error occurs.
+  of `path`, or `{:error, reason}` if an error occurs.
 
   Typical error reasons:
 
-  * :enoent - The file does not exist.
-  * :eacces - Missing permission for reading the file,
-              or for searching one of the parent directories.
-  * :eisdir - The named file is a directory.
+  * :enoent  - The file does not exist.
+  * :eacces  - Missing permission for reading the file,
+               or for searching one of the parent directories.
+  * :eisdir  - The named file is a directory.
   * :enotdir - A component of the file name is not a directory.
-               On some platforms, enoent is returned instead.
-  * :enomem - There is not enough memory for the contents of the file.
+               On some platforms, `:enoent` is returned instead.
+  * :enomem  - There is not enough memory for the contents of the file.
 
   You can use `Erlang.file.format_error(reason)` to get a descriptive string of the error.
   """
@@ -363,11 +396,11 @@ defmodule File do
   # Normalize the given path by removing "..".
   defp normalize(path), do: normalize(split(path), [])
 
-  defp normalize([top|t], [_|acc]) when top == ".." or top == '..' do
+  defp normalize([top|t], [_|acc]) when top in ["..", '..'] do
     normalize t, acc
   end
 
-  defp normalize([top|t], acc) when top == "." or top == '.' do
+  defp normalize([top|t], acc) when top in [".", '.'] do
     normalize t, acc
   end
 
@@ -377,5 +410,25 @@ defmodule File do
 
   defp normalize([], acc) do
     join List.reverse(acc)
+  end
+
+  defp get_recursive_paths(dot, paths) when dot in [".", '.'], do: paths
+
+  defp get_recursive_paths(path, paths) do
+    paths = [path|paths]
+
+    get_recursive_paths(FN.dirname(path), paths)
+  end
+
+  defp do_mkdir_p([path|t]) do
+    case F.make_dir(path) do
+      :ok -> do_mkdir_p(t)
+      { :error, :eexist } -> do_mkdir_p(t)
+      other -> other
+    end
+  end
+
+  defp do_mkdir_p([]) do
+    :ok
   end
 end

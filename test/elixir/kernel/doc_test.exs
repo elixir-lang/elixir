@@ -10,7 +10,7 @@ defmodule Kernel.DocTest do
     path = File.expand_path("../../fixtures/compiled_with_docs.ex", __FILE__)
 
     try do
-      :file.make_dir(tmp)
+      File.mkdir(tmp)
       Code.compiler_options(docs: true)
       Elixir.ParallelCompiler.files_to_path([path], tmp)
       Code.prepend_path(tmp)

@@ -25,41 +25,41 @@ defmodule FileTest do
     assert File.expand_path('/foo/bar/.') == '/foo/bar'
     assert File.expand_path('/foo/bar/../bar') == '/foo/bar'
   end
-  
+
   test :rootname_with_binary do
     assert File.rootname("~/foo/bar.ex", ".ex") == "~/foo/bar"
     assert File.rootname("~/foo/bar.exs", ".ex") == "~/foo/bar.exs"
     assert File.rootname("~/foo/bar.old.ex", ".ex") == "~/foo/bar.old"
   end
-  
+
   test :rootname_with_list do
     assert File.rootname('~/foo/bar.ex', '.ex') == '~/foo/bar'
     assert File.rootname('~/foo/bar.exs', '.ex') == '~/foo/bar.exs'
     assert File.rootname('~/foo/bar.old.ex', '.ex') == '~/foo/bar.old'
   end
-  
+
   test :extname_with_binary do
     assert File.extname("foo.erl") == ".erl"
     assert File.extname("~/foo/bar") == ""
   end
-  
+
   test :extname_with_list do
     assert File.extname('foo.erl') == '.erl'
     assert File.extname('~/foo/bar') == ''
   end
-  
+
   test :dirname_with_binary do
     assert File.dirname("/foo/bar.ex") == "/foo"
     assert File.dirname("~/foo/bar.ex") == "~/foo"
     assert File.dirname("/foo/bar/baz/") == "/foo/bar/baz"
   end
-  
+
   test :dirname_with_list do
     assert File.dirname('/foo/bar.ex') == '/foo'
     assert File.dirname('~/foo/bar.ex') == '~/foo'
     assert File.dirname('/foo/bar/baz/') == '/foo/bar/baz'
   end
-  
+
   test :regular do
     assert File.regular?(__FILE__)
     assert File.regular?(binary_to_list(__FILE__))
@@ -167,5 +167,81 @@ defmodule FileTest do
     assert_raise File.Error, fn ->
       File.read_info!("./invalid_file")
     end
+  end
+
+  test :mkdir_with_binary do
+    try do
+      assert !File.exists?("tmp_test")
+      File.mkdir("tmp_test")
+      assert File.exists?("tmp_test")
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_with_list do
+    try do
+      assert !File.exists?('tmp_test')
+      assert File.mkdir('tmp_test') == :ok
+      assert File.exists?('tmp_test')
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_with_invalid_path do
+    assert File.exists?('test/elixir/file_test.exs')
+    assert File.mkdir('test/elixir/file_test.exs/test') == { :error, :enotdir }
+    assert !File.exists?('test/elixir/file_test.exs/test')
+  end
+
+  test :mkdir_p_with_one_directory do
+    try do
+      assert !File.exists?("tmp_test")
+      assert File.mkdir_p("tmp_test") == :ok
+      assert File.exists?("tmp_test")
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_p_with_nested_directory_and_binary do
+    try do
+      assert !File.exists?("tmp_test")
+      assert File.mkdir_p("tmp_test/test") == :ok
+      assert File.exists?("tmp_test")
+      assert File.exists?("tmp_test/test")
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_p_with_nested_directory_and_list do
+    try do
+      assert !File.exists?('tmp_test')
+      assert File.mkdir_p('tmp_test/test') == :ok
+      assert File.exists?('tmp_test')
+      assert File.exists?('tmp_test/test')
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_p_with_nested_directory_and_existent_parent do
+    try do
+      assert !File.exists?("tmp_test")
+      File.mkdir("tmp_test")
+      assert File.exists?("tmp_test")
+      assert File.mkdir_p("tmp_test/test") == :ok
+      assert File.exists?("tmp_test/test")
+    after
+      :os.cmd('rm -rf tmp_test')
+    end
+  end
+
+  test :mkdir_p_with_invalid_path do
+    assert File.exists?('test/elixir/file_test.exs')
+    assert File.mkdir('test/elixir/file_test.exs/test/foo') == { :error, :enotdir }
+    assert !File.exists?('test/elixir/file_test.exs/test/foo')
   end
 end
