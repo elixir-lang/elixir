@@ -1356,40 +1356,6 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
-  Defines the given functions in the current module that will
-  delegate to the given `target`. Functions defined with defdelegate
-  are public and should be purposedly allowed to be invoked from
-  external. If you find yourself wishing to define a delegation
-  as private, you should likely use import instead.
-
-  Delegation only works with functions, delegating to macros
-  is not supported.
-
-  ## Examples
-
-      defmodule MyList do
-        defdelegate [reverse: 1], to: Erlang.lists
-      end
-
-      MyList.reverse([1,2,3])
-      #=> [3,2,1]
-
-  """
-  defmacro defdelegate(tuples, to: target) do
-    lc { name, arity } in tuples do
-      args = lc i in :lists.seq(1, arity) do
-        { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
-      end
-
-      quote do
-        def unquote(name).(unquote_splicing(args)) do
-          apply unquote(target), unquote(name), [unquote_splicing(args)]
-        end
-      end
-    end
-  end
-
-  @doc """
   Makes the given functions in the current module overridable.
   An overridable function is lazily defined, allowing a
   developer to customize it.
@@ -2236,6 +2202,59 @@ defmodule Elixir.Builtin do
             keys = lc { key, _ } in remaining, do: key
             raise "record #{inspect atom} does not have the keys: #{inspect keys}"
         end
+    end
+  end
+
+  @doc """
+  Defines the given functions in the current module that will
+  delegate to the given `target`. Functions defined with
+  `defdelegate` are public and are allowed to be invoked
+  from external. If you find yourself wishing to define a
+  delegation as private, you should likely use import
+  instead.
+
+  Delegation only works with functions, delegating to macros
+  is not supported.
+
+  ## Options
+
+  * `:to` - The expression to delegate to. Any expression
+    is allowed and its results will be calculated on runtime;
+
+  * `:as` - The function to call on the target given in `:to`.
+    This parameter is optional and defaults to the name being
+    delegated.
+
+  ## Examples
+
+      defmodule MyList do
+        defdelegate [reverse: 1], to: Erlang.lists
+        defdelegate [other_reverse: 1], to: Erlang.lists, as: :reverse
+      end
+
+      MyList.reverse([1,2,3])
+      #=> [3,2,1]
+
+      MyList.other_reverse([1,2,3])
+      #=> [3,2,1]
+
+  """
+  defmacro defdelegate(tuples, opts) do
+    target = Keyword.get(opts, :to) ||
+      raise(ArgumentError, message: "Expected to: be given as argument")
+
+    lc { name, arity } in tuples do
+      args = lc i in :lists.seq(1, arity) do
+        { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+      end
+
+      fun = Keyword.get(opts, :as, name)
+
+      quote do
+        def unquote(name).(unquote_splicing(args)) do
+          apply unquote(target), unquote(fun), [unquote_splicing(args)]
+        end
+      end
     end
   end
 

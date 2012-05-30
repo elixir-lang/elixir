@@ -35,6 +35,16 @@ defmodule Elixir.BuiltinTest do
     end
   end
 
+  defmodule Mcaros do
+    use ExUnit.Case
+
+    defdelegate [my_flatten: 1], to: List, as: :flatten
+
+    test :defdelegate_with_function do
+      assert my_flatten([[1]]) == [1]
+    end
+  end
+
   defmodule Destructure do
     use ExUnit.Case
 
