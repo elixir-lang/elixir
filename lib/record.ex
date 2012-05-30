@@ -44,7 +44,8 @@ defmodule Record do
     contents = [
       reflection(env, values),
       getters_and_setters(values, 1, [], definition),
-      initializers(values)
+      initializers(values),
+      converters(values)
     ]
 
     Module.eval_quoted env, contents
@@ -106,6 +107,23 @@ defmodule Record do
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
       def new(tuple) when is_tuple(tuple), do: setelem(tuple, 1, __MODULE__)
+    end
+  end
+
+  # Define converters method(s). For a declaration like:
+  #
+  #     defrecord FileInfo, atime: nil, mtime: nil
+  #
+  # It will define one method, to_keywords, which will return a Keyword
+  # 
+  #    [atime: nil, mtime: nil]
+  #
+  defp converters(values) do
+    quote do
+      def to_keywords(record) do
+        fields = lc {field, _} in unquote(values), do: field
+        Keyword.new(List.zip fields, lc i in :lists.seq(2, length(fields)+1), do: elem(record, i))
+      end
     end
   end
 

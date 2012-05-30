@@ -42,6 +42,12 @@ defmodule RecordTest do
     refute is_record(a_list, RecordTest.FileInfo)
     refute is_record(RecordTest.FileInfo.new, List)
   end
+  
+  test :to_keywords do
+    record = RecordTest.DynamicName.new(a: "a", b: "b")
+    assert record.to_keywords[:a] == "a"
+    assert record.to_keywords[:b] == "b"
+  end
 
   defp file_info do
     { :ok, file_info } = Erlang.file.read_file_info(__FILE__)
