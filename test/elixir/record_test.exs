@@ -43,10 +43,10 @@ defmodule RecordTest do
     refute is_record(RecordTest.FileInfo.new, List)
   end
   
-  test :to_keyword do
+  test :to_keywords do
     record = RecordTest.DynamicName.new(a: "a", b: "b")
-    assert record.to_keyword[:a] == "a"
-    assert record.to_keyword[:b] == "b"
+    assert record.to_keywords[:a] == "a"
+    assert record.to_keywords[:b] == "b"
   end
 
   defp file_info do

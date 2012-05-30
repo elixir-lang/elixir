@@ -114,13 +114,13 @@ defmodule Record do
   #
   #     defrecord FileInfo, atime: nil, mtime: nil
   #
-  # It will define one method, to_keyword, which will return a Keyword
+  # It will define one method, to_keywords, which will return a Keyword
   # 
   #    [atime: nil, mtime: nil]
   #
   defp converters(values) do
     quote do
-      def to_keyword(record) do
+      def to_keywords(record) do
         fields = lc {field, _} in unquote(values), do: field
         Keyword.new(List.zip fields, lc i in :lists.seq(2, length(fields)+1), do: elem(record, i))
       end
