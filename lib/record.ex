@@ -119,10 +119,14 @@ defmodule Record do
   #    [atime: nil, mtime: nil]
   #
   defp converters(values) do
+    sorted = Keyword.new values, fn({ k, _ }) ->
+      index = Enum.find_index(values, fn({ x, _ }) -> x == k end)
+      { k, quote(do: :erlang.element(unquote(index + 1), record)) }
+    end
+
     quote do
       def to_keywords(record) do
-        fields = lc {field, _} in unquote(values), do: field
-        Keyword.new(List.zip fields, lc i in :lists.seq(2, length(fields)+1), do: elem(record, i))
+        unquote(sorted)
       end
     end
   end

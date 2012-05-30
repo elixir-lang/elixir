@@ -265,9 +265,6 @@ defmodule Enum do
         Enum.find_value [2,4,6], fn(x) -> rem(x, 2) == 1 end
         #=> nil
 
-        Enum.find_value [2,4,6], 0, fn(x) -> rem(x, 2) == 1 end
-        #=> 0
-
         Enum.find_value [2,3,4], fn(x) -> rem(x, 2) == 1 end
         #=> true
 
@@ -275,6 +272,26 @@ defmodule Enum do
   def find_value(collection, ifnone // nil, fun) do
     { iterator, pointer } = I.iterator(collection)
     do_find_value(pointer, iterator, ifnone, fun)
+  end
+
+  @doc """
+  Similar to find, but returns the index (count starts with 1)
+  of the item instead of the element itself.
+
+  Expects an ordered collection.
+
+    ## Examples
+
+        Enum.find_index [2,4,6], fn(x) -> rem(x, 2) == 1 end
+        #=> nil
+
+        Enum.find_value [2,3,4], fn(x) -> rem(x, 2) == 1 end
+        #=> 2
+
+  """
+  def find_index(collection, fun) do
+    { iterator, pointer } = O.iterator(collection)
+    do_find_index(pointer, iterator, 1, fun)
   end
 
   @doc """
@@ -611,6 +628,21 @@ defmodule Enum do
 
   defp do_find_value(:stop, _, ifnone, _) do
     ifnone
+  end
+
+  ## find_index
+
+  defp do_find_index({ h, next }, iterator, counter, fun) do
+    case fun.(h) do
+      x in [false, nil] ->
+        do_find_index(iterator.(next), iterator, counter + 1, fun)
+      _ ->
+        counter
+    end
+  end
+
+  defp do_find_index(:stop, _, _, _) do
+    nil
   end
 
   ## each

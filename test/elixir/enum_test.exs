@@ -80,6 +80,11 @@ defmodule EnumTest.List do
     assert Enum.find_value([2,3,4], fn(x) -> rem(x, 2) == 1 end)
   end
 
+  test :find_index do
+    assert Enum.find_index([2,4,6], fn(x) -> rem(x, 2) == 1 end) == nil
+    assert Enum.find_index([2,3,4], fn(x) -> rem(x, 2) == 1 end) == 2
+  end
+
   test :empty? do
     assert Enum.empty?([])
     refute Enum.empty?([1,2,3])
