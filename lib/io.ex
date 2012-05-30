@@ -43,4 +43,25 @@ defmodule IO do
   def inspect(device // :standard_io, item) do
     puts device, Elixir.Builtin.inspect(item)
   end
+
+  @doc """
+  Reads `count` characters from the IO device.
+  It returns:
+
+  * `data` - The input characters. If the device
+    supports Unicode, the data may represent
+    codepoints larger than 255 (the latin1 range).
+    If the io_server() is set to deliver binaries,
+    they will be encoded in UTF-8 (regardless of if
+    the device actually supports Unicode or not).
+
+  * :eof - End of file was encountered.
+
+  * {:error, reason} - Other (rare) error condition,
+    for instance {:error, :estale} if reading from an
+    NFS file system.
+  """
+  def getb(device, count // 1) do
+    Erlang.io.get_chars(device, '', count)
+  end
 end
