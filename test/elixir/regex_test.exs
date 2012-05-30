@@ -3,6 +3,11 @@ Code.require_file "../test_helper", __FILE__
 defmodule Regex.BinaryTest do
   use ExUnit.Case
 
+  test :multiline do
+    assert !Regex.match?(%r/^b$/, "a\nb\nc")
+    assert Regex.match?(%r/^b$/m, "a\nb\nc")
+  end
+
   test :compile do
     assert is_record(Regex.compile("foo"), Regex)
     assert is_regex(Regex.compile("foo"))

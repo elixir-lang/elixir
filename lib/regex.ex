@@ -25,9 +25,11 @@ defmodule Regex do
 
   * unicode (u) - used when you want to match against specific unicode characters
   * caseless (i) - add case insensitivity
-  * dotall (m) - causes dot to match newlines and also set newline to anycrlf.
+  * dotall (s) - causes dot to match newlines and also set newline to anycrlf.
     The new line setting can be overwritten by setting `(*CR)` or `(*LF)` or
     `(*CRLF)` or `(*ANY)` according to re documentation
+  * multiline (m) - causes `^` and `$` to mark the beginning and end of each line.
+    You need to use `\A` and `\z` to match the end or beginning of the string
   * extended (x) - whitespace characters are ignored except when escaped and
     allow `#` to delimit comments
   * firstline (f) - forces the unanchored pattern to match before or at the first
@@ -58,7 +60,7 @@ defmodule Regex do
   def compile(source, options // "") do
     source  = to_binary(source)
     options = to_binary(options)
-    re_opts = [:multiline|translate_options(options)]
+    re_opts = translate_options(options)
     { :ok, compiled } = Erlang.re.compile(source, re_opts)
     { Regex, compiled, source, options }
   end
@@ -233,6 +235,7 @@ defmodule Regex do
   defp translate_options(<<?x, t|:binary>>), do: [:extended|translate_options(t)]
   defp translate_options(<<?f, t|:binary>>), do: [:firstline|translate_options(t)]
   defp translate_options(<<?r, t|:binary>>), do: [:ungreedy|translate_options(t)]
-  defp translate_options(<<?m, t|:binary>>), do: [:dotall,{:newline,:anycrlf}|translate_options(t)]
+  defp translate_options(<<?s, t|:binary>>), do: [:dotall,{:newline,:anycrlf}|translate_options(t)]
+  defp translate_options(<<?m, t|:binary>>), do: [:multiline|translate_options(t)]
   defp translate_options(<<>>), do: []
 end
