@@ -21,4 +21,16 @@ defmodule IOTest do
     { :ok, file } = :file.open(File.expand_path('../fixtures/utf8.txt', __FILE__), [:read, :binary, {:encoding, :utf8}])
     assert "Русский" == IO.getb(file, 7)
   end
+
+  test :gets do
+    { :ok, file } = :file.open(File.expand_path('../fixtures/foo.txt', __FILE__), [:read])
+    assert 'FOO\n' == IO.gets(file)
+    assert :eof == IO.gets(file)
+  end
+
+  test :gets_with_utf8_and_binary do
+    { :ok, file } = :file.open(File.expand_path('../fixtures/utf8.txt', __FILE__), [:read, :binary, {:encoding, :utf8}])
+    assert "Русский\n" == IO.gets(file)
+    assert "日\n" == IO.gets(file)
+  end
 end
