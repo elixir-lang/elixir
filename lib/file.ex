@@ -390,6 +390,24 @@ defmodule File do
     end
   end
 
+  @doc """
+  Tries to write `content` to the file `filename`. The file is created if it
+  does not exist. If it exists, the previous contents are overwritten.
+  Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+
+  Typical error reasons are:
+
+  * :enoent - A component of the file name does not exist.
+  * :enotdir - A component of the file name is not a directory.
+               On some platforms, enoent is returned instead.
+  * :enospc - There is a no space left on the device.
+  * :eacces - Missing permission for writing the file or searching one of the parent directories.
+  * :eisdir - The named file is a directory.
+  """
+  def write(filename, content, modes // []) do
+    F.write_file(filename, content, modes)
+  end
+
   ## Helpers
 
   # Normalize the given path by removing "..".
