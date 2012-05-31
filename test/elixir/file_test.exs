@@ -248,4 +248,35 @@ defmodule FileTest do
     assert File.mkdir('test/elixir/file_test.exs/test/foo') == { :error, :enotdir }
     assert !File.exists?('test/elixir/file_test.exs/test/foo')
   end
+
+  test :write_normal_content do
+    try do
+      refute File.exists?('test/tmp/tmp_test.txt')
+      assert File.write('test/tmp/tmp_test.txt', 'test text') == :ok
+      assert { :ok, "test text" } == File.read('test/tmp/tmp_test.txt')
+    after
+      :os.cmd('rm test/tmp/tmp_test.txt')
+    end
+  end
+
+  test :write_utf8 do
+    try do
+      refute File.exists?('test/tmp/tmp_test.txt')
+      assert File.write('test/tmp/tmp_test.txt', "Русский\n日\n") == :ok
+      assert { :ok, "Русский\n日\n" } == File.read('test/tmp/tmp_test.txt')
+    after
+      :os.cmd('rm test/tmp/tmp_test.txt')
+    end
+  end
+
+  test :write_with_options do
+    try do
+      refute File.exists?('test/tmp/tmp_test.txt')
+      assert File.write('test/tmp/tmp_test.txt', "Русский\n日\n") == :ok
+      assert File.write('test/tmp/tmp_test.txt', "test text", [:append]) == :ok
+      assert { :ok, "Русский\n日\ntest text" } == File.read('test/tmp/tmp_test.txt')
+    after
+      :os.cmd('rm test/tmp/tmp_test.txt')
+    end
+  end
 end
