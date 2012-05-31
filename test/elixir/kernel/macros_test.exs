@@ -1,11 +1,11 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Kernel.RequireTest.Nested do
+defmodule Kernel.MacrosTest.Nested do
   defmacro value, do: 1
 end
 
-defmodule Kernel.RequireTest do
-  require Kernel.RequireTest.Nested, as: Nested
+defmodule Kernel.MacrosTest do
+  require Kernel.MacrosTest.Nested, as: Nested
 
   use ExUnit.Case
 
@@ -21,17 +21,12 @@ defmodule Kernel.RequireTest do
     quote do: 1 + unquote(value)
   end
 
-  test :require_erlang do
-    require Erlang.lists, as: MyList
-    assert MyList.flatten([1,[2],3]) == [1,2,3]
-    assert __MAIN__.MyList.Bar == :"__MAIN__.MyList.Bar"
-    assert MyList.Bar == :"__MAIN__.lists.Bar"
+  test :require do
+    assert Kernel.MacrosTest.Nested.value == 1
   end
 
-  test :double_named_require do
-    require Kernel.RequireTest.Nested, as: Nested2
+  test :require_with_alias do
     assert Nested.value == 1
-    assert Nested2.value == 1
   end
 
   test :default_required do
@@ -43,19 +38,19 @@ defmodule Kernel.RequireTest do
     assert result
   end
 
-  test :locals_are_always_required do
+  test :locals_macros do
     assert __MODULE__.my_macro == 2
   end
 
-  test :locals_and_private_are_always_required do
+  test :local_but_private_macro do
     assert my_private_macro == 4
   end
 
-  test :locals_with_default_are_always_required do
+  test :local_with_defaults_macro do
     assert my_macro_with_default == 6
   end
 
-  test :cannot_be_called_dynamically_even_if_required do
+  test :macros_cannot_be_called_dynamically do
     x = Nested
     assert_raise UndefinedFunctionError, fn -> x.value end
   end

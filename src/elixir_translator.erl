@@ -78,12 +78,10 @@ translate_each({refer, Line, Args}, S) ->
   elixir_errors:deprecation(Line, S#elixir_scope.filename, "refer is deprecated, please use alias instead"),
   translate_each({alias, Line, Args}, S);
 
-translate_each({alias, Line, [Ref|T]}, S) ->
-  KV = case T of
-    [NotEmpty] -> NotEmpty;
-    [] -> []
-  end,
+translate_each({alias, Line, [Ref]}, S) ->
+  translate_each({alias, Line, [Ref,[]]}, S);
 
+translate_each({alias, Line, [Ref, KV]}, S) ->
   { TRef, SR } = translate_each(Ref, S),
 
   case TRef of
@@ -91,16 +89,14 @@ translate_each({alias, Line, [Ref|T]}, S) ->
       { New, SF } = case orddict:find(as, KV) of
         { ok, false } ->
           { Old, SR };
-        { ok, true } ->
+        Opt when Opt == { ok, true }; Opt == error ->
           { elixir_aliases:last(Old), SR };
         { ok, Other } ->
           { TOther, SA } = translate_each(Other, SR),
           case TOther of
             { atom, _, Atom } -> { Atom, SA };
             _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for alias, expected an atom or alias as argument")
-          end;
-        error ->
-          { elixir_aliases:last(Old), SR }
+          end
       end,
 
       { { nil, Line }, SF#elixir_scope{
@@ -110,12 +106,10 @@ translate_each({alias, Line, [Ref|T]}, S) ->
       syntax_error(Line, S#elixir_scope.filename, "invalid args for alias, expected an atom or alias as argument")
   end;
 
-translate_each({require, Line, [Ref|T]}, S) ->
-  KV = case T of
-    [NotEmpty] -> NotEmpty;
-    [] -> []
-  end,
+translate_each({require, Line, [Ref]}, S) ->
+  translate_each({require, Line, [Ref, []]}, S);
 
+translate_each({require, Line, [Ref, KV]}, S) ->
   { TRef, SR } = translate_each(Ref, S),
 
   As = case orddict:find(as, KV) of
