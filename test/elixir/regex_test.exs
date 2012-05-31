@@ -4,7 +4,7 @@ defmodule Regex.BinaryTest do
   use ExUnit.Case
 
   test :multiline do
-    assert !Regex.match?(%r/^b$/, "a\nb\nc")
+    refute Regex.match?(%r/^b$/, "a\nb\nc")
     assert Regex.match?(%r/^b$/m, "a\nb\nc")
   end
 
@@ -23,14 +23,14 @@ defmodule Regex.BinaryTest do
 
   test :match? do
     assert Regex.match?(%r/foo/, "foo")
-    assert !Regex.match?(%r/foo/, "FOO")
+    refute Regex.match?(%r/foo/, "FOO")
     assert Regex.match?(%r/foo/i, "FOO")
     assert Regex.match?(%r/\d{1,3}/i, "123")
 
     assert Regex.match?(%r/foo/,   "afooa")
-    assert !Regex.match?(%r/^foo/, "afooa")
+    refute Regex.match?(%r/^foo/, "afooa")
     assert Regex.match?(%r/^foo/,  "fooa")
-    assert !Regex.match?(%r/foo$/, "afooa")
+    refute Regex.match?(%r/foo$/, "afooa")
     assert Regex.match?(%r/foo$/,  "afoo")
   end
 
@@ -98,14 +98,14 @@ defmodule Regex.ListTest do
 
   test :match? do
     assert Regex.match?(%r(foo), 'foo')
-    assert !Regex.match?(%r(foo), 'FOO')
+    refute Regex.match?(%r(foo), 'FOO')
     assert Regex.match?(%r(foo)i, 'FOO')
     assert Regex.match?(%r/\d{1,3}/i, '123')
 
     assert Regex.match?(%r(foo),   'afooa')
-    assert !Regex.match?(%r(^foo), 'afooa')
+    refute Regex.match?(%r(^foo), 'afooa')
     assert Regex.match?(%r(^foo),  'fooa')
-    assert !Regex.match?(%r(foo$), 'afooa')
+    refute Regex.match?(%r(foo$), 'afooa')
     assert Regex.match?(%r(foo$),  'afoo')
   end
 
