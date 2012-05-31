@@ -59,11 +59,6 @@ defmodule Elixir.ErrorsTest do
     assert "nofile:1: invalid args for fn" == format_rescue 'fn 1'
   end
 
-  test :unproper_macro do
-    assert "nofile:4: use of -> out of context in macro Elixir.ErrorsTest.UnproperMacro.unproper/1" ==
-      format_rescue 'defmodule Foo do\nrequire Elixir.ErrorsTest.UnproperMacro\nElixir.ErrorsTest.UnproperMacro.unproper do\n1 -> 3\nend\nend'
-  end
-
   test :macro_conflict do
     assert "nofile:1: imported Elixir.Builtin.defrecord/2 conflicts with local function" ==
       format_rescue 'defmodule Foo do\ndefrecord(Elixir.ErrorsTest.MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
