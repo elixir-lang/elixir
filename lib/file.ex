@@ -266,8 +266,7 @@ defmodule File do
                On some platforms, `:enoent` is returned instead.
   """
   def mkdir_p(path) do
-    paths = get_recursive_paths(path, [])
-    do_mkdir_p(paths)
+    FL.ensure_dir(join(path, "."))
   end
 
   @doc """
@@ -410,25 +409,5 @@ defmodule File do
 
   defp normalize([], acc) do
     join List.reverse(acc)
-  end
-
-  defp get_recursive_paths(dot, paths) when dot in [".", '.'], do: paths
-
-  defp get_recursive_paths(path, paths) do
-    paths = [path|paths]
-
-    get_recursive_paths(FN.dirname(path), paths)
-  end
-
-  defp do_mkdir_p([path|t]) do
-    case F.make_dir(path) do
-      :ok -> do_mkdir_p(t)
-      { :error, :eexist } -> do_mkdir_p(t)
-      other -> other
-    end
-  end
-
-  defp do_mkdir_p([]) do
-    :ok
   end
 end
