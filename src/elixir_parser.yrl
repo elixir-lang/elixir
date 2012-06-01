@@ -8,7 +8,7 @@ Nonterminals
   comma_separator
   add_op mult_op unary_op addadd_op multmult_op bin_concat_op
   match_op arrow_op default_op when_op pipe_op in_op stab_op
-  andand_op oror_op and_op or_op comp_expr_op
+  andand_op oror_op and_op or_op comp_expr_op colon_colon_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
@@ -33,7 +33,7 @@ Terminals
   'not' 'and' 'or' 'xor' 'when' 'in' 'do'
   'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
-  '(' ')' '[' ']' '{' '}' '<<' '>>'
+  '(' ')' '[' ']' '{' '}' '<<' '>>' '::'
   eol ','  '&' '|'  '.' '^' '@' '<-' '<>' '->'
   '&&' '||' '!'
   .
@@ -43,8 +43,9 @@ Rootsymbol grammar.
 Left       5 do.
 Right     10 '->'.
 Left      20 ','.  % Solve nested call_args conflicts
-Right     30 default_op.
-Right     40 when_op.
+Right     30 when_op.
+Right     35 colon_colon_op.
+Right     40 default_op.
 Left      50 pipe_op.
 Right     80 match_op.
 Right     90 arrow_op.
@@ -107,6 +108,7 @@ op_expr -> in_op expr : { '$1', '$2' }.
 op_expr -> when_op expr : { '$1', '$2' }.
 op_expr -> arrow_op expr : { '$1', '$2' }.
 op_expr -> default_op expr : { '$1', '$2' }.
+op_expr -> colon_colon_op expr : { '$1', '$2' }.
 op_expr -> comp_expr_op expr : { '$1', '$2' }.
 
 matched_op_expr -> match_op matched_expr : { '$1', '$2' }.
@@ -124,6 +126,7 @@ matched_op_expr -> in_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> when_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> arrow_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> default_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> colon_colon_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> comp_expr_op matched_expr : { '$1', '$2' }.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
@@ -250,6 +253,9 @@ multmult_op -> '**' eol : '$1'.
 
 default_op -> '//' : '$1'.
 default_op -> '//' eol : '$1'.
+
+colon_colon_op -> '::' : '$1'.
+colon_colon_op -> '::' eol : '$1'.
 
 unary_op -> '+' : '$1'.
 unary_op -> '+' eol : '$1'.
