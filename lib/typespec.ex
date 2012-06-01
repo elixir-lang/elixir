@@ -92,7 +92,7 @@ defmodule Typespec do
   end
 
   defp typespec(l, _, _) when is_list(l) do
-    throw({:badarg,l})
+    raise(ArgumentError, message: "Unexpected list #{inspect l}")
   end
 
   defp typespec({:tuple, line, atom}, vars, caller) when atom in [:quoted, nil] do
