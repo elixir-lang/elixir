@@ -1,16 +1,13 @@
 -module(elixir_module).
 -export([translate/4, compile/4, data/1, data/2, data_table/1,
-   format_error/1, binding_for_eval/2, binding_and_scope_for_eval/3]).
+   format_error/1, scope_for_eval/2, binding_for_eval/2]).
 -include("elixir.hrl").
 
-binding_and_scope_for_eval(Module, Binding, #elixir_scope{} = S) ->
-  {
-    binding_for_eval(Module, Binding),
-    S#elixir_scope{module=Module}
-  };
+scope_for_eval(Module, #elixir_scope{} = S) ->
+  S#elixir_scope{module=Module};
 
-binding_and_scope_for_eval(Module, Binding, Opts) ->
-  binding_and_scope_for_eval(Module, Binding, elixir:scope_for_eval(Opts)).
+scope_for_eval(Module, Opts) ->
+  scope_for_eval(Module, elixir:scope_for_eval(Opts)).
 
 binding_for_eval(Module, Binding) -> [{'_@MODULE',Module}|Binding].
 
@@ -105,11 +102,10 @@ build(Module) ->
 
 eval_form(Line, Module, Block, RawS) ->
   Temp = ?ELIXIR_ATOM_CONCAT(["COMPILE-",Module]),
-  { Binding, S } = binding_and_scope_for_eval(Module, [], RawS),
+  S = scope_for_eval(Module, RawS),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
   elixir_def_overridable:store_pending(Module),
-  { Callbacks, FinalS } = callbacks_for(Line, compile_callbacks, Module, [Module], NewS),
-  elixir:eval_forms(Callbacks, binding_for_eval(Module, Binding), FinalS#elixir_scope{check_clauses=false}),
+  eval_callbacks(Line, Module, compile_callbacks, [Module], NewS),
   Value.
 
 %% Return the form with exports and function declarations.
@@ -220,23 +216,29 @@ else_clause(Line) ->
 
 % HELPERS
 
-callbacks_for(Line, Kind, Module, Args, S) ->
-  Table = data_table(Module),
-  Callbacks = ets:lookup_element(Table, Kind, 2),
+eval_callbacks(Line, Module, Name, Args, RawS) ->
+  S         = RawS#elixir_scope{check_clauses=false},
+  Binding   = binding_for_eval(Module, []),
+  Callbacks = ets:lookup_element(data_table(Module), Name, 2),
+  Requires  = S#elixir_scope.requires,
 
-  { Exprs, Aliases } = lists:mapfoldl(
-    fun (X, Acc) -> each_callback_for(Line, Args, X, Acc) end,
-    S#elixir_scope.aliases, Callbacks),
+  lists:foreach(fun({M,F}) ->
+    Expr  = { { '.', Line, [M,F] }, Line, Args },
+    Scope = case ordsets:is_element(M, Requires) of
+      true  -> S;
+      false -> S#elixir_scope{requires=ordsets:add_element(M, Requires)}
+    end,
 
-  { Exprs, S#elixir_scope{aliases=Aliases} }.
+    { Tree, _ } = elixir_translator:translate_each(Expr, Scope),
 
-each_callback_for(Line, Args, {M,F}, Acc) ->
-  Expr = { { '.', Line, [M,F] }, Line, Args },
-  Refer = case orddict:find(M, Acc) of
-    { ok, _ } -> Acc;
-    _ -> orddict:store(M, M, Acc)
-  end,
-  { Expr, Refer }.
+    try
+      erl_eval:exprs([Tree], Binding)
+    catch
+      Kind:Reason ->
+        Info = { M, F, Args, [{ file, S#elixir_scope.filename }, { line, Line }] },
+        erlang:raise(Kind, Reason, [Info|erlang:get_stacktrace()])
+    end
+  end, Callbacks).
 
 % ATTRIBUTES & DATA
 

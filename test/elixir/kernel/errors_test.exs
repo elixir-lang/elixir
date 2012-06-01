@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Elixir.ErrorsTest do
+defmodule Kernel.ErrorsTest do
   use ExUnit.Case
 
   defmodule UnproperMacro do
@@ -61,7 +61,7 @@ defmodule Elixir.ErrorsTest do
 
   test :macro_conflict do
     assert "nofile:1: imported Elixir.Builtin.defrecord/2 conflicts with local function" ==
-      format_rescue 'defmodule Foo do\ndefrecord(Elixir.ErrorsTest.MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
+      format_rescue 'defmodule Foo do\ndefrecord(Kernel.ErrorsTest.MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
   test :macro_with_undefined_local do
@@ -76,7 +76,7 @@ defmodule Elixir.ErrorsTest do
 
   test :erlang_function_conflict do
     assert "nofile:1: function exit/1 already imported from Elixir.Builtin" ==
-      format_rescue 'defmodule Foo do import Elixir.ErrorsTest.UnproperMacro, only: [exit: 1]\nend'
+      format_rescue 'defmodule Foo do import Kernel.ErrorsTest.UnproperMacro, only: [exit: 1]\nend'
   end
 
   test :import_invalid_macro do
@@ -85,8 +85,8 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :unrequired_macro do
-    assert "nofile:2: tried to invoke macro Elixir.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: ['Elixir.Builtin']" ==
-      format_rescue 'defmodule Foo do\nElixir.ErrorsTest.UnproperMacro.unproper([])\nend'
+    assert "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: ['Elixir.Builtin']" ==
+      format_rescue 'defmodule Foo do\nKernel.ErrorsTest.UnproperMacro.unproper([])\nend'
   end
 
   test :def_defmacro_clause_change do
@@ -152,23 +152,23 @@ defmodule Elixir.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_record do
-    assert "cannot use module Elixir.ErrorsTest in access protocol because it does not represent a record" ==
-      format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest[integer: 0]), do: true\nend'
+    assert "cannot use module Kernel.ErrorsTest in access protocol because it does not represent a record" ==
+      format_rescue 'defmodule Foo do\ndef sample(Kernel.ErrorsTest[integer: 0]), do: true\nend'
   end
 
   test :invalid_access_protocol_not_keywords do
     assert "expected contents inside brackets to be a Keyword" ==
-      format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[0]), do: true\nend'
+      format_rescue 'defmodule Foo do\ndef sample(Kernel.ErrorsTest.Config[0]), do: true\nend'
   end
 
   test :invalid_access_protocol_invalid_keywords do
-    assert "record Elixir.ErrorsTest.Config does not have the keys: [:foo]" ==
-      format_rescue 'defmodule Foo do\ndef sample(Elixir.ErrorsTest.Config[foo: :bar]), do: true\nend'
+    assert "record Kernel.ErrorsTest.Config does not have the keys: [:foo]" ==
+      format_rescue 'defmodule Foo do\ndef sample(Kernel.ErrorsTest.Config[foo: :bar]), do: true\nend'
   end
 
   test :invalid_access_protocol_invalid_keywords_outside_assignment do
-    assert "record Elixir.ErrorsTest.Config does not have the keys: [:foo]" ==
-      format_rescue 'Elixir.ErrorsTest.Config[foo: :bar]'
+    assert "record Kernel.ErrorsTest.Config does not have the keys: [:foo]" ==
+      format_rescue 'Kernel.ErrorsTest.Config[foo: :bar]'
   end
 
   test :invalid_access_protocol_on_rescue do
@@ -186,9 +186,25 @@ defmodule Elixir.ErrorsTest do
       rescue_stacktrace("defmodule Foo do\ndefmacro sample(num), do: num + :foo\ndef other, do: sample(1)\nend")
   end
 
+  test :macros_function_clause_stacktrace do
+    assert_match [{__MODULE__,:sample,1,_}|_],
+      rescue_stacktrace("defmodule Foo do\nimport Kernel.ErrorsTest\nsample(1)\nend")
+  end
+
   test :macros_interpreted_function_clause_stacktrace do
     assert_match [{Foo,:sample,1,_}|_],
       rescue_stacktrace("defmodule Foo do\ndefmacro sample(0), do: 0\ndef other, do: sample(1)\nend")
+  end
+
+  test :macros_compiled_callback do
+    assert_match [{Kernel.ErrorsTest,:__compiling__,[Foo],_}|_],
+      rescue_stacktrace("defmodule Foo do\nModule.add_compile_callback(__MODULE__, Kernel.ErrorsTest)\nend")
+  end
+
+  defmacro sample(0), do: 0
+
+  defmacro __compiling__(_) do
+    quote(do: _)
   end
 
   ## Helpers

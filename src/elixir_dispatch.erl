@@ -150,7 +150,7 @@ find_dispatch(_Tuple, []) -> false.
 
 %% Insert call site into backtrace right after dispatch macro
 
-munge_stacktrace(Info, [{ erl_eval, '-inside-an-interpreted-fun-', [S|_], _ }|_], S) ->
+munge_stacktrace(Info, [{ _, _, [S|_], _ }|_], S) ->
   [Info];
 
 munge_stacktrace(Info, [{ elixir_dispatch, dispatch_macro_fun, _, _ }|_], _) ->
