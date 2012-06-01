@@ -359,6 +359,9 @@ defmodule Module do
   as a mechanism to clean up any internal data in the module
   before it is compiled.
 
+  This funtion expects the module on compilation followed
+  by the module and function to be invoked as callback.
+
   ## Examples
 
   Imagine you are creating a module/library that is meant for
@@ -366,7 +369,8 @@ defmodule Module do
 
       defmodule MyLib do
         def __using__(args) do
-          Module.merge_data __CALLER__.module, some_data: nil
+          target = __CALLER__.module
+          Module.merge_data target, some_data: nil
           Module.add_compile_callback(target, __MODULE__, :__callback__)
         end
 
