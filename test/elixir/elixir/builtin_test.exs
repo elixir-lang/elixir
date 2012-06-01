@@ -39,7 +39,7 @@ defmodule Elixir.BuiltinTest do
     use ExUnit.Case
 
     defdelegate [my_flatten: 1], to: List, as: :flatten
-    defdelegate [map: 2], to: :lists, append_handle: true
+    defdelegate [map: 2], to: :lists, append_first: true
 
     test :defdelegate_with_function do
       assert my_flatten([[1]]) == [1]

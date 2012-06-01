@@ -2225,7 +2225,7 @@ defmodule Elixir.Builtin do
     This parameter is optional and defaults to the name being
     delegated.
 
-  * `:append_handle` - If true, when delegated, first argument
+  * `:append_first` - If true, when delegated, first argument
     passed to the delegate will be relocated to the end of the
     arguments when dispatched to the target. The motivation behind
     this is a disparity between conventions used in Elixir and Erlang.
@@ -2237,7 +2237,7 @@ defmodule Elixir.Builtin do
       defmodule MyList do
         defdelegate [reverse: 1], to: Erlang.lists
         defdelegate [other_reverse: 1], to: Erlang.lists, as: :reverse
-        defdelegate [map: 2], to: Erlang.lists, append_handle: true
+        defdelegate [map: 2], to: Erlang.lists, append_first: true
       end
 
       MyList.reverse([1,2,3])
@@ -2251,14 +2251,14 @@ defmodule Elixir.Builtin do
     target = Keyword.get(opts, :to) ||
       raise(ArgumentError, message: "Expected to: be given as argument")
 
-    append_handle = Keyword.get(opts, :append_handle, false)
+    append_first = Keyword.get(opts, :append_first, false)
 
     lc { name, arity } in tuples do
       args = lc i in :lists.seq(1, arity) do
         { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
       end
 
-      case {arity, append_handle} do
+      case {arity, append_first} do
         {n, true} when n > 1 ->
           actual_args = lc i in (:lists.seq(2, arity) ++ [1]) do
             { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
