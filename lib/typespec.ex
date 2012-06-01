@@ -12,10 +12,10 @@ defmodule Typespec do
         other
     end
 
-    defp collect_union({:or, _, [a, b]}), do: [b|collect_union(a)]
+    defp collect_union({:"|", _, [a, b]}), do: [b|collect_union(a)]
     defp collect_union(v), do: [v]
 
-    defp typespec({:or, line, [_,_]} = orexpr, vars, caller) do
+    defp typespec({:"|", line, [_,_]} = orexpr, vars, caller) do
         union = lc e in :lists.reverse(collect_union(orexpr)), do: typespec(e, vars, caller)
         quote do: {:type, unquote(line), :union, lc e in unquote(union), do: e}
     end

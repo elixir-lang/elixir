@@ -172,7 +172,7 @@ defmodule Typespec.Test.Type do
     test "deftype with a union" do
         spec = 
         test_module do
-            deftype mytype, as: integer or string or atom
+            deftype mytype, as: integer | string | atom
         end
         assert {:type,{:mytype,{:type,_,:union, [{:type, _, :integer, []},
                                                  {:type, _, :string, []},
