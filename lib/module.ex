@@ -360,7 +360,8 @@ defmodule Module do
   before it is compiled.
 
   This funtion expects the module on compilation followed
-  by the module and function to be invoked as callback.
+  by the module and function name to be invoked as callback.
+  The function receives the module being compiled as argument.
 
   ## Examples
 
