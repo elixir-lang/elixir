@@ -3,7 +3,7 @@
 %% by elixir_import and therefore assumes it is normalized (ordsets)
 -module(elixir_dispatch).
 -export([default_macros/0, default_functions/0, default_requires/0,
-  dispatch_require/6, dispatch_imports/5,
+  dispatch_require/6, dispatch_import/5,
   require_function/5, import_function/4,
   format_error/1]).
 -include("elixir.hrl").
@@ -28,7 +28,7 @@ import_function(Line, Name, Arity, S) ->
         _ -> false
       end;
     Receiver ->
-      elixir_import:record(import, Tuple, Receiver, S),
+      elixir_import:record(import, Tuple, Receiver, S#elixir_scope.module),
       remote_function(Line, Receiver, Name, Arity, S)
   end.
 
@@ -40,32 +40,26 @@ require_function(Line, Receiver, Name, Arity, S) ->
     false -> remote_function(Line, Receiver, Name, Arity, S)
   end.
 
-%% Dispatch based on scope's imports
+%% Function dispatch
 
-dispatch_imports(Line, Name, Args, S, Callback) ->
-  Arity = length(Args),
-  Tuple = { Name, Arity },
+dispatch_import(Line, Name, Args, S, Callback) ->
+  Module = S#elixir_scope.module,
+  Arity  = length(Args),
+  Tuple  = { Name, Arity },
+
   case find_dispatch(Tuple, S#elixir_scope.functions) of
     false ->
-      case find_dispatch(Tuple, S#elixir_scope.macros) of
-        false ->
-          Fun = (S#elixir_scope.function /= Tuple) andalso elixir_def_local:macro_for(Tuple, true, S),
-          case Fun of
-            false -> Callback();
-            _ ->
-              Receiver = S#elixir_scope.module,
-              elixir_import:record(import, Tuple, Receiver, S),
-              dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S)
-          end;
-        ?BUILTIN ->
-          elixir_import:record(import, Tuple, ?BUILTIN, S),
-          dispatch_builtin_macro(Line, Tuple, Args, S);
-        Receiver ->
-          elixir_import:record(import, Tuple, Receiver, S),
-          dispatch_macro(Line, Receiver, Name, Arity, Args, S)
+      case expand_import(Line, Module, Tuple, Args, S) of
+        { error, noexpansion } ->
+          Callback();
+        { error, internal } ->
+          elixir_import:record(import, Tuple, ?BUILTIN, Module),
+          elixir_macros:translate_macro({ Name, Line, Args }, S);
+        { ok, Receiver, Tree } ->
+          translate_expansion(Line, Tree, Receiver, Name, Arity, S)
       end;
     Receiver ->
-      elixir_import:record(import, Tuple, Receiver, S),
+      elixir_import:record(import, Tuple, Receiver, Module),
       Endpoint = case (Receiver == ?BUILTIN) andalso is_element(Tuple, in_erlang_functions()) of
         true  -> erlang;
         false -> Receiver
@@ -73,72 +67,101 @@ dispatch_imports(Line, Name, Args, S, Callback) ->
       elixir_translator:translate_each({ { '.', Line, [Endpoint, Name] }, Line, Args }, S)
   end.
 
-%% Dispatch based on scope's require
+dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
+  Module = S#elixir_scope.module,
+  Arity  = length(Args),
+  Tuple  = { Name, Arity },
 
-dispatch_require(Line, ?BUILTIN, Name, Args, S, Callback) ->
-  Arity = length(Args),
-  Tuple = {Name, Arity},
-
-  case is_element(Tuple, in_erlang_functions()) of
+  case (Receiver == Module) andalso is_element(Tuple, in_erlang_functions()) of
     true ->
       elixir_translator:translate_each({ { '.', Line, [erlang, Name] }, Line, Args }, S);
     false ->
-      case dispatch_builtin_macro(Line, Tuple, Args, S) of
-        false -> Callback();
-        Else -> Else
+      case expand_require(Line, Module, Receiver, Tuple, Args, S) of
+        { error, noexpansion } ->
+          Callback();
+        { error, internal } ->
+          elixir_macros:translate_macro({ Name, Line, Args }, S);
+        { ok, Tree } ->
+          translate_expansion(Line, Tree, Receiver, Name, Arity, S)
+      end
+  end.
+
+%% Macros expansion
+
+expand_import(Line, Module, { Name, Arity } = Tuple, Args, S) ->
+  case find_dispatch(Tuple, S#elixir_scope.macros) of
+    false ->
+      Fun = (S#elixir_scope.function /= Tuple) andalso
+        elixir_def_local:macro_for(Tuple, true, Module),
+      case Fun of
+        false -> { error, noexpansion };
+        _ ->
+          elixir_import:record(import, Tuple, Module, Module),
+          { ok, Module, expand_macro_fun(Line, Fun, Module, Name, Arity, Args, S) }
+      end;
+    ?BUILTIN ->
+      case is_element(Tuple, in_elixir_macros()) of
+        false -> { error, internal };
+        true  ->
+          elixir_import:record(import, Tuple, ?BUILTIN, Module),
+          { ok, ?BUILTIN, expand_macro_named(Line, ?BUILTIN, Name, Arity, Args, S) }
+      end;
+    Receiver ->
+      elixir_import:record(import, Tuple, Receiver, Module),
+      { ok, Receiver, expand_macro_named(Line, Receiver, Name, Arity, Args, S) }
+  end.
+
+expand_require(Line, _Module, ?BUILTIN, { Name, Arity } = Tuple, Args, S) ->
+  case is_element(Tuple, in_erlang_macros()) of
+    true  -> { error, internal };
+    false ->
+      case is_element(Tuple, in_elixir_macros()) of
+        true  -> { ok, expand_macro_named(Line, ?BUILTIN, Name, Arity, Args, S) };
+        false -> { error, noexpansion }
       end
   end;
 
-dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
-  Arity = length(Args),
-  Tuple = {Name, Arity},
-
-  Fun = (S#elixir_scope.module == Receiver) andalso (S#elixir_scope.function /= Tuple) andalso
-    elixir_def_local:macro_for(Tuple, false, S),
+expand_require(Line, Module, Receiver, { Name, Arity } = Tuple, Args, S) ->
+  Fun = (Module == Receiver) andalso (S#elixir_scope.function /= Tuple) andalso
+    elixir_def_local:macro_for(Tuple, false, Module),
 
   case Fun of
     false ->
       case is_element(Tuple, get_optional_macros(Receiver)) of
-        true  -> dispatch_macro(Line, Receiver, Name, Arity, Args, S);
-        false -> Callback()
+        true  -> { ok, expand_macro_named(Line, Receiver, Name, Arity, Args, S) };
+        false -> { error, noexpansion }
       end;
     _ ->
-      elixir_import:record(import, Tuple, Receiver, S),
-      dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S)
+      elixir_import:record(import, Tuple, Receiver, Module),
+      { ok, expand_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) }
   end.
 
-%% HELPERS
+%% Expansion helpers
 
-dispatch_builtin_macro(Line, { Name, Arity } = Tuple, Args, S) ->
-  case is_element(Tuple, in_erlang_macros()) of
-    true  -> elixir_macros:translate_macro({ Name, Line, Args }, S);
-    false ->
-      case is_element(Tuple, in_elixir_macros()) of
-        true -> dispatch_macro(Line, ?BUILTIN, Name, Arity, Args, S);
-        false -> false
-      end
-  end.
-
-dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
-  %% Fix macro name and arity
-  ProperName  = ?ELIXIR_MACRO(Name),
-  ProperArity = Arity + 1,
-  dispatch_macro_fun(Line, fun Receiver:ProperName/ProperArity, Receiver, Name, Arity, Args, S).
-
-dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) ->
+expand_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) ->
   ensure_required(Line, Receiver, Name, Arity, S),
   MacroS = {Line,S},
 
-  Tree = try
+  try
     apply(Fun, [MacroS|Args])
   catch
     Kind:Reason ->
       Info = { Receiver, Name, length(Args), [{ file, S#elixir_scope.filename }, { line, Line }] },
       erlang:raise(Kind, Reason, munge_stacktrace(Info, erlang:get_stacktrace(), MacroS))
-  end,
+  end.
+
+expand_macro_named(Line, Receiver, Name, Arity, Args, S) ->
+  %% Fix macro name and arity
+  ProperName  = ?ELIXIR_MACRO(Name),
+  ProperArity = Arity + 1,
+  expand_macro_fun(Line, fun Receiver:ProperName/ProperArity, Receiver, Name, Arity, Args, S).
+
+translate_expansion(Line, Tree, Receiver, Name, Arity, S) ->
   NewS = S#elixir_scope{macro=[{Line,Receiver,Name,Arity}|S#elixir_scope.macro]},
   { TTree, TS } = elixir_translator:translate_each(elixir_quote:linify(Line, Tree), NewS),
   { TTree, TS#elixir_scope{macro=S#elixir_scope.macro} }.
+
+%% Helpers
 
 find_dispatch(Tuple, [{ Name, Values }|T]) ->
   case is_element(Tuple, Values) of
@@ -148,12 +171,10 @@ find_dispatch(Tuple, [{ Name, Values }|T]) ->
 
 find_dispatch(_Tuple, []) -> false.
 
-%% Insert call site into backtrace right after dispatch macro
-
 munge_stacktrace(Info, [{ _, _, [S|_], _ }|_], S) ->
   [Info];
 
-munge_stacktrace(Info, [{ elixir_dispatch, dispatch_macro_fun, _, _ }|_], _) ->
+munge_stacktrace(Info, [{ elixir_dispatch, expand_macro_fun, _, _ }|_], _) ->
   [Info];
 
 munge_stacktrace(Info, [H|T], S) ->

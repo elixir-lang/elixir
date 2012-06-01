@@ -14,10 +14,10 @@ build_table(Module) ->
 delete_table(Module) ->
   ets:delete(table(Module)).
 
-record(_Kind, _Tuple, _Receiver, #elixir_scope{module=nil}) ->
+record(_Kind, _Tuple, _Receiver, nil) ->
   [];
 
-record(import, Tuple, Receiver, #elixir_scope{module=Module}) ->
+record(import, Tuple, Receiver, Module) ->
   ets:insert(table(Module), { Tuple, Receiver }).
 
 recorded_locals(Module) ->

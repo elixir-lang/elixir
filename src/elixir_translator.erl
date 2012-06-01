@@ -393,7 +393,7 @@ translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
       case handle_partials(Line, Original, S) of
         error ->
           Callback = fun() -> translate_local(Line, Atom, Args, S) end,
-          elixir_dispatch:dispatch_imports(Line, Atom, Args, S, Callback);
+          elixir_dispatch:dispatch_import(Line, Atom, Args, S, Callback);
         Else  -> Else
       end;
     Else -> Else

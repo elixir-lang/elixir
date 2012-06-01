@@ -9,9 +9,9 @@
 -include("elixir.hrl").
 
 %% Used by elixir_dispatch, returns false if no macro is found
-macro_for(_Tuple, _All, #elixir_scope{module=nil}) -> false;
+macro_for(_Tuple, _All, nil) -> false;
 
-macro_for(Tuple, All, #elixir_scope{module=Module}) ->
+macro_for(Tuple, All, Module) ->
   case ets:lookup(elixir_def:table(Module), Tuple) of
     [{Tuple, Kind, Line, _, _, _, _, Clauses}] when Kind == defmacro; All, Kind == defmacrop ->
       get_function(Line, Module, Clauses);
