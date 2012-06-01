@@ -1,5 +1,26 @@
 defmodule Typespec do
 
+  defmacro __using__(options) do
+    Module.add_compile_callback(__CALLER__.module, __MODULE__, :__aggregate_specs__)
+    quote do
+      import Typespec
+      @__specs__ []
+      @__typespec_options__ unquote(options)
+    end
+  end
+
+  def __aggregate_specs__(module) do
+    options = Module.read_data(module, :__typespec_options__)
+    specs = :lists.reverse(Module.read_data(module, :__specs__))
+    Module.merge_data module, __specs__: nil, __typespec__options__: nil
+    specs = :lists.ukeysort(1, lc {k, _} in specs, do: {k, :proplists.append_values(k, specs)})
+    lc attr in specs, do: Module.add_attribute module, :spec, attr
+    case options[:keep_data] do
+        nil -> :ok
+        true -> Module.merge_data module, specs: specs
+    end
+  end
+
   defp remote_type({remote, line, name, arguments}, vars, caller) do
     arguments = lc arg in arguments, do: typespec(arg, vars, caller)
     quote do: {:remote_type, unquote(line), [unquote(remote), unquote(name), unquote(arguments)]}
@@ -155,7 +176,7 @@ defmodule Typespec do
     spec = typespec({{:fun, line, args}, returns}, [], __CALLER__)
     code = quote do: {{unquote(name), unquote(length(args))}, [unquote(spec)]}
     quote do
-      Module.add_attribute __MODULE__, :spec, unquote(code)
+      @__specs__ [unquote(code)|@__specs__]
       {:spec, unquote(code)}
     end
   end

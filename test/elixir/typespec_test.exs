@@ -12,7 +12,7 @@ defmodule Typespec.Test.Type do
     quote do
       result =
       defmodule T do 
-        import Typespec
+        use Typespec
         unquote(block)
       end
       :code.delete(T)
@@ -217,7 +217,22 @@ defmodule Typespec.Test.Type do
     assert {:spec,{{:myfun,1},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]}} = spec1
     assert {:spec,{{:myfun,0},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}]}} = spec2
     assert {:spec,{{:myfun,2},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]}} = spec3
-    
+  end
+
+  test "defspec with multiple cluases" do
+    defmodule T do 
+      use Typespec, keep_data: true
+      def myfun(x), do: x
+      defspec myfun(integer), returns: integer
+      defspec myfun(string), returns: string
+    end
+    specs = T.__info__(:data)[:specs]
+    assert [{{:myfun,1},[
+                    {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
+                    {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}] = specs
+    # cleanup
+    :code.delete(T)
+    :code.purge(T)
   end
 
 end
