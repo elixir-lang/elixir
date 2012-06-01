@@ -66,7 +66,7 @@ defmodule Typespec do
     quote do: {:integer, 0, unquote(integer)}
   end
 
-  defp typespec({:"=", line,[var,expr]}, vars, caller) do
+  defp typespec({:"::", line,[var,expr]}, vars, caller) do
     quote do: {:ann_type, unquote(line), [unquote(typespec(var, [elem(var,1)|vars], caller)), unquote(typespec(expr, vars, caller))]}
   end
 

@@ -195,8 +195,8 @@ defmodule Typespec.Test.Type do
   test "deftype with annotations" do
     {spec1, spec2} = 
     test_module do
-      t1 = deftype mytype, as: named=integer
-      t2 = deftype mytype1, as: fun(a=integer), returns: integer
+      t1 = deftype mytype, as: named :: integer
+      t2 = deftype mytype1, as: fun(a :: integer), returns: integer
       {t1,t2}
     end
     assert {:type, {:mytype, {:ann_type, _, [{:var, _, :named}, {:type, _, :integer, []}]}, []}} = spec1
