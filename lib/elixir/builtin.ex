@@ -2225,11 +2225,19 @@ defmodule Elixir.Builtin do
     This parameter is optional and defaults to the name being
     delegated.
 
+  * `:append_handle` - If true, when delegated, first argument
+    passed to the delegate will be relocated to the end of the
+    arguments when dispatched to the target. The motivation behind
+    this is a disparity between conventions used in Elixir and Erlang.
+    Elixir's convention is to pass the "handle" as a first argument,
+    while in Erlang the convention is to pass it as the last argument
+
   ## Examples
 
       defmodule MyList do
         defdelegate [reverse: 1], to: Erlang.lists
         defdelegate [other_reverse: 1], to: Erlang.lists, as: :reverse
+        defdelegate [map: 2], to: Erlang.lists, append_handle: true
       end
 
       MyList.reverse([1,2,3])
@@ -2243,16 +2251,27 @@ defmodule Elixir.Builtin do
     target = Keyword.get(opts, :to) ||
       raise(ArgumentError, message: "Expected to: be given as argument")
 
+    append_handle = Keyword.get(opts, :append_handle, false)
+
     lc { name, arity } in tuples do
       args = lc i in :lists.seq(1, arity) do
         { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+      end
+
+      case {arity, append_handle} do
+        {n, true} when n > 1 ->
+          actual_args = lc i in (:lists.seq(2, arity) ++ [1]) do
+            { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+          end
+        _ ->
+          actual_args = args
       end
 
       fun = Keyword.get(opts, :as, name)
 
       quote do
         def unquote(name).(unquote_splicing(args)) do
-          apply unquote(target), unquote(fun), [unquote_splicing(args)]
+          apply unquote(target), unquote(fun), [unquote_splicing(actual_args)]
         end
       end
     end
