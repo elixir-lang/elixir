@@ -181,14 +181,35 @@ defmodule Elixir.ErrorsTest do
       format_rescue 'bc x in [1,2,3], do: x'
   end
 
+  test :macros_error_stacktrace do
+    assert_match [{:erlang,:"+",[1,:foo],_},{Foo,:sample,1,_}|_],
+      rescue_stacktrace("defmodule Foo do\ndefmacro sample(num), do: num + :foo\ndef other, do: sample(1)\nend")
+  end
+
+  test :macros_interpreted_function_clause_stacktrace do
+    assert_match [{Foo,:sample,1,_}|_],
+      rescue_stacktrace("defmodule Foo do\ndefmacro sample(0), do: 0\ndef other, do: sample(1)\nend")
+  end
+
   ## Helpers
 
   defp format_rescue(expr) do
     result = try do
-      Erlang.elixir.eval(expr, [])
+      Erlang.elixir.eval(to_char_list(expr), [])
       nil
     rescue
       error -> error.message
+    end
+
+    result || raise(ExUnit.AssertionError, message: "Expected function given to format_rescue to fail")
+  end
+
+  defp rescue_stacktrace(expr) do
+    result = try do
+      Erlang.elixir.eval(to_char_list(expr), [])
+      nil
+    rescue
+      error -> System.stacktrace
     end
 
     result || raise(ExUnit.AssertionError, message: "Expected function given to format_rescue to fail")

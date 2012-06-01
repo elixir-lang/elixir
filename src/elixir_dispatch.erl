@@ -127,12 +127,14 @@ dispatch_macro(Line, Receiver, Name, Arity, Args, S) ->
 
 dispatch_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) ->
   ensure_required(Line, Receiver, Name, Arity, S),
+  MacroS = {Line,S},
+
   Tree = try
-    apply(Fun, [{Line,S}|Args])
+    apply(Fun, [MacroS|Args])
   catch
     Kind:Reason ->
       Info = { Receiver, Name, length(Args), [{ file, S#elixir_scope.filename }, { line, Line }] },
-      erlang:raise(Kind, Reason, insert_before_dispatch_macro(Info, erlang:get_stacktrace()))
+      erlang:raise(Kind, Reason, munge_stacktrace(Info, erlang:get_stacktrace(), MacroS))
   end,
   NewS = S#elixir_scope{macro=[{Line,Receiver,Name,Arity}|S#elixir_scope.macro]},
   { TTree, TS } = elixir_translator:translate_each(elixir_quote:linify(Line, Tree), NewS),
@@ -148,13 +150,16 @@ find_dispatch(_Tuple, []) -> false.
 
 %% Insert call site into backtrace right after dispatch macro
 
-insert_before_dispatch_macro(Info, [{ elixir_dispatch, dispatch_macro_fun, _, _ }|_] = T) ->
-  [Info|T];
+munge_stacktrace(Info, [{ erl_eval, '-inside-an-interpreted-fun-', [S|_], _ }|_], S) ->
+  [Info];
 
-insert_before_dispatch_macro(Info, [H|T]) ->
-  [H|insert_before_dispatch_macro(Info, T)];
+munge_stacktrace(Info, [{ elixir_dispatch, dispatch_macro_fun, _, _ }|_], _) ->
+  [Info];
 
-insert_before_dispatch_macro(_, []) ->
+munge_stacktrace(Info, [H|T], S) ->
+  [H|munge_stacktrace(Info, T, S)];
+
+munge_stacktrace(_, [], _) ->
   [].
 
 %% ERROR HANDLING
