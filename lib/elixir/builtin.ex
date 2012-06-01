@@ -2330,6 +2330,13 @@ defmodule Elixir.Builtin do
       Regex.match? %r(foo), "foo"  #=> true
 
   """
+
+  defmacro __r__({ :<<>>, _line, [string] }, options) when is_list(string) do
+    binary = Binary.unescape(string, Regex.unescape_map(&1))
+    regex  = Regex.compile(binary, options)
+    quote do: unquote(Macro.escape(regex))
+  end
+
   defmacro __r__({ :<<>>, line, pieces }, options) do
     binary = { :<<>>, line, Binary.unescape_tokens(pieces, Regex.unescape_map(&1)) }
     quote do: Regex.compile(unquote(binary), unquote(options))
@@ -2344,8 +2351,9 @@ defmodule Elixir.Builtin do
       Regex.match? %R(f\#{1,3}o), "f\#o"  #=> true
 
   """
-  defmacro __R__(binary, options) do
-    quote do: Regex.compile(unquote(binary), unquote(options))
+  defmacro __R__({ :<<>>, _line, [string] }, options) do
+    regex = Regex.compile(string, options)
+    quote do: unquote(Macro.escape(regex))
   end
 
   ## Private functions

@@ -36,7 +36,7 @@ safe_concat(Args) -> list_to_existing_atom(raw_concat(Args)).
 
 raw_concat(Args) ->
   Aliases = [to_partial(Arg) || Arg <- Args, Arg /= nil],
-  [$_, $_, $M, $A, $I, $N, $_, $_ | lists:concat(Aliases)].
+  "__MAIN__" ++ lists:concat(Aliases).
 
 to_partial(Arg) when is_binary(Arg) -> to_partial(binary_to_list(Arg));
 to_partial(Arg) when is_atom(Arg)   -> to_partial(atom_to_list(Arg));
