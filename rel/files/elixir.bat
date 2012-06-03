@@ -21,4 +21,4 @@ echo ** Options given after the .exs file or -- are passed down to the executed 
 echo.
 echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS.
 :run
-%~dp0\erl -env ERL_LIBS %~dp0\..\lib -noshell %ELIXIR_ERL_OPTS% -s elixir start_cli -extra %*
+%~dp0\erl -env ERL_LIBS %~dp0\..\lib -boot elixir -noshell %ELIXIR_ERL_OPTS% -s elixir start_cli -extra %*

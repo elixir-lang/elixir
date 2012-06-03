@@ -30,4 +30,4 @@ readlink_f () {
 
 SELF=`readlink_f $0`
 SCRIPT_PATH=`dirname $SELF`
-$SCRIPT_PATH/erl -env ERL_LIBS $SCRIPT_PATH/../lib -noshell $ELIXIR_ERL_OPTS -s elixir start_cli -extra "$@"
+$SCRIPT_PATH/erl -env ERL_LIBS $SCRIPT_PATH/../lib -boot elixir -noshell $ELIXIR_ERL_OPTS -s elixir start_cli -extra "$@"
