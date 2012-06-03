@@ -52,3 +52,8 @@ test_erlang: compile
 test_elixir: compile
 	@ echo "==> elixir (exunit)"
 	@ time bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"
+
+rel: compile
+	@ rm -rf rel/elixir
+	@ cd rel && ../rebar generate
+	@ cp -r ebin/__MAIN__ rel/elixir/lib/elixir-$(VERSION)/ebin/ 
