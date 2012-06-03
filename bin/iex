@@ -11,4 +11,11 @@ readlink_f () {
 
 SELF=`readlink_f $0`
 SCRIPT_PATH=`dirname $SELF`
-erl -pa $SCRIPT_PATH/../ebin -noinput $ELIXIR_ERL_OPTS -s elixir start_cli -extra --no-halt -e "Elixir.IEx.start" "$@"
+
+if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]
+then
+  $SCRIPT_PATH/erl -env ERL_LIBS $SCRIPT_PATH/../lib -boot elixir -noinput $ELIXIR_ERL_OPTS -s elixir start_cli -extra --no-halt -e "Elixir.IEx.start" "$@"
+else
+  erl -pa $SCRIPT_PATH/../ebin -noinput $ELIXIR_ERL_OPTS -s elixir start_cli -extra --no-halt -e "Elixir.IEx.start" "$@"
+fi
+
