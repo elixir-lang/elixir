@@ -9,3 +9,4 @@
 /src/*rl.old
 /.eunit/*
 /deps/*
+rel/elixir
