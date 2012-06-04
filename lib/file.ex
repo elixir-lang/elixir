@@ -1,9 +1,19 @@
 defmodule File do
+  @moduledoc """
+  This module contains function to manipulate files,
+  filenames and the filesystem. Many of the functions
+  that interact with the filesystem have their naming
+  based on its UNIX variants. For example, deleting a
+  file is done with `File.rm`. Getting its stats with
+  `File.stat`. If you want to read or write to a file
+  in chunks, check the IO module.
+  """
+
   require Erlang.file,     as: F
   require Erlang.filename, as: FN
   require Erlang.filelib,  as: FL
 
-  defrecord Info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl"), moduledoc: """
+  defrecord Stat, Record.extract(:file_info, from_lib: "kernel/include/file.hrl"), moduledoc: """
   A record responsible to hold file information. Its fields are:
 
   * `size` - Size of file in bytes.
@@ -207,7 +217,6 @@ defmodule File do
    FN.rootname(path, extension)
   end
 
-
   @doc """
   Returns a string with one or more paths components joint by the path separator.
   This function should be used to convert a list of strings in a path.
@@ -369,26 +378,39 @@ defmodule File do
   returns a `{ :ok, info }` tuple, where info is  as a
   `File.Info` record. Retuns `{ :error, reason }` with
   the same reasons as `File.read` if a failure occurs.
+
+  ## Options
+
+  The accepted options are:
+
+  * `:time` if the time should be local, universal or posix.
+    Default is local.
+
   """
-  def read_info(path, opts // []) do
+  def stat(path, opts // []) do
     case :file.read_file_info(path, opts) do
       {:ok, fileinfo} ->
-        {:ok, Info.new fileinfo}
+        {:ok, Stat.new fileinfo}
       error ->
         error
     end
   end
 
+  def read_info(path, opts // []) do
+    IO.puts "File.read_info is deprecated in favor of File.stat"
+    stat(path, opts)
+  end
+
   @doc """
-  Same as `read_info` but returns the `File.Info` directly and
+  Same as `stat` but returns the `File.Stat` directly and
   throws `File.Error` if an error is returned.
   """
-  def read_info!(path, opts // []) do
-    case read_info(path, opts) do
+  def stat!(path, opts // []) do
+    case stat(path, opts) do
       {:ok, info} ->
         info
       {:error, reason} ->
-        raise File.Error, reason: reason, action: "read file info", path: to_binary(path)
+        raise File.Error, reason: reason, action: "read file stats", path: to_binary(path)
     end
   end
 

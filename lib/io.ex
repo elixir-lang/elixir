@@ -1,12 +1,41 @@
 defmodule IO do
   @moduledoc """
-  Module responsible for doing IO.
-  It is incomplete now. More functions will be
-  added in upcoming releases.
+  Module responsible for doing IO. All the contents
+  are expected to be in unicode.
   """
 
   @doc """
-  Prints the given argument to the given device.
+  Reads `count` bytes from the IO device. It returns:
+
+  * `data` - The input characters.
+
+  * :eof - End of file was encountered.
+
+  * {:error, reason} - Other (rare) error condition,
+    for instance {:error, :estale} if reading from an
+    NFS file system.
+  """
+  def read(device // :standard_io, count) do
+    Erlang.io.get_chars(device, "", count)
+  end
+
+  @doc """
+  Read a line from the IO device. It returns:
+
+  * `data` - The input characters.
+
+  * :eof - End of file was encountered.
+
+  * {:error, reason} - Other (rare) error condition,
+    for instance {:error, :estale} if reading from an
+    NFS file system.
+  """
+  def readline(device // :standard_io) do
+    Erlang.io.get_line(device, "")
+  end
+
+  @doc """
+  Writes the given argument to the given device.
   By default the device is the standard output.
   The argument is converted to binary before
   printing.
@@ -15,14 +44,19 @@ defmodule IO do
 
   ## Examples
 
-      IO.print :sample
+      IO.write :sample
       #=> "sample"
 
-      IO.print :standard_error, "error"
+      IO.write :standard_error, "error"
       #=> "error"
 
   """
+  def write(device // :standard_io, item) do
+    Erlang.io.put_chars device, to_binary(item)
+  end
+
   def print(device // :standard_io, item) do
+    IO.puts "IO.print is deprecated in favor of IO.write"
     Erlang.io.put_chars device, to_binary(item)
   end
 
@@ -45,15 +79,9 @@ defmodule IO do
   end
 
   @doc """
-  Reads `count` characters from the IO device.
-  It returns:
+  Gets `count` bytes from the IO device. It returns:
 
-  * `data` - The input characters. If the device
-    supports Unicode, the data may represent
-    codepoints larger than 255 (the latin1 range).
-    If the io_server() is set to deliver binaries,
-    they will be encoded in UTF-8 (regardless of if
-    the device actually supports Unicode or not).
+  * `data` - The input characters.
 
   * :eof - End of file was encountered.
 
@@ -61,20 +89,15 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def getb(device, count // 1) do
-    Erlang.io.get_chars(device, '', count)
+  def getb(device // :standard_io, prompt, count // 1) do
+    Erlang.io.get_chars(device, prompt, count)
   end
 
   @doc """
   Reads a line from the IO device. It returns:
 
   * `data` - The characters in the line terminated
-    by a LF (or end of file). If the device supports
-    Unicode, the data may represent codepoints larger
-    than 255 (the latin1 range).  If the io_server()
-    is set to deliver binaries, they will be encoded
-    in UTF-8 (regardless of if the device actually
-    supports Unicode or not).
+    by a LF (or end of file).
 
   * :eof - End of file was encountered.
 
@@ -82,7 +105,7 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def gets(devise) do
-    Erlang.io.get_line(devise, '')
+  def gets(device // :standard_io, prompt) do
+    Erlang.io.get_line(device, prompt)
   end
 end

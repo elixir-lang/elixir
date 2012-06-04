@@ -2,11 +2,14 @@
   * [Builtin] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed in the `__CALLER__`;
 
 * deprecations
+  * [File] `File.read_info` was deprecated in favor of `File.stat`;
+  * [IO] `IO.print` was deprecated in favor of `IO.write`;
   * [Kernel] Deprecated `__LINE__` and `__FUNCTION__` in favor of `__ENV__.line` and `__ENV__.function`;
   * [Kernel] Deprecated `in_guard` in favor of `__CALLER__.in_guard?`;
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [IO/File] Many improvements to File and IO modules;
   * [Macro] Added `Macro.expand`, useful for debugging what a macro expands to;
   * [Enum] Added `find_index`;
   * [Record] Records now provide a `to_keywords` function;

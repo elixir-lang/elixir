@@ -154,22 +154,22 @@ defmodule FileTest do
     end
   end
 
-  test :read_info do
-    {:ok, info} = File.read_info(__FILE__)
+  test :stat do
+    {:ok, info} = File.stat(__FILE__)
     assert info.mtime
   end
 
-  test :read_info! do
-    assert File.read_info!(__FILE__).mtime
+  test :stat! do
+    assert File.stat!(__FILE__).mtime
   end
 
-  test :read_info_with_invalid_file do
-    assert_match { :error, _ }, File.read_info("./invalid_file")
+  test :stat_with_invalid_file do
+    assert_match { :error, _ }, File.stat("./invalid_file")
   end
 
-  test :read_info_with_invalid_file! do
+  test :stat_with_invalid_file! do
     assert_raise File.Error, fn ->
-      File.read_info!("./invalid_file")
+      File.stat!("./invalid_file")
     end
   end
 

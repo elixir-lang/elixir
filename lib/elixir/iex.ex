@@ -11,7 +11,7 @@ defmodule Elixir.IEx.UnicodeIO do
       [] -> "iex> "
       _ -> "...> "
     end
-    :unicode.characters_to_list(Erlang.io.get_line(prompt))
+    :unicode.characters_to_list(IO.gets(prompt))
   end
 
   @doc """
@@ -40,10 +40,10 @@ defmodule Elixir.IEx do
 
   def start(binding // [], io // Elixir.IEx.UnicodeIO) do
     config = boot_config(binding, io)
-    function = fn ->   
+    function = fn ->
       :error_logger.delete_report_handler(:error_logger_tty_h)
-      :error_logger.add_report_handler(:error_logger_tty_h)  
-      do_loop(config) 
+      :error_logger.add_report_handler(:error_logger_tty_h)
+      do_loop(config)
     end
     if is_pid(Process.whereis(:user)), do: Process.unregister :user
     Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])

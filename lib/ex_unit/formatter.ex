@@ -19,12 +19,12 @@ defmodule ExUnit.Formatter do
   end
 
   def handle_call({:each, _test_case, _test, nil }, _from, config) do
-    IO.print "."
+    IO.write "."
     { :reply, :ok, config.increment_counter }
   end
 
   def handle_call({:each, test_case, test, failure }, _from, config) do
-    IO.print "F"
+    IO.write "F"
     { :reply, :ok, config.increment_counter.
       prepend_failures([{test_case, test, failure}]) }
   end
@@ -34,7 +34,7 @@ defmodule ExUnit.Formatter do
   end
 
   def handle_call(:finish, _from, config) do
-    IO.print "\n\n"
+    IO.write "\n\n"
     Enum.reduce List.reverse(config.failures), 1, print_failure(&1, &2)
     failures_count = length(config.failures)
     IO.puts "#{config.counter} tests, #{failures_count} failures."
@@ -45,7 +45,7 @@ defmodule ExUnit.Formatter do
     IO.puts "#{acc}) #{test} (#{inspect test_case})"
     IO.puts "  ** #{format_catch(kind, reason)}\n  stacktrace:"
     Enum.each filter_stacktrace(stacktrace), fn(s) -> IO.puts "    #{format_stacktrace(s)}" end
-    IO.print "\n"
+    IO.write "\n"
     acc + 1
   end
 
