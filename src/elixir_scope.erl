@@ -4,7 +4,7 @@
 -export([translate_var/3,
   build_erl_var/2, build_ex_var/2,
   serialize/1, deserialize/1,
-  to_erl_env/1, to_ex_env/1,
+  to_erl_env/1, to_ex_env/1, filename/1,
   umergev/2, umergec/2
   ]).
 -include("elixir.hrl").
@@ -53,9 +53,15 @@ build_ex_var(Line, #elixir_scope{counter=Counter} = S) ->
 to_erl_env(Scope) ->
   elixir_tree_helpers:abstract_syntax(to_ex_env(Scope)).
 
+to_ex_env({ Line, Tuple }) when element(1, Tuple) == '__MAIN__.Macro.Env' ->
+  setelement(4, Tuple, Line);
+
 to_ex_env({ Line, #elixir_scope{module=Module,filename=File,
     function=Function,aliases=Aliases,context=Context} }) ->
   { '__MAIN__.Macro.Env', Module, File, Line, Function, Aliases, Context }.
+
+filename(#elixir_scope{filename=File}) -> File;
+filename(Other) -> element(3, Other).
 
 % Provides a tuple with only the scope information we want to serialize.
 

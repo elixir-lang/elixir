@@ -5,6 +5,7 @@
 -export([default_macros/0, default_functions/0, default_requires/0,
   dispatch_require/6, dispatch_import/5,
   require_function/5, import_function/4,
+  expand_import/8, expand_require/8,
   format_error/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
@@ -49,7 +50,8 @@ dispatch_import(Line, Name, Args, S, Callback) ->
 
   case find_dispatch(Tuple, S#elixir_scope.functions) of
     false ->
-      case expand_import(Line, Module, Tuple, Args, S) of
+      case expand_import(Line, Tuple, Args, Module, S#elixir_scope.function,
+          S#elixir_scope.requires, S#elixir_scope.macros, S) of
         { error, noexpansion } ->
           Callback();
         { error, internal } ->
@@ -76,7 +78,8 @@ dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
     true ->
       elixir_translator:translate_each({ { '.', Line, [erlang, Name] }, Line, Args }, S);
     false ->
-      case expand_require(Line, Module, Receiver, Tuple, Args, S) of
+      case expand_require(Line, Receiver, Tuple, Args, Module,
+          S#elixir_scope.function, S#elixir_scope.requires, S) of
         { error, noexpansion } ->
           Callback();
         { error, internal } ->
@@ -88,73 +91,79 @@ dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
 
 %% Macros expansion
 
-expand_import(Line, Module, { Name, Arity } = Tuple, Args, S) ->
-  case find_dispatch(Tuple, S#elixir_scope.macros) of
+expand_import(Line, { Name, Arity } = Tuple, Args, Module, Function, Requires, Macros, SEnv) ->
+  case find_dispatch(Tuple, Macros) of
     false ->
-      Fun = (S#elixir_scope.function /= Tuple) andalso
+      Fun = (Function /= Tuple) andalso
         elixir_def_local:macro_for(Tuple, true, Module),
       case Fun of
         false -> { error, noexpansion };
         _ ->
           elixir_import:record(import, Tuple, Module, Module),
-          { ok, Module, expand_macro_fun(Line, Fun, Module, Name, Arity, Args, S) }
+          { ok, Module, expand_macro_fun(Line, Fun, Module, Name, Args, Module, Requires, SEnv) }
       end;
     ?BUILTIN ->
       case is_element(Tuple, in_elixir_macros()) of
         false -> { error, internal };
         true  ->
           elixir_import:record(import, Tuple, ?BUILTIN, Module),
-          { ok, ?BUILTIN, expand_macro_named(Line, ?BUILTIN, Name, Arity, Args, S) }
+          { ok, ?BUILTIN, expand_macro_named(Line, ?BUILTIN, Name, Arity, Args, Module, Requires, SEnv) }
       end;
     Receiver ->
       elixir_import:record(import, Tuple, Receiver, Module),
-      { ok, Receiver, expand_macro_named(Line, Receiver, Name, Arity, Args, S) }
+      { ok, Receiver, expand_macro_named(Line, Receiver, Name, Arity, Args, Module, Requires, SEnv) }
   end.
 
-expand_require(Line, _Module, ?BUILTIN, { Name, Arity } = Tuple, Args, S) ->
+expand_require(Line, ?BUILTIN, { Name, Arity } = Tuple, Args, Module, _Function, Requires, SEnv) ->
   case is_element(Tuple, in_erlang_macros()) of
     true  -> { error, internal };
     false ->
       case is_element(Tuple, in_elixir_macros()) of
-        true  -> { ok, expand_macro_named(Line, ?BUILTIN, Name, Arity, Args, S) };
+        true  -> { ok, expand_macro_named(Line, ?BUILTIN, Name, Arity, Args, Module, Requires, SEnv) };
         false -> { error, noexpansion }
       end
   end;
 
-expand_require(Line, Module, Receiver, { Name, Arity } = Tuple, Args, S) ->
-  Fun = (Module == Receiver) andalso (S#elixir_scope.function /= Tuple) andalso
+expand_require(Line, Receiver, { Name, Arity } = Tuple, Args, Module, Function, Requires, SEnv) ->
+  Fun = (Module == Receiver) andalso (Function /= Tuple) andalso
     elixir_def_local:macro_for(Tuple, false, Module),
 
   case Fun of
     false ->
       case is_element(Tuple, get_optional_macros(Receiver)) of
-        true  -> { ok, expand_macro_named(Line, Receiver, Name, Arity, Args, S) };
+        true  -> { ok, expand_macro_named(Line, Receiver, Name, Arity, Args, Module, Requires, SEnv) };
         false -> { error, noexpansion }
       end;
     _ ->
       elixir_import:record(import, Tuple, Receiver, Module),
-      { ok, expand_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) }
+      { ok, expand_macro_fun(Line, Fun, Receiver, Name, Args, Module, Requires, SEnv) }
   end.
 
 %% Expansion helpers
 
-expand_macro_fun(Line, Fun, Receiver, Name, Arity, Args, S) ->
-  ensure_required(Line, Receiver, Name, Arity, S),
-  MacroS = {Line,S},
+expand_macro_fun(Line, Fun, Receiver, Name, Args, Module, Requires, SEnv) ->
+  case (Receiver == Module) or is_element(Receiver, Requires) of
+    true  -> ok;
+    false ->
+      Tuple = { unrequired_module, { Receiver, Name, length(Args), Requires } },
+      elixir_errors:form_error(Line, elixir_scope:filename(SEnv), ?MODULE, Tuple)
+  end,
+
+  SArg = {Line,SEnv},
 
   try
-    apply(Fun, [MacroS|Args])
+    apply(Fun, [SArg|Args])
   catch
     Kind:Reason ->
-      Info = { Receiver, Name, length(Args), [{ file, S#elixir_scope.filename }, { line, Line }] },
-      erlang:raise(Kind, Reason, munge_stacktrace(Info, erlang:get_stacktrace(), MacroS))
+      Info = { Receiver, Name, length(Args), [{ file, elixir_scope:filename(SEnv) }, { line, Line }] },
+      erlang:raise(Kind, Reason, munge_stacktrace(Info, erlang:get_stacktrace(), SArg))
   end.
 
-expand_macro_named(Line, Receiver, Name, Arity, Args, S) ->
-  %% Fix macro name and arity
+expand_macro_named(Line, Receiver, Name, Arity, Args, Module, Requires, SEnv) ->
   ProperName  = ?ELIXIR_MACRO(Name),
   ProperArity = Arity + 1,
-  expand_macro_fun(Line, fun Receiver:ProperName/ProperArity, Receiver, Name, Arity, Args, S).
+  Fun         = fun Receiver:ProperName/ProperArity,
+  expand_macro_fun(Line, Fun, Receiver, Name, Args, Module, Requires, SEnv).
 
 translate_expansion(Line, Tree, Receiver, Name, Arity, S) ->
   NewS = S#elixir_scope{macro=[{Line,Receiver,Name,Arity}|S#elixir_scope.macro]},
@@ -184,16 +193,6 @@ munge_stacktrace(_, [], _) ->
   [].
 
 %% ERROR HANDLING
-
-ensure_required(_Line, Receiver, _Name, _Arity, #elixir_scope{module=Receiver}) -> ok;
-ensure_required(Line, Receiver, Name, Arity, S) ->
-  Requires = S#elixir_scope.requires,
-  case is_element(Receiver, Requires) of
-    true  -> ok;
-    false ->
-      Tuple = { unrequired_module, { Receiver, Name, Arity, Requires } },
-      elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
-  end.
 
 format_error({ unrequired_module,{Receiver, Name, Arity, Required }}) ->
   io_lib:format("tried to invoke macro ~s.~s/~B but module was not required. Required: ~p",
