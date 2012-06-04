@@ -408,15 +408,14 @@ defmodule File do
     F.write_file(filename, content, modes)
   end
 
-
   @doc """
-  Tries to delete the file `path`.
+  Tries to delete the file `filename`.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
   Typical error reasons are:
 
-  * :eacces  - Missing search or write permissions for the parent directories of `path`.
-  * :enoent  - A component of `path` does not exist.
+  * :enoent  - The file does not exist.
+  * :eacces  - Missing permission for the file or one of its parents.
   * :eperm   - The file is a directory and user is not super-user.
   * :enotdir - A component of the file name is not a directory.
                On some platforms, enoent is returned instead.
@@ -424,15 +423,15 @@ defmodule File do
 
   ## Examples
 
-    File.delete('foo.txt')
+    File.rm('foo.txt')
     #=> :ok
 
-    File.delete('tmp_dir/')
+    File.rm('tmp_dir/')
     #=> {:error, :eperm}
 
   """
-  def delete(path) do
-    F.delete(path)
+  def rm(filename) do
+    F.delete(filename)
   end
 
   ## Helpers
