@@ -47,7 +47,7 @@ defmodule File do
 
   ## Examples
 
-    File.expand_path("/foo/bar/../bar") == "/foo/bar"
+      File.expand_path("/foo/bar/../bar") == "/foo/bar"
 
   """
   def expand_path(path) do
@@ -61,8 +61,8 @@ defmodule File do
 
   ## Examples
 
-    File.expand_path("foo/bar/../bar", "/baz") == "/baz/foo/bar"
-    File.expand_path("/foo/bar/../bar", "/baz") == "/foo/bar"
+      File.expand_path("foo/bar/../bar", "/baz") == "/baz/foo/bar"
+      File.expand_path("/foo/bar/../bar", "/baz") == "/foo/bar"
 
   """
   def expand_path(path, relative_to) do
@@ -75,6 +75,7 @@ defmodule File do
   ## Examples
 
       File.regular? __FILE__ #=> true
+
   """
   def regular?(path) do
     FL.is_regular(path)
@@ -94,14 +95,14 @@ defmodule File do
 
   ## Examples
 
-    File.exists?("test/")
-    #=> true
+      File.exists?("test/")
+      #=> true
 
-    File.exists?("missing.txt")
-    #=> false
+      File.exists?("missing.txt")
+      #=> false
 
-    File.exists?("/dev/null")
-    #=> true
+      File.exists?("/dev/null")
+      #=> true
 
   """
   def exists?(path) do
@@ -152,8 +153,8 @@ defmodule File do
 
   ## Examples
 
-    File.dirname("/foo/bar.ex")
-    #=> "foo"
+      File.dirname("/foo/bar.ex")
+      #=> "foo"
 
   """
   def dirname(path) do
@@ -165,10 +166,10 @@ defmodule File do
 
   ## Examples
 
-    File.extname("foo.erl")
-    #=> ".erl"
-    File.extname("~/foo/bar")
-    #=> ""
+      File.extname("foo.erl")
+      #=> ".erl"
+      File.extname("~/foo/bar")
+      #=> ""
 
   """
   def extname(path) do
@@ -180,10 +181,10 @@ defmodule File do
 
   ## Examples
 
-    File.rootname("/foo/bar")
-    #=> "/foo/bar"
-    File.rootname("/foo/bar.ex")
-    #=> "/foo/bar"
+      File.rootname("/foo/bar")
+      #=> "/foo/bar"
+      File.rootname("/foo/bar.ex")
+      #=> "/foo/bar"
 
   """
   def rootname(path) do
@@ -196,10 +197,10 @@ defmodule File do
 
   ## Examples
 
-    File.rootname("/foo/bar.erl", ".erl")
-    #=> "/foo/bar"
-    File.rootname("/foo/bar.erl", ".ex")
-    #=> "/foo/bar.erl"
+      File.rootname("/foo/bar.erl", ".erl")
+      #=> "/foo/bar"
+      File.rootname("/foo/bar.erl", ".ex")
+      #=> "/foo/bar.erl"
 
   """
   def rootname(path, extension) do
@@ -219,6 +220,7 @@ defmodule File do
       #=> "foo"
       File.join(["/", "foo", "bar"])
       #=> "/foo/bar"
+
   """
   def join(paths) do
     FN.join(paths)
@@ -308,12 +310,12 @@ defmodule File do
 
   ## Examples
 
-     File.split("")
-     #=> ["/"]
-     File.split("foo")
-     #=> ["foo"]
-     File.split("/foo/bar")
-     #=> ["/", "foo", "bar"]
+       File.split("")
+       #=> ["/"]
+       File.split("foo")
+       #=> ["foo"]
+       File.split("/foo/bar")
+       #=> ["/", "foo", "bar"]
 
   """
   def split(path) do
@@ -423,11 +425,11 @@ defmodule File do
 
   ## Examples
 
-    File.rm('foo.txt')
-    #=> :ok
+      File.rm('foo.txt')
+      #=> :ok
 
-    File.rm('tmp_dir/')
-    #=> {:error, :eperm}
+      File.rm('tmp_dir/')
+      #=> {:error, :eperm}
 
   """
   def rm(filename) do
