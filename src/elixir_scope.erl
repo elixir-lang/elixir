@@ -57,8 +57,9 @@ to_ex_env({ Line, Tuple }) when element(1, Tuple) == '__MAIN__.Macro.Env' ->
   setelement(4, Tuple, Line);
 
 to_ex_env({ Line, #elixir_scope{module=Module,filename=File,
-    function=Function,aliases=Aliases,context=Context} }) ->
-  { '__MAIN__.Macro.Env', Module, File, Line, Function, Aliases, Context }.
+    function=Function,aliases=Aliases,context=Context,
+    requires=Requires,macros=Macros} }) ->
+  { '__MAIN__.Macro.Env', Module, File, Line, Function, Aliases, Context, Requires, Macros }.
 
 filename(#elixir_scope{filename=File}) -> File;
 filename(Other) -> element(3, Other).

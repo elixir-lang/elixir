@@ -15,10 +15,14 @@ delete_table(Module) ->
   ets:delete(table(Module)).
 
 record(_Kind, _Tuple, _Receiver, nil) ->
-  [];
+  false;
 
 record(import, Tuple, Receiver, Module) ->
-  ets:insert(table(Module), { Tuple, Receiver }).
+  try
+    ets:insert(table(Module), { Tuple, Receiver })
+  catch
+    error:badarg -> false
+  end.
 
 recorded_locals(Module) ->
   Table  = table(Module),

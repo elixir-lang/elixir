@@ -75,6 +75,24 @@ defmodule MacroTest do
     assert Macro.expand(quote(do: Erlang.foo), __ENV__) == :foo
   end
 
+  test :expand_with_imported_macro do
+    assert Macro.expand(quote(do: 1 || false), __ENV__) == (quote do
+      case 1 do
+        oror in [false, nil] -> false
+        oror -> oror
+      end
+    end)
+  end
+
+  test :expand_with_require_macro do
+    assert Macro.expand(quote(do: Elixir.Builtin.||(1, false)), __ENV__) == (quote do
+      case 1 do
+        oror in [false, nil] -> false
+        oror -> oror
+      end
+    end)
+  end
+
   test :expand_with_not_expandable_expression do
     expr = quote(do: other(1,2,3))
     assert Macro.expand(expr, __ENV__) == expr

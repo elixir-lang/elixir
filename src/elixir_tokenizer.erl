@@ -181,7 +181,7 @@ tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
   tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
 
 % ## Single Token Operators
-tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*;
+tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $&;
   T == $/; T == $=; T == $|; T == $!; T == $<; T == $>; T == $^; T == $@ ->
   tokenize(Line, Rest, [{atom,Line,[list_to_atom([T])]}|Tokens]);
 

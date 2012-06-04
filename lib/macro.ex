@@ -134,14 +134,49 @@ defmodule Macro do
   def expand({ :__FILE__, _, atom }, env)   when is_atom(atom), do: env.file
   def expand({ :__ENV__, _, atom }, env)    when is_atom(atom), do: env
 
-  # Expand possible macro invocation
-  # translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
-  # translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom(Right) ->
+  # Expand possible macro import invocation
+  def expand({ atom, line, args } = original, env) when is_atom(atom) do
+    args = case is_atom(args) do
+      true  -> []
+      false -> args
+    end
+
+    case not is_partial?(args) do
+      false -> original
+      true  ->
+        expand = Erlang.elixir_dispatch.expand_import(line, { atom, length(args) }, args,
+          env.module, env.function, env.requires, env.macros, env)
+        case expand do
+          { :ok, _, expanded } -> expanded
+          { :error, _ }     -> original
+        end
+    end
+  end
+
+  # Expand possible macro require invocation
+  def expand({ { :".", _, [left, right] }, line, args } = original, env) when is_atom(right) do
+    receiver = expand(left, env)
+
+    case is_atom(receiver) and not is_partial?(args) do
+      false -> original
+      true  ->
+        expand = Erlang.elixir_dispatch.expand_require(line, receiver, { right, length(args) },
+          args, env.module, env.function, env.requires, env)
+        case expand do
+          { :ok, expanded } -> expanded
+          { :error, _ }     -> original
+        end
+    end
+  end
 
   # Anything else is just returned
   def expand(other, _env), do: other
 
   ## Helpers
+
+  defp is_partial?(args) do
+    :lists.any(match?({ :&, _, [_] }, &1), args)
+  end
 
   defp expand_alias(h, env) do
     atom = list_to_atom('__MAIN__.' ++ atom_to_list(h))

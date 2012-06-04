@@ -12,11 +12,13 @@
 macro_for(_Tuple, _All, nil) -> false;
 
 macro_for(Tuple, All, Module) ->
-  case ets:lookup(elixir_def:table(Module), Tuple) of
+  try ets:lookup(elixir_def:table(Module), Tuple) of
     [{Tuple, Kind, Line, _, _, _, _, Clauses}] when Kind == defmacro; All, Kind == defmacrop ->
       get_function(Line, Module, Clauses);
     _ ->
       false
+  catch
+    error:badarg -> false
   end.
 
 %% Used on runtime by rewritten clauses, raises an error if function is not found

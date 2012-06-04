@@ -14,7 +14,8 @@ defmodule Macro.Env do
   # When adding removing new fields,
   # src/elixir_tree_helpers.erl needs to be changed as well.
   def __record__(:fields, _) do
-    [{:module,nil},{:file,nil},{:line,nil},{:function,nil},{:aliases,nil},{:context,nil}]
+    [{:module,nil},{:file,nil},{:line,nil},{:function,nil},{:aliases,nil},
+     {:context,nil},{:requires,nil},{:macros,nil}]
   end
 
   @doc """
@@ -56,6 +57,16 @@ defmodule Macro.Env do
   inside a match clause.
   """
   def in_match?(record), do: elem(record, 7) == :assign
+
+  @doc """
+  Returns the list of required modules.
+  """
+  def requires(record), do: elem(record, 8)
+
+  @doc """
+  Returns a list of macros imported from each module.
+  """
+  def macros(record), do: elem(record, 9)
 
   @doc """
   Returns a keywords list containing the file and line
