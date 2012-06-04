@@ -35,7 +35,34 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro assert(expected) do
-    translate_assertion(expected)
+    translate_assertion(expected, fn ->
+      quote do
+        value = unquote(expected)
+        assert value, "Expected #{inspect value} to be true"
+      end
+    end)
+  end
+
+  @doc """
+  Refutes the `expected` value is true.
+
+  `refute` in general tries to be smart and provide a good
+  reporting whenever there is a failure.
+
+  ## Examples
+
+      refute false
+
+  """
+  defmacro refute(expected) do
+    contents = translate_assertion({ :!, 0, [expected] }, fn ->
+      quote do
+        value = unquote(expected)
+        assert !value, "Expected #{inspect value} to be false"
+      end
+    end)
+
+    { :!, 0, [contents] }
   end
 
   @doc """
@@ -60,43 +87,43 @@ defmodule ExUnit.Assertions do
     quote do: (var!(op) == :! or var!(op) == :not)
   end
 
-  defp translate_assertion({ :==, _, [left, right] }) do
+  defp translate_assertion({ :==, _, [left, right] }, _else) do
     { expected, actual } = guess_expected_and_actual(left, right)
     assert_operator :==, expected, actual, "equal to (==)"
   end
 
-  defp translate_assertion({ :<, _, [left, right] }) do
+  defp translate_assertion({ :<, _, [left, right] }, _else) do
     assert_operator :<, left, right, "less than"
   end
 
-  defp translate_assertion({ :>, _, [left, right] }) do
+  defp translate_assertion({ :>, _, [left, right] }, _else) do
     assert_operator :>, left, right, "more than"
   end
 
-  defp translate_assertion({ :<=, _, [left, right] }) do
+  defp translate_assertion({ :<=, _, [left, right] }, _else) do
     assert_operator :<=, left, right, "less than or equal to"
   end
 
-  defp translate_assertion({ :>=, _, [left, right] }) do
+  defp translate_assertion({ :>=, _, [left, right] }, _else) do
     assert_operator :>=, left, right, "more than or equal to"
   end
 
-  defp translate_assertion({ :===, _, [left, right] }) do
+  defp translate_assertion({ :===, _, [left, right] }, _else) do
     { expected, actual } = guess_expected_and_actual(left, right)
     assert_operator :===, expected, actual, "equal to (===)"
   end
 
-  defp translate_assertion({ :!==, _, [left, right] }) do
+  defp translate_assertion({ :!==, _, [left, right] }, _else) do
     { expected, actual } = guess_expected_and_actual(left, right)
     assert_operator :!==, expected, actual, "not equal to (!==)"
   end
 
-  defp translate_assertion({ :!=, _, [left, right] }) do
+  defp translate_assertion({ :!=, _, [left, right] }, _else) do
     { expected, actual } = guess_expected_and_actual(left, right)
     assert_operator :!=, expected, actual, "not equal to (!=)"
   end
 
-  defp translate_assertion({ :access, _, [container, base] }) do
+  defp translate_assertion({ :access, _, [container, base] }, _else) do
     quote do
       container = unquote(container)
       base = unquote(base)
@@ -104,7 +131,7 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ op, _, [{ :access, _, [container, base] }] }) when negation?(op) do
+  defp translate_assertion({ op, _, [{ :access, _, [container, base] }] }, _else) when negation?(op) do
     quote do
       container = unquote(container)
       base = unquote(base)
@@ -112,11 +139,8 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion(expected) do
-    quote do
-      value = unquote(expected)
-      assert value, "Expected #{inspect value} to be true"
-    end
+  defp translate_assertion(_expected, fallback) do
+    fallback.()
   end
 
   defp guess_expected_and_actual(left, right) do
@@ -309,15 +333,15 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts the `not_expected` value is false.
+  Asserts the `not_expected` value is nil or false.
+  In case it is a truthy value, raises the given message.
 
   ## Examples
 
-      refute false
+      refute true, "This will obviously fail"
 
   """
-  def refute(not_expected, message // nil) do
-    message = message || "Expected #{inspect not_expected} to be false"
+  def refute(not_expected, message) do
     not assert(!not_expected, message)
   end
 
