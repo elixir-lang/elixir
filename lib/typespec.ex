@@ -54,7 +54,7 @@ defmodule Typespec do
   end
 
   defp typespec({:__aliases__, _, _} = alias, vars, caller) do
-    atom = Macro.expand_aliases alias, caller
+    atom = Macro.expand alias, caller
     typespec(atom, vars, caller)
   end
 
@@ -79,7 +79,7 @@ defmodule Typespec do
   end
 
   defp typespec({{:".", line, [{:__aliases__, line, _} = alias, name]}, line2, args}, vars, caller) do
-    remote = Macro.expand_aliases alias, caller
+    remote = Macro.expand alias, caller
     typespec({{:".", line, [{:atom, line, remote}, name]}, line2, args}, vars, caller)
   end
 
