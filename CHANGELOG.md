@@ -7,6 +7,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [Macro] Added `Macro.expand`, useful for debugging what a macro expands to;
   * [Enum] Added `find_index`;
   * [Record] Records now provide a `to_keywords` function;
   * [Builtin] Added support to the `%R` sigil. The same as `%r`, but without interpolation or escaping;

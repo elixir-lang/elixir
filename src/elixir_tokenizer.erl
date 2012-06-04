@@ -488,11 +488,15 @@ tokenize_atom(String, Acc) ->
 tokenize_any_identifier(Line, String, Acc) ->
   { Rest, Identifier } = tokenize_identifier(String, Acc, false),
   case Rest of
+    [H,$:|T] when H == $?; H == $! ->
+      Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
+      { T, { kw_identifier, Line, Atom } };
     [H|T] when H == $?; H == $! ->
       Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
       { T, tokenize_call_identifier(punctuated_identifier, Line, Atom, T) };
     [$:|T] ->
-      { T, { kw_identifier, Line, list_to_atom(Identifier) } };
+      Atom = list_to_atom(Identifier),
+      { T, { kw_identifier, Line, Atom } };
     _ ->
       { Rest, tokenize_call_identifier(identifier, Line, list_to_atom(Identifier), Rest) }
   end.

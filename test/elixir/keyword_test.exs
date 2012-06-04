@@ -3,6 +3,10 @@ Code.require_file "../test_helper", __FILE__
 defmodule KeywordTest do
   use ExUnit.Case
 
+  test :literal do
+    assert [{:foo?, :bar}] == [foo?: :bar]
+  end
+
   test :from_enum do
     list = [{:b,2},{:a,1},{:c,3}]
     dict = Orddict.new list
