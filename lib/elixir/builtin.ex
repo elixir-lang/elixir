@@ -1400,14 +1400,14 @@ defmodule Elixir.Builtin do
       _   -> nil
     end
 
-    case Macro.expand_aliases module, __CALLER__ do
-      nil -> raise ArgumentError, message: "invalid arguments for use, expected an atom or alias as argument"
-      expanded -> nil
-    end
-
-    quote do
-      require unquote(expanded)
-      unquote(expanded).__using__(unquote(args))
+    expanded = Macro.expand module, __CALLER__
+    case is_atom(expanded) do
+      false -> raise ArgumentError, message: "invalid arguments for use, expected an atom or alias as argument"
+      true  ->
+        quote do
+          require unquote(expanded)
+          unquote(expanded).__using__(unquote(args))
+        end
     end
   end
 
@@ -2160,14 +2160,14 @@ defmodule Elixir.Builtin do
   """
   defmacro access(element, keyword) do
     caller = __CALLER__
-    atom = Macro.expand_aliases(element, caller)
+    atom = Macro.expand(element, caller)
 
-    case { atom, caller.in_match? } do
-      { nil, false } ->
+    case { is_atom(atom), caller.in_match? } do
+      { false, false } ->
         quote do: Access.access(unquote(element), unquote(keyword))
-      { nil, true } ->
+      { false, true } ->
         raise "invalid usage of access protocol in signature"
-      { _, in_match } ->
+      { true, in_match } ->
         case is_orddict(keyword) do
           true  -> nil
           false -> raise "expected contents inside brackets to be a Keyword"

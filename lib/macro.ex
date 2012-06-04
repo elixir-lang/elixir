@@ -31,16 +31,21 @@ defmodule Macro do
   def escape(other), do: other
 
   @doc """
-  Receives an expression and expands its aliases returning an atom.
-  Returns nil if the expression is not an alias or contains dynamic
-  values.
+  Receives an expression representation and expands it. The following
+  contents are expanded:
+
+  * Macros (local or remote) are expanded;
+  * Aliases are expanded (if possible) and return atoms;
+  * All pseudo-variables (__FILE__, __MODULE__, etc);
+
+  In case the expression cannot be expanded, return the expression itself.
 
   ## Examples
 
   In the example below, we have a macro that generates a module
-  with a function named `name_length`. The value of this
-  function will be calcualted at compilation time and not at
-  runtime.
+  with a function named `name_length` that returns the length
+  of the module name. The value of this function will be calculated
+  at compilation time and not at runtime.
 
   Consider the implementation below:
 
@@ -78,12 +83,13 @@ defmodule Macro do
       end
 
   The final module name will be `MyHelpers.Module` and not
-  `My.Module`. This function is a helper that does such
-  expansion, abstracting all details for you. We could
-  rewrite our macro above to use this function as:
+  `My.Module`. With `Macro.expand`, such aliases are taken
+  into consideration. Local and remote macros are also
+  expanded. We could rewrite our macro above to use this
+  function as:
 
       defmacro defmodule_with_length(name, do: block) do
-        expanded = Macro.expand_aliases(name, __CALLER__)
+        expanded = Macro.expand(name, __CALLER__)
         length   = length(atom_to_list(expanded))
 
         quote do
@@ -95,46 +101,50 @@ defmodule Macro do
       end
 
   """
+  def expand(aliases, env)
 
-  # In case aliases just contain one item, we are sure
-  # it is an atom, so we just expand it based on the
-  # aliases dict.
-  def expand_aliases({ :__aliases__, _, [h] }, env) do
-    translate_aliases_head(h, env)
+  # The first case we handle is __aliases__. In case
+  # aliases just contain one item, we are sure it is
+  # an atom, so we just expand it based on the aliases
+  # dict.
+  def expand({ :__aliases__, _, [h] }, env) do
+    expand_alias(h, env)
   end
 
   # In case aliases contains more than one item, we need
   # to loop them checking if they are all atoms or not.
-  # Some expressions (like __MAIN__ and __MODULE__) are
-  # allowed.
-  def expand_aliases({ :__aliases__, _, [h|t] }, env) do
+  # Macros and pseudo-variables are then expanded.
+  def expand({ :__aliases__, _, [h|t] }, env) do
     aliases = case is_atom(h) do
-      true  -> [translate_aliases_head(h, env)|t]
+      true  -> [expand_alias(h, env)|t]
       false -> [h|t]
     end
 
-    aliases = lc alias in aliases, do: translate_alias(alias, env)
-    :lists.all(fn x -> x != false end, aliases) && Erlang.elixir_aliases.concat(aliases)
+    aliases = lc alias in aliases, do: expand(alias, env)
+    :lists.all(is_atom(&1), aliases) && Erlang.elixir_aliases.concat(aliases)
   end
 
-  # In case is not an aliases, it may be __MAIN__, __MODULE__
-  # or a bare atom, otherwise we return false.
-  def expand_aliases(other, env) do
-    translate_alias(other, env) || nil
-  end
+  # Expand Erlang.foo calls
+  def expand({ { :".", _, [{ :__aliases__, _, [:Erlang] }, atom] }, _, args }, _env) when
+    is_atom(atom) and (is_atom(args) or args == []), do: atom
+
+  # Expand pseudo-variables
+  def expand({ :__MAIN__, _, atom }, _env)  when is_atom(atom), do: :__MAIN__
+  def expand({ :__MODULE__, _, atom }, env) when is_atom(atom), do: env.module
+  def expand({ :__FILE__, _, atom }, env)   when is_atom(atom), do: env.file
+  def expand({ :__ENV__, _, atom }, env)    when is_atom(atom), do: env
+
+  # Expand possible macro invocation
+  # translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
+  # translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom(Right) ->
+
+  # Anything else is just returned
+  def expand(other, _env), do: other
 
   ## Helpers
 
-  defp translate_aliases_head(h, env) do
+  defp expand_alias(h, env) do
     atom = list_to_atom('__MAIN__.' ++ atom_to_list(h))
     Erlang.elixir_aliases.lookup(atom, env.aliases)
   end
-
-  defp translate_alias({ { :".", _, [{ :__aliases__, _, [:Erlang] }, atom] }, _, args }, _env) when
-    is_atom(atom) and (is_atom(args) or args == []), do: atom
-
-  defp translate_alias({ :__MAIN__, _, atom }, _env) when is_atom(atom),  do: :__MAIN__
-  defp translate_alias({ :__MODULE__, _, atom }, env) when is_atom(atom), do: env.module
-  defp translate_alias(atom, _env) when is_atom(atom), do: atom
-  defp translate_alias(_other, _env), do: false
 end

@@ -37,45 +37,46 @@ defmodule MacroTest do
 
   ## Expand aliases
 
-  test :expand_aliases_with_raw_atom do
-    assert Macro.expand_aliases(quote(do: :foo), __ENV__) == :foo
+  test :expand_with_raw_atom do
+    assert Macro.expand(quote(do: :foo), __ENV__) == :foo
   end
 
-  test :expand_aliases_with_current_module do
-    assert Macro.expand_aliases(quote(do: __MODULE__), __ENV__) == __MODULE__
+  test :expand_with_current_module do
+    assert Macro.expand(quote(do: __MODULE__), __ENV__) == __MODULE__
   end
 
-  test :expand_aliases_with_main do
-    assert Macro.expand_aliases(quote(do: __MAIN__), __ENV__) == __MAIN__
+  test :expand_with_main do
+    assert Macro.expand(quote(do: __MAIN__), __ENV__) == __MAIN__
   end
 
-  test :expand_aliases_with_simple_alias do
-    assert Macro.expand_aliases(quote(do: Foo), __ENV__) == Foo
+  test :expand_with_simple_alias do
+    assert Macro.expand(quote(do: Foo), __ENV__) == Foo
   end
 
-  test :expand_aliases_with_current_module_plus_alias do
-    assert Macro.expand_aliases(quote(do: __MODULE__.Foo), __ENV__) == __MODULE__.Foo
+  test :expand_with_current_module_plus_alias do
+    assert Macro.expand(quote(do: __MODULE__.Foo), __ENV__) == __MODULE__.Foo
   end
 
-  test :expand_aliases_with_main_plus_alias do
-    assert Macro.expand_aliases(quote(do: __MAIN__.Foo), __ENV__) == Foo
+  test :expand_with_main_plus_alias do
+    assert Macro.expand(quote(do: __MAIN__.Foo), __ENV__) == Foo
   end
 
-  test :expand_aliases_with_custom_alias do
+  test :expand_with_custom_alias do
     alias Foo, as: Bar
-    assert Macro.expand_aliases(quote(do: Bar.Baz), __ENV__) == Foo.Baz
+    assert Macro.expand(quote(do: Bar.Baz), __ENV__) == Foo.Baz
   end
 
-  test :expand_aliases_with_main_plus_custom_alias do
+  test :expand_with_main_plus_custom_alias do
     alias Foo, as: Bar
-    assert Macro.expand_aliases(quote(do: __MAIN__.Bar.Baz), __ENV__) == __MAIN__.Bar.Baz
+    assert Macro.expand(quote(do: __MAIN__.Bar.Baz), __ENV__) == __MAIN__.Bar.Baz
   end
 
-  test :expand_aliases_with_erlang do
-    assert Macro.expand_aliases(quote(do: Erlang.foo), __ENV__) == :foo
+  test :expand_with_erlang do
+    assert Macro.expand(quote(do: Erlang.foo), __ENV__) == :foo
   end
 
-  test :expand_aliases_with_nested_erlang do
-    assert Macro.expand_aliases(quote(do: Erlang.foo.bar), __ENV__) == nil
+  test :expand_with_not_expandable_expression do
+    expr = quote(do: other(1,2,3))
+    assert Macro.expand(expr, __ENV__) == expr
   end
 end
