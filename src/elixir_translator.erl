@@ -92,16 +92,29 @@ translate_each({alias, Line, [Ref, KV]}, S) ->
         Opt when Opt == { ok, true }; Opt == error ->
           { elixir_aliases:last(Old), SR };
         { ok, Other } ->
-          { TOther, SA } = translate_each(Other, SR),
+          { TOther, SA } = translate_each(Other, SR#elixir_scope{aliases=[]}),
           case TOther of
             { atom, _, Atom } -> { Atom, SA };
-            _ -> syntax_error(Line, S#elixir_scope.filename, "invalid args for alias, expected an atom or alias as argument")
+            _ -> syntax_error(Line, S#elixir_scope.filename,
+                   "invalid args for alias, expected an atom or alias as argument")
           end
       end,
 
-      { { nil, Line }, SF#elixir_scope{
-        aliases=orddict:store(New, Old, S#elixir_scope.aliases)
-      } };
+      %% Avoid creating aliases if first == last
+      %% unecessarily polluting the aliases dict
+      case New == Old of
+        true  -> { { nil, Line }, SF };
+        false ->
+          case string:tokens(atom_to_list(New), ".") of
+            [_,_] -> [];
+            _ -> syntax_error(Line, S#elixir_scope.filename,
+                   "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])
+          end,
+
+          { { nil, Line }, SF#elixir_scope{
+            aliases=orddict:store(New, Old, S#elixir_scope.aliases)
+          } }
+      end;
     _ ->
       syntax_error(Line, S#elixir_scope.filename, "invalid args for alias, expected an atom or alias as argument")
   end;

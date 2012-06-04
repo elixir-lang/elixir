@@ -111,7 +111,9 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
       RS = case Module == NewModule of
         true  -> S;
         false ->
-          element(2, translate_each({ alias, Line, [NewModule, [{as,Module}]] }, S))
+          element(2, translate_each({
+            alias, Line, [NewModule, [{as, elixir_aliases:first(Module)}]]
+          }, S))
       end,
 
       {

@@ -1,5 +1,5 @@
 -module(elixir_aliases).
--export([last/1, concat/1, safe_concat/1, lookup/2,
+-export([first/1, last/1, concat/1, safe_concat/1, lookup/2,
   format_error/1, ensure_loaded/3]).
 -include("elixir.hrl").
 
@@ -19,12 +19,24 @@ ensure_loaded(Line, Ref, S) ->
       elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { Kind, Ref })
   end.
 
+%% Receives an atom and returns the first alias.
+
+first(Atom) ->
+  First = first(atom_to_list(Atom), []),
+  list_to_atom("__MAIN__." ++ First).
+
+first("__MAIN__." ++ Rest, []) -> first(Rest, []);
+first([$.|_], Acc) -> lists:reverse(Acc);
+first([H|T], Acc) -> first(T, [H|Acc]);
+first([], Acc) -> lists:reverse(Acc).
+
 %% Receives an atom and returns the last alias.
 
 last(Atom) ->
-  list_to_atom(last(lists:reverse(atom_to_list(Atom)), [])).
+  Last = last(lists:reverse(atom_to_list(Atom)), []),
+  list_to_atom("__MAIN__." ++ Last).
 
-last([$.|_], Acc) -> "__MAIN__." ++ Acc;
+last([$.|_], Acc) -> Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
 last([], Acc) -> Acc.
 
