@@ -255,7 +255,7 @@ defmodule FileTest do
       assert File.write('test/tmp/tmp_test.txt', 'test text') == :ok
       assert { :ok, "test text" } == File.read('test/tmp/tmp_test.txt')
     after
-      :os.cmd('rm test/tmp/tmp_test.txt')
+      File.delete('test/tmp/tmp_test.txt')
     end
   end
 
@@ -265,7 +265,7 @@ defmodule FileTest do
       assert File.write('test/tmp/tmp_test.txt', "Русский\n日\n") == :ok
       assert { :ok, "Русский\n日\n" } == File.read('test/tmp/tmp_test.txt')
     after
-      :os.cmd('rm test/tmp/tmp_test.txt')
+      File.delete('test/tmp/tmp_test.txt')
     end
   end
 
@@ -276,7 +276,14 @@ defmodule FileTest do
       assert File.write('test/tmp/tmp_test.txt', "test text", [:append]) == :ok
       assert { :ok, "Русский\n日\ntest text" } == File.read('test/tmp/tmp_test.txt')
     after
-      :os.cmd('rm test/tmp/tmp_test.txt')
+      File.delete('test/tmp/tmp_test.txt')
     end
+  end
+
+  test :delete_file do
+    File.write('test/tmp/tmp_test.txt', "test")
+    assert File.exists?('test/tmp/tmp_test.txt')
+    assert File.delete('test/tmp/tmp_test.txt') == :ok
+    refute File.exists?('test/tmp/tmp_test.txt')
   end
 end
