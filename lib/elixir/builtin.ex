@@ -1738,6 +1738,49 @@ defmodule Elixir.Builtin do
   defmacro receive(args)
 
   @doc """
+  This macro is a shortcut to read and add attributes to the module
+  being compiled. Elixir module attributes are similar to Erlang's with
+  some differences. The canonical example for attributes is annotating
+  that a module implements the OTP behavior called `gen_server`:
+
+      defmodule MyServer do
+        @behavior :gen_server
+        # ... callbacks ...
+      end
+
+  Elixir supports by default all Erlang module attributes but any developer
+  can also add custom attributes:
+
+      defmodule MyServer do
+        @my_data 13
+        IO.inspect @my_data #=> 13
+      end
+
+  Differently from Erlang, such attributes are not stored in the module by
+  default since it is common in Elixir to use such attributes to store
+  temporary data. A developer can configure an attribute to behave closer
+  to Erlang by calling `Module.register_attribute/2`.
+
+  Finally notice that attributes can also be read inside functions:
+
+      defmodule MyServer do
+        @my_data 11
+        def first_data, do: @my_data
+        @my_data 13
+        def second_data, do: @my_data
+      end
+
+      MyServer.first_data #=> 11
+      MyServer.second_data #=> 13
+
+  It is important to note that reading an attribute takes a snapshot of
+  its current value. In other words, the value is read at compilation
+  time and not at runtime. Check the module `Module` for other functions
+  to manipulate module attributes.
+  """
+  defmacro @(expr)
+
+  @doc """
   Invokes the given `fun` with the array of arguments `args`.
 
   ## Examples

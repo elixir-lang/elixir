@@ -10,6 +10,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [Builtin] Document the macro `@` and allow attributes to be read inside functions;
   * [IO/File] Many improvements to File and IO modules;
   * [Macro] Added `Macro.expand`, useful for debugging what a macro expands to;
   * [Enum] Added `find_index`;
