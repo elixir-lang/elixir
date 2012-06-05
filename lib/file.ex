@@ -463,6 +463,18 @@ defmodule File do
     F.open(filename, open_defaults(options, true, true))
   end
 
+  @doc """
+  Closes the file referenced by `io_device`. It mostly returns `:ok`, expect
+  for some severe errors such as out of memory.
+
+  Note that if the option `:delayed_write` was used when opening the file,
+  `close/1` might return an old write error and not even try to close the file.
+  See `open/2`.
+  """
+  def close(io_device) do
+    F.close(io_device)
+  end
+
   ## Helpers
 
   # Normalize the given path by removing "..".
