@@ -1,5 +1,6 @@
 * backwards incompatible changes
   * [Builtin] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed in the `__CALLER__`;
+  * [Module] Removed data functions in favor of unifying the attributes API;
 
 * deprecations
   * [File] `File.read_info` was deprecated in favor of `File.stat`;

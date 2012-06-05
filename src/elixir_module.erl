@@ -77,7 +77,7 @@ build(Module) ->
   ets:insert(DataTable, { '__overridable', [] }),
   ets:insert(DataTable, { '__compile_callbacks', [] }),
 
-  Attributes = [behavior, behaviour, on_load, spec, type, export_type, compile],
+  Attributes = [behavior, behaviour, on_load, spec, type, export_type, callback, compile],
   ets:insert(DataTable, { '__acc_attributes', Attributes }),
   ets:insert(DataTable, { '__persisted_attributes', [vsn|Attributes] }),
 
