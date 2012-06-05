@@ -295,4 +295,47 @@ defmodule FileTest do
     assert File.rm('missing.txt') == {:error, :enoent}
   end
 
+  test :open_file_without_modes do
+    { :ok, file } = File.open(File.expand_path("../fixtures/foo.txt", __FILE__))
+    assert IO.gets(file, "") == "FOO\n"
+  end
+
+  test :open_file_with_charlist do
+    { :ok, file } = File.open(File.expand_path("../fixtures/foo.txt", __FILE__), [:charlist])
+    assert IO.gets(file, "") == 'FOO\n'
+  end
+
+  test :open_utf8_by_default do
+    { :ok, file } = File.open(File.expand_path("../fixtures/utf8.txt", __FILE__))
+    assert IO.gets(file, "") == "Русский\n"
+  end
+
+  test :open_readonly_by_default do
+    { :ok, file } = File.open(File.expand_path("../fixtures/utf8.txt", __FILE__))
+    assert_raise ArgumentError, fn -> IO.write(file, "foo") end
+  end
+
+  test :open_with_write_permission do
+    try do
+      { :ok, file } = File.open("test/tmp/tmp_test.txt", [:write])
+      assert IO.write(file, "foo") == :ok
+      assert File.read('test/tmp/tmp_test.txt') == { :ok, "foo" }
+    after
+      File.rm('test/tmp/tmp_test.txt')
+    end
+  end
+
+  test :open_utf8_and_charlist do
+    { :ok, file } = File.open(File.expand_path("../fixtures/utf8.txt", __FILE__), [:charlist])
+    assert IO.gets(file, "") == [1056,1091,1089,1089,1082,1080,1081,10]
+  end
+
+  test :open_respects_encoding do
+    { :ok, file } = File.open(File.expand_path("../fixtures/utf8.txt", __FILE__), [{:encoding, :latin1}])
+    assert IO.gets(file, "") == <<195,144,194,160,195,145,194,131,195,145,194,129,195,145,194,129,195,144,194,186,195,144,194,184,195,144,194,185,10>>
+  end
+
+  test :open_a_missing_file do
+    assert File.open('missing.txt') == {:error, :enoent}
+  end
 end
