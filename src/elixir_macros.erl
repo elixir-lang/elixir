@@ -6,7 +6,9 @@
 -import(elixir_scope, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, assert_no_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
+
 -define(FUNS(), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
+-define(Module(), '__MAIN__.Module').
 
 %% Operators
 
@@ -28,24 +30,36 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
 
 translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
   assert_module_scope(Line, '@', S),
-  assert_no_function_scope(Line, '@', S),
+
   case is_reserved_data(Name) andalso elixir_compiler:get_opt(internal) of
     true ->
       { { nil, Line }, S };
     _ ->
       case Args of
         [Arg] ->
-          translate_each({
-            { '.', Line, ['__MAIN__.Module', add_attribute] },
-              Line,
-              [ { '__MODULE__', Line, false }, Name, Arg ]
-          }, S);
+          case S#elixir_scope.function of
+            nil ->
+              translate_each({
+                { '.', Line, [?Module(), add_attribute] },
+                  Line,
+                  [ { '__MODULE__', Line, false }, Name, Arg ]
+              }, S);
+            _  ->
+              syntax_error(Line, S#elixir_scope.filename,
+                "cannot dynamically set attribute @~s inside a function", [Name])
+          end;
         _ when is_atom(Args) or (Args == []) ->
-            translate_each({
-              { '.', Line, ['__MAIN__.Module', read_attribute] },
-              Line,
-              [ { '__MODULE__', Line, false }, Name ]
-            }, S);
+          case S#elixir_scope.function of
+            nil ->
+              translate_each({
+                { '.', Line, [?Module(), read_attribute] },
+                Line,
+                [ { '__MODULE__', Line, false }, Name ]
+              }, S);
+            _ ->
+              Contents = ?Module():read_attribute(S#elixir_scope.module, Name),
+              { elixir_tree_helpers:abstract_syntax(Contents), S }
+          end;
         _ ->
           syntax_error(Line, S#elixir_scope.filename, "expected 0 or 1 argument for @~s, got: ~p", [Name, length(Args)])
       end

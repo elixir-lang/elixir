@@ -11,13 +11,13 @@ defmodule ModuleTest.ToBeUsed do
     quote do: (def line, do: __ENV__.line)
   end
 
-  defmacro __compiling__(_), do:
+  defmacro __compiling__(_) do
     quote do: (def __compiling__, do: true)
+  end
 
   defmacro callback(target) do
     value = Module.read_attribute(target, :has_callback)
     quote do
-      @has_callback true
       name  = :original_value
       args  = [1]
       guard = []
@@ -35,8 +35,10 @@ end
 defmodule ModuleTest.DuplicateAttribute do
   Module.register_attribute __MODULE__, :foo
   @foo 1
+  def first_foo, do: @foo
   @foo 2
   @foo 3
+  def third_foo, do: @foo
 end
 
 defmodule ModuleTest.DefinedFunctions do
@@ -109,6 +111,11 @@ defmodule ModuleTest do
 
   test :duplicated_attributes do
     assert_match [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}], ModuleTest.DuplicateAttribute.__info__(:attributes)
+  end
+
+  test :inside_function_attributes do
+    assert_match [1], ModuleTest.DuplicateAttribute.first_foo
+    assert_match [3,2,1], ModuleTest.DuplicateAttribute.third_foo
   end
 
   test :function_from___ENV__ do
