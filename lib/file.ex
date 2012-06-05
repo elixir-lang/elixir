@@ -458,6 +458,23 @@ defmodule File do
     F.delete(filename)
   end
 
+  # TODO: write docs
+  def open(filename, options // []) do
+    F.open(filename, open_defaults(options, true, true))
+  end
+
+  @doc """
+  Closes the file referenced by `io_device`. It mostly returns `:ok`, expect
+  for some severe errors such as out of memory.
+
+  Note that if the option `:delayed_write` was used when opening the file,
+  `close/1` might return an old write error and not even try to close the file.
+  See `open/2`.
+  """
+  def close(io_device) do
+    F.close(io_device)
+  end
+
   ## Helpers
 
   # Normalize the given path by removing "..".
@@ -477,5 +494,24 @@ defmodule File do
 
   defp normalize([], acc) do
     join List.reverse(acc)
+  end
+
+  defp open_defaults([], add_encoding, add_binary) do
+    options = []
+    if add_encoding, do: options = [{:encoding, :unicode}|options]
+    if add_binary,   do: options = [:binary|options]
+    options
+  end
+
+  defp open_defaults([:charlist|t], add_encoding, _add_binary) do
+    open_defaults(t, add_encoding, false)
+  end
+
+  defp open_defaults([{:encoding, _} = h|t], _add_encoding, add_binary) do
+    [h|open_defaults(t, false, add_binary)]
+  end
+
+  defp open_defaults([h|t], add_encoding, add_binary) do
+    [h|open_defaults(t, add_encoding, add_binary)]
   end
 end
