@@ -1,22 +1,14 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_def_overridable).
--export([define/3, store_pending/1, is_defined/2, ensure_defined/4,
+-export([store_pending/1, is_defined/2, ensure_defined/4,
   assign_args/3, retrieve_args/3, name/2, store/3, format_error/1]).
 -include("elixir.hrl").
 
 overridable(Module) ->
-  ets:lookup_element(elixir_module:data_table(Module), overridable, 2).
+  ets:lookup_element(elixir_module:data_table(Module), '__overridable', 2).
 
 overridable(Module, Value) ->
-  ets:insert(elixir_module:data_table(Module), { overridable, Value }).
-
-%% Add new function to the overridable dictionary.
-
-define(Module, Tuple, Args) ->
-  Old = overridable(Module),
-  New = [{ Tuple, { 1, [Args] } }],
-  Abstract = orddict:merge(fun(_K, { Count, V1 }, _V2) -> { Count + 1, [Args|V1] } end, Old, New),
-  overridable(Module, Abstract).
+  ets:insert(elixir_module:data_table(Module), { '__overridable', Value }).
 
 %% Check if an overridable function is defined.
 
@@ -28,7 +20,7 @@ is_defined(Module, Tuple) ->
   end.
 
 ensure_defined(Line, Module, Tuple, S) ->
-  case elixir_def_overridable:is_defined(Module, Tuple) of
+  case is_defined(Module, Tuple) of
     true -> [];
     _    -> elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { no_super, Module, Tuple })
   end.

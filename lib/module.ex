@@ -8,7 +8,7 @@ defmodule Module do
   @moduledoc """
   This module provides many functions to deal with modules during
   compilation time. It allows a developer to dynamically attach
-  documentation, merge data, register attributes and so forth.
+  documentation, add, delete and register attributes and so forth.
 
   After the module is compiled, using many of the functions in
   this module will raise errors, since it is out of their purpose
@@ -155,71 +155,6 @@ defmodule Module do
   end
 
   @doc """
-  Reads the data for the given module. This is used
-  to read data of uncompiled modules. If the module
-  was already compiled, you shoul access the data
-  directly by invoking `__info__(:data)` in that module.
-
-  ## Examples
-
-      defmodule Foo do
-        Module.merge_data __MODULE__, value: 1
-        Module.read_data __MODULE__ #=> [value: 1]
-      end
-
-  """
-  def read_data(module) do
-    assert_not_compiled!(:read_data, module)
-    ETS.lookup_element(data_table_for(module), :data, 2)
-  end
-
-  @doc """
-  Reads the data from `module` at the given key `at`.
-
-  ## Examples
-
-      defmodule Foo do
-        Module.merge_data __MODULE__, value: 1
-        Module.read_data __MODULE__, :value #=> 1
-      end
-
-  """
-  def read_data(module, at) do
-    Keyword.get read_data(module), at
-  end
-
-  @doc """
-  Merge the given data into the module, overriding any
-  previous one.
-
-  If any of the given data is a registered attribute, it is
-  automatically added to the attribute set, instead of marking
-  it as data. See register_attribute/2 and add_attribute/3 for
-  more info.
-
-  ## Examples
-
-      defmodule Foo do
-        Module.merge_data __MODULE__, value: 1
-      end
-
-      Foo.__info__(:data) #=> [value: 1]
-
-  """
-  def merge_data(module, data) do
-    assert_not_compiled!(:merge_data, module)
-
-    table      = data_table_for(module)
-    old        = ETS.lookup_element(table, :data, 2)
-    registered = ETS.lookup_element(table, :registered_attributes, 2)
-    data       = lc kv in data, do: normalize_data(kv)
-
-    { attrs, new } = :lists.partition fn {k,_} -> List.member?(registered, k) end, data
-    lc {k,v} in attrs, do: add_attribute(module, k, v)
-    ETS.insert(table, { :data,  Keyword.merge(old, new) })
-  end
-
-  @doc """
   Attaches documentation to a given function. It expects
   the module the function belongs to, the line (a non negative
   integer), the kind (def or defmacro), a tuple representing
@@ -343,7 +278,12 @@ defmodule Module do
       case ETS.lookup(table, tuple) do
         [clause] ->
           ETS.delete(table, tuple)
-          Erlang.elixir_def_overridable.define(module, tuple, clause)
+
+          old    = Module.read_attribute(module, :__overridable)
+          new    = [ { tuple, { 1, [clause] } } ]
+          merged = :orddict.merge(fn(_k, { count, v1 }, _v2) -> { count + 1, [clause|v1] } end, old, new)
+
+          Module.add_attribute(module, :__overridable, merged)
         _ ->
           { name, arity } = tuple
           raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
@@ -371,12 +311,11 @@ defmodule Module do
       defmodule MyLib do
         def __using__(args) do
           target = __CALLER__.module
-          Module.merge_data target, some_data: nil
           Module.add_compile_callback(target, __MODULE__, :__callback__)
         end
 
         defmacro __callback__(target) do
-          value = Module.read_data(target, :some_data)
+          value = Module.read_attribute(target, :some_data)
           quote do: (def my_lib_value, do: unquote(value))
         end
       end
@@ -400,13 +339,14 @@ defmodule Module do
     assert_not_compiled!(:add_compile_callback, module)
     new   = { target, fun }
     table = data_table_for(module)
-    old   = ETS.lookup_element(table, :compile_callbacks, 2)
-    ETS.insert(table, { :compile_callbacks,  [new|old] })
+    old   = ETS.lookup_element(table, :__compile_callbacks, 2)
+    ETS.insert(table, { :__compile_callbacks,  [new|old] })
   end
 
   @doc """
   Adds an Erlang attribute to the given module with the given
-  key and value. The same attribute can be added more than once.
+  key and value. The semantics of adding the attribute depends
+  if the attribute was registered or not via `register_attribute/2`.
 
   ## Examples
 
@@ -418,8 +358,49 @@ defmodule Module do
   def add_attribute(module, key, value) when is_atom(key) do
     assert_not_compiled!(:add_attribute, module)
     table = data_table_for(module)
-    attrs = ETS.lookup_element(table, :attributes, 2)
-    ETS.insert(table, { :attributes, [{key, value}|attrs] })
+    value = normalize_attribute(key, value)
+    acc   = ETS.lookup_element(table, :__acc_attributes, 2)
+
+    new =
+      if List.member?(acc, key) do
+        case ETS.lookup(table, key) do
+          [{^key,old}] -> [value|old]
+          [] -> [value]
+        end
+      else
+        value
+      end
+
+    ETS.insert(table, { key, new })
+  end
+
+  @doc """
+  Reads the given attribute from a module. If the attribute
+  was marked as accumulate with `Module.register_attribute`,
+  a list is always returned.
+
+  ## Examples
+
+      defmodule Foo do
+        Module.add_attribute __MODULE__, :value, 1
+        Module.read_attribute __MODULE__, :value #=> 1
+
+        Module.register_attribute __MODULE__, :value, accumulate: true
+        Module.add_attribute __MODULE__, :value, 1
+        Module.read_attribute __MODULE__, :value #=> [1]
+      end
+
+  """
+  def read_attribute(module, key) when is_atom(key) do
+    assert_not_compiled!(:read_attribute, module)
+    table = data_table_for(module)
+
+    case ETS.lookup(table, key) do
+      [{^key,old}] -> old
+      [] ->
+        acc = ETS.lookup_element(table, :__acc_attributes, 2)
+        if List.member?(acc, key), do: [], else: nil
+    end
   end
 
   @doc """
@@ -436,46 +417,70 @@ defmodule Module do
   def delete_attribute(module, key) when is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
-    attrs = ETS.lookup_element(table, :attributes, 2)
-    final = lc {k,v} in attrs when k != key, do: {k,v}
-    ETS.insert(table, { :attributes, final })
+    ETS.delete(table, key)
   end
 
   @doc """
-  Registers an attribute. This allows a developer to use the data API
-  but Elixir will register the data as an attribute automatically.
-  By default, `vsn`, `behavior` and other Erlang attributes are
-  automatically registered.
+  Registers an attribute. By registering an attribute, a developer
+  is able to customize how Elixir will store and accumulate the
+  attribute values.
+
+  ## Options
+
+  When registering an attribute, two options can be given:
+
+  * `:accumulate` - Several calls to the same attribute will
+    accumulate instead of override the previous one;
+
+  * `:persist` - The attribute will be persisted in the Erlang
+    Abstract Format. Useful when interfacing with Erlang libraries.
+
+  By default, both options are true. Which means that registering
+  an attribute without passing any options will revert the attribute
+  behavior to exactly the same expected in Erlang.
 
   ## Examples
 
       defmodule MyModule do
-        Module.register_attribute __MODULE__, :custom_threshold_for_lib
+        Module.register_attribute __MODULE__,
+          :custom_threshold_for_lib,
+          accumulate: true, persist: false
+
         @custom_threshold_for_lib 10
+        @custom_threshold_for_lib 20
+        @custom_threshold_for_lib #=> [20, 10]
       end
 
   """
-  def register_attribute(module, new) do
+  def register_attribute(module, new, opts // []) do
     assert_not_compiled!(:register_attribute, module)
     table = data_table_for(module)
-    old = ETS.lookup_element(table, :registered_attributes, 2)
-    ETS.insert(table, { :registered_attributes,  [new|old] })
+
+    if Keyword.get(opts, :persist, true) do
+      old = ETS.lookup_element(table, :__persisted_attributes, 2)
+      ETS.insert(table, { :__persisted_attributes,  [new|old] })
+    end
+
+    if Keyword.get(opts, :accumulate, true) do
+      old = ETS.lookup_element(table, :__acc_attributes, 2)
+      ETS.insert(table, { :__acc_attributes,  [new|old] })
+    end
   end
 
   @doc false
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
   def compile_doc(module, line, kind, pair) do
-    doc = read_data(module, :doc)
+    doc = read_attribute(module, :doc)
     result = add_doc(module, line, kind, pair, doc)
-    merge_data(module, doc: nil)
+    delete_attribute(module, :doc)
     result
   end
 
   ## Helpers
 
-  defp normalize_data({ :on_load, atom }) when is_atom(atom), do: { :on_load, { atom, 0 } }
-  defp normalize_data(other), do: other
+  defp normalize_attribute(:on_load, atom) when is_atom(atom), do: { atom, 0 }
+  defp normalize_attribute(_key, value), do: value
 
   defp data_table_for(module) do
     list_to_atom Erlang.lists.concat([:d, module])

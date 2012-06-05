@@ -127,10 +127,10 @@ retrieve_file(Module, CO) ->
   case elixir_compiler:get_opt(internal, CO) of
     true -> [];
     _ ->
-      case '__MAIN__.Module':read_data(Module, file) of
+      case '__MAIN__.Module':read_attribute(Module, file) of
         nil  -> [];
         Else ->
-          '__MAIN__.Module':merge_data(Module, [{file,nil}]),
+          '__MAIN__.Module':delete_attribute(Module, file),
           if
              is_binary(Else) -> { Else, 1 };
              is_tuple(Else) -> Else

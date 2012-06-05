@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/4, compile/4, data/1, data/2, data_table/1,
+-export([translate/4, compile/4, data_table/1,
    format_error/1, scope_for_eval/2, binding_for_eval/2]).
 -include("elixir.hrl").
 
@@ -10,12 +10,6 @@ scope_for_eval(Module, Opts) ->
   scope_for_eval(Module, elixir:scope_for_eval(Opts)).
 
 binding_for_eval(Module, Binding) -> [{'_@MODULE',Module}|Binding].
-
-data(Module) ->
-  ets:lookup_element(data_table(Module), data, 2).
-
-data(Module, Value) ->
-  ets:insert(data_table(Module), { data, Value }).
 
 %% TABLE METHODS
 
@@ -80,11 +74,12 @@ build(Module) ->
   %% Table with meta information about the module.
   DataTable = data_table(Module),
   ets:new(DataTable, [set, named_table, public]),
-  ets:insert(DataTable, { data, [] }),
-  ets:insert(DataTable, { attributes, [] }),
-  ets:insert(DataTable, { overridable, [] }),
-  ets:insert(DataTable, { compile_callbacks, [] }),
-  ets:insert(DataTable, { registered_attributes, [behavior, behaviour, compile, vsn, on_load] }),
+  ets:insert(DataTable, { '__overridable', [] }),
+  ets:insert(DataTable, { '__compile_callbacks', [] }),
+
+  Attributes = [behavior, behaviour, on_load, spec, type, export_type, compile],
+  ets:insert(DataTable, { '__acc_attributes', Attributes }),
+  ets:insert(DataTable, { '__persisted_attributes', [vsn|Attributes] }),
 
   %% Keep docs in another table since we don't want to pull out
   %% all the binaries every time a new documentation is stored.
@@ -105,7 +100,7 @@ eval_form(Line, Module, Block, RawS) ->
   S = scope_for_eval(Module, RawS),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
   elixir_def_overridable:store_pending(Module),
-  eval_callbacks(Line, Module, compile_callbacks, [Module], NewS),
+  eval_callbacks(Line, Module, '__compile_callbacks', [Module], NewS),
   Value.
 
 %% Return the form with exports and function declarations.
@@ -126,9 +121,24 @@ functions_form(Line, Filename, Module, C) ->
 %% Add attributes handling to the form
 
 attributes_form(Line, _Filename, Module, Current) ->
-  Transform = fun(X, Acc) -> [translate_attribute(Line, X)|Acc] end,
-  Attributes = ets:lookup_element(data_table(Module), attributes, 2),
-  lists:foldl(Transform, Current, Attributes).
+  Table = data_table(Module),
+
+  AccAttrs = ets:lookup_element(Table, '__acc_attributes', 2),
+  PersistedAttrs = ets:lookup_element(Table, '__persisted_attributes', 2),
+
+  Transform = fun({ Key, Value }, Acc) ->
+    case lists:member(Key, PersistedAttrs) of
+      false -> Acc;
+      true  ->
+        Attrs = case lists:member(Key, AccAttrs) of
+          true  -> Value;
+          false -> [Value]
+        end,
+        lists:foldl(fun(X, Final) -> [{ attribute, Line, Key, X }|Final] end, Acc, Attrs)
+    end
+  end,
+
+  ets:foldl(Transform, Current, Table).
 
 %% Loads the form into the code server.
 
@@ -168,7 +178,6 @@ add_info_function(Line, Filename, Module, Export, Functions, Def, Defmacro, C) -
       Contents = { function, Line, '__info__', 1, [
         functions_clause(Line, Def),
         macros_clause(Line, Defmacro),
-        data_clause(Line, Module),
         docs_clause(Line, Module, Docs),
         moduledoc_clause(Line, Module, Docs),
         compile_clause(Line),
@@ -193,17 +202,11 @@ docs_clause(Line, _Module, _) ->
   { clause, Line, [{ atom, Line, docs }], [], [{ atom, Line, nil }] }.
 
 moduledoc_clause(Line, Module, true) ->
-  Docs = '__MAIN__.Module':read_data(Module, moduledoc),
+  Docs = '__MAIN__.Module':read_attribute(Module, moduledoc),
   { clause, Line, [{ atom, Line, moduledoc }], [], [elixir_tree_helpers:abstract_syntax({ Line, Docs })] };
 
 moduledoc_clause(Line, _Module, _) ->
   { clause, Line, [{ atom, Line, moduledoc }], [], [{ atom, Line, nil }] }.
-
-data_clause(Line, Module) ->
-  DataTable  = data_table(Module),
-  Data       = ets:lookup_element(DataTable, data, 2),
-  Pruned     = translate_data(Data),
-  { clause, Line, [{ atom, Line, data }], [], [elixir_tree_helpers:abstract_syntax(Pruned)] }.
 
 compile_clause(Line) ->
   Info = { call, Line, { atom, Line, module_info }, [{ atom, Line, compile }] },
@@ -239,22 +242,6 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
         erlang:raise(Kind, Reason, [Info|erlang:get_stacktrace()])
     end
   end, Callbacks).
-
-% ATTRIBUTES & DATA
-
-translate_attribute(Line, X) ->
-  { attribute, Line, element(1, X), element(2, X) }.
-
-translate_data([{K,V}|T]) when
-  K == doc; K == moduledoc; K == spec; K == type;
-  K == export_type; K == callbacks; K == overridable;
-  V == nil ->
-  translate_data(T);
-
-translate_data([{K,V}|T]) ->
-  [{K,V}|translate_data(T)];
-
-translate_data([]) -> [].
 
 % ERROR HANDLING
 

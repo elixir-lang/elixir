@@ -36,13 +36,13 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
       case Args of
         [Arg] ->
           translate_each({
-            { '.', Line, ['__MAIN__.Module', merge_data] },
+            { '.', Line, ['__MAIN__.Module', add_attribute] },
               Line,
-              [ { '__MODULE__', Line, false }, [{ Name, Arg }] ]
+              [ { '__MODULE__', Line, false }, Name, Arg ]
           }, S);
         _ when is_atom(Args) or (Args == []) ->
             translate_each({
-              { '.', Line, ['__MAIN__.Module', read_data] },
+              { '.', Line, ['__MAIN__.Module', read_attribute] },
               Line,
               [ { '__MODULE__', Line, false }, Name ]
             }, S);

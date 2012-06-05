@@ -73,11 +73,9 @@ defmodule Protocol do
   if not loaded or not a protocol.
   """
   def assert_protocol(module) do
-    try do
-      module.__info__(:data)
-    rescue
-      UndefinedFunctionError ->
-        raise ArgumentError, message: "#{module} is not loaded"
+    case :code.ensure_loaded(module) do
+      { :module, ^module } -> nil
+      _ -> raise ArgumentError, message: "#{module} is not loaded"
     end
 
     try do

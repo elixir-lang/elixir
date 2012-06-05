@@ -219,17 +219,18 @@ defmodule Typespec.Test.Type do
     assert {:spec,{{:myfun,2},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]}} = spec3
   end
 
-  test "defspec with multiple cluases" do
+  test "defspec with multiple clauses" do
     defmodule T do 
       use Typespec, keep_data: true
       def myfun(x), do: x
       defspec myfun(integer), returns: integer
       defspec myfun(string), returns: string
     end
-    specs = T.__info__(:data)[:specs]
+    specs = T.__specs__
     assert [{{:myfun,1},[
                     {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
                     {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}] = specs
+
     # cleanup
     :code.delete(T)
     :code.purge(T)
