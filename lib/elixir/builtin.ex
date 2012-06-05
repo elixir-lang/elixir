@@ -1112,7 +1112,7 @@ defmodule Elixir.Builtin do
   Internally, a record is simply a tuple where the first element is
   the record module name. This can be noticed if we print the record:
 
-      IO.puts FileInfo.new
+      IO.inspect FileInfo.new
       { FileInfo, nil, nil }
 
   ## Default based functions

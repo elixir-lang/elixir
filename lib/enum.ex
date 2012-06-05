@@ -522,7 +522,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.times 3, fn(x) -> IO.puts x end
+      Enum.times 3, fn(x) -> IO.inspect x end
       1
       2
       3

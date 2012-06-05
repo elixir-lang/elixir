@@ -37,14 +37,14 @@ defmodule IO do
   @doc """
   Writes the given argument to the given device.
   By default the device is the standard output.
-  The argument is converted to binary before
-  printing.
+  The argument is expected to be a chardata (i.e.
+  a char list or an unicode binary).
 
   It returns `:ok` if it succeeds.
 
   ## Examples
 
-      IO.write :sample
+      IO.write "sample"
       #=> "sample"
 
       IO.write :standard_error, "error"
@@ -52,27 +52,27 @@ defmodule IO do
 
   """
   def write(device // :standard_io, item) do
-    Erlang.io.put_chars device, to_binary(item)
+    Erlang.io.put_chars device, item
   end
 
   def print(device // :standard_io, item) do
     IO.puts "IO.print is deprecated in favor of IO.write"
-    Erlang.io.put_chars device, to_binary(item)
+    Erlang.io.put_chars device, item
   end
 
   @doc """
-  Prints the given argument to the device,
-  similarly to print but adds a new line
-  at the end.
+  Writes the argument to the device, similarly to write
+  but adds a new line at the end. The argument is expected
+  to be a chardata.
   """
   def puts(device // :standard_io, item) do
-    Erlang.io.put_chars device, to_binary(item)
+    Erlang.io.put_chars device, item
     Erlang.io.nl(device)
   end
 
   @doc """
-  Prints the given argument to the device
-  but inspects it before.
+  Inspects and writes the given argument to the device
+  followed by a new line.
   """
   def inspect(device // :standard_io, item) do
     puts device, Elixir.Builtin.inspect(item)

@@ -401,6 +401,11 @@ defmodule File do
     stat(path, opts)
   end
 
+  def read_info!(path, opts // []) do
+    IO.puts "File.read_info! is deprecated in favor of File.stat"
+    stat!(path, opts)
+  end
+
   @doc """
   Same as `stat` but returns the `File.Stat` directly and
   throws `File.Error` if an error is returned.
