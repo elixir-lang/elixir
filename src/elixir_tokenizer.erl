@@ -187,13 +187,13 @@ tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $&;
 
 % Ambiguous unary/binary operators tokens
 
-tokenize(Line, [Space,Sign,NotMarker|T], [{Identifier,_,_}|_] = Tokens) when Sign == $+ orelse Sign == $-,
+tokenize(Line, [Space,Sign,NotMarker|T], [{Identifier,_,_} = H|Tokens]) when Sign == $+ orelse Sign == $-,
   Space == $\s orelse Space == $\t, NotMarker /= $\s, NotMarker /= $\t,
   NotMarker /= $\n, NotMarker /= $:, NotMarker /= $(,
   NotMarker /= $+, NotMarker /= $-, NotMarker /= $>,
   Identifier == identifier orelse Identifier == punctuated_identifier ->
   Rest = [NotMarker|T],
-  tokenize(Line, Rest, [{special_op,Line,list_to_atom([Sign])}|Tokens]);
+  tokenize(Line, Rest, [{list_to_atom([Sign]),Line},setelement(1, H, op_identifier)|Tokens]);
 
 % Stand-alone tokens
 

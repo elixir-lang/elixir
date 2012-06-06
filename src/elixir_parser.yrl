@@ -18,7 +18,7 @@ Nonterminals
   stab_expr stab_expr_list
   kw_eol kw_expr kw_comma kw_base
   matched_kw_expr matched_kw_comma matched_kw_base
-  parens_call dot_op dot_identifier dot_do_identifier dot_ref
+  parens_call dot_op dot_ref dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_punctuated_identifier dot_bracket_identifier
   var list bracket_access bit_string tuple
   fn_block do_block do_eol end_eol block_eol block_item block_list
@@ -29,7 +29,7 @@ Terminals
   bracket_identifier paren_identifier do_identifier block_identifier
   fn fn_paren 'end' '__aliases__'
   number signed_number atom bin_string list_string sigil
-  dot_call_op special_op comp_op
+  dot_call_op comp_op op_identifier
   'not' 'and' 'or' 'xor' 'when' 'in' 'inlist' 'inbits' 'do'
   'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
@@ -44,9 +44,9 @@ Left       5 do.
 Right     10 '->'.
 Left      20 ','.  % Solve nested call_args conflicts
 Right     30 when_op.
-Right     35 colon_colon_op.
-Right     40 default_op.
-Left      50 pipe_op.
+Right     40 colon_colon_op.
+Right     50 default_op.
+Left      60 pipe_op.
 Right     80 match_op.
 Right     90 arrow_op.
 Left     100 oror_op.
@@ -60,7 +60,6 @@ Right    190 bin_concat_op.
 Right    200 addadd_op.
 Right    210 multmult_op.
 Nonassoc 280 unary_op.
-Nonassoc 290 special_op.
 Left     300 in_op.
 Left     310 dot_call_op.
 Left     310 dot_op.
@@ -84,13 +83,11 @@ expr -> unmatched_expr : '$1'.
 
 matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 matched_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
-matched_expr -> special_op matched_expr : build_special_op('$1', '$2').
 matched_expr -> fn_expr : '$1'.
 
 unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unary_op expr : build_unary_op('$1', '$2').
-unmatched_expr -> special_op expr : build_special_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
 op_expr -> match_op expr : { '$1', '$2' }.
@@ -143,9 +140,11 @@ fn_expr -> fn : build_identifier('$1', nil).
 fn_expr -> call_expr : '$1'.
 
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
+call_expr -> dot_op_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', nil).
+call_expr -> op_identifier matched_expr : build_op_identifier('$1', '$2').
 call_expr -> var : build_identifier('$1', nil).
 call_expr -> bracket_expr : '$1'.
 
@@ -322,6 +321,8 @@ dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
 dot_ref -> matched_expr dot_op '__aliases__' : build_dot_ref('$2', '$1', '$3').
 
+dot_op_identifier -> matched_expr dot_op op_identifier : build_dot('$2', '$1', '$3').
+
 dot_do_identifier -> do_identifier : '$1'.
 dot_do_identifier -> matched_expr dot_op do_identifier : build_dot('$2', '$1', '$3').
 
@@ -415,9 +416,6 @@ build_op(Op, Left, Right) ->
 build_unary_op(Op, Expr) ->
   { ?op(Op), ?line(Op), [Expr] }.
 
-build_special_op(Op, Expr) ->
-  { ?exprs(Op), ?line(Op), [Expr] }.
-
 build_tuple(_Marker, [Left, Right]) ->
   { Left, Right };
 
@@ -460,9 +458,13 @@ build_identifier({ Keyword, Line }, Args) when Keyword == fn; Keyword == fn_pare
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, Args }.
 
+build_op_identifier(Identifier, Expr) ->
+  Line = ?line(Identifier),
+  { '__ambiguousop__', Line, [{ ?exprs(Identifier), Line, nil }, Expr] }.
+
 extract_identifier({ Kind, _, Identifier }) when
     Kind == identifier; Kind == punctuated_identifier; Kind == bracket_identifier;
-    Kind == paren_identifier; Kind == do_identifier ->
+    Kind == paren_identifier; Kind == do_identifier; Kind == op_identifier ->
   Identifier;
 
 extract_identifier(Other) -> Other.

@@ -73,6 +73,8 @@ op_call_test() ->
   {3, [{a,1},{b,2}]} = eval(":+.(a = 1, b = 2)").
 
 operators_precedence_test() ->
+  {true, _} = eval("a = -1; a +1 == 0"),
+  {true, _} = eval("a = -1; a -1 + 2 == 0"),
   {5, []} = eval("abs -10 + 5"),
   {15, []} = eval("abs(-10) + 5").
 

@@ -54,6 +54,14 @@ translate_each({ '__op__', Line, [Op|Args] }, S) when is_atom(Op) ->
   { [TLeft, TRight], NS }  = translate_args(Args, S),
   { { op, Line, convert_op(Op), TLeft, TRight }, NS };
 
+translate_each({ '__ambiguousop__', Line, [Var, Expr] }, S) ->
+  { Name, _, _ } = Var,
+
+  case dict:find(Name, S#elixir_scope.vars) of
+    error -> translate_each({ Name, Line, [Expr] }, S);
+    _ -> translate_each(rellocate_ambiguous_op(Expr, Var), S)
+  end;
+
 %% Containers
 
 translate_each({ '<<>>', Line, Args }, S) when is_list(Args) ->
@@ -672,6 +680,12 @@ convert_op(Else)   ->  Else.
 
 is_atom_tuple({ atom, _, _ }) -> true;
 is_atom_tuple(_) -> false.
+
+rellocate_ambiguous_op({ Op, Line, [Expr] }, Var) when Op == '+'; Op == '-' ->
+  { Op, Line, [Var, Expr] };
+
+rellocate_ambiguous_op({ Call, Line, [H|T] }, Var) ->
+  { Call, Line, [rellocate_ambiguous_op(H, Var)|T] }.
 
 %% Comprehensions
 
