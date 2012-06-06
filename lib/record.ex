@@ -107,6 +107,8 @@ defmodule Record do
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
       def new(tuple) when is_tuple(tuple), do: setelem(tuple, 1, __MODULE__)
+
+      defoverridable [new: 0, new: 1]
     end
   end
 
@@ -270,6 +272,7 @@ defmodule Record.Definition do
   def default_for(key, _default, i) do
     bin_update = "update_" <> atom_to_binary(key)
     update     = binary_to_atom(bin_update)
+    overridable = Keyword.from_enum([{key, 1}, {key, 2}, {update, 2}])
 
     quote do
       def unquote(key).(record) do
@@ -284,6 +287,8 @@ defmodule Record.Definition do
         current = :erlang.element(unquote(i), record)
         :erlang.setelement(unquote(i), record, function.(current))
       end
+
+      defoverridable unquote(overridable)
     end
   end
 
@@ -292,6 +297,7 @@ defmodule Record.Definition do
     bin_key = atom_to_binary(key)
     prepend = :"prepend_#{bin_key}"
     merge   = :"merge_#{bin_key}"
+    overridable = Keyword.from_enum([{prepend, 2}, {merge, 2}])
 
     quote do
       def unquote(prepend).(value, record) do
@@ -303,18 +309,23 @@ defmodule Record.Definition do
         current = :erlang.element(unquote(i), record)
         :erlang.setelement(unquote(i), record, Keyword.merge(current, value))
       end
+
+      defoverridable unquote(overridable)
     end
   end
 
   def extension_for(key, default, i) when is_number(default) do
     bin_key   = atom_to_binary(key)
     increment = :"increment_#{bin_key}"
+    overridable = Keyword.from_enum([{increment, 2}])
 
     quote do
       def unquote(increment).(value // 1, record) do
         current = :erlang.element(unquote(i), record)
         :erlang.setelement(unquote(i), record, current + value)
       end
+
+      defoverridable unquote(overridable)
     end
   end
 
