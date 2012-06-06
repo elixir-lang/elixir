@@ -2237,9 +2237,11 @@ defmodule Elixir.Builtin do
         end
 
         iterator = fn({field, default}, each_keyword) ->
-          new_fields = Keyword.get(each_keyword, field) || case(in_match) do
-            true  -> { :_, 0, nil }
-            false -> Macro.escape(default)
+          new_fields = 
+          case {Keyword.key?(each_keyword, field), in_match} do
+             {true, _} -> Keyword.get(each_keyword, field)
+             {_, false} -> Macro.escape(default)
+             {_, true}  -> { :_, 0, nil }
           end
           { new_fields, Keyword.delete(each_keyword, field) }
         end
