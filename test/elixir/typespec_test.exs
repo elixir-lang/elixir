@@ -144,7 +144,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a fun with arguments and return type" do
     spec = 
     test_module do
-      deftype mytype, as: fun(integer, integer), returns: integer
+      deftype mytype, as: fun(integer, integer, do: integer)
     end
     assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :product, 
                          [{:type, _, :integer, []}, {:type, _, :integer, []}]},
@@ -154,7 +154,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a fun with no arguments and return type" do
     spec = 
     test_module do
-      deftype mytype, as: fun(), returns: integer
+      deftype mytype, as: fun(do: integer)
     end
     assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :product, []},
                          {:type, _, :integer, []}]}, []}} = spec
@@ -163,7 +163,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a fun with any arity and return type" do
     spec = 
     test_module do
-      deftype mytype, as: fun, returns: integer
+      deftype mytype, as: fun(:'...', do: integer)
     end
     assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :any},
                          {:type, _, :integer, []}]}, []}} = spec
@@ -196,7 +196,7 @@ defmodule Typespec.Test.Type do
     {spec1, spec2} = 
     test_module do
       t1 = deftype mytype, as: named :: integer
-      t2 = deftype mytype1, as: fun(a :: integer), returns: integer
+      t2 = deftype mytype1, as: fun(a :: integer, do: integer)
       {t1,t2}
     end
     assert {:type, {:mytype, {:ann_type, _, [{:var, _, :named}, {:type, _, :integer, []}]}, []}} = spec1

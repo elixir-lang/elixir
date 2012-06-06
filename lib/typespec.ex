@@ -28,13 +28,6 @@ defmodule Typespec do
     quote do: {:remote_type, unquote(line), [unquote(remote), unquote(name), unquote(arguments)]}
   end
 
-  def pre_process({:fun, line, args}, [{:returns, v}]) do
-    {{:fun, line, args}, v}
-  end
-  def pre_process(other, _) do
-    other
-  end
-
   defp collect_union({:"|", _, [a, b]}), do: [b|collect_union(a)]
   defp collect_union(v), do: [v]
 
@@ -108,13 +101,19 @@ defmodule Typespec do
   defp typespec({:"{}", line, t}, vars, caller) when is_list(t) do
     quote do: {:type, unquote(line), :tuple, unquote((lc e inlist t, do: typespec(e, vars, caller)))}
   end
-  
+
+  defp typespec({:fun, line, arguments}, vars, caller) when is_list(arguments) do
+    case List.reverse(arguments) do
+      [[{:do, returns}]|t] ->  typespec({{:fun, line, List.reverse(t)}, returns}, vars, caller)
+      [] -> typespec({{:fun, line, []}}, vars, caller)
+    end
+  end
 
   defp typespec({{:fun, line, atom}, returns}, vars, caller) when atom in [:quoted, nil] do
     typespec({{:fun, line, [{:type, line, :any}]}, returns}, vars, caller)
   end
 
-  defp typespec({{:fun, line, [{:type, _, :any}]}, returns}, vars, caller) do
+  defp typespec({{:fun, line, [:'...']}, returns}, vars, caller) do
     quote do: {:type, unquote(line), :fun, [{:type, unquote(line), :any}, unquote(typespec(returns, vars, caller))]}
 
   end
@@ -123,6 +122,10 @@ defmodule Typespec do
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
     quote do: {:type, unquote(line), :fun, [{:type, unquote(line), :product, unquote(arguments)},
                         unquote(typespec(returns, vars, caller))]}
+  end
+
+  defp typespec({{:fun, line, []}}, _, _) do
+    quote do: {:type, unquote(line), :fun, []}
   end
 
   defp typespec({name, line, atom}, vars, caller) when atom in [:quoted, nil] do
@@ -150,14 +153,13 @@ defmodule Typespec do
     {:var, line, name}
   end
 
-  defp _deftype({name, _, args}, definition, tail, export, caller) do
+  defp _deftype({name, _, args}, definition, export, caller) do
     args = 
     case args do
       :quoted -> []
       nil -> []
       _ -> lc arg inlist args, do: variable(arg)
     end
-    definition = pre_process(definition, tail)
     spec = typespec(definition, (lc {:var, _, var} inlist args, do: var), caller)
     vars = lc {:var, line, name} inlist args, do: (quote do: {:var, unquote(line), unquote(name)})
     type = quote do: {unquote(name), unquote(spec), unquote(vars)}
@@ -170,9 +172,9 @@ defmodule Typespec do
     end
   end
 
-  defmacro deftype(name), do: _deftype(name, (quote do: term), [], true, __CALLER__)
-  defmacro deftype(name, [{:as, definition}|t]), do: _deftype(name, definition, t, true, __CALLER__)
-  defmacro deftypep(name, [{:as, definition}|t]), do: _deftype(name, definition, t, false, __CALLER__)
+  defmacro deftype(name), do: _deftype(name, (quote do: term), true, __CALLER__)
+  defmacro deftype(name, [{:as, definition}]), do: _deftype(name, definition, true, __CALLER__)
+  defmacro deftypep(name, [{:as, definition}]), do: _deftype(name, definition, false, __CALLER__)
 
   defmacro defspec({name, line, args},[{:returns, returns}]) do
     spec = typespec({{:fun, line, args}, returns}, [], __CALLER__)
