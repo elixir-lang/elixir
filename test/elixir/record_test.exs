@@ -11,6 +11,12 @@ defrecord RecordTest.WithNoField, []
 defmodule RecordTest do
   use ExUnit.Case
 
+  test :record_access_with_nil_keyword do
+    record = RecordTest.DynamicName.new(a: nil)
+    record_access = RecordTest.DynamicName[a: nil]
+    assert record == record_access
+  end
+
   test :record_constructor_with_dict do
     record   = RecordTest.FileInfo.new(type: :regular)
     assert record.type == :regular
