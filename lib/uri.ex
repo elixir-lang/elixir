@@ -57,7 +57,7 @@ defmodule URI do
   @doc """
   Percent (URL) encodes a URI.
   """
-  def encode(s), do: bc <<c>> in s, do: <<percent(c)|:binary>>
+  def encode(s), do: bc <<c>> inbits s, do: <<percent(c)|:binary>>
 
   defp percent(32), do: <<?+>>
   defp percent(?-), do: <<?->>
@@ -170,7 +170,7 @@ defmodule URI do
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.
   defp nillify(l) do
-    lc s in l do
+    lc s inlist l do
       if size(s) > 0 do
         s
       else

@@ -210,7 +210,7 @@ defmodule Record.Extractor do
 
   # Parse the given file and retrieve all existent records.
   defp retrieve_from_file(file) do
-    lc { :attribute, _, :record, record } in read_file(file), do: record
+    lc { :attribute, _, :record, record } inlist read_file(file), do: record
   end
 
   # Read a file and return its abstract syntax form that also

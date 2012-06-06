@@ -144,7 +144,7 @@ defmodule Protocol do
   which should be properly handled by the dispatching function.
   """
   def impl_for(env, conversions) do
-    contents = lc kind in conversions, do: each_impl_for(kind, conversions)
+    contents = lc kind inlist conversions, do: each_impl_for(kind, conversions)
 
     # If we don't implement all protocols and any is not in the
     # list, we need to add a final clause that returns nil.
@@ -273,7 +273,7 @@ defmodule Protocol.DSL do
     # are named xa, xb and so forth. We cannot use string
     # interpolation to generate the arguments because of compile
     # dependencies, so we use the <<>> instead.
-    args = lc i in :lists.seq(1, arity) do
+    args = lc i inlist :lists.seq(1, arity) do
       { binary_to_atom(<<?x, i + 64>>), 0, :quoted }
     end
 

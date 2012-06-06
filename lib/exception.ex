@@ -65,7 +65,7 @@ defmodule Exception do
     << ?:, fun | :binary >> = inspect(fun)
 
     if is_list(arity) do
-      inspected = lc x in arity, do: inspect(x)
+      inspected = lc x inlist arity, do: inspect(x)
       "#{inspect module}.#{fun}(#{Enum.join(inspected, ", ")})"
     else
       "#{inspect module}.#{fun}/#{arity}"

@@ -25,7 +25,7 @@ defmodule Macro do
   end
 
   def escape(list) when is_list(list) do
-    lc item in list, do: escape(item)
+    lc item inlist list, do: escape(item)
   end
 
   def escape(other), do: other
@@ -120,7 +120,7 @@ defmodule Macro do
       false -> [h|t]
     end
 
-    aliases = lc alias in aliases, do: expand(alias, env)
+    aliases = lc alias inlist aliases, do: expand(alias, env)
     :lists.all(is_atom(&1), aliases) && Erlang.elixir_aliases.concat(aliases)
   end
 

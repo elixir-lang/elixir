@@ -75,7 +75,7 @@ defmodule EEx.Compiler do
   # Check if the syntax node represents an empty string
 
   defp is_empty?(bin) when is_binary(bin) do
-    bc(<<c>> in bin when not c in [?\s,?\t,?\r,?\n], do: <<c>>) == ""
+    bc(<<c>> inbits bin, not c in [?\s,?\t,?\r,?\n], do: <<c>>) == ""
   end
 
   defp is_empty?({ :<>, _, [left, right] }) do

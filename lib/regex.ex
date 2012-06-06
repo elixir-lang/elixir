@@ -167,7 +167,7 @@ defmodule Regex do
     case Erlang.re.run(string, compiled, options) do
       :nomatch -> []
       { :match, results } ->
-        lc result in results do
+        lc result inlist results do
           case result do
             [t] -> t
             [h|t] -> t

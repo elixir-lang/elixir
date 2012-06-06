@@ -2251,7 +2251,7 @@ defmodule Elixir.Builtin do
         case remaining do
           [] -> { :{}, caller.line, [atom|match] }
           _  ->
-            keys = lc { key, _ } in remaining, do: key
+            keys = lc { key, _ } inlist remaining, do: key
             raise "record #{inspect atom} does not have the keys: #{inspect keys}"
         end
     end
@@ -2305,14 +2305,14 @@ defmodule Elixir.Builtin do
 
     append_first = Keyword.get(opts, :append_first, false)
 
-    lc { name, arity } in tuples do
-      args = lc i in :lists.seq(1, arity) do
+    lc { name, arity } inlist tuples do
+      args = lc i inlist :lists.seq(1, arity) do
         { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
       end
 
       case {arity, append_first} do
         {n, true} when n > 1 ->
-          actual_args = lc i in (:lists.seq(2, arity) ++ [1]) do
+          actual_args = lc i inlist (:lists.seq(2, arity) ++ [1]) do
             { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
           end
         _ ->

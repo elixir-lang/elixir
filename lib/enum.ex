@@ -339,7 +339,7 @@ defmodule Enum do
 
   """
   def map(collection, fun) when is_list(collection) do
-    lc item in collection, do: fun.(item)
+    lc item inlist collection, do: fun.(item)
   end
 
   def map(collection, fun) do

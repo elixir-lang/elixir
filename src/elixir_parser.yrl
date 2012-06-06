@@ -30,7 +30,7 @@ Terminals
   fn fn_paren 'end' '__aliases__'
   number signed_number atom bin_string list_string sigil
   dot_call_op special_op comp_op
-  'not' 'and' 'or' 'xor' 'when' 'in' 'do'
+  'not' 'and' 'or' 'xor' 'when' 'in' 'inlist' 'inbits' 'do'
   'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '::'
@@ -295,6 +295,10 @@ bin_concat_op -> '<>' eol : '$1'.
 
 in_op -> 'in' : '$1'.
 in_op -> 'in' eol : '$1'.
+in_op -> 'inlist' : '$1'.
+in_op -> 'inlist' eol : '$1'.
+in_op -> 'inbits' : '$1'.
+in_op -> 'inbits' eol : '$1'.
 
 when_op -> 'when' : '$1'.
 when_op -> 'when' eol : '$1'.

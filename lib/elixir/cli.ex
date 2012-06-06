@@ -11,7 +11,7 @@ defmodule Elixir.CLI do
   def process_argv(options) do
     { config, argv } = process_options(options, Elixir.CLI.Config.new)
 
-    argv = lc arg in argv, do: list_to_binary(arg)
+    argv = lc arg inlist argv, do: list_to_binary(arg)
     Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
 
     all_commands = List.reverse(config.commands) ++ List.reverse(config.close)
@@ -49,7 +49,7 @@ defmodule Elixir.CLI do
 
   defp at_exit(status) do
     hooks = Erlang.gen_server.call(:elixir_code_server, :at_exit)
-    lc hook in hooks do
+    lc hook inlist hooks do
       try do
         hook.(status)
       rescue

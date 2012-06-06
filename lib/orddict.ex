@@ -4,11 +4,11 @@ defimpl Dict, for: Orddict.Record do
   alias Orddict.Record, as: O
 
   def keys(O[data: data]) do
-    lc { k, _ } in data, do: k
+    lc { k, _ } inlist data, do: k
   end
 
   def values(O[data: data]) do
-    lc { _, v } in data, do: v
+    lc { _, v } inlist data, do: v
   end
 
   def size(O[data: data]) do

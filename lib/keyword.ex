@@ -111,7 +111,7 @@ defmodule Keyword do
 
   """
   def keys(keywords) do
-    lc { key, _ } in keywords, do: key
+    lc { key, _ } inlist keywords, do: key
   end
 
   @doc """
@@ -122,7 +122,7 @@ defmodule Keyword do
       Keyword.values [a: 1, b: 2] #=> [1,2]
   """
   def values(keywords) do
-    lc { _, value } in keywords, do: value
+    lc { _, value } inlist keywords, do: value
   end
 
   @doc """

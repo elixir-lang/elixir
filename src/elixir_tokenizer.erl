@@ -563,6 +563,8 @@ keyword('or')      -> true;
 keyword('xor')     -> true;
 keyword('when')    -> true;
 keyword('in')      -> true;
+keyword('inlist')  -> true;
+keyword('inbits')  -> true;
 keyword(_)         -> false.
 
 % Block keywords

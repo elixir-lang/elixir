@@ -396,65 +396,43 @@ defmodule Elixir.SpecialForms do
   @doc """
   List comprehensions allow you to quickly build a list from another list:
 
-      lc n in [1,2,3,4], do: n * 2
+      lc n inlist [1,2,3,4], do: n * 2
       #=> [2,4,6,8]
 
   A comprehension accepts many generators and also filters. Generators
-  are an extension to Elixir's in operator, allowing you to loop lists
-  and bitstrings:
+  are defined using both `inlist` and `inbits` operators, allowing you
+  to loop lists and bitstrings:
 
       # A list generator:
-      lc n in [1,2,3,4], do: n * 2
+      lc n inlist [1,2,3,4], do: n * 2
       #=> [2,4,6,8]
 
       # A bit string generator:
-      lc <<n>> in <<1,2,3,4>>, do: n * 2
+      lc <<n>> inbits <<1,2,3,4>>, do: n * 2
       #=> [2,4,6,8]
 
       # A generator from a variable:
       list = [1,2,3,4]
-      lc n in list, do: n * 2
+      lc n inlist list, do: n * 2
       #=> [2,4,6,8]
 
       # A comprehension with two generators
-      lc x in [1,2], y in [2,3], do: x*y
+      lc x inlist [1,2], y inlist [2,3], do: x*y
       #=> [2,3,4,6]
 
-  Filters must be given after the when clause:
+  Filters can also be given:
 
       # A comprehension with a generator and a filter
-      lc n in [1,2,3,4,5,6] when rem(n, 2) == 0, do: n
+      lc n inlist [1,2,3,4,5,6], rem(n, 2) == 0, do: n
       #=> [2,4,6]
 
   Bit string generators are quite useful when you need to
   organize bit string streams:
 
       iex> pixels = <<213,45,132,64,76,32,76,0,0,234,32,15>>
-      iex> lc <<r:8,g:8,b:8>> in pixels, do: {r,g,b}
+      iex> lc <<r:8,g:8,b:8>> inbits pixels, do: {r,g,b}
       [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
 
-  Elixir does its best to hide the differences between list
-  and bit string generators. However, there is a special case
-  due to Erlang limitation where we need to explicitly tell
-  Erlang that a list is being given as argument:
-
-      # This will fail because when Elixir sees that the left
-      # side of the in expression is a bit string, it expects
-      # the right side to be a bit string as well:
-      lc <<n>> in [<<1>>,<<2>>,<<3>>], do: n*2
-      #=> ** (ErlangError) erlang error {:bad_generator,[<<1>>,<<2>>,<<3>>]}
-
-      # You need to be explicit and use inlist:
-      lc inlist(<<n>>, [<<1>>,<<2>>,<<3>>]), do: n*2
-      #=> [2,4,6]
-
-      # For consistency, inbin is also available:
-      lc inbin(<<n>>, <<1,2,3>>), do: n*2
-      #=> [2,4,6]
-
-  Notice that although comprehensions uses `when` to specify
-  filters, filters are not guards and therefore accept any
-  expression (they are not limited as guards).
   """
   defmacro lc(args)
 
@@ -464,7 +442,7 @@ defmodule Elixir.SpecialForms do
   be a bitstring. For example, here is how to remove all
   spaces from a string:
 
-      bc <<c>> in " hello world " when c != ? , do: <<c>>
+      bc <<c>> inbits " hello world ", c != ? , do: <<c>>
       "helloworld"
 
   """

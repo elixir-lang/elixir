@@ -191,7 +191,7 @@ defimpl Binary.Inspect, for: Tuple do
 
   def inspect(exception) when is_exception(exception) do
     [name,_|tail] = tuple_to_list(exception)
-    [_|fields]    = lc { field, _ } in name.__record__(:fields), do: field
+    [_|fields]    = lc { field, _ } inlist name.__record__(:fields), do: field
     Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
   end
 
@@ -200,7 +200,7 @@ defimpl Binary.Inspect, for: Tuple do
     [name|tail] = list
 
     if is_record?(name) do
-      fields = lc { field, _ } in name.__record__(:fields), do: field
+      fields = lc { field, _ } inlist name.__record__(:fields), do: field
       Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
     else
       Binary.Inspect.List.container_join(list, "{", "}")
