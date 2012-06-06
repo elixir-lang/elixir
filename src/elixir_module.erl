@@ -238,7 +238,7 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
       erl_eval:exprs([Tree], Binding)
     catch
       Kind:Reason ->
-        Info = { M, F, Args, [{ file, S#elixir_scope.filename }, { line, Line }] },
+        Info = { M, F, Args, [{ file, binary_to_list(S#elixir_scope.filename) }, { line, Line }] },
         erlang:raise(Kind, Reason, [Info|erlang:get_stacktrace()])
     end
   end, Callbacks).

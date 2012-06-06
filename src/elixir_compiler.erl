@@ -20,7 +20,7 @@ get_opts() ->
 
 %% Compiles the given string.
 
-string(Contents, Filename) ->
+string(Contents, Filename) when is_list(Contents), is_binary(Filename) ->
   Previous = get(elixir_compiled),
 
   try
@@ -34,7 +34,7 @@ string(Contents, Filename) ->
 
 %% Compile a file, return a tuple of module names and binaries.
 
-file(Relative) ->
+file(Relative) when is_binary(Relative) ->
   Filename = filename:absname(Relative),
   case file:read_file(Filename) of
     {ok, Bin} ->
@@ -45,7 +45,7 @@ file(Relative) ->
 
 %% Compiles a file to the given path (directory).
 
-file_to_path(File, Path) ->
+file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
   Lists = file(File),
   [binary_to_path(X, Path) || X <- Lists],
   Lists.
@@ -91,11 +91,13 @@ module(Forms, S, Callback) ->
   end,
   module(Forms, S#elixir_scope.filename, Options, Callback).
 
-module(Forms, Filename, Options, Callback) ->
-  case compile:forms([no_auto_import()|Forms], [return,{source,Filename}|Options]) of
+module(Forms, Filename, Options, Callback) when
+    is_binary(Filename), is_list(Forms), is_list(Options), is_function(Callback) ->
+  Listname = binary_to_list(Filename),
+  case compile:forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
     {ok, ModuleName, Binary, Warnings} ->
       format_warnings(Filename, Warnings),
-      code:load_binary(ModuleName, Filename, Binary),
+      code:load_binary(ModuleName, Listname, Binary),
       Callback(ModuleName, Binary);
     {error, Errors, Warnings} ->
       format_warnings(Filename, Warnings),
@@ -119,11 +121,12 @@ no_auto_import() ->
   { attribute, 0, compile, {
     no_auto_import, erlang:module_info(exports) } }.
 
-module_form(Exprs, Line, Filename, Module) ->
+module_form(Exprs, Line, Filename, Module) when
+    is_binary(Filename), is_list(Exprs), is_integer(Line), is_atom(Module) ->
   Args = [{ var, Line, '_@MODULE'}],
 
   [
-    { attribute, Line, file, { Filename, 1 } },
+    { attribute, Line, file, { binary_to_list(Filename), 1 } },
     { attribute, Line, module, Module },
     { attribute, Line, export, [{ 'BOOTSTRAP',1 }] },
     { function, Line, 'BOOTSTRAP', length(Args), [
@@ -142,6 +145,9 @@ allows_fast_compilation(_) -> false.
 
 escape_module(Module) when is_atom(Module) ->
   escape_module(atom_to_list(Module));
+
+escape_module(Module) when is_binary(Module) ->
+  escape_module(binary_to_list(Module));
 
 escape_module(Module) when is_list(Module) ->
   list_to_atom(escape_each(Module)).
@@ -182,7 +188,7 @@ make_dir(Current, [], Buffer) ->
 
 core_file(File) ->
   try
-    Lists = file(File),
+    Lists = file(list_to_binary(File)),
     [binary_to_path(X, "ebin") || X <- Lists],
     io:format("Compiled ~s~n", [File])
   catch

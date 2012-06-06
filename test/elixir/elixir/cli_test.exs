@@ -35,7 +35,7 @@ defmodule Elixir.CLI.OptionParsingTest do
   test :require do
     options = ['-r', 'lib/list/*', '-r', '/never/gonna/*/up']
     { config, _argv } = Elixir.CLI.process_options(options, Elixir.CLI.Config.new)
-    assert_member {:require, 'lib/list/chars.ex'}, config.commands
+    assert_member {:require, "lib/list/chars.ex"}, config.commands
   end
 end
 

@@ -25,7 +25,7 @@
   clause_vars=dict:new(),                        %% a dict of all variables defined in a particular clause
   quote_vars=dict:new(),                         %% a dict of all quoted variables
   counter=0,                                     %% a counter for the variables defined
-  filename="nofile",                             %% the current scope filename
+  filename=(<<"nofile">>),                       %% the current scope filename
   local=nil,                                     %% the scope to evaluate local functions against
   aliases=[],                                    %% an orddict with aliases by new -> old names
   requires=elixir_dispatch:default_requires(),   %% a set with modules required

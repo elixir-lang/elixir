@@ -94,10 +94,10 @@ defmodule Code do
   When loading a file, you may skip passing .exs as extension as Elixir
   automatically adds it for you.
   """
-  def load_file(file, relative_to // nil) do
+  def load_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
     server_call { :loaded, file }
-    Erlang.elixir_compiler.file to_char_list(file)
+    Erlang.elixir_compiler.file file
     file
   end
 
@@ -109,12 +109,12 @@ defmodule Code do
   When requiring a file, you may skip passing .exs as extension as
   Elixir automatically adds it for you.
   """
-  def require_file(file, relative_to // nil) do
+  def require_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
 
     case server_call({ :loaded, file }) do
       :ok ->
-        Erlang.elixir_compiler.file to_char_list(file)
+        Erlang.elixir_compiler.file file
         file
       :duplicated -> nil
     end
@@ -151,8 +151,8 @@ defmodule Code do
 
   For compiling many files at once, check `Elixir.ParallelCompiler`.
   """
-  def compile_string(string, file // 'nofile') do
-    Erlang.elixir_compiler.string :unicode.characters_to_list(string), to_char_list(file)
+  def compile_string(string, file // "nofile") when is_binary(file) do
+    Erlang.elixir_compiler.string :unicode.characters_to_list(string), to_binary(file)
   end
 
   @doc """

@@ -194,10 +194,10 @@ translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
   { { atom, Line, S#elixir_scope.module }, S };
 
 translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
-  translate_each(list_to_binary(S#elixir_scope.filename), S);
+  translate_each(S#elixir_scope.filename, S);
 
 translate_each({'__MAIN__', Line, Atom}, S) when is_atom(Atom) ->
-  { {atom, Line, '__MAIN__' }, S };
+  { { atom, Line, '__MAIN__' }, S };
 
 translate_each({'__ENV__', Line, Atom}, S) when is_atom(Atom) ->
   { elixir_scope:to_erl_env({ Line, S }), S };

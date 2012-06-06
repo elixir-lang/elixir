@@ -1,5 +1,5 @@
 defrecord Elixir.CLI.Config, commands: [], close: [],
-  output: '.', compile: [], halt: true, compiler_options: []
+  output: ".", compile: [], halt: true, compiler_options: []
 
 defmodule Elixir.CLI do
   @moduledoc false
@@ -104,6 +104,7 @@ defmodule Elixir.CLI do
   end
 
   defp process_shared(['-r',h|t], config) do
+    h = list_to_binary(h)
     config = Enum.reduce File.wildcard(h), config, fn path, config ->
       config.prepend_commands [{:require, path}]
     end
@@ -111,6 +112,7 @@ defmodule Elixir.CLI do
   end
 
   defp process_shared(['-pr',h|t], config) do
+    h = list_to_binary(h)
     process_shared t, config.prepend_commands [{:parallel_require, h}]
   end
 
@@ -137,6 +139,7 @@ defmodule Elixir.CLI do
       '-' ++ _ ->
         shared_option? list, config, process_options(&1, &2)
       _ ->
+        h = list_to_binary(h)
         { config.prepend_commands([{:require, h}]), t }
     end
   end
@@ -152,7 +155,7 @@ defmodule Elixir.CLI do
   end
 
   defp process_compiler(['-o',h|t], config) do
-    process_compiler t, config.output(h)
+    process_compiler t, config.output(list_to_binary(h))
   end
 
   defp process_compiler(['--docs'|t], config) do
@@ -174,7 +177,8 @@ defmodule Elixir.CLI do
       '-' ++ _ ->
         shared_option? list, config, process_compiler(&1, &2)
       _ ->
-        pattern = if File.dir?(h), do: '#{h}/**/*.ex', else: h
+        h = list_to_binary(h)
+        pattern = if File.dir?(h), do: "#{h}/**/*.ex", else: h
         process_compiler t, config.prepend_compile [pattern]
     end
   end
@@ -185,15 +189,15 @@ defmodule Elixir.CLI do
 
   # Process commands
 
-  defp process_command({:eval, expr}, _config) do
+  defp process_command({:eval, expr}, _config) when is_list(expr) do
     Erlang.elixir.eval(expr, [])
   end
 
-  defp process_command({:require, file}, _config) do
+  defp process_command({:require, file}, _config) when is_binary(file) do
     Code.require_file(file)
   end
 
-  defp process_command({:parallel_require, pattern}, _config) do
+  defp process_command({:parallel_require, pattern}, _config) when is_binary(pattern) do
     files = File.wildcard(pattern)
     files = List.uniq(files)
     files = Enum.filter files, File.regular?(&1)
@@ -213,7 +217,7 @@ defmodule Elixir.CLI do
   end
 
   # Responsible for spawning requires in parallel
-  # For now, we spawn at maximum four process at the same time
+  # For now, we spawn at maximum four processes at the same time
 
   defp spawn_requires([], []),      do: :done
   defp spawn_requires([], waiting), do: wait_for_messages([], waiting)

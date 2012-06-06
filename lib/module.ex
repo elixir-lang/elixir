@@ -1,7 +1,3 @@
-# We cannot use to_char_list because it depends on inspect,
-# which depends on protocol, which depends on this module.
-import Elixir.Builtin, except: [to_char_list: 1]
-
 defmodule Module do
   require Erlang.ets, as: ETS
 

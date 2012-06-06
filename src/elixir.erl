@@ -43,8 +43,8 @@ start_cli() ->
 
 scope_for_eval(Opts) ->
   Filename = case orddict:find(file, Opts) of
-    { ok, F } -> to_char_list(F);
-    error -> "nofile"
+    { ok, F } -> to_binary(F);
+    error -> <<"nofile">>
   end,
 
   Local = case orddict:find(delegate_locals_to, Opts) of
@@ -65,7 +65,8 @@ eval(String, Binding, Opts) ->
   end,
   eval(String, Binding, Line, scope_for_eval(Opts)).
 
-eval(String, Binding, Line, #elixir_scope{filename=Filename} = S) ->
+eval(String, Binding, Line, #elixir_scope{filename=Filename} = S) when
+    is_list(String), is_list(Binding), is_integer(Line), is_binary(Filename) ->
   Forms = elixir_translator:forms(String, Line, Filename),
   eval_forms(Forms, Binding, S).
 
@@ -98,8 +99,8 @@ eval_forms(Tree, Binding, RawScope) ->
 
 %% INTERNAL HELPERS
 
-to_char_list(Bin)  when is_binary(Bin) -> binary_to_list(Bin);
-to_char_list(List) when is_list(List) -> List.
+to_binary(Bin)  when is_binary(Bin) -> Bin;
+to_binary(List) when is_list(List) -> list_to_binary(List).
 
 binding_dict(List) -> binding_dict(List, dict:new()).
 binding_dict([{H,_}|T], Dict) -> binding_dict(T, dict:store(H, H, Dict));

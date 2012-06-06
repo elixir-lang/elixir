@@ -26,7 +26,7 @@ defmodule Macro.Env do
   @doc """
   Returns the current file name as a binary.
   """
-  def file(record),    do: list_to_binary(elem(record, 3))
+  def file(record),    do: elem(record, 3)
 
   @doc """
   Returns the current line as an integer.

@@ -27,10 +27,8 @@ defmodule Elixir.ParallelCompiler do
   Compiles the given files to the given path.
   Read files/2 for more information.
   """
-  def files_to_path(files, path, callback // default_callback) do
+  def files_to_path(files, path, callback // default_callback) when is_binary(path) do
     Code.ensure_loaded(Elixir.ErrorHandler)
-    files = Enum.map(files, to_char_list(&1))
-    path  = if path, do: to_char_list(path)
     spawn_compilers(files, path, callback, [], [], [])
   end
 
@@ -82,7 +80,7 @@ defmodule Elixir.ParallelCompiler do
   defp wait_for_messages(files, output, callback, waiting, queued, result) do
     receive do
       { :compiled, child, file } ->
-        callback.(list_to_binary(file))
+        callback.(file)
         new_queued  = List.keydelete(queued, child, 1)
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
@@ -101,7 +99,7 @@ defmodule Elixir.ParallelCompiler do
         end
 
       {^child, file} = List.keyfind(queued, child, 1)
-      IO.puts "== Compilation error on file #{list_to_binary(file)}#{extra} =="
+      IO.puts "== Compilation error on file #{file}#{extra} =="
       Erlang.erlang.raise(kind, reason, stacktrace)
     end
   end
