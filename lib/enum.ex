@@ -197,7 +197,7 @@ defmodule Enum do
         module = O.__impl_for__!(collection)
         do_drop_while(pointer, iterator, fun, module)
       list when is_list(list) ->
-        drop_while(collection, fun)
+        drop_while(list, fun)
     end
   end
 
@@ -210,10 +210,19 @@ defmodule Enum do
       Enum.each ['some', 'example'], fn(x) -> IO.puts x end
 
   """
-  def each(collection, fun) do
-    { iterator, pointer } = I.iterator(collection)
-    do_each(pointer, iterator, fun)
+  def each(collection, fun) when is_list(collection) do
+    :lists.foreach(fun, collection)
     collection
+  end
+
+  def each(collection, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_each(pointer, iterator, fun)
+        collection
+      list when is_list(list) ->
+        each(list, fun)
+    end
   end
 
   @doc """
@@ -268,6 +277,10 @@ defmodule Enum do
       #=> [4]
 
   """
+  def filter_map(collection, filter, mapper) when is_list(collection) do
+    lc item inlist collection, filter.(item), do: mapper.(item)
+  end
+
   def filter_map(collection, filter, mapper) do
     { iterator, pointer } = I.iterator(collection)
     do_filter_map(pointer, iterator, filter, mapper)
@@ -289,9 +302,19 @@ defmodule Enum do
       #=> 3
 
   """
-  def find(collection, ifnone // nil, fun) do
-    { iterator, pointer } = I.iterator(collection)
-    do_find(pointer, iterator, ifnone, fun)
+  def find(collection, ifnone // nil, fun)
+
+  def find(collection, ifnone, fun) when is_list(collection) do
+    do_find(collection, ifnone, fun)
+  end
+
+  def find(collection, ifnone, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_find(pointer, iterator, ifnone, fun)
+      list when is_list(list) ->
+        find(list, ifnone, fun)
+    end
   end
 
   @doc """
@@ -307,9 +330,19 @@ defmodule Enum do
         #=> true
 
   """
-  def find_value(collection, ifnone // nil, fun) do
-    { iterator, pointer } = I.iterator(collection)
-    do_find_value(pointer, iterator, ifnone, fun)
+  def find_value(collection, ifnone // nil, fun)
+
+  def find_value(collection, ifnone, fun) when is_list(collection) do
+    do_find_value(collection, ifnone, fun)
+  end
+
+  def find_value(collection, ifnone, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_find_value(pointer, iterator, ifnone, fun)
+      list when is_list(list) ->
+        find_value(list, ifnone, fun)
+    end
   end
 
   @doc """
@@ -327,9 +360,17 @@ defmodule Enum do
         #=> 2
 
   """
+  def find_index(collection, fun) when is_list(collection) do
+    do_find_index(collection, 1, fun)
+  end
+
   def find_index(collection, fun) do
-    { iterator, pointer } = O.iterator(collection)
-    do_find_index(pointer, iterator, 1, fun)
+    case O.iterator(collection) do
+      { iterator, pointer } ->
+        do_find_index(pointer, iterator, 1, fun)
+      list when is_list(list) ->
+        find_index(list, fun)
+    end
   end
 
   @doc """
@@ -688,12 +729,21 @@ defmodule Enum do
 
   ## find
 
+  defp do_find([h|t], ifnone, fun) do
+    case fun.(h) do
+      x in [false, nil] -> do_find(t, ifnone, fun)
+      _ -> h
+    end
+  end
+
+  defp do_find([], ifnone, _) do
+    ifnone
+  end
+
   defp do_find({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
-      x in [false, nil] ->
-        do_find(iterator.(next), iterator, ifnone, fun)
-      _ ->
-        h
+      x in [false, nil] -> do_find(iterator.(next), iterator, ifnone, fun)
+      _ -> h
     end
   end
 
@@ -703,12 +753,21 @@ defmodule Enum do
 
   ## find_value
 
+  defp do_find_value([h|t], ifnone, fun) do
+    case fun.(h) do
+      x in [false, nil] -> do_find_value(t, ifnone, fun)
+      other -> other
+    end
+  end
+
+  defp do_find_value([], ifnone, _) do
+    ifnone
+  end
+
   defp do_find_value({ h, next }, iterator, ifnone, fun) do
     case fun.(h) do
-      x in [false, nil] ->
-        do_find_value(iterator.(next), iterator, ifnone, fun)
-      other ->
-        other
+      x in [false, nil] -> do_find_value(iterator.(next), iterator, ifnone, fun)
+      other -> other
     end
   end
 
@@ -718,12 +777,21 @@ defmodule Enum do
 
   ## find_index
 
+  defp do_find_index([h|t], counter, fun) do
+    case fun.(h) do
+      x in [false, nil] -> do_find_index(t, counter + 1, fun)
+      _ -> counter
+    end
+  end
+
+  defp do_find_index([], _, _) do
+    nil
+  end
+
   defp do_find_index({ h, next }, iterator, counter, fun) do
     case fun.(h) do
-      x in [false, nil] ->
-        do_find_index(iterator.(next), iterator, counter + 1, fun)
-      _ ->
-        counter
+      x in [false, nil] -> do_find_index(iterator.(next), iterator, counter + 1, fun)
+      _ -> counter
     end
   end
 
