@@ -29,4 +29,9 @@ defmodule SystemTest do
   test :cmd do
     assert is_binary(System.cmd "binary")
   end
+
+  test :find_executable do
+    assert System.find_executable("erl")
+    assert !System.find_executable("does-not-really-exist-from-elixir")
+  end
 end

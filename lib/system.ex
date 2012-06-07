@@ -23,35 +23,11 @@ defmodule System.GitCompiler do
   # Tries to run `git rev-parse HEAD`. In case of success returns the
   # commit sha, otherwise returns an empty string.
   defp get_head_sha do
-    # The following failures are possible:
-    #
-    #  1) there is no `git` command
-    #  2) pwd is not a git repository
-    #
-    command = 'git rev-parse HEAD'
-    opts = [:stream, :exit_status, :use_stdio,
-            :stderr_to_stdout, :in, :eof]
-    port = :erlang.open_port {:spawn, command}, opts
-
-    output = read_port port
-    case output do
-      { 0, data } ->
-        Regex.replace_all %r/\n/, to_binary(data), ""
-      _ ->
-        ""
-    end
-  end
-
-  defp read_port(port, data // []) do
-    receive do
-      {^port, {:data, new_data}} ->
-        read_port port, [new_data|data]
-      {^port, :eof} ->
-        :erlang.port_close port
-        receive do
-          {^port, {:exit_status, exit_status}} ->
-            {exit_status, List.reverse data}
-        end
+    if :os.find_executable('git') do
+      data = :os.cmd('git rev-parse HEAD')
+      Regex.replace_all %r/\n/, to_binary(data), ""
+    else
+      ""
     end
   end
 
@@ -101,6 +77,18 @@ defmodule System do
   """
   def cmd(command) do
     list_to_binary :os.cmd(to_char_list(command))
+  end
+
+  @doc """
+  This functions looks up an executable program given
+  its name using the environment variable PATH on Unix
+  and Windows.
+  """
+  def find_executable(command) do
+    case :os.find_executable(to_char_list(command)) do
+      false -> nil
+      other -> list_to_binary(other)
+    end
   end
 
   @doc """
