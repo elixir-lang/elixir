@@ -4,7 +4,8 @@ defmodule KeywordTest do
   use ExUnit.Case
 
   test :literal do
-    assert [{:foo?, :bar}] == [foo?: :bar]
+    assert [foo?: :bar] == [{:foo?, :bar}]
+    assert [||: 2, +: 1] == [{:+,1},{:||,2}]
   end
 
   test :from_enum do
@@ -65,7 +66,7 @@ defmodule KeywordTest do
     result = Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
       v1 + v2
     end
-    assert result == [a:4, b:2, d: 4]
+    assert result == [a: 4, b: 2, d: 4]
   end
 
   test :key do
@@ -131,7 +132,7 @@ defmodule Keyword.DuplicatedTest do
     result = Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
       v1 + v2
     end
-    assert result == [a:4, b:2, d: 4]
+    assert result == [a: 4, b: 2, d: 4]
   end
 
   test :key do

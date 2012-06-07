@@ -11,6 +11,7 @@
 -define(is_downcase(S), S >= $a andalso S =< $z).
 -define(is_word(S), ?is_digit(S) orelse ?is_upcase(S) orelse ?is_downcase(S)).
 -define(is_quote(S), S == $" orelse S == $').
+-define(is_space(S), S == $\s; S == $\r; S == $\t; S == $\n).
 
 -define(container2(T1, T2),
   T1 == ${, T2 == $};
@@ -122,22 +123,22 @@ tokenize("..." ++ Rest, Line, File, Tokens) ->
 
 % ## Containers
 tokenize(".<<>>" ++ Rest, Line, File, Tokens) ->
-  tokenize(Rest, Line, File, [tokenize_call_identifier(identifier, Line, '<<>>', Rest),{'.',Line}|Tokens]);
+  handle_call_identifier(Line, File, '<<>>', Rest, Tokens);
 
 tokenize([$.,T1,T2|Rest], Line, File, Tokens) when ?container2(T1, T2) ->
-  tokenize(Rest, Line, File, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
+  handle_call_identifier(Line, File, list_to_atom([T1, T2]), Rest, Tokens);
 
 % ## Three Token Operators
 tokenize([$.,T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3) ->
-  tokenize(Rest, Line, File, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2,T3]), Rest),{'.',Line}|Tokens]);
+  handle_call_identifier(Line, File, list_to_atom([T1, T2, T3]), Rest, Tokens);
 
 % ## Two Token Operators
 tokenize([$.,T1,T2|Rest], Line, File, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
-  tokenize(Rest, Line, File, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
+  handle_call_identifier(Line, File, list_to_atom([T1, T2]), Rest, Tokens);
 
 % ## Single Token Operators
 tokenize([$.,T|Rest], Line, File, Tokens) when ?comp1(T); ?op1(T); T == $& ->
-  tokenize(Rest, Line, File, [tokenize_call_identifier(identifier, Line, list_to_atom([T]), Rest),{'.',Line}|Tokens]);
+  handle_call_identifier(Line, File, list_to_atom([T]), Rest, Tokens);
 
 % Dot call
 
@@ -269,7 +270,7 @@ tokenize([H|_] = String, Line, File, Tokens) when ?is_upcase(H) ->
 % Identifier
 
 tokenize([H|_] = String, Line, File, Tokens) when ?is_downcase(H); H == $_ ->
-  { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(Line, String, []),
+  { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(Line, File, String, []),
   case keyword(Line, Kind, Identifier) of
     false ->
       tokenize(Rest, Line, File, [{Kind,Line,Identifier}|Tokens]);
@@ -280,7 +281,8 @@ tokenize([H|_] = String, Line, File, Tokens) when ?is_downcase(H); H == $_ ->
 % Ambiguous unary/binary operators tokens
 
 tokenize([Space,Sign,NotMarker|T], Line, File, [{Identifier,_,_} = H|Tokens]) when Sign == $+ orelse Sign == $-,
-  Space == $\s orelse Space == $\t, NotMarker /= $\s, NotMarker /= $\t,
+  Space == $\s orelse Space == $\t,
+  NotMarker /= $\s, NotMarker /= $\t, NotMarker /= $\r,
   NotMarker /= $\n, NotMarker /= $:, NotMarker /= $(,
   NotMarker /= $+, NotMarker /= $-, NotMarker /= $>,
   Identifier == identifier orelse Identifier == punctuated_identifier ->
@@ -289,7 +291,7 @@ tokenize([Space,Sign,NotMarker|T], Line, File, [{Identifier,_,_} = H|Tokens]) wh
 
 % Spaces
 
-tokenize([T|Rest], Line, File, Tokens) when T == $ ; T == $\r; T == $\t ->
+tokenize([T|Rest], Line, File, Tokens) when T == $\s; T == $\r; T == $\t ->
   tokenize(Rest, Line, File, Tokens);
 
 tokenize([{line,Line}|Rest], _, File, Tokens) ->
@@ -305,11 +307,8 @@ handle_heredocs(Line, File, H, T, Tokens) ->
     { error, _ } = Error ->
       Error;
     { Parts, Rest } ->
-      Kind = case H == $" of
-        true  -> bin_string;
-        false -> list_string
-      end,
-      tokenize(Rest, Line, File, [{Kind,Line,unescape_tokens(Parts)}|Tokens])
+      Token = { string_type(H), Line, unescape_tokens(Parts) },
+      tokenize(Rest, Line, File, [Token|Tokens])
   end.
 
 handle_strings(Line, File, H, T, Tokens) ->
@@ -323,19 +322,26 @@ handle_strings(Line, File, H, T, Tokens) ->
           { error, { Line, "invalid interpolation in key", [$"|T] } }
       end;
     { NewLine, Parts, Rest } ->
-      Kind = case H == $" of
-        true  -> bin_string;
-        false -> list_string
-      end,
-      tokenize(Rest, NewLine, File, [{Kind,Line,unescape_tokens(Parts)}|Tokens]);
+      Token = { string_type(H),Line,unescape_tokens(Parts) },
+      tokenize(Rest, NewLine, File, [Token|Tokens]);
     Else -> Else
   end.
+
+handle_comp_op(Line, File, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
+  tokenize(Rest, Line, File, [{kw_identifier, Line, Op}|Tokens]);
 
 handle_comp_op(Line, File, Op, Rest, Tokens) ->
   tokenize(Rest, Line, File, [{comp_op, Line, Op}|Tokens]).
 
+handle_op(Line, File, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
+  tokenize(Rest, Line, File, [{kw_identifier, Line, Op}|Tokens]);
+
 handle_op(Line, File, Op, Rest, Tokens) ->
   tokenize(Rest, Line, File, [{Op, Line}|Tokens]).
+
+handle_call_identifier(Line, File, Op, Rest, Tokens) ->
+  Token = tokenize_call_identifier(identifier, Line, Op, Rest),
+  tokenize(Rest, Line, File, [Token, {'.',Line}|Tokens]).
 
 %% Helpers
 
@@ -530,17 +536,19 @@ tokenize_atom(String, Acc) ->
   end.
 
 % Tokenize any identifier, handling kv, punctuated, paren, bracket and do identifiers.
-tokenize_any_identifier(Line, String, Acc) ->
+tokenize_any_identifier(Line, File, String, Acc) ->
   { Rest, Identifier } = tokenize_identifier(String, Acc, false),
   case Rest of
     [H,$:|T] when H == $?; H == $! ->
       Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
+      verify_kw_and_space(Line, File, Atom, T),
       { T, { kw_identifier, Line, Atom } };
     [H|T] when H == $?; H == $! ->
       Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
       { T, tokenize_call_identifier(punctuated_identifier, Line, Atom, T) };
     [$:|T] ->
       Atom = list_to_atom(Identifier),
+      verify_kw_and_space(Line, File, Atom, T),
       { T, { kw_identifier, Line, Atom } };
     _ ->
       { Rest, tokenize_call_identifier(identifier, Line, list_to_atom(Identifier), Rest) }
@@ -557,6 +565,10 @@ tokenize_call_identifier(Kind, Line, Atom, Rest) ->
       end
   end.
 
+verify_kw_and_space(_Line, _File, _Atom, [H|_]) when ?is_space(H) -> ok;
+verify_kw_and_space(Line, File, Atom, _) ->
+  io:format("~ts:~w: keyword argument ~s: must be followed by space~n", [File, Line, Atom]).
+
 next_is_block([Space|Tokens]) when Space == $\t; Space == $\s ->
   next_is_block(Tokens);
 
@@ -570,6 +582,10 @@ next_is_block([$d,$o|_]) ->
 next_is_block(_) ->
   [].
 
+% String type
+string_type($") -> bin_string;
+string_type($') -> list_string.
+
 % Terminator
 terminator($() -> $);
 terminator($[) -> $];
@@ -578,7 +594,6 @@ terminator($<) -> $>;
 terminator(O) -> O.
 
 % Keywords check
-
 keyword(Line, do_identifier, fn) ->
   { do_identifier, Line, fn };
 

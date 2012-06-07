@@ -5,7 +5,7 @@
   form_error/4, parse_error/4, assert_module_scope/3,
   assert_no_function_scope/3, assert_function_scope/3,
   handle_file_warning/2, handle_file_error/2,
-  deprecation/3, deprecation/4]).
+  deprecation/3, deprecation/4, file_format/3]).
 -include("elixir.hrl").
 
 %% Handle inspecting for exceptions
