@@ -113,7 +113,7 @@ defmodule Typespec do
     typespec({{:fun, line, [{:type, line, :any}]}, returns}, vars, caller)
   end
 
-  defp typespec({{:fun, line, [:'...']}, returns}, vars, caller) do
+  defp typespec({{:fun, line, [{:'...', _, _}]}, returns}, vars, caller) do
     quote do: {:type, unquote(line), :fun, [{:type, unquote(line), :any}, unquote(typespec(returns, vars, caller))]}
 
   end

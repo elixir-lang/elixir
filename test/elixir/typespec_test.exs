@@ -163,7 +163,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a fun with any arity and return type" do
     spec = 
     test_module do
-      deftype mytype, as: fun(:'...', do: integer)
+      deftype mytype, as: fun(..., do: integer)
     end
     assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :any},
                          {:type, _, :integer, []}]}, []}} = spec
