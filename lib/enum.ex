@@ -114,9 +114,19 @@ defmodule Enum do
       Enum.all? [1,nil,3] #=> false
 
   """
-  def all?(collection, fun // fn(x) -> x end) do
-    { iterator, pointer } = I.iterator(collection)
-    do_all?(pointer, iterator, fun)
+  def all?(collection, fun // fn(x) -> x end)
+
+  def all?(collection, fun) when is_list(collection) do
+    do_all?(collection, fun)
+  end
+
+  def all?(collection, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_all?(pointer, iterator, fun)
+      list when is_list(list) ->
+        all?(list, fun)
+    end
   end
 
   @doc """
@@ -138,9 +148,19 @@ defmodule Enum do
       Enum.any? [false,true,false]  #=> true
 
   """
-  def any?(collection, fun // fn(x) -> x end) do
-    { iterator, pointer } = I.iterator(collection)
-    do_any?(pointer, iterator, fun)
+  def any?(collection, fun // fn(x) -> x end)
+
+  def any?(collection, fun) when is_list(collection) do
+    do_any?(collection, fun)
+  end
+
+  def any?(collection, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_any?(pointer, iterator, fun)
+      list when is_list(list) ->
+        any?(list, fun)
+    end
   end
 
   @doc """
@@ -202,8 +222,10 @@ defmodule Enum do
   end
 
   def empty?(collection) do
-    { _iterator, pointer } = I.iterator(collection)
-    pointer === :stop
+    case I.iterator(collection) do
+      { _iterator, pointer }  -> pointer === :stop
+      list when is_list(list) -> list == []
+    end
   end
 
   @doc """
@@ -216,9 +238,17 @@ defmodule Enum do
       #=> [2]
 
   """
+  def filter(collection, fun) when is_list(collection) do
+    lc item inlist collection, fun.(item), do: item
+  end
+
   def filter(collection, fun) do
-    { iterator, pointer } = I.iterator(collection)
-    do_filter(pointer, iterator, fun)
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+        do_filter(pointer, iterator, fun)
+      list when is_list(list) ->
+        filter(list, fun)
+    end
   end
 
   @doc """
@@ -311,16 +341,14 @@ defmodule Enum do
       Enum.join([1,2,3], ' = ') #=> '1 = 2 = 3'
 
   """
-  def join(collection, joiner // "") do
+  def join(collection, joiner // "")
+
+  def join(collection, joiner) when is_list(joiner) do
+    binary_to_list join(collection, list_to_binary(joiner))
+  end
+
+  def join(collection, joiner) when is_binary(joiner) do
     { iterator, pointer } = I.iterator(collection)
-    join(iterator, pointer, joiner)
-  end
-
-  defp join(iterator, collection, joiner) when is_list(joiner) do
-    binary_to_list join(iterator, collection, list_to_binary(joiner))
-  end
-
-  defp join(iterator, pointer, joiner) do
     do_join(pointer, iterator, joiner, nil)
   end
 
@@ -343,8 +371,12 @@ defmodule Enum do
   end
 
   def map(collection, fun) do
-    { iterator, pointer } = I.iterator(collection)
-    do_map(pointer, iterator, fun)
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+        do_map(pointer, iterator, fun)
+      list when is_list(list) ->
+        map(list, fun)
+    end
   end
 
   @doc """
@@ -364,16 +396,14 @@ defmodule Enum do
       Enum.map_join([1,2,3], &1 * 2, ' = ') #=> '2 = 4 = 6'
 
   """
-  def map_join(collection, joiner // "", mapper) do
+  def map_join(collection, joiner // "", mapper)
+
+  def map_join(collection, joiner, mapper) when is_list(joiner) do
+    binary_to_list map_join(collection, list_to_binary(joiner), mapper)
+  end
+
+  def map_join(collection, joiner, mapper) when is_binary(joiner) do
     { iterator, pointer } = I.iterator(collection)
-    map_join(iterator, pointer, mapper, joiner)
-  end
-
-  defp map_join(iterator, collection, mapper, joiner) when is_list(joiner) do
-    binary_to_list map_join(iterator, collection, mapper, list_to_binary(joiner))
-  end
-
-  defp map_join(iterator, pointer, mapper, joiner) do
     do_map_join(pointer, iterator, mapper, joiner, nil)
   end
 
@@ -397,8 +427,12 @@ defmodule Enum do
   end
 
   def map_reduce(collection, acc, fun) do
-    { iterator, pointer } = I.iterator(collection)
-    do_map_reduce(pointer, iterator, [], acc, fun)
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+        do_map_reduce(pointer, iterator, [], acc, fun)
+      list when is_list(list) ->
+        map_reduce(list, acc, fun)
+    end
   end
 
   @doc """
@@ -434,7 +468,12 @@ defmodule Enum do
 
   def reduce(collection, acc, fun) do
     { iterator, pointer } = I.iterator(collection)
-    do_reduce(pointer, iterator, acc, fun)
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_reduce(pointer, iterator, acc, fun)
+      list when is_list(list) ->
+        reduce(list, acc, fun)
+    end
   end
 
   @doc """
@@ -450,8 +489,12 @@ defmodule Enum do
   end
 
   def qsort(collection) do
-    { iterator, pointer } = I.iterator(collection)
-    do_qsort(pointer, iterator, [])
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_qsort(pointer, iterator, [])
+      list when is_list(list) ->
+        qsort(list)
+    end
   end
 
   @doc """
@@ -532,7 +575,7 @@ defmodule Enum do
     case is_function(function, 0) do
       true ->
         do_times_0(times, 1, function)
-      _ -> 
+      _ ->
         do_times_1(times, 1, function)
     end
     times
@@ -557,12 +600,21 @@ defmodule Enum do
 
   ## all?
 
+  defp do_all?([h|t], fun) do
+    case fun.(h) do
+      x in [false, nil] -> false
+      _ -> do_all?(t, fun)
+    end
+  end
+
+  defp do_all?([], _) do
+    true
+  end
+
   defp do_all?({ h, next }, iterator, fun) do
     case fun.(h) do
-      x in [false, nil] ->
-        false
-      _ ->
-        do_all?(iterator.(next), iterator, fun)
+      x in [false, nil] -> false
+      _ -> do_all?(iterator.(next), iterator, fun)
     end
   end
 
@@ -572,12 +624,21 @@ defmodule Enum do
 
   ## any?
 
+  defp do_any?([h|t], fun) do
+    case fun.(h) do
+      x in [false, nil] -> do_any?(t, fun)
+      _ -> true
+    end
+  end
+
+  defp do_any?([], _) do
+    false
+  end
+
   defp do_any?({ h, next }, iterator, fun) do
     case fun.(h) do
-      x in [false, nil] ->
-        do_any?(iterator.(next), iterator, fun)
-      _ ->
-        true
+      x in [false, nil] -> do_any?(iterator.(next), iterator, fun)
+      _ -> true
     end
   end
 
