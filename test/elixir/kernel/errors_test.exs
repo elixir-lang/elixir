@@ -192,7 +192,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :macros_error_stacktrace do
-    assert_match [{:erlang,:"+",[1,:foo],_},{Foo,:sample,1,_}|_],
+    assert_match [{:erlang,:+,[1,:foo],_},{Foo,:sample,1,_}|_],
       rescue_stacktrace("defmodule Foo do\ndefmacro sample(num), do: num + :foo\ndef other, do: sample(1)\nend")
   end
 

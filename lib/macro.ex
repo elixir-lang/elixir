@@ -125,7 +125,7 @@ defmodule Macro do
   end
 
   # Expand Erlang.foo calls
-  def expand({ { :".", _, [{ :__aliases__, _, [:Erlang] }, atom] }, _, args }, _env) when
+  def expand({ { :., _, [{ :__aliases__, _, [:Erlang] }, atom] }, _, args }, _env) when
     is_atom(atom) and (is_atom(args) or args == []), do: atom
 
   # Expand pseudo-variables
@@ -154,7 +154,7 @@ defmodule Macro do
   end
 
   # Expand possible macro require invocation
-  def expand({ { :".", _, [left, right] }, line, args } = original, env) when is_atom(right) do
+  def expand({ { :., _, [left, right] }, line, args } = original, env) when is_atom(right) do
     receiver = expand(left, env)
 
     case is_atom(receiver) and not is_partial?(args) do

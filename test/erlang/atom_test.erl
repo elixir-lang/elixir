@@ -15,6 +15,9 @@ atom_with_punctuation_test() ->
   {'a!',[]} = eval(":a!"),
   {'||',[]} = eval(":||").
 
+atom_quoted_call_test() ->
+  {3,[]} = eval("Elixir.Builtin.'+'(1, 2)").
+
 kv_with_quotes_test() ->
   {'foo bar',[]} = eval("Erlang.atom_test.kv(\"foo bar\": nil)").
 

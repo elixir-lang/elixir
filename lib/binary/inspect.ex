@@ -17,10 +17,14 @@ end
 
 defimpl Binary.Inspect, for: Atom do
   @doc """
-  Represents the atom as an Elixir term.
-  The atoms false, true and nil are simply
-  quoted. Modules are properly represented
+  Represents the atom as an Elixir term. The atoms false, true
+  and nil are simply quoted. Modules are properly represented
   as modules using the dot notation.
+
+  Notice that in Elixir, all operators can be represented using
+  literal atoms (`:+`, `:-`, etc) with the exception of the
+  operators `..` and `...` which need to be wrapped in quotes
+  (`:".."` and `:"..."`).
 
   ## Examples
 

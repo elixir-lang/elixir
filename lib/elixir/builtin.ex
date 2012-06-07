@@ -1865,7 +1865,7 @@ defmodule Elixir.Builtin do
       end
 
   """
-  defmacro cond([do: { :"->", _, pairs }]) do
+  defmacro cond([do: { :->, _, pairs }]) do
     [{ [condition], clause }|t] = List.reverse pairs
 
     case condition do
