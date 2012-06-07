@@ -1395,12 +1395,8 @@ defmodule Elixir.Builtin do
 
   """
   defmacro use(module, args // []) do
-    case __CALLER__.module do
-      nil -> raise "use cannot be invoked outside modules"
-      _   -> nil
-    end
-
     expanded = Macro.expand module, __CALLER__
+
     case is_atom(expanded) do
       false -> raise ArgumentError, message: "invalid arguments for use, expected an atom or alias as argument"
       true  ->
