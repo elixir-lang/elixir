@@ -1,65 +1,65 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
--export([extract/4, unescape_chars/1, unescape_chars/2,
+-export([extract/5, unescape_chars/1, unescape_chars/2,
 unescape_tokens/1, unescape_tokens/2, unescape_map/1]).
 -define(is_octal(S), S >= $0 andalso S =< $7).
 -include("elixir.hrl").
 
 %% Extract string interpolations
 
-extract(Line, Interpol, String, Last) ->
-  extract(Line, Interpol, String, [], [], [], Last).
+extract(Line, File, Interpol, String, Last) ->
+  extract(Line, File, Interpol, String, [], [], [], Last).
 
-extract(Line, _Interpol, [], Buffer, [], Output, []) ->
-  finish_extraction(Line, Buffer, Output, []);
+extract(Line, File, _Interpol, [], Buffer, [], Output, []) ->
+  finish_extraction(Line, File, Buffer, Output, []);
 
-extract(Line, _Interpol, [], _Buffer, [], _Output, Last) ->
+extract(Line, _File, _Interpol, [], _Buffer, [], _Output, Last) ->
   { error, { Line, io_lib:format("missing string terminator, expected ~ts", [[Last]]), [] } };
 
-extract(Line, _Interpol, [Last|Remaining], Buffer, [], Output, Last) ->
-  finish_extraction(Line, Buffer, Output, Remaining);
+extract(Line, File, _Interpol, [Last|Remaining], Buffer, [], Output, Last) ->
+  finish_extraction(Line, File, Buffer, Output, Remaining);
 
-extract(Line, _Interpol, [Last], _Buffer, Search, _Output, Last) ->
+extract(Line, _File, _Interpol, [Last], _Buffer, Search, _Output, Last) ->
   { error, { Line, io_lib:format("unexpected end of string, expected ~ts", [[hd(Search)]]), [Last] } };
 
-extract(Line, Interpol, [$\n|Rest], Buffer, Search, Output, Last) ->
-  extract(Line+1, Interpol, Rest, [$\n|Buffer], Search, Output, Last);
+extract(Line, File, Interpol, [$\n|Rest], Buffer, Search, Output, Last) ->
+  extract(Line+1, File, Interpol, Rest, [$\n|Buffer], Search, Output, Last);
 
-extract(Line, Interpol, [$\\, $#, ${|Rest], Buffer, [], Output, Last) ->
-  extract(Line, Interpol, Rest, [${,$#|Buffer], [], Output, Last);
+extract(Line, File, Interpol, [$\\, $#, ${|Rest], Buffer, [], Output, Last) ->
+  extract(Line, File, Interpol, Rest, [${,$#|Buffer], [], Output, Last);
 
-extract(Line, Interpol, [$\\,Char|Rest], Buffer, [], Output, Last) ->
-  extract(Line, Interpol, Rest, [Char,$\\|Buffer], [], Output, Last);
+extract(Line, File, Interpol, [$\\,Char|Rest], Buffer, [], Output, Last) ->
+  extract(Line, File, Interpol, Rest, [Char,$\\|Buffer], [], Output, Last);
 
-extract(Line, true, [$#, ${|Rest], Buffer, [], Output, Last) ->
-  NewOutput = build_interpol(s, Line, Buffer, Output),
-  extract(Line, true, Rest, [], [$}], NewOutput, Last);
+extract(Line, File, true, [$#, ${|Rest], Buffer, [], Output, Last) ->
+  NewOutput = build_interpol(s, Line, File, Buffer, Output),
+  extract(Line, File, true, Rest, [], [$}], NewOutput, Last);
 
-extract(Line, true, [$}|Rest], Buffer, [$}], Output, Last) ->
-  NewOutput = build_interpol(i, Line, Buffer, Output),
-  extract(Line, true, Rest, [], [], NewOutput, Last);
+extract(Line, File, true, [$}|Rest], Buffer, [$}], Output, Last) ->
+  NewOutput = build_interpol(i, Line, File, Buffer, Output),
+  extract(Line, File, true, Rest, [], [], NewOutput, Last);
 
 %% Check for available separators "", {}, [] and () inside interpolation
 
-extract(Line, Interpol, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $"; C == $' ->
-  extract(Line, Interpol, Rest, [C|Buffer], Search, Output, Last);
+extract(Line, File, Interpol, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $"; C == $' ->
+  extract(Line, File, Interpol, Rest, [C|Buffer], Search, Output, Last);
 
-extract(Line, Interpol, [C|Rest], Buffer, [_|_] = Search, Output, Last) when C == $"; C == $' ->
-  extract(Line, Interpol, Rest, [C|Buffer], [C|Search], Output, Last);
+extract(Line, File, Interpol, [C|Rest], Buffer, [_|_] = Search, Output, Last) when C == $"; C == $' ->
+  extract(Line, File, Interpol, Rest, [C|Buffer], [C|Search], Output, Last);
 
-extract(Line, Interpol, [${|Rest], Buffer, [_|_] = Search, Output, Last) ->
-  extract(Line, Interpol, Rest, [${|Buffer], [$}|Search], Output, Last);
+extract(Line, File, Interpol, [${|Rest], Buffer, [_|_] = Search, Output, Last) ->
+  extract(Line, File, Interpol, Rest, [${|Buffer], [$}|Search], Output, Last);
 
-extract(Line, Interpol, [$[|Rest], Buffer, [_|_] = Search, Output, Last) ->
-  extract(Line, Interpol, Rest, [$[|Buffer], [$]|Search], Output, Last);
+extract(Line, File, Interpol, [$[|Rest], Buffer, [_|_] = Search, Output, Last) ->
+  extract(Line, File, Interpol, Rest, [$[|Buffer], [$]|Search], Output, Last);
 
-extract(Line, Interpol, [$(|Rest], Buffer, [_|_] = Search, Output, Last) ->
-  extract(Line, Interpol, Rest, [$(|Buffer], [$)|Search], Output, Last);
+extract(Line, File, Interpol, [$(|Rest], Buffer, [_|_] = Search, Output, Last) ->
+  extract(Line, File, Interpol, Rest, [$(|Buffer], [$)|Search], Output, Last);
 
 %% Else
 
-extract(Line, Interpol, [Char|Rest], Buffer, Search, Output, Last) ->
-  extract(Line, Interpol, Rest, [Char|Buffer], Search, Output, Last).
+extract(Line, File, Interpol, [Char|Rest], Buffer, Search, Output, Last) ->
+  extract(Line, File, Interpol, Rest, [Char|Buffer], Search, Output, Last).
 
 %% Unescape a series of tokens as returned by extract.
 
@@ -115,21 +115,21 @@ unescape_map(E)  -> E.
 
 % Extract Helpers
 
-finish_extraction(Line, Buffer, Output, Remaining) ->
-  case build_interpol(s, Line, Buffer, Output) of
+finish_extraction(Line, File, Buffer, Output, Remaining) ->
+  case build_interpol(s, Line, File, Buffer, Output) of
     []    -> Final = [<<>>];
     Final -> []
   end,
   { Line, lists:reverse(Final), Remaining }.
 
-build_interpol(_Kind, _Line, [], Output) ->
+build_interpol(_Kind, _Line, _File, [], Output) ->
   Output;
 
-build_interpol(s, _Line, Buffer, Output) ->
+build_interpol(s, _Line, _File, Buffer, Output) ->
   [unicode:characters_to_binary(lists:reverse(Buffer))|Output];
 
-build_interpol(i, Line, Buffer, Output) ->
-  [wrap_interpol(Line, forms(lists:reverse(Buffer), Line))| Output].
+build_interpol(i, Line, File, Buffer, Output) ->
+  [wrap_interpol(Line, forms(lists:reverse(Buffer), Line, File))| Output].
 
 wrap_interpol(_Line, Form) when is_binary(Form) ->
   Form;
@@ -137,8 +137,8 @@ wrap_interpol(_Line, Form) when is_binary(Form) ->
 wrap_interpol(Line, Form) ->
   { '|', Line, [{ { '.', Line, ['__MAIN__.Binary.Chars', to_binary] }, Line, [Form]}, binary]}.
 
-forms(String, StartLine) ->
-  case elixir_tokenizer:tokenize(String, StartLine) of
+forms(String, StartLine, File) ->
+  case elixir_tokenizer:tokenize(String, StartLine, File) of
     {ok, Tokens} ->
       case elixir_parser:parse(Tokens) of
         {ok, [Forms]} when not is_list(Forms) -> Forms;

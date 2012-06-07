@@ -7,7 +7,7 @@ eval(Content) ->
   { Value, Binding }.
 
 extract_interpolations(String) ->
-  element(2, elixir_interpolation:extract(1, true, String ++ [$"], $")).
+  element(2, elixir_interpolation:extract(1, <<"nofile">>, true, String ++ [$"], $")).
 
 % Interpolations
 

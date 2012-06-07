@@ -6,16 +6,16 @@
 -import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4, assert_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
 
-forms(String, StartLine, Filename) ->
-  try elixir_tokenizer:tokenize(String, StartLine) of
+forms(String, StartLine, File) ->
+  try elixir_tokenizer:tokenize(String, StartLine, File) of
     {ok, Tokens} ->
       case elixir_parser:parse(Tokens) of
         {ok, Forms} -> Forms;
-        {error, {Line, _, [Error, Token]}} -> parse_error(Line, Filename, Error, Token)
+        {error, {Line, _, [Error, Token]}} -> parse_error(Line, File, Error, Token)
       end;
-    {error, {Line, Error, Token}} -> parse_error(Line, Filename, Error, Token)
+    {error, {Line, Error, Token}} -> parse_error(Line, File, Error, Token)
   catch
-    {interpolation_error, {Line, Error, Token}} -> parse_error(Line, Filename, Error, Token)
+    {interpolation_error, {Line, Error, Token}} -> parse_error(Line, File, Error, Token)
   end.
 
 translate(Forms, S) ->
