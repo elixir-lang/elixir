@@ -44,8 +44,8 @@ defprotocol Dict do
 
   ## Examples
 
-      Dict.has_key?([a:, 1], :a)  #=> true
-      Dict.has_key?([a:, 1], :b)  #=> false
+      Dict.has_key?([a: 1], :a)  #=> true
+      Dict.has_key?([a: 1], :b)  #=> false
 
   """
   def has_key?(dict, key)

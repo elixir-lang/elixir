@@ -171,7 +171,7 @@ defmodule Binary do
   about unescaping. Only tokens that are char lists are
   unescaped, all others are ignored. This method is useful
   when implementing your own sigils. Check the implementation
-  of `Elixir::Builtin.__b__` for examples.
+  of `Elixir.Builtin.__b__` for examples.
   """
   def unescape_tokens(tokens) do
     Erlang.elixir_interpolation.unescape_tokens(tokens)
