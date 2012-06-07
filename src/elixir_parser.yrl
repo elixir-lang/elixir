@@ -7,7 +7,7 @@ Nonterminals
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
   comma_separator
   add_op mult_op unary_op addadd_op multmult_op bin_concat_op
-  match_op arrow_op default_op when_op pipe_op in_op stab_op
+  match_op send_op default_op when_op pipe_op in_op stab_op range_op
   andand_op oror_op and_op or_op comp_expr_op colon_colon_op
   open_paren close_paren
   open_bracket close_bracket
@@ -35,7 +35,7 @@ Terminals
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '::'
   eol ','  '&' '|'  '.' '^' '@' '<-' '<>' '->'
-  '&&' '||' '!'
+  '&&' '||' '!' '...' '..'
   .
 
 Rootsymbol grammar.
@@ -47,8 +47,9 @@ Right     30 when_op.
 Right     40 colon_colon_op.
 Right     50 default_op.
 Left      60 pipe_op.
+Left      70 range_op.
 Right     80 match_op.
-Right     90 arrow_op.
+Right     90 send_op.
 Left     100 oror_op.
 Left     110 andand_op.
 Left     140 or_op.
@@ -103,7 +104,8 @@ op_expr -> pipe_op expr : { '$1', '$2' }.
 op_expr -> bin_concat_op expr : { '$1', '$2' }.
 op_expr -> in_op expr : { '$1', '$2' }.
 op_expr -> when_op expr : { '$1', '$2' }.
-op_expr -> arrow_op expr : { '$1', '$2' }.
+op_expr -> send_op expr : { '$1', '$2' }.
+op_expr -> range_op expr : { '$1', '$2' }.
 op_expr -> default_op expr : { '$1', '$2' }.
 op_expr -> colon_colon_op expr : { '$1', '$2' }.
 op_expr -> comp_expr_op expr : { '$1', '$2' }.
@@ -121,7 +123,8 @@ matched_op_expr -> pipe_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> bin_concat_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> in_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> when_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> arrow_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> send_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> range_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> default_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> colon_colon_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> comp_expr_op matched_expr : { '$1', '$2' }.
@@ -170,6 +173,7 @@ base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
 base_expr -> bit_string : '$1'.
 base_expr -> '&' : '$1'.
+base_expr -> '...' : { ?op('$1'), ?line('$1'), [] }.
 base_expr -> sigil : build_sigil('$1').
 
 %% Blocks
@@ -304,8 +308,11 @@ when_op -> 'when' eol : '$1'.
 stab_op -> '->' : '$1'.
 stab_op -> '->' eol : '$1'.
 
-arrow_op -> '<-' : '$1'.
-arrow_op -> '<-' eol : '$1'.
+send_op -> '<-' : '$1'.
+send_op -> '<-' eol : '$1'.
+
+range_op -> '..' : '$1'.
+range_op -> '..' eol : '$1'.
 
 comp_expr_op -> comp_op : '$1'.
 comp_expr_op -> comp_op eol : '$1'.

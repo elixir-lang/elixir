@@ -117,7 +117,12 @@ tokenize(Line, [$?,$\\,H|T], Tokens) ->
 tokenize(Line, [$?,Char|T], Tokens) ->
   tokenize(Line, T, [{number,Line,Char}|Tokens]);
 
-% Dot operators
+% Dot identifier
+
+tokenize(Line, "..." ++ Rest, Tokens) ->
+  tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, '...', Rest)|Tokens]);
+
+% Dot call
 
 % ## Exception for .( as it needs to be treated specially in the parser
 tokenize(Line, [$.,$(|Rest], Tokens) ->
@@ -130,6 +135,8 @@ tokenize(Line, [$.,H|T], Tokens) when ?is_quote(H) ->
       tokenize(NewLine, Rest, [tokenize_call_identifier(identifier, Line, Atom, Rest),{'.',Line}|Tokens]);
     Else -> Else
   end;
+
+% Dot operators
 
 % ## Containers
 tokenize(Line, ".<<>>" ++ Rest, Tokens) ->
@@ -231,13 +238,14 @@ tokenize(Line, [Space,Sign,NotMarker|T], [{Identifier,_,_} = H|Tokens]) when Sig
 % Stand-alone tokens
 
 % ## Containers + punctuation tokens
+
+tokenize(Line, [T,T|Rest], Tokens) when T == $<; T == $>; T == $. ->
+  tokenize(Line, Rest, [{list_to_atom([T,T]), Line}|Tokens]);
+
 tokenize(Line, [T|Rest], Tokens) when T == $(;
   T == ${; T == $}; T == $[; T == $]; T == $);
   T == $,; T == $. ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
-
-tokenize(Line, [T,T|Rest], Tokens) when T == $<; T == $> ->
-  tokenize(Line, Rest, [{list_to_atom([T,T]), Line}|Tokens]);
 
 % ## Comparison three token operators
 tokenize(Line, [T1,T2,T3|Rest], Tokens) when ?comp3(T1, T2, T3) ->
