@@ -11,6 +11,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [Enum] Faster functions when passing a list as argument;
   * [System] Added `System.find_executable`
   * [Builtin] Document the macro `@` and allow attributes to be read inside functions;
   * [IO/File] Many improvements to `File` and `IO` modules;
