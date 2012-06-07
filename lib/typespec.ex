@@ -50,6 +50,10 @@ defmodule Typespec do
   defp typespec({:"<<>>", line, [{:"|", line1, [{:_, line2, atom}, base]}]}, _, _) when atom in [:quoted, nil] do
     quote do: {:type, unquote(line), :binary, [{:integer, unquote(line1), unquote(base)}, {:integer, unquote(line2), 0}]}
   end
+  
+  defp typespec({:"..", line, args}, vars, caller) do
+    typespec({:range, line, args}, vars, caller)
+  end
 
   defp typespec({:__aliases__, _, _} = alias, vars, caller) do
     atom = Macro.expand alias, caller

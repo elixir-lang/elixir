@@ -121,6 +121,14 @@ defmodule Typespec.Test.Type do
     assert {:type,{:mytype,{:type,_,:range, [{:integer, _, 1},{:integer, _, 10}]},[]}} = spec
   end
 
+  test "deftype with a range op" do
+    spec =
+    test_module do
+      deftype mytype :: 1..10
+    end
+    assert {:type,{:mytype,{:type,_,:range, [{:integer, _, 1},{:integer, _, 10}]},[]}} = spec
+  end
+
   test "deftype with a tuple" do
     {spec1, spec2} =
     test_module do
