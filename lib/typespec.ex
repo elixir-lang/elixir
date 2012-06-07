@@ -3,6 +3,9 @@ defmodule Typespec do
   defmacro __using__(options) do
     Module.add_compile_callback(__CALLER__.module, __MODULE__, :__aggregate_specs__)
     Module.register_attribute(__CALLER__.module, :__specs__, accumulate: true, persist: false)
+    Module.register_attribute(__CALLER__.module, :opaque, accumulate: false, persist: true)
+    Module.register_attribute(__CALLER__.module, :type, accumulate: false, persist: true)
+    Module.register_attribute(__CALLER__.module, :opaque, accumulate: false, persist: true)
     quote do
       import Typespec
       @__typespec_options__ unquote(options)
@@ -153,7 +156,7 @@ defmodule Typespec do
     {:var, line, name}
   end
 
-  defp _deftype({name, _, args}, definition, export, caller) do
+  defp _deftype({name, _, args}, definition, export, caller, options) do
     args = 
     case args do
       :quoted -> []
@@ -163,19 +166,23 @@ defmodule Typespec do
     spec = typespec(definition, (lc {:var, _, var} inlist args, do: var), caller)
     vars = lc {:var, line, name} inlist args, do: (quote do: {:var, unquote(line), unquote(name)})
     type = quote do: {unquote(name), unquote(spec), unquote(vars)}
+    type_attr = if options[:opaque], do: :opaque, else: :type
     quote do
-      Module.add_attribute __MODULE__, :type, unquote(type)
+      Module.add_attribute __MODULE__, unquote(type_attr), unquote(type)
       if unquote(export) do
         Module.add_attribute __MODULE__, :export_type, [{unquote(name), unquote(length(vars))}]
       end
-      {:type, unquote(type)}
+      {unquote(type_attr), unquote(type)}
     end
   end
 
-  defmacro deftype({:"::", _, [name, definition]}), do: _deftype(name, definition, true, __CALLER__)
-  defmacro deftype(name), do: _deftype(name, (quote do: term), true, __CALLER__)
-  defmacro deftypep({:"::", _, [name, definition]}), do: _deftype(name, definition, false, __CALLER__)
-  defmacro deftypep(name), do: _deftype(name, (quote do: term), false, __CALLER__)
+  defmacro deftype({:"::", _, [name, definition]}, options), do: _deftype(name, definition, true, __CALLER__, options)
+  defmacro deftype(name, options), do: _deftype(name, (quote do: term), true, __CALLER__, options)
+  defmacro deftype({:"::", _, [name, definition]}), do: _deftype(name, definition, true, __CALLER__, [])
+  defmacro deftype(name), do: _deftype(name, (quote do: term), true, __CALLER__, [])
+
+  defmacro deftypep({:"::", _, [name, definition]}), do: _deftype(name, definition, false, __CALLER__, [])
+  defmacro deftypep(name), do: _deftype(name, (quote do: term), false, __CALLER__, [])
 
   defmacro defspec({name, line, args},[{:do, returns}]) do
     spec = typespec({{:fun, line, args}, returns}, [], __CALLER__)
