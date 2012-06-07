@@ -85,7 +85,7 @@ defmodule Enum do
   Provides a set of algorithms that enumerate over collections according to the
   `Enum.Iterator` protocol. Most of the functions in this module have two
   flavours. If a given collection implements the mentioned protocol (like
-  list, for instance), you can do
+  list, for instance), you can do:
 
       Enum.map [1,2,3], fn(x) -> x * 2 end
 
@@ -396,9 +396,17 @@ defmodule Enum do
     binary_to_list join(collection, list_to_binary(joiner))
   end
 
+  def join(collection, joiner) when is_list(collection) do
+    do_join(collection, joiner, nil)
+  end
+
   def join(collection, joiner) when is_binary(joiner) do
-    { iterator, pointer } = I.iterator(collection)
-    do_join(pointer, iterator, joiner, nil)
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_join(pointer, iterator, joiner, nil)
+      list when is_list(list) ->
+        join(list, joiner)
+    end
   end
 
   @doc """
@@ -451,9 +459,17 @@ defmodule Enum do
     binary_to_list map_join(collection, list_to_binary(joiner), mapper)
   end
 
+  def map_join(collection, joiner, mapper) when is_list(collection) do
+    do_map_join(collection, mapper, joiner, nil)
+  end
+
   def map_join(collection, joiner, mapper) when is_binary(joiner) do
-    { iterator, pointer } = I.iterator(collection)
-    do_map_join(pointer, iterator, mapper, joiner, nil)
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_map_join(pointer, iterator, mapper, joiner, nil)
+      list when is_list(list) ->
+        map_join(list, joiner, mapper)
+    end
   end
 
   @doc """
@@ -495,9 +511,17 @@ defmodule Enum do
       #=> { [2], [1,3] }
 
   """
+  def partition(collection, fun) when is_list(collection) do
+    do_partition(collection, fun, [], [])
+  end
+
   def partition(collection, fun) do
-    { iterator, pointer } = I.iterator(collection)
-    do_partition(pointer, iterator, fun, [], [])
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_partition(pointer, iterator, fun, [], [])
+      list when is_list(list) ->
+        partition(list, fun)
+    end
   end
 
   @doc """
@@ -580,10 +604,18 @@ defmodule Enum do
       Enum.split_with [1,2,3,4], fn x -> x == 2 end
       #=> { [1], [2, 3, 4] }
   """
+  def split_with(collection, fun) when is_list(collection) do
+    do_split_with(collection, fun, [])
+  end
+
   def split_with(collection, fun) do
-    { iterator, pointer } = O.iterator(collection)
-    module = O.__impl_for__!(collection)
-    do_split_with(pointer, iterator, fun, [], module)
+    case O.iterator(collection) do
+      { iterator, pointer } ->
+        module = O.__impl_for__!(collection)
+        do_split_with(pointer, iterator, fun, [], module)
+      list when is_list(list) ->
+        do_split_with(list, fun, [])
+    end
   end
 
   @doc """
@@ -611,9 +643,17 @@ defmodule Enum do
       #=> [1, 2]
 
   """
-  def take_while(collection, fun // fn(x) -> x end) do
-    { iterator, pointer } = O.iterator(collection)
-    do_take_while(pointer, iterator, fun)
+  def take_while(collection, fun) when is_list(collection) do
+    do_take_while(collection, fun)
+  end
+
+  def take_while(collection, fun) do
+    case O.iterator(collection) do
+      { iterator, pointer } ->
+        do_take_while(pointer, iterator, fun)
+      list when is_list(list) ->
+        do_take_while(list, fun)
+    end
   end
 
   @doc """
@@ -852,6 +892,17 @@ defmodule Enum do
 
   ## split_with
 
+  defp do_split_with([h|t], fun, acc) do
+    case fun.(h) do
+      x in [false, nil] -> { List.reverse(acc), [h|t] }
+      _ -> do_split_with(t, fun, [h|acc])
+    end
+  end
+
+  defp do_split_with([], _, acc) do
+    { List.reverse(acc), [] }
+  end
+
   defp do_split_with({ h, next }, iterator, fun, acc, module) do
     case fun.(h) do
       x in [false, nil] ->
@@ -867,48 +918,58 @@ defmodule Enum do
 
   ## join
 
-  # The first item is simply stringified unless ...
+  defp do_join([h|t], joiner, nil) do
+    do_join(t, joiner, to_binary(h))
+  end
+
+  defp do_join([h|t], joiner, acc) do
+    acc = << acc | :binary, joiner | :binary, to_binary(h) | :binary >>
+    do_join(t, joiner, acc)
+  end
+
+  defp do_join([], _joiner, acc) do
+    acc || ""
+  end
+
   defp do_join({ h, next }, iterator, joiner, nil) do
     do_join(iterator.(next), iterator, joiner, to_binary(h))
   end
 
-  # The first item is :stop, then we return an empty string;
-  defp do_join(:stop, _, _joiner, nil) do
-    ""
-  end
-
-  # All other items are concatenated to acc, by first adding the joiner;
   defp do_join({ h, next }, iterator, joiner, acc) do
     acc = << acc | :binary, joiner | :binary, to_binary(h) | :binary >>
     do_join(iterator.(next), iterator, joiner, acc)
   end
 
-  # Until we have to stop iteration, then we return acc.
   defp do_join(:stop, _, _joiner, acc) do
-    acc
+    acc || ""
   end
 
   ## map join
 
-  # The first item is simply stringified unless ...
+  defp do_map_join([h|t], mapper, joiner, nil) do
+    do_map_join(t, mapper, joiner, to_binary(mapper.(h)))
+  end
+
+  defp do_map_join([h|t], mapper, joiner, acc) do
+    acc = << acc | :binary, joiner | :binary, to_binary(mapper.(h)) | :binary >>
+    do_map_join(t, mapper, joiner, acc)
+  end
+
+  defp do_map_join([], _mapper, _joiner, acc) do
+    acc || ""
+  end
+
   defp do_map_join({ h, next }, iterator, mapper, joiner, nil) do
     do_map_join(iterator.(next), iterator, mapper, joiner, to_binary(mapper.(h)))
   end
 
-  # The first item is :stop, then we return an empty string;
-  defp do_map_join(:stop, _, _mapper, _joiner, nil) do
-    ""
-  end
-
-  # All other items are concatenated to acc, by first adding the joiner;
   defp do_map_join({ h, next }, iterator, mapper, joiner, acc) do
     acc = << acc | :binary, joiner | :binary, to_binary(mapper.(h)) | :binary >>
     do_map_join(iterator.(next), iterator, mapper, joiner, acc)
   end
 
-  # Until we have to stop iteration, then we return acc.
   defp do_map_join(:stop, _, _mapper, _joiner, acc) do
-    acc
+    acc || ""
   end
 
   ## map
@@ -933,6 +994,17 @@ defmodule Enum do
   end
 
   ## partition
+
+  defp do_partition([h|t], fun, acc1, acc2) do
+    case fun.(h) do
+      x in [false, nil] -> do_partition(t, fun, acc1, [h|acc2])
+      _ -> do_partition(t, fun, [h|acc1], acc2)
+    end
+  end
+
+  defp do_partition([], _, acc1, acc2) do
+    { List.reverse(acc1), List.reverse(acc2) }
+  end
 
   defp do_partition({ h, next }, iterator, fun, acc1, acc2) do
     case fun.(h) do
@@ -1025,12 +1097,21 @@ defmodule Enum do
 
   ## take_while
 
+  defp do_take_while([h|t], fun) do
+    case fun.(h) do
+      x in [false, nil] -> []
+      _ -> [h|do_take_while(t, fun)]
+    end
+  end
+
+  defp do_take_while([], _) do
+    []
+  end
+
   defp do_take_while({ h, next }, iterator, fun) do
     case fun.(h) do
-      x in [false, nil] ->
-        []
-      _ ->
-        [h|do_take_while(iterator.(next), iterator, fun)]
+      x in [false, nil] -> []
+      _ -> [h|do_take_while(iterator.(next), iterator, fun)]
     end
   end
 
