@@ -11,8 +11,9 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [System] Added `System.find_executable`
   * [Builtin] Document the macro `@` and allow attributes to be read inside functions;
-  * [IO/File] Many improvements to File and IO modules;
+  * [IO/File] Many improvements to `File` and `IO` modules;
   * [Macro] Added `Macro.expand`, useful for debugging what a macro expands to;
   * [Enum] Added `find_index`;
   * [Record] Records now provide a `to_keywords` function;
