@@ -2,6 +2,15 @@ defmodule Bitwise do
   @moduledoc """
   This module provide macros for bitwise operators
   provided by Erlang. These macros can be used in guards.
+
+  The easiest way to use is to simply import them into
+  your module:
+
+      import Bitwise
+
+      bnot 1      # -2
+      band(1, 1) #=> 1
+
   """
 
   @doc """
