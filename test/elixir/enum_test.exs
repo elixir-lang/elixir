@@ -418,11 +418,15 @@ defrecord Range, start: nil, finish: nil, step: 1
 
 defimpl Enum.Iterator, for: Range do
   def iterator(range) do
-    Enum.Iterator.List.iterator(to_list(range))
+    { iterate(&1), iterate({ range.start, range.finish, range.step }) }
   end
 
-  defp to_list(range) do
-    :lists.seq(range.start, range.finish, range.step)
+  def iterate({ current, finish, step }) do
+    if current > finish do
+      :stop
+    else
+      { current, { current + step, finish, step } }
+    end
   end
 end
 
@@ -431,7 +435,9 @@ defimpl Enum.OrdIterator, for: Range do
     Enum.Iterator.Range.iterator(range)
   end
 
-  def to_list(h, next), do: [h|next]
+  def to_list(h, { _next, finish, step }) do
+    :lists.seq(h, finish, step)
+  end
 end
 
 defmodule EnumTest.Range do

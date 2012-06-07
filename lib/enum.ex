@@ -37,6 +37,12 @@ defprotocol Enum.Iterator do
       defp iterate([h|t]),  do: { h, t }
       defp iterate([]),     do: :stop
 
+  ## Iterating lists
+
+  If a data structure needs to be converted to a list in order
+  to be iterated, the iterator function can simply return the
+  list and the Enum module will be able to take over the list
+  and retrieve the proper iterator function.
   """
   def iterator(collection)
 end
@@ -125,7 +131,7 @@ defmodule Enum do
       { iterator, pointer } ->
         do_all?(pointer, iterator, fun)
       list when is_list(list) ->
-        all?(list, fun)
+        do_all?(list, fun)
     end
   end
 
@@ -159,7 +165,7 @@ defmodule Enum do
       { iterator, pointer } ->
         do_any?(pointer, iterator, fun)
       list when is_list(list) ->
-        any?(list, fun)
+        do_any?(list, fun)
     end
   end
 
@@ -197,7 +203,7 @@ defmodule Enum do
         module = O.__impl_for__!(collection)
         do_drop_while(pointer, iterator, fun, module)
       list when is_list(list) ->
-        drop_while(list, fun)
+        do_drop_while(list, fun)
     end
   end
 
@@ -219,10 +225,10 @@ defmodule Enum do
     case I.iterator(collection) do
       { iterator, pointer } ->
         do_each(pointer, iterator, fun)
-        collection
       list when is_list(list) ->
         each(list, fun)
     end
+    collection
   end
 
   @doc """
@@ -282,8 +288,12 @@ defmodule Enum do
   end
 
   def filter_map(collection, filter, mapper) do
-    { iterator, pointer } = I.iterator(collection)
-    do_filter_map(pointer, iterator, filter, mapper)
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_filter_map(pointer, iterator, filter, mapper)
+      list when is_list(list) ->
+        filter_map(list, filter, mapper)
+    end
   end
 
   @doc """
@@ -313,7 +323,7 @@ defmodule Enum do
       { iterator, pointer } ->
         do_find(pointer, iterator, ifnone, fun)
       list when is_list(list) ->
-        find(list, ifnone, fun)
+        do_find(list, ifnone, fun)
     end
   end
 
@@ -341,7 +351,7 @@ defmodule Enum do
       { iterator, pointer } ->
         do_find_value(pointer, iterator, ifnone, fun)
       list when is_list(list) ->
-        find_value(list, ifnone, fun)
+        do_find_value(list, ifnone, fun)
     end
   end
 
@@ -369,7 +379,7 @@ defmodule Enum do
       { iterator, pointer } ->
         do_find_index(pointer, iterator, 1, fun)
       list when is_list(list) ->
-        find_index(list, fun)
+        do_find_index(list, 1, fun)
     end
   end
 
@@ -396,7 +406,7 @@ defmodule Enum do
     binary_to_list join(collection, list_to_binary(joiner))
   end
 
-  def join(collection, joiner) when is_list(collection) do
+  def join(collection, joiner) when is_list(collection) and is_binary(joiner) do
     do_join(collection, joiner, nil)
   end
 
@@ -405,7 +415,7 @@ defmodule Enum do
       { iterator, pointer } ->
         do_join(pointer, iterator, joiner, nil)
       list when is_list(list) ->
-        join(list, joiner)
+        do_join(list, joiner, nil)
     end
   end
 
@@ -459,7 +469,7 @@ defmodule Enum do
     binary_to_list map_join(collection, list_to_binary(joiner), mapper)
   end
 
-  def map_join(collection, joiner, mapper) when is_list(collection) do
+  def map_join(collection, joiner, mapper) when is_list(collection) and is_binary(joiner) do
     do_map_join(collection, mapper, joiner, nil)
   end
 
@@ -468,7 +478,7 @@ defmodule Enum do
       { iterator, pointer } ->
         do_map_join(pointer, iterator, mapper, joiner, nil)
       list when is_list(list) ->
-        map_join(list, joiner, mapper)
+        do_map_join(list, mapper, joiner, nil)
     end
   end
 
@@ -520,7 +530,7 @@ defmodule Enum do
       { iterator, pointer } ->
         do_partition(pointer, iterator, fun, [], [])
       list when is_list(list) ->
-        partition(list, fun)
+        do_partition(list, fun, [], [])
     end
   end
 
@@ -540,7 +550,6 @@ defmodule Enum do
   end
 
   def reduce(collection, acc, fun) do
-    { iterator, pointer } = I.iterator(collection)
     case I.iterator(collection) do
       { iterator, pointer } ->
         do_reduce(pointer, iterator, acc, fun)
@@ -591,7 +600,7 @@ defmodule Enum do
         module = O.__impl_for__!(collection)
         do_split(pointer, iterator, count, [], module)
       list when is_list(list) ->
-        split(collection, count)
+        do_split(list, count, [])
     end
   end
 
@@ -1148,33 +1157,23 @@ defmodule Enum do
 end
 
 defimpl Enum.Iterator, for: List do
-  def iterator(list),  do: { iterate(&1), iterate(list) }
-  defp iterate([h|t]), do: { h, t }
-  defp iterate([]),    do: :stop # The :stop atom is the end of the iteration.
+  def iterator(list),  do: list
 end
 
 defimpl Enum.OrdIterator, for: List do
-  def iterator(list) do
-    Enum.Iterator.List.iterator(list)
-  end
-
+  def iterator(list),   do: list
   def to_list(h, next), do: [h|next]
 end
 
 defimpl Enum.Iterator, for: HashDict.Record do
-  def iterator(dict), do: Enum.Iterator.List.iterator(to_list(dict))
-  defp to_list(dict), do: Dict.HashDict.Record.to_list(dict)
+  def iterator(dict), do: Dict.HashDict.Record.to_list(dict)
 end
 
 defimpl Enum.Iterator, for: Orddict.Record do
-  def iterator(dict), do: Enum.Iterator.List.iterator(to_list(dict))
-  defp to_list(dict), do: Dict.Orddict.Record.to_list(dict)
+  def iterator(dict), do: Dict.Orddict.Record.to_list(dict)
 end
 
 defimpl Enum.OrdIterator, for: Orddict.Record do
-  def iterator(dict) do
-    Enum.Iterator.Orddict.Record.iterator(dict)
-  end
-
+  def iterator(dict), do: Dict.Orddict.Record.to_list(dict)
   def to_list(h, next), do: [h|next]
 end
