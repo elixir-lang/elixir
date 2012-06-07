@@ -10,6 +10,54 @@
 -define(is_upcase(S), S >= $A andalso S =< $Z).
 -define(is_downcase(S), S >= $a andalso S =< $z).
 -define(is_word(S), ?is_digit(S) orelse ?is_upcase(S) orelse ?is_downcase(S)).
+-define(is_quote(S), S == $" orelse S == $').
+
+-define(container2(T1, T2),
+  T1 == ${, T2 == $};
+  T1 == $[, T2 == $]
+).
+
+-define(comp3(T1, T2, T3),
+  T1 == $=, T2 == $=, T3 == $=;
+  T1 == $!, T2 == $=, T3 == $=
+).
+
+-define(comp2(T1, T2),
+  T1 == $=, T2 == $=;
+  T1 == $!, T2 == $=;
+  T1 == $<, T2 == $=;
+  T1 == $>, T2 == $=
+).
+
+-define(op2(T1, T2),
+  T1 == $&, T2 == $&;
+  T1 == $|, T2 == $|;
+  T1 == $<, T2 == $>;
+  T1 == $+, T2 == $+;
+  T1 == $-, T2 == $-;
+  T1 == $*, T2 == $*;
+  T1 == $/, T2 == $/;
+  T1 == $:, T2 == $:;
+  T1 == $<, T2 == $-;
+  T1 == $-, T2 == $>
+).
+
+-define(comp1(T),
+  T == $<;
+  T == $>
+).
+
+-define(op1(T),
+  T == $+;
+  T == $-;
+  T == $*;
+  T == $/;
+  T == $=;
+  T == $|;
+  T == $!;
+  T == $^;
+  T == $@
+).
 
 tokenize(String, Line) ->
   tokenize(Line, String, []).
@@ -43,7 +91,7 @@ tokenize(Line, [$#|String], Tokens) ->
 
 % Sigils
 
-tokenize(Line, [$%,S,H,H,H|T], Tokens) when H == $", ?is_upcase(S) orelse ?is_downcase(S) ->
+tokenize(Line, [$%,S,H,H,H|T], Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
   case extract_heredoc_with_interpolation(Line, ?is_downcase(S), T, H) of
     { error, _ } = Error ->
       Error;
@@ -75,7 +123,7 @@ tokenize(Line, [$?,Char|T], Tokens) ->
 tokenize(Line, [$.,$(|Rest], Tokens) ->
   tokenize(Line, [$(|Rest], [{dot_call_op,Line,'.'}|Tokens]);
 
-tokenize(Line, [$.,H|T], Tokens) when H == $"; H == $' ->
+tokenize(Line, [$.,H|T], Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, true, T, H) of
     { NewLine, [Part], Rest } when is_binary(Part) ->
       Atom = binary_to_atom(Part, utf8),
@@ -84,37 +132,27 @@ tokenize(Line, [$.,H|T], Tokens) when H == $"; H == $' ->
   end;
 
 % ## Containers
-tokenize(Line, [$.,T1,T2|Rest], Tokens) when T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
-  tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
-
 tokenize(Line, ".<<>>" ++ Rest, Tokens) ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, '<<>>', Rest),{'.',Line}|Tokens]);
 
+tokenize(Line, [$.,T1,T2|Rest], Tokens) when ?container2(T1, T2) ->
+  tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
+
 % ## Three Token Operators
-tokenize(Line, [$.,T1,T2,T3|Rest], Tokens) when
-  T1 == $=, T2 == $=, T3 == $=;
-  T1 == $!, T2 == $=, T3 == $= ->
+tokenize(Line, [$.,T1,T2,T3|Rest], Tokens) when ?comp3(T1, T2, T3) ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2,T3]), Rest),{'.',Line}|Tokens]);
 
 % ## Two Token Operators
-tokenize(Line, [$.,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
-  T1 == $|, T2 == $|; T1 == $<, T2 == $>;
-  T1 == $=, T2 == $=; T1 == $!, T2 == $=;
-  T1 == $<, T2 == $=; T1 == $>, T2 == $=;
-  T1 == $+, T2 == $+; T1 == $-, T2 == $-;
-  T1 == $*, T2 == $*; T1 == $/, T2 == $/;
-  T1 == $<, T2 == $-; T1 == $:, T2 == $:;
-  T1 == $-, T2 == $> ->
+tokenize(Line, [$.,T1,T2|Rest], Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T1,T2]), Rest),{'.',Line}|Tokens]);
 
 % ## Single Token Operators
-tokenize(Line, [$.,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $&,
-  T == $/; T == $=; T == $|; T == $!; T == $<; T == $>; T == $^; T == $@ ->
+tokenize(Line, [$.,T|Rest], Tokens) when ?comp1(T); ?op1(T); T == $& ->
   tokenize(Line, Rest, [tokenize_call_identifier(identifier, Line, list_to_atom([T]), Rest),{'.',Line}|Tokens]);
 
 % Heredocs
 
-tokenize(Line, [H,H,H|T], Tokens) when H == $"; H == $' ->
+tokenize(Line, [H,H,H|T], Tokens) when ?is_quote(H) ->
   case extract_heredoc_with_interpolation(Line, true, T, H) of
     { error, _ } = Error ->
       Error;
@@ -128,7 +166,7 @@ tokenize(Line, [H,H,H|T], Tokens) when H == $"; H == $' ->
 
 % Strings
 
-tokenize(Line, [H|T], Tokens) when H == $"; H == $' ->
+tokenize(Line, [H|T], Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, true, T, H) of
     { NewLine, Parts, [$:|Rest] } ->
       case Parts of
@@ -153,7 +191,7 @@ tokenize(Line, [$:,T|String], Tokens) when ?is_upcase(T); ?is_downcase(T); T == 
   { Rest, Atom } = tokenize_atom([T|String], []),
   tokenize(Line, Rest, [{atom,Line,[Atom]}|Tokens]);
 
-tokenize(Line, [$:,H|T], Tokens) when H == $"; H == $' ->
+tokenize(Line, [$:,H|T], Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, true, T, H) of
     { NewLine, Parts, Rest } -> tokenize(NewLine, Rest, [{atom,Line,unescape_tokens(Parts)}|Tokens]);
     Else -> Else
@@ -162,32 +200,22 @@ tokenize(Line, [$:,H|T], Tokens) when H == $"; H == $' ->
 % Atom operators
 
 % ## Containers
-tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $[ andalso T2 == $]; T1 == ${ andalso T2 == $} ->
-  tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
-
 tokenize(Line, ":<<>>" ++ Rest, Tokens) ->
   tokenize(Line, Rest, [{atom,Line,['<<>>']}|Tokens]);
 
+tokenize(Line, [$:,T1,T2|Rest], Tokens) when ?container2(T1, T2) ->
+  tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
+
 % ## Three Token Operators
-tokenize(Line, [$:,T1,T2,T3|Rest], Tokens) when
-  T1 == $=, T2 == $=, T3 == $=;
-  T1 == $!, T2 == $=, T3 == $= ->
+tokenize(Line, [$:,T1,T2,T3|Rest], Tokens) when ?comp3(T1, T2, T3) ->
   tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2,T3])]}|Tokens]);
 
 % ## Two Token Operators
-tokenize(Line, [$:,T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
-  T1 == $|, T2 == $|; T1 == $<, T2 == $>;
-  T1 == $=, T2 == $=; T1 == $!, T2 == $=;
-  T1 == $<, T2 == $=; T1 == $>, T2 == $=;
-  T1 == $+, T2 == $+; T1 == $-, T2 == $-;
-  T1 == $*, T2 == $*; T1 == $/, T2 == $/;
-  T1 == $<, T2 == $-; T1 == $:, T2 == $:;
-  T1 == $-, T2 == $> ->
+tokenize(Line, [$:,T1,T2|Rest], Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
   tokenize(Line, Rest, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
 
 % ## Single Token Operators
-tokenize(Line, [$:,T|Rest], Tokens) when T == $+; T == $-; T == $*; T == $&;
-  T == $/; T == $=; T == $|; T == $!; T == $<; T == $>; T == $^; T == $@; T == $. ->
+tokenize(Line, [$:,T|Rest], Tokens) when ?comp1(T); ?op1(T); T == $&; T == $. ->
   tokenize(Line, Rest, [{atom,Line,[list_to_atom([T])]}|Tokens]);
 
 % Ambiguous unary/binary operators tokens
@@ -212,42 +240,30 @@ tokenize(Line, [T,T|Rest], Tokens) when T == $<; T == $> ->
   tokenize(Line, Rest, [{list_to_atom([T,T]), Line}|Tokens]);
 
 % ## Comparison three token operators
-tokenize(Line, [T1,T2,T3|Rest], Tokens) when
-  T1 == $=, T2 == $=, T3 == $=;
-  T1 == $!, T2 == $=, T3 == $= ->
+tokenize(Line, [T1,T2,T3|Rest], Tokens) when ?comp3(T1, T2, T3) ->
   tokenize(Line, Rest, [{comp_op, Line, list_to_atom([T1,T2,T3])}|Tokens]);
 
 % ## Three token operators - none yet
 
 % ## Comparison two token operators
-tokenize(Line, [T1,T2|Rest], Tokens) when
-  T1 == $=, T2 == $=; T1 == $!, T2 == $=;
-  T1 == $<, T2 == $=; T1 == $>, T2 == $=;
-  T1 == $<, T2 == $- ->
+tokenize(Line, [T1,T2|Rest], Tokens) when ?comp2(T1, T2) ->
   tokenize(Line, Rest, [{comp_op, Line, list_to_atom([T1,T2])}|Tokens]);
 
 % ## Two Token Operators
-tokenize(Line, [T1,T2|Rest], Tokens) when T1 == $& andalso T2 == $&;
-  T1 == $|, T2 == $|; T1 == $<, T2 == $>;
-  T1 == $+, T2 == $+; T1 == $-, T2 == $-;
-  T1 == $*, T2 == $*; T1 == $/, T2 == $/;
-  T1 == $:, T2 == $:; T1 == $-, T2 == $> ->
+tokenize(Line, [T1,T2|Rest], Tokens) when ?op2(T1, T2) ->
   tokenize(Line, Rest, [{list_to_atom([T1,T2]), Line}|Tokens]);
 
+% ## &
+tokenize(Line, [$&,H|Rest], Tokens) when ?is_digit(H) ->
+  tokenize(Line, Rest, [{'&', Line, [list_to_integer([H])]}|Tokens]);
+
 % ## Comparison single token operators
-tokenize(Line, [T|Rest], Tokens) when T == $<; T == $> ->
+tokenize(Line, [T|Rest], Tokens) when ?comp1(T) ->
   tokenize(Line, Rest, [{comp_op, Line, list_to_atom([T])}|Tokens]);
 
 % ## Single Token Operators
-
-tokenize(Line, [T|Rest], Tokens) when T == $+; T == $-; T == $*;
-  T == $/; T == $=; T == $|; T == $!; T == $^; T == $@ ->
+tokenize(Line, [T|Rest], Tokens) when ?op1(T) ->
   tokenize(Line, Rest, [{list_to_atom([T]), Line}|Tokens]);
-
-% &
-
-tokenize(Line, [$&,H|Rest], Tokens) when ?is_digit(H) ->
-  tokenize(Line, Rest, [{'&', Line, [list_to_integer([H])]}|Tokens]);
 
 % Aliases
 
