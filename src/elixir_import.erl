@@ -252,7 +252,7 @@ non_overridable_macros() ->
     {'=',2},
     {'__op__',2},
     {'__op__',3},
-    {'__ambiguousop__',2},
+    {'__ambiguousop__','*'},
     {'__block__','*'},
     {'->','2'},
     {'<<>>','*'},

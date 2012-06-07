@@ -144,7 +144,6 @@ call_expr -> dot_op_identifier call_args_no_parens : build_identifier('$1', '$2'
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', nil).
-call_expr -> op_identifier matched_expr : build_op_identifier('$1', '$2').
 call_expr -> var : build_identifier('$1', nil).
 call_expr -> bracket_expr : '$1'.
 
@@ -321,6 +320,7 @@ dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
 dot_ref -> matched_expr dot_op '__aliases__' : build_dot_ref('$2', '$1', '$3').
 
+dot_op_identifier -> op_identifier : '$1'.
 dot_op_identifier -> matched_expr dot_op op_identifier : build_dot('$2', '$1', '$3').
 
 dot_do_identifier -> do_identifier : '$1'.
@@ -455,12 +455,11 @@ build_identifier({ '.', Line, _ } = Dot, Args) ->
 build_identifier({ Keyword, Line }, Args) when Keyword == fn; Keyword == fn_paren ->
   { fn, Line, Args };
 
+build_identifier({ op_identifier, Line, Identifier }, Args) ->
+  { '__ambiguousop__', Line, [{ Identifier, Line, nil }|Args] };
+
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, Line, Args }.
-
-build_op_identifier(Identifier, Expr) ->
-  Line = ?line(Identifier),
-  { '__ambiguousop__', Line, [{ ?exprs(Identifier), Line, nil }, Expr] }.
 
 extract_identifier({ Kind, _, Identifier }) when
     Kind == identifier; Kind == punctuated_identifier; Kind == bracket_identifier;

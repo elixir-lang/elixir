@@ -54,12 +54,16 @@ translate_each({ '__op__', Line, [Op|Args] }, S) when is_atom(Op) ->
   { [TLeft, TRight], NS }  = translate_args(Args, S),
   { { op, Line, convert_op(Op), TLeft, TRight }, NS };
 
-translate_each({ '__ambiguousop__', Line, [Var, Expr] }, S) ->
+translate_each({ '__ambiguousop__', Line, [Var, H|T] }, S) ->
   { Name, _, _ } = Var,
 
   case dict:find(Name, S#elixir_scope.vars) of
-    error -> translate_each({ Name, Line, [Expr] }, S);
-    _ -> translate_each(rellocate_ambiguous_op(Expr, Var), S)
+    error -> translate_each({ Name, Line, [H|T] }, S);
+    _ ->
+      case T of
+        [] -> translate_each(rellocate_ambiguous_op(H, Var), S);
+        _  -> syntax_error(Line, S#elixir_scope.filename, "Many arguments given to ~s, but ~s is a variable. Use even spaces to solve ambiguity.", [Name, Name])
+      end
   end;
 
 %% Containers
