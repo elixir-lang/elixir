@@ -62,7 +62,7 @@ translate_each({ '__ambiguousop__', Line, [Var, H|T] }, S) ->
     _ ->
       case T of
         [] -> translate_each(rellocate_ambiguous_op(H, Var), S);
-        _  -> syntax_error(Line, S#elixir_scope.filename, "Many arguments given to ~s, but ~s is a variable. Use even spaces to solve ambiguity.", [Name, Name])
+        _  -> syntax_error(Line, S#elixir_scope.file, "Many arguments given to ~s, but ~s is a variable. Use even spaces to solve ambiguity.", [Name, Name])
       end
   end;
 
@@ -87,7 +87,7 @@ translate_each({'[]', _Line, Args}, S) when is_list(Args) ->
 %% Lexical
 
 translate_each({refer, Line, Args}, S) ->
-  elixir_errors:deprecation(Line, S#elixir_scope.filename, "refer is deprecated, please use alias instead"),
+  elixir_errors:deprecation(Line, S#elixir_scope.file, "refer is deprecated, please use alias instead"),
   translate_each({alias, Line, Args}, S);
 
 translate_each({alias, Line, [Ref]}, S) ->
@@ -107,7 +107,7 @@ translate_each({alias, Line, [Ref, KV]}, S) ->
           { TOther, SA } = translate_each(Other, SR#elixir_scope{aliases=[]}),
           case TOther of
             { atom, _, Atom } -> { Atom, SA };
-            _ -> syntax_error(Line, S#elixir_scope.filename,
+            _ -> syntax_error(Line, S#elixir_scope.file,
                    "invalid args for alias, expected an atom or alias as argument")
           end
       end,
@@ -119,7 +119,7 @@ translate_each({alias, Line, [Ref, KV]}, S) ->
         false ->
           case string:tokens(atom_to_list(New), ".") of
             [_,_] -> [];
-            _ -> syntax_error(Line, S#elixir_scope.filename,
+            _ -> syntax_error(Line, S#elixir_scope.file,
                    "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])
           end,
 
@@ -128,7 +128,7 @@ translate_each({alias, Line, [Ref, KV]}, S) ->
           } }
       end;
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid args for alias, expected an atom or alias as argument")
+      syntax_error(Line, S#elixir_scope.file, "invalid args for alias, expected an atom or alias as argument")
   end;
 
 translate_each({require, Line, [Ref]}, S) ->
@@ -152,7 +152,7 @@ translate_each({require, Line, [Ref, KV]}, S) ->
 
       translate_each({ alias, Line, [Ref, [{ as, As }]] }, SF);
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid args for require, expected an atom or alias as argument")
+      syntax_error(Line, S#elixir_scope.file, "invalid args for require, expected an atom or alias as argument")
   end;
 
 translate_each({import, Line, [Left]}, S) ->
@@ -170,17 +170,17 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
 
   Selector = case TSelector of
     { atom, _,  SelectorAtom } -> SelectorAtom;
-    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid selector for import")
+    _ -> syntax_error(Line, S#elixir_scope.file, "invalid selector for import")
   end,
 
   Ref = case TRef of
     { atom, _, RefAtom } -> RefAtom;
-    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid name for import")
+    _ -> syntax_error(Line, S#elixir_scope.file, "invalid name for import")
   end,
 
   case is_list(Opts) of
     true -> [];
-    _ -> syntax_error(Line, S#elixir_scope.filename, "invalid options for import")
+    _ -> syntax_error(Line, S#elixir_scope.file, "invalid options for import")
   end,
 
   As = case orddict:find(as, Opts) of
@@ -198,7 +198,7 @@ translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
   { { atom, Line, S#elixir_scope.module }, S };
 
 translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
-  translate_each(S#elixir_scope.filename, S);
+  translate_each(S#elixir_scope.file, S);
 
 translate_each({'__MAIN__', Line, Atom}, S) when is_atom(Atom) ->
   { { atom, Line, '__MAIN__' }, S };
@@ -212,7 +212,7 @@ translate_each({'__CALLER__', Line, Atom}, S) when is_atom(Atom) ->
 %% Arg-less deprecated macros
 
 translate_each({'__FUNCTION__', Line, Atom}, S) when is_atom(Atom) ->
-  elixir_errors:deprecation(Line, S#elixir_scope.filename, "__FUNCTION__ is deprecated, use __ENV__.function instead"),
+  elixir_errors:deprecation(Line, S#elixir_scope.file, "__FUNCTION__ is deprecated, use __ENV__.function instead"),
   case S#elixir_scope.function of
     nil ->
       { { atom, Line, nil }, S };
@@ -221,7 +221,7 @@ translate_each({'__FUNCTION__', Line, Atom}, S) when is_atom(Atom) ->
   end;
 
 translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
-  elixir_errors:deprecation(Line, S#elixir_scope.filename, "__LINE__ is deprecated, use __ENV__.line instead"),
+  elixir_errors:deprecation(Line, S#elixir_scope.file, "__LINE__ is deprecated, use __ENV__.line instead"),
   { { integer, Line, Line }, S };
 
 %% Aliases
@@ -274,10 +274,10 @@ translate_each({quote, _Line, [[{do,Exprs}|T]]}, S) ->
   elixir_quote:quote(Exprs, #elixir_quote{marker=Marker, line=Line, unquote=Unquote}, S);
 
 translate_each({quote, Line, [_]}, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "invalid args for quote");
+  syntax_error(Line, S#elixir_scope.file, "invalid args for quote");
 
 translate_each({in_guard, Line, [[{do,Guard},{else,Else}]]}, S) ->
-  elixir_errors:deprecation(Line, S#elixir_scope.filename, "in_guard is deprecated, check __CALLER__.in_guard? instead"),
+  elixir_errors:deprecation(Line, S#elixir_scope.file, "in_guard is deprecated, check __CALLER__.in_guard? instead"),
   case S#elixir_scope.context of
     guard -> translate_each(Guard, S);
     _ -> translate_each(Else, S)
@@ -286,7 +286,7 @@ translate_each({in_guard, Line, [[{do,Guard},{else,Else}]]}, S) ->
 %% Functions
 
 translate_each({Key, Line, []}, S) when Key == fn; Key == loop ->
-  syntax_error(Line, S#elixir_scope.filename, "invalid args for ~s", [Key]);
+  syntax_error(Line, S#elixir_scope.file, "invalid args for ~s", [Key]);
 
 translate_each({fn, Line, Args} = Original, S) when is_list(Args) ->
   { Left, Right } = elixir_tree_helpers:split_last(Args),
@@ -298,7 +298,7 @@ translate_each({fn, Line, Args} = Original, S) when is_list(Args) ->
       case translate_args(Args, S) of
         { [{atom,_,Name}, {integer,_,Arity}], SA } ->
           case elixir_dispatch:import_function(Line, Name, Arity, SA) of
-            false -> syntax_error(Line, S#elixir_scope.filename, "cannot convert a macro to a function");
+            false -> syntax_error(Line, S#elixir_scope.file, "cannot convert a macro to a function");
             Else  -> Else
           end;
         _ ->
@@ -307,7 +307,7 @@ translate_each({fn, Line, Args} = Original, S) when is_list(Args) ->
     _ when length(Args) == 3 ->
       translate_partial_fn(Original, S);
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid args for fn")
+      syntax_error(Line, S#elixir_scope.file, "invalid args for fn")
   end;
 
 %% Loop and recur
@@ -321,7 +321,7 @@ translate_each({loop, Line, RawArgs}, RS) when is_list(RawArgs) ->
       FS = S#elixir_scope{recur=element(1,ExVar)},
       translate_block_fn(Line, loop, [], Do, FS, [ExVar]);
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "invalid args for loop")
+      syntax_error(Line, S#elixir_scope.file, "invalid args for loop")
   end,
 
   ErlVar = { var, Line, element(1, ExVar) },
@@ -335,7 +335,7 @@ translate_each({loop, Line, RawArgs}, RS) when is_list(RawArgs) ->
 translate_each({recur, Line, Args}, S) when is_list(Args) ->
   case S#elixir_scope.recur of
     nil ->
-      syntax_error(Line, S#elixir_scope.filename, "cannot invoke recur outside of a loop");
+      syntax_error(Line, S#elixir_scope.file, "cannot invoke recur outside of a loop");
     Recur ->
       ExVar = { Recur, Line, nil },
       Call = { { '.', Line, [ExVar] }, Line, [ExVar|Args] },
@@ -344,7 +344,7 @@ translate_each({recur, Line, Args}, S) when is_list(Args) ->
 
 %% Super
 
-translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) ->
+translate_each({ super, Line, Args }, #elixir_scope{file=File} = S) ->
   Module = assert_module_scope(Line, super, S),
   Function = assert_function_scope(Line, super, S),
   elixir_def_overridable:ensure_defined(Line, Module, Function, S),
@@ -357,7 +357,7 @@ translate_each({ super, Line, Args }, #elixir_scope{filename=Filename} = S) ->
     length(Args) == Arity ->
       translate_args(Args, S);
     true ->
-      syntax_error(Line, Filename, "super must be called with the same number of arguments as the current function")
+      syntax_error(Line, File, "super must be called with the same number of arguments as the current function")
   end,
 
   Super = elixir_def_overridable:name(Module, Function),
@@ -392,7 +392,7 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
 
   case is_list(Result) of
     true ->
-      syntax_error(Line, S#elixir_scope.filename, Result, [Name]);
+      syntax_error(Line, S#elixir_scope.file, Result, [Name]);
     false ->
       Result
   end;
@@ -445,7 +445,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom
                 [] -> { { atom, Line, Right }, S };
                 _ ->
                   Message = "invalid args for Erlang.~s expression",
-                  syntax_error(Line, S#elixir_scope.filename, Message, [Right])
+                  syntax_error(Line, S#elixir_scope.file, Message, [Right])
               end;
             { atom, _, Receiver } ->
               elixir_dispatch:dispatch_require(Line, Receiver, Right, Args, umergev(SL, SR), Callback);
@@ -526,7 +526,7 @@ translate_block_fn(Line, Key, Left, Right, S, ExtraArgs) ->
     { [], {'->',_,Pairs} } ->
       Pairs;
     { _, {'->',_,_} } ->
-      syntax_error(Line, S#elixir_scope.filename, "~s does not accept arguments when passing many clauses", [Key]);
+      syntax_error(Line, S#elixir_scope.file, "~s does not accept arguments when passing many clauses", [Key]);
     { Args, Expr } ->
       [{ Args, Expr }]
   end,
@@ -636,7 +636,7 @@ validate_partials(Line, [{ Pos, Item }|T], Pos, S) ->
   [Item|validate_partials(Line, T, Pos + 1, S)];
 
 validate_partials(Line, [{ Pos, _ }|_], Expected, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "partial variable &~w cannot be defined without &~w", [Pos, Expected]);
+  syntax_error(Line, S#elixir_scope.file, "partial variable &~w cannot be defined without &~w", [Pos, Expected]);
 
 validate_partials(_Line, [], _Pos, _S) ->
   [].
@@ -700,14 +700,14 @@ translate_comprehension(Line, Kind, Args, S) ->
       { TExpr, SE }  = translate_comprehension_do(Line, Kind, Expr, SC),
       { { Kind, Line, TExpr, TCases }, umergec(S, SE) };
     _ ->
-      syntax_error(Line, S#elixir_scope.filename, "keyword argument :do missing for comprehension ~s", [Kind])
+      syntax_error(Line, S#elixir_scope.file, "keyword argument :do missing for comprehension ~s", [Kind])
   end.
 
 translate_comprehension_do(_Line, bc, { '<<>>', _, _ } = Expr, S) ->
   translate_each(Expr, S);
 
 translate_comprehension_do(Line, bc, _Expr, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "a bit comprehension expects a bit string << >> to be returned");
+  syntax_error(Line, S#elixir_scope.file, "a bit comprehension expects a bit string << >> to be returned");
 
 translate_comprehension_do(_Line, _Kind, Expr, S) ->
   translate_each(Expr, S).

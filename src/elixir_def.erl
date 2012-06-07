@@ -64,7 +64,7 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
 
 store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
   S = elixir_scope:deserialize(RawS),
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot define function outside module, invalid scope for ~s", [Kind]);
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
 store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   Arity = length(Args),
@@ -80,7 +80,7 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
 
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Expr, S),
 
-  Filename      = TS#elixir_scope.filename,
+  File      = TS#elixir_scope.file,
   FunctionTable = table(Module),
 
   CO = elixir_compiler:get_opts(),
@@ -95,12 +95,12 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
     _ ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
-      store_each(CheckClauses, Kind, Filename, Location,
+      store_each(CheckClauses, Kind, File, Location,
         Stack, FunctionTable, length(Defaults), Function)
   end,
 
   %% Store defaults
-  [store_each(false, Kind, Filename, Location, Stack, FunctionTable, 0,
+  [store_each(false, Kind, File, Location, Stack, FunctionTable, 0,
     function_for_default(Kind, Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
@@ -117,7 +117,7 @@ compile_docs(Kind, Line, Module, Name, Arity, S, CO) ->
     true -> [];
     _ ->
       case '__MAIN__.Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
-        { error, Message } -> elixir_errors:handle_file_warning(S#elixir_scope.filename,
+        { error, Message } -> elixir_errors:handle_file_warning(S#elixir_scope.file,
           { Line, ?MODULE, { Message, { Name, Arity } } });
         _ -> []
       end
@@ -252,42 +252,42 @@ function_for_default(_, Name, { clause, Line, Args, _Guards, _Exprs } = Clause) 
 %% This function also checks and emit warnings in case
 %% the kind, of the visibility of the function changes.
 
-store_each(Check, Kind, Filename, Location, Stack, Table, Defaults, {function, Line, Name, Arity, Clauses}) ->
+store_each(Check, Kind, File, Location, Stack, Table, Defaults, {function, Line, Name, Arity, Clauses}) ->
   case ets:lookup(Table, {Name, Arity}) of
     [{{Name, Arity}, StoredKind, _, _, StoredLocation, StoredStack, StoredDefaults, StoredClauses}] ->
       FinalLocation = StoredLocation,
       FinalDefaults = Defaults + StoredDefaults,
       FinalClauses  = Clauses ++ StoredClauses,
-      check_valid_kind(Line, Filename, Name, Arity, Kind, StoredKind),
-      check_valid_defaults(Line, Filename, Name, Arity, Defaults),
-      Check andalso (Stack == StoredStack) andalso check_valid_clause(Line, Filename, Name, Arity, Table);
+      check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
+      check_valid_defaults(Line, File, Name, Arity, Defaults),
+      Check andalso (Stack == StoredStack) andalso check_valid_clause(Line, File, Name, Arity, Table);
     [] ->
       FinalLocation = Location,
       FinalDefaults = Defaults,
       FinalClauses  = Clauses,
       Check andalso ets:insert(Table, { last, { Name, Arity } })
   end,
-  ets:insert(Table, {{Name, Arity}, Kind, Line, Filename, FinalLocation, Stack, FinalDefaults, FinalClauses}).
+  ets:insert(Table, {{Name, Arity}, Kind, Line, File, FinalLocation, Stack, FinalDefaults, FinalClauses}).
 
 %% Validations
 
-check_valid_kind(_Line, _Filename, _Name, _Arity, Kind, Kind) -> [];
-check_valid_kind(Line, Filename, Name, Arity, Kind, StoredKind) ->
-  elixir_errors:form_error(Line, Filename, ?MODULE,
+check_valid_kind(_Line, _File, _Name, _Arity, Kind, Kind) -> [];
+check_valid_kind(Line, File, Name, Arity, Kind, StoredKind) ->
+  elixir_errors:form_error(Line, File, ?MODULE,
     { changed_kind, { Name, Arity, StoredKind, Kind } }).
 
-check_valid_clause(Line, Filename, Name, Arity, Table) ->
+check_valid_clause(Line, File, Name, Arity, Table) ->
   case ets:lookup_element(Table, last, 2) of
     {Name,Arity} -> [];
     [] -> [];
     {ElseName, ElseArity} ->
-      elixir_errors:handle_file_warning(Filename, { Line, ?MODULE,
+      elixir_errors:handle_file_warning(File, { Line, ?MODULE,
         { changed_clause, { { Name, Arity }, { ElseName, ElseArity } } } })
   end.
 
-check_valid_defaults(_Line, _Filename, _Name, _Arity, 0) -> [];
-check_valid_defaults(Line, Filename, Name, Arity, _) ->
-  elixir_errors:handle_file_warning(Filename, { Line, ?MODULE, { clauses_with_docs, { Name, Arity } } }).
+check_valid_defaults(_Line, _File, _Name, _Arity, 0) -> [];
+check_valid_defaults(Line, File, Name, Arity, _) ->
+  elixir_errors:handle_file_warning(File, { Line, ?MODULE, { clauses_with_docs, { Name, Arity } } }).
 
 %% Helpers
 

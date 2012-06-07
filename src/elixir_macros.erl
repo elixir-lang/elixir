@@ -45,7 +45,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
                   [ { '__MODULE__', Line, false }, Name, Arg ]
               }, S);
             _  ->
-              syntax_error(Line, S#elixir_scope.filename,
+              syntax_error(Line, S#elixir_scope.file,
                 "cannot dynamically set attribute @~s inside a function", [Name])
           end;
         _ when is_atom(Args) or (Args == []) ->
@@ -61,7 +61,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
               { elixir_tree_helpers:abstract_syntax(Contents), S }
           end;
         _ ->
-          syntax_error(Line, S#elixir_scope.filename, "expected 0 or 1 argument for @~s, got: ~p", [Name, length(Args)])
+          syntax_error(Line, S#elixir_scope.file, "expected 0 or 1 argument for @~s, got: ~p", [Name, length(Args)])
       end
   end;
 
@@ -115,7 +115,7 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
 
   Block = case orddict:find(do, KV) of
     { ok, DoValue } -> DoValue;
-    error -> syntax_error(Line, S#elixir_scope.filename, "expected do: argument in defmodule")
+    error -> syntax_error(Line, S#elixir_scope.file, "expected do: argument in defmodule")
   end,
 
   { FRef, FS } = case TRef of
@@ -180,7 +180,7 @@ translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_a
   elixir_scope:translate_var(Line, Name, S);
 
 translate_macro({ 'var!', Line, [_] }, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "invalid args for var!").
+  syntax_error(Line, S#elixir_scope.file, "invalid args for var!").
 
 %% HELPERS
 

@@ -17,7 +17,7 @@ each_clause(Line, { 'catch', Raw, Expr }, S) ->
     [X,Y]   -> [X, Y, { '_', Line, nil }];
     [_,_,_] -> Args;
     _       ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many arguments given for catch")
+      elixir_errors:syntax_error(Line, S#elixir_scope.file, "too many arguments given for catch")
   end,
 
   Condition = { '{}', Line, Final },
@@ -54,10 +54,10 @@ each_clause(Line, { rescue, [Condition], Expr }, S) ->
   end;
 
 each_clause(Line, {rescue,_,_}, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "too many arguments given for rescue");
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "too many arguments given for rescue");
 
 each_clause(Line, {Key,_,_}, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid key ~s in try", [Key]).
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid key ~s in try", [Key]).
 
 %% Helpers
 
@@ -82,7 +82,7 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
         false -> normalize_rescue(Line, nil, S)
       end;
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid use of operator \"in\" in rescue inside try")
+      elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid use of operator \"in\" in rescue inside try")
   end;
 
 normalize_rescue(Line, Condition, S) ->
@@ -243,7 +243,7 @@ validate_rescue_access(Line, { 'access', _, [Element, _] }, S) ->
     { { atom, _, Atom }, _ } ->
       case lists:member(Atom, erlang_rescues()) of
         false -> [];
-        true -> elixir_errors:syntax_error(Line, S#elixir_scope.filename, "cannot (yet) pattern match against erlang exceptions")
+        true -> elixir_errors:syntax_error(Line, S#elixir_scope.file, "cannot (yet) pattern match against erlang exceptions")
       end;
     _ -> []
   end;

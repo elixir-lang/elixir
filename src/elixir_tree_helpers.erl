@@ -113,13 +113,13 @@ extract_bin_values(_Line, { Value, _, Atom } = Expr, default, Types, S) when is_
   { Translated, Types };
 
 extract_bin_values(Line, Value, _Int, _Types, S) when is_integer(Value) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "duplicated size specifier ~p in <<>>", [Value]);
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "duplicated size specifier ~p in <<>>", [Value]);
 
 extract_bin_values(_Line, Value, Int, Types, _S) when is_atom(Value) ->
   { Int, [Value|Types] };
 
 extract_bin_values(Line, _Value, _Int, _Types, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.filename, "invalid specifier for <<>>").
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid specifier for <<>>").
 
 %% Others
 

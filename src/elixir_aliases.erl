@@ -16,7 +16,7 @@ ensure_loaded(Line, Ref, S) ->
         true  -> scheduled_module;
         false -> unloaded_module
       end,
-      elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { Kind, Ref })
+      elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, { Kind, Ref })
   end.
 
 %% Receives an atom and returns the first alias.

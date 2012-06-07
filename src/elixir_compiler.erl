@@ -20,13 +20,13 @@ get_opts() ->
 
 %% Compiles the given string.
 
-string(Contents, Filename) when is_list(Contents), is_binary(Filename) ->
+string(Contents, File) when is_list(Contents), is_binary(File) ->
   Previous = get(elixir_compiled),
 
   try
     put(elixir_compiled, []),
-    Forms = elixir_translator:forms(Contents, 1, Filename),
-    eval_forms(Forms, 1, Filename, #elixir_scope{filename=Filename}),
+    Forms = elixir_translator:forms(Contents, 1, File),
+    eval_forms(Forms, 1, File, #elixir_scope{file=File}),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
@@ -35,10 +35,10 @@ string(Contents, Filename) when is_list(Contents), is_binary(Filename) ->
 %% Compile a file, return a tuple of module names and binaries.
 
 file(Relative) when is_binary(Relative) ->
-  Filename = filename:absname(Relative),
-  case file:read_file(Filename) of
+  File = filename:absname(Relative),
+  case file:read_file(File) of
     {ok, Bin} ->
-      string(unicode:characters_to_list(Bin), Filename);
+      string(unicode:characters_to_list(Bin), File);
     Error ->
       erlang:error(Error)
   end.
@@ -71,7 +71,7 @@ eval_compilation(Forms, _Line, S) ->
 code_loading_compilation(Forms, Line, RawModule, Value, S) ->
   Module = escape_module(RawModule),
   { Exprs, FS } = elixir_translator:translate(Forms, S),
-  ModuleForm = module_form(Exprs, Line, S#elixir_scope.filename, Module),
+  ModuleForm = module_form(Exprs, Line, S#elixir_scope.file, Module),
   { module(ModuleForm, S, fun(Mod, _) ->
     Res = Mod:'BOOTSTRAP'(Value),
     code:purge(Module),
@@ -89,19 +89,19 @@ module(Forms, S, Callback) ->
     true -> [debug_info];
     _ -> []
   end,
-  module(Forms, S#elixir_scope.filename, Options, Callback).
+  module(Forms, S#elixir_scope.file, Options, Callback).
 
-module(Forms, Filename, Options, Callback) when
-    is_binary(Filename), is_list(Forms), is_list(Options), is_function(Callback) ->
-  Listname = binary_to_list(Filename),
+module(Forms, File, Options, Callback) when
+    is_binary(File), is_list(Forms), is_list(Options), is_function(Callback) ->
+  Listname = binary_to_list(File),
   case compile:forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
     {ok, ModuleName, Binary, Warnings} ->
-      format_warnings(Filename, Warnings),
+      format_warnings(File, Warnings),
       code:load_binary(ModuleName, Listname, Binary),
       Callback(ModuleName, Binary);
     {error, Errors, Warnings} ->
-      format_warnings(Filename, Warnings),
-      format_errors(Filename, Errors)
+      format_warnings(File, Warnings),
+      format_errors(File, Errors)
   end.
 
 %% Compile core files for bootstrap.
@@ -121,12 +121,12 @@ no_auto_import() ->
   { attribute, 0, compile, {
     no_auto_import, erlang:module_info(exports) } }.
 
-module_form(Exprs, Line, Filename, Module) when
-    is_binary(Filename), is_list(Exprs), is_integer(Line), is_atom(Module) ->
+module_form(Exprs, Line, File, Module) when
+    is_binary(File), is_list(Exprs), is_integer(Line), is_atom(Module) ->
   Args = [{ var, Line, '_@MODULE'}],
 
   [
-    { attribute, Line, file, { binary_to_list(Filename), 1 } },
+    { attribute, Line, file, { binary_to_list(File), 1 } },
     { attribute, Line, module, Module },
     { attribute, Line, export, [{ 'BOOTSTRAP',1 }] },
     { function, Line, 'BOOTSTRAP', length(Args), [
@@ -226,15 +226,15 @@ core_main() ->
 
 %% ERROR HANDLING
 
-format_errors(_Filename, []) ->
+format_errors(_File, []) ->
   exit({nocompile, "compilation failed but no error was raised"});
 
-format_errors(Filename, Errors) ->
+format_errors(File, Errors) ->
   lists:foreach(fun ({_, Each}) ->
-    lists:foreach(fun (Error) -> elixir_errors:handle_file_error(Filename, Error) end, Each)
+    lists:foreach(fun (Error) -> elixir_errors:handle_file_error(File, Error) end, Each)
   end, Errors).
 
-format_warnings(Filename, Warnings) ->
+format_warnings(File, Warnings) ->
   lists:foreach(fun ({_, Each}) ->
-    lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Filename, Warning) end, Each)
+    lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(File, Warning) end, Each)
   end, Warnings).

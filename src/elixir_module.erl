@@ -37,21 +37,21 @@ translate(Line, Ref, Block, S) ->
 compile(Line, Module, Block, RawS) when is_atom(Module) ->
   S = elixir_scope:deserialize(RawS),
   C = elixir_compiler:get_opts(),
-  Filename = S#elixir_scope.filename,
+  File = S#elixir_scope.file,
 
-  check_module_availability(Line, Filename, Module, C),
+  check_module_availability(Line, File, Module, C),
   build(Module),
 
   try
     Result           = eval_form(Line, Module, Block, S),
-    { Funs, Forms0 } = functions_form(Line, Filename, Module, C),
-    Forms1           = attributes_form(Line, Filename, Module, Forms0),
+    { Funs, Forms0 } = functions_form(Line, File, Module, C),
+    Forms1           = attributes_form(Line, File, Module, Forms0),
 
-    elixir_import:ensure_no_local_conflict(Line, Filename, Module, Funs),
-    elixir_import:ensure_no_import_conflict(Line, Filename, Module, Funs),
+    elixir_import:ensure_no_local_conflict(Line, File, Module, Funs),
+    elixir_import:ensure_no_import_conflict(Line, File, Module, Funs),
 
     Final = [
-      {attribute, Line, file, {Filename,Line}},
+      {attribute, Line, file, {File,Line}},
       {attribute, Line, module, Module} | Forms1
     ],
 
@@ -66,7 +66,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
 
 compile(Line, Other, _Block, RawS) ->
   S = elixir_scope:deserialize(RawS),
-  elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, { invalid_module, Other }).
+  elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, { invalid_module, Other }).
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
@@ -105,14 +105,14 @@ eval_form(Line, Module, Block, RawS) ->
 
 %% Return the form with exports and function declarations.
 
-functions_form(Line, Filename, Module, C) ->
+functions_form(Line, File, Module, C) ->
   { Export, Private, Def, Defmacro, Defmacrop, Functions } = elixir_def:unwrap_stored_definitions(Module),
 
   { FinalExport, FinalFunctions } =
-    add_info_function(Line, Filename, Module, Export, Functions, Def, Defmacro, C),
+    add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C),
 
   Recorded = elixir_import:recorded_locals(Module),
-  elixir_def_local:check_unused_local_macros(Filename, Recorded, Defmacrop),
+  elixir_def_local:check_unused_local_macros(File, Recorded, Defmacrop),
 
   { FinalExport ++ Private, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
@@ -120,7 +120,7 @@ functions_form(Line, Filename, Module, C) ->
 
 %% Add attributes handling to the form
 
-attributes_form(Line, _Filename, Module, Current) ->
+attributes_form(Line, _File, Module, Current) ->
   Table = data_table(Module),
 
   AccAttrs = ets:lookup_element(Table, '__acc_attributes', 2),
@@ -156,11 +156,11 @@ load_form(Forms, S) ->
     end
   end).
 
-check_module_availability(Line, Filename, Module, Compiler) ->
+check_module_availability(Line, File, Module, Compiler) ->
   case elixir_compiler:get_opt(ignore_module_conflict, Compiler) of
     false ->
       case code:ensure_loaded(Module) of
-        { module, _ } -> elixir_errors:form_error(Line, Filename, ?MODULE, { module_defined, Module });
+        { module, _ } -> elixir_errors:form_error(Line, File, ?MODULE, { module_defined, Module });
         { error, _ }  -> []
       end;
     true ->
@@ -169,10 +169,10 @@ check_module_availability(Line, Filename, Module, Compiler) ->
 
 % EXTRA FUNCTIONS
 
-add_info_function(Line, Filename, Module, Export, Functions, Def, Defmacro, C) ->
+add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
   Pair = { '__info__', 1 },
   case lists:member(Pair, Export) of
-    true  -> elixir_errors:form_error(Line, Filename, ?MODULE, {internal_function_overridden, Pair});
+    true  -> elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
     false ->
       Docs = elixir_compiler:get_opt(docs, C),
       Contents = { function, Line, '__info__', 1, [
@@ -238,7 +238,7 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
       erl_eval:exprs([Tree], Binding)
     catch
       Kind:Reason ->
-        Info = { M, F, Args, [{ file, binary_to_list(S#elixir_scope.filename) }, { line, Line }] },
+        Info = { M, F, Args, [{ file, binary_to_list(S#elixir_scope.file) }, { line, Line }] },
         erlang:raise(Kind, Reason, [Info|erlang:get_stacktrace()])
     end
   end, Callbacks).

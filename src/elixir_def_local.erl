@@ -69,8 +69,8 @@ rewrite_clause(Else, _) -> Else.
 
 %% Error handling
 
-check_unused_local_macros(Filename, Recorded, PMacros) ->
-  [elixir_errors:handle_file_warning(Filename,
+check_unused_local_macros(File, Recorded, PMacros) ->
+  [elixir_errors:handle_file_warning(File,
     { Line, ?MODULE, { unused_macro, Fun } }) || { Fun, Line } <- PMacros, not lists:member(Fun, Recorded)].
 
 format_error({unused_macro,{Name, Arity}}) ->

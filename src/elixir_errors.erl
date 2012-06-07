@@ -20,22 +20,22 @@ inspect(Other) -> Other.
 
 %% Raised during macros translation.
 
-syntax_error(Line, Filename, Message) when is_list(Message) ->
-  syntax_error(Line, Filename, iolist_to_binary(Message));
+syntax_error(Line, File, Message) when is_list(Message) ->
+  syntax_error(Line, File, iolist_to_binary(Message));
 
-syntax_error(Line, Filename, Message) when is_binary(Message) ->
-  raise(Line, Filename, '__MAIN__.SyntaxError', Message).
+syntax_error(Line, File, Message) when is_binary(Message) ->
+  raise(Line, File, '__MAIN__.SyntaxError', Message).
 
-syntax_error(Line, Filename, Format, Args)  ->
+syntax_error(Line, File, Format, Args)  ->
   Message = io_lib:format(Format, Args),
-  raise(Line, Filename, '__MAIN__.SyntaxError', iolist_to_binary(Message)).
+  raise(Line, File, '__MAIN__.SyntaxError', iolist_to_binary(Message)).
 
 %% Raised on tokenizing/parsing
 
-parse_error(Line, Filename, _Error, []) ->
-  raise(Line, Filename, '__MAIN__.TokenMissingError', <<"syntax error: expression is incomplete">>);
+parse_error(Line, File, _Error, []) ->
+  raise(Line, File, '__MAIN__.TokenMissingError', <<"syntax error: expression is incomplete">>);
 
-parse_error(Line, Filename, Error, Token) ->
+parse_error(Line, File, Error, Token) ->
   BinError = if
     is_atom(Error) -> atom_to_binary(Error, utf8);
     true -> iolist_to_binary(Error)
@@ -47,60 +47,60 @@ parse_error(Line, Filename, Error, Token) ->
   end,
 
   Message = <<BinError / binary, BinToken / binary >>,
-  raise(Line, Filename, '__MAIN__.SyntaxError', Message).
+  raise(Line, File, '__MAIN__.SyntaxError', Message).
 
 %% Raised during compilation
 
-form_error(Line, Filename, Module, Desc) ->
+form_error(Line, File, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),
-  raise(Line, Filename, '__MAIN__.CompileError', Message).
+  raise(Line, File, '__MAIN__.CompileError', Message).
 
 %% Shows a deprecation message
 
-deprecation(Line, Filename, Message) -> deprecation(Line, Filename, Message, []).
+deprecation(Line, File, Message) -> deprecation(Line, File, Message, []).
 
-deprecation(Line, Filename, Message, Args) ->
-  io:format(file_format(Line, Filename, io_lib:format(Message, Args))).
+deprecation(Line, File, Message, Args) ->
+  io:format(file_format(Line, File, io_lib:format(Message, Args))).
 
 %% Handle warnings and errors (called during module compilation)
 
-handle_file_warning(_Filename, {_Line,sys_core_fold,Ignore}) when
+handle_file_warning(_File, {_Line,sys_core_fold,Ignore}) when
   Ignore == nomatch_clause_type; Ignore == useless_building ->
   [];
 
-handle_file_warning(_Filename, {_Line,v3_kernel,Ignore}) when
+handle_file_warning(_File, {_Line,v3_kernel,Ignore}) when
   Ignore == bad_call ->
   [];
 
-handle_file_warning(Filename, {Line,Module,Desc}) ->
+handle_file_warning(File, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
-  io:format(file_format(Line, Filename, Message)).
+  io:format(file_format(Line, File, Message)).
 
-handle_file_error(Filename, {Line,Module,Desc}) ->
-  form_error(Line, Filename, Module, Desc).
+handle_file_error(File, {Line,Module,Desc}) ->
+  form_error(Line, File, Module, Desc).
 
 %% Assertions
 
 assert_no_function_scope(_Line, _Kind, #elixir_scope{function=nil}) -> [];
 assert_no_function_scope(Line, Kind, S) ->
-  syntax_error(Line, S#elixir_scope.filename, "cannot invoke ~s inside a function", [Kind]).
+  syntax_error(Line, S#elixir_scope.file, "cannot invoke ~s inside a function", [Kind]).
 
-assert_module_scope(Line, Kind, #elixir_scope{module=nil,filename=Filename}) ->
-  syntax_error(Line, Filename, "cannot invoke ~s outside module", [Kind]);
+assert_module_scope(Line, Kind, #elixir_scope{module=nil,file=File}) ->
+  syntax_error(Line, File, "cannot invoke ~s outside module", [Kind]);
 assert_module_scope(_Line, _Kind, #elixir_scope{module=Module}) -> Module.
 
-assert_function_scope(Line, Kind, #elixir_scope{function=nil,filename=Filename}) ->
-  syntax_error(Line, Filename, "cannot invoke ~s outside function", [Kind]);
+assert_function_scope(Line, Kind, #elixir_scope{function=nil,file=File}) ->
+  syntax_error(Line, File, "cannot invoke ~s outside function", [Kind]);
 assert_function_scope(_Line, _Kind, #elixir_scope{function=Function}) -> Function.
 
 %% Helpers
 
-raise(Line, Filename, Kind, Message) ->
+raise(Line, File, Kind, Message) ->
   Stacktrace = erlang:get_stacktrace(),
-  erlang:raise(error, { Kind, '__exception__', Message, iolist_to_binary(Filename), Line }, Stacktrace).
+  erlang:raise(error, { Kind, '__exception__', Message, iolist_to_binary(File), Line }, Stacktrace).
 
-file_format(Line, Filename, Message) ->
-  io_lib:format("~ts:~w: ~ts~n", [Filename, Line, Message]).
+file_format(Line, File, Message) ->
+  io_lib:format("~ts:~w: ~ts~n", [File, Line, Message]).
 
 format_error([], Desc) ->
   io_lib:format("~p", [Desc]);

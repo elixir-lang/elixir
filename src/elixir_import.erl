@@ -65,7 +65,7 @@ import(Line, Ref, Opts, Selector, S) ->
 %% Calculates the imports based on only and except
 
 calculate(Line, Key, Opts, Old, AvailableFun, S) ->
-  Filename = S#elixir_scope.filename,
+  File = S#elixir_scope.file,
   All = keydelete(Key, Old),
 
   New = case orddict:find(only, Opts) of
@@ -73,7 +73,7 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
       case Only -- get_exports(Key) of
         [{Name,Arity}|_] ->
           Tuple = { invalid_import, { Key, Name, Arity } },
-          elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
+          elixir_errors:form_error(Line, File, ?MODULE, Tuple);
         _ -> intersection(Only, AvailableFun())
       end;
     error ->
@@ -93,9 +93,9 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
   case Final of
     [] -> All;
     _  ->
-      ensure_no_conflicts(Line, Filename, Final, keydelete(Key, S#elixir_scope.macros)),
-      ensure_no_conflicts(Line, Filename, Final, keydelete(Key, S#elixir_scope.functions)),
-      ensure_no_in_erlang_macro_conflict(Line, Filename, Key, Final, internal_conflict),
+      ensure_no_conflicts(Line, File, Final, keydelete(Key, S#elixir_scope.macros)),
+      ensure_no_conflicts(Line, File, Final, keydelete(Key, S#elixir_scope.functions)),
+      ensure_no_in_erlang_macro_conflict(Line, File, Key, Final, internal_conflict),
       [{ Key, Final }|All]
   end.
 
@@ -121,7 +121,7 @@ get_macros(Line, Module, S) ->
   catch
     error:undef ->
       Tuple = { no_macros, Module },
-      elixir_errors:form_error(Line, S#elixir_scope.filename, ?MODULE, Tuple)
+      elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, Tuple)
   end.
 
 get_optional_macros(Module)  ->
@@ -141,13 +141,13 @@ get_optional_macros(Module)  ->
 %% Elixir "implemented in Erlang" macro. Checking if a local
 %% conflicts with an import is automatically done by Erlang.
 
-ensure_no_local_conflict(Line, Filename, Module, AllDefined) ->
-  ensure_no_in_erlang_macro_conflict(Line, Filename, Module, AllDefined, local_conflict).
+ensure_no_local_conflict(Line, File, Module, AllDefined) ->
+  ensure_no_in_erlang_macro_conflict(Line, File, Module, AllDefined, local_conflict).
 
 %% Find conlicts in the given list of functions with
 %% the recorded set of imports.
 
-ensure_no_import_conflict(Line, Filename, Module, AllDefined) ->
+ensure_no_import_conflict(Line, File, Module, AllDefined) ->
   Table = table(Module),
   Matches = [X || X <- AllDefined, ets:member(Table, X)],
 
@@ -155,7 +155,7 @@ ensure_no_import_conflict(Line, Filename, Module, AllDefined) ->
     [{Name,Arity}|_] ->
       Key = ets:lookup_element(Table, {Name, Arity }, 2),
       Tuple = { import_conflict, { Key, Name, Arity } },
-      elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
+      elixir_errors:form_error(Line, File, ?MODULE, Tuple);
     [] ->
       ok
   end.
@@ -163,7 +163,7 @@ ensure_no_import_conflict(Line, Filename, Module, AllDefined) ->
 %% Ensure the given functions don't clash with any
 %% of Elixir non overridable macros.
 
-ensure_no_in_erlang_macro_conflict(Line, Filename, Key, [{Name,Arity}|T], Reason) ->
+ensure_no_in_erlang_macro_conflict(Line, File, Key, [{Name,Arity}|T], Reason) ->
   Values = lists:filter(fun({X,Y}) ->
     (Name == X) andalso ((Y == '*') orelse (Y == Arity))
   end, non_overridable_macros()),
@@ -171,27 +171,27 @@ ensure_no_in_erlang_macro_conflict(Line, Filename, Key, [{Name,Arity}|T], Reason
   case Values /= [] of
     true  ->
       Tuple = { Reason, { Key, Name, Arity } },
-      elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
-    false -> ensure_no_in_erlang_macro_conflict(Line, Filename, Key, T, Reason)
+      elixir_errors:form_error(Line, File, ?MODULE, Tuple);
+    false -> ensure_no_in_erlang_macro_conflict(Line, File, Key, T, Reason)
   end;
 
-ensure_no_in_erlang_macro_conflict(_Line, _Filename, _Key, [], _) -> ok.
+ensure_no_in_erlang_macro_conflict(_Line, _File, _Key, [], _) -> ok.
 
 %% Find conlicts in the given list of functions with the set of imports.
 %% Used internally to ensure a newly imported fun or macro does not
 %% conflict with an already imported set.
 
-ensure_no_conflicts(Line, Filename, Functions, [{Key,Value}|T]) ->
+ensure_no_conflicts(Line, File, Functions, [{Key,Value}|T]) ->
   Filtered = lists:filter(fun(X) -> lists:member(X, Functions) end, Value),
   case Filtered of
     [{Name,Arity}|_] ->
       Tuple = { already_imported, { Key, Name, Arity } },
-      elixir_errors:form_error(Line, Filename, ?MODULE, Tuple);
+      elixir_errors:form_error(Line, File, ?MODULE, Tuple);
     [] ->
-      ensure_no_conflicts(Line, Filename, Functions, T)
+      ensure_no_conflicts(Line, File, Functions, T)
   end;
 
-ensure_no_conflicts(_Line, _Filename, _Functions, _S) -> ok.
+ensure_no_conflicts(_Line, _File, _Functions, _S) -> ok.
 
 %% ERROR HANDLING
 

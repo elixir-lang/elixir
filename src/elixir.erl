@@ -42,7 +42,7 @@ start_cli() ->
 %% EVAL HOOKS
 
 scope_for_eval(Opts) ->
-  Filename = case orddict:find(file, Opts) of
+  File = case orddict:find(file, Opts) of
     { ok, F } -> to_binary(F);
     error -> <<"nofile">>
   end,
@@ -52,7 +52,7 @@ scope_for_eval(Opts) ->
     error -> nil
   end,
 
-  #elixir_scope{filename=Filename,local=Local}.
+  #elixir_scope{file=File,local=Local}.
 
 %% String evaluation
 
@@ -65,9 +65,9 @@ eval(String, Binding, Opts) ->
   end,
   eval(String, Binding, Line, scope_for_eval(Opts)).
 
-eval(String, Binding, Line, #elixir_scope{filename=Filename} = S) when
-    is_list(String), is_list(Binding), is_integer(Line), is_binary(Filename) ->
-  Forms = elixir_translator:forms(String, Line, Filename),
+eval(String, Binding, Line, #elixir_scope{file=File} = S) when
+    is_list(String), is_list(Binding), is_integer(Line), is_binary(File) ->
+  Forms = elixir_translator:forms(String, Line, File),
   eval_forms(Forms, Binding, S).
 
 %% Quoted evaluation

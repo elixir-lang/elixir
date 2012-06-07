@@ -56,27 +56,27 @@ to_erl_env(Scope) ->
 to_ex_env({ Line, Tuple }) when element(1, Tuple) == '__MAIN__.Macro.Env' ->
   setelement(4, Tuple, Line);
 
-to_ex_env({ Line, #elixir_scope{module=Module,filename=File,
+to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros} }) ->
   { '__MAIN__.Macro.Env', Module, File, Line, Function, Aliases, Context, Requires, Macros }.
 
-filename(#elixir_scope{filename=File}) -> File;
+filename(#elixir_scope{file=File}) -> File;
 filename(Other) -> element(3, Other).
 
 % Provides a tuple with only the scope information we want to serialize.
 
 serialize(S) ->
   elixir_tree_helpers:abstract_syntax(
-    { S#elixir_scope.filename, S#elixir_scope.functions, S#elixir_scope.check_clauses, S#elixir_scope.macro,
+    { S#elixir_scope.file, S#elixir_scope.functions, S#elixir_scope.check_clauses, S#elixir_scope.macro,
       S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases, S#elixir_scope.scheduled }
   ).
 
 % Fill in the scope with the variables serialization set in serialize_scope.
 
-deserialize({ Filename, Functions, CheckClauses, Macro, Requires, Macros, Aliases, Scheduled }) ->
+deserialize({ File, Functions, CheckClauses, Macro, Requires, Macros, Aliases, Scheduled }) ->
   #elixir_scope{
-    filename=Filename,
+    file=File,
     functions=Functions,
     check_clauses=CheckClauses,
     macro=Macro,
