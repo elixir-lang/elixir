@@ -177,7 +177,7 @@ defmodule Typespec do
   defmacro deftypep({:"::", _, [name, definition]}), do: _deftype(name, definition, false, __CALLER__)
   defmacro deftypep(name), do: _deftype(name, (quote do: term), false, __CALLER__)
 
-  defmacro defspec({name, line, args},[{:returns, returns}]) do
+  defmacro defspec({name, line, args},[{:do, returns}]) do
     spec = typespec({{:fun, line, args}, returns}, [], __CALLER__)
     code = quote do: {{unquote(name), unquote(length(args))}, [unquote(spec)]}
     quote do

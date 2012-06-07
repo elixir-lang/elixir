@@ -209,9 +209,9 @@ defmodule Typespec.Test.Type do
       def myfun(x), do: x
       def myfun(), do: :ok
       def myfun(x,y), do: {x,y}
-      t1 = defspec myfun(integer), returns: integer
-      t2 = defspec myfun(), returns: integer
-      t3 = defspec myfun(integer, integer), returns: {integer, integer}
+      t1 = defspec myfun(integer), do: integer
+      t2 = defspec myfun(), do: integer
+      t3 = defspec myfun(integer, integer), do: {integer, integer}
       {t1,t2,t3}
     end
     assert {:spec,{{:myfun,1},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]}} = spec1
@@ -223,8 +223,8 @@ defmodule Typespec.Test.Type do
     defmodule T do 
       use Typespec, keep_data: true
       def myfun(x), do: x
-      defspec myfun(integer), returns: integer
-      defspec myfun(string), returns: string
+      defspec myfun(integer), do: integer
+      defspec myfun(string), do: string
     end
     specs = T.__specs__
     assert [{{:myfun,1},[
