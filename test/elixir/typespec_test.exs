@@ -203,6 +203,14 @@ defmodule Typespec.Test.Type do
     assert {:type, {:mytype1,{:type,_,:fun,[{:type,_,:product,[{:ann_type,_,[{:var,_,:a},{:type,_,:integer,[]}]}]},{:type,_,:integer,[]}]},[]}} = spec2
   end
 
+  test "opaque deftype" do
+    spec =
+    test_module do
+      deftype mytype(x) :: x, opaque: true
+    end
+    assert {:opaque,{:mytype,{:var,_,:x},[{:var,_,:x}]}} = spec
+  end
+
   test "defspec" do
     {spec1, spec2, spec3} = 
     test_module do
