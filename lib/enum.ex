@@ -187,10 +187,18 @@ defmodule Enum do
       Enum.drop_while [1,2,3,4,5], fn(x) -> x < 3 end
       #=> [3,4,5]
   """
+  def drop_while(collection, fun) when is_list(collection) do
+    do_drop_while(collection, fun)
+  end
+
   def drop_while(collection, fun) do
-    { iterator, pointer } = O.iterator(collection)
-    module = O.__impl_for__!(collection)
-    do_drop_while(pointer, iterator, fun, module)
+    case O.iterator(collection) do
+      { iterator, pointer } ->
+        module = O.__impl_for__!(collection)
+        do_drop_while(pointer, iterator, fun, module)
+      list when is_list(list) ->
+        drop_while(collection, fun)
+    end
   end
 
   @doc """
@@ -508,10 +516,18 @@ defmodule Enum do
       Enum.split [1,2,3], 0  #=> { [], [1,2,3] }
 
   """
+  def split(collection, count) when is_list(collection) and count >= 0 do
+    do_split(collection, count, [])
+  end
+
   def split(collection, count) when count >= 0 do
-    { iterator, pointer } = O.iterator(collection)
-    module = O.__impl_for__!(collection)
-    do_split(pointer, iterator, count, [], module)
+    case O.iterator(collection) do
+      { iterator, pointer } ->
+        module = O.__impl_for__!(collection)
+        do_split(pointer, iterator, count, [], module)
+      list when is_list(list) ->
+        split(collection, count)
+    end
   end
 
   @doc """
@@ -648,12 +664,21 @@ defmodule Enum do
 
   ## drop_while
 
+  defp do_drop_while([h|t], fun) do
+    case fun.(h) do
+      x in [false, nil] -> [h|t]
+      _ -> do_drop_while(t, fun)
+    end
+  end
+
+  defp do_drop_while([], _) do
+    []
+  end
+
   defp do_drop_while({ h, next }, iterator, fun, module) do
     case fun.(h) do
-      x in [false, nil] ->
-        module.to_list(h, next)
-      _ ->
-        do_drop_while(iterator.(next), iterator, fun, module)
+      x in [false, nil] -> module.to_list(h, next)
+      _ -> do_drop_while(iterator.(next), iterator, fun, module)
     end
   end
 
@@ -905,6 +930,18 @@ defmodule Enum do
   end
 
   ## split
+
+  defp do_split([h|t], counter, acc) when counter > 0 do
+    do_split(t, counter - 1, [h|acc])
+  end
+
+  defp do_split(list, 0, acc) do
+    { List.reverse(acc), list }
+  end
+
+  defp do_split([], _, acc) do
+    { List.reverse(acc), [] }
+  end
 
   defp do_split({ h, next }, iterator, counter, acc, module) when counter > 0 do
     do_split(iterator.(next), iterator, counter - 1, [h|acc], module)
