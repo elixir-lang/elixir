@@ -172,9 +172,10 @@ defmodule Typespec do
     end
   end
 
+  defmacro deftype({:"::", _, [name, definition]}), do: _deftype(name, definition, true, __CALLER__)
   defmacro deftype(name), do: _deftype(name, (quote do: term), true, __CALLER__)
-  defmacro deftype(name, [{:as, definition}]), do: _deftype(name, definition, true, __CALLER__)
-  defmacro deftypep(name, [{:as, definition}]), do: _deftype(name, definition, false, __CALLER__)
+  defmacro deftypep({:"::", _, [name, definition]}), do: _deftype(name, definition, false, __CALLER__)
+  defmacro deftypep(name), do: _deftype(name, (quote do: term), false, __CALLER__)
 
   defmacro defspec({name, line, args},[{:returns, returns}]) do
     spec = typespec({{:fun, line, args}, returns}, [], __CALLER__)

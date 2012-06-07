@@ -33,7 +33,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a single type" do
     spec = 
     test_module do
-      deftype mytype, as: term
+      deftype mytype :: term
     end
     assert {:type,{:mytype,{:type,_,:term,[]},[]}} = spec
   end
@@ -41,7 +41,7 @@ defmodule Typespec.Test.Type do
   test "deftype with an atom" do
     spec = 
     test_module do
-      deftype mytype, as: :atom
+      deftype mytype :: :atom
     end
     assert {:type,{:mytype,{:atom,_,:atom},[]}} = spec
   end
@@ -49,7 +49,7 @@ defmodule Typespec.Test.Type do
   test "deftype with an atom alias" do
     spec = 
     test_module do
-      deftype mytype, as: Atom
+      deftype mytype :: Atom
     end
     assert {:type,{:mytype,{:atom,_,Atom},[]}} = spec
   end
@@ -57,7 +57,7 @@ defmodule Typespec.Test.Type do
   test "deftype with an integer" do
     spec = 
     test_module do
-      deftype mytype, as: 10
+      deftype mytype :: 10
     end
     assert {:type,{:mytype,{:integer,_,10},[]}} = spec
   end
@@ -65,7 +65,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a negative integer" do
     spec = 
     test_module do
-      deftype mytype, as: -10
+      deftype mytype :: -10
     end
     assert {:type,{:mytype,{:op, _, :-, {:integer,_,10}},[]}} = spec
   end
@@ -73,8 +73,8 @@ defmodule Typespec.Test.Type do
   test "deftype with a remote type" do
     {spec1, spec2} = 
     test_module do
-      t1 = deftype mytype, as: Remote.Some.type
-      t2 = deftype mytype_arg, as: Remote.type(integer)
+      t1 = deftype mytype :: Remote.Some.type
+      t2 = deftype mytype_arg :: Remote.type(integer)
       {t1, t2}
     end
     assert {:type,{:mytype,{:remote_type, _, [{:atom, _, Remote.Some},{:atom, _, :type}, []]},[]}} = spec1
@@ -84,7 +84,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a binary" do
     spec =
     test_module do
-      deftype mytype, as: binary
+      deftype mytype :: binary
     end
     assert {:type,{:mytype,{:type,_,:binary, []},[]}} = spec
   end
@@ -92,7 +92,7 @@ defmodule Typespec.Test.Type do
   test "deftype with an empty binary" do
     spec =
     test_module do
-      deftype mytype, as: <<>>
+      deftype mytype :: <<>>
     end
     assert {:type,{:mytype,{:type,_,:binary, [{:integer, _, 0},{:integer, _, 0}]},[]}} = spec
   end
@@ -100,7 +100,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a binary with a base size" do
     spec =
     test_module do
-      deftype mytype, as: <<_|3>>
+      deftype mytype :: <<_|3>>
     end
     assert {:type,{:mytype,{:type,_,:binary, [{:integer, _, 3},{:integer, _, 0}]},[]}} = spec
   end
@@ -108,7 +108,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a binary with a unit size" do
     spec =
     test_module do
-      deftype mytype, as: <<_|_ * 8>>
+      deftype mytype :: <<_|_ * 8>>
     end
     assert {:type,{:mytype,{:type,_,:binary, [{:integer, _, 0},{:integer, _, 8}]},[]}} = spec
   end
@@ -116,7 +116,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a range" do
     spec =
     test_module do
-      deftype mytype, as: range(1,10)
+      deftype mytype :: range(1,10)
     end
     assert {:type,{:mytype,{:type,_,:range, [{:integer, _, 1},{:integer, _, 10}]},[]}} = spec
   end
@@ -124,8 +124,8 @@ defmodule Typespec.Test.Type do
   test "deftype with a tuple" do
     {spec1, spec2} =
     test_module do
-      t1 = deftype mytype, as: tuple
-      t2 = deftype mytype1, as: {}
+      t1 = deftype mytype :: tuple
+      t2 = deftype mytype1 :: {}
       {t1, t2}
     end
     assert {:type,{:mytype,{:type,_,:tuple, :any},[]}} = spec1
@@ -136,7 +136,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a fun" do
     spec = 
     test_module do
-      deftype mytype, as: fun
+      deftype mytype :: fun
     end
     assert {:type,{:mytype,{:type,_,:fun, []},[]}} = spec
   end
@@ -144,7 +144,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a fun with arguments and return type" do
     spec = 
     test_module do
-      deftype mytype, as: fun(integer, integer, do: integer)
+      deftype mytype :: fun(integer, integer, do: integer)
     end
     assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :product, 
                          [{:type, _, :integer, []}, {:type, _, :integer, []}]},
@@ -154,7 +154,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a fun with no arguments and return type" do
     spec = 
     test_module do
-      deftype mytype, as: fun(do: integer)
+      deftype mytype :: fun(do: integer)
     end
     assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :product, []},
                          {:type, _, :integer, []}]}, []}} = spec
@@ -163,7 +163,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a fun with any arity and return type" do
     spec = 
     test_module do
-      deftype mytype, as: fun(..., do: integer)
+      deftype mytype :: fun(..., do: integer)
     end
     assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :any},
                          {:type, _, :integer, []}]}, []}} = spec
@@ -172,7 +172,7 @@ defmodule Typespec.Test.Type do
   test "deftype with a union" do
     spec = 
     test_module do
-      deftype mytype, as: integer | string | atom
+      deftype mytype :: integer | string | atom
     end
     assert {:type,{:mytype,{:type,_,:union, [{:type, _, :integer, []},
                          {:type, _, :string, []},
@@ -182,9 +182,9 @@ defmodule Typespec.Test.Type do
   test "deftype with parameters" do
     {spec1, spec2, spec3} = 
     test_module do
-      t1 = deftype mytype(x), as: x
-      t2 = deftype mytype1(x), as: list(x)
-      t3 = deftype mytype2(x,y), as: {x,y}
+      t1 = deftype mytype(x) :: x
+      t2 = deftype mytype1(x) :: list(x)
+      t3 = deftype mytype2(x,y) :: {x,y}
       {t1,t2,t3}
     end
     assert {:type,{:mytype,{:var,_,:x},[{:var,_,:x}]}} = spec1
@@ -195,8 +195,8 @@ defmodule Typespec.Test.Type do
   test "deftype with annotations" do
     {spec1, spec2} = 
     test_module do
-      t1 = deftype mytype, as: named :: integer
-      t2 = deftype mytype1, as: fun(a :: integer, do: integer)
+      t1 = deftype mytype :: named :: integer
+      t2 = deftype mytype1 :: fun(a :: integer, do: integer)
       {t1,t2}
     end
     assert {:type, {:mytype, {:ann_type, _, [{:var, _, :named}, {:type, _, :integer, []}]}, []}} = spec1
