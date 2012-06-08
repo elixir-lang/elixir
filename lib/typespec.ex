@@ -14,7 +14,7 @@ defmodule Typespec do
 
   defmacro __aggregate_specs__(module) do
     options = Module.read_attribute(module, :__typespec_options__)
-    specs = :lists.reverse(Module.read_attribute(module, :__specs__))
+    specs = List.reverse(Module.read_attribute(module, :__specs__))
     specs = :lists.ukeysort(1, lc {k, _} inlist specs, do: {k, :proplists.append_values(k, specs)})
     lc attr inlist specs, do: Module.add_attribute module, :spec, attr
     case options[:keep_data] do
@@ -28,27 +28,27 @@ defmodule Typespec do
 
   defp remote_type({remote, line, name, arguments}, vars, caller) do
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
-    quote do: {:remote_type, unquote(line), [unquote(remote), unquote(name), unquote(arguments)]}
+    {:remote_type, line, [remote, name, arguments]}
   end
 
-  defp collect_union({:"|", _, [a, b]}), do: [b|collect_union(a)]
+  defp collect_union({:|, _, [a, b]}), do: [b|collect_union(a)]
   defp collect_union(v), do: [v]
 
-  defp typespec({:"|", line, [_,_]} = orexpr, vars, caller) do
-    union = lc e inlist :lists.reverse(collect_union(orexpr)), do: typespec(e, vars, caller)
-    quote do: {:type, unquote(line), :union, lc e inlist unquote(union), do: e}
+  defp typespec({:|, line, [_,_]} = orexpr, vars, caller) do
+    union = lc e inlist List.reverse(collect_union(orexpr)), do: typespec(e, vars, caller)
+     { :type, line, :union, lc(e inlist union, do: e) }
   end
 
   defp typespec({:"<<>>", line, []}, _,_) do
-    quote do: {:type, unquote(line), :binary, [{:integer, unquote(line), 0}, {:integer, unquote(line), 0}]}
+     {:type, line, :binary, [{:integer, line, 0}, {:integer, line, 0}]}
   end
 
   defp typespec({:"<<>>", line, [{:"|", _, [{:_, line1, atom}, {:"*", _, [{:_, line2, atom}, unit]}]}]}, _, _) when atom in [:quoted, nil] do
-    quote do: {:type, unquote(line), :binary, [{:integer, unquote(line1), 0}, {:integer, unquote(line2), unquote(unit)}]}
+     {:type, line, :binary, [{:integer, line1, 0}, {:integer, line2, unit}]}
   end
 
   defp typespec({:"<<>>", line, [{:"|", line1, [{:_, line2, atom}, base]}]}, _, _) when atom in [:quoted, nil] do
-    quote do: {:type, unquote(line), :binary, [{:integer, unquote(line1), unquote(base)}, {:integer, unquote(line2), 0}]}
+     {:type, line, :binary, [{:integer, line1, base}, {:integer, line2, 0}]}
   end
   
   defp typespec({:"..", line, args}, vars, caller) do
@@ -61,19 +61,19 @@ defmodule Typespec do
   end
 
   defp typespec(atom, _, _) when is_atom(atom) do
-    quote do: {:atom, 0, unquote(atom)}
+     {:atom, 0, atom}
   end
   
   defp typespec(integer, _, _) when is_integer(integer) do
-    quote do: {:integer, 0, unquote(integer)}
+     {:integer, 0, integer}
   end
 
   defp typespec({:"::", line,[var,expr]}, vars, caller) do
-    quote do: {:ann_type, unquote(line), [unquote(typespec(var, [elem(var,1)|vars], caller)), unquote(typespec(expr, vars, caller))]}
+     {:ann_type, line, [typespec(var, [elem(var,1)|vars], caller), typespec(expr, vars, caller)]}
   end
 
   defp typespec({:"-", line, [integer]}, _, _) when is_integer(integer) do
-    quote do: {:op, unquote(line), :-, {:integer, unquote(line), unquote(integer)}}
+     {:op, line, :-, {:integer, line, integer}}
   end
 
   defp typespec({{:".", line, [{:atom, _, remote}, name]}, _, args}, vars, caller) do
@@ -102,11 +102,11 @@ defmodule Typespec do
   end
 
   defp typespec({:"{}", line, []}, _, _) do
-    quote do: {:type, unquote(line), :tuple, :any}
+     {:type, line, :tuple, :any}
   end
 
   defp typespec({:"{}", line, t}, vars, caller) when is_list(t) do
-    quote do: {:type, unquote(line), :tuple, unquote((lc e inlist t, do: typespec(e, vars, caller)))}
+     {:type, line, :tuple, lc(e inlist t, do: typespec(e, vars, caller))}
   end
 
   defp typespec({:fun, line, arguments}, vars, caller) when is_list(arguments) do
@@ -121,23 +121,23 @@ defmodule Typespec do
   end
 
   defp typespec({{:fun, line, [{:'...', _, _}]}, returns}, vars, caller) do
-    quote do: {:type, unquote(line), :fun, [{:type, unquote(line), :any}, unquote(typespec(returns, vars, caller))]}
+     {:type, line, :fun, [{:type, line, :any}, typespec(returns, vars, caller)]}
 
   end
 
   defp typespec({{:fun, line, arguments}, returns}, vars, caller) do
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
-    quote do: {:type, unquote(line), :fun, [{:type, unquote(line), :product, unquote(arguments)},
-                        unquote(typespec(returns, vars, caller))]}
+     {:type, line, :fun, [{:type, line, :product, arguments},
+                        typespec(returns, vars, caller)]}
   end
 
   defp typespec({{:fun, line, []}}, _, _) do
-    quote do: {:type, unquote(line), :fun, []}
+     {:type, line, :fun, []}
   end
 
   defp typespec({name, line, atom}, vars, caller) when atom in [:quoted, nil] do
     if List.member?(vars, name) do
-      quote do: {:var, unquote(line), unquote(name)}
+       {:var, line, name}
     else
       typespec({name, line, []}, vars, caller)
     end
@@ -145,7 +145,7 @@ defmodule Typespec do
 
   defp typespec({name, line, arguments}, vars, caller) do
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
-    quote do: {:type, unquote(line), unquote(name), unquote(arguments)}
+     {:type, line, name, arguments}
   end
 
   defp typespec(name, vars, caller) when is_atom(name) do
@@ -153,7 +153,7 @@ defmodule Typespec do
   end
 
   defp typespec(t, vars, caller) when is_tuple(t) do
-    quote do: {:type, 0, :tuple, unquote((lc e inlist tuple_to_list(t), do: typespec(e, vars, caller)))}
+     {:type, 0, :tuple, lc(e inlist tuple_to_list(t), do: typespec(e, vars, caller))}
   end
 
   defp variable({name, line, _}) do
@@ -168,8 +168,8 @@ defmodule Typespec do
       _ -> lc arg inlist args, do: variable(arg)
     end
     spec = typespec(definition, (lc {:var, _, var} inlist args, do: var), caller)
-    vars = lc {:var, line, name} inlist args, do: (quote do: {:var, unquote(line), unquote(name)})
-    type = quote do: {unquote(name), unquote(spec), unquote(vars)}
+    vars = lc ({:var, _, _} = var) inlist args, do: var
+    type      = Macro.escape { name, spec, vars }
     type_attr = if options[:opaque], do: :opaque, else: :type
     quote do
       Module.add_attribute __MODULE__, unquote(type_attr), unquote(type)
@@ -190,7 +190,7 @@ defmodule Typespec do
 
   defmacro defspec({name, line, args},[{:do, returns}]) do
     spec = typespec({{:fun, line, args}, returns}, [], __CALLER__)
-    code = quote do: {{unquote(name), unquote(length(args))}, [unquote(spec)]}
+    code = Macro.escape { { name, length(args) }, [spec] }
     quote do
       @__specs__ unquote(code)
       {:spec, unquote(code)}
