@@ -28,6 +28,14 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
 
 %% @
 
+translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name == type; Name == spec ->
+  case elixir_compiler:get_opt(internal) of
+    true  -> { { nil, Line }, S };
+    false ->
+      Call = { { '.', Line, ['__MAIN__.Typespec', ?ELIXIR_ATOM_CONCAT([def, Name])] }, Line, Args },
+      translate_each(Call, S)
+  end;
+
 translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
   assert_module_scope(Line, '@', S),
 

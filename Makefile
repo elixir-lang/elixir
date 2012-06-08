@@ -58,4 +58,4 @@ test_elixir: compile
 rel: compile
 	@ rm -rf rel/elixir
 	@ cd rel && ../rebar generate
-	@ cp -r ebin/__MAIN__ rel/elixir/lib/elixir-$(VERSION)/ebin/ 
+	@ cp -r ebin/__MAIN__ rel/elixir/lib/elixir-$(VERSION)/ebin/

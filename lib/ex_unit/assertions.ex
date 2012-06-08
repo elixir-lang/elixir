@@ -14,10 +14,8 @@ defmodule ExUnit.Assertions do
       Expected 10 to be equal to 13
 
   This module also provides other small convenient functions
-  like `assert_match`, `assert_member` and `assert_raise` to
-  easily handle other common cases as, respectively, asserting
-  if two terms match, asserting if an item belongs to a list or
-  if a function raises an exception.
+  like `assert_match`, and `assert_raise` to easily handle other
+  common cases as matching two terms or handling exceptions.
   """
 
   @doc """
