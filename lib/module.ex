@@ -456,10 +456,36 @@ defmodule Module do
     result
   end
 
+  @doc false
+  # Used internally to compile types. This function
+  # is private and must be used only internally.
+  def compile_type(module, key, value) when is_atom(key) do
+    assert_not_compiled!(:add_attribute, module)
+    table = data_table_for(module)
+
+    new =
+      case ETS.lookup(table, key) do
+        [{^key,old}] -> [value|old]
+        [] -> [value]
+      end
+
+    ETS.insert(table, { key, new })
+  end
+
   ## Helpers
 
-  defp normalize_attribute(:on_load, atom) when is_atom(atom), do: { atom, 0 }
-  defp normalize_attribute(_key, value), do: value
+  defp normalize_attribute(:on_load, atom) when is_atom(atom) do
+    { atom, 0 }
+  end
+
+  defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque] do
+    raise ArgumentError, message: "Attributes type, typep, export_type and opaque " <>
+      "must be set via Elixir.Typespec"
+  end
+
+  defp normalize_attribute(_key, value) do
+    value
+  end
 
   defp compiled?(module) do
     table = data_table_for(module)

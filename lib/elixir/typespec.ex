@@ -177,7 +177,7 @@ defmodule Elixir.Typespec do
 
   def _deftype(name, export, caller, opts) do
     _deftype(name, { :term, caller.line, nil }, export, caller, opts)
-  end  
+  end
 
   defp _deftype({name, _, args}, definition, export, caller, options) do
     args = if is_atom(args), do: [], else: lc(arg inlist args, do: variable(arg))
@@ -188,7 +188,7 @@ defmodule Elixir.Typespec do
     attr = if options[:opaque], do: :opaque, else: :type
 
     export = if export do
-      quote do: Module.add_attribute(__MODULE__, :export_type, [{name, length(vars)}])
+      quote do: Module.compile_type(__MODULE__, :export_type, [{name, length(vars)}])
     else
       nil
     end
@@ -198,7 +198,7 @@ defmodule Elixir.Typespec do
       spec = unquote(Macro.escape(spec))
       vars = unquote(Macro.escape(vars))
       type = { name, spec, vars }
-      Module.add_attribute __MODULE__, unquote(attr), type
+      Module.compile_type __MODULE__, unquote(attr), type
       unquote(export)
       { unquote(attr), type }
     end
