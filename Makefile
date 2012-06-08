@@ -2,16 +2,17 @@ REBAR:=$(shell which rebar || echo ./rebar)
 ERLC=erlc -I include
 ERL=erl -I include -noshell -pa ebin
 VERSION=0.5.0
+FULLFLAG=ebin/__MAIN__/.full
 
-.PHONY: ebin docs zip
+.PHONY: ebin full zip release_docs
 .NOTPARALLEL: compile
 
 compile: ebin ebin/__MAIN__ ebin/elixir.app
 
-zip:
+zip: $(FULLFLAG)
 	rm -rf v$(VERSION).zip
 	zip -r v$(VERSION).zip ebin `git ls-files`
-	zip v$(VERSION).zip -d .git .gitignore .travis.yml
+	zip v$(VERSION).zip -d .git .gitignore .travis.yml $(FULLFLAG)
 
 ebin/elixir.app:
 	@ $(REBAR) compile
@@ -27,13 +28,14 @@ ebin/__MAIN__: lib/*.ex lib/*/*.ex
 clean:
 	@ $(REBAR) clean
 
-docs: compile
-	@ bin/elixirc "lib/**/*.ex" --ignore-module-conflict --docs -o for_docs
+full:
+	@ bin/elixirc "lib/**/*.ex" --ignore-module-conflict --docs --debug-info -o full
 	@ rm -rf ebin/__MAIN__
-	@ mv for_docs/__MAIN__ ebin/__MAIN__
-	@ rm -rf for_docs
+	@ mv full/__MAIN__ ebin/__MAIN__
+	@ rm -rf full
+	@ touch $(FULLFLAG)
 
-release_docs: docs
+release_docs: $(FULLFLAG)
 	bin/elixir ../exdoc/bin/exdoc
 	rm -rf ../elixir-lang.github.com/docs
 	mv output ../elixir-lang.github.com/docs
