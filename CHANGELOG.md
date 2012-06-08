@@ -12,7 +12,7 @@
 
 * enhancements
   * [IEx] Functions `c` and `m` are available in IEx to compile and print available module information;
-  * [Enum] Faster functions when passing a list as argument;
+  * [Enum] Optimized functions when a list is given as collection;
   * [System] Added `System.find_executable`
   * [Builtin] Document the macro `@` and allow attributes to be read inside functions;
   * [IO/File] Many improvements to `File` and `IO` modules;
