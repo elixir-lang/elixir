@@ -32,7 +32,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name ==
   case elixir_compiler:get_opt(internal) of
     true  -> { { nil, Line }, S };
     false ->
-      Call = { { '.', Line, ['__MAIN__.Typespec', ?ELIXIR_ATOM_CONCAT([def, Name])] }, Line, Args },
+      Call = { { '.', Line, ['__MAIN__.Elixir.Typespec', spec_to_macro(Name)] }, Line, Args },
       translate_each(Call, S)
   end;
 
@@ -204,6 +204,10 @@ module_ref(_F, Module, Nesting) ->
 is_reserved_data(moduledoc) -> true;
 is_reserved_data(doc)       -> true;
 is_reserved_data(_)         -> false.
+
+spec_to_macro(type)  -> deftype;
+spec_to_macro(typep) -> deftypep;
+spec_to_macro(spec)  -> defspec.
 
 % Unpack a list of expressions from a block.
 unpack([{ '__block__', _, Exprs }]) -> Exprs;

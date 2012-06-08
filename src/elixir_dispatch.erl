@@ -8,15 +8,17 @@
   expand_import/8, expand_require/8,
   format_error/1]).
 -include("elixir.hrl").
+
 -import(ordsets, [is_element/2]).
 -define(BUILTIN, '__MAIN__.Elixir.Builtin').
+-define(TYPESPEC, '__MAIN__.Elixir.Typespec').
 
 default_functions() ->
   [ { ?BUILTIN, ordsets:union(in_elixir_functions(), in_erlang_functions()) } ].
 default_macros() ->
   [ { ?BUILTIN, ordsets:union(in_elixir_macros(), in_erlang_macros()) } ].
 default_requires() ->
-  [ ?BUILTIN ].
+  [ ?BUILTIN, ?TYPESPEC ].
 
 %% Function retrieval
 
@@ -195,7 +197,7 @@ munge_stacktrace(_, [], _) ->
 %% ERROR HANDLING
 
 format_error({ unrequired_module,{Receiver, Name, Arity, Required }}) ->
-  io_lib:format("tried to invoke macro ~s.~s/~B but module was not required. Required: ~p",
+  io_lib:format("tried to invoke macro ~s.~s/~B but module was not required. Required: ~w",
     [elixir_errors:inspect(Receiver), Name, Arity, [elixir_errors:inspect(R) || R <- Required]]).
 
 %% INTROSPECTION

@@ -9,7 +9,6 @@ defmodule Typespec.Test.Type do
   defmacro test_module([{:do, block}]) do
     quote do
       result = defmodule T do
-        use Typespec
         unquote(block)
       end
       :code.delete(T)
@@ -203,20 +202,20 @@ defmodule Typespec.Test.Type do
       t3 = @spec myfun(integer, integer), do: {integer, integer}
       {t1,t2,t3}
     end
-    assert {:spec,{{:myfun,1},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]}} = spec1
-    assert {:spec,{{:myfun,0},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}]}} = spec2
-    assert {:spec,{{:myfun,2},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]}} = spec3
+    assert {{:myfun,1},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]} = spec1
+    assert {{:myfun,0},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}]} = spec2
+    assert {{:myfun,2},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]} = spec3
   end
 
   test "@spec with multiple clauses" do
-    defmodule T do
-      use Typespec, keep_data: true
+    specs = defmodule T do
+      import Elixir.Typespec
       def myfun(x), do: x
       @spec myfun(integer), do: integer
       @spec myfun(string),  do: string
+      get_specs(__MODULE__)
     end
 
-    specs = T.__specs__
     assert [{{:myfun,1},[
                     {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
                     {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}] = specs

@@ -1,50 +1,32 @@
-defmodule Typespec do
-  ## Public API
+defmodule Elixir.Typespec do
+  defmacro deftype(name, options // []) do
+    _deftype(name, true, __CALLER__, options)
+  end
 
-  defmacro deftype({:"::", _, [name, definition]}, options), do: _deftype(name, definition, true, __CALLER__, options)
-  defmacro deftype(name, options), do: _deftype(name, (quote do: term), true, __CALLER__, options)
-  defmacro deftype({:"::", _, [name, definition]}), do: _deftype(name, definition, true, __CALLER__, [])
-  defmacro deftype(name), do: _deftype(name, (quote do: term), true, __CALLER__, [])
-
-  defmacro deftypep({:"::", _, [name, definition]}), do: _deftype(name, definition, false, __CALLER__, [])
-  defmacro deftypep(name), do: _deftype(name, (quote do: term), false, __CALLER__, [])
+  defmacro deftypep(name) do
+    _deftype(name, false, __CALLER__, [])
+  end
 
   defmacro defspec({name, line, args},[{:do,return}]) do
-    spec = { :type, line, :fun, fn_args(line, args, return, [], __CALLER__) }
-    code = Macro.escape { { name, length(args) }, [spec] }
+    spec  = { :type, line, :fun, fn_args(line, args, return, [], __CALLER__) }
+    code  = Macro.escape { { name, length(args) }, [spec] }
+    table = spec_table_for(__CALLER__.module)
+
     quote do
       code = unquote(code)
-      @__specs__ code
-      { :spec, code }
+      :ets.insert(unquote(table), code)
+      code
     end
   end
 
-  ## Callbacks
-
-  defmacro __using__(options) do
-    Module.add_compile_callback(__CALLER__.module, __MODULE__, :__aggregate_specs__)
-    Module.register_attribute(__CALLER__.module, :__specs__, accumulate: true, persist: false)
-    Module.register_attribute(__CALLER__.module, :opaque, accumulate: false, persist: true)
-
-    quote do
-      import Typespec
-      @__typespec_options__ unquote(options)
-    end
+  def get_types(module) do
+    Module.read_attribute(module, :type)
   end
 
-  defmacro __aggregate_specs__(module) do
-    options = Module.read_attribute(module, :__typespec_options__)
-    specs = List.reverse(Module.read_attribute(module, :__specs__))
-    specs = lc {k, _} inlist specs, do: { k, :proplists.append_values(k, specs) }
-    specs = :lists.ukeysort(1, specs)
-    lc attr inlist specs, do: Module.add_attribute module, :spec, attr
-    case options[:keep_data] do
-      nil -> :ok
-      true ->
-        quote do
-          def __specs__, do: unquote(Macro.escape(specs))
-        end
-    end
+  def get_specs(module) do
+    specs = :ets.tab2list(spec_table_for(module))
+    keys  = :lists.ukeysort(1, specs)
+    lc { k, _ } inlist keys, do: { k, :proplists.append_values(k, specs) }
   end
 
   ## Typespec conversion
@@ -189,21 +171,44 @@ defmodule Typespec do
     { :type, line, :product, args }
   end
 
+  def _deftype({:"::", _, [name, definition]}, export, caller, opts) do
+    _deftype(name, definition, export, caller, opts)
+  end
+
+  def _deftype(name, export, caller, opts) do
+    _deftype(name, { :term, caller.line, nil }, export, caller, opts)
+  end  
+
   defp _deftype({name, _, args}, definition, export, caller, options) do
     args = if is_atom(args), do: [], else: lc(arg inlist args, do: variable(arg))
     vars = lc {:var, _, var} inlist args, do: var
     spec = typespec(definition, vars, caller)
 
     vars = lc ({:var, _, _} = var) inlist args, do: var
-    type = { name, spec, vars }
     attr = if options[:opaque], do: :opaque, else: :type
 
-    module = caller.module
-    Module.add_attribute module, attr, type
-    if export do
-      Module.add_attribute(module, :export_type, [{name, length(vars)}])
+    export = if export do
+      quote do: Module.add_attribute(__MODULE__, :export_type, [{name, length(vars)}])
+    else
+      nil
     end
-    { attr, Macro.escape(type) }
+
+    quote do
+      name = unquote(name)
+      spec = unquote(Macro.escape(spec))
+      vars = unquote(Macro.escape(vars))
+      type = { name, spec, vars }
+      Module.add_attribute __MODULE__, unquote(attr), type
+      unquote(export)
+      { unquote(attr), type }
+    end
+  end
+
+  defp spec_table_for(module) do
+    table = list_to_atom Erlang.lists.concat([:s, module])
+    unless table == :ets.info(table, :name), do:
+      raise(ArgumentError, message: "cannot manage specs for #{inspect module} because it was already compiled")
+    table
   end
 
   defp variable({name, line, _}) do

@@ -19,6 +19,9 @@ data_table(Module) ->
 docs_table(Module) ->
   ?ELIXIR_ATOM_CONCAT([o, Module]).
 
+spec_table(Module) ->
+  ?ELIXIR_ATOM_CONCAT([s, Module]).
+
 %% TRANSFORMATION METHODS
 
 %% Transformation of args and scope into a compiled erlang call.
@@ -46,13 +49,14 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
     Result           = eval_form(Line, Module, Block, S),
     { Funs, Forms0 } = functions_form(Line, File, Module, C),
     Forms1           = attributes_form(Line, File, Module, Forms0),
+    Forms2           = specs_form(Line, Module, Forms1),
 
     elixir_import:ensure_no_local_conflict(Line, File, Module, Funs),
     elixir_import:ensure_no_import_conflict(Line, File, Module, Funs),
 
     Final = [
       {attribute, Line, file, {File,Line}},
-      {attribute, Line, module, Module} | Forms1
+      {attribute, Line, module, Module} | Forms2
     ],
 
     load_form(Final, S),
@@ -60,6 +64,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
   after
     ets:delete(data_table(Module)),
     ets:delete(docs_table(Module)),
+    ets:delete(spec_table(Module)),
     elixir_def:delete_table(Module),
     elixir_import:delete_table(Module)
   end;
@@ -77,7 +82,7 @@ build(Module) ->
   ets:insert(DataTable, { '__overridable', [] }),
   ets:insert(DataTable, { '__compile_callbacks', [] }),
 
-  Attributes = [behavior, behaviour, on_load, spec, type, export_type, callback, compile],
+  Attributes = [behavior, behaviour, on_load, spec, type, export_type, opaque, callback, compile],
   ets:insert(DataTable, { '__acc_attributes', Attributes }),
   ets:insert(DataTable, { '__persisted_attributes', [vsn|Attributes] }),
 
@@ -85,6 +90,10 @@ build(Module) ->
   %% all the binaries every time a new documentation is stored.
   DocsTable = docs_table(Module),
   ets:new(DocsTable, [ordered_set, named_table, public]),
+
+  %% Holds specs in a format it is easier to query.
+  SpecTable = spec_table(Module),
+  ets:new(SpecTable, [duplicate_bag, named_table, public]),
 
   %% We keep a separated table for function definitions
   %% and another one for imports. We keep them in different
@@ -139,6 +148,15 @@ attributes_form(Line, _File, Module, Current) ->
   end,
 
   ets:foldl(Transform, Current, Table).
+
+%% Specs
+
+specs_form(Line, Module, Forms) ->
+  Specs = ets:tab2list(spec_table(Module)),
+  Keys  = lists:ukeysort(1, Specs),
+  lists:foldl(fun({ K, _ }, Acc) ->
+    [{ attribute, Line, spec, { K, proplists:append_values(K, Specs) } }|Acc]
+  end, Forms, Keys).
 
 %% Loads the form into the code server.
 

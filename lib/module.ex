@@ -134,23 +134,6 @@ defmodule Module do
   end
 
   @doc """
-  Checks if the module is compiled or not.
-
-  ## Examples
-
-      defmodule Foo do
-        Module.compiled?(__MODULE__) #=> false
-      end
-
-      Module.compiled?(Foo) #=> true
-
-  """
-  def compiled?(module) do
-    table = data_table_for(module)
-    table == ETS.info(table, :name)
-  end
-
-  @doc """
   Attaches documentation to a given function. It expects
   the module the function belongs to, the line (a non negative
   integer), the kind (def or defmacro), a tuple representing
@@ -477,6 +460,11 @@ defmodule Module do
 
   defp normalize_attribute(:on_load, atom) when is_atom(atom), do: { atom, 0 }
   defp normalize_attribute(_key, value), do: value
+
+  defp compiled?(module) do
+    table = data_table_for(module)
+    table == ETS.info(table, :name)
+  end
 
   defp data_table_for(module) do
     list_to_atom Erlang.lists.concat([:d, module])
