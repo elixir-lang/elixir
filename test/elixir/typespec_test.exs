@@ -112,8 +112,7 @@ defmodule Typespec.Test.Type do
   end
 
   test "@type with a tuple" do
-    {spec1, spec2} =
-    test_module do
+    {spec1, spec2} = test_module do
       t1 = @type mytype :: tuple
       t2 = @type mytype1 :: {}
       {t1, t2}
@@ -192,6 +191,16 @@ defmodule Typespec.Test.Type do
     assert {:opaque,{:mytype,{:var,_,:x},[{:var,_,:x}]}} = spec
   end
 
+  test "get_types" do
+    types = test_module do
+      import Elixir.Typespec
+      @type mytype :: tuple
+      @type mytype1 :: {}, opaque: true
+      get_types(__MODULE__)
+    end
+    assert [{:mytype,_,[]},{:mytype1,_,[]}] = types
+  end
+
   test "@spec" do
     {spec1, spec2, spec3} = test_module do
       def myfun(x), do: x
@@ -207,8 +216,8 @@ defmodule Typespec.Test.Type do
     assert {{:myfun,2},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]} = spec3
   end
 
-  test "@spec with multiple clauses" do
-    specs = defmodule T do
+  test "get_specs" do
+    specs = test_module do
       import Elixir.Typespec
       def myfun(x), do: x
       @spec myfun(integer), do: integer
@@ -219,9 +228,5 @@ defmodule Typespec.Test.Type do
     assert [{{:myfun,1},[
                     {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
                     {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}] = specs
-
-    # cleanup
-    :code.delete(T)
-    :code.purge(T)
   end
 end

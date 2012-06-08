@@ -1,4 +1,11 @@
 defmodule Elixir.Typespec do
+  @moduledoc """
+  This is the module that converts Elixir typespecs
+  to Erlang typespecs syntax. Everytime @spec, @type
+  and @typep are used they proxy to the functions
+  in this module.
+  """
+
   defmacro deftype(name, options // []) do
     _deftype(name, true, __CALLER__, options)
   end
@@ -19,10 +26,22 @@ defmodule Elixir.Typespec do
     end
   end
 
+  @doc """
+  Get the types defined for the given module. This function
+  is only available for modules being compiled. If the module
+  was already compiled, you need to loop its attributes
+  to get such information.
+  """
   def get_types(module) do
-    Module.read_attribute(module, :type)
+    Module.read_attribute(module, :type) ++ Module.read_attribute(module, :opaque)
   end
 
+  @doc """
+  Get the specs defined for the given module. This function
+  is only available for modules being compiled. If the module
+  was already compiled, you need to loop its attributes
+  to get such information.
+  """
   def get_specs(module) do
     specs = :ets.tab2list(spec_table_for(module))
     keys  = :lists.ukeysort(1, specs)
