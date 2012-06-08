@@ -211,9 +211,21 @@ defmodule Typespec.Test.Type do
       t3 = @spec myfun(integer, integer), do: {integer, integer}
       {t1,t2,t3}
     end
-    assert {{:myfun,1},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]} = spec1
-    assert {{:myfun,0},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}]} = spec2
-    assert {{:myfun,2},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]} = spec3
+    assert {{:spec, {:myfun,1}},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]} = spec1
+    assert {{:spec, {:myfun,0}},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}]} = spec2
+    assert {{:spec, {:myfun,2}},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]} = spec3
+  end
+
+  test "@callback" do
+    {spec1, spec2, spec3} = test_module do
+      t1 = @callback myfun(integer), do: integer
+      t2 = @callback myfun(), do: integer
+      t3 = @callback myfun(integer, integer), do: {integer, integer}
+      {t1,t2,t3}
+    end
+    assert {{:callback, {:myfun,1}},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]} = spec1
+    assert {{:callback, {:myfun,0}},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}]} = spec2
+    assert {{:callback, {:myfun,2}},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]} = spec3
   end
 
   test "get_specs" do
@@ -222,11 +234,17 @@ defmodule Typespec.Test.Type do
       def myfun(x), do: x
       @spec myfun(integer), do: integer
       @spec myfun(string),  do: string
+      @callback cb(integer), do: integer
       get_specs(__MODULE__)
     end
 
-    assert [{{:myfun,1},[
-                    {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
-                    {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}] = specs
+    assert [
+            {{:callback, {:cb, 1}},[
+              {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}
+            ]},
+            {{:spec, {:myfun,1}},[
+              {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
+              {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}
+            ] = List.sort(specs)
   end
 end
