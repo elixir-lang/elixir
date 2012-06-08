@@ -59,6 +59,17 @@ defmodule Elixir.IEx do
     Enum.map tuples, elem(&1, 1)
   end
 
+  def m do
+    lc {mod, file} inlist List.sort(:code.all_loaded) do
+       :io.format("~-20s ~s~n",[inspect(mod), file])
+    end
+    :ok
+  end
+
+  def m(mod) do
+    IO.inspect mod.module_info
+  end
+
   ## Helpers
 
   defp boot_config(binding, io) do
