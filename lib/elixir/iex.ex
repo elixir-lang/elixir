@@ -1,5 +1,9 @@
 defmodule Elixir.IEx.UnicodeIO do
-  @moduledoc false
+  @moduledoc """
+  This module implements the API used by IEX to
+  interact with the console. This API may change
+  in the future without warnings.
+  """
 
   @doc """
   Implements the get IO API used by IEx. It receives the
@@ -34,10 +38,24 @@ end
 defrecord Elixir.IEx.Config, io: nil, binding: nil, cache: '', counter: 0, scope: nil
 
 defmodule Elixir.IEx do
-  @moduledoc false
+  @moduledoc """
+  This module implements interactive Elixir. It provides two
+  main functions, `start` and `simple_start`. `start` was
+  meant for systems where tty is available and relies on
+  it in order to work properly. This makes all control commands
+  available in tty available to the developer.
+
+  In case `tty` is not available (for example, Windows), a
+  developer may invoke `simple_start` which starts a stripped
+  down version.
+  """
 
   import Exception, only: [format_stacktrace: 1]
 
+  @doc """
+  Starts IEx using a tty server. It requires the initial
+  binding an the IO mechanism as argument.
+  """
   def start(binding // [], io // Elixir.IEx.UnicodeIO) do
     config = boot_config(binding, io)
     function = fn ->
@@ -49,25 +67,13 @@ defmodule Elixir.IEx do
     Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
   end
 
+  @doc """
+  Starts IEx simply using stdio. It requires the initial
+  binding an the IO mechanism as argument.
+  """
   def simple_start(binding // [], io // Elixir.IEx.UnicodeIO) do
     config = boot_config(binding, io)
     do_loop(config)
-  end
-
-  def c(files, path // ".") do
-    tuples = Elixir.ParallelCompiler.files_to_path List.wrap(files), path
-    Enum.map tuples, elem(&1, 1)
-  end
-
-  def m do
-    lc {mod, file} inlist List.sort(:code.all_loaded) do
-       :io.format("~-20s ~s~n",[inspect(mod), file])
-    end
-    :ok
-  end
-
-  def m(mod) do
-    IO.inspect mod.module_info
   end
 
   ## Helpers
@@ -77,7 +83,7 @@ defmodule Elixir.IEx do
 
     scope  = Erlang.elixir.scope_for_eval(
       file: 'iex',
-      delegate_locals_to: __MODULE__
+      delegate_locals_to: Elixir.IEx.Helpers
     )
 
     Elixir.IEx.Config.new(io: io, binding: binding, scope: scope)
@@ -118,5 +124,44 @@ defmodule Elixir.IEx do
 
   defp print_stacktrace(io, stacktrace) do
     Enum.each stacktrace, fn s -> io.error "    #{format_stacktrace(s)}" end
+  end
+end
+
+defmodule Elixir.IEx.Helpers do
+  @moduledoc """
+  A bunch of helpers available in IEx console.
+  """
+
+  @doc """
+  Expects a list of files to compile and a path
+  to write their object code to. It returns the name
+  of the compiled modules.
+
+  ## Examples
+
+      c ["foo.ex"], "ebin"
+      #=> Foo
+
+  """
+  def c(files, path // ".") do
+    tuples = Elixir.ParallelCompiler.files_to_path List.wrap(files), path
+    Enum.map tuples, elem(&1, 1)
+  end
+
+  @doc """
+  Returns the name and module of all modules loaded.
+  """
+  def m do
+    lc {mod, file} inlist List.sort(:code.all_loaded) do
+      :io.format("~-20s ~s~n",[inspect(mod), file])
+    end
+    :ok
+  end
+
+  @doc """
+  Prints the module information for the given module.
+  """
+  def m(mod) do
+    IO.inspect mod.module_info
   end
 end

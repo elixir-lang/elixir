@@ -11,6 +11,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [IEx] Functions `c` and `m` are available in IEx to compile and print available module information;
   * [Enum] Faster functions when passing a list as argument;
   * [System] Added `System.find_executable`
   * [Builtin] Document the macro `@` and allow attributes to be read inside functions;
@@ -18,7 +19,7 @@
   * [Macro] Added `Macro.expand`, useful for debugging what a macro expands to;
   * [Enum] Added `find_index`;
   * [Record] Records now provide a `to_keywords` function;
-  * [Builtin] Added support to the `%R` sigil. The same as `%r`, but without interpolation or escaping;
+  * [Builtin] Added support to the `%R` sigil. The same as `%r`, but without interpolation or escaping. Both implementations were also optimized to generate the regex at compilation time;
   * [Kernel] Added `__ENV__` which returns a `Macro.Env` record with information about the compilation environment;
   * [Kernel] Added `__CALLER__` inside macros which returns a `Macro.Env` record with information about the calling site;
 
