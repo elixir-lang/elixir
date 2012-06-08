@@ -21,21 +21,21 @@ defmodule Elixir.CLI.OptionParsingTest do
     { path, _ } = Code.eval list, []
 
     # pa
-    assert_member File.expand_path('bin'), path
-    assert_member File.expand_path('ebin'), path
-    assert_member File.expand_path('src'), path
-    assert_member File.expand_path('lib'), path
-    assert_member File.expand_path('include'), path
-    assert_member File.expand_path('test'), path
+    assert File.expand_path('bin') in path
+    assert File.expand_path('ebin') in path
+    assert File.expand_path('src') in path
+    assert File.expand_path('lib') in path
+    assert File.expand_path('include') in path
+    assert File.expand_path('test') in path
 
     # pz
-    assert_member File.expand_path('ebin/__MAIN__'), path
+    assert File.expand_path('ebin/__MAIN__') in path
   end
 
   test :require do
     options = ['-r', 'lib/list/*', '-r', '/never/gonna/*/up']
     { config, _argv } = Elixir.CLI.process_options(options, Elixir.CLI.Config.new)
-    assert_member {:require, "lib/list/chars.ex"}, config.commands
+    assert {:require, "lib/list/chars.ex"} in config.commands
   end
 end
 

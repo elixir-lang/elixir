@@ -72,60 +72,42 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test :assert_match_when_equal do
-    assert_match({ 2, 1 }, Value.tuple)
-    true = assert_match({ 2, 1 }, Value.tuple)
+    assert { 2, 1 } = Value.tuple
+    true = assert { 2, 1 } = Value.tuple
   end
 
   test :assert_match_when_different do
     try do
-      "This should never be tested" = assert_match({_, 2}, Value.tuple)
+      "This should never be tested" = assert {_, 2} = Value.tuple
     rescue
       error in [ExUnit.AssertionError] ->
         "no match of right hand side value: {2,1}" = error.message
     end
   end
 
-  test :assert_member_when_is_member do
-    true = assert_member('foo', ['foo', 'bar'])
+  test :assert_in_when_is_member do
+    true = assert 'foo' in ['foo', 'bar']
   end
 
-  test :assert_member_when_is_not_member do
+  test :assert_in_when_is_not_member do
     try do
-      "This should never be tested" = assert_member('foo', 'bar')
+      "This should never be tested" = assert 'foo' in 'bar'
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected 'bar' to include 'foo'" = error.message
+        "Expected 'foo' to be in 'bar'" = error.message
     end
   end
 
-  test :assert_member_with_message_when_is_not_member do
-    try do
-      "This should never be tested" = assert_member('foo', 'bar', "This should be included")
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "This should be included" = error.message
-    end
+  test :refute_in_when_is_not_member do
+    false = refute 'baz' in ['foo', 'bar']
   end
 
-  test :refute_member_when_is_not_member do
-    false = refute_member('baz', ['foo', 'bar'])
-  end
-
-  test :refute_member_when_is_member do
+  test :refute_in_when_is_member do
     try do
-      "This should never be tested" = refute_member('foo', ['foo', 'bar'])
+      "This should never be tested" = refute 'foo' in ['foo', 'bar']
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected ['foo','bar'] to not include 'foo'" = error.message
-    end
-  end
-
-  test :refute_member_with_message_when_is_member do
-    try do
-      "This should never be tested" = refute_member('foo', ['foo', 'bar'], "This should be included")
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "This should be included" = error.message
+        "Expected 'foo' to not be in ['foo','bar']" = error.message
     end
   end
 

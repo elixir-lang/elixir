@@ -192,22 +192,22 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :macros_error_stacktrace do
-    assert_match [{:erlang,:+,[1,:foo],_},{Foo,:sample,1,_}|_],
+    assert [{:erlang,:+,[1,:foo],_},{Foo,:sample,1,_}|_] =
       rescue_stacktrace("defmodule Foo do\ndefmacro sample(num), do: num + :foo\ndef other, do: sample(1)\nend")
   end
 
   test :macros_function_clause_stacktrace do
-    assert_match [{__MODULE__,:sample,1,_}|_],
+    assert [{__MODULE__,:sample,1,_}|_] =
       rescue_stacktrace("defmodule Foo do\nimport Kernel.ErrorsTest\nsample(1)\nend")
   end
 
   test :macros_interpreted_function_clause_stacktrace do
-    assert_match [{Foo,:sample,1,_}|_],
+    assert [{Foo,:sample,1,_}|_] =
       rescue_stacktrace("defmodule Foo do\ndefmacro sample(0), do: 0\ndef other, do: sample(1)\nend")
   end
 
   test :macros_compiled_callback do
-    assert_match [{Kernel.ErrorsTest,:__compiling__,[Foo],_}|_],
+    assert [{Kernel.ErrorsTest,:__compiling__,[Foo],_}|_] =
       rescue_stacktrace("defmodule Foo do\nModule.add_compile_callback(__MODULE__, Kernel.ErrorsTest)\nend")
   end
 

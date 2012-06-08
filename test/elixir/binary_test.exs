@@ -88,7 +88,7 @@ bar
 
   test :pattern_match do
     s = 16
-    assert_match <<a, b|s>>, "foo"
+    assert <<a, b|s>> = "foo"
   end
 
   defp is_match?(<<char, _|:binary>>, char) do

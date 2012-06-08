@@ -132,17 +132,17 @@ defmodule FileTest do
   end
 
   test :read_with_binary do
-    assert_match { :ok, "FOO\n" }, File.read(File.expand_path("../fixtures/foo.txt", __FILE__))
-    assert_match { :error, :enoent }, File.read(File.expand_path("../fixtures/missing.txt", __FILE__))
+    assert { :ok, "FOO\n" } = File.read(File.expand_path("../fixtures/foo.txt", __FILE__))
+    assert { :error, :enoent } = File.read(File.expand_path("../fixtures/missing.txt", __FILE__))
   end
 
   test :read_with_list do
-    assert_match { :ok, "FOO\n" }, File.read(File.expand_path('../fixtures/foo.txt', __FILE__))
-    assert_match { :error, :enoent }, File.read(File.expand_path('../fixtures/missing.txt', __FILE__))
+    assert { :ok, "FOO\n" } = File.read(File.expand_path('../fixtures/foo.txt', __FILE__))
+    assert { :error, :enoent } = File.read(File.expand_path('../fixtures/missing.txt', __FILE__))
   end
 
   test :read_with_utf8 do
-    assert_match { :ok, "Русский\n日\n" }, File.read(File.expand_path('../fixtures/utf8.txt', __FILE__))
+    assert { :ok, "Русский\n日\n" } = File.read(File.expand_path('../fixtures/utf8.txt', __FILE__))
   end
 
   test :read! do
@@ -164,7 +164,7 @@ defmodule FileTest do
   end
 
   test :stat_with_invalid_file do
-    assert_match { :error, _ }, File.stat("./invalid_file")
+    assert { :error, _ } = File.stat("./invalid_file")
   end
 
   test :stat_with_invalid_file! do

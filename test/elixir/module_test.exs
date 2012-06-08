@@ -110,12 +110,12 @@ defmodule ModuleTest do
   end
 
   test :duplicated_attributes do
-    assert_match [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}], ModuleTest.DuplicateAttribute.__info__(:attributes)
+    assert [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest.DuplicateAttribute.__info__(:attributes)
   end
 
   test :inside_function_attributes do
-    assert_match [1], ModuleTest.DuplicateAttribute.first_foo
-    assert_match [3,2,1], ModuleTest.DuplicateAttribute.third_foo
+    assert [1] = ModuleTest.DuplicateAttribute.first_foo
+    assert [3,2,1] = ModuleTest.DuplicateAttribute.third_foo
   end
 
   test :function_from___ENV__ do

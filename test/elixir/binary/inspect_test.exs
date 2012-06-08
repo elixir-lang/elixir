@@ -132,7 +132,7 @@ defmodule Binary.Inspect.AnyTest do
 
   test :funs do
     bin = inspect(fn(x) -> x + 1 end)
-    assert_match '#Fun<' ++ _, binary_to_list(bin)
+    assert '#Fun<' ++ _ = binary_to_list(bin)
   end
 end
 

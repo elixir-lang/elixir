@@ -14,8 +14,9 @@ defmodule ExUnit.Assertions do
       Expected 10 to be equal to 13
 
   This module also provides other small convenient functions
-  like `assert_match`, and `assert_raise` to easily handle other
-  common cases as matching two terms or handling exceptions.
+  like `assert_empty`, and `assert_raise` to easily handle other
+  common cases as checking if an enumerable is empty and handling
+  exceptions.
   """
 
   @doc """
@@ -85,6 +86,18 @@ defmodule ExUnit.Assertions do
     quote do: (var!(op) == :! or var!(op) == :not)
   end
 
+  defp translate_assertion({ :=, _, [expected, received] }, _else) do
+    quote do
+      try do
+        unquote(expected) = unquote(received)
+        true
+      rescue
+        x in [MatchError] ->
+          raise ExUnit.AssertionError, message: x.message
+      end
+    end
+  end
+
   defp translate_assertion({ :==, _, [left, right] }, _else) do
     { expected, actual } = guess_expected_and_actual(left, right)
     assert_operator :==, expected, actual, "equal to (==)"
@@ -121,11 +134,32 @@ defmodule ExUnit.Assertions do
     assert_operator :!=, expected, actual, "not equal to (!=)"
   end
 
+  defp translate_assertion({ :in, _, [left, right] }, _else) do
+    quote do
+      left  = unquote(left)
+      right = unquote(right)
+      assert(Enum.find(right, &1 == left), "Expected #{inspect left} to be in #{inspect right}")
+    end
+  end
+
   defp translate_assertion({ :access, _, [container, base] }, _else) do
     quote do
       container = unquote(container)
       base = unquote(base)
       assert(container[base], "Expected #{inspect base} to access #{inspect container}")
+    end
+  end
+
+  ## Negative versions
+
+  defp translate_assertion({ op, _, [{ :=, _, [expected, received] }] }, _else) when negation?(op) do
+    quote do
+      try do
+        unquote(expected) = x = unquote(received)
+        flunk "Unexpected right side #{inspect x} match"
+      rescue
+        x in [MatchError] -> true
+      end
     end
   end
 
@@ -136,6 +170,16 @@ defmodule ExUnit.Assertions do
       assert(!container[base], "Expected #{inspect base} to not access #{inspect container}")
     end
   end
+
+  defp translate_assertion({ op, _, [{ :in, _, [left, right] }] }, _else) when negation?(op) do
+    quote do
+      left  = unquote(left)
+      right = unquote(right)
+      assert(!Enum.find(right, &1 == left), "Expected #{inspect left} to not be in #{inspect right}")
+    end
+  end
+
+  ## Fallback
 
   defp translate_assertion(_expected, fallback) do
     fallback.()
@@ -161,16 +205,9 @@ defmodule ExUnit.Assertions do
 
   ## END HELPERS
 
-  @doc """
-  Asserts the `expected` value matches `received`. This relies
-  on Elixir's pattern match instead of simply comparing terms.
-
-  ## Examples
-
-      assert_match { 1, _, 3 }, { 1, 2, 3 }
-
-  """
   defmacro assert_match(expected, received) do
+    IO.puts "assert_match is deprecated in favor of assert left = right"
+
     quote do
       try do
         unquote(expected) = unquote(received)
@@ -182,16 +219,8 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  @doc """
-  Asserts the value is a member of the given enumerable.
-  Used to check if an item belongs to a list.
-
-  ## Examples
-
-      assert_member "foo", ["foo", "bar"]
-
-  """
   def assert_member(base, container, message // nil) do
+    IO.puts "assert_member is deprecated in favor of assert left in right"
     message = message || "Expected #{inspect container} to include #{inspect base}"
     assert(Enum.find(container, &1 == base), message)
   end
@@ -343,16 +372,9 @@ defmodule ExUnit.Assertions do
     not assert(!not_expected, message)
   end
 
-  @doc """
-  Assets the `expected` value does not match `received`. This uses
-  Elixir's pattern matching instead of simply comparing terms.
-
-  ## Examples
-
-      refute_match { 1, _, 3 }, { 1, 2, 3 }
-
-  """
   defmacro refute_match(expected, received) do
+    IO.puts "refute_match is deprecated in favor of refute left = right"
+
     quote do
       try do
         unquote(expected) = unquote(received)
@@ -401,16 +423,8 @@ defmodule ExUnit.Assertions do
     refute diff < delta, message
   end
 
-  @doc """
-  Asserts the value is not a member of the given enumerable.
-  Used to check if an item belongs to a list.
-
-  ## Examples
-
-      refute_member "baz", ["foo", "bar"]
-
-  """
   def refute_member(base, container, message // nil) do
+    IO.puts "refute_member is deprecated in favor of refute left in right"
     message = message || "Expected #{inspect container} to not include #{inspect base}"
     refute(Enum.find(container, &1 == base), message)
   end

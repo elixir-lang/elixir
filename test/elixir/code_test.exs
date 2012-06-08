@@ -15,7 +15,7 @@ defmodule CodeTest do
 
   test :eval do
     assert Code.eval("1 + 2") == { 3, [] }
-    assert_match { 3, _ }, Code.eval("a + b", [a: 1, b: 2], __ENV__.location)
+    assert { 3, _ } = Code.eval("a + b", [a: 1, b: 2], __ENV__.location)
   end
 
   test :eval_with_scope do
@@ -31,7 +31,7 @@ defmodule CodeTest do
     Code.require_file "../fixtures/code_sample", __FILE__
 
     expanded = File.expand_path("test/elixir/fixtures/code_sample.exs")
-    assert_member expanded, Code.loaded_files
+    assert expanded in Code.loaded_files
   end
 
   test :file do
