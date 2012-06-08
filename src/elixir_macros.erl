@@ -28,7 +28,7 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
 
 %% @
 
-translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name == type; Name == spec ->
+translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name == type; Name == spec; Name == callback ->
   case elixir_compiler:get_opt(internal) of
     true  -> { { nil, Line }, S };
     false ->
@@ -207,7 +207,8 @@ is_reserved_data(_)         -> false.
 
 spec_to_macro(type)  -> deftype;
 spec_to_macro(typep) -> deftypep;
-spec_to_macro(spec)  -> defspec.
+spec_to_macro(spec)  -> defspec;
+spec_to_macro(callback)  -> defcallback.
 
 % Unpack a list of expressions from a block.
 unpack([{ '__block__', _, Exprs }]) -> Exprs;

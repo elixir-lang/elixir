@@ -154,8 +154,8 @@ attributes_form(Line, _File, Module, Current) ->
 specs_form(Line, Module, Forms) ->
   Specs = ets:tab2list(spec_table(Module)),
   Keys  = lists:ukeysort(1, Specs),
-  lists:foldl(fun({ K, _ }, Acc) ->
-    [{ attribute, Line, spec, { K, proplists:append_values(K, Specs) } }|Acc]
+  lists:foldl(fun({ {T, K}, _ }, Acc) ->
+    [{ attribute, Line, T, { K, proplists:append_values(K, Specs) } }|Acc]
   end, Forms, Keys).
 
 %% Loads the form into the code server.

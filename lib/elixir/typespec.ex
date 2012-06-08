@@ -14,16 +14,12 @@ defmodule Elixir.Typespec do
     _deftype(name, false, __CALLER__, [])
   end
 
-  defmacro defspec({name, line, args},[{:do,return}]) do
-    spec  = { :type, line, :fun, fn_args(line, args, return, [], __CALLER__) }
-    code  = Macro.escape { { name, length(args) }, [spec] }
-    table = spec_table_for(__CALLER__.module)
+  defmacro defspec(spec, block) do
+    _defspec(:spec, __CALLER__, spec, block)
+  end
 
-    quote do
-      code = unquote(code)
-      :ets.insert(unquote(table), code)
-      code
-    end
+  defmacro defcallback(spec, block) do
+    _defspec(:callback, __CALLER__, spec, block)
   end
 
   @doc """
@@ -222,6 +218,19 @@ defmodule Elixir.Typespec do
       { unquote(attr), type }
     end
   end
+
+  defp _defspec(type, caller, {name, line, args},[{:do,return}]) do
+    spec  = { :type, line, :fun, fn_args(line, args, return, [], caller) }
+    code  = Macro.escape { {type, { name, length(args) }}, [spec] }
+    table = spec_table_for(caller.module)
+
+    quote do
+      code = unquote(code)
+      :ets.insert(unquote(table), code)
+      code
+    end
+  end
+
 
   defp spec_table_for(module) do
     table = list_to_atom Erlang.lists.concat([:s, module])
