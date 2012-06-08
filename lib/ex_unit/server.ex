@@ -6,7 +6,7 @@ defmodule ExUnit.Server do
   use GenServer.Behavior
 
   def start_link do
-    { :ok, _ } = Erlang.gen_server.start_link({:local, :exunit_server}, __MODULE__, [], [])
+    Erlang.gen_server.start_link({:local, :exunit_server}, __MODULE__, [], [])
   end
 
   def add_case(name) do
