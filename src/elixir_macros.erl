@@ -27,9 +27,24 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
   translate_each({ '__op__', Line, [Op|Exprs] }, S);
 
 translate_macro({ in, Line, [Left, [H|T]] }, #elixir_scope{extra_guards=nil} = S) ->
-  translate_each(lists:foldl(fun(X, Acc) ->
-    { 'or', Line, [Acc, { '==', Line, [Left, X] }] }
-  end, { '==', Line, [Left, H] }, T), S);
+  { TLeft, SL }   = translate_each(Left, S),
+  { [HT|TT], ST } = translate([H|T], SL),
+
+  Cache = (S#elixir_scope.context == nil),
+
+  { Var, SV } = case Cache of
+    true  -> elixir_scope:build_erl_var(Line, ST);
+    false -> { TLeft, ST }
+  end,
+
+  Expr = lists:foldl(fun(X, Acc) ->
+    { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
+  end, { op, Line, '==', Var, HT }, TT),
+
+  case Cache of
+    true  -> { { block, Line, [ { match, Line, Var, TLeft }, Expr ] }, SV };
+    false -> { Expr, SV }
+  end;
 
 translate_macro({ in, _, [Left, _] } = Expr, #elixir_scope{extra_guards=Extra} = S) ->
   translate_each(Left, S#elixir_scope{extra_guards=[Expr|Extra]});

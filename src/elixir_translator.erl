@@ -50,8 +50,8 @@ translate_each({ '__op__', Line, [Op, Expr] }, S) when is_atom(Op) ->
   { TExpr, NS } = translate_each(Expr, S),
   { { op, Line, convert_op(Op), TExpr }, NS };
 
-translate_each({ '__op__', Line, [Op|Args] }, S) when is_atom(Op) ->
-  { [TLeft, TRight], NS }  = translate_args(Args, S),
+translate_each({ '__op__', Line, [Op, Left, Right] }, S) when is_atom(Op) ->
+  { [TLeft, TRight], NS }  = translate_args([Left, Right], S),
   { { op, Line, convert_op(Op), TLeft, TRight }, NS };
 
 translate_each({ '__ambiguousop__', Line, [Var, H|T] }, S) ->
