@@ -16,7 +16,7 @@ defmodule ExUnit do
         use ExUnit.Case
 
         # 3) A test is a method which name finishes with _test
-        def test_always_pass
+        def test_always_pass do
           assert true
         end
       end
