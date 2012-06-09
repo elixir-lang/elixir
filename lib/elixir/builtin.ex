@@ -2090,11 +2090,7 @@ defmodule Elixir.Builtin do
   In this case, Elixir will automatically expand it and define
   the variable for us.
   """
-  defmacro :in.(left, [h|t]) do
-    :lists.foldl fn x, acc ->
-      { :or, 0, [acc, { :==, 0, [left, x] }] }
-    end, { :==, 0, [left, h] }, t
-  end
+  defmacro :in.(left, right)
 
   @doc """
   Implements the unary operator ! as a macro. It receives any

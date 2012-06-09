@@ -20,12 +20,10 @@ defmodule Kernel.CaseTest do
         true
     end)
 
-    y = 3
-
-    assert(case 3 do
-      x in [1,2,3] when y == 2 ->
+    assert(case { 3, 3 } do
+      { x in [1,2,3], y } when y == 2 ->
         false
-      x in [1,2,3] when y == 1 when y == 3 ->
+      { x in [1,2,3], y } when y == 1 when y == 3 ->
         true
     end)
   end

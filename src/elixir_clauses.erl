@@ -40,12 +40,17 @@ assigns_block(Line, Fun, BareArgs, Exprs, S) ->
   assigns_block(Line, Fun, Args, Exprs, Guards, S).
 
 assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
-  { TArgs, SA }  = elixir_clauses:assigns(Fun, Args, S),
-  { TExprs, SE } = elixir_translator:translate(Exprs, SA),
+  { TArgs, SA }  = assigns(Fun, Args, S#elixir_scope{extra_guards=[]}),
+  { TExprs, SE } = elixir_translator:translate(Exprs, SA#elixir_scope{extra_guards=nil}),
 
   FArgs   = listify(TArgs),
-  SG      = SA#elixir_scope{context=guard},
-  FGuards = [translate_guard(Line, Guard, SG) || Guard <- Guards],
+  SG      = SA#elixir_scope{context=guard, extra_guards=nil},
+  Extra   = element(1, elixir_translator:translate(SA#elixir_scope.extra_guards, SG)),
+
+  FGuards = case Guards of
+    [] -> case Extra of [] -> []; _ -> [Extra] end;
+    _  -> [translate_guard(Line, Guard, Extra, SG) || Guard <- Guards]
+  end,
 
   % Uncompact expressions from the block.
   case TExprs of
@@ -57,19 +62,10 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
 
 % Translate/Extract guards from the given expression.
 
-translate_guard(Line, Guard, S) ->
-  [element(1, elixir_translator:translate_each(elixir_quote:linify(Line, Guard), S))].
+translate_guard(Line, Guard, Extra, S) ->
+  [element(1, elixir_translator:translate_each(elixir_quote:linify(Line, Guard), S))|Extra].
 
-extract_guards({ 'when', _, [Left, Right] }) ->
-  Clauses = extract_or_clauses(Right, []),
-  case Left of
-    { 'in', Line, [Var, _] } ->
-      { Var, [{ 'and', Line, [Left, Clause] } || Clause <- Clauses] };
-    _ ->
-      { Left, Clauses }
-  end;
-
-extract_guards({ 'in', _, [Var, _] } = Expr) -> { Var, [Expr] };
+extract_guards({ 'when', _, [Left, Right] }) -> { Left, extract_or_clauses(Right, []) };
 extract_guards(Else) -> { Else, [] }.
 
 extract_or_clauses({ 'when', _, [Left, Right] }, Acc) -> extract_or_clauses(Right, [Left|Acc]);

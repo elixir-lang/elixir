@@ -363,6 +363,7 @@ in_erlang_macros() ->
     {defp,1},
     {defp,2},
     {defp,4},
+    {in,2},
     {'not',1},
     {'or',2},
     {'receive',1},

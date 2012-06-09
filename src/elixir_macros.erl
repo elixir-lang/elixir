@@ -26,6 +26,14 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
   Op == '==='; Op == '!==' ->
   translate_each({ '__op__', Line, [Op|Exprs] }, S);
 
+translate_macro({ in, Line, [Left, [H|T]] }, #elixir_scope{extra_guards=nil} = S) ->
+  translate_each(lists:foldl(fun(X, Acc) ->
+    { 'or', Line, [Acc, { '==', Line, [Left, X] }] }
+  end, { '==', Line, [Left, H] }, T), S);
+
+translate_macro({ in, _, [Left, _] } = Expr, #elixir_scope{extra_guards=Extra} = S) ->
+  translate_each(Left, S#elixir_scope{extra_guards=[Expr|Extra]});
+
 %% @
 
 translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name == type; Name == spec; Name == callback ->
