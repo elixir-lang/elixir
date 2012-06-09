@@ -7,7 +7,7 @@ Nonterminals
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
   comma_separator
   add_op mult_op unary_op addadd_op multmult_op bin_concat_op
-  match_op send_op default_op when_op pipe_op in_op stab_op range_op
+  match_op send_op default_op when_op pipe_op in_op inc_op stab_op range_op
   andand_op oror_op and_op or_op comp_expr_op colon_colon_op
   open_paren close_paren
   open_bracket close_bracket
@@ -47,21 +47,22 @@ Right     30 when_op.
 Right     40 colon_colon_op.
 Right     50 default_op.
 Left      60 pipe_op.
-Left      70 range_op.
+Left      70 inc_op.
 Right     80 match_op.
-Right     90 send_op.
-Left     100 oror_op.
-Left     110 andand_op.
+Right    110 send_op.
+Left     120 oror_op.
+Left     130 andand_op.
 Left     140 or_op.
 Left     150 and_op.
 Left     160 comp_expr_op.
-Left     170 add_op.
-Left     180 mult_op.
-Right    190 bin_concat_op.
-Right    200 addadd_op.
-Right    210 multmult_op.
-Nonassoc 280 unary_op.
-Left     300 in_op.
+Left     170 in_op.
+Left     180 range_op.
+Left     190 add_op.
+Left     200 mult_op.
+Right    210 bin_concat_op.
+Right    220 addadd_op.
+Right    230 multmult_op.
+Nonassoc 300 unary_op.
 Left     310 dot_call_op.
 Left     310 dot_op.
 Nonassoc 320 var.
@@ -103,6 +104,7 @@ op_expr -> or_op expr : { '$1', '$2' }.
 op_expr -> pipe_op expr : { '$1', '$2' }.
 op_expr -> bin_concat_op expr : { '$1', '$2' }.
 op_expr -> in_op expr : { '$1', '$2' }.
+op_expr -> inc_op expr : { '$1', '$2' }.
 op_expr -> when_op expr : { '$1', '$2' }.
 op_expr -> send_op expr : { '$1', '$2' }.
 op_expr -> range_op expr : { '$1', '$2' }.
@@ -122,6 +124,7 @@ matched_op_expr -> or_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> pipe_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> bin_concat_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> in_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> inc_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> when_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> send_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> range_op matched_expr : { '$1', '$2' }.
@@ -297,10 +300,11 @@ bin_concat_op -> '<>' eol : '$1'.
 
 in_op -> 'in' : '$1'.
 in_op -> 'in' eol : '$1'.
-in_op -> 'inlist' : '$1'.
-in_op -> 'inlist' eol : '$1'.
-in_op -> 'inbits' : '$1'.
-in_op -> 'inbits' eol : '$1'.
+
+inc_op -> 'inlist' : '$1'.
+inc_op -> 'inlist' eol : '$1'.
+inc_op -> 'inbits' : '$1'.
+inc_op -> 'inbits' eol : '$1'.
 
 when_op -> 'when' : '$1'.
 when_op -> 'when' eol : '$1'.
@@ -408,14 +412,20 @@ Erlang code.
 -define(line(Node), element(2, Node)).
 -define(exprs(Node), element(3, Node)).
 
-% The following directive is needed for (significantly) faster compilation
-% of the generated .erl file by the HiPE compiler. Please do not remove.
+-define(rearrange_uop(Op), Op == 'not' orelse Op == '!').
+-define(rearrange_bop(Op), Op == 'in' orelse Op == 'inlist' orelse Op == 'inbits').
+
+%% The following directive is needed for (significantly) faster
+%% compilation of the generated .erl file by the HiPE compiler
 -compile([{hipe,[{regalloc,linear_scan}]}]).
 
 %% Operators
 
-build_op(Op, Left, Right) when tuple_size(Op) == 3 ->
+build_op({ _, _, _ } = Op, Left, Right) ->
   { ?exprs(Op), ?line(Op), [Left, Right] };
+
+build_op({ BOp, Line }, { UOp, _, [Left] }, Right) when ?rearrange_bop(BOp), ?rearrange_uop(UOp) ->
+  { UOp, Line, [{ BOp, Line, [Left, Right] }] };
 
 build_op(Op, Left, Right) ->
   { ?op(Op), ?line(Op), [Left, Right] }.
@@ -433,11 +443,12 @@ build_tuple(Marker, Args) ->
 
 build_block(Exprs) -> build_block(Exprs, true).
 
-build_block([], _)                            -> nil;
-build_block([nil], _)                         -> { '__block__', 0, [nil] };
-build_block([Expr], _) when not is_list(Expr) -> Expr;
-build_block(Exprs, true)                      -> { '__block__', 0, lists:reverse(Exprs) };
-build_block(Exprs, false)                     -> { '__block__', 0, Exprs }.
+build_block([], _)                                         -> nil;
+build_block([nil], _)                                      -> { '__block__', 0, [nil] };
+build_block([{Op,_,[_]}]=Exprs, _) when ?rearrange_uop(Op) -> { '__block__', 0, Exprs };
+build_block([Expr], _) when not is_list(Expr)              -> Expr;
+build_block(Exprs, true)                                   -> { '__block__', 0, lists:reverse(Exprs) };
+build_block(Exprs, false)                                  -> { '__block__', 0, Exprs }.
 
 %% Dots
 

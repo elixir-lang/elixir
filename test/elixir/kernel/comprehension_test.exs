@@ -35,6 +35,10 @@ defmodule Kernel.ComprehensionTest do
     assert [2,4,6] == result
   end
 
+  test :generator_precedence do
+    assert lc { _, _ } = x inlist [foo: :bar], do: x
+  end
+
   test :bit_comprehensions do
     assert <<4>> == bc x inlist [1,2,3], rem(x, 2) == 0, do: <<x * 2>>
   end
