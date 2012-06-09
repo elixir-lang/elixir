@@ -439,14 +439,20 @@ extract_heredoc_line(_, _) ->
 extract_heredoc_line(Marker, [H|T], Buffer, Counter) when H == $\t; H == $\s ->
   extract_heredoc_line(Marker, T, [H|Buffer], Counter + 1);
 
-extract_heredoc_line(Marker, [Marker,Marker,Marker,$\n|T], Buffer, Counter) ->
-  { ok, Buffer, T, Counter };
-
-extract_heredoc_line(Marker, [Marker,Marker,Marker,$\r,$\n|T], Buffer, Counter) ->
-  { ok, Buffer, T, Counter };
+extract_heredoc_line(Marker, [Marker,Marker,Marker|T] = Rest, Buffer, Counter) ->
+  case next_is_break(T) of
+    false -> extract_heredoc_line(Rest, Buffer);
+    Final -> { ok, Buffer, Final, Counter }
+  end;
 
 extract_heredoc_line(_Marker, Rest, Buffer, _Counter) ->
   extract_heredoc_line(Rest, Buffer).
+
+next_is_break([H|T]) when H == $\t; H == $\s -> next_is_break(T);
+next_is_break([$\r,$\n|T]) -> T;
+next_is_break([$\n|T]) -> T;
+next_is_break([]) -> [];
+next_is_break(_) -> false.
 
 %% Merge heredoc extra by replying it on the buffer. It also adds
 %% a special { line, Line } token to force a line change along the way.
