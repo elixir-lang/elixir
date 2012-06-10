@@ -2228,13 +2228,31 @@ defmodule Elixir.Builtin do
             raise "cannot use module #{inspect atom} in access protocol because it does not represent a record"
         end
 
+        has_default_field_value = Keyword.key?(keyword, :_)
+        default_field_value = Keyword.get(keyword, :_)
+        given_keyword = keyword
+        keyword = Keyword.delete keyword, :_
         iterator = fn({field, default}, each_keyword) ->
           new_fields = 
           case {Keyword.key?(each_keyword, field), in_match} do
              {true, _} -> Keyword.get(each_keyword, field)
-             {_, false} -> Macro.escape(default)
-             {_, true}  -> { :_, 0, nil }
-          end
+             {_, false} -> 
+               case has_default_field_value do
+                 true ->
+                   default_field_value
+                 false ->
+                   Keyword.get(given_keyword, :_, default)
+               end
+             {_, true}  -> 
+               case {has_default_field_value, default_field_value} do
+                 {true, {:_, _, nil} = any} ->
+                   any
+                 {true, other} ->
+                   Macro.escape(other)
+                 {false, _} ->
+                   {:_, 0, nil}
+               end
+        end
           { new_fields, Keyword.delete(each_keyword, field) }
         end
 
