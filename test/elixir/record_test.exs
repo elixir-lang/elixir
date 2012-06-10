@@ -55,6 +55,16 @@ defmodule RecordTest do
     assert record.to_keywords[:b] == "b"
   end
 
+  test :underscore_record_syntax do
+    record = RecordTest.DynamicName[_: "a"]
+    assert RecordTest.DynamicName[a: "a", b: "a"] == record
+    assert RecordTest.DynamicName[_: _] = RecordTest.DynamicName[_: "x"]
+    assert_error {:badmatch,RecordTest.DynamicName[a: "y", b: "y"]}, 
+           fn() ->
+               RecordTest.DynamicName[_: "x"] = RecordTest.DynamicName[_: "y"]
+           end
+  end
+
   defp file_info do
     { :ok, file_info } = Erlang.file.read_file_info(__FILE__)
     file_info
