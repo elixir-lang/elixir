@@ -478,8 +478,8 @@ defmodule Module do
     { atom, 0 }
   end
 
-  defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque] do
-    raise ArgumentError, message: "Attributes type, typep, export_type and opaque " <>
+  defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do
+    raise ArgumentError, message: "Attributes type, typep, export_type, opaque and callback " <>
       "must be set via Elixir.Typespec"
   end
 

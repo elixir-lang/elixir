@@ -26,6 +26,16 @@ defmodule Binary.Inspect.AtomTest do
     assert inspect(Foo.Bar) == "Foo.Bar"
   end
 
+  test :with_integers do
+    assert inspect(User1)  == "User1"
+    assert inspect(:user1) == ":user1"
+  end
+
+  test :with_punctuation do
+    assert inspect(:foo?) == ":foo?"
+    assert inspect(:bar!) == ":bar!"
+  end
+
   test :impl do
     assert Binary.Inspect.Atom.__impl__ == Binary.Inspect
   end

@@ -42,9 +42,9 @@ defimpl Binary.Inspect, for: Atom do
     binary = atom_to_binary(atom)
 
     cond do
-      valid_identifier?(binary) == <<>> ->
+      valid_atom_identifier?(binary) ->
           ":" <> binary
-      valid_ref_identifier?(binary) == <<>> ->
+      valid_ref_identifier?(binary) ->
         "__MAIN__." <> rest = binary
         rest
       true ->
@@ -58,22 +58,36 @@ defimpl Binary.Inspect, for: Atom do
     valid_ref_piece?(rest)
   end
 
-  defp valid_ref_identifier?(rest) do
-    rest
-  end
+  defp valid_ref_identifier?(_), do: false
 
   defp valid_ref_piece?(<<?., h, t|:binary>>) when h >= ?A and h <= ?Z do
     valid_ref_piece? valid_identifier?(t)
   end
 
-  defp valid_ref_piece?(other), do: other
+  defp valid_ref_piece?(<<>>), do: true
+  defp valid_ref_piece?(_),    do: false
 
-  # Detect if atom is :letter_or_underscore
+  # Detect if atom
+
+  defp valid_atom_identifier?(<<h, t|:binary>>) \
+      when h >= ?a and h <= ?z \
+      when h >= ?A and h <= ?Z \
+      when h == ?_ do
+    case valid_identifier?(t) do
+      <<>>   -> true
+      <<??>> -> true
+      <<?!>> -> true
+      _      -> false
+    end
+  end
+
+  defp valid_atom_identifier?(_), do: false
 
   defp valid_identifier?(<<h, t|:binary>>) \
-    when h >= ?a and h <= ?z \
-    when h >= ?A and h <= ?Z \
-    when h == ?_ do
+      when h >= ?a and h <= ?z \
+      when h >= ?A and h <= ?Z \
+      when h >= ?0 and h <= ?9 \
+      when h == ?_ do
     valid_identifier? t
   end
 
