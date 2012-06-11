@@ -23,7 +23,7 @@ quote({ unquote, _Line, [Expr] }, #elixir_quote{unquote=true}, S) ->
 quote({ Left, Line, nil }, Q, S) when is_atom(Left) ->
   Tuple = { tuple, Line, [
     { atom, Line, Left },
-    { integer, Line, Q#elixir_quote.line },
+    { integer, Line, line(Line, Q) },
     { atom, Line, Q#elixir_quote.marker }
   ] },
   { Tuple, S };
@@ -32,10 +32,10 @@ quote({ Left, Line, Right }, Q, S) ->
   { TLeft, LS } = quote(Left, Q, S),
   { TRight, RS } = quote(Right, Q, LS),
 
-  % We need to remove line numbers from quoted exprs otherwise
-  % the line number quotes in the macro will get mixed with the
-  % original exprs line numbers given to the macro as arguments.
-  Tuple = { tuple, Line, [TLeft, { integer, Line, Q#elixir_quote.line }, TRight] },
+  %% We need to remove line numbers from quoted exprs
+  %% otherwise the line number quotes in the macro will
+  %% get mixed with the unquoted contents
+  Tuple = { tuple, Line, [TLeft, { integer, Line, line(Line, Q) }, TRight] },
   { Tuple, RS };
 
 % Handle two item tuples but still allow them to be spliced.
@@ -44,7 +44,7 @@ quote({ Left, Right }, Q, S) when
   not is_tuple(Right) orelse (element(1, Right) /= unquote_splicing) ->
   { TLeft, LS } = quote(Left, Q, S),
   { TRight, RS } = quote(Right, Q, LS),
-  { { tuple, 0, [TLeft, TRight] }, RS };
+  { { tuple, line(0, Q), [TLeft, TRight] }, RS };
 
 quote({ Left, Right }, Q, S) ->
   quote({ '{}', 0, [Left, Right] }, Q, S);
@@ -53,13 +53,13 @@ quote(List, Q, S) when is_list(List) ->
   splice(List, Q, [], [], S);
 
 quote(Number, Q, S) when is_integer(Number) ->
-  { { integer, Q#elixir_quote.line, Number }, S };
+  { { integer, line(0, Q), Number }, S };
 
 quote(Number, Q, S) when is_float(Number) ->
-  { { float, Q#elixir_quote.line, Number }, S };
+  { { float, line(0, Q), Number }, S };
 
 quote(Atom, Q, S) when is_atom(Atom) ->
-  { { atom, Q#elixir_quote.line, Atom }, S };
+  { { atom, line(0, Q), Atom }, S };
 
 quote(Bitstring, _Q, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
@@ -78,7 +78,7 @@ splice([], Q, Buffer, Acc, S) ->
   { NewAcc, NewS } = from_buffer_to_acc(Buffer, Q, Acc, S),
   case NewAcc of
     [] ->
-      { { nil, Q#elixir_quote.line }, NewS };
+      { { nil, line(0, Q) }, NewS };
     [List] ->
       { List, NewS };
     _ ->
@@ -93,3 +93,6 @@ from_buffer_to_acc(Buffer, Q, Acc, S) ->
   { New, NewS } = elixir_tree_helpers:build_reverse_list(
     fun(X, AccS) -> quote(X, Q, AccS) end, Buffer, 0, S),
   { [New|Acc], NewS }.
+
+line(Line, #elixir_quote{line=keep})  -> Line;
+line(_Line, #elixir_quote{line=Line}) -> Line.

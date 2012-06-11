@@ -271,10 +271,15 @@ defmodule Elixir.SpecialForms do
 
   ## Options
 
-  `quote` also accepts some options as arguments. For example,
-  hygiene can be turned off via `hygiene: false` which is useful
-  when one is generating a code that should be inserted into
-  some function.
+  * `:hygiene` - When false, disables hygiene;
+  * `:unquote` - When false, disables unquoting. Useful when you have a quote
+    inside another quote and want to control which quote is able to unquote;
+  * `:line` - The line to be returned in each quoted expression. By default,
+              this is set to 0, so Elixir is able to differentiate the quoted
+              expressions from the expressions that were injected via unquote.
+              You can set it to any integer or to the atom `:keep` in order
+              to keep the current values.
+
   """
   defmacro quote(opts, do: contents)
 

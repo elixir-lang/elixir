@@ -255,14 +255,17 @@ translate_each({ '__aliases__', Line, [H|T] }, S) ->
 translate_each({quote, Line, [Left, Right]}, S) ->
   translate_each({ quote, Line, [orddict:from_list(Left ++ Right)] }, S);
 
-translate_each({quote, _Line, [[{do,Exprs}|T]]}, S) ->
+translate_each({quote, GivenLine, [[{do,Exprs}|T]]}, S) ->
   Marker = case orddict:find(hygiene, T) of
     { ok, false } -> nil;
     _ -> quoted
   end,
 
   Line = case orddict:find(line, T) of
-    { ok, Value } -> Value;
+    { ok, keep } -> keep;
+    { ok, Value } when is_integer(Value) -> Value;
+    { ok, _ } -> syntax_error(GivenLine, S#elixir_scope.file,
+                   "invalid args for quote. expected line to be the atom :keep or an integer");
     _ -> 0
   end,
 

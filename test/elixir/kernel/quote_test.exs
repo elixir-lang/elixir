@@ -52,4 +52,13 @@ defmodule Kernel.QuoteTest do
   test :tuple do
     assert quote(do: { :a, 1 }) == {:a,1}
   end
+
+  test :keep_line do
+    ## DO NOT MOVE THIS LINE
+    assert quote(line: :keep, do: bar(1,2,3)) == { :bar, 58, [1,2,3] }
+  end
+
+  test :fixed_line do
+    assert quote(line: 3, do: bar(1,2,3)) == { :bar, 3, [1,2,3] }
+  end
 end
