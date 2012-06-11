@@ -270,56 +270,11 @@ defmodule Module do
     end
   end
 
-  @doc """
-  Adds a compilation callback hook that is invoked
-  exactly before the module is compiled.
-
-  This callback is useful, for example, when used with `use`
-  as a mechanism to clean up any internal data in the module
-  before it is compiled.
-
-  This funtion expects the module on compilation followed
-  by the module and function name to be invoked as callback.
-  The function receives the module being compiled as argument.
-
-  ## Examples
-
-  Imagine you are creating a module/library that is meant for
-  external usage called `MyLib`. It could be defined as:
-
-      defmodule MyLib do
-        def __using__(args) do
-          target = __CALLER__.module
-          Module.add_compile_callback(target, __MODULE__, :__callback__)
-        end
-
-        defmacro __callback__(target) do
-          value = Module.read_attribute(target, :some_data)
-          quote do: (def my_lib_value, do: unquote(value))
-        end
-      end
-
-  And a module could use `MyLib` with:
-
-      defmodule App do
-        use ModuleTest.ToBeUsed
-        @some_data :new_value
-      end
-
-  In the example above, `MyLib` defines a data on the target.
-  This data can be updated throughout the module definition
-  and therefore, the final value of the data can only be retrieved
-  via the compilation callback.
-
-  In this example, the compilation callback reads the value and
-  compile it to a function.
-  """
   def add_compile_callback(module, target, fun // :__compiling__) do
+    IO.puts "Module.add_compile_callback(module, target, fun) deprecated in favor of " <>
+      "Module.add_attribute(module, :before_compile, { target, fun })"
     assert_not_compiled!(:add_compile_callback, module)
-    new   = { target, fun }
-    table = data_table_for(module)
-    old   = ETS.lookup_element(table, :__compile_callbacks, 2)
-    ETS.insert(table, { :__compile_callbacks,  [new|old] })
+    add_attribute(module, :before_compile, { target, fun })
   end
 
   @doc """
@@ -476,6 +431,10 @@ defmodule Module do
 
   defp normalize_attribute(:on_load, atom) when is_atom(atom) do
     { atom, 0 }
+  end
+
+  defp normalize_attribute(key, atom) when key in [:before_compile, :after_compile] and is_atom(atom) do
+    { atom, key }
   end
 
   defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do

@@ -6,13 +6,13 @@ defmodule ModuleTest.ToBeUsed do
   defmacro __using__(_) do
     target = __CALLER__.module
     Module.add_attribute target, :has_callback, false
-    Module.add_compile_callback(target, __MODULE__)
-    Module.add_compile_callback(target, __MODULE__, :callback)
+    Module.add_attribute(target, :before_compile, __MODULE__)
+    Module.add_attribute(target, :before_compile, { __MODULE__, :callback })
     quote do: (def line, do: __ENV__.line)
   end
 
-  defmacro __compiling__(_) do
-    quote do: (def __compiling__, do: true)
+  defmacro before_compile(_) do
+    quote do: (def before_compile, do: true)
   end
 
   defmacro callback(target) do
@@ -97,7 +97,7 @@ defmodule ModuleTest do
   end
 
   test :default_compile_callback_hook do
-    assert ModuleTest.ToUse.__compiling__
+    assert ModuleTest.ToUse.before_compile
   end
 
   test :reserved_attributes do

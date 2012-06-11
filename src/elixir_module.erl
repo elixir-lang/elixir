@@ -80,10 +80,11 @@ build(Module) ->
   DataTable = data_table(Module),
   ets:new(DataTable, [set, named_table, public]),
   ets:insert(DataTable, { '__overridable', [] }),
-  ets:insert(DataTable, { '__compile_callbacks', [] }),
+  ets:insert(DataTable, { 'before_compile', [] }),
+  ets:insert(DataTable, { 'after_compile', [] }),
 
   Attributes = [behavior, behaviour, on_load, spec, type, export_type, opaque, callback, compile],
-  ets:insert(DataTable, { '__acc_attributes', Attributes }),
+  ets:insert(DataTable, { '__acc_attributes', [before_compile,after_compile|Attributes] }),
   ets:insert(DataTable, { '__persisted_attributes', [vsn|Attributes] }),
 
   %% Keep docs in another table since we don't want to pull out
@@ -109,7 +110,7 @@ eval_form(Line, Module, Block, RawS) ->
   S = scope_for_eval(Module, RawS),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
   elixir_def_overridable:store_pending(Module),
-  eval_callbacks(Line, Module, '__compile_callbacks', [Module], NewS),
+  eval_callbacks(Line, Module, 'before_compile', [Module], NewS),
   Value.
 
 %% Return the form with exports and function declarations.
