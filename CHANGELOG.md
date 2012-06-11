@@ -11,6 +11,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [Kernel] quote special form now supports line and unquote as options;
   * [Record] Allow `Record[_: value]` to set a default value to all records fields, as in Erlang;
   * [IEx] Functions `c` and `m` are available in IEx to compile and print available module information;
   * [Enum] Optimized functions when a list is given as collection;
