@@ -2176,22 +2176,65 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
-  Access the given element according the qualifier according
-  to the `Access` protocol. Many types implement the access
-  protocol, so check the protocol documentation for more
-  information.
+  Access the given element using the qualifier according
+  to the `Access` protocol. All calls in the form `foo[bar]`
+  are translated to `access(foo, bar)`.
 
-  It is important to notice the access protocol is also
-  allowed in function signatures when applying to atoms and
-  atom aliases. This is useful when working with records to
-  allow to match against an specific part of a record:
+  A common usage of this protocol is to access a key in a
+  keywords list:
 
-      def uri_parse(Uri.Config[schema: :http])
+      sample = [a: 1, b: 2, c: 3]
+      sample[:b] #=> 2
 
-  In the example above, the schema clause will only match if
-  the config schema is `:http`. Using the access protocol with
-  an atom or an atom alias that does not point to a record module
-  will generate a compilation exception.
+  Many types implement this protocol, so check the protocol
+  implementations for more information.
+
+  ## Records
+
+  The access protocol has a compilation time feature that
+  which allows us to match against an specific part of a
+  record:
+
+      def increment(State[counter: counter, other: 13] = state) do
+        state.counter(counter + 1)
+      end
+
+  In the example above, we use the Access protocol  to match the
+  counter field in the record `State`. Considering the record
+  definition is as follows:
+
+      defrecord State, counter: 0, other: nil
+
+  The clause above is translated to:
+
+      def increment({ State, counter, 13 } = state) do
+        state.counter(counter + 1)
+      end
+
+  The same pattern can be used to create a new record:
+
+      def new_state(counter) do
+        State[counter: counter]
+      end
+
+  The example above is slightly faster than
+  `State.new(counter: :counter)` because the record is
+  expanded at compilation time and not at runtime. If a field
+  is not specified on creation, it will have its default value.
+
+  Finally, as in Erlang, Elixir also allows the following
+  syntax:
+
+      new_uri = State[_: 1]
+
+  In this example, **all** fields will be set to `1`. Notice
+  that, as in Erlang, in case an expression is given, it will
+  be evaluated multiple times:
+
+      new_uri = Uri.Config[_: IO.puts "Hello"]
+
+  If `Uri.Config` has many fields, `"Hello"` will be printed
+  many times.
 
   ## Examples
 
@@ -2228,31 +2271,21 @@ defmodule Elixir.Builtin do
             raise "cannot use module #{inspect atom} in access protocol because it does not represent a record"
         end
 
-        has_default_field_value = Keyword.key?(keyword, :_)
-        default_field_value = Keyword.get(keyword, :_)
-        given_keyword = keyword
-        keyword = Keyword.delete keyword, :_
+        has_underscore_value = Keyword.key?(keyword, :_)
+        underscore_value     = Keyword.get(keyword, :_, { :_, 0, nil })
+        keyword              = Keyword.delete keyword, :_
+
         iterator = fn({field, default}, each_keyword) ->
-          new_fields = 
-          case {Keyword.key?(each_keyword, field), in_match} do
-             {true, _} -> Keyword.get(each_keyword, field)
-             {_, false} -> 
-               case has_default_field_value do
-                 true ->
-                   default_field_value
-                 false ->
-                   Keyword.get(given_keyword, :_, default)
-               end
-             {_, true}  -> 
-               case {has_default_field_value, default_field_value} do
-                 {true, {:_, _, nil} = any} ->
-                   any
-                 {true, other} ->
-                   Macro.escape(other)
-                 {false, _} ->
-                   {:_, 0, nil}
-               end
-        end
+          new_fields =
+            case Keyword.key?(each_keyword, field) do
+              true  -> Keyword.get(each_keyword, field)
+              false ->
+                case in_match or has_underscore_value do
+                  true  -> underscore_value
+                  false -> Macro.escape(default)
+                end
+            end
+
           { new_fields, Keyword.delete(each_keyword, field) }
         end
 

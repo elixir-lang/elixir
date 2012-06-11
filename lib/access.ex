@@ -122,43 +122,14 @@ end
 
 defimpl Access, for: Atom do
   @doc """
-  Access the atom via keywords. Different from other
-  implementations, the Access protocol for atoms is
-  special cased during compilation time to provide
-  faster read and write access for records.
+  Access the atom via keywords which simply dispatches
+  to the function new of the record passing the keywords
+  as arguments.
 
-  This pattern can also be used in guards, which is
-  a very useful way to extract information from a
-  record.
-
-  ## Examples
-
-      def increment(State[counter: counter] = state) do
-        state.counter(counter + 1)
-      end
-
-  In the example above, we use the Access protocol on atoms
-  to match the counter field in the record State. Considering
-  the record definition is as follows:
-
-      defrecord State, counter: 0, other: nil
-
-  The clause above is translated to:
-
-      def increment({ State, counter, _ } = state) do
-        state.counter(counter + 1)
-      end
-
-  Which is a very convenient way to pattern match and have
-  faster read times. The same pattern can be used to create
-  a new record:
-
-      def new_state(counter) do
-        State[counter: counter]
-      end
-
-  All fields not specified on creation defaults to their
-  default value.
+  Notice that the access macro special-cases atoms to
+  provide compilation time expansion for faster read
+  and write access for records. For more information,
+  check `Elxiir.Builtin.access/2`.
   """
   def access(atom, keywords) when is_list(keywords) do
     atom.new(keywords)
