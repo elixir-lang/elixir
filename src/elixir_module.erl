@@ -59,7 +59,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
       {attribute, Line, module, Module} | Forms2
     ],
 
-    load_form(Final, S),
+    load_form(Line, Final, S),
     Result
   after
     ets:delete(data_table(Module)),
@@ -161,14 +161,17 @@ specs_form(Line, Module, Forms) ->
 
 %% Loads the form into the code server.
 
-load_form(Forms, S) ->
-  elixir_compiler:module(Forms, S, fun(ModuleName, Binary) ->
+load_form(Line, Forms, S) ->
+  elixir_compiler:module(Forms, S, fun(Module, Binary) ->
+    EvalS = scope_for_eval(Module, S),
+    eval_callbacks(Line, Module, 'after_compile', [Module, Binary], EvalS),
+
     case get(elixir_compiled) of
       Current when is_list(Current) ->
-        put(elixir_compiled, [{ModuleName,Binary}|Current]),
+        put(elixir_compiled, [{Module,Binary}|Current]),
         case get(elixir_parent_compiler) of
           undefined -> [];
-          PID -> PID ! { module_available, self(), ModuleName, Binary }
+          PID -> PID ! { module_available, self(), Module, Binary }
         end;
       _ ->
         []

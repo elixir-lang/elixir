@@ -4,6 +4,7 @@
   * [Kernel] Comprehensions syntax changed to be more compatible with Erlang behavior;
 
 * deprecations
+  * [Module] `Module.add_compile_callback(module, target, callback)` was deprecated in favor of the simpler `Module.add_attribute(module, :before_compile, { target, callback })` API;
   * [File] `File.read_info` was deprecated in favor of `File.stat`;
   * [IO] `IO.print` was deprecated in favor of `IO.write`;
   * [Kernel] Deprecated `__LINE__` and `__FUNCTION__` in favor of `__ENV__.line` and `__ENV__.function`;
@@ -11,6 +12,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [Module] Added support to `@before_compile` and `@after_compile` callbacks. The first receives the module name while the latter receives the module name and its object code;
   * [Kernel] quote special form now supports line and unquote as options;
   * [Record] Allow `Record[_: value]` to set a default value to all records fields, as in Erlang;
   * [IEx] Functions `c` and `m` are available in IEx to compile and print available module information;

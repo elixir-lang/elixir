@@ -7,12 +7,17 @@ defmodule ModuleTest.ToBeUsed do
     target = __CALLER__.module
     Module.add_attribute target, :has_callback, false
     Module.add_attribute(target, :before_compile, __MODULE__)
+    Module.add_attribute(target, :after_compile, __MODULE__)
     Module.add_attribute(target, :before_compile, { __MODULE__, :callback })
     quote do: (def line, do: __ENV__.line)
   end
 
   defmacro before_compile(_) do
     quote do: (def before_compile, do: true)
+  end
+
+  defmacro after_compile(ModuleTest.ToUse, bin) when is_binary(bin) do
+    # IO.puts "HELLO"
   end
 
   defmacro callback(target) do
@@ -27,7 +32,7 @@ defmodule ModuleTest.ToBeUsed do
 end
 
 defmodule ModuleTest.ToUse do
-  30 = __ENV__.line # Moving the next line around can make tests fail
+  35 = __ENV__.line # Moving the next line around can make tests fail
   def original_value(2), do: true
   use ModuleTest.ToBeUsed
 end
@@ -84,7 +89,7 @@ defmodule ModuleTest do
   end
 
   test :line_from_macro do
-    assert ModuleTest.ToUse.line == 32
+    assert ModuleTest.ToUse.line == 37
   end
 
   test :__MODULE__ do
@@ -96,7 +101,7 @@ defmodule ModuleTest do
     assert ModuleTest.ToUse.original_value(2)
   end
 
-  test :default_compile_callback_hook do
+  test :before_compile_callback_hook do
     assert ModuleTest.ToUse.before_compile
   end
 
