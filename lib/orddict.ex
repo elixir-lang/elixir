@@ -1,8 +1,8 @@
 defrecord Orddict.Record, data: nil
 
-defimpl Dict, for: Orddict.Record do
-  alias Orddict.Record, as: O
+alias Orddict.Record, as: O
 
+defimpl Dict, for: Orddict.Record do
   def keys(O[data: data]) do
     lc { k, _ } inlist data, do: k
   end
@@ -59,6 +59,16 @@ defimpl Dict, for: Orddict.Record do
   def to_list(O[data: data]) do
     data
   end
+end
+
+defimpl Enum.Iterator, for: Orddict.Record do
+  def iterator(O[data: data]), do: data
+  def count(O[data: data]),    do: length(data)
+end
+
+defimpl Enum.OrdIterator, for: Orddict.Record do
+  def iterator(O[data: data]), do: data
+  def to_list(h, next), do: [h|next]
 end
 
 defmodule Orddict do

@@ -45,6 +45,11 @@ defprotocol Enum.Iterator do
   and retrieve the proper iterator function.
   """
   def iterator(collection)
+
+  @doc """
+  The function used to retrieve the collection size.
+  """
+  def count(collection)
 end
 
 defprotocol Enum.OrdIterator do
@@ -167,6 +172,18 @@ defmodule Enum do
       list when is_list(list) ->
         do_any?(list, fun)
     end
+  end
+
+  @doc """
+  Returns the collection size.
+
+  ## Examples
+
+      Enum.count [1,2,3] #=> 3
+
+  """
+  def count(collection) do
+    I.count(collection)
   end
 
   @doc """
@@ -1158,22 +1175,10 @@ end
 
 defimpl Enum.Iterator, for: List do
   def iterator(list),  do: list
+  def count(list),     do: length(list)
 end
 
 defimpl Enum.OrdIterator, for: List do
   def iterator(list),   do: list
-  def to_list(h, next), do: [h|next]
-end
-
-defimpl Enum.Iterator, for: HashDict.Record do
-  def iterator(dict), do: Dict.HashDict.Record.to_list(dict)
-end
-
-defimpl Enum.Iterator, for: Orddict.Record do
-  def iterator(dict), do: Dict.Orddict.Record.to_list(dict)
-end
-
-defimpl Enum.OrdIterator, for: Orddict.Record do
-  def iterator(dict), do: Dict.Orddict.Record.to_list(dict)
   def to_list(h, next), do: [h|next]
 end

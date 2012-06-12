@@ -1,7 +1,8 @@
 defrecord HashDict.Record, data: nil
 
+alias HashDict.Record, as: HD
+
 defimpl Dict, for: HashDict.Record do
-  alias HashDict.Record, as: HD
 
   def keys(HD[data: data]) do
     :dict.fetch_keys data
@@ -61,6 +62,11 @@ defimpl Dict, for: HashDict.Record do
   def to_list(HD[data: data]) do
     :dict.to_list data
   end
+end
+
+defimpl Enum.Iterator, for: HashDict.Record do
+  def iterator(HD[data: data]), do: :dict.to_list(data)
+  def count(HD[data: data]), do: :dict.size(data)
 end
 
 defmodule HashDict do

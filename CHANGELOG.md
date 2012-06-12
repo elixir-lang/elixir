@@ -12,6 +12,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [Enum] Enhanced Enum protocol to support `Enum.count`;
   * [Module] Added support to `@before_compile` and `@after_compile` callbacks. The first receives the module name while the latter receives the module name and its object code;
   * [Kernel] quote special form now supports line and unquote as options;
   * [Record] Allow `Record[_: value]` to set a default value to all records fields, as in Erlang;

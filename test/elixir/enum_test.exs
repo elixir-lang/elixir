@@ -52,6 +52,11 @@ defmodule EnumTest.List do
     refute Enum.any?([])
   end
 
+  test :count do
+    assert Enum.count([1,2,3]) == 3
+    assert Enum.count([]) == 0
+  end
+
   test :drop do
     assert Enum.drop([1,2,3], 0) == [1,2,3]
     assert Enum.drop([1,2,3], 1) == [2,3]
@@ -219,6 +224,12 @@ defmodule EnumTest.Dict.Common do
         assert Enum.any?(dict, fn({k, _}) -> rem(k, 2) == 1 end)
 
         refute Enum.any?(unquote(module).new)
+      end
+
+      test :count do
+        dict = unquote(module).new [{2,2}, {3,4}, {4,6}]
+        assert Enum.count(dict) == 3
+        assert Enum.count(unquote(module).new) == 0
       end
 
       test :find do
@@ -421,7 +432,11 @@ defimpl Enum.Iterator, for: Range do
     { iterate(&1), iterate({ range.start, range.finish, range.step }) }
   end
 
-  def iterate({ current, finish, step }) do
+  def count(range) do
+    div(range.finish - range.start, range.step) + 1
+  end
+
+  defp iterate({ current, finish, step }) do
     if current > finish do
       :stop
     else
@@ -464,6 +479,13 @@ defmodule EnumTest.Range do
 
     range = Range.new(start: 1, finish: 0)
     refute Enum.any?(range)
+  end
+
+  test :count do
+    range = Range.new(start: 1, finish: 5)
+    assert Enum.count(range) == 5
+    range = Range.new(start: 1, finish: 1)
+    assert Enum.count(range) == 1
   end
 
   test :drop do
