@@ -2258,17 +2258,19 @@ defmodule Elixir.Builtin do
           false -> raise "expected contents inside brackets to be a Keyword"
         end
 
-        case :code.ensure_loaded(atom) do
-          { :error, _ } ->
-            raise "expected module #{inspect atom} to be loaded and defined"
-          _ -> nil
-        end
-
         fields = try do
           atom.__record__(:fields)
         rescue
           UndefinedFunctionError ->
-            raise "cannot use module #{inspect atom} in access protocol because it does not represent a record"
+            # We first try to call __record__(:fields) and just then
+            # check if it is loaded so we allow the ParallelCompiler
+            # to solve conflicts.
+            case :code.ensure_loaded(atom) do
+              { :error, _ } ->
+                raise "expected module #{inspect atom} to be loaded and defined"
+              _ ->
+                raise "cannot use module #{inspect atom} in access protocol because it does not represent a record"
+            end
         end
 
         has_underscore_value = Keyword.key?(keyword, :_)
