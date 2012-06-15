@@ -4,6 +4,17 @@ defmodule IO do
   are expected to be in unicode.
   """
 
+  # Map the Elixir names for standard io and error to Erlang names
+  defmacrop map_dev(dev) do
+    quote do
+      case unquote(dev) do
+        :stdio  -> :standard_io;
+        :stderr -> :standard_error;
+        other   -> other;
+      end
+    end
+  end
+
   @doc """
   Reads `count` bytes from the IO device. It returns:
 
@@ -15,8 +26,8 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def read(device // :standard_io, count) do
-    Erlang.io.get_chars(device, "", count)
+  def read(device // :stdio, count) do
+    Erlang.io.get_chars(map_dev(device), "", count)
   end
 
   @doc """
@@ -30,8 +41,8 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def readline(device // :standard_io) do
-    Erlang.io.get_line(device, "")
+  def readline(device // :stdio) do
+    Erlang.io.get_line(map_dev(device), "")
   end
 
   @doc """
@@ -51,13 +62,13 @@ defmodule IO do
       #=> "error"
 
   """
-  def write(device // :standard_io, item) do
-    Erlang.io.put_chars device, item
+  def write(device // :stdio, item) do
+    Erlang.io.put_chars map_dev(device), item
   end
 
-  def print(device // :standard_io, item) do
+  def print(device // :stdio, item) do
     IO.puts "IO.print is deprecated in favor of IO.write"
-    Erlang.io.put_chars device, item
+    Erlang.io.put_chars map_dev(device), item
   end
 
   @doc """
@@ -65,16 +76,17 @@ defmodule IO do
   but adds a new line at the end. The argument is expected
   to be a chardata.
   """
-  def puts(device // :standard_io, item) do
-    Erlang.io.put_chars device, item
-    Erlang.io.nl(device)
+  def puts(device // :stdio, item) do
+    erl_dev = map_dev(device)
+    Erlang.io.put_chars erl_dev, item
+    Erlang.io.nl(erl_dev)
   end
 
   @doc """
   Inspects and writes the given argument to the device
   followed by a new line.
   """
-  def inspect(device // :standard_io, item) do
+  def inspect(device // :stdio, item) do
     puts device, Elixir.Builtin.inspect(item)
   end
 
@@ -89,8 +101,8 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def getb(device // :standard_io, prompt, count // 1) do
-    Erlang.io.get_chars(device, prompt, count)
+  def getb(device // :stdio, prompt, count // 1) do
+    Erlang.io.get_chars(map_dev(device), prompt, count)
   end
 
   @doc """
@@ -105,7 +117,7 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def gets(device // :standard_io, prompt) do
-    Erlang.io.get_line(device, prompt)
+  def gets(device // :stdio, prompt) do
+    Erlang.io.get_line(map_dev(device), prompt)
   end
 end
