@@ -12,19 +12,11 @@ defmodule Range do
 
   """
   def new(options) do
-    new Keyword.fetch(options, :first), Keyword.fetch(options, :last)
-  end
-
-  @doc """
-  Returns a new range based on the given first and last.
-
-  ## Examples
-
-      Range.new 1, 10
-
-  """
-  def new(first, last) do
-    { __MODULE__, first, last }
+    {
+      __MODULE__,
+      Keyword.fetch(options, :first),
+      Keyword.fetch(options, :last)
+    }
   end
 
   @doc """
