@@ -76,7 +76,7 @@ defprotocol Enum.OrdIterator do
   @doc """
   On each step, the iterator function returned by `iterator/1`
   returns a tuple with two elements. This function receives
-  those two elements and must return a list back.
+  those two elements as a tuple and must return a list back.
 
   This is used in order to quicky return a list from any point
   during iteration. For example, consider the function `Enum.drop`.
@@ -85,7 +85,7 @@ defprotocol Enum.OrdIterator do
   back, this function is invoked allowing us to get a result
   back without a need to loop the remaining items.
   """
-  def to_list(current, next)
+  def to_list({ current, next }, iterator)
 end
 
 defmodule Enum do
@@ -782,9 +782,9 @@ defmodule Enum do
     []
   end
 
-  defp do_drop_while({ h, next }, iterator, fun, module) do
+  defp do_drop_while({ h, next } = extra, iterator, fun, module) do
     case fun.(h) do
-      x in [false, nil] -> module.to_list(h, next)
+      x in [false, nil] -> module.to_list(extra, iterator)
       _ -> do_drop_while(iterator.(next), iterator, fun, module)
     end
   end
@@ -929,10 +929,10 @@ defmodule Enum do
     { List.reverse(acc), [] }
   end
 
-  defp do_split_with({ h, next }, iterator, fun, acc, module) do
+  defp do_split_with({ h, next } = extra, iterator, fun, acc, module) do
     case fun.(h) do
       x in [false, nil] ->
-        { List.reverse(acc), module.to_list(h, next) }
+        { List.reverse(acc), module.to_list(extra, iterator) }
       _ ->
         do_split_with(iterator.(next), iterator, fun, [h|acc], module)
     end
@@ -1113,8 +1113,8 @@ defmodule Enum do
     do_split(iterator.(next), iterator, counter - 1, [h|acc], module)
   end
 
-  defp do_split({ h, next }, _iterator, 0, acc, module) do
-    { List.reverse(acc), module.to_list(h, next) }
+  defp do_split(extra, iterator, 0, acc, module) do
+    { List.reverse(acc), module.to_list(extra, iterator) }
   end
 
   defp do_split(:stop, _, _, acc, _module) do
@@ -1179,6 +1179,6 @@ defimpl Enum.Iterator, for: List do
 end
 
 defimpl Enum.OrdIterator, for: List do
-  def iterator(list),   do: list
-  def to_list(h, next), do: [h|next]
+  def iterator(list),          do: list
+  def to_list({ h, next }, _), do: [h|next]
 end

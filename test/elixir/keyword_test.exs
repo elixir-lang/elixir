@@ -34,6 +34,16 @@ defmodule KeywordTest do
     assert Keyword.get(create_empty_keywords, :first_key, "default") == "default"
   end
 
+  test :fetch do
+    assert Keyword.fetch(create_keywords, :first_key) == 1
+
+    error = assert_raise Keyword.KeyError, fn ->
+      Keyword.fetch(create_keywords, :unknown)
+    end
+
+    assert error.key == :unknown
+  end
+
   test :keys do
     assert Keyword.keys(create_keywords) == [:first_key, :second_key]
     assert Keyword.keys(create_empty_keywords) == []

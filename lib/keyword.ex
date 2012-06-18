@@ -88,6 +88,20 @@ defmodule Keyword do
   def get([], _, default),                        do: default
 
   @doc """
+  Gets the value for specific key. If key does not exist,
+  an error is raised.
+
+  ## Examples
+
+      Keyword.fetch [a: 1], :a      #=> 1
+      Keyword.fetch [a: 1], :b      #=> raises KeyError[key: :b]
+  """
+  def fetch([{k, _}|_], key) when key < k, do: raise(Keyword.KeyError, key: key)
+  def fetch([{k, _}|d], key) when key > k, do: fetch(d, key)
+  def fetch([{_, value}|_], _key),         do: value
+  def fetch([], key),                      do: raise(Keyword.KeyError, key: key)
+
+  @doc """
   Gets all values for a specific key.
 
   ## Examples

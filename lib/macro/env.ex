@@ -8,12 +8,12 @@ defmodule Macro.Env do
   It can be accessed at any time by calling __ENV__.
   """
 
-  def __record__(kind),      do: __record__(kind, nil)
-  def __record__(:name, _),  do: Macro.Env
+  def __record__(kind, _), do: __record__(kind)
+  def __record__(:name),   do: Macro.Env
 
   # When adding removing new fields,
   # src/elixir_tree_helpers.erl needs to be changed as well.
-  def __record__(:fields, _) do
+  def __record__(:fields) do
     [{:module,nil},{:file,nil},{:line,nil},{:function,nil},{:aliases,nil},
      {:context,nil},{:requires,nil},{:macros,nil}]
   end

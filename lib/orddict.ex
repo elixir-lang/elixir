@@ -68,7 +68,7 @@ end
 
 defimpl Enum.OrdIterator, for: Orddict.Record do
   def iterator(O[data: data]), do: data
-  def to_list(h, next), do: [h|next]
+  def to_list({ h, next }, _), do: [h|next]
 end
 
 defmodule Orddict do
