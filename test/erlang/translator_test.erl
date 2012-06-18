@@ -25,7 +25,7 @@ assignment_match_test() ->
 %% Aliases
 
 single_alias_test() ->
-  {'__MAIN__.Foo', _} = eval([{'__aliases__', 1, ['Foo']}], []).
+  {'__MAIN__-Foo', _} = eval([{'__aliases__', 1, ['Foo']}], []).
 
 %% Containers
 

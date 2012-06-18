@@ -8,7 +8,7 @@
 -include("elixir.hrl").
 
 -define(FUNS(), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
--define(Module(), '__MAIN__.Module').
+-define(Module(), '__MAIN__-Module').
 
 %% Operators
 
@@ -55,7 +55,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name ==
   case elixir_compiler:get_opt(internal) of
     true  -> { { nil, Line }, S };
     false ->
-      Call = { { '.', Line, ['__MAIN__.Elixir.Typespec', spec_to_macro(Name)] }, Line, Args },
+      Call = { { '.', Line, ['__MAIN__-Elixir-Typespec', spec_to_macro(Name)] }, Line, Args },
       translate_each(Call, S)
   end;
 

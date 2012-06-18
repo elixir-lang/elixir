@@ -116,7 +116,7 @@ compile_docs(Kind, Line, Module, Name, Arity, S, CO) ->
   case elixir_compiler:get_opt(internal, CO) of
     true -> [];
     _ ->
-      case '__MAIN__.Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
+      case '__MAIN__-Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
         { error, Message } -> elixir_errors:handle_file_warning(S#elixir_scope.file,
           { Line, ?MODULE, { Message, { Name, Arity } } });
         _ -> []
@@ -127,10 +127,10 @@ retrieve_file(Module, CO) ->
   case elixir_compiler:get_opt(internal, CO) of
     true -> [];
     _ ->
-      case '__MAIN__.Module':read_attribute(Module, file) of
+      case '__MAIN__-Module':read_attribute(Module, file) of
         nil  -> [];
         Else ->
-          '__MAIN__.Module':delete_attribute(Module, file),
+          '__MAIN__-Module':delete_attribute(Module, file),
           if
              is_binary(Else) -> { Else, 1 };
              is_tuple(Else) -> Else

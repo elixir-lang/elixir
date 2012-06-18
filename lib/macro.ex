@@ -179,7 +179,7 @@ defmodule Macro do
   end
 
   defp expand_alias(h, env) do
-    atom = list_to_atom('__MAIN__.' ++ atom_to_list(h))
+    atom = list_to_atom('__MAIN__-' ++ atom_to_list(h))
     Erlang.elixir_aliases.lookup(atom, env.aliases)
   end
 end

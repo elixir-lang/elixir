@@ -41,7 +41,7 @@ each_clause(Line, { rescue, [Condition], Expr }, S) ->
               { FinalClause, _ } = rescue_guards(Line, ClauseVar, Right, S),
               Match = { '=', Line, [
                 Left,
-                { { '.', Line, ['__MAIN__.Exception', normalize] }, Line, [ClauseVar] }
+                { { '.', Line, ['__MAIN__-Exception', normalize] }, Line, [ClauseVar] }
               ] },
               FinalExpr = prepend_to_block(Line, Match, Expr),
               each_clause(Line, { 'catch', [error, FinalClause], FinalExpr }, CS)
@@ -143,11 +143,11 @@ rescue_each_ref(Line, Var, [{ Name, _, Atom }|T], Elixir, Erlang, Safe, S) when 
   rescue_each_ref(Line, Var, T, Elixir, Erlang, Safe, S);
 
 rescue_each_ref(Line, Var, [H|T], Elixir, Erlang, _Safe, S) when
-  H == '__MAIN__.UndefinedFunctionError'; H == '__MAIN__.ErlangError';
-  H == '__MAIN__.ArgumentError'; H == '__MAIN__.ArithmeticError';
-  H == '__MAIN__.BadArityError'; H == '__MAIN__.BadFunctionError';
-  H == '__MAIN__.MatchError'; H == '__MAIN__.CaseClauseError';
-  H == '__MAIN__.FunctionClauseError'; H == '__MAIN__.SystemLimitError' ->
+  H == '__MAIN__-UndefinedFunctionError'; H == '__MAIN__-ErlangError';
+  H == '__MAIN__-ArgumentError'; H == '__MAIN__-ArithmeticError';
+  H == '__MAIN__-BadArityError'; H == '__MAIN__-BadFunctionError';
+  H == '__MAIN__-MatchError'; H == '__MAIN__-CaseClauseError';
+  H == '__MAIN__-FunctionClauseError'; H == '__MAIN__-SystemLimitError' ->
   Expr = { 'or', Line, [
     erlang_rescue_guard_for(Line, Var, H),
     exception_compare(Line, Var, H)
@@ -172,51 +172,51 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
 
 erlang_rescues() ->
   [
-    '__MAIN__.UndefinedFunctionError', '__MAIN__.ArgumentError', '__MAIN__.ArithmeticError', '__MAIN__.BadArityError',
-    '__MAIN__.BadFunctionError', '__MAIN__.MatchError', '__MAIN__.CaseClauseError', '__MAIN__.FunctionClauseError',
-    '__MAIN__.SystemLimitError', '__MAIN__.ErlangError'
+    '__MAIN__-UndefinedFunctionError', '__MAIN__-ArgumentError', '__MAIN__-ArithmeticError', '__MAIN__-BadArityError',
+    '__MAIN__-BadFunctionError', '__MAIN__-MatchError', '__MAIN__-CaseClauseError', '__MAIN__-FunctionClauseError',
+    '__MAIN__-SystemLimitError', '__MAIN__-ErlangError'
   ].
 
 erlang_rescue_guard_for(Line, Var, List) when is_list(List) ->
   join(Line, 'or', [erlang_rescue_guard_for(Line, Var, X) || X <- List]);
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.UndefinedFunctionError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-UndefinedFunctionError') ->
   { '==', Line, [Var, undef] };
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.FunctionClauseError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-FunctionClauseError') ->
   { '==', Line, [Var, function_clause] };
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.SystemLimitError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-SystemLimitError') ->
   { '==', Line, [Var, system_limit] };
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.ArithmeticError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-ArithmeticError') ->
   { '==', Line, [Var, badarith] };
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.BadArityError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-BadArityError') ->
   { 'and', Line, [
     { is_tuple, Line, [Var] },
     exception_compare(Line, Var, badarity)
   ] };
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.BadFunctionError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-BadFunctionError') ->
   { 'and', Line, [
     { is_tuple, Line, [Var] },
     exception_compare(Line, Var, badfun)
   ] };
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.MatchError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-MatchError') ->
   { 'and', Line, [
     { is_tuple, Line, [Var] },
     exception_compare(Line, Var, badmatch)
   ] };
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.CaseClauseError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-CaseClauseError') ->
   { 'and', Line, [
     { is_tuple, Line, [Var] },
     exception_compare(Line, Var, case_clause)
   ] };
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.ArgumentError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-ArgumentError') ->
   { 'or', Line, [
     { '==', Line, [Var, badarg] },
     { 'and', Line, [
@@ -225,7 +225,7 @@ erlang_rescue_guard_for(Line, Var, '__MAIN__.ArgumentError') ->
     ] }
   ] };
 
-erlang_rescue_guard_for(Line, Var, '__MAIN__.ErlangError') ->
+erlang_rescue_guard_for(Line, Var, '__MAIN__-ErlangError') ->
   IsNotTuple  = { 'not', Line, [{ is_tuple, Line, [Var] }] },
   IsException = { '!=', Line, [
     { { '.', Line, [ erlang, element ] }, Line, [2, Var] }, '__exception__'

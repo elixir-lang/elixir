@@ -65,7 +65,7 @@ function_calls_with_parenthesis_test() ->
 
 require_partial_application_test() ->
   { Fun, _ } = eval("List.flatten(&1)"),
-  Fun = fun '__MAIN__.List':flatten/1.
+  Fun = fun '__MAIN__-List':flatten/1.
 
 import_partial_application_test() ->
   { Fun, _ } = eval("is_atom(&1)"),

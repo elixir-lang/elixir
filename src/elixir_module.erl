@@ -224,7 +224,7 @@ docs_clause(Line, _Module, _) ->
   { clause, Line, [{ atom, Line, docs }], [], [{ atom, Line, nil }] }.
 
 moduledoc_clause(Line, Module, true) ->
-  Docs = '__MAIN__.Module':read_attribute(Module, moduledoc),
+  Docs = '__MAIN__-Module':read_attribute(Module, moduledoc),
   { clause, Line, [{ atom, Line, moduledoc }], [], [elixir_tree_helpers:abstract_syntax({ Line, Docs })] };
 
 moduledoc_clause(Line, _Module, _) ->
@@ -232,7 +232,7 @@ moduledoc_clause(Line, _Module, _) ->
 
 compile_clause(Line) ->
   Info = { call, Line, { atom, Line, module_info }, [{ atom, Line, compile }] },
-  WrappedInfo = ?ELIXIR_WRAP_CALL(Line, '__MAIN__.Keyword', 'from_enum', [Info]),
+  WrappedInfo = ?ELIXIR_WRAP_CALL(Line, '__MAIN__-Keyword', 'from_enum', [Info]),
   { clause, Line, [{ atom, Line, compile }], [], [WrappedInfo] }.
 
 else_clause(Line) ->

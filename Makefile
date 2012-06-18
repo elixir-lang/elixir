@@ -2,12 +2,13 @@ REBAR:=$(shell which rebar || echo ./rebar)
 ERLC=erlc -I include
 ERL=erl -I include -noshell -pa ebin
 VERSION=0.5.0
-FULLFLAG=ebin/__MAIN__/.full
+BUILTIN=ebin/__MAIN__-Elixir-Builtin.beam
+FULLFLAG=ebin/__MAIN__.full
 
 .PHONY: ebin full zip release_docs
 .NOTPARALLEL: compile
 
-compile: ebin ebin/__MAIN__ ebin/elixir.app
+compile: ebin $(BUILTIN) ebin/elixir.app
 
 zip: $(FULLFLAG)
 	rm -rf v$(VERSION).zip
@@ -20,18 +21,19 @@ ebin/elixir.app:
 ebin:
 	@ $(REBAR) compile
 
-ebin/__MAIN__: lib/*.ex lib/*/*.ex
-	@ rm -rf ebin/__MAIN__
+$(BUILTIN): lib/*.ex lib/*/*.ex
+	@ rm -rf ebin/__MAIN__*
 	$(ERL) -s elixir_compiler core -s erlang halt
 	@ rm -rf ebin/elixir.app
 
 clean:
+	@ rm -rf ebin
 	@ $(REBAR) clean
 
 full:
 	@ bin/elixirc "lib/**/*.ex" --ignore-module-conflict --docs --debug-info -o full
-	@ rm -rf ebin/__MAIN__
-	@ mv full/__MAIN__ ebin/__MAIN__
+	@ rm -rf ebin/__MAIN__*
+	@ mv full/__MAIN__* ebin
 	@ rm -rf full
 	@ touch $(FULLFLAG)
 
@@ -58,4 +60,3 @@ test_elixir: compile
 rel: compile
 	@ rm -rf rel/elixir
 	@ cd rel && ../rebar generate
-	@ cp -r ebin/__MAIN__ rel/elixir/lib/elixir-$(VERSION)/ebin/

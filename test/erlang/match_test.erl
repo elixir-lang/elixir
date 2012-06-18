@@ -35,7 +35,7 @@ duplicated_assignment_on_module_with_tuple_test() ->
     {1,_} = eval("Foo.v({ 1, :foo }, { 1, :bar })"),
     ?assertError(function_clause, eval("Foo.v({ 1, :foo }, { 2, :bar })"))
   end,
-  test_helper:run_and_remove(F, ['__MAIN__.Foo']).
+  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
 
 duplicated_assignment_on_module_with_list_test() ->
   F = fun() ->
@@ -43,7 +43,7 @@ duplicated_assignment_on_module_with_list_test() ->
     {1,_} = eval("Foo.v([ 1, :foo ], [ 1, :bar ])"),
     ?assertError(function_clause, eval("Foo.v([ 1, :foo ], [ 2, :bar ])"))
   end,
-  test_helper:run_and_remove(F, ['__MAIN__.Foo']).
+  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
 
 multiline_assignment_test() ->
   {1, [{a, 1}]} = eval("a =\n1"),
@@ -117,4 +117,4 @@ function_clause_test() ->
     eval("defmodule Foo do\ndef a([{_k,_}=e|_]), do: e\nend"),
     {{foo,bar},_} = eval("Foo.a([{:foo,:bar}])")
   end,
-  test_helper:run_and_remove(F, ['__MAIN__.Foo']).
+  test_helper:run_and_remove(F, ['__MAIN__-Foo']).

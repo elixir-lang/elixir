@@ -77,13 +77,13 @@ store(Module, Function, GenerateName) ->
 
 store_pending(Module) ->
   [store(Module, X, false) || { X, { _, [_|_] } } <- overridable(Module),
-    not '__MAIN__.Module':'function_defined?'(Module, X)].
+    not '__MAIN__-Module':'function_defined?'(Module, X)].
 
 %% Error handling
 
 format_error({ no_super, Module, { Name, Arity } }) ->
   Bins   = [ format_fa(X) || { X, { _, [_|_] } } <- overridable(Module)],
-  Joined = '__MAIN__.Enum':join(Bins, <<", ">>),
+  Joined = '__MAIN__-Enum':join(Bins, <<", ">>),
   io_lib:format("no super defined for ~s/~B in module ~p. Overridable functions available are: ~s",
     [Name, Arity, elixir_errors:inspect(Module), Joined]).
 

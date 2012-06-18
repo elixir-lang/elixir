@@ -23,7 +23,7 @@ defmodule Binary.Chars.AtomTest do
   end
 
   test :alias_atom do
-    assert to_binary(Foo.Bar) == "__MAIN__.Foo.Bar"
+    assert to_binary(Foo.Bar) == "__MAIN__-Foo-Bar"
   end
 end
 

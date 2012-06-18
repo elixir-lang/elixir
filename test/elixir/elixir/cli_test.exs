@@ -17,7 +17,7 @@ defmodule Elixir.CLI.OptionParsingTest do
   use ExUnit.Case
 
   test :path do
-    list = OS.cmd('bin/elixir -e "IO.inspect Erlang.code.get_path" -pa "*" -pz "ebin/*"')
+    list = OS.cmd('bin/elixir -e "IO.inspect Erlang.code.get_path" -pa "*" -pz "lib/*"')
     { path, _ } = Code.eval list, []
 
     # pa
@@ -29,7 +29,7 @@ defmodule Elixir.CLI.OptionParsingTest do
     assert File.expand_path('test') in path
 
     # pz
-    assert File.expand_path('ebin/__MAIN__') in path
+    assert File.expand_path('lib/elixir') in path
   end
 
   test :require do

@@ -117,7 +117,7 @@ translate_each({alias, Line, [Ref, KV]}, S) ->
       case New == Old of
         true  -> { { nil, Line }, SF };
         false ->
-          case string:tokens(atom_to_list(New), ".") of
+          case string:tokens(atom_to_list(New), "-") of
             [_,_] -> [];
             _ -> syntax_error(Line, S#elixir_scope.file,
                    "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])
@@ -227,13 +227,13 @@ translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
 %% Aliases
 
 translate_each({ '__aliases__', Line, [H] }, S) ->
-  Atom = list_to_atom("__MAIN__." ++ atom_to_list(H)),
+  Atom = list_to_atom("__MAIN__-" ++ atom_to_list(H)),
   { { atom, Line, elixir_aliases:lookup(Atom, S#elixir_scope.aliases) }, S };
 
 translate_each({ '__aliases__', Line, [H|T] }, S) ->
   Aliases = case is_atom(H) of
     true ->
-      Atom = list_to_atom("__MAIN__." ++ atom_to_list(H)),
+      Atom = list_to_atom("__MAIN__-" ++ atom_to_list(H)),
       [elixir_aliases:lookup(Atom, S#elixir_scope.aliases)|T];
     false ->
       [H|T]
@@ -443,7 +443,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom
           Callback = fun() -> translate_apply(Line, TLeft, TRight, Args, S, SL, SR) end,
 
           case TLeft of
-            { atom, _, '__MAIN__.Erlang' } ->
+            { atom, _, '__MAIN__-Erlang' } ->
               case Args of
                 [] -> { { atom, Line, Right }, S };
                 _ ->
@@ -605,12 +605,7 @@ translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
     true ->
       { TArgs, SA } = translate_args(Args, umergec(S, SR)),
       FS = umergev(SL, umergev(SR,SA)),
-      Remote = case TLeft of
-        { atom, _, Atom } when Atom /= erlang ->
-          { record_field, 1, { atom, 1, '' }, TLeft };
-        _ -> TLeft
-      end,
-      { { call, Line, { remote, Line, Remote, TRight }, TArgs }, FS };
+      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, FS };
     false ->
       { TArgs, SA } = translate_each(Args, umergec(S, SR)),
       FS = umergev(SL, umergev(SR,SA)),

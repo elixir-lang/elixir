@@ -4,7 +4,7 @@
 -include("elixir.hrl").
 
 %% Ensure a module is loaded before its usage.
-ensure_loaded(_Line, '__MAIN__.Elixir.Builtin', _S) ->
+ensure_loaded(_Line, '__MAIN__-Elixir-Builtin', _S) ->
   ok;
 
 ensure_loaded(Line, Ref, S) ->
@@ -23,10 +23,10 @@ ensure_loaded(Line, Ref, S) ->
 
 first(Atom) ->
   First = first(atom_to_list(Atom), []),
-  list_to_atom("__MAIN__." ++ First).
+  list_to_atom("__MAIN__-" ++ First).
 
-first("__MAIN__." ++ Rest, []) -> first(Rest, []);
-first([$.|_], Acc) -> lists:reverse(Acc);
+first("__MAIN__-" ++ Rest, []) -> first(Rest, []);
+first([$-|_], Acc) -> lists:reverse(Acc);
 first([H|T], Acc) -> first(T, [H|Acc]);
 first([], Acc) -> lists:reverse(Acc).
 
@@ -34,9 +34,9 @@ first([], Acc) -> lists:reverse(Acc).
 
 last(Atom) ->
   Last = last(lists:reverse(atom_to_list(Atom)), []),
-  list_to_atom("__MAIN__." ++ Last).
+  list_to_atom("__MAIN__-" ++ Last).
 
-last([$.|_], Acc) -> Acc;
+last([$-|_], Acc) -> Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
 last([], Acc) -> Acc.
 
@@ -53,8 +53,8 @@ raw_concat(Args) ->
 to_partial(Arg) when is_binary(Arg) -> to_partial(binary_to_list(Arg));
 to_partial(Arg) when is_atom(Arg)   -> to_partial(atom_to_list(Arg));
 to_partial("__MAIN__" ++ Arg)       -> Arg;
-to_partial([$.|_] = Arg)            -> Arg;
-to_partial(Arg) when is_list(Arg)   -> [$.|Arg].
+to_partial([$-|_] = Arg)            -> Arg;
+to_partial(Arg) when is_list(Arg)   -> [$-|Arg].
 
 %% Lookup an alias in the current scope
 

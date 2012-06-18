@@ -113,7 +113,7 @@ core() ->
   [core_file(File) || File <- core_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
   Files = lists:append(AllLists) -- core_main(),
-  [core_file(File) || File <- '__MAIN__.List':uniq(Files)].
+  [core_file(File) || File <- '__MAIN__-List':uniq(Files)].
 
 %% HELPERS
 
@@ -163,26 +163,9 @@ escape_each([]) -> [].
 %% Receives a module Binary and outputs it in the given path.
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->
-  Path = make_dir(CompilePath, atom_to_list(ModuleName), []),
+  Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
   ok = file:write_file(Path, Binary),
   Path.
-
-%% Loops through a module name creating the directories
-%% in the destination. Returns the final filename with .beam.
-
-make_dir(Current, [$.|T], Buffer) ->
-  NewCurrent = filename:join(Current, lists:reverse(Buffer)),
-  case file:make_dir(NewCurrent) of
-    { error, eexist } -> [];
-    ok -> []
-  end,
-  make_dir(NewCurrent, T, []);
-
-make_dir(Current, [H|T], Buffer) ->
-  make_dir(Current, T, [H|Buffer]);
-
-make_dir(Current, [], Buffer) ->
-  filename:join(Current, lists:reverse(Buffer) ++ ".beam").
 
 %% CORE FILES COMPILATION
 

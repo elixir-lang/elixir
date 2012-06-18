@@ -93,7 +93,7 @@ defmodule ModuleTest do
   end
 
   test :__MODULE__ do
-    assert __MODULE__ == :"__MAIN__.ModuleTest"
+    assert __MODULE__ == :"__MAIN__-ModuleTest"
   end
 
   test :compile_callback_hook do

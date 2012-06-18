@@ -10,8 +10,8 @@
 -include("elixir.hrl").
 
 -import(ordsets, [is_element/2]).
--define(BUILTIN, '__MAIN__.Elixir.Builtin').
--define(TYPESPEC, '__MAIN__.Elixir.Typespec').
+-define(BUILTIN, '__MAIN__-Elixir-Builtin').
+-define(TYPESPEC, '__MAIN__-Elixir-Typespec').
 
 default_functions() ->
   [ { ?BUILTIN, ordsets:union(in_elixir_functions(), in_erlang_functions()) } ].

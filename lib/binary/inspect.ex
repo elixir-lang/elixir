@@ -45,14 +45,17 @@ defimpl Binary.Inspect, for: Atom do
       valid_atom_identifier?(binary) ->
           ":" <> binary
       valid_ref_identifier?(binary) ->
-        "__MAIN__." <> rest = binary
-        rest
+        "__MAIN__-" <> rest = binary
+        bc <<r>> inbits rest, do: <<to_dot(r)>>
       true ->
         ":" <> Binary.escape(binary, ?")
     end
   end
 
-  # Detect if atom is an atom alias (__MAIN__.Foo.Bar.Baz)
+  # Detect if atom is an atom alias (__MAIN__-Foo-Bar-Baz)
+
+  defp to_dot(?-), do: ?.
+  defp to_dot(l),  do: l
 
   defp valid_ref_identifier?("__MAIN__" <> rest) do
     valid_ref_piece?(rest)
@@ -60,7 +63,7 @@ defimpl Binary.Inspect, for: Atom do
 
   defp valid_ref_identifier?(_), do: false
 
-  defp valid_ref_piece?(<<?., h, t|:binary>>) when h >= ?A and h <= ?Z do
+  defp valid_ref_piece?(<<?-, h, t|:binary>>) when h >= ?A and h <= ?Z do
     valid_ref_piece? valid_identifier?(t)
   end
 
@@ -228,7 +231,7 @@ defimpl Binary.Inspect, for: Tuple do
   ## Helpers
 
   defp is_record?(name) do
-    is_atom(name) and match?("__MAIN__." <> _, atom_to_binary(name, :utf8)) and
+    is_atom(name) and match?("__MAIN__-" <> _, atom_to_binary(name, :utf8)) and
       :erlang.function_exported(name, :__record__, 1)
   end
 

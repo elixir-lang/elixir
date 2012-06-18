@@ -12,11 +12,14 @@
 
 inspect(Atom) when is_atom(Atom) ->
   case atom_to_list(Atom) of
-    "__MAIN__." ++ Rest -> list_to_atom(Rest);
+    "__MAIN__-" ++ Rest -> list_to_atom([to_dot(R) || R <- Rest]);
     _ -> Atom
   end;
 
 inspect(Other) -> Other.
+
+to_dot($-) -> $.;
+to_dot(L)  -> L.
 
 %% Raised during macros translation.
 
@@ -24,16 +27,16 @@ syntax_error(Line, File, Message) when is_list(Message) ->
   syntax_error(Line, File, iolist_to_binary(Message));
 
 syntax_error(Line, File, Message) when is_binary(Message) ->
-  raise(Line, File, '__MAIN__.SyntaxError', Message).
+  raise(Line, File, '__MAIN__-SyntaxError', Message).
 
 syntax_error(Line, File, Format, Args)  ->
   Message = io_lib:format(Format, Args),
-  raise(Line, File, '__MAIN__.SyntaxError', iolist_to_binary(Message)).
+  raise(Line, File, '__MAIN__-SyntaxError', iolist_to_binary(Message)).
 
 %% Raised on tokenizing/parsing
 
 parse_error(Line, File, _Error, []) ->
-  raise(Line, File, '__MAIN__.TokenMissingError', <<"syntax error: expression is incomplete">>);
+  raise(Line, File, '__MAIN__-TokenMissingError', <<"syntax error: expression is incomplete">>);
 
 parse_error(Line, File, Error, Token) ->
   BinError = if
@@ -47,13 +50,13 @@ parse_error(Line, File, Error, Token) ->
   end,
 
   Message = <<BinError / binary, BinToken / binary >>,
-  raise(Line, File, '__MAIN__.SyntaxError', Message).
+  raise(Line, File, '__MAIN__-SyntaxError', Message).
 
 %% Raised during compilation
 
 form_error(Line, File, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),
-  raise(Line, File, '__MAIN__.CompileError', Message).
+  raise(Line, File, '__MAIN__-CompileError', Message).
 
 %% Shows a deprecation message
 
