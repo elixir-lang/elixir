@@ -63,7 +63,7 @@ defimpl Binary.Inspect, for: Atom do
 
   defp valid_ref_identifier?(_), do: false
 
-  defp valid_ref_piece?(<<?-, h, t|:binary>>) when h >= ?A and h <= ?Z do
+  defp valid_ref_piece?(<<?-, h, t|:binary>>) when h in ?A..?Z do
     valid_ref_piece? valid_identifier?(t)
   end
 
@@ -72,10 +72,7 @@ defimpl Binary.Inspect, for: Atom do
 
   # Detect if atom
 
-  defp valid_atom_identifier?(<<h, t|:binary>>) \
-      when h >= ?a and h <= ?z \
-      when h >= ?A and h <= ?Z \
-      when h == ?_ do
+  defp valid_atom_identifier?(<<h, t|:binary>>) when h in ?a..?z or h in ?A..?Z or h == ?_ do
     case valid_identifier?(t) do
       <<>>   -> true
       <<??>> -> true
@@ -86,11 +83,8 @@ defimpl Binary.Inspect, for: Atom do
 
   defp valid_atom_identifier?(_), do: false
 
-  defp valid_identifier?(<<h, t|:binary>>) \
-      when h >= ?a and h <= ?z \
-      when h >= ?A and h <= ?Z \
-      when h >= ?0 and h <= ?9 \
-      when h == ?_ do
+  defp valid_identifier?(<<h, t|:binary>>) when
+      h in ?a..?z or h in ?A..?Z or h in ?0..?9 or h == ?_ do
     valid_identifier? t
   end
 
@@ -185,7 +179,7 @@ defimpl Binary.Inspect, for: List do
 
   ## printable?
 
-  defp printable?([c|cs]) when is_integer(c) and c >= 32 and c <= 126 do
+  defp printable?([c|cs]) when is_integer(c) and c in 32..126 do
     printable?(cs)
   end
 

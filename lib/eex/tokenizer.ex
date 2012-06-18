@@ -114,7 +114,7 @@ defmodule EEx.Tokenizer do
     middle_expr_token_name(t)
   end
 
-  defp middle_expr_token_name([h|_] = list) when h >= ?a and h <= ?z do
+  defp middle_expr_token_name([h|_] = list) when h in ?a..?z do
     if valid_middle_identifier?(list), do: :middle_expr, else: :expr
   end
 

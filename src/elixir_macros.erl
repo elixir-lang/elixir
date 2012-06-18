@@ -9,6 +9,7 @@
 
 -define(FUNS(), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
 -define(Module(), '__MAIN__-Module').
+-define(Range(), '__MAIN__-Range').
 
 %% Operators
 
@@ -26,20 +27,31 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
   Op == '==='; Op == '!==' ->
   translate_each({ '__op__', Line, [Op|Exprs] }, S);
 
-translate_macro({ in, Line, [Left, [H|T]] }, #elixir_scope{extra_guards=nil} = S) ->
-  { TLeft, SL }   = translate_each(Left, S),
-  { [HT|TT], ST } = translate([H|T], SL),
+translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
+  { TLeft, SL }  = translate_each(Left, S),
+  { TRight, SR } = translate_each(Right, SL),
 
   Cache = (S#elixir_scope.context == nil),
 
   { Var, SV } = case Cache of
-    true  -> elixir_scope:build_erl_var(Line, ST);
-    false -> { TLeft, ST }
+    true  -> elixir_scope:build_erl_var(Line, SR);
+    false -> { TLeft, SR }
   end,
 
-  Expr = lists:foldl(fun(X, Acc) ->
-    { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
-  end, { op, Line, '==', Var, HT }, TT),
+  Expr = case TRight of
+    { cons, _, _, _ } ->
+      [H|T] = elixir_tree_helpers:cons_to_list(TRight),
+      lists:foldl(fun(X, Acc) ->
+        { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
+      end, { op, Line, '==', Var, H }, T);
+    { tuple, _, [{ atom, _, ?Range() }, Start, End] } ->
+      { op, Line, 'andalso',
+        { op, Line, '>=', Var, Start },
+        { op, Line, '=<', Var, End }
+      };
+    _ ->
+      syntax_error(Line, S#elixir_scope.file, "invalid args for operator in")
+  end,
 
   case Cache of
     true  -> { { block, Line, [ { match, Line, Var, TLeft }, Expr ] }, SV };

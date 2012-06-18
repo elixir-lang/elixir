@@ -3,7 +3,7 @@
 %% as binaries, lists, condition clauses, etc.
 
 -module(elixir_tree_helpers).
--export([abstract_syntax/1, convert_to_boolean/3, split_last/1,
+-export([abstract_syntax/1, convert_to_boolean/3, split_last/1, cons_to_list/1,
   build_bitstr/4, build_list/4, build_list/5, build_simple_list/2,
   build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
@@ -14,6 +14,11 @@ split_last([H|T], Acc) -> split_last(T, [H|Acc]).
 
 abstract_syntax(Tree) ->
   erl_syntax:revert(erl_syntax:abstract(Tree)).
+
+cons_to_list({ cons, _, Left, Right }) ->
+  [Left|cons_to_list(Right)];
+
+cons_to_list(Else) -> [Else].
 
 % Build a list translating each expression and accumulating
 % vars in one pass. It uses tail-recursive form.

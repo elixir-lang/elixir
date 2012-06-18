@@ -2003,6 +2003,22 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  Returns a range with the specified start and end.
+  Includes both ends.
+
+  ## Examples
+
+      0 in 1..3 #=> false
+      1 in 1..3 #=> true
+      2 in 1..3 #=> true
+      3 in 1..3 #=> true
+
+  """
+  defmacro :"..".(first, last) do
+    { :{}, 0, [__MAIN__.Range, first, last] }
+  end
+
+  @doc """
   Provides a short-circuit operator that executes the second
   expression only if the first one evalutes to true (i.e. it is
   not nil nor false). Returns the first expression otherwise.

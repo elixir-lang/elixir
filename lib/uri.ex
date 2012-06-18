@@ -94,8 +94,8 @@ defmodule URI do
 
   def decode(<<>>), do: <<>>
 
-  defp hex2dec(n) when n >= ?A and n <= ?F, do: n - ?A + 10
-  defp hex2dec(n) when n >= ?0 and n <= ?9, do: n - ?0
+  defp hex2dec(n) when n in ?A..?F, do: n - ?A + 10
+  defp hex2dec(n) when n in ?0..?9, do: n - ?0
 
   defp check_plus(?+), do: 32
   defp check_plus(c), do: c

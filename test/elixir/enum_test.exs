@@ -425,7 +425,8 @@ defmodule EnumTest.Orddict do
   end
 end
 
-defrecord Range, start: nil, finish: nil, step: 1
+defrecord CustomRange, start: nil, finish: nil, step: 1
+alias CustomRange, as: Range
 
 defimpl Enum.Iterator, for: Range do
   def iterator(range) do
@@ -447,7 +448,7 @@ end
 
 defimpl Enum.OrdIterator, for: Range do
   def iterator(range) do
-    Enum.Iterator.Range.iterator(range)
+    Enum.Iterator.CustomRange.iterator(range)
   end
 
   def to_list(h, { _next, finish, step }) do

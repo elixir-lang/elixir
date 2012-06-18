@@ -37,22 +37,22 @@ defmodule Binary do
   """
 
   # Allow basic ascii chars
-  def printable?(<<c, t|:binary>>) when c >= ?\s and c <= ?~ do
+  def printable?(<<c, t|:binary>>) when c in ?\s..?~ do
     printable?(t)
   end
 
   # From 16#A0 to 16#BF
-  def printable?(<<194, c, t|:binary>>) when c >= 160 and c <= 191 do
+  def printable?(<<194, c, t|:binary>>) when c in 160..191 do
     printable?(t)
   end
 
   # From 16#C0 to 16#7FF
-  def printable?(<<m, o1, t|:binary>>) when m >= 195 and m <= 223 and o1 >= 128 and o1 < 192  do
+  def printable?(<<m, o1, t|:binary>>) when m in 195..223 and o1 in 128..191 do
     printable?(t)
   end
 
   # From 16#800 to 16#CFFF
-  def printable?(<<m, o1, o2, t|:binary>>) when m >= 224 and m <= 236 and
+  def printable?(<<m, o1, o2, t|:binary>>) when m in 224..236 and
       o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 do
     printable?(t)
   end
@@ -70,19 +70,19 @@ defmodule Binary do
 
   # From 16#E000 to 16#EFFF
   def printable?(<<m, o1, o2, t|:binary>>) when (m == 238 or m == 239) and
-      o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 do
+      o1 in 128..191 and o2 in 128..191 do
     printable?(t)
   end
 
   # From 16#F000 to 16#FFFD
   def printable?(<<239, o1, o2, t|:binary>>) when
-      o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 do
+      o1 in 128..191 and o2 in 128..191 do
     printable?(t)
   end
 
   # From 16#10000 to 16#3FFFF
   def printable?(<<240, o1, o2, o3, t|:binary>>) when
-      o1 >= 144 and o1 < 192 and o2 >= 128 and o2 < 192 and o3 >= 128 and o3 < 192 do
+      o1 in 144..191 and o2 in 128..191 and o3 in 128..191 do
     printable?(t)
   end
 
@@ -92,8 +92,8 @@ defmodule Binary do
   end
 
   # From 16#4000 to 16#10FFFF
-  def printable?(<<m, o1, o2, o3, t|:binary>>) when m >= 241 and m <= 244 and
-      o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 and o3 >= 128 and o3 < 192 do
+  def printable?(<<m, o1, o2, o3, t|:binary>>) when m in 241..244 and
+      o1 in 128..191 and o2 in 128..191 and o3 in 128..191 do
     printable?(t)
   end
 
