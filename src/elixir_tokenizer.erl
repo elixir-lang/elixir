@@ -40,7 +40,8 @@
   T1 == $/, T2 == $/;
   T1 == $:, T2 == $:;
   T1 == $<, T2 == $-;
-  T1 == $-, T2 == $>
+  T1 == $-, T2 == $>;
+  T1 == $., T2 == $.
 ).
 
 -define(comp1(T),
@@ -144,13 +145,14 @@ tokenize([$.,T|Rest], Line, File, Tokens) when ?comp1(T); ?op1(T); T == $& ->
 
 % ## Exception for .( as it needs to be treated specially in the parser
 tokenize([$.,$(|Rest], Line, File, Tokens) ->
-  tokenize([$(|Rest], Line, File, [{dot_call_op,Line,'.'}|Tokens]);
+  tokenize([$(|Rest], Line, File, add_token_with_nl({dot_call_op,Line,'.'}, Tokens));
 
 tokenize([$.,H|T], Line, File, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, [Part], Rest } when is_binary(Part) ->
       Atom = binary_to_atom(Part, utf8),
-      tokenize(Rest, NewLine, File, [tokenize_call_identifier(identifier, Line, Atom, Rest),{'.',Line}|Tokens]);
+      tokenize(Rest, NewLine, File,
+        [tokenize_call_identifier(identifier, Line, Atom, Rest)|add_token_with_nl({'.',Line}, Tokens)]);
     Else -> Else
   end;
 
@@ -200,10 +202,10 @@ tokenize([$:,T|Rest], Line, File, Tokens) when ?comp1(T); ?op1(T); T == $&; T ==
 % End of line
 
 tokenize(";" ++ Rest, Line, File, []) ->
-  tokenize(Rest, Line, File, eol(Line, []));
+  tokenize(Rest, Line, File, eol(Line, $;, []));
 
 tokenize(";" ++ Rest, Line, File, [Top|Tokens]) when element(1, Top) /= eol ->
-  tokenize(Rest, Line, File, eol(Line, [Top|Tokens]));
+  tokenize(Rest, Line, File, eol(Line, $;, [Top|Tokens]));
 
 tokenize("\\\n" ++ Rest, Line, File, Tokens) ->
   tokenize(Rest, Line + 1, File, Tokens);
@@ -212,10 +214,10 @@ tokenize("\\\r\n" ++ Rest, Line, File, Tokens) ->
   tokenize(Rest, Line + 1, File, Tokens);
 
 tokenize("\n" ++ Rest, Line, File, Tokens) ->
-  tokenize(Rest, Line + 1, File, eol(Line, Tokens));
+  tokenize(Rest, Line + 1, File, eol(Line, $\n, Tokens));
 
 tokenize("\r\n" ++ Rest, Line, File, Tokens) ->
-  tokenize(Rest, Line + 1, File, eol(Line, Tokens));
+  tokenize(Rest, Line + 1, File, eol(Line, $\n, Tokens));
 
 % Stand-alone tokens
 
@@ -225,12 +227,11 @@ tokenize([$&,H|Rest], Line, File, Tokens) when ?is_digit(H) ->
 
 % ## Containers + punctuation tokens
 
-tokenize([T,T|Rest], Line, File, Tokens) when T == $<; T == $>; T == $. ->
+tokenize([T,T|Rest], Line, File, Tokens) when T == $<; T == $> ->
   tokenize(Rest, Line, File, [{list_to_atom([T,T]), Line}|Tokens]);
 
 tokenize([T|Rest], Line, File, Tokens) when T == $(;
-  T == ${; T == $}; T == $[; T == $]; T == $);
-  T == $,; T == $. ->
+  T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
   tokenize(Rest, Line, File, [{list_to_atom([T]), Line}|Tokens]);
 
 % ## Comparison three token operators
@@ -245,7 +246,7 @@ tokenize([T1,T2|Rest], Line, File, Tokens) when ?comp2(T1, T2) ->
 
 % ## Two Token Operators
 tokenize([T1,T2|Rest], Line, File, Tokens) when ?op2(T1, T2) ->
-  handle_op(Line, File, list_to_atom([T1,T2]), Rest, Tokens);
+  handle_op(Line, File, list_to_atom([T1,T2]), Rest, Tokens, 2);
 
 % ## Comparison single token operators
 tokenize([T|Rest], Line, File, Tokens) when ?comp1(T) ->
@@ -253,7 +254,10 @@ tokenize([T|Rest], Line, File, Tokens) when ?comp1(T) ->
 
 % ## Single Token Operators
 tokenize([T|Rest], Line, File, Tokens) when ?op1(T) ->
-  handle_op(Line, File, list_to_atom([T]), Rest, Tokens);
+  handle_op(Line, File, list_to_atom([T]), Rest, Tokens, 1);
+
+tokenize([$.|Rest], Line, File, Tokens) ->
+  tokenize(Rest, Line, File, add_token_with_nl({'.', Line}, Tokens));
 
 % Integers and floats
 
@@ -271,11 +275,11 @@ tokenize([H|_] = String, Line, File, Tokens) when ?is_upcase(H) ->
 
 tokenize([H|_] = String, Line, File, Tokens) when ?is_downcase(H); H == $_ ->
   { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(Line, File, String, []),
-  case keyword(Line, Kind, Identifier) of
+  case keyword(Line, Kind, Identifier, Tokens) of
     false ->
       tokenize(Rest, Line, File, [{Kind,Line,Identifier}|Tokens]);
     Else  ->
-      tokenize(Rest, Line, File, [Else|Tokens])
+      tokenize(Rest, Line, File, Else)
   end;
 
 % Ambiguous unary/binary operators tokens
@@ -331,24 +335,27 @@ handle_comp_op(Line, File, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
   tokenize(Rest, Line, File, [{kw_identifier, Line, Op}|Tokens]);
 
 handle_comp_op(Line, File, Op, Rest, Tokens) ->
-  tokenize(Rest, Line, File, [{comp_op, Line, Op}|Tokens]).
+  tokenize(Rest, Line, File, add_token_with_nl({comp_op, Line, Op}, Tokens)).
 
-handle_op(Line, File, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
+handle_op(Line, File, Op, [$:,S|Rest], Tokens, _) when ?is_space(S) ->
   tokenize(Rest, Line, File, [{kw_identifier, Line, Op}|Tokens]);
 
-handle_op(Line, File, Op, Rest, Tokens) ->
-  tokenize(Rest, Line, File, [{Op, Line}|Tokens]).
+handle_op(Line, File, Op, Rest, Tokens, 1) ->
+  tokenize(Rest, Line, File, [{Op, Line}|Tokens]);
+
+handle_op(Line, File, Op, Rest, Tokens, _) ->
+  tokenize(Rest, Line, File, add_token_with_nl({Op, Line}, Tokens)).
 
 handle_call_identifier(Line, File, Op, Rest, Tokens) ->
   Token = tokenize_call_identifier(identifier, Line, Op, Rest),
-  tokenize(Rest, Line, File, [Token, {'.',Line}|Tokens]).
+  tokenize(Rest, Line, File, [Token|add_token_with_nl({'.',Line}, Tokens)]).
 
 %% Helpers
 
-eol(Line, Tokens) ->
+eol(Line, Mod, Tokens) ->
   case Tokens of
-    [{eol,_}|_] -> Tokens;
-    _ -> [{eol,Line}|Tokens]
+    [{eol,_,_}|_] -> Tokens;
+    _ -> [{eol,Line,Mod}|Tokens]
   end.
 
 collect_modifiers([H|T], Buffer) when ?is_downcase(H) ->
@@ -588,6 +595,9 @@ next_is_block([$d,$o|_]) ->
 next_is_block(_) ->
   [].
 
+add_token_with_nl(Left, [{eol,_,$\n}|T]) -> [Left|T];
+add_token_with_nl(Left, T) -> [Left|T].
+
 % String type
 string_type($") -> bin_string;
 string_type($') -> list_string.
@@ -600,42 +610,44 @@ terminator($<) -> $>;
 terminator(O) -> O.
 
 % Keywords check
-keyword(Line, do_identifier, fn) ->
-  { do_identifier, Line, fn };
+keyword(Line, do_identifier, fn, Tokens) ->
+  [{ do_identifier, Line, fn }|Tokens];
 
-keyword(Line, paren_identifier, fn) ->
-  { 'fn_paren', Line };
+keyword(Line, paren_identifier, fn, Tokens) ->
+  [{ 'fn_paren', Line }|Tokens];
 
-keyword(Line, Identifier, Atom) when Identifier ==  identifier; Identifier == do_identifier ->
+keyword(Line, Identifier, Atom, Tokens) when Identifier ==  identifier; Identifier == do_identifier ->
   case keyword(Atom) of
-    true  -> { Atom, Line };
-    false -> block_keyword(Atom) andalso { block_identifier, Line, Atom }
+    true  -> [{ Atom, Line }|Tokens];
+    op    -> add_token_with_nl({ Atom, Line }, Tokens);
+    block -> [{ block_identifier, Line, Atom }|Tokens];
+    false -> false
   end;
 
-keyword(_, _, _) -> false.
+keyword(_, _, _, _) -> false.
 
 % Keywords
-keyword('fn')      -> true;
-keyword('do')      -> true;
-keyword('end')     -> true;
-keyword('true')    -> true;
-keyword('false')   -> true;
-keyword('nil')     -> true;
+keyword('fn')    -> true;
+keyword('do')    -> true;
+keyword('end')   -> true;
+keyword('true')  -> true;
+keyword('false') -> true;
+keyword('nil')   -> true;
+keyword('not')   -> true;
 
-% Operator keywords
-keyword('not')     -> true;
-keyword('and')     -> true;
-keyword('or')      -> true;
-keyword('xor')     -> true;
-keyword('when')    -> true;
-keyword('in')      -> true;
-keyword('inlist')  -> true;
-keyword('inbits')  -> true;
-keyword(_)         -> false.
+% Bin operator keywords
+keyword('and')    -> op;
+keyword('or')     -> op;
+keyword('xor')    -> op;
+keyword('when')   -> op;
+keyword('in')     -> op;
+keyword('inlist') -> op;
+keyword('inbits') -> op;
 
 % Block keywords
-block_keyword('after')  -> true;
-block_keyword('else')   -> true;
-block_keyword('rescue') -> true;
-block_keyword('catch')  -> true;
-block_keyword(_)        -> false.
+keyword('after')  -> block;
+keyword('else')   -> block;
+keyword('rescue') -> block;
+keyword('catch')  -> block;
+
+keyword(_) -> false.

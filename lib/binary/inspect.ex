@@ -83,8 +83,11 @@ defimpl Binary.Inspect, for: Atom do
 
   defp valid_atom_identifier?(_), do: false
 
-  defp valid_identifier?(<<h, t|:binary>>) when
-      h in ?a..?z or h in ?A..?Z or h in ?0..?9 or h == ?_ do
+  defp valid_identifier?(<<h, t|:binary>>)
+      when h in ?a..?z
+      when h in ?A..?Z
+      when h in ?0..?9
+      when h == ?_ do
     valid_identifier? t
   end
 
