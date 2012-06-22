@@ -222,7 +222,11 @@ defimpl Binary.Inspect, for: Tuple do
 
     if is_record?(name) do
       fields = lc { field, _ } inlist name.__record__(:fields), do: field
-      Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
+      if length(fields) != size(thing) - 1 do
+        Binary.Inspect.List.container_join(list, "{", "}")
+      else   
+        Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
+      end
     else
       Binary.Inspect.List.container_join(list, "{", "}")
     end
@@ -247,6 +251,7 @@ defimpl Binary.Inspect, for: Tuple do
   defp records_join([], [], acc, last) do
     acc <> last
   end
+  
 end
 
 defimpl Binary.Inspect, for: Number do
