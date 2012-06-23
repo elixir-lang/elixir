@@ -100,6 +100,14 @@ defmodule Binary.Inspect.TupleTest do
     assert inspect({ List, 1 }) == "{List,1}"
   end
 
+  test :with_record do
+    assert inspect(ExUnit.Server.Config.new) == "ExUnit.Server.Config[cases: [], options: [], sync_cases: []]"
+  end
+
+  test :with_tuple_matching_record_name_but_not_length do
+    assert inspect({ExUnit.Server.Config}) == "{ExUnit.Server.Config}"
+  end
+
   test :exception do
     assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\"]"
   end
