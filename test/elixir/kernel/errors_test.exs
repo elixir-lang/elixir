@@ -133,6 +133,11 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'defmodule Record, do: true'
   end
 
+  test :in_definition_module do
+    assert "nofile:1: cannot define module Foo because it is currently being defined" ==
+      format_rescue 'defmodule Foo, do: (defmodule __MAIN__.Foo, do: true)'
+  end
+
   test :duplicated_bitstring_size do
     assert "nofile:1: duplicated size specifier 12 in <<>>" == format_rescue '<<1|12-12>>'
   end

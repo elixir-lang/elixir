@@ -52,7 +52,7 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
   File = S#elixir_scope.file,
 
   check_module_availability(Line, File, Module, C),
-  build(Module),
+  build(Line, File, Module),
 
   try
     Result           = eval_form(Line, Module, Block, Vars, S),
@@ -84,9 +84,15 @@ compile(Line, Other, _Block, _Vars, RawS) ->
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
-build(Module) ->
+build(Line, File, Module) ->
   %% Table with meta information about the module.
   DataTable = data_table(Module),
+
+  case ets:info(DataTable, name) == DataTable of
+    true  -> elixir_errors:form_error(Line, File, ?MODULE, { module_in_definition, Module });
+    false -> []
+  end,
+
   ets:new(DataTable, [set, named_table, public]),
   ets:insert(DataTable, { '__overridable', [] }),
   ets:insert(DataTable, { 'before_compile', [] }),
@@ -284,4 +290,8 @@ format_error({ invalid_module, Module}) ->
 
 format_error({ module_defined, Module }) ->
   io_lib:format("module ~s already defined (please remove already compiled files before recompiling a module)",
+    [elixir_errors:inspect(Module)]);
+
+format_error({ module_in_definition, Module }) ->
+  io_lib:format("cannot define module ~s because it is currently being defined",
     [elixir_errors:inspect(Module)]).
