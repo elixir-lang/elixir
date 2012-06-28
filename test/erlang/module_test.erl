@@ -11,6 +11,12 @@ definition_test() ->
   end,
   test_helper:run_and_remove(F, ['__MAIN__-Foo-Bar-Baz']).
 
+module_vars_test() ->
+  F = fun() ->
+    eval("a = 1; b = 2; c = 3; defmodule Foo do\n1 = a; 2 = b; 3 = c\nend")
+  end,
+  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+
 function_test() ->
   F = fun() ->
     eval("defmodule Foo.Bar.Baz do\ndef sum(a, b) do\na + b\nend\nend"),

@@ -3,7 +3,7 @@
 -module(elixir_scope).
 -export([translate_var/3,
   build_erl_var/2, build_ex_var/2,
-  serialize/1, deserialize/1,
+  serialize/1, deserialize/1, deserialize/2,
   to_erl_env/1, to_ex_env/1, filename/1,
   umergev/2, umergec/2
   ]).
@@ -74,7 +74,9 @@ serialize(S) ->
 
 % Fill in the scope with the variables serialization set in serialize_scope.
 
-deserialize({ File, Functions, CheckClauses, Macro, Requires, Macros, Aliases, Scheduled }) ->
+deserialize(Tuple) -> deserialize(Tuple, []).
+
+deserialize({ File, Functions, CheckClauses, Macro, Requires, Macros, Aliases, Scheduled }, Vars) ->
   #elixir_scope{
     file=File,
     functions=Functions,
@@ -83,7 +85,9 @@ deserialize({ File, Functions, CheckClauses, Macro, Requires, Macros, Aliases, S
     requires=Requires,
     macros=Macros,
     aliases=Aliases,
-    scheduled=Scheduled
+    scheduled=Scheduled,
+    vars=dict:from_list(Vars),
+    counter=length(Vars)
   }.
 
 % Receives two scopes and return a new scope based on the second

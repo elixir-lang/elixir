@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/4, compile/4, data_table/1,
+-export([translate/4, compile/5, data_table/1,
    format_error/1, scope_for_eval/2, binding_for_eval/2]).
 -include("elixir.hrl").
 
@@ -32,13 +32,22 @@ translate(Line, Ref, Block, S) ->
   MetaBlock = elixir_tree_helpers:abstract_syntax(Block),
   MetaS     = elixir_scope:serialize(S),
 
-  Args = [{integer, Line, Line}, Ref, MetaBlock, MetaS],
+  Vars = dict:fold(fun(Key, Value, { Acc, Counter }) ->
+    { { cons, Line, { tuple, Line, [
+      { atom, Line, Key },
+      { atom, Line, ?ELIXIR_ATOM_CONCAT(["_@", Counter]) },
+      { var,  Line, Value }
+    ] }, Acc }, Counter + 1 }
+  end, { { nil, Line }, 0 }, S#elixir_scope.vars),
+
+  Args = [{integer, Line, Line}, Ref, MetaBlock, element(1, Vars), MetaS],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 %% The compilation hook.
 
-compile(Line, Module, Block, RawS) when is_atom(Module) ->
-  S = elixir_scope:deserialize(RawS),
+compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
+  Dict = [{ X, Y } || { X, Y, _ } <- Vars],
+  S = elixir_scope:deserialize(RawS, Dict),
   C = elixir_compiler:get_opts(),
   File = S#elixir_scope.file,
 
@@ -46,7 +55,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
   build(Module),
 
   try
-    Result           = eval_form(Line, Module, Block, S),
+    Result           = eval_form(Line, Module, Block, Vars, S),
     { Funs, Forms0 } = functions_form(Line, File, Module, C),
     Forms1           = attributes_form(Line, File, Module, Forms0),
     Forms2           = specs_form(Line, Module, Forms1),
@@ -69,7 +78,7 @@ compile(Line, Module, Block, RawS) when is_atom(Module) ->
     elixir_import:delete_table(Module)
   end;
 
-compile(Line, Other, _Block, RawS) ->
+compile(Line, Other, _Block, _Vars, RawS) ->
   S = elixir_scope:deserialize(RawS),
   elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, { invalid_module, Other }).
 
@@ -105,10 +114,10 @@ build(Module) ->
 
 %% Receives the module representation and evaluates it.
 
-eval_form(Line, Module, Block, RawS) ->
+eval_form(Line, Module, Block, Vars, RawS) ->
   Temp = ?ELIXIR_ATOM_CONCAT(["COMPILE-",Module]),
   S = scope_for_eval(Module, RawS),
-  { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, S),
+  { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, Vars, S),
   elixir_def_overridable:store_pending(Module),
   eval_callbacks(Line, Module, 'before_compile', [Module], NewS),
   Value.

@@ -1,6 +1,6 @@
 -module(elixir_compiler).
 -export([get_opts/0, get_opt/1, get_opt/2, string/2, file/1, file_to_path/2]).
--export([core/0, module/3, eval_forms/4]).
+-export([core/0, module/3, eval_forms/5]).
 -include("elixir.hrl").
 
 %% Public API
@@ -26,7 +26,7 @@ string(Contents, File) when is_list(Contents), is_binary(File) ->
   try
     put(elixir_compiled, []),
     Forms = elixir_translator:forms(Contents, 1, File),
-    eval_forms(Forms, 1, File, #elixir_scope{file=File}),
+    eval_forms(Forms, 1, File, [], #elixir_scope{file=File}),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
@@ -52,28 +52,32 @@ file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
 
 %% Evaluates the contents/forms by compiling them to an Erlang module.
 
-eval_forms(Forms, Line, Module, #elixir_scope{module=nil} = S) ->
-  eval_forms(Forms, Line, Module, nil, S);
+eval_forms(Forms, Line, Module, Vars, #elixir_scope{module=nil} = S) ->
+  eval_forms(Forms, Line, Module, nil, Vars, S);
 
-eval_forms(Forms, Line, Module, #elixir_scope{module=Value} = S) ->
-  eval_forms(Forms, Line, Module, Value, S).
+eval_forms(Forms, Line, Module, Vars, #elixir_scope{module=Value} = S) ->
+  eval_forms(Forms, Line, Module, Value, Vars, S).
 
-eval_forms(Forms, Line, RawModule, Value, S) ->
-  case (Value == nil) and allows_fast_compilation(Forms) of
-    true  -> eval_compilation(Forms, Line, S);
-    false -> code_loading_compilation(Forms, Line, RawModule, Value, S)
+eval_forms(Forms, Line, RawModule, Value, Vars, S) ->
+  case (Value == nil) andalso allows_fast_compilation(Forms) of
+    true  -> eval_compilation(Forms, Vars, S);
+    false -> code_loading_compilation(Forms, Line, RawModule, Value, Vars, S)
   end.
 
-eval_compilation(Forms, _Line, S) ->
-  { Result, _Binding, FS } = elixir:eval_forms(Forms, [{'_@MODULE',nil}], S),
+eval_compilation(Forms, Vars, S) ->
+  Binding = [{ Var, Value } || { _, Var, Value } <- Vars],
+  { Result, _Binding, FS } = elixir:eval_forms(Forms, [{'_@MODULE',nil}|Binding], S),
   { Result, FS }.
 
-code_loading_compilation(Forms, Line, RawModule, Value, S) ->
-  Module = escape_module(RawModule),
+code_loading_compilation(Forms, Line, RawModule, Value, Vars, S) ->
+  Module        = escape_module(RawModule),
   { Exprs, FS } = elixir_translator:translate(Forms, S),
-  ModuleForm = module_form(Exprs, Line, S#elixir_scope.file, Module),
+  ModuleForm    = module_form(Exprs, Line, S#elixir_scope.file, Module, Vars),
+
+  Args = [X || { _, _, X } <- Vars],
+
   { module(ModuleForm, S, fun(Mod, _) ->
-    Res = Mod:'BOOTSTRAP'(Value),
+    Res = Mod:'BOOTSTRAP'(Value, Args),
     code:purge(Module),
     code:delete(Module),
     Res
@@ -121,14 +125,19 @@ no_auto_import() ->
   { attribute, 0, compile, {
     no_auto_import, erlang:module_info(exports) } }.
 
-module_form(Exprs, Line, File, Module) when
+module_form(Exprs, Line, File, Module, Vars) when
     is_binary(File), is_list(Exprs), is_integer(Line), is_atom(Module) ->
-  Args = [{ var, Line, '_@MODULE'}],
+
+  Cons = lists:foldr(fun({ _, Var, _ }, Acc) ->
+    { cons, Line, { var, Line, Var }, Acc }
+  end, { nil, Line }, Vars),
+
+  Args = [{ var, Line, '_@MODULE'}, Cons],
 
   [
     { attribute, Line, file, { binary_to_list(File), 1 } },
     { attribute, Line, module, Module },
-    { attribute, Line, export, [{ 'BOOTSTRAP',1 }] },
+    { attribute, Line, export, [{ 'BOOTSTRAP', 2 }] },
     { function, Line, 'BOOTSTRAP', length(Args), [
       { clause, Line, Args, [], Exprs }
     ] }
