@@ -1,5 +1,5 @@
 * backwards incompatible changes
-  * [Builtin] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed in the `__CALLER__`;
+  * [Builtin] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed via macros using `__CALLER__`;
   * [Module] Removed data functions in favor of unifying the attributes API;
   * [Kernel] Comprehensions syntax changed to be more compatible with Erlang behavior;
   * [Kernel] Compiled files now follow "__MAIN__-ModuleName" convention to solve issues with Erlang embedded mode;
@@ -13,6 +13,8 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [Kernel] Compiled docs now include the function signature;
+  * [Kernel] defmodule do not start a new variable scope, this improves meta-programming capabilities;
   * [Range] Added a Range module with support to `in` operator (`x in 1..3`) and iterators;
   * [Enum] Enhanced Enum protocol to support `Enum.count`;
   * [Module] Added support to `@before_compile` and `@after_compile` callbacks. The first receives the module name while the latter receives the module name and its object code;
