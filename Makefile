@@ -10,14 +10,6 @@ FULLFLAG=ebin/__MAIN__.full
 
 compile: ebin $(BUILTIN) ebin/elixir.app
 
-zip: $(FULLFLAG)
-	rm -rf v$(VERSION).zip
-	zip -r v$(VERSION).zip ebin `git ls-files`
-	zip v$(VERSION).zip -d .git .gitignore .travis.yml $(FULLFLAG)
-
-ebin/elixir.app:
-	@ $(REBAR) compile
-
 ebin:
 	@ $(REBAR) compile
 
@@ -25,6 +17,9 @@ $(BUILTIN): lib/*.ex lib/*/*.ex
 	@ rm -rf ebin/__MAIN__*
 	$(ERL) -s elixir_compiler core -s erlang halt
 	@ rm -rf ebin/elixir.app
+
+ebin/elixir.app:
+	@ $(REBAR) compile
 
 clean:
 	@ rm -rf ebin
@@ -37,10 +32,19 @@ full:
 	@ rm -rf full
 	@ touch $(FULLFLAG)
 
+zip: $(FULLFLAG)
+	rm -rf v$(VERSION).zip
+	zip -r v$(VERSION).zip ebin `git ls-files`
+	zip v$(VERSION).zip -d .git .gitignore .travis.yml $(FULLFLAG)
+
 release_docs: $(FULLFLAG)
 	bin/elixir ../exdoc/bin/exdoc
 	rm -rf ../elixir-lang.github.com/docs
 	mv output ../elixir-lang.github.com/docs
+
+release_erl: $(FULLFLAG)
+	@ rm -rf rel/elixir
+	@ cd rel && ../rebar generate
 
 test: test_erlang test_elixir
 
@@ -56,7 +60,3 @@ test_erlang: compile
 test_elixir: compile
 	@ echo "==> elixir (exunit)"
 	@ time bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"
-
-rel: compile
-	@ rm -rf rel/elixir
-	@ cd rel && ../rebar generate
