@@ -6,7 +6,7 @@ defmodule Elixir.CLI.InitTest do
   use ExUnit.Case
 
   test :code_init do
-    assert OS.cmd('bin/elixir -e "IO.puts [?3]"') == '3\n'
+    assert OS.cmd('bin/elixir -e "IO.puts 3"') == '3\n'
 
     result = OS.cmd('bin/elixir -e "IO.puts inspect(System.argv)" test/elixir/fixtures/init_sample.exs -o 1 2 3')
     assert result == '#{inspect ["-o", "1", "2", "3"]}\n3\n'
