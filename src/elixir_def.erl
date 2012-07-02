@@ -80,7 +80,7 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
 
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Expr, S),
 
-  File      = TS#elixir_scope.file,
+  File = TS#elixir_scope.file,
   FunctionTable = table(Module),
 
   CO = elixir_compiler:get_opts(),
@@ -113,9 +113,9 @@ compile_super(Module, #elixir_scope{function=Function, super=true}) ->
 compile_super(_Module, _S) -> [].
 
 compile_docs(Kind, Line, Module, Name, Arity, S, CO) ->
-  case elixir_compiler:get_opt(internal, CO) of
-    true -> [];
-    _ ->
+  case elixir_compiler:get_opt(docs, CO) of
+    false -> [];
+    true  ->
       case '__MAIN__-Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
         { error, Message } -> elixir_errors:handle_file_warning(S#elixir_scope.file,
           { Line, ?MODULE, { Message, { Name, Arity } } });
@@ -299,7 +299,7 @@ add_to_guards(Line, Expr, Clauses) ->
 %% Format errors
 
 format_error({clauses_with_docs,{Name,Arity}}) ->
-  io_lib:format("function ~s/~B has default values and multiple clauses, it is recommended to use a separate clause for declaring defalts", [Name, Arity]);
+  io_lib:format("function ~s/~B has default values and multiple clauses, it is recommended to use a separate clause for declaring defaults", [Name, Arity]);
 
 format_error({private_doc,{Name,Arity}}) ->
   io_lib:format("function ~s/~B is private, @doc's are always discarded for private functions", [Name, Arity]);
