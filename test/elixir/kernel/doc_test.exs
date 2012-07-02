@@ -15,7 +15,7 @@ defmodule Kernel.DocTest do
       Elixir.ParallelCompiler.files_to_path([path], tmp)
       Code.prepend_path(tmp)
 
-      expected = [{{:example,1},5,:def,"Some example"},{{:nodoc,0},8,:def,nil}]
+      expected = [{{:example,1},5,:def,[{:var,6,nil}],"Some example"},{{:nodoc,0},8,:def,[],nil}]
       assert CompiledWithDocs.__info__(:docs) == expected
       assert CompiledWithDocs.__info__(:moduledoc) == { 1, "moduledoc" }
     after

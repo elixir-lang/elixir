@@ -84,7 +84,7 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   FunctionTable = table(Module),
 
   CO = elixir_compiler:get_opts(),
-  compile_docs(Kind, Line, Module, Name, Arity, TS, CO),
+  compile_docs(Kind, Line, Module, Name, Arity, Args, TS, CO),
 
   Location = retrieve_file(Module, CO),
   Stack = S#elixir_scope.macro,
@@ -112,11 +112,11 @@ compile_super(Module, #elixir_scope{function=Function, super=true}) ->
 
 compile_super(_Module, _S) -> [].
 
-compile_docs(Kind, Line, Module, Name, Arity, S, CO) ->
+compile_docs(Kind, Line, Module, Name, Arity, Args, S, CO) ->
   case elixir_compiler:get_opt(docs, CO) of
     false -> [];
     true  ->
-      case '__MAIN__-Module':compile_doc(Module, Line, Kind, { Name, Arity }) of
+      case '__MAIN__-Module':compile_doc(Module, Line, Kind, { Name, Arity }, Args) of
         { error, Message } -> elixir_errors:handle_file_warning(S#elixir_scope.file,
           { Line, ?MODULE, { Message, { Name, Arity } } });
         _ -> []

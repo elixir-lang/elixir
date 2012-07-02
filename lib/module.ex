@@ -143,38 +143,92 @@ defmodule Module do
   ## Examples
 
       defmodule MyModule do
-        Module.add_doc(__MODULE__, __ENV__.line + 1, :def, { :version, 0 }, "Manually added docs")
+        Module.add_doc(__MODULE__, __ENV__.line + 1, :def, { :version, 0 }, [], "Manually added docs")
         def version, do: 1
       end
 
   """
-  def add_doc(_module, _line, kind, _tuple, nil) when kind in [:defp, :defmacrop] do
-    :ok
+  def add_doc(_module, _line, kind, _tuple, _signature, doc) when kind in [:defp, :defmacrop] do
+    if doc, do: { :error, :private_doc }, else: :ok
   end
 
-  def add_doc(_module, _line, kind, _tuple, _doc) when kind in [:defp, :defmacrop] do
-    { :error, :private_doc }
-  end
-
-  def add_doc(module, line, kind, tuple, doc) when
+  def add_doc(module, line, kind, tuple, signature, doc) when
       is_binary(doc) or is_boolean(doc) or doc == nil do
     assert_not_compiled!(:add_doc, module)
     table = docs_table_for(module)
 
+    { signature, _ } = Enum.map_reduce signature, 1, fn(x, acc) ->
+      { simplify_signature(x, line, acc), acc + 1 }
+    end
+
     case { ETS.lookup(table, tuple), doc } do
       { [], _ } ->
-        ETS.insert(table, { tuple, line, kind, doc })
+        ETS.insert(table, { tuple, line, kind, signature, doc })
         :ok
-      { _, nil } ->
+      { [{ tuple, line, kind, old, doc }], nil } ->
+        ETS.insert(table, { tuple, line, kind, merge_signatures(old, signature, 1), doc })
         :ok
       _ ->
         { :error, :existing_doc }
     end
   end
 
+  # Simplify signatures to be stored in docs
+
+  defp simplify_signature({ ://, defline, [left, right ] }, line, i) do
+    { ://, defline, [simplify_signature(left, line, i), right] }
+  end
+
+  defp simplify_signature({ var, line, atom }, _, i) when is_atom(atom) do
+    case atom_to_list(var) do
+      [?_,?_|_] -> { :"arg#{i}", line, :guess }
+      [?_|t]    -> { list_to_atom(t), line, :guess }
+      _         -> { var, line, nil }
+    end
+  end
+
+  defp simplify_signature({ :=, _, [_, right] }, line, i) do
+    simplify_signature(right, line, i)
+  end
+
+  defp simplify_signature(other, line, i) when is_integer(other), do: { :"int#{i}", line, :guess }
+  defp simplify_signature(other, line, i) when is_atom(other),    do: { :"atom#{i}", line, :guess }
+  defp simplify_signature(other, line, i) when is_list(other),    do: { :"list#{i}", line, :guess }
+  defp simplify_signature(other, line, i) when is_float(other),   do: { :"float#{i}", line, :guess }
+  defp simplify_signature(other, line, i) when is_binary(other),  do: { :"binary#{i}", line, :guess }
+  defp simplify_signature(_, line, i), do: { :"arg#{i}", line, :guess }
+
+  # Merge signatures
+
+  defp merge_signatures([h1|t1], [h2|t2], i) do
+    [merge_signature(h1, h2, i)|merge_signatures(t1, t2, i + 1)]
+  end
+
+  defp merge_signatures([], [], _) do
+    []
+  end
+
+  defp merge_signature({ ://, line, [left, right] }, newer, i) do
+    { ://, line, [merge_signature(left, newer, i), right] }
+  end
+
+  defp merge_signature(older, { ://, _, [left, _] }, i) do
+    merge_signature(older, left, i)
+  end
+
+  # The older signature, when given, always have higher precedence
+  defp merge_signature({ _, _, nil } = older, _newer, _),        do: older
+  defp merge_signature(_older, { _, _, nil } = newer, _),        do: newer
+
+  # Both are a guess, so check if they are the same guess
+  defp merge_signature({ var, _, _ } = older, { var, _, _ }, _), do: older
+
+  # Otherwise, returns a generic guess
+  defp merge_signature({ _, line, _ }, _newer, i), do: { :"arg#{i}", line, :guess }
+
   @doc """
   Checks if a function was defined, regardless if it is
-  a macro or a private function. Use function_defined?/3
+  a macro or a private function. Use `function_defined?/3`
   to assert for an specific type.
 
   ## Examples
@@ -404,9 +458,9 @@ defmodule Module do
   @doc false
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
-  def compile_doc(module, line, kind, pair) do
+  def compile_doc(module, line, kind, pair, signature) do
     doc = read_attribute(module, :doc)
-    result = add_doc(module, line, kind, pair, doc)
+    result = add_doc(module, line, kind, pair, signature, doc)
     delete_attribute(module, :doc)
     result
   end
