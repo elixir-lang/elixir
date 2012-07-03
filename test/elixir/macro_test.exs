@@ -147,9 +147,21 @@ defmodule MacroTest do
   test :case_to_binary do
     assert Macro.to_binary(quote do: (case foo do true -> 0; false -> (1; 2) end)) <> "\n" == """
     case(foo) do
-      true -> 0
-      false -> 1
+      true ->
+        0
+      false ->
+        1
         2
+    end
+    """
+  end
+
+  test :nested_to_binary do
+    assert Macro.to_binary(quote do: (defmodule Foo do def foo do 1 + 1 end end)) <> "\n" == """
+    defmodule(Foo) do
+      def(foo) do
+        1 + 1
+      end
     end
     """
   end

@@ -82,7 +82,8 @@ defmodule Macro do
   end
 
   def to_binary({ :__block__, _, _ } = expr) do
-    "(\n  " <> block_to_binary(expr, "\n  ") <> "\n)"
+    block = adjust_new_lines block_to_binary(expr), "\n  "
+    "(\n  " <> block <> "\n)"
   end
 
   # Bits containers
@@ -132,7 +133,7 @@ defmodule Macro do
   # All other structures
   def to_binary(other), do: Binary.Inspect.inspect(other)
 
-  # Block jeywords
+  # Block keywords
   defmacrop kw_keywords, do: [:do, :catch, :rescue, :after, :else]
 
   defp is_kw_blocks?([_|_] = kw), do: Enum.all?(kw, fn({x,_}) -> x in kw_keywords end)
@@ -158,27 +159,31 @@ defmodule Macro do
   end
 
   defp kw_block_to_binary(key, value) do
-    atom_to_binary(key, :utf8) <> "\n  " <> block_to_binary(value, "\n  ") <> "\n"
+    block = adjust_new_lines block_to_binary(value), "\n  "
+    atom_to_binary(key, :utf8) <> "\n  " <> block <> "\n"
   end
 
-  defp block_to_binary({ :->, _, exprs }, replacement) do
-    Enum.map_join(exprs, replacement, fn({ left, right }) ->
+  defp block_to_binary({ :->, _, exprs }) do
+    Enum.map_join(exprs, "\n", fn({ left, right }) ->
       left = Enum.map_join(left, ", ", to_binary(&1))
-      left <> " -> " <> block_to_binary(right, replacement <> "  ")
+      left <> " ->\n  " <> adjust_new_lines block_to_binary(right), "\n  "
     end)
   end
 
-  defp block_to_binary({ :__block__, _, exprs }, replacement) do
-    joined = Enum.map_join(exprs, "\n", to_binary(&1))
-    bc <<x>> inbits joined do
+  defp block_to_binary({ :__block__, _, exprs }) do
+    Enum.map_join(exprs, "\n", to_binary(&1))
+  end
+
+  defp block_to_binary(other), do: to_binary(other)
+
+  defp adjust_new_lines(block, replacement) do
+    bc <<x>> inbits block do
       << case x == ?\n do
         true  -> replacement
         false -> <<x>>
       end | :binary >>
     end
   end
-
-  defp block_to_binary(other, _replacement), do: to_binary(other)
 
   @doc """
   Receives an expression representation and expands it. The following
