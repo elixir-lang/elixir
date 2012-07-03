@@ -1,3 +1,5 @@
+import Elixir.Builtin, except: [to_binary: 1]
+
 defmodule Macro do
   @moduledoc """
   This module provides conveniences for working with macros.
@@ -31,14 +33,87 @@ defmodule Macro do
   def escape(other), do: other
 
   @doc """
+  Converts the given expression to a binary.
+
+  ## Examples
+
+      Macro.to_binary(quote do: foo.bar(1, 2, 3))
+      #=> "foo.bar(1, 2, 3)"
+
+  """
+
+  def to_binary(tree)
+
+  # Variables
+  def to_binary({ var, _, atom }) when is_atom(atom) do
+    atom_to_binary(var, :utf8)
+  end
+
+  # Aliases
+  def to_binary({ :__aliases__, _, refs }) do
+    Enum.map_join(refs, ".", call_to_binary(&1))
+  end
+
+  # Blocks
+  def to_binary({ :__block__, _, exprs }) do
+    joined = Enum.map_join(exprs, "\n", to_binary(&1))
+    spaced = bc <<x>> inbits joined do
+      << case x == ?\n do
+        true  -> "\n  "
+        false -> <<x>>
+      end | :binary >>
+    end
+    "(\n  " <> spaced <> "\n)"
+  end
+
+  # Bits containers
+  def to_binary({ :<<>>, _, args }) do
+    "<<" <> Enum.map_join(args, ", ", to_binary(&1)) <> ">>"
+  end
+
+  # Tuple containers
+  def to_binary({ :{}, _, args }) do
+    "{" <> Enum.map_join(args, ", ", to_binary(&1)) <> "}"
+  end
+
+  # List containers
+  def to_binary({ :[], _, args }) do
+    "[" <> Enum.map_join(args, ", ", to_binary(&1)) <> "]"
+  end
+
+  # All other calls
+  def to_binary({ target, _, args }) when is_list(args) do
+    args = Enum.map_join(args, ", ", to_binary(&1))
+    call_to_binary(target) <> "(" <> args <> ")"
+  end
+
+  # Two-item tuples
+  def to_binary({ left, right }) do
+    to_binary({ :{}, 0, [left, right] })
+  end
+
+  # Lists
+  def to_binary(list) when is_list(list) do
+    to_binary({ :[], 0, list })
+  end
+
+  # All other structures
+  def to_binary(other), do: Binary.Inspect.inspect(other)
+
+  defp call_to_binary(atom) when is_atom(atom),  do: atom_to_binary(atom, :utf8)
+  defp call_to_binary({ :., _, [arg] }),         do: call_to_binary(arg) <> "."
+  defp call_to_binary({ :., _, [left, right] }), do: call_to_binary(left) <> "." <> call_to_binary(right)
+  defp call_to_binary(other),                    do: to_binary(other)
+
+  @doc """
   Receives an expression representation and expands it. The following
   contents are expanded:
 
-  * Macros (local or remote) are expanded;
+  * Macros (local or remote);
   * Aliases are expanded (if possible) and return atoms;
   * All pseudo-variables (__FILE__, __MODULE__, etc);
 
-  In case the expression cannot be expanded, return the expression itself.
+  In case the expression cannot be expanded, it returns the expression itself.
 
   ## Examples
 
