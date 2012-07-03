@@ -192,6 +192,7 @@ defmodule Module do
   end
 
   defp simplify_signature(other, line, i) when is_integer(other), do: { :"int#{i}", line, :guess }
+  defp simplify_signature(other, line, i) when is_boolean(other), do: { :"bool#{i}", line, :guess }
   defp simplify_signature(other, line, i) when is_atom(other),    do: { :"atom#{i}", line, :guess }
   defp simplify_signature(other, line, i) when is_list(other),    do: { :"list#{i}", line, :guess }
   defp simplify_signature(other, line, i) when is_float(other),   do: { :"float#{i}", line, :guess }

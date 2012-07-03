@@ -6,6 +6,29 @@ defmodule Macro do
   """
 
   @doc """
+  Returns a list of binary operators. This is available
+  as a macro so it can be used in guard clauses.
+  """
+  defmacro binary_ops do
+    [
+      :===, :!==,
+      :==, :!=, :<=, :>=,
+      :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :->, :..,
+      :<, :>,
+      :+, :-, :*, :/, :=, :|, :.,
+      :and, :or, :xor, :when, :in, :inlist, :inbits
+    ]
+  end
+
+  @doc """
+  Returns a list of unary operators. This is available
+  as a macro so it can be used in guard clauses.
+  """
+  defmacro unary_ops do
+    [:!, :@, :^, :not]
+  end
+
+  @doc """
   Recursively escapes the given value so it can be inserted
   into a syntax tree. Structures that are valid syntax nodes
   (like atoms, integers, binaries) are represented by themselves.
@@ -55,6 +78,10 @@ defmodule Macro do
   end
 
   # Blocks
+  def to_binary({ :__block__, _, [expr] }) do
+    to_binary(expr)
+  end
+
   def to_binary({ :__block__, _, exprs }) do
     joined = Enum.map_join(exprs, "\n", to_binary(&1))
     spaced = bc <<x>> inbits joined do
@@ -79,6 +106,16 @@ defmodule Macro do
   # List containers
   def to_binary({ :[], _, args }) do
     "[" <> Enum.map_join(args, ", ", to_binary(&1)) <> "]"
+  end
+
+  # Binary ops
+  def to_binary({ op, _, [left, right] }) when op in binary_ops do
+    to_binary(left) <> " #{op} " <> to_binary(right)
+  end
+
+  # Unary ops
+  def to_binary({ op, _, [arg] }) when op in unary_ops do
+    atom_to_binary(op, :utf8) <> to_binary(arg)
   end
 
   # All other calls

@@ -139,4 +139,15 @@ defmodule MacroTest do
     assert Macro.to_binary(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
     assert Macro.to_binary(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"
   end
+
+  test :binary_ops_to_binary do
+    assert Macro.to_binary(quote do: 1 + 2)   == "1 + 2"
+    assert Macro.to_binary(quote do: [ 1, 2 | 3 ]) == "[1, 2 | 3]"
+    assert Macro.to_binary(quote do: [h|t] = [1,2,3]) == "[h | t] = [1, 2, 3]"
+  end
+
+  test :unary_ops_to_binary do
+    assert Macro.to_binary(quote do: -1) == "-(1)"
+    assert Macro.to_binary(quote do: @foo(bar)) == "@foo(bar)"
+  end
 end
