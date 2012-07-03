@@ -5,6 +5,8 @@ defmodule CompiledWithDocs do
   def example(false), do: 0
   def example(var),   do: var && private
 
-  def nodoc, do: 2
+  def nodoc(var // 0)
+  def nodoc(_), do: 2
+
   defp private, do: 1
 end
