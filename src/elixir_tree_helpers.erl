@@ -8,6 +8,7 @@
   build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
 
+split_last([])         -> { [], [] };
 split_last(List)       -> split_last(List, []).
 split_last([H], Acc)   -> { lists:reverse(Acc), H };
 split_last([H|T], Acc) -> split_last(T, [H|Acc]).

@@ -13,7 +13,7 @@ defmodule Macro do
     [
       :===, :!==,
       :==, :!=, :<=, :>=,
-      :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :->, :..,
+      :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :..,
       :<, :>,
       :+, :-, :*, :/, :=, :|, :.,
       :and, :or, :xor, :when, :in, :inlist, :inbits
@@ -64,7 +64,6 @@ defmodule Macro do
       #=> "foo.bar(1, 2, 3)"
 
   """
-
   def to_binary(tree)
 
   # Variables
@@ -82,15 +81,8 @@ defmodule Macro do
     to_binary(expr)
   end
 
-  def to_binary({ :__block__, _, exprs }) do
-    joined = Enum.map_join(exprs, "\n", to_binary(&1))
-    spaced = bc <<x>> inbits joined do
-      << case x == ?\n do
-        true  -> "\n  "
-        false -> <<x>>
-      end | :binary >>
-    end
-    "(\n  " <> spaced <> "\n)"
+  def to_binary({ :__block__, _, _ } = expr) do
+    "(\n  " <> block_to_binary(expr, "\n  ") <> "\n)"
   end
 
   # Bits containers
@@ -120,8 +112,11 @@ defmodule Macro do
 
   # All other calls
   def to_binary({ target, _, args }) when is_list(args) do
-    args = Enum.map_join(args, ", ", to_binary(&1))
-    call_to_binary(target) <> "(" <> args <> ")"
+    { list, last } = Erlang.elixir_tree_helpers.split_last(args)
+    case is_kw_blocks?(last) do
+      true  -> call_to_binary_with_args(target, list) <> kw_blocks_to_binary(last)
+      false -> call_to_binary_with_args(target, args)
+    end
   end
 
   # Two-item tuples
@@ -137,10 +132,53 @@ defmodule Macro do
   # All other structures
   def to_binary(other), do: Binary.Inspect.inspect(other)
 
+  # Block jeywords
+  defmacrop kw_keywords, do: [:do, :catch, :rescue, :after, :else]
+
+  defp is_kw_blocks?([_|_] = kw), do: Enum.all?(kw, fn({x,_}) -> x in kw_keywords end)
+  defp is_kw_blocks?(_),          do: false
+
   defp call_to_binary(atom) when is_atom(atom),  do: atom_to_binary(atom, :utf8)
   defp call_to_binary({ :., _, [arg] }),         do: call_to_binary(arg) <> "."
   defp call_to_binary({ :., _, [left, right] }), do: call_to_binary(left) <> "." <> call_to_binary(right)
   defp call_to_binary(other),                    do: to_binary(other)
+
+  defp call_to_binary_with_args(target, args) do
+    args = Enum.map_join(args, ", ", to_binary(&1))
+    call_to_binary(target) <> "(" <> args <> ")"
+  end
+
+  defp kw_blocks_to_binary(kw) do
+    Enum.reduce(kw_keywords, " ", fn(x, acc) ->
+      case Keyword.key?(kw, x) do
+        true  -> acc <> kw_block_to_binary(x, Keyword.get(kw, x))
+        false -> acc
+      end
+    end) <> "end"
+  end
+
+  defp kw_block_to_binary(key, value) do
+    atom_to_binary(key, :utf8) <> "\n  " <> block_to_binary(value, "\n  ") <> "\n"
+  end
+
+  defp block_to_binary({ :->, _, exprs }, replacement) do
+    Enum.map_join(exprs, replacement, fn({ left, right }) ->
+      left = Enum.map_join(left, ", ", to_binary(&1))
+      left <> " -> " <> block_to_binary(right, replacement <> "  ")
+    end)
+  end
+
+  defp block_to_binary({ :__block__, _, exprs }, replacement) do
+    joined = Enum.map_join(exprs, "\n", to_binary(&1))
+    bc <<x>> inbits joined do
+      << case x == ?\n do
+        true  -> replacement
+        false -> <<x>>
+      end | :binary >>
+    end
+  end
+
+  defp block_to_binary(other, _replacement), do: to_binary(other)
 
   @doc """
   Receives an expression representation and expands it. The following

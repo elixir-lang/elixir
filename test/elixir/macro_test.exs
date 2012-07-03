@@ -134,6 +134,26 @@ defmodule MacroTest do
     """
   end
 
+  test :if_else_to_binary do
+    assert Macro.to_binary(quote do: (if foo, do: bar, else: baz)) <> "\n" == """
+    if(foo) do
+      bar
+    else
+      baz
+    end
+    """
+  end
+
+  test :case_to_binary do
+    assert Macro.to_binary(quote do: (case foo do true -> 0; false -> (1; 2) end)) <> "\n" == """
+    case(foo) do
+      true -> 0
+      false -> 1
+        2
+    end
+    """
+  end
+
   test :containers_to_binary do
     assert Macro.to_binary(quote do: { 1, 2, 3 })   == "{1, 2, 3}"
     assert Macro.to_binary(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
