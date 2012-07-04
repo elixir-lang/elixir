@@ -7,27 +7,32 @@ VERSION=0.6.0.dev
 .NOTPARALLEL: compile
 
 #==> Compilation tasks
-BUILTIN=ebin/__MAIN__-Elixir-Builtin.beam
+KERNEL=ebin/__MAIN__-Elixir-Builtin.beam
 EXUNIT=ebin/__MAIN__-ExUnit.beam
+EEX=ebin/__MAIN__-EEx.beam
 
-compile: erl $(BUILTIN) $(EXUNIT)
+compile: erl $(KERNEL) $(EXUNIT) $(EEX)
 
 erl:
 	@ $(REBAR) compile
 
-$(BUILTIN): lib/kernel/*.ex lib/kernel/*/*.ex
-	@ if [ -f $(BUILTIN) ]; then                       \
+$(KERNEL): lib/kernel/*.ex lib/kernel/*/*.ex
+	@ if [ -f $(KERNEL) ]; then                        \
 		echo "==> kernel (compile)";                   \
 		$(ELIXIRC) "lib/kernel/**/*.ex";               \
 	else                                               \
 		echo "==> bootstrap (compile)";                \
 		$(ERL) -s elixir_compiler core -s erlang halt; \
 	fi
-	@ touch $(BUILTIN)
+	@ touch $(KERNEL)
 
 $(EXUNIT): lib/ex_unit/*.ex lib/ex_unit/*/*.ex
 	@ echo "==> ex_unit (compile)"
 	@ $(ELIXIRC) "lib/ex_unit/**/*.ex"
+
+$(EEX): lib/eex/*.ex lib/eex/*/*.ex
+	@ echo "==> eex (compile)"
+	@ $(ELIXIRC) "lib/eex/**/*.ex"
 
 clean:
 	@ rm -rf .full
@@ -69,7 +74,7 @@ test_erlang: compile
 	@ time $(ERL) -pa test/ebin -s test_helper test -s erlang halt
 	@ echo
 
-test_elixir: test_kernel test_exunit
+test_elixir: test_kernel test_exunit test_eex
 
 test_kernel: compile
 	@ echo "==> kernel (exunit)"
@@ -78,3 +83,7 @@ test_kernel: compile
 test_exunit: compile
 	@ echo "==> exunit (exunit)"
 	@ time bin/elixir -r "test/ex_unit/test_helper.exs" -pr "test/ex_unit/**/*_test.exs"
+
+test_eex: compile
+	@ echo "==> eex (exunit)"
+	@ time bin/elixir -r "test/eex/test_helper.exs" -pr "test/eex/**/*_test.exs"
