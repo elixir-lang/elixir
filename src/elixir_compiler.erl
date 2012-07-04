@@ -191,29 +191,29 @@ core_file(File) ->
 
 core_list() ->
   [
-    "lib/uri/parser.ex",
-    "lib/elixir/formatter.ex",
-    "lib/dict.ex",
-    "lib/*/*.ex",
-    "lib/*.ex"
+    "lib/kernel/uri/parser.ex",
+    "lib/kernel/elixir/formatter.ex",
+    "lib/kernel/dict.ex",
+    "lib/kernel/*/*.ex",
+    "lib/kernel/*.ex"
   ].
 
 core_main() ->
   [
-    "lib/elixir/builtin.ex",
-    "lib/macro/env.ex",
-    "lib/macro.ex",
-    "lib/keyword.ex",
-    "lib/module.ex",
-    "lib/list.ex",
-    "lib/protocol.ex",
-    "lib/enum.ex",
-    "lib/record.ex",
-    "lib/exception.ex",
-    "lib/binary/inspect.ex",
-    "lib/binary/chars.ex",
-    "lib/list/chars.ex",
-    "lib/gen_server/behavior.ex"
+    "lib/kernel/elixir/builtin.ex",
+    "lib/kernel/macro/env.ex",
+    "lib/kernel/macro.ex",
+    "lib/kernel/keyword.ex",
+    "lib/kernel/module.ex",
+    "lib/kernel/list.ex",
+    "lib/kernel/protocol.ex",
+    "lib/kernel/enum.ex",
+    "lib/kernel/record.ex",
+    "lib/kernel/exception.ex",
+    "lib/kernel/binary/inspect.ex",
+    "lib/kernel/binary/chars.ex",
+    "lib/kernel/list/chars.ex",
+    "lib/kernel/gen_server/behavior.ex"
   ].
 
 %% ERROR HANDLING

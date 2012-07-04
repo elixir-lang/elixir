@@ -194,9 +194,9 @@ defmodule FileTest do
   end
 
   test :mkdir_with_invalid_path do
-    assert File.exists?('test/elixir/file_test.exs')
-    assert File.mkdir('test/elixir/file_test.exs/test') == { :error, :enotdir }
-    refute File.exists?('test/elixir/file_test.exs/test')
+    assert File.exists?('test/kernel/file_test.exs')
+    assert File.mkdir('test/kernel/file_test.exs/test') == { :error, :enotdir }
+    refute File.exists?('test/kernel/file_test.exs/test')
   end
 
   test :mkdir_p_with_one_directory do
@@ -244,9 +244,9 @@ defmodule FileTest do
   end
 
   test :mkdir_p_with_invalid_path do
-    assert File.exists?('test/elixir/file_test.exs')
-    assert File.mkdir('test/elixir/file_test.exs/test/foo') == { :error, :enotdir }
-    refute File.exists?('test/elixir/file_test.exs/test/foo')
+    assert File.exists?('test/kernel/file_test.exs')
+    assert File.mkdir('test/kernel/file_test.exs/test/foo') == { :error, :enotdir }
+    refute File.exists?('test/kernel/file_test.exs/test/foo')
   end
 
   test :write_normal_content do

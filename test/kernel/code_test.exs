@@ -30,7 +30,7 @@ defmodule CodeTest do
   test :require do
     Code.require_file "../fixtures/code_sample", __FILE__
 
-    expanded = File.expand_path("test/elixir/fixtures/code_sample.exs")
+    expanded = File.expand_path("test/kernel/fixtures/code_sample.exs")
     assert expanded in Code.loaded_files
   end
 

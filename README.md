@@ -34,7 +34,7 @@ If you want to contribute, the code is organized as follows:
 
 * `lib` - Contains Elixir's STDLIB, written in Elixir;
 
-* `test/elixir` - Tests for Elixir's STDLIB, written in Elixir. For this purpose, Elixir ships with a small unit test library called `ExUnit`;
+* `test/kernel` - Tests for Elixir's STDLIB, written in Elixir. For this purpose, Elixir ships with a small unit test library called `ExUnit`;
 
 * `test/erlang` - Contains tests for Elixir, written in Erlang. Usually, just internal stuff is tested here. The preferred way to test is in Elixir itself.
 

@@ -5,8 +5,8 @@
 /test/tmp
 /test/elixir/tmp
 /ebin/*
-/exbin/*
 /src/*rl.old
 /.eunit/*
 /deps/*
-rel/elixir
+/rel/elixir
+/.full
