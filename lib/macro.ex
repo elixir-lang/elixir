@@ -201,6 +201,20 @@ defmodule Macro do
 
   In case the expression cannot be expanded, it returns the expression itself.
 
+  Notice that `Macro.expand` is not recursive and it does not
+  expand child expressions. For example, `!some_macro` will expand as:
+
+      iex> IO.puts Macro.to_binary Macro.expand(quote(do: !some_macro), __ENV__)
+      case some_macro do
+        false -> true
+        nil   -> true
+        _     -> false
+      end
+
+  Notice that the `!` operator is a macro that expands to a case.
+  Even though `some_macro` is also a macro, it is not expanded
+  because it is a child expression given to `!` as argument.
+
   ## Examples
 
   In the example below, we have a macro that generates a module
