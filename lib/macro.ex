@@ -103,7 +103,7 @@ defmodule Macro do
 
   # Binary ops
   def to_binary({ op, _, [left, right] }) when op in binary_ops do
-    to_binary(left) <> " #{op} " <> to_binary(right)
+    op_to_binary(left) <> " #{op} " <> op_to_binary(right)
   end
 
   # Unary ops
@@ -175,6 +175,12 @@ defmodule Macro do
   end
 
   defp block_to_binary(other), do: to_binary(other)
+
+  defp op_to_binary({ op, _, [_, _] } = expr) when op in binary_ops do
+    "(" <> to_binary(expr) <> ")"
+  end
+
+  defp op_to_binary(expr), do: to_binary(expr)
 
   defp adjust_new_lines(block, replacement) do
     bc <<x>> inbits block do

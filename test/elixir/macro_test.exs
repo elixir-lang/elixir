@@ -166,6 +166,11 @@ defmodule MacroTest do
     """
   end
 
+  test :op_precedence_to_binary do
+    assert Macro.to_binary(quote do: (1 + 2) * (3 - 4)) == "(1 + 2) * (3 - 4)"
+    assert Macro.to_binary(quote do: ((1 + 2) * 3) - 4) == "((1 + 2) * 3) - 4"
+  end
+
   test :containers_to_binary do
     assert Macro.to_binary(quote do: { 1, 2, 3 })   == "{1, 2, 3}"
     assert Macro.to_binary(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
