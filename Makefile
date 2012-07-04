@@ -1,7 +1,7 @@
 REBAR:=$(shell which rebar || echo ./rebar)
 ERLC=erlc -I include
 ERL=erl -I include -noshell -pa ebin
-VERSION=0.5.0
+VERSION=0.6.0.dev
 BUILTIN=ebin/__MAIN__-Elixir-Builtin.beam
 FULLFLAG=ebin/__MAIN__.full
 
@@ -32,6 +32,8 @@ full:
 	@ rm -rf full
 	@ touch $(FULLFLAG)
 
+$(FULLFLAG): full
+
 zip: $(FULLFLAG)
 	rm -rf v$(VERSION).zip
 	zip -r v$(VERSION).zip ebin `git ls-files`
@@ -39,8 +41,8 @@ zip: $(FULLFLAG)
 
 release_docs: $(FULLFLAG)
 	bin/elixir ../exdoc/bin/exdoc
-	rm -rf ../elixir-lang.github.com/docs
-	mv output ../elixir-lang.github.com/docs
+	rm -rf ../elixir-lang.github.com/docs/master
+	mv output ../elixir-lang.github.com/docs/master
 
 release_erl: $(FULLFLAG)
 	@ rm -rf rel/elixir
