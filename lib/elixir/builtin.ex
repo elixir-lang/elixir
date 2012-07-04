@@ -2445,8 +2445,8 @@ defmodule Elixir.Builtin do
 
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
-  defmacro __c__({ :<<>>, _line, [string] }, []) when is_list(string) do
-    Binary.unescape(string)
+  defmacro __c__({ :<<>>, _line, [string] }, []) do
+    binary_to_list(Binary.unescape(string))
   end
 
   defmacro __c__({ :<<>>, line, pieces }, []) do
@@ -2463,10 +2463,10 @@ defmodule Elixir.Builtin do
 
   """
 
-  defmacro __r__({ :<<>>, _line, [string] }, options) when is_list(string) do
+  defmacro __r__({ :<<>>, _line, [string] }, options) do
     binary = Binary.unescape(string, Regex.unescape_map(&1))
     regex  = Regex.compile(binary, options)
-    quote do: unquote(Macro.escape(regex))
+    Macro.escape(regex)
   end
 
   defmacro __r__({ :<<>>, line, pieces }, options) do
@@ -2485,7 +2485,7 @@ defmodule Elixir.Builtin do
   """
   defmacro __R__({ :<<>>, _line, [string] }, options) do
     regex = Regex.compile(string, options)
-    quote do: unquote(Macro.escape(regex))
+    Macro.escape(regex)
   end
 
   ## Private functions
