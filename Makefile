@@ -1,62 +1,94 @@
 REBAR:=$(shell which rebar || echo ./rebar)
-ELIXIRC=bin/elixirc --ignore-module-conflict -o ebin
-ERLC=erlc -I include
-ERL=erl -I include -noshell -pa ebin
-FULLFLAG=.full
-VERSION=0.6.0.dev
+ELIXIRC:=bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
+ERLC:=erlc -I lib/elixir/include
+ERL:=erl -I lib/elixir/include -noshell -env ERL_LIBS $ERL_LIBS:lib
+FULLFLAG:=.full
+VERSION:=0.6.0.dev
+
+.PHONY: 1
 .NOTPARALLEL: compile
 
+#==> Templates
+define APP_TEMPLATE
+@ rm -rf lib/$(1)/ebin/$(1).app;                 \
+for f in lib/$(1)/ebin/__MAIN__-$(2)-*.beam; do  \
+	filename=$$(basename $$f);                    \
+	export RES=`echo \'$${filename%.*}\',$$RES`;  \
+done;                                             \
+echo <<EOF > lib/$(1)/ebin/$(1).app              \
+{application, $(1),                               \
+[{description, \"$(1)\"},                         \
+ {vsn, \"$(VERSION)\"},                           \
+ {modules, [                                      \
+    $$RES                                         \
+    \'__MAIN__-$(2)\'                             \
+  ]},                                             \
+ {applications, [kernel,stdlib,elixir]}           \
+]}.
+endef
+
+define TASK_TEMPLATE
+$(1): lib/$(1)/ebin/__MAIN__-$(2).beam
+
+lib/$(1)/ebin/__MAIN__-$(2).beam: $$(wildcard lib/$(1)/lib/**/*.ex) $$(FORCE)
+	@ echo "==> $(1) (compile)"
+	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
+	@ $$(call APP_TEMPLATE,$(1),$(2))
+
+test_$(1): compile
+	@ echo "==> $(1) (exunit)"
+	@ cd lib/$(1) && time ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs"
+endef
+
 #==> Compilation tasks
-KERNEL=ebin/__MAIN__-Elixir-Builtin.beam
-EXUNIT=ebin/__MAIN__-ExUnit.beam
-EEX=ebin/__MAIN__-EEx.beam
+KERNEL:=lib/elixir/ebin/__MAIN__-Elixir-Builtin.beam
 
-compile: erl $(KERNEL) $(EXUNIT) $(EEX)
+compile: erlang elixir
 
-erl:
-	@ $(REBAR) compile
+erlang:
+	@ cd lib/elixir && $(REBAR) compile
 
-$(KERNEL): lib/kernel/*.ex lib/kernel/*/*.ex
-	@ if [ -f $(KERNEL) ]; then                        \
-		echo "==> kernel (compile)";                   \
-		$(ELIXIRC) "lib/kernel/**/*.ex";               \
-	else                                               \
-		echo "==> bootstrap (compile)";                \
-		$(ERL) -s elixir_compiler core -s erlang halt; \
+elixir: kernel ex_unit eex
+
+kernel: $(KERNEL)
+$(KERNEL): $(wildcard lib/elixir/lib/**/*.ex) $(FORCE)
+	@ if [ -f $(KERNEL) ]; then                                   \
+		echo "==> kernel (compile)";                              \
+		$(ELIXIRC) "lib/elixir/lib/**/*.ex" -o lib/elixir/ebin; \
+	else                                                          \
+		echo "==> bootstrap (compile)";                           \
+		$(ERL) -s elixir_compiler core -s erlang halt;            \
 	fi
-	@ touch $(KERNEL)
+	@ rm -rf lib/elixir/ebin/elixir.app
+	@ cd lib/elixir && $(REBAR) compile
 
-$(EXUNIT): lib/ex_unit/*.ex lib/ex_unit/*/*.ex
-	@ echo "==> ex_unit (compile)"
-	@ $(ELIXIRC) "lib/ex_unit/**/*.ex"
-
-$(EEX): lib/eex/*.ex lib/eex/*/*.ex
-	@ echo "==> eex (compile)"
-	@ $(ELIXIRC) "lib/eex/**/*.ex"
+$(eval $(call TASK_TEMPLATE,ex_unit,ExUnit))
+$(eval $(call TASK_TEMPLATE,eex,EEx))
 
 clean:
 	@ rm -rf .full
-	@ rm -rf ebin
-	@ $(REBAR) clean
+	@ rm -rf lib/*/ebin
+	@ cd lib/elixir && $(REBAR) clean
 
 #==> Release tasks
-$(FULLFLAG): ebin/*.beam
-	@ bin/elixirc "lib/**/*.ex" --ignore-module-conflict --docs --debug-info -o full
-	@ rm -rf ebin/__MAIN__*
-	@ mv full/__MAIN__* ebin
-	@ rm -rf full
-
-	@ rm -rf ebin/elixir.app
-	@ $(REBAR) compile
-	@ touch $(FULLFLAG)
+$(FULLFLAG): $(wildcard lib/*/ebin/*)
+	make ELIXIRC_OPTS="--docs --debug-info" FORCE=1
+	touch $(FULLFLAG)
 
 zip: $(FULLFLAG)
+	@ echo "==> elixir (full)"
 	rm -rf v$(VERSION).zip
 	zip -r v$(VERSION).zip ebin `git ls-files`
 	zip v$(VERSION).zip -d .git .gitignore .travis.yml
 
-release_docs: $(FULLFLAG)
+docs: $(FULLFLAG)
+	mkdir -p ebin
+	rm -rf docs
+	cp -R -f lib/*/ebin/__*.beam ./ebin
 	bin/elixir ../exdoc/bin/exdoc
+	rm -rf ebin
+
+release_docs: docs
 	rm -rf ../elixir-lang.github.com/docs/master
 	mv output ../elixir-lang.github.com/docs/master
 
@@ -69,21 +101,13 @@ test: test_erlang test_elixir
 
 test_erlang: compile
 	@ echo "==> elixir (eunit)"
-	@ mkdir -p test/ebin
-	@ $(ERLC) -o test/ebin test/erlang/*.erl
-	@ time $(ERL) -pa test/ebin -s test_helper test -s erlang halt
+	@ mkdir -p lib/elixir/test/ebin
+	@ $(ERLC) -o lib/elixir/test/ebin lib/elixir/test/erlang/*.erl
+	@ time $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt
 	@ echo
 
-test_elixir: test_kernel test_exunit test_eex
+test_elixir: test_kernel test_ex_unit test_eex
 
 test_kernel: compile
 	@ echo "==> kernel (exunit)"
-	@ time bin/elixir -r "test/kernel/test_helper.exs" -pr "test/kernel/**/*_test.exs"
-
-test_exunit: compile
-	@ echo "==> exunit (exunit)"
-	@ time bin/elixir -r "test/ex_unit/test_helper.exs" -pr "test/ex_unit/**/*_test.exs"
-
-test_eex: compile
-	@ echo "==> eex (exunit)"
-	@ time bin/elixir -r "test/eex/test_helper.exs" -pr "test/eex/**/*_test.exs"
+	@ cd lib/elixir && time ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"

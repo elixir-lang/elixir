@@ -33,7 +33,7 @@ SCRIPT_PATH=`dirname $SELF`
 
 if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]
 then
-  $SCRIPT_PATH/erl -env ERL_LIBS:$ERL_LIBS $SCRIPT_PATH/../lib -boot elixir -noshell $ELIXIR_ERL_OPTS -s elixir start_cli -extra "$@"
+  $SCRIPT_PATH/erl -env ERL_LIBS $ERL_LIBS:$SCRIPT_PATH/../lib -boot elixir -noshell $ELIXIR_ERL_OPTS -s elixir start_cli -extra "$@"
 else
-  erl -pa $SCRIPT_PATH/../ebin -noshell $ELIXIR_ERL_OPTS -s elixir start_cli -extra "$@"
+  erl -env ERL_LIBS $ERL_LIBS:$SCRIPT_PATH/../lib -noshell $ELIXIR_ERL_OPTS -s elixir start_cli -extra "$@"
 fi

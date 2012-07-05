@@ -194,9 +194,9 @@ defmodule FileTest do
   end
 
   test :mkdir_with_invalid_path do
-    assert File.exists?('test/kernel/file_test.exs')
-    assert File.mkdir('test/kernel/file_test.exs/test') == { :error, :enotdir }
-    refute File.exists?('test/kernel/file_test.exs/test')
+    assert File.exists?('test/elixir/file_test.exs')
+    assert File.mkdir('test/elixir/file_test.exs/test') == { :error, :enotdir }
+    refute File.exists?('test/elixir/file_test.exs/test')
   end
 
   test :mkdir_p_with_one_directory do
@@ -244,47 +244,47 @@ defmodule FileTest do
   end
 
   test :mkdir_p_with_invalid_path do
-    assert File.exists?('test/kernel/file_test.exs')
-    assert File.mkdir('test/kernel/file_test.exs/test/foo') == { :error, :enotdir }
-    refute File.exists?('test/kernel/file_test.exs/test/foo')
+    assert File.exists?('test/elixir/file_test.exs')
+    assert File.mkdir('test/elixir/file_test.exs/test/foo') == { :error, :enotdir }
+    refute File.exists?('test/elixir/file_test.exs/test/foo')
   end
 
   test :write_normal_content do
     try do
-      refute File.exists?('test/tmp/tmp_test.txt')
-      assert File.write('test/tmp/tmp_test.txt', 'test text') == :ok
-      assert { :ok, "test text" } == File.read('test/tmp/tmp_test.txt')
+      refute File.exists?('test/elixir/tmp_test.txt')
+      assert File.write('test/elixir/tmp_test.txt', 'test text') == :ok
+      assert { :ok, "test text" } == File.read('test/elixir/tmp_test.txt')
     after
-      File.rm('test/tmp/tmp_test.txt')
+      File.rm('test/elixir/tmp_test.txt')
     end
   end
 
   test :write_utf8 do
     try do
-      refute File.exists?('test/tmp/tmp_test.txt')
-      assert File.write('test/tmp/tmp_test.txt', "Русский\n日\n") == :ok
-      assert { :ok, "Русский\n日\n" } == File.read('test/tmp/tmp_test.txt')
+      refute File.exists?('test/elixir/tmp_test.txt')
+      assert File.write('test/elixir/tmp_test.txt', "Русский\n日\n") == :ok
+      assert { :ok, "Русский\n日\n" } == File.read('test/elixir/tmp_test.txt')
     after
-      File.rm('test/tmp/tmp_test.txt')
+      File.rm('test/elixir/tmp_test.txt')
     end
   end
 
   test :write_with_options do
     try do
-      refute File.exists?('test/tmp/tmp_test.txt')
-      assert File.write('test/tmp/tmp_test.txt', "Русский\n日\n") == :ok
-      assert File.write('test/tmp/tmp_test.txt', "test text", [:append]) == :ok
-      assert { :ok, "Русский\n日\ntest text" } == File.read('test/tmp/tmp_test.txt')
+      refute File.exists?('test/elixir/tmp_test.txt')
+      assert File.write('test/elixir/tmp_test.txt', "Русский\n日\n") == :ok
+      assert File.write('test/elixir/tmp_test.txt', "test text", [:append]) == :ok
+      assert { :ok, "Русский\n日\ntest text" } == File.read('test/elixir/tmp_test.txt')
     after
-      File.rm('test/tmp/tmp_test.txt')
+      File.rm('test/elixir/tmp_test.txt')
     end
   end
 
   test :rm_file do
-    File.write('test/tmp/tmp_test.txt', "test")
-    assert File.exists?('test/tmp/tmp_test.txt')
-    assert File.rm('test/tmp/tmp_test.txt') == :ok
-    refute File.exists?('test/tmp/tmp_test.txt')
+    File.write('test/elixir/tmp_test.txt', "test")
+    assert File.exists?('test/elixir/tmp_test.txt')
+    assert File.rm('test/elixir/tmp_test.txt') == :ok
+    refute File.exists?('test/elixir/tmp_test.txt')
   end
 
   test :rm_file_with_dir do
@@ -321,12 +321,12 @@ defmodule FileTest do
 
   test :open_with_write_permission do
     try do
-      { :ok, file } = File.open("test/tmp/tmp_test.txt", [:write])
+      { :ok, file } = File.open("test/elixir/tmp_test.txt", [:write])
       assert IO.write(file, "foo") == :ok
       assert File.close(file) == :ok
-      assert File.read('test/tmp/tmp_test.txt') == { :ok, "foo" }
+      assert File.read('test/elixir/tmp_test.txt') == { :ok, "foo" }
     after
-      File.rm('test/tmp/tmp_test.txt')
+      File.rm('test/elixir/tmp_test.txt')
     end
   end
 

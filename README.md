@@ -28,15 +28,13 @@ If you have the correct version and tests still fail, feel free to [open an issu
 
 # Contributing & Roadmap
 
-If you want to contribute, the code is organized as follows:
+If you want to contribute, Elixir code is is divided inside the apps folder:
 
-* `include`, `src` - Both directories contain part of the source code written in Erlang. `yecc` is used as the parser;
+* `elixir` - Contains Elixir's kernel and stdlib;
 
-* `lib` - Contains Elixir's STDLIB, written in Elixir;
+* `eex` - Template engine that allows you to embed Elixir;
 
-* `test/kernel` - Tests for Elixir's STDLIB, written in Elixir. For this purpose, Elixir ships with a small unit test library called `ExUnit`;
-
-* `test/erlang` - Contains tests for Elixir, written in Erlang. Usually, just internal stuff is tested here. The preferred way to test is in Elixir itself.
+* `ex_unit` - Simple test framework that ships with Elixir;
 
 We usually keep a list of features and bugs [in the issue tracker][2].
 

@@ -6,7 +6,7 @@ defmodule System.ARGVTest do
   use ExUnit.Case
 
   test :argv do
-    list = OS.cmd('bin/elixir -e "IO.inspect System.argv" -- -o opt arg1 arg2 --long-opt 10')
+    list = OS.cmd('../../bin/elixir -e "IO.inspect System.argv" -- -o opt arg1 arg2 --long-opt 10')
     { args, _ } = Code.eval list, []
     assert args == ["-o", "opt", "arg1", "arg2", "--long-opt", "10"]
   end
@@ -16,7 +16,7 @@ defmodule SystemTest do
   use ExUnit.Case
 
   test :at_exit do
-    output = OS.cmd('bin/elixir -e "System.at_exit(fn x -> IO.inspect x end)"')
+    output = OS.cmd('../../bin/elixir -e "System.at_exit(fn x -> IO.inspect x end)"')
     assert output == '0\n'
   end
 

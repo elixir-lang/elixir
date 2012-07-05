@@ -6,9 +6,9 @@ defmodule Elixir.CLI.InitTest do
   use ExUnit.Case
 
   test :code_init do
-    assert OS.cmd('bin/elixir -e "IO.puts 3"') == '3\n'
+    assert OS.cmd('../../bin/elixir -e "IO.puts 3"') == '3\n'
 
-    result = OS.cmd('bin/elixir -e "IO.puts inspect(System.argv)" test/kernel/fixtures/init_sample.exs -o 1 2 3')
+    result = OS.cmd('../../bin/elixir -e "IO.puts inspect(System.argv)" test/elixir/fixtures/init_sample.exs -o 1 2 3')
     assert result == '#{inspect ["-o", "1", "2", "3"]}\n3\n'
   end
 end
@@ -17,25 +17,22 @@ defmodule Elixir.CLI.OptionParsingTest do
   use ExUnit.Case
 
   test :path do
-    list = OS.cmd('bin/elixir -e "IO.inspect Erlang.code.get_path" -pa "*" -pz "lib/*"')
+    list = OS.cmd('../../bin/elixir -e "IO.inspect Erlang.code.get_path" -pa "*" -pz "lib/*"')
     { path, _ } = Code.eval list, []
 
     # pa
-    assert File.expand_path('bin') in path
     assert File.expand_path('ebin') in path
-    assert File.expand_path('src') in path
     assert File.expand_path('lib') in path
-    assert File.expand_path('include') in path
-    assert File.expand_path('test') in path
+    assert File.expand_path('src') in path
 
     # pz
-    assert File.expand_path('lib/kernel') in path
+    assert File.expand_path('lib/list') in path
   end
 
   test :require do
-    options = ['-r', 'lib/kernel/list/*', '-r', '/never/gonna/*/up']
+    options = ['-r', 'lib/list/*', '-r', '/never/gonna/*/up']
     { config, _argv } = Elixir.CLI.process_options(options, Elixir.CLI.Config.new)
-    assert {:require, "lib/kernel/list/chars.ex"} in config.commands
+    assert {:require, "lib/list/chars.ex"} in config.commands
   end
 end
 
@@ -43,7 +40,7 @@ defmodule Elixir.CLI.AtExitTest do
   use ExUnit.Case
 
   test :at_exit do
-    assert OS.cmd('bin/elixir test/kernel/fixtures/at_exit.exs') ==
+    assert OS.cmd('../../bin/elixir test/elixir/fixtures/at_exit.exs') ==
       'goodbye cruel world with status 0\n'
   end
 end
@@ -56,7 +53,7 @@ defmodule Elixir.CLI.ErrorTest do
     assert Erlang.string.str('** (ErlangError) erlang error: 1', OS.cmd('bin/elixir -e "error 1"')) == 0
 
     # It does not catch exits with integers nor strings...
-    assert OS.cmd('bin/elixir -e "exit 1"') == ''
+    assert OS.cmd('../../bin/elixir -e "exit 1"') == ''
   end
 end
 
@@ -76,11 +73,11 @@ defmodule Elixir.CLI.CompileTest do
 
   test :compile_code do
     try do
-      assert OS.cmd('bin/elixirc test/kernel/fixtures/compile_sample.exs -o test/tmp/') ==
-        'Compiled test/kernel/fixtures/compile_sample.exs\n'
+      assert OS.cmd('../../bin/elixirc test/elixir/fixtures/compile_sample.exs -o test/tmp') ==
+        'Compiled test/elixir/fixtures/compile_sample.exs\n'
       assert File.regular?("test/tmp/__MAIN__-CompileSample.beam")
     after
-      Erlang.file.del_dir("test/tmp/")
+      Erlang.file.del_dir("test/tmp")
     end
   end
 end
@@ -90,20 +87,20 @@ defmodule Elixir.CLI.ParallelCompilerTest do
 
   test :compile_code do
     try do
-      output = OS.cmd('bin/elixirc test/kernel/fixtures/parallel_compiler -o test/tmp/')
+      output = OS.cmd('../../bin/elixirc test/elixir/fixtures/parallel_compiler -o test/tmp')
       assert Erlang.string.str(output, 'message_from_foo') > 0,
         "Expected #{inspect output} to contain 'message_from_foo'"
       assert File.regular?("test/tmp/__MAIN__-Foo.beam")
       assert File.regular?("test/tmp/__MAIN__-Bar.beam")
     after
-      Erlang.file.del_dir("test/tmp/")
+      Erlang.file.del_dir("test/tmp")
     end
   end
 
   test :deadlock_failure do
-    output = OS.cmd('bin/elixirc test/kernel/fixtures/parallel_deadlock -o test/tmp/')
-    foo = '== Compilation error on file test/kernel/fixtures/parallel_deadlock/foo.ex (undefined module Bar) =='
-    bar = '== Compilation error on file test/kernel/fixtures/parallel_deadlock/bar.ex (undefined module Foo) =='
+    output = OS.cmd('../../bin/elixirc test/elixir/fixtures/parallel_deadlock -o test/elixir/')
+    foo = '== Compilation error on file test/elixir/fixtures/parallel_deadlock/foo.ex (undefined module Bar) =='
+    bar = '== Compilation error on file test/elixir/fixtures/parallel_deadlock/bar.ex (undefined module Foo) =='
     assert Erlang.string.str(output, foo) > 0 or Erlang.string.str(output, bar) > 0,
       "Expected #{inspect output} to contain #{inspect foo} or #{inspect bar}"
   end

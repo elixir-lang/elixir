@@ -181,7 +181,7 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 core_file(File) ->
   try
     Lists = file(list_to_binary(File)),
-    [binary_to_path(X, "ebin") || X <- Lists],
+    [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
     io:format("Compiled ~s~n", [File])
   catch
     Kind:Reason ->
@@ -191,29 +191,29 @@ core_file(File) ->
 
 core_list() ->
   [
-    "lib/kernel/uri/parser.ex",
-    "lib/kernel/elixir/formatter.ex",
-    "lib/kernel/dict.ex",
-    "lib/kernel/*/*.ex",
-    "lib/kernel/*.ex"
+    "lib/elixir/lib/uri/parser.ex",
+    "lib/elixir/lib/elixir/formatter.ex",
+    "lib/elixir/lib/dict.ex",
+    "lib/elixir/lib/*/*.ex",
+    "lib/elixir/lib/*.ex"
   ].
 
 core_main() ->
   [
-    "lib/kernel/elixir/builtin.ex",
-    "lib/kernel/macro/env.ex",
-    "lib/kernel/macro.ex",
-    "lib/kernel/keyword.ex",
-    "lib/kernel/module.ex",
-    "lib/kernel/list.ex",
-    "lib/kernel/protocol.ex",
-    "lib/kernel/enum.ex",
-    "lib/kernel/record.ex",
-    "lib/kernel/exception.ex",
-    "lib/kernel/binary/inspect.ex",
-    "lib/kernel/binary/chars.ex",
-    "lib/kernel/list/chars.ex",
-    "lib/kernel/gen_server/behavior.ex"
+    "lib/elixir/lib/elixir/builtin.ex",
+    "lib/elixir/lib/macro/env.ex",
+    "lib/elixir/lib/macro.ex",
+    "lib/elixir/lib/keyword.ex",
+    "lib/elixir/lib/module.ex",
+    "lib/elixir/lib/list.ex",
+    "lib/elixir/lib/protocol.ex",
+    "lib/elixir/lib/enum.ex",
+    "lib/elixir/lib/record.ex",
+    "lib/elixir/lib/exception.ex",
+    "lib/elixir/lib/binary/inspect.ex",
+    "lib/elixir/lib/binary/chars.ex",
+    "lib/elixir/lib/list/chars.ex",
+    "lib/elixir/lib/gen_server/behavior.ex"
   ].
 
 %% ERROR HANDLING
