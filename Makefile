@@ -30,7 +30,7 @@ endef
 define TASK_TEMPLATE
 $(1): lib/$(1)/ebin/__MAIN__-$(2).beam
 
-lib/$(1)/ebin/__MAIN__-$(2).beam: lib/$(1)/lib/*.ex lib/$(1)/lib/*/*.ex lib/$(1)/lib/*/*/*.ex $$(FORCE)
+lib/$(1)/ebin/__MAIN__-$(2).beam: $(wildcard lib/$(1)/lib/*.ex,lib/$(1)/lib/*/*.ex,lib/$(1)/lib/*/*/*.ex) $$(FORCE)
 	@ echo "==> $(1) (compile)"
 	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
 	@ $$(call APP_TEMPLATE,$(1),$(2))
