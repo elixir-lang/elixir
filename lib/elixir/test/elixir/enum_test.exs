@@ -106,6 +106,11 @@ defmodule EnumTest.List do
     end
   end
 
+  test :first do
+    assert Enum.first([]) == nil
+    assert Enum.first([1,2,3]) == 1
+  end
+
   test :filter do
     assert Enum.filter([1,2,3], fn(x) -> rem(x, 2) == 0 end) == [2]
     assert Enum.filter([2,4,6], fn(x) -> rem(x, 2) == 0 end) == [2,4,6]
@@ -356,6 +361,12 @@ defmodule EnumTest.HashDict do
     end
   end
 
+  test :first do
+    assert_raise Protocol.UndefinedError, fn ->
+      Enum.first HashDict.new
+    end
+  end
+
   test :split do
     assert_raise Protocol.UndefinedError, fn ->
       Enum.split HashDict.new, 5
@@ -394,6 +405,14 @@ defmodule EnumTest.Orddict do
   test :drop_while do
     dict = Orddict.new [a: 1, b: 2, c: 3]
     assert Enum.drop_while(dict, fn({_k, v}) -> v < 3 end) == [c: 3]
+  end
+
+  test :first do
+    dict = Orddict.new []
+    assert Enum.first(dict) == nil
+
+    dict = Orddict.new [a: 1, b: 2, c: 3]
+    assert Enum.first(dict) == {:a, 1}
   end
 
   test :split do
@@ -504,6 +523,14 @@ defmodule EnumTest.Range do
 
     range = Range.new(first: 1, last: 2)
     refute Enum.empty?(range)
+  end
+
+  test :first do
+    range = Range.new(first: 1, last: 0)
+    assert Enum.first(range) == nil
+
+    range = Range.new(first: 1, last: 2)
+    assert Enum.first(range) == 1
   end
 
   test :each do

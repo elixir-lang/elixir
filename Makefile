@@ -10,12 +10,12 @@ VERSION:=0.6.0.dev
 
 #==> Templates
 define APP_TEMPLATE
-@ rm -rf lib/$(1)/ebin/$(1).app;                 \
-for f in lib/$(1)/ebin/__MAIN__-$(2)-*.beam; do  \
+@ rm -rf lib/$(1)/ebin/$(1).app;                  \
+for f in lib/$(1)/ebin/__MAIN__-$(2)-*.beam; do   \
 	filename=$$(basename $$f);                    \
 	export RES=`echo \'$${filename%.*}\',$$RES`;  \
 done;                                             \
-echo <<EOF > lib/$(1)/ebin/$(1).app              \
+echo <<EOF > lib/$(1)/ebin/$(1).app               \
 {application, $(1),                               \
 [{description, \"$(1)\"},                         \
  {vsn, \"$(VERSION)\"},                           \
@@ -30,7 +30,7 @@ endef
 define TASK_TEMPLATE
 $(1): lib/$(1)/ebin/__MAIN__-$(2).beam
 
-lib/$(1)/ebin/__MAIN__-$(2).beam: $$(wildcard lib/$(1)/lib/**/*.ex) $$(FORCE)
+lib/$(1)/ebin/__MAIN__-$(2).beam: lib/$(1)/lib/*.ex lib/$(1)/lib/*/*.ex lib/$(1)/lib/*/*/*.ex $$(FORCE)
 	@ echo "==> $(1) (compile)"
 	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
 	@ $$(call APP_TEMPLATE,$(1),$(2))
@@ -51,13 +51,13 @@ erlang:
 elixir: kernel ex_unit eex
 
 kernel: $(KERNEL)
-$(KERNEL): $(wildcard lib/elixir/lib/**/*.ex) $(FORCE)
-	@ if [ -f $(KERNEL) ]; then                                   \
-		echo "==> kernel (compile)";                              \
+$(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex $(FORCE)
+	@ if [ -f $(KERNEL) ]; then                                 \
+		echo "==> kernel (compile)";                            \
 		$(ELIXIRC) "lib/elixir/lib/**/*.ex" -o lib/elixir/ebin; \
-	else                                                          \
-		echo "==> bootstrap (compile)";                           \
-		$(ERL) -s elixir_compiler core -s erlang halt;            \
+	else                                                        \
+		echo "==> bootstrap (compile)";                         \
+		$(ERL) -s elixir_compiler core -s erlang halt;          \
 	fi
 	@ rm -rf lib/elixir/ebin/elixir.app
 	@ cd lib/elixir && $(REBAR) compile

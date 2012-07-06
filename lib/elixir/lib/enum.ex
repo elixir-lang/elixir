@@ -401,6 +401,26 @@ defmodule Enum do
   end
 
   @doc """
+  Returns the first item in the collection or nil otherwise.
+
+  ## Examples
+
+      Enum.first []      #=> nil
+      Enum.first [1,2,3] #=> 1
+
+  """
+  def first([]),    do: nil
+  def first([h|_]), do: h
+
+  def first(collection) do
+    case O.iterator(collection) do
+      { _iterator, { h, _ } } -> h
+      { _iterator, :stop }    -> nil
+      list when is_list(list) -> first(list)
+    end
+  end
+
+  @doc """
   Joins the given `collection` according to `joiner`.
   Joiner can be either a binary or a list and the
   result will be of the same type as joiner. If
