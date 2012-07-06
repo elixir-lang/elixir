@@ -234,6 +234,14 @@ tokenize("\r\n" ++ Rest, Line, File, Tokens) ->
 tokenize([$&,H|Rest], Line, File, Tokens) when ?is_digit(H) ->
   tokenize(Rest, Line, File, [{'&', Line, [list_to_integer([H])]}|Tokens]);
 
+% ## Comparison three token operators
+tokenize([T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3) ->
+  handle_comp_op(Line, File, list_to_atom([T1,T2,T3]), Rest, Tokens);
+
+% ## Three token operators
+tokenize([T1,T2,T3|Rest], Line, File, Tokens) when ?op3(T1, T2, T3) ->
+  handle_op(Line, File, list_to_atom([T1,T2,T3]), Rest, Tokens, 3);
+
 % ## Containers + punctuation tokens
 
 tokenize([T,T|Rest], Line, File, Tokens) when T == $<; T == $> ->
@@ -242,14 +250,6 @@ tokenize([T,T|Rest], Line, File, Tokens) when T == $<; T == $> ->
 tokenize([T|Rest], Line, File, Tokens) when T == $(;
   T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
   tokenize(Rest, Line, File, [{list_to_atom([T]), Line}|Tokens]);
-
-% ## Comparison three token operators
-tokenize([T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3) ->
-  handle_comp_op(Line, File, list_to_atom([T1,T2,T3]), Rest, Tokens);
-
-% ## Three token operators
-tokenize([T1,T2,T3|Rest], Line, File, Tokens) when ?op3(T1, T2, T3) ->
-  handle_op(Line, File, list_to_atom([T1,T2,T3]), Rest, Tokens, 3);
 
 % ## Comparison two token operators
 tokenize([T1,T2|Rest], Line, File, Tokens) when ?comp2(T1, T2) ->
