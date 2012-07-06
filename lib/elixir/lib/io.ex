@@ -84,10 +84,11 @@ defmodule IO do
 
   @doc """
   Inspects and writes the given argument to the device
-  followed by a new line.
+  followed by a new line. Returns the item given.
   """
   def inspect(device // :stdio, item) do
     puts device, Elixir.Builtin.inspect(item)
+    item
   end
 
   @doc """

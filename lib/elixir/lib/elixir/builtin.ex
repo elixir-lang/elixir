@@ -2144,6 +2144,38 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  `/>` is called the pipeline operator as it is useful
+  to write pipeline style expressions. This operator
+  tntroduces the expression on the left as the first
+  argument to the expression on the right.
+
+  ## Examples
+
+      [1,[2],3] /> List.flatten /> Enum.map(&1 * 2)
+      #=> [2,4,6]
+
+  The expression above is simply translated to:
+
+      Enum.map(List.flatten([1,[2],3]), &1 * 2)
+
+  """
+  defmacro :/>.(left, right) do
+    pipeline_op(left, right)
+  end
+
+  defp pipeline_op(left, { :/>, _, [middle, right] }) do
+    pipeline_op(pipeline_op(left, middle), right)
+  end
+
+  defp pipeline_op(left, { call, line, atom }) when is_atom(atom) do
+    { call, line, [left] }
+  end
+
+  defp pipeline_op(left, { call, line, args }) when is_list(args) do
+    { call, line, [left|args] }
+  end
+
+  @doc """
   Raises an error.
 
   If the argument is a binary, it raises RuntimeError with the message.

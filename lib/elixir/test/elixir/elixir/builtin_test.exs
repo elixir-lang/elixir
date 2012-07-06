@@ -35,7 +35,7 @@ defmodule Elixir.BuiltinTest do
     end
   end
 
-  defmodule Mcaros do
+  defmodule DefDelegate do
     use ExUnit.Case
 
     defdelegate [my_flatten: 1], to: List, as: :flatten
@@ -48,7 +48,26 @@ defmodule Elixir.BuiltinTest do
     test :defdelegate_with_appended_handle do
       assert map([1], fn(x) -> x + 1 end) == [2]
     end
+  end
 
+  defmodule PipelineOp do
+    use ExUnit.Case
+
+    test :simple do
+      assert [1,[2],3] /> List.flatten == [1,2,3]
+    end
+
+    test :nested do
+      assert [1,[2],3] /> List.flatten /> Enum.map(&1 * 2) == [2,4,6]
+    end
+
+    test :local do
+      assert [1,[2],3] /> List.flatten /> local == [2,4,6]
+    end
+
+    defp local(list) do
+      Enum.map(list, &1 * 2)
+    end
   end
 
   defmodule Destructure do
