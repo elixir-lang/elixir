@@ -52,7 +52,7 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 erlang:
 	@ cd lib/elixir && $(REBAR) compile
 
-elixir: kernel ex_unit eex
+elixir: kernel ex_unit eex mix
 
 kernel: $(KERNEL)
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex $(FORCE)
@@ -68,6 +68,7 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex $(FORCE)
 
 $(eval $(call TASK_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call TASK_TEMPLATE,eex,EEx))
+$(eval $(call TASK_TEMPLATE,mix,Mix))
 
 clean:
 	@ rm -rf .full
@@ -111,8 +112,8 @@ test_erlang: compile
 	@ time $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt
 	@ echo
 
-test_elixir: test_kernel test_ex_unit test_eex
+test_elixir: test_kernel test_ex_unit test_eex test_mix
 
-test_kernel: compile
+test_kernel: kernel
 	@ echo "==> kernel (exunit)"
 	@ cd lib/elixir && time ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"

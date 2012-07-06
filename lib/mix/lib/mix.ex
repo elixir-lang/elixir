@@ -1,0 +1,2 @@
+defmodule Mix do
+end
