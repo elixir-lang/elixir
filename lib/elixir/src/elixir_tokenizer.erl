@@ -23,6 +23,15 @@
   T1 == $!, T2 == $=, T3 == $=
 ).
 
+-define(op3(T1, T2, T3),
+  T1 == $<, T2 == $<, T3 == $<;
+  T1 == $>, T2 == $>, T3 == $>;
+  T1 == $^, T2 == $^, T3 == $^;
+  T1 == $~, T2 == $~, T3 == $~;
+  T1 == $&, T2 == $&, T3 == $&;
+  T1 == $|, T2 == $|, T3 == $|
+).
+
 -define(comp2(T1, T2),
   T1 == $=, T2 == $=;
   T1 == $!, T2 == $=;
@@ -130,7 +139,7 @@ tokenize([$.,T1,T2|Rest], Line, File, Tokens) when ?container2(T1, T2) ->
   handle_call_identifier(Line, File, list_to_atom([T1, T2]), Rest, Tokens);
 
 % ## Three Token Operators
-tokenize([$.,T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3) ->
+tokenize([$.,T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3) ->
   handle_call_identifier(Line, File, list_to_atom([T1, T2, T3]), Rest, Tokens);
 
 % ## Two Token Operators
@@ -188,7 +197,7 @@ tokenize([$:,T1,T2|Rest], Line, File, Tokens) when ?container2(T1, T2) ->
   tokenize(Rest, Line, File, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
 
 % ## Three Token Operators
-tokenize([$:,T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3) ->
+tokenize([$:,T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3)  ->
   tokenize(Rest, Line, File, [{atom,Line,[list_to_atom([T1,T2,T3])]}|Tokens]);
 
 % ## Two Token Operators
@@ -238,7 +247,9 @@ tokenize([T|Rest], Line, File, Tokens) when T == $(;
 tokenize([T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3) ->
   handle_comp_op(Line, File, list_to_atom([T1,T2,T3]), Rest, Tokens);
 
-% ## Three token operators - none yet
+% ## Three token operators
+tokenize([T1,T2,T3|Rest], Line, File, Tokens) when ?op3(T1, T2, T3) ->
+  handle_op(Line, File, list_to_atom([T1,T2,T3]), Rest, Tokens, 3);
 
 % ## Comparison two token operators
 tokenize([T1,T2|Rest], Line, File, Tokens) when ?comp2(T1, T2) ->

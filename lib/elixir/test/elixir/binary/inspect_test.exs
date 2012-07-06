@@ -36,6 +36,11 @@ defmodule Binary.Inspect.AtomTest do
     assert inspect(:bar!) == ":bar!"
   end
 
+  test :op do
+    assert inspect(:@)   == ":@"
+    assert inspect(:&&&) == ":&&&"
+  end
+
   test :impl do
     assert Binary.Inspect.Atom.__impl__ == Binary.Inspect
   end
@@ -54,7 +59,7 @@ defmodule Binary.Inspect.BitStringTest do
   end
 
   test :escape do
-    assert inspect("f\no") == "\"f\\no\"" 
+    assert inspect("f\no") == "\"f\\no\""
     assert inspect("f\\o") == "\"f\\\\o\""
   end
 

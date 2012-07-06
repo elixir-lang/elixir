@@ -8,7 +8,7 @@ Nonterminals
   comma_separator
   add_op mult_op unary_op addadd_op multmult_op bin_concat_op
   match_op send_op default_op when_op pipe_op in_op inc_op stab_op range_op
-  andand_op oror_op and_op or_op comp_expr_op colon_colon_op
+  andand_op oror_op and_op or_op comp_expr_op colon_colon_op three_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
@@ -36,6 +36,7 @@ Terminals
   '(' ')' '[' ']' '{' '}' '<<' '>>' '::'
   eol ','  '&' '|'  '.' '^' '@' '<-' '<>' '->'
   '&&' '||' '!' '...' '..'
+  '<<<' '>>>' '&&&' '|||' '^^^' '~~~'
   .
 
 Rootsymbol grammar.
@@ -57,11 +58,12 @@ Left     150 and_op.
 Left     160 comp_expr_op.
 Left     170 in_op.
 Left     180 range_op.
-Left     190 add_op.
-Left     200 mult_op.
-Right    210 bin_concat_op.
-Right    220 addadd_op.
-Right    230 multmult_op.
+Left     190 three_op.
+Left     200 add_op.
+Left     210 mult_op.
+Right    220 bin_concat_op.
+Right    230 addadd_op.
+Right    240 multmult_op.
 Nonassoc 300 unary_op.
 Left     310 dot_call_op.
 Left     310 dot_op.
@@ -98,6 +100,7 @@ op_expr -> mult_op expr : { '$1', '$2' }.
 op_expr -> addadd_op expr : { '$1', '$2' }.
 op_expr -> multmult_op expr : { '$1', '$2' }.
 op_expr -> andand_op expr : { '$1', '$2' }.
+op_expr -> three_op expr : { '$1', '$2' }.
 op_expr -> oror_op expr : { '$1', '$2' }.
 op_expr -> and_op expr : { '$1', '$2' }.
 op_expr -> or_op expr : { '$1', '$2' }.
@@ -118,6 +121,7 @@ matched_op_expr -> mult_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> addadd_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> multmult_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> andand_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> three_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> oror_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> and_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> or_op matched_expr : { '$1', '$2' }.
@@ -256,6 +260,17 @@ addadd_op -> '--' eol : '$1'.
 multmult_op -> '**' : '$1'.
 multmult_op -> '**' eol : '$1'.
 
+three_op -> '&&&' : '$1'.
+three_op -> '&&&' eol : '$1'.
+three_op -> '|||' : '$1'.
+three_op -> '|||' eol : '$1'.
+three_op -> '<<<' : '$1'.
+three_op -> '<<<' eol : '$1'.
+three_op -> '>>>' : '$1'.
+three_op -> '>>>' eol : '$1'.
+three_op -> '^^^' : '$1'.
+three_op -> '^^^' eol : '$1'.
+
 default_op -> '//' : '$1'.
 default_op -> '//' eol : '$1'.
 
@@ -274,6 +289,8 @@ unary_op -> 'not' : '$1'.
 unary_op -> 'not' eol : '$1'.
 unary_op -> '@' : '$1'.
 unary_op -> '@' eol : '$1'.
+unary_op -> '~~~' : '$1'.
+unary_op -> '~~~' eol : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.

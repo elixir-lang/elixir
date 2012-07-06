@@ -16,15 +16,15 @@ defprotocol Binary.Inspect do
 end
 
 defimpl Binary.Inspect, for: Atom do
+  require Macro
+
   @doc """
   Represents the atom as an Elixir term. The atoms false, true
   and nil are simply quoted. Modules are properly represented
   as modules using the dot notation.
 
   Notice that in Elixir, all operators can be represented using
-  literal atoms (`:+`, `:-`, etc) with the exception of the
-  operators `..` and `...` which need to be wrapped in quotes
-  (`:".."` and `:"..."`).
+  literal atoms (`:+`, `:-`, etc).
 
   ## Examples
 
@@ -42,8 +42,10 @@ defimpl Binary.Inspect, for: Atom do
     binary = atom_to_binary(atom)
 
     cond do
+      atom in Macro.binary_ops or atom in Macro.unary_ops ->
+        ":" <> binary
       valid_atom_identifier?(binary) ->
-          ":" <> binary
+        ":" <> binary
       valid_ref_identifier?(binary) ->
         "__MAIN__-" <> rest = binary
         bc <<r>> inbits rest, do: <<to_dot(r)>>
@@ -221,7 +223,7 @@ defimpl Binary.Inspect, for: Tuple do
       fields = lc { field, _ } inlist name.__record__(:fields), do: field
       if length(fields) != size(thing) - 1 do
         Binary.Inspect.List.container_join(list, "{", "}")
-      else   
+      else
         Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
       end
     else
@@ -248,7 +250,7 @@ defimpl Binary.Inspect, for: Tuple do
   defp records_join([], [], acc, last) do
     acc <> last
   end
-  
+
 end
 
 defimpl Binary.Inspect, for: Number do
