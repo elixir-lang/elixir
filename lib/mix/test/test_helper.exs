@@ -1,2 +1,2 @@
-# Configure ExUnit, no options supported yet.
+Mix.start
 ExUnit.start []
