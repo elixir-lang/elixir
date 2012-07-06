@@ -15,6 +15,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [ExUnit] Support setup and teardown callbacks;
   * [Kernel] Introduced operator `=~` for regular expression matches;
   * [Kernel] Compiled docs now include the function signature;
   * [Kernel] defmodule do not start a new variable scope, this improves meta-programming capabilities;

@@ -77,6 +77,8 @@ defmodule ExUnit.Runner do
 
   defp run_test(pid, test_case, test) do
     final = try do
+      _ = test_case.setup(test)
+
       partial = try do
         apply test_case, test, []
         nil
@@ -88,6 +90,7 @@ defmodule ExUnit.Runner do
           { kind1, error1, System.stacktrace }
       end
 
+      _ = test_case.teardown(test)
       partial
     rescue
       error2 ->

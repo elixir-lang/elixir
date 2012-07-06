@@ -40,10 +40,12 @@ defmodule ExUnit.Case do
       import ExUnit.Assertions
       import ExUnit.Case
 
-      def setup_all, do: :ok
+      def setup(_),     do: :ok
+      def teardown(_),  do: :ok
+      def setup_all,    do: :ok
       def teardown_all, do: :ok
 
-      defoverridable [setup_all: 0, teardown_all: 0]
+      defoverridable [setup: 1, teardown: 1, setup_all: 0, teardown_all: 0]
     end
   end
 
