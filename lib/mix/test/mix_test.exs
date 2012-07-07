@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule MixTest do
-  use ExUnit.Case
+  use MixTest.Case
 
   test :mixfile do
     assert Mix.mixfile == nil
