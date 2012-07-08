@@ -142,14 +142,6 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ :access, _, [container, base] }, _else) do
-    quote do
-      container = unquote(container)
-      base = unquote(base)
-      assert(container[base], "Expected #{inspect base} to access #{inspect container}")
-    end
-  end
-
   ## Negative versions
 
   defp translate_assertion({ op, _, [{ :=, _, [expected, received] }] }, _else) when negation?(op) do

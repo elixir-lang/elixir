@@ -3,78 +3,26 @@ Code.require_file "../test_helper", __FILE__
 defmodule Access.TupleTest do
   use ExUnit.Case
 
-  defrecord Config, other: { :a, :b, :c }
-
-  test :literal do
-    assert { :a, :b, :c }[1] == :a
-    assert Config.new.other[1] == :a
+  test :list do
+    assert [foo: :bar][:foo] == :bar
   end
 
-  test :positive_integer do
-    tuple = { :a, :b, :c }
-    assert tuple[0] == nil
-    assert tuple[1] == :a
-    assert tuple[2] == :b
-    assert tuple[3] == :c
-    assert tuple[4] == nil
-  end
-
-  test :negative_integer do
-    tuple = { :a, :b, :c }
-    assert tuple[-4] == nil
-    assert tuple[-3] == :a
-    assert tuple[-2] == :b
-    assert tuple[-1] == :c
-  end
-
-  test :access do
-    assert Tuple.access({ :a, :b, :c }, -1) == :c
-  end
-end
-
-defmodule Access.ListTest do
-  use ExUnit.Case
-
-  test :literal do
-    assert 'abc'[%r(a)] == 'a'
-  end
-
-  test :regex do
-    list = 'abc'
-    assert list[%r(b)] == 'b'
-    assert list[%r(d)] == nil
+  test :function do
+    function = fn x -> x == :foo end
+    assert function[:foo] == true
+    assert function[:bar] == false
   end
 
   test :atom do
-    list = [foo: "bar"]
-    assert list[:foo] == "bar"
-    assert list[:bar] == nil
-  end
-
-  test :access do
-    assert List.access([foo: :bar ], :foo) == :bar
+    exception = assert_raise RuntimeError, fn ->
+      foo = :foo
+      foo[:atom]
+    end
+    assert exception.message == "The access protocol can only be invoked for atoms at compilation time, tried to invoke it for :foo"
   end
 end
 
-defmodule Access.BinaryTest do
-  use ExUnit.Case
-
-  test :literal do
-    assert "abc"[%r(a)] == "a"
-  end
-
-  test :regex do
-    binary = "abc"
-    assert binary[%r(b)] == "b"
-    assert binary[%r(d)] == nil
-  end
-
-  test :access do
-    assert Binary.access("abc", %r"a") == "a"
-  end
-end
-
-defmodule Access.AtomTest do
+defmodule Access.RecordTest do
   use ExUnit.Case
 
   defrecord Config, integer: 0
@@ -114,14 +62,4 @@ defmodule Access.AtomTest do
 
   defp is_config(Config[]), do: true
   defp is_config(_), do: false
-end
-
-defmodule Access.FunctionTest do
-  use ExUnit.Case
-
-  test :any do
-    function = fn x -> x == :foo end
-    assert function[:foo] == true
-    assert function[:bar] == false
-  end
 end

@@ -111,50 +111,6 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test :assert_access_when_is_member do
-    true = assert "abc"[%r(b)]
-  end
-
-  test :assert_access_when_is_not_member do
-    try do
-      "This should never be tested" = assert {1,2,3}[10]
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected 10 to access {1,2,3}" = error.message
-    end
-  end
-
-  test :assert_access_with_message_when_is_not_member do
-    try do
-      "This should never be tested" = assert({1,2,3}[10], "should access")
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "should access" = error.message
-    end
-  end
-
-  test :assert_no_access_when_is_not_member do
-    true = assert !{1,2,3}[10]
-  end
-
-  test :assert_no_access_when_is_member do
-    try do
-      "This should never be tested" = assert !{1,2,3}[1]
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected 1 to not access {1,2,3}" = error.message
-    end
-  end
-
-  test :assert_no_access_with_message_when_is_member do
-    try do
-      "This should never be tested" = assert !{1,2,3}[1], "This should be included"
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "This should be included" = error.message
-    end
-  end
-
   test :assert_raise_when_no_error do
     "This should never be tested" = assert_raise ArgumentError, fn ->
       # nothing

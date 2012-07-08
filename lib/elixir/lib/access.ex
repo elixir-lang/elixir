@@ -7,11 +7,12 @@ defprotocol Access do
   is translated to `access foo, bar` which, by default,
   invokes `Access.access` protocol.
 
-  This protocol is implemented by default for most builtin
-  types, like tuples, atoms, functions, etc.
+  This protocol is limited and is implemented only for the
+  following built-in types: keywords, tuples, atoms and
+  functions.
   """
 
-  @only [List, BitString, Record, Tuple, Atom, Function]
+  @only [List, Function, Record, Atom]
 
   @doc """
   Receives the element being accessed and the access item.
@@ -19,76 +20,20 @@ defprotocol Access do
   def access(element, qualifier)
 end
 
-defimpl Access, for: Tuple do
-  @doc """
-  Access the tuple via an integer. Negative indexes
-  performs an inverted lookup, for example, -1 can be
-  used to retrieve the last item in the tuple. Returns
-  nil if an out of bounds access occurs.
-
-  ## Examples
-
-      tuple = { :a, :b, :c }
-      tuple[-1] #=> :c
-
-  """
-  def access(tuple, integer) when is_integer(integer) and integer > 0 and integer <= tuple_size(tuple) do
-    :erlang.element(integer, tuple)
-  end
-
-  def access(tuple, integer) when is_integer(integer) and integer < 0 do
-    size     = tuple_size(tuple)
-    position = integer + size + 1
-    if position > size or position < 1,
-      do: nil, else: :erlang.element(position, tuple)
-  end
-
-  def access(_tuple, integer) when is_integer(integer) do
-    nil
-  end
-end
-
 defimpl Access, for: List do
   @doc """
-  Access the list via a predicate.
-
-  If a regular expression, it returns a list with the
-  matched contents.
-
-  If an atom, assumes the list is a keywords list and
-  access the key in the keywords equals to the given
-  atom.
-
-  Notice this protocol does not implement an integer
-  lookup. This is intentional since doing an index
-  based access on lists is usually undesired.
+  Access the given key in a keywords list.
 
   ## Examples
-
-      list = 'sample'
-      list[%r/a/] #=> 'a'
 
       keywords = [a: 1, b: 2]
       keywords[:a] #=> 1
 
   """
 
-  ## Atom
-
   def access(list, atom) when is_atom(atom) do
     atom_access(list, atom)
   end
-
-  ## Regex
-
-  def access(list, re) when is_regex(re) do
-    case Erlang.re.run(list, Regex.re_pattern(re), [{ :capture, :first, :list }]) do
-      :nomatch -> nil
-      { :match, [result] } -> result
-    end
-  end
-
-  ## Helpers
 
   defp atom_access([{k, _}|_], key) when key < k, do: nil
   defp atom_access([{k, _}|d], key) when key > k, do: atom_access(d, key)
@@ -96,43 +41,15 @@ defimpl Access, for: List do
   defp atom_access([], _),                        do: nil
 end
 
-defimpl Access, for: BitString do
-  @doc """
-  Access the binary via a predicate.
-
-  If a regular expression, it returns a binary with the
-  matched contents.
-
-  ## Examples
-
-      binary = "abc"
-      Binary.access binary, %r(a) #=> "a"
-
-  """
-
-  ## Regex
-
-  def access(binary, re) when is_binary(binary) and is_regex(re) do
-    case Erlang.re.run(binary, Regex.re_pattern(re), [{ :capture, :first, :binary }]) do
-      :nomatch -> nil
-      { :match, [result] } -> result
-    end
-  end
-end
-
 defimpl Access, for: Atom do
   @doc """
-  Access the atom via keywords which simply dispatches
-  to the function new of the record passing the keywords
-  as arguments.
-
-  Notice that the access macro special-cases atoms to
-  provide compilation time expansion for faster read
-  and write access for records. For more information,
-  check `Elxiir.Builtin.access/2`.
+  The access protocol can only be accessed by atoms
+  at compilation time. If we reach this, we should raise
+  an exception.
   """
-  def access(atom, keywords) when is_list(keywords) do
-    atom.new(keywords)
+  def access(atom, _) do
+    raise "The access protocol can only be invoked for atoms at " <>
+      "compilation time, tried to invoke it for #{inspect atom}"
   end
 end
 

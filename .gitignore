@@ -8,5 +8,5 @@
 /lib/elixir/test/ebin
 /deps/*
 /ebin
-/erl_crash.dump
 /rel/elixir
+erl_crash.dump

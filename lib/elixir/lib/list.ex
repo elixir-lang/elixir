@@ -11,14 +11,6 @@ defmodule List do
   """
 
   @doc """
-  Simply invokes the Access protocol for the given list.
-  Check `Access.List` for more information.
-  """
-  def access(list, access) when is_list(list) do
-    Access.List.access(list, access)
-  end
-
-  @doc """
   Given a list of lists, concatenates the sublists into a single list.
 
   ## Examples

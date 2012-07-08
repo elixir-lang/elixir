@@ -2228,26 +2228,24 @@ defmodule Elixir.Builtin do
   to the `Access` protocol. All calls in the form `foo[bar]`
   are translated to `access(foo, bar)`.
 
-  A common usage of this protocol is to access a key in a
-  keywords list:
+  The usage of this protocol is to access a raw value in a
+  keywords list.
 
       sample = [a: 1, b: 2, c: 3]
       sample[:b] #=> 2
 
-  Many types implement this protocol, so check the protocol
-  implementations for more information.
+  ## Atoms
 
-  ## Records
-
-  The access protocol has a compilation time feature that
-  which allows us to match against an specific part of a
-  record:
+  Whenever invoked on an atom, the access protocol is expanded
+  at compilation time rather than on runtime. This feature is used
+  by records to allow a developer to match against an specific part
+  of a record:
 
       def increment(State[counter: counter, other: 13] = state) do
         state.counter(counter + 1)
       end
 
-  In the example above, we use the Access protocol  to match the
+  In the example above, we use the Access protocol to match the
   counter field in the record `State`. Considering the record
   definition is as follows:
 
@@ -2265,24 +2263,21 @@ defmodule Elixir.Builtin do
         State[counter: counter]
       end
 
-  The example above is slightly faster than
-  `State.new(counter: :counter)` because the record is
-  expanded at compilation time and not at runtime. If a field
-  is not specified on creation, it will have its default value.
+  The example above is slightly faster than `State.new(counter: :counter)`
+  because the record is expanded at compilation time and not at runtime.
+  If a field is not specified on creation, it will have its default value.
 
-  Finally, as in Erlang, Elixir also allows the following
-  syntax:
+  Finally, as in Erlang, Elixir also allows the following syntax:
 
       new_uri = State[_: 1]
 
-  In this example, **all** fields will be set to `1`. Notice
-  that, as in Erlang, in case an expression is given, it will
-  be evaluated multiple times:
+  In this case **all** fields will be set to `1`. Notice that,
+  as in Erlang, in case an expression is given, it will be
+  evaluated multiple times:
 
-      new_uri = Uri.Config[_: IO.puts "Hello"]
+      new_uri = State[_: IO.puts "Hello"]
 
-  If `Uri.Config` has many fields, `"Hello"` will be printed
-  many times.
+  In this case, `"Hello"` will be printed twice (one per each field).
 
   ## Examples
 

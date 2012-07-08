@@ -3,14 +3,6 @@ defmodule Binary do
   Functions for working with binaries.
   """
 
-  @doc """
-  Simply invokes the Access protocol for the given binary.
-  Check `Access.BitString` for more information.
-  """
-  def access(binary, access) when is_binary(binary) do
-    Access.BitString.access(binary, access)
-  end
-
   @doc %B"""
   Receives a char list and escapes all special chars (like \n)
   and interpolation markers. A last argument is given and wraps
