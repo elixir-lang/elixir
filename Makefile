@@ -114,6 +114,6 @@ test_erlang: compile
 
 test_elixir: test_kernel test_ex_unit test_eex test_mix
 
-test_kernel: kernel
+test_kernel: compile
 	@ echo "==> kernel (exunit)"
 	@ cd lib/elixir && time ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"
