@@ -66,6 +66,23 @@ defmodule Regex do
   end
 
   @doc """
+  Runs the regular expression against the given string.
+  It returns the first match or nil if no match ocurred.
+
+  ## Examples
+
+      Regex.first %r/c(d)/, "abcd"  #=> "cd"
+      Regex.first %r/e/, "abcd"     #=> nil
+
+  """
+  def first({ Regex, compiled, _, _ }, string) do
+    case Erlang.re.run(string, compiled, [{ :capture, :first, return_for(string) }]) do
+      :nomatch -> nil
+      { :match, [result] } -> result
+    end
+  end
+
+  @doc """
   Returns a boolean if there was a match or not.
 
   ## Examples

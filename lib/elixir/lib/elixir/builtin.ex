@@ -2144,6 +2144,23 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  Matches the term on the left against the regular expression
+  on the right. It returns nil if not match happened or the
+  first match otherwise.
+
+  ## Examples
+
+      "abcd" =~ %r/c(d)/  #=> "cd"
+      "abcd" =~ %r/e/     #=> nil
+
+  """
+  defmacro :=~.(left, right) do
+    quote do
+      Regex.first(unquote(right), unquote(left))
+    end
+  end
+
+  @doc """
   `/>` is called the pipeline operator as it is useful
   to write pipeline style expressions. This operator
   tntroduces the expression on the left as the first

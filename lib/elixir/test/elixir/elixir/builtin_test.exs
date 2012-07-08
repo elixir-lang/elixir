@@ -70,6 +70,15 @@ defmodule Elixir.BuiltinTest do
     end
   end
 
+  defmodule MatchOp do
+    use ExUnit.Case
+
+    test :match do
+      assert "abcd" =~ %r/c(d)/
+      refute "abcd" =~ %r/e/
+    end
+  end
+
   defmodule Destructure do
     use ExUnit.Case
 

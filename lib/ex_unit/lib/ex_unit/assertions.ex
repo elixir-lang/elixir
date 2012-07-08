@@ -100,38 +100,42 @@ defmodule ExUnit.Assertions do
 
   defp translate_assertion({ :==, _, [left, right] }, _else) do
     { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :==, expected, actual, "equal to (==)"
+    assert_operator :==, expected, actual, "be equal to (==)"
   end
 
   defp translate_assertion({ :<, _, [left, right] }, _else) do
-    assert_operator :<, left, right, "less than"
+    assert_operator :<, left, right, "be less than"
   end
 
   defp translate_assertion({ :>, _, [left, right] }, _else) do
-    assert_operator :>, left, right, "more than"
+    assert_operator :>, left, right, "be more than"
   end
 
   defp translate_assertion({ :<=, _, [left, right] }, _else) do
-    assert_operator :<=, left, right, "less than or equal to"
+    assert_operator :<=, left, right, "be less than or equal to"
   end
 
   defp translate_assertion({ :>=, _, [left, right] }, _else) do
-    assert_operator :>=, left, right, "more than or equal to"
+    assert_operator :>=, left, right, "be more than or equal to"
   end
 
   defp translate_assertion({ :===, _, [left, right] }, _else) do
     { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :===, expected, actual, "equal to (===)"
+    assert_operator :===, expected, actual, "be equal to (===)"
   end
 
   defp translate_assertion({ :!==, _, [left, right] }, _else) do
     { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :!==, expected, actual, "not equal to (!==)"
+    assert_operator :!==, expected, actual, "be not equal to (!==)"
   end
 
   defp translate_assertion({ :!=, _, [left, right] }, _else) do
     { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :!=, expected, actual, "not equal to (!=)"
+    assert_operator :!=, expected, actual, "be not equal to (!=)"
+  end
+
+  defp translate_assertion({ :=~, _, [left, right] }, _else) do
+    assert_operator :=~, left, right, "match (=~)"
   end
 
   defp translate_assertion({ :in, _, [left, right] }, _else) do
@@ -155,11 +159,11 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ op, _, [{ :access, _, [container, base] }] }, _else) when negation?(op) do
+  defp translate_assertion({ op, _, [{ :=~, _, [left, right] }] }, _else) when negation?(op) do
     quote do
-      container = unquote(container)
-      base = unquote(base)
-      assert(!container[base], "Expected #{inspect base} to not access #{inspect container}")
+      left  = unquote(left)
+      right = unquote(right)
+      assert(!(left =~ right), "Expected #{inspect left} to not match #{inspect right}")
     end
   end
 
@@ -191,7 +195,7 @@ defmodule ExUnit.Assertions do
       left  = unquote(expected)
       right = unquote(actual)
       assert unquote(operator).(left, right),
-        "Expected #{inspect left} to be #{unquote(text)} #{inspect right}"
+        "Expected #{inspect left} to #{unquote(text)} #{inspect right}"
     end
   end
 

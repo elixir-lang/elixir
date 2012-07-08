@@ -111,6 +111,32 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test :assert_match_when_matches do
+    true = assert "foo" =~ %r(o)
+  end
+
+  test :assert_match_when_no_match do
+    try do
+      "This should never be tested" = assert "foo" =~ %r(a)
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Expected \"foo\" to match (=~) %r\"a\"" = error.message
+    end
+  end
+
+  test :refute_match_when_is_matches do
+    false = refute "foo" =~ %r(a)
+  end
+
+  test :refute_match_when_no_match do
+    try do
+      "This should never be tested" = refute "foo" =~ %r(o)
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Expected \"foo\" to not match %r\"o\"" = error.message
+    end
+  end
+
   test :assert_raise_when_no_error do
     "This should never be tested" = assert_raise ArgumentError, fn ->
       # nothing

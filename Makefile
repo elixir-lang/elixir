@@ -35,7 +35,7 @@ lib/$(1)/ebin/__MAIN__-$(2).beam: $(wildcard lib/$(1)/lib/*.ex,lib/$(1)/lib/*/*.
 	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
 	@ $$(call APP_TEMPLATE,$(1),$(2))
 
-test_$(1): compile
+test_$(1): $(1)
 	@ echo "==> $(1) (exunit)"
 	@ cd lib/$(1) && time ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs"
 endef
