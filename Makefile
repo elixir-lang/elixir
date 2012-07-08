@@ -43,7 +43,11 @@ endef
 #==> Compilation tasks
 KERNEL:=lib/elixir/ebin/__MAIN__-Elixir-Builtin.beam
 
-compile: erlang elixir
+compile: lib/elixir/src/elixir.app.src erlang elixir
+
+lib/elixir/src/elixir.app.src: src/elixir.app.src
+	@ rm -rf lib/elixir/src/elixir.app.src
+	@ cp src/elixir.app.src lib/elixir/src/elixir.app.src
 
 erlang:
 	@ cd lib/elixir && $(REBAR) compile
