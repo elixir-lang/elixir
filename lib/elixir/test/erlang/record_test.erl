@@ -59,3 +59,11 @@ record_increment_test() ->
     { { '__MAIN__-Foo', -2 }, _ } = eval("Foo.new.increment_a -2")
   end,
   test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+
+record_toggle_test() ->
+  F = fun() ->
+    eval("defrecord Foo, a: false, b: true"),
+	{ { '__MAIN__-Foo', true, true }, _ } = eval("Foo.new.toggle_a"),
+	{ { '__MAIN__-Foo', false, false }, _ } = eval("Foo.new.toggle_b")
+  end,
+  test_helper:run_and_remove(F, ['__MAIN__-Foo']).

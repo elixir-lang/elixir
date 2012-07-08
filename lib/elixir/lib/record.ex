@@ -318,5 +318,17 @@ defmodule Record.Definition do
     end
   end
 
+  def extension_for(key, default, i) when is_boolean(default) do
+    bin_key = atom_to_binary(key)
+    toggle = :"toggle_#{bin_key}"
+
+    quote do
+      def unquote(toggle).(value // false, record) do
+        current = :erlang.element(unquote(i), record)
+        :erlang.setelement(unquote(i), record, not current)
+       end
+    end
+  end
+
   def extension_for(_, _, _), do: nil
 end
