@@ -162,7 +162,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_record do
-    assert "cannot use module Kernel.ErrorsTest in access protocol because it does not represent a record" ==
+    assert "cannot use module Kernel.ErrorsTest in access protocol because it does not export __access__/2" ==
       format_rescue 'defmodule Foo do\ndef sample(Kernel.ErrorsTest[integer: 0]), do: true\nend'
   end
 

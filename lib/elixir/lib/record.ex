@@ -17,6 +17,53 @@ defmodule Record do
   end
 
   @doc """
+  Implements the access macro used by records.
+  It returns a quoted expression that represents
+  the access given by the keywords.
+  """
+  def access(caller, atom, fields, keyword) do
+    unless is_orddict(keyword) do
+      raise "expected contents inside brackets to be a Keyword"
+    end
+
+    in_match = caller.in_match?
+
+    has_underscore_value = Keyword.key?(keyword, :_)
+    underscore_value     = Keyword.get(keyword, :_, { :_, 0, nil })
+    keyword              = Keyword.delete keyword, :_
+
+    iterator = fn({field, default}, each_keyword) ->
+      new_fields =
+        case Keyword.key?(each_keyword, field) do
+          true  -> Keyword.get(each_keyword, field)
+          false ->
+            case in_match or has_underscore_value do
+              true  -> underscore_value
+              false -> Macro.escape(default)
+            end
+        end
+
+      { new_fields, Keyword.delete(each_keyword, field) }
+    end
+
+    { match, remaining } = :lists.mapfoldl(iterator, keyword, fields)
+
+    case remaining do
+      [] -> { :{}, caller.line, [atom|match] }
+      _  ->
+        keys = lc { key, _ } inlist remaining, do: key
+        raise "record #{inspect atom} does not have the keys: #{inspect keys}"
+    end
+  end
+
+  defp is_orddict(list) when is_list(list), do: :lists.all(is_orddict_tuple(&1), list)
+  defp is_orddict(_), do: false
+
+  defp is_orddict_tuple({ x, _ }) when is_atom(x), do: true
+  defp is_orddict_tuple(_), do: false
+
+
+  @doc """
   Main entry point for records definition.
   This is invoked directly by `Elixir.Builtin.defrecord`.
   Returns the quoted expression of a module given by name.
@@ -42,7 +89,7 @@ defmodule Record do
     values = Macro.escape(values)
 
     contents = [
-      reflection(env, values),
+      reflection(values),
       getters_and_setters(values, 1, [], definition),
       initializers(values),
       converters(values)
@@ -65,11 +112,12 @@ defmodule Record do
   #     FileInfo.__record__(:name)   #=> FileInfo
   #     FileInfo.__record__(:fields) #=> [atime: nil, mtime: nil]
   #
-  defp reflection(env, values) do
+  defp reflection(values) do
     quote do
-      def __record__(kind),       do: __record__(kind, nil)
-      def __record__(:name, _),   do: unquote(env.module)
-      def __record__(:fields, _), do: unquote(values)
+      def __access__(caller, args), do: Record.access(caller, __MODULE__, __record__(:fields), args)
+      def __record__(kind, _),      do: __record__(kind)
+      def __record__(:name),        do: __MODULE__
+      def __record__(:fields),      do: unquote(values)
     end
   end
 
@@ -92,13 +140,13 @@ defmodule Record do
   #     end
   #
   defp initializers(values) do
-    defaults = Enum.map values, elem(&1, 2)
+    defaults = lc value inlist values, do: elem(value, 2)
 
     # For each value, define a piece of code that will receive
     # an ordered dict of options (opts) and it will try to fetch
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
-    selective = Enum.map values, fn {k,v} ->
+    selective = lc { k, v } inlist values do
       quote do: Keyword.get(opts, unquote(k), unquote(v))
     end
 
@@ -119,17 +167,20 @@ defmodule Record do
   #    [atime: nil, mtime: nil]
   #
   defp converters(values) do
-    sorted = Keyword.new values, fn({ k, _ }) ->
-      index = Enum.find_index(values, fn({ x, _ }) -> x == k end)
+    sorted = lc { k, _ } inlist values do
+      index = find_index(values, k, 1)
       { k, quote(do: :erlang.element(unquote(index + 1), record)) }
     end
 
     quote do
       def to_keywords(record) do
-        unquote(sorted)
+        unquote(:orddict.from_list(sorted))
       end
     end
   end
+
+  defp find_index([{ k, _ }|_], k, i), do: i
+  defp find_index([{ _, _ }|t], k, i), do: find_index(t, k, i + 1)
 
   # Implement getters and setters for each attribute.
   # For a declaration like:

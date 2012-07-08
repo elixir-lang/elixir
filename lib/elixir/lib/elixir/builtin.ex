@@ -2291,61 +2291,29 @@ defmodule Elixir.Builtin do
       access a, 1 #=> :a
 
   """
-  defmacro access(element, keyword) do
+  defmacro access(element, args) do
     caller = __CALLER__
-    atom = Macro.expand(element, caller)
+    atom   = Macro.expand(element, caller)
 
     case { is_atom(atom), caller.in_match? } do
       { false, false } ->
-        quote do: Access.access(unquote(element), unquote(keyword))
+        quote do: Access.access(unquote(element), unquote(args))
       { false, true } ->
         raise "invalid usage of access protocol in signature"
-      { true, in_match } ->
-        case is_orddict(keyword) do
-          true  -> nil
-          false -> raise "expected contents inside brackets to be a Keyword"
-        end
-
-        fields = try do
-          atom.__record__(:fields)
+      { true, _ } ->
+        try do
+          atom.__access__(caller, args)
         rescue
           UndefinedFunctionError ->
-            # We first try to call __record__(:fields) and just then
-            # check if it is loaded so we allow the ParallelCompiler
-            # to solve conflicts.
+            # We first try to call __access__ and just then check if
+            # it is loaded so we allow the ParallelCompiler to solve
+            # conflicts.
             case :code.ensure_loaded(atom) do
               { :error, _ } ->
                 raise "expected module #{inspect atom} to be loaded and defined"
               _ ->
-                raise "cannot use module #{inspect atom} in access protocol because it does not represent a record"
+                raise "cannot use module #{inspect atom} in access protocol because it does not export __access__/2"
             end
-        end
-
-        has_underscore_value = Keyword.key?(keyword, :_)
-        underscore_value     = Keyword.get(keyword, :_, { :_, 0, nil })
-        keyword              = Keyword.delete keyword, :_
-
-        iterator = fn({field, default}, each_keyword) ->
-          new_fields =
-            case Keyword.key?(each_keyword, field) do
-              true  -> Keyword.get(each_keyword, field)
-              false ->
-                case in_match or has_underscore_value do
-                  true  -> underscore_value
-                  false -> Macro.escape(default)
-                end
-            end
-
-          { new_fields, Keyword.delete(each_keyword, field) }
-        end
-
-        { match, remaining } = :lists.mapfoldl(iterator, keyword, fields)
-
-        case remaining do
-          [] -> { :{}, caller.line, [atom|match] }
-          _  ->
-            keys = lc { key, _ } inlist remaining, do: key
-            raise "record #{inspect atom} does not have the keys: #{inspect keys}"
         end
     end
   end
@@ -2565,10 +2533,4 @@ defmodule Elixir.Builtin do
   end
 
   defp build_cond_clauses([], acc), do: acc
-
-  defp is_orddict(list) when is_list(list), do: :lists.all(is_orddict_tuple(&1), list)
-  defp is_orddict(_), do: false
-
-  defp is_orddict_tuple({ x, _ }) when is_atom(x), do: true
-  defp is_orddict_tuple(_), do: false
 end

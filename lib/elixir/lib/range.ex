@@ -1,7 +1,8 @@
 defmodule Range do
-  def __record__(kind, _), do: __record__(kind)
-  def __record__(:name),   do: __MODULE__
-  def __record__(:fields), do: [{:first,nil},{:last,nil}]
+  def __access__(caller, arg), do: Record.access(caller, __MODULE__, __record__(:fields), arg)
+  def __record__(kind, _),     do: __record__(kind)
+  def __record__(:name),       do: __MODULE__
+  def __record__(:fields),     do: [{:first,nil},{:last,nil}]
 
   @doc """
   Returns a new range based on the given options.
