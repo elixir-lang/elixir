@@ -2,17 +2,11 @@
 =========
 [![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.png?branch=master "Build Status")](http://travis-ci.org/elixir-lang/elixir)
 
-Elixir is a programming language built on top of the Erlang VM. As Erlang, it is a functional language built to support distributed, fault-tolerant, non-stop applications with hot code swapping.
-
-Elixir is also dynamic typed but, differently from Erlang, it is also homoiconic, allowing meta-programming via macros. Elixir also supports polymorphism via protocols (similar to Clojure's), dynamic records and provides a reference mechanism.
-
-Finally, Elixir and Erlang share the same bytecode and data types. This means you can invoke Erlang code from Elixir (and vice-versa) without any conversion or performance hit. This allows a developer to mix the expressiveness of Elixir with the robustness and performance of Erlang.
+For more about Elixir, installation and documentation, [check Elixir's website](http://elixir-lang.org/).
 
 # Usage
 
-You can run and learn about Elixir in the [Getting Started guide][1].
-
-But if you just want to try it out, clone this repository to your machine, compile and test it:
+If you want to contribute to Elixir or run it from source, clone this repository to your machine, compile and test it:
 
     $ git clone https://github.com/elixir-lang/elixir.git
     $ cd elixir
@@ -26,9 +20,9 @@ However, if tests fail, it is likely you have an outdated Erlang version (Elixir
 
 If you have the correct version and tests still fail, feel free to [open an issue][2].
 
-# Contributing & Roadmap
+# Contributing
 
-If you want to contribute, Elixir code is is divided inside the apps folder:
+If you want to contribute, Elixir code is divided in applications inside the `lib` folder:
 
 * `elixir` - Contains Elixir's kernel and stdlib;
 
@@ -41,14 +35,13 @@ We usually keep a list of features and bugs [in the issue tracker][2].
 # Important links
 
 * #elixir-lang on freenode IRC
-* [Getting Started Guide][1]
-* [Mailing list](http://groups.google.com/group/elixir-lang-core)
+* [Website][1]
 * [Issue tracker][2]
-* [Textmate Bundle for Elixir](https://github.com/elixir-lang/elixir-tmbundle)
-* [Vim Elixir](https://github.com/elixir-lang/vim-elixir)
+* [Mailing list][3]
 
-  [1]: http://elixir-lang.org/getting_started/1.html
+  [1]: http://elixir-lang.org
   [2]: https://github.com/elixir-lang/elixir/issues
+  [3]: http://groups.google.com/group/elixir-lang-core
 
 # License
 
