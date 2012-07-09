@@ -131,10 +131,7 @@ retrieve_file(Module, CO) ->
         nil  -> [];
         Else ->
           '__MAIN__-Module':delete_attribute(Module, file),
-          if
-             is_binary(Else) -> { Else, 1 };
-             is_tuple(Else) -> Else
-          end
+          Else
       end
   end.
 
