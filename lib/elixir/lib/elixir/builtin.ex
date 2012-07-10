@@ -798,7 +798,7 @@ defmodule Elixir.Builtin do
       #=> <<1,2,3,1,2,3,4,5,4,6,7|4>>
 
   """
-  @spec list_to_bitstring(list(char | binary | iolist | bitstring | [])), do: bitstring
+  @spec list_to_bitstring(maybe_improper_list(char | binary | iolist | bitstring, binary | bitstring | [])), do: bitstring
   def list_to_bitstring(bitstring_list) do
     :erlang.list_to_bitstring(bitstring_list)
   end
