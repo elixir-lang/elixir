@@ -2275,6 +2275,14 @@ defmodule Elixir.Builtin do
     { call, line, [left|args] }
   end
 
+  defp pipeline_op(left, atom) when is_atom(atom) do
+    { { :., 0, [left, atom] }, 0, [] }
+  end
+
+  defp pipeline_op(_, other) do
+    raise ArgumentError, message: "Unsupported expression in pipeline (:/>) operator: #{inspect other}"
+  end
+
   @doc """
   Raises an error.
 

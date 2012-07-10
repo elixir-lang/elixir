@@ -65,6 +65,12 @@ defmodule Elixir.BuiltinTest do
       assert [1,[2],3] /> List.flatten /> local == [2,4,6]
     end
 
+    test :atom do
+      assert __MODULE__ /> :constant == 13
+    end
+
+    def constant, do: 13
+
     defp local(list) do
       Enum.map(list, &1 * 2)
     end
