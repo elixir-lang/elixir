@@ -369,36 +369,6 @@ defmodule Elixir.SpecialForms do
   defmacro fn(args)
 
   @doc """
-  Handle annonymous recursive loops.
-
-  ## Examples
-
-      list = [1,2,3]
-
-      loop list, [] do
-        [h|t], acc ->
-          recur t, [h*2|acc]
-        [], acc ->
-          acc
-      end
-      #=> [6,4,2]
-
-  Notice that all match clauses expects the same ammount
-  of arguments. Guards can also be given.
-
-  Recursion happens by calling recur with the same number
-  of arguments of each match clause. `recur` does not guarantee
-  that it will be tail recursive.
-  """
-  defmacro loop(args)
-
-  @doc """
-  A function that forces the current loop to recur. See `loop/1`
-  for more information.
-  """
-  defmacro recur(args)
-
-  @doc """
   List comprehensions allow you to quickly build a list from another list:
 
       lc n inlist [1,2,3,4], do: n * 2

@@ -316,6 +316,8 @@ translate_each({fn, Line, Args} = Original, S) when is_list(Args) ->
 %% Loop and recur
 
 translate_each({loop, Line, RawArgs}, RS) when is_list(RawArgs) ->
+  elixir_errors:deprecation(Line, RS#elixir_scope.file, "loop is deprecated, please use named functions to recur instead"),
+
   { Args, KV } = elixir_tree_helpers:split_last(RawArgs),
   { ExVar, S } = elixir_scope:build_ex_var(Line, RS),
 
