@@ -794,7 +794,7 @@ defmodule Elixir.Builtin do
       bin2 = <<4,5>>
       bin3 = <<6,7|4>>
 
-      list_to_binary([bin1,1,[2,3,bin2],4|bin3])
+      list_to_bitstring([bin1,1,[2,3,bin2],4|bin3])
       #=> <<1,2,3,1,2,3,4,5,4,6,7|4>>
 
   """
