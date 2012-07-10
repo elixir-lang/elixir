@@ -231,7 +231,6 @@ defmodule Elixir.Typespec do
     end
   end
 
-
   defp spec_table_for(module) do
     table = list_to_atom Erlang.lists.concat([:s, module])
     unless table == :ets.info(table, :name), do:

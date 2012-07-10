@@ -240,10 +240,10 @@ is_reserved_data(moduledoc) -> true;
 is_reserved_data(doc)       -> true;
 is_reserved_data(_)         -> false.
 
-spec_to_macro(type)  -> deftype;
-spec_to_macro(typep) -> deftypep;
-spec_to_macro(spec)  -> defspec;
-spec_to_macro(callback)  -> defcallback.
+spec_to_macro(type)     -> deftype;
+spec_to_macro(typep)    -> deftypep;
+spec_to_macro(spec)     -> defspec;
+spec_to_macro(callback) -> defcallback.
 
 % Unpack a list of expressions from a block.
 unpack([{ '__block__', _, Exprs }]) -> Exprs;
