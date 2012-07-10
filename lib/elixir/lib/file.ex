@@ -557,6 +557,67 @@ defmodule File do
   end
 
   @doc """
+  Gets the current working directory. In rare circumstances, this function can
+  fail on Unix. It may happen if read permission does not exist for the parent
+  directories of the current directory. For this reason, returns `{ :ok, cwd }`
+  in case of success, `{ :error, reason }` otherwise.
+  """
+  def cwd() do
+    case F.get_cwd do
+      { :ok, cwd } -> { :ok, list_to_binary(cwd) }
+      { :error, _ } = error -> error
+    end
+  end
+
+  @doc """
+  The same as `cwd/0`, but raises an exception if it fails.
+  """
+  def cwd!() do
+    case F.get_cwd do
+      { :ok, cwd } -> list_to_binary(cwd)
+      { :error, reason } ->
+          raise File.Error, reason: reason, action: "get current working directory"
+    end
+  end
+
+  @doc """
+  Sets the current working directory. Returns `:ok` if successful,
+  `{ :error, reason }` otherwise.
+  """
+  def chdir(path) do
+    F.set_cwd(path)
+  end
+
+  @doc """
+  The same as `chdir/0`, but raises an exception if it fails.
+  """
+  def chdir!(path) do
+    case F.set_cwd(path) do
+      :ok -> :ok
+      { :error, reason } ->
+          raise File.Error, reason: reason, action: "set current working directory to", path: to_binary(path)
+    end
+  end
+
+  @doc """
+  Changes the current directory to the given `path`,
+  executes the given function and then revert back
+  to the previous path regardless if there is an exception.
+
+  Raises an error if retrieving or changing the current
+  directory fails.
+  """
+  def chdir!(path, function) do
+    old = cwd!
+    chdir!(path)
+    try do
+      function.()
+    after
+      chdir!(old)
+    end
+  end
+
+  @doc """
   Closes the file referenced by `io_device`. It mostly returns `:ok`, expect
   for some severe errors such as out of memory.
 

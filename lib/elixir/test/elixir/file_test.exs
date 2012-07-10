@@ -367,4 +367,32 @@ defmodule FileTest do
     file = File.expand_path(fixture_path("foo.txt"), __FILE__)
     assert File.open!(file, IO.readline(&1)) == "FOO\n"
   end
+
+  test :cwd_and_chdir do
+    { :ok, current } = File.cwd
+    try do
+      assert File.chdir(fixture_path) == :ok
+      assert File.exists?("foo.txt")
+    after
+      File.chdir!(current)
+    end
+  end
+
+  test :invalid_chdir do
+    assert File.chdir(fixture_path("foo.txt")) == { :error, :enotdir }
+  end
+
+  test :invalid_chdir! do
+    message = "could not set current working directory to #{fixture_path("foo.txt")}: not a directory"
+    assert_raise File.Error, message, fn ->
+      File.chdir!(fixture_path("foo.txt"))
+    end
+  end
+
+  test :chdir_with_function do
+    assert File.chdir!(fixture_path, fn ->
+      assert File.exists?("foo.txt")
+      :cd_result
+    end) == :cd_result
+  end
 end
