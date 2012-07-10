@@ -345,4 +345,16 @@ defmodule FileTest do
   test :open_a_missing_file do
     assert File.open('missing.txt') == {:error, :enoent}
   end
+
+  test :open_a_missing_file! do
+    message = "could not open missing.txt: no such file or directory"
+    assert_raise File.Error, message, fn ->
+      File.open!('missing.txt')
+    end
+  end
+
+  test :open_a_file_with_function! do
+    file = File.expand_path("../fixtures/foo.txt", __FILE__)
+    assert File.open!(file, IO.readline(&1)) == "FOO\n"
+  end
 end

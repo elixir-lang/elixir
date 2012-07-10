@@ -464,6 +464,7 @@ defmodule File do
 
   @doc """
   Opens the given *file* according to the given list of modes.
+
   By default, the file is opened in read mode, as a binary with utf8 encoding.
 
   The allowed modes and options are:
@@ -499,8 +500,15 @@ defmodule File do
                          from this call can be used as an argument to the `IO` module functions.
 
   * { :error, reason } - The file could not be opened.
+
+  ## Examples
+
+      { :ok, file } = File.open("foo.tar.gz", [:read, :compressed])
+      IO.readline(file)
+      File.close(file)
+
   """
-  def open(file, options // []) do
+  def open(file, options // []) when is_list(options) do
     F.open(file, open_defaults(options, true, true))
   end
 
@@ -508,11 +516,43 @@ defmodule File do
   Same as `open/2` but raises an error if file could not be opened.
   Returns the `io_device` otherwise.
   """
-  def open!(file, options // []) do
+  def open!(file, options // [])
+
+  def open!(file, function) when is_function(function) do
+    open!(file, [], function)
+  end
+
+  def open!(file, options) when is_list(options) do
     case open(file, options) do
       { :ok, device }    -> device
       { :error, reason } ->
         raise File.Error, reason: reason, action: "open", path: to_binary(file)
+    end
+  end
+
+  @doc """
+  Similar to `open!/2` but expects a function as last argument.
+
+  In such cases, the file is opened, given to the function as argument.
+  When the function returns, regardless if there was an error or not,
+  it is automatically closed.
+
+  The result of the function is returned as result.
+
+  ## Examples
+
+    File.open!("foo.txt", [:read, :write], fn(file) ->
+      IO.readline(file)
+    end)
+
+  """
+  def open!(file, options, function) do
+    device = open!(file, options)
+
+    try do
+      function.(device)
+    after
+      close(device)
     end
   end
 
