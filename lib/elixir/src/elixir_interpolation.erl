@@ -139,6 +139,7 @@ wrap_interpol(Line, Form) ->
 
 forms(String, StartLine, File) ->
   case elixir_translator:raw_forms(String, StartLine, File) of
+    { ok, [] } -> nil;
     { ok, [Forms] } when not is_list(Forms) -> Forms;
     { ok, Forms } -> { '__block__', StartLine, Forms };
     { error, Tuple } -> throw({ interpolation_error, Tuple })

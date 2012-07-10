@@ -103,8 +103,7 @@ defmodule Code do
     line = Keyword.get opts, :line, 1
     res  = :elixir_translator.raw_forms(:unicode.characters_to_list(string), line, file)
     case res do
-      { :ok, [forms] } when not is_list(forms) -> { :ok, forms }
-      { :ok, forms } -> { :ok, { :__block__, line, forms } }
+      { :ok, ast } -> { :ok, unpack_ast(line, ast) }
       _ -> res
     end
   end
@@ -127,11 +126,12 @@ defmodule Code do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
     res  = :elixir_translator.forms(:unicode.characters_to_list(string), line, file)
-    case res do
-      [forms] when not is_list(forms) -> forms
-      forms -> { :__block__, line, forms }
-    end
+    unpack_ast(line, res)
   end
+
+  defp unpack_ast(_line, []),                              do: nil
+  defp unpack_ast(_line, [forms]) when not is_list(forms), do: forms
+  defp unpack_ast(line, forms),                            do: { :__block__, line, forms }
 
   @doc """
   Loads the given `file`. Accepts `relative_to` as an argument to tell
