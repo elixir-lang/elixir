@@ -412,8 +412,7 @@ defmodule File do
   """
   def stat!(path, opts // []) do
     case stat(path, opts) do
-      {:ok, info} ->
-        info
+      {:ok, info}      -> info
       {:error, reason} ->
         raise File.Error, reason: reason, action: "read file stats", path: to_binary(path)
     end
@@ -463,9 +462,58 @@ defmodule File do
     F.delete(filename)
   end
 
-  # TODO: write docs
-  def open(filename, options // []) do
-    F.open(filename, open_defaults(options, true, true))
+  @doc """
+  Opens the given *file* according to the given list of modes.
+  By default, the file is opened in read mode, as a binary with utf8 encoding.
+
+  The allowed modes and options are:
+
+  * `:read` - The file, which must exist, is opened for reading.
+
+  * `:write` -  The file is opened for writing. It is created if it does not exist.
+                If the file exists, and if write is not combined with read, the file will be truncated.
+
+  * `:append` - The file will be opened for writing, and it will be created if it does not exist.
+                Every write operation to a file opened with append will take place at the end of the file.
+
+  * `:exclusive` - The file, when opened for writing, is created if it does not exist.
+                   If the file exists, open will return { :error, :eexist }.
+
+  * `:charlist` - When this term is given, read operations on the file will return char lists rather than binaries;
+
+  * `:compressed` -  Makes it possible to read or write gzip compressed files.
+                     The compressed option must be combined with either read or write, but not both.
+                     Note that the file size obtained with `stat/1` will most probably not
+                     match the number of bytes that can be read from a compressed file.
+
+  Check `http://www.erlang.org/doc/man/file.html#open-2` for more information about
+  other options as `read_ahead` and `delayed_write`.
+
+  This function returns:
+
+  * { :ok, io_device } - The file has been opened in the requested mode.
+                         `io_device` is actually the pid of the process which handles the file.
+                         This process is linked to the process which originally opened the file.
+                         If any process to which the io_device is linked terminates, the file will
+                         be closed and the process itself will be terminated. An io_device returned
+                         from this call can be used as an argument to the `IO` module functions.
+
+  * { :error, reason } - The file could not be opened.
+  """
+  def open(file, options // []) do
+    F.open(file, open_defaults(options, true, true))
+  end
+
+  @doc """
+  Same as `open/2` but raises an error if file could not be opened.
+  Returns the `io_device` otherwise.
+  """
+  def open!(file, options // []) do
+    case open(file, options) do
+      { :ok, device }    -> device
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "open", path: to_binary(file)
+    end
   end
 
   @doc """
@@ -501,13 +549,6 @@ defmodule File do
     join List.reverse(acc)
   end
 
-  defp open_defaults([], add_encoding, add_binary) do
-    options = []
-    if add_encoding, do: options = [{:encoding, :unicode}|options]
-    if add_binary,   do: options = [:binary|options]
-    options
-  end
-
   defp open_defaults([:charlist|t], add_encoding, _add_binary) do
     open_defaults(t, add_encoding, false)
   end
@@ -518,5 +559,12 @@ defmodule File do
 
   defp open_defaults([h|t], add_encoding, add_binary) do
     [h|open_defaults(t, add_encoding, add_binary)]
+  end
+
+  defp open_defaults([], add_encoding, add_binary) do
+    options = []
+    if add_encoding, do: options = [{:encoding, :unicode}|options]
+    if add_binary,   do: options = [:binary|options]
+    options
   end
 end
