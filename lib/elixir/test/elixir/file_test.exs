@@ -3,6 +3,14 @@ Code.require_file "../test_helper", __FILE__
 defmodule FileTest do
   use ExUnit.Case
 
+  def fixture_path() do
+    File.expand_path("../fixtures", __FILE__)
+  end
+
+  def fixture_path(extra) do
+    File.join(fixture_path, extra)
+  end
+
   test :expand_path_with_binary do
     assert File.expand_path("/foo/bar") == "/foo/bar"
     assert File.expand_path("/foo/bar/") == "/foo/bar"
@@ -68,10 +76,10 @@ defmodule FileTest do
 
   test :exists do
     assert File.exists?(__FILE__)
-    assert File.exists?(File.expand_path("../fixtures/foo.txt", __FILE__))
-    assert File.exists?(File.expand_path("../fixtures/", __FILE__))
+    assert File.exists?(fixture_path)
+    assert File.exists?(fixture_path("foo.txt"))
 
-    refute File.exists?("fixtures/missing.txt")
+    refute File.exists?(fixture_path("missing.txt"))
     refute File.exists?("_missing.txt")
   end
 
@@ -132,8 +140,8 @@ defmodule FileTest do
   end
 
   test :read_with_binary do
-    assert { :ok, "FOO\n" } = File.read(File.expand_path("../fixtures/foo.txt", __FILE__))
-    assert { :error, :enoent } = File.read(File.expand_path("../fixtures/missing.txt", __FILE__))
+    assert { :ok, "FOO\n" } = File.read(fixture_path("foo.txt"))
+    assert { :error, :enoent } = File.read(fixture_path("missing.txt"))
   end
 
   test :read_with_list do
@@ -146,7 +154,7 @@ defmodule FileTest do
   end
 
   test :read! do
-    assert File.read!(File.expand_path("../fixtures/foo.txt", __FILE__)) == "FOO\n"
+    assert File.read!(fixture_path("foo.txt")) == "FOO\n"
     expected_message = "could not read file fixtures/missing.txt: no such file or directory"
 
     assert_raise File.Error, expected_message, fn ->
@@ -174,23 +182,19 @@ defmodule FileTest do
   end
 
   test :mkdir_with_binary do
-    try do
-      refute File.exists?("tmp_test")
-      File.mkdir("tmp_test")
-      assert File.exists?("tmp_test")
-    after
-      :os.cmd('rm -rf tmp_test')
-    end
+    refute File.exists?("tmp_test")
+    File.mkdir("tmp_test")
+    assert File.exists?("tmp_test")
+  after
+    :os.cmd('rm -rf tmp_test')
   end
 
   test :mkdir_with_list do
-    try do
-      refute File.exists?('tmp_test')
-      assert File.mkdir('tmp_test') == :ok
-      assert File.exists?('tmp_test')
-    after
-      :os.cmd('rm -rf tmp_test')
-    end
+    refute File.exists?('tmp_test')
+    assert File.mkdir('tmp_test') == :ok
+    assert File.exists?('tmp_test')
+  after
+    :os.cmd('rm -rf tmp_test')
   end
 
   test :mkdir_with_invalid_path do
@@ -244,47 +248,52 @@ defmodule FileTest do
   end
 
   test :mkdir_p_with_invalid_path do
-    assert File.exists?('test/elixir/file_test.exs')
-    assert File.mkdir('test/elixir/file_test.exs/test/foo') == { :error, :enotdir }
-    refute File.exists?('test/elixir/file_test.exs/test/foo')
+    assert File.exists?(fixture_path("foo.txt"))
+    invalid = File.join fixture_path("foo.txt"), "test/foo"
+    assert File.mkdir(invalid) == { :error, :enotdir }
+    refute File.exists?(invalid)
   end
 
   test :write_normal_content do
+    fixture = fixture_path("tmp_test.txt")
     try do
-      refute File.exists?('test/elixir/tmp_test.txt')
-      assert File.write('test/elixir/tmp_test.txt', 'test text') == :ok
-      assert { :ok, "test text" } == File.read('test/elixir/tmp_test.txt')
+      refute File.exists?(fixture)
+      assert File.write(fixture, 'test text') == :ok
+      assert { :ok, "test text" } == File.read(fixture)
     after
-      File.rm('test/elixir/tmp_test.txt')
+      File.rm(fixture)
     end
   end
 
   test :write_utf8 do
+    fixture = fixture_path("tmp_test.txt")
     try do
-      refute File.exists?('test/elixir/tmp_test.txt')
-      assert File.write('test/elixir/tmp_test.txt', "Русский\n日\n") == :ok
-      assert { :ok, "Русский\n日\n" } == File.read('test/elixir/tmp_test.txt')
+      refute File.exists?(fixture)
+      assert File.write(fixture, "Русский\n日\n") == :ok
+      assert { :ok, "Русский\n日\n" } == File.read(fixture)
     after
-      File.rm('test/elixir/tmp_test.txt')
+      File.rm(fixture)
     end
   end
 
   test :write_with_options do
+    fixture = fixture_path("tmp_test.txt")
     try do
-      refute File.exists?('test/elixir/tmp_test.txt')
-      assert File.write('test/elixir/tmp_test.txt', "Русский\n日\n") == :ok
-      assert File.write('test/elixir/tmp_test.txt', "test text", [:append]) == :ok
-      assert { :ok, "Русский\n日\ntest text" } == File.read('test/elixir/tmp_test.txt')
+      refute File.exists?(fixture)
+      assert File.write(fixture, "Русский\n日\n") == :ok
+      assert File.write(fixture, "test text", [:append]) == :ok
+      assert { :ok, "Русский\n日\ntest text" } == File.read(fixture)
     after
-      File.rm('test/elixir/tmp_test.txt')
+      File.rm(fixture)
     end
   end
 
   test :rm_file do
-    File.write('test/elixir/tmp_test.txt', "test")
-    assert File.exists?('test/elixir/tmp_test.txt')
-    assert File.rm('test/elixir/tmp_test.txt') == :ok
-    refute File.exists?('test/elixir/tmp_test.txt')
+    fixture = fixture_path("tmp_test.txt")
+    File.write(fixture, "test")
+    assert File.exists?(fixture)
+    assert File.rm(fixture) == :ok
+    refute File.exists?(fixture)
   end
 
   test :rm_file_with_dir do
@@ -296,48 +305,49 @@ defmodule FileTest do
   end
 
   test :open_file_without_modes do
-    { :ok, file } = File.open(File.expand_path("../fixtures/foo.txt", __FILE__))
+    { :ok, file } = File.open(fixture_path("foo.txt"))
     assert IO.gets(file, "") == "FOO\n"
     assert File.close(file) == :ok
   end
 
   test :open_file_with_charlist do
-    { :ok, file } = File.open(File.expand_path("../fixtures/foo.txt", __FILE__), [:charlist])
+    { :ok, file } = File.open(fixture_path("foo.txt"), [:charlist])
     assert IO.gets(file, "") == 'FOO\n'
     assert File.close(file) == :ok
   end
 
   test :open_utf8_by_default do
-    { :ok, file } = File.open(File.expand_path("../fixtures/utf8.txt", __FILE__))
+    { :ok, file } = File.open(fixture_path("utf8.txt"))
     assert IO.gets(file, "") == "Русский\n"
     assert File.close(file) == :ok
   end
 
   test :open_readonly_by_default do
-    { :ok, file } = File.open(File.expand_path("../fixtures/utf8.txt", __FILE__))
+    { :ok, file } = File.open(fixture_path("foo.txt"))
     assert_raise ArgumentError, fn -> IO.write(file, "foo") end
     assert File.close(file) == :ok
   end
 
   test :open_with_write_permission do
+    fixture = fixture_path("tmp_text.txt")
     try do
-      { :ok, file } = File.open("test/elixir/tmp_test.txt", [:write])
+      { :ok, file } = File.open(fixture, [:write])
       assert IO.write(file, "foo") == :ok
       assert File.close(file) == :ok
-      assert File.read('test/elixir/tmp_test.txt') == { :ok, "foo" }
+      assert File.read(fixture) == { :ok, "foo" }
     after
-      File.rm('test/elixir/tmp_test.txt')
+      File.rm(fixture)
     end
   end
 
   test :open_utf8_and_charlist do
-    { :ok, file } = File.open(File.expand_path("../fixtures/utf8.txt", __FILE__), [:charlist])
+    { :ok, file } = File.open(fixture_path("utf8.txt"), [:charlist])
     assert IO.gets(file, "") == [1056,1091,1089,1089,1082,1080,1081,10]
     assert File.close(file) == :ok
   end
 
   test :open_respects_encoding do
-    { :ok, file } = File.open(File.expand_path("../fixtures/utf8.txt", __FILE__), [{:encoding, :latin1}])
+    { :ok, file } = File.open(fixture_path("utf8.txt"), [{:encoding, :latin1}])
     assert IO.gets(file, "") == <<195,144,194,160,195,145,194,131,195,145,194,129,195,145,194,129,195,144,194,186,195,144,194,184,195,144,194,185,10>>
     assert File.close(file) == :ok
   end
@@ -354,7 +364,7 @@ defmodule FileTest do
   end
 
   test :open_a_file_with_function! do
-    file = File.expand_path("../fixtures/foo.txt", __FILE__)
+    file = File.expand_path(fixture_path("foo.txt"), __FILE__)
     assert File.open!(file, IO.readline(&1)) == "FOO\n"
   end
 end
