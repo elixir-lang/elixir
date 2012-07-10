@@ -75,7 +75,7 @@ clean:
 	@ cd lib/elixir && $(REBAR) clean
 
 #==> Release tasks
-$(FULLFLAG): clean 
+$(FULLFLAG): $(wildcard lib/*/ebin/*)
 	make ELIXIRC_OPTS="--docs --debug-info" FORCE=1
 	touch $(FULLFLAG)
 

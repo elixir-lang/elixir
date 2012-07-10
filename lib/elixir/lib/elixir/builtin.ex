@@ -285,7 +285,9 @@ defmodule Elixir.Builtin do
       abs(-3)    #=> 3
   """
   @spec abs(number), do: number
-  def abs(number)
+  def abs(number) do
+    :erlang.abs(number)
+  end
 
   @doc """
   Returns a binary which corresponds to the text representation of `atom`.
@@ -300,7 +302,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec atom_to_binary(atom, :utf8 | :unicode | :latin1), do: binary
-  def atom_to_binary(atom, encoding)
+  def atom_to_binary(atom, encoding) do
+    :erlang.atom_to_binary(atom, encoding)
+  end
 
   @doc """
   Returns a string which corresponds to the text representation of `atom`.
@@ -311,7 +315,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec atom_to_list(atom), do: list
-  def atom_to_list(atom)
+  def atom_to_list(atom) do
+    :erlang.atom_to_list(atom)
+  end
 
   @doc """
   Returns the atom whose text representation is `binary`. If `encoding` is latin1,
@@ -325,19 +331,25 @@ defmodule Elixir.Builtin do
 
   """
   @spec binary_to_atom(binary, :utf8 | :unicode | :latin1), do: atom
-  def binary_to_atom(binary, encoding)
+  def binary_to_atom(binary, encoding) do
+    :erlang.binary_to_atom(binary, encoding)
+  end
 
   @doc """
   Works like `binary_to_atom/2`, but the atom must already exist.
   """
   @spec binary_to_existing_atom(binary, :utf8 | :unicode | :latin1), do: atom
-  def binary_to_existing_atom(binary, encoding)
+  def binary_to_existing_atom(binary, encoding) do
+    :erlang.binary_to_existing_atom(binary, encoding)
+  end
 
   @doc """
   Returns a list of integers which correspond to the bytes of `binary`.
   """
   @spec binary_to_list(binary), do: list
-  def binary_to_list(binary)
+  def binary_to_list(binary) do
+    :erlang.binary_to_list(binary)
+  end
 
   @doc """
   As binary_to_list/1, but returns a list of integers corresponding to the bytes
@@ -345,7 +357,9 @@ defmodule Elixir.Builtin do
   are numbered starting from 1.
   """
   @spec binary_to_list(binary, pos_integer, pos_integer), do: list
-  def binary_to_list(binary, start, stop)
+  def binary_to_list(binary, start, stop) do
+    :erlang.binary_to_list(binary, start, stop)
+  end
 
   @doc """
   Returns an Erlang term which is the result of decoding the binary
@@ -358,7 +372,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec binary_to_term(binary), do: term
-  def binary_to_term(binary)
+  def binary_to_term(binary) do
+    :erlang.binary_to_term(binary)
+  end
 
   @doc """
   As `binary_to_term/1`, but accepts a safe option useful when receiving
@@ -379,8 +395,10 @@ defmodule Elixir.Builtin do
       binary_to_term(term_to_binary("foo"), [:safe])
 
   """
-  @spec binary_to_term(binary,[] | [:safe]), do: term
-  def binary_to_term(binary, options)
+  @spec binary_to_term(binary, [] | [:safe]), do: term
+  def binary_to_term(binary, options) do
+    :erlang.binary_to_term(binary, options)
+  end
 
   @doc """
   Returns an integer which is the size in bits of `bitstring`.
@@ -394,7 +412,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec bit_size(bitstring), do: non_neg_integer
-  def bit_size(bitstring)
+  def bit_size(bitstring) do
+    :erlang.bit_size(bitstring)
+  end
 
   @doc """
   Returns a list of integers which correspond to the bytes of `bitstring`. If the
@@ -402,7 +422,9 @@ defmodule Elixir.Builtin do
   be a bitstring containing the remaining bits (1 up to 7 bits).
   """
   @spec bitstring_to_list(bitstring), do: non_neg_integer
-  def bitstring_to_list(bitstring)
+  def bitstring_to_list(bitstring) do
+    :erlang.bitstring_to_list(bitstring)
+  end
 
   @doc """
   Returns an integer which is the number of bytes needed to contain `bitstring`.
@@ -418,7 +440,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec byte_size(bitstring), do: non_neg_integer
-  def byte_size(bitstring)
+  def byte_size(bitstring) do
+    :erlang.byte_size(bitstring)
+  end
 
   @doc """
   Stops the execution of the calling process with the given reason.
@@ -432,13 +456,17 @@ defmodule Elixir.Builtin do
 
   """
   @spec exit(term), do: no_return
-  def exit(reason)
+  def exit(reason) do
+    :erlang.exit(reason)
+  end
 
   @doc """
   Converts the given number to a float. Allowed in guard clauses.
   """
   @spec float(number), do: float
-  def float(number)
+  def float(number) do
+    :erlang.float(number)
+  end
 
   @doc """
   Returns a char list which corresponds to the text representation of the given float.
@@ -450,20 +478,27 @@ defmodule Elixir.Builtin do
 
   """
   @spec float_to_list(number), do: string
-  def float_to_list(number)
+  def float_to_list(number) do
+    :erlang.float_to_list(number)
+  end
 
   @doc """
   The same as halt(0, []).
   """
   @spec halt(), do: no_return
-  def halt()
+  def halt() do
+    :erlang.halt()
+  end
 
   @typep halt_status :: non_neg_integer | string | :abort
+
   @doc """
   The same as halt(status, []).
   """
   @spec halt(halt_status), do: no_return
-  def halt(status)
+  def halt(status) do
+    :erlang.halt(status)
+  end
 
   @doc """
   Halts the Erlang runtime system where the first argument status must be a
@@ -493,13 +528,17 @@ defmodule Elixir.Builtin do
 
   """
   @spec halt(halt_status, [] | [flush: false]), do: no_return
-  def halt(status, options)
+  def halt(status, options) do
+    :erlang.halt(status, options)
+  end
 
   @doc """
   Returns the head of a list, raises badarg if the list is empty.
   """
   @spec hd(list), do: term
-  def hd(list)
+  def hd(list) do
+    :erlang.hd(list)
+  end
 
   @doc """
   Returns a char list which corresponds to the text representation of the given integer.
@@ -511,7 +550,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec integer_to_list(integer), do: string
-  def integer_to_list(number)
+  def integer_to_list(number) do
+    :erlang.integer_to_list(number)
+  end
 
   @doc """
   Returns a char list which corresponds to the text representation of the
@@ -524,7 +565,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec integer_to_list(integer, pos_integer), do: string
-  def integer_to_list(number, base)
+  def integer_to_list(number, base) do
+    :erlang.integer_to_list(number, base)
+  end
 
   @doc """
   Returns the size of an iolist.
@@ -536,7 +579,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec iolist_size(iolist), do: non_neg_integer
-  def iolist_size(item)
+  def iolist_size(item) do
+    :erlang.iolist_size(item)
+  end
 
   @doc """
   Returns a binary which is made from the integers and binaries in iolist.
@@ -552,7 +597,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec iolist_to_binary(iolist), do: binary
-  def iolist_to_binary(item)
+  def iolist_to_binary(item) do
+    :erlang.iolist_to_binary(item)
+  end
 
   @doc """
   Returns `true` if `term` is an atom; otherwise returns `false`.
@@ -560,7 +607,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_atom(term), do: boolean
-  def is_atom(term)
+  def is_atom(term) do
+    :erlang.is_atom(term)
+  end
 
   @doc """
   Returns `true` if `term` is a binary; otherwise returns `false`.
@@ -570,7 +619,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_binary(term), do: boolean
-  def is_binary(term)
+  def is_binary(term) do
+    :erlang.is_binary(term)
+  end
 
   @doc """
   Returns `true` if `term` is a bitstring (including a binary); otherwise returns `false`.
@@ -578,7 +629,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_bitstring(term), do: boolean
-  def is_bitstring(term)
+  def is_bitstring(term) do
+    :erlang.is_bitstring(term)
+  end
 
   @doc """
   Returns `true` if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
@@ -587,7 +640,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_boolean(term), do: boolean
-  def is_boolean(term)
+  def is_boolean(term) do
+    :erlang.is_boolean(term)
+  end
 
   @doc """
   Returns `true` if `term` is a floating point number; otherwise returns `false`.
@@ -595,7 +650,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_float(term), do: boolean
-  def is_float(term)
+  def is_float(term) do
+    :erlang.is_float(term)
+  end
 
   @doc """
   Returns `true` if `term` is a function; otherwise returns `false`.
@@ -603,7 +660,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_function(term), do: boolean
-  def is_function(term)
+  def is_function(term) do
+    :erlang.is_function(term)
+  end
 
   @doc """
   Returns `true` if `term` is a function that can be applied with `arity` number of arguments;
@@ -612,7 +671,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_function(term, non_neg_integer), do: boolean
-  def is_function(term, arity)
+  def is_function(term, arity) do
+    :erlang.is_function(term, arity)
+  end
 
   @doc """
   Returns `true` if `term` is an integer; otherwise returns `false`.
@@ -620,7 +681,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_integer(term), do: boolean
-  def is_integer(term)
+  def is_integer(term) do
+    :erlang.is_integer(term)
+  end
 
   @doc """
   Returns `true` if `term` is a list with zero or more elements; otherwise returns `false`.
@@ -628,7 +691,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_list(term), do: boolean
-  def is_list(term)
+  def is_list(term) do
+    :erlang.is_list(term)
+  end
 
   @doc """
   Returns `true` if `term` is either an integer or a floating point number;
@@ -637,7 +702,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_number(term), do: boolean
-  def is_number(term)
+  def is_number(term) do
+    :erlang.is_number(term)
+  end
 
   @doc """
   Returns `true` if `term` is a pid (process identifier); otherwise returns `false`.
@@ -645,7 +712,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_pid(term), do: boolean
-  def is_pid(term)
+  def is_pid(term) do
+    :erlang.is_pid(term)
+  end
 
   @doc """
   Returns `true` if `term` is a port identifier; otherwise returns `false`.
@@ -653,7 +722,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_port(term), do: boolean
-  def is_port(term)
+  def is_port(term) do
+    :erlang.is_port(term)
+  end
 
   @doc """
   Returns `true` if `term` is a reference; otherwise returns `false`.
@@ -661,7 +732,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_reference(term), do: boolean
-  def is_reference(term)
+  def is_reference(term) do
+    :erlang.is_reference(term)
+  end
 
   @doc """
   Returns `true` if `term` is a tuple; otherwise returns `false`.
@@ -669,7 +742,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec is_tuple(term), do: boolean
-  def is_tuple(term)
+  def is_tuple(term) do
+    :erlang.is_tuple(term)
+  end
 
   @doc """
   Returns the length of `list`.
@@ -681,7 +756,9 @@ defmodule Elixir.Builtin do
       length([1,2,3,4,5,6,7,8,9]) #=> 9
   """
   @spec length(list), do: non_neg_integer
-  def length(list)
+  def length(list) do
+    :erlang.length(list)
+  end
 
   @doc """
   Returns the atom whose text representation is `char_list`.
@@ -691,7 +768,9 @@ defmodule Elixir.Builtin do
       list_to_atom('elixir') #=> :elixir
   """
   @spec list_to_atom(string), do: atom
-  def list_to_atom(char_list)
+  def list_to_atom(char_list) do
+    :erlang.list_to_atom(char_list)
+  end
 
   @doc """
   Returns a binary which is made from the content of `char_list`.
@@ -701,7 +780,9 @@ defmodule Elixir.Builtin do
       list_to_binary('Elixir') #=> "Elixir"
   """
   @spec list_to_binary(iolist), do: binary
-  def list_to_binary(char_list)
+  def list_to_binary(char_list) do
+    :erlang.list_to_binary(char_list)
+  end
 
   @doc """
   Returns a bitstring which is made from the integers and bitstrings in `bitstring_list`.
@@ -718,14 +799,18 @@ defmodule Elixir.Builtin do
 
   """
   @spec list_to_bitstring(maybe_improper_list(char | binary | iolist | bitstring | [])), do: bitstring
-  def list_to_bitstring(bitstring_list)
+  def list_to_bitstring(bitstring_list) do
+    :erlang.list_to_bitstring(bitstring_list)
+  end
 
   @doc """
   Returns the atom whose text representation is `char_list`, but only if there already
   exists such atom.
   """
   @spec list_to_existing_atom(string), do: atom
-  def list_to_existing_atom(char_list)
+  def list_to_existing_atom(char_list) do
+    :erlang.list_to_existing_atom(char_list)
+  end
 
   @doc """
   Returns the float whose text representation is `char_list`.
@@ -735,7 +820,9 @@ defmodule Elixir.Builtin do
       list_to_float('2.2017764e+0') #=> 2.2017764
   """
   @spec list_to_float(string), do: float
-  def list_to_float(char_list)
+  def list_to_float(char_list) do
+    :erlang.list_to_float(char_list)
+  end
 
   @doc """
   Returns an integer whose text representation is `char_list`.
@@ -745,7 +832,9 @@ defmodule Elixir.Builtin do
       list_to_integer('123') #=> 123
   """
   @spec list_to_integer(string), do: integer
-  def list_to_integer(char_list)
+  def list_to_integer(char_list) do
+    :erlang.list_to_integer(char_list)
+  end
 
   @doc """
   Returns an integer whose text representation in base `base` is `char_list`.
@@ -755,7 +844,9 @@ defmodule Elixir.Builtin do
       > list_to_integer('3FF', 16) #=> 1023
   """
   @spec list_to_integer(string, non_neg_integer), do: integer
-  def list_to_integer(char_list, base)
+  def list_to_integer(char_list, base) do
+    :erlang.list_to_integer(char_list, base)
+  end
 
   @doc """
   Returns a pid whose text representation is `char_list`.
@@ -771,7 +862,9 @@ defmodule Elixir.Builtin do
       list_to_pid('<0.41>') #=> <0.4.1>
   """
   @spec list_to_pid(string), do: pid
-  def list_to_pid(char_list)
+  def list_to_pid(char_list) do
+    :erlang.list_to_pid(char_list)
+  end
 
   @doc """
   Returns a tuple which corresponds to `list`. `list` can contain any Erlang terms.
@@ -781,7 +874,9 @@ defmodule Elixir.Builtin do
       list_to_tuple([share, [:elixir, 163]]). #=> {share, [:elixir, 163]}
   """
   @spec list_to_tuple(list), do: tuple
-  def list_to_tuple(list)
+  def list_to_tuple(list) do
+    :erlang.list_to_tuple(list)
+  end
 
   @doc """
   Returns an almost unique reference.
@@ -796,7 +891,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec make_ref(), do: reference
-  def make_ref()
+  def make_ref() do
+    :erlang.make_ref()
+  end
 
   @doc """
   Return the biggest of the two given terms according to
@@ -809,7 +906,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec max(term, term), do: term
-  def max(first, second)
+  def max(first, second) do
+    :erlang.max(first, second)
+  end
 
   @doc """
   Return the smallest of the two given terms according to
@@ -822,7 +921,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec min(term, term), do: term
-  def min(first, second)
+  def min(first, second) do
+    :erlang.min(first, second)
+  end
 
   @doc """
   Returns an atom representing the name of the local node.
@@ -831,7 +932,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec node(), do: node
-  def node
+  def node do
+    :erlang.node
+  end
 
   @doc """
   Returns the node where the given argmuent is located.
@@ -841,7 +944,9 @@ defmodule Elixir.Builtin do
   Allowed in guard tests.
   """
   @spec node(pid|reference|port), do: node
-  def node(arg)
+  def node(arg) do
+    :erlang.node(arg)
+  end
 
   @doc """
   Returns a char list which corresponds to the text representation of pid.
@@ -856,7 +961,9 @@ defmodule Elixir.Builtin do
   It should not be used in application programs.
   """
   @spec pid_to_list(pid), do: list
-  def pid_to_list(pid)
+  def pid_to_list(pid) do
+    :erlang.pid_to_list(pid)
+  end
 
   @doc """
   Returns an integer by rounding the given number.
@@ -868,14 +975,18 @@ defmodule Elixir.Builtin do
 
   """
   @spec round(number), do: integer
-  def round(number)
+  def round(number) do
+    :erlang.round(number)
+  end
 
   @doc """
   Returns the size of the given argument, which must be a tuple
   or a binary. If possible, please use tuple_size or binary_size.
   """
   @spec size(tuple|binary), do: non_neg_integer
-  def size(arg)
+  def size(arg) do
+    :erlang.size(arg)
+  end
 
   @doc """
   Spawns the given function and returns its pid.
@@ -893,7 +1004,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec spawn(fun), do: pid
-  def spawn(fun)
+  def spawn(fun) do
+    :erlang.spawn(fun)
+  end
 
   @doc """
   Spawns the given module and function passing the given args
@@ -908,7 +1021,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec spawn(module, atom, list), do: pid
-  def spawn(module, fun, args)
+  def spawn(module, fun, args) do
+    :erlang.spawn(module, fun, args)
+  end
 
   @doc """
   Spawns the given function, links it to the current process and returns its pid.
@@ -927,7 +1042,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec spawn_link(fun), do: pid
-  def spawn_link(fun)
+  def spawn_link(fun) do
+    :erlang.spawn_link(fun)
+  end
 
   @doc """
   Spawns the given module and function passing the given args,
@@ -942,7 +1059,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec spawn_link(module, atom, list), do: pid
-  def spawn_link(module, fun, args)
+  def spawn_link(module, fun, args) do
+    :erlang.spawn_link(module, fun, args)
+  end
 
   @doc """
   Returns a binary data which is the result of encoding the given term
@@ -953,8 +1072,9 @@ defmodule Elixir.Builtin do
   of communications channel not supported by distributed Erlang.
   """
   @spec term_to_binary(term), do: binary
-  def term_to_binary(term)
-
+  def term_to_binary(term) do
+    :erlang.term_to_binary(term)
+  end
 
   @doc """
   The same as `term_to_binary/1` but also supports two options:
@@ -965,20 +1085,26 @@ defmodule Elixir.Builtin do
     for more details
 
   """
-  @spec term_to_binary(term, list({:compressed, 0..9}|{:minor_version, 0}|{minor_version, 1})), do: binary
-  def term_to_binary(term, opts)
+  @spec term_to_binary(term, list({:compressed, 0..9}|{:minor_version, 0}|{:minor_version, 1})), do: binary
+  def term_to_binary(term, opts) do
+    :erlang.term_to_binary(term, opts)
+  end
 
   @doc """
   A non-local return from a function. Check try/2 for more information.
   """
   @spec throw(term), do: no_return
-  def throw(term)
+  def throw(term) do
+    :erlang.throw(term)
+  end
 
   @doc """
   Returns the tail of a list. Raises ArgumentError if the list is empty.
   """
   @spec tl(maybe_improper_list), do: maybe_improper_list
-  def tl(list)
+  def tl(list) do
+    :erlang.tl(list)
+  end
 
   @doc """
   Returns an integer by the truncating the given number.
@@ -990,19 +1116,25 @@ defmodule Elixir.Builtin do
 
   """
   @spec trunc(number), do: integer
-  def trunc(number)
+  def trunc(number) do
+    :erlang.trunc(number)
+  end
 
   @doc """
   Returns the size of a tuple.
   """
   @spec tuple_size(tuple), do: non_neg_integer
-  def tuple_size(tuple)
+  def tuple_size(tuple) do
+    :erlang.tuple_size(tuple)
+  end
 
   @doc """
   Converts a tuple to a list.
   """
   @spec tuple_to_list(tuple), do: list
-  def tuple_to_list(tuple)
+  def tuple_to_list(tuple) do
+    :erlang.tuple_to_list(tuple)
+  end
 
   @doc """
   Defines a module given by name with the given contents.
@@ -1867,7 +1999,9 @@ defmodule Elixir.Builtin do
 
   """
   @spec apply(fun, list), do: term
-  def apply(fun, args)
+  def apply(fun, args) do
+    :erlang.apply(fun, args)
+  end
 
   @doc """
   Invokes the given `fun` from `module` with the array of arguments `args`.
@@ -1878,8 +2012,7 @@ defmodule Elixir.Builtin do
       #=> [3,2,1]
 
   """
-  @spec apply(module, atom, list), do: term
-  def apply(module, fun, args)
+  defmacro apply(module, fun, args)
 
   @doc """
   Provides an `if` macro. This macro expects the first argument to
