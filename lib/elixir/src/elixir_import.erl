@@ -253,6 +253,7 @@ non_overridable_macros() ->
     {'__op__',2},
     {'__op__',3},
     {'__ambiguousop__','*'},
+    {'__scope__',2},
     {'__block__','*'},
     {'->','2'},
     {'<<>>','*'},
@@ -276,8 +277,6 @@ non_overridable_macros() ->
     {'unquote',1},
     {'unquote_splicing',1},
     {'fn','*'},
-    {'loop','*'},
-    {'recur','*'},
     {'super','*'},
     {'bc','*'},
     {'lc','*'}

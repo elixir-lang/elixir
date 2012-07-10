@@ -17,7 +17,7 @@ defmodule GenServer.Behavior do
 
   """
   defmacro __using__(_) do
-    quote do
+    quote location: :keep do
       @behavior :gen_server
 
       def handle_call(_request, _from, state) do

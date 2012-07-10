@@ -61,4 +61,16 @@ defmodule Kernel.QuoteTest do
   test :fixed_line do
     assert quote(line: 3, do: bar(1,2,3)) == { :bar, 3, [1,2,3] }
   end
+
+  test :keep_location do
+    ## DO NOT MOVE THIS LINE
+    assert quote(location: :keep, do: bar(1,2,3)) == {
+      :__scope__,
+      67,
+      [
+        [file: __FILE__],
+        [do: { :bar, 67, [1,2,3] }]
+      ]
+    }
+  end
 end

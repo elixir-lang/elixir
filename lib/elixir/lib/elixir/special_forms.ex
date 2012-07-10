@@ -274,12 +274,40 @@ defmodule Elixir.SpecialForms do
   * `:hygiene` - When false, disables hygiene;
   * `:unquote` - When false, disables unquoting. Useful when you have a quote
     inside another quote and want to control which quote is able to unquote;
-  * `:line` - The line to be returned in each quoted expression. By default,
-              this is set to 0, so Elixir is able to differentiate the quoted
-              expressions from the expressions that were injected via unquote.
-              You can set it to any integer or to the atom `:keep` in order
-              to keep the current values.
+  * `:location` - When set to `:keep`, keeps the current line and file on quotes.
+                  Read the Stacktrace information section below for more information;
 
+  ## Stacktrace information
+
+  One of Elixir goals is to provide proper stacktrace whenever there is an
+  exception. In order to work properly with macros, the default behavior
+  in quote is to set the line to 0. When a macro is invoked and the quoted
+  expressions is expanded, 0 is replaced by the line of the call site.
+
+  This is a good behavior for the majority of the cases, except if the macro
+  is defining new functions. Consider this example:
+
+      defmodule MyServer do
+        use GenServer.Behavior
+      end
+
+  `GenServer.Behavior` defines new functions in our `MyServer` module.
+  However, if there is an exception in any of these functions, we want
+  the stacktrace to point to the `GenServer.Behavior` and not the line
+  that calls `use GenServer.Behavior`. For this reason, there is an
+  option called `:location` that when set to `:keep` keeps these proper
+  semantics:
+
+      quote location: :keep do
+        def handle_call(request, _from, state) do
+          { :reply, :undef, state }
+        end
+      end
+
+  It is important to warn though that `location: :keep` evaluates the
+  code as if it was defined inside `GenServer.Behavior` file, in
+  particular, the macro `__FILE__` will always point to
+  `GenServer.Behavior` file.
   """
   defmacro quote(opts, do: contents)
 

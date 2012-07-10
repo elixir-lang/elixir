@@ -38,7 +38,7 @@ translate_each({'=', Line, [Left, Right]}, S) ->
   { TLeft, SL } = elixir_clauses:assigns(fun translate_each/2, Left, SR),
   { { match, Line, TLeft, TRight }, SL };
 
-%% Blocks
+%% Blocks and scope rewriters
 
 translate_each({ '__block__', Line, [] }, S) ->
   { { atom, Line, nil }, S };
@@ -49,6 +49,11 @@ translate_each({ '__block__', _Line, [Arg] }, S) ->
 translate_each({ '__block__', Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
+
+translate_each({ '__scope__', _Line, [[{file,File}],[{do,Expr}]] }, S) ->
+  Old = S#elixir_scope.file,
+  { TExpr, TS } = translate_each(Expr, S#elixir_scope{file=File}),
+  { TExpr, TS#elixir_scope{file=Old} };
 
 %% Erlang op
 
@@ -267,12 +272,20 @@ translate_each({quote, GivenLine, [[{do,Exprs}|T]]}, S) ->
     _ -> quoted
   end,
 
+  { DefaultLine, WrappedExprs } = case orddict:find(location, T) of
+    { ok, keep } ->
+      Scoped = { '__scope__', GivenLine, [[{file,S#elixir_scope.file}],[{do,Exprs}]] },
+      { keep, Scoped };
+    _ ->
+      { 0, Exprs}
+  end,
+
   Line = case orddict:find(line, T) of
     { ok, keep } -> keep;
     { ok, Value } when is_integer(Value) -> Value;
     { ok, _ } -> syntax_error(GivenLine, S#elixir_scope.file,
                    "invalid args for quote. expected line to be the atom :keep or an integer");
-    _ -> 0
+    _ -> DefaultLine
   end,
 
   Unquote = case orddict:find(unquote, T) of
@@ -280,7 +293,7 @@ translate_each({quote, GivenLine, [[{do,Exprs}|T]]}, S) ->
     _ -> true
   end,
 
-  elixir_quote:quote(Exprs, #elixir_quote{marker=Marker, line=Line, unquote=Unquote}, S);
+  elixir_quote:quote(WrappedExprs, #elixir_quote{marker=Marker, line=Line, unquote=Unquote}, S);
 
 translate_each({quote, Line, [_]}, S) ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for quote");
