@@ -10,9 +10,9 @@ defmodule Elixir.IEx.UnicodeIO do
   code cache, the instructions counter and needs to
   return a list with the new characters inserted.
   """
-  def get(cache, _count) do
+  def get(cache, count) do
     prompt = case cache do
-      [] -> "iex> "
+      [] -> "iex(#{count})> "
       _ -> "...> "
     end
     :unicode.characters_to_list(IO.gets(prompt))
@@ -89,7 +89,7 @@ defmodule Elixir.IEx do
     Elixir.IEx.Config.new(io: io, binding: binding, scope: scope)
   end
 
-  defp do_loop(config) do
+  defp do_loop(config, history // []) do
     io = config.io
 
     config  = config.increment_counter
@@ -97,12 +97,14 @@ defmodule Elixir.IEx do
     cache   = config.cache
     code    = cache ++ io.get(cache, counter)
 
-    new_config =
+    {new_config, history} =
       try do
+        Process.put :__history__, history
         { result, new_binding, scope } =
           Erlang.elixir.eval(code, config.binding, counter, config.scope)
         io.put result
-        config.binding(new_binding).cache('').scope(scope)
+        {config.binding(new_binding).cache('').scope(scope), 
+         [[code: code, result: result, binding: new_binding, scope: scope]|history]}
       rescue
         TokenMissingError ->
           config.cache(code)
@@ -110,16 +112,16 @@ defmodule Elixir.IEx do
           stacktrace = System.stacktrace
           io.error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
           print_stacktrace io, stacktrace
-          config.cache('')
+          {config.cache(''), history}
       catch
         kind, error ->
           stacktrace = System.stacktrace
           io.error "** (#{kind}) #{inspect(error)}"
           print_stacktrace io, stacktrace
-          config.cache('')
+          {config.cache(''), history}
       end
 
-    do_loop(new_config)
+    do_loop(new_config, history)
   end
 
   defp print_stacktrace(io, stacktrace) do
@@ -163,5 +165,30 @@ defmodule Elixir.IEx.Helpers do
   """
   def m(mod) do
     IO.inspect mod.module_info
+  end
+
+  @doc """
+  Prints the history
+  """
+  def h do
+    history = List.reverse(Process.get(:__history__))
+    lc {item, index} inlist List.zip(history,
+                            :lists.seq(1,length(history))) do
+      IO.puts "## #{index}:\n#{item[:code]}#=> #{inspect item[:result]}"
+    end
+    nil
+  end
+
+  @doc """
+  Retrieves Nth query's value from the history
+  """
+  def v(n) when n < 0 do
+    history_length = length(Process.get(:__history__))
+    v(history_length + n + 1)
+  end
+  def v(n) do
+    history = List.reverse(Process.get(:__history__))
+    item = :lists.nth(n, history)
+    item[:result]
   end
 end
