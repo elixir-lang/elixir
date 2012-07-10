@@ -87,6 +87,53 @@ defmodule Code do
   end
 
   @doc """
+  Converts the given string to AST. It returns { :ok, ast }
+  if it succeeds, { :error, { line, error, token } } otherwise.
+
+  ## Options
+
+  * `:file` - The filename to be used in stacktraces
+    and the file reported in the __ENV__ variable.
+
+  * `:line` - The line reported in the __ENV__ variable.
+
+  """
+  def string_to_ast(string, opts // []) do
+    file = Keyword.get opts, :file, "nofile"
+    line = Keyword.get opts, :line, 1
+    res  = :elixir_translator.raw_forms(:unicode.characters_to_list(string), line, file)
+    case res do
+      { :ok, [forms] } when not is_list(forms) -> { :ok, forms }
+      { :ok, forms } -> { :ok, { :__block__, line, forms } }
+      _ -> res
+    end
+  end
+
+  @doc """
+  Converts the given string to AST. It returns the ast if it succeeds,
+  raises an exception otherwise. The exception is a TokenMissingError
+  in case a token is missing (usually because the expression is incomplete),
+  SyntaxError otherwise.
+
+  ## Options
+
+  * `:file` - The filename to be used in stacktraces
+    and the file reported in the __ENV__ variable.
+
+  * `:line` - The line reported in the __ENV__ variable.
+
+  """
+  def string_to_ast!(string, opts // []) do
+    file = Keyword.get opts, :file, "nofile"
+    line = Keyword.get opts, :line, 1
+    res  = :elixir_translator.forms(:unicode.characters_to_list(string), line, file)
+    case res do
+      [forms] when not is_list(forms) -> forms
+      forms -> { :__block__, line, forms }
+    end
+  end
+
+  @doc """
   Loads the given `file`. Accepts `relative_to` as an argument to tell
   where the file is located. If the file was already required/loaded,
   loads it again. It returns the full path of the loaded file.

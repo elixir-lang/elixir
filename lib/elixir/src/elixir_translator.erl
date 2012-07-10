@@ -1,21 +1,27 @@
 %% Main entry point for translations. Are macros that cannot be
 %% overriden are defined in this file.
 -module(elixir_translator).
--export([translate/2, translate_each/2, translate_args/2, translate_apply/7, forms/3]).
+-export([translate/2, translate_each/2, translate_args/2, translate_apply/7, raw_forms/3, forms/3]).
 -import(elixir_scope, [umergev/2, umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4, assert_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
 
-forms(String, StartLine, File) ->
+raw_forms(String, StartLine, File) ->
   try elixir_tokenizer:tokenize(String, StartLine, File) of
-    {ok, Tokens} ->
+    { ok, Tokens } ->
       case elixir_parser:parse(Tokens) of
-        {ok, Forms} -> Forms;
-        {error, {Line, _, [Error, Token]}} -> parse_error(Line, File, Error, Token)
+        { ok, Forms } -> { ok, Forms };
+        { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
       end;
-    {error, {Line, Error, Token}} -> parse_error(Line, File, Error, Token)
+    { error, { _, _, _ } } = Else -> Else
   catch
-    {interpolation_error, {Line, Error, Token}} -> parse_error(Line, File, Error, Token)
+    { interpolation_error, { _, _, _ } = Tuple} -> { error, Tuple }
+  end.
+
+forms(String, StartLine, File) ->
+  case raw_forms(String, StartLine, File) of
+    { ok, Forms } -> Forms;
+    { error, { Line, Error, Token } } -> parse_error(Line, File, Error, Token)
   end.
 
 translate(Forms, S) ->

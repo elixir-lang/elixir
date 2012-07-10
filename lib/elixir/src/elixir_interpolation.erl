@@ -138,12 +138,8 @@ wrap_interpol(Line, Form) ->
   { '|', Line, [{ { '.', Line, ['__MAIN__-Binary-Chars', to_binary] }, Line, [Form]}, binary]}.
 
 forms(String, StartLine, File) ->
-  case elixir_tokenizer:tokenize(String, StartLine, File) of
-    {ok, Tokens} ->
-      case elixir_parser:parse(Tokens) of
-        {ok, [Forms]} when not is_list(Forms) -> Forms;
-        {ok, Forms} -> { '__block__', StartLine, Forms };
-        {error, {Line, _, [Error, Token]}} -> throw({ interpolation_error, { Line, Error, Token } })
-      end;
-    {error, {Line, Error, Token}} -> throw({ interpolation_error, { Line, Error, Token } })
+  case elixir_translator:raw_forms(String, StartLine, File) of
+    { ok, [Forms] } when not is_list(Forms) -> Forms;
+    { ok, Forms } -> { '__block__', StartLine, Forms };
+    { error, Tuple } -> throw({ interpolation_error, Tuple })
   end.

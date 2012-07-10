@@ -38,6 +38,23 @@ defmodule CodeTest do
     assert :filename.absname(__FILE__) == __FILE__
   end
 
+  test :string_to_ast do
+    assert { :ok, quote line: 1, do: 1 + 2 } = Code.string_to_ast("1 + 2")
+    assert { :error, _ } = Code.string_to_ast("a.1")
+  end
+
+  test :string_to_ast! do
+    assert Code.string_to_ast!("1 + 2") == quote line: 1, do: 1 + 2
+
+    assert_raise SyntaxError, fn ->
+      Code.string_to_ast!("a.1")
+    end
+
+    assert_raise TokenMissingError, fn ->
+      Code.string_to_ast!("1 +")
+    end
+  end
+
   test :compile_source do
     compile = __MODULE__.__info__(:compile)
 
