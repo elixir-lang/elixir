@@ -39,31 +39,58 @@ defrecord Elixir.IEx.Config, io: nil, binding: nil, cache: '', counter: 0, scope
 
 defmodule Elixir.IEx do
   @moduledoc """
-  This module implements interactive Elixir. It provides two
-  main functions, `start` and `simple_start`. `start` was
-  meant for systems where tty is available and relies on
-  it in order to work properly. This makes all control commands
+  This module implements interactive Elixir. It provides a main
+  function, `start` which will either delegate to `tty` or `simple`.
+  The former is meant for systems where tty is available and relies
+  on it in order to work properly. This makes all control commands
   available in tty available to the developer.
 
   In case `tty` is not available (for example, Windows), a
-  developer may invoke `simple_start` which starts a stripped
+  developer may invoke `simple` which starts a stripped
   down version.
   """
 
   import Exception, only: [format_stacktrace: 1]
 
   @doc """
-  Starts IEx using a tty server. It requires the initial
-  binding an the IO mechanism as argument.
+  Starts IEx checking if tty is available or not.
+  If so, invoke tty, otherwise go with the simple iex.
   """
   def start(binding // [], io // Elixir.IEx.UnicodeIO) do
-    config = boot_config(binding, io)
+    if System.find_executable("tty") do
+      tty(binding, io)
+    else
+      simple(binding, io)
+    end
+  end
+
+  @doc """
+  Starts IEx using a tty server.
+  """
+  def tty(binding // [], io // Elixir.IEx.UnicodeIO) do
+    config   = boot_config(binding, io)
+
     function = fn ->
-      :error_logger.delete_report_handler(:error_logger_tty_h)
-      :error_logger.add_report_handler(:error_logger_tty_h)
+      # We are inside the new tty and in a new process,
+      # reattach it the error logger.
+      attach_error_logger
       do_loop(config)
     end
-    if is_pid(Process.whereis(:user)), do: Process.unregister :user
+
+    # Dettach the error logger because we are going to unregister
+    # the user process and start a new tty which will get control
+    # over the standardio. Dettaching it here allows us to get rid
+    # of warnings. We reattach it again when we get the new tty.
+    dettach_error_logger
+
+    # Unregister the user process, user_drv command below
+    # will register the new one.
+    unregister_user_process
+
+    # Close the default io port, user_drv start command below
+    # will take control over the io.
+    close_io_port
+
     Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
   end
 
@@ -71,7 +98,7 @@ defmodule Elixir.IEx do
   Starts IEx simply using stdio. It requires the initial
   binding an the IO mechanism as argument.
   """
-  def simple_start(binding // [], io // Elixir.IEx.UnicodeIO) do
+  def simple(binding // [], io // Elixir.IEx.UnicodeIO) do
     config = boot_config(binding, io)
     do_loop(config)
   end
@@ -87,6 +114,28 @@ defmodule Elixir.IEx do
     )
 
     Elixir.IEx.Config.new(io: io, binding: binding, scope: scope)
+  end
+
+  defp dettach_error_logger do
+    :error_logger.delete_report_handler(:error_logger_tty_h)
+  end
+
+  defp attach_error_logger do
+    :error_logger.add_report_handler(:error_logger_tty_h)
+  end
+
+  defp unregister_user_process do
+    if is_pid(Process.whereis(:user)), do: Process.unregister :user
+  end
+
+  defp close_io_port do
+    if port = Enum.find(Port.list, io_port?(&1)) do
+      Port.close(port)
+    end
+  end
+
+  defp io_port?(port) do
+    Port.info(port, :name) == {:name,'0/1'} && port
   end
 
   defp do_loop(config, history // []) do
