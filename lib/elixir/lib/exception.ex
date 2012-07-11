@@ -201,3 +201,5 @@ defexception Keyword.KeyError, key: nil do
     "key not found: #{inspect exception.key}"
   end
 end
+
+defexception Enum.OutOfBoundsError, message: "out of bounds error"

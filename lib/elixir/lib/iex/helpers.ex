@@ -56,11 +56,11 @@ defmodule IEx.Helpers do
   """
   def v(n) when n < 0 do
     history = Process.get(:iex_history)
-    if config = Enum.nth(history, abs(n)), do: config.result
+    Enum.nth!(history, abs(n)).result
   end
 
   def v(n) do
     history = Process.get(:iex_history) /> List.reverse
-    if config = Enum.nth(history, n), do: config.result
+    Enum.nth!(history, n).result
   end
 end

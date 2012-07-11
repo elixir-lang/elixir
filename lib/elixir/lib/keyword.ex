@@ -93,13 +93,13 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.fetch [a: 1], :a      #=> 1
-      Keyword.fetch [a: 1], :b      #=> raises KeyError[key: :b]
+      Keyword.get! [a: 1], :a      #=> 1
+      Keyword.get! [a: 1], :b      #=> raises KeyError[key: :b]
   """
-  def fetch([{k, _}|_], key) when key < k, do: raise(Keyword.KeyError, key: key)
-  def fetch([{k, _}|d], key) when key > k, do: fetch(d, key)
-  def fetch([{_, value}|_], _key),         do: value
-  def fetch([], key),                      do: raise(Keyword.KeyError, key: key)
+  def get!([{k, _}|_], key) when key < k, do: raise(Keyword.KeyError, key: key)
+  def get!([{k, _}|d], key) when key > k, do: get!(d, key)
+  def get!([{_, value}|_], _key),         do: value
+  def get!([], key),                      do: raise(Keyword.KeyError, key: key)
 
   @doc """
   Gets all values for a specific key.

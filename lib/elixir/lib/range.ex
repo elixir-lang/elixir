@@ -15,8 +15,8 @@ defmodule Range do
   def new(options) do
     {
       __MODULE__,
-      Keyword.fetch(options, :first),
-      Keyword.fetch(options, :last)
+      Keyword.get!(options, :first),
+      Keyword.get!(options, :last)
     }
   end
 

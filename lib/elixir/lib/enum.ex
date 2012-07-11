@@ -555,21 +555,21 @@ defmodule Enum do
 
     ## Examples
 
-        Enum.nth [2,4,6], 1 #=> 2
-        Enum.nth [2,4,6], 3 #=> 6
-        Enum.nth [2,4,6], 5 #=> nil
+        Enum.nth! [2,4,6], 1 #=> 2
+        Enum.nth! [2,4,6], 3 #=> 6
+        Enum.nth! [2,4,6], 5 #=> raises Enum.EndOfCollection
 
   """
-  def nth(collection, n) when is_list(collection) and n > 0 do
-    do_nth(collection, n)
+  def nth!(collection, n) when is_list(collection) and n > 0 do
+    do_nth!(collection, n)
   end
 
-  def nth(collection, n) when n > 0 do
+  def nth!(collection, n) when n > 0 do
     case O.iterator(collection) do
       { iterator, pointer } ->
-        do_nth(pointer, iterator, n)
+        do_nth!(pointer, iterator, n)
       list when is_list(list) ->
-        do_nth(list, n)
+        do_nth!(list, n)
     end
   end
 
@@ -954,13 +954,13 @@ defmodule Enum do
 
   ## nth
 
-  defp do_nth([h|_], 1), do: h
-  defp do_nth([_|t], n), do: do_nth(t, n - 1)
-  defp do_nth([], _),    do: nil
+  defp do_nth!([h|_], 1), do: h
+  defp do_nth!([_|t], n), do: do_nth!(t, n - 1)
+  defp do_nth!([], _),    do: raise Enum.OutOfBoundsError
 
-  defp do_nth({ h, _next }, _iterator, 1), do: h
-  defp do_nth({ _, next }, iterator, n),   do: do_nth(iterator.(next), iterator, n - 1)
-  defp do_nth(:stop, _iterator, _),        do: nil
+  defp do_nth!({ h, _next }, _iterator, 1), do: h
+  defp do_nth!({ _, next }, iterator, n),   do: do_nth!(iterator.(next), iterator, n - 1)
+  defp do_nth!(:stop, _iterator, _),        do: raise Enum.OutOfBoundsError
 
   ## reduce
 

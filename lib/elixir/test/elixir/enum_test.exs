@@ -166,10 +166,12 @@ defmodule EnumTest.List do
     assert Enum.map_reduce([1,2,3], 1, fn(x, acc) -> { x * 2, x + acc } end) == { [2,4,6], 7 }
   end
 
-  test :nth do
-    assert Enum.nth([2,4,6], 1) == 2
-    assert Enum.nth([2,4,6], 3) == 6
-    assert Enum.nth([2,4,6], 5) == nil
+  test :nth! do
+    assert Enum.nth!([2,4,6], 1) == 2
+    assert Enum.nth!([2,4,6], 3) == 6
+    assert_raise Enum.OutOfBoundsError, fn ->
+      Enum.nth!([2,4,6], 5)
+    end
   end
 
   test :partition do
@@ -633,10 +635,13 @@ defmodule EnumTest.Range do
     assert Enum.map_reduce(range, 1, fn(x, acc) -> { x * 2, x + acc } end) == { [2,4,6], 7 }
   end
 
-  test :nth do
-    assert Enum.nth(2..6, 1) == 2
-    assert Enum.nth(2..6, 5) == 6
-    assert Enum.nth(2..6, 9) == nil
+  test :nth! do
+    assert Enum.nth!(2..6, 1) == 2
+    assert Enum.nth!(2..6, 5) == 6
+
+    assert_raise Enum.OutOfBoundsError, fn ->
+      assert Enum.nth!(2..6, 9)
+    end
   end
 
   test :partition do
