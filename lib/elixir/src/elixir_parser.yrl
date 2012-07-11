@@ -6,7 +6,7 @@ Nonterminals
   expr block_expr fn_expr bracket_expr call_expr max_expr
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
   comma_separator
-  add_op mult_op unary_op two_op high_op bin_concat_op
+  add_op mult_op unary_op two_op pipeline_op bin_concat_op
   match_op send_op default_op when_op pipe_op in_op inc_op stab_op range_op
   andand_op oror_op and_op or_op comp_expr_op colon_colon_op three_op
   open_paren close_paren
@@ -63,7 +63,7 @@ Left     200 add_op.
 Left     210 mult_op.
 Right    220 bin_concat_op.
 Right    230 two_op.
-Left     290 high_op.
+Right    290 pipeline_op.
 Nonassoc 300 unary_op.
 Left     310 dot_call_op.
 Left     310 dot_op.
@@ -98,7 +98,7 @@ op_expr -> match_op expr : { '$1', '$2' }.
 op_expr -> add_op expr : { '$1', '$2' }.
 op_expr -> mult_op expr : { '$1', '$2' }.
 op_expr -> two_op expr : { '$1', '$2' }.
-op_expr -> high_op expr : { '$1', '$2' }.
+op_expr -> pipeline_op expr : { '$1', '$2' }.
 op_expr -> andand_op expr : { '$1', '$2' }.
 op_expr -> three_op expr : { '$1', '$2' }.
 op_expr -> oror_op expr : { '$1', '$2' }.
@@ -119,7 +119,7 @@ matched_op_expr -> match_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> add_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> mult_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> two_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> high_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> pipeline_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> andand_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> three_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> oror_op matched_expr : { '$1', '$2' }.
@@ -259,10 +259,10 @@ two_op -> '--' eol : '$1'.
 two_op -> '**' : '$1'.
 two_op -> '**' eol : '$1'.
 
-high_op -> '=~' : '$1'.
-high_op -> '=~' eol : '$1'.
-high_op -> '/>' : '$1'.
-high_op -> '/>' eol : '$1'.
+pipeline_op -> '=~' : '$1'.
+pipeline_op -> '=~' eol : '$1'.
+pipeline_op -> '/>' : '$1'.
+pipeline_op -> '/>' eol : '$1'.
 
 three_op -> '&&&' : '$1'.
 three_op -> '&&&' eol : '$1'.
