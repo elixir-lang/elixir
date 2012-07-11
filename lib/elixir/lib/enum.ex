@@ -8,7 +8,7 @@ defprotocol Enum.Iterator do
 
       Enum.map [1,2,3], &1 * 2
 
-  Is invoked, it invokes Enum.Iterator.iterator([1,2,3])
+  Is invoked, it invokes `Enum.Iterator.iterator([1,2,3])`
   which returns all the information required by Enum.
   Read each function documentation below for more information.
   """
@@ -557,7 +557,7 @@ defmodule Enum do
 
         Enum.nth! [2,4,6], 1 #=> 2
         Enum.nth! [2,4,6], 3 #=> 6
-        Enum.nth! [2,4,6], 5 #=> raises Enum.EndOfCollection
+        Enum.nth! [2,4,6], 5 #=> raises Enum.OutOfBoundsError
 
   """
   def nth!(collection, n) when is_list(collection) and n > 0 do
