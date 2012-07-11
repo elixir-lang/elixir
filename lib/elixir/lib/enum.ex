@@ -383,7 +383,7 @@ defmodule Enum do
         Enum.find_index [2,4,6], fn(x) -> rem(x, 2) == 1 end
         #=> nil
 
-        Enum.find_value [2,3,4], fn(x) -> rem(x, 2) == 1 end
+        Enum.find_index [2,3,4], fn(x) -> rem(x, 2) == 1 end
         #=> 2
 
   """
@@ -544,6 +544,32 @@ defmodule Enum do
         do_map_reduce(pointer, iterator, [], acc, fun)
       list when is_list(list) ->
         map_reduce(list, acc, fun)
+    end
+  end
+
+  @doc """
+  Finds the element at the nth index. Returns nil in case
+  the given index is outside the range of the collection.
+
+  Expects an ordered collection.
+
+    ## Examples
+
+        Enum.nth [2,4,6], 1 #=> 2
+        Enum.nth [2,4,6], 3 #=> 6
+        Enum.nth [2,4,6], 5 #=> nil
+
+  """
+  def nth(collection, n) when is_list(collection) and n > 0 do
+    do_nth(collection, n)
+  end
+
+  def nth(collection, n) when n > 0 do
+    case O.iterator(collection) do
+      { iterator, pointer } ->
+        do_nth(pointer, iterator, n)
+      list when is_list(list) ->
+        do_nth(list, n)
     end
   end
 
@@ -925,6 +951,16 @@ defmodule Enum do
   defp do_filter_map(:stop, _, _, _) do
     []
   end
+
+  ## nth
+
+  defp do_nth([h|_], 1), do: h
+  defp do_nth([_|t], n), do: do_nth(t, n - 1)
+  defp do_nth([], _),    do: nil
+
+  defp do_nth({ h, _next }, _iterator, 1), do: h
+  defp do_nth({ _, next }, iterator, n),   do: do_nth(iterator.(next), iterator, n - 1)
+  defp do_nth(:stop, _iterator, _),        do: nil
 
   ## reduce
 

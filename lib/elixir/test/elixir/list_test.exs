@@ -91,13 +91,6 @@ defmodule ListTest do
     assert List.duplicate([1], 1) == [[1]]
   end
 
-  test :find_index do
-    assert List.find_index([], 'a') == nil
-    assert List.find_index(['a'], 'b') == nil
-    assert List.find_index(['a'], 'a') == 1
-    assert List.find_index([1,2,4,3], 3) == 4
-  end
-
   test :last do
     assert List.last([]) == nil
     assert List.last([1]) == 1

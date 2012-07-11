@@ -276,7 +276,6 @@ defmodule List do
     :lists.sort list
   end
 
-
   @doc """
   Sorts the list according to an ordering function. fun(a, b) should
   return true if `a` compares less than or equal to `b`, `false` otherwise.
@@ -317,26 +316,6 @@ defmodule List do
   """
   def duplicate(elem, n) do
     Erlang.lists.duplicate(n, elem)
-  end
-
-  @doc """
-  Looks for a term in a list and returns its position.
-  If term is found in the first position, return 1.
-  If no terms not found in list, the return value is nil.
-
-  ### Examples
-
-      List.find_index ['a'], 'b'
-      #=> nil
-      List.find_index ['a'], 'a'
-      #=> 1
-  """
-  def find_index(list, term) do
-    index = Erlang.string.str(list, [term])
-    case index == 0 do
-      true  -> nil
-      false -> index
-    end
   end
 
   @doc """

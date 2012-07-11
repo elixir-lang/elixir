@@ -122,11 +122,9 @@ defmodule IEx do
 
         io.put result
 
-        config = config.binding(new_binding).cache('').
-                   scope(scope).result(result).increment_counter
-
-        update_history(config)
-        config
+        config = config.result(result)
+        update_history(config.cache(code).scope(nil))
+        config.increment_counter.cache('').binding(new_binding).scope(scope)
       rescue
         TokenMissingError ->
           config.cache(code)
@@ -148,10 +146,7 @@ defmodule IEx do
 
   defp update_history(config) do
     current = Process.get :iex_history
-
-    # Disregard the scope since we won't need
-    # it and it is considerably large.
-    Process.put :iex_history, [config.scope(nil)|current]
+    Process.put :iex_history, [config|current]
   end
 
   defp print_stacktrace(io, stacktrace) do

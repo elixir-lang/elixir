@@ -166,6 +166,12 @@ defmodule EnumTest.List do
     assert Enum.map_reduce([1,2,3], 1, fn(x, acc) -> { x * 2, x + acc } end) == { [2,4,6], 7 }
   end
 
+  test :nth do
+    assert Enum.nth([2,4,6], 1) == 2
+    assert Enum.nth([2,4,6], 3) == 6
+    assert Enum.nth([2,4,6], 5) == nil
+  end
+
   test :partition do
     assert Enum.partition([1,2,3], fn(x) -> rem(x, 2) == 0 end) == { [2], [1,3] }
     assert Enum.partition([2,4,6], fn(x) -> rem(x, 2) == 0 end) == { [2,4,6], [] }
@@ -625,6 +631,12 @@ defmodule EnumTest.Range do
 
     range = Range.new(first: 1, last: 3)
     assert Enum.map_reduce(range, 1, fn(x, acc) -> { x * 2, x + acc } end) == { [2,4,6], 7 }
+  end
+
+  test :nth do
+    assert Enum.nth(2..6, 1) == 2
+    assert Enum.nth(2..6, 5) == 6
+    assert Enum.nth(2..6, 9) == nil
   end
 
   test :partition do

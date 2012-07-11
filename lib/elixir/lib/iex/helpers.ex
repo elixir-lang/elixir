@@ -40,12 +40,13 @@ defmodule IEx.Helpers do
   Prints the history
   """
   def h do
-    history = List.reverse(Process.get(:__history__))
-    lc {item, index} inlist List.zip(history,
-                            :lists.seq(1,length(history))) do
-      IO.puts "## #{index}:\n#{item[:code]}#=> #{inspect item[:result]}"
-    end
-    nil
+    history = List.reverse(Process.get(:iex_history))
+    Enum.each(history, print_history(&1))
+    :ok
+  end
+
+  defp print_history(config) do
+    IO.puts "#{config.counter}: #{config.cache}#=> #{inspect config.result}\n"
   end
 
   @doc """
@@ -55,13 +56,11 @@ defmodule IEx.Helpers do
   """
   def v(n) when n < 0 do
     history = Process.get(:iex_history)
-    config  = :lists.nth(abs(n), history)
-    config.result
+    if config = Enum.nth(history, abs(n)), do: config.result
   end
 
   def v(n) do
     history = Process.get(:iex_history) /> List.reverse
-    config  = :lists.nth(n, history)
-    config.result
+    if config = Enum.nth(history, n), do: config.result
   end
 end
