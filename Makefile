@@ -93,6 +93,7 @@ docs: $(FULLFLAG)
 	rm -rf ebin
 
 release_docs: docs
+	cd ../elixir-lang.github.com && git checkout master
 	rm -rf ../elixir-lang.github.com/docs/master
 	mv output ../elixir-lang.github.com/docs/master
 

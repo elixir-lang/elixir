@@ -182,6 +182,7 @@ defmodule Module do
   defp simplify_signature({ var, line, atom }, _, i) when is_atom(atom) do
     case atom_to_list(var) do
       [?_,?_|_] -> { :"arg#{i}", line, :guess }
+      [?_]      -> { :"arg#{i}", line, :guess }
       [?_|t]    -> { list_to_atom(t), line, :guess }
       _         -> { var, line, nil }
     end
