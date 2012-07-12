@@ -2,6 +2,7 @@
 -export([kv/1]).
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
+-compile({parse_transform, elixir_transform}).
 
 eval(Content) ->
   { Value, Binding, _ } = elixir:eval(Content, []),

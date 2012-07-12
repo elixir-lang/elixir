@@ -107,7 +107,7 @@ test: test_erlang test_elixir
 test_erlang: compile
 	@ echo "==> elixir (eunit)"
 	@ mkdir -p lib/elixir/test/ebin
-	@ $(ERLC) -o lib/elixir/test/ebin lib/elixir/test/erlang/*.erl
+	@ $(ERLC) -pa lib/elixir/ebin -o lib/elixir/test/ebin lib/elixir/test/erlang/*.erl
 	@ time $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt
 	@ echo
 

@@ -2,6 +2,7 @@
 -export([get_opts/0, get_opt/1, get_opt/2, string/2, file/1, file_to_path/2]).
 -export([core/0, module/3, eval_forms/5]).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 %% Public API
 
@@ -117,7 +118,7 @@ core() ->
   [core_file(File) || File <- core_main()],
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
   Files = lists:append(AllLists) -- core_main(),
-  [core_file(File) || File <- '__MAIN__-List':uniq(Files)].
+  [core_file(File) || File <- 'Elixir.List':uniq(Files)].
 
 %% HELPERS
 

@@ -3,6 +3,7 @@
 -export([store_pending/1, is_defined/2, ensure_defined/4,
   assign_args/3, retrieve_args/3, name/2, store/3, format_error/1]).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 overridable(Module) ->
   ets:lookup_element(elixir_module:data_table(Module), '__overridable', 2).
@@ -77,13 +78,13 @@ store(Module, Function, GenerateName) ->
 
 store_pending(Module) ->
   [store(Module, X, false) || { X, { _, [_|_] } } <- overridable(Module),
-    not '__MAIN__-Module':'function_defined?'(Module, X)].
+    not 'Elixir.Module':'function_defined?'(Module, X)].
 
 %% Error handling
 
 format_error({ no_super, Module, { Name, Arity } }) ->
   Bins   = [ format_fa(X) || { X, { _, [_|_] } } <- overridable(Module)],
-  Joined = '__MAIN__-Enum':join(Bins, <<", ">>),
+  Joined = 'Elixir.Enum':join(Bins, <<", ">>),
   io_lib:format("no super defined for ~s/~B in module ~p. Overridable functions available are: ~s",
     [Name, Arity, elixir_errors:inspect(Module), Joined]).
 

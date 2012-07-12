@@ -1,5 +1,6 @@
 -module(function_test).
 -include_lib("eunit/include/eunit.hrl").
+-compile({parse_transform, elixir_transform}).
 
 eval(Content) ->
   { Value, Binding, _ } = elixir:eval(Content, []),
@@ -65,7 +66,7 @@ function_calls_with_parenthesis_test() ->
 
 require_partial_application_test() ->
   { Fun, _ } = eval("List.flatten(&1)"),
-  Fun = fun '__MAIN__-List':flatten/1.
+  Fun = fun 'Elixir.List':flatten/1.
 
 import_partial_application_test() ->
   { Fun, _ } = eval("is_atom(&1)"),

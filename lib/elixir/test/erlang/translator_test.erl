@@ -1,6 +1,7 @@
 -module(translator_test).
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
+-compile({parse_transform, elixir_transform}).
 
 eval(Forms) ->
   { Result, _ } = eval(Forms, []),
@@ -25,7 +26,7 @@ assignment_match_test() ->
 %% Aliases
 
 single_alias_test() ->
-  {'__MAIN__-Foo', _} = eval([{'__aliases__', 1, ['Foo']}], []).
+  {'Elixir.Foo', _} = eval([{'__aliases__', 1, ['Foo']}], []).
 
 %% Containers
 

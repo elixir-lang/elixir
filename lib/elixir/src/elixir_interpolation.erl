@@ -4,6 +4,7 @@
 unescape_tokens/1, unescape_tokens/2, unescape_map/1]).
 -define(is_octal(S), S >= $0 andalso S =< $7).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 %% Extract string interpolations
 
@@ -135,7 +136,7 @@ wrap_interpol(_Line, Form) when is_binary(Form) ->
   Form;
 
 wrap_interpol(Line, Form) ->
-  { '|', Line, [{ { '.', Line, ['__MAIN__-Binary-Chars', to_binary] }, Line, [Form]}, binary]}.
+  { '|', Line, [{ { '.', Line, ['Elixir.Binary.Chars', to_binary] }, Line, [Form]}, binary]}.
 
 forms(String, StartLine, File) ->
   case elixir_translator:raw_forms(String, StartLine, File) of

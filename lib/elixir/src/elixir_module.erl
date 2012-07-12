@@ -2,6 +2,7 @@
 -export([translate/4, compile/5, data_table/1,
    format_error/1, scope_for_eval/2, binding_for_eval/2]).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 scope_for_eval(Module, #elixir_scope{} = S) ->
   S#elixir_scope{module=Module};
@@ -239,7 +240,7 @@ docs_clause(Line, _Module, _) ->
   { clause, Line, [{ atom, Line, docs }], [], [{ atom, Line, nil }] }.
 
 moduledoc_clause(Line, Module, true) ->
-  Docs = '__MAIN__-Module':read_attribute(Module, moduledoc),
+  Docs = 'Elixir.Module':read_attribute(Module, moduledoc),
   { clause, Line, [{ atom, Line, moduledoc }], [], [elixir_tree_helpers:abstract_syntax({ Line, Docs })] };
 
 moduledoc_clause(Line, _Module, _) ->
@@ -247,7 +248,7 @@ moduledoc_clause(Line, _Module, _) ->
 
 compile_clause(Line) ->
   Info = { call, Line, { atom, Line, module_info }, [{ atom, Line, compile }] },
-  WrappedInfo = ?ELIXIR_WRAP_CALL(Line, '__MAIN__-Keyword', 'from_enum', [Info]),
+  WrappedInfo = ?ELIXIR_WRAP_CALL(Line, 'Elixir.Keyword', 'from_enum', [Info]),
   { clause, Line, [{ atom, Line, compile }], [], [WrappedInfo] }.
 
 else_clause(Line) ->

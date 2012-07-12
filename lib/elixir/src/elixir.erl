@@ -5,6 +5,7 @@
   eval_quoted/2, eval_quoted/3, eval_quoted/4,
   eval_forms/3]).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 % OTP APPLICATION API
 
@@ -37,7 +38,7 @@ start_app() ->
 
 start_cli() ->
   start_app(),
-  '__MAIN__-Elixir-CLI':process_argv(init:get_plain_arguments()).
+  'Elixir.Elixir.CLI':process_argv(init:get_plain_arguments()).
 
 %% EVAL HOOKS
 

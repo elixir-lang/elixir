@@ -5,6 +5,7 @@
 -import(elixir_scope, [umergev/2, umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4, assert_function_scope/3, assert_module_scope/3]).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 raw_forms(String, StartLine, File) ->
   try elixir_tokenizer:tokenize(String, StartLine, File) of
@@ -464,7 +465,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom
           Callback = fun() -> translate_apply(Line, TLeft, TRight, Args, S, SL, SR) end,
 
           case TLeft of
-            { atom, _, '__MAIN__-Erlang' } ->
+            { atom, _, 'Elixir.Erlang' } ->
               case Args of
                 [] -> { { atom, Line, Right }, S };
                 _ ->

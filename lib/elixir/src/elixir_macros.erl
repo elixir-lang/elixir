@@ -8,8 +8,7 @@
 -include("elixir.hrl").
 
 -define(FUNS(), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
--define(Module(), '__MAIN__-Module').
--define(Range(), '__MAIN__-Range').
+-compile({parse_transform, elixir_transform}).
 
 %% Operators
 
@@ -44,7 +43,7 @@ translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=nil} = S
       lists:foldl(fun(X, Acc) ->
         { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
       end, { op, Line, '==', Var, H }, T);
-    { tuple, _, [{ atom, _, ?Range() }, Start, End] } ->
+    { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
       { op, Line, 'andalso',
         { op, Line, '>=', Var, Start },
         { op, Line, '=<', Var, End }
@@ -67,7 +66,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name ==
   case elixir_compiler:get_opt(internal) of
     true  -> { { nil, Line }, S };
     false ->
-      Call = { { '.', Line, ['__MAIN__-Elixir-Typespec', spec_to_macro(Name)] }, Line, Args },
+      Call = { { '.', Line, ['Elixir.Elixir.Typespec', spec_to_macro(Name)] }, Line, Args },
       translate_each(Call, S)
   end;
 
@@ -83,7 +82,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
           case S#elixir_scope.function of
             nil ->
               translate_each({
-                { '.', Line, [?Module(), add_attribute] },
+                { '.', Line, ['Elixir.Module', add_attribute] },
                   Line,
                   [ { '__MODULE__', Line, false }, Name, Arg ]
               }, S);
@@ -95,12 +94,12 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
           case S#elixir_scope.function of
             nil ->
               translate_each({
-                { '.', Line, [?Module(), read_attribute] },
+                { '.', Line, ['Elixir.Module', read_attribute] },
                 Line,
                 [ { '__MODULE__', Line, false }, Name ]
               }, S);
             _ ->
-              Contents = ?Module():read_attribute(S#elixir_scope.module, Name),
+              Contents = 'Elixir.Module':read_attribute(S#elixir_scope.module, Name),
               { elixir_tree_helpers:abstract_syntax(Contents), S }
           end;
         _ ->

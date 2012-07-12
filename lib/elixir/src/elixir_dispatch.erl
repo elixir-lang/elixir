@@ -8,17 +8,17 @@
   expand_import/8, expand_require/8,
   format_error/1]).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 -import(ordsets, [is_element/2]).
--define(BUILTIN, '__MAIN__-Elixir-Builtin').
--define(TYPESPEC, '__MAIN__-Elixir-Typespec').
+-define(BUILTIN, 'Elixir.Elixir.Builtin').
 
 default_functions() ->
   [ { ?BUILTIN, ordsets:union(in_elixir_functions(), in_erlang_functions()) } ].
 default_macros() ->
   [ { ?BUILTIN, ordsets:union(in_elixir_macros(), in_erlang_macros()) } ].
 default_requires() ->
-  [ ?BUILTIN, ?TYPESPEC ].
+  [ ?BUILTIN, 'Elixir.Elixir.Typespec' ].
 
 %% Function retrieval
 

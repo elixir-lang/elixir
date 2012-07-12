@@ -7,6 +7,7 @@
   handle_file_warning/2, handle_file_error/2,
   deprecation/3, deprecation/4, file_format/3]).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 %% Handle inspecting for exceptions
 
@@ -27,16 +28,16 @@ syntax_error(Line, File, Message) when is_list(Message) ->
   syntax_error(Line, File, iolist_to_binary(Message));
 
 syntax_error(Line, File, Message) when is_binary(Message) ->
-  raise(Line, File, '__MAIN__-SyntaxError', Message).
+  raise(Line, File, 'Elixir.SyntaxError', Message).
 
 syntax_error(Line, File, Format, Args)  ->
   Message = io_lib:format(Format, Args),
-  raise(Line, File, '__MAIN__-SyntaxError', iolist_to_binary(Message)).
+  raise(Line, File, 'Elixir.SyntaxError', iolist_to_binary(Message)).
 
 %% Raised on tokenizing/parsing
 
 parse_error(Line, File, _Error, []) ->
-  raise(Line, File, '__MAIN__-TokenMissingError', <<"syntax error: expression is incomplete">>);
+  raise(Line, File, 'Elixir.TokenMissingError', <<"syntax error: expression is incomplete">>);
 
 parse_error(Line, File, Error, Token) ->
   BinError = if
@@ -50,13 +51,13 @@ parse_error(Line, File, Error, Token) ->
   end,
 
   Message = <<BinError / binary, BinToken / binary >>,
-  raise(Line, File, '__MAIN__-SyntaxError', Message).
+  raise(Line, File, 'Elixir.SyntaxError', Message).
 
 %% Raised during compilation
 
 form_error(Line, File, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),
-  raise(Line, File, '__MAIN__-CompileError', Message).
+  raise(Line, File, 'Elixir.CompileError', Message).
 
 %% Shows a deprecation message
 

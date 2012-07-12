@@ -1,6 +1,7 @@
 -module(erlang_call_test).
 -export([match/0]).
 -include_lib("eunit/include/eunit.hrl").
+-compile({parse_transform, elixir_transform}).
 
 eval(Content) ->
   { Value, Binding, _ } = elixir:eval(Content, []),

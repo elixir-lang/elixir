@@ -2,9 +2,10 @@
 -export([first/1, last/1, concat/1, safe_concat/1, lookup/2,
   format_error/1, ensure_loaded/3]).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 %% Ensure a module is loaded before its usage.
-ensure_loaded(_Line, '__MAIN__-Elixir-Builtin', _S) ->
+ensure_loaded(_Line, 'Elixir.Elixir.Builtin', _S) ->
   ok;
 
 ensure_loaded(Line, Ref, S) ->

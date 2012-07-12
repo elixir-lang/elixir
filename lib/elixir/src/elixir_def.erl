@@ -10,6 +10,7 @@
   unwrap_stored_definitions/1,
   format_error/1]).
 -include("elixir.hrl").
+-compile({parse_transform, elixir_transform}).
 
 %% Table management functions. Called internally.
 
@@ -116,7 +117,7 @@ compile_docs(Kind, Line, Module, Name, Arity, Args, S, CO) ->
   case elixir_compiler:get_opt(docs, CO) of
     false -> [];
     true  ->
-      case '__MAIN__-Module':compile_doc(Module, Line, Kind, { Name, Arity }, Args) of
+      case 'Elixir.Module':compile_doc(Module, Line, Kind, { Name, Arity }, Args) of
         { error, Message } -> elixir_errors:handle_file_warning(S#elixir_scope.file,
           { Line, ?MODULE, { Message, { Name, Arity } } });
         _ -> []
@@ -127,10 +128,10 @@ retrieve_file(Module, CO) ->
   case elixir_compiler:get_opt(internal, CO) of
     true -> [];
     _ ->
-      case '__MAIN__-Module':read_attribute(Module, file) of
+      case 'Elixir.Module':read_attribute(Module, file) of
         nil  -> [];
         Else ->
-          '__MAIN__-Module':delete_attribute(Module, file),
+          'Elixir.Module':delete_attribute(Module, file),
           Else
       end
   end.
