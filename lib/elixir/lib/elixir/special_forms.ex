@@ -2,7 +2,16 @@ defmodule Elixir.SpecialForms do
   @moduledoc """
   In this module we define Elixir special forms. Those are called
   special forms because they cannot be overridden by the developer
-  and sometimes have lexical scope (like alias, require, import, etc).
+  and sometimes have lexical scope (like `alias`, `import`, etc).
+
+  This module also documents Elixir's pseudo variable (`__MODULE__`,
+  `__FILE__`, `__ENV__` and `__CALLER__`) which return information
+  about Elixir's compilation environment.
+
+  Finally, it also documents 3 special forms (`__block__`,
+  `__scope__` and `__aliases__`), which are not intended to be
+  called directly by the developer but they appear in quoted
+  contents since they are important for Elixir's functioning.
   """
 
   @doc """
@@ -450,4 +459,38 @@ defmodule Elixir.SpecialForms do
 
   """
   defmacro bc(args)
+
+  @doc """
+  This is the special form used whenever we have a block
+  of expressions in Elixir. This special form is private
+  and should not be invoked directly:
+
+      quote do: (1; 2; 3)
+      #=> { :__block__, 0, [1,2,3] }
+
+  """
+  defmacro :__block__(args)
+
+  @doc """
+  This is the special form used whenever we have to temporarily
+  change the scope information of a block. Used when `quote` is
+  invoked with `location: :keep` to execute a given block as if
+  it belonged to another file.
+
+      quote location: :keep, do: 1
+      #=> { :__scope__, 1,[[file: "iex"],[do: 1]] }
+
+  Check `quote/1` for more information.
+  """
+  defmacro :__scope__(opts, args)
+
+  @doc """
+  This is the special form used to hold aliases information.
+  At compilation time, it is usually compiled to an atom:
+
+      quote do: Foo.Bar
+      { :__aliases__, 0, [:Foo,:Bar] }
+
+  """
+  defmacro :__aliases__(args)
 end
