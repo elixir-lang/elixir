@@ -395,4 +395,57 @@ defmodule FileTest do
       :cd_result
     end) == :cd_result
   end
+
+  test :touch_with_no_file do
+    fixture = fixture_path("tmp_test.txt")
+    try do
+      refute File.exists?(fixture)
+      assert File.touch(fixture) == :ok
+      assert { :ok, "" } == File.read(fixture)
+    after
+      File.rm(fixture)
+    end
+  end
+
+  test :touch_with_file do
+    fixture = fixture_path("tmp_test.txt")
+    try do
+      File.touch!(fixture)
+      stat = File.stat!(fixture).mtime(last_year)
+      File.write_stat!(fixture, stat)
+
+      assert File.touch(fixture) == :ok
+      assert stat.mtime < File.stat!(fixture).mtime
+    after
+      File.rm(fixture)
+    end
+  end
+
+  test :touch_with_dir do
+    assert File.touch(fixture_path) == :ok
+  end
+
+  test :touch_with_failure do
+    fixture = fixture_path("foo.txt/bar")
+    assert File.touch(fixture) == { :error, :enotdir }
+  end
+
+  test :touch_with_success! do
+    assert File.touch!(fixture_path) == :ok
+  end
+
+  test :touch_with_failure! do
+    fixture = fixture_path("foo.txt/bar")
+    assert_raise File.Error, "could not touch #{fixture}: not a directory", fn ->
+      File.touch!(fixture)
+    end
+  end
+
+  defp last_year do
+    last_year :calendar.local_time
+  end
+
+  defp last_year({ { year, month, day },time }) do
+    { { year - 1, month, day }, time }
+  end
 end
