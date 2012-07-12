@@ -8,6 +8,26 @@ defmodule MixTest.Case do
       import MixTest.Case
     end
   end
+
+  def mix(args) do
+    System.cmd "#{mix_executable} #{args}"
+  end
+
+  def mix_executable do
+    File.expand_path("../../../../bin/mix", __FILE__)
+  end
+
+  def fixture_path do
+    File.expand_path("../fixtures", __FILE__)
+  end
+
+  def fixture_path(extension) do
+    File.join fixture_path, extension
+  end
+
+  def in_fixture(which, function) do
+    File.chdir! fixture_path(which), function
+  end
 end
 
 defmodule Mix.Tasks.Hello do

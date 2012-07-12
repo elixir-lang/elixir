@@ -3,14 +3,11 @@ Code.require_file "../test_helper", __FILE__
 defmodule MixTest do
   use MixTest.Case
 
-  def setup(_) do
-    Mix.mixfile(nil)
-  end
-
-  test :mixfile do
-    assert Mix.mixfile == nil
-    Mix.mixfile(MixTest)
-    assert Mix.mixfile == MixTest
+  test :push_and_pop_projects do
+    Mix.push_project(MixTest)
+    assert Mix.project == MixTest
+  after
+    Mix.pop_project
   end
 
   test :run do
