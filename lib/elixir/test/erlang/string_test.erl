@@ -78,10 +78,10 @@ bin_string_with_escaped_interpolation_test() ->
   {<<"f#{'o}o">>, _} = eval("\"f\\#{'o}o\"").
 
 invalid_string_interpolation_test() ->
-  ?assertError({'__MAIN__-SyntaxError', _, _, _, _}, eval("\"f#{{}o\"")).
+  ?assertError({'Elixir.SyntaxError', _, _, _, _}, eval("\"f#{{}o\"")).
 
 unterminated_string_interpolation_test() ->
-  ?assertError({'__MAIN__-TokenMissingError', _, _, _, _}, eval("\"foo")).
+  ?assertError({'Elixir.TokenMissingError', _, _, _, _}, eval("\"foo")).
 
 %% List strings
 

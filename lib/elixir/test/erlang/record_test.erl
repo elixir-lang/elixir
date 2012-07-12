@@ -13,58 +13,58 @@ record_reader_test() ->
     { 2, _ } = eval("{ Foo, 1, 2, 3 }.b"),
     { 3, _ } = eval("{ Foo, 1, 2, 3 }.c")
   end,
-  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+  test_helper:run_and_remove(F, ['Elixir.Foo']).
 
 record_setter_test() ->
   F = fun() ->
     eval("defrecord Foo, a: 1, b: 2, c: 3"),
-    { { '__MAIN__-Foo', 10, 2, 3 }, _ } = eval("{ Foo, 1, 2, 3 }.a(10)")
+    { { 'Elixir.Foo', 10, 2, 3 }, _ } = eval("{ Foo, 1, 2, 3 }.a(10)")
   end,
-  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+  test_helper:run_and_remove(F, ['Elixir.Foo']).
 
 record_new_defaults_test() ->
   F = fun() ->
     eval("defrecord Foo, a: 1, b: 2, c: 3"),
-    { { '__MAIN__-Foo', 1, 2, 3 }, _ } = eval("Foo.new"),
+    { { 'Elixir.Foo', 1, 2, 3 }, _ } = eval("Foo.new"),
     { 1, _ } = eval("Foo.new.a")
   end,
-  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+  test_helper:run_and_remove(F, ['Elixir.Foo']).
 
 record_new_selective_test() ->
   F = fun() ->
     eval("defrecord Foo, a: 1, b: 2, c: 3"),
-    { { '__MAIN__-Foo', 1, 20, 3 }, _ } = eval("Foo.new b: 20"),
+    { { 'Elixir.Foo', 1, 20, 3 }, _ } = eval("Foo.new b: 20"),
     { 20, _ } = eval("Foo.new(b: 20).b")
   end,
-  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+  test_helper:run_and_remove(F, ['Elixir.Foo']).
 
 record_prepend_test() ->
   F = fun() ->
     eval("defrecord Foo, a: 1, b: [3], c: 3"),
-    { { '__MAIN__-Foo', 1, [1,2,3], 3 }, _ } = eval("Foo.new.prepend_b [1,2]")
+    { { 'Elixir.Foo', 1, [1,2,3], 3 }, _ } = eval("Foo.new.prepend_b [1,2]")
   end,
-  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+  test_helper:run_and_remove(F, ['Elixir.Foo']).
 
 record_merge_test() ->
   F = fun() ->
     eval("defrecord Foo, a: [foo: :bar]"),
-    { { '__MAIN__-Foo', [{a,1},{foo,baz}] }, _ } = eval("Foo.new.merge_a  [foo: :baz, a: 1]")
+    { { 'Elixir.Foo', [{a,1},{foo,baz}] }, _ } = eval("Foo.new.merge_a  [foo: :baz, a: 1]")
   end,
-  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+  test_helper:run_and_remove(F, ['Elixir.Foo']).
 
 record_increment_test() ->
   F = fun() ->
     eval("defrecord Foo, a: 0"),
-    { { '__MAIN__-Foo', 1 }, _ } = eval("Foo.new.increment_a"),
-    { { '__MAIN__-Foo', 10 }, _ } = eval("Foo.new.increment_a 10"),
-    { { '__MAIN__-Foo', -2 }, _ } = eval("Foo.new.increment_a -2")
+    { { 'Elixir.Foo', 1 }, _ } = eval("Foo.new.increment_a"),
+    { { 'Elixir.Foo', 10 }, _ } = eval("Foo.new.increment_a 10"),
+    { { 'Elixir.Foo', -2 }, _ } = eval("Foo.new.increment_a -2")
   end,
-  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+  test_helper:run_and_remove(F, ['Elixir.Foo']).
 
 record_toggle_test() ->
   F = fun() ->
     eval("defrecord Foo, a: false, b: true"),
-	{ { '__MAIN__-Foo', true, true }, _ } = eval("Foo.new.toggle_a"),
-	{ { '__MAIN__-Foo', false, false }, _ } = eval("Foo.new.toggle_b")
+	{ { 'Elixir.Foo', true, true }, _ } = eval("Foo.new.toggle_a"),
+	{ { 'Elixir.Foo', false, false }, _ } = eval("Foo.new.toggle_b")
   end,
-  test_helper:run_and_remove(F, ['__MAIN__-Foo']).
+  test_helper:run_and_remove(F, ['Elixir.Foo']).
