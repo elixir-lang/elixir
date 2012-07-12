@@ -469,7 +469,7 @@ defmodule Elixir.SpecialForms do
       #=> { :__block__, 0, [1,2,3] }
 
   """
-  defmacro :__block__(args)
+  defmacro __block__(args)
 
   @doc """
   This is the special form used whenever we have to temporarily
@@ -482,7 +482,7 @@ defmodule Elixir.SpecialForms do
 
   Check `quote/1` for more information.
   """
-  defmacro :__scope__(opts, args)
+  defmacro __scope__(opts, args)
 
   @doc """
   This is the special form used to hold aliases information.
@@ -492,5 +492,5 @@ defmodule Elixir.SpecialForms do
       { :__aliases__, 0, [:Foo,:Bar] }
 
   """
-  defmacro :__aliases__(args)
+  defmacro __aliases__(args)
 end
