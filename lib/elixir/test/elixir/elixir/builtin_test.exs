@@ -91,6 +91,19 @@ defmodule Elixir.BuiltinTest do
     end
   end
 
+  defmodule InOp do
+    use ExUnit.Case
+
+    test :in do
+      assert x(1)
+      refute x(4)
+      refute x([])
+    end
+
+    def x(value) when value in [1,2,3], do: true
+    def x(_),                           do: false
+  end
+
   defmodule Destructure do
     use ExUnit.Case
 

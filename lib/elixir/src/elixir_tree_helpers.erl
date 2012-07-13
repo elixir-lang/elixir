@@ -16,10 +16,11 @@ split_last([H|T], Acc) -> split_last(T, [H|Acc]).
 abstract_syntax(Tree) ->
   erl_syntax:revert(erl_syntax:abstract(Tree)).
 
-cons_to_list({ cons, _, Left, Right }) ->
-  [Left|cons_to_list(Right)];
+cons_to_list({ cons, _, Left, { nil, _ } }) ->
+  [Left];
 
-cons_to_list(Else) -> [Else].
+cons_to_list({ cons, _, Left, Right }) ->
+  [Left|cons_to_list(Right)].
 
 % Build a list translating each expression and accumulating
 % vars in one pass. It uses tail-recursive form.
