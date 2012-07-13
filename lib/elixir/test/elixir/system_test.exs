@@ -4,19 +4,20 @@ require Erlang.os, as: OS
 
 defmodule SystemTest do
   use ExUnit.Case
+  import PathHelpers
 
   test :build_info do
     assert { _, _, _ } = System.build_info
   end
 
   test :argv do
-    list = OS.cmd('../../bin/elixir -e "IO.inspect System.argv" -- -o opt arg1 arg2 --long-opt 10')
+    list = elixir('-e "IO.inspect System.argv" -- -o opt arg1 arg2 --long-opt 10')
     { args, _ } = Code.eval list, []
     assert args == ["-o", "opt", "arg1", "arg2", "--long-opt", "10"]
   end
 
   test :at_exit do
-    output = OS.cmd('../../bin/elixir -e "System.at_exit(fn x -> IO.inspect x end)"')
+    output = elixir('-e "System.at_exit(fn x -> IO.inspect x end)"')
     assert output == '0\n'
   end
 

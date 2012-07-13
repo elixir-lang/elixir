@@ -3,13 +3,7 @@ Code.require_file "../test_helper", __FILE__
 defmodule FileTest do
   use ExUnit.Case
 
-  def fixture_path() do
-    File.expand_path("../fixtures", __FILE__)
-  end
-
-  def fixture_path(extra) do
-    File.join(fixture_path, extra)
-  end
+  import PathHelpers
 
   test :expand_path_with_binary do
     assert File.expand_path("/foo/bar") == "/foo/bar"
@@ -198,9 +192,11 @@ defmodule FileTest do
   end
 
   test :mkdir_with_invalid_path do
-    assert File.exists?('test/elixir/file_test.exs')
-    assert File.mkdir('test/elixir/file_test.exs/test') == { :error, :enotdir }
-    refute File.exists?('test/elixir/file_test.exs/test')
+    fixture = fixture_path("foo.txt")
+    invalid = File.join fixture, "test"
+    assert File.exists?(fixture)
+    assert File.mkdir(invalid) == { :error, :enotdir }
+    refute File.exists?(invalid)
   end
 
   test :mkdir! do
@@ -388,7 +384,7 @@ defmodule FileTest do
   end
 
   test :rm_file_with_dir do
-    assert File.rm('test/') == {:error, :eperm}
+    assert File.rm(fixture_path) == {:error, :eperm}
   end
 
   test :rm_nonexistent_file do
