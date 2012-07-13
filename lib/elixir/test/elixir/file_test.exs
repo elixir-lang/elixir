@@ -173,11 +173,9 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
-        assert File.cp_r(src, dest) == { :ok, [
-          tmp_path("tmp/cp_r/a/1.txt"),
-          tmp_path("tmp/cp_r/a/a/2.txt"),
-          tmp_path("tmp/cp_r/b/3.txt")
-        ] }
+        { :ok, files } = File.cp_r(src, dest)
+        assert length(files) == 3
+        assert tmp_path("tmp/cp_r/a/1.txt") in files
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
@@ -198,11 +196,8 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        assert File.cp_r(src, dest) == { :ok, [
-          tmp_path("tmp/a/1.txt"),
-          tmp_path("tmp/a/a/2.txt"),
-          tmp_path("tmp/b/3.txt")
-        ] }
+        { :ok, files } = File.cp_r(src, dest)
+        assert length(files) == 3
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -233,11 +228,8 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
-        assert File.cp_r(src, dest) == { :ok, [
-          tmp_path("tmp/cp_r/a/1.txt"),
-          tmp_path("tmp/cp_r/a/a/2.txt"),
-          tmp_path("tmp/cp_r/b/3.txt")
-        ] }
+        { :ok, files } = File.cp_r(src, dest)
+        assert length(files) == 3
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
@@ -277,11 +269,9 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        assert File.cp_r(src, dest) == { :ok, Enum.map [
-          tmp_path("tmp/a/1.txt"),
-          tmp_path("tmp/a/a/2.txt"),
-          tmp_path("tmp/b/3.txt")
-        ], to_char_list(&1) }
+        { :ok, files } = File.cp_r(src, dest)
+        assert length(files) == 3
+        assert is_list(hd(files))
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -338,11 +328,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        assert File.cp_r!(src, dest) == [
-          tmp_path("tmp/a/1.txt"),
-          tmp_path("tmp/a/a/2.txt"),
-          tmp_path("tmp/b/3.txt")
-        ]
+        assert length(File.cp_r!(src, dest)) == 3
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
