@@ -529,6 +529,44 @@ defmodule File do
   true if the existing file should be overriden,
   false otherwise. It defaults to return true.
 
+  It returns `:ok` in case of success, returns
+  `{ :error, reason }` otherwise.
+  """
+  def cp(src, dest, callback // fn(_, _) -> true end) do
+    if dir?(src) do
+      { :error, :eisdir }
+    else
+      output =
+        if dir?(dest) do
+          mkdir(dest)
+          join(dest, basename(src))
+        else
+          dest
+        end
+
+      case do_cp_file(src, output, callback, []) do
+        { :error, _ } = error -> error
+        _ -> :ok
+      end
+    end
+  end
+
+  @doc %B"""
+  Copies the contents in source to destination.
+  Similar to the command `cp -r` in Unix systems,
+  this function behaves differently depending
+  if `src` and `dest` are a file or a directory.
+
+  If both are files, it simply copies `src` to
+  `dest`. However, if `dest` is a directory,
+  it copies the contents of `src` to `dest/src`
+  recursively.
+
+  If a file already exists in the destination,
+  it invokes a callback which should return
+  true if the existing file should be overriden,
+  false otherwise. It defaults to return true.
+
   If a directory already exists in the destination
   where a file is meant to be (or otherwise), this
   function will fail.
@@ -540,14 +578,31 @@ defmodule File do
 
   It returns `{ :ok, files }` in case of success,
   `{ :error, reason }` otherwise.
+
+  ## Examples
+
+      # Copies "a.txt" to "tmp/a.txt"
+      File.cp_r "a.txt", "tmp"
+
+      # Copies all files in "samples" to "tmp/samples"
+      File.cp_r "samples", "tmp"
+
+      # Copies all files in "samples" to "tmp"
+      File.cp_r "samples/.", "tmp"
+
+      # Same as before, but asks the user how to proceed in case of conflicts
+      File.cp_r "samples/.", "tmp", fn(src, dest) ->
+        IO.gets("Overriding #{dest} by #{src}. Type y to confirm.") == "y"
+      end
+
   """
   def cp_r(src, dest, callback // fn(_, _) -> true end) when is_function(callback) do
     res =
-      if File.dir?(dest) do
+      if dir?(dest) do
         mkdir(dest)
         do_cp_r(src, dest, callback, [])
       else
-        if File.dir?(src) do
+        if dir?(src) do
           mkdir(dest)
           do_cp_r(src, dest, callback, [])
         else
@@ -564,14 +619,14 @@ defmodule File do
   # src may be a file or a directory, dest is definitely
   # a directory. Returns nil unless an error is found.
   defp do_cp_r(src, dest, callback, acc) when is_list(acc) do
-    output = File.join dest, basename(src)
+    output = join dest, basename(src)
 
     case F.list_dir(src) do
       { :ok, files } ->
         case mkdir(output) do
           success in [:ok, { :error, :eexist }] ->
             Enum.reduce(files, acc, fn(x, acc) ->
-              do_cp_r(File.join(src, x), output, callback, acc)
+              do_cp_r(join(src, x), output, callback, acc)
             end)
           reason -> reason
         end
