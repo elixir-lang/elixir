@@ -40,9 +40,10 @@ translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=nil} = S
   Expr = case TRight of
     { cons, _, _, _ } ->
       [H|T] = elixir_tree_helpers:cons_to_list(TRight),
+      ProperT = lists:reverse(tl(lists:reverse(T))),                 
       lists:foldl(fun(X, Acc) ->
         { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
-      end, { op, Line, '==', Var, H }, T);
+      end, { op, Line, '==', Var, H }, ProperT);
     { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
       { op, Line, 'andalso',
         { op, Line, '>=', Var, Start },
