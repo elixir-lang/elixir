@@ -92,6 +92,30 @@ defmodule FileTest do
       end
     end
 
+    test :cp_with_src_file_and_dest_file! do
+      src  = fixture_path("foo.txt")
+      dest = tmp_path("sample.txt")
+
+      File.touch(dest)
+
+      try do
+        assert File.exists?(dest)
+        assert File.cp!(src, dest) == :ok
+        assert File.exists?(dest)
+      after
+        File.rm(dest)
+      end
+    end
+
+    test :cp_with_src_dir! do
+      src   = fixture_path("cp_r")
+      dest  = tmp_path("tmp.file")
+      assert_raise File.CopyError, "could not copy recursively from #{src} to #{dest}: " <>
+          "illegal operation on a directory", fn ->
+        File.cp!(src, dest)
+      end
+    end
+
     #####
 
     test :cp_r_with_src_file_and_dest_file do
@@ -302,6 +326,40 @@ defmodule FileTest do
         System.cmd "rm -rf #{dest}"
       end
     end
+
+    test :cp_r! do
+      src  = fixture_path("cp_r/.")
+      dest = tmp_path("tmp")
+
+      File.mkdir(dest)
+
+      try do
+        refute File.exists?(tmp_path("tmp/a/1.txt"))
+        refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+        refute File.exists?(tmp_path("tmp/b/3.txt"))
+
+        assert File.cp_r!(src, dest) == [
+          tmp_path("tmp/a/1.txt"),
+          tmp_path("tmp/a/a/2.txt"),
+          tmp_path("tmp/b/3.txt")
+        ]
+
+        assert File.exists?(tmp_path("tmp/a/1.txt"))
+        assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+        assert File.exists?(tmp_path("tmp/b/3.txt"))
+      after
+        System.cmd "rm -rf #{dest}"
+      end
+    end
+
+    test :cp_r_with_src_unknown! do
+      src  = fixture_path("unknown")
+      dest = tmp_path("tmp")
+      assert_raise File.CopyError, "could not copy recursively from #{src} to #{dest}: no such file or directory", fn ->
+        File.cp_r!(src, dest)
+      end
+    end
+
   end
 
   defmodule Paths do
@@ -810,7 +868,7 @@ defmodule FileTest do
   test :copy_with_invalid_file! do
     src  = fixture_path("invalid.txt")
     dest = tmp_path("tmp_test.txt")
-    assert_raise File.Error, "could not copy #{src}: no such file or directory", fn ->
+    assert_raise File.CopyError, "could not copy from #{src} to #{dest}: no such file or directory", fn ->
       File.copy!(src, dest, 2)
     end
   end

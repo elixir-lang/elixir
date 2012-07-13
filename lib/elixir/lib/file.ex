@@ -31,8 +31,15 @@ time type set in options. `{:time, type}` where type can be `:local`,
 
 defexception File.Error, [reason: nil, action: "", path: nil] do
   def message(exception) do
-    formatted = list_to_binary(:file.format_error(exception.reason))
-    "could not #{exception.action} #{exception.path}: #{formatted}"
+    formatted = list_to_binary(:file.format_error(reason exception))
+    "could not #{action exception} #{path exception}: #{formatted}"
+  end
+end
+
+defexception File.CopyError, [reason: nil, action: "", source: nil, destination: nil] do
+  def message(exception) do
+    formatted = list_to_binary(:file.format_error(reason exception))
+    "could not #{action exception} from #{source exception} to #{destination exception}: #{formatted}"
   end
 end
 
@@ -502,26 +509,27 @@ defmodule File do
   end
 
   @doc """
-  The same as `copy/3` but raises an error if it fails. Returns the
-  `bytes_copied` otherwise.
+  The same as `copy/3` but raises an File.CopyError if it fails.
+  Returns the `bytes_copied` otherwise.
   """
   def copy!(source, destination, bytes_count // :infinity) do
     case copy(source, destination, bytes_count) do
       { :ok, bytes_count } -> bytes_count
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "copy", path: to_binary(source)
+        raise File.CopyError, reason: reason, action: "copy",
+          source: to_binary(source), destination: to_binary(destination)
     end
   end
 
   @doc """
-  Copies the contents in source to destination.
+  Copies the contents in `source` to `destination`.
   Similar to the command `cp -r` in Unix systems,
   this function behaves differently depending
-  if `src` and `dest` are a file or a directory.
+  if `source` and `destination` are a file or a directory.
 
-  If both are files, it simply copies `src` to
-  `dest`. However, if `dest` is a directory,
-  it copies the contents of `src` to `dest/src`
+  If both are files, it simply copies `source` to
+  `destination`. However, if `destination` is a directory,
+  it copies the contents of `source` to `destination/source`
   recursively.
 
   If a file already exists in the destination,
@@ -532,22 +540,35 @@ defmodule File do
   It returns `:ok` in case of success, returns
   `{ :error, reason }` otherwise.
   """
-  def cp(src, dest, callback // fn(_, _) -> true end) do
-    if dir?(src) do
+  def cp(source, destination, callback // fn(_, _) -> true end) do
+    if dir?(source) do
       { :error, :eisdir }
     else
       output =
-        if dir?(dest) do
-          mkdir(dest)
-          join(dest, basename(src))
+        if dir?(destination) do
+          mkdir(destination)
+          join(destination, basename(source))
         else
-          dest
+          destination
         end
 
-      case do_cp_file(src, output, callback, []) do
+      case do_cp_file(source, output, callback, []) do
         { :error, _ } = error -> error
         _ -> :ok
       end
+    end
+  end
+
+  @doc """
+  The same as `cp/3`, but raises File.CopyError if it fails.
+  Returns the list of copied files otherwise.
+  """
+  def cp!(source, destination, callback // fn(_, _) -> true end) do
+    case cp(source, destination, callback) do
+      :ok -> :ok
+      { :error, reason } ->
+        raise File.CopyError, reason: reason, action: "copy recursively",
+          source: to_binary(source), destination: to_binary(destination)
     end
   end
 
@@ -555,11 +576,11 @@ defmodule File do
   Copies the contents in source to destination.
   Similar to the command `cp -r` in Unix systems,
   this function behaves differently depending
-  if `src` and `dest` are a file or a directory.
+  if `source` and `destination` are a file or a directory.
 
-  If both are files, it simply copies `src` to
-  `dest`. However, if `dest` is a directory,
-  it copies the contents of `src` to `dest/src`
+  If both are files, it simply copies `source` to
+  `destination`. However, if `destination` is a directory,
+  it copies the contents of `source` to `destination/source`
   recursively.
 
   If a file already exists in the destination,
@@ -591,28 +612,41 @@ defmodule File do
       File.cp_r "samples/.", "tmp"
 
       # Same as before, but asks the user how to proceed in case of conflicts
-      File.cp_r "samples/.", "tmp", fn(src, dest) ->
-        IO.gets("Overriding #{dest} by #{src}. Type y to confirm.") == "y"
+      File.cp_r "samples/.", "tmp", fn(source, destination) ->
+        IO.gets("Overriding #{destination} by #{source}. Type y to confirm.") == "y"
       end
 
   """
-  def cp_r(src, dest, callback // fn(_, _) -> true end) when is_function(callback) do
+  def cp_r(source, destination, callback // fn(_, _) -> true end) when is_function(callback) do
     res =
-      if dir?(dest) do
-        mkdir(dest)
-        do_cp_r(src, dest, callback, [])
+      if dir?(destination) do
+        mkdir(destination)
+        do_cp_r(source, destination, callback, [])
       else
-        if dir?(src) do
-          mkdir(dest)
-          do_cp_r(src, dest, callback, [])
+        if dir?(source) do
+          mkdir(destination)
+          do_cp_r(source, destination, callback, [])
         else
-          do_cp_file(src, dest, callback, [])
+          do_cp_file(source, destination, callback, [])
         end
       end
 
     case res do
       { :error, _ } = error -> error
       _ -> { :ok, res }
+    end
+  end
+
+  @doc """
+  The same as `cp_r/3`, but raises File.CopyError if it fails.
+  Returns the list of copied files otherwise.
+  """
+  def cp_r!(source, destination, callback // fn(_, _) -> true end) do
+    case cp_r(source, destination, callback) do
+      { :ok, files } -> files
+      { :error, reason } ->
+        raise File.CopyError, reason: reason, action: "copy recursively",
+          source: to_binary(source), destination: to_binary(destination)
     end
   end
 
