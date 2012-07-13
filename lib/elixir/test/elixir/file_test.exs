@@ -186,7 +186,7 @@ defmodule FileTest do
     File.mkdir("tmp_test")
     assert File.exists?("tmp_test")
   after
-    :os.cmd('rm -rf tmp_test')
+    System.cmd("rm -rf tmp_test")
   end
 
   test :mkdir_with_list do
@@ -194,7 +194,7 @@ defmodule FileTest do
     assert File.mkdir('tmp_test') == :ok
     assert File.exists?('tmp_test')
   after
-    :os.cmd('rm -rf tmp_test')
+    System.cmd("rm -rf tmp_test")
   end
 
   test :mkdir_with_invalid_path do
@@ -203,48 +203,57 @@ defmodule FileTest do
     refute File.exists?('test/elixir/file_test.exs/test')
   end
 
-  test :mkdir_p_with_one_directory do
-    try do
-      refute File.exists?("tmp_test")
-      assert File.mkdir_p("tmp_test") == :ok
-      assert File.exists?("tmp_test")
-    after
-      :os.cmd('rm -rf tmp_test')
+  test :mkdir! do
+    refute File.exists?("tmp_test")
+    File.mkdir!("tmp_test")
+    assert File.exists?("tmp_test")
+  after
+    System.cmd("rm -rf tmp_test")
+  end
+
+  test :mkdir_with_invalid_path! do
+    fixture = fixture_path("foo.txt")
+    invalid = File.join fixture, "test"
+    assert File.exists?(fixture)
+    assert_raise File.Error, "could not make directory #{invalid}: not a directory", fn ->
+      File.mkdir!(invalid)
     end
+  end
+
+  test :mkdir_p_with_one_directory do
+    refute File.exists?("tmp_test")
+    assert File.mkdir_p("tmp_test") == :ok
+    assert File.exists?("tmp_test")
+  after
+    System.cmd("rm -rf tmp_test")
   end
 
   test :mkdir_p_with_nested_directory_and_binary do
-    try do
-      refute File.exists?("tmp_test")
-      assert File.mkdir_p("tmp_test/test") == :ok
-      assert File.exists?("tmp_test")
-      assert File.exists?("tmp_test/test")
-    after
-      :os.cmd('rm -rf tmp_test')
-    end
+    refute File.exists?("tmp_test")
+    assert File.mkdir_p("tmp_test/test") == :ok
+    assert File.exists?("tmp_test")
+    assert File.exists?("tmp_test/test")
+  after
+    System.cmd("rm -rf tmp_test")
   end
 
   test :mkdir_p_with_nested_directory_and_list do
-    try do
-      refute File.exists?('tmp_test')
-      assert File.mkdir_p('tmp_test/test') == :ok
-      assert File.exists?('tmp_test')
-      assert File.exists?('tmp_test/test')
-    after
-      :os.cmd('rm -rf tmp_test')
-    end
+    refute File.exists?('tmp_test')
+    assert File.mkdir_p('tmp_test/test') == :ok
+    assert File.exists?('tmp_test')
+    assert File.exists?('tmp_test/test')
+  after
+    System.cmd("rm -rf tmp_test")
   end
 
   test :mkdir_p_with_nested_directory_and_existent_parent do
-    try do
-      refute File.exists?("tmp_test")
-      File.mkdir("tmp_test")
-      assert File.exists?("tmp_test")
-      assert File.mkdir_p("tmp_test/test") == :ok
-      assert File.exists?("tmp_test/test")
-    after
-      :os.cmd('rm -rf tmp_test')
-    end
+    refute File.exists?("tmp_test")
+    File.mkdir("tmp_test")
+    assert File.exists?("tmp_test")
+    assert File.mkdir_p("tmp_test/test") == :ok
+    assert File.exists?("tmp_test/test")
+  after
+    System.cmd("rm -rf tmp_test")
   end
 
   test :mkdir_p_with_invalid_path do
@@ -252,6 +261,26 @@ defmodule FileTest do
     invalid = File.join fixture_path("foo.txt"), "test/foo"
     assert File.mkdir(invalid) == { :error, :enotdir }
     refute File.exists?(invalid)
+  end
+
+  test :mkdir_p! do
+    fixture = fixture_path("mkdir/foo")
+    try do
+      refute File.exists?(fixture)
+      File.mkdir_p!(fixture)
+      assert File.exists?(fixture)
+    after
+      System.cmd("rm -rf #{fixture}")
+    end
+  end
+
+  test :mkdir_p_with_invalid_path! do
+    fixture = fixture_path("foo.txt")
+    invalid = File.join fixture, "test"
+    assert File.exists?(fixture)
+    assert_raise File.Error, "could not make directory (with -p) #{invalid}: not a directory", fn ->
+      File.mkdir_p!(invalid)
+    end
   end
 
   test :write_normal_content do
@@ -288,6 +317,68 @@ defmodule FileTest do
     end
   end
 
+  test :copy do
+    src  = fixture_path("foo.txt")
+    dest = fixture_path("tmp_test.txt")
+    try do
+      refute File.exists?(dest)
+      assert File.copy(src, dest) == { :ok, 4 }
+      assert { :ok, "FOO\n" } == File.read(dest)
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :copy_with_bytes_count do
+    src  = fixture_path("foo.txt")
+    dest = fixture_path("tmp_test.txt")
+    try do
+      refute File.exists?(dest)
+      assert File.copy(src, dest, 2) == { :ok, 2 }
+      assert { :ok, "FO" } == File.read(dest)
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :copy_with_invalid_file do
+    src  = fixture_path("invalid.txt")
+    dest = fixture_path("tmp_test.txt")
+    assert File.copy(src, dest, 2) == { :error, :enoent }
+  end
+
+  test :copy! do
+    src  = fixture_path("foo.txt")
+    dest = fixture_path("tmp_test.txt")
+    try do
+      refute File.exists?(dest)
+      assert File.copy!(src, dest) == 4
+      assert { :ok, "FOO\n" } == File.read(dest)
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :copy_with_bytes_count! do
+    src  = fixture_path("foo.txt")
+    dest = fixture_path("tmp_test.txt")
+    try do
+      refute File.exists?(dest)
+      assert File.copy!(src, dest, 2) == 2
+      assert { :ok, "FO" } == File.read(dest)
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :copy_with_invalid_file! do
+    src  = fixture_path("invalid.txt")
+    dest = fixture_path("tmp_test.txt")
+    assert_raise File.Error, "could not copy #{src}: no such file or directory", fn ->
+      File.copy!(src, dest, 2)
+    end
+  end
+
   test :rm_file do
     fixture = fixture_path("tmp_test.txt")
     File.write(fixture, "test")
@@ -302,6 +393,20 @@ defmodule FileTest do
 
   test :rm_nonexistent_file do
     assert File.rm('missing.txt') == {:error, :enoent}
+  end
+
+  test :rm! do
+    fixture = fixture_path("tmp_test.txt")
+    File.write(fixture, "test")
+    assert File.exists?(fixture)
+    assert File.rm!(fixture) == :ok
+    refute File.exists?(fixture)
+  end
+
+  test :rm_with_invalid_file! do
+    assert_raise File.Error, "could not remove file missing.file: no such file or directory", fn ->
+      File.rm!("missing.file")
+    end
   end
 
   test :open_file_without_modes do

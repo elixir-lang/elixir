@@ -266,6 +266,17 @@ defmodule File do
   end
 
   @doc """
+  Same as `mkdir`, but raises an exception in case of failure. Otherwise `:ok`.
+  """
+  def mkdir!(path) do
+    case mkdir(path) do
+      :ok -> :ok
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "make directory", path: to_binary(path)
+    end
+  end
+
+  @doc """
   Tries to create the directory `path`. Missing parent directories are created.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
@@ -273,11 +284,21 @@ defmodule File do
 
   * :eacces  - Missing search or write permissions for the parent directories of `path`.
   * :enospc  - There is a no space left on the device.
-  * :enotdir - A component of `path` is not a directory
-               On some platforms, `:enoent` is returned instead.
+  * :enotdir - A component of `path` is not a directory.
   """
   def mkdir_p(path) do
     FL.ensure_dir(join(path, "."))
+  end
+
+  @doc """
+  Same as `mkdir_p`, but raises an exception in case of failure. Otherwise `:ok`.
+  """
+  def mkdir_p!(path) do
+    case mkdir_p(path) do
+      :ok -> :ok
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "make directory (with -p)", path: to_binary(path)
+    end
   end
 
   @doc """
@@ -466,7 +487,32 @@ defmodule File do
   end
 
   @doc """
-  Tries to write `content` to the file `filename`. The file is created if it
+  Copies the contents of `file_source` to `file_destination`. Both parameters
+  can be a filename or an io device opened with `File.open`. `bytes_count`
+  specifies the number of bytes to count, the default being `:infinity`.
+
+  Returns `{ :ok, bytes_copied }` if successful, `{ :error, reason }` otherwise.
+
+  Typical error reasons are the same as in `open/2`, `read/1` and `write/2`.
+  """
+  def copy(source, destination, bytes_count // :infinity) do
+    F.copy(source, destination, bytes_count)
+  end
+
+  @doc """
+  The same as `copy/3` but raises an error if it fails. Returns the
+  `bytes_copied` otherwise.
+  """
+  def copy!(source, destination, bytes_count // :infinity) do
+    case copy(source, destination, bytes_count) do
+      { :ok, bytes_count } -> bytes_count
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "copy", path: to_binary(source)
+    end
+  end
+
+  @doc """
+  Writes `content` to the file `filename`. The file is created if it
   does not exist. If it exists, the previous contents are overwritten.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
@@ -507,6 +553,17 @@ defmodule File do
   """
   def rm(filename) do
     F.delete(filename)
+  end
+
+  @doc """
+  Same as `rm`, but raises an exception in case of failure. Otherwise `:ok`.
+  """
+  def rm!(path) do
+    case rm(path) do
+      :ok -> :ok
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "remove file", path: to_binary(path)
+    end
   end
 
   @doc """
@@ -665,7 +722,7 @@ defmodule File do
   end
 
   @doc """
-  Closes the file referenced by `io_device`. It mostly returns `:ok`, expect
+  Closes the file referenced by `io_device`. It mostly returns `:ok`, except
   for some severe errors such as out of memory.
 
   Note that if the option `:delayed_write` was used when opening the file,
