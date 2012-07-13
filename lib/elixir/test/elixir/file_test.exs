@@ -176,19 +176,25 @@ defmodule FileTest do
   end
 
   test :mkdir_with_binary do
-    refute File.exists?("tmp_test")
-    File.mkdir("tmp_test")
-    assert File.exists?("tmp_test")
-  after
-    System.cmd("rm -rf tmp_test")
+    fixture = tmp_path("tmp_test")
+    try do
+      refute File.exists?(fixture)
+      assert File.mkdir(fixture) == :ok
+      assert File.exists?(fixture)
+    after
+      System.cmd("rm -rf #{fixture}")
+    end
   end
 
   test :mkdir_with_list do
-    refute File.exists?('tmp_test')
-    assert File.mkdir('tmp_test') == :ok
-    assert File.exists?('tmp_test')
-  after
-    System.cmd("rm -rf tmp_test")
+    fixture = tmp_path("tmp_test") /> to_char_list
+    try do
+      refute File.exists?(fixture)
+      assert File.mkdir(fixture) == :ok
+      assert File.exists?(fixture)
+    after
+      System.cmd("rm -rf #{fixture}")
+    end
   end
 
   test :mkdir_with_invalid_path do
@@ -200,11 +206,14 @@ defmodule FileTest do
   end
 
   test :mkdir! do
-    refute File.exists?("tmp_test")
-    File.mkdir!("tmp_test")
-    assert File.exists?("tmp_test")
-  after
-    System.cmd("rm -rf tmp_test")
+    fixture = tmp_path("tmp_test")
+    try do
+      refute File.exists?(fixture)
+      assert File.mkdir!(fixture) == :ok
+      assert File.exists?(fixture)
+    after
+      System.cmd("rm -rf #{fixture}")
+    end
   end
 
   test :mkdir_with_invalid_path! do
@@ -217,39 +226,57 @@ defmodule FileTest do
   end
 
   test :mkdir_p_with_one_directory do
-    refute File.exists?("tmp_test")
-    assert File.mkdir_p("tmp_test") == :ok
-    assert File.exists?("tmp_test")
-  after
-    System.cmd("rm -rf tmp_test")
+    fixture = tmp_path("tmp_test")
+    try do
+      refute File.exists?(fixture)
+      assert File.mkdir_p(fixture) == :ok
+      assert File.exists?(fixture)
+    after
+      System.cmd("rm -rf #{fixture}")
+    end
   end
 
   test :mkdir_p_with_nested_directory_and_binary do
-    refute File.exists?("tmp_test")
-    assert File.mkdir_p("tmp_test/test") == :ok
-    assert File.exists?("tmp_test")
-    assert File.exists?("tmp_test/test")
-  after
-    System.cmd("rm -rf tmp_test")
+    base    = tmp_path("tmp_test")
+    fixture = File.join(base, "test")
+    refute File.exists?(base)
+
+    try do
+      assert File.mkdir_p(fixture) == :ok
+      assert File.exists?(base)
+      assert File.exists?(fixture)
+    after
+      System.cmd("rm -rf #{base}")
+    end
   end
 
   test :mkdir_p_with_nested_directory_and_list do
-    refute File.exists?('tmp_test')
-    assert File.mkdir_p('tmp_test/test') == :ok
-    assert File.exists?('tmp_test')
-    assert File.exists?('tmp_test/test')
-  after
-    System.cmd("rm -rf tmp_test")
+    base    = tmp_path("tmp_test") /> to_char_list
+    fixture = File.join(base, "test")
+    refute File.exists?(base)
+
+    try do
+      assert File.mkdir_p(fixture) == :ok
+      assert File.exists?(base)
+      assert File.exists?(fixture)
+    after
+      System.cmd("rm -rf #{base}")
+    end
   end
 
-  test :mkdir_p_with_nested_directory_and_existent_parent do
-    refute File.exists?("tmp_test")
-    File.mkdir("tmp_test")
-    assert File.exists?("tmp_test")
-    assert File.mkdir_p("tmp_test/test") == :ok
-    assert File.exists?("tmp_test/test")
-  after
-    System.cmd("rm -rf tmp_test")
+  test :mkdir_p_with_nested_directory_and_existing_parent do
+    base    = tmp_path("tmp_test")
+    fixture = File.join(base, "test")
+
+    File.mkdir(base)
+
+    try do
+      assert File.mkdir_p(fixture) == :ok
+      assert File.exists?(base)
+      assert File.exists?(fixture)
+    after
+      System.cmd("rm -rf #{base}")
+    end
   end
 
   test :mkdir_p_with_invalid_path do
@@ -260,10 +287,10 @@ defmodule FileTest do
   end
 
   test :mkdir_p! do
-    fixture = fixture_path("mkdir/foo")
+    fixture = tmp_path("tmp_test")
     try do
       refute File.exists?(fixture)
-      File.mkdir_p!(fixture)
+      assert File.mkdir_p!(fixture) == :ok
       assert File.exists?(fixture)
     after
       System.cmd("rm -rf #{fixture}")
@@ -280,7 +307,7 @@ defmodule FileTest do
   end
 
   test :write_normal_content do
-    fixture = fixture_path("tmp_test.txt")
+    fixture = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(fixture)
       assert File.write(fixture, 'test text') == :ok
@@ -291,7 +318,7 @@ defmodule FileTest do
   end
 
   test :write_utf8 do
-    fixture = fixture_path("tmp_test.txt")
+    fixture = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(fixture)
       assert File.write(fixture, "Русский\n日\n") == :ok
@@ -302,7 +329,7 @@ defmodule FileTest do
   end
 
   test :write_with_options do
-    fixture = fixture_path("tmp_test.txt")
+    fixture = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(fixture)
       assert File.write(fixture, "Русский\n日\n") == :ok
@@ -315,7 +342,7 @@ defmodule FileTest do
 
   test :copy do
     src  = fixture_path("foo.txt")
-    dest = fixture_path("tmp_test.txt")
+    dest = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(dest)
       assert File.copy(src, dest) == { :ok, 4 }
@@ -327,7 +354,7 @@ defmodule FileTest do
 
   test :copy_with_bytes_count do
     src  = fixture_path("foo.txt")
-    dest = fixture_path("tmp_test.txt")
+    dest = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(dest)
       assert File.copy(src, dest, 2) == { :ok, 2 }
@@ -339,13 +366,13 @@ defmodule FileTest do
 
   test :copy_with_invalid_file do
     src  = fixture_path("invalid.txt")
-    dest = fixture_path("tmp_test.txt")
+    dest = tmp_path("tmp_test.txt")
     assert File.copy(src, dest, 2) == { :error, :enoent }
   end
 
   test :copy! do
     src  = fixture_path("foo.txt")
-    dest = fixture_path("tmp_test.txt")
+    dest = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(dest)
       assert File.copy!(src, dest) == 4
@@ -357,7 +384,7 @@ defmodule FileTest do
 
   test :copy_with_bytes_count! do
     src  = fixture_path("foo.txt")
-    dest = fixture_path("tmp_test.txt")
+    dest = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(dest)
       assert File.copy!(src, dest, 2) == 2
@@ -369,14 +396,14 @@ defmodule FileTest do
 
   test :copy_with_invalid_file! do
     src  = fixture_path("invalid.txt")
-    dest = fixture_path("tmp_test.txt")
+    dest = tmp_path("tmp_test.txt")
     assert_raise File.Error, "could not copy #{src}: no such file or directory", fn ->
       File.copy!(src, dest, 2)
     end
   end
 
   test :rm_file do
-    fixture = fixture_path("tmp_test.txt")
+    fixture = tmp_path("tmp_test.txt")
     File.write(fixture, "test")
     assert File.exists?(fixture)
     assert File.rm(fixture) == :ok
@@ -392,7 +419,7 @@ defmodule FileTest do
   end
 
   test :rm! do
-    fixture = fixture_path("tmp_test.txt")
+    fixture = tmp_path("tmp_test.txt")
     File.write(fixture, "test")
     assert File.exists?(fixture)
     assert File.rm!(fixture) == :ok
@@ -430,7 +457,7 @@ defmodule FileTest do
   end
 
   test :open_with_write_permission do
-    fixture = fixture_path("tmp_text.txt")
+    fixture = tmp_path("tmp_text.txt")
     try do
       { :ok, file } = File.open(fixture, [:write])
       assert IO.write(file, "foo") == :ok
@@ -469,36 +496,246 @@ defmodule FileTest do
     assert File.open!(file, IO.readline(&1)) == "FOO\n"
   end
 
-  test :cwd_and_chdir do
+  test :cwd_and_cd do
     { :ok, current } = File.cwd
     try do
-      assert File.chdir(fixture_path) == :ok
+      assert File.cd(fixture_path) == :ok
       assert File.exists?("foo.txt")
     after
-      File.chdir!(current)
+      File.cd!(current)
     end
   end
 
-  test :invalid_chdir do
-    assert File.chdir(fixture_path("foo.txt")) == { :error, :enotdir }
+  test :invalid_cd do
+    assert File.cd(fixture_path("foo.txt")) == { :error, :enotdir }
   end
 
-  test :invalid_chdir! do
+  test :invalid_cd! do
     message = "could not set current working directory to #{fixture_path("foo.txt")}: not a directory"
     assert_raise File.Error, message, fn ->
-      File.chdir!(fixture_path("foo.txt"))
+      File.cd!(fixture_path("foo.txt"))
     end
   end
 
-  test :chdir_with_function do
-    assert File.chdir!(fixture_path, fn ->
+  test :cd_with_function do
+    assert File.cd!(fixture_path, fn ->
       assert File.exists?("foo.txt")
       :cd_result
     end) == :cd_result
   end
 
+  test :cp_r_with_src_file_and_dest_file do
+    src  = fixture_path("foo.txt")
+    dest = tmp_path("sample.txt")
+
+    File.touch(dest)
+
+    try do
+      assert File.exists?(dest)
+      assert File.cp_r(src, dest) == { :ok, [dest] }
+      assert File.exists?(dest)
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :cp_r_with_src_file_and_dest_dir do
+    src   = fixture_path("foo.txt")
+    dest  = tmp_path("tmp")
+    final = File.join(dest, "foo.txt")
+
+    File.mkdir(dest)
+
+    try do
+      refute File.exists?(final)
+      assert File.cp_r(src, dest) == { :ok, [final] }
+      assert File.exists?(final)
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
+  test :cp_r_with_src_file_and_dest_unknown do
+    src   = fixture_path("foo.txt")
+    dest  = tmp_path("tmp.file")
+
+    try do
+      refute File.exists?(dest)
+      assert File.cp_r(src, dest) == { :ok, [dest] }
+      assert File.exists?(dest)
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
+  test :cp_r_with_src_dir_and_dest_dir do
+    src  = fixture_path("cp_r")
+    dest = tmp_path("tmp")
+
+    File.mkdir(dest)
+
+    try do
+      refute File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
+      refute File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
+      refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
+
+      assert File.cp_r(src, dest) == { :ok, [
+        tmp_path("tmp/cp_r/a/1.txt"),
+        tmp_path("tmp/cp_r/a/a/2.txt"),
+        tmp_path("tmp/cp_r/b/3.txt")
+      ] }
+
+      assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
+      assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
+      assert File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
+  test :cp_r_with_src_dir_dot_and_dest_dir do
+    src  = fixture_path("cp_r/.")
+    dest = tmp_path("tmp")
+
+    File.mkdir(dest)
+
+    try do
+      refute File.exists?(tmp_path("tmp/a/1.txt"))
+      refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+      refute File.exists?(tmp_path("tmp/b/3.txt"))
+
+      assert File.cp_r(src, dest) == { :ok, [
+        tmp_path("tmp/a/1.txt"),
+        tmp_path("tmp/a/a/2.txt"),
+        tmp_path("tmp/b/3.txt")
+      ] }
+
+      assert File.exists?(tmp_path("tmp/a/1.txt"))
+      assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+      assert File.exists?(tmp_path("tmp/b/3.txt"))
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
+  test :cp_r_with_src_dir_and_dest_file do
+    src  = fixture_path("cp_r")
+    dest = tmp_path("tmp.file")
+
+    try do
+      File.touch!(dest)
+      assert File.cp_r(src, dest) == { :error, :enotdir }
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
+  test :cp_r_with_src_dir_and_dest_unknown do
+    src  = fixture_path("cp_r")
+    dest = tmp_path("tmp")
+
+    try do
+      refute File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
+      refute File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
+      refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
+
+      assert File.cp_r(src, dest) == { :ok, [
+        tmp_path("tmp/cp_r/a/1.txt"),
+        tmp_path("tmp/cp_r/a/a/2.txt"),
+        tmp_path("tmp/cp_r/b/3.txt")
+      ] }
+
+      assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
+      assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
+      assert File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
+  test :cp_r_with_src_unknown do
+    src  = fixture_path("unknown")
+    dest = tmp_path("tmp")
+    assert File.cp_r(src, dest) == { :error, :enoent }
+  end
+
+  test :cp_r_with_dir_and_file_conflict do
+    src  = fixture_path("cp_r/.")
+    dest = tmp_path("tmp")
+
+    try do
+      File.mkdir(dest)
+      File.write!(File.join(dest, "a"), "hello")
+      assert File.cp_r(src, dest) == { :error, :enotdir }
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
+  test :cp_r_with_src_dir_and_dest_dir_using_lists do
+    src  = fixture_path("cp_r/.") /> to_char_list
+    dest = tmp_path("tmp") /> to_char_list
+
+    File.mkdir(dest)
+
+    try do
+      refute File.exists?(tmp_path("tmp/a/1.txt"))
+      refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+      refute File.exists?(tmp_path("tmp/b/3.txt"))
+
+      assert File.cp_r(src, dest) == { :ok, Enum.map [
+        tmp_path("tmp/a/1.txt"),
+        tmp_path("tmp/a/a/2.txt"),
+        tmp_path("tmp/b/3.txt")
+      ], to_char_list(&1) }
+
+      assert File.exists?(tmp_path("tmp/a/1.txt"))
+      assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+      assert File.exists?(tmp_path("tmp/b/3.txt"))
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
+  test :cp_r_with_src_with_file_conflict do
+    src  = fixture_path("cp_r/.")
+    dest = tmp_path("tmp")
+
+    File.mkdir_p tmp_path("tmp/a")
+    File.write! tmp_path("tmp/a/1.txt"), "hello"
+
+    try do
+      assert File.exists?(tmp_path("tmp/a/1.txt"))
+      File.cp_r(src, dest)
+      assert File.read!(tmp_path("tmp/a/1.txt")) == ""
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
+  test :cp_r_with_src_with_file_conflict_callback do
+    src  = fixture_path("cp_r/.")
+    dest = tmp_path("tmp")
+
+    File.mkdir_p tmp_path("tmp/a")
+    File.write! tmp_path("tmp/a/1.txt"), "hello"
+
+    try do
+      assert File.exists?(tmp_path("tmp/a/1.txt"))
+      File.cp_r(src, dest, fn(src_file, dest_file) ->
+        assert src_file == fixture_path("cp_r/a/1.txt")
+        assert dest_file == tmp_path("tmp/a/1.txt")
+        false
+      end)
+      assert File.read!(tmp_path("tmp/a/1.txt")) == "hello"
+    after
+      System.cmd "rm -rf #{dest}"
+    end
+  end
+
   test :touch_with_no_file do
-    fixture = fixture_path("tmp_test.txt")
+    fixture = tmp_path("tmp_test.txt")
+
     try do
       refute File.exists?(fixture)
       assert File.touch(fixture) == :ok
@@ -509,7 +746,8 @@ defmodule FileTest do
   end
 
   test :touch_with_file do
-    fixture = fixture_path("tmp_test.txt")
+    fixture = tmp_path("tmp_test.txt")
+
     try do
       File.touch!(fixture)
       stat = File.stat!(fixture).mtime(last_year)

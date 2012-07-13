@@ -36,7 +36,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert 1 + 1 == 1
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected 1 to be equal to (==) 2" = error.message
+        "Expected 2 to be equal to (==) 1" = error.message
     end
   end
 

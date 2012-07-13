@@ -464,13 +464,9 @@ defmodule File do
   the given file. File is created if it doesn’t exist.
   """
   def touch(file) do
-    case stat(file) do
-      { :ok, stat } ->
-        write_stat(file, stat.mtime(:calendar.local_time))
-      { :error, :enoent } ->
-        write(file, "")
-      { :error, reason } ->
-        { :error, reason }
+    case F.change_time(file, :calendar.local_time) do
+      { :error, :enoent } -> write(file, "")
+      other -> other
     end
   end
 
@@ -487,13 +483,19 @@ defmodule File do
   end
 
   @doc """
-  Copies the contents of `file_source` to `file_destination`. Both parameters
-  can be a filename or an io device opened with `File.open`. `bytes_count`
-  specifies the number of bytes to count, the default being `:infinity`.
+  Copies the contents of `source` to `destination`. Both
+  parameters can be a filename or an io device opened with `File.open`.
+  `bytes_count` specifies the number of bytes to count, the default
+  being `:infinity`.
 
-  Returns `{ :ok, bytes_copied }` if successful, `{ :error, reason }` otherwise.
+  If file `destination` already exists, it is overriden
+  by the contents in `source`.
 
-  Typical error reasons are the same as in `open/2`, `read/1` and `write/2`.
+  Returns `{ :ok, bytes_copied }` if successful,
+  `{ :error, reason }` otherwise.
+
+  Typical error reasons are the same as in `open/2`,
+  `read/1` and `write/2`.
   """
   def copy(source, destination, bytes_count // :infinity) do
     F.copy(source, destination, bytes_count)
@@ -508,6 +510,98 @@ defmodule File do
       { :ok, bytes_count } -> bytes_count
       { :error, reason } ->
         raise File.Error, reason: reason, action: "copy", path: to_binary(source)
+    end
+  end
+
+  @doc """
+  Copies the contents in source to destination.
+  Similar to the command `cp -r` in Unix systems,
+  this function behaves differently depending
+  if `src` and `dest` are a file or a directory.
+
+  If both are files, it simply copies `src` to
+  `dest`. However, if `dest` is a directory,
+  it copies the contents of `src` to `dest/src`
+  recursively.
+
+  If a file already exists in the destination,
+  it invokes a callback which should return
+  true if the existing file should be overriden,
+  false otherwise. It defaults to return true.
+
+  If a directory already exists in the destination
+  where a file is meant to be (or otherwise), this
+  function will fail.
+
+  This function may fail while copying files,
+  in such cases, it will leave the destination
+  directory in a dirty state, where already
+  copied files won't be removed.
+
+  It returns `{ :ok, files }` in case of success,
+  `{ :error, reason }` otherwise.
+  """
+  def cp_r(src, dest, callback // fn(_, _) -> true end) when is_function(callback) do
+    res =
+      if File.dir?(dest) do
+        mkdir(dest)
+        do_cp_r(src, dest, callback, [])
+      else
+        if File.dir?(src) do
+          mkdir(dest)
+          do_cp_r(src, dest, callback, [])
+        else
+          do_cp_file(src, dest, callback, [])
+        end
+      end
+
+    case res do
+      { :error, _ } = error -> error
+      _ -> { :ok, res }
+    end
+  end
+
+  # src may be a file or a directory, dest is definitely
+  # a directory. Returns nil unless an error is found.
+  defp do_cp_r(src, dest, callback, acc) when is_list(acc) do
+    output = File.join dest, basename(src)
+
+    case F.list_dir(src) do
+      { :ok, files } ->
+        case mkdir(output) do
+          success in [:ok, { :error, :eexist }] ->
+            Enum.reduce(files, acc, fn(x, acc) ->
+              do_cp_r(File.join(src, x), output, callback, acc)
+            end)
+          reason -> reason
+        end
+      { :error, :enotdir } ->
+        do_cp_file(src, output, callback, acc)
+      reason -> reason
+    end
+  end
+
+  # If we reach this clause, there was an error while
+  # processing a file.
+  defp do_cp_r(_, _, _, acc) do
+    acc
+  end
+
+  # Both src and dest are files.
+  defp do_cp_file(src, dest, callback, acc) do
+    case copy(src, { dest, [:exclusive] }) do
+      { :ok, _ } ->
+        [dest|acc]
+      { :error, :eexist } ->
+        if callback.(src, dest) do
+          case copy(src, dest) do
+            { :ok, _ } -> [dest|acc]
+            reason -> reason
+          end
+        else
+          acc
+        end
+      reason -> reason
     end
   end
 
@@ -527,6 +621,17 @@ defmodule File do
   """
   def write(filename, content, modes // []) do
     F.write_file(filename, content, modes)
+  end
+
+  @doc """
+  Same as `write/3` but raises an exception if it fails, returns `:ok` otherwise.
+  """
+  def write!(filename, content, modes // []) do
+    case F.write_file(filename, content, modes) do
+      :ok -> :ok
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "write to file", path: to_binary(filename)
+    end
   end
 
   @doc """
@@ -688,14 +793,14 @@ defmodule File do
   Sets the current working directory. Returns `:ok` if successful,
   `{ :error, reason }` otherwise.
   """
-  def chdir(path) do
+  def cd(path) do
     F.set_cwd(path)
   end
 
   @doc """
-  The same as `chdir/0`, but raises an exception if it fails.
+  The same as `cd/0`, but raises an exception if it fails.
   """
-  def chdir!(path) do
+  def cd!(path) do
     case F.set_cwd(path) do
       :ok -> :ok
       { :error, reason } ->
@@ -711,13 +816,13 @@ defmodule File do
   Raises an error if retrieving or changing the current
   directory fails.
   """
-  def chdir!(path, function) do
+  def cd!(path, function) do
     old = cwd!
-    chdir!(path)
+    cd!(path)
     try do
       function.()
     after
-      chdir!(old)
+      cd!(old)
     end
   end
 

@@ -26,7 +26,7 @@ defmodule MixTest.Case do
   end
 
   def in_fixture(which, function) do
-    File.chdir! fixture_path(which), function
+    File.cd! fixture_path(which), function
   end
 end
 
