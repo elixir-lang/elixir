@@ -174,7 +174,8 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 3
+        assert length(files) == 7
+        assert tmp_path("tmp/cp_r/a") in files
         assert tmp_path("tmp/cp_r/a/1.txt") in files
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
@@ -197,7 +198,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 3
+        assert length(files) == 7
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -229,7 +230,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 3
+        assert length(files) == 7
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
@@ -270,7 +271,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 3
+        assert length(files) == 7
         assert is_list(hd(files))
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
@@ -328,7 +329,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        assert length(File.cp_r!(src, dest)) == 3
+        assert length(File.cp_r!(src, dest)) == 7
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -806,6 +807,89 @@ defmodule FileTest do
       fixture = fixture_path("foo.txt")
       assert_raise File.Error, "could not remove directory #{fixture}: not a directory", fn ->
         File.rmdir!(fixture)
+      end
+    end
+
+    test :rm_rf do
+      fixture = tmp_path("tmp")
+      File.mkdir(fixture)
+      File.cp_r!(fixture_path("cp_r/."), fixture)
+
+      assert File.exists?(tmp_path("tmp/a/1.txt"))
+      assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+      assert File.exists?(tmp_path("tmp/b/3.txt"))
+
+      { :ok, files } = File.rm_rf(fixture)
+      assert length(files) == 7
+      assert fixture in files
+      assert tmp_path("tmp/a/1.txt") in files
+
+      refute File.exists?(tmp_path("tmp/a/1.txt"))
+      refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+      refute File.exists?(tmp_path("tmp/b/3.txt"))
+      refute File.exists?(fixture)
+    end
+
+    test :rm_rf_with_char_list do
+      fixture = tmp_path("tmp") /> to_char_list
+      File.mkdir(fixture)
+      File.cp_r!(fixture_path("cp_r/."), fixture)
+
+      assert File.exists?(tmp_path("tmp/a/1.txt"))
+      assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+      assert File.exists?(tmp_path("tmp/b/3.txt"))
+
+      { :ok, files } = File.rm_rf(fixture)
+      assert length(files) == 7
+      assert fixture in files
+      assert (tmp_path("tmp/a/1.txt") /> to_char_list) in files
+
+      refute File.exists?(tmp_path("tmp/a/1.txt"))
+      refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+      refute File.exists?(tmp_path("tmp/b/3.txt"))
+      refute File.exists?(fixture)
+    end
+
+    test :rm_rf_with_file do
+      fixture = tmp_path("tmp")
+      File.write(fixture, "hello")
+      assert File.rm_rf(fixture) == { :ok, [fixture] }
+    end
+
+    test :rm_rf_with_unknown do
+      fixture = tmp_path("tmp.unknown")
+      assert File.rm_rf(fixture) == { :ok, [] }
+    end
+
+    test :rm_rf_with_invalid do
+      fixture = fixture_path "foo.txt/path"
+      assert File.rm_rf(fixture) == { :error, :enotdir }
+    end
+
+    test :rm_rf! do
+      fixture = tmp_path("tmp")
+      File.mkdir(fixture)
+      File.cp_r!(fixture_path("cp_r/."), fixture)
+
+      assert File.exists?(tmp_path("tmp/a/1.txt"))
+      assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+      assert File.exists?(tmp_path("tmp/b/3.txt"))
+
+      files = File.rm_rf!(fixture)
+      assert length(files) == 7
+      assert fixture in files
+      assert tmp_path("tmp/a/1.txt") in files
+
+      refute File.exists?(tmp_path("tmp/a/1.txt"))
+      refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+      refute File.exists?(tmp_path("tmp/b/3.txt"))
+      refute File.exists?(fixture)
+    end
+
+    test :rm_rf_with_invalid! do
+      fixture = fixture_path "foo.txt/path"
+      assert_raise File.Error, "could not remove files and directories recursively from #{fixture}: not a directory", fn ->
+        File.rm_rf!(fixture)
       end
     end
   end

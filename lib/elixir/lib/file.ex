@@ -623,8 +623,9 @@ defmodule File do
   directory in a dirty state, where already
   copied files won't be removed.
 
-  It returns `{ :ok, files }` in case of success,
-  `{ :error, reason }` otherwise.
+  It returns `{ :ok, files_and_directories }` in case of
+  success with all files and directories copied in no
+  specific order, `{ :error, reason }` otherwise.
 
   ## Examples
 
@@ -685,7 +686,7 @@ defmodule File do
       { :ok, files } ->
         case mkdir(output) do
           success in [:ok, { :error, :eexist }] ->
-            Enum.reduce(files, acc, fn(x, acc) ->
+            Enum.reduce(files, [output|acc], fn(x, acc) ->
               do_cp_r(join(src, x), output, callback, acc)
             end)
           reason -> reason
@@ -811,6 +812,71 @@ defmodule File do
       :ok -> :ok
       { :error, reason } ->
         raise File.Error, reason: reason, action: "remove directory", path: to_binary(path)
+    end
+  end
+
+  @doc """
+  Remove files and directories recursively at the given `path`.
+  Symlinks are not followed, non existing files are simply ignored.
+
+  Returns `{ :ok, files_and_directories }` with all files and
+  directories removed in no specific order, `{ :error, reason }`
+  otherwise.
+
+  ## Examples
+
+      File.rm_rf "samples"
+      #=> { :ok, ["samples", "samples/1.txt"] }
+
+      File.rm_rf "unknown"
+      #=> { :ok, [] }
+
+  """
+  def rm_rf(path) do
+    do_rm_rf(path, { :ok, [] })
+  end
+
+  defp do_rm_rf(path, { :ok, acc } = entry) do
+    case F.list_dir(path) do
+      { :ok, files } ->
+        res =
+          Enum.reduce files, entry, fn(file, tuple) ->
+            do_rm_rf(join(path, file), tuple)
+          end
+
+        case res do
+          { :ok, acc } ->
+            case rmdir(path) do
+              :ok -> { :ok, [path|acc] }
+              { :error, :enoent } -> res
+              reason -> reason
+            end
+          reason -> reason
+        end
+      { :error, :enotdir } ->
+        case rm(path) do
+          :ok -> { :ok, [path|acc] }
+          { :error, :enoent } -> entry
+          reason -> reason
+        end
+      { :error, :enoent } -> entry
+      reason -> reason
+    end
+  end
+
+  defp do_rm_rf(_, reason) do
+    reason
+  end
+
+  @doc """
+  Same as `rm_rf/1` but raises `File.Error` in case of failures,
+  otherwise the list of files or directories removed.
+  """
+  def rm_rf!(path) do
+    case rm_rf(path) do
+      { :ok, files } -> files
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "remove files and directories recursively from", path: to_binary(path)
     end
   end
 
