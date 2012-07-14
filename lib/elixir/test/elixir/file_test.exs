@@ -174,9 +174,12 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 7
+        assert length(files) == 8
         assert tmp_path("tmp/cp_r/a") in files
+        assert tmp_path("tmp/cp_r/c") in files
         assert tmp_path("tmp/cp_r/a/1.txt") in files
+
+        assert { :ok, 'certainly/invalid' } = :file.read_link(tmp_path("tmp/cp_r/c"))
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
@@ -198,7 +201,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 7
+        assert length(files) == 8
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -230,7 +233,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 7
+        assert length(files) == 8
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
@@ -271,7 +274,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 7
+        assert length(files) == 8
         assert is_list(hd(files))
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
@@ -329,7 +332,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        assert length(File.cp_r!(src, dest)) == 7
+        assert length(File.cp_r!(src, dest)) == 8
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -820,7 +823,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
       { :ok, files } = File.rm_rf(fixture)
-      assert length(files) == 7
+      assert length(files) == 8
       assert fixture in files
       assert tmp_path("tmp/a/1.txt") in files
 
@@ -854,7 +857,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
       { :ok, files } = File.rm_rf(fixture)
-      assert length(files) == 7
+      assert length(files) == 8
       assert fixture in files
       assert (tmp_path("tmp/a/1.txt") /> to_char_list) in files
 
@@ -890,7 +893,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
       files = File.rm_rf!(fixture)
-      assert length(files) == 7
+      assert length(files) == 8
       assert fixture in files
       assert tmp_path("tmp/a/1.txt") in files
 

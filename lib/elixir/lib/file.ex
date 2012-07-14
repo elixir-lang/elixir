@@ -645,22 +645,17 @@ defmodule File do
 
   """
   def cp_r(source, destination, callback // fn(_, _) -> true end) when is_function(callback) do
-    res =
-      if dir?(destination) do
+    output =
+      if dir?(destination) || dir?(source) do
         mkdir(destination)
-        do_cp_r(source, destination, callback, [])
+        join(destination, basename(source))
       else
-        if dir?(source) do
-          mkdir(destination)
-          do_cp_r(source, destination, callback, [])
-        else
-          do_cp_file(source, destination, callback, [])
-        end
+        destination
       end
 
-    case res do
+    case do_cp_r(source, output, callback, []) do
       { :error, _ } = error -> error
-      _ -> { :ok, res }
+      res -> { :ok, res }
     end
   end
 
@@ -680,20 +675,23 @@ defmodule File do
   # src may be a file or a directory, dest is definitely
   # a directory. Returns nil unless an error is found.
   defp do_cp_r(src, dest, callback, acc) when is_list(acc) do
-    output = join dest, basename(src)
-
-    case F.list_dir(src) do
-      { :ok, files } ->
-        case mkdir(output) do
-          success in [:ok, { :error, :eexist }] ->
-            Enum.reduce(files, [output|acc], fn(x, acc) ->
-              do_cp_r(join(src, x), output, callback, acc)
-            end)
+    case F.read_link(src) do
+      { :ok, link } ->
+        do_cp_link(link, src, dest, callback, acc)
+      _ ->
+        case F.list_dir(src) do
+          { :ok, files } ->
+            case mkdir(dest) do
+              success in [:ok, { :error, :eexist }] ->
+                Enum.reduce(files, [dest|acc], fn(x, acc) ->
+                  do_cp_r(join(src, x), join(dest, x), callback, acc)
+                end)
+              reason -> reason
+            end
+          { :error, :enotdir } ->
+            do_cp_file(src, dest, callback, acc)
           reason -> reason
         end
-      { :error, :enotdir } ->
-        do_cp_file(src, output, callback, acc)
-      reason -> reason
     end
   end
 
@@ -710,8 +708,28 @@ defmodule File do
         [dest|acc]
       { :error, :eexist } ->
         if callback.(src, dest) do
+          rm(dest)
           case copy(src, dest) do
             { :ok, _ } -> [dest|acc]
+            reason -> reason
+          end
+        else
+          acc
+        end
+      reason -> reason
+    end
+  end
+
+  # Both src and dest are files.
+  defp do_cp_link(link, src, dest, callback, acc) do
+    case F.make_symlink(link, dest) do
+      :ok ->
+        [dest|acc]
+      { :error, :eexist } ->
+        if callback.(src, dest) do
+          rm(dest)
+          case F.make_symlink(link, dest) do
+            :ok -> [dest|acc]
             reason -> reason
           end
         else
