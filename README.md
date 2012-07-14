@@ -1,4 +1,4 @@
-![Elixir](https://github.com/elixir-lang/elixir/raw/master/logo.png)
+![Elixir](https://github.com/elixir-lang/elixir-lang.github.com/raw/master/images/logo/logo.png)
 =========
 [![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.png?branch=master "Build Status")](http://travis-ci.org/elixir-lang/elixir)
 
@@ -45,4 +45,8 @@ We usually keep a list of features and bugs [in the issue tracker][2].
 
 # License
 
-Copyright (c) 2012 Plataformatec. See LICENSE file.
+"Elixir" and the Elixir logo are copyright (c) 2012 Plataformatec.
+
+Elixir source code is released under Apache 2 License with some parts under Erlang's license (EPL).
+
+Check LEGAL and LICENSE files for more information.
