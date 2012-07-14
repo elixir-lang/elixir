@@ -52,6 +52,32 @@ defmodule File do
   file is done with `File.rm`. Getting its stats with
   `File.stat`. If you want to read or write to a file
   in chunks, check the IO module.
+
+  Most of the functions in this module return `:ok`
+  or `{ :ok, result }` in case of success, `{ :error, reason }`
+  otherwise. Those function are also followed by
+  a variant that ends with `!` which returns the
+  result (without the `{ :ok, result }` tuple) in
+  case of success or raises an exception in case it
+  fails. For example:
+
+      File.read("hello.txt")
+      #=> { :ok, "World" }
+
+      File.read("invalid.txt")
+      #=> { :error, :enoent }
+
+      File.read!("hello.txt")
+      #=> "World"
+
+      File.read!("invalid.txt")
+      #=> raises File.Error
+
+  In general, a developer should use the former in case
+  he wants to react in the fie does not exist. The latter
+  should be used when the developer expects his software
+  to fail in case the file cannot be read (i.e. it is
+  literally an exception).
   """
 
   alias Erlang.file,     as: F
@@ -360,7 +386,7 @@ defmodule File do
   end
 
   @doc """
-  Traverses files and directories according to the given glob expression.
+  Traverses files and directories according to the given `glob` expression.
 
   The wildcard string looks like an ordinary filename, except that certain
   "wildcard characters" are interpreted in a special way. The following
@@ -397,12 +423,12 @@ defmodule File do
     Enum.map paths, list_to_binary(&1)
   end
 
-  def wildcard(path) when is_list(path) do
-    Erlang.elixir_glob.wildcard(path)
+  def wildcard(glob) when is_list(glob) do
+    Erlang.elixir_glob.wildcard(glob)
   end
 
   @doc """
-  Returns information about a file. If the file exists, it
+  Returns information about the `path`. If it exists, it
   returns a `{ :ok, info }` tuple, where info is  as a
   `File.Info` record. Retuns `{ :error, reason }` with
   the same reasons as `File.read` if a failure occurs.
@@ -447,7 +473,7 @@ defmodule File do
   end
 
   @doc """
-  Writes the given File.Stat back to the filesystem at the given
+  Writes the given `File.Stat` back to the filesystem at the given
   path. Returns `:ok` or `{ :error, reason }`.
   """
   def write_stat(path, File.Stat[] = stat, opts // []) do
@@ -470,9 +496,9 @@ defmodule File do
   Updates modification time (mtime) and access time (atime) of
   the given file. File is created if it doesn’t exist.
   """
-  def touch(file) do
-    case F.change_time(file, :calendar.local_time) do
-      { :error, :enoent } -> write(file, "")
+  def touch(path) do
+    case F.change_time(path, :calendar.local_time) do
+      { :error, :enoent } -> write(path, "")
       other -> other
     end
   end
@@ -481,11 +507,11 @@ defmodule File do
   Same as `touch/1` but raises an exception if it fails.
   Returns `:ok` otherwise.
   """
-  def touch!(file) do
-    case touch(file) do
+  def touch!(path) do
+    case touch(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "touch", path: to_binary(file)
+        raise File.Error, reason: reason, action: "touch", path: to_binary(path)
     end
   end
 
@@ -695,7 +721,7 @@ defmodule File do
   end
 
   @doc """
-  Writes `content` to the file `filename`. The file is created if it
+  Writes `content` to the file `path`. The file is created if it
   does not exist. If it exists, the previous contents are overwritten.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
@@ -708,23 +734,23 @@ defmodule File do
   * :eacces - Missing permission for writing the file or searching one of the parent directories.
   * :eisdir - The named file is a directory.
   """
-  def write(filename, content, modes // []) do
-    F.write_file(filename, content, modes)
+  def write(path, content, modes // []) do
+    F.write_file(path, content, modes)
   end
 
   @doc """
   Same as `write/3` but raises an exception if it fails, returns `:ok` otherwise.
   """
-  def write!(filename, content, modes // []) do
-    case F.write_file(filename, content, modes) do
+  def write!(path, content, modes // []) do
+    case F.write_file(path, content, modes) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "write to file", path: to_binary(filename)
+        raise File.Error, reason: reason, action: "write to file", path: to_binary(path)
     end
   end
 
   @doc """
-  Tries to delete the file `filename`.
+  Tries to delete the file `path`.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
   Typical error reasons are:
@@ -745,8 +771,8 @@ defmodule File do
       #=> {:error, :eperm}
 
   """
-  def rm(filename) do
-    F.delete(filename)
+  def rm(path) do
+    F.delete(path)
   end
 
   @doc """
@@ -761,11 +787,39 @@ defmodule File do
   end
 
   @doc """
-  Opens the given *file* according to the given list of modes.
+  Tries to delete the dir at `path`.
+  Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+
+  ## Examples
+
+      File.rddir('tmp_dir')
+      #=> :ok
+
+      File.rmdir('foo.txt')
+      #=> {:error, :enotdir}
+
+  """
+  def rmdir(path) do
+    F.del_dir(path)
+  end
+
+  @doc """
+  Same as `rmdir/1`, but raises an exception in case of failure. Otherwise `:ok`.
+  """
+  def rmdir!(path) do
+    case rmdir(path) do
+      :ok -> :ok
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "remove directory", path: to_binary(path)
+    end
+  end
+
+  @doc """
+  Opens the given `path` according to the given list of modes.
 
   By default, the file is opened in read mode, as a binary with utf8 encoding.
 
-  The allowed modes and options are:
+  The allowed modes:
 
   * `:read` - The file, which must exist, is opened for reading.
 
@@ -784,6 +838,8 @@ defmodule File do
                      The compressed option must be combined with either read or write, but not both.
                      Note that the file size obtained with `stat/1` will most probably not
                      match the number of bytes that can be read from a compressed file.
+
+  If a function is given to modes (instead of a list), it dispatches to `open/3`.
 
   Check `http://www.erlang.org/doc/man/file.html#open-2` for more information about
   other options as `read_ahead` and `delayed_write`.
@@ -806,36 +862,29 @@ defmodule File do
       File.close(file)
 
   """
-  def open(file, options // []) when is_list(options) do
-    F.open(file, open_defaults(options, true, true))
+  def open(path, modes // [])
+
+  def open(path, modes) when is_list(modes) do
+    F.open(path, open_defaults(modes, true, true))
+  end
+
+  def open(path, function) when is_function(function) do
+    open(path, [], function)
   end
 
   @doc """
-  Same as `open/2` but raises an error if file could not be opened.
-  Returns the `io_device` otherwise.
-  """
-  def open!(file, options // [])
+  Similar to `open/2` but expects a function as last argument.
 
-  def open!(file, function) when is_function(function) do
-    open!(file, [], function)
-  end
+  The file is opened, given to the function as argument and
+  automatically closed after the function returns, regardless
+  if there was an error or not.
 
-  def open!(file, options) when is_list(options) do
-    case open(file, options) do
-      { :ok, device }    -> device
-      { :error, reason } ->
-        raise File.Error, reason: reason, action: "open", path: to_binary(file)
-    end
-  end
+  It returns `{ :ok, function_result }` in case of success,
+  `{ :error, reason }` otherwise.
 
-  @doc """
-  Similar to `open!/2` but expects a function as last argument.
-
-  In such cases, the file is opened, given to the function as argument.
-  When the function returns, regardless if there was an error or not,
-  it is automatically closed.
-
-  The result of the function is returned as result.
+  Do not use this function with :delayed_write option
+  since automatically closing the file may fail
+  (as writes are delayed).
 
   ## Examples
 
@@ -844,13 +893,39 @@ defmodule File do
     end)
 
   """
-  def open!(file, options, function) do
-    device = open!(file, options)
+  def open(path, modes, function) do
+    case open(path, modes) do
+      { :ok, device } ->
+        try do
+          { :ok, function.(device) }
+        after
+          :ok = close(device)
+        end
+      other -> other
+    end
+  end
 
-    try do
-      function.(device)
-    after
-      close(device)
+  @doc """
+  Same as `open/2` but raises an error if file could not be opened.
+  Returns the `io_device` otherwise.
+  """
+  def open!(path, modes // []) do
+    case open(path, modes) do
+      { :ok, device }    -> device
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "open", path: to_binary(path)
+    end
+  end
+
+  @doc """
+  Same as `open/3` but raises an error if file could not be opened.
+  Returns the function result otherwise.
+  """
+  def open!(path, modes, function) do
+    case open(path, modes, function) do
+      { :ok, device }    -> device
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "open", path: to_binary(path)
     end
   end
 

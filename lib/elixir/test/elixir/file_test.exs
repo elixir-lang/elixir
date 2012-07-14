@@ -596,6 +596,11 @@ defmodule FileTest do
       assert File.open('missing.txt') == {:error, :enoent}
     end
 
+    test :open_a_file_with_function do
+      file = fixture_path("foo.txt")
+      assert File.open(file, IO.readline(&1)) == { :ok, "FOO\n" }
+    end
+
     test :open_a_missing_file! do
       message = "could not open missing.txt: no such file or directory"
       assert_raise File.Error, message, fn ->
@@ -604,7 +609,7 @@ defmodule FileTest do
     end
 
     test :open_a_file_with_function! do
-      file = File.expand_path(fixture_path("foo.txt"), __FILE__)
+      file = fixture_path("foo.txt")
       assert File.open!(file, IO.readline(&1)) == "FOO\n"
     end
   end
@@ -774,6 +779,33 @@ defmodule FileTest do
     test :rm_with_invalid_file! do
       assert_raise File.Error, "could not remove file missing.file: no such file or directory", fn ->
         File.rm!("missing.file")
+      end
+    end
+
+    test :rmdir do
+      fixture = tmp_path("tmp_test")
+      File.mkdir_p(fixture)
+      assert File.dir?(fixture)
+      assert File.rmdir(fixture) == :ok
+      refute File.exists?(fixture)
+    end
+
+    test :rmdir_with_file do
+      assert File.rmdir(fixture_path("foo.txt")) == { :error, :enotdir }
+    end
+
+    test :rmdir! do
+      fixture = tmp_path("tmp_test")
+      File.mkdir_p(fixture)
+      assert File.dir?(fixture)
+      assert File.rmdir!(fixture) == :ok
+      refute File.exists?(fixture)
+    end
+
+    test :rmdir_with_file! do
+      fixture = fixture_path("foo.txt")
+      assert_raise File.Error, "could not remove directory #{fixture}: not a directory", fn ->
+        File.rmdir!(fixture)
       end
     end
   end
