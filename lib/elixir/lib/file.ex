@@ -817,7 +817,8 @@ defmodule File do
 
   @doc """
   Remove files and directories recursively at the given `path`.
-  Symlinks are not followed, non existing files are simply ignored.
+  Symlinks are not followed but simply removed, non existing
+  files are simply ignored (i.e. doesn't make this function fail).
 
   Returns `{ :ok, files_and_directories }` with all files and
   directories removed in no specific order, `{ :error, reason }`
@@ -837,7 +838,7 @@ defmodule File do
   end
 
   defp do_rm_rf(path, { :ok, acc } = entry) do
-    case F.list_dir(path) do
+    case safe_list_dir(path) do
       { :ok, files } ->
         res =
           Enum.reduce files, entry, fn(file, tuple) ->
@@ -866,6 +867,13 @@ defmodule File do
 
   defp do_rm_rf(_, reason) do
     reason
+  end
+
+  defp safe_list_dir(path) do
+    case F.read_link(path) do
+      { :ok, _ } -> { :error, :enotdir }
+      _ -> F.list_dir(path)
+    end
   end
 
   @doc """

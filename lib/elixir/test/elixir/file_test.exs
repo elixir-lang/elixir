@@ -830,6 +830,20 @@ defmodule FileTest do
       refute File.exists?(fixture)
     end
 
+    test :rm_rf_with_symlink do
+      fixture = tmp_path("tmp/link")
+
+      File.mkdir_p(tmp_path("tmp"))
+      :file.make_symlink(fixture_path, fixture)
+      assert File.exists?(fixture)
+
+      { :ok, files } = File.rm_rf(fixture)
+      assert length(files) == 1
+
+      assert File.exists?(fixture_path("foo.txt"))
+      refute File.exists?(fixture)
+    end
+
     test :rm_rf_with_char_list do
       fixture = tmp_path("tmp") /> to_char_list
       File.mkdir(fixture)
