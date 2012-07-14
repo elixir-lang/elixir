@@ -35,7 +35,7 @@ defmodule FileTest do
         assert File.cp(src, dest) == :ok
         assert File.exists?(final)
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -48,7 +48,7 @@ defmodule FileTest do
         assert File.cp(src, dest) == :ok
         assert File.exists?(dest)
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -69,7 +69,7 @@ defmodule FileTest do
         assert File.cp(src, dest) == :ok
         assert File.read!(dest) == "FOO\n"
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -88,7 +88,7 @@ defmodule FileTest do
         end) == :ok
         assert File.read!(dest) == "hello"
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -145,7 +145,7 @@ defmodule FileTest do
         assert File.cp_r(src, dest) == { :ok, [final] }
         assert File.exists?(final)
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -158,7 +158,7 @@ defmodule FileTest do
         assert File.cp_r(src, dest) == { :ok, [dest] }
         assert File.exists?(dest)
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -182,7 +182,7 @@ defmodule FileTest do
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -204,7 +204,7 @@ defmodule FileTest do
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
         assert File.exists?(tmp_path("tmp/b/3.txt"))
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -216,7 +216,7 @@ defmodule FileTest do
         File.touch!(dest)
         assert File.cp_r(src, dest) == { :error, :enotdir }
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -236,7 +236,7 @@ defmodule FileTest do
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -255,7 +255,7 @@ defmodule FileTest do
         File.write!(File.join(dest, "a"), "hello")
         assert File.cp_r(src, dest) == { :error, :enotdir }
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -278,7 +278,7 @@ defmodule FileTest do
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
         assert File.exists?(tmp_path("tmp/b/3.txt"))
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -294,7 +294,7 @@ defmodule FileTest do
         File.cp_r(src, dest)
         assert File.read!(tmp_path("tmp/a/1.txt")) == ""
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -314,7 +314,7 @@ defmodule FileTest do
         end)
         assert File.read!(tmp_path("tmp/a/1.txt")) == "hello"
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -335,7 +335,7 @@ defmodule FileTest do
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
         assert File.exists?(tmp_path("tmp/b/3.txt"))
       after
-        System.cmd "rm -rf #{dest}"
+        File.rm_rf dest
       end
     end
 
@@ -625,7 +625,7 @@ defmodule FileTest do
         assert File.mkdir(fixture) == :ok
         assert File.exists?(fixture)
       after
-        System.cmd("rm -rf #{fixture}")
+        File.rmdir fixture
       end
     end
 
@@ -636,7 +636,7 @@ defmodule FileTest do
         assert File.mkdir(fixture) == :ok
         assert File.exists?(fixture)
       after
-        System.cmd("rm -rf #{fixture}")
+        File.rmdir fixture
       end
     end
 
@@ -655,7 +655,7 @@ defmodule FileTest do
         assert File.mkdir!(fixture) == :ok
         assert File.exists?(fixture)
       after
-        System.cmd("rm -rf #{fixture}")
+        File.rmdir fixture
       end
     end
 
@@ -675,7 +675,7 @@ defmodule FileTest do
         assert File.mkdir_p(fixture) == :ok
         assert File.exists?(fixture)
       after
-        System.cmd("rm -rf #{fixture}")
+        File.rm_rf fixture
       end
     end
 
@@ -689,7 +689,7 @@ defmodule FileTest do
         assert File.exists?(base)
         assert File.exists?(fixture)
       after
-        System.cmd("rm -rf #{base}")
+        File.rm_rf base
       end
     end
 
@@ -703,7 +703,7 @@ defmodule FileTest do
         assert File.exists?(base)
         assert File.exists?(fixture)
       after
-        System.cmd("rm -rf #{base}")
+        File.rm_rf base
       end
     end
 
@@ -718,7 +718,7 @@ defmodule FileTest do
         assert File.exists?(base)
         assert File.exists?(fixture)
       after
-        System.cmd("rm -rf #{base}")
+        File.rm_rf base
       end
     end
 
@@ -736,7 +736,7 @@ defmodule FileTest do
         assert File.mkdir_p!(fixture) == :ok
         assert File.exists?(fixture)
       after
-        System.cmd("rm -rf #{fixture}")
+        File.rm_rf fixture
       end
     end
 
