@@ -33,6 +33,13 @@ defmodule MixTest.Case do
     File.join tmp_path, extension
   end
 
+  def purge(modules) do
+    Enum.each modules, fn(m) ->
+      :code.delete(m)
+      :code.purge(m)
+    end
+  end
+
   defmacro in_fixture(which, block) do
     function = atom_to_binary elem(__CALLER__.function, 1)
 

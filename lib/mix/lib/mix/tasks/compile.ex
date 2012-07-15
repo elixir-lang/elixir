@@ -1,93 +1,98 @@
 defmodule Mix.Tasks.Compile do
   use Mix.Task
 
-  @shortdoc "Compile Elixir source files."
+  @shortdoc "Compile Elixir source files"
 
   @moduledoc """
-  A task to compile Elixir source files. By default,
-  output is compiled to `ebin/`. Sourcefiles are assumed
-  to be in `lib/`. You can change this by setting `:source_paths`
-  in your project. It is expected to be a list of paths like
-  so:
+  A task to compile Elixir source files.
 
-  `[source_paths: ["src"]]`
+  When this task runs, it will first check the mod times of
+  all of the files to be compiled and if they haven't been
+  changed since the last compilation, it will not compile
+  them at all. If any one of them has changed, it compiles
+  everything.
 
-  This list will be merged with the
-  default one and the compile task will look for source files
-  in both `lib/` and `src/`. Setting the compile path works similarly.
+  For this reason, this task touches your `:compile_path`
+  directory and sets the modification time to the current
+  time and date at the end of each compilation. You can
+  force compilation regardless of mod times by passing
+  the --force option.
 
-  `[compile_path: "exbin"]`
+  ## Configuration
 
-  This sets the compile path to `exbin` so that source files will
-  be compiled to this directory instead of the default one.
+  * `:source_paths` - directories to find source files.
+    Defaults to `["lib"]`, can be configured as:
 
-  Sometimes files need to be compiled in a specific order. If you
-  have this issue, you can use the `compile_first` key:
+        [source_paths: ["lib", "other"]]
 
-  `[compile_first: ["lib/foo.ex" "lib/bar.ex"]]`
+  * `:compile_path` - directory to output compiled files.
+    Defaults to `"ebin"`, can be configured as:
 
-  This will cause `foo.ex` and `bar.ex` to be compiled before any
-  other files and in the order they appear in the list.
+        [compile_path: "ebin"]
 
-  If you need to pass compilation options, set them in your
-  project under the `compile_options` key.
+  * `:compile_first` - which files need to be compiled first.
+    Defaults to an empty list, can be configured as:
 
-  NOTE: When this task runs, it touches your `:compile_path`
-        directory and sets the modification time to the current
-        time and date. The reason for this is so that when the
-        task runs next time, it can check the mod times of all
-        of the files to be compiled and if they haven't been
-        changed since the last compilation, it will not compile
-        them at all. If any one of them has changed, it compiles
-        everything. You can force compilation regardless of mod
-        times by passing the --force option.
+        [compile_first: ["lib/foo.ex" "lib/bar.ex"]]
 
-  Arguments:
-    --force: Force compilation regardless of modtimes
-    none: Compile all source files if they have changed since the last
-          compilation.
+  * `:elixirc_options` - compilation options that applies
+     to Elixir's compiler, they are: `:ignore_module_conflict`,
+     `:docs` and `:debug_info`. They all default to false.
+
+  ## Command line options
+
+  The compile task accepts the following options:
+
+  * `--force` forces compilation regardless of mod times;
+
   """
   def run(args) do
-    destructure([force], args)
-    project = Mix.Mixfile.get_project
-    compile_path = project[:compile_path]
-    compile_first = project[:compile_first]
-    Code.compiler_options(project[:compile_options])
-    :file.make_dir compile_path
-    to_compile = extract_files(project[:source_paths])
-    if force == "--force" || Enum.find(to_compile, stale?(&1, compile_path <> "/__MAIN__")) do
-      if !Enum.empty?(compile_first) do
-        IO.puts "\nPerforming initial compilation (compile_first)...\n"
-        Enum.each(compile_first, compile_file(&1, compile_path))
-        IO.puts "\nCompiling everything else...\n"
-      end
-      Enum.each(project[:source_paths], fn(path) ->
-        files = File.wildcard(File.join([path, "**/*.ex"]))
-	compile_files(files, compile_path)
-      end)
+    destructure [force], args
+
+    project       = Mix.Project.config
+    compile_path  = project[:compile_path]  || "ebin"
+    compile_first = project[:compile_first] || []
+    source_paths  = project[:source_paths]  || ["lib"]
+    to_compile    = extract_files(source_paths)
+
+    if elixir_opts = project[:elixirc_options] do
+      Code.compiler_options(elixir_opts)
     end
-    Mix.Utils.touch(compile_path)
+
+    last_modified = last_modified(compile_path)
+    File.mkdir_p!(compile_path)
+
+    if force == "--force" || Enum.find(to_compile, stale?(&1, last_modified)) do
+      ordered = List.uniq compile_first ++ to_compile
+      compile_files ordered, compile_path
+      File.touch(compile_path)
+    else
+      :noop
+    end
   end
 
   defp extract_files(paths) do
-    List.concat(lc path inlist paths, do: File.wildcard(File.join([path, "**/*.ex"])))
-  end
-  defp compile_files(files, to) do
-    Elixir.ParallelCompiler.files_to_path(files, to, fn(x) ->
-      IO.puts Enum.join(["Compiling ", x, " to ", to, "..."])
-      x 
+    List.concat(lc path inlist paths do
+      File.wildcard(File.join([path, "**/*.ex"]))
     end)
   end
-  defp compile_file(file, to) do
-    compile_files([file], to)
+
+  defp compile_files(files, to) do
+    Elixir.ParallelCompiler.files_to_path files, to, fn(x) ->
+      IO.puts "Compiled #{x}"
+      x
+    end
   end
-  defp stale?(file, to) do
-    {:ok, file_info} = File.read_info(file)
-    case File.read_info(to) do
-    {:ok, to_info} ->
-      file_info.mtime > to_info.mtime
-    {:error, _} ->
-      true
+
+  defp stale?(path, compare) do
+    { :ok, stat } = File.stat(path)
+    stat.mtime > compare
+  end
+
+  defp last_modified(path) do
+    case File.stat(path) do
+      { :ok, stat } -> stat.mtime
+      { :error, _ } -> { { 1970, 1, 1 }, { 0, 0, 0 } }
     end
   end
 end
