@@ -55,14 +55,14 @@ defmodule Mix.Tasks.Compile do
     source_paths  = project[:source_paths]  || ["lib"]
     to_compile    = extract_files(source_paths)
 
-    if elixir_opts = project[:elixirc_options] do
-      Code.compiler_options(elixir_opts)
-    end
-
     last_modified = last_modified(compile_path)
     File.mkdir_p!(compile_path)
 
     if force == "--force" || Enum.find(to_compile, stale?(&1, last_modified)) do
+      if elixir_opts = project[:elixirc_options] do
+        Code.compiler_options(elixir_opts)
+      end
+
       ordered = List.uniq compile_first ++ to_compile
       compile_files ordered, compile_path
       File.touch(compile_path)

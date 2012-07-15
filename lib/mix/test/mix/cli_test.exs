@@ -11,10 +11,21 @@ defmodule Mix.CLITest do
 
   test "compile smoke test" do
     in_fixture "no_mixfile", fn ->
-      mix "compile"
+      output = mix "compile"
+
       assert File.regular?("ebin/__MAIN__-A.beam")
       assert File.regular?("ebin/__MAIN__-B.beam")
       assert File.regular?("ebin/__MAIN__-C.beam")
+
+      assert "Compiled lib/a.ex" in Regex.split(%r/\n/, output)
+    end
+  end
+
+  test "test smoke test" do
+    in_fixture "custom_mixfile", fn ->
+      output = mix "test"
+      assert File.regular?("ebin/__MAIN__-A.beam")
+      assert "1 tests, 0 failures." in Regex.split(%r/\n/, output)
     end
   end
 end
