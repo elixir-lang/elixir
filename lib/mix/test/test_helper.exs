@@ -6,6 +6,12 @@ defmodule MixTest.Case do
     quote do
       use ExUnit.Case, unquote(opts)
       import MixTest.Case
+
+      def teardown(_) do
+        Mix.Task.clear
+      end
+
+      defoverridable [teardown: 1]
     end
   end
 
