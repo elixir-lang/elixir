@@ -32,9 +32,22 @@ defmodule Mix.Project do
   """
 
   @doc false
+  def behaviour_info(:callbacks) do
+    [project: 0]
+  end
+
+  @doc false
   defmacro __using__(_) do
     Mix.Project.push __CALLER__.module
-    :ok
+    quote do
+      @behavior Mix.Project
+    end
+  end
+
+  # Starts up project related environment variables.
+  @doc false
+  def start do
+    :application.set_env(:mix, :project, [])
   end
 
   # Push a project into the project stack. Only

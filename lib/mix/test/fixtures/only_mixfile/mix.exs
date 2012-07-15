@@ -1,6 +1,10 @@
 defmodule MyProject do
   use Mix.Project
 
+  def project do
+    []
+  end
+
   def hello_world do
     "Hello from MyProject!"
   end

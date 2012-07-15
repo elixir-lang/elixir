@@ -4,6 +4,7 @@ defmodule Mix do
   """
   def start do
     Enum.each [:elixir, :mix], :application.start(&1)
-    :application.set_env(:mix, :project, [])
+    Mix.Task.start
+    Mix.Project.start
   end
 end

@@ -28,7 +28,7 @@ defmodule Mix.CLI do
 
   defp do_task(name, args) do
     try do
-      Mix.Tasks.run!(name, args)
+      Mix.Task.run(name, args)
     rescue
       exception -> IO.puts :stderr, exception.message
     end
