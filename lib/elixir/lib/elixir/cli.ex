@@ -201,7 +201,7 @@ defmodule Elixir.CLI do
     files = File.wildcard(pattern)
     files = List.uniq(files)
     files = Enum.filter files, File.regular?(&1)
-    spawn_requires(files, [])
+    Elixir.ParallelRequire.files(files)
   end
 
   defp process_command({:compile, patterns}, config) do
@@ -214,40 +214,5 @@ defmodule Elixir.CLI do
     Code.compiler_options(config.compiler_options)
     Elixir.ParallelCompiler.files_to_path(files, config.output,
       fn file -> IO.puts "Compiled #{file}" end)
-  end
-
-  # Responsible for spawning requires in parallel
-  # For now, we spawn at maximum four processes at the same time
-
-  defp spawn_requires([], []),      do: :done
-  defp spawn_requires([], waiting), do: wait_for_messages([], waiting)
-
-  defp spawn_requires(files, waiting) when length(waiting) >= 4 do
-    wait_for_messages(files, waiting)
-  end
-
-  defp spawn_requires([h|t], waiting) do
-    parent = Process.self
-
-    child  = spawn_link fn ->
-      try do
-        Code.require_file(h)
-        parent <- { :required, Process.self }
-      catch
-        kind, reason ->
-          parent <- { :failure, Process.self, kind, reason, System.stacktrace }
-      end
-    end
-
-    spawn_requires(t, [child|waiting])
-  end
-
-  defp wait_for_messages(files, waiting) do
-    receive do
-      { :required, child } ->
-        spawn_requires(files, List.delete(waiting, child))
-      { :failure, _child, kind, reason, stacktrace } ->
-        Erlang.erlang.raise(kind, reason, stacktrace)
-    end
   end
 end

@@ -160,10 +160,8 @@ defmodule Code do
     file = find_file(file, relative_to)
 
     case server_call({ :loaded, file }) do
-      :ok ->
-        Erlang.elixir_compiler.file file
-        file
-      :duplicated -> nil
+      :ok         -> Erlang.elixir_compiler.file file
+      :duplicated -> []
     end
   end
 
