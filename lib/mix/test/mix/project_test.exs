@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Mix.ProjectTest do
-  use MixTest.Case, sync: true
+  use MixTest.Case
 
   defmodule RealProject do
     def project do

@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule Access.TupleTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :list do
     assert [foo: :bar][:foo] == :bar
@@ -23,7 +23,7 @@ defmodule Access.TupleTest do
 end
 
 defmodule Access.RecordTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   defrecord Config, integer: 0
 

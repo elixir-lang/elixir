@@ -7,7 +7,7 @@ defmodule Kernel.DefClause do
 end
 
 defmodule Kernel.ClausesTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import Kernel.DefClause
 

@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule EnumTest.Common do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :times_with_arity_0 do
     try do
@@ -30,7 +30,7 @@ defmodule EnumTest.Common do
 end
 
 defmodule EnumTest.List do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :all? do
     assert Enum.all?([2,4,6], fn(x) -> rem(x, 2) == 0 end)
@@ -221,7 +221,7 @@ end
 defmodule EnumTest.Dict.Common do
   defmacro __using__(module) do
     quote do
-      use ExUnit.Case
+      use ExUnit.Case, async: true
 
       test :all? do
         dict = unquote(module).new [{2,2}, {3,4}, {4,6}]
@@ -453,7 +453,7 @@ defmodule EnumTest.Orddict do
 end
 
 defmodule EnumTest.Range do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :all? do
     range = Range.new(first: 0, last: 5)

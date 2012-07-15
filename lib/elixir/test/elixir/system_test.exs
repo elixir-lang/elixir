@@ -3,7 +3,7 @@ Code.require_file "../test_helper", __FILE__
 require Erlang.os, as: OS
 
 defmodule SystemTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import PathHelpers
 
   test :build_info do

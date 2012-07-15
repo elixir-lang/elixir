@@ -1,5 +1,5 @@
 defmodule URITest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :encode_with_binary do
     raw = <<38,60,62,34,32,227,130,134,227,130,147,227,130,134,227,130,147>>

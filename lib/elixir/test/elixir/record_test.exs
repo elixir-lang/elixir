@@ -9,7 +9,7 @@ defrecord name, a: 0, b: 1
 defrecord RecordTest.WithNoField, []
 
 defmodule RecordTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :record_access_with_nil_keyword do
     record = RecordTest.DynamicName.new(a: nil)

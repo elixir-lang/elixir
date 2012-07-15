@@ -5,9 +5,9 @@ defmodule ExUnit.Case do
 
   When used, it allows the following options:
 
-  * :sync - by default, ExUnit run test cases in parallel
-    to each other. If this test case needs to run in sync,
-    set sync to true.
+  * :async - configure Elixir to run that specific test case
+             in parallel with others. Must be used for performance
+             when your test cases do not change any global state;
 
   ## Callbacks
 
@@ -19,7 +19,7 @@ defmodule ExUnit.Case do
   ## Examples
 
       defmodule AssertionTest do
-        use ExUnit.Case
+        use ExUnit.Case, async: true
 
         def test_always_pass
           assert true
@@ -30,10 +30,10 @@ defmodule ExUnit.Case do
 
   @doc false
   defmacro __using__(opts // []) do
-    if Keyword.get(opts, :sync, false) do
-      ExUnit.Server.add_sync_case(__CALLER__.module)
+    if Keyword.get(opts, :async, false) do
+      ExUnit.Server.add_async_case(__CALLER__.module)
     else
-      ExUnit.Server.add_case(__CALLER__.module)
+      ExUnit.Server.add_sync_case(__CALLER__.module)
     end
 
     quote do

@@ -1,9 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.DocTest do
-  # Since this module is changing the code
-  # server state, we need to run it in sync.
-  use ExUnit.Case, sync: true
+  use ExUnit.Case
 
   test :compiled_docs do
     tmp  = File.expand_path("../../tmp", __FILE__)

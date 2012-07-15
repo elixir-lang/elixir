@@ -1,7 +1,7 @@
 Code.require_file "../../../test_helper", __FILE__
 
 defmodule Mix.Tasks.CompileTest do
-  use MixTest.Case, sync: true
+  use MixTest.Case
 
   test "compile a project without mixfile" do
     in_fixture "no_mixfile", fn ->

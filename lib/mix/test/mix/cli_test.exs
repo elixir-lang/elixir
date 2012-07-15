@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Mix.CLITest do
-  use MixTest.Case, sync: true
+  use MixTest.Case
 
   test "invoke simple task from CLI" do
     in_fixture "only_mixfile", fn ->

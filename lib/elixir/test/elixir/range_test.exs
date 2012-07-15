@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule RangeTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :first do
     assert Range.new(first: 1, last: 3).first == 1

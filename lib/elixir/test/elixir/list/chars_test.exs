@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule List.Chars.AtomTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :basic do
     assert to_char_list(:foo) == 'foo'
@@ -9,7 +9,7 @@ defmodule List.Chars.AtomTest do
 end
 
 defmodule List.Chars.BitStringTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :basic do
     assert to_char_list("foo") == 'foo'
@@ -17,7 +17,7 @@ defmodule List.Chars.BitStringTest do
 end
 
 defmodule List.Chars.NumberTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :integer do
     assert to_char_list(1) == '1'
@@ -29,7 +29,7 @@ defmodule List.Chars.NumberTest do
 end
 
 defmodule List.Chars.ListTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :basic do
     assert to_char_list([ 1, "b", 3 ]) == [1, "b", 3]

@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule Bitwise.FunctionsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use Bitwise, skip_operators: true
 
   test :bnot do
@@ -30,7 +30,7 @@ defmodule Bitwise.FunctionsTest do
 end
 
 defmodule Bitwise.OperatorsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use Bitwise, only_operators: true
 
   test :bnot do

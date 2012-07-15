@@ -1,4 +1,4 @@
-defrecord ExUnit.Runner.Config, formatter: ExUnit.Formatter, cases: [], max_cases: 4, taken_cases: 0, sync_cases: []
+defrecord ExUnit.Runner.Config, formatter: ExUnit.Formatter, async_cases: [], max_cases: 4, taken_cases: 0, sync_cases: []
 
 defmodule ExUnit.Runner do
   @moduledoc false
@@ -8,7 +8,7 @@ defmodule ExUnit.Runner do
   # spawned and finished, we start running the sync cases. When sync
   # cases finish, tell the formatter we finished and exit.
   def start(config) do
-    if config.cases == [] do
+    if config.async_cases == [] do
       cond do
         config.taken_cases > 0 ->
           do_loop config
@@ -38,11 +38,11 @@ defmodule ExUnit.Runner do
 
   # Spawn the maximum possible of cases according to the max_cases value.
   defp spawn_async_cases(config) do
-    case config.cases do
+    case config.async_cases do
       [test_case|t] ->
         if config.taken_cases < config.max_cases do
           spawn_case test_case
-          spawn_async_cases config.increment_taken_cases.cases(t)
+          spawn_async_cases config.increment_taken_cases.async_cases(t)
         else
           config
         end

@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Elixir.CLI.InitTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import PathHelpers
 
   test :code_init do
@@ -13,7 +13,7 @@ defmodule Elixir.CLI.InitTest do
 end
 
 defmodule Elixir.CLI.OptionParsingTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import PathHelpers
 
   test :path do
@@ -38,7 +38,7 @@ defmodule Elixir.CLI.OptionParsingTest do
 end
 
 defmodule Elixir.CLI.AtExitTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import PathHelpers
 
   test :at_exit do
@@ -48,7 +48,7 @@ defmodule Elixir.CLI.AtExitTest do
 end
 
 defmodule Elixir.CLI.ErrorTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import PathHelpers
 
   test :code_error do
@@ -61,7 +61,7 @@ defmodule Elixir.CLI.ErrorTest do
 end
 
 defmodule Elixir.CLI.SyntaxErrorTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import PathHelpers
 
   test :syntax_code_error do
@@ -73,7 +73,7 @@ defmodule Elixir.CLI.SyntaxErrorTest do
 end
 
 defmodule Elixir.CLI.CompileTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import PathHelpers
 
   test :compile_code do
@@ -85,7 +85,7 @@ defmodule Elixir.CLI.CompileTest do
 end
 
 defmodule Elixir.CLI.ParallelCompilerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import PathHelpers
 
   test :compile_code do

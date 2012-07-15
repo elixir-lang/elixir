@@ -59,7 +59,7 @@ defmodule ModuleTest.DefinedFunctions do
 end
 
 defmodule ModuleTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   Module.register_attribute __MODULE__, :register_example
   @register_example :it_works

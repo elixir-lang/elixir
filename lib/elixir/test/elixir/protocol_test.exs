@@ -40,7 +40,7 @@ defimpl ProtocolTest.Plus, for: Number do
 end
 
 defmodule ProtocolTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :protocol_with_all do
     assert_undef(ProtocolTest.WithAll, Atom, :foo)

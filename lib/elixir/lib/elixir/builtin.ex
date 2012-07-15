@@ -1586,7 +1586,7 @@ defmodule Elixir.Builtin do
   ## Examples
 
       defmodule AssertionTest do
-        use ExUnit.Case, sync: true
+        use ExUnit.Case, async: true
 
         def test_always_pass do
           true = true

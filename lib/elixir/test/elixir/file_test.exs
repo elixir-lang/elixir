@@ -3,10 +3,10 @@ Code.require_file "../test_helper", __FILE__
 defmodule FileTest do
   import PathHelpers
 
-  use ExUnit.Case, sync: true
+  use ExUnit.Case
 
   defmodule Cp do
-    use ExUnit.Case, sync: true
+    use ExUnit.Case
 
     test :cp_with_src_file_and_dest_file do
       src  = fixture_path("foo.txt")
@@ -353,7 +353,7 @@ defmodule FileTest do
   end
 
   defmodule Paths do
-    use ExUnit.Case
+    use ExUnit.Case, async: true
 
     test :expand_path_with_binary do
       assert File.expand_path("/foo/bar") == "/foo/bar"
@@ -470,7 +470,7 @@ defmodule FileTest do
   end
 
   defmodule Queries do
-    use ExUnit.Case, sync: true
+    use ExUnit.Case
 
     test :regular do
       assert File.regular?(__FILE__)
@@ -489,7 +489,7 @@ defmodule FileTest do
   end
 
   defmodule OpenReadWrite do
-    use ExUnit.Case, sync: true
+    use ExUnit.Case
 
     test :read_with_binary do
       assert { :ok, "FOO\n" } = File.read(fixture_path("foo.txt"))
@@ -619,7 +619,7 @@ defmodule FileTest do
   end
 
   defmodule Mkdir do
-    use ExUnit.Case, sync: true
+    use ExUnit.Case
 
     test :mkdir_with_binary do
       fixture = tmp_path("tmp_test")
@@ -754,7 +754,7 @@ defmodule FileTest do
   end
 
   defmodule Rm do
-    use ExUnit.Case, sync: true
+    use ExUnit.Case
 
     test :rm_file do
       fixture = tmp_path("tmp_test.txt")

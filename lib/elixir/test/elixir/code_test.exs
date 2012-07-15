@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule CodeTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import PathHelpers
 
   def one, do: 1

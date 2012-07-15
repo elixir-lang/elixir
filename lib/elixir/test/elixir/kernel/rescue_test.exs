@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.RescueTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :rescue_with_underscore_no_exception do
     result = try do

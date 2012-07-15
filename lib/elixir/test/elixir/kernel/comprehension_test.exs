@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.ComprehensionTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :list_comprehensions do
     assert [4] == lc x inlist [1,2,3], rem(x, 2) == 0, do: x * 2

@@ -93,7 +93,7 @@ end
 
 defmodule Kernel.OverridableTest do
   require Kernel.Overridable, as: Overridable
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "overridable is made concrete if no other is defined" do
     assert Overridable.sample == 1

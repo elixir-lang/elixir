@@ -9,7 +9,7 @@ defmodule Macro.ExternalTest do
 end
 
 defmodule MacroTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   # Changing the lines above will make compilation
   # fail since we are assertnig on the caller lines

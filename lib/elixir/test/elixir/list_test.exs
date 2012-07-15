@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule ListTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :brackets_function do
     assert :[].(1,2,3) == [1,2,3]

@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Binary.Chars.AtomTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :basic do
     assert to_binary(:foo) == "foo"
@@ -28,7 +28,7 @@ defmodule Binary.Chars.AtomTest do
 end
 
 defmodule Binary.Chars.BitStringTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :bitstring do
     assert_raise FunctionClauseError, fn ->
@@ -44,7 +44,7 @@ defmodule Binary.Chars.BitStringTest do
 end
 
 defmodule Binary.Chars.NumberTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :integer do
     assert to_binary(100) == "100"
@@ -58,7 +58,7 @@ defmodule Binary.Chars.NumberTest do
 end
 
 defmodule Binary.Chars.ListTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :basic do
     assert to_binary([ 1, "b", 3 ]) == <<1,98,3>>

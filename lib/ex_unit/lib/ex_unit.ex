@@ -11,9 +11,9 @@ defmodule ExUnit do
       # 1) Start ExUnit. You can pass some options as argument (list below)
       ExUnit.start
 
-      # 2) Next we create a new TestCase and use ExUnit.Case
+      # 2) Next we create a new TestCase and use ExUnit.Case, async: true
       defmodule AssertionTest do
-        use ExUnit.Case
+        use ExUnit.Case, async: true
 
         # 3) A test is a method which name finishes with _test
         def test_always_pass do

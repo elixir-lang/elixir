@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.ErrorsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   defmodule UnproperMacro do
     defmacro unproper(args), do: args

@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.CaseTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :nested_case do
     assert get_case == 2
