@@ -9,3 +9,5 @@ defexception Mix.InvalidTaskError, task: nil do
     "The task #{task(exception)} does not respond to run/1"
   end
 end
+
+defexception Mix.NoProjectError, message: "Could not find a Mix.Project"

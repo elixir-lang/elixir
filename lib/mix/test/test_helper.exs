@@ -25,8 +25,27 @@ defmodule MixTest.Case do
     File.join fixture_path, extension
   end
 
-  def in_fixture(which, function) do
-    File.cd! fixture_path(which), function
+  def tmp_path do
+    File.expand_path("../tmp", __FILE__)
+  end
+
+  def tmp_path(extension) do
+    File.join tmp_path, extension
+  end
+
+  defmacro in_fixture(which, block) do
+    function = atom_to_binary elem(__CALLER__.function, 1)
+
+    quote do
+      src  = File.join fixture_path(unquote(which)), "."
+      dest = tmp_path(unquote(function))
+
+      File.rm_rf!(dest)
+      File.mkdir_p!(dest)
+      File.cp_r!(src, dest)
+
+      File.cd! dest, unquote(block)
+    end
   end
 end
 

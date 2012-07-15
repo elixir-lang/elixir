@@ -10,6 +10,6 @@ defmodule Mix.Tasks.Hello do
   use Mix.Task
 
   def run(_) do
-    IO.puts Mix.project.hello_world
+    IO.puts Mix.Project.current.hello_world
   end
 end
