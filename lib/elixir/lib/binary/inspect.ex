@@ -250,7 +250,6 @@ defimpl Binary.Inspect, for: Tuple do
   defp records_join([], [], acc, last) do
     acc <> last
   end
-
 end
 
 defimpl Binary.Inspect, for: Number do

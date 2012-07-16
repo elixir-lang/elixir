@@ -25,7 +25,25 @@ defmodule Mix.CLITest do
     in_fixture "custom_mixfile", fn ->
       output = mix "test"
       assert File.regular?("ebin/__MAIN__-A.beam")
-      assert "1 tests, 0 failures." in Regex.split(%r/\n/, output)
+      assert output =~ %r"1 tests, 0 failures"
     end
   end
+
+  test "help smoke test" do
+    in_fixture "only_mixfile", fn ->
+      output = mix "help"
+      assert output =~ %r"mix compile\s+# Compile Elixir"
+      assert output =~ %r"mix hello\s+# Hello"
+      refute output =~ %r"mix invalid"
+    end
+  end
+
+  test "help TASK smoke test" do
+    in_fixture "only_mixfile", fn ->
+      output = mix "help compile"
+      assert output =~ %r"mix help compile"
+      assert output =~ %r"## Command line options"
+    end
+  end
+
 end

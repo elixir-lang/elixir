@@ -32,18 +32,30 @@ defmodule Mix.TaskTest do
     assert Mix.Task.run("hello") == :ok
   end
 
-  test :shortdoc do
-    tuple = List.keyfind Mix.Tasks.Hello.__info__(:attributes), :shortdoc, 1
-    assert tuple == { :shortdoc, ["This is short documentation, see"] }
+  test :get do
+    assert Mix.Task.get("hello") == Mix.Tasks.Hello
+
+    assert_raise Mix.NoTaskError, "The task unknown could not be found", fn ->
+      Mix.Task.get("unknown")
+    end
+
+    assert_raise Mix.InvalidTaskError, "The task invalid does not respond to run/1", fn ->
+      Mix.Task.get("invalid")
+    end
   end
 
-  test :hidden do
-    tuple = List.keyfind Mix.Tasks.Hello.__info__(:attributes), :hidden, 1
-    assert tuple == { :hidden, [true] }
+  test :all_modules do
+    Mix.Task.load_all
+    modules = Mix.Task.all_modules
+    assert Mix.Tasks.Hello   in modules
+    assert Mix.Tasks.Compile in modules
   end
 
   test :moduledoc do
-    assert { _, "A test task.\n" } = Mix.Tasks.Hello.__info__(:moduledoc)
+    assert Mix.Task.moduledoc(Mix.Tasks.Hello) == "A test task.\n"
   end
 
+  test :shortdoc do
+    assert Mix.Task.shortdoc(Mix.Tasks.Hello) == "This is short documentation, see"
+  end
 end

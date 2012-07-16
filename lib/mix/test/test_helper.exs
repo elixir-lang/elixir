@@ -65,10 +65,11 @@ end
 defmodule Mix.Tasks.Hello do
   use Mix.Task
   @shortdoc "This is short documentation, see"
-  @hidden true
+
   @moduledoc """
   A test task.
   """
+
   def run(_) do
     "Hello, World!"
   end
