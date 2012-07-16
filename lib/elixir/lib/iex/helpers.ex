@@ -1,6 +1,14 @@
 defmodule IEx.Helpers do
   @moduledoc """
   A bunch of helpers available in IEx.
+
+  Documentation for functions in this module can be
+  consulted directly from the command line, example:
+
+      d(:c, 2)
+
+  Will print the documentation for the function `c`
+  in this module with arity 2.
   """
 
   @doc """
@@ -60,6 +68,7 @@ defmodule IEx.Helpers do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
           { _, binary } when is_binary(binary) ->
+            IO.puts "# #{inspect module}\n"
             IO.write binary
             if print_functions do
               IO.puts "\n## Functions and Macros\n"
