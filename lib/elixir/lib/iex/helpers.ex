@@ -58,10 +58,38 @@ defmodule IEx.Helpers do
 
   @doc """
   Shows the documentation for the given module.
-  By default prints functions and macros in that module,
-  except if false is given as second argument.
+  Defaults to print documentation for `IEx.Helpers`.
+
+  ## Examples
+
+      d(Enum)
+      #=> Prints documentation for Enum
+
   """
-  def d(module // IEx.Helpers, print_functions // true)
+  def d(module // IEx.Helpers) do
+    d(module, true)
+  end
+
+  @doc """
+  Prints the documentation for the given function and arity.
+
+  The function may either be a function defined inside `IEx.Helpers`
+  or in `Elixir.Builtin`. To see functions from other module, use
+  `d/3` instead.
+
+  ## Examples
+
+      d(:d, 2)
+      #=> Prints documentation for this function
+
+  """
+  def d(function, arity) when is_atom(function) and is_integer(arity) do
+    if :erlang.function_exported(__MODULE__, function, arity) do
+      d(__MODULE__, function, arity)
+    else
+      d(Elixir.Builtin, function, arity)
+    end
+  end
 
   def d(module, print_functions) when is_atom(module) and is_boolean(print_functions) do
     case Code.ensure_loaded(module) do
@@ -82,10 +110,6 @@ defmodule IEx.Helpers do
       { :error, reason } ->
         IO.puts :stderr, "Could not load module #{inspect module}: #{reason}"
     end
-  end
-
-  def d(function, arity) when is_atom(function) and is_integer(arity) do
-    d(__MODULE__, function, arity)
   end
 
   @doc """
