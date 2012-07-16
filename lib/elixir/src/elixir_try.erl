@@ -75,15 +75,15 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
   case Right of
     { '_', _, _ } ->
       { Left, nil };
-    _ when is_list(Right), Right /= [] ->
-      { _, Aliases } = lists:partition(fun(X) -> is_var(X) end, Right),
-      { TAliases, _ } = elixir_translator:translate(Aliases, S),
-      case lists:all(fun(X) -> is_tuple(X) andalso element(1, X) == atom end, TAliases) of
-        true -> { Left, Right };
-        false -> normalize_rescue(Line, nil, S)
-      end;
+    _ when is_list(Right) ->
+      is_valid_rescue_list(Right, S) andalso { Left, Right };
     _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid use of operator \"in\" in rescue inside try")
+      Expanded = 'Elixir.Macro':expand(Right, elixir_scope:to_ex_env({ Line, S })),
+      case is_valid_rescue_list(Expanded, S) of
+        true  -> { Left, Expanded };
+        false ->
+          elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid use of operator \"in\" in rescue inside try")
+      end
   end;
 
 normalize_rescue(Line, Condition, S) ->
@@ -93,6 +93,7 @@ normalize_rescue(Line, Condition, S) ->
     _ ->
       false
   end.
+
 
 %% Convert rescue clauses into guards.
 rescue_guards(_, Var, nil, _) -> { Var, false };
@@ -255,6 +256,13 @@ validate_rescue_access(_, _, _) -> [].
 
 is_var({ Name, _, Atom }) when is_atom(Name), is_atom(Atom) -> true;
 is_var(_) -> false.
+
+is_erl_var_or_atom({ Kind, Line, Name }) when Kind == var orelse Kind == atom, is_integer(Line), is_atom(Name) -> true;
+is_erl_var_or_atom(_) -> false.
+
+is_valid_rescue_list(Right, S) when is_list(Right) ->
+  { TRight, _ } = elixir_translator:translate(Right, S),
+  lists:all(fun is_erl_var_or_atom/1, TRight).
 
 exception_compare(Line, Var, Expr) ->
   { '==', Line, [

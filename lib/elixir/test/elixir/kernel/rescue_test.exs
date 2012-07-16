@@ -248,6 +248,20 @@ defmodule Kernel.RescueTest do
     assert result == "undefined function: DoNotExist.for_sure/0"
   end
 
+  defmacrop exceptions do
+    [ErlangError]
+  end
+
+  test :with_macros do
+    result = try do
+      DoNotExist.for_sure()
+    rescue
+      x in exceptions -> x.message
+    end
+
+    assert result == "undefined function: DoNotExist.for_sure/0"
+  end
+
   test :pattern_matching do
     result = try do
       raise Protocol.UndefinedError, protocol: Foo
