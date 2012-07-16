@@ -31,4 +31,19 @@ defmodule Mix.TaskTest do
     Mix.Task.reenable("hello")
     assert Mix.Task.run("hello") == :ok
   end
+
+  test :shortdoc do
+    tuple = List.keyfind Mix.Tasks.Hello.__info__(:attributes), :shortdoc, 1
+    assert tuple == { :shortdoc, ["This is short documentation, see"] }
+  end
+
+  test :hidden do
+    tuple = List.keyfind Mix.Tasks.Hello.__info__(:attributes), :hidden, 1
+    assert tuple == { :hidden, [true] }
+  end
+
+  test :moduledoc do
+    assert { _, "A test task.\n" } = Mix.Tasks.Hello.__info__(:moduledoc)
+  end
+
 end

@@ -64,7 +64,8 @@ end
 
 defmodule Mix.Tasks.Hello do
   use Mix.Task
-  @shortdoc "This is short documentation, see."
+  @shortdoc "This is short documentation, see"
+  @hidden true
   @moduledoc """
   A test task.
   """
