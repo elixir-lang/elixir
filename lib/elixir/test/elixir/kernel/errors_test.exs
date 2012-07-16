@@ -85,7 +85,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :unrequired_macro do
-    assert "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: ['Elixir.Builtin','Elixir.Typespec']" ==
+    assert "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: Elixir.Builtin, Elixir.Typespec" ==
       format_rescue 'defmodule Foo do\nKernel.ErrorsTest.UnproperMacro.unproper([])\nend'
   end
 

@@ -36,10 +36,6 @@ defmodule List do
       #=> [1,2,3,4,5,6]
 
   """
-  def concat([h], elements) when is_list(elements) do
-    [h|elements]
-  end
-
   def concat(list, elements) when is_list(list) and is_list(elements) do
     list ++ elements
   end

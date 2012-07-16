@@ -84,7 +84,7 @@ defmodule IEx.Helpers do
 
   """
   def d(function, arity) when is_atom(function) and is_integer(arity) do
-    if :erlang.function_exported(__MODULE__, function, arity) do
+    if function_exported?(__MODULE__, function, arity) do
       d(__MODULE__, function, arity)
     else
       d(Elixir.Builtin, function, arity)
