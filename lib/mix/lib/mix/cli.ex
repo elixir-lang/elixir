@@ -1,6 +1,10 @@
 defmodule Mix.CLI do
   @moduledoc false
 
+  defmacrop exceptions do
+    [Mix.Error, Mix.NoTaskError, Mix.InvalidTaskError, Mix.NoProjectError]
+  end
+
   @doc """
   Runs Mix according to the command line arguments.
   """
@@ -30,7 +34,9 @@ defmodule Mix.CLI do
     try do
       Mix.Task.run(name, args)
     rescue
-      exception -> IO.puts :stderr, exception.message
+      # We only rescue exceptions in the mix namespace, all
+      # others pass through and will explode on the users face
+      exception in exceptions -> IO.puts :stderr, exception.message
     end
   end  
 end
