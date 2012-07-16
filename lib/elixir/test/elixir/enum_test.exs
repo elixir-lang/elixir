@@ -97,9 +97,9 @@ defmodule EnumTest.List do
 
   test :each do
     try do
-      assert Enum.each([], fn(x) -> x end) == []
+      assert Enum.each([], fn(x) -> x end) == :ok
 
-      assert Enum.each([1,2,3], fn(x) -> Process.put(:enum_test_each, x * 2) end) == [1,2,3]
+      assert Enum.each([1,2,3], fn(x) -> Process.put(:enum_test_each, x * 2) end) == :ok
       assert Process.get(:enum_test_each) == 6
     after
       Process.delete(:enum_test_each)
@@ -268,13 +268,13 @@ defmodule EnumTest.Dict.Common do
       test :each do
         try do
           empty_dict = unquote(module).new
-          assert empty_dict == Enum.each(empty_dict, fn(x) -> x end)
+          assert Enum.each(empty_dict, fn(x) -> x end) == :ok
 
           dict = unquote(module).new [{"one",1}, {"two",2}, {"three",3}]
-          assert dict == Enum.each(dict, fn({k, v}) -> Process.put(k, v * 2) end)
-          assert 2 == Process.get("one")
-          assert 4 == Process.get("two")
-          assert 6 == Process.get("three")
+          assert Enum.each(dict, fn({k, v}) -> Process.put(k, v * 2) end) == :ok
+          assert Process.get("one")
+          assert Process.get("two")
+          assert Process.get("three")
         after
           Process.delete("one")
           Process.delete("two")
@@ -544,10 +544,10 @@ defmodule EnumTest.Range do
   test :each do
     try do
       range = Range.new(first: 1, last: 0)
-      assert Enum.each(range, fn(x) -> x end) == range
+      assert Enum.each(range, fn(x) -> x end) == :ok
 
       range = Range.new(first: 1, last: 3)
-      assert Enum.each(range, fn(x) -> Process.put(:enum_test_each, x * 2) end) == range
+      assert Enum.each(range, fn(x) -> Process.put(:enum_test_each, x * 2) end) == :ok
       assert Process.get(:enum_test_each) == 6
     after
       Process.delete(:enum_test_each)

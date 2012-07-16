@@ -179,10 +179,13 @@ defmodule Code do
 
   Available options are:
 
-  * docs       - when true, retain documentation in the compiled module;
+  * docs       - when true, retain documentation in the compiled module.
+                 True by default;
   * debug_info - when true, retain debug information in the compiled module.
-    Notice debug information can be used to reconstruct the source code;
-  * ignore_module_conflict - when true, override modules that were already defined;
+                 This allows a developer to reconstruct the original source
+                 code, for such reasons, false by default;
+  * ignore_module_conflict - when true, override modules that were already defined
+                             without raising errors, false by default;
 
   """
   def compiler_options(opts) do

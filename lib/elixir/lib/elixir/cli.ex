@@ -158,17 +158,15 @@ defmodule Elixir.CLI do
     process_compiler t, config.output(list_to_binary(h))
   end
 
-  defp process_compiler(['--docs'|t], config) do
-    process_compiler t, config.merge_compiler_options(docs: true)
+  defp process_compiler(['--no-docs'|t], config) do
+    process_compiler t, config.merge_compiler_options(docs: false)
   end
 
   defp process_compiler(['--debug-info'|t], config) do
     process_compiler t, config.merge_compiler_options(debug_info: true)
   end
 
-  # This option is used internally so we can compile
-  # Elixir with Elixir without raising module conflicts
-  defp process_compiler(['--ignore-module-conflict'|t], config) do
+  defp process_compiler([ignore|t], config) when ignore in ['-i', '--ignore-module-conflict'] do
     process_compiler t, config.merge_compiler_options(ignore_module_conflict: true)
   end
 

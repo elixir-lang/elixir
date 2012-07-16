@@ -4,14 +4,10 @@ defmodule Kernel.DocTest do
   use ExUnit.Case
 
   test :compiled_docs do
-    tmp  = File.expand_path("../../tmp", __FILE__)
     path = File.expand_path("../../fixtures/compiled_with_docs.ex", __FILE__)
 
     try do
-      File.mkdir(tmp)
-      Code.compiler_options(docs: true)
-      Elixir.ParallelCompiler.files_to_path([path], tmp)
-      Code.prepend_path(tmp)
+      Code.load_file path
 
       expected = [
         {{:example,1},5,:def,[{:var,6,nil}],"Some example"},
@@ -21,13 +17,24 @@ defmodule Kernel.DocTest do
       assert CompiledWithDocs.__info__(:docs) == expected
       assert CompiledWithDocs.__info__(:moduledoc) == { 1, "moduledoc" }
     after
-      Code.compiler_options(docs: false)
-      :os.cmd('rm -rf #{tmp}')
+      :code.purge CompiledWithDocs
+      :code.delete CompiledWithDocs
     end
   end
 
-  test :compiled_no_docs do
-    assert __MODULE__.__info__(:docs) == nil
-    assert __MODULE__.__info__(:moduledoc) == nil
+  test :compiled_without_docs do
+    path = File.expand_path("../../fixtures/compiled_with_docs.ex", __FILE__)
+
+    try do
+      Code.compiler_options(docs: false)
+      Code.load_file path
+
+      assert CompiledWithDocs.__info__(:docs) == nil
+      assert CompiledWithDocs.__info__(:moduledoc) == nil
+    after
+      Code.compiler_options(docs: true)
+      :code.purge CompiledWithDocs
+      :code.delete CompiledWithDocs
+    end
   end
 end

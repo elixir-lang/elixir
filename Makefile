@@ -77,7 +77,7 @@ clean:
 
 #==> Release tasks
 $(FULLFLAG): $(wildcard lib/*/ebin/*)
-	make ELIXIRC_OPTS="--docs --debug-info" FORCE=1
+	make ELIXIRC_OPTS="--debug-info" FORCE=1
 	touch $(FULLFLAG)
 
 zip: $(FULLFLAG)

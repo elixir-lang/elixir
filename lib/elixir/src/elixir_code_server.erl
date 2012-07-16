@@ -6,7 +6,7 @@
   argv=[],
   loaded=[],
   at_exit=[],
-  compiler_options=[]
+  compiler_options=[{docs,true}]
 }).
 
 start_link() ->
@@ -32,7 +32,8 @@ handle_call({argv, Argv}, _From, Config) ->
   { reply, ok, Config#elixir_code_server{argv=Argv} };
 
 handle_call({compiler_options, Options}, _From, Config) ->
-  { reply, ok, Config#elixir_code_server{compiler_options=Options} };
+  Final = orddict:merge(fun(_,_,V) -> V end, Config#elixir_code_server.compiler_options, Options),
+  { reply, ok, Config#elixir_code_server{compiler_options=Final} };
 
 handle_call(loaded, _From, Config) ->
   { reply, Config#elixir_code_server.loaded, Config };
