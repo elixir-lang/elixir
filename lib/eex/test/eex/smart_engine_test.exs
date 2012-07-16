@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule EEx.SmartEngineTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"

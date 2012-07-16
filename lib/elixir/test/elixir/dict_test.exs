@@ -3,7 +3,7 @@ Code.require_file "../test_helper", __FILE__
 defmodule DictTest.Common do
   defmacro __using__(module) do
     quote do
-      use ExUnit.Case
+      use ExUnit.Case, async: true
 
       test :new_pairs do
         dict = new_dict [{"first key", 1}, {"second key", 2}]

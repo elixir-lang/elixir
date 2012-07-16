@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Binary.Inspect.AtomTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :basic do
     assert inspect(:foo) == ":foo"
@@ -47,7 +47,7 @@ defmodule Binary.Inspect.AtomTest do
 end
 
 defmodule Binary.Inspect.BitStringTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :bitstring do
     assert inspect(<<1|12-:integer-:signed>>) == "<<0,1|4>>"
@@ -73,7 +73,7 @@ defmodule Binary.Inspect.BitStringTest do
 end
 
 defmodule Binary.Inspect.NumberTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :integer do
     assert inspect(100) == "100"
@@ -87,7 +87,7 @@ defmodule Binary.Inspect.NumberTest do
 end
 
 defmodule Binary.Inspect.TupleTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :basic do
     assert inspect({ 1, "b", 3 }) == "{1,\"b\",3}"
@@ -106,7 +106,7 @@ defmodule Binary.Inspect.TupleTest do
   end
 
   test :with_record do
-    assert inspect(ExUnit.Server.Config.new) == "ExUnit.Server.Config[cases: [], options: [], sync_cases: []]"
+    assert inspect(ExUnit.Server.Config.new) == "ExUnit.Server.Config[async_cases: [], options: [], sync_cases: []]"
   end
 
   test :with_tuple_matching_record_name_but_not_length do
@@ -123,7 +123,7 @@ defmodule Binary.Inspect.TupleTest do
 end
 
 defmodule Binary.Inspect.ListTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :basic do
     assert inspect([ 1, "b", 3 ]) == "[1,\"b\",3]"
@@ -151,7 +151,7 @@ defmodule Binary.Inspect.ListTest do
 end
 
 defmodule Binary.Inspect.AnyTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :funs do
     bin = inspect(fn(x) -> x + 1 end)
@@ -160,7 +160,7 @@ defmodule Binary.Inspect.AnyTest do
 end
 
 defmodule Binary.Inspect.RegexTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :regex do
     "%r\"foo\"m" = inspect(%r(foo)m)

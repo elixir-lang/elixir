@@ -2,7 +2,7 @@ Code.require_file "../../test_helper", __FILE__
 
 defmodule Elixir.BuiltinTest do
   defmodule Conversions do
-    use ExUnit.Case
+    use ExUnit.Case, async: true
 
     test :atom_to_binary_defaults_to_utf8 do
       expected  = atom_to_binary :some_binary, :utf8
@@ -36,7 +36,7 @@ defmodule Elixir.BuiltinTest do
   end
 
   defmodule DefDelegate do
-    use ExUnit.Case
+    use ExUnit.Case, async: true
 
     defdelegate [my_flatten: 1], to: List, as: :flatten
     defdelegate [map: 2], to: :lists, append_first: true
@@ -51,7 +51,7 @@ defmodule Elixir.BuiltinTest do
   end
 
   defmodule PipelineOp do
-    use ExUnit.Case
+    use ExUnit.Case, async: true
 
     test :simple do
       assert [1,[2],3] /> List.flatten == [1,2,3]
@@ -83,7 +83,7 @@ defmodule Elixir.BuiltinTest do
   end
 
   defmodule MatchOp do
-    use ExUnit.Case
+    use ExUnit.Case, async: true
 
     test :match do
       assert "abcd" =~ %r/c(d)/
@@ -105,7 +105,7 @@ defmodule Elixir.BuiltinTest do
   end
 
   defmodule Destructure do
-    use ExUnit.Case
+    use ExUnit.Case, async: true
 
     test :less do
       destructure [x,y,z], [1,2,3,4,5]

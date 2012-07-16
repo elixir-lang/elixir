@@ -49,7 +49,7 @@ defmodule Clause do
 end
 
 defmodule EExTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"

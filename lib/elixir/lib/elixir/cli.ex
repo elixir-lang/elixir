@@ -158,17 +158,15 @@ defmodule Elixir.CLI do
     process_compiler t, config.output(list_to_binary(h))
   end
 
-  defp process_compiler(['--docs'|t], config) do
-    process_compiler t, config.merge_compiler_options(docs: true)
+  defp process_compiler(['--no-docs'|t], config) do
+    process_compiler t, config.merge_compiler_options(docs: false)
   end
 
   defp process_compiler(['--debug-info'|t], config) do
     process_compiler t, config.merge_compiler_options(debug_info: true)
   end
 
-  # This option is used internally so we can compile
-  # Elixir with Elixir without raising module conflicts
-  defp process_compiler(['--ignore-module-conflict'|t], config) do
+  defp process_compiler([ignore|t], config) when ignore in ['-i', '--ignore-module-conflict'] do
     process_compiler t, config.merge_compiler_options(ignore_module_conflict: true)
   end
 
@@ -201,7 +199,7 @@ defmodule Elixir.CLI do
     files = File.wildcard(pattern)
     files = List.uniq(files)
     files = Enum.filter files, File.regular?(&1)
-    spawn_requires(files, [])
+    Elixir.ParallelRequire.files(files)
   end
 
   defp process_command({:compile, patterns}, config) do
@@ -214,40 +212,5 @@ defmodule Elixir.CLI do
     Code.compiler_options(config.compiler_options)
     Elixir.ParallelCompiler.files_to_path(files, config.output,
       fn file -> IO.puts "Compiled #{file}" end)
-  end
-
-  # Responsible for spawning requires in parallel
-  # For now, we spawn at maximum four processes at the same time
-
-  defp spawn_requires([], []),      do: :done
-  defp spawn_requires([], waiting), do: wait_for_messages([], waiting)
-
-  defp spawn_requires(files, waiting) when length(waiting) >= 4 do
-    wait_for_messages(files, waiting)
-  end
-
-  defp spawn_requires([h|t], waiting) do
-    parent = Process.self
-
-    child  = spawn_link fn ->
-      try do
-        Code.require_file(h)
-        parent <- { :required, Process.self }
-      catch
-        kind, reason ->
-          parent <- { :failure, Process.self, kind, reason, System.stacktrace }
-      end
-    end
-
-    spawn_requires(t, [child|waiting])
-  end
-
-  defp wait_for_messages(files, waiting) do
-    receive do
-      { :required, child } ->
-        spawn_requires(files, List.delete(waiting, child))
-      { :failure, _child, kind, reason, stacktrace } ->
-        Erlang.erlang.raise(kind, reason, stacktrace)
-    end
   end
 end

@@ -40,6 +40,9 @@ defmodule IO do
   * {:error, reason} - Other (rare) error condition,
     for instance {:error, :estale} if reading from an
     NFS file system.
+
+  This function does the same as `gets/2`,
+  except the prompt is not required as argument.
   """
   def readline(device // :stdio) do
     Erlang.io.get_line(map_dev(device), "")

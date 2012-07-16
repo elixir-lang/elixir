@@ -7,7 +7,7 @@ end
 defmodule Kernel.AliasTest do
   alias Kernel.AliasTest.Nested, as: Nested
 
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :alias_erlang do
     alias Erlang.lists, as: MyList

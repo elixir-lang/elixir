@@ -21,7 +21,7 @@ defmodule Kernel.QuoteTest.Hygiene do
 end
 
 defmodule Kernel.QuoteTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import __MODULE__.Hygiene
 
   test :no_interference do

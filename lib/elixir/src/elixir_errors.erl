@@ -13,8 +13,8 @@
 
 inspect(Atom) when is_atom(Atom) ->
   case atom_to_list(Atom) of
-    "__MAIN__-" ++ Rest -> list_to_atom([to_dot(R) || R <- Rest]);
-    _ -> Atom
+    "__MAIN__-" ++ Rest -> [to_dot(R) || R <- Rest];
+    Else -> Else
   end;
 
 inspect(Other) -> Other.
@@ -75,6 +75,11 @@ handle_file_warning(_File, {_Line,sys_core_fold,Ignore}) when
 handle_file_warning(_File, {_Line,v3_kernel,Ignore}) when
   Ignore == bad_call ->
   [];
+
+handle_file_warning(File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
+  Raw = "undefined callback function ~s/~B (behaviour ~s)",
+  Message = io_lib:format(Raw, [Fun,Arity,inspect(Module)]),
+  io:format(file_format(Line, File, Message));
 
 handle_file_warning(File, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),

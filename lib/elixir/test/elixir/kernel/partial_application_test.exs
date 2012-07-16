@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.PartialApplicationTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :partial_with_simple_call_and_one_item do
     fun = minus(10, &1)

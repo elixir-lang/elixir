@@ -15,9 +15,8 @@ defmodule Elixir.ParallelCompiler do
   the current file stops being compiled until the dependency is
   resolved.
 
-  A callback that receives every time a file is compiled
-  with the module names and binaries defined inside it can
-  be optionally given as argument.
+  A callback that is invoked every time a file is compiled
+  with its name can be optionally given as argument.
   """
   def files(files, callback // default_callback) do
     files_to_path(files, nil, callback)

@@ -15,15 +15,17 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [IEx] Elixir now defaults to compile with documentation and `d` can be used in IEx to print modules and functions documentation;
+  * [ExUnit] Support setup and teardown callbacks;
   * [Kernel] Introduced operator `=~` for regular expression matches;
   * [Kernel] Compiled docs now include the function signature;
-  * [Kernel] defmodule do not start a new variable scope, this improves meta-programming capabilities;
+  * [Kernel] `defmodule` do not start a new variable scope, this improves meta-programming capabilities;
   * [Range] Added a Range module with support to `in` operator (`x in 1..3`) and iterators;
   * [Enum] Enhanced Enum protocol to support `Enum.count`;
   * [Module] Added support to `@before_compile` and `@after_compile` callbacks. The first receives the module name while the latter receives the module name and its object code;
   * [Kernel] quote special form now supports line and unquote as options;
   * [Record] Allow `Record[_: value]` to set a default value to all records fields, as in Erlang;
-  * [IEx] Functions `c` and `m` are available in IEx to compile and print available module information;
+  * [IEx] Functions `c` and `m` are available in IEx to compile and print available module information. Functions `h` and `v` are available to show history and print previous commands values;
   * [Enum] Optimized functions when a list is given as collection;
   * [System] Added `System.find_executable`
   * [Kernel] Document the macro `@` and allow attributes to be read inside functions;

@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule KeywordTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :literal do
     assert [foo?: :bar] == [{:foo?, :bar}]
@@ -89,7 +89,7 @@ defmodule KeywordTest do
 end
 
 defmodule Keyword.DuplicatedTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :duplicated_entries do
     assert create_keywords == [{:first_key,1},{:first_key,2},{:second_key,2}]

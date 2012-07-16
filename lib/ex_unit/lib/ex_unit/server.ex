@@ -1,4 +1,4 @@
-defrecord ExUnit.Server.Config, options: [], cases: [], sync_cases: []
+defrecord ExUnit.Server.Config, options: [], async_cases: [], sync_cases: []
 
 defmodule ExUnit.Server do
   @moduledoc false
@@ -9,8 +9,8 @@ defmodule ExUnit.Server do
     Erlang.gen_server.start_link({:local, :exunit_server}, __MODULE__, [], [])
   end
 
-  def add_case(name) do
-    check fn -> Erlang.gen_server.call(:exunit_server, { :add_case, name }) end
+  def add_async_case(name) do
+    check fn -> Erlang.gen_server.call(:exunit_server, { :add_async_case, name }) end
   end
 
   def add_sync_case(name) do
@@ -31,8 +31,8 @@ defmodule ExUnit.Server do
     { :ok, ExUnit.Server.Config.new }
   end
 
-  def handle_call({:add_case, name}, _from, config) do
-    { :reply, :ok, config.prepend_cases [name] }
+  def handle_call({:add_async_case, name}, _from, config) do
+    { :reply, :ok, config.prepend_async_cases [name] }
   end
 
   def handle_call({:add_sync_case, name}, _from, config) do
@@ -45,8 +45,8 @@ defmodule ExUnit.Server do
 
   def handle_call(:options, _from, config) do
     options = Keyword.merge config.options,
-      cases: List.reverse(config.cases),
-      sync_cases: List.reverse(config.sync_cases)
+      async_cases: List.reverse(config.async_cases),
+      sync_cases:  List.reverse(config.sync_cases)
     { :reply, options, config }
   end
 

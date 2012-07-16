@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule BinaryTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :heredoc do
     assert 7 == __ENV__.line

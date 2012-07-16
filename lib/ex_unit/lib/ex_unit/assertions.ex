@@ -99,8 +99,7 @@ defmodule ExUnit.Assertions do
   end
 
   defp translate_assertion({ :==, _, [left, right] }, _else) do
-    { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :==, expected, actual, "be equal to (==)"
+    assert_operator :==, left, right, "be equal to (==)"
   end
 
   defp translate_assertion({ :<, _, [left, right] }, _else) do
@@ -120,18 +119,15 @@ defmodule ExUnit.Assertions do
   end
 
   defp translate_assertion({ :===, _, [left, right] }, _else) do
-    { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :===, expected, actual, "be equal to (===)"
+    assert_operator :===, left, right, "be equal to (===)"
   end
 
   defp translate_assertion({ :!==, _, [left, right] }, _else) do
-    { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :!==, expected, actual, "be not equal to (!==)"
+    assert_operator :!==, left, right, "be not equal to (!==)"
   end
 
   defp translate_assertion({ :!=, _, [left, right] }, _else) do
-    { expected, actual } = guess_expected_and_actual(left, right)
-    assert_operator :!=, expected, actual, "be not equal to (!=)"
+    assert_operator :!=, left, right, "be not equal to (!=)"
   end
 
   defp translate_assertion({ :=~, _, [left, right] }, _else) do
@@ -179,15 +175,6 @@ defmodule ExUnit.Assertions do
 
   defp translate_assertion(_expected, fallback) do
     fallback.()
-  end
-
-  defp guess_expected_and_actual(left, right) do
-    case right do
-      { fun, i, _ } when is_integer(i) and (fun != :<<>> or fun != :{}) ->
-        { left, right }
-      _ ->
-        { right, left }
-    end
   end
 
   defp assert_operator(operator, expected, actual, text) do

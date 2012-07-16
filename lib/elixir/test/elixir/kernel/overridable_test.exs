@@ -93,7 +93,7 @@ end
 
 defmodule Kernel.OverridableTest do
   require Kernel.Overridable, as: Overridable
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "overridable is made concrete if no other is defined" do
     assert Overridable.sample == 1
@@ -143,7 +143,7 @@ defmodule Kernel.OverridableTest do
       flunk "expected eval to fail"
     rescue
       error ->
-        assert error.message == ("nofile:4: no super defined for foo/0 in module 'Foo.Forwarding'. " <>
+        assert error.message == ("nofile:4: no super defined for foo/0 in module Foo.Forwarding. " <>
           "Overridable functions available are: bar/0")
     end
   end

@@ -235,17 +235,17 @@ defmodule Enum do
   """
   def each(collection, fun) when is_list(collection) do
     :lists.foreach(fun, collection)
-    collection
+    :ok
   end
 
   def each(collection, fun) do
     case I.iterator(collection) do
       { iterator, pointer } ->
         do_each(pointer, iterator, fun)
+        :ok
       list when is_list(list) ->
         each(list, fun)
     end
-    collection
   end
 
   @doc """

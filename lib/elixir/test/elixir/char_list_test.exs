@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule CharListTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :heredoc do
     assert __ENV__.line == 7

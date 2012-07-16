@@ -1,28 +1,13 @@
-# Since Elixir does not (yet) support local macros,
-# we need to wrap the step that extracts git information
-# in this module.
-defmodule System.GitCompiler do
-  @moduledoc false
+defmodule System do
+  @moduledoc """
+  The System module provides access to some variables used or
+  maintained by the VM and to functions that interact strongly
+  with the VM or the host system.
+  """
 
-  defmacro generate do
-    quote do
-      @doc """
-      Returns a tuple { Elixir version, commit sha-1, build date }.
-
-      The format of the return value may change in a future release. Please
-      make sure your code doesn't depend on it.
-      """
-      def build_info do
-        { System.version,
-          unquote(get_head_sha),
-          unquote(get_date) }
-      end
-    end
-  end
-
-  # Tries to run `git rev-parse HEAD`. In case of success returns the
-  # commit sha, otherwise returns an empty string.
-  defp get_head_sha do
+  # Tries to run `git rev-parse HEAD`. In case of success
+  # returns the commit sha, otherwise returns an empty string.
+  defmacrop get_head_sha do
     if :os.find_executable('git') do
       data = :os.cmd('git rev-parse HEAD')
       Regex.replace_all %r/\n/, to_binary(data), ""
@@ -31,25 +16,25 @@ defmodule System.GitCompiler do
     end
   end
 
-  defp get_date do
+  # Get the date at compilation time.
+  defmacrop get_date do
     list_to_binary :httpd_util.rfc1123_date
   end
-end
-
-defmodule System do
-  @moduledoc """
-  The System module provides access to some variables used or
-  maintained by the VM and to functions that interact strongly
-  with the VM or the host system.
-  """
-
-  require System.GitCompiler
-  System.GitCompiler.generate
 
   @doc """
   Returns Elixir's version as binary.
   """
   def version, do: "0.6.0.dev"
+
+  @doc """
+  Returns a tuple { Elixir version, commit sha-1, build date }.
+
+  The format of the return value may change in a future release. Please
+  make sure your code doesn't depend on it.
+  """
+  def build_info do
+    { version, get_head_sha, get_date }
+  end
 
   @doc """
   Returns the list of command-line arguments passed to the program.

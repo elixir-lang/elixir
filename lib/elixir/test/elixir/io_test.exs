@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule IOTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :read_with_count do
     { :ok, file } = File.open(File.expand_path('../fixtures/foo.txt', __FILE__), [:charlist])

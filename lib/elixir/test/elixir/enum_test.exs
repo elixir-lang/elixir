@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule EnumTest.Common do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :times_with_arity_0 do
     try do
@@ -30,7 +30,7 @@ defmodule EnumTest.Common do
 end
 
 defmodule EnumTest.List do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :all? do
     assert Enum.all?([2,4,6], fn(x) -> rem(x, 2) == 0 end)
@@ -97,9 +97,9 @@ defmodule EnumTest.List do
 
   test :each do
     try do
-      assert Enum.each([], fn(x) -> x end) == []
+      assert Enum.each([], fn(x) -> x end) == :ok
 
-      assert Enum.each([1,2,3], fn(x) -> Process.put(:enum_test_each, x * 2) end) == [1,2,3]
+      assert Enum.each([1,2,3], fn(x) -> Process.put(:enum_test_each, x * 2) end) == :ok
       assert Process.get(:enum_test_each) == 6
     after
       Process.delete(:enum_test_each)
@@ -221,7 +221,7 @@ end
 defmodule EnumTest.Dict.Common do
   defmacro __using__(module) do
     quote do
-      use ExUnit.Case
+      use ExUnit.Case, async: true
 
       test :all? do
         dict = unquote(module).new [{2,2}, {3,4}, {4,6}]
@@ -268,13 +268,13 @@ defmodule EnumTest.Dict.Common do
       test :each do
         try do
           empty_dict = unquote(module).new
-          assert empty_dict == Enum.each(empty_dict, fn(x) -> x end)
+          assert Enum.each(empty_dict, fn(x) -> x end) == :ok
 
           dict = unquote(module).new [{"one",1}, {"two",2}, {"three",3}]
-          assert dict == Enum.each(dict, fn({k, v}) -> Process.put(k, v * 2) end)
-          assert 2 == Process.get("one")
-          assert 4 == Process.get("two")
-          assert 6 == Process.get("three")
+          assert Enum.each(dict, fn({k, v}) -> Process.put(k, v * 2) end) == :ok
+          assert Process.get("one")
+          assert Process.get("two")
+          assert Process.get("three")
         after
           Process.delete("one")
           Process.delete("two")
@@ -453,7 +453,7 @@ defmodule EnumTest.Orddict do
 end
 
 defmodule EnumTest.Range do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :all? do
     range = Range.new(first: 0, last: 5)
@@ -544,10 +544,10 @@ defmodule EnumTest.Range do
   test :each do
     try do
       range = Range.new(first: 1, last: 0)
-      assert Enum.each(range, fn(x) -> x end) == range
+      assert Enum.each(range, fn(x) -> x end) == :ok
 
       range = Range.new(first: 1, last: 3)
-      assert Enum.each(range, fn(x) -> Process.put(:enum_test_each, x * 2) end) == range
+      assert Enum.each(range, fn(x) -> Process.put(:enum_test_each, x * 2) end) == :ok
       assert Process.get(:enum_test_each) == 6
     after
       Process.delete(:enum_test_each)

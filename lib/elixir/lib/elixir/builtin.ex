@@ -290,6 +290,34 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  Invokes the given `fun` with the array of arguments `args`.
+
+  ## Examples
+
+      apply fn x -> x * 2 end, [2]
+      #=> 4
+
+  """
+  @spec apply(fun, list), do: term
+  def apply(fun, args) do
+    :erlang.apply(fun, args)
+  end
+
+  @doc """
+  Invokes the given `fun` from `module` with the array of arguments `args`.
+
+  ## Examples
+
+      apply List, reverse, [[1,2,3]]
+      #=> [3,2,1]
+
+  """
+  @spec apply(atom, atom, list), do: term
+  def apply(module, fun, args) do
+    :erlang.apply module, fun, args
+  end
+
+  @doc """
   Returns a binary which corresponds to the text representation of `atom`.
   If `encoding` is latin1, there will be one byte for each character in the text
   representation. If `encoding` is utf8 or unicode, the characters will be encoded
@@ -1586,7 +1614,7 @@ defmodule Elixir.Builtin do
   ## Examples
 
       defmodule AssertionTest do
-        use ExUnit.Case, sync: true
+        use ExUnit.Case, async: true
 
         def test_always_pass do
           true = true
@@ -1990,29 +2018,14 @@ defmodule Elixir.Builtin do
   defmacro @(expr)
 
   @doc """
-  Invokes the given `fun` with the array of arguments `args`.
-
-  ## Examples
-
-      apply fn x -> x * 2 end, [2]
-      #=> 4
-
+  Returns true if the `module` is loaded and contains a
+  public `function` with the given `arity`, otherwise false.
   """
-  @spec apply(fun, list), do: term
-  def apply(fun, args) do
-    :erlang.apply(fun, args)
+  defmacro function_exported?(module, function, arity) do
+    quote do
+      :erlang.function_exported(unquote(module), unquote(function), unquote(arity))
+    end
   end
-
-  @doc """
-  Invokes the given `fun` from `module` with the array of arguments `args`.
-
-  ## Examples
-
-      apply List, reverse, [[1,2,3]]
-      #=> [3,2,1]
-
-  """
-  defmacro apply(module, fun, args)
 
   @doc """
   Provides an `if` macro. This macro expects the first argument to

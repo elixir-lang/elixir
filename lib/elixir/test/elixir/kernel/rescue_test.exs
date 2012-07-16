@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.RescueTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :rescue_with_underscore_no_exception do
     result = try do
@@ -243,6 +243,20 @@ defmodule Kernel.RescueTest do
       DoNotExist.for_sure()
     rescue
       x in [ErlangError] -> x.message
+    end
+
+    assert result == "undefined function: DoNotExist.for_sure/0"
+  end
+
+  defmacrop exceptions do
+    [ErlangError]
+  end
+
+  test :with_macros do
+    result = try do
+      DoNotExist.for_sure()
+    rescue
+      x in exceptions -> x.message
     end
 
     assert result == "undefined function: DoNotExist.for_sure/0"

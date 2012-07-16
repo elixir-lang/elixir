@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.ImportOnlyTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import Erlang.lists, only: [flatten: 1]
 
@@ -11,7 +11,7 @@ defmodule Kernel.ImportOnlyTest do
 end
 
 defmodule Kernel.ImportAllTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import Erlang.lists
 
@@ -21,7 +21,7 @@ defmodule Kernel.ImportAllTest do
 end
 
 defmodule Kernel.ImportExceptTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import Erlang.lists, except: [each: 2]
 
@@ -31,7 +31,7 @@ defmodule Kernel.ImportExceptTest do
 end
 
 defmodule Kernel.ImportTwiceWithExceptTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import Erlang.lists, except: [flatten: 1]
   import Erlang.lists, except: [each: 2]
@@ -49,7 +49,7 @@ defmodule Kernel.MessedBitwise do
 end
 
 defmodule Kernel.ImportMacrosTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import :macros, Bitwise
 

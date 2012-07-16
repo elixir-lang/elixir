@@ -235,7 +235,7 @@ defimpl Binary.Inspect, for: Tuple do
 
   defp is_record?(name) do
     is_atom(name) and match?("__MAIN__-" <> _, atom_to_binary(name, :utf8)) and
-      :erlang.function_exported(name, :__record__, 1)
+      function_exported?(name, :__record__, 1)
   end
 
   defp records_join([f], [v], acc, last) do
@@ -250,7 +250,6 @@ defimpl Binary.Inspect, for: Tuple do
   defp records_join([], [], acc, last) do
     acc <> last
   end
-
 end
 
 defimpl Binary.Inspect, for: Number do

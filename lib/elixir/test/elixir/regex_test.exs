@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule Regex.BinaryTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :multiline do
     refute Regex.match?(%r/^b$/, "a\nb\nc")
@@ -81,7 +81,7 @@ defmodule Regex.BinaryTest do
 end
 
 defmodule Regex.ListTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :compile do
     assert is_record(Regex.compile('foo'), Regex)

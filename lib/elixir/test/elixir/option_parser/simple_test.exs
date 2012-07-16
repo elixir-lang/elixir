@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule OptionParser.SimpleTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "parses boolean option" do
     assert OptionParser.Simple.parse(["--docs"]) == { [docs: true], [] }

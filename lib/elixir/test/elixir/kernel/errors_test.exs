@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Kernel.ErrorsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   defmodule UnproperMacro do
     defmacro unproper(args), do: args
@@ -85,7 +85,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :unrequired_macro do
-    assert "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: ['Elixir.Builtin','Elixir.Typespec']" ==
+    assert "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: Elixir.Builtin, Elixir.Typespec" ==
       format_rescue 'defmodule Foo do\nKernel.ErrorsTest.UnproperMacro.unproper([])\nend'
   end
 

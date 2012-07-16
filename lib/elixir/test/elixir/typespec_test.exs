@@ -1,7 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule Typespec.Test.Type do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   # This macro allows us to focus on the result of the
   # definition and not on the hassles of handling test

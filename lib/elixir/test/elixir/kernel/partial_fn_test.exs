@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper", __FILE__
 
 defmodule Elixir.Builtin.Test do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test :remote_fun do
     assert is_function(fn(:erlang, :atom_to_list, 1))

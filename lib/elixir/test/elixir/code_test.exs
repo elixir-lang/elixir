@@ -1,7 +1,8 @@
 Code.require_file "../test_helper", __FILE__
 
 defmodule CodeTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+  import PathHelpers
 
   def one, do: 1
 
@@ -28,10 +29,8 @@ defmodule CodeTest do
   end
 
   test :require do
-    Code.require_file "../fixtures/code_sample", __FILE__
-
-    expanded = File.expand_path("test/elixir/fixtures/code_sample.exs")
-    assert expanded in Code.loaded_files
+    Code.require_file fixture_path("code_sample"), __FILE__
+    assert fixture_path("code_sample.exs") in Code.loaded_files
   end
 
   test :file do
