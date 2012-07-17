@@ -88,6 +88,9 @@ defmodule File do
   Expands the path by returning its absolute name and expanding
   any `.` and `..` characters.
 
+  If the given `path` is a char list, returns a char list.
+  Otherwise returns a binary.
+
   ## Examples
 
       File.expand_path("/foo/bar/../bar") == "/foo/bar"
@@ -101,6 +104,9 @@ defmodule File do
   Expands the path to the relative location and expanding
   any `.` and `..` characters. If the path is already an
   absolute path, the relative location is ignored.
+
+  If the given `path` is a char list, returns a char list.
+  Otherwise returns a binary.
 
   ## Examples
 
@@ -156,6 +162,9 @@ defmodule File do
   Returns the last component of the path or the path
   itself if it does not contain any directory separators.
 
+  If the given `path` is a char list, returns a char list.
+  Otherwise returns a binary.
+
   ## Examples
 
       File.basename("foo")
@@ -177,6 +186,9 @@ defmodule File do
   stripped. This function should be used to remove a specific
   extension which might, or might not, be there.
 
+  If the given `path` is a char list, returns a char list.
+  Otherwise returns a binary.
+
   ## Examples
 
       File.basename("~/foo/bar.ex", ".ex")
@@ -194,6 +206,9 @@ defmodule File do
   @doc """
   Return the `directory` component of `path`.
 
+  If the given `path` is a char list, returns a char list.
+  Otherwise returns a binary.
+
   ## Examples
 
       File.dirname("/foo/bar.ex")
@@ -206,6 +221,9 @@ defmodule File do
 
   @doc """
   Return the `extension` of the last component of `path`.
+
+  If the given `path` is a char list, returns a char list.
+  Otherwise returns a binary.
 
   ## Examples
 
@@ -221,6 +239,9 @@ defmodule File do
 
   @doc """
   Returns the `path` with the `extension` stripped.
+
+  If the given `path` is a char list, returns a char list.
+  Otherwise returns a binary.
 
   ## Examples
 
@@ -238,6 +259,9 @@ defmodule File do
   Returns the `path` with the `extension` stripped. This function should be used to
   remove a specific extension which might, or might not, be there.
 
+  If the given `path` is a char list, returns a char list.
+  Otherwise returns a binary.
+
   ## Examples
 
       File.rootname("/foo/bar.erl", ".erl")
@@ -253,6 +277,9 @@ defmodule File do
   @doc """
   Returns a string with one or more paths components joint by the path separator.
   This function should be used to convert a list of strings in a path.
+
+  If the given `paths` are a char list, returns a char list.
+  Otherwise returns a binary.
 
   ## Examples
 
@@ -270,6 +297,9 @@ defmodule File do
 
   @doc """
   Join two paths.
+
+  If the given paths are a char list, returns a char list.
+  Otherwise returns a binary.
 
   ## Examples
 

@@ -45,7 +45,7 @@ defmodule Regex do
     or `(*ANY)` at the beginning of the regexp according to the re documentation
 
   Most of the functions in this module accept either a binary or a char list
-  as string subject. The result is based on the argument (a binary will return
+  as subject. The result is based on the argument (a binary will return
   a binary, a char list will return a char list).
   """
 

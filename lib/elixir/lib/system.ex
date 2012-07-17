@@ -59,7 +59,14 @@ defmodule System do
   Executes `command` in a command shell of the target OS,
   captures the standard output of the command and returns
   the result as a binary.
+
+  If `command` is a char list, a char list is returned.
+  Returns a binary otherwise.
   """
+  def cmd(command) when is_list(command) do
+    :os.cmd(command)
+  end
+
   def cmd(command) do
     list_to_binary :os.cmd(to_char_list(command))
   end
@@ -68,7 +75,14 @@ defmodule System do
   This functions looks up an executable program given
   its name using the environment variable PATH on Unix
   and Windows.
+
+  If `command` is a char list, a char list is returned.
+  Returns a binary otherwise.
   """
+  def find_executable(command) when is_list(command) do
+    :os.find_executable(command) || nil
+  end
+
   def find_executable(command) do
     case :os.find_executable(to_char_list(command)) do
       false -> nil
