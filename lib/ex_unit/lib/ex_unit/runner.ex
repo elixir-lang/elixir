@@ -60,7 +60,7 @@ defmodule ExUnit.Runner do
 
   # Spawn each test case in a new process.
   defp spawn_case(test_case) do
-    pid = Process.self
+    pid = self
     spawn_link fn -> run_tests(pid, test_case) end
   end
 
@@ -71,7 +71,7 @@ defmodule ExUnit.Runner do
       Enum.each tests, run_test(pid, test_case, &1)
       test_case.teardown_all
     after
-      pid <- { Process.self, :each_case, test_case }
+      pid <- { self, :each_case, test_case }
     end
   end
 
@@ -100,7 +100,7 @@ defmodule ExUnit.Runner do
         { kind2, error2, System.stacktrace }
     end
 
-    pid <- { Process.self, :each, { test_case, test, final } }
+    pid <- { self, :each, { test_case, test, final } }
   end
 
   defp call_formatter(config, message) do

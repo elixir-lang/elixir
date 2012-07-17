@@ -54,7 +54,7 @@ defmodule ProtocolTest do
     assert_undef(ProtocolTest.WithAll, Tuple, {Bar,2,3})
     assert_undef(ProtocolTest.WithAll, BitString, "foo")
     assert_undef(ProtocolTest.WithAll, BitString, <<1>>)
-    assert_undef(ProtocolTest.WithAll, PID, Process.self)
+    assert_undef(ProtocolTest.WithAll, PID, self)
     assert_undef(ProtocolTest.WithAll, Port, hd(:erlang.ports))
     assert_undef(ProtocolTest.WithAll, Reference, make_ref)
   end

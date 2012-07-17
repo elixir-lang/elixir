@@ -1008,6 +1008,15 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  Returns the pid (process identifier) of the calling process.
+  Allowed in guard clauses.
+  """
+  @spec self(), do: pid
+  def self() do
+    :erlang.self()
+  end
+
+  @doc """
   Returns the size of the given argument, which must be a tuple
   or a binary. If possible, please use tuple_size or binary_size.
   """
@@ -1015,6 +1024,7 @@ defmodule Elixir.Builtin do
   def size(arg) do
     :erlang.size(arg)
   end
+
 
   @doc """
   Spawns the given function and returns its pid.

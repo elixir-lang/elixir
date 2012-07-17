@@ -4,6 +4,13 @@ defmodule Node do
   """
 
   @doc """
+  Returns the current node. It returns the same as the built-in node().
+  """
+  def self do
+    :erlang.node()
+  end
+
+  @doc """
   Returns true if the local node is alive; that is, if the node can be
   part of a distributed system. Otherwise, it returns false.
   """

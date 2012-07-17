@@ -23,17 +23,17 @@ defmodule Elixir.ParallelRequire do
   end
 
   defp spawn_requires([h|t], waiting, callback, result) do
-    parent = Process.self
+    parent = self
 
     child  = spawn_link fn ->
       try do
         new    = Code.require_file(h)
         result = new ++ result
         callback.(h)
-        parent <- { :required, Process.self }
+        parent <- { :required, self }
       catch
         kind, reason ->
-          parent <- { :failure, Process.self, kind, reason, System.stacktrace }
+          parent <- { :failure, self, kind, reason, System.stacktrace }
       end
     end
 

@@ -39,7 +39,7 @@ defmodule Elixir.ParallelCompiler do
 
   # Spawn a compiler for each file in the list until we reach the limit
   defp spawn_compilers([h|t], output, callback, waiting, queued, result) do
-    parent = Process.self()
+    parent = self()
 
     child  = spawn_link fn ->
       Process.put(:elixir_parent_compiler, parent)
@@ -51,10 +51,10 @@ defmodule Elixir.ParallelCompiler do
         else
           Erlang.elixir_compiler.file(h)
         end
-        parent <- { :compiled, Process.self(), h }
+        parent <- { :compiled, self(), h }
       catch
         kind, reason ->
-          parent <- { :failure, Process.self(), kind, reason, System.stacktrace }
+          parent <- { :failure, self(), kind, reason, System.stacktrace }
       end
     end
 
@@ -66,7 +66,7 @@ defmodule Elixir.ParallelCompiler do
 
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_compilers([], output, callback, waiting, queued, result) when length(waiting) == length(queued) do
-    Enum.each queued, fn { child, _ } -> child <- { :release, Process.self() } end
+    Enum.each queued, fn { child, _ } -> child <- { :release, self() } end
     wait_for_messages([], output, callback, waiting, queued, result)
   end
 
@@ -107,7 +107,7 @@ defmodule Elixir.ParallelCompiler do
   defp release_waiting_processes(module, waiting) do
     Enum.filter waiting, fn { child, waiting_module } ->
       if waiting_module == module do
-        child <- { :release, Process.self() }
+        child <- { :release, self() }
         false
       else
         true

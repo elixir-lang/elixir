@@ -18,7 +18,7 @@ defmodule Elixir.ErrorHandler do
       { :module, _ } -> []
       { :error, _ } ->
         parent = Process.get(:elixir_parent_compiler)
-        parent <- { :waiting, Process.self, module }
+        parent <- { :waiting, self(), module }
         receive do
           { :release, ^parent } -> :ok
         end
