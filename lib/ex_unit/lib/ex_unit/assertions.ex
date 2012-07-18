@@ -74,9 +74,7 @@ defmodule ExUnit.Assertions do
 
   """
   def assert(expected, message) when is_binary(message) do
-    unless expected do
-      raise ExUnit.AssertionError, message: message
-    end
+    unless expected, do: flunk message
     true
   end
 
@@ -90,7 +88,6 @@ defmodule ExUnit.Assertions do
     quote do
       try do
         unquote(expected) = unquote(received)
-        true
       rescue
         x in [MatchError] ->
           raise ExUnit.AssertionError, message: x.message
@@ -188,6 +185,29 @@ defmodule ExUnit.Assertions do
 
   ## END HELPERS
 
+  @doc """
+  Assert a message was received and is in the current process mailbox.
+  Timeout is set to 0, so there is no waiting time.
+
+  ## Examples
+
+      self <- :hello
+      assert_received :hello
+
+  """
+  defmacro assert_received(content, message // nil) do
+    binary = Macro.to_binary(content)
+
+    quote do
+      receive do
+        unquote(content) = received -> received
+      after
+        0 -> flunk unquote(message) || "Expected to have received message matching: #{unquote binary}"
+      end
+    end
+  end
+
+  @doc false
   defmacro assert_match(expected, received) do
     IO.puts "assert_match is deprecated in favor of assert left = right"
 
@@ -202,6 +222,7 @@ defmodule ExUnit.Assertions do
     end
   end
 
+  @doc false
   def assert_member(base, container, message // nil) do
     IO.puts "assert_member is deprecated in favor of assert left in right"
     message = message || "Expected #{inspect container} to include #{inspect base}"
@@ -220,6 +241,7 @@ defmodule ExUnit.Assertions do
   def assert_raise(exception, expected_message, function) do
     error = assert_raise(exception, function)
     assert error.message == expected_message
+    error
   end
 
   @doc """
@@ -355,6 +377,7 @@ defmodule ExUnit.Assertions do
     not assert(!not_expected, message)
   end
 
+  @doc false
   defmacro refute_match(expected, received) do
     IO.puts "refute_match is deprecated in favor of refute left = right"
 
@@ -364,6 +387,28 @@ defmodule ExUnit.Assertions do
         flunk "Unexpected right side #{inspect unquote(received)} match"
       rescue
         x in [MatchError] -> true
+      end
+    end
+  end
+
+  @doc """
+  Refutes a message was not received (i.e. it is not in the current process mailbox).
+  Timeout is set to 0, so there is no waiting time.
+
+  ## Examples
+
+      self <- :hello
+      refute_received :bye
+
+  """
+  defmacro refute_received(content, message // nil) do
+    binary = Macro.to_binary(content)
+
+    quote do
+      receive do
+        unquote(content) -> flunk unquote(message) || "Expected to not have received message matching: #{unquote binary}"
+      after
+        0 -> false
       end
     end
   end
@@ -421,6 +466,6 @@ defmodule ExUnit.Assertions do
 
   """
   def flunk(message // "Epic Fail!") do
-    assert false, message
+    raise ExUnit.AssertionError, message: message
   end
 end

@@ -72,8 +72,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test :assert_match_when_equal do
-    assert { 2, 1 } = Value.tuple
-    true = assert { 2, 1 } = Value.tuple
+    { 2, 1 } = (assert { 2, 1 } = Value.tuple)
   end
 
   test :assert_match_when_different do
@@ -82,6 +81,34 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "no match of right hand side value: {2,1}" = error.message
+    end
+  end
+
+  test :assert_received do
+    self <- :hello
+    :hello = assert_received :hello
+  end
+
+  test :assert_received_when_different do
+    try do
+      "This should never be tested" = assert_received :hello
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Expected to have received message matching: :hello" = error.message
+    end
+  end
+
+  test :refute_received do
+    false = refute_received :hello
+  end
+
+  test :refute_received_when_equal do
+    self <- :hello
+    try do
+      "This should never be tested" = refute_received :hello
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Expected to not have received message matching: :hello" = error.message
     end
   end
 
