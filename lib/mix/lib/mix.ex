@@ -4,9 +4,7 @@ defmodule Mix do
   """
   def start do
     Enum.each [:elixir, :mix], :application.start(&1)
-    :application.set_env(:mix, :shell, Mix.Shell)
-    Mix.Task.start
-    Mix.Project.start
+    Mix.Server.start_link
   end
 
   @doc """
@@ -18,16 +16,13 @@ defmodule Mix do
   messages to the current process.
   """
   def shell do
-    case :application.get_env(:mix, :shell) do
-      { :ok, shell } -> shell
-      _ -> raise "No shell was set, are you sure you invoked Mix.start() ?"
-    end
+    Mix.Server.call(:shell)
   end
 
   @doc """
   Sets the current shell.
   """
   def shell(shell) do
-    :application.set_env(:mix, :shell, shell)
+    Mix.Server.cast({ :shell, shell })
   end
 end

@@ -44,25 +44,17 @@ defmodule Mix.Project do
     end
   end
 
-  # Starts up project related environment variables.
-  @doc false
-  def start do
-    :application.set_env(:mix, :project, [])
-  end
-
   # Push a project into the project stack. Only
   # the top of the stack can be accessed.
   @doc false
   def push(atom) when is_atom(atom) do
-    { :ok, stack } = :application.get_env(:mix, :project)
-    :application.set_env(:mix, :project, [atom|stack])
+    Mix.Server.cast({ :push_project, atom })
   end
 
   # Pops a project from the stack.
   @doc false
   def pop do
-    { :ok, [_|stack] } = :application.get_env(:mix, :project)
-    :application.set_env(:mix, :project, stack)
+    Mix.Server.cast(:pop_project)
   end
 
   @doc """
@@ -73,8 +65,8 @@ defmodule Mix.Project do
   underlying project.
   """
   def config do
-    case :application.get_env(:mix, :project) do
-      { :ok, [h|_] } when h != nil -> h.project
+    case Mix.Server.call(:projects) do
+      [h|_] when h != nil -> h.project
       _ -> []
     end
   end
@@ -84,8 +76,8 @@ defmodule Mix.Project do
   if there is no project set.
   """
   def current do
-    case :application.get_env(:mix, :project) do
-      { :ok, [h|_] } when h != nil -> h
+    case Mix.Server.call(:projects) do
+      [h|_] when h != nil -> h
       _ -> raise Mix.NoProjectError
     end
   end
@@ -94,8 +86,8 @@ defmodule Mix.Project do
   Returns true if a current project is defined.
   """
   def defined? do
-    case :application.get_env(:mix, :project) do
-      { :ok, [h|_] } when h != nil -> true
+    case Mix.Server.call(:projects) do
+      [h|_] when h != nil -> true
       _ -> false
     end
   end

@@ -19,12 +19,6 @@ defmodule Mix.Task do
     end
   end
 
-  # Starts up project related environment variables.
-  @doc false
-  def start do
-    :application.set_env(:mix, :invoked_tasks, Ordset.new)
-  end
-
   @doc """
   Loads all tasks in all code paths.
   """
@@ -113,19 +107,12 @@ defmodule Mix.Task do
   """
   def run(task, args // []) do
     task = to_binary(task)
-    { :ok, ordset } = :application.get_env(:mix, :invoked_tasks)
 
-    if Ordset.is_element(task, ordset) do
+    if Mix.Server.call({ :has_task?, task }) do
       :noop
     else
       module = get(task)
-
-      # This is not free of race conditions, but this is
-      # only a problem if we are running tasks in parallel.
-      # A possible solution would be to provide a server
-      # for mix to handle this atomically.
-      :application.set_env(:mix, :invoked_tasks, Ordset.add_element(task, ordset))
-
+      Mix.Server.cast({ :add_task, task })
       module.run(args)
       :ok
     end
@@ -136,18 +123,14 @@ defmodule Mix.Task do
   Returns an ordset with all the tasks invoked thus far.
   """
   def clear do
-    { :ok, ordset } = :application.get_env(:mix, :invoked_tasks)
-    :application.set_env(:mix, :invoked_tasks, Ordset.new)
-    ordset
+    Mix.Server.call(:clear_tasks)
   end
 
   @doc """
   Reenables a given task so it can be executed again down the stack.
   """
   def reenable(task) do
-    task = to_binary(task)
-    { :ok, ordset } = :application.get_env(:mix, :invoked_tasks)
-    :application.set_env(:mix, :invoked_tasks, Ordset.del_element(task, ordset))
+    Mix.Server.cast({ :delete_task, to_binary(task) })
   end
 
   defp is_task?(module) do
