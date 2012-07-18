@@ -37,6 +37,37 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Returns true if any of `target` is stale compared to `source`.
+  If `target` or `source` is a binary, it is expanded using `File.wildcard`.
+  """
+  def stale?(source, target) do
+    source = expand_wildcard(source)
+    target = expand_wildcard(target)
+
+    source_stats  = Enum.map(source, fn(file) -> File.stat!(file).mtime end)
+    last_modified = Enum.map(target, last_modified(&1))
+
+    Enum.any?(source_stats, fn(source_stat) ->
+      Enum.any?(last_modified, source_stat > &1)
+    end)
+  end
+
+  defp expand_wildcard(wildcard) when is_binary(wildcard) do
+    File.wildcard(wildcard)
+  end
+
+  defp expand_wildcard(list) when is_list(list) do
+    list
+  end
+
+  defp last_modified(path) do
+    case File.stat(path) do
+      { :ok, stat } -> stat.mtime
+      { :error, _ } -> { { 1970, 1, 1 }, { 0, 0, 0 } }
+    end
+  end
+
+  @doc """
   Takes a module and converts it to a command. The nesting
   argument can be given in order to remove the nesting of
   module.

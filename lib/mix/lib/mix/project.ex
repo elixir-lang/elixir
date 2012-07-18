@@ -41,6 +41,10 @@ defmodule Mix.Project do
     Mix.Project.push __CALLER__.module
     quote do
       @behavior Mix.Project
+
+      def location do
+        __FILE__
+      end
     end
   end
 

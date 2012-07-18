@@ -53,10 +53,9 @@ defmodule Mix.Tasks.Compile.Elixir do
     source_paths  = project[:source_paths]  || ["lib"]
     to_compile    = extract_files(source_paths)
 
-    last_modified = last_modified(compile_path)
-    File.mkdir_p!(compile_path)
+    if force == "--force" or Mix.Utils.stale?(to_compile, [compile_path]) do
+      File.mkdir_p!(compile_path)
 
-    if force == "--force" || Enum.find(to_compile, stale?(&1, last_modified)) do
       if elixir_opts = project[:elixirc_options] do
         Code.compiler_options(elixir_opts)
       end
@@ -79,18 +78,6 @@ defmodule Mix.Tasks.Compile.Elixir do
     Elixir.ParallelCompiler.files_to_path files, to, fn(x) ->
       Mix.shell.info "Compiled #{x}"
       x
-    end
-  end
-
-  defp stale?(path, compare) do
-    { :ok, stat } = File.stat(path)
-    stat.mtime > compare
-  end
-
-  defp last_modified(path) do
-    case File.stat(path) do
-      { :ok, stat } -> stat.mtime
-      { :error, _ } -> { { 1970, 1, 1 }, { 0, 0, 0 } }
     end
   end
 end
