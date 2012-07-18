@@ -10,8 +10,11 @@ defmodule Mix.ProjectTest do
   end
 
   test "push and pop projects" do
+    refute Mix.Project.defined?
     Mix.Project.push(RealProject)
+
     assert Mix.Project.current == RealProject
+    assert Mix.Project.defined?
   after
     Mix.Project.pop
   end

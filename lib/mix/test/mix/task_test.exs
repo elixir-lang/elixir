@@ -16,11 +16,6 @@ defmodule Mix.TaskTest do
     end
   end
 
-  test :run! do
-    assert Mix.Task.run!("hello") == :ok
-    assert Mix.Task.run!("hello") == :ok
-  end
-
   test :clear do
     Mix.Task.run("hello")
     assert Mix.Task.clear == ["hello"]

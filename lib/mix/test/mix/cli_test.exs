@@ -11,6 +11,9 @@ defmodule Mix.CLITest do
 
   test "compile smoke test" do
     in_fixture "no_mixfile", fn ->
+      output = mix "compile --list"
+      assert output =~ %r"Enabled compilers: elixir"
+
       output = mix "compile"
 
       assert File.regular?("ebin/__MAIN__-A.beam")
@@ -32,7 +35,7 @@ defmodule Mix.CLITest do
   test "help smoke test" do
     in_fixture "only_mixfile", fn ->
       output = mix "help"
-      assert output =~ %r"mix compile\s+# Compile Elixir"
+      assert output =~ %r"mix compile\s+# Compile source files"
       assert output =~ %r"mix hello\s+# Hello"
       refute output =~ %r"mix invalid"
     end

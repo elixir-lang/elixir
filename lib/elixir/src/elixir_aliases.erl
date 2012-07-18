@@ -53,9 +53,15 @@ raw_concat(Args) ->
 
 to_partial(Arg) when is_binary(Arg) -> to_partial(binary_to_list(Arg));
 to_partial(Arg) when is_atom(Arg)   -> to_partial(atom_to_list(Arg));
-to_partial("__MAIN__" ++ Arg)       -> Arg;
-to_partial([$-|_] = Arg)            -> Arg;
-to_partial(Arg) when is_list(Arg)   -> [$-|Arg].
+to_partial("__MAIN__" ++ Arg)       -> dot_to_dash(Arg);
+to_partial([$-|_] = Arg)            -> dot_to_dash(Arg);
+to_partial(Arg) when is_list(Arg)   -> [$-|dot_to_dash(Arg)].
+
+dot_to_dash(List) ->
+  [case X of
+    $. -> $-;
+    _  -> X
+   end || X <- List].
 
 %% Lookup an alias in the current scope
 

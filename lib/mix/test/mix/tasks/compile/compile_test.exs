@@ -1,11 +1,11 @@
-Code.require_file "../../../test_helper", __FILE__
+Code.require_file "../../../../test_helper", __FILE__
 
-defmodule Mix.Tasks.CompileTest do
+defmodule Mix.Tasks.Compile.ElixirTest do
   use MixTest.Case
 
   test "compile a project without mixfile" do
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Compile.run []
+      Mix.Tasks.Compile.Elixir.run []
       assert File.regular?("ebin/__MAIN__-A.beam")
       assert File.regular?("ebin/__MAIN__-B.beam")
       assert File.regular?("ebin/__MAIN__-C.beam")
@@ -17,15 +17,15 @@ defmodule Mix.Tasks.CompileTest do
   test "only recompiles if file was updated unless forced" do
     in_fixture "no_mixfile", fn ->
       # Compile the first time
-      assert Mix.Tasks.Compile.run([]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       assert File.regular?("ebin/__MAIN__-A.beam")
 
       # Now we have a noop
-      assert Mix.Tasks.Compile.run([]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
 
       # --force
       purge [A, B, C]
-      assert Mix.Tasks.Compile.run(["--force"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
     end
   after
     purge [A, B, C]
@@ -48,7 +48,7 @@ defmodule Mix.Tasks.CompileTest do
 
     in_fixture "no_mixfile", fn ->
       # Nothing to compile with the custom source paths
-      assert Mix.Tasks.Compile.run([]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
     end
   after
     Mix.Project.pop
@@ -58,7 +58,7 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.push CompilePathProject
 
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Compile.run([])
+      Mix.Tasks.Compile.Elixir.run([])
       assert File.regular?("custom/__MAIN__-A.beam")
     end
   after

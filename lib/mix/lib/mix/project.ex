@@ -74,7 +74,7 @@ defmodule Mix.Project do
   """
   def config do
     case :application.get_env(:mix, :project) do
-      { :ok, [h|_] } -> h.project
+      { :ok, [h|_] } when h != nil -> h.project
       _ -> []
     end
   end
@@ -85,8 +85,18 @@ defmodule Mix.Project do
   """
   def current do
     case :application.get_env(:mix, :project) do
-      { :ok, [h|_] } -> h
+      { :ok, [h|_] } when h != nil -> h
       _ -> raise Mix.NoProjectError
+    end
+  end
+
+  @doc """
+  Returns true if a current project is defined.
+  """
+  def defined? do
+    case :application.get_env(:mix, :project) do
+      { :ok, [h|_] } when h != nil -> true
+      _ -> false
     end
   end
 end

@@ -137,6 +137,8 @@ defmodule ModuleTest do
     assert Module.concat(Foo, :Bar) == Foo.Bar
     assert Module.concat(Foo, "Bar") == Foo.Bar
     assert Module.concat(Foo, 'Bar') == Foo.Bar
+    assert Module.concat(Foo, Bar.Baz) == Foo.Bar.Baz
+    assert Module.concat(Foo, "Bar.Baz") == Foo.Bar.Baz
   end
 
   test :safe_concat do

@@ -118,22 +118,17 @@ defmodule Mix.Task do
     if Ordset.is_element(task, ordset) do
       :noop
     else
-      do_run(task, args, ordset)
+      module = get(task)
+
+      # This is not free of race conditions, but this is
+      # only a problem if we are running tasks in parallel.
+      # A possible solution would be to provide a server
+      # for mix to handle this atomically.
+      :application.set_env(:mix, :invoked_tasks, Ordset.add_element(task, ordset))
+
+      module.run(args)
+      :ok
     end
-  end
-
-  @doc """
-  Run a `task` with the given `args` regardless if
-  it was executed previously or not. It returns `:ok`
-  if the task ran with success, otherwise raises an
-  exception.
-
-  It may raise an exception if the task was not found
-  or it is invalid. Check `get/2` for more information.
-  """
-  def run!(task, args // []) do
-    { :ok, ordset } = :application.get_env(:mix, :invoked_tasks)
-    do_run(to_binary(task), args, ordset)
   end
 
   @doc """
@@ -153,19 +148,6 @@ defmodule Mix.Task do
     task = to_binary(task)
     { :ok, ordset } = :application.get_env(:mix, :invoked_tasks)
     :application.set_env(:mix, :invoked_tasks, Ordset.del_element(task, ordset))
-  end
-
-  defp do_run(task, args, ordset) do
-    module = get(task)
-
-    # This is not free of race conditions, but this is
-    # only a problem if we are running tasks in parallel.
-    # A possible solution would be to provide a server
-    # for mix to handle this atomically.
-    :application.set_env(:mix, :invoked_tasks, Ordset.add_element(task, ordset))
-
-    module.run(args)
-    :ok
   end
 
   defp is_task?(module) do
