@@ -13,9 +13,9 @@ defmodule Mix.Tasks.Compile do
 
       [:elixir, :app]
 
-    Can be configured in your projects as:
+    It can be configured to handle custom compilers, for example:
 
-      [compilers: [:elixir, :erlang, :app]]
+      [compilers: [:elixir, :mycompiler, :app]]
 
   ## Command line options
 
@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Compile do
 
   defp get_compilers do
     Mix.Project.config[:compilers] || if Mix.Project.defined? do
-      [:elixir]
+      [:elixir, :app]
     else
       [:elixir]
     end
