@@ -36,7 +36,7 @@ defmodule Mix.CLI do
     rescue
       # We only rescue exceptions in the mix namespace, all
       # others pass through and will explode on the users face
-      exception in exceptions -> IO.puts :stderr, exception.message
+      exception in exceptions -> Mix.shell.error exception.message
     end
   end  
 end

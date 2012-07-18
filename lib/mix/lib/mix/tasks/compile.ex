@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Compile do
 
   """
   def run(["--list"]) do
-    IO.puts "Enabled compilers: #{Enum.join get_compilers, ", "}"
+    Mix.shell.info "Enabled compilers: #{Enum.join get_compilers, ", "}"
   end
 
   def run(args) do

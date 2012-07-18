@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   defp compile_files(files, to) do
     Elixir.ParallelCompiler.files_to_path files, to, fn(x) ->
-      IO.puts "Compiled #{x}"
+      Mix.shell.info "Compiled #{x}"
       x
     end
   end

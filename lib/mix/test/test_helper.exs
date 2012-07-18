@@ -1,4 +1,5 @@
 Mix.start
+Mix.shell(Mix.Shell.Test)
 ExUnit.start []
 
 defmodule MixTest.Case do

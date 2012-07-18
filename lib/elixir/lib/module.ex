@@ -489,6 +489,17 @@ defmodule Module do
     { atom, 0 }
   end
 
+  defp normalize_attribute(:behavior, atom) when is_atom(atom) do
+    # Force the behavior to be preloaded so it
+    # works as expected with the parallel compiler
+    try do
+      atom.module_info(:compile)
+      atom
+    rescue
+      UndefinedFunctionError -> atom
+    end
+  end
+
   defp normalize_attribute(:file, Macro.Env[file: file, line: line]),       do: { binary_to_list(file), line}
   defp normalize_attribute(:file, { binary, line }) when is_binary(binary), do: { binary_to_list(binary), line }
   defp normalize_attribute(:file, other) when not is_tuple(other),          do: normalize_attribute(:file, { other, 1 })
