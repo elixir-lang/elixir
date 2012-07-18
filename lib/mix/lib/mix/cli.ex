@@ -27,7 +27,7 @@ defmodule Mix.CLI do
   end
 
   defp do_run([]) do
-    do_task Mix.Mixfile.default_task(Mix.Mixfile.get_project), []
+    do_task Mix.Project.config[:default] || "test", []
   end
 
   defp do_task(name, args) do

@@ -33,7 +33,7 @@ defmodule Mix.Project do
 
   @doc false
   def behaviour_info(:callbacks) do
-    [project: 0]
+    [project: 0, location: 0]
   end
 
   @doc false

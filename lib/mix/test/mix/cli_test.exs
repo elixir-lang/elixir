@@ -3,6 +3,14 @@ Code.require_file "../../test_helper", __FILE__
 defmodule Mix.CLITest do
   use MixTest.Case
 
+  test "default task" do
+    in_fixture "custom_mixfile", fn ->
+      output = mix ""
+      assert File.regular?("ebin/__MAIN__-A.beam")
+      assert output =~ %r"1 tests, 0 failures"
+    end
+  end
+
   test "invoke simple task from CLI" do
     in_fixture "only_mixfile", fn ->
       assert mix("hello") == "Hello from MyProject!\n"
