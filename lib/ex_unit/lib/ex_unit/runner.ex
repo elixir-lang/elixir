@@ -1,7 +1,8 @@
-defrecord ExUnit.Runner.Config, formatter: ExUnit.Formatter, async_cases: [], max_cases: 4, taken_cases: 0, sync_cases: []
-
 defmodule ExUnit.Runner do
   @moduledoc false
+
+  defrecord Config, formatter: ExUnit.Formatter, async_cases: [],
+    max_cases: 4, taken_cases: 0, sync_cases: []
 
   # The runner entry point. At first, it will simply spawn async cases
   # and expect messages as the cases finish. When all async cases are

@@ -881,7 +881,7 @@ defmodule Elixir.Builtin do
 
   ## Warning:
 
-  This function is intended for debugging and for use in the Erlang 
+  This function is intended for debugging and for use in the Erlang
   operating system.
 
   It should not be used in application programs.
@@ -983,7 +983,7 @@ defmodule Elixir.Builtin do
 
   ## Warning:
 
-  This function is intended for debugging and for use in the Erlang 
+  This function is intended for debugging and for use in the Erlang
   operating system.
 
   It should not be used in application programs.
@@ -1402,9 +1402,16 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
-  Defines an exception. It follows exactly the same API as record.
-  The defined record must implement `message/1` as API, otherwise
-  an error is raised. Check exception.ex for examples.
+  Defines an exception.
+
+  Exceptions are simply records and therefore `defexception/4` has
+  the same API and similar behavior to `defrecord/4` with two notable
+  differences:
+
+  1) Differently from records, exceptions are documented by default;
+  2) Exceptions **must** implement `message/1` as API and return a
+     binary as result;
+
   """
   defmacro defexception(name, values, opts // [], do_block // []) do
     opts = Keyword.merge(opts, do_block)
@@ -1425,9 +1432,7 @@ defmodule Elixir.Builtin do
     record = Record.defrecord(name, values, opts)
 
     check  = quote do
-      name = Module.concat __MODULE__, unquote(name)
-      unless List.member?(name.__info__(:functions), { :message, 1 }),
-        do: raise "Expected #{name} to implement message/1"
+      Exception.check! Module.concat(__MODULE__, unquote(name))
     end
 
     [record, check]

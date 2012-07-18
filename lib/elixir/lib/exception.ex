@@ -56,6 +56,14 @@ defmodule Exception do
     ErlangError.new original: other
   end
 
+  # Check the given module is a valid record.
+  @doc false
+  def check!(module) do
+    unless :erlang.function_exported(module, :message, 1) do
+      raise "Expected #{inspect  module} to implement message/1"
+    end
+  end
+
   @doc """
   Receives a module, fun and arity and returns a string
   representing such invocation. Arity may also be a list
