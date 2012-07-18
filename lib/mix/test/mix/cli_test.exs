@@ -11,16 +11,13 @@ defmodule Mix.CLITest do
 
   test "compile smoke test" do
     in_fixture "no_mixfile", fn ->
-      output = mix "compile --list"
-      assert output =~ %r"Enabled compilers: elixir"
-
       output = mix "compile"
 
       assert File.regular?("ebin/__MAIN__-A.beam")
       assert File.regular?("ebin/__MAIN__-B.beam")
       assert File.regular?("ebin/__MAIN__-C.beam")
 
-      assert "Compiled lib/a.ex" in Regex.split(%r/\n/, output)
+      assert output =~ %r"Compiled lib/a\.ex"
     end
   end
 
@@ -48,5 +45,4 @@ defmodule Mix.CLITest do
       assert output =~ %r"## Command line options"
     end
   end
-
 end

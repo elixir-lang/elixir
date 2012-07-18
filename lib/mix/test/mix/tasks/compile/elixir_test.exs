@@ -6,9 +6,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   test "compile a project without mixfile" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run []
+
       assert File.regular?("ebin/__MAIN__-A.beam")
       assert File.regular?("ebin/__MAIN__-B.beam")
       assert File.regular?("ebin/__MAIN__-C.beam")
+
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/c.ex"] }
     end
   after
     purge [A, B, C]
@@ -62,6 +67,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert File.regular?("custom/__MAIN__-A.beam")
     end
   after
+    purge [A, B, C]
     Mix.Project.pop
   end
 end

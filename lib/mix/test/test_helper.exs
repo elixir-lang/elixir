@@ -10,6 +10,7 @@ defmodule MixTest.Case do
 
       def teardown(_) do
         Mix.Task.clear
+        Mix.Shell.Test.flush
       end
 
       defoverridable [teardown: 1]
@@ -48,11 +49,13 @@ defmodule MixTest.Case do
   end
 
   defmacro in_fixture(which, block) do
+    module   = inspect __CALLER__.module
     function = atom_to_binary elem(__CALLER__.function, 1)
+    tmp      = File.join(module, function)
 
     quote do
       src  = File.join fixture_path(unquote(which)), "."
-      dest = tmp_path(unquote(function))
+      dest = tmp_path(unquote(tmp))
 
       File.rm_rf!(dest)
       File.mkdir_p!(dest)

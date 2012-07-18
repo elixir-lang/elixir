@@ -7,6 +7,25 @@ defmodule Mix.Shell.Test do
 
   @behavior Mix.Shell
 
+  @doc """
+  Flush all :mix_shell messages from the current process.
+  If a callback is given, it is invoked for each received message.
+
+  ## Examples
+
+      flush IO.inspect(&1)
+
+  """
+  def flush(callback // fn(x) -> x end) do
+    receive do
+      { :mix_shell, _, _ } = message ->
+        callback.(message)
+        flush
+    after
+      0 -> :done
+    end
+  end
+
   def info(message) do
     self <- { :mix_shell, :info, [message] }
   end
