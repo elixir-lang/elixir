@@ -420,7 +420,8 @@ list -> open_bracket expr comma_separator call_args close_bracket : ['$2'|'$4'].
 % Tuple
 
 tuple -> open_curly '}' : build_tuple('$1', []).
-tuple -> open_curly call_args close_curly :  build_tuple('$1', '$2').
+tuple -> open_curly expr close_curly : build_tuple('$1', ['$2']).
+tuple -> open_curly expr comma_separator call_args close_curly :  build_tuple('$1', ['$2'|'$4']).
 
 % Bitstrings
 
