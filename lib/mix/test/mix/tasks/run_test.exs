@@ -28,6 +28,7 @@ defmodule Mix.Tasks.RunTest do
       assert_received { :mix_shell, :info, ["World"] }
     end
   after
+    Mix.Shell.Process.flush IO.inspect(&1)
     Mix.Project.pop
   end
 end
