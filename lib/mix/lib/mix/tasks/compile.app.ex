@@ -6,9 +6,14 @@ defmodule Mix.Tasks.Compile.App do
   @moduledoc """
   Writes an .app file.
 
-  It expects your `Mix.Project` to define an application function
-  that will return the application configuration according to
-  OTP's design principles for applications:
+  By default, this task will detect all modules in your compile_path
+  (default to "ebin") and generate a best guess for your application
+  specification. This best guess also includes "kernel", "stdlib"
+  and "elixir" as application dependencies.
+
+  You can optionally define an `application/0` function inside your
+  `Mix.Project` that returns a keywords list to further configure
+  your application according to OTP design principles:
 
   http://www.erlang.org/doc/design_principles/applications.html
 
@@ -19,7 +24,7 @@ defmodule Mix.Tasks.Compile.App do
 
   ## Command line options
 
-  * `--force` forces compilation regardless of mod times;
+  * `--force` forces compilation regardless of mod times
 
   """
   def run(args) do
@@ -38,14 +43,19 @@ defmodule Mix.Tasks.Compile.App do
     sources = [project.location | beams]
 
     if force == "--force" or Mix.Utils.stale?(sources, [target]) do
-      best_guess = [vsn: to_char_list(version), modules: modules_from(beams)]
+      best_guess = [
+        vsn: to_char_list(version),
+        modules: modules_from(beams),
+        applications: ['kernel', 'stdlib', 'elixir']
+      ]
 
       contents = if function_exported?(project, :application, 0) do
-        Keyword.merge(best_guess, project.application)
+        Mix.Utils.config_merge(best_guess, project.application)
       else
         best_guess
       end
 
+      contents = Keyword.put contents, :applications, Enum.map(contents[:applications], to_char_list(&1))
       contents = { :application, binary_to_atom(app), contents }
 
       File.mkdir_p!(File.dirname(target))

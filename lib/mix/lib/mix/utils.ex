@@ -68,6 +68,28 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Merges two configs recursively, merging keywords lists
+  and concatenating normal lists.
+  """
+  def config_merge(old, new) do
+    Keyword.merge old, new, fn(_, x, y) ->
+      if is_list(x) and is_list(y) do
+        if is_keyword(x) and is_keyword(y) do
+          config_merge(x, y)
+        else
+          x ++ y
+        end
+      else
+        y
+      end
+    end
+  end
+
+  defp is_keyword(x) do
+    Enum.all? x, match?({ atom, _ } when is_atom(atom), &1)
+  end
+
+  @doc """
   Takes a module and converts it to a command. The nesting
   argument can be given in order to remove the nesting of
   module.
