@@ -9,31 +9,13 @@ VERSION:=0.6.0.dev
 .NOTPARALLEL: compile
 
 #==> Templates
-define APP_TEMPLATE
-@ rm -rf lib/$(1)/ebin/$(1).app;                  \
-for f in lib/$(1)/ebin/__MAIN__-$(2)-*.beam; do   \
-	filename=$$(basename $$f);                    \
-	export RES=`echo \'$${filename%.*}\',$$RES`;  \
-done;                                             \
-echo <<EOF > lib/$(1)/ebin/$(1).app               \
-{application, $(1),                               \
-[{description, \"$(1)\"},                         \
- {vsn, \"$(VERSION)\"},                           \
- {modules, [                                      \
-    $$RES                                         \
-    \'__MAIN__-$(2)\'                             \
-  ]},                                             \
- {applications, [kernel,stdlib,elixir]}           \
-]}.
-endef
-
 define TASK_TEMPLATE
 $(1): lib/$(1)/ebin/__MAIN__-$(2).beam
 
 lib/$(1)/ebin/__MAIN__-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex) $$(FORCE)
 	@ echo "==> $(1) (compile)"
 	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
-	@ $$(call APP_TEMPLATE,$(1),$(2))
+	@ cd lib/$(1) && ../../bin/mix compile.app
 
 test_$(1): $(1)
 	@ echo "==> $(1) (exunit)"
@@ -52,7 +34,7 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 erlang:
 	@ cd lib/elixir && $(REBAR) compile
 
-elixir: kernel ex_unit eex mix
+elixir: kernel mix ex_unit eex
 
 kernel: $(KERNEL)
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex $(FORCE)
@@ -112,7 +94,7 @@ test_erlang: compile
 	@ time $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt
 	@ echo
 
-test_elixir: test_kernel test_ex_unit test_eex test_mix
+test_elixir: test_kernel test_mix test_ex_unit test_eex
 
 test_kernel: compile
 	@ echo "==> kernel (exunit)"
