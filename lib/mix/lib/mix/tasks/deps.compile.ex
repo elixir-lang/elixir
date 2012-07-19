@@ -57,6 +57,10 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_compile(deps) do
     shell = Mix.shell
 
+    # Load available paths but still allow it to be called down the road
+    Mix.Task.run "deps.loadpaths", ["--no-check"]
+    Mix.Task.reenable "deps.loadpaths"
+
     Enum.each deps, fn({ _scm, app, _req, _status, opts }) ->
       shell.info "* Compiling #{app}"
       deps_path = deps_path(app)
@@ -70,6 +74,8 @@ defmodule Mix.Tasks.Deps.Compile do
           true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile (pass :compile as an option to customize compilation)"
         end
       end
+
+      Code.prepend_path File.join(deps_path, "ebin")
     end
   end
 
