@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Compile.App do
   use Mix.Task
 
-  @shortdoc "Writes an .app file"
+  @shortdoc "Write .app file"
 
   @moduledoc """
   Writes an .app file.

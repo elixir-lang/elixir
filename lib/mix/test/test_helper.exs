@@ -14,7 +14,7 @@ unless File.dir?(target) do
     use Mix.Project
 
     def project do
-      [app: "git_repo", vsn: "0.1.0"]
+      [app: "git_repo", version: "0.1.0"]
     end
   end
   """
