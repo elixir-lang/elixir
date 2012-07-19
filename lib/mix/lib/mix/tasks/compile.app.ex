@@ -36,6 +36,9 @@ defmodule Mix.Tasks.Compile.App do
     app     = Keyword.get!(config, :app)
     version = Keyword.get!(config, :version)
 
+    validate_app(app)
+    validate_version(version)
+
     path    = config[:compile_path] || "ebin"
     beams   = File.wildcard('#{path}/*.beam')
 
@@ -56,7 +59,7 @@ defmodule Mix.Tasks.Compile.App do
       end
 
       contents = Keyword.put contents, :applications, Enum.map(contents[:applications], to_char_list(&1))
-      contents = { :application, binary_to_atom(app), contents }
+      contents = { :application, app, contents }
 
       File.mkdir_p!(File.dirname(target))
       file = File.open!(target, [:write])
@@ -69,6 +72,12 @@ defmodule Mix.Tasks.Compile.App do
       :noop
     end
   end
+
+  defp validate_app(app) when is_atom(app), do: :ok
+  defp validate_app(_), do: raise(Mix.Error, message: "Expected :app to be an atom")
+
+  defp validate_version(version) when is_binary(version), do: :ok
+  defp validate_version(_), do: raise(Mix.Error, message: "Expected :version to be a binary")
 
   defp modules_from(beams) do
     Enum.map beams, &1 /> File.basename /> File.rootname('.beam') /> list_to_atom

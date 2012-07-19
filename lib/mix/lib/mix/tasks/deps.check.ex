@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Deps.Check do
   Checks if all dependencies are valid and if not, abort.
   Prints the invalid dependencies status before aborting.
 
-  This task is not exhibited in `mix help` but it is part
+  This task is not shown in `mix help` but it is part
   of mix public API and can be depended on.
   """
   def run(_) do

@@ -14,7 +14,7 @@ defmodule Mix.Project do
 
         def project do
           [
-            app: "my_app",
+            app: :my_app,
             vsn: "0.6.0"
           ]
         end

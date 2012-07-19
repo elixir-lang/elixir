@@ -7,11 +7,11 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { "ok", "0.1.0",         git: "https://github.com/elixir-lang/ok.git" },
-          { "invalidvsn", "0.2.0", git: "https://github.com/elixir-lang/invalidvsn.git" },
-          { "invalidapp", "0.1.0", git: "https://github.com/elixir-lang/invalidapp.git" },
-          { "noappfile", "0.1.0",  git: "https://github.com/elixir-lang/noappfile.git" },
-          { "uncloned", "0.1.0",   git: "https://github.com/elixir-lang/uncloned.git" }
+          { :ok, "0.1.0",         git: "https://github.com/elixir-lang/ok.git" },
+          { :invalidvsn, "0.2.0", git: "https://github.com/elixir-lang/invalidvsn.git" },
+          { :invalidapp, "0.1.0", git: "https://github.com/elixir-lang/invalidapp.git" },
+          { :noappfile, "0.1.0",  git: "https://github.com/elixir-lang/noappfile.git" },
+          { :uncloned, "0.1.0",   git: "https://github.com/elixir-lang/uncloned.git" }
         ]
       ]
     end
@@ -21,7 +21,7 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { "git_repo", "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
         ]
       ]
     end
@@ -31,7 +31,7 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { "ok", "0.1.0", git: "https://github.com/elixir-lang/ok.git" }
+          { :ok, "0.1.0", git: "https://github.com/elixir-lang/ok.git" }
         ]
       ]
     end
@@ -41,7 +41,7 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { "uncloned", "0.1.0",   git: "https://github.com/elixir-lang/uncloned.git" }
+          { :uncloned, "0.1.0",   git: "https://github.com/elixir-lang/uncloned.git" }
         ]
       ]
     end
@@ -51,8 +51,8 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { "ok", %r"^0\.{1,2}",    git: "https://github.com/elixir-lang/ok.git" },
-          { "invalidvsn", %r"^2.0", git: "https://github.com/elixir-lang/invalidvsn.git" }
+          { :ok, %r"^0\.{1,2}",    git: "https://github.com/elixir-lang/ok.git" },
+          { :invalidvsn, %r"^2.0", git: "https://github.com/elixir-lang/invalidvsn.git" }
         ]
       ]
     end

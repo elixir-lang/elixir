@@ -6,9 +6,25 @@ defmodule Mix.Tasks.Deps.Compile do
   @moduledoc """
   Compile dependencies.
 
-  By default, compile all dependencies that do not provide an app file yet.
-  A list of deps can be given to force the compilation of specific deps
-  or --force recompiling all deps.
+  By default, compile all dependencies that do not provide an
+  app file yet. A list of deps can be given to force the compilation
+  of specific deps or --force recompiling all deps.
+
+  By default, it tries to detect if the project contains one of
+  the following files:
+
+  * `mix.exs`      - if so, invokes `mix compile`
+  * `rebar.config` - if so, invokes `rebar compile`
+  * `Makefile`     - if so, invokes `make`
+
+  The compilation can be customized by passing a `compile` option
+  in the dependency:
+
+      { :some_dependency, "0.1.0", git: "...", compile: :compile_some_dependency }
+
+  If the compile option is an atom, it will invoke the given atom
+  in the current project passing the app name as argument. If a binary,
+  it is considered to be command line instructions.
   """
 
   import Mix.Tasks.Deps, only: [all: 0, all: 1, format_dep: 1, deps_path: 1]
@@ -41,16 +57,17 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_compile(deps) do
     shell = Mix.shell
 
-    Enum.each deps, fn({ _scm, app, _req, _status, _opts }) ->
+    Enum.each deps, fn({ _scm, app, _req, _status, opts }) ->
       shell.info "* Compiling #{app}"
       deps_path = deps_path(app)
 
       File.cd! deps_path, fn ->        
         cond do
-          mix?   -> shell.info  System.cmd("mix compile --no-deps")
-          rebar? -> shell.info  System.cmd("rebar compile")
-          make?  -> shell.info  System.cmd("make")
-          true   -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile"
+          opts[:compile] -> do_command(opts[:compile], app)
+          mix?           -> shell.info  System.cmd("mix compile")
+          rebar?         -> shell.info  System.cmd("rebar compile")
+          make?          -> shell.info  System.cmd("make")
+          true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile (pass :compile as an option to customize compilation)"
         end
       end
     end
@@ -59,4 +76,12 @@ defmodule Mix.Tasks.Deps.Compile do
   defp mix?,   do: File.regular?("mix.exs")
   defp rebar?, do: File.regular?("rebar.config") or File.regular?("rebar.config.script")
   defp make?,  do: File.regular?("Makefile")
+
+  defp do_command(atom, app) when is_atom(atom) do
+    apply Mix.Project.current, atom, [app]
+  end
+
+  defp do_command(command, _) do
+    Mix.shell.info System.cmd command
+  end
 end

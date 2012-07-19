@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   ## Command line options
 
-  * `--force` forces compilation regardless of mod times;
+  * `--force` - forces compilation regardless of mod times;
 
   """
   def run(args) do

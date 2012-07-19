@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Compile.AppTest do
 
   defmodule SimpleProject do
     def project do
-      [app: "simple_project", version: "0.1.0"]
+      [app: :simple_project, version: "0.1.0"]
     end
 
     def location do
@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Compile.AppTest do
 
   defmodule CustomProject do
     def project do
-      [app: "custom_project", version: "0.2.0"]
+      [app: :custom_project, version: "0.2.0"]
     end
 
     def application do

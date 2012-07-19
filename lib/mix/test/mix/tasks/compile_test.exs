@@ -12,7 +12,7 @@ defmodule Mix.Tasks.CompileTest do
 
   defmodule CustomApp do
     def project do
-      [app: "custom_app", version: "0.1.0"]
+      [app: :custom_app, version: "0.1.0"]
     end
 
     def location do

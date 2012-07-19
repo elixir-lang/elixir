@@ -5,7 +5,8 @@ defmodule Mix.Tasks.Compile do
 
   @moduledoc """
   A meta task that compile source files. It simply runs the
-  compilers registered in your project.
+  compilers registered in your project. At the end of compilation
+  it ensures load paths are set.
 
   ## Configuration
 
@@ -19,8 +20,7 @@ defmodule Mix.Tasks.Compile do
 
   ## Command line options
 
-  * `--list` List all enabled compilers.
-             `mix help` should give you the full list.
+  * `--list` - List all enabled compilers.
 
   """
   def run(["--list"]) do
@@ -28,9 +28,13 @@ defmodule Mix.Tasks.Compile do
   end
 
   def run(args) do
+    Mix.Task.run "deps.loadpaths", args
+
     Enum.each get_compilers, fn(compiler) ->
       Mix.Task.run "compile.#{compiler}", args
     end
+
+    Mix.Task.run "loadpaths", args
   end
 
   defp get_compilers do

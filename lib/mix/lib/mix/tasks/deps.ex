@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Deps do
   @doc """
   Returns all dependencies in the following format:
 
-      { SCM, "app", "requirement", status, [opts] }
+      { SCM, :app", "requirement", status, [opts] }
 
   ## Exceptions
 
@@ -93,7 +93,7 @@ defmodule Mix.Tasks.Deps do
 
   ## Helpers
 
-  defp with_scm_and_status({ app, req, opts }) when is_binary(app) and
+  defp with_scm_and_status({ app, req, opts }) when is_atom(app) and
       (is_binary(req) or is_regex(req)) and is_list(opts) do
     scm = Enum.find available_scm, opts[&1]
 
@@ -128,9 +128,8 @@ defmodule Mix.Tasks.Deps do
   end
 
   defp validate_app_file(app_path, app, req) do
-    app_list = binary_to_list(app)
     case :file.consult(app_path) do
-      { :ok, [{ :application, ^app_list, config }] } ->
+      { :ok, [{ :application, ^app, config }] } ->
         case List.keyfind(config, :vsn, 1) do
           { :vsn, actual } ->
             actual = list_to_binary(actual)

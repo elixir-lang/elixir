@@ -9,8 +9,8 @@ defmodule Mix.Tasks.Iex do
   Elixir ensures your code is compiled and loaded
   before starting IEx.
   """
-  def run(_) do
-    Enum.each ["compile", "loadpaths"], Mix.Task.run(&1)
+  def run(args) do
+    Mix.Task.run "compile", args
     IEx.start
     :timer.sleep(:infinity)
   end
