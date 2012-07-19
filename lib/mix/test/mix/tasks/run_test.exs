@@ -9,9 +9,13 @@ defmodule Mix.Tasks.RunTest do
         app: :get_app,
         version: "0.1.0",
         deps: [
-          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), compile: :run_local }
         ]
       ]
+    end
+
+    def run_local(:git_repo) do
+      MixTest.Case.mix "compile"
     end
 
     def location do
@@ -22,13 +26,12 @@ defmodule Mix.Tasks.RunTest do
   test "run command with dependencies" do
     Mix.Project.push GetApp
 
-    in_fixture "no_mixfile", fn ->
+    in_fixture "only_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
       Mix.Tasks.Run.run ["Mix.shell.info", "GitRepo.hello", "--unknown"]
       assert_received { :mix_shell, :info, ["World"] }
     end
   after
-    Mix.Shell.Process.flush IO.inspect(&1)
     Mix.Project.pop
   end
 end
