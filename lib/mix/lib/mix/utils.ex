@@ -18,6 +18,29 @@ defmodule Mix.Utils do
   """
 
   @doc """
+  Gets the source location of a module as a binary.
+  """
+  def source(module) do
+    compile = module.__info__(:compile)
+
+    # Get the source of the compiled module. Due to a bug in Erlang
+    # R15 and before, we need to look for the source first in the
+    # options and then into the real source.
+    options =
+      case List.keyfind(compile, :options, 1) do
+        { :options, opts } -> opts
+        _ -> []
+      end
+
+    source  = List.keyfind(options, :source, 1)  || List.keyfind(compile, :source, 1)
+
+    case source do
+      { :source, source } -> list_to_binary(source)
+      _ -> nil
+    end
+  end
+
+  @doc """
   Takes a `command` name and try to load a module
   with the command name converted to a module name
   in the given `at` scope.

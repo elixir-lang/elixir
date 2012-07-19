@@ -40,4 +40,8 @@ defmodule Mix.UtilsTest do
       bat: "man"
     ]
   end
+
+  test :source do
+    assert Mix.Utils.source(__MODULE__) == __FILE__
+  end
 end

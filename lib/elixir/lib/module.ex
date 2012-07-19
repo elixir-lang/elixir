@@ -491,7 +491,7 @@ defmodule Module do
     # Force the behavior to be preloaded so it
     # works as expected with the parallel compiler
     try do
-      atom.module_info(:compile)
+      atom.behaviour_info(:callbacks)
       atom
     rescue
       UndefinedFunctionError -> atom

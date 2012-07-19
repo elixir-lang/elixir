@@ -49,8 +49,9 @@ defmodule Mix.CLITest do
   test "help TASK smoke test" do
     in_fixture "only_mixfile", fn ->
       output = mix "help compile"
-      assert output =~ %r"mix help compile"
+      assert output =~ %r"# mix help compile"
       assert output =~ %r"## Command line options"
+      assert output =~ %r"^Source:"m
     end
   end
 end

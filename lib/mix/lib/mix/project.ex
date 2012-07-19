@@ -32,7 +32,7 @@ defmodule Mix.Project do
   """
 
   def behaviour_info(:callbacks) do
-    [project: 0, location: 0]
+    [project: 0]
   end
 
   @doc false
@@ -40,10 +40,6 @@ defmodule Mix.Project do
     Mix.Project.push __CALLER__.module
     quote do
       @behavior Mix.Project
-
-      def location do
-        __FILE__
-      end
     end
   end
 

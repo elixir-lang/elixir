@@ -43,5 +43,7 @@ defmodule Mix.Tasks.Help do
     else
       IO.puts "There is no documentation for this task"
     end
+
+    IO.puts "Source: #{Mix.Utils.source(module)}"
   end
 end
