@@ -13,3 +13,5 @@ end
 defexception Mix.NoProjectError, message: "Could not find a Mix.Project"
 
 defexception Mix.Error, message: nil
+
+defexception Mix.NotMetDepsError, message: "Some dependencies were not met"

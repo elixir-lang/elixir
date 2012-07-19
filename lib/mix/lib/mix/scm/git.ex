@@ -1,5 +1,5 @@
 defmodule Mix.SCM.Git do
-  def cloned?(path) do
+  def available?(path) do
     File.dir?(File.join(path, ".git"))
   end
 end

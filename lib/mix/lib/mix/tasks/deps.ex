@@ -3,6 +3,10 @@ defmodule Mix.Tasks.Deps do
 
   @shortdoc "List dependencies and their status"
 
+  @moduledoc """
+  List all dependencies and their status.
+  """
+
   @doc """
   Returns all dependencies in the following format:
 
@@ -25,17 +29,24 @@ defmodule Mix.Tasks.Deps do
   end
 
   @doc """
+  Get all dependencies that match the specific `status`.
+  """
+  def all(status) do
+    Enum.filter all, match?({ _, _, _, { ^status, _ }, _ }, &1)
+  end
+
+  @doc """
   Formats the status of a dependency. It can be either:
 
   * `{ :ok, vsn }` - Everything is :ok, got version `vsn`;
-  * `{ :uncloned, path }` - The dependency is not checked out;
+  * `{ :unavailable, path }` - The dependency is not available;
   * `{ :noappfile, path }` - The .app file at path could not be found;
   * `{ :invalidapp, path }` - The .app file at path is not properly formatted;
   * `{ :invalidvsn, actual }` - The dependency does not match the specified requirement, got `actual`;
 
   """
   def format_status({ :ok, _vsn }),         do: "ok"
-  def format_status({ :uncloned, path }),   do: "the dependency is not checked out at: #{path}"
+  def format_status({ :unavailable, _ }),   do: "the dependency is not available, run `mix deps.get`"
   def format_status({ :noappfile, path }),  do: "could not find app file at #{path}"
   def format_status({ :invalidapp, path }), do: "the app file at #{path} is invalid"
   def format_status({ :invalidvsn, vsn }),  do: "the dependency does not match the specified version, got #{vsn}"
@@ -57,13 +68,10 @@ defmodule Mix.Tasks.Deps do
     "#{app} #{version}[#{opts}]"
   end
 
-  @doc """
-
-  """
   def run(_) do
     shell = Mix.shell
 
-    Enum.map all, fn(dep) ->
+    Enum.each all, fn(dep) ->
       shell.info "* #{format_dep(dep)}"
       shell.info "  #{format_status elem(dep, 4)}"
     end
@@ -97,11 +105,11 @@ defmodule Mix.Tasks.Deps do
 
   defp status(scm, app, req, _) do
     deps_path = deps_path(app)
-    if scm.cloned? deps_path do
+    if scm.available? deps_path do
       app_path = File.join deps_path, "ebin/#{app}.app"
       validate_app_file(app_path, app, req)
     else
-      { :uncloned, deps_path }
+      { :unavailable, deps_path }
     end
   end
 

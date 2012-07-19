@@ -188,7 +188,7 @@ defmodule ExUnit.AssertionsTest do
       end
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected exception ArgumentError, got UndefinedFunctionError" = error.message
+        "Expected exception ArgumentError, got UndefinedFunctionError (undefined function: Certainly.Undefined.function/3)" = error.message
     end
   end
 
@@ -199,7 +199,7 @@ defmodule ExUnit.AssertionsTest do
       end
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected exception SyntaxError, got FunctionClauseError" = error.message
+        "Expected exception SyntaxError, got FunctionClauseError (no function clause matching: :lists.flatten(1))" = error.message
     end
   end
 

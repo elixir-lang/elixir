@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Deps.Get do
   use Mix.Task
 
-  @shortdoc "Get uncloned dependencies"
+  @shortdoc "Get all unavailable dependencies"
 end
