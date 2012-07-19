@@ -1,6 +1,11 @@
-Mix.start
+Mix.start()
 Mix.shell(Mix.Shell.Process)
+
 ExUnit.start []
+
+Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
+  File.mkdir_p! File.expand_path("../fixtures/deps_status/deps/#{dep}/.git", __FILE__)
+end
 
 defmodule MixTest.Case do
   defmacro __using__(opts) do

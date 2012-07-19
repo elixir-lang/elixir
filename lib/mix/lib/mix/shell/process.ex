@@ -30,7 +30,7 @@ defmodule Mix.Shell.Process do
     receive do
       { :mix_shell, _, _ } = message ->
         callback.(message)
-        flush
+        flush(callback)
     after
       0 -> :done
     end
