@@ -14,6 +14,8 @@ defmodule Mix.Tasks.RunTest do
       ]
     end
 
+    # Use an explicit command because mix is
+    # not necessarily in the $PATH
     def run_local(:git_repo) do
       MixTest.Case.mix "compile"
     end

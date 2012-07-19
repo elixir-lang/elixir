@@ -54,18 +54,14 @@ defmodule Mix.Tasks.Deps do
   @doc """
   Format the dependency for printing.
   """
-  def format_dep({ _scm, app, _req, status, opts }) do
-    opts = Enum.map_join(opts, ", ", fn({ key, value }) ->
-      "#{key}: #{inspect value}"
-    end)
-
+  def format_dep({ scm, app, _req, status, opts }) do
     version =
       case status do
         { :ok, vsn } -> "(#{vsn}) "
         _ -> ""
       end
 
-    "#{app} #{version}[#{opts}]"
+    "#{app} #{version}[#{scm.key}: #{inspect opts[scm.key]}]"
   end
 
   @doc """

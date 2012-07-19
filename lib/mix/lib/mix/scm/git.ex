@@ -1,4 +1,8 @@
 defmodule Mix.SCM.Git do
+  def key do
+    :git
+  end
+
   def available?(path) do
     File.dir?(File.join(path, ".git"))
   end

@@ -21,9 +21,15 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), compile: :run_local }
         ]
       ]
+    end
+
+    # Use an explicit command because mix is
+    # not necessarily in the $PATH
+    def run_local(:git_repo) do
+      Mix.shell.info MixTest.Case.mix "compile"
     end
   end
 
