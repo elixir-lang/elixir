@@ -14,10 +14,6 @@ defmodule Mix.Tasks.CompileTest do
     def project do
       [app: :custom_app, version: "0.1.0"]
     end
-
-    def location do
-      __FILE__
-    end
   end
 
   defmodule CustomCompilers do

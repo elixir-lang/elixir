@@ -13,10 +13,6 @@ defmodule Mix.Tasks.RunTest do
         ]
       ]
     end
-
-    def location do
-      __FILE__
-    end
   end
 
   test "run command with dependencies" do

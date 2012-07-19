@@ -7,10 +7,6 @@ defmodule Mix.Tasks.Compile.AppTest do
     def project do
       [app: :simple_project, version: "0.1.0"]
     end
-
-    def location do
-      __FILE__
-    end
   end
 
   defmodule CustomProject do
@@ -20,10 +16,6 @@ defmodule Mix.Tasks.Compile.AppTest do
 
     def application do
       [hello: 'beautiful']
-    end
-
-    def location do
-      __FILE__
     end
   end
 
