@@ -1,4 +1,6 @@
 defmodule Mix.SCM.Git do
+  @behavior Mix.SCM
+
   def key do
     :git
   end

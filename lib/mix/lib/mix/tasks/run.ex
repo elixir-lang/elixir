@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Run do
   """
   def run(args) do
     code = Enum.filter(args, fn(x) -> not match?("-" <> _, x) end)
-    Mix.Task.run "compile", args
+    Mix.Task.run "compile"
     Code.eval Enum.join(code, " ")
   end
 end

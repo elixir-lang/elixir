@@ -36,6 +36,21 @@ defmodule Mix.Tasks.Deps do
   end
 
   @doc """
+  Receives a list of deps names and returns deps records.
+  Raises an error if the dependency does not exist.
+  """
+  def by_name(given) do
+    candidates = all
+
+    Enum.map given, fn(app) ->
+      case List.keyfind(candidates, app, 2) do
+        nil -> raise Mix.Error, message: "unknown dependency #{app}"
+        dep -> dep
+      end
+    end
+  end
+
+  @doc """
   Formats the status of a dependency. It can be either:
 
   * `{ :ok, vsn }` - Everything is :ok, got version `vsn`;
@@ -91,13 +106,13 @@ defmodule Mix.Tasks.Deps do
 
   defp with_scm_and_status({ app, req, opts }) when is_atom(app) and
       (is_binary(req) or is_regex(req)) and is_list(opts) do
-    scm = Enum.find available_scm, opts[&1]
+    scm = Enum.find Mix.SCM.available, opts[&1]
 
     if scm do
-      scm_module = available_scm(scm)
+      scm_module = Mix.SCM.to_module(scm)
       { scm_module, app, req, status(scm_module, app, req, opts), opts }
     else
-      supported = Enum.join available_scm, ", "
+      supported = Enum.join Mix.SVM.available, ", "
       raise Mix.Error, message: "did not specify a supported scm, expected one of: " <> supported
     end
   end
@@ -106,12 +121,6 @@ defmodule Mix.Tasks.Deps do
     raise Mix.Error, message: %b(dependency specified in the wrong format: #{inspect other}, ) <>
       %b(expected { "app", "requirement", git: "location" })
   end
-
-  defp available_scm do
-    [:git]
-  end
-
-  defp available_scm(:git), do: Mix.SCM.Git
 
   defp status(scm, app, req, _) do
     deps_path = deps_path(app)

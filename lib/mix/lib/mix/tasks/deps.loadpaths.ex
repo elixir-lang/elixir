@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     destructure [no_check], args
 
     unless no_check == "--no-check" do
-      Mix.Task.run "deps.check", args
+      Mix.Task.run "deps.check"
     end
 
     Enum.each all(:ok), fn({ _, app, _, _, _ }) ->

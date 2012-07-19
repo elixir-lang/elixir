@@ -487,7 +487,7 @@ defmodule Module do
     { atom, 0 }
   end
 
-  defp normalize_attribute(:behavior, atom) when is_atom(atom) do
+  defp normalize_attribute(kind, atom) when kind in [:behavior, :behaviour] and is_atom(atom) do
     # Force the behavior to be preloaded so it
     # works as expected with the parallel compiler
     try do

@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Compile do
   it is considered to be command line instructions.
   """
 
-  import Mix.Tasks.Deps, only: [all: 0, all: 1, format_dep: 1, deps_path: 1]
+  import Mix.Tasks.Deps, only: [all: 0, all: 1, by_name: 1, format_dep: 1, deps_path: 1]
 
   def run(args) do
     case OptionParser.Simple.parse(args) do
@@ -41,16 +41,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
         do_compile(deps)
       { _, tail } ->
-        candidates = all
-
-        deps = Enum.map tail, fn(app) ->
-          case List.keyfind(candidates, app, 2) do
-            nil -> raise Mix.Error, message: "unknown dependency #{app}"
-            dep -> dep
-          end
-        end
-
-        do_compile(deps)
+        do_compile(by_name(tail))
     end
   end
 

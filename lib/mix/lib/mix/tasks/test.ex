@@ -21,8 +21,8 @@ defmodule Mix.Tasks.Test do
   for testing. Defaults to `test/test_helper.exs`.
   
   """
-  def run(args) do
-    Mix.Task.run "compile", args
+  def run(_) do
+    Mix.Task.run "compile"
     project = Mix.project
 
     test_pattern = project[:test_pattern] || "test/**/*_test.exs"
