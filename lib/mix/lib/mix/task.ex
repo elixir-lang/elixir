@@ -5,7 +5,6 @@ defmodule Mix.Task do
   A simple module that provides conveniences for creating tasks.
   """
 
-  @doc false
   def behaviour_info(:callbacks) do
     [run: 1]
   end
@@ -131,6 +130,13 @@ defmodule Mix.Task do
   """
   def reenable(task) do
     Mix.Server.cast({ :delete_task, to_binary(task) })
+  end
+
+  # Used internally by Mix to swap tasks in and out when
+  # moving in between projects.
+  @doc false
+  def set_tasks(tasks) do
+    Mix.Server.cast({ :set_tasks, tasks })
   end
 
   defp is_task?(module) do

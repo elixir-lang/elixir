@@ -9,15 +9,9 @@ defmodule Mix.Tasks.RunTest do
         app: :get_app,
         version: "0.1.0",
         deps: [
-          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), compile: :run_local }
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
         ]
       ]
-    end
-
-    # Use an explicit command because mix is
-    # not necessarily in the $PATH
-    def run_local(:git_repo) do
-      MixTest.Case.mix "compile"
     end
 
     def location do
@@ -34,6 +28,7 @@ defmodule Mix.Tasks.RunTest do
       assert_received { :mix_shell, :info, ["World"] }
     end
   after
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 end

@@ -16,7 +16,7 @@ defmodule Mix.CLI do
     file = "mix.exs"
 
     if File.regular?(file) do
-      Code.require_file file
+      Code.load_file file
     end
 
     args

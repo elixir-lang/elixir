@@ -31,7 +31,6 @@ defmodule Mix.Project do
   defined.
   """
 
-  @doc false
   def behaviour_info(:callbacks) do
     [project: 0, location: 0]
   end
@@ -59,6 +58,31 @@ defmodule Mix.Project do
   @doc false
   def pop do
     Mix.Server.cast(:pop_project)
+  end
+
+  # Loads the mix.exs file in the current directory
+  # and executes the given function. The project and
+  # tasks stack are properly manipulated, no side-effects
+  # should remain.
+  @doc false
+  def in_subproject(function) do
+    current = Mix.Project.current
+    tasks   = Mix.Task.clear
+
+    if File.regular?("mix.exs") do
+      Code.load_file "mix.exs"
+    end
+
+    if current == Mix.Project.current do
+      Mix.Project.push nil
+    end
+
+    try do
+      function.()
+    after
+      Mix.Project.pop
+      Mix.Task.set_tasks(tasks)
+    end
   end
 
   @doc """

@@ -21,15 +21,9 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), compile: :run_local }
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
         ]
       ]
-    end
-
-    # Use an explicit command because mix is
-    # not necessarily in the $PATH
-    def run_local(:git_repo) do
-      Mix.shell.info MixTest.Case.mix "compile"
     end
   end
 
@@ -157,9 +151,11 @@ defmodule Mix.Tasks.DepsTest do
       message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
-      assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex\nGenerated git_repo.app\n"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
+      assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
     end
   after
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 end

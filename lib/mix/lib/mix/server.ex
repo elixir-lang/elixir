@@ -52,6 +52,10 @@ defmodule Mix.Server do
     { :noreply, config.shell(name) }
   end
 
+  def handle_cast({ :set_tasks, tasks }, config) do
+    { :noreply, config.tasks(tasks) }
+  end
+
   def handle_cast({ :add_task, name }, config) do
     { :noreply, config.update_tasks :ordsets.add_element(name, &1) }
   end
