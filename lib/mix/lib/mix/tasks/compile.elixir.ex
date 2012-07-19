@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   def run(args) do
     destructure [force], args
 
-    project       = Mix.Project.config
+    project       = Mix.project
     compile_path  = project[:compile_path]  || "ebin"
     compile_first = project[:compile_first] || []
     source_paths  = project[:source_paths]  || ["lib"]

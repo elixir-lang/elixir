@@ -21,7 +21,7 @@ defmodule Mix.Project do
       end
 
   After defined, the configuration for this project can be read
-  as `Mix.Project.config/0`. Notice that config won't fail if a
+  as `Mix.project/0`. Notice that config won't fail if a
   project is not defined, this allows many of mix tasks to work
   even without a project.
 
@@ -59,20 +59,6 @@ defmodule Mix.Project do
   @doc false
   def pop do
     Mix.Server.cast(:pop_project)
-  end
-
-  @doc """
-  Retrieves the current project configuration. If there
-  isn't a project defined, this function will simply
-  return a keywords list with default values. This allows
-  many mix functions to work without a need for an
-  underlying project.
-  """
-  def config do
-    case Mix.Server.call(:projects) do
-      [h|_] when h != nil -> h.project
-      _ -> []
-    end
   end
 
   @doc """

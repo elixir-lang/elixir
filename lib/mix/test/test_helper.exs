@@ -1,5 +1,5 @@
 Mix.start
-Mix.shell(Mix.Shell.Test)
+Mix.shell(Mix.Shell.Process)
 ExUnit.start []
 
 defmodule MixTest.Case do
@@ -10,7 +10,7 @@ defmodule MixTest.Case do
 
       def teardown(_) do
         Mix.Task.clear
-        Mix.Shell.Test.flush
+        Mix.Shell.Process.flush
       end
 
       defoverridable [teardown: 1]

@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Compile.App do
     destructure [force], args
 
     project = Mix.Project.current
-    config  = Mix.Project.config
+    config  = Mix.project
 
     app     = Keyword.get!(config, :app)
     version = Keyword.get!(config, :version)

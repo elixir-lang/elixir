@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Test do
   """
   def run(_) do
     Enum.each ["compile", "loadpaths"], Mix.Task.run(&1)
-    project = Mix.Project.config
+    project = Mix.project
 
     test_pattern = project[:test_pattern] || "test/**/*_test.exs"
     test_helper  = project[:test_helper]  || "test/test_helper.exs"

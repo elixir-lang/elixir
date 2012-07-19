@@ -25,4 +25,17 @@ defmodule Mix do
   def shell(shell) do
     Mix.Server.cast({ :shell, shell })
   end
+
+  @doc """
+  Retrieves the current project configuration. If there
+  isn't a project defined, this function will simply
+  return an empty keywords list. This allows many mix
+  tasks to work without a need for an underlying project.
+  """
+  def project do
+    case Mix.Server.call(:projects) do
+      [h|_] when h != nil -> h.project
+      _ -> []
+    end
+  end
 end

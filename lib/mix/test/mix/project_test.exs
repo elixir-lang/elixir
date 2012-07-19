@@ -21,13 +21,13 @@ defmodule Mix.ProjectTest do
   
   test "retrieves configuration from projects" do
     Mix.Project.push(RealProject)
-    assert Mix.Project.config == [hello: "world"]
+    assert Mix.project == [hello: "world"]
   after
     Mix.Project.pop
   end
 
   test "retrieves configuration even when a project is not set" do
-    assert Mix.Project.config == []
+    assert Mix.project == []
   end
 
   test "raises an error when trying to retrieve the current a project but none it set" do

@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp get_compilers do
-    Mix.Project.config[:compilers] || if Mix.Project.defined? do
+    Mix.project[:compilers] || if Mix.Project.defined? do
       [:elixir, :app]
     else
       [:elixir]

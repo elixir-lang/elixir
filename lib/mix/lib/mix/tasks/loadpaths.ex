@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Loadpaths do
   """
 
   def run(_) do
-    path = Mix.Project.config[:compile_path] || "ebin"
+    path = Mix.project[:compile_path] || "ebin"
     Code.prepend_path(path)
   end
 end
