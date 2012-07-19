@@ -186,7 +186,9 @@ defmodule ExUnit.Assertions do
   ## END HELPERS
 
   @doc """
-  Assert a message was received and is in the current process mailbox.
+  Asserts a message was received and is in the current process mailbox.
+  The given `content` is expected to be a match pattern.
+
   Timeout is set to 0, so there is no waiting time.
 
   ## Examples
@@ -392,7 +394,9 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Refutes a message was not received (i.e. it is not in the current process mailbox).
+  Asserts a message was not received (i.e. it is not in the current process mailbox).
+  The given `content` is expected to be a match pattern.
+
   Timeout is set to 0, so there is no waiting time.
 
   ## Examples
