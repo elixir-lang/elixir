@@ -17,6 +17,16 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  defmodule GetApp do
+    def project do
+      [
+        deps: [
+          { "git_repo", "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
+        ]
+      ]
+    end
+  end
+
   defmodule SuccessfulDepsApp do
     def project do
       [
@@ -37,6 +47,16 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  defmodule RegexDepsApp do
+    def project do
+      [
+        deps: [
+          { "ok", %r"^0\.{1,2}",    git: "https://github.com/elixir-lang/ok.git" },
+          { "invalidvsn", %r"^2.0", git: "https://github.com/elixir-lang/invalidvsn.git" }
+        ]
+      ]
+    end
+  end
 
   test "prints list of dependencies and their status" do
     Mix.Project.push DepsApp
@@ -54,6 +74,21 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/noappfile.app"] }
       assert_received { :mix_shell, :info, ["* uncloned [git: \"https://github.com/elixir-lang/uncloned.git\"]"] }
       assert_received { :mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"] }
+    end
+  after
+    Mix.Project.pop
+  end
+
+  test "prints list of dependencies and their status including regex matches" do
+    Mix.Project.push RegexDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.run []
+
+      assert_received { :mix_shell, :info, ["* ok (0.1.0) [git: \"https://github.com/elixir-lang/ok.git\"]"] }
+      assert_received { :mix_shell, :info, ["  ok"] }
+      assert_received { :mix_shell, :info, ["* invalidvsn [git: \"https://github.com/elixir-lang/invalidvsn.git\"]"] }
+      assert_received { :mix_shell, :info, ["  the dependency does not match the specified version, got 0.1.0"] }
     end
   after
     Mix.Project.pop
@@ -103,6 +138,18 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["  could not find app file at deps/noappfile/ebin/noappfile.app"] }
       assert_received { :mix_shell, :error, ["* uncloned [git: \"https://github.com/elixir-lang/uncloned.git\"]"] }
       assert_received { :mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"] }
+    end
+  after
+    Mix.Project.pop
+  end
+
+  test "get git repos" do
+    Mix.Project.push GetApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
     end
   after
     Mix.Project.pop

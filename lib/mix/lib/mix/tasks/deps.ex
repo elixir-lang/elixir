@@ -68,6 +68,20 @@ defmodule Mix.Tasks.Deps do
     "#{app} #{version}[#{opts}]"
   end
 
+  @doc """
+  Returns the dependency path for the given application.
+  """
+  def deps_path(app) do
+    File.join deps_path, app
+  end
+
+  @doc """
+  Return the dependency path.
+  """
+  def deps_path do
+    Mix.project[:deps_path] || "deps"
+  end
+
   def run(_) do
     shell = Mix.shell
 
@@ -138,9 +152,5 @@ defmodule Mix.Tasks.Deps do
 
   defp vsn_match?(expected, actual) when is_regex(expected) do
     actual =~ expected
-  end
-
-  defp deps_path(app) do
-    File.join Mix.project[:deps_path] || "deps", app
   end
 end

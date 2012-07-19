@@ -3,6 +3,37 @@ Mix.shell(Mix.Shell.Process)
 
 ExUnit.start []
 
+target = File.expand_path("../fixtures/git_repo", __FILE__)
+
+unless File.dir?(target) do
+  IO.puts "Creating git repo for tests"
+  File.mkdir_p!(File.join(target, "lib"))
+
+  File.write!(File.join(target, "mix.exs"), """)
+  defmodule GitRepo.Mix do
+    use Mix.Project
+
+    def project do
+      [app: "git_repo", vsn: "0.1.0"]
+    end
+  end
+  """
+
+  File.write!(File.join(target, "lib/git_repo.ex"), """)
+  defmodule GitRepo do
+    def hello do
+      "World"
+    end
+  end
+  """
+
+  File.cd! target, fn ->
+    System.cmd("git init")
+    System.cmd("git add .")
+    System.cmd("git commit -m \"ok\"")
+  end
+end
+
 Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
   File.mkdir_p! File.expand_path("../fixtures/deps_status/deps/#{dep}/.git", __FILE__)
 end
