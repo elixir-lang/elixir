@@ -442,7 +442,13 @@ translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
     false ->
       case handle_partials(Line, Original, S) of
         error ->
-          Callback = fun() -> translate_local(Line, Atom, Args, S) end,
+          Callback = fun() ->
+            case S#elixir_scope.context of
+              guard -> syntax_error(Line, S#elixir_scope.file,
+                "cannot invoke local ~s/~B inside guard", [Atom, length(Args)]);
+              _ -> translate_local(Line, Atom, Args, S)
+            end
+          end,
           elixir_dispatch:dispatch_import(Line, Atom, Args, S, Callback);
         Else  -> Else
       end;
