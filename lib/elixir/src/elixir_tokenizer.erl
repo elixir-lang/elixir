@@ -73,47 +73,47 @@
 ).
 
 tokenize(String, Line, File) ->
-  tokenize(String, Line, File, []).
+  tokenize(String, Line, File, [], []).
 
-tokenize([], _Line, _File, Tokens) ->
+tokenize([], _Line, _File, _Terminators, Tokens) ->
   { ok, lists:reverse(Tokens) };
 
 % Base integers
 
-tokenize([$0,X,H|T], Line, File, Tokens) when (X == $x orelse X == $X), ?is_hex(H) ->
+tokenize([$0,X,H|T], Line, File, Terminators, Tokens) when (X == $x orelse X == $X), ?is_hex(H) ->
   { Rest, Number } = tokenize_hex([H|T], []),
-  tokenize(Rest, Line, File, [{number,Line,Number}|Tokens]);
+  tokenize(Rest, Line, File, Terminators, [{number,Line,Number}|Tokens]);
 
-tokenize([$0,O,H|T], Line, File, Tokens) when (O == $o orelse O == $O), ?is_octal(H) ->
+tokenize([$0,O,H|T], Line, File, Terminators, Tokens) when (O == $o orelse O == $O), ?is_octal(H) ->
   { Rest, Number } = tokenize_octal([H|T], []),
-  tokenize(Rest, Line, File, [{number,Line,Number}|Tokens]);
+  tokenize(Rest, Line, File, Terminators, [{number,Line,Number}|Tokens]);
 
-tokenize([$0,B,H|T], Line, File, Tokens) when (B == $b orelse B == $B), ?is_bin(H) ->
+tokenize([$0,B,H|T], Line, File, Terminators, Tokens) when (B == $b orelse B == $B), ?is_bin(H) ->
   { Rest, Number } = tokenize_bin([H|T], []),
-  tokenize(Rest, Line, File, [{number,Line,Number}|Tokens]);
+  tokenize(Rest, Line, File, Terminators, [{number,Line,Number}|Tokens]);
 
 % Comments
 
-tokenize([$#|String], Line, File, Tokens) ->
+tokenize([$#|String], Line, File, Terminators, Tokens) ->
   Rest = tokenize_comment(String),
-  tokenize(Rest, Line, File, Tokens);
+  tokenize(Rest, Line, File, Terminators, Tokens);
 
 % Sigils
 
-tokenize([$%,S,H,H,H|T], Line, File, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
+tokenize([$%,S,H,H,H|T], Line, File, Terminators, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
   case extract_heredoc_with_interpolation(Line, File, ?is_downcase(S), T, H) of
     { error, _ } = Error ->
       Error;
     { Parts, Rest } ->
       { Final, Modifiers } = collect_modifiers(Rest, []),
-      tokenize(Final, Line, File, [{sigil,Line,S,Parts,Modifiers}|Tokens])
+      tokenize(Final, Line, File, Terminators, [{sigil,Line,S,Parts,Modifiers}|Tokens])
   end;
 
-tokenize([$%,S,H|T], Line, File, Tokens) when not(?is_word(H)), ?is_upcase(S) orelse ?is_downcase(S) ->
+tokenize([$%,S,H|T], Line, File, Terminators, Tokens) when not(?is_word(H)), ?is_upcase(S) orelse ?is_downcase(S) ->
   case elixir_interpolation:extract(Line, File, ?is_downcase(S), T, terminator(H)) of
     { NewLine, Parts, Rest } ->
       { Final, Modifiers } = collect_modifiers(Rest, []),
-      tokenize(Final, NewLine, File, [{sigil,Line,S,Parts,Modifiers}|Tokens]);
+      tokenize(Final, NewLine, File, Terminators, [{sigil,Line,S,Parts,Modifiers}|Tokens]);
     Error ->
       Sigil = [$%,S,H],
       interpolation_error(Error, " (for sigil ~s starting at line ~B)", [Sigil, Line])
@@ -121,50 +121,50 @@ tokenize([$%,S,H|T], Line, File, Tokens) when not(?is_word(H)), ?is_upcase(S) or
 
 % Char tokens
 
-tokenize([$?,$\\,H|T], Line, File, Tokens) ->
+tokenize([$?,$\\,H|T], Line, File, Terminators, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
-  tokenize(T, Line, File, [{number,Line,Char}|Tokens]);
+  tokenize(T, Line, File, Terminators, [{number,Line,Char}|Tokens]);
 
-tokenize([$?,Char|T], Line, File, Tokens) ->
-  tokenize(T, Line, File, [{number,Line,Char}|Tokens]);
+tokenize([$?,Char|T], Line, File, Terminators, Tokens) ->
+  tokenize(T, Line, File, Terminators, [{number,Line,Char}|Tokens]);
 
 % Dot identifier
 
-tokenize("..." ++ Rest, Line, File, Tokens) ->
-  tokenize(Rest, Line, File, [tokenize_call_identifier(identifier, Line, '...', Rest)|Tokens]);
+tokenize("..." ++ Rest, Line, File, Terminators, Tokens) ->
+  tokenize(Rest, Line, File, Terminators, [tokenize_call_identifier(identifier, Line, '...', Rest)|Tokens]);
 
 % Dot operators
 
 % ## Containers
-tokenize(".<<>>" ++ Rest, Line, File, Tokens) ->
-  handle_call_identifier(Line, File, '<<>>', Rest, Tokens);
+tokenize(".<<>>" ++ Rest, Line, File, Terminators, Tokens) ->
+  handle_call_identifier(Line, File, Terminators, '<<>>', Rest, Tokens);
 
-tokenize([$.,T1,T2|Rest], Line, File, Tokens) when ?container2(T1, T2) ->
-  handle_call_identifier(Line, File, list_to_atom([T1, T2]), Rest, Tokens);
+tokenize([$.,T1,T2|Rest], Line, File, Terminators, Tokens) when ?container2(T1, T2) ->
+  handle_call_identifier(Line, File, Terminators, list_to_atom([T1, T2]), Rest, Tokens);
 
 % ## Three Token Operators
-tokenize([$.,T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3) ->
-  handle_call_identifier(Line, File, list_to_atom([T1, T2, T3]), Rest, Tokens);
+tokenize([$.,T1,T2,T3|Rest], Line, File, Terminators, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3) ->
+  handle_call_identifier(Line, File, Terminators, list_to_atom([T1, T2, T3]), Rest, Tokens);
 
 % ## Two Token Operators
-tokenize([$.,T1,T2|Rest], Line, File, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
-  handle_call_identifier(Line, File, list_to_atom([T1, T2]), Rest, Tokens);
+tokenize([$.,T1,T2|Rest], Line, File, Terminators, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
+  handle_call_identifier(Line, File, Terminators, list_to_atom([T1, T2]), Rest, Tokens);
 
 % ## Single Token Operators
-tokenize([$.,T|Rest], Line, File, Tokens) when ?comp1(T); ?op1(T); T == $& ->
-  handle_call_identifier(Line, File, list_to_atom([T]), Rest, Tokens);
+tokenize([$.,T|Rest], Line, File, Terminators, Tokens) when ?comp1(T); ?op1(T); T == $& ->
+  handle_call_identifier(Line, File, Terminators, list_to_atom([T]), Rest, Tokens);
 
 % Dot call
 
 % ## Exception for .( as it needs to be treated specially in the parser
-tokenize([$.,$(|Rest], Line, File, Tokens) ->
-  tokenize([$(|Rest], Line, File, add_token_with_nl({dot_call_op,Line,'.'}, Tokens));
+tokenize([$.,$(|Rest], Line, File, Terminators, Tokens) ->
+  tokenize([$(|Rest], Line, File, Terminators, add_token_with_nl({dot_call_op,Line,'.'}, Tokens));
 
-tokenize([$.,H|T], Line, File, Tokens) when ?is_quote(H) ->
+tokenize([$.,H|T], Line, File, Terminators, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, [Part], Rest } when is_binary(Part) ->
       Atom = binary_to_atom(Part, utf8),
-      tokenize(Rest, NewLine, File,
+      tokenize(Rest, NewLine, File, Terminators,
         [tokenize_call_identifier(identifier, Line, Atom, Rest)|add_token_with_nl({'.',Line}, Tokens)]);
     Error ->
       interpolation_error(Error, " (for function name starting at line ~B)", [Line])
@@ -172,23 +172,23 @@ tokenize([$.,H|T], Line, File, Tokens) when ?is_quote(H) ->
 
 % Heredocs
 
-tokenize("\"\"\"" ++ T, Line, File, Tokens) -> handle_heredocs(Line, File, $", T, Tokens);
-tokenize("'''" ++ T, Line, File, Tokens)    -> handle_heredocs(Line, File, $', T, Tokens);
+tokenize("\"\"\"" ++ T, Line, File, Terminators, Tokens) -> handle_heredocs(Line, File, Terminators, $", T, Tokens);
+tokenize("'''" ++ T, Line, File, Terminators, Tokens)    -> handle_heredocs(Line, File, Terminators, $', T, Tokens);
 
 % Strings
 
-tokenize([$"|T], Line, File, Tokens) -> handle_strings(Line, File, $", T, Tokens);
-tokenize([$'|T], Line, File, Tokens) -> handle_strings(Line, File, $', T, Tokens);
+tokenize([$"|T], Line, File, Terminators, Tokens) -> handle_strings(Line, File, Terminators, $", T, Tokens);
+tokenize([$'|T], Line, File, Terminators, Tokens) -> handle_strings(Line, File, Terminators, $', T, Tokens);
 
 % Atoms
 
-tokenize([$:,T|String], Line, File, Tokens) when ?is_upcase(T); ?is_downcase(T); T == $_ ->
+tokenize([$:,T|String], Line, File, Terminators, Tokens) when ?is_upcase(T); ?is_downcase(T); T == $_ ->
   { Rest, Atom } = tokenize_atom([T|String], []),
-  tokenize(Rest, Line, File, [{atom,Line,[Atom]}|Tokens]);
+  tokenize(Rest, Line, File, Terminators, [{atom,Line,[Atom]}|Tokens]);
 
-tokenize([$:,H|T], Line, File, Tokens) when ?is_quote(H) ->
+tokenize([$:,H|T], Line, File, Terminators, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
-    { NewLine, Parts, Rest } -> tokenize(Rest, NewLine, File, [{atom,Line,unescape_tokens(Parts)}|Tokens]);
+    { NewLine, Parts, Rest } -> tokenize(Rest, NewLine, File, Terminators, [{atom,Line,unescape_tokens(Parts)}|Tokens]);
     Error ->
       interpolation_error(Error, " (for atom starting at line ~B)", [Line])
   end;
@@ -196,177 +196,182 @@ tokenize([$:,H|T], Line, File, Tokens) when ?is_quote(H) ->
 % Atom operators
 
 % ## Containers
-tokenize(":<<>>" ++ Rest, Line, File, Tokens) ->
-  tokenize(Rest, Line, File, [{atom,Line,['<<>>']}|Tokens]);
+tokenize(":<<>>" ++ Rest, Line, File, Terminators, Tokens) ->
+  tokenize(Rest, Line, File, Terminators, [{atom,Line,['<<>>']}|Tokens]);
 
-tokenize([$:,T1,T2|Rest], Line, File, Tokens) when ?container2(T1, T2) ->
-  tokenize(Rest, Line, File, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
+tokenize([$:,T1,T2|Rest], Line, File, Terminators, Tokens) when ?container2(T1, T2) ->
+  tokenize(Rest, Line, File, Terminators, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
 
 % ## Three Token Operators
-tokenize([$:,T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3)  ->
-  tokenize(Rest, Line, File, [{atom,Line,[list_to_atom([T1,T2,T3])]}|Tokens]);
+tokenize([$:,T1,T2,T3|Rest], Line, File, Terminators, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3)  ->
+  tokenize(Rest, Line, File, Terminators, [{atom,Line,[list_to_atom([T1,T2,T3])]}|Tokens]);
 
 % ## Two Token Operators
-tokenize([$:,T1,T2|Rest], Line, File, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
-  tokenize(Rest, Line, File, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
+tokenize([$:,T1,T2|Rest], Line, File, Terminators, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
+  tokenize(Rest, Line, File, Terminators, [{atom,Line,[list_to_atom([T1,T2])]}|Tokens]);
 
 % ## Single Token Operators
-tokenize([$:,T|Rest], Line, File, Tokens) when ?comp1(T); ?op1(T); T == $&; T == $. ->
-  tokenize(Rest, Line, File, [{atom,Line,[list_to_atom([T])]}|Tokens]);
+tokenize([$:,T|Rest], Line, File, Terminators, Tokens) when ?comp1(T); ?op1(T); T == $&; T == $. ->
+  tokenize(Rest, Line, File, Terminators, [{atom,Line,[list_to_atom([T])]}|Tokens]);
 
 % End of line
 
-tokenize(";" ++ Rest, Line, File, []) ->
-  tokenize(Rest, Line, File, eol(Line, $;, []));
+tokenize(";" ++ Rest, Line, File, Terminators, []) ->
+  tokenize(Rest, Line, File, Terminators, eol(Line, $;, []));
 
-tokenize(";" ++ Rest, Line, File, [Top|Tokens]) when element(1, Top) /= eol ->
-  tokenize(Rest, Line, File, eol(Line, $;, [Top|Tokens]));
+tokenize(";" ++ Rest, Line, File, Terminators, [Top|Tokens]) when element(1, Top) /= eol ->
+  tokenize(Rest, Line, File, Terminators, eol(Line, $;, [Top|Tokens]));
 
-tokenize("\\\n" ++ Rest, Line, File, Tokens) ->
-  tokenize(Rest, Line + 1, File, Tokens);
+tokenize("\\\n" ++ Rest, Line, File, Terminators, Tokens) ->
+  tokenize(Rest, Line + 1, File, Terminators, Tokens);
 
-tokenize("\\\r\n" ++ Rest, Line, File, Tokens) ->
-  tokenize(Rest, Line + 1, File, Tokens);
+tokenize("\\\r\n" ++ Rest, Line, File, Terminators, Tokens) ->
+  tokenize(Rest, Line + 1, File, Terminators, Tokens);
 
-tokenize("\n" ++ Rest, Line, File, Tokens) ->
-  tokenize(Rest, Line + 1, File, eol(Line, $\n, Tokens));
+tokenize("\n" ++ Rest, Line, File, Terminators, Tokens) ->
+  tokenize(Rest, Line + 1, File, Terminators, eol(Line, $\n, Tokens));
 
-tokenize("\r\n" ++ Rest, Line, File, Tokens) ->
-  tokenize(Rest, Line + 1, File, eol(Line, $\n, Tokens));
+tokenize("\r\n" ++ Rest, Line, File, Terminators, Tokens) ->
+  tokenize(Rest, Line + 1, File, Terminators, eol(Line, $\n, Tokens));
 
 % Stand-alone tokens
 
 % ## &
-tokenize([$&,H|Rest], Line, File, Tokens) when ?is_digit(H) ->
-  tokenize(Rest, Line, File, [{'&', Line, [list_to_integer([H])]}|Tokens]);
+tokenize([$&,H|Rest], Line, File, Terminators, Tokens) when ?is_digit(H) ->
+  tokenize(Rest, Line, File, Terminators, [{'&', Line, [list_to_integer([H])]}|Tokens]);
 
 % ## Comparison three token operators
-tokenize([T1,T2,T3|Rest], Line, File, Tokens) when ?comp3(T1, T2, T3) ->
-  handle_comp_op(Line, File, list_to_atom([T1,T2,T3]), Rest, Tokens);
+tokenize([T1,T2,T3|Rest], Line, File, Terminators, Tokens) when ?comp3(T1, T2, T3) ->
+  handle_comp_op(Line, File, Terminators, list_to_atom([T1,T2,T3]), Rest, Tokens);
 
 % ## Three token operators
-tokenize([T1,T2,T3|Rest], Line, File, Tokens) when ?op3(T1, T2, T3) ->
-  handle_op(Line, File, list_to_atom([T1,T2,T3]), Rest, Tokens, 3);
+tokenize([T1,T2,T3|Rest], Line, File, Terminators, Tokens) when ?op3(T1, T2, T3) ->
+  handle_op(Line, File, Terminators, list_to_atom([T1,T2,T3]), Rest, Tokens, 3);
 
 % ## Containers + punctuation tokens
 
-tokenize([T,T|Rest], Line, File, Tokens) when T == $<; T == $> ->
-  tokenize(Rest, Line, File, [{list_to_atom([T,T]), Line}|Tokens]);
+tokenize([T,T|Rest], Line, File, Terminators, Tokens) when T == $<; T == $> ->
+  tokenize(Rest, Line, File, Terminators, [{list_to_atom([T,T]), Line}|Tokens]);
 
-tokenize([T|Rest], Line, File, Tokens) when T == $(;
+tokenize([T|Rest], Line, File, Terminators, Tokens) when T == $(;
   T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
-  tokenize(Rest, Line, File, [{list_to_atom([T]), Line}|Tokens]);
+  tokenize(Rest, Line, File, Terminators, [{list_to_atom([T]), Line}|Tokens]);
 
 % ## Comparison two token operators
-tokenize([T1,T2|Rest], Line, File, Tokens) when ?comp2(T1, T2) ->
-  handle_comp_op(Line, File, list_to_atom([T1,T2]), Rest, Tokens);
+tokenize([T1,T2|Rest], Line, File, Terminators, Tokens) when ?comp2(T1, T2) ->
+  handle_comp_op(Line, File, Terminators, list_to_atom([T1,T2]), Rest, Tokens);
 
 % ## Two Token Operators
-tokenize([T1,T2|Rest], Line, File, Tokens) when ?op2(T1, T2) ->
-  handle_op(Line, File, list_to_atom([T1,T2]), Rest, Tokens, 2);
+tokenize([T1,T2|Rest], Line, File, Terminators, Tokens) when ?op2(T1, T2) ->
+  handle_op(Line, File, Terminators, list_to_atom([T1,T2]), Rest, Tokens, 2);
 
 % ## Comparison single token operators
-tokenize([T|Rest], Line, File, Tokens) when ?comp1(T) ->
-  handle_comp_op(Line, File, list_to_atom([T]), Rest, Tokens);
+tokenize([T|Rest], Line, File, Terminators, Tokens) when ?comp1(T) ->
+  handle_comp_op(Line, File, Terminators, list_to_atom([T]), Rest, Tokens);
 
 % ## Single Token Operators
-tokenize([T|Rest], Line, File, Tokens) when ?op1(T) ->
-  handle_op(Line, File, list_to_atom([T]), Rest, Tokens, 1);
+tokenize([T|Rest], Line, File, Terminators, Tokens) when ?op1(T) ->
+  handle_op(Line, File, Terminators, list_to_atom([T]), Rest, Tokens, 1);
 
-tokenize([$.|Rest], Line, File, Tokens) ->
-  tokenize(Rest, Line, File, add_token_with_nl({'.', Line}, Tokens));
+tokenize([$.|Rest], Line, File, Terminators, Tokens) ->
+  tokenize(Rest, Line, File, Terminators, add_token_with_nl({'.', Line}, Tokens));
 
 % Integers and floats
 
-tokenize([H|_] = String, Line, File, Tokens) when ?is_digit(H) ->
+tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_digit(H) ->
   { Rest, Number } = tokenize_number(String, [], false),
-  tokenize(Rest, Line, File, [{number,Line,Number}|Tokens]);
+  tokenize(Rest, Line, File, Terminators, [{number,Line,Number}|Tokens]);
 
 % Aliases
 
-tokenize([H|_] = String, Line, File, Tokens) when ?is_upcase(H) ->
+tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_upcase(H) ->
   { Rest, Alias } = tokenize_identifier(String, [], false),
-  tokenize(Rest, Line, File, [{'__aliases__',Line,[list_to_atom(Alias)]}|Tokens]);
+  tokenize(Rest, Line, File, Terminators, [{'__aliases__',Line,[list_to_atom(Alias)]}|Tokens]);
 
 % Identifier
 
-tokenize([H|_] = String, Line, File, Tokens) when ?is_downcase(H); H == $_ ->
+tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_downcase(H); H == $_ ->
   { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(Line, File, String, []),
   case keyword(Line, Kind, Identifier, Tokens) of
     false ->
-      tokenize(Rest, Line, File, [{Kind,Line,Identifier}|Tokens]);
+      tokenize(Rest, Line, File, Terminators, [{Kind,Line,Identifier}|Tokens]);
     Else  ->
-      tokenize(Rest, Line, File, Else)
+      tokenize(Rest, Line, File, Terminators, Else)
   end;
 
 % Ambiguous unary/binary operators tokens
 
-tokenize([Space,Sign,NotMarker|T], Line, File, [{Identifier,_,_} = H|Tokens]) when Sign == $+ orelse Sign == $-,
+tokenize([Space,Sign,NotMarker|T], Line, File, Terminators, [{Identifier,_,_} = H|Tokens]) when Sign == $+ orelse Sign == $-,
   Space == $\s orelse Space == $\t,
   NotMarker /= $\s, NotMarker /= $\t, NotMarker /= $\r,
   NotMarker /= $\n, NotMarker /= $:, NotMarker /= $(,
   NotMarker /= $+, NotMarker /= $-, NotMarker /= $>,
   Identifier == identifier orelse Identifier == punctuated_identifier ->
   Rest = [NotMarker|T],
-  tokenize(Rest, Line, File, [{list_to_atom([Sign]),Line},setelement(1, H, op_identifier)|Tokens]);
+  tokenize(Rest, Line, File, Terminators, [{list_to_atom([Sign]),Line},setelement(1, H, op_identifier)|Tokens]);
 
 % Spaces
 
-tokenize([T|Rest], Line, File, Tokens) when T == $\s; T == $\r; T == $\t ->
-  tokenize(Rest, Line, File, Tokens);
+tokenize([T|Rest], Line, File, Terminators, Tokens) when T == $\s; T == $\r; T == $\t ->
+  tokenize(Rest, Line, File, Terminators, Tokens);
 
-tokenize([{line,Line}|Rest], _, File, Tokens) ->
-  tokenize(Rest, Line, File, Tokens);
+tokenize([{line,Line}|Rest], _, File, Terminators, Tokens) ->
+  tokenize(Rest, Line, File, Terminators, Tokens);
 
-tokenize(T, Line, _File, _) ->
-  { error, { Line, "invalid token: ", T } }.
+tokenize(T, Line, _File, _Termiantors, _Tokens) ->
+  { error, { Line, "invalid token: ", until_eol(T) } }.
+
+until_eol("\r\n" ++ _) -> [];
+until_eol("\n" ++ _)   -> [];
+until_eol([])          -> [];
+until_eol([H|T])       -> [H|until_eol(T)].
 
 %% Handlers
 
-handle_heredocs(Line, File, H, T, Tokens) ->
+handle_heredocs(Line, File, Terminators, H, T, Tokens) ->
   case extract_heredoc_with_interpolation(Line, File, true, T, H) of
     { error, _ } = Error ->
       Error;
     { Parts, Rest } ->
       Token = { string_type(H), Line, unescape_tokens(Parts) },
-      tokenize(Rest, Line, File, [Token|Tokens])
+      tokenize(Rest, Line, File, Terminators, [Token|Tokens])
   end.
 
-handle_strings(Line, File, H, T, Tokens) ->
+handle_strings(Line, File, Terminators, H, T, Tokens) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, Parts, [$:|Rest] } ->
       case Parts of
         [Bin] when is_binary(Bin) ->
           Atom = binary_to_atom(unescape_chars(Bin), utf8),
-          tokenize(Rest, NewLine, File, [{kw_identifier,Line,Atom}|Tokens]);
+          tokenize(Rest, NewLine, File, Terminators, [{kw_identifier,Line,Atom}|Tokens]);
         _ ->
           { error, { Line, "invalid interpolation in key", [$"|T] } }
       end;
     { NewLine, Parts, Rest } ->
       Token = { string_type(H),Line,unescape_tokens(Parts) },
-      tokenize(Rest, NewLine, File, [Token|Tokens]);
+      tokenize(Rest, NewLine, File, Terminators, [Token|Tokens]);
     Error ->
       interpolation_error(Error, " (for string starting at line ~B)", [Line])
   end.
 
-handle_comp_op(Line, File, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
-  tokenize(Rest, Line, File, [{kw_identifier, Line, Op}|Tokens]);
+handle_comp_op(Line, File, Terminators, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
+  tokenize(Rest, Line, File, Terminators, [{kw_identifier, Line, Op}|Tokens]);
 
-handle_comp_op(Line, File, Op, Rest, Tokens) ->
-  tokenize(Rest, Line, File, add_token_with_nl({comp_op, Line, Op}, Tokens)).
+handle_comp_op(Line, File, Terminators, Op, Rest, Tokens) ->
+  tokenize(Rest, Line, File, Terminators, add_token_with_nl({comp_op, Line, Op}, Tokens)).
 
-handle_op(Line, File, Op, [$:,S|Rest], Tokens, _) when ?is_space(S) ->
-  tokenize(Rest, Line, File, [{kw_identifier, Line, Op}|Tokens]);
+handle_op(Line, File, Terminators, Op, [$:,S|Rest], Tokens, _) when ?is_space(S) ->
+  tokenize(Rest, Line, File, Terminators, [{kw_identifier, Line, Op}|Tokens]);
 
-handle_op(Line, File, Op, Rest, Tokens, 1) ->
-  tokenize(Rest, Line, File, [{Op, Line}|Tokens]);
+handle_op(Line, File, Terminators, Op, Rest, Tokens, 1) ->
+  tokenize(Rest, Line, File, Terminators, [{Op, Line}|Tokens]);
 
-handle_op(Line, File, Op, Rest, Tokens, _) ->
-  tokenize(Rest, Line, File, add_token_with_nl({Op, Line}, Tokens)).
+handle_op(Line, File, Terminators, Op, Rest, Tokens, _) ->
+  tokenize(Rest, Line, File, Terminators, add_token_with_nl({Op, Line}, Tokens)).
 
-handle_call_identifier(Line, File, Op, Rest, Tokens) ->
+handle_call_identifier(Line, File, Terminators, Op, Rest, Tokens) ->
   Token = tokenize_call_identifier(identifier, Line, Op, Rest),
-  tokenize(Rest, Line, File, [Token|add_token_with_nl({'.',Line}, Tokens)]).
+  tokenize(Rest, Line, File, Terminators, [Token|add_token_with_nl({'.',Line}, Tokens)]).
 
 %% Helpers
 
@@ -622,11 +627,9 @@ add_token_with_nl(Left, [{eol,_,$\n}|T]) -> [Left|T];
 add_token_with_nl(Left, T) -> [Left|T].
 
 % Error handling
-interpolation_error({ error, { Line, Message, Token } }, Extension, Args) ->
-  { error, { Line, improve_error(Message, Extension, Args), Token } }.
 
-improve_error(Message, Extension, Args) ->
-  io_lib:format("~s" ++ Extension, [Message|Args]).
+interpolation_error({ error, { Line, Message, Token } }, Extension, Args) ->
+  { error, { Line, io_lib:format("~s" ++ Extension, [Message|Args]), Token } }.
 
 % String type
 string_type($") -> bin_string;

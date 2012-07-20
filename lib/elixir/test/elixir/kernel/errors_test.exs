@@ -11,7 +11,7 @@ defmodule Kernel.ErrorsTest do
   defrecord Config, integer: 0
 
   test :invalid_token do
-    assert "nofile:1: invalid token: \end" == format_rescue '\end'
+    assert "nofile:1: invalid token: \end" == format_rescue '\end\nlol\nbarbecue'
   end
 
   test :sigil_terminator do
