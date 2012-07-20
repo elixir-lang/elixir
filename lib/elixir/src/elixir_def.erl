@@ -220,7 +220,7 @@ unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Fu
   );
 
 unwrap_stored_definition([], Exports, Private, Def, Defmacro, Defmacrop, {Functions,Tail}) ->
-  { Exports, Private, Def, Defmacro, Defmacrop, lists:reverse(Tail ++ Functions) }.
+  { Exports, Private, ordsets:from_list(Def), ordsets:from_list(Defmacro), ordsets:from_list(Defmacrop), lists:reverse(Tail ++ Functions) }.
 
 %% Helpers
 

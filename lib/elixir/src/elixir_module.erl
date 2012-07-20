@@ -56,13 +56,15 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
   build(Line, File, Module),
 
   try
-    Result           = eval_form(Line, Module, Block, Vars, S),
-    { Funs, Forms0 } = functions_form(Line, File, Module, C),
-    Forms1           = attributes_form(Line, File, Module, Forms0),
-    Forms2           = specs_form(Line, Module, Forms1),
+    Result = eval_form(Line, Module, Block, Vars, S),
+    { Export, Private, Def, Defmacro, Defmacrop, Functions } = elixir_def:unwrap_stored_definitions(Module),
 
-    elixir_import:ensure_no_local_conflict(Line, File, Module, Funs),
-    elixir_import:ensure_no_import_conflict(Line, File, Module, Funs),
+    { All, Forms0 } = functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Functions, C),
+    Forms1           = attributes_form(Line, File, Module, Forms0),
+    Forms2           = specs_form(Line, Module, Def, Defmacro, Defmacrop, Forms1),
+
+    elixir_import:ensure_no_local_conflict(Line, File, Module, All),
+    elixir_import:ensure_no_import_conflict(Line, File, Module, All),
 
     Final = [
       {attribute, Line, file, {File,Line}},
@@ -130,10 +132,7 @@ eval_form(Line, Module, Block, Vars, RawS) ->
   Value.
 
 %% Return the form with exports and function declarations.
-
-functions_form(Line, File, Module, C) ->
-  { Export, Private, Def, Defmacro, Defmacrop, Functions } = elixir_def:unwrap_stored_definitions(Module),
-
+functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Functions, C) ->
   { FinalExport, FinalFunctions } =
     add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C),
 
@@ -168,12 +167,45 @@ attributes_form(Line, _File, Module, Current) ->
 
 %% Specs
 
-specs_form(Line, Module, Forms) ->
-  Specs = ets:tab2list(spec_table(Module)),
-  Keys  = lists:ukeysort(1, Specs),
-  lists:foldl(fun({ {T, K} = Tuple, _ }, Acc) ->
-    [{ attribute, Line, T, { K, proplists:append_values(Tuple, Specs) } }|Acc]
+specs_form(Line, Module, Def, Defmacro, Defmacrop, Forms) ->
+  { Specs, Callbacks } = ets:foldl(fun(X, Acc) ->
+    translate_spec(X, Module, Def, Defmacro, Defmacrop, Acc)
+  end, { [], [] }, spec_table(Module)),
+
+  Temp = specs_attributes(Line, spec, Forms, Specs),
+  specs_attributes(Line, callback, Temp, Callbacks).
+
+specs_attributes(Line, Type, Forms, Specs) ->
+  Keys = lists:ukeysort(1, Specs),
+  lists:foldl(fun({ Tuple, _ }, Acc) ->
+    [{ attribute, Line, Type, { Tuple, proplists:append_values(Tuple, Specs) } }|Acc]
   end, Forms, Keys).
+
+translate_spec({ { spec, Spec }, Rest }, Module, Def, Defmacro, Defmacrop, { Specs, Callbacks } = Acc) ->
+  case ordsets:is_element(Spec, Defmacrop) of
+    true  -> Acc;
+    false ->
+      case ordsets:is_element(Spec, Defmacro) of
+        true ->
+          { Name, Arity } = Spec,
+          New = { { ?ELIXIR_MACRO(Name), Arity + 1 }, [spec_for_macro(X) || X <- Rest] },
+          { [New|Specs], Callbacks };
+        false ->
+          case (Module == 'Elixir.Elixir.Builtin') andalso (not ordsets:is_element(Spec, Def)) of
+            true  -> Acc;
+            false -> { [{ Spec, Rest }|Specs], Callbacks }
+          end
+      end
+  end;
+
+translate_spec({ { callback, Spec }, Rest }, _, _, _, _, { Specs, Callbacks }) ->
+  { Specs, [{ Spec, Rest }|Callbacks] }.
+
+spec_for_macro({ type, Line, 'fun', [{ type, _, product, Args }|T] }) ->
+  NewArgs = [{type,Line,term,[]}|Args],
+  { type, Line, 'fun', [{ type, Line, product, NewArgs }|T] };
+
+spec_for_macro(Else) -> Else.
 
 %% Loads the form into the code server.
 
@@ -224,13 +256,12 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
       { [Pair|Export], [Contents|Functions] }
   end.
 
-functions_clause(Line, Def) ->
-  Sorted = ordsets:from_list([{'__info__',1}|Def]),
-  { clause, Line, [{ atom, Line, functions }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
+functions_clause(Line, RawDef) ->
+  Def = ordsets:add_element({'__info__',1}, RawDef),
+  { clause, Line, [{ atom, Line, functions }], [], [elixir_tree_helpers:abstract_syntax(Def)] }.
 
 macros_clause(Line, Defmacro) ->
-  Sorted = ordsets:from_list(Defmacro),
-  { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Sorted)] }.
+  { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Defmacro)] }.
 
 docs_clause(Line, Module, true) ->
   Docs = ordsets:from_list(ets:tab2list(docs_table(Module))),
