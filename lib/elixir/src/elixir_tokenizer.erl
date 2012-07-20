@@ -75,8 +75,13 @@
 tokenize(String, Line, File) ->
   tokenize(String, Line, File, [], []).
 
-tokenize([], _Line, _File, _Terminators, Tokens) ->
+tokenize([], _Line, _File, [], Tokens) ->
   { ok, lists:reverse(Tokens) };
+
+tokenize([], EndLine, _File, [{ Start, StartLine }|_], _Tokens) ->
+  End     = terminator(Start),
+  Message = io_lib:format("missing terminator: ~s (for ~s starting at line ~B)", [End, Start, StartLine]),
+  { error, { EndLine, Message, [] } };
 
 % Base integers
 
@@ -110,7 +115,7 @@ tokenize([$%,S,H,H,H|T], Line, File, Terminators, Tokens) when ?is_quote(H), ?is
   end;
 
 tokenize([$%,S,H|T], Line, File, Terminators, Tokens) when not(?is_word(H)), ?is_upcase(S) orelse ?is_downcase(S) ->
-  case elixir_interpolation:extract(Line, File, ?is_downcase(S), T, terminator(H)) of
+  case elixir_interpolation:extract(Line, File, ?is_downcase(S), T, sigil_terminator(H)) of
     { NewLine, Parts, Rest } ->
       { Final, Modifiers } = collect_modifiers(Rest, []),
       tokenize(Final, NewLine, File, Terminators, [{sigil,Line,S,Parts,Modifiers}|Tokens]);
@@ -251,11 +256,19 @@ tokenize([T1,T2,T3|Rest], Line, File, Terminators, Tokens) when ?op3(T1, T2, T3)
 % ## Containers + punctuation tokens
 
 tokenize([T,T|Rest], Line, File, Terminators, Tokens) when T == $<; T == $> ->
-  tokenize(Rest, Line, File, Terminators, [{list_to_atom([T,T]), Line}|Tokens]);
+  Token = { list_to_atom([T,T]), Line },
+  case handle_terminator(Token, Terminators) of
+    { error, _ } = Error -> Error;
+    New -> tokenize(Rest, Line, File, New, [Token|Tokens])
+  end;
 
 tokenize([T|Rest], Line, File, Terminators, Tokens) when T == $(;
-  T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
-  tokenize(Rest, Line, File, Terminators, [{list_to_atom([T]), Line}|Tokens]);
+    T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
+  Token = { list_to_atom([T]), Line },
+  case handle_terminator(Token, Terminators) of
+    { error, _ } = Error -> Error;
+    New -> tokenize(Rest, Line, File, New, [Token|Tokens])
+  end;
 
 % ## Comparison two token operators
 tokenize([T1,T2|Rest], Line, File, Terminators, Tokens) when ?comp2(T1, T2) ->
@@ -295,8 +308,11 @@ tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_downcase(H); 
   case keyword(Line, Kind, Identifier, Tokens) of
     false ->
       tokenize(Rest, Line, File, Terminators, [{Kind,Line,Identifier}|Tokens]);
-    Else  ->
-      tokenize(Rest, Line, File, Terminators, Else)
+    [Check|T] ->
+      case handle_terminator(Check, Terminators) of
+        { error, _ } = Error -> Error;
+        New -> tokenize(Rest, Line, File, New, [Check|T])
+      end
   end;
 
 % Ambiguous unary/binary operators tokens
@@ -631,16 +647,45 @@ add_token_with_nl(Left, T) -> [Left|T].
 interpolation_error({ error, { Line, Message, Token } }, Extension, Args) ->
   { error, { Line, io_lib:format("~s" ++ Extension, [Message|Args]), Token } }.
 
-% String type
+% Terminators
+
 string_type($") -> bin_string;
 string_type($') -> list_string.
 
-% Terminator
-terminator($() -> $);
-terminator($[) -> $];
-terminator(${) -> $};
-terminator($<) -> $>;
-terminator(O) -> O.
+sigil_terminator($() -> $);
+sigil_terminator($[) -> $];
+sigil_terminator(${) -> $};
+sigil_terminator($<) -> $>;
+sigil_terminator(O) -> O.
+
+handle_terminator({ S, _ } = New, Terminators) when
+    S == '(';
+    S == '[';
+    S == '{';
+    S == '<<' ->
+  [New|Terminators];
+
+handle_terminator({ E, _ }, [{ S, _ }|Terminators]) when
+    S == '(',  E == ')';
+    S == '[',  E == ']';
+    S == '{',  E == '}';
+    S == '<<', E == '>>' ->
+  Terminators;
+
+handle_terminator({ E, Line }, _) when
+    E == ')';
+    E == ']';
+    E == '}';
+    E == '>>' ->
+  { error, { Line, "unexpected token: ", atom_to_list(E) } };
+
+handle_terminator(_, Terminators) ->
+  Terminators.
+
+terminator('(')  -> ')';
+terminator('[')  -> ']';
+terminator('{')  -> '}';
+terminator('<<') -> '>>'.
 
 % Keywords check
 keyword(Line, do_identifier, fn, Tokens) ->

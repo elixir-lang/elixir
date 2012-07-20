@@ -43,15 +43,18 @@ parse_error(Line, File, Error, []) ->
   end,
   raise(Line, File, 'Elixir.TokenMissingError', Message);
 
+parse_error(Line, File, "syntax error before: ", "'end'") ->
+  raise(Line, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
+
 parse_error(Line, File, Error, Token) ->
   BinError = if
     is_atom(Error) -> atom_to_binary(Error, utf8);
     true -> iolist_to_binary(Error)
   end,
 
-  BinToken = case Token of
-    [] -> <<>>;
-    _  -> iolist_to_binary(Token)
+  BinToken = if
+    Token == [] -> <<>>;
+    true        -> iolist_to_binary(Token)
   end,
 
   Message = <<BinError / binary, BinToken / binary >>,

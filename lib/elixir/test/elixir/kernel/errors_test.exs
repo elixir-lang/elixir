@@ -35,12 +35,16 @@ defmodule Kernel.ErrorsTest do
     assert "nofile:1: partial variable &2 cannot be defined without &1" == format_rescue '&2 + 3'
   end
 
+  test :unexpected_end do
+    assert "nofile:1: unexpected token: end" == format_rescue '1 end'
+  end
+
   test :syntax_error do
-    assert "nofile:1: syntax error before: '}'" == format_rescue 'case 1 do }'
+    assert "nofile:1: syntax error before: '.'" == format_rescue '+.foo'
   end
 
   test :syntax_error_with_no_token do
-    assert "nofile:1: syntax error: expression is incomplete" == format_rescue 'case 1 do'
+    assert "nofile:1: missing terminator: ) (for ( starting at line 1)" == format_rescue 'case 1 ('
   end
 
   test :bad_form do
@@ -137,7 +141,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :interpolation_error do
-    assert "nofile:1: syntax error before: ')'" == format_rescue '"foo\#{case 1 do )}bar"'
+    assert "nofile:1: unexpected token: )" == format_rescue '"foo\#{case 1 do )}bar"'
   end
 
   test :cant_define_local_due_to_in_erlang_macros_conflict do
