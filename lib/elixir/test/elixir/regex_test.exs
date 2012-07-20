@@ -8,6 +8,10 @@ defmodule Regex.BinaryTest do
     assert Regex.match?(%r/^b$/m, "a\nb\nc")
   end
 
+  test :backreference do
+    assert "aa" =~ %r/(a)\1/
+  end
+
   test :compile do
     assert is_record(Regex.compile("foo"), Regex)
     assert is_regex(Regex.compile("foo"))

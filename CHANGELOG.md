@@ -15,6 +15,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
+  * [Regex] Backreferences are now properly supported;
   * [IEx] Elixir now defaults to compile with documentation and `d` can be used in IEx to print modules and functions documentation;
   * [ExUnit] Support setup and teardown callbacks;
   * [Kernel] Introduced operator `=~` for regular expression matches;

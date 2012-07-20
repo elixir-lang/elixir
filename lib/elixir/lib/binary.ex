@@ -146,6 +146,11 @@ defmodule Binary do
   If the `unescape_map` function returns false. The char is
   not escaped and `\` is kept in the char list.
 
+  ## Octals
+
+  Octals will by default be escaped unless the map function
+  returns false for ?0.
+
   ## Examples
 
   Using the unescape_map defined above is easy:

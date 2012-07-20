@@ -75,31 +75,42 @@ unescape_token(Other, _Map) -> Other.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
-unescape_chars(String) -> unescape_chars(String, fun unescape_map/1).
-
 -define(to_octal(List),
-  <<(list_to_integer(List, 8))/integer, (unescape_chars(Rest, Map))/binary>>
+
 ).
 
-unescape_chars(<<$\\,A,B,C,Rest/binary>>, Map) when ?is_octal(A), ?is_octal(B), ?is_octal(C) ->
-  ?to_octal([A,B,C]);
+unescape_chars(String) ->
+  unescape_chars(String, fun unescape_map/1).
 
-unescape_chars(<<$\\,A,B,Rest/binary>>, Map) when ?is_octal(A), ?is_octal(B) ->
-  ?to_octal([A,B]);
+unescape_chars(String, Map) ->
+  Octals = case Map($0) of
+    false -> false;
+    _ -> true
+  end,
+  unescape_chars(String, Map, Octals, <<>>).
 
-unescape_chars(<<$\\,A,Rest/binary>>, Map) when ?is_octal(A) ->
-  ?to_octal([A]);
+unescape_chars(<<$\\,A,B,C,Rest/binary>>, Map, true, Acc) when ?is_octal(A), ?is_octal(B), ?is_octal(C) ->
+  to_octal(Rest, Map, [A,B,C], Acc);
 
-unescape_chars(<<$\\,Escaped,Rest/binary>>, Map) ->
+unescape_chars(<<$\\,A,B,Rest/binary>>, Map, true, Acc) when ?is_octal(A), ?is_octal(B) ->
+  to_octal(Rest, Map, [A,B], Acc);
+
+unescape_chars(<<$\\,A,Rest/binary>>, Map, true, Acc) when ?is_octal(A) ->
+  to_octal(Rest, Map, [A], Acc);
+
+unescape_chars(<<$\\,Escaped,Rest/binary>>, Map, Octals, Acc) ->
   case Map(Escaped) of
-    false -> <<$\\,Escaped,(unescape_chars(Rest, Map))/binary>>;
-    Other -> <<Other,(unescape_chars(Rest, Map))/binary>>
+    false -> unescape_chars(Rest, Map, Octals, <<Acc/binary, $\\, Escaped>>);
+    Other -> unescape_chars(Rest, Map, Octals, <<Acc/binary, Other>>)
   end;
 
-unescape_chars(<<Char, Rest/binary>>, Map) ->
-  <<Char, (unescape_chars(Rest, Map))/binary>>;
+unescape_chars(<<Char, Rest/binary>>, Map, Octals, Acc) ->
+  unescape_chars(Rest, Map, Octals, <<Acc/binary, Char>>);
 
-unescape_chars(<<>>, _Map) -> <<>>.
+unescape_chars(<<>>, _Map, _Octals, Acc) -> Acc.
+
+to_octal(Rest, Map, Octal, Acc) ->
+  unescape_chars(Rest, Map, true, <<Acc/binary, (list_to_integer(Octal, 8))/integer>>).
 
 % Unescape Helpers
 
