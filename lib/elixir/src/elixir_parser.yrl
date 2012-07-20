@@ -144,7 +144,9 @@ block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1
 fn_expr -> fn_paren call_args_parens fn_block : build_identifier('$1', '$2' ++ '$3').
 fn_expr -> fn call_args_no_parens fn_block : build_identifier('$1', '$2' ++ '$3').
 fn_expr -> fn fn_block : build_identifier('$1', '$2').
+fn_expr -> fn_paren call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
 fn_expr -> fn_paren call_args_parens : build_identifier('$1', '$2').
+fn_expr -> fn call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
 fn_expr -> fn call_args_no_parens : build_identifier('$1', '$2').
 fn_expr -> fn : build_identifier('$1', nil).
 fn_expr -> call_expr : '$1'.

@@ -43,6 +43,13 @@ defexception File.CopyError, [reason: nil, action: "", source: nil, destination:
   end
 end
 
+defexception File.IteratorError, reason: nil do
+  def message(exception) do
+    formatted = list_to_binary(:file.format_error(reason exception))
+    "error during file iteration: #{formatted}"
+  end
+end
+
 defmodule File do
   @moduledoc """
   This module contains function to manipulate files,
@@ -1122,6 +1129,66 @@ defmodule File do
   """
   def close(io_device) do
     F.close(io_device)
+  end
+
+  @doc """
+  Convert the file device into an iterator that can be
+  passed into `Enum`. The device is iterated line
+  by line lazily, at the end of iteration the file is
+  closed.
+
+  ## Examples
+
+  An example that lazily iterates a file replacing all double
+  quotes per single quotes and write each line to a target file
+  is shown below:
+
+      source = File.iterator("README.md")
+      File.open "NEWREADME.md", [:write], fn(target) ->
+        Enum.each source, fn(line) ->
+          IO.write target, Regex.replace_all(%r/"/, line, "'")
+        end
+      end
+
+  """
+  def iterator(device)
+
+  def iterator(file) when is_binary(file) or is_list(file) do
+    iterator(file, [])
+  end
+
+  def iterator(device) do
+    fn(_) do
+      case :io.get_line(device, "") do
+        :eof ->
+          close(device)
+          :stop
+        { :error, reason } ->
+          raise File.IteratorError, reason: reason
+        data ->
+          { data, :ok }
+      end
+    end
+  end
+
+  @doc """
+  Opens the given `file` with the given `mode` and
+  returns its iterator. Fails for the same reasons
+  as `File.open`.
+  """
+  def iterator(file, mode) do
+    case open(file, mode) do
+      { :ok, device } -> { :ok, iterator(device) }
+      error -> error
+    end
+  end
+
+  @doc """
+  Same as `iterator/2` but raises if the file
+  cannot be opened.
+  """
+  def iterator!(file, mode // []) do
+    open!(file, mode) /> iterator
   end
 
   ## Helpers

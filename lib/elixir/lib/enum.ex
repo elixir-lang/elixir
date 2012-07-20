@@ -13,7 +13,7 @@ defprotocol Enum.Iterator do
   Read each function documentation below for more information.
   """
 
-  @only [List, Record]
+  @only [List, Record, Function]
 
   @doc """
   Iteration in Elixir happens with the help of a iterator
@@ -1237,4 +1237,36 @@ end
 defimpl Enum.OrdIterator, for: List do
   def iterator(list),          do: list
   def to_list({ h, next }, _), do: [h|next]
+end
+
+defimpl Enum.Iterator, for: Function do
+  def iterator(function) do
+    { function, function.(:start) }
+  end
+
+  def count(function) do
+    do_count(function.(:start), function, 0)
+  end
+
+  defp do_count({ _, next }, function, acc) do
+    do_count(function.(next), function, acc + 1)
+  end
+
+  defp do_count(:stop, _, acc) do
+    acc
+  end
+end
+
+defimpl Enum.OrdIterator, for: Function do
+  def iterator(function) do
+    { function, function.(:start) }
+  end
+
+  def to_list({ h, next }, function) do
+    [h|to_list(function.(next), function)]
+  end
+
+  def to_list(:stop, _function) do
+    []
+  end
 end

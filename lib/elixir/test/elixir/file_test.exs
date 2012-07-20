@@ -930,13 +930,64 @@ defmodule FileTest do
     end
   end
 
+  test :iterator do
+    src  = File.open! fixture_path("foo.txt")
+    dest = tmp_path("tmp_test.txt")
+
+    try do
+      iterator = File.iterator(src)
+      File.open dest, [:write], fn(target) ->
+        Enum.each iterator, fn(line) ->
+          IO.write target, Regex.replace_all(%r/"/, line, "'")
+        end
+      end
+      assert File.read(dest) == { :ok, "FOO\n" }
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :iterator_with_path do
+    src  = fixture_path("foo.txt")
+    dest = tmp_path("tmp_test.txt")
+
+    try do
+      { :ok, iterator } = File.iterator(src)
+      File.open dest, [:write], fn(target) ->
+        Enum.each iterator, fn(line) ->
+          IO.write target, Regex.replace_all(%r/"/, line, "'")
+        end
+      end
+      assert File.read(dest) == { :ok, "FOO\n" }
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :iterator! do
+    src  = fixture_path("foo.txt")
+    dest = tmp_path("tmp_test.txt")
+
+    try do
+      iterator = File.iterator!(src)
+      File.open dest, [:write], fn(target) ->
+        Enum.each iterator, fn(line) ->
+          IO.write target, Regex.replace_all(%r/"/, line, "'")
+        end
+      end
+      assert File.read(dest) == { :ok, "FOO\n" }
+    after
+      File.rm(dest)
+    end
+  end
+
   test :copy do
     src  = fixture_path("foo.txt")
     dest = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(dest)
       assert File.copy(src, dest) == { :ok, 4 }
-      assert { :ok, "FOO\n" } == File.read(dest)
+      assert File.read(dest) == { :ok, "FOO\n" }
     after
       File.rm(dest)
     end
