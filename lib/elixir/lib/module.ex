@@ -228,54 +228,54 @@ defmodule Module do
 
   @doc """
   Checks if a function was defined, regardless if it is
-  a macro or a private function. Use `function_defined?/3`
+  a macro or a private function. Use `is_defined?/3`
   to assert for an specific type.
 
   ## Examples
 
       defmodule Example do
-        Module.function_defined? __MODULE__, { :version, 0 } #=> false
+        Module.is_defined? __MODULE__, { :version, 0 } #=> false
         def version, do: 1
-        Module.function_defined? __MODULE__, { :version, 0 } #=> true
+        Module.is_defined? __MODULE__, { :version, 0 } #=> true
       end
 
   """
-  def function_defined?(module, tuple) when is_tuple(tuple) do
-    assert_not_compiled!(:function_defined?, module)
+  def is_defined?(module, tuple) when is_tuple(tuple) do
+    assert_not_compiled!(:is_defined?, module)
     table = function_table_for(module)
     ETS.lookup(table, tuple) != []
   end
 
   @doc """
-  Checks if a function was defined and also for its `kind`.
+  Checks if a function/macro was defined and also for its `kind`.
   `kind` can be either :def, :defp or :defmacro.
 
   ## Examples
 
       defmodule Example do
-        Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
+        Module.is_defined? __MODULE__, { :version, 0 }, :defp #=> false
         def version, do: 1
-        Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
+        Module.is_defined? __MODULE__, { :version, 0 }, :defp #=> false
       end
 
   """
-  def function_defined?(module, tuple, kind) do
-    List.member? defined_functions(module, kind), tuple
+  def is_defined?(module, tuple, kind) do
+    List.member? all_defined(module, kind), tuple
   end
 
   @doc """
-  Return all functions defined in the given module.
+  Returns all functions and macros in the given module.
 
   ## Examples
 
       defmodule Example do
         def version, do: 1
-        Module.defined_functions __MODULE__ #=> [{:version,1}]
+        Module.all_defined __MODULE__ #=> [{:version,1}]
       end
 
   """
-  def defined_functions(module) do
-    assert_not_compiled!(:defined_functions, module)
+  def all_defined(module) do
+    assert_not_compiled!(:all_defined, module)
     table = function_table_for(module)
     lc { tuple, _, _, _, _, _, _, _ } inlist ETS.tab2list(table), do: tuple
   end
@@ -288,13 +288,13 @@ defmodule Module do
 
       defmodule Example do
         def version, do: 1
-        Module.defined_functions __MODULE__, :def  #=> [{:version,1}]
-        Module.defined_functions __MODULE__, :defp #=> []
+        Module.all_defined __MODULE__, :def  #=> [{:version,1}]
+        Module.all_defined __MODULE__, :defp #=> []
       end
 
   """
-  def defined_functions(module, kind) do
-    assert_not_compiled!(:defined_functions, module)
+  def all_defined(module, kind) do
+    assert_not_compiled!(:all_defined, module)
     table = function_table_for(module)
     lc { tuple, stored_kind, _, _, _, _, _, _ } inlist ETS.tab2list(table), stored_kind == kind, do: tuple
   end

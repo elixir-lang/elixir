@@ -49,13 +49,13 @@ end
 defmodule ModuleTest.DefinedFunctions do
   def foo(1,2,3), do: 4
 
-  Module.register_attribute __MODULE__, :defined_functions
+  Module.register_attribute __MODULE__, :all_defined
   Module.register_attribute __MODULE__, :defined_def
   Module.register_attribute __MODULE__, :defined_defp
 
-  @defined_functions Module.defined_functions __MODULE__
-  @defined_def  Module.defined_functions __MODULE__, :def
-  @defined_defp Module.defined_functions __MODULE__, :defp
+  @all_defined Module.all_defined __MODULE__
+  @defined_def  Module.all_defined __MODULE__, :def
+  @defined_defp Module.all_defined __MODULE__, :defp
 end
 
 defmodule ModuleTest do
@@ -65,18 +65,18 @@ defmodule ModuleTest do
   @register_example :it_works
   @register_example :still_works
 
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
+  false = Module.is_defined? __MODULE__, { :eval_quoted_info, 0 }
+  false = Module.is_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
+  false = Module.is_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
+  false = Module.is_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
 
   contents = quote do: (def eval_quoted_info, do: { __MODULE__, __FILE__, __ENV__.line })
   Module.eval_quoted __MODULE__, contents, [], file: "sample.ex", line: 13
 
-  true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }
-  true  = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
-  false = Module.function_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
+  true  = Module.is_defined? __MODULE__, { :eval_quoted_info, 0 }
+  true  = Module.is_defined? __MODULE__, { :eval_quoted_info, 0 }, :def
+  false = Module.is_defined? __MODULE__, { :eval_quoted_info, 0 }, :defp
+  false = Module.is_defined? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
 
   Module.add_attribute __MODULE__, :value, 1
   Module.add_attribute __MODULE__, :other_value, 1
@@ -148,11 +148,11 @@ defmodule ModuleTest do
     end
   end
 
-  test :defined_functions do
+  test :all_defined do
     attrs  = ModuleTest.DefinedFunctions.__info__(:attributes)
     finder = List.keyfind(attrs, &1, 1)
 
-    assert finder.(:defined_functions) == {:defined_functions,[{:foo, 3}]}
+    assert finder.(:all_defined) == {:all_defined,[{:foo, 3}]}
     assert finder.(:defined_def) == {:defined_def,[{:foo, 3}]}
     assert finder.(:defined_defp) == {:defined_defp,[]}
   end
