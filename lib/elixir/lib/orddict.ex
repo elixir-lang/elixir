@@ -1,25 +1,27 @@
-defrecord Orddict.Record, data: nil
+defimpl Dict, for: Orddict do
+  defmacrop dict(data) do
+    quote do
+      { Orddict, unquote(data) }
+    end
+  end
 
-alias Orddict.Record, as: O
-
-defimpl Dict, for: Orddict.Record do
-  def keys(O[data: data]) do
+  def keys(dict(data)) do
     lc { k, _ } inlist data, do: k
   end
 
-  def values(O[data: data]) do
+  def values(dict(data)) do
     lc { _, v } inlist data, do: v
   end
 
-  def size(O[data: data]) do
+  def size(dict(data)) do
     length(data)
   end
 
-  def has_key?(O[data: data], key) do
+  def has_key?(dict(data), key) do
     :orddict.is_key key, data
   end
 
-  def get(O[data: data], key, default // nil) do
+  def get(dict(data), key, default // nil) do
     case :orddict.find(key, data) do
       {:ok, value} ->
         value
@@ -28,46 +30,46 @@ defimpl Dict, for: Orddict.Record do
     end
   end
 
-  def put(O[data: data], key, value) do
-    O[data: :orddict.store key, value, data]
+  def put(dict(data), key, value) do
+    dict(:orddict.store key, value, data)
   end
 
-  def delete(O[data: data], key) do
-    O[data: :orddict.erase key, data]
+  def delete(dict(data), key) do
+    dict(:orddict.erase key, data)
   end
 
-  def merge(O[data: d1], O[data: d2]) do
-    O[data: :orddict.merge fn _k, _v1, v2 -> v2 end, d1, d2]
+  def merge(dict(d1), dict(d2)) do
+    dict(:orddict.merge fn _k, _v1, v2 -> v2 end, d1, d2)
   end
 
-  def merge(O[data: d1], O[data: d2], fun) do
-    O[data: :orddict.merge fun, d1, d2]
+  def merge(dict(d1), dict(d2), fun) do
+    dict(:orddict.merge fun, d1, d2)
   end
 
-  def update(O[data: data], key, fun) do
-    O[data: :orddict.update key, fun, data]
+  def update(dict(data), key, fun) do
+    dict(:orddict.update key, fun, data)
   end
 
-  def update(O[data: data], key, initial, fun) do
-    O[data: :orddict.update key, fun, initial, data]
+  def update(dict(data), key, initial, fun) do
+    dict(:orddict.update key, fun, initial, data)
   end
 
   def empty(_) do
-    O[data: []]
+    dict([])
   end
 
-  def to_list(O[data: data]) do
+  def to_list(dict(data)) do
     data
   end
 end
 
-defimpl Enum.Iterator, for: Orddict.Record do
-  def iterator(O[data: data]), do: data
-  def count(O[data: data]),    do: length(data)
+defimpl Enum.Iterator, for: Orddict do
+  def iterator({ Orddict, data }), do: data
+  def count({ Orddict, data }),    do: length(data)
 end
 
-defimpl Enum.OrdIterator, for: Orddict.Record do
-  def iterator(O[data: data]), do: data
+defimpl Enum.OrdIterator, for: Orddict do
+  def iterator({ Orddict, data }), do: data
   def to_list({ h, next }, _), do: [h|next]
 end
 
@@ -78,5 +80,5 @@ defmodule Orddict do
   [Erlang's orddict module](http://www.erlang.org/doc/man/orddict.html)
   and exposed via the `Dict` protocol.
   """
-  use Dict.Common, Dict.Orddict.Record
+  use Dict.Common, Dict.Orddict
 end

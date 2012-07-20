@@ -113,7 +113,7 @@ defmodule DictTest do
   use DictTest.Common, HashDict
 
   test :new do
-    assert :dict.new == HashDict.new.data
+    assert :dict.new == elem(HashDict.new, 2)
   end
 end
 
@@ -121,6 +121,6 @@ defmodule OrddictTest do
   use DictTest.Common, Orddict
 
   test :new do
-    assert [] == Orddict.new.data
+    assert [] == elem(Orddict.new, 2)
   end
 end
