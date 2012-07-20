@@ -14,6 +14,23 @@ defmodule Kernel.ErrorsTest do
     assert "nofile:1: invalid token: \end" == format_rescue '\end'
   end
 
+  test :sigil_terminator do
+    assert "nofile:3: missing terminator: \" (for sigil %r\" starting at line 1)" == format_rescue '%r"foo\n\n'
+    assert "nofile:3: missing terminator: } (for sigil %r{ starting at line 1)" == format_rescue '%r{foo\n\n'
+  end
+
+  test :dot_terminator do
+    assert "nofile:1: missing terminator: \" (for function name starting at line 1)" == format_rescue 'foo."bar'
+  end
+
+  test :string_terminator do
+    assert "nofile:1: missing terminator: \" (for string starting at line 1)" == format_rescue '"bar'
+  end
+
+  test :heredoc_terminator do
+    assert "nofile:2: missing terminator: \"\"\" (for heredoc starting at line 1)" == format_rescue '"""\nbar'
+  end
+
   test :invalid_partial do
     assert "nofile:1: partial variable &2 cannot be defined without &1" == format_rescue '&2 + 3'
   end

@@ -36,8 +36,12 @@ syntax_error(Line, File, Format, Args)  ->
 
 %% Raised on tokenizing/parsing
 
-parse_error(Line, File, _Error, []) ->
-  raise(Line, File, 'Elixir.TokenMissingError', <<"syntax error: expression is incomplete">>);
+parse_error(Line, File, Error, []) ->
+  Message = case Error of
+    "syntax error before: " -> <<"syntax error: expression is incomplete">>;
+    _ -> iolist_to_binary(Error)
+  end,
+  raise(Line, File, 'Elixir.TokenMissingError', Message);
 
 parse_error(Line, File, Error, Token) ->
   BinError = if

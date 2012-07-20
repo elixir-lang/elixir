@@ -114,7 +114,9 @@ tokenize([$%,S,H|T], Line, File, Tokens) when not(?is_word(H)), ?is_upcase(S) or
     { NewLine, Parts, Rest } ->
       { Final, Modifiers } = collect_modifiers(Rest, []),
       tokenize(Final, NewLine, File, [{sigil,Line,S,Parts,Modifiers}|Tokens]);
-    Else -> Else
+    Error ->
+      Sigil = [$%,S,H],
+      interpolation_error(Error, " (for sigil ~s starting at line ~B)", [Sigil, Line])
   end;
 
 % Char tokens
@@ -164,7 +166,8 @@ tokenize([$.,H|T], Line, File, Tokens) when ?is_quote(H) ->
       Atom = binary_to_atom(Part, utf8),
       tokenize(Rest, NewLine, File,
         [tokenize_call_identifier(identifier, Line, Atom, Rest)|add_token_with_nl({'.',Line}, Tokens)]);
-    Else -> Else
+    Error ->
+      interpolation_error(Error, " (for function name starting at line ~B)", [Line])
   end;
 
 % Heredocs
@@ -186,7 +189,8 @@ tokenize([$:,T|String], Line, File, Tokens) when ?is_upcase(T); ?is_downcase(T);
 tokenize([$:,H|T], Line, File, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, Parts, Rest } -> tokenize(Rest, NewLine, File, [{atom,Line,unescape_tokens(Parts)}|Tokens]);
-    Else -> Else
+    Error ->
+      interpolation_error(Error, " (for atom starting at line ~B)", [Line])
   end;
 
 % Atom operators
@@ -341,7 +345,8 @@ handle_strings(Line, File, H, T, Tokens) ->
     { NewLine, Parts, Rest } ->
       Token = { string_type(H),Line,unescape_tokens(Parts) },
       tokenize(Rest, NewLine, File, [Token|Tokens]);
-    Else -> Else
+    Error ->
+      interpolation_error(Error, " (for string starting at line ~B)", [Line])
   end.
 
 handle_comp_op(Line, File, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
@@ -386,7 +391,7 @@ extract_heredoc_with_interpolation(Line, File, Interpol, T, H) ->
     { Body, Rest } ->
       case elixir_interpolation:extract(Line, File, Interpol, Body, 0) of
         { _, Parts, [] } -> { Parts, Rest };
-        Else -> Else
+        Error -> interpolation_error(Error, " (for heredoc starting at line ~B)", [Line])
       end
   end.
 
@@ -399,12 +404,17 @@ extract_heredoc(Line0, Rest0, Marker) ->
       case extract_heredoc_body(Line0, Marker, [$\n|Rest1], []) of
         { Line1, Body, Rest2, Spaces } ->
           { tl(remove_heredoc_spaces(Body, Spaces)), merge_heredoc_extra(Line1, Extra, Rest2) };
-        { error, _ } = Reason ->
-          Reason
+        { error, Line1 } ->
+          heredoc_error(Line1, Line0, Marker)
       end;
     { error, eof } ->
-      { error, { Line0, "unexpected end of file. invalid token: ", "EOF" } }
+      heredoc_error(Line0, Line0, Marker)
   end.
+
+heredoc_error(ErrorLine, StartLine, Marker) ->
+  Terminator = [Marker, Marker, Marker],
+  Message    = io_lib:format("missing terminator: ~s (for heredoc starting at line ~B)", [Terminator, StartLine]),
+  { error, { ErrorLine, Message, [] } }.
 
 %% Remove spaces from heredoc based on the position of the final quotes.
 
@@ -437,7 +447,7 @@ extract_heredoc_body(Line, Marker, Rest, Buffer) ->
     { ok, NewBuffer, NewRest, Spaces } ->
       { Line + 1, NewBuffer, NewRest, Spaces };
     { error, eof } ->
-      { error, { Line, "unexpected end of file. invalid token: ", "EOF" } }
+      { error, Line }
   end.
 
 %% Extract a line from the heredoc prepending its contents to a buffer.
@@ -610,6 +620,13 @@ next_is_block(_) ->
 
 add_token_with_nl(Left, [{eol,_,$\n}|T]) -> [Left|T];
 add_token_with_nl(Left, T) -> [Left|T].
+
+% Error handling
+interpolation_error({ error, { Line, Message, Token } }, Extension, Args) ->
+  { error, { Line, improve_error(Message, Extension, Args), Token } }.
+
+improve_error(Message, Extension, Args) ->
+  io_lib:format("~s" ++ Extension, [Message|Args]).
 
 % String type
 string_type($") -> bin_string;
