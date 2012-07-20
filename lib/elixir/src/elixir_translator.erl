@@ -3,7 +3,9 @@
 -module(elixir_translator).
 -export([translate/2, translate_each/2, translate_args/2, translate_apply/7, raw_forms/3, forms/3]).
 -import(elixir_scope, [umergev/2, umergec/2]).
--import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4, assert_function_scope/3, assert_module_scope/3]).
+-import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4,
+  assert_function_scope/3, assert_module_scope/3, assert_no_guard_scope/3,
+  assert_no_assign_or_guard_scope/3]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
@@ -35,6 +37,7 @@ translate(Forms, S) ->
 %% Assignment operator
 
 translate_each({'=', Line, [Left, Right]}, S) ->
+  assert_no_guard_scope(Line, '=', S),
   { TRight, SR } = translate_each(Right, S),
   { TLeft, SL } = elixir_clauses:assigns(fun translate_each/2, Left, SR),
   { { match, Line, TLeft, TRight }, SL };
@@ -106,6 +109,7 @@ translate_each({alias, Line, [Ref]}, S) ->
   translate_each({alias, Line, [Ref,[]]}, S);
 
 translate_each({alias, Line, [Ref, KV]}, S) ->
+  assert_no_assign_or_guard_scope(Line, alias, S),
   { TRef, SR } = translate_each(Ref, S),
 
   case TRef of
@@ -147,6 +151,7 @@ translate_each({require, Line, [Ref]}, S) ->
   translate_each({require, Line, [Ref, []]}, S);
 
 translate_each({require, Line, [Ref, KV]}, S) ->
+  assert_no_assign_or_guard_scope(Line, 'require', S),
   { TRef, SR } = translate_each(Ref, S),
 
   As = case orddict:find(as, KV) of
@@ -177,6 +182,7 @@ translate_each({import, Line, [Selector, Left]}, S) ->
   translate_each({ import, Line, [Selector, Left, []]}, S);
 
 translate_each({import, Line, [Left, Right, Opts]}, S) ->
+  assert_no_assign_or_guard_scope(Line, 'import', S),
   { TSelector, SL } = translate_each(Left, S),
   { TRef, SR } = translate_each(Right, SL),
 
@@ -312,6 +318,7 @@ translate_each({Key, Line, []}, S) when Key == fn; Key == loop ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for ~s", [Key]);
 
 translate_each({fn, Line, Args} = Original, S) when is_list(Args) ->
+  assert_no_assign_or_guard_scope(Line, 'fn', S),
   { Left, Right } = elixir_tree_helpers:split_last(Args),
 
   case Right of
@@ -370,6 +377,7 @@ translate_each({recur, Line, Args}, S) when is_list(Args) ->
 %% Super
 
 translate_each({ super, Line, Args }, #elixir_scope{file=File} = S) ->
+  assert_no_assign_or_guard_scope(Line, 'super', S),
   Module = assert_module_scope(Line, super, S),
   Function = assert_function_scope(Line, super, S),
   elixir_def_overridable:ensure_defined(Line, Module, Function, S),

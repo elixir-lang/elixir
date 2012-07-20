@@ -4,6 +4,8 @@
 -export([syntax_error/3, syntax_error/4, inspect/1,
   form_error/4, parse_error/4, assert_module_scope/3,
   assert_no_function_scope/3, assert_function_scope/3,
+  assert_no_assign_scope/3, assert_no_guard_scope/3,
+  assert_no_assign_or_guard_scope/3,
   handle_file_warning/2, handle_file_error/2,
   deprecation/3, deprecation/4, file_format/3]).
 -include("elixir.hrl").
@@ -110,6 +112,18 @@ handle_file_error(File, {Line,Module,Desc}) ->
 assert_no_function_scope(_Line, _Kind, #elixir_scope{function=nil}) -> [];
 assert_no_function_scope(Line, Kind, S) ->
   syntax_error(Line, S#elixir_scope.file, "cannot invoke ~s inside a function", [Kind]).
+
+assert_no_assign_or_guard_scope(Line, Kind, S) ->
+  assert_no_assign_scope(Line, Kind, S),
+  assert_no_guard_scope(Line, Kind, S).
+
+assert_no_assign_scope(Line, Kind, #elixir_scope{context=assign} = S) ->
+  syntax_error(Line, S#elixir_scope.file, "cannot invoke ~s inside assign", [Kind]);
+assert_no_assign_scope(_Line, _Kind, _S) -> [].
+
+assert_no_guard_scope(Line, Kind, #elixir_scope{context=guard} = S) ->
+  syntax_error(Line, S#elixir_scope.file, "cannot invoke ~s inside guard", [Kind]);
+assert_no_guard_scope(_Line, _Kind, _S) -> [].
 
 assert_module_scope(Line, Kind, #elixir_scope{module=nil,file=File}) ->
   syntax_error(Line, File, "cannot invoke ~s outside module", [Kind]);

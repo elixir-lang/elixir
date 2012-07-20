@@ -4,7 +4,8 @@
 -export([translate_macro/2]).
 -import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
 -import(elixir_scope, [umergec/2]).
--import(elixir_errors, [syntax_error/3, syntax_error/4, assert_no_function_scope/3, assert_module_scope/3]).
+-import(elixir_errors, [syntax_error/3, syntax_error/4,
+  assert_no_function_scope/3, assert_module_scope/3, assert_no_assign_or_guard_scope/3]).
 -include("elixir.hrl").
 
 -define(FUNS(), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
@@ -19,11 +20,16 @@ translate_macro({ '-', _Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(-1 * Expr, S);
 
 translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
-  Op == '+'; Op == '-'; Op == '*'; Op == '/'; Op == '<-';
-  Op == '++'; Op == '--'; Op == 'not'; Op == 'and';
-  Op == 'or'; Op == 'xor'; Op == '<'; Op == '>';
-  Op == '<='; Op == '>='; Op == '=='; Op == '!=';
-  Op == '==='; Op == '!==' ->
+    Op == '<-' orelse Op == '--' ->
+  assert_no_assign_or_guard_scope(Line, Op, S),
+  translate_each({ '__op__', Line, [Op|Exprs] }, S);
+
+translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
+    Op == '+'   orelse Op == '-'   orelse Op == '*'   orelse Op == '/' orelse
+    Op == '++'  orelse Op == 'not' orelse Op == 'and' orelse Op == 'or' orelse
+    Op == 'xor' orelse Op == '<'   orelse Op == '>'   orelse Op == '<=' orelse
+    Op == '>='  orelse Op == '=='  orelse Op == '!='  orelse Op == '===' orelse
+    Op == '!==' ->
   translate_each({ '__op__', Line, [Op|Exprs] }, S);
 
 translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
@@ -110,6 +116,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
 %% Case
 
 translate_macro({'case', Line, [Expr, KV]}, S) ->
+  assert_no_assign_or_guard_scope(Line, 'case', S),
   Clauses = elixir_clauses:get_pairs(Line, do, KV, S),
   { TExpr, NS } = translate_each(Expr, S),
   { TClauses, TS } = elixir_clauses:match(Line, Clauses, NS),
@@ -118,7 +125,8 @@ translate_macro({'case', Line, [Expr, KV]}, S) ->
 %% Try
 
 translate_macro({'try', Line, [Clauses]}, RawS) ->
-  S  = RawS#elixir_scope{noname=true},
+  S = RawS#elixir_scope{noname=true},
+  assert_no_assign_or_guard_scope(Line, 'try', S),
 
   Do = proplists:get_value('do', Clauses, []),
   { TDo, SB } = translate([Do], S),
@@ -136,6 +144,7 @@ translate_macro({'try', Line, [Clauses]}, RawS) ->
 %% Receive
 
 translate_macro({'receive', Line, [KV] }, S) ->
+  assert_no_assign_or_guard_scope(Line, 'receive', S),
   Do = elixir_clauses:get_pairs(Line, do, KV, S, true),
 
   case orddict:is_key('after', KV) of
