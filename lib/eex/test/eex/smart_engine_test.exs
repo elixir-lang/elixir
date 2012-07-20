@@ -12,7 +12,7 @@ defmodule EEx.SmartEngineTest do
   end
 
   test "evaluates with loops" do
-    assert_eval "1\n2\n3\n", "<%= for x in [1,2,3] do %><%= x %>\n<% end %>"
+    assert_eval "1\n2\n3\n", "<%= lc x inlist [1,2,3] do %><%= x %>\n<% end %>"
   end
 
   defp assert_eval(expected, actual, binding // []) do

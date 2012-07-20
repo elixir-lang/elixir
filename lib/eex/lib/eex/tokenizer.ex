@@ -24,15 +24,9 @@ defmodule EEx.Tokenizer do
     { expr, new_line, rest } = tokenize_expr h, t, line, []
 
     token = token_name(h, expr)
-    expr  = List.reverse(expr)
-
-    # If it isn't a start or end token, it may be a middle token.
-    if token == :expr do
-      token = middle_expr_token_name(expr)
-    end
-
-    acc = tokenize_text(current_line, buffer, acc)
-    tokenize rest, new_line, new_line, [], [ { token, line, marker, expr } | acc]
+    acc   = tokenize_text(current_line, buffer, acc)
+    final = { token, line, marker, List.reverse(expr) }
+    tokenize rest, new_line, new_line, [], [final | acc]
   end
 
   defp tokenize('\n' ++ t, current_line, line, buffer, acc) do
@@ -99,34 +93,19 @@ defmodule EEx.Tokenizer do
     :start_expr
   end
 
-  defp token_name('dne' ++ t) do
-    if only_spaces?(t), do: :end_expr, else: :expr
-  end
+  defp token_name('esle' ++ t),   do: check_spaces(t, :middle_expr)
+  defp token_name('retfa' ++ t),  do: check_spaces(t, :middle_expr)
+  defp token_name('hctac' ++ t),  do: check_spaces(t, :middle_expr)
+  defp token_name('eucser' ++ t), do: check_spaces(t, :middle_expr)
+  defp token_name('dne' ++ t),    do: check_spaces(t, :end_expr)
 
   defp token_name(_) do
     :expr
   end
 
-  # Receive an expression contents and see if it matches
-  # a keyword block syntax, like else.
-
-  defp middle_expr_token_name([h|t]) when h in [?\s, ?\t] do
-    middle_expr_token_name(t)
+  defp check_spaces(string, token) do
+    if only_spaces?(string), do: token, else: :expr
   end
-
-  defp middle_expr_token_name([h|_] = list) when h in ?a..?z do
-    if valid_middle_identifier?(list), do: :middle_expr, else: :expr
-  end
-
-  defp middle_expr_token_name(_) do
-    :expr
-  end
-
-  defp valid_middle_identifier?('else' ++ rest),   do: only_spaces?(rest)
-  defp valid_middle_identifier?('after' ++ rest),  do: only_spaces?(rest)
-  defp valid_middle_identifier?('catch' ++ rest),  do: only_spaces?(rest)
-  defp valid_middle_identifier?('rescue' ++ rest), do: only_spaces?(rest)
-  defp valid_middle_identifier?(_), do: false
 
   defp only_spaces?([h|t]) when h in [?\s, ?\t], do: only_spaces?(t)
   defp only_spaces?(other), do: other == []

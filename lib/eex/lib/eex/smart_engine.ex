@@ -82,45 +82,9 @@ defmodule EEx.AssignsEngine do
   end
 end
 
-defmodule EEx.ForEngine do
-  @moduledoc %B"""
-  An abstract engine that, when used with the
-  `TransformerEngine`, allows a developer to easily loop
-  using `for`.
-
-  This engine is included by default on the SmartEngine.
-
-  ## Examples
-
-      defmodule MyEngine do
-        use EEx.TransformerEngine
-        use EEx.ForEngine
-      end
-
-      EEx.eval_string("<%= for x in [1,2,3] do %><%= x %>\n<% end %>", assigns: [foo: 1])
-      #=> "1\n2\n3\n"
-
-  """
-
-  @doc false
-  defmacro __using__(_) do
-    quote [unquote: false] do
-      defp transform({ :for, line, [{ :in, _, [var, collection] }, opts] }) do
-        quote do
-          Enum.map_join(unquote(collection), "", fn(unquote(var), unquote(opts)))
-        end
-      end
-
-      defp transform(_), do: super
-      defoverridable [transform: 1]
-    end
-  end
-end
-
 defmodule EEx.SmartEngine do
   use EEx.TransformerEngine
   use EEx.AssignsEngine
-  use EEx.ForEngine
 
   @moduledoc """
   An engine meant for end-user usage that includes both

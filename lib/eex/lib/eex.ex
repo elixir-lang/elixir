@@ -44,11 +44,11 @@ defmodule EEx do
       <%= Elixir expression - replace with result %>
 
   All expressions that output something to the template
-  *must* use the equals sign (`=`). Since everything in
+  **must** use the equals sign (`=`). Since everything in
   Elixir is a macro, there are no exceptions for this rule.
   For example, while some template languages would special-
   case `if` clauses, they are treated the same in EEx and
-  also requires `=` in order to have their result printed:
+  also require `=` in order to have their result printed:
 
       <%= if true do %>
         It is obviously true
@@ -56,7 +56,8 @@ defmodule EEx do
         This will never appear
       <% end %>
 
-  The `<& ... &>` expression is only used in matching clauses.
+  The `<& ... &>` expression is only used in matching
+  expressions (i.e. the left side on the opreator `->`).
   For example, the `cond` macro would be written as:
 
       <%= cond do %>
@@ -69,14 +70,9 @@ defmodule EEx do
 
   ### Macros
 
-  `EEx.SmartEngine` also adds two macros to your template.
-  The first one is the `for` macro, which allows you to easily
-  loop a variable:
-
-      EEx.eval_string "<%= for x in [1,2,3] do %><%= x %>\n<% end %>", []
-      #=> "1\n2\n3\n"
-
-  It also adds defines a macro named `@` that allows easy access:
+  `EEx.SmartEngine` also adds some macros to your template.
+  An example is the `@` macro which allows easy data access
+  in a template:
 
       EEx.eval_string "<%= @foo %>", assigns: [foo: 1]
       #=> 1
