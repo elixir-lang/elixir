@@ -60,8 +60,8 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
     { Export, Private, Def, Defmacro, Defmacrop, Functions } = elixir_def:unwrap_stored_definitions(Module),
 
     { All, Forms0 } = functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Functions, C),
-    Forms1           = attributes_form(Line, File, Module, Forms0),
-    Forms2           = specs_form(Line, Module, Def, Defmacro, Defmacrop, Forms1),
+    Forms1          = attributes_form(Line, File, Module, Forms0),
+    Forms2          = specs_form(Line, Module, Def, Defmacro, Defmacrop, Forms1),
 
     elixir_import:ensure_no_local_conflict(Line, File, Module, All),
     elixir_import:ensure_no_import_conflict(Line, File, Module, All),

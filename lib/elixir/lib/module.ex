@@ -227,40 +227,69 @@ defmodule Module do
   defp merge_signature({ _, line, _ }, _newer, i), do: { :"arg#{i}", line, :guess }
 
   @doc """
-  Checks if a function was defined, regardless if it is
-  a macro or a private function. Use `function_defined?/3`
-  to assert for an specific type.
+  Checks if the module defines the given function or macro.
+  Use `defines?/3` to assert for an specific type.
 
   ## Examples
 
       defmodule Example do
-        Module.function_defined? __MODULE__, { :version, 0 } #=> false
+        Module.defines? __MODULE__, { :version, 0 } #=> false
         def version, do: 1
-        Module.function_defined? __MODULE__, { :version, 0 } #=> true
+        Module.defines? __MODULE__, { :version, 0 } #=> true
       end
 
   """
-  def function_defined?(module, tuple) when is_tuple(tuple) do
-    assert_not_compiled!(:function_defined?, module)
+  def defines?(module, tuple) when is_tuple(tuple) do
+    assert_not_compiled!(:defines?, module)
     table = function_table_for(module)
     ETS.lookup(table, tuple) != []
   end
 
   @doc """
-  Checks if a function was defined and also for its `kind`.
-  `kind` can be either :def, :defp or :defmacro.
+  Checks if the module defines a function or macro with the
+  given `kind`. `kind` can be either `:def`, `:defp`,
+  `:defmacro` or `:defmacrop`.
 
   ## Examples
 
       defmodule Example do
-        Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
+        Module.defines? __MODULE__, { :version, 0 }, :defp #=> false
         def version, do: 1
-        Module.function_defined? __MODULE__, { :version, 0 }, :defp #=> false
+        Module.defines? __MODULE__, { :version, 0 }, :defp #=> false
       end
 
   """
+  def defines?(module, tuple, kind) do
+    assert_not_compiled!(:defines?, module)
+    table = function_table_for(module)
+    case ETS.lookup(table, tuple) do
+      [{ _, ^kind, _, _, _, _, _, _ }] -> true
+      _ -> false
+    end
+  end
+
+  @doc false
+  def function_defined?(module, tuple) do
+    IO.puts "Module.function_defined? is deprecated in favor of Module.defines?"
+    defines?(module, tuple)
+  end
+
+  @doc false
   def function_defined?(module, tuple, kind) do
-    List.member? defined_functions(module, kind), tuple
+    IO.puts "Module.function_defined? is deprecated in favor of Module.defines?"
+    defines?(module, tuple, kind)
+  end
+
+  @doc false
+  def defined_functions(module) do
+    IO.puts "Module.defined_functions is deprecated in favor of Module.definitions_in"
+    definitions_in(module)
+  end
+
+  @doc false
+  def defined_functions(module, kind) do
+    IO.puts "Module.defined_functions is deprecated in favor of Module.definitions_in"
+    definitions_in(module, kind)
   end
 
   @doc """
@@ -270,12 +299,12 @@ defmodule Module do
 
       defmodule Example do
         def version, do: 1
-        Module.defined_functions __MODULE__ #=> [{:version,1}]
+        Module.definitions_in __MODULE__ #=> [{:version,1}]
       end
 
   """
-  def defined_functions(module) do
-    assert_not_compiled!(:defined_functions, module)
+  def definitions_in(module) do
+    assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
     lc { tuple, _, _, _, _, _, _, _ } inlist ETS.tab2list(table), do: tuple
   end
@@ -288,13 +317,13 @@ defmodule Module do
 
       defmodule Example do
         def version, do: 1
-        Module.defined_functions __MODULE__, :def  #=> [{:version,1}]
-        Module.defined_functions __MODULE__, :defp #=> []
+        Module.definitions_in __MODULE__, :def  #=> [{:version,1}]
+        Module.definitions_in __MODULE__, :defp #=> []
       end
 
   """
-  def defined_functions(module, kind) do
-    assert_not_compiled!(:defined_functions, module)
+  def definitions_in(module, kind) do
+    assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
     lc { tuple, stored_kind, _, _, _, _, _, _ } inlist ETS.tab2list(table), stored_kind == kind, do: tuple
   end
@@ -325,7 +354,7 @@ defmodule Module do
   end
 
   def add_compile_callback(module, target, fun // :__compiling__) do
-    IO.puts "Module.add_compile_callback(module, target, fun) deprecated in favor of " <>
+    IO.puts "Module.add_compile_callback(module, target, fun) is deprecated in favor of " <>
       "Module.add_attribute(module, :before_compile, { target, fun })"
     assert_not_compiled!(:add_compile_callback, module)
     add_attribute(module, :before_compile, { target, fun })

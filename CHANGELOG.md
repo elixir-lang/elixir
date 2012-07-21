@@ -7,7 +7,9 @@
 
 * deprecations
   * [Access] The semantics of the access protocol were reduced from a broad query API to simple data structure key-based access;
-  * [Module] `Module.add_compile_callback(module, target, callback)` was deprecated in favor of the simpler `Module.add_attribute(module, :before_compile, { target, callback })` API;
+  * [Module] `Module.add_compile_callback(module, target, callback)` was deprecated in favor of `Module.add_attribute(module, :before_compile, { target, callback })`;
+  * [Module] `Module.function_defined?` was deprecated in favor of `Module.defines?`;
+  * [Module] `Module.defined_functions` was deprecated in favor of `Module.definitions_in`;
   * [File] `File.read_info` was deprecated in favor of `File.stat`;
   * [IO] `IO.print` was deprecated in favor of `IO.write`;
   * [Kernel] Deprecated `__LINE__` and `__FUNCTION__` in favor of `__ENV__.line` and `__ENV__.function`;

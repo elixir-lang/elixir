@@ -662,7 +662,7 @@ sigil_terminator(O) -> O.
 %% do any of the terminator checks
 
 handle_terminator(<<"__internal__">>, _, []) -> [];
-handle_terminator(File, Token, Terminator) ->
+handle_terminator(_File, Token, Terminator) ->
   handle_terminator(Token, Terminator).
 
 handle_terminator({ S, Line }, Terminators) when S == 'fn'; S == 'fn_paren' ->

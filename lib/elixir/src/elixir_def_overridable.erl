@@ -78,7 +78,7 @@ store(Module, Function, GenerateName) ->
 
 store_pending(Module) ->
   [store(Module, X, false) || { X, { _, [_|_] } } <- overridable(Module),
-    not 'Elixir.Module':'function_defined?'(Module, X)].
+    not 'Elixir.Module':'defines?'(Module, X)].
 
 %% Error handling
 
