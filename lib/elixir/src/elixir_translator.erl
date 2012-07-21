@@ -1,7 +1,7 @@
 %% Main entry point for translations. Are macros that cannot be
 %% overriden are defined in this file.
 -module(elixir_translator).
--export([translate/2, translate_each/2, translate_args/2, translate_apply/7, raw_forms/3, forms/3]).
+-export([translate/2, translate_each/2, translate_args/2, translate_apply/7, translate_fn/3, raw_forms/3, forms/3]).
 -import(elixir_scope, [umergev/2, umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4,
   assert_function_scope/3, assert_module_scope/3, assert_no_guard_scope/3,
@@ -548,6 +548,16 @@ translate_each(Bitstring, S) when is_bitstring(Bitstring) ->
 
 %% Helpers
 
+translate_fn(Line, Clauses, S) ->
+  Transformer = fun({ ArgsWithGuards, Expr }, Acc) ->
+    { Args, Guards } = elixir_clauses:extract_last_guards(ArgsWithGuards),
+    elixir_clauses:assigns_block(Line, fun elixir_translator:translate/2, Args, [Expr], Guards, umergec(S, Acc))
+  end,
+
+  { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
+  { { 'fun', Line, {clauses, TClauses} }, umergec(S, NS) }.
+
+%% deprecation: Remove this once loops are removed
 translate_block_fn(Line, Key, Left, Right, S, ExtraArgs) ->
   Clauses = case { Left, Right } of
     { [], {'->',_,Pairs} } ->
@@ -638,8 +648,8 @@ handle_partials(Line, Original, S) ->
   case convert_partials(Line, element(3, Original), S) of
     { Call, Def, SC } when Def /= [] ->
       Final = validate_partials(Line, Def, SC),
-      Block = [{do, setelement(3, Original, Call)}],
-      translate_each({ fn, Line, Final ++ [Block] }, SC);
+      Block = setelement(3, Original, Call),
+      translate_fn(Line, [{ Final, Block }], SC);
     _ -> error
   end.
 

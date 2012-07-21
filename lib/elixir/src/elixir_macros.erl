@@ -68,6 +68,14 @@ translate_macro({ in, _, [Left, _] } = Expr, #elixir_scope{extra_guards=Extra} =
 
 %% Functions
 
+translate_macro({ function, Line, [[{do,{ '->',_,Pairs}}]] }, S) ->
+  assert_no_assign_or_guard_scope(Line, 'function', S),
+  elixir_translator:translate_fn(Line, Pairs, S);
+
+translate_macro({ function, Line, [_] }, S) ->
+  assert_no_assign_or_guard_scope(Line, 'function', S),
+  syntax_error(Line, S#elixir_scope.file, "invalid args for function");
+
 translate_macro({ function, Line, [_, _] = Args }, S) ->
   assert_no_assign_or_guard_scope(Line, 'function', S),
 

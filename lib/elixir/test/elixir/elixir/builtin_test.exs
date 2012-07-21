@@ -35,6 +35,52 @@ defmodule Elixir.BuiltinTest do
     end
   end
 
+  defmodule Function do
+    use ExUnit.Case, async: true
+
+    test :retrieve_remote_function do
+      assert is_function(function(:erlang, :atom_to_list, 1))
+      assert :erlang.fun_info(function(:erlang, :atom_to_list, 1), :arity) == {:arity, 1}
+      assert function(:erlang, :atom_to_list, 1).(:a) == 'a'
+    end
+
+    test :retrieve_local_function do
+      assert is_function(function(:atl, 1))
+      assert :erlang.fun_info(function(:atl, 1), :arity) == {:arity, 1}
+      assert function(:atl, 1).(:a) == 'a'
+    end
+
+    test :retrieve_imported_function do
+      assert is_function(function(:atom_to_list, 1))
+      assert :erlang.fun_info(function(:atom_to_list, 1), :arity) == {:arity, 1}
+      assert function(:atom_to_list, 1).(:a) == 'a'
+    end
+
+    test :retrieve_dynamic_function do
+      a = :erlang
+      b = :atom_to_list
+      c = 1
+
+      assert is_function(function(a, b, c))
+      assert :erlang.fun_info(function(a, b, c), :arity) == {:arity, 1}
+      assert function(a, b, c).(:a) == 'a'
+    end
+
+    test :function do
+      f = function do
+        x, y when y > 0 -> x + y
+        x, y -> x - y
+      end
+
+      assert f.(1, 2)  == 3
+      assert f.(1, -2) == 3
+    end
+
+    defp atl(arg) do
+      :erlang.atom_to_list arg
+    end
+  end
+
   defmodule DefDelegate do
     use ExUnit.Case, async: true
 
