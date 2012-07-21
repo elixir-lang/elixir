@@ -359,53 +359,6 @@ defmodule Elixir.SpecialForms do
   defmacro unquote_splicing(expr)
 
   @doc """
-  Returns an anonymous function based on the given arguments.
-
-  ## Examples
-
-      sum = fn(x, y) -> x + y end
-      sum.(1, 2) #=> 3
-
-  Notice that a function needs to be invoked using the dot between
-  the function and the arguments.
-
-  A function could also be defined using the `end` syntax, although
-  it is recommend to use it only with the stab operator in order to
-  avoid ambiguity. For example, consider this case:
-
-      Enum.map [1,2,3], fn x ->
-        x * 2
-      end
-
-  The example works fine because `->` binds to the closest function call,
-  which is `fn`, but if we replace it by `do/end`, it will fail:
-
-      Enum.map [1,2,3], fn(x) do
-        x * 2
-      end
-
-  The reason it fails is because do/end always bind to the farthest
-  function call.
-
-  ## Function with multiple clauses
-
-  One may define a function which expects different clauses as long
-  as all clauses expects the same number of arguments:
-
-      fun = fn do
-        x, y when y < 0 ->
-          x - y
-        x, y ->
-          x + y
-      end
-
-      fun.(10, -10) #=> 20
-      fun.(10, 10)  #=> 20
-
-  """
-  defmacro fn(args)
-
-  @doc """
   List comprehensions allow you to quickly build a list from another list:
 
       lc n inlist [1,2,3,4], do: n * 2

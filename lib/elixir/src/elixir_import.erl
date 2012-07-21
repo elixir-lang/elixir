@@ -278,6 +278,7 @@ non_overridable_macros() ->
     {'unquote_splicing',1},
     {'fn','*'},
     {'super','*'},
+    {'super?',0},
     {'bc','*'},
     {'lc','*'}
   ].

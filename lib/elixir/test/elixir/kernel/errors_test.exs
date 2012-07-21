@@ -77,7 +77,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_fn_args do
-    assert "nofile:1: invalid args for fn" == format_rescue 'fn 1'
+    assert "nofile:1: missing terminator: end (for fn starting at line 1)" == format_rescue 'fn 1'
   end
 
   test :macro_conflict do

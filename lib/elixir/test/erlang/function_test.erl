@@ -6,10 +6,6 @@ eval(Content) ->
   { Value, Binding, _ } = elixir:eval(Content, []),
   { Value, Binding }.
 
-function_do_end_test() ->
-  {Fun, _} = eval("fn do\n1 + 2\nend"),
-  3 = Fun().
-
 function_arg_do_end_test() ->
   {3, _} = eval("if date do\n1 + 2\nend"),
   {nil, _} = eval("if date do end").
