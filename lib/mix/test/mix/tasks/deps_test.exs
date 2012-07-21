@@ -146,7 +146,7 @@ defmodule Mix.Tasks.DepsTest do
   test "get and compile git repos" do
     Mix.Project.push GetApp
 
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
