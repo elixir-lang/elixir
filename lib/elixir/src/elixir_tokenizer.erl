@@ -658,7 +658,11 @@ sigil_terminator(${) -> $};
 sigil_terminator($<) -> $>;
 sigil_terminator(O) -> O.
 
+handle_terminator({ S, Line }, Terminators) when S == 'fn'; S == 'fn_paren' ->
+  [{ fn, Line }|Terminators];
+
 handle_terminator({ S, _ } = New, Terminators) when
+    S == 'do';
     S == '(';
     S == '[';
     S == '{';
@@ -666,6 +670,8 @@ handle_terminator({ S, _ } = New, Terminators) when
   [New|Terminators];
 
 handle_terminator({ E, _ }, [{ S, _ }|Terminators]) when
+    S == 'do', E == 'end';
+    S == 'fn', E == 'end';
     S == '(',  E == ')';
     S == '[',  E == ']';
     S == '{',  E == '}';
@@ -673,6 +679,7 @@ handle_terminator({ E, _ }, [{ S, _ }|Terminators]) when
   Terminators;
 
 handle_terminator({ E, Line }, _) when
+    E == 'end';
     E == ')';
     E == ']';
     E == '}';
@@ -682,15 +689,14 @@ handle_terminator({ E, Line }, _) when
 handle_terminator(_, Terminators) ->
   Terminators.
 
+terminator('fn') -> 'end';
+terminator('do') -> 'end';
 terminator('(')  -> ')';
 terminator('[')  -> ']';
 terminator('{')  -> '}';
 terminator('<<') -> '>>'.
 
 % Keywords check
-keyword(Line, do_identifier, fn, Tokens) ->
-  [{ do_identifier, Line, fn }|Tokens];
-
 keyword(Line, paren_identifier, fn, Tokens) ->
   [{ 'fn_paren', Line }|Tokens];
 
