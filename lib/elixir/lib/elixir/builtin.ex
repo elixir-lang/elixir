@@ -2327,13 +2327,13 @@ defmodule Elixir.Builtin do
 
   ## Examples
 
-      "abcd" =~ %r/c(d)/  #=> "cd"
+      "abcd" =~ %r/c(d)/  #=> 2
       "abcd" =~ %r/e/     #=> nil
 
   """
   defmacro :=~.(left, right) do
     quote do
-      Regex.first(unquote(right), unquote(left))
+      Regex.index(unquote(right), unquote(left))
     end
   end
 

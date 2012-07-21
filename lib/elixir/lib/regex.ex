@@ -66,19 +66,20 @@ defmodule Regex do
   end
 
   @doc """
-  Runs the regular expression against the given string.
-  It returns the first match or nil if no match ocurred.
+  Runs the regular expression against the given string
+  and returns the index (zero indexes) where the first
+  match occurs, nil otherwise.
 
   ## Examples
 
-      Regex.first %r/c(d)/, "abcd"  #=> "cd"
-      Regex.first %r/e/, "abcd"     #=> nil
+      Regex.index %r/c(d)/, "abcd"  #=> 3
+      Regex.index %r/e/, "abcd"     #=> nil
 
   """
-  def first({ Regex, compiled, _, _ }, string) do
-    case Erlang.re.run(string, compiled, [{ :capture, :first, return_for(string) }]) do
+  def index({ Regex, compiled, _, _ }, string) do
+    case Erlang.re.run(string, compiled, [{ :capture, :first, :index }]) do
       :nomatch -> nil
-      { :match, [result] } -> result
+      { :match, [{index,_}] } -> index
     end
   end
 
@@ -122,12 +123,12 @@ defmodule Regex do
 
   ## Examples
 
-      Regex.run %r/c(d)/, "abcd"  #=> [{2,2},{3,1}]
-      Regex.run %r/e/, "abcd"     #=> nil
+      Regex.indexes %r/c(d)/, "abcd"  #=> [{2,2},{3,1}]
+      Regex.indexes %r/e/, "abcd"     #=> nil
 
   """
   def indexes({ Regex, compiled, _, _ }, string) do
-    case Erlang.re.run(string, compiled, [{ :capture, :all, :index }, { :offset, 0 }]) do
+    case Erlang.re.run(string, compiled, [{ :capture, :all, :index }]) do
       :nomatch ->
         nil
       { :match, results } ->

@@ -40,7 +40,6 @@ defmodule EEx do
   `EEx.SmartEngine` supports the following tags:
 
       <% Elixir expression - inline with output %>
-      <& Elxir matching expression - not printed &>
       <%= Elixir expression - replace with result %>
 
   All expressions that output something to the template
@@ -54,15 +53,6 @@ defmodule EEx do
         It is obviously true
       <% else %>
         This will never appear
-      <% end %>
-
-  The `<& ... &>` expression is only used in matching
-  expressions (i.e. the left side on the opreator `->`).
-  For example, the `cond` macro would be written as:
-
-      <%= cond do %>
-        <& false -> &> Never printed
-        <& true  -> &> always printed
       <% end %>
 
   Notice that different engines may have different rules

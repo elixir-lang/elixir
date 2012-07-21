@@ -1,4 +1,4 @@
-* backwards incompatible changes
+* incompatible changes
   * [Kernel] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed via macros using `__CALLER__`;
   * [Module] Removed data functions in favor of unifying the attributes API;
   * [Kernel] Comprehensions syntax changed to be more compatible with Erlang behavior;
@@ -15,7 +15,7 @@
   * [Kernel] `refer` is deprecated in favor of `alias`;
 
 * enhancements
-  * [Regex] Backreferences are now properly supported;
+  * [Regex] Back references are now properly supported;
   * [IEx] Elixir now defaults to compile with documentation and `d` can be used in IEx to print modules and functions documentation;
   * [ExUnit] Support setup and teardown callbacks;
   * [Kernel] Introduced operator `=~` for regular expression matches;

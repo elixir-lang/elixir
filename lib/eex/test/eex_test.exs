@@ -198,8 +198,8 @@ true
     string = """
 foo
 <%= cond do %>
-<& false -> &> false
-<& __ENV__.line == 4 -> &>
+<% false -> %> false
+<% __ENV__.line == 4 -> %>
 <%= true %>
 <% end %>
 <%= __ENV__.line %>
@@ -225,6 +225,46 @@ foo
 <%= __ENV__.line %>
 <% end %>
 <%= __ENV__.line %>
+"""
+
+    assert_eval expected, string
+  end
+
+  test "properly handle functions" do
+    expected = """
+
+Number 1
+
+Number 2
+
+Number 3
+
+"""
+
+    string = """
+<%= Enum.map [1,2,3], fn x -> %>
+Number <%= x %>
+<% end %>
+"""
+
+    assert_eval expected, string
+  end
+
+  test "do not consider already finished functions" do
+    expected = """
+foo
+
+true
+
+"""
+
+    string = """
+foo
+<%= cond do %>
+<% false -> %> false
+<% fn -> 1 end -> %>
+<%= true %>
+<% end %>
 """
 
     assert_eval expected, string

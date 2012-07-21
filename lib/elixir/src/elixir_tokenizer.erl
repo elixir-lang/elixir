@@ -257,7 +257,7 @@ tokenize([T1,T2,T3|Rest], Line, File, Terminators, Tokens) when ?op3(T1, T2, T3)
 
 tokenize([T,T|Rest], Line, File, Terminators, Tokens) when T == $<; T == $> ->
   Token = { list_to_atom([T,T]), Line },
-  case handle_terminator(Token, Terminators) of
+  case handle_terminator(File, Token, Terminators) of
     { error, _ } = Error -> Error;
     New -> tokenize(Rest, Line, File, New, [Token|Tokens])
   end;
@@ -265,7 +265,7 @@ tokenize([T,T|Rest], Line, File, Terminators, Tokens) when T == $<; T == $> ->
 tokenize([T|Rest], Line, File, Terminators, Tokens) when T == $(;
     T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
   Token = { list_to_atom([T]), Line },
-  case handle_terminator(Token, Terminators) of
+  case handle_terminator(File, Token, Terminators) of
     { error, _ } = Error -> Error;
     New -> tokenize(Rest, Line, File, New, [Token|Tokens])
   end;
@@ -309,7 +309,7 @@ tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_downcase(H); 
     false ->
       tokenize(Rest, Line, File, Terminators, [{Kind,Line,Identifier}|Tokens]);
     [Check|T] ->
-      case handle_terminator(Check, Terminators) of
+      case handle_terminator(File, Check, Terminators) of
         { error, _ } = Error -> Error;
         New -> tokenize(Rest, Line, File, New, [Check|T])
       end
@@ -657,6 +657,13 @@ sigil_terminator($[) -> $];
 sigil_terminator(${) -> $};
 sigil_terminator($<) -> $>;
 sigil_terminator(O) -> O.
+
+%% In case File is "__internal__", we don't
+%% do any of the terminator checks
+
+handle_terminator(<<"__internal__">>, _, []) -> [];
+handle_terminator(File, Token, Terminator) ->
+  handle_terminator(Token, Terminator).
 
 handle_terminator({ S, Line }, Terminators) when S == 'fn'; S == 'fn_paren' ->
   [{ fn, Line }|Terminators];

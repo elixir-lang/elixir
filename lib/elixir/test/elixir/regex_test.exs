@@ -47,6 +47,11 @@ defmodule Regex.BinaryTest do
     assert Regex.run(%r"e", "abcd") == nil
   end
 
+  test :index do
+    assert Regex.index(%r"c(d)", "abcd") == 2
+    assert Regex.index(%r"e", "abcd") == nil
+  end
+
   test :indexes do
     assert Regex.indexes(%r"c(d)", "abcd") == [{2,2},{3,1}]
     assert Regex.indexes(%r"e", "abcd") == nil

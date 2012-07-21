@@ -19,11 +19,11 @@ defmodule EEx.Tokenizer do
     List.reverse(tokenize(list, line, line, [], []))
   end
 
-  defp tokenize([?<,h|t], current_line, line, buffer, acc) when h in [?&, ?%] do
-    { marker, t }  = retrieve_marker(h, t)
-    { expr, new_line, rest } = tokenize_expr h, t, line, []
+  defp tokenize([?<,?%|t], current_line, line, buffer, acc) do
+    { marker, t } = retrieve_marker(t)
+    { expr, new_line, rest } = tokenize_expr t, line, []
 
-    token = token_name(h, expr)
+    token = token_name(expr)
     acc   = tokenize_text(current_line, buffer, acc)
     final = { token, line, marker, List.reverse(expr) }
     tokenize rest, new_line, new_line, [], [final | acc]
@@ -41,45 +41,42 @@ defmodule EEx.Tokenizer do
     tokenize_text(current_line, buffer, acc)
   end
 
-  # Retrieve marker for <%, <& is ignored
+  # Retrieve marker for <%
 
-  defp retrieve_marker(?%, '=' ++ t) do
+  defp retrieve_marker('=' ++ t) do
     { '=', t }
   end
 
-  defp retrieve_marker(_, t) do
+  defp retrieve_marker(t) do
     { '', t }
   end
 
-  # Tokenize an expression until we find %> or &>
+  # Tokenize an expression until we find %>
 
-  defp tokenize_expr(char, [char,?>|t], line, buffer) do
+  defp tokenize_expr([?%,?>|t], line, buffer) do
     { buffer, line, t }
   end
 
-  defp tokenize_expr(char, '\n' ++ t, line, buffer) do
-    tokenize_expr char, t, line + 1, [?\n|buffer]
+  defp tokenize_expr('\n' ++ t, line, buffer) do
+    tokenize_expr t, line + 1, [?\n|buffer]
   end
 
-  defp tokenize_expr(char, [h|t], line, buffer) do
-    tokenize_expr char, t, line, [h|buffer]
+  defp tokenize_expr([h|t], line, buffer) do
+    tokenize_expr t, line, [h|buffer]
   end
 
   # Raise an error if the expected token is not found
 
-  defp tokenize_expr(char, [], _line, _buffer) do
-    raise EEx.SyntaxError, message: "missing token: " <> <<char, ?>>>
+  defp tokenize_expr([], _line, _buffer) do
+    raise EEx.SyntaxError, message: "missing token: %>"
   end
 
   # Receive an expression content and check
   # if it is a start, middle or an end token.
   #
-  # Start tokens finish with `do` and '->'
-  # Middle tokens are marked as <& or keywords
+  # Start tokens finish with `do` and `fn ->`
+  # Middle tokens are marked with `->` or keywords
   # End tokens contain only the end word
-
-  defp token_name(?&, _),    do: :middle_expr
-  defp token_name(?%, rest), do: token_name(rest)
 
   defp token_name([h|t]) when h in [?\s, ?\t] do
     token_name(t)
@@ -89,8 +86,27 @@ defmodule EEx.Tokenizer do
     :start_expr
   end
 
-  defp token_name('>-' ++ _) do
-    :start_expr
+  defp token_name('>-' ++ rest) do
+    rest = List.reverse(rest)
+
+    # Tokenize the remaining passing "__internal__" as file,
+    # which relax the tokenizer to not error on unmatched
+    # pairs. Then, we check if there is a "fn" token and,
+    # if so, it is not followed by an "end" token. If this
+    # is the case, we are on a start expr.
+    case :elixir_tokenizer.tokenize(rest, 1, "__internal__") do
+      { :ok, tokens } ->
+        tokens   = List.reverse(tokens)
+        fn_index = fn_index(tokens)
+
+        if fn_index && end_index(tokens) > fn_index do
+          :start_expr
+        else
+          :middle_expr
+        end
+      error ->
+        :middle_expr
+    end
   end
 
   defp token_name('esle' ++ t),   do: check_spaces(t, :middle_expr)
@@ -101,6 +117,18 @@ defmodule EEx.Tokenizer do
 
   defp token_name(_) do
     :expr
+  end
+
+  defp fn_index(tokens) do
+    Enum.find_index(tokens, function do
+      { :fn_paren, _ } -> true
+      { :fn, _ }       -> true
+      _                -> false
+    end)
+  end
+
+  defp end_index(tokens) do
+    Enum.find_index(tokens, match?({ :end, _ }, &1)) || :infinity
   end
 
   defp check_spaces(string, token) do
