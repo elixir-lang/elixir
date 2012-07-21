@@ -317,25 +317,13 @@ translate_each({in_guard, Line, [[{do,Guard},{else,Else}]]}, S) ->
 translate_each({Key, Line, []}, S) when Key == fn; Key == loop ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for ~s", [Key]);
 
-translate_each({fn, Line, Args} = Original, S) when is_list(Args) ->
+translate_each({fn, Line, Args}, S) when is_list(Args) ->
   assert_no_assign_or_guard_scope(Line, 'fn', S),
   { Left, Right } = elixir_tree_helpers:split_last(Args),
 
   case Right of
     [{do,Do}] ->
       translate_block_fn(Line, fn, Left, Do, S, []);
-    _ when length(Args) == 2 ->
-      case translate_args(Args, S) of
-        { [{atom,_,Name}, {integer,_,Arity}], SA } ->
-          case elixir_dispatch:import_function(Line, Name, Arity, SA) of
-            false -> syntax_error(Line, S#elixir_scope.file, "cannot convert a macro to a function");
-            Else  -> Else
-          end;
-        _ ->
-          translate_partial_fn({ fn, Line, [{'__MODULE__', 0, nil}|Args] }, S)
-      end;
-    _ when length(Args) == 3 ->
-      translate_partial_fn(Original, S);
     _ ->
       syntax_error(Line, S#elixir_scope.file, "invalid args for fn")
   end;
@@ -577,14 +565,6 @@ translate_block_fn(Line, Key, Left, Right, S, ExtraArgs) ->
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
   { { 'fun', Line, {clauses, TClauses} }, umergec(S, NS) }.
-
-translate_partial_fn({ fn, Line, Args } = Original, S) ->
-  case handle_partials(Line, Original, S) of
-    error ->
-      { [A,B,C], SA } = translate_args(Args, S),
-      { { 'fun', Line, { function, A, B, C } }, SA };
-    Else -> Else
-  end.
 
 translate_local(Line, Name, Args, #elixir_scope{local=nil} = S) ->
   { TArgs, NS } = translate_args(Args, S),

@@ -66,6 +66,26 @@ translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=nil} = S
 translate_macro({ in, _, [Left, _] } = Expr, #elixir_scope{extra_guards=Extra} = S) ->
   translate_each(Left, S#elixir_scope{extra_guards=[Expr|Extra]});
 
+%% Functions
+
+translate_macro({ function, Line, [_, _] = Args }, S) ->
+  assert_no_assign_or_guard_scope(Line, 'function', S),
+
+  case translate_args(Args, S) of
+    { [{atom,_,Name}, {integer,_,Arity}], SA } ->
+      case elixir_dispatch:import_function(Line, Name, Arity, SA) of
+        false -> syntax_error(Line, S#elixir_scope.file, "cannot convert a macro to a function");
+        Else  -> Else
+      end;
+    _ ->
+      syntax_error(Line, S#elixir_scope.file, "cannot dynamically retrieve local function. use function(module, fun, arity) instead")
+  end;
+
+translate_macro({ function, Line, [_,_,_] = Args }, S) when is_list(Args) ->
+  assert_no_assign_or_guard_scope(Line, 'function', S),
+  { [A,B,C], SA } = translate_args(Args, S),
+  { { 'fun', Line, { function, A, B, C } }, SA };
+
 %% @
 
 translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name == type; Name == spec; Name == callback ->

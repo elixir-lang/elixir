@@ -1656,6 +1656,79 @@ defmodule Elixir.Builtin do
   end
 
   @doc """
+  Returns an anonymous function based on the given arguments.
+
+  ## Examples
+
+      sum = function do
+        (x, y) -> x + y
+      end
+
+      sum.(1, 2) #=> 3
+
+  Notice that a function needs to be invoked using the dot between
+  the function and the arguments.
+
+  Multiple clauses can be specified as in `case`, `receive` and
+  similar macros:
+
+      sum = function do
+        x, y when y > 0 -> x + y
+        x, y -> x - y
+      end
+
+      sum.(1, 2) #=> 3
+
+  ## Shortcut syntax
+
+  In order to reduce verbosity, functions in Elixir can be written
+  using a shortcut syntax via `fn`:
+
+      Enum.map [1,2,3], fn x ->
+        x * 2
+      end
+
+  Not only the example is shorter, it solves ambiguity issues. Since
+  `do/end` always matches the furthest call, if we used the `function`
+  macro as below:
+
+      Enum.map [1,2,3], function(x) do
+        x * 2
+      end
+
+  It would be parsed as:
+
+      Enum.map([1,2,3], function(x)) do
+        x * 2
+      end
+
+  The stab shortcut syntax has the proper precedence:
+
+      Enum.map [1,2,3], fn x ->
+        x * 2
+      end
+
+  Which is handled as:
+
+      Enum.map([1,2,3], fn x ->
+        x * 2
+      end)
+
+  ## Function retrieval
+
+  The `function` macro can also be used to retrieve local or remote
+  functions:
+
+      f = function(:is_atom, 2)
+      f.(:foo) #=> true
+
+      f = function(List, :flatten, 1)
+      f.([1,[2],3]) #=> [1,2,3]
+
+  """
+  defmacro function(args)
+
+  @doc """
   Matches the given condition against the match clauses.
 
   ## Examples

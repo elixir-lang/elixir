@@ -4,21 +4,21 @@ defmodule Elixir.Builtin.Test do
   use ExUnit.Case, async: true
 
   test :remote_fun do
-    assert is_function(fn(:erlang, :atom_to_list, 1))
-    assert :erlang.fun_info(fn(:erlang, :atom_to_list, 1), :arity) == {:arity, 1}
-    assert fn(:erlang, :atom_to_list, 1).(:a) == 'a'
+    assert is_function(function(:erlang, :atom_to_list, 1))
+    assert :erlang.fun_info(function(:erlang, :atom_to_list, 1), :arity) == {:arity, 1}
+    assert function(:erlang, :atom_to_list, 1).(:a) == 'a'
   end
 
   test :local_fun do
-    assert is_function(fn(:atl, 1))
-    assert :erlang.fun_info(fn(:atl, 1), :arity) == {:arity, 1}
-    assert fn(:atl, 1).(:a) == 'a'
+    assert is_function(function(:atl, 1))
+    assert :erlang.fun_info(function(:atl, 1), :arity) == {:arity, 1}
+    assert function(:atl, 1).(:a) == 'a'
   end
 
   test :imported_fun do
-    assert is_function(fn(:atom_to_list, 1))
-    assert :erlang.fun_info(fn(:atom_to_list, 1), :arity) == {:arity, 1}
-    assert fn(:atom_to_list, 1).(:a) == 'a'
+    assert is_function(function(:atom_to_list, 1))
+    assert :erlang.fun_info(function(:atom_to_list, 1), :arity) == {:arity, 1}
+    assert function(:atom_to_list, 1).(:a) == 'a'
   end
 
   test :dynamic_fun do
@@ -26,9 +26,9 @@ defmodule Elixir.Builtin.Test do
     b = :atom_to_list
     c = 1
 
-    assert is_function(fn(a, b, c))
-    assert :erlang.fun_info(fn(a, b, c), :arity) == {:arity, 1}
-    assert fn(a, b, c).(:a) == 'a'
+    assert is_function(function(a, b, c))
+    assert :erlang.fun_info(function(a, b, c), :arity) == {:arity, 1}
+    assert function(a, b, c).(:a) == 'a'
   end
 
   defp atl(arg) do
