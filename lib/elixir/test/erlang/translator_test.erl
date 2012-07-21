@@ -45,14 +45,6 @@ if_do_else_test() ->
 if_vars_test() ->
   {true,[{foo,1}]} = eval([{ 'if', 1, [{'=', 1, [{foo,1,nil},1]}, [{do,true},{else,false}] ] }], []).
 
-%% Functions
-
-functions_test() ->
-  Keywords = [{do, { '+', 1, [{ x, 1, nil }, { y, 1, nil }]}}],
-  Args = [{ x, 1, nil }, { y, 1, nil }, Keywords],
-  Fun = eval([{ fn, 1, Args }]),
-  3 = Fun(1, 2).
-
 %% Literals
 
 list_test() ->

@@ -314,53 +314,9 @@ translate_each({in_guard, Line, [[{do,Guard},{else,Else}]]}, S) ->
 
 %% Functions
 
-translate_each({Key, Line, []}, S) when Key == fn; Key == loop ->
-  syntax_error(Line, S#elixir_scope.file, "invalid args for ~s", [Key]);
-
-translate_each({fn, Line, Args}, S) when is_list(Args) ->
+translate_each({fn, Line, [[{do, { '->', _, Pairs }}]]}, S) ->
   assert_no_assign_or_guard_scope(Line, 'fn', S),
-  { Left, Right } = elixir_tree_helpers:split_last(Args),
-
-  case Right of
-    [{do,Do}] ->
-      translate_block_fn(Line, fn, Left, Do, S, []);
-    _ ->
-      syntax_error(Line, S#elixir_scope.file, "invalid args for fn")
-  end;
-
-%% Loop and recur
-
-translate_each({loop, Line, RawArgs}, RS) when is_list(RawArgs) ->
-  elixir_errors:deprecation(Line, RS#elixir_scope.file, "loop is deprecated, please use named functions to recur instead"),
-
-  { Args, KV } = elixir_tree_helpers:split_last(RawArgs),
-  { ExVar, S } = elixir_scope:build_ex_var(Line, RS),
-
-  { Function, SE } = case KV of
-    [{do,Do}] ->
-      FS = S#elixir_scope{recur=element(1,ExVar)},
-      translate_block_fn(Line, loop, [], Do, FS, [ExVar]);
-    _ ->
-      syntax_error(Line, S#elixir_scope.file, "invalid args for loop")
-  end,
-
-  ErlVar = { var, Line, element(1, ExVar) },
-  { TArgs, SA } = translate_args(Args, umergec(S, SE)),
-
-  { { block, Line, [
-    { match, Line, ErlVar, Function },
-    { call, Line, ErlVar, [ErlVar|TArgs] }
-  ] }, umergev(SE, SA) };
-
-translate_each({recur, Line, Args}, S) when is_list(Args) ->
-  case S#elixir_scope.recur of
-    nil ->
-      syntax_error(Line, S#elixir_scope.file, "cannot invoke recur outside of a loop");
-    Recur ->
-      ExVar = { Recur, Line, nil },
-      Call = { { '.', Line, [ExVar] }, Line, [ExVar|Args] },
-      translate_each(Call, S)
-  end;
+  translate_fn(Line, Pairs, S);
 
 %% Super
 
@@ -552,25 +508,6 @@ translate_fn(Line, Clauses, S) ->
   Transformer = fun({ ArgsWithGuards, Expr }, Acc) ->
     { Args, Guards } = elixir_clauses:extract_last_guards(ArgsWithGuards),
     elixir_clauses:assigns_block(Line, fun elixir_translator:translate/2, Args, [Expr], Guards, umergec(S, Acc))
-  end,
-
-  { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
-  { { 'fun', Line, {clauses, TClauses} }, umergec(S, NS) }.
-
-%% deprecation: Remove this once loops are removed
-translate_block_fn(Line, Key, Left, Right, S, ExtraArgs) ->
-  Clauses = case { Left, Right } of
-    { [], {'->',_,Pairs} } ->
-      Pairs;
-    { _, {'->',_,_} } ->
-      syntax_error(Line, S#elixir_scope.file, "~s does not accept arguments when passing many clauses", [Key]);
-    { Args, Expr } ->
-      [{ Args, Expr }]
-  end,
-
-  Transformer = fun({ ArgsWithGuards, Expr }, Acc) ->
-    { FinalArgs, Guards } = elixir_clauses:extract_last_guards(ArgsWithGuards),
-    elixir_clauses:assigns_block(Line, fun elixir_translator:translate/2, ExtraArgs ++ FinalArgs, [Expr], Guards, umergec(S, Acc))
   end,
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),

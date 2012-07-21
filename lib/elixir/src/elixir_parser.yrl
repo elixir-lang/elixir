@@ -141,9 +141,9 @@ block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_ide
 block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
 block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
 
-fn_expr -> fn_paren call_args_parens fn_block : build_identifier('$1', '$2' ++ '$3').
-fn_expr -> fn call_args_no_parens fn_block : build_identifier('$1', '$2' ++ '$3').
-fn_expr -> fn fn_block : build_identifier('$1', '$2').
+fn_expr -> fn_paren call_args_parens fn_block : build_fn('$1', '$2', '$3').
+fn_expr -> fn call_args_no_parens fn_block : build_fn('$1', '$2', '$3').
+fn_expr -> fn fn_block : build_fn('$1', [], '$2').
 fn_expr -> call_expr : '$1'.
 
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
@@ -182,7 +182,7 @@ base_expr -> sigil : build_sigil('$1').
 
 %% Blocks
 
-fn_block -> '->' grammar 'end' : [[{do,build_block('$2', false)}]].
+fn_block -> '->' grammar 'end' : build_block('$2', false).
 
 do_block -> do_eol 'end' : [[{do,nil}]].
 do_block -> do_eol stab_expr_list end_eol : [[{ do, build_stab(lists:reverse('$2')) }]].
@@ -504,6 +504,13 @@ extract_identifier({ Kind, _, Identifier }) when
   Identifier;
 
 extract_identifier(Other) -> Other.
+
+%% Fn
+
+build_fn(Op, Args, Expr) ->
+  Line = ?line(Op),
+  Stab = [{do, { '->', Line, [{ Args, Expr }] }}],
+  { fn, Line, [Stab] }.
 
 %% Access
 

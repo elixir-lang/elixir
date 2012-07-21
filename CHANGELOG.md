@@ -3,9 +3,9 @@
   * [Module] Removed data functions in favor of unifying the attributes API;
   * [Kernel] Comprehensions syntax changed to be more compatible with Erlang behavior;
   * [Kernel] Compiled files now follow "__MAIN__-ModuleName" convention to solve issues with Erlang embedded mode;
+  * [Kernel] loop and recur were removed in favor of recursion with named functions;
 
 * deprecations
-  * [Kernel] loop and recur are deprecated in favor of recursion with named functions;
   * [Access] The semantics of the access protocol were reduced from a broad query API to simple data structure key-based access;
   * [Module] `Module.add_compile_callback(module, target, callback)` was deprecated in favor of the simpler `Module.add_attribute(module, :before_compile, { target, callback })` API;
   * [File] `File.read_info` was deprecated in favor of `File.stat`;
