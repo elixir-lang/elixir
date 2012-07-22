@@ -274,7 +274,7 @@ translate_macro({ 'var!', Line, [_] }, S) ->
 module_ref(_Raw, Module, nil) ->
   Module;
 
-module_ref({ '__aliases__', _, [{ '__MAIN__', _, Atom }|_]}, Module, _Nesting) when is_atom(Atom) ->
+module_ref({ '__aliases__', _, ['Elixir'|_]}, Module, _Nesting) ->
   Module;
 
 module_ref(_F, Module, Nesting) ->

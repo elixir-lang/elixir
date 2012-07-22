@@ -156,7 +156,7 @@ defmodule Kernel.ErrorsTest do
 
   test :in_definition_module do
     assert "nofile:1: cannot define module Foo because it is currently being defined" ==
-      format_rescue 'defmodule Foo, do: (defmodule __MAIN__.Foo, do: true)'
+      format_rescue 'defmodule Foo, do: (defmodule Elixir.Foo, do: true)'
   end
 
   test :duplicated_bitstring_size do

@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       contents = File.read!("ebin/simple_project.app")
       assert contents =~ %r/\{application,simple_project/
       assert contents =~ %r/0.1.0/
-      assert contents =~ %r/'__MAIN__-A'/
+      assert contents =~ %r/'Elixir-A'/
       assert contents =~ %r/\{applications,\["kernel","stdlib","elixir"\]\}/
 
       assert Mix.Tasks.Compile.App.run([]) == :noop

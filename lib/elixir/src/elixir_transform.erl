@@ -6,9 +6,11 @@ parse_transform(Forms, _) ->
 
 do_transform({ atom, Line, Atom }) ->
   case atom_to_list(Atom) of
-    "Elixir." ++ Rest ->
-      Tokens = string:tokens(Rest, "."),
-      Module = string:join(["__MAIN__"|Tokens], "-"),
+    "Elixir." ++ _ = List ->
+      Module = [case T of
+        $. -> $-;
+        _  -> T
+      end || T <- List],
       { atom, Line, list_to_atom(Module) };
     _ ->
       { atom, Line, Atom }

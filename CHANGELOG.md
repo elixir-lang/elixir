@@ -1,8 +1,8 @@
 * incompatible changes
+  * [Kernel] Compiled files now follow `Elixir-ModuleName` convention to solve issues with Erlang embedded mode. This removes the `__MAIN__` pseudo-variable as modules are now located inside `Elixir` namespace;
   * [Kernel] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed via macros using `__CALLER__`;
   * [Module] Removed data functions in favor of unifying the attributes API;
   * [Kernel] Comprehensions syntax changed to be more compatible with Erlang behavior;
-  * [Kernel] Compiled files now follow "__MAIN__-ModuleName" convention to solve issues with Erlang embedded mode;
   * [Kernel] loop and recur were removed in favor of recursion with named functions;
 
 * deprecations

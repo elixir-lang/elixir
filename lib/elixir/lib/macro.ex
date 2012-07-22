@@ -283,7 +283,7 @@ defmodule Macro do
   # aliases just contain one item, we are sure it is
   # an atom, so we just expand it based on the aliases
   # dict.
-  def expand({ :__aliases__, _, [h] }, env) do
+  def expand({ :__aliases__, _, [h] }, env) when h != Elixir do
     expand_alias(h, env)
   end
 
@@ -291,9 +291,10 @@ defmodule Macro do
   # to loop them checking if they are all atoms or not.
   # Macros and pseudo-variables are then expanded.
   def expand({ :__aliases__, _, [h|t] }, env) do
-    aliases = case is_atom(h) do
-      true  -> [expand_alias(h, env)|t]
-      false -> [h|t]
+    aliases = case h do
+      Elixir            -> t
+      x when is_atom(x) -> [expand_alias(x, env)|t]
+      _                 -> [h|t]
     end
 
     aliases = lc alias inlist aliases, do: expand(alias, env)
@@ -305,7 +306,6 @@ defmodule Macro do
     is_atom(atom) and (is_atom(args) or args == []), do: atom
 
   # Expand pseudo-variables
-  def expand({ :__MAIN__, _, atom }, _env)  when is_atom(atom), do: :__MAIN__
   def expand({ :__MODULE__, _, atom }, env) when is_atom(atom), do: env.module
   def expand({ :__FILE__, _, atom }, env)   when is_atom(atom), do: env.file
   def expand({ :__ENV__, _, atom }, env)    when is_atom(atom), do: env
@@ -355,7 +355,7 @@ defmodule Macro do
   end
 
   defp expand_alias(h, env) do
-    atom = list_to_atom('__MAIN__-' ++ atom_to_list(h))
+    atom = list_to_atom('Elixir-' ++ atom_to_list(h))
     Erlang.elixir_aliases.lookup(atom, env.aliases)
   end
 end

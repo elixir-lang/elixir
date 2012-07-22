@@ -33,33 +33,34 @@ defimpl Binary.Inspect, for: Atom do
       inspect(Foo.Bar) #=> "Foo.Bar"
 
   """
-  def inspect(false), do: "false"
-  def inspect(true),  do: "true"
-  def inspect(nil),   do: "nil"
-  def inspect(:""),   do: ":\"\""
+  def inspect(false),  do: "false"
+  def inspect(true),   do: "true"
+  def inspect(nil),    do: "nil"
+  def inspect(:""),    do: ":\"\""
+  def inspect(Elixir), do: "Elixir"
 
   def inspect(atom) do
     binary = atom_to_binary(atom)
 
     cond do
-      atom in Macro.binary_ops or atom in Macro.unary_ops ->
-        ":" <> binary
       valid_atom_identifier?(binary) ->
         ":" <> binary
       valid_ref_identifier?(binary) ->
-        "__MAIN__-" <> rest = binary
+        "Elixir-" <> rest = binary
         bc <<r>> inbits rest, do: <<to_dot(r)>>
+      atom in Macro.binary_ops or atom in Macro.unary_ops ->
+        ":" <> binary
       true ->
         ":" <> Binary.escape(binary, ?")
     end
   end
 
-  # Detect if atom is an atom alias (__MAIN__-Foo-Bar-Baz)
+  # Detect if atom is an atom alias (Elixir-Foo-Bar-Baz)
 
   defp to_dot(?-), do: ?.
   defp to_dot(l),  do: l
 
-  defp valid_ref_identifier?("__MAIN__" <> rest) do
+  defp valid_ref_identifier?("Elixir" <> rest) do
     valid_ref_piece?(rest)
   end
 
@@ -234,7 +235,7 @@ defimpl Binary.Inspect, for: Tuple do
   ## Helpers
 
   defp is_record?(name) do
-    is_atom(name) and match?("__MAIN__-" <> _, atom_to_binary(name, :utf8)) and
+    is_atom(name) and match?("Elixir-" <> _, atom_to_binary(name, :utf8)) and
       function_exported?(name, :__record__, 1)
   end
 

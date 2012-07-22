@@ -6,7 +6,7 @@ defmodule Mix.CLITest do
   test "default task" do
     in_fixture "custom_mixfile", fn ->
       output = mix ""
-      assert File.regular?("ebin/__MAIN__-A.beam")
+      assert File.regular?("ebin/Elixir-A.beam")
       assert output =~ %r"1 tests, 0 failures"
     end
   end
@@ -21,9 +21,9 @@ defmodule Mix.CLITest do
     in_fixture "no_mixfile", fn ->
       output = mix "compile"
 
-      assert File.regular?("ebin/__MAIN__-A.beam")
-      assert File.regular?("ebin/__MAIN__-B.beam")
-      assert File.regular?("ebin/__MAIN__-C.beam")
+      assert File.regular?("ebin/Elixir-A.beam")
+      assert File.regular?("ebin/Elixir-B.beam")
+      assert File.regular?("ebin/Elixir-C.beam")
 
       assert output =~ %r"Compiled lib/a\.ex"
     end
@@ -32,7 +32,7 @@ defmodule Mix.CLITest do
   test "test smoke test" do
     in_fixture "custom_mixfile", fn ->
       output = mix "test"
-      assert File.regular?("ebin/__MAIN__-A.beam")
+      assert File.regular?("ebin/Elixir-A.beam")
       assert output =~ %r"1 tests, 0 failures"
     end
   end

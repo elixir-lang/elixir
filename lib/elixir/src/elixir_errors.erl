@@ -15,7 +15,7 @@
 
 inspect(Atom) when is_atom(Atom) ->
   case atom_to_list(Atom) of
-    "__MAIN__-" ++ Rest -> [to_dot(R) || R <- Rest];
+    "Elixir-" ++ Rest -> [to_dot(R) || R <- Rest];
     Else -> Else
   end;
 

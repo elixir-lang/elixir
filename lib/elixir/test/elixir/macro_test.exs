@@ -46,7 +46,7 @@ defmodule MacroTest do
   end
 
   test :expand_with_main do
-    assert Macro.expand(quote(do: __MAIN__), __ENV__) == __MAIN__
+    assert Macro.expand(quote(do: Elixir), __ENV__) == Elixir
   end
 
   test :expand_with_simple_alias do
@@ -58,7 +58,7 @@ defmodule MacroTest do
   end
 
   test :expand_with_main_plus_alias do
-    assert Macro.expand(quote(do: __MAIN__.Foo), __ENV__) == Foo
+    assert Macro.expand(quote(do: Elixir.Foo), __ENV__) == Foo
   end
 
   test :expand_with_custom_alias do
@@ -68,7 +68,7 @@ defmodule MacroTest do
 
   test :expand_with_main_plus_custom_alias do
     alias Foo, as: Bar
-    assert Macro.expand(quote(do: __MAIN__.Bar.Baz), __ENV__) == __MAIN__.Bar.Baz
+    assert Macro.expand(quote(do: Elixir.Bar.Baz), __ENV__) == Elixir.Bar.Baz
   end
 
   test :expand_with_erlang do

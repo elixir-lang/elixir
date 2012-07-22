@@ -2207,7 +2207,7 @@ defmodule Kernel do
 
   """
   defmacro :"..".(first, last) do
-    { :{}, 0, [__MAIN__.Range, first, last] }
+    { :{}, 0, [Elixir.Range, first, last] }
   end
 
   @doc """

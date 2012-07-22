@@ -4,14 +4,14 @@ defmodule Kernel.SpecialForms do
   special forms because they cannot be overridden by the developer
   and sometimes have lexical scope (like `alias`, `import`, etc).
 
-  This module also documents Elixir's pseudo variable (`__MODULE__`,
+  This module also documents Elixir's pseudo variables (`__MODULE__`,
   `__FILE__`, `__ENV__` and `__CALLER__`) which return information
   about Elixir's compilation environment.
 
   Finally, it also documents 3 special forms (`__block__`,
   `__scope__` and `__aliases__`), which are not intended to be
   called directly by the developer but they appear in quoted
-  contents since they are important for Elixir's functioning.
+  contents since they are essential in Elixir's constructions.
   """
 
   @doc """
@@ -60,10 +60,10 @@ defmodule Kernel.SpecialForms do
   automatically replaced by `MyKeyword`.
 
   In case one wants to access the original `Keyword`, it can be done
-  by accessing __MAIN__:
+  by accessing Elixir:
 
       Keyword.values   #=> uses MyKeyword.values
-      __MAIN__.Keyword.values #=> uses Keyword.values
+      Elixir.Keyword.values #=> uses Keyword.values
 
   Notice that calling `alias` without the `as:` option automatically
   sets an alias based on the last part of the module. For example:
@@ -270,12 +270,12 @@ defmodule Kernel.SpecialForms do
       a #=> 11
 
   Notice that aliases are not hygienic in Elixir, ambiguity
-  must be solved by prepending __MAIN__:
+  must be solved by prepending Elixir:
 
       quote do
-        __MAIN__.Foo #=> Access the root Foo
-        Foo          #=> Access the Foo alias in the current module
-                         (if any is set), then fallback to __MAIN__.Foo
+        Elixir.Foo #=> Access the root Foo
+        Foo        #=> Access the Foo alias in the current module
+                       (if any is set), then fallback to Elixir.Foo
       end
 
   ## Options

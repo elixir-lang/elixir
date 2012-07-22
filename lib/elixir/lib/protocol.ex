@@ -228,7 +228,7 @@ defmodule Protocol do
           true  -> __MODULE__.Tuple
           false ->
             case atom_to_list(first) do
-              '__MAIN__' ++ _ -> __MODULE__.Record
+              'Elixir-' ++ _ -> __MODULE__.Record
               _ -> __MODULE__.Tuple
             end
         end

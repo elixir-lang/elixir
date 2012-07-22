@@ -80,7 +80,7 @@ defmodule Kernel.CLI.CompileTest do
     fixture = fixture_path "compile_sample.exs"
     assert elixirc('#{fixture} -o #{tmp_path}') ==
       'Compiled #{fixture}\n'
-    assert File.regular?(tmp_path "__MAIN__-CompileSample.beam")
+    assert File.regular?(tmp_path "Elixir-CompileSample.beam")
   end
 end
 
@@ -92,8 +92,8 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     output = elixirc('#{fixture_path("parallel_compiler")} -o #{tmp_path}')
     assert Erlang.string.str(output, 'message_from_foo') > 0,
       "Expected #{inspect output} to contain 'message_from_foo'"
-    assert File.regular?(tmp_path "__MAIN__-Foo.beam")
-    assert File.regular?(tmp_path "__MAIN__-Bar.beam")
+    assert File.regular?(tmp_path "Elixir-Foo.beam")
+    assert File.regular?(tmp_path "Elixir-Bar.beam")
   end
 
   test :deadlock_failure do

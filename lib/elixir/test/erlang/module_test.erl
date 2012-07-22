@@ -118,7 +118,7 @@ do_end_test() ->
 
 nesting_test() ->
   F = fun() ->
-    eval("defmodule Foo do\ndefmodule __MAIN__.Bar do\ndef b, do: 2\nend\nend"),
+    eval("defmodule Foo do\ndefmodule Elixir.Bar do\ndef b, do: 2\nend\nend"),
     {2,_} = eval("Bar.b")
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo', 'Elixir.Bar']).
@@ -131,7 +131,7 @@ dot_dyn_alias_test() ->
 
 single_ref_test() ->
   { 'Elixir.Foo', _ } = eval("Foo"),
-  { 'Elixir.Foo', _ } = eval("__MAIN__.Foo").
+  { 'Elixir.Foo', _ } = eval("Elixir.Foo").
 
 nested_ref_test() ->
   { 'Elixir.Foo.Bar.Baz', _ } = eval("Foo.Bar.Baz").

@@ -10,9 +10,9 @@ VERSION:=0.6.0.dev
 
 #==> Templates
 define TASK_TEMPLATE
-$(1): lib/$(1)/ebin/__MAIN__-$(2).beam
+$(1): lib/$(1)/ebin/Elixir-$(2).beam
 
-lib/$(1)/ebin/__MAIN__-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex) $$(FORCE)
+lib/$(1)/ebin/Elixir-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex) $$(FORCE)
 	@ echo "==> $(1) (compile)"
 	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
 	@ cd lib/$(1) && ../../bin/mix compile.app
@@ -23,7 +23,7 @@ test_$(1): $(1)
 endef
 
 #==> Compilation tasks
-KERNEL:=lib/elixir/ebin/__MAIN__-Kernel.beam
+KERNEL:=lib/elixir/ebin/Elixir-Kernel.beam
 
 compile: lib/elixir/src/elixir.app.src erlang elixir
 

@@ -54,7 +54,7 @@ defmodule Mix.Utils do
       #=> { :module, Mix.Tasks.Compile }
 
   """
-  def get_module(command, at // __MAIN__) do
+  def get_module(command, at // Elixir) do
     module = Module.concat(at, command_to_module_name(command))
     Code.ensure_loaded(module)
   end

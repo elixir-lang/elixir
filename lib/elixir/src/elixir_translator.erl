@@ -218,9 +218,6 @@ translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
 translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
   translate_each(S#elixir_scope.file, S);
 
-translate_each({'__MAIN__', Line, Atom}, S) when is_atom(Atom) ->
-  { { atom, Line, '__MAIN__' }, S };
-
 translate_each({'__ENV__', Line, Atom}, S) when is_atom(Atom) ->
   { elixir_scope:to_erl_env({ Line, S }), S };
 
@@ -244,16 +241,18 @@ translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
 
 %% Aliases
 
-translate_each({ '__aliases__', Line, [H] }, S) ->
-  Atom = list_to_atom("__MAIN__-" ++ atom_to_list(H)),
+translate_each({ '__aliases__', Line, [H] }, S) when H /= 'Elixir'  ->
+  Atom = list_to_atom("Elixir-" ++ atom_to_list(H)),
   { { atom, Line, elixir_aliases:lookup(Atom, S#elixir_scope.aliases) }, S };
 
 translate_each({ '__aliases__', Line, [H|T] }, S) ->
-  Aliases = case is_atom(H) of
-    true ->
-      Atom = list_to_atom("__MAIN__-" ++ atom_to_list(H)),
+  Aliases = if
+    H == 'Elixir' ->
+      T;
+    is_atom(H) ->
+      Atom = list_to_atom("Elixir-" ++ atom_to_list(H)),
       [elixir_aliases:lookup(Atom, S#elixir_scope.aliases)|T];
-    false ->
+    true ->
       [H|T]
   end,
 

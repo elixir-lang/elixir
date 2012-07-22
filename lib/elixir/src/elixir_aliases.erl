@@ -24,9 +24,9 @@ ensure_loaded(Line, Ref, S) ->
 
 first(Atom) ->
   First = first(atom_to_list(Atom), []),
-  list_to_atom("__MAIN__-" ++ First).
+  list_to_atom("Elixir-" ++ First).
 
-first("__MAIN__-" ++ Rest, []) -> first(Rest, []);
+first("Elixir-" ++ Rest, []) -> first(Rest, []);
 first([$-|_], Acc) -> lists:reverse(Acc);
 first([H|T], Acc) -> first(T, [H|Acc]);
 first([], Acc) -> lists:reverse(Acc).
@@ -35,7 +35,7 @@ first([], Acc) -> lists:reverse(Acc).
 
 last(Atom) ->
   Last = last(lists:reverse(atom_to_list(Atom)), []),
-  list_to_atom("__MAIN__-" ++ Last).
+  list_to_atom("Elixir-" ++ Last).
 
 last([$-|_], Acc) -> Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
@@ -49,11 +49,11 @@ safe_concat(Args) -> list_to_existing_atom(raw_concat(Args)).
 
 raw_concat(Args) ->
   Aliases = [to_partial(Arg) || Arg <- Args, Arg /= nil],
-  "__MAIN__" ++ lists:concat(Aliases).
+  "Elixir" ++ lists:concat(Aliases).
 
 to_partial(Arg) when is_binary(Arg) -> to_partial(binary_to_list(Arg));
 to_partial(Arg) when is_atom(Arg)   -> to_partial(atom_to_list(Arg));
-to_partial("__MAIN__" ++ Arg)       -> dot_to_dash(Arg);
+to_partial("Elixir-" ++ Arg)        -> dot_to_dash([$-|Arg]);
 to_partial([$-|_] = Arg)            -> dot_to_dash(Arg);
 to_partial(Arg) when is_list(Arg)   -> [$-|dot_to_dash(Arg)].
 
