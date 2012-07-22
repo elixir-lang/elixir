@@ -92,23 +92,23 @@ translate_each({ '<<>>', Line, Args }, S) when is_list(Args) ->
       { TArgs, umergec(SV, SC) }
   end;
 
-translate_each({'{}', Line, Args}, S) when is_list(Args) ->
+translate_each({ '{}', Line, Args }, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { {tuple, Line, TArgs}, SE };
 
-translate_each({'[]', _Line, Args}, S) when is_list(Args) ->
+translate_each({ '[]', _Line, Args }, S) when is_list(Args) ->
   translate_each(Args, S);
 
 %% Lexical
 
-translate_each({refer, Line, Args}, S) ->
+translate_each({ refer, Line, Args }, S) ->
   elixir_errors:deprecation(Line, S#elixir_scope.file, "refer is deprecated, please use alias instead"),
-  translate_each({alias, Line, Args}, S);
+  translate_each({ alias, Line, Args }, S);
 
-translate_each({alias, Line, [Ref]}, S) ->
-  translate_each({alias, Line, [Ref,[]]}, S);
+translate_each({ alias, Line, [Ref] }, S) ->
+  translate_each({ alias, Line, [Ref,[]] }, S);
 
-translate_each({alias, Line, [Ref, KV]}, S) ->
+translate_each({ alias, Line, [Ref, KV] }, S) ->
   assert_no_assign_or_guard_scope(Line, alias, S),
   { TRef, SR } = translate_each(Ref, S),
 
@@ -147,10 +147,10 @@ translate_each({alias, Line, [Ref, KV]}, S) ->
       syntax_error(Line, S#elixir_scope.file, "invalid args for alias, expected an atom or alias as argument")
   end;
 
-translate_each({require, Line, [Ref]}, S) ->
-  translate_each({require, Line, [Ref, []]}, S);
+translate_each({ require, Line, [Ref] }, S) ->
+  translate_each({ require, Line, [Ref, []] }, S);
 
-translate_each({require, Line, [Ref, KV]}, S) ->
+translate_each({ require, Line, [Ref, KV] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'require', S),
   { TRef, SR } = translate_each(Ref, S),
 
@@ -172,16 +172,16 @@ translate_each({require, Line, [Ref, KV]}, S) ->
       syntax_error(Line, S#elixir_scope.file, "invalid args for require, expected an atom or alias as argument")
   end;
 
-translate_each({import, Line, [Left]}, S) ->
+translate_each({ import, Line, [Left] }, S) ->
   translate_each({ import, Line, [Left, []]}, S);
 
-translate_each({import, Line, [Left,Opts]}, S) when is_list(Opts) ->
+translate_each({ import, Line, [Left,Opts] }, S) when is_list(Opts) ->
   translate_each({ import, Line, [all, Left, Opts]}, S);
 
-translate_each({import, Line, [Selector, Left]}, S) ->
+translate_each({ import, Line, [Selector, Left] }, S) ->
   translate_each({ import, Line, [Selector, Left, []]}, S);
 
-translate_each({import, Line, [Left, Right, Opts]}, S) ->
+translate_each({ import, Line, [Left, Right, Opts] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'import', S),
   { TSelector, SL } = translate_each(Left, S),
   { TRef, SR } = translate_each(Right, SL),
@@ -210,18 +210,18 @@ translate_each({import, Line, [Left, Right, Opts]}, S) ->
   SF = elixir_import:import(Line, Ref, Opts, Selector, SR),
   translate_each({ require, Line, [Ref, [{ as, As }]] }, SF);
 
-%% Arg-less macros
+%% Pseudo variables
 
-translate_each({'__MODULE__', Line, Atom}, S) when is_atom(Atom) ->
+translate_each({ '__MODULE__', Line, Atom }, S) when is_atom(Atom) ->
   { { atom, Line, S#elixir_scope.module }, S };
 
-translate_each({'__FILE__', _Line, Atom}, S) when is_atom(Atom) ->
+translate_each({ '__FILE__', _Line, Atom }, S) when is_atom(Atom) ->
   translate_each(S#elixir_scope.file, S);
 
-translate_each({'__ENV__', Line, Atom}, S) when is_atom(Atom) ->
+translate_each({ '__ENV__', Line, Atom }, S) when is_atom(Atom) ->
   { elixir_scope:to_erl_env({ Line, S }), S };
 
-translate_each({'__CALLER__', Line, Atom}, S) when is_atom(Atom) ->
+translate_each({ '__CALLER__', Line, Atom }, S) when is_atom(Atom) ->
   { { var, Line, '__CALLER__' }, S#elixir_scope{caller=true} };
 
 %% Arg-less deprecated macros
@@ -269,10 +269,10 @@ translate_each({ '__aliases__', Line, [H|T] }, S) ->
 
 %% Quoting
 
-translate_each({quote, Line, [Left, Right]}, S) ->
+translate_each({ quote, Line, [Left, Right] }, S) ->
   translate_each({ quote, Line, [orddict:from_list(Left ++ Right)] }, S);
 
-translate_each({quote, GivenLine, [[{do,Exprs}|T]]}, S) ->
+translate_each({ quote, GivenLine, [[{do,Exprs}|T]] }, S) ->
   Marker = case orddict:find(hygiene, T) of
     { ok, false } -> nil;
     _ -> quoted
@@ -301,10 +301,10 @@ translate_each({quote, GivenLine, [[{do,Exprs}|T]]}, S) ->
 
   elixir_quote:quote(WrappedExprs, #elixir_quote{marker=Marker, line=Line, unquote=Unquote}, S);
 
-translate_each({quote, Line, [_]}, S) ->
+translate_each({ quote, Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for quote");
 
-translate_each({in_guard, Line, [[{do,Guard},{else,Else}]]}, S) ->
+translate_each({ in_guard, Line, [[{do,Guard},{else,Else}]] }, S) ->
   elixir_errors:deprecation(Line, S#elixir_scope.file, "in_guard is deprecated, check __CALLER__.in_guard? instead"),
   case S#elixir_scope.context of
     guard -> translate_each(Guard, S);
@@ -313,7 +313,7 @@ translate_each({in_guard, Line, [[{do,Guard},{else,Else}]]}, S) ->
 
 %% Functions
 
-translate_each({fn, Line, [[{do, { '->', _, Pairs }}]]}, S) ->
+translate_each({ fn, Line, [[{do, { '->', _, Pairs }}]] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'fn', S),
   translate_fn(Line, Pairs, S);
 
@@ -352,7 +352,7 @@ translate_each({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse 
 
 %% Variables
 
-translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
+translate_each({ '^', Line, [ { Name, _, Args } ] }, S) ->
   Result = case is_atom(Args) of
     true ->
       case S#elixir_scope.context of
@@ -373,7 +373,7 @@ translate_each({'^', Line, [ { Name, _, Args } ] }, S) ->
       Result
   end;
 
-translate_each({Name, Line, quoted}, S) when is_atom(Name) ->
+translate_each({ Name, Line, quoted }, S) when is_atom(Name) ->
   NewS = S#elixir_scope{vars=S#elixir_scope.quote_vars,noname=true},
   { TVar, VS } = elixir_scope:translate_var(Line, Name, NewS),
   { TVar, VS#elixir_scope{
@@ -382,12 +382,12 @@ translate_each({Name, Line, quoted}, S) when is_atom(Name) ->
     vars=S#elixir_scope.vars
   } };
 
-translate_each({Name, Line, nil}, S) when is_atom(Name) ->
+translate_each({ Name, Line, nil }, S) when is_atom(Name) ->
   elixir_scope:translate_var(Line, Name, S);
 
 %% Local calls
 
-translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
+translate_each({ Atom, Line, Args } = Original, S) when is_atom(Atom) ->
   case sequential_partials(Args, 1) andalso
        elixir_dispatch:import_function(Line, Atom, length(Args), S) of
     false ->
@@ -408,7 +408,7 @@ translate_each({Atom, Line, Args} = Original, S) when is_atom(Atom) ->
 
 %% Dot calls
 
-translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom(Right) ->
+translate_each({ { '.', _, [Left, Right] }, Line, Args } = Original, S) when is_atom(Right) ->
   { TLeft,  SL } = translate_each(Left, S),
 
   Fun = (element(1, TLeft) == atom) andalso sequential_partials(Args, 1) andalso
@@ -441,7 +441,7 @@ translate_each({{'.', _, [Left, Right]}, Line, Args} = Original, S) when is_atom
 
 %% Anonymous function calls
 
-translate_each({{'.', _, [Expr]}, Line, Args} = Original, S) ->
+translate_each({ { '.', _, [Expr] }, Line, Args } = Original, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   case TExpr of
     { atom, _, Atom } ->
