@@ -330,6 +330,7 @@ in_erlang_functions() ->
 %% Macros implemented in Erlang. MUST BE SORTED.
 in_erlang_macros() ->
   [
+    {'!',1},
     {'!=',2},
     {'!==',2},
     {'*',2},

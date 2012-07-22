@@ -32,6 +32,14 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
     Op == '!==' ->
   translate_each({ '__op__', Line, [Op|Exprs] }, S);
 
+translate_macro({ '!', Line, [{ '!', _, [Expr] }] }, S) ->
+  { TExpr, SE } = translate_each(Expr, S),
+  { elixir_tree_helpers:convert_to_boolean(Line, TExpr, true), SE };
+
+translate_macro({ '!', Line, [Expr] }, S) ->
+  { TExpr, SE } = translate_each(Expr, S),
+  { elixir_tree_helpers:convert_to_boolean(Line, TExpr, false), SE };
+
 translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
   { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL),

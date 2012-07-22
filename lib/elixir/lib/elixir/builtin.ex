@@ -153,6 +153,21 @@ defmodule Elixir.Builtin do
   defmacro :not.(arg)
 
   @doc """
+  It receives any argument and returns true if it is false
+  or nil. Returns false otherwise. Not allowed in guard
+  clauses.
+
+  ## Examples
+
+    !1        #=> false
+    ![1,2,3]  #=> false
+    !false    #=> true
+    !nil      #=> true
+
+  """
+  defmacro :!.(arg)
+
+  @doc """
   Return true if left is less than right.
   As Erlang, Elixir can compare any term. Allowed in guard clauses.
 
@@ -2284,41 +2299,6 @@ defmodule Elixir.Builtin do
   the variable for us.
   """
   defmacro :in.(left, right)
-
-  @doc """
-  Implements the unary operator ! as a macro. It receives any
-  argument and returns true if it is false or nil. Returns false
-  otherwise. Not allowed in guard clauses.
-
-  ## Examples
-
-    !1        #=> false
-    ![1,2,3]  #=> false
-    !false    #=> true
-    !nil      #=> true
-
-  """
-
-  # Optimizes !! to avoid generating case twice.
-  defmacro :!.({:!, _, [expr]}) do
-    quote do
-      case unquote(expr) do
-        false -> false
-        nil -> false
-        _ -> true
-      end
-    end
-  end
-
-  defmacro :!.(expr) do
-    quote do
-      case unquote(expr) do
-        false -> true
-        nil -> true
-        _ -> false
-      end
-    end
-  end
 
   @doc """
   Matches the term on the left against the regular expression
