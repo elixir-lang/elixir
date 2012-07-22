@@ -1,4 +1,4 @@
-import Elixir.Builtin, except: [access: 2]
+import Kernel, except: [access: 2]
 
 defprotocol Access do
   @moduledoc """

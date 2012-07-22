@@ -11,14 +11,14 @@
 -compile({parse_transform, elixir_transform}).
 
 -import(ordsets, [is_element/2]).
--define(BUILTIN, 'Elixir.Elixir.Builtin').
+-define(BUILTIN, 'Elixir.Kernel').
 
 default_functions() ->
   [ { ?BUILTIN, ordsets:union(in_elixir_functions(), in_erlang_functions()) } ].
 default_macros() ->
   [ { ?BUILTIN, ordsets:union(in_elixir_macros(), in_erlang_macros()) } ].
 default_requires() ->
-  [ ?BUILTIN, 'Elixir.Elixir.Typespec' ].
+  [ ?BUILTIN, 'Elixir.Kernel.Typespec' ].
 
 %% Function retrieval
 
@@ -230,7 +230,7 @@ get_optional_macros(Receiver) ->
     { error, _ } -> []
   end.
 
-%% Functions imported from Elixit.Builtin module. Sorted on compilation.
+%% Functions imported from Kernel module. Sorted on compilation.
 
 in_elixir_functions() ->
   try
@@ -239,7 +239,7 @@ in_elixir_functions() ->
     error:undef -> []
   end.
 
-%% Macros imported from Elixit.Builtin module. Sorted on compilation.
+%% Macros imported from Kernel module. Sorted on compilation.
 
 in_elixir_macros() ->
   try

@@ -6,7 +6,7 @@ defprotocol List.Chars do
   `to_char_list` which does the conversion.
 
   The `to_char_list` function automatically imported
-  by Elixir.Builtin invokes this protocol.
+  by Kernel invokes this protocol.
   """
 
   @only [BitString, List, Atom, Number, Record]

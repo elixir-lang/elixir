@@ -197,7 +197,7 @@ defmodule Code do
   the first element is the module name and the second one is its
   binary.
 
-  For compiling many files at once, check `Elixir.ParallelCompiler`.
+  For compiling many files at once, check `Kernel.ParallelCompiler`.
   """
   def compile_string(string, file // "nofile") when is_binary(file) do
     Erlang.elixir_compiler.string :unicode.characters_to_list(string), to_binary(file)

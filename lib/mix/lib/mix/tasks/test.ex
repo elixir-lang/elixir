@@ -29,6 +29,6 @@ defmodule Mix.Tasks.Test do
     test_helper  = project[:test_helper]  || "test/test_helper.exs"
 
     Code.require_file test_helper
-    Elixir.ParallelRequire.files File.wildcard(test_pattern)
+    Kernel.ParallelRequire.files File.wildcard(test_pattern)
   end
 end

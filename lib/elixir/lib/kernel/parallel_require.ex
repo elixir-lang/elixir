@@ -1,4 +1,4 @@
-defmodule Elixir.ParallelRequire do
+defmodule Kernel.ParallelRequire do
   @moduledoc """
   A module responsible for requiring files in parallel.
   """

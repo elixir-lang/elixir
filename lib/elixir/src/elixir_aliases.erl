@@ -5,7 +5,7 @@
 -compile({parse_transform, elixir_transform}).
 
 %% Ensure a module is loaded before its usage.
-ensure_loaded(_Line, 'Elixir.Elixir.Builtin', _S) ->
+ensure_loaded(_Line, 'Elixir.Kernel', _S) ->
   ok;
 
 ensure_loaded(Line, Ref, S) ->

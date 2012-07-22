@@ -1,4 +1,4 @@
-%% Those macros behave like they belong to Elixir.Builtin,
+%% Those macros behave like they belong to Kernel,
 %% but do not since they need to be implemented in Erlang.
 -module(elixir_macros).
 -export([translate_macro/2]).
@@ -108,7 +108,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name ==
   case elixir_compiler:get_opt(internal) of
     true  -> { { nil, Line }, S };
     false ->
-      Call = { { '.', Line, ['Elixir.Elixir.Typespec', spec_to_macro(Name)] }, Line, Args },
+      Call = { { '.', Line, ['Elixir.Kernel.Typespec', spec_to_macro(Name)] }, Line, Args },
       translate_each(Call, S)
   end;
 

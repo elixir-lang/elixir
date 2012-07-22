@@ -30,7 +30,7 @@ defmodule Kernel.MacrosTest do
   end
 
   test :default_required do
-    result = Elixir.Builtin.case 1 do
+    result = Kernel.case 1 do
       1 -> true
       _ -> false
     end

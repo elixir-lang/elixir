@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper", __FILE__
 
-defmodule Elixir.CLI.InitTest do
+defmodule Kernel.CLI.InitTest do
   use ExUnit.Case, async: true
   import PathHelpers
 
@@ -12,7 +12,7 @@ defmodule Elixir.CLI.InitTest do
   end
 end
 
-defmodule Elixir.CLI.OptionParsingTest do
+defmodule Kernel.CLI.OptionParsingTest do
   use ExUnit.Case, async: true
   import PathHelpers
 
@@ -32,12 +32,12 @@ defmodule Elixir.CLI.OptionParsingTest do
 
   test :require do
     options = ['-r', fixture_path('../../../lib/list/*') /> to_char_list, '-r', '/never/gonna/*/up']
-    { config, _argv } = Elixir.CLI.process_options(options, Elixir.CLI.Config.new)
+    { config, _argv } = Kernel.CLI.process_options(options, Kernel.CLI.Config.new)
     assert {:require, fixture_path "../../../lib/list/chars.ex"} in config.commands
   end
 end
 
-defmodule Elixir.CLI.AtExitTest do
+defmodule Kernel.CLI.AtExitTest do
   use ExUnit.Case, async: true
   import PathHelpers
 
@@ -47,7 +47,7 @@ defmodule Elixir.CLI.AtExitTest do
   end
 end
 
-defmodule Elixir.CLI.ErrorTest do
+defmodule Kernel.CLI.ErrorTest do
   use ExUnit.Case, async: true
   import PathHelpers
 
@@ -60,7 +60,7 @@ defmodule Elixir.CLI.ErrorTest do
   end
 end
 
-defmodule Elixir.CLI.SyntaxErrorTest do
+defmodule Kernel.CLI.SyntaxErrorTest do
   use ExUnit.Case, async: true
   import PathHelpers
 
@@ -72,7 +72,7 @@ defmodule Elixir.CLI.SyntaxErrorTest do
   end
 end
 
-defmodule Elixir.CLI.CompileTest do
+defmodule Kernel.CLI.CompileTest do
   use ExUnit.Case, async: true
   import PathHelpers
 
@@ -84,7 +84,7 @@ defmodule Elixir.CLI.CompileTest do
   end
 end
 
-defmodule Elixir.CLI.ParallelCompilerTest do
+defmodule Kernel.CLI.ParallelCompilerTest do
   use ExUnit.Case, async: true
   import PathHelpers
 

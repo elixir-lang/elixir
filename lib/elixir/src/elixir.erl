@@ -38,7 +38,7 @@ start_app() ->
 
 start_cli() ->
   start_app(),
-  'Elixir.Elixir.CLI':process_argv(init:get_plain_arguments()).
+  'Elixir.Kernel.CLI':process_argv(init:get_plain_arguments()).
 
 %% EVAL HOOKS
 

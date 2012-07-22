@@ -1,4 +1,4 @@
-import Elixir.Builtin, except: [to_binary: 1]
+import Kernel, except: [to_binary: 1]
 
 defprotocol Binary.Chars do
   @moduledoc %B"""
@@ -8,7 +8,7 @@ defprotocol Binary.Chars do
   `to_binary` which does the conversion.
 
   The `to_binary` function automatically imported
-  by Elixir.Builtin invokes this protocol. String
+  by Kernel invokes this protocol. String
   interpolation also invokes to_binary in its
   arguments. For example, `"foo#{bar}"` is the same
   as `"foo" <> to_binary(bar)`.

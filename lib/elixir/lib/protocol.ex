@@ -23,7 +23,7 @@ defmodule Protocol do
       defmodule unquote(name) do
         # Remove "harmful" macros
         # We don't want to allow function definition inside protocols
-        import Elixir.Builtin, except: [
+        import Kernel, except: [
           defmacro: 1, defmacro: 2, defmacro: 4,
           defp: 1, defp: 2, defp: 4,
           def: 1, def: 2, def: 4
@@ -281,7 +281,7 @@ defmodule Protocol.DSL do
       # Append new function to the list
       @functions [unquote({name, arity})|@functions]
 
-      Elixir.Builtin.def unquote(name).(unquote_splicing(args)) do
+      Kernel.def unquote(name).(unquote_splicing(args)) do
         args = [unquote_splicing(args)]
         case __raw_impl__(xA) do
           __MODULE__.Record ->

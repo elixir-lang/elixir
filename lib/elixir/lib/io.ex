@@ -90,7 +90,7 @@ defmodule IO do
   followed by a new line. Returns the item given.
   """
   def inspect(device // :stdio, item) do
-    puts device, Elixir.Builtin.inspect(item)
+    puts device, Kernel.inspect(item)
     item
   end
 

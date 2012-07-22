@@ -193,7 +193,7 @@ defmodule Typespec.Test.Type do
 
   test "get_types" do
     types = test_module do
-      import Elixir.Typespec
+      import Kernel.Typespec
       @type mytype :: tuple
       @type mytype1 :: {}, opaque: true
       get_types(__MODULE__)
@@ -230,7 +230,7 @@ defmodule Typespec.Test.Type do
 
   test "get_specs" do
     specs = test_module do
-      import Elixir.Typespec
+      import Kernel.Typespec
       def myfun(x), do: x
       @spec myfun(integer), do: integer
       @spec myfun(string),  do: string

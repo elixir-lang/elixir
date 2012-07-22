@@ -1,4 +1,4 @@
-import Elixir.Builtin, except: [inspect: 1]
+import Kernel, except: [inspect: 1]
 
 defprotocol Binary.Inspect do
   @moduledoc """

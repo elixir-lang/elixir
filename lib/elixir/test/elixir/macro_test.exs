@@ -85,7 +85,7 @@ defmodule MacroTest do
   end
 
   test :expand_with_require_macro do
-    assert Macro.expand(quote(do: Elixir.Builtin.||(1, false)), __ENV__) == (quote do
+    assert Macro.expand(quote(do: Kernel.||(1, false)), __ENV__) == (quote do
       case 1 do
         oror in [false, nil] -> false
         oror -> oror

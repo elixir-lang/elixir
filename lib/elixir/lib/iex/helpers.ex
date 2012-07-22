@@ -23,7 +23,7 @@ defmodule IEx.Helpers do
 
   """
   def c(files, path // ".") do
-    tuples = Elixir.ParallelCompiler.files_to_path List.wrap(files), path
+    tuples = Kernel.ParallelCompiler.files_to_path List.wrap(files), path
     Enum.map tuples, elem(&1, 1)
   end
 
@@ -74,7 +74,7 @@ defmodule IEx.Helpers do
   Prints the documentation for the given function and arity.
 
   The function may either be a function defined inside `IEx.Helpers`
-  or in `Elixir.Builtin`. To see functions from other module, use
+  or in `Kernel`. To see functions from other module, use
   `d/3` instead.
 
   ## Examples
@@ -87,7 +87,7 @@ defmodule IEx.Helpers do
     if function_exported?(__MODULE__, function, arity) do
       d(__MODULE__, function, arity)
     else
-      d(Elixir.Builtin, function, arity)
+      d(Kernel, function, arity)
     end
   end
 

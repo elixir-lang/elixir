@@ -23,7 +23,7 @@ test_$(1): $(1)
 endef
 
 #==> Compilation tasks
-KERNEL:=lib/elixir/ebin/__MAIN__-Elixir-Builtin.beam
+KERNEL:=lib/elixir/ebin/__MAIN__-Kernel.beam
 
 compile: lib/elixir/src/elixir.app.src erlang elixir
 

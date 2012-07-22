@@ -1,4 +1,4 @@
-defmodule Elixir.Typespec do
+defmodule Kernel.Typespec do
   @moduledoc """
   This is the module that converts Elixir typespecs
   to Erlang typespecs syntax. Everytime @spec, @type

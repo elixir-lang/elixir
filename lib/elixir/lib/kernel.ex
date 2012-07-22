@@ -1,17 +1,17 @@
-import Elixir.Builtin, except: [raise: 1, raise: 2]
+import Kernel, except: [raise: 1, raise: 2]
 
-defmodule Elixir.Builtin do
+defmodule Kernel do
   @moduledoc """
-  `Elixir.Builtin` provides the default macros and functions
+  `Kernel` provides the default macros and functions
   Elixir imports into your environment. Those macros and functions
   can be skipped or cherry-picked via the `import` macro. For
   instance, if you want to tell Elixir to not import the `case`
   macro, you can do:
 
-      import Elixir.Builtin, except: [case: 2]
+      import Kernel, except: [case: 2]
 
   Elixir also has special forms that are always imported and
-  cannot be skipped. These are described in `Elixir.SpecialForms`.
+  cannot be skipped. These are described in `Kernel.SpecialForms`.
 
   Some of the functions described in this module are simply
   a proxy to its Erlang counterpart. Although they are documented
@@ -284,7 +284,7 @@ defmodule Elixir.Builtin do
 
   @doc """
   When used inside quoting, marks that the variable should not
-  be hygienezed. Check `Elixir.SpecialForms.quote/1` for more
+  be hygienezed. Check `Kernel.SpecialForms.quote/1` for more
   information.
   """
   defmacro var!(var)
@@ -1072,7 +1072,7 @@ defmodule Elixir.Builtin do
   second can be accessed as `Bar` inside `Foo` in the same
   lexical scope. If the module Bar is moved away to another
   file, it needs to be referenced via the full name or an
-  alias need to be set with the help of `Elixir.SpecialForms.alias/2`.
+  alias need to be set with the help of `Kernel.SpecialForms.alias/2`.
 
   ## Dynamic names
 

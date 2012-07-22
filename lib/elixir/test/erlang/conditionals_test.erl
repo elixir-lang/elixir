@@ -213,7 +213,7 @@ not_test() ->
 andand_test() ->
   F = fun() ->
     eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = eval("Elixir.Builtin.&&(true, true)"),
+    {true, _} = eval("Kernel.&&(true, true)"),
     {true, _} = eval("true && true"),
     {false, _} = eval("true && false"),
     {false, _} = eval("false && true"),
@@ -237,7 +237,7 @@ andand_test() ->
 oror_test() ->
   F = fun() ->
     eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {true, _} = eval("Elixir.Builtin.||(false, true)"),
+    {true, _} = eval("Kernel.||(false, true)"),
     {true, _} = eval("true || true"),
     {true, _} = eval("true || false"),
     {true, _} = eval("false || true"),

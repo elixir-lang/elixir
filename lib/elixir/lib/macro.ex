@@ -1,4 +1,4 @@
-import Elixir.Builtin, except: [to_binary: 1]
+import Kernel, except: [to_binary: 1]
 
 defmodule Macro do
   @moduledoc """

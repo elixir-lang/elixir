@@ -1,7 +1,7 @@
-defrecord Elixir.CLI.Config, commands: [], close: [],
+defrecord Kernel.CLI.Config, commands: [], close: [],
   output: ".", compile: [], halt: true, compiler_options: []
 
-defmodule Elixir.CLI do
+defmodule Kernel.CLI do
   @moduledoc false
 
   import Exception, only: [format_stacktrace: 1]
@@ -9,7 +9,7 @@ defmodule Elixir.CLI do
   # Invoked directly from erlang boot process. It parses all argv
   # options and execute them in the order they are specified.
   def process_argv(options) do
-    { config, argv } = process_options(options, Elixir.CLI.Config.new)
+    { config, argv } = process_options(options, Kernel.CLI.Config.new)
 
     argv = lc arg inlist argv, do: list_to_binary(arg)
     Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
@@ -199,7 +199,7 @@ defmodule Elixir.CLI do
     files = File.wildcard(pattern)
     files = List.uniq(files)
     files = Enum.filter files, File.regular?(&1)
-    Elixir.ParallelRequire.files(files)
+    Kernel.ParallelRequire.files(files)
   end
 
   defp process_command({:compile, patterns}, config) do
@@ -210,7 +210,7 @@ defmodule Elixir.CLI do
     files = Enum.filter files, File.regular?(&1)
 
     Code.compiler_options(config.compiler_options)
-    Elixir.ParallelCompiler.files_to_path(files, config.output,
+    Kernel.ParallelCompiler.files_to_path(files, config.output,
       fn file -> IO.puts "Compiled #{file}" end)
   end
 end

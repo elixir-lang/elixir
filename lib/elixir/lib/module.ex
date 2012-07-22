@@ -537,7 +537,7 @@ defmodule Module do
 
   defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do
     raise ArgumentError, message: "Attributes type, typep, export_type, opaque and callback " <>
-      "must be set via Elixir.Typespec"
+      "must be set via Kernel.Typespec"
   end
 
   defp normalize_attribute(_key, value) do

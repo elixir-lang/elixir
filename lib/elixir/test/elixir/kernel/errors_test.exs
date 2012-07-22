@@ -81,7 +81,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :macro_conflict do
-    assert "nofile:1: imported Elixir.Builtin.defrecord/2 conflicts with local function" ==
+    assert "nofile:1: imported Kernel.defrecord/2 conflicts with local function" ==
       format_rescue 'defmodule Foo do\ndefrecord(Kernel.ErrorsTest.MacroConflict, a: 1)\ndef defrecord(_, _), do: OMG\nend'
   end
 
@@ -96,17 +96,17 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :erlang_function_conflict do
-    assert "nofile:1: function exit/1 already imported from Elixir.Builtin" ==
+    assert "nofile:1: function exit/1 already imported from Kernel" ==
       format_rescue 'defmodule Foo do import Kernel.ErrorsTest.UnproperMacro, only: [exit: 1]\nend'
   end
 
   test :import_invalid_macro do
-    assert "nofile:2: cannot import Elixir.Builtin.invalid/1 because it doesn't exist" ==
-      format_rescue 'defmodule Foo do\nimport Elixir.Builtin, only: [invalid: 1]\nend'
+    assert "nofile:2: cannot import Kernel.invalid/1 because it doesn't exist" ==
+      format_rescue 'defmodule Foo do\nimport Kernel, only: [invalid: 1]\nend'
   end
 
   test :unrequired_macro do
-    assert "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: Elixir.Builtin, Elixir.Typespec" ==
+    assert "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 but module was not required. Required: Kernel, Kernel.Typespec" ==
       format_rescue 'defmodule Foo do\nKernel.ErrorsTest.UnproperMacro.unproper([])\nend'
   end
 

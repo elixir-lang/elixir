@@ -1,4 +1,4 @@
-defmodule Elixir.ParallelCompiler do
+defmodule Kernel.ParallelCompiler do
   alias Erlang.orddict, as: Orddict
 
   @moduledoc """
@@ -27,7 +27,7 @@ defmodule Elixir.ParallelCompiler do
   Read files/2 for more information.
   """
   def files_to_path(files, path, callback // default_callback) when is_binary(path) do
-    Code.ensure_loaded(Elixir.ErrorHandler)
+    Code.ensure_loaded(Kernel.ErrorHandler)
     spawn_compilers(files, path, callback, [], [], [])
   end
 
@@ -43,7 +43,7 @@ defmodule Elixir.ParallelCompiler do
 
     child  = spawn_link fn ->
       Process.put(:elixir_parent_compiler, parent)
-      Process.flag(:error_handler, Elixir.ErrorHandler)
+      Process.flag(:error_handler, Kernel.ErrorHandler)
 
       try do
         if output do

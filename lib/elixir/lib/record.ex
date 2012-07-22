@@ -65,7 +65,7 @@ defmodule Record do
 
   @doc """
   Main entry point for records definition.
-  This is invoked directly by `Elixir.Builtin.defrecord`.
+  This is invoked directly by `Kernel.defrecord`.
   Returns the quoted expression of a module given by name.
   """
   def defrecord(name, values, opts) do

@@ -191,7 +191,7 @@ translate_spec({ { spec, Spec }, Rest }, Module, Def, Defmacro, Defmacrop, { Spe
           New = { { ?ELIXIR_MACRO(Name), Arity + 1 }, [spec_for_macro(X) || X <- Rest] },
           { [New|Specs], Callbacks };
         false ->
-          case (Module == 'Elixir.Elixir.Builtin') andalso (not ordsets:is_element(Spec, Def)) of
+          case (Module == 'Elixir.Kernel') andalso (not ordsets:is_element(Spec, Def)) of
             true  -> Acc;
             false -> { [{ Spec, Rest }|Specs], Callbacks }
           end
