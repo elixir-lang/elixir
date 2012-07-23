@@ -16,12 +16,13 @@ defmodule OptionParser.Simple do
 
   A set of aliases can be given as second argument:
 
-      OptionParser.Simple.parse(["-d"], [d: :debug])
+      OptionParser.Simple.parse(["-d"], aliases: [d: :debug])
       #=> { [debug: true], [] }
 
   """
-  def parse(options, aliases // []) when is_list(options) and is_list(aliases) do
-    parse(options, aliases, [], [])
+  def parse(argv, opts // []) when is_list(argv) and is_list(opts) do
+    aliases = opts[:aliases] || []
+    parse(argv, aliases, [], [])
   end
 
   ## Helpers
