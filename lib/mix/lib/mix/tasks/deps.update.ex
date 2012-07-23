@@ -11,10 +11,10 @@ defmodule Mix.Tasks.Deps.Update do
   projects after updating.
   """
 
-  import Mix.Tasks.Deps, only: [all: 1, by_name: 1, format_dep: 1, deps_path: 1]
+  import Mix.Tasks.Deps, only: [all: 0, all: 1, by_name: 1, format_dep: 1, deps_path: 1]
 
   def run([]) do
-    do_update all(:ok)
+    do_update all -- all(:unavailable)
   end
 
   def run(args) do
