@@ -217,7 +217,7 @@ load_form(Line, Forms, S) ->
     case get(elixir_compiled) of
       Current when is_list(Current) ->
         put(elixir_compiled, [{Module,Binary}|Current]),
-        case get(elixir_parent_compiler) of
+        case get(elixir_compiler_pid) of
           undefined -> [];
           PID -> PID ! { module_available, self(), Module, Binary }
         end;
@@ -251,6 +251,7 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
         docs_clause(Line, Module, Docs),
         moduledoc_clause(Line, Module, Docs),
         compile_clause(Line),
+        loaded_clause(Line),
         else_clause(Line)
       ] },
       { [Pair|Export], [Contents|Functions] }
@@ -259,6 +260,9 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
 functions_clause(Line, RawDef) ->
   Def = ordsets:add_element({'__info__',1}, RawDef),
   { clause, Line, [{ atom, Line, functions }], [], [elixir_tree_helpers:abstract_syntax(Def)] }.
+
+loaded_clause(Line) ->
+  { clause, Line, [{ atom, Line, loaded }], [], [{ atom, Line, true }] }.
 
 macros_clause(Line, Defmacro) ->
   { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Defmacro)] }.

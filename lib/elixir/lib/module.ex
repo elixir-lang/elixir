@@ -517,14 +517,8 @@ defmodule Module do
   end
 
   defp normalize_attribute(kind, atom) when kind in [:behavior, :behaviour] and is_atom(atom) do
-    # Force the behavior to be preloaded so it
-    # works as expected with the parallel compiler
-    try do
-      atom.behaviour_info(:callbacks)
-      atom
-    rescue
-      UndefinedFunctionError -> atom
-    end
+    Code.ensure_compiled(atom)
+    atom
   end
 
   defp normalize_attribute(:file, Macro.Env[file: file, line: line]),       do: { binary_to_list(file), line}

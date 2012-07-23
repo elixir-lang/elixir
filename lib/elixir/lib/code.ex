@@ -2,6 +2,12 @@ defmodule Code do
   @moduledoc """
   The Code module is responsible to manage code compilation,
   code evaluation and code loading.
+
+  It complements (Erlang's code module)[1] to add behavior
+  which is specific to Elixir.
+
+    [1]: (www.erlang.org/doc/man/code.html)
+
   """
 
   @doc """
@@ -204,14 +210,75 @@ defmodule Code do
   end
 
   @doc """
-  Ensure if the given module is loaded. If the module is already loaded,
-  it works as no-op. If the module was not loaded yet, it tries to load it.
+  Ensures the given module is loaded. If the module is already
+  loaded, it works as no-op. If the module was not loaded yet,
+  it tries to load it.
 
-  If it succeeds loading the module anyhow, it returns `{ :module, module }`.
-  If not, returns `{ :error, reason }` with the error reason.
+  If it succeeds loading the module anyhow, it returns
+  `{ :module, module }`. If not, returns `{ :error, reason }` with
+  the error reason.
+
+  ## Code loading on the Erlang VM
+
+  Erlang has two modes to load code: interactive and embedded.
+
+  By default, the Erlang VM runs on interactive mode, where modules
+  are loaded as needed. In embedded mode the opposite happens, as all
+  modules need to be loaded upfront or explicitly.
+
+  Therefore, this function is useful to check if a module is loaded
+  before using it and react accordingly. For example, the `URI` module
+  uses this function to check if a specific parser exists and is for the
+  given URI scheme.
+
+  ## Code.ensure_compiled
+
+  Elixir also contains an `ensure_compiled/1` function that is a
+  superset of `ensure_loaded/1`.
+
+  Since Elixir's compilation happens in parallel, in some situations
+  you may need to use a module but it was not compiled yet, therefore
+  it can't even be loaded.
+
+  `ensure_compiled/1` puts a halt in the current process until the
+  module we are depending on is available.
+
+  In most of the cases, `ensure_loaded` is enough. `ensure_compiled`
+  must be used just in same rare conditions, usually involving macros
+  that needs to invoke a module for callback information.
   """
   def ensure_loaded(module) when is_atom(module) do
     Erlang.code.ensure_loaded(module)
+  end
+
+  @doc """
+  Ensures the given module is compiled and loaded. If the module
+  is already loaded, it works as no-op. If the module was not
+  loaded yet, it checks if it needs to be compiled first and just
+  then tries to load it.
+
+  If it succeeds loading the module anyhow, it returns
+  `{ :module, module }`. If not, returns `{ :error, reason }` with
+  the error reason.
+
+  Check `ensure_loaded/1` for more information on module loading
+  and when to use `ensure_loaded/1` or `ensure_compiled/1`.
+  """
+  def ensure_compiled(module) when is_atom(module) do
+    case Erlang.code.ensure_loaded(module) do
+      { :error, :nofile } = error ->
+        case :erlang.get(:elixir_compiler_pid) do
+          :undefined -> error
+          _ ->
+            try do
+              module.__info__(:loaded)
+              { :module, module }
+            rescue
+              UndefinedFunctionError -> error
+            end
+        end
+      other -> other
+    end
   end
 
   ## Helpers

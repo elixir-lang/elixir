@@ -1982,6 +1982,10 @@ defmodule Kernel do
   @doc """
   Returns true if the `module` is loaded and contains a
   public `function` with the given `arity`, otherwise false.
+
+  Notice that this function does not load the module in case
+  it is not loaded. Check `Code.ensure_loaded/1` for more
+  information.
   """
   @spec function_exported?(atom, atom, integer), do: boolean
   defmacro function_exported?(module, function, arity) do

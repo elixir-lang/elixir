@@ -214,7 +214,8 @@ core_main() ->
     "lib/elixir/lib/binary/inspect.ex",
     "lib/elixir/lib/binary/chars.ex",
     "lib/elixir/lib/list/chars.ex",
-    "lib/elixir/lib/gen_server/behavior.ex"
+    "lib/elixir/lib/gen_server/behavior.ex",
+    "lib/elixir/lib/code.ex"
   ].
 
 %% ERROR HANDLING

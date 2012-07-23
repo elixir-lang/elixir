@@ -42,7 +42,7 @@ defmodule Kernel.ParallelCompiler do
     parent = self()
 
     child  = spawn_link fn ->
-      Process.put(:elixir_parent_compiler, parent)
+      Process.put(:elixir_compiler_pid, parent)
       Process.flag(:error_handler, Kernel.ErrorHandler)
 
       try do
