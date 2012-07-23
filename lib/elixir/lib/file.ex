@@ -533,8 +533,8 @@ defmodule File do
   Updates modification time (mtime) and access time (atime) of
   the given file. File is created if it doesn’t exist.
   """
-  def touch(path) do
-    case F.change_time(path, :calendar.local_time) do
+  def touch(path, time // :calendar.local_time) do
+    case F.change_time(path, time) do
       { :error, :enoent } -> write(path, "")
       other -> other
     end
@@ -544,8 +544,8 @@ defmodule File do
   Same as `touch/1` but raises an exception if it fails.
   Returns `:ok` otherwise.
   """
-  def touch!(path) do
-    case touch(path) do
+  def touch!(path, time // :calendar.local_time) do
+    case touch(path, time) do
       :ok -> :ok
       { :error, reason } ->
         raise File.Error, reason: reason, action: "touch", path: to_binary(path)

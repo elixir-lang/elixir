@@ -143,7 +143,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "get and compile git repos" do
+  test "get and update git repos with compilation" do
     Mix.Project.push GetApp
 
     in_fixture "no_mixfile", fn ->
@@ -153,6 +153,16 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
+
+      purge [GitRepo, GitRepo.Mix]
+      File.touch!("deps/git_repo/ebin", { { 2010, 4, 17 }, { 14, 0, 0 } })
+      Mix.Task.clear
+
+      Mix.Tasks.Deps.Update.run []
+      message = "* Updating git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
     end
   after
     purge [GitRepo, GitRepo.Mix]

@@ -52,11 +52,17 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Task.run "deps.loadpaths", ["--no-check"]
     Mix.Task.reenable "deps.loadpaths"
 
-    Enum.each deps, fn({ _scm, app, _req, _status, opts }) ->
+    Enum.each deps, fn({ _scm, app, _req, status, opts }) ->
+      check_unavailable!(app, status)
       shell.info "* Compiling #{app}"
-      deps_path = deps_path(app)
 
-      File.cd! deps_path, fn ->        
+      deps_path = deps_path(app)
+      ebin = File.join(deps_path, "ebin") /> binary_to_list
+
+      # Avoid compilation conflicts
+      :code.del_path(ebin /> File.expand_path)
+
+      File.cd! deps_path, fn ->
         cond do
           opts[:compile] -> do_command(opts[:compile], app)
           mix?           -> Mix.Project.in_subproject fn -> Mix.Task.run "compile" end
@@ -66,13 +72,22 @@ defmodule Mix.Tasks.Deps.Compile do
         end
       end
 
-      Code.prepend_path File.join(deps_path, "ebin")
+      Code.prepend_path ebin
     end
   end
 
   defp mix?,   do: File.regular?("mix.exs")
   defp rebar?, do: File.regular?("rebar.config") or File.regular?("rebar.config.script")
   defp make?,  do: File.regular?("Makefile")
+
+  defp check_unavailable!(app, { :unavailable, _ }) do
+    raise Mix.Error, message: "Cannot compile dependency #{app} because " <>
+      "it isn't available, run `mix deps.get` first"
+  end
+
+  defp check_unavailable!(_, _) do
+    :ok
+  end
 
   defp do_command(atom, app) when is_atom(atom) do
     apply Mix.Project.current, atom, [app]

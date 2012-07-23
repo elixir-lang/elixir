@@ -47,6 +47,7 @@ defmodule MixTest.Case do
       def teardown(_) do
         Mix.Task.clear
         Mix.Shell.Process.flush
+        del_tmp_paths
       end
 
       defoverridable [teardown: 1]
@@ -82,6 +83,12 @@ defmodule MixTest.Case do
       :code.delete(m)
       :code.purge(m)
     end
+  end
+
+  def del_tmp_paths do
+    tmp = tmp_path /> binary_to_list
+    to_remove = Enum.filter :code.get_path, fn(path) -> :string.str(path, tmp) != 0 end
+    Enum.map to_remove, :code.del_path(&1)
   end
 
   defmacro in_fixture(which, block) do

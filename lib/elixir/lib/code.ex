@@ -19,16 +19,18 @@ defmodule Code do
 
   @doc """
   Appends a path to Erlang VM code path.
+  The path is expanded with `File.expand_path` before added.
   """
   def append_path(path) do
-    Erlang.code.add_pathz(to_char_list(path))
+    Erlang.code.add_pathz(File.expand_path to_char_list(path))
   end
 
   @doc """
   Prepends a path to Erlang VM code path.
+  The path is expanded with `File.expand_path` before added.
   """
   def prepend_path(path) do
-    Erlang.code.add_patha(to_char_list(path))
+    Erlang.code.add_patha(File.expand_path to_char_list(path))
   end
 
   @doc """

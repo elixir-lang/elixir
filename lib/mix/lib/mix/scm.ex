@@ -1,6 +1,6 @@
 defmodule Mix.SCM do
   def behaviour_info(:callbacks) do
-    [key: 0, available?: 1, get: 2]
+    [key: 0, available?: 1, get: 2, update: 2]
   end
 
   def available do

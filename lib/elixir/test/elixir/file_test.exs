@@ -1083,16 +1083,15 @@ defmodule FileTest do
     end
   end
 
-  test :touch_with_file do
+  test :touch_with_timestamp do
     fixture = tmp_path("tmp_test.txt")
 
     try do
-      File.touch!(fixture)
-      stat = File.stat!(fixture).mtime(last_year)
-      File.write_stat!(fixture, stat)
+      assert File.touch!(fixture) == :ok
+      stat = File.stat!(fixture)
 
-      assert File.touch(fixture) == :ok
-      assert stat.mtime < File.stat!(fixture).mtime
+      assert File.touch!(fixture, last_year) == :ok
+      assert stat.mtime > File.stat!(fixture).mtime
     after
       File.rm(fixture)
     end
