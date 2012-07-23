@@ -12,31 +12,6 @@ defmodule Kernel.CLI.InitTest do
   end
 end
 
-defmodule Kernel.CLI.OptionParsingTest do
-  use ExUnit.Case, async: true
-  import PathHelpers
-
-  test :path do
-    root = fixture_path("../../..") /> to_char_list
-    list = elixir('-e "IO.inspect Erlang.code.get_path" -pa "#{root}/*" -pz "#{root}/lib/*"')
-    { path, _ } = Code.eval list, []
-
-    # pa
-    assert File.expand_path('ebin', root) in path
-    assert File.expand_path('lib', root) in path
-    assert File.expand_path('src', root) in path
-
-    # pz
-    assert File.expand_path('lib/list', root) in path
-  end
-
-  test :require do
-    options = ['-r', fixture_path('../../../lib/list/*') /> to_char_list, '-r', '/never/gonna/*/up']
-    { config, _argv } = Kernel.CLI.process_options(options, Kernel.CLI.Config.new)
-    assert {:require, fixture_path "../../../lib/list/chars.ex"} in config.commands
-  end
-end
-
 defmodule Kernel.CLI.AtExitTest do
   use ExUnit.Case, async: true
   import PathHelpers
