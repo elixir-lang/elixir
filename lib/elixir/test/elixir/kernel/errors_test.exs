@@ -115,8 +115,8 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'defmodule Foo do\ndef foo(1), do: 1\ndefmacro foo(x), do: x\nend'
   end
 
-  test :internal_function_overriden do
-    assert "nofile:1: function __info__/1 is internal and should not be overriden" ==
+  test :internal_function_overridden do
+    assert "nofile:1: function __info__/1 is internal and should not be overridden" ==
       format_rescue 'defmodule Foo do\ndef __info__(_), do: []\nend'
   end
 
@@ -147,11 +147,6 @@ defmodule Kernel.ErrorsTest do
   test :cant_define_local_due_to_in_erlang_macros_conflict do
     assert "nofile:1: cannot define local quote/1 because it conflicts with Elixir internal macros" ==
       format_rescue 'defmodule Foo do\ndef quote(x), do: x\ndef bar(x), do: quote(do: x)\nend'
-  end
-
-  test :already_defined_module do
-    assert "nofile:1: module Record already defined (please remove already compiled files before recompiling a module)" ==
-      format_rescue 'defmodule Record, do: true'
   end
 
   test :in_definition_module do

@@ -230,8 +230,10 @@ check_module_availability(Line, File, Module, Compiler) ->
   case elixir_compiler:get_opt(ignore_module_conflict, Compiler) of
     false ->
       case code:ensure_loaded(Module) of
-        { module, _ } -> elixir_errors:form_error(Line, File, ?MODULE, { module_defined, Module });
-        { error, _ }  -> []
+        { module, _ } ->
+          elixir_errors:handle_file_warning(File, { Line, ?MODULE, { module_defined, Module } });
+        { error, _ } ->
+          []
       end;
     true ->
       []
@@ -319,14 +321,13 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
 % ERROR HANDLING
 
 format_error({ internal_function_overridden, { Name, Arity } }) ->
-  io_lib:format("function ~s/~B is internal and should not be overriden", [Name, Arity]);
+  io_lib:format("function ~s/~B is internal and should not be overridden", [Name, Arity]);
 
 format_error({ invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
 
 format_error({ module_defined, Module }) ->
-  io_lib:format("module ~s already defined (please remove already compiled files before recompiling a module)",
-    [elixir_errors:inspect(Module)]);
+  io_lib:format("redefining module ~s", [elixir_errors:inspect(Module)]);
 
 format_error({ module_in_definition, Module }) ->
   io_lib:format("cannot define module ~s because it is currently being defined",
