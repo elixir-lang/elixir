@@ -9,6 +9,7 @@ defmodule Mix.Tasks.Run do
   ## Examples
 
       mix run Hello.world
+      mix run "Some.function with_args"
 
   """
   def run(args) do

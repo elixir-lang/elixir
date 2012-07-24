@@ -80,7 +80,7 @@ tokenize([], _Line, _File, [], Tokens) ->
 
 tokenize([], EndLine, _File, [{ Start, StartLine }|_], _Tokens) ->
   End     = terminator(Start),
-  Message = io_lib:format("missing terminator: ~s (for ~s starting at line ~B)", [End, Start, StartLine]),
+  Message = io_lib:format("missing terminator: ~s (for \"~s\" starting at line ~B)", [End, Start, StartLine]),
   { error, { EndLine, Message, [] } };
 
 % Base integers
@@ -685,12 +685,14 @@ handle_terminator({ E, _ }, [{ S, _ }|Terminators]) when
     S == '<<', E == '>>' ->
   Terminators;
 
-handle_terminator({ E, Line }, _) when
-    E == 'end';
-    E == ')';
-    E == ']';
-    E == '}';
-    E == '>>' ->
+handle_terminator({ E, Line }, [{ Start, StartLine }|_]) when
+    E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
+  End     = terminator(Start),
+  Message = io_lib:format("missing terminator: ~s (for \"~s\" starting at line ~B)", [End, Start, StartLine]),
+  { error, { Line, Message, [] } };
+
+handle_terminator({ E, Line }, []) when
+    E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
   { error, { Line, "unexpected token: ", atom_to_list(E) } };
 
 handle_terminator(_, Terminators) ->

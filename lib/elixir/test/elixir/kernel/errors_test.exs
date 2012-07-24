@@ -44,7 +44,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :syntax_error_with_no_token do
-    assert "nofile:1: missing terminator: ) (for ( starting at line 1)" == format_rescue 'case 1 ('
+    assert "nofile:1: missing terminator: ) (for \"(\" starting at line 1)" == format_rescue 'case 1 ('
   end
 
   test :bad_form do
@@ -77,7 +77,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_fn_args do
-    assert "nofile:1: missing terminator: end (for fn starting at line 1)" == format_rescue 'fn 1'
+    assert "nofile:1: missing terminator: end (for \"fn\" starting at line 1)" == format_rescue 'fn 1'
   end
 
   test :macro_conflict do
@@ -141,7 +141,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :interpolation_error do
-    assert "nofile:1: unexpected token: )" == format_rescue '"foo\#{case 1 do )}bar"'
+    assert "nofile:1: missing terminator: end (for \"do\" starting at line 1)" == format_rescue '"foo\#{case 1 do )}bar"'
   end
 
   test :cant_define_local_due_to_in_erlang_macros_conflict do
