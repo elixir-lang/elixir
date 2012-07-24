@@ -17,10 +17,12 @@ defmodule Mix.Tasks.Help do
 
   def run([]) do
     Mix.Task.load_all
+
+    shell   = Mix.shell
     modules = Mix.Task.all_modules
 
-    docs = lc module inlist modules, doc = Mix.Task.shortdoc(module) do
-      { Mix.Task.task_name(module), doc }
+    docs = lc module inlist modules, not Mix.Task.hidden?(module) do
+      { Mix.Task.task_name(module), Mix.Task.shortdoc(module) }
     end
 
     max = Enum.reduce docs, 0, fn({ task, _ }, acc) ->
@@ -30,7 +32,7 @@ defmodule Mix.Tasks.Help do
     sorted = Enum.qsort(docs)
 
     Enum.each sorted, fn({ task, doc }) ->
-      :io.format('mix ~-#{max}s # ~s~n', [task, doc])
+      shell.info format('mix ~-#{max}s # ~s', [task, doc])
     end
   end
 
@@ -45,5 +47,9 @@ defmodule Mix.Tasks.Help do
     end
 
     IO.puts "Source: #{Mix.Utils.source(module)}"
+  end
+
+  defp format(expression, args) do
+    :io_lib.format(expression, args) /> iolist_to_binary
   end
 end

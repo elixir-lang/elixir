@@ -3,6 +3,9 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   import Mix.Tasks.Deps, only: [all: 1, deps_path: 1]
 
+  @hidden true
+  @shortdoc "Load all dependencies paths"
+
   @moduledoc """
   Loads all dependencies. Invokes "deps.check" before
   unless `--no-check` is given.

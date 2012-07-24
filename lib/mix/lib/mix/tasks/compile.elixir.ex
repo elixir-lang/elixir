@@ -1,6 +1,7 @@
 defmodule Mix.Tasks.Compile.Elixir do
   use Mix.Task
 
+  @hidden true
   @shortdoc "Compile Elixir source files"
 
   @moduledoc """

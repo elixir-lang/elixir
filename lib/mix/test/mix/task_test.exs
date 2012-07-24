@@ -53,4 +53,9 @@ defmodule Mix.TaskTest do
   test :shortdoc do
     assert Mix.Task.shortdoc(Mix.Tasks.Hello) == "This is short documentation, see"
   end
+
+  test :hidden do
+    assert Mix.Task.hidden?(Mix.Tasks.Loadpaths)
+    refute Mix.Task.hidden?(Mix.Tasks.Compile)
+  end
 end

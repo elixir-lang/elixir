@@ -11,7 +11,8 @@ defmodule Mix.Task do
 
   @doc false
   defmacro __using__(_opts) do
-    Module.register_attribute __CALLER__.module, :shortdoc, accumulate: false
+    Enum.each [:shortdoc, :hidden],
+      Module.register_attribute __CALLER__.module, &1, accumulate: false
 
     quote do
       @behavior Mix.Task
@@ -62,6 +63,16 @@ defmodule Mix.Task do
     case List.keyfind module.__info__(:attributes), :shortdoc, 1 do
       { :shortdoc, [shortdoc] } -> shortdoc
       _ -> nil
+    end
+  end
+
+  @doc """
+  Checks if the task is hidden or not. Returns a boolean.
+  """
+  def hidden?(module) when is_atom(module) do
+    case List.keyfind module.__info__(:attributes), :hidden, 1 do
+      { :hidden, [bool] } -> bool
+      _ -> false
     end
   end
 
