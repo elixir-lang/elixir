@@ -54,4 +54,12 @@ defmodule Mix.CLITest do
       assert output =~ %r"^Source:"m
     end
   end
+
+  test "do smoke test" do
+    in_fixture "only_mixfile", fn ->
+      output = mix "do compile --list, help compile"
+      assert output =~ %r"# mix help compile"
+      assert output =~ %r"mix compile.elixir #"
+    end
+  end
 end
