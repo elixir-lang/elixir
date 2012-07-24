@@ -23,8 +23,11 @@ defmodule Mix.Tasks.Deps.Compile do
       { :some_dependency, "0.1.0", git: "...", compile: :compile_some_dependency }
 
   If the compile option is an atom, it will invoke the given atom
-  in the current project passing the app name as argument. If a binary,
-  it is considered to be command line instructions.
+  in the current project passing the app name as argument. Except
+  if the atom is `:noop`, where nothing is done.
+
+  If a binary, it is considered to be command line instructions
+  which mix will use to shell out.
   """
 
   import Mix.Tasks.Deps, only: [all: 0, all: 1, by_name: 1, format_dep: 1, deps_path: 1]
@@ -68,7 +71,8 @@ defmodule Mix.Tasks.Deps.Compile do
           mix?           -> Mix.Project.in_subproject fn -> Mix.Task.run "compile" end
           rebar?         -> shell.info  System.cmd("rebar compile")
           make?          -> shell.info  System.cmd("make")
-          true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile (pass :compile as an option to customize compilation)"
+          true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>
+                             "(pass :compile as an option to customize compilation, set it to :noop to do nothing)"
         end
       end
 
@@ -86,6 +90,10 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp check_unavailable!(_, _) do
+    :ok
+  end
+
+  defp do_command(:noop, _) do
     :ok
   end
 

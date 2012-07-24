@@ -8,11 +8,12 @@ defmodule Mix.Tasks.Clean do
 
   ## Command line options
 
-  * `--deps` - Also remove all dependencies files.
+  * `--all` - Clean everything, including dependencies
+
   """
   def run(args) do
     { opts, _ } = OptionParser.Simple.parse(args)
     File.rm_rf Mix.project[:compile_path]  || "ebin"
-    if opts[:deps], do: Mix.Task.run("deps.clean")
+    if opts[:all], do: Mix.Task.run("deps.clean")
   end
 end

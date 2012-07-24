@@ -8,7 +8,8 @@ defmodule Mix.Tasks.Do do
 
   ## Examples
 
-  Print the available compilers and the list of dependencies.
+  The example below prints the available compilers and
+  then the list of dependencies.
 
       mix do compile --list, deps
 

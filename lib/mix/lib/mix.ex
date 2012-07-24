@@ -1,8 +1,8 @@
 defmodule Mix do
   @moduledoc """
-  Mix is a build tool and development aid for the Elixir programming language.
-  It is inspired by the Leiningen build tool for Clojure and is written by one
-  of its contributors.
+  Mix is a build tool that provides tasks for creating, compiling, testing
+  (and soon deploying) Elixir projects. Mix is inspired by the Leiningen
+  build tool for Clojure and was written by one of its contributors.
 
   This module works as a facade for accessing the most common functionality
   in Elixir, as the shell and the current project configuration.

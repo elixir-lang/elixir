@@ -21,8 +21,10 @@ defmodule Mix.Tasks.Help do
     shell   = Mix.shell
     modules = Mix.Task.all_modules
 
-    docs = lc module inlist modules, not Mix.Task.hidden?(module) do
-      { Mix.Task.task_name(module), Mix.Task.shortdoc(module) }
+    docs = lc module inlist modules,
+        not Mix.Task.hidden?(module),
+        doc = Mix.Task.shortdoc(module) do
+      { Mix.Task.task_name(module), doc }
     end
 
     max = Enum.reduce docs, 0, fn({ task, _ }, acc) ->
