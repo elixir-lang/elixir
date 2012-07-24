@@ -353,6 +353,27 @@ defmodule Kernel do
   defmacro atom_to_list(atom)
 
   @doc """
+  Extracts the part of the binary starting at `start` with length `length`.
+  Binaries are zero-indexed.
+
+  If start or length references in any way outside the binary, an
+  `ArgumentError` exception is raised.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      binary_part "foo", 1, 2 #=> "oo"
+
+  A negative length can be used to extract bytes at the end of a binary:
+
+      binary_part "foo", 3, -1 #=> 1
+
+  """
+  @spec binary_part(binary, pos_integer, integer), do: binary
+  defmacro binary_part(binary, start, length)
+
+  @doc """
   Returns the atom whose text representation is `binary`. If `encoding` is latin1,
   no translation of bytes in the binary is done. If `encoding` is utf8 or unicode,
   the binary must contain valid UTF-8 sequences; furthermore, only Unicode

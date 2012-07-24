@@ -257,7 +257,7 @@ store_each(Check, Kind, File, Location, Stack, Table, Defaults, {function, Line,
       FinalDefaults = Defaults + StoredDefaults,
       FinalClauses  = Clauses ++ StoredClauses,
       check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
-      check_valid_defaults(Line, File, Name, Arity, Defaults),
+      check_valid_defaults(Line, File, Name, Arity, FinalDefaults),
       Check andalso (Stack == StoredStack) andalso check_valid_clause(Line, File, Name, Arity, Table);
     [] ->
       FinalLocation = Location,
@@ -297,7 +297,7 @@ add_to_guards(Line, Expr, Clauses) ->
 %% Format errors
 
 format_error({clauses_with_docs,{Name,Arity}}) ->
-  io_lib:format("function ~s/~B has default values and multiple clauses, it is recommended to use a separate clause for declaring defaults", [Name, Arity]);
+  io_lib:format("function ~s/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Name, Arity]);
 
 format_error({private_doc,{Name,Arity}}) ->
   io_lib:format("function ~s/~B is private, @doc's are always discarded for private functions", [Name, Arity]);

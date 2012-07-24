@@ -70,6 +70,6 @@ defmodule CodeTest do
 
   test :compile_info_returned_with_source_accessible_through_keyword_module do
     compile = __MODULE__.__info__(:compile)
-    refute_nil Keyword.get(compile, :source)
+    assert Keyword.get(compile, :source) != nil
   end
 end
