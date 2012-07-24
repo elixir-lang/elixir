@@ -14,9 +14,8 @@ defmodule ExUnit.Assertions do
       Expected 10 to be equal to 13
 
   This module also provides other small convenient functions
-  like `assert_empty` and `assert_raise` to easily handle other
-  common cases as checking if an enumerable is empty and handling
-  exceptions.
+  like `assert_in_detal` and `assert_raise` to easily handle other
+  common cases as checking a float number or handling exceptions.
   """
 
   @doc """
@@ -215,7 +214,8 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts the `exception` is raised during `function` execution with the `expected_message`.
+  Asserts the `exception` is raised during `function` execution with
+  the `expected_message`. Returns the rescued exception, fails otherwise.
 
   ## Examples
 
@@ -231,6 +231,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts the `exception` is raised during `function` execution.
+  Returns the rescued exception, fails otherwise.
 
   ## Examples
 
