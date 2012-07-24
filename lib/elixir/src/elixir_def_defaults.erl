@@ -3,7 +3,6 @@
 -export([unpack/4]).
 -include("elixir.hrl").
 
-% Unpack default args from the given clause. Invoked by elixir_translate.
 unpack(Kind, Name, Args, S) ->
   unpack_each(Kind, Name, Args, [], [], S).
 

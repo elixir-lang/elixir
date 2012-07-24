@@ -69,26 +69,19 @@ store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
 
 store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   Arity = length(Args),
-
-  DS = elixir_scope:deserialize(RawS),
-  S = DS#elixir_scope{function={Name,Arity}, module=Module},
-
-  case RawExpr of
-    skip_definition -> Expr = nil;
-    [{ do, Expr }] -> [];
-    _ -> Expr = { 'try', Line, [RawExpr] }
-  end,
+  DS    = elixir_scope:deserialize(RawS),
+  S     = DS#elixir_scope{function={Name,Arity}, module=Module},
+  Expr  = def_body(Line, RawExpr),
 
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Expr, S),
-
-  File = TS#elixir_scope.file,
-  FunctionTable = table(Module),
 
   CO = elixir_compiler:get_opts(),
   compile_docs(Kind, Line, Module, Name, Arity, Args, TS, CO),
 
+  File     = TS#elixir_scope.file,
+  Table    = table(Module),
+  Stack    = S#elixir_scope.macro,
   Location = retrieve_file(Module, CO),
-  Stack = S#elixir_scope.macro,
 
   %% Store function
   case RawExpr of
@@ -97,21 +90,27 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
       store_each(CheckClauses, Kind, File, Location,
-        Stack, FunctionTable, length(Defaults), Function)
+        Stack, Table, length(Defaults), Function)
   end,
 
   %% Store defaults
-  [store_each(false, Kind, File, Location, Stack, FunctionTable, 0,
+  [store_each(false, Kind, File, Location, Stack, Table, 0,
     function_for_default(Kind, Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
 
-%% Compile the documentation related to the module.
+def_body(_Line, skip_definition) -> nil;
+def_body(_Line, [{ do, Expr }])  -> Expr;
+def_body(Line, Else)             -> { 'try', Line, [Else] }.
+
+%% Compile super clause
 
 compile_super(Module, #elixir_scope{function=Function, super=true}) ->
   elixir_def_overridable:store(Module, Function, true);
 
 compile_super(_Module, _S) -> [].
+
+%% Compile docs
 
 compile_docs(Kind, Line, Module, Name, Arity, Args, S, CO) ->
   case elixir_compiler:get_opt(docs, CO) of
@@ -140,15 +139,10 @@ retrieve_file(Module, CO) ->
 %% and then store it in memory.
 
 translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
-  { Args, Guards } = lists:mapfoldl(fun
-      ({ 'in', _, [Left, _] } = X, Acc) ->
-        { Left, add_to_guards(Line, X, Acc) };
-      (X, Acc) ->
-        { X, Acc }
-    end, RawGuards, RawArgs),
+  { Args, Guards } = extract_guards_from_args(Line, RawGuards, RawArgs),
 
-  Arity = length(Args),
-  IsMacro = (Kind == defmacro) orelse (Kind == defmacrop),
+  Arity   = length(Args),
+  IsMacro = is_macro(Kind),
 
   %% Macros receive a special argument on invocation. Notice it does
   %% not affect the arity of the stored function, but the clause
@@ -163,6 +157,7 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
   { TClause, TS } = elixir_clauses:assigns_block(Line,
     fun elixir_translator:translate/2, Unpacked, [Expr], Guards, S),
 
+  %% Add names to args
   NClause = case TS#elixir_scope.name_args of
     true  ->
       NArgs = elixir_def_overridable:assign_args(Line, element(3, TClause), TS),
@@ -170,6 +165,7 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
     false -> TClause
   end,
 
+  %% Set __CALLER__ if used
   FClause = case IsMacro andalso TS#elixir_scope.caller of
     true  ->
       FBody = { 'match', Line,
@@ -182,6 +178,26 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
 
   Function = { function, Line, Name, Arity, [FClause] },
   { Function, Defaults, TS }.
+
+%% Translate helpers
+
+extract_guards_from_args(Line, RawGuards, RawArgs) ->
+  lists:mapfoldl(fun
+    ({ 'in', _, [Left, _] } = X, Acc) ->
+      { Left, add_expr_to_guards(Line, X, Acc) };
+    (X, Acc) ->
+      { X, Acc }
+  end, RawGuards, RawArgs).
+
+is_macro(defmacro)  -> true;
+is_macro(defmacrop) -> true;
+is_macro(_)         -> false.
+
+add_expr_to_guards(_Line, Expr, []) ->
+  [Expr];
+
+add_expr_to_guards(Line, Expr, Clauses) ->
+  [{ 'and', Line, [Expr, Clause] } || Clause <- Clauses].
 
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,
@@ -220,7 +236,8 @@ unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Fu
   );
 
 unwrap_stored_definition([], Exports, Private, Def, Defmacro, Defmacrop, {Functions,Tail}) ->
-  { Exports, Private, ordsets:from_list(Def), ordsets:from_list(Defmacro), ordsets:from_list(Defmacrop), lists:reverse(Tail ++ Functions) }.
+  { Exports, Private, ordsets:from_list(Def), ordsets:from_list(Defmacro),
+    ordsets:from_list(Defmacrop), lists:reverse(Tail ++ Functions) }.
 
 %% Helpers
 
@@ -286,13 +303,6 @@ check_valid_clause(Line, File, Name, Arity, Table) ->
 check_valid_defaults(_Line, _File, _Name, _Arity, 0) -> [];
 check_valid_defaults(Line, File, Name, Arity, _) ->
   elixir_errors:handle_file_warning(File, { Line, ?MODULE, { clauses_with_docs, { Name, Arity } } }).
-
-%% Helpers
-
-add_to_guards(_Line, Expr, []) ->
-  [Expr];
-add_to_guards(Line, Expr, Clauses) ->
-  [{ 'and', Line, [Expr, Clause] } || Clause <- Clauses].
 
 %% Format errors
 
