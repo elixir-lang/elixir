@@ -59,10 +59,8 @@ defmodule RecordTest do
     record = RecordTest.DynamicName[_: "a"]
     assert RecordTest.DynamicName[a: "a", b: "a"] == record
     assert RecordTest.DynamicName[_: _] = RecordTest.DynamicName[_: "x"]
-    assert_error {:badmatch,RecordTest.DynamicName[a: "y", b: "y"]}, 
-           fn() ->
-               RecordTest.DynamicName[_: "x"] = RecordTest.DynamicName[_: "y"]
-           end
+    assert { :badmatch, RecordTest.DynamicName[a: "y", b: "y"] } =
+      catch_error(RecordTest.DynamicName[_: "x"] = RecordTest.DynamicName[_: "y"])
   end
 
   defp file_info do

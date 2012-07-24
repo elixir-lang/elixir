@@ -15,6 +15,7 @@
   * [Kernel] Deprecated `__LINE__` and `__FUNCTION__` in favor of `__ENV__.line` and `__ENV__.function`;
   * [Kernel] Deprecated `in_guard` in favor of `__CALLER__.in_guard?`;
   * [Kernel] `refer` is deprecated in favor of `alias`;
+  * [ExUnit] Some assertions were deprecated in favor of simply using `assert()`; 
 
 * enhancements
   * [Regex] Back references are now properly supported;

@@ -243,94 +243,6 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test :assert_empty_when_empty do
-    true = assert_empty []
-  end
-
-  test :assert_empty_when_not_empty do
-    try do
-      "This should never be tested" = assert_empty [1, 2]
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected [1,2] to be empty" = error.message
-    end
-  end
-
-  test :assert_empty_with_message do
-    try do
-      "This should never be tested" = assert_empty [1, 2], "test message"
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "test message" = error.message
-    end
-  end
-
-  test :refute_empty_when_not_empty do
-    false = refute_empty [1, 2]
-  end
-
-  test :refute_empty_when_empty do
-    try do
-      "This should never be tested" = refute_empty []
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected [] to not be empty" = error.message
-    end
-  end
-
-  test :refute_empty_with_message do
-    try do
-      "This should never be tested" = refute_empty [], "test message"
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "test message" = error.message
-    end
-  end
-
-  test :assert_nil_when_nil do
-    true = assert_nil nil
-  end
-
-  test :assert_nil_when_not_nil do
-    try do
-      "This should never be tested" = assert_nil true
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected true to be nil" = error.message
-    end
-  end
-
-  test :assert_nil_with_message do
-    try do
-      "This should never be tested" = assert_nil false, "test message"
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "test message" = error.message
-    end
-  end
-
-  test :refute_nil_when_not_nil do
-    false = refute_nil true
-  end
-
-  test :refute_nil_when_nil do
-    try do
-      "This should never be tested" = refute_nil nil
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected nil to not be nil" = error.message
-    end
-  end
-
-  test :refute_nil_with_message do
-    try do
-      "This should never be tested" = refute_nil nil, "test message"
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "test message" = error.message
-    end
-  end
-
   test :assert_in_delta_pass do
     true = assert_in_delta(1.1, 1.2, 0.2)
   end
@@ -375,66 +287,43 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test :assert_throw_when_no_throw do
+  test :catch_throw_when_no_throw do
     try do
-      "This should never be tested" = assert_throw 1, fn ->
-        # nothing
-      end
+      catch_throw(1)
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected throw 1, got nothing" = error.message
+        "Expected to catch throw, got nothing" = error.message
     end
   end
 
-  test :assert_throw_when_throw do
-    1 = assert_throw 1, fn ->
-      throw 1
-    end
-  end
-
-  test :assert_throw_when_other_throw do
+  test :catch_error_when_no_error do
     try do
-      "This should never be tested" = assert_throw 1, fn ->
-        throw 2
-      end
+      catch_error(1)
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected throw 1, got 2" = error.message
+        "Expected to catch error, got nothing" = error.message
     end
   end
 
-  test :assert_exit_when_no_exit do
+  test :catch_exit_when_no_exit do
     try do
-      "This should never be tested" = assert_exit 1, fn ->
-        # nothing
-      end
+      catch_exit(1)
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected exit 1, got nothing" = error.message
+        "Expected to catch exit, got nothing" = error.message
     end
   end
 
-  test :assert_exit_when_exit do
-    1 = assert_exit 1, fn ->
-      exit 1
-    end
+  test :catch_throw_when_throw do
+    1 = catch_throw(throw 1)
   end
 
-  test :assert_exit_when_other_exit do
-    try do
-      "This should never be tested" = assert_exit 1, fn ->
-        exit 2
-      end
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected exit 1, got 2" = error.message
-    end
+  test :catch_exit_when_exit do
+    1 = catch_exit(exit 1)
   end
 
-  test :assert_error_when_error do
-    :function_clause = assert_error :function_clause, fn ->
-      List.flatten(1)
-    end
+  test :catch_error_when_error do
+    :function_clause = catch_error(List.flatten(1))
   end
 
   test :flunk do
