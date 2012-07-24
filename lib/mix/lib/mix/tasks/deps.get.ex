@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Get do
   use Mix.Task
 
-  @shortdoc "Get and compile all unavailable dependencies"
+  @shortdoc "Get all unavailable dependencies"
 
   @moduledoc """
   Get all unavailable dependencies.
