@@ -113,6 +113,80 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Converts the given string to underscore format.
+
+  ## Examples
+
+      Mix.Utils.underscore "FooBar" #=> "foo_bar"
+
+  In general, underscore can be thought as the reverse of
+  camelize, however, in some cases formatting may be lost:
+
+      Mix.Utils.underscore "SAPExample"  #=> "sap_example"
+      Mix.Utils.camelize   "sap_example" #=> "SapExample"
+
+  """
+  def underscore(<<h, t | :binary>>) do
+    <<to_lower_char(h)>> <> do_underscore(t, h)
+  end
+
+  defp do_underscore(<<h, t, rest | :binary>>, _) when h in ?A..?Z and not t in ?A..?Z do
+    <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
+  end
+
+  defp do_underscore(<<h, t | :binary>>, prev) when h in ?A..?Z and not prev in ?A..?Z do
+    <<?_, to_lower_char(h)>> <> do_underscore(t, h)
+  end
+
+  defp do_underscore(<<?-, t | :binary>>, _) do
+    <<?_>> <> do_underscore(t, ?-)
+  end
+
+  defp do_underscore(<<h, t | :binary>>, _) do
+    <<to_lower_char(h)>> <> do_underscore(t, h)
+  end
+
+  defp do_underscore(<<>>, _) do
+    <<>>
+  end
+
+  @doc """
+  Converts the given string to camelize format.
+
+  ## Examples
+
+      Mix.Utils.camelize "foo_bar" #=> "FooBar"
+
+  """
+  def camelize(<<?_, t | :binary>>) do
+    camelize(t)
+  end
+
+  def camelize(<<h, t | :binary>>) do
+    <<to_upper_char(h)>> <> do_camelize(t)
+  end
+
+  defp do_camelize(<<?_, ?_, t | :binary>>) do
+    do_camelize(<< ?_, t | :binary >>)
+  end
+
+  defp do_camelize(<<?_, h, t | :binary>>) when h in ?a..?z do
+    <<to_upper_char(h)>> <> do_camelize(t)
+  end
+
+  defp do_camelize(<<?_>>) do
+    <<>>
+  end
+
+  defp do_camelize(<<h, t | :binary>>) do
+    <<h>> <> do_camelize(t)
+  end
+
+  defp do_camelize(<<>>) do
+    <<>>
+  end
+
+  @doc """
   Takes a module and converts it to a command. The nesting
   argument can be given in order to remove the nesting of
   module.
@@ -134,7 +208,7 @@ defmodule Mix.Utils do
 
   def module_name_to_command(module, nesting) do
     t = Regex.split(%r/\./, to_binary(module))
-    t /> Enum.drop(nesting) /> Enum.map(to_lower(&1)) /> Enum.join(".")
+    t /> Enum.drop(nesting) /> Enum.map(first_to_lower(&1)) /> Enum.join(".")
   end
 
   @doc """
@@ -148,13 +222,19 @@ defmodule Mix.Utils do
   """
   def command_to_module_name(s) do
     Regex.split(%r/\./, to_binary(s)) />
-      Enum.map(to_upper(&1)) />
+      Enum.map(first_to_upper(&1)) />
       Enum.join(".")
   end
 
-  defp to_upper(<<s, t|:binary>>), do: <<:string.to_upper(s)>> <> t
-  defp to_upper(<<>>), do: <<>>
+  defp first_to_upper(<<s, t|:binary>>), do: <<to_upper_char(s)>> <> t
+  defp first_to_upper(<<>>), do: <<>>
 
-  defp to_lower(<<s, t|:binary>>), do: <<:string.to_lower(s)>> <> t
-  defp to_lower(<<>>), do: <<>>
+  defp first_to_lower(<<s, t|:binary>>), do: <<to_lower_char(s)>> <> t
+  defp first_to_lower(<<>>), do: <<>>
+
+  defp to_upper_char(char) when char in ?a..?z, do: char - 32
+  defp to_upper_char(char), do: char
+
+  defp to_lower_char(char) when char in ?A..?Z, do: char + 32
+  defp to_lower_char(char), do: char
 end

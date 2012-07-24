@@ -44,4 +44,24 @@ defmodule Mix.UtilsTest do
   test :source do
     assert Mix.Utils.source(__MODULE__) == __FILE__
   end
+
+  test :underscore do
+    assert Mix.Utils.underscore("foo") == "foo"
+    assert Mix.Utils.underscore("foo_bar") == "foo_bar"
+    assert Mix.Utils.underscore("Foo") == "foo"
+    assert Mix.Utils.underscore("FooBar") == "foo_bar"
+    assert Mix.Utils.underscore("FOOBar") == "foo_bar"
+    assert Mix.Utils.underscore("FooBAR") == "foo_bar"
+    assert Mix.Utils.underscore("FoBaZa") == "fo_ba_za"
+  end
+
+  test :camelize do
+    assert Mix.Utils.camelize("Foo") == "Foo"
+    assert Mix.Utils.camelize("FooBar") == "FooBar"
+    assert Mix.Utils.camelize("foo") == "Foo"
+    assert Mix.Utils.camelize("foo_bar") == "FooBar"
+    assert Mix.Utils.camelize("foo_") == "Foo"
+    assert Mix.Utils.camelize("_foo") == "Foo"
+    assert Mix.Utils.camelize("foo__bar") == "FooBar"
+  end
 end
