@@ -53,8 +53,13 @@ defmodule OptionParser.SimpleTest do
     assert options == { [docs: false, source: "from_docs/", compile: true, x: true], [] }
   end
 
-  test "ignores not option arguments" do
-    options = OptionParser.Simple.parse(["--source", "from_docs/", "test/enum_test.exs"])
-    assert options == { [source: "from_docs/"], ["test/enum_test.exs"] }
+  test "stops on first non option arguments" do
+    options = OptionParser.Simple.parse_head(["--source", "from_docs/", "test/enum_test.exs", "--verbose"])
+    assert options == { [source: "from_docs/"], ["test/enum_test.exs", "--verbose"] }
+  end
+
+  test "goes beyond the first non option arguments" do
+    options = OptionParser.Simple.parse(["--source", "from_docs/", "test/enum_test.exs", "--verbose"])
+    assert options == { [source: "from_docs/", verbose: true], ["test/enum_test.exs"] }
   end
 end
