@@ -10,7 +10,7 @@ defmodule Mix.Generator do
   def create_file(path, contents) do
     Mix.shell.info "* creating #{path}"
 
-    if overriding?(path) do
+    if overwriting?(path) do
       File.write! path, contents
     end
   end
@@ -23,7 +23,7 @@ defmodule Mix.Generator do
     File.mkdir_p! path
   end
 
-  defp overriding?(path) do
+  defp overwriting?(path) do
     if File.exists?(path) do
       full = File.expand_path(path)
       Mix.shell.yes?(full <> " already exists, overwrite?")
@@ -52,28 +52,28 @@ defmodule Mix.Generator do
   It will define a private function with the `name` followed by
   `_template` that expects assigns as arguments.
 
-  This function can be invoked passing no argument or passing
-  a keywords list. Each key in the keyword list can be accessed
-  in the template using the `@` macro.
+  This function must be invoked passing a keywords list.
+  Each key in the keyword list can be accessed in the
+  template using the `@` macro.
 
   For more information, check `EEx.SmartEngine`.
   """
   defmacro embed_template(name, contents) do
     quote do
       require EEx
-      EEx.function_from_string :defp, :"#{unquote(name)}_template", "<% @_abc  %>" <> unquote(contents), [:assigns]
+      EEx.function_from_string :defp, :"#{unquote(name)}_template", "<% _ = assigns %>" <> unquote(contents), [:assigns]
     end
   end
 
   @doc """
-  Embed a file given by `contents` into the current module.
+  Embeds a text given by `contents` into the current module.
 
   It will define a private function with the `name` followed by
-  `_file` that expects no argument.
+  `_text` that expects no argument.
   """
-  defmacro embed_file(name, contents) do
+  defmacro embed_text(name, contents) do
     quote do
-      defp :"#{unquote(name)}_file", [], [], do: unquote(contents)
+      defp :"#{unquote(name)}_text", [], [], do: unquote(contents)
     end
   end
 end

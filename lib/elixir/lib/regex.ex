@@ -13,15 +13,8 @@ defmodule Regex do
       # A regular expression with case insensitive options and handle unicode chars
       %r/foo/iu
 
-  The re module provides several options, some of them are not
-  available in Elixir while others are enabled by default. The
-  ones enabled by default are:
-
-  * multiline - the given string is always considered to be multiline, so
-    `^` and `$` marks the beginning and end of each line. You need to use
-    `\A` and `\z` to match the end or beginning of the string
-
-  The available options, followed by their shortcut in parenthesis, are:
+  The re module provides several options, the one available in Elixir, followed by
+  their shortcut in parenthesis, are:
 
   * unicode (u) - used when you want to match against specific unicode characters
   * caseless (i) - add case insensitivity

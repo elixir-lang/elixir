@@ -29,7 +29,7 @@ defmodule Mix.Tasks.New do
   def run(argv) do
     { opts, argv } = OptionParser.Simple.parse(argv)
     case argv do
-      []    ->
+      [] ->
         raise Mix.Error, message: "expected PATH to be given, please use `mix new PATH`"
       [path|_] ->
         name = opts[:app] || File.basename(File.expand_path(path))
@@ -44,7 +44,7 @@ defmodule Mix.Tasks.New do
     assigns = [app: app, mod: mod]
 
     create_file "README.md",  readme_template(assigns)
-    create_file ".gitignore", gitignore_file
+    create_file ".gitignore", gitignore_text
     create_file "mix.exs",    mixfile_template(assigns)
 
     create_directory "lib"
@@ -67,7 +67,7 @@ defmodule Mix.Tasks.New do
    ** TODO: Add description **
    """
 
-   embed_file :gitignore, """
+   embed_text :gitignore, """
    /ebin
    erl_crash.dump
    """

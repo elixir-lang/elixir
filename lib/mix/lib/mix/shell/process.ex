@@ -36,11 +36,36 @@ defmodule Mix.Shell.Process do
     end
   end
 
+  @doc """
+  Simply forwards the message to the current process.
+  """
   def info(message) do
     self <- { :mix_shell, :info, [message] }
   end
 
+  @doc """
+  Simply forwards the message to the current process.
+  """
   def error(message) do
     self <- { :mix_shell, :error, [message] }
+  end
+
+  @doc """
+  Simply forwards the message to the current process.
+  It also checks the inbox for an input message matching:
+
+      { :mix_shell_input, :yes?, value }
+
+  If one does not exist, it will abort since there no shell
+  process input given. Value must be true or false.
+  """
+  def yes?(message) do
+    self <- { :mix_shell, :yes?, [message] }
+
+    receive do
+      { :mix_shell_input, :yes?, response } -> response
+    after
+      0 -> raise Mix.Error, message: "No shell process input given"
+    end
   end
 end
