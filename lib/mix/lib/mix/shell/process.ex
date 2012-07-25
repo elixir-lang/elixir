@@ -65,7 +65,7 @@ defmodule Mix.Shell.Process do
     receive do
       { :mix_shell_input, :yes?, response } -> response
     after
-      0 -> raise Mix.Error, message: "No shell process input given"
+      0 -> raise Mix.Error, message: "No shell process input given for yes?/1"
     end
   end
 end

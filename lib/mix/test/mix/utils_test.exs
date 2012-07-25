@@ -3,9 +3,9 @@ Code.require_file "../../test_helper", __FILE__
 defmodule Mix.UtilsTest do
   use MixTest.Case
 
-  test :get_module do
-    assert Mix.Utils.get_module("hello", Mix.Tasks)   == { :module, Mix.Tasks.Hello }
-    assert Mix.Utils.get_module("unknown", Mix.Tasks) == { :error, :nofile }
+  test :command_to_module do
+    assert Mix.Utils.command_to_module("hello", Mix.Tasks)   == { :module, Mix.Tasks.Hello }
+    assert Mix.Utils.command_to_module("unknown", Mix.Tasks) == { :error, :nofile }
   end
 
   test :module_name_to_command do

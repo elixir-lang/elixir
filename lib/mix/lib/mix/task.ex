@@ -92,7 +92,7 @@ defmodule Mix.Task do
   * `Mix.InvalidTaskError` - raised if the task is not a valid `Mix.Task`
   """
   def get(task) do
-    case Mix.Utils.get_module(task, Mix.Tasks) do
+    case Mix.Utils.command_to_module(task, Mix.Tasks) do
       { :module, module } ->
         if is_task?(module) do
           module

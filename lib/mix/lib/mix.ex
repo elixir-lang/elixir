@@ -20,6 +20,13 @@ defmodule Mix do
   end
 
   @doc """
+  Append ~/.mix/tasks to Erlang code path.
+  """
+  def append_local_tasks_path! do
+    Code.append_path File.join(Mix.Utils.home, ".mix/tasks")
+  end
+
+  @doc """
   The shell is a wrapper for doing IO.
 
   It contains conveniences for asking the user information,

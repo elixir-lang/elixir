@@ -51,7 +51,7 @@ defmodule Mix.CLITest do
       output = mix "help compile"
       assert output =~ %r"# mix help compile"
       assert output =~ %r"## Command line options"
-      assert output =~ %r"^Source:"m
+      assert output =~ %r"^Location:"m
     end
   end
 

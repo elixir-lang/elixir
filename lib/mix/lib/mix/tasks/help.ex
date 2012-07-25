@@ -48,7 +48,14 @@ defmodule Mix.Tasks.Help do
       IO.puts "There is no documentation for this task"
     end
 
-    IO.puts "Source: #{Mix.Utils.source(module)}"
+    IO.puts "Location: #{where_is_file(module)}"
+  end
+
+  defp where_is_file(module) do
+    case :code.where_is_file(atom_to_list(module) ++ '.beam') do
+      :non_existing -> "not available"
+      location -> File.expand_path(File.dirname(location))
+    end
   end
 
   defp format(expression, args) do

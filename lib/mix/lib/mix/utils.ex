@@ -2,20 +2,25 @@ defmodule Mix.Utils do
   @moduledoc """
   Utilities used throughout Mix and tasks.
 
-  ## Command names and module names
+  ## Conversions
 
-  Throughout this module (and Mix), we use two main terms:
+  This module handles two types of conversions:
 
-  * command names: are names as given from the command line;
-    usually all items are in lowercase and uses dashes instead
-    of underscores;
+  * From command names to module names, i.e. how the command
+    `deps.get` translates to `Deps.Get` and vice-versa;
 
-  * module names: valid module names according to Elixir;
-  
-  Some tasks in this module works exactly with converting
-  from one to the other. See `command_to_module_name/2`,
-  `module_name_to_command/2`, `get_module/2`.
+  * From underscore to camelize, i.e. how the file path
+    `my_project` translates to `MyProject`;
+
   """
+
+  @doc """
+  Gets the user home attempting to consider OS system diferences.
+  """
+  def home do
+    System.get_env("MIXHOME") || System.get_env("HOME") || System.get_env("USERPROFILE") ||
+      raise Mix.Error, message: "Nor MIXHOME, HOME or USERPROFILE env variables were set"
+  end
 
   @doc """
   Gets the source location of a module as a binary.
@@ -50,11 +55,11 @@ defmodule Mix.Utils do
 
   ## Examples
 
-      Mix.Utils.get_module("compile", Mix.Tasks)
+      Mix.Utils.command_to_module("compile", Mix.Tasks)
       #=> { :module, Mix.Tasks.Compile }
 
   """
-  def get_module(command, at // Elixir) do
+  def command_to_module(command, at // Elixir) do
     module = Module.concat(at, command_to_module_name(command))
     Code.ensure_loaded(module)
   end
