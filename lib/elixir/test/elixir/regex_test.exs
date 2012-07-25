@@ -12,17 +12,27 @@ defmodule Regex.BinaryTest do
     assert "aa" =~ %r/(a)\1/
   end
 
+  test :compile! do
+    assert is_record(Regex.compile!("foo"), Regex)
+    assert is_regex(Regex.compile!("foo"))
+
+    assert_raise Regex.CompileError, "nothing to repeat at position 0", fn ->
+      Regex.compile!("*foo")
+    end
+  end
+
   test :compile do
-    assert is_record(Regex.compile("foo"), Regex)
-    assert is_regex(Regex.compile("foo"))
+    { :ok, regex } = Regex.compile("foo")
+    assert is_regex(regex)
+    assert { :error, _ } = Regex.compile("*foo")
   end
 
   test :source do
-    assert Regex.source(Regex.compile("foo")) == "foo"
+    assert Regex.source(Regex.compile!("foo")) == "foo"
   end
 
   test :opts do
-    assert Regex.opts(Regex.compile("foo", "u")) == "u"
+    assert Regex.opts(Regex.compile!("foo", "u")) == "u"
   end
 
   test :match? do
@@ -93,16 +103,16 @@ defmodule Regex.ListTest do
   use ExUnit.Case, async: true
 
   test :compile do
-    assert is_record(Regex.compile('foo'), Regex)
-    assert is_regex(Regex.compile('foo'))
+    assert is_record(Regex.compile!('foo'), Regex)
+    assert is_regex(Regex.compile!('foo'))
   end
 
   test :source do
-    assert Regex.source(Regex.compile('foo')) == "foo"
+    assert Regex.source(Regex.compile!('foo')) == "foo"
   end
 
   test :opts do
-    assert Regex.opts(Regex.compile('foo', 'u')) == "u"
+    assert Regex.opts(Regex.compile!('foo', 'u')) == "u"
   end
 
   test :match? do

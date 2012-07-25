@@ -2669,13 +2669,13 @@ defmodule Kernel do
 
   defmacro __r__({ :<<>>, _line, [string] }, options) do
     binary = Binary.unescape(string, Regex.unescape_map(&1))
-    regex  = Regex.compile(binary, options)
+    regex  = Regex.compile!(binary, options)
     Macro.escape(regex)
   end
 
   defmacro __r__({ :<<>>, line, pieces }, options) do
     binary = { :<<>>, line, Binary.unescape_tokens(pieces, Regex.unescape_map(&1)) }
-    quote do: Regex.compile(unquote(binary), unquote(options))
+    quote do: Regex.compile!(unquote(binary), unquote(options))
   end
 
   @doc """
@@ -2688,7 +2688,7 @@ defmodule Kernel do
 
   """
   defmacro __R__({ :<<>>, _line, [string] }, options) do
-    regex = Regex.compile(string, options)
+    regex = Regex.compile!(string, options)
     Macro.escape(regex)
   end
 

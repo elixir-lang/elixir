@@ -4,7 +4,7 @@ defmodule Regex do
   in the Erlang Standard Library. More information can be found
   on re documentation: http://www.erlang.org/doc/man/re.html
 
-  Regular expressions in Elixir can be created using Regex.compile
+  Regular expressions in Elixir can be created using Regex.compile!
   or using the special form with `%r`:
 
       # A simple regular expressions that matches foo anywhere in the string
@@ -42,20 +42,35 @@ defmodule Regex do
   a binary, a char list will return a char list).
   """
 
-  @doc """
-  Compile the regular expression according to the given options.
-  The result returned is a record named :re_pattern and its
-  length can be modified in future releases.
+  defexception CompileError, message: "regex could not be compiled"
 
-  Check the module documentation for more information
-  about the options supported by compile.
+  @doc """
+  Compiles the regular expression according to the given options.
+
+  It returns `{ :ok, regex }` in case of success,
+  `{ :error, reason }` otherwise.
   """
   def compile(source, options // "") do
     source  = to_binary(source)
     options = to_binary(options)
     re_opts = translate_options(options)
-    { :ok, compiled } = Erlang.re.compile(source, re_opts)
-    { Regex, compiled, source, options }
+    case Erlang.re.compile(source, re_opts) do
+      { :ok, compiled } ->
+        { :ok, { Regex, compiled, source, options } }
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Compiles the regular expression according to the given options.
+  Fails with `Regex.CompileError` if the regex cannot be compiled.
+  """
+  def compile!(source, options // "") do
+    case compile(source, options) do
+      { :ok, regex } -> regex
+      { :error, { reason, at } } -> raise Regex.CompileError, message: "#{reason} at position #{at}"
+    end
   end
 
   @doc """
