@@ -14,7 +14,7 @@ defmodule ExUnit.Assertions do
       Expected 10 to be equal to 13
 
   This module also provides other small convenient functions
-  like `assert_in_detal` and `assert_raise` to easily handle other
+  like `assert_in_delta` and `assert_raise` to easily handle other
   common cases as checking a float number or handling exceptions.
   """
 
