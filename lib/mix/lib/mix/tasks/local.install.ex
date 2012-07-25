@@ -1,15 +1,21 @@
 defmodule Mix.Tasks.Local.Install do
   use Mix.Task
 
-  @shortdoc "Install a task locally"
-
   import Mix.Generator, only: [create_file: 2]
 
+  @shortdoc "Install a task locally"
   @moduledoc """
   Install a task locally.
 
-  The task can be either a local beam file
-  or a beam file located at some URL.
+  The task can be either a local beam file or a beam
+  file located at some URL.
+
+      mix local.install http://example.com/some_task.beam
+
+  After installed, the task can be invoked locally:
+
+      mix some_task
+
   """
 
   def run(argv) do

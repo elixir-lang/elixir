@@ -12,8 +12,12 @@ defmodule Mix.Tasks.LocalTest do
     Mix.Tasks.Local.Install.run [fixture_path("beams/Elixir-Mix-Tasks-Local-Sample.beam")]
     assert File.regular? tmp_path("userhome/.mix/tasks/Elixir-Mix-Tasks-Local-Sample.beam")
 
-    # Run it!
+    # List it!
     Mix.append_local_tasks_path!
+    Mix.Tasks.Local.run []
+    assert_received { :mix_shell, :info, ["mix local.sample # A local install sample"] }
+
+    # Run it!
     Mix.Task.run "local.sample"
     assert_received { :mix_shell, :info, ["sample"] }
   end
