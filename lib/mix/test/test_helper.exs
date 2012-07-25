@@ -71,7 +71,7 @@ defmodule MixTest.Case do
   end
 
   def tmp_path do
-    File.expand_path("../tmp", __FILE__)
+    File.expand_path("../../tmp", __FILE__)
   end
 
   def tmp_path(extension) do
@@ -89,6 +89,13 @@ defmodule MixTest.Case do
     tmp = tmp_path /> binary_to_list
     to_remove = Enum.filter :code.get_path, fn(path) -> :string.str(path, tmp) != 0 end
     Enum.map to_remove, :code.del_path(&1)
+  end
+
+  def in_tmp(which, function) do
+    path = tmp_path(which)
+    File.rm_rf! path
+    File.mkdir_p! path
+    File.cd! path, function
   end
 
   defmacro in_fixture(which, block) do

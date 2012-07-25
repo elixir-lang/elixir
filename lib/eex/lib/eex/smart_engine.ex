@@ -6,8 +6,8 @@ defmodule EEx.TransformerEngine do
   overridable directive that allows a developer to
   customize the expression returned by the engine.
 
-  Check `EEx.AssignsEngine`, `EEx.ForEngine` and
-  `EEx.SmartEngine` for examples of using this module.
+  Check `EEx.AssignsEngine` and `EEx.SmartEngine` for
+  examples of using this module.
   """
 
   @doc false
@@ -71,12 +71,15 @@ defmodule EEx.AssignsEngine do
 
   @doc false
   defmacro __using__(_) do
-    quote [unquote: false] do
+    quote unquote: false do
       defp transform({ :@, line, [{ name, _, atom }] }) when is_atom(name) and is_atom(atom) do
         quote(do: Keyword.get var!(assigns), unquote(name))
       end
 
-      defp transform(_), do: super
+      defp transform(_) do
+        super
+      end
+
       defoverridable [transform: 1]
     end
   end
@@ -87,10 +90,8 @@ defmodule EEx.SmartEngine do
   use EEx.AssignsEngine
 
   @moduledoc """
-  An engine meant for end-user usage that includes both
-  `AssignsEngine` and `ForEngine` conveniences. Therefore,
-  a developer can easily access assigns via `@` and loop
-  using `for`. Read `EEx.AssignsEngine` and `EEx.ForEngine`
-  for examples.
+  An engine meant for end-user usage that includes
+  `AssignsEngine` and other conveniences. Read
+  `EEx.AssignsEngine` for examples.
   """
 end

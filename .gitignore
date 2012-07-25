@@ -1,6 +1,7 @@
 /.eunit/*
 /.full
 /lib/*/ebin/*
+/lib/*/tmp
 /lib/*/test/tmp
 /lib/elixir/src/elixir.app.src
 /lib/elixir/src/*_lexer.erl

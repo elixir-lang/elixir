@@ -223,7 +223,6 @@ end
 defmodule Record.Extractor do
   @moduledoc false
 
-
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include* attribute from Erlang modules.
   def retrieve(name, from: string) do
