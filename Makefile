@@ -10,12 +10,14 @@ VERSION:=0.6.0.dev
 
 #==> Templates
 define TASK_TEMPLATE
-$(1): lib/$(1)/ebin/Elixir-$(2).beam
+$(1): lib/$(1)/ebin/Elixir-$(2).beam lib/$(1)/ebin/$(1).app
+
+lib/$(1)/ebin/$(1).app:
+	@ cd lib/$(1) && ../../bin/mix compile.app
 
 lib/$(1)/ebin/Elixir-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex) $$(FORCE)
 	@ echo "==> $(1) (compile)"
 	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
-	@ cd lib/$(1) && ../../bin/mix compile.app
 
 test_$(1): $(1)
 	@ echo "==> $(1) (exunit)"
@@ -34,7 +36,9 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 erlang:
 	@ cd lib/elixir && $(REBAR) compile
 
-elixir: kernel mix ex_unit eex
+# We need to compile only EEx (without the app)
+# file so we can compile Mix
+elixir: kernel lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex
 
 kernel: $(KERNEL)
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex $(FORCE)
