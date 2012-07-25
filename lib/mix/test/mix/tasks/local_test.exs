@@ -20,5 +20,9 @@ defmodule Mix.Tasks.LocalTest do
     # Run it!
     Mix.Task.run "local.sample"
     assert_received { :mix_shell, :info, ["sample"] }
+
+    # Remove it!
+    Mix.Tasks.Local.Uninstall.run ["local.sample"]
+    refute File.regular? tmp_path("userhome/.mix/tasks/Elixir-Mix-Tasks-Local-Sample.beam")
   end
 end

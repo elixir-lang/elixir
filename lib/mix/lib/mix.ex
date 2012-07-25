@@ -21,6 +21,8 @@ defmodule Mix do
 
   @doc """
   Append ~/.mix/tasks to Erlang code path.
+  This is called automatically every time Mix is
+  started from the command line.
   """
   def append_local_tasks_path! do
     Code.append_path File.join(Mix.Utils.home, ".mix/tasks")

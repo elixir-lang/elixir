@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Local.Install do
     task_name = Mix.Task.task_name(module)
 
     if Mix.shell.yes?("Are you sure you want to install task #{inspect task_name}?") do
-      tasks = File.join [Mix.Utils.home, ".mix", "tasks"]
+      tasks = File.join Mix.Utils.home, ".mix/tasks"
       File.mkdir_p! tasks
       create_file File.join(tasks, "#{module}.beam"), beam
     end
