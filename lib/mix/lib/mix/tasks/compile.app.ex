@@ -50,17 +50,16 @@ defmodule Mix.Tasks.Compile.App do
       best_guess = [
         vsn: to_char_list(version),
         modules: modules_from(beams),
-        applications: ['kernel', 'stdlib', 'elixir']
+        applications: [:kernel, :stdlib, :elixir]
       ]
 
-      contents = if function_exported?(project, :application, 0) do
+      properties = if function_exported?(project, :application, 0) do
         Mix.Utils.config_merge(best_guess, project.application)
       else
         best_guess
       end
 
-      contents = Keyword.put contents, :applications, Enum.map(contents[:applications], to_char_list(&1))
-      contents = { :application, app, contents }
+      contents = { :application, app, properties }
 
       File.mkdir_p!(File.dirname(target))
       file = File.open!(target, [:write])

@@ -62,4 +62,15 @@ defmodule Mix.CLITest do
       assert output =~ %r"mix compile.elixir #"
     end
   end
+
+  test "new with tests smoke test" do
+    in_tmp "new_with_tests", fn ->
+      output = mix "new ."
+      assert output =~ %r(\* creating lib/new_with_tests.ex)
+
+      output = mix "test"
+      assert File.regular?("ebin/Elixir-NewWithTests.beam")
+      assert output =~ %r"1 tests, 0 failures"
+    end
+  end
 end
