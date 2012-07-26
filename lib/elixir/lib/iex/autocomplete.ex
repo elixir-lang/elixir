@@ -73,7 +73,7 @@ defmodule IEx.Autocomplete do
       {:ok, { atom, _, nil }} when is_atom(atom) ->
         expand_module_funs Kernel, atom_to_list(atom)
       {:ok, {:__aliases__,_,[root]}} ->
-        expand_elixir_modules [:Elixir], atom_to_list(root)
+        expand_elixir_modules [], atom_to_list(root)
       {:ok, {:__aliases__,_,list}} ->
         hint = atom_to_list(List.last(list))
         list = :lists.sublist(list, length(list)-1)
@@ -185,15 +185,15 @@ defmodule IEx.Autocomplete do
 
   defp expand_elixir_modules(list, hint // '') do
     mod = Module.concat(list)
-    format_expansion elixir_submodules(mod, hint) ++ module_funs(mod, hint), hint
+    format_expansion elixir_submodules(mod, hint, list == []) ++ module_funs(mod, hint), hint
   end
 
-  defp elixir_submodules(mod, hint) do
+  defp elixir_submodules(mod, hint, root) do
     modname = atom_to_list(mod)
     depth   = length(:string.tokens(modname, '-')) + 1
     base    = modname ++ [?-|hint]
 
-    Enum.reduce modules_as_lists, [], fn(m, acc) ->
+    Enum.reduce modules_as_lists(root), [], fn(m, acc) ->
       if :lists.prefix(base, m) do
         tokens = :string.tokens(m, '-')
         if length(tokens) == depth do
@@ -208,9 +208,12 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp modules_as_lists do
-    ['Elixir-Elixir', 'Elixir-Erlang'] ++
-      Enum.map(:code.all_loaded, fn({ m, _ }) -> atom_to_list(m) end)
+  defp modules_as_lists(true) do
+    ['Elixir-Elixir', 'Elixir-Erlang'] ++ modules_as_lists(false)
+  end
+
+  defp modules_as_lists(false) do
+    Enum.map(:code.all_loaded, fn({ m, _ }) -> atom_to_list(m) end)
   end
 
   ## Functions
