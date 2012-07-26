@@ -3,12 +3,13 @@ defmodule IEx.Helpers do
   A bunch of helpers available in IEx.
 
   Documentation for functions in this module can be
-  consulted directly from the command line, example:
+  consulted directly from the command line, type
 
-      d(:c, 2)
+    d(:d, 1)
 
-  Will print the documentation for the function `c`
-  in this module with arity 2.
+  To check the documentation of the function `d`
+  with arity 1, which is the function responsible
+  to show docs.
   """
 
   @doc """
@@ -57,6 +58,13 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Shows the documentation for IEx.Helpers.
+  """
+  def d() do
+    d(IEx.Helpers, :all)
+  end
+
+  @doc """
   Shows the documentation for the given module.
   Defaults to print documentation for `IEx.Helpers`.
 
@@ -65,9 +73,29 @@ defmodule IEx.Helpers do
       d(Enum)
       #=> Prints documentation for Enum
 
+  It also accepts functions in the format `fun/arity`
+  and `module.fun/arity`, for example:
+
+      d receive/1
+      d Enum.all?/2
+
   """
-  def d(module // IEx.Helpers) do
-    d(module, true)
+  defmacro d({ :/, _, [{ fun, _, nil }, arity] }) do
+    quote do
+      d(unquote(fun), unquote(arity))
+    end
+  end
+
+  defmacro d({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
+    quote do
+      d(unquote(mod), unquote(fun), unquote(arity))
+    end
+  end
+
+  defmacro d(other) do
+    quote do
+      d(unquote(other), :all)
+    end
   end
 
   @doc """
@@ -83,6 +111,10 @@ defmodule IEx.Helpers do
       #=> Prints documentation for this function
 
   """
+  def d(:d, 1) do
+    d(__MODULE__, :d, 1)
+  end
+
   def d(function, arity) when is_atom(function) and is_integer(arity) do
     if function_exported?(__MODULE__, function, arity) do
       d(__MODULE__, function, arity)
@@ -91,17 +123,13 @@ defmodule IEx.Helpers do
     end
   end
 
-  def d(module, print_functions) when is_atom(module) and is_boolean(print_functions) do
+  def d(module, :all) when is_atom(module) do
     case Code.ensure_loaded(module) do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
           { _, binary } when is_binary(binary) ->
             IO.puts "# #{inspect module}\n"
             IO.write binary
-            if print_functions do
-              IO.puts "\n## Functions and Macros\n"
-              Enum.each module.__info__(:docs), print_signature(&1)
-            end
           { _, _ } ->
             IO.puts :stderr, "No docs for #{inspect module}"
           _ ->

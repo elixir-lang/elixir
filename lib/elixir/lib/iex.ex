@@ -107,7 +107,8 @@ defmodule IEx do
 
   defp start_loop(config) do
     Process.put :iex_history, []
-    do_loop(config)
+    { _, _, scope } = Erlang.elixir.eval('import IEx.Helpers', [], 0, config.scope)
+    do_loop(config.scope(scope))
   end
 
   defp do_loop(config) do
