@@ -44,6 +44,11 @@ defmodule IEx.AutocompleteTest do
     assert expand('System.ve') == {:yes, 'rsion', []}
   end
 
+  test :elixir_macro_completion do
+    {:yes, '', list} = expand('Kernel.is_')
+    assert is_list(list)
+  end
+
   test :elixir_root_completion do
     {:yes, '', list} = expand('')
     assert is_list(list)
