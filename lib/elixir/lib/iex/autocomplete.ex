@@ -61,8 +61,6 @@ defmodule IEx.Autocomplete do
         expand_module_funs atom
       {:ok, {:__aliases__,_,list}} ->
         format_expansion elixir_module_subentries(list), ''
-      {:ok, {{:.,_,[{:__aliases__,_,list},fun]},_,[]}} when is_atom(fun) ->
-        expand_module_funs(elixir_module(list), atom_to_list(fun))
       _ -> no_match
     end
   end
@@ -84,7 +82,7 @@ defmodule IEx.Autocomplete do
       {:ok, {{:., _, [mod,fun]},_,[]}} when is_atom(mod) and is_atom(fun) ->
         expand_module_funs mod, atom_to_list(fun)
       {:ok, {{:.,_,[{:__aliases__,_,list},fun]},_,[]}} when is_atom(fun) ->
-        expand_module_funs(elixir_module(list), atom_to_list(fun))
+        expand_module_funs(Module.concat(list), atom_to_list(fun))
       _ -> no_match
     end
   end
@@ -171,36 +169,31 @@ defmodule IEx.Autocomplete do
 
   ## Elixir modules
 
-  defp elixir_module([:Elixir|_]=list) do
-    list_to_atom(:string.join(Enum.map(list, atom_to_list &1), '-'))
-  end
-
-  defp elixir_module(list) do
-    elixir_module([:Elixir|list])
-  end
-
   defp elixir_module_subentries(list, hint // '') do
-    mod = elixir_module(list)
-    if List.member?(loaded_modules, mod) do
-      funs = Enum.filter module_funs(mod), fn Fun[name: name] ->
-        :lists.prefix(hint, name)
-      end
-      elixir_module_submodules(mod, hint) ++ funs
-    else
-      []
+    mod = Module.concat(list)
+
+    funs = case ensure_loaded(mod) do
+      { :module, _ } ->
+        Enum.filter module_funs(mod), fn Fun[name: name] ->
+          :lists.prefix(hint, name)
+        end
+      _ ->
+        []
     end
+
+    elixir_module_submodules(mod, hint) ++ funs
   end
 
   defp elixir_module_submodules(mod, hint) do
     modname = atom_to_list(mod)
     depth   = length(:string.tokens(modname, '-')) + 1
-    base    = :string.join([modname, hint], '-')
+    base    = modname ++ [?-|hint]
 
     Enum.reduce map_atom_to_list(loaded_modules), [], fn m, acc ->
       if m != base and :lists.prefix(base, m) do
         tokens = :string.tokens(m, '-')
         if length(tokens) == depth do
-          name = :lists.nth(depth, tokens)
+          name = List.last(tokens)
           [Mod.new(type: :elixir, name: name)|acc]
         else
           acc
@@ -255,4 +248,7 @@ defmodule IEx.Autocomplete do
   defp map_atom_to_list(list) do
     Enum.map list, atom_to_list &1
   end
+
+  defp ensure_loaded(Elixir), do: { :error, :nofile }
+  defp ensure_loaded(other),  do: Code.ensure_loaded(other)
 end
