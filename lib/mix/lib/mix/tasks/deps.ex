@@ -67,6 +67,13 @@ defmodule Mix.Tasks.Deps do
   def format_status({ :invalidvsn, vsn }),  do: "the dependency does not match the specified version, got #{vsn}"
 
   @doc """
+  Receives a dependency and update its status
+  """
+  def update_status({ _scm, app, requirement, _status, opts }) do
+    with_scm_and_status({ app, requirement, opts })
+  end
+
+  @doc """
   Format the dependency for printing.
   """
   def format_dep({ scm, app, _req, status, opts }) do

@@ -58,6 +58,16 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  defmodule GetErrorApp do
+    def project do
+      [
+        deps: [
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("not_git_repo") }
+        ]
+      ]
+    end
+  end
+
   test "prints list of dependencies and their status" do
     Mix.Project.push DepsApp
 
@@ -172,6 +182,19 @@ defmodule Mix.Tasks.DepsTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
+    Mix.Project.pop
+  end
+
+  test "does not attempt to compile projects that could not be retrieved" do
+    Mix.Project.push GetErrorApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+      message = "* Getting git_repo [git: #{inspect fixture_path("not_git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :error, _ }
+    end
+  after
     Mix.Project.pop
   end
 end

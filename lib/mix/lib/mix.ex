@@ -11,21 +11,20 @@ defmodule Mix do
   [Elixir's website](http://elixir-lang.org).
   """
 
+  # Append ~/.mix/tasks to Erlang code path.
+  # This is called automatically every time Mix is
+  # started from the command line.
+  @doc false
+  def append_local_tasks_path! do
+    Code.append_path File.join(Mix.Utils.home, ".mix/tasks")
+  end
+
   @doc """
   Starts the mix application and its dependencies.
   """
   def start do
     Enum.each [:elixir, :mix], :application.start(&1)
     Mix.Server.start_link
-  end
-
-  @doc """
-  Append ~/.mix/tasks to Erlang code path.
-  This is called automatically every time Mix is
-  started from the command line.
-  """
-  def append_local_tasks_path! do
-    Code.append_path File.join(Mix.Utils.home, ".mix/tasks")
   end
 
   @doc """
