@@ -138,9 +138,7 @@ retrieve_file(Module, CO) ->
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
-  { Args, Guards } = extract_guards_from_args(Line, RawGuards, RawArgs),
-
+translate_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
   Arity   = length(Args),
   IsMacro = is_macro(Kind),
 
@@ -179,25 +177,9 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
   Function = { function, Line, Name, Arity, [FClause] },
   { Function, Defaults, TS }.
 
-%% Translate helpers
-
-extract_guards_from_args(Line, RawGuards, RawArgs) ->
-  lists:mapfoldl(fun
-    ({ 'in', _, [Left, _] } = X, Acc) ->
-      { Left, add_expr_to_guards(Line, X, Acc) };
-    (X, Acc) ->
-      { X, Acc }
-  end, RawGuards, RawArgs).
-
 is_macro(defmacro)  -> true;
 is_macro(defmacrop) -> true;
 is_macro(_)         -> false.
-
-add_expr_to_guards(_Line, Expr, []) ->
-  [Expr];
-
-add_expr_to_guards(Line, Expr, Clauses) ->
-  [{ 'and', Line, [Expr, Clause] } || Clause <- Clauses].
 
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,
