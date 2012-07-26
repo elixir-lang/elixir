@@ -11,10 +11,11 @@ defmodule ExUnit.Case do
 
   ## Callbacks
 
-  This module defines two callbacks. `setup_all` and `teardown_all`
-  which are executed before and after all tests respectively.
-  Those callbacks needs to return :ok, otherwise we assume
-  tests should not be run.
+  This module defines four callbacks. `setup_all()` and
+  `teardown_all()` which are executed before and after
+  all tests respectively and `setup(test)` and `teardown(test)`
+  which are executed before and after each test, receiving
+  the test name as argument.
 
   ## Examples
 
