@@ -18,6 +18,7 @@
   * [ExUnit] Some assertions were deprecated in favor of simply using `assert()`; 
 
 * enhancements
+  * [Mix] First Mix public release;
   * [Regex] Back references are now properly supported;
   * [IEx] Elixir now defaults to compile with documentation and `d` can be used in IEx to print modules and functions documentation;
   * [ExUnit] Support setup and teardown callbacks;
