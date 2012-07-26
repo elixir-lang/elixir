@@ -36,12 +36,16 @@ defmodule IEx.AutocompleteTest do
     assert expand('En') == {:yes, 'um.', []}
   end
 
+  test :elixir_auto_completion_with_self do
+    assert expand('Enum') == {:yes, '.', []}
+  end
+
   test :elixir_no_completion do
     assert expand('Xyz') == {:no, '', []}
   end
 
   test :elixir_root_submodule_completion do
-    assert expand('Elixir.Bina') == {:yes, 'ry.', []}
+    assert expand('Elixir.Acce') == {:yes, 'ss.', []}
   end
 
   test :elixir_submodule_completion do

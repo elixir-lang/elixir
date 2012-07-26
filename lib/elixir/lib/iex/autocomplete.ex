@@ -193,9 +193,8 @@ defmodule IEx.Autocomplete do
     depth   = length(:string.tokens(modname, '-')) + 1
     base    = modname ++ [?-|hint]
 
-    Enum.reduce loaded_modules, [], fn({m, _}, acc) ->
-      m = atom_to_list(m)
-      if m != base and :lists.prefix(base, m) do
+    Enum.reduce modules_as_lists, [], fn(m, acc) ->
+      if :lists.prefix(base, m) do
         tokens = :string.tokens(m, '-')
         if length(tokens) == depth do
           name = List.last(tokens)
@@ -209,8 +208,9 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp loaded_modules do
-    [{ Elixir, :ok }, { Erlang, :ok }] ++ :code.all_loaded
+  defp modules_as_lists do
+    ['Elixir.Elixir', 'Elixir.Erlang'] ++
+      Enum.map(:code.all_loaded, fn({ m, _ }) -> atom_to_list(m) end)
   end
 
   ## Functions
@@ -220,7 +220,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp module_funs(mod, hint // '') do
-    case ensure_loaded(mod) do
+    case Code.ensure_loaded(mod) do
       { :module, _ } ->
         falist = get_funs(mod)
 
@@ -255,7 +255,4 @@ defmodule IEx.Autocomplete do
 
   defp is_prefix?('', _),      do: true
   defp is_prefix?(hint, name), do: :lists.prefix(hint, name)
-
-  defp ensure_loaded(Elixir), do: { :error, :nofile }
-  defp ensure_loaded(other),  do: Code.ensure_loaded(other)
 end
