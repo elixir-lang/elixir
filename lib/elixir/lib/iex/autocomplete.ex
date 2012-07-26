@@ -33,7 +33,9 @@ defmodule IEx.Autocomplete do
   end
 
   def expand([]) do
-    format_expansion root_modules++iex_helpers_exports
+    funs = module_funs(IEx.Helpers) ++ module_funs(Kernel)
+    mods = [Mod[name: 'Elixir', type: :elixir], Mod[name: 'Erlang', type: :elixir]]
+    format_expansion mods ++ funs
   end
 
   def expand([h|t]=expr) do
@@ -68,6 +70,8 @@ defmodule IEx.Autocomplete do
     case Code.string_to_ast expr do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules atom_to_list(atom)
+      {:ok, { atom, _, nil }} when is_atom(atom) ->
+        expand_module_funs Kernel, atom_to_list(atom)
       {:ok, {:__aliases__,_,[root]}} ->
         expand_elixir_modules [:Elixir], atom_to_list(root)
       {:ok, {:__aliases__,_,list}} ->
@@ -137,12 +141,6 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  ## Root Functions (exported in IEx.Helpers)
-
-  defp iex_helpers_exports do
-    module_funs IEx.Helpers.__info__(:self)
-  end
-
   ## Expand calls
 
   # :atom.fun
@@ -195,7 +193,7 @@ defmodule IEx.Autocomplete do
     depth   = length(:string.tokens(modname, '-')) + 1
     base    = modname ++ [?-|hint]
 
-    Enum.reduce :code.all_loaded, [], fn({m, _}, acc) ->
+    Enum.reduce loaded_modules, [], fn({m, _}, acc) ->
       m = atom_to_list(m)
       if m != base and :lists.prefix(base, m) do
         tokens = :string.tokens(m, '-')
@@ -209,6 +207,10 @@ defmodule IEx.Autocomplete do
         acc
       end
     end
+  end
+
+  defp loaded_modules do
+    [{ Elixir, :ok }, { Erlang, :ok }] ++ :code.all_loaded
   end
 
   ## Functions

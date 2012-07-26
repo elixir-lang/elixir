@@ -65,6 +65,11 @@ defmodule IEx.AutocompleteTest do
     {:yes, '', list} = expand('')
     assert is_list(list)
     assert 'd/1' in list
+    assert 'Elixir' in list
+  end
+
+  test :elixir_kernel_completion do
+    assert expand('defdelega') == {:yes, 'te', []}
   end
 
   test :elixir_erlang_module_root_completion do
