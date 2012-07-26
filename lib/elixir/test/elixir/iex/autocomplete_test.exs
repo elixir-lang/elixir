@@ -33,7 +33,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :elixir_submodule_completion do
-    assert expand('List.Cha') == {:yes, 'rs.', []}
+    assert expand('Binary.Cha') == {:yes, 'rs.', []}
   end
 
   test :elixir_submodule_no_completion do
@@ -52,6 +52,7 @@ defmodule IEx.AutocompleteTest do
   test :elixir_root_completion do
     {:yes, '', list} = expand('')
     assert is_list(list)
+    assert 'd/1' in list
   end
 
   test :elixir_erlang_module_root_completion do
@@ -65,5 +66,4 @@ defmodule IEx.AutocompleteTest do
     assert expand('Test :z') == {:yes, 'lib.', []}
     assert expand('[:z') == {:yes, 'lib.', []}
   end
-
 end

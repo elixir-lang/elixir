@@ -273,7 +273,7 @@ defmodule Code do
           :undefined -> error
           _ ->
             try do
-              module.__info__(:loaded)
+              module.__info__(:self)
               { :module, module }
             rescue
               UndefinedFunctionError -> error
