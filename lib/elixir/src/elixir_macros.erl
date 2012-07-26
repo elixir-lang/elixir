@@ -41,38 +41,12 @@ translate_macro({ '!', Line, [Expr] }, S) ->
   { elixir_tree_helpers:convert_to_boolean(Line, TExpr, false), SE };
 
 translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
-  { TLeft, SL }  = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, SL),
+  { _, TExpr, TS } = translate_in(Line, Left, Right, S),
+  { TExpr, TS };
 
-  Cache = (S#elixir_scope.context == nil),
-
-  { Var, SV } = case Cache of
-    true  -> elixir_scope:build_erl_var(Line, SR);
-    false -> { TLeft, SR }
-  end,
-
-  Expr = case TRight of
-    { cons, _, _, _ } ->
-      [H|T] = elixir_tree_helpers:cons_to_list(TRight),
-      lists:foldl(fun(X, Acc) ->
-        { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
-      end, { op, Line, '==', Var, H }, T);
-    { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
-      { op, Line, 'andalso',
-        { op, Line, '>=', Var, Start },
-        { op, Line, '=<', Var, End }
-      };
-    _ ->
-      syntax_error(Line, S#elixir_scope.file, "invalid args for operator in")
-  end,
-
-  case Cache of
-    true  -> { { block, Line, [ { match, Line, Var, TLeft }, Expr ] }, SV };
-    false -> { Expr, SV }
-  end;
-
-translate_macro({ in, _, [Left, _] } = Expr, #elixir_scope{extra_guards=Extra} = S) ->
-  translate_each(Left, S#elixir_scope{extra_guards=[Expr|Extra]});
+translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=Extra} = S) ->
+  { TVar, TExpr, TS } = translate_in(Line, Left, Right, S),
+  { TVar, TS#elixir_scope{extra_guards=[TExpr|Extra]} };
 
 %% Functions
 
@@ -270,6 +244,43 @@ translate_macro({ 'var!', Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for var!").
 
 %% HELPERS
+
+translate_in(Line, Left, Right, S) ->
+  { TLeft, SL } = case Left of
+    { '_', _, Atom } when is_atom(Atom) ->
+      elixir_scope:build_erl_var(Line, S);
+    _ ->
+      translate_each(Left, S)
+  end,
+
+  { TRight, SR } = translate_each(Right, SL),
+
+  Cache = (S#elixir_scope.context == nil),
+
+  { Var, SV } = case Cache of
+    true  -> elixir_scope:build_erl_var(Line, SR);
+    false -> { TLeft, SR }
+  end,
+
+  Expr = case TRight of
+    { cons, _, _, _ } ->
+      [H|T] = elixir_tree_helpers:cons_to_list(TRight),
+      lists:foldl(fun(X, Acc) ->
+        { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
+      end, { op, Line, '==', Var, H }, T);
+    { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
+      { op, Line, 'andalso',
+        { op, Line, '>=', Var, Start },
+        { op, Line, '=<', Var, End }
+      };
+    _ ->
+      syntax_error(Line, S#elixir_scope.file, "invalid args for operator in")
+  end,
+
+  case Cache of
+    true  -> { Var, { block, Line, [ { match, Line, Var, TLeft }, Expr ] }, SV };
+    false -> { Var, Expr, SV }
+  end.
 
 module_ref(_Raw, Module, nil) ->
   Module;

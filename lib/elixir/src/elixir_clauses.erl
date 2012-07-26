@@ -45,7 +45,7 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
 
   FArgs   = listify(TArgs),
   SG      = SA#elixir_scope{context=guard, extra_guards=nil},
-  Extra   = element(1, elixir_translator:translate(SA#elixir_scope.extra_guards, SG)),
+  Extra   = SA#elixir_scope.extra_guards,
 
   FGuards = case Guards of
     [] -> case Extra of [] -> []; _ -> [Extra] end;

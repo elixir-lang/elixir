@@ -2055,9 +2055,9 @@ defmodule Kernel do
     else_clause = Keyword.get(tail, :else, nil)
 
     quote do
-      case !unquote(condition) do
-        false -> unquote(do_clause)
-        true  -> unquote(else_clause)
+      case unquote(condition) do
+        _ in [false, nil] -> unquote(else_clause)
+        _                 -> unquote(do_clause)
       end
     end
   end
@@ -2727,9 +2727,9 @@ defmodule Kernel do
   #
   defp build_cond_clauses([{ [condition], clause }|t], acc) do
     new_acc = quote do
-      case !unquote(condition) do
-        false -> unquote(clause)
-        true  -> unquote(acc)
+      case unquote(condition) do
+        _ in [false, nil] -> unquote(acc)
+        _                 -> unquote(clause)
       end
     end
 
