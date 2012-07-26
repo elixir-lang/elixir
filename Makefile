@@ -67,10 +67,9 @@ $(FULLFLAG): $(wildcard lib/*/ebin/*)
 	touch $(FULLFLAG)
 
 zip: $(FULLFLAG)
-	@ echo "==> elixir (full)"
 	rm -rf v$(VERSION).zip
-	zip -r v$(VERSION).zip ebin `git ls-files`
-	zip v$(VERSION).zip -d .git .gitignore .travis.yml
+	zip -r v$(VERSION).zip lib/*/ebin `git ls-files`
+	zip v$(VERSION).zip -d .gitignore .travis.yml
 
 docs: $(FULLFLAG)
 	mkdir -p ebin

@@ -1,2 +1,2 @@
 @echo off
-call %~dp0\elixir.bat -e "Mix.start; Mix.load /> Mix.run" %*
+call %~dp0\elixir.bat -e "Mix.start" -e "Mix.CLI.run" -- %*
