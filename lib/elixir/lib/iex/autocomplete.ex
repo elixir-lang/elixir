@@ -42,7 +42,7 @@ defmodule IEx.Autocomplete do
         expand_dot reduce(t)
       h === ?: ->
         expand_erlang_modules
-      (h >= ?a and h <= ?z) or (h >= ?A and h <= ?Z) ->
+      (h >= ?a and h <= ?z) or (h >= ?A and h <= ?Z) or h === ?_ ->
         expand_expr reduce(expr)
       List.member?('(+[ ', h) ->
         expand ''
@@ -219,7 +219,12 @@ defmodule IEx.Autocomplete do
   defp module_funs(mod, filter // [{:__info__,1}]) do
     case :code.is_loaded(mod) do
       {:file, _} ->
-        falist = mod.module_info(:exports)--filter
+        if :erlang.function_exported(mod, :__info__, 1) do
+          falist = mod.__info__(:functions)++mod.__info__(:macros)
+        else
+          falist = mod.module_info(:exports)
+        end
+        falist = falist--filter
         list = Enum.reduce falist, [], fn {f,a}, acc ->
           case :lists.keyfind(f, 1, acc) do
             {f,aa} -> :lists.keyreplace(f, 1, acc, {f, [a|aa]})
