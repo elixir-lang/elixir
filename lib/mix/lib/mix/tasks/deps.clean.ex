@@ -23,9 +23,9 @@ defmodule Mix.Tasks.Deps.Clean do
   defp do_clean(deps) do
     shell = Mix.shell
 
-    Enum.each deps, fn({ _scm, app, _req, _status, _opts } = dep) ->
+    Enum.each deps, fn(dep) ->
       shell.info "* Cleaning #{format_dep(dep)}"
-      File.rm_rf deps_path(app)
+      File.rm_rf deps_path(dep.app)
     end
   end
 end

@@ -55,7 +55,9 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Task.run "deps.loadpaths", ["--no-check"]
     Mix.Task.reenable "deps.loadpaths"
 
-    Enum.each deps, fn({ _scm, app, _req, status, opts }) ->
+    Enum.each deps, fn(dep) ->
+      Mix.Dep[app: app, status: status, opts: opts] = dep
+
       check_unavailable!(app, status)
       shell.info "* Compiling #{app}"
 

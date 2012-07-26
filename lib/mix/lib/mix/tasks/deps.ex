@@ -1,3 +1,14 @@
+defrecord Mix.Dep, [scm: nil, app: nil, requirement: nil, status: nil, opts: nil], moduledoc: """
+This is a record that keeps information about your project
+dependencies. It keeps:
+
+* scm - a module representing the source code management tool (SCM) operations;
+* app - the app name as an atom;
+* requirements - a binary or regexp with the deps requirement;
+* status - the current status of dependency, check `Mix.Deps.format_status/1` for more info;
+* opts - the options given by the developer
+"""
+
 defmodule Mix.Tasks.Deps do
   use Mix.Task
 
@@ -8,9 +19,7 @@ defmodule Mix.Tasks.Deps do
   """
 
   @doc """
-  Returns all dependencies in the following format:
-
-      { SCM, :app", "requirement", status, [opts] }
+  Returns all dependencies in as `Mix.Dep` record.
 
   ## Exceptions
 
@@ -32,7 +41,7 @@ defmodule Mix.Tasks.Deps do
   Get all dependencies that match the specific `status`.
   """
   def all(status) do
-    Enum.filter all, match?({ _, _, _, { ^status, _ }, _ }, &1)
+    Enum.filter all, match?(Mix.Dep[status: { ^status, _ }], &1)
   end
 
   @doc """
@@ -69,14 +78,14 @@ defmodule Mix.Tasks.Deps do
   @doc """
   Receives a dependency and update its status
   """
-  def update_status({ _scm, app, requirement, _status, opts }) do
-    with_scm_and_status({ app, requirement, opts })
+  def update_status(Mix.Dep[app: app, requirement: req, opts: opts]) do
+    with_scm_and_status({ app, req, opts })
   end
 
   @doc """
   Format the dependency for printing.
   """
-  def format_dep({ scm, app, _req, status, opts }) do
+  def format_dep(Mix.Dep[scm: scm, app: app, status: status, opts: opts]) do
     version =
       case status do
         { :ok, vsn } -> "(#{vsn}) "
@@ -105,7 +114,7 @@ defmodule Mix.Tasks.Deps do
 
     Enum.each all, fn(dep) ->
       shell.info "* #{format_dep(dep)}"
-      shell.info "  #{format_status elem(dep, 4)}"
+      shell.info "  #{format_status dep.status}"
     end
   end
 
@@ -117,7 +126,14 @@ defmodule Mix.Tasks.Deps do
 
     if scm do
       scm_module = Mix.SCM.to_module(scm)
-      { scm_module, app, req, status(scm_module, app, req, opts), opts }
+
+      Mix.Dep[
+        scm: scm_module,
+        app: app,
+        requirement: req,
+        status: status(scm_module, app, req, opts),
+        opts: opts
+      ]
     else
       supported = Enum.join Mix.SVM.available, ", "
       raise Mix.Error, message: "did not specify a supported scm, expected one of: " <> supported

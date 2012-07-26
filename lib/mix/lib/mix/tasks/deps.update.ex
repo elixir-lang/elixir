@@ -24,7 +24,8 @@ defmodule Mix.Tasks.Deps.Update do
   defp do_update(deps) do
     shell = Mix.shell
 
-    apps = Enum.map deps, fn({ scm, app, _req, status, opts } = dep) ->
+    apps = Enum.map deps, fn(dep) ->
+      Mix.Dep[scm: scm, app: app, status: status, opts: opts] = dep
       check_unavailable!(app, status)
       shell.info "* Updating #{format_dep(dep)}"
       scm.update(deps_path(app), opts)

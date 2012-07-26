@@ -13,11 +13,14 @@ defmodule Mix.Tasks.Deps.Get do
     shell = Mix.shell
     File.mkdir_p!(deps_path)
 
-    apps = Enum.reduce all(:unavailable), [], fn({ scm, app, _req, _status, opts } = dep, acc) ->
+    apps = Enum.reduce all(:unavailable), [], fn(dep, acc) ->
+      Mix.Dep[scm: scm, app: app, opts: opts] = dep
+
       shell.info "* Getting #{format_dep(dep)}"
       scm.get(deps_path(app), opts)
+
       case update_status(dep) do
-        { _, _, _, { :unavailable, _ }, _ } -> acc
+        Mix.Dep[status: { :unavailable, _ }] -> acc
         _ -> [app|acc]
       end
     end

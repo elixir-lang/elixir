@@ -20,8 +20,8 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       Mix.Task.run "deps.check"
     end
 
-    Enum.each all(:ok), fn({ _, app, _, _, _ }) ->
-      Code.prepend_path File.join deps_path(app), "ebin"
+    Enum.each all(:ok), fn(dep) ->
+      Code.prepend_path File.join deps_path(dep.app), "ebin"
     end
   end
 end
