@@ -51,7 +51,7 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  def expand_dot(expr) do
+  defp expand_dot(expr) do
     case Code.string_to_ast expr do
       {:ok, atom} when is_atom(atom) ->
         expand_module_funs atom
@@ -127,7 +127,7 @@ defmodule IEx.Autocomplete do
     Enum.map :code.all_loaded, fn({m,_}) -> m end
   end
 
-  def root_modules do
+  defp root_modules do
     Enum.reduce :code.all_loaded, [], fn {m,_}, acc ->
       mod = atom_to_list(m)
       if :lists.prefix('Elixir', mod) do
@@ -145,7 +145,7 @@ defmodule IEx.Autocomplete do
 
   ## Root Functions (exported in IEx.Helpers)
 
-  def iex_helpers_exports do
+  defp iex_helpers_exports do
     filter = [{:__info__,1},{:module_info, 0},{:module_info, 1}]
     module_funs IEx.Helpers, filter
   end
@@ -165,14 +165,14 @@ defmodule IEx.Autocomplete do
 
   ## Elixir modules
 
-  def elixir_module([:Elixir|_]=list) do
+  defp elixir_module([:Elixir|_]=list) do
     list_to_atom(:string.join(Enum.map(list, atom_to_list &1), '-'))
   end
-  def elixir_module(list) do
+  defp elixir_module(list) do
     elixir_module([:Elixir|list])
   end
 
-  def elixir_module_subentries(list, hint // '') do
+  defp elixir_module_subentries(list, hint // '') do
     mod = elixir_module(list)
     if List.member?(loaded_modules, mod) do
       funs = Enum.filter module_funs(mod), fn Fun[name: name] ->
@@ -184,7 +184,7 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  def elixir_module_submodules(mod, hint) do
+  defp elixir_module_submodules(mod, hint) do
     modname = atom_to_list(mod)
     depth = length(:string.tokens(modname, '-'))+1
     base = :string.join([modname, hint], '-')
@@ -205,11 +205,11 @@ defmodule IEx.Autocomplete do
 
   ## Functions
 
-  def expand_module_funs(mod, hint // '')
-  def expand_module_funs(mod, '') do
+  defp expand_module_funs(mod, hint // '')
+  defp expand_module_funs(mod, '') do
     format_expansion module_funs(mod), ''
   end
-  def expand_module_funs(mod, hint) do
+  defp expand_module_funs(mod, hint) do
     entries = Enum.filter module_funs(mod), fn fun ->
       Entry.match?(fun, hint)
     end
