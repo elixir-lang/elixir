@@ -45,6 +45,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :elixir_root_submodule_completion do
+    _ = [foo: 1][:foo]
     assert expand('Elixir.Acce') == {:yes, 'ss.', []}
   end
 
@@ -74,6 +75,12 @@ defmodule IEx.AutocompleteTest do
 
   test :elixir_kernel_completion do
     assert expand('defdelega') == {:yes, 'te', []}
+  end
+
+  test :elixir_and_erlang_proxies do
+    {:yes, '', list} = expand('E')
+    assert 'Elixir' in list
+    assert 'Erlang' in list
   end
 
   test :elixir_erlang_module_root_completion do

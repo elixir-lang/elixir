@@ -209,7 +209,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp modules_as_lists do
-    ['Elixir.Elixir', 'Elixir.Erlang'] ++
+    ['Elixir-Elixir', 'Elixir-Erlang'] ++
       Enum.map(:code.all_loaded, fn({ m, _ }) -> atom_to_list(m) end)
   end
 
