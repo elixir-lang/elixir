@@ -37,6 +37,8 @@ defmodule IEx do
       # We are inside the new tty and in a new process,
       # reattach it the error logger.
       attach_error_logger
+      :io.setopts :erlang.group_leader,
+                  [{:expand_fun, IEx.Autocomplete.expand &1}]
       start_loop(config)
     end
 
