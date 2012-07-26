@@ -15,6 +15,14 @@ defmodule IEx.AutocompleteTest do
     assert expand(':x') == {:no, '', []}
   end
 
+  test :erlang_alias_completion do
+    assert expand('Erlang.z') == {:yes, 'lib.', []}
+  end
+
+  test :erlang_alias_call_completion do
+    assert expand('Erlang.lists.flatt') == {:yes, 'en', []}
+  end
+
   test :erlang_module_common_prefix_completion do
     assert expand(':us') == {:yes, 'er', []}
   end
@@ -62,6 +70,13 @@ defmodule IEx.AutocompleteTest do
   test :elixir_erlang_module_root_completion do
     {:yes, '', list} = expand(':')
     assert is_list(list)
+    assert 'lists' in list
+  end
+
+  test :elixir_erlang_alias_root_completion do
+    {:yes, '', list} = expand('Erlang.')
+    assert is_list(list)
+    assert 'lists' in list
   end
 
   test :completion_inside_expression do

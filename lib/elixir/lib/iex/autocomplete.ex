@@ -3,26 +3,22 @@ defmodule IEx.Autocomplete do
   Autocompletion for the Elixir shell.
   """
 
-  defrecord Mod, type: nil, name: ''
-  defrecord Fun, name: '', arities: []
+  defrecord Mod, name: nil, type: nil
+  defrecord Fun, name: nil, arities: []
 
   defprotocol Entry do
     @moduledoc false
     def to_entries(entry)
-    def match?(entry, hint)
+    def to_hint(entry, hint)
   end
 
   defimpl Entry, for: Mod do
     def to_entries(mod) do
-      if mod.type === :erlang do
-        [':'++mod.name]
-      else
-        [mod.name]
-      end
+      [mod.name]
     end
 
-    def match?(mod, hint) do
-      :lists.prefix(hint, mod.name)
+    def to_hint(Mod[name: name], hint) do
+      :lists.nthtail(length(hint), name) ++ '.'
     end
   end
 
@@ -31,8 +27,8 @@ defmodule IEx.Autocomplete do
       lc a inlist fun.arities, do: '#{fun.name}/#{a}'
     end
 
-    def match?(fun, hint) do
-      :lists.prefix(hint, fun.name)
+    def to_hint(Fun[name: name], hint) do
+      :lists.nthtail(length(hint), name)
     end
   end
 
@@ -59,30 +55,27 @@ defmodule IEx.Autocomplete do
     case Code.string_to_ast expr do
       {:ok, atom} when is_atom(atom) ->
         expand_module_funs atom
+      {:ok, {:__aliases__,_,[:Erlang]}} ->
+        expand_erlang_modules
       {:ok, {:__aliases__,_,list}} ->
-        format_expansion elixir_module_subentries(list), ''
-      _ -> no_match
+        expand_elixir_modules list
+      _ ->
+        no_match
     end
   end
 
   defp expand_expr(expr) do
     case Code.string_to_ast expr do
       {:ok, atom} when is_atom(atom) ->
-          expand_erlang_modules atom_to_list(atom)
+        expand_erlang_modules atom_to_list(atom)
       {:ok, {:__aliases__,_,[root]}} ->
-        hint = atom_to_list(root)
-        entries = Enum.filter root_modules, fn m ->
-          :lists.prefix(hint, m.name)
-        end
-        format_expansion entries, hint
+        expand_elixir_modules [:Elixir], atom_to_list(root)
       {:ok, {:__aliases__,_,list}} ->
-        hint = atom_to_list(:lists.last(list))
+        hint = atom_to_list(List.last(list))
         list = :lists.sublist(list, length(list)-1)
-        format_expansion elixir_module_subentries(list, hint), hint
-      {:ok, {{:., _, [mod,fun]},_,[]}} when is_atom(mod) and is_atom(fun) ->
-        expand_module_funs mod, atom_to_list(fun)
-      {:ok, {{:.,_,[{:__aliases__,_,list},fun]},_,[]}} when is_atom(fun) ->
-        expand_module_funs(Module.concat(list), atom_to_list(fun))
+        expand_elixir_modules list, hint
+      {:ok, {{:., _, [mod,fun]},_,[]}} when is_atom(fun) ->
+        expand_call mod, atom_to_list(fun)
       _ -> no_match
     end
   end
@@ -101,34 +94,31 @@ defmodule IEx.Autocomplete do
 
   defp no_match, do: { :no, '', [] }
 
+  ## Formatting
+
   defp format_expansion(list, hint // '')
+
   defp format_expansion([], _) do
     no_match
   end
-  defp format_expansion([Fun[name: name]], hint) do
-    {:yes, :lists.nthtail(length(hint), name), []}
+
+  defp format_expansion([uniq], hint) do
+    { :yes, Entry.to_hint(uniq, hint), [] }
   end
-  defp format_expansion([Mod[name: name]], hint) do
-    {:yes, :lists.nthtail(length(hint), name)++'.', []}
-  end
+
   defp format_expansion([first|_]=entries, hint) do
-    b = Enum.map entries, fn e -> list_to_binary(e.name) end
-    lh = length hint
-    n = :binary.longest_common_prefix(b)
-    cond do
-      n == 0 or (n == lh) ->
-        {:yes, '',
-         Enum.reduce entries, [], fn e, acc -> acc++Entry.to_entries(e) end}
-      true ->
-        {:yes, :lists.sublist(first.name, 1+lh, n-lh), []}
+    binary = Enum.map entries, fn e -> list_to_binary(e.name) end
+    length = length hint
+    prefix = :binary.longest_common_prefix(binary)
+    if prefix == 0 or (prefix == length) do
+      {:yes, '',
+         Enum.reduce entries, [], fn e, acc -> Entry.to_entries(e) ++ acc end }
+    else
+      {:yes, :lists.sublist(first.name, 1 + length, prefix-length), [] }
     end
   end
 
   ## Root Modules
-
-  defp loaded_modules do
-    Enum.map :code.all_loaded, fn({m,_}) -> m end
-  end
 
   defp root_modules do
     Enum.reduce :code.all_loaded, [], fn {m,_}, acc ->
@@ -153,6 +143,32 @@ defmodule IEx.Autocomplete do
     module_funs IEx.Helpers.__info__(:self)
   end
 
+  ## Expand calls
+
+  # :atom.fun
+  defp expand_call(mod, hint) when is_atom(mod) do
+    expand_module_funs mod, hint
+  end
+
+  # Erlang.mod.fun
+  defp expand_call({ { :., _, [{ :__aliases__, _, [:Erlang] }, mod] }, _, [] }, hint) when is_atom(mod) do
+    expand_module_funs mod, hint
+  end
+
+  # Erlang.mod
+  defp expand_call({ :__aliases__, _, [:Erlang] }, hint) do
+    expand_erlang_modules hint
+  end
+
+  # Elixir.fun
+  defp expand_call({ :__aliases__, _, list }, hint) do
+    expand_module_funs Module.concat(list), hint
+  end
+
+  defp expand_call(_, _) do
+    no_match
+  end
+
   ## Erlang modules
 
   defp expand_erlang_modules(hint // '') do
@@ -164,32 +180,23 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_erlang_modules(hint) do
-    Enum.filter root_modules, fn m -> Entry.match?(m, hint) end
+    Enum.filter root_modules, fn m -> :lists.prefix(hint, m.name) end
   end
 
   ## Elixir modules
 
-  defp elixir_module_subentries(list, hint // '') do
+  defp expand_elixir_modules(list, hint // '') do
     mod = Module.concat(list)
-
-    funs = case ensure_loaded(mod) do
-      { :module, _ } ->
-        Enum.filter module_funs(mod), fn Fun[name: name] ->
-          :lists.prefix(hint, name)
-        end
-      _ ->
-        []
-    end
-
-    elixir_module_submodules(mod, hint) ++ funs
+    format_expansion elixir_submodules(mod, hint) ++ module_funs(mod, hint), hint
   end
 
-  defp elixir_module_submodules(mod, hint) do
+  defp elixir_submodules(mod, hint) do
     modname = atom_to_list(mod)
     depth   = length(:string.tokens(modname, '-')) + 1
     base    = modname ++ [?-|hint]
 
-    Enum.reduce map_atom_to_list(loaded_modules), [], fn m, acc ->
+    Enum.reduce :code.all_loaded, [], fn({m, _}, acc) ->
+      m = atom_to_list(m)
       if m != base and :lists.prefix(base, m) do
         tokens = :string.tokens(m, '-')
         if length(tokens) == depth do
@@ -206,48 +213,46 @@ defmodule IEx.Autocomplete do
 
   ## Functions
 
-  defp expand_module_funs(mod, hint // '')
-
-  defp expand_module_funs(mod, '') do
-    format_expansion module_funs(mod), ''
+  defp expand_module_funs(mod, hint // '') do
+    format_expansion module_funs(mod, hint), hint
   end
 
-  defp expand_module_funs(mod, hint) do
-    entries = Enum.filter module_funs(mod), Entry.match?(&1, hint)
-    format_expansion entries, hint
-  end
-
-  defp module_funs(mod, filter // [__info__: 1]) do
-    case :code.is_loaded(mod) do
-      {:file, _} ->
-        falist =
-          if function_exported?(mod, :__info__, 1) do
-            mod.__info__(:functions) ++ mod.__info__(:macros)
-          else
-            mod.module_info(:exports)
-          end
-
-        falist = falist -- filter
+  defp module_funs(mod, hint // '') do
+    case ensure_loaded(mod) do
+      { :module, _ } ->
+        falist = get_funs(mod)
 
         list = Enum.reduce falist, [], fn {f,a}, acc ->
           case :lists.keyfind(f, 1, acc) do
             {f,aa} -> :lists.keyreplace(f, 1, acc, {f, [a|aa]})
-            false -> [{f, [a]}|acc]
+            false  -> [{f, [a]}|acc]
           end
         end
 
-        lc {f, aa} inlist list do
-          Fun[name: atom_to_list(f), arities: aa]
+        lc {fun, arities} inlist list, name = atom_to_list(fun), is_prefix?(hint, name) do
+          Fun[name: name, arities: arities]
         end
-      _ -> []
+      _ ->
+        []
     end
   end
 
   ## Generic Helpers
 
-  defp map_atom_to_list(list) do
-    Enum.map list, atom_to_list &1
+  defp get_funs(mod) do
+    if function_exported?(mod, :__info__, 1) do
+      if docs = mod.__info__(:docs) do
+        lc { pair, _line, _kind, _sign, doc } inlist docs, doc != false, do: pair
+      else
+        (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)
+      end
+    else
+      mod.module_info(:exports)
+    end
   end
+
+  defp is_prefix?('', _),      do: true
+  defp is_prefix?(hint, name), do: :lists.prefix(hint, name)
 
   defp ensure_loaded(Elixir), do: { :error, :nofile }
   defp ensure_loaded(other),  do: Code.ensure_loaded(other)
