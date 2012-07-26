@@ -292,9 +292,8 @@ defmodule Macro do
   # Macros and pseudo-variables are then expanded.
   def expand({ :__aliases__, _, [h|t] }, env) do
     aliases = case h do
-      Elixir            -> t
-      x when is_atom(x) -> [expand_alias(x, env)|t]
-      _                 -> [h|t]
+      x when is_atom(x) and x != Elixir -> [expand_alias(x, env)|t]
+      _                                 -> [h|t]
     end
 
     aliases = lc alias inlist aliases, do: expand(alias, env)

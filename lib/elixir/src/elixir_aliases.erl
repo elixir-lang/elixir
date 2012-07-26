@@ -47,7 +47,10 @@ last([], Acc) -> Acc.
 concat(Args) -> list_to_atom(raw_concat(Args)).
 safe_concat(Args) -> list_to_existing_atom(raw_concat(Args)).
 
-raw_concat(Args) ->
+raw_concat(['Elixir'|Args]) -> do_concat(Args);
+raw_concat(Args)            -> do_concat(Args).
+
+do_concat(Args) ->
   Aliases = [to_partial(Arg) || Arg <- Args, Arg /= nil],
   "Elixir" ++ lists:concat(Aliases).
 

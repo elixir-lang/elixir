@@ -247,9 +247,7 @@ translate_each({ '__aliases__', Line, [H] }, S) when H /= 'Elixir'  ->
 
 translate_each({ '__aliases__', Line, [H|T] }, S) ->
   Aliases = if
-    H == 'Elixir' ->
-      T;
-    is_atom(H) ->
+    is_atom(H) andalso (H /= 'Elixir') ->
       Atom = list_to_atom("Elixir-" ++ atom_to_list(H)),
       [elixir_aliases:lookup(Atom, S#elixir_scope.aliases)|T];
     true ->
