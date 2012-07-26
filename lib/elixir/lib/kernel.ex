@@ -2081,18 +2081,20 @@ defmodule Kernel do
   defmacro cond([do: { :->, _, pairs }]) do
     [{ [condition], clause }|t] = List.reverse pairs
 
-    case condition do
-      { :_, _, atom } when is_atom(atom) ->
-        raise ArgumentError, message: <<"unbound variable _ inside cond. ",
-          "If you want the last clause to match, you probably meant to use true ->">>
-      _ -> :ok
-    end
-
-    new_acc = quote do
-      case !unquote(condition) do
-        false -> unquote(clause)
+    new_acc =
+      case condition do
+        { :_, _, atom } when is_atom(atom) ->
+          raise ArgumentError, message: <<"unbound variable _ inside cond. ",
+            "If you want the last clause to match, you probably meant to use true ->">>
+        x when is_atom(x) and not x in [false, nil] ->
+          clause
+        _ ->
+          quote do
+            case !unquote(condition) do
+              false -> unquote(clause)
+            end
+          end
       end
-    end
 
     build_cond_clauses(t, new_acc)
   end

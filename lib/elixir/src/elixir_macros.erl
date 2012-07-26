@@ -129,7 +129,13 @@ translate_macro({'case', Line, [Expr, KV]}, S) ->
   assert_no_assign_or_guard_scope(Line, 'case', S),
   Clauses = elixir_clauses:get_pairs(Line, do, KV, S),
   { TExpr, NS } = translate_each(Expr, S),
-  { TClauses, TS } = elixir_clauses:match(Line, Clauses, NS),
+
+  RClauses = case elixir_tree_helpers:returns_boolean(TExpr) of
+    true  -> rewrite_case_clauses(Clauses);
+    false -> Clauses
+  end,
+
+  { TClauses, TS } = elixir_clauses:match(Line, RClauses, NS),
   { { 'case', Line, TExpr, TClauses }, TS };
 
 %% Try
@@ -281,6 +287,12 @@ translate_in(Line, Left, Right, S) ->
     true  -> { Var, { block, Line, [ { match, Line, Var, TLeft }, Expr ] }, SV };
     false -> { Var, Expr, SV }
   end.
+
+rewrite_case_clauses([{do,[{in,_,[{'_',_,_},[false,nil]]}],False},{do,[{'_',_,_}],True}]) ->
+  [{do,[false],False},{do,[true],True}];
+
+rewrite_case_clauses(Clauses) ->
+  Clauses.
 
 module_ref(_Raw, Module, nil) ->
   Module;

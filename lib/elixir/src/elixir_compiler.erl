@@ -77,7 +77,7 @@ code_loading_compilation(Forms, Line, RawModule, Value, Vars, S) ->
 
   Args = [X || { _, _, X } <- Vars],
 
-  { module(ModuleForm, S, fun(Mod, _) ->
+  { module(ModuleForm, S#elixir_scope.file, [], true, fun(Mod, _) ->
     Res = Mod:'BOOTSTRAP'(Value, Args),
     code:purge(Module),
     code:delete(Module),
@@ -94,18 +94,18 @@ module(Forms, S, Callback) ->
     true -> [debug_info];
     _ -> []
   end,
-  module(Forms, S#elixir_scope.file, Options, Callback).
+  module(Forms, S#elixir_scope.file, Options, false, Callback).
 
-module(Forms, File, Options, Callback) when
-    is_binary(File), is_list(Forms), is_list(Options), is_function(Callback) ->
+module(Forms, File, Options, Bootstrap, Callback) when
+    is_binary(File), is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->
   Listname = binary_to_list(File),
   case compile:forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
     {ok, ModuleName, Binary, Warnings} ->
-      format_warnings(File, Warnings),
+      format_warnings(Bootstrap, File, Warnings),
       code:load_binary(ModuleName, Listname, Binary),
       Callback(ModuleName, Binary);
     {error, Errors, Warnings} ->
-      format_warnings(File, Warnings),
+      format_warnings(Bootstrap, File, Warnings),
       format_errors(File, Errors)
   end.
 
@@ -228,7 +228,7 @@ format_errors(File, Errors) ->
     lists:foreach(fun (Error) -> elixir_errors:handle_file_error(File, Error) end, Each)
   end, Errors).
 
-format_warnings(File, Warnings) ->
+format_warnings(Bootstrap, File, Warnings) ->
   lists:foreach(fun ({_, Each}) ->
-    lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(File, Warning) end, Each)
+    lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Bootstrap, File, Warning) end, Each)
   end, Warnings).

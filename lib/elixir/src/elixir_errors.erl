@@ -6,7 +6,7 @@
   assert_no_function_scope/3, assert_function_scope/3,
   assert_no_assign_scope/3, assert_no_guard_scope/3,
   assert_no_assign_or_guard_scope/3,
-  handle_file_warning/2, handle_file_error/2,
+  handle_file_warning/2, handle_file_warning/3, handle_file_error/2,
   deprecation/3, deprecation/4, file_format/3]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
@@ -77,20 +77,23 @@ deprecation(Line, File, Message, Args) ->
 
 %% Handle warnings and errors (called during module compilation)
 
-handle_file_warning(_File, {_Line,sys_core_fold,Ignore}) when
-  Ignore == nomatch_clause_type; Ignore == useless_building ->
-  [];
+%% Ignore on bootstrap
+handle_file_warning(true, _File, { _Line, sys_core_fold, nomatch_guard }) -> [];
+handle_file_warning(true, _File, { _Line, sys_core_fold, { nomatch_shadow, _ } }) -> [];
 
-handle_file_warning(_File, {_Line,v3_kernel,Ignore}) when
-  Ignore == bad_call ->
-  [];
+%% Ignore always
+handle_file_warning(_, _File, { _Line, sys_core_fold, useless_building }) -> [];
 
-handle_file_warning(File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
+%% This is an Erlang bug, it considers { tuple, _ }.call to always fail
+handle_file_warning(_, _File, { _Line, v3_kernel, bad_call }) -> [];
+
+%% Rewrite
+handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
   Raw = "undefined callback function ~s/~B (behaviour ~s)",
   Message = io_lib:format(Raw, [Fun,Arity,inspect(Module)]),
   io:format(file_format(Line, File, Message));
 
-handle_file_warning(File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
+handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
   Raw = io_lib:format("behaviour ~s undefined", [inspect(Module)]),
 
   Message = case erlang:function_exported(Module, behavior_info, 1) of
@@ -100,9 +103,13 @@ handle_file_warning(File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
 
   io:format(file_format(Line, File, Message));
 
-handle_file_warning(File, {Line,Module,Desc}) ->
+%% Default behavior
+handle_file_warning(_, File, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
   io:format(file_format(Line, File, Message)).
+
+handle_file_warning(File, Desc) ->
+  handle_file_warning(false, File, Desc).
 
 handle_file_error(File, {Line,Module,Desc}) ->
   form_error(Line, File, Module, Desc).
