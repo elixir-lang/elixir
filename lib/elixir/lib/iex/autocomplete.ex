@@ -223,7 +223,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp module_funs(mod, hint // '') do
-    case Code.ensure_loaded(mod) do
+    case ensure_loaded(mod) do
       { :module, _ } ->
         falist = get_funs(mod)
 
@@ -258,4 +258,7 @@ defmodule IEx.Autocomplete do
 
   defp is_prefix?('', _),      do: true
   defp is_prefix?(hint, name), do: :lists.prefix(hint, name)
+
+  defp ensure_loaded(Elixir), do: { :error, :nofile }
+  defp ensure_loaded(mod),    do: Code.ensure_loaded(mod)
 end

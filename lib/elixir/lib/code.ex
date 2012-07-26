@@ -249,10 +249,6 @@ defmodule Code do
   must be used just in same rare conditions, usually involving macros
   that needs to invoke a module for callback information.
   """
-  def ensure_loaded(Elixir) do
-    { :error, :nofile }
-  end
-
   def ensure_loaded(module) when is_atom(module) do
     Erlang.code.ensure_loaded(module)
   end
@@ -271,7 +267,7 @@ defmodule Code do
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
   def ensure_compiled(module) when is_atom(module) do
-    case ensure_loaded(module) do
+    case Erlang.code.ensure_loaded(module) do
       { :error, :nofile } = error ->
         case :erlang.get(:elixir_compiler_pid) do
           :undefined -> error
