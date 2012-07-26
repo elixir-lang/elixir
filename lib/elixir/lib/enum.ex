@@ -770,9 +770,10 @@ defmodule Enum do
   ## all?
 
   defp do_all?([h|t], fun) do
-    case fun.(h) do
-      x in [false, nil] -> false
-      _ -> do_all?(t, fun)
+    if fun.(h) do
+      do_all?(t, fun)
+    else
+      false
     end
   end
 
@@ -781,9 +782,10 @@ defmodule Enum do
   end
 
   defp do_all?({ h, next }, iterator, fun) do
-    case fun.(h) do
-      x in [false, nil] -> false
-      _ -> do_all?(iterator.(next), iterator, fun)
+    if fun.(h) do
+      do_all?(iterator.(next), iterator, fun)
+    else
+      false
     end
   end
 
@@ -794,9 +796,10 @@ defmodule Enum do
   ## any?
 
   defp do_any?([h|t], fun) do
-    case fun.(h) do
-      x in [false, nil] -> do_any?(t, fun)
-      _ -> true
+    if fun.(h) do
+      true
+    else
+      do_any?(t, fun)
     end
   end
 
@@ -805,9 +808,10 @@ defmodule Enum do
   end
 
   defp do_any?({ h, next }, iterator, fun) do
-    case fun.(h) do
-      x in [false, nil] -> do_any?(iterator.(next), iterator, fun)
-      _ -> true
+    if fun.(h) do
+      true
+    else
+      do_any?(iterator.(next), iterator, fun)
     end
   end
 
@@ -818,9 +822,10 @@ defmodule Enum do
   ## drop_while
 
   defp do_drop_while([h|t], fun) do
-    case fun.(h) do
-      x in [false, nil] -> [h|t]
-      _ -> do_drop_while(t, fun)
+    if fun.(h) do
+      do_drop_while(t, fun)
+    else
+      [h|t]
     end
   end
 
@@ -829,9 +834,10 @@ defmodule Enum do
   end
 
   defp do_drop_while({ h, next } = extra, iterator, fun, module) do
-    case fun.(h) do
-      x in [false, nil] -> module.to_list(extra, iterator)
-      _ -> do_drop_while(iterator.(next), iterator, fun, module)
+    if fun.(h) do
+      do_drop_while(iterator.(next), iterator, fun, module)
+    else
+      module.to_list(extra, iterator)
     end
   end
 
@@ -842,9 +848,10 @@ defmodule Enum do
   ## find
 
   defp do_find([h|t], ifnone, fun) do
-    case fun.(h) do
-      x in [false, nil] -> do_find(t, ifnone, fun)
-      _ -> h
+    if fun.(h) do
+      h
+    else
+      do_find(t, ifnone, fun)
     end
   end
 
@@ -853,9 +860,10 @@ defmodule Enum do
   end
 
   defp do_find({ h, next }, iterator, ifnone, fun) do
-    case fun.(h) do
-      x in [false, nil] -> do_find(iterator.(next), iterator, ifnone, fun)
-      _ -> h
+    if fun.(h) do
+      h
+    else
+      do_find(iterator.(next), iterator, ifnone, fun)
     end
   end
 
@@ -866,10 +874,7 @@ defmodule Enum do
   ## find_value
 
   defp do_find_value([h|t], ifnone, fun) do
-    case fun.(h) do
-      x in [false, nil] -> do_find_value(t, ifnone, fun)
-      other -> other
-    end
+    fun.(h) || do_find_value(t, ifnone, fun)
   end
 
   defp do_find_value([], ifnone, _) do
@@ -877,10 +882,7 @@ defmodule Enum do
   end
 
   defp do_find_value({ h, next }, iterator, ifnone, fun) do
-    case fun.(h) do
-      x in [false, nil] -> do_find_value(iterator.(next), iterator, ifnone, fun)
-      other -> other
-    end
+    fun.(h) || do_find_value(iterator.(next), iterator, ifnone, fun)
   end
 
   defp do_find_value(:stop, _, ifnone, _) do
@@ -890,9 +892,10 @@ defmodule Enum do
   ## find_index
 
   defp do_find_index([h|t], counter, fun) do
-    case fun.(h) do
-      x in [false, nil] -> do_find_index(t, counter + 1, fun)
-      _ -> counter
+    if fun.(h) do
+      counter
+    else
+      do_find_index(t, counter + 1, fun)
     end
   end
 
@@ -901,9 +904,10 @@ defmodule Enum do
   end
 
   defp do_find_index({ h, next }, iterator, counter, fun) do
-    case fun.(h) do
-      x in [false, nil] -> do_find_index(iterator.(next), iterator, counter + 1, fun)
-      _ -> counter
+    if fun.(h) do
+      counter
+    else
+      do_find_index(iterator.(next), iterator, counter + 1, fun)
     end
   end
 
@@ -925,11 +929,10 @@ defmodule Enum do
   ## filter
 
   defp do_filter({ h, next }, iterator, fun) do
-    case fun.(h) do
-      x in [false, nil] ->
-        do_filter(iterator.(next), iterator, fun)
-      _ ->
-        [h|do_filter(iterator.(next), iterator, fun)]
+    if fun.(h) do
+      [h|do_filter(iterator.(next), iterator, fun)]
+    else
+      do_filter(iterator.(next), iterator, fun)
     end
   end
 
@@ -940,11 +943,10 @@ defmodule Enum do
   ## filter_map
 
   defp do_filter_map({ h, next }, iterator, filter, mapper) do
-    case filter.(h) do
-      x in [false, nil] ->
-        do_filter_map(iterator.(next), iterator, filter, mapper)
-      _ ->
-        [mapper.(h)|do_filter_map(iterator.(next), iterator, filter, mapper)]
+    if filter.(h) do
+      [mapper.(h)|do_filter_map(iterator.(next), iterator, filter, mapper)]
+    else
+      do_filter_map(iterator.(next), iterator, filter, mapper)
     end
   end
 
@@ -975,9 +977,10 @@ defmodule Enum do
   ## split_with
 
   defp do_split_with([h|t], fun, acc) do
-    case fun.(h) do
-      x in [false, nil] -> { List.reverse(acc), [h|t] }
-      _ -> do_split_with(t, fun, [h|acc])
+    if fun.(h) do
+      do_split_with(t, fun, [h|acc])
+    else
+      { List.reverse(acc), [h|t] }
     end
   end
 
@@ -986,11 +989,10 @@ defmodule Enum do
   end
 
   defp do_split_with({ h, next } = extra, iterator, fun, acc, module) do
-    case fun.(h) do
-      x in [false, nil] ->
-        { List.reverse(acc), module.to_list(extra, iterator) }
-      _ ->
-        do_split_with(iterator.(next), iterator, fun, [h|acc], module)
+    if fun.(h) do
+      do_split_with(iterator.(next), iterator, fun, [h|acc], module)
+    else
+      { List.reverse(acc), module.to_list(extra, iterator) }
     end
   end
 
@@ -1078,9 +1080,10 @@ defmodule Enum do
   ## partition
 
   defp do_partition([h|t], fun, acc1, acc2) do
-    case fun.(h) do
-      x in [false, nil] -> do_partition(t, fun, acc1, [h|acc2])
-      _ -> do_partition(t, fun, [h|acc1], acc2)
+    if fun.(h) do
+      do_partition(t, fun, [h|acc1], acc2)
+    else
+      do_partition(t, fun, acc1, [h|acc2])
     end
   end
 
@@ -1089,11 +1092,10 @@ defmodule Enum do
   end
 
   defp do_partition({ h, next }, iterator, fun, acc1, acc2) do
-    case fun.(h) do
-      x in [false, nil] ->
-        do_partition(iterator.(next), iterator, fun, acc1, [h|acc2])
-      _ ->
-        do_partition(iterator.(next), iterator, fun, [h|acc1], acc2)
+    if fun.(h) do
+      do_partition(iterator.(next), iterator, fun, [h|acc1], acc2)
+    else
+      do_partition(iterator.(next), iterator, fun, acc1, [h|acc2])
     end
   end
 
@@ -1180,9 +1182,10 @@ defmodule Enum do
   ## take_while
 
   defp do_take_while([h|t], fun) do
-    case fun.(h) do
-      x in [false, nil] -> []
-      _ -> [h|do_take_while(t, fun)]
+    if fun.(h) do
+      [h|do_take_while(t, fun)]
+    else
+      []
     end
   end
 
@@ -1191,9 +1194,10 @@ defmodule Enum do
   end
 
   defp do_take_while({ h, next }, iterator, fun) do
-    case fun.(h) do
-      x in [false, nil] -> []
-      _ -> [h|do_take_while(iterator.(next), iterator, fun)]
+    if fun.(h) do
+      [h|do_take_while(iterator.(next), iterator, fun)]
+    else
+      []
     end
   end
 
