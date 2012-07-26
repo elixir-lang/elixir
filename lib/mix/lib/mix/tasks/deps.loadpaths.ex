@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Loadpaths do
   use Mix.Task
 
-  import Mix.Tasks.Deps, only: [all: 1, deps_path: 1]
+  import Mix.Deps, only: [all: 1, deps_path: 1]
 
   @hidden true
   @shortdoc "Load all dependencies paths"

@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Deps.Clean do
   be given to clean specific ones.
   """
 
-  import Mix.Tasks.Deps, only: [all: 0, by_name: 1, format_dep: 1, deps_path: 1]
+  import Mix.Deps, only: [all: 0, by_name: 1, format_dep: 1, deps_path: 1]
 
   def run([]) do
     do_clean all

@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Deps.Get do
   Get all unavailable dependencies.
   """
 
-  import Mix.Tasks.Deps, only: [all: 1, format_dep: 1, update_status: 1,deps_path: 1, deps_path: 0]
+  import Mix.Deps, only: [all: 1, format_dep: 1, update_status: 1,deps_path: 1, deps_path: 0]
 
   def run(_) do
     shell = Mix.shell
