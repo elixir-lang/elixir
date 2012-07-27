@@ -196,24 +196,49 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Reloads all modules that were already reloaded
+  at some point with `r/1`.
+  """
+  def r do
+    Enum.map iex_reloaded, r(&1)
+  end
+
+  @doc """
   Recompiles and reloads the specified module's source file.
-  If no module is specified, all previously reloaded files are
-  recompiled and reloaded again.
+
   Please note that all the modules defined in the specified
   files are recompiled and reloaded.
   """
-  def r do
-    lc f inlist Code.loaded_files, do: Code.load_file f
+  def r(module) do
+    if source = source(module) do
+      Process.put(:iex_reloaded, :ordsets.add_element(module, iex_reloaded))
+      { module, Code.load_file source }
+    else
+      :nosource
+    end
   end
-  def r(m) when is_atom(m) do
-    case m.module_info(:compile)[:options] do
-      nil -> {:error, :nosource}
-      list ->
-        case list[:source] do
-          nil -> {:error, :nosource}
-          src ->
-            Code.load_file to_binary(src)
-        end
+
+  defp iex_reloaded do
+    Process.get(:iex_reloaded) || :ordsets.new
+  end
+
+  defp source(module) do
+    compile = module.module_info(:compile)
+
+    # Get the source of the compiled module. Due to a bug in Erlang
+    # R15 and before, we need to look for the source first in the
+    # options and then into the real source.
+    options =
+      case List.keyfind(compile, :options, 1) do
+        { :options, opts } -> opts
+        _ -> []
+      end
+
+    source = List.keyfind(options, :source, 1)  || List.keyfind(compile, :source, 1)
+
+    case source do
+      { :source, source } -> list_to_binary(source)
+      _ -> nil
     end
   end
 end
