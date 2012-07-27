@@ -6,6 +6,7 @@ defmodule IEx.Helpers do
   * `d` - prints documentation
   * `h` - prints history
   * `m` - prints loaded modules
+  * `r` - recompiles and reloads the given module
   * `v` - retrieves nth value from console
 
   Documentation for functions in this module can be consulted
@@ -192,5 +193,25 @@ defmodule IEx.Helpers do
   def v(n) do
     history = Process.get(:iex_history) /> List.reverse
     Enum.nth!(history, n).result
+  end
+
+  @doc """
+  Recompiles and reloads the specified module.
+  If no module is specified, all previously
+  reloaded modules are reloaded again.
+  """
+  def r do
+    lc f inlist Code.loaded_files, do: Code.load_file f
+  end
+  def r(m) when is_atom(m) do
+    case m.module_info(:compile)[:options] do
+      nil -> {:error, :nosource}
+      list ->
+        case list[:source] do
+          nil -> {:error, :nosource}
+          src ->
+            Code.load_file to_binary(src)
+        end
+    end
   end
 end
