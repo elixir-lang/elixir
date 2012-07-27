@@ -61,6 +61,8 @@ defmodule IEx.Autocomplete do
         expand_erlang_modules
       {:ok, {:__aliases__,_,list}} ->
         expand_elixir_modules list
+      {:ok, {{:.,_,[{:__aliases__,_,[:Erlang]},mod]},_,[]}} when is_atom(mod) ->
+        expand_module_funs mod
       _ ->
         no_match
     end
