@@ -2,14 +2,17 @@ defmodule IEx.Helpers do
   @moduledoc """
   A bunch of helpers available in IEx.
 
-  Documentation for functions in this module can be
-  consulted directly from the command line, type
+  * `c` - compiles a file in the given path
+  * `d` - prints documentation
+  * `h` - prints history
+  * `m` - prints loaded modules
+  * `v` - retrieves nth value from console
 
-    d(:d, 1)
+  Documentation for functions in this module can be consulted
+  directly from the command line, as an example, try:
 
-  To check the documentation of the function `d`
-  with arity 1, which is the function responsible
-  to show docs.
+    d(:c, 1)
+
   """
 
   @doc """
@@ -32,17 +35,14 @@ defmodule IEx.Helpers do
   Returns the name and module of all modules loaded.
   """
   def m do
-    lc {mod, file} inlist List.sort(:code.all_loaded) do
-      :io.format("~-20s ~s~n",[inspect(mod), file])
-    end
-    :ok
-  end
+    all    = Enum.map :code.all_loaded, fn { mod, file } -> { inspect(mod), file } end
+    sorted = List.sort(all)
+    size   = Enum.reduce sorted, 0, fn({ mod, _ }, acc) -> max(byte_size(mod), acc) end
+    format = "~-#{size}s ~s~n"
 
-  @doc """
-  Prints the module information for the given module.
-  """
-  def m(mod) do
-    IO.inspect mod.module_info
+    Enum.each sorted, fn({ mod, file }) ->
+      :io.format(format, [mod, file])
+    end
   end
 
   @doc """
@@ -65,8 +65,8 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Shows the documentation for the given module.
-  Defaults to print documentation for `IEx.Helpers`.
+  Shows the documentation for the given module
+  or for the given function/arity pair.
 
   ## Examples
 
