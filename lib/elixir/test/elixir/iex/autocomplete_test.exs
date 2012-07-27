@@ -23,6 +23,11 @@ defmodule IEx.AutocompleteTest do
     assert expand('Erlang.lists.flatt') == {:yes, 'en', []}
   end
 
+  test :erlang_alias_function_list_completion do
+    {:yes, '', list} = expand('Erlang.lists.')
+    assert is_list(list)
+  end
+
   test :erlang_module_common_prefix_completion do
     assert expand(':us') == {:yes, 'er', []}
   end
