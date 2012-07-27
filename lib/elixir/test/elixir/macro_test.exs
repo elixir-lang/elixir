@@ -156,6 +156,18 @@ defmodule MacroTest do
     """
   end
 
+  test :fn_to_binary do
+    assert Macro.to_binary(quote do: (fn(x) -> x + 1 end)) <> "\n" == """
+    fn x ->
+      x + 1
+    end
+    """
+  end
+
+  test :partial_to_binary do
+    assert Macro.to_binary(quote do: identity(&1)) == "identity(&1)"
+  end
+
   test :nested_to_binary do
     assert Macro.to_binary(quote do: (defmodule Foo do def foo do 1 + 1 end end)) <> "\n" == """
     defmodule(Foo) do

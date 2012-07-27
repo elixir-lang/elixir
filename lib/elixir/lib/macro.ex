@@ -102,6 +102,16 @@ defmodule Macro do
     "[" <> Enum.map_join(args, ", ", to_binary(&1)) <> "]"
   end
 
+  # Fn keyword
+  def to_binary({ :fn, _, [[do: block]] }) do
+    "fn " <> block_to_binary(block) <> "\nend"
+  end
+
+  # Partial call
+  def to_binary({ :&, _, [num] }) do
+    "&#{num}"
+  end
+
   # Binary ops
   def to_binary({ op, _, [left, right] }) when op in binary_ops do
     op_to_binary(left) <> " #{op} " <> op_to_binary(right)
