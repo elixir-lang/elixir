@@ -6,7 +6,7 @@ defmodule IEx.Helpers do
   * `d` - prints documentation
   * `h` - prints history
   * `m` - prints loaded modules
-  * `r` - recompiles and reloads the given module
+  * `r` - recompiles and reloads the given module's source file
   * `v` - retrieves nth value from console
 
   Documentation for functions in this module can be consulted
@@ -196,9 +196,11 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Recompiles and reloads the specified module.
-  If no module is specified, all previously
-  reloaded modules are reloaded again.
+  Recompiles and reloads the specified module's source file.
+  If no module is specified, all previously reloaded files are
+  recompiled and reloaded again.
+  Please note that all the modules defined in the specified
+  files are recompiled and reloaded.
   """
   def r do
     lc f inlist Code.loaded_files, do: Code.load_file f
