@@ -186,6 +186,32 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
+  test "checks out specific revision and updates it" do
+    Mix.Project.push GetApp
+
+    # Get git repo first revision
+    [last,first|_] = get_git_repo_revs
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Deps.Lock.write [git_repo: first]
+
+      Mix.Tasks.Deps.Get.run []
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      refute File.exists?("deps/git_repo/lib/git_repo.ex")
+      assert File.read!("mix.lock") =~ %r(#{first})
+
+      Mix.Tasks.Deps.Update.run []
+      message = "* Updating git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert File.exists?("deps/git_repo/lib/git_repo.ex")
+      assert File.read!("mix.lock") =~ %r(#{last})
+    end
+  after
+    purge [GitRepo, GitRepo.Mix]
+    Mix.Project.pop
+  end
+
   test "does not attempt to compile projects that could not be retrieved" do
     Mix.Project.push GetErrorApp
 
@@ -197,5 +223,11 @@ defmodule Mix.Tasks.DepsTest do
     end
   after
     Mix.Project.pop
+  end
+
+  defp get_git_repo_revs do
+    File.cd! fixture_path("git_repo"), fn ->
+      Regex.split %r(\n), System.cmd("git log --format=%H")
+    end
   end
 end

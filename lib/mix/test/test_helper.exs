@@ -19,6 +19,12 @@ unless File.dir?(target) do
   end
   """
 
+  File.cd! target, fn ->
+    System.cmd("git init")
+    System.cmd("git add .")
+    System.cmd("git commit -m \"ok\"")
+  end
+
   File.write!(File.join(target, "lib/git_repo.ex"), """)
   defmodule GitRepo do
     def hello do
@@ -28,9 +34,8 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git init")
     System.cmd("git add .")
-    System.cmd("git commit -m \"ok\"")
+    System.cmd("git commit -m \"lib\"")
   end
 end
 

@@ -2634,7 +2634,7 @@ defmodule Kernel do
       %C(f\#{o}o)  #=> 'f\\\#{o}o'
 
   """
-  defmacro __C__({ :<<>>, _line, [string] }, []) do
+  defmacro __C__({ :<<>>, _line, [string] }, []) when is_binary(string) do
     binary_to_list(string)
   end
 
@@ -2651,7 +2651,7 @@ defmodule Kernel do
 
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
-  defmacro __c__({ :<<>>, _line, [string] }, []) do
+  defmacro __c__({ :<<>>, _line, [string] }, []) when is_binary(string) do
     binary_to_list(Binary.unescape(string))
   end
 
@@ -2669,7 +2669,7 @@ defmodule Kernel do
 
   """
 
-  defmacro __r__({ :<<>>, _line, [string] }, options) do
+  defmacro __r__({ :<<>>, _line, [string] }, options) when is_binary(string) do
     binary = Binary.unescape(string, Regex.unescape_map(&1))
     regex  = Regex.compile!(binary, options)
     Macro.escape(regex)
@@ -2689,7 +2689,7 @@ defmodule Kernel do
       Regex.match? %R(f\#{1,3}o), "f\#o"  #=> true
 
   """
-  defmacro __R__({ :<<>>, _line, [string] }, options) do
+  defmacro __R__({ :<<>>, _line, [string] }, options) when is_binary(string) do
     regex = Regex.compile!(string, options)
     Macro.escape(regex)
   end

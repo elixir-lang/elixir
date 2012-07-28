@@ -13,28 +13,37 @@ defmodule Mix.SCM.Git do
     location = opts[:git]
     maybe_error System.cmd("git clone --quiet --no-checkout #{location} #{path}")
 
-    if File.dir?(path) do
-      update(path, opts, false)
+    if available?(path) do
+      File.cd! path, fn -> checkout(opts) end
     end
   end
 
-  def update(path, opts, fetch // true) do
+  def update(path, opts) do
     File.cd! path, fn ->
-      if fetch do
-        maybe_error System.cmd("git fetch --force --quiet --tags")
+      command = "git fetch --force --quiet"
+      if opts[:tag] do
+        command = command <> " --tags"
       end
-
-      if available?(".") do
-        ref = opts[:ref] || "master"
-        maybe_error System.cmd("git reset --hard --quiet #{ref}")
-
-        if opts[:submodules] do
-          maybe_error System.cmd("git submodule update --init --recursive")
-        end
-
-        check_rev System.cmd('git rev-parse --verify --quiet #{ref}')
-      end
+      maybe_error System.cmd(command)
+      checkout(opts)
     end
+  end
+
+  defp checkout(opts) do
+    ref =
+      if branch = opts[:branch] do
+        "origin/#{branch}"
+      else
+        opts[:lock] || opts[:ref] || opts[:tag] || "origin/master"
+      end
+
+    maybe_error System.cmd("git checkout --quiet #{ref}")
+
+    if opts[:submodules] do
+      maybe_error System.cmd("git submodule update --init --recursive")
+    end
+
+    check_rev System.cmd('git rev-parse --verify --quiet HEAD')
   end
 
   defp check_rev([]),   do: nil
