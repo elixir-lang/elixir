@@ -11,7 +11,7 @@ defmodule Mix.Tasks.DepsTest do
           { :invalidvsn, "0.2.0", git: "https://github.com/elixir-lang/invalidvsn.git" },
           { :invalidapp, "0.1.0", git: "https://github.com/elixir-lang/invalidapp.git" },
           { :noappfile, "0.1.0",  git: "https://github.com/elixir-lang/noappfile.git" },
-          { :uncloned, "0.1.0",   git: "https://github.com/elixir-lang/uncloned.git" }
+          { :uncloned,            git: "https://github.com/elixir-lang/uncloned.git" }
         ]
       ]
     end
@@ -164,6 +164,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
       assert File.exists?("deps/git_repo/ebin/Elixir-GitRepo.beam")
+      assert File.read!("mix.lock") =~ %r("git_repo": "[a-f0-9]+")
 
       purge [GitRepo, GitRepo.Mix]
       File.touch!("deps/git_repo/ebin", { { 2010, 4, 17 }, { 14, 0, 0 } })

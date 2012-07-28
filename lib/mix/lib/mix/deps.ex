@@ -107,8 +107,12 @@ defmodule Mix.Deps do
 
   ## Helpers
 
+  defp with_scm_and_status({ app, opts }) when is_atom(app) and is_list(opts) do
+    with_scm_and_status({ app, nil, opts })
+  end
+
   defp with_scm_and_status({ app, req, opts }) when is_atom(app) and
-      (is_binary(req) or is_regex(req)) and is_list(opts) do
+      (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
     scm = Enum.find Mix.SCM.available, opts[&1]
 
     if scm do
@@ -160,11 +164,7 @@ defmodule Mix.Deps do
     end
   end
 
-  defp vsn_match?(expected, actual) when is_binary(expected) do
-    expected == actual
-  end
-
-  defp vsn_match?(expected, actual) when is_regex(expected) do
-    actual =~ expected
-  end
+  defp vsn_match?(nil, _actual), do: true
+  defp vsn_match?(expected, actual) when is_binary(expected), do: actual == expected
+  defp vsn_match?(expected, actual) when is_regex(expected),  do: actual =~ expected
 end

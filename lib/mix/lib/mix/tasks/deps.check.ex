@@ -14,10 +14,12 @@ defmodule Mix.Tasks.Deps.Check do
   of mix public API and can be depended on.
   """
   def run(_) do
-    case Enum.partition all, match?(Mix.Dep[status: { :ok, _ }], &1) do
+    lock = Mix.Deps.Lock.read
+
+    case Enum.partition all, check?(&1, lock) do
       { _, [] }     -> :ok
       { _, not_ok } ->
-        if Enum.all? not_ok, match?(Mix.Dep[status: { :unavailable, _ }], &1) do
+        if Enum.all? not_ok, unavailable?(&1) do
           raise Mix.NotMetDepsError, message:
             "Dependencies are not available, run `mix deps.get` before proceeding"
         else
@@ -25,6 +27,11 @@ defmodule Mix.Tasks.Deps.Check do
 
           Enum.each not_ok, fn(dep) ->
             shell.error "* #{format_dep(dep)}"
+            if rev = lock[dep.app] do
+              shell.error "  locked at #{rev}"
+            else
+              shell.error "  error: not locked"
+            end
             shell.error "  #{format_status dep.status}"
           end
 
@@ -32,4 +39,10 @@ defmodule Mix.Tasks.Deps.Check do
         end
     end
   end
+
+  defp unavailable?(Mix.Dep[status: { :unavailable, _ }]), do: true
+  defp unavailable?(_dep), do: false
+
+  defp check?(Mix.Dep[app: app, status: { :ok, _ }], lock), do: lock[app]
+  defp check?(_dep, _lock), do: false
 end

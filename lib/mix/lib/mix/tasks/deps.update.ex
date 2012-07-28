@@ -24,12 +24,11 @@ defmodule Mix.Tasks.Deps.Update do
   defp do_update(deps) do
     shell = Mix.shell
 
-    apps = Enum.map deps, fn(dep) ->
+    apps = Mix.Deps.Lock.update_lock deps, fn(dep, _lock) ->
       Mix.Dep[scm: scm, app: app, status: status, opts: opts] = dep
       check_unavailable!(app, status)
       shell.info "* Updating #{format_dep(dep)}"
       scm.update(deps_path(app), opts)
-      app
     end
 
     Mix.Task.run "deps.compile", apps

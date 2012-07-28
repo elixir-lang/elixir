@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Clean do
   use Mix.Task
 
-  @shortdoc "Clean dependencies"
+  @shortdoc "Remove dependencies files"
 
   @moduledoc """
   Clean dependencies.
