@@ -196,16 +196,19 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Deps.Lock.write [git_repo: first]
 
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
-      assert_received { :mix_shell, :info, [^message] }
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ %r(#{first})
 
       Mix.Tasks.Deps.Update.run []
-      message = "* Updating git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
-      assert_received { :mix_shell, :info, [^message] }
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ %r(#{last})
+
+      Mix.Tasks.Deps.Clean.run []
+      refute File.exists?("deps/git_repo/ebin/Elixir-Git-Repo.beam")
+      assert File.read!("mix.lock") =~ %r(#{last})
+
+      Mix.Tasks.Deps.Clean.run ["--unlock"]
+      refute File.read!("mix.lock") =~ %r(#{last})
     end
   after
     purge [GitRepo, GitRepo.Mix]
@@ -220,6 +223,19 @@ defmodule Mix.Tasks.DepsTest do
       message = "* Getting git_repo [git: #{inspect fixture_path("not_git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :error, _ }
+    end
+  after
+    Mix.Project.pop
+  end
+
+  test "unlocks deps" do
+    Mix.Project.push GetApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Deps.Lock.write [git_repo: "abcdef"]
+      assert Mix.Deps.Lock.read == [git_repo: "abcdef"]
+      Mix.Tasks.Deps.Unlock.run []
+      assert Mix.Deps.Lock.read == []
     end
   after
     Mix.Project.pop
