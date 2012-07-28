@@ -68,8 +68,7 @@ $(FULLFLAG): $(wildcard lib/*/ebin/*)
 
 zip: $(FULLFLAG)
 	rm -rf v$(VERSION).zip
-	zip -r v$(VERSION).zip lib/*/ebin `git ls-files`
-	zip v$(VERSION).zip -d .gitignore .travis.yml
+	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel
 
 docs: $(FULLFLAG)
 	mkdir -p ebin
