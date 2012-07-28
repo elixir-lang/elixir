@@ -146,8 +146,32 @@ defmodule KernelTest do
       refute x([])
     end
 
-    def x(value) when value in [1,2,3], do: true
-    def x(_),                           do: false
+    defp x(value) when value in [1,2,3], do: true
+    defp x(_),                           do: false
+  end
+
+  defmodule Bang do
+    use ExUnit.Case
+
+    test :bang do
+      assert bang(1)     == :truthy
+      assert bang(true)  == :truthy
+      assert bang(nil)   == :falsy
+      assert bang(false) == :falsy
+    end
+
+    test :bangbang do
+      assert bangbang(1)     == :truthy
+      assert bangbang(true)  == :truthy
+      assert bangbang(nil)   == :falsy
+      assert bangbang(false) == :falsy
+    end
+
+    defp bangbang(value) when !!value, do: :truthy
+    defp bangbang(_), do: :falsy
+
+    defp bang(value) when !value, do: :falsy
+    defp bang(_), do: :truthy
   end
 
   defmodule Destructure do

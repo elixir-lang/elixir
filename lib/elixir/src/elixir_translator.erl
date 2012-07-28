@@ -686,4 +686,4 @@ translate_comprehension_clause(X, S) ->
     { _, L, _ } -> L;
     _ -> 0
   end,
-  { elixir_tree_helpers:convert_to_boolean(Line, TX, true), TS }.
+  { elixir_tree_helpers:convert_to_boolean(Line, TX, true, false), TS }.

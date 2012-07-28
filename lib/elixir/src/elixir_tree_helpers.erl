@@ -4,7 +4,7 @@
 
 -module(elixir_tree_helpers).
 -export([abstract_syntax/1, split_last/1, cons_to_list/1,
-  convert_to_boolean/3, returns_boolean/1,
+  convert_to_boolean/4, returns_boolean/1,
   build_bitstr/4, build_list/4, build_list/5, build_simple_list/2,
   build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
@@ -141,32 +141,45 @@ returns_boolean({ op, _, Op, _, _ }) when
 returns_boolean({ op, _, Op, _, Right }) when Op == 'andalso'; Op == 'orelse' ->
   returns_boolean(Right);
 
-returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } }, [_] }) when 
+returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } }, [_] }) when
   Fun == is_atom;   Fun == is_binary;   Fun == is_bitstring; Fun == is_boolean;
   Fun == is_float;  Fun == is_function; Fun == is_integer;   Fun == is_list;
   Fun == is_number; Fun == is_pid;      Fun == is_port;      Fun == is_reference;
   Fun == is_tuple -> true;
 
-returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } }, [_,_] }) when 
+returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } }, [_,_] }) when
   Fun == is_function -> true;
 
 returns_boolean(_) -> false.
 
-convert_to_boolean(Line, Expr, Bool) ->
+convert_to_boolean(Line, Expr, Bool, InGuard) ->
   case { returns_boolean(Expr), Bool } of
     { true, true }  -> Expr;
     { true, false } -> { op, Line, 'not', Expr };
-    _ ->
-      Any   = [{var, Line, '_'}],
-      False = [{atom,Line,false}],
-      Nil   = [{atom,Line,nil}],
-
-      FalseResult = [{atom,Line,not Bool}],
-      TrueResult  = [{atom,Line,Bool}],
-
-      { 'case', Line, Expr, [
-        { clause, Line, False, [], FalseResult },
-        { clause, Line, Nil, [], FalseResult },
-        { clause, Line, Any, [], TrueResult }
-      ] }
+    _               -> do_convert_to_boolean(Line, Expr, Bool, InGuard)
   end.
+
+do_convert_to_boolean(Line, Expr, Bool, false) ->
+  Any   = [{var, Line, '_'}],
+  False = [{atom,Line,false}],
+  Nil   = [{atom,Line,nil}],
+
+  FalseResult = [{atom,Line,not Bool}],
+  TrueResult  = [{atom,Line,Bool}],
+
+  { 'case', Line, Expr, [
+    { clause, Line, False, [], FalseResult },
+    { clause, Line, Nil, [], FalseResult },
+    { clause, Line, Any, [], TrueResult }
+  ] };
+
+do_convert_to_boolean(Line, Expr, true, true) ->
+  do_guarded_convert_to_boolean(Line, Expr, 'andalso', '/=');
+
+do_convert_to_boolean(Line, Expr, false, true) ->
+  do_guarded_convert_to_boolean(Line, Expr, 'orelse', '==').
+
+do_guarded_convert_to_boolean(Line, Expr, Op, Comp) ->
+  Left  = { op, Line, Comp, Expr, { atom, Line, false } },
+  Right = { op, Line, Comp, Expr, { atom, Line, nil } },
+  { op, Line, Op, Left, Right }.

@@ -18,6 +18,7 @@
   * [ExUnit] Some assertions were deprecated in favor of simply using `assert()`; 
 
 * enhancements
+  * [Kernel] Operator `!` is now allowed in guard clauses;
   * [IEx] IEx now provides autocomplete if the OS supports tty;
   * [Mix] First Mix public release;
   * [Regex] Back references are now properly supported;
