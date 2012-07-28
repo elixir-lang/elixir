@@ -20,7 +20,9 @@ defmodule IEx do
   If so, invoke tty, otherwise go with the simple iex.
   """
   def start(binding // [], io // IEx.UnicodeIO) do
-    if System.find_executable("tty") do
+    type = elem(:os.type, 1)
+
+    if type == :unix && System.find_executable("tty") do
       tty(binding, io)
     else
       simple(binding, io)
