@@ -70,7 +70,7 @@ defmodule Mix.Tasks.Deps.Compile do
       File.cd! deps_path, fn ->
         cond do
           opts[:compile] -> do_command(opts[:compile], app)
-          mix?           -> Mix.Project.in_subproject fn -> Mix.Task.run "compile" end
+          mix?           -> Mix.Project.in_subproject fn -> Mix.Task.run "compile", ["--no-check"] end
           rebar?         -> shell.info  System.cmd("rebar compile")
           make?          -> shell.info  System.cmd("make")
           true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>

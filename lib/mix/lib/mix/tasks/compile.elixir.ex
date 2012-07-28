@@ -46,7 +46,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   """
   def run(args) do
-    destructure [force], args
+    { opts, _ } = OptionParser.parse(args, flags: [:force])
 
     project       = Mix.project
     compile_path  = project[:compile_path]  || "ebin"
@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     source_paths  = project[:source_paths]  || ["lib"]
     to_compile    = extract_files(source_paths)
 
-    if force == "--force" or Mix.Utils.stale?(to_compile, [compile_path]) do
+    if opts[:force] or Mix.Utils.stale?(to_compile, [compile_path]) do
       File.mkdir_p!(compile_path)
 
       if elixir_opts = project[:elixirc_options] do

@@ -20,7 +20,8 @@ defmodule Mix.Tasks.Compile do
 
   ## Command line options
 
-  * `--list` - List all enabled compilers.
+  * `--list`     - List all enabled compilers.
+  * `--no-check` - Skip dependencies check before compilation.
 
   """
   def run(["--list"]) do
@@ -50,7 +51,7 @@ defmodule Mix.Tasks.Compile do
   end
 
   def run(args) do
-    Mix.Task.run "deps.loadpaths"
+    Mix.Task.run "deps.loadpaths", args
 
     Enum.each get_compilers, fn(compiler) ->
       Mix.Task.run "compile.#{compiler}", args

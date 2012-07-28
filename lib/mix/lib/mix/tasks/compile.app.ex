@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Compile.App do
 
   """
   def run(args) do
-    destructure [force], args
+    { opts, _ } = OptionParser.parse(args, flags: [:force])
 
     project = Mix.Project.current
     config  = Mix.project
@@ -46,7 +46,7 @@ defmodule Mix.Tasks.Compile.App do
     target  = File.join(path, "#{app}.app")
     sources = [Mix.Utils.source(project) | beams]
 
-    if force == "--force" or Mix.Utils.stale?(sources, [target]) do
+    if opts[:force] or Mix.Utils.stale?(sources, [target]) do
       best_guess = [
         vsn: to_char_list(version),
         modules: modules_from(beams),
