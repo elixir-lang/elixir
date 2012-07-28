@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Deps.Compile do
   import Mix.Deps, only: [all: 0, all: 1, by_name: 1, format_dep: 1, deps_path: 1]
 
   def run(args) do
-    case OptionParser.Simple.parse(args) do
+    case OptionParser.parse(args) do
       { opts, [] } ->
         deps =
           if opts[:force] do

@@ -27,7 +27,7 @@ defmodule Mix.Tasks.New do
 
   """
   def run(argv) do
-    { opts, argv } = OptionParser.Simple.parse(argv)
+    { opts, argv } = OptionParser.parse(argv)
     case argv do
       [] ->
         raise Mix.Error, message: "expected PATH to be given, please use `mix new PATH`"

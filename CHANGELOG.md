@@ -18,6 +18,7 @@
   * [ExUnit] Some assertions were deprecated in favor of simply using `assert()`; 
 
 * enhancements
+  * [OptionParser] Make OptionParser public, add support to flags and improved switch parsing;
   * [Kernel] Operator `!` is now allowed in guard clauses;
   * [IEx] IEx now provides autocomplete if the OS supports tty;
   * [Mix] First Mix public release;

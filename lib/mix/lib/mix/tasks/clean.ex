@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Clean do
 
   """
   def run(args) do
-    { opts, _ } = OptionParser.Simple.parse(args)
+    { opts, _ } = OptionParser.parse(args)
     File.rm_rf Mix.project[:compile_path]  || "ebin"
     if opts[:all], do: Mix.Task.run("deps.clean")
   end

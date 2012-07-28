@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Local.Install do
   """
 
   def run(argv) do
-    { _, argv } = OptionParser.Simple.parse(argv)
+    { _, argv } = OptionParser.parse(argv)
     case argv do
       [] ->
         raise Mix.Error, message: "expected PATH to be given, please use `mix local.install PATH`"
