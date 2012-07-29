@@ -27,7 +27,7 @@ defmodule Kernel do
       1 + 2 #=> 3
 
   """
-  defmacro :+.(left, right)
+  defmacro left + right
 
   @doc """
   Arithmetic minus. Allowed in guard clauses.
@@ -37,7 +37,7 @@ defmodule Kernel do
       1 - 2 #=> -1
 
   """
-  defmacro :-.(left, right)
+  defmacro left - right
 
   @doc """
   Arithmetic multiplication. Allowed in guard clauses.
@@ -47,7 +47,7 @@ defmodule Kernel do
       1 * 2 #=> 2
 
   """
-  defmacro :*.(left, right)
+  defmacro left * right
 
   @doc """
   Arithmetic division. Differently from other languages,
@@ -60,7 +60,7 @@ defmodule Kernel do
       2 / 1 #=> 2.0
 
   """
-  defmacro :/.(left, right)
+  defmacro left / right
 
   @doc """
   Sends a message to the process identified on the left.
@@ -73,7 +73,7 @@ defmodule Kernel do
       process <- { :ok, "Sending myself a message" }
 
   """
-  defmacro :<-.(left, right)
+  defmacro pid <- msg
 
   @doc """
   Concatenates two lists. Allowed in guard clauses.
@@ -87,7 +87,7 @@ defmodule Kernel do
       #=> 'foobar'
 
   """
-  defmacro :++.(left, right)
+  defmacro left ++ right
 
   @doc """
   Removes the first occorrence of an item on the left
@@ -102,7 +102,7 @@ defmodule Kernel do
       #=> [3,1]
 
   """
-  defmacro :--.(left, right)
+  defmacro left -- right
 
   @doc """
   Boolean or. Arguments needs to necessarily be booleans.
@@ -114,7 +114,7 @@ defmodule Kernel do
       #=> true
 
   """
-  defmacro :or.(left, right)
+  defmacro left or right
 
   @doc """
   Boolean and. Arguments needs to necessarily be booleans.
@@ -126,7 +126,7 @@ defmodule Kernel do
       #=> false
 
   """
-  defmacro :and.(left, right)
+  defmacro left and right
 
   @doc """
   Boolean xor. Arguments needs to necessarily be booleans.
@@ -138,7 +138,7 @@ defmodule Kernel do
       #=> true
 
   """
-  defmacro :xor.(left, right)
+  defmacro left xor right
 
   @doc """
   Boolean not. Argument needs to necessarily be a boolean.
@@ -150,7 +150,7 @@ defmodule Kernel do
       #=> true
 
   """
-  defmacro :not.(arg)
+  defmacro not arg
 
   @doc """
   It receives any argument and returns true if it is false
@@ -165,7 +165,7 @@ defmodule Kernel do
     !nil      #=> true
 
   """
-  defmacro :!.(arg)
+  defmacro !arg
 
   @doc """
   Return true if left is less than right.
@@ -177,7 +177,7 @@ defmodule Kernel do
       #=> true
 
   """
-  defmacro :<.(left, right)
+  defmacro left < right
 
   @doc """
   Return true if left is more than right.
@@ -189,7 +189,7 @@ defmodule Kernel do
       #=> false
 
   """
-  defmacro :>.(left, right)
+  defmacro left > right
 
   @doc """
   Return true if left is less than or equal to right.
@@ -201,7 +201,7 @@ defmodule Kernel do
       #=> true
 
   """
-  defmacro :<=.(left, right)
+  defmacro left <= right
 
   @doc """
   Return true if left is more than or equal to right.
@@ -213,7 +213,7 @@ defmodule Kernel do
       #=> false
 
   """
-  defmacro :>=.(left, right)
+  defmacro left >= right
 
   @doc """
   Returns true if the two items are equal.
@@ -232,7 +232,7 @@ defmodule Kernel do
       #=> true
 
   """
-  defmacro :==.(left, right)
+  defmacro left == right
 
   @doc """
   Returns true if the two items are not equal.
@@ -250,7 +250,7 @@ defmodule Kernel do
       #=> false
 
   """
-  defmacro :!=.(left, right)
+  defmacro left != right
 
   @doc """
   Returns true if the two items are strictly equal.
@@ -265,7 +265,7 @@ defmodule Kernel do
       #=> false
 
   """
-  defmacro :===.(left, right)
+  defmacro left === right
 
   @doc """
   Returns true if the two items are strictly not equal.
@@ -280,7 +280,7 @@ defmodule Kernel do
       #=> true
 
   """
-  defmacro :!==.(left, right)
+  defmacro left !== right
 
   @doc """
   When used inside quoting, marks that the variable should not
@@ -1109,7 +1109,7 @@ defmodule Kernel do
   Elixir will accept any module name as long as the expression
   returns an atom.
   """
-  defmacro :defmodule.(name, do: contents)
+  defmacro defmodule(name, do: contents)
 
   @doc """
   Defines a function with the given name and contents.
@@ -1178,7 +1178,7 @@ defmodule Kernel do
   because each entry `k` is a an atom and invoking `def unquote(k)()`
   would be invalid Elixir syntax.
   """
-  defmacro :def.(name, do: contents)
+  defmacro def(name, do: contents)
 
   @doc """
   This macro allows a function to be defined more explicitly
@@ -1213,7 +1213,7 @@ defmodule Kernel do
       end
 
   """
-  defmacro :def.(name, args, guards, do: contents)
+  defmacro def(name, args, guards, do: contents)
 
   @doc """
   Defines a function that is private. Private functions
@@ -1234,12 +1234,12 @@ defmodule Kernel do
   In the example above, `sum` is private and accessing it
   through `Foo.sum` will raise an error.
   """
-  defmacro :defp.(name, do: contents)
+  defmacro defp(name, do: contents)
 
   @doc """
   The same as `def/4` but generates a private function.
   """
-  defmacro :defp.(name, args, guards, do: contents)
+  defmacro defp(name, args, guards, do: contents)
 
   @doc """
   Define a record given by name and values.
@@ -2218,7 +2218,7 @@ defmodule Kernel do
       x #=> "bar"
 
   """
-  defmacro :<>.(left, right) do
+  defmacro left <> right do
     concats = extract_concatenations({ :<>, 0, [left, right] })
     quote do: << unquote_splicing(concats) >>
   end
@@ -2235,7 +2235,7 @@ defmodule Kernel do
       3 in 1..3 #=> true
 
   """
-  defmacro :"..".(first, last) do
+  defmacro first .. last do
     { :{}, 0, [Elixir.Range, first, last] }
   end
 
@@ -2255,7 +2255,7 @@ defmodule Kernel do
   this operator accepts any expression as arguments,
   not only booleans, however it is not allowed in guards.
   """
-  defmacro :&&.(left, right) do
+  defmacro left && right do
     quote do
       case unquote(left) do
         andand in [false, nil] ->
@@ -2282,7 +2282,7 @@ defmodule Kernel do
   this operator accepts any expression as arguments,
   not only booleans, however it is not allowed in guards.
   """
-  defmacro :||.(left, right) do
+  defmacro left || right do
     quote do
       case unquote(left) do
         oror in [false, nil] ->
@@ -2327,7 +2327,7 @@ defmodule Kernel do
   In this case, Elixir will automatically expand it and define
   the variable for us.
   """
-  defmacro :in.(left, right)
+  defmacro left in right
 
   @doc """
   Matches the term on the left against the regular expression
@@ -2340,7 +2340,7 @@ defmodule Kernel do
       "abcd" =~ %r/e/     #=> nil
 
   """
-  defmacro :=~.(left, right) do
+  defmacro left =~ right do
     quote do
       Regex.index(unquote(right), unquote(left))
     end
@@ -2362,7 +2362,7 @@ defmodule Kernel do
       Enum.map(List.flatten([1,[2],3]), &1 * 2)
 
   """
-  defmacro :/>.(left, right) do
+  defmacro left /> right do
     pipeline_op(left, right)
   end
 

@@ -50,7 +50,7 @@ defmodule Bitwise do
   @doc """
   Bitwise not as operator.
   """
-  defmacro :~~~.(expr) do
+  defmacro ~~~expr do
     quote do: __op__ :bnot, unquote(expr)
   end
 
@@ -64,7 +64,7 @@ defmodule Bitwise do
   @doc """
   Bitwise and as operator.
   """
-  defmacro :&&&.(left, right) do
+  defmacro left &&& right do
     quote do: __op__ :band, unquote(left), unquote(right)
   end
 
@@ -78,7 +78,7 @@ defmodule Bitwise do
   @doc """
   Bitwise or as operator.
   """
-  defmacro :|||.(left, right) do
+  defmacro left ||| right do
     quote do: __op__ :bor, unquote(left), unquote(right)
   end
 
@@ -92,7 +92,7 @@ defmodule Bitwise do
   @doc """
   Bitwise xor as operator.
   """
-  defmacro :^^^.(left, right) do
+  defmacro left ^^^ right do
     quote do: __op__ :bxor, unquote(left), unquote(right)
   end
 
@@ -106,7 +106,7 @@ defmodule Bitwise do
   @doc """
   Arithmetic bitshift left as operator.
   """
-  defmacro :<<<.(left, right) do
+  defmacro left <<< right do
     quote do: __op__ :bsl, unquote(left), unquote(right)
   end
 
@@ -120,7 +120,7 @@ defmodule Bitwise do
   @doc """
   Arithmetic bitshift right as operator.
   """
-  defmacro :>>>.(left, right) do
+  defmacro left >>> right do
     quote do: __op__ :bsr, unquote(left), unquote(right)
   end
 end
