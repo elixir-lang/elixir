@@ -81,21 +81,6 @@ defmodule KernelTest do
     end
   end
 
-  defmodule DefDelegate do
-    use ExUnit.Case, async: true
-
-    defdelegate [my_flatten: 1], to: List, as: :flatten
-    defdelegate [map: 2], to: :lists, append_first: true
-
-    test :defdelegate_with_function do
-      assert my_flatten([[1]]) == [1]
-    end
-
-    test :defdelegate_with_appended_handle do
-      assert map([1], fn(x) -> x + 1 end) == [2]
-    end
-  end
-
   defmodule PipelineOp do
     use ExUnit.Case, async: true
 

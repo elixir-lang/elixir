@@ -2526,49 +2526,12 @@ defmodule Kernel do
     end
   end
 
-  @doc """
-  Defines the given functions in the current module that will
-  delegate to the given `target`. Functions defined with
-  `defdelegate` are public and are allowed to be invoked
-  from external. If you find yourself wishing to define a
-  delegation as private, you should likely use import
-  instead.
-
-  Delegation only works with functions, delegating to macros
-  is not supported.
-
-  ## Options
-
-  * `:to` - The expression to delegate to. Any expression
-    is allowed and its results will be calculated on runtime;
-
-  * `:as` - The function to call on the target given in `:to`.
-    This parameter is optional and defaults to the name being
-    delegated.
-
-  * `:append_first` - If true, when delegated, first argument
-    passed to the delegate will be relocated to the end of the
-    arguments when dispatched to the target. The motivation behind
-    this is a disparity between conventions used in Elixir and Erlang.
-    Elixir's convention is to pass the "handle" as a first argument,
-    while in Erlang the convention is to pass it as the last argument
-
-  ## Examples
-
-      defmodule MyList do
-        defdelegate [reverse: 1], to: Erlang.lists
-        defdelegate [other_reverse: 1], to: Erlang.lists, as: :reverse
-        defdelegate [map: 2], to: Erlang.lists, append_first: true
-      end
-
-      MyList.reverse([1,2,3])
-      #=> [3,2,1]
-
-      MyList.other_reverse([1,2,3])
-      #=> [3,2,1]
-
-  """
+  @doc false
   defmacro defdelegate(tuples, opts) do
+    IO.puts <<"defdelegate is deprecated since it generates functions without the proper ",
+      "signature, severely affecting documentation. Please simply define the function ",
+      "directly instead">>
+
     target = Keyword.get(opts, :to) ||
       raise(ArgumentError, message: "Expected to: be given as argument")
 

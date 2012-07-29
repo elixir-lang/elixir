@@ -118,7 +118,9 @@ defmodule List do
       #=> [3,2,1]
 
   """
-  defdelegate [reverse: 1], to: Erlang.lists
+  def reverse(list) do
+    :lists.reverse(list)
+  end
 
   @doc """
   Returns the last element in `list` or nil if the `list` is empty.
@@ -135,7 +137,9 @@ defmodule List do
   """
   def last([]), do: nil
 
-  defdelegate [last: 1], to: Erlang.lists
+  def last(list) do
+    :lists.last(list)
+  end
 
   @doc """
   Checks if the given `term` is included in the list.

@@ -49,7 +49,9 @@ defmodule Process do
   @doc """
   Returns all keys that have the given `value`.
   """
-  defdelegate [get_keys: 1], to: :erlang
+  def get_keys(value) do
+    :erlang.get_keys(value)
+  end
 
   @doc """
   Stores the given key-value in the process dictionary.
@@ -200,7 +202,9 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#link-1 for more info.
   """
-  defdelegate [link: 1], to: :erlang
+  def link(pid) do
+    :erlang.link(pid)
+  end
 
   @doc """
   Removes the link, if there is one, between the calling process and
@@ -209,7 +213,9 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#unlink-1 for more info.
   """
-  defdelegate [unlink: 1], to: :erlang
+  def unlink(pid) do
+    :erlang.unlink(pid)
+  end
 
   @doc """
   Associates the name with a pid or a port identifier. name, which must
@@ -218,14 +224,18 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#register-2 for more info.
   """
-  defdelegate [register: 2], to: :erlang
+  def register(name, pid) do
+    :erlang.register(name, pid)
+  end
 
   @doc """
   Removes the registered name, associated with a pid or a port identifier.
 
   See http://www.erlang.org/doc/man/erlang.html#unregister-1 for more info.
   """
-  defdelegate [unregister: 1], to: :erlang
+  def unregister(name) do
+    :erlang.unregister(name)
+  end
 
   @doc """
   Returns the pid or port identifier with the registered name.
@@ -233,7 +243,9 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#whereis-1 for more info.
   """
-  defdelegate [whereis: 1], to: :erlang
+  def whereis(name) do
+    :erlang.whereis(name)
+  end
 
   @doc """
   Returns a list of names which have been registered using register/2.
