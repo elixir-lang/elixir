@@ -1109,7 +1109,7 @@ defmodule Kernel do
   Elixir will accept any module name as long as the expression
   returns an atom.
   """
-  defmacro defmodule(name, do: contents)
+  defmacro :defmodule.(name, do: contents)
 
   @doc """
   Defines a function with the given name and contents.
@@ -1178,7 +1178,7 @@ defmodule Kernel do
   because each entry `k` is a an atom and invoking `def unquote(k)()`
   would be invalid Elixir syntax.
   """
-  defmacro def(name, do: contents)
+  defmacro :def.(name, do: contents)
 
   @doc """
   This macro allows a function to be defined more explicitly
@@ -1213,7 +1213,7 @@ defmodule Kernel do
       end
 
   """
-  defmacro def(name, args, guards, do: contents)
+  defmacro :def.(name, args, guards, do: contents)
 
   @doc """
   Defines a function that is private. Private functions
@@ -1234,12 +1234,12 @@ defmodule Kernel do
   In the example above, `sum` is private and accessing it
   through `Foo.sum` will raise an error.
   """
-  defmacro defp(name, do: contents)
+  defmacro :defp.(name, do: contents)
 
   @doc """
   The same as `def/4` but generates a private function.
   """
-  defmacro defp(name, args, guards, do: contents)
+  defmacro :defp.(name, args, guards, do: contents)
 
   @doc """
   Define a record given by name and values.
