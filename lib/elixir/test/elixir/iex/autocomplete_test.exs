@@ -79,7 +79,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :elixir_kernel_completion do
-    assert expand('defmodu') == {:yes, 'le', []}
+    assert expand('defreco') == {:yes, 'rd', []}
   end
 
   test :elixir_and_erlang_proxies do
