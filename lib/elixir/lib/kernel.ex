@@ -945,8 +945,9 @@ defmodule Kernel do
 
   @doc """
   Spawns the given function and returns its pid.
-  Check the module `Process` for other functions that handle
-  process, including spawning functions in nodes.
+
+  Check the modules `Process` and `Node` for other functions
+  to handle processes, including spawning functions in nodes.
 
   ## Examples
 
@@ -965,8 +966,8 @@ defmodule Kernel do
   Spawns the given module and function passing the given args
   and returns its pid.
 
-  Check the module `Process` for other functions that handle
-  process, including spawning functions in nodes.
+  Check the modules `Process` and `Node` for other functions
+  to handle processes, including spawning functions in nodes.
 
   ## Examples
 
@@ -978,8 +979,9 @@ defmodule Kernel do
 
   @doc """
   Spawns the given function, links it to the current process and returns its pid.
-  Check the module `Process` for other functions that handle
-  process, including spawning functions in nodes.
+
+  Check the modules `Process` and `Node` for other functions
+  to handle processes, including spawning functions in nodes.
 
   ## Examples
 
@@ -999,8 +1001,8 @@ defmodule Kernel do
   Spawns the given module and function passing the given args,
   links it to the current process and returns its pid.
 
-  Check the module `Process` for other functions that handle
-  process, including spawning functions in nodes.
+  Check the modules `Process` and `Node` for other functions
+  to handle processes, including spawning functions in nodes.
 
   ## Examples
 

@@ -68,4 +68,49 @@ defmodule Node do
   def disconnect(node) do
     :erlang.disconnect_node(node)
   end
+
+  @doc """
+  Returns the pid of a new process started by the application of `fun`
+  on `node`. If `node` does not exist, a useless pid is returned.
+
+  Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4 for
+  the list of available options.
+  """
+  def spawn(node, fun, opts // []) do
+    :erlang.spawn_opt(node, fun, opts)
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of
+  `module.function(args)` on `node`. If `node` does not exists, a useless
+  pid is returned.
+
+  Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4 for
+  the list of available options.
+  """
+  def spawn(node, module, fun, args, opts // []) do
+    :erlang.spawn(node, module, fun, args, opts)
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of `fun`
+  on `node`. A link is created between the calling process and the
+  new process, atomically. If `node` does not exist, a useless pid is returned
+  (and due to the link, an exit signal with exit reason :noconnection will be
+  received).
+  """
+  def spawn_link(node, fun) do
+    :erlang.spawn_link(node, fun)
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of
+  `module.function(args)` on `node`. A link is created between the calling
+  process and the new process, atomically. If `node` does not exist, a useless
+  pid is returned (and due to the link, an exit signal with exit reason
+  :noconnection will be received).
+  """
+  def spawn_link(node, module, fun, args) do
+    :erlang.spawn_link(node, module, fun, args)
+  end
 end
