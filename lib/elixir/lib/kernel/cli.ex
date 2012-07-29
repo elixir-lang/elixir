@@ -166,7 +166,7 @@ defmodule Kernel.CLI do
     process_compiler t, config.merge_compiler_options(debug_info: true)
   end
 
-  defp process_compiler([ignore|t], config) when ignore in ['-i', '--ignore-module-conflict'] do
+  defp process_compiler(['--ignore-module-conflict'|t], config) do
     process_compiler t, config.merge_compiler_options(ignore_module_conflict: true)
   end
 
