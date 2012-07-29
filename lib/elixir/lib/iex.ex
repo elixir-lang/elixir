@@ -16,16 +16,13 @@ defmodule IEx do
   import Exception, only: [format_stacktrace: 1]
 
   @doc """
-  Starts IEx checking if tty is available or not.
+  Runs IEx checking if tty is available or not.
   If so, invoke tty, otherwise go with the simple iex.
   """
-  def start(binding // [], io // IEx.UnicodeIO) do
-    type = elem(:os.type, 1)
-
-    if type == :unix && System.find_executable("tty") do
-      tty(binding, io)
-    else
-      simple(binding, io)
+  def run(binding // [], io // IEx.UnicodeIO) do
+    case :os.type do
+      { :unix, _ } -> tty(binding, io)
+      _            -> simple(binding, io)
     end
   end
 
@@ -33,15 +30,13 @@ defmodule IEx do
   Starts IEx using a tty server.
   """
   def tty(binding // [], io // IEx.UnicodeIO) do
-    config   = boot_config(binding, io)
+    config = boot_config(binding, io)
 
     function = fn ->
       # We are inside the new tty and in a new process,
       # reattach it the error logger.
       attach_error_logger
-      :io.setopts :erlang.group_leader,
-                  [{:expand_fun, IEx.Autocomplete.expand &1}]
-      start_loop(config)
+      start config
     end
 
     # Dettach the error logger because we are going to unregister
@@ -58,16 +53,38 @@ defmodule IEx do
     # will take control over the io.
     close_io_port
 
-    Erlang.user_drv.start([:"tty_sl -c -e", {:erlang, :spawn, [function]}])
+    { opts, _ } = OptionParser.parse(System.argv)
+
+    # TODO
+    # 1) Proper error message if current process does not have a name
+    # 2) Remote autocomplete
+    # 3) Proper command line argument
+    args =
+      if remsh = opts[:remsh] do
+        { binary_to_atom(remsh), :erlang, :apply, [function, []] }
+      else
+        { :erlang, :apply, [function, []] }
+      end
+
+    Erlang.user_drv.start([:"tty_sl -c -e", args])
   end
 
   @doc """
-  Starts IEx simply using stdio. It requires the initial
-  binding an the IO mechanism as argument.
+  Starts IEx simply using the current stdio.
   """
   def simple(binding // [], io // IEx.UnicodeIO) do
-    config = boot_config(binding, io)
-    start_loop(config)
+    start boot_config(binding, io)
+  end
+
+  # This is a callback invoked by Erlang shell utilities.
+  @doc false
+  def start(config // nil) do
+    spawn fn ->
+       config = config || boot_config([], IEx.UnicodeIO)
+       :io.setopts :erlang.group_leader,
+                   [expand_fun: IEx.Autocomplete.expand &1]
+       start_loop(config)
+    end
   end
 
   ## Boot Helpers

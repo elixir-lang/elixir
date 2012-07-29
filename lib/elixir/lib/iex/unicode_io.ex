@@ -15,7 +15,11 @@ defmodule IEx.UnicodeIO do
       [] -> "iex(#{config.counter})> "
       _  -> "...(#{config.counter})> "
     end
-    :unicode.characters_to_list(IO.gets(prompt))
+
+    case IO.gets(prompt) do
+      { :error, _ } -> ''
+      data -> :unicode.characters_to_list(data)
+    end
   end
 
   @doc """

@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Iex do
   """
   def run(_) do
     Mix.Task.run "compile"
-    IEx.start
+    IEx.run
     :timer.sleep(:infinity)
   end
 end
