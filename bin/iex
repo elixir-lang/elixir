@@ -9,21 +9,26 @@ readlink_f () {
   fi
 }
 
-OPTS=()
-EXTRA=()
+OPTS=""
+EXTRA=""
 
 while [ -n "$1" ]; do
   case "$1" in
     --remsh)
-        EXTRA=("${EXTRA[@]}" "$1" "$2")
+        EXTRA="$EXTRA $1 \"$2\""
         shift 2
         ;;
     --)
-        EXTRA=("${EXTRA[@]}" "$@")
+        shift
+        EXTRA="$EXTRA $@"
         break
         ;;
+    -*)
+        OPTS="$OPTS $1"
+        shift
+        ;;
     *)
-        OPTS=("${OPTS[@]}" "$1")
+        OPTS="$OPTS \"$1\""
         shift
         ;;
   esac
@@ -31,4 +36,4 @@ done
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-"$SCRIPT_PATH"/elixir --no-halt -e "IEx.cli" "${OPTS[@]}" -- "${EXTRA[@]}"
+eval $(echo "$SCRIPT_PATH"/elixir --no-halt -e "IEx.cli" $OPTS -- $EXTRA)
