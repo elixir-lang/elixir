@@ -17,6 +17,6 @@ defmodule Mix.Tasks.Local.Uninstall do
 
   defp do_uninstall(task) do
     task = Mix.Task.get(task)
-    File.rm! File.join(Mix.Utils.home, ".mix/tasks/#{task}.beam")
+    File.rm! File.join(Mix.Local.tasks_path, "#{task}.beam")
   end
 end

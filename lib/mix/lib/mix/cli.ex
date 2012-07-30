@@ -9,7 +9,7 @@ defmodule Mix.CLI do
   Runs Mix according to the command line arguments.
   """
   def run(args // System.argv) do
-    Mix.append_local_tasks_path!
+    Mix.Local.append_tasks
     do_run do_load(args)
   end
 
