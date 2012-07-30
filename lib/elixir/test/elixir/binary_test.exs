@@ -91,6 +91,15 @@ bar
     assert <<a, b|s>> = "foo"
   end
 
+  test :bitsyntax_translation do
+    refb = "sample"
+    sec_data = "another"
+    << size(refb) | 1 - :big - :signed - :integer - {:unit, 8},
+       refb | :binary,
+       size(sec_data) | 1 - :big - :signed - :integer - {:unit, 16},
+       sec_data|:binary >>
+  end
+
   defp is_match?(<<char, _|:binary>>, char) do
     true
   end

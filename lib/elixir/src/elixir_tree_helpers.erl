@@ -109,7 +109,7 @@ build_bitstr_each(Fun, [H|T], Line, S, Acc) ->
 
 %% Extra binary specifiers
 
-extract_bin_values(Line, { '-', Line, [Left, Right] }, Int, Types, S) ->
+extract_bin_values(Line, { '-', _Line, [Left, Right] }, Int, Types, S) ->
   { LInt, LTypes } = extract_bin_values(Line, Left, Int, Types, S),
   extract_bin_values(Line, Right, LInt, LTypes, S);
 
@@ -123,7 +123,7 @@ extract_bin_values(_Line, { Value, _, Atom } = Expr, default, Types, S) when is_
 extract_bin_values(Line, Value, _Int, _Types, S) when is_integer(Value) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.file, "duplicated size specifier ~p in <<>>", [Value]);
 
-extract_bin_values(_Line, Value, Int, Types, _S) when is_atom(Value); is_tuple(Value) ->
+extract_bin_values(_Line, Value, Int, Types, _S) when is_atom(Value); is_tuple(Value), tuple_size(Value) == 2 ->
   { Int, [Value|Types] };
 
 extract_bin_values(Line, _Value, _Int, _Types, S) ->
