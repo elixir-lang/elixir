@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Deps.Compile do
       check_unavailable!(app, status)
       shell.info "* Compiling #{app}"
 
-      deps_path = deps_path(app)
+      deps_path = deps_path(dep)
       ebin = File.join(deps_path, "ebin") /> binary_to_list
 
       # Avoid compilation conflicts

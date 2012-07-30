@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Deps.Update do
       Mix.Dep[scm: scm, app: app, status: status, opts: opts] = dep
       check_unavailable!(app, status)
       shell.info "* Updating #{format_dep(dep)}"
-      scm.update(deps_path(app), opts)
+      scm.update(deps_path(dep), opts)
     end
 
     Mix.Task.run "deps.compile", apps

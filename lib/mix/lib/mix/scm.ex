@@ -24,6 +24,7 @@ defmodule Mix.SCM do
   Register builtin SCMs.
   """
   def register_builtin do
-    register(Mix.SCM.Git)
+    register Mix.SCM.Git
+    register Mix.SCM.Raw
   end
 end

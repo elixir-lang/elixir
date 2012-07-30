@@ -93,17 +93,10 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Returns the dependency path for the given application.
+  Returns the path for the given dependency.
   """
-  def deps_path(app) do
-    File.join deps_path, app
-  end
-
-  @doc """
-  Return the dependency path.
-  """
-  def deps_path do
-    Mix.project[:deps_path] || "deps"
+  def deps_path(Mix.Dep[app: app, opts: opts]) do
+    deps_path(app, opts)
   end
 
   ## Helpers
@@ -138,8 +131,8 @@ defmodule Mix.Deps do
       %b(expected { "app", "requirement", scm: "location" })
   end
 
-  defp status(scm, app, req, _) do
-    deps_path = deps_path(app)
+  defp status(scm, app, req, opts) do
+    deps_path = deps_path(app, opts)
     if scm.available? deps_path do
       if req do
         app_path = File.join deps_path, "ebin/#{app}.app"
@@ -172,4 +165,12 @@ defmodule Mix.Deps do
 
   defp vsn_match?(expected, actual) when is_binary(expected), do: actual == expected
   defp vsn_match?(expected, actual) when is_regex(expected),  do: actual =~ expected
+
+  defp deps_path(app, opts) do
+    opts[:path] || File.join(deps_path, app)
+  end
+
+  defp deps_path do
+    Mix.project[:deps_path] || "deps"
+  end
 end
