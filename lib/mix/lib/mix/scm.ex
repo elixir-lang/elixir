@@ -3,7 +3,7 @@ defmodule Mix.SCM do
   Register required callbacks.
   """
   def behaviour_info(:callbacks) do
-    [key: 0, consumes?: 1, available?: 1, get: 2, update: 2, clean: 1]
+    [key: 0, consumes?: 1, available?: 2, get: 2, check?: 2, update: 2, clean: 2]
   end
 
   @doc """

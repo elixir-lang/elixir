@@ -3,9 +3,11 @@ Code.require_file "../../../test_helper", __FILE__
 defmodule Mix.Tasks.DepsPathTest do
   use MixTest.Case
 
-  defmodule RawApp do
+  defmodule DepsApp do
     def project do
       [
+        app: :raw_sample,
+        version: "0.1.0",
         deps: [
           { :raw_repo, "0.1.0", raw: "custom/raw_repo" }
         ]
@@ -14,7 +16,7 @@ defmodule Mix.Tasks.DepsPathTest do
   end
 
   test "get, update and clean raw repos with compilation" do
-    Mix.Project.push RawApp
+    Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Get.run []
@@ -32,6 +34,20 @@ defmodule Mix.Tasks.DepsPathTest do
       Mix.Tasks.Deps.Clean.run []
       assert_received { :mix_shell, :info, ["* Cleaning raw_repo (0.1.0) [raw: \"custom/raw_repo\"]"] }
       assert_received { :mix_shell, :info, ["  custom/raw_repo is a raw dependency, it was not cleaned"] }
+    end
+  after
+    purge [RawRepo, RawRepo.Mix]
+    Mix.Project.pop
+  end
+
+  test "runs even if lock does not match" do
+    Mix.Project.push DepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Deps.Lock.write [raw_repo: "abcdef"]
+      Mix.Tasks.Deps.Compile.run ["raw_repo"]
+      Mix.Tasks.Run.run ["Mix.shell.info", "RawRepo.hello"]
+      assert_received { :mix_shell, :info, ["world"] }
     end
   after
     purge [RawRepo, RawRepo.Mix]

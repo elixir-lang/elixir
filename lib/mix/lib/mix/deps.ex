@@ -49,6 +49,7 @@ defmodule Mix.Deps do
     candidates = all
 
     Enum.map given, fn(app) ->
+      if is_binary(app), do: app = binary_to_atom(app)
       case List.keyfind(candidates, app, 2) do
         nil -> raise Mix.Error, message: "unknown dependency #{app}"
         dep -> dep
@@ -57,26 +58,41 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Formats the status of a dependency. It can be either:
-
-  * `{ :ok, vsn }` - Everything is :ok, got version `vsn` (`vsn` may be nil if not req is given);
-  * `{ :unavailable, path }` - The dependency is not available;
-  * `{ :noappfile, path }` - The .app file at path could not be found;
-  * `{ :invalidapp, path }` - The .app file at path is not properly formatted;
-  * `{ :invalidvsn, actual }` - The dependency does not match the specified requirement, got `actual`;
-
+  Formats the status of a dependency.
   """
   def format_status({ :ok, _vsn }),         do: "ok"
-  def format_status({ :unavailable, _ }),   do: "the dependency is not available, run `mix deps.get`"
   def format_status({ :noappfile, path }),  do: "could not find app file at #{path}"
   def format_status({ :invalidapp, path }), do: "the app file at #{path} is invalid"
   def format_status({ :invalidvsn, vsn }),  do: "the dependency does not match the specified version, got #{vsn}"
+  def format_status({ :lockmismatch, _ }),  do: "lock mismatch: the dependency is out of date"
+  def format_status(:nolock),               do: "the dependency is not locked"
+  def format_status({ :unavailable, _ }),   do: "the dependency is not available, run `mix deps.get`"
 
   @doc """
   Receives a dependency and update its status
   """
   def update_status(Mix.Dep[scm: scm, app: app, requirement: req, opts: opts]) do
     with_scm_and_status({ app, req, opts }, [scm])
+  end
+
+  @doc """
+  Checks the lock for the given dependency and update its status accordingly.
+  """
+
+  def check_lock(Mix.Dep[status: { :unavailable, _}] = dep, _lock) do
+    dep
+  end
+
+  def check_lock(Mix.Dep[scm: scm, app: app, opts: opts] = dep, lock) do
+    rev  = lock[app]
+    opts = Keyword.put(opts, :lock, rev)
+
+    if scm.check?(deps_path(dep), opts) do
+      dep
+    else
+      status = if rev, do: { :lockmismatch, rev }, else: :nolock
+      dep.status(status)
+    end
   end
 
   @doc """
@@ -140,7 +156,7 @@ defmodule Mix.Deps do
 
   defp status(scm, app, req, opts) do
     deps_path = deps_path(app, opts)
-    if scm.available? deps_path do
+    if scm.available? deps_path, opts do
       if req do
         app_path = File.join deps_path, "ebin/#{app}.app"
         validate_app_file(app_path, app, req)

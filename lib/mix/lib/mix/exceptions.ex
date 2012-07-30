@@ -14,4 +14,4 @@ defexception Mix.NoProjectError, message: "Could not find a Mix.Project"
 
 defexception Mix.Error, message: nil
 
-defexception Mix.NotMetDepsError, message: "Some dependencies were not met"
+defexception Mix.OutOfDateDepsError, message: "Some dependencies are out of date, please run `mix deps.get` to proceed"

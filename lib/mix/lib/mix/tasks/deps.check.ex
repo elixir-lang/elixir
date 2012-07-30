@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [all: 0, format_dep: 1, format_status: 1]
+  import Mix.Deps, only: [all: 0, format_dep: 1, format_status: 1, check_lock: 2]
 
   @hidden true
   @shortdoc "Check if all dependencies are ok"
@@ -15,34 +15,31 @@ defmodule Mix.Tasks.Deps.Check do
   """
   def run(_) do
     lock = Mix.Deps.Lock.read
+    all  = Enum.map all, check_lock(&1, lock)
 
-    case Enum.partition all, check?(&1, lock) do
+    case Enum.partition all, ok?(&1) do
       { _, [] }     -> :ok
       { _, not_ok } ->
-        if Enum.all? not_ok, unavailable?(&1) do
-          raise Mix.NotMetDepsError, message:
-            "Dependencies are not available, run `mix deps.get` before proceeding"
+        if Enum.all? not_ok, out_of_date?(&1) do
+          raise Mix.OutOfDateDepsError
         else
           shell = Mix.shell
 
           Enum.each not_ok, fn(dep) ->
             shell.error "* #{format_dep(dep)}"
-            if rev = lock[dep.app] do
-              shell.error "  locked at #{rev}"
-            else
-              shell.error "  error: not locked"
-            end
             shell.error "  #{format_status dep.status}"
           end
 
-          raise Mix.NotMetDepsError
+          raise Mix.Error, message: "Some dependencies did not check"
         end
     end
   end
 
-  defp unavailable?(Mix.Dep[status: { :unavailable, _ }]), do: true
-  defp unavailable?(_dep), do: false
+  defp ok?(Mix.Dep[status: { :ok, _ }]), do: true
+  defp ok?(_),                           do: false
 
-  defp check?(Mix.Dep[app: app, status: { :ok, _ }], lock), do: lock[app]
-  defp check?(_dep, _lock), do: false
+  defp out_of_date?(Mix.Dep[status: { :unavailable, _ }]),  do: true
+  defp out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
+  defp out_of_date?(Mix.Dep[status: :nolock]),              do: true
+  defp out_of_date?(_),                                     do: false
 end

@@ -13,15 +13,19 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  def available?(path) do
+  def available?(path, _opts) do
     File.dir?(File.join(path, ".git"))
+  end
+
+  def check?(path, opts) do
+    opts[:lock] && File.cd!(path, fn -> opts[:lock] == get_rev end)
   end
 
   def get(path, opts) do
     location = opts[:git]
     maybe_error System.cmd("git clone --quiet --no-checkout #{location} #{path}")
 
-    if available?(path) do
+    if available?(path, opts) do
       File.cd! path, fn -> checkout(opts) end
     end
   end
@@ -37,7 +41,7 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  def clean(path) do
+  def clean(path, _opts) do
     File.rm_rf path
   end
 
@@ -57,6 +61,10 @@ defmodule Mix.SCM.Git do
       maybe_error System.cmd("git submodule update --init --recursive")
     end
 
+    get_rev
+  end
+
+  defp get_rev do
     check_rev System.cmd('git rev-parse --verify --quiet HEAD')
   end
 
