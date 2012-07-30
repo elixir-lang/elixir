@@ -99,6 +99,13 @@ defmodule Mix.Deps do
     deps_path(app, opts)
   end
 
+  @doc """
+  The default path for dependencies.
+  """
+  def deps_path do
+    Mix.project[:deps_path] || "deps"
+  end
+
   ## Helpers
 
   defp with_scm_and_status({ app, opts }, scms) when is_atom(app) and is_list(opts) do
@@ -168,9 +175,5 @@ defmodule Mix.Deps do
 
   defp deps_path(app, opts) do
     opts[:path] || File.join(deps_path, app)
-  end
-
-  defp deps_path do
-    Mix.project[:deps_path] || "deps"
   end
 end

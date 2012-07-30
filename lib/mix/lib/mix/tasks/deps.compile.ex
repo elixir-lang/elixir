@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Deps.Compile do
   which mix will use to shell out.
   """
 
-  import Mix.Deps, only: [all: 0, all: 1, by_name: 1, format_dep: 1, deps_path: 1]
+  import Mix.Deps, only: [all: 0, all: 1, by_name: 1, format_dep: 1, deps_path: 1, deps_path: 0]
 
   def run(args) do
     case OptionParser.parse(args) do
@@ -61,17 +61,17 @@ defmodule Mix.Tasks.Deps.Compile do
       check_unavailable!(app, status)
       shell.info "* Compiling #{app}"
 
-      deps_path = deps_path(dep)
-      ebin = File.join(deps_path, "ebin") /> binary_to_list
+      compile_path = deps_path(dep)
+      ebin = File.join(compile_path, "ebin") /> binary_to_list
 
       # Avoid compilation conflicts
       :code.del_path(ebin /> File.expand_path)
 
-      File.cd! deps_path, fn ->
+      File.cd! compile_path, fn ->
         cond do
           opts[:compile] -> do_command(opts[:compile], app)
           mix?           -> Mix.Project.in_subproject fn -> Mix.Task.run "compile", ["--no-check"] end
-          rebar?         -> shell.info  System.cmd("rebar compile")
+          rebar?         -> shell.info  System.cmd("rebar compile deps_dir=#{inspect deps_path}")
           make?          -> shell.info  System.cmd("make")
           true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>
                              "(pass :compile as an option to customize compilation, set it to :noop to do nothing)"
