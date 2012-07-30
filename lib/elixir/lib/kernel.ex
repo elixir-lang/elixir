@@ -2526,30 +2526,86 @@ defmodule Kernel do
     end
   end
 
-  @doc false
-  defmacro defdelegate(tuples, opts) do
-    IO.puts <<"defdelegate is deprecated since it generates functions without the proper ",
-      "signature, severely affecting documentation. Please simply define the function ",
-      "directly instead">>
+  @doc """
+  Defines the given functions in the current module that will
+  delegate to the given `target`. Functions defined with
+  `defdelegate` are public and are allowed to be invoked
+  from external. If you find yourself wishing to define a
+  delegation as private, you should likely use import
+  instead.
+
+  Delegation only works with functions, delegating to macros
+  is not supported.
+
+  ## Options
+
+  * `:to` - The expression to delegate to. Any expression
+    is allowed and its results will be calculated on runtime;
+
+  * `:as` - The function to call on the target given in `:to`.
+    This parameter is optional and defaults to the name being
+    delegated.
+
+  * `:append_first` - If true, when delegated, first argument
+    passed to the delegate will be relocated to the end of the
+    arguments when dispatched to the target. The motivation behind
+    this is a disparity between conventions used in Elixir and Erlang.
+    Elixir's convention is to pass the "handle" as a first argument,
+    while in Erlang the convention is to pass it as the last argument
+
+  ## Examples
+
+      defmodule MyList do
+        defdelegate reverse(list), to: Erlang.lists
+        defdelegate [reverse(list), map(callback, list)], to: Erlang.lists
+        defdelegate other_reverse(list), to: Erlang.lists, as: :reverse
+      end
+
+      MyList.reverse([1,2,3])
+      #=> [3,2,1]
+
+      MyList.other_reverse([1,2,3])
+      #=> [3,2,1]
+
+  """
+  defmacro defdelegate(funs, opts) when is_list(funs) do
+    do_delegate(funs, opts)
+  end
+
+  defmacro defdelegate(other, opts) do
+    do_delegate([other], opts)
+  end
+
+  defp do_delegate(funs, opts) do
+    case :lists.any(match?({ n, a } when is_atom(n) and is_integer(a), &1), funs) do
+      true ->
+        IO.puts "Passing a pair fun/arity to defdelegate is deprecated. Please pass the function signature instead"
+      _ ->
+        :ok
+    end
 
     target = Keyword.get(opts, :to) ||
       raise(ArgumentError, message: "Expected to: be given as argument")
 
     append_first = Keyword.get(opts, :append_first, false)
 
-    lc { name, arity } inlist tuples do
-      args = lc i inlist :lists.seq(1, arity) do
-        { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
-      end
+    lc fun inlist funs do
+      { name, args } =
+        case fun do
+          { name, arity } when is_atom(name) and is_integer(arity) ->
+            args = lc i inlist :lists.seq(1, arity) do
+              { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
+            end
+            { name, args }
+          _ ->
+            Erlang.elixir_clauses.extract_args(fun)
+        end
 
-      case {arity, append_first} do
-        {n, true} when n > 1 ->
-          actual_args = lc i inlist (:lists.seq(2, arity) ++ [1]) do
-            { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
-          end
-        _ ->
-          actual_args = args
-      end
+      actual_args =
+        case append_first and args != [] do
+          true  -> tl(args) ++ [hd(args)]
+          false -> args
+        end
 
       fun = Keyword.get(opts, :as, name)
 
