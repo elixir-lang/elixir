@@ -16,27 +16,49 @@ defmodule IEx do
   import Exception, only: [format_stacktrace: 1]
 
   @doc """
+  Interface to start IEx from CLI receiving argv.
+  """
+  def cli(argv // System.argv) do
+    { opts, _ } = OptionParser.parse(argv)
+    run(opts)
+  end
+
+  @doc """
   Runs IEx checking if tty is available or not.
   If so, invoke tty, otherwise go with the simple iex.
   """
-  def run(binding // [], io // IEx.UnicodeIO) do
+  def run(opts // []) when is_list(opts) do
     case :os.type do
-      { :unix, _ } -> tty(binding, io)
-      _            -> simple(binding, io)
+      { :unix, _ } -> tty(opts)
+      _            -> simple(opts)
     end
   end
 
   @doc """
   Starts IEx using a tty server.
   """
-  def tty(binding // [], io // IEx.UnicodeIO) do
-    config = boot_config(binding, io)
+  def tty(opts // []) when is_list(opts) do
+    config = boot_config(opts)
+
+    remote =
+      if remsh = opts[:remsh] do
+        if node() == :nonode@nohost do
+          raise ArgumentError, message: "In order to use --remsh, you need to name the node"
+        end
+        binary_to_atom(remsh)
+      end
 
     function = fn ->
       # We are inside the new tty and in a new process,
       # reattach it the error logger.
       attach_error_logger
-      start config
+
+      # If we have a remote, do remote expansion
+      expand_fun = remote && fn(arg) ->
+        :rpc.call(remote, IEx.Autocomplete, :expand, [arg])
+      end
+
+      start config, expand_fun
     end
 
     # Dettach the error logger because we are going to unregister
@@ -53,15 +75,9 @@ defmodule IEx do
     # will take control over the io.
     close_io_port
 
-    { opts, _ } = OptionParser.parse(System.argv)
-
-    # TODO
-    # 1) Proper error message if current process does not have a name
-    # 2) Remote autocomplete
-    # 3) Proper command line argument
     args =
-      if remsh = opts[:remsh] do
-        { binary_to_atom(remsh), :erlang, :apply, [function, []] }
+      if remote do
+        { remote, :erlang, :apply, [function, []] }
       else
         { :erlang, :apply, [function, []] }
       end
@@ -72,24 +88,24 @@ defmodule IEx do
   @doc """
   Starts IEx simply using the current stdio.
   """
-  def simple(binding // [], io // IEx.UnicodeIO) do
-    start boot_config(binding, io)
+  def simple(opts // []) when is_list(opts) do
+    start boot_config(opts)
   end
 
   # This is a callback invoked by Erlang shell utilities.
   @doc false
-  def start(config // nil) do
+  def start(config // nil, expand_fun // nil) do
     spawn fn ->
-       config = config || boot_config([], IEx.UnicodeIO)
-       :io.setopts :erlang.group_leader,
-                   [expand_fun: IEx.Autocomplete.expand &1]
-       start_loop(config)
+      config = config || boot_config([])
+      :io.setopts :erlang.group_leader,
+                  [expand_fun: expand_fun || IEx.Autocomplete.expand &1]
+      start_loop(config)
     end
   end
 
   ## Boot Helpers
 
-  defp boot_config(binding, io) do
+  defp boot_config(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit"
 
     scope  = Erlang.elixir.scope_for_eval(
@@ -97,7 +113,11 @@ defmodule IEx do
       delegate_locals_to: IEx.Helpers
     )
 
-    IEx.Config.new(io: io, binding: binding, scope: scope)
+    IEx.Config[
+      io: opts[:io] || IEx.UnicodeIO,
+      binding: opts[:binding] || [],
+      scope: scope
+    ]
   end
 
   defp dettach_error_logger do

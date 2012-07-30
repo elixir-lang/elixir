@@ -21,6 +21,7 @@
   * [OptionParser] Make OptionParser public, add support to flags and improved switch parsing;
   * [Kernel] Operator `!` is now allowed in guard clauses;
   * [IEx] IEx now provides autocomplete if the OS supports tty;
+  * [IEx] IEx now supports remsh;
   * [Mix] First Mix public release;
   * [Regex] Back references are now properly supported;
   * [IEx] Elixir now defaults to compile with documentation and `d` can be used in IEx to print modules and functions documentation;
