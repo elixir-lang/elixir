@@ -11,11 +11,16 @@ defmodule IEx.UnicodeIO do
   return a list with the new characters inserted.
   """
   def get(config) do
-    prompt = case config.cache do
-      [] -> "iex(#{config.counter})> "
-      _  -> "...(#{config.counter})> "
+    prefix = case config.cache do
+      [] -> "iex"
+      _  -> "..."
     end
-
+    prompt = case node do
+      :nonode@nohost ->
+        "#{prefix}(#{config.counter})> "
+      n ->
+        "#{prefix}(#{n})#{config.counter}> "
+    end
     case IO.gets(prompt) do
       { :error, _ } -> ''
       data -> :unicode.characters_to_list(data)
