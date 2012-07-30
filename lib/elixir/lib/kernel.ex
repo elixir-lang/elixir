@@ -1635,7 +1635,7 @@ defmodule Kernel do
 
   ## Examples
 
-      5 div 2 #=> 2
+      div 5, 2 #=> 2
 
   """
   defmacro div(left, right) do
@@ -1649,7 +1649,7 @@ defmodule Kernel do
 
   ## Examples
 
-      5 rem 2 #=> 1
+      rem 5, 2 #=> 1
 
   """
   defmacro rem(left, right) do
