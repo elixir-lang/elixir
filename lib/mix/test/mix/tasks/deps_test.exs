@@ -47,12 +47,13 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule RegexDepsApp do
+  defmodule ReqDepsApp do
     def project do
       [
         deps: [
           { :ok, %r"^0\.{1,2}",    git: "https://github.com/elixir-lang/ok.git" },
-          { :invalidvsn, %r"^2.0", git: "https://github.com/elixir-lang/invalidvsn.git" }
+          { :invalidvsn, %r"^2.0", git: "https://github.com/elixir-lang/invalidvsn.git" },
+          { :noappfile,            git: "https://github.com/elixir-lang/noappfile.git" }
         ]
       ]
     end
@@ -89,8 +90,8 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "prints list of dependencies and their status including regex matches" do
-    Mix.Project.push RegexDepsApp
+  test "prints list of dependencies and their status including req matches" do
+    Mix.Project.push ReqDepsApp
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
@@ -99,6 +100,8 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["  ok"] }
       assert_received { :mix_shell, :info, ["* invalidvsn [git: \"https://github.com/elixir-lang/invalidvsn.git\"]"] }
       assert_received { :mix_shell, :info, ["  the dependency does not match the specified version, got 0.1.0"] }
+      assert_received { :mix_shell, :info, ["* noappfile [git: \"https://github.com/elixir-lang/noappfile.git\"]"] }
+      refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/noappfile.app"] }
     end
   after
     Mix.Project.pop

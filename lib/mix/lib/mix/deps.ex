@@ -58,7 +58,7 @@ defmodule Mix.Deps do
   @doc """
   Formats the status of a dependency. It can be either:
 
-  * `{ :ok, vsn }` - Everything is :ok, got version `vsn`;
+  * `{ :ok, vsn }` - Everything is :ok, got version `vsn` (`vsn` may be nil if not req is given);
   * `{ :unavailable, path }` - The dependency is not available;
   * `{ :noappfile, path }` - The .app file at path could not be found;
   * `{ :invalidapp, path }` - The .app file at path is not properly formatted;
@@ -84,7 +84,7 @@ defmodule Mix.Deps do
   def format_dep(Mix.Dep[scm: scm, app: app, status: status, opts: opts]) do
     version =
       case status do
-        { :ok, vsn } -> "(#{vsn}) "
+        { :ok, vsn } when vsn != nil -> "(#{vsn}) "
         _ -> ""
       end
 
@@ -139,8 +139,12 @@ defmodule Mix.Deps do
   defp status(scm, app, req, _) do
     deps_path = deps_path(app)
     if scm.available? deps_path do
-      app_path = File.join deps_path, "ebin/#{app}.app"
-      validate_app_file(app_path, app, req)
+      if req do
+        app_path = File.join deps_path, "ebin/#{app}.app"
+        validate_app_file(app_path, app, req)
+      else
+        { :ok, nil }
+      end
     else
       { :unavailable, deps_path }
     end
@@ -164,7 +168,6 @@ defmodule Mix.Deps do
     end
   end
 
-  defp vsn_match?(nil, _actual), do: true
   defp vsn_match?(expected, actual) when is_binary(expected), do: actual == expected
   defp vsn_match?(expected, actual) when is_regex(expected),  do: actual =~ expected
 end
