@@ -26,9 +26,9 @@ defmodule Mix.Tasks.Test do
     project = Mix.project
 
     test_pattern = project[:test_pattern] || "test/**/*_test.exs"
-    test_helper  = project[:test_helper]  || "test/test_helper.exs"
+    test_helper  = Keyword.get(project, :test_helper, "test/test_helper.exs")
+    test_helper && Code.require_file(test_helper)
 
-    Code.require_file test_helper
     Kernel.ParallelRequire.files File.wildcard(test_pattern)
   end
 end
