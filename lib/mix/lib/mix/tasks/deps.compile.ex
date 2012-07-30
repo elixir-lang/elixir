@@ -61,6 +61,8 @@ defmodule Mix.Tasks.Deps.Compile do
       check_unavailable!(app, status)
       shell.info "* Compiling #{app}"
 
+      root_path = File.expand_path(deps_path)
+
       compile_path = deps_path(dep)
       ebin = File.join(compile_path, "ebin") /> binary_to_list
 
@@ -71,8 +73,8 @@ defmodule Mix.Tasks.Deps.Compile do
         cond do
           opts[:compile] -> do_command(opts[:compile], app)
           mix?           -> Mix.Project.in_subproject fn -> Mix.Task.run "compile", ["--no-check"] end
-          rebar?         -> shell.info  System.cmd("rebar compile deps_dir=#{inspect deps_path}")
-          make?          -> shell.info  System.cmd("make")
+          rebar?         -> shell.info System.cmd("rebar compile deps_dir=#{inspect root_path}")
+          make?          -> shell.info System.cmd("make")
           true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>
                              "(pass :compile as an option to customize compilation, set it to :noop to do nothing)"
         end
