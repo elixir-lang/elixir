@@ -21,6 +21,15 @@ defmodule Mix do
   end
 
   @doc """
+  Starts mix and loads the project and dependencies into
+  one step. Useful when invoking mix from an external tool.
+  """
+  def loadpaths do
+    Mix.start
+    Mix.Task.run "loadpaths"
+  end
+
+  @doc """
   The shell is a wrapper for doing IO.
 
   It contains conveniences for asking the user information,
