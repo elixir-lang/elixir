@@ -16,12 +16,15 @@ defmodule IEx do
   import Exception, only: [format_stacktrace: 1]
 
   @doc """
-  Interface to start IEx from CLI receiving argv.
+  Interface to start IEx from CLI.
   """
-  def cli(argv // System.argv) do
-    { opts, _ } = OptionParser.parse(argv)
-    run(opts)
+  def cli do
+    run([remsh: get_remsh(:init.get_plain_arguments)])
   end
+
+  defp get_remsh(['--remsh',h|_]), do: list_to_binary(h)
+  defp get_remsh([_|t]), do: get_remsh(t)
+  defp get_remsh([]),    do: nil
 
   @doc """
   Runs IEx checking if tty is available or not.
@@ -45,7 +48,7 @@ defmodule IEx do
         if node() == :nonode@nohost do
           raise ArgumentError, message: "In order to use --remsh, you need to name the node"
         end
-        binary_to_atom(remsh)
+        if is_atom(remsh), do: remsh, else: binary_to_atom(remsh)
       end
 
     function = fn ->

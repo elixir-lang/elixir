@@ -6,15 +6,17 @@ if [ $# -eq 0 ]; then
   -e \"command\"      Evaluates the given command (*)
   -r \"file\"         Requires the given files/patterns (*)
   -pr \"file\"        Requires the given files/patterns in parallel (*)
-  -pa \"path\"        Prepend the given path to Erlang code path (*)
-  -pz \"path\"        Append the given path to Erlang code path (*)
-  --no-halt         Do not halt the Erlang VM after execution
+  -pa \"path\"        Prepends the given path to Erlang code path (*)
+  -pz \"path\"        Appends the given path to Erlang code path (*)
+  --erl \"switches\"  Switches to be passed down to erlang
+  --name \"name\"     Makes and assigns a name to the distributed node
+  --sname \"name\"    Makes and assigns a short name to the distributed node
+  --remsh \"name\"    Connects to a node using a remote shell (with iex)
+  --no-halt         Does not halt the Erlang VM after execution
 
-** Options marked with (*) can be given more than once;
-
-** Options given after the .exs file or -- are passed down to the executed code;
-
-** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS." >&2
+** Options marked with (*) can be given more than once
+** Options given after the .exs file or -- are passed down to the executed code
+** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS or --erl" >&2
   exit 1
 fi
 
@@ -28,12 +30,41 @@ readlink_f () {
   fi
 }
 
+ERL=""
+I=1
+
+while [ $I -le $# ]; do
+  S=1
+  eval "PEEK=\${$I}"
+  case "$PEEK" in
+    -v|--compile|--no-halt)
+        ;;
+    -e|-r|-pr|-pa|-pz|--remsh)
+        S=2
+        ;;
+    --sname|--name)
+        I=$(expr $I + 1)
+        eval "VAL=\${$I}"
+        ERL="$ERL `echo $PEEK | cut -c 2-` "$VAL""
+        ;;
+    --erl)
+        I=$(expr $I + 1)
+        eval "VAL=\${$I}"
+        ERL="$ERL "$VAL""
+        ;;
+    *)
+        break
+        ;;
+  esac
+  I=$(expr $I + $S)
+done
+
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 
 if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]
 then
-  "$SCRIPT_PATH"/erl -env ERL_LIBS $ERL_LIBS:"$SCRIPT_PATH/../lib" -boot elixir -noshell $ELIXIR_ERL_OPTS -s elixir start_cli -extra "$@"
+  "$SCRIPT_PATH"/erl -env ERL_LIBS $ERL_LIBS:"$SCRIPT_PATH/../lib" -boot elixir -noshell $ELIXIR_ERL_OPTS $ERL -s elixir start_cli -extra "$@"
 else
-  erl -env ERL_LIBS $ERL_LIBS:"$SCRIPT_PATH/../lib" -noshell $ELIXIR_ERL_OPTS -s elixir start_cli -extra "$@"
+  erl -env ERL_LIBS $ERL_LIBS:"$SCRIPT_PATH/../lib" -noshell $ELIXIR_ERL_OPTS $ERL -s elixir start_cli -extra "$@"
 fi

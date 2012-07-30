@@ -116,6 +116,10 @@ defmodule Kernel.CLI do
     process_shared t, config.prepend_commands [{:parallel_require, h}]
   end
 
+  defp process_shared([erl,_|t], config) when erl in ['--erl', '--sname', '--remsh', '--name'] do
+    process_shared t, config
+  end
+
   defp process_shared(list, config) do
     { list, config }
   end
@@ -130,7 +134,7 @@ defmodule Kernel.CLI do
     process_options t, config.halt(false)
   end
 
-  def process_options(['+compile'|t], config) do
+  def process_options(['--compile'|t], config) do
     process_compiler t, config
   end
 

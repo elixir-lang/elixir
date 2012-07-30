@@ -40,6 +40,6 @@ defmodule IEx.UnicodeIO do
   messages.
   """
   def error(result) do
-    IO.puts :standard_error, result
+    IO.puts result
   end
 end
