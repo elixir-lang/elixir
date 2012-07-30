@@ -98,7 +98,7 @@ build_bitstr_each(Fun, [{'|',_,[H,V]}|T], Line, S, Acc) ->
 
   Final = case Types of
     [] -> default;
-    _  -> Types
+    _  -> lists:reverse(Types)
   end,
 
   build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, Int, Final }|Acc]);
@@ -123,7 +123,7 @@ extract_bin_values(_Line, { Value, _, Atom } = Expr, default, Types, S) when is_
 extract_bin_values(Line, Value, _Int, _Types, S) when is_integer(Value) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.file, "duplicated size specifier ~p in <<>>", [Value]);
 
-extract_bin_values(_Line, Value, Int, Types, _S) when is_atom(Value) ->
+extract_bin_values(_Line, Value, Int, Types, _S) when is_atom(Value); is_tuple(Value) ->
   { Int, [Value|Types] };
 
 extract_bin_values(Line, _Value, _Int, _Types, S) ->
