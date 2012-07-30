@@ -1,11 +1,29 @@
 defmodule Mix.SCM do
+  @doc """
+  Register required callbacks.
+  """
   def behaviour_info(:callbacks) do
-    [key: 0, available?: 1, get: 2, update: 2]
+    [key: 0, available?: 1, get: 2, update: 2, clean: 1]
   end
 
+  @doc """
+  Returns all available SCM.
+  """
   def available do
-    [:git]
+    Mix.Server.call(:scm)
   end
 
-  def to_module(:git), do: Mix.SCM.Git
+  @doc """
+  Register the scm repository with the given `key` and `mod`.
+  """
+  def register(mod) when is_atom(mod) do
+    Mix.Server.cast({ :add_scm, mod })
+  end
+
+  @doc """
+  Register builtin SCMs.
+  """
+  def register_builtin do
+    register(Mix.SCM.Git)
+  end
 end

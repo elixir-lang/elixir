@@ -29,6 +29,12 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  def clean(path) do
+    File.rm_rf path
+  end
+
+  ## Helpers
+
   defp checkout(opts) do
     ref =
       if branch = opts[:branch] do

@@ -25,6 +25,7 @@ defmodule Mix do
   def start do
     Enum.each [:elixir, :mix], :application.start(&1)
     Mix.Server.start_link
+    Mix.SCM.register_builtin
   end
 
   @doc """

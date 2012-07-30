@@ -4,7 +4,7 @@ defmodule Mix.Server do
   alias :ordsets, as: Ordset
   use GenServer.Behavior
 
-  defrecord Config, tasks: Ordset.new, projects: [], shell: Mix.Shell
+  defrecord Config, tasks: Ordset.new, projects: [], shell: Mix.Shell, scm: Ordset.new
 
   def start_link do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, [], [])
@@ -34,6 +34,10 @@ defmodule Mix.Server do
 
   def handle_call(:shell, _from, config) do
     { :reply, config.shell, config }
+  end
+
+  def handle_call(:scm, _from, config) do
+    { :reply, config.scm, config }
   end
 
   def handle_call(:clear_tasks, _from, config) do
@@ -70,6 +74,10 @@ defmodule Mix.Server do
 
   def handle_cast(:pop_project, config) do
     { :noreply, config.update_projects tl(&1) }
+  end
+
+  def handle_cast({ :add_scm, mod }, config) do
+    { :noreply, config.update_scm :ordsets.add_element(mod, &1) }
   end
 
   def handle_cast(request, config) do

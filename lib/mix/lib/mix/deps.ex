@@ -30,7 +30,8 @@ defmodule Mix.Deps do
   """
   def all do
     deps = Mix.project[:deps] || []
-    Enum.map deps, with_scm_and_status(&1)
+    scms = Mix.SCM.available
+    Enum.map deps, with_scm_and_status(&1, scms)
   end
 
   @doc """
@@ -74,8 +75,8 @@ defmodule Mix.Deps do
   @doc """
   Receives a dependency and update its status
   """
-  def update_status(Mix.Dep[app: app, requirement: req, opts: opts]) do
-    with_scm_and_status({ app, req, opts })
+  def update_status(Mix.Dep[scm: scm, app: app, requirement: req, opts: opts]) do
+    with_scm_and_status({ app, req, opts }, [scm])
   end
 
   @doc """
@@ -107,33 +108,31 @@ defmodule Mix.Deps do
 
   ## Helpers
 
-  defp with_scm_and_status({ app, opts }) when is_atom(app) and is_list(opts) do
-    with_scm_and_status({ app, nil, opts })
+  defp with_scm_and_status({ app, opts }, scms) when is_atom(app) and is_list(opts) do
+    with_scm_and_status({ app, nil, opts }, scms)
   end
 
-  defp with_scm_and_status({ app, req, opts }) when is_atom(app) and
+  defp with_scm_and_status({ app, req, opts }, scms) when is_atom(app) and
       (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
-    scm = Enum.find Mix.SCM.available, opts[&1]
+    scm = Enum.find scms, fn(scm) -> opts[scm.key] end
 
     if scm do
-      scm_module = Mix.SCM.to_module(scm)
-
       Mix.Dep[
-        scm: scm_module,
+        scm: scm,
         app: app,
         requirement: req,
-        status: status(scm_module, app, req, opts),
+        status: status(scm, app, req, opts),
         opts: opts
       ]
     else
-      supported = Enum.join Mix.SVM.available, ", "
+      supported = Enum.join scms, ", "
       raise Mix.Error, message: "did not specify a supported scm, expected one of: " <> supported
     end
   end
 
-  defp with_scm_and_status(other) do
+  defp with_scm_and_status(other, _scms) do
     raise Mix.Error, message: %b(dependency specified in the wrong format: #{inspect other}, ) <>
-      %b(expected { "app", "requirement", git: "location" })
+      %b(expected { "app", "requirement", scm: "location" })
   end
 
   defp status(scm, app, req, _) do
