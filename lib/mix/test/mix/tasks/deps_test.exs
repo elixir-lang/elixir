@@ -7,7 +7,7 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { :ok, "0.1.0",         git: "https://github.com/elixir-lang/ok.git" },
+          { :ok, "0.1.0",         github: "elixir-lang/ok" },
           { :invalidvsn, "0.2.0", git: "https://github.com/elixir-lang/invalidvsn.git" },
           { :invalidapp, "0.1.0", git: "https://github.com/elixir-lang/invalidapp.git" },
           { :noappfile, "0.1.0",  git: "https://github.com/elixir-lang/noappfile.git" },

@@ -5,6 +5,14 @@ defmodule Mix.SCM.Git do
     :git
   end
 
+  def consumes?(opts) do
+    cond do
+      gh = opts[:github] -> Keyword.put(opts, :git, "https://github.com/#{gh}.git")
+      opts[:git]         -> opts
+      true               -> nil
+    end
+  end
+
   def available?(path) do
     File.dir?(File.join(path, ".git"))
   end

@@ -114,7 +114,10 @@ defmodule Mix.Deps do
 
   defp with_scm_and_status({ app, req, opts }, scms) when is_atom(app) and
       (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
-    scm = Enum.find scms, fn(scm) -> opts[scm.key] end
+
+    { scm, opts } = Enum.find_value scms, fn(scm) ->
+      (new = scm.consumes?(opts)) && { scm, new }
+    end
 
     if scm do
       Mix.Dep[
