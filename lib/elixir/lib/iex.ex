@@ -56,12 +56,7 @@ defmodule IEx do
       # reattach it the error logger.
       attach_error_logger
 
-      # If we have a remote, do remote expansion
-      expand_fun = remote && fn(arg) ->
-        :rpc.call(remote, IEx.Autocomplete, :expand, [arg])
-      end
-
-      start config, expand_fun
+      start config
     end
 
     # Dettach the error logger because we are going to unregister
@@ -97,11 +92,19 @@ defmodule IEx do
 
   # This is a callback invoked by Erlang shell utilities.
   @doc false
-  def start(config // nil, expand_fun // nil) do
+  def start(config // nil) do
     spawn fn ->
       config = config || boot_config([])
-      :io.setopts :erlang.group_leader,
-                  [expand_fun: expand_fun || IEx.Autocomplete.expand &1]
+      gl = :erlang.group_leader
+      glnode = node gl
+      if glnode != node do
+        {m,b,f} = :code.get_object_code :elixir_remsh
+        {:module,:elixir_remsh} = :rpc.call glnode, :code, :load_binary, [m,f,b]
+        expand_fun = :elixir_remsh.expand node
+      else
+        expand_fun = IEx.Autocomplete.expand &1
+      end
+      :io.setopts gl, [expand_fun: expand_fun]
       start_loop(config)
     end
   end
