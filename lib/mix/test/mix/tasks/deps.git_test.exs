@@ -85,6 +85,45 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.pop
   end
 
+  test "checks out specific revision and gets new lock" do
+    Mix.Project.push GitApp
+
+    # Get git repo first revision
+    [last,first|_] = get_git_repo_revs
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Deps.Lock.write [git_repo: first]
+
+      Mix.Tasks.Deps.Get.run []
+      refute File.exists?("deps/git_repo/lib/git_repo.ex")
+      assert File.read!("mix.lock") =~ %r(#{first})
+
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+
+      Mix.Deps.Lock.write [git_repo: last]
+      assert_raise Mix.OutOfDateDepsError, fn ->
+        Mix.Tasks.Deps.Check.run []
+      end
+
+      purge [GitRepo.Mix]
+      Mix.Task.clear
+
+      Mix.Tasks.Deps.Get.run []
+      assert File.exists?("deps/git_repo/lib/git_repo.ex")
+      assert File.read!("mix.lock") =~ %r(#{last})
+
+      message = "* Getting git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+
+      # Check we got no error
+      refute_received { :mix_shell, :error, _ }
+    end
+  after
+    purge [GitRepo, GitRepo.Mix]
+    Mix.Project.pop
+  end
+
   test "does not attempt to compile projects that could not be retrieved" do
     Mix.Project.push GitErrorApp
 

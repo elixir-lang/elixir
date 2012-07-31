@@ -208,7 +208,7 @@ defmodule ExUnit.Assertions do
       receive do
         unquote(expected) = received -> received
       after
-        0 -> flunk unquote(message) || "Expected to have received message matching: #{unquote binary}"
+        0 -> flunk unquote(message) || "Expected to have received message matching #{unquote binary}"
       end
     end
   end
@@ -355,8 +355,8 @@ defmodule ExUnit.Assertions do
 
     quote do
       receive do
-        unquote(not_expected) ->
-          flunk unquote(message) || "Expected to not have received message matching: #{unquote binary}"
+        unquote(not_expected) = actual ->
+          flunk unquote(message) || "Expected to not have received message matching #{unquote binary}, got #{inspect actual}"
       after
         0 -> false
       end

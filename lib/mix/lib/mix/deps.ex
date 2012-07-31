@@ -78,7 +78,6 @@ defmodule Mix.Deps do
   @doc """
   Checks the lock for the given dependency and update its status accordingly.
   """
-
   def check_lock(Mix.Dep[status: { :unavailable, _}] = dep, _lock) do
     dep
   end
@@ -94,6 +93,16 @@ defmodule Mix.Deps do
       dep.status(status)
     end
   end
+
+  @doc """
+  Check if a dependency is out of date or not, considering its
+  lock status. Therefore, be sure to call `check_lock` before
+  invoking this function.
+  """
+  def out_of_date?(Mix.Dep[status: { :unavailable, _ }]),  do: true
+  def out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
+  def out_of_date?(Mix.Dep[status: :nolock]),              do: true
+  def out_of_date?(_),                                     do: false
 
   @doc """
   Format the dependency for printing.

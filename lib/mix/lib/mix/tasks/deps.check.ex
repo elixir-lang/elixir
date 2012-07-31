@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [all: 0, format_dep: 1, format_status: 1, check_lock: 2]
+  import Mix.Deps, only: [all: 0, format_dep: 1, format_status: 1, check_lock: 2, out_of_date?: 1]
 
   @hidden true
   @shortdoc "Check if all dependencies are ok"
@@ -37,9 +37,4 @@ defmodule Mix.Tasks.Deps.Check do
 
   defp ok?(Mix.Dep[status: { :ok, _ }]), do: true
   defp ok?(_),                           do: false
-
-  defp out_of_date?(Mix.Dep[status: { :unavailable, _ }]),  do: true
-  defp out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
-  defp out_of_date?(Mix.Dep[status: :nolock]),              do: true
-  defp out_of_date?(_),                                     do: false
 end

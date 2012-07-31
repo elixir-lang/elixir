@@ -94,7 +94,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected to have received message matching: :hello" = error.message
+        "Expected to have received message matching :hello" = error.message
     end
   end
 
@@ -108,7 +108,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = refute_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected to not have received message matching: :hello" = error.message
+        "Expected to not have received message matching :hello, got :hello" = error.message
     end
   end
 

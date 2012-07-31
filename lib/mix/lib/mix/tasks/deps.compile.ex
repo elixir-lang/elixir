@@ -6,9 +6,8 @@ defmodule Mix.Tasks.Deps.Compile do
   @moduledoc """
   Compile dependencies.
 
-  By default, compile all dependencies that do not provide an
-  app file yet. A list of deps can be given to force the compilation
-  of specific deps or --force recompiling all deps.
+  By default, compile all dependencies. A list of deps can
+  be given to force the compilation of specific deps.
 
   By default, it tries to detect if the project contains one of
   the following files:
@@ -34,14 +33,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
   def run(args) do
     case OptionParser.parse(args) do
-      { opts, [] } ->
-        deps =
-          if opts[:force] do
-            all -- all(:unavailable)
-          else
-            all(:noappfile)
-          end
-
+      { _, [] } ->
+        deps = all -- all(:unavailable)
         do_compile(deps)
       { _, tail } ->
         do_compile(by_name(tail))
