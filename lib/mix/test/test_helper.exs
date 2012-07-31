@@ -61,11 +61,15 @@ defmodule MixTest.Case do
   end
 
   def mix(args) do
-    System.cmd "#{mix_executable} #{args}"
+    System.cmd "#{elixir_executable} #{mix_executable} #{args}"
   end
 
   def mix_executable do
     File.expand_path("../../../../bin/mix", __FILE__)
+  end
+
+  def elixir_executable do
+    File.expand_path("../../../../bin/elixir", __FILE__)
   end
 
   def fixture_path do
