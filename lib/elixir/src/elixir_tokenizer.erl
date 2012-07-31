@@ -278,6 +278,12 @@ tokenize([T1,T2|Rest], Line, File, Terminators, Tokens) when ?comp2(T1, T2) ->
 tokenize([T1,T2|Rest], Line, File, Terminators, Tokens) when ?op2(T1, T2) ->
   handle_op(Line, File, Terminators, list_to_atom([T1,T2]), Rest, Tokens, 2);
 
+% ## Read macro
+tokenize([$<,$:|T], Line, File, Terminators, Tokens) ->
+   handle_read_macro(Line, File, Terminators, [$<,$:], T, Tokens);
+tokenize([$<,$%|T], Line, File, Terminators, Tokens) ->
+   handle_read_macro(Line, File, Terminators, [$<,$%], T, Tokens);
+
 % ## Comparison single token operators
 tokenize([T|Rest], Line, File, Terminators, Tokens) when ?comp1(T) ->
   handle_comp_op(Line, File, Terminators, list_to_atom([T]), Rest, Tokens);
@@ -335,14 +341,30 @@ tokenize([{line,Line}|Rest], _, File, Terminators, Tokens) ->
   tokenize(Rest, Line, File, Terminators, Tokens);
 
 tokenize(T, Line, _File, _Termiantors, _Tokens) ->
-  { error, { Line, "invalid token: ", until_eol(T) } }.
+  {Text, _} = until_eol(T),
+  { error, { Line, "invalid token: ", Text } }.
 
-until_eol("\r\n" ++ _) -> [];
-until_eol("\n" ++ _)   -> [];
-until_eol([])          -> [];
-until_eol([H|T])       -> [H|until_eol(T)].
+until_eol(T) -> until_eol(T, []).
+until_eol("\r\n" ++ T, Acc) -> {lists:reverse(Acc), T};
+until_eol("\n" ++ T, Acc)   -> {lists:reverse(Acc), T};
+until_eol([], Acc)          -> {lists:reverse(Acc), []};
+until_eol([H|T], Acc)       -> until_eol(T, [H|Acc]).
 
 %% Handlers
+
+handle_read_macro(Line, File, Terminators, H, T, Tokens) ->
+  case parse_macro_header(H ++ T) of
+    {{M, Tag}, T1} ->
+      case extract_macro_body(Line, File, T1, {M, Tag}) of
+        { error, _ } = Error ->
+           Error;
+        { NewLine, Body, Rest } ->
+           Token = { sigil, Line, M, Body, Tag },
+           tokenize(Rest, NewLine, File, Terminators, [Token|Tokens])
+      end;
+    _ ->
+     { error, { Line, "invalid tag syntax", [$"|T] } }
+  end.
 
 handle_heredocs(Line, File, Terminators, H, T, Tokens) ->
   case extract_heredoc_with_interpolation(Line, File, true, T, H) of
@@ -402,6 +424,52 @@ collect_modifiers([H|T], Buffer) when ?is_downcase(H) ->
 
 collect_modifiers(Rest, Buffer) ->
   { Rest, lists:reverse(Buffer) }.
+
+% Extract macro
+extract_macro_body(Line, File, T, {M, Tag}) ->
+  Terminator = macro_terminator(M, Tag),
+  extract_macro_body(Line, File, T, Terminator, Terminator, [], []).
+
+extract_macro_body(Line, File, T, [], Terminator, TAcc, Acc) ->
+   case lists:reverse(TAcc) == Terminator of
+     true ->
+       Text = lists:nthtail(length(Terminator), Acc),
+       NewLine = case T of
+                   "\r\n" ++ _R -> Line + 1;
+                   [$\n|_R] -> Line + 1;
+                   T -> Line
+                 end,
+       {NewLine, unicode:characters_to_binary(lists:reverse(Text)), T};
+     false -> extract_macro_body(Line, File, T, Terminator, Terminator, [], Acc)
+   end;
+extract_macro_body(_Line, _File, [C|T], [C|R], Terminator, TAcc, Acc) ->
+  extract_macro_body(_Line, _File, T, R, Terminator, [C|TAcc], [C|Acc]);
+extract_macro_body(_Line, _File, T, [C|R], Terminator, TAcc, [C|Acc]) ->
+  extract_macro_body(_Line, _File, T, R, Terminator, [C|TAcc], [C|Acc]);
+extract_macro_body(Line, File, "\r\n" ++ T, [_C|_R], Terminator, _TAcc, Acc) ->
+   extract_macro_body(Line + 1, File, T, Terminator, Terminator, [], [$\n|Acc]);
+extract_macro_body(Line, File, "\n" ++ T, [_C|_R], Terminator, _TAcc, Acc) ->
+   extract_macro_body(Line + 1, File, T, Terminator, Terminator, [], [$\n|Acc]);
+extract_macro_body(Line, File, [C|T], [_C|_R], Terminator, _TAcc, Acc) ->
+   extract_macro_body(Line, File, T, Terminator, Terminator, [], [C|Acc]);
+extract_macro_body(Line, _File, _Any, _Terminator, _, _TAcc, _Acc) ->
+   { error, Line }.
+
+macro_terminator("%", Tag) -> Tag ++ "%>";
+macro_terminator(M, []) -> ":" ++ M ++ ":>";
+macro_terminator(M, Tag) -> ":" ++ Tag ++ ":" ++ M ++ ">".
+
+parse_macro_header([$<,$%|T]) ->
+  {Text, T1} = until_eol(T),
+  {{"%", Text}, T1};
+parse_macro_header([$<,$:|T]) -> parse_macro_header(T, ":").
+
+parse_macro_header(T, M) ->
+  {Text, T1} = until_eol(T),
+  case string:tokens(Text, ":") of
+    [Tag|Args] -> {{Tag, Args}, T1};
+    [] -> {error, M}
+  end.
 
 % Extract heredocs
 

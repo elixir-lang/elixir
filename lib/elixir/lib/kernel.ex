@@ -2715,6 +2715,11 @@ defmodule Kernel do
     Macro.escape(regex)
   end
 
+  @doc """
+  Handles the sigil <% ... %>. It ignores input.
+  """
+  defmacro :"__%__".({ :<<>>, _line, _args }, options), do: nil
+
   ## Private functions
 
   # Extracts concatenations in order to optimize many
