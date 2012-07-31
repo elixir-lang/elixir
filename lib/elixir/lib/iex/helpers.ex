@@ -132,12 +132,12 @@ defmodule IEx.Helpers do
             IO.puts "# #{inspect module}\n"
             IO.write binary
           { _, _ } ->
-            IO.puts :stderr, "No docs for #{inspect module}"
+            IO.puts "No docs for #{inspect module}"
           _ ->
-            IO.puts :stderr, "#{inspect module} was not compiled with docs"
+            IO.puts "#{inspect module} was not compiled with docs"
         end
       { :error, reason } ->
-        IO.puts :stderr, "Could not load module #{inspect module}: #{reason}"
+        IO.puts "Could not load module #{inspect module}: #{reason}"
     end
   end
 
@@ -154,10 +154,10 @@ defmodule IEx.Helpers do
       if doc do
         IO.write "\n" <> doc
       else
-        IO.puts :stderr, "No docs for #{function}/#{arity}"
+        IO.puts "No docs for #{function}/#{arity}"
       end
     else
-      IO.puts :stderr, "#{inspect module} was not compiled with docs"
+      IO.puts "#{inspect module} was not compiled with docs"
     end
   end
 

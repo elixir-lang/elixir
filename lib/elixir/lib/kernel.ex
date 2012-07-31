@@ -1928,7 +1928,7 @@ defmodule Kernel do
         value when is_atom(value) ->
           value
         _ ->
-          IO.puts :standard_error, "Unexpected message received"
+          IO.puts :stderr, "Unexpected message received"
       end
 
   The match clauses above follows the same rules as `case/2`.
@@ -1942,10 +1942,10 @@ defmodule Kernel do
         value when is_atom(value) ->
           value
         _ ->
-          IO.puts :standard_error, "Unexpected message received"
+          IO.puts :stderr, "Unexpected message received"
       after
         5000 ->
-          IO.puts :standard_error, "No message in 5 seconds"
+          IO.puts :stderr, "No message in 5 seconds"
       end
 
   The `after` clause can be specified even if there are no match clauses.

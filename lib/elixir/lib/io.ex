@@ -61,7 +61,7 @@ defmodule IO do
       IO.write "sample"
       #=> "sample"
 
-      IO.write :standard_error, "error"
+      IO.write :stderr, "error"
       #=> "error"
 
   """
