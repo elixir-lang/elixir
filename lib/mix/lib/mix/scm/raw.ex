@@ -1,5 +1,6 @@
 defmodule Mix.SCM.Raw do
   @behavior Mix.SCM
+  @moduledoc false
 
   def key do
     :raw
@@ -23,8 +24,8 @@ defmodule Mix.SCM.Raw do
     opts[:lock]
   end
 
-  def update(_path, _opts) do
-    nil
+  def update(_path, opts) do
+    opts[:lock]
   end
 
   def clean(path, _) do

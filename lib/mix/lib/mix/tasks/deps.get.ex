@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Deps.Get do
       File.mkdir_p!(path)
 
       opts = Keyword.put(opts, :lock, lock)
-      new  = scm.get(path, opts)
+      new  = if unavailable?(dep), do: scm.get(path, opts), else: scm.update(path, opts)
 
       if new && lock && lock != new do
         Mix.shell.error "  dependency could not be updated to lock #{inspect lock}"
@@ -44,4 +44,7 @@ defmodule Mix.Tasks.Deps.Get do
 
     Mix.Task.run "deps.compile", apps
   end
+
+  defp unavailable?(Mix.Dep[status: { :unavailable, _ }]), do: true
+  defp unavailable?(_),                                    do: false
 end

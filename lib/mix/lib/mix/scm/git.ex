@@ -1,5 +1,6 @@
 defmodule Mix.SCM.Git do
   @behavior Mix.SCM
+  @moduledoc false
 
   def key do
     :git
@@ -23,10 +24,7 @@ defmodule Mix.SCM.Git do
 
   def get(path, opts) do
     location = opts[:git]
-
-    unless available?(path, opts) do
-      maybe_error System.cmd("git clone --quiet --no-checkout #{location} #{path}")
-    end
+    maybe_error System.cmd("git clone --quiet --no-checkout #{location} #{path}")
 
     if available?(path, opts) do
       File.cd! path, fn -> checkout(opts) end
