@@ -1,4 +1,4 @@
-defmodule EEx.MixFile do
+defmodule EEx.Mixfile do
   use Mix.Project
 
   def project do

@@ -74,7 +74,7 @@ defmodule Mix.Tasks.New do
    """
 
   embed_template :mixfile, """
-  defmodule <%= @mod %>.MixFile do
+  defmodule <%= @mod %>.Mixfile do
     use Mix.Project
 
     def project do
