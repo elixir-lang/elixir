@@ -203,13 +203,10 @@ defmodule IEx do
   ## Code injection helper
 
   defp ensure_module_exists(node, mod) do
-    case :rpc.call node, :code, :is_loaded, [mod] do
-      false ->
-        {m,b,f} = :code.get_object_code mod
-        {:module, mod} = :rpc.call node, :code, :load_binary, [m,f,b]
-      _ -> nil
+    unless :rpc.call node, :code, :is_loaded, [mod] do
+      {m,b,f} = :code.get_object_code mod
+      {:module, mod} = :rpc.call node, :code, :load_binary, [m,f,b]
     end
   end
-
 end
 
