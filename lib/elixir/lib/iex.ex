@@ -56,12 +56,7 @@ defmodule IEx do
       # reattach it the error logger.
       attach_error_logger
 
-      # If we have a remote, do remote expansion
-      expand_fun = remote && fn(arg) ->
-        :rpc.call(remote, IEx.Autocomplete, :expand, [arg])
-      end
-
-      start config, expand_fun
+      start config
     end
 
     # Dettach the error logger because we are going to unregister
@@ -97,11 +92,18 @@ defmodule IEx do
 
   # This is a callback invoked by Erlang shell utilities.
   @doc false
-  def start(config // nil, expand_fun // nil) do
+  def start(config // nil) do
     spawn fn ->
       config = config || boot_config([])
-      :io.setopts :erlang.group_leader,
-                  [expand_fun: expand_fun || IEx.Autocomplete.expand &1]
+      gl = :erlang.group_leader
+      glnode = node gl
+      if glnode != node do
+        ensure_module_exists glnode, IEx.Remsh
+        expand_fun = IEx.Remsh.expand node
+      else
+        expand_fun = IEx.Autocomplete.expand &1
+      end
+      :io.setopts gl, [expand_fun: expand_fun]
       start_loop(config)
     end
   end
@@ -197,5 +199,17 @@ defmodule IEx do
   defp print_stacktrace(io, stacktrace) do
     Enum.each stacktrace, fn s -> io.error "    #{format_stacktrace(s)}" end
   end
+
+  ## Code injection helper
+
+  defp ensure_module_exists(node, mod) do
+    case :rpc.call node, :code, :is_loaded, [mod] do
+      false ->
+        {m,b,f} = :code.get_object_code mod
+        {:module, mod} = :rpc.call node, :code, :load_binary, [m,f,b]
+      _ -> nil
+    end
+  end
+
 end
 
