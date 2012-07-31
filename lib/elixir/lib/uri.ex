@@ -118,10 +118,10 @@ defmodule URI do
   for that particular scheme. Take a look at URI.HTTPS for an
   example of one of these extension modules.
   """
-  def parse(s) when is_binary(s) do
+  def parse(s) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
     regex = %r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
-    parts = nillify(Regex.run(regex, s))
+    parts = nillify(Regex.run(regex, to_binary(s)))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
     { userinfo, host, port } = split_authority(authority)
@@ -133,10 +133,6 @@ defmodule URI do
     ]
 
     scheme_specific(scheme, info)
-  end
-
-  def parse(s) when is_list(s) do
-    parse( list_to_binary(s) )
   end
 
   defp scheme_specific(scheme, info) do
