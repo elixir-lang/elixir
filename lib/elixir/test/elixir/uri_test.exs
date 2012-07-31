@@ -109,6 +109,10 @@ defmodule URITest do
                  URI.parse("http://foo.com:4444")
   end
 
+  test :parse_char_list do
+    assert "/" == URI.parse('/').path
+  end
+
   test :parse_bad_uris do
     assert URI.parse("https:??@?F?@#>F//23/")
     assert URI.parse("")
