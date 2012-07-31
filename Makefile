@@ -13,7 +13,7 @@ define TASK_TEMPLATE
 $(1): lib/$(1)/ebin/Elixir-$(2).beam lib/$(1)/ebin/$(1).app
 
 lib/$(1)/ebin/$(1).app:
-	@ cd lib/$(1) && ../../bin/mix compile.app
+	@ cd lib/$(1) && ../../bin/elixir ../../bin/mix compile.app
 
 lib/$(1)/ebin/Elixir-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex) $$(FORCE)
 	@ echo "==> $(1) (compile)"
