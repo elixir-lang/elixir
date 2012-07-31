@@ -73,7 +73,7 @@ zip: $(FULLFLAG)
 docs: $(FULLFLAG)
 	mkdir -p ebin
 	rm -rf docs
-	cp -R -f lib/*/ebin/__*.beam ./ebin
+	cp -R -f lib/*/ebin/*.beam ./ebin
 	bin/elixir ../exdoc/bin/exdoc
 	rm -rf ebin
 
