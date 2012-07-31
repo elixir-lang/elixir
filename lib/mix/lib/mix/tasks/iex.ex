@@ -9,10 +9,9 @@ defmodule Mix.Tasks.Iex do
   Elixir ensures your code is compiled and loaded
   before starting IEx.
   """
-  def run(argv) do
+  def run(_) do
     Mix.Task.run "compile"
-    { opts, _ } = OptionParser.parse(argv)
-    IEx.run(opts)
+    IEx.run
     :timer.sleep(:infinity)
   end
 end

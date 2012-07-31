@@ -1,5 +1,5 @@
-defrecord Kernel.CLI.Config, commands: [], close: [],
-  output: ".", compile: [], halt: true, compiler_options: []
+defrecord Kernel.CLI.Config, commands: [], output: ".",
+                             compile: [], halt: true, compiler_options: []
 
 defmodule Kernel.CLI do
   @moduledoc false
@@ -14,7 +14,7 @@ defmodule Kernel.CLI do
     argv = lc arg inlist argv, do: list_to_binary(arg)
     Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
 
-    all_commands = List.reverse(config.commands) ++ List.reverse(config.close)
+    all_commands = List.reverse(config.commands)
 
     try do
       Enum.map all_commands, process_command(&1, config)
@@ -26,7 +26,7 @@ defmodule Kernel.CLI do
       exception ->
         at_exit(1)
         stacktrace = System.stacktrace
-        IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+        IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
         print_stacktrace(stacktrace)
         halt(1)
     catch
@@ -39,7 +39,7 @@ defmodule Kernel.CLI do
       kind, reason ->
         at_exit(1)
         stacktrace = System.stacktrace
-        IO.puts :standard_error, "** (#{kind}) #{inspect(reason)}"
+        IO.puts :stderr, "** (#{kind}) #{inspect(reason)}"
         print_stacktrace(stacktrace)
         halt(1)
     end
@@ -54,18 +54,18 @@ defmodule Kernel.CLI do
         hook.(status)
       rescue
         exception ->
-          IO.puts :standard_error, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+          IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
           print_stacktrace(System.stacktrace)
       catch
         kind, reason ->
-          IO.puts :standard_error, "** #{kind} #{inspect(reason)}"
+          IO.puts :stderr, "** #{kind} #{inspect(reason)}"
           print_stacktrace(System.stacktrace)
       end
     end
   end
 
   defp invalid_option(option) do
-    IO.puts(:standard_error, "Unknown option #{list_to_binary(option)}")
+    IO.puts(:stderr, "Unknown option #{list_to_binary(option)}")
     halt(1)
   end
 
@@ -79,7 +79,7 @@ defmodule Kernel.CLI do
   end
 
   defp print_stacktrace(stacktrace) do
-    Enum.each stacktrace, fn s -> IO.puts :standard_error, "    #{format_stacktrace(s)}" end
+    Enum.each stacktrace, fn s -> IO.puts :stderr, "    #{format_stacktrace(s)}" end
   end
 
   # Process shared options
@@ -89,8 +89,12 @@ defmodule Kernel.CLI do
     process_shared t, config
   end
 
+  defp process_shared(['--no-halt'|t], config) do
+    process_shared t, config.halt(false)
+  end
+
   defp process_shared(['-e',h|t], config) do
-    process_shared t, config.prepend_commands [{:eval,h}]
+    process_shared t, config.prepend_commands [eval: h]
   end
 
   defp process_shared(['-pa',h|t], config) do
@@ -106,14 +110,14 @@ defmodule Kernel.CLI do
   defp process_shared(['-r',h|t], config) do
     h = list_to_binary(h)
     config = Enum.reduce File.wildcard(h), config, fn path, config ->
-      config.prepend_commands [{:require, path}]
+      config.prepend_commands [require: path]
     end
     process_shared t, config
   end
 
   defp process_shared(['-pr',h|t], config) do
     h = list_to_binary(h)
-    process_shared t, config.prepend_commands [{:parallel_require, h}]
+    process_shared t, config.prepend_commands [parallel_require: h]
   end
 
   defp process_shared([erl,_|t], config) when erl in ['--erl', '--sname', '--remsh', '--name'] do
@@ -130,12 +134,18 @@ defmodule Kernel.CLI do
     { config, t }
   end
 
-  def process_options(['--no-halt'|t], config) do
-    process_options t, config.halt(false)
-  end
-
   def process_options(['--compile'|t], config) do
     process_compiler t, config
+  end
+
+  def process_options(['-S',h|t], config) do
+    exec = System.find_executable(h)
+    if exec do
+      { config.prepend_commands([require: list_to_binary(exec)]), t }
+    else
+      IO.puts(:stderr, "Could not find executable #{h}")
+      halt(1)
+    end
   end
 
   def process_options([h|t] = list, config) do
@@ -144,7 +154,7 @@ defmodule Kernel.CLI do
         shared_option? list, config, process_options(&1, &2)
       _ ->
         h = list_to_binary(h)
-        { config.prepend_commands([{:require, h}]), t }
+        { config.prepend_commands([require: h]), t }
     end
   end
 
@@ -186,7 +196,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_compiler([], config) do
-    { config.prepend_commands([{:compile, config.compile}]), [] }
+    { config.prepend_commands([compile: config.compile]), [] }
   end
 
   # Process commands
