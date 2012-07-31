@@ -98,9 +98,8 @@ defmodule IEx do
       gl = :erlang.group_leader
       glnode = node gl
       if glnode != node do
-        {m,b,f} = :code.get_object_code :elixir_remsh
-        {:module,:elixir_remsh} = :rpc.call glnode, :code, :load_binary, [m,f,b]
-        expand_fun = :elixir_remsh.expand node
+        ensure_module_exists glnode, IEx.Remsh
+        expand_fun = IEx.Remsh.expand node
       else
         expand_fun = IEx.Autocomplete.expand &1
       end
@@ -200,5 +199,17 @@ defmodule IEx do
   defp print_stacktrace(io, stacktrace) do
     Enum.each stacktrace, fn s -> io.error "    #{format_stacktrace(s)}" end
   end
+
+  ## Code injection helper
+
+  defp ensure_module_exists(node, mod) do
+    case :rpc.call node, :code, :is_loaded, [mod] do
+      false ->
+        {m,b,f} = :code.get_object_code mod
+        {:module, mod} = :rpc.call node, :code, :load_binary, [m,f,b]
+      _ -> nil
+    end
+  end
+
 end
 
