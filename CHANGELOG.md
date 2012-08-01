@@ -1,3 +1,5 @@
+# v0.6.0 (2012-08-01)
+
 * incompatible changes
   * [Kernel] Compiled files now follow `Elixir-ModuleName` convention to solve issues with Erlang embedded mode. This removes the `__MAIN__` pseudo-variable as modules are now located inside `Elixir` namespace;
   * [Kernel] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed via macros using `__CALLER__`;

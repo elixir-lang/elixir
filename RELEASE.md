@@ -18,8 +18,8 @@ This document simply outlines the release process:
 
 ## Places where version is mentioned
 
-* lib/elixir/src/elixir.app.src
-* lib/system.ex
+* src/elixir.app.src
+* lib/elixir/lib/system.ex
 * rel/reltool.config
 * Makefile
 * CHANGELOG

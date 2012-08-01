@@ -3,7 +3,7 @@ ELIXIRC:=bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC:=erlc -I lib/elixir/include
 ERL:=erl -I lib/elixir/include -noshell -env ERL_LIBS $ERL_LIBS:lib
 FULLFLAG:=.full
-VERSION:=0.6.0.dev
+VERSION:=0.6.0
 
 .PHONY: 1
 .NOTPARALLEL: compile
