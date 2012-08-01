@@ -21,6 +21,8 @@ unless File.dir?(target) do
 
   File.cd! target, fn ->
     System.cmd("git init")
+    System.cmd("git config user.email \"mix@example.com\"")
+    System.cmd("git config user.name \"Mix Repo\"")
     System.cmd("git add .")
     System.cmd("git commit -m \"ok\"")
   end
