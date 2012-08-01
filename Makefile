@@ -57,9 +57,11 @@ $(eval $(call TASK_TEMPLATE,eex,EEx))
 $(eval $(call TASK_TEMPLATE,mix,Mix))
 
 clean:
-	@ rm -rf .full
-	@ rm -rf lib/*/ebin
 	@ cd lib/elixir && $(REBAR) clean
+	rm -rf .full
+	rm -rf lib/*/ebin
+	rm -rf lib/*/test/tmp
+	rm -rf lib/mix/test/fixtures/git_repo
 
 #==> Release tasks
 $(FULLFLAG): $(wildcard lib/*/ebin/*)
