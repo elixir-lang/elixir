@@ -121,7 +121,7 @@ defmodule URI do
   def parse(s) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
     regex = %r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
-    parts = nillify(Regex.run(regex, s))
+    parts = nillify(Regex.run(regex, to_binary(s)))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
     { userinfo, host, port } = split_authority(authority)
