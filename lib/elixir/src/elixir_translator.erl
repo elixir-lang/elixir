@@ -101,10 +101,6 @@ translate_each({ '[]', _Line, Args }, S) when is_list(Args) ->
 
 %% Lexical
 
-translate_each({ refer, Line, Args }, S) ->
-  elixir_errors:deprecation(Line, S#elixir_scope.file, "refer is deprecated, please use alias instead"),
-  translate_each({ alias, Line, Args }, S);
-
 translate_each({ alias, Line, [Ref] }, S) ->
   translate_each({ alias, Line, [Ref,[]] }, S);
 
@@ -224,21 +220,6 @@ translate_each({ '__ENV__', Line, Atom }, S) when is_atom(Atom) ->
 translate_each({ '__CALLER__', Line, Atom }, S) when is_atom(Atom) ->
   { { var, Line, '__CALLER__' }, S#elixir_scope{caller=true} };
 
-%% Arg-less deprecated macros
-
-translate_each({'__FUNCTION__', Line, Atom}, S) when is_atom(Atom) ->
-  elixir_errors:deprecation(Line, S#elixir_scope.file, "__FUNCTION__ is deprecated, use __ENV__.function instead"),
-  case S#elixir_scope.function of
-    nil ->
-      { { atom, Line, nil }, S };
-    { Name, Arity } ->
-      { { tuple, Line, [ { atom, Line, Name }, { integer, Line, Arity } ] }, S }
-  end;
-
-translate_each({'__LINE__', Line, Atom}, S) when is_atom(Atom) ->
-  elixir_errors:deprecation(Line, S#elixir_scope.file, "__LINE__ is deprecated, use __ENV__.line instead"),
-  { { integer, Line, Line }, S };
-
 %% Aliases
 
 translate_each({ '__aliases__', Line, [H] }, S) when H /= 'Elixir'  ->
@@ -301,13 +282,6 @@ translate_each({ quote, GivenLine, [[{do,Exprs}|T]] }, S) ->
 
 translate_each({ quote, Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for quote");
-
-translate_each({ in_guard, Line, [[{do,Guard},{else,Else}]] }, S) ->
-  elixir_errors:deprecation(Line, S#elixir_scope.file, "in_guard is deprecated, check __CALLER__.in_guard? instead"),
-  case S#elixir_scope.context of
-    guard -> translate_each(Guard, S);
-    _ -> translate_each(Else, S)
-  end;
 
 %% Functions
 

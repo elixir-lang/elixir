@@ -268,30 +268,6 @@ defmodule Module do
     end
   end
 
-  @doc false
-  def function_defined?(module, tuple) do
-    IO.puts "Module.function_defined? is deprecated in favor of Module.defines?"
-    defines?(module, tuple)
-  end
-
-  @doc false
-  def function_defined?(module, tuple, kind) do
-    IO.puts "Module.function_defined? is deprecated in favor of Module.defines?"
-    defines?(module, tuple, kind)
-  end
-
-  @doc false
-  def defined_functions(module) do
-    IO.puts "Module.defined_functions is deprecated in favor of Module.definitions_in"
-    definitions_in(module)
-  end
-
-  @doc false
-  def defined_functions(module, kind) do
-    IO.puts "Module.defined_functions is deprecated in favor of Module.definitions_in"
-    definitions_in(module, kind)
-  end
-
   @doc """
   Return all functions defined in the given module.
 
@@ -351,13 +327,6 @@ defmodule Module do
           raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
       end
     end
-  end
-
-  def add_compile_callback(module, target, fun // :__compiling__) do
-    IO.puts "Module.add_compile_callback(module, target, fun) is deprecated in favor of " <>
-      "Module.add_attribute(module, :before_compile, { target, fun })"
-    assert_not_compiled!(:add_compile_callback, module)
-    add_attribute(module, :before_compile, { target, fun })
   end
 
   @doc """

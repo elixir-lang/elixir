@@ -2577,29 +2577,13 @@ defmodule Kernel do
   end
 
   defp do_delegate(funs, opts) do
-    case :lists.any(match?({ n, a } when is_atom(n) and is_integer(a), &1), funs) do
-      true ->
-        IO.puts "Passing a pair fun/arity to defdelegate is deprecated. Please pass the function signature instead"
-      _ ->
-        :ok
-    end
-
     target = Keyword.get(opts, :to) ||
-      raise(ArgumentError, message: "Expected to: be given as argument")
+      raise(ArgumentError, message: "Expected to: to be given as argument")
 
     append_first = Keyword.get(opts, :append_first, false)
 
     lc fun inlist funs do
-      { name, args } =
-        case fun do
-          { name, arity } when is_atom(name) and is_integer(arity) ->
-            args = lc i inlist :lists.seq(1, arity) do
-              { binary_to_atom(<<?x, i + 64>>, :utf8), 0, :quoted }
-            end
-            { name, args }
-          _ ->
-            Erlang.elixir_clauses.extract_args(fun)
-        end
+      { name, args } = Erlang.elixir_clauses.extract_args(fun)
 
       actual_args =
         case append_first and args != [] do

@@ -69,11 +69,6 @@ defmodule IO do
     Erlang.io.put_chars map_dev(device), to_iodata(item)
   end
 
-  def print(device // :stdio, item) do
-    IO.puts "IO.print is deprecated in favor of IO.write"
-    Erlang.io.put_chars map_dev(device), to_iodata(item)
-  end
-
   @doc """
   Writes the argument to the device, similarly to write
   but adds a new line at the end. The argument is expected
