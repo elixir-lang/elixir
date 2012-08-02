@@ -300,14 +300,18 @@ defmodule Macro do
   # In case aliases contains more than one item, we need
   # to loop them checking if they are all atoms or not.
   # Macros and pseudo-variables are then expanded.
-  def expand({ :__aliases__, _, [h|t] }, env) do
+  def expand({ :__aliases__, _, [h|t] } = original, env) do
     aliases = case h do
       x when is_atom(x) and x != Elixir -> [expand_alias(x, env)|t]
       _                                 -> [h|t]
     end
 
     aliases = lc alias inlist aliases, do: expand(alias, env)
-    :lists.all(is_atom(&1), aliases) && Erlang.elixir_aliases.concat(aliases)
+
+    case :lists.all(is_atom(&1), aliases) do
+      true  -> Erlang.elixir_aliases.concat(aliases)
+      false -> original
+    end
   end
 
   # Expand Erlang.foo calls

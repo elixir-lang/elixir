@@ -71,6 +71,12 @@ defmodule MacroTest do
     assert Macro.expand(quote(do: Elixir.Bar.Baz), __ENV__) == Elixir.Bar.Baz
   end
 
+  test :expand_with_op do
+    assert Macro.expand(quote(do: Foo.bar.Baz), __ENV__) == (quote do
+      Foo.bar.Baz
+    end)
+  end
+
   test :expand_with_erlang do
     assert Macro.expand(quote(do: Erlang.foo), __ENV__) == :foo
   end

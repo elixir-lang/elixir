@@ -85,6 +85,11 @@ defmodule File do
   should be used when the developer expects his software
   to fail in case the file cannot be read (i.e. it is
   literally an exception).
+
+  Finally, the functions in this module accept either
+  a char lists or a binary. When manipulating paths, a char
+  list is returned if one is given as argument. However,
+  when reading files, binaries are always returned.
   """
 
   alias Erlang.file,     as: F
