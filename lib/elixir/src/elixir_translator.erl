@@ -106,6 +106,8 @@ translate_each({ alias, Line, [Ref] }, S) ->
 
 translate_each({ alias, Line, [Ref, KV] }, S) ->
   assert_no_assign_or_guard_scope(Line, alias, S),
+  validate_opts(Line, alias, [as], KV, S),
+
   { TRef, SR } = translate_each(Ref, S),
 
   case TRef of
@@ -148,6 +150,8 @@ translate_each({ require, Line, [Ref] }, S) ->
 
 translate_each({ require, Line, [Ref, KV] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'require', S),
+  validate_opts(Line, require, [as], KV, S),
+
   { TRef, SR } = translate_each(Ref, S),
 
   As = case orddict:find(as, KV) of
@@ -184,18 +188,15 @@ translate_each({ import, Line, [Left, Right, Opts] }, S) ->
 
   Selector = case TSelector of
     { atom, _,  SelectorAtom } -> SelectorAtom;
-    _ -> syntax_error(Line, S#elixir_scope.file, "invalid selector for import")
+    _ -> syntax_error(Line, S#elixir_scope.file, "invalid selector for import, expected an atom")
   end,
 
   Ref = case TRef of
     { atom, _, RefAtom } -> RefAtom;
-    _ -> syntax_error(Line, S#elixir_scope.file, "invalid name for import")
+    _ -> syntax_error(Line, S#elixir_scope.file, "invalid name for import, expected an atom or alias")
   end,
 
-  case is_list(Opts) of
-    true -> [];
-    _ -> syntax_error(Line, S#elixir_scope.file, "invalid options for import")
-  end,
+  validate_opts(Line, import, [as, only, except], Opts, S),
 
   As = case orddict:find(as, Opts) of
     { ok, Value } -> Value;
@@ -545,6 +546,14 @@ translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
       FS = umergev(SL, umergev(SR,SA)),
       { ?ELIXIR_WRAP_CALL(Line, erlang, apply, [TLeft, TRight, TArgs]), FS }
   end.
+
+validate_opts(Line, Kind, Allowed, Opts, S) when is_list(Opts) ->
+  [begin
+    syntax_error(Line, S#elixir_scope.file, "unsupported option ~s given to ~s", [Key, Kind])
+  end || { Key, _ } <- Opts, not lists:member(Key, Allowed)];
+
+validate_opts(Line, Kind, _Allowed, _Opts, S) ->
+  syntax_error(Line, S#elixir_scope.file, "invalid options for ~s, expected a keywords list", [Kind]).
 
 %% Handle partials by automatically wrapping them in a function.
 %% It also checks if we are in an assignment scope and does not

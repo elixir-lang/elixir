@@ -167,6 +167,11 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'alias Erlang.lists, as: Sample.Lists'
   end
 
+  test :invalid_import_option do
+    assert "nofile:1: unsupported option ops given to import" ==
+      format_rescue 'import Erlang.lists, [ops: 1]'
+  end
+
   test :invalid_access_protocol_not_alias do
     assert "invalid usage of access protocol in signature" ==
       format_rescue 'defmodule Foo do\ndef sample(config[integer: 0]), do: true\nend'
