@@ -69,7 +69,8 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
   All = keydelete(Key, Old),
 
   New = case orddict:find(only, Opts) of
-    { ok, Only } ->
+    { ok, RawOnly } ->
+      Only = expand_fun_arity(Line, only, RawOnly, S),
       case Only -- get_exports(Key) of
         [{Name,Arity}|_] ->
           Tuple = { invalid_import, { Key, Name, Arity } },
@@ -78,7 +79,8 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
       end;
     error ->
       case orddict:find(except, Opts) of
-        { ok, Except } ->
+        { ok, RawExcept } ->
+          Except = expand_fun_arity(Line, except, RawExcept, S),
           case keyfind(Key, Old) of
             false -> AvailableFun() -- Except;
             {Key,ToRemove} -> ToRemove -- Except
@@ -98,6 +100,29 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
       ensure_no_in_erlang_macro_conflict(Line, File, Key, Final, internal_conflict),
       [{ Key, Final }|All]
   end.
+
+%% Ensure we are expanding macros and stuff
+
+expand_fun_arity(Line, Kind, Value, S) ->
+  { TValue, _S } = elixir_translator:translate_each(Value, S),
+  cons_to_keywords(Line, Kind, TValue, S).
+
+cons_to_keywords(Line, Kind, { cons, _, Left, { nil, _ } }, S) ->
+  [tuple_to_fun_arity(Line, Kind, Left, S)];
+
+cons_to_keywords(Line, Kind, { cons, _, Left, Right }, S) ->
+  [tuple_to_fun_arity(Line, Kind, Left, S)|cons_to_keywords(Line, Kind, Right, S)];
+
+cons_to_keywords(Line, Kind, _, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.file,
+    "invalid value for :~s, expected a list with functions and arities", [Kind]).
+
+tuple_to_fun_arity(_Line, _Kind, { tuple, _, [{ atom, _, Atom }, { integer, _, Integer }] }, _S) ->
+  { Atom, Integer };
+
+tuple_to_fun_arity(Line, Kind, _, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.file,
+    "invalid value for :~s, expected a list with functions and arities", [Kind]).
 
 %% Retrieve functions and macros from modules
 

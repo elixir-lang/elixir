@@ -29,9 +29,9 @@ defmodule Bitwise do
   defmacro __using__(options) do
     except = cond do
       Keyword.get(options, :only_operators) ->
-        [:bnot, :band, :bor, :bxor, :bsl, :bsr]
+        [bnot: 1, band: 2, bor: 2, bxor: 2, bsl: 2, bsr: 2]
       Keyword.get(options, :skip_operators) ->
-        [:~~~, :&&&, :|||, :^^^, :<<<, :>>>]
+        [~~~: 1, &&&: 2, |||: 2, ^^^: 2, <<<: 2, >>>: 2]
       true -> []
     end
 

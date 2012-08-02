@@ -1,9 +1,16 @@
 Code.require_file "../../test_helper", __FILE__
 
+defmodule Kernel.ImportAvailable do
+  defmacro flatten do
+    [flatten: 1]
+  end
+end
+
 defmodule Kernel.ImportOnlyTest do
   use ExUnit.Case, async: true
 
-  import Erlang.lists, only: [flatten: 1]
+  require Kernel.ImportAvailable
+  import Erlang.lists, only: Kernel.ImportAvailable.flatten
 
   test :import_erlang do
     assert flatten([1,[2],3]) == [1,2,3]
