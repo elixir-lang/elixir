@@ -8,7 +8,7 @@ defprotocol Access do
   invokes `Access.access` protocol.
 
   This protocol is limited and is implemented only for the
-  following built-in types: keywords, tuples, atoms and
+  following built-in types: keywords, records, atoms and
   functions.
   """
 
