@@ -15,7 +15,7 @@ binding_for_eval(Module, Binding) -> [{'_@MODULE',Module}|Binding].
 %% TABLE METHODS
 
 data_table(Module) ->
-  ?ELIXIR_ATOM_CONCAT([d, Module]).
+  Module.
 
 docs_table(Module) ->
   ?ELIXIR_ATOM_CONCAT([o, Module]).

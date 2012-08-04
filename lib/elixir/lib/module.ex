@@ -13,6 +13,15 @@ defmodule Module do
   """
 
   @doc """
+  Check if a module is open, i.e. it is currently being defined
+  and its attributes and functions can be modified.
+  """
+  def open?(module) do
+    table = data_table_for(module)
+    table == ETS.info(table, :name)
+  end
+
+  @doc """
   Evalutes the quotes contents in the given module context.
   Raises an error if the module was already compiled.
 
@@ -507,13 +516,8 @@ defmodule Module do
     value
   end
 
-  defp compiled?(module) do
-    table = data_table_for(module)
-    table == ETS.info(table, :name)
-  end
-
   defp data_table_for(module) do
-    list_to_atom Erlang.lists.concat([:d, module])
+    module
   end
 
   defp function_table_for(module) do
@@ -525,7 +529,7 @@ defmodule Module do
   end
 
   defp assert_not_compiled!(fun, module) do
-    compiled?(module) ||
+    open?(module) ||
       raise ArgumentError,
         message: "could not call #{fun} on module #{inspect module} because it was already compiled"
   end

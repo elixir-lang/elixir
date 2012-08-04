@@ -104,6 +104,13 @@ defmodule MacroTest do
     assert Macro.expand(expr, __ENV__) == expr
   end
 
+  @foo 1
+  @bar Macro.expand(quote(do: @foo), __ENV__)
+
+  test :expand_with_module_at do
+    assert @bar == 1
+  end
+
   ## to_binary
 
   test :var_to_binary do

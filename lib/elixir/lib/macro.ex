@@ -314,6 +314,14 @@ defmodule Macro do
     end
   end
 
+  # Expand @ calls
+  def expand({ :@, _, [{ name, _, args }] } = original, env) when is_atom(args) or args == [] do
+    case (module = env.module) && Module.open?(module) do
+      true  -> Module.read_attribute(module, name)
+      false -> original
+    end
+  end
+
   # Expand Erlang.foo calls
   def expand({ { :., _, [{ :__aliases__, _, [:Erlang] }, atom] }, _, args }, _env) when
     is_atom(atom) and (is_atom(args) or args == []), do: atom
