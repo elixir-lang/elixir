@@ -137,19 +137,6 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.pop
   end
 
-  test "unlocks deps" do
-    Mix.Project.push GitApp
-
-    in_fixture "no_mixfile", fn ->
-      Mix.Deps.Lock.write [git_repo: "abcdef"]
-      assert Mix.Deps.Lock.read == [git_repo: "abcdef"]
-      Mix.Tasks.Deps.Unlock.run []
-      assert Mix.Deps.Lock.read == []
-    end
-  after
-    Mix.Project.pop
-  end
-
   defp get_git_repo_revs do
     File.cd! fixture_path("git_repo"), fn ->
       Regex.split %r(\n), System.cmd("git log --format=%H")

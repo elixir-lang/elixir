@@ -136,4 +136,21 @@ defmodule Mix.Tasks.DepsTest do
   after
     Mix.Project.pop
   end
+
+  test "unlocks all deps" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Deps.Lock.write [git_repo: "abcdef"]
+      assert Mix.Deps.Lock.read == [git_repo: "abcdef"]
+      Mix.Tasks.Deps.Unlock.run []
+      assert Mix.Deps.Lock.read == []
+    end
+  end
+
+  test "unlocks specific deps" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Deps.Lock.write [git_repo: "abcdef", another: "hash"]
+      Mix.Tasks.Deps.Unlock.run ["git_repo", "unknown"]
+      assert Mix.Deps.Lock.read == [another: "hash"]
+    end
+  end
 end
