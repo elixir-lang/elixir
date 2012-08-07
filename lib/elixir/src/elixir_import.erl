@@ -79,6 +79,7 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
       end;
     error ->
       case orddict:find(except, Opts) of
+        { ok, [] } -> AvailableFun();
         { ok, RawExcept } ->
           Except = expand_fun_arity(Line, except, RawExcept, S),
           case keyfind(Key, Old) of
