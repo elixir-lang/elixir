@@ -206,7 +206,16 @@ defmodule Regex do
   Split the given target in the number of parts specified. If no ammount
   of parts is given, it defaults to :infinity.
   """
-  def split({ Regex, compiled, _, _ }, string, parts // :infinity) do
+
+  def split({ Regex, compiled, _, _ }, string, options // [])
+
+  def split(regex, string, options) when is_integer(options) or is_atom(options) do
+    IO.puts "Passing an integer or atom to Regex.split/3 is deprecated, pass a :parts option instead"
+    split(regex, string, parts: options)
+  end
+
+  def split({ Regex, compiled, _, _ }, string, options) do
+    parts = options[:parts] || :infinity
     options = [{ :return, return_for(string) }, :trim, { :parts, parts }]
     Erlang.re.split(string, compiled, options)
   end

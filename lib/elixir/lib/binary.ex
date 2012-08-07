@@ -89,7 +89,7 @@ defmodule Binary do
 
   def split(binary, regex, options) when is_regex(regex) do
     parts = if options[:global], do: :infinity, else: 2
-    Regex.split(regex, binary, parts)
+    Regex.split(regex, binary, parts: parts)
   end
 
   def split(binary, pattern, options) do
