@@ -133,8 +133,8 @@ defmodule BinaryTest do
   end
 
   test :split do
-    assert Binary.split("a,b", ",") == ["a", "b"]
     assert Binary.split("a,b,c", ",") == ["a", "b,c"]
+    assert Binary.split("a,b,c", ",", global: true) == ["a", "b", "c"]
     assert Binary.split("foo bar") == ["foo", "bar"]
     assert Binary.split("1,2 3,4", [" ", ","]) == ["1", "2 3,4"]
     assert Binary.split("1,2 3,4", [" ", ","], global: true) == ["1", "2", "3", "4"]

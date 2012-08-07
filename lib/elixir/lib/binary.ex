@@ -85,11 +85,36 @@ defmodule Binary do
     part(binary, first, length)
   end
 
+  @doc """
+  Divides a binary into sub binaries based on a pattern,
+  returning a list of these sub binaries. The pattern can
+  be another binary, a list of binaries or a regular expression.
+
+  The binary is split into two parts by default, unless
+  `global` option is true. If a pattern is not specified,
+  the binary is split on whitespace occurrences.
+
+  It returns a list with the original binary if the pattern can't be matched.
+
+  ## Examples
+
+    Binary.split("a,b,c", ",")  #=> ["a", "b,c"]
+    Binary.split("a,b,c", ",", global: true)  #=> ["a", "b,c"]
+    Binary.split("foo bar")     #=> ["foo", "bar"]
+    Binary.split("1,2 3,4", [" ", ","]) #=> ["1", "2 3,4"]
+    Binary.split("1,2 3,4", [" ", ","], global: true) #=> ["1", "2", "3", "4"]
+    Binary.split("a,b", ".")    #=> ["a,b"]
+
+    Binary.split("a,b,c", %r{,})  #=> ["a", "b,c"]
+    Binary.split("a,b,c", %r{,}, global: true) #=> ["a", "b", "c"]
+    Binary.split("a,b", %r{\.})   #=> ["a,b"]
+
+  """
   def split(binary, pattern // " ", options // [])
 
-  def split(binary, regex, options) when is_regex(regex) do
+  def split(binary, pattern, options) when is_regex(pattern) do
     parts = if options[:global], do: :infinity, else: 2
-    Regex.split(regex, binary, parts: parts)
+    Regex.split(pattern, binary, parts: parts)
   end
 
   def split(binary, pattern, options) do
