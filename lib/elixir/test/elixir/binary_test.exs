@@ -131,4 +131,10 @@ defmodule BinaryTest do
     assert Binary.part("foobar", 1..-2) == "ooba"
     assert Binary.part("foobar", -3..-1) == "bar"
   end
+
+  test :split do
+    assert Binary.split("a,b", ",") == ["a", "b"]
+    assert Binary.split("foo bar") == ["foo", "bar"]
+    assert Binary.split("1,2 3,4", [" ", ","]) == ["1", "2 3,4"]
+  end
 end

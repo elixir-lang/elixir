@@ -85,6 +85,10 @@ defmodule Binary do
     part(binary, first, length)
   end
 
+  def split(binary, pattern // " ", options // []) do
+    :binary.split(binary, pattern, options)
+  end
+
   @doc """
   Checks if a binary is printable considering it is encoded
   as UTF-8. Returns true if so, false otherwise.
