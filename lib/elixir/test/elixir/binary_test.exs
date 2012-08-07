@@ -137,10 +137,12 @@ defmodule BinaryTest do
     assert Binary.split("a,b,c", ",") == ["a", "b,c"]
     assert Binary.split("foo bar") == ["foo", "bar"]
     assert Binary.split("1,2 3,4", [" ", ","]) == ["1", "2 3,4"]
+    assert Binary.split("1,2 3,4", [" ", ","], global: true) == ["1", "2", "3", "4"]
   end
 
   test :split_with_regex do
     assert Binary.split("a,b", %r{,}) == ["a", "b"]
     assert Binary.split("a,b,c", %r{,}) == ["a", "b,c"]
+    assert Binary.split("a,b,c", %r{,}, global: true) == ["a", "b", "c"]
   end
 end

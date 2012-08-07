@@ -85,12 +85,19 @@ defmodule Binary do
     part(binary, first, length)
   end
 
-  def split(binary, regex) when is_regex(regex) do
-    Regex.split(regex, binary, 2)
+  def split(binary, pattern // " ", options // [])
+
+  def split(binary, regex, options) when is_regex(regex) do
+    parts = if options[:global], do: :infinity, else: 2
+    Regex.split(regex, binary, parts)
   end
 
-  def split(binary, pattern // " ") do
-    :binary.split(binary, pattern)
+  def split(binary, pattern, options) do
+    options_list = []
+    if options[:global] do
+      options_list = [:global|options_list]
+    end
+    :binary.split(binary, pattern, options_list)
   end
 
   @doc """
