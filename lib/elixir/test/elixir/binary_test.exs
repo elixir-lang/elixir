@@ -1,6 +1,6 @@
 Code.require_file "../test_helper", __FILE__
 
-defmodule BinaryTest do
+defmodule Binary.LiteralTest do
   use ExUnit.Case, async: true
 
   test :heredoc do
@@ -91,6 +91,27 @@ bar
     assert <<a, b|s>> = "foo"
   end
 
+  test :bitsyntax_translation do
+    refb = "sample"
+    sec_data = "another"
+    << size(refb) | 1 - :big - :signed - :integer - {:unit, 8},
+       refb | :binary,
+       size(sec_data) | 1 - :big - :signed - :integer - {:unit, 16},
+       sec_data|:binary >>
+  end
+
+  defp is_match?(<<char, _|:binary>>, char) do
+    true
+  end
+
+  defp is_match?(_, _) do
+    false
+  end
+end
+
+defmodule BinaryTest do
+  use ExUnit.Case, async: true
+
   test :part do
     assert Binary.part("foo", 1, 2) == "oo"
     assert Binary.part("foo", 0, 3) == "foo"
@@ -109,22 +130,5 @@ bar
     assert Binary.part("foobar", 0..-1) == "foobar"
     assert Binary.part("foobar", 1..-2) == "ooba"
     assert Binary.part("foobar", -3..-1) == "bar"
-  end
-
-  test :bitsyntax_translation do
-    refb = "sample"
-    sec_data = "another"
-    << size(refb) | 1 - :big - :signed - :integer - {:unit, 8},
-       refb | :binary,
-       size(sec_data) | 1 - :big - :signed - :integer - {:unit, 16},
-       sec_data|:binary >>
-  end
-
-  defp is_match?(<<char, _|:binary>>, char) do
-    true
-  end
-
-  defp is_match?(_, _) do
-    false
   end
 end
