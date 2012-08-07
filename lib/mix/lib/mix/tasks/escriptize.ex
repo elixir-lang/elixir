@@ -18,6 +18,11 @@ defmodule Mix.Tasks.Escriptize do
   * `escript_embed_elixir` - if true embed elixir in the escript file
     Defaults to false
 
+  * `escript_embed_extra_apps` - embed additional applications
+    Defaults to []
+    This is only used if `escript_embed_elixir` is true.
+    Example: [EEx, IEx, Mix, ExUnit]
+
   * `escript_shebang`
     Defaults to "#! /usr/bin/env escript\\n"
 
@@ -32,7 +37,7 @@ defmodule Mix.Tasks.Escriptize do
     Mix.Task.run :compile, args
     project = Mix.project
     if project[:app] == :elixir do
-      {:ok, {'mem', zip}} = :zip.create 'mem', elixir_files, [:memory]
+      {:ok, {'mem', zip}} = :zip.create 'mem', app_files(:elixir), [:memory]
       script = iolist_to_binary(["#! /usr/bin/env escript\n%%! -noshell\n", zip])
       :file.write_file('elixir', script)
       set_perms('elixir')
@@ -49,7 +54,11 @@ defmodule Mix.Tasks.Escriptize do
     files = [gen_main(filename, project[:escript_main_module])|files]
     embed_elixir = project[:escript_embed_elixir] || false
     if embed_elixir do
-      files = files++elixir_files
+      extra_apps = project[:escript_embed_extra_apps] || []
+      files = files++Enum.reduce extra_apps, app_files(:elixir), fn app, acc ->
+        Code.ensure_loaded(app)
+        acc++app_files(app)
+      end
     end
     files = files++Enum.reduce(project[:deps] || [], [], function do
       {dep, _, _}, acc -> acc++dep_files(dep)
@@ -82,8 +91,8 @@ defmodule Mix.Tasks.Escriptize do
     get_files(File.join(["deps", atom_to_binary(dep), "ebin"]))
   end
 
-  defp elixir_files do
-    {:file, e} = :code.is_loaded(:elixir)
+  defp app_files(module) do
+    {:file, e} = :code.is_loaded(module)
     get_files(File.dirname(e))
   end
 
