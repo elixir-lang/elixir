@@ -33,13 +33,12 @@ defmodule URI do
       dict
     else
       parts = Regex.split %r/&/, to_binary(q)
-      impl  = Dict.__impl_for__!(dict)
 
       try do
         List.foldl parts, dict, fn kvstr, acc ->
           case Regex.split(%r/=/, kvstr) do
             [ key, value ] when key != "" ->
-              impl.put acc, decode(key), decode(value)
+              Dict.put acc, decode(key), decode(value)
             _ ->
               throw :malformed_query_string
           end

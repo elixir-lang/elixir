@@ -1,13 +1,15 @@
 defmodule Dict.Common do
   @moduledoc false
 
-  defmacro __using__(ref) do
+  defmacro __using__(_) do
     quote do
+      @behavior Dict
+
       @doc """
       Creates a new empty dict.
       """
       def new do
-        unquote(ref).empty(nil)
+        empty(nil)
       end
 
       @doc """
@@ -21,7 +23,7 @@ defmodule Dict.Common do
       """
       def new(pairs) do
         Enum.reduce pairs, new, fn { k, v }, dict ->
-          unquote(ref).put(dict, k, v)
+          put(dict, k, v)
         end
       end
 
@@ -37,7 +39,7 @@ defmodule Dict.Common do
       def new(list, transform) when is_function(transform) do
         Enum.reduce list, new(), fn i, dict ->
           { k, v } = transform.(i)
-          unquote(ref).put(dict, k, v)
+          put(dict, k, v)
         end
       end
     end

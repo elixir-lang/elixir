@@ -1,4 +1,12 @@
-defimpl Dict, for: HashDict do
+defmodule HashDict do
+  @moduledoc """
+  This module implements a dictionary based on hashing of the keys.
+  It is a simple wrapper around [Erlang's dict module](http://www.erlang.org/doc/man/dict.html)
+  and exposed via the `Dict` module.
+  """
+
+  use Dict.Common
+
   defmacrop dict(data) do
     quote do
       { HashDict, unquote(data) }
@@ -25,10 +33,8 @@ defimpl Dict, for: HashDict do
 
   def get(dict(data), key, default // nil) do
     case :dict.find(key, data) do
-      {:ok, value} ->
-        value
-      :error ->
-        default
+      {:ok, value} -> value
+      :error       -> default
     end
   end
 
@@ -66,16 +72,10 @@ defimpl Dict, for: HashDict do
 end
 
 defimpl Enum.Iterator, for: HashDict do
-  def iterator({ HashDict, data }), do: :dict.to_list(data)
-  def count({ HashDict, data }), do: :dict.size(data)
+  def iterator(dict), do: HashDict.to_list(dict)
+  def count(dict),    do: HashDict.size(dict)
 end
 
-defmodule HashDict do
-  @moduledoc """
-  This module implements a dictionary based on hashing of the keys.
-  It is a simple wrapper around [Erlang's dict module](http://www.erlang.org/doc/man/dict.html)
-  and exposed via the `Dict` protocol.
-  """
-
-  use Dict.Common, Dict.HashDict
+defimpl Access, for: HashDict do
+  def access(dict, key), do: HashDict.get(dict, key, nil)
 end

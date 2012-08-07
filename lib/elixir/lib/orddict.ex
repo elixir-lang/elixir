@@ -1,4 +1,13 @@
-defimpl Dict, for: Orddict do
+defmodule Orddict do
+  @moduledoc """
+  This module implements a dictionary based that stores items
+  as a list of tuples. It is a simple wrapper around
+  [Erlang's orddict module](http://www.erlang.org/doc/man/orddict.html)
+  and exposed via the `Dict` module.
+  """
+
+  use Dict.Common
+
   defmacrop dict(data) do
     quote do
       { Orddict, unquote(data) }
@@ -70,15 +79,9 @@ end
 
 defimpl Enum.OrdIterator, for: Orddict do
   def iterator({ Orddict, data }), do: data
-  def to_list({ h, next }, _), do: [h|next]
+  def to_list({ h, next }, _),     do: [h|next]
 end
 
-defmodule Orddict do
-  @moduledoc """
-  This module implements a dictionary based that stores items
-  as a list of tuples. It is a simple wrapper around
-  [Erlang's orddict module](http://www.erlang.org/doc/man/orddict.html)
-  and exposed via the `Dict` protocol.
-  """
-  use Dict.Common, Dict.Orddict
+defimpl Access, for: Orddict do
+  def access(dict, key), do: Orddict.get(dict, key, nil)
 end

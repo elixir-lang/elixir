@@ -1,11 +1,17 @@
-defprotocol Dict do
-  @only [Record]
-
+defmodule Dict do
   @moduledoc """
-  This module provides the Dict protocol
-  with the goal of being a common API
-  to work with dictionaries.
+  This module specifies the Dict API expected to be
+  implemented by different dictionaries. It also provides
+  functions that redirect to the target based on the tuple
+  signature.
   """
+
+  @doc false
+  def behaviour_info(:callbacks) do
+    [delete: 2, empty: 1, get: 2, get: 3, has_key?: 2,
+     keys: 1, merge: 2, merge: 3, put: 3, size: 1, to_list: 1,
+     update: 3, update: 4, values: 1]
+  end
 
   @doc """
   Returns a list containing all dict's keys.
@@ -17,7 +23,9 @@ defprotocol Dict do
       Dict.keys [a: 1, b: 2]  #=> [:a,:b]
 
   """
-  def keys(dict)
+  def keys(dict) do
+    elem(dict, 1).keys(dict)
+  end
 
   @doc """
   Returns a list containing all dict's values.
@@ -27,7 +35,9 @@ defprotocol Dict do
       Dict.values [a: 1, b: 2]  #=> [1,2]
 
   """
-  def values(dict)
+  def values(dict) do
+    elem(dict, 1).values(dict)
+  end
 
   @doc """
   Returns the number of elements in `dict`.
@@ -37,7 +47,9 @@ defprotocol Dict do
       Dict.size [a: 1, b: 2]  #=> 2
 
   """
-  def size(dict)
+  def size(dict) do
+    elem(dict, 1).size(dict)
+  end
 
   @doc """
   Returns whether the given key exists in the given dict.
@@ -48,7 +60,9 @@ defprotocol Dict do
       Dict.has_key?([a: 1], :b)  #=> false
 
   """
-  def has_key?(dict, key)
+  def has_key?(dict, key) do
+    elem(dict, 1).has_key?(dict, key)
+  end
 
   @doc """
   Returns the value associated with `key` in `dict`. If `dict` does not
@@ -61,8 +75,9 @@ defprotocol Dict do
       Dict.get [a: 1], :b, 3  #=> 3
 
   """
-  def get(dict, key)
-  def get(dict, key, default)
+  def get(dict, key, default // nil) do
+    elem(dict, 1).get(dict, key, default)
+  end
 
   @doc """
   Stores the given `value` under `key` in `dict`.
@@ -74,7 +89,9 @@ defprotocol Dict do
       #=> [a: 3, b: 2]
 
   """
-  def put(dict, key, val)
+  def put(dict, key, val) do
+    elem(dict, 1).put(dict, key, val)
+  end
 
   @doc """
   Removes the entry stored under the given key from `dict`.
@@ -86,7 +103,9 @@ defprotocol Dict do
       Dict.delete [b: 2], :a        #=> [b: 2]
 
   """
-  def delete(dict, key)
+  def delete(dict, key) do
+    elem(dict, 1).delete(dict, key)
+  end
 
   @doc """
   Merges two dicts into one. If the dicts have duplicated entries, the one
@@ -98,7 +117,9 @@ defprotocol Dict do
       #=> [a:3, b:2, d: 4]
 
   """
-  def merge(dict1, dict2)
+  def merge(dict1, dict2) do
+    elem(dict1, 1).merge(dict1, dict2)
+  end
 
   @doc """
   Merges two dicts into one. If the dicts have duplicated entries, the given
@@ -112,7 +133,9 @@ defprotocol Dict do
       #=> [a: 4, b: 2, d: 4]
 
   """
-  def merge(dict1, dict2, fun)
+  def merge(dict1, dict2, fun) do
+    elem(dict1, 1).merge(dict1, dict2, fun)
+  end
 
   @doc """
   Update a value in `dict` by calling `fun` on the value to get a new
@@ -124,7 +147,9 @@ defprotocol Dict do
       #=> [a: -1, b: 2]
 
   """
-  def update(dict, key, fun)
+  def update(dict, key, fun) do
+    elem(dict, 1).update(dict, key, fun)
+  end
 
   @doc """
   Update a value in `dict` by calling `fun` on the value to get a new value. If
@@ -137,16 +162,22 @@ defprotocol Dict do
       #=> [a: 1, b: 2, c: 3]
 
   """
-  def update(dict, key, initial, fun)
+  def update(dict, key, initial, fun) do
+    elem(dict, 1).update(dict, key, initial, fun)
+  end
 
   @doc """
   Returns an empty dict of the same type as `dict`.
   """
-  def empty(dict)
+  def empty(dict) do
+    elem(dict, 1).empty(dict)
+  end
 
   @doc """
   Returns a list of key-value pairs stored in `dict`.
   No particular order is enforced.
   """
-  def to_list(dict)
+  def to_list(dict) do
+    elem(dict, 1).to_list(dict)
+  end
 end

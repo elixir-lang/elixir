@@ -5,6 +5,12 @@ defmodule DictTest.Common do
     quote do
       use ExUnit.Case, async: true
 
+      test :access do
+        dict = new_dict [{"first key", 1}, {"second key", 2}]
+        assert dict["first key"] == 1
+        assert dict["third key"] == nil
+      end
+
       test :new_pairs do
         dict = new_dict [{"first key", 1}, {"second key", 2}]
         assert 2 == Dict.size dict
@@ -100,11 +106,10 @@ defmodule DictTest.Common do
       end
 
       defp empty_dict, do: unquote(module).new
-      defp new_dict({k, v}), do: unquote(module).new {k, v}
+
       defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
       defp new_dict(list), do: unquote(module).new list
-      defp new_dict(list, transform) when is_function(transform), do: unquote(module).new list, transform
-      defp new_dict(keys, values), do: unquote(module).new keys, values
+      defp new_dict(list, transform), do: unquote(module).new list, transform
     end
   end
 end
