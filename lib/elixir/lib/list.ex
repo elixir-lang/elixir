@@ -176,8 +176,8 @@ defmodule List do
       #=> nil
 
   """
-  def keyfind(list, item, position, default // nil) do
-    Erlang.lists.keyfind(item, position, list) || default
+  def keyfind(list, key, position, default // nil) do
+    Erlang.lists.keyfind(key, position, list) || default
   end
 
   @doc """
@@ -197,8 +197,37 @@ defmodule List do
       #=> false
 
   """
-  def keymember?(list, item, position) do
-    Erlang.lists.keymember(item, position, list)
+  def keymember?(list, key, position) do
+    Erlang.lists.keymember(key, position, list)
+  end
+
+  @doc """
+  Receives a list of tuples and replaces the item
+  identified by `key` at position `pos` if it exists.
+
+  ## Examples
+
+      List.keyreplace([a: 1, b: 2], :a, 1, { :a, 3 })
+      #=> [a: 3, b: 2]
+
+  """
+  def keyreplace(list, key, position, new_tuple) do
+    Erlang.lists.keyreplace(key, position, list, new_tuple)
+  end
+
+  @doc """
+  Receives a list of tuples and replaces the item
+  identified by `key` at position `pos`. If the item
+  does not exist, it is added to the end of the list.
+
+  ## Examples
+
+      List.keystore([a: 1, b: 2], :a, 1, { :a, 3 })
+      #=> [a: 3, b: 2]
+
+  """
+  def keystore(list, key, position, new_tuple) do
+    Erlang.lists.keystore(key, position, list, new_tuple)
   end
 
   @doc """
@@ -218,8 +247,8 @@ defmodule List do
       #=> [{ :a, 1 }, { :b, 2 }]
 
   """
-  def keydelete(list, item, position) do
-    Erlang.lists.keydelete(item, position, list)
+  def keydelete(list, key, position) do
+    Erlang.lists.keydelete(key, position, list)
   end
 
   @doc """

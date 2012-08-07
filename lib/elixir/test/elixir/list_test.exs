@@ -131,6 +131,16 @@ defmodule ListTest do
     assert List.keyfind([a: 1, b: 2], :c, 1) == nil
   end
 
+  test :keyreplace do
+    assert List.keyreplace([a: 1, b: 2], :a, 1, { :a, 3 }) == [a: 3, b: 2]
+    assert List.keyreplace([a: 1], :b, 1, { :b, 2 }) == [a: 1]
+  end
+
+  test :keystore do
+    assert List.keystore([a: 1, b: 2], :a, 1, { :a, 3 }) == [a: 3, b: 2]
+    assert List.keystore([a: 1], :b, 1, { :b, 2 }) == [a: 1, b: 2]
+  end
+
   test :keymember? do
     assert List.keymember?([a: 1, b: 2], :a, 1) == true
     assert List.keymember?([a: 1, b: 2], 2, 2) == true

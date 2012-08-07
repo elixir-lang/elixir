@@ -1,4 +1,5 @@
 * enhancements
+  * [List] Add support to keyreplace and keystore
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
 
 # v0.6.0 (2012-08-01)
