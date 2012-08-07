@@ -19,7 +19,74 @@ defmodule Binary do
   end
 
   @doc """
-  Check if a binary is printable considering it is encoded
+  Extracts a part from the binary according the given `start` and `length`.
+
+  If a negative length is given, it takes the length counting back from
+  the given start.
+
+  If length is out of bounds (i.e. the binary is too short for the given
+  length), it returns the available part.
+
+  If start is out of bounds, it simply returns nil.
+
+  ## Examples
+
+      Binary.part("foobar", 1, 2)  #=> "oo"
+      Binary.part("foobar", 3, -3) #=> "foo"
+      Binary.part("foobar", 3, 6)  #=> "bar"
+      Binary.part("foobar", 0, -3) #=> ""
+
+  """
+  def part(binary, start, length) when start >= 0 do
+    size = size(binary)
+
+    if start <= size do
+      if length > 0 do
+        if start + length > size do
+          length = size - start
+        end
+      else
+        if length + start < 0 do
+          length = -start
+        end
+      end
+
+      :binary.part(binary, start, length)
+    end
+  end
+
+  @doc """
+  Extracts a part from the binary according the given `range`.
+
+  The range first and last must refer to positions in the binary.
+  If first or last are negative, they are counted from the end of
+  the binary.
+
+  ## Examples
+
+      Binary.part("foo", 1..2)      #=> "oo"
+      Binary.part("foobar", 2..4)   #=> "oba"
+      Binary.part("foobar", 0..0)   #=> "f"
+      Binary.part("foobar", 0..-1)  #=> "foobar"
+      Binary.part("foobar", 1..-2)  #=> "ooba"
+      Binary.part("foobar", -3..-1) #=> "bar"
+
+  """
+  def part(binary, Range[first: first, last: last]) do
+    if first < 0 do
+      first = first + size(binary)
+    end
+
+    if last < 0 do
+      last = last + size(binary)
+    end
+
+    length = last - first + 1
+    part(binary, first, length)
+  end
+
+  @doc """
+  Checks if a binary is printable considering it is encoded
   as UTF-8. Returns true if so, false otherwise.
 
   ## Examples

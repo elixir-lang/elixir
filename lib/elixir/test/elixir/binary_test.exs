@@ -91,6 +91,26 @@ bar
     assert <<a, b|s>> = "foo"
   end
 
+  test :part do
+    assert Binary.part("foo", 1, 2) == "oo"
+    assert Binary.part("foo", 0, 3) == "foo"
+    assert Binary.part("foobar", 6, 0) == ""
+    assert Binary.part("foobar", 9, 3) == nil
+    assert Binary.part("foobar", 3, 10) == "bar"
+    assert Binary.part("foobar", 3, -3) == "foo"
+    assert Binary.part("foobar", 3, -6) == "foo"
+    assert Binary.part("foobar", 0, -3) == ""
+  end
+
+  test :part_with_range do
+    assert Binary.part("foo", 1..2) == "oo"
+    assert Binary.part("foobar", 2..4) == "oba"
+    assert Binary.part("foobar", 0..0) == "f"
+    assert Binary.part("foobar", 0..-1) == "foobar"
+    assert Binary.part("foobar", 1..-2) == "ooba"
+    assert Binary.part("foobar", -3..-1) == "bar"
+  end
+
   test :bitsyntax_translation do
     refb = "sample"
     sec_data = "another"

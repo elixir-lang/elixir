@@ -1395,6 +1395,15 @@ defmodule Kernel do
   end
 
   @doc """
+  Check if the given argument is a range.
+  """
+  defmacro is_range(thing) do
+    quote do
+      is_record(unquote(thing), Range)
+    end
+  end
+
+  @doc """
   Defines the current module as a protocol and specifies the API
   that should be implemented.
 
