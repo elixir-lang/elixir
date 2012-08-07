@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Escriptize do
   * `escript_embed_extra_apps` - embed additional applications
     Defaults to []
     This is only used if `escript_embed_elixir` is true.
-    Example: [EEx, IEx, Mix, ExUnit]
+    Example: [EEx, Mix, ExUnit]
 
   * `escript_shebang`
     Defaults to "#! /usr/bin/env escript\\n"
