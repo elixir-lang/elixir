@@ -31,14 +31,25 @@ defmodule Mix.Tasks.Escriptize do
   def run(args) do
     Mix.Task.run :compile, args
     project = Mix.project
+    if project[:app] == :elixir do
+      {:ok, {'mem', zip}} = :zip.create 'mem', elixir_files, [:memory]
+      script = iolist_to_binary(["#! /usr/bin/env escript\n%%! -noshell\n", zip])
+      :file.write_file('elixir', script)
+      set_perms('elixir')
+      Mix.Shell.info "Generated elixir escript"
+    else
+      escriptize(project)
+    end
+  end
+
+  defp escriptize(project) do
     filename = project[:escript_name] || atom_to_list(project[:app])
     compile_path = project[:compile_path]  || "ebin"
     files = get_files compile_path
     files = [gen_main(filename, project[:escript_main_module])|files]
     embed_elixir = project[:escript_embed_elixir] || false
     if embed_elixir do
-      {:file, e} = :code.is_loaded(:elixir)
-      files = files++get_files(File.dirname(e))
+      files = files++elixir_files
     end
     case :zip.create 'mem', files, [:memory] do
       {:ok, {'mem', zip}} ->
@@ -53,9 +64,18 @@ defmodule Mix.Tasks.Escriptize do
         end
       {:error, error} -> Mix.shell.error "Error creating escript: #{error}"
     end
+    set_perms(filename)
+    Mix.Shell.info "Created escript #{filename}"
+  end
+
+  defp set_perms(filename) do
     {:ok, stat} = File.stat(filename)
     :ok = :file.change_mode(filename, stat.mode ||| 73)
-    Mix.Shell.info "Created escript #{filename}"
+  end
+
+  defp elixir_files do
+    {:file, e} = :code.is_loaded(:elixir)
+    get_files(File.dirname(e))
   end
 
   defp gen_main([h|t]=name, nil) do
