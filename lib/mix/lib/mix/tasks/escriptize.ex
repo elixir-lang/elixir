@@ -51,6 +51,11 @@ defmodule Mix.Tasks.Escriptize do
     if embed_elixir do
       files = files++elixir_files
     end
+    files = files++Enum.reduce(project[:deps] || [], [], function do
+      {dep, _, _}, acc -> acc++dep_files(dep)
+      {dep, _, _, _}, acc -> acc++dep_files(dep)
+      _, acc-> acc
+    end)
     case :zip.create 'mem', files, [:memory] do
       {:ok, {'mem', zip}} ->
         shebang = project[:escript_shebang] || "#! /usr/bin/env escript\n"
@@ -71,6 +76,10 @@ defmodule Mix.Tasks.Escriptize do
   defp set_perms(filename) do
     {:ok, stat} = File.stat(filename)
     :ok = :file.change_mode(filename, stat.mode ||| 73)
+  end
+
+  defp dep_files(dep) do
+    get_files(File.join(["deps", atom_to_binary(dep), "ebin"]))
   end
 
   defp elixir_files do
