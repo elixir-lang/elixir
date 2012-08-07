@@ -27,6 +27,16 @@ defmodule Kernel.ImportAllTest do
   end
 end
 
+defmodule Kernel.ImportExceptNoneTest do
+  use ExUnit.Case, async: true
+
+  import Erlang.lists, except: []
+
+  test :import_erlang do
+    assert flatten([1,[2],3]) == [1,2,3]
+  end
+end
+
 defmodule Kernel.ImportExceptTest do
   use ExUnit.Case, async: true
 
