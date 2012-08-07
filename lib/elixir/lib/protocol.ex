@@ -21,7 +21,6 @@ defmodule Protocol do
   def defprotocol(name, [do: block]) do
     quote do
       defmodule unquote(name) do
-        # Remove "harmful" macros
         # We don't want to allow function definition inside protocols
         import Kernel, except: [
           defmacro: 1, defmacro: 2, defmacro: 4,
@@ -40,7 +39,7 @@ defmodule Protocol do
 
         # Define callbacks and meta information
         { conversions, fallback } = Protocol.conversions_for(__MODULE__, @only, @except)
-        Protocol.impl_for(__ENV__, conversions)
+        Protocol.impl_for(__ENV__, conversions, fallback)
         Protocol.meta(__ENV__, @functions, fallback)
       end
     end
@@ -73,7 +72,7 @@ defmodule Protocol do
   if not loaded or not a protocol.
   """
   def assert_protocol(module) do
-    case :code.ensure_loaded(module) do
+    case Code.ensure_compiled(module) do
       { :module, ^module } -> nil
       _ -> raise ArgumentError, message: "#{module} is not loaded"
     end
@@ -143,12 +142,14 @@ defmodule Protocol do
   the module to dispatch to. Returns module.Record for records
   which should be properly handled by the dispatching function.
   """
-  def impl_for(env, conversions) do
-    contents = lc kind inlist conversions, do: each_impl_for(kind, conversions)
+  def impl_for(env, conversions, fallback) do
+    contents = lc kind inlist conversions do
+      each_impl_for(kind, if fallback, do: conversions)
+    end
 
     # If we don't implement all protocols and any is not in the
     # list, we need to add a final clause that returns nil.
-    if !L.member({ Any, :is_any }, conversions) && length(conversions) < 10 do
+    if !L.keyfind(Any, 1, conversions) && length(conversions) < 10 do
       contents = contents ++ [quote do
         defp __raw_impl__(_) do
           nil
@@ -204,8 +205,8 @@ defmodule Protocol do
     ]
   end
 
-  # Returns a quoted expression that allow to checks
-  # if a variable named first is built in or not.
+  # Returns a quoted expression that allows to check
+  # if the first item in the tuple is a built-in or not.
   defp is_builtin?([{h,_}]) do
     quote do
       first == unquote(h)
@@ -218,18 +219,30 @@ defmodule Protocol do
     end
   end
 
-  # Specially handle tuples as they can also be record.
-  # If this is the case, module.Record will be returned.
+  # Handle records when we don't have fallbacks.
+  # It simply gets the first element of the tuple.
+  # This case assumes that, whenever a tuple is given
+  # it is meant to be a record, so we don't need extra
+  # checks.
+  defp each_impl_for({ _, :is_record }, nil) do
+    quote do
+      defp __raw_impl__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
+        __MODULE__.Record
+      end
+    end
+  end
+
+  # Specially handle records in the case we have fallbacks.
   defp each_impl_for({ _, :is_record }, conversions) do
     quote do
       defp __raw_impl__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
         first = :erlang.element(1, arg)
         case unquote(is_builtin?(conversions)) do
-          true  -> __MODULE__.Tuple
+          true  -> __fallback__
           false ->
             case atom_to_list(first) do
               'Elixir-' ++ _ -> __MODULE__.Record
-              _ -> __MODULE__.Tuple
+              _              -> __fallback__
             end
         end
       end
@@ -259,21 +272,22 @@ defmodule Protocol.DSL do
   @moduledoc false
 
   defmacro def(expression) do
-    { name, arity } =
-      case expression do
-        { _, _, args } when args == [] or is_atom(args) ->
-          raise ArgumentError, message: "protocol functions expect at least one argument"
-        { name, _, args } when is_atom(name) and is_list(args) ->
-          { name, length(args) }
-        _ ->
-          raise ArgumentError, message: "invalid args for defprotocol"
-      end
+    case expression do
+      { _, _, args } when args == [] or is_atom(args) ->
+        raise ArgumentError, message: "protocol functions expect at least one argument"
+      { name, _, args } when is_atom(name) and is_list(args) ->
+        :ok
+      _ ->
+        raise ArgumentError, message: "invalid args for defprotocol"
+    end
+
+    arity = length(args)
 
     # Generate arguments according the arity. The arguments
     # are named xa, xb and so forth. We cannot use string
     # interpolation to generate the arguments because of compile
     # dependencies, so we use the <<>> instead.
-    args = lc i inlist :lists.seq(1, arity) do
+    generated = lc i inlist :lists.seq(1, arity) do
       { binary_to_atom(<<?x, i + 64>>), 0, :quoted }
     end
 
@@ -281,26 +295,29 @@ defmodule Protocol.DSL do
       # Append new function to the list
       @functions [unquote({name, arity})|@functions]
 
-      Kernel.def unquote(name).(unquote_splicing(args)) do
-        args = [unquote_splicing(args)]
+      # Generate a fake definition with the user
+      # signature that will be used by docs
+      Kernel.def unquote(name).(unquote_splicing(args))
+
+      Kernel.def unquote(name).(unquote_splicing(generated)) do
         case __raw_impl__(xA) do
           __MODULE__.Record ->
             try do
               target = Module.concat(__MODULE__, :erlang.element(1, xA))
-              apply target, unquote(name), args
+              apply target, unquote(name), [unquote_splicing(generated)]
             rescue
               UndefinedFunctionError ->
                 case __fallback__ do
                   nil ->
                     raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
                   other ->
-                    apply other, unquote(name), args
+                    apply other, unquote(name), [unquote_splicing(generated)]
                 end
             end
           nil ->
             raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
           other ->
-            apply other, unquote(name), args
+            apply other, unquote(name), [unquote_splicing(generated)]
         end
       end
     end

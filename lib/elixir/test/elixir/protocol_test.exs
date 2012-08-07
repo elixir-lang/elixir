@@ -1,6 +1,7 @@
 Code.require_file "../test_helper", __FILE__
 
 defprotocol ProtocolTest.WithAll do
+  @doc "Blank"
   def blank(thing)
 end
 
@@ -100,6 +101,11 @@ defmodule ProtocolTest do
     assert_protocol_for(ProtocolTest.WithAll, PID, Process.self)
     assert_protocol_for(ProtocolTest.WithAll, Port, hd(:erlang.ports))
     assert_protocol_for(ProtocolTest.WithAll, Reference, make_ref)
+  end
+
+  test :protocol_docs do
+    docs = ProtocolTest.WithAll.__info__(:docs)
+    assert { { :blank, 1 }, _, :def, [{ :thing,_,nil }], "Blank" } = List.keyfind(docs, { :blank, 1 }, 1)
   end
 
   test :protocol_with_two_items do

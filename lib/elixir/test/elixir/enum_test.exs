@@ -309,10 +309,10 @@ defmodule EnumTest.Dict.Common do
       test :join do
         dict = unquote(module).new [a: 1, b: 2, c: 3]
 
-        assert_raise UndefinedFunctionError, fn ->
+        assert_raise Protocol.UndefinedError, fn ->
           Enum.join dict, ","
         end
-        assert_raise UndefinedFunctionError, fn ->
+        assert_raise Protocol.UndefinedError, fn ->
           Enum.join dict, ','
         end
       end
