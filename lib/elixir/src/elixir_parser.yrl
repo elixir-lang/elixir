@@ -155,7 +155,7 @@ call_expr -> var : build_identifier('$1', nil).
 call_expr -> bracket_expr : '$1'.
 
 bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
-bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
+bracket_expr -> bracket_expr bracket_access : build_access('$1', '$2').
 bracket_expr -> max_expr : '$1'.
 
 max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').

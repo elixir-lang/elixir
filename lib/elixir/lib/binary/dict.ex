@@ -31,7 +31,7 @@ defmodule Binary.Dict do
     :orddict.is_key to_binary(key), data
   end
 
-  def get(dict(data), key, default // nil) do
+  def get(dict(data), key, default) do
     case :orddict.find(to_binary(key), data) do
       {:ok, value} -> value
       :error       -> default

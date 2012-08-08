@@ -32,7 +32,7 @@ defmodule Orddict do
     :orddict.is_key key, data
   end
 
-  def get(dict(data), key, default // nil) do
+  def get(dict(data), key, default) do
     case :orddict.find(key, data) do
       {:ok, value} -> value
       :error       -> default
