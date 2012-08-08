@@ -28,9 +28,15 @@ defmodule URITest do
 
     assert URI.decode_query("", HashDict.new) == HashDict.new
 
-    assert URI.decode_query("garbage") == nil
-    assert URI.decode_query("=value") == nil
-    assert URI.decode_query("something=weird=happening") == nil
+    assert URI.decode_query("garbage")                   == Orddict.new [{"garbage", nil}]
+    assert URI.decode_query("=value")                    == Orddict.new [{"", "value"}]
+    assert URI.decode_query("something=weird=happening") == Orddict.new [{"something", "weird=happening"}]
+  end
+
+  test :decoder do
+    decoder  = URI.decoder("q=search%20query&cookie=ab%26cd&block%20buster=")
+    expected = [{"q", "search query"}, {"cookie", "ab&cd"}, {"block buster", ""}]
+    assert Enum.map(decoder, fn(x) -> x end) == expected
   end
 
   test :decode do

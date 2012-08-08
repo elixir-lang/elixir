@@ -1245,7 +1245,7 @@ end
 
 defimpl Enum.Iterator, for: Function do
   def iterator(function) do
-    { function, function.(:start) }
+    function.()
   end
 
   def count(function) do
@@ -1263,7 +1263,7 @@ end
 
 defimpl Enum.OrdIterator, for: Function do
   def iterator(function) do
-    { function, function.(:start) }
+    function.()
   end
 
   def to_list({ h, next }, function) do

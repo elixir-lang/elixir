@@ -1153,16 +1153,19 @@ defmodule File do
   end
 
   def iterator(device) do
-    fn(_) ->
-      case :io.get_line(device, "") do
-        :eof ->
-          close(device)
-          :stop
-        { :error, reason } ->
-          raise File.IteratorError, reason: reason
-        data ->
-          { data, :ok }
+    fn ->
+      function = fn(_) ->
+        case :io.get_line(device, "") do
+          :eof ->
+            close(device)
+            :stop
+          { :error, reason } ->
+            raise File.IteratorError, reason: reason
+          data ->
+            { data, :ok }
+        end
       end
+      { function, function.(:start) }
     end
   end
 
