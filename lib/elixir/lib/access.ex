@@ -47,6 +47,9 @@ defimpl Access, for: Atom do
   at compilation time. If we reach this, we should raise
   an exception.
   """
+  def access(nil, _) do
+    nil
+  end
   def access(atom, _) do
     raise "The access protocol can only be invoked for atoms at " <>
       "compilation time, tried to invoke it for #{inspect atom}"
