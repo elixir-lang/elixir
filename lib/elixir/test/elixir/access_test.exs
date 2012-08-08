@@ -6,6 +6,7 @@ defmodule Access.TupleTest do
   test :list do
     assert [foo: :bar][:foo] == :bar
     assert [foo: [bar: :baz]][:foo][:bar] == :baz
+    assert [foo: [bar: :baz]][:fuu][:bar] == nil
   end
 
   test :function do
