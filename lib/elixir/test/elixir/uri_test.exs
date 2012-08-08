@@ -34,7 +34,7 @@ defmodule URITest do
   end
 
   test :decoder do
-    decoder  = URI.decoder("q=search%20query&cookie=ab%26cd&block%20buster=")
+    decoder  = URI.query_decoder("q=search%20query&cookie=ab%26cd&block%20buster=")
     expected = [{"q", "search query"}, {"cookie", "ab&cd"}, {"block buster", ""}]
     assert Enum.map(decoder, fn(x) -> x end) == expected
   end

@@ -29,14 +29,14 @@ defmodule URI do
   Use decoder/1 if you want to customize or iterate each value manually.
   """
   def decode_query(q, dict // Orddict.new) do
-    Enum.reduce decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
+    Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
   end
 
   @doc """
   Returns an iterator function over the query string that decodes
   the query string in steps.
   """
-  def decoder(q) do
+  def query_decoder(q) do
     fn -> { do_decoder(&1), do_decoder(to_binary(q)) } end
   end
 
