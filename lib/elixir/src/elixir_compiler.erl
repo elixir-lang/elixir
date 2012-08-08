@@ -195,6 +195,8 @@ core_list() ->
     "lib/elixir/lib/uri/parser.ex",
     "lib/elixir/lib/elixir/formatter.ex",
     "lib/elixir/lib/dict.ex",
+    "lib/elixir/lib/dict/common.ex",
+    "lib/elixir/lib/access.ex",
     "lib/elixir/lib/range.ex",
     "lib/elixir/lib/*/*.ex",
     "lib/elixir/lib/*.ex"
