@@ -3,6 +3,8 @@ defmodule HashDict do
   This module implements a dictionary based on hashing of the keys.
   It is a simple wrapper around [Erlang's dict module](http://www.erlang.org/doc/man/dict.html)
   and exposed via the `Dict` module.
+
+  Check the `Dict` module for examples and documentation.
   """
 
   use Dict.Common
@@ -46,12 +48,12 @@ defmodule HashDict do
     dict(:dict.erase key, data)
   end
 
-  def merge(dict(d1), dict(d2)) do
-    dict(:dict.merge fn _k, _v1, v2 -> v2 end, d1, d2)
-  end
-
   def merge(dict(d1), dict(d2), fun) do
     dict(:dict.merge fun, d1, d2)
+  end
+
+  def merge(dict(_) = d1, d2, fun) do
+    merge(d1, new(d2), fun)
   end
 
   def update(dict(data), key, fun) do

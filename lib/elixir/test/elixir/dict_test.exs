@@ -2,28 +2,28 @@ Code.require_file "../test_helper", __FILE__
 
 defmodule DictTest.Common do
   defmacro __using__(module) do
-    quote do
+    quote location: :keep do
       use ExUnit.Case, async: true
 
       test :access do
-        dict = new_dict [{"first key", 1}, {"second key", 2}]
-        assert dict["first key"] == 1
-        assert dict["third key"] == nil
+        dict = new_dict [{"first_key", 1}, {"second_key", 2}]
+        assert dict["first_key"] == 1
+        assert dict["third_key"] == nil
       end
 
       test :new_pairs do
-        dict = new_dict [{"first key", 1}, {"second key", 2}]
+        dict = new_dict [{"first_key", 1}, {"second_key", 2}]
         assert 2 == Dict.size dict
 
-        assert ["first key", "second key"] == List.sort Dict.keys dict
+        assert ["first_key", "second_key"] == List.sort Dict.keys dict
         assert [1, 2] == List.sort Dict.values dict
       end
 
       test :new_pairs_with_transform do
-        dict = new_dict [{1}, {2}, {3}], fn {x} -> { {x}, x } end
+        dict = new_dict [{1}, {2}, {3}], fn {x} -> { <<x + 64>>, x } end
         assert 3 == Dict.size dict
 
-        assert [{1}, {2}, {3}] == List.sort Dict.keys dict
+        assert ["A", "B", "C"] == List.sort Dict.keys dict
         assert [1, 2, 3] == List.sort Dict.values dict
       end
 
@@ -70,7 +70,15 @@ defmodule DictTest.Common do
 
         dict1 = new_dict List.zip ["a", "b", "c"], [1, 2, 3]
         dict2 = new_dict List.zip ["a", "c", "d"], [3, :a, 0]
-        assert new_dict(List.zip ["a", "b", "c", "d"], [3, 2, :a, 0]) == Dict.merge(dict1, dict2)
+        final = new_dict(List.zip ["a", "b", "c", "d"], [3, 2, :a, 0])
+        assert Dict.merge(dict1, dict2) == final
+      end
+
+      test :merge_with_enum do
+        dict1 = new_dict List.zip ["a", "b", "c"], [1, 2, 3]
+        dict2 = List.zip ["a", "c", "d"], [3, :a, 0]
+        final = new_dict(List.zip ["a", "b", "c", "d"], [3, 2, :a, 0])
+        assert Dict.merge(dict1, dict2) == final
       end
 
       test :merge_with_function do
@@ -118,7 +126,7 @@ defmodule DictTest do
   use DictTest.Common, HashDict
 
   test :new do
-    assert :dict.new == elem(HashDict.new, 2)
+    assert :dict.new == elem(new_dict([]), 2)
   end
 end
 
@@ -126,6 +134,20 @@ defmodule OrddictTest do
   use DictTest.Common, Orddict
 
   test :new do
-    assert [] == elem(Orddict.new, 2)
+    assert [] == elem(new_dict([]), 2)
+  end
+end
+
+defmodule Binary.DictTest do
+  use DictTest.Common, Binary.Dict
+
+  test :new do
+    assert [] == elem(new_dict([]), 2)
+  end
+
+  test :merge_mixed do
+    merged = Dict.merge(new_dict, new_dict([first_key: 13]))
+    assert merged[:first_key]  == 13
+    assert merged["first_key"] == 13
   end
 end

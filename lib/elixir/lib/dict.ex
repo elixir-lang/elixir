@@ -9,7 +9,7 @@ defmodule Dict do
   @doc false
   def behaviour_info(:callbacks) do
     [delete: 2, empty: 1, get: 2, get: 3, has_key?: 2,
-     keys: 1, merge: 2, merge: 3, put: 3, size: 1, to_list: 1,
+     keys: 1, merge: 3, put: 3, size: 1, to_list: 1,
      update: 3, update: 4, values: 1]
   end
 
@@ -108,8 +108,10 @@ defmodule Dict do
   end
 
   @doc """
-  Merges two dicts into one. If the dicts have duplicated entries, the one
-  given as second argument wins.
+  Merges two dicts into one. If the dicts have duplicated entries,
+  the one given as second argument wins. In case the second argument
+  is not of the same kind as the first one, it is converted to the
+  same kind before merging as long as it implements the `Enum` protocol.
 
   ## Examples
 
@@ -118,7 +120,7 @@ defmodule Dict do
 
   """
   def merge(dict1, dict2) do
-    elem(dict1, 1).merge(dict1, dict2)
+    merge(dict1, dict2, fn(_k, _v1, v2) -> v2 end)
   end
 
   @doc """

@@ -1,4 +1,5 @@
 * enhancements
+  * [Binary] Add a Dict binary that converts its keys to binaries on insertion
   * [List] Add support to keyreplace and keystore
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
   * [Binary] Add support to `part` and `split` functions
