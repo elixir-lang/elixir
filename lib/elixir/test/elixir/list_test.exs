@@ -79,7 +79,7 @@ defmodule ListTest do
   end
 
   test :reverse do
-    assert List.reverse([1,2,3]) == [3,2,1]
+    assert Enum.reverse([1,2,3]) == [3,2,1]
   end
 
   test :uniq do

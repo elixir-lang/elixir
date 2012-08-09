@@ -50,7 +50,7 @@ defmodule IEx.Helpers do
   Prints commands history and their result.
   """
   def h do
-    history = List.reverse(Process.get(:iex_history))
+    history = Enum.reverse(Process.get(:iex_history))
     Enum.each(history, print_history(&1))
   end
 
@@ -191,7 +191,7 @@ defmodule IEx.Helpers do
   end
 
   def v(n) do
-    history = Process.get(:iex_history) /> List.reverse
+    history = Process.get(:iex_history) /> Enum.reverse
     Enum.nth!(history, n).result
   end
 

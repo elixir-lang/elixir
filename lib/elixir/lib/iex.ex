@@ -13,8 +13,6 @@ defmodule IEx do
   down version.
   """
 
-  import Exception, only: [format_stacktrace: 1]
-
   @doc """
   Interface to start IEx from CLI.
   """
@@ -176,15 +174,13 @@ defmodule IEx do
         TokenMissingError ->
           config.cache(code)
         exception ->
-          stacktrace = System.stacktrace
           io.error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          print_stacktrace io, stacktrace
+          io.error Exception.formatted_stacktrace
           config.cache('')
       catch
         kind, error ->
-          stacktrace = System.stacktrace
           io.error "** (#{kind}) #{inspect(error)}"
-          print_stacktrace io, stacktrace
+          io.error Exception.formatted_stacktrace
           config.cache('')
       end
 
@@ -194,10 +190,6 @@ defmodule IEx do
   defp update_history(config) do
     current = Process.get :iex_history
     Process.put :iex_history, [config|current]
-  end
-
-  defp print_stacktrace(io, stacktrace) do
-    Enum.each stacktrace, fn s -> io.error "    #{format_stacktrace(s)}" end
   end
 
   ## Code injection helper

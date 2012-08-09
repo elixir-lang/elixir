@@ -179,6 +179,11 @@ defmodule EnumTest.List do
     assert Enum.partition([2,4,6], fn(x) -> rem(x, 2) == 0 end) == { [2,4,6], [] }
   end
 
+  test :reverse do
+    assert Enum.reverse([]) == []
+    assert Enum.reverse([1,2,3]) == [3,2,1]
+  end
+
   test :qsort do
     assert Enum.qsort([5,3,2,4,1]) == [1,2,3,4,5]
   end

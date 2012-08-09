@@ -4,7 +4,7 @@ defmodule IEx.AutocompleteTest do
   use ExUnit.Case, async: true
 
   def expand(expr) do
-    IEx.Autocomplete.expand(List.reverse expr)
+    IEx.Autocomplete.expand(Enum.reverse expr)
   end
 
   test :erlang_module_simple_completion do

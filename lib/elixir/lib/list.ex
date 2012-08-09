@@ -108,17 +108,9 @@ defmodule List do
     Erlang.lists.foldr(function, acc, list)
   end
 
-  @doc """
-  Reverses the given list. This function simply delegates
-  to `lists:reverse` which is implemented in C for performance.
-
-  ## Examples
-
-      List.reverse [1,2,3]
-      #=> [3,2,1]
-
-  """
+  @doc false
   def reverse(list) do
+    IO.puts "List.reverse is deprecated, please use Enum.reverse instead\n#{Exception.formatted_stacktrace}"
     :lists.reverse(list)
   end
 
@@ -444,7 +436,7 @@ defmodule List do
   end
 
   defp do_zip(_, _, acc) do
-    reverse acc
+    :lists.reverse acc
   end
 
   defp do_zip(list, acc) do

@@ -33,8 +33,8 @@ defmodule ExUnit.Server do
 
   def handle_call(:options, _from, config) do
     options = Keyword.merge config.options,
-      async_cases: List.reverse(config.async_cases),
-      sync_cases:  List.reverse(config.sync_cases)
+      async_cases: Enum.reverse(config.async_cases),
+      sync_cases:  Enum.reverse(config.sync_cases)
     { :reply, options, config }
   end
 

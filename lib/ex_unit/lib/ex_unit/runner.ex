@@ -111,18 +111,10 @@ defmodule ExUnit.Runner do
   # Retrieves test functions from the module.
   defp tests_for(mod) do
     exports = mod.__info__(:functions)
-    tests_for exports, []
+    lc { function, 0 } inlist exports, is_test?(atom_to_list(function)), do: function
   end
 
-  defp tests_for([{function,0}|t], acc) do
-    list = atom_to_list(function)
-    if match?('test_' ++ _, list) || match?('test ' ++ _, list) do
-      tests_for t, [function|acc]
-    else
-      tests_for t, acc
-    end
-  end
-
-  defp tests_for([_|t], acc), do: tests_for t, acc
-  defp tests_for([], acc),    do: List.reverse(acc)
+  defp is_test?('test_' ++ _), do: true
+  defp is_test?('test ' ++ _), do: true
+  defp is_test?(_)           , do: false
 end

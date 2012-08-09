@@ -4,8 +4,6 @@ defrecord Kernel.CLI.Config, commands: [], output: ".",
 defmodule Kernel.CLI do
   @moduledoc false
 
-  import Exception, only: [format_stacktrace: 1]
-
   # Invoked directly from erlang boot process. It parses all argv
   # options and execute them in the order they are specified.
   def process_argv(options) do
@@ -14,7 +12,7 @@ defmodule Kernel.CLI do
     argv = lc arg inlist argv, do: list_to_binary(arg)
     Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
 
-    all_commands = List.reverse(config.commands)
+    all_commands = Enum.reverse(config.commands)
 
     try do
       Enum.map all_commands, process_command(&1, config)
@@ -25,9 +23,8 @@ defmodule Kernel.CLI do
     rescue
       exception ->
         at_exit(1)
-        stacktrace = System.stacktrace
         IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        print_stacktrace(stacktrace)
+        IO.puts Exception.formatted_stacktrace
         halt(1)
     catch
       :exit, reason when is_integer(reason) ->
@@ -38,9 +35,8 @@ defmodule Kernel.CLI do
         halt(0)
       kind, reason ->
         at_exit(1)
-        stacktrace = System.stacktrace
         IO.puts :stderr, "** (#{kind}) #{inspect(reason)}"
-        print_stacktrace(stacktrace)
+        IO.puts Exception.formatted_stacktrace
         halt(1)
     end
   end
@@ -55,11 +51,11 @@ defmodule Kernel.CLI do
       rescue
         exception ->
           IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          print_stacktrace(System.stacktrace)
+          IO.puts Exception.formatted_stacktrace
       catch
         kind, reason ->
           IO.puts :stderr, "** #{kind} #{inspect(reason)}"
-          print_stacktrace(System.stacktrace)
+          IO.puts Exception.formatted_stacktrace
       end
     end
   end
@@ -76,10 +72,6 @@ defmodule Kernel.CLI do
       { new_list, new_config } ->
         callback.(new_list, new_config)
     end
-  end
-
-  defp print_stacktrace(stacktrace) do
-    Enum.each stacktrace, fn s -> IO.puts :stderr, "    #{format_stacktrace(s)}" end
   end
 
   # Process shared options

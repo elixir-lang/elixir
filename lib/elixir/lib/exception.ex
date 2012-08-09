@@ -81,6 +81,13 @@ defmodule Exception do
   end
 
   @doc """
+  Returns the stacktrace as a binary formatted as per `format_stacktrace/1`.
+  """
+  def formatted_stacktrace do
+    Enum.map_join(System.stacktrace, "\n", format_stacktrace(&1))
+  end
+
+  @doc """
   Formats each line in the stacktrace.
   """
   def format_stacktrace({module, fun, arity, file_line}) do

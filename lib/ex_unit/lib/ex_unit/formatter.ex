@@ -35,7 +35,7 @@ defmodule ExUnit.Formatter do
 
   def handle_call(:finish, _from, config) do
     IO.write "\n\n"
-    Enum.reduce List.reverse(config.failures), 1, print_failure(&1, &2)
+    Enum.reduce Enum.reverse(config.failures), 1, print_failure(&1, &2)
     failures_count = length(config.failures)
     IO.puts "#{config.counter} tests, #{failures_count} failures."
     { :reply, failures_count, config }

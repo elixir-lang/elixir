@@ -87,7 +87,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp reduce(expr) do
-    last_token(List.reverse(expr), [' ', '(', '[', '+', '-'])
+    last_token(Enum.reverse(expr), [' ', '(', '[', '+', '-'])
   end
 
   defp last_token(s, []) do

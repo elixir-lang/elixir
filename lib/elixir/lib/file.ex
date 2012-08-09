@@ -1207,7 +1207,7 @@ defmodule File do
   end
 
   defp normalize([], acc) do
-    join List.reverse(acc)
+    join Enum.reverse(acc)
   end
 
   defp open_defaults([:charlist|t], add_encoding, _add_binary) do

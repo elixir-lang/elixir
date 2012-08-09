@@ -16,7 +16,7 @@ defmodule EEx.Tokenizer do
   end
 
   def tokenize(list, line) do
-    List.reverse(tokenize(list, line, line, [], []))
+    Enum.reverse(tokenize(list, line, line, [], []))
   end
 
   defp tokenize([?<,?%|t], current_line, line, buffer, acc) do
@@ -25,7 +25,7 @@ defmodule EEx.Tokenizer do
 
     token = token_name(expr)
     acc   = tokenize_text(current_line, buffer, acc)
-    final = { token, line, marker, List.reverse(expr) }
+    final = { token, line, marker, Enum.reverse(expr) }
     tokenize rest, new_line, new_line, [], [final | acc]
   end
 
@@ -87,7 +87,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp token_name('>-' ++ rest) do
-    rest = List.reverse(rest)
+    rest = Enum.reverse(rest)
 
     # Tokenize the remaining passing "__internal__" as file,
     # which relax the tokenizer to not error on unmatched
@@ -96,7 +96,7 @@ defmodule EEx.Tokenizer do
     # is the case, we are on a start expr.
     case :elixir_tokenizer.tokenize(rest, 1, "__internal__") do
       { :ok, tokens } ->
-        tokens   = List.reverse(tokens)
+        tokens   = Enum.reverse(tokens)
         fn_index = fn_index(tokens)
 
         if fn_index && end_index(tokens) > fn_index do
@@ -146,6 +146,6 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize_text(line, buffer, acc) do
-    [{ :text, line, list_to_binary(List.reverse(buffer)) } | acc]
+    [{ :text, line, list_to_binary(Enum.reverse(buffer)) } | acc]
   end
 end

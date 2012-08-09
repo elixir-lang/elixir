@@ -622,6 +622,26 @@ defmodule Enum do
   end
 
   @doc """
+  Reverses the collection.
+
+  ## Examples
+
+      Enum.reverse [1, 2, 3]
+      #=> [3, 2, 1]
+
+  """
+  def reverse(collection) when is_list(collection) do
+    :lists.reverse(collection)
+  end
+
+  def reverse(collection) do
+    case O.iterator(collection) do
+      { iterator, pointer }   -> do_reverse(pointer, iterator, [])
+      list when is_list(list) -> reverse(list)
+    end
+  end
+
+  @doc """
   Sorts the collection according to the quick sort algorithm.
 
   ## Examples
@@ -980,24 +1000,24 @@ defmodule Enum do
     if fun.(h) do
       do_split_with(t, fun, [h|acc])
     else
-      { List.reverse(acc), [h|t] }
+      { :lists.reverse(acc), [h|t] }
     end
   end
 
   defp do_split_with([], _, acc) do
-    { List.reverse(acc), [] }
+    { :lists.reverse(acc), [] }
   end
 
   defp do_split_with({ h, next } = extra, iterator, fun, acc, module) do
     if fun.(h) do
       do_split_with(iterator.(next), iterator, fun, [h|acc], module)
     else
-      { List.reverse(acc), module.to_list(extra, iterator) }
+      { :lists.reverse(acc), module.to_list(extra, iterator) }
     end
   end
 
   defp do_split_with(:stop, _, _, acc, _module) do
-    { List.reverse(acc), [] }
+    { :lists.reverse(acc), [] }
   end
 
   ## join
@@ -1074,7 +1094,7 @@ defmodule Enum do
   end
 
   defp do_map_reduce(:stop, _, list_acc, acc, _f) do
-    { List.reverse(list_acc), acc }
+    { :lists.reverse(list_acc), acc }
   end
 
   ## partition
@@ -1088,7 +1108,7 @@ defmodule Enum do
   end
 
   defp do_partition([], _, acc1, acc2) do
-    { List.reverse(acc1), List.reverse(acc2) }
+    { :lists.reverse(acc1), :lists.reverse(acc2) }
   end
 
   defp do_partition({ h, next }, iterator, fun, acc1, acc2) do
@@ -1100,7 +1120,17 @@ defmodule Enum do
   end
 
   defp do_partition(:stop, _, _, acc1, acc2) do
-    { List.reverse(acc1), List.reverse(acc2) }
+    { :lists.reverse(acc1), :lists.reverse(acc2) }
+  end
+
+  ## reverse
+
+  defp do_reverse({ h, next }, iterator, acc) do
+    do_reverse(iterator.(next), iterator, [h|acc])
+  end
+
+  defp do_reverse(:stop, _, acc) do
+    acc
   end
 
   ## qsort (lists)
@@ -1160,11 +1190,11 @@ defmodule Enum do
   end
 
   defp do_split(list, 0, acc) do
-    { List.reverse(acc), list }
+    { :lists.reverse(acc), list }
   end
 
   defp do_split([], _, acc) do
-    { List.reverse(acc), [] }
+    { :lists.reverse(acc), [] }
   end
 
   defp do_split({ h, next }, iterator, counter, acc, module) when counter > 0 do
@@ -1172,11 +1202,11 @@ defmodule Enum do
   end
 
   defp do_split(extra, iterator, 0, acc, module) do
-    { List.reverse(acc), module.to_list(extra, iterator) }
+    { :lists.reverse(acc), module.to_list(extra, iterator) }
   end
 
   defp do_split(:stop, _, _, acc, _module) do
-    { List.reverse(acc), [] }
+    { :lists.reverse(acc), [] }
   end
 
   ## take_while

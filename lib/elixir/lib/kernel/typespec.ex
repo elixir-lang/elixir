@@ -48,7 +48,7 @@ defmodule Kernel.Typespec do
 
   # Handle unions
   defp typespec({ :|, line, [_,_] } = exprs, vars, caller) do
-    exprs = List.reverse(collect_union(exprs))
+    exprs = Enum.reverse(collect_union(exprs))
     union = lc e inlist exprs, do: typespec(e, vars, caller)
     { :type, line, :union, union }
   end
@@ -113,8 +113,8 @@ defmodule Kernel.Typespec do
   # Handle funs
   defp typespec({:fun, line, arguments}, vars, caller) when is_list(arguments) do
     args =
-      case List.reverse(arguments) do
-        [[{:do,h}]|t] -> fn_args(line, List.reverse(t), h, vars, caller)
+      case Enum.reverse(arguments) do
+        [[{:do,h}]|t] -> fn_args(line, Enum.reverse(t), h, vars, caller)
         [] -> []
         _  -> [fn_args(line, arguments, vars, caller)]
       end

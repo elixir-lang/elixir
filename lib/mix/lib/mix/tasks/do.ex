@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Do do
 
   defp gather_commands([h|t], current, acc) when binary_part(h, byte_size(h), -1) == "," do
     part    = binary_part(h, 0, byte_size(h) - 1)
-    current = List.reverse([part|current])
+    current = Enum.reverse([part|current])
     gather_commands t, [], [current|acc]
   end
 
@@ -36,6 +36,6 @@ defmodule Mix.Tasks.Do do
   end
 
   defp gather_commands([], current, acc) do
-    List.reverse [List.reverse(current)|acc]
+    Enum.reverse [Enum.reverse(current)|acc]
   end
 end

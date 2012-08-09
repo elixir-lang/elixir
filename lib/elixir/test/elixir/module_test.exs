@@ -128,7 +128,7 @@ defmodule ModuleTest do
   end
 
   test :apply do
-    assert apply(List, :reverse, [[1|[2,3]]]) == [3,2,1]
+    assert apply(Enum, :reverse, [[1|[2,3]]]) == [3,2,1]
     assert apply(fn x -> x * 2 end, [2]) == 4
   end
 

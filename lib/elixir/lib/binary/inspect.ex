@@ -124,7 +124,7 @@ defimpl Binary.Inspect, for: BitString do
 
   defp as_bitstring(thing) do
     erlang = Erlang.io_lib.format('~p', [thing])
-    list_to_binary List.reverse(replace(erlang, []))
+    list_to_binary Enum.reverse(replace(erlang, []))
   end
 
   defp replace([?:|t], acc),                do: replace(t, [?||acc])

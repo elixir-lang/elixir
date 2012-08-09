@@ -54,7 +54,7 @@ defmodule Kernel.PartialApplicationTest do
   end
 
   test :partial_application_for_module_calls do
-    fun = List.reverse(&1)
+    fun = Enum.reverse(&1)
     assert fun.([1,2,3]) == [3,2,1]
   end
 

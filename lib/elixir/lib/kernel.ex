@@ -2090,7 +2090,7 @@ defmodule Kernel do
 
   """
   defmacro cond([do: { :->, _, pairs }]) do
-    [{ [condition], clause }|t] = List.reverse pairs
+    [{ [condition], clause }|t] = :lists.reverse pairs
 
     new_acc =
       case condition do
@@ -2570,7 +2570,7 @@ defmodule Kernel do
         defdelegate other_reverse(list), to: Erlang.lists, as: :reverse
       end
 
-      MyList.reverse([1,2,3])
+      My:lists.reverse([1,2,3])
       #=> [3,2,1]
 
       MyList.other_reverse([1,2,3])
