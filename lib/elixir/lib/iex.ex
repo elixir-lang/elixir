@@ -136,7 +136,7 @@ defmodule IEx do
   end
 
   defp set_expand_fun do
-    gl = :erlang.group_leader
+    gl = Process.group_leader
     glnode = node gl
 
     if glnode != node do
