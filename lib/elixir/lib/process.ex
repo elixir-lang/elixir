@@ -276,6 +276,16 @@ defmodule Process do
   end
 
   @doc """
+  Returns information about the process identified by pid.
+  Use this only for debugging information.
+
+  See http://www.erlang.org/doc/man/erlang.html#process_info-1 for more info.
+  """
+  def info(pid) do
+    :erlang.process_info(pid)
+  end
+
+  @doc """
   Returns information about the process identified by pid
   or undefined if the process is not alive.
 

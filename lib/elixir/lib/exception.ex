@@ -84,7 +84,10 @@ defmodule Exception do
   Returns the stacktrace as a binary formatted as per `format_stacktrace/1`.
   """
   def formatted_stacktrace do
-    Enum.map_join(System.stacktrace, "\n", format_stacktrace(&1))
+    case System.stacktrace do
+      [] -> ""
+      s  -> "    " <> Enum.map_join(s, "\n    ", format_stacktrace(&1)) <> "\n"
+    end
   end
 
   @doc """

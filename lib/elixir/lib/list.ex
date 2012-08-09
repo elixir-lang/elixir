@@ -110,7 +110,7 @@ defmodule List do
 
   @doc false
   def reverse(list) do
-    IO.puts "List.reverse is deprecated, please use Enum.reverse instead\n#{Exception.formatted_stacktrace}"
+    IO.write "[WARNING] List.reverse is deprecated, please use Enum.reverse instead\n#{Exception.formatted_stacktrace}"
     :lists.reverse(list)
   end
 

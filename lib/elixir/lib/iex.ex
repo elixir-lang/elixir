@@ -43,8 +43,8 @@ defmodule IEx do
 
     remote =
       if remsh = opts[:remsh] do
-        if node() == :nonode@nohost do
-          raise ArgumentError, message: "In order to use --remsh, you need to name the node"
+        unless is_alive do
+          raise ArgumentError, message: "In order to use --remsh, you need to name the current node"
         end
         if is_atom(remsh), do: remsh, else: binary_to_atom(remsh)
       end
@@ -52,8 +52,7 @@ defmodule IEx do
     function = fn ->
       # We are inside the new tty and in a new process,
       # reattach it the error logger.
-      attach_error_logger
-
+      :error_logger.tty(true)
       start config
     end
 
@@ -61,7 +60,7 @@ defmodule IEx do
     # the user process and start a new tty which will get control
     # over the standardio. Dettaching it here allows us to get rid
     # of warnings. We reattach it again when we get the new tty.
-    dettach_error_logger
+    :error_logger.tty(false)
 
     # Unregister the user process, user_drv command below
     # will register the new one.
@@ -93,15 +92,14 @@ defmodule IEx do
   def start(config // nil) do
     spawn fn ->
       config = config || boot_config([])
-      gl = :erlang.group_leader
-      glnode = node gl
-      if glnode != node do
-        ensure_module_exists glnode, IEx.Remsh
-        expand_fun = IEx.Remsh.expand node
-      else
-        expand_fun = IEx.Autocomplete.expand &1
+
+      case :init.notify_when_started(self()) do
+        :started -> :ok
+        _        -> :init.wait_until_started()
       end
-      :io.setopts gl, [expand_fun: expand_fun]
+
+      Process.flag(:trap_exit, true)
+      set_expand_fun()
       start_loop(config)
     end
   end
@@ -123,14 +121,6 @@ defmodule IEx do
     ]
   end
 
-  defp dettach_error_logger do
-    :error_logger.delete_report_handler(:error_logger_tty_h)
-  end
-
-  defp attach_error_logger do
-    :error_logger.add_report_handler(:error_logger_tty_h)
-  end
-
   defp unregister_user_process do
     if is_pid(Process.whereis(:user)), do: Process.unregister :user
   end
@@ -143,6 +133,20 @@ defmodule IEx do
 
   defp io_port?(port) do
     Port.info(port, :name) == {:name,'0/1'} && port
+  end
+
+  defp set_expand_fun do
+    gl = :erlang.group_leader
+    glnode = node gl
+
+    if glnode != node do
+      ensure_module_exists glnode, IEx.Remsh
+      expand_fun = IEx.Remsh.expand node
+    else
+      expand_fun = IEx.Autocomplete.expand &1
+    end
+
+    :io.setopts gl, [expand_fun: expand_fun]
   end
 
   ## Loop helpers

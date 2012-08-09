@@ -210,7 +210,7 @@ defmodule Regex do
   def split({ Regex, compiled, _, _ }, string, options // [])
 
   def split(regex, string, options) when is_integer(options) or is_atom(options) do
-    IO.puts "Passing an integer or atom to Regex.split/3 is deprecated, pass a :parts option instead"
+    IO.write "[WARNING] Passing an integer or atom to Regex.split/3 is deprecated, pass a :parts option instead\n#{Exception.formatted_stacktrace}"
     split(regex, string, parts: options)
   end
 
