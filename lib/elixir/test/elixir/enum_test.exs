@@ -700,3 +700,16 @@ defmodule EnumTest.Range do
     assert Enum.take_while([], fn(_) -> true end) == []
   end
 end
+
+defmodule EnumTest.EnumTest do
+  use ExUnit.Case, async: true
+
+  test :reverse do
+    assert Enum.reverse(URI.query_decoder("foo=bar&baz=bat")) ==
+      [{ "baz", "bat" }, { "foo", "bar" }]
+  end
+
+  test :count do
+    assert Enum.count(URI.query_decoder("foo=bar&baz=bat")) == 2
+  end
+end

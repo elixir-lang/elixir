@@ -65,7 +65,7 @@ defprotocol Enum.OrdIterator do
   the same items always yield the same order when iterated.
   """
 
-  @only [List, Record]
+  @only [List, Record, Function]
 
   @doc """
   Must return a tuple under the same conditions as
@@ -1279,7 +1279,8 @@ defimpl Enum.Iterator, for: Function do
   end
 
   def count(function) do
-    do_count(function.(:start), function, 0)
+    { function, first } = function.()
+    do_count(first, function, 0)
   end
 
   defp do_count({ _, next }, function, acc) do
