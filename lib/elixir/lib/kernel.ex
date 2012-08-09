@@ -614,7 +614,14 @@ defmodule Kernel do
   defmacro iolist_to_binary(item)
 
   @doc """
-  Returns `true` if `term` is an atom; otherwise returns `false`.
+  Returns true if the local node is alive; that is,
+  if the node can be part of a distributed system.
+  """
+  @spec is_alive, do: boolean
+  defmacro is_alive
+
+  @doc """
+  Returns true if `term` is an atom; otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -622,7 +629,7 @@ defmodule Kernel do
   defmacro is_atom(term)
 
   @doc """
-  Returns `true` if `term` is a binary; otherwise returns `false`.
+  Returns true if `term` is a binary; otherwise returns false.
 
   A binary always contains a complete number of bytes.
 
@@ -632,7 +639,7 @@ defmodule Kernel do
   defmacro is_binary(term)
 
   @doc """
-  Returns `true` if `term` is a bitstring (including a binary); otherwise returns `false`.
+  Returns true if `term` is a bitstring (including a binary); otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -640,8 +647,8 @@ defmodule Kernel do
   defmacro is_bitstring(term)
 
   @doc """
-  Returns `true` if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
-  otherwise returns `false`.
+  Returns true if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
+  otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -649,7 +656,7 @@ defmodule Kernel do
   defmacro is_boolean(term)
 
   @doc """
-  Returns `true` if `term` is a floating point number; otherwise returns `false`.
+  Returns true if `term` is a floating point number; otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -657,7 +664,7 @@ defmodule Kernel do
   defmacro is_float(term)
 
   @doc """
-  Returns `true` if `term` is a function; otherwise returns `false`.
+  Returns true if `term` is a function; otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -665,8 +672,8 @@ defmodule Kernel do
   defmacro is_function(term)
 
   @doc """
-  Returns `true` if `term` is a function that can be applied with `arity` number of arguments;
-  otherwise returns `false`.
+  Returns true if `term` is a function that can be applied with `arity` number of arguments;
+  otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -674,7 +681,7 @@ defmodule Kernel do
   defmacro is_function(term, arity)
 
   @doc """
-  Returns `true` if `term` is an integer; otherwise returns `false`.
+  Returns true if `term` is an integer; otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -682,7 +689,7 @@ defmodule Kernel do
   defmacro is_integer(term)
 
   @doc """
-  Returns `true` if `term` is a list with zero or more elements; otherwise returns `false`.
+  Returns true if `term` is a list with zero or more elements; otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -690,8 +697,8 @@ defmodule Kernel do
   defmacro is_list(term)
 
   @doc """
-  Returns `true` if `term` is either an integer or a floating point number;
-  otherwise returns `false`.
+  Returns true if `term` is either an integer or a floating point number;
+  otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -699,7 +706,7 @@ defmodule Kernel do
   defmacro is_number(term)
 
   @doc """
-  Returns `true` if `term` is a pid (process identifier); otherwise returns `false`.
+  Returns true if `term` is a pid (process identifier); otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -707,7 +714,7 @@ defmodule Kernel do
   defmacro is_pid(term)
 
   @doc """
-  Returns `true` if `term` is a port identifier; otherwise returns `false`.
+  Returns true if `term` is a port identifier; otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -715,7 +722,7 @@ defmodule Kernel do
   defmacro is_port(term)
 
   @doc """
-  Returns `true` if `term` is a reference; otherwise returns `false`.
+  Returns true if `term` is a reference; otherwise returns false.
 
   Allowed in guard tests.
   """
@@ -723,7 +730,7 @@ defmodule Kernel do
   defmacro is_reference(term)
 
   @doc """
-  Returns `true` if `term` is a tuple; otherwise returns `false`.
+  Returns true if `term` is a tuple; otherwise returns false.
 
   Allowed in guard tests.
   """

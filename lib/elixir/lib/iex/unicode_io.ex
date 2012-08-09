@@ -11,20 +11,23 @@ defmodule IEx.UnicodeIO do
   return a list with the new characters inserted.
   """
   def get(config) do
-    prefix = case config.cache do
-      [] -> "iex"
-      _  -> "..."
-    end
-    prompt = case node do
-      :nonode@nohost ->
-        "#{prefix}(#{config.counter})> "
-      n ->
-        "#{prefix}(#{n})#{config.counter}> "
-    end
+    prefix = if config.cache != [], do: "..."
+
+    prompt =
+      if is_alive do
+        "#{prefix || remote_prefix}(#{node})#{config.counter}> "
+      else
+        "#{prefix || "iex"}(#{config.counter})> "
+      end
+
     case IO.gets(prompt) do
       { :error, _ } -> ''
       data -> :unicode.characters_to_list(data)
     end
+  end
+
+  defp remote_prefix do
+    if node == node(:erlang.group_leader), do: "iex", else: "rem"
   end
 
   @doc """

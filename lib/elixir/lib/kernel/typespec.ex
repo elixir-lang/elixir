@@ -220,6 +220,7 @@ defmodule Kernel.Typespec do
   end
 
   defp _defspec(type, caller, {name, line, args},[{:do,return}]) do
+    if is_atom(args), do: args = []
     spec  = { :type, line, :fun, fn_args(line, args, return, [], caller) }
     code  = Macro.escape { {type, { name, length(args) }}, [spec] }
     table = spec_table_for(caller.module)

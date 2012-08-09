@@ -276,6 +276,7 @@ in_erlang_functions() ->
     { integer_to_list, 2 },
     { iolist_size, 1 },
     { iolist_to_binary, 1 },
+    { is_alive, 0 },
     { is_atom, 1 },
     { is_binary, 1 },
     { is_bitstring, 1 },
