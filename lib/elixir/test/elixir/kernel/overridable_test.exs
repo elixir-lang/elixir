@@ -17,13 +17,21 @@ defmodule Kernel.Overridable do
     { super?, 2 }
   end
 
+  false = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
+
   defoverridable [sample: 0, with_super: 0, without_super: 0, explicit_nested_super: 0]
+
+  true = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
 
   def explicit_nested_super do
     { super, super?, 1 }
   end
 
+  false = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
+
   defoverridable [explicit_nested_super: 0]
+
+  true = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
 
   def implicit_nested_super do
     { super?, 1 }

@@ -339,6 +339,14 @@ defmodule Module do
   end
 
   @doc """
+  Returns true if the given tuple in module is marked as overridable.
+  """
+  def overridable?(module, tuple) do
+    key = List.keyfind(Module.read_attribute(module, :__overridable), tuple, 1)
+    match? { _, { _, [_|_] } }, key
+  end
+
+  @doc """
   Adds an Erlang attribute to the given module with the given
   key and value. The semantics of adding the attribute depends
   if the attribute was registered or not via `register_attribute/2`.
