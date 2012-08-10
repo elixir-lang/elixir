@@ -138,7 +138,9 @@ retrieve_file(Module, CO) ->
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
+translate_definition(Kind, Line, Name, RawArgs, RawGuards, Expr, S) ->
+  Args    = elixir_quote:linify(Line, RawArgs),
+  Guards  = elixir_quote:linify(Line, RawGuards),
   Arity   = length(Args),
   IsMacro = is_macro(Kind),
 
