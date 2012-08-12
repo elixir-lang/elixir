@@ -58,6 +58,7 @@ defmodule Keyword do
 
       Keyword.new [:a, :b], fn x -> {x,x} end
       #=> [a: :a, b: :b]
+
   """
   def new(pairs, transform) do
     Enum.reduce pairs, [], fn i, keywords ->
@@ -80,6 +81,7 @@ defmodule Keyword do
       Keyword.get [a: 1], :a      #=> 1
       Keyword.get [a: 1], :b      #=> nil
       Keyword.get [a: 1], :b, 3   #=> 3
+
   """
   def get(keywords, key, default // nil)
   def get([{k, _}|_], key, default) when key < k, do: default
@@ -95,6 +97,7 @@ defmodule Keyword do
 
       Keyword.get! [a: 1], :a      #=> 1
       Keyword.get! [a: 1], :b      #=> raises KeyError[key: :b]
+
   """
   def get!([{k, _}|_], key) when key < k, do: raise(Keyword.KeyError, key: key)
   def get!([{k, _}|d], key) when key > k, do: get!(d, key)
@@ -134,6 +137,7 @@ defmodule Keyword do
   ## Examples
 
       Keyword.values [a: 1, b: 2] #=> [1,2]
+
   """
   def values(keywords) do
     lc { _, value } inlist keywords, do: value
@@ -149,6 +153,7 @@ defmodule Keyword do
 
       Keyword.delete [a: 1, b: 2], :a   #=> [b: 2]
       Keyword.delete [b: 2], :a         #=> [b: 2]
+
   """
   def delete([{k, _}|_] = keywords, key) when key < k, do: keywords
   def delete([{k, _} = e|tail], key) when key > k, do: [e|delete(tail, key)]
@@ -168,6 +173,7 @@ defmodule Keyword do
 
       Keyword.put [a: 1, b: 2], :a, 3
       #=> [a: 3, b: 2]
+
   """
   def put([{k, _} = e|keywords], key, value) when key < k and is_atom(key) do
     [{key, value},e|keywords]
@@ -193,6 +199,7 @@ defmodule Keyword do
 
       Keyword.merge [a: 1, b: 2], [a: 3, d: 4]
       #=> [a:3, b:2, d: 4]
+
   """
   def merge(d1, d2) do
     merge(d1, d2, fn _k, _v1, v2 -> v2 end)
@@ -208,6 +215,7 @@ defmodule Keyword do
         v1 + v2
       end
       #=> [a:4, b:2, d: 4]
+
   """
   def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2], fun) when k1 < k2 and is_atom(k1) do
     [e1|merge(d1, [e2|d2], fun)]
@@ -227,14 +235,72 @@ defmodule Keyword do
   @doc """
   Returns whether a given key exists in the given keywords.
 
-  ### Examples
+  ## Examples
+
       Keyword.key?([a: 1], :a)
       #=> true
       Keyword.key?([a: 1], :b)
       #=> false
+
   """
   def key?([{k, _}|_], key) when key < k, do: false
   def key?([{k, _}|d], key) when key > k, do: key?(d, key)
   def key?([{_, _}|_], _key),             do: true
   def key?([], _),                        do: false
+
+  @doc """
+  Updates the key with the given function. If the key does
+  not exist, raises `Keyword.KeyError`.
+
+  ## Examples
+
+      Keyword.update([a: 1], :a, &1 * 2)
+      #=> [a: 2]
+      Keyword.update([a: 1], :b, &1 * 2)
+      #=> Keyword.KeyError
+
+  """
+  def update([{k, _}|_], key, _fun) when key < k and is_atom(key) do
+    raise(Keyword.KeyError, key: key)
+  end
+
+  def update([{k, _} = e|keywords], key, fun) when key > k do
+    [e|update(keywords, key, fun)]
+  end
+
+  def update([{key, value}|keywords], key, fun) when is_atom(key) do
+    [{key, fun.(value)}|delete(keywords, key)]
+  end
+
+  def update([], key, _fun) when is_atom(key) do
+    raise(Keyword.KeyError, key: key)
+  end
+
+  @doc """
+  Updates the key with the given function. If the key does
+  not exist, inserts the given `initial` value.
+
+  ## Examples
+
+      Keyword.update([a: 1], :a, 13, &1 * 2)
+      #=> [a: 2]
+      Keyword.update([a: 1], :b, 11, &1 * 2)
+      #=> [a: 1, b: 11]
+
+  """
+  def update([{k, _} = e|keywords], key, initial, _fun) when key < k and is_atom(key) do
+    [{key, initial},e|keywords]
+  end
+
+  def update([{k, _} = e|keywords], key, initial, fun) when key > k do
+    [e|update(keywords, key, initial, fun)]
+  end
+
+  def update([{key, value}|keywords], key, _initial, fun) when is_atom(key) do
+    [{key, fun.(value)}|delete(keywords, key)]
+  end
+
+  def update([], key, initial, _fun) when is_atom(key) do
+    [{key, initial}]
+  end
 end

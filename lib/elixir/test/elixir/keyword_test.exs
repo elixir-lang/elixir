@@ -79,9 +79,21 @@ defmodule KeywordTest do
     assert result == [a: 4, b: 2, d: 4]
   end
 
-  test :key do
+  test :key? do
     assert Keyword.key?([a: 1], :a) == true
     assert Keyword.key?([a: 1], :b) == false
+  end
+
+  test :update do
+    assert Keyword.update([a: 1], :a, &1 * 2) == [a: 2]
+    assert_raise Keyword.KeyError, fn ->
+      assert Keyword.update([a: 1], :b, &1 * 2)
+    end
+  end
+
+  test :update_with_initial do
+    assert Keyword.update([a: 1], :a, 13, &1 * 2) == [a: 2]
+    assert Keyword.update([a: 1], :b, 11, &1 * 2) == [a: 1, b: 11]
   end
 
   defp create_empty_keywords, do: []
