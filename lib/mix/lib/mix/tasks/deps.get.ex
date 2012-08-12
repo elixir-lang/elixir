@@ -22,10 +22,10 @@ defmodule Mix.Tasks.Deps.Get do
     end
   end
 
-  defp do_get(_) do
+  defp do_get(deps) do
     shell = Mix.shell
 
-    apps = Mix.Deps.Lock.update_lock all, fn(dep, lock) ->
+    apps = Mix.Deps.Lock.update_lock deps, fn(dep, lock) ->
       Mix.Dep[scm: scm, opts: opts] = dep
       shell.info "* Getting #{format_dep(dep)}"
       path = deps_path(dep)
