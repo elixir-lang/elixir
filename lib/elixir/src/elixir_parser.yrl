@@ -519,6 +519,8 @@ build_access(Expr, Access) ->
 
 %% Interpolation aware
 
+build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) when is_list(Sigil) ->
+  { list_to_atom("__" ++ Sigil ++ "__"), Line, [ { '<<>>', Line, Parts }, Modifiers ] };
 build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) ->
   { list_to_atom([$_,$_,Sigil,$_,$_]), Line, [ { '<<>>', Line, Parts }, Modifiers ] }.
 
