@@ -35,6 +35,11 @@ defmodule Regex.BinaryTest do
     assert Regex.opts(Regex.compile!("foo", "u")) == "u"
   end
 
+  test :groups do
+    assert Regex.groups(Regex.compile!("foo")) == []
+    assert Regex.groups(Regex.compile!("(?<FOO>foo)")) == ["FOO"]
+  end
+
   test :match? do
     assert Regex.match?(%r/foo/, "foo")
     refute Regex.match?(%r/foo/, "FOO")
@@ -55,6 +60,8 @@ defmodule Regex.BinaryTest do
   test :run do
     assert Regex.run(%r"c(d)", "abcd") == ["cd", "d"]
     assert Regex.run(%r"e", "abcd") == nil
+    assert Regex.run(%r"c(?<FOO>d)", "abcd", :groups) == [{"FOO", ["d"]}]
+    assert Regex.run(%r"c(?<FOO>d)", "no_match", :groups) == [{"FOO", []}]
   end
 
   test :index do
@@ -71,6 +78,9 @@ defmodule Regex.BinaryTest do
     assert Regex.scan(%r"c(d|e)", "abcd abce") == [["d"], ["e"]]
     assert Regex.scan(%r"c(?:d|e)", "abcd abce") == ["cd", "ce"]
     assert Regex.scan(%r"e", "abcd") == []
+    assert Regex.scan(%r"c(?<FOO>d|e)", "abcd abce", :groups) == [{"FOO", [["d"], ["e"]]}]
+    assert Regex.scan(%r"c(?<FOO>(?:d|e))", "abcd abce", :groups) == [{"FOO", [["d"], ["e"]]}]
+    assert Regex.scan(%r"c(?<FOO>d)", "no_match", :groups) == [{"FOO", []}]
   end
 
   test :split do
@@ -115,6 +125,11 @@ defmodule Regex.ListTest do
     assert Regex.opts(Regex.compile!('foo', 'u')) == "u"
   end
 
+  test :groups do
+    assert Regex.groups(Regex.compile!('foo')) == []
+    assert Regex.groups(Regex.compile!('(?<FOO>foo)')) == ["FOO"]
+  end
+
   test :match? do
     assert Regex.match?(%r(foo), 'foo')
     refute Regex.match?(%r(foo), 'FOO')
@@ -131,6 +146,13 @@ defmodule Regex.ListTest do
   test :run do
     assert Regex.run(%r'c(d)', 'abcd') == ['cd', 'd']
     assert Regex.run(%r'e', 'abcd') == nil
+    assert Regex.run(%r'c(?<FOO>d)', 'abcd', :groups) == [{'FOO', ['d']}]
+    assert Regex.run(%r'c(?<FOO>d)', 'no_match', :groups) == [{'FOO', []}]
+  end
+
+  test :index do
+    assert Regex.index(%r'c(d)', 'abcd') == 2
+    assert Regex.index(%r'e', 'abcd') == nil
   end
 
   test :indexes do
@@ -142,6 +164,9 @@ defmodule Regex.ListTest do
     assert Regex.scan(%r'c(d|e)', 'abcd abce') == [['d'], ['e']]
     assert Regex.scan(%r'c(?:d|e)', 'abcd abce') == ['cd', 'ce']
     assert Regex.scan(%r'e', 'abcd') == []
+    assert Regex.scan(%r'c(?<FOO>d|e)', 'abcd abce', :groups) == [{'FOO', [['d'], ['e']]}]
+    assert Regex.scan(%r'c(?<FOO>(?:d|e))', 'abcd abce', :groups) == [{'FOO', [['d'], ['e']]}]
+    assert Regex.scan(%r'c(?<FOO>d)', 'no_match', :groups) == [{'FOO', []}]
   end
 
   test :split do
