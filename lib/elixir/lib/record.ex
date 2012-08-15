@@ -1,6 +1,6 @@
 defmodule Record do
   @moduledoc """
-  Functions to define and interact with Erlang records
+  Functions to define Elixir records
   """
 
   @doc """
@@ -17,10 +17,117 @@ defmodule Record do
   end
 
   @doc """
-  Implements the access macro used by records.
-  It returns a quoted expression that represents
-  the access given by the keywords.
+  Main entry point for records definition. It defines a module
+  with the given `name` and the fields specified in `modules`.
+  This is invoked directly by `Kernel.defrecord`, so check it
+  for more information and documentation.
   """
+  def defrecord(name, values, opts) do
+    block = Keyword.get(opts, :do, nil)
+    opts  = Keyword.delete(opts, :do)
+
+    quote do
+      defmodule unquote(name) do
+        @moduledoc false
+        Record.deffunctions(__ENV__, unquote(values), unquote(opts))
+        unquote(block)
+      end
+    end
+  end
+
+  @doc """
+  Defines record functions skipping the module definition.
+  This is called directly by `defrecord`. It expects the
+  module environment, the module values and a keywords list
+  of options.
+
+  ## Examples
+
+      defmodule CustomRecord do
+        Record.deffunctions __ENV__, [:name, :age]
+      end
+
+  """
+  def deffunctions(env, values, opts) do
+    values     = lc value inlist values, do: convert_value(value)
+    escaped    = Macro.escape(values)
+    extensions = Keyword.get(opts, :extensions, Record.Extensions)
+    except     = Keyword.get(opts, :except, [])
+
+    contents = [
+      reflection(escaped),
+      initializer(escaped),
+      readers(values, 2, []),
+      conversions(values)
+    ]
+
+    unless :lists.member(:writers, except) do
+      contents = [writers(values, 2, [])|contents]
+    end
+
+    unless :lists.member(:extensions, except) do
+      contents = [extensions(values, 2, [], extensions)|contents]
+    end
+
+    # Special case for bootstraping purposes
+    if env == Macro.Env do
+      Erlang.elixir_module.eval_quoted(env, contents, [], [])
+    else
+      contents = [quote(do: @__record__ unquote(escaped))|contents]
+      Module.eval_quoted(env, contents)
+    end
+  end
+
+  @doc """
+  Defines two macros for reading and writing records values.
+  These macros are private to the current module and are
+  basically a simple mechanism for manipulating tuples when
+  there isn't an interest in exposing the record as a whole.
+  In some ways, it is similar to Erlang records, since it is
+  only available at compilation time.
+
+  ## Examples
+
+      defmodule CustomModule do
+        Record.defmacros __ENV__, :_user, [:name, :age]
+
+        def new(name, age) do
+          _user(name: name, age: age)
+        end
+
+        def name(user, name) do
+          _user(user, name: name)
+        end
+      end
+
+  """
+  def defmacros(env, name, values) do
+    escaped = lc value inlist values, do: Macro.escape(convert_value(value))
+
+    contents = quote do
+      defmacrop unquote(name).(args) do
+        Record.access(__CALLER__, __MODULE__, unquote(escaped), args)
+      end
+
+      defmacrop unquote(name).(record, args) do
+        Record.update(__CALLER__, __MODULE__, unquote(escaped), record, args)
+      end
+    end
+
+    Module.eval_quoted(env, contents)
+  end
+
+  defp convert_value(atom) when is_atom(atom) do
+    { atom, nil }
+  end
+
+  defp convert_value(other), do: other
+
+  # Implements the access macro used by records.
+  # It returns a quoted expression that defines
+  # a record or a match in case the record is
+  # inside a match.
+  @doc false
   def access(caller, atom, fields, keyword) do
     unless is_orddict(keyword) do
       raise "expected contents inside brackets to be a Keyword"
@@ -56,71 +163,36 @@ defmodule Record do
     end
   end
 
+  # Implements the update macro defined by defmacros.
+  # It returns a quoted expression that represents
+  # the access given by the keywords.
+  @doc false
+  def update(caller, atom, fields, var, keyword) do
+    unless is_orddict(keyword) do
+      raise "expected contents inside brackets to be a Keyword"
+    end
+
+    if caller.in_match? do
+      raise "cannot invoke update style macro inside match context"
+    end
+
+    Enum.reduce keyword, var, fn({ key, value }, acc) ->
+      index = Enum.find_index(fields, fn({ field, _ }) -> field == key end)
+      if index do
+        quote do
+          :erlang.setelement(unquote(index + 1), unquote(acc), unquote(value))
+        end
+      else
+        raise "record #{inspect atom} does not have the key: #{inspect key}"
+      end
+    end
+  end
+
   defp is_orddict(list) when is_list(list), do: :lists.all(is_orddict_tuple(&1), list)
   defp is_orddict(_), do: false
 
   defp is_orddict_tuple({ x, _ }) when is_atom(x), do: true
   defp is_orddict_tuple(_), do: false
-
-  @doc """
-  Main entry point for records definition. This is invoked
-  directly by `Kernel.defrecord`. Returns the quoted expression
-  of a module given by name.
-  """
-  def defrecord(name, values, opts) do
-    block = Keyword.get(opts, :do, nil)
-    opts  = Keyword.delete(opts, :do)
-
-    quote do
-      defmodule unquote(name) do
-        @moduledoc false
-        Record.deffunctions(__ENV__, unquote(values), unquote(opts))
-        unquote(block)
-      end
-    end
-  end
-
-  @doc """
-  Defines record functions skipping the module definition.
-  This is called directly by `defrecord`. It expects the
-  module environment, the module values and a keywords list
-  of options.
-  """
-  def deffunctions(env, values, opts) do
-    values     = lc value inlist values, do: convert_value(value)
-    escaped    = Macro.escape(values)
-    extensions = Keyword.get(opts, :extensions, Record.Extensions)
-    except     = Keyword.get(opts, :except, [])
-
-    contents = [
-      reflection(escaped),
-      initializer(escaped),
-      readers(values, 2, []),
-      conversions(values)
-    ]
-
-    unless :lists.member(:writers, except) do
-      contents = [writers(values, 2, [])|contents]
-    end
-
-    unless :lists.member(:extensions, except) do
-      contents = [extensions(values, 2, [], extensions)|contents]
-    end
-
-    # Special case for bootstraping purposes
-    if env == Macro.Env do
-      Erlang.elixir_module.eval_quoted(env, contents, [], [])
-    else
-      contents = [quote(do: @__record__ unquote(escaped))|contents]
-      Module.eval_quoted(env, contents)
-    end
-  end
-
-  defp convert_value(atom) when is_atom(atom) do
-    { atom, nil }
-  end
-
-  defp convert_value(other), do: other
 
   # Define __record__/1 and __record__/2 as reflection functions
   # that returns the record names and fields.

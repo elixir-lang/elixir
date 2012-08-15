@@ -12,6 +12,22 @@ end
 
 defrecord RecordTest.WithNoField, []
 
+defmodule RecordTest.Macros do
+  Record.defmacros __ENV__, :_user, [:name, :age]
+
+  def new(name, age) do
+    _user(name: name, age: age)
+  end
+
+  def name(_user(name: name)) do
+    name
+  end
+
+  def add_bar_to_name(_user(name: name) = user) do
+    _user(user, name: name <> " bar")
+  end
+end
+
 defmodule RecordTest do
   use ExUnit.Case, async: true
 
@@ -69,6 +85,14 @@ defmodule RecordTest do
 
   test :access_protocol_on_being_defined_record do
     assert RecordTest.DynamicName.new(a: "a").get_a == "a"
+  end
+
+  test :record_macros do
+    record = RecordTest.Macros.new("Foo", 25)
+    assert record.name == "Foo"
+
+    record = record.add_bar_to_name
+    assert record.name == "Foo bar"
   end
 
   defp file_info do
