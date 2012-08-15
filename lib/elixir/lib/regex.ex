@@ -112,10 +112,11 @@ defmodule Regex do
 
       Regex.run %r/c(d)/, "abcd"  #=> ["cd", "d"]
       Regex.run %r/e/, "abcd"     #=> nil
-
   """
-  def run({ Regex, compiled, _, _ }, string) do
-    case Erlang.re.run(string, compiled, [{ :capture, :all, return_for(string) }]) do
+  def run({ Regex, compiled, _, _ }, string, options // [])
+  def run({ Regex, compiled, _, _ }, string, options) do
+    return = options[:return] || return_for(string)
+    case Erlang.re.run(string, compiled, [{ :capture, :all, return }]) do
       :nomatch ->
         nil
       { :match, results } ->
@@ -188,8 +189,10 @@ defmodule Regex do
       Regex.scan %r/e/, "abcd"             #=> []
 
   """
-  def scan({ Regex, compiled, _, _ }, string) do
-    options = [{ :capture, :all, return_for(string) }, :global, { :offset, 0 }]
+  def scan({ Regex, compiled, _, _ }, string, options // [])
+  def scan({ Regex, compiled, _, _ }, string, options) do
+    return = options[:return] || return_for(string)
+    options = [{ :capture, :all, return }, :global, { :offset, 0 }]
     case Erlang.re.run(string, compiled, options) do
       :nomatch -> []
       { :match, results } ->
