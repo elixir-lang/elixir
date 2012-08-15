@@ -2535,20 +2535,31 @@ defmodule Kernel do
       { false, true } ->
         raise "invalid usage of access protocol in signature"
       { true, _ } ->
-        try do
-          atom.__access__(caller, args)
-        rescue
-          UndefinedFunctionError ->
-            # We first try to call __access__ and just then check if
-            # it is loaded so we allow the ParallelCompiler to solve
-            # conflicts.
-            case :code.ensure_loaded(atom) do
-              { :error, _ } ->
-                raise "expected module #{inspect atom} to be loaded and defined"
-              _ ->
-                raise "cannot use module #{inspect atom} in access protocol because it does not export __access__/2"
+        fields =
+          try do
+            module = caller.module
+
+            # We are using the access protocol in the same
+            # module that defines it. It works, but we need
+            # to read the field values from @__record__.
+            case atom do
+              ^module -> Module.read_attribute(module, :__record__)
+              _ -> atom.__record__(:fields)
             end
-        end
+          rescue
+            UndefinedFunctionError ->
+              # We first try to call __access__ and just then check if
+              # it is loaded so we allow the ParallelCompiler to solve
+              # conflicts.
+              case :code.ensure_loaded(atom) do
+                { :error, _ } ->
+                  raise "expected module #{inspect atom} to be loaded and defined"
+                _ ->
+                  raise "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
+              end
+          end
+
+        Record.access(caller, atom, fields, args)
     end
   end
 

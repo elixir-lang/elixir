@@ -4,7 +4,11 @@ defrecord RecordTest.FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
 name = RecordTest.DynamicName
-defrecord name, a: 0, b: 1
+defrecord name, a: 0, b: 1 do
+  def get_a(RecordTest.DynamicName[a: a]) do
+    a
+  end
+end
 
 defrecord RecordTest.WithNoField, []
 
@@ -61,6 +65,10 @@ defmodule RecordTest do
     assert RecordTest.DynamicName[_: _] = RecordTest.DynamicName[_: "x"]
     assert { :badmatch, RecordTest.DynamicName[a: "y", b: "y"] } =
       catch_error(RecordTest.DynamicName[_: "x"] = RecordTest.DynamicName[_: "y"])
+  end
+
+  test :access_protocol_on_being_defined_record do
+    assert RecordTest.DynamicName.new(a: "a").get_a == "a"
   end
 
   defp file_info do

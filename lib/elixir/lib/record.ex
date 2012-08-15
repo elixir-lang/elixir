@@ -87,13 +87,14 @@ defmodule Record do
   of options.
   """
   def deffunctions(env, values, opts) do
-    values     = lc value inlist values, do: escape_value(value)
+    values     = lc value inlist values, do: convert_value(value)
+    escaped    = Macro.escape(values)
     extensions = Keyword.get(opts, :extensions, Record.Extensions)
     except     = Keyword.get(opts, :except, [])
 
     contents = [
-      reflection(values),
-      initializer(values),
+      reflection(escaped),
+      initializer(escaped),
       readers(values, 2, []),
       conversions(values)
     ]
@@ -106,19 +107,20 @@ defmodule Record do
       contents = [extensions(values, 2, [], extensions)|contents]
     end
 
-    # This is a special case that handles the
+    # Special case for bootstraping purposes
     if env == Macro.Env do
       Erlang.elixir_module.eval_quoted(env, contents, [], [])
     else
+      contents = [quote(do: @__record__ unquote(escaped))|contents]
       Module.eval_quoted(env, contents)
     end
   end
 
-  defp escape_value(atom) when is_atom(atom) do
+  defp convert_value(atom) when is_atom(atom) do
     { atom, nil }
   end
 
-  defp escape_value(other), do: Macro.escape(other)
+  defp convert_value(other), do: other
 
   # Define __record__/1 and __record__/2 as reflection functions
   # that returns the record names and fields.
@@ -136,7 +138,6 @@ defmodule Record do
   #
   defp reflection(values) do
     quote do
-      def __access__(caller, args), do: Record.access(caller, __MODULE__, __record__(:fields), args)
       def __record__(kind, _),      do: __record__(kind)
       def __record__(:name),        do: __MODULE__
       def __record__(:fields),      do: unquote(values)
