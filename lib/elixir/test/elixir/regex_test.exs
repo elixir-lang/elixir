@@ -55,6 +55,7 @@ defmodule Regex.BinaryTest do
   test :run do
     assert Regex.run(%r"c(d)", "abcd") == ["cd", "d"]
     assert Regex.run(%r"e", "abcd") == nil
+    assert Regex.run(%r"c(d)", "abcd", return: :list) == ['cd', 'd']
   end
 
   test :index do
@@ -71,6 +72,7 @@ defmodule Regex.BinaryTest do
     assert Regex.scan(%r"c(d|e)", "abcd abce") == [["d"], ["e"]]
     assert Regex.scan(%r"c(?:d|e)", "abcd abce") == ["cd", "ce"]
     assert Regex.scan(%r"e", "abcd") == []
+    assert Regex.scan(%r"c(d|e)", "abcd abce", return: :list) == [['d'], ['e']]
   end
 
   test :split do
@@ -131,6 +133,12 @@ defmodule Regex.ListTest do
   test :run do
     assert Regex.run(%r'c(d)', 'abcd') == ['cd', 'd']
     assert Regex.run(%r'e', 'abcd') == nil
+    assert Regex.run(%r"c(d)", "abcd", return: :binary) == ["cd", "d"]
+  end
+
+  test :index do
+    assert Regex.index(%r'c(d)', 'abcd') == 2
+    assert Regex.index(%r'e', 'abcd') == nil
   end
 
   test :indexes do
@@ -142,6 +150,7 @@ defmodule Regex.ListTest do
     assert Regex.scan(%r'c(d|e)', 'abcd abce') == [['d'], ['e']]
     assert Regex.scan(%r'c(?:d|e)', 'abcd abce') == ['cd', 'ce']
     assert Regex.scan(%r'e', 'abcd') == []
+    assert Regex.scan(%r'c(d|e)', 'abcd abce', return: :binary) == [["d"], ["e"]]
   end
 
   test :split do
