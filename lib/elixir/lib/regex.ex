@@ -28,6 +28,7 @@ defmodule Regex do
   * firstline (f) - forces the unanchored pattern to match before or at the first
     newline, though the matched text may continue over the newline
   * ungreedy (r) - invert the "greediness" of the regexp
+  * groups (g) - compile with info about groups available
 
   The options not available are:
 
@@ -53,10 +54,16 @@ defmodule Regex do
   def compile(source, options // "") do
     source  = to_binary(source)
     options = to_binary(options)
-    re_opts = translate_options(options)
+    opts = translate_options(options)
+    re_opts = opts -- [:groups]
+    if opts != re_opts do
+      groups = parse_groups(source)
+    else
+      groups = nil
+    end
     case Erlang.re.compile(source, re_opts) do
       { :ok, compiled } ->
-        { :ok, { Regex, compiled, source, options } }
+        { :ok, { Regex, compiled, source, options, groups } }
       error ->
         error
     end
@@ -84,7 +91,7 @@ defmodule Regex do
       Regex.index %r/e/, "abcd"     #=> nil
 
   """
-  def index({ Regex, compiled, _, _ }, string) do
+  def index({ Regex, compiled, _, _, _ }, string) do
     case Erlang.re.run(string, compiled, [{ :capture, :first, :index }]) do
       :nomatch -> nil
       { :match, [{index,_}] } -> index
@@ -100,21 +107,20 @@ defmodule Regex do
       Regex.match? %r/foo/, "bar" #=> false
 
   """
-  def match?({ Regex, compiled, _, _ }, string) do
+  def match?({ Regex, compiled, _, _, _ }, string) do
     :nomatch != Erlang.re.run(string, compiled)
   end
 
   @doc """
   Runs the regular expression against the given string.
   It returns a list with all matches or nil if no match ocurred.
-
   ## Examples
 
       Regex.run %r/c(d)/, "abcd"  #=> ["cd", "d"]
       Regex.run %r/e/, "abcd"     #=> nil
   """
-  def run({ Regex, compiled, _, _ }, string, options // [])
-  def run({ Regex, compiled, _, _ }, string, options) do
+  def run({ Regex, compiled, _, _, _ }, string, options // [])
+  def run({ Regex, compiled, _, _, _ }, string, options) do
     return = options[:return] || return_for(string)
     case Erlang.re.run(string, compiled, [{ :capture, :all, return }]) do
       :nomatch ->
@@ -122,6 +128,35 @@ defmodule Regex do
       { :match, results } ->
         results
     end
+  end
+
+  @doc """
+  Runs the regular expression against the given string.
+  It returns a list with all matches as a keyvalue list where key is a group name
+  or nil if no match ocurred.
+
+  ## Examples
+
+      Regex.match %r/c(?<FOO>d)/g, "abcd"  #=> [{"FOO", ["d"]}]
+  """
+  def match(regex, string, options // [])
+  def match({ Regex, compiled, source, options, nil }, string, options) do
+    if options[:force] do
+      groups = parse_groups(source)
+      match({ Regex, compiled, source, options, groups }, string, options)
+    else
+      IO.write "[WARNING] Information about groups is not compiled in into given regexp, pass a ?g option to Regex.compile or :force to match/2 to use it"
+      nil
+    end
+  end
+  def match({ Regex, _, _, _, _ } = regex, string, options) do
+    return = options[:return] || return_for(string)
+    if options[:global] do
+       options = [:global]
+    else
+       options = []
+    end
+    match_groups(regex, string, return, options)
   end
 
   @doc """
@@ -136,7 +171,7 @@ defmodule Regex do
       Regex.indexes %r/e/, "abcd"     #=> nil
 
   """
-  def indexes({ Regex, compiled, _, _ }, string) do
+  def indexes({ Regex, compiled, _, _, _ }, string) do
     case Erlang.re.run(string, compiled, [{ :capture, :all, :index }]) do
       :nomatch ->
         nil
@@ -148,7 +183,7 @@ defmodule Regex do
   @doc """
   Returns the underlying re_pattern in the regular expression.
   """
-  def re_pattern({ Regex, compiled, _, _ }) do
+  def re_pattern({ Regex, compiled, _, _, _ }) do
     compiled
   end
 
@@ -160,7 +195,7 @@ defmodule Regex do
       Regex.source %r(foo) #=> "foo"
 
   """
-  def source({ Regex, _, source, _ }) do
+  def source({ Regex, _, source, _, _ }) do
     source
   end
 
@@ -172,8 +207,25 @@ defmodule Regex do
       Regex.opts %r(foo)m #=> 'm'
 
   """
-  def opts({ Regex, _, _, opts }) do
+  def opts({ Regex, _, _, opts, _ }) do
     opts
+  end
+
+  @doc """
+  Returns list of named groups in regex.
+
+  ## Examples
+
+      Regex.groups %r/(?<FOO>foo)/g #=> ["FOO"]
+
+  """
+
+  def groups({ Regex, _, _, _, nil }) do
+    []
+  end
+
+  def groups({ Regex, _, _, _, groups }) do
+    groups
   end
 
   @doc """
@@ -189,19 +241,14 @@ defmodule Regex do
       Regex.scan %r/e/, "abcd"             #=> []
 
   """
-  def scan({ Regex, compiled, _, _ }, string, options // [])
-  def scan({ Regex, compiled, _, _ }, string, options) do
+  def scan({ Regex, compiled, _, _, _ }, string, options // [])
+  def scan({ Regex, compiled, _, _, _ }, string, options) do
     return = options[:return] || return_for(string)
     options = [{ :capture, :all, return }, :global, { :offset, 0 }]
     case Erlang.re.run(string, compiled, options) do
       :nomatch -> []
       { :match, results } ->
-        lc result inlist results do
-          case result do
-            [t] -> t
-            [h|t] -> t
-          end
-        end
+        flatten_result(results)
     end
   end
 
@@ -210,14 +257,14 @@ defmodule Regex do
   of parts is given, it defaults to :infinity.
   """
 
-  def split({ Regex, compiled, _, _ }, string, options // [])
+  def split({ Regex, compiled, _, _, _ }, string, options // [])
 
   def split(regex, string, options) when is_integer(options) or is_atom(options) do
     IO.write "[WARNING] Passing an integer or atom to Regex.split/3 is deprecated, pass a :parts option instead\n#{Exception.formatted_stacktrace}"
     split(regex, string, parts: options)
   end
 
-  def split({ Regex, compiled, _, _ }, string, options) do
+  def split({ Regex, compiled, _, _, _ }, string, options) do
     parts = options[:parts] || :infinity
     options = [{ :return, return_for(string) }, :trim, { :parts, parts }]
     Erlang.re.split(string, compiled, options)
@@ -239,7 +286,7 @@ defmodule Regex do
       Regex.replace(%r/(b)/, "abc", "[\\1]") #=> "a[b]c"
 
   """
-  def replace({ Regex, compiled, _, _ }, string, replacement) do
+  def replace({ Regex, compiled, _, _, _ }, string, replacement) do
     Erlang.re.replace(string, compiled, replacement, [{ :return, return_for(string) }])
   end
 
@@ -248,7 +295,7 @@ defmodule Regex do
   expressions matches in the string. Please read `replace/3` for
   documentation and examples.
   """
-  def replace_all({ Regex, compiled, _, _ }, string, replacement) do
+  def replace_all({ Regex, compiled, _, _, _ }, string, replacement) do
     Erlang.re.replace(string, compiled, replacement, [{ :return, return_for(string) }, :global])
   end
 
@@ -275,5 +322,47 @@ defmodule Regex do
   defp translate_options(<<?r, t|:binary>>), do: [:ungreedy|translate_options(t)]
   defp translate_options(<<?s, t|:binary>>), do: [:dotall,{:newline,:anycrlf}|translate_options(t)]
   defp translate_options(<<?m, t|:binary>>), do: [:multiline|translate_options(t)]
+  defp translate_options(<<?g, t|:binary>>), do: [:groups|translate_options(t)]
   defp translate_options(<<>>), do: []
+
+  defp flatten_result(results) do
+    lc result inlist results do
+      case result do
+        [t] -> t
+        [h|t] -> t
+      end
+    end
+  end
+
+  defp parse_groups(source) do
+    options = [:global, {:capture, ['G'], :binary}]
+    {:ok, pattern} = :re.compile(%B"\(\?<(?<G>[^>]*)>")
+    case Erlang.re.run(source, pattern, options) do
+      :nomatch -> []
+      { :match, results } -> lc [group] inlist results, do: group
+    end
+  end
+
+  defp match_groups({ Regex, compiled, _, _, groups }, string, result, opts) do
+    {is_match, matches} = Enum.reduce groups, {false, []},
+      fn(group, {is_match, acc}) ->
+        options = [{:capture, [group], result}|opts]
+        matches = case Erlang.re.run(string, compiled, options) do
+            :nomatch -> acc
+            { :match, results } when options == [:global] ->
+               flatten_result(results)
+            { :match, results } ->
+               results
+          end
+        if result == :list, do: group = binary_to_list(group)
+        if matches != [], do: is_match = true
+        {is_match, [{group, matches}|acc]}
+     end
+    if is_match do
+      matches
+    else
+      nil
+    end
+  end
+
 end

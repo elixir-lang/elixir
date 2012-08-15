@@ -12,6 +12,12 @@ defmodule Regex.BinaryTest do
     assert "aa" =~ %r/(a)\1/
   end
 
+  test :groups do
+    assert Regex.groups(%r/(?<FOO>foo)/g) == ["FOO"]
+    assert Regex.groups(Regex.compile!("foo")) == []
+    assert Regex.groups(Regex.compile!("(?<FOO>foo)", "g")) == ["FOO"]
+  end
+
   test :compile! do
     assert is_record(Regex.compile!("foo"), Regex)
     assert is_regex(Regex.compile!("foo"))
@@ -68,6 +74,14 @@ defmodule Regex.BinaryTest do
     assert Regex.indexes(%r"e", "abcd") == nil
   end
 
+  test :match do
+    assert Regex.match(%r/c(?<FOO>d)/g, "abcd") == [{"FOO", ["d"]}]
+    assert Regex.match(%r/c(?<FOO>d)/g, "no_match") == nil
+    assert Regex.match(%r/c(?<FOO>d|e)/g, "abcd abce") == [{"FOO", ["d"]}]
+    assert Regex.match(%r/c(?<FOO>d)/g, "abcd", return: :list) == [{'FOO', ['d']}]
+    assert Regex.match(%r/c(?<FOO>d|e)/g, "abcd abce", global: true) == [{"FOO", [["d"], ["e"]]}]
+  end
+
   test :scan do
     assert Regex.scan(%r"c(d|e)", "abcd abce") == [["d"], ["e"]]
     assert Regex.scan(%r"c(?:d|e)", "abcd abce") == ["cd", "ce"]
@@ -117,6 +131,11 @@ defmodule Regex.ListTest do
     assert Regex.opts(Regex.compile!('foo', 'u')) == "u"
   end
 
+  test :groups do
+    assert Regex.groups(Regex.compile!('foo')) == []
+    assert Regex.groups(Regex.compile!('(?<FOO>foo)', 'g')) == ["FOO"]
+  end
+
   test :match? do
     assert Regex.match?(%r(foo), 'foo')
     refute Regex.match?(%r(foo), 'FOO')
@@ -144,6 +163,14 @@ defmodule Regex.ListTest do
   test :indexes do
     assert Regex.indexes(%r'c(d)', 'abcd') == [{2,2},{3,1}]
     assert Regex.indexes(%r'e', 'abcd') == nil
+  end
+
+  test :match do
+    assert Regex.match(%r/c(?<FOO>d)/g, 'abcd') == [{'FOO', ['d']}]
+    assert Regex.match(%r/c(?<FOO>d)/g, 'no_match') == nil
+    assert Regex.match(%r/c(?<FOO>d|e)/g, 'abcd abce') == [{'FOO', ['d']}]
+    assert Regex.match(%r/c(?<FOO>d)/g, 'abcd', return: :binary) == [{"FOO", ["d"]}]
+    assert Regex.match(%r/c(?<FOO>d|e)/g, 'abcd abce', global: true) == [{'FOO', [['d'], ['e']]}]
   end
 
   test :scan do
