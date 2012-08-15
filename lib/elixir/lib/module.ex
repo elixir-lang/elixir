@@ -63,15 +63,7 @@ defmodule Module do
 
   def eval_quoted(module, quoted, binding, opts) do
     assert_not_compiled!(:eval_quoted, module)
-
-    binding = Erlang.elixir_module.binding_for_eval(module, binding)
-    scope   = Erlang.elixir_module.scope_for_eval(module, opts)
-
-    Erlang.elixir_def.reset_last(module)
-
-    line = Keyword.get opts, :line, 1
-    { value, binding, _scope } = Erlang.elixir.eval_quoted([quoted], binding, line, scope)
-    { value, binding }
+    Erlang.elixir_module.eval_quoted(module, quoted, binding, opts)
   end
 
   @doc """
@@ -174,8 +166,8 @@ defmodule Module do
       { [], _ } ->
         ETS.insert(table, { tuple, line, kind, signature, doc })
         :ok
-      { [{ tuple, line, kind, old, doc }], nil } ->
-        ETS.insert(table, { tuple, line, kind, merge_signatures(old, signature, 1), doc })
+      { [{ tuple, line, kind, old, old_doc }], new_doc } when old_doc == nil or new_doc == nil ->
+        ETS.insert(table, { tuple, line, kind, merge_signatures(old, signature, 1), old_doc || new_doc })
         :ok
       _ ->
         { :error, :existing_doc }

@@ -1248,7 +1248,7 @@ defmodule Kernel do
   """
   defmacro defp(name, args, guards, do: contents)
 
-  @doc """
+  @doc %B"""
   Define a record given by name and values.
 
   ## Examples
@@ -1270,12 +1270,20 @@ defmodule Kernel do
       IO.inspect FileInfo.new
       { FileInfo, nil, nil }
 
-  ## Default based functions
+  ## Extensions
 
-  Depending on the default value, Elixir will define helpers to interact
-  with the record. For example, ExUnit defines a record which keeps
-  track of how many tests were executed and the failures that happened
-  The record definition is similar to:
+  Besides defining readers and writers for each attribute. Elixir will
+  define extensions functions for each attribute. By default, it will
+  define an `update_#{attribute}` function to update the value. Such
+  functions expect a function as argument that receives the current value
+  and must return the new one:
+
+      file_info.update_atime(fn(_old) -> now() end) #=> Updates the value of atime
+
+  Besides, Elixir may define new functions depending on the default value.
+  For example, ExUnit defines a record which keeps track of how many tests
+  were executed and the failures that happened. The record definition is
+  similar to:
 
       defrecord Config, counter: 0, failures: []
 
@@ -1288,17 +1296,19 @@ defmodule Kernel do
 
       Config.new.increment_counter(10).counter #=> 10
 
-  Besides, if the default is a list, Elixir will define three helpers:
+  Besides, if the default is a list, Elixir will define two helpers:
 
   * `merge_field` - Receives keywords and merge it into the current value;
   * `prepend_field` - Receives another list and prepend its values
 
+  You can define your own extensions or disable them using the except
+  option:
+
+      defrecord Config, [counter: 0, failures: []], except: [:extensions]
+
   ## Documentation
 
   By default records are not documented and have @moduledoc set to false.
-  This can be changed by passing a moduledoc option after values:
-
-      defrecord Config, [counter: 0, failures: []], moduledoc: "A simple record"
 
   """
   defmacro defrecord(name, values, opts // [], do_block // []) do

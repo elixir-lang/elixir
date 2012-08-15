@@ -1,84 +1,55 @@
-# We generate this record using a raw module due to
-# bootstrap constraints. Notice the fields are not
-# represented by a keywords list because we want
-# to keep control over the order.
 defmodule Macro.Env do
-  @doc """
+  Record.deffunctions(__MODULE__, [:module, :file, :line, :function,
+    :aliases, :context, :requires, :macros], except: [:writers, :extensions])
+
+  @moduledoc """
   A record that contains compile time environment information,
   It can be accessed at any time by calling __ENV__.
   """
 
-  def __access__(caller, args) do
-    Record.access(caller, __MODULE__, __record__(:fields), args)
-  end
-
-  def __record__(kind, _), do: __record__(kind)
-  def __record__(:name),   do: Macro.Env
-
-  # When adding removing new fields,
-  # src/elixir_tree_helpers.erl needs to be changed as well.
-  def __record__(:fields) do
-    [
-      {:module,nil},
-      {:file,nil},
-      {:line,nil},
-      {:function,nil},
-      {:aliases,nil},
-      {:context,nil},
-      {:requires,nil},
-      {:macros,nil}
-    ]
-  end
-
   @doc """
   Returns the current module name.
   """
-  def module(record),  do: elem(record, 2)
+  def module(record)
 
   @doc """
   Returns the current file name as a binary.
   """
-  def file(record),    do: elem(record, 3)
+  def file(record)
 
   @doc """
   Returns the current line as an integer.
   """
-  def line(record),    do: elem(record, 4)
+  def line(record)
 
   @doc """
   Returns a tuple as { Atom, Integer }, where the first element
   is the function name and the seconds its arity. Returns `nil`
   if not inside a function.
   """
-  def function(record), do: elem(record, 5)
+  def function(record)
 
   @doc """
   Returns a list of two item tuples, where the first
   item is the aliased name and the second the actual name.
   """
-  def aliases(record), do: elem(record, 6)
+  def aliases(record)
 
   @doc """
-  Returns wether the compilation environment is currently
-  inside a guard.
+  Returns the context of the environment. It can be nil
+  (default context), inside a guard or inside an assign.
   """
-  def in_guard?(record), do: elem(record, 7) == :guard
-
-  @doc """
-  Returns wether the compilation environment is currently
-  inside a match clause.
-  """
-  def in_match?(record), do: elem(record, 7) == :assign
+  def context(record)
 
   @doc """
   Returns the list of required modules.
   """
-  def requires(record), do: elem(record, 8)
+  def requires(record)
 
   @doc """
   Returns a list of macros imported from each module.
   """
-  def macros(record), do: elem(record, 9)
+  def macros(record)
 
   @doc """
   Returns a keywords list containing the file and line
@@ -87,4 +58,16 @@ defmodule Macro.Env do
   def location(record) do
     [file: file(record), line: line(record)]
   end
+
+  @doc """
+  Returns wether the compilation environment is currently
+  inside a guard.
+  """
+  def in_guard?(record), do: context(record) == :guard
+
+  @doc """
+  Returns wether the compilation environment is currently
+  inside a match clause.
+  """
+  def in_match?(record), do: context(record) == :assign
 end

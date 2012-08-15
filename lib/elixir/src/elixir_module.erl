@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/4, compile/5, data_table/1,
+-export([translate/4, compile/5, data_table/1, eval_quoted/4,
    format_error/1, scope_for_eval/2, binding_for_eval/2]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
@@ -11,6 +11,20 @@ scope_for_eval(Module, Opts) ->
   scope_for_eval(Module, elixir:scope_for_eval(Opts)).
 
 binding_for_eval(Module, Binding) -> [{'_@MODULE',Module}|Binding].
+
+eval_quoted(Module, Quoted, RawBinding, Opts) ->
+  Binding = binding_for_eval(Module, RawBinding),
+  Scope   = scope_for_eval(Module, Opts),
+
+  elixir_def:reset_last(Module),
+
+  case orddict:find(line, Opts) of
+    { ok, Line } -> Line;
+    error -> Line = 1
+  end,
+
+  { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope),
+  { Value, FinalBinding }.
 
 %% TABLE METHODS
 

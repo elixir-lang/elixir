@@ -1,38 +1,7 @@
-defmodule Range do
-  def __access__(caller, arg), do: Record.access(caller, __MODULE__, __record__(:fields), arg)
-  def __record__(kind, _),     do: __record__(kind)
-  def __record__(:name),       do: __MODULE__
-  def __record__(:fields),     do: [{:first,nil},{:last,nil}]
-
-  @doc """
-  Returns a new range based on the given options.
-
-  ## Examples
-
-      Range.new first: 1, last: 10
-
+defrecord Range, [:first, :last], except: [:extensions] do
+  @moduledoc """
+  Defines a Range.
   """
-  def new(options) do
-    {
-      __MODULE__,
-      Keyword.get!(options, :first),
-      Keyword.get!(options, :last)
-    }
-  end
-
-  @doc """
-  Returns the first item of the range.
-  """
-  def first(range) do
-    elem(range, 2)
-  end
-
-  @doc """
-  Returns the last item of the range.
-  """
-  def last(range) do
-    elem(range, 3)
-  end
 end
 
 defprotocol Range.Iterator do

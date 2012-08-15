@@ -1,13 +1,15 @@
-defrecord Mix.Dep, [scm: nil, app: nil, requirement: nil, status: nil, opts: nil], moduledoc: """
-This is a record that keeps information about your project
-dependencies. It keeps:
+defrecord Mix.Dep, [scm: nil, app: nil, requirement: nil, status: nil, opts: nil] do
+  @moduledoc """
+  This is a record that keeps information about your project
+  dependencies. It keeps:
 
-* scm - a module representing the source code management tool (SCM) operations;
-* app - the app name as an atom;
-* requirements - a binary or regexp with the deps requirement;
-* status - the current status of dependency, check `Mix.Deps.format_status/1` for more info;
-* opts - the options given by the developer
-"""
+  * scm - a module representing the source code management tool (SCM) operations;
+  * app - the app name as an atom;
+  * requirements - a binary or regexp with the deps requirement;
+  * status - the current status of dependency, check `Mix.Deps.format_status/1` for more info;
+  * opts - the options given by the developer
+  """
+end
 
 defmodule Mix.Deps do
   @moduledoc """

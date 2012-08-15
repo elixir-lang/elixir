@@ -62,41 +62,63 @@ defmodule Record do
   defp is_orddict_tuple({ x, _ }) when is_atom(x), do: true
   defp is_orddict_tuple(_), do: false
 
-
   @doc """
-  Main entry point for records definition.
-  This is invoked directly by `Kernel.defrecord`.
-  Returns the quoted expression of a module given by name.
+  Main entry point for records definition. This is invoked
+  directly by `Kernel.defrecord`. Returns the quoted expression
+  of a module given by name.
   """
   def defrecord(name, values, opts) do
-    moduledoc  = Keyword.get(opts, :moduledoc, false)
-    block      = Keyword.get(opts, :do)
-    definition = Keyword.get(opts, :definition, Record.Definition)
+    block = Keyword.get(opts, :do, nil)
+    opts  = Keyword.delete(opts, :do)
 
     quote do
       defmodule unquote(name) do
-        @moduledoc unquote(moduledoc)
-        Record.define_functions(__ENV__, unquote(values), unquote(definition))
+        @moduledoc false
+        Record.deffunctions(__ENV__, unquote(values), unquote(opts))
         unquote(block)
       end
     end
   end
 
-  @doc false
-  # Private endpoint that defines the functions for the Record.
-  def define_functions(env, values, definition) do
-    # Escape the values so they are valid syntax nodes
-    values = Macro.escape(values)
+  @doc """
+  Defines record functions skipping the module definition.
+  This is called directly by `defrecord`. It expects the
+  module environment, the module values and a keywords list
+  of options.
+  """
+  def deffunctions(env, values, opts) do
+    values     = lc value inlist values, do: escape_value(value)
+    extensions = Keyword.get(opts, :extensions, Record.Extensions)
+    except     = Keyword.get(opts, :except, [])
 
     contents = [
       reflection(values),
-      getters_and_setters(values, 1, [], definition),
-      initializers(values),
-      converters(values)
+      initializer(values),
+      readers(values, 2, []),
+      conversions(values)
     ]
 
-    Module.eval_quoted env, contents
+    unless :lists.member(:writers, except) do
+      contents = [writers(values, 2, [])|contents]
+    end
+
+    unless :lists.member(:extensions, except) do
+      contents = [extensions(values, 2, [], extensions)|contents]
+    end
+
+    # This is a special case that handles the
+    if env == Macro.Env do
+      Erlang.elixir_module.eval_quoted(env, contents, [], [])
+    else
+      Module.eval_quoted(env, contents)
+    end
   end
+
+  defp escape_value(atom) when is_atom(atom) do
+    { atom, nil }
+  end
+
+  defp escape_value(other), do: Macro.escape(other)
 
   # Define __record__/1 and __record__/2 as reflection functions
   # that returns the record names and fields.
@@ -139,7 +161,7 @@ defmodule Record do
   #       { FileInfo, Keyword.get(opts, :atime), Keyword.get(opts, :mtime) }
   #     end
   #
-  defp initializers(values) do
+  defp initializer(values) do
     defaults = lc value inlist values, do: elem(value, 2)
 
     # For each value, define a piece of code that will receive
@@ -163,10 +185,10 @@ defmodule Record do
   #     defrecord FileInfo, atime: nil, mtime: nil
   #
   # It will define one method, to_keywords, which will return a Keyword
-  # 
+  #
   #    [atime: nil, mtime: nil]
   #
-  defp converters(values) do
+  defp conversions(values) do
     sorted = lc { k, _ } inlist values do
       index = find_index(values, k, 1)
       { k, quote(do: :erlang.element(unquote(index + 1), record)) }
@@ -182,8 +204,7 @@ defmodule Record do
   defp find_index([{ k, _ }|_], k, i), do: i
   defp find_index([{ _, _ }|t], k, i), do: find_index(t, k, i + 1)
 
-  # Implement getters and setters for each attribute.
-  # For a declaration like:
+  # Implement readers. For a declaration like:
   #
   #     defrecord FileInfo, atime: nil, mtime: nil
   #
@@ -193,31 +214,55 @@ defmodule Record do
   #       elem(record, 2)
   #     end
   #
-  #     def :atime.(record, value) do
-  #       setelem(record, 2, value)
-  #     end
-  #
   #     def :mtime.(record) do
   #       elem(record, 3)
   #     end
   #
-  #     def :mtime.(record, value) do
-  #       setelem(record, value, 3)
-  #     end
-  #
-  # `element` and `setelement` will simply get and set values
-  # from the record tuple. Notice that `:atime.(record)` is just
-  # a dynamic way to say `atime(record)`. We need to use this
-  # syntax as `unquote(key)(record)` wouldn't be valid (as Elixir
-  # allows you to parenthesis just on specific cases as `foo()`
-  # and `foo.bar()`)
-  defp getters_and_setters([{ key, default }|t], i, acc, definition) do
-    i = i + 1
-    functions = definition.functions_for(key, default, i)
-    getters_and_setters(t, i, [functions | acc], definition)
+  defp readers([{ key, _default }|t], i, acc) do
+    contents = quote do
+      def unquote(key).(record) do
+        :erlang.element(unquote(i), record)
+      end
+    end
+
+    readers(t, i + 1, [contents | acc])
   end
 
-  defp getters_and_setters([], _i, acc, _), do: acc
+  defp readers([], _i, acc), do: acc
+
+  # Implement writers. For a declaration like:
+  #
+  #     defrecord FileInfo, atime: nil, mtime: nil
+  #
+  # It will define four methods:
+  #
+  #     def :atime.(value, record) do
+  #       setelem(record, 2, value)
+  #     end
+  #
+  #     def :mtime.(record) do
+  #       setelem(record, 3, value)
+  #     end
+  #
+  defp writers([{ key, _default }|t], i, acc) do
+    contents = quote do
+      def unquote(key).(value, record) do
+        :erlang.setelement(unquote(i), record, value)
+      end
+    end
+
+    writers(t, i + 1, [contents | acc])
+  end
+
+  defp writers([], _i, acc), do: acc
+
+  # Defines extra functions from the definition.
+  defp extensions([{ key, default }|t], i, acc, extensions) do
+    functions = extensions.functions_for(key, default, i)
+    extensions(t, i + 1, [functions | acc], extensions)
+  end
+
+  defp extensions([], _i, acc, _), do: acc
 end
 
 defmodule Record.Extractor do
@@ -299,7 +344,7 @@ defmodule Record.Extractor do
   end
 end
 
-defmodule Record.Definition do
+defmodule Record.Extensions do
   @moduledoc false
 
   # Main entry point. It defines both default functions
@@ -322,14 +367,6 @@ defmodule Record.Definition do
     update     = binary_to_atom(bin_update)
 
     quote do
-      def unquote(key).(record) do
-        :erlang.element(unquote(i), record)
-      end
-
-      def unquote(key).(value, record) do
-        :erlang.setelement(unquote(i), record, value)
-      end
-
       def unquote(update).(function, record) do
         current = :erlang.element(unquote(i), record)
         :erlang.setelement(unquote(i), record, function.(current))
