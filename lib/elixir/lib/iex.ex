@@ -66,10 +66,6 @@ defmodule IEx do
     # will register the new one.
     unregister_user_process
 
-    # Close the default io port, user_drv start command below
-    # will take control over the io.
-    close_io_port
-
     args =
       if remote do
         { remote, :erlang, :apply, [function, []] }
@@ -123,16 +119,6 @@ defmodule IEx do
 
   defp unregister_user_process do
     if is_pid(Process.whereis(:user)), do: Process.unregister :user
-  end
-
-  defp close_io_port do
-    if port = Enum.find(Port.list, io_port?(&1)) do
-      Port.close(port)
-    end
-  end
-
-  defp io_port?(port) do
-    Port.info(port, :name) == {:name,'0/1'} && port
   end
 
   defp set_expand_fun do
