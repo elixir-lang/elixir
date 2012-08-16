@@ -11,6 +11,12 @@ defmodule Kernel.ClausesTest do
 
   import Kernel.DefClause
 
+  # This is just to ensure we won't have warnings
+  # for clauses with match after default.
+  def clause_with_match_after_default(x, y // nil, { z, w }) do
+    x + y + z + w
+  end
+
   # This is simply testing the warning about
   # function overriden consider the current stack
   def foo(0), do: 0

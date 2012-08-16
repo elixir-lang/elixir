@@ -13,7 +13,7 @@ unpack(Kind, Name, Args, S) ->
 %% clauses and a list of clauses for the default calls.
 unpack_each(Kind, Name, [{'//', Line, [Expr, _]}|T] = List, Acc, Clauses, S) ->
   Base = build_match(Acc, Line, []),
-  { Args, Invoke } = extract_defaults(List, [], []),
+  { Args, Invoke } = extract_defaults(List, Line, length(Base), [], []),
 
   SM = S#elixir_scope{counter=length(Base)},
   { DefArgs, SA }   = elixir_clauses:assigns(fun elixir_translator:translate/2, Base ++ Args, SM),
@@ -35,13 +35,14 @@ unpack_each(_Kind, _Name, [], Acc, Clauses, _S) ->
 
 % Extract default values from args following the current default clause.
 
-extract_defaults([{'//', _, [_Expr, Default]}|T], NewArgs, NewInvoke) ->
-  extract_defaults(T, NewArgs, [Default|NewInvoke]);
+extract_defaults([{'//', _, [_Expr, Default]}|T], Line, Counter, NewArgs, NewInvoke) ->
+  extract_defaults(T, Line, Counter, NewArgs, [Default|NewInvoke]);
 
-extract_defaults([H|T], NewArgs, NewInvoke) ->
-  extract_defaults(T, [H|NewArgs], [H|NewInvoke]);
+extract_defaults([_|T], Line, Counter, NewArgs, NewInvoke) ->
+  H = { ?ELIXIR_ATOM_CONCAT(["_@", Counter]), Line, nil },
+  extract_defaults(T, Line, Counter + 1, [H|NewArgs], [H|NewInvoke]);
 
-extract_defaults([], NewArgs, NewInvoke) ->
+extract_defaults([], _Line, _Counter, NewArgs, NewInvoke) ->
   { lists:reverse(NewArgs), lists:reverse(NewInvoke) }.
 
 % Build matches for all the previous argument until the current default clause.
