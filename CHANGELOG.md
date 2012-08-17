@@ -4,6 +4,9 @@
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
   * [Binary] Add support to `part` and `split` functions
 
+* bug fix
+  * [Macro] Fixed a bug where quoted expressions were not behaving the same as their non-quoted counterparts
+
 # v0.6.0 (2012-08-01)
 
 * incompatible changes

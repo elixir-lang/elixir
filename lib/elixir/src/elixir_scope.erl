@@ -32,7 +32,7 @@ translate_var(Line, Name, Kind, S) ->
               { NewVar, NS#elixir_scope{
                 vars=orddict:store(Name, RealName, Vars),
                 temp_vars=orddict:store(Name, Kind, TempVars),
-                clause_vars=orddict:store(Name, RealName, ClauseVars)
+                clause_vars=orddict:store({ Name, Kind }, RealName, ClauseVars)
               } }
           end;
         _ ->
@@ -110,7 +110,7 @@ umergev(S1, S2) ->
   S2#elixir_scope{
     vars=orddict:merge(fun var_merger/3, V1, V2),
     quote_vars=orddict:merge(fun var_merger/3, Q1, Q2),
-    clause_vars=orddict:merge(fun var_merger/3, C1, C2)
+    clause_vars=orddict:merge(fun clause_var_merger/3, C1, C2)
   }.
 
 % Receives two scopes and return a new scope based on the first
@@ -127,13 +127,16 @@ umergec(S1, S2) ->
 
 % Merge variables trying to find the most recently created.
 
+clause_var_merger({ Var, _ }, K1, K2) ->
+  var_merger(Var, K1, K2).
+
 var_merger(Var, Var, K2) -> K2;
 var_merger(Var, K1, Var) -> K1;
 var_merger(_Var, K1, K2) ->
-  V1 = list_to_integer(var_number(atom_to_list(K1))),
-  V2 = list_to_integer(var_number(atom_to_list(K2))),
+  V1 = var_number(atom_to_list(K1)),
+  V2 = var_number(atom_to_list(K2)),
   if V1 > V2 -> K1;
      true -> K2
   end.
 
-var_number([_,_|T]) -> T.
+var_number([_,_|T]) -> list_to_integer(T).

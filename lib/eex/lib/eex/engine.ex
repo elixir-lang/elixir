@@ -37,9 +37,8 @@ defmodule EEx.Engine do
   """
   def handle_expr(buffer, '=', expr) do
     quote do
-      tmp_1 = unquote(buffer)
-      tmp_2 = to_binary(unquote(expr))
-      tmp_1 <> tmp_2
+      tmp = unquote(buffer)
+      tmp <> to_binary(unquote(expr))
     end
   end
 
