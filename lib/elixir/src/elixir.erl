@@ -103,8 +103,8 @@ eval_forms(Tree, Binding, RawScope) ->
 to_binary(Bin)  when is_binary(Bin) -> Bin;
 to_binary(List) when is_list(List) -> list_to_binary(List).
 
-binding_dict(List) -> binding_dict(List, dict:new()).
-binding_dict([{H,_}|T], Dict) -> binding_dict(T, dict:store(H, H, Dict));
+binding_dict(List) -> binding_dict(List, orddict:new()).
+binding_dict([{H,_}|T], Dict) -> binding_dict(T, orddict:store(H, H, Dict));
 binding_dict([], Dict) -> Dict.
 
 final_binding(Binding, Vars) -> final_binding(Binding, [], Binding, Vars).
@@ -112,7 +112,7 @@ final_binding([{Var,_}|T], Acc, Binding, Vars) ->
   case atom_to_list(Var) of
     "_@" ++ _ -> final_binding(T, Acc, Binding, Vars);
     _ ->
-      RealName = dict:fetch(Var, Vars),
+      RealName = orddict:fetch(Var, Vars),
       RealValue = proplists:get_value(RealName, Binding, nil),
       final_binding(T, [{Var, RealValue}|Acc], Binding, Vars)
   end;

@@ -37,7 +37,7 @@ docs_table(Module) ->
 spec_table(Module) ->
   ?ELIXIR_ATOM_CONCAT([s, Module]).
 
-%% TRANSFORMATION METHODS
+%% TRANSFORMATION FUNCTIONS
 
 %% Transformation of args and scope into a compiled erlang call.
 %% The abstract form for extra arguments may be given and they
@@ -47,7 +47,7 @@ translate(Line, Ref, Block, S) ->
   MetaBlock = elixir_tree_helpers:abstract_syntax(Block),
   MetaS     = elixir_scope:serialize(S),
 
-  Vars = dict:fold(fun(Key, Value, { Acc, Counter }) ->
+  Vars = orddict:fold(fun(Key, Value, { Acc, Counter }) ->
     { { cons, Line, { tuple, Line, [
       { atom, Line, Key },
       { atom, Line, ?ELIXIR_ATOM_CONCAT(["_@", Counter]) },

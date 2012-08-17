@@ -18,10 +18,10 @@
   module=nil,                                    %% the current module
   function=nil,                                  %% the current function
   recur=nil,                                     %% the current loop function to be recurred
-  vars=dict:new(),                               %% a dict of defined variables and their alias
-  temp_vars=dict:new(),                          %% a dict of all variables defined in a particular assign
-  clause_vars=dict:new(),                        %% a dict of all variables defined in a particular clause
-  quote_vars=dict:new(),                         %% a dict of all quoted variables
+  vars=[],                                       %% a dict of defined variables and their alias
+  temp_vars=[],                                  %% a dict of all variables defined in a particular assign
+  clause_vars=[],                                %% a dict of all variables defined in a particular clause
+  quote_vars=[],                                 %% a dict of all quoted variables
   extra_guards=nil,                              %% extra guards from args expansion
   counter=0,                                     %% a counter for the variables defined
   file=(<<"nofile">>),                           %% the current scope filename

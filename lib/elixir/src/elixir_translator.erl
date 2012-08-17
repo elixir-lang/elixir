@@ -72,7 +72,7 @@ translate_each({ '__op__', Line, [Op, Left, Right] }, S) when is_atom(Op) ->
 translate_each({ '__ambiguousop__', Line, [Var, H|T] }, S) ->
   { Name, _, _ } = Var,
 
-  case dict:find(Name, S#elixir_scope.vars) of
+  case orddict:find(Name, S#elixir_scope.vars) of
     error -> translate_each({ Name, Line, [H|T] }, S);
     _ ->
       case T of
@@ -335,7 +335,7 @@ translate_each({ '^', Line, [ { Name, _, Args } ] }, S) ->
 
   Result = case S#elixir_scope.context of
     assign ->
-      case dict:find(Name, Dict) of
+      case orddict:find(Name, Dict) of
         error -> "unbound variable ^~s";
         { ok, Value } -> { {var, Line, Value}, S }
       end;
