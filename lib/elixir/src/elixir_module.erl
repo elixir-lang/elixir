@@ -311,7 +311,7 @@ else_clause(Line) ->
 eval_callbacks(Line, Module, Name, Args, RawS) ->
   S         = RawS#elixir_scope{check_clauses=false},
   Binding   = binding_for_eval(Module, []),
-  Callbacks = ets:lookup_element(data_table(Module), Name, 2),
+  Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
   Requires  = S#elixir_scope.requires,
 
   lists:foreach(fun({M,F}) ->
