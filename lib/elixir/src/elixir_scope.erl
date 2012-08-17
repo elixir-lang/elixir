@@ -1,7 +1,7 @@
 %% Convenience functions used to manipulate scope
 %% and its variables.
 -module(elixir_scope).
--export([translate_var/3,
+-export([translate_var/4,
   build_erl_var/2, build_ex_var/2,
   serialize/1, deserialize/1, deserialize/2,
   to_erl_env/1, to_ex_env/1, filename/1,
@@ -10,7 +10,7 @@
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
-translate_var(Line, Name, S) ->
+translate_var(Line, Name, Kind, S) ->
   Vars = S#elixir_scope.vars,
 
   case Name of
@@ -19,8 +19,8 @@ translate_var(Line, Name, S) ->
       case S#elixir_scope.context of
         assign ->
           TempVars = S#elixir_scope.temp_vars,
-          case { orddict:is_key(Name, Vars), orddict:is_key(Name, TempVars) } of
-            { true, true } ->
+          case { orddict:is_key(Name, Vars), orddict:find(Name, TempVars) } of
+            { true, { ok, Kind } } ->
               { {var, Line, orddict:fetch(Name, Vars) }, S };
             { Else, _ } ->
               { NewVar, NS } = case Else or S#elixir_scope.noname of
@@ -31,7 +31,7 @@ translate_var(Line, Name, S) ->
               ClauseVars = S#elixir_scope.clause_vars,
               { NewVar, NS#elixir_scope{
                 vars=orddict:store(Name, RealName, Vars),
-                temp_vars=orddict:store(Name, RealName, TempVars),
+                temp_vars=orddict:store(Name, Kind, TempVars),
                 clause_vars=orddict:store(Name, RealName, ClauseVars)
               } }
           end;

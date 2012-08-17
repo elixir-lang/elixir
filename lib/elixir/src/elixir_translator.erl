@@ -351,7 +351,7 @@ translate_each({ '^', Line, [ { Name, _, Args } ] }, S) ->
 
 translate_each({ Name, Line, quoted }, S) when is_atom(Name) ->
   NewS = S#elixir_scope{vars=S#elixir_scope.quote_vars,noname=true},
-  { TVar, VS } = elixir_scope:translate_var(Line, Name, NewS),
+  { TVar, VS } = elixir_scope:translate_var(Line, Name, quoted, NewS),
   { TVar, VS#elixir_scope{
     quote_vars=VS#elixir_scope.vars,
     noname=S#elixir_scope.noname,
@@ -359,7 +359,7 @@ translate_each({ Name, Line, quoted }, S) when is_atom(Name) ->
   } };
 
 translate_each({ Name, Line, nil }, S) when is_atom(Name) ->
-  elixir_scope:translate_var(Line, Name, S);
+  elixir_scope:translate_var(Line, Name, nil, S);
 
 %% Local calls
 

@@ -244,7 +244,7 @@ translate_macro({ apply, Line, Args }, S) ->
 %% Handle forced variables
 
 translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_atom(Atom) ->
-  elixir_scope:translate_var(Line, Name, S);
+  elixir_scope:translate_var(Line, Name, nil, S);
 
 translate_macro({ 'var!', Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for var!").
