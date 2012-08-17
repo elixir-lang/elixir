@@ -25,9 +25,17 @@ defmodule Behaviour do
   """
   defmacro defcallback(fun) do
     { name, args } = Erlang.elixir_clauses.extract_args(fun)
+    length         = length(args)
+    defaults       = Enum.count args, match?({ ://, _, _ }, &1)
+
+    attributes = Enum.map (length - defaults)..length, fn(i) ->
+      quote do
+        @__behaviour_callbacks { unquote(name), unquote(i) }
+      end
+    end
 
     quote do
-      @__behaviour_callbacks { unquote(name), unquote(length(args)) }
+      __block__ unquote(attributes)
       def unquote(fun), :skip_definition
     end
   end
@@ -44,6 +52,7 @@ defmodule Behaviour do
   @doc false
   defmacro before_compile(_) do
     quote do
+      @doc false
       def behaviour_info(:callbacks) do
         @__behaviour_callbacks
       end

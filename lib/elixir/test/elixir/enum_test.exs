@@ -57,6 +57,11 @@ defmodule EnumTest.List do
     assert Enum.count([]) == 0
   end
 
+  test :count_fun do
+    assert Enum.count([1,2,3], fn(x) -> rem(x, 2) == 0 end) == 1
+    assert Enum.count([], fn(x) -> rem(x, 2) == 0 end) == 0
+  end
+
   test :drop do
     assert Enum.drop([1,2,3], 0) == [1,2,3]
     assert Enum.drop([1,2,3], 1) == [2,3]
@@ -248,6 +253,12 @@ defmodule EnumTest.Dict.Common do
         dict = unquote(module).new [{2,2}, {3,4}, {4,6}]
         assert Enum.count(dict) == 3
         assert Enum.count(unquote(module).new) == 0
+      end
+
+      test :count_fun do
+        dict = unquote(module).new [{2,2}, {3,4}, {4,6}]
+        assert Enum.count(dict, fn({x,_}) -> rem(x, 2) == 0 end) == 2
+        assert Enum.count(unquote(module).new, fn(x) -> rem(x, 2) == 0 end) == 0
       end
 
       test :find do
@@ -488,6 +499,13 @@ defmodule EnumTest.Range do
     assert Enum.count(range) == 5
     range = Range.new(first: 1, last: 1)
     assert Enum.count(range) == 1
+  end
+
+  test :count_fun do
+    range = Range.new(first: 1, last: 5)
+    assert Enum.count(range, fn(x) -> rem(x, 2) == 0 end) == 2
+    range = Range.new(first: 1, last: 1)
+    assert Enum.count(range, fn(x) -> rem(x, 2) == 0 end) == 0
   end
 
   test :drop do

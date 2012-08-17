@@ -187,6 +187,22 @@ defmodule Enum do
   end
 
   @doc """
+  Counts for how many items the function returns true.
+  """
+  def count(collection, fun) when is_list(collection) do
+    do_count(collection, fun)
+  end
+
+  def count(collection, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_count(pointer, iterator, fun)
+      list when is_list(list) ->
+        do_count(list, fun)
+    end
+  end
+
+  @doc """
   Drops the first `count` items from the collection. Expects an ordered
   collection.
 
@@ -837,6 +853,32 @@ defmodule Enum do
 
   defp do_any?(:stop, _, _) do
     false
+  end
+
+  ## count
+
+  defp do_count([h|t], fun) do
+    if fun.(h) do
+      1 + do_count(t, fun)
+    else
+      do_count(t, fun)
+    end
+  end
+
+  defp do_count([], _) do
+    0
+  end
+
+  defp do_count({ h, next }, iterator, fun) do
+    if fun.(h) do
+      1 + do_count(iterator.(next), iterator, fun)
+    else
+      do_count(iterator.(next), iterator, fun)
+    end
+  end
+
+  defp do_count(:stop, _, _) do
+    0
   end
 
   ## drop_while
