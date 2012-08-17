@@ -326,17 +326,20 @@ translate_each({ Kind, Line, Args }, S) when is_list(Args), (Kind == lc) orelse 
 %% Variables
 
 translate_each({ '^', Line, [ { Name, _, Args } ] }, S) ->
-  Result = case is_atom(Args) of
-    true ->
-      case S#elixir_scope.context of
-        assign ->
-          case dict:find(Name, S#elixir_scope.vars) of
-            error -> "unbound variable ^~s";
-            { ok, Value } -> { {var, Line, Value}, S }
-          end;
-        _ -> "cannot access variable ^~s outside of assignment"
+  Dict = case Args of
+    nil    -> S#elixir_scope.vars;
+    quoted -> S#elixir_scope.quote_vars;
+    _ ->
+      syntax_error(Line, S#elixir_scope.file, "cannot use ^ with expression at ^~s, ^ must be used only with variables", [Name])
+  end,
+
+  Result = case S#elixir_scope.context of
+    assign ->
+      case dict:find(Name, Dict) of
+        error -> "unbound variable ^~s";
+        { ok, Value } -> { {var, Line, Value}, S }
       end;
-    false -> "cannot use ^ with expression at ^~s, ^ must be used only with variables"
+    _ -> "cannot access variable ^~s outside of assignment"
   end,
 
   case is_list(Result) of
