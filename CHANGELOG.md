@@ -3,9 +3,13 @@
   * [List] Add support to keyreplace and keystore
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
   * [Binary] Add support to `part` and `split` functions
+  * [Record] Improvements to the Record API, added Record.defmacros
+  * [Regex] Added return option to Regex.run and Regex.scan
 
 * bug fix
   * [Macro] Fixed a bug where quoted expressions were not behaving the same as their non-quoted counterparts
+  * [IEx] Fixed a bug where printing to stdio on IEx was causing it to hang
+  * [Mix] `mix deps.get [DEPS]` now only gets the specified dependencies
 
 # v0.6.0 (2012-08-01)
 
