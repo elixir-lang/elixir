@@ -192,6 +192,8 @@ core_file(File) ->
 
 core_list() ->
   [
+    "lib/elixir/lib/range.ex",
+    "lib/elixir/lib/behaviour.ex",
     "lib/elixir/lib/uri/parser.ex",
     "lib/elixir/lib/elixir/formatter.ex",
     "lib/elixir/lib/dict.ex",
