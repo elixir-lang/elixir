@@ -4,8 +4,15 @@ defmodule URI.Parser do
   Check URI.HTTP for a possible implementation.
   """
 
-  def behaviour_info(:callbacks) do
-    [parse: 1,
-     default_port: 0]
-  end
+  use Behaviour
+
+  @doc """
+  Responsible for parsing extra URL information.
+  """
+  defcallback parse(uri_info)
+
+  @doc """
+  Responsible for returning the default port.
+  """
+  defcallback default_port()
 end

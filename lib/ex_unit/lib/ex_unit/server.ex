@@ -1,7 +1,7 @@
 defmodule ExUnit.Server do
   @moduledoc false
 
-  use GenServer.Behavior
+  use GenServer.Behaviour
 
   defrecord Config, options: [], async_cases: [], sync_cases: []
 

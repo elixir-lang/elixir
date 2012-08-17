@@ -1,10 +1,14 @@
 * enhancements
+  * [Behaviour] Add Behaviour with a simple callback DSL to define callbacks
   * [Binary] Add a Dict binary that converts its keys to binaries on insertion
   * [List] Add support to keyreplace and keystore
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
   * [Binary] Add support to `part` and `split` functions
   * [Record] Improvements to the Record API, added Record.defmacros
   * [Regex] Added return option to Regex.run and Regex.scan
+
+* deprecations
+  * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
 
 * bug fix
   * [Macro] Fixed a bug where quoted expressions were not behaving the same as their non-quoted counterparts

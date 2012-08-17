@@ -208,7 +208,7 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
   { elixir_module:translate(Line, FRef, Block, S), FS };
 
 translate_macro({Kind, Line, [Call]}, S) when ?FUNS() ->
-  translate_macro({Kind, Line, [Call, skip_definition]}, S);
+  translate_macro({Kind, Line, [Call, no_definition]}, S);
 
 translate_macro({Kind, Line, [Call, Expr]}, S) when ?FUNS() ->
   assert_module_scope(Line, Kind, S),

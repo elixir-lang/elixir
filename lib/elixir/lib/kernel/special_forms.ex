@@ -298,13 +298,13 @@ defmodule Kernel.SpecialForms do
   is defining new functions. Consider this example:
 
       defmodule MyServer do
-        use GenServer.Behavior
+        use GenServer.Behaviour
       end
 
-  `GenServer.Behavior` defines new functions in our `MyServer` module.
+  `GenServer.Behaviour` defines new functions in our `MyServer` module.
   However, if there is an exception in any of these functions, we want
-  the stacktrace to point to the `GenServer.Behavior` and not the line
-  that calls `use GenServer.Behavior`. For this reason, there is an
+  the stacktrace to point to the `GenServer.Behaviour` and not the line
+  that calls `use GenServer.Behaviour`. For this reason, there is an
   option called `:location` that when set to `:keep` keeps these proper
   semantics:
 
@@ -315,9 +315,9 @@ defmodule Kernel.SpecialForms do
       end
 
   It is important to warn though that `location: :keep` evaluates the
-  code as if it was defined inside `GenServer.Behavior` file, in
+  code as if it was defined inside `GenServer.Behaviour` file, in
   particular, the macro `__FILE__` will always point to
-  `GenServer.Behavior` file.
+  `GenServer.Behaviour` file.
   """
   defmacro quote(opts, do: contents)
 

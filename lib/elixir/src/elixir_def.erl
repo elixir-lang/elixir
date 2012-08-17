@@ -84,9 +84,9 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   Location = retrieve_file(Module, CO),
 
   %% Store function
-  case RawExpr of
-    skip_definition -> [];
-    _ ->
+  if
+    (RawExpr == no_definition) orelse (RawExpr == skip_definition) -> [];
+    true ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
       store_each(CheckClauses, Kind, File, Location,
@@ -94,11 +94,19 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   end,
 
   %% Store defaults
-  [store_each(false, Kind, File, Location, Stack, Table, 0,
-    function_for_default(Kind, Name, Default)) || Default <- Defaults],
+  %% While no_definition does not store a function simply
+  %% because there is no definition, skip_definition also
+  %% skips the generation of default clauses.
+  if
+    (RawExpr == skip_definition) -> [];
+    true ->
+      [store_each(false, Kind, File, Location, Stack, Table, 0,
+        function_for_default(Kind, Name, Default)) || Default <- Defaults]
+  end,
 
   { Name, Arity }.
 
+def_body(_Line, no_definition)   -> nil;
 def_body(_Line, skip_definition) -> nil;
 def_body(_Line, [{ do, Expr }])  -> Expr;
 def_body(Line, Else)             -> { 'try', Line, [Else] }.

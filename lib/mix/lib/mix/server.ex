@@ -2,7 +2,7 @@ defmodule Mix.Server do
   @moduledoc false
 
   alias :ordsets, as: Ordset
-  use GenServer.Behavior
+  use GenServer.Behaviour
 
   defrecord Config, tasks: Ordset.new, projects: [], shell: Mix.Shell, scm: Ordset.new
 

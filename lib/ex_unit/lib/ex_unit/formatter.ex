@@ -3,7 +3,7 @@ defmodule ExUnit.Formatter do
   # public API for the formatter to allow customization
   @moduledoc false
 
-  use GenServer.Behavior
+  use GenServer.Behaviour
 
   defrecord Config, counter: 0, failures: []
 
