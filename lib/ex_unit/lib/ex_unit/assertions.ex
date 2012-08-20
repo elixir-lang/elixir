@@ -223,9 +223,9 @@ defmodule ExUnit.Assertions do
         1 + "test"
       end
   """
-  def assert_raise(exception, expected_message, function) do
+  def assert_raise(exception, message, function) when is_binary(message) and is_function(function) do
     error = assert_raise(exception, function)
-    assert error.message == expected_message
+    assert error.message == message
     error
   end
 
@@ -240,7 +240,7 @@ defmodule ExUnit.Assertions do
       end
 
   """
-  def assert_raise(exception, function) do
+  def assert_raise(exception, function) when is_function(function) do
     try do
       function.()
       flunk "Expected #{inspect exception} exception but nothing was raised"
