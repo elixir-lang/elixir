@@ -118,12 +118,16 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Converts the given string to underscore format.
+  Converts the given atom or binary to underscore format.
+
+  If an atom is given, it is assumed to be an Elixir module,
+  so it is converted to a binary and then processed.
 
   ## Examples
 
       Mix.Utils.underscore "FooBar"  #=> "foo_bar"
       Mix.Utils.underscore "Foo.Bar" #=> "foo/bar"
+      Mix.Utils.underscore Foo.Bar   #=> "foo/bar"
 
   In general, underscore can be thought as the reverse of
   camelize, however, in some cases formatting may be lost:
@@ -132,6 +136,12 @@ defmodule Mix.Utils do
       Mix.Utils.camelize   "sap_example" #=> "SapExample"
 
   """
+  def underscore(atom) when is_atom(atom) do
+    "Elixir-" <> rest = atom_to_binary(atom)
+    rest = :binary.replace(rest, "-", ".")
+    underscore rest
+  end
+
   def underscore(<<h, t | :binary>>) do
     <<to_lower_char(h)>> <> do_underscore(t, h)
   end
