@@ -290,7 +290,7 @@ defmodule Code do
   def ensure_compiled(module) when is_atom(module) do
     case Erlang.code.ensure_loaded(module) do
       { :error, :nofile } = error ->
-        case :erlang.get(:elixir_compiler_pid) do
+        case :erlang.get(:elixir_ensure_compiled) do
           :undefined -> error
           _ ->
             try do
