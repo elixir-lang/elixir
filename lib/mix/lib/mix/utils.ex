@@ -122,7 +122,8 @@ defmodule Mix.Utils do
 
   ## Examples
 
-      Mix.Utils.underscore "FooBar" #=> "foo_bar"
+      Mix.Utils.underscore "FooBar"  #=> "foo_bar"
+      Mix.Utils.underscore "Foo.Bar" #=> "foo/bar"
 
   In general, underscore can be thought as the reverse of
   camelize, however, in some cases formatting may be lost:
@@ -145,6 +146,10 @@ defmodule Mix.Utils do
 
   defp do_underscore(<<?-, t | :binary>>, _) do
     <<?_>> <> do_underscore(t, ?-)
+  end
+
+  defp do_underscore(<<?., t | :binary>>, _) do
+    <<?/>> <> underscore(t)
   end
 
   defp do_underscore(<<h, t | :binary>>, _) do
@@ -181,6 +186,10 @@ defmodule Mix.Utils do
 
   defp do_camelize(<<?_>>) do
     <<>>
+  end
+
+  defp do_camelize(<<?/, t | :binary>>) do
+    <<?.>> <> camelize(t)
   end
 
   defp do_camelize(<<h, t | :binary>>) do

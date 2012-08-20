@@ -53,6 +53,7 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.underscore("FOOBar") == "foo_bar"
     assert Mix.Utils.underscore("FooBAR") == "foo_bar"
     assert Mix.Utils.underscore("FoBaZa") == "fo_ba_za"
+    assert Mix.Utils.underscore("Foo.Bar") == "foo/bar"
   end
 
   test :camelize do
@@ -63,5 +64,6 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.camelize("foo_") == "Foo"
     assert Mix.Utils.camelize("_foo") == "Foo"
     assert Mix.Utils.camelize("foo__bar") == "FooBar"
+    assert Mix.Utils.camelize("foo/bar") == "Foo.Bar"
   end
 end
