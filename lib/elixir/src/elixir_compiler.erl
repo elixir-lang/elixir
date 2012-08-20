@@ -37,12 +37,8 @@ string(Contents, File) when is_list(Contents), is_binary(File) ->
 
 file(Relative) when is_binary(Relative) ->
   File = filename:absname(Relative),
-  case file:read_file(File) of
-    {ok, Bin} ->
-      string(unicode:characters_to_list(Bin), File);
-    Error ->
-      erlang:error(Error)
-  end.
+  { ok, Bin } = file:read_file(File),
+  string(unicode:characters_to_list(Bin), File).
 
 %% Compiles a file to the given path (directory).
 

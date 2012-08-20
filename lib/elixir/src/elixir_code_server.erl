@@ -16,13 +16,31 @@ init(_args) ->
   process_flag(trap_exit, true),
   { ok, #elixir_code_server{} }.
 
-handle_call({loaded, Path}, _From, Config) ->
+handle_call({ acquire, Path }, From, Config) ->
   Current = Config#elixir_code_server.loaded,
-  case lists:member(Path, Current) of
-    true  ->
-      { reply, duplicated, Config#elixir_code_server{loaded=Current} };
-    false ->
-      { reply, ok, Config#elixir_code_server{loaded=[Path|Current]} }
+  case orddict:find(Path, Current) of
+    { ok, true } ->
+      { reply, loaded, Config };
+    { ok, List } when is_list(List) ->
+      Queued = orddict:store(Path, [From|List], Current),
+      { reply, queued, Config#elixir_code_server{loaded=Queued} };
+    error ->
+      Queued = orddict:store(Path, [], Current),
+      { reply, proceed, Config#elixir_code_server{loaded=Queued} }
+  end;
+
+handle_call({ loaded, Path }, _From, Config) ->
+  Current = Config#elixir_code_server.loaded,
+  case orddict:find(Path, Current) of
+    { ok, true } ->
+      { reply, ok, Config };
+    { ok, List } when is_list(List) ->
+      [Pid ! { elixir_code_server, Path, loaded } || { Pid, _Tag } <- lists:reverse(List)],
+      Done = orddict:store(Path, true, Current),
+      { reply, ok, Config#elixir_code_server{loaded=Done} };
+    error ->
+      Done = orddict:store(Path, true, Current),
+      { reply, ok, Config#elixir_code_server{loaded=Done} }
   end;
 
 handle_call({at_exit, AtExit}, _From, Config) ->
@@ -36,7 +54,7 @@ handle_call({compiler_options, Options}, _From, Config) ->
   { reply, ok, Config#elixir_code_server{compiler_options=Final} };
 
 handle_call(loaded, _From, Config) ->
-  { reply, Config#elixir_code_server.loaded, Config };
+  { reply, [F || { F, true } <- Config#elixir_code_server.loaded], Config };
 
 handle_call(at_exit, _From, Config) ->
   { reply, Config#elixir_code_server.at_exit, Config };

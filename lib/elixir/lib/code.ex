@@ -142,24 +142,40 @@ defmodule Code do
   defp unpack_ast(line, forms),                            do: { :__block__, line, forms }
 
   @doc """
-  Loads the given `file`. Accepts `relative_to` as an argument to tell
-  where the file is located. If the file was already required/loaded,
-  loads it again. It returns the full path of the loaded file.
+  Loads the given `file`. Accepts `relative_to` as an argument
+  to tell where the file is located. If the file was already
+  required/loaded, loads it again. It returns all the modules
+  defined in the file.
 
-  When loading a file, you may skip passing .exs as extension as Elixir
-  automatically adds it for you.
+  Notice that if `load_file` is invoked by different processes
+  concurrently, the target file will be invoked concurrently
+  in many times. I.e. if `load_file` is called N times with
+  a given file, the given file will be loaded N times. Check
+  `require_file` if you don't want a file to be loaded concurrently.
+
+  When loading a file, you may skip passing .exs as extension as
+  Elixir automatically adds it for you.
   """
   def load_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
+    server_call { :acquire, file }
+    loaded = Erlang.elixir_compiler.file file
     server_call { :loaded, file }
-    Erlang.elixir_compiler.file file
-    file
+    loaded
   end
 
   @doc """
-  Requires the given `file`. Accepts `relative_to` as an argument to tell
-  where the file is located. If the file was already required/loaded,
-  returns nil, otherwise the full path of the loaded file.
+  Requires the given `file`. Accepts `relative_to` as an argument
+  to tell where the file is located. If the file was already
+  required/loaded, loads it again. It returns all the modules
+  defined in the file.
+
+  Notice that if `require_file` is invoked by different processes
+  concurrently, the first process to invoke `require_file` acquires
+  a lock and the remaining ones will block until the file is
+  available. I.e. if `require_file` is called N times with a given
+  file, the given file will be loaded only once. Check `load_file`
+  if you want a file to be loaded concurrently.
 
   When requiring a file, you may skip passing .exs as extension as
   Elixir automatically adds it for you.
@@ -167,9 +183,14 @@ defmodule Code do
   def require_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
 
-    case server_call({ :loaded, file }) do
-      :ok         -> Erlang.elixir_compiler.file file
-      :duplicated -> []
+    case server_call({ :acquire, file }) do
+      :loaded  -> nil
+      :queued  ->
+        receive do { :elixir_code_server, ^file, :loaded } -> nil end
+      :proceed ->
+        loaded = Erlang.elixir_compiler.file file
+        server_call { :loaded, file }
+        loaded
     end
   end
 

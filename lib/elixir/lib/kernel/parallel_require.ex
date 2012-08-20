@@ -28,7 +28,7 @@ defmodule Kernel.ParallelRequire do
     child  = spawn_link fn ->
       try do
         new    = Code.require_file(h)
-        result = new ++ result
+        result = (new || []) ++ result
         callback.(h)
         parent <- { :required, self }
       catch
