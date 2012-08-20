@@ -44,8 +44,6 @@ defmodule GenServer.Behaviour do
       end
 
       def terminate(reason, state) do
-        :error_logger.error_report('#{inspect __MODULE__} crashed:\n#{inspect reason}')
-        :error_logger.error_report('#{inspect __MODULE__} snapshot:\n#{inspect state}')
         :ok
       end
 
