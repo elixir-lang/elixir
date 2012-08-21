@@ -43,13 +43,23 @@ handle_call({ loaded, Path }, _From, Config) ->
       { reply, ok, Config#elixir_code_server{loaded=Done} }
   end;
 
-handle_call({at_exit, AtExit}, _From, Config) ->
+handle_call({ unload_files, Files }, _From, Config) ->
+  Current  = Config#elixir_code_server.loaded,
+  Unloaded = lists:foldl(fun(File, Acc) ->
+    case orddict:find(File, Acc) of
+      { ok, true } -> orddict:erase(File, Acc);
+      _ -> Acc
+    end
+  end, Current, Files),
+  { reply, ok, Config#elixir_code_server{loaded=Unloaded} };
+
+handle_call({ at_exit, AtExit }, _From, Config) ->
   { reply, ok, Config#elixir_code_server{at_exit=[AtExit|Config#elixir_code_server.at_exit]} };
 
-handle_call({argv, Argv}, _From, Config) ->
+handle_call({ argv, Argv }, _From, Config) ->
   { reply, ok, Config#elixir_code_server{argv=Argv} };
 
-handle_call({compiler_options, Options}, _From, Config) ->
+handle_call({ compiler_options, Options }, _From, Config) ->
   Final = orddict:merge(fun(_,_,V) -> V end, Config#elixir_code_server.compiler_options, Options),
   { reply, ok, Config#elixir_code_server{compiler_options=Final} };
 

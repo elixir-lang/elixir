@@ -18,6 +18,16 @@ defmodule Code do
   end
 
   @doc """
+  Removes the given files from the loaded files list.
+  The modules defined in the file are not removed,
+  calling this function only removes it from the list,
+  allowing it to be required again.
+  """
+  def unload_files(files) do
+    server_call { :unload_files, files }
+  end
+
+  @doc """
   Appends a path to Erlang VM code path.
   The path is expanded with `File.expand_path` before added.
   """

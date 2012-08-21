@@ -29,8 +29,13 @@ defmodule CodeTest do
   end
 
   test :require do
-    Code.require_file fixture_path("code_sample"), __FILE__
+    Code.require_file fixture_path("code_sample")
     assert fixture_path("code_sample.exs") in Code.loaded_files
+    assert Code.require_file(fixture_path("code_sample")) == nil
+
+    Code.unload_files [fixture_path("code_sample.exs")]
+    refute fixture_path("code_sample.exs") in Code.loaded_files
+    assert Code.require_file(fixture_path("code_sample")) != nil
   end
 
   test :file do
