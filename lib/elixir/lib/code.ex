@@ -162,9 +162,6 @@ defmodule Code do
   in many times. I.e. if `load_file` is called N times with
   a given file, the given file will be loaded N times. Check
   `require_file` if you don't want a file to be loaded concurrently.
-
-  When loading a file, you may skip passing .exs as extension as
-  Elixir automatically adds it for you.
   """
   def load_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -186,9 +183,6 @@ defmodule Code do
   available. I.e. if `require_file` is called N times with a given
   file, the given file will be loaded only once. Check `load_file`
   if you want a file to be loaded concurrently.
-
-  When requiring a file, you may skip passing .exs as extension as
-  Elixir automatically adds it for you.
   """
   def require_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -332,6 +326,7 @@ defmodule Code do
     else
       prefix = "#{file}.exs"
       if File.regular?(prefix) do
+        IO.write "[WARNING] Passing a file without .exs extension to Code.load_file or Code.require_file is deprecated, please pass the full name instead\n#{Exception.formatted_stacktrace}"
         prefix
       else
         raise ArgumentError, message: "could not load #{file}"

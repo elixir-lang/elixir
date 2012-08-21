@@ -1,4 +1,4 @@
-Code.require_file "../test_helper", __FILE__
+Code.require_file "../test_helper.exs", __FILE__
 
 defmodule CodeTest do
   use ExUnit.Case, async: true
@@ -29,13 +29,13 @@ defmodule CodeTest do
   end
 
   test :require do
-    Code.require_file fixture_path("code_sample")
+    Code.require_file fixture_path("code_sample.exs")
     assert fixture_path("code_sample.exs") in Code.loaded_files
-    assert Code.require_file(fixture_path("code_sample")) == nil
+    assert Code.require_file(fixture_path("code_sample.exs")) == nil
 
     Code.unload_files [fixture_path("code_sample.exs")]
     refute fixture_path("code_sample.exs") in Code.loaded_files
-    assert Code.require_file(fixture_path("code_sample")) != nil
+    assert Code.require_file(fixture_path("code_sample.exs")) != nil
   end
 
   test :file do

@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper", __FILE__
+Code.require_file "../../test_helper.exs", __FILE__
 
 defmodule ExUnit.AssertionsTest.Value do
   def tuple, do: { 2, 1 }

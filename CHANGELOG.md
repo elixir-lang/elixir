@@ -9,6 +9,7 @@
 
 * deprecations
   * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
+  * [Code] `Code.require_file` and `Code.load_file` now expect the full name as argument
 
 * bug fix
   * [Macro] Fixed a bug where quoted expressions were not behaving the same as their non-quoted counterparts
