@@ -15,6 +15,7 @@
   * [Macro] Fixed a bug where quoted expressions were not behaving the same as their non-quoted counterparts
   * [IEx] Fixed a bug where printing to stdio on IEx was causing it to hang
   * [Mix] `mix deps.get [DEPS]` now only gets the specified dependencies
+  * [Mix] Mix now exits with status 1 in case of failures
 
 # v0.6.0 (2012-08-01)
 
