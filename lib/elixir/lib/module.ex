@@ -162,12 +162,12 @@ defmodule Module do
       { simplify_signature(x, line, acc), acc + 1 }
     end
 
-    case { ETS.lookup(table, tuple), doc } do
-      { [], _ } ->
+    case ETS.lookup(table, tuple) do
+      [] ->
         ETS.insert(table, { tuple, line, kind, signature, doc })
         :ok
-      { [{ tuple, line, kind, old, old_doc }], new_doc } when old_doc == nil or new_doc == nil ->
-        ETS.insert(table, { tuple, line, kind, merge_signatures(old, signature, 1), old_doc || new_doc })
+      [{ tuple, line, kind, old, old_doc }] when old_doc == nil or doc == nil or old_doc == doc ->
+        ETS.insert(table, { tuple, line, kind, merge_signatures(old, signature, 1), old_doc || doc })
         :ok
       _ ->
         { :error, :existing_doc }
