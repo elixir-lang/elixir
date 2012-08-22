@@ -21,7 +21,7 @@ lib/$(1)/ebin/Elixir-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 
 test_$(1): $(1)
 	@ echo "==> $(1) (exunit)"
-	@ cd lib/$(1) && time ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs"
+	@ cd lib/$(1) && time ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
 endef
 
 #==> Compilation tasks
@@ -95,11 +95,11 @@ test_erlang: compile
 	@ echo "==> elixir (eunit)"
 	@ mkdir -p lib/elixir/test/ebin
 	@ $(ERLC) -pa lib/elixir/ebin -o lib/elixir/test/ebin lib/elixir/test/erlang/*.erl
-	@ time $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt
+	@ time $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt;
 	@ echo
 
 test_elixir: test_kernel test_mix test_ex_unit test_eex
 
 test_kernel: compile
 	@ echo "==> kernel (exunit)"
-	@ cd lib/elixir && time ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"
+	@ cd lib/elixir && time ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs";
