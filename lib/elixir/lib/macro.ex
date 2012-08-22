@@ -147,7 +147,9 @@ defmodule Macro do
   # Block keywords
   defmacrop kw_keywords, do: [:do, :catch, :rescue, :after, :else]
 
-  defp is_kw_blocks?([_|_] = kw), do: Enum.all?(kw, fn({x,_}) -> x in kw_keywords end)
+  defp is_kw_blocks?([_|_] = kw) do
+    Enum.all?(kw, match?({x, _} when x in kw_keywords, &1))
+  end
   defp is_kw_blocks?(_),          do: false
 
   defp call_to_binary(atom) when is_atom(atom),  do: atom_to_binary(atom, :utf8)
