@@ -119,18 +119,22 @@ defmodule MacroTest do
 
   test :local_call_to_binary do
     assert Macro.to_binary(quote do: foo(1, 2, 3)) == "foo(1, 2, 3)"
+    assert Macro.to_binary(quote do: foo([1, 2, 3])) == "foo([1, 2, 3])"
   end
 
   test :remote_call_to_binary do
     assert Macro.to_binary(quote do: foo.bar(1, 2, 3)) == "foo.bar(1, 2, 3)"
+    assert Macro.to_binary(quote do: foo.bar([1, 2, 3])) == "foo.bar([1, 2, 3])"
   end
 
   test :remote_and_fun_call_to_binary do
     assert Macro.to_binary(quote do: foo.bar.(1, 2, 3)) == "foo.bar().(1, 2, 3)"
+    assert Macro.to_binary(quote do: foo.bar.([1, 2, 3])) == "foo.bar().([1, 2, 3])"
   end
 
   test :aliases_call_to_binary do
     assert Macro.to_binary(quote do: Foo.Bar.baz(1, 2, 3)) == "Foo.Bar.baz(1, 2, 3)"
+    assert Macro.to_binary(quote do: Foo.Bar.baz([1, 2, 3])) == "Foo.Bar.baz([1, 2, 3])"
   end
 
   test :blocks_to_binary do
