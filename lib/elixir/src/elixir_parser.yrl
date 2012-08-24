@@ -3,12 +3,12 @@
 
 Nonterminals
   grammar expr_list
-  expr block_expr fn_expr bracket_expr call_expr max_expr
+  expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
   comma_separator
   add_op mult_op unary_op two_op pipeline_op bin_concat_op
   match_op send_op default_op when_op pipe_op in_op inc_op stab_op range_op
-  andand_op oror_op and_op or_op comp_expr_op colon_colon_op three_op
+  andand_op oror_op and_op or_op comp_expr_op colon_colon_op three_op at_op
   open_paren close_paren
   open_bracket close_bracket
   open_curly close_curly
@@ -65,6 +65,7 @@ Right    220 bin_concat_op.
 Right    230 two_op.
 Right    290 pipeline_op.
 Nonassoc 300 unary_op.
+Nonassoc 300 at_op.
 Left     310 dot_call_op.
 Left     310 dot_op.
 Nonassoc 320 var.
@@ -87,11 +88,14 @@ expr -> unmatched_expr : '$1'.
 
 matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 matched_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
+matched_expr -> at_op matched_expr : build_unary_op('$1', '$2').
+matched_expr -> bracket_at_expr : '$1'.
 matched_expr -> fn_expr : '$1'.
 
 unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unary_op expr : build_unary_op('$1', '$2').
+unmatched_expr -> at_op expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
 op_expr -> match_op expr : { '$1', '$2' }.
@@ -152,17 +156,21 @@ call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', nil).
 call_expr -> var : build_identifier('$1', nil).
-call_expr -> bracket_expr : '$1'.
+call_expr -> max_expr : '$1'.
 
-bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
-bracket_expr -> bracket_expr bracket_access : build_access('$1', '$2').
-bracket_expr -> max_expr : '$1'.
-
+max_expr -> bracket_expr : '$1'.
 max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> dot_ref : '$1'.
 max_expr -> base_expr : '$1'.
 max_expr -> open_paren ')' : build_block([]).
 max_expr -> open_paren expr_list close_paren : build_block('$2').
+
+bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
+bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
+
+bracket_at_expr -> at_op dot_bracket_identifier bracket_access : build_access(build_unary_op('$1', build_identifier('$2', nil)), '$2').
+bracket_at_expr -> at_op max_expr bracket_access : build_access(build_unary_op('$1', '$2'), '$3').
+bracket_at_expr -> bracket_at_expr bracket_access : build_access('$1', '$2').
 
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), ?line('$1'), ?exprs('$1') }.
@@ -288,10 +296,11 @@ unary_op -> '^' : '$1'.
 unary_op -> '^' eol : '$1'.
 unary_op -> 'not' : '$1'.
 unary_op -> 'not' eol : '$1'.
-unary_op -> '@' : '$1'.
-unary_op -> '@' eol : '$1'.
 unary_op -> '~~~' : '$1'.
 unary_op -> '~~~' eol : '$1'.
+
+at_op -> '@' : '$1'.
+at_op -> '@' eol : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.

@@ -70,7 +70,10 @@ defmodule Exception do
   of arguments. It follows the same syntax as in stacktraces.
   """
   def format_module_fun_arity(module, fun, arity) do
-    << ?:, fun | :binary >> = inspect(fun)
+    case inspect(fun) do
+      << ?:, fun | :binary >> -> :ok
+      fun -> :ok
+    end
 
     if is_list(arity) do
       inspected = lc x inlist arity, do: inspect(x)

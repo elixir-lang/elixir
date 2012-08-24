@@ -28,6 +28,7 @@ defmodule Kernel.ExceptionTest do
   end
 
   test :format_module_function_arity do
+    assert Exception.format_module_fun_arity Foo, nil, 1 == "Foo.nil/1"
     assert Exception.format_module_fun_arity Foo, :bar, 1 == "Foo.bar/1"
     assert Exception.format_module_fun_arity Foo, :bar, [] == "Foo.bar()"
     assert Exception.format_module_fun_arity :foo,  :bar, [1,2] == ":foo.bar(1, 2)"

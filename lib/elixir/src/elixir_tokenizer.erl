@@ -305,7 +305,7 @@ tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_upcase(H) ->
 
 tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_downcase(H); H == $_ ->
   { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(Line, File, String, []),
-  case keyword(Line, Kind, Identifier, Tokens) of
+  case handle_keyword(Line, Kind, Identifier, Tokens) of
     false ->
       tokenize(Rest, Line, File, Terminators, [{Kind,Line,Identifier}|Tokens]);
     [Check|T] ->
@@ -617,7 +617,7 @@ tokenize_call_identifier(Kind, Line, Atom, Rest) ->
     [$[|_] -> { bracket_identifier, Line, Atom };
     _ ->
       case next_is_block(Rest) of
-        []              -> { Kind, Line, Atom };
+        false           -> { Kind, Line, Atom };
         BlockIdentifier -> { BlockIdentifier, Line, Atom }
       end
   end.
@@ -631,13 +631,13 @@ next_is_block([Space|Tokens]) when Space == $\t; Space == $\s ->
 
 next_is_block([$d,$o,H|_]) when
   ?is_digit(H); ?is_upcase(H); ?is_downcase(H); H == $_; H == $: ->
-  [];
+  false;
 
 next_is_block([$d,$o|_]) ->
   do_identifier;
 
 next_is_block(_) ->
-  [].
+  false.
 
 add_token_with_nl(Left, [{eol,_,$\n}|T]) -> [Left|T];
 add_token_with_nl(Left, T) -> [Left|T].
@@ -706,10 +706,16 @@ terminator('{')  -> '}';
 terminator('<<') -> '>>'.
 
 % Keywords check
-keyword(Line, paren_identifier, fn, Tokens) ->
+handle_keyword(Line, paren_identifier, fn, Tokens) ->
   [{ 'fn_paren', Line }|Tokens];
 
-keyword(Line, Identifier, Atom, Tokens) when Identifier ==  identifier; Identifier == do_identifier ->
+handle_keyword(Line, Identifier, Atom, Tokens) when Identifier ==  bracket_identifier; Identifier == paren_identifier ->
+  case keyword(Atom) of
+    true -> [{ Atom, Line }|Tokens];
+    _    -> [{ Identifier, Line, Atom }|Tokens]
+  end;
+
+handle_keyword(Line, Identifier, Atom, Tokens) when Identifier ==  identifier; Identifier == do_identifier ->
   case keyword(Atom) of
     true  -> [{ Atom, Line }|Tokens];
     op    -> add_token_with_nl({ Atom, Line }, Tokens);
@@ -717,7 +723,7 @@ keyword(Line, Identifier, Atom, Tokens) when Identifier ==  identifier; Identifi
     false -> false
   end;
 
-keyword(_, _, _, _) -> false.
+handle_keyword(_, _, _, _) -> false.
 
 % Keywords
 keyword('fn')    -> true;

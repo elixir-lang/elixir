@@ -2529,12 +2529,8 @@ defmodule Kernel do
     caller = __CALLER__
     atom   = Macro.expand(element, caller)
 
-    case { is_atom(atom), caller.in_match? } do
-      { false, false } ->
-        quote do: Access.access(unquote(element), unquote(args))
-      { false, true } ->
-        raise "invalid usage of access protocol in signature"
-      { true, _ } ->
+    case is_atom(atom) and atom != nil do
+      true ->
         fields =
           try do
             module = caller.module
@@ -2560,6 +2556,11 @@ defmodule Kernel do
           end
 
         Record.access(caller, atom, fields, args)
+      false ->
+        case caller.in_match? do
+          true  -> raise "invalid usage of access protocol in signature"
+          false -> quote do: Access.access(unquote(element), unquote(args))
+        end
     end
   end
 
