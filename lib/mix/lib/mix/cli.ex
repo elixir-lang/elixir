@@ -18,6 +18,7 @@ defmodule Mix.CLI do
 
     if File.regular?(file) do
       Code.load_file file
+      Mix.Task.run "loadpaths", ["--no-check"]
     end
 
     args

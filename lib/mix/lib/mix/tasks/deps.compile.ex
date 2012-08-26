@@ -44,10 +44,6 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_compile(deps) do
     shell = Mix.shell
 
-    # Load available paths but still allow it to be called down the road
-    Mix.Task.run "deps.loadpaths", ["--no-check"]
-    Mix.Task.reenable "deps.loadpaths"
-
     Enum.each deps, fn(dep) ->
       Mix.Dep[app: app, status: status, opts: opts] = dep
 

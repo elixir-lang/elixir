@@ -16,8 +16,8 @@ defmodule Mix.Tasks.Loadpaths do
     They are added with lower priority than the app ones.
 
   """
-  def run(_) do
-    Mix.Task.run "deps.loadpaths"
+  def run(args) do
+    Mix.Task.run "deps.loadpaths", args
 
     paths = Mix.project[:load_paths] || []
     Enum.each paths, Code.prepend_path(&1)
