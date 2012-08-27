@@ -26,6 +26,9 @@ defmodule AccessTest do
   @config [foo: :bar]
   :bar = @config[:foo]
 
+  @mod :lists
+  [1,2,3] = @mod.flatten([1,[2],3])
+
   test :atom do
     exception = assert_raise RuntimeError, fn ->
       foo = :foo

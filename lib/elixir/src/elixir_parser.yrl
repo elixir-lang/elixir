@@ -65,10 +65,10 @@ Right    220 bin_concat_op.
 Right    230 two_op.
 Right    290 pipeline_op.
 Nonassoc 300 unary_op.
-Nonassoc 300 at_op.
 Left     310 dot_call_op.
 Left     310 dot_op.
-Nonassoc 320 var.
+Nonassoc 320 at_op.
+Nonassoc 330 var.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
