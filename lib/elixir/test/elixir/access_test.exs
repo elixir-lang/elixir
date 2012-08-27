@@ -23,6 +23,9 @@ defmodule AccessTest do
   # and that @config[:foo] has proper precedence.
   nil = @config[:foo]
 
+  @config [foo: :bar]
+  :bar = @config[:foo]
+
   test :atom do
     exception = assert_raise RuntimeError, fn ->
       foo = :foo

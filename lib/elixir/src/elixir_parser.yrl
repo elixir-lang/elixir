@@ -168,7 +168,7 @@ max_expr -> open_paren expr_list close_paren : build_block('$2').
 bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
 
-bracket_at_expr -> at_op dot_bracket_identifier bracket_access : build_access(build_unary_op('$1', build_identifier('$2', nil)), '$2').
+bracket_at_expr -> at_op dot_bracket_identifier bracket_access : build_access(build_unary_op('$1', build_identifier('$2', nil)), '$3').
 bracket_at_expr -> at_op max_expr bracket_access : build_access(build_unary_op('$1', '$2'), '$3').
 bracket_at_expr -> bracket_at_expr bracket_access : build_access('$1', '$2').
 
