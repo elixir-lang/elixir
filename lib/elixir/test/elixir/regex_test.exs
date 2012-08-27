@@ -12,12 +12,6 @@ defmodule Regex.BinaryTest do
     assert "aa" =~ %r/(a)\1/
   end
 
-  test :groups do
-    assert Regex.groups(%r/(?<FOO>foo)/g) == ["FOO"]
-    assert Regex.groups(Regex.compile!("foo")) == []
-    assert Regex.groups(Regex.compile!("(?<FOO>foo)", "g")) == ["FOO"]
-  end
-
   test :compile! do
     assert is_record(Regex.compile!("foo"), Regex)
     assert is_regex(Regex.compile!("foo"))
@@ -41,6 +35,12 @@ defmodule Regex.BinaryTest do
     assert Regex.opts(Regex.compile!("foo", "u")) == "u"
   end
 
+  test :groups do
+    assert Regex.groups(%r/(?<FOO>foo)/g) == [:FOO]
+    assert Regex.groups(Regex.compile!("foo")) == nil
+    assert Regex.groups(Regex.compile!("(?<FOO>foo)", "g")) == [:FOO]
+  end
+
   test :match? do
     assert Regex.match?(%r/foo/, "foo")
     refute Regex.match?(%r/foo/, "FOO")
@@ -54,6 +54,14 @@ defmodule Regex.BinaryTest do
     assert Regex.match?(%r/foo$/,  "afoo")
   end
 
+  test :captures do
+    assert Regex.captures(%r/(?<foo>c)(?<bar>d)/g, 'abcd') == [foo: 'c', bar: 'd']
+    assert Regex.captures(%r/c(?<foo>d)/g, 'abcd') == [foo: 'd']
+    assert Regex.captures(%r/c(?<foo>d)/g, 'no_match') == nil
+    assert Regex.captures(%r/c(?<foo>d|e)/g, 'abcd abce') == [foo: 'd']
+    assert Regex.captures(%r/c(?<foo>d)/g, 'abcd', return: :binary) == [foo: "d"]
+  end
+
   test :__R__ do
     assert Regex.match?(%R/f#{1,3}o/, "f#o")
   end
@@ -64,22 +72,21 @@ defmodule Regex.BinaryTest do
     assert Regex.run(%r"c(d)", "abcd", return: :list) == ['cd', 'd']
   end
 
+  test :run_with_groups do
+    assert Regex.run(%r/c(?<foo>d)/g, 'abcd', capture: :groups) == ['d']
+    assert Regex.run(%r/c(?<foo>d)/g, 'no_match', capture: :groups) == nil
+    assert Regex.run(%r/c(?<foo>d|e)/g, 'abcd abce', capture: :groups) == ['d']
+    assert Regex.run(%r/c(?<foo>d)/g, 'abcd', return: :binary, capture: :groups) == ["d"]
+  end
+
+  test :run_with_indexes do
+    assert Regex.run(%r"c(d)", "abcd", return: :index) == [{2,2},{3,1}]
+    assert Regex.run(%r"e", "abcd", return: :index) == nil
+  end
+
   test :index do
     assert Regex.index(%r"c(d)", "abcd") == 2
     assert Regex.index(%r"e", "abcd") == nil
-  end
-
-  test :indexes do
-    assert Regex.indexes(%r"c(d)", "abcd") == [{2,2},{3,1}]
-    assert Regex.indexes(%r"e", "abcd") == nil
-  end
-
-  test :match do
-    assert Regex.match(%r/c(?<FOO>d)/g, "abcd") == [{"FOO", ["d"]}]
-    assert Regex.match(%r/c(?<FOO>d)/g, "no_match") == nil
-    assert Regex.match(%r/c(?<FOO>d|e)/g, "abcd abce") == [{"FOO", ["d"]}]
-    assert Regex.match(%r/c(?<FOO>d)/g, "abcd", return: :list) == [{'FOO', ['d']}]
-    assert Regex.match(%r/c(?<FOO>d|e)/g, "abcd abce", global: true) == [{"FOO", [["d"], ["e"]]}]
   end
 
   test :scan do
@@ -131,11 +138,6 @@ defmodule Regex.ListTest do
     assert Regex.opts(Regex.compile!('foo', 'u')) == "u"
   end
 
-  test :groups do
-    assert Regex.groups(Regex.compile!('foo')) == []
-    assert Regex.groups(Regex.compile!('(?<FOO>foo)', 'g')) == ["FOO"]
-  end
-
   test :match? do
     assert Regex.match?(%r(foo), 'foo')
     refute Regex.match?(%r(foo), 'FOO')
@@ -161,16 +163,8 @@ defmodule Regex.ListTest do
   end
 
   test :indexes do
-    assert Regex.indexes(%r'c(d)', 'abcd') == [{2,2},{3,1}]
-    assert Regex.indexes(%r'e', 'abcd') == nil
-  end
-
-  test :match do
-    assert Regex.match(%r/c(?<FOO>d)/g, 'abcd') == [{'FOO', ['d']}]
-    assert Regex.match(%r/c(?<FOO>d)/g, 'no_match') == nil
-    assert Regex.match(%r/c(?<FOO>d|e)/g, 'abcd abce') == [{'FOO', ['d']}]
-    assert Regex.match(%r/c(?<FOO>d)/g, 'abcd', return: :binary) == [{"FOO", ["d"]}]
-    assert Regex.match(%r/c(?<FOO>d|e)/g, 'abcd abce', global: true) == [{'FOO', [['d'], ['e']]}]
+    assert Regex.run(%r'c(d)', 'abcd', return: :index) == [{2,2},{3,1}]
+    assert Regex.run(%r'e', 'abcd', return: :index) == nil
   end
 
   test :scan do
