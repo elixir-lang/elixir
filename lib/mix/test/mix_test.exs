@@ -6,4 +6,10 @@ defmodule MixTest do
   test :shell do
     assert Mix.shell == Mix.Shell.Process
   end
+
+  test :env do
+    assert Mix.env == :dev
+    Mix.env(:prod)
+    assert Mix.env == :prod
+  end
 end

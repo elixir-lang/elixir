@@ -3,6 +3,13 @@ Code.require_file "../../test_helper.exs", __FILE__
 defmodule Mix.CLITest do
   use MixTest.Case
 
+  test "env" do
+    in_fixture "custom_mixfile", fn ->
+      env = System.cmd %b(MIXENV=prod #{elixir_executable} #{mix_executable} run "IO.puts Mix.env")
+      assert env =~ %r"prod"
+    end
+  end
+
   test "default task" do
     in_fixture "custom_mixfile", fn ->
       output = mix ""

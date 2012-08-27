@@ -52,6 +52,7 @@ defmodule MixTest.Case do
       import MixTest.Case
 
       def teardown(_) do
+        Mix.env(:dev)
         Mix.Task.clear
         Mix.Shell.Process.flush
         System.put_env("MIXHOME", tmp_path)

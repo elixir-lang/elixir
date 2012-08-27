@@ -37,17 +37,23 @@ defmodule Mix.Project do
 
   @doc false
   defmacro __using__(_) do
-    Mix.Project.push __CALLER__.module
     quote do
+      @after_compile Mix.Project
       @behavior Mix.Project
     end
+  end
+
+  # Invoked after each Mix.Project is compiled.
+  @doc false
+  def after_compile(module, _binary) do
+    push module
   end
 
   # Push a project into the project stack. Only
   # the top of the stack can be accessed.
   @doc false
   def push(atom) when is_atom(atom) do
-    Mix.Server.cast({ :push_project, atom })
+    Mix.Server.cast({ :push_project, atom, get_project_config(atom) })
   end
 
   # Pops a project from the stack.
@@ -70,7 +76,7 @@ defmodule Mix.Project do
     end
 
     if current == Mix.Project.current do
-      Mix.Project.push nil
+      push nil
     end
 
     try do
@@ -87,7 +93,7 @@ defmodule Mix.Project do
   """
   def current do
     case Mix.Server.call(:projects) do
-      [h|_] when h != nil -> h
+      [{ h, _ }|_] when h != nil -> h
       _ -> raise Mix.NoProjectError
     end
   end
@@ -97,8 +103,19 @@ defmodule Mix.Project do
   """
   def defined? do
     case Mix.Server.call(:projects) do
-      [h|_] when h != nil -> true
+      [{ h, _ }|_] when h != nil -> true
       _ -> false
+    end
+  end
+
+  defp get_project_config(nil), do: []
+
+  defp get_project_config(atom) do
+    config = atom.project
+    if env = config[:env][Mix.env] do
+      config /> Keyword.delete(:env) /> Keyword.merge(env)
+    else
+      config
     end
   end
 end

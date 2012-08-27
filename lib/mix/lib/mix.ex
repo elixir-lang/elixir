@@ -16,8 +16,31 @@ defmodule Mix do
   """
   def start do
     Enum.each [:elixir, :mix], :application.start(&1)
-    Mix.Server.start_link
+    Mix.Server.start_link get_env
     Mix.SCM.register_builtin
+  end
+
+  @doc """
+  Returns the mix environment.
+  """
+  def env do
+    Mix.Server.call(:env)
+  end
+
+  @doc """
+  Changes the current mix env. Project configuration loaded
+  per environment is not going to be reloaded.
+  """
+  def env(env) when is_atom(env) do
+    Mix.Server.cast({ :env, env })
+  end
+
+  defp get_env do
+    if env = System.get_env("MIXENV") do
+      binary_to_atom env
+    else
+      :dev
+    end
   end
 
   @doc """
@@ -56,7 +79,7 @@ defmodule Mix do
   """
   def project do
     case Mix.Server.call(:projects) do
-      [h|_] when h != nil -> h.project
+      [{ h, config }|_] when h != nil -> config
       _ -> []
     end
   end
