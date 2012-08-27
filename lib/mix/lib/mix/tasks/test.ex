@@ -19,13 +19,19 @@ defmodule Mix.Tasks.Test do
 
   * `:test_helper` - a file that sets up whatever is necessary
   for testing. Defaults to `test/test_helper.exs`.
-  
+
+  ## Command line options
+
+  * `-f`, `--file` - Tests the given file / pattern;
+
   """
-  def run(_) do
+  def run(args) do
+    { opts, _ } = OptionParser.parse(args, aliases: [f: :file])
+
     Mix.Task.run "compile"
     project = Mix.project
 
-    test_pattern = project[:test_pattern] || "test/**/*_test.exs"
+    test_pattern = opts[:file] || project[:test_pattern] || "test/**/*_test.exs"
     test_helper  = Keyword.get(project, :test_helper, "test/test_helper.exs")
     test_helper && Code.require_file(test_helper)
 

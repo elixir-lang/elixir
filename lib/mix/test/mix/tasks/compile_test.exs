@@ -49,6 +49,18 @@ defmodule Mix.Tasks.CompileTest do
     purge [A, B, C]
   end
 
+  test "compile only a specific file" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Compile.run ["-f", "lib/a.ex"]
+      assert File.regular?("ebin/Elixir-A.beam")
+      refute File.regular?("ebin/Elixir-B.beam")
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      refute_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
+    end
+  after
+    purge [A, B, C]
+  end
+
   test "compile a project with mixfile" do
     Mix.Project.push CustomApp
 

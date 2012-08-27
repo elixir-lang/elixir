@@ -11,10 +11,19 @@ defmodule Mix.Tasks.Run do
       mix run Hello.world
       mix run "Some.function with_args"
 
+  ## Command line options
+
+  * `-f`, `--file` - runs the given file / pattern instead
+    of evaling code.
+
   """
-  def run(args) do
-    code = Enum.filter(args, fn(x) -> not match?("-" <> _, x) end)
+  def run([tag, pattern|_]) when tag in ["-f", "--file"] do
     Mix.Task.run "compile"
-    Code.eval Enum.join(code, " ")
+    Enum.each File.wildcard(pattern), Code.require_file(&1)
+  end
+
+  def run(args) do
+    Mix.Task.run "compile"
+    Code.eval Enum.join(args, " ")
   end
 end
