@@ -14,7 +14,7 @@ init(Args) ->
       permanent,                    % Restart  = permanent | transient | temporary
       2000,                         % Shutdown = brutal_kill | int() >= 0 | infinity
       worker,                       % Type     = worker | supervisor
-      [elixir]                      % Modules  = [Module] | dynamic
+      [elixir_code_server]          % Modules  = [Module] | dynamic
     }
   ],
 

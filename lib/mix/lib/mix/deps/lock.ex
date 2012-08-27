@@ -48,6 +48,6 @@ defmodule Mix.Deps.Lock do
         end
       end
     write(lock)
-    apps
+    Enum.reverse(apps)
   end
 end
