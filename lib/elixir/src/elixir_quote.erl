@@ -20,6 +20,10 @@ linify(_, Else) -> Else.
 quote({ unquote, _Line, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
 
+quote({ { '.', Line, [Left, unquote] }, _Line, [Expr] }, Q, S) ->
+  Rewritten = { '.', Line, [Left, { unquote, Line, [Expr] }] },
+  quote(Rewritten, Q, S);
+
 quote({ Left, Line, nil }, Q, S) when is_atom(Left) ->
   Tuple = { tuple, Line, [
     { atom, Line, Left },

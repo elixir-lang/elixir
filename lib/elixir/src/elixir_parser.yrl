@@ -18,7 +18,8 @@ Nonterminals
   stab_expr stab_expr_list
   kw_eol kw_expr kw_comma kw_base
   matched_kw_expr matched_kw_comma matched_kw_base
-  parens_call dot_op dot_ref dot_identifier dot_op_identifier dot_do_identifier
+  parens_call parens_call_args_parens
+  dot_op dot_ref dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_punctuated_identifier dot_bracket_identifier
   var list bracket_access bit_string tuple
   fn_block do_block do_eol end_eol block_eol block_item block_list
@@ -159,7 +160,7 @@ call_expr -> var : build_identifier('$1', nil).
 call_expr -> max_expr : '$1'.
 
 max_expr -> bracket_expr : '$1'.
-max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
+max_expr -> parens_call_args_parens : '$1'.
 max_expr -> dot_ref : '$1'.
 max_expr -> base_expr : '$1'.
 max_expr -> open_paren ')' : build_block([]).
@@ -375,6 +376,9 @@ dot_punctuated_identifier -> matched_expr dot_op punctuated_identifier : build_d
 
 parens_call -> dot_paren_identifier : '$1'.
 parens_call -> matched_expr dot_call_op : { '.', ?line('$2'), ['$1'] }. % Fun/local calls
+
+parens_call_args_parens -> parens_call call_args_parens : build_identifier('$1', '$2').
+parens_call_args_parens -> parens_call_args_parens call_args_parens : { '$1', ?line('$1'), '$2' }.
 
 % Function calls
 
