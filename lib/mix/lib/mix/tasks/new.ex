@@ -12,17 +12,16 @@ defmodule Mix.Tasks.New do
 
       mix new PATH [--app APP] [--module MODULE]
 
-  A project with the given path name will be created,
-  unless `--app` is given, allowing you to set the app
-  name or the `--module` is given configuring the module
-  name.
+  A project at the given PATH  will be created. The
+  application name and module name will be retrieved
+  from the path, unless `-app` or `--module` is given.
 
   ## Examples
 
       mix new hello_world
 
   Is equivalent to:
-  
+
       mix new hello_world --app hello_world --module HelloWorld
 
   """
