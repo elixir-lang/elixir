@@ -19,6 +19,9 @@ defmodule Mix.Tasks.Compile.Elixir do
   force compilation regardless of mod times by passing
   the `--force` option.
 
+  A list of files can be given after the task
+  name in order to select the files to compile.
+
   ## Configuration
 
   * `:source_paths` - directories to find source files.
@@ -48,12 +51,11 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   ## Command line options
 
-  * `-f`, `--file` - compiles only the given file / pattern;
   * `--force` - forces compilation regardless of mod times;
 
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args, flags: [:force], aliases: [f: :file])
+    { opts, files } = OptionParser.parse(args, flags: [:force])
 
     project       = Mix.project
     compile_path  = project[:compile_path]
@@ -61,8 +63,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     compile_exts  = project[:compile_exts]
     source_paths  = project[:source_paths]
 
-    to_compile    = extract_files(source_paths, opts[:file], [:ex])
-    to_watch      = extract_files(source_paths, opts[:file], compile_exts)
+    to_compile    = extract_files(source_paths, files, [:ex])
+    to_watch      = extract_files(source_paths, files, compile_exts)
 
     if opts[:force] or Mix.Utils.stale?(to_watch, [compile_path]) do
       File.mkdir_p!(compile_path)
@@ -79,15 +81,15 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
   end
 
-  defp extract_files(paths, nil, exts) do
+  defp extract_files(paths, [], exts) do
     exts = Enum.join(exts, ",")
     List.concat(lc path inlist paths do
       File.wildcard("#{path}/**/*.{#{exts}}")
     end)
   end
 
-  defp extract_files(_, pattern, _) do
-    File.wildcard(pattern)
+  defp extract_files(_, files, _) do
+    files
   end
 
   defp compile_files(files, to) do

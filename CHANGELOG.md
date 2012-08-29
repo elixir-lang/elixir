@@ -4,8 +4,8 @@
   * [List] Add support to keyreplace and keystore
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
   * [Binary] Add support to `part` and `split` functions
-  * [Record] Improvements to the Record API, added Record.defmacros
-  * [Regex] Added return option to Regex.run and Regex.scan
+  * [Record] Improvements to the Record API, added `Record.defmacros`
+  * [Regex] Added return option to `Regex.run` and `Regex.scan`
   * [Mix] Mix now support environments - the current environment can be set via MIX_ENV
 
 * deprecations

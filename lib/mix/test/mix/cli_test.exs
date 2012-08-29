@@ -42,7 +42,7 @@ defmodule Mix.CLITest do
       assert File.regular?("ebin/Elixir-A.beam")
       assert output =~ %r"1 tests, 0 failures"
 
-      output = mix "test -f test/hidden.ex"
+      output = mix "test test/hidden.ex"
       assert output =~ %r"1 tests, 1 failures"
     end
   end

@@ -33,16 +33,4 @@ defmodule Mix.Tasks.RunTest do
     purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
-
-  test "run command with file" do
-    Mix.Project.push NoSourceApp
-
-    in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Run.run ["-f", "lib/a.ex"]
-      assert :code.is_loaded(A)
-    end
-  after
-    purge [A]
-    Mix.Project.pop
-  end
 end

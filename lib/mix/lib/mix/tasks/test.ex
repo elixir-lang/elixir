@@ -12,6 +12,9 @@ defmodule Mix.Tasks.Test do
 
   It ensures the project is compiled before executing.
 
+  A list of files can be given after the task name in
+  order to select the files to compile.
+
   ## Configuration
 
   * `:test_pattern` - a pattern to load test files.
@@ -20,21 +23,24 @@ defmodule Mix.Tasks.Test do
   * `:test_helper` - a file that sets up whatever is necessary
   for testing. Defaults to `test/test_helper.exs`.
 
-  ## Command line options
-
-  * `-f`, `--file` - Tests the given file / pattern;
-
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args, aliases: [f: :file])
+    { _, files } = OptionParser.parse(args)
 
     Mix.Task.run "compile"
     project = Mix.project
 
-    test_pattern = opts[:file] || project[:test_pattern] || "test/**/*_test.exs"
-    test_helper  = Keyword.get(project, :test_helper, "test/test_helper.exs")
+    test_helper = Keyword.get(project, :test_helper, "test/test_helper.exs")
     test_helper && Code.require_file(test_helper)
 
-    Kernel.ParallelRequire.files File.wildcard(test_pattern)
+    files =
+      if files == [] do
+        test_pattern = project[:test_pattern] || "test/**/*_test.exs"
+        File.wildcard test_pattern
+      else
+        files
+      end
+
+    Kernel.ParallelRequire.files files
   end
 end

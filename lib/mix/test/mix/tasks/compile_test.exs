@@ -51,7 +51,7 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compile only a specific file" do
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Compile.run ["-f", "lib/a.ex"]
+      Mix.Tasks.Compile.run ["lib/a.ex"]
       assert File.regular?("ebin/Elixir-A.beam")
       refute File.regular?("ebin/Elixir-B.beam")
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
