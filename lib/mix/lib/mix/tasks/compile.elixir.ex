@@ -88,8 +88,9 @@ defmodule Mix.Tasks.Compile.Elixir do
     end)
   end
 
-  defp extract_files(_, files, _) do
-    files
+  defp extract_files(paths, files, exts) do
+    paths = extract_files(paths, [], exts)
+    Enum.filter files, List.member?(paths, &1)
   end
 
   defp compile_files(files, to) do
