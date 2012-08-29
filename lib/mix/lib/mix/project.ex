@@ -53,13 +53,23 @@ defmodule Mix.Project do
   # the top of the stack can be accessed.
   @doc false
   def push(atom) when is_atom(atom) do
-    Mix.Server.cast({ :push_project, atom, get_project_config(atom) })
+    config = Keyword.merge default_config, get_project_config(atom)
+    Mix.Server.cast({ :push_project, atom, config })
   end
 
   # Pops a project from the stack.
   @doc false
   def pop do
     Mix.Server.cast(:pop_project)
+  end
+
+  # Default options
+  @doc false
+  def default_config do
+    [ compile_path: "ebin",
+      compile_first: [],
+      compile_exts: [:ex, :eex],
+      source_paths: ["lib"] ]
   end
 
   # Loads the mix.exs file in the current directory

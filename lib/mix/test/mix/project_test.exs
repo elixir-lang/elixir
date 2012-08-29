@@ -29,7 +29,7 @@ defmodule Mix.ProjectTest do
 
   test "retrieves configuration from projects" do
     Mix.Project.push(SampleProject)
-    assert Mix.project == [hello: "world"]
+    assert Mix.project[:hello] == "world"
   after
     Mix.Project.pop
   end
@@ -37,13 +37,13 @@ defmodule Mix.ProjectTest do
   test "reads environment info when a project is set" do
     Mix.env(:prod)
     Mix.Project.push(EnvProject)
-    assert Mix.project == [hello: "new"]
+    assert Mix.project[:hello] == "new"
   after
     Mix.Project.pop
   end
 
   test "retrieves configuration even when a project is not set" do
-    assert Mix.project == []
+    assert Mix.project == Mix.Project.default_config
   end
 
   test "raises an error when trying to retrieve the current a project but none it set" do

@@ -36,6 +36,12 @@ defmodule Mix.Tasks.Compile.Elixir do
 
         [compile_first: ["lib/foo.ex" "lib/bar.ex"]]
 
+  * `:compile_exts` - extensions to watch and, when any of
+    the files with the given extension changes, forces
+    recompilation:
+
+        [compile_exts: [:ex, :eex]
+
   * `:elixirc_options` - compilation options that applies
      to Elixir's compiler, they are: `:ignore_module_conflict`,
      `:docs` and `:debug_info`. They all default to false.
@@ -50,12 +56,15 @@ defmodule Mix.Tasks.Compile.Elixir do
     { opts, _ } = OptionParser.parse(args, flags: [:force], aliases: [f: :file])
 
     project       = Mix.project
-    compile_path  = project[:compile_path]  || "ebin"
-    compile_first = project[:compile_first] || []
-    source_paths  = project[:source_paths]  || ["lib"]
-    to_compile    = extract_files(source_paths, opts[:file])
+    compile_path  = project[:compile_path]
+    compile_first = project[:compile_first]
+    compile_exts  = project[:compile_exts]
+    source_paths  = project[:source_paths]
 
-    if opts[:force] or Mix.Utils.stale?(to_compile, [compile_path]) do
+    to_compile    = extract_files(source_paths, opts[:file], [:ex])
+    to_watch      = extract_files(source_paths, opts[:file], compile_exts)
+
+    if opts[:force] or Mix.Utils.stale?(to_watch, [compile_path]) do
       File.mkdir_p!(compile_path)
 
       if elixir_opts = project[:elixirc_options] do
@@ -70,13 +79,14 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
   end
 
-  defp extract_files(paths, nil) do
+  defp extract_files(paths, nil, exts) do
+    exts = Enum.join(exts, ",")
     List.concat(lc path inlist paths do
-      File.wildcard("#{path}/**/*.ex")
+      File.wildcard("#{path}/**/*.{#{exts}}")
     end)
   end
 
-  defp extract_files(_, pattern) do
+  defp extract_files(_, pattern, _) do
     File.wildcard(pattern)
   end
 

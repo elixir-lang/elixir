@@ -80,7 +80,7 @@ defmodule Mix do
   def project do
     case Mix.Server.call(:projects) do
       [{ h, config }|_] when h != nil -> config
-      _ -> []
+      _ -> Mix.Project.default_config
     end
   end
 end

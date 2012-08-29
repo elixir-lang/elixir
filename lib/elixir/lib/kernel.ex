@@ -1330,17 +1330,11 @@ defmodule Kernel do
   defmacro defexception(name, values, opts // [], do_block // []) do
     opts = Keyword.merge(opts, do_block)
     opts = Keyword.put(opts, :do, quote do
+      @moduledoc nil
       unquote(Keyword.get opts, :do)
       def exception(args), do: new(args)
       def exception(args, self), do: self
     end)
-
-    opts = case Keyword.key?(opts, :moduledoc) do
-      false ->
-        Keyword.put(opts, :moduledoc, nil)
-      _ ->
-        opts
-    end
 
     values = [{ :__exception__, :__exception__ }|values]
     record = Record.defrecord(name, values, opts)
