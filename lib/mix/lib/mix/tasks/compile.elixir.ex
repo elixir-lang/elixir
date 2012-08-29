@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
       ordered = List.uniq compile_first ++ to_compile
       compile_files ordered, compile_path
-      File.touch(compile_path)
+      :ok
     else
       :noop
     end
