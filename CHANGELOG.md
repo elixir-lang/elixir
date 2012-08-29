@@ -6,7 +6,7 @@
   * [Binary] Add support to `part` and `split` functions
   * [Record] Improvements to the Record API, added Record.defmacros
   * [Regex] Added return option to Regex.run and Regex.scan
-  * [Mix] Mix now support environments - the current environment can be set via MIXENV
+  * [Mix] Mix now support environments - the current environment can be set via MIX_ENV
 
 * deprecations
   * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`

@@ -36,7 +36,7 @@ defmodule Mix do
   end
 
   defp get_env do
-    if env = System.get_env("MIXENV") do
+    if env = System.get_env("MIX_ENV") do
       binary_to_atom env
     else
       :dev
