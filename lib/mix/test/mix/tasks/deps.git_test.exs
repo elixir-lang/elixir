@@ -56,6 +56,35 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.pop
   end
 
+  test "all up to date dependencies" do
+    Mix.Project.push GitApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
+
+      Mix.Tasks.Deps.Get.run []
+      assert_received { :mix_shell, :info, ["All dependencies up to date"] }
+    end
+  after
+    purge [GitRepo, GitRepo.Mix]
+    Mix.Project.pop
+  end
+
+  test "requires dependencies before compilation" do
+    Mix.Project.push GitApp
+
+    in_fixture "no_mixfile", fn ->
+      assert_raise Mix.OutOfDateDepsError, fn ->
+        Mix.Tasks.Compile.run []
+      end
+    end
+  after
+    purge [GitRepo, GitRepo.Mix]
+    Mix.Project.pop
+  end
+
   test "checks out specific revision and updates it" do
     Mix.Project.push GitApp
 

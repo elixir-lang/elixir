@@ -31,9 +31,9 @@ defmodule Mix.Tasks.Compile do
     modules = Mix.Task.all_modules
 
     docs = lc module inlist modules,
-             task = Mix.Task.task_name(module),
-             match?("compile." <> _, task),
-             doc = Mix.Task.shortdoc(module) do
+              task = Mix.Task.task_name(module),
+              match?("compile." <> _, task),
+              doc = Mix.Task.shortdoc(module) do
       { task, doc }
     end
 
@@ -51,29 +51,22 @@ defmodule Mix.Tasks.Compile do
   end
 
   def run(args) do
-    remove_ebin
+    ebin = Mix.project[:compile_path] || "ebin"
+    remove_ebin ebin
+
+    Mix.Task.run "deps.loadpaths"
 
     changed = Enum.reduce get_compilers, false, fn(compiler, acc) ->
       res = Mix.Task.run("compile.#{compiler}", args)
       acc or res != :noop
     end
 
-    if changed do
-      compile_path = Mix.project[:compile_path]
-      File.touch(compile_path)
-    end
-
-    readd_ebin
+    if changed, do: File.touch(ebin)
+    Mix.Task.run "loadpaths"
   end
 
-  defp remove_ebin do
-    ebin = Mix.project[:compile_path] || "ebin"
+  defp remove_ebin(ebin) do
     :code.del_path(ebin /> File.expand_path /> binary_to_list)
-  end
-
-  defp readd_ebin do
-    ebin = Mix.project[:compile_path] || "ebin"
-    Code.prepend_path(ebin)
   end
 
   defp get_compilers do

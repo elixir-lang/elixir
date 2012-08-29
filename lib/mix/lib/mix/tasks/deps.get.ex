@@ -16,7 +16,11 @@ defmodule Mix.Tasks.Deps.Get do
       { _, [] } ->
         lock = Mix.Deps.Lock.read
         deps = lc dep inlist all, dep = check_lock(dep, lock), out_of_date?(dep), do: dep
-        do_get(deps)
+        if deps == [] do
+          Mix.shell.info "All dependencies up to date"
+        else
+          do_get(deps)
+        end
       { _, tail } ->
         do_get(by_name(tail))
     end
