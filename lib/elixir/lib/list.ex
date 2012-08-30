@@ -173,6 +173,69 @@ defmodule List do
   end
 
   @doc """
+  Receives a list of tuples and returns all tuples
+  where the item at position `posistion` matches with the
+  given `item`.
+
+  ## Examples
+
+      List.keyfindall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :a, 1)
+      #=> [ { :a, 1 }, { :a, 2, nil } ]
+
+      List.keyfindall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], 2, 2)
+      #=> [ { :b, 2 }, { :a, 2, nil } ]
+
+      List.keyfindall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :c, 1)
+      #=> []
+
+  """
+  def keyfindall(list, key, position) do
+    do_keyfindall(list, key, position)
+  end
+
+  @doc """
+  Receives a list of tuples and returns the first tuple
+  where the item at position `posistion` matches with the
+  given `item`. Removes match from the list.
+
+  ## Examples
+
+      List.keytake([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :a, 1)
+      #=> { { :a, 1 }, [ { :b, 2 }, true, { :a, 2, nil } ] }
+
+      List.keytake([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], 2, 2)
+      #=> { { :b, 2 }, [ { :a, 1 }, true, { :a, 2, nil } ] }
+
+      List.keytake([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :c, 1)
+      #=> { nil, [ { :a, 1 }, { :b, 2 }, true, { :a, 2, nil } ] }
+
+  """
+  def keytake(list, key, position, default // nil) do
+    do_keytake(list, key, position, default)
+  end
+
+  @doc """
+  Receives a list of tuples and returns all tuples
+  where the item at position `posistion` matches with the
+  given `item`. Removes matches from the list.
+
+  ## Examples
+
+      List.keytakeall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :a, 1)
+      #=> { [ { :a, 1 }, { :a, 2, nil } ], [ {:b, 2}, true ] }
+
+      List.keytakeall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], 2, 2)
+      #=> { [ { :b, 2 }, { :a, 2, nil } ], [ {:a, 1}, true ] }
+
+      List.keytakeall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :c, 1)
+      #=> { [], [ { :a, 1 }, { :b, 2 }, true, { :a, 2, nil } ] }
+
+  """
+  def keytakeall(list, key, position) do
+    do_keytakeall(list, key, position)
+  end
+
+  @doc """
   Receives a list of tuples and returns true if there is
   a tuple where the item at position `posistion` matches
   with the given `item`.
@@ -465,4 +528,39 @@ defmodule List do
 
   defp to_list(tuple) when is_tuple(tuple), do: tuple_to_list(tuple)
   defp to_list(list)  when is_list(list),   do: list
+
+  defp do_keytake(list, key, position, default) do
+    case find(list, key, position, :first, [], nil) do
+      {nil, _} -> {default, list}
+      {match, pruned} -> {match, :lists.reverse(pruned)}
+    end
+  end
+  defp do_keytakeall(list, key, position) do
+    case find(list, key, position, :all, [], []) do
+      {[], _} -> {[], list}
+      {matches, pruned} -> {:lists.reverse(matches), :lists.reverse(pruned)}
+    end
+  end
+  def do_keyfindall(list, key, position) do
+    case find(list, key, position, :all, [], []) do
+      {[], _list} -> []
+      {matches, _} -> :lists.reverse(matches)
+    end
+  end
+
+  defp find([], _key, _position, _scope, acc, res) do
+    {res, acc}
+  end
+  defp find([h|t], key, position, :first, acc, nil)
+      when is_tuple(h) and size(h) >= position and elem(h, position) == key do
+    find(t, key, position, :first, acc, h)
+  end
+  defp find([h|t], key, position, :all, acc, res)
+      when is_tuple(h) and size(h) >= position and elem(h, position) == key do
+    find(t, key, position, :all, acc, [h|res])
+  end
+  defp find([h|t], key, position, scope, acc, res) do
+    find(t, key, position, scope, [h|acc], res)
+  end
+
 end
