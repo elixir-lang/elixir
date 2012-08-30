@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Compile do
     ebin = Mix.project[:compile_path] || "ebin"
     remove_ebin ebin
 
-    Mix.Task.run "deps.loadpaths"
+    Mix.Task.run "deps.loadpaths", args
 
     changed = Enum.reduce get_compilers, false, fn(compiler, acc) ->
       res = Mix.Task.run("compile.#{compiler}", args)
@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Compile do
     end
 
     if changed, do: File.touch(ebin)
-    Mix.Task.run "loadpaths"
+    Mix.Task.run "loadpaths", args
   end
 
   defp remove_ebin(ebin) do
