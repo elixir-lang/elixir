@@ -69,7 +69,14 @@ defmodule Mix.Project do
     [ compile_path: "ebin",
       compile_first: [],
       compile_exts: [:ex, :eex],
-      source_paths: ["lib"] ]
+      source_paths: ["lib"],
+      exclude: exclude ]
+  end
+
+  defp exclude do
+   [
+    %r".*\.#.*" # emacs lock files
+   ]
   end
 
   # Loads the mix.exs file in the current directory

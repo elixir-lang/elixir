@@ -48,6 +48,12 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
+  defmodule CompileIgnoreRegexProject do
+    def project do
+      [exclude: [%r"a\.ex"]]
+    end
+  end
+
   test "use custom source paths" do
     Mix.Project.push SourcePathsProject
 
@@ -70,4 +76,19 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     purge [A, B, C]
     Mix.Project.pop
   end
+
+  test "use custom ignore regex" do
+    Mix.Project.push CompileIgnoreRegexProject
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Compile.Elixir.run([])
+      assert not File.regular?("ebin/Elixir-A.beam")
+      assert File.regular?("ebin/Elixir-B.beam")
+      assert File.regular?("ebin/Elixir-C.beam")
+    end
+  after
+    purge [A, B, C]
+    Mix.Project.pop
+  end
+
 end
