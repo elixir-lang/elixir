@@ -156,4 +156,38 @@ defmodule ModuleTest do
     assert finder.(:defined_def) == {:defined_def,[{:foo, 3}]}
     assert finder.(:defined_defp) == {:defined_defp,[]}
   end
+
+  test "split without arguments" do
+    module = Very.Long.Module.Name.And.Even.Longer
+    assert module == Module.concat(Module.split_name(module))
+  end
+
+  test "split from begining of module name" do
+    module = Very.Long.Module.Name.And.Even.Longer
+    assert {Very, Long.Module.Name.And.Even.Longer}
+      == Module.split_name(module, 1)
+    assert {Very.Long.Module.Name, And.Even.Longer}
+      == Module.split_name(module, 4)
+  end
+
+  test "split from begining of name when pos is greater than length" do
+    module = Very.Long.Module.Name.And.Even.Longer
+    assert {Very.Long.Module.Name.And.Even.Longer, :""}
+      == Module.split_name(module, 8)
+  end
+
+  test "split from end of module name" do
+    module = Very.Long.Module.Name.And.Even.Longer
+    assert {Very.Long.Module.Name.And.Even, Longer}
+      == Module.split_name(module, -1)
+    assert {Very.Long.Module, Name.And.Even.Longer}
+      == Module.split_name(module, -4)
+  end
+
+  test "split from end of name when pos is greater than length" do
+    module = Very.Long.Module.Name.And.Even.Longer
+    assert {:"", Very.Long.Module.Name.And.Even.Longer}
+      == Module.split_name(module, -8)
+  end
+
 end
