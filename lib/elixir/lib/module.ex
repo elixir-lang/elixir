@@ -470,6 +470,16 @@ defmodule Module do
       Module.split_name Very.Long.Module.Name.And.Even.Longer
       #=> [Very, Long, Module, Name, And, Even, Longer]
 
+  """
+  def split_name(module) do
+    tl(Binary.split(atom_to_binary(module), "-", global: true))
+  end
+
+  @doc """
+  Split the given module name at the given position:
+
+  ## Examples
+
       Module.split_name Very.Long.Module.Name.And.Even.Longer, 1
       #=> {Very, Long.Module.Name.And.Even.Longer}
 
@@ -487,26 +497,26 @@ defmodule Module do
 
       Module.split_name Very.Long.Module.Name.And.Even.Longer, -8
       #=> {:"", Very.Long.Module.Name.And.Even.Longer}
+
   """
-  def split_name(module), do: tl(:string.tokens(atom_to_list(module),'-'))
   def split_name(module, pos) when pos > 0 do
     tokens = split_name(module)
-    {split, rest} = Enum.split tokens, pos
-    {concat(split), concat(rest)}
+    { split, rest } = Enum.split tokens, pos
     join(split, rest)
   end
+
   def split_name(module, pos) when pos < 0 do
     tokens = Enum.reverse(split_name(module))
-    {rest, split} = Enum.split tokens, -pos
-    rest = Enum.reverse(rest)
+    { rest, split } = Enum.split tokens, -pos
+    rest  = Enum.reverse(rest)
     split = Enum.reverse(split)
     join(split, rest)
   end
-  defp join([], []), do: {:"", :""}
-  defp join(split, []), do: {concat(split), :""}
-  defp join([], rest), do: {:"", concat(rest)}
-  defp join(split, rest), do: {concat(split), concat(rest)}
 
+  defp join([], []),      do: {:"", :""}
+  defp join(split, []),   do: {concat(split), :""}
+  defp join([], rest),    do: {:"", concat(rest)}
+  defp join(split, rest), do: {concat(split), concat(rest)}
 
   @doc false
   # Used internally to compile documentation. This function
