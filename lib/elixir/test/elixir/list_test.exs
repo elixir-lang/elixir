@@ -152,4 +152,32 @@ defmodule ListTest do
     assert List.keydelete([a: 1, b: 2], 2, 2) == [{ :a, 1 }]
     assert List.keydelete([a: 1, b: 2], :c, 1) == [{ :a, 1 }, { :b, 2 }]
   end
+
+  test :keytake do
+    assert List.keytake([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :a, 1)
+      == { { :a, 1 }, [ { :b, 2 }, true, { :a, 2, nil } ] }
+    assert List.keytake([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], 2, 2)
+      == { { :b, 2 }, [ { :a, 1 }, true, { :a, 2, nil } ] }
+    assert List.keytake([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :c, 1)
+      == { nil, [ { :a, 1 }, { :b, 2 }, true, { :a, 2, nil } ] }
+
+  end
+
+  test :keytakeall do
+    assert List.keytakeall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :a, 1)
+      == { [ { :a, 1 }, { :a, 2, nil } ], [ { :b, 2 }, true ] }
+    assert List.keytakeall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], 2, 2)
+      == { [ { :b, 2 }, { :a, 2, nil } ], [ { :a, 1 }, true ] }
+    assert List.keytakeall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :c, 1)
+      == { [], [ { :a, 1 }, { :b, 2 }, true, { :a, 2, nil } ] }
+  end
+
+  test :keyfindall do
+    assert List.keyfindall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :a, 1)
+      == [ { :a, 1 }, { :a, 2, nil } ]
+    assert List.keyfindall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], 2, 2)
+      == [ { :b, 2 }, { :a, 2, nil } ]
+    assert List.keyfindall([{:a, 1}, {:b, 2}, true, {:a, 2, nil}], :c, 1)
+      == []
+  end
 end
