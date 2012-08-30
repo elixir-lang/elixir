@@ -68,7 +68,16 @@ defmodule RecordTest do
     refute is_record(a_list, RecordTest.FileInfo)
     refute is_record(RecordTest.FileInfo.new, List)
   end
-  
+
+  test :__index__ do
+    record = RecordTest.DynamicName.new(a: "a", b: "b")
+    assert elem(record, record.__index__(:a)) == "a"
+    assert elem(record, record.__index__(:b)) == "b"
+    assert record.__index__(:c) == nil
+    record = RecordTest.FileInfo.new
+    assert RecordTest.FileInfo.__index__(:atime) == record.__index__(:atime)
+  end
+
   test :to_keywords do
     record = RecordTest.DynamicName.new(a: "a", b: "b")
     assert record.to_keywords[:a] == "a"

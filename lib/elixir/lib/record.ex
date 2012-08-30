@@ -57,6 +57,7 @@ defmodule Record do
     contents = [
       reflection(escaped),
       initializer(escaped),
+      indexes(escaped),
       readers(values, 2, []),
       conversions(values)
     ]
@@ -250,6 +251,34 @@ defmodule Record do
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
       def new(tuple) when is_tuple(tuple), do: setelem(tuple, 1, __MODULE__)
+    end
+  end
+
+  # Define method to get index of a given key.
+  # Useful if you need to know position of the key for such applications as:
+  #  - ets
+  #  - mnesia
+  # For a declaration like:
+  #
+  #     defrecord FileInfo, atime: nil, mtime: nil
+  #
+  # It will define following method:
+  #
+  #     def __index__(:atime), do: 2
+  #     def __index__(:mtime), do: 3
+  #     def __index__(_), do: nil
+  #
+  defp indexes(values) do
+    quoted = lc { k, _ } inlist values do
+      index = find_index(values, k, 1)
+      quote do
+        def __index__(unquote(k)), do: unquote(index + 1)
+      end
+    end
+    quote do
+      unquote(quoted)
+      def __index__(_), do: nil
+      def __index__(key, _), do: __MODULE__.__index__(key)
     end
   end
 
