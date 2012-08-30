@@ -4,7 +4,7 @@ defmodule GenServer.Behavior do
   defmacro __using__(_) do
     IO.puts "Using GenServer.Behavior is deprecated, use GenServer.Behaviour instead"
     quote do
-      use GenServer.Behavior
+      use GenServer.Behaviour
     end
   end
 end
