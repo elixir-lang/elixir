@@ -200,6 +200,10 @@ defmodule EnumTest.List do
     assert Enum.split([1,2,3], 3) == { [1,2,3], [] }
     assert Enum.split([1,2,3], 4) == { [1,2,3], [] }
     assert Enum.split([], 3) == { [], [] }
+    assert Enum.split([1,2,3], -1) == { [1,2], [3] }
+    assert Enum.split([1,2,3], -2) == { [1], [2,3] }
+    assert Enum.split([1,2,3], -3) == { [], [1,2,3] }
+    assert Enum.split([1,2,3], -10) == { [], [1,2,3] }
   end
 
   test :split_with do
@@ -445,6 +449,10 @@ defmodule EnumTest.Orddict do
     assert Enum.split(dict, 0) == { [], [a: 1, b: 2, c: 3] }
     assert Enum.split(dict, 3) == { [a: 1, b: 2, c: 3], [] }
     assert Enum.split(dict, 4) == { [a: 1, b: 2, c: 3], [] }
+    assert Enum.split(dict, -1) == { [a: 1, b: 2], [c: 3] }
+    assert Enum.split(dict, -2) == { [a: 1], [c: 3, b: 2] }
+    assert Enum.split(dict, -3) == { [], [a: 1, c: 3, b: 2] }
+    assert Enum.split(dict, -10) == { [], [a: 1, c: 3, b: 2] }
   end
 
   test :split_with do
@@ -679,6 +687,10 @@ defmodule EnumTest.Range do
     assert Enum.split(range, 2) == { [1,2], [3] }
     assert Enum.split(range, 3) == { [1,2,3], [] }
     assert Enum.split(range, 4) == { [1,2,3], [] }
+    assert Enum.split(range, -1) == { [1,2], [3] }
+    assert Enum.split(range, -2) == { [1], [2,3] }
+    assert Enum.split(range, -3) == { [], [1,2,3] }
+    assert Enum.split(range, -10) == { [], [1,2,3] }
 
     range = Range.new(first: 1, last: 0)
     assert Enum.split(range, 3) == { [], [] }

@@ -687,6 +687,8 @@ defmodule Enum do
       Enum.split [1,2,3], 2  #=> { [1,2], [3] }
       Enum.split [1,2,3], 10 #=> { [1,2,3], [] }
       Enum.split [1,2,3], 0  #=> { [], [1,2,3] }
+      Enum.split [1,2,3], -1 #=> { [1,2], [3] }
+      Enum.split [1,2,3], -5 #=> { [], [1,2,3] }
 
   """
   def split(collection, count) when is_list(collection) and count >= 0 do
@@ -701,6 +703,12 @@ defmodule Enum do
       list when is_list(list) ->
         do_split(list, count, [])
     end
+  end
+
+  def split(collection, count) when count < 0 do
+    total_items = Enum.count(collection)
+    real_count = max(0, total_items - abs(count))
+    split(collection, real_count)
   end
 
   @doc """
