@@ -67,7 +67,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     to_watch      = extract_files(source_paths, files, compile_exts)
 
     if opts[:force] or Mix.Utils.stale?(to_watch, [compile_path]) do
-      File.mkdir_p!(compile_path)
+      File.mkdir_p! compile_path
+      Code.delete_path compile_path
 
       if elixir_opts = project[:elixirc_options] do
         Code.compiler_options(elixir_opts)
@@ -75,6 +76,8 @@ defmodule Mix.Tasks.Compile.Elixir do
 
       ordered = List.uniq compile_first ++ to_compile
       compile_files ordered, compile_path
+
+      Code.prepend_path compile_path
       :ok
     else
       :noop

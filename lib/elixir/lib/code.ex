@@ -44,6 +44,14 @@ defmodule Code do
   end
 
   @doc """
+  Deletes a path from Erlang VM code path.
+  The path is expanded with `File.expand_path` before deleted.
+  """
+  def delete_path(path) do
+    Erlang.code.del_path(File.expand_path to_char_list(path))
+  end
+
+  @doc """
   Evalutes the contents given by string. The second argument is the binding
   (which should be a Keyword) followed by a keyword list of options. The
   options can be:

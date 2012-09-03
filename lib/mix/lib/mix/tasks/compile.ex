@@ -51,9 +51,6 @@ defmodule Mix.Tasks.Compile do
   end
 
   def run(args) do
-    ebin = Mix.project[:compile_path]
-    remove_ebin ebin
-
     Mix.Task.run "deps.loadpaths", args
 
     changed = Enum.reduce get_compilers, false, fn(compiler, acc) ->
@@ -61,12 +58,7 @@ defmodule Mix.Tasks.Compile do
       acc or res != :noop
     end
 
-    if changed, do: File.touch(ebin)
-    Mix.Task.run "loadpaths", args
-  end
-
-  defp remove_ebin(ebin) do
-    :code.del_path(ebin /> File.expand_path /> binary_to_list)
+    if changed, do: File.touch Mix.project[:compile_path]
   end
 
   defp get_compilers do

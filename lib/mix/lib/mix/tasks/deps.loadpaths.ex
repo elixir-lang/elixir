@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   of mix public API and can be depended on.
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args, flags: [:force])
+    { opts, _ } = OptionParser.parse(args)
 
     unless opts[:no_check] do
       Mix.Task.run "deps.check"
