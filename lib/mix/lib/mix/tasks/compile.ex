@@ -51,13 +51,13 @@ defmodule Mix.Tasks.Compile do
   end
 
   def run(args) do
-    ebin = Mix.project[:compile_path] || "ebin"
+    ebin = Mix.project[:compile_path]
     remove_ebin ebin
 
     Mix.Task.run "deps.loadpaths", args
 
     changed = Enum.reduce get_compilers, false, fn(compiler, acc) ->
-      res = Mix.Task.run("compile.#{compiler}", args)
+      res = Mix.Task.run "compile.#{compiler}", args
       acc or res != :noop
     end
 
