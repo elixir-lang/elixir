@@ -5,7 +5,7 @@ defmodule Mix.Tasks.LocalTest do
 
   test "manage local tasks" do
     File.rm_rf! tmp_path("userhome")
-    System.put_env "MIXHOME", tmp_path("userhome")
+    System.put_env "MIX_HOME", tmp_path("userhome")
 
     # Install it!
     self <- { :mix_shell_input, :yes?, true }

@@ -18,8 +18,8 @@ defmodule Mix.Utils do
   Gets the user home attempting to consider OS system diferences.
   """
   def user_home do
-    System.get_env("MIXHOME") || System.get_env("HOME") || System.get_env("USERPROFILE") ||
-      raise Mix.Error, message: "Nor MIXHOME, HOME or USERPROFILE env variables were set"
+    System.get_env("MIX_HOME") || System.get_env("HOME") || System.get_env("USERPROFILE") ||
+      raise Mix.Error, message: "Nor MIX_HOME, HOME or USERPROFILE env variables were set"
   end
 
   @doc """

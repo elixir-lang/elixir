@@ -55,7 +55,7 @@ defmodule MixTest.Case do
         Mix.env(:dev)
         Mix.Task.clear
         Mix.Shell.Process.flush
-        System.put_env("MIXHOME", tmp_path)
+        System.put_env("MIX_HOME", tmp_path)
         del_tmp_paths
       end
 

@@ -134,6 +134,8 @@ defmodule Mix.Project do
     [ compile_path: "ebin",
       compile_first: [],
       compile_exts: [:ex, :eex],
+      default_env: [test: :test],
+      default_task: "test",
       deps_path: "deps",
       lockfile: "mix.lock",
       prepare_task: "compile",

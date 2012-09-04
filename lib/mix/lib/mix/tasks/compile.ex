@@ -57,6 +57,11 @@ defmodule Mix.Tasks.Compile do
       acc or res != :noop
     end
 
+    # If any of the tasks above returns something different
+    # than :noop, it means they produced something, so we
+    # touch the common target `compile_path`. Notice that
+    # we choose :noop since it is also the value returned
+    # by a task that we already invoked.
     if changed, do: File.touch Mix.project[:compile_path]
   end
 
