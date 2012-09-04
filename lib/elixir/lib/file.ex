@@ -472,6 +472,29 @@ defmodule File do
   end
 
   @doc """
+  Traverses files and directories according to the given `glob` expression.
+  Filters out files which match given exclude regexps.
+
+  ## Examples
+
+  Imagine you want to filter out emacs lock files then you do it as follows:
+      File.wildcard("test/*.exs", %r".*\.#.*")
+
+  You also can provide a list of regular expressions to exclude:
+      File.wildcard("projects/*/lib/*.ex", [%r".*\.#.*", %r".*\.gitignore"])
+  """
+  def wildcard(glob, exclude) when is_binary(exclude) do
+    wildcard(glob, [exclude])
+  end
+
+  def wildcard(glob, exclude) do
+    filter = fn(x) ->
+        not Enum.any?(exclude, fn(regexp) -> Regex.match? regexp, x end)
+      end
+    Enum.filter(wildcard(glob), filter)
+  end
+
+  @doc """
   Returns information about the `path`. If it exists, it
   returns a `{ :ok, info }` tuple, where info is  as a
   `File.Info` record. Retuns `{ :error, reason }` with

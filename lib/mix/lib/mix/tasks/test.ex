@@ -33,14 +33,17 @@ defmodule Mix.Tasks.Test do
     test_helper = Keyword.get(project, :test_helper, "test/test_helper.exs")
     test_helper && Code.require_file(test_helper)
 
+    exclude       = project[:exclude]
+
     files =
       if files == [] do
         test_pattern = project[:test_pattern] || "test/**/*_test.exs"
-        File.wildcard test_pattern
+        File.wildcard test_pattern, exclude
       else
         files
       end
 
     Kernel.ParallelRequire.files files
   end
+
 end
