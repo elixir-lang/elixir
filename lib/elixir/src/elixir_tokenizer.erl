@@ -72,6 +72,14 @@
   T == $@
 ).
 
+-define(unary_op(T),
+  T == '+';
+  T == '-';
+  T == '@';
+  T == '!';
+  T == '^'
+).
+
 tokenize(String, Line, File) ->
   tokenize(String, Line, File, [], []).
 
@@ -251,7 +259,7 @@ tokenize([T1,T2,T3|Rest], Line, File, Terminators, Tokens) when ?comp3(T1, T2, T
 
 % ## Three token operators
 tokenize([T1,T2,T3|Rest], Line, File, Terminators, Tokens) when ?op3(T1, T2, T3) ->
-  handle_op(Line, File, Terminators, list_to_atom([T1,T2,T3]), Rest, Tokens, 3);
+  handle_op(Line, File, Terminators, list_to_atom([T1,T2,T3]), Rest, Tokens);
 
 % ## Containers + punctuation tokens
 
@@ -276,7 +284,7 @@ tokenize([T1,T2|Rest], Line, File, Terminators, Tokens) when ?comp2(T1, T2) ->
 
 % ## Two Token Operators
 tokenize([T1,T2|Rest], Line, File, Terminators, Tokens) when ?op2(T1, T2) ->
-  handle_op(Line, File, Terminators, list_to_atom([T1,T2]), Rest, Tokens, 2);
+  handle_op(Line, File, Terminators, list_to_atom([T1,T2]), Rest, Tokens);
 
 % ## Comparison single token operators
 tokenize([T|Rest], Line, File, Terminators, Tokens) when ?comp1(T) ->
@@ -284,7 +292,7 @@ tokenize([T|Rest], Line, File, Terminators, Tokens) when ?comp1(T) ->
 
 % ## Single Token Operators
 tokenize([T|Rest], Line, File, Terminators, Tokens) when ?op1(T) ->
-  handle_op(Line, File, Terminators, list_to_atom([T]), Rest, Tokens, 1);
+  handle_op(Line, File, Terminators, list_to_atom([T]), Rest, Tokens);
 
 tokenize([$.|Rest], Line, File, Terminators, Tokens) ->
   tokenize(Rest, Line, File, Terminators, add_token_with_nl({'.', Line}, Tokens));
@@ -376,13 +384,13 @@ handle_comp_op(Line, File, Terminators, Op, [$:,S|Rest], Tokens) when ?is_space(
 handle_comp_op(Line, File, Terminators, Op, Rest, Tokens) ->
   tokenize(Rest, Line, File, Terminators, add_token_with_nl({comp_op, Line, Op}, Tokens)).
 
-handle_op(Line, File, Terminators, Op, [$:,S|Rest], Tokens, _) when ?is_space(S) ->
+handle_op(Line, File, Terminators, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
   tokenize(Rest, Line, File, Terminators, [{kw_identifier, Line, Op}|Tokens]);
 
-handle_op(Line, File, Terminators, Op, Rest, Tokens, 1) ->
+handle_op(Line, File, Terminators, Op, Rest, Tokens) when ?unary_op(Op) ->
   tokenize(Rest, Line, File, Terminators, [{Op, Line}|Tokens]);
 
-handle_op(Line, File, Terminators, Op, Rest, Tokens, _) ->
+handle_op(Line, File, Terminators, Op, Rest, Tokens) ->
   tokenize(Rest, Line, File, Terminators, add_token_with_nl({Op, Line}, Tokens)).
 
 handle_call_identifier(Line, File, Terminators, Op, Rest, Tokens) ->
