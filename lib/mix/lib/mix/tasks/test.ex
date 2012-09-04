@@ -10,7 +10,8 @@ defmodule Mix.Tasks.Test do
   should do all testing setup and then require all files
   that matches the given `test_pattern` in parallel.
 
-  It ensures the project is compiled before executing.
+  Before running tests, it invokes the prepare task
+  which defaults to compile and load your project.
 
   A list of files can be given after the task name in
   order to select the files to compile.
@@ -27,7 +28,7 @@ defmodule Mix.Tasks.Test do
   def run(args) do
     { _, files } = OptionParser.parse(args)
 
-    Mix.Task.run "compile"
+    Mix.Task.run Mix.project[:prepare_task]
     project = Mix.project
 
     test_helper = Keyword.get(project, :test_helper, "test/test_helper.exs")

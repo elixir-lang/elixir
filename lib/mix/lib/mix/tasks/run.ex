@@ -6,6 +6,9 @@ defmodule Mix.Tasks.Run do
   @moduledoc """
   Run the given expression in the application context.
 
+  Before running the code, it invokes the prepare task
+  which defaults to compile and load your project.
+
   ## Examples
 
       mix run Hello.world
@@ -13,7 +16,7 @@ defmodule Mix.Tasks.Run do
 
   """
   def run(args) do
-    Mix.Task.run "compile"
+    Mix.Task.run Mix.project[:prepare_task]
     Code.eval Enum.join(args, " ")
   end
 end

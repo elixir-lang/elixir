@@ -136,6 +136,7 @@ defmodule Mix.Project do
       compile_exts: [:ex, :eex],
       deps_path: "deps",
       lockfile: "mix.lock",
+      prepare_task: "compile",
       source_paths: ["lib"] ]
   end
 

@@ -15,9 +15,13 @@ defmodule Mix.Tasks.RunTest do
     end
   end
 
-  defmodule NoSourceApp do
+  defmodule CustomPrepareApp do
     def project do
-      [ app: :nosource, version: "0.1.0", source_paths: [] ]
+      [
+        app: :get_app,
+        version: "0.1.0",
+        prepare_task: "hello"
+      ]
     end
   end
 
@@ -31,6 +35,17 @@ defmodule Mix.Tasks.RunTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
+    Mix.Project.pop
+  end
+
+  test "run command with custom prepare" do
+    Mix.Project.push CustomPrepareApp
+
+    in_fixture "only_mixfile", fn ->
+      Mix.Tasks.Run.run ["Mix.shell.info", "Mix.Task.run(:hello) /> to_binary"]
+      assert_received { :mix_shell, :info, ["noop"] }
+    end
+  after
     Mix.Project.pop
   end
 end
