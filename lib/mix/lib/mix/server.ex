@@ -4,7 +4,8 @@ defmodule Mix.Server do
   alias :ordsets, as: Ordset
   use GenServer.Behaviour
 
-  defrecord Config, tasks: Ordset.new, projects: [], shell: Mix.Shell, scm: Ordset.new, env: nil
+  defrecord Config, tasks: Ordset.new, projects: [],
+    shell: Mix.Shell, scm: Ordset.new, env: nil, post_config: []
 
   def start_link(env) do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, env, [])
@@ -77,11 +78,16 @@ defmodule Mix.Server do
   end
 
   def handle_cast({ :push_project, name, project }, config) do
-    { :noreply, config.prepend_projects [ { name, project } ] }
+    project = Keyword.merge(project, config.post_config)
+    { :noreply, config.post_config([]).prepend_projects [ { name, project } ] }
   end
 
   def handle_cast(:pop_project, config) do
     { :noreply, config.update_projects tl(&1) }
+  end
+
+  def handle_cast({ :post_config, value }, config) do
+    { :noreply, config.merge_post_config value }
   end
 
   def handle_cast({ :add_scm, mod }, config) do

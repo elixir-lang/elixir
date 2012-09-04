@@ -51,7 +51,11 @@ defmodule Mix.Tasks.Compile do
   end
 
   def run(args) do
-    Mix.Task.run "deps.loadpaths", args
+    { opts, _ } = OptionParser.parse(args)
+
+    unless opts[:no_check] do
+      Mix.Task.run "deps.check"
+    end
 
     changed = Enum.reduce get_compilers, false, fn(compiler, acc) ->
       res = Mix.Task.run "compile.#{compiler}", args

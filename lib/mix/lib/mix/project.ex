@@ -63,23 +63,16 @@ defmodule Mix.Project do
     Mix.Server.cast(:pop_project)
   end
 
-  # Default options
-  @doc false
-  def default_config do
-    [ compile_path: "ebin",
-      compile_first: [],
-      compile_exts: [:ex, :eex],
-      source_paths: ["lib"] ]
-  end
-
   # Loads the mix.exs file in the current directory
   # and executes the given function. The project and
   # tasks stack are properly manipulated, no side-effects
   # should remain.
   @doc false
-  def in_subproject(function) do
+  def in_subproject(config, function) do
     current = Mix.Project.current
     tasks   = Mix.Task.clear
+
+    Mix.Server.cast({ :post_config, config })
 
     if File.regular?("mix.exs") do
       Code.load_file "mix.exs"
@@ -98,8 +91,16 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Retrieves the current project, raises an error
-  if there is no project set.
+  Retrieves the current project.
+
+  This is usually called by tasks that needs additional
+  functions on the project to be defined. Since such
+  tasks usually depends on a project to be defined, this
+  function raises `Mix.NoProjectError` in case no project
+  is available.
+
+  Use `defined?/0` if you need to check if a project is
+  defined or not without raising an exception.
   """
   def current do
     case Mix.Server.call(:projects) do
@@ -116,6 +117,26 @@ defmodule Mix.Project do
       [{ h, _ }|_] when h != nil -> true
       _ -> false
     end
+  end
+
+  @doc """
+  Returns the project configuration already
+  considering the current environment.
+  """
+  def config do
+    case Mix.Server.call(:projects) do
+      [{ h, config }|_] when h != nil -> config
+      _ -> default_config
+    end
+  end
+
+  defp default_config do
+    [ compile_path: "ebin",
+      compile_first: [],
+      compile_exts: [:ex, :eex],
+      deps_path: "deps",
+      lockfile: "mix.lock",
+      source_paths: ["lib"] ]
   end
 
   defp get_project_config(nil), do: []

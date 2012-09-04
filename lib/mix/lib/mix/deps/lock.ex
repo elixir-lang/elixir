@@ -7,8 +7,8 @@ defmodule Mix.Deps.Lock do
   Read the file, returns a keywords list containing
   the app name and its current lock information.
   """
-  def read do
-    case File.read("mix.lock") do
+  def read(file // Mix.project[:lockfile]) do
+    case File.read(file) do
       { :ok, info } ->
         { value, _binding } = Code.eval(info)
         value
@@ -20,12 +20,12 @@ defmodule Mix.Deps.Lock do
   @doc """
   Receives a keywords list and writes it to the disk.
   """
-  def write(dict) do
+  def write(file // Mix.project[:lockfile], dict) do
     lines = lc { app, rev } inlist dict, rev != nil do
       %b("#{app}": #{inspect rev})
     end
 
-    File.write! "mix.lock", "[ " <> Enum.join(lines, ",\n  ") <> " ]"
+    File.write! file, "[ " <> Enum.join(lines, ",\n  ") <> " ]"
   end
 
   @doc """
@@ -37,9 +37,9 @@ defmodule Mix.Deps.Lock do
   This function returns a list with the app names in the
   given dependencies that got a lock.
   """
-  def update_lock(deps, callback) do
+  def update_lock(file // Mix.project[:lockfile], deps, callback) do
     { apps, lock } =
-      Enum.reduce deps, { [], read }, fn(Mix.Dep[app: app] = dep, { apps, lock }) ->
+      Enum.reduce deps, { [], read(file) }, fn(Mix.Dep[app: app] = dep, { apps, lock }) ->
         if rev = callback.(dep, lock[app]) do
           lock = Keyword.put(lock, app, rev)
           { [app|apps], lock }
@@ -47,7 +47,7 @@ defmodule Mix.Deps.Lock do
           { apps, lock }
         end
       end
-    write(lock)
+    write(file, lock)
     Enum.reverse(apps)
   end
 end

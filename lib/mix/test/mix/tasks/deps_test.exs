@@ -107,8 +107,7 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      refute_received { :mix_shell, :error, ["* uncloned [git: \"https://github.com/elixir-lang/uncloned.git\"]"] }
-      refute_received { :mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"] }
+      assert_received { :mix_shell, :error, ["* uncloned [git: \"https://github.com/elixir-lang/uncloned.git\"]"] }
     end
   after
     Mix.Project.pop
@@ -118,7 +117,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
-      assert_raise Mix.Error, "Some dependencies did not check", fn ->
+      assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Check.run []
       end
 
@@ -152,5 +151,64 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Unlock.run ["git_repo", "unknown"]
       assert Mix.Deps.Lock.read == [another: "hash"]
     end
+  end
+
+  ## Nested dependencies
+
+  defmodule UnmetNestedDepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          { :deps_repo, "0.1.0", raw: "custom/deps_repo" }
+        ]
+      ]
+    end
+  end
+
+  defmodule NestedDepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") },
+          { :deps_repo, "0.1.0", raw: "custom/deps_repo" }
+        ]
+      ]
+    end
+  end
+
+  test "fails on unmet nested dependencies" do
+    Mix.Project.push UnmetNestedDepsApp
+
+    in_fixture "deps_status", fn ->
+      assert_raise Mix.OutOfDateDepsError, fn ->
+        Mix.Tasks.Deps.Update.run []
+      end
+
+      assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
+    end
+  after
+    purge [DepsRepo, DepsRepo.Mix]
+    Mix.Project.pop
+  end
+
+  test "works with nested dependencies" do
+    Mix.Project.push NestedDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run ["git_repo"]
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
+
+      Mix.Tasks.Deps.Update.run []
+      assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, DepsRepo, DepsRepo.Mix]
+    Mix.Project.pop
   end
 end

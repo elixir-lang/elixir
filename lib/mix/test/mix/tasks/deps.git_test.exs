@@ -135,6 +135,9 @@ defmodule Mix.Tasks.DepsGitTest do
         Mix.Tasks.Deps.Check.run []
       end
 
+      # Flush the errors we got on out of date deps
+      Mix.shell.flush
+
       purge [GitRepo.Mix]
       Mix.Task.clear
 

@@ -19,8 +19,6 @@ defmodule Mix.CLI do
     if File.regular?(file) do
       Code.load_file file
       Mix.Task.run "loadpaths", ["--no-check"]
-      Mix.Task.reenable "loadpaths"
-      Mix.Task.reenable "deps.loadpaths"
     end
 
     args
@@ -41,7 +39,9 @@ defmodule Mix.CLI do
       # We only rescue exceptions in the mix namespace, all
       # others pass through and will explode on the users face
       exception in exceptions ->
-        Mix.shell.error exception.message
+        if msg = exception.message do
+          Mix.shell.error msg
+        end
         exit(1)
     end
   end  

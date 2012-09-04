@@ -43,7 +43,7 @@ defmodule Mix.ProjectTest do
   end
 
   test "retrieves configuration even when a project is not set" do
-    assert Mix.project == Mix.Project.default_config
+    assert Mix.project[:compile_path] == "ebin"
   end
 
   test "raises an error when trying to retrieve the current a project but none it set" do

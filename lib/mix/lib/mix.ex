@@ -78,9 +78,6 @@ defmodule Mix do
   tasks to work without a need for an underlying project.
   """
   def project do
-    case Mix.Server.call(:projects) do
-      [{ h, config }|_] when h != nil -> config
-      _ -> Mix.Project.default_config
-    end
+    Mix.Project.config
   end
 end
