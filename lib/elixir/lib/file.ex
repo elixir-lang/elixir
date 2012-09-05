@@ -1164,11 +1164,19 @@ defmodule File do
           { :error, reason } ->
             raise File.IteratorError, reason: reason
           data ->
-            { data, :ok }
+            { strip_ending(data), :ok }
         end
       end
       { function, function.(:start) }
     end
+  end
+
+  defp strip_ending("\r\n"), do: <<>>
+  defp strip_ending("\n"),   do: <<>>
+  defp strip_ending(""),     do: <<>>
+
+  defp strip_ending(<< h, t | :binary >>) do
+    << h, strip_ending(t) | :binary >>
   end
 
   @doc """
