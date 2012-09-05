@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Deps.Check do
       { _, [] }     -> :ok
       { _, not_ok } ->
         shell = Mix.shell
-        shell.error "Unchecked dependencies:\n"
+        shell.error "Unchecked dependencies:"
 
         if Enum.all? not_ok, out_of_date?(&1) do
           Enum.each not_ok, fn(dep) ->
