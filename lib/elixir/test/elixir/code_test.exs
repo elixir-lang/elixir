@@ -86,4 +86,14 @@ defmodule CodeTest do
     compile = __MODULE__.__info__(:compile)
     assert Keyword.get(compile, :source) != nil
   end
+
+  test :ensure_loaded? do
+    assert Code.ensure_loaded?(__MODULE__)
+    refute Code.ensure_loaded?(Unknown.Module)
+  end
+
+  test :ensure_compiled? do
+    assert Code.ensure_compiled?(__MODULE__)
+    refute Code.ensure_compiled?(Unknown.Module)
+  end
 end

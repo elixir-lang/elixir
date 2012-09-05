@@ -263,8 +263,8 @@ defmodule Code do
 
   Therefore, this function is useful to check if a module is loaded
   before using it and react accordingly. For example, the `URI` module
-  uses this function to check if a specific parser exists and is for the
-  given URI scheme.
+  uses this function to check if a specific parser exists for a given
+  URI scheme.
 
   ## Code.ensure_compiled
 
@@ -284,6 +284,14 @@ defmodule Code do
   """
   def ensure_loaded(module) when is_atom(module) do
     Erlang.code.ensure_loaded(module)
+  end
+
+  @doc """
+  Similar to `ensure_loaded/1`, but returns a boolean in case
+  it could be ensured or not.
+  """
+  def ensure_loaded?(module) do
+    match?({ :module, ^module }, ensure_loaded(module))
   end
 
   @doc """
@@ -314,6 +322,14 @@ defmodule Code do
         end
       other -> other
     end
+  end
+
+  @doc """
+  Similar to `ensure_compiled/1`, but returns a boolean in case
+  it could be ensured or not.
+  """
+  def ensure_compiled?(module) do
+    match?({ :module, ^module }, ensure_compiled(module))
   end
 
   ## Helpers
