@@ -1,1 +1,2 @@
+IEx.preload
 ExUnit.start []

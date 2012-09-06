@@ -51,7 +51,7 @@ defmodule IEx.AutocompleteTest do
 
   test :elixir_root_submodule_completion do
     _ = [foo: 1][:foo]
-    assert expand('Elixir.Acce') == {:yes, 'ss', []}
+    assert expand('Elixir.Acce') == {:yes, 'ss.', []}
   end
 
   test :elixir_submodule_completion do

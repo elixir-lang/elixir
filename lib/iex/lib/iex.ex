@@ -14,6 +14,25 @@ defmodule IEx do
   """
 
   @doc """
+  Simply loads IEx application. Most of the times it is
+  preloaded on demand, but if you want to pre-configure
+  IEx, you need to preload it.
+  """
+  def preload do
+    :application.start(:iex)
+    __MODULE__
+  end
+
+  @doc """
+  Registers a function to be invoked after IEx
+  process is spawned. Requires IEx.preload to
+  be invoked.
+  """
+  def after_spawn(fun) when is_function(fun) do
+    :application.set_env(:iex, :after_spawn, [fun|after_spawn])
+  end
+
+  @doc """
   Interface to start IEx from CLI.
   """
   def cli do
@@ -86,6 +105,8 @@ defmodule IEx do
   # This is a callback invoked by Erlang shell utilities.
   @doc false
   def start(config // nil) do
+    preload
+
     spawn fn ->
       config = config || boot_config([])
 
@@ -95,7 +116,9 @@ defmodule IEx do
       end
 
       Process.flag(:trap_exit, true)
+
       set_expand_fun()
+      run_after_spawn()
       start_loop(config)
     end
   end
@@ -133,6 +156,10 @@ defmodule IEx do
     end
 
     :io.setopts gl, [expand_fun: expand_fun]
+  end
+
+  defp run_after_spawn do
+    lc fun inlist Enum.reverse(after_spawn), do: fun.()
   end
 
   ## Loop helpers
@@ -188,6 +215,13 @@ defmodule IEx do
     unless :rpc.call node, :code, :is_loaded, [mod] do
       {m,b,f} = :code.get_object_code mod
       {:module, mod} = :rpc.call node, :code, :load_binary, [m,f,b]
+    end
+  end
+
+  defp after_spawn do
+    case :application.get_env(:iex, :after_spawn) do
+      { :ok, list } -> list
+      :undefined -> []
     end
   end
 end

@@ -8,6 +8,7 @@
   * [Regex] Added return option to `Regex.run` and `Regex.scan`
   * [Mix] Mix now support environments - the current environment can be set via MIX_ENV
   * [ExUnit] Supports `after_spawn` callbacks which are invoked after each process is spawned
+  * [IEx] Supports `after_spawn` callbacks which are invoked after each process is spawned
 
 * deprecations
   * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
