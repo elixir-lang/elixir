@@ -38,7 +38,7 @@ erlang:
 
 # We need to compile only EEx (without the app)
 # file so we can compile Mix
-elixir: kernel lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex
+elixir: kernel lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
 
 kernel: $(KERNEL)
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex $(FORCE)
@@ -55,6 +55,7 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex $(FORCE)
 $(eval $(call TASK_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call TASK_TEMPLATE,eex,EEx))
 $(eval $(call TASK_TEMPLATE,mix,Mix))
+$(eval $(call TASK_TEMPLATE,iex,IEx))
 
 clean:
 	@ cd lib/elixir && $(REBAR) clean
@@ -98,7 +99,7 @@ test_erlang: compile
 	@ time $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt;
 	@ echo
 
-test_elixir: test_kernel test_mix test_ex_unit test_eex
+test_elixir: test_kernel test_mix test_ex_unit test_eex test_iex
 
 test_kernel: compile
 	@ echo "==> kernel (exunit)"
