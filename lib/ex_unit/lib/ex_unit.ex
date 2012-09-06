@@ -68,13 +68,21 @@ defmodule ExUnit do
   end
 
   @doc """
+  Register a callback to be invoked every time a
+  new ExUnit process is spawned.
+  """
+  def after_spawn(callback) do
+    ExUnit.Server.add_after_spawn(callback)
+  end
+
+  @doc """
   API used to run the tests. A developer does not
   need to call it directly.
   """
   def run do
     config = ExUnit.Runner.Config.new ExUnit.Server.options
     config = config.formatter(config.formatter.start)
-    failures = ExUnit.Runner.start config
+    failures = ExUnit.Runner.loop config
     if failures > 0, do: halt(1), else: halt(0)
   end
 end

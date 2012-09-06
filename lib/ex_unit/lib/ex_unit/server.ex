@@ -3,11 +3,13 @@ defmodule ExUnit.Server do
 
   use GenServer.Behaviour
 
-  defrecord Config, options: [], async_cases: [], sync_cases: []
+  defrecord Config, options: [], async_cases: [], sync_cases: [], after_spawn: []
 
   def start_link do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, [], [])
   end
+
+  ## Before run API
 
   def add_async_case(name) do
     :gen_server.cast(__MODULE__, { :add_async_case, name })
@@ -17,12 +19,31 @@ defmodule ExUnit.Server do
     :gen_server.cast(__MODULE__, { :add_sync_case, name })
   end
 
+  def add_after_spawn(fun) when is_function(fun) do
+    :gen_server.cast(__MODULE__, { :add_after_spawn, fun })
+  end
+
   def merge_options(options) do
     :gen_server.cast(__MODULE__, { :merge_options, options })
   end
 
+  ## After run API
+
   def options do
     :gen_server.call(__MODULE__, :options)
+  end
+
+  def take_sync_cases do
+    :gen_server.call(__MODULE__, :take_sync_cases)
+  end
+
+  def take_async_cases(count) when count > 0 do
+    :gen_server.call(__MODULE__, { :take_async_cases, count })
+  end
+
+  def run_after_spawn do
+    funs = :gen_server.call(__MODULE__, :after_spawn)
+    lc fun inlist funs, do: fun.()
   end
 
   ## Callbacks
@@ -32,10 +53,28 @@ defmodule ExUnit.Server do
   end
 
   def handle_call(:options, _from, config) do
-    options = Keyword.merge config.options,
-      async_cases: Enum.reverse(config.async_cases),
-      sync_cases:  Enum.reverse(config.sync_cases)
-    { :reply, options, config }
+    { :reply, config.options, config }
+  end
+
+  def handle_call(:after_spawn, _from, config) do
+    { :reply, Enum.reverse(config.after_spawn), config }
+  end
+
+  def handle_call({:take_async_cases, count}, _from, config) do
+    case config.async_cases do
+      [] ->
+        { :reply, nil, config }
+      cases ->
+        { response, remaining } = Enum.split(cases, count)
+        { :reply, response, config.async_cases(remaining) }
+    end
+  end
+
+  def handle_call(:take_sync_cases, _from, config) do
+    case config.sync_cases do
+      [h|t] -> { :reply, [h], config.sync_cases(t) }
+      []    -> { :reply, nil, config }
+    end
   end
 
   def handle_call(request, from, config) do
@@ -48,6 +87,10 @@ defmodule ExUnit.Server do
 
   def handle_cast({:add_sync_case, name}, config) do
     { :noreply, config.prepend_sync_cases [name] }
+  end
+
+  def handle_cast({:add_after_spawn, fun}, config) do
+    { :noreply, config.prepend_after_spawn [fun] }
   end
 
   def handle_cast({:merge_options, options}, config) do

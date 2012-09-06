@@ -1,68 +1,59 @@
 defmodule ExUnit.Runner do
   @moduledoc false
 
-  defrecord Config, formatter: ExUnit.Formatter, async_cases: [],
-    max_cases: 4, taken_cases: 0, sync_cases: []
+  defrecord Config, formatter: ExUnit.Formatter, max_cases: 4, taken_cases: 0
 
-  # The runner entry point. At first, it will simply spawn async cases
-  # and expect messages as the cases finish. When all async cases are
-  # spawned and finished, we start running the sync cases. When sync
-  # cases finish, tell the formatter we finished and exit.
-  def start(config) do
-    if config.async_cases == [] do
-      cond do
-        config.taken_cases > 0 ->
-          do_loop config
-        config.sync_cases == [] ->
-          call_formatter config, :finish
-        true ->
-          do_loop spawn_sync_cases(config)
-      end
-    else
-      do_loop spawn_async_cases(config)
+  def loop(config) do
+    available = config.max_cases - config.taken_cases
+
+    cond do
+      # No cases available, wait for one
+      available <= 0 ->
+        wait_until_available config
+
+      # Slots are available, start with async cases
+      cases = ExUnit.Server.take_async_cases(available) ->
+        spawn_cases(cases, config)
+
+      # No more async cases, wait for them to finish
+      config.taken_cases > 0 ->
+        wait_until_available config
+
+      # So we can start all sync cases
+      cases = ExUnit.Server.take_sync_cases ->
+        spawn_cases(cases, config)
+
+      # No more cases, we are done!
+      true ->
+        call_formatter config, :finish
     end
   end
 
-  # Loop expecting messages from the spawned cases. Whenever a test
-  # case has finished executing, decrease the taken cases counter and
-  # attempt to spawn new ones.
-  defp do_loop(config) do
+  # Loop expecting messages from the spawned cases. Whenever
+  # a test case has finished executing, decrease the taken
+  # cases counter and attempt to spawn new ones.
+  defp wait_until_available(config) do
     receive do
       { pid, :each, { test_case, test, final } } ->
         call_formatter config, { :each, test_case, test, final }
-        do_loop config
+        wait_until_available config
       { pid, :each_case, test_case } ->
         call_formatter config, { :each_case, test_case }
-        start config.increment_taken_cases(-1)
+        loop config.increment_taken_cases(-1)
     end
   end
 
-  # Spawn the maximum possible of cases according to the max_cases value.
-  defp spawn_async_cases(config) do
-    case config.async_cases do
-      [test_case|t] ->
-        if config.taken_cases < config.max_cases do
-          spawn_case test_case
-          spawn_async_cases config.increment_taken_cases.async_cases(t)
-        else
-          config
-        end
-      [] ->
-        config
-    end
+  defp spawn_cases(cases, config) do
+    Enum.each cases, spawn_case(&1)
+    loop config.increment_taken_cases(length(cases))
   end
 
-  # After all cases were run, it is time to run the asynchronous ones.
-  def spawn_sync_cases(config) do
-    [test_case|t] = config.sync_cases
-    spawn_case test_case
-    config.sync_cases(t)
-  end
-
-  # Spawn each test case in a new process.
   defp spawn_case(test_case) do
-    pid = self
-    spawn_link fn -> run_tests(pid, test_case) end
+    pid = self()
+    spawn_link fn ->
+      ExUnit.Server.run_after_spawn
+      run_tests(pid, test_case)
+    end
   end
 
   defp run_tests(pid, test_case) do
@@ -108,7 +99,6 @@ defmodule ExUnit.Runner do
     Erlang.gen_server.call(config.formatter, message)
   end
 
-  # Retrieves test functions from the module.
   defp tests_for(mod) do
     exports = mod.__info__(:functions)
     lc { function, 0 } inlist exports, is_test?(atom_to_list(function)), do: function

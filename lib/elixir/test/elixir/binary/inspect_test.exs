@@ -105,8 +105,10 @@ defmodule Binary.Inspect.TupleTest do
     assert inspect({ List, 1 }) == "{List,1}"
   end
 
+  defrecord Config, a: 1, b: []
+
   test :with_record do
-    assert inspect(ExUnit.Server.Config.new) == "ExUnit.Server.Config[async_cases: [], options: [], sync_cases: []]"
+    assert inspect(Config.new) == "Binary.Inspect.TupleTest.Config[a: 1, b: []]"
   end
 
   test :with_tuple_matching_record_name_but_not_length do
