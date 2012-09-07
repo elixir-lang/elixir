@@ -1081,6 +1081,9 @@ defmodule Kernel do
   @doc """
   Defines a module given by name with the given contents.
 
+  It returns the module name, the module binary and the
+  block contents result.
+
   ## Examples
 
       defmodule Foo do

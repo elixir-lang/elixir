@@ -85,8 +85,8 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
       {attribute, Line, module, Module} | Forms2
     ],
 
-    load_form(Line, Final, S),
-    Result
+    Binary = load_form(Line, Final, S),
+    { Module, Binary, Result }
   after
     ets:delete(data_table(Module)),
     ets:delete(docs_table(Module)),
@@ -235,9 +235,10 @@ load_form(Line, Forms, S) ->
           undefined -> [];
           PID -> PID ! { module_available, self(), Module, Binary }
         end;
-      _ ->
-        []
-    end
+      _ -> []
+    end,
+
+    Binary
   end).
 
 check_module_availability(Line, File, Module, Compiler) ->

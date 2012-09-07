@@ -157,9 +157,15 @@ defmodule ModuleTest do
     assert finder.(:defined_defp) == {:defined_defp,[]}
   end
 
-  test "split with module name" do
+  test :split do
     module = Very.Long.Module.Name.And.Even.Longer
     assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
     assert Module.concat(Module.split(module)) == module
+  end
+
+  test :defmodule do
+    assert { LOL, _, 3 } = (defmodule LOL do
+      1 + 2
+    end)
   end
 end

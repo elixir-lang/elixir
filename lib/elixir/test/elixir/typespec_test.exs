@@ -8,7 +8,7 @@ defmodule Typespec.Test.Type do
   # module
   defmacro test_module([{:do, block}]) do
     quote do
-      result = defmodule T do
+      { _, _, result } = defmodule T do
         unquote(block)
       end
       :code.delete(T)
