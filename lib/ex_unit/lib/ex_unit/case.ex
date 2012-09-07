@@ -87,7 +87,7 @@ defmodule ExUnit.Case do
       else
         :"test_#{message}"
       end
-      def message, [], [], do: unquote(contents)
+      def message, [], [], do: unquote(Macro.escape contents)
     end
   end
 end

@@ -226,9 +226,9 @@ translate_macro({Kind, Line, [Name, Args, Guards, Expr]}, S) when ?FUNS() ->
   assert_no_function_scope(Line, Kind, S),
   { TName, NS }   = translate_each(Name, S),
   { TArgs, AS }   = translate_each(Args, NS),
-  { TGuards, TS } = translate_each(Guards, AS),
-  TExpr           = elixir_tree_helpers:abstract_syntax(Expr),
-  { elixir_def:wrap_definition(Kind, Line, TName, TArgs, TGuards, TExpr, TS), TS };
+  { TGuards, GS } = translate_each(Guards, AS),
+  { TExpr, ES }   = translate_each(Expr, GS),
+  { elixir_def:wrap_definition(Kind, Line, TName, TArgs, TGuards, TExpr, ES), ES };
 
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 

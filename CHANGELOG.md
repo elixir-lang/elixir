@@ -10,15 +10,18 @@
   * [ExUnit] Supports `after_spawn` callbacks which are invoked after each process is spawned
   * [IEx] Supports `after_spawn` callbacks which are invoked after each process is spawned
 
-* deprecations
-  * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
-  * [Code] `Code.require_file` and `Code.load_file` now expect the full name as argument
-
 * bug fix
   * [Macro] Fixed a bug where quoted expressions were not behaving the same as their non-quoted counterparts
   * [IEx] Fixed a bug where printing to stdio on IEx was causing it to hang
   * [Mix] `mix deps.get [DEPS]` now only gets the specified dependencies
   * [Mix] Mix now exits with status 1 in case of failures
+
+* backwards incompatible changes
+  * [Kernel] Raw function definition with def/4, defp/4, defmacro/4, defmacrop/4 now evaluates all arguments. The previous behaviour was accidental and did not properly evaluate all arguments.
+
+* deprecations
+  * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
+  * [Code] `Code.require_file` and `Code.load_file` now expect the full name as argument
 
 # v0.6.0 (2012-08-01)
 

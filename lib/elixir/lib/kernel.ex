@@ -1214,10 +1214,9 @@ defmodule Kernel do
       name   = :some_function
       args   = quote(do: [first_arg, second_arg])
       guards = quote(do: is_list(first_arg))
+      exprs  = quote(do: ...)
 
-      def name, args, guards do
-        # ...
-      end
+      def name, args, guards, do: exprs
 
   """
   defmacro def(name, args, guards, do: contents)
