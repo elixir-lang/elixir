@@ -213,7 +213,7 @@ core_main() ->
     "lib/elixir/lib/protocol.ex",
     "lib/elixir/lib/enum.ex",
     "lib/elixir/lib/exception.ex",
-    "lib/elixir/lib/binary/inspect.ex",
+    "lib/elixir/lib/string/inspect.ex",
     "lib/elixir/lib/binary/chars.ex",
     "lib/elixir/lib/list/chars.ex",
     "lib/elixir/lib/gen_server/behaviour.ex"

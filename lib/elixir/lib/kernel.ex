@@ -1583,7 +1583,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Inspect the given arguments according to the Binary.Inspect protocol.
+  Inspect the given arguments according to the String.Inspect protocol.
 
   ## Examples
 
@@ -1592,7 +1592,7 @@ defmodule Kernel do
 
   """
   defmacro inspect(arg) do
-    quote do: Binary.Inspect.inspect(unquote(arg))
+    quote do: String.Inspect.inspect(unquote(arg))
   end
 
   @doc """
@@ -2660,7 +2660,7 @@ defmodule Kernel do
 
   """
   defmacro __b__({ :<<>>, line, pieces }, []) do
-    { :<<>>, line, Binary.unescape_tokens(pieces) }
+    { :<<>>, line, Macro.unescape_tokens(pieces) }
   end
 
   @doc """
@@ -2691,11 +2691,11 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro __c__({ :<<>>, _line, [string] }, []) when is_binary(string) do
-    binary_to_list(Binary.unescape(string))
+    binary_to_list(Macro.unescape_binary(string))
   end
 
   defmacro __c__({ :<<>>, line, pieces }, []) do
-    binary = { :<<>>, line, Binary.unescape_tokens(pieces) }
+    binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
     quote do: binary_to_list(unquote(binary))
   end
 
@@ -2709,13 +2709,13 @@ defmodule Kernel do
   """
 
   defmacro __r__({ :<<>>, _line, [string] }, options) when is_binary(string) do
-    binary = Binary.unescape(string, Regex.unescape_map(&1))
+    binary = Macro.unescape_binary(string, Regex.unescape_map(&1))
     regex  = Regex.compile!(binary, options)
     Macro.escape(regex)
   end
 
   defmacro __r__({ :<<>>, line, pieces }, options) do
-    binary = { :<<>>, line, Binary.unescape_tokens(pieces, Regex.unescape_map(&1)) }
+    binary = { :<<>>, line, Macro.unescape_tokens(pieces, Regex.unescape_map(&1)) }
     quote do: Regex.compile!(unquote(binary), unquote(options))
   end
 

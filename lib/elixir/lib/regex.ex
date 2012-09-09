@@ -290,7 +290,7 @@ defmodule Regex do
   # Helpers
 
   @doc false
-  # Unescape map function used by Binary.unescape.
+  # Unescape map function used by Macro.unescape_binary.
   def unescape_map(?f), do: ?\f
   def unescape_map(?n), do: ?\n
   def unescape_map(?r), do: ?\r
