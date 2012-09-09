@@ -1,7 +1,6 @@
 * enhancements
   * [Behaviour] Add Behaviour with a simple callback DSL to define callbacks
   * [Binary] Add a Dict binary that converts its keys to binaries on insertion
-  * [Binary] Add support to `part` and `split` functions
   * [ExUnit] Supports `after_spawn` callbacks which are invoked after each process is spawned
   * [IEx] Supports `after_spawn` callbacks which are invoked after each process is spawned
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
@@ -9,6 +8,7 @@
   * [Mix] Mix now support environments - the current environment can be set via MIX_ENV
   * [Record] Improvements to the Record API, added `Record.defmacros`
   * [Regex] Added return option to `Regex.run` and `Regex.scan`
+  * [String] Add a String module responsible for handling UTf-8 binaries
 
 * bug fix
   * [IEx] Fixed a bug where printing to stdio on IEx was causing it to hang

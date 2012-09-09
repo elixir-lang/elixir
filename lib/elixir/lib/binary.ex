@@ -4,9 +4,9 @@ defmodule Binary do
   """
 
   @doc %B"""
-  Receives a char list and escapes all special chars (like \n)
+  Receives a binary and escapes all special chars (like \n)
   and interpolation markers. A last argument is given and wraps
-  the whole char list given.
+  the whole binary given.
 
   ## Examples
 
@@ -16,113 +16,6 @@ defmodule Binary do
   """
   def escape(other, char) do
     <<char>> <> do_escape(other, char)
-  end
-
-  @doc """
-  Extracts a part from the binary according the given `start` and `length`.
-
-  If a negative length is given, it takes the length counting back from
-  the given start.
-
-  If length is out of bounds (i.e. the binary is too short for the given
-  length), it returns the available part.
-
-  If start is out of bounds, it simply returns nil.
-
-  ## Examples
-
-      Binary.part("foobar", 1, 2)  #=> "oo"
-      Binary.part("foobar", 3, -3) #=> "foo"
-      Binary.part("foobar", 3, 6)  #=> "bar"
-      Binary.part("foobar", 0, -3) #=> ""
-
-  """
-  def part(binary, start, length) when start >= 0 do
-    size = size(binary)
-
-    if start <= size do
-      if length > 0 do
-        if start + length > size do
-          length = size - start
-        end
-      else
-        if length + start < 0 do
-          length = -start
-        end
-      end
-
-      :binary.part(binary, start, length)
-    end
-  end
-
-  @doc """
-  Extracts a part from the binary according the given `range`.
-
-  The range first and last must refer to positions in the binary.
-  If first or last are negative, they are counted from the end of
-  the binary.
-
-  ## Examples
-
-      Binary.part("foo", 1..2)      #=> "oo"
-      Binary.part("foobar", 2..4)   #=> "oba"
-      Binary.part("foobar", 0..0)   #=> "f"
-      Binary.part("foobar", 0..-1)  #=> "foobar"
-      Binary.part("foobar", 1..-2)  #=> "ooba"
-      Binary.part("foobar", -3..-1) #=> "bar"
-
-  """
-  def part(binary, Range[first: first, last: last]) do
-    if first < 0 do
-      first = first + size(binary)
-    end
-
-    if last < 0 do
-      last = last + size(binary)
-    end
-
-    length = last - first + 1
-    part(binary, first, length)
-  end
-
-  @doc """
-  Divides a binary into sub binaries based on a pattern,
-  returning a list of these sub binaries. The pattern can
-  be another binary, a list of binaries or a regular expression.
-
-  The binary is split into two parts by default, unless
-  `global` option is true. If a pattern is not specified,
-  the binary is split on whitespace occurrences.
-
-  It returns a list with the original binary if the pattern can't be matched.
-
-  ## Examples
-
-    Binary.split("a,b,c", ",")  #=> ["a", "b,c"]
-    Binary.split("a,b,c", ",", global: true)  #=> ["a", "b,c"]
-    Binary.split("foo bar")     #=> ["foo", "bar"]
-    Binary.split("1,2 3,4", [" ", ","]) #=> ["1", "2 3,4"]
-    Binary.split("1,2 3,4", [" ", ","], global: true) #=> ["1", "2", "3", "4"]
-    Binary.split("a,b", ".")    #=> ["a,b"]
-
-    Binary.split("a,b,c", %r{,})  #=> ["a", "b,c"]
-    Binary.split("a,b,c", %r{,}, global: true) #=> ["a", "b", "c"]
-    Binary.split("a,b", %r{\.})   #=> ["a,b"]
-
-  """
-  def split(binary, pattern // " ", options // [])
-
-  def split(binary, pattern, options) when is_regex(pattern) do
-    parts = if options[:global], do: :infinity, else: 2
-    Regex.split(pattern, binary, parts: parts)
-  end
-
-  def split(binary, pattern, options) do
-    options_list = []
-    if options[:global] do
-      options_list = [:global|options_list]
-    end
-    :binary.split(binary, pattern, options_list)
   end
 
   @doc """

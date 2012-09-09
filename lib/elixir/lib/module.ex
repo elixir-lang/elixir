@@ -472,7 +472,7 @@ defmodule Module do
 
   """
   def split(module) do
-    tl(Binary.split(atom_to_binary(module), "-", global: true))
+    tl(String.split(atom_to_binary(module), "-", global: true))
   end
 
   @doc false
