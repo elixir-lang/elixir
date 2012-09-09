@@ -131,4 +131,52 @@ defmodule String do
     end
     :binary.split(binary, pattern, options_list)
   end
+
+  @doc """
+  Convert all characters on the given string to upper case.
+
+  ## Examples
+
+     String.upcase("abcd") #=> "ABCD"
+     String.upcase("ab 123 xpto") #=> "AB 123 XPTO"
+     String.upcase("josé") #=> "JOSÉ"
+
+  """
+  def upcase(<<>>), do: <<>>
+
+  def upcase(<<195, c, t | :binary>>) when c in 160..191 do
+      <<195, c + ?A - ?a, upcase(t) | :binary>>
+  end
+
+  def upcase(<<c, t | :binary>>) when c in ?a..?z do
+    <<c  + ?A - ?a, upcase(t) | :binary>>
+  end
+
+  def upcase(<<c, t | :binary>>) do
+    <<c , upcase(t) | :binary>>
+  end
+
+  @doc """
+  Convert all characters on the given string to down case.
+
+  ## Examples
+
+     String.downcase("ABCD") #=> "abcd"
+     String.downcase("AB 123 XPTO") #=> "ab 123 xpto"
+     String.downcase("JOSÉ") #=> "josé"
+
+  """
+  def downcase(<<>>), do: <<>>
+
+  def downcase(<<195, c, t | :binary>>) when c in 128..159 do
+      <<195, c + 32, downcase(t) | :binary>>
+  end
+
+  def downcase(<<c, t | :binary>>) when c in ?A..?Z do
+    <<c + 32, downcase(t) | :binary>>
+  end
+
+  def downcase(<<c, t | :binary>>) do
+    <<c , downcase(t) | :binary>>
+  end
 end
