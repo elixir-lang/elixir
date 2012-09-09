@@ -96,6 +96,32 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Extract the files from the given paths with
+  the given extension.
+  """
+  def extract_files(paths, exts) do
+    exts = Enum.join(exts, ",")
+    List.concat(lc path inlist paths do
+      File.wildcard("#{path}/**/*.{#{exts}}")
+    end)
+  end
+
+  @doc """
+  Extract the files from the given paths with
+  the given extension in case `files` is an empty
+  array. If not, get the common subset between
+  `files` and the extracted files.
+  """
+  def extract_files(paths, [], exts) do
+    extract_files(paths, exts)
+  end
+
+  def extract_files(paths, files, exts) do
+    paths = extract_files(paths, exts)
+    Enum.filter files, List.member?(paths, &1)
+  end
+
+  @doc """
   Merges two configs recursively, merging keywords lists
   and concatenating normal lists.
   """

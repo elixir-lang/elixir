@@ -63,8 +63,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     compile_exts  = project[:compile_exts]
     source_paths  = project[:source_paths]
 
-    to_compile    = extract_files(source_paths, files, [:ex])
-    to_watch      = extract_files(source_paths, files, compile_exts)
+    to_compile = Mix.Utils.extract_files(source_paths, files, [:ex])
+    to_watch   = Mix.Utils.extract_files(source_paths, files, compile_exts)
 
     if opts[:force] or Mix.Utils.stale?(to_watch, [compile_path]) do
       File.mkdir_p! compile_path
@@ -82,18 +82,6 @@ defmodule Mix.Tasks.Compile.Elixir do
     else
       :noop
     end
-  end
-
-  defp extract_files(paths, [], exts) do
-    exts = Enum.join(exts, ",")
-    List.concat(lc path inlist paths do
-      File.wildcard("#{path}/**/*.{#{exts}}")
-    end)
-  end
-
-  defp extract_files(paths, files, exts) do
-    paths = extract_files(paths, [], exts)
-    Enum.filter files, List.member?(paths, &1)
   end
 
   defp compile_files(files, to) do
