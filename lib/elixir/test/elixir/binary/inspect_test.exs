@@ -68,7 +68,7 @@ defmodule Binary.Inspect.BitStringTest do
   end
 
   test :unprintable do
-    assert inspect(<<1>>) == "<<1>>"
+    assert inspect(<<193>>) == "<<193>>"
   end
 end
 

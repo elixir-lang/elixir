@@ -122,15 +122,31 @@ defimpl Binary.Inspect, for: BitString do
 
   ## Helpers
 
-  defp as_bitstring(thing) do
-    erlang = Erlang.io_lib.format('~p', [thing])
-    list_to_binary Enum.reverse(replace(erlang, []))
+  defp as_bitstring(bitstring) do
+    "<<" <> each_bit(bitstring) <> ">>"
   end
 
-  defp replace([?:|t], acc),                do: replace(t, [?||acc])
-  defp replace([h|t], acc) when is_list(h), do: replace(t, replace(h, acc))
-  defp replace([h|t], acc),                 do: replace(t, [h|acc])
-  defp replace([], acc),                    do: acc
+  defp each_bit(<<h, t | :bitstring>>) when t != <<>> do
+    integer_to_binary(h) <> "," <> each_bit(t)
+  end
+
+  defp each_bit(<<h | 8>>) do
+    integer_to_binary(h)
+  end
+
+  defp each_bit(<<>>) do
+    <<>>
+  end
+
+  defp each_bit(bitstring) do
+    size = bit_size(bitstring)
+    <<h|size>> = bitstring
+    integer_to_binary(h) <> "|" <> integer_to_binary(size)
+  end
+
+  defp integer_to_binary(integer) do
+    integer /> integer_to_list /> list_to_binary
+  end
 end
 
 defimpl Binary.Inspect, for: List do
