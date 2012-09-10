@@ -145,11 +145,11 @@ defmodule String do
   def upcase(<<>>), do: <<>>
 
   def upcase(<<195, c, t | :binary>>) when c in 160..191 do
-      <<195, c + ?A - ?a, upcase(t) | :binary>>
+      <<195, c - 32, upcase(t) | :binary>>
   end
 
   def upcase(<<c, t | :binary>>) when c in ?a..?z do
-    <<c  + ?A - ?a, upcase(t) | :binary>>
+    <<c  - 32, upcase(t) | :binary>>
   end
 
   def upcase(<<c, t | :binary>>) do
