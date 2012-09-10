@@ -106,7 +106,7 @@ defmodule String do
   ## Examples
 
     String.split("a,b,c", ",")  #=> ["a", "b,c"]
-    String.split("a,b,c", ",", global: true)  #=> ["a", "b,c"]
+    String.split("a,b,c", ",", global: true)  #=> ["a", "b", "c"]
     String.split("foo bar")     #=> ["foo", "bar"]
     String.split("1,2 3,4", [" ", ","]) #=> ["1", "2 3,4"]
     String.split("1,2 3,4", [" ", ","], global: true) #=> ["1", "2", "3", "4"]
