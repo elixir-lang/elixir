@@ -70,4 +70,9 @@ defmodule StringTest do
     assert String.replace("a,b,c", ",", "[]", global: true, insert_replaced: [1,1]) == "a[,,]b[,,]c"
   end
 
+  test :duplicate do
+    assert String.duplicate("abc", 1) == "abc"
+    assert String.duplicate("abc", 2) == "abcabc"
+  end
+
 end
