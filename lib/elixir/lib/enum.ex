@@ -680,13 +680,18 @@ defmodule Enum do
 
   @doc """
   Splits the enumerable into two collections, leaving `count` elements in the
-  first one. Expects an ordered collection.
+  first one. If `count` is a negative number, it starts couting from the back
+  to the beginning of the collection. Be aware that a negative `count`
+  implies in an iteration through the whole collection.
+  Expects an ordered collection.
 
   ## Examples
 
       Enum.split [1,2,3], 2  #=> { [1,2], [3] }
       Enum.split [1,2,3], 10 #=> { [1,2,3], [] }
       Enum.split [1,2,3], 0  #=> { [], [1,2,3] }
+      Enum.split [1,2,3], -1 #=> { [1,2], [3] }
+      Enum.split [1,2,3], -5 #=> { [], [1,2,3] }
 
   """
   def split(collection, count) when is_list(collection) and count >= 0 do
@@ -701,6 +706,13 @@ defmodule Enum do
       list when is_list(list) ->
         do_split(list, count, [])
     end
+  end
+
+  def split(collection, count) when count < 0 do
+    reducer = fn(x, acc) -> {x, acc + 1} end
+    { list , total_items } = Enum.map_reduce(collection, 0, reducer)
+    real_count = max(0, total_items - abs(count))
+    split(list, real_count)
   end
 
   @doc """
