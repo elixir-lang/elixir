@@ -105,7 +105,7 @@ defmodule ProtocolTest do
 
   test :protocol_docs do
     docs = ProtocolTest.WithAll.__info__(:docs)
-    assert { { :blank, 1 }, _, :def, [{ :thing,_,nil }], "Blank" } = List.keyfind(docs, { :blank, 1 }, 1)
+    assert { { :blank, 1 }, _, :def, [{ :thing,_,nil }], "Blank" } = List.keyfind(docs, { :blank, 1 }, 0)
   end
 
   test :protocol_with_two_items do

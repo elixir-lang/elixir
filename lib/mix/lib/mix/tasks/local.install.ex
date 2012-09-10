@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Local.Install do
   defp get_module(path, beam) do
     case :beam_lib.info(beam) do
       list when is_list(list) ->
-        List.keyfind list, :module, 1
+        List.keyfind list, :module, 0
       _ ->
         raise Mix.Error, message: "could not parse beam file at #{path}"
     end

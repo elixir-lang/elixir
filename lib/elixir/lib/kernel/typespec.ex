@@ -79,7 +79,7 @@ defmodule Kernel.Typespec do
 
   # Handle type operator
   defp typespec({:"::", line, [var, expr] }, vars, caller) do
-    left  = typespec(var, [elem(var,1)|vars], caller)
+    left  = typespec(var, [elem(var, 0)|vars], caller)
     right = typespec(expr, vars, caller)
     { :ann_type, line, [left, right] }
   end

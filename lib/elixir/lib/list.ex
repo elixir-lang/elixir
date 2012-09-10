@@ -56,6 +56,21 @@ defmodule List do
   end
 
   @doc """
+  Duplicates the given element n times in a list.
+
+  ## Examples
+
+      List.duplicate "hello", 3
+      #=> ["hello","hello","hello"]
+
+      List.duplicate [1,2], 2
+      #=> [[1,2],[1,2]]
+  """
+  def duplicate(elem, n) do
+    Erlang.lists.duplicate(n, elem)
+  end
+
+  @doc """
   Flattens the given `list` of nested lists. An optional
   tail can be given that will be added at the end of
   the flattened list.
@@ -158,18 +173,18 @@ defmodule List do
 
   ## Examples
 
-      List.keyfind([a: 1, b: 2], :a, 1)
+      List.keyfind([a: 1, b: 2], :a, 0)
       #=> { :a, 1 }
 
-      List.keyfind([a: 1, b: 2], 2, 2)
+      List.keyfind([a: 1, b: 2], 2, 1)
       #=> { :b, 2 }
 
-      List.keyfind([a: 1, b: 2], :c, 1)
+      List.keyfind([a: 1, b: 2], :c, 0)
       #=> nil
 
   """
   def keyfind(list, key, position, default // nil) do
-    Erlang.lists.keyfind(key, position, list) || default
+    Erlang.lists.keyfind(key, position + 1, list) || default
   end
 
   @doc """
@@ -179,18 +194,18 @@ defmodule List do
 
   ## Examples
 
-      List.keymember?([a: 1, b: 2], :a, 1)
+      List.keymember?([a: 1, b: 2], :a, 0)
       #=> true
 
-      List.keymember?([a: 1, b: 2], 2, 2)
+      List.keymember?([a: 1, b: 2], 2, 1)
       #=> true
 
-      List.keymember?([a: 1, b: 2], :c, 1)
+      List.keymember?([a: 1, b: 2], :c, 0)
       #=> false
 
   """
   def keymember?(list, key, position) do
-    Erlang.lists.keymember(key, position, list)
+    Erlang.lists.keymember(key, position + 1, list)
   end
 
   @doc """
@@ -199,12 +214,12 @@ defmodule List do
 
   ## Examples
 
-      List.keyreplace([a: 1, b: 2], :a, 1, { :a, 3 })
+      List.keyreplace([a: 1, b: 2], :a, 0, { :a, 3 })
       #=> [a: 3, b: 2]
 
   """
   def keyreplace(list, key, position, new_tuple) do
-    Erlang.lists.keyreplace(key, position, list, new_tuple)
+    Erlang.lists.keyreplace(key, position + 1, list, new_tuple)
   end
 
   @doc """
@@ -214,12 +229,12 @@ defmodule List do
 
   ## Examples
 
-      List.keystore([a: 1, b: 2], :a, 1, { :a, 3 })
+      List.keystore([a: 1, b: 2], :a, 0, { :a, 3 })
       #=> [a: 3, b: 2]
 
   """
   def keystore(list, key, position, new_tuple) do
-    Erlang.lists.keystore(key, position, list, new_tuple)
+    Erlang.lists.keystore(key, position + 1, list, new_tuple)
   end
 
   @doc """
@@ -229,18 +244,18 @@ defmodule List do
 
   ## Examples
 
-      List.keydelete([a: 1, b: 2], :a, 1)
+      List.keydelete([a: 1, b: 2], :a, 0)
       #=> [{ :b, 2 }]
 
-      List.keydelete([a: 1, b: 2], 2, 2)
+      List.keydelete([a: 1, b: 2], 2, 1)
       #=> [{ :a, 1 }]
 
-      List.keydelete([a: 1, b: 2], :c, 1)
+      List.keydelete([a: 1, b: 2], :c, 0)
       #=> [{ :a, 1 }, { :b, 2 }]
 
   """
   def keydelete(list, key, position) do
-    Erlang.lists.keydelete(key, position, list)
+    Erlang.lists.keydelete(key, position + 1, list)
   end
 
   @doc """
@@ -322,21 +337,6 @@ defmodule List do
   """
   def uniq(list) when is_list(list) do
     do_uniq(list, [])
-  end
-
-  @doc """
-  Duplicates the given element n times in a list.
-
-  ## Examples
-
-      List.duplicate "hello", 3
-      #=> ["hello","hello","hello"]
-
-      List.duplicate [1,2], 2
-      #=> [[1,2],[1,2]]
-  """
-  def duplicate(elem, n) do
-    Erlang.lists.duplicate(n, elem)
   end
 
   @doc """

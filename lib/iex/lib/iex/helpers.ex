@@ -29,7 +29,7 @@ defmodule IEx.Helpers do
   """
   def c(files, path // ".") do
     tuples = Kernel.ParallelCompiler.files_to_path List.wrap(files), path
-    Enum.map tuples, elem(&1, 1)
+    Enum.map tuples, elem(&1, 0)
   end
 
   @doc """
@@ -147,7 +147,7 @@ defmodule IEx.Helpers do
   def d(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
     if docs = module.__info__(:docs) do
       doc =
-        if tuple = List.keyfind(docs, { function, arity }, 1) do
+        if tuple = List.keyfind(docs, { function, arity }, 0) do
           print_signature(tuple)
         end
 
@@ -187,12 +187,12 @@ defmodule IEx.Helpers do
   """
   def v(n) when n < 0 do
     history = Process.get(:iex_history)
-    Enum.nth!(history, abs(n)).result
+    Enum.at!(history, abs(n) - 1).result
   end
 
-  def v(n) do
+  def v(n) when n > 0 do
     history = Process.get(:iex_history) /> Enum.reverse
-    Enum.nth!(history, n).result
+    Enum.at!(history, n - 1).result
   end
 
   @doc """
@@ -229,12 +229,12 @@ defmodule IEx.Helpers do
     # R15 and before, we need to look for the source first in the
     # options and then into the real source.
     options =
-      case List.keyfind(compile, :options, 1) do
+      case List.keyfind(compile, :options, 0) do
         { :options, opts } -> opts
         _ -> []
       end
 
-    source = List.keyfind(options, :source, 1)  || List.keyfind(compile, :source, 1)
+    source = List.keyfind(options, :source, 0)  || List.keyfind(compile, :source, 0)
 
     case source do
       { :source, source } -> list_to_binary(source)

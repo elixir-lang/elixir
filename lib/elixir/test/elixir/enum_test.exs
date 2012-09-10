@@ -52,6 +52,14 @@ defmodule EnumTest.List do
     refute Enum.any?([])
   end
 
+  test :at! do
+    assert Enum.at!([2,4,6], 0) == 2
+    assert Enum.at!([2,4,6], 2) == 6
+    assert_raise Enum.OutOfBoundsError, fn ->
+      Enum.at!([2,4,6], 4)
+    end
+  end
+
   test :count do
     assert Enum.count([1,2,3]) == 3
     assert Enum.count([]) == 0
@@ -92,7 +100,7 @@ defmodule EnumTest.List do
 
   test :find_index do
     assert Enum.find_index([2,4,6], fn(x) -> rem(x, 2) == 1 end) == nil
-    assert Enum.find_index([2,3,4], fn(x) -> rem(x, 2) == 1 end) == 2
+    assert Enum.find_index([2,3,4], fn(x) -> rem(x, 2) == 1 end) == 1
   end
 
   test :empty? do
@@ -169,14 +177,6 @@ defmodule EnumTest.List do
   test :map_reduce do
     assert Enum.map_reduce([], 1, fn(x, acc) -> { x * 2, x + acc } end) == { [], 1 }
     assert Enum.map_reduce([1,2,3], 1, fn(x, acc) -> { x * 2, x + acc } end) == { [2,4,6], 7 }
-  end
-
-  test :nth! do
-    assert Enum.nth!([2,4,6], 1) == 2
-    assert Enum.nth!([2,4,6], 3) == 6
-    assert_raise Enum.OutOfBoundsError, fn ->
-      Enum.nth!([2,4,6], 5)
-    end
   end
 
   test :partition do
@@ -502,6 +502,15 @@ defmodule EnumTest.Range do
     refute Enum.any?(range)
   end
 
+  test :at! do
+    assert Enum.at!(2..6, 0) == 2
+    assert Enum.at!(2..6, 4) == 6
+
+    assert_raise Enum.OutOfBoundsError, fn ->
+      assert Enum.at!(2..6, 8)
+    end
+  end
+
   test :count do
     range = Range.new(first: 1, last: 5)
     assert Enum.count(range) == 5
@@ -553,7 +562,7 @@ defmodule EnumTest.Range do
 
   test :find_index do
     range = Range.new(first: 2, last: 6)
-    assert Enum.find_index(range, fn(x) -> rem(x, 2) == 1 end) == 2
+    assert Enum.find_index(range, fn(x) -> rem(x, 2) == 1 end) == 1
   end
 
   test :empty? do
@@ -664,15 +673,6 @@ defmodule EnumTest.Range do
 
     range = Range.new(first: 1, last: 3)
     assert Enum.map_reduce(range, 1, fn(x, acc) -> { x * 2, x + acc } end) == { [2,4,6], 7 }
-  end
-
-  test :nth! do
-    assert Enum.nth!(2..6, 1) == 2
-    assert Enum.nth!(2..6, 5) == 6
-
-    assert_raise Enum.OutOfBoundsError, fn ->
-      assert Enum.nth!(2..6, 9)
-    end
   end
 
   test :partition do

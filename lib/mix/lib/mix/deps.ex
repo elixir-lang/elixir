@@ -52,7 +52,7 @@ defmodule Mix.Deps do
 
     Enum.map given, fn(app) ->
       if is_binary(app), do: app = binary_to_atom(app)
-      case List.keyfind(candidates, app, 2) do
+      case List.keyfind(candidates, app, 1) do
         nil -> raise Mix.Error, message: "unknown dependency #{app}"
         dep -> dep
       end
@@ -182,7 +182,7 @@ defmodule Mix.Deps do
   defp validate_app_file(app_path, app, req) do
     case :file.consult(app_path) do
       { :ok, [{ :application, ^app, config }] } ->
-        case List.keyfind(config, :vsn, 1) do
+        case List.keyfind(config, :vsn, 0) do
           { :vsn, actual } ->
             actual = list_to_binary(actual)
             if vsn_match?(req, actual) do

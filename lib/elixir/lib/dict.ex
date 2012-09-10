@@ -24,7 +24,7 @@ defmodule Dict do
 
   """
   def keys(dict) do
-    elem(dict, 1).keys(dict)
+    elem(dict, 0).keys(dict)
   end
 
   @doc """
@@ -36,7 +36,7 @@ defmodule Dict do
 
   """
   def values(dict) do
-    elem(dict, 1).values(dict)
+    elem(dict, 0).values(dict)
   end
 
   @doc """
@@ -48,7 +48,7 @@ defmodule Dict do
 
   """
   def size(dict) do
-    elem(dict, 1).size(dict)
+    elem(dict, 0).size(dict)
   end
 
   @doc """
@@ -61,7 +61,7 @@ defmodule Dict do
 
   """
   def has_key?(dict, key) do
-    elem(dict, 1).has_key?(dict, key)
+    elem(dict, 0).has_key?(dict, key)
   end
 
   @doc """
@@ -76,7 +76,7 @@ defmodule Dict do
 
   """
   def get(dict, key, default // nil) do
-    elem(dict, 1).get(dict, key, default)
+    elem(dict, 0).get(dict, key, default)
   end
 
   @doc """
@@ -90,7 +90,7 @@ defmodule Dict do
 
   """
   def put(dict, key, val) do
-    elem(dict, 1).put(dict, key, val)
+    elem(dict, 0).put(dict, key, val)
   end
 
   @doc """
@@ -104,7 +104,7 @@ defmodule Dict do
 
   """
   def delete(dict, key) do
-    elem(dict, 1).delete(dict, key)
+    elem(dict, 0).delete(dict, key)
   end
 
   @doc """
@@ -136,7 +136,7 @@ defmodule Dict do
 
   """
   def merge(dict1, dict2, fun) do
-    elem(dict1, 1).merge(dict1, dict2, fun)
+    elem(dict1, 0).merge(dict1, dict2, fun)
   end
 
   @doc """
@@ -150,7 +150,7 @@ defmodule Dict do
 
   """
   def update(dict, key, fun) do
-    elem(dict, 1).update(dict, key, fun)
+    elem(dict, 0).update(dict, key, fun)
   end
 
   @doc """
@@ -165,14 +165,14 @@ defmodule Dict do
 
   """
   def update(dict, key, initial, fun) do
-    elem(dict, 1).update(dict, key, initial, fun)
+    elem(dict, 0).update(dict, key, initial, fun)
   end
 
   @doc """
   Returns an empty dict of the same type as `dict`.
   """
   def empty(dict) do
-    elem(dict, 1).empty(dict)
+    elem(dict, 0).empty(dict)
   end
 
   @doc """
@@ -180,6 +180,6 @@ defmodule Dict do
   No particular order is enforced.
   """
   def to_list(dict) do
-    elem(dict, 1).to_list(dict)
+    elem(dict, 0).to_list(dict)
   end
 end

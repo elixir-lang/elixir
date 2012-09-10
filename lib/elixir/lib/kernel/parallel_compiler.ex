@@ -81,10 +81,10 @@ defmodule Kernel.ParallelCompiler do
     receive do
       { :compiled, child, file } ->
         callback.(file)
-        new_queued  = List.keydelete(queued, child, 1)
+        new_queued  = List.keydelete(queued, child, 0)
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
-        new_waiting = List.keydelete(waiting, child, 1)
+        new_waiting = List.keydelete(waiting, child, 0)
         spawn_compilers(files, output, callback, new_waiting, new_queued, result)
       { :module_available, child, module, binary } ->
         new_waiting = release_waiting_processes(module, waiting)
@@ -94,11 +94,11 @@ defmodule Kernel.ParallelCompiler do
         new_waiting = Orddict.store(child, on, waiting)
         spawn_compilers(files, output, callback, new_waiting, queued, result)
       { :failure, child, kind, reason, stacktrace } ->
-        extra = if match?({^child, module}, List.keyfind(waiting, child, 1)) do
+        extra = if match?({^child, module}, List.keyfind(waiting, child, 0)) do
           " (undefined module #{inspect module})"
         end
 
-      {^child, file} = List.keyfind(queued, child, 1)
+      {^child, file} = List.keyfind(queued, child, 0)
       IO.puts "== Compilation error on file #{file}#{extra} =="
       Erlang.erlang.raise(kind, reason, stacktrace)
     end

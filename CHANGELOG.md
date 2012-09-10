@@ -17,7 +17,8 @@
   * [Mix] Mix now exits with status 1 in case of failures
 
 * backwards incompatible changes
-  * [Kernel] Raw function definition with def/4, defp/4, defmacro/4, defmacrop/4 now evaluates all arguments. The previous behaviour was accidental and did not properly evaluate all arguments.
+  * [Kernel] Raw function definition with def/4, defp/4, defmacro/4, defmacrop/4 now evaluates all arguments. The previous behaviour was accidental and did not properly evaluate all arguments
+  * [Kernel] Changed tuple-related (`elem` and `setelem`), Enum functions (`find_index` and `nth!`) and List functions (List.key*) to zero-index
 
 * deprecations
   * [Code] `Code.require_file` and `Code.load_file` now expect the full name as argument

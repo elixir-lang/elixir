@@ -126,7 +126,7 @@ defmodule DictTest do
   use DictTest.Common, HashDict
 
   test :new do
-    assert :dict.new == elem(new_dict([]), 2)
+    assert :dict.new == elem(new_dict([]), 1)
   end
 end
 
@@ -134,7 +134,7 @@ defmodule OrddictTest do
   use DictTest.Common, Orddict
 
   test :new do
-    assert [] == elem(new_dict([]), 2)
+    assert [] == elem(new_dict([]), 1)
   end
 end
 
@@ -142,7 +142,7 @@ defmodule Binary.DictTest do
   use DictTest.Common, Binary.Dict
 
   test :new do
-    assert [] == elem(new_dict([]), 2)
+    assert [] == elem(new_dict([]), 1)
   end
 
   test :merge_mixed do

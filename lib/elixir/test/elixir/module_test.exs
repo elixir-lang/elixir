@@ -106,7 +106,7 @@ defmodule ModuleTest do
   end
 
   test :reserved_attributes do
-    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behavior, 1) == {:behavior,[:gen_server]}
+    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behavior, 0) == {:behavior,[:gen_server]}
   end
 
   test :persisted_attributes do
@@ -150,7 +150,7 @@ defmodule ModuleTest do
 
   test :definitions_in do
     attrs  = ModuleTest.DefinedFunctions.__info__(:attributes)
-    finder = List.keyfind(attrs, &1, 1)
+    finder = List.keyfind(attrs, &1, 0)
 
     assert finder.(:definitions_in) == {:definitions_in,[{:foo, 3}]}
     assert finder.(:defined_def) == {:defined_def,[{:foo, 3}]}

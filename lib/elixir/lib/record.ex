@@ -181,7 +181,7 @@ defmodule Record do
       index = Enum.find_index(fields, fn({ field, _ }) -> field == key end)
       if index do
         quote do
-          :erlang.setelement(unquote(index + 1), unquote(acc), unquote(value))
+          :erlang.setelement(unquote(index + 2), unquote(acc), unquote(value))
         end
       else
         raise "record #{inspect atom} does not have the key: #{inspect key}"
@@ -236,7 +236,7 @@ defmodule Record do
   #     end
   #
   defp initializer(values) do
-    defaults = lc value inlist values, do: elem(value, 2)
+    defaults = lc { _, value } inlist values, do: value
 
     # For each value, define a piece of code that will receive
     # an ordered dict of options (opts) and it will try to fetch
@@ -250,14 +250,16 @@ defmodule Record do
       def new(), do: new([])
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
-      def new(tuple) when is_tuple(tuple), do: setelem(tuple, 1, __MODULE__)
+      def new(tuple) when is_tuple(tuple), do: :erlang.setelement(1, tuple, __MODULE__)
     end
   end
 
   # Define method to get index of a given key.
+  #
   # Useful if you need to know position of the key for such applications as:
   #  - ets
   #  - mnesia
+  #
   # For a declaration like:
   #
   #     defrecord FileInfo, atime: nil, mtime: nil
@@ -270,7 +272,7 @@ defmodule Record do
   #
   defp indexes(values) do
     quoted = lc { k, _ } inlist values do
-      index = find_index(values, k, 1)
+      index = find_index(values, k, 0)
       quote do
         def __index__(unquote(k)), do: unquote(index + 1)
       end
@@ -278,7 +280,7 @@ defmodule Record do
     quote do
       unquote(quoted)
       def __index__(_), do: nil
-      def __index__(key, _), do: __MODULE__.__index__(key)
+      def __index__(key, _), do: __index__(key)
     end
   end
 
@@ -292,8 +294,8 @@ defmodule Record do
   #
   defp conversions(values) do
     sorted = lc { k, _ } inlist values do
-      index = find_index(values, k, 1)
-      { k, quote(do: :erlang.element(unquote(index + 1), record)) }
+      index = find_index(values, k, 0)
+      { k, quote(do: :erlang.element(unquote(index + 2), record)) }
     end
 
     quote do
@@ -313,11 +315,11 @@ defmodule Record do
   # It will define four methods:
   #
   #     def :atime.(record) do
-  #       elem(record, 2)
+  #       elem(record, 1)
   #     end
   #
   #     def :mtime.(record) do
-  #       elem(record, 3)
+  #       elem(record, 2)
   #     end
   #
   defp readers([{ key, _default }|t], i, acc) do
@@ -339,11 +341,11 @@ defmodule Record do
   # It will define four methods:
   #
   #     def :atime.(value, record) do
-  #       setelem(record, 2, value)
+  #       setelem(record, 1, value)
   #     end
   #
   #     def :mtime.(record) do
-  #       setelem(record, 3, value)
+  #       setelem(record, 2, value)
   #     end
   #
   defp writers([{ key, _default }|t], i, acc) do
@@ -398,7 +400,7 @@ defmodule Record.Extractor do
   # Retrieve the record with the given name from the given file
   defp retrieve_record(name, file) do
     records = retrieve_from_file(file)
-    if record = List.keyfind(records, name, 1) do
+    if record = List.keyfind(records, name, 0) do
       parse_record(record)
     else
       raise ArgumentError, "No record #{name} found at #{to_binary(file)}"

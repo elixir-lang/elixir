@@ -1623,31 +1623,43 @@ defmodule Kernel do
   end
 
   @doc """
-  Define elem to get Tuple element according to Elixir conventions.
-  We need to implement it as a macro to it can be used in guards.
+  Define elem to get Tuple element according to Elixir conventions
+  (i.e. it expects the tuple as first argument, zero-index based).
+
+  It is implemented as a macro so it can be used in guards.
 
   ## Example
 
      tuple = { :foo, :bar, 3 }
-     elem(tuple, 1) #=> :foo
+     elem(tuple, 1) #=> :bar
 
   """
+  defmacro elem(tuple, index) when is_integer(index) do
+    quote do: :erlang.element(unquote(index + 1), unquote(tuple))
+  end
+
   defmacro elem(tuple, index) do
-    quote do: :erlang.element(unquote(index), unquote(tuple))
+    quote do: :erlang.element(unquote(index) + 1, unquote(tuple))
   end
 
   @doc """
-  Define setelem to set Tuple element according to Elixir conventions.
-  We need to implement it as a macro to it can be used in guards.
+  Define setelem to set Tuple element according to Elixir conventions
+  (i.e. it expects the tuple as first argument, zero-index based).
+
+  It is implemented as a macro so it can be used in guards.
 
   ## Example
 
      tuple = { :foo, :bar, 3 }
-     setelem(tuple, 1, :baz) #=> { :baz, :bar, 3 }
+     setelem(tuple, 0, :baz) #=> { :baz, :bar, 3 }
 
   """
+  defmacro setelem(tuple, index, value) when is_integer(index) do
+    quote do: :erlang.setelement(unquote(index + 1), unquote(tuple), unquote(value))
+  end
+
   defmacro setelem(tuple, index, value) do
-    quote do: :erlang.setelement(unquote(index), unquote(tuple), unquote(value))
+    quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
   end
 
   @doc """

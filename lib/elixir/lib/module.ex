@@ -334,7 +334,7 @@ defmodule Module do
   Returns true if the given tuple in module is marked as overridable.
   """
   def overridable?(module, tuple) do
-    key = List.keyfind(Module.read_attribute(module, :__overridable), tuple, 1)
+    key = List.keyfind(Module.read_attribute(module, :__overridable), tuple, 0)
     match? { _, { _, [_|_] } }, key
   end
 

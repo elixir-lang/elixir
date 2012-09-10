@@ -511,7 +511,7 @@ defmodule File do
   path. Returns `:ok` or `{ :error, reason }`.
   """
   def write_stat(path, File.Stat[] = stat, opts // []) do
-    F.write_file_info(path, setelem(stat, 1, :file_info), opts)
+    F.write_file_info(path, setelem(stat, 0, :file_info), opts)
   end
 
   @doc """

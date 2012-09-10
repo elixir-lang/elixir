@@ -95,7 +95,7 @@ defmodule EEx.Compiler do
   # Changes placeholder to real expression
 
   defp insert_quotes({ :__EEX__, _, [key] }, dict) do
-    { ^key, value } = List.keyfind dict, key, 1
+    { ^key, value } = List.keyfind dict, key, 0
     value
   end
 

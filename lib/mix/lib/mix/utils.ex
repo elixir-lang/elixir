@@ -32,12 +32,12 @@ defmodule Mix.Utils do
     # R15 and before, we need to look for the source first in the
     # options and then into the real source.
     options =
-      case List.keyfind(compile, :options, 1) do
+      case List.keyfind(compile, :options, 0) do
         { :options, opts } -> opts
         _ -> []
       end
 
-    source  = List.keyfind(options, :source, 1)  || List.keyfind(compile, :source, 1)
+    source  = List.keyfind(options, :source, 0)  || List.keyfind(compile, :source, 0)
 
     case source do
       { :source, source } -> list_to_binary(source)

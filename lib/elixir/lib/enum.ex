@@ -175,6 +175,33 @@ defmodule Enum do
   end
 
   @doc """
+  Finds the element at the given index (zero-based).
+  Raises out of bounds error in case the given position
+  is outside the range of the collection.
+
+  Expects an ordered collection.
+
+    ## Examples
+
+        Enum.at! [2,4,6], 0 #=> 2
+        Enum.at! [2,4,6], 2 #=> 6
+        Enum.at! [2,4,6], 4 #=> raises Enum.OutOfBoundsError
+
+  """
+  def at!(collection, n) when is_list(collection) and n >= 0 do
+    do_at!(collection, n)
+  end
+
+  def at!(collection, n) when n >= 0 do
+    case O.iterator(collection) do
+      { iterator, pointer } ->
+        do_at!(pointer, iterator, n)
+      list when is_list(list) ->
+        do_at!(list, n)
+    end
+  end
+
+  @doc """
   Returns the collection size.
 
   ## Examples
@@ -214,7 +241,7 @@ defmodule Enum do
 
   """
   def drop(collection, count) do
-    elem split(collection, count), 2
+    elem split(collection, count), 1
   end
 
   @doc """
@@ -389,7 +416,7 @@ defmodule Enum do
   end
 
   @doc """
-  Similar to find, but returns the index (count starts with 1)
+  Similar to find, but returns the index (count starts with 0)
   of the item instead of the element itself.
 
   Expects an ordered collection.
@@ -404,15 +431,15 @@ defmodule Enum do
 
   """
   def find_index(collection, fun) when is_list(collection) do
-    do_find_index(collection, 1, fun)
+    do_find_index(collection, 0, fun)
   end
 
   def find_index(collection, fun) do
     case O.iterator(collection) do
       { iterator, pointer } ->
-        do_find_index(pointer, iterator, 1, fun)
+        do_find_index(pointer, iterator, 0, fun)
       list when is_list(list) ->
-        do_find_index(list, 1, fun)
+        do_find_index(list, 0, fun)
     end
   end
 
@@ -560,32 +587,6 @@ defmodule Enum do
         do_map_reduce(pointer, iterator, [], acc, fun)
       list when is_list(list) ->
         map_reduce(list, acc, fun)
-    end
-  end
-
-  @doc """
-  Finds the element at the nth index. Returns nil in case
-  the given index is outside the range of the collection.
-
-  Expects an ordered collection.
-
-    ## Examples
-
-        Enum.nth! [2,4,6], 1 #=> 2
-        Enum.nth! [2,4,6], 3 #=> 6
-        Enum.nth! [2,4,6], 5 #=> raises Enum.OutOfBoundsError
-
-  """
-  def nth!(collection, n) when is_list(collection) and n > 0 do
-    do_nth!(collection, n)
-  end
-
-  def nth!(collection, n) when n > 0 do
-    case O.iterator(collection) do
-      { iterator, pointer } ->
-        do_nth!(pointer, iterator, n)
-      list when is_list(list) ->
-        do_nth!(list, n)
     end
   end
 
@@ -750,7 +751,7 @@ defmodule Enum do
 
   """
   def take(collection, count) do
-    elem split(collection, count), 1
+    elem split(collection, count), 0
   end
 
   @doc """
@@ -866,6 +867,16 @@ defmodule Enum do
   defp do_any?(:stop, _, _) do
     false
   end
+
+  ## at!
+
+  defp do_at!([h|_], 0), do: h
+  defp do_at!([_|t], n), do: do_at!(t, n - 1)
+  defp do_at!([], _),    do: raise Enum.OutOfBoundsError
+
+  defp do_at!({ h, _next }, _iterator, 0), do: h
+  defp do_at!({ _, next }, iterator, n),   do: do_at!(iterator.(next), iterator, n - 1)
+  defp do_at!(:stop, _iterator, _),        do: raise Enum.OutOfBoundsError
 
   ## count
 
@@ -1027,16 +1038,6 @@ defmodule Enum do
   defp do_filter_map(:stop, _, _, _) do
     []
   end
-
-  ## nth
-
-  defp do_nth!([h|_], 1), do: h
-  defp do_nth!([_|t], n), do: do_nth!(t, n - 1)
-  defp do_nth!([], _),    do: raise Enum.OutOfBoundsError
-
-  defp do_nth!({ h, _next }, _iterator, 1), do: h
-  defp do_nth!({ _, next }, iterator, n),   do: do_nth!(iterator.(next), iterator, n - 1)
-  defp do_nth!(:stop, _iterator, _),        do: raise Enum.OutOfBoundsError
 
   ## reduce
 
