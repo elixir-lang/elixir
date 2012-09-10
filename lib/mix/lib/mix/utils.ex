@@ -98,12 +98,14 @@ defmodule Mix.Utils do
   @doc """
   Extract the files from the given paths with
   the given extension.
+  It ignores files which start with "."
   """
   def extract_files(paths, exts) do
     exts = Enum.join(exts, ",")
-    List.concat(lc path inlist paths do
+    files = List.concat(lc path inlist paths do
       File.wildcard("#{path}/**/*.{#{exts}}")
     end)
+    exclude(files)
   end
 
   @doc """
@@ -111,9 +113,18 @@ defmodule Mix.Utils do
   the given extension in case `files` is an empty
   array. If not, get the common subset between
   `files` and the extracted files.
+  It ignores files which start with "."
   """
   def extract_files(paths, [], exts) do
     extract_files(paths, exts)
+  end
+
+  @doc """
+  Filtering out files which start with "."
+  """
+  def exclude(files) do
+    filter = fn(x) -> not match?(<<".", _|:binary>>, File.basename(x)) end
+    Enum.filter files, filter
   end
 
   def extract_files(paths, files, exts) do

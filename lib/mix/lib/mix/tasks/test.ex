@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Test do
     files =
       if files == [] do
         test_pattern = project[:test_pattern] || "test/**/*_test.exs"
-        File.wildcard test_pattern
+        Mix.Utils.exclude(File.wildcard test_pattern)
       else
         files
       end
