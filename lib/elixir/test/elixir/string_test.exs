@@ -38,4 +38,23 @@ defmodule StringTest do
     assert String.downcase("& % # ÀÁÂ ÃÄÅ 1 2 Ç Æ") == "& % # àáâ ãäå 1 2 ç æ"
     assert String.downcase("ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ") == "àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþ"
   end
+
+  test :rstrip do
+    assert String.rstrip("   abc  ") == "   abc"
+    assert String.rstrip("   abc a") == "   abc a"
+    assert String.rstrip("   abc a", ?a) == "   abc "
+  end
+
+  test :lstrip do
+    assert String.lstrip("   abc  ") == "abc  "
+    assert String.lstrip("a  abc  a") == "a  abc  a"
+    assert String.lstrip("a  abc  a", ?a) == "  abc  a"
+  end
+
+  test :strip do
+    assert String.strip("   abc  ") == "abc"
+    assert String.strip("a  abc  ", :right) == "a  abc"
+    assert String.strip("  abc  a", :left) == "abc  a"
+    assert String.strip("a  abc  a", :both, ?a) == "  abc  "
+  end
 end

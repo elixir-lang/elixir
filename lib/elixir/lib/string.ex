@@ -179,4 +179,38 @@ defmodule String do
   def downcase(<<c, t | :binary>>) do
     <<c , downcase(t) | :binary>>
   end
+
+  @doc """
+  Returns a string where trailing char have been
+  removed. If no `char` is passed `space`is used.
+
+  ## Examples
+
+      String.rstrip("   abc  ") => "   abc"
+
+  """
+  def rstrip(string, char // ?\s) do
+    strip(string, :right, char)
+  end
+
+  @doc """
+  Returns a string where leading char have been
+  removed. If no `char` is passed `space`is used.
+
+  ## Examples
+
+      String.lstrip("   abc  ") == "abc  "
+
+  """
+  def lstrip(string, char // ?\s) do
+    strip(string, :left, char)
+  end
+
+  @doc """
+  Returns a string where leading/trailing char have been
+  removed. If no `char` is passed `space`is used.
+  """
+  def strip(string, direction // :both, char // ?\s) do
+    list_to_binary(:string.strip(binary_to_list(string), direction, char))
+  end
 end
