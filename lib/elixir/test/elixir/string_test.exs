@@ -42,19 +42,20 @@ defmodule StringTest do
   test :rstrip do
     assert String.rstrip("   abc  ") == "   abc"
     assert String.rstrip("   abc a") == "   abc a"
-    assert String.rstrip("   abc a", ?a) == "   abc "
+    assert String.rstrip("   abc aa", ?a) == "   abc "
+    assert String.rstrip("   abc __", ?_) == "   abc "
   end
 
   test :lstrip do
     assert String.lstrip("   abc  ") == "abc  "
     assert String.lstrip("a  abc  a") == "a  abc  a"
-    assert String.lstrip("a  abc  a", ?a) == "  abc  a"
+    assert String.lstrip("__  abc  _", ?_) == "  abc  _"
   end
 
   test :strip do
     assert String.strip("   abc  ") == "abc"
-    assert String.strip("a  abc  ", :right) == "a  abc"
-    assert String.strip("  abc  a", :left) == "abc  a"
-    assert String.strip("a  abc  a", :both, ?a) == "  abc  "
+    assert String.strip("aa  abc  ", :right, ?\s) == "aa  abc"
+    assert String.strip("  abc  aa", :left, ?\s) == "abc  aa"
+    assert String.strip("___  abc  ___", :both, ?_) == "  abc  "
   end
 end
