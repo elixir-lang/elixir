@@ -70,6 +70,7 @@ defmodule Mix.UtilsTest do
 
   test "ignoring files which start with dot" do
     files = Mix.Utils.extract_files [File.join(fixture_path, "extract")], ["ex"]
-    assert length(files) == 1 and File.basename(hd(files)) == "a.ex"
+    assert length(files) == 1
+    assert File.basename(hd(files)) == "a.ex"
   end
 end

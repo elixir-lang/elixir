@@ -105,7 +105,7 @@ defmodule Mix.Utils do
     files = List.concat(lc path inlist paths do
       File.wildcard("#{path}/**/*.{#{exts}}")
     end)
-    exclude(files)
+    exclude_files(files)
   end
 
   @doc """
@@ -119,17 +119,17 @@ defmodule Mix.Utils do
     extract_files(paths, exts)
   end
 
-  @doc """
-  Filtering out files which start with "."
-  """
-  def exclude(files) do
-    filter = fn(x) -> not match?(<<".", _|:binary>>, File.basename(x)) end
-    Enum.filter files, filter
-  end
-
   def extract_files(paths, files, exts) do
     paths = extract_files(paths, exts)
     Enum.filter files, List.member?(paths, &1)
+  end
+
+  @doc """
+  Filtering out files which start with "."
+  """
+  def exclude_files(files) do
+    filter = fn(x) -> not match?("." <> _, File.basename(x)) end
+    Enum.filter files, filter
   end
 
   @doc """
