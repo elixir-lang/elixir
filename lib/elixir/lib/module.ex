@@ -516,7 +516,8 @@ defmodule Module do
   defp normalize_attribute(:file, { binary, line }) when is_binary(binary), do: { binary_to_list(binary), line }
   defp normalize_attribute(:file, other) when not is_tuple(other),          do: normalize_attribute(:file, { other, 1 })
 
-  defp normalize_attribute(key, atom) when key in [:before_compile, :after_compile] and is_atom(atom) do
+  defp normalize_attribute(key, atom) when is_atom(atom) and
+      key in [:before_compile, :after_compile, :on_definition] do
     { atom, key }
   end
 

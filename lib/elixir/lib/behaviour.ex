@@ -25,8 +25,14 @@ defmodule Behaviour do
   """
   defmacro defcallback(fun) do
     { name, args } = Erlang.elixir_clauses.extract_args(fun)
-    length         = length(args)
-    defaults       = Enum.count args, match?({ ://, _, _ }, &1)
+    length = length(args)
+
+    { args, defaults } = Enum.map_reduce(args, 0, function do
+      { ://, _, [expr, _] }, acc ->
+        { expr, acc + 1 }
+      expr, acc ->
+        { expr, acc }
+    end)
 
     attributes = Enum.map (length - defaults)..length, fn(i) ->
       quote do
@@ -36,7 +42,7 @@ defmodule Behaviour do
 
     quote do
       __block__ unquote(attributes)
-      def unquote(fun), :skip_definition
+      def unquote(name)(unquote_splicing(args))
     end
   end
 

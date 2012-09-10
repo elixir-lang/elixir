@@ -168,4 +168,26 @@ defmodule ModuleTest do
       1 + 2
     end)
   end
+
+  test :on_definition do
+    defmodule OnDefinition do
+      @on_definition ModuleTest
+
+      def hello(foo, bar) do
+        foo + bar
+      end
+    end
+
+    assert Process.get(ModuleTest.OnDefinition) == :called
+  end
+
+  def on_definition(env, kind, name, args, guards, expr) do
+    Process.put(env.module, :called)
+    assert env.module == ModuleTest.OnDefinition
+    assert kind == :def
+    assert name == :hello
+    assert [{ :foo, _, _ }, { :bar, _ ,_ }] = args
+    assert [] = guards
+    assert { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] } = expr
+  end
 end

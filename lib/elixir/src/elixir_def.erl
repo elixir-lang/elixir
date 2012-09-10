@@ -73,19 +73,20 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   S     = DS#elixir_scope{function={Name,Arity}, module=Module},
   Expr  = def_body(Line, RawExpr),
 
+  CO = elixir_compiler:get_opts(),
+  Location = retrieve_file(Module, CO),
+  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO),
+  compile_docs(Kind, Line, Module, Name, Arity, Args, S, CO),
+
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Expr, S),
 
-  CO = elixir_compiler:get_opts(),
-  compile_docs(Kind, Line, Module, Name, Arity, Args, TS, CO),
-
-  File     = TS#elixir_scope.file,
-  Table    = table(Module),
-  Stack    = S#elixir_scope.macro,
-  Location = retrieve_file(Module, CO),
+  File  = TS#elixir_scope.file,
+  Table = table(Module),
+  Stack = TS#elixir_scope.macro,
 
   %% Store function
   if
-    (RawExpr == no_definition) orelse (RawExpr == skip_definition) -> [];
+    (RawExpr == skip_definition) -> [];
     true ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
@@ -93,30 +94,26 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
         Stack, Table, length(Defaults), Function)
   end,
 
-  %% Store defaults
-  %% While no_definition does not store a function simply
-  %% because there is no definition, skip_definition also
-  %% skips the generation of default clauses.
-  if
-    (RawExpr == skip_definition) -> [];
-    true ->
-      [store_each(false, Kind, File, Location, Stack, Table, 0,
-        function_for_default(Kind, Name, Default)) || Default <- Defaults]
-  end,
+  [store_each(false, Kind, File, Location, Stack, Table, 0,
+    function_for_default(Kind, Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
 
-def_body(_Line, no_definition)   -> nil;
 def_body(_Line, skip_definition) -> nil;
 def_body(_Line, [{ do, Expr }])  -> Expr;
 def_body(Line, Else)             -> { 'try', Line, [Else] }.
 
-%% Compile super clause
+%% On definition callbacks
 
-compile_super(Module, #elixir_scope{function=Function, super=true}) ->
-  elixir_def_overridable:store(Module, Function, true);
-
-compile_super(_Module, _S) -> [].
+run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO) ->
+  case elixir_compiler:get_opt(internal, CO) of
+    true ->
+      ok;
+    _ ->
+      Env = elixir_scope:to_ex_env({ Line, S }),
+      Callbacks = 'Elixir.Module':read_attribute(Module, on_definition),
+      [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
+  end.
 
 %% Compile docs
 
@@ -142,6 +139,13 @@ retrieve_file(Module, CO) ->
           Else
       end
   end.
+
+%% Compile super
+
+compile_super(Module, #elixir_scope{function=Function, super=true}) ->
+  elixir_def_overridable:store(Module, Function, true);
+
+compile_super(_Module, _S) -> ok.
 
 %% Translate the given call and expression given
 %% and then store it in memory.
