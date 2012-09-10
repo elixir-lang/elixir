@@ -114,7 +114,11 @@ build(Line, File, Module) ->
   ets:insert(DataTable, { '__overridable', [] }),
   ets:insert(DataTable, { before_compile, [] }),
   ets:insert(DataTable, { after_compile, [] }),
-  ets:insert(DataTable, { on_definition, [] }),
+
+  case elixir_compiler:get_opt(docs) of
+    true -> ets:insert(DataTable, { on_definition, [{ 'Elixir.Module', compile_doc }] });
+    _    -> ets:insert(DataTable, { on_definition, [] })
+  end,
 
   Attributes = [behavior, behaviour, on_load, spec, type, export_type, opaque, callback, compile],
   ets:insert(DataTable, { '__acc_attributes', [before_compile,after_compile,on_definition|Attributes] }),

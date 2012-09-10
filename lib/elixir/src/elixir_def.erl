@@ -76,7 +76,6 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
   CO = elixir_compiler:get_opts(),
   Location = retrieve_file(Module, CO),
   run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO),
-  compile_docs(Kind, Line, Module, Name, Arity, Args, S, CO),
 
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Expr, S),
 
@@ -103,7 +102,7 @@ def_body(_Line, skip_definition) -> nil;
 def_body(_Line, [{ do, Expr }])  -> Expr;
 def_body(Line, Else)             -> { 'try', Line, [Else] }.
 
-%% On definition callbacks
+%% @on_definition
 
 run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO) ->
   case elixir_compiler:get_opt(internal, CO) of
@@ -115,18 +114,7 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO)
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
 
-%% Compile docs
-
-compile_docs(Kind, Line, Module, Name, Arity, Args, S, CO) ->
-  case elixir_compiler:get_opt(docs, CO) of
-    false -> [];
-    true  ->
-      case 'Elixir.Module':compile_doc(Module, Line, Kind, { Name, Arity }, Args) of
-        { error, Message } -> elixir_errors:handle_file_warning(S#elixir_scope.file,
-          { Line, ?MODULE, { Message, { Name, Arity } } });
-        _ -> []
-      end
-  end.
+%% Retrieve @file
 
 retrieve_file(Module, CO) ->
   case elixir_compiler:get_opt(internal, CO) of
@@ -305,12 +293,6 @@ check_valid_defaults(Line, File, Name, Arity, _) ->
 
 format_error({clauses_with_docs,{Name,Arity}}) ->
   io_lib:format("function ~s/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Name, Arity]);
-
-format_error({private_doc,{Name,Arity}}) ->
-  io_lib:format("function ~s/~B is private, @doc's are always discarded for private functions", [Name, Arity]);
-
-format_error({existing_doc,{Name,Arity}}) ->
-  io_lib:format("@doc's for function ~s/~B have been given more than once, the first version is being kept", [Name, Arity]);
 
 format_error({changed_clause,{{Name,Arity},{ElseName,ElseArity}}}) ->
   io_lib:format("function ~s/~B does not match previous clause ~s/~B", [Name, Arity, ElseName, ElseArity]);

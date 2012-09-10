@@ -478,11 +478,23 @@ defmodule Module do
   @doc false
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
-  def compile_doc(module, line, kind, pair, signature) do
-    doc = read_attribute(module, :doc)
-    result = add_doc(module, line, kind, pair, signature, doc)
+  def compile_doc(env, kind, name, args, _guards, _body) do
+    module = env.module
+    line   = env.line
+    arity  = length(args)
+    pair   = { name, arity }
+    doc    = read_attribute(module, :doc)
+
+    case add_doc(module, line, kind, pair, args, doc) do
+      :ok ->
+        :ok
+      { :error, :private_doc } ->
+        IO.puts "#{env.file}:#{line} function #{name}/#{arity} is private, @doc's are always discarded for private functions"
+      { :error, :existing_doc } ->
+        IO.puts "#{env.file}:#{line} @doc's for function #{name}/#{arity} have been given more than once, the first version is being kept"
+    end
+
     delete_attribute(module, :doc)
-    result
   end
 
   @doc false
