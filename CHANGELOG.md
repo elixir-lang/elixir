@@ -23,6 +23,7 @@
 * deprecations
   * [Code] `Code.require_file` and `Code.load_file` now expect the full name as argument
   * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
+  * [Kernel] Bitstring syntax now uses `::` instead of `|`
 
 # v0.6.0 (2012-08-01)
 

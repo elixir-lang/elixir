@@ -303,14 +303,14 @@ defmodule Regex do
   defp return_for(element) when is_binary(element), do: :binary
   defp return_for(element) when is_list(element),   do: :list
 
-  defp translate_options(<<?u, t|:binary>>), do: [:unicode|translate_options(t)]
-  defp translate_options(<<?i, t|:binary>>), do: [:caseless|translate_options(t)]
-  defp translate_options(<<?x, t|:binary>>), do: [:extended|translate_options(t)]
-  defp translate_options(<<?f, t|:binary>>), do: [:firstline|translate_options(t)]
-  defp translate_options(<<?r, t|:binary>>), do: [:ungreedy|translate_options(t)]
-  defp translate_options(<<?s, t|:binary>>), do: [:dotall,{:newline,:anycrlf}|translate_options(t)]
-  defp translate_options(<<?m, t|:binary>>), do: [:multiline|translate_options(t)]
-  defp translate_options(<<?g, t|:binary>>), do: [:groups|translate_options(t)]
+  defp translate_options(<<?u, t :: binary>>), do: [:unicode|translate_options(t)]
+  defp translate_options(<<?i, t :: binary>>), do: [:caseless|translate_options(t)]
+  defp translate_options(<<?x, t :: binary>>), do: [:extended|translate_options(t)]
+  defp translate_options(<<?f, t :: binary>>), do: [:firstline|translate_options(t)]
+  defp translate_options(<<?r, t :: binary>>), do: [:ungreedy|translate_options(t)]
+  defp translate_options(<<?s, t :: binary>>), do: [:dotall,{:newline,:anycrlf}|translate_options(t)]
+  defp translate_options(<<?m, t :: binary>>), do: [:multiline|translate_options(t)]
+  defp translate_options(<<?g, t :: binary>>), do: [:groups|translate_options(t)]
   defp translate_options(<<>>), do: []
 
   defp flatten_result(results) do

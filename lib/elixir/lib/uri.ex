@@ -67,7 +67,7 @@ defmodule URI do
   @doc """
   Percent (URL) encodes a URI.
   """
-  def encode(s), do: bc <<c>> inbits s, do: <<percent(c)|:binary>>
+  def encode(s), do: bc <<c>> inbits s, do: <<percent(c) :: binary>>
 
   defp percent(32), do: <<?+>>
   defp percent(?-), do: <<?->>
@@ -94,11 +94,11 @@ defmodule URI do
   @doc """
   Unpercent (URL) decodes a URI.
   """
-  def decode(<<?%, hex1, hex2, tail |:binary >>) do
+  def decode(<<?%, hex1, hex2, tail :: binary >>) do
     << bsl(hex2dec(hex1), 4) + hex2dec(hex2) >> <> decode(tail)
   end
 
-  def decode(<<head, tail |:binary >>) do
+  def decode(<<head, tail :: binary >>) do
     <<check_plus(head)>> <> decode(tail)
   end
 

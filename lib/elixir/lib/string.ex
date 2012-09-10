@@ -19,28 +19,28 @@ defmodule String do
   """
 
   # Allow basic ascii chars
-  def printable?(<<c, t|:binary>>) when c in ?\s..?~ do
+  def printable?(<<c, t :: binary>>) when c in ?\s..?~ do
     printable?(t)
   end
 
   # From 16#A0 to 16#BF
-  def printable?(<<194, c, t|:binary>>) when c in 160..191 do
+  def printable?(<<194, c, t :: binary>>) when c in 160..191 do
     printable?(t)
   end
 
   # From 16#C0 to 16#7FF
-  def printable?(<<m, o1, t|:binary>>) when m in 195..223 and o1 in 128..191 do
+  def printable?(<<m, o1, t :: binary>>) when m in 195..223 and o1 in 128..191 do
     printable?(t)
   end
 
   # From 16#800 to 16#CFFF
-  def printable?(<<m, o1, o2, t|:binary>>) when m in 224..236 and
+  def printable?(<<m, o1, o2, t :: binary>>) when m in 224..236 and
       o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 do
     printable?(t)
   end
 
   # From 16#D000 to 16#D7FF
-  def printable?(<<237, o1, o2, t|:binary>>) when
+  def printable?(<<237, o1, o2, t :: binary>>) when
       o1 >= 128 and o1 < 160 and o2 >= 128 and o2 < 192 do
     printable?(t)
   end
@@ -51,41 +51,41 @@ defmodule String do
   end
 
   # From 16#E000 to 16#EFFF
-  def printable?(<<m, o1, o2, t|:binary>>) when (m == 238 or m == 239) and
+  def printable?(<<m, o1, o2, t :: binary>>) when (m == 238 or m == 239) and
       o1 in 128..191 and o2 in 128..191 do
     printable?(t)
   end
 
   # From 16#F000 to 16#FFFD
-  def printable?(<<239, o1, o2, t|:binary>>) when
+  def printable?(<<239, o1, o2, t :: binary>>) when
       o1 in 128..191 and o2 in 128..191 do
     printable?(t)
   end
 
   # From 16#10000 to 16#3FFFF
-  def printable?(<<240, o1, o2, o3, t|:binary>>) when
+  def printable?(<<240, o1, o2, o3, t :: binary>>) when
       o1 in 144..191 and o2 in 128..191 and o3 in 128..191 do
     printable?(t)
   end
 
   # Reject 16#110000 onwards
-  def printable?(<<244, o1, _, _, _|:binary>>) when o1 >= 144 do
+  def printable?(<<244, o1, _, _, _ :: binary>>) when o1 >= 144 do
     false
   end
 
   # From 16#4000 to 16#10FFFF
-  def printable?(<<m, o1, o2, o3, t|:binary>>) when m in 241..244 and
+  def printable?(<<m, o1, o2, o3, t :: binary>>) when m in 241..244 and
       o1 in 128..191 and o2 in 128..191 and o3 in 128..191 do
     printable?(t)
   end
 
-  def printable?(<<?\n, t|:binary>>), do: printable?(t)
-  def printable?(<<?\r, t|:binary>>), do: printable?(t)
-  def printable?(<<?\t, t|:binary>>), do: printable?(t)
-  def printable?(<<?\v, t|:binary>>), do: printable?(t)
-  def printable?(<<?\b, t|:binary>>), do: printable?(t)
-  def printable?(<<?\f, t|:binary>>), do: printable?(t)
-  def printable?(<<?\e, t|:binary>>), do: printable?(t)
+  def printable?(<<?\n, t :: binary>>), do: printable?(t)
+  def printable?(<<?\r, t :: binary>>), do: printable?(t)
+  def printable?(<<?\t, t :: binary>>), do: printable?(t)
+  def printable?(<<?\v, t :: binary>>), do: printable?(t)
+  def printable?(<<?\b, t :: binary>>), do: printable?(t)
+  def printable?(<<?\f, t :: binary>>), do: printable?(t)
+  def printable?(<<?\e, t :: binary>>), do: printable?(t)
 
   def printable?(<<>>), do: true
   def printable?(_),    do: false
@@ -144,16 +144,16 @@ defmodule String do
   """
   def upcase(<<>>), do: <<>>
 
-  def upcase(<<195, c, t | :binary>>) when c in 160..191 do
-      <<195, c - 32, upcase(t) | :binary>>
+  def upcase(<<195, c, t :: binary>>) when c in 160..191 do
+      <<195, c - 32, upcase(t) :: binary>>
   end
 
-  def upcase(<<c, t | :binary>>) when c in ?a..?z do
-    <<c  - 32, upcase(t) | :binary>>
+  def upcase(<<c, t :: binary>>) when c in ?a..?z do
+    <<c  - 32, upcase(t) :: binary>>
   end
 
-  def upcase(<<c, t | :binary>>) do
-    <<c , upcase(t) | :binary>>
+  def upcase(<<c, t :: binary>>) do
+    <<c , upcase(t) :: binary>>
   end
 
   @doc """
@@ -168,16 +168,16 @@ defmodule String do
   """
   def downcase(<<>>), do: <<>>
 
-  def downcase(<<195, c, t | :binary>>) when c in 128..159 do
-      <<195, c + 32, downcase(t) | :binary>>
+  def downcase(<<195, c, t :: binary>>) when c in 128..159 do
+      <<195, c + 32, downcase(t) :: binary>>
   end
 
-  def downcase(<<c, t | :binary>>) when c in ?A..?Z do
-    <<c + 32, downcase(t) | :binary>>
+  def downcase(<<c, t :: binary>>) when c in ?A..?Z do
+    <<c + 32, downcase(t) :: binary>>
   end
 
-  def downcase(<<c, t | :binary>>) do
-    <<c , downcase(t) | :binary>>
+  def downcase(<<c, t :: binary>>) do
+    <<c , downcase(t) :: binary>>
   end
 
   @doc """

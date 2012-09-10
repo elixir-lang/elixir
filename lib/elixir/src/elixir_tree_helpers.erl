@@ -3,6 +3,7 @@
 %% as binaries, lists, condition clauses, etc.
 
 -module(elixir_tree_helpers).
+-compile({parse_transform, elixir_transform}).
 -export([abstract_syntax/1, split_last/1, cons_to_list/1,
   convert_to_boolean/4, returns_boolean/1,
   build_bitstr/4, build_list/4, build_list/5, build_simple_list/2,
@@ -84,6 +85,20 @@ build_bitstr_each(Fun, [H|T], Line, S, Acc) when is_bitstring(H) ->
   NewAcc = lists:foldl(fun(Element, FinalAcc) -> [Element|FinalAcc] end, Acc, Elements),
   build_bitstr_each(Fun, T, Line, S, NewAcc);
 
+build_bitstr_each(Fun, [{'::',_,[H,V]}|T], Line, S, Acc) ->
+  { Expr, NS } = Fun(H, S),
+
+  %% Variables defined outside the binary can be accounted
+  %% on subparts, however we can't assign new variables.
+  case NS of
+    { ES, _ } -> [];                       %% translate_arg,  no assigns
+    _ -> ES = NS#elixir_scope{context=nil} %% translate_each, revert assigns
+  end,
+
+  { Size, Types } = extract_bit_values(Line, V, ES),
+  build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, Size, Types }|Acc]);
+
+%% Deprecated syntax
 build_bitstr_each(Fun, [{'|',_,[H,V]}|T], Line, S, Acc) ->
   { Expr, NS } = Fun(H, S),
 
@@ -92,6 +107,8 @@ build_bitstr_each(Fun, [{'|',_,[H,V]}|T], Line, S, Acc) ->
     { ES, _ } -> [];
     ES -> []
   end,
+
+  elixir_errors:deprecation(Line, ES#elixir_scope.file, "Old bitstring syntax with | is deprecated, use the new one with :: instead"),
 
   %% Assigns can be made in subparts
   { Int, Types } = extract_bin_values(Line, V, default, [], ES#elixir_scope{context=nil}),
@@ -107,7 +124,69 @@ build_bitstr_each(Fun, [H|T], Line, S, Acc) ->
   { Expr, NS } = Fun(H, S),
   build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, default, default }|Acc]).
 
-%% Extra binary specifiers
+%% Extra bitstring specifiers
+
+extract_bit_values(Line, V, S) when is_list(V) ->
+  extract_bit_values(Line, V, default, [], S);
+
+extract_bit_values(Line, V, S) ->
+  extract_bit_values(Line, [V], S).
+
+extract_bit_values(Line, [{ Value, CallLine, Atom }|T], Size, Types, S) when is_atom(Value), is_atom(Atom) ->
+  NewTypes = extract_bit_type(CallLine, Value, Types, S),
+  extract_bit_values(Line, T, Size, NewTypes, S);
+
+extract_bit_values(Line, [{ Value, CallLine, [] }|T], Size, Types, S) when is_atom(Value) ->
+  NewTypes = extract_bit_type(CallLine, Value, Types, S),
+  extract_bit_values(Line, T, Size, NewTypes, S);
+
+extract_bit_values(Line, [{ Value, CallLine, [Arg] }|T], Size, Types, S) when is_atom(Value) ->
+  { NewSize, NewTypes } = extract_bit_type_or_size(CallLine, Value, Arg, Size, Types, S),
+  extract_bit_values(Line, T, NewSize, NewTypes, S);
+
+extract_bit_values(Line, [H|_], _Size, _Types, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "unknown bitstring specifier ~s", ['Elixir.Macro':to_binary(H)]);
+
+extract_bit_values(_Line, [], Size, [], _S) ->
+  { Size, default };
+
+extract_bit_values(_Line, [], Size, Types, _S) ->
+  { Size, lists:reverse(Types) }.
+
+extract_bit_type(_Line, Value, Types, _S) when
+    Value == binary; Value == integer; Value == float; Value == bitstring;
+    Value == signed; Value == unsigned;
+    Value == big; Value == little; Value == native ->
+  [Value|Types];
+
+extract_bit_type(Line, Value, _Types, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "unknown bitstring specifier ~p", [Value]).
+
+extract_bit_type_or_size(Line, size, Arg, default, Types, S) ->
+  Translated = element(1, elixir_translator:translate_each(Arg, S)),
+
+  case Translated of
+    { integer, _, _ } -> ok;
+    { var, _, _ }     -> ok;
+    _ ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.file, "size in bitstring expects an integer or a variable as argument")
+  end,
+
+  { Translated, Types };
+
+extract_bit_type_or_size(Line, size, _Arg, _Other, _Types, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "duplicated size definition for bitstring");
+
+extract_bit_type_or_size(_Line, unit, Arg, Size, Types, _S) when is_integer(Arg) ->
+  { Size, [{ unit, Arg }|Types] };
+
+extract_bit_type_or_size(Line, unit, _Arg, _Other, _Types, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "unit in bitstring expects an integer as argument");
+
+extract_bit_type_or_size(Line, Value, _Arg, _Other, _Types, S) ->
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "unknown bitstring specifier ~p", [Value]).
+
+%% Deprecated specifiers
 
 extract_bin_values(Line, { '-', _Line, [Left, Right] }, Int, Types, S) ->
   { LInt, LTypes } = extract_bin_values(Line, Left, Int, Types, S),

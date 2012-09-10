@@ -179,27 +179,27 @@ defmodule Mix.Utils do
     underscore rest
   end
 
-  def underscore(<<h, t | :binary>>) do
+  def underscore(<<h, t :: binary>>) do
     <<to_lower_char(h)>> <> do_underscore(t, h)
   end
 
-  defp do_underscore(<<h, t, rest | :binary>>, _) when h in ?A..?Z and not t in ?A..?Z do
+  defp do_underscore(<<h, t, rest :: binary>>, _) when h in ?A..?Z and not t in ?A..?Z do
     <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
   end
 
-  defp do_underscore(<<h, t | :binary>>, prev) when h in ?A..?Z and not prev in ?A..?Z do
+  defp do_underscore(<<h, t :: binary>>, prev) when h in ?A..?Z and not prev in ?A..?Z do
     <<?_, to_lower_char(h)>> <> do_underscore(t, h)
   end
 
-  defp do_underscore(<<?-, t | :binary>>, _) do
+  defp do_underscore(<<?-, t :: binary>>, _) do
     <<?_>> <> do_underscore(t, ?-)
   end
 
-  defp do_underscore(<<?., t | :binary>>, _) do
+  defp do_underscore(<<?., t :: binary>>, _) do
     <<?/>> <> underscore(t)
   end
 
-  defp do_underscore(<<h, t | :binary>>, _) do
+  defp do_underscore(<<h, t :: binary>>, _) do
     <<to_lower_char(h)>> <> do_underscore(t, h)
   end
 
@@ -215,19 +215,19 @@ defmodule Mix.Utils do
       Mix.Utils.camelize "foo_bar" #=> "FooBar"
 
   """
-  def camelize(<<?_, t | :binary>>) do
+  def camelize(<<?_, t :: binary>>) do
     camelize(t)
   end
 
-  def camelize(<<h, t | :binary>>) do
+  def camelize(<<h, t :: binary>>) do
     <<to_upper_char(h)>> <> do_camelize(t)
   end
 
-  defp do_camelize(<<?_, ?_, t | :binary>>) do
-    do_camelize(<< ?_, t | :binary >>)
+  defp do_camelize(<<?_, ?_, t :: binary>>) do
+    do_camelize(<< ?_, t :: binary >>)
   end
 
-  defp do_camelize(<<?_, h, t | :binary>>) when h in ?a..?z do
+  defp do_camelize(<<?_, h, t :: binary>>) when h in ?a..?z do
     <<to_upper_char(h)>> <> do_camelize(t)
   end
 
@@ -235,11 +235,11 @@ defmodule Mix.Utils do
     <<>>
   end
 
-  defp do_camelize(<<?/, t | :binary>>) do
+  defp do_camelize(<<?/, t :: binary>>) do
     <<?.>> <> camelize(t)
   end
 
-  defp do_camelize(<<h, t | :binary>>) do
+  defp do_camelize(<<h, t :: binary>>) do
     <<h>> <> do_camelize(t)
   end
 
@@ -287,10 +287,10 @@ defmodule Mix.Utils do
       Enum.join(".")
   end
 
-  defp first_to_upper(<<s, t|:binary>>), do: <<to_upper_char(s)>> <> t
+  defp first_to_upper(<<s, t :: binary>>), do: <<to_upper_char(s)>> <> t
   defp first_to_upper(<<>>), do: <<>>
 
-  defp first_to_lower(<<s, t|:binary>>), do: <<to_lower_char(s)>> <> t
+  defp first_to_lower(<<s, t :: binary>>), do: <<to_lower_char(s)>> <> t
   defp first_to_lower(<<>>), do: <<>>
 
   defp to_upper_char(char) when char in ?a..?z, do: char - 32

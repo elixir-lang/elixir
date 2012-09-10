@@ -286,7 +286,7 @@ defmodule Macro do
       << case x == ?\n do
         true  -> replacement
         false -> <<x>>
-      end | :binary >>
+      end :: binary >>
     end
   end
 

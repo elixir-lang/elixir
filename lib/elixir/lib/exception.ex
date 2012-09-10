@@ -71,7 +71,7 @@ defmodule Exception do
   """
   def format_module_fun_arity(module, fun, arity) do
     case inspect(fun) do
-      << ?:, fun | :binary >> -> :ok
+      << ?:, fun :: binary >> -> :ok
       fun -> :ok
     end
 

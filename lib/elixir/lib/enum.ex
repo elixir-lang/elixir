@@ -1082,7 +1082,7 @@ defmodule Enum do
   end
 
   defp do_join([h|t], joiner, acc) do
-    acc = << acc | :binary, joiner | :binary, to_binary(h) | :binary >>
+    acc = << acc :: binary, joiner :: binary, to_binary(h) :: binary >>
     do_join(t, joiner, acc)
   end
 
@@ -1095,7 +1095,7 @@ defmodule Enum do
   end
 
   defp do_join({ h, next }, iterator, joiner, acc) do
-    acc = << acc | :binary, joiner | :binary, to_binary(h) | :binary >>
+    acc = << acc :: binary, joiner :: binary, to_binary(h) :: binary >>
     do_join(iterator.(next), iterator, joiner, acc)
   end
 
@@ -1110,7 +1110,7 @@ defmodule Enum do
   end
 
   defp do_map_join([h|t], mapper, joiner, acc) do
-    acc = << acc | :binary, joiner | :binary, to_binary(mapper.(h)) | :binary >>
+    acc = << acc :: binary, joiner :: binary, to_binary(mapper.(h)) :: binary >>
     do_map_join(t, mapper, joiner, acc)
   end
 
@@ -1123,7 +1123,7 @@ defmodule Enum do
   end
 
   defp do_map_join({ h, next }, iterator, mapper, joiner, acc) do
-    acc = << acc | :binary, joiner | :binary, to_binary(mapper.(h)) | :binary >>
+    acc = << acc :: binary, joiner :: binary, to_binary(mapper.(h)) :: binary >>
     do_map_join(iterator.(next), iterator, mapper, joiner, acc)
   end
 

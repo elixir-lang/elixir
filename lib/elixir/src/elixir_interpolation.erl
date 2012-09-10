@@ -147,7 +147,7 @@ wrap_interpol(_Line, Form) when is_binary(Form) ->
   Form;
 
 wrap_interpol(Line, Form) ->
-  { '|', Line, [{ { '.', Line, ['Elixir.Binary.Chars', to_binary] }, Line, [Form]}, binary]}.
+  { '::', Line, [{ { '.', Line, ['Elixir.Binary.Chars', to_binary] }, Line, [Form]}, { binary, Line, nil }]}.
 
 forms(String, StartLine, File) ->
   case elixir_translator:raw_forms(String, StartLine, File) of

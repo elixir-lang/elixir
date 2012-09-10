@@ -44,21 +44,21 @@ defmodule String.Inspect.Utils do
     <<char>> <> do_escape(other, char)
   end
 
-  defp do_escape(<<char, t|:binary>>, char) do
-    <<?\\, char, do_escape(t, char)|:binary>>
+  defp do_escape(<<char, t :: binary>>, char) do
+    <<?\\, char, do_escape(t, char) :: binary>>
   end
 
-  defp do_escape(<<h, t|:binary>>, char) when
+  defp do_escape(<<h, t :: binary>>, char) when
     h == ?#  or h == ?\b or
     h == ?\d or h == ?\e or
     h == ?\f or h == ?\n or
     h == ?\r or h == ?\\ or
     h == ?\t or h == ?\v do
-    <<?\\, escape_map(h), do_escape(t, char)|:binary>>
+    <<?\\, escape_map(h), do_escape(t, char) :: binary>>
   end
 
-  defp do_escape(<<h, t|:binary>>, char) do
-    <<h, do_escape(t,char)|:binary>>
+  defp do_escape(<<h, t :: binary>>, char) do
+    <<h, do_escape(t,char) :: binary>>
   end
 
   defp do_escape(<<>>, char) do
@@ -129,7 +129,7 @@ defimpl String.Inspect, for: Atom do
 
   defp valid_ref_identifier?(_), do: false
 
-  defp valid_ref_piece?(<<?-, h, t|:binary>>) when h in ?A..?Z do
+  defp valid_ref_piece?(<<?-, h, t :: binary>>) when h in ?A..?Z do
     valid_ref_piece? valid_identifier?(t)
   end
 
@@ -138,7 +138,7 @@ defimpl String.Inspect, for: Atom do
 
   # Detect if atom
 
-  defp valid_atom_identifier?(<<h, t|:binary>>) when h in ?a..?z or h in ?A..?Z or h == ?_ do
+  defp valid_atom_identifier?(<<h, t :: binary>>) when h in ?a..?z or h in ?A..?Z or h == ?_ do
     case valid_identifier?(t) do
       <<>>   -> true
       <<??>> -> true
@@ -149,7 +149,7 @@ defimpl String.Inspect, for: Atom do
 
   defp valid_atom_identifier?(_), do: false
 
-  defp valid_identifier?(<<h, t|:binary>>)
+  defp valid_identifier?(<<h, t :: binary>>)
       when h in ?a..?z
       when h in ?A..?Z
       when h in ?0..?9
@@ -191,11 +191,11 @@ defimpl String.Inspect, for: BitString do
     "<<" <> each_bit(bitstring) <> ">>"
   end
 
-  defp each_bit(<<h, t | :bitstring>>) when t != <<>> do
+  defp each_bit(<<h, t :: bitstring>>) when t != <<>> do
     integer_to_binary(h) <> "," <> each_bit(t)
   end
 
-  defp each_bit(<<h | 8>>) do
+  defp each_bit(<<h :: size(8)>>) do
     integer_to_binary(h)
   end
 
@@ -205,7 +205,7 @@ defimpl String.Inspect, for: BitString do
 
   defp each_bit(bitstring) do
     size = bit_size(bitstring)
-    <<h|size>> = bitstring
+    <<h :: size(size)>> = bitstring
     integer_to_binary(h) <> "|" <> integer_to_binary(size)
   end
 

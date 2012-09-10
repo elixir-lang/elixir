@@ -2764,7 +2764,7 @@ defmodule Kernel do
   end
 
   defp wrap_concatenation(other) do
-    { :|, 0, [other, :binary] }
+    { :::, 0, [other, { :binary, 0, nil }] }
   end
 
   # Builds cond clauses by nesting them recursively.

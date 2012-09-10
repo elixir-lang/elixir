@@ -155,11 +155,15 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :duplicated_bitstring_size do
-    assert "nofile:1: duplicated size specifier 12 in <<>>" == format_rescue '<<1|12-12>>'
+    assert "nofile:1: duplicated size definition for bitstring" == format_rescue '<<1 :: [size(12), size(13)]>>'
   end
 
   test :invalid_bitstring_specified do
-    assert "nofile:1: invalid specifier for <<>>" == format_rescue '<<1|12-binary()>>'
+    assert "nofile:1: unknown bitstring specifier :atom" == format_rescue '<<1 :: :atom>>'
+    assert "nofile:1: unknown bitstring specifier unknown" == format_rescue '<<1 :: unknown>>'
+    assert "nofile:1: unknown bitstring specifier another" == format_rescue '<<1 :: another(12)>>'
+    assert "nofile:1: size in bitstring expects an integer or a variable as argument" == format_rescue '<<1 :: size(:a)>>'
+    assert "nofile:1: unit in bitstring expects an integer as argument" == format_rescue '<<1 :: unit(x)>>'
   end
 
   test :invalid_alias do

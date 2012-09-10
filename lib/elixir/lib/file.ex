@@ -1175,8 +1175,8 @@ defmodule File do
   defp strip_ending("\n"),   do: <<>>
   defp strip_ending(""),     do: <<>>
 
-  defp strip_ending(<< h, t | :binary >>) do
-    << h, strip_ending(t) | :binary >>
+  defp strip_ending(<< h, t :: binary >>) do
+    << h, strip_ending(t) :: binary >>
   end
 
   @doc """
