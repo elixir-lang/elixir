@@ -1,11 +1,12 @@
 -module(elixir).
 -behaviour(application).
--export([start_cli/0, start_app/0,
+-export([main/1, start_cli/0, start_app/0,
   scope_for_eval/1, eval/2, eval/3, eval/4,
   eval_quoted/2, eval_quoted/3, eval_quoted/4,
   eval_forms/3]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
+
 
 % OTP APPLICATION API
 
@@ -22,6 +23,12 @@ stop(_S) ->
 
 config_change(_Changed, _New, _Remove) ->
   ok.
+
+%% escript entry point
+
+main(Args) ->
+  start_app(),
+  'Elixir.Kernel.CLI':process_argv(Args).
 
 %% ELIXIR ENTRY POINTS
 
