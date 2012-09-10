@@ -3,6 +3,8 @@ defmodule Elixir.Mixfile do
 
   def project do
     [ app: :elixir,
-      version: "0.7.0.dev" ]
+      version: System.version,
+      escript_main_module: :elixir,
+      escript_emu_args: "%%! -noshell\n" ]
   end
 end
