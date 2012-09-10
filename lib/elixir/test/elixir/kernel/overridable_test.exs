@@ -142,7 +142,7 @@ defmodule Kernel.OverridableTest do
   end
 
   test "overridable definitions are private" do
-    refute {:"OVERRIDABLE-0-with_super",0} in Overridable.__info__(:exports)
+    refute {:"with_super (overridable 0)",0} in Overridable.__info__(:exports)
   end
 
   test "invalid super call" do

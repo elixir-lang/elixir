@@ -54,7 +54,7 @@ name(Module, Function) ->
 
 name(_Module, { Name, _ } = Function, Overridable) ->
   { Count, _ } = orddict:fetch(Function, Overridable),
-  ?ELIXIR_ATOM_CONCAT(["OVERRIDABLE-", Count, "-", Name]).
+  ?ELIXIR_ATOM_CONCAT([Name, " (overridable ", Count, ")"]).
 
 %% Store
 
