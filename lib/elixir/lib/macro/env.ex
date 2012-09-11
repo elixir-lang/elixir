@@ -52,7 +52,7 @@ defmodule Macro.Env do
   def macros(record)
 
   @doc """
-  Returns a keywords list containing the file and line
+  Returns a keyword list containing the file and line
   information as keys.
   """
   def location(record) do

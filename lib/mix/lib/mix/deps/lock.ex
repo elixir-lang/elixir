@@ -4,7 +4,7 @@ defmodule Mix.Deps.Lock do
   """
 
   @doc """
-  Read the file, returns a keywords list containing
+  Read the file, returns a keyword list containing
   the app name and its current lock information.
   """
   def read(file // Mix.project[:lockfile]) do
@@ -18,7 +18,7 @@ defmodule Mix.Deps.Lock do
   end
 
   @doc """
-  Receives a keywords list and writes it to the disk.
+  Receives a keyword list and writes it to the disk.
   """
   def write(file // Mix.project[:lockfile], dict) do
     lines = lc { app, rev } inlist dict, rev != nil do

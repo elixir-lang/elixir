@@ -52,7 +52,7 @@ defmodule Mix.Generator do
   It will define a private function with the `name` followed by
   `_template` that expects assigns as arguments.
 
-  This function must be invoked passing a keywords list.
+  This function must be invoked passing a keyword list.
   Each key in the keyword list can be accessed in the
   template using the `@` macro.
 

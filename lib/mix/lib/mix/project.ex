@@ -7,7 +7,7 @@ defmodule Mix.Project do
 
   In order to configure Mix, a developer needs to use
   `Mix.Project` in a module and define a function named
-  `project` that returns a keywords list with configuration.
+  `project` that returns a keyword list with configuration.
 
       defmodule MyApp do
         use Mix.Project

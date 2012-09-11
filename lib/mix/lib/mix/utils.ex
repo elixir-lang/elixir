@@ -133,7 +133,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Merges two configs recursively, merging keywords lists
+  Merges two configs recursively, merging keyword lists
   and concatenating normal lists.
   """
   def config_merge(old, new) do

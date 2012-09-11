@@ -556,7 +556,7 @@ validate_opts(Line, Kind, Allowed, Opts, S) when is_list(Opts) ->
   end || { Key, _ } <- Opts, not lists:member(Key, Allowed)];
 
 validate_opts(Line, Kind, _Allowed, _Opts, S) ->
-  syntax_error(Line, S#elixir_scope.file, "invalid options for ~s, expected a keywords list", [Kind]).
+  syntax_error(Line, S#elixir_scope.file, "invalid options for ~s, expected a keyword list", [Kind]).
 
 %% Handle partials by automatically wrapping them in a function.
 %% It also checks if we are in an assignment scope and does not
