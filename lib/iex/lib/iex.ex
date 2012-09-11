@@ -191,13 +191,15 @@ defmodule IEx do
         TokenMissingError ->
           config.cache(code)
         exception ->
+          trace = System.stacktrace
           io.error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          io.error Exception.formatted_stacktrace
+          io.error Exception.formatted_stacktrace(trace)
           config.cache('')
       catch
         kind, error ->
+          trace = System.stacktrace
           io.error "** (#{kind}) #{inspect(error)}"
-          io.error Exception.formatted_stacktrace
+          io.error Exception.formatted_stacktrace(trace)
           config.cache('')
       end
 

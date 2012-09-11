@@ -60,7 +60,7 @@ defmodule Exception do
   @doc false
   def check!(module) do
     unless :erlang.function_exported(module, :message, 1) do
-      raise "Expected #{inspect  module} to implement message/1"
+      raise "Expected #{inspect module} to implement message/1"
     end
   end
 
@@ -86,8 +86,8 @@ defmodule Exception do
   @doc """
   Returns the stacktrace as a binary formatted as per `format_stacktrace/1`.
   """
-  def formatted_stacktrace do
-    case System.stacktrace do
+  def formatted_stacktrace(trace // System.stacktrace) do
+    case trace do
       [] -> ""
       s  -> "    " <> Enum.map_join(s, "\n    ", format_stacktrace(&1)) <> "\n"
     end

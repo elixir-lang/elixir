@@ -23,8 +23,9 @@ defmodule Kernel.CLI do
     rescue
       exception ->
         at_exit(1)
+        trace = System.stacktrace
         IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        IO.puts Exception.formatted_stacktrace
+        IO.puts Exception.formatted_stacktrace(trace)
         halt(1)
     catch
       :exit, reason when is_integer(reason) ->
@@ -35,8 +36,9 @@ defmodule Kernel.CLI do
         halt(0)
       kind, reason ->
         at_exit(1)
+        trace = System.stacktrace
         IO.puts :stderr, "** (#{kind}) #{inspect(reason)}"
-        IO.puts Exception.formatted_stacktrace
+        IO.puts Exception.formatted_stacktrace(trace)
         halt(1)
     end
   end
@@ -50,12 +52,14 @@ defmodule Kernel.CLI do
         hook.(status)
       rescue
         exception ->
+          trace = System.stacktrace
           IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          IO.puts Exception.formatted_stacktrace
+          IO.puts Exception.formatted_stacktrace(trace)
       catch
         kind, reason ->
+          trace = System.stacktrace
           IO.puts :stderr, "** #{kind} #{inspect(reason)}"
-          IO.puts Exception.formatted_stacktrace
+          IO.puts Exception.formatted_stacktrace(trace)
       end
     end
   end
