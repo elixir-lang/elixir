@@ -248,4 +248,57 @@ defmodule String do
   def strip(string, char // ?\s) do
     rstrip(lstrip(string, char), char)
   end
+
+  @doc """
+  Returns a new binary based on `subject` by replacing the parts
+  matching `pattern` for `replacement`. If `options` is specified
+  with `[global: true]`, then it will replace all matches, otherwise
+  it will replace just the first one.
+
+  For the replaced part must be used in `replacement`, then the
+  position or the positions where it is to be inserted must be specified by using
+  the option `insert_replaced`.
+
+  ## Examples
+
+      Binary.replace("a,b,c", ",", "-") #=> "a-b,c"
+      Binary.replace("a,b,c", ",", "-", global: true) #=> "a-b-c"
+      Binary.replace("a,b,c", "b", "[]", insert_replaced: 1) #=> "a,[b],c"
+      Binary.replace("a,b,c", ",", "[]", global: true, insert_replaced: 2) #=> "a[],b[],c"
+      Binary.replace("a,b,c", ",", "[]", global: true, insert_replaced: [1,1]) #=> "a[,,]b[,,]c"
+
+  """
+  def replace(subject, pattern, replacement, raw_options // []) do
+    options = translate_replace_options(raw_options)
+    Erlang.binary.replace(subject, pattern, replacement, options)
+  end
+
+
+  @doc """
+  Returns a binary `subject` duplicated `n` times.
+
+  ## Examples
+
+      Binary.duplicate("abc", 1) #=> "abc"
+      Binary.duplicate("abc", 2) #=> "abcabc"
+
+  """
+  def duplicate(subject, n) when is_integer(n) and n > 0 do
+    Erlang.binary.copy(subject, n)
+  end
+
+
+  defp translate_replace_options([]), do: []
+  defp translate_replace_options(raw_options) do
+    options = []
+    if raw_options[:global] == true do
+      options = [:global|options]
+    end
+    inserted_replaced = raw_options[:insert_replaced]
+    if inserted_replaced != nil do
+      options = [{:insert_replaced,inserted_replaced}|options]
+    end
+    options
+  end
+
 end
