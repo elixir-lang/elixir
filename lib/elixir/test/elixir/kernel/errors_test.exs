@@ -72,8 +72,16 @@ defmodule Kernel.ErrorsTest do
     assert "nofile:3: cannot invoke defmacro outside module" == format_rescue '\n\ndefmacro Foo, do: 2'
   end
 
+  test :invalid_unquote do
+    assert "nofile:1: unquote called outside quote" == format_rescue 'unquote 1'
+  end
+
   test :invalid_quote_args do
     assert "nofile:1: invalid args for quote" == format_rescue 'quote 1'
+  end
+
+  test :invalid_parens do
+    assert "nofile:1: unexpected parenthesis after foo(1)" == format_rescue 'foo(1)(2)'
   end
 
   test :invalid_fn_args do

@@ -20,8 +20,12 @@ linify(_, Else) -> Else.
 quote({ unquote, _Line, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
 
+quote({ { { '.', Line, [Left, unquote] }, _Line, [Expr] }, CallLine, Args }, Q, S) ->
+  Rewritten = { { '.', Line, [Left, { unquote, Line, [Expr] }] }, CallLine, Args },
+  quote(Rewritten, Q, S);
+
 quote({ { '.', Line, [Left, unquote] }, _Line, [Expr] }, Q, S) ->
-  Rewritten = { '.', Line, [Left, { unquote, Line, [Expr] }] },
+  Rewritten = { { '.', Line, [Left, { unquote, Line, [Expr] }] }, Line, [] },
   quote(Rewritten, Q, S);
 
 quote({ Left, Line, nil }, Q, S) when is_atom(Left) ->

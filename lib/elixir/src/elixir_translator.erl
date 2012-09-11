@@ -249,6 +249,9 @@ translate_each({ '__aliases__', Line, [H|T] }, S) ->
 
 %% Quoting
 
+translate_each({ Unquote, Line, _Args }, S) when Unquote == unquote; Unquote == unquote_splicing ->
+  syntax_error(Line, S#elixir_scope.file, "~p called outside quote", [Unquote]);
+
 translate_each({ quote, Line, [Left, Right] }, S) ->
   translate_each({ quote, Line, [orddict:from_list(Left ++ Right)] }, S);
 
@@ -430,6 +433,12 @@ translate_each({ { '.', _, [Expr] }, Line, Args } = Original, S) ->
         Else -> Else
       end
   end;
+
+%% Invalid calls
+
+translate_each({ Invalid, Line, _Args }, S) ->
+  syntax_error(Line, S#elixir_scope.file, "unexpected parenthesis after ~ts",
+    ['Elixir.Macro':to_binary(Invalid)]);
 
 %% Literals
 
