@@ -27,7 +27,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Returns an empty keywords list, i.e. an empty list.
+  Returns an empty keyword list, i.e. an empty list.
   """
   def new do
     []
@@ -119,7 +119,7 @@ defmodule Keyword do
   def get_values([], _),                        do: []
 
   @doc """
-  Returns all keys from the keywords list. Duplicated
+  Returns all keys from the keyword list. Duplicated
   keys appear duplicated in the final list of keys.
 
   ## Examples
@@ -144,8 +144,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Deletes all entries in the keywords list for a specific key.
-  If the key does not exist, returns the keywords list unchanged.
+  Deletes all entries in the keyword list for a specific key.
+  If the key does not exist, returns the keyword list unchanged.
   Use `delete_first` to delete just the first entry in case of
   duplicated keys.
 
@@ -192,7 +192,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Merges two keywords lists into one. If they have duplicated
+  Merges two keyword lists into one. If they have duplicated
   entries, the one given as second argument wins.
 
   ## Examples
@@ -206,7 +206,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Merges two keywords lists into one. If they have duplicated
+  Merges two keyword lists into one. If they have duplicated
   entries, the given function is invoked to solve conflicts.
 
   ## Examples

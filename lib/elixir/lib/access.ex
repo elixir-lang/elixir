@@ -22,7 +22,7 @@ end
 
 defimpl Access, for: List do
   @doc """
-  Access the given key in a keywords list.
+  Access the given key in a keyword list.
 
   ## Examples
 

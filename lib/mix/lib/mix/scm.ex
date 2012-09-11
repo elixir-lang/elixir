@@ -20,7 +20,7 @@ defmodule Mix.SCM do
   def key
 
   @doc """
-  This behavior function receives a keywords list of `opts`
+  This behavior function receives a keyword list of `opts`
   and should return an updated list in case the SCM consumes
   the available options. For example, when a developer specifies
   a dependency:

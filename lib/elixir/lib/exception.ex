@@ -102,7 +102,7 @@ defmodule Exception do
 
   @doc """
   Formats file and line information present in stacktraces.
-  Expect them to be given in a keywords list.
+  Expect them to be given in a keyword list.
   """
   def format_file_line(file_line) do
     format_file_line(Keyword.get(file_line, :file), Keyword.get(file_line, :line))
