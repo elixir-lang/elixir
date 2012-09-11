@@ -275,7 +275,7 @@ defmodule String do
 
 
   @doc """
-  Returns a binary with `data` duplicated `n` times.
+  Returns a binary `subject` duplicated `n` times.
 
   ## Examples
 
@@ -283,8 +283,8 @@ defmodule String do
       > Binary.duplicate("abc", 2) #=> "abcabc"
 
   """
-  def duplicate(data, n) when is_integer(n) and n > 0 do
-    Erlang.binary.copy(data, n)
+  def duplicate(subject, n) when is_integer(n) and n > 0 do
+    Erlang.binary.copy(subject, n)
   end
 
 
