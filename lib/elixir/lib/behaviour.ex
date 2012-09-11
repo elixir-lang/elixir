@@ -1,9 +1,12 @@
 defmodule Behaviour do
   @moduledoc """
-  A convenient module for defining behaviors.
-  It provides a `defcallback` macro for defining
-  the callbacks and automatically generates a
-  `behaviour_info` function before compilation.
+  A convenience module for defining behaviours.
+  Behaviours can be referenced by other modules
+  in order to ensure they implement the proper
+  callbacks.
+
+  For example, you can specify the `URI.Parser`
+  behaviour as follow:
 
       defmodule URI.Parser do
         use Behaviour
@@ -15,6 +18,25 @@ defmodule Behaviour do
         defcallback default_port(arg)
       end
 
+  And then a specific protocol may use it as:
+
+      defmodule URI.HTTP do
+        @behaviour URI.Parser
+        def default_port(), do: 80
+        def parse(info), do: info
+      end
+
+  In case the behaviour changes or URI.HTTP does
+  not implement one of the callbacks, a warning
+  will be raised.
+
+  ## Implementation
+
+  Internally, Erlang call `behaviour_info(:callbacks)`
+  to obtain all functions that a behaviour should
+  implemented. Therefore, all this module does is
+  to define `behaviour_info(:callbacks)` with the
+  `defcallback` definitions.
   """
 
   @doc """
