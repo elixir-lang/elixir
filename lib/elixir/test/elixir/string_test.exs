@@ -56,4 +56,25 @@ defmodule StringTest do
     assert String.strip("   abc  ") == "abc"
     assert String.strip("___  abc  ___", ?_) == "  abc  "
   end
+
+  test :replace do
+    assert String.replace("a,b,c", ",", "-") == "a-b,c"
+    assert String.replace("a,b,c", [",", "b"], "-") == "a-b,c"
+	assert String.replace("ãéã", "é", "e") == "ãeã"
+  end
+
+  test :replace_with_options do
+    assert String.replace("a,b,c", ",", "-", global: true) == "a-b-c"
+    assert String.replace("a,b,c", [",","b"], "-", global: true) == "a---c"
+    assert String.replace("a,b,c", "b", "[]", insert_replaced: 1) == "a,[b],c"
+    assert String.replace("a,b,c", ",", "[]", global: true, insert_replaced: 2) == "a[],b[],c"
+    assert String.replace("a,b,c", ",", "[]", global: true, insert_replaced: [1,1]) == "a[,,]b[,,]c"
+  end
+
+  test :duplicate do
+    assert String.duplicate("abc", 1) == "abc"
+    assert String.duplicate("abc", 2) == "abcabc"
+	assert String.duplicate("&ã$", 2) == "&ã$&ã$"
+  end
+
 end
