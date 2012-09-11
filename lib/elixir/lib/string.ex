@@ -261,11 +261,11 @@ defmodule String do
 
   ## Examples
 
-      > Binary.replace("a,b,c", ",", "-") #=> "a-b,c"
-      > Binary.replace("a,b,c", ",", "-", global: true) #=> "a-b-c"
-      > Binary.replace("a,b,c", "b", "[]", insert_replaced: 1) #=> "a,[b],c"
-      > Binary.replace("a,b,c", ",", "[]", globa: true, insert_replaced: 2) #=> "a[],b[],c"
-      > Binary.replace("a,b,c", ",", "[]", globa: true, insert_replaced: [1,1]) #=> "a[,,]b[,,]c"
+      Binary.replace("a,b,c", ",", "-") #=> "a-b,c"
+      Binary.replace("a,b,c", ",", "-", global: true) #=> "a-b-c"
+      Binary.replace("a,b,c", "b", "[]", insert_replaced: 1) #=> "a,[b],c"
+      Binary.replace("a,b,c", ",", "[]", global: true, insert_replaced: 2) #=> "a[],b[],c"
+      Binary.replace("a,b,c", ",", "[]", global: true, insert_replaced: [1,1]) #=> "a[,,]b[,,]c"
 
   """
   def replace(subject, pattern, replacement, raw_options // []) do
@@ -279,8 +279,8 @@ defmodule String do
 
   ## Examples
 
-      > Binary.duplicate("abc", 1) #=> "abc"
-      > Binary.duplicate("abc", 2) #=> "abcabc"
+      Binary.duplicate("abc", 1) #=> "abc"
+      Binary.duplicate("abc", 2) #=> "abcabc"
 
   """
   def duplicate(subject, n) when is_integer(n) and n > 0 do
