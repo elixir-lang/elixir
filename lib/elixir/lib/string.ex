@@ -249,6 +249,7 @@ defmodule String do
     rstrip(lstrip(string, char), char)
   end
 
+  @doc """
   Returns a new binary based on `subject` by replacing the parts
   matching `pattern` for `replacement`. If `options` is specified
   with `[global: true]`, then it will replace all matches, otherwise
@@ -280,6 +281,7 @@ defmodule String do
 
       > Binary.duplicate("abc", 1) #=> "abc"
       > Binary.duplicate("abc", 2) #=> "abcabc"
+
   """
   def duplicate(data, n) when is_integer(n) and n > 0 do
     Erlang.binary.copy(data, n)
