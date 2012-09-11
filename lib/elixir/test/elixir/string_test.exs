@@ -54,8 +54,6 @@ defmodule StringTest do
 
   test :strip do
     assert String.strip("   abc  ") == "abc"
-    assert String.strip("aa  abc  ", :right, ?\s) == "aa  abc"
-    assert String.strip("  abc  aa", :left, ?\s) == "abc  aa"
-    assert String.strip("___  abc  ___", :both, ?_) == "  abc  "
+    assert String.strip("___  abc  ___", ?_) == "  abc  "
   end
 end

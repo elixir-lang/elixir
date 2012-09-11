@@ -190,22 +190,28 @@ defmodule String do
       String.rstrip("   abc _", ?_)  #=> "   abc "
 
   """
-  def rstrip(string) do
-    rstrip(string, ?\s)
-  end
+  def rstrip(string, char // ?\s)
 
-  def rstrip(<<char, string | :binary>>, char) do
-    case rstrip(string, char) do
-      <<>> -> <<>>
-      tail -> <<char, tail | :binary>>
+  # Do a quick check before we traverse the whole
+  # binary. :binary.last is a fast operation (it
+  # does not traverse the whole binary).
+  def rstrip(string, char) do
+    if :binary.last(string) == char do
+      rstrip(string, "", char)
+    else
+      string
     end
   end
 
-  def rstrip(<<char, string | :binary>>, another_char) do
-    <<char, rstrip(string, another_char) | :binary>>
+  defp rstrip(<<char, string :: binary>>, buffer, char) do
+    rstrip(string, <<char, buffer :: binary>>, char)
   end
 
-  def rstrip(<<>>, _) do
+  defp rstrip(<<char, string :: binary>>, buffer, another_char) do
+    <<buffer :: binary, char, rstrip(string, "", another_char) :: binary>>
+  end
+
+  defp rstrip(<<>>, _, _) do
     <<>>
   end
 
@@ -219,20 +225,14 @@ defmodule String do
       String.lstrip("_  abc  _", ?_)  #=> "  abc  _"
 
   """
-  def lstrip(string) do
-    lstrip(string, ?\s)
+  def lstrip(string, char // ?\s)
+
+  def lstrip(<<char, rest :: binary>>, char) do
+    <<lstrip(rest, char) :: binary>>
   end
 
-  def lstrip(<<char, rest | :binary>>, char) do
-    <<lstrip(rest, char) | :binary>>
-  end
-
-  def lstrip(<<char, rest | :binary>>, _another_char) do
-    <<char, rest| :binary>>
-  end
-
-  def lstrip(<<>>, _char) do
-    <<>>
+  def lstrip(other, _char) do
+    other
   end
 
   @doc """
@@ -241,25 +241,11 @@ defmodule String do
 
   ## Examples
 
-      String.strip("   abc  ")              #=> "abc"
-      String.strip("a  abc  ", :right, ?\s) #=> "a  abc"
-      String.strip("  abc  a", :left, ?\s)  #=> "abc  a"
-      String.strip("a  abc  a", :both, ?a)  #=> "  abc  "
+      String.strip("   abc  ")       #=> "abc"
+      String.strip("a  abc  a", ?a)  #=> "  abc  "
 
   """
-  def strip(string) do
-    strip(string, :both, ?\s)
-  end
-
-  def strip(string, :both, char) do
+  def strip(string, char // ?\s) do
     rstrip(lstrip(string, char), char)
-  end
-
-  def strip(string, :right, char) do
-    rstrip(string, char)
-  end
-
-  def strip(string, :left, char) do
-    lstrip(string, char)
   end
 end
