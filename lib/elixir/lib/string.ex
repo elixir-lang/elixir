@@ -137,15 +137,15 @@ defmodule String do
 
   ## Examples
 
-     String.upcase("abcd") #=> "ABCD"
-     String.upcase("ab 123 xpto") #=> "AB 123 XPTO"
-     String.upcase("josé") #=> "JOSÉ"
+      String.upcase("abcd") #=> "ABCD"
+      String.upcase("ab 123 xpto") #=> "AB 123 XPTO"
+      String.upcase("josé") #=> "JOSÉ"
 
   """
   def upcase(<<>>), do: <<>>
 
   def upcase(<<195, c, t :: binary>>) when c in 160..191 do
-      <<195, c - 32, upcase(t) :: binary>>
+    <<195, c - 32, upcase(t) :: binary>>
   end
 
   def upcase(<<c, t :: binary>>) when c in ?a..?z do
@@ -161,15 +161,15 @@ defmodule String do
 
   ## Examples
 
-     String.downcase("ABCD") #=> "abcd"
-     String.downcase("AB 123 XPTO") #=> "ab 123 xpto"
-     String.downcase("JOSÉ") #=> "josé"
+      String.downcase("ABCD") #=> "abcd"
+      String.downcase("AB 123 XPTO") #=> "ab 123 xpto"
+      String.downcase("JOSÉ") #=> "josé"
 
   """
   def downcase(<<>>), do: <<>>
 
   def downcase(<<195, c, t :: binary>>) when c in 128..159 do
-      <<195, c + 32, downcase(t) :: binary>>
+    <<195, c + 32, downcase(t) :: binary>>
   end
 
   def downcase(<<c, t :: binary>>) when c in ?A..?Z do
@@ -186,11 +186,27 @@ defmodule String do
 
   ## Examples
 
-      String.rstrip("   abc  ") => "   abc"
+      String.rstrip("   abc  ")      #=> "   abc"
+      String.rstrip("   abc _", ?_)  #=> "   abc "
 
   """
-  def rstrip(string, char // ?\s) do
-    strip(string, :right, char)
+  def rstrip(string) do
+    rstrip(string, ?\s)
+  end
+
+  def rstrip(<<char, string | :binary>>, char) do
+    case rstrip(string, char) do
+      <<>> -> <<>>
+      tail -> <<char, tail | :binary>>
+    end
+  end
+
+  def rstrip(<<char, string | :binary>>, another_char) do
+    <<char, rstrip(string, another_char) | :binary>>
+  end
+
+  def rstrip(<<>>, _) do
+    <<>>
   end
 
   @doc """
@@ -199,18 +215,51 @@ defmodule String do
 
   ## Examples
 
-      String.lstrip("   abc  ") == "abc  "
+      String.lstrip("   abc  ")       #=> "abc  "
+      String.lstrip("_  abc  _", ?_)  #=> "  abc  _"
 
   """
-  def lstrip(string, char // ?\s) do
-    strip(string, :left, char)
+  def lstrip(string) do
+    lstrip(string, ?\s)
+  end
+
+  def lstrip(<<char, rest | :binary>>, char) do
+    <<lstrip(rest, char) | :binary>>
+  end
+
+  def lstrip(<<char, rest | :binary>>, _another_char) do
+    <<char, rest| :binary>>
+  end
+
+  def lstrip(<<>>, _char) do
+    <<>>
   end
 
   @doc """
   Returns a string where leading/trailing char have been
   removed. If no `char` is passed `space`is used.
+
+  ## Examples
+
+      String.strip("   abc  ")              #=> "abc"
+      String.strip("a  abc  ", :right, ?\s) #=> "a  abc"
+      String.strip("  abc  a", :left, ?\s)  #=> "abc  a"
+      String.strip("a  abc  a", :both, ?a)  #=> "  abc  "
+
   """
-  def strip(string, direction // :both, char // ?\s) do
-    list_to_binary(:string.strip(binary_to_list(string), direction, char))
+  def strip(string) do
+    strip(string, :both, ?\s)
+  end
+
+  def strip(string, :both, char) do
+    rstrip(lstrip(string, char), char)
+  end
+
+  def strip(string, :right, char) do
+    rstrip(string, char)
+  end
+
+  def strip(string, :left, char) do
+    lstrip(string, char)
   end
 end
