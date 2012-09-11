@@ -9,7 +9,7 @@ defmodule Protocol do
   protocol plus two extra functions:
 
   * `__protocol__/1` - returns the protocol name when :name is given,
-                       and a keywords list with the protocol functions
+                       and a keyword list with the protocol functions
                        when :functions is given;
 
   * `__impl_for__/1` - receives one argument and returns a module

@@ -2053,7 +2053,7 @@ defmodule Kernel do
 
   @doc """
   Provides an `if` macro. This macro expects the first argument to
-  be a condition and the rest are keywords arguments.
+  be a condition and the rest are keyword arguments.
 
   ## One-liner examples
 
@@ -2476,7 +2476,7 @@ defmodule Kernel do
   are translated to `access(foo, bar)`.
 
   The usage of this protocol is to access a raw value in a
-  keywords list.
+  keyword list.
 
       sample = [a: 1, b: 2, c: 3]
       sample[:b] #=> 2

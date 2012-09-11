@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Compile.App do
   and "elixir" as application dependencies.
 
   You can optionally define an `application/0` function inside your
-  `Mix.Project` that returns a keywords list to further configure
+  `Mix.Project` that returns a keyword list to further configure
   your application according to OTP design principles:
 
   http://www.erlang.org/doc/design_principles/applications.html

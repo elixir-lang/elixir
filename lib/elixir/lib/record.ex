@@ -38,7 +38,7 @@ defmodule Record do
   @doc """
   Defines record functions skipping the module definition.
   This is called directly by `defrecord`. It expects the
-  module environment, the module values and a keywords list
+  module environment, the module values and a keyword list
   of options.
 
   ## Examples

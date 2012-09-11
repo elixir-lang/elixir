@@ -74,7 +74,7 @@ defmodule Mix do
   @doc """
   Retrieves the current project configuration. If there
   isn't a project defined, this function will simply
-  return an empty keywords list. This allows many mix
+  return an empty keyword list. This allows many mix
   tasks to work without a need for an underlying project.
   """
   def project do

@@ -67,7 +67,7 @@ defmodule Code do
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
   When passing the __ENV__'s file and line, we could simply get
-  the location which already returns both fields as a keywords lists:
+  the location which already returns both fields as a keyword list:
 
       Code.eval "a + b", [a: 1, b: 2], __ENV__.location
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
@@ -100,7 +100,7 @@ defmodule Code do
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
   When passing the __ENV__'s file and line, we could simply get
-  the location which already returns both fields as a keywords lists:
+  the location which already returns both fields as a keyword list:
 
       Code.eval_quoted contents, [a: 1, b: 2], __ENV__.location
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
