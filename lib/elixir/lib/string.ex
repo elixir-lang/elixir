@@ -301,4 +301,26 @@ defmodule String do
     options
   end
 
+  @doc """
+  Returns a list with codepoints
+  """
+  def codepoints(string) do
+    codepoints(string, [])
+  end
+
+  def codepoints(<<194, char, rest :: binary>>, buffer) when char in 161..191 do
+    codepoints(rest, buffer ++ [<<194, char>>])
+  end
+
+  def codepoints(<<195, char, rest :: binary>>, buffer) when char in 128..191 do
+    codepoints(rest, buffer ++ [<<195, char>>])
+  end
+
+  def codepoints(<<other, rest :: binary>>, buffer) do
+    codepoints(rest, buffer ++ [<<other>>])
+  end
+
+  def codepoints(<<>>, buffer) do
+    buffer
+  end
 end

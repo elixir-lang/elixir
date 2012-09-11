@@ -77,4 +77,7 @@ defmodule StringTest do
 	assert String.duplicate("&ã$", 2) == "&ã$&ã$"
   end
 
+  test :codepoints do
+    assert String.codepoints("josé") == ["j", "o", "s", "é"]
+  end
 end
