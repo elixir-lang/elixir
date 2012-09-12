@@ -81,7 +81,7 @@ defimpl String.Inspect, for: Atom do
   require Macro
   import String.Inspect.Utils
 
-  @doc """
+  @moduledoc """
   Represents the atom as an Elixir term. The atoms false, true
   and nil are simply quoted. Modules are properly represented
   as modules using the dot notation.
@@ -96,6 +96,7 @@ defimpl String.Inspect, for: Atom do
       inspect(Foo.Bar) #=> "Foo.Bar"
 
   """
+
   def inspect(false),  do: "false"
   def inspect(true),   do: "true"
   def inspect(nil),    do: "nil"
@@ -163,7 +164,7 @@ end
 defimpl String.Inspect, for: BitString do
   import String.Inspect.Utils
 
-  @doc %B"""
+  @moduledoc %B"""
   Represents the string as itself escaping
   all necessary characters.
 
@@ -173,6 +174,7 @@ defimpl String.Inspect, for: BitString do
       inspect("f\"oo") #=> "f\"oo"
 
   """
+
   def inspect(thing) when is_binary(thing) do
     if String.printable?(thing) do
       escape(thing, ?")
@@ -217,7 +219,7 @@ end
 defimpl String.Inspect, for: List do
   import String.Inspect.Utils
 
-  @doc %B"""
+  @moduledoc %B"""
   Represents a list checking if it can be printed or not.
   If so, a single-quoted representation is returned,
   otherwise the brackets syntax is used.
@@ -263,7 +265,7 @@ end
 defimpl String.Inspect, for: Tuple do
   import String.Inspect.Utils
 
-  @doc """
+  @moduledoc """
   Inspect tuples. If the tuple represents a record,
   it shows it nicely formatted using the access syntax.
 
@@ -273,6 +275,7 @@ defimpl String.Inspect, for: Tuple do
       inspect(ArgumentError.new)  #=> ArgumentError[message: "argument error"]
 
   """
+
   def inspect({}), do: "{}"
 
   def inspect(exception) when is_exception(exception) do
@@ -319,7 +322,7 @@ defimpl String.Inspect, for: Tuple do
 end
 
 defimpl String.Inspect, for: Number do
-  @doc """
+  @moduledoc """
   Represents the number as a binary.
 
   ## Examples
@@ -327,6 +330,7 @@ defimpl String.Inspect, for: Number do
       inspect(1) #=> "1"
 
   """
+
   def inspect(thing) when is_integer(thing) do
     list_to_binary integer_to_list(thing)
   end
@@ -337,7 +341,7 @@ defimpl String.Inspect, for: Number do
 end
 
 defimpl String.Inspect, for: Regex do
-  @doc %B"""
+  @moduledoc %B"""
   Represents the Regex using the `%r""` syntax.
 
   ## Examples
@@ -345,13 +349,14 @@ defimpl String.Inspect, for: Regex do
       inspect(%r/foo/m) #=> "%r\"foo\"m"
 
   """
+
   def inspect(thing) do
     "%r" <> String.Inspect.inspect(Regex.source(thing)) <> Regex.opts(thing)
   end
 end
 
 defimpl String.Inspect, for: Any do
-  @doc """
+  @moduledoc """
   For all other terms not implemented, we use the default
   Erlang representation.
 
@@ -360,6 +365,7 @@ defimpl String.Inspect, for: Any do
       inspect Process.self #=> "<0.35.0>"
 
   """
+
   def inspect(thing) do
     iolist_to_binary Erlang.io_lib.format('~p', [thing])
   end

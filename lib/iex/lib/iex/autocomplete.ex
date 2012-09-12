@@ -13,6 +13,8 @@ defmodule IEx.Autocomplete do
   end
 
   defimpl Entry, for: Mod do
+    @moduledoc false
+
     def to_entries(mod) do
       [mod.name]
     end
@@ -23,6 +25,8 @@ defmodule IEx.Autocomplete do
   end
 
   defimpl Entry, for: Fun do
+    @moduledoc false
+
     def to_entries(fun) do
       lc a inlist fun.arities, do: '#{fun.name}/#{a}'
     end
