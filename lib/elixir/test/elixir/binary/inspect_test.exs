@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper.exs", __FILE__
 
-defmodule String.Inspect.AtomTest do
+defmodule Binary.Inspect.AtomTest do
   use ExUnit.Case, async: true
 
   test :basic do
@@ -42,11 +42,11 @@ defmodule String.Inspect.AtomTest do
   end
 
   test :impl do
-    assert String.Inspect.Atom.__impl__ == String.Inspect
+    assert Binary.Inspect.Atom.__impl__ == Binary.Inspect
   end
 end
 
-defmodule String.Inspect.BitStringTest do
+defmodule Binary.Inspect.BitStringTest do
   use ExUnit.Case, async: true
 
   test :bitstring do
@@ -72,7 +72,7 @@ defmodule String.Inspect.BitStringTest do
   end
 end
 
-defmodule String.Inspect.NumberTest do
+defmodule Binary.Inspect.NumberTest do
   use ExUnit.Case, async: true
 
   test :integer do
@@ -86,7 +86,7 @@ defmodule String.Inspect.NumberTest do
   end
 end
 
-defmodule String.Inspect.TupleTest do
+defmodule Binary.Inspect.TupleTest do
   use ExUnit.Case, async: true
 
   test :basic do
@@ -108,7 +108,7 @@ defmodule String.Inspect.TupleTest do
   defrecord Config, a: 1, b: []
 
   test :with_record do
-    assert inspect(Config.new) == "String.Inspect.TupleTest.Config[a: 1, b: []]"
+    assert inspect(Config.new) == "Binary.Inspect.TupleTest.Config[a: 1, b: []]"
   end
 
   test :with_tuple_matching_record_name_but_not_length do
@@ -124,7 +124,7 @@ defmodule String.Inspect.TupleTest do
   end
 end
 
-defmodule String.Inspect.ListTest do
+defmodule Binary.Inspect.ListTest do
   use ExUnit.Case, async: true
 
   test :basic do
@@ -152,7 +152,7 @@ defmodule String.Inspect.ListTest do
   end
 end
 
-defmodule String.Inspect.AnyTest do
+defmodule Binary.Inspect.AnyTest do
   use ExUnit.Case, async: true
 
   test :funs do
@@ -161,7 +161,7 @@ defmodule String.Inspect.AnyTest do
   end
 end
 
-defmodule String.Inspect.RegexTest do
+defmodule Binary.Inspect.RegexTest do
   use ExUnit.Case, async: true
 
   test :regex do

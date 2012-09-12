@@ -1,12 +1,12 @@
 import Kernel, except: [inspect: 1]
 
-defprotocol String.Inspect do
+defprotocol Binary.Inspect do
   @moduledoc """
-  The `String.Inspect` protocol is responsible for
-  converting any structure to a string (i.e. an utf-8
-  binary) for textual representation. All basic data
-  structures (tuple, list, function, pid, etc) implement
-  the inspect protocol. Other structures are adviced to
+  The `Binary.Inspect` protocol is responsible for
+  converting any structure to a binary for textual
+  representation. All basic data structures
+  (tuple, list, function, pid, etc) implement the
+  inspect protocol. Other structures are advised to
   implement the protocol in order to provide pretty
   printing.
   """
@@ -16,22 +16,22 @@ defprotocol String.Inspect do
   def inspect(thing)
 end
 
-defmodule String.Inspect.Utils do
+defmodule Binary.Inspect.Utils do
   @moduledoc false
 
   ## container_join
 
   def container_join([h], acc, last) do
-    acc <> String.Inspect.inspect(h) <> last
+    acc <> Binary.Inspect.inspect(h) <> last
   end
 
   def container_join([h|t], acc, last) when is_list(t) do
-    acc = acc <> String.Inspect.inspect(h) <> ","
+    acc = acc <> Binary.Inspect.inspect(h) <> ","
     container_join(t, acc, last)
   end
 
   def container_join([h|t], acc, last) do
-    acc <> String.Inspect.inspect(h) <> "|" <> String.Inspect.inspect(t) <> last
+    acc <> Binary.Inspect.inspect(h) <> "|" <> Binary.Inspect.inspect(t) <> last
   end
 
   def container_join([], acc, last) do
@@ -77,9 +77,9 @@ defmodule String.Inspect.Utils do
   defp escape_map(?\v), do: ?v
 end
 
-defimpl String.Inspect, for: Atom do
+defimpl Binary.Inspect, for: Atom do
   require Macro
-  import String.Inspect.Utils
+  import Binary.Inspect.Utils
 
   @moduledoc """
   Represents the atom as an Elixir term. The atoms false, true
@@ -161,8 +161,8 @@ defimpl String.Inspect, for: Atom do
   defp valid_identifier?(other), do: other
 end
 
-defimpl String.Inspect, for: BitString do
-  import String.Inspect.Utils
+defimpl Binary.Inspect, for: BitString do
+  import Binary.Inspect.Utils
 
   @moduledoc %B"""
   Represents the string as itself escaping
@@ -216,8 +216,8 @@ defimpl String.Inspect, for: BitString do
   end
 end
 
-defimpl String.Inspect, for: List do
-  import String.Inspect.Utils
+defimpl Binary.Inspect, for: List do
+  import Binary.Inspect.Utils
 
   @moduledoc %B"""
   Represents a list checking if it can be printed or not.
@@ -262,8 +262,8 @@ defimpl String.Inspect, for: List do
   defp printable?(_),  do: false
 end
 
-defimpl String.Inspect, for: Tuple do
-  import String.Inspect.Utils
+defimpl Binary.Inspect, for: Tuple do
+  import Binary.Inspect.Utils
 
   @moduledoc """
   Inspect tuples. If the tuple represents a record,
@@ -281,7 +281,7 @@ defimpl String.Inspect, for: Tuple do
   def inspect(exception) when is_exception(exception) do
     [name,_|tail] = tuple_to_list(exception)
     [_|fields]    = lc { field, _ } inlist name.__record__(:fields), do: field
-    String.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
+    Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
   end
 
   def inspect(thing) do
@@ -293,7 +293,7 @@ defimpl String.Inspect, for: Tuple do
       if length(fields) != size(thing) - 1 do
         container_join(list, "{", "}")
       else
-        String.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
+        Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
       end
     else
       container_join(list, "{", "}")
@@ -308,11 +308,11 @@ defimpl String.Inspect, for: Tuple do
   end
 
   defp records_join([f], [v], acc, last) do
-    acc <> atom_to_binary(f, :utf8) <> ": " <> String.Inspect.inspect(v) <> last
+    acc <> atom_to_binary(f, :utf8) <> ": " <> Binary.Inspect.inspect(v) <> last
   end
 
   defp records_join([fh|ft], [vh|vt], acc, last) do
-    acc = acc <> atom_to_binary(fh, :utf8) <> ": " <> String.Inspect.inspect(vh) <> ", "
+    acc = acc <> atom_to_binary(fh, :utf8) <> ": " <> Binary.Inspect.inspect(vh) <> ", "
     records_join(ft, vt, acc, last)
   end
 
@@ -321,7 +321,7 @@ defimpl String.Inspect, for: Tuple do
   end
 end
 
-defimpl String.Inspect, for: Number do
+defimpl Binary.Inspect, for: Number do
   @moduledoc """
   Represents the number as a binary.
 
@@ -340,7 +340,7 @@ defimpl String.Inspect, for: Number do
   end
 end
 
-defimpl String.Inspect, for: Regex do
+defimpl Binary.Inspect, for: Regex do
   @moduledoc %B"""
   Represents the Regex using the `%r""` syntax.
 
@@ -351,11 +351,11 @@ defimpl String.Inspect, for: Regex do
   """
 
   def inspect(thing) do
-    "%r" <> String.Inspect.inspect(Regex.source(thing)) <> Regex.opts(thing)
+    "%r" <> Binary.Inspect.inspect(Regex.source(thing)) <> Regex.opts(thing)
   end
 end
 
-defimpl String.Inspect, for: Any do
+defimpl Binary.Inspect, for: Any do
   @moduledoc """
   For all other terms not implemented, we use the default
   Erlang representation.

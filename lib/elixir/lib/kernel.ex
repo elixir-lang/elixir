@@ -1583,7 +1583,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Inspect the given arguments according to the String.Inspect protocol.
+  Inspect the given arguments according to the Binary.Inspect protocol.
 
   ## Examples
 
@@ -1592,7 +1592,7 @@ defmodule Kernel do
 
   """
   defmacro inspect(arg) do
-    quote do: String.Inspect.inspect(unquote(arg))
+    quote do: Binary.Inspect.inspect(unquote(arg))
   end
 
   @doc """
