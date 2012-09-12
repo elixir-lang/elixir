@@ -154,7 +154,7 @@ defmodule Module do
   end
 
   def add_doc(module, line, kind, tuple, signature, doc) when
-      is_binary(doc) or is_boolean(doc) or doc == nil do
+      kind in [:def, :defmacro, :defcallback] and (is_binary(doc) or is_boolean(doc) or doc == nil) do
     assert_not_compiled!(:add_doc, module)
     table = docs_table_for(module)
 
@@ -166,8 +166,14 @@ defmodule Module do
       [] ->
         ETS.insert(table, { tuple, line, kind, signature, doc })
         :ok
-      [{ tuple, line, kind, old, old_doc }] when old_doc == nil or doc == nil or old_doc == doc ->
-        ETS.insert(table, { tuple, line, kind, merge_signatures(old, signature, 1), old_doc || doc })
+      [{ tuple, line, old_kind, old_sign, old_doc }] when old_doc == nil or doc == nil or old_doc == doc ->
+        ETS.insert(table, {
+          tuple,
+          line,
+          merge_kind(old_kind, kind),
+          merge_signatures(old_sign, signature, 1),
+          doc || old_doc
+        })
         :ok
       _ ->
         { :error, :existing_doc }
@@ -199,7 +205,11 @@ defmodule Module do
   defp simplify_signature(other, line, i) when is_binary(other),  do: { :"binary#{i}", line, :guess }
   defp simplify_signature(_, line, i), do: { :"arg#{i}", line, :guess }
 
-  # Merge signatures
+  # Merge
+
+  defp merge_kind(:defcallback, new), do: new
+  defp merge_kind(old, :defcallback), do: old
+  defp merge_kind(_old, new),         do: new
 
   defp merge_signatures([h1|t1], [h2|t2], i) do
     [merge_signature(h1, h2, i)|merge_signatures(t1, t2, i + 1)]
@@ -478,12 +488,13 @@ defmodule Module do
   @doc false
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
-  def compile_doc(env, kind, name, args, _guards, _body) do
+  def compile_doc(env, kind, name, args, _guards, body) do
     module = env.module
     line   = env.line
     arity  = length(args)
     pair   = { name, arity }
     doc    = read_attribute(module, :doc)
+    kind   = if kind == :def and body == nil and module != Kernel, do: :defcallback, else: kind
 
     case add_doc(module, line, kind, pair, args, doc) do
       :ok ->

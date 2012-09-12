@@ -189,6 +189,6 @@ defmodule ModuleTest do
     assert name == :hello
     assert [{ :foo, _, _ }, { :bar, _ ,_ }] = args
     assert [] = guards
-    assert { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] } = expr
+    assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
   end
 end

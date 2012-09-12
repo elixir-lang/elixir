@@ -5,6 +5,7 @@ defmodule Mix.Task do
   A simple module that provides conveniences for creating tasks.
   """
 
+  @doc false
   def behaviour_info(:callbacks) do
     [run: 1]
   end
@@ -15,7 +16,7 @@ defmodule Mix.Task do
       Module.register_attribute __CALLER__.module, &1, accumulate: false
 
     quote do
-      @behavior Mix.Task
+      @behaviour Mix.Task
     end
   end
 

@@ -31,6 +31,7 @@ defmodule Mix.Project do
   defined.
   """
 
+  @doc false
   def behaviour_info(:callbacks) do
     [project: 0]
   end
@@ -39,7 +40,7 @@ defmodule Mix.Project do
   defmacro __using__(_) do
     quote do
       @after_compile Mix.Project
-      @behavior Mix.Project
+      @behaviour Mix.Project
     end
   end
 
