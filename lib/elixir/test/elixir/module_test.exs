@@ -160,6 +160,7 @@ defmodule ModuleTest do
   test :split do
     module = Very.Long.Module.Name.And.Even.Longer
     assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
+    assert Module.split("Elixir-Very-Long") == ["Very", "Long"]
     assert Module.concat(Module.split(module)) == module
   end
 
