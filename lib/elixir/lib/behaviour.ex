@@ -15,7 +15,7 @@ defmodule Behaviour do
         defcallback parse(arg)
 
         @doc "Defines a default port"
-        defcallback default_port(arg)
+        defcallback default_port()
       end
 
   And then a specific protocol may use it as:
