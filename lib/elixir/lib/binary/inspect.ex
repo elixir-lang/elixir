@@ -208,7 +208,7 @@ defimpl Binary.Inspect, for: BitString do
   defp each_bit(bitstring) do
     size = bit_size(bitstring)
     <<h :: size(size)>> = bitstring
-    integer_to_binary(h) <> "|" <> integer_to_binary(size)
+    integer_to_binary(h) <> "::size(" <> integer_to_binary(size) <> ")"
   end
 
   defp integer_to_binary(integer) do

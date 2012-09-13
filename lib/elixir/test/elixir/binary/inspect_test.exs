@@ -50,7 +50,7 @@ defmodule Binary.Inspect.BitStringTest do
   use ExUnit.Case, async: true
 
   test :bitstring do
-    assert inspect(<<1 :: [size(12), integer, signed]>>) == "<<0,1|4>>"
+    assert inspect(<<1 :: [size(12), integer, signed]>>) == "<<0,1::size(4)>>"
   end
 
   test :binary do
