@@ -254,7 +254,7 @@ defmodule Regex do
 
   def split({ Regex, compiled, _, _, _ }, string, options) do
     parts = options[:parts] || :infinity
-    options = [{ :return, return_for(string) }, :trim, { :parts, parts }]
+    options = [{ :return, return_for(string) }, { :parts, parts }]
     Erlang.re.split(string, compiled, options)
   end
 
