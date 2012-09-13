@@ -228,7 +228,7 @@ defmodule Macro do
   end
 
   # All other structures
-  def to_binary(other), do: Binary.Inspect.inspect(other)
+  def to_binary(other), do: Binary.Inspect.inspect(other, raw: true)
 
   # Block keywords
   defmacrop kw_keywords, do: [:do, :catch, :rescue, :after, :else]

@@ -70,6 +70,10 @@ defmodule Binary.Inspect.BitStringTest do
   test :unprintable do
     assert inspect(<<193>>) == "<<193>>"
   end
+
+  test :unprintable_with_opts do
+    assert inspect(<<193, 193, 193, 193>>, limit: 3) == "<<193,193,193,...>>"
+  end
 end
 
 defmodule Binary.Inspect.NumberTest do
@@ -122,6 +126,14 @@ defmodule Binary.Inspect.TupleTest do
   test :empty do
     assert inspect({}) == "{}"
   end
+
+  test :with_limit do
+    assert inspect({ 1, 2, 3, 4 }, limit: 3) == "{1,2,3,...}"
+  end
+
+  test :with_raw do
+    assert inspect(Config.new, raw: true) == "{Binary.Inspect.TupleTest.Config,1,[]}"
+  end
 end
 
 defmodule Binary.Inspect.ListTest do
@@ -149,6 +161,10 @@ defmodule Binary.Inspect.ListTest do
 
   test :empty do
     assert inspect([]) == "[]"
+  end
+
+  test :with_limit do
+    assert inspect([ 1, 2, 3, 4 ], limit: 3) == "[1,2,3,...]"
   end
 end
 

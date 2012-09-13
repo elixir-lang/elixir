@@ -11,9 +11,9 @@ defprotocol Binary.Inspect do
   printing.
   """
 
-  @only [BitString, List, Record, Tuple, Atom, Number, Any]
+  @only [BitString, List, Tuple, Atom, Number, Any]
 
-  def inspect(thing)
+  def inspect(thing, opts)
 end
 
 defmodule Binary.Inspect.Utils do
@@ -21,22 +21,36 @@ defmodule Binary.Inspect.Utils do
 
   ## container_join
 
-  def container_join([h], acc, last) do
-    acc <> Binary.Inspect.inspect(h) <> last
+  def container_join(tuple, first, last, opts) when is_tuple(tuple) do
+    container_join(tuple_to_list(tuple), first, last, opts)
   end
 
-  def container_join([h|t], acc, last) when is_list(t) do
-    acc = acc <> Binary.Inspect.inspect(h) <> ","
-    container_join(t, acc, last)
+  def container_join(list, first, last, opts) do
+    first <> do_container_join(list, opts, Keyword.get(opts, :limit, :infinity)) <> last
   end
 
-  def container_join([h|t], acc, last) do
-    acc <> Binary.Inspect.inspect(h) <> "|" <> Binary.Inspect.inspect(t) <> last
+  defp do_container_join(_, _opts, 0) do
+    "..."
   end
 
-  def container_join([], acc, last) do
-    acc <> last
+  defp do_container_join([h], opts, _counter) do
+    Binary.Inspect.inspect(h, opts)
   end
+
+  defp do_container_join([h|t], opts, counter) when is_list(t) do
+    Binary.Inspect.inspect(h, opts) <> "," <> do_container_join(t, opts, decrement(counter))
+  end
+
+  defp do_container_join([h|t], opts, _counter) do
+    Binary.Inspect.inspect(h, opts) <> "|" <> Binary.Inspect.inspect(t, opts)
+  end
+
+  defp do_container_join([], _opts, _counter) do
+    ""
+  end
+
+  defp decrement(:infinity), do: :infinity
+  defp decrement(counter),   do: counter - 1
 
   ## escape
 
@@ -97,13 +111,13 @@ defimpl Binary.Inspect, for: Atom do
 
   """
 
-  def inspect(false),  do: "false"
-  def inspect(true),   do: "true"
-  def inspect(nil),    do: "nil"
-  def inspect(:""),    do: ":\"\""
-  def inspect(Elixir), do: "Elixir"
+  def inspect(false, _),  do: "false"
+  def inspect(true, _),   do: "true"
+  def inspect(nil, _),    do: "nil"
+  def inspect(:"", _),    do: ":\"\""
+  def inspect(Elixir, _), do: "Elixir"
 
-  def inspect(atom) do
+  def inspect(atom, _) do
     binary = atom_to_binary(atom)
 
     cond do
@@ -175,37 +189,41 @@ defimpl Binary.Inspect, for: BitString do
 
   """
 
-  def inspect(thing) when is_binary(thing) do
+  def inspect(thing, opts) when is_binary(thing) do
     if String.printable?(thing) do
       escape(thing, ?")
     else
-      as_bitstring(thing)
+      as_bitstring(thing, opts)
     end
   end
 
-  def inspect(thing) do
-    as_bitstring(thing)
+  def inspect(thing, opts) do
+    as_bitstring(thing, opts)
   end
 
   ## Bitstrings
 
-  defp as_bitstring(bitstring) do
-    "<<" <> each_bit(bitstring) <> ">>"
+  defp as_bitstring(bitstring, opts) do
+    "<<" <> each_bit(bitstring, Keyword.get(opts, :limit, :infinity)) <> ">>"
   end
 
-  defp each_bit(<<h, t :: bitstring>>) when t != <<>> do
-    integer_to_binary(h) <> "," <> each_bit(t)
+  defp each_bit(_, 0) do
+    "..."
   end
 
-  defp each_bit(<<h :: size(8)>>) do
+  defp each_bit(<<h, t :: bitstring>>, counter) when t != <<>> do
+    integer_to_binary(h) <> "," <> each_bit(t, decrement(counter))
+  end
+
+  defp each_bit(<<h :: size(8)>>, _counter) do
     integer_to_binary(h)
   end
 
-  defp each_bit(<<>>) do
+  defp each_bit(<<>>, _counter) do
     <<>>
   end
 
-  defp each_bit(bitstring) do
+  defp each_bit(bitstring, _counter) do
     size = bit_size(bitstring)
     <<h :: size(size)>> = bitstring
     integer_to_binary(h) <> "::size(" <> integer_to_binary(size) <> ")"
@@ -214,6 +232,9 @@ defimpl Binary.Inspect, for: BitString do
   defp integer_to_binary(integer) do
     integer /> integer_to_list /> list_to_binary
   end
+
+  defp decrement(:infinity), do: :infinity
+  defp decrement(counter),   do: counter - 1
 end
 
 defimpl Binary.Inspect, for: List do
@@ -238,13 +259,13 @@ defimpl Binary.Inspect, for: List do
 
   """
 
-  def inspect([]), do: "[]"
+  def inspect([], _), do: "[]"
 
-  def inspect(thing) do
+  def inspect(thing, opts) do
     if printable?(thing) do
       escape(list_to_binary(thing), ?')
     else
-      container_join(thing, "[", "]")
+      container_join(thing, "[", "]", opts)
     end
   end
 
@@ -276,53 +297,76 @@ defimpl Binary.Inspect, for: Tuple do
 
   """
 
-  def inspect({}), do: "{}"
+  def inspect({}, _), do: "{}"
 
-  def inspect(exception) when is_exception(exception) do
-    [name,_|tail] = tuple_to_list(exception)
-    [_|fields]    = name.__record__(:fields)
-    record_join(name, fields, tail, "[", "]")
-  end
-
-  def inspect(thing) do
-    list = tuple_to_list(thing)
-    [name|tail] = list
-
-    if (fields = record_fields(name)) && (length(fields) == size(thing) - 1) do
-      record_join(name, fields, tail, "[", "]")
-    else
-      container_join(list, "{", "}")
-    end
+  def inspect(tuple, opts) do
+    unless opts[:raw] do
+      record_protocol(tuple, opts)
+    end || container_join(tuple, "{", "}", opts)
   end
 
   ## Helpers
 
-  defp record_fields(name) do
-    if is_atom(name) and match?("Elixir-" <> _, atom_to_binary(name, :utf8)) do
-      try do
-        name.__record__(:fields)
-      rescue
-        _ -> nil
+  defp record_protocol(tuple, opts) do
+    name = elem(tuple, 0)
+
+    if is_atom(name) and match?("Elixir-" <> _, atom_to_binary(name)) do
+      if name in [BitString, List, Tuple, Atom, Number, Any] do
+        record_inspect(tuple, opts)
+      else
+        try do
+          target = Module.concat(Binary.Inspect, name)
+          target.inspect(tuple, opts)
+        rescue
+          UndefinedFunctionError ->
+            record_inspect(tuple, opts)
+        end
       end
     end
   end
 
-  defp record_join(name, fields, tail, first, last) do
+  defp record_inspect(exception, opts) when is_exception(exception) do
+    list = tuple_to_list(exception)
+    [name,_|tail] = list
+    [_|fields]    = name.__record__(:fields)
+    record_join(name, fields, tail, opts)
+  end
+
+  defp record_inspect(record, opts) do
+    list = tuple_to_list(record)
+    [name|tail] = list
+
+    if (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
+      record_join(name, fields, tail, opts)
+    end
+  end
+
+  defp record_fields(name) do
+    try do
+      name.__record__(:fields)
+    rescue
+      _ -> nil
+    end
+  end
+
+  defp record_join(name, fields, tail, opts) do
     fields = lc { field, _ } inlist fields, do: field
-    Binary.Inspect.Atom.inspect(name) <> record_join(fields, tail, first, last)
+    Binary.Inspect.Atom.inspect(name, opts) <> "[" <>
+      record_join(fields, tail, opts) <> "]"
   end
 
-  defp record_join([f], [v], acc, last) do
-    acc <> atom_to_binary(f, :utf8) <> ": " <> Binary.Inspect.inspect(v) <> last
+  defp record_join([f], [v], opts) do
+    atom_to_binary(f, :utf8) <> ": " <> Binary.Inspect.inspect(v, opts)
   end
 
-  defp record_join([fh|ft], [vh|vt], acc, last) do
-    acc = acc <> atom_to_binary(fh, :utf8) <> ": " <> Binary.Inspect.inspect(vh) <> ", "
-    record_join(ft, vt, acc, last)
+  defp record_join([fh|ft], [vh|vt], opts) do
+    atom_to_binary(fh, :utf8) <> ": " <>
+      Binary.Inspect.inspect(vh, opts) <> ", " <>
+      record_join(ft, vt, opts)
   end
 
-  defp record_join([], [], acc, last) do
-    acc <> last
+  defp record_join([], [], _opts) do
+    ""
   end
 end
 
@@ -336,11 +380,11 @@ defimpl Binary.Inspect, for: Number do
 
   """
 
-  def inspect(thing) when is_integer(thing) do
+  def inspect(thing, _) when is_integer(thing) do
     list_to_binary integer_to_list(thing)
   end
 
-  def inspect(thing) do
+  def inspect(thing, _) do
     list_to_binary float_to_list(thing)
   end
 end
@@ -355,8 +399,8 @@ defimpl Binary.Inspect, for: Regex do
 
   """
 
-  def inspect(thing) do
-    "%r" <> Binary.Inspect.inspect(Regex.source(thing)) <> Regex.opts(thing)
+  def inspect(thing, _) do
+    "%r" <> Binary.Inspect.inspect(Regex.source(thing), []) <> Regex.opts(thing)
   end
 end
 
@@ -371,7 +415,7 @@ defimpl Binary.Inspect, for: Any do
 
   """
 
-  def inspect(thing) do
+  def inspect(thing, _) do
     iolist_to_binary Erlang.io_lib.format('~p', [thing])
   end
 end

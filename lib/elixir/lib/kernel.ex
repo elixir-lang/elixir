@@ -1585,14 +1585,24 @@ defmodule Kernel do
   @doc """
   Inspect the given arguments according to the Binary.Inspect protocol.
 
+  ## Options
+
+  The following options are supported:
+
+  * :raw - tuples are not formatted as the inspect protocol, they are
+    always shown as tuples, defaults to false;
+
+  * :limit - the limit of items that are shown in tuples, bitstrings and
+    lists. Do not apply to strings;
+
   ## Examples
 
       inspect(:foo)
       #=> ":foo"
 
   """
-  defmacro inspect(arg) do
-    quote do: Binary.Inspect.inspect(unquote(arg))
+  defmacro inspect(arg, opts // []) do
+    quote do: Binary.Inspect.inspect(unquote(arg), unquote(opts))
   end
 
   @doc """
