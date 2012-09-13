@@ -2,22 +2,27 @@ defmodule Dict do
   @moduledoc """
   This module specifies the Dict API expected to be
   implemented by different dictionaries. It also provides
-  functions that redirect to the target based on the tuple
-  signature.
+  functions that redirect to the underlying Dict based on
+  the tuple signature.
 
-  The Dict API does not support orddicts in the Erlang's sense of the word,
-  that is, a list of tuple pairs. These are handled by the Keyword module.
+  The keyword list used throughout Elixir cannot be
+  manipulated via the Dict module, you must use the
+  Keyword module instead. This distinction is intentional:
+  the Dict module is meant to work on structures that work
+  as storage.
 
-  To create a new dict, use the `new` functions defined by each dict type:
+  To create a new dict, use the `new` functions defined
+  by each dict type:
 
       Orddict.new [{:a, 1}, {:b, 2}]
       HashDict.new  #=> creates an empty HashDict
 
-  For simplicity's sake, in the examples below everytime `new` is used, it
-  implies one of the module-specific calls like the two above. Likewise, when
-  the result of a function invocation is shown in the form [a: 1, b: 2], it
-  implies that the returned value is actually of the same dict type as the
-  input one.
+  For simplicity's sake, in the examples below everytime
+  `new` is used, it implies one of the module-specific
+  calls like the two above. Likewise, when the result of
+  a function invocation is shown in the form `[a: 1, b: 2]`,
+  it implies that the returned value is actually of the
+  same dict type as the input one.
 
   """
 
