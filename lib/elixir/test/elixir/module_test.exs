@@ -165,7 +165,7 @@ defmodule ModuleTest do
   end
 
   test :defmodule do
-    assert { LOL, _, 3 } = (defmodule LOL do
+    assert match?({ 3, binary } when is_binary(binary), defmodule LOL do
       1 + 2
     end)
   end
