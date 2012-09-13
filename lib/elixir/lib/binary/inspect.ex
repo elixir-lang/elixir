@@ -280,21 +280,16 @@ defimpl Binary.Inspect, for: Tuple do
 
   def inspect(exception) when is_exception(exception) do
     [name,_|tail] = tuple_to_list(exception)
-    [_|fields]    = lc { field, _ } inlist name.__record__(:fields), do: field
-    Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
+    [_|fields]    = name.__record__(:fields)
+    record_join(name, fields, tail, "[", "]")
   end
 
   def inspect(thing) do
     list = tuple_to_list(thing)
     [name|tail] = list
 
-    if is_record?(name) do
-      fields = lc { field, _ } inlist name.__record__(:fields), do: field
-      if length(fields) != size(thing) - 1 do
-        container_join(list, "{", "}")
-      else
-        Binary.Inspect.Atom.inspect(name) <> records_join(fields, tail, "[", "]")
-      end
+    if (fields = record_fields(name)) && (length(fields) == size(thing) - 1) do
+      record_join(name, fields, tail, "[", "]")
     else
       container_join(list, "{", "}")
     end
@@ -302,21 +297,31 @@ defimpl Binary.Inspect, for: Tuple do
 
   ## Helpers
 
-  defp is_record?(name) do
-    is_atom(name) and match?("Elixir-" <> _, atom_to_binary(name, :utf8)) and
-      function_exported?(name, :__record__, 1)
+  defp record_fields(name) do
+    if is_atom(name) and match?("Elixir-" <> _, atom_to_binary(name, :utf8)) do
+      try do
+        name.__record__(:fields)
+      rescue
+        _ -> nil
+      end
+    end
   end
 
-  defp records_join([f], [v], acc, last) do
+  defp record_join(name, fields, tail, first, last) do
+    fields = lc { field, _ } inlist fields, do: field
+    Binary.Inspect.Atom.inspect(name) <> record_join(fields, tail, first, last)
+  end
+
+  defp record_join([f], [v], acc, last) do
     acc <> atom_to_binary(f, :utf8) <> ": " <> Binary.Inspect.inspect(v) <> last
   end
 
-  defp records_join([fh|ft], [vh|vt], acc, last) do
+  defp record_join([fh|ft], [vh|vt], acc, last) do
     acc = acc <> atom_to_binary(fh, :utf8) <> ": " <> Binary.Inspect.inspect(vh) <> ", "
-    records_join(ft, vt, acc, last)
+    record_join(ft, vt, acc, last)
   end
 
-  defp records_join([], [], acc, last) do
+  defp record_join([], [], acc, last) do
     acc <> last
   end
 end
