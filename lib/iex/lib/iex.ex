@@ -1,4 +1,4 @@
-defrecord IEx.Config, io: nil, binding: nil, cache: '', counter: 1, scope: nil, result: nil
+defrecord IEx.Config, binding: nil, cache: '', counter: 1, scope: nil, result: nil
 
 defmodule IEx do
   @moduledoc """
@@ -30,6 +30,33 @@ defmodule IEx do
   """
   def after_spawn(fun) when is_function(fun) do
     :application.set_env(:iex, :after_spawn, [fun|after_spawn])
+  end
+
+  @doc """
+  Returns registered after spawn callbacks.
+  """
+  def after_spawn do
+    case :application.get_env(:iex, :after_spawn) do
+      { :ok, list } -> list
+      :undefined -> []
+    end
+  end
+
+  @doc """
+  Registers options used on inspect.
+  """
+  def inspect_opts(opts) when is_list(opts) do
+    :application.set_env(:iex, :inspect_opts, Keyword.merge(inspect_opts, opts))
+  end
+
+  @doc """
+  Returns currently registered inspect options.
+  """
+  def inspect_opts do
+    case :application.get_env(:iex, :inspect_opts) do
+      { :ok, list } -> list
+      :undefined -> [limit: 50]
+    end
   end
 
   @doc """
@@ -119,7 +146,7 @@ defmodule IEx do
 
       set_expand_fun()
       run_after_spawn()
-      start_loop(config)
+      IEx.Loop.start(config)
     end
   end
 
@@ -133,8 +160,11 @@ defmodule IEx do
       delegate_locals_to: IEx.Helpers
     )
 
+    if opts[:inspect_opts] do
+      IEx.inspect_opts(opts[:inspect_opts])
+    end
+
     IEx.Config[
-      io: opts[:io] || IEx.UnicodeIO,
       binding: opts[:binding] || [],
       scope: scope
     ]
@@ -158,61 +188,6 @@ defmodule IEx do
     :io.setopts gl, [expand_fun: expand_fun]
   end
 
-  defp run_after_spawn do
-    lc fun inlist Enum.reverse(after_spawn), do: fun.()
-  end
-
-  ## Loop helpers
-
-  defp start_loop(config) do
-    Process.put :iex_history, []
-    { _, _, scope } = Erlang.elixir.eval('import IEx.Helpers', [], 0, config.scope)
-    do_loop(config.scope(scope))
-  end
-
-  defp do_loop(config) do
-    io = config.io
-
-    counter = config.counter
-    cache   = config.cache
-    code    = cache ++ io.get(config)
-
-    new_config =
-      try do
-        { result, new_binding, scope } =
-          Erlang.elixir.eval(code, config.binding, counter, config.scope)
-
-        io.put result
-
-        config = config.result(result)
-        update_history(config.cache(code).scope(nil))
-        config.increment_counter.cache('').binding(new_binding).scope(scope)
-      rescue
-        TokenMissingError ->
-          config.cache(code)
-        exception ->
-          trace = System.stacktrace
-          io.error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          io.error Exception.formatted_stacktrace(trace)
-          config.cache('')
-      catch
-        kind, error ->
-          trace = System.stacktrace
-          io.error "** (#{kind}) #{inspect(error)}"
-          io.error Exception.formatted_stacktrace(trace)
-          config.cache('')
-      end
-
-    do_loop(new_config)
-  end
-
-  defp update_history(config) do
-    current = Process.get :iex_history
-    Process.put :iex_history, [config|current]
-  end
-
-  ## Code injection helper
-
   defp ensure_module_exists(node, mod) do
     unless :rpc.call node, :code, :is_loaded, [mod] do
       {m,b,f} = :code.get_object_code mod
@@ -220,10 +195,7 @@ defmodule IEx do
     end
   end
 
-  defp after_spawn do
-    case :application.get_env(:iex, :after_spawn) do
-      { :ok, list } -> list
-      :undefined -> []
-    end
+  defp run_after_spawn do
+    lc fun inlist Enum.reverse(after_spawn), do: fun.()
   end
 end
