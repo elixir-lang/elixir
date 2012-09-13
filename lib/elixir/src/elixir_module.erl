@@ -86,7 +86,7 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
     ],
 
     Binary = load_form(Line, Final, S),
-    { Result, Binary }
+    { module, Module, Binary, Result }
   after
     ets:delete(data_table(Module)),
     ets:delete(docs_table(Module)),
