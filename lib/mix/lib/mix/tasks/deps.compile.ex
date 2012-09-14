@@ -63,10 +63,12 @@ defmodule Mix.Tasks.Deps.Compile do
         lockfile: File.expand_path(Mix.project[:lockfile])
       ]
 
+      child_env = opts[:env] || :prod
+
       File.cd! compile_path, fn ->
         cond do
           opts[:compile] -> do_command(opts[:compile], app)
-          mix?           -> Mix.Project.in_subproject child_config, fn -> Mix.Task.run "compile" end
+          mix?           -> Mix.Project.in_subproject child_env, child_config, fn -> Mix.Task.run "compile" end
           rebar?         -> shell.info System.cmd("rebar compile deps_dir=#{inspect root_path}")
           make?          -> shell.info System.cmd("make")
           true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>

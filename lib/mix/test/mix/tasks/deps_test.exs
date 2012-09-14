@@ -153,6 +153,56 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  ## Deps environment
+
+  defmodule DepsEnvApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          { :raw_repo, "0.1.0", raw: "custom/raw_repo" }
+        ]
+      ]
+    end
+  end
+
+  defmodule CustomDepsEnvApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          { :raw_repo, "0.1.0", raw: "custom/raw_repo", env: :dev }
+        ]
+      ]
+    end
+  end
+
+  test "by default sets deps env to prod" do
+    Mix.Project.push DepsEnvApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Update.run []
+      assert Process.get(:raw_repo_env) == :prod
+    end
+  after
+    purge [RawRepo, RawRepo.Mix]
+    Mix.Project.pop
+  end
+
+  test "can customize environment" do
+    Mix.Project.push CustomDepsEnvApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Update.run []
+      assert Process.get(:raw_repo_env) == :dev
+    end
+  after
+    purge [RawRepo, RawRepo.Mix]
+    Mix.Project.pop
+  end
+
   ## Nested dependencies
 
   defmodule UnmetNestedDepsApp do

@@ -69,10 +69,12 @@ defmodule Mix.Project do
   # tasks stack are properly manipulated, no side-effects
   # should remain.
   @doc false
-  def in_subproject(config, function) do
+  def in_subproject(env, config, function) do
+    old_env = Mix.env
     current = Mix.Project.current
     tasks   = Mix.Task.clear
 
+    Mix.env(env)
     Mix.Server.cast({ :post_config, config })
 
     if File.regular?("mix.exs") do
@@ -86,6 +88,7 @@ defmodule Mix.Project do
     try do
       function.()
     after
+      Mix.env(old_env)
       Mix.Project.pop
       Mix.Task.set_tasks(tasks)
     end
