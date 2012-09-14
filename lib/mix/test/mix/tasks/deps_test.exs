@@ -234,7 +234,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push UnmetNestedDepsApp
 
     in_fixture "deps_status", fn ->
-      assert_raise Mix.OutOfDateDepsError, fn ->
+      assert_raise Mix.OutOfDateNestedDepsError, fn ->
         Mix.Tasks.Deps.Update.run []
       end
 

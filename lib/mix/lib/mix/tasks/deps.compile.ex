@@ -58,17 +58,10 @@ defmodule Mix.Tasks.Deps.Compile do
       # Avoid compilation conflicts
       :code.del_path(ebin /> File.expand_path)
 
-      child_config = [
-        deps_path: File.expand_path(Mix.project[:deps_path]),
-        lockfile: File.expand_path(Mix.project[:lockfile])
-      ]
-
-      child_env = opts[:env] || :prod
-
       File.cd! compile_path, fn ->
         cond do
           opts[:compile] -> do_command(opts[:compile], app)
-          mix?           -> Mix.Project.in_subproject child_env, child_config, fn -> Mix.Task.run "compile" end
+          mix?           -> do_mix(dep)
           rebar?         -> shell.info System.cmd("rebar compile deps_dir=#{inspect root_path}")
           make?          -> shell.info System.cmd("make")
           true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>
@@ -91,6 +84,27 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp check_unavailable!(_, _) do
     :ok
+  end
+
+  defp do_mix(Mix.Dep[app: app, opts: opts]) do
+    project = Mix.project
+
+    config = [
+      deps_path: File.expand_path(project[:deps_path]),
+      lockfile: File.expand_path(project[:lockfile])
+    ]
+
+    env     = opts[:env] || :prod
+    current = Mix.env
+    Mix.env(env)
+
+    try do
+      Mix.Project.in_subproject(config, fn -> Mix.Task.run "compile" end)
+    rescue
+      Mix.OutOfDateDepsError -> raise Mix.OutOfDateNestedDepsError, app: app
+    after
+      Mix.env(current)
+    end
   end
 
   defp do_command(:noop, _) do

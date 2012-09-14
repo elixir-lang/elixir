@@ -68,16 +68,16 @@ defmodule Mix.Project do
   # and executes the given function. The project and
   # tasks stack are properly manipulated, no side-effects
   # should remain.
+  #
+  # Extra configuration for the subproject can be
+  # given as argument.
   @doc false
-  def in_subproject(env, config, function) do
-    old_env = Mix.env
+  def in_subproject(config, function) do
     current = Mix.Project.current
     tasks   = Mix.Task.clear
 
-    Mix.env(env)
-    Mix.Server.cast({ :post_config, config })
-
     if File.regular?("mix.exs") do
+      Mix.Server.cast({ :post_config, config })
       Code.load_file "mix.exs"
     end
 
@@ -88,7 +88,6 @@ defmodule Mix.Project do
     try do
       function.()
     after
-      Mix.env(old_env)
       Mix.Project.pop
       Mix.Task.set_tasks(tasks)
     end
