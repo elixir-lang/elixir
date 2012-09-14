@@ -15,21 +15,10 @@ defmodule Mix.CLI do
     args = load_mixfile(args)
     { task, args } = get_task(args)
 
-    # If we no env was explicitly set and we have a
-    # default environment registered for the task,
-    # let's use it before loading any path. The default
-    # is to set the test environment for the test task.
-    if System.get_env("MIX_ENV") == nil do
-      default_env = Mix.project[:default_env][binary_to_atom(task)]
-
-      if default_env do
-        Mix.env(default_env)
-        Mix.Project.push Mix.Project.pop
-      end
-    end
-
     if Mix.Project.defined? do
-      Mix.Task.run "loadpaths"
+      Mix.Task.run "loadpaths", ["--no-check"]
+      Mix.Task.reenable "loadpaths"
+      Mix.Task.reenable "deps.loadpaths"
     end
 
     run_task task, args

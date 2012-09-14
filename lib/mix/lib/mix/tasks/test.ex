@@ -28,6 +28,11 @@ defmodule Mix.Tasks.Test do
   def run(args) do
     { _, files } = OptionParser.parse(args)
 
+    unless System.get_env("MIX_ENV") do
+      Mix.env(:test)
+      Mix.Project.refresh
+    end
+
     Mix.Task.run Mix.project[:prepare_task]
     project = Mix.project
 

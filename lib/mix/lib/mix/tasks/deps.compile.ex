@@ -58,10 +58,15 @@ defmodule Mix.Tasks.Deps.Compile do
       # Avoid compilation conflicts
       :code.del_path(ebin /> File.expand_path)
 
+      config = [
+        deps_path: File.expand_path(Mix.project[:deps_path]),
+        lockfile: File.expand_path(Mix.project[:lockfile])
+      ]
+
       File.cd! compile_path, fn ->
         cond do
           opts[:compile] -> do_command(opts[:compile], app)
-          mix?           -> do_mix(dep)
+          mix?           -> do_mix(dep, config)
           rebar?         -> shell.info System.cmd("rebar compile deps_dir=#{inspect root_path}")
           make?          -> shell.info System.cmd("make")
           true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>
@@ -86,14 +91,7 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp do_mix(Mix.Dep[app: app, opts: opts]) do
-    project = Mix.project
-
-    config = [
-      deps_path: File.expand_path(project[:deps_path]),
-      lockfile: File.expand_path(project[:lockfile])
-    ]
-
+  defp do_mix(Mix.Dep[app: app, opts: opts], config) do
     env     = opts[:env] || :prod
     current = Mix.env
     Mix.env(env)

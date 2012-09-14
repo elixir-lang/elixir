@@ -94,6 +94,14 @@ defmodule Mix.Project do
   end
 
   @doc """
+  Refresh the project configuration. Usually required
+  when the environment changes during a task.
+  """
+  def refresh do
+    push pop
+  end
+
+  @doc """
   Retrieves the current project.
 
   This is usually called by tasks that needs additional
