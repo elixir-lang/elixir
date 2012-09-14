@@ -615,8 +615,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes `fun` for each element in the collection passing the accumulator
-  `acc` and the element as arguments. The return value is stored in `acc`.
+  Invokes `fun` for each element in the collection passing that element and the
+  accumulator `acc` as arguments. `fun`'s return value is stored in `acc`.
   Returns the accumulator.
 
   ## Examples
