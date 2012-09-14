@@ -61,7 +61,7 @@ defmodule Mix.Project do
   # Pops a project from the stack.
   @doc false
   def pop do
-    Mix.Server.cast(:pop_project)
+    Mix.Server.call(:pop_project)
   end
 
   # Loads the mix.exs file in the current directory

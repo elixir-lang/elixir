@@ -53,6 +53,15 @@ defmodule Mix.Server do
     { :reply, Ordset.is_element(task, config.tasks), config }
   end
 
+  def handle_call(:pop_project, _from, config) do
+    case config.projects do
+      [{ project, _ }|tail] ->
+        { :reply, project, config.projects(tail) }
+      _ ->
+        { :reply, nil, config }
+    end
+  end
+
   def handle_call(request, from, config) do
     super(request, from, config)
   end
@@ -80,10 +89,6 @@ defmodule Mix.Server do
   def handle_cast({ :push_project, name, project }, config) do
     project = Keyword.merge(project, config.post_config)
     { :noreply, config.post_config([]).prepend_projects [ { name, project } ] }
-  end
-
-  def handle_cast(:pop_project, config) do
-    { :noreply, config.update_projects tl(&1) }
   end
 
   def handle_cast({ :post_config, value }, config) do

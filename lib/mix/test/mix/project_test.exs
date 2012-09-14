@@ -23,6 +23,9 @@ defmodule Mix.ProjectTest do
 
     assert Mix.Project.current == SampleProject
     assert Mix.Project.defined?
+
+    assert Mix.Project.pop == SampleProject
+    assert Mix.Project.pop == nil
   after
     Mix.Project.pop
   end

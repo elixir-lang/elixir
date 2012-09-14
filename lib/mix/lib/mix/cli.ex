@@ -20,7 +20,11 @@ defmodule Mix.CLI do
     # is to set the test environment for the test task.
     if System.get_env("MIX_ENV") == nil do
       default_env = Mix.project[:default_env][binary_to_atom(task)]
-      if default_env, do: Mix.env(default_env)
+
+      if default_env do
+        Mix.env(default_env)
+        Mix.Project.push Mix.Project.pop
+      end
     end
 
     if Mix.Project.defined? do
