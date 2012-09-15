@@ -23,7 +23,7 @@ defmodule Mix.Deps.Converger do
     main   = Mix.Deps.Project.all
     config = [ deps_path: File.expand_path(Mix.project[:deps_path]),
                lockfile: File.expand_path(Mix.project[:lockfile]) ]
-    all(main, [], [], main, [], config, callback, rest)
+    all(main, [], [], main, config, callback, rest)
   end
 
   # We traverse the tree of dependencies in a breadth-
@@ -65,47 +65,43 @@ defmodule Mix.Deps.Converger do
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authorative source.
-  defp all([dep|t], acc, upper_breadths, current_breadths, diverged, config, callback, rest) do
-    upper = contains_dep?(upper_breadths, dep)
-    prev  = contains_dep?(acc, dep)
-
+  defp all([dep|t], acc, upper_breadths, current_breadths, config, callback, rest) do
     cond do
-      upper in [:converge, :diverge] or prev in [:converge] ->
-        all(t, acc, upper_breadths, current_breadths, diverged, config, callback, rest)
-      prev in [:diverge] ->
-        diverged = [{ find_dep(acc, dep), dep } | diverged]
-        all(t, acc, upper_breadths, current_breadths, diverged, config, callback, rest)
+      contains_dep?(upper_breadths, dep) ->
+        all(t, acc, upper_breadths, current_breadths, config, callback, rest)
+      match?({ diverged_acc, true }, diverged_dep?(acc, dep)) ->
+        all(t, diverged_acc, upper_breadths, current_breadths, config, callback, rest)
       true ->
         { dep, rest } = callback.(dep, rest)
 
         if available?(dep) and mixfile?(dep) do
           { project, deps } = nested_deps(dep, config)
-          { acc, diverged, rest } = all(t, [dep.project(project)|acc], upper_breadths,
-                                        current_breadths, diverged, config, callback, rest)
-          all(deps, acc, current_breadths, deps ++ current_breadths, diverged, config, callback, rest)
+          { acc, rest } = all(t, [dep.project(project)|acc], upper_breadths, current_breadths, config, callback, rest)
+          all(deps, acc, current_breadths, deps ++ current_breadths, config, callback, rest)
         else
-          all(t, [dep|acc], upper_breadths, current_breadths, diverged, config, callback, rest)
+          all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
         end
     end
   end
 
-  defp all([], acc, _upper, _current, diverged, _config, _callback, rest) do
-    { acc, diverged, rest }
+  defp all([], acc, _upper, _current, _config, _callback, rest) do
+    { acc, rest }
   end
 
-  defp find_dep(list, Mix.Dep[app: app]) do
-    Enum.find(list, match?(Mix.Dep[app: ^app], &1))
+  defp contains_dep?(list, Mix.Dep[app: app]) do
+    Enum.any?(list, match?(Mix.Dep[app: ^app], &1))
   end
 
-  defp contains_dep?(list, dep) do
-    if match = find_dep(list, dep) do
-      Mix.Dep[scm: scm1, opts: opts1] = dep
-      Mix.Dep[scm: scm2, opts: opts2] = match
+  def diverged_dep?(list, dep) do
+    Mix.Dep[app: app, scm: scm, opts: opts] = dep
 
-      if scm1 == scm2 && scm1.match?(opts1, opts2) do
-        :converge
+    Enum.map_reduce list, false, fn(other, diverged) ->
+      Mix.Dep[app: other_app, scm: other_scm, opts: other_opts] = other
+
+      if app != other_app || scm == other_scm && scm.match?(opts, other_opts) do
+        { other, diverged }
       else
-        :diverge
+        { other.status({ :diverged, dep }), true }
       end
     end
   end

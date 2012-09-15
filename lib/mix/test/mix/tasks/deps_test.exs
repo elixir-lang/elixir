@@ -205,60 +205,95 @@ defmodule Mix.Tasks.DepsTest do
 
   ## Nested dependencies
 
-  defmodule UnmetNestedDepsApp do
-    def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
-        deps: [
-          { :deps_repo, "0.1.0", raw: "custom/deps_repo" }
-        ]
-      ]
-    end
-  end
-
   defmodule NestedDepsApp do
     def project do
       [
         app: :raw_sample,
         version: "0.1.0",
         deps: [
-          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") },
           { :deps_repo, "0.1.0", raw: "custom/deps_repo" }
         ]
       ]
     end
   end
 
-  # test "fails on unmet nested dependencies" do
-  #   Mix.Project.push UnmetNestedDepsApp
-  # 
-  #   in_fixture "deps_status", fn ->
-  #     assert_raise Mix.OutOfDateNestedDepsError, fn ->
-  #       Mix.Tasks.Deps.Update.run []
-  #     end
-  # 
-  #     assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
-  #   end
-  # after
-  #   purge [DepsRepo, DepsRepo.Mix]
-  #   Mix.Project.pop
-  # end
-  # 
-  # test "works with nested dependencies" do
-  #   Mix.Project.push NestedDepsApp
-  # 
-  #   in_fixture "deps_status", fn ->
-  #     Mix.Tasks.Deps.Get.run ["git_repo"]
-  #     message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
-  #     assert_received { :mix_shell, :info, [^message] }
-  #     assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
-  # 
-  #     Mix.Tasks.Deps.Update.run []
-  #     assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
-  #   end
-  # after
-  #   purge [GitRepo, GitRepo.Mix, DepsRepo, DepsRepo.Mix]
-  #   Mix.Project.pop
-  # end
+  defmodule DivergedDepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          { :deps_repo, "0.1.0", raw: "custom/deps_repo" },
+          { :bad_deps_repo, "0.1.0", raw: "custom/bad_deps_repo" }
+        ]
+      ]
+    end
+  end
+
+  defmodule ConvergedDepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          { :deps_repo, "0.1.0", raw: "custom/deps_repo" },
+          { :bad_deps_repo, "0.1.0", raw: "custom/bad_deps_repo" },
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
+        ]
+      ]
+    end
+  end
+
+  test "works with nested dependencies" do
+    Mix.Project.push NestedDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run []
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
+
+      Mix.Tasks.Deps.Update.run []
+      assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, DepsRepo]
+    Mix.Project.pop
+  end
+
+  test "fails on diverged dependencies" do
+    Mix.Project.push DivergedDepsApp
+
+    in_fixture "deps_status", fn ->
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Check.run []
+      end
+
+      assert_received { :mix_shell, :error, ["  different specs were given for this dependency, choose one in your deps:" <> _] }
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
+    Mix.Project.pop
+  end
+
+  test "works with converged dependencies" do
+    Mix.Project.push ConvergedDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run []
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
+
+      Mix.Task.clear
+      Mix.Tasks.Deps.Update.run []
+      assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
+      assert_received { :mix_shell, :info, ["* Updating bad_deps_repo [raw: \"custom/bad_deps_repo\"]"] }
+
+      Mix.Tasks.Deps.Check.run []
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
+    Mix.Project.pop
+  end
 end

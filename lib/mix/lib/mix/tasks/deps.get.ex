@@ -8,26 +8,27 @@ defmodule Mix.Tasks.Deps.Get do
   that are not available or have a wrong lock.
   """
 
-  import Mix.Deps, only: [all: 2, available?: 1, by_name!: 1, format_dep: 1,
+  import Mix.Deps, only: [all: 2, by_name!: 1, format_dep: 1,
     deps_path: 1, check_lock: 2, out_of_date?: 1]
 
   def run([]) do
-    do_get all(&1, &2)
+    finalize_get all(init, deps_getter(&1, &2))
   end
 
   def run(args) do
-    do_get Enum.reduce by_name!(args), &1, &2
+    finalize_get Enum.reduce by_name!(args), init, deps_getter(&1, &2)
   end
 
-  defp do_get(fun) do
-    lock = Mix.Deps.Lock.read
-    { deps, new_lock } = fun.({ [], lock }, deps_getter(&1, &2))
-    if deps == [] do
+  defp init do
+    { [], Mix.Deps.Lock.read }
+  end
+
+  defp finalize_get({ apps, lock }) do
+    if apps == [] do
       Mix.shell.info "All dependencies up to date"
     else
-      Mix.Deps.Lock.write(new_lock)
-      to_compile = deps /> Enum.map(fn(dep) -> dep.app end) /> Enum.reverse
-      Mix.Task.run "deps.compile", to_compile
+      Mix.Deps.Lock.write(lock)
+      Mix.Task.run "deps.compile", apps
     end
   end
 
@@ -41,14 +42,13 @@ defmodule Mix.Tasks.Deps.Get do
 
       old  = lock[app]
       opts = Keyword.put(opts, :lock, old)
-
       path = deps_path(dep)
-      File.mkdir_p!(path)
 
       new = 
-        if available?(dep) do
+        if scm.available?(path, opts) do
           scm.update(path, opts)
         else
+          File.mkdir_p!(path)
           scm.checkout(path, opts)
         end
 
@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Deps.Get do
           Mix.shell.error "  dependency is not set to lock #{inspect old}"
           { dep, { acc, lock } }
         true ->
-          { dep, { [dep|acc], Keyword.put(lock, app, new) } }
+          { dep, { [app|acc], Keyword.put(lock, app, new) } }
       end
     else
       { dep, { acc, lock } }

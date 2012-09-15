@@ -39,7 +39,7 @@ defmodule Mix.SCM do
   This behavior function checks out dependencies.
 
   If the dependency is locked, a lock is received in `opts`
-  and the repository must be updated to the lock. Otherwise,
+  and the repository must be check out at the lock. Otherwise,
   no lock is given and the repository can be checked out
   to the latest version.
   """

@@ -8,9 +8,12 @@ defmodule Mix.SCM.Git do
 
   def consumes?(opts) do
     cond do
-      gh = opts[:github] -> Keyword.put(opts, :git, "https://github.com/#{gh}.git")
-      opts[:git]         -> opts
-      true               -> nil
+      gh = opts[:github] ->
+        opts /> Keyword.delete(:github) /> Keyword.put(:git, "https://github.com/#{gh}.git")
+      opts[:git] ->
+        opts
+      true ->
+        nil
     end
   end
 

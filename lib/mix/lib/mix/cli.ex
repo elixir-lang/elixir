@@ -2,8 +2,7 @@ defmodule Mix.CLI do
   @moduledoc false
 
   defmacrop exceptions do
-    [Mix.Error, Mix.NoTaskError, Mix.InvalidTaskError, Mix.NoProjectError,
-     Mix.OutOfDateDepsError, Mix.OutOfDateNestedDepsError]
+    [Mix.Error, Mix.NoTaskError, Mix.InvalidTaskError, Mix.NoProjectError, Mix.OutOfDateDepsError]
   end
 
   @doc """

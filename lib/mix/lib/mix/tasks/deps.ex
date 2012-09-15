@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Deps do
       if rev = lock[dep.app] do
         shell.info "  locked at #{rev}"
       end
-      shell.info "  #{format_status dep.status}"
+      shell.info "  #{format_status dep}"
     end
   end
 end

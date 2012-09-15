@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Deps.Check do
         else
           Enum.each not_ok, fn(dep) ->
             shell.error "* #{format_dep(dep)}"
-            shell.error "  #{format_status dep.status}"
+            shell.error "  #{format_status dep}"
           end
 
           raise Mix.Error

@@ -24,11 +24,9 @@ defmodule Mix.Deps do
 
   This function raises an exception in case the developer
   provides a dependency in the wrong format.
-
   """
   def all do
-    # TODO: Do something about divergences
-    { deps, _divergences, _acc } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
+    { deps, _ } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
     Enum.reverse(deps)
   end
 
@@ -37,7 +35,7 @@ defmodule Mix.Deps do
   accumulator.
   """
   def all(acc, callback) do
-    { _deps, _divergences, acc } = Mix.Deps.Converger.all(acc, callback)
+    { _deps, acc } = Mix.Deps.Converger.all(acc, callback)
     acc
   end
 
@@ -60,30 +58,52 @@ defmodule Mix.Deps do
   @doc """
   Formats the status of a dependency.
   """
-  def format_status({ :ok, _vsn }),         do: "ok"
-  def format_status({ :noappfile, path }),  do: "could not find app file at #{path}"
-  def format_status({ :invalidapp, path }), do: "the app file at #{path} is invalid"
-  def format_status({ :invalidvsn, vsn }),  do: "the dependency does not match the specified version, got #{vsn}"
-  def format_status({ :lockmismatch, _ }),  do: "lock mismatch: the dependency is out of date"
-  def format_status(:nolock),               do: "the dependency is not locked"
-  def format_status({ :unavailable, _ }),   do: "the dependency is not available, run `mix deps.get`"
+  def format_status(Mix.Dep[status: { :ok, _vsn }]),
+    do: "ok"
+
+  def format_status(Mix.Dep[status: { :noappfile, path }]),
+    do: "could not find app file at #{path}"
+
+  def format_status(Mix.Dep[status: { :invalidapp, path }]),
+    do: "the app file at #{path} is invalid"
+
+  def format_status(Mix.Dep[status: { :invalidvsn, vsn }]),
+    do: "the dependency does not match the specified version, got #{vsn}"
+
+  def format_status(Mix.Dep[status: { :lockmismatch, _ }]),
+    do: "lock mismatch: the dependency is out of date"
+
+  def format_status(Mix.Dep[status: :nolock]),
+    do: "the dependency is not locked"
+
+  def format_status(Mix.Dep[status: { :diverged, other }, opts: opts]),
+    do: "different specs were given for this dependency, choose one in your deps:\n" <>
+        "$ #{inspect_kw opts}\n$ #{inspect_kw other.opts}\n"
+
+  def format_status(Mix.Dep[status: { :unavailable, _ }]),
+    do: "the dependency is not available, run `mix deps.get`"
+
+  defp inspect_kw(list) do
+    middle = lc { key, value } inlist list, do: "#{key}: #{inspect value}"
+    "[ " <> Enum.join(middle, ",\n  ") <> " ]"
+  end
 
   @doc """
   Checks the lock for the given dependency and update its status accordingly.
   """
-  def check_lock(Mix.Dep[status: { :unavailable, _}] = dep, _lock) do
-    dep
-  end
-
   def check_lock(Mix.Dep[scm: scm, app: app, opts: opts] = dep, lock) do
-    rev  = lock[app]
-    opts = Keyword.put(opts, :lock, rev)
+    if available?(dep) do
+      rev  = lock[app]
+      opts = Keyword.put(opts, :lock, rev)
 
-    if scm.check?(deps_path(dep), opts) do
-      dep
+      if scm.check?(deps_path(dep), opts) do
+        dep
+      else
+        status = if rev, do: { :lockmismatch, rev }, else: :nolock
+        dep.status(status)
+      end
     else
-      status = if rev, do: { :lockmismatch, rev }, else: :nolock
-      dep.status(status)
+      dep
     end
   end
 
@@ -101,6 +121,7 @@ defmodule Mix.Deps do
   @doc """
   Check if a dependency is available.
   """
+  def available?(Mix.Dep[status: { :diverged, _ }]),    do: false
   def available?(Mix.Dep[status: { :unavailable, _ }]), do: false
   def available?(_), do: true
 
@@ -109,10 +130,9 @@ defmodule Mix.Deps do
   lock status. Therefore, be sure to call `check_lock` before
   invoking this function.
   """
-  def out_of_date?(Mix.Dep[status: { :unavailable, _ }]),  do: true
   def out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
   def out_of_date?(Mix.Dep[status: :nolock]),              do: true
-  def out_of_date?(_),                                     do: false
+  def out_of_date?(dep),                                   do: not available?(dep)
 
   @doc """
   Format the dependency for printing.
