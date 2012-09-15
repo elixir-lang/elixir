@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Deps.Compile do
   which mix will use to shell out.
   """
 
-  import Mix.Deps, only: [all: 0, all: 1, by_name: 1, format_dep: 1, deps_path: 1, deps_path: 0]
+  import Mix.Deps, only: [all: 0, all: 1, by_name!: 1, format_dep: 1, deps_path: 1]
 
   def run(args) do
     case OptionParser.parse(args) do
@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Deps.Compile do
         deps = all -- all(:unavailable)
         do_compile(deps)
       { _, tail } ->
-        do_compile(by_name(tail))
+        do_compile(by_name!(tail))
     end
   end
 
@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Deps.Compile do
       check_unavailable!(app, status)
       shell.info "* Compiling #{app}"
 
-      root_path = File.expand_path(deps_path)
+      root_path = File.expand_path(Mix.project[:deps_path])
 
       compile_path = deps_path(dep)
       ebin = File.join(compile_path, "ebin") /> binary_to_list
@@ -59,8 +59,8 @@ defmodule Mix.Tasks.Deps.Compile do
       :code.del_path(ebin /> File.expand_path)
 
       config = [
-        deps_path: File.expand_path(Mix.project[:deps_path]),
-        lockfile: File.expand_path(Mix.project[:lockfile])
+        deps_path: root_path,
+        lockfile:  File.expand_path(Mix.project[:lockfile])
       ]
 
       File.cd! compile_path, fn ->

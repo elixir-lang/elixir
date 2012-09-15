@@ -22,6 +22,14 @@ defmodule Mix.SCM.Git do
     opts[:lock] && File.cd!(path, fn -> opts[:lock] == get_rev end)
   end
 
+  def match?(opts1, opts2) do
+    opts1[:git] == opts2[:git] and
+      opts1[:branch] == opts2[:branch] and
+      opts1[:tag] == opts2[:tag] and
+      opts1[:ref] == opts2[:ref] and
+      opts1[:submodules] == opts2[:submodules]
+  end
+
   def get(path, opts) do
     location = opts[:git]
     maybe_error System.cmd("git clone --quiet --no-checkout #{location} #{path}")

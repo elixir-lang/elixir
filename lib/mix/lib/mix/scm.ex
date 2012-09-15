@@ -62,6 +62,12 @@ defmodule Mix.SCM do
   defcallback check?(path, opts)
 
   @doc """
+  Receives two options and must return true if the refer to the
+  same repository.
+  """
+  defcallback match?(opts1, opts2)
+
+  @doc """
   This behavior function should clean the given dependency.
   """
   defcallback clean(path, opts)

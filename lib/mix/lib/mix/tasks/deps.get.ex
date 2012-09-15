@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Deps.Get do
   that are not available or have a wrong lock.
   """
 
-  import Mix.Deps, only: [all: 0, by_name: 1, format_dep: 1,
+  import Mix.Deps, only: [all: 0, by_name!: 1, format_dep: 1,
                           deps_path: 1, check_lock: 2, out_of_date?: 1]
 
   def run(args) do
@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Deps.Get do
           do_get(deps)
         end
       { _, tail } ->
-        do_get(by_name(tail))
+        do_get(by_name!(tail))
     end
   end
 

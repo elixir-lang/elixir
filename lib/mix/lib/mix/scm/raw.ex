@@ -20,6 +20,10 @@ defmodule Mix.SCM.Raw do
     true
   end
 
+  def match?(opts1, opts2) do
+    opts1[:raw] == opts2[:raw]
+  end
+
   def get(_path, opts) do
     opts[:lock]
   end

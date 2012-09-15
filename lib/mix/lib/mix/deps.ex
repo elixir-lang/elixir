@@ -1,4 +1,4 @@
-defrecord Mix.Dep, [scm: nil, app: nil, requirement: nil, status: nil, opts: nil] do
+defrecord Mix.Dep, [scm: nil, app: nil, requirement: nil, status: nil, opts: nil, project: nil] do
   @moduledoc """
   This is a record that keeps information about your project
   dependencies. It keeps:
@@ -8,6 +8,7 @@ defrecord Mix.Dep, [scm: nil, app: nil, requirement: nil, status: nil, opts: nil
   * requirements - a binary or regexp with the deps requirement;
   * status - the current status of dependency, check `Mix.Deps.format_status/1` for more info;
   * opts - the options given by the developer
+  * project - the Mix.Project for the dependency
   """
 end
 
@@ -47,7 +48,7 @@ defmodule Mix.Deps do
   Receives a list of deps names and returns deps records.
   Raises an error if the dependency does not exist.
   """
-  def by_name(given) do
+  def by_name!(given) do
     candidates = all
 
     Enum.map given, fn(app) ->
@@ -126,13 +127,6 @@ defmodule Mix.Deps do
     deps_path(app, opts)
   end
 
-  @doc """
-  The default path for dependencies.
-  """
-  def deps_path do
-    Mix.project[:deps_path] || "deps"
-  end
-
   ## Helpers
 
   defp with_scm_and_status({ app, opts }, scms) when is_atom(app) and is_list(opts) do
@@ -201,6 +195,6 @@ defmodule Mix.Deps do
   defp vsn_match?(expected, actual) when is_regex(expected),  do: actual =~ expected
 
   defp deps_path(app, opts) do
-    opts[:path] || File.join(deps_path, app)
+    opts[:path] || File.join(Mix.project[:deps_path], app)
   end
 end
