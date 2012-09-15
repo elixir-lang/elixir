@@ -206,13 +206,13 @@ defmodule EnumTest.List do
     assert Enum.split([1,2,3], -10) == { [], [1,2,3] }
   end
 
-  test :split_with do
-    assert Enum.split_with([1,2,3], fn(_) -> false end) == { [], [1,2,3] }
-    assert Enum.split_with([1,2,3], fn(_) -> true end) == { [1,2,3], [] }
-    assert Enum.split_with([1,2,3], fn(x) -> x > 2 end) == { [], [1,2,3] }
-    assert Enum.split_with([1,2,3], fn(x) -> x > 3 end) == { [], [1,2,3] }
-    assert Enum.split_with([1,2,3], fn(x) -> x < 3 end) == { [1,2], [3] }
-    assert Enum.split_with([], fn(_) -> true end) == { [], [] }
+  test :split_while do
+    assert Enum.split_while([1,2,3], fn(_) -> false end) == { [], [1,2,3] }
+    assert Enum.split_while([1,2,3], fn(_) -> true end) == { [1,2,3], [] }
+    assert Enum.split_while([1,2,3], fn(x) -> x > 2 end) == { [], [1,2,3] }
+    assert Enum.split_while([1,2,3], fn(x) -> x > 3 end) == { [], [1,2,3] }
+    assert Enum.split_while([1,2,3], fn(x) -> x < 3 end) == { [1,2], [3] }
+    assert Enum.split_while([], fn(_) -> true end) == { [], [] }
   end
 
   test :take do
@@ -401,9 +401,9 @@ defmodule EnumTest.HashDict do
     end
   end
 
-  test :split_with do
+  test :split_while do
     assert_raise Protocol.UndefinedError, fn ->
-      Enum.split_with HashDict.new, fn(x) -> x end
+      Enum.split_while HashDict.new, fn(x) -> x end
     end
   end
 
@@ -455,9 +455,9 @@ defmodule EnumTest.Orddict do
     assert Enum.split(dict, -10) == { [], [a: 1, c: 3, b: 2] }
   end
 
-  test :split_with do
+  test :split_while do
     dict = Orddict.new [a: 1, b: 3, c: 2, d: 4]
-    assert Enum.split_with(dict, fn({_k, v}) -> rem(v, 2) == 1 end) == { [a: 1, b: 3], [c: 2, d: 4] }
+    assert Enum.split_while(dict, fn({_k, v}) -> rem(v, 2) == 1 end) == { [a: 1, b: 3], [c: 2, d: 4] }
   end
 
   test :take do
@@ -696,16 +696,16 @@ defmodule EnumTest.Range do
     assert Enum.split(range, 3) == { [], [] }
   end
 
-  test :split_with do
+  test :split_while do
     range = Range.new(first: 1, last: 3)
-    assert Enum.split_with(range, fn(_) -> false end) == { [], [1,2,3] }
-    assert Enum.split_with(range, fn(_) -> true end) == { [1,2,3], [] }
-    assert Enum.split_with(range, fn(x) -> x > 2 end) == { [], [1,2,3] }
-    assert Enum.split_with(range, fn(x) -> x > 3 end) == { [], [1,2,3] }
-    assert Enum.split_with(range, fn(x) -> x < 3 end) == { [1,2], [3] }
+    assert Enum.split_while(range, fn(_) -> false end) == { [], [1,2,3] }
+    assert Enum.split_while(range, fn(_) -> true end) == { [1,2,3], [] }
+    assert Enum.split_while(range, fn(x) -> x > 2 end) == { [], [1,2,3] }
+    assert Enum.split_while(range, fn(x) -> x > 3 end) == { [], [1,2,3] }
+    assert Enum.split_while(range, fn(x) -> x < 3 end) == { [1,2], [3] }
 
     range = Range.new(first: 1, last: 0)
-    assert Enum.split_with(range, fn(_) -> true end) == { [], [] }
+    assert Enum.split_while(range, fn(_) -> true end) == { [], [] }
   end
 
   test :take do

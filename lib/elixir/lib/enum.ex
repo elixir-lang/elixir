@@ -56,7 +56,7 @@ defprotocol Enum.OrdIterator do
   @moduledoc """
   This protocol is invoked by some functions in Enum which
   requires an ordered collection to function correctly. For
-  instance, `Enum.split_with/2`, `Enum.take_while` all rely
+  instance, `Enum.split_while/2`, `Enum.take_while` all rely
   on this protocol.
 
   An ordered collection does not mean the items are ordered
@@ -716,26 +716,32 @@ defmodule Enum do
     split(list, real_count)
   end
 
+  @doc false
+  def split_with(collection, fun) do
+    IO.write "[WARNING] Enum.split_with is deprecated, please use split_while instead\n#{Exception.formatted_stacktrace}"
+    split_while(collection, fun)
+  end
+
   @doc """
   Splits `collection` at the first element, for which `fun` returns true.
   Expects an ordered collection.
 
   ## Examples
 
-      Enum.split_with [1,2,3,4], fn x -> x == 2 end
+      Enum.split_while [1,2,3,4], fn x -> x == 2 end
       #=> { [1], [2, 3, 4] }
   """
-  def split_with(collection, fun) when is_list(collection) do
-    do_split_with(collection, fun, [])
+  def split_while(collection, fun) when is_list(collection) do
+    do_split_while(collection, fun, [])
   end
 
-  def split_with(collection, fun) do
+  def split_while(collection, fun) do
     case O.iterator(collection) do
       { iterator, pointer } ->
         module = O.__impl_for__!(collection)
-        do_split_with(pointer, iterator, fun, [], module)
+        do_split_while(pointer, iterator, fun, [], module)
       list when is_list(list) ->
-        do_split_with(list, fun, [])
+        do_split_while(list, fun, [])
     end
   end
 
@@ -1049,29 +1055,29 @@ defmodule Enum do
     acc
   end
 
-  ## split_with
+  ## split_while
 
-  defp do_split_with([h|t], fun, acc) do
+  defp do_split_while([h|t], fun, acc) do
     if fun.(h) do
-      do_split_with(t, fun, [h|acc])
+      do_split_while(t, fun, [h|acc])
     else
       { :lists.reverse(acc), [h|t] }
     end
   end
 
-  defp do_split_with([], _, acc) do
+  defp do_split_while([], _, acc) do
     { :lists.reverse(acc), [] }
   end
 
-  defp do_split_with({ h, next } = extra, iterator, fun, acc, module) do
+  defp do_split_while({ h, next } = extra, iterator, fun, acc, module) do
     if fun.(h) do
-      do_split_with(iterator.(next), iterator, fun, [h|acc], module)
+      do_split_while(iterator.(next), iterator, fun, [h|acc], module)
     else
       { :lists.reverse(acc), module.to_list(extra, iterator) }
     end
   end
 
-  defp do_split_with(:stop, _, _, acc, _module) do
+  defp do_split_while(:stop, _, _, acc, _module) do
     { :lists.reverse(acc), [] }
   end
 
