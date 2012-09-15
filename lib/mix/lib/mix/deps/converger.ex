@@ -20,7 +20,7 @@ defmodule Mix.Deps.Converger do
   an updated depedency in case some processing is done.
   """
   def all(rest, callback) do
-    main   = Mix.Deps.Project.all
+    main   = Enum.reverse Mix.Deps.Project.all
     config = [ deps_path: File.expand_path(Mix.project[:deps_path]),
                lockfile: File.expand_path(Mix.project[:lockfile]) ]
     all(main, [], [], main, config, callback, rest)
@@ -120,7 +120,7 @@ defmodule Mix.Deps.Converger do
         project = load_project(app, config)
 
         try do
-          { project, Mix.Deps.Project.all }
+          { project, Enum.reverse Mix.Deps.Project.all }
         after
           Mix.Project.pop
         end

@@ -27,7 +27,7 @@ defmodule Mix.Deps do
   """
   def all do
     { deps, _ } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
-    Enum.reverse(deps)
+    deps
   end
 
   @doc """
@@ -44,15 +44,22 @@ defmodule Mix.Deps do
   Raises an error if the dependency does not exist.
   """
   def by_name!(given) do
-    candidates = all
+    # Ensure all apps are atoms
+    apps = Enum.map given, fn(app) ->
+      if is_binary(app), do: binary_to_atom(app), else: app
+    end
 
-    Enum.map given, fn(app) ->
-      if is_binary(app), do: app = binary_to_atom(app)
-      case List.keyfind(candidates, app, 1) do
-        nil -> raise Mix.Error, message: "unknown dependency #{app}"
-        dep -> dep
+    # We need to keep the order of all, which properly orders deps
+    deps = Enum.filter all, fn(dep) -> List.member?(apps, dep.app) end
+
+    # Now we validate the given atoms
+    Enum.each apps, fn(app) ->
+      unless List.keyfind(deps, app, 1) do
+        raise Mix.Error, message: "unknown dependency #{app}"
       end
     end
+
+    deps
   end
 
   @doc """

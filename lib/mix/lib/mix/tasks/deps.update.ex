@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Deps.Update do
           lock
         end
         
-      { dep, { [app|acc], lock } }
+      { Mix.Deps.update(dep), { [app|acc], lock } }
     else
       { dep, { acc, lock } }
     end

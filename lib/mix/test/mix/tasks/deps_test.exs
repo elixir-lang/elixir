@@ -296,4 +296,17 @@ defmodule Mix.Tasks.DepsTest do
     purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
     Mix.Project.pop
   end
+
+  test "converged dependencies are properly ordered" do
+    Mix.Project.push NestedDepsApp
+
+    in_fixture "deps_status", fn ->
+      # Nested dependencies need to come first. They are
+      # listed first, compiled first, etc.
+      assert [Mix.Dep[app: :git_repo], Mix.Dep[app: :deps_repo]] = Mix.Deps.all
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
+    Mix.Project.pop
+  end
 end

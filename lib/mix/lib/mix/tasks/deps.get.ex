@@ -59,7 +59,9 @@ defmodule Mix.Tasks.Deps.Get do
           Mix.shell.error "  dependency is not set to lock #{inspect old}"
           { dep, { acc, lock } }
         true ->
-          { dep, { [app|acc], Keyword.put(lock, app, new) } }
+          # Update the dependency returned so it is now
+          # available and nested dependencies can be fetched
+          { Mix.Deps.update(dep), { [app|acc], Keyword.put(lock, app, new) } }
       end
     else
       { dep, { acc, lock } }
