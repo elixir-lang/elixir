@@ -15,7 +15,7 @@ defmodule Mix.CLI do
     args = load_mixfile(args)
     { task, args } = get_task(args)
 
-    if Mix.Project.defined? do
+    if Mix.Project.get do
       Mix.Task.run "loadpaths", ["--no-check"]
       Mix.Task.reenable "loadpaths"
       Mix.Task.reenable "deps.loadpaths"

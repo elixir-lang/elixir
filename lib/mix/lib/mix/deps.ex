@@ -18,30 +18,27 @@ defmodule Mix.Deps do
   """
 
   @doc """
-  Returns all dependencies in as `Mix.Dep` record.
+  Returns all dependencies recursively as `Mix.Dep` record.
 
   ## Exceptions
 
   This function raises an exception in case the developer
   provides a dependency in the wrong format.
 
-  ## Statuses
-
-  The `status` element in the tuple returns the current
-  situation of the repository. Check `format_status/1`
-  for more information.
   """
   def all do
-    deps = Mix.project[:deps] || []
-    scms = Mix.SCM.available
-    Enum.map deps, with_scm_and_status(&1, scms)
+    # TODO: Do something about divergences
+    { deps, _divergences, _acc } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
+    Enum.reverse(deps)
   end
 
   @doc """
-  Get all dependencies that match the specific `status`.
+  Returns all dependencies but with a custom callback and
+  accumulator.
   """
-  def all(status) do
-    Enum.filter all, match?(Mix.Dep[status: { ^status, _ }], &1)
+  def all(acc, callback) do
+    { _deps, _divergences, acc } = Mix.Deps.Converger.all(acc, callback)
+    acc
   end
 
   @doc """
@@ -72,13 +69,6 @@ defmodule Mix.Deps do
   def format_status({ :unavailable, _ }),   do: "the dependency is not available, run `mix deps.get`"
 
   @doc """
-  Receives a dependency and update its status
-  """
-  def update_status(Mix.Dep[scm: scm, app: app, requirement: req, opts: opts]) do
-    with_scm_and_status({ app, req, opts }, [scm])
-  end
-
-  @doc """
   Checks the lock for the given dependency and update its status accordingly.
   """
   def check_lock(Mix.Dep[status: { :unavailable, _}] = dep, _lock) do
@@ -96,6 +86,23 @@ defmodule Mix.Deps do
       dep.status(status)
     end
   end
+
+  @doc """
+  Updates the dependency inside the given project.
+  """
+  defdelegate update(dep), to: Mix.Deps.Project
+
+  @doc """
+  Check if a dependency is ok.
+  """
+  def ok?(Mix.Dep[status: { :ok, _ }]), do: true
+  def ok?(_), do: false
+
+  @doc """
+  Check if a dependency is available.
+  """
+  def available?(Mix.Dep[status: { :unavailable, _ }]), do: false
+  def available?(_), do: true
 
   @doc """
   Check if a dependency is out of date or not, considering its
@@ -124,77 +131,6 @@ defmodule Mix.Deps do
   Returns the path for the given dependency.
   """
   def deps_path(Mix.Dep[app: app, opts: opts]) do
-    deps_path(app, opts)
-  end
-
-  ## Helpers
-
-  defp with_scm_and_status({ app, opts }, scms) when is_atom(app) and is_list(opts) do
-    with_scm_and_status({ app, nil, opts }, scms)
-  end
-
-  defp with_scm_and_status({ app, req, opts }, scms) when is_atom(app) and
-      (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
-
-    { scm, opts } = Enum.find_value scms, fn(scm) ->
-      (new = scm.consumes?(opts)) && { scm, new }
-    end
-
-    if scm do
-      Mix.Dep[
-        scm: scm,
-        app: app,
-        requirement: req,
-        status: status(scm, app, req, opts),
-        opts: opts
-      ]
-    else
-      supported = Enum.join scms, ", "
-      raise Mix.Error, message: "did not specify a supported scm, expected one of: " <> supported
-    end
-  end
-
-  defp with_scm_and_status(other, _scms) do
-    raise Mix.Error, message: %b(dependency specified in the wrong format: #{inspect other}, ) <>
-      %b(expected { "app", "requirement", scm: "location" })
-  end
-
-  defp status(scm, app, req, opts) do
-    deps_path = deps_path(app, opts)
-    if scm.available? deps_path, opts do
-      if req do
-        app_path = File.join deps_path, "ebin/#{app}.app"
-        validate_app_file(app_path, app, req)
-      else
-        { :ok, nil }
-      end
-    else
-      { :unavailable, deps_path }
-    end
-  end
-
-  defp validate_app_file(app_path, app, req) do
-    case :file.consult(app_path) do
-      { :ok, [{ :application, ^app, config }] } ->
-        case List.keyfind(config, :vsn, 0) do
-          { :vsn, actual } ->
-            actual = list_to_binary(actual)
-            if vsn_match?(req, actual) do
-              { :ok, actual }
-            else
-              { :invalidvsn, actual }
-            end
-          nil -> { :invalidvsn, nil }
-        end
-      { :ok, _ } -> { :invalidapp, app_path }
-      { :error, _ } -> { :noappfile, app_path }
-    end
-  end
-
-  defp vsn_match?(expected, actual) when is_binary(expected), do: actual == expected
-  defp vsn_match?(expected, actual) when is_regex(expected),  do: actual =~ expected
-
-  defp deps_path(app, opts) do
-    opts[:path] || File.join(Mix.project[:deps_path], app)
+    Mix.Deps.Project.deps_path(app, opts)
   end
 end

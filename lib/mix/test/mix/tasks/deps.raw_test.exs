@@ -1,6 +1,6 @@
 Code.require_file "../../../test_helper.exs", __FILE__
 
-defmodule Mix.Tasks.DepsPathTest do
+defmodule Mix.Tasks.DepsRawTest do
   use MixTest.Case
 
   defmodule DepsApp do

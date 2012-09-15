@@ -24,7 +24,7 @@ defmodule Mix.SCM.Raw do
     opts1[:raw] == opts2[:raw]
   end
 
-  def get(_path, opts) do
+  def checkout(_path, opts) do
     opts[:lock]
   end
 

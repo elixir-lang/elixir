@@ -30,7 +30,7 @@ defmodule Mix.SCM.Git do
       opts1[:submodules] == opts2[:submodules]
   end
 
-  def get(path, opts) do
+  def checkout(path, opts) do
     location = opts[:git]
     maybe_error System.cmd("git clone --quiet --no-checkout #{location} #{path}")
 

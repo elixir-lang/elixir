@@ -17,7 +17,11 @@ defmodule Mix.Tasks.Loadpaths do
 
   """
   def run(args) do
-    Mix.Task.run "deps.loadpaths", args
+    { opts, _ } = OptionParser.parse(args)
+
+    unless opts[:no_deps] do
+      Mix.Task.run "deps.loadpaths", args
+    end
 
     paths = Mix.project[:load_paths] || []
     Enum.each paths, Code.prepend_path(&1)

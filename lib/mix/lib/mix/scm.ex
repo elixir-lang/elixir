@@ -36,20 +36,24 @@ defmodule Mix.SCM do
   defcallback available?(path, opts)
 
   @doc """
-  This behavior function gets unchecked dependencies.
-  If the dependency is locked, it receives the lock under the
-  `:lock` key in `opts`. In case no lock is given, it must
-  return a new lock (if one exists). If a lock is given,
-  it must preferably return the same lock, but can return
-  a different one in case of failure.
+  This behavior function checks out dependencies.
+
+  If the dependency is locked, a lock is received in `opts`
+  and the repository must be updated to the lock. Otherwise,
+  no lock is given and the repository can be checked out
+  to the latest version.
   """
-  defcallback get(path, opts)
+  defcallback checkout(path, opts)
 
   @doc """
   This behavior function updates dependencies. It may be
-  called either directly via `deps.update` or implicitly
-  by `deps.get`. In the first scenario, no lock is received,
-  while one is given in the second.
+  called by `deps.get` or `deps.update`.
+
+  In the first scenario, a lock is received in `opts` and
+  the repository must be updated to the lock. In the second,
+  no lock is given and the repository can be updated freely.
+
+  It must return the current lock.
   """
   defcallback update(path, opts)
 

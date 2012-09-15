@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Compile.App do
   def run(args) do
     { opts, _ } = OptionParser.parse(args, flags: [:force])
 
-    project = Mix.Project.current
+    project = Mix.Project.get!
     config  = Mix.project
 
     app     = Keyword.get!(config, :app)

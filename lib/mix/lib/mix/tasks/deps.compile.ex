@@ -29,15 +29,14 @@ defmodule Mix.Tasks.Deps.Compile do
   which mix will use to shell out.
   """
 
-  import Mix.Deps, only: [all: 0, all: 1, by_name!: 1, format_dep: 1, deps_path: 1]
+  import Mix.Deps, only: [all: 0, available?: 1, by_name!: 1, format_dep: 1, deps_path: 1]
 
   def run(args) do
     case OptionParser.parse(args) do
       { _, [] } ->
-        deps = all -- all(:unavailable)
-        do_compile(deps)
+        do_compile Enum.filter(all, available?(&1))
       { _, tail } ->
-        do_compile(by_name!(tail))
+        do_compile by_name!(tail)
     end
   end
 
@@ -50,20 +49,20 @@ defmodule Mix.Tasks.Deps.Compile do
       check_unavailable!(app, status)
       shell.info "* Compiling #{app}"
 
-      root_path = File.expand_path(Mix.project[:deps_path])
-
-      compile_path = deps_path(dep)
-      ebin = File.join(compile_path, "ebin") /> binary_to_list
+      deps_path = deps_path(dep)
+      ebin = File.join(deps_path, "ebin") /> binary_to_list
 
       # Avoid compilation conflicts
       :code.del_path(ebin /> File.expand_path)
+
+      root_path = File.expand_path(Mix.project[:deps_path])
 
       config = [
         deps_path: root_path,
         lockfile:  File.expand_path(Mix.project[:lockfile])
       ]
 
-      File.cd! compile_path, fn ->
+      File.cd! deps_path, fn ->
         cond do
           opts[:compile] -> do_command(opts[:compile], app)
           mix?           -> do_mix(dep, config)
@@ -91,17 +90,20 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp do_mix(Mix.Dep[app: app, opts: opts], config) do
-    env     = opts[:env] || :prod
-    current = Mix.env
-    Mix.env(env)
+  defp do_mix(Mix.Dep[opts: opts, project: project], config) do
+    env       = opts[:env] || :prod
+    old_env   = Mix.env
+    old_tasks = Mix.Task.clear
 
     try do
-      Mix.Project.in_subproject(config, fn -> Mix.Task.run "compile" end)
-    rescue
-      Mix.OutOfDateDepsError -> raise Mix.OutOfDateNestedDepsError, app: app
+      Mix.env(env)
+      Mix.Project.post_config(config)
+      Mix.Project.push project
+      Mix.Task.run "compile", ["--no-deps"]
     after
-      Mix.env(current)
+      Mix.env(old_env)
+      Mix.Project.pop
+      Mix.Task.set_tasks(old_tasks)
     end
   end
 
@@ -110,7 +112,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_command(atom, app) when is_atom(atom) do
-    apply Mix.Project.current, atom, [app]
+    apply Mix.Project.get!, atom, [app]
   end
 
   defp do_command(command, _) do

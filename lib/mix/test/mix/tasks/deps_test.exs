@@ -230,35 +230,35 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "fails on unmet nested dependencies" do
-    Mix.Project.push UnmetNestedDepsApp
-
-    in_fixture "deps_status", fn ->
-      assert_raise Mix.OutOfDateNestedDepsError, fn ->
-        Mix.Tasks.Deps.Update.run []
-      end
-
-      assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
-    end
-  after
-    purge [DepsRepo, DepsRepo.Mix]
-    Mix.Project.pop
-  end
-
-  test "works with nested dependencies" do
-    Mix.Project.push NestedDepsApp
-
-    in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Get.run ["git_repo"]
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
-      assert_received { :mix_shell, :info, [^message] }
-      assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
-
-      Mix.Tasks.Deps.Update.run []
-      assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
-    end
-  after
-    purge [GitRepo, GitRepo.Mix, DepsRepo, DepsRepo.Mix]
-    Mix.Project.pop
-  end
+  # test "fails on unmet nested dependencies" do
+  #   Mix.Project.push UnmetNestedDepsApp
+  # 
+  #   in_fixture "deps_status", fn ->
+  #     assert_raise Mix.OutOfDateNestedDepsError, fn ->
+  #       Mix.Tasks.Deps.Update.run []
+  #     end
+  # 
+  #     assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
+  #   end
+  # after
+  #   purge [DepsRepo, DepsRepo.Mix]
+  #   Mix.Project.pop
+  # end
+  # 
+  # test "works with nested dependencies" do
+  #   Mix.Project.push NestedDepsApp
+  # 
+  #   in_fixture "deps_status", fn ->
+  #     Mix.Tasks.Deps.Get.run ["git_repo"]
+  #     message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+  #     assert_received { :mix_shell, :info, [^message] }
+  #     assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
+  # 
+  #     Mix.Tasks.Deps.Update.run []
+  #     assert_received { :mix_shell, :info, ["* Updating deps_repo [raw: \"custom/deps_repo\"]"] }
+  #   end
+  # after
+  #   purge [GitRepo, GitRepo.Mix, DepsRepo, DepsRepo.Mix]
+  #   Mix.Project.pop
+  # end
 end

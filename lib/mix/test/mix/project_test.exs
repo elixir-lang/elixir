@@ -18,11 +18,10 @@ defmodule Mix.ProjectTest do
 
 
   test "push and pop projects" do
-    refute Mix.Project.defined?
+    refute Mix.Project.get
     Mix.Project.push(SampleProject)
 
-    assert Mix.Project.current == SampleProject
-    assert Mix.Project.defined?
+    assert Mix.Project.get == SampleProject
 
     assert Mix.Project.pop == SampleProject
     assert Mix.Project.pop == nil
@@ -49,9 +48,9 @@ defmodule Mix.ProjectTest do
     assert Mix.project[:compile_path] == "ebin"
   end
 
-  test "raises an error when trying to retrieve the current a project but none it set" do
+  test "raises an error when trying to retrieve the current project but none it set" do
     assert_raise Mix.NoProjectError, fn ->
-      Mix.Project.current
+      Mix.Project.get!
     end
   end
 end
