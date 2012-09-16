@@ -302,7 +302,14 @@ defmodule String do
   end
 
   @doc """
-  Returns a list with codepoints
+  Returns a list with codepoints from an utf8 string.
+
+  ## Examples
+
+      String.codepoints("josé")         => ["j", "o", "s", "é"]
+      String.codepoints("оптими зации") => ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
+      String.codepoints("ἅἪῼ")          => ["ἅ","Ἢ","ῼ"]
+
   """
   def codepoints(string) do
     codepoints(string, [])
