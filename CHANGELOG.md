@@ -5,7 +5,8 @@
   * [IEx] Supports `after_spawn` callbacks which are invoked after each process is spawned
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
   * [List] Add support to keyreplace and keystore
-  * [Mix] Mix now support environments - the current environment can be set via MIX_ENV
+  * [Mix] Mix now supports environments - the current environment can be set via MIX_ENV
+  * [Mix] Mix now supports nested dependencies
   * [Record] Improvements to the Record API, added `Record.defmacros`
   * [Regex] Added return option to `Regex.run` and `Regex.scan`
   * [String] Add a String module responsible for handling UTf-8 binaries

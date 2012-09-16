@@ -12,9 +12,6 @@ defmodule Keyword do
   key, regardless if duplicated entries exist. Similarly,
   `Keyword.put` and `Keyword.delete` ensure all duplicated
   entries for a given key are removed when invoked.
-
-  This module uses `==` as operator to check if two keys
-  are equal or not.
   """
 
   @doc """

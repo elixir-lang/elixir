@@ -26,11 +26,12 @@ defmodule Mix.Project do
   even without a project.
 
   In case the developer needs a project or want to access a special
-  function in the project, he can access `Mix.Project.current/0`
+  function in the project, he can access `Mix.Project.get!/0`
   which fails with `Mix.NoProjectError` in case a project is not
   defined.
   """
 
+  @doc false
   def behaviour_info(:callbacks) do
     [project: 0]
   end
@@ -39,7 +40,7 @@ defmodule Mix.Project do
   defmacro __using__(_) do
     quote do
       @after_compile Mix.Project
-      @behavior Mix.Project
+      @behaviour Mix.Project
     end
   end
 
@@ -60,34 +61,15 @@ defmodule Mix.Project do
   # Pops a project from the stack.
   @doc false
   def pop do
-    Mix.Server.cast(:pop_project)
+    Mix.Server.call(:pop_project)
   end
 
-  # Loads the mix.exs file in the current directory
-  # and executes the given function. The project and
-  # tasks stack are properly manipulated, no side-effects
-  # should remain.
-  @doc false
-  def in_subproject(config, function) do
-    current = Mix.Project.current
-    tasks   = Mix.Task.clear
-
-    Mix.Server.cast({ :post_config, config })
-
-    if File.regular?("mix.exs") do
-      Code.load_file "mix.exs"
-    end
-
-    if current == Mix.Project.current do
-      push nil
-    end
-
-    try do
-      function.()
-    after
-      Mix.Project.pop
-      Mix.Task.set_tasks(tasks)
-    end
+  @doc """
+  Refresh the project configuration. Usually required
+  when the environment changes during a task.
+  """
+  def refresh do
+    push pop
   end
 
   @doc """
@@ -99,24 +81,20 @@ defmodule Mix.Project do
   function raises `Mix.NoProjectError` in case no project
   is available.
 
-  Use `defined?/0` if you need to check if a project is
-  defined or not without raising an exception.
+  Returns nil if no project./
   """
-  def current do
+  def get do
     case Mix.Server.call(:projects) do
-      [{ h, _ }|_] when h != nil -> h
-      _ -> raise Mix.NoProjectError
+      [{ h, _ }|_] -> h
+      _ -> nil
     end
   end
 
   @doc """
-  Returns true if a current project is defined.
+  Same as `get/0` but raises an exception if no project.
   """
-  def defined? do
-    case Mix.Server.call(:projects) do
-      [{ h, _ }|_] when h != nil -> true
-      _ -> false
-    end
+  def get! do
+    get || raise Mix.NoProjectError
   end
 
   @doc """
@@ -128,6 +106,12 @@ defmodule Mix.Project do
       [{ h, config }|_] when h != nil -> config
       _ -> default_config
     end
+  end
+
+  # Registers post config.
+  @doc false
+  def post_config(config) do
+    Mix.Server.cast({ :post_config, config })
   end
 
   defp default_config do

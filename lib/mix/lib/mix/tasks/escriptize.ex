@@ -106,7 +106,7 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp gen_main(name, module) do
-    { _, binary, _ } =
+    { :module, ^name, binary, _ } =
       defmodule name do
         @module module
 

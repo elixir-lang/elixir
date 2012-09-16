@@ -2,8 +2,28 @@ defmodule Dict do
   @moduledoc """
   This module specifies the Dict API expected to be
   implemented by different dictionaries. It also provides
-  functions that redirect to the target based on the tuple
-  signature.
+  functions that redirect to the underlying Dict based on
+  the tuple signature.
+
+  The keyword list used throughout Elixir cannot be
+  manipulated via the Dict module, you must use the
+  Keyword module instead. This distinction is intentional:
+  the Dict module is meant to work on structures that work
+  as storage.
+
+  To create a new dict, use the `new` functions defined
+  by each dict type:
+
+      Orddict.new [{:a, 1}, {:b, 2}]
+      HashDict.new  #=> creates an empty HashDict
+
+  For simplicity's sake, in the examples below everytime
+  `new` is used, it implies one of the module-specific
+  calls like the two above. Likewise, when the result of
+  a function invocation is shown in the form `[a: 1, b: 2]`,
+  it implies that the returned value is actually of the
+  same dict type as the input one.
+
   """
 
   @doc false
@@ -20,7 +40,8 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.keys [a: 1, b: 2]  #=> [:a,:b]
+      d = new [a: 1, b: 2]
+      Dict.keys d  #=> [:a,:b]
 
   """
   def keys(dict) do
@@ -32,7 +53,8 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.values [a: 1, b: 2]  #=> [1,2]
+      d = new [a: 1, b: 2]
+      Dict.values d  #=> [1,2]
 
   """
   def values(dict) do
@@ -44,7 +66,8 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.size [a: 1, b: 2]  #=> 2
+      d = new [a: 1, b: 2]
+      Dict.size d  #=> 2
 
   """
   def size(dict) do
@@ -56,8 +79,9 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.has_key?([a: 1], :a)  #=> true
-      Dict.has_key?([a: 1], :b)  #=> false
+      d = new [a: 1]
+      Dict.has_key?(d, :a)  #=> true
+      Dict.has_key?(d, :b)  #=> false
 
   """
   def has_key?(dict, key) do
@@ -70,9 +94,10 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.get [a: 1], :a     #=> 1
-      Dict.get [a: 1], :b     #=> nil
-      Dict.get [a: 1], :b, 3  #=> 3
+      d = new [a: 1]
+      Dict.get d, :a     #=> 1
+      Dict.get d, :b     #=> nil
+      Dict.get d, :b, 3  #=> 3
 
   """
   def get(dict, key, default // nil) do
@@ -85,7 +110,8 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.put [a: 1, b: 2], :a, 3
+      d = new [a: 1, b: 2]
+      Dict.put d, :a, 3
       #=> [a: 3, b: 2]
 
   """
@@ -99,8 +125,11 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.delete [a: 1, b: 2], :a  #=> [b: 2]
-      Dict.delete [b: 2], :a        #=> [b: 2]
+      d = new [a: 1, b: 2]
+      Dict.delete d, :a      #=> [b: 2]
+
+      d = new [b: 2]
+      Dict.delete d, :a      #=> [b: 2]
 
   """
   def delete(dict, key) do
@@ -115,8 +144,10 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.merge [a: 1, b: 2], [a: 3, d: 4]
-      #=> [a:3, b:2, d: 4]
+      d1 = new [a: 1, b: 2]
+      d2 = new [a: 3, d: 4]
+      Dict.merge d1, d2
+      #=> [a: 3, b: 2, d: 4]
 
   """
   def merge(dict1, dict2) do
@@ -129,7 +160,9 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
+      d1 = new [a: 1, b: 2]
+      d2 = new [a: 3, d: 4]
+      Dict.merge d1, d2, fn _k, v1, v2 ->
         v1 + v2
       end
       #=> [a: 4, b: 2, d: 4]
@@ -145,7 +178,8 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.update [a: 1, b: 2], :a, fn val -> -val end
+      d = new [a: 1, b: 2]
+      Dict.update d, :a, fn val -> -val end
       #=> [a: -1, b: 2]
 
   """
@@ -160,7 +194,8 @@ defmodule Dict do
 
   ## Examples
 
-      Dict.update [a: 1, b: 2], :c, 3, fn val -> -val end
+      d = new [a: 1, b: 2]
+      Dict.update d, :c, 3, fn val -> -val end
       #=> [a: 1, b: 2, c: 3]
 
   """

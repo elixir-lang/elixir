@@ -11,35 +11,49 @@ defmodule Mix.Tasks.Deps.Update do
   projects after updating.
   """
 
-  import Mix.Deps, only: [all: 0, all: 1, by_name: 1, format_dep: 1, deps_path: 1]
+  import Mix.Deps, only: [all: 2, available?: 1, by_name!: 1, format_dep: 1, deps_path: 1]
 
   def run([]) do
-    do_update all -- all(:unavailable)
+    finalize_update all(init, deps_updater(&1, &2))
   end
 
   def run(args) do
-    do_update by_name(args)
+    deps = Enum.map by_name!(args), check_unavailable!(&1)
+    finalize_update Enum.reduce deps, init, deps_updater(&1, &2)
   end
 
-  defp do_update(deps) do
-    shell = Mix.shell
+  defp init do
+    { [], Mix.Deps.Lock.read }
+  end
 
-    apps = Mix.Deps.Lock.update_lock deps, fn(dep, _lock) ->
-      Mix.Dep[scm: scm, app: app, status: status, opts: opts] = dep
-      check_unavailable!(app, status)
-      shell.info "* Updating #{format_dep(dep)}"
-      scm.update(deps_path(dep), opts)
-    end
-
+  defp finalize_update({ apps, lock }) do
+    Mix.Deps.Lock.write(lock)
     Mix.Task.run "deps.compile", apps
   end
 
-  defp check_unavailable!(app, { :unavailable, _ }) do
-    raise Mix.Error, message: "Cannot update dependency #{app} because " <>
-      "it isn't available, run `mix deps.get` first"
+  defp deps_updater(dep, { acc, lock }) do
+    if available?(dep) do
+      Mix.Dep[app: app, scm: scm, opts: opts] = dep
+      Mix.shell.info "* Updating #{format_dep(dep)}"
+
+      lock = 
+        if latest = scm.update(deps_path(dep), opts) do
+          Keyword.put(lock, app, latest)
+        else
+          lock
+        end
+        
+      { Mix.Deps.update(dep), { [app|acc], lock } }
+    else
+      { dep, { acc, lock } }
+    end
   end
 
-  defp check_unavailable!(_, _) do
-    :ok
+  defp check_unavailable!(dep) do
+    unless available?(dep) do
+      raise Mix.Error, message: "Cannot update dependency #{dep.app} because " <>
+        "it isn't available, run `mix deps.get` first"
+    end
+    dep
   end
 end

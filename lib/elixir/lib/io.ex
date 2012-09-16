@@ -84,8 +84,8 @@ defmodule IO do
   Inspects and writes the given argument to the device
   followed by a new line. Returns the item given.
   """
-  def inspect(device // :stdio, item) do
-    puts device, Kernel.inspect(item)
+  def inspect(device // :stdio, item, opts // []) do
+    puts device, Binary.Inspect.inspect(item, opts)
     item
   end
 

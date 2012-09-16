@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Compile do
   end
 
   def run(args) do
-    Mix.Task.run "deps.check"
+    Mix.Task.run "loadpaths", args
 
     changed = Enum.reduce get_compilers, false, fn(compiler, acc) ->
       res = Mix.Task.run "compile.#{compiler}", args
@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp get_compilers do
-    Mix.project[:compilers] || if Mix.Project.defined? do
+    Mix.project[:compilers] || if Mix.Project.get do
       [:elixir, :app]
     else
       [:elixir]

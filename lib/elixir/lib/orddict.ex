@@ -1,6 +1,6 @@
 defmodule Orddict do
   @moduledoc """
-  This module implements a dictionary based that stores items
+  This module implements a dictionary type that stores items
   as a list of tuples. It is a simple wrapper around
   [Erlang's orddict module](http://www.erlang.org/doc/man/orddict.html)
   and exposed via the `Dict` module.

@@ -151,8 +151,6 @@ fn_expr -> fn call_args_no_parens fn_block : build_fn('$1', '$2', '$3').
 fn_expr -> fn fn_block : build_fn('$1', [], '$2').
 fn_expr -> call_expr : '$1'.
 
-call_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
-call_expr -> parens_call call_args_parens call_args_parens : { build_identifier('$1', '$2'), ?line('$1'), '$3' }.
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_op_identifier call_args_no_parens : build_identifier('$1', '$2').
 call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
@@ -162,6 +160,8 @@ call_expr -> var : build_identifier('$1', nil).
 call_expr -> max_expr : '$1'.
 
 max_expr -> bracket_expr : '$1'.
+max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
+max_expr -> parens_call call_args_parens call_args_parens : { build_identifier('$1', '$2'), ?line('$1'), '$3' }.
 max_expr -> dot_ref : '$1'.
 max_expr -> base_expr : '$1'.
 max_expr -> open_paren ')' : build_block([]).

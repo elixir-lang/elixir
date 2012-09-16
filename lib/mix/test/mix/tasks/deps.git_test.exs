@@ -36,7 +36,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/ebin/Elixir-GitRepo.beam")
       assert File.read!("mix.lock") =~ %r("git_repo": "[a-f0-9]+")
 
-      purge [GitRepo, GitRepo.Mix]
+      purge [GitRepo]
       File.touch!("deps/git_repo/ebin", { { 2010, 4, 17 }, { 14, 0, 0 } })
       Mix.Task.clear
 
@@ -137,8 +137,6 @@ defmodule Mix.Tasks.DepsGitTest do
 
       # Flush the errors we got on out of date deps
       Mix.shell.flush
-
-      purge [GitRepo.Mix]
       Mix.Task.clear
 
       Mix.Tasks.Deps.Get.run []

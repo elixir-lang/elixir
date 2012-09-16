@@ -63,19 +63,19 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Expr, RawS) ->
+store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Body, RawS) ->
   S = elixir_scope:deserialize(RawS),
   elixir_errors:syntax_error(Line, S#elixir_scope.file, "cannot define function outside module, invalid scope for ~s", [Kind]);
 
-store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
+store_definition(Kind, Line, Module, Name, Args, Guards, Body, RawS) ->
   Arity = length(Args),
   DS    = elixir_scope:deserialize(RawS),
   S     = DS#elixir_scope{function={Name,Arity}, module=Module},
-  Expr  = def_body(Line, RawExpr),
+  Expr  = def_body(Line, Body),
 
   CO = elixir_compiler:get_opts(),
   Location = retrieve_file(Module, CO),
-  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO),
+  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, S, CO),
 
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Expr, S),
 
@@ -85,7 +85,7 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
 
   %% Store function
   if
-    (RawExpr == skip_definition) -> [];
+    (Body == nil) -> [];
     true ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
@@ -98,9 +98,9 @@ store_definition(Kind, Line, Module, Name, Args, Guards, RawExpr, RawS) ->
 
   { Name, Arity }.
 
-def_body(_Line, skip_definition) -> nil;
-def_body(_Line, [{ do, Expr }])  -> Expr;
-def_body(Line, Else)             -> { 'try', Line, [Else] }.
+def_body(_Line, nil)            -> nil;
+def_body(_Line, [{ do, Expr }]) -> Expr;
+def_body(Line, Else)            -> { 'try', Line, [Else] }.
 
 %% @on_definition
 

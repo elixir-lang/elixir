@@ -160,11 +160,12 @@ defmodule ModuleTest do
   test :split do
     module = Very.Long.Module.Name.And.Even.Longer
     assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
+    assert Module.split("Elixir-Very-Long") == ["Very", "Long"]
     assert Module.concat(Module.split(module)) == module
   end
 
   test :defmodule do
-    assert { LOL, _, 3 } = (defmodule LOL do
+    assert match?({ :module, LOL, binary, 3 } when is_binary(binary), defmodule LOL do
       1 + 2
     end)
   end
@@ -188,6 +189,6 @@ defmodule ModuleTest do
     assert name == :hello
     assert [{ :foo, _, _ }, { :bar, _ ,_ }] = args
     assert [] = guards
-    assert { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] } = expr
+    assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
   end
 end

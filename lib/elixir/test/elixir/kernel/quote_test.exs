@@ -75,6 +75,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test :unquote_call do
+    assert quote(do: foo(bar)[:baz])
     assert quote(do: unquote(:bar)()) == quote(do: bar())
     assert quote(do: unquote(:bar)(1) do 2 + 3 end) == quote(do: bar(1) do 2 + 3 end)
     assert quote(do: foo.unquote(:bar)) == quote(do: foo.bar)

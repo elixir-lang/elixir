@@ -20,8 +20,12 @@ defmodule Mix.SCM.Raw do
     true
   end
 
-  def get(_path, opts) do
-    opts[:lock]
+  def match?(opts1, opts2) do
+    opts1[:raw] == opts2[:raw]
+  end
+
+  def checkout(path, _opts) do
+    raise Mix.Error, message: "Cannot checkout raw dependency. Expected a dependency at #{path}"
   end
 
   def update(_path, opts) do

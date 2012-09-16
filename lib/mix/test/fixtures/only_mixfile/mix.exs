@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Hello do
   @shortdoc "Hello"
 
   def run(_) do
-    IO.puts Mix.Project.current.hello_world
+    IO.puts Mix.Project.get!.hello_world
   end
 end
 

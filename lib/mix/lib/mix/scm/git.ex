@@ -8,9 +8,12 @@ defmodule Mix.SCM.Git do
 
   def consumes?(opts) do
     cond do
-      gh = opts[:github] -> Keyword.put(opts, :git, "https://github.com/#{gh}.git")
-      opts[:git]         -> opts
-      true               -> nil
+      gh = opts[:github] ->
+        opts /> Keyword.delete(:github) /> Keyword.put(:git, "https://github.com/#{gh}.git")
+      opts[:git] ->
+        opts
+      true ->
+        nil
     end
   end
 
@@ -22,7 +25,15 @@ defmodule Mix.SCM.Git do
     opts[:lock] && File.cd!(path, fn -> opts[:lock] == get_rev end)
   end
 
-  def get(path, opts) do
+  def match?(opts1, opts2) do
+    opts1[:git] == opts2[:git] and
+      opts1[:branch] == opts2[:branch] and
+      opts1[:tag] == opts2[:tag] and
+      opts1[:ref] == opts2[:ref] and
+      opts1[:submodules] == opts2[:submodules]
+  end
+
+  def checkout(path, opts) do
     location = opts[:git]
     maybe_error System.cmd("git clone --quiet --no-checkout #{location} #{path}")
 

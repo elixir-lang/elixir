@@ -63,6 +63,7 @@ clean:
 	rm -rf lib/*/ebin
 	rm -rf lib/*/test/tmp
 	rm -rf lib/mix/test/fixtures/git_repo
+	rm -rf lib/mix/tmp
 
 #==> Release tasks
 $(FULLFLAG): $(wildcard lib/*/ebin/*)

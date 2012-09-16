@@ -374,8 +374,13 @@ translate_each({ Atom, Line, Args } = Original, S) when is_atom(Atom) ->
         error ->
           Callback = fun() ->
             case S#elixir_scope.context of
-              guard -> syntax_error(Line, S#elixir_scope.file,
-                "cannot invoke local ~s/~B inside guard", [Atom, length(Args)]);
+              guard ->
+                Arity = length(Args),
+                File  = S#elixir_scope.file,
+                case Arity of
+                  0 -> syntax_error(Line, File, "unknown variable ~s or cannot invoke local ~s/~B inside guard", [Atom, Atom, Arity]);
+                  _ -> syntax_error(Line, File, "cannot invoke local ~s/~B inside guard", [Atom, Arity])
+                end;
               _ -> translate_local(Line, Atom, Args, S)
             end
           end,
