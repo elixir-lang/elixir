@@ -79,5 +79,13 @@ defmodule StringTest do
 
   test :codepoints do
     assert String.codepoints("josé") == ["j", "o", "s", "é"]
+    assert String.codepoints("оптими зации") == ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
+    assert String.codepoints("߸߹ߥ߀") == ["߸","߹","ߥ","߀"]
+    assert String.codepoints("ऄओ") == ["ऄ","ओ"]
+    assert String.codepoints("ἅἪῼ") == ["ἅ","Ἢ","ῼ"]
+  end
+
+  test :mixed_codepoints do
+    assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") == ["ϖ","Ͳ","ϥ","Ы","ݎ","ߟ","Έ","ټ","Ϙ","ለ","Д","Ш","व","׆","ש","؇","؊","ص","ل","ټ","ܗ","ݎ","ޥ","ޘ","߉","ऌ","૫","ሏ","ᶆ","℆","ℙ","ℱ"," ","⅚","Ⅷ","↠","∈","⌘","①","ﬃ"]
   end
 end
