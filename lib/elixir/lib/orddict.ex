@@ -77,11 +77,6 @@ defimpl Enum.Iterator, for: Orddict do
   def count({ Orddict, data }),    do: length(data)
 end
 
-defimpl Enum.OrdIterator, for: Orddict do
-  def iterator({ Orddict, data }), do: data
-  def to_list({ h, next }, _),     do: [h|next]
-end
-
 defimpl Access, for: Orddict do
   def access(dict, key), do: Orddict.get(dict, key, nil)
 end

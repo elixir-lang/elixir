@@ -31,15 +31,6 @@ defimpl Enum.Iterator, for: Range do
   end
 end
 
-defimpl Enum.OrdIterator, for: Range do
-  def iterator(range) do
-    Enum.Iterator.Range.iterator(range)
-  end
-
-  def to_list({ h, next }, iterator), do: [h|to_list(iterator.(next), iterator)]
-  def to_list(:stop, _),              do: []
-end
-
 defimpl Range.Iterator, for: Number do
   def iterator(first, Range[last: last]) when is_integer(first) and is_integer(last) do
     fn(current) ->

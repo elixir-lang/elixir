@@ -76,11 +76,6 @@ defimpl Enum.Iterator, for: Binary.Dict do
   def count({ Binary.Dict, data }),    do: length(data)
 end
 
-defimpl Enum.OrdIterator, for: Binary.Dict do
-  def iterator({ Binary.Dict, data }), do: data
-  def to_list({ h, next }, _),     do: [h|next]
-end
-
 defimpl Access, for: Binary.Dict do
   def access(dict, key), do: Binary.Dict.get(dict, key, nil)
 end

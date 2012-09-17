@@ -374,52 +374,6 @@ defmodule EnumTest.Dict.Common do
   end
 end
 
-defmodule EnumTest.HashDict do
-  use EnumTest.Dict.Common, HashDict
-
-  test :drop do
-    assert_raise Protocol.UndefinedError, fn ->
-      Enum.drop HashDict.new, 5
-    end
-  end
-
-  test :drop_while do
-    assert_raise Protocol.UndefinedError, fn ->
-      Enum.drop_while HashDict.new, fn(x) -> x end
-    end
-  end
-
-  test :first do
-    assert_raise Protocol.UndefinedError, fn ->
-      Enum.first HashDict.new
-    end
-  end
-
-  test :split do
-    assert_raise Protocol.UndefinedError, fn ->
-      Enum.split HashDict.new, 5
-    end
-  end
-
-  test :split_while do
-    assert_raise Protocol.UndefinedError, fn ->
-      Enum.split_while HashDict.new, fn(x) -> x end
-    end
-  end
-
-  test :take do
-    assert_raise Protocol.UndefinedError, fn ->
-      Enum.take HashDict.new, 5
-    end
-  end
-
-  test :take_while do
-    assert_raise Protocol.UndefinedError, fn ->
-      Enum.take_while HashDict.new, fn(x) -> x end
-    end
-  end
-end
-
 defmodule EnumTest.Orddict do
   use EnumTest.Dict.Common, Orddict
 
