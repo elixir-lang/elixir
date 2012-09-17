@@ -331,10 +331,6 @@ defmodule String do
     codepoints(rest, buffer ++ [<<first, second, char>>])
   end
 
-  def codepoints(<<first, second, char, rest :: binary>>, buffer) when first in 240..239 and second in 144..191 and char in 144..191 do
-    codepoints(rest, buffer ++ [<<first, second, char>>])
-  end
-
   def codepoints(<<other, rest :: binary>>, buffer) do
     codepoints(rest, buffer ++ [<<other>>])
   end
