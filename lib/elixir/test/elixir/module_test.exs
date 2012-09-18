@@ -5,10 +5,10 @@ defmodule ModuleTest.ToBeUsed do
 
   defmacro __using__(_) do
     target = __CALLER__.module
-    Module.add_attribute target, :has_callback, false
-    Module.add_attribute(target, :before_compile, __MODULE__)
-    Module.add_attribute(target, :after_compile, __MODULE__)
-    Module.add_attribute(target, :before_compile, { __MODULE__, :callback })
+    Module.put_attribute target, :has_callback, false
+    Module.put_attribute(target, :before_compile, __MODULE__)
+    Module.put_attribute(target, :after_compile, __MODULE__)
+    Module.put_attribute(target, :before_compile, { __MODULE__, :callback })
     quote do: (def line, do: __ENV__.line)
   end
 
@@ -21,7 +21,7 @@ defmodule ModuleTest.ToBeUsed do
   end
 
   defmacro callback(target) do
-    value = Module.read_attribute(target, :has_callback)
+    value = Module.get_attribute(target, :has_callback)
     quote do
       name  = :original_value
       args  = [1]
@@ -78,9 +78,9 @@ defmodule ModuleTest do
   false = Module.defines? __MODULE__, { :eval_quoted_info, 0 }, :defp
   false = Module.defines? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
 
-  Module.add_attribute __MODULE__, :value, 1
-  Module.add_attribute __MODULE__, :other_value, 1
-  Module.add_attribute __MODULE__, :other_value, 2
+  Module.put_attribute __MODULE__, :value, 1
+  Module.put_attribute __MODULE__, :other_value, 1
+  Module.put_attribute __MODULE__, :other_value, 2
 
   nil = __ENV__.function
 

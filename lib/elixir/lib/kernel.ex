@@ -2557,7 +2557,7 @@ defmodule Kernel do
             # module that defines it. It works, but we need
             # to read the field values from @__record__.
             case atom do
-              ^module -> Module.read_attribute(module, :__record__)
+              ^module -> Module.get_attribute(module, :__record__)
               _ -> atom.__record__(:fields)
             end
           rescue

@@ -25,6 +25,7 @@
   * [Code] `Code.require_file` and `Code.load_file` now expect the full name as argument
   * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
   * [Kernel] Bitstring syntax now uses `::` instead of `|`
+  * [Module] `Module.read_attribute` and `Module.add_attribute` deprecated in favor of `Module.get_attribute` and `Module.put_attribute` which mimics Dict API
 
 # v0.6.0 (2012-08-01)
 
@@ -43,7 +44,7 @@
   * [Kernel] Deprecated `__LINE__` and `__FUNCTION__` in favor of `__ENV__.line` and `__ENV__.function`
   * [Kernel] Deprecated `in_guard` in favor of `__CALLER__.in_guard?`
   * [Kernel] `refer` is deprecated in favor of `alias`
-  * [Module] `Module.add_compile_callback(module, target, callback)` was deprecated in favor of `Module.add_attribute(module, :before_compile, { target, callback })`
+  * [Module] `Module.add_compile_callback(module, target, callback)` was deprecated in favor of `Module.put_attribute(module, :before_compile, { target, callback })`
   * [Module] `Module.function_defined?` was deprecated in favor of `Module.defines?`
   * [Module] `Module.defined_functions` was deprecated in favor of `Module.definitions_in`
 

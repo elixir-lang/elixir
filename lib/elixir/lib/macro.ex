@@ -405,7 +405,7 @@ defmodule Macro do
   # Expand @ calls
   def expand({ :@, _, [{ name, _, args }] } = original, env) when is_atom(args) or args == [] do
     case (module = env.module) && Module.open?(module) do
-      true  -> Module.read_attribute(module, name)
+      true  -> Module.get_attribute(module, name)
       false -> original
     end
   end

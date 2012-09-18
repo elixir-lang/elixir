@@ -328,11 +328,11 @@ defmodule Module do
         [clause] ->
           ETS.delete(table, tuple)
 
-          old    = Module.read_attribute(module, :__overridable)
+          old    = get_attribute(module, :__overridable)
           new    = [ { tuple, { 1, [clause] } } ]
           merged = :orddict.merge(fn(_k, { count, v1 }, _v2) -> { count + 1, [clause|v1] } end, old, new)
 
-          Module.add_attribute(module, :__overridable, merged)
+          put_attribute(module, :__overridable, merged)
         _ ->
           { name, arity } = tuple
           raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
@@ -344,24 +344,24 @@ defmodule Module do
   Returns true if the given tuple in module is marked as overridable.
   """
   def overridable?(module, tuple) do
-    key = List.keyfind(Module.read_attribute(module, :__overridable), tuple, 0)
+    key = List.keyfind(get_attribute(module, :__overridable), tuple, 0)
     match? { _, { _, [_|_] } }, key
   end
 
   @doc """
-  Adds an Erlang attribute to the given module with the given
-  key and value. The semantics of adding the attribute depends
+  Puts an Erlang attribute to the given module with the given
+  key and value. The semantics of putting the attribute depends
   if the attribute was registered or not via `register_attribute/2`.
 
   ## Examples
 
       defmodule MyModule do
-        Module.add_attribute __MODULE__, :custom_threshold_for_lib, 10
+        Module.put_attribute __MODULE__, :custom_threshold_for_lib, 10
       end
 
   """
-  def add_attribute(module, key, value) when is_atom(key) do
-    assert_not_compiled!(:add_attribute, module)
+  def put_attribute(module, key, value) when is_atom(key) do
+    assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = normalize_attribute(key, value)
     acc   = ETS.lookup_element(table, :__acc_attributes, 2)
@@ -379,25 +379,31 @@ defmodule Module do
     ETS.insert(table, { key, new })
   end
 
+  @doc false
+  def add_attribute(module, key, value) when is_atom(key) do
+    IO.write "[WARNING] Module.add_attribute is deprecated, please use Module.put_attribute instead\n#{Exception.formatted_stacktrace}"
+    put_attribute(module, key, value)
+  end
+
   @doc """
-  Reads the given attribute from a module. If the attribute
+  Gets the given attribute from a module. If the attribute
   was marked as accumulate with `Module.register_attribute`,
   a list is always returned.
 
   ## Examples
 
       defmodule Foo do
-        Module.add_attribute __MODULE__, :value, 1
-        Module.read_attribute __MODULE__, :value #=> 1
+        Module.put_attribute __MODULE__, :value, 1
+        Module.get_attribute __MODULE__, :value #=> 1
 
         Module.register_attribute __MODULE__, :value, accumulate: true
-        Module.add_attribute __MODULE__, :value, 1
-        Module.read_attribute __MODULE__, :value #=> [1]
+        Module.put_attribute __MODULE__, :value, 1
+        Module.get_attribute __MODULE__, :value #=> [1]
       end
 
   """
-  def read_attribute(module, key) when is_atom(key) do
-    assert_not_compiled!(:read_attribute, module)
+  def get_attribute(module, key) when is_atom(key) do
+    assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)
 
     case ETS.lookup(table, key) do
@@ -408,13 +414,19 @@ defmodule Module do
     end
   end
 
+  @doc false
+  def read_attribute(module, key) when is_atom(key) do
+    IO.write "[WARNING] Module.read_attribute is deprecated, please use Module.get_attribute instead\n#{Exception.formatted_stacktrace}"
+    get_attribute(module, key)
+  end
+
   @doc """
   Deletes all attributes that matches the given key.
 
   ## Examples
 
       defmodule MyModule do
-        Module.add_attribute __MODULE__, :custom_threshold_for_lib, 10
+        Module.put_attribute __MODULE__, :custom_threshold_for_lib, 10
         Module.delete_attribute __MODULE__, :custom_threshold_for_lib
       end
 
@@ -493,7 +505,7 @@ defmodule Module do
     line   = env.line
     arity  = length(args)
     pair   = { name, arity }
-    doc    = read_attribute(module, :doc)
+    doc    = get_attribute(module, :doc)
     kind   = if kind == :def and body == nil and module != Kernel, do: :defcallback, else: kind
 
     case add_doc(module, line, kind, pair, args, doc) do
@@ -512,7 +524,7 @@ defmodule Module do
   # Used internally to compile types. This function
   # is private and must be used only internally.
   def compile_type(module, key, value) when is_atom(key) do
-    assert_not_compiled!(:add_attribute, module)
+    assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
 
     new =

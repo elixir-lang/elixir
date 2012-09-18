@@ -98,7 +98,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
           case S#elixir_scope.function of
             nil ->
               translate_each({
-                { '.', Line, ['Elixir.Module', add_attribute] },
+                { '.', Line, ['Elixir.Module', put_attribute] },
                   Line,
                   [ { '__MODULE__', Line, false }, Name, Arg ]
               }, S);
@@ -110,12 +110,12 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
           case S#elixir_scope.function of
             nil ->
               translate_each({
-                { '.', Line, ['Elixir.Module', read_attribute] },
+                { '.', Line, ['Elixir.Module', get_attribute] },
                 Line,
                 [ { '__MODULE__', Line, false }, Name ]
               }, S);
             _ ->
-              Contents = 'Elixir.Module':read_attribute(S#elixir_scope.module, Name),
+              Contents = 'Elixir.Module':get_attribute(S#elixir_scope.module, Name),
               { elixir_tree_helpers:abstract_syntax(Contents), S }
           end;
         _ ->

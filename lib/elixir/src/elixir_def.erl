@@ -110,7 +110,7 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO)
       ok;
     _ ->
       Env = elixir_scope:to_ex_env({ Line, S }),
-      Callbacks = 'Elixir.Module':read_attribute(Module, on_definition),
+      Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
 
@@ -120,7 +120,7 @@ retrieve_file(Module, CO) ->
   case elixir_compiler:get_opt(internal, CO) of
     true -> [];
     _ ->
-      case 'Elixir.Module':read_attribute(Module, file) of
+      case 'Elixir.Module':get_attribute(Module, file) of
         nil  -> [];
         Else ->
           'Elixir.Module':delete_attribute(Module, file),

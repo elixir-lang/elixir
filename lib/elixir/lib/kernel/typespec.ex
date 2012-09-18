@@ -29,7 +29,7 @@ defmodule Kernel.Typespec do
   to get such information.
   """
   def get_types(module) do
-    Module.read_attribute(module, :type) ++ Module.read_attribute(module, :opaque)
+    Module.get_attribute(module, :type) ++ Module.get_attribute(module, :opaque)
   end
 
   @doc """

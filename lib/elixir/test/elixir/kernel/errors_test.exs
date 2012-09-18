@@ -246,7 +246,7 @@ defmodule Kernel.ErrorsTest do
 
   test :macros_compiled_callback do
     assert [{Kernel.ErrorsTest,:before_compile,[Foo],_}|_] =
-      rescue_stacktrace("defmodule Foo do\nModule.add_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)\nend")
+      rescue_stacktrace("defmodule Foo do\nModule.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)\nend")
   end
 
   defmacro sample(0), do: 0

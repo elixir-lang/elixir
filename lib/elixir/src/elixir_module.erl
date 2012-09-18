@@ -297,7 +297,7 @@ docs_clause(Line, _Module, _) ->
   { clause, Line, [{ atom, Line, docs }], [], [{ atom, Line, nil }] }.
 
 moduledoc_clause(Line, Module, true) ->
-  Docs = 'Elixir.Module':read_attribute(Module, moduledoc),
+  Docs = 'Elixir.Module':get_attribute(Module, moduledoc),
   { clause, Line, [{ atom, Line, moduledoc }], [], [elixir_tree_helpers:abstract_syntax({ Line, Docs })] };
 
 moduledoc_clause(Line, _Module, _) ->
