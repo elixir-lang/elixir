@@ -301,4 +301,41 @@ defmodule String do
     options
   end
 
+  @doc """
+  Returns a list with codepoints from an utf8 string.
+
+  ## Examples
+
+      String.codepoints("josé")         => ["j", "o", "s", "é"]
+      String.codepoints("оптими зации") => ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
+      String.codepoints("ἅἪῼ")          => ["ἅ","Ἢ","ῼ"]
+
+  """
+  def codepoints(string) do
+    codepoints(string, [])
+  end
+
+  def codepoints(<<194, char, rest :: binary>>, buffer) when char in 161..191 do
+    codepoints(rest, buffer ++ [<<194, char>>])
+  end
+
+  def codepoints(<<first, char, rest :: binary>>, buffer) when first in 195..223 and char in 128..191 do
+    codepoints(rest, buffer ++ [<<first, char>>])
+  end
+
+  def codepoints(<<first, second, char, rest :: binary>>, buffer) when first == 224 and second in 160..191 and char in 128..191 do
+    codepoints(rest, buffer ++ [<<first, second, char>>])
+  end
+
+  def codepoints(<<first, second, char, rest :: binary>>, buffer) when first in 225..239 and second in 128..191 and char in 128..191 do
+    codepoints(rest, buffer ++ [<<first, second, char>>])
+  end
+
+  def codepoints(<<other, rest :: binary>>, buffer) do
+    codepoints(rest, buffer ++ [<<other>>])
+  end
+
+  def codepoints(<<>>, buffer) do
+    buffer
+  end
 end

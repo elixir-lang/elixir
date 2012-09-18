@@ -77,4 +77,21 @@ defmodule StringTest do
 	assert String.duplicate("&ã$", 2) == "&ã$&ã$"
   end
 
+  test :codepoints do
+    assert String.codepoints("elixir") == ["e","l","i","x","i","r"]
+    assert String.codepoints("elixír") == ["e","l","i","x","í","r"] # slovak
+    assert String.codepoints("ոգելից ըմպելիք") == ["ո","գ","ե","լ","ի","ց"," ","ը","մ","պ","ե","լ","ի","ք"] # armenian
+    assert String.codepoints("эліксір") == ["э","л","і","к","с","і","р"] # belarussian
+    assert String.codepoints("ελιξήριο") == ["ε","λ","ι","ξ","ή","ρ","ι","ο"] # greek
+    assert String.codepoints("סם חיים") == ["ס","ם"," ","ח","י","י","ם"] # hebraic
+    assert String.codepoints("अमृत") == ["अ","म","ृ","त"] # hindi
+    assert String.codepoints("স্পর্শমণি") == ["স","্","প","র","্","শ","ম","ণ","ি"] # bengali
+    assert String.codepoints("સર્વશ્રેષ્ઠ ઇલાજ") == ["સ","ર","્","વ","શ","્","ર","ે","ષ","્","ઠ"," ","ઇ","લ","ા","જ"] # gujarati
+    assert String.codepoints("世界中の一番") == ["世","界","中", "の", "一", "番"] # japanese
+    assert String.codepoints("がガちゃ") == ["が", "ガ", "ち", "ゃ"]
+  end
+
+  test :mixed_codepoints do
+    assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") == ["ϖ","Ͳ","ϥ","Ы","ݎ","ߟ","Έ","ټ","Ϙ","ለ","Д","Ш","व","׆","ש","؇","؊","ص","ل","ټ","ܗ","ݎ","ޥ","ޘ","߉","ऌ","૫","ሏ","ᶆ","℆","ℙ","ℱ"," ","⅚","Ⅷ","↠","∈","⌘","①","ﬃ"]
+  end
 end
