@@ -26,6 +26,10 @@ defmodule RecordTest.Macros do
   def add_bar_to_name(_user(name: name) = user) do
     _user(user, name: name <> " bar")
   end
+
+  def age(user) do
+    _user(user, :age)
+  end
 end
 
 defmodule RecordTest do
@@ -102,6 +106,8 @@ defmodule RecordTest do
 
     record = record.add_bar_to_name
     assert record.name == "Foo bar"
+
+    assert record.age == 25
   end
 
   defp file_info do
