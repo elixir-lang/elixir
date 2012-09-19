@@ -80,7 +80,7 @@ defmodule Record do
   end
 
   @doc """
-  Defines two macros for reading and writing records values.
+  Defines three macros for reading and writing records values.
   These macros are private to the current module and are
   basically a simple mechanism for manipulating tuples when
   there isn't an interest in exposing the record as a whole.
@@ -99,6 +99,11 @@ defmodule Record do
         def name(user, name) do
           _user(user, name: name)
         end
+
+        def age(user) do
+          _user(user, :age)
+        end
+
       end
 
   """
@@ -108,6 +113,10 @@ defmodule Record do
     contents = quote do
       defmacrop unquote(name).(args) do
         Record.access(__CALLER__, __MODULE__, unquote(escaped), args)
+      end
+
+      defmacrop unquote(name).(record, key) when is_atom(key) do
+        Record.get(__CALLER__, __MODULE__, unquote(escaped), record, key)
       end
 
       defmacrop unquote(name).(record, args) do
@@ -186,6 +195,21 @@ defmodule Record do
       else
         raise "record #{inspect atom} does not have the key: #{inspect key}"
       end
+    end
+  end
+
+  # Implements the get macro defined by defmacros.
+  # It returns a quoted expression that represents
+  # getting the value of a given field.
+  @doc false
+  def get(caller, atom, fields, var, key) do
+    index = find_index(fields, key, 0)
+    if index do
+      quote do
+        :erlang.element(unquote(index + 2), unquote(var))
+      end
+    else
+      raise "record #{inspect atom} does not have the key: #{inspect key}"
     end
   end
 
