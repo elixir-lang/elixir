@@ -178,7 +178,7 @@ defmodule Record do
     end
 
     Enum.reduce keyword, var, fn({ key, value }, acc) ->
-      index = Enum.find_index(fields, fn({ field, _ }) -> field == key end)
+      index = find_index(fields, key, 0)
       if index do
         quote do
           :erlang.setelement(unquote(index + 2), unquote(acc), unquote(value))
@@ -307,6 +307,7 @@ defmodule Record do
 
   defp find_index([{ k, _ }|_], k, i), do: i
   defp find_index([{ _, _ }|t], k, i), do: find_index(t, k, i + 1)
+  defp find_index([], _k, _i), do: nil
 
   # Implement readers. For a declaration like:
   #
