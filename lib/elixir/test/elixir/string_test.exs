@@ -129,4 +129,14 @@ defmodule StringTest do
     assert String.length("") == 0
   end
 
+  test :at do
+    assert String.at("л", 0) == "л"
+    assert String.at("elixir", 1) == "l"
+    assert String.at("がガちゃ", 2) == "ち"
+    assert String.at("л", 10) == nil
+    assert String.at("elixir", -1) == "r"
+    assert String.at("がガちゃ", -2) == "ち"
+    assert String.at("л", -3) == nil
+  end
+
 end

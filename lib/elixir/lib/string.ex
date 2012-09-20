@@ -357,7 +357,7 @@ defmodule String do
     :no_codepoint -> last_char
     end
   end
-  
+
   @doc """
   Returns the number of codepoint in an utf8 string.
 
@@ -375,6 +375,45 @@ defmodule String do
     case codepoint(string) do
     { char, rest } -> length(rest, counter + 1)
     :no_codepoint -> counter
+    end
+  end
+
+  @doc """
+  Returns the codepoint in the `position` of the given utf8 `string`.
+  If `position` is greater than `string` length, than it returns `nil`.
+
+  ## Examples
+
+      String.at("elixir", 0) #=> "1"
+      String.at("elixir", 1) #=> "l"
+      String.at("elixir", 10) #=> nil
+      String.at("elixir", -1) #=> "r"
+      String.at("elixir", -10) #=> "nil"
+
+  """
+  def at(string, position) when position >= 0 do
+    at(string, position, 0)
+  end
+
+  def at(string, position) when position < 0 do
+    real_pos = length(string, 0) - abs(position)
+    case real_pos >= 0 do
+    true -> at(string, real_pos, 0)
+    false -> nil
+    end
+  end
+
+  defp at(string, desired_pos, current_pos) when desired_pos > current_pos do
+    case codepoint(string) do
+    { char, rest } -> at(rest, desired_pos, current_pos + 1)
+    :no_codepoint -> nil
+    end
+  end
+
+  defp at(string, desired_pos, current_pos) when desired_pos == current_pos do
+    case codepoint(string) do
+    { char, _ } -> char
+    :no_codepoint -> nil
     end
   end
 
