@@ -202,7 +202,7 @@ defmodule Record do
   # It returns a quoted expression that represents
   # getting the value of a given field.
   @doc false
-  def get(caller, atom, fields, var, key) do
+  def get(_caller, atom, fields, var, key) do
     index = find_index(fields, key, 0)
     if index do
       quote do
