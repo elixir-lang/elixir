@@ -108,6 +108,14 @@ defmodule Record do
           _user(user)
         end
 
+        def name_and_age(user) do
+         _user(user, [:name, :age])
+        end
+
+        def age_and_name(user) do
+         _user(user, [:age, :name])
+        end
+
       end
 
   """
@@ -128,7 +136,7 @@ defmodule Record do
       end
 
       defmacrop unquote(name).(record, args) do
-        Record.update(__CALLER__, __MODULE__, unquote(escaped), record, args)
+        Record.dispatch(__CALLER__, __MODULE__, unquote(escaped), record, args)
       end
     end
 
@@ -181,11 +189,21 @@ defmodule Record do
     end
   end
 
+  # Dispatch the call to either update or to_list depending on the args given.
+  @doc false
+  def dispatch(caller, atom, fields, record, args) do
+    if is_orddict(args) do
+      update(caller, atom, fields, record, args)
+    else
+      to_list(caller, atom, fields, record, args)
+    end
+  end
+
   # Implements the update macro defined by defmacros.
   # It returns a quoted expression that represents
   # the access given by the keywords.
   @doc false
-  def update(caller, atom, fields, var, keyword) do
+  defp update(caller, atom, fields, var, keyword) do
     unless is_orddict(keyword) do
       raise "expected contents inside brackets to be a Keyword"
     end
@@ -231,6 +249,22 @@ defmodule Record do
         index = find_index(fields, key, 0)
         quote do
           {unquote(key), :erlang.element(unquote(index + 2), unquote(record))}
+        end
+      end
+  end
+
+  # Implements to_list macro defined by defmacros.
+  # It returns a quoted expression that represents
+  # extracting given fields from record.
+  @doc false
+  defp to_list(_caller, atom, fields, record, keys) do
+    Enum.map keys,
+      fn(key) ->
+        index = find_index(fields, key, 0)
+        if index do
+          quote do: :erlang.element(unquote(index + 2), unquote(record))
+        else
+          raise "record #{inspect atom} does not have the key: #{inspect key}"
         end
       end
   end
