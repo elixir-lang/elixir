@@ -118,4 +118,15 @@ defmodule StringTest do
     assert String.last("") == nil
   end
 
+  test :length do
+    assert String.length("elixir") == 6
+    assert String.length("elixrí") == 6
+    assert String.length("եոգլից") == 6
+    assert String.length("ліксрэ") == 6
+    assert String.length("ειξήριολ") == 8
+    assert String.length("סם ייםח") == 7
+    assert String.length("がガちゃ") == 4
+    assert String.length("") == 0
+  end
+
 end

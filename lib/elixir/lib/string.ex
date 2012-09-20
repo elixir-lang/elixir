@@ -357,6 +357,26 @@ defmodule String do
     :no_codepoint -> last_char
     end
   end
+  
+  @doc """
+  Returns the number of codepoint in an utf8 string.
+
+  ## Examples
+
+      String.length("elixir")  #=> 6
+      String.length("եոգլի") #=> 5
+
+  """
+  def length(string) do
+    length(string, 0)
+  end
+
+  defp length(string, counter) do
+    case codepoint(string) do
+    { char, rest } -> length(rest, counter + 1)
+    :no_codepoint -> counter
+    end
+  end
 
   # Private implementation which returns the first codepoint
   # of any given utf8 string and the rest of it
