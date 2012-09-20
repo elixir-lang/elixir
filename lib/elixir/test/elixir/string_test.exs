@@ -96,4 +96,15 @@ defmodule StringTest do
     assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") == ["ϖ","Ͳ","ϥ","Ы","ݎ","ߟ","Έ","ټ","Ϙ","ለ","Д","Ш","व","׆","ש","؇","؊","ص","ل","ټ","ܗ","ݎ","ޥ","ޘ","߉","ऌ","૫","ሏ","ᶆ","℆","ℙ","ℱ"," ","⅚","Ⅷ","↠","∈","⌘","①","ﬃ"]
   end
 
+  test :first do
+    assert String.first("elixir") == "e"
+    assert String.first("íelixr") == "í"
+    assert String.first("եոգլից ըմպելիք") == "ե"
+    assert String.first("лэіксір") == "л"
+    assert String.first("ελιξήριο") == "ε"
+    assert String.first("סם חיים") == "ס"
+    assert String.first("がガちゃ") == "が"
+    assert String.first("") == nil
+  end
+
 end

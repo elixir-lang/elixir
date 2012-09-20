@@ -322,6 +322,22 @@ defmodule String do
     end
   end  
 
+  @doc """
+  Returns the first codepoint from an utf8 string.
+
+  ## Examples
+
+      String.first("elixir")  #=> "e"
+      String.first("եոգլի") #=> "ե"
+
+  """
+  def first(string) do
+    case codepoint(string) do
+    { char, _ } -> char
+    :no_codepoint -> nil
+    end
+  end
+
   # Private implementation which returns the first codepoint
   # of any given utf8 string and the rest of it
   # If an empty string is given, :no_codepoint is returned.
