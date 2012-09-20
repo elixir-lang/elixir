@@ -104,6 +104,18 @@ defmodule Record do
           _user(user, :age)
         end
 
+        def to_keywords(user) do
+          _user(user)
+        end
+
+        def name_and_age(user) do
+         _user(user, [:name, :age])
+        end
+
+        def age_and_name(user) do
+         _user(user, [:age, :name])
+        end
+
       end
 
   """
@@ -111,6 +123,10 @@ defmodule Record do
     escaped = lc value inlist values, do: Macro.escape(convert_value(value))
 
     contents = quote do
+      defmacrop unquote(name).(record) when is_tuple(record) do
+        Record.to_keywords(__CALLER__, __MODULE__, unquote(escaped), record)
+      end
+
       defmacrop unquote(name).(args) do
         Record.access(__CALLER__, __MODULE__, unquote(escaped), args)
       end
@@ -120,7 +136,7 @@ defmodule Record do
       end
 
       defmacrop unquote(name).(record, args) do
-        Record.update(__CALLER__, __MODULE__, unquote(escaped), record, args)
+        Record.dispatch(__CALLER__, __MODULE__, unquote(escaped), record, args)
       end
     end
 
@@ -173,11 +189,21 @@ defmodule Record do
     end
   end
 
+  # Dispatch the call to either update or to_list depending on the args given.
+  @doc false
+  def dispatch(caller, atom, fields, record, args) do
+    if is_orddict(args) do
+      update(caller, atom, fields, record, args)
+    else
+      to_list(caller, atom, fields, record, args)
+    end
+  end
+
   # Implements the update macro defined by defmacros.
   # It returns a quoted expression that represents
   # the access given by the keywords.
   @doc false
-  def update(caller, atom, fields, var, keyword) do
+  defp update(caller, atom, fields, var, keyword) do
     unless is_orddict(keyword) do
       raise "expected contents inside brackets to be a Keyword"
     end
@@ -202,7 +228,7 @@ defmodule Record do
   # It returns a quoted expression that represents
   # getting the value of a given field.
   @doc false
-  def get(caller, atom, fields, var, key) do
+  def get(_caller, atom, fields, var, key) do
     index = find_index(fields, key, 0)
     if index do
       quote do
@@ -211,6 +237,36 @@ defmodule Record do
     else
       raise "record #{inspect atom} does not have the key: #{inspect key}"
     end
+  end
+
+  # Implements to_keywords macro defined by defmacros.
+  # It returns a quoted expression that represents
+  # converting record to keywords list.
+  @doc false
+  def to_keywords(_caller, _atom, fields, record) do
+    Enum.map Keyword.from_enum(fields),
+      fn({key, _default}) ->
+        index = find_index(fields, key, 0)
+        quote do
+          {unquote(key), :erlang.element(unquote(index + 2), unquote(record))}
+        end
+      end
+  end
+
+  # Implements to_list macro defined by defmacros.
+  # It returns a quoted expression that represents
+  # extracting given fields from record.
+  @doc false
+  defp to_list(_caller, atom, fields, record, keys) do
+    Enum.map keys,
+      fn(key) ->
+        index = find_index(fields, key, 0)
+        if index do
+          quote do: :erlang.element(unquote(index + 2), unquote(record))
+        else
+          raise "record #{inspect atom} does not have the key: #{inspect key}"
+        end
+      end
   end
 
   defp is_orddict(list) when is_list(list), do: :lists.all(is_orddict_tuple(&1), list)
