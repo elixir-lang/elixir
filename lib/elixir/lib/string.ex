@@ -338,6 +338,26 @@ defmodule String do
     end
   end
 
+  @doc """
+  Returns the last codepoint from an utf8 string.
+
+  ## Examples
+
+      String.last("elixir")  #=> "r"
+      String.last("եոգլի") #=> "ի"
+
+  """
+  def last(string) do
+    last(string, nil)
+  end
+
+  defp last(string, last_char) do
+    case codepoint(string) do
+    { char, rest } -> last(rest, char)
+    :no_codepoint -> last_char
+    end
+  end
+
   # Private implementation which returns the first codepoint
   # of any given utf8 string and the rest of it
   # If an empty string is given, :no_codepoint is returned.

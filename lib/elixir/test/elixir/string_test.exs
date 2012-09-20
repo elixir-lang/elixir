@@ -107,4 +107,15 @@ defmodule StringTest do
     assert String.first("") == nil
   end
 
+  test :last do
+    assert String.last("elixir") == "r"
+    assert String.last("elixrí") == "í"
+    assert String.last("եոգլից ըմպելիքե") == "ե"
+    assert String.last("ліксірэ") == "э"
+    assert String.last("ειξήριολ") == "λ"
+    assert String.last("סם ייםח") == "ח"
+    assert String.last("がガちゃ") == "ゃ"
+    assert String.last("") == nil
+  end
+
 end
