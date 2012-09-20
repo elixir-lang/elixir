@@ -104,6 +104,10 @@ defmodule Record do
           _user(user, :age)
         end
 
+        def to_keywords(user) do
+          _user(user)
+        end
+
       end
 
   """
@@ -111,6 +115,10 @@ defmodule Record do
     escaped = lc value inlist values, do: Macro.escape(convert_value(value))
 
     contents = quote do
+      defmacrop unquote(name).(record) when is_tuple(record) do
+        Record.to_keywords(__CALLER__, __MODULE__, unquote(escaped), record)
+      end
+
       defmacrop unquote(name).(args) do
         Record.access(__CALLER__, __MODULE__, unquote(escaped), args)
       end
@@ -211,6 +219,20 @@ defmodule Record do
     else
       raise "record #{inspect atom} does not have the key: #{inspect key}"
     end
+  end
+
+  # Implements to_keywords macro defined by defmacros.
+  # It returns a quoted expression that represents
+  # converting record to keywords list.
+  @doc false
+  def to_keywords(_caller, _atom, fields, record) do
+    Enum.map Keyword.from_enum(fields),
+      fn({key, _default}) ->
+        index = find_index(fields, key, 0)
+        quote do
+          {unquote(key), :erlang.element(unquote(index + 2), unquote(record))}
+        end
+      end
   end
 
   defp is_orddict(list) when is_list(list), do: :lists.all(is_orddict_tuple(&1), list)

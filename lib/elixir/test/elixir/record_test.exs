@@ -30,6 +30,10 @@ defmodule RecordTest.Macros do
   def age(user) do
     _user(user, :age)
   end
+
+  def to_keywords(user) do
+    _user(user)
+  end
 end
 
 defmodule RecordTest do
@@ -108,6 +112,7 @@ defmodule RecordTest do
     assert record.name == "Foo bar"
 
     assert record.age == 25
+    assert record.to_keywords == [name: record.name, age: record.age]
   end
 
   defp file_info do
