@@ -60,7 +60,7 @@ defmodule StringTest do
   test :replace do
     assert String.replace("a,b,c", ",", "-") == "a-b,c"
     assert String.replace("a,b,c", [",", "b"], "-") == "a-b,c"
-	assert String.replace("ãéã", "é", "e") == "ãeã"
+    assert String.replace("ãéã", "é", "e") == "ãeã"
   end
 
   test :replace_with_options do
@@ -74,7 +74,7 @@ defmodule StringTest do
   test :duplicate do
     assert String.duplicate("abc", 1) == "abc"
     assert String.duplicate("abc", 2) == "abcabc"
-	assert String.duplicate("&ã$", 2) == "&ã$&ã$"
+    assert String.duplicate("&ã$", 2) == "&ã$&ã$"
   end
 
   test :codepoints do
