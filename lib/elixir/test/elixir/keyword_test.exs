@@ -8,6 +8,12 @@ defmodule KeywordTest do
     assert [||: 2, +: 1] == [{:+,1},{:||,2}]
   end
 
+  test :optional_comma do
+    [a: 1,
+     b: 2,
+     c: 3,]
+  end
+
   test :from_enum do
     list = [{:b,2},{:a,1},{:c,3}]
     dict = Orddict.new list

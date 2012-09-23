@@ -5,7 +5,6 @@ Nonterminals
   grammar expr_list
   expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
-  comma_separator
   add_op mult_op unary_op two_op pipeline_op bin_concat_op
   match_op send_op default_op when_op pipe_op in_op inc_op stab_op range_op
   andand_op oror_op and_op or_op comp_expr_op colon_colon_op three_op at_op
@@ -13,7 +12,7 @@ Nonterminals
   open_bracket close_bracket
   open_curly close_curly
   open_bit close_bit
-  comma_expr matched_comma_expr call_args_comma_expr
+  base_comma_expr comma_expr optional_comma_expr matched_comma_expr
   call_args call_args_parens call_args_no_parens parens_call
   stab_expr stab_expr_list
   kw_eol kw_expr kw_comma kw_base
@@ -224,9 +223,6 @@ block_list -> block_item block_list : ['$1'|'$2'].
 
 var -> dot_identifier : '$1'.
 
-comma_separator -> ','     : '$1'.
-comma_separator -> ',' eol : '$1'.
-
 open_paren -> '('      : '$1'.
 open_paren -> '(' eol  : '$1'.
 close_paren -> ')'     : '$1'.
@@ -381,55 +377,63 @@ parens_call -> matched_expr dot_call_op : { '.', ?line('$2'), ['$1'] }. % Fun/lo
 % Function calls
 
 matched_comma_expr -> matched_expr : ['$1'].
-matched_comma_expr -> matched_comma_expr comma_separator matched_expr : ['$3'|'$1'].
+matched_comma_expr -> matched_comma_expr ',' matched_expr : ['$3'|'$1'].
 
 call_args_no_parens -> matched_comma_expr : lists:reverse('$1').
 call_args_no_parens -> matched_kw_base : ['$1'].
-call_args_no_parens -> matched_comma_expr comma_separator matched_kw_base : lists:reverse(['$3'|'$1']).
+call_args_no_parens -> matched_comma_expr ',' matched_kw_base : lists:reverse(['$3'|'$1']).
+
+base_comma_expr -> expr ',' : ['$1'].
+base_comma_expr -> base_comma_expr expr ',' : ['$2'|'$1'].
 
 comma_expr -> expr : ['$1'].
-comma_expr -> comma_expr comma_separator expr : ['$3'|'$1'].
+comma_expr -> kw_base : ['$1'].
+comma_expr -> base_comma_expr : '$1'.
+comma_expr -> base_comma_expr expr : ['$2'|'$1'].
+comma_expr -> base_comma_expr kw_base : ['$2'|'$1'].
 
-call_args_comma_expr -> comma_expr : lists:reverse('$1').
-call_args_comma_expr -> kw_base : ['$1'].
-call_args_comma_expr -> comma_expr comma_separator kw_base : lists:reverse(['$3'|'$1']).
+optional_comma_expr -> expr : '$1'.
+optional_comma_expr -> expr ',' : '$1'.
+
+call_args -> comma_expr : lists:reverse('$1').
 
 call_args_parens -> open_paren ')' : [].
-call_args_parens -> open_paren call_args_comma_expr close_paren : '$2'.
-
-call_args -> call_args_comma_expr : '$1'.
+call_args_parens -> open_paren call_args close_paren : '$2'.
 
 % KV
 
-kw_eol -> kw_identifier : '$1'.
-kw_eol -> kw_identifier eol : '$1'.
+kw_eol  -> kw_identifier : '$1'.
+kw_eol  -> kw_identifier eol : '$1'.
+kw_expr -> kw_eol expr : { ?exprs('$1'),'$2' }.
 
-kw_expr  -> kw_eol expr : {?exprs('$1'),'$2'}.
-kw_comma -> kw_expr : ['$1'].
-kw_comma -> kw_expr comma_separator kw_comma : ['$1'|'$3'].
-kw_base  -> kw_comma : sort_kw('$1').
+kw_comma -> kw_expr ',' : ['$1'].
+kw_comma -> kw_comma kw_expr ',' : ['$2'|'$1'].
+
+kw_base  -> kw_expr : ['$1'].
+kw_base  -> kw_comma : sort_kw(lists:reverse('$1')).
+kw_base  -> kw_comma kw_expr : sort_kw(lists:reverse(['$2'|'$1'])).
 
 matched_kw_expr  -> kw_eol matched_expr : {?exprs('$1'),'$2'}.
 matched_kw_comma -> matched_kw_expr : ['$1'].
-matched_kw_comma -> matched_kw_expr comma_separator matched_kw_comma : ['$1'|'$3'].
+matched_kw_comma -> matched_kw_expr ',' matched_kw_comma : ['$1'|'$3'].
 matched_kw_base  -> matched_kw_comma : sort_kw('$1').
 
 % Lists
 
 bracket_access -> open_bracket ']' : { [], ?line('$1') }.
-bracket_access -> open_bracket expr close_bracket : { '$2', ?line('$1') }.
+bracket_access -> open_bracket optional_comma_expr close_bracket : { '$2', ?line('$1') }.
 bracket_access -> open_bracket kw_base close_bracket : { '$2', ?line('$1') }.
 
 list -> open_bracket ']' : [].
 list -> open_bracket kw_base close_bracket : '$2'.
-list -> open_bracket expr close_bracket : ['$2'].
-list -> open_bracket expr comma_separator call_args close_bracket : ['$2'|'$4'].
+list -> open_bracket optional_comma_expr close_bracket : ['$2'].
+list -> open_bracket expr ',' call_args close_bracket : ['$2'|'$4'].
 
 % Tuple
 
 tuple -> open_curly '}' : build_tuple('$1', []).
-tuple -> open_curly expr close_curly : build_tuple('$1', ['$2']).
-tuple -> open_curly expr comma_separator call_args close_curly :  build_tuple('$1', ['$2'|'$4']).
+tuple -> open_curly optional_comma_expr close_curly : build_tuple('$1', ['$2']).
+tuple -> open_curly expr ',' call_args close_curly :  build_tuple('$1', ['$2'|'$4']).
 
 % Bitstrings
 

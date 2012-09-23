@@ -399,11 +399,9 @@ handle_call_identifier(Line, File, Terminators, Op, Rest, Tokens) ->
 
 %% Helpers
 
-eol(Line, Mod, Tokens) ->
-  case Tokens of
-    [{eol,_,_}|_] -> Tokens;
-    _ -> [{eol,Line,Mod}|Tokens]
-  end.
+eol(Line, _Mod, [{',',_}|_] = Tokens)   -> Tokens;
+eol(Line, _Mod, [{eol,_,_}|_] = Tokens) -> Tokens;
+eol(Line, Mod, Tokens) -> [{eol,Line,Mod}|Tokens].
 
 collect_modifiers([H|T], Buffer) when ?is_downcase(H) ->
   collect_modifiers(T, [H|Buffer]);

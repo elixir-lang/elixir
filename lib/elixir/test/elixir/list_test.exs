@@ -7,6 +7,11 @@ defmodule ListTest do
     assert :[].(1,2,3) == [1,2,3]
   end
 
+  test :optional_comma do
+    assert :[].(1,) == [ 1, ]
+    assert :[].(1,2,3,) == [1,2,3,]
+  end
+
   test :wrap do
     assert List.wrap([1,2,3]) == [1,2,3]
     assert List.wrap(1) == [1]
