@@ -312,15 +312,14 @@ defmodule String do
 
   """
   def codepoints(string) do
-    codepoints(string, [])
+    do_codepoints(codepoint(string))
   end
 
-  defp codepoints(string, buffer) do
-    case codepoint(string) do
-    { codepoint, rest } -> codepoints(rest, buffer ++ [codepoint])
-    :no_codepoint -> buffer
-    end
+  defp do_codepoints({char, rest}) do
+    [char|do_codepoints(codepoint(rest))]
   end  
+
+  defp do_codepoints(:no_codepoint), do: []
 
   @doc """
   Returns the first codepoint from an utf8 string.
@@ -334,7 +333,7 @@ defmodule String do
   def first(string) do
     case codepoint(string) do
     { char, _ } -> char
-    :no_codepoint -> nil
+    :no_codepoint -> ""
     end
   end
 
@@ -348,15 +347,14 @@ defmodule String do
 
   """
   def last(string) do
-    last(string, nil)
+    do_last(codepoint(string), "")
   end
 
-  defp last(string, last_char) do
-    case codepoint(string) do
-    { char, rest } -> last(rest, char)
-    :no_codepoint -> last_char
-    end
+  defp do_last({char, rest}, _) do
+    do_last(codepoint(rest), char)
   end
+
+  defp do_last(:no_codepoint, last_char), do: last_char
 
   @doc """
   Returns the number of codepoint in an utf8 string.
@@ -368,15 +366,14 @@ defmodule String do
 
   """
   def length(string) do
-    length(string, 0)
+    do_length(codepoint(string))
   end
 
-  defp length(string, counter) do
-    case codepoint(string) do
-    { char, rest } -> length(rest, counter + 1)
-    :no_codepoint -> counter
-    end
+  defp do_length({_, rest}) do
+    1 + do_length(codepoint(rest))
   end
+
+  defp do_length(:no_codepoint), do: 0
 
   @doc """
   Returns the codepoint in the `position` of the given utf8 `string`.
@@ -392,30 +389,26 @@ defmodule String do
 
   """
   def at(string, position) when position >= 0 do
-    at(string, position, 0)
+    do_at(codepoint(string), position, 0)
   end
 
   def at(string, position) when position < 0 do
-    real_pos = length(string, 0) - abs(position)
+    real_pos = do_length(codepoint(string)) - abs(position)
     case real_pos >= 0 do
-    true -> at(string, real_pos, 0)
-    false -> nil
+    true -> do_at(codepoint(string), real_pos, 0)
+    false -> ""
     end
   end
 
-  defp at(string, desired_pos, current_pos) when desired_pos > current_pos do
-    case codepoint(string) do
-    { char, rest } -> at(rest, desired_pos, current_pos + 1)
-    :no_codepoint -> nil
-    end
+  defp do_at({_ , rest}, desired_pos, current_pos) when desired_pos > current_pos do
+    do_at(codepoint(rest), desired_pos, current_pos + 1)
   end
 
-  defp at(string, desired_pos, current_pos) when desired_pos == current_pos do
-    case codepoint(string) do
-    { char, _ } -> char
-    :no_codepoint -> nil
-    end
+  defp do_at({char, _}, desired_pos, current_pos) when desired_pos == current_pos do
+    char
   end
+
+  defp do_at(:no_codepoint, _, _), do: ""
 
   # Private implementation which returns the first codepoint
   # of any given utf8 string and the rest of it

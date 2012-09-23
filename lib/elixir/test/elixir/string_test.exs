@@ -104,7 +104,7 @@ defmodule StringTest do
     assert String.first("ελιξήριο") == "ε"
     assert String.first("סם חיים") == "ס"
     assert String.first("がガちゃ") == "が"
-    assert String.first("") == nil
+    assert String.first("") == ""
   end
 
   test :last do
@@ -115,7 +115,7 @@ defmodule StringTest do
     assert String.last("ειξήριολ") == "λ"
     assert String.last("סם ייםח") == "ח"
     assert String.last("がガちゃ") == "ゃ"
-    assert String.last("") == nil
+    assert String.last("") == ""
   end
 
   test :length do
@@ -133,10 +133,10 @@ defmodule StringTest do
     assert String.at("л", 0) == "л"
     assert String.at("elixir", 1) == "l"
     assert String.at("がガちゃ", 2) == "ち"
-    assert String.at("л", 10) == nil
+    assert String.at("л", 10) == ""
     assert String.at("elixir", -1) == "r"
     assert String.at("がガちゃ", -2) == "ち"
-    assert String.at("л", -3) == nil
+    assert String.at("л", -3) == ""
   end
 
 end
