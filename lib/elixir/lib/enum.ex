@@ -268,7 +268,7 @@ defmodule Enum do
 
   def empty?(collection) do
     case I.iterator(collection) do
-      { _iterator, pointer }  -> pointer === :stop
+      { _iterator, pointer }  -> pointer == :stop
       list when is_list(list) -> list == []
     end
   end

@@ -1701,6 +1701,20 @@ defmodule Kernel do
   end
 
   @doc """
+  Checks if the given argument is nil or not.
+  Allowed in guard clauses.
+
+  ## Examples
+
+      nil? 1    #=> false
+      nil? nil  #=> true
+
+  """
+  defmacro nil?(x) do
+    quote do: unquote(x) == nil
+  end
+
+  @doc """
   A convenient macro that checks if the right side matches
   the left side. The left side is allowed to be a match pattern.
 

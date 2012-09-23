@@ -1,6 +1,28 @@
 Code.require_file "../test_helper.exs", __FILE__
 
 defmodule KernelTest do
+  use ExUnit.Case, async: true
+
+  test :match do
+    assert "abcd" =~ %r/c(d)/
+    refute "abcd" =~ %r/e/
+  end
+
+  test :nil? do
+    assert nil?(nil)
+    refute nil?(0)
+    refute nil?(false)
+  end
+
+  test :in do
+    assert x(1)
+    refute x(4)
+    refute x([])
+  end
+
+  defp x(value) when value in [1,2,3], do: true
+  defp x(_),                           do: false
+
   defmodule Conversions do
     use ExUnit.Case, async: true
 
@@ -128,30 +150,8 @@ defmodule KernelTest do
     end
   end
 
-  defmodule MatchOp do
-    use ExUnit.Case, async: true
-
-    test :match do
-      assert "abcd" =~ %r/c(d)/
-      refute "abcd" =~ %r/e/
-    end
-  end
-
-  defmodule InOp do
-    use ExUnit.Case
-
-    test :in do
-      assert x(1)
-      refute x(4)
-      refute x([])
-    end
-
-    defp x(value) when value in [1,2,3], do: true
-    defp x(_),                           do: false
-  end
-
   defmodule Bang do
-    use ExUnit.Case
+    use ExUnit.Case, async: true
 
     test :bang do
       assert bang(1)     == :truthy
