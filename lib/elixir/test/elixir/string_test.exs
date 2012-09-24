@@ -89,9 +89,54 @@ defmodule StringTest do
     assert String.codepoints("સર્વશ્રેષ્ઠ ઇલાજ") == ["સ","ર","્","વ","શ","્","ર","ે","ષ","્","ઠ"," ","ઇ","લ","ા","જ"] # gujarati
     assert String.codepoints("世界中の一番") == ["世","界","中", "の", "一", "番"] # japanese
     assert String.codepoints("がガちゃ") == ["が", "ガ", "ち", "ゃ"]
+    assert String.codepoints("") == []
   end
 
   test :mixed_codepoints do
     assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") == ["ϖ","Ͳ","ϥ","Ы","ݎ","ߟ","Έ","ټ","Ϙ","ለ","Д","Ш","व","׆","ש","؇","؊","ص","ل","ټ","ܗ","ݎ","ޥ","ޘ","߉","ऌ","૫","ሏ","ᶆ","℆","ℙ","ℱ"," ","⅚","Ⅷ","↠","∈","⌘","①","ﬃ"]
   end
+
+  test :first do
+    assert String.first("elixir") == "e"
+    assert String.first("íelixr") == "í"
+    assert String.first("եոգլից ըմպելիք") == "ե"
+    assert String.first("лэіксір") == "л"
+    assert String.first("ελιξήριο") == "ε"
+    assert String.first("סם חיים") == "ס"
+    assert String.first("がガちゃ") == "が"
+    assert String.first("") == ""
+  end
+
+  test :last do
+    assert String.last("elixir") == "r"
+    assert String.last("elixrí") == "í"
+    assert String.last("եոգլից ըմպելիքե") == "ե"
+    assert String.last("ліксірэ") == "э"
+    assert String.last("ειξήριολ") == "λ"
+    assert String.last("סם ייםח") == "ח"
+    assert String.last("がガちゃ") == "ゃ"
+    assert String.last("") == ""
+  end
+
+  test :length do
+    assert String.length("elixir") == 6
+    assert String.length("elixrí") == 6
+    assert String.length("եոգլից") == 6
+    assert String.length("ліксрэ") == 6
+    assert String.length("ειξήριολ") == 8
+    assert String.length("סם ייםח") == 7
+    assert String.length("がガちゃ") == 4
+    assert String.length("") == 0
+  end
+
+  test :at do
+    assert String.at("л", 0) == "л"
+    assert String.at("elixir", 1) == "l"
+    assert String.at("がガちゃ", 2) == "ち"
+    assert String.at("л", 10) == ""
+    assert String.at("elixir", -1) == "r"
+    assert String.at("がガちゃ", -2) == "ち"
+    assert String.at("л", -3) == ""
+  end
+
 end
