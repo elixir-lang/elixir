@@ -395,8 +395,8 @@ defmodule String do
   def at(string, position) when position < 0 do
     real_pos = do_length(codepoint(string)) - abs(position)
     case real_pos >= 0 do
-    true -> do_at(codepoint(string), real_pos, 0)
-    false -> ""
+      true -> do_at(codepoint(string), real_pos, 0)
+      false -> ""
     end
   end
 
