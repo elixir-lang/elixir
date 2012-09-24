@@ -332,8 +332,8 @@ defmodule String do
   """
   def first(string) do
     case codepoint(string) do
-    { char, _ } -> char
-    :no_codepoint -> ""
+      { char, _ } -> char
+      :no_codepoint -> ""
     end
   end
 
