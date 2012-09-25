@@ -224,7 +224,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#register-2 for more info.
   """
-  def register(name, pid) do
+  def register(pid, name) do
     :erlang.register(name, pid)
   end
 

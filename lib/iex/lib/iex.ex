@@ -75,9 +75,27 @@ defmodule IEx do
   If so, invoke tty, otherwise go with the simple iex.
   """
   def run(opts // []) when is_list(opts) do
-    case :os.type do
-      { :unix, _ } -> tty(opts)
-      _            -> simple(opts)
+    if tty_works? do
+      tty(opts)
+    else
+      IO.puts "Warning: could not run smart terminal, falling back to dumb one"
+      simple(opts)
+    end
+  end
+
+  # Check if tty works. If it does not, we fall back to the
+  # simple/dumb terminal. This is starting the linked in
+  # driver twice, it would be nice and appropriate if we had
+  # to do it just once.
+  defp tty_works? do
+    # Dettack the error logger since we are spawning a new one
+    :error_logger.tty(false)
+
+    try do
+      port = Port.open { :spawn, :"tty_sl -c -e" }, [:eof]
+      Port.close(port)
+    catch
+      _, _ -> false
     end
   end
 
