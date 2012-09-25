@@ -399,8 +399,8 @@ handle_call_identifier(Line, File, Terminators, Op, Rest, Tokens) ->
 
 %% Helpers
 
-eol(Line, _Mod, [{',',_}|_] = Tokens)   -> Tokens;
-eol(Line, _Mod, [{eol,_,_}|_] = Tokens) -> Tokens;
+eol(_Line, _Mod, [{',',_}|_] = Tokens)   -> Tokens;
+eol(_Line, _Mod, [{eol,_,_}|_] = Tokens) -> Tokens;
 eol(Line, Mod, Tokens) -> [{eol,Line,Mod}|Tokens].
 
 collect_modifiers([H|T], Buffer) when ?is_downcase(H) ->
