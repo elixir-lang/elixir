@@ -169,7 +169,7 @@ defmodule Kernel.ErrorsTest do
   test :invalid_bitstring_specified do
     assert "nofile:1: unknown bitstring specifier :atom" == format_rescue '<<1 :: :atom>>'
     assert "nofile:1: unknown bitstring specifier unknown" == format_rescue '<<1 :: unknown>>'
-    assert "nofile:1: unknown bitstring specifier another" == format_rescue '<<1 :: another(12)>>'
+    assert "nofile:1: unknown bitstring specifier another(12)" == format_rescue '<<1 :: another(12)>>'
     assert "nofile:1: size in bitstring expects an integer or a variable as argument" == format_rescue '<<1 :: size(:a)>>'
     assert "nofile:1: unit in bitstring expects an integer as argument" == format_rescue '<<1 :: unit(x)>>'
   end

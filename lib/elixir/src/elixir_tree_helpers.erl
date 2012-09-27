@@ -132,20 +132,35 @@ extract_bit_values(Line, V, S) when is_list(V) ->
 extract_bit_values(Line, V, S) ->
   extract_bit_values(Line, [V], S).
 
-extract_bit_values(Line, [{ Value, CallLine, Atom }|T], Size, Types, S) when is_atom(Value), is_atom(Atom) ->
-  NewTypes = extract_bit_type(CallLine, Value, Types, S),
-  extract_bit_values(Line, T, Size, NewTypes, S);
+extract_bit_values(Line, [{ Value, _CallLine, Atom }|T] = All, Size, Types, S)
+    when is_atom(Value) andalso (is_atom(Atom) orelse Atom == []) ->
+  case extract_bit_type(Value, Types) of
+    { error, unknown } ->
+      handle_unknown_specifier(Line, All, Size, Types, S);
+    NewTypes when is_list(NewTypes) ->
+      extract_bit_values(Line, T, Size, NewTypes, S)
+  end;
 
-extract_bit_values(Line, [{ Value, CallLine, [] }|T], Size, Types, S) when is_atom(Value) ->
-  NewTypes = extract_bit_type(CallLine, Value, Types, S),
-  extract_bit_values(Line, T, Size, NewTypes, S);
+extract_bit_values(Line, [{ Value, CallLine, [_] = Args }|T] = All, Size, Types, S) when is_atom(Value) ->
+  { TArgs, _ } = elixir_translator:translate_args(Args, S),
+  case extract_bit_type_or_size(Value, TArgs, Size, Types) of
+    { error, unknown } ->
+      handle_unknown_specifier(Line, All, Size, Types, S);
+    { error, Msg } ->
+      elixir_errors:syntax_error(CallLine, S#elixir_scope.file, Msg);
+    { NewSize, NewTypes } ->
+      extract_bit_values(Line, T, NewSize, NewTypes, S)
+  end;
 
-extract_bit_values(Line, [{ Value, CallLine, [Arg] }|T], Size, Types, S) when is_atom(Value) ->
-  { NewSize, NewTypes } = extract_bit_type_or_size(CallLine, Value, Arg, Size, Types, S),
-  extract_bit_values(Line, T, NewSize, NewTypes, S);
+extract_bit_values(Line, [{ '|', _, [Left, Right] }], Size, Types, S) ->
+  Expanded = case 'Elixir.Macro':expand(Right, elixir_scope:to_ex_env({ Line, S })) of
+    { '__block__', _, [Expr] } -> Expr;
+    Expr -> Expr
+  end,
+  extract_bit_values(Line, [Left|Expanded], Size, Types, S);
 
-extract_bit_values(Line, [H|_], _Size, _Types, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "unknown bitstring specifier ~s", ['Elixir.Macro':to_binary(H)]);
+extract_bit_values(Line, [_|_] = All, Size, Types, S) ->
+  handle_unknown_specifier(Line, All, Size, Types, S);
 
 extract_bit_values(_Line, [], Size, [], _S) ->
   { Size, default };
@@ -153,38 +168,40 @@ extract_bit_values(_Line, [], Size, [], _S) ->
 extract_bit_values(_Line, [], Size, Types, _S) ->
   { Size, lists:reverse(Types) }.
 
-extract_bit_type(_Line, Value, Types, _S) when
+extract_bit_type(Value, Types) when
     Value == binary; Value == integer; Value == float; Value == bitstring;
     Value == signed; Value == unsigned;
     Value == big; Value == little; Value == native ->
   [Value|Types];
 
-extract_bit_type(Line, Value, _Types, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "unknown bitstring specifier ~p", [Value]).
+extract_bit_type(_Value, _Types) ->
+  { error, unknown }.
 
-extract_bit_type_or_size(Line, size, Arg, default, Types, S) ->
-  Translated = element(1, elixir_translator:translate_each(Arg, S)),
+extract_bit_type_or_size(size, [{ Kind, _, _ } = Arg], default, Types) when Kind == var; Kind == integer ->
+  { Arg, Types };
 
-  case Translated of
-    { integer, _, _ } -> ok;
-    { var, _, _ }     -> ok;
-    _ ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.file, "size in bitstring expects an integer or a variable as argument")
-  end,
+extract_bit_type_or_size(size, _Args, default, _Types) ->
+  { error, "size in bitstring expects an integer or a variable as argument" };
 
-  { Translated, Types };
+extract_bit_type_or_size(size, _Args, _Other, _Types) ->
+  { error, "duplicated size definition for bitstring" };
 
-extract_bit_type_or_size(Line, size, _Arg, _Other, _Types, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "duplicated size definition for bitstring");
-
-extract_bit_type_or_size(_Line, unit, Arg, Size, Types, _S) when is_integer(Arg) ->
+extract_bit_type_or_size(unit, [{ integer, _, Arg }], Size, Types) ->
   { Size, [{ unit, Arg }|Types] };
 
-extract_bit_type_or_size(Line, unit, _Arg, _Other, _Types, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "unit in bitstring expects an integer as argument");
+extract_bit_type_or_size(unit, _Args, _Other, _Types) ->
+  { error, "unit in bitstring expects an integer as argument" };
 
-extract_bit_type_or_size(Line, Value, _Arg, _Other, _Types, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "unknown bitstring specifier ~p", [Value]).
+extract_bit_type_or_size(_Value, _Args, _Other, _Types) ->
+  { error, unknown }.
+
+handle_unknown_specifier(Line, [H|T], Size, Types, S) ->
+  case 'Elixir.Macro':expand(H, elixir_scope:to_ex_env({ Line, S })) of
+    H ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.file, "unknown bitstring specifier ~s", ['Elixir.Macro':to_binary(H)]);
+    E ->
+      extract_bit_values(Line, [E|T], Size, Types, S)
+  end.
 
 %% Deprecated specifiers
 

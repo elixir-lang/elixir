@@ -100,6 +100,21 @@ bar
        sec_data :: binary >>
   end
 
+  defmacrop signed_16 do
+    quote do
+      [big, signed, integer, unit(16)]
+    end
+  end
+
+  test :bitsyntax_macro do
+    refb = "sample"
+    sec_data = "another"
+    << size(refb) :: [size(1), big, signed, integer, unit(8)],
+       refb :: binary,
+       size(sec_data) :: [size(1) | signed_16],
+       sec_data :: binary >>
+  end
+
   defp is_match?(<<char, _ :: binary>>, char) do
     true
   end
