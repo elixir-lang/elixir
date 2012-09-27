@@ -153,11 +153,8 @@ extract_bit_values(Line, [{ Value, CallLine, [_] = Args }|T] = All, Size, Types,
   end;
 
 extract_bit_values(Line, [{ '|', _, [Left, Right] }], Size, Types, S) ->
-  Expanded = case 'Elixir.Macro':expand(Right, elixir_scope:to_ex_env({ Line, S })) of
-    { '__block__', _, [Expr] } -> Expr;
-    Expr -> Expr
-  end,
-  extract_bit_values(Line, [Left|Expanded], Size, Types, S);
+  Expanded = 'Elixir.Macro':expand(Right, elixir_scope:to_ex_env({ Line, S })),
+  extract_bit_values(Line, [Left|join_expansion(Expanded,[])], Size, Types, S);
 
 extract_bit_values(Line, [_|_] = All, Size, Types, S) ->
   handle_unknown_specifier(Line, All, Size, Types, S);
@@ -200,8 +197,12 @@ handle_unknown_specifier(Line, [H|T], Size, Types, S) ->
     H ->
       elixir_errors:syntax_error(Line, S#elixir_scope.file, "unknown bitstring specifier ~s", ['Elixir.Macro':to_binary(H)]);
     E ->
-      extract_bit_values(Line, [E|T], Size, Types, S)
+      extract_bit_values(Line, join_expansion(E,T), Size, Types, S)
   end.
+
+join_expansion({ '__block__', _, [Expanded] }, Tail) -> join_expansion(Expanded, Tail);
+join_expansion(Expanded, Tail) when is_list(Expanded) -> Expanded ++ Tail;
+join_expansion(Expanded, Tail) -> [Expanded|Tail].
 
 %% Deprecated specifiers
 

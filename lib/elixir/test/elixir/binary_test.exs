@@ -106,10 +106,16 @@ bar
     end
   end
 
+  defmacrop refb_spec do
+    quote do
+      [size(1), big, signed, integer, unit(8)]
+    end
+  end
+
   test :bitsyntax_macro do
     refb = "sample"
     sec_data = "another"
-    << size(refb) :: [size(1), big, signed, integer, unit(8)],
+    << size(refb) :: refb_spec,
        refb :: binary,
        size(sec_data) :: [size(1) | signed_16],
        sec_data :: binary >>
