@@ -65,6 +65,38 @@ defmodule Kernel.MessedBitwise do
   defmacro bor(x, _), do: x
 end
 
+defmodule Kernel.Underscored do
+  def hello(x),          do: x
+  def __underscore__(x), do: x
+  def __s__(x),          do: x
+end
+
+defmodule Kernel.ExplicitUnderscored do
+  def __underscore__(x), do: x * 2
+end
+
+
+defmodule Kernel.ImportUnderscoreTest do
+  use ExUnit.Case, async: true
+
+  import Kernel.ExplicitUnderscored, underscored: true
+
+  test :does_not_include_underscored do
+    import Kernel.Underscored
+    assert __underscore__(2) == 4
+  end
+
+  test :includes_remaining do
+    import Kernel.Underscored
+    assert hello(2) == 2
+  end
+
+  test :includes_sigil_like do
+    import Kernel.Underscored
+    assert __s__(3) == 3
+  end
+end
+
 defmodule Kernel.ImportMacrosTest do
   use ExUnit.Case, async: true
 

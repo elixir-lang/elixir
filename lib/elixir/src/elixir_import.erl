@@ -91,11 +91,13 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
   end,
 
   %% Normalize the data before storing it
-  Final = ordsets:from_list(New -- internal_funs()),
+  Set          = ordsets:from_list(New),
+  NoInternal   = remove_internals(Set),
+  NoUnderscore = remove_underscored(NoInternal, Opts),
 
-  case Final of
-    [] -> All;
-    _  ->
+  case NoUnderscore of
+    []    -> All;
+    Final ->
       ensure_no_conflicts(Line, File, Final, keydelete(Key, S#elixir_scope.macros)),
       ensure_no_conflicts(Line, File, Final, keydelete(Key, S#elixir_scope.functions)),
       ensure_no_in_erlang_macro_conflict(Line, File, Key, Final, internal_conflict),
@@ -262,13 +264,25 @@ intersection([], _All) -> [].
 
 %% Internal funs that are never imported etc.
 
-internal_funs() ->
-  [
-    { module_info, 0 },
-    { module_info, 1 },
-    { '__info__', 1 },
-    { '__using__', 1 }
-  ].
+remove_underscored(List, Opts) ->
+  case orddict:find(underscored, Opts) of
+    { ok, true } -> List;
+    _ -> remove_underscored(List)
+  end.
+
+remove_underscored([{ Name, _ } = H|T]) when Name < a  ->
+  case atom_to_list(Name) of
+    [$_, $_, _, $_, $_] -> [H|remove_underscored(T)];
+    "_" ++ _            -> remove_underscored(T);
+    _                   -> [H|remove_underscored(T)]
+  end;
+
+remove_underscored(T) ->
+  T.
+
+remove_internals(Set) ->
+  ordsets:del_element({ module_info, 1 },
+    ordsets:del_element({ module_info, 0 }, Set)).
 
 %% Macros implemented in Erlang that are not overridable.
 

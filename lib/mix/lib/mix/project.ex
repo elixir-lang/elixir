@@ -46,7 +46,7 @@ defmodule Mix.Project do
 
   # Invoked after each Mix.Project is compiled.
   @doc false
-  def after_compile(module, _binary) do
+  def __after_compile__(module, _binary) do
     push module
   end
 

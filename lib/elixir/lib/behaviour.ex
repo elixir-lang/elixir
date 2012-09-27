@@ -73,12 +73,12 @@ defmodule Behaviour do
     quote do
       Module.register_attribute(__MODULE__, :__behaviour_callbacks, accumulate: true)
       @before_compile unquote(__MODULE__)
-      import unquote(__MODULE__), only: [defcallback: 1]
+      import unquote(__MODULE__)
     end
   end
 
   @doc false
-  defmacro before_compile(_) do
+  defmacro __before_compile__(_) do
     quote do
       @doc false
       def behaviour_info(:callbacks) do

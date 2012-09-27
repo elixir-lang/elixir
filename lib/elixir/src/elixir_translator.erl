@@ -196,7 +196,7 @@ translate_each({ import, Line, [Left, Right, Opts] }, S) ->
     _ -> syntax_error(Line, S#elixir_scope.file, "invalid name for import, expected an atom or alias")
   end,
 
-  validate_opts(Line, import, [as, only, except], Opts, S),
+  validate_opts(Line, import, [as, only, except, underscored], Opts, S),
 
   As = case orddict:find(as, Opts) of
     { ok, Value } -> Value;

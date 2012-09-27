@@ -553,7 +553,7 @@ defmodule Module do
 
   defp normalize_attribute(key, atom) when is_atom(atom) and
       key in [:before_compile, :after_compile, :on_definition] do
-    { atom, key }
+    { atom, :"__#{key}__" }
   end
 
   defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do

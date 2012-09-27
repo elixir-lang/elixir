@@ -12,11 +12,11 @@ defmodule ModuleTest.ToBeUsed do
     quote do: (def line, do: __ENV__.line)
   end
 
-  defmacro before_compile(_) do
+  defmacro __before_compile__(_) do
     quote do: (def before_compile, do: true)
   end
 
-  defmacro after_compile(ModuleTest.ToUse, bin) when is_binary(bin) do
+  defmacro __after_compile__(ModuleTest.ToUse, bin) when is_binary(bin) do
     # IO.puts "HELLO"
   end
 
@@ -182,7 +182,7 @@ defmodule ModuleTest do
     assert Process.get(ModuleTest.OnDefinition) == :called
   end
 
-  def on_definition(env, kind, name, args, guards, expr) do
+  def __on_definition__(env, kind, name, args, guards, expr) do
     Process.put(env.module, :called)
     assert env.module == ModuleTest.OnDefinition
     assert kind == :def

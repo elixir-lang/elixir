@@ -141,7 +141,9 @@ defmodule Kernel.SpecialForms do
       import :macros, MyMacros
 
   And you can then use `only` or `except` to filter the macros being
-  included.
+  included. By default, Elixir won't import functions or macros that
+  start with underscore. Underscored functions can be explicitly turned
+  on by passing `underscored: true`.
 
   ## Lexical scope
 
