@@ -60,6 +60,7 @@ $(eval $(call TASK_TEMPLATE,iex,IEx))
 clean:
 	@ cd lib/elixir && $(REBAR) clean
 	rm -rf .full
+	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf lib/*/test/tmp
 	rm -rf lib/mix/test/fixtures/git_repo
