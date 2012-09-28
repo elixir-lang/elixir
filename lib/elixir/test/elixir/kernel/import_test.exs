@@ -79,7 +79,7 @@ end
 defmodule Kernel.ImportUnderscoreTest do
   use ExUnit.Case, async: true
 
-  import Kernel.ExplicitUnderscored, underscored: true
+  import :all, Kernel.ExplicitUnderscored
 
   test :does_not_include_underscored do
     import Kernel.Underscored

@@ -35,22 +35,24 @@ recorded_locals(Module) ->
 %% based on the given options and selector.
 
 import(Line, Ref, Opts, Selector, S) ->
-  SF = case (Selector == all) or (Selector == functions) of
+  IncludeAll = (Selector == all) or (Selector == default),
+
+  SF = case IncludeAll or (Selector == functions) of
     false -> S;
     true  ->
-      FunctionsFun = fun() -> get_functions(Ref) end,
+      FunctionsFun = fun() -> remove_underscored(Selector, get_functions(Ref)) end,
       Functions = calculate(Line, Ref, Opts,
         S#elixir_scope.functions, FunctionsFun, S),
       S#elixir_scope{functions=Functions}
   end,
 
-  SM = case (Selector == all) or (Selector == macros) of
+  SM = case IncludeAll or (Selector == macros) of
     false -> SF;
     true  ->
       MacrosFun = fun() ->
-        case Selector of
-          all -> get_optional_macros(Ref);
-          _ -> get_macros(Line, Ref, SF)
+        case IncludeAll of
+          true  -> remove_underscored(Selector, get_optional_macros(Ref));
+          false -> get_macros(Line, Ref, SF)
         end
       end,
       Macros = calculate(Line, Ref, Opts,
@@ -91,13 +93,12 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
   end,
 
   %% Normalize the data before storing it
-  Set          = ordsets:from_list(New),
-  NoInternal   = remove_internals(Set),
-  NoUnderscore = remove_underscored(NoInternal, Opts),
+  Set     = ordsets:from_list(New),
+  Final   = remove_internals(Set),
 
-  case NoUnderscore of
-    []    -> All;
-    Final ->
+  case Final of
+    [] -> All;
+    _  ->
       ensure_no_conflicts(Line, File, Final, keydelete(Key, S#elixir_scope.macros)),
       ensure_no_conflicts(Line, File, Final, keydelete(Key, S#elixir_scope.functions)),
       ensure_no_in_erlang_macro_conflict(Line, File, Key, Final, internal_conflict),
@@ -264,11 +265,8 @@ intersection([], _All) -> [].
 
 %% Internal funs that are never imported etc.
 
-remove_underscored(List, Opts) ->
-  case orddict:find(underscored, Opts) of
-    { ok, true } -> List;
-    _ -> remove_underscored(List)
-  end.
+remove_underscored(default, List) -> remove_underscored(List);
+remove_underscored(_, List)       -> List.
 
 remove_underscored([{ Name, _ } = H|T]) when Name < a  ->
   case atom_to_list(Name) of
