@@ -19,7 +19,8 @@ defmodule Mix.Tasks.Deps.Update do
 
   def run(args) do
     deps = Enum.map by_name!(args), check_unavailable!(&1)
-    finalize_update Enum.reduce deps, init, deps_updater(&1, &2)
+    { _, acc } = Enum.map_reduce deps, init, deps_updater(&1, &2)
+    finalize_update acc
   end
 
   defp init do
@@ -36,13 +37,13 @@ defmodule Mix.Tasks.Deps.Update do
       Mix.Dep[app: app, scm: scm, opts: opts] = dep
       Mix.shell.info "* Updating #{format_dep(dep)}"
 
-      lock = 
+      lock =
         if latest = scm.update(deps_path(dep), opts) do
           Keyword.put(lock, app, latest)
         else
           lock
         end
-        
+
       { Mix.Deps.update(dep), { [app|acc], lock } }
     else
       { dep, { acc, lock } }

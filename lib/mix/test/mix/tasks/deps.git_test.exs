@@ -98,7 +98,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ %r(#{first})
 
-      Mix.Tasks.Deps.Update.run []
+      Mix.Tasks.Deps.Update.run ["git_repo"]
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ %r(#{last})
 

@@ -16,7 +16,8 @@ defmodule Mix.Tasks.Deps.Get do
   end
 
   def run(args) do
-    finalize_get Enum.reduce by_name!(args), init, deps_getter(&1, &2)
+    { _, acc } = Enum.map_reduce by_name!(args), init, deps_getter(&1, &2)
+    finalize_get acc
   end
 
   defp init do
@@ -44,7 +45,7 @@ defmodule Mix.Tasks.Deps.Get do
       opts = Keyword.put(opts, :lock, old)
       path = deps_path(dep)
 
-      new = 
+      new =
         if scm.available?(path, opts) do
           scm.update(path, opts)
         else
