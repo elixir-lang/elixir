@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Escriptize do
       end
     end
 
-    files = Enum.reduce project[:deps] || [], files, fn(dep, acc) ->
+    files = Enum.reduce Mix.Deps.all || [], files, fn(dep, acc) ->
       dep_files(dep.app) ++ acc
     end
 
