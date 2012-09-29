@@ -13,6 +13,7 @@ if [ $# -eq 0 ]; then
   --name \"name\"     Makes and assigns a name to the distributed node
   --sname \"name\"    Makes and assigns a short name to the distributed node
   --remsh \"name\"    Connects to a node using a remote shell (with iex)
+  --config \"file\"   Specifies the name of a configuration file
   --detached        Starts the Erlang VM detached from console
   --no-halt         Does not halt the Erlang VM after execution
 
@@ -46,6 +47,12 @@ while [ $I -le $# ]; do
         ;;
     --detached)
         ERL="$ERL `echo $PEEK | cut -c 2-`"
+        ;;
+    --config)
+        I=$(expr $I + 1)
+        eval "VAL=\${$I}"
+        $0 -e ":io.format(\"~p.\",[`cat $VAL`])" > /tmp/$VAL.$$.config
+        ERL="$ERL `echo $PEEK | cut -c 2-` "/tmp/$VAL.$$""
         ;;
     --sname|--name)
         I=$(expr $I + 1)
