@@ -96,7 +96,13 @@ eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) ->
 %% internal API not meant for external usage.
 
 eval_forms(Tree, Binding, RawScope) ->
-  Scope = RawScope#elixir_scope{vars=binding_dict(Binding)},
+  Scope = RawScope#elixir_scope{
+    vars=binding_dict(Binding),
+    temp_vars=[],
+    quote_vars=[],
+    clause_vars=[],
+    counter=0
+  },
   { ParseTree, NewScope } = elixir_translator:translate(Tree, Scope),
   case ParseTree of
     [] -> { nil, Binding, NewScope };
