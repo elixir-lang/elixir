@@ -2672,7 +2672,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %B. It simples returns a binary
+  Handles the sigil %B. It simply returns a binary
   without escaping characters and without interpolations.
 
   ## Examples
@@ -2757,7 +2757,7 @@ defmodule Kernel do
 
   @doc """
   Handles the sigil %R. It returns a Regex pattern without escaping
-  nor interpreating interpolations.
+  nor interpreting interpolations.
 
   ## Examples
 
@@ -2767,6 +2767,39 @@ defmodule Kernel do
   defmacro __R__({ :<<>>, _line, [string] }, options) when is_binary(string) do
     regex = Regex.compile!(string, options)
     Macro.escape(regex)
+  end
+
+  @doc """
+  Handles the sigil %w. It returns a list of words (binaries)
+  split by whitespace.
+
+  ## Examples
+
+      %w(foo \#{:bar} baz)            #=> ["foo", "bar", "baz"]
+      %w(--source test/enum_test.exs) #=> ["--source", "test/enum_test.exs"]
+
+  """
+
+  defmacro __w__({ :<<>>, _line, [string] }, []) when is_binary(string) do
+    String.split_words(Macro.unescape_binary(string))
+  end
+
+  defmacro __w__({ :<<>>, line, pieces }, []) do
+    binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
+    quote do: String.split_words(unquote(binary))
+  end
+
+  @doc """
+  Handles the sigil %W. It returns a list of words (binaries)
+  split by whitespace without escaping nor interpreting interpolation.
+
+  ## Examples
+
+      %W(foo \#{bar} baz) #=> ["foo", "\\\#{bar}", "baz"]
+
+  """
+  defmacro __W__({ :<<>>, _line, [string] }, []) when is_binary(string) do
+    String.split_words(string)
   end
 
   ## Private functions
