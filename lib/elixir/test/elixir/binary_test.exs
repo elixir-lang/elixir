@@ -46,35 +46,6 @@ bar
     assert x == "bar"
   end
 
-  test :__B__ do
-    assert %B(foo) == "foo"
-    assert %B[foo] == "foo"
-    assert %B{foo} == "foo"
-    assert %B'foo' == "foo"
-    assert %B"foo" == "foo"
-    assert %B|foo| == "foo"
-    assert %B(f#{o}o) == "f\#{o}o"
-    assert %B(f\no) == "f\\no"
-  end
-
-  test :__b__ do
-    assert %b(foo) == "foo"
-    assert %b(f#{:o}o) == "foo"
-    assert %b(f\no) == "f\no"
-  end
-
-  test :__B__with_heredoc do
-    assert "  f\#{o}o\\n\n" == %B"""
-      f#{o}o\n
-    """
-  end
-
-  test :__b__with_heredoc do
-    assert "  foo\n\n" == %b"""
-      f#{:o}o\n
-    """
-  end
-
   test :octals do
     assert "\123" == "S"
     assert "\128" == "\n8"
