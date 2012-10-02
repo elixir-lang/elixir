@@ -117,7 +117,8 @@ defmodule Mix.Project do
   defp default_config do
     [ compile_path: "ebin",
       compile_first: [],
-      compile_exts: [:ex, :eex],
+      compile_exts: [:ex],
+      watch_exts: [:ex, :eex],
       default_env: [test: :test],
       default_task: "test",
       deps_path: "deps",
