@@ -24,7 +24,7 @@ defmodule Code do
   allowing it to be required again.
   """
   def unload_files(files) do
-    server_call { :unload_files, files }
+    server_cast { :unload_files, files }
   end
 
   @doc """
@@ -175,7 +175,7 @@ defmodule Code do
     file = find_file(file, relative_to)
     server_call { :acquire, file }
     loaded = Erlang.elixir_compiler.file file
-    server_call { :loaded, file }
+    server_cast { :loaded, file }
     loaded
   end
 
@@ -196,12 +196,13 @@ defmodule Code do
     file = find_file(file, relative_to)
 
     case server_call({ :acquire, file }) do
-      :loaded  -> nil
-      :queued  ->
-        receive do { :elixir_code_server, ^file, :loaded } -> nil end
+      :loaded  ->
+        nil
+      { :queued, ref }  ->
+        receive do { :elixir_code_server, ^ref, :loaded } -> nil end
       :proceed ->
         loaded = Erlang.elixir_compiler.file file
-        server_call { :loaded, file }
+        server_cast { :loaded, file }
         loaded
     end
   end
@@ -360,5 +361,9 @@ defmodule Code do
 
   defp server_call(args) do
     Erlang.gen_server.call(:elixir_code_server, args)
+  end
+
+  defp server_cast(args) do
+    Erlang.gen_server.cast(:elixir_code_server, args)
   end
 end

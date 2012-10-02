@@ -21,37 +21,13 @@ handle_call({ acquire, Path }, From, Config) ->
   case orddict:find(Path, Current) of
     { ok, true } ->
       { reply, loaded, Config };
-    { ok, List } when is_list(List) ->
-      Queued = orddict:store(Path, [From|List], Current),
-      { reply, queued, Config#elixir_code_server{loaded=Queued} };
+    { ok, { Ref, List } } when is_list(List), is_reference(Ref) ->
+      Queued = orddict:store(Path, { Ref, [From|List] }, Current),
+      { reply, { queued, Ref }, Config#elixir_code_server{loaded=Queued} };
     error ->
-      Queued = orddict:store(Path, [], Current),
+      Queued = orddict:store(Path, { make_ref(), [] }, Current),
       { reply, proceed, Config#elixir_code_server{loaded=Queued} }
   end;
-
-handle_call({ loaded, Path }, _From, Config) ->
-  Current = Config#elixir_code_server.loaded,
-  case orddict:find(Path, Current) of
-    { ok, true } ->
-      { reply, ok, Config };
-    { ok, List } when is_list(List) ->
-      [Pid ! { elixir_code_server, Path, loaded } || { Pid, _Tag } <- lists:reverse(List)],
-      Done = orddict:store(Path, true, Current),
-      { reply, ok, Config#elixir_code_server{loaded=Done} };
-    error ->
-      Done = orddict:store(Path, true, Current),
-      { reply, ok, Config#elixir_code_server{loaded=Done} }
-  end;
-
-handle_call({ unload_files, Files }, _From, Config) ->
-  Current  = Config#elixir_code_server.loaded,
-  Unloaded = lists:foldl(fun(File, Acc) ->
-    case orddict:find(File, Acc) of
-      { ok, true } -> orddict:erase(File, Acc);
-      _ -> Acc
-    end
-  end, Current, Files),
-  { reply, ok, Config#elixir_code_server{loaded=Unloaded} };
 
 handle_call({ at_exit, AtExit }, _From, Config) ->
   { reply, ok, Config#elixir_code_server{at_exit=[AtExit|Config#elixir_code_server.at_exit]} };
@@ -77,6 +53,25 @@ handle_call(compiler_options, _From, Config) ->
 
 handle_call(_Request, _From, Config) ->
   { reply, undef, Config }.
+
+handle_cast({ loaded, Path }, Config) ->
+  Current = Config#elixir_code_server.loaded,
+  case orddict:find(Path, Current) of
+    { ok, true } ->
+      { noreply, Config };
+    { ok, { Ref, List } } when is_list(List), is_reference(Ref) ->
+      [Pid ! { elixir_code_server, Ref, loaded } || { Pid, _Tag } <- lists:reverse(List)],
+      Done = orddict:store(Path, true, Current),
+      { noreply, Config#elixir_code_server{loaded=Done} };
+    error ->
+      Done = orddict:store(Path, true, Current),
+      { noreply, Config#elixir_code_server{loaded=Done} }
+  end;
+
+handle_cast({ unload_files, Files }, Config) ->
+  Current  = Config#elixir_code_server.loaded,
+  Unloaded = lists:foldl(fun(File, Acc) -> orddict:erase(File, Acc) end, Current, Files),
+  { noreply, Config#elixir_code_server{loaded=Unloaded} };
 
 handle_cast(_Request, Config) ->
   { noreply, Config }.
