@@ -132,6 +132,14 @@ defmodule String do
     :binary.split(binary, pattern, options_list)
   end
 
+  @doc false
+  def split_words(string) do
+    case Regex.split(%r/\s+/, string, [parts: 0]) do
+      [ "" | tail ] -> tail
+      other -> other
+    end
+  end
+
   @doc """
   Convert all characters on the given string to upper case.
 
@@ -317,7 +325,7 @@ defmodule String do
 
   defp do_codepoints({char, rest}) do
     [char|do_codepoints(codepoint(rest))]
-  end  
+  end
 
   defp do_codepoints(:no_codepoint), do: []
 
@@ -428,9 +436,9 @@ defmodule String do
   defp codepoint(<<first, second, char, rest :: binary>>)
     when first in 225..239 and second in 128..191 and char in 128..191,
     do: { <<first, second, char>>, rest }
-  
+
   defp codepoint(<<other, rest :: binary>>), do: { <<other>>, rest }
-  
+
   defp codepoint(<<>>), do: :no_codepoint
 
 end

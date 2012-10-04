@@ -48,4 +48,19 @@ defmodule Kernel.SigilsTest do
     assert %C(f#{o}o) == 'f\#{o}o'
     assert %C(f\no) == 'f\\no'
   end
+
+  test :__w__ do
+    assert %w(foo bar baz) == ["foo", "bar", "baz"]
+    assert %w(foo #{:bar} baz) == ["foo", "bar", "baz"]
+    assert %w( foo
+               bar
+               baz ) == ["foo", "bar", "baz"]
+  end
+
+  test :__W__ do
+    assert %W(foo #{bar} baz) == ["foo", "\#{bar}", "baz"]
+    assert %W( foo
+               bar
+               baz ) == ["foo", "bar", "baz"]
+  end
 end
