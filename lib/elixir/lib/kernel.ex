@@ -1542,10 +1542,13 @@ defmodule Kernel do
   end
 
   @doc """
-  `use` is a simple mechanism for extending the current module with the
-  given module.
+  `use` is a simple mechanism for using a given module into
+  the current context.
 
   ## Examples
+
+  For example, in other to write tests using the ExUnit framework,
+  a developers should use the `ExUnit.Case` module:
 
       defmodule AssertionTest do
         use ExUnit.Case, async: true
@@ -1556,8 +1559,9 @@ defmodule Kernel do
       end
 
   By calling `use`, a hook called `__using__` will be invoked in
-  `ExUnit.Case` which will then do the proper setup. In other words,
-  `use` is simply a translation to:
+  `ExUnit.Case` which will then do the proper setup.
+
+  Simply put, `use` is simply a translation to:
 
       defmodule AssertionTest do
         require ExUnit.Case
@@ -1570,11 +1574,13 @@ defmodule Kernel do
 
   """
   defmacro use(module, args // []) do
-    expanded = Macro.expand module, __CALLER__
+    expanded = Macro.expand(module, __CALLER__)
 
     case is_atom(expanded) do
-      false -> raise ArgumentError, message: "invalid arguments for use, expected an atom or alias as argument"
-      true  ->
+      false ->
+        raise ArgumentError,
+          message: "invalid arguments for use, expected an atom or alias as argument"
+      true ->
         quote do
           require unquote(expanded)
           unquote(expanded).__using__(unquote(args))

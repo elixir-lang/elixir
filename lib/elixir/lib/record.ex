@@ -48,27 +48,20 @@ defmodule Record do
       end
 
   """
-  def deffunctions(env, values, opts) do
+  def deffunctions(env, values, opts // []) do
     values     = lc value inlist values, do: convert_value(value)
     escaped    = Macro.escape(values)
     extensions = Keyword.get(opts, :extensions, Record.Extensions)
-    except     = Keyword.get(opts, :except, [])
 
     contents = [
       reflection(escaped),
       initializer(escaped),
       indexes(escaped),
-      readers(values, 2, []),
-      conversions(values)
+      readers(values, 1, []),
+      conversions(values),
+      writers(values, 1, []),
+      extensions(values, 1, [], extensions)
     ]
-
-    unless :lists.member(:writers, except) do
-      contents = [writers(values, 2, [])|contents]
-    end
-
-    unless :lists.member(:extensions, except) do
-      contents = [extensions(values, 2, [], extensions)|contents]
-    end
 
     # Special case for bootstraping purposes
     if env == Macro.Env do
@@ -406,7 +399,7 @@ defmodule Record do
   defp readers([{ key, _default }|t], i, acc) do
     contents = quote do
       def unquote(key).(record) do
-        :erlang.element(unquote(i), record)
+        :erlang.element(unquote(i + 1), record)
       end
     end
 
@@ -432,7 +425,7 @@ defmodule Record do
   defp writers([{ key, _default }|t], i, acc) do
     contents = quote do
       def unquote(key).(value, record) do
-        :erlang.setelement(unquote(i), record, value)
+        :erlang.setelement(unquote(i + 1), record, value)
       end
     end
 
@@ -535,10 +528,8 @@ defmodule Record.Extensions do
   # Main entry point. It defines both default functions
   # via `default_for` and extensions via `extension_for`.
   def functions_for(key, default, i) do
-    [
-      default_for(key, default, i),
-      extension_for(key, default, i)
-    ]
+    [ default_for(key, default, i),
+      extension_for(key, default, i) ]
   end
 
   # Skip the __exception__ for defexception.
@@ -553,8 +544,8 @@ defmodule Record.Extensions do
 
     quote do
       def unquote(update).(function, record) do
-        current = :erlang.element(unquote(i), record)
-        :erlang.setelement(unquote(i), record, function.(current))
+        current = :erlang.element(unquote(i + 1), record)
+        :erlang.setelement(unquote(i + 1), record, function.(current))
       end
     end
   end
@@ -567,13 +558,13 @@ defmodule Record.Extensions do
 
     quote do
       def unquote(prepend).(value, record) do
-        current = :erlang.element(unquote(i), record)
-        :erlang.setelement(unquote(i), record, value ++ current)
+        current = :erlang.element(unquote(i + 1), record)
+        :erlang.setelement(unquote(i + 1), record, value ++ current)
       end
 
       def unquote(merge).(value, record) do
-        current = :erlang.element(unquote(i), record)
-        :erlang.setelement(unquote(i), record, Keyword.merge(current, value))
+        current = :erlang.element(unquote(i + 1), record)
+        :erlang.setelement(unquote(i + 1), record, Keyword.merge(current, value))
       end
     end
   end
@@ -584,8 +575,8 @@ defmodule Record.Extensions do
 
     quote do
       def unquote(increment).(value // 1, record) do
-        current = :erlang.element(unquote(i), record)
-        :erlang.setelement(unquote(i), record, current + value)
+        current = :erlang.element(unquote(i + 1), record)
+        :erlang.setelement(unquote(i + 1), record, current + value)
       end
     end
   end
@@ -595,9 +586,9 @@ defmodule Record.Extensions do
     toggle = :"toggle_#{bin_key}"
 
     quote do
-      def unquote(toggle).(value // false, record) do
-        current = :erlang.element(unquote(i), record)
-        :erlang.setelement(unquote(i), record, not current)
+      def unquote(toggle).(record) do
+        current = :erlang.element(unquote(i + 1), record)
+        :erlang.setelement(unquote(i + 1), record, not current)
        end
     end
   end

@@ -1,4 +1,4 @@
-defrecord Range, [:first, :last], except: [:extensions] do
+defrecord Range, [:first, :last] do
   @moduledoc """
   Defines a Range.
   """

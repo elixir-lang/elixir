@@ -1,6 +1,6 @@
 defmodule Macro.Env do
   Record.deffunctions(__MODULE__, [:module, :file, :line, :function,
-    :aliases, :context, :requires, :macros], except: [:writers, :extensions])
+    :aliases, :context, :requires, :macros])
 
   @moduledoc """
   A record that contains compile time environment information,
