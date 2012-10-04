@@ -1143,7 +1143,7 @@ defmodule File do
       source = File.iterator("README.md")
       File.open "NEWREADME.md", [:write], fn(target) ->
         Enum.each source, fn(line) ->
-          IO.write target, Regex.replace_all(%r/"/, line, "'")
+          IO.write target, Regex.replace(%r/"/, line, "'")
         end
       end
 

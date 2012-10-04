@@ -105,31 +105,26 @@ defmodule String do
 
   ## Examples
 
-    String.split("a,b,c", ",")  #=> ["a", "b,c"]
-    String.split("a,b,c", ",", global: true)  #=> ["a", "b", "c"]
-    String.split("foo bar")     #=> ["foo", "bar"]
-    String.split("1,2 3,4", [" ", ","]) #=> ["1", "2 3,4"]
-    String.split("1,2 3,4", [" ", ","], global: true) #=> ["1", "2", "3", "4"]
-    String.split("a,b", ".")    #=> ["a,b"]
+    String.split("a,b,c", ",")  #=> ["a", "b", "c"]
+    String.split("a,b,c", ",", global: false)  #=> ["a", "b,c"]
 
-    String.split("a,b,c", %r{,})  #=> ["a", "b,c"]
-    String.split("a,b,c", %r{,}, global: true) #=> ["a", "b", "c"]
+    String.split("foo bar")     #=> ["foo", "bar"]
+    String.split("1,2 3,4", [" ", ","]) #=> ["1", "2", "3", "4"]
+
+    String.split("a,b,c", %r{,}) #=> ["a", "b", "c"]
+    String.split("a,b,c", %r{,}, global: false)  #=> ["a", "b,c"]
     String.split("a,b", %r{\.})   #=> ["a,b"]
 
   """
   def split(binary, pattern // " ", options // [])
 
   def split(binary, pattern, options) when is_regex(pattern) do
-    parts = if options[:global], do: :infinity, else: 2
-    Regex.split(pattern, binary, parts: parts)
+    Regex.split(pattern, binary, global: options[:global])
   end
 
   def split(binary, pattern, options) do
-    options_list = []
-    if options[:global] do
-      options_list = [:global|options_list]
-    end
-    :binary.split(binary, pattern, options_list)
+    opts = if options[:global] != false, do: [:global], else: []
+    :binary.split(binary, pattern, opts)
   end
 
   @doc """
@@ -261,18 +256,27 @@ defmodule String do
 
   ## Examples
 
-      String.replace("a,b,c", ",", "-") #=> "a-b,c"
-      String.replace("a,b,c", ",", "-", global: true) #=> "a-b-c"
+      String.replace("a,b,c", ",", "-") #=> "a-b-c"
+      String.replace("a,b,c", ",", "-", global: false) #=> "a-b,c"
       String.replace("a,b,c", "b", "[]", insert_replaced: 1) #=> "a,[b],c"
-      String.replace("a,b,c", ",", "[]", global: true, insert_replaced: 2) #=> "a[],b[],c"
-      String.replace("a,b,c", ",", "[]", global: true, insert_replaced: [1,1]) #=> "a[,,]b[,,]c"
+      String.replace("a,b,c", ",", "[]", insert_replaced: 2) #=> "a[],b[],c"
+      String.replace("a,b,c", ",", "[]", insert_replaced: [1,1]) #=> "a[,,]b[,,]c"
 
   """
-  def replace(subject, pattern, replacement, raw_options // []) do
-    options = translate_replace_options(raw_options)
-    Erlang.binary.replace(subject, pattern, replacement, options)
+  def replace(subject, pattern, replacement, options // []) do
+    opts = translate_replace_options(options)
+    Erlang.binary.replace(subject, pattern, replacement, opts)
   end
 
+  defp translate_replace_options(options) do
+    opts = if options[:global] != false, do: [:global], else: []
+
+    if insert = options[:insert_replaced] do
+      opts = [{:insert_replaced,insert}|opts]
+    end
+
+    opts
+  end
 
   @doc """
   Returns a binary `subject` duplicated `n` times.
@@ -285,20 +289,6 @@ defmodule String do
   """
   def duplicate(subject, n) when is_integer(n) and n > 0 do
     Erlang.binary.copy(subject, n)
-  end
-
-
-  defp translate_replace_options([]), do: []
-  defp translate_replace_options(raw_options) do
-    options = []
-    if raw_options[:global] == true do
-      options = [:global|options]
-    end
-    inserted_replaced = raw_options[:insert_replaced]
-    if inserted_replaced != nil do
-      options = [{:insert_replaced,inserted_replaced}|options]
-    end
-    options
   end
 
   @doc """
@@ -317,7 +307,7 @@ defmodule String do
 
   defp do_codepoints({char, rest}) do
     [char|do_codepoints(codepoint(rest))]
-  end  
+  end
 
   defp do_codepoints(:no_codepoint), do: []
 
@@ -428,9 +418,8 @@ defmodule String do
   defp codepoint(<<first, second, char, rest :: binary>>)
     when first in 225..239 and second in 128..191 and char in 128..191,
     do: { <<first, second, char>>, rest }
-  
-  defp codepoint(<<other, rest :: binary>>), do: { <<other>>, rest }
-  
-  defp codepoint(<<>>), do: :no_codepoint
 
+  defp codepoint(<<other, rest :: binary>>), do: { <<other>>, rest }
+
+  defp codepoint(<<>>), do: :no_codepoint
 end

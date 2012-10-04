@@ -4,18 +4,20 @@ defmodule StringTest do
   use ExUnit.Case, async: true
 
   test :split do
-    assert String.split("a,b,c", ",") == ["a", "b,c"]
-    assert String.split("a,b,c", ",", global: true) == ["a", "b", "c"]
     assert String.split("foo bar") == ["foo", "bar"]
-    assert String.split("1,2 3,4", [" ", ","]) == ["1", "2 3,4"]
-    assert String.split("1,2 3,4", [" ", ","], global: true) == ["1", "2", "3", "4"]
+    assert String.split("a,b,c", ",") == ["a", "b", "c"]
+
     assert String.split("a,b", ".") == ["a,b"]
+    assert String.split("1,2 3,4", [" ", ","]) == ["1", "2", "3", "4"]
+
+    assert String.split("a,b,c", ",", global: false) == ["a", "b,c"]
+    assert String.split("1,2 3,4", [" ", ","], global: false) == ["1", "2 3,4"]
   end
 
   test :split_with_regex do
     assert String.split("a,b", %r{,}) == ["a", "b"]
-    assert String.split("a,b,c", %r{,}) == ["a", "b,c"]
-    assert String.split("a,b,c", %r{,}, global: true) == ["a", "b", "c"]
+    assert String.split("a,b,c", %r{,}) == ["a", "b", "c"]
+    assert String.split("a,b,c", %r{,}, global: false) == ["a", "b,c"]
     assert String.split("a,b", %r{\.}) == ["a,b"]
   end
 
@@ -58,17 +60,16 @@ defmodule StringTest do
   end
 
   test :replace do
-    assert String.replace("a,b,c", ",", "-") == "a-b,c"
-    assert String.replace("a,b,c", [",", "b"], "-") == "a-b,c"
-    assert String.replace("ãéã", "é", "e") == "ãeã"
-  end
+    assert String.replace("a,b,c", ",", "-") == "a-b-c"
+    assert String.replace("a,b,c", [",","b"], "-") == "a---c"
 
-  test :replace_with_options do
-    assert String.replace("a,b,c", ",", "-", global: true) == "a-b-c"
-    assert String.replace("a,b,c", [",","b"], "-", global: true) == "a---c"
-    assert String.replace("a,b,c", "b", "[]", insert_replaced: 1) == "a,[b],c"
-    assert String.replace("a,b,c", ",", "[]", global: true, insert_replaced: 2) == "a[],b[],c"
-    assert String.replace("a,b,c", ",", "[]", global: true, insert_replaced: [1,1]) == "a[,,]b[,,]c"
+    assert String.replace("a,b,c", ",", "-", global: false) == "a-b,c"
+    assert String.replace("a,b,c", [",", "b"], "-", global: false) == "a-b,c"
+    assert String.replace("ãéã", "é", "e", global: false) == "ãeã"
+
+    assert String.replace("a,b,c", ",", "[]", insert_replaced: 2) == "a[],b[],c"
+    assert String.replace("a,b,c", ",", "[]", insert_replaced: [1,1]) == "a[,,]b[,,]c"
+    assert String.replace("a,b,c", "b", "[]", insert_replaced: 1, global: false) == "a,[b],c"
   end
 
   test :duplicate do

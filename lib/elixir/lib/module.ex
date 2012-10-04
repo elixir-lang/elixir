@@ -535,7 +535,7 @@ defmodule Module do
 
   """
   def split(module) do
-    tl(String.split(to_binary(module), "-", global: true))
+    tl(String.split(to_binary(module), "-"))
   end
 
   @doc false

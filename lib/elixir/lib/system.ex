@@ -10,7 +10,7 @@ defmodule System do
   defmacrop get_head_sha do
     if :os.find_executable('git') do
       data = :os.cmd('git rev-parse HEAD')
-      Regex.replace_all %r/\n/, to_binary(data), ""
+      Regex.replace %r/\n/, to_binary(data), ""
     else
       ""
     end

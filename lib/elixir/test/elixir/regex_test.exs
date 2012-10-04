@@ -111,14 +111,12 @@ defmodule Regex.BinaryTest do
     assert Regex.replace(%r(b), "abc", "[&]") == "a[b]c"
     assert Regex.replace(%r(b), "abc", "[\\&]") == "a[&]c"
     assert Regex.replace(%r[(b)], "abc", "[\\1]") == "a[b]c"
-  end
 
-  test :replace_all do
-    assert Regex.replace_all(%r(d), "abcbe", "d") == "abcbe"
-    assert Regex.replace_all(%r(b), "abcbe", "d") == "adcde"
-    assert Regex.replace_all(%r(b), "abcbe", "[&]") == "a[b]c[b]e"
-    assert Regex.replace_all(%r(b), "abcbe", "[\\&]") == "a[&]c[&]e"
-    assert Regex.replace_all(%r[(b)], "abcbe", "[\\1]") == "a[b]c[b]e"
+    assert Regex.replace(%r(d), "abcbe", "d") == "abcbe"
+    assert Regex.replace(%r(b), "abcbe", "d") == "adcde"
+    assert Regex.replace(%r(b), "abcbe", "[&]") == "a[b]c[b]e"
+    assert Regex.replace(%r(b), "abcbe", "[\\&]") == "a[&]c[&]e"
+    assert Regex.replace(%r[(b)], "abcbe", "[\\1]") == "a[b]c[b]e"
   end
 end
 
@@ -186,13 +184,11 @@ defmodule Regex.ListTest do
     assert Regex.replace(%r(b), 'abc', '[&]') == 'a[b]c'
     assert Regex.replace(%r(b), 'abc', '[\\&]') == 'a[&]c'
     assert Regex.replace(%r[(b)], 'abc', '[\\1]') == 'a[b]c'
-  end
 
-  test :replace_all do
-    assert Regex.replace_all(%r(d), 'abcbe', 'd') == 'abcbe'
-    assert Regex.replace_all(%r(b), 'abcbe', 'd') == 'adcde'
-    assert Regex.replace_all(%r(b), 'abcbe', '[&]') == 'a[b]c[b]e'
-    assert Regex.replace_all(%r(b), 'abcbe', '[\\&]') == 'a[&]c[&]e'
-    assert Regex.replace_all(%r[(b)], 'abcbe', '[\\1]') == 'a[b]c[b]e'
+    assert Regex.replace(%r(d), 'abcbe', 'd') == 'abcbe'
+    assert Regex.replace(%r(b), 'abcbe', 'd') == 'adcde'
+    assert Regex.replace(%r(b), 'abcbe', '[&]') == 'a[b]c[b]e'
+    assert Regex.replace(%r(b), 'abcbe', '[\\&]') == 'a[&]c[&]e'
+    assert Regex.replace(%r[(b)], 'abcbe', '[\\1]') == 'a[b]c[b]e'
   end
 end

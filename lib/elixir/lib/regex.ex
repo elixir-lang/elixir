@@ -241,8 +241,8 @@ defmodule Regex do
   end
 
   @doc """
-  Split the given target in the number of parts specified. If no ammount
-  of parts is given, it defaults to :infinity.
+  Split the given target in the number of parts specified.
+  If no ammount of parts is given, it defaults to :infinity.
   """
 
   def split(regex, string, options // [])
@@ -253,17 +253,26 @@ defmodule Regex do
   end
 
   def split({ Regex, compiled, _, _, _ }, string, options) do
-    parts = options[:parts] || :infinity
-    options = [{ :return, return_for(string) }, { :parts, parts }]
-    Erlang.re.split(string, compiled, options)
+    parts =
+      cond do
+        options[:global] == false -> 2
+        p = options[:parts]       -> p
+        true                      -> :infinity
+      end
+
+    return = options[:return] || return_for(string)
+    opts   = [{ :return, return }, { :parts, parts }]
+    Erlang.re.split(string, compiled, opts)
   end
 
   @doc %B"""
-  Receives a string and a replacement and returns a string where the
-  first match of the regular expressions is replaced by replacement.
-  Inside the replacement, you can either give "&" to access the whole
-  regular expression or \N, where N is in integer to access an specific
-  matching parens.
+  Receives a regex, a binary and a replacement and returns a new
+  binary where the all matches are replaced by replacement.
+
+  Inside the replacement, you can either give "&" to access the
+  whole regular expression or \N, where N is in integer to access
+  a specific matching parens. You can also set global to false
+  if you want to replace just the first occurrence.
 
   ## Examples
 
@@ -274,16 +283,16 @@ defmodule Regex do
       Regex.replace(%r/(b)/, "abc", "[\\1]") #=> "a[b]c"
 
   """
-  def replace({ Regex, compiled, _, _, _ }, string, replacement) do
-    Erlang.re.replace(string, compiled, replacement, [{ :return, return_for(string) }])
+  def replace({ Regex, compiled, _, _, _ }, string, replacement, options // []) do
+    opts   = if options[:global] != false, do: [:global], else: []
+    return = options[:return] || return_for(string)
+    opts   = [{ :return, return }|opts]
+    Erlang.re.replace(string, compiled, replacement, opts)
   end
 
-  @doc """
-  The same as replace, but replaces all parts where the regular
-  expressions matches in the string. Please read `replace/3` for
-  documentation and examples.
-  """
+  @doc false
   def replace_all({ Regex, compiled, _, _, _ }, string, replacement) do
+    IO.write "[WARNING] Regex.replace_all is deprecated, simply use Regex.replace instead\n#{Exception.formatted_stacktrace}"
     Erlang.re.replace(string, compiled, replacement, [{ :return, return_for(string) }, :global])
   end
 

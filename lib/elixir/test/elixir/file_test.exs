@@ -938,7 +938,7 @@ defmodule FileTest do
       iterator = File.iterator(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
-          IO.puts target, Regex.replace_all(%r/"/, line, "'")
+          IO.puts target, Regex.replace(%r/"/, line, "'")
         end
       end
       assert File.read(dest) == { :ok, "FOO\n" }
@@ -955,7 +955,7 @@ defmodule FileTest do
       { :ok, iterator } = File.iterator(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
-          IO.puts target, Regex.replace_all(%r/"/, line, "'")
+          IO.puts target, Regex.replace(%r/"/, line, "'")
         end
       end
       assert File.read(dest) == { :ok, "FOO\n" }
@@ -972,7 +972,7 @@ defmodule FileTest do
       iterator = File.iterator!(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
-          IO.puts target, Regex.replace_all(%r/"/, line, "'")
+          IO.puts target, Regex.replace(%r/"/, line, "'")
         end
       end
       assert File.read(dest) == { :ok, "FOO\n" }
