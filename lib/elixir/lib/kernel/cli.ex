@@ -98,6 +98,11 @@ defmodule Kernel.CLI do
     process_shared t, config
   end
 
+  defp process_shared(['--config',file|t], config) do
+    File.rm file # because it was temporarily generated anyway
+    process_shared t, config
+  end
+
   defp process_shared(['-pz',h|t], config) do
     Enum.each File.wildcard(File.expand_path(h)), Code.append_path(&1)
     process_shared t, config
