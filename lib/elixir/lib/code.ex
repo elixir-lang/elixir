@@ -99,14 +99,20 @@ defmodule Code do
       Code.eval_quoted contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
-  When passing the __ENV__'s file and line, we could simply get
-  the location which already returns both fields as a keyword list:
+  For convenience, you can also pass the current __ENV__ and
+  the proper information will be extracted:
 
-      Code.eval_quoted contents, [a: 1, b: 2], __ENV__.location
+      Code.eval_quoted contents, [a: 1, b: 2], __ENV__
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
-  def eval_quoted(quoted, binding // [], opts // []) do
+  def eval_quoted(quoted, binding // [], opts // [])
+
+  def eval_quoted(quoted, binding, Macro.Env[] = env) do
+    eval_quoted(quoted, binding, env.location)
+  end
+
+  def eval_quoted(quoted, binding, opts) do
     { value, binding, _scope } =
       Erlang.elixir.eval_quoted [quoted], binding, opts
     { value, binding }

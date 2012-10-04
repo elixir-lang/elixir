@@ -1,16 +1,7 @@
 -module(elixir_module).
--export([translate/4, compile/5, data_table/1, eval_quoted/4,
-   format_error/1, scope_for_eval/2, binding_for_eval/2]).
+-export([translate/4, compile/5, data_table/1, eval_quoted/4, format_error/1]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
-
-scope_for_eval(Module, #elixir_scope{} = S) ->
-  S#elixir_scope{module=Module};
-
-scope_for_eval(Module, Opts) ->
-  scope_for_eval(Module, elixir:scope_for_eval(Opts)).
-
-binding_for_eval(Module, Binding) -> [{'_@MODULE',Module}|Binding].
 
 eval_quoted(Module, Quoted, RawBinding, Opts) ->
   Binding = binding_for_eval(Module, RawBinding),
@@ -25,6 +16,15 @@ eval_quoted(Module, Quoted, RawBinding, Opts) ->
 
   { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope),
   { Value, FinalBinding }.
+
+scope_for_eval(Module, #elixir_scope{} = S) ->
+  S#elixir_scope{module=Module};
+
+scope_for_eval(Module, Opts) ->
+  scope_for_eval(Module, elixir:scope_for_eval(Opts)).
+
+binding_for_eval(Module, Binding) -> [{'_@MODULE',Module}|Binding].
+
 
 %% TABLE METHODS
 
@@ -60,9 +60,7 @@ translate(Line, Ref, Block, S) ->
 
 %% The compilation hook.
 
-compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
-  Dict = [{ X, Y } || { X, Y, _ } <- Vars],
-  S = elixir_scope:deserialize(RawS, Dict),
+compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
   C = elixir_compiler:get_opts(),
   File = S#elixir_scope.file,
 
@@ -95,9 +93,13 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
     elixir_import:delete_table(Module)
   end;
 
-compile(Line, Other, _Block, _Vars, RawS) ->
-  S = elixir_scope:deserialize(RawS),
-  elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, { invalid_module, Other }).
+compile(Line, Other, _Block, _Vars, #elixir_scope{file=File}) ->
+  elixir_errors:form_error(Line, File, ?MODULE, { invalid_module, Other });
+
+compile(Line, Module, Block, Vars, RawS) ->
+  Dict = [{ X, Y } || { X, Y, _ } <- Vars],
+  S = elixir_scope:deserialize(RawS, Dict),
+  compile(Line, Module, Block, Vars, S).
 
 %% Hook that builds both attribute and functions and set up common hooks.
 

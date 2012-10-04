@@ -191,4 +191,14 @@ defmodule ModuleTest do
     assert [] = guards
     assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
   end
+
+  test :create do
+    contents =
+      quote do
+        def world, do: true
+      end
+    { :module, ModuleCreateSample, _, _ } =
+      Module.create(ModuleCreateSample, contents, __ENV__)
+    assert ModuleCreateSample.world
+  end
 end

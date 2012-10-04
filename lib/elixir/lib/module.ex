@@ -63,7 +63,48 @@ defmodule Module do
 
   def eval_quoted(module, quoted, binding, opts) do
     assert_not_compiled!(:eval_quoted, module)
-    Erlang.elixir_module.eval_quoted(module, quoted, binding, opts)
+    :elixir_module.eval_quoted(module, quoted, binding, opts)
+  end
+
+  @doc """
+  Creates a module with the given name and given by
+  the given quoted expressions. The line where the module
+  is defined and its file can be given as options.
+
+  ## Examples
+
+      contents =
+        quote do
+          def world, do: true
+        end
+
+      Module.create(Hello, contents, __ENV__)
+
+      Hello.world #=> true
+
+  ## Differences with `defmodule`
+
+  `Module.create` works similarly to `defmodule` and
+  return the same results. While one could also use
+  `defmodule` to define modules dynamically, this
+  function is preferred when the module body is given
+  by a quoted expression.
+
+  Another important distinction is that `defmodule`
+  blends into the scope it is invoked, allowing you
+  to access all variables, imports and requires from
+  the module. `Module.create`, on the other hand, creates
+  a new scope so imports, requires, etc are not inherited.
+  """
+  def create(module, quoted, opts // [])
+
+  def create(module, quoted, Macro.Env[] = env) do
+    create(module, quoted, env.location)
+  end
+
+  def create(module, quoted, opts) when is_atom(module) do
+    line = opts[:line] || 1
+    :elixir_module.compile(line, module, quoted, [], :elixir.scope_for_eval(opts))
   end
 
   @doc """
@@ -78,7 +119,7 @@ defmodule Module do
 
   """
   def concat(list) when is_list(list) do
-    Erlang.elixir_aliases.concat(list)
+    :elixir_aliases.concat(list)
   end
 
   @doc """
@@ -93,7 +134,7 @@ defmodule Module do
 
   """
   def concat(left, right) do
-    Erlang.elixir_aliases.concat([left, right])
+    :elixir_aliases.concat([left, right])
   end
 
   @doc """
@@ -112,7 +153,7 @@ defmodule Module do
 
   """
   def safe_concat(list) when is_list(list) do
-    Erlang.elixir_aliases.safe_concat(list)
+    :elixir_aliases.safe_concat(list)
   end
 
   @doc """
@@ -131,7 +172,7 @@ defmodule Module do
 
   """
   def safe_concat(left, right) do
-    Erlang.elixir_aliases.safe_concat([left, right])
+    :elixir_aliases.safe_concat([left, right])
   end
 
   @doc """
@@ -570,11 +611,11 @@ defmodule Module do
   end
 
   defp function_table_for(module) do
-    list_to_atom Erlang.lists.concat([:f, module])
+    list_to_atom :lists.concat([:f, module])
   end
 
   defp docs_table_for(module) do
-    list_to_atom Erlang.lists.concat([:o, module])
+    list_to_atom :lists.concat([:o, module])
   end
 
   defp assert_not_compiled!(fun, module) do
