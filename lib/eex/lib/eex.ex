@@ -41,6 +41,8 @@ defmodule EEx do
 
       <% Elixir expression - inline with output %>
       <%= Elixir expression - replace with result %>
+      <%% EEx quotation - returns the contents inside %>
+      <%# Comments - they are discarded from source %>
 
   All expressions that output something to the template
   **must** use the equals sign (`=`). Since everything in

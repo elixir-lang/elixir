@@ -19,7 +19,17 @@ defmodule EEx.Tokenizer do
     Enum.reverse(tokenize(list, line, line, [], []))
   end
 
-  defp tokenize([?<,?%|t], current_line, line, buffer, acc) do
+  defp tokenize('<%%' ++ t, current_line, line, buffer, acc) do
+    { buffer, new_line, rest } = tokenize_expr t, line, [?%,?<|buffer]
+    tokenize rest, current_line, new_line, [?>,?%|buffer], acc
+  end
+
+  defp tokenize('<%#' ++ t, current_line, line, buffer, acc) do
+    { _, new_line, rest } = tokenize_expr t, line, []
+    tokenize rest, current_line, new_line, buffer, acc
+  end
+
+  defp tokenize('<%' ++ t, current_line, line, buffer, acc) do
     { marker, t } = retrieve_marker(t)
     { expr, new_line, rest } = tokenize_expr t, line, []
 
@@ -64,8 +74,6 @@ defmodule EEx.Tokenizer do
   defp tokenize_expr([h|t], line, buffer) do
     tokenize_expr t, line, [h|buffer]
   end
-
-  # Raise an error if the expected token is not found
 
   defp tokenize_expr([], _line, _buffer) do
     raise EEx.SyntaxError, message: "missing token: %>"

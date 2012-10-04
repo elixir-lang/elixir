@@ -41,6 +41,30 @@ baz %>
     ] 
   end
 
+  test "quotation" do
+    assert T.tokenize('foo <%% true %>', 1) == [
+      { :text, 1, "foo <% true %>" }
+    ]
+  end
+
+  test "quotation with do/end" do
+    assert T.tokenize('foo <%% true do %>bar<%% end %>', 1) == [
+      { :text, 1, "foo <% true do %>bar<% end %>" }
+    ]
+  end
+
+  test "comments" do
+    assert T.tokenize('foo <%# true %>', 1) == [
+      { :text, 1, "foo " }
+    ]
+  end
+
+  test "comments with do/end" do
+    assert T.tokenize('foo <%# true do %>bar<%# end %>', 1) == [
+      { :text, 1, "foo bar" }
+    ]
+  end
+
   test "strings with embedded do end" do
     assert T.tokenize('foo <% if true do %>bar<% end %>', 1) == [
       { :text, 1, "foo " },
