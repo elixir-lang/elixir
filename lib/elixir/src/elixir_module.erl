@@ -73,7 +73,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
 
     { All, Forms0 } = functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Functions, C),
     Forms1          = attributes_form(Line, File, Module, Forms0),
-    Forms2          = specs_form(Line, Module, Def, Defmacro, Defmacrop, Forms1),
+    Forms2          = specs_form(Line, Module, Defmacro, Defmacrop, Forms1),
 
     elixir_import:ensure_no_local_conflict(Line, File, Module, All),
     elixir_import:ensure_no_import_conflict(Line, File, Module, All),
@@ -188,9 +188,9 @@ attributes_form(Line, _File, Module, Current) ->
 
 %% Specs
 
-specs_form(Line, Module, Def, Defmacro, Defmacrop, Forms) ->
+specs_form(Line, Module, Defmacro, Defmacrop, Forms) ->
   { Specs, Callbacks } = ets:foldl(fun(X, Acc) ->
-    translate_spec(X, Module, Def, Defmacro, Defmacrop, Acc)
+    translate_spec(X, Defmacro, Defmacrop, Acc)
   end, { [], [] }, spec_table(Module)),
 
   Temp = specs_attributes(Line, spec, Forms, Specs),
@@ -202,7 +202,7 @@ specs_attributes(Line, Type, Forms, Specs) ->
     [{ attribute, Line, Type, { Tuple, proplists:append_values(Tuple, Specs) } }|Acc]
   end, Forms, Keys).
 
-translate_spec({ { spec, Spec }, Rest }, Module, Def, Defmacro, Defmacrop, { Specs, Callbacks } = Acc) ->
+translate_spec({ { spec, Spec }, Rest }, Defmacro, Defmacrop, { Specs, Callbacks } = Acc) ->
   case ordsets:is_element(Spec, Defmacrop) of
     true  -> Acc;
     false ->
@@ -212,14 +212,11 @@ translate_spec({ { spec, Spec }, Rest }, Module, Def, Defmacro, Defmacrop, { Spe
           New = { { ?ELIXIR_MACRO(Name), Arity + 1 }, [spec_for_macro(X) || X <- Rest] },
           { [New|Specs], Callbacks };
         false ->
-          case (Module == 'Elixir.Kernel') andalso (not ordsets:is_element(Spec, Def)) of
-            true  -> Acc;
-            false -> { [{ Spec, Rest }|Specs], Callbacks }
-          end
+          { [{ Spec, Rest }|Specs], Callbacks }
       end
   end;
 
-translate_spec({ { callback, Spec }, Rest }, _, _, _, _, { Specs, Callbacks }) ->
+translate_spec({ { callback, Spec }, Rest }, _, _, { Specs, Callbacks }) ->
   { Specs, [{ Spec, Rest }|Callbacks] }.
 
 spec_for_macro({ type, Line, 'fun', [{ type, _, product, Args }|T] }) ->
@@ -270,8 +267,8 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
     false ->
       Docs = elixir_compiler:get_opt(docs, C),
       Contents = { function, Line, '__info__', 1, [
-        functions_clause(Line, Module, Def),
-        macros_clause(Line, Module, Defmacro),
+        functions_clause(Line, Def),
+        macros_clause(Line, Module, Def, Defmacro),
         docs_clause(Line, Module, Docs),
         moduledoc_clause(Line, Module, Docs),
         compile_clause(Line),
@@ -281,22 +278,18 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
       { [Pair|Export], [Contents|Functions] }
   end.
 
-functions_clause(Line, Module, Def) ->
-  All = handle_builtin_functions(Module, Def),
+functions_clause(Line, Def) ->
+  All = ordsets:add_element({'__info__',1}, Def),
   { clause, Line, [{ atom, Line, functions }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
 
-handle_builtin_functions(_, Def) ->
-  ordsets:add_element({'__info__',1}, Def).
-
-macros_clause(Line, Module, Defmacro) ->
-  All = handle_builtin_macros(Module, Defmacro),
+macros_clause(Line, Module, Def, Defmacro) ->
+  All = handle_builtin_macros(Module, Def, Defmacro),
   { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
 
-handle_builtin_macros('Elixir.Kernel', Defmacro) ->
-  ordsets:union(ordsets:union(Defmacro,
-    elixir_dispatch:in_erlang_macros()),
-    elixir_dispatch:in_erlang_functions());
-handle_builtin_macros(_, Defmacro) -> Defmacro.
+handle_builtin_macros('Elixir.Kernel', Def, Defmacro) ->
+  ordsets:subtract(ordsets:union(Defmacro,
+    elixir_dispatch:in_erlang_macros()), Def);
+handle_builtin_macros(_, _Def, Defmacro) -> Defmacro.
 
 self_clause(Line, Module) ->
   { clause, Line, [{ atom, Line, self }], [], [{ atom, Line, Module }] }.
