@@ -1854,7 +1854,7 @@ defmodule Kernel do
         i -> i * 2
       end
 
-  The example above will return 20, because `i` is assgined to 10
+  The example above will return 20, because `i` is assigned to 10
   and then multiplied by 2. If you desire to match the value of `i`
   against the given condition, you need to use the `^` operator:
 
