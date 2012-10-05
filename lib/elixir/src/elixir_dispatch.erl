@@ -6,7 +6,7 @@
   dispatch_require/6, dispatch_import/5,
   require_function/5, import_function/4,
   expand_import/8, expand_require/8,
-  format_error/1]).
+  format_error/1, in_erlang_functions/0, in_erlang_macros/0]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
@@ -105,9 +105,9 @@ expand_import(Line, { Name, Arity } = Tuple, Args, Module, Function, Requires, M
           { ok, Module, expand_macro_fun(Line, Fun, Module, Name, Args, Module, Requires, SEnv) }
       end;
     ?BUILTIN ->
-      case is_element(Tuple, in_elixir_macros()) of
-        false -> { error, internal };
-        true  ->
+      case is_element(Tuple, in_erlang_macros()) of
+        true  -> { error, internal };
+        false ->
           elixir_import:record(import, Tuple, ?BUILTIN, Module),
           { ok, ?BUILTIN, expand_macro_named(Line, ?BUILTIN, Name, Arity, Args, Module, Requires, SEnv) }
       end;

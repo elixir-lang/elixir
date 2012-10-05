@@ -270,8 +270,8 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
     false ->
       Docs = elixir_compiler:get_opt(docs, C),
       Contents = { function, Line, '__info__', 1, [
-        functions_clause(Line, Def),
-        macros_clause(Line, Defmacro),
+        functions_clause(Line, Module, Def),
+        macros_clause(Line, Module, Defmacro),
         docs_clause(Line, Module, Docs),
         moduledoc_clause(Line, Module, Docs),
         compile_clause(Line),
@@ -281,15 +281,25 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
       { [Pair|Export], [Contents|Functions] }
   end.
 
-functions_clause(Line, RawDef) ->
-  Def = ordsets:add_element({'__info__',1}, RawDef),
-  { clause, Line, [{ atom, Line, functions }], [], [elixir_tree_helpers:abstract_syntax(Def)] }.
+functions_clause(Line, Module, Def) ->
+  All = handle_builtin_functions(Module, Def),
+  { clause, Line, [{ atom, Line, functions }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
+
+handle_builtin_functions(_, Def) ->
+  ordsets:add_element({'__info__',1}, Def).
+
+macros_clause(Line, Module, Defmacro) ->
+  All = handle_builtin_macros(Module, Defmacro),
+  { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
+
+handle_builtin_macros('Elixir.Kernel', Defmacro) ->
+  ordsets:union(ordsets:union(Defmacro,
+    elixir_dispatch:in_erlang_macros()),
+    elixir_dispatch:in_erlang_functions());
+handle_builtin_macros(_, Defmacro) -> Defmacro.
 
 self_clause(Line, Module) ->
   { clause, Line, [{ atom, Line, self }], [], [{ atom, Line, Module }] }.
-
-macros_clause(Line, Defmacro) ->
-  { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(Defmacro)] }.
 
 docs_clause(Line, Module, true) ->
   Docs = ordsets:from_list(ets:tab2list(docs_table(Module))),

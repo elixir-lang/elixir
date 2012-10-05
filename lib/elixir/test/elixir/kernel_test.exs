@@ -20,6 +20,10 @@ defmodule KernelTest do
     refute x([])
   end
 
+  test :__info__ do
+    assert { :in, 2 } in Kernel.__info__(:macros)
+  end
+
   defp x(value) when value in [1,2,3], do: true
   defp x(_),                           do: false
 
