@@ -407,6 +407,7 @@ translate_each({ { '.', _, [Left, Right] }, Line, Args } = Original, S) when is_
 
           case TLeft of
             { atom, _, 'Elixir.Erlang' } ->
+              elixir_errors:deprecation(Line, S#elixir_scope.file, "Erlang. syntax is deprecated"),
               case Args of
                 [] -> { { atom, Line, Right }, S };
                 _ ->

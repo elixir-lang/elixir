@@ -3,7 +3,7 @@ defmodule IEx.Loop do
 
   def start(config) do
     Process.put :iex_history, []
-    { _, _, scope } = Erlang.elixir.eval('import IEx.Helpers', [], 0, config.scope)
+    { _, _, scope } = :elixir.eval('import IEx.Helpers', [], 0, config.scope)
     do_loop(config.scope(scope))
   end
 
@@ -15,7 +15,7 @@ defmodule IEx.Loop do
     new_config =
       try do
         { result, new_binding, scope } =
-          Erlang.elixir.eval(code, config.binding, counter, config.scope)
+          :elixir.eval(code, config.binding, counter, config.scope)
 
         io_put result
 

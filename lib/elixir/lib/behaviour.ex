@@ -46,7 +46,7 @@ defmodule Behaviour do
   won't be generated, which would happen with `def`.
   """
   defmacro defcallback(fun) do
-    { name, args } = Erlang.elixir_clauses.extract_args(fun)
+    { name, args } = :elixir_clauses.extract_args(fun)
     length = length(args)
 
     { args, defaults } = Enum.map_reduce(args, 0, function do

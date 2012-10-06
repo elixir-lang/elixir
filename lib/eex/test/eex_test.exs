@@ -33,7 +33,7 @@ defmodule EExText.Compiled do
 
   defp fill_in_stacktrace do
     try do
-      Erlang.erlang.error "failed"
+      :erlang.error "failed"
     catch
       :error, _, stack -> stack
     end

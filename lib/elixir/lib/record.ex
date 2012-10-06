@@ -65,7 +65,7 @@ defmodule Record do
 
     # Special case for bootstraping purposes
     if env == Macro.Env do
-      Erlang.elixir_module.eval_quoted(env, contents, [], [])
+      :elixir_module.eval_quoted(env, contents, [], [])
     else
       contents = [quote(do: @__record__ unquote(escaped))|contents]
       Module.eval_quoted(env, contents)
@@ -451,7 +451,7 @@ defmodule Record.Extractor do
   def retrieve(name, from: string) do
     file = to_char_list(string)
 
-    case Erlang.code.where_is_file(file) do
+    case :code.where_is_file(file) do
       :non_existing -> realfile = file
       realfile -> nil
     end
@@ -462,12 +462,12 @@ defmodule Record.Extractor do
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include_lib* attribute from Erlang modules.
   def retrieve(name, from_lib: file) do
-    [app|path] = Erlang.filename.split(to_char_list(file))
-    case Erlang.code.lib_dir(to_char_list(app)) do
+    [app|path] = :filename.split(to_char_list(file))
+    case :code.lib_dir(to_char_list(app)) do
       { :error, _ } ->
         raise ArgumentError, "Lib file #{to_binary(file)} could not be found"
       libpath ->
-        retrieve_record name, Erlang.filename.join([libpath|path])
+        retrieve_record name, :filename.join([libpath|path])
     end
   end
 
@@ -490,7 +490,7 @@ defmodule Record.Extractor do
   # includes record and other preprocessor modules. This is done
   # by using Erlang's epp_dodger.
   defp read_file(file) do
-    case Erlang.epp_dodger.quick_parse_file(file) do
+    case :epp_dodger.quick_parse_file(file) do
       { :ok, form } ->
         form
       other ->
@@ -505,7 +505,7 @@ defmodule Record.Extractor do
     cons = List.foldr fields, { nil, 0 }, fn f, acc ->
       { :cons, 0, parse_field(f), acc }
     end
-    { :value, list, _ } = Erlang.erl_eval.expr(cons, [])
+    { :value, list, _ } = :erl_eval.expr(cons, [])
     list
   end
 

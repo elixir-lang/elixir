@@ -27,7 +27,7 @@ defmodule IO do
     NFS file system.
   """
   def read(device // :stdio, count) do
-    Erlang.io.get_chars(map_dev(device), "", count)
+    :io.get_chars(map_dev(device), "", count)
   end
 
   @doc """
@@ -45,7 +45,7 @@ defmodule IO do
   except the prompt is not required as argument.
   """
   def readline(device // :stdio) do
-    Erlang.io.get_line(map_dev(device), "")
+    :io.get_line(map_dev(device), "")
   end
 
   @doc """
@@ -66,7 +66,7 @@ defmodule IO do
 
   """
   def write(device // :stdio, item) do
-    Erlang.io.put_chars map_dev(device), to_iodata(item)
+    :io.put_chars map_dev(device), to_iodata(item)
   end
 
   @doc """
@@ -76,8 +76,8 @@ defmodule IO do
   """
   def puts(device // :stdio, item) do
     erl_dev = map_dev(device)
-    Erlang.io.put_chars erl_dev, to_iodata(item)
-    Erlang.io.nl(erl_dev)
+    :io.put_chars erl_dev, to_iodata(item)
+    :io.nl(erl_dev)
   end
 
   @doc """
@@ -101,7 +101,7 @@ defmodule IO do
     NFS file system.
   """
   def getb(device // :stdio, prompt, count // 1) do
-    Erlang.io.get_chars(map_dev(device), to_iodata(prompt), count)
+    :io.get_chars(map_dev(device), to_iodata(prompt), count)
   end
 
   @doc """
@@ -117,7 +117,7 @@ defmodule IO do
     NFS file system.
   """
   def gets(device // :stdio, prompt) do
-    Erlang.io.get_line(map_dev(device), to_iodata(prompt))
+    :io.get_line(map_dev(device), to_iodata(prompt))
   end
 
   # Map the Elixir names for standard io and error to Erlang names

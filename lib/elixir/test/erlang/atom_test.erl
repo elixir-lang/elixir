@@ -20,7 +20,7 @@ atom_quoted_call_test() ->
   {3,[]} = eval("Kernel.'+'(1, 2)").
 
 kv_with_quotes_test() ->
-  {'foo bar',[]} = eval("Erlang.atom_test.kv(\"foo bar\": nil)").
+  {'foo bar',[]} = eval(":atom_test.kv(\"foo bar\": nil)").
 
 quoted_atom_test() ->
   {foo,[]} = eval(":\"foo\""),

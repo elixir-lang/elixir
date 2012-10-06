@@ -147,7 +147,7 @@ defmodule Kernel.OverridableTest do
 
   test "invalid super call" do
     try do
-      Erlang.elixir.eval 'defmodule Foo.Forwarding do\ndef bar, do: 1\ndefoverridable [bar: 0]\ndef foo, do: super\nend', []
+      :elixir.eval 'defmodule Foo.Forwarding do\ndef bar, do: 1\ndefoverridable [bar: 0]\ndef foo, do: super\nend', []
       flunk "expected eval to fail"
     rescue
       error ->

@@ -1,6 +1,6 @@
 Code.require_file "../test_helper.exs", __FILE__
 
-require Erlang.os, as: OS
+require :os, as: OS
 
 defmodule SystemTest do
   use ExUnit.Case, async: true

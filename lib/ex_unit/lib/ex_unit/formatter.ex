@@ -10,7 +10,7 @@ defmodule ExUnit.Formatter do
   import Exception, only: [format_stacktrace: 1]
 
   def start do
-    { :ok, pid } = Erlang.gen_server.start_link(__MODULE__, [], [])
+    { :ok, pid } = :gen_server.start_link(__MODULE__, [], [])
     pid
   end
 

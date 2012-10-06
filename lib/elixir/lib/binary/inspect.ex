@@ -416,6 +416,6 @@ defimpl Binary.Inspect, for: Any do
   """
 
   def inspect(thing, _) do
-    iolist_to_binary Erlang.io_lib.format('~p', [thing])
+    iolist_to_binary :io_lib.format('~p', [thing])
   end
 end

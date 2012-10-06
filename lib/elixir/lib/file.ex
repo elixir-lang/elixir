@@ -94,9 +94,9 @@ defmodule File do
   when reading files, binaries are always returned.
   """
 
-  alias Erlang.file,     as: F
-  alias Erlang.filename, as: FN
-  alias Erlang.filelib,  as: FL
+  alias :file,     as: F
+  alias :filename, as: FN
+  alias :filelib,  as: FL
 
   @doc """
   Expands the path by returning its absolute name and expanding
@@ -392,7 +392,7 @@ defmodule File do
                On some platforms, `:enoent` is returned instead.
   * :enomem  - There is not enough memory for the contents of the file.
 
-  You can use `Erlang.file.format_error(reason)` to get a descriptive string of the error.
+  You can use `:file.format_error(reason)` to get a descriptive string of the error.
   """
   def read(path) do
     F.read_file(path)
@@ -463,12 +463,12 @@ defmodule File do
 
   """
   def wildcard(glob) when is_binary(glob) do
-    paths = Erlang.elixir_glob.wildcard binary_to_list(glob)
+    paths = :elixir_glob.wildcard binary_to_list(glob)
     Enum.map paths, list_to_binary(&1)
   end
 
   def wildcard(glob) when is_list(glob) do
-    Erlang.elixir_glob.wildcard(glob)
+    :elixir_glob.wildcard(glob)
   end
 
   @doc """

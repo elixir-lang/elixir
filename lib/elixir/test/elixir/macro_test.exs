@@ -78,7 +78,7 @@ defmodule MacroTest do
   end
 
   test :expand_with_erlang do
-    assert Macro.expand(quote(do: Erlang.foo), __ENV__) == :foo
+    assert Macro.expand(quote(do: :foo), __ENV__) == :foo
   end
 
   test :expand_with_imported_macro do

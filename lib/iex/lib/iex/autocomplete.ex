@@ -38,7 +38,7 @@ defmodule IEx.Autocomplete do
 
   def expand([]) do
     funs = module_funs(IEx.Helpers) ++ module_funs(Kernel)
-    mods = [Mod[name: 'Elixir', type: :elixir], Mod[name: 'Erlang', type: :elixir]]
+    mods = [Mod[name: 'Elixir', type: :elixir]]
     format_expansion mods ++ funs
   end
 
@@ -61,12 +61,8 @@ defmodule IEx.Autocomplete do
     case Code.string_to_ast expr do
       {:ok, atom} when is_atom(atom) ->
         expand_module_funs atom
-      {:ok, {:__aliases__,_,[:Erlang]}} ->
-        expand_erlang_modules
       {:ok, {:__aliases__,_,list}} ->
         expand_elixir_modules list
-      {:ok, {{:.,_,[{:__aliases__,_,[:Erlang]},mod]},_,[]}} when is_atom(mod) ->
-        expand_module_funs mod
       _ ->
         no_match
     end
@@ -154,16 +150,6 @@ defmodule IEx.Autocomplete do
     expand_module_funs mod, hint
   end
 
-  # Erlang.mod.fun
-  defp expand_call({ { :., _, [{ :__aliases__, _, [:Erlang] }, mod] }, _, [] }, hint) when is_atom(mod) do
-    expand_module_funs mod, hint
-  end
-
-  # Erlang.mod
-  defp expand_call({ :__aliases__, _, [:Erlang] }, hint) do
-    expand_erlang_modules hint
-  end
-
   # Elixir.fun
   defp expand_call({ :__aliases__, _, list }, hint) do
     expand_module_funs Module.concat(list), hint
@@ -215,7 +201,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp modules_as_lists(true) do
-    ['Elixir-Elixir', 'Elixir-Erlang'] ++ modules_as_lists(false)
+    ['Elixir-Elixir'] ++ modules_as_lists(false)
   end
 
   defp modules_as_lists(false) do

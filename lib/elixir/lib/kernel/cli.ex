@@ -10,7 +10,7 @@ defmodule Kernel.CLI do
     { config, argv } = process_options(options, Kernel.CLI.Config.new)
 
     argv = lc arg inlist argv, do: list_to_binary(arg)
-    Erlang.gen_server.call(:elixir_code_server, { :argv, argv })
+    :gen_server.call(:elixir_code_server, { :argv, argv })
 
     all_commands = Enum.reverse(config.commands)
 
@@ -46,7 +46,7 @@ defmodule Kernel.CLI do
   ## Private
 
   defp at_exit(status) do
-    hooks = Erlang.gen_server.call(:elixir_code_server, :at_exit)
+    hooks = :gen_server.call(:elixir_code_server, :at_exit)
     lc hook inlist hooks do
       try do
         hook.(status)
@@ -198,7 +198,7 @@ defmodule Kernel.CLI do
   # Process commands
 
   defp process_command({:eval, expr}, _config) when is_list(expr) do
-    Erlang.elixir.eval(expr, [])
+    :elixir.eval(expr, [])
   end
 
   defp process_command({:require, file}, _config) when is_binary(file) do

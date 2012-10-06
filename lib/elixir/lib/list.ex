@@ -20,7 +20,7 @@ defmodule List do
 
   """
   def concat(list) when is_list(list) do
-    Erlang.lists.append(list)
+    :lists.append(list)
   end
 
   @doc """
@@ -52,7 +52,7 @@ defmodule List do
 
   """
   def delete(list, item) do
-    Erlang.lists.delete(item, list)
+    :lists.delete(item, list)
   end
 
   @doc """
@@ -67,7 +67,7 @@ defmodule List do
       #=> [[1,2],[1,2]]
   """
   def duplicate(elem, n) do
-    Erlang.lists.duplicate(n, elem)
+    :lists.duplicate(n, elem)
   end
 
   @doc """
@@ -85,11 +85,11 @@ defmodule List do
 
   """
   def flatten(list) do
-    Erlang.lists.flatten(list)
+    :lists.flatten(list)
   end
 
   def flatten(list, tail) do
-    Erlang.lists.flatten(list, tail)
+    :lists.flatten(list, tail)
   end
 
   @doc """
@@ -106,7 +106,7 @@ defmodule List do
 
   """
   def foldl(list, acc, function) when is_list(list) and is_function(function) do
-    Erlang.lists.foldl(function, acc, list)
+    :lists.foldl(function, acc, list)
   end
 
   @doc """
@@ -120,7 +120,7 @@ defmodule List do
 
   """
   def foldr(list, acc, function) when is_list(list) and is_function(function) do
-    Erlang.lists.foldr(function, acc, list)
+    :lists.foldr(function, acc, list)
   end
 
   @doc false
@@ -163,7 +163,7 @@ defmodule List do
 
   """
   def member?(list, term) do
-    Erlang.lists.member(term, list)
+    :lists.member(term, list)
   end
 
   @doc """
@@ -184,7 +184,7 @@ defmodule List do
 
   """
   def keyfind(list, key, position, default // nil) do
-    Erlang.lists.keyfind(key, position + 1, list) || default
+    :lists.keyfind(key, position + 1, list) || default
   end
 
   @doc """
@@ -205,7 +205,7 @@ defmodule List do
 
   """
   def keymember?(list, key, position) do
-    Erlang.lists.keymember(key, position + 1, list)
+    :lists.keymember(key, position + 1, list)
   end
 
   @doc """
@@ -219,7 +219,7 @@ defmodule List do
 
   """
   def keyreplace(list, key, position, new_tuple) do
-    Erlang.lists.keyreplace(key, position + 1, list, new_tuple)
+    :lists.keyreplace(key, position + 1, list, new_tuple)
   end
 
   @doc """
@@ -234,7 +234,7 @@ defmodule List do
 
   """
   def keystore(list, key, position, new_tuple) do
-    Erlang.lists.keystore(key, position + 1, list, new_tuple)
+    :lists.keystore(key, position + 1, list, new_tuple)
   end
 
   @doc """
@@ -255,7 +255,7 @@ defmodule List do
 
   """
   def keydelete(list, key, position) do
-    Erlang.lists.keydelete(key, position + 1, list)
+    :lists.keydelete(key, position + 1, list)
   end
 
   @doc """
@@ -279,22 +279,22 @@ defmodule List do
   def range(first, last, step) when is_integer(first) and is_integer(last) and first <= last do
     step = case step do
       nil ->
-        Erlang.lists.seq(first, last, 1)
+        :lists.seq(first, last, 1)
       x when x < 0 ->
         []
       _ ->
-        Erlang.lists.seq(first, last, step)
+        :lists.seq(first, last, step)
     end
   end
 
   def range(first, last, step) when is_integer(first) and is_integer(last) and first > last do
     step = case step do
       nil ->
-        Erlang.lists.seq(first, last, -1)
+        :lists.seq(first, last, -1)
       x when x > 0 ->
         []
       _ ->
-        Erlang.lists.seq(first, last, step)
+        :lists.seq(first, last, step)
     end
   end
 
@@ -417,7 +417,7 @@ defmodule List do
   # uniq
 
   defp do_uniq([h|t], acc) do
-    case Erlang.lists.member(h, acc) do
+    case :lists.member(h, acc) do
       true ->
         do_uniq(t, acc)
       false ->

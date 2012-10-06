@@ -45,7 +45,7 @@ multi_assigned_if_test() ->
 % Try
 
 try_test() ->
-  {2, _} = eval("try do\nErlang.foo.bar\ncatch\n:error, :undef -> 2\nend").
+  {2, _} = eval("try do\n:foo.bar\ncatch\n:error, :undef -> 2\nend").
 
 % try_match_test() ->
 %   {true, _} = eval("try do:\n1\nmatch: 2 -> false\nmatch: 1; true\nrescue:\nErlangError -> nil\nend"),

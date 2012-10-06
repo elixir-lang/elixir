@@ -78,7 +78,7 @@ defmodule Macro do
   and we return a version with it unescaped.
   """
   def unescape_binary(chars) do
-    Erlang.elixir_interpolation.unescape_chars(chars)
+    :elixir_interpolation.unescape_chars(chars)
   end
 
   @doc %B"""
@@ -119,7 +119,7 @@ defmodule Macro do
 
   """
   def unescape_binary(chars, map) do
-    Erlang.elixir_interpolation.unescape_chars(chars, map)
+    :elixir_interpolation.unescape_chars(chars, map)
   end
 
   @doc """
@@ -131,7 +131,7 @@ defmodule Macro do
   of `Kernel.__b__` for examples.
   """
   def unescape_tokens(tokens) do
-    Erlang.elixir_interpolation.unescape_tokens(tokens)
+    :elixir_interpolation.unescape_tokens(tokens)
   end
 
   @doc """
@@ -139,7 +139,7 @@ defmodule Macro do
   Check `unescape_tokens/1` and `unescaped/2` for more information.
   """
   def unescape_tokens(tokens, map) do
-    Erlang.elixir_interpolation.unescape_tokens(tokens, map)
+    :elixir_interpolation.unescape_tokens(tokens, map)
   end
 
   @doc """
@@ -210,7 +210,7 @@ defmodule Macro do
 
   # All other calls
   def to_binary({ target, _, args }) when is_list(args) do
-    { list, last } = Erlang.elixir_tree_helpers.split_last(args)
+    { list, last } = :elixir_tree_helpers.split_last(args)
     case is_kw_blocks?(last) do
       true  -> call_to_binary_with_args(target, list) <> kw_blocks_to_binary(last)
       false -> call_to_binary_with_args(target, args)
@@ -397,7 +397,7 @@ defmodule Macro do
     aliases = lc alias inlist aliases, do: expand(alias, env)
 
     case :lists.all(is_atom(&1), aliases) do
-      true  -> Erlang.elixir_aliases.concat(aliases)
+      true  -> :elixir_aliases.concat(aliases)
       false -> original
     end
   end
@@ -409,10 +409,6 @@ defmodule Macro do
       false -> original
     end
   end
-
-  # Expand Erlang.foo calls
-  def expand({ { :., _, [{ :__aliases__, _, [:Erlang] }, atom] }, _, args }, _env) when
-    is_atom(atom) and (is_atom(args) or args == []), do: atom
 
   # Expand pseudo-variables
   def expand({ :__MODULE__, _, atom }, env) when is_atom(atom), do: env.module
@@ -429,7 +425,7 @@ defmodule Macro do
     case not is_partial?(args) do
       false -> original
       true  ->
-        expand = Erlang.elixir_dispatch.expand_import(line, { atom, length(args) }, args,
+        expand = :elixir_dispatch.expand_import(line, { atom, length(args) }, args,
           env.module, env.function, env.requires, env.macros, env)
         case expand do
           { :ok, _, expanded } -> expanded
@@ -445,7 +441,7 @@ defmodule Macro do
     case is_atom(receiver) and not is_partial?(args) do
       false -> original
       true  ->
-        expand = Erlang.elixir_dispatch.expand_require(line, receiver, { right, length(args) },
+        expand = :elixir_dispatch.expand_require(line, receiver, { right, length(args) },
           args, env.module, env.function, env.requires, env)
         case expand do
           { :ok, expanded } -> expanded
@@ -465,6 +461,6 @@ defmodule Macro do
 
   defp expand_alias(h, env) do
     atom = list_to_atom('Elixir-' ++ atom_to_list(h))
-    Erlang.elixir_aliases.lookup(atom, env.aliases)
+    :elixir_aliases.lookup(atom, env.aliases)
   end
 end

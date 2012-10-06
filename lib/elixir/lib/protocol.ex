@@ -1,8 +1,8 @@
 defmodule Protocol do
   @moduledoc false
 
-  # We need to use Erlang.lists because Enum is not available yet
-  require Erlang.lists, as: L
+  # We need to use :lists because Enum is not available yet
+  require :lists, as: L
 
   @doc """
   Handle `defprotocol`. It will define a function for each

@@ -130,7 +130,7 @@ defmodule Kernel.ErrorsTest do
 
   test :no_macros do
     assert "nofile:2: could not load macros from module lists" ==
-      format_rescue 'defmodule Foo do\nimport :macros, Erlang.lists\nend'
+      format_rescue 'defmodule Foo do\nimport :macros, :lists\nend'
   end
 
   test :unloaded_module do
@@ -176,12 +176,12 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_alias do
     assert "nofile:1: invalid args for alias, cannot create nested alias Sample.Lists" ==
-      format_rescue 'alias Erlang.lists, as: Sample.Lists'
+      format_rescue 'alias :lists, as: Sample.Lists'
   end
 
   test :invalid_import_option do
     assert "nofile:1: unsupported option ops given to import" ==
-      format_rescue 'import Erlang.lists, [ops: 1]'
+      format_rescue 'import :lists, [ops: 1]'
   end
 
   test :invalid_access_protocol_not_alias do
@@ -259,7 +259,7 @@ defmodule Kernel.ErrorsTest do
 
   defp format_rescue(expr) do
     result = try do
-      Erlang.elixir.eval(to_char_list(expr), [])
+      :elixir.eval(to_char_list(expr), [])
       nil
     rescue
       error -> error.message
@@ -270,7 +270,7 @@ defmodule Kernel.ErrorsTest do
 
   defp rescue_stacktrace(expr) do
     result = try do
-      Erlang.elixir.eval(to_char_list(expr), [])
+      :elixir.eval(to_char_list(expr), [])
       nil
     rescue
       error -> System.stacktrace

@@ -28,6 +28,7 @@
   * [Code] `Code.require_file` and `Code.load_file` now expect the full name as argument
   * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
   * [Kernel] Bitstring syntax now uses `::` instead of `|`
+  * [Kernel] `Erlang.` syntax is deprecated in favor of simply using atoms
   * [Module] `Module.read_attribute` and `Module.add_attribute` deprecated in favor of `Module.get_attribute` and `Module.put_attribute` which mimics Dict API
 
 # v0.6.0 (2012-08-01)

@@ -57,7 +57,7 @@ defmodule Regex do
     opts    = translate_options(options)
     re_opts = opts -- [:groups]
     groups  = if opts != re_opts, do: parse_groups(source)
-    case Erlang.re.compile(source, re_opts) do
+    case :re.compile(source, re_opts) do
       { :ok, compiled } ->
         { :ok, { Regex, compiled, source, options, groups } }
       error ->
@@ -88,7 +88,7 @@ defmodule Regex do
 
   """
   def index({ Regex, compiled, _, _, _ }, string) do
-    case Erlang.re.run(string, compiled, [{ :capture, :first, :index }]) do
+    case :re.run(string, compiled, [{ :capture, :first, :index }]) do
       :nomatch -> nil
       { :match, [{index,_}] } -> index
     end
@@ -104,7 +104,7 @@ defmodule Regex do
 
   """
   def match?({ Regex, compiled, _, _, _ }, string) do
-    Erlang.re.run(string, compiled, [{ :capture, :none }]) == :match
+    :re.run(string, compiled, [{ :capture, :none }]) == :match
   end
 
   @doc """
@@ -127,7 +127,7 @@ defmodule Regex do
         others  -> others
       end
 
-    case Erlang.re.run(string, compiled, [{ :capture, captures, return }]) do
+    case :re.run(string, compiled, [{ :capture, captures, return }]) do
       :nomatch -> nil
       { :match, results } -> results
     end
@@ -168,7 +168,7 @@ defmodule Regex do
   """
   def indexes({ Regex, compiled, _, _, _ }, string) do
     IO.write "[WARNING] Regex.indexes is deprecated, please use Regex.run with return: :index as option instead\n#{Exception.formatted_stacktrace}"
-    case Erlang.re.run(string, compiled, [{ :capture, :all, :index }]) do
+    case :re.run(string, compiled, [{ :capture, :all, :index }]) do
       :nomatch -> nil
       { :match, results } -> results
     end
@@ -234,7 +234,7 @@ defmodule Regex do
   def scan({ Regex, compiled, _, _, _ }, string, options) do
     return = options[:return] || return_for(string)
     options = [{ :capture, :all, return }, :global]
-    case Erlang.re.run(string, compiled, options) do
+    case :re.run(string, compiled, options) do
       :nomatch -> []
       { :match, results } -> flatten_result(results)
     end
@@ -262,7 +262,7 @@ defmodule Regex do
 
     return = options[:return] || return_for(string)
     opts   = [{ :return, return }, { :parts, parts }]
-    Erlang.re.split(string, compiled, opts)
+    :re.split(string, compiled, opts)
   end
 
   @doc %B"""
@@ -287,13 +287,13 @@ defmodule Regex do
     opts   = if options[:global] != false, do: [:global], else: []
     return = options[:return] || return_for(string)
     opts   = [{ :return, return }|opts]
-    Erlang.re.replace(string, compiled, replacement, opts)
+    :re.replace(string, compiled, replacement, opts)
   end
 
   @doc false
   def replace_all({ Regex, compiled, _, _, _ }, string, replacement) do
     IO.write "[WARNING] Regex.replace_all is deprecated, simply use Regex.replace instead\n#{Exception.formatted_stacktrace}"
-    Erlang.re.replace(string, compiled, replacement, [{ :return, return_for(string) }, :global])
+    :re.replace(string, compiled, replacement, [{ :return, return_for(string) }, :global])
   end
 
   # Helpers
@@ -334,7 +334,7 @@ defmodule Regex do
   defp parse_groups(source) do
     options = [:global, {:capture, ['G'], :binary}]
     {:ok, pattern} = :re.compile(%B"\(\?<(?<G>[^>]*)>")
-    case Erlang.re.run(source, pattern, options) do
+    case :re.run(source, pattern, options) do
       :nomatch -> []
       { :match, results } ->
         lc [group] inlist results, do: binary_to_atom(group)

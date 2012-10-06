@@ -137,7 +137,7 @@ defmodule IEx do
         { :erlang, :apply, [function, []] }
       end
 
-    Erlang.user_drv.start([:"tty_sl -c -e", args])
+    :user_drv.start([:"tty_sl -c -e", args])
   end
 
   @doc """
@@ -173,7 +173,7 @@ defmodule IEx do
   defp boot_config(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit"
 
-    scope  = Erlang.elixir.scope_for_eval(
+    scope  = :elixir.scope_for_eval(
       file: 'iex',
       delegate_locals_to: IEx.Helpers
     )

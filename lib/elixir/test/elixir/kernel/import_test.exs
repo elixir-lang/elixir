@@ -10,7 +10,7 @@ defmodule Kernel.ImportOnlyTest do
   use ExUnit.Case, async: true
 
   require Kernel.ImportAvailable
-  import Erlang.lists, only: Kernel.ImportAvailable.flatten
+  import :lists, only: Kernel.ImportAvailable.flatten
 
   test :import_erlang do
     assert flatten([1,[2],3]) == [1,2,3]
@@ -20,7 +20,7 @@ end
 defmodule Kernel.ImportAllTest do
   use ExUnit.Case, async: true
 
-  import Erlang.lists
+  import :lists
 
   test :import_erlang do
     assert flatten([1,[2],3]) == [1,2,3]
@@ -30,7 +30,7 @@ end
 defmodule Kernel.ImportExceptNoneTest do
   use ExUnit.Case, async: true
 
-  import Erlang.lists, except: []
+  import :lists, except: []
 
   test :import_erlang do
     assert flatten([1,[2],3]) == [1,2,3]
@@ -40,7 +40,7 @@ end
 defmodule Kernel.ImportExceptTest do
   use ExUnit.Case, async: true
 
-  import Erlang.lists, except: [each: 2]
+  import :lists, except: [each: 2]
 
   test :import_erlang do
     assert flatten([1,[2],3]) == [1,2,3]
@@ -50,8 +50,8 @@ end
 defmodule Kernel.ImportTwiceWithExceptTest do
   use ExUnit.Case, async: true
 
-  import Erlang.lists, except: [flatten: 1]
-  import Erlang.lists, except: [each: 2]
+  import :lists, except: [flatten: 1]
+  import :lists, except: [each: 2]
 
   test :import_erlang do
     assert flatten([1,[2],3]) == [1,[2],3]

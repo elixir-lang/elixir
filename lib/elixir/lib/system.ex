@@ -40,7 +40,7 @@ defmodule System do
   Returns the list of command-line arguments passed to the program.
   """
   def argv do
-    Erlang.gen_server.call(:elixir_code_server, :argv)
+    :gen_server.call(:elixir_code_server, :argv)
   end
 
   @doc """
@@ -138,7 +138,7 @@ defmodule System do
   Get the stacktrace.
   """
   def stacktrace do
-    filter_stacktrace Erlang.erlang.get_stacktrace
+    filter_stacktrace :erlang.get_stacktrace
   end
 
   ## Helpers
@@ -151,6 +151,6 @@ defmodule System do
   defp filter_stacktrace([]), do: []
 
   defp server_call(args) do
-    Erlang.gen_server.call(:elixir_code_server, args)
+    :gen_server.call(:elixir_code_server, args)
   end
 end

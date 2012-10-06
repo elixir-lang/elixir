@@ -45,7 +45,7 @@ defmodule Kernel.ParallelRequire do
       { :required, child } ->
         spawn_requires(files, List.delete(waiting, child), callback, result)
       { :failure, _child, kind, reason, stacktrace } ->
-        Erlang.erlang.raise(kind, reason, stacktrace)
+        :erlang.raise(kind, reason, stacktrace)
     end
   end
 end

@@ -96,7 +96,7 @@ defmodule ExUnit.Runner do
   end
 
   defp call_formatter(config, message) do
-    Erlang.gen_server.call(config.formatter, message)
+    :gen_server.call(config.formatter, message)
   end
 
   defp tests_for(mod) do

@@ -1153,7 +1153,7 @@ defmodule Kernel do
 
   This can be used for a variety of purposes, for example, writing a term
   to a file in an efficient way, or sending an Erlang term to some type
-  of communications channel not supported by distributed Erlang.
+  of communications channel not supported by distributed :
   """
   @spec term_to_binary(term), do: binary
   def term_to_binary(term) do
@@ -2101,7 +2101,7 @@ defmodule Kernel do
 
   ## Catching exits and Erlang errors
 
-  The catch clause works exactly the same as in Erlang. Therefore,
+  The catch clause works exactly the same as in : Therefore,
   one can also handle exits/errors coming from Erlang as below:
 
       try do
@@ -2773,16 +2773,16 @@ defmodule Kernel do
   * `:append_first` - If true, when delegated, first argument
     passed to the delegate will be relocated to the end of the
     arguments when dispatched to the target. The motivation behind
-    this is a disparity between conventions used in Elixir and Erlang.
+    this is a disparity between conventions used in Elixir and :
     Elixir's convention is to pass the "handle" as a first argument,
     while in Erlang the convention is to pass it as the last argument
 
   ## Examples
 
       defmodule MyList do
-        defdelegate reverse(list), to: Erlang.lists
-        defdelegate [reverse(list), map(callback, list)], to: Erlang.lists
-        defdelegate other_reverse(list), to: Erlang.lists, as: :reverse
+        defdelegate reverse(list), to: :lists
+        defdelegate [reverse(list), map(callback, list)], to: :lists
+        defdelegate other_reverse(list), to: :lists, as: :reverse
       end
 
       My:lists.reverse([1,2,3])
@@ -2807,7 +2807,7 @@ defmodule Kernel do
     append_first = Keyword.get(opts, :append_first, false)
 
     lc fun inlist funs do
-      { name, args } = Erlang.elixir_clauses.extract_args(fun)
+      { name, args } = :elixir_clauses.extract_args(fun)
 
       actual_args =
         case append_first and args != [] do

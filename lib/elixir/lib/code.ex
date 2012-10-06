@@ -32,7 +32,7 @@ defmodule Code do
   The path is expanded with `File.expand_path` before added.
   """
   def append_path(path) do
-    Erlang.code.add_pathz(File.expand_path to_char_list(path))
+    :code.add_pathz(File.expand_path to_char_list(path))
   end
 
   @doc """
@@ -40,7 +40,7 @@ defmodule Code do
   The path is expanded with `File.expand_path` before added.
   """
   def prepend_path(path) do
-    Erlang.code.add_patha(File.expand_path to_char_list(path))
+    :code.add_patha(File.expand_path to_char_list(path))
   end
 
   @doc """
@@ -48,7 +48,7 @@ defmodule Code do
   The path is expanded with `File.expand_path` before deleted.
   """
   def delete_path(path) do
-    Erlang.code.del_path(File.expand_path to_char_list(path))
+    :code.del_path(File.expand_path to_char_list(path))
   end
 
   @doc """
@@ -75,7 +75,7 @@ defmodule Code do
   """
   def eval(string, binding // [], opts // []) do
     { value, binding, _scope } =
-      Erlang.elixir.eval :unicode.characters_to_list(string), binding, opts
+      :elixir.eval :unicode.characters_to_list(string), binding, opts
     { value, binding }
   end
 
@@ -114,7 +114,7 @@ defmodule Code do
 
   def eval_quoted(quoted, binding, opts) do
     { value, binding, _scope } =
-      Erlang.elixir.eval_quoted [quoted], binding, opts
+      :elixir.eval_quoted [quoted], binding, opts
     { value, binding }
   end
 
@@ -180,7 +180,7 @@ defmodule Code do
   def load_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
     server_call { :acquire, file }
-    loaded = Erlang.elixir_compiler.file file
+    loaded = :elixir_compiler.file file
     server_cast { :loaded, file }
     loaded
   end
@@ -207,7 +207,7 @@ defmodule Code do
       { :queued, ref }  ->
         receive do { :elixir_code_server, ^ref, :loaded } -> nil end
       :proceed ->
-        loaded = Erlang.elixir_compiler.file file
+        loaded = :elixir_compiler.file file
         server_cast { :loaded, file }
         loaded
     end
@@ -248,7 +248,7 @@ defmodule Code do
   For compiling many files at once, check `Kernel.ParallelCompiler`.
   """
   def compile_string(string, file // "nofile") when is_binary(file) do
-    Erlang.elixir_compiler.string :unicode.characters_to_list(string), to_binary(file)
+    :elixir_compiler.string :unicode.characters_to_list(string), to_binary(file)
   end
 
   @doc """
@@ -290,7 +290,7 @@ defmodule Code do
   that needs to invoke a module for callback information.
   """
   def ensure_loaded(module) when is_atom(module) do
-    Erlang.code.ensure_loaded(module)
+    :code.ensure_loaded(module)
   end
 
   @doc """
@@ -315,7 +315,7 @@ defmodule Code do
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
   def ensure_compiled(module) when is_atom(module) do
-    case Erlang.code.ensure_loaded(module) do
+    case :code.ensure_loaded(module) do
       { :error, :nofile } = error ->
         case :erlang.get(:elixir_ensure_compiled) do
           :undefined -> error
@@ -366,10 +366,10 @@ defmodule Code do
   end
 
   defp server_call(args) do
-    Erlang.gen_server.call(:elixir_code_server, args)
+    :gen_server.call(:elixir_code_server, args)
   end
 
   defp server_cast(args) do
-    Erlang.gen_server.cast(:elixir_code_server, args)
+    :gen_server.cast(:elixir_code_server, args)
   end
 end

@@ -127,7 +127,7 @@ defmodule RecordTest do
   end
 
   defp file_info do
-    { :ok, file_info } = Erlang.file.read_file_info(__FILE__)
+    { :ok, file_info } = :file.read_file_info(__FILE__)
     file_info
   end
 

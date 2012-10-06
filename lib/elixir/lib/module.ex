@@ -1,5 +1,5 @@
 defmodule Module do
-  require Erlang.ets, as: ETS
+  require :ets, as: ETS
 
   @moduledoc """
   This module provides many functions to deal with modules during
@@ -495,7 +495,7 @@ defmodule Module do
 
   By default, both options are true. Which means that registering
   an attribute without passing any options will revert the attribute
-  behavior to exactly the same expected in Erlang.
+  behavior to exactly the same expected in :
 
   ## Examples
 

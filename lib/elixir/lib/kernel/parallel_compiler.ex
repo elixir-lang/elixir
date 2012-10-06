@@ -1,5 +1,5 @@
 defmodule Kernel.ParallelCompiler do
-  alias Erlang.orddict, as: Orddict
+  alias :orddict, as: Orddict
 
   @moduledoc """
   A module responsible for compiling files in parallel.
@@ -48,9 +48,9 @@ defmodule Kernel.ParallelCompiler do
 
       try do
         if output do
-          Erlang.elixir_compiler.file_to_path(h, output)
+          :elixir_compiler.file_to_path(h, output)
         else
-          Erlang.elixir_compiler.file(h)
+          :elixir_compiler.file(h)
         end
         parent <- { :compiled, self(), h }
       catch
@@ -100,7 +100,7 @@ defmodule Kernel.ParallelCompiler do
 
       {^child, file} = List.keyfind(queued, child, 0)
       IO.puts "== Compilation error on file #{file}#{extra} =="
-      Erlang.erlang.raise(kind, reason, stacktrace)
+      :erlang.raise(kind, reason, stacktrace)
     end
   end
 

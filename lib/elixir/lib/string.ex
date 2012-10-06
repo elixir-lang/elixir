@@ -265,7 +265,7 @@ defmodule String do
   """
   def replace(subject, pattern, replacement, options // []) do
     opts = translate_replace_options(options)
-    Erlang.binary.replace(subject, pattern, replacement, opts)
+    :binary.replace(subject, pattern, replacement, opts)
   end
 
   defp translate_replace_options(options) do
@@ -288,7 +288,7 @@ defmodule String do
 
   """
   def duplicate(subject, n) when is_integer(n) and n > 0 do
-    Erlang.binary.copy(subject, n)
+    :binary.copy(subject, n)
   end
 
   @doc """

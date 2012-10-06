@@ -5,12 +5,12 @@ defmodule Kernel.ErrorHandler do
 
   def undefined_function(module, fun, args) do
     ensure_loaded(module)
-    Erlang.error_handler.undefined_function(module, fun, args)
+    :error_handler.undefined_function(module, fun, args)
   end
 
   def undefined_lambda(module, fun, args) do
     ensure_loaded(module)
-    Erlang.error_handler.undefined_lambda(module, fun, args)
+    :error_handler.undefined_lambda(module, fun, args)
   end
 
   defp ensure_loaded(module) do
