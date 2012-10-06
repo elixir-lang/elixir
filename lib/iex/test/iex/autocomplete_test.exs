@@ -13,6 +13,7 @@ defmodule IEx.AutocompleteTest do
 
   test :erlang_module_no_completion do
     assert expand(':x') == {:no, '', []}
+    assert expand('x.Foo') == {:no, '', []}
   end
 
   test :erlang_module_common_prefix_completion do
@@ -69,7 +70,7 @@ defmodule IEx.AutocompleteTest do
     assert expand('defreco') == {:yes, 'rd', []}
   end
 
-  test :elixir_and_erlang_proxies do
+  test :elixir_proxy do
     {:yes, '', list} = expand('E')
     assert 'Elixir' in list
   end

@@ -76,9 +76,9 @@ defmodule IEx.Autocomplete do
         expand_module_funs Kernel, atom_to_list(atom)
       {:ok, {:__aliases__,_,[root]}} ->
         expand_elixir_modules [], atom_to_list(root)
-      {:ok, {:__aliases__,_,list}} ->
+      {:ok, {:__aliases__,_,[h|_] = list}} when is_atom(h) ->
         hint = atom_to_list(List.last(list))
-        list = :lists.sublist(list, length(list)-1)
+        list = Enum.take(list, length(list) - 1)
         expand_elixir_modules list, hint
       {:ok, {{:., _, [mod,fun]},_,[]}} when is_atom(fun) ->
         expand_call mod, atom_to_list(fun)
