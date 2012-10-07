@@ -4,6 +4,7 @@ ERLC:=erlc -I lib/elixir/include
 ERL:=erl -I lib/elixir/include -noshell -env ERL_LIBS $ERL_LIBS:lib
 FULLFLAG:=.full
 VERSION:=0.7.0.dev
+FIXTURESPATH:=lib/elixir/test/elixir/fixtures/cp_r
 
 .PHONY: 1
 .NOTPARALLEL: compile
@@ -89,7 +90,9 @@ release_docs: docs
 
 release_erl: $(FULLFLAG)
 	@ rm -rf rel/elixir
+	@ mkdir -p  ${FIXTURESPATH}/certainly/invalid
 	@ cd rel && ../rebar generate
+	@ rm -rf ${FIXTURESPATH}/certainly
 
 #==> Tests tasks
 test: test_erlang test_elixir
