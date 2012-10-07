@@ -8,6 +8,20 @@ defmodule FileTest do
   defmodule Cp do
     use ExUnit.Case
 
+    ##
+    ## cp_r/c is managed in setup/teardown because if it is stored in 
+    ## the repository, reltool can't build a release
+    ##
+    def setup(_) do
+      src = fixture_path("cp_r")
+      :file.make_symlink 'certainly/invalid', File.join([src, "c"])
+    end
+
+    def teardown(_) do
+      src = fixture_path("cp_r")
+      File.rm File.join([src, "c"])
+    end
+
     test :cp_with_src_file_and_dest_file do
       src  = fixture_path("foo.txt")
       dest = tmp_path("sample.txt")
@@ -755,6 +769,20 @@ defmodule FileTest do
 
   defmodule Rm do
     use ExUnit.Case
+
+    ##
+    ## cp_r/c is managed in setup/teardown because if it is stored in 
+    ## the repository, reltool can't build a release
+    ##
+    def setup(_) do
+      src = fixture_path("cp_r")
+      :file.make_symlink 'certainly/invalid', File.join([src, "c"])
+    end
+
+    def teardown(_) do
+      src = fixture_path("cp_r")
+      File.rm File.join([src, "c"])
+    end
 
     test :rm_file do
       fixture = tmp_path("tmp_test.txt")
