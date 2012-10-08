@@ -22,10 +22,17 @@ defprotocol ProtocolTest.Plus do
 end
 
 defrecord ProtocolTest.Foo, a: 0, b: 0
+defrecord ProtocolTest.Bar, a: 0
 
 defimpl ProtocolTest.WithAll, for: ProtocolTest.Foo do
   def blank(record) do
     record.a + record.b == 0
+  end
+end
+
+defimpl ProtocolTest.WithAll, for: ProtocolTest.Bar do
+  def blank(record) do
+    Unknown.undefined(record)
   end
 end
 
@@ -111,6 +118,12 @@ defmodule ProtocolTest do
   test :protocol_with_two_items do
     assert ProtocolTest.Plus.plus(1) == 2
     assert ProtocolTest.Plus.plus(1, 2) == 3
+  end
+
+  test :protocol_avoids_false_negatives do
+    assert_raise UndefinedFunctionError, fn ->
+      ProtocolTest.WithAll.blank(ProtocolTest.Bar.new)
+    end
   end
 
   # Assert that the given protocol is going to be dispatched.

@@ -115,8 +115,9 @@ defmodule Protocol do
             try do
               target.__impl__
               target
-            rescue
-              UndefinedFunctionError -> __fallback__
+            catch
+              :error, :undef, [[{ ^target, :__impl__, [], _ }|_]|_] ->
+                __fallback__
             end
           other ->
             other
@@ -289,11 +290,11 @@ defmodule Protocol.DSL do
       Kernel.def unquote(name).(unquote_splicing(generated)) do
         case __raw_impl__(xA) do
           __MODULE__.Record ->
+            target = Module.concat(__MODULE__, :erlang.element(1, xA))
             try do
-              target = Module.concat(__MODULE__, :erlang.element(1, xA))
-              apply target, unquote(name), [unquote_splicing(generated)]
-            rescue
-              UndefinedFunctionError ->
+              target.unquote(name)(unquote_splicing(generated))
+            catch
+              :error, :undef, [[{ ^target, unquote(name), args, _ }|_]|_] when length(args) == unquote(arity) ->
                 case __fallback__ do
                   nil ->
                     raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
