@@ -68,7 +68,7 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.camelize("foo/bar") == "Foo.Bar"
   end
 
-  test "ignoring files which start with dot" do
+  test :extract_files do
     files = Mix.Utils.extract_files [File.join(fixture_path, "extract")], ["ex"]
     assert length(files) == 1
     assert File.basename(hd(files)) == "a.ex"

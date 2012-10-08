@@ -103,7 +103,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push OutOfDateDepsApp
 
     in_fixture "deps_status", fn ->
-      assert_raise Mix.OutOfDateDepsError, "Some dependencies are out of date, please run `mix deps.get` to proceed", fn ->
+      assert_raise Mix.OutOfDateDepsError, "Some dependencies are out of date, please run `MIX_ENV=dev mix deps.get` to proceed", fn ->
         Mix.Tasks.Deps.Check.run []
       end
 

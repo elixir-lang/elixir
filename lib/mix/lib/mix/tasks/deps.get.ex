@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Deps.Get do
 
   @moduledoc """
   Get all out of date dependencies, i.e. dependencies
-  that are not available or have a wrong lock.
+  that are not available or have an invalid lock.
   """
 
   import Mix.Deps, only: [all: 2, by_name!: 1, format_dep: 1,
