@@ -89,8 +89,9 @@ handle_file_warning(_, _File, { _Line, v3_kernel, bad_call }) -> [];
 
 %% Rewrite
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
-  Raw = "undefined callback function ~s/~B (behaviour ~s)",
-  Message = io_lib:format(Raw, [Fun,Arity,inspect(Module)]),
+  Kind    = protocol_or_behaviour(Module),
+  Raw     = "undefined ~s function ~s/~B (for ~s ~s)",
+  Message = io_lib:format(Raw, [Kind, Fun, Arity, Kind, inspect(Module)]),
   io:format(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
@@ -154,3 +155,20 @@ format_error([], Desc) ->
 
 format_error(Module, Desc) ->
   Module:format_error(Desc).
+
+protocol_or_behaviour(Module) ->
+  case is_protocol(Module) of
+    true  -> protocol;
+    false -> behaviour
+  end.
+
+is_protocol(Module) ->
+  case code:ensure_loaded(Module) of
+    { ok, _ } ->
+      case erlang:function_exported(Module, '__protocol__', 1) of
+        true  -> Module:'__protocol__'(name) == Module;
+        false -> false
+      end;
+    { error, _ } ->
+      false
+  end.

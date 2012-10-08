@@ -59,11 +59,10 @@ defmodule Protocol do
       Protocol.assert_protocol(protocol)
 
       defmodule name do
-        def __impl__, do: unquote(protocol)
+        @behaviour unquote(protocol)
         unquote(block)
+        def __impl__, do: unquote(protocol)
       end
-
-      Protocol.assert_impl(name, protocol)
     end
   end
 
@@ -86,27 +85,13 @@ defmodule Protocol do
   end
 
   @doc """
-  Check if the given `impl` is a valid impl for `protocol`.
-  Raises an error if not.
-
-  """
-  def assert_impl(impl, protocol) do
-    remaining = protocol.__protocol__(:functions) -- impl.__info__(:functions)
-
-    if remaining != [] do
-      pp = Enum.map_join remaining, ", ", fn {x,y} -> "#{x}/#{y}" end
-      raise ArgumentError,
-        message: "#{inspect impl} did not implement #{inspect protocol}, missing: #{pp}"
-    end
-  end
-
-  @doc """
   Defines meta information about the protocol and internal callbacks.
   """
   def meta(env, functions, fallback) do
     contents = quote do
-      def __protocol__(:name),      do: __MODULE__
-      def __protocol__(:functions), do: unquote(:lists.sort(functions))
+      def __protocol__(:name),        do: __MODULE__
+      def __protocol__(:functions),   do: unquote(:lists.sort(functions))
+      def behaviour_info(:callbacks), do: [{ :__impl__, 0 }|__protocol__(:functions)]
 
       def __impl_for__(arg) do
         case __raw_impl__(arg) do
