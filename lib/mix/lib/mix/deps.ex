@@ -55,7 +55,7 @@ defmodule Mix.Deps do
     # Now we validate the given atoms
     Enum.each apps, fn(app) ->
       unless List.keyfind(deps, app, 1) do
-        raise Mix.Error, message: "unknown dependency #{app}"
+        raise Mix.Error, message: "unknown dependency #{app} for env #{Mix.env}"
       end
     end
 
