@@ -17,7 +17,15 @@ defmodule Calendar do
     seconds1 - seconds2
   end
 
-  defp update(DateTime[date: date, time: time], options // [], function) do
+  def add(DateTime[] = datetime, options // []) do
+    update(datetime, options, &1 + &2)
+  end
+
+  def subtract(DateTime[] = datetime, options // []) do
+    update(datetime, options, &1 - &2)
+  end
+
+  defp update(DateTime[date: date, time: time], options, function) do
     seconds = 0
     if seconds_option = options[:seconds] do
       seconds = seconds + seconds_option
@@ -41,14 +49,6 @@ defmodule Calendar do
     DateTime[date: date, time: time]
   end
 
-  def add(DateTime[] = datetime, options // []) do
-    update(datetime, options, &1 + &2)
-  end
-
-  def subtract(DateTime[] = datetime, options // []) do
-    update(datetime, options, &1 - &2)
-  end
-
   def weekday(DateTime[date:  date]) do
     :calendar.day_of_the_week(date)
   end
@@ -59,21 +59,6 @@ defmodule Calendar do
 
   def leap?(DateTime[date: { year, _, _ }]) do
     :calendar.is_leap_year(year)
-  end
-
-  def add_seconds(datetime, seconds) do
-    update_seconds(datetime, &1 + seconds)
-  end
-
-  def subtract_seconds(datetime, seconds) do
-    update_seconds(datetime, &1 - seconds)
-  end
-
-  defp update_seconds(DateTime[date: date, time: time], function) do
-    time_in_seconds = :calendar.datetime_to_gregorian_seconds({ date, time })
-    time_in_seconds = function.(time_in_seconds)
-    { date, time } = :calendar.gregorian_seconds_to_datetime(time_in_seconds)
-    DateTime[date: date, time: time]
   end
 
   def weekday_abbr(DateTime[] = datetime) do
