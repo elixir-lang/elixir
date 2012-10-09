@@ -222,6 +222,8 @@ defmodule MacroTest do
   test :is_term_on_term do
    assert Macro.term?((quote do: 1)) == true
    assert Macro.term?((quote do: 1.1)) == true
+   assert Macro.term?((quote do: -1)) == true
+   assert Macro.term?((quote do: +1)) == true
    assert Macro.term?((quote do: [])) == true
    assert Macro.term?((quote do: [1,2,3])) == true
    assert Macro.term?((quote do: "")) == true
@@ -237,5 +239,4 @@ defmodule MacroTest do
    assert Macro.term?((quote do: [1+1])) == false
    assert Macro.term?((quote do: {1+1})) == false
   end
-
 end

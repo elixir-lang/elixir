@@ -465,14 +465,19 @@ defmodule Macro do
   end
 
   @doc """
-  Checks whether quoted expression represents a term with no expressions
-  or something that contains expressions. 
-  Returns true if the term contains no expressions.
+  Returns true if the quoted expression represents a term
+  with no expressions.
   """
-  def term?(terms) when is_list(terms), do: Enum.all?(terms, term?(&1))
-  def term?({:{}, _, terms}), do: term?(terms)
-  def term?({:__aliases__, _, terms}), do: term?(terms)  
-  def term?(t) when is_tuple(t) and size(t) < 3, do: term?(tuple_to_list(t))
-  def term?(t) when is_tuple(t), do: false
+  def term?({ local, _, terms }) when local in [:{}, :[], :__aliases__] do
+    term?(terms)
+  end
+
+  def term?({ unary, _, [term] }) when unary in [:+, :-] do
+    term?(term)
+  end
+
+  def term?({ left, right }), do: term?(left) and term?(right)
+  def term?(terms) when is_list(terms),  do: Enum.all?(terms, term?(&1))
+  def term?(terms) when is_tuple(terms), do: false
   def term?(_), do: true
 end
