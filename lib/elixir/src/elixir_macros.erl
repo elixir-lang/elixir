@@ -275,9 +275,17 @@ translate_in(Line, Left, Right, S) ->
         { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
       end, { op, Line, '==', Var, H }, T);
     { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
-      { op, Line, 'andalso',
-        { op, Line, '>=', Var, Start },
-        { op, Line, '=<', Var, End }
+      { op, Line, 'orelse',
+        { op, Line, 'andalso',
+          { op, Line, '=<', Start, End},      
+          { op, Line, 'andalso',
+            { op, Line, '>=', Var, Start },
+            { op, Line, '=<', Var, End } } },
+        { op, Line, 'andalso',
+          { op, Line, '<', End, Start},
+          { op, Line, 'andalso',          
+            { op, Line, '=<', Var, Start },
+            { op, Line, '>=', Var, End } } }
       };
     _ ->
       syntax_error(Line, S#elixir_scope.file, "invalid args for operator in")
