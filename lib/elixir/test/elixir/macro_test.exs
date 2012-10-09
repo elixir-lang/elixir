@@ -216,4 +216,26 @@ defmodule MacroTest do
     assert Macro.to_binary(quote do: -1) == "-1"
     assert Macro.to_binary(quote do: @foo(bar)) == "@foo(bar)"
   end
+
+  ## is_term
+
+  test :is_term_on_term do
+   assert Macro.term?((quote do: 1)) == true
+   assert Macro.term?((quote do: 1.1)) == true
+   assert Macro.term?((quote do: [])) == true
+   assert Macro.term?((quote do: [1,2,3])) == true
+   assert Macro.term?((quote do: "")) == true
+   assert Macro.term?((quote do: {})) == true
+   assert Macro.term?((quote do: {1,2})) == true
+   assert Macro.term?((quote do: {1,2,3})) == true
+   assert Macro.term?((quote do: {1,2,3,4})) == true
+   assert Macro.term?((quote do: Alias)) == true   
+  end
+
+  test :is_term_on_expr do
+   assert Macro.term?((quote do: 1+1)) == false
+   assert Macro.term?((quote do: [1+1])) == false
+   assert Macro.term?((quote do: {1+1})) == false
+  end
+
 end
