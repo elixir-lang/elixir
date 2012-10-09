@@ -1,6 +1,54 @@
 defrecord DateTime, date: nil, time: nil
 
 defmodule Calendar do
+  def from_tuple({ date, time }) do
+    DateTime[date: date, time: time]
+  end
+
+  def to_tuple(DateTime[date: date, time: time]) do
+    { date, time }
+  end
+
+  def difference(DateTime[] = time1, DateTime[] = time2) do
+    tuple1 = to_tuple(time1)
+    tuple2 = to_tuple(time2)
+    seconds1 = :calendar.datetime_to_gregorian_seconds(tuple1)
+    seconds2 = :calendar.datetime_to_gregorian_seconds(tuple2)
+    seconds1 - seconds2
+  end
+
+  defp update(DateTime[date: date, time: time], options // [], function) do
+    seconds = 0
+    if seconds_option = options[:seconds] do
+      seconds = seconds + seconds_option
+    end
+
+    if minutes_option = options[:minutes] do
+      seconds = seconds + (minutes_option * 60)
+    end
+
+    if hours_option = options[:hours] do
+      seconds = seconds + (hours_option * 60 * 60)
+    end
+
+    if days_option = options[:days] do
+      seconds = seconds + (days_option * 60 * 60 * 24)
+    end
+
+    time_in_seconds = :calendar.datetime_to_gregorian_seconds({ date, time })
+    time_in_seconds = function.(time_in_seconds, seconds)
+    { date, time } = :calendar.gregorian_seconds_to_datetime(time_in_seconds)
+    DateTime[date: date, time: time]
+  end
+
+  def add(DateTime[] = datetime, options // []) do
+    update(datetime, options, &1 + &2)
+  end
+
+  def subtract(DateTime[] = datetime, options // []) do
+    update(datetime, options, &1 - &2)
+  end
+
   def weekday(DateTime[date:  date]) do
     :calendar.day_of_the_week(date)
   end
