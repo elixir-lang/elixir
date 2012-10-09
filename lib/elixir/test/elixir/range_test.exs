@@ -22,6 +22,7 @@ defmodule RangeTest do
     assert 2 in 1..3, "raw range assertion"
     assert 3 in 1..3, "raw range assertion"
     refute 4 in 1..3, "raw range assertion"
+    assert -3 in -1..-3, "raw range assertion"
   end
 
   test :is_range do

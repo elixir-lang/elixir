@@ -32,6 +32,12 @@ defimpl Enum.Iterator, for: Range do
 end
 
 defimpl Range.Iterator, for: Number do
+  def iterator(first, Range[first: f, last: last]) when is_integer(first) and is_integer(last) and last < f do
+    fn(current) ->
+      if current < last, do: :stop, else: { current, current - 1 }
+    end
+  end
+
   def iterator(first, Range[last: last]) when is_integer(first) and is_integer(last) do
     fn(current) ->
       if current > last, do: :stop, else: { current, current + 1 }
