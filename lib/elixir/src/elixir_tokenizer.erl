@@ -378,13 +378,15 @@ handle_strings(Line, File, Terminators, H, T, Tokens) ->
       interpolation_error(Error, " (for string starting at line ~B)", [Line])
   end.
 
-handle_comp_op(Line, File, Terminators, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
+handle_comp_op(Line, File, Terminators, Op, [$:|Rest], Tokens) ->
+  verify_kw_and_space(Line, File, Op, Rest),
   tokenize(Rest, Line, File, Terminators, [{kw_identifier, Line, Op}|Tokens]);
 
 handle_comp_op(Line, File, Terminators, Op, Rest, Tokens) ->
   tokenize(Rest, Line, File, Terminators, add_token_with_nl({comp_op, Line, Op}, Tokens)).
 
-handle_op(Line, File, Terminators, Op, [$:,S|Rest], Tokens) when ?is_space(S) ->
+handle_op(Line, File, Terminators, Op, [$:|Rest], Tokens) ->
+  verify_kw_and_space(Line, File, Op, Rest),
   tokenize(Rest, Line, File, Terminators, [{kw_identifier, Line, Op}|Tokens]);
 
 handle_op(Line, File, Terminators, Op, Rest, Tokens) when ?unary_op(Op) ->
