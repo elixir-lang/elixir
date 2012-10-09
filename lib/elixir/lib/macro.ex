@@ -463,4 +463,16 @@ defmodule Macro do
     atom = list_to_atom('Elixir-' ++ atom_to_list(h))
     :elixir_aliases.lookup(atom, env.aliases)
   end
+
+  @doc """
+  Checks whether quoted expression represents a term with no expressions
+  or something that contains expressions. 
+  Returns true if the term contains no expressions.
+  """
+  def term?(terms) when is_list(terms), do: Enum.all?(terms, term?(&1))
+  def term?({:{}, _, terms}), do: term?(terms)
+  def term?({:__aliases__, _, terms}), do: term?(terms)  
+  def term?(t) when is_tuple(t) and size(t) < 3, do: term?(tuple_to_list(t))
+  def term?(t) when is_tuple(t), do: false
+  def term?(_), do: true
 end
