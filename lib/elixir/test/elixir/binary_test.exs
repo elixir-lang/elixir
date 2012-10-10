@@ -62,6 +62,12 @@ bar
     assert <<a, b :: size(s)>> = "foo"
   end
 
+  test :partial_application do
+    assert (<< &1, 2 >>).(1) == << 1, 2 >>
+    assert (<< &1, &2 >>).(1, 2) == << 1, 2 >>
+    assert (<< &2, &1 >>).(2, 1) == << 1, 2 >>
+  end
+
   test :bitsyntax_translation do
     refb = "sample"
     sec_data = "another"

@@ -5,6 +5,7 @@
   * [ExUnit] Support `after_spawn` callbacks which are invoked after each process is spawned
   * [IEx] Support `after_spawn` callbacks which are invoked after each process is spawned
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
+  * [Kernel] Allow partial application on literals, for example: `{ &1, &2 }` to build tuples or `[&1|&2]` to build cons cells
   * [CLI] Support --detached option
   * [List] Support to keyreplace and keystore
   * [Mix] Support to environments - the current environment can be set via MIX_ENV

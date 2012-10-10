@@ -249,7 +249,7 @@ translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_a
 translate_macro({ 'var!', Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for var!").
 
-%% HELPERS
+%% Helpers
 
 translate_in(Line, Left, Right, S) ->
   { TLeft, SL } = case Left of
