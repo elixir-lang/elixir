@@ -265,9 +265,28 @@ defimpl Binary.Inspect, for: List do
     if printable?(thing) do
       escape(list_to_binary(thing), ?')
     else
-      container_join(thing, "[", "]", opts)
+      if keywords?(thing) do
+        "[" <>
+        Enum.join(
+        lc {key, value} inlist thing do
+          atom_to_binary(key) <> ": " <> Kernel.inspect(value)
+        end, ", ") <> "]"
+      else 
+        container_join(thing, "[", "]", opts)      
+      end
     end
   end
+
+  ## keywords?
+  defp keywords?([{ key, _value } | rest]) when is_atom(key) do
+    keywords?(rest, key)
+  end
+  defp keywords?(_other), do: false
+  defp keywords?([{ key, _value } | rest], prev) when is_atom(key) and key >= prev do
+    keywords?(rest, key)
+  end
+  defp keywords?([], _prev), do: true
+  defp keywords?(_other, _prev), do: false  
 
   ## printable?
 
