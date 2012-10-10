@@ -38,7 +38,7 @@ validate(_Line, [], _Pos, _S) ->
 convert(List, S, Opt) -> convert(List, S, Opt, [], []).
 
 convert([{'|', Line, [_, _] = Args}|T], S, allow_tail, CallAcc, DefAcc) ->
-  { NewArgs, NewDef, NewS } = convert(Args, S, allow_tail, CallAcc, DefAcc),
+  { NewArgs, NewDef, NewS } = convert(Args, S, allow_tail, [], DefAcc),
   convert(T, NewS, allow_tail, [{ '|', Line, NewArgs}|CallAcc], NewDef);
 
 convert([{'&', Line, [Pos]}|T], S, Opt, CallAcc, DefAcc) ->
