@@ -1,8 +1,8 @@
 %% Those macros behave like they belong to Kernel,
 %% but do not since they need to be implemented in Erlang.
 -module(elixir_macros).
--export([translate_macro/2]).
--import(elixir_translator, [translate_each/2, translate/2, translate_args/2, translate_apply/7]).
+-export([translate/2]).
+-import(elixir_translator, [translate_each/2, translate_args/2, translate_apply/7]).
 -import(elixir_scope, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4,
   assert_no_function_scope/3, assert_module_scope/3, assert_no_assign_or_guard_scope/3]).
@@ -13,18 +13,18 @@
 
 %% Operators
 
-translate_macro({ '+', _Line, [Expr] }, S) when is_number(Expr) ->
+translate({ '+', _Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(Expr, S);
 
-translate_macro({ '-', _Line, [Expr] }, S) when is_number(Expr) ->
+translate({ '-', _Line, [Expr] }, S) when is_number(Expr) ->
   translate_each(-1 * Expr, S);
 
-translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
+translate({ Op, Line, Exprs }, S) when is_list(Exprs),
     Op == '<-' orelse Op == '--' ->
   assert_no_assign_or_guard_scope(Line, Op, S),
   translate_each({ '__op__', Line, [Op|Exprs] }, S);
 
-translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
+translate({ Op, Line, Exprs }, S) when is_list(Exprs),
     Op == '+'   orelse Op == '-'   orelse Op == '*'   orelse Op == '/' orelse
     Op == '++'  orelse Op == 'not' orelse Op == 'and' orelse Op == 'or' orelse
     Op == 'xor' orelse Op == '<'   orelse Op == '>'   orelse Op == '<=' orelse
@@ -32,33 +32,33 @@ translate_macro({ Op, Line, Exprs }, S) when is_list(Exprs),
     Op == '!==' ->
   translate_each({ '__op__', Line, [Op|Exprs] }, S);
 
-translate_macro({ '!', Line, [{ '!', _, [Expr] }] }, S) ->
+translate({ '!', Line, [{ '!', _, [Expr] }] }, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   { elixir_tree_helpers:convert_to_boolean(Line, TExpr, true, S#elixir_scope.context == guard), SE };
 
-translate_macro({ '!', Line, [Expr] }, S) ->
+translate({ '!', Line, [Expr] }, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   { elixir_tree_helpers:convert_to_boolean(Line, TExpr, false, S#elixir_scope.context == guard), SE };
 
-translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
+translate({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
   { _, TExpr, TS } = translate_in(Line, Left, Right, S),
   { TExpr, TS };
 
-translate_macro({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=Extra} = S) ->
+translate({ in, Line, [Left, Right] }, #elixir_scope{extra_guards=Extra} = S) ->
   { TVar, TExpr, TS } = translate_in(Line, Left, Right, S),
   { TVar, TS#elixir_scope{extra_guards=[TExpr|Extra]} };
 
 %% Functions
 
-translate_macro({ function, Line, [[{do,{ '->',_,Pairs}}]] }, S) ->
+translate({ function, Line, [[{do,{ '->',_,Pairs}}]] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'function', S),
   elixir_translator:translate_fn(Line, Pairs, S);
 
-translate_macro({ function, Line, [_] }, S) ->
+translate({ function, Line, [_] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'function', S),
   syntax_error(Line, S#elixir_scope.file, "invalid args for function");
 
-translate_macro({ function, Line, [_, _] = Args }, S) ->
+translate({ function, Line, [_, _] = Args }, S) ->
   assert_no_assign_or_guard_scope(Line, 'function', S),
 
   case translate_args(Args, S) of
@@ -71,14 +71,14 @@ translate_macro({ function, Line, [_, _] = Args }, S) ->
       syntax_error(Line, S#elixir_scope.file, "cannot dynamically retrieve local function. use function(module, fun, arity) instead")
   end;
 
-translate_macro({ function, Line, [_,_,_] = Args }, S) when is_list(Args) ->
+translate({ function, Line, [_,_,_] = Args }, S) when is_list(Args) ->
   assert_no_assign_or_guard_scope(Line, 'function', S),
   { [A,B,C], SA } = translate_args(Args, S),
   { { 'fun', Line, { function, A, B, C } }, SA };
 
 %% @
 
-translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name == type; Name == spec; Name == callback ->
+translate({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name == type; Name == spec; Name == callback ->
   case elixir_compiler:get_opt(internal) of
     true  -> { { nil, Line }, S };
     false ->
@@ -86,7 +86,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name ==
       translate_each(Call, S)
   end;
 
-translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
+translate({'@', Line, [{ Name, _, Args }]}, S) ->
   assert_module_scope(Line, '@', S),
 
   case is_reserved_data(Name) andalso elixir_compiler:get_opt(internal) of
@@ -125,7 +125,7 @@ translate_macro({'@', Line, [{ Name, _, Args }]}, S) ->
 
 %% Case
 
-translate_macro({'case', Line, [Expr, KV]}, S) ->
+translate({'case', Line, [Expr, KV]}, S) ->
   assert_no_assign_or_guard_scope(Line, 'case', S),
   Clauses = elixir_clauses:get_pairs(Line, do, KV, S),
   { TExpr, NS } = translate_each(Expr, S),
@@ -140,18 +140,18 @@ translate_macro({'case', Line, [Expr, KV]}, S) ->
 
 %% Try
 
-translate_macro({'try', Line, [Clauses]}, RawS) ->
+translate({'try', Line, [Clauses]}, RawS) ->
   S = RawS#elixir_scope{noname=true},
   assert_no_assign_or_guard_scope(Line, 'try', S),
 
   Do = proplists:get_value('do', Clauses, []),
-  { TDo, SB } = translate([Do], S),
+  { TDo, SB } = elixir_translator:translate([Do], S),
 
   Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
   { TCatch, SC } = elixir_try:clauses(Line, Catch, umergec(S, SB)),
 
   { TAfter, SA } = case orddict:find('after', Clauses) of
-    { ok, After } -> translate([After], umergec(S, SC));
+    { ok, After } -> elixir_translator:translate([After], umergec(S, SC));
     error -> { [], SC }
   end,
 
@@ -159,7 +159,7 @@ translate_macro({'try', Line, [Clauses]}, RawS) ->
 
 %% Receive
 
-translate_macro({'receive', Line, [KV] }, S) ->
+translate({'receive', Line, [KV] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'receive', S),
   Do = elixir_clauses:get_pairs(Line, do, KV, S, true),
 
@@ -177,7 +177,7 @@ translate_macro({'receive', Line, [KV] }, S) ->
 
 %% Definitions
 
-translate_macro({defmodule, Line, [Ref, KV]}, S) ->
+translate({defmodule, Line, [Ref, KV]}, S) ->
   { TRef, _ } = translate_each(Ref, S),
 
   Block = case orddict:find(do, KV) of
@@ -207,10 +207,10 @@ translate_macro({defmodule, Line, [Ref, KV]}, S) ->
 
   { elixir_module:translate(Line, FRef, Block, S), FS };
 
-translate_macro({Kind, Line, [Call]}, S) when ?FUNS() ->
-  translate_macro({Kind, Line, [Call, nil]}, S);
+translate({Kind, Line, [Call]}, S) when ?FUNS() ->
+  translate({Kind, Line, [Call, nil]}, S);
 
-translate_macro({Kind, Line, [Call, Expr]}, S) when ?FUNS() ->
+translate({Kind, Line, [Call, Expr]}, S) when ?FUNS() ->
   assert_module_scope(Line, Kind, S),
   assert_no_function_scope(Line, Kind, S),
   { TCall, Guards } = elixir_clauses:extract_guards(Call),
@@ -221,7 +221,7 @@ translate_macro({Kind, Line, [Call, Expr]}, S) when ?FUNS() ->
   TExpr             = elixir_tree_helpers:abstract_syntax(Expr),
   { elixir_def:wrap_definition(Kind, Line, TName, TArgs, TGuards, TExpr, S), S };
 
-translate_macro({Kind, Line, [Name, Args, Guards, Expr]}, S) when ?FUNS() ->
+translate({Kind, Line, [Name, Args, Guards, Expr]}, S) when ?FUNS() ->
   assert_module_scope(Line, Kind, S),
   assert_no_function_scope(Line, Kind, S),
   { TName, NS }   = translate_each(Name, S),
@@ -232,21 +232,21 @@ translate_macro({Kind, Line, [Name, Args, Guards, Expr]}, S) when ?FUNS() ->
 
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
-translate_macro({ apply, Line, [Left, Right, Args] }, S) when is_list(Args) ->
+translate({ apply, Line, [Left, Right, Args] }, S) when is_list(Args) ->
   { TLeft,  SL } = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   translate_apply(Line, TLeft, TRight, Args, S, SL, SR);
 
-translate_macro({ apply, Line, Args }, S) ->
+translate({ apply, Line, Args }, S) ->
   { TArgs, NS } = translate_args(Args, S),
   { ?ELIXIR_WRAP_CALL(Line, erlang, apply, TArgs), NS };
 
 %% Handle forced variables
 
-translate_macro({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_atom(Atom) ->
+translate({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_atom(Atom) ->
   elixir_scope:translate_var(Line, Name, nil, S);
 
-translate_macro({ 'var!', Line, [_] }, S) ->
+translate({ 'var!', Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for var!").
 
 %% Helpers

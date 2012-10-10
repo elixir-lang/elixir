@@ -58,7 +58,7 @@ dispatch_import(Line, Name, Args, S, Callback) ->
           Callback();
         { error, internal } ->
           elixir_import:record(import, Tuple, ?BUILTIN, Module),
-          elixir_macros:translate_macro({ Name, Line, Args }, S);
+          elixir_macros:translate({ Name, Line, Args }, S);
         { ok, Receiver, Tree } ->
           translate_expansion(Line, Tree, Receiver, Name, Arity, S)
       end;
@@ -85,7 +85,7 @@ dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
         { error, noexpansion } ->
           Callback();
         { error, internal } ->
-          elixir_macros:translate_macro({ Name, Line, Args }, S);
+          elixir_macros:translate({ Name, Line, Args }, S);
         { ok, Tree } ->
           translate_expansion(Line, Tree, Receiver, Name, Arity, S)
       end
