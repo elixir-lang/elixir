@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Escriptize do
      Defaults to `Project`
 
   * `escript_embed_elixir` - if true embed elixir in the escript file.
-     Defaults to false
+     Defaults to true
 
   * `escript_embed_extra_apps` - embed additional Elixir applications
      if `escript_embed_elixir` is true.
