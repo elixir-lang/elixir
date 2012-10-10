@@ -82,4 +82,9 @@ defmodule Kernel.QuoteTest do
     assert quote(do: foo.unquote(:bar)(1)) == quote(do: foo.bar(1))
     assert quote(do: foo.unquote(:bar)(1) do 2 + 3 end) == quote(do: foo.bar(1) do 2 + 3 end)
   end
+
+  test :splice_on_root do
+    contents = [1, 2, 3]
+    assert quote(do: unquote_splicing(contents)) == quote do: (1; 2; 3)
+  end
 end

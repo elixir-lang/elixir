@@ -17,18 +17,24 @@ linify(_, Else) -> Else.
 
 %% Translation
 
-quote({ unquote, _Line, [Expr] }, #elixir_quote{unquote=true}, S) ->
+quote({ 'unquote_splicing', Line, _ } = Expr, Q, S) ->
+  do_quote({ '__block__', Line, [Expr] }, Q, S);
+
+quote(Else, Q, S) ->
+  do_quote(Else, Q, S).
+
+do_quote({ unquote, _Line, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
 
-quote({ { { '.', Line, [Left, unquote] }, _Line, [Expr] }, CallLine, Args }, Q, S) ->
+do_quote({ { { '.', Line, [Left, unquote] }, _Line, [Expr] }, CallLine, Args }, Q, S) ->
   Rewritten = { { '.', Line, [Left, { unquote, Line, [Expr] }] }, CallLine, Args },
-  quote(Rewritten, Q, S);
+  do_quote(Rewritten, Q, S);
 
-quote({ { '.', Line, [Left, unquote] }, _Line, [Expr] }, Q, S) ->
+do_quote({ { '.', Line, [Left, unquote] }, _Line, [Expr] }, Q, S) ->
   Rewritten = { { '.', Line, [Left, { unquote, Line, [Expr] }] }, Line, [] },
-  quote(Rewritten, Q, S);
+  do_quote(Rewritten, Q, S);
 
-quote({ Left, Line, nil }, Q, S) when is_atom(Left) ->
+do_quote({ Left, Line, nil }, Q, S) when is_atom(Left) ->
   Tuple = { tuple, Line, [
     { atom, Line, Left },
     { integer, Line, line(Line, Q) },
@@ -36,9 +42,9 @@ quote({ Left, Line, nil }, Q, S) when is_atom(Left) ->
   ] },
   { Tuple, S };
 
-quote({ Left, Line, Right }, Q, S) ->
-  { TLeft, LS } = quote(Left, Q, S),
-  { TRight, RS } = quote(Right, Q, LS),
+do_quote({ Left, Line, Right }, Q, S) ->
+  { TLeft, LS } = do_quote(Left, Q, S),
+  { TRight, RS } = do_quote(Right, Q, LS),
 
   %% We need to remove line numbers from quoted exprs
   %% otherwise the line number quotes in the macro will
@@ -47,29 +53,29 @@ quote({ Left, Line, Right }, Q, S) ->
   { Tuple, RS };
 
 % Handle two item tuples but still allow them to be spliced.
-quote({ Left, Right }, Q, S) when
+do_quote({ Left, Right }, Q, S) when
   not is_tuple(Left)  orelse (element(1, Left) /= unquote_splicing),
   not is_tuple(Right) orelse (element(1, Right) /= unquote_splicing) ->
-  { TLeft, LS } = quote(Left, Q, S),
-  { TRight, RS } = quote(Right, Q, LS),
+  { TLeft, LS } = do_quote(Left, Q, S),
+  { TRight, RS } = do_quote(Right, Q, LS),
   { { tuple, line(0, Q), [TLeft, TRight] }, RS };
 
-quote({ Left, Right }, Q, S) ->
-  quote({ '{}', 0, [Left, Right] }, Q, S);
+do_quote({ Left, Right }, Q, S) ->
+  do_quote({ '{}', 0, [Left, Right] }, Q, S);
 
-quote(List, Q, S) when is_list(List) ->
+do_quote(List, Q, S) when is_list(List) ->
   splice(List, Q, [], [], S);
 
-quote(Number, Q, S) when is_integer(Number) ->
+do_quote(Number, Q, S) when is_integer(Number) ->
   { { integer, line(0, Q), Number }, S };
 
-quote(Number, Q, S) when is_float(Number) ->
+do_quote(Number, Q, S) when is_float(Number) ->
   { { float, line(0, Q), Number }, S };
 
-quote(Atom, Q, S) when is_atom(Atom) ->
+do_quote(Atom, Q, S) when is_atom(Atom) ->
   { { atom, line(0, Q), Atom }, S };
 
-quote(Bitstring, _Q, S) when is_bitstring(Bitstring) ->
+do_quote(Bitstring, _Q, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
 
 % Loop through the list finding each unquote_splicing entry.
@@ -99,7 +105,7 @@ from_buffer_to_acc([], _Q, Acc, S) ->
 
 from_buffer_to_acc(Buffer, Q, Acc, S) ->
   { New, NewS } = elixir_tree_helpers:build_reverse_list(
-    fun(X, AccS) -> quote(X, Q, AccS) end, Buffer, 0, S),
+    fun(X, AccS) -> do_quote(X, Q, AccS) end, Buffer, 0, S),
   { [New|Acc], NewS }.
 
 line(Line, #elixir_quote{line=keep})  -> Line;
