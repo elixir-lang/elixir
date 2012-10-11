@@ -437,15 +437,15 @@ defmodule Record do
 
   # Defines update/2
   defp updater(values) do
-    fields = 
-    lc {key, _default} inlist values do
-      quote do
-        Keyword.get(keywords, 
-                    unquote(key), 
-                    elem(record, unquote(find_index(values, key, 1))))
-      end    
-    end
-    contents = {:{}, 0, [(quote do: elem(record, 0))|fields]}
+    fields =
+      lc {key, _default} inlist values do
+        quote do
+          Keyword.get(keywords,
+                      unquote(key),
+                      elem(record, unquote(find_index(values, key, 1))))
+        end
+      end
+    contents = {:{}, 0, [(quote do: __MODULE__)|fields]}
     quote do
       def update(keywords, record) do
         unquote(contents)
