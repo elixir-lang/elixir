@@ -147,10 +147,11 @@ defmodule Binary.Inspect.ListTest do
     assert inspect('abc') == "'abc'"
   end
 
-  test :non_printable_keyword do
+  test :keyword do
     assert inspect([a: 1]) == "[a: 1]"
     assert inspect([a: 1, b: 2]) == "[a: 1, b: 2]"
     assert inspect([a: 1, a: 2, b: 2]) == "[a: 1, a: 2, b: 2]"
+    assert inspect(["123": 1]) == %b(["123": 1])
   end
 
   test :non_printable do

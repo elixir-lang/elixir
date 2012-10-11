@@ -266,7 +266,7 @@ defimpl Binary.Inspect, for: List do
       printable?(thing) ->
         escape(list_to_binary(thing), ?')
       keywords?(thing) ->
-        "[" <> join_keywords(thing) <> "]"
+        "[" <> join_keywords(thing, opts) <> "]"
       true ->
         container_join(thing, "[", "]", opts)      
     end
@@ -283,10 +283,17 @@ defimpl Binary.Inspect, for: List do
   defp keywords?([], _prev), do: true
   defp keywords?(_other, _prev), do: false  
 
-  defp join_keywords(thing) do
+  defp join_keywords(thing, opts) do
     Enum.join(lc {key, value} inlist thing do
-      atom_to_binary(key) <> ": " <> Kernel.inspect(value)
+      key_to_binary(key, opts) <> ": " <> Binary.Inspect.inspect(value, opts)
     end, ", ")
+  end
+
+  defp key_to_binary(key, opts) do
+    case Binary.Inspect.Atom.inspect(key, opts) do
+      ":" <> right -> right
+      other -> other
+    end
   end
 
   ## printable?
