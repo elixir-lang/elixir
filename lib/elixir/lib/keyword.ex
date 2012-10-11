@@ -247,7 +247,7 @@ defmodule Keyword do
 
   """
   def has_key?([{k, _}|_], key) when key < k, do: false
-  def has_key?([{k, _}|d], key) when key > k, do: key?(d, key)
+  def has_key?([{k, _}|d], key) when key > k, do: has_key?(d, key)
   def has_key?([{_, _}|_], _key),             do: true
   def has_key?([], _),                        do: false
 
