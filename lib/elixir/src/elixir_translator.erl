@@ -259,11 +259,14 @@ translate_each({ quote, GivenLine, [[{do,Exprs}|T]] }, S) ->
   end,
 
   Line = case orddict:find(line, T) of
-    { ok, keep } -> keep;
-    { ok, Value } when is_integer(Value) -> Value;
-    { ok, _ } -> syntax_error(GivenLine, S#elixir_scope.file,
-                   "invalid args for quote. expected line to be the atom :keep or an integer");
+    { ok, keep }  -> keep;
+    { ok, Value } -> Value;
     _ -> DefaultLine
+  end,
+
+  { TLine, SL } = case Line of
+    keep -> { keep, S };
+    _    -> translate_each(Line, S)
   end,
 
   Unquote = case orddict:find(unquote, T) of
@@ -271,7 +274,7 @@ translate_each({ quote, GivenLine, [[{do,Exprs}|T]] }, S) ->
     _ -> true
   end,
 
-  elixir_quote:quote(WrappedExprs, #elixir_quote{marker=Marker, line=Line, unquote=Unquote}, S);
+  elixir_quote:quote(WrappedExprs, #elixir_quote{marker=Marker, line=TLine, unquote=Unquote}, SL);
 
 translate_each({ quote, Line, [_] }, S) ->
   syntax_error(Line, S#elixir_scope.file, "invalid args for quote");

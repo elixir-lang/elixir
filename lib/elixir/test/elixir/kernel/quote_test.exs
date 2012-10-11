@@ -74,6 +74,12 @@ defmodule Kernel.QuoteTest do
     }
   end
 
+  test :quote_line_var do
+    ## DO NOT MOVE THIS LINE
+    line = __ENV__.line
+    assert quote(line: line, do: bar(1,2,3)) == { :bar, 79, [1,2,3] }
+  end
+
   test :unquote_call do
     assert quote(do: foo(bar)[:baz])
     assert quote(do: unquote(:bar)()) == quote(do: bar())
