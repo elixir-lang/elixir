@@ -28,10 +28,7 @@ defmodule System do
   def version, do: "0.7.0.dev"
 
   @doc """
-  Returns a tuple { Elixir version, commit sha-1, build date }.
-
-  The format of the return value may change in a future release. Please
-  make sure your code doesn't depend on it.
+  Returns a keywords list with version, git tag info and date.
   """
   def build_info do
     [version: version, tag: get_describe, date: get_date]
