@@ -39,7 +39,7 @@ defmodule Protocol do
 
         # Define callbacks and meta information
         { conversions, fallback } = Protocol.conversions_for(__MODULE__, @only, @except)
-        Protocol.impl_for(__ENV__, conversions)
+        Protocol.impl_for(__ENV__, conversions, fallback)
         Protocol.meta(__ENV__, @functions, fallback)
       end
     end
@@ -128,9 +128,9 @@ defmodule Protocol do
   the module to dispatch to. Returns module.Record for records
   which should be properly handled by the dispatching function.
   """
-  def impl_for(env, conversions) do
+  def impl_for(env, conversions, fallback) do
     contents = lc kind inlist conversions do
-      each_impl_for(kind, conversions)
+      each_impl_for(kind, if fallback, do: conversions)
     end
 
     # If we don't implement all protocols and any is not in the
@@ -205,7 +205,20 @@ defmodule Protocol do
     end
   end
 
-  # Specially handle records with fallbacks
+  # Handle records when we don't have fallbacks.
+  # It simply gets the first element of the tuple.
+  # This case assumes that, whenever a tuple is given
+  # it is meant to be a record, so we don't need extra
+  # checks.
+  defp each_impl_for({ _, :is_record }, nil) do
+    quote do
+      defp __raw_impl__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
+        __MODULE__.Record
+      end
+    end
+  end
+
+  # Specially handle records in the case we have fallbacks.
   defp each_impl_for({ _, :is_record }, conversions) do
     quote do
       defp __raw_impl__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
