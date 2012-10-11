@@ -4,6 +4,7 @@ defmodule KeywordTest do
   use ExUnit.Case, async: true
 
   test :literal do
+    assert [B: 1] == [{ :B, 1 }]
     assert [foo?: :bar] == [{:foo?, :bar}]
     assert [||: 2, +: 1] == [{:+,1},{:||,2}]
   end

@@ -307,7 +307,15 @@ tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_digit(H) ->
 
 tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_upcase(H) ->
   { Rest, Alias } = tokenize_identifier(String, [], false),
-  tokenize(Rest, Line, File, Terminators, [{'__aliases__',Line,[list_to_atom(Alias)]}|Tokens]);
+  Atom = list_to_atom(Alias),
+
+  { Final, Token } =
+    case Rest of
+      [$:|T] -> { T, { kw_identifier,Line,Atom } };
+      _ -> { Rest, { '__aliases__', Line, [Atom] } }
+    end,
+
+  tokenize(Final, Line, File, Terminators, [Token|Tokens]);
 
 % Identifier
 
