@@ -60,6 +60,7 @@ defmodule Record do
       readers(values, 1, []),
       conversions(values),
       writers(values, 1, []),
+      updater(values),
       extensions(values, 1, [], extensions)
     ]
 
@@ -433,6 +434,24 @@ defmodule Record do
   end
 
   defp writers([], _i, acc), do: acc
+
+  # Defines update/2
+  defp updater(values) do
+    fields = 
+    lc {key, _default} inlist values do
+      quote do
+        Keyword.get(keywords, 
+                    unquote(key), 
+                    elem(record, unquote(find_index(values, key, 1))))
+      end    
+    end
+    contents = {:{}, 0, [(quote do: elem(record, 0))|fields]}
+    quote do
+      def update(keywords, record) do
+        unquote(contents)
+      end
+    end
+  end
 
   # Defines extra functions from the definition.
   defp extensions([{ key, default }|t], i, acc, extensions) do
