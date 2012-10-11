@@ -10,6 +10,8 @@ defrecord name, a: 0, b: 1 do
   end
 end
 
+defrecord RecordTest.SomeRecord, a: 0, b: 1
+
 defrecord RecordTest.WithNoField, []
 
 defmodule RecordTest.Macros do
@@ -124,6 +126,14 @@ defmodule RecordTest do
 
     assert record.name_and_age == [record.name, record.age]
     assert record.age_and_name == [record.age, record.name]
+  end
+
+  test :record_update do
+    record = RecordTest.SomeRecord.new
+    assert RecordTest.SomeRecord.a(record.update(a: 2, b: 3)) == 2
+    assert RecordTest.SomeRecord.b(record.update(a: 2, b: 3)) == 3
+    assert RecordTest.SomeRecord.a(record.update(a: 2)) == 2
+    assert RecordTest.SomeRecord.b(record.update(b: 2)) == 2
   end
 
   defp file_info do
