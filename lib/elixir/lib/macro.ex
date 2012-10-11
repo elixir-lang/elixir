@@ -465,19 +465,25 @@ defmodule Macro do
   end
 
   @doc """
-  Returns true if the quoted expression represents a term
-  with no expressions.
+  Recurs the quoted expression checking if all sub terms are
+  safe (i.e. they represented data structured and don't actually
+  evaluate code) and returns `:ok` unless a given term is unsafe,
+  which is returned as `{ :unsafe, term }`.
   """
-  def term?({ local, _, terms }) when local in [:{}, :[], :__aliases__] do
-    term?(terms)
+  def safe_term(terms) do
+    do_safe_term(terms) || :ok
   end
 
-  def term?({ unary, _, [term] }) when unary in [:+, :-] do
-    term?(term)
+  def do_safe_term({ local, _, terms }) when local in [:{}, :[], :__aliases__] do
+    do_safe_term(terms)
   end
 
-  def term?({ left, right }), do: term?(left) and term?(right)
-  def term?(terms) when is_list(terms),  do: Enum.all?(terms, term?(&1))
-  def term?(terms) when is_tuple(terms), do: false
-  def term?(_), do: true
+  def do_safe_term({ unary, _, [term] }) when unary in [:+, :-] do
+    do_safe_term(term)
+  end
+
+  def do_safe_term({ left, right }), do: do_safe_term(left) || do_safe_term(right)
+  def do_safe_term(terms) when is_list(terms),  do: Enum.find_value(terms, do_safe_term(&1))
+  def do_safe_term(terms) when is_tuple(terms), do: { :unsafe, terms }
+  def do_safe_term(_), do: nil
 end

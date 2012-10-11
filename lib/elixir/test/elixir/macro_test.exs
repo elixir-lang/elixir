@@ -217,26 +217,26 @@ defmodule MacroTest do
     assert Macro.to_binary(quote do: @foo(bar)) == "@foo(bar)"
   end
 
-  ## is_term
+  ## safe_term
 
-  test :is_term_on_term do
-   assert Macro.term?(quote do: 1) == true
-   assert Macro.term?(quote do: 1.1) == true
-   assert Macro.term?(quote do: -1) == true
-   assert Macro.term?(quote do: +1) == true
-   assert Macro.term?(quote do: []) == true
-   assert Macro.term?(quote do: [1,2,3]) == true
-   assert Macro.term?(quote do: "") == true
-   assert Macro.term?(quote do: {}) == true
-   assert Macro.term?(quote do: {1,2}) == true
-   assert Macro.term?(quote do: {1,2,3}) == true
-   assert Macro.term?(quote do: {1,2,3,4}) == true
-   assert Macro.term?(quote do: Alias) == true
+  test :safe_terms do
+   assert Macro.safe_term(quote do: 1) == :ok
+   assert Macro.safe_term(quote do: 1.1) == :ok
+   assert Macro.safe_term(quote do: -1) == :ok
+   assert Macro.safe_term(quote do: +1) == :ok
+   assert Macro.safe_term(quote do: []) == :ok
+   assert Macro.safe_term(quote do: [1,2,3]) == :ok
+   assert Macro.safe_term(quote do: "") == :ok
+   assert Macro.safe_term(quote do: {}) == :ok
+   assert Macro.safe_term(quote do: {1,2}) == :ok
+   assert Macro.safe_term(quote do: {1,2,3}) == :ok
+   assert Macro.safe_term(quote do: {1,2,3,4}) == :ok
+   assert Macro.safe_term(quote do: Alias) == :ok
   end
 
-  test :is_term_on_expr do
-   assert Macro.term?(quote do: 1+1) == false
-   assert Macro.term?(quote do: [1+1]) == false
-   assert Macro.term?(quote do: {1+1}) == false
+  test :unsafe_terms do
+   assert Macro.safe_term(quote do: 1+1)   == { :unsafe, quote do: 1 + 1 }
+   assert Macro.safe_term(quote do: [1+1]) == { :unsafe, quote do: 1 + 1 }
+   assert Macro.safe_term(quote do: {1+1}) == { :unsafe, quote do: 1 + 1 }
   end
 end
