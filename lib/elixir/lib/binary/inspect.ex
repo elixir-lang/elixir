@@ -54,12 +54,16 @@ defmodule Binary.Inspect.Utils do
 
   ## escape
 
+  # It is considerably faster to loop the binary
+  # and convert it to a list as we go compared
+  # to looping the binary and creating a binary
+  # as we go.
   def escape(other, char) do
-    <<char>> <> do_escape(other, char)
+    list_to_binary [char|do_escape(other, char)]
   end
 
   defp do_escape(<<char, t :: binary>>, char) do
-    <<?\\, char, do_escape(t, char) :: binary>>
+    [?\\, char | do_escape(t, char)]
   end
 
   defp do_escape(<<h, t :: binary>>, char) when
@@ -68,15 +72,15 @@ defmodule Binary.Inspect.Utils do
     h == ?\f or h == ?\n or
     h == ?\r or h == ?\\ or
     h == ?\t or h == ?\v do
-    <<?\\, escape_map(h), do_escape(t, char) :: binary>>
+    [?\\, escape_map(h) | do_escape(t, char)]
   end
 
   defp do_escape(<<h, t :: binary>>, char) do
-    <<h, do_escape(t,char) :: binary>>
+    [h | do_escape(t,char)]
   end
 
   defp do_escape(<<>>, char) do
-    <<char>>
+    [char]
   end
 
   defp escape_map(?#),  do: ?#
