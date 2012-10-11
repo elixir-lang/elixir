@@ -5,16 +5,17 @@ defmodule System do
   with the VM or the host system.
   """
 
-  # Tries to run `git rev-parse HEAD`. In case of success
-  # returns the commit sha, otherwise returns an empty string.
-  defmacrop get_head_sha do
+  # Tries to run `git describe --always --tags`. In case of success
+  # returns the most recent tag, otherwise returns an empty string.
+  defmacrop get_describe do
     if :os.find_executable('git') do
-      data = :os.cmd('git rev-parse HEAD')
+      data = :os.cmd('git describe --always --tags')
       Regex.replace %r/\n/, to_binary(data), ""
     else
       ""
     end
   end
+
 
   # Get the date at compilation time.
   defmacrop get_date do
@@ -33,7 +34,7 @@ defmodule System do
   make sure your code doesn't depend on it.
   """
   def build_info do
-    { version, get_head_sha, get_date }
+    [version: version, tag: get_describe, date: get_date]
   end
 
   @doc """
