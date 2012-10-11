@@ -59,17 +59,17 @@ defmodule ExUnit.Runner do
   defp run_tests(pid, test_case) do
     try do
       tests = tests_for(test_case)
-      test_case.setup_all
-      Enum.each tests, run_test(pid, test_case, &1)
-      test_case.teardown_all
+      context = run_setup_all(test_case)
+      Enum.each tests, run_test(pid, test_case, context, &1)
+      run_teardown_all(test_case, context)
     after
       pid <- { self, :each_case, test_case }
     end
   end
 
-  defp run_test(pid, test_case, test) do
+  defp run_test(pid, test_case, setup_context, test) do
     final = try do
-      _ = test_case.setup(test)
+      context = run_setup(test_case, setup_context, test)
 
       partial = try do
         apply test_case, test, []
@@ -82,7 +82,7 @@ defmodule ExUnit.Runner do
           { kind1, error1, System.stacktrace }
       end
 
-      _ = test_case.teardown(test)
+      run_teardown(test_case, context, test)
       partial
     rescue
       error2 ->
@@ -93,6 +93,52 @@ defmodule ExUnit.Runner do
     end
 
     pid <- { self, :each, { test_case, test, final } }
+  end
+
+  defp run_setup_all(test_case) do
+    cond do
+      function_exported?(test_case, :setup_all, 0) ->
+        test_case.setup_all
+      true ->
+        []
+    end
+  end
+
+  defp run_setup(test_case, context, test) do
+    cond do
+      function_exported?(test_case, :setup, 2) ->
+        test_case.setup(context, test)
+      function_exported?(test_case, :setup, 1) ->
+        test_case.setup(context)
+      function_exported?(test_case, :setup, 0) ->
+        test_case.setup
+      true ->
+        context
+    end
+  end
+
+  defp run_teardown(test_case, context, test) do
+    cond do
+      function_exported?(test_case, :teardown, 2) ->
+        test_case.teardown(context, test)
+      function_exported?(test_case, :teardown, 1) ->
+        test_case.teardown(context)
+      function_exported?(test_case, :teardown, 0) ->
+        test_case.teardown
+      true ->
+        context
+    end
+  end
+
+  defp run_teardown_all(test_case, context) do
+    cond do
+      function_exported?(test_case, :teardown_all, 1) ->
+        test_case.teardown_all(context)
+      function_exported?(test_case, :teardown_all, 0) ->
+        test_case.teardown_all
+      true ->
+        context
+    end
   end
 
   defp call_formatter(config, message) do

@@ -3,6 +3,7 @@
   * [Binary] Add a Dict binary that converts its keys to binaries on insertion
   * [EEx] Support `<%%` and `<%#` tags
   * [ExUnit] Support `after_spawn` callbacks which are invoked after each process is spawned
+  * [ExUnit] Support context data in `setup_all`, `setup`, `teardown` and `teardown_all` callbacks
   * [IEx] Support `after_spawn` callbacks which are invoked after each process is spawned
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
   * [Kernel] Allow partial application on literals, for example: `{ &1, &2 }` to build tuples or `[&1|&2]` to build cons cells
@@ -22,6 +23,7 @@
   * [Mix] Mix now exits with status 1 in case of failures
 
 * backwards incompatible changes
+  * [ExUnit] `setup` and `teardown` callbacks now receives the test name as second argument
   * [Kernel] Raw function definition with def/4, defp/4, defmacro/4, defmacrop/4 now evaluates all arguments. The previous behaviour was accidental and did not properly evaluate all arguments
   * [Kernel] Change tuple-related (`elem` and `setelem`), Enum functions (`find_index` and `nth!`) and List functions (List.key*) to zero-index
 

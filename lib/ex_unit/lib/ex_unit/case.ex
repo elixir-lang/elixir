@@ -11,11 +11,20 @@ defmodule ExUnit.Case do
 
   ## Callbacks
 
-  This module defines four callbacks. `setup_all()` and
-  `teardown_all()` which are executed before and after
-  all tests respectively and `setup(test)` and `teardown(test)`
-  which are executed before and after each test, receiving
-  the test name as argument.
+  `ExUnit.Case` defines four callbacks:
+
+  * `setup_all()` and `teardown_all(context)` which are executed
+     before and after all tests respectively;
+  * `setup(context, test)` and `teardown(context, test)` which are
+     executed before and after each test, receiving the test name
+     as argument;
+
+  Such callbacks are useful to clean up any side-effect a test may cause,
+  as for example, state in genservers, data on filesystem, or entries in
+  a database. Data can be passed in between such callbacks as context,
+  the context value returned by `setup_all` is passed down to all other
+  callbacks. The value can then be updated in `setup` which is passed
+  down to `teardown`.
 
   ## Examples
 
@@ -40,13 +49,6 @@ defmodule ExUnit.Case do
     quote do
       import ExUnit.Assertions
       import ExUnit.Case
-
-      def setup(_),     do: :ok
-      def teardown(_),  do: :ok
-      def setup_all,    do: :ok
-      def teardown_all, do: :ok
-
-      defoverridable [setup: 1, teardown: 1, setup_all: 0, teardown_all: 0]
     end
   end
 
