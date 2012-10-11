@@ -7,7 +7,9 @@ defmodule SystemTest do
   import PathHelpers
 
   test :build_info do
-    assert { _, _, _ } = System.build_info
+    assert not nil?(System.build_info[:version])
+    assert not nil?(System.build_info[:tag])
+    assert not nil?(System.build_info[:date])
   end
 
   test :argv do
