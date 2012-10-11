@@ -41,7 +41,7 @@ op_atom_test() ->
   [{atom,1,[f0_1]}] = tokenize(":f0_1").
 
 kw_test() ->
-  [{kw_identifier,1,do}] = tokenize("do:").
+  [{kw_identifier,1,do}] = tokenize("do: ").
 
 integer_test() ->
   [{number, 1, 123}] = tokenize("123"),
