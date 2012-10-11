@@ -183,6 +183,8 @@ extract_bit_values(_Line, [], Size, Types, _S) ->
 
 extract_bit_type(Value, Types) when
     Value == binary; Value == integer; Value == float; Value == bitstring;
+    Value == bytes; Value == bits;
+    Value == utf8; Value == utf16; Value == utf32;
     Value == signed; Value == unsigned;
     Value == big; Value == little; Value == native ->
   [Value|Types];
