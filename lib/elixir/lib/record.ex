@@ -154,13 +154,13 @@ defmodule Record do
 
     in_match = caller.in_match?
 
-    has_underscore_value = Keyword.key?(keyword, :_)
+    has_underscore_value = Keyword.has_key?(keyword, :_)
     underscore_value     = Keyword.get(keyword, :_, { :_, 0, nil })
     keyword              = Keyword.delete keyword, :_
 
     iterator = fn({field, default}, each_keyword) ->
       new_fields =
-        case Keyword.key?(each_keyword, field) do
+        case Keyword.has_key?(each_keyword, field) do
           true  -> Keyword.get(each_keyword, field)
           false ->
             case in_match or has_underscore_value do

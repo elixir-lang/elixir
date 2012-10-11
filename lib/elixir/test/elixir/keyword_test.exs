@@ -16,7 +16,7 @@ defmodule KeywordTest do
 
   test :from_enum do
     list = [{:b,2},{:a,1},{:c,3}]
-    dict = Orddict.new list
+    dict = OrdDict.new list
     assert Keyword.from_enum(list) == [a: 1, b: 2, c: 3]
     assert Keyword.from_enum(dict) == [a: 1, b: 2, c: 3]
   end
@@ -86,8 +86,8 @@ defmodule KeywordTest do
   end
 
   test :key? do
-    assert Keyword.key?([a: 1], :a) == true
-    assert Keyword.key?([a: 1], :b) == false
+    assert Keyword.has_key?([a: 1], :a) == true
+    assert Keyword.has_key?([a: 1], :b) == false
   end
 
   test :update do
@@ -164,8 +164,8 @@ defmodule Keyword.DuplicatedTest do
   end
 
   test :key do
-    assert Keyword.key?([a: 1], :a) == true
-    assert Keyword.key?([a: 1], :b) == false
+    assert Keyword.has_key?([a: 1], :a) == true
+    assert Keyword.has_key?([a: 1], :b) == false
   end
 
   defp create_empty_keywords, do: []

@@ -1,5 +1,5 @@
 defmodule Kernel.ParallelCompiler do
-  alias :orddict, as: Orddict
+  alias :orddict, as: OrdDict
 
   @moduledoc """
   A module responsible for compiling files in parallel.
@@ -91,7 +91,7 @@ defmodule Kernel.ParallelCompiler do
         new_result  = [{module, binary}|result]
         wait_for_messages(files, output, callback, new_waiting, queued, new_result)
       { :waiting, child, on } ->
-        new_waiting = Orddict.store(child, on, waiting)
+        new_waiting = OrdDict.store(child, on, waiting)
         spawn_compilers(files, output, callback, new_waiting, queued, result)
       { :failure, child, kind, reason, stacktrace } ->
         extra = if match?({^child, module}, List.keyfind(waiting, child, 0)) do

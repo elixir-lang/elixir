@@ -250,7 +250,7 @@ defmodule Macro do
 
   defp kw_blocks_to_binary(kw) do
     Enum.reduce(kw_keywords, " ", fn(x, acc) ->
-      case Keyword.key?(kw, x) do
+      case Keyword.has_key?(kw, x) do
         true  -> acc <> kw_block_to_binary(x, Keyword.get(kw, x))
         false -> acc
       end

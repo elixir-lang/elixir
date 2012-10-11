@@ -374,31 +374,31 @@ defmodule EnumTest.Dict.Common do
   end
 end
 
-defmodule EnumTest.Orddict do
-  use EnumTest.Dict.Common, Orddict
+defmodule EnumTest.OrdDict do
+  use EnumTest.Dict.Common, OrdDict
 
   test :drop do
-    dict = Orddict.new [a: 1, b: 2, c: 3]
+    dict = OrdDict.new [a: 1, b: 2, c: 3]
     assert Enum.drop(dict, 2) == [c: 3]
     assert Enum.drop(dict, 3) == []
     assert Enum.drop(dict, 4) == []
   end
 
   test :drop_while do
-    dict = Orddict.new [a: 1, b: 2, c: 3]
+    dict = OrdDict.new [a: 1, b: 2, c: 3]
     assert Enum.drop_while(dict, fn({_k, v}) -> v < 3 end) == [c: 3]
   end
 
   test :first do
-    dict = Orddict.new []
+    dict = OrdDict.new []
     assert Enum.first(dict) == nil
 
-    dict = Orddict.new [a: 1, b: 2, c: 3]
+    dict = OrdDict.new [a: 1, b: 2, c: 3]
     assert Enum.first(dict) == {:a, 1}
   end
 
   test :split do
-    dict = Orddict.new [a: 1, b: 2, c: 3]
+    dict = OrdDict.new [a: 1, b: 2, c: 3]
     assert Enum.split(dict, 1) == { [a: 1], [b: 2, c: 3] }
     assert Enum.split(dict, 0) == { [], [a: 1, b: 2, c: 3] }
     assert Enum.split(dict, 3) == { [a: 1, b: 2, c: 3], [] }
@@ -410,12 +410,12 @@ defmodule EnumTest.Orddict do
   end
 
   test :split_while do
-    dict = Orddict.new [a: 1, b: 3, c: 2, d: 4]
+    dict = OrdDict.new [a: 1, b: 3, c: 2, d: 4]
     assert Enum.split_while(dict, fn({_k, v}) -> rem(v, 2) == 1 end) == { [a: 1, b: 3], [c: 2, d: 4] }
   end
 
   test :take do
-    dict = Orddict.new [a: 1, b: 2, c: 3, d: 4]
+    dict = OrdDict.new [a: 1, b: 2, c: 3, d: 4]
     assert Enum.take(dict, 2) == [a: 1, b: 2]
     assert Enum.take(dict, 0) == []
     assert Enum.take(dict, 4) == [a: 1, b: 2, c: 3, d: 4]
@@ -423,7 +423,7 @@ defmodule EnumTest.Orddict do
   end
 
   test :take_while do
-    dict = Orddict.new [a: 1, b: 3, c: 2, d: 4]
+    dict = OrdDict.new [a: 1, b: 3, c: 2, d: 4]
     assert Enum.take_while(dict, fn({_k, v}) -> rem(v, 2) == 1 end) == [a: 1, b: 3]
     assert Enum.take_while(dict, fn({_k, v}) -> v < 10 end) == [a: 1, b: 3, c: 2, d: 4]
     assert Enum.take_while(dict, fn({_k, v}) -> v < 1 end) == []

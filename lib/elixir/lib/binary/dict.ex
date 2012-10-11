@@ -2,7 +2,7 @@ defmodule Binary.Dict do
   @moduledoc """
   This module implements a dictionary that forces the keys to be
   converted to binaries on insertion. Currently it is implemented
-  using an `Orddict`, but this may change in the future.
+  using an `OrdDict`, but this may change in the future.
 
   Check the `Dict` module for examples and documentation.
   """

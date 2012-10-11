@@ -130,8 +130,8 @@ defmodule DictTest do
   end
 end
 
-defmodule OrddictTest do
-  use DictTest.Common, Orddict
+defmodule OrdDictTest do
+  use DictTest.Common, OrdDict
 
   test :new do
     assert [] == elem(new_dict([]), 1)

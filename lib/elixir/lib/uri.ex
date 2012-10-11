@@ -28,7 +28,7 @@ defmodule URI do
 
   Use decoder/1 if you want to customize or iterate each value manually.
   """
-  def decode_query(q, dict // Orddict.new) do
+  def decode_query(q, dict // OrdDict.new) do
     Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
   end
 

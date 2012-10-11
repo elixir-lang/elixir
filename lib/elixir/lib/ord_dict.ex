@@ -1,4 +1,4 @@
-defmodule Orddict do
+defmodule OrdDict do
   @moduledoc """
   This module implements a dictionary type that stores items
   as a list of tuples. It is a simple wrapper around
@@ -12,7 +12,7 @@ defmodule Orddict do
 
   defmacrop dict(data) do
     quote do
-      { Orddict, unquote(data) }
+      { OrdDict, unquote(data) }
     end
   end
 
@@ -72,11 +72,11 @@ defmodule Orddict do
   end
 end
 
-defimpl Enum.Iterator, for: Orddict do
-  def iterator({ Orddict, data }), do: data
-  def count({ Orddict, data }),    do: length(data)
+defimpl Enum.Iterator, for: OrdDict do
+  def iterator({ OrdDict, data }), do: data
+  def count({ OrdDict, data }),    do: length(data)
 end
 
-defimpl Access, for: Orddict do
-  def access(dict, key), do: Orddict.get(dict, key, nil)
+defimpl Access, for: OrdDict do
+  def access(dict, key), do: OrdDict.get(dict, key, nil)
 end

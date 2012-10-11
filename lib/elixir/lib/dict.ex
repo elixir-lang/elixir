@@ -14,7 +14,7 @@ defmodule Dict do
   To create a new dict, use the `new` functions defined
   by each dict type:
 
-      Orddict.new [{:a, 1}, {:b, 2}]
+      OrdDict.new [{:a, 1}, {:b, 2}]
       HashDict.new  #=> creates an empty HashDict
 
   For simplicity's sake, in the examples below everytime

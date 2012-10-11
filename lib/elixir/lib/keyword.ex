@@ -229,21 +229,27 @@ defmodule Keyword do
   def merge([], d2, _fun), do: d2
   def merge(d1, [], _fun), do: d1
 
+  @doc false
+  def key?(list, key) do
+    IO.write "[WARNING] Keyword.key? is deprecated, please use Keyword.has_key? instead\n#{Exception.formatted_stacktrace}"
+    has_key?(list, key)
+  end
+
   @doc """
   Returns whether a given key exists in the given keywords.
 
   ## Examples
 
-      Keyword.key?([a: 1], :a)
+      Keyword.has_key?([a: 1], :a)
       #=> true
-      Keyword.key?([a: 1], :b)
+      Keyword.has_key?([a: 1], :b)
       #=> false
 
   """
-  def key?([{k, _}|_], key) when key < k, do: false
-  def key?([{k, _}|d], key) when key > k, do: key?(d, key)
-  def key?([{_, _}|_], _key),             do: true
-  def key?([], _),                        do: false
+  def has_key?([{k, _}|_], key) when key < k, do: false
+  def has_key?([{k, _}|d], key) when key > k, do: key?(d, key)
+  def has_key?([{_, _}|_], _key),             do: true
+  def has_key?([], _),                        do: false
 
   @doc """
   Updates the key with the given function. If the key does
