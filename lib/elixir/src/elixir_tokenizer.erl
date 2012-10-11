@@ -311,7 +311,7 @@ tokenize([H|_] = String, Line, File, Terminators, Tokens) when ?is_upcase(H) ->
 
   { Final, Token } =
     case Rest of
-      [$:|T] -> { T, { kw_identifier,Line,Atom } };
+      [$:|T] when hd(T) /= $: -> { T, { kw_identifier,Line,Atom } };
       _ -> { Rest, { '__aliases__', Line, [Atom] } }
     end,
 
@@ -371,7 +371,7 @@ handle_heredocs(Line, File, Terminators, H, T, Tokens) ->
 
 handle_strings(Line, File, Terminators, H, T, Tokens) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
-    { NewLine, Parts, [$:|Rest] } ->
+    { NewLine, Parts, [$:|Rest] } when hd(Rest) /= $: ->
       case Parts of
         [Bin] when is_binary(Bin) ->
           Atom = binary_to_atom(unescape_chars(Bin), utf8),
@@ -386,14 +386,14 @@ handle_strings(Line, File, Terminators, H, T, Tokens) ->
       interpolation_error(Error, " (for string starting at line ~B)", [Line])
   end.
 
-handle_comp_op(Line, File, Terminators, Op, [$:|Rest], Tokens) ->
+handle_comp_op(Line, File, Terminators, Op, [$:|Rest], Tokens) when hd(Rest) /= $: ->
   verify_kw_and_space(Line, File, Op, Rest),
   tokenize(Rest, Line, File, Terminators, [{kw_identifier, Line, Op}|Tokens]);
 
 handle_comp_op(Line, File, Terminators, Op, Rest, Tokens) ->
   tokenize(Rest, Line, File, Terminators, add_token_with_nl({comp_op, Line, Op}, Tokens)).
 
-handle_op(Line, File, Terminators, Op, [$:|Rest], Tokens) ->
+handle_op(Line, File, Terminators, Op, [$:|Rest], Tokens) when hd(Rest) /= $: ->
   verify_kw_and_space(Line, File, Op, Rest),
   tokenize(Rest, Line, File, Terminators, [{kw_identifier, Line, Op}|Tokens]);
 
@@ -612,14 +612,14 @@ tokenize_atom(String, Acc) ->
 tokenize_any_identifier(Line, File, String, Acc) ->
   { Rest, Identifier } = tokenize_identifier(String, Acc, false),
   case Rest of
-    [H,$:|T] when H == $?; H == $! ->
+    [H,$:|T] when H == $? orelse H == $!, hd(T) /= $: ->
       Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
       verify_kw_and_space(Line, File, Atom, T),
       { T, { kw_identifier, Line, Atom } };
     [H|T] when H == $?; H == $! ->
       Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
       { T, tokenize_call_identifier(punctuated_identifier, Line, Atom, T) };
-    [$:|T] ->
+    [$:|T] when hd(T) /= $: ->
       Atom = list_to_atom(Identifier),
       verify_kw_and_space(Line, File, Atom, T),
       { T, { kw_identifier, Line, Atom } };

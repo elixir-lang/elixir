@@ -9,6 +9,12 @@ defmodule KeywordTest do
     assert [||: 2, +: 1] == [{:+,1},{:||,2}]
   end
 
+  test :ambiguity do
+    # This raises a warning, so let's leave it commented
+    # assert quote(do: [a:b])  == [a: { :b, 0, :quoted }]
+    assert quote(do: [a::b]) == [{ :::, 0, [{ :a, 0, :quoted },{ :b, 0, :quoted }] }]
+  end
+
   test :optional_comma do
     [a: 1,
      b: 2,
