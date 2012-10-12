@@ -164,7 +164,7 @@ protocol_or_behaviour(Module) ->
 
 is_protocol(Module) ->
   case code:ensure_loaded(Module) of
-    { ok, _ } ->
+    { module, _ } ->
       case erlang:function_exported(Module, '__protocol__', 1) of
         true  -> Module:'__protocol__'(name) == Module;
         false -> false
