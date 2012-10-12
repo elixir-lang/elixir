@@ -159,10 +159,10 @@ defmodule Kernel do
 
   ## Examples
 
-    !1        #=> false
-    ![1,2,3]  #=> false
-    !false    #=> true
-    !nil      #=> true
+      !1        #=> false
+      ![1,2,3]  #=> false
+      !false    #=> true
+      !nil      #=> true
 
   """
   defmacro !arg
@@ -914,7 +914,7 @@ defmodule Kernel do
 
   ## Examples
 
-      > list_to_integer('3FF', 16) #=> 1023
+      list_to_integer('3FF', 16) #=> 1023
   """
   @spec list_to_integer(string, non_neg_integer), do: integer
   def list_to_integer(char_list, base) do
@@ -1788,8 +1788,8 @@ defmodule Kernel do
 
   ## Example
 
-     tuple = { :foo, :bar, 3 }
-     elem(tuple, 1) #=> :bar
+      tuple = { :foo, :bar, 3 }
+      elem(tuple, 1) #=> :bar
 
   """
   defmacro elem(tuple, index) when is_integer(index) do
@@ -1808,8 +1808,8 @@ defmodule Kernel do
 
   ## Example
 
-     tuple = { :foo, :bar, 3 }
-     setelem(tuple, 0, :baz) #=> { :baz, :bar, 3 }
+      tuple = { :foo, :bar, 3 }
+      setelem(tuple, 0, :baz) #=> { :baz, :bar, 3 }
 
   """
   defmacro setelem(tuple, index, value) when is_integer(index) do
