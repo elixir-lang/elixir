@@ -2854,7 +2854,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %C. It simples returns a char list
+  Handles the sigil %C. It simply returns a char list
   without escaping characters and without interpolations.
 
   ## Examples
@@ -2911,7 +2911,7 @@ defmodule Kernel do
 
   @doc """
   Handles the sigil %R. It returns a Regex pattern without escaping
-  nor interpreating interpolations.
+  nor interpreting interpolations.
 
   ## Examples
 
