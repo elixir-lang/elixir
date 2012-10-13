@@ -91,6 +91,7 @@ defmodule Protocol do
     contents = quote do
       def __protocol__(:name),        do: __MODULE__
       def __protocol__(:functions),   do: unquote(:lists.sort(functions))
+      @doc false
       def behaviour_info(:callbacks), do: [{ :__impl__, 0 }|__protocol__(:functions)]
 
       def __impl_for__(arg) do
