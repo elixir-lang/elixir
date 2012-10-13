@@ -33,7 +33,7 @@ defmodule HashDict do
     :dict.is_key key, data
   end
 
-  def get(dict(data), key, default) do
+  def get(dict(data), key, default // nil) do
     case :dict.find(key, data) do
       {:ok, value} -> value
       :error       -> default
