@@ -49,7 +49,7 @@ defmodule Calendar do
     DateTime[date: date, time: time]
   end
 
-  def weekday(DateTime[date:  date]) do
+  def weekday(DateTime[date: date]) do
     :calendar.day_of_the_week(date)
   end
 
