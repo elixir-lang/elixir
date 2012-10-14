@@ -364,6 +364,20 @@ defmodule FileTest do
       end
     end
 
+    test :cp_preserves_mode do
+     src = fixture_path("cp_mode")
+     dest = tmp_path("tmp/cp_mode")
+     File.cp! src, dest
+     File.Stat[mode: src_mode] = File.stat! src
+     File.Stat[mode: dest_mode] = File.stat! dest
+     assert src_mode == dest_mode
+     # on overwrite
+     File.cp! src, dest, fn(_,_) -> true end
+     File.Stat[mode: src_mode] = File.stat! src
+     File.Stat[mode: dest_mode] = File.stat! dest
+     assert src_mode == dest_mode     
+    end
+
   end
 
   defmodule Paths do

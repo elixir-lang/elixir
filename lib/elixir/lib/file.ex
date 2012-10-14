@@ -735,16 +735,26 @@ defmodule File do
     acc
   end
 
+  # Copies file mode
+  defp copy_file_mode!(src, dest) do
+    src_stat = File.stat!(src)
+    dest_stat = File.stat!(dest)
+    File.write_stat!(dest, File.Stat.mode(File.Stat.mode(src_stat), dest_stat))
+  end
+
   # Both src and dest are files.
   defp do_cp_file(src, dest, callback, acc) do
     case copy(src, { dest, [:exclusive] }) do
       { :ok, _ } ->
+        copy_file_mode!(src, dest)
         [dest|acc]
       { :error, :eexist } ->
         if callback.(src, dest) do
           rm(dest)
           case copy(src, dest) do
-            { :ok, _ } -> [dest|acc]
+            { :ok, _ } -> 
+              copy_file_mode!(src, dest)            
+              [dest|acc]
             reason -> reason
           end
         else
