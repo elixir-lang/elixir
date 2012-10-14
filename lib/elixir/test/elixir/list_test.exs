@@ -117,6 +117,7 @@ defmodule ListTest do
     assert List.zip([], [1]) == []
     assert List.zip([1], []) == []
     assert List.zip([], []) == []
+    assert List.zip([]) == []
   end
 
   test :zip_tuples do
@@ -136,6 +137,7 @@ defmodule ListTest do
     assert List.unzip([{1, 2, 3}, {4, 5, 6}]) == [[1, 4], [2, 5], [3, 6]]
     assert List.unzip([{1, 2, 3}, {4, 5}]) == [[1, 4], [2, 5]]
     assert List.unzip([[1, 2, 3], [4, 5]]) == [[1, 4], [2, 5]]
+    assert List.unzip([]) == []
   end
 
   test :keyfind do
