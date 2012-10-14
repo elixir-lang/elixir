@@ -47,6 +47,14 @@ defimpl ProtocolTest.Plus, for: Number do
   def plus(thing, other), do: thing + other
 end
 
+defprotocol ProtocolTest.Multi do
+  def test(a)
+end
+
+defimpl ProtocolTest.Multi, for: [Atom, Number] do
+  def test(a), do: a
+end
+
 defmodule ProtocolTest do
   use ExUnit.Case, async: true
 
@@ -124,6 +132,12 @@ defmodule ProtocolTest do
     assert_raise UndefinedFunctionError, fn ->
       ProtocolTest.WithAll.blank(ProtocolTest.Bar.new)
     end
+  end
+
+  test :multi_impl do
+    assert ProtocolTest.Multi.test(1) == 1
+    assert ProtocolTest.Multi.test(:a) == :a
+    assert catch_error(ProtocolTest.Multi.test("a")) == :undef
   end
 
   # Assert that the given protocol is going to be dispatched.
