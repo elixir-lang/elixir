@@ -53,4 +53,23 @@ defmodule Mix.Tasks.Compile.AppTest do
     purge [A, B, C]
     Mix.Project.pop
   end
+
+  test ".app contains description and registered (as required by systools)" do
+    Mix.Project.push SimpleProject
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Compile.Elixir.run([])
+      assert Mix.Tasks.Compile.App.run([]) == :ok
+
+      {:ok, [{application, _, properties}]} = :file.consult("ebin/simple_project.app")
+      properties = Keyword.from_enum(properties)
+      assert properties[:registered] == []
+      assert properties[:description] == 'simple_project'   
+
+      assert Mix.Tasks.Compile.App.run([]) == :noop
+    end
+  after
+    purge [A, B, C]
+    Mix.Project.pop
+  end  
 end
