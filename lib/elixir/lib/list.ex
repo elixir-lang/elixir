@@ -391,6 +391,7 @@ defmodule List do
       #=> [{1, 3, 5}]
 
   """
+  def zip([]), do: []
   def zip(list_of_lists) when is_list(list_of_lists) do
     do_zip(list_of_lists, [])
   end
