@@ -59,6 +59,8 @@ defmodule Mix.Tasks.Compile.App do
         best_guess
       end
 
+      properties = ensure_correct_properties(app, properties)
+
       contents = { :application, app, properties }
 
       File.mkdir_p!(File.dirname(target))
@@ -81,5 +83,12 @@ defmodule Mix.Tasks.Compile.App do
 
   defp modules_from(beams) do
     Enum.map beams, &1 /> File.basename /> File.rootname('.beam') /> list_to_atom
+  end
+
+  defp ensure_correct_properties(app, properties) do
+    properties = Keyword.from_enum(properties)
+    properties = Keyword.put properties, :description, 
+                             to_char_list(properties[:description] || app)
+    Keyword.put properties, :registered, (properties[:registered] || [])
   end
 end
