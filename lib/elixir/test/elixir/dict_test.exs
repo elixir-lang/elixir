@@ -68,26 +68,26 @@ defmodule DictTest.Common do
         assert dict == Dict.merge dict, dict
         assert empty_dict == Dict.merge empty_dict, empty_dict
 
-        dict1 = new_dict List.zip ["a", "b", "c"], [1, 2, 3]
-        dict2 = new_dict List.zip ["a", "c", "d"], [3, :a, 0]
-        final = new_dict(List.zip ["a", "b", "c", "d"], [3, 2, :a, 0])
+        dict1 = new_dict Enum.zip ["a", "b", "c"], [1, 2, 3]
+        dict2 = new_dict Enum.zip ["a", "c", "d"], [3, :a, 0]
+        final = new_dict Enum.zip ["a", "b", "c", "d"], [3, 2, :a, 0]
         assert Dict.merge(dict1, dict2) == final
       end
 
       test :merge_with_enum do
-        dict1 = new_dict List.zip ["a", "b", "c"], [1, 2, 3]
-        dict2 = List.zip ["a", "c", "d"], [3, :a, 0]
-        final = new_dict(List.zip ["a", "b", "c", "d"], [3, 2, :a, 0])
+        dict1 = new_dict Enum.zip ["a", "b", "c"], [1, 2, 3]
+        dict2 = Enum.zip ["a", "c", "d"], [3, :a, 0]
+        final = new_dict(Enum.zip ["a", "b", "c", "d"], [3, 2, :a, 0])
         assert Dict.merge(dict1, dict2) == final
       end
 
       test :merge_with_function do
-        dict1 = new_dict List.zip ["a", "b"], [1, 2]
-        dict2 = new_dict List.zip ["a", "d"], [3, 4]
+        dict1 = new_dict Enum.zip ["a", "b"], [1, 2]
+        dict2 = new_dict Enum.zip ["a", "d"], [3, 4]
         result = Dict.merge dict1, dict2, fn _k, v1, v2 ->
           v1 + v2
         end
-        assert new_dict(List.zip ["a", "b", "d"], [4, 2, 4]) == result
+        assert new_dict(Enum.zip ["a", "b", "d"], [4, 2, 4]) == result
       end
 
       test :has_key do

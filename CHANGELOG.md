@@ -25,10 +25,11 @@
 * backwards incompatible changes
   * [ExUnit] `setup` and `teardown` callbacks now receives the test name as second argument
   * [Kernel] Raw function definition with def/4, defp/4, defmacro/4, defmacrop/4 now evaluates all arguments. The previous behaviour was accidental and did not properly evaluate all arguments
-  * [Kernel] Change tuple-related (`elem` and `setelem`), Enum functions (`find_index` and `nth!`) and List functions (List.key*) to zero-index
+  * [Kernel] Change tuple-related (`elem` and `setelem`), Enum functions (`find_index`, `nth!` and `times`) and List functions (List.key*) to zero-index
 
 * deprecations
   * [Code] `Code.require_file` and `Code.load_file` now expect the full name as argument
+  * [Enum] `List.reverse/1` and `List.zip/2` were moved to `Enum`
   * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
   * [Kernel] Bitstring syntax now uses `::` instead of `|`
   * [Kernel] `Erlang.` syntax is deprecated in favor of simply using atoms

@@ -1,9 +1,9 @@
 Code.require_file "../test_helper.exs", __FILE__
 
-defmodule EnumTest.Common do
+defmodule EnumTest do
   use ExUnit.Case, async: true
 
-  test :times_with_arity_0 do
+  test :times do
     try do
       Process.put(:times_with_arity, nil)
       assert Enum.times(0, fn -> Process.put(:times_with_arity, :ok) end) == 0
@@ -15,17 +15,26 @@ defmodule EnumTest.Common do
     end
   end
 
-  test :times_with_arity_1 do
+  test :times_with_iterator do
     try do
       assert Enum.times(5, fn x -> Process.put(:times_with_arity, x) end) == 5
-      assert Process.get(:times_with_arity) == 5
+      assert Process.get(:times_with_arity) == 4
     after
       Process.delete(:times_with_arity)
     end
   end
 
-  test :times_with_arity_2 do
-    assert Enum.times(5, 0, fn acc, x -> acc + x end) == 15
+  test :times_with_iterator_and_acumulator  do
+    assert Enum.times(5, 0, fn acc, x -> acc + x end) == 10
+  end
+
+  test :reverse do
+    assert Enum.reverse(URI.query_decoder("foo=bar&baz=bat")) ==
+      [{ "baz", "bat" }, { "foo", "bar" }]
+  end
+
+  test :count do
+    assert Enum.count(URI.query_decoder("foo=bar&baz=bat")) == 2
   end
 end
 
@@ -229,6 +238,15 @@ defmodule EnumTest.List do
     assert Enum.take_while([1,2,3], fn(x) -> x <= 1 end) == [1]
     assert Enum.take_while([1,2,3], fn(x) -> x <= 3 end) == [1,2,3]
     assert Enum.take_while([], fn(_) -> true end) == []
+  end
+
+  test :zip do
+    assert Enum.zip([:a, :b], [1, 2]) == [{:a, 1}, {:b, 2}]
+    assert Enum.zip([:a, :b], [1, 2, 3, 4]) == [{:a, 1}, {:b, 2}]
+    assert Enum.zip([:a, :b, :c, :d], [1, 2]) == [{:a, 1}, {:b, 2}, {:c, nil}, {:d, nil}]
+    assert Enum.zip([], [1]) == []
+    assert Enum.zip([1], []) == [{ 1, nil }]
+    assert Enum.zip([], []) == []
   end
 end
 
@@ -698,17 +716,18 @@ defmodule EnumTest.Range do
     range = Range.new(first: 1, last: 0)
     assert Enum.take_while([], fn(_) -> true end) == []
   end
-end
 
-defmodule EnumTest.EnumTest do
-  use ExUnit.Case, async: true
+  test :zip do
+    assert Enum.zip([:a, :b], 1..2) == [{:a, 1}, {:b, 2}]
+    assert Enum.zip([:a, :b], 1..4) == [{:a, 1}, {:b, 2}]
+    assert Enum.zip([:a, :b, :c, :d], 1..2) == [{:a, 1}, {:b, 2}, {:c, nil}, {:d, nil}]
 
-  test :reverse do
-    assert Enum.reverse(URI.query_decoder("foo=bar&baz=bat")) ==
-      [{ "baz", "bat" }, { "foo", "bar" }]
-  end
+    assert Enum.zip(1..2, [:a, :b]) == [{1, :a}, {2, :b}]
+    assert Enum.zip(1..4, [:a, :b]) == [{1, :a}, {2, :b}, {3, nil}, {4, nil}]
+    assert Enum.zip(1..2, [:a, :b, :c, :d]) == [{1, :a}, {2, :b}]
 
-  test :count do
-    assert Enum.count(URI.query_decoder("foo=bar&baz=bat")) == 2
+    assert Enum.zip(1..2, 1..2) == [{1, 1}, {2, 2}]
+    assert Enum.zip(1..4, 1..2) == [{1, 1}, {2, 2}, {3, nil}, {4, nil}]
+    assert Enum.zip(1..2, 1..4) == [{1, 1}, {2, 2}]
   end
 end

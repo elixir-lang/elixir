@@ -125,7 +125,7 @@ defmodule List do
 
   @doc false
   def reverse(list) do
-    IO.write "[WARNING] List.reverse is deprecated, please use Enum.reverse instead\n#{Exception.formatted_stacktrace}"
+    IO.write "[WARNING] List.reverse/1 is deprecated, please use Enum.reverse/1 instead\n#{Exception.formatted_stacktrace}"
     :lists.reverse(list)
   end
 
@@ -361,21 +361,9 @@ defmodule List do
     [other]
   end
 
-  @doc """
-  Zips corresponding elements from two lists (or tuples) into one list of tuples. The
-  number of elements in the resulting list is equal to the length of the
-  shortest list among the given ones.
-
-  ## Examples
-
-      List.zip [1, 2, 3], [4, 5, 6]
-      #=> [{1, 4}, {2, 5}, {3, 6}]
-
-      List.zip [1, 2], [4, 5, 6]
-      #=> [{1, 4}, {2, 5}]
-
-  """
+  @doc false
   def zip(item1, item2) do
+    IO.write "[WARNING] List.zip/2 is deprecated, please use Enum.zip/2 instead\n#{Exception.formatted_stacktrace}"
     do_zip(to_list(item1), to_list(item2), [])
   end
 

@@ -151,7 +151,7 @@ defmodule Regex do
       options  = Keyword.put(options, :capture, captures)
     end
     results = run(regex, string, options)
-    if results, do: List.zip captures, results
+    if results, do: Enum.zip captures, results
   end
 
   @doc """

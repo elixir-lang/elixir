@@ -746,15 +746,15 @@ defmodule Enum do
   end
 
   @doc """
-  Iterates the given function n times, passing values from 1
-  to n.
+  Iterates the given function n times, passing values
+  from 0 to n - 1.
 
   ## Examples
 
       Enum.times 3, fn(x) -> IO.inspect x end
+      0
       1
       2
-      3
 
   """
   def times(times, function) when times >= 0 do
@@ -782,7 +782,29 @@ defmodule Enum do
     do_times_2(times, 1, function, acc)
   end
 
-  ## Implementations
+  @doc """
+  Zips corresponding elements from two collections into one list
+  of tuples. The number of elements in the resulting list is
+  dictated by the first enum. In case the second list is shorter,
+  values are filled with nil.
+  """
+  def zip(coll1, coll2) when is_list(coll1) do
+    do_zip(coll1, iterator(coll2))
+  end
+
+  def zip(coll1, coll2) do
+    case I.iterator(coll1) do
+      { iterator, pointer } ->
+        do_zip(pointer, iterator, iterator(coll2))
+      list when is_list(list) ->
+        do_zip(list, iterator(coll2))
+    end
+  end
+
+  ## Helpers
+
+  defp iterator(collection) when is_list(collection), do: collection
+  defp iterator(collection), do: I.iterator(collection)
 
   defp to_list({ h, next }, iterator) do
     [h|to_list(iterator.(next), iterator)]
@@ -791,6 +813,8 @@ defmodule Enum do
   defp to_list(:stop, _) do
     []
   end
+
+  ## Implementations
 
   ## all?
 
@@ -1268,7 +1292,7 @@ defmodule Enum do
 
   ## times
 
-  defp do_times_0(limit, counter, _function) when counter > limit do
+  defp do_times_0(limit, counter, _function) when counter >= limit do
   end
 
   defp do_times_0(limit, counter, function) do
@@ -1276,7 +1300,7 @@ defmodule Enum do
     do_times_0(limit, 1 + counter, function)
   end
 
-  defp do_times_1(limit, counter, _function) when counter > limit do
+  defp do_times_1(limit, counter, _function) when counter >= limit do
   end
 
   defp do_times_1(limit, counter, function) do
@@ -1284,13 +1308,44 @@ defmodule Enum do
     do_times_1(limit, 1 + counter, function)
   end
 
-  defp do_times_2(limit, counter, _function, acc) when counter > limit do
+  defp do_times_2(limit, counter, _function, acc) when counter >= limit do
     acc
   end
 
   defp do_times_2(limit, counter, function, acc) do
     new_acc = function.(counter, acc)
     do_times_2(limit, 1 + counter, function, new_acc)
+  end
+
+  ## zip
+
+  defp do_zip([h1|next1], other) do
+    { h2, next2 } = do_zip_next(other)
+    [{ h1, h2 }|do_zip(next1, next2)]
+  end
+
+  defp do_zip([], _) do
+    []
+  end
+
+  defp do_zip({ h1, next1 }, iterator, other) do
+    { h2, next2 } = do_zip_next(other)
+    [{ h1, h2 }|do_zip(iterator.(next1), iterator, next2)]
+  end
+
+  defp do_zip(:stop, _, _) do
+    []
+  end
+
+  defp do_zip_next([h|t]), do: { h, t }
+  defp do_zip_next([]),    do: { nil, [] }
+
+  defp do_zip_next({ iterator, { h, next } }) do
+    { h, { iterator, iterator.(next) } }
+  end
+
+  defp do_zip_next({ _iterator, :stop } = i) do
+    { nil, i }
   end
 end
 

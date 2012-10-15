@@ -111,22 +111,6 @@ defmodule ListTest do
   end
 
   test :zip do
-    assert List.zip([:a, :b], [1, 2]) == [{:a, 1}, {:b, 2}]
-    assert List.zip([:a, :b], [1, 2, 3, 4]) == [{:a, 1}, {:b, 2}]
-    assert List.zip([:a, :b, :c, :d], [1, 2]) == [{:a, 1}, {:b, 2}]
-    assert List.zip([], [1]) == []
-    assert List.zip([1], []) == []
-    assert List.zip([], []) == []
-    assert List.zip([]) == []
-  end
-
-  test :zip_tuples do
-    assert List.zip({:a, :b}, {1, 2}) == [{:a, 1}, {:b, 2}]
-    assert List.zip([:a, :b], {1, 2}) == [{:a, 1}, {:b, 2}]
-    assert List.zip({:a, :b}, [1, 2]) == [{:a, 1}, {:b, 2}]
-  end
-
-  test :zip_lists do
     assert List.zip([[1, 4], [2, 5], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
     assert List.zip([[1, 4], [2, 5, 0], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
     assert List.zip([[1], [2, 5], [3, 6]]) == [{1, 2, 3}]
