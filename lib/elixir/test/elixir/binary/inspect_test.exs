@@ -84,9 +84,10 @@ defmodule Binary.Inspect.NumberTest do
   end
 
   test :float do
-    assert inspect(1.0) == "1.00000000000000000000e+00"
-    assert inspect(1.0e10) == "1.00000000000000000000e+10"
-    assert inspect(1.0e+10) == "1.00000000000000000000e+10"
+    assert inspect(1.0) == "1.0"
+    assert inspect(1.0e10) == "1.0e10"
+    assert inspect(1.0e+10) == "1.0e10"
+    assert inspect(1.0e-10) == "1.0e-10"
   end
 end
 
@@ -155,7 +156,7 @@ defmodule Binary.Inspect.ListTest do
   end
 
   test :non_printable do
-    assert inspect([{:b, 1},{:a,1}]) == "[{:b,1},{:a,1}]"  
+    assert inspect([{:b, 1},{:a,1}]) == "[{:b,1},{:a,1}]"
   end
 
   test :unproper do
