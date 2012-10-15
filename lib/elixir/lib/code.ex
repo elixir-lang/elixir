@@ -129,11 +129,14 @@ defmodule Code do
 
   * `:line` - The line reported in the __ENV__ variable.
 
+  * `
+
   """
   def string_to_ast(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    res  = :elixir_translator.raw_forms(:unicode.characters_to_list(string), line, file)
+    existing_atoms_only = opts[:existing_atoms_only] == true
+    res  = :elixir_translator.raw_forms(:unicode.characters_to_list(string), line, file, existing_atoms_only)
     case res do
       { :ok, ast } -> { :ok, unpack_ast(line, ast) }
       _ -> res
@@ -157,7 +160,8 @@ defmodule Code do
   def string_to_ast!(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    res  = :elixir_translator.forms(:unicode.characters_to_list(string), line, file)
+    existing_atoms_only = opts[:existing_atoms_only] == true    
+    res  = :elixir_translator.forms(:unicode.characters_to_list(string), line, file, existing_atoms_only)
     unpack_ast(line, res)
   end
 
