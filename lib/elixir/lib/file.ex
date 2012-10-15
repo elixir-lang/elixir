@@ -735,7 +735,6 @@ defmodule File do
     acc
   end
 
-  # Copies file mode
   defp copy_file_mode!(src, dest) do
     src_stat = File.stat!(src)
     dest_stat = File.stat!(dest)

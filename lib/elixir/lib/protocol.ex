@@ -21,7 +21,7 @@ defmodule Protocol do
   def defprotocol(name, [do: block]) do
     quote do
       defmodule unquote(name) do
-        # We don't want to allow function definition inside protocols
+        # We don't allow function definition inside protocols
         import Kernel, except: [
           defmacro: 1, defmacro: 2, defmacro: 4,
           defp: 1, defp: 2, defp: 4,
@@ -92,8 +92,9 @@ defmodule Protocol do
   """
   def meta(env, functions, fallback) do
     contents = quote do
-      def __protocol__(:name),        do: __MODULE__
-      def __protocol__(:functions),   do: unquote(:lists.sort(functions))
+      def __protocol__(:name),      do: __MODULE__
+      def __protocol__(:functions), do: unquote(:lists.sort(functions))
+
       @doc false
       def behaviour_info(:callbacks), do: [{ :__impl__, 0 }|__protocol__(:functions)]
 

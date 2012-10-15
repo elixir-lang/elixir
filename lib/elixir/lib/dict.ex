@@ -28,9 +28,9 @@ defmodule Dict do
 
   @doc false
   def behaviour_info(:callbacks) do
-    [delete: 2, empty: 1, get: 3, has_key?: 2,
-     keys: 1, merge: 3, put: 3, size: 1, to_list: 1,
-     update: 3, update: 4, values: 1]
+    [ delete: 2, empty: 1, get: 3, has_key?: 2,
+      keys: 1, merge: 3, put: 3, size: 1, to_list: 1,
+      update: 3, update: 4, values: 1 ]
   end
 
   @doc """
