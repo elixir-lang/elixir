@@ -1,7 +1,7 @@
 %% Main entry point for translations. Are macros that cannot be
 %% overriden are defined in this file.
 -module(elixir_translator).
--export([raw_forms/3, forms/3]).
+-export([raw_forms/3, raw_forms/4, forms/3, forms/4]).
 -export([translate/2, translate_each/2, translate_arg/2,
          translate_args/2, translate_apply/7, translate_fn/3]).
 -import(elixir_scope, [umergev/2, umergec/2]).
@@ -11,8 +11,15 @@
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
+raw_forms(String, StartLine, File, ExistingAtomsOnly) ->
+  raw_forms(#elixir_tokenizer_context{ string = String, line = StartLine, 
+             file = File, existing_atoms_only = ExistingAtomsOnly}).
+
 raw_forms(String, StartLine, File) ->
-  try elixir_tokenizer:tokenize(String, StartLine, File) of
+  raw_forms(String, StartLine, File, false).
+
+raw_forms(#elixir_tokenizer_context{} = Ctx) ->
+  try elixir_tokenizer:tokenize(Ctx) of
     { ok, Tokens } ->
       case elixir_parser:parse(Tokens) of
         { ok, Forms } -> { ok, Forms };
@@ -24,7 +31,10 @@ raw_forms(String, StartLine, File) ->
   end.
 
 forms(String, StartLine, File) ->
-  case raw_forms(String, StartLine, File) of
+  forms(String, StartLine, File, false).
+  
+forms(String, StartLine, File, ExistingAtomsOnly) ->
+  case raw_forms(String, StartLine, File, ExistingAtomsOnly) of
     { ok, Forms } -> Forms;
     { error, { Line, Error, Token } } -> parse_error(Line, File, Error, Token)
   end.
