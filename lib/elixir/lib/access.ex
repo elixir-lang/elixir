@@ -32,13 +32,9 @@ defimpl Access, for: List do
   """
 
   def access(list, atom) when is_atom(atom) do
-    atom_access(list, atom)
+    Keyword.get(list, atom)
   end
 
-  defp atom_access([{k, _}|_], key) when key < k, do: nil
-  defp atom_access([{k, _}|d], key) when key > k, do: atom_access(d, key)
-  defp atom_access([{_k, value}|_], _key),        do: value
-  defp atom_access([], _),                        do: nil
 end
 
 defimpl Access, for: Atom do

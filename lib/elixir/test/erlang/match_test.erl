@@ -108,9 +108,8 @@ head_and_tail_test() ->
 % Keyword match
 
 orrdict_match_test() ->
-  {[{a,1},{b,2}], _} = eval("a = [a: 1, b: 2]"),
-  {[{a,3},{a,1},{b,2}], _} = eval("a = [a: 3, b: 2, a: 1]").
-
+  {[{a,1},{b,2}], _} = eval("a = [a: 1, b: 2]").
+  
 % Function match
 
 function_clause_test() ->

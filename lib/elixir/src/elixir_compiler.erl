@@ -11,9 +11,9 @@
 get_opt(Key) -> get_opt(Key, get_opts()).
 
 get_opt(Key, Dict) ->
-  case orddict:find(Key, Dict) of
-    { ok, Value } -> Value;
-    error -> false
+  case lists:keyfind(Key, 1, Dict) of
+    false -> false;
+    { Key, Value } -> Value
   end.
 
 get_opts() ->

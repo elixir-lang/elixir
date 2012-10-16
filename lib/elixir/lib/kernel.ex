@@ -2244,8 +2244,9 @@ defmodule Kernel do
   If you want to compare more than two clauses, you can use the `cond/1`
   macro.
   """
-  defmacro if(condition, [{:do,do_clause}|tail]) do
-    else_clause = Keyword.get(tail, :else, nil)
+  defmacro if(condition, clauses) do
+    do_clause = Keyword.get(clauses, :do, nil)
+    else_clause = Keyword.get(clauses, :else, nil)
 
     quote do
       case unquote(condition) do

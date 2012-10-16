@@ -55,7 +55,7 @@ defmodule Regex.BinaryTest do
   end
 
   test :captures do
-    assert Regex.captures(%r/(?<foo>c)(?<bar>d)/g, 'abcd') == [foo: 'c', bar: 'd']
+    assert OrdDict.new(Regex.captures(%r/(?<foo>c)(?<bar>d)/g, 'abcd')).to_list == [bar: 'd', foo: 'c']
     assert Regex.captures(%r/c(?<foo>d)/g, 'abcd') == [foo: 'd']
     assert Regex.captures(%r/c(?<foo>d)/g, 'no_match') == nil
     assert Regex.captures(%r/c(?<foo>d|e)/g, 'abcd abce') == [foo: 'd']

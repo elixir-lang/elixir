@@ -2,8 +2,7 @@ defmodule Keyword do
   @moduledoc """
   A keyword is a list of tuples where the first element
   of the tuple is an atom and the second element can be
-  any value. The list is sorted by the first element of
-  each tuple.
+  any value. 
 
   A keyword may have duplicated keys, so it is not strictly
   a dictionary. However most of the functions in this module
@@ -19,8 +18,11 @@ defmodule Keyword do
   which behaves as a dict, `Keyword.from_enum` do not remove
   duplicated entries.
   """
+  def from_enum(enum) when is_list(enum) do
+    enum
+  end
   def from_enum(enum) do
-    Enum.qsort(enum)
+    Enum.map(enum, fn(x) -> x end)
   end
 
   @doc """
@@ -80,11 +82,12 @@ defmodule Keyword do
       Keyword.get [a: 1], :b, 3   #=> 3
 
   """
-  def get(keywords, key, default // nil)
-  def get([{k, _}|_], key, default) when key < k, do: default
-  def get([{k, _}|d], key, default) when key > k, do: get(d, key, default)
-  def get([{_, value}|_], _key, _default),        do: value
-  def get([], _, default),                        do: default
+  def get(keywords, key, default // nil) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> value
+      false -> default
+    end
+  end
 
   @doc """
   Gets the value for specific key. If key does not exist,
@@ -96,10 +99,12 @@ defmodule Keyword do
       Keyword.get! [a: 1], :b      #=> raises KeyError[key: :b]
 
   """
-  def get!([{k, _}|_], key) when key < k, do: raise(Keyword.KeyError, key: key)
-  def get!([{k, _}|d], key) when key > k, do: get!(d, key)
-  def get!([{_, value}|_], _key),         do: value
-  def get!([], key),                      do: raise(Keyword.KeyError, key: key)
+  def get!(keywords, key) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> value
+      false -> raise(Keyword.KeyError, key: key)
+    end
+  end  
 
   @doc """
   Gets all values for a specific key.
@@ -110,10 +115,11 @@ defmodule Keyword do
       #=> [1,2]
 
   """
-  def get_values([{k, _}|_], key) when key < k, do: []
-  def get_values([{k, _}|d], key) when key > k, do: get_values(d, key)
-  def get_values([{_, value}|d], key),          do: [value|get_values(d, key)]
-  def get_values([], _),                        do: []
+  def get_values([{key, value}], key), do: [value]
+  def get_values([{_, _}], _), do: []
+  def get_values([{key, value}|tail], key), do: [value|get_values(tail, key)]
+  def get_values([{_, _}|tail], key), do: get_values(tail, key)
+  def get_values([], _),                    do: []
 
   @doc """
   Returns all keys from the keyword list. Duplicated
@@ -152,10 +158,9 @@ defmodule Keyword do
       Keyword.delete [b: 2], :a         #=> [b: 2]
 
   """
-  def delete([{k, _}|_] = keywords, key) when key < k, do: keywords
-  def delete([{k, _} = e|tail], key) when key > k, do: [e|delete(tail, key)]
-  def delete([{_, _}|tail], key),                  do: delete(tail, key)
-  def delete([], _), do: []
+  def delete(keywords, key) do
+    :lists.filter(fn({k, _}) -> k != key end, keywords)
+  end
 
   @doc """
   Sets the given `value` under `key`.
@@ -163,29 +168,20 @@ defmodule Keyword do
   If a previous value is already stored, all entries are
   removed and the value is overriden.
 
-  Use `put_other/3` to add a new value for an existing key
-  without removing previous ones.
-
   ## Examples
 
       Keyword.put [a: 1, b: 2], :a, 3
       #=> [a: 3, b: 2]
 
   """
-  def put([{k, _} = e|keywords], key, value) when key < k and is_atom(key) do
-    [{key, value},e|keywords]
-  end
-
-  def put([{k, _} = e|keywords], key, value) when key > k do
-    [e|put(keywords, key, value)]
-  end
-
-  def put([{key, _}|keywords], key, value) when is_atom(key) do
-    [{key, value}|delete(keywords, key)]
-  end
-
-  def put([], key, value) when is_atom(key) do
+  def put([], key, value) do
     [{key, value}]
+  end
+  def put([{key, _}|rest], key, value) do
+    [{key, value}|delete(rest, key)]
+  end
+  def put([{_, _}=kw|rest], key, value) do
+    [kw|put(rest, key, value)]
   end
 
   @doc """
@@ -214,20 +210,19 @@ defmodule Keyword do
       #=> [a:4, b:2, d: 4]
 
   """
-  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2], fun) when k1 < k2 and is_atom(k1) do
-    [e1|merge(d1, [e2|d2], fun)]
-  end
-
-  def merge([{k1, _} = e1|d1], [{k2, _} = e2|d2], fun) when k1 > k2 and is_atom(k2) do
-    [e2|merge([e1|d1], d2, fun)]
-  end
 
   def merge([{k1, v1}|d1], [{k1, v2}|d2], fun) do
     [{k1, fun.(k1, v1, v2)}|merge(d1, d2, fun)]
   end
 
+  def merge([{_k1, _} = e1|d1], [{_k2, _} = e2|d2], fun) do
+    [e2|merge([e1|d1], d2, fun)]
+  end
+
   def merge([], d2, _fun), do: d2
   def merge(d1, [], _fun), do: d1
+
+
 
   @doc false
   def key?(list, key) do
@@ -246,10 +241,9 @@ defmodule Keyword do
       #=> false
 
   """
-  def has_key?([{k, _}|_], key) when key < k, do: false
-  def has_key?([{k, _}|d], key) when key > k, do: has_key?(d, key)
-  def has_key?([{_, _}|_], _key),             do: true
-  def has_key?([], _),                        do: false
+  def has_key?(keywords, key) do
+    :lists.keyfind(key, 1, keywords) != false
+  end
 
   @doc """
   Updates the key with the given function. If the key does
@@ -263,16 +257,12 @@ defmodule Keyword do
       #=> Keyword.KeyError
 
   """
-  def update([{k, _}|_], key, _fun) when key < k and is_atom(key) do
-    raise(Keyword.KeyError, key: key)
-  end
-
-  def update([{k, _} = e|keywords], key, fun) when key > k do
-    [e|update(keywords, key, fun)]
-  end
-
-  def update([{key, value}|keywords], key, fun) when is_atom(key) do
+  def update([{key, value}|keywords], key, fun) do
     [{key, fun.(value)}|delete(keywords, key)]
+  end
+
+  def update([{_, _} = e|keywords], key, fun) do
+    [e|update(keywords, key, fun)]
   end
 
   def update([], key, _fun) when is_atom(key) do
@@ -291,16 +281,12 @@ defmodule Keyword do
       #=> [a: 1, b: 11]
 
   """
-  def update([{k, _} = e|keywords], key, initial, _fun) when key < k and is_atom(key) do
-    [{key, initial},e|keywords]
+  def update([{key, value}|keywords], key, _initial, fun) when is_atom(key) do
+    [{key, fun.(value)}|delete(keywords, key)]
   end
 
   def update([{k, _} = e|keywords], key, initial, fun) when key > k do
     [e|update(keywords, key, initial, fun)]
-  end
-
-  def update([{key, value}|keywords], key, _initial, fun) when is_atom(key) do
-    [{key, fun.(value)}|delete(keywords, key)]
   end
 
   def update([], key, initial, _fun) when is_atom(key) do

@@ -150,9 +150,9 @@ translate({'try', Line, [Clauses]}, RawS) ->
   Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
   { TCatch, SC } = elixir_try:clauses(Line, Catch, umergec(S, SB)),
 
-  { TAfter, SA } = case orddict:find('after', Clauses) of
-    { ok, After } -> elixir_translator:translate([After], umergec(S, SC));
-    error -> { [], SC }
+  { TAfter, SA } = case lists:keyfind('after', 1, Clauses) of
+    { 'after', After } -> elixir_translator:translate([After], umergec(S, SC));
+    false -> { [], SC }
   end,
 
   { { 'try', Line, unpack(TDo), [], TCatch, unpack(TAfter) }, umergec(RawS, SA) };
@@ -163,16 +163,16 @@ translate({'receive', Line, [KV] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'receive', S),
   Do = elixir_clauses:get_pairs(Line, do, KV, S, true),
 
-  case orddict:is_key('after', KV) of
-    true ->
+  case lists:keyfind('after', 1, KV) of
+    false ->
+      { TClauses, SC } = elixir_clauses:match(Line, Do, S),
+      { { 'receive', Line, TClauses }, SC };
+    _ ->
       After = elixir_clauses:get_pairs(Line, 'after', KV, S),
       { TClauses, SC } = elixir_clauses:match(Line, Do ++ After, S),
       { FClauses, TAfter } = elixir_tree_helpers:split_last(TClauses),
       { _, _, [FExpr], _, FAfter } = TAfter,
-      { { 'receive', Line, FClauses, FExpr, FAfter }, SC };
-    false ->
-      { TClauses, SC } = elixir_clauses:match(Line, Do, S),
-      { { 'receive', Line, TClauses }, SC }
+      { { 'receive', Line, FClauses, FExpr, FAfter }, SC }
   end;
 
 %% Definitions
@@ -180,9 +180,9 @@ translate({'receive', Line, [KV] }, S) ->
 translate({defmodule, Line, [Ref, KV]}, S) ->
   { TRef, _ } = translate_each(Ref, S),
 
-  Block = case orddict:find(do, KV) of
-    { ok, DoValue } -> DoValue;
-    error -> syntax_error(Line, S#elixir_scope.file, "expected do: argument in defmodule")
+  Block = case lists:keyfind(do, 1, KV) of
+    { do, DoValue } -> DoValue;
+    false -> syntax_error(Line, S#elixir_scope.file, "expected do: argument in defmodule")
   end,
 
   { FRef, FS } = case TRef of

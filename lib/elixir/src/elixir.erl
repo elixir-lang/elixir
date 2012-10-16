@@ -50,14 +50,14 @@ start_cli() ->
 %% EVAL HOOKS
 
 scope_for_eval(Opts) ->
-  File = case orddict:find(file, Opts) of
-    { ok, F } -> to_binary(F);
-    error -> <<"nofile">>
+  File = case lists:keyfind(file, 1, Opts) of
+    { file, F } -> to_binary(F);
+    false -> <<"nofile">>
   end,
 
-  Local = case orddict:find(delegate_locals_to, Opts) of
-    { ok, L } -> L;
-    error -> nil
+  Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
+    { delegate_locals_to, L } -> L;
+    false -> nil
   end,
 
   #elixir_scope{file=File,local=Local}.
@@ -67,9 +67,9 @@ scope_for_eval(Opts) ->
 eval(String, Binding) -> eval(String, Binding, []).
 
 eval(String, Binding, Opts) ->
-  case orddict:find(line, Opts) of
-    { ok, Line } -> [];
-    error -> Line = 1
+  case lists:keyfind(line, 1, Opts) of
+    false -> Line = 1;
+    { line, Line } -> []
   end,
   eval(String, Binding, Line, scope_for_eval(Opts)).
 
@@ -83,9 +83,9 @@ eval(String, Binding, Line, #elixir_scope{file=File} = S) when
 eval_quoted(Tree, Binding) -> eval_quoted(Tree, Binding, []).
 
 eval_quoted(Tree, Binding, Opts) ->
-  case orddict:find(line, Opts) of
-    { ok, Line } -> [];
-    error -> Line = 1
+  case lists:keyfind(line, 1, Opts) of
+    { line, Line } -> [];
+    false -> Line = 1
   end,
   eval_quoted(Tree, Binding, Line, scope_for_eval(Opts)).
 
