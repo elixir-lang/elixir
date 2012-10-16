@@ -272,7 +272,7 @@ defimpl Binary.Inspect, for: List do
       keywords?(thing) ->
         "[" <> join_keywords(thing, opts) <> "]"
       true ->
-        container_join(thing, "[", "]", opts)      
+        container_join(thing, "[", "]", opts)
     end
   end
 
@@ -285,7 +285,7 @@ defimpl Binary.Inspect, for: List do
     keywords?(rest, key)
   end
   defp keywords?([], _prev), do: true
-  defp keywords?(_other, _prev), do: false  
+  defp keywords?(_other, _prev), do: false
 
   defp join_keywords(thing, opts) do
     Enum.join(lc {key, value} inlist thing do
@@ -416,7 +416,7 @@ defimpl Binary.Inspect, for: Number do
   end
 
   def inspect(thing, _) do
-    list_to_binary float_to_list(thing)
+    list_to_binary :io_lib.format("~p", [thing])
   end
 end
 
