@@ -30,6 +30,32 @@ defmodule KernelTest do
   defmodule Conversions do
     use ExUnit.Case, async: true
 
+    test :binary_to_integer do
+      assert binary_to_integer("123") == 123
+    end
+
+    test :binary_to_integer_with_base do
+      assert binary_to_integer("755", 8) == 493
+      assert binary_to_integer("3FF", 16) == 1023
+    end
+
+    test :binary_to_float do
+      assert binary_to_float("2.2017764e+0") == 2.2017764
+    end
+
+    test :integer_to_binary do
+      assert integer_to_binary(77) == "77"
+    end
+
+    test :integer_to_binary_with_base do
+      assert integer_to_binary(493, 8) == "755"
+      assert integer_to_binary(1023, 16) == "3FF"
+    end
+
+    test :float_to_binary do
+      assert float_to_binary(7.0) == "7.00000000000000000000e+00"
+    end
+
     test :atom_to_binary_defaults_to_utf8 do
       expected  = atom_to_binary :some_binary, :utf8
       actual    = atom_to_binary :some_binary

@@ -233,10 +233,6 @@ defimpl Binary.Inspect, for: BitString do
     integer_to_binary(h) <> "::size(" <> integer_to_binary(size) <> ")"
   end
 
-  defp integer_to_binary(integer) do
-    integer /> integer_to_list /> list_to_binary
-  end
-
   defp decrement(:infinity), do: :infinity
   defp decrement(counter),   do: counter - 1
 end
