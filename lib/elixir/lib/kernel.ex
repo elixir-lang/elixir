@@ -2349,9 +2349,96 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns a integer whose text representation is `some_binary`.
+
+  ## Examples
+
+      binary_to_integer "123" #=> 123
+
+  """
+  defmacro binary_to_integer(some_binary) do
+    quote do
+      list_to_integer(binary_to_list(unquote(some_binary)))
+    end
+  end
+
+  @doc """
+  Returns an integer whose text representation in base `base`
+  is `some_binary`.
+
+  ## Examples
+
+      binary_to_integer("3FF", 16) #=> 1023
+
+  """
+  defmacro binary_to_integer(some_binary, base) do
+    quote do
+      list_to_integer(binary_to_list(unquote(some_binary)), unquote(base))
+    end
+  end
+
+  @doc """
+  Returns a float whose text representation is `some_binary`.
+
+  ## Examples
+
+      binary_to_float "2.2017764e+0" #=> 2.2017764
+
+  """
+  defmacro binary_to_float(some_binary) do
+    quote do
+      list_to_float(binary_to_list(unquote(some_binary)))
+    end
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_integer`.
+
+  ## Examples
+
+      integer_to_binary 123 #=> "123"
+
+  """
+  defmacro integer_to_binary(some_integer) do
+    quote do
+      list_to_binary(integer_to_list(unquote(some_integer)))
+    end
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_integer` in base `base`.
+
+  ## Examples
+
+      integer_to_binary 77 #=> "77"
+
+  """
+  defmacro integer_to_binary(some_integer, base) do
+    quote do
+      list_to_binary(integer_to_list(unquote(some_integer), unquote(base)))
+    end
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_float`.
+
+  ## Examples
+
+      float_to_binary 7.0 #=> "7.00000000000000000000e+00"
+
+  """
+  defmacro float_to_binary(some_float) do
+    quote do
+      list_to_binary(float_to_list(unquote(some_float)))
+    end
+  end
+
+  @doc """
   Returns the atom whose text representation is
   `some_binary` in UTF8 encoding.
-  Allowed in guard clauses.
 
   ## Examples
 
@@ -2366,7 +2453,6 @@ defmodule Kernel do
 
   @doc """
   Works like `binary_to_atom` but the atom must exist.
-  Allowed in guard clauses.
 
   ## Examples
 
@@ -2382,7 +2468,7 @@ defmodule Kernel do
 
   @doc """
   Returns a binary which corresponds to the text representation
-  of `some_atom` in UTF8 encoding. Allowed in guard clauses.
+  of `some_atom` in UTF8 encoding.
 
   ## Examples
 
@@ -2396,7 +2482,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Concatenates two binaries. Allowed in guard clauses.
+  Concatenates two binaries.
 
   ## Examples
 
