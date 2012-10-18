@@ -102,7 +102,7 @@ defmodule EEx.Tokenizer do
     # pairs. Then, we check if there is a "fn" token and,
     # if so, it is not followed by an "end" token. If this
     # is the case, we are on a start expr.
-    case :elixir_tokenizer.tokenize(rest, 1, "__internal__") do
+    case :elixir_tokenizer.tokenize({:elixir_tokenizer_context, rest, 1, "__internal__", false}) do
       { :ok, tokens } ->
         tokens   = Enum.reverse(tokens)
         fn_index = fn_index(tokens)
