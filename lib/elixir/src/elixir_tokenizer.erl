@@ -231,12 +231,16 @@ tokenize([$'|T], Line, Scope, Tokens) ->
 
 tokenize([$:,T|String], Line, Scope, Tokens) when ?is_upcase(T); ?is_downcase(T); T == $_ ->
   { Rest, Atom } = tokenize_atom([T|String], [], Scope),
-  tokenize(Rest, Line, Scope, [{ atom, Line, [Atom] }|Tokens]);
+  tokenize(Rest, Line, Scope, [{ atom, Line, Atom }|Tokens]);
 
 tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, Parts, Rest } ->
-      tokenize(Rest, NewLine, Scope, [{ atom, Line, unescape_tokens(Parts) }|Tokens]);
+      Token = case unescape_tokens(Parts) of
+        [Part]    -> { atom, Line, unsafe_to_atom(Part, Scope) };
+        Unescaped -> { atom, Line, Unescaped }
+      end,
+      tokenize(Rest, NewLine, Scope, [Token|Tokens]);
     Error ->
       interpolation_error(Error, " (for atom starting at line ~B)", [Line])
   end;
@@ -245,22 +249,22 @@ tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
 
 % ## Containers
 tokenize(":<<>>" ++ Rest, Line, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, [{ atom, Line, ['<<>>'] }|Tokens]);
+  tokenize(Rest, Line, Scope, [{ atom, Line, '<<>>' }|Tokens]);
 
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?container2(T1, T2) ->
-  tokenize(Rest, Line, Scope, [{ atom, Line, [list_to_atom([T1,T2])] }|Tokens]);
+  tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Three Token Operators
 tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3)  ->
-  tokenize(Rest, Line, Scope, [{ atom, Line, [list_to_atom([T1,T2,T3])] }|Tokens]);
+  tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2,T3]) }|Tokens]);
 
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
-  tokenize(Rest, Line, Scope, [{ atom, Line, [list_to_atom([T1,T2])] }|Tokens]);
+  tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Single Token Operators
 tokenize([$:,T|Rest], Line, Scope, Tokens) when ?comp1(T); ?op1(T); T == $&; T == $. ->
-  tokenize(Rest, Line, Scope, [{ atom, Line, [list_to_atom([T])] }|Tokens]);
+  tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T]) }|Tokens]);
 
 % End of line
 

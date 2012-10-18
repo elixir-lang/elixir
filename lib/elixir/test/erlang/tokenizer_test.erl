@@ -30,15 +30,15 @@ hex_bin_octal_test() ->
   [{number,1,3}] = tokenize("0B11").
 
 unquoted_atom_test() ->
-  [{atom, 1, ['+']}] = tokenize(":+"),
-  [{atom, 1, ['-']}] = tokenize(":-"),
-  [{atom, 1, ['*']}] = tokenize(":*"),
-  [{atom, 1, ['/']}] = tokenize(":/"),
-  [{atom, 1, ['=']}] = tokenize(":="),
-  [{atom, 1, ['&&']}] = tokenize(":&&").
+  [{atom, 1, '+'}] = tokenize(":+"),
+  [{atom, 1, '-'}] = tokenize(":-"),
+  [{atom, 1, '*'}] = tokenize(":*"),
+  [{atom, 1, '/'}] = tokenize(":/"),
+  [{atom, 1, '='}] = tokenize(":="),
+  [{atom, 1, '&&'}] = tokenize(":&&").
 
 op_atom_test() ->
-  [{atom,1,[f0_1]}] = tokenize(":f0_1").
+  [{atom,1,f0_1}] = tokenize(":f0_1").
 
 kw_test() ->
   [{kw_identifier,1,do}] = tokenize("do: ").
