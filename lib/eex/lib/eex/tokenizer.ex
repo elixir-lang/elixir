@@ -97,12 +97,12 @@ defmodule EEx.Tokenizer do
   defp token_name('>-' ++ rest) do
     rest = Enum.reverse(rest)
 
-    # Tokenize the remaining passing "__internal__" as file,
-    # which relax the tokenizer to not error on unmatched
-    # pairs. Then, we check if there is a "fn" token and,
-    # if so, it is not followed by an "end" token. If this
-    # is the case, we are on a start expr.
-    case :elixir_tokenizer.tokenize(rest, 1, "__internal__") do
+    # Tokenize the remaining passing check_terminators as
+    # false, which relax the tokenizer to not error on
+    # unmatched pairs. Then, we check if there is a "fn"
+    # token and, if so, it is not followed by an "end"
+    # token. If this is the case, we are on a start expr.
+    case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
       { :ok, tokens } ->
         tokens   = Enum.reverse(tokens)
         fn_index = fn_index(tokens)

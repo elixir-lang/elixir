@@ -56,6 +56,11 @@ defmodule CodeTest do
     assert { :error, _ } = Code.string_to_ast("a.1")
   end
 
+  test :string_to_ast_existing_atoms_only do
+    assert :badarg = catch_error(Code.string_to_ast(":thereisnosuchatom", existing_atoms_only: true))
+    assert :badarg = catch_error(Code.string_to_ast!(":thereisnosuchatom", existing_atoms_only: true))
+  end
+
   test :string_to_ast! do
     assert Code.string_to_ast!("1 + 2") == quote line: 1, do: 1 + 2
 

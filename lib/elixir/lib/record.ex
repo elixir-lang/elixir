@@ -109,7 +109,6 @@ defmodule Record do
         def age_and_name(user) do
          _user(user, [:age, :name])
         end
-
       end
 
   """

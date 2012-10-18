@@ -150,7 +150,7 @@ wrap_interpol(Line, Form) ->
   { '::', Line, [{ { '.', Line, ['Elixir.Binary.Chars', to_binary] }, Line, [Form]}, { binary, Line, nil }]}.
 
 forms(String, StartLine, File) ->
-  case elixir_translator:raw_forms(String, StartLine, File) of
+  case elixir_translator:forms(String, StartLine, File, []) of
     { ok, [] } -> nil;
     { ok, [Forms] } when not is_list(Forms) -> Forms;
     { ok, Forms } -> { '__block__', StartLine, Forms };

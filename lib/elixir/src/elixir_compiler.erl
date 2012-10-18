@@ -26,7 +26,7 @@ string(Contents, File) when is_list(Contents), is_binary(File) ->
 
   try
     put(elixir_compiled, []),
-    Forms = elixir_translator:forms(Contents, 1, File),
+    Forms = elixir_translator:'forms!'(Contents, 1, File, []),
     eval_forms(Forms, 1, File, [], #elixir_scope{file=File}),
     lists:reverse(get(elixir_compiled))
   after

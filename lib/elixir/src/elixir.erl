@@ -75,7 +75,7 @@ eval(String, Binding, Opts) ->
 
 eval(String, Binding, Line, #elixir_scope{file=File} = S) when
     is_list(String), is_list(Binding), is_integer(Line), is_binary(File) ->
-  Forms = elixir_translator:forms(String, Line, File),
+  Forms = elixir_translator:'forms!'(String, Line, File, []),
   eval_forms(Forms, Binding, S).
 
 %% Quoted evaluation

@@ -543,9 +543,8 @@ build_bin_string({ bin_string, Line, Args }) -> { '<<>>', Line, Args }.
 build_list_string({ list_string, _Line, [H] }) when is_binary(H) -> binary_to_list(H);
 build_list_string({ list_string, Line, Args }) -> { binary_to_list, Line, [{ '<<>>', Line, Args}] }.
 
-build_atom({ atom, _Line, [H] }) when is_atom(H) -> H;
-build_atom({ atom, _Line, [H] }) when is_binary(H) -> binary_to_atom(H, utf8);
-build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ '<<>>', Line, Args}, utf8] }.
+build_atom({ atom, _Line, Atom }) when is_atom(Atom) -> Atom;
+build_atom({ atom, Line, Args }) -> { binary_to_atom, Line, [{ '<<>>', Line, Args }, utf8] }.
 
 %% Keywords
 
