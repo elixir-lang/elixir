@@ -156,7 +156,7 @@ defmodule Binary.Inspect.ListTest do
   end
 
   test :non_printable do
-    assert inspect([{:b, 1},{:a,1}]) == "[{:b,1},{:a,1}]"
+    assert inspect([{:b, 1},{:a,1}]) == "[b: 1, a: 1]"
   end
 
   test :unproper do

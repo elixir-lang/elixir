@@ -48,7 +48,7 @@ record_prepend_test() ->
 record_merge_test() ->
   F = fun() ->
     eval("defrecord Foo, a: [foo: :bar]"),
-    { { 'Elixir.Foo', [{a,1},{foo,baz}] }, _ } = eval("Foo.new.merge_a  [foo: :baz, a: 1]")
+    { { 'Elixir.Foo', [{foo,baz}, {a,1}] }, _ } = eval("Foo.new.merge_a  [foo: :baz, a: 1]")
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo']).
 

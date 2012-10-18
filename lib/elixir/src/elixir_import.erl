@@ -70,8 +70,8 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
   File = S#elixir_scope.file,
   All = keydelete(Key, Old),
 
-  New = case orddict:find(only, Opts) of
-    { ok, RawOnly } ->
+  New = case keyfind(only, Opts) of
+    { only, RawOnly } ->
       Only = expand_fun_arity(Line, only, RawOnly, S),
       case Only -- get_exports(Key) of
         [{Name,Arity}|_] ->
@@ -79,16 +79,16 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
           elixir_errors:form_error(Line, File, ?MODULE, Tuple);
         _ -> intersection(Only, AvailableFun())
       end;
-    error ->
-      case orddict:find(except, Opts) of
-        { ok, [] } -> AvailableFun();
-        { ok, RawExcept } ->
+    false ->
+      case keyfind(except, Opts) of
+        false -> AvailableFun()   ;     
+        { except, [] } -> AvailableFun();
+        { except, RawExcept } ->
           Except = expand_fun_arity(Line, except, RawExcept, S),
           case keyfind(Key, Old) of
             false -> AvailableFun() -- Except;
             {Key,ToRemove} -> ToRemove -- Except
-          end;
-        error -> AvailableFun()
+          end
       end
   end,
 

@@ -422,9 +422,9 @@ defmodule EnumTest.OrdDict do
     assert Enum.split(dict, 3) == { [a: 1, b: 2, c: 3], [] }
     assert Enum.split(dict, 4) == { [a: 1, b: 2, c: 3], [] }
     assert Enum.split(dict, -1) == { [a: 1, b: 2], [c: 3] }
-    assert Enum.split(dict, -2) == { [a: 1], [c: 3, b: 2] }
-    assert Enum.split(dict, -3) == { [], [a: 1, c: 3, b: 2] }
-    assert Enum.split(dict, -10) == { [], [a: 1, c: 3, b: 2] }
+    assert Enum.split(dict, -2) == { [a: 1], [b: 2, c: 3] }
+    assert Enum.split(dict, -3) == { [], [a: 1, b: 2, c: 3] }
+    assert Enum.split(dict, -10) == { [], [a: 1, b: 2, c: 3] }
   end
 
   test :split_while do

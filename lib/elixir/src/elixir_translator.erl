@@ -101,12 +101,12 @@ translate_each({ alias, Line, [Ref, KV] }, S) ->
 
   case TRef of
     { atom, _, Old } ->
-      { New, SF } = case orddict:find(as, KV) of
-        { ok, false } ->
+      { New, SF } = case lists:keyfind(as, 1, KV) of
+        Opt when Opt == { as, true }; Opt == false ->
+          { elixir_aliases:last(Old), SR };        
+        { as, false } ->
           { Old, SR };
-        Opt when Opt == { ok, true }; Opt == error ->
-          { elixir_aliases:last(Old), SR };
-        { ok, Other } ->
+        { as, Other } ->
           { TOther, SA } = translate_each(Other, SR#elixir_scope{aliases=[]}),
           case TOther of
             { atom, _, Atom } -> { Atom, SA };
@@ -143,9 +143,9 @@ translate_each({ require, Line, [Ref, KV] }, S) ->
 
   { TRef, SR } = translate_each(Ref, S),
 
-  As = case orddict:find(as, KV) of
-    { ok, Value } -> Value;
-    error -> false
+  As = case lists:keyfind(as, 1, KV) of
+    false -> false;
+    { as, Value } -> Value
   end,
 
   case TRef of
@@ -187,9 +187,9 @@ translate_each({ import, Line, [Left, Right, Opts] }, S) ->
 
   validate_opts(Line, import, [as, only, except], Opts, S),
 
-  As = case orddict:find(as, Opts) of
-    { ok, Value } -> Value;
-    error -> false
+  As = case lists:keyfind(as, 1, Opts) of
+    false -> false;
+    { as, Value } -> Value
   end,
 
   elixir_aliases:ensure_loaded(Line, Ref, SR),
@@ -244,23 +244,29 @@ translate_each({ Unquote, Line, _Args }, S) when Unquote == unquote; Unquote == 
 translate_each({ quote, Line, [Left, Right] }, S) ->
   translate_each({ quote, Line, [orddict:from_list(Left ++ Right)] }, S);
 
-translate_each({ quote, GivenLine, [[{do,Exprs}|T]] }, S) ->
-  Marker = case orddict:find(hygiene, T) of
-    { ok, false } -> nil;
+translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
+  Exprs =
+  case lists:keyfind(do, 1, T) of
+    {do, E} -> E;
+    false ->
+      syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote")
+  end,
+
+  Marker = case lists:keyfind(hygiene, 1, T) of
+    { hygiene, false } -> nil;
     _ -> quoted
   end,
 
-  { DefaultLine, WrappedExprs } = case orddict:find(location, T) of
-    { ok, keep } ->
+  { DefaultLine, WrappedExprs } = case lists:keyfind(location, 1, T) of
+    { location, keep } ->
       Scoped = { '__scope__', GivenLine, [[{file,S#elixir_scope.file}],Exprs] },
       { keep, Scoped };
     _ ->
       { 0, Exprs}
   end,
 
-  Line = case orddict:find(line, T) of
-    { ok, keep }  -> keep;
-    { ok, Value } -> Value;
+  Line = case lists:keyfind(line, 1, T) of
+    { line, Value } -> Value;
     _ -> DefaultLine
   end,
 
@@ -269,16 +275,16 @@ translate_each({ quote, GivenLine, [[{do,Exprs}|T]] }, S) ->
     _    -> translate_each(Line, S)
   end,
 
-  Unquote = case orddict:find(unquote, T) of
-    { ok, false } -> false;
+  Unquote = case lists:keyfind(unquote, 1, T) of
+    { unquote, false } -> false;
     _ -> true
   end,
 
   elixir_quote:quote(WrappedExprs, #elixir_quote{marker=Marker, line=TLine, unquote=Unquote}, SL);
 
-translate_each({ quote, Line, [_] }, S) ->
-  syntax_error(Line, S#elixir_scope.file, "invalid args for quote");
-
+translate_each({ quote, GivenLine, [_] }, S) ->
+  syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote");
+  
 %% Functions
 
 translate_each({ fn, Line, [[{do, { '->', _, Pairs }}]] }, S) ->
