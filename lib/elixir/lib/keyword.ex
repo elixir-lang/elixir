@@ -178,6 +178,20 @@ defmodule Keyword do
   end
 
   @doc """
+  Checks if two keywords are equal. I.e. they contain
+  the same keys and those keys contain the same values.
+
+  ## Examples
+
+      Keyword.equal? [a: 1, b: 2], [b: 2, a: 1]
+      #=> true
+
+  """
+  def equal?(left, right) do
+    :lists.sort(left) == :lists.sort(right)
+  end
+
+  @doc """
   Merges two keyword lists into one. If they have duplicated
   entries, the one given as second argument wins.
 

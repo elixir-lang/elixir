@@ -16,11 +16,11 @@ defmodule OptionParserTest do
   end
 
   test "parses more than one boolean option" do
-    assert OptionParser.parse(["--docs", "--compile"]) == { [docs: true, compile: true], [] }
+    assert OptionParser.parse(["--docs", "--compile"]) == { [compile: true, docs: true], [] }
   end
 
   test "parses more than one boolean options as the alias" do
-    assert OptionParser.parse(["--d", "--compile"], aliases: [d: :docs]) == { [docs: true, compile: true], [] }
+    assert OptionParser.parse(["--d", "--compile"], aliases: [d: :docs]) == { [compile: true, docs: true], [] }
   end
 
   test "parses key/value option" do

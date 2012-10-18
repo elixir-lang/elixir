@@ -138,6 +138,11 @@ defmodule Keyword.DuplicatedTest do
     assert Keyword.keys(create_empty_keywords) == []
   end
 
+  test :equal? do
+    assert Keyword.equal? [a: 1, b: 2], [b: 2, a: 1]
+    refute Keyword.equal? [a: 1, b: 2], [b: 2, c: 3]
+  end
+
   test :values do
     assert Keyword.values(create_keywords) == [1, 2, 2]
     assert Keyword.values(create_empty_keywords) == []
@@ -167,7 +172,7 @@ defmodule Keyword.DuplicatedTest do
     result = Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
       v1 + v2
     end
-    assert :orddict.from_list(result) == :orddict.from_list([a: 4, b: 2, d: 4])
+    assert Keyword.equal?(result, [a: 4, b: 2, d: 4])
   end
 
   test :key do

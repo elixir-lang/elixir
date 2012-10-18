@@ -149,7 +149,7 @@ defmodule Record do
   # inside a match.
   @doc false
   def access(caller, atom, fields, keyword) do
-    unless is_orddict(keyword) do
+    unless is_keyword(keyword) do
       raise "expected contents inside brackets to be a Keyword"
     end
 
@@ -186,7 +186,7 @@ defmodule Record do
   # Dispatch the call to either update or to_list depending on the args given.
   @doc false
   def dispatch(caller, atom, fields, record, args) do
-    if is_orddict(args) do
+    if is_keyword(args) do
       update(caller, atom, fields, record, args)
     else
       to_list(caller, atom, fields, record, args)
@@ -198,7 +198,7 @@ defmodule Record do
   # the access given by the keywords.
   @doc false
   defp update(caller, atom, fields, var, keyword) do
-    unless is_orddict(keyword) do
+    unless is_keyword(keyword) do
       raise "expected contents inside brackets to be a Keyword"
     end
 
@@ -263,11 +263,11 @@ defmodule Record do
       end
   end
 
-  defp is_orddict(list) when is_list(list), do: :lists.all(is_orddict_tuple(&1), list)
-  defp is_orddict(_), do: false
+  defp is_keyword(list) when is_list(list), do: :lists.all(is_keyword_tuple(&1), list)
+  defp is_keyword(_), do: false
 
-  defp is_orddict_tuple({ x, _ }) when is_atom(x), do: true
-  defp is_orddict_tuple(_), do: false
+  defp is_keyword_tuple({ x, _ }) when is_atom(x), do: true
+  defp is_keyword_tuple(_), do: false
 
   # Define __record__/1 and __record__/2 as reflection functions
   # that returns the record names and fields.
