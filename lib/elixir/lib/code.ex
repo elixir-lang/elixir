@@ -129,7 +129,8 @@ defmodule Code do
 
   * `:line` - The line reported in the __ENV__ variable.
 
-  * `
+  * `:existing_atoms_only` - When true, raises an error
+    when non-existing atoms are found by the tokenizer
 
   """
   def string_to_ast(string, opts // []) do
@@ -149,13 +150,7 @@ defmodule Code do
   in case a token is missing (usually because the expression is incomplete),
   SyntaxError otherwise.
 
-  ## Options
-
-  * `:file` - The filename to be used in stacktraces
-    and the file reported in the __ENV__ variable.
-
-  * `:line` - The line reported in the __ENV__ variable.
-
+  Check `Code.string_to_ast/2` for options information.
   """
   def string_to_ast!(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
