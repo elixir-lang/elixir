@@ -751,8 +751,8 @@ defmodule File do
         if callback.(src, dest) do
           rm(dest)
           case copy(src, dest) do
-            { :ok, _ } -> 
-              copy_file_mode!(src, dest)            
+            { :ok, _ } ->
+              copy_file_mode!(src, dest)
               [dest|acc]
             reason -> reason
           end
@@ -1023,9 +1023,9 @@ defmodule File do
 
   ## Examples
 
-    File.open!("foo.txt", [:read, :write], fn(file) ->
-      IO.readline(file)
-    end)
+      File.open!("foo.txt", [:read, :write], fn(file) ->
+        IO.readline(file)
+      end)
 
   """
   def open(path, modes, function) do
