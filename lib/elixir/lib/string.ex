@@ -105,15 +105,15 @@ defmodule String do
 
   ## Examples
 
-    String.split("a,b,c", ",")  #=> ["a", "b", "c"]
-    String.split("a,b,c", ",", global: false)  #=> ["a", "b,c"]
+      String.split("a,b,c", ",")  #=> ["a", "b", "c"]
+      String.split("a,b,c", ",", global: false)  #=> ["a", "b,c"]
 
-    String.split("foo bar")     #=> ["foo", "bar"]
-    String.split("1,2 3,4", [" ", ","]) #=> ["1", "2", "3", "4"]
+      String.split("foo bar")     #=> ["foo", "bar"]
+      String.split("1,2 3,4", [" ", ","]) #=> ["1", "2", "3", "4"]
 
-    String.split("a,b,c", %r{,}) #=> ["a", "b", "c"]
-    String.split("a,b,c", %r{,}, global: false)  #=> ["a", "b,c"]
-    String.split("a,b", %r{\.})   #=> ["a,b"]
+      String.split("a,b,c", %r{,}) #=> ["a", "b", "c"]
+      String.split("a,b,c", %r{,}, global: false)  #=> ["a", "b,c"]
+      String.split("a,b", %r{\.})   #=> ["a,b"]
 
   """
   def split(binary, pattern // " ", options // [])

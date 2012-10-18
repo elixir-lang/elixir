@@ -353,13 +353,13 @@ defmodule Enum do
   Similar to find, but returns the value of the function
   invocation instead of the element itself.
 
-    ## Examples
+  ## Examples
 
-        Enum.find_value [2,4,6], fn(x) -> rem(x, 2) == 1 end
-        #=> nil
+      Enum.find_value [2,4,6], fn(x) -> rem(x, 2) == 1 end
+      #=> nil
 
-        Enum.find_value [2,3,4], fn(x) -> rem(x, 2) == 1 end
-        #=> true
+      Enum.find_value [2,3,4], fn(x) -> rem(x, 2) == 1 end
+      #=> true
 
   """
   def find_value(collection, ifnone // nil, fun)
@@ -383,13 +383,13 @@ defmodule Enum do
 
   Expects an ordered collection.
 
-    ## Examples
+  ## Examples
 
-        Enum.find_index [2,4,6], fn(x) -> rem(x, 2) == 1 end
-        #=> nil
+      Enum.find_index [2,4,6], fn(x) -> rem(x, 2) == 1 end
+      #=> nil
 
-        Enum.find_index [2,3,4], fn(x) -> rem(x, 2) == 1 end
-        #=> 2
+      Enum.find_index [2,3,4], fn(x) -> rem(x, 2) == 1 end
+      #=> 2
 
   """
   def find_index(collection, fun) when is_list(collection) do
