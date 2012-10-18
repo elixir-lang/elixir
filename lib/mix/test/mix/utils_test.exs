@@ -37,7 +37,7 @@ defmodule Mix.UtilsTest do
      :orddict.from_list([
           foo: "bye",
           bar: [1,2,3,4],
-          baz: [yet: "another", some: "option"],
+          baz: [some: "option", yet: "another"],
           bat: "man"
       ])
   end

@@ -21,6 +21,7 @@ defmodule Keyword do
   def from_enum(enum) when is_list(enum) do
     enum
   end
+
   def from_enum(enum) do
     Enum.map(enum, fn(x) -> x end)
   end
@@ -43,7 +44,7 @@ defmodule Keyword do
 
   """
   def new(pairs) do
-    Enum.reduce pairs, [], fn {k, v}, keywords ->
+    Enum.reduce pairs, [], fn { k, v }, keywords ->
       put(keywords, k, v)
     end
   end
@@ -84,7 +85,7 @@ defmodule Keyword do
   """
   def get(keywords, key, default // nil) do
     case :lists.keyfind(key, 1, keywords) do
-      {^key, value} -> value
+      { ^key, value } -> value
       false -> default
     end
   end
@@ -101,7 +102,7 @@ defmodule Keyword do
   """
   def get!(keywords, key) do
     case :lists.keyfind(key, 1, keywords) do
-      {^key, value} -> value
+      { ^key, value } -> value
       false -> raise(Keyword.KeyError, key: key)
     end
   end  
@@ -115,11 +116,9 @@ defmodule Keyword do
       #=> [1,2]
 
   """
-  def get_values([{key, value}], key), do: [value]
-  def get_values([{_, _}], _), do: []
-  def get_values([{key, value}|tail], key), do: [value|get_values(tail, key)]
-  def get_values([{_, _}|tail], key), do: get_values(tail, key)
-  def get_values([], _),                    do: []
+  def get_values(keywords, key) do
+    lc { k, v } inlist keywords, key == k, do: v
+  end
 
   @doc """
   Returns all keys from the keyword list. Duplicated
@@ -159,7 +158,7 @@ defmodule Keyword do
 
   """
   def delete(keywords, key) do
-    :lists.filter(fn({k, _}) -> k != key end, keywords)
+    lc { k, _ } = tuple inlist keywords, key != k, do: tuple
   end
 
   @doc """
@@ -174,14 +173,8 @@ defmodule Keyword do
       #=> [a: 3, b: 2]
 
   """
-  def put([], key, value) do
-    [{key, value}]
-  end
-  def put([{key, _}|rest], key, value) do
-    [{key, value}|delete(rest, key)]
-  end
-  def put([{_, _}=kw|rest], key, value) do
-    [kw|put(rest, key, value)]
+  def put(list, key, value) do
+    [{key, value}|delete(list, key)]
   end
 
   @doc """
@@ -195,7 +188,7 @@ defmodule Keyword do
 
   """
   def merge(d1, d2) do
-    merge(d1, d2, fn _k, _v1, v2 -> v2 end)
+    d2 ++ lc({ k, _ } = tuple inlist d1, not has_key?(d2, k), do: tuple)
   end
 
   @doc """
@@ -210,19 +203,17 @@ defmodule Keyword do
       #=> [a:4, b:2, d: 4]
 
   """
-
-  def merge([{k1, v1}|d1], [{k1, v2}|d2], fun) do
-    [{k1, fun.(k1, v1, v2)}|merge(d1, d2, fun)]
+  def merge(d1, d2, fun) do
+    do_merge(d2, d1, fun)
   end
 
-  def merge([{_k1, _} = e1|d1], [{_k2, _} = e2|d2], fun) do
-    [e2|merge([e1|d1], d2, fun)]
+  defp do_merge([{ k, v2 }|t], acc, fun) do
+    do_merge t, update(acc, k, v2, fn(v1) -> fun.(k, v1, v2) end), fun
   end
 
-  def merge([], d2, _fun), do: d2
-  def merge(d1, [], _fun), do: d1
-
-
+  defp do_merge([], acc, _fun) do
+    acc
+  end
 
   @doc false
   def key?(list, key) do
@@ -242,7 +233,7 @@ defmodule Keyword do
 
   """
   def has_key?(keywords, key) do
-    :lists.keyfind(key, 1, keywords) != false
+    :lists.keymember(key, 1, keywords)
   end
 
   @doc """
@@ -281,11 +272,11 @@ defmodule Keyword do
       #=> [a: 1, b: 11]
 
   """
-  def update([{key, value}|keywords], key, _initial, fun) when is_atom(key) do
+  def update([{key, value}|keywords], key, _initial, fun) do
     [{key, fun.(value)}|delete(keywords, key)]
   end
 
-  def update([{k, _} = e|keywords], key, initial, fun) when key > k do
+  def update([{_, _} = e|keywords], key, initial, fun) do
     [e|update(keywords, key, initial, fun)]
   end
 
