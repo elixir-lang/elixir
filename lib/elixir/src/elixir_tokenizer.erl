@@ -1,7 +1,14 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
--export([tokenize/1]).
+-export([tokenize/3]).
 -import(elixir_interpolation, [unescape_chars/1, unescape_tokens/1]).
+
+-record(scope, {
+  file,
+  terminators=[],
+  check_terminators=true,
+  existing_atoms_only=false
+}).
 
 -define(is_digit(S), S >= $0 andalso S =< $9).
 -define(is_hex(S), ?is_digit(S) orelse (S >= $A andalso S =< $F) orelse (S >= $a andalso S =< $f)).
@@ -80,64 +87,74 @@
   T == '^'
 ).
 
--define(LIST_TO_ATOM(I), case ExistingAtomsOnly of 
-                true -> list_to_existing_atom(I);
-                false -> list_to_atom(I)
-              end).
+tokenize(String, Line, Opts) ->
+  File = case lists:keyfind(file, 1, Opts) of
+    { file, V1 } -> V1;
+    false -> <<"nofile">>
+  end,
 
--define(BINARY_TO_ATOM(I,E), case ExistingAtomsOnly of 
-                true -> binary_to_existing_atom(I,E);
-                false -> binary_to_atom(I,E)
-              end).
+  Existing = case lists:keyfind(existing_atoms_only, 1, Opts) of
+    { existing_atoms_only, true } -> true;
+    false -> false
+  end,
 
+  Check = case lists:keyfind(check_terminators, 1, Opts) of
+    { check_terminators, false } -> false;
+    false -> true
+  end,
 
-tokenize(#elixir_tokenizer_context{} = Ctx) ->
-  tokenize(Ctx, [], []).
+  Scope = #scope{
+    file=File,
+    existing_atoms_only=Existing,
+    check_terminators=Check
+  },
 
-tokenize(#elixir_tokenizer_context{ string = [] }, [], Tokens) ->
+  tokenize(String, Line, Scope, []).
+
+tokenize([], _Line, #scope{terminators=[]}, Tokens) ->
   { ok, lists:reverse(Tokens) };
 
-tokenize(#elixir_tokenizer_context{ string = [] , line = EndLine}, [{ Start, StartLine }|_], _Tokens) ->
+tokenize([], EndLine, #scope{terminators=[{ Start, StartLine }|_]}, _Tokens) ->
   End     = terminator(Start),
   Message = io_lib:format("missing terminator: ~s (for \"~s\" starting at line ~B)", [End, Start, StartLine]),
   { error, { EndLine, Message, [] } };
 
 % Base integers
 
-tokenize(#elixir_tokenizer_context{ string = [$0,X,H|T], line = Line } = Ctx, Terminators, Tokens) when (X == $x orelse X == $X), ?is_hex(H) ->
+tokenize([$0,X,H|T], Line, Scope, Tokens) when (X == $x orelse X == $X), ?is_hex(H) ->
   { Rest, Number } = tokenize_hex([H|T], []),
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{number,Line,Number}|Tokens]);
+  tokenize(Rest, Line, Scope, [{ number, Line, Number }|Tokens]);
 
-tokenize(#elixir_tokenizer_context{ string = [$0,O,H|T], line = Line } = Ctx, Terminators, Tokens) when (O == $o orelse O == $O), ?is_octal(H) ->
+tokenize([$0,O,H|T], Line, Scope, Tokens) when (O == $o orelse O == $O), ?is_octal(H) ->
   { Rest, Number } = tokenize_octal([H|T], []),
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{number,Line,Number}|Tokens]);
+  tokenize(Rest, Line, Scope, [{ number, Line, Number }|Tokens]);
 
-tokenize(#elixir_tokenizer_context{ string = [$0,B,H|T], line = Line } = Ctx, Terminators, Tokens) when (B == $b orelse B == $B), ?is_bin(H) ->
+tokenize([$0,B,H|T], Line, Scope, Tokens) when (B == $b orelse B == $B), ?is_bin(H) ->
   { Rest, Number } = tokenize_bin([H|T], []),
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{number,Line,Number}|Tokens]);
+  tokenize(Rest, Line, Scope, [{ number, Line, Number }|Tokens]);
 
 % Comments
 
-tokenize(#elixir_tokenizer_context{ string = [$#|String] } = Ctx, Terminators, Tokens) ->
+tokenize([$#|String], Line, Scope, Tokens) ->
   Rest = tokenize_comment(String),
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, Tokens);
+  tokenize(Rest, Line, Scope, Tokens);
 
 % Sigils
 
-tokenize(#elixir_tokenizer_context{ string = [$%,S,H,H,H|T], line = Line, file = File } = Ctx, Terminators, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
+tokenize([$%,S,H,H,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
   case extract_heredoc_with_interpolation(Line, File, ?is_downcase(S), T, H) of
     { error, _ } = Error ->
       Error;
     { Parts, Rest } ->
       { Final, Modifiers } = collect_modifiers(Rest, []),
-      tokenize(Ctx#elixir_tokenizer_context{ string = Final }, Terminators, [{sigil,Line,S,Parts,Modifiers}|Tokens])
+      tokenize(Final, Line, Scope, [{ sigil, Line, S, Parts, Modifiers }|Tokens])
   end;
 
-tokenize(#elixir_tokenizer_context{ string = [$%,S,H|T], line = Line, file = File } = Ctx, Terminators, Tokens) when not(?is_word(H)), ?is_upcase(S) orelse ?is_downcase(S) ->
+tokenize([$%,S,H|T], Line, #scope{file=File} = Scope, Tokens) when not(?is_word(H)), ?is_upcase(S) orelse ?is_downcase(S) ->
   case elixir_interpolation:extract(Line, File, ?is_downcase(S), T, sigil_terminator(H)) of
     { NewLine, Parts, Rest } ->
       { Final, Modifiers } = collect_modifiers(Rest, []),
-      tokenize(Ctx#elixir_tokenizer_context{ string = Final, line = NewLine }, Terminators, [{sigil,Line,S,Parts,Modifiers}|Tokens]);
+      tokenize(Final, NewLine, Scope, [{ sigil, Line, S, Parts, Modifiers }|Tokens]);
     Error ->
       Sigil = [$%,S,H],
       interpolation_error(Error, " (for sigil ~s starting at line ~B)", [Sigil, Line])
@@ -145,79 +162,81 @@ tokenize(#elixir_tokenizer_context{ string = [$%,S,H|T], line = Line, file = Fil
 
 % Char tokens
 
-tokenize(#elixir_tokenizer_context{ string = [$?,$\\,H|T], line = Line } = Ctx, Terminators, Tokens) ->
+tokenize([$?,$\\,H|T], Line, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
-  tokenize(Ctx#elixir_tokenizer_context{ string = T }, Terminators, [{number,Line,Char}|Tokens]);
+  tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
-tokenize(#elixir_tokenizer_context{ string = [$?,Char|T], line = Line } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = T }, Terminators, [{number,Line,Char}|Tokens]);
+tokenize([$?,Char|T], Line, Scope, Tokens) ->
+  tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 % Dot identifier
 
-tokenize(#elixir_tokenizer_context{ string = "..." ++ Rest, line = Line } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [tokenize_call_identifier(identifier, Line, '...', Rest)|Tokens]);
+tokenize("..." ++ Rest, Line, Scope, Tokens) ->
+  Token = tokenize_call_identifier(identifier, Line, '...', Rest),
+  tokenize(Rest, Line, Scope, [Token|Tokens]);
 
 % Dot operators
 
 % ## Containers
-tokenize(#elixir_tokenizer_context{ string = ".<<>>" ++ Rest } = Ctx, Terminators, Tokens) ->
-  handle_call_identifier(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, '<<>>', Tokens);
+tokenize(".<<>>" ++ Rest, Line, Scope, Tokens) ->
+  handle_call_identifier(Rest, Line, '<<>>', Scope, Tokens);
 
-tokenize(#elixir_tokenizer_context{ string = [$.,T1,T2|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?container2(T1, T2) ->
-  handle_call_identifier(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T1, T2]), Tokens);
+tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when ?container2(T1, T2) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Three Token Operators
-tokenize(#elixir_tokenizer_context{ string = [$.,T1,T2,T3|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3) ->
-  handle_call_identifier(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T1, T2, T3]), Tokens);
+tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Two Token Operators
-tokenize(#elixir_tokenizer_context{ string = [$.,T1,T2|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
-  handle_call_identifier(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T1, T2]),Tokens);
+tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
-tokenize(#elixir_tokenizer_context{ string = [$.,T|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?comp1(T); ?op1(T); T == $& ->
-  handle_call_identifier(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T]), Tokens);
+tokenize([$.,T|Rest], Line, Scope, Tokens) when ?comp1(T); ?op1(T); T == $& ->
+  handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % Dot call
 
 % ## Exception for .( as it needs to be treated specially in the parser
-tokenize(#elixir_tokenizer_context{ string = [$.,$(|Rest], line = Line } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = [$(|Rest] }, Terminators, add_token_with_nl({dot_call_op,Line,'.'}, Tokens));
+tokenize([$.,$(|Rest], Line, Scope, Tokens) ->
+  tokenize([$(|Rest], Line, Scope, add_token_with_nl({ dot_call_op, Line, '.' }, Tokens));
 
-tokenize(#elixir_tokenizer_context{ string = [$.,H|T], line = Line, file = File, 
-                                    existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?is_quote(H) ->
+tokenize([$.,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, [Part], Rest } when is_binary(Part) ->
-      Atom = ?BINARY_TO_ATOM(Part, utf8),
-      tokenize(Ctx#elixir_tokenizer_context{ string =  Rest, line = NewLine }, Terminators,
-        [tokenize_call_identifier(identifier, Line, Atom, Rest)|add_token_with_nl({'.',Line}, Tokens)]);
+      Atom  = unsafe_to_atom(Part, Scope),
+      Token = tokenize_call_identifier(identifier, Line, Atom, Rest),
+      tokenize(Rest, NewLine, Scope, [Token|add_token_with_nl({ '.', Line }, Tokens)]);
     Error ->
       interpolation_error(Error, " (for function name starting at line ~B)", [Line])
   end;
 
 % Heredocs
 
-tokenize(#elixir_tokenizer_context{ string = "\"\"\"" ++ T } = Ctx, Terminators, Tokens) -> 
-  handle_heredocs(Ctx#elixir_tokenizer_context{ string = T }, Terminators, $", Tokens);
-tokenize(#elixir_tokenizer_context{ string = "'''" ++ T } = Ctx, Terminators, Tokens)    -> 
-  handle_heredocs(Ctx#elixir_tokenizer_context{ string = T }, Terminators, $', Tokens);
+tokenize("\"\"\"" ++ T, Line, Scope, Tokens) ->
+  handle_heredocs(T, Line, $", Scope, Tokens);
+
+tokenize("'''" ++ T, Line, Scope, Tokens) ->
+  handle_heredocs(T, Line, $', Scope, Tokens);
 
 % Strings
 
-tokenize(#elixir_tokenizer_context{ string = [$"|T] } = Ctx, Terminators, Tokens) -> 
-  handle_strings(Ctx#elixir_tokenizer_context{ string = T }, Terminators, $", Tokens);
-tokenize(#elixir_tokenizer_context{ string = [$'|T] } = Ctx, Terminators, Tokens) -> 
-  handle_strings(Ctx#elixir_tokenizer_context{ string = T }, Terminators, $', Tokens);
+tokenize([$"|T], Line, Scope, Tokens) ->
+  handle_strings(T, Line, $", Scope, Tokens);
+tokenize([$'|T], Line, Scope, Tokens) ->
+  handle_strings(T, Line, $', Scope, Tokens);
 
 % Atoms
 
-tokenize(#elixir_tokenizer_context{ string = [$:,T|String], line = Line, existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?is_upcase(T); ?is_downcase(T); T == $_ ->
-  { Rest, Atom } = tokenize_atom([T|String], [], ExistingAtomsOnly),
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{atom,Line,[Atom]}|Tokens]);
+tokenize([$:,T|String], Line, Scope, Tokens) when ?is_upcase(T); ?is_downcase(T); T == $_ ->
+  { Rest, Atom } = tokenize_atom([T|String], [], Scope),
+  tokenize(Rest, Line, Scope, [{ atom, Line, [Atom] }|Tokens]);
 
-tokenize(#elixir_tokenizer_context{ string = [$:,H|T], line = Line, file = File } = Ctx, Terminators, Tokens) when ?is_quote(H) ->
+tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
-    { NewLine, Parts, Rest } -> tokenize(Ctx#elixir_tokenizer_context{ string = Rest, line = NewLine }, Terminators, [{atom,Line,unescape_tokens(Parts)}|Tokens]);
+    { NewLine, Parts, Rest } ->
+      tokenize(Rest, NewLine, Scope, [{ atom, Line, unescape_tokens(Parts) }|Tokens]);
     Error ->
       interpolation_error(Error, " (for atom starting at line ~B)", [Line])
   end;
@@ -225,149 +244,146 @@ tokenize(#elixir_tokenizer_context{ string = [$:,H|T], line = Line, file = File 
 % Atom operators
 
 % ## Containers
-tokenize(#elixir_tokenizer_context{ string = ":<<>>" ++ Rest, line = Line } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{atom,Line,['<<>>']}|Tokens]);
+tokenize(":<<>>" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, ['<<>>'] }|Tokens]);
 
-tokenize(#elixir_tokenizer_context{ string = [$:,T1,T2|Rest], line = Line, existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?container2(T1, T2) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest}, Terminators, [{atom,Line,[?LIST_TO_ATOM([T1,T2])]}|Tokens]);
+tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?container2(T1, T2) ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, [list_to_atom([T1,T2])] }|Tokens]);
 
 % ## Three Token Operators
-tokenize(#elixir_tokenizer_context{ string = [$:,T1,T2,T3|Rest], line = Line, existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3)  ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{atom,Line,[?LIST_TO_ATOM([T1,T2,T3])]}|Tokens]);
+tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3)  ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, [list_to_atom([T1,T2,T3])] }|Tokens]);
 
 % ## Two Token Operators
-tokenize(#elixir_tokenizer_context{ string = [$:,T1,T2|Rest], line = Line, existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{atom,Line,[?LIST_TO_ATOM([T1,T2])]}|Tokens]);
+tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?comp2(T1, T2); ?op2(T1, T2) ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, [list_to_atom([T1,T2])] }|Tokens]);
 
 % ## Single Token Operators
-tokenize(#elixir_tokenizer_context{ string = [$:,T|Rest], line = Line, existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?comp1(T); ?op1(T); T == $&; T == $. ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{atom,Line,[?LIST_TO_ATOM([T])]}|Tokens]);
-
+tokenize([$:,T|Rest], Line, Scope, Tokens) when ?comp1(T); ?op1(T); T == $&; T == $. ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, [list_to_atom([T])] }|Tokens]);
 
 % End of line
 
-tokenize(#elixir_tokenizer_context{ string = ";" ++ Rest, line = Line } = Ctx, Terminators, []) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, eol(Line, $;, []));
+tokenize(";" ++ Rest, Line, Scope, []) ->
+  tokenize(Rest, Line, Scope, eol(Line, $;, []));
 
-tokenize(#elixir_tokenizer_context{ string = ";" ++ Rest, line = Line } = Ctx, Terminators, [Top|Tokens]) when element(1, Top) /= eol ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, eol(Line, $;, [Top|Tokens]));
+tokenize(";" ++ Rest, Line, Scope, [Top|Tokens]) when element(1, Top) /= eol ->
+  tokenize(Rest, Line, Scope, eol(Line, $;, [Top|Tokens]));
 
-tokenize(#elixir_tokenizer_context{ string = "\\\n" ++ Rest, line = Line } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest, line = Line + 1 }, Terminators, Tokens);
+tokenize("\\\n" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line + 1, Scope, Tokens);
 
-tokenize(#elixir_tokenizer_context{ string = "\\\r\n" ++ Rest, line = Line } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest, line = Line + 1 }, Terminators, Tokens);
+tokenize("\\\r\n" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line + 1, Scope, Tokens);
 
-tokenize(#elixir_tokenizer_context{ string = "\n" ++ Rest, line = Line } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest, line = Line + 1 }, Terminators, eol(Line, $\n, Tokens));
+tokenize("\n" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line + 1, Scope, eol(Line, $\n, Tokens));
 
-tokenize(#elixir_tokenizer_context{ string = "\r\n" ++ Rest, line = Line } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest, line = Line + 1 }, Terminators, eol(Line, $\n, Tokens));
+tokenize("\r\n" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line + 1, Scope, eol(Line, $\n, Tokens));
 
 % Stand-alone tokens
 
 % ## &
-tokenize(#elixir_tokenizer_context{ string = [$&,H|Rest], line = Line } = Ctx, Terminators, Tokens) when ?is_digit(H) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{'&', Line, [list_to_integer([H])]}|Tokens]);
+tokenize([$&,H|Rest], Line, Scope, Tokens) when ?is_digit(H) ->
+  tokenize(Rest, Line, Scope, [{ '&', Line, [list_to_integer([H])] }|Tokens]);
 
 % ## Comparison three token operators
-tokenize(#elixir_tokenizer_context{ string = [T1,T2,T3|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?comp3(T1, T2, T3) ->
-  handle_comp_op(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T1,T2,T3]), Tokens);
+tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp3(T1, T2, T3) ->
+  handle_comp_op(Rest, Line, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
 % ## Three token operators
-tokenize(#elixir_tokenizer_context{ string = [T1,T2,T3|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?op3(T1, T2, T3) ->
-  handle_op(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T1,T2,T3]), Tokens);
+tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?op3(T1, T2, T3) ->
+  handle_op(Rest, Line, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
 % ## Containers + punctuation tokens
-
-tokenize(#elixir_tokenizer_context{ string = [T,T|Rest], line = Line, file = File, existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when T == $<; T == $> ->
-  Token = { ?LIST_TO_ATOM([T,T]), Line },
-  case handle_terminator(File, Token, Terminators) of
+tokenize([T,T|Rest], Line, Scope, Tokens) when T == $<; T == $> ->
+  Token = { list_to_atom([T,T]), Line },
+  case handle_terminator(Token, Scope) of
     { error, _ } = Error -> Error;
-    New -> tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, New, [Token|Tokens])
+    New -> tokenize(Rest, Line, New, [Token|Tokens])
   end;
 
-tokenize(#elixir_tokenizer_context{ string = [T|Rest], line = Line, file = File, existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when T == $(;
+tokenize([T|Rest], Line, Scope, Tokens) when T == $(;
     T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
-  Token = { ?LIST_TO_ATOM([T]), Line },
-  case handle_terminator(File, Token, Terminators) of
+  Token = { list_to_atom([T]), Line },
+  case handle_terminator(Token, Scope) of
     { error, _ } = Error -> Error;
-    New -> tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, New, [Token|Tokens])
+    New -> tokenize(Rest, Line, New, [Token|Tokens])
   end;
 
 % ## Comparison two token operators
-tokenize(#elixir_tokenizer_context{ string = [T1,T2|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?comp2(T1, T2) ->
-  handle_comp_op(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T1,T2]), Tokens);
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?comp2(T1, T2) ->
+  handle_comp_op(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Two Token Operators
-tokenize(#elixir_tokenizer_context{ string = [T1,T2|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?op2(T1, T2) ->
-  handle_op(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T1,T2]), Tokens);
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
+  handle_op(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Comparison single token operators
-tokenize(#elixir_tokenizer_context{ string = [T|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?comp1(T) ->
-  handle_comp_op(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T]), Tokens);
+tokenize([T|Rest], Line, Scope, Tokens) when ?comp1(T) ->
+  handle_comp_op(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % ## Single Token Operators
-tokenize(#elixir_tokenizer_context{ string = [T|Rest], existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?op1(T) ->
-  handle_op(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, ?LIST_TO_ATOM([T]), Tokens);
+tokenize([T|Rest], Line, Scope, Tokens) when ?op1(T) ->
+  handle_op(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
-tokenize(#elixir_tokenizer_context{ string = [$.|Rest], line = Line } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, add_token_with_nl({'.', Line}, Tokens));
+tokenize([$.|Rest], Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, add_token_with_nl({ '.', Line }, Tokens));
 
 % Integers and floats
 
-tokenize(#elixir_tokenizer_context{ string = [H|_] = String, line = Line } = Ctx, Terminators, Tokens) when ?is_digit(H) ->
+tokenize([H|_] = String, Line, Scope, Tokens) when ?is_digit(H) ->
   { Rest, Number } = tokenize_number(String, [], false),
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{number,Line,Number}|Tokens]);
+  tokenize(Rest, Line, Scope, [{ number, Line, Number }|Tokens]);
 
 % Aliases
 
-tokenize(#elixir_tokenizer_context{ string = [H|_] = String, line = Line, existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, Tokens) when ?is_upcase(H) ->
+tokenize([H|_] = String, Line, Scope, Tokens) when ?is_upcase(H) ->
   { Rest, Alias } = tokenize_identifier(String, [], false),
-  Atom = ?LIST_TO_ATOM(Alias),
-
-  { Final, Token } =
-    case Rest of
-      [$:|T] when hd(T) /= $: -> { T, { kw_identifier,Line,Atom } };
-      _ -> { Rest, { '__aliases__', Line, [Atom] } }
-    end,
-
-  tokenize(Ctx#elixir_tokenizer_context{ string = Final }, Terminators, [Token|Tokens]);
+  Atom = unsafe_to_atom(Alias, Scope),
+  case Rest of
+    [$:|T] when hd(T) /= $: ->
+      tokenize(T, Line, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
+    _ ->
+      tokenize(Rest, Line, Scope, [{ '__aliases__', Line, [Atom] }|Tokens])
+  end;
 
 % Identifier
 
-tokenize(#elixir_tokenizer_context{ string = [H|_] = String, file = File, line = Line} = Ctx, Terminators, Tokens) when ?is_downcase(H); H == $_ ->
-  { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(Ctx#elixir_tokenizer_context{ string = String }, []),
+tokenize([H|_] = String, Line, Scope, Tokens) when ?is_downcase(H); H == $_ ->
+  { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(String, Line, [], Scope),
   case handle_keyword(Line, Kind, Identifier, Tokens) of
     false ->
-      tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{Kind,Line,Identifier}|Tokens]);
+      tokenize(Rest, Line, Scope, [{ Kind, Line, Identifier }|Tokens]);
     [Check|T] ->
-      case handle_terminator(File, Check, Terminators) of
+      case handle_terminator(Check, Scope) of
         { error, _ } = Error -> Error;
-        New -> tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, New, [Check|T])
+        New -> tokenize(Rest, Line, New, [Check|T])
       end
   end;
 
 % Ambiguous unary/binary operators tokens
 
-tokenize(#elixir_tokenizer_context{ string = [Space,Sign,NotMarker|T], line = Line } = Ctx, Terminators, [{Identifier,_,_} = H|Tokens]) when Sign == $+ orelse Sign == $-,
+tokenize([Space, Sign, NotMarker|T], Line, Scope, [{ Identifier, _, _ } = H|Tokens]) when
+  Sign == $+ orelse Sign == $-,
   Space == $\s orelse Space == $\t,
   NotMarker /= $\s, NotMarker /= $\t, NotMarker /= $\r,
   NotMarker /= $\n, NotMarker /= $:, NotMarker /= $(,
   NotMarker /= $+, NotMarker /= $-, NotMarker /= $>,
   Identifier == identifier orelse Identifier == punctuated_identifier ->
   Rest = [NotMarker|T],
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{list_to_atom([Sign]),Line},setelement(1, H, op_identifier)|Tokens]);
+  tokenize(Rest, Line, Scope, [{ list_to_atom([Sign]), Line }, setelement(1, H, op_identifier)|Tokens]);
 
 % Spaces
 
-tokenize(#elixir_tokenizer_context{ string = [T|Rest] } = Ctx, Terminators, Tokens) when T == $\s; T == $\r; T == $\t ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, Tokens);
+tokenize([T|Rest], Line, Scope, Tokens) when T == $\s; T == $\r; T == $\t ->
+  tokenize(Rest, Line, Scope, Tokens);
 
-tokenize(#elixir_tokenizer_context{ string = [{line,Line}|Rest] } = Ctx, Terminators, Tokens) ->
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest, line = Line }, Terminators, Tokens);
+tokenize([{line,Line}|Rest], _Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, Tokens);
 
-tokenize(#elixir_tokenizer_context{ string = T, line = Line }, _Terminators, _Tokens) ->
+tokenize(T, Line, _Scope, _Tokens) ->
   { error, { Line, "invalid token: ", until_eol(T) } }.
 
 until_eol("\r\n" ++ _) -> [];
@@ -377,58 +393,67 @@ until_eol([H|T])       -> [H|until_eol(T)].
 
 %% Handlers
 
-handle_heredocs(#elixir_tokenizer_context{ string = T, line = Line, file = File } = Ctx, Terminators, H, Tokens) ->
+handle_heredocs(T, Line, H, #scope{file=File} = Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, File, true, T, H) of
     { error, _ } = Error ->
       Error;
     { Parts, Rest } ->
       Token = { string_type(H), Line, unescape_tokens(Parts) },
-      tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [Token|Tokens])
+      tokenize(Rest, Line, Scope, [Token|Tokens])
   end.
 
-handle_strings(#elixir_tokenizer_context{ string = T, line = Line, file = File, existing_atoms_only = ExistingAtomsOnly } = Ctx, Terminators, H, Tokens) ->
+handle_strings(T, Line, H, #scope{file=File} = Scope, Tokens) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, Parts, [$:|Rest] } when hd(Rest) /= $: ->
       case Parts of
         [Bin] when is_binary(Bin) ->
-          Atom = ?BINARY_TO_ATOM(unescape_chars(Bin), utf8),
-          tokenize(Ctx#elixir_tokenizer_context{ string = Rest, line = NewLine }, Terminators, [{kw_identifier,Line,Atom}|Tokens]);
+          Atom = unsafe_to_atom(unescape_chars(Bin), Scope),
+          tokenize(Rest, NewLine, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
         _ ->
           { error, { Line, "invalid interpolation in key", [$"|T] } }
       end;
     { NewLine, Parts, Rest } ->
       Token = { string_type(H),Line,unescape_tokens(Parts) },
-      tokenize(Ctx#elixir_tokenizer_context{ string = Rest, line = NewLine }, Terminators, [Token|Tokens]);
+      tokenize(Rest, NewLine, Scope, [Token|Tokens]);
     Error ->
       interpolation_error(Error, " (for string starting at line ~B)", [Line])
   end.
 
-handle_comp_op(#elixir_tokenizer_context{ string = [$:|Rest], line = Line, file = File } = Ctx, Terminators, Op, Tokens) when hd(Rest) /= $: ->
-  verify_kw_and_space(Line, File, Op, Rest),
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{kw_identifier, Line, Op}|Tokens]);
+handle_comp_op([$:|Rest], Line, Op, Scope, Tokens) when hd(Rest) /= $: ->
+  verify_kw_and_space(Line, Op, Rest, Scope),
+  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
-handle_comp_op(#elixir_tokenizer_context{ string = _Rest, line = Line } = Ctx, Terminators, Op, Tokens) ->
-  tokenize(Ctx, Terminators, add_token_with_nl({comp_op, Line, Op}, Tokens)).
+handle_comp_op(Rest, Line, Op, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, add_token_with_nl({ comp_op, Line, Op }, Tokens)).
 
-handle_op(#elixir_tokenizer_context{ string = [$:|Rest], line = Line, file = File } = Ctx, Terminators, Op, Tokens) when hd(Rest) /= $: ->
-  verify_kw_and_space(Line, File, Op, Rest),
-  tokenize(Ctx#elixir_tokenizer_context{ string = Rest }, Terminators, [{kw_identifier, Line, Op}|Tokens]);
+handle_op([$:|Rest], Line, Op, Scope, Tokens) when hd(Rest) /= $: ->
+  verify_kw_and_space(Line, Op, Rest, Scope),
+  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
-handle_op(#elixir_tokenizer_context{ string = _Rest, line = Line } = Ctx, Terminators, Op, Tokens) when ?unary_op(Op) ->
-  tokenize(Ctx, Terminators, [{Op, Line}|Tokens]);
+handle_op(Rest, Line, Op, Scope, Tokens) when ?unary_op(Op) ->
+  tokenize(Rest, Line, Scope, [{ Op, Line }|Tokens]);
 
-handle_op(#elixir_tokenizer_context{ string = _Rest, line = Line } = Ctx, Terminators, Op, Tokens) ->
-  tokenize(Ctx, Terminators, add_token_with_nl({Op, Line}, Tokens)).
+handle_op(Rest, Line, Op, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, add_token_with_nl({ Op, Line }, Tokens)).
 
-handle_call_identifier(#elixir_tokenizer_context{ string = Rest, line = Line } = Ctx, Terminators, Op, Tokens) ->
+handle_call_identifier(Rest, Line, Op, Scope, Tokens) ->
   Token = tokenize_call_identifier(identifier, Line, Op, Rest),
-  tokenize(Ctx, Terminators, [Token|add_token_with_nl({'.',Line}, Tokens)]).
+  tokenize(Rest, Line, Scope, [Token|add_token_with_nl({ '.', Line }, Tokens)]).
 
 %% Helpers
 
 eol(_Line, _Mod, [{',',_}|_] = Tokens)   -> Tokens;
 eol(_Line, _Mod, [{eol,_,_}|_] = Tokens) -> Tokens;
 eol(Line, Mod, Tokens) -> [{eol,Line,Mod}|Tokens].
+
+unsafe_to_atom(Binary, #scope{existing_atoms_only=true}) when is_binary(Binary) ->
+  binary_to_existing_atom(Binary, utf8);
+unsafe_to_atom(Binary, #scope{}) when is_binary(Binary) ->
+  binary_to_atom(Binary, utf8);
+unsafe_to_atom(List, #scope{existing_atoms_only=true}) when is_list(List) ->
+  list_to_existing_atom(List);
+unsafe_to_atom(List, #scope{}) when is_list(List) ->
+  list_to_atom(List).
 
 collect_modifiers([H|T], Buffer) when ?is_downcase(H) ->
   collect_modifiers(T, [H|Buffer]);
@@ -616,32 +641,33 @@ tokenize_identifier(Rest, Acc, _Marker) ->
   { Rest, lists:reverse(Acc) }.
 
 % Tokenize atom identifier, which also accepts punctuated identifiers
-tokenize_atom(String, Acc, ExistingAtomsOnly) ->
+tokenize_atom(String, Acc, Scope) ->
   { Rest, Identifier } = tokenize_identifier(String, Acc, atom),
   case Rest of
     [H|T] when H == $?; H == $! ->
-      { T, ?ELIXIR_ATOM_CONCAT([Identifier, [H]]) };
+      { T, unsafe_to_atom(Identifier ++ [H], Scope) };
     _ ->
-      { Rest, ?LIST_TO_ATOM(Identifier) }
+      { Rest, unsafe_to_atom(Identifier, Scope) }
   end.
 
 % Tokenize any identifier, handling kv, punctuated, paren, bracket and do identifiers.
-tokenize_any_identifier(#elixir_tokenizer_context{ string = String, file = File, line = Line, existing_atoms_only = ExistingAtomsOnly }, Acc) ->
+tokenize_any_identifier(String, Line, Acc, Scope) ->
   { Rest, Identifier } = tokenize_identifier(String, Acc, false),
+
   case Rest of
     [H,$:|T] when H == $? orelse H == $!, hd(T) /= $: ->
-      Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
-      verify_kw_and_space(Line, File, Atom, T),
+      Atom = unsafe_to_atom(Identifier ++ [H], Scope),
+      verify_kw_and_space(Line, Atom, T, Scope),
       { T, { kw_identifier, Line, Atom } };
     [H|T] when H == $?; H == $! ->
-      Atom = ?ELIXIR_ATOM_CONCAT([Identifier, [H]]),
+      Atom = unsafe_to_atom(Identifier ++ [H], Scope),
       { T, tokenize_call_identifier(punctuated_identifier, Line, Atom, T) };
     [$:|T] when hd(T) /= $: ->
-      Atom = ?LIST_TO_ATOM(Identifier),
-      verify_kw_and_space(Line, File, Atom, T),
+      Atom = unsafe_to_atom(Identifier, Scope),
+      verify_kw_and_space(Line, Atom, T, Scope),
       { T, { kw_identifier, Line, Atom } };
     _ ->
-      { Rest, tokenize_call_identifier(identifier, Line, ?LIST_TO_ATOM(Identifier), Rest) }
+      { Rest, tokenize_call_identifier(identifier, Line, unsafe_to_atom(Identifier, Scope), Rest) }
   end.
 
 tokenize_call_identifier(Kind, Line, Atom, Rest) ->
@@ -655,8 +681,8 @@ tokenize_call_identifier(Kind, Line, Atom, Rest) ->
       end
   end.
 
-verify_kw_and_space(_Line, _File, _Atom, [H|_]) when ?is_space(H) -> ok;
-verify_kw_and_space(Line, File, Atom, _) ->
+verify_kw_and_space(_Line, _Atom, [H|_], #scope{}) when ?is_space(H) -> ok;
+verify_kw_and_space(Line, Atom, _, #scope{file=File}) ->
   io:format("~ts:~w: keyword argument ~s: must be followed by space~n", [File, Line, Atom]).
 
 next_is_block([Space|Tokens]) when Space == $\t; Space == $\s ->
@@ -691,17 +717,18 @@ sigil_terminator(${) -> $};
 sigil_terminator($<) -> $>;
 sigil_terminator(O) -> O.
 
-%% In case File is "__internal__", we don't
-%% do any of the terminator checks
+handle_terminator(_, #scope{check_terminators=false} = Scope) ->
+  Scope;
+handle_terminator(Token, #scope{terminators=Terminators} = Scope) ->
+  case check_terminator(Token, Terminators) of
+    { error, _ } = Error -> Error;
+    New -> Scope#scope{terminators=New}
+  end.
 
-handle_terminator(<<"__internal__">>, _, []) -> [];
-handle_terminator(_File, Token, Terminator) ->
-  handle_terminator(Token, Terminator).
-
-handle_terminator({ S, Line }, Terminators) when S == 'fn'; S == 'fn_paren' ->
+check_terminator({ S, Line }, Terminators) when S == 'fn'; S == 'fn_paren' ->
   [{ fn, Line }|Terminators];
 
-handle_terminator({ S, _ } = New, Terminators) when
+check_terminator({ S, _ } = New, Terminators) when
     S == 'do';
     S == '(';
     S == '[';
@@ -709,7 +736,7 @@ handle_terminator({ S, _ } = New, Terminators) when
     S == '<<' ->
   [New|Terminators];
 
-handle_terminator({ E, _ }, [{ S, _ }|Terminators]) when
+check_terminator({ E, _ }, [{ S, _ }|Terminators]) when
     S == 'do', E == 'end';
     S == 'fn', E == 'end';
     S == '(',  E == ')';
@@ -718,17 +745,17 @@ handle_terminator({ E, _ }, [{ S, _ }|Terminators]) when
     S == '<<', E == '>>' ->
   Terminators;
 
-handle_terminator({ E, Line }, [{ Start, StartLine }|_]) when
+check_terminator({ E, Line }, [{ Start, StartLine }|_]) when
     E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
   End     = terminator(Start),
   Message = io_lib:format("missing terminator: ~s (for \"~s\" starting at line ~B)", [End, Start, StartLine]),
   { error, { Line, Message, [] } };
 
-handle_terminator({ E, Line }, []) when
+check_terminator({ E, Line }, []) when
     E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
   { error, { Line, "unexpected token: ", atom_to_list(E) } };
 
-handle_terminator(_, Terminators) ->
+check_terminator(_, Terminators) ->
   Terminators.
 
 terminator('fn') -> 'end';

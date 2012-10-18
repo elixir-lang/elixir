@@ -37,10 +37,3 @@
   marker=quoted,
   unquote=true
 }).
-
--record(elixir_tokenizer_context, {
-  string,
-  line,
-  file,
-  existing_atoms_only = false  
-}).

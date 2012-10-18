@@ -3,7 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 tokenize(String) ->
-  { ok, Result } = elixir_tokenizer:tokenize(#elixir_tokenizer_context{ string = String, line = 1, file = <<"nofile">> }),
+  { ok, Result } = elixir_tokenizer:tokenize(String, 1, []),
   Result.
 
 colon_colon_test() ->
