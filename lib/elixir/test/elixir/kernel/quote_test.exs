@@ -93,4 +93,9 @@ defmodule Kernel.QuoteTest do
     contents = [1, 2, 3]
     assert quote(do: unquote_splicing(contents)) == quote do: (1; 2; 3)
   end
+
+  test :splice_on_pipe do
+    contents = [1, 2, 3]
+    assert quote(do: [unquote_splicing(contents)|[1,2,3]]) == [1,2,3,1,2,3]
+  end
 end

@@ -85,6 +85,11 @@ splice([{ unquote_splicing, _, [Args] }|T], #elixir_quote{unquote=true} = Q, Buf
   { TArgs, TS } = elixir_translator:translate_each(Args, NewS),
   splice(T, Q, [], [TArgs|NewAcc], TS);
 
+splice([{ '|', Line, [{ unquote_splicing, _, [_] } = Left, Right] }], #elixir_quote{unquote=true} = Q, Buffer, Acc, S) ->
+  { TLeft, SL }  = splice([Left], Q, Buffer, Acc, S),
+  { TRight, SR } = do_quote(Right, Q, SL),
+  { { op, Line, '++', TLeft, TRight }, SR };
+
 splice([H|T], Q, Buffer, Acc, S) ->
   splice(T, Q, [H|Buffer], Acc, S);
 
