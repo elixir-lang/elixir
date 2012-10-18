@@ -3,21 +3,22 @@ defmodule IEx.Helpers do
   A bunch of helpers available in IEx.
 
   * `c/2` - compiles a file in the given path
-  * `h/0`,`h/1`, `h/2` - prints documentation
+  * `h/0`,`h/1`, `h/2` - prints help/documentation
   * `m/0` - prints loaded modules
   * `r/0` - recompiles and reloads the given module's source file
-  * `v/0` - prints history
+  * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
 
-  Documentation for functions in this module can be consulted
+  Help for functions in this module can be consulted
   directly from the command line, as an example, try:
 
-    h(:c, 2)
+      h(c/2)
 
-  You can also retrieve the documentation for any module or function. Try these:
+  You can also retrieve the documentation for any module
+  or function. Try these:
 
-    h(Enum)
-    h(Enum.reverse/1)
+      h(Enum)
+      h(Enum.reverse/1)
 
   """
 
