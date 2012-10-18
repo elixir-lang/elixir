@@ -341,7 +341,7 @@ defmodule Kernel do
 
   ## Examples
 
-      atom_to_binary(:elixir, utf8) #=> "elixir"
+      atom_to_binary(:elixir, :utf8) #=> "elixir"
 
   """
   @spec atom_to_binary(atom, :utf8 | :unicode | :latin1), do: binary
@@ -944,7 +944,7 @@ defmodule Kernel do
 
   ## Examples
 
-      list_to_tuple([share, [:elixir, 163]]). #=> {share, [:elixir, 163]}
+      list_to_tuple([:share, [:elixir, 163]]). #=> {:share, [:elixir, 163]}
   """
   @spec list_to_tuple(list), do: tuple
   def list_to_tuple(list) do
