@@ -2,22 +2,22 @@ defmodule IEx.Helpers do
   @moduledoc """
   A bunch of helpers available in IEx.
 
-  * `c` - compiles a file in the given path
-  * `d` - prints documentation
-  * `h` - prints history
-  * `m` - prints loaded modules
-  * `r` - recompiles and reloads the given module's source file
-  * `v` - retrieves nth value from console
+  * `c/2` - compiles a file in the given path
+  * `h/0`,`h/1`, `h/2` - prints documentation
+  * `m/0` - prints loaded modules
+  * `r/0` - recompiles and reloads the given module's source file
+  * `v/0` - prints history
+  * `v/1` - retrieves nth value from console
 
   Documentation for functions in this module can be consulted
   directly from the command line, as an example, try:
 
-    d(:c, 2)
+    h(:c, 2)
 
   You can also retrieve the documentation for any module or function. Try these:
 
-    d Enum
-    d Enum.reverse/1
+    h(Enum)
+    h(Enum.reverse/1)
 
   """
 
@@ -54,7 +54,7 @@ defmodule IEx.Helpers do
   @doc """
   Prints commands history and their result.
   """
-  def h do
+  def v do
     history = Enum.reverse(Process.get(:iex_history))
     Enum.each(history, print_history(&1))
   end
@@ -66,8 +66,8 @@ defmodule IEx.Helpers do
   @doc """
   Shows the documentation for IEx.Helpers.
   """
-  def d() do
-    d(IEx.Helpers, :all)
+  def h() do
+    h(IEx.Helpers, :all)
   end
 
   @doc """
@@ -76,31 +76,31 @@ defmodule IEx.Helpers do
 
   ## Examples
 
-      d(Enum)
+      h(Enum)
       #=> Prints documentation for Enum
 
   It also accepts functions in the format `fun/arity`
   and `module.fun/arity`, for example:
 
-      d receive/1
-      d Enum.all?/2
+      h receive/1
+      h Enum.all?/2
 
   """
-  defmacro d({ :/, _, [{ fun, _, nil }, arity] }) do
+  defmacro h({ :/, _, [{ fun, _, nil }, arity] }) do
     quote do
-      d(unquote(fun), unquote(arity))
+      h(unquote(fun), unquote(arity))
     end
   end
 
-  defmacro d({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
+  defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      d(unquote(mod), unquote(fun), unquote(arity))
+      h(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
-  defmacro d(other) do
+  defmacro h(other) do
     quote do
-      d(unquote(other), :all)
+      h(unquote(other), :all)
     end
   end
 
@@ -109,27 +109,27 @@ defmodule IEx.Helpers do
 
   The function may either be a function defined inside `IEx.Helpers`
   or in `Kernel`. To see functions from other module, use
-  `d/3` instead.
+  `h/3` instead.
 
   ## Examples
 
-      d(:d, 2)
+      h(:h, 2)
       #=> Prints documentation for this function
 
   """
-  def d(:d, 1) do
-    d(__MODULE__, :d, 1)
+  def h(:h, 1) do
+    h(__MODULE__, :h, 1)
   end
 
-  def d(function, arity) when is_atom(function) and is_integer(arity) do
+  def h(function, arity) when is_atom(function) and is_integer(arity) do
     if function_exported?(__MODULE__, function, arity) do
-      d(__MODULE__, function, arity)
+      h(__MODULE__, function, arity)
     else
-      d(Kernel, function, arity)
+      h(Kernel, function, arity)
     end
   end
 
-  def d(module, :all) when is_atom(module) do
+  def h(module, :all) when is_atom(module) do
     case Code.ensure_loaded(module) do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
@@ -149,7 +149,7 @@ defmodule IEx.Helpers do
   @doc """
   Shows the documentation for the `function/arity` in `module`.
   """
-  def d(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
+  def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
     if docs = module.__info__(:docs) do
       doc =
         if tuple = List.keyfind(docs, { function, arity }, 0) do

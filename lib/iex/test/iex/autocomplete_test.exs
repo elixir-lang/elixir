@@ -62,7 +62,7 @@ defmodule IEx.AutocompleteTest do
   test :elixir_root_completion do
     {:yes, '', list} = expand('')
     assert is_list(list)
-    assert 'd/1' in list
+    assert 'h/1' in list
     assert 'Elixir' in list
   end
 
