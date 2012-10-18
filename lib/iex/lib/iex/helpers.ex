@@ -12,7 +12,12 @@ defmodule IEx.Helpers do
   Documentation for functions in this module can be consulted
   directly from the command line, as an example, try:
 
-    d(:c, 1)
+    d(:c, 2)
+
+  You can also retrieve the documentation for any module or function. Try these:
+
+    d Enum
+    d Enum.reverse/1
 
   """
 

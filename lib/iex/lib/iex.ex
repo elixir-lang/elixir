@@ -171,7 +171,7 @@ defmodule IEx do
   ## Boot Helpers
 
   defp boot_config(opts) do
-    IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit"
+    IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (Type d ENTER for help)"
 
     scope  = :elixir.scope_for_eval(
       file: 'iex',
