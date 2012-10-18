@@ -1,15 +1,23 @@
 defmodule IO do
   @moduledoc """
-  Module responsible for doing IO. The function in this
-  module expects an iodata as argument encoded in UTF-8.
-  An iodata can be:
+  Module responsible for doing IO. Many functions in this
+  module expects an IO device and an io data encoded in UTF-8.
+
+  An IO device must be a pid is an atom representing a process.
+  For convenience, Elixir provides `:stdio` and `:stderr` as
+  shortcut to Erlang's `:standard_io` and `:standard_error`.
+
+  An io data can be:
 
   * A list of integers representing a string. Any unicode
     character must be represented with one entry in the list,
     this entry being an integer with the codepoint value;
+
   * A binary in which unicode characters are represented
     with many bytes (Elixir's default representation);
+
   * A list of binaries or a list of char lists (as described above);
+
   * If none of the above, `to_binary` is invoked in the
     given argument;
 
