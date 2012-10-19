@@ -51,12 +51,14 @@ defmodule Protocol do
   returns the protocol being implemented.
   """
   def defimpl(protocol, opts) do
-    defimpl_1(protocol, :lists.keysort(1, opts))
+    do_defimpl(protocol, :lists.keysort(1, opts))
   end
-  defp defimpl_1(protocol, [do: block, for: for]) when is_list(for) do
-    lc f inlist for, do: defimpl_1(protocol, [do: block, for: f])
+
+  defp do_defimpl(protocol, [do: block, for: for]) when is_list(for) do
+    lc f inlist for, do: do_defimpl(protocol, [do: block, for: f])
   end
-  defp defimpl_1(protocol, [do: block, for: for]) do
+
+  defp do_defimpl(protocol, [do: block, for: for]) do
     quote do
       protocol = unquote(protocol)
       for      = unquote(for)

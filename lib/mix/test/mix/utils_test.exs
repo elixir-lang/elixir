@@ -33,13 +33,12 @@ defmodule Mix.UtilsTest do
       baz: [yet: "another"]
     ]
 
-    assert :orddict.from_list(Mix.Utils.config_merge(old, new)) == 
-     :orddict.from_list([
-          foo: "bye",
-          bar: [1,2,3,4],
-          baz: [some: "option", yet: "another"],
-          bat: "man"
-      ])
+    assert Keyword.equal? Mix.Utils.config_merge(old, new), [
+      foo: "bye",
+      bar: [1,2,3,4],
+      baz: [some: "option", yet: "another"],
+      bat: "man"
+    ]
   end
 
   test :source do
