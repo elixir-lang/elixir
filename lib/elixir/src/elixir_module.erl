@@ -9,9 +9,9 @@ eval_quoted(Module, Quoted, RawBinding, Opts) ->
 
   elixir_def:reset_last(Module),
 
-  case orddict:find(line, Opts) of
-    { ok, Line } -> Line;
-    error -> Line = 1
+  case lists:keyfind(line, 1, Opts) of
+    { line, Line } -> Line;
+    false -> Line = 1
   end,
 
   { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope),

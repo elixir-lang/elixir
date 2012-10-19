@@ -145,7 +145,8 @@ assert_function_scope(_Line, _Kind, #elixir_scope{function=Function}) -> Functio
 
 raise(Line, File, Kind, Message) ->
   Stacktrace = erlang:get_stacktrace(),
-  erlang:raise(error, { Kind, '__exception__', Message, iolist_to_binary(File), Line }, Stacktrace).
+  Exception = Kind:new([{description, Message}, {file, iolist_to_binary(File)}, {line, Line}]),
+  erlang:raise(error, Exception, Stacktrace).
 
 file_format(Line, File, Message) ->
   io_lib:format("~ts:~w: ~ts~n", [File, Line, Message]).

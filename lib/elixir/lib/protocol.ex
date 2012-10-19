@@ -50,10 +50,15 @@ defmodule Protocol do
   It also defines a `__impl__` function which
   returns the protocol being implemented.
   """
-  def defimpl(protocol, [do: block, for: for]) when is_list(for) do
-    lc f inlist for, do: Protocol.defimpl(protocol, [do: block, for: f])
+  def defimpl(protocol, opts) do
+    do_defimpl(protocol, :lists.keysort(1, opts))
   end
-  def defimpl(protocol, [do: block, for: for]) do
+
+  defp do_defimpl(protocol, [do: block, for: for]) when is_list(for) do
+    lc f inlist for, do: do_defimpl(protocol, [do: block, for: f])
+  end
+
+  defp do_defimpl(protocol, [do: block, for: for]) do
     quote do
       protocol = unquote(protocol)
       for      = unquote(for)

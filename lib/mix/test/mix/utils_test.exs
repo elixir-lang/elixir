@@ -33,7 +33,7 @@ defmodule Mix.UtilsTest do
       baz: [yet: "another"]
     ]
 
-    assert Mix.Utils.config_merge(old, new) == [
+    assert Keyword.equal? Mix.Utils.config_merge(old, new), [
       foo: "bye",
       bar: [1,2,3,4],
       baz: [some: "option", yet: "another"],

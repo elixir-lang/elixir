@@ -195,8 +195,8 @@ fn_block -> '->' grammar 'end' : build_block('$2', false).
 
 do_block -> do_eol 'end' : [[{do,nil}]].
 do_block -> do_eol stab_expr_list end_eol : [[{ do, build_stab(lists:reverse('$2')) }]].
-do_block -> do_eol block_list 'end' : [sort_kw([{ do, nil }|'$2'])].
-do_block -> do_eol stab_expr_list eol block_list 'end' : [sort_kw([{ do, build_stab(lists:reverse('$2')) }|'$4'])].
+do_block -> do_eol block_list 'end' : [[{ do, nil }|'$2']].
+do_block -> do_eol stab_expr_list eol block_list 'end' : [[{ do, build_stab(lists:reverse('$2')) }|'$4']].
 
 do_eol -> 'do' : '$1'.
 do_eol -> 'do' eol : '$1'.
@@ -410,13 +410,13 @@ kw_comma -> kw_expr ',' : ['$1'].
 kw_comma -> kw_comma kw_expr ',' : ['$2'|'$1'].
 
 kw_base  -> kw_expr : ['$1'].
-kw_base  -> kw_comma : sort_kw(lists:reverse('$1')).
-kw_base  -> kw_comma kw_expr : sort_kw(lists:reverse(['$2'|'$1'])).
+kw_base  -> kw_comma : lists:reverse('$1').
+kw_base  -> kw_comma kw_expr : lists:reverse(['$2'|'$1']).
 
 matched_kw_expr  -> kw_eol matched_expr : {?exprs('$1'),'$2'}.
 matched_kw_comma -> matched_kw_expr : ['$1'].
 matched_kw_comma -> matched_kw_expr ',' matched_kw_comma : ['$1'|'$3'].
-matched_kw_base  -> matched_kw_comma : sort_kw('$1').
+matched_kw_base  -> matched_kw_comma : '$1'.
 
 % Lists
 
@@ -564,6 +564,3 @@ build_stab([H|T], Marker, Temp, Acc) ->
 build_stab([], Marker, Temp, Acc) ->
   H = { Marker, build_block(Temp) },
   lists:reverse([H|Acc]).
-
-sort_kw(List) -> lists:sort(fun sort_kw/2, List).
-sort_kw({ A, _ }, { B, _ }) -> A =< B.
