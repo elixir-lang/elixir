@@ -273,15 +273,11 @@ defimpl Binary.Inspect, for: List do
   end
 
   ## keywords?
+  defp keywords?([]), do: true
   defp keywords?([{ key, _value } | rest]) when is_atom(key) do
-    keywords?(rest, key)
+    keywords?(rest)
   end
   defp keywords?(_other), do: false
-  defp keywords?([{ key, _value } | rest], prev) when is_atom(key) and key >= prev do
-    keywords?(rest, key)
-  end
-  defp keywords?([], _prev), do: true
-  defp keywords?(_other, _prev), do: false
 
   defp join_keywords(thing, opts) do
     Enum.join(lc {key, value} inlist thing do

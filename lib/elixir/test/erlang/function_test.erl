@@ -20,7 +20,7 @@ function_with_args_test() ->
 
 function_with_kv_args_test() ->
   {Fun, _} = eval("fn(a, [other: b, another: c]) -> a + b + c end"),
-  6 = Fun(1,[{another,3},{other,2}]).
+  6 = Fun(1,[{other,2}, {another,3}]).
 
 function_as_clojure_test() ->
   {_, [{a, Res1}|_]} = eval("b = 1; a = fn -> b + 2 end"),

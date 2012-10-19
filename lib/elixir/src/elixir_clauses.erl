@@ -13,12 +13,12 @@ get_pairs(Line, Key, Clauses, S) ->
   get_pairs(Line, Key, Clauses, S, false).
 
 get_pairs(Line, Key, Clauses, S, AllowNil) ->
-  case orddict:find(Key, Clauses) of
-    { ok, { '->', _, Pairs } } ->
+  case lists:keyfind(Key, 1, Clauses) of
+    { Key, { '->', _, Pairs } } ->
       [{ Key, Left, Right } || { Left, Right } <- Pairs];
-    { ok, nil } when AllowNil ->
+    { Key, nil } when AllowNil ->
       [];
-    { ok, _ } ->
+    { Key, _ } ->
       elixir_errors:syntax_error(Line, S#elixir_scope.file, "expected pairs with -> for key ~s", [Key]);
     _ ->
       []

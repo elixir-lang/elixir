@@ -16,11 +16,11 @@ defmodule OptionParserTest do
   end
 
   test "parses more than one boolean option" do
-    assert OptionParser.parse(["--docs", "--compile"]) == { [docs: true, compile: true], [] }
+    assert OptionParser.parse(["--docs", "--compile"]) == { [compile: true, docs: true], [] }
   end
 
   test "parses more than one boolean options as the alias" do
-    assert OptionParser.parse(["--d", "--compile"], aliases: [d: :docs]) == { [docs: true, compile: true], [] }
+    assert OptionParser.parse(["--d", "--compile"], aliases: [d: :docs]) == { [compile: true, docs: true], [] }
   end
 
   test "parses key/value option" do
@@ -72,21 +72,26 @@ defmodule OptionParserTest do
 
   test "parses more than one key/value options" do
     options = OptionParser.parse(["--source", "from_docs/", "--docs", "false"])
-    assert options == { [docs: false, source: "from_docs/"], [] }
+    assert_equal options, { [docs: false, source: "from_docs/"], [] }
   end
 
   test "parses mixed options" do
     options = OptionParser.parse(["--source", "from_docs/", "--docs", "false", "--compile", "-x"])
-    assert options == { [docs: false, source: "from_docs/", compile: true, x: true], [] }
+    assert_equal options, { :orddict.from_list([docs: false, source: "from_docs/", compile: true, x: true]), [] }
   end
 
   test "stops on first non option arguments" do
     options = OptionParser.parse_head(["--source", "from_docs/", "test/enum_test.exs", "--verbose"])
-    assert options == { [source: "from_docs/"], ["test/enum_test.exs", "--verbose"] }
+    assert_equal options, { [source: "from_docs/"], ["test/enum_test.exs", "--verbose"] }
   end
 
   test "goes beyond the first non option arguments" do
     options = OptionParser.parse(["--source", "from_docs/", "test/enum_test.exs", "--verbose"])
-    assert options == { [source: "from_docs/", verbose: true], ["test/enum_test.exs"] }
+    assert_equal options, { [source: "from_docs/", verbose: true], ["test/enum_test.exs"] }
+  end
+
+  defp assert_equal({ opts1, tail1 }, { opts2, tail2 }) do
+    assert Keyword.equal?(opts1, opts2)
+    assert tail1 == tail2
   end
 end
