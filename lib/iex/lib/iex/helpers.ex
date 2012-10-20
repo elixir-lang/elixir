@@ -1,6 +1,15 @@
 defmodule IEx.Helpers do
   @moduledoc """
-  A bunch of helpers available in IEx.
+  Welcome to Interactive Elixir. You are currently
+  seeing the documentation for the module IEx.Helpers
+  which provides many helpers to make Elixir's shell
+  more joyful to work with.
+
+  This message was triggered by invoking the helper
+  `h()`, usually referred as `h/0` (since it expects 0
+  arguments).
+
+  There are many other helpers available:
 
   * `c/2` - compiles a file in the given path
   * `h/0`,`h/1`, `h/2` - prints help/documentation
