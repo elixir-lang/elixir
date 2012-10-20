@@ -130,7 +130,7 @@ defmodule Code do
   * `:line` - The line reported in the __ENV__ variable.
 
   * `:existing_atoms_only` - When true, raises an error
-    when non-existing atoms are found by the tokenizer
+    when non-existing atoms are found by the tokenizer.
 
   """
   def string_to_ast(string, opts // []) do

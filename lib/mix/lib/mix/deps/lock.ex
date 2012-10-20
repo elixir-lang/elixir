@@ -28,7 +28,7 @@ defmodule Mix.Deps.Lock do
   Receives a keyword list and writes it to the disk.
   """
   def write(file // lockfile, dict) do
-    lines = lc { app, rev } inlist dict, rev != nil do
+    lines = lc { app, rev } inlist Enum.qsort(dict), rev != nil do
       %b("#{app}": #{inspect rev})
     end
 

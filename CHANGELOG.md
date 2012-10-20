@@ -1,30 +1,40 @@
 * enhancements
   * [Behaviour] Add Behaviour with a simple callback DSL to define callbacks
   * [Binary] Add a Dict binary that converts its keys to binaries on insertion
+  * [Binary] Optimize `Binary.Inspect` and improve inspect for floats
+  * [CLI] Support `--detached` option
+  * [Code] `Code.string_to_ast` supports `:existing_atoms_only` as an option in order to guarantee no new atoms is generated when parsing the code
   * [EEx] Support `<%%` and `<%#` tags
   * [ExUnit] Support `after_spawn` callbacks which are invoked after each process is spawned
   * [ExUnit] Support context data in `setup_all`, `setup`, `teardown` and `teardown_all` callbacks
   * [IEx] Support `after_spawn` callbacks which are invoked after each process is spawned
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
   * [Kernel] Allow partial application on literals, for example: `{ &1, &2 }` to build tuples or `[&1|&2]` to build cons cells
-  * [CLI] Support --detached option
-  * [List] Support to keyreplace and keystore
-  * [Mix] Support to environments - the current environment can be set via MIX_ENV
-  * [Mix] Support to nested dependencies
+  * [Kernel] Added `integer_to_binary` and `binary_to_integer`
+  * [Kernel] Added `float_to_binary` and `binary_to_float`
+  * [Kernel] Many improvements to `unquote` and `unquote_splicing`. For example, `unquote(foo).unquote(bar)(args)` is supported and no longer need to be written via `apply`
+  * [Keyword] Keyword list is no longer ordered according to Erlang terms but the order in which they are specified
+  * [List] Support to `keyreplace` and `keystore`
+  * [Macro]  Support `Macro.safe_term` which returns `:ok` if an expression does not execute code and is made only of raw data types
+  * [Mix] Support to environments - the current environment can be set via `MIX_ENV`
+  * [Mix] Support to inspect and fetch dependencies' dependencies
   * [Module] Support module creation via `Module.create`
+  * [Range] Support decreasing ranges
   * [Record] Improvements to the Record API, added `Record.defmacros`
-  * [Regex] Add :return option to `Regex.run` and `Regex.scan`
+  * [Regex] Add `:return` option to `Regex.run` and `Regex.scan`
   * [String] Add a String module responsible for handling UTf-8 binaries
 
 * bug fix
-  * [IEx] Fix a bug where printing to stdio on IEx was causing it to hang
+  * [File] `File.cp` and `File.cp_r` now preserves the file's mode
+  * [IEx] Fix a bug where printing to `:stdio` on `IEx` was causing it to hang
   * [Macro] Fix a bug where quoted expressions were not behaving the same as their non-quoted counterparts
   * [Mix] `mix deps.get [DEPS]` now only gets the specified dependencies
   * [Mix] Mix now exits with status 1 in case of failures
+  * [Protocol] Avoid false positives on protocol dispatch (a bug caused the dispatch to be triggered to an invalid protocol)
 
 * backwards incompatible changes
   * [ExUnit] `setup` and `teardown` callbacks now receives the test name as second argument
-  * [Kernel] Raw function definition with def/4, defp/4, defmacro/4, defmacrop/4 now evaluates all arguments. The previous behaviour was accidental and did not properly evaluate all arguments
+  * [Kernel] Raw function definition with `def/4`, `defp/4`, `defmacro/4`, `defmacrop/4` now evaluates all arguments. The previous behaviour was accidental and did not properly evaluate all arguments
   * [Kernel] Change tuple-related (`elem` and `setelem`), Enum functions (`find_index`, `nth!` and `times`) and List functions (List.key*) to zero-index
 
 * deprecations
