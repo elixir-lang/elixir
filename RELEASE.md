@@ -16,7 +16,9 @@ This document simply outlines the release process:
 
 7) Push new zip to Elixir's downloads page
 
-8) After release, bump versions and add .dev back
+8) Push package to expm
+
+9) After release, bump versions and add .dev back
 
 ## Places where version is mentioned
 
@@ -25,3 +27,4 @@ This document simply outlines the release process:
 * rel/reltool.config
 * Makefile
 * CHANGELOG
+* package.exs
