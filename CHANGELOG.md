@@ -14,10 +14,10 @@
   * [Kernel] Added `float_to_binary` and `binary_to_float`
   * [Kernel] Many improvements to `unquote` and `unquote_splicing`. For example, `unquote(foo).unquote(bar)(args)` is supported and no longer need to be written via `apply`
   * [Keyword] Keyword list is no longer ordered according to Erlang terms but the order in which they are specified
-  * [List] Support to `keyreplace` and `keystore`
+  * [List] Add `List.keyreplace` and `List.keystore`
   * [Macro]  Support `Macro.safe_term` which returns `:ok` if an expression does not execute code and is made only of raw data types
-  * [Mix] Support to environments - the current environment can be set via `MIX_ENV`
-  * [Mix] Support to inspect and fetch dependencies' dependencies
+  * [Mix] Add support for environments - the current environment can be set via `MIX_ENV`
+  * [Mix] Add support for handling and fetching dependencies' dependencies
   * [Module] Support module creation via `Module.create`
   * [Range] Support decreasing ranges
   * [Record] Improvements to the Record API, added `Record.defmacros`
