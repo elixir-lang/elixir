@@ -353,13 +353,7 @@ defmodule Code do
     if File.regular?(file) do
       file
     else
-      prefix = "#{file}.exs"
-      if File.regular?(prefix) do
-        IO.write "[WARNING] Passing a file without .exs extension to Code.load_file or Code.require_file is deprecated, please pass the full name instead\n#{Exception.formatted_stacktrace}"
-        prefix
-      else
-        raise ArgumentError, message: "could not load #{file}"
-      end
+      raise ArgumentError, message: "could not load #{file}"
     end
   end
 

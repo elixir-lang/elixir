@@ -155,26 +155,6 @@ defmodule Regex do
   end
 
   @doc """
-  Returns a list with the match indexes in the given string.
-  The matches are tuples where the first element is the index
-  (zero indexed) the match happened and the second is the length
-  of the match.
-
-  ## Examples
-
-      Regex.indexes %r/c(d)/, "abcd"  #=> [{2,2},{3,1}]
-      Regex.indexes %r/e/, "abcd"     #=> nil
-
-  """
-  def indexes({ Regex, compiled, _, _, _ }, string) do
-    IO.write "[WARNING] Regex.indexes is deprecated, please use Regex.run with return: :index as option instead\n#{Exception.formatted_stacktrace}"
-    case :re.run(string, compiled, [{ :capture, :all, :index }]) do
-      :nomatch -> nil
-      { :match, results } -> results
-    end
-  end
-
-  @doc """
   Returns the underlying re_pattern in the regular expression.
   """
   def re_pattern({ Regex, compiled, _, _, _ }) do
@@ -247,11 +227,6 @@ defmodule Regex do
 
   def split(regex, string, options // [])
 
-  def split(regex, string, options) when is_integer(options) or is_atom(options) do
-    IO.write "[WARNING] Passing an integer or atom to Regex.split/3 is deprecated, pass a :parts option instead\n#{Exception.formatted_stacktrace}"
-    split(regex, string, parts: options)
-  end
-
   def split({ Regex, compiled, _, _, _ }, string, options) do
     parts =
       cond do
@@ -288,12 +263,6 @@ defmodule Regex do
     return = options[:return] || return_for(string)
     opts   = [{ :return, return }|opts]
     :re.replace(string, compiled, replacement, opts)
-  end
-
-  @doc false
-  def replace_all({ Regex, compiled, _, _, _ }, string, replacement) do
-    IO.write "[WARNING] Regex.replace_all is deprecated, simply use Regex.replace instead\n#{Exception.formatted_stacktrace}"
-    :re.replace(string, compiled, replacement, [{ :return, return_for(string) }, :global])
   end
 
   # Helpers

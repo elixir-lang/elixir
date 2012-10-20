@@ -421,12 +421,6 @@ defmodule Module do
     ETS.insert(table, { key, new })
   end
 
-  @doc false
-  def add_attribute(module, key, value) when is_atom(key) do
-    IO.write "[WARNING] Module.add_attribute is deprecated, please use Module.put_attribute instead\n#{Exception.formatted_stacktrace}"
-    put_attribute(module, key, value)
-  end
-
   @doc """
   Gets the given attribute from a module. If the attribute
   was marked as accumulate with `Module.register_attribute`,
@@ -454,12 +448,6 @@ defmodule Module do
         acc = ETS.lookup_element(table, :__acc_attributes, 2)
         if List.member?(acc, key), do: [], else: nil
     end
-  end
-
-  @doc false
-  def read_attribute(module, key) when is_atom(key) do
-    IO.write "[WARNING] Module.read_attribute is deprecated, please use Module.get_attribute instead\n#{Exception.formatted_stacktrace}"
-    get_attribute(module, key)
   end
 
   @doc """

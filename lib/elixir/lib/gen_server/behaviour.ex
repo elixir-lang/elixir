@@ -1,14 +1,3 @@
-defmodule GenServer.Behavior do
-  @moduledoc false
-
-  defmacro __using__(_) do
-    IO.puts "Using GenServer.Behavior is deprecated, use GenServer.Behaviour instead"
-    quote do
-      use GenServer.Behaviour
-    end
-  end
-end
-
 defmodule GenServer.Behaviour do
   @moduledoc """
   By using this module, you get default GenServer callbacks

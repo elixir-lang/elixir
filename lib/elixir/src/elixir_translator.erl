@@ -408,14 +408,6 @@ translate_each({ { '.', _, [Left, Right] }, Line, Args } = Original, S) when is_
           Callback = fun() -> translate_apply(Line, TLeft, TRight, Args, S, SL, SR) end,
 
           case TLeft of
-            { atom, _, 'Elixir.Erlang' } ->
-              elixir_errors:deprecation(Line, S#elixir_scope.file, "Erlang. syntax is deprecated"),
-              case Args of
-                [] -> { { atom, Line, Right }, S };
-                _ ->
-                  Message = "invalid args for Erlang.~s expression",
-                  syntax_error(Line, S#elixir_scope.file, Message, [Right])
-              end;
             { atom, _, Receiver } ->
               elixir_dispatch:dispatch_require(Line, Receiver, Right, Args, umergev(SL, SR), Callback);
             _ ->

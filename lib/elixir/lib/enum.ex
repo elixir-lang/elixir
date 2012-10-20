@@ -679,12 +679,6 @@ defmodule Enum do
     split(list, real_count)
   end
 
-  @doc false
-  def split_with(collection, fun) do
-    IO.write "[WARNING] Enum.split_with is deprecated, please use split_while instead\n#{Exception.formatted_stacktrace}"
-    split_while(collection, fun)
-  end
-
   @doc """
   Splits `collection` at the first element, for which `fun` returns true.
   Expects an ordered collection.

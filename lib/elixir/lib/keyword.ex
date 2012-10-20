@@ -229,12 +229,6 @@ defmodule Keyword do
     acc
   end
 
-  @doc false
-  def key?(list, key) do
-    IO.write "[WARNING] Keyword.key? is deprecated, please use Keyword.has_key? instead\n#{Exception.formatted_stacktrace}"
-    has_key?(list, key)
-  end
-
   @doc """
   Returns whether a given key exists in the given keywords.
 

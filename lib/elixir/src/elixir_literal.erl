@@ -114,28 +114,6 @@ build_bitstr_each(Fun, [{'::',_,[H,V]}|T], Line, S, Acc) ->
   { Size, Types } = extract_bit_values(Line, V, ES),
   build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, Size, Types }|Acc]);
 
-%% Deprecated syntax
-build_bitstr_each(Fun, [{'|',_,[H,V]}|T], Line, S, Acc) ->
-  { Expr, NS } = Fun(H, S),
-
-  %% Just variables defined outside the binary can be accounted on subparts
-  case NS of
-    { ES, _ } -> [];
-    ES -> []
-  end,
-
-  elixir_errors:deprecation(Line, ES#elixir_scope.file, "Old bitstring syntax with | is deprecated, use the new one with :: instead"),
-
-  %% Assigns can be made in subparts
-  { Int, Types } = extract_bin_values(Line, V, default, [], ES#elixir_scope{context=nil}),
-
-  Final = case Types of
-    [] -> default;
-    _  -> lists:reverse(Types)
-  end,
-
-  build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, Int, Final }|Acc]);
-
 build_bitstr_each(Fun, [H|T], Line, S, Acc) ->
   { Expr, NS } = Fun(H, S),
   build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, default, default }|Acc]).
@@ -221,25 +199,3 @@ handle_unknown_specifier(Line, [H|T], Size, Types, S) ->
 join_expansion({ '__block__', _, [Expanded] }, Tail) -> join_expansion(Expanded, Tail);
 join_expansion(Expanded, Tail) when is_list(Expanded) -> Expanded ++ Tail;
 join_expansion(Expanded, Tail) -> [Expanded|Tail].
-
-%% Deprecated specifiers
-
-extract_bin_values(Line, { '-', _Line, [Left, Right] }, Int, Types, S) ->
-  { LInt, LTypes } = extract_bin_values(Line, Left, Int, Types, S),
-  extract_bin_values(Line, Right, LInt, LTypes, S);
-
-extract_bin_values(Line, Value, default, Types, _S) when is_integer(Value) ->
-  { { integer, Line, Value }, Types };
-
-extract_bin_values(_Line, { Value, _, Atom } = Expr, default, Types, S) when is_atom(Value), is_atom(Atom) ->
-  Translated = element(1, elixir_translator:translate_each(Expr, S)),
-  { Translated, Types };
-
-extract_bin_values(Line, Value, _Int, _Types, S) when is_integer(Value) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "duplicated size specifier ~p in <<>>", [Value]);
-
-extract_bin_values(_Line, Value, Int, Types, _S) when is_atom(Value); is_tuple(Value), tuple_size(Value) == 2 ->
-  { Int, [Value|Types] };
-
-extract_bin_values(Line, _Value, _Int, _Types, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid specifier for <<>>").

@@ -123,12 +123,6 @@ defmodule List do
     :lists.foldr(function, acc, list)
   end
 
-  @doc false
-  def reverse(list) do
-    IO.write "[WARNING] List.reverse/1 is deprecated, please use Enum.reverse/1 instead\n#{Exception.formatted_stacktrace}"
-    :lists.reverse(list)
-  end
-
   @doc """
   Returns the last element in `list` or nil if the `list` is empty.
 
@@ -359,12 +353,6 @@ defmodule List do
 
   def wrap(other) do
     [other]
-  end
-
-  @doc false
-  def zip(item1, item2) do
-    IO.write "[WARNING] List.zip/2 is deprecated, please use Enum.zip/2 instead\n#{Exception.formatted_stacktrace}"
-    do_zip(to_list(item1), to_list(item2), [])
   end
 
   @doc """
