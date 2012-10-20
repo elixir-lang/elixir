@@ -24,7 +24,7 @@ defmodule System do
   @doc """
   Returns Elixir's version as binary.
   """
-  def version, do: "0.7.0"
+  def version, do: "0.7.1.dev"
 
   @doc """
   Returns a keywords list with version, git tag info and date.
