@@ -15,7 +15,7 @@ defrecord RecordTest.SomeRecord, a: 0, b: 1
 defrecord RecordTest.WithNoField, []
 
 defmodule RecordTest.Macros do
-  Record.defmacros __ENV__, :_user, [:name, :age]
+  Record.defmacros :_user, [:name, :age], __ENV__
 
   def new(name, age) do
     _user(name: name, age: age)

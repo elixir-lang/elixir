@@ -45,7 +45,8 @@ defmodule Module do
       Foo.sum(1, 2) #=> 3
 
   This function also accepts a `Macro.Env` as first argument. This
-  is useful to evalute the quoted contents inside an existing environment:
+  is useful to evalute the quoted contents inside an existing
+  environment (considering the environemnt module, line and file):
 
       defmodule Foo do
         contents = quote do: (def sum(a, b), do: a + b)

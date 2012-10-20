@@ -29,7 +29,7 @@ defmodule Record do
     quote do
       defmodule unquote(name) do
         @moduledoc false
-        Record.deffunctions(__ENV__, unquote(values), unquote(opts))
+        Record.deffunctions(unquote(values), unquote(opts), __ENV__)
         unquote(block)
       end
     end
@@ -44,11 +44,11 @@ defmodule Record do
   ## Examples
 
       defmodule CustomRecord do
-        Record.deffunctions __ENV__, [:name, :age]
+        Record.deffunctions [:name, :age], __ENV__
       end
 
   """
-  def deffunctions(env, values, opts // []) do
+  def deffunctions(values, opts // [], env) do
     values     = lc value inlist values, do: convert_value(value)
     escaped    = Macro.escape(values)
     extensions = Keyword.get(opts, :extensions, Record.Extensions)
@@ -84,7 +84,7 @@ defmodule Record do
   ## Examples
 
       defmodule CustomModule do
-        Record.defmacros __ENV__, :_user, [:name, :age]
+        Record.defmacros :_user, [:name, :age], __ENV__
 
         def new(name, age) do
           _user(name: name, age: age)
@@ -112,7 +112,7 @@ defmodule Record do
       end
 
   """
-  def defmacros(env, name, values) do
+  def defmacros(name, values, env) do
     escaped = lc value inlist values, do: Macro.escape(convert_value(value))
 
     contents = quote do

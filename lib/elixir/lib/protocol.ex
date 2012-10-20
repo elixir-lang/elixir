@@ -39,8 +39,8 @@ defmodule Protocol do
 
         # Define callbacks and meta information
         { conversions, fallback } = Protocol.conversions_for(__MODULE__, @only, @except)
-        Protocol.impl_for(__ENV__, conversions, fallback)
-        Protocol.meta(__ENV__, @functions, fallback)
+        Protocol.impl_for(conversions, fallback, __ENV__)
+        Protocol.meta(@functions, fallback, __ENV__)
       end
     end
   end
@@ -95,7 +95,7 @@ defmodule Protocol do
   @doc """
   Defines meta information about the protocol and internal callbacks.
   """
-  def meta(env, functions, fallback) do
+  def meta(functions, fallback, env) do
     contents = quote do
       def __protocol__(:name),      do: __MODULE__
       def __protocol__(:functions), do: unquote(:lists.sort(functions))
@@ -138,7 +138,7 @@ defmodule Protocol do
   the module to dispatch to. Returns module.Record for records
   which should be properly handled by the dispatching function.
   """
-  def impl_for(env, conversions, fallback) do
+  def impl_for(conversions, fallback, env) do
     contents = lc kind inlist conversions do
       each_impl_for(kind, if fallback, do: conversions)
     end
