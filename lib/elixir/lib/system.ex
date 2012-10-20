@@ -16,7 +16,6 @@ defmodule System do
     end
   end
 
-
   # Get the date at compilation time.
   defmacrop get_date do
     list_to_binary :httpd_util.rfc1123_date
@@ -25,7 +24,7 @@ defmodule System do
   @doc """
   Returns Elixir's version as binary.
   """
-  def version, do: "0.7.0.dev"
+  def version, do: "0.7.0"
 
   @doc """
   Returns a keywords list with version, git tag info and date.

@@ -1,3 +1,5 @@
+# v0.7.0 (2012-10-20)
+
 * enhancements
   * [Behaviour] Add Behaviour with a simple callback DSL to define callbacks
   * [Binary] Add a Dict binary that converts its keys to binaries on insertion
