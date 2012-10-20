@@ -83,7 +83,7 @@ defmodule Keyword do
       Keyword.get [a: 1], :b, 3   #=> 3
 
   """
-  def get(keywords, key, default // nil) do
+  def get(keywords, key, default // nil) when is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
       false -> default
@@ -100,7 +100,7 @@ defmodule Keyword do
       Keyword.get! [a: 1], :b      #=> raises KeyError[key: :b]
 
   """
-  def get!(keywords, key) do
+  def get!(keywords, key) when is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
       false -> raise(Keyword.KeyError, key: key)
@@ -116,7 +116,7 @@ defmodule Keyword do
       #=> [1,2]
 
   """
-  def get_values(keywords, key) do
+  def get_values(keywords, key) when is_atom(key) do
     lc { k, v } inlist keywords, key == k, do: v
   end
 
@@ -157,7 +157,7 @@ defmodule Keyword do
       Keyword.delete [b: 2], :a         #=> [b: 2]
 
   """
-  def delete(keywords, key) do
+  def delete(keywords, key) when is_atom(key) do
     lc { k, _ } = tuple inlist keywords, key != k, do: tuple
   end
 
@@ -173,7 +173,7 @@ defmodule Keyword do
       #=> [a: 3, b: 2]
 
   """
-  def put(list, key, value) do
+  def put(list, key, value) when is_atom(key) do
     [{key, value}|delete(list, key)]
   end
 
@@ -246,7 +246,7 @@ defmodule Keyword do
       #=> false
 
   """
-  def has_key?(keywords, key) do
+  def has_key?(keywords, key) when is_atom(key) do
     :lists.keymember(key, 1, keywords)
   end
 

@@ -31,18 +31,10 @@ defmodule Mix.Utils do
     # Get the source of the compiled module. Due to a bug in Erlang
     # R15 and before, we need to look for the source first in the
     # options and then into the real source.
-    options =
-      case List.keyfind(compile, :options, 0) do
-        { :options, opts } -> opts
-        _ -> []
-      end
+    options = compile[:options] || []
+    source  = options[:source]  || compile[:source]
 
-    source  = List.keyfind(options, :source, 0)  || List.keyfind(compile, :source, 0)
-
-    case source do
-      { :source, source } -> list_to_binary(source)
-      _ -> nil
-    end
+    source && list_to_binary(source)
   end
 
   @doc """
