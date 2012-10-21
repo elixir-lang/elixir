@@ -103,7 +103,7 @@ defmodule Mix.Deps.Converger do
     Enum.map_reduce list, false, fn(other, diverged) ->
       Mix.Dep[app: other_app, scm: other_scm, opts: other_opts] = other
 
-      if app != other_app || scm == other_scm && scm.match?(opts, other_opts) do
+      if app != other_app || scm == other_scm && scm.equals?(opts, other_opts) do
         { other, diverged }
       else
         { other.status({ :diverged, dep }), true }

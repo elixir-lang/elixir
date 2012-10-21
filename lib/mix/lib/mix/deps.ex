@@ -104,7 +104,7 @@ defmodule Mix.Deps do
       rev  = lock[app]
       opts = Keyword.put(opts, :lock, rev)
 
-      if scm.check?(opts) do
+      if scm.matches_lock?(opts) do
         dep
       else
         status = if rev, do: { :lockmismatch, rev }, else: :nolock

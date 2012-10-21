@@ -6,21 +6,21 @@ defmodule Mix.SCM.Raw do
     :raw
   end
 
-  def consumes?(opts) do
+  def accepts_options?(opts) do
     if raw = opts[:raw] do
       Keyword.put opts, :path, File.expand_path(raw)
     end
   end
 
-  def available?(opts) do
+  def checked_out?(opts) do
     File.dir?(opts[:path])
   end
 
-  def check?(_opts) do
+  def matches_lock?(_opts) do
     true
   end
 
-  def match?(opts1, opts2) do
+  def equals?(opts1, opts2) do
     opts1[:raw] == opts2[:raw]
   end
 

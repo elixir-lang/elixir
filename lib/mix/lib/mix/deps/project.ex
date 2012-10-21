@@ -39,7 +39,7 @@ defmodule Mix.Deps.Project do
     opts = Keyword.put(opts, :path, path)
 
     { scm, opts } = Enum.find_value scms, fn(scm) ->
-      (new = scm.consumes?(opts)) && { scm, new }
+      (new = scm.accepts_options?(opts)) && { scm, new }
     end
 
     if scm do
@@ -62,7 +62,7 @@ defmodule Mix.Deps.Project do
   end
 
   defp status(scm, app, req, opts) do
-    if scm.available? opts do
+    if scm.checked_out? opts do
       if req do
         app_path = File.join opts[:path], "ebin/#{app}.app"
         validate_app_file(app_path, app, req)

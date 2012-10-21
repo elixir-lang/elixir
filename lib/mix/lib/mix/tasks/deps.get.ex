@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Deps.Get do
       opts = Keyword.put(opts, :lock, old)
 
       new =
-        if scm.available?(opts) do
+        if scm.checked_out?(opts) do
           scm.update(opts)
         else
           scm.checkout(opts)

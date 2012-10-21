@@ -20,20 +20,20 @@ defmodule Mix.SCM do
   the available options. For example, when a developer specifies
   a dependency:
 
-      { "foo", "0.1.0", github: "foo/bar" }
+      { :foo, "0.1.0", github: "foo/bar" }
 
   Each registered SCM will be asked if they consume this dependency,
   receiving [github: "foo/bar"] as argument. Since this option makes
   sense for the Git SCM, it will return an update list of options
   while other SCMs would simply return nil.
   """
-  defcallback consumes?(opts)
+  defcallback accepts_options?(opts)
 
   @doc """
   This behavior function returns a boolean if the
   dependency is available.
   """
-  defcallback available?(opts)
+  defcallback checked_out?(opts)
 
   @doc """
   This behavior function checks out dependencies.
@@ -63,13 +63,13 @@ defmodule Mix.SCM do
   SCMs do not require a lock, for such, this function can simply
   return true.
   """
-  defcallback check?(opts)
+  defcallback matches_lock?(opts)
 
   @doc """
   Receives two options and must return true if the refer to the
   same repository.
   """
-  defcallback match?(opts1, opts2)
+  defcallback equals?(opts1, opts2)
 
   @doc """
   This behavior function should clean the given dependency.
