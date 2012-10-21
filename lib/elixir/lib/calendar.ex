@@ -1,6 +1,10 @@
 defrecord DateTime, date: nil, time: nil
 
 defmodule Calendar do
+  @minute_in_seconds 60
+  @hour_in_seconds   60 * 60
+  @day_in_seconds    24 * 60 * 60
+
   def from_tuple({ date, time }) do
     DateTime[date: date, time: time]
   end
@@ -9,11 +13,19 @@ defmodule Calendar do
     { date, time }
   end
 
-  def difference(DateTime[] = time1, DateTime[] = time2) do
-    tuple1 = to_tuple(time1)
-    tuple2 = to_tuple(time2)
-    seconds1 = :calendar.datetime_to_gregorian_seconds(tuple1)
-    seconds2 = :calendar.datetime_to_gregorian_seconds(tuple2)
+  def universal_time do
+    { date, time } = :calendar.universal_time
+    DateTime[date: date, time: time]
+  end
+
+  def local_time do
+    { date, time } = :calendar.local_time
+    DateTime[date: date, time: time]
+  end
+
+  def difference(DateTime[date: date1, time: time1], DateTime[date: date2, time: time2]) do
+    seconds1 = :calendar.datetime_to_gregorian_seconds({ date1, time1 })
+    seconds2 = :calendar.datetime_to_gregorian_seconds({ date2, time2 })
     seconds1 - seconds2
   end
 
@@ -32,15 +44,15 @@ defmodule Calendar do
     end
 
     if minutes_option = options[:minutes] do
-      seconds = seconds + (minutes_option * 60)
+      seconds = seconds + (minutes_option * @minute_in_seconds)
     end
 
     if hours_option = options[:hours] do
-      seconds = seconds + (hours_option * 60 * 60)
+      seconds = seconds + (hours_option * @hour_in_seconds)
     end
 
     if days_option = options[:days] do
-      seconds = seconds + (days_option * 60 * 60 * 24)
+      seconds = seconds + (days_option * @day_in_seconds)
     end
 
     time_in_seconds = :calendar.datetime_to_gregorian_seconds({ date, time })
@@ -58,6 +70,10 @@ defmodule Calendar do
   def year(DateTime[date: { year, _, _ }]), do: year
 
   def leap?(DateTime[date: { year, _, _ }]) do
+    leap?(year)
+  end
+
+  def leap?(year) when is_integer(year) do
     :calendar.is_leap_year(year)
   end
 

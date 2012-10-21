@@ -19,6 +19,18 @@ defmodule DateTimeTest do
     assert time == expected
   end
 
+  test "can retrieve the universal time" do
+    DateTime[date: date, time: time] = Calendar.universal_time
+    assert { _, _, _ } = date
+    assert { _, _, _ } = time
+  end
+
+  test "can retrieve the local time" do
+    DateTime[date: date, time: time] = Calendar.local_time
+    assert { _, _, _ } = date
+    assert { _, _, _ } = time
+  end
+
   test "can get the day of the week from the DateTime" do
     time = DateTime.new(date: { 2012, 9, 29 }, time: { 19, 21, 0 })
     assert Calendar.weekday(time) == 6
@@ -53,10 +65,13 @@ defmodule DateTimeTest do
 
   test "can determine if the year is a leap year" do
     time = DateTime.new(date: { 2012, 9, 29 }, time: { 19, 21, 0 })
-    assert Calendar.leap?(time) == true
+    assert Calendar.leap?(time)
 
     time = DateTime.new(date: { 2013, 9, 29 }, time: { 19, 21, 0 })
-    assert Calendar.leap?(time) == false
+    refute Calendar.leap?(time)
+
+    assert Calendar.leap?(2012)
+    refute Calendar.leap?(2013)
   end
 
   test "can get an abbreviated weekday from the DateTime" do
