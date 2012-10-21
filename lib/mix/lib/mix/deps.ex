@@ -70,10 +70,10 @@ defmodule Mix.Deps do
     do: "ok"
 
   def format_status(Mix.Dep[status: { :noappfile, path }]),
-    do: "could not find app file at #{path}"
+    do: "could not find app file at #{Mix.Utils.relative_to_cwd(path)}"
 
   def format_status(Mix.Dep[status: { :invalidapp, path }]),
-    do: "the app file at #{path} is invalid"
+    do: "the app file at #{Mix.Utils.relative_to_cwd(path)} is invalid"
 
   def format_status(Mix.Dep[status: { :invalidvsn, vsn }]),
     do: "the dependency does not match the specified version, got #{vsn}"
@@ -92,7 +92,7 @@ defmodule Mix.Deps do
     do: "the dependency is not available, run `mix deps.get`"
 
   defp inspect_kw(list) do
-    middle = lc { key, value } inlist list, do: "#{key}: #{inspect value}"
+    middle = lc { key, value } inlist Enum.qsort(list), do: "#{key}: #{inspect value, raw: true}"
     "[ " <> Enum.join(middle, ",\n  ") <> " ]"
   end
 
@@ -104,7 +104,7 @@ defmodule Mix.Deps do
       rev  = lock[app]
       opts = Keyword.put(opts, :lock, rev)
 
-      if scm.check?(deps_path(dep), opts) do
+      if scm.check?(opts) do
         dep
       else
         status = if rev, do: { :lockmismatch, rev }, else: :nolock
@@ -153,12 +153,5 @@ defmodule Mix.Deps do
       end
 
     "#{app} #{version}[#{scm.key}: #{inspect opts[scm.key]}]"
-  end
-
-  @doc """
-  Returns the path for the given dependency.
-  """
-  def deps_path(Mix.Dep[app: app, opts: opts]) do
-    Mix.Deps.Project.deps_path(app, opts)
   end
 end

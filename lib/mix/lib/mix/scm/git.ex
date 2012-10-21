@@ -17,12 +17,12 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  def available?(path, _opts) do
-    File.dir?(File.join(path, ".git"))
+  def available?(opts) do
+    File.dir?(File.join(opts[:path], ".git"))
   end
 
-  def check?(path, opts) do
-    opts[:lock] && File.cd!(path, fn -> opts[:lock] == get_rev end)
+  def check?(opts) do
+    opts[:lock] && File.cd!(opts[:path], fn -> opts[:lock] == get_rev end)
   end
 
   def match?(opts1, opts2) do
@@ -33,33 +33,34 @@ defmodule Mix.SCM.Git do
       opts1[:submodules] == opts2[:submodules]
   end
 
-  def checkout(path, opts) do
+  def checkout(opts) do
+    path     = opts[:path]
     location = opts[:git]
-    maybe_error System.cmd("git clone --quiet --no-checkout #{location} #{path}")
+    maybe_error System.cmd(%b[git clone --quiet --no-checkout "#{location}" "#{path}"])
 
-    if available?(path, opts) do
-      File.cd! path, fn -> checkout(opts) end
+    if available?(opts) do
+      File.cd! path, fn -> do_checkout(opts) end
     end
   end
 
-  def update(path, opts) do
-    File.cd! path, fn ->
+  def update(opts) do
+    File.cd! opts[:path], fn ->
       command = "git fetch --force --quiet"
       if opts[:tag] do
         command = command <> " --tags"
       end
       maybe_error System.cmd(command)
-      checkout(opts)
+      do_checkout(opts)
     end
   end
 
-  def clean(path, _opts) do
-    File.rm_rf path
+  def clean(opts) do
+    File.rm_rf opts[:path]
   end
 
   ## Helpers
 
-  defp checkout(opts) do
+  defp do_checkout(opts) do
     ref =
       if branch = opts[:branch] do
         "origin/#{branch}"

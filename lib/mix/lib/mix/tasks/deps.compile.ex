@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Deps.Compile do
   which mix will use to shell out.
   """
 
-  import Mix.Deps, only: [all: 0, available?: 1, by_name!: 1, format_dep: 1, deps_path: 1]
+  import Mix.Deps, only: [all: 0, available?: 1, by_name!: 1, format_dep: 1]
 
   def run(args) do
     case OptionParser.parse(args) do
@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Deps.Compile do
       check_unavailable!(app, status)
       shell.info "* Compiling #{app}"
 
-      deps_path = deps_path(dep)
+      deps_path = opts[:path]
       ebin = File.join(deps_path, "ebin") /> binary_to_list
 
       # Avoid compilation conflicts

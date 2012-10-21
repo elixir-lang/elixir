@@ -240,6 +240,17 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Returns the given path string relative to the current
+  working directory.
+  """
+  def relative_to_cwd(path) do
+    case File.cwd do
+      { :ok, base } -> String.replace(path, base <> "/", "")
+      _ -> path
+    end
+  end
+
+  @doc """
   Takes a module and converts it to a command. The nesting
   argument can be given in order to remove the nesting of
   module.

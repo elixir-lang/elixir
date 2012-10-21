@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Deps.Clean do
   the repositories, unless --unlock is given.
   """
 
-  import Mix.Deps, only: [all: 0, by_name!: 1, format_dep: 1, deps_path: 1]
+  import Mix.Deps, only: [all: 0, by_name!: 1, format_dep: 1]
 
   def run(args) do
     case OptionParser.parse(args, flags: [:unlock]) do
@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Deps.Clean do
 
     apps = Enum.map deps, fn(Mix.Dep[scm: scm, opts: opts] = dep) ->
       shell.info "* Cleaning #{format_dep(dep)}"
-      scm.clean deps_path(dep), opts
+      scm.clean opts
       dep.app
     end
 

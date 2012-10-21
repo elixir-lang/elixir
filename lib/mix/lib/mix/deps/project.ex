@@ -26,14 +26,6 @@ defmodule Mix.Deps.Project do
     with_scm_and_status({ app, req, opts }, [scm])
   end
 
-  @doc """
-  Returns the deps path for a given app and opts inside
-  a project.
-  """
-  def deps_path(app, opts) do
-    opts[:path] || File.join(Mix.project[:deps_path], app)
-  end
-
   ## Helpers
 
   defp with_scm_and_status({ app, opts }, scms) when is_atom(app) and is_list(opts) do
@@ -42,6 +34,9 @@ defmodule Mix.Deps.Project do
 
   defp with_scm_and_status({ app, req, opts }, scms) when is_atom(app) and
       (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
+
+    path = File.join(Mix.project[:deps_path], app)
+    opts = Keyword.put(opts, :path, path)
 
     { scm, opts } = Enum.find_value scms, fn(scm) ->
       (new = scm.consumes?(opts)) && { scm, new }
@@ -67,16 +62,15 @@ defmodule Mix.Deps.Project do
   end
 
   defp status(scm, app, req, opts) do
-    deps_path = deps_path(app, opts)
-    if scm.available? deps_path, opts do
+    if scm.available? opts do
       if req do
-        app_path = File.join deps_path, "ebin/#{app}.app"
+        app_path = File.join opts[:path], "ebin/#{app}.app"
         validate_app_file(app_path, app, req)
       else
         { :ok, nil }
       end
     else
-      { :unavailable, deps_path }
+      { :unavailable, opts[:path] }
     end
   end
 

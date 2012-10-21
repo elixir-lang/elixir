@@ -29,7 +29,7 @@ defmodule Mix.Deps.Lock do
   """
   def write(file // lockfile, dict) do
     lines = lc { app, rev } inlist Enum.qsort(dict), rev != nil do
-      %b("#{app}": #{inspect rev})
+      %b("#{app}": #{inspect rev, raw: true})
     end
 
     File.write! file, "[ " <> Enum.join(lines, ",\n  ") <> " ]"

@@ -8,8 +8,7 @@ defmodule Mix.Tasks.Deps.Get do
   that are not available or have an invalid lock.
   """
 
-  import Mix.Deps, only: [all: 2, by_name!: 1, format_dep: 1,
-    deps_path: 1, check_lock: 2, out_of_date?: 1]
+  import Mix.Deps, only: [all: 2, by_name!: 1, format_dep: 1, check_lock: 2, out_of_date?: 1]
 
   def run([]) do
     finalize_get all(init, deps_getter(&1, &2))
@@ -43,14 +42,12 @@ defmodule Mix.Tasks.Deps.Get do
 
       old  = lock[app]
       opts = Keyword.put(opts, :lock, old)
-      path = deps_path(dep)
 
       new =
-        if scm.available?(path, opts) do
-          scm.update(path, opts)
+        if scm.available?(opts) do
+          scm.update(opts)
         else
-          File.mkdir_p!(path)
-          scm.checkout(path, opts)
+          scm.checkout(opts)
         end
 
       cond do

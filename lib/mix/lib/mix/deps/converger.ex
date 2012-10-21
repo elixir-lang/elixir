@@ -4,7 +4,7 @@
 defmodule Mix.Deps.Converger do
   @moduledoc false
 
-  import Mix.Deps, only: [deps_path: 1, available?: 1]
+  import Mix.Deps, only: [available?: 1]
 
   @doc """
   Clear up the mixfile cache.
@@ -88,10 +88,15 @@ defmodule Mix.Deps.Converger do
     { acc, rest }
   end
 
+  # Does the list contain the given dependency?
   defp contains_dep?(list, Mix.Dep[app: app]) do
     Enum.any?(list, match?(Mix.Dep[app: ^app], &1))
   end
 
+  # Check the list for matching dependencies.
+  # In case dependencies are found, check if their
+  # scm info match. If not, mark the dependencies
+  # as diverged.
   def diverged_dep?(list, dep) do
     Mix.Dep[app: app, scm: scm, opts: opts] = dep
 
@@ -107,13 +112,15 @@ defmodule Mix.Deps.Converger do
   end
 
   defp mixfile?(dep) do
-    File.regular?(File.join(deps_path(dep), "mix.exs"))
+    File.regular?(File.join dep.opts[:path], "mix.exs")
   end
 
-  defp nested_deps(Mix.Dep[app: app, opts: opts] = dep, config) do
-    File.cd! deps_path(dep), fn ->
-      env      = opts[:env] || :prod
-      old_env  = Mix.env
+  # The dependency contains a Mixfile, so let's
+  # load it and retrieve its nested dependencies.
+  defp nested_deps(Mix.Dep[app: app, opts: opts], config) do
+    File.cd! opts[:path], fn ->
+      env     = opts[:env] || :prod
+      old_env = Mix.env
 
       try do
         Mix.env(env)

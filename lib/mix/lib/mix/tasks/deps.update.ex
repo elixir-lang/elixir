@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Deps.Update do
   projects after updating.
   """
 
-  import Mix.Deps, only: [all: 2, available?: 1, by_name!: 1, format_dep: 1, deps_path: 1]
+  import Mix.Deps, only: [all: 2, available?: 1, by_name!: 1, format_dep: 1]
 
   def run([]) do
     finalize_update all(init, deps_updater(&1, &2))
@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Deps.Update do
       Mix.shell.info "* Updating #{format_dep(dep)}"
 
       lock =
-        if latest = scm.update(deps_path(dep), opts) do
+        if latest = scm.update(opts) do
           Keyword.put(lock, app, latest)
         else
           lock
