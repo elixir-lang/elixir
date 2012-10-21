@@ -408,14 +408,6 @@ defmodule List do
 
   # zip
 
-  defp do_zip([h1|t1], [h2|t2], acc) do
-    do_zip t1, t2, [{h1, h2}|acc]
-  end
-
-  defp do_zip(_, _, acc) do
-    :lists.reverse acc
-  end
-
   defp do_zip(list, acc) do
     converter = fn x, acc -> do_zip_each(to_list(x), acc) end
     {mlist, heads} = :lists.mapfoldl converter, [], list
