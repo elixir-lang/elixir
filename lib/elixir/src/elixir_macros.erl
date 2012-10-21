@@ -8,7 +8,9 @@
   assert_no_function_scope/3, assert_module_scope/3, assert_no_assign_or_guard_scope/3]).
 -include("elixir.hrl").
 
--define(FUNS(), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
+-define(FUNS(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
+-define(IN_TYPES(Kind), Kind == atom orelse Kind == integer orelse Kind == float).
+
 -compile({parse_transform, elixir_transform}).
 
 %% Operators
@@ -207,10 +209,10 @@ translate({defmodule, Line, [Ref, KV]}, S) ->
 
   { elixir_module:translate(Line, FRef, Block, S), FS };
 
-translate({Kind, Line, [Call]}, S) when ?FUNS() ->
+translate({Kind, Line, [Call]}, S) when ?FUNS(Kind) ->
   translate({Kind, Line, [Call, nil]}, S);
 
-translate({Kind, Line, [Call, Expr]}, S) when ?FUNS() ->
+translate({Kind, Line, [Call, Expr]}, S) when ?FUNS(Kind) ->
   assert_module_scope(Line, Kind, S),
   assert_no_function_scope(Line, Kind, S),
   { TCall, Guards } = elixir_clauses:extract_guards(Call),
@@ -221,7 +223,7 @@ translate({Kind, Line, [Call, Expr]}, S) when ?FUNS() ->
   TExpr             = elixir_tree_helpers:abstract_syntax(Expr),
   { elixir_def:wrap_definition(Kind, Line, TName, TArgs, TGuards, TExpr, S), S };
 
-translate({Kind, Line, [Name, Args, Guards, Expr]}, S) when ?FUNS() ->
+translate({Kind, Line, [Name, Args, Guards, Expr]}, S) when ?FUNS(Kind) ->
   assert_module_scope(Line, Kind, S),
   assert_no_function_scope(Line, Kind, S),
   { TName, NS }   = translate_each(Name, S),
@@ -276,9 +278,9 @@ translate_in(Line, Left, Right, S) ->
       end, { op, Line, '==', Var, H }, T);
     { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
       case { Start, End } of
-        { { integer, _, StartInt }, { integer, _, EndInt } } when StartInt =< EndInt ->
+        { { K1, _, StartInt }, { K2, _, EndInt } } when ?IN_TYPES(K1), ?IN_TYPES(K2), StartInt =< EndInt ->
           increasing_compare(Line, Var, Start, End);
-        { { integer, _, _ }, { integer, _, _ } } ->
+        { { K1, _, _ }, { K2, _, _ } } when ?IN_TYPES(K1), ?IN_TYPES(K2) ->
           decreasing_compare(Line, Var, Start, End);
         _ ->
           { op, Line, 'orelse',
