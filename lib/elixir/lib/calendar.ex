@@ -29,6 +29,39 @@ defmodule Calendar do
     seconds1 - seconds2
   end
 
+  def format(DateTime[date: { _, _, days }] = datetime, "dd" <> t) do
+    padded_two_digits(days) <> format(datetime, t)
+  end
+
+  def format(DateTime[date: { _, _, days }] = datetime, "d" <> t) do
+    integer_to_binary(days) <> format(datetime, t)
+  end
+
+  def format(DateTime[date: { year, _, _ }] = datetime, "YYYY" <> t) do
+    integer_to_binary(year) <> format(datetime, t)
+  end
+
+  def format(DateTime[date: { year, _, _ }] = datetime, "YY" <> t) do
+    year = rem(year, 100)
+    padded_two_digits(year) <> format(datetime, t)
+  end
+
+  def format(datetime, "MMMM" <> t) do
+    month_name(datetime) <> format(datetime, t)
+  end
+
+  def format(datetime, "MM" <> t) do
+    month_abbr(datetime) <> format(datetime, t)
+  end
+
+  def format(datetime, << h, t :: binary >>) when not (h in ?a..?z or h in ?A..?Z) do
+    << h, format(datetime, t) :: binary >>
+  end
+
+  def format(_datetime, <<>>) do
+    <<>>
+  end
+
   def add(DateTime[] = datetime, options // []) do
     update(datetime, options, &1 + &2)
   end
@@ -120,4 +153,30 @@ defmodule Calendar do
   def month_abbr(11), do: "Nov"
   def month_abbr(12), do: "Dec"
 
+  def month_name(DateTime[date: { _, month, _ }]) do
+    month_name(month)
+  end
+
+  def month_name(1),  do: "January"
+  def month_name(2),  do: "February"
+  def month_name(3),  do: "March"
+  def month_name(4),  do: "April"
+  def month_name(5),  do: "May"
+  def month_name(6),  do: "June"
+  def month_name(7),  do: "July"
+  def month_name(8),  do: "August"
+  def month_name(9),  do: "September"
+  def month_name(10), do: "October"
+  def month_name(11), do: "November"
+  def month_name(12), do: "December"
+
+  ## Helpers
+
+  defp padded_two_digits(x) when x < 10 do
+    << ?0, ?0 + x >>
+  end
+
+  defp padded_two_digits(x) do
+    integer_to_binary(x)
+  end
 end

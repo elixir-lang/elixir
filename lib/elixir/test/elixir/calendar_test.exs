@@ -145,3 +145,50 @@ defmodule DateTimeTest do
     assert Calendar.subtract(time, days: 2, hours: 3, minutes: 5) == DateTime.new(date: { 2012, 9, 29 }, time: { 0, 0, 0 })
   end
 end
+
+defmodule DateTime.FormatTest do
+  use ExUnit.Case, async: true
+
+  test "handles dd" do
+    datetime = DateTime[date: { 2012, 10, 1 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "d") == "1"
+
+    datetime = DateTime[date: { 2012, 10, 13 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "d") == "13"
+  end
+
+  test "handles d" do
+    datetime = DateTime[date: { 2012, 10, 1 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "dd") == "01"
+    datetime = DateTime[date: { 2012, 10, 13 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "dd") == "13"
+  end
+
+  test "handles MM" do
+    datetime = DateTime[date: { 2012, 10, 1 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "MM") == "Oct"
+  end
+
+  test "handles MMMM" do
+    datetime = DateTime[date: { 2012, 10, 1 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "MMMM") == "October"
+  end
+
+  test "handles YY" do
+    datetime = DateTime[date: { 2012, 10, 1 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "MM YY") == "Oct 12"
+
+    datetime = DateTime[date: { 2008, 10, 1 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "MM YY") == "Oct 08"
+  end
+
+  test "handles YYYY" do
+    datetime = DateTime[date: { 2012, 10, 1 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "MM YYYY") == "Oct 2012"
+  end
+
+  test "supports other non-alphabetic characters" do
+    datetime = DateTime[date: { 2012, 10, 1 }, time: { 3, 5, 0 }]
+    assert Calendar.format(datetime, "MM?") == "Oct?"
+  end
+end
