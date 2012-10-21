@@ -38,7 +38,8 @@ erlang:
 
 lib/elixir/ebin/Elixir-String-Unicode.beam: lib/elixir/priv/unicode.ex lib/elixir/priv/UnicodeData.txt
 	@ echo "==> unicode (compile)";
-	@ bin/elixirc lib/elixir/priv/unicode.ex -o lib/elixir/ebin;
+	@ echo "This step can normally take up to a minute to compile in order to embed the Unicode database"
+	@ bin/elixirc --ignore-module-conflict lib/elixir/priv/unicode.ex -o lib/elixir/ebin;
 
 # We need to compile only EEx (without the app) file so we can compile Mix
 elixir: kernel lib/elixir/ebin/Elixir-String-Unicode.beam lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
