@@ -4,6 +4,8 @@
 defmodule String.Unicode do
   @moduledoc false
 
+  def version, do: {6,2,0}
+
   to_binary = fn(codepoint) ->
     :unicode.characters_to_binary([binary_to_integer(codepoint, 16)])
   end
