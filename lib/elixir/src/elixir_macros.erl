@@ -275,18 +275,20 @@ translate_in(Line, Left, Right, S) ->
         { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
       end, { op, Line, '==', Var, H }, T);
     { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
-      { op, Line, 'orelse',
-        { op, Line, 'andalso',
-          { op, Line, '=<', Start, End},      
-          { op, Line, 'andalso',
-            { op, Line, '>=', Var, Start },
-            { op, Line, '=<', Var, End } } },
-        { op, Line, 'andalso',
-          { op, Line, '<', End, Start},
-          { op, Line, 'andalso',          
-            { op, Line, '=<', Var, Start },
-            { op, Line, '>=', Var, End } } }
-      };
+      case { Start, End } of
+        { { integer, _, StartInt }, { integer, _, EndInt } } when StartInt =< EndInt ->
+          increasing_compare(Line, Var, Start, End);
+        { { integer, _, _ }, { integer, _, _ } } ->
+          decreasing_compare(Line, Var, Start, End);
+        _ ->
+          { op, Line, 'orelse',
+            { op, Line, 'andalso',
+              { op, Line, '=<', Start, End},
+              increasing_compare(Line, Var, Start, End) },
+            { op, Line, 'andalso',
+              { op, Line, '<', End, Start},
+              decreasing_compare(Line, Var, Start, End) } }
+      end;
     _ ->
       syntax_error(Line, S#elixir_scope.file, "invalid args for operator in")
   end,
@@ -295,6 +297,16 @@ translate_in(Line, Left, Right, S) ->
     true  -> { Var, { block, Line, [ { match, Line, Var, TLeft }, Expr ] }, SV };
     false -> { Var, Expr, SV }
   end.
+
+increasing_compare(Line, Var, Start, End) ->
+  { op, Line, 'andalso',
+    { op, Line, '>=', Var, Start },
+    { op, Line, '=<', Var, End } }.
+
+decreasing_compare(Line, Var, Start, End) ->
+  { op, Line, 'andalso',
+    { op, Line, '=<', Var, Start },
+    { op, Line, '>=', Var, End } }.
 
 rewrite_case_clauses([{do,[{in,_,[{'_',_,_},[false,nil]]}],False},{do,[{'_',_,_}],True}]) ->
   [{do,[false],False},{do,[true],True}];
