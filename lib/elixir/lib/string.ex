@@ -128,7 +128,11 @@ defmodule String do
   end
 
   @doc """
-  Convert all characters on the given string to upper case.
+  Convert all characters on the given string to upcase.
+
+  This function relies on the simple uppercase mapping
+  available in Unicode 6.2.0, check http://unicode.org/reports/tr44/
+  for more information.
 
   ## Examples
 
@@ -137,22 +141,14 @@ defmodule String do
       String.upcase("josé") #=> "JOSÉ"
 
   """
-  def upcase(<<>>), do: <<>>
-
-  def upcase(<<195, c, t :: binary>>) when c in 160..191 do
-    <<195, c - 32, upcase(t) :: binary>>
-  end
-
-  def upcase(<<c, t :: binary>>) when c in ?a..?z do
-    <<c  - 32, upcase(t) :: binary>>
-  end
-
-  def upcase(<<c, t :: binary>>) do
-    <<c , upcase(t) :: binary>>
-  end
+  defdelegate upcase(binary), to: String.Unicode
 
   @doc """
-  Convert all characters on the given string to down case.
+  Convert all characters on the given string to downcase.
+
+  This function relies on the simple lowercase mapping
+  available in Unicode 6.2.0, check http://unicode.org/reports/tr44/
+  for more information.
 
   ## Examples
 
@@ -161,19 +157,7 @@ defmodule String do
       String.downcase("JOSÉ") #=> "josé"
 
   """
-  def downcase(<<>>), do: <<>>
-
-  def downcase(<<195, c, t :: binary>>) when c in 128..159 do
-    <<195, c + 32, downcase(t) :: binary>>
-  end
-
-  def downcase(<<c, t :: binary>>) when c in ?A..?Z do
-    <<c + 32, downcase(t) :: binary>>
-  end
-
-  def downcase(<<c, t :: binary>>) do
-    <<c , downcase(t) :: binary>>
-  end
+  defdelegate downcase(binary), to: String.Unicode
 
   @doc """
   Returns a string where trailing char have been

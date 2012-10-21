@@ -36,9 +36,12 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 erlang:
 	@ cd lib/elixir && $(REBAR) compile
 
-# We need to compile only EEx (without the app)
-# file so we can compile Mix
-elixir: kernel lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
+lib/elixir/ebin/Elixir-String-Unicode.beam: lib/elixir/priv/unicode.ex lib/elixir/priv/UnicodeData.txt
+	@ echo "==> unicode (compile)";
+	elixirc lib/elixir/priv/unicode.ex -o lib/elixir/ebin;
+
+# We need to compile only EEx (without the app) file so we can compile Mix
+elixir: kernel lib/elixir/ebin/Elixir-String-Unicode.beam lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
 
 kernel: $(KERNEL)
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex $(FORCE)

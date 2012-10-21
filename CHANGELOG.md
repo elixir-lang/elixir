@@ -1,3 +1,6 @@
+* enhancements
+  * [String] Support String.downcase and String.upcase according to Unicode 6.2.0
+
 # v0.7.0 (2012-10-20)
 
 * enhancements
