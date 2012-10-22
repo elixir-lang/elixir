@@ -30,6 +30,10 @@ If you want to contribute, Elixir code is divided in applications inside the `li
 
 * `ex_unit` - Simple test framework that ships with Elixir;
 
+* `iex` — IEx, Elixir's interactive shell
+
+* `mix` — Elixir's build tool
+
 We usually keep a list of features and bugs [in the issue tracker][2].
 
 # Important links
