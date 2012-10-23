@@ -84,6 +84,8 @@ returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } },
 returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } }, [_,_] }) when
   Fun == is_function -> true;
 
+returns_boolean({ atom, _, Bool }) when Bool == true; Bool == false -> true;
+
 returns_boolean(_) -> false.
 
 convert_to_boolean(Line, Expr, Bool, InGuard) ->

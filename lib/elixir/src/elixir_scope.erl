@@ -14,7 +14,8 @@ translate_var(Line, Name, Kind, S) ->
   Vars = S#elixir_scope.vars,
 
   case Name of
-    '_' -> { {var, Line, Name}, S };
+    '_' ->
+      { { var, Line, Name }, S };
     _ ->
       case S#elixir_scope.context of
         assign ->
