@@ -20,8 +20,8 @@
   recur=nil,                                     %% the current loop function to be recurred
   vars=[],                                       %% a dict of defined variables and their alias
   temp_vars=[],                                  %% a dict of all variables defined in a particular assign
-  clause_vars=[],                                %% a dict of all variables defined in a particular clause
   quote_vars=[],                                 %% a dict of all quoted variables
+  clause_vars=nil,                               %% a dict of all variables defined in a particular clause
   extra_guards=nil,                              %% extra guards from args expansion
   counter=0,                                     %% a counter for the variables defined
   file=(<<"nofile">>),                           %% the current scope filename

@@ -100,7 +100,7 @@ eval_forms(Tree, Binding, RawScope) ->
     vars=binding_dict(Binding),
     temp_vars=[],
     quote_vars=[],
-    clause_vars=[],
+    clause_vars=nil,
     counter=0
   },
   { ParseTree, NewScope } = elixir_translator:translate(Tree, Scope),

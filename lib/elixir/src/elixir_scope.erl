@@ -5,7 +5,7 @@
   build_erl_var/2, build_ex_var/2,
   serialize/1, deserialize/1, deserialize/2,
   to_erl_env/1, to_ex_env/1, filename/1,
-  umergev/2, umergec/2
+  umergev/2, umergec/2, merge_clause_vars/2
   ]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
@@ -33,7 +33,10 @@ translate_var(Line, Name, Kind, S) ->
               { NewVar, NS#elixir_scope{
                 vars=orddict:store(Name, RealName, Vars),
                 temp_vars=orddict:store(Name, Kind, TempVars),
-                clause_vars=orddict:store({ Name, Kind }, RealName, ClauseVars)
+                clause_vars=if
+                  ClauseVars == nil -> nil;
+                  true -> orddict:store({ Name, Kind }, RealName, ClauseVars)
+                end
               } }
           end;
         _ ->
@@ -111,7 +114,7 @@ umergev(S1, S2) ->
   S2#elixir_scope{
     vars=orddict:merge(fun var_merger/3, V1, V2),
     quote_vars=orddict:merge(fun var_merger/3, Q1, Q2),
-    clause_vars=orddict:merge(fun clause_var_merger/3, C1, C2)
+    clause_vars=merge_clause_vars(C1, C2)
   }.
 
 % Receives two scopes and return a new scope based on the first
@@ -127,6 +130,11 @@ umergec(S1, S2) ->
   }.
 
 % Merge variables trying to find the most recently created.
+
+merge_clause_vars(nil, _C2) -> nil;
+merge_clause_vars(_C1, nil) -> nil;
+merge_clause_vars(C1, C2)   ->
+  orddict:merge(fun clause_var_merger/3, C1, C2).
 
 clause_var_merger({ Var, _ }, K1, K2) ->
   var_merger(Var, K1, K2).

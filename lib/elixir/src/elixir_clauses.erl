@@ -87,9 +87,12 @@ extract_last_guards(Args) ->
 
 % Function for translating macros with match style like case and receive.
 
-match(Line, DecoupledClauses, RawS) ->
-  S = RawS#elixir_scope{clause_vars=orddict:new()},
+match(Line, Clauses, #elixir_scope{clause_vars=C1} = S) ->
+  { TC, TS } = do_match(Line, Clauses, S#elixir_scope{clause_vars=orddict:new()}),
+  C2 = TS#elixir_scope.clause_vars,
+  { TC, TS#elixir_scope{clause_vars=elixir_scope:merge_clause_vars(C1, C2)} }.
 
+do_match(Line, DecoupledClauses, S) ->
   case DecoupledClauses of
     [DecoupledClause] ->
       { TDecoupledClause, TS } = each_clause(Line, DecoupledClause, S),

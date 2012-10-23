@@ -1,6 +1,9 @@
 * enhancements
   * [String] Support String.downcase and String.upcase according to Unicode 6.2.0
 
+* bug fix
+  * [Kernel] Fix an issue where variables inside clauses remained unassigned
+
 # v0.7.0 (2012-10-20)
 
 * enhancements
