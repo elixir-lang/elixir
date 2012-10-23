@@ -97,6 +97,16 @@ defmodule StringTest do
     assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") == ["ϖ","Ͳ","ϥ","Ы","ݎ","ߟ","Έ","ټ","Ϙ","ለ","Д","Ш","व","׆","ש","؇","؊","ص","ل","ټ","ܗ","ݎ","ޥ","ޘ","߉","ऌ","૫","ሏ","ᶆ","℆","ℙ","ℱ"," ","⅚","Ⅷ","↠","∈","⌘","①","ﬃ"]
   end
 
+  test :graphemes do
+    assert String.graphemes("Ā̀stute") == ["Ā̀","s","t","u","t","e"]
+  end
+
+
+  test :grapheme do
+    assert String.grapheme("Ā̀stute") == {"Ā̀","stute"}
+    assert String.grapheme("") == :no_sequence
+  end
+
   test :first do
     assert String.first("elixir") == "e"
     assert String.first("íelixr") == "í"
@@ -105,6 +115,7 @@ defmodule StringTest do
     assert String.first("ελιξήριο") == "ε"
     assert String.first("סם חיים") == "ס"
     assert String.first("がガちゃ") == "が"
+    assert String.first("Ā̀stute") == "Ā̀"        
     assert String.first("") == ""
   end
 
@@ -117,6 +128,7 @@ defmodule StringTest do
     assert String.last("סם ייםח") == "ח"
     assert String.last("がガちゃ") == "ゃ"
     assert String.last("") == ""
+    assert String.last("Ā̀") == "Ā̀"
   end
 
   test :length do
@@ -127,6 +139,7 @@ defmodule StringTest do
     assert String.length("ειξήριολ") == 8
     assert String.length("סם ייםח") == 7
     assert String.length("がガちゃ") == 4
+    assert String.length("Ā̀stute") == 6    
     assert String.length("") == 0
   end
 
@@ -138,6 +151,7 @@ defmodule StringTest do
     assert String.at("elixir", -1) == "r"
     assert String.at("がガちゃ", -2) == "ち"
     assert String.at("л", -3) == ""
+    assert String.at("Ā̀stute", 1) == "s"
   end
 
 end
