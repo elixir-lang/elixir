@@ -1,12 +1,14 @@
 defmodule String do
   @moduledoc """
   A string in Elixir is a utf-8 binary. This module
-  contains function to work with utf-8 data and its
+  contains function to work with utf-8 data, its
   codepoints and graphemes.
 
-  The difference between codepoints is that codepoints represent individual 
-  characters, however, graphemes contain multiple characters that
-  are "perceived as a single character" by readers.
+  Notice that graphemes is a superset of UTF-8 codepoints
+  which also contains named sequences as defined per
+  http://www.unicode.org/reports/tr34/. In short, graphemes
+  also contain multiple characters that are "perceived as
+  a single character" by readers.
 
   For working with raw binaries, use Erlang's :binary
   module.
@@ -93,7 +95,6 @@ defmodule String do
 
   def printable?(<<>>), do: true
   def printable?(_),    do: false
-
 
   @doc """
   Divides a string into sub string based on a pattern,
@@ -289,18 +290,44 @@ defmodule String do
       String.codepoints("ἅἪῼ")          #=> ["ἅ","Ἢ","ῼ"]
 
   """
-  def codepoints(string) do
-    do_codepoints(codepoint(string))
-  end
+  defdelegate codepoints(string), to: String.Unicode
 
-  defp do_codepoints({char, rest}) do
-    [char|do_codepoints(codepoint(rest))]
-  end
+  @doc """
+  Returns the next codepoint in a String.
 
-  defp do_codepoints(:no_codepoint), do: []
+  The result is a tuple with the codepoint and the
+  remaining of the string or `:no_codepoint` in case
+  the String reached its end.
 
-  @doc false
-  defdelegate codepoint(string), to: String.Unicode
+  ## Examples
+
+      String.next_codepoint("josé") #=> { "j", "osé" }
+
+  """
+  defdelegate next_codepoint(string), to: String.Unicode
+
+  @doc """
+  Returns unicode graphemes in the string
+
+  ## Examples
+     String.graphemes("Ā̀stute") # => ["Ā̀","s","t","u","t","e"]
+
+  """
+  defdelegate graphemes(string), to: String.Unicode
+
+  @doc """
+  Returns the next grapheme in a String.
+
+  The result is a tuple with the grapheme and the
+  remaining of the string or `:no_grapheme` in case
+  the String reached its end.
+
+  ## Examples
+
+      String.next_grapheme("josé") #=> { "j", "osé" }
+
+  """
+  defdelegate next_grapheme(string), to: String.Unicode
 
   @doc """
   Returns the first grapheme from an utf8 string.
@@ -312,9 +339,9 @@ defmodule String do
 
   """
   def first(string) do
-    case grapheme(string) do
+    case next_grapheme(string) do
       { char, _ } -> char
-      :no_sequence -> ""
+      :no_grapheme -> ""
     end
   end
 
@@ -328,14 +355,14 @@ defmodule String do
 
   """
   def last(string) do
-    do_last(grapheme(string), "")
+    do_last(next_grapheme(string), "")
   end
 
   defp do_last({char, rest}, _) do
-    do_last(grapheme(rest), char)
+    do_last(next_grapheme(rest), char)
   end
 
-  defp do_last(:no_sequence, last_char), do: last_char
+  defp do_last(:no_grapheme, last_char), do: last_char
 
   @doc """
   Returns the number of unicode graphemes in an utf8 string.
@@ -347,25 +374,14 @@ defmodule String do
 
   """
   def length(string) do
-    do_length(grapheme(string))
+    do_length(next_grapheme(string))
   end
 
   defp do_length({_, rest}) do
-    1 + do_length(grapheme(rest))
+    1 + do_length(next_grapheme(rest))
   end
-  defp do_length(:no_sequence), do: 0
 
-  @doc """
-  Returns unicode graphemes in the string
-
-  ## Examples
-     String.graphemes("Ā̀stute") # => ["Ā̀","s","t","u","t","e"]
-     
-  """
-  defdelegate graphemes(string), to: String.Unicode, as: :sequences
-
-  @doc false
-  defdelegate grapheme(string), to: String.Unicode, as: :sequence
+  defp do_length(:no_grapheme), do: 0
 
   @doc """
   Returns the grapheme in the `position` of the given utf8 `string`.
@@ -381,25 +397,24 @@ defmodule String do
 
   """
   def at(string, position) when position >= 0 do
-    do_at(grapheme(string), position, 0)
+    do_at(next_grapheme(string), position, 0)
   end
 
   def at(string, position) when position < 0 do
-    real_pos = do_length(grapheme(string)) - abs(position)
+    real_pos = do_length(next_grapheme(string)) - abs(position)
     case real_pos >= 0 do
-      true -> do_at(grapheme(string), real_pos, 0)
+      true  -> do_at(next_grapheme(string), real_pos, 0)
       false -> ""
     end
   end
 
   defp do_at({_ , rest}, desired_pos, current_pos) when desired_pos > current_pos do
-    do_at(grapheme(rest), desired_pos, current_pos + 1)
+    do_at(next_grapheme(rest), desired_pos, current_pos + 1)
   end
 
   defp do_at({char, _}, desired_pos, current_pos) when desired_pos == current_pos do
     char
   end
 
-  defp do_at(:no_sequence, _, _), do: ""
-
+  defp do_at(:no_grapheme, _, _), do: ""
 end

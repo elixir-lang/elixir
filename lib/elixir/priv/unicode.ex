@@ -30,7 +30,7 @@ defmodule String.Unicode do
 
   seqs = Enum.map(File.iterator!(seqs_path), fn(line) ->
     [ _name, codepoints ] = :binary.split(line, ";", [:global])
-    codepoints = Enum.filter(:binary.split(codepoints, " ", [:global, :trim]), 
+    codepoints = Enum.filter(:binary.split(codepoints, " ", [:global, :trim]),
                              fn(x) -> size(x) > 0 end)
     Enum.map(codepoints, fn(x) -> to_binary.(x) end)
   end)
@@ -69,63 +69,68 @@ defmodule String.Unicode do
     << >>
   end
 
-  # Sequences
+  # Graphemes
 
   lc codepoints inlist seqs do
     seq_args  = quote do: [<< unquote_splicing(codepoints), t :: binary >>]
     seq_code  = quote do: {<< unquote_splicing(codepoints) >>, t}
-    def :sequence, seq_args, [], do: seq_code  
+    def :next_grapheme, seq_args, [], do: seq_code
   end
 
-  def sequence(binary) when is_binary(binary) and byte_size(binary) > 0 do
-    case codepoint(binary) do
-      :no_codepoint -> :no_sequence
+  def next_grapheme(<<>>) do
+    :no_grapheme
+  end
+
+  def next_grapheme(binary) when is_binary(binary) do
+    case next_codepoint(binary) do
+      :no_codepoint -> :no_grapheme
       other -> other
     end
   end
 
-  def sequence(<< >>) do
-    :no_sequence
+  def graphemes(binary) when is_binary(binary) do
+    do_graphemes(next_grapheme(binary))
   end
 
-  def sequences(binary) when is_binary(binary) and byte_size(binary) > 0 do
-    case sequence(binary) do 
-      { c, rest } -> [c|sequences(rest)]
-      :no_sequence -> []
-    end
+  defp do_graphemes({ c, rest }) do
+    [c|do_graphemes(next_grapheme(rest))]
   end
 
-  def sequences(<< >>) do
+  defp do_graphemes(:no_grapheme) do
     []
   end
 
+  # Codepoints
 
-  # Private implementation which returns the first codepoint
-  # of any given utf8 string and the rest of it
-  # If an empty string is given, :no_codepoint is returned.
-  @doc false
-  def codepoint(<<194, char, rest :: binary>>)
+  def next_codepoint(<<194, char, rest :: binary>>)
     when char in 161..191,
     do: { <<194, char>>, rest }
 
-
-  def codepoint(<<first, char, rest :: binary>>)
+  def next_codepoint(<<first, char, rest :: binary>>)
     when first in 195..223 and char in 128..191,
     do: { <<first, char>>, rest }
 
-
-  def codepoint(<<first, second, char, rest :: binary>>)
+  def next_codepoint(<<first, second, char, rest :: binary>>)
     when first == 224 and second in 160..191 and char in 128..191,
     do: { <<first, second, char>>, rest }
 
-
-  def codepoint(<<first, second, char, rest :: binary>>)
+  def next_codepoint(<<first, second, char, rest :: binary>>)
     when first in 225..239 and second in 128..191 and char in 128..191,
     do: { <<first, second, char>>, rest }
 
+  def next_codepoint(<<other, rest :: binary>>), do: { <<other>>, rest }
 
-  def codepoint(<<other, rest :: binary>>), do: { <<other>>, rest }
+  def next_codepoint(<<>>), do: :no_codepoint
 
+  def codepoints(binary) when is_binary(binary) do
+    do_codepoints(next_codepoint(binary))
+  end
 
-  def codepoint(<<>>), do: :no_codepoint
+  defp do_codepoints({ c, rest }) do
+    [c|do_codepoints(next_codepoint(rest))]
+  end
+
+  defp do_codepoints(:no_codepoint) do
+    []
+  end
 end

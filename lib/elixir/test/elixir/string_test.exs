@@ -101,10 +101,9 @@ defmodule StringTest do
     assert String.graphemes("Ā̀stute") == ["Ā̀","s","t","u","t","e"]
   end
 
-
-  test :grapheme do
-    assert String.grapheme("Ā̀stute") == {"Ā̀","stute"}
-    assert String.grapheme("") == :no_sequence
+  test :next_grapheme do
+    assert String.next_grapheme("Ā̀stute") == {"Ā̀","stute"}
+    assert String.next_grapheme("") == :no_grapheme
   end
 
   test :first do
