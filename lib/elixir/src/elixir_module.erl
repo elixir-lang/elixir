@@ -150,6 +150,7 @@ eval_form(Line, Module, Block, Vars, RawS) ->
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, Vars, S),
   elixir_def_overridable:store_pending(Module),
   eval_callbacks(Line, Module, before_compile, [Module], NewS),
+  elixir_def_overridable:store_pending(Module),
   Value.
 
 %% Return the form with exports and function declarations.

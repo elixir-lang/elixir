@@ -139,8 +139,8 @@ defmodule Kernel.SpecialForms do
 
       import :all, List
 
-  It can also be customized to import only functions or only
-  macros:
+  It can also be customized to import only all functions or
+  all macros:
 
       import :functions, List
       import :macros, List

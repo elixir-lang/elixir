@@ -170,6 +170,16 @@ defmodule ModuleTest do
     end)
   end
 
+  def __on_definition__(env, kind, name, args, guards, expr) do
+    Process.put(env.module, :called)
+    assert env.module == ModuleTest.OnDefinition
+    assert kind == :def
+    assert name == :hello
+    assert [{ :foo, _, _ }, { :bar, _ ,_ }] = args
+    assert [] = guards
+    assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
+  end
+
   test :on_definition do
     defmodule OnDefinition do
       @on_definition ModuleTest
@@ -182,16 +192,6 @@ defmodule ModuleTest do
     assert Process.get(ModuleTest.OnDefinition) == :called
   end
 
-  def __on_definition__(env, kind, name, args, guards, expr) do
-    Process.put(env.module, :called)
-    assert env.module == ModuleTest.OnDefinition
-    assert kind == :def
-    assert name == :hello
-    assert [{ :foo, _, _ }, { :bar, _ ,_ }] = args
-    assert [] = guards
-    assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
-  end
-
   test :create do
     contents =
       quote do
@@ -200,5 +200,19 @@ defmodule ModuleTest do
     { :module, ModuleCreateSample, _, _ } =
       Module.create(ModuleCreateSample, contents, __ENV__)
     assert ModuleCreateSample.world
+  end
+
+  defmacro __before_compile__(_) do
+    quote do
+      def constant, do: 1
+      defoverridable constant: 0
+    end
+  end
+
+  test :overridable_inside_before_compile do
+    defmodule OverridableWithBeforeCompile do
+      @before_compile ModuleTest
+    end
+    assert OverridableWithBeforeCompile.constant == 1
   end
 end
