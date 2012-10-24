@@ -2872,7 +2872,7 @@ defmodule Kernel do
         defdelegate other_reverse(list), to: :lists, as: :reverse
       end
 
-      My:lists.reverse([1,2,3])
+      MyList.reverse([1,2,3])
       #=> [3,2,1]
 
       MyList.other_reverse([1,2,3])
