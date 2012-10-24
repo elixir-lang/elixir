@@ -14,7 +14,6 @@
   super=false,                                   %% when true, it means super was invoked
   caller=false,                                  %% when true, it means caller was invoked
   name_args=false,                               %% when true, it means arguments should be named
-  macro=[],                                      %% a stack with macros nesting
   module=nil,                                    %% the current module
   function=nil,                                  %% the current function
   recur=nil,                                     %% the current loop function to be recurred

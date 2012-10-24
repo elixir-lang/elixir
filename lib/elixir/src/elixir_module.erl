@@ -25,7 +25,6 @@ scope_for_eval(Module, Opts) ->
 
 binding_for_eval(Module, Binding) -> [{'_@MODULE',Module}|Binding].
 
-
 %% TABLE METHODS
 
 data_table(Module) ->

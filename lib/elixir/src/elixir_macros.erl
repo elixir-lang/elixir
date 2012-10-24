@@ -207,7 +207,7 @@ translate({defmodule, Line, [Ref, KV]}, S) ->
       { TRef, S }
   end,
 
-  { elixir_module:translate(Line, FRef, Block, S), FS };
+  { elixir_module:translate(Line, FRef, Block, S#elixir_scope{check_clauses=true}), FS };
 
 translate({Kind, Line, [Call]}, S) when ?FUNS(Kind) ->
   translate({Kind, Line, [Call, nil]}, S);

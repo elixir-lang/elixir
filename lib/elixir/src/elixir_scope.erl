@@ -79,7 +79,7 @@ filename(Other) -> element(3, Other).
 
 serialize(S) ->
   elixir_tree_helpers:abstract_syntax(
-    { S#elixir_scope.file, S#elixir_scope.functions, S#elixir_scope.check_clauses, S#elixir_scope.macro,
+    { S#elixir_scope.file, S#elixir_scope.functions, S#elixir_scope.check_clauses,
       S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases, S#elixir_scope.scheduled }
   ).
 
@@ -87,12 +87,11 @@ serialize(S) ->
 
 deserialize(Tuple) -> deserialize(Tuple, []).
 
-deserialize({ File, Functions, CheckClauses, Macro, Requires, Macros, Aliases, Scheduled }, Vars) ->
+deserialize({ File, Functions, CheckClauses, Requires, Macros, Aliases, Scheduled }, Vars) ->
   #elixir_scope{
     file=File,
     functions=Functions,
     check_clauses=CheckClauses,
-    macro=Macro,
     requires=Requires,
     macros=Macros,
     aliases=Aliases,
