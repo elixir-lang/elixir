@@ -393,7 +393,7 @@ defmodule String do
       String.at("elixir", 1) #=> "l"
       String.at("elixir", 10) #=> nil
       String.at("elixir", -1) #=> "r"
-      String.at("elixir", -10) #=> "nil"
+      String.at("elixir", -10) #=> nil
 
   """
   def at(string, position) when position >= 0 do
@@ -416,5 +416,5 @@ defmodule String do
     char
   end
 
-  defp do_at(:no_grapheme, _, _), do: ""
+  defp do_at(:no_grapheme, _, _), do: nil
 end
