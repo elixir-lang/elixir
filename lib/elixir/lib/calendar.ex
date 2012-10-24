@@ -1,3 +1,5 @@
+defrecord Date, year: nil, month: nil, day: nil
+defrecord Time, hour: nil, minute: nil, second: nil
 defrecord DateTime, date: nil, time: nil
 
 defmodule Calendar do
@@ -5,60 +7,73 @@ defmodule Calendar do
   @hour_in_seconds   60 * 60
   @day_in_seconds    24 * 60 * 60
 
-  def from_tuple({ date, time }) do
-    DateTime[date: date, time: time]
+  def from_tuple({ { year, month, day }, { hour, minute, second } }) do
+    DateTime[date: Date[year: year, month: month, day: day],
+             time: Time[hour: hour, minute: minute, second: second]]
+  end
+
+  def to_tuple(Date[year: year, month: month, day: day]) do
+    { year, month, day }
+  end
+
+  def to_tuple(Time[hour: hour, minute: minute, second: second]) do
+    { hour, minute, second }
   end
 
   def to_tuple(DateTime[date: date, time: time]) do
-    { date, time }
+    { to_tuple(date), to_tuple(time) }
   end
 
   def universal_time do
-    { date, time } = :calendar.universal_time
-    DateTime[date: date, time: time]
+    from_tuple(:calendar.universal_time)
   end
 
   def local_time do
-    { date, time } = :calendar.local_time
-    DateTime[date: date, time: time]
+    from_tuple(:calendar.local_time)
   end
 
-  def difference(DateTime[date: date1, time: time1], DateTime[date: date2, time: time2]) do
-    seconds1 = :calendar.datetime_to_gregorian_seconds({ date1, time1 })
-    seconds2 = :calendar.datetime_to_gregorian_seconds({ date2, time2 })
+  def difference(DateTime[] = datetime1, DateTime[] = datetime2) do
+    tuple1 = to_tuple(datetime1)
+    tuple2 = to_tuple(datetime2)
+    seconds1 = :calendar.datetime_to_gregorian_seconds(tuple1)
+    seconds2 = :calendar.datetime_to_gregorian_seconds(tuple2)
     seconds1 - seconds2
   end
 
-  def format(DateTime[date: { _, _, days }] = datetime, "dd" <> t) do
-    padded_two_digits(days) <> format(datetime, t)
+  def format(DateTime[date: date], fmt) do
+    format(date, fmt)
   end
 
-  def format(DateTime[date: { _, _, days }] = datetime, "d" <> t) do
-    integer_to_binary(days) <> format(datetime, t)
+  def format(Date[day: day] = date, "dd" <> t) do
+    padded_two_digits(day) <> format(date, t)
   end
 
-  def format(DateTime[date: { year, _, _ }] = datetime, "YYYY" <> t) do
-    integer_to_binary(year) <> format(datetime, t)
+  def format(Date[day: day] = date, "d" <> t) do
+    integer_to_binary(day) <> format(date, t)
   end
 
-  def format(DateTime[date: { year, _, _ }] = datetime, "YY" <> t) do
+  def format(Date[year: year] = date, "YYYY" <> t) do
+    integer_to_binary(year) <> format(date, t)
+  end
+
+  def format(Date[year: year] = date, "YY" <> t) do
     year = rem(year, 100)
-    padded_two_digits(year) <> format(datetime, t)
+    padded_two_digits(year) <> format(date, t)
   end
 
-  def format(datetime, "MMMM" <> t) do
-    month_name(datetime) <> format(datetime, t)
+  def format(date, "MMMM" <> t) do
+    month_name(date) <> format(date, t)
   end
 
-  def format(datetime, "MM" <> t) do
-    month_abbr(datetime) <> format(datetime, t)
+  def format(date, "MM" <> t) do
+    month_abbr(date) <> format(date, t)
   end
 
-  def format(datetime, << h, t :: binary >>) when not (h in ?a..?z or h in ?A..?Z) do
-    << h, format(datetime, t) :: binary >>
+  def format(date, << h, t :: binary >>) when not (h in ?a..?z or h in ?A..?Z) do
+    << h, format(date, t) :: binary >>
   end
 
-  def format(_datetime, <<>>) do
+  def format(_date, <<>>) do
     <<>>
   end
 
@@ -70,7 +85,7 @@ defmodule Calendar do
     update(datetime, options, &1 - &2)
   end
 
-  defp update(DateTime[date: date, time: time], options, function) do
+  defp update(DateTime[] = datetime, options, function) do
     seconds = 0
     if seconds_option = options[:seconds] do
       seconds = seconds + seconds_option
@@ -88,31 +103,47 @@ defmodule Calendar do
       seconds = seconds + (days_option * @day_in_seconds)
     end
 
-    time_in_seconds = :calendar.datetime_to_gregorian_seconds({ date, time })
+    time_in_seconds = :calendar.datetime_to_gregorian_seconds(to_tuple(datetime))
     time_in_seconds = function.(time_in_seconds, seconds)
-    { date, time } = :calendar.gregorian_seconds_to_datetime(time_in_seconds)
-    DateTime[date: date, time: time]
+    datetime = :calendar.gregorian_seconds_to_datetime(time_in_seconds)
+    from_tuple(datetime)
+  end
+
+  def weekday(Date[] = date) do
+    :calendar.day_of_the_week(to_tuple(date))
   end
 
   def weekday(DateTime[date: date]) do
-    :calendar.day_of_the_week(date)
+    weekday(date)
   end
 
-  def day(DateTime[date: { _, _, day }]), do: day
-  def month(DateTime[date: { _, month, _ }]), do: month
-  def year(DateTime[date: { year, _, _ }]), do: year
+  def day(Date[day: day]),       do: day
+  def month(Date[month: month]), do: month
+  def year(Date[year: year]),    do: year
 
-  def leap?(DateTime[date: { year, _, _ }]) do
+  def day(DateTime[date: date]),   do: day(date)
+  def month(DateTime[date: date]), do: month(date)
+  def year(DateTime[date: date]),  do: year(date)
+
+  def leap?(Date[year: year]) do
     leap?(year)
+  end
+
+  def leap?(DateTime[date: date]) do
+    leap?(date)
   end
 
   def leap?(year) when is_integer(year) do
     :calendar.is_leap_year(year)
   end
 
-  def weekday_abbr(DateTime[] = datetime) do
-    weekday = weekday(datetime)
+  def weekday_abbr(Date[] = date) do
+    weekday = weekday(date)
     weekday_abbr(weekday)
+  end
+
+  def weekday_abbr(DateTime[date: date]) do
+    weekday_abbr(date)
   end
 
   def weekday_abbr(1), do: "Mon"
@@ -123,9 +154,13 @@ defmodule Calendar do
   def weekday_abbr(6), do: "Sat"
   def weekday_abbr(7), do: "Sun"
 
-  def weekday_name(DateTime[] = datetime) do
-    weekday = weekday(datetime)
+  def weekday_name(Date[] = date) do
+    weekday = weekday(date)
     weekday_name(weekday)
+  end
+
+  def weekday_name(DateTime[date: date]) do
+    weekday_name(date)
   end
 
   def weekday_name(1), do: "Monday"
@@ -136,8 +171,12 @@ defmodule Calendar do
   def weekday_name(6), do: "Saturday"
   def weekday_name(7), do: "Sunday"
 
-  def month_abbr(DateTime[date: { _, month, _ }]) do
+  def month_abbr(Date[month: month]) do
     month_abbr(month)
+  end
+
+  def month_abbr(DateTime[date: date]) do
+    month_abbr(date)
   end
 
   def month_abbr(1),  do: "Jan"
@@ -153,8 +192,12 @@ defmodule Calendar do
   def month_abbr(11), do: "Nov"
   def month_abbr(12), do: "Dec"
 
-  def month_name(DateTime[date: { _, month, _ }]) do
+  def month_name(Date[month: month]) do
     month_name(month)
+  end
+
+  def month_name(DateTime[date: date]) do
+    month_name(date)
   end
 
   def month_name(1),  do: "January"
