@@ -57,13 +57,19 @@ defmodule IEx.Autocomplete do
         expand_dot reduce(t)
       h === ?: ->
         expand_erlang_modules
-      (h in ?a..?z) or (h in ?A..?Z) or h in [?_, ??, ?!] ->
+      identifier?(h) ->
         expand_expr reduce(expr)
+      (h == ?/) and t != [] and identifier?(hd(t)) ->
+        expand_expr reduce(t)
       h in '(+[' ->
         expand ''
       true ->
         no_match
     end
+  end
+
+  defp identifier?(h) do
+    (h in ?a..?z) or (h in ?A..?Z) or h in [?_, ??, ?!]
   end
 
   defp expand_dot(expr) do

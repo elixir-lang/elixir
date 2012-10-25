@@ -55,7 +55,8 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :elixir_function_completion_with_arity do
-    assert expand('Enum.all?') == {:yes, '', ['all?/2']}
+    assert expand('Enum.all?')  == {:yes, '', ['all?/2']}
+    assert expand('Enum.all?/') == {:yes, '', ['all?/2']}
   end
 
   test :elixir_macro_completion do
