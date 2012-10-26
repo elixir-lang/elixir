@@ -1,5 +1,5 @@
 language: erlang
-script: "make compile && make .full test"
+script: "make compile && make .release test"
 notifications:
   irc: "irc.freenode.org#elixir-lang"
   recipients:
