@@ -17,7 +17,7 @@ linify(_, Else) -> Else.
 
 %% Translation
 
-quote({ 'unquote_splicing', Line, _ } = Expr, Q, S) ->
+quote({ 'unquote_splicing', Line, _ } = Expr, #elixir_quote{unquote=true} = Q, S) ->
   do_quote({ '__block__', Line, [Expr] }, Q, S);
 
 quote(Else, Q, S) ->
