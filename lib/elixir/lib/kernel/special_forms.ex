@@ -139,8 +139,8 @@ defmodule Kernel.SpecialForms do
 
       import :all, List
 
-  It can also be customized to import only functions or only
-  macros:
+  It can also be customized to import only all functions or
+  all macros:
 
       import :functions, List
       import :macros, List
@@ -448,10 +448,38 @@ defmodule Kernel.SpecialForms do
 
   @doc """
   This is the special form used to hold aliases information.
-  At compilation time, it is usually compiled to an atom:
+  It is usually compiled to an atom:
 
       quote do: Foo.Bar
       { :__aliases__, 0, [:Foo,:Bar] }
+
+  Elixir represents `Foo.Bar` as `__aliases__` so calls can be
+  unambiguously identified by the operator `:.`. For example:
+
+      quote do: Foo.bar
+      {{:.,0,[{:__aliases__,0,[:Foo]},:bar]},0,[]}
+
+  Whenever an expression iterator sees a `:.` as the tuple key,
+  it can be sure that it represents a call and the second element
+  of the arguments list is an atom.
+
+  On the other hand, aliases holds some properties:
+
+  1) The head element of aliases can be any term;
+
+  2) The tail elements of aliases are guaranteed to always be atoms;
+
+  3) When the head element of aliases is the atom :Elixir, no expansion happen;
+
+  4) When the head element of aliases is not an atom, it is expanded at runtime:
+
+        quote do: some_var.Foo
+        {:__aliases__,0,[{:some_var,0,:quoted},:Bar]}
+
+     Since `some_var` is not available at compilation time, the compiler
+     expands such expression to:
+
+        Module.concat [some_var, Foo]
 
   """
   defmacro __aliases__(args)

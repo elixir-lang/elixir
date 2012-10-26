@@ -9,6 +9,7 @@ defmodule IEx.Autocomplete do
   defprotocol Entry do
     @moduledoc false
     def to_entries(entry)
+    def to_uniq_entries(entry)
     def to_hint(entry, hint)
   end
 
@@ -17,6 +18,10 @@ defmodule IEx.Autocomplete do
 
     def to_entries(mod) do
       [mod.name]
+    end
+
+    def to_uniq_entries(_fun) do
+      []
     end
 
     def to_hint(Mod[name: name], hint) do
@@ -29,6 +34,10 @@ defmodule IEx.Autocomplete do
 
     def to_entries(fun) do
       lc a inlist fun.arities, do: '#{fun.name}/#{a}'
+    end
+
+    def to_uniq_entries(fun) do
+      to_entries(fun)
     end
 
     def to_hint(Fun[name: name], hint) do
@@ -48,8 +57,10 @@ defmodule IEx.Autocomplete do
         expand_dot reduce(t)
       h === ?: ->
         expand_erlang_modules
-      (h in ?a..?z) or (h in ?A..?Z) or h === ?_ ->
+      identifier?(h) ->
         expand_expr reduce(expr)
+      (h == ?/) and t != [] and identifier?(hd(t)) ->
+        expand_expr reduce(t)
       h in '(+[' ->
         expand ''
       true ->
@@ -57,10 +68,14 @@ defmodule IEx.Autocomplete do
     end
   end
 
+  defp identifier?(h) do
+    (h in ?a..?z) or (h in ?A..?Z) or h in [?_, ??, ?!]
+  end
+
   defp expand_dot(expr) do
     case Code.string_to_ast expr do
       {:ok, atom} when is_atom(atom) ->
-        expand_module_funs atom
+        expand_call atom, ''
       {:ok, {:__aliases__,_,list}} ->
         expand_elixir_modules list
       _ ->
@@ -73,7 +88,7 @@ defmodule IEx.Autocomplete do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules atom_to_list(atom)
       {:ok, { atom, _, nil }} when is_atom(atom) ->
-        expand_module_funs Kernel, atom_to_list(atom)
+        expand_call Kernel, atom_to_list(atom)
       {:ok, {:__aliases__,_,[root]}} ->
         expand_elixir_modules [], atom_to_list(root)
       {:ok, {:__aliases__,_,[h|_] = list}} when is_atom(h) ->
@@ -109,7 +124,9 @@ defmodule IEx.Autocomplete do
   end
 
   defp format_expansion([uniq], hint) do
-    { :yes, Entry.to_hint(uniq, hint), [] }
+    hint = Entry.to_hint(uniq, hint)
+    uniq = if hint == '', do: Entry.to_uniq_entries(uniq), else: []
+    { :yes, hint, uniq }
   end
 
   defp format_expansion([first|_]=entries, hint) do
@@ -157,6 +174,10 @@ defmodule IEx.Autocomplete do
 
   defp expand_call(_, _) do
     no_match
+  end
+
+  defp expand_module_funs(mod, hint) do
+    format_expansion module_funs(mod, hint), hint
   end
 
   ## Erlang modules
@@ -208,11 +229,7 @@ defmodule IEx.Autocomplete do
     Enum.map(:code.all_loaded, fn({ m, _ }) -> atom_to_list(m) end)
   end
 
-  ## Functions
-
-  defp expand_module_funs(mod, hint // '') do
-    format_expansion module_funs(mod, hint), hint
-  end
+  ## Helpers
 
   defp module_funs(mod, hint // '') do
     case ensure_loaded(mod) do
@@ -234,11 +251,13 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  ## Generic Helpers
-
   defp get_funs(mod) do
     if function_exported?(mod, :__info__, 1) do
-      (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)
+      if docs = mod.__info__(:docs) do
+        lc { tuple, _line, _kind, _sign, doc } inlist docs, doc != false, do: tuple
+      else
+        (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)
+      end
     else
       mod.module_info(:exports)
     end

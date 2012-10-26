@@ -316,7 +316,7 @@ defmodule Module do
     assert_not_compiled!(:defines?, module)
     table = function_table_for(module)
     case ETS.lookup(table, tuple) do
-      [{ _, ^kind, _, _, _, _, _, _ }] -> true
+      [{ _, ^kind, _, _, _, _, _ }] -> true
       _ -> false
     end
   end
@@ -335,7 +335,7 @@ defmodule Module do
   def definitions_in(module) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    lc { tuple, _, _, _, _, _, _, _ } inlist ETS.tab2list(table), do: tuple
+    lc { tuple, _, _, _, _, _, _ } inlist ETS.tab2list(table), do: tuple
   end
 
   @doc """
@@ -354,7 +354,7 @@ defmodule Module do
   def definitions_in(module, kind) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    lc { tuple, stored_kind, _, _, _, _, _, _ } inlist ETS.tab2list(table), stored_kind == kind, do: tuple
+    lc { tuple, stored_kind, _, _, _, _, _ } inlist ETS.tab2list(table), stored_kind == kind, do: tuple
   end
 
   @doc """

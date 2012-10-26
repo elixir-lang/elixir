@@ -63,7 +63,7 @@ store(Module, Function, GenerateName) ->
   { Count, [H|T] } = orddict:fetch(Function, Overridable),
   overridable(Module, orddict:store(Function, { Count, T }, Overridable)),
 
-  { { Name, Arity }, Kind, Line, File, Location, Stack, Defaults, Clauses } = H,
+  { { Name, Arity }, Kind, Line, File, Location, Defaults, Clauses } = H,
 
   { FinalKind, FinalName } = case GenerateName of
     true  -> { defp, name(Module, Function, Overridable) };
@@ -72,7 +72,7 @@ store(Module, Function, GenerateName) ->
 
   Def = { function, Line, FinalName, Arity, Clauses },
   elixir_def:store_each(false, FinalKind, File, Location,
-    Stack, elixir_def:table(Module), Defaults, Def).
+    elixir_def:table(Module), Defaults, Def).
 
 %% Store pending declarations that were not manually made concrete.
 

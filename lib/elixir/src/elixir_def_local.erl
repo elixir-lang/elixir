@@ -13,7 +13,7 @@ macro_for(_Tuple, _All, nil) -> false;
 
 macro_for(Tuple, All, Module) ->
   try ets:lookup(elixir_def:table(Module), Tuple) of
-    [{Tuple, Kind, Line, _, _, _, _, Clauses}] when Kind == defmacro; All, Kind == defmacrop ->
+    [{Tuple, Kind, Line, _, _, _, Clauses}] when Kind == defmacro; All, Kind == defmacrop ->
       get_function(Line, Module, Clauses);
     _ ->
       false
@@ -25,7 +25,7 @@ macro_for(Tuple, All, Module) ->
 function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case ets:lookup(elixir_def:table(Module), Tuple) of
-    [{Tuple, _, Line, _, _, _, _, Clauses}] ->
+    [{Tuple, _, Line, _, _, _, Clauses}] ->
       get_function(Line, Module, Clauses);
     _ ->
       [_|T] = erlang:get_stacktrace(),

@@ -77,7 +77,7 @@ defmodule IEx.Helpers do
   Shows the documentation for IEx.Helpers.
   """
   def h() do
-    h(IEx.Helpers, :all)
+    h(IEx.Helpers, :moduledoc)
   end
 
   @doc """
@@ -110,7 +110,7 @@ defmodule IEx.Helpers do
 
   defmacro h(other) do
     quote do
-      h(unquote(other), :all)
+      h(unquote(other), :moduledoc)
     end
   end
 
@@ -139,7 +139,7 @@ defmodule IEx.Helpers do
     end
   end
 
-  def h(module, :all) when is_atom(module) do
+  def h(module, :moduledoc) when is_atom(module) do
     case Code.ensure_loaded(module) do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
@@ -162,17 +162,35 @@ defmodule IEx.Helpers do
   def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
     if docs = module.__info__(:docs) do
       doc =
-        if tuple = List.keyfind(docs, { function, arity }, 0) do
-          print_signature(tuple)
+        cond do
+          d = find_doc(docs, function, arity)         -> d
+          d = find_default_doc(docs, function, arity) -> d
+          true                                        -> nil
         end
 
       if doc do
-        IO.write "\n" <> doc
+        IO.write "\n" <> print_signature(doc)
       else
         IO.puts "No docs for #{function}/#{arity}"
       end
     else
       IO.puts "#{inspect module} was not compiled with docs"
+    end
+  end
+
+  defp find_doc(docs, function, arity) do
+    List.keyfind(docs, { function, arity }, 0)
+  end
+
+  defp find_default_doc(docs, function, min) do
+    Enum.find docs, fn(doc) ->
+      case elem(doc, 0) do
+        { ^function, max } when max > min ->
+          defaults = Enum.count elem(doc, 3), match?({ ://, _, _ }, &1)
+          min + defaults >= max
+        _ ->
+          false
+      end
     end
   end
 

@@ -59,8 +59,8 @@ dispatch_import(Line, Name, Args, S, Callback) ->
         { error, internal } ->
           elixir_import:record(import, Tuple, ?BUILTIN, Module),
           elixir_macros:translate({ Name, Line, Args }, S);
-        { ok, Receiver, Tree } ->
-          translate_expansion(Line, Tree, Receiver, Name, Arity, S)
+        { ok, _Receiver, Tree } ->
+          translate_expansion(Line, Tree, S)
       end;
     Receiver ->
       elixir_import:record(import, Tuple, Receiver, Module),
@@ -87,7 +87,7 @@ dispatch_require(Line, Receiver, Name, Args, S, Callback) ->
         { error, internal } ->
           elixir_macros:translate({ Name, Line, Args }, S);
         { ok, Tree } ->
-          translate_expansion(Line, Tree, Receiver, Name, Arity, S)
+          translate_expansion(Line, Tree, S)
       end
   end.
 
@@ -167,10 +167,12 @@ expand_macro_named(Line, Receiver, Name, Arity, Args, Module, Requires, SEnv) ->
   Fun         = fun Receiver:ProperName/ProperArity,
   expand_macro_fun(Line, Fun, Receiver, Name, Args, Module, Requires, SEnv).
 
-translate_expansion(Line, Tree, Receiver, Name, Arity, S) ->
-  NewS = S#elixir_scope{macro=[{Line,Receiver,Name,Arity}|S#elixir_scope.macro]},
-  { TTree, TS } = elixir_translator:translate_each(elixir_quote:linify(Line, Tree), NewS),
-  { TTree, TS#elixir_scope{macro=S#elixir_scope.macro} }.
+translate_expansion(Line, Tree, S) ->
+  { TR, TS } = elixir_translator:translate_each(
+    elixir_quote:linify(Line, Tree),
+    S#elixir_scope{check_clauses=false}
+  ),
+  { TR, TS#elixir_scope{check_clauses=S#elixir_scope.check_clauses} }.
 
 %% Helpers
 
