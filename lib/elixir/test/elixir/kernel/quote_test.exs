@@ -69,7 +69,7 @@ defmodule Kernel.QuoteTest do
       67,
       [
         [file: __FILE__],
-        { :bar, 67, [1,2,3] }
+        [do: { :bar, 67, [1,2,3] }]
       ]
     }
   end

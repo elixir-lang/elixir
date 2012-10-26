@@ -440,7 +440,7 @@ defmodule Kernel.SpecialForms do
   it belonged to another file.
 
       quote location: :keep, do: 1
-      #=> { :__scope__, 1,[[file: "iex"], 1] }
+      #=> { :__scope__, 1,[[file: "iex"],[do: 1]] }
 
   Check `quote/1` for more information.
   """

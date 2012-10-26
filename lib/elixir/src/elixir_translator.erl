@@ -61,7 +61,7 @@ translate_each({ '__block__', Line, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, Line, TArgs }, NS };
 
-translate_each({ '__scope__', _Line, [[{file,File}],Expr] }, S) ->
+translate_each({ '__scope__', _Line, [[{file,File}],[{do,Expr}]] }, S) ->
   Old = S#elixir_scope.file,
   { TExpr, TS } = translate_each(Expr, S#elixir_scope{file=File}),
   { TExpr, TS#elixir_scope{file=Old} };
@@ -259,7 +259,7 @@ translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
 
   { DefaultLine, WrappedExprs } = case lists:keyfind(location, 1, T) of
     { location, keep } ->
-      Scoped = { '__scope__', GivenLine, [[{file,S#elixir_scope.file}],Exprs] },
+      Scoped = { '__scope__', GivenLine, [[{file,S#elixir_scope.file}],[{do,Exprs}]] },
       { keep, Scoped };
     _ ->
       { 0, Exprs}
