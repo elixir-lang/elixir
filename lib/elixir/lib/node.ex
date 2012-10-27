@@ -73,23 +73,46 @@ defmodule Node do
   Returns the pid of a new process started by the application of `fun`
   on `node`. If `node` does not exist, a useless pid is returned.
 
-  Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4 for
+  Check http://www.erlang.org/doc/man/erlang.html#spawn-2 for
   the list of available options.
   """
-  def spawn(node, fun, opts // []) do
+  def spawn(node, fun) do
+    :erlang.spawn(node, fun)
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of `fun`
+  on `node`. If `node` does not exist, a useless pid is returned.
+
+  Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-3 for
+  the list of available options.
+  """
+  def spawn(node, fun, opts) do
     :erlang.spawn_opt(node, fun, opts)
   end
 
   @doc """
   Returns the pid of a new process started by the application of
-  `module.function(args)` on `node`. If `node` does not exists, a useless
-  pid is returned.
+  `module.function(args)` on `node`. If `node` does not exists,
+  a useless pid is returned.
 
-  Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4 for
+  Check http://www.erlang.org/doc/man/erlang.html#spawn-4 for
   the list of available options.
   """
-  def spawn(node, module, fun, args, opts // []) do
-    :erlang.spawn(node, module, fun, args, opts)
+  def spawn(node, module, fun, args) do
+    :erlang.spawn(node, module, fun, args)
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of
+  `module.function(args)` on `node`. If `node` does not exists,
+  a useless pid is returned.
+
+  Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-5 for
+  the list of available options.
+  """
+  def spawn(node, module, fun, args, opts) do
+    :erlang.spawn_opt(node, module, fun, args, opts)
   end
 
   @doc """
