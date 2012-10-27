@@ -5,7 +5,7 @@
 -module(elixir_tree_helpers).
 -compile({parse_transform, elixir_transform}).
 -export([abstract_syntax/1, split_last/1, cons_to_list/1,
-  convert_to_boolean/4, returns_boolean/1,
+  convert_to_boolean/5, returns_boolean/1,
   build_list/4, build_list/5, build_simple_list/2,
   build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
@@ -97,32 +97,34 @@ returns_boolean({ 'case', _, _, Clauses }) ->
 
 returns_boolean(_) -> false.
 
-convert_to_boolean(Line, Expr, Bool, InGuard) ->
+convert_to_boolean(Line, Expr, Bool, InGuard, S) ->
   case { returns_boolean(Expr), Bool } of
-    { true, true }  -> Expr;
-    { true, false } -> { op, Line, 'not', Expr };
-    _               -> do_convert_to_boolean(Line, Expr, Bool, InGuard)
+    { true, true }  -> { Expr, S };
+    { true, false } -> { { op, Line, 'not', Expr }, S };
+    _               -> do_convert_to_boolean(Line, Expr, Bool, InGuard, S)
   end.
 
-do_convert_to_boolean(Line, Expr, Bool, false) ->
-  Any   = [{var, Line, '_'}],
-  False = [{atom,Line,false}],
-  Nil   = [{atom,Line,nil}],
+%% Notice we use a temporary var and bundle nil
+%% and false checks in the same clause since
+%% it makes dialyzer happy.
+do_convert_to_boolean(Line, Expr, Bool, false, S) ->
+  Any         = { var, Line, '_' },
+  { Var, TS } = elixir_scope:build_erl_var(Line, S),
+  OrElse      = do_guarded_convert_to_boolean(Line, Var, 'orelse', '=='),
 
-  FalseResult = [{atom,Line,not Bool}],
-  TrueResult  = [{atom,Line,Bool}],
+  FalseResult = { atom,Line,not Bool },
+  TrueResult  = { atom,Line,Bool },
 
-  { 'case', Line, Expr, [
-    { clause, Line, False, [], FalseResult },
-    { clause, Line, Nil, [], FalseResult },
-    { clause, Line, Any, [], TrueResult }
-  ] };
+  { { 'case', Line, Expr, [
+    { clause, Line, [Var], [[OrElse]], [FalseResult] },
+    { clause, Line, [Any], [], [TrueResult] }
+  ] }, TS };
 
-do_convert_to_boolean(Line, Expr, true, true) ->
-  do_guarded_convert_to_boolean(Line, Expr, 'andalso', '/=');
+do_convert_to_boolean(Line, Expr, true, true, S) ->
+  { do_guarded_convert_to_boolean(Line, Expr, 'andalso', '/='), S };
 
-do_convert_to_boolean(Line, Expr, false, true) ->
-  do_guarded_convert_to_boolean(Line, Expr, 'orelse', '==').
+do_convert_to_boolean(Line, Expr, false, true, S) ->
+  { do_guarded_convert_to_boolean(Line, Expr, 'orelse', '=='), S }.
 
 do_guarded_convert_to_boolean(Line, Expr, Op, Comp) ->
   Left  = { op, Line, Comp, Expr, { atom, Line, false } },

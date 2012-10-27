@@ -557,7 +557,7 @@ rellocate_ambiguous_op({ Call, Line, [H|T] }, Var) ->
 translate_comprehension(Line, Kind, Args, S) ->
   case elixir_tree_helpers:split_last(Args) of
     { Cases, [{do,Expr}] } ->
-      { TCases, SC } = lists:mapfoldl(fun translate_comprehension_clause/2, S, Cases),
+      { TCases, SC } = lists:mapfoldl(fun(C, Acc) -> translate_comprehension_clause(Line, C, Acc) end, S, Cases),
       { TExpr, SE }  = translate_comprehension_do(Line, Kind, Expr, SC),
       { { Kind, Line, TExpr, TCases }, umergec(S, SE) };
     _ ->
@@ -573,20 +573,16 @@ translate_comprehension_do(Line, bc, _Expr, S) ->
 translate_comprehension_do(_Line, _Kind, Expr, S) ->
   translate_each(Expr, S).
 
-translate_comprehension_clause({inbits, Line, [Left, Right]}, S) ->
+translate_comprehension_clause(_Line, {inbits, Line, [Left, Right]}, S) ->
   { TRight, SR } = translate_each(Right, S),
   { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
   { { b_generate, Line, TLeft, TRight }, SL };
 
-translate_comprehension_clause({inlist, Line, [Left, Right]}, S) ->
+translate_comprehension_clause(_Line, {inlist, Line, [Left, Right]}, S) ->
   { TRight, SR } = translate_each(Right, S),
   { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
   { { generate, Line, TLeft, TRight }, SL };
 
-translate_comprehension_clause(X, S) ->
+translate_comprehension_clause(Line, X, S) ->
   { TX, TS } = translate_each(X, S),
-  Line = case X of
-    { _, L, _ } -> L;
-    _ -> 0
-  end,
-  { elixir_tree_helpers:convert_to_boolean(Line, TX, true, false), TS }.
+  elixir_tree_helpers:convert_to_boolean(Line, TX, true, false, TS).
