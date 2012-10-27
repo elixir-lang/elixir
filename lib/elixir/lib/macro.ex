@@ -238,9 +238,7 @@ defmodule Macro do
   end
   defp is_kw_blocks?(_), do: false
 
-  defp module_to_binary(atom) when is_atom(atom) do
-    inspect(atom)
-  end
+  defp module_to_binary(atom) when is_atom(atom), do: Binary.Inspect.inspect(atom, raw: true)
   defp module_to_binary(other), do: call_to_binary(other)
 
   defp call_to_binary(atom) when is_atom(atom),  do: atom_to_binary(atom, :utf8)
