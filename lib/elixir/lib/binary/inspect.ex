@@ -334,9 +334,7 @@ defimpl Binary.Inspect, for: Tuple do
     name = elem(tuple, 0)
 
     if is_atom(name) and match?("Elixir-" <> _, atom_to_binary(name)) do
-      if name in [BitString, List, Tuple, Atom, Number, Any] do
-        record_inspect(tuple, opts)
-      else
+      unless name in [BitString, List, Tuple, Atom, Number, Any] do
         try do
           target = Module.concat(Binary.Inspect, name)
           target.inspect(tuple, opts)
@@ -348,19 +346,16 @@ defimpl Binary.Inspect, for: Tuple do
     end
   end
 
-  defp record_inspect(exception, opts) when is_exception(exception) do
-    list = tuple_to_list(exception)
-    [name,_|tail] = list
-    [_|fields]    = name.__record__(:fields)
-    record_join(name, fields, tail, opts)
-  end
-
   defp record_inspect(record, opts) do
     list = tuple_to_list(record)
     [name|tail] = list
 
     if (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
-      record_join(name, fields, tail, opts)
+      if Enum.first(tail) == :__exception__ do
+        record_join(name, tl(fields), tl(tail), opts)
+      else
+        record_join(name, fields, tail, opts)
+      end
     end
   end
 
