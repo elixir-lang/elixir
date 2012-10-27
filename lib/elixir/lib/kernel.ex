@@ -2299,7 +2299,11 @@ defmodule Kernel do
   and documentation.
   """
   defmacro unless(clause, options) do
-    quote do: if(!unquote(clause), unquote(options))
+    do_clause   = Keyword.get(options, :do, nil)
+    else_clause = Keyword.get(options, :else, nil)
+    quote do
+      if(unquote(clause), do: unquote(else_clause), else: unquote(do_clause))
+    end
   end
 
   @doc """
