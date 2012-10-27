@@ -103,12 +103,19 @@ defmodule Process do
 
   @doc """
   Returns the pid of a new process started by the application of `fun`.
-
-  It behaves exactly the same as the `Kernel.spawn/1` function except
-  it also accepts extra options, for the list of available options
-  check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4
+  It behaves exactly the same as `Kernel.spawn/1`.
   """
-  def spawn(fun, opts // []) do
+  def spawn(fun) do
+    :erlang.spawn(fun)
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of `fun`.
+
+  It also accepts extra options, for the list of available options
+  check http://www.erlang.org/doc/man/erlang.html#spawn_opt-2
+  """
+  def spawn(fun, opts) do
     :erlang.spawn_opt(fun, opts)
   end
 
@@ -117,12 +124,22 @@ defmodule Process do
   `module.function(args)`. The new process created will be placed in the system
   scheduler queue and be run some time later.
 
-  It behaves exactly the same as the `Kernel.spawn/3` function except
-  it also accepts extra options, for the list of available options
+  It behaves exactly the same as the `Kernel.spawn/3` function.
+  """
+  def spawn(mod, fun, args) do
+    :erlang.spawn(mod, fun, args)
+  end
+
+  @doc """
+  Returns the pid of a new process started by the application of
+  `module.function(args)`. The new process created will be placed in the system
+  scheduler queue and be run some time later.
+
+  It also accepts extra options, for the list of available options
   check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4
 
   """
-  def spawn(mod, fun, args, opts // []) do
+  def spawn(mod, fun, args, opts) do
     :erlang.spawn_opt(mod, fun, args, opts)
   end
 
