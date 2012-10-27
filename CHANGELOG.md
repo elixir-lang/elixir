@@ -2,6 +2,7 @@
   * [IEx] Only show documented functions and also show docs for default generated functions
   * [String] Support `String.downcase` and `String.upcase` according to Unicode 6.2.0
   * [String] Add support for graphemes in `String.length`, `String.at` and others
+  * [Kernel] Improved dialyzer support
 
 * bug fix
   * [Kernel] Fix an issue where variables inside clauses remained unassigned

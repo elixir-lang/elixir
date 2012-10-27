@@ -79,7 +79,7 @@ returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } },
   Fun == is_atom;   Fun == is_binary;   Fun == is_bitstring; Fun == is_boolean;
   Fun == is_float;  Fun == is_function; Fun == is_integer;   Fun == is_list;
   Fun == is_number; Fun == is_pid;      Fun == is_port;      Fun == is_reference;
-  Fun == is_tuple -> true;
+  Fun == is_tuple;  Fun == function_exported -> true;
 
 returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } }, [_,_] }) when
   Fun == is_function -> true;

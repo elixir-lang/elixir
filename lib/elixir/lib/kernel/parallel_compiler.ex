@@ -19,7 +19,7 @@ defmodule Kernel.ParallelCompiler do
   with its name can be optionally given as argument.
   """
   def files(files, callback // default_callback) do
-    files_to_path(files, nil, callback)
+    spawn_compilers(files, nil, callback)
   end
 
   @doc """
@@ -27,6 +27,10 @@ defmodule Kernel.ParallelCompiler do
   Read files/2 for more information.
   """
   def files_to_path(files, path, callback // default_callback) when is_binary(path) do
+    spawn_compilers(files, path, callback)
+  end
+
+  defp spawn_compilers(files, path, callback) do
     Code.ensure_loaded(Kernel.ErrorHandler)
     spawn_compilers(files, path, callback, [], [], [])
   end

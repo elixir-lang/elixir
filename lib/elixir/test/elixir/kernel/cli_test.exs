@@ -88,6 +88,11 @@ defmodule Kernel.CLI.ParallelCompilerTest do
   use ExUnit.Case, async: true
   import PathHelpers
 
+  test :files do
+    fixtures = [fixture_path("parallel_compiler/foo.ex")]
+    assert [{ Foo, binary }] = Kernel.ParallelCompiler.files fixtures
+  end
+
   test :compile_code do
     output = elixirc('#{fixture_path("parallel_compiler")} -o #{tmp_path}')
     assert :string.str(output, 'message_from_foo') > 0,

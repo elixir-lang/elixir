@@ -1166,7 +1166,7 @@ defmodule File do
   def iterator(device) do
     fn ->
       function = fn(_) ->
-        case :io.get_line(device, "") do
+        case :io.get_line(device, '') do
           :eof ->
             close(device)
             :stop
