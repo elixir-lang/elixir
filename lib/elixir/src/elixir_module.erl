@@ -78,8 +78,8 @@ compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
     elixir_import:ensure_no_import_conflict(Line, File, Module, All),
 
     Final = [
-      {attribute, Line, file, {File,Line}},
-      {attribute, Line, module, Module} | Forms2
+      { attribute, Line, file, { binary_to_list(File), Line } },
+      { attribute, Line, module, Module } | Forms2
     ],
 
     Binary = load_form(Line, Final, S),
