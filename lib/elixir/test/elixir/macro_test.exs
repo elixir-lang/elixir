@@ -128,6 +128,14 @@ defmodule MacroTest do
     assert Macro.to_binary(quote do: foo.bar([1, 2, 3])) == "foo.bar([1, 2, 3])"
   end
 
+  test :low_atom_remote_call_to_binary do
+    assert Macro.to_binary(quote do: :foo.bar(1, 2, 3)) == ":foo.bar(1, 2, 3)"
+  end
+
+  test :big_atom_remote_call_to_binary do
+    assert Macro.to_binary(quote do: Foo.Bar.bar(1, 2, 3)) == "Foo.Bar.bar(1, 2, 3)"
+  end
+
   test :remote_and_fun_call_to_binary do
     assert Macro.to_binary(quote do: foo.bar.(1, 2, 3)) == "foo.bar().(1, 2, 3)"
     assert Macro.to_binary(quote do: foo.bar.([1, 2, 3])) == "foo.bar().([1, 2, 3])"

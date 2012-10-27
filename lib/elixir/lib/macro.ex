@@ -238,9 +238,20 @@ defmodule Macro do
   end
   defp is_kw_blocks?(_),          do: false
 
+  defp module_to_binary(atom) when is_atom(atom) do
+    b = atom_to_binary(atom, :utf8)
+    first = String.at(b, 0)
+    if String.upcase(first) == first do # "big" atom"
+      b
+    else # regular atom
+      ":" <> b
+    end
+  end
+  defp module_to_binary(other), do: call_to_binary(other)
+
   defp call_to_binary(atom) when is_atom(atom),  do: atom_to_binary(atom, :utf8)
-  defp call_to_binary({ :., _, [arg] }),         do: call_to_binary(arg) <> "."
-  defp call_to_binary({ :., _, [left, right] }), do: call_to_binary(left) <> "." <> call_to_binary(right)
+  defp call_to_binary({ :., _, [arg] }),         do: module_to_binary(arg) <> "."
+  defp call_to_binary({ :., _, [left, right] }), do: module_to_binary(left) <> "." <> call_to_binary(right)
   defp call_to_binary(other),                    do: to_binary(other)
 
   defp call_to_binary_with_args(target, args) do
