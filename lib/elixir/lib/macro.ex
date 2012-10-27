@@ -236,16 +236,10 @@ defmodule Macro do
   defp is_kw_blocks?([_|_] = kw) do
     Enum.all?(kw, match?({x, _} when x in kw_keywords, &1))
   end
-  defp is_kw_blocks?(_),          do: false
+  defp is_kw_blocks?(_), do: false
 
   defp module_to_binary(atom) when is_atom(atom) do
-    b = atom_to_binary(atom, :utf8)
-    first = String.at(b, 0)
-    if String.upcase(first) == first do # "big" atom"
-      b
-    else # regular atom
-      ":" <> b
-    end
+    inspect(atom)
   end
   defp module_to_binary(other), do: call_to_binary(other)
 
