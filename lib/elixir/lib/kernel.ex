@@ -487,7 +487,7 @@ defmodule Kernel do
   number of bits in the binary is not divisible by 8, the last element of the list will
   be a bitstring containing the remaining bits (1 up to 7 bits).
   """
-  @spec bitstring_to_list(bitstring), do: non_neg_integer
+  @spec bitstring_to_list(bitstring), do: list
   def bitstring_to_list(bitstring) do
     :erlang.bitstring_to_list(bitstring)
   end
