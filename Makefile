@@ -1,5 +1,5 @@
 REBAR:=$(shell echo `pwd`/rebar)
-ELIXIRC:=bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
+ELIXIRC:=bin/elixirc --debug-info --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC:=erlc -I lib/elixir/include
 ERL:=erl -I lib/elixir/include -noshell -env ERL_LIBS $ERL_LIBS:lib
 VERSION:=0.7.1.dev
@@ -70,7 +70,7 @@ unicode: $(UNICODE)
 $(UNICODE): lib/elixir/priv/unicode.ex lib/elixir/priv/UnicodeData.txt lib/elixir/priv/NamedSequences.txt
 	@ echo "==> unicode (compile)";
 	@ echo "This step can take up to a minute to compile in order to embed the Unicode database"
-	@ bin/elixirc --ignore-module-conflict lib/elixir/priv/unicode.ex -o lib/elixir/ebin;
+	@ $(ELIXIRC) lib/elixir/priv/unicode.ex -o lib/elixir/ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,eex,EEx))
@@ -89,7 +89,7 @@ clean:
 #==> Release tasks (modules compiled with --debug-info and --docs)
 
 $(RELEASE_FLAG): $(wildcard lib/*/ebin/*)
-	make ELIXIRC_OPTS="--debug-info" FORCE=1
+	@ make default
 	touch $(RELEASE_FLAG)
 
 zip: $(RELEASE_FLAG)

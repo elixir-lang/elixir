@@ -1,5 +1,5 @@
 /.eunit/*
-/.full
+/.release
 /lib/*/ebin/*
 /lib/*/tmp
 /lib/*/test/tmp
