@@ -119,8 +119,8 @@ core() ->
 %% HELPERS
 
 no_auto_import() ->
-  { attribute, 0, compile, {
-    no_auto_import, erlang:module_info(exports) } }.
+  Bifs = [{ Name, Arity } || { Name, Arity } <- erlang:module_info(exports), erl_internal:bif(Name, Arity)],
+  { attribute, 0, compile, { no_auto_import, Bifs } }.
 
 module_form(Exprs, Line, File, Module, Vars) when
     is_binary(File), is_list(Exprs), is_integer(Line), is_atom(Module) ->
