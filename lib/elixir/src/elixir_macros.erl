@@ -273,8 +273,8 @@ translate_in(Line, Left, Right, S) ->
   Expr = case TRight of
     { cons, _, _, _ } ->
       [H|T] = elixir_tree_helpers:cons_to_list(TRight),
-      lists:foldl(fun(X, Acc) ->
-        { op, Line, 'orelse', Acc, { op, Line, '==', Var, X } }
+      lists:foldr(fun(X, Acc) ->
+        { op, Line, 'orelse', { op, Line, '==', Var, X }, Acc }
       end, { op, Line, '==', Var, H }, T);
     { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
       case { Start, End } of
