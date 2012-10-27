@@ -8,6 +8,14 @@ defmodule Macro do
   @doc """
   Returns a list of binary operators. This is available
   as a macro so it can be used in guard clauses.
+
+  ## Note
+
+  There is a bug in dialyzer that makes it hang (it actually
+  just takes a huge amount of time) when using `in` with a huge
+  list. That said, using `atom in Macro.binary_op` will trigger
+  this bug and should be avoided in modules you want to use
+  dialyzer with.
   """
   defmacro binary_ops do
     [
@@ -198,22 +206,24 @@ defmodule Macro do
     "&#{num}"
   end
 
-  # Binary ops
-  def to_binary({ op, _, [left, right] }) when op in binary_ops do
-    op_to_binary(left) <> " #{op} " <> op_to_binary(right)
-  end
-
-  # Unary ops
-  def to_binary({ op, _, [arg] }) when op in unary_ops do
-    atom_to_binary(op, :utf8) <> to_binary(arg)
-  end
-
-  # All other calls
+  # Binary, unary ops and other calls
+  #
+  # Originally, binary and unary ops were different function
+  # clauses but they were causing dialyzer to hang. We have
+  # rewritten it as `cond` as it seems to be fine to dialyzer.
   def to_binary({ target, _, args }) when is_list(args) do
-    { list, last } = :elixir_tree_helpers.split_last(args)
-    case is_kw_blocks?(last) do
-      true  -> call_to_binary_with_args(target, list) <> kw_blocks_to_binary(last)
-      false -> call_to_binary_with_args(target, args)
+    cond do
+      is_atom(target) and List.member?(binary_ops, target) and length(args) == 2 ->
+        [left, right] = args
+        op_to_binary(left) <> " #{target} " <> op_to_binary(right)
+      is_atom(target) and List.member?(unary_ops, target) and length(args) == 1 ->
+        atom_to_binary(target, :utf8) <> to_binary(hd(args))
+      true ->
+        { list, last } = :elixir_tree_helpers.split_last(args)
+        case is_kw_blocks?(last) do
+          true  -> call_to_binary_with_args(target, list) <> kw_blocks_to_binary(last)
+          false -> call_to_binary_with_args(target, args)
+        end
     end
   end
 
@@ -278,8 +288,13 @@ defmodule Macro do
 
   defp block_to_binary(other), do: to_binary(other)
 
-  defp op_to_binary({ op, _, [_, _] } = expr) when op in binary_ops do
-    "(" <> to_binary(expr) <> ")"
+  defp op_to_binary({ op, _, [_, _] } = expr) do
+    # Avoid op in binary_ops due to dialyzer bug
+    if List.member?(binary_ops, op) do
+      "(" <> to_binary(expr) <> ")"
+    else
+      to_binary(expr)
+    end
   end
 
   defp op_to_binary(expr), do: to_binary(expr)

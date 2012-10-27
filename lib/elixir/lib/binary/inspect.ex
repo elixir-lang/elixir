@@ -130,7 +130,10 @@ defimpl Binary.Inspect, for: Atom do
       valid_ref_identifier?(binary) ->
         "Elixir-" <> rest = binary
         bc <<r>> inbits rest, do: <<to_dot(r)>>
-      atom in Macro.binary_ops or atom in Macro.unary_ops ->
+      # Unfortunately we cannot write these as in
+      # clauses because it causes dialyzer to hang
+      # See docs for `Macro.binary_ops`.
+      List.member?(Macro.binary_ops, atom) or List.member?(Macro.unary_ops, atom) ->
         ":" <> binary
       true ->
         ":" <> escape(binary, ?")
