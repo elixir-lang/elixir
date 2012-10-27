@@ -145,7 +145,7 @@ defmodule Protocol do
 
     # If we don't implement all protocols and any is not in the
     # list, we need to add a final clause that returns nil.
-    if !L.keyfind(Any, 1, conversions) && length(conversions) < 10 do
+    if L.keyfind(Any, 1, conversions) == false && length(conversions) < 10 do
       contents = contents ++ [quote do
         defp __raw_impl__(_) do
           nil
@@ -267,6 +267,56 @@ end
 defmodule Protocol.DSL do
   @moduledoc false
 
+  def args_and_body(module, name, arity) do
+    # Generate arguments according the arity. The arguments
+    # are named xa, xb and so forth. We cannot use string
+    # interpolation to generate the arguments because of compile
+    # dependencies, so we use the <<>> instead.
+    args = lc i inlist :lists.seq(1, arity) do
+      { binary_to_atom(<<?x, i + 64>>), 0, :quoted }
+    end
+
+    catch_clause = catch_clause(module, args)
+
+    body =
+      quote do
+        case __raw_impl__(xA) do
+          __MODULE__.Record ->
+            target = Module.concat(__MODULE__, :erlang.element(1, xA))
+            try do
+              target.unquote(name)(unquote_splicing(args))
+            catch
+              :error, :undef, [[{ ^target, name, args, _ }|_]|_] when
+                  name == unquote(name) and length(args) == unquote(arity) ->
+                unquote(catch_clause)
+            end
+          nil ->
+            raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
+          other ->
+            apply other, unquote(name), [unquote_splicing(args)]
+        end
+      end
+
+    { args, body }
+  end
+
+  defp catch_clause(module, args) do
+    only   = Module.get_attribute(module, :only)
+    except = Module.get_attribute(module, :except)
+
+    { _, fallback } = Protocol.conversions_for(module, only, except)
+
+    if fallback do
+      quote do
+        apply unquote(fallback), name, [unquote_splicing(args)]
+      end
+    else
+      quote do
+        raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
+      end
+    end
+  end
+
   defmacro def(expression) do
     case expression do
       { _, _, args } when args == [] or is_atom(args) ->
@@ -279,43 +329,15 @@ defmodule Protocol.DSL do
 
     arity = length(args)
 
-    # Generate arguments according the arity. The arguments
-    # are named xa, xb and so forth. We cannot use string
-    # interpolation to generate the arguments because of compile
-    # dependencies, so we use the <<>> instead.
-    generated = lc i inlist :lists.seq(1, arity) do
-      { binary_to_atom(<<?x, i + 64>>), 0, :quoted }
-    end
-
     quote do
-      # Append new function to the list
       @functions [unquote({name, arity})|@functions]
 
       # Generate a fake definition with the user
       # signature that will be used by docs
       Kernel.def unquote(name).(unquote_splicing(args))
 
-      Kernel.def unquote(name).(unquote_splicing(generated)) do
-        case __raw_impl__(xA) do
-          __MODULE__.Record ->
-            target = Module.concat(__MODULE__, :erlang.element(1, xA))
-            try do
-              target.unquote(name)(unquote_splicing(generated))
-            catch
-              :error, :undef, [[{ ^target, unquote(name), args, _ }|_]|_] when length(args) == unquote(arity) ->
-                case __fallback__ do
-                  nil ->
-                    raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
-                  other ->
-                    apply other, unquote(name), [unquote_splicing(generated)]
-                end
-            end
-          nil ->
-            raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
-          other ->
-            apply other, unquote(name), [unquote_splicing(generated)]
-        end
-      end
+      { args, body } = Protocol.DSL.args_and_body(__MODULE__, unquote(name), unquote(arity))
+      Kernel.def unquote(name), args, [], do: body
     end
   end
 end
