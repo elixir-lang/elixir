@@ -11,3 +11,5 @@
 /ebin
 /rel/elixir
 erl_crash.dump
+.dialyzer_plt
+.dialyzer.base_plt
