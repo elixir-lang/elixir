@@ -23,6 +23,7 @@ defmodule Protocol do
       defmodule unquote(name) do
         # We don't allow function definition inside protocols
         import Kernel, except: [
+          defmacrop: 1, defmacrop: 2, defmacrop: 4,
           defmacro: 1, defmacro: 2, defmacro: 4,
           defp: 1, defp: 2, defp: 4,
           def: 1, def: 2, def: 4
@@ -33,6 +34,9 @@ defmodule Protocol do
 
         # Set up a clear slate to store defined functions
         @functions []
+
+        # Define a basic type
+        @type t :: term
 
         # Invoke the user given block
         unquote(block)

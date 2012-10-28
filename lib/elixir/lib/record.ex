@@ -29,6 +29,7 @@ defmodule Record do
     quote do
       defmodule unquote(name) do
         @moduledoc false
+        @type t :: tuple
         Record.deffunctions(unquote(values), unquote(opts), __ENV__)
         unquote(block)
       end
