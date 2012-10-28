@@ -7,6 +7,9 @@
 * bug fix
   * [Kernel] Fix an issue where variables inside clauses remained unassigned
 
+* deprecations
+  * [Behaviour] `defcallback/1` was deprecated in favor of `defcallback/2` which matches erlang `@callbacks`
+
 # v0.7.0 (2012-10-20)
 
 * enhancements

@@ -13,16 +13,20 @@ defmodule BehaviourTest do
     defcallback bar(External.hello, my_var :: binary), do: binary
   end
 
-  test :docs_are_defined do
-    docs = Enum.qsort(Sample.__info__(:docs))
+  test :docs do
+    docs = Enum.qsort(Sample.__behaviour__(:docs))
     assert docs == [
-      {{:bar,2},13,:defcallback,[{:arg1,13,:guess},{:my_var,13,nil}],"Bar"},
-      {{:foo,2},10,:defcallback,[{:atom,10,nil},{:binary,10,nil}],"Foo"}
+      {{:bar,2},13,"Bar"},
+      {{:foo,2},10,"Foo"}
     ]
   end
 
   test :callbacks do
-    assert Sample.behaviour_info(:callbacks) == [foo: 2, bar: 2]
+    assert Sample.__behaviour__(:callbacks) == [foo: 2, bar: 2]
+  end
+
+  test :specs do
+    assert length(Keyword.get_values(Sample.module_info[:attributes], :callback)) == 2
   end
 
   test :default_is_not_supported do
@@ -41,4 +45,3 @@ defmodule BehaviourTest do
     end
   end
 end
-
