@@ -215,4 +215,8 @@ defmodule ModuleTest do
     end
     assert OverridableWithBeforeCompile.constant == 1
   end
+
+  test :to_binary do
+    assert Module.to_binary(Hello.World) == "Hello.World"
+  end
 end

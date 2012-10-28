@@ -128,8 +128,7 @@ defimpl Binary.Inspect, for: Atom do
       valid_atom_identifier?(binary) ->
         ":" <> binary
       valid_ref_identifier?(binary) ->
-        "Elixir-" <> rest = binary
-        bc <<r>> inbits rest, do: <<to_dot(r)>>
+        Module.to_binary(atom)
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary
       true ->
@@ -138,9 +137,6 @@ defimpl Binary.Inspect, for: Atom do
   end
 
   # Detect if atom is an atom alias (Elixir-Foo-Bar-Baz)
-
-  defp to_dot(?-), do: ?.
-  defp to_dot(l),  do: l
 
   defp valid_ref_identifier?("Elixir" <> rest) do
     valid_ref_piece?(rest)
