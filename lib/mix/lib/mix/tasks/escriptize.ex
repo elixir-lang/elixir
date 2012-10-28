@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Escriptize do
     end
 
     set_perms(filename)
-    Mix.Shell.info "Generated escript #{filename}"
+    Mix.shell.info "Generated escript #{filename}"
   end
 
   defp set_perms(filename) do

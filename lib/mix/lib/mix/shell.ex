@@ -1,36 +1,22 @@
 defmodule Mix.Shell do
   @moduledoc """
-  This is Mix's default shell.
-  It simply prints messages to stdio and stderr.
+  Defines Mix.Shell contract.
   """
 
-  @doc """
-  Writes a message to the shell followed by new line.
-  """
-  def info(message) do
-    IO.puts message
-  end
+  use Behaviour
 
   @doc """
-  Writes an error message to the shell followed by new line.
+  Informs the given message.
   """
-  def error(message) do
-    IO.puts :stderr, message
-  end
+  defcallback info(message :: binary), do: any
 
   @doc """
-  Receives a message and asks the user if he wants to proceed.
-  He must press enter or type anything that matches the a "yes"
-  regex `%r/^Y(es)?$/i`.
+  Warns about the given error message.
   """
-  def yes?(message) do
-    IO.gets(message <> " [Yn] ") =~ %r/^(Y(es)?)?$/i
-  end
+  defcallback error(message :: binary), do: any
 
   @doc """
-  Define Mix.Shell callbacks.
+  Asks the user for confirmation.
   """
-  def behaviour_info(:callbacks) do
-    [info: 1, error: 1, yes?: 1]
-  end
+  defcallback yes?(message :: binary), do: any
 end

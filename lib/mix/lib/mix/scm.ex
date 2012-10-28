@@ -1,6 +1,8 @@
 defmodule Mix.SCM do
   use Behaviour
 
+  @typep opts :: [{ atom, any }]
+
   @moduledoc """
   This module provides helper functions and defines the
   behavior required by any SCM used by mix.
@@ -12,7 +14,7 @@ defmodule Mix.SCM do
   must be found since it is used to print information about
   the requested dependency.
   """
-  defcallback key
+  defcallback key(), do: atom
 
   @doc """
   This behavior function receives a keyword list of `opts`
@@ -27,13 +29,13 @@ defmodule Mix.SCM do
   sense for the Git SCM, it will return an update list of options
   while other SCMs would simply return nil.
   """
-  defcallback accepts_options?(opts)
+  defcallback accepts_options?(opts), do: opts | nil
 
   @doc """
   This behavior function returns a boolean if the
   dependency is available.
   """
-  defcallback checked_out?(opts)
+  defcallback checked_out?(opts), do: boolean
 
   @doc """
   This behavior function checks out dependencies.
@@ -43,7 +45,7 @@ defmodule Mix.SCM do
   no lock is given and the repository can be checked out
   to the latest version.
   """
-  defcallback checkout(opts)
+  defcallback checkout(opts), do: any
 
   @doc """
   This behavior function updates dependencies. It may be
@@ -55,7 +57,7 @@ defmodule Mix.SCM do
 
   It must return the current lock.
   """
-  defcallback update(opts)
+  defcallback update(opts), do: any
 
   @doc """
   This behavior function checks if the dependency is locked and
@@ -63,18 +65,18 @@ defmodule Mix.SCM do
   SCMs do not require a lock, for such, this function can simply
   return true.
   """
-  defcallback matches_lock?(opts)
+  defcallback matches_lock?(opts), do: boolean
 
   @doc """
   Receives two options and must return true if the refer to the
   same repository.
   """
-  defcallback equals?(opts1, opts2)
+  defcallback equals?(opts1 :: opts, opts2 :: opts), do: boolean
 
   @doc """
   This behavior function should clean the given dependency.
   """
-  defcallback clean(opts)
+  defcallback clean(opts), do: any
 
   @doc """
   Returns all available SCM.

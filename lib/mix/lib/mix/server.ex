@@ -5,7 +5,7 @@ defmodule Mix.Server do
   use GenServer.Behaviour
 
   defrecord Config, tasks: Ordset.new, projects: [], mixfile: [],
-    shell: Mix.Shell, scm: Ordset.new, env: nil, post_config: []
+    shell: Mix.Shell.IO, scm: Ordset.new, env: nil, post_config: []
 
   def start_link(env) do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, env, [])

@@ -1,14 +1,16 @@
 defmodule Mix.Task do
+  use Behaviour
   alias :ordsets, as: Ordset
 
   @moduledoc """
   A simple module that provides conveniences for creating tasks.
   """
 
-  @doc false
-  def behaviour_info(:callbacks) do
-    [run: 1]
-  end
+  @doc """
+  A task needs to implement run which receives
+  a list of command line args.
+  """
+  defcallback run([binary]), do: any
 
   @doc false
   defmacro __using__(_opts) do
