@@ -12,13 +12,13 @@ defmodule Behaviour do
         use Behaviour
 
         @doc "Parses the given URL"
-        defcallback parse(arg)
+        defcallback parse(uri_info :: URI.Info.t), do: URI.Info.t
 
         @doc "Defines a default port"
-        defcallback default_port()
+        defcallback default_port(), do: integer
       end
 
-  And then a specific protocol may use it as:
+  And then a specific module may use it as:
 
       defmodule URI.HTTP do
         @behaviour URI.Parser
@@ -32,11 +32,11 @@ defmodule Behaviour do
 
   ## Implementation
 
-  Internally, Erlang call `behaviour_info(:callbacks)`
-  to obtain all functions that a behaviour should
-  implemented. Therefore, all this module does is
-  to define `behaviour_info(:callbacks)` with the
-  `defcallback` definitions.
+  Behaviours since Erlang R15 must be defined via
+  `@callback` attributes. `defcallback` is a simple
+  mechanism that defines the `@callback` attribute
+  according to the type specification and also allows
+  docs and defines a custom function signature.
   """
 
   @doc """
@@ -68,6 +68,34 @@ defmodule Behaviour do
     end
   end
 
+  @doc """
+  Defines a callback according to the given type specification.
+  """
+  defmacro defcallback(fun, do: return) do
+    { name, args } = :elixir_clauses.extract_args(fun)
+
+    docs = Enum.map args, (function do
+      { :::, _, [left, right] } ->
+        ensure_not_default(left)
+        ensure_not_default(right)
+        left
+      other ->
+        ensure_not_default(other)
+        other
+    end)
+
+    quote do
+      @callback unquote(name)(unquote_splicing(args)), do: unquote(return)
+      def unquote(name)(unquote_splicing(docs))
+    end
+  end
+
+  defp ensure_not_default({ ://, _, [_, _] }) do
+    raise ArgumentError, message: "default arguments // not supported in defcallback"
+  end
+
+  defp ensure_not_default(_), do: :ok
+
   @doc false
   defmacro __using__(_) do
     quote do
@@ -81,8 +109,10 @@ defmodule Behaviour do
   defmacro __before_compile__(_) do
     quote do
       @doc false
-      def behaviour_info(:callbacks) do
-        @__behaviour_callbacks
+      if @__behaviour_callbacks != [] do
+        def behaviour_info(:callbacks) do
+          @__behaviour_callbacks
+        end
       end
     end
   end
