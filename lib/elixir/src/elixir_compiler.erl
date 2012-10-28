@@ -110,8 +110,9 @@ module(Forms, File, Options, Bootstrap, Callback) when
 
 core() ->
   elixir:start_app(),
-  gen_server:call(elixir_code_server, { compiler_options, [{docs,false},{internal,true}] }),
+  gen_server:call(elixir_code_server, { compiler_options, [{docs,false},{internal,true},{debug_info,true}] }),
   [core_file(File) || File <- core_main()],
+  gen_server:call(elixir_code_server, { compiler_options, [{internal,false}] }),
   AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
   Files = lists:append(AllLists) -- core_main(),
   [core_file(File) || File <- 'Elixir.List':uniq(Files)].
@@ -216,7 +217,8 @@ core_main() ->
     "lib/elixir/lib/binary/inspect.ex",
     "lib/elixir/lib/binary/chars.ex",
     "lib/elixir/lib/list/chars.ex",
-    "lib/elixir/lib/gen_server/behaviour.ex"
+    "lib/elixir/lib/gen_server/behaviour.ex",
+    "lib/elixir/lib/kernel/typespec.ex"
   ].
 
 %% ERROR HANDLING

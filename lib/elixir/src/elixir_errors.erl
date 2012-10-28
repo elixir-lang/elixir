@@ -95,13 +95,7 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity
   io:format(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
-  Raw = io_lib:format("behaviour ~s undefined", [inspect(Module)]),
-
-  Message = case erlang:function_exported(Module, behavior_info, 1) of
-    true  -> Raw ++ " (maybe you meant behaviour_info instead of behavior_info?)";
-    false -> Raw
-  end,
-
+  Message = io_lib:format("behaviour ~s undefined", [inspect(Module)]),
   io:format(file_format(Line, File, Message));
 
 %% Default behavior

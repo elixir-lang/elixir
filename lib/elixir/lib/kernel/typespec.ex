@@ -217,7 +217,7 @@ defmodule Kernel.Typespec do
     spec = typespec(definition, vars, caller)
 
     vars = lc ({:var, _, _} = var) inlist args, do: var
-    attr = if options[:opaque], do: :opaque, else: :type
+    attr = if Keyword.get(options, :opaque), do: :opaque, else: :type
 
     export = if export do
       quote do: Module.compile_type(__MODULE__, :export_type, [{name, length(vars)}])
