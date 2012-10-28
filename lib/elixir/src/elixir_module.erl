@@ -271,7 +271,7 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
         macros_clause(Line, Module, Def, Defmacro),
         docs_clause(Line, Module, Docs),
         moduledoc_clause(Line, Module, Docs),
-        self_clause(Line, Module),
+        module_clause(Line, Module),
         else_clause(Line)
       ] },
       { [Pair|Export], [Contents|Functions] }
@@ -290,8 +290,8 @@ handle_builtin_macros('Elixir.Kernel', Def, Defmacro) ->
     elixir_dispatch:in_erlang_macros()), Def);
 handle_builtin_macros(_, _Def, Defmacro) -> Defmacro.
 
-self_clause(Line, Module) ->
-  { clause, Line, [{ atom, Line, self }], [], [{ atom, Line, Module }] }.
+module_clause(Line, Module) ->
+  { clause, Line, [{ atom, Line, module }], [], [{ atom, Line, Module }] }.
 
 docs_clause(Line, Module, true) ->
   Docs = ordsets:from_list(ets:tab2list(docs_table(Module))),
