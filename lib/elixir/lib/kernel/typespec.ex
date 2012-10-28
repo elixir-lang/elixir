@@ -44,6 +44,23 @@ defmodule Kernel.Typespec do
     lc { k, _ } inlist keys, do: { k, :proplists.append_values(k, specs) }
   end
 
+  @doc """
+  Defines a callback from a spec if one is available.
+  Returns true if successful, false otherwise.
+  """
+  def callback_from_spec(module, name, arity) do
+    table = spec_table_for(module)
+    pairs = :ets.lookup(table, { :spec, { name, arity } })
+    specs = Enum.reduce(pairs, [], fn { _key, specs }, acc -> acc ++ specs end)
+
+    if specs != [] do
+      :ets.insert(table, { { :callback, { name, arity } }, specs })
+      true
+    else
+      false
+    end
+  end
+
   ## Typespec conversion
 
   # Handle unions

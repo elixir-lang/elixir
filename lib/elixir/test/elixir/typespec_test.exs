@@ -229,7 +229,27 @@ defmodule Typespec.Test.Type do
     assert {{:callback, {:myfun,2}},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]} = spec3
   end
 
-  test "get_specs" do
+  test "defines a callback from a spec" do
+    specs = test_module do
+      import Kernel.Typespec
+      def myfun(x), do: x
+      @spec myfun(integer), do: integer
+      @spec myfun(string),  do: string
+      callback_from_spec(__MODULE__, :myfun, 1)
+      get_specs(__MODULE__)
+    end
+
+    assert [
+      {{:callback, {:myfun,1}},[
+        {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
+        {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]},
+      {{:spec, {:myfun,1}},[
+        {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
+        {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}
+    ] = List.sort(specs)
+  end
+
+  test "getting all specs from Kernel.Typespec" do
     specs = test_module do
       import Kernel.Typespec
       def myfun(x), do: x
@@ -240,12 +260,12 @@ defmodule Typespec.Test.Type do
     end
 
     assert [
-            {{:callback, {:cb, 1}},[
-              {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}
-            ]},
-            {{:spec, {:myfun,1}},[
-              {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
-              {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}
-            ] = List.sort(specs)
+      {{:callback, {:cb, 1}},[
+        {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}
+      ]},
+      {{:spec, {:myfun,1}},[
+        {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
+        {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}
+    ] = List.sort(specs)
   end
 end

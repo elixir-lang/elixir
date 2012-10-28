@@ -80,7 +80,7 @@ translate({ function, Line, [_,_,_] = Args }, S) when is_list(Args) ->
 
 %% @
 
-translate({'@', Line, [{ Name, _, Args }]}, S) when Name == typep; Name == type; Name == spec; Name == callback ->
+translate({'@', Line, [{ Name, _, Args }]}, S) when is_list(Args) andalso (Name == typep orelse Name == type orelse Name == spec orelse Name == callback) ->
   case elixir_compiler:get_opt(internal) of
     true  -> { { nil, Line }, S };
     false ->
