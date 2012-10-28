@@ -240,7 +240,7 @@ validate_rescue_access(Line, { '=', _, [Left, Right] }, S) ->
   validate_rescue_access(Line, Left, S),
   validate_rescue_access(Line, Right, S);
 
-validate_rescue_access(Line, { 'access', _, [Element, _] }, S) ->
+validate_rescue_access(Line, { { '.', _, ['Elixir.Kernel', 'access'] }, _, [Element, _] }, S) ->
   case elixir_translator:translate_each(Element, S) of
     { { atom, _, Atom }, _ } ->
       case lists:member(Atom, erlang_rescues()) of
