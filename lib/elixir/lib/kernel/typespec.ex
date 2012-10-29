@@ -51,7 +51,7 @@ defmodule Kernel.Typespec do
   def callback_from_spec(module, name, arity) do
     table = spec_table_for(module)
     pairs = :ets.lookup(table, { :spec, { name, arity } })
-    specs = Enum.reduce(pairs, [], fn { _key, specs }, acc -> acc ++ specs end)
+    specs = :lists.foldl(fn { _key, specs }, acc -> acc ++ specs end, [], pairs)
 
     if specs != [] do
       :ets.insert(table, { { :callback, { name, arity } }, specs })
@@ -65,7 +65,7 @@ defmodule Kernel.Typespec do
 
   # Handle unions
   defp typespec({ :|, line, [_,_] } = exprs, vars, caller) do
-    exprs = Enum.reverse(collect_union(exprs))
+    exprs = :lists.reverse(collect_union(exprs))
     union = lc e inlist exprs, do: typespec(e, vars, caller)
     { :type, line, :union, union }
   end
@@ -130,8 +130,8 @@ defmodule Kernel.Typespec do
   # Handle funs
   defp typespec({:fun, line, arguments}, vars, caller) when is_list(arguments) do
     args =
-      case Enum.reverse(arguments) do
-        [[{:do,h}]|t] -> fn_args(line, Enum.reverse(t), h, vars, caller)
+      case :lists.reverse(arguments) do
+        [[{:do,h}]|t] -> fn_args(line, :lists.reverse(t), h, vars, caller)
         [] -> []
         _  -> [fn_args(line, arguments, vars, caller)]
       end
