@@ -75,11 +75,11 @@ defmodule Kernel.Typespec do
      {:type, line, :binary, [{:integer, line, 0}, {:integer, line, 0}]}
   end
 
-  defp typespec({:<<>>, line, [{:|, _, [{:_, line1, atom}, {:*, _, [{:_, line2, atom}, unit]}]}]}, _, _) when is_atom(atom) do
+  defp typespec({:<<>>, line, [{:::, _, [{:_, line1, atom}, {:*, _, [{:_, line2, atom}, unit]}]}]}, _, _) when is_atom(atom) do
      {:type, line, :binary, [{:integer, line1, 0}, {:integer, line2, unit}]}
   end
 
-  defp typespec({:<<>>, line, [{:|, line1, [{:_, line2, atom}, base]}]}, _, _) when is_atom(atom) do
+  defp typespec({:<<>>, line, [{:::, line1, [{:_, line2, atom}, base]}]}, _, _) when is_atom(atom) do
      {:type, line, :binary, [{:integer, line1, base}, {:integer, line2, 0}]}
   end
 
@@ -142,7 +142,7 @@ defmodule Kernel.Typespec do
   # Handle variables or local calls
   defp typespec({name, line, atom}, vars, caller) when is_atom(atom) do
     if List.member?(vars, name) do
-       { :var, line, name }
+      { :var, line, name }
     else
       typespec({name, line, []}, vars, caller)
     end
@@ -203,7 +203,7 @@ defmodule Kernel.Typespec do
     { :type, line, :product, args }
   end
 
-  def _deftype({:"::", _, [name, definition]}, export, caller, opts) do
+  def _deftype({:::, _, [name, definition]}, export, caller, opts) do
     _deftype(name, definition, export, caller, opts)
   end
 

@@ -35,16 +35,13 @@ defmodule Protocol do
         # Set up a clear slate to store defined functions
         @functions []
 
-        # Define a basic type
-        @type t :: term
-
         # Invoke the user given block
         unquote(block)
 
         # Define callbacks and meta information
-        { conversions, fallback } = Protocol.conversions_for(__MODULE__, @only, @except)
-        Protocol.impl_for(conversions, fallback, __ENV__)
-        Protocol.meta(@functions, fallback, __ENV__)
+        { conversions, fallback, any } = Protocol.conversions_for(__MODULE__, @only, @except)
+        Protocol.impl_for(conversions, fallback, any, __ENV__)
+        Protocol.meta(@functions, conversions, fallback, any, __ENV__)
       end
     end
   end
@@ -78,10 +75,9 @@ defmodule Protocol do
     end
   end
 
-  @doc """
-  Check if the given module is a protocol. Raises an error
-  if not loaded or not a protocol.
-  """
+  # Check if the given module is a protocol. Raises an error
+  # if not loaded or not a protocol.
+  @doc false
   def assert_protocol(module) do
     case Code.ensure_compiled(module) do
       { :module, ^module } -> nil
@@ -96,16 +92,36 @@ defmodule Protocol do
     end
   end
 
-  @doc """
-  Defines meta information about the protocol and internal callbacks.
-  """
-  def meta(functions, fallback, env) do
+  # Implements the function that detects the protocol and returns
+  # the module to dispatch to. Returns module.Record for records
+  # which should be properly handled by the dispatching function.
+  @doc false
+  def impl_for(conversions, fallback, any, env) do
+    contents = lc kind inlist conversions do
+      each_impl_for(kind, if fallback, do: conversions)
+    end
+
+    # If we don't implement all protocols and any is not in the
+    # list, we need to add a final clause that returns nil.
+    if not any && length(conversions) < 10 do
+      contents = contents ++ [quote do
+        defp __raw_impl__(_) do
+          nil
+        end
+      end]
+    end
+
+    Module.eval_quoted env, contents
+  end
+
+  # Defines meta information about the protocol and internal callbacks.
+  @doc false
+  def meta(functions, conversions, fallback, any, env) do
     contents = quote do
+      @type t :: unquote(generate_type(conversions, any))
+
       def __protocol__(:name),      do: __MODULE__
       def __protocol__(:functions), do: unquote(:lists.sort(functions))
-
-      @doc false
-      def behaviour_info(:callbacks), do: [{ :__impl__, 0 }|__protocol__(:functions)]
 
       def __impl_for__(arg) do
         case __raw_impl__(arg) do
@@ -137,33 +153,9 @@ defmodule Protocol do
     Module.eval_quoted env, contents
   end
 
-  @doc """
-  Implements the function that detects the protocol and returns
-  the module to dispatch to. Returns module.Record for records
-  which should be properly handled by the dispatching function.
-  """
-  def impl_for(conversions, fallback, env) do
-    contents = lc kind inlist conversions do
-      each_impl_for(kind, if fallback, do: conversions)
-    end
-
-    # If we don't implement all protocols and any is not in the
-    # list, we need to add a final clause that returns nil.
-    if L.keyfind(Any, 1, conversions) == false && length(conversions) < 10 do
-      contents = contents ++ [quote do
-        defp __raw_impl__(_) do
-          nil
-        end
-      end]
-    end
-
-    Module.eval_quoted env, contents
-  end
-
-  @doc """
-  Returns the default conversions according to the given
-  only/except options.
-  """
+  # Returns the default conversions according to the given
+  # only/except options.
+  @doc false
   def conversions_for(module, only, except) do
     kinds = all_types
 
@@ -184,36 +176,45 @@ defmodule Protocol do
         nil
     end
 
-    { conversions, fallback }
+    contains_any = L.keyfind(Any, 1, conversions) != false
+    { conversions, fallback, contains_any }
   end
 
   ## Helpers
 
+  defp generate_type(_conversions, true) do
+    quote(do: any)
+  end
+
+  defp generate_type(conversions, false) do
+    or_function     = fn({ _, _, x }, acc) -> { :|, 0, [acc, x] } end
+    { _, _, first } = hd(conversions)
+    :lists.foldl(or_function, first, tl(conversions))
+  end
+
   defp all_types do
-    [
-      { Record,    :is_record },
-      { Tuple,     :is_tuple },
-      { Atom,      :is_atom },
-      { List,      :is_list },
-      { BitString, :is_bitstring },
-      { Number,    :is_number },
-      { Function,  :is_function },
-      { PID,       :is_pid },
-      { Port,      :is_port },
-      { Reference, :is_reference },
-      { Any,       :is_any }
-    ]
+    [ { Record,    :is_record,    quote do: tuple },
+      { Tuple,     :is_tuple,     quote do: tuple },
+      { Atom,      :is_atom,      quote do: atom },
+      { List,      :is_list,      quote do: list },
+      { BitString, :is_bitstring, quote do: <<>> },
+      { Number,    :is_number,    quote do: number },
+      { Function,  :is_function,  quote do: fun },
+      { PID,       :is_pid,       quote do: pid },
+      { Port,      :is_port,      quote do: port },
+      { Reference, :is_reference, quote do: reference },
+      { Any,       :is_any,       quote do: any } ]
   end
 
   # Returns a quoted expression that allows to check
   # if the first item in the tuple is a built-in or not.
-  defp is_builtin?([{h,_}]) do
+  defp is_builtin?([{h,_,_}]) do
     quote do
       first == unquote(h)
     end
   end
 
-  defp is_builtin?([{h,_}|t]) do
+  defp is_builtin?([{h,_,_}|t]) do
     quote do
       first == unquote(h) or unquote(is_builtin?(t))
     end
@@ -224,7 +225,7 @@ defmodule Protocol do
   # This case assumes that, whenever a tuple is given
   # it is meant to be a record, so we don't need extra
   # checks.
-  defp each_impl_for({ _, :is_record }, nil) do
+  defp each_impl_for({ _, :is_record, _ }, nil) do
     quote do
       defp __raw_impl__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
         __MODULE__.Record
@@ -233,7 +234,7 @@ defmodule Protocol do
   end
 
   # Specially handle records in the case we have fallbacks.
-  defp each_impl_for({ _, :is_record }, conversions) do
+  defp each_impl_for({ _, :is_record, _ }, conversions) do
     quote do
       defp __raw_impl__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
         first = :erlang.element(1, arg)
@@ -250,7 +251,7 @@ defmodule Protocol do
   end
 
   # Special case any as we don't need to generate a guard.
-  defp each_impl_for({ _, :is_any }, _) do
+  defp each_impl_for({ _, :is_any, _ }, _) do
     quote do
       defp __raw_impl__(_) do
         __MODULE__.Any
@@ -259,7 +260,7 @@ defmodule Protocol do
   end
 
   # Generate all others protocols.
-  defp each_impl_for({ kind, fun }, _) do
+  defp each_impl_for({ kind, fun, _ }, _) do
     quote do
       defp __raw_impl__(arg) when unquote(fun).(arg) do
         Module.concat __MODULE__, unquote(kind)
@@ -308,7 +309,7 @@ defmodule Protocol.DSL do
     only   = Module.get_attribute(module, :only)
     except = Module.get_attribute(module, :except)
 
-    { _, fallback } = Protocol.conversions_for(module, only, except)
+    { _, fallback, _ } = Protocol.conversions_for(module, only, except)
 
     if fallback do
       quote do
@@ -333,15 +334,26 @@ defmodule Protocol.DSL do
 
     arity = length(args)
 
+    type_args = lc _ inlist :lists.seq(2, arity), do: quote(do: term)
+    type_args = [quote(do: t) | type_args]
+
     quote do
-      @functions [unquote({name, arity})|@functions]
+      name  = unquote(name)
+      arity = unquote(arity)
+
+      @functions [{name, arity}|@functions]
 
       # Generate a fake definition with the user
       # signature that will be used by docs
       Kernel.def unquote(name).(unquote_splicing(args))
 
-      { args, body } = Protocol.DSL.args_and_body(__MODULE__, unquote(name), unquote(arity))
+      { args, body } = Protocol.DSL.args_and_body(__MODULE__, name, arity)
       Kernel.def unquote(name), args, [], do: body
+
+      # Convert the spec to callback if possible,
+      # otherwise generate a dummy callback
+      Kernel.Typespec.callback_from_spec(__MODULE__, name, arity) ||
+        @callback unquote(name)(unquote_splicing(type_args)), do: term
     end
   end
 end

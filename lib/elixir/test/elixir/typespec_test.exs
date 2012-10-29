@@ -85,14 +85,14 @@ defmodule Typespec.Test.Type do
 
   test "@type with a binary with a base size" do
     spec = test_module do
-      @type mytype :: <<_|3>>
+      @type mytype :: <<_ :: 3>>
     end
     assert {:type,{:mytype,{:type,_,:binary, [{:integer, _, 3},{:integer, _, 0}]},[]}} = spec
   end
 
   test "@type with a binary with a unit size" do
     spec = test_module do
-      @type mytype :: <<_|_ * 8>>
+      @type mytype :: <<_ :: _ * 8>>
     end
     assert {:type,{:mytype,{:type,_,:binary, [{:integer, _, 0},{:integer, _, 8}]},[]}} = spec
   end
