@@ -155,11 +155,11 @@ defmodule Typespec.Test.Type do
 
   test "@type with a union" do
     spec = test_module do
-      @type mytype :: integer | string
+      @type mytype :: integer | char_list
                     | atom
     end
     assert {:type,{:mytype,{:type,_,:union, [{:type, _, :integer, []},
-                         {:type, _, :string, []},
+                         {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]},
                          {:type, _, :atom, []}]}, []}} = spec
   end
 
@@ -234,7 +234,7 @@ defmodule Typespec.Test.Type do
       import Kernel.Typespec
       def myfun(x), do: x
       @spec myfun(integer), do: integer
-      @spec myfun(string),  do: string
+      @spec myfun(char_list),  do: char_list
       callback_from_spec(__MODULE__, :myfun, 1)
       get_specs(__MODULE__)
     end
@@ -242,10 +242,10 @@ defmodule Typespec.Test.Type do
     assert [
       {{:callback, {:myfun,1}},[
         {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
-        {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]},
+        {:type,_,:fun,[{:type,_,:product,[{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]}]},
       {{:spec, {:myfun,1}},[
         {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
-        {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}
+        {:type,_,:fun,[{:type,_,:product,[{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]}]}
     ] = List.sort(specs)
   end
 
@@ -254,7 +254,7 @@ defmodule Typespec.Test.Type do
       import Kernel.Typespec
       def myfun(x), do: x
       @spec myfun(integer), do: integer
-      @spec myfun(string),  do: string
+      @spec myfun(char_list),  do: char_list
       @callback cb(integer), do: integer
       get_specs(__MODULE__)
     end
@@ -265,7 +265,7 @@ defmodule Typespec.Test.Type do
       ]},
       {{:spec, {:myfun,1}},[
         {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
-        {:type,_,:fun,[{:type,_,:product,[{:type,_,:string,[]}]},{:type,_,:string,[]}]}]}
+        {:type,_,:fun,[{:type,_,:product,[{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]}]}
     ] = List.sort(specs)
   end
 end

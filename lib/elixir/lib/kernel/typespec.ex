@@ -149,6 +149,14 @@ defmodule Kernel.Typespec do
   end
 
   # Handle local calls
+  defp typespec({:string, line, arguments}, vars, caller) do
+    IO.write "#{caller.file}.#{caller.line}: warning: string() type use is discouraged. For character lists,  use char_list() type, for strings, String.t()\n"
+    arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
+    { :type, line, :string, arguments }
+  end
+  defp typespec({:char_list, _line, arguments}, vars, caller) do
+    typespec((quote do: :elixir.char_list(unquote_splicing(arguments))), vars, caller)
+  end
   defp typespec({name, line, arguments}, vars, caller) do
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
     { :type, line, name, arguments }
@@ -220,7 +228,7 @@ defmodule Kernel.Typespec do
     attr = if Keyword.get(options, :opaque), do: :opaque, else: :type
 
     export = if export do
-      quote do: Module.compile_type(__MODULE__, :export_type, [{name, length(vars)}])
+      quote do: Module.compile_type(__MODULE__, :export_type, [{name, Kernel.length(vars)}])
     else
       nil
     end
@@ -239,7 +247,7 @@ defmodule Kernel.Typespec do
   defp _defspec(type, caller, {name, line, args},[{:do,return}]) do
     if is_atom(args), do: args = []
     spec  = { :type, line, :fun, fn_args(line, args, return, [], caller) }
-    code  = Macro.escape { {type, { name, length(args) }}, [spec] }
+    code  = Macro.escape { {type, { name, Kernel.length(args) }}, [spec] }
     table = spec_table_for(caller.module)
 
     quote do
@@ -259,4 +267,5 @@ defmodule Kernel.Typespec do
   defp variable({name, line, _}) do
     {:var, line, name}
   end
+
 end

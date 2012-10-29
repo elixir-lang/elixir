@@ -23,6 +23,8 @@ defmodule String do
       String.printable?("abc") #=> true
 
   """
+  
+  @type t :: binary
 
   # Allow basic ascii chars
   def printable?(<<c, t :: binary>>) when c in ?\s..?~ do

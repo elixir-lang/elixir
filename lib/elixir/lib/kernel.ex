@@ -543,7 +543,7 @@ defmodule Kernel do
       #=> '7.00000000000000000000e+00'
 
   """
-  @spec float_to_list(number), do: string
+  @spec float_to_list(number), do: char_list
   def float_to_list(number) do
     :erlang.float_to_list(number)
   end
@@ -559,7 +559,7 @@ defmodule Kernel do
   @doc """
   The same as halt(status, []).
   """
-  @spec halt(non_neg_integer | string | :abort), do: no_return
+  @spec halt(non_neg_integer | char_list | :abort), do: no_return
   def halt(status) do
     :erlang.halt(status)
   end
@@ -591,7 +591,7 @@ defmodule Kernel do
       halt(:abort)
 
   """
-  @spec halt(non_neg_integer | string | :abort, [] | [flush: false]), do: no_return
+  @spec halt(non_neg_integer | char_list | :abort, [] | [flush: false]), do: no_return
   def halt(status, options) do
     :erlang.halt(status, options)
   end
@@ -613,7 +613,7 @@ defmodule Kernel do
       #=> '7'
 
   """
-  @spec integer_to_list(integer), do: string
+  @spec integer_to_list(integer), do: char_list
   def integer_to_list(number) do
     :erlang.integer_to_list(number)
   end
@@ -628,7 +628,7 @@ defmodule Kernel do
       #=> "3FF"
 
   """
-  @spec integer_to_list(integer, pos_integer), do: string
+  @spec integer_to_list(integer, pos_integer), do: char_list
   def integer_to_list(number, base) do
     :erlang.integer_to_list(number, base)
   end
@@ -840,7 +840,7 @@ defmodule Kernel do
 
       list_to_atom('elixir') #=> :elixir
   """
-  @spec list_to_atom(string), do: atom
+  @spec list_to_atom(char_list), do: atom
   def list_to_atom(char_list) do
     :erlang.list_to_atom(char_list)
   end
@@ -880,7 +880,7 @@ defmodule Kernel do
   Returns the atom whose text representation is `char_list`, but only if there already
   exists such atom.
   """
-  @spec list_to_existing_atom(string), do: atom
+  @spec list_to_existing_atom(char_list), do: atom
   def list_to_existing_atom(char_list) do
     :erlang.list_to_existing_atom(char_list)
   end
@@ -892,7 +892,7 @@ defmodule Kernel do
 
       list_to_float('2.2017764e+0') #=> 2.2017764
   """
-  @spec list_to_float(string), do: float
+  @spec list_to_float(char_list), do: float
   def list_to_float(char_list) do
     :erlang.list_to_float(char_list)
   end
@@ -904,7 +904,7 @@ defmodule Kernel do
 
       list_to_integer('123') #=> 123
   """
-  @spec list_to_integer(string), do: integer
+  @spec list_to_integer(char_list), do: integer
   def list_to_integer(char_list) do
     :erlang.list_to_integer(char_list)
   end
@@ -916,7 +916,7 @@ defmodule Kernel do
 
       list_to_integer('3FF', 16) #=> 1023
   """
-  @spec list_to_integer(string, non_neg_integer), do: integer
+  @spec list_to_integer(char_list, non_neg_integer), do: integer
   def list_to_integer(char_list, base) do
     :erlang.list_to_integer(char_list, base)
   end
@@ -934,7 +934,7 @@ defmodule Kernel do
   ## Examples
       list_to_pid('<0.41>') #=> <0.4.1>
   """
-  @spec list_to_pid(string), do: pid
+  @spec list_to_pid(char_list), do: pid
   def list_to_pid(char_list) do
     :erlang.list_to_pid(char_list)
   end
