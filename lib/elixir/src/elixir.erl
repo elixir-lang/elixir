@@ -7,6 +7,11 @@
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
+%% Top level types
+-export_type([char_list/0]).
+
+-type char_list() :: string().
+
 % OTP APPLICATION API
 
 -export([start/2, stop/1, config_change/3]).
