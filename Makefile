@@ -133,7 +133,7 @@ test_kernel: compile
 	@ echo "==> Adding Erlang/OTP basic applications to a new base PLT"
 	@ dialyzer --output_plt .dialyzer.base_plt --build_plt --apps erts kernel stdlib compiler syntax_tools inets crypto ssl
 
-dialyze: compile .dialyzer.base_plt
+dialyze: .release .dialyzer.base_plt
 	@ rm -f .dialyzer_plt
 	@ cp .dialyzer.base_plt .dialyzer_plt
 	@ echo "==> Adding Elixir to PLT..."
