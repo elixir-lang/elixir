@@ -118,7 +118,7 @@ defmodule Protocol do
   @doc false
   def meta(functions, conversions, fallback, any, env) do
     contents = quote do
-      @type t :: unquote(generate_type(conversions, any))
+      Kernel.Typespec.deftype(t :: unquote(generate_type(conversions, any)))
 
       def __protocol__(:name),      do: __MODULE__
       def __protocol__(:functions), do: unquote(:lists.sort(functions))
@@ -353,7 +353,7 @@ defmodule Protocol.DSL do
       # Convert the spec to callback if possible,
       # otherwise generate a dummy callback
       Kernel.Typespec.callback_from_spec(__MODULE__, name, arity) ||
-        @callback unquote(name)(unquote_splicing(type_args)), do: term
+        Kernel.Typespec.defcallback(unquote(name)(unquote_splicing(type_args)), do: term)
     end
   end
 end

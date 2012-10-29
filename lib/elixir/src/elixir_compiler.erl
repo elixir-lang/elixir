@@ -205,11 +205,12 @@ core_main() ->
   [
     "lib/elixir/lib/kernel.ex",
     "lib/elixir/lib/keyword.ex",
+    "lib/elixir/lib/list.ex",
+    "lib/elixir/lib/kernel/typespec.ex",    
     "lib/elixir/lib/record.ex",
     "lib/elixir/lib/macro.ex",
     "lib/elixir/lib/macro/env.ex",
     "lib/elixir/lib/module.ex",
-    "lib/elixir/lib/list.ex",
     "lib/elixir/lib/code.ex",
     "lib/elixir/lib/protocol.ex",
     "lib/elixir/lib/enum.ex",
@@ -217,8 +218,7 @@ core_main() ->
     "lib/elixir/lib/binary/inspect.ex",
     "lib/elixir/lib/binary/chars.ex",
     "lib/elixir/lib/list/chars.ex",
-    "lib/elixir/lib/gen_server/behaviour.ex",
-    "lib/elixir/lib/kernel/typespec.ex"
+    "lib/elixir/lib/gen_server/behaviour.ex"
   ].
 
 %% ERROR HANDLING
