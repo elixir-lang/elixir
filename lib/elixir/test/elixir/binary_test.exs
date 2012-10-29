@@ -59,7 +59,7 @@ bar
 
   test :pattern_match do
     s = 16
-    assert <<a, b :: size(s)>> = "foo"
+    assert <<_a, _b :: size(s)>> = "foo"
   end
 
   test :partial_application do

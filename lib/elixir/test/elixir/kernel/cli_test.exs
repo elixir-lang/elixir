@@ -77,7 +77,7 @@ defmodule Kernel.CLI.CompileTest do
   import PathHelpers
 
   test :compile_code do
-    fixture = fixture_path "compile_sample.exs"
+    fixture = fixture_path "compile_sample.ex"
     assert elixirc('#{fixture} -o #{tmp_path}') ==
       'Compiled #{fixture}\n'
     assert File.regular?(tmp_path "Elixir-CompileSample.beam")
@@ -89,8 +89,9 @@ defmodule Kernel.CLI.ParallelCompilerTest do
   import PathHelpers
 
   test :files do
-    fixtures = [fixture_path("parallel_compiler/foo.ex")]
-    assert [{ Foo, binary }] = Kernel.ParallelCompiler.files fixtures
+    fixtures = [fixture_path("compile_sample.ex")]
+    assert [{ CompileSample, binary }] = Kernel.ParallelCompiler.files fixtures
+    assert is_binary(binary)
   end
 
   test :compile_code do
