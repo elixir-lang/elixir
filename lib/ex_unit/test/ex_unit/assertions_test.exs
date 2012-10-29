@@ -77,7 +77,8 @@ defmodule ExUnit.AssertionsTest do
 
   test :assert_match_when_different do
     try do
-      "This should never be tested" = assert {_, 2} = Value.tuple
+      assert {_, 2} = Value.tuple
+      raise "failed"
     rescue
       error in [ExUnit.AssertionError] ->
         "no match of right hand side value: {2,1}" = error.message

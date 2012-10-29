@@ -71,7 +71,7 @@ defmodule ExUnit.Assertions do
 
   defp translate_assertion({ :=, _, [expected, received] }, _else) do
     quote do
-      try do
+      unquote(expected) = try do
         unquote(expected) = unquote(received)
       rescue
         x in [MatchError] ->
