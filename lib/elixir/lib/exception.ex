@@ -217,7 +217,7 @@ defexception ErlangError, [original: nil] do
   end
 end
 
-defexception Keyword.KeyError, key: nil do
+defexception KeyError, key: nil do
   def message(exception) do
     "key not found: #{inspect exception.key}"
   end

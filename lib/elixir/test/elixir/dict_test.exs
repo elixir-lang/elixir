@@ -34,6 +34,14 @@ defmodule DictTest.Common do
         assert "default" == Dict.get(empty_dict, "first_key", "default")
       end
 
+      test :get! do
+        assert 1 == Dict.get!(new_dict, "first_key")
+        assert 2 == Dict.get!(new_dict, "second_key")
+        assert_raise KeyError, fn ->
+          Dict.get!(new_dict, "other_key")
+        end
+      end
+
       test :put do
         dict = Dict.put(new_dict, "first_key", {1})
         assert {1} == Dict.get dict, "first_key"

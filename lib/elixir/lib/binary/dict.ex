@@ -38,6 +38,13 @@ defmodule Binary.Dict do
     end
   end
 
+  def get!(dict(data), key) do
+    case :orddict.find(to_binary(key), data) do
+      {:ok, value} -> value
+      :error       -> raise(KeyError, key: key)
+    end
+  end
+
   def put(dict(data), key, value) do
     dict(:orddict.store to_binary(key), value, data)
   end

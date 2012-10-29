@@ -105,6 +105,21 @@ defmodule Dict do
   end
 
   @doc """
+  Returns the value associated with `key` in `dict`. If `dict` does not
+  contain `key`, it raises `KeyError`.
+
+  ## Examples
+
+      d = new [a: 1]
+      Dict.get d, :a     #=> 1
+      Dict.get d, :b     #=> raises KeyError[key: :b]
+
+  """
+  def get!(dict, key) do
+    elem(dict, 0).get!(dict, key)
+  end
+
+  @doc """
   Stores the given `value` under `key` in `dict`.
   If `dict` already has `key`, the stored value is replaced by the new one.
 
