@@ -43,8 +43,8 @@ defmodule Kernel.Typespec do
   """
   def defines_type?(module, name, arity) do
     finder = match?({ ^name, _, vars } when length(vars) == arity, &1)
-    Enum.any?(Module.get_attribute(module, :type), finder) or
-      Enum.any?(Module.get_attribute(module, :opaque), finder)
+    :lists.any(finder, Module.get_attribute(module, :type)) or
+      :lists.any(finder, Module.get_attribute(module, :opaque))
   end
 
   @doc """

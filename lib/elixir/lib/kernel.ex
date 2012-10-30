@@ -1445,15 +1445,26 @@ defmodule Kernel do
   * `merge_field` - Receives keywords and merge it into the current value;
   * `prepend_field` - Receives another list and prepend its values
 
-  You can define your own extensions or disable them using the except
-  option:
-
-      defrecord Config, [counter: 0, failures: []], except: [:extensions]
-
   ## Documentation
 
   By default records are not documented and have @moduledoc set to false.
 
+  ## Types
+
+  Every record defines a type named `t` that can be accessed in typespecs.
+  For example, assuming the Config record defined above, it could be used
+  in typespecs as follow:
+
+      @spec handle_config(Config.t), do: boolean()
+
+  Inside the record definition, a developer can define his own types too:
+
+      defrecord Config, counter: 0, failures: [] do
+        @type t(kind) :: Config[counter: integer, failures: [kind]]
+      end
+
+  When defining a type, all the fields not mentioned in the type are
+  assumed to have type `term`.
   """
   defmacro defrecord(name, values, opts // [], do_block // []) do
     Record.defrecord(name, values, Keyword.merge(opts, do_block))
@@ -1621,7 +1632,7 @@ defmodule Kernel do
   Reference are never going to be blank, it would be easier if we
   could simply provide a default implementation.
 
-  This can be achieved with Elixir as follows:
+  This can be achieved in Elixir as follows:
 
       defprotocol Blank do
         @only [Atom, Tuple, List, BitString, Any]
@@ -1659,6 +1670,19 @@ defmodule Kernel do
 
   Finally, since records are simply tuples, one can add a default protocol
   implementation to any record by defining a default implementation for tuples.
+
+  ## Types
+
+  As in records, defining a protocol automatically defines a type named `t`,
+  which can be used as:
+
+      @spec present?(Blank.t), do: boolean
+      def present?(blank) do
+        not Blank.blank?(blank)
+      end
+
+  The `@spec` above expresses that all types allowed to implement the
+  given protocol are valid argument types for the given function.
   """
   defmacro defprotocol(name, [do: block]) do
     Protocol.defprotocol(name, [do: block])

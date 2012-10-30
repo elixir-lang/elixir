@@ -10,7 +10,9 @@ defrecord name, a: 0, b: 1 do
   end
 end
 
-defrecord RecordTest.SomeRecord, a: 0, b: 1
+defrecord RecordTest.SomeRecord, a: 0, b: 1 do
+  @type t :: tuple
+end
 
 defrecord RecordTest.WithNoField, []
 

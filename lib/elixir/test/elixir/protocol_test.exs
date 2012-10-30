@@ -1,6 +1,7 @@
 Code.require_file "../test_helper.exs", __FILE__
 
 defprotocol ProtocolTest.WithAll do
+  @type t :: any
   @doc "Blank"
   def blank(thing)
 end
@@ -143,10 +144,10 @@ defmodule ProtocolTest do
 
   test :protocol_callback do
     assert get_callbacks(ProtocolTest.WithOnly, :blank, 1) ==
-      [{:type,16,:fun,[{:type,16,:product,[{:type,16,:t,[]}]},{:type,16,:term,[]}]}]
+      [{:type,17,:fun,[{:type,17,:product,[{:type,17,:t,[]}]},{:type,17,:term,[]}]}]
 
     assert get_callbacks(ProtocolTest.WithExcept, :blank, 1) ==
-      [{:type,10,:fun,[{:type,10,:product,[{:type,10,:t,[]}]},{:type,10,:boolean,[]}]}]
+      [{:type,11,:fun,[{:type,11,:product,[{:type,11,:t,[]}]},{:type,11,:boolean,[]}]}]
   end
 
   defp get_callbacks(module, name, arity) do

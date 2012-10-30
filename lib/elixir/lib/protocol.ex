@@ -118,7 +118,9 @@ defmodule Protocol do
   @doc false
   def meta(functions, conversions, fallback, any, env) do
     contents = quote do
-      Kernel.Typespec.deftype(t :: unquote(generate_type(conversions, any)))
+      unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+        Kernel.Typespec.deftype t :: unquote(generate_type(conversions, any))
+      end
 
       def __protocol__(:name),      do: __MODULE__
       def __protocol__(:functions), do: unquote(:lists.sort(functions))

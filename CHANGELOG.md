@@ -3,6 +3,9 @@
   * [Kernel] Improved dialyzer support
   * [String] Support `String.downcase` and `String.upcase` according to Unicode 6.2.0
   * [String] Add support for graphemes in `String.length`, `String.at` and others
+  * [Typespec] Support `@opaque` as attribute
+  * [Typespec] Define a default type `t` for protocols and records
+  * [Typespec] Add support for the access protocol in typespecs
 
 * bug fix
   * [Kernel] Fix an issue where variables inside clauses remained unassigned
