@@ -1,17 +1,21 @@
 defmodule Kernel.Typespec do
   @moduledoc """
   This is the module that converts Elixir typespecs
-  to Erlang typespecs syntax. Everytime @spec, @type
-  and @typep are used they proxy to the functions
-  in this module.
+  to Erlang typespecs syntax. Everytime `@spec`,
+  `@type`, `@typep`, `@callback` and `@opaque` are used
+  they proxy to the functions in this module.
   """
 
-  defmacro deftype(name, options // []) do
-    _deftype(name, true, __CALLER__, options)
+  defmacro deftype(name) do
+    _deftype(name, true, :type, __CALLER__)
+  end
+
+  defmacro defopaque(name) do
+    _deftype(name, true, :opaque, __CALLER__)
   end
 
   defmacro deftypep(name) do
-    _deftype(name, false, __CALLER__, [])
+    _deftype(name, false, :type, __CALLER__)
   end
 
   defmacro defspec(spec, block) do
@@ -228,21 +232,19 @@ defmodule Kernel.Typespec do
     { :type, line, :product, args }
   end
 
-  def _deftype({:::, _, [name, definition]}, export, caller, opts) do
-    _deftype(name, definition, export, caller, opts)
+  def _deftype({:::, _, [name, definition]}, export, kind, caller) do
+    _deftype(name, definition, export, kind, caller)
   end
 
-  def _deftype(name, export, caller, opts) do
-    _deftype(name, { :term, caller.line, nil }, export, caller, opts)
+  def _deftype(name, export, kind, caller) do
+    _deftype(name, { :term, caller.line, nil }, export, kind, caller)
   end
 
-  defp _deftype({name, _, args}, definition, export, caller, options) do
+  defp _deftype({name, _, args}, definition, export, kind, caller) do
     args = if is_atom(args), do: [], else: lc(arg inlist args, do: variable(arg))
     vars = lc {:var, _, var} inlist args, do: var
     spec = typespec(definition, vars, caller)
-
     vars = lc ({:var, _, _} = var) inlist args, do: var
-    attr = if Keyword.get(options, :opaque), do: :opaque, else: :type
 
     export = if export do
       quote do: Module.compile_type(__MODULE__, :export_type, [{name, Kernel.length(vars)}])
@@ -255,9 +257,9 @@ defmodule Kernel.Typespec do
       spec = unquote(Macro.escape(spec))
       vars = unquote(Macro.escape(vars))
       type = { name, spec, vars }
-      Module.compile_type __MODULE__, unquote(attr), type
+      Module.compile_type __MODULE__, unquote(kind), type
       unquote(export)
-      { unquote(attr), type }
+      { unquote(kind), type }
     end
   end
 

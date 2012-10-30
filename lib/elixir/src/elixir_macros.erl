@@ -80,7 +80,7 @@ translate({ function, Line, [_,_,_] = Args }, S) when is_list(Args) ->
 
 %% @
 
-translate({'@', Line, [{ Name, _, Args }]}, S) when is_list(Args) andalso (Name == typep orelse Name == type orelse Name == spec orelse Name == callback) ->
+translate({'@', Line, [{ Name, _, Args }]}, S) when is_list(Args) andalso (Name == typep orelse Name == type orelse Name == spec orelse Name == callback orelse Name == opaque) ->
   case elixir_compiler:get_opt(internal) of
     true  -> { { nil, Line }, S };
     false ->
@@ -331,6 +331,7 @@ is_reserved_data(_)         -> false.
 
 spec_to_macro(type)     -> deftype;
 spec_to_macro(typep)    -> deftypep;
+spec_to_macro(opaque)   -> defopaque;
 spec_to_macro(spec)     -> defspec;
 spec_to_macro(callback) -> defcallback.
 

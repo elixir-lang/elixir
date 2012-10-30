@@ -195,7 +195,7 @@ defmodule Typespec.Test.Type do
 
   test "opaque @type" do
     spec = test_module do
-      @type mytype(x) :: x, opaque: true
+      @opaque mytype(x) :: x
     end
     assert {:opaque,{:mytype,{:var,_,:x},[{:var,_,:x}]}} = spec
   end
@@ -204,7 +204,7 @@ defmodule Typespec.Test.Type do
     types = test_module do
       import Kernel.Typespec
       @type mytype :: tuple
-      @type mytype1 :: {}, opaque: true
+      @opaque mytype1 :: {}
       get_types(__MODULE__)
     end
     assert [{:mytype,_,[]},{:mytype1,_,[]}] = types
