@@ -103,7 +103,7 @@ defmodule Keyword do
   def get!(keywords, key) when is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
-      false -> raise(Keyword.KeyError, key: key)
+      false -> raise(KeyError, key: key)
     end
   end  
 
@@ -246,14 +246,14 @@ defmodule Keyword do
 
   @doc """
   Updates the key with the given function. If the key does
-  not exist, raises `Keyword.KeyError`.
+  not exist, raises `KeyError`.
 
   ## Examples
 
       Keyword.update([a: 1], :a, &1 * 2)
       #=> [a: 2]
       Keyword.update([a: 1], :b, &1 * 2)
-      #=> Keyword.KeyError
+      #=> KeyError
 
   """
   def update([{key, value}|keywords], key, fun) do
@@ -265,7 +265,7 @@ defmodule Keyword do
   end
 
   def update([], key, _fun) when is_atom(key) do
-    raise(Keyword.KeyError, key: key)
+    raise(KeyError, key: key)
   end
 
   @doc """

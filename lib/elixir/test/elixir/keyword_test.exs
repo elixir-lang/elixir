@@ -50,7 +50,7 @@ defmodule KeywordTest do
   test :get! do
     assert Keyword.get!(create_keywords, :first_key) == 1
 
-    error = assert_raise Keyword.KeyError, fn ->
+    error = assert_raise KeyError, fn ->
       Keyword.get!(create_keywords, :unknown)
     end
 
@@ -99,7 +99,7 @@ defmodule KeywordTest do
 
   test :update do
     assert Keyword.update([a: 1], :a, &1 * 2) == [a: 2]
-    assert_raise Keyword.KeyError, fn ->
+    assert_raise KeyError, fn ->
       assert Keyword.update([a: 1], :b, &1 * 2)
     end
   end
