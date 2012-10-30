@@ -106,6 +106,12 @@ defmodule Kernel.Typespec do
     { :op, line, op, {:integer, line, integer} }
   end
 
+  # Handle access macro
+  defp typespec({{:., line, [Kernel, :access]}, line1, [target, args]}, vars, caller) do
+    access = {{:., line, [Kernel, :access]}, line1, 
+              [target, args ++ [_: (quote hygiene: false, do: any)]]}
+    typespec(Macro.expand(access, caller), vars, caller)
+  end
   # Handle remote calls
   defp typespec({{:., line, [remote, name]}, _, args}, vars, caller) do
     remote = Macro.expand remote, caller
