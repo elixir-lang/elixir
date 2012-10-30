@@ -287,4 +287,46 @@ defmodule Typespec.Test.Type do
         {:type,_,:fun,[{:type,_,:product,[{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]}]}
     ] = List.sort(specs)
   end
+
+  # to_binary
+
+  test "to_binary types" do
+    types = [
+      (quote do: @type imm_type_1() :: 1),
+      (quote do: @type imm_type_2() :: :atom),
+      (quote do: @type simple_type() :: integer()),
+      (quote do: @type param_type(p) :: list(p)),
+      (quote do: @type union_type() :: integer() | binary() | boolean()),
+      (quote do: @type binary_type1() :: <<_ :: _ * 8>>),
+      (quote do: @type binary_type2() :: <<_ :: 3 * 8>>),      
+      (quote do: @type binary_type3() :: <<_ :: 3>>),      
+      (quote do: @type tuple_type() :: {integer()}),
+      (quote do: @type ftype() :: fun() | fun(do: integer()) | fun(integer(), do: integer())),
+    ]
+    spec = test_module do
+      Module.eval_quoted __MODULE__, quote do: unquote_splicing(types)
+      Kernel.Typespec.get_types(__MODULE__)
+    end  
+    spec = Enum.reverse(spec)
+    lc {typespec, definition} inlist Enum.zip(spec, types) do
+      assert Typespec.to_binary({:type, typespec}) == Macro.to_binary(definition)
+    end
+  end
+
+  test "to_binary spec" do
+    specs = [
+      (quote do: @spec a(), do: integer()),
+      (quote do: @spec a(atom()), do: integer()),
+    ]
+    spec = test_module do
+      def a, do: 1
+      def a(a), do: a
+      Module.eval_quoted __MODULE__, quote do: unquote_splicing(specs)
+      Kernel.Typespec.get_specs(__MODULE__)
+    end  
+    lc {spec, definition} inlist Enum.zip(spec, specs) do
+      assert Typespec.to_binary(spec) == Macro.to_binary(definition)
+    end
+  end
+
 end
