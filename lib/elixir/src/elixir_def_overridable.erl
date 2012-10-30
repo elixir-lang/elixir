@@ -63,7 +63,7 @@ store(Module, Function, GenerateName) ->
   { Count, [H|T] } = orddict:fetch(Function, Overridable),
   overridable(Module, orddict:store(Function, { Count, T }, Overridable)),
 
-  { { Name, Arity }, Kind, Line, File, Location, Defaults, Clauses } = H,
+  { { Name, Arity }, Kind, Line, File, _Check, Location, Defaults, Clauses } = H,
 
   { FinalKind, FinalName } = case GenerateName of
     true  -> { defp, name(Module, Function, Overridable) };

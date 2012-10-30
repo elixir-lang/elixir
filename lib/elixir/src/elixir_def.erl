@@ -225,13 +225,13 @@ unwrap_stored_definition([], Exports, Private, Def, Defmacro, Defmacrop, {Functi
 
 %% Helpers
 
-function_for_stored_definition({{Name, Arity}, _, Line, _, [], _, Clauses}, {Functions,Tail}) ->
+function_for_stored_definition({{Name, Arity}, _, Line, _, _, [], _, Clauses}, {Functions,Tail}) ->
   {
     [{ function, Line, Name, Arity, lists:reverse(Clauses) }|Functions],
     Tail
   };
 
-function_for_stored_definition({{Name, Arity}, _, Line, _, Location, _, Clauses}, {Functions,Tail}) ->
+function_for_stored_definition({{Name, Arity}, _, Line, _, _, Location, _, Clauses}, {Functions,Tail}) ->
   {
     Functions,
     [
@@ -253,20 +253,20 @@ function_for_default(_, Name, { clause, Line, Args, _Guards, _Exprs } = Clause) 
 
 store_each(Check, Kind, File, Location, Table, Defaults, {function, Line, Name, Arity, Clauses}) ->
   case ets:lookup(Table, {Name, Arity}) of
-    [{{Name, Arity}, StoredKind, _, _, StoredLocation, StoredDefaults, StoredClauses}] ->
+    [{{Name, Arity}, StoredKind, _, _, StoredCheck, StoredLocation, StoredDefaults, StoredClauses}] ->
       FinalLocation = StoredLocation,
       FinalDefaults = Defaults + StoredDefaults,
       FinalClauses  = Clauses ++ StoredClauses,
       check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
       check_valid_defaults(Line, File, Name, Arity, FinalDefaults),
-      Check andalso check_valid_clause(Line, File, Name, Arity, Table);
+      (Check and StoredCheck) andalso check_valid_clause(Line, File, Name, Arity, Table);
     [] ->
       FinalLocation = Location,
       FinalDefaults = Defaults,
       FinalClauses  = Clauses,
       Check andalso ets:insert(Table, { last, { Name, Arity } })
   end,
-  ets:insert(Table, {{Name, Arity}, Kind, Line, File, FinalLocation, FinalDefaults, FinalClauses}).
+  ets:insert(Table, {{Name, Arity}, Kind, Line, File, Check, FinalLocation, FinalDefaults, FinalClauses}).
 
 %% Validations
 
