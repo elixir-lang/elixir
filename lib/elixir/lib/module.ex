@@ -367,8 +367,8 @@ defmodule Module do
           ETS.delete(table, tuple)
 
           old    = get_attribute(module, :__overridable)
-          new    = [ { tuple, { 1, [clause] } } ]
-          merged = :orddict.merge(fn(_k, { count, v1 }, _v2) -> { count + 1, [clause|v1] } end, old, new)
+          new    = [ { tuple, { 1, clause, false } } ]
+          merged = :orddict.merge(fn(_k, { count, _, _ }, _v2) -> { count + 1, clause, false } end, old, new)
 
           put_attribute(module, :__overridable, merged)
         _ ->
@@ -382,8 +382,7 @@ defmodule Module do
   Returns true if the given tuple in module is marked as overridable.
   """
   def overridable?(module, tuple) do
-    key = List.keyfind(get_attribute(module, :__overridable), tuple, 0)
-    match? { _, { _, [_|_] } }, key
+    !! List.keyfind(get_attribute(module, :__overridable), tuple, 0)
   end
 
   @doc """

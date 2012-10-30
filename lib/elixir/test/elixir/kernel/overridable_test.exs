@@ -27,7 +27,7 @@ defmodule Kernel.Overridable do
     { super, super?, 1 }
   end
 
-  false = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
+  true = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
 
   defoverridable [explicit_nested_super: 0]
 
@@ -94,6 +94,10 @@ defmodule Kernel.Overridable do
     17
   end
 
+  def many_clauses(3) do
+    super(0) + super(1)
+  end
+
   def many_clauses(_) do
     super
   end
@@ -139,6 +143,7 @@ defmodule Kernel.OverridableTest do
     assert Overridable.many_clauses(0) == 11
     assert Overridable.many_clauses(1) == 13
     assert Overridable.many_clauses(2) == 17
+    assert Overridable.many_clauses(3) == 24
   end
 
   test "overridable definitions are private" do

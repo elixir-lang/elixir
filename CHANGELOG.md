@@ -6,6 +6,7 @@
 
 * bug fix
   * [Kernel] Fix an issue where variables inside clauses remained unassigned
+  * [Kernel] Ensure defoverridable functions can be referred in many clauses
 
 * deprecations
   * [Behaviour] `defcallback/1` was deprecated in favor of `defcallback/2` which matches erlang `@callbacks`
