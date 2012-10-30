@@ -210,6 +210,17 @@ defmodule Typespec.Test.Type do
     assert [{:mytype,_,[]},{:mytype1,_,[]}] = types
   end
 
+  test "defines_type?" do
+    test_module do
+      import Kernel.Typespec
+      @type mytype :: tuple
+      @type mytype(a) :: [a]
+      assert defines_type?(__MODULE__, :mytype, 0)
+      assert defines_type?(__MODULE__, :mytype, 1)
+      refute defines_type?(__MODULE__, :mytype, 2)
+    end
+  end
+
   test "@spec" do
     {spec1, spec2, spec3} = test_module do
       def myfun(x), do: x

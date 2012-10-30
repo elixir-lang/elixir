@@ -33,6 +33,17 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
+  Returns true if the current module defines a given type
+  (opaque or not). This function is only available for modules
+  being compiled.
+  """
+  def defines_type?(module, name, arity) do
+    finder = match?({ ^name, _, vars } when length(vars) == arity, &1)
+    Enum.any?(Module.get_attribute(module, :type), finder) or
+      Enum.any?(Module.get_attribute(module, :opaque), finder)
+  end
+
+  @doc """
   Get the specs defined for the given module. This function
   is only available for modules being compiled. If the module
   was already compiled, you need to loop its attributes
