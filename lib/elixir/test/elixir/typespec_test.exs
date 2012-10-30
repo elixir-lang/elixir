@@ -163,6 +163,14 @@ defmodule Typespec.Test.Type do
                          {:type, _, :atom, []}]}, []}} = spec
   end
 
+  test "@type with an access macro" do
+    spec = test_module do
+      @type mytype :: Range[first: integer]
+    end
+    assert {:type,{:mytype,{:type, _, :tuple, 
+              [{:atom, _, Range}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []}} = spec
+  end
+
   test "@type with parameters" do
     {spec1, spec2, spec3} = test_module do
       t1 = @type mytype(x) :: x
