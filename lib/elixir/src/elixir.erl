@@ -9,7 +9,6 @@
 
 %% Top level types
 -export_type([char_list/0]).
-
 -type char_list() :: string().
 
 % OTP APPLICATION API

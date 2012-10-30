@@ -111,11 +111,7 @@ module(Forms, File, Options, Bootstrap, Callback) when
 core() ->
   elixir:start_app(),
   gen_server:call(elixir_code_server, { compiler_options, [{docs,false},{internal,true},{debug_info,true}] }),
-  [core_file(File) || File <- core_main()],
-  gen_server:call(elixir_code_server, { compiler_options, [{internal,false}] }),
-  AllLists = [filelib:wildcard(Wildcard) || Wildcard <- core_list()],
-  Files = lists:append(AllLists) -- core_main(),
-  [core_file(File) || File <- 'Elixir.List':uniq(Files)].
+  [core_file(File) || File <- core_main()].
 
 %% HELPERS
 
@@ -187,20 +183,6 @@ core_file(File) ->
       exit(1)
   end.
 
-core_list() ->
-  [
-    "lib/elixir/lib/range.ex",
-    "lib/elixir/lib/behaviour.ex",
-    "lib/elixir/lib/uri/parser.ex",
-    "lib/elixir/lib/elixir/formatter.ex",
-    "lib/elixir/lib/dict.ex",
-    "lib/elixir/lib/dict/common.ex",
-    "lib/elixir/lib/access.ex",
-    "lib/elixir/lib/range.ex",
-    "lib/elixir/lib/*/*.ex",
-    "lib/elixir/lib/*.ex"
-  ].
-
 core_main() ->
   [
     "lib/elixir/lib/kernel.ex",
@@ -218,7 +200,14 @@ core_main() ->
     "lib/elixir/lib/binary/inspect.ex",
     "lib/elixir/lib/binary/chars.ex",
     "lib/elixir/lib/list/chars.ex",
-    "lib/elixir/lib/gen_server/behaviour.ex"
+    "lib/elixir/lib/io.ex",
+    "lib/elixir/lib/file.ex",
+    "lib/elixir/lib/access.ex",
+    "lib/elixir/lib/regex.ex",
+    "lib/elixir/lib/system.ex",
+    "lib/elixir/lib/kernel/cli.ex",
+    "lib/elixir/lib/kernel/error_handler.ex",
+    "lib/elixir/lib/kernel/parallel_compiler.ex"
   ].
 
 %% ERROR HANDLING

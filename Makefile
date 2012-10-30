@@ -8,16 +8,6 @@ RELEASE_FLAG:=.release
 .PHONY: 1
 .NOTPARALLEL: compile
 
-# By default, we compile the app and then recompile
-# the kernel so we are sure docs are attached.
-#
-# This the main task to be used by package managers
-# and so forth. During development, use make compile
-# since it won't double compile.
-default:
-	@ make compile
-	@ make kernel FORCE=1
-
 #==> Templates
 
 define APP_TEMPLATE
@@ -26,7 +16,7 @@ $(1): lib/$(1)/ebin/Elixir-$(2).beam lib/$(1)/ebin/$(1).app
 lib/$(1)/ebin/$(1).app:
 	@ cd lib/$(1) && ../../bin/elixir ../../bin/mix compile.app
 
-lib/$(1)/ebin/Elixir-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex) $$(FORCE)
+lib/$(1)/ebin/Elixir-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex)
 	@ echo "==> $(1) (compile)"
 	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
 
@@ -39,6 +29,8 @@ endef
 
 KERNEL:=lib/elixir/ebin/Elixir-Kernel.beam
 UNICODE:=lib/elixir/ebin/Elixir-String-Unicode.beam
+
+default: compile
 
 compile: lib/elixir/src/elixir.app.src erlang elixir
 
@@ -55,14 +47,13 @@ erlang:
 elixir: kernel unicode lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
 
 kernel: $(KERNEL)
-$(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex $(FORCE)
-	@ if [ -f $(KERNEL) ]; then                                 \
-		echo "==> kernel (compile)";                            \
-		$(ELIXIRC) "lib/elixir/lib/**/*.ex" -o lib/elixir/ebin; \
-	else                                                        \
-		echo "==> bootstrap (compile)";                         \
-		$(ERL) -s elixir_compiler core -s erlang halt;          \
+$(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
+	@ if [ ! -f $(KERNEL) ]; then                       \
+		echo "==> bootstrap (compile)";                 \
+		$(ERL) -s elixir_compiler core -s erlang halt;  \
 	fi
+	@ echo "==> kernel (compile)";
+	@ $(ELIXIRC) "lib/elixir/lib/**/*.ex" -o lib/elixir/ebin;
 	@ rm -rf lib/elixir/ebin/elixir.app
 	@ cd lib/elixir && $(REBAR) compile
 
@@ -88,8 +79,7 @@ clean:
 
 #==> Release tasks (modules compiled with --debug-info and --docs)
 
-$(RELEASE_FLAG): $(wildcard lib/*/ebin/*)
-	@ make default
+$(RELEASE_FLAG): compile
 	touch $(RELEASE_FLAG)
 
 zip: $(RELEASE_FLAG)

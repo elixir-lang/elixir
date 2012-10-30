@@ -46,9 +46,9 @@ defmodule Kernel.ParallelCompiler do
     parent = self()
 
     child  = spawn_link fn ->
-      Process.put(:elixir_compiler_pid, parent)
-      Process.put(:elixir_ensure_compiled, true)
-      Process.flag(:error_handler, Kernel.ErrorHandler)
+      :erlang.put(:elixir_compiler_pid, parent)
+      :erlang.put(:elixir_ensure_compiled, true)
+      :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
 
       try do
         if output do
