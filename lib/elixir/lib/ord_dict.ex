@@ -45,6 +45,14 @@ defmodule OrdDict do
   end
 
   @doc false
+  def get!(dict(data), key) do
+    case :orddict.find(key, data) do
+      {:ok, value} -> value
+      :error       -> raise(KeyError, key: key)
+    end
+  end
+
+  @doc false
   def put(dict(data), key, value) do
     dict(:orddict.store key, value, data)
   end
