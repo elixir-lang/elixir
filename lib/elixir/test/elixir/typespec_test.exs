@@ -202,22 +202,20 @@ defmodule Typespec.Test.Type do
 
   test "get_types" do
     types = test_module do
-      import Kernel.Typespec
       @type mytype :: tuple
       @opaque mytype1 :: {}
-      get_types(__MODULE__)
+      Kernel.Typespec.get_types(__MODULE__)
     end
     assert [{:mytype,_,[]},{:mytype1,_,[]}] = types
   end
 
   test "defines_type?" do
     test_module do
-      import Kernel.Typespec
       @type mytype :: tuple
       @type mytype(a) :: [a]
-      assert defines_type?(__MODULE__, :mytype, 0)
-      assert defines_type?(__MODULE__, :mytype, 1)
-      refute defines_type?(__MODULE__, :mytype, 2)
+      assert Kernel.Typespec.defines_type?(__MODULE__, :mytype, 0)
+      assert Kernel.Typespec.defines_type?(__MODULE__, :mytype, 1)
+      refute Kernel.Typespec.defines_type?(__MODULE__, :mytype, 2)
     end
   end
 
@@ -250,12 +248,11 @@ defmodule Typespec.Test.Type do
 
   test "defines a callback from a spec" do
     specs = test_module do
-      import Kernel.Typespec
       def myfun(x), do: x
       @spec myfun(integer), do: integer
       @spec myfun(char_list),  do: char_list
-      callback_from_spec(__MODULE__, :myfun, 1)
-      get_specs(__MODULE__)
+      Kernel.Typespec.callback_from_spec(__MODULE__, :myfun, 1)
+      Kernel.Typespec.get_specs(__MODULE__)
     end
 
     assert [
@@ -270,12 +267,11 @@ defmodule Typespec.Test.Type do
 
   test "getting all specs from Kernel.Typespec" do
     specs = test_module do
-      import Kernel.Typespec
       def myfun(x), do: x
       @spec myfun(integer), do: integer
       @spec myfun(char_list),  do: char_list
       @callback cb(integer), do: integer
-      get_specs(__MODULE__)
+      Kernel.Typespec.get_specs(__MODULE__)
     end
 
     assert [
@@ -309,7 +305,7 @@ defmodule Typespec.Test.Type do
     end  
     spec = Enum.reverse(spec)
     lc {typespec, definition} inlist Enum.zip(spec, types) do
-      assert Typespec.to_binary({:type, typespec}) == Macro.to_binary(definition)
+      assert Kernel.Typespec.to_binary({:type, typespec}) == Macro.to_binary(definition)
     end
   end
 
@@ -325,7 +321,7 @@ defmodule Typespec.Test.Type do
       Kernel.Typespec.get_specs(__MODULE__)
     end  
     lc {spec, definition} inlist Enum.zip(spec, specs) do
-      assert Typespec.to_binary(spec) == Macro.to_binary(definition)
+      assert Kernel.Typespec.to_binary(spec) == Macro.to_binary(definition)
     end
   end
 
