@@ -26,12 +26,23 @@ defmodule Dict do
 
   """
 
-  @doc false
-  def behaviour_info(:callbacks) do
-    [ delete: 2, empty: 1, get: 3, has_key?: 2,
-      keys: 1, merge: 3, put: 3, size: 1, to_list: 1,
-      update: 3, update: 4, values: 1 ]
-  end
+  use Behaviour
+
+  @type key :: any
+  @type value :: any
+  @type t :: tuple
+
+  defcallback delete(t, key), do: t
+  defcallback empty(t), do: t
+  defcallback get(t, key, value), do: value
+  defcallback has_key?(t, key), do: boolean
+  defcallback keys(t), do: list(key)
+  defcallback merge(t, t, fun(key, value, value, do: value)), do: t
+  defcallback put(t, key, value), do: t
+  defcallback size(t), do: non_neg_integer()
+  defcallback to_list(t), do: list()
+  defcallback update(t, key, fun(value, do: value)), do: t
+  defcallback values(t), do: list(value)
 
   @doc """
   Returns a list containing all dict's keys.
