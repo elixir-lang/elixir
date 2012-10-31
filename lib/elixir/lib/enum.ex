@@ -68,6 +68,8 @@ defmodule Enum do
   `{ key, value }` tuple.
   """
 
+  @type t :: Enum.Iterator.t
+
   @doc """
   Invokes the given `fun` for each item in the `collection` and returns true if
   each invocation returns true as well, otherwise it shirt-circuits and returns
