@@ -31,9 +31,7 @@ defmodule Record do
         @moduledoc false
         Record.deffunctions(unquote(values), unquote(opts), __ENV__)
         unquote(block)
-        unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-          Kernel.Typespec.deftype t :: __MODULE__[]
-        end
+        Record.deftypes(unquote(values), __ENV__)
       end
     end
   end
@@ -48,6 +46,7 @@ defmodule Record do
 
       defmodule CustomRecord do
         Record.deffunctions [:name, :age], __ENV__
+        Record.deftypes [:name, :age], __ENV__
       end
 
   """
@@ -74,6 +73,34 @@ defmodule Record do
       contents = [quote(do: @__record__ unquote(escaped))|contents]
       Module.eval_quoted(env, contents)
     end
+  end
+
+  def deftypes(values, env) do
+    fields = lc value inlist values, do: elem(convert_value(value), 0)
+    fields_init = lc field inlist fields do
+      {Record.field_type_name(field), 0, nil}
+    end
+
+    module = if is_atom(env), do: env, else: env.module
+
+    contents = quote do
+      fields = unquote(fields)
+
+      lc field inlist fields do
+        field_type = Record.field_type_name(field)
+        unless Kernel.Typespec.defines_type?(__MODULE__, field_type, 0) do
+          Kernel.Typespec.deftype :type, {:::, 0, [{field_type, 0, nil}, (quote do: any)]}, __ENV__
+        end
+      end
+
+      unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+        Kernel.Typespec.deftype t :: {unquote(module), unquote_splicing(fields_init)}
+      end
+    end 
+    # Special case for bootstraping purposes
+    if :erlang.function_exported(Module, :eval_quoted, 2) do
+      Module.eval_quoted(env, contents)
+    end    
   end
 
   @doc """
@@ -323,6 +350,8 @@ defmodule Record do
     end
 
     quote do
+      @spec new, do: t
+      @spec new(list|tuple), do: t
       def new(), do: new([])
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
@@ -355,7 +384,9 @@ defmodule Record do
     end
     quote do
       unquote(quoted)
+      @spec __index__(any), do: nil
       def __index__(_), do: nil
+      @spec __index__(atom, t), do: non_neg_integer
       def __index__(key, _), do: __index__(key)
     end
   end
@@ -375,6 +406,7 @@ defmodule Record do
     end
 
     quote do
+      @spec to_keywords(t), do: Keyword.t
       def to_keywords(record) do
         unquote(:orddict.from_list(sorted))
       end
@@ -401,6 +433,7 @@ defmodule Record do
   #
   defp readers([{ key, _default }|t], i, acc) do
     contents = quote do
+      @spec unquote(key)(t), do: unquote({field_type_name(key), 0, nil})
       def unquote(key).(record) do
         :erlang.element(unquote(i + 1), record)
       end
@@ -427,6 +460,7 @@ defmodule Record do
   #
   defp writers([{ key, _default }|t], i, acc) do
     contents = quote do
+      @spec unquote(key)(unquote({field_type_name(key), 0, nil}), t), do: t
       def unquote(key).(value, record) do
         :erlang.setelement(unquote(i + 1), record, value)
       end
@@ -449,6 +483,7 @@ defmodule Record do
       end
     contents = {:{}, 0, [(quote do: __MODULE__)|fields]}
     quote do
+      @spec update(Keyword.t, t), do: t
       def update(keywords, record) do
         unquote(contents)
       end
@@ -462,6 +497,12 @@ defmodule Record do
   end
 
   defp extensions([], _i, acc, _), do: acc
+
+  # Utilities
+  @doc false
+  def field_type_name(field) do
+    :erlang.binary_to_atom(atom_to_binary(field) <> "_t", :utf8)  
+  end
 end
 
 defmodule Record.Extractor do
@@ -564,6 +605,7 @@ defmodule Record.Extensions do
     update     = binary_to_atom(bin_update)
 
     quote do
+      @spec unquote(update)(fun(unquote({Record.field_type_name(key), 0, nil}), do: any), t), do: t
       def unquote(update).(function, record) do
         current = :erlang.element(unquote(i + 1), record)
         :erlang.setelement(unquote(i + 1), record, function.(current))
@@ -578,11 +620,13 @@ defmodule Record.Extensions do
     merge   = :"merge_#{bin_key}"
 
     quote do
+      @spec unquote(prepend)(list, t), do: t
       def unquote(prepend).(value, record) do
         current = :erlang.element(unquote(i + 1), record)
         :erlang.setelement(unquote(i + 1), record, value ++ current)
       end
 
+      @spec unquote(merge)(Keyword.t, t), do: t
       def unquote(merge).(value, record) do
         current = :erlang.element(unquote(i + 1), record)
         :erlang.setelement(unquote(i + 1), record, Keyword.merge(current, value))
@@ -595,6 +639,8 @@ defmodule Record.Extensions do
     increment = :"increment_#{bin_key}"
 
     quote do
+      @spec unquote(increment)(t), do: t
+      @spec unquote(increment)(number, t), do: t
       def unquote(increment).(value // 1, record) do
         current = :erlang.element(unquote(i + 1), record)
         :erlang.setelement(unquote(i + 1), record, current + value)
@@ -607,6 +653,7 @@ defmodule Record.Extensions do
     toggle = :"toggle_#{bin_key}"
 
     quote do
+      @spec unquote(toggle)(t), do: t
       def unquote(toggle).(record) do
         current = :erlang.element(unquote(i + 1), record)
         :erlang.setelement(unquote(i + 1), record, not current)
