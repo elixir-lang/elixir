@@ -288,6 +288,7 @@ defmodule Typespec.Test.Type do
 
   test "to_binary types" do
     types = [
+      (quote do: @type empty_tuple_type() :: {}),    
       (quote do: @type imm_type_1() :: 1),
       (quote do: @type imm_type_2() :: :atom),
       (quote do: @type simple_type() :: integer()),
