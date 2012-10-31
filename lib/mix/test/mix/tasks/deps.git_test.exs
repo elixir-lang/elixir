@@ -87,7 +87,7 @@ defmodule Mix.Tasks.DepsGitTest do
       end
     end
   after
-    purge [GitRepo, GitRepo.Mix]
+    purge [GitRepo, GitRepo.Mix, A, B, C]
     Mix.Project.pop
   end
 
