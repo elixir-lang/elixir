@@ -6,6 +6,10 @@ defmodule Mix.SCM.Raw do
     [raw: opts[:raw]]
   end
 
+  def format_lock(_lock) do
+    nil
+  end
+
   def accepts_options(opts) do
     if raw = opts[:raw] do
       Keyword.put opts, :path, File.expand_path(raw)

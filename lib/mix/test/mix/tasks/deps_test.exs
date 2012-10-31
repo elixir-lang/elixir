@@ -57,7 +57,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received { :mix_shell, :info, ["* ok [git: \"https://github.com/elixir-lang/ok.git\"]"] }
-      assert_received { :mix_shell, :info, ["  locked at abcdef"] }
+      assert_received { :mix_shell, :info, ["  locked at \"abcdef\""] }
       assert_received { :mix_shell, :info, ["  lock mismatch: the dependency is out of date"] }
       assert_received { :mix_shell, :info, ["* invalidvsn [raw: \"deps/invalidvsn\"]"] }
       assert_received { :mix_shell, :info, ["  the dependency does not match the specified version, got 0.1.0"] }

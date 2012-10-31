@@ -1,6 +1,8 @@
 * enhancements
   * [IEx] Only show documented functions and also show docs for default generated functions
   * [Kernel] Improved dialyzer support
+  * [Mix] Improve SCM behaviour to allow more robust integration
+  * [Mix] Changing deps information on `mix.exs` forces users to fetch new dependencies
   * [String] Support `String.downcase` and `String.upcase` according to Unicode 6.2.0
   * [String] Add support for graphemes in `String.length`, `String.at` and others
   * [Typespec] Support `@opaque` as attribute

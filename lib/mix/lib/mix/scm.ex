@@ -2,6 +2,7 @@ defmodule Mix.SCM do
   use Behaviour
 
   @typep opts :: [{ atom, any }]
+  @typep lock
 
   @moduledoc """
   This module provides helper functions and defines the
@@ -12,7 +13,13 @@ defmodule Mix.SCM do
   Returns an Elixir term that contains relevant SCM
   information for printing.
   """
-  defcallback format(opts), do: opts
+  defcallback format(opts), do: term
+
+  @doc """
+  Returns an Elixir term that contains relevant SCM
+  lock information for printing.
+  """
+  defcallback format_lock(lock), do: term
 
   @doc """
   This behavior function receives a keyword list of `opts`
@@ -67,7 +74,8 @@ defmodule Mix.SCM do
 
   @doc """
   Receives two options and must return true if the refer to the
-  same repository.
+  same repository. The options are guaranteed to belong to the
+  same SCM.
   """
   defcallback equals?(opts1 :: opts, opts2 :: opts), do: boolean
 

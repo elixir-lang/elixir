@@ -50,16 +50,12 @@ defmodule Mix.Tasks.Deps.Get do
           scm.checkout(opts)
         end
 
-      cond do
-        !new ->
-          { dep, { acc, lock } }
-        new && old && new != old ->
-          Mix.shell.error "  dependency is not set to lock #{inspect old}"
-          { dep, { acc, lock } }
-        true ->
-          # Update the dependency returned so it is now
-          # available and nested dependencies can be fetched
-          { Mix.Deps.update(dep), { [app|acc], Keyword.put(lock, app, new) } }
+      if new do
+        # Update the dependency returned so it is now
+        # available and nested dependencies can be fetched
+        { Mix.Deps.update(dep), { [app|acc], Keyword.put(lock, app, new) } }
+      else
+        { dep, { acc, lock } }
       end
     else
       { dep, { acc, lock } }

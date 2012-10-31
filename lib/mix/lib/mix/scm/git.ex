@@ -6,6 +6,10 @@ defmodule Mix.SCM.Git do
     [git: opts[:git]]
   end
 
+  def format_lock(lock) do
+    get_lock_rev lock
+  end
+
   def accepts_options(opts) do
     cond do
       gh = opts[:github] ->
@@ -22,15 +26,13 @@ defmodule Mix.SCM.Git do
   end
 
   def matches_lock?(opts) do
-    opts[:lock] && File.cd!(opts[:path], fn -> opts[:lock] == get_rev end)
+    opts[:lock] && File.cd!(opts[:path], fn ->
+      opts[:lock] == get_lock(opts, true)
+    end)
   end
 
   def equals?(opts1, opts2) do
-    opts1[:git] == opts2[:git] and
-      opts1[:branch] == opts2[:branch] and
-      opts1[:tag] == opts2[:tag] and
-      opts1[:ref] == opts2[:ref] and
-      opts1[:submodules] == opts2[:submodules]
+    get_lock(opts1, false) == get_lock(opts2, false)
   end
 
   def checkout(opts) do
@@ -61,20 +63,42 @@ defmodule Mix.SCM.Git do
   ## Helpers
 
   defp do_checkout(opts) do
-    ref =
-      if branch = opts[:branch] do
-        "origin/#{branch}"
-      else
-        opts[:lock] || opts[:ref] || opts[:tag] || "origin/master"
-      end
-
+    ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
     maybe_error System.cmd("git checkout --quiet #{ref}")
 
     if opts[:submodules] do
       maybe_error System.cmd("git submodule update --init --recursive")
     end
 
-    get_rev
+    get_lock(opts, true)
+  end
+
+  defp get_lock(opts, fresh) do
+    lock = if fresh, do: get_rev, else: get_lock_rev(opts[:lock])
+    { :git, opts[:git], lock, get_lock_opts(opts) }
+  end
+
+  # We are supporting binaries for backwards compatibility
+  defp get_lock_rev(lock) when is_binary(lock), do: lock
+  defp get_lock_rev({ :git, _repo, lock, _opts }) when is_binary(lock), do: lock
+  defp get_lock_rev(_), do: nil
+
+  defp get_lock_opts(opts) do
+    lock_opts = Enum.find_value [:branch, :ref, :tag], List.keyfind(opts, &1, 0)
+    lock_opts = List.wrap(lock_opts)
+    if opts[:submodules] do
+      lock_opts ++ [submodules: true]
+    else
+      lock_opts
+    end
+  end
+
+  defp get_opts_rev(opts) do
+    if branch = opts[:branch] do
+      "origin/#{branch}"
+    else
+      opts[:ref] || opts[:tag] || "origin/master"
+    end
   end
 
   defp get_rev do
