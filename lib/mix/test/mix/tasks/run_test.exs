@@ -5,23 +5,19 @@ defmodule Mix.Tasks.RunTest do
 
   defmodule GetApp do
     def project do
-      [
-        app: :get_app,
+      [ app: :get_app,
         version: "0.1.0",
         deps: [
           { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
-        ]
-      ]
+        ] ]
     end
   end
 
   defmodule CustomPrepareApp do
     def project do
-      [
-        app: :get_app,
+      [ app: :get_app,
         version: "0.1.0",
-        prepare_task: "hello"
-      ]
+        prepare_task: "hello" ]
     end
   end
 
@@ -36,6 +32,20 @@ defmodule Mix.Tasks.RunTest do
   after
     purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
+  end
+
+  test "run requires before commands" do
+    git_repo = fixture_path("git_repo/lib/git_repo.ex")
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Run.run ["-r", git_repo, "Mix.shell.info", "GitRepo.hello"]
+      assert_received { :mix_shell, :info, ["World"] }
+
+      Mix.Tasks.Run.run ["-pr", git_repo, "Mix.shell.info", "GitRepo.hello"]
+      assert_received { :mix_shell, :info, ["World"] }
+    end
+  after
+    purge [GitRepo, A, B, C]
   end
 
   test "run command with custom prepare" do
