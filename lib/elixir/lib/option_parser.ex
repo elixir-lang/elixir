@@ -44,8 +44,7 @@ defmodule OptionParser do
   def parse(argv, opts // []) when is_list(argv) and is_list(opts) do
     aliases = opts[:aliases] || []
     flags   = opts[:flags]   || []
-    dict    = Keyword.new(flags, fn(k) -> { k, false } end)
-    parse(argv, aliases, flags, dict, [], true)
+    parse(argv, aliases, flags, true)
   end
 
   @doc """
@@ -63,11 +62,14 @@ defmodule OptionParser do
   def parse_head(argv, opts // []) when is_list(argv) and is_list(opts) do
     aliases = opts[:aliases] || []
     flags   = opts[:flags]   || []
-    dict    = Keyword.new(flags, fn(k) -> { k, false } end)
-    parse(argv, aliases, flags, dict, [], false)
+    parse(argv, aliases, flags, false)
   end
 
   ## Helpers
+
+  defp parse(argv, aliases, flags, all) do
+    parse(argv, aliases, flags, [], [], all)
+  end
 
   defp parse(["-" <> option|t], aliases, flags, dict, args, all) do
     { option, value } = normalize_option(option, aliases)
@@ -84,16 +86,16 @@ defmodule OptionParser do
     parse(t, aliases, flags, dict, args, all)
   end
 
-  defp parse([], _, _, dict, args, true) do
-    { dict, Enum.reverse(args) }
+  defp parse([], _, flags, dict, args, true) do
+    { reverse_dict(dict, flags), Enum.reverse(args) }
   end
 
   defp parse([h|t], aliases, flags, dict, args, true) do
     parse(t, aliases, flags, dict, [h|args], true)
   end
 
-  defp parse(value, _, _, dict, _args, false) do
-    { dict, value }
+  defp parse(value, _, flags, dict, _args, false) do
+    { reverse_dict(dict, flags), value }
   end
 
   defp flag_from_tail([h|t]) when h in ["false", "true"], do: { h, t }
@@ -108,7 +110,12 @@ defmodule OptionParser do
   end
 
   defp store_option(dict, option, value) do
-    Keyword.put dict, option, value
+    [{ option, value }|dict]
+  end
+
+  defp reverse_dict(dict, flags) do
+    flags = lc k inlist flags, not Keyword.has_key?(dict, k), do: { k, false }
+    Enum.reverse flags ++ dict
   end
 
   defp normalize_option(<<?-, option :: binary>>, aliases) do
