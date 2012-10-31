@@ -6,24 +6,82 @@ defmodule Kernel.Typespec do
   they proxy to the functions in this module.
   """
 
-  defmacro deftype(name) do
-    _deftype(name, true, :type, __CALLER__)
+  defmacro deftype(type) do
+    quote do
+      Kernel.Typespec.deftype(:type, (quote line: :keep, do: unquote(type)), __ENV__)
+    end
   end
 
-  defmacro defopaque(name) do
-    _deftype(name, true, :opaque, __CALLER__)
+  defmacro defopaque(type) do
+    quote do
+      Kernel.Typespec.deftype(:opaque, (quote line: :keep, do: unquote(type)), __ENV__)
+    end
   end
 
-  defmacro deftypep(name) do
-    _deftype(name, false, :type, __CALLER__)
+  defmacro deftypep(type) do
+    quote do
+      Kernel.Typespec.deftype(:typep, (quote line: :keep, do: unquote(type)), __ENV__)
+    end
+  end
+
+  def deftype(kind, { :::, _, [type, definition] }, caller) do
+    do_deftype(kind, type, definition, caller)
+  end
+
+  def deftype(kind, type, caller) do
+    do_deftype(kind, type, { :term, caller.line, nil }, caller)
+  end
+
+  defp do_deftype(raw_kind, { name, _, args }, definition, caller) do
+    args =
+      if is_atom(args) do
+        []
+      else
+        lc(arg inlist args, do: variable(arg))
+      end
+
+    { kind, export } =
+      case raw_kind do
+        :type   -> { :type, true }
+        :typep  -> { :type, false }
+        :opaque -> { :opaque, true }
+      end
+
+    vars = lc { :var, _, var } inlist args, do: var
+    spec = typespec(definition, vars, caller)
+
+    vars = lc { :var, _, _ } = var inlist args, do: var
+    type = { name, spec, vars }
+
+    Module.compile_type caller.module, kind, type
+
+    if export do
+      Module.compile_type(caller.module, :export_type, [{ name, length(vars) }])
+    end
+
+    { raw_kind, type }
   end
 
   defmacro defspec(spec, block) do
-    _defspec(:spec, __CALLER__, spec, block)
+    quote do
+      Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote spec),
+        (quote line: :keep, do: unquote block), __ENV__)
+    end
   end
 
   defmacro defcallback(spec, block) do
-    _defspec(:callback, __CALLER__, spec, block)
+    quote do
+      Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote spec),
+        (quote line: :keep, do: unquote block), __ENV__)
+    end
+  end
+
+  def defspec(type, { name, line, args }, [do: return], caller) do
+    if is_atom(args), do: args = []
+    spec  = { :type, line, :fun, fn_args(line, args, return, [], caller) }
+    code  = { { type, { name, Kernel.length(args) } }, [spec] }
+    :ets.insert(spec_table_for(caller.module), code)
+    code
   end
 
   @doc """
@@ -335,50 +393,6 @@ defmodule Kernel.Typespec do
     { :type, line, :product, args }
   end
 
-  def _deftype({:::, _, [name, definition]}, export, kind, caller) do
-    _deftype(name, definition, export, kind, caller)
-  end
-
-  def _deftype(name, export, kind, caller) do
-    _deftype(name, { :term, caller.line, nil }, export, kind, caller)
-  end
-
-  defp _deftype({name, _, args}, definition, export, kind, caller) do
-    args = if is_atom(args), do: [], else: lc(arg inlist args, do: variable(arg))
-    vars = lc {:var, _, var} inlist args, do: var
-    spec = typespec(definition, vars, caller)
-    vars = lc ({:var, _, _} = var) inlist args, do: var
-
-    export = if export do
-      quote do: Module.compile_type(__MODULE__, :export_type, [{name, Kernel.length(vars)}])
-    else
-      nil
-    end
-
-    quote do
-      name = unquote(name)
-      spec = unquote(Macro.escape(spec))
-      vars = unquote(Macro.escape(vars))
-      type = { name, spec, vars }
-      Module.compile_type __MODULE__, unquote(kind), type
-      unquote(export)
-      { unquote(kind), type }
-    end
-  end
-
-  defp _defspec(type, caller, {name, line, args},[{:do,return}]) do
-    if is_atom(args), do: args = []
-    spec  = { :type, line, :fun, fn_args(line, args, return, [], caller) }
-    code  = Macro.escape { {type, { name, Kernel.length(args) }}, [spec] }
-    table = spec_table_for(caller.module)
-
-    quote do
-      code = unquote(code)
-      :ets.insert(unquote(table), code)
-      code
-    end
-  end
-
   defp spec_table_for(module) do
     table = list_to_atom :lists.concat([:s, module])
     unless table == :ets.info(table, :name), do:
@@ -389,5 +403,4 @@ defmodule Kernel.Typespec do
   defp variable({name, line, _}) do
     {:var, line, name}
   end
-
 end

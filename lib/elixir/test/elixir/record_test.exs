@@ -11,7 +11,7 @@ defrecord name, a: 0, b: 1 do
 end
 
 defrecord RecordTest.SomeRecord, a: 0, b: 1 do
-  @type t :: tuple
+  @type t :: __MODULE__[a: integer, b: any]
 end
 
 defrecord RecordTest.WithNoField, []

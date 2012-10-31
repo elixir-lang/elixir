@@ -32,7 +32,7 @@ defmodule Record do
         Record.deffunctions(unquote(values), unquote(opts), __ENV__)
         unquote(block)
         unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-          Kernel.Typespec.deftype t :: tuple
+          Kernel.Typespec.deftype t :: __MODULE__[]
         end
       end
     end

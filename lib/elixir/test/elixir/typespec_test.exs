@@ -167,7 +167,7 @@ defmodule Typespec.Test.Type do
     spec = test_module do
       @type mytype :: Range[first: integer]
     end
-    assert {:type,{:mytype,{:type, _, :tuple, 
+    assert {:type,{:mytype,{:type, _, :tuple,
               [{:atom, _, Range}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []}} = spec
   end
 
@@ -294,15 +294,17 @@ defmodule Typespec.Test.Type do
       (quote do: @type param_type(p) :: list(p)),
       (quote do: @type union_type() :: integer() | binary() | boolean()),
       (quote do: @type binary_type1() :: <<_ :: _ * 8>>),
-      (quote do: @type binary_type2() :: <<_ :: 3 * 8>>),      
-      (quote do: @type binary_type3() :: <<_ :: 3>>),      
+      (quote do: @type binary_type2() :: <<_ :: 3 * 8>>),
+      (quote do: @type binary_type3() :: <<_ :: 3>>),
       (quote do: @type tuple_type() :: {integer()}),
       (quote do: @type ftype() :: fun() | fun(do: integer()) | fun(integer(), do: integer())),
     ]
+
     spec = test_module do
       Module.eval_quoted __MODULE__, quote do: unquote_splicing(types)
       Kernel.Typespec.get_types(__MODULE__)
-    end  
+    end
+
     spec = Enum.reverse(spec)
     lc {typespec, definition} inlist Enum.zip(spec, types) do
       assert Kernel.Typespec.to_binary({:type, typespec}) == Macro.to_binary(definition)
@@ -314,15 +316,16 @@ defmodule Typespec.Test.Type do
       (quote do: @spec a(), do: integer()),
       (quote do: @spec a(atom()), do: integer()),
     ]
+
     spec = test_module do
       def a, do: 1
       def a(a), do: a
       Module.eval_quoted __MODULE__, quote do: unquote_splicing(specs)
       Kernel.Typespec.get_specs(__MODULE__)
-    end  
+    end
+
     lc {spec, definition} inlist Enum.zip(spec, specs) do
       assert Kernel.Typespec.to_binary(spec) == Macro.to_binary(definition)
     end
   end
-
 end
