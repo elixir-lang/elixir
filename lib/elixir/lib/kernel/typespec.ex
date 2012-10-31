@@ -172,6 +172,10 @@ defmodule Kernel.Typespec do
     quote do: @opaque unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type))
   end
 
+  defp typespec_to_ast({:type, line, :tuple, :any}) do
+    typespec_to_ast({:type, line, :tuple, []})
+  end
+
   defp typespec_to_ast({:type, line, :tuple, args}) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     { :{}, line, args }
