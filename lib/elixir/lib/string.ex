@@ -14,6 +14,10 @@ defmodule String do
   module.
   """
 
+  @type t :: binary
+  @type codepoint :: t
+  @type grapheme :: t
+
   @doc """
   Checks if a string is printable considering it is encoded
   as UTF-8. Returns true if so, false otherwise.
@@ -23,9 +27,7 @@ defmodule String do
       String.printable?("abc") #=> true
 
   """
-  
-  @type t :: binary
-
+  @spec printable?(t), do: boolean  
   # Allow basic ascii chars
   def printable?(<<c, t :: binary>>) when c in ?\s..?~ do
     printable?(t)
@@ -123,6 +125,9 @@ defmodule String do
       String.split("a,b", %r{\.})   #=> ["a,b"]
 
   """
+  @spec split(t), do: [t]
+  @spec split(t, t | [t] | Regex.t), do: [t]
+  @spec split(t, t | [t] | Regex.t, Keyword.t), do: [t]
   def split(binary, pattern // " ", options // [])
 
   def split(binary, pattern, options) when is_regex(pattern) do
@@ -148,6 +153,7 @@ defmodule String do
       String.upcase("josé") #=> "JOSÉ"
 
   """
+  @spec upcase(t), do: t
   defdelegate upcase(binary), to: String.Unicode
 
   @doc """
@@ -164,6 +170,7 @@ defmodule String do
       String.downcase("JOSÉ") #=> "josé"
 
   """
+  @spec downcase(t), do: t
   defdelegate downcase(binary), to: String.Unicode
 
   @doc """
@@ -176,6 +183,8 @@ defmodule String do
       String.rstrip("   abc _", ?_)  #=> "   abc "
 
   """
+  @spec rstrip(t), do: t
+  @spec rstrip(t, char), do: t
   def rstrip(string, char // ?\s)
 
   # Do a quick check before we traverse the whole
@@ -211,6 +220,8 @@ defmodule String do
       String.lstrip("_  abc  _", ?_)  #=> "  abc  _"
 
   """
+  @spec lstrip(t), do: t
+  @spec lstrip(t, char), do: t  
   def lstrip(string, char // ?\s)
 
   def lstrip(<<char, rest :: binary>>, char) do
@@ -231,6 +242,8 @@ defmodule String do
       String.strip("a  abc  a", ?a)  #=> "  abc  "
 
   """
+  @spec strip(t), do: t
+  @spec strip(t, char), do: t  
   def strip(string, char // ?\s) do
     rstrip(lstrip(string, char), char)
   end
@@ -254,6 +267,8 @@ defmodule String do
       String.replace("a,b,c", ",", "[]", insert_replaced: [1,1]) #=> "a[,,]b[,,]c"
 
   """
+  @spec replace(t, t, t), do: t
+  @spec replace(t, t, t, Keyword.t), do: t
   def replace(subject, pattern, replacement, options // []) do
     opts = translate_replace_options(options)
     :binary.replace(subject, pattern, replacement, opts)
@@ -278,6 +293,7 @@ defmodule String do
       String.duplicate("abc", 2) #=> "abcabc"
 
   """
+  @spec duplicate(t, pos_integer), do: t
   def duplicate(subject, n) when is_integer(n) and n > 0 do
     :binary.copy(subject, n)
   end
@@ -292,6 +308,7 @@ defmodule String do
       String.codepoints("ἅἪῼ")          #=> ["ἅ","Ἢ","ῼ"]
 
   """
+  @spec codepoints(t), do: [codepoint]
   defdelegate codepoints(string), to: String.Unicode
 
   @doc """
@@ -306,6 +323,7 @@ defmodule String do
       String.next_codepoint("josé") #=> { "j", "osé" }
 
   """
+  @spec next_codepoint(t), do: codepoint | :no_codepoint
   defdelegate next_codepoint(string), to: String.Unicode
 
   @doc """
@@ -315,6 +333,7 @@ defmodule String do
      String.graphemes("Ā̀stute") # => ["Ā̀","s","t","u","t","e"]
 
   """
+  @spec graphemes(t), do: [grapheme]
   defdelegate graphemes(string), to: String.Unicode
 
   @doc """
@@ -329,6 +348,7 @@ defmodule String do
       String.next_grapheme("josé") #=> { "j", "osé" }
 
   """
+  @spec next_grapheme(t), do: grapheme | :no_grapheme
   defdelegate next_grapheme(string), to: String.Unicode
 
   @doc """
@@ -340,6 +360,7 @@ defmodule String do
       String.first("եոգլի") #=> "ե"
 
   """
+  @spec first(t), do: grapheme
   def first(string) do
     case next_grapheme(string) do
       { char, _ } -> char
@@ -356,6 +377,7 @@ defmodule String do
       String.last("եոգլի") #=> "ի"
 
   """
+  @spec last(t), do: grapheme
   def last(string) do
     do_last(next_grapheme(string), "")
   end
@@ -375,6 +397,7 @@ defmodule String do
       String.length("եոգլի") #=> 5
 
   """
+  @spec length(t), do: non_neg_integer
   def length(string) do
     do_length(next_grapheme(string))
   end
@@ -398,6 +421,7 @@ defmodule String do
       String.at("elixir", -10) #=> nil
 
   """
+  @spec at(t, integer), do: grapheme | nil
   def at(string, position) when position >= 0 do
     do_at(next_grapheme(string), position, 0)
   end
