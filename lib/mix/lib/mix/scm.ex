@@ -9,12 +9,10 @@ defmodule Mix.SCM do
   """
 
   @doc """
-  This behavior function should retrieve an atom representing
-  the SCM key. In the dependency opts, a value for the given
-  must be found since it is used to print information about
-  the requested dependency.
+  Returns an Elixir term that contains relevant SCM
+  information for printing.
   """
-  defcallback key(), do: atom
+  defcallback format(opts), do: opts
 
   @doc """
   This behavior function receives a keyword list of `opts`
@@ -29,7 +27,7 @@ defmodule Mix.SCM do
   sense for the Git SCM, it will return an update list of options
   while other SCMs would simply return nil.
   """
-  defcallback accepts_options?(opts), do: opts | nil
+  defcallback accepts_options(opts), do: opts | nil
 
   @doc """
   This behavior function returns a boolean if the

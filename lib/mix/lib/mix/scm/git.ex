@@ -2,11 +2,11 @@ defmodule Mix.SCM.Git do
   @behavior Mix.SCM
   @moduledoc false
 
-  def key do
-    :git
+  def format(opts) do
+    [git: opts[:git]]
   end
 
-  def accepts_options?(opts) do
+  def accepts_options(opts) do
     cond do
       gh = opts[:github] ->
         opts /> Keyword.delete(:github) /> Keyword.put(:git, "https://github.com/#{gh}.git")

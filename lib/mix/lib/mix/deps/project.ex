@@ -39,7 +39,7 @@ defmodule Mix.Deps.Project do
     opts = Keyword.put(opts, :path, path)
 
     { scm, opts } = Enum.find_value scms, fn(scm) ->
-      (new = scm.accepts_options?(opts)) && { scm, new }
+      (new = scm.accepts_options(opts)) && { scm, new }
     end
 
     if scm do

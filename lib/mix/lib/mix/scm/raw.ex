@@ -2,11 +2,11 @@ defmodule Mix.SCM.Raw do
   @behavior Mix.SCM
   @moduledoc false
 
-  def key do
-    :raw
+  def format(opts) do
+    [raw: opts[:raw]]
   end
 
-  def accepts_options?(opts) do
+  def accepts_options(opts) do
     if raw = opts[:raw] do
       Keyword.put opts, :path, File.expand_path(raw)
     end

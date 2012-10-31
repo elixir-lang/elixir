@@ -152,6 +152,6 @@ defmodule Mix.Deps do
         _ -> ""
       end
 
-    "#{app} #{version}[#{scm.key}: #{inspect opts[scm.key]}]"
+    "#{app} #{version}#{inspect scm.format(opts)}"
   end
 end
