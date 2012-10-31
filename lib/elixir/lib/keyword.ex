@@ -13,11 +13,16 @@ defmodule Keyword do
   entries for a given key are removed when invoked.
   """
 
+  @type key :: atom
+  @type value :: any
+  @type t :: [{key, value}]
+
   @doc """
   Creates a Keyword from enum. Differently from `Keyword.new`
   which behaves as a dict, `Keyword.from_enum` do not remove
   duplicated entries.
   """
+  @spec from_enum(Enum.t), do: t
   def from_enum(enum) when is_list(enum) do
     enum
   end
@@ -29,6 +34,7 @@ defmodule Keyword do
   @doc """
   Returns an empty keyword list, i.e. an empty list.
   """
+  @spec new, do: t
   def new do
     []
   end
@@ -43,6 +49,7 @@ defmodule Keyword do
       #=> [a: 2, b: 1]
 
   """
+  @spec new(Enum.t), do: t
   def new(pairs) do
     Enum.reduce pairs, [], fn { k, v }, keywords ->
       put(keywords, k, v)
@@ -60,6 +67,7 @@ defmodule Keyword do
       #=> [a: :a, b: :b]
 
   """
+  @spec new(Enum.t, fun({key, value}, do: {key, value})), do: t
   def new(pairs, transform) do
     Enum.reduce pairs, [], fn i, keywords ->
       { k, v } = transform.(i)
@@ -83,6 +91,8 @@ defmodule Keyword do
       Keyword.get [a: 1], :b, 3   #=> 3
 
   """
+  @spec get(t, key), do: value
+  @spec get(t, key, value), do: value
   def get(keywords, key, default // nil) when is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
@@ -100,6 +110,7 @@ defmodule Keyword do
       Keyword.get! [a: 1], :b      #=> raises KeyError[key: :b]
 
   """
+  @spec get!(t, key), do: value | no_return
   def get!(keywords, key) when is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
@@ -116,6 +127,7 @@ defmodule Keyword do
       #=> [1,2]
 
   """
+  @spec get_values(t, key), do: [value]
   def get_values(keywords, key) when is_atom(key) do
     lc { k, v } inlist keywords, key == k, do: v
   end
@@ -129,6 +141,7 @@ defmodule Keyword do
       Keyword.keys [a: 1, b: 2] #=> [:a,:b]
 
   """
+  @spec keys(t), do: [key]
   def keys(keywords) do
     lc { key, _ } inlist keywords, do: key
   end
@@ -141,6 +154,7 @@ defmodule Keyword do
       Keyword.values [a: 1, b: 2] #=> [1,2]
 
   """
+  @spec values(t), do: [value]
   def values(keywords) do
     lc { _, value } inlist keywords, do: value
   end
@@ -157,6 +171,7 @@ defmodule Keyword do
       Keyword.delete [b: 2], :a         #=> [b: 2]
 
   """
+  @spec delete(t, key), do: t
   def delete(keywords, key) when is_atom(key) do
     lc { k, _ } = tuple inlist keywords, key != k, do: tuple
   end
@@ -173,8 +188,9 @@ defmodule Keyword do
       #=> [a: 3, b: 2]
 
   """
-  def put(list, key, value) when is_atom(key) do
-    [{key, value}|delete(list, key)]
+  @spec put(t, key, value), do: t
+  def put(keywords, key, value) when is_atom(key) do
+    [{key, value}|delete(keywords, key)]
   end
 
   @doc """
@@ -187,6 +203,7 @@ defmodule Keyword do
       #=> true
 
   """
+  @spec equal?(t, t), do: boolean
   def equal?(left, right) do
     :lists.sort(left) == :lists.sort(right)
   end
@@ -201,6 +218,7 @@ defmodule Keyword do
       #=> [a:3, b:2, d: 4]
 
   """
+  @spec merge(t, t), do: t
   def merge(d1, d2) do
     d2 ++ lc({ k, _ } = tuple inlist d1, not has_key?(d2, k), do: tuple)
   end
@@ -217,6 +235,7 @@ defmodule Keyword do
       #=> [a:4, b:2, d: 4]
 
   """
+  @spec merge(t, t, fun(key, value, value, do: value)), do: t
   def merge(d1, d2, fun) do
     do_merge(d2, d1, fun)
   end
@@ -240,6 +259,7 @@ defmodule Keyword do
       #=> false
 
   """
+  @spec has_key?(t, key), do: boolean
   def has_key?(keywords, key) when is_atom(key) do
     :lists.keymember(key, 1, keywords)
   end
@@ -256,6 +276,7 @@ defmodule Keyword do
       #=> KeyError
 
   """
+  @spec update(t, key, fun(value, do: value)), do: t | no_return
   def update([{key, value}|keywords], key, fun) do
     [{key, fun.(value)}|delete(keywords, key)]
   end
@@ -280,6 +301,7 @@ defmodule Keyword do
       #=> [a: 1, b: 11]
 
   """
+  @spec update(t, key, value, fun(value, do: value)), do: t  
   def update([{key, value}|keywords], key, _initial, fun) do
     [{key, fun.(value)}|delete(keywords, key)]
   end
