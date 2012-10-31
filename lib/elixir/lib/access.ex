@@ -31,8 +31,13 @@ defimpl Access, for: List do
 
   """
 
-  def access(list, atom) when is_atom(atom) do
-    Keyword.get(list, atom)
+  def access([], _key), do: nil
+
+  def access(list, key) do
+    case :lists.keyfind(key, 1, list) do
+      { ^key, value } -> value
+      false -> nil
+    end
   end
 
 end
