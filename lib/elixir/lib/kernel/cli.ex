@@ -4,8 +4,10 @@ defrecord Kernel.CLI.Config, commands: [], output: ".",
 defmodule Kernel.CLI do
   @moduledoc false
 
-  # Invoked directly from erlang boot process. It parses all argv
-  # options and execute them in the order they are specified.
+  @doc """
+  Invoked directly from erlang boot process. It parses all argv
+  options and execute them in the order they are specified.
+  """
   def process_argv(options) do
     { config, argv } = process_options(options, Kernel.CLI.Config.new)
 
@@ -14,9 +16,17 @@ defmodule Kernel.CLI do
 
     all_commands = Enum.reverse(config.commands)
 
+    run fn -> Enum.map all_commands, process_command(&1, config) end, config.halt
+  end
+
+  @doc """
+  Runs the given function and wraps any exception or
+  error in messages useful for the command line.
+  """
+  def run(fun, halt // true) do
     try do
-      Enum.map all_commands, process_command(&1, config)
-      if config.halt do
+      fun.()
+      if halt do
         at_exit(0)
         halt(0)
       end
