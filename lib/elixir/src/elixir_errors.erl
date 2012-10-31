@@ -26,6 +26,9 @@ to_dot(L)  -> L.
 
 %% Raised during macros translation.
 
+-spec syntax_error(non_neg_integer(), file:filename(), binary() | string()) -> no_return().
+-spec syntax_error(non_neg_integer(), file:filename(), binary() | string(), list()) -> no_return().
+
 syntax_error(Line, File, Message) when is_list(Message) ->
   syntax_error(Line, File, iolist_to_binary(Message));
 
@@ -37,6 +40,8 @@ syntax_error(Line, File, Format, Args)  ->
   raise(Line, File, 'Elixir.SyntaxError', iolist_to_binary(Message)).
 
 %% Raised on tokenizing/parsing
+
+-spec parse_error(non_neg_integer(), file:filename(), iolist() | atom(), [] | iolist()) -> no_return().
 
 parse_error(Line, File, Error, []) ->
   Message = case Error of
@@ -63,6 +68,8 @@ parse_error(Line, File, Error, Token) ->
   raise(Line, File, 'Elixir.SyntaxError', Message).
 
 %% Raised during compilation
+
+-spec form_error(non_neg_integer(), file:filename(), module(), any()) -> no_return().
 
 form_error(Line, File, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),
@@ -105,6 +112,8 @@ handle_file_warning(_, File, {Line,Module,Desc}) ->
 
 handle_file_warning(File, Desc) ->
   handle_file_warning(false, File, Desc).
+
+-spec handle_file_error(file:filename(), {non_neg_integer(), module(), any()}) -> no_return().
 
 handle_file_error(File, {Line,Module,Desc}) ->
   form_error(Line, File, Module, Desc).
