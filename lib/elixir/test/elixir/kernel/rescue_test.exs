@@ -31,7 +31,7 @@ defmodule Kernel.RescueTest do
     rescue
       RuntimeError -> true
     catch
-      :error, value -> false
+      :error, _ -> false
     end
 
     assert result
