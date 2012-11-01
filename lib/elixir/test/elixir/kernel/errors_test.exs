@@ -273,7 +273,7 @@ defmodule Kernel.ErrorsTest do
       :elixir.eval(to_char_list(expr), [])
       nil
     rescue
-      error -> System.stacktrace
+      _error -> System.stacktrace
     end
 
     result || raise(ExUnit.AssertionError, message: "Expected function given to format_rescue to fail")

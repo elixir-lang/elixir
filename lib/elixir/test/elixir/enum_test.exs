@@ -714,7 +714,7 @@ defmodule EnumTest.Range do
     assert Enum.take_while(range, fn(x) -> x <= 3 end) == [1,2,3]
 
     range = Range.new(first: 1, last: 0)
-    assert Enum.take_while([], fn(_) -> true end) == []
+    assert Enum.take_while(range, fn(_) -> true end) == [1,0]
   end
 
   test :zip do
