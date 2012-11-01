@@ -247,12 +247,7 @@ defmodule Kernel.Typespec do
   The module has to have a corresponding beam file on the file system.
   """
   def types(module) do
-    case abstract_code(module) do
-      {:ok, abstract_code} ->
-        lc {:attribute, _, :type, ti} inlist abstract_code, do: {:type, ti}
-      [] ->
-        []
-    end
+    types(module, nil, nil)
   end
 
   @doc """
@@ -263,7 +258,17 @@ defmodule Kernel.Typespec do
   def types(module, type, arity) do
     case abstract_code(module) do
       {:ok, abstract_code} ->
-        lc {:attribute, _, :type, {t, _, a} = ti} inlist abstract_code, t == type, length(a) == arity, do: {:type, ti}
+        exported_types = List.flatten(lc {:attribute, _, :export_type, types} inlist abstract_code, do: types)      
+        lc {:attribute, _, type_a, {t, _, a} = ti} inlist abstract_code, type_a in [:opaque, :type], (nil?(type) and nil?(arity)) or (t == type and length(a) == arity) do
+          cond do
+          type_a == :opaque ->
+            {:opaque, ti}
+          List.member?(exported_types, {t, length(a)}) ->
+            {:type, ti}
+          true ->
+            {:typep, ti}
+          end
+        end
       _ ->
         []
     end
@@ -276,12 +281,7 @@ defmodule Kernel.Typespec do
   The module has to have a corresponding beam file on the file system.
   """
   def specs(module) do
-    case abstract_code(module) do
-      {:ok, abstract_code} ->
-        lc {:attribute, _, :spec, {fa, s}} inlist abstract_code, do: {{:spec, fa}, s}
-      _ ->
-        []
-    end
+    specs(module, nil, nil)
   end
 
   @doc """
@@ -292,7 +292,7 @@ defmodule Kernel.Typespec do
   def specs(module, function, arity) do
     case abstract_code(module) do
       {:ok, abstract_code} ->
-        lc {:attribute, _, :spec, {{f,a}=fa, s}} inlist abstract_code, f == function, a == arity, do: {{:spec, fa}, s}
+        lc {:attribute, _, :spec, {{f,a}=fa, s}} inlist abstract_code, (nil?(function) and nil?(arity)) or (f == function and a == arity), do: {{:spec, fa}, s}
       _ ->
         []
     end
