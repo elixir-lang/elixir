@@ -13,6 +13,7 @@ defmodule IEx.Helpers do
 
   * `c/2` - compiles a file in the given path
   * `h/0`,`h/1`, `h/2` - prints help/documentation
+  * `t/1`,`t/3` — prints type specification information
   * `m/0` - prints loaded modules
   * `r/0` - recompiles and reloads the given module's source file
   * `v/0` - prints all commands and values
@@ -212,6 +213,70 @@ defmodule IEx.Helpers do
   defp signature_arg({ var, _, _ }) do
     atom_to_binary(var)
   end
+
+  # FIXME: this can't be shown as h(t/1)
+  @doc """
+  Prints all types and function specifications from a given module
+
+  ## Examples
+
+    t(Enum)
+
+  """  
+  def __t_module__(module) do
+    types =
+    lc type inlist Kernel.Typespec.types(module) do
+      IO.puts Kernel.Typespec.to_binary(type)
+      type
+    end
+    specs =
+    lc spec inlist Kernel.Typespec.specs(module) do
+      IO.puts Kernel.Typespec.to_binary(spec)
+      spec
+    end
+    if specs == [] and types == [] do
+      IO.puts "No type specifications for #{inspect module} has been found"
+    end        
+    :ok  
+  end
+
+  @doc """
+  Prints the type specification for a given function or a type
+
+  ## Examples
+
+      t(Enum.all?/2)
+      t(Enum.t/0)
+
+  """
+  def t(module, function, arity) do
+    types =
+    lc type inlist Kernel.Typespec.types(module, function, arity) do
+      IO.puts Kernel.Typespec.to_binary(type)
+      type
+    end
+    specs =
+    lc spec inlist Kernel.Typespec.specs(module, function, arity) do
+      IO.puts Kernel.Typespec.to_binary(spec)
+      spec
+    end
+    if specs == [] and types == [] do
+      IO.puts "No type specification for #{inspect module}.#{function}/#{arity} has been found"
+    end        
+    :ok
+  end
+
+  defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
+    quote do
+      t(unquote(mod), unquote(fun), unquote(arity))
+    end
+  end
+  defmacro t(module) do
+    quote do
+      __t_module__(unquote(module))
+    end
+  end
+
 
   @doc """
   Retrieves nth query's value from the history. Use negative
