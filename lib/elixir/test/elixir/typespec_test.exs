@@ -329,4 +329,32 @@ defmodule Typespec.Test.Type do
       assert Kernel.Typespec.to_binary(spec) == Macro.to_binary(definition)
     end
   end
+
+  # test/spec retrieval
+
+  test "specs retrieval" do
+    Code.compiler_options debug_info: true
+    { :module, T, binary, _ } = defmodule T do
+      @spec a, do: any
+      def a, do: nil
+    end
+    Code.compiler_options debug_info: false
+    :code.delete(T)
+    :code.purge(T)
+    assert [{{:spec,{:a,_}},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:any,[]}]}]}] = Kernel.Typespec.specs(binary)
+    assert [{{:spec,{:a,_}},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:any,[]}]}]}] = Kernel.Typespec.specs(binary, :a, 0)
+  end
+
+  test "types retrieval" do
+    Code.compiler_options debug_info: true
+    { :module, T, binary, _ } = defmodule T do
+      @type a :: any
+    end
+    Code.compiler_options debug_info: false
+    :code.delete(T)
+    :code.purge(T)
+    assert [{:type, {:a,{:type,_,:any,[]},[]}}] = Kernel.Typespec.types(binary)
+    assert [{:type, {:a,{:type,_,:any,[]},[]}}] = Kernel.Typespec.types(binary, :a, 0)
+  end
+
 end

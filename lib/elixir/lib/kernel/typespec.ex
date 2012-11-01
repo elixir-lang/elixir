@@ -241,6 +241,83 @@ defmodule Kernel.Typespec do
     quote do: []
   end
 
+  @doc """
+  Retrieves all type specifications from a module. 
+
+  The module has to have a corresponding beam file on the file system.
+  """
+  def types(module) do
+    case abstract_code(module) do
+      {:ok, abstract_code} ->
+        lc {:attribute, _, :type, ti} inlist abstract_code, do: {:type, ti}
+      [] ->
+        []
+    end
+  end
+
+  @doc """
+  Retrieves all type specifications from a module with a given name and arity. 
+  
+  The module has to have a corresponding beam file on the file system.
+  """
+  def types(module, type, arity) do
+    case abstract_code(module) do
+      {:ok, abstract_code} ->
+        lc {:attribute, _, :type, {t, _, a} = ti} inlist abstract_code, t == type, length(a) == arity, do: {:type, ti}
+      _ ->
+        []
+    end
+  end
+
+
+  @doc """
+  Retrieves all functions specifications from a module. 
+  
+  The module has to have a corresponding beam file on the file system.
+  """
+  def specs(module) do
+    case abstract_code(module) do
+      {:ok, abstract_code} ->
+        lc {:attribute, _, :spec, {fa, s}} inlist abstract_code, do: {{:spec, fa}, s}
+      _ ->
+        []
+    end
+  end
+
+  @doc """
+  Retrieves all functions specifications from a module for a given name and arity. 
+  
+  The module has to have a corresponding beam file on the file system.
+  """
+  def specs(module, function, arity) do
+    case abstract_code(module) do
+      {:ok, abstract_code} ->
+        lc {:attribute, _, :spec, {{f,a}=fa, s}} inlist abstract_code, f == function, a == arity, do: {{:spec, fa}, s}
+      _ ->
+        []
+    end
+  end
+
+
+  defp abstract_code(module) do
+    case :beam_lib.chunks(abstract_code_beam(module), [:abstract_code]) do
+      {:ok, {_, [{:abstract_code, {raw_abstract_v1, abstract_code}}]}} ->
+        {:ok, abstract_code}
+      _ -> 
+        :error
+    end
+  end  
+
+  defp abstract_code_beam(module) when is_atom(module) do
+    case :code.which(module) do
+      :non_existing -> module
+      file -> file
+    end
+  end
+  defp abstract_code_beam(binary) when is_binary(binary) do
+    binary
+  end
+
   ## Typespec conversion
 
   # Handle unions
