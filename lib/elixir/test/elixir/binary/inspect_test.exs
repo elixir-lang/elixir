@@ -159,6 +159,10 @@ defmodule Binary.Inspect.ListTest do
     assert inspect(["123": 1]) == %b(["123": 1])
   end
 
+  test :non_keyword do
+    assert inspect([{ Regex, 1 }]) == "[{Regex,1}]"
+  end
+
   test :non_printable do
     assert inspect([{:b, 1},{:a,1}]) == "[b: 1, a: 1]"
   end

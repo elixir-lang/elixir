@@ -261,7 +261,7 @@ defimpl Binary.Inspect, for: List do
     cond do
       printable?(thing) ->
         escape(list_to_binary(thing), ?')
-      keywords?(thing) ->
+      is_keyword?(thing) ->
         "[" <> join_keywords(thing, opts) <> "]"
       true ->
         container_join(thing, "[", "]", opts)
@@ -269,11 +269,16 @@ defimpl Binary.Inspect, for: List do
   end
 
   ## keywords?
-  defp keywords?([]), do: true
-  defp keywords?([{ key, _value } | rest]) when is_atom(key) do
-    keywords?(rest)
+
+  defp is_keyword?([{ key, _value } | rest]) when is_atom(key) do
+    case atom_to_list(key) do
+      'Elixir-' ++ _ -> false
+      _ -> is_keyword?(rest)
+    end
   end
-  defp keywords?(_other), do: false
+
+  defp is_keyword?([]),     do: true
+  defp is_keyword?(_other), do: false
 
   defp join_keywords(thing, opts) do
     Enum.join(lc {key, value} inlist thing do
@@ -413,8 +418,12 @@ defimpl Binary.Inspect, for: Regex do
 
   """
 
-  def inspect(thing, _) do
-    "%r" <> Binary.Inspect.inspect(Regex.source(thing), []) <> Regex.opts(thing)
+  def inspect(regex, _opts) when size(regex) == 5 do
+    "%r" <> Binary.Inspect.inspect(Regex.source(regex), []) <> Regex.opts(regex)
+  end
+
+  def inspect(other, opts) do
+    Binary.Inspect.inspect other, Keyword.put(opts, :raw, true)
   end
 end
 
