@@ -226,6 +226,10 @@ defmodule Kernel.Typespec do
     quote do: unquote(typespec_to_ast(mod)).unquote(typespec_to_ast(name))(unquote_splicing(args))
   end
 
+  defp typespec_to_ast({:ann_type, _line, [var, type]}) do
+    quote do: unquote(typespec_to_ast(var)) :: unquote(typespec_to_ast(type))
+  end
+
   defp typespec_to_ast({t, _line, imm}) when is_atom(t) do
     imm
   end
