@@ -22,7 +22,7 @@
   quote_vars=[],                                 %% a dict of all quoted variables
   clause_vars=nil,                               %% a dict of all variables defined in a particular clause
   extra_guards=nil,                              %% extra guards from args expansion
-  counter=0,                                     %% a counter for the variables defined
+  counter=[],                                    %% a counter for the variables defined
   file=(<<"nofile">>),                           %% the current scope filename
   local=nil,                                     %% the scope to evaluate local functions against
   aliases=[],                                    %% an orddict with aliases by new -> old names

@@ -15,8 +15,7 @@ unpack_each(Kind, Name, [{'//', Line, [Expr, _]}|T] = List, Acc, Clauses, S) ->
   Base = build_match(Acc, Line, []),
   { Args, Invoke } = extract_defaults(List, Line, length(Base), [], []),
 
-  SM = S#elixir_scope{counter=length(Base)},
-  { DefArgs, SA }   = elixir_clauses:assigns(fun elixir_translator:translate/2, Base ++ Args, SM),
+  { DefArgs, SA }   = elixir_clauses:assigns(fun elixir_translator:translate/2, Base ++ Args, S),
   { InvokeArgs, _ } = elixir_translator:translate_args(Base ++ Invoke, SA),
 
   Call = { call, Line,
@@ -39,7 +38,7 @@ extract_defaults([{'//', _, [_Expr, Default]}|T], Line, Counter, NewArgs, NewInv
   extract_defaults(T, Line, Counter, NewArgs, [Default|NewInvoke]);
 
 extract_defaults([_|T], Line, Counter, NewArgs, NewInvoke) ->
-  H = { ?ELIXIR_ATOM_CONCAT(["_@", Counter]), Line, nil },
+  H = { ?ELIXIR_ATOM_CONCAT(["_@D", Counter]), Line, nil },
   extract_defaults(T, Line, Counter + 1, [H|NewArgs], [H|NewInvoke]);
 
 extract_defaults([], _Line, _Counter, NewArgs, NewInvoke) ->
@@ -50,7 +49,7 @@ extract_defaults([], _Line, _Counter, NewArgs, NewInvoke) ->
 build_match([], _Line, Acc) -> Acc;
 
 build_match([_|T], Line, Acc) ->
-  Var = { ?ELIXIR_ATOM_CONCAT(["_@", length(T)]), Line, nil },
+  Var = { ?ELIXIR_ATOM_CONCAT(["_@D", length(T)]), Line, nil },
   build_match(T, Line, [Var|Acc]).
 
 % Given the invoked function name based on the kind

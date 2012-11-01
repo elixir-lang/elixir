@@ -69,15 +69,8 @@ defmodule ExUnit.Assertions do
     quote do: (var!(op) == :! or var!(op) == :not)
   end
 
-  defp translate_assertion({ :=, _, [expected, received] }, _else) do
-    quote do
-      unquote(expected) = try do
-        unquote(expected) = unquote(received)
-      rescue
-        x in [MatchError] ->
-          raise ExUnit.AssertionError, message: x.message
-      end
-    end
+  defp translate_assertion({ :=, _, [_, _] } = expr, _else) do
+    expr
   end
 
   defp translate_assertion({ :==, _, [left, right] }, _else) do
@@ -132,7 +125,7 @@ defmodule ExUnit.Assertions do
         unquote(expected) = x = unquote(received)
         flunk "Unexpected right side #{inspect x} match"
       rescue
-        x in [MatchError] -> true
+        _ in [MatchError] -> true
       end
     end
   end

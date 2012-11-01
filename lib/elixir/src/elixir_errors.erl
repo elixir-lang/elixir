@@ -106,6 +106,11 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
   io:format(file_format(Line, File, Message));
 
 %% Default behavior
+handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
+  List    = lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var)),
+  Message = format_error(erl_lint, { unused_var, list_to_atom(List) }),
+  io:format(file_format(Line, File, Message));
+
 handle_file_warning(_, File, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
   io:format(file_format(Line, File, Message)).

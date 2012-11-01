@@ -27,10 +27,9 @@ defmodule Kernel.ParallelRequire do
 
     child  = spawn_link fn ->
       try do
-        new    = Code.require_file(h)
-        result = (new || []) ++ result
+        new = Code.require_file(h)
         callback.(h)
-        parent <- { :required, self }
+        parent <- { :required, self, new }
       catch
         kind, reason ->
           parent <- { :failure, self, kind, reason, System.stacktrace }
@@ -42,8 +41,8 @@ defmodule Kernel.ParallelRequire do
 
   defp wait_for_messages(files, waiting, callback, result) do
     receive do
-      { :required, child } ->
-        spawn_requires(files, List.delete(waiting, child), callback, result)
+      { :required, child, new } ->
+        spawn_requires(files, List.delete(waiting, child), callback, (new || []) ++ result)
       { :failure, _child, kind, reason, stacktrace } ->
         :erlang.raise(kind, reason, stacktrace)
     end

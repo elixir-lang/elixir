@@ -271,7 +271,7 @@ defmodule List do
   def range(first, last, step // nil)
 
   def range(first, last, step) when is_integer(first) and is_integer(last) and first <= last do
-    step = case step do
+    case step do
       nil ->
         :lists.seq(first, last, 1)
       x when x < 0 ->
@@ -282,7 +282,7 @@ defmodule List do
   end
 
   def range(first, last, step) when is_integer(first) and is_integer(last) and first > last do
-    step = case step do
+    case step do
       nil ->
         :lists.seq(first, last, -1)
       x when x > 0 ->

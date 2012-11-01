@@ -104,7 +104,7 @@ eval_forms(Tree, Binding, RawScope) ->
     temp_vars=[],
     quote_vars=[],
     clause_vars=nil,
-    counter=0
+    counter=[]
   },
   { ParseTree, NewScope } = elixir_translator:translate(Tree, Scope),
   case ParseTree of
@@ -125,9 +125,10 @@ binding_dict([], Dict) -> Dict.
 
 final_binding(Binding, Vars) -> final_binding(Binding, [], Binding, Vars).
 final_binding([{Var,_}|T], Acc, Binding, Vars) ->
-  case atom_to_list(Var) of
-    "_@" ++ _ -> final_binding(T, Acc, Binding, Vars);
-    _ ->
+  case lists:member($@, atom_to_list(Var)) of
+    true  ->
+      final_binding(T, Acc, Binding, Vars);
+    false ->
       RealName = orddict:fetch(Var, Vars),
       RealValue = proplists:get_value(RealName, Binding, nil),
       final_binding(T, [{Var, RealValue}|Acc], Binding, Vars)
