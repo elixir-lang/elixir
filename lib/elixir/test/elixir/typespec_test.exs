@@ -349,12 +349,28 @@ defmodule Typespec.Test.Type do
     Code.compiler_options debug_info: true
     { :module, T, binary, _ } = defmodule T do
       @type a :: any
+      @typep b :: any
+      @spec t(b), do: b
+      def t(b), do: b
+      @opaque c :: any
     end
     Code.compiler_options debug_info: false
     :code.delete(T)
     :code.purge(T)
-    assert [{:type, {:a,{:type,_,:any,[]},[]}}] = Kernel.Typespec.types(binary)
-    assert [{:type, {:a,{:type,_,:any,[]},[]}}] = Kernel.Typespec.types(binary, :a, 0)
+    assert [
+            {:opaque, {:c,{:type,_,:any,[]},[]}},
+            {:type, {:a,{:type,_,:any,[]},[]}},
+            {:typep, {:b,{:type,_,:any,[]},[]}},
+           ] = Kernel.Typespec.types(binary)
+    assert [
+            {:type, {:a,{:type,_,:any,[]},[]}},
+           ] = Kernel.Typespec.types(binary, :a, 0)
+    assert [
+            {:typep, {:b,{:type,_,:any,[]},[]}},
+           ] = Kernel.Typespec.types(binary, :b, 0)
+    assert [
+            {:opaque, {:c,{:type,_,:any,[]},[]}},
+           ] = Kernel.Typespec.types(binary, :c, 0)
   end
 
 end
