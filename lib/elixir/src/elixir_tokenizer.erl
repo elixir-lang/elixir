@@ -773,6 +773,9 @@ terminator('<<') -> '>>'.
 handle_keyword(Line, paren_identifier, fn, Tokens) ->
   [{ 'fn_paren', Line }|Tokens];
 
+handle_keyword(Line, Identifier, Atom, [{ '.', _ }|_] = Tokens) ->
+  [{ Identifier, Line, Atom }|Tokens];
+
 handle_keyword(Line, Identifier, Atom, Tokens) when Identifier ==  bracket_identifier; Identifier == paren_identifier ->
   case keyword(Atom) of
     true -> [{ Atom, Line }|Tokens];

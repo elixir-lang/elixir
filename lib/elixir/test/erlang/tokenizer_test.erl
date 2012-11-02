@@ -79,6 +79,11 @@ dot_test() ->
    {'.',1},
    {identifier,1,baz}] = tokenize("foo.bar.baz").
 
+dot_keyword_test() ->
+ [{identifier,1,foo},
+  {'.',1},
+  {identifier,1,do}] = tokenize("foo.do").
+
 newline_test() ->
  [{identifier,1,foo},
   {'.',2},
