@@ -776,13 +776,9 @@ handle_keyword(Line, paren_identifier, fn, Tokens) ->
 handle_keyword(Line, Identifier, Atom, [{ '.', _ }|_] = Tokens) ->
   [{ Identifier, Line, Atom }|Tokens];
 
-handle_keyword(Line, Identifier, Atom, Tokens) when Identifier ==  bracket_identifier; Identifier == paren_identifier ->
-  case keyword(Atom) of
-    true -> [{ Atom, Line }|Tokens];
-    _    -> [{ Identifier, Line, Atom }|Tokens]
-  end;
-
-handle_keyword(Line, Identifier, Atom, Tokens) when Identifier ==  identifier; Identifier == do_identifier ->
+handle_keyword(Line, Identifier, Atom, Tokens) when
+    Identifier ==  identifier; Identifier == do_identifier;
+    Identifier ==  bracket_identifier; Identifier == paren_identifier ->
   case keyword(Atom) of
     true  -> [{ Atom, Line }|Tokens];
     op    -> add_token_with_nl({ Atom, Line }, Tokens);
