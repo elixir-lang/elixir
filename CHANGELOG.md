@@ -1,6 +1,7 @@
 * enhancements
   * [IEx] Only show documented functions and also show docs for default generated functions
   * [Kernel] Improved dialyzer support
+  * [Kernel] Improved error messages when creating functions with aliases names
   * [Mix] Improve SCM behaviour to allow more robust integration
   * [Mix] Changing deps information on `mix.exs` forces users to fetch new dependencies
   * [Mix] Support (parallel) requires on mix run
@@ -13,9 +14,11 @@
 * bug fix
   * [Kernel] Fix an issue where variables inside clauses remained unassigned
   * [Kernel] Ensure defoverridable functions can be referred in many clauses
+  * [Kernel] Allow keywords as function names when following a dot (useful when integrating with erlang libraries)
 
 * deprecations
   * [Behaviour] `defcallback/1` was deprecated in favor of `defcallback/2` which matches erlang `@callbacks`
+  * [Enum] `Enum.times` was deprecated in favor of using ranges
 
 # v0.7.0 (2012-10-20)
 
