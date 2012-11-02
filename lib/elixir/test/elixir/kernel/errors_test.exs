@@ -103,6 +103,12 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'defmodule Foo do\ndefmacrop foo, do: 1\ndefmacro bar, do: __MODULE__.foo\ndefmacro baz, do: bar\nend'
   end
 
+  test :function_definition_with_alias do
+    assert "nofile:1: function definitions should start with lowercase characters or underscore" ==
+      format_rescue 'defmodule Foo do def Bar do :baz end\nend\n'
+  end
+
+
   test :erlang_function_conflict do
     assert "nofile:1: function exit/1 already imported from Kernel" ==
       format_rescue 'defmodule Foo do import Kernel.ErrorsTest.UnproperMacro, only: [exit: 1]\nend'
@@ -153,7 +159,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :cant_define_local_due_to_in_erlang_macros_conflict do
-    assert "nofile:1: cannot define local quote/1 because it conflicts with Elixir internal macros" ==
+    assert "nofile:1: cannot define local quote/1 because it conflicts with Elixir special forms" ==
       format_rescue 'defmodule Foo do\ndef quote(x), do: x\ndef bar(x), do: quote(do: x)\nend'
   end
 

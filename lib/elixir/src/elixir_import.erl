@@ -236,10 +236,10 @@ format_error({import_conflict,{Receiver, Name, Arity}}) ->
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({local_conflict,{_, Name, Arity}}) ->
-  io_lib:format("cannot define local ~s/~B because it conflicts with Elixir internal macros", [Name, Arity]);
+  io_lib:format("cannot define local ~s/~B because it conflicts with Elixir special forms", [Name, Arity]);
 
 format_error({internal_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir internal macros",
+  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir special forms",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({ no_macros, Module }) ->
