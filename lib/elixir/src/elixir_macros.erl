@@ -217,7 +217,7 @@ translate({Kind, Line, [Call, Expr]}, S) when ?FUNS(Kind) ->
   assert_no_function_scope(Line, Kind, S),
   { TCall, Guards } = elixir_clauses:extract_guards(Call),
   { Name, Args }    = elixir_clauses:extract_args(TCall),
-  assert_no_aliases_name(Line, Name, S),
+  assert_no_aliases_name(Line, Name, Args, S),
   TName             = elixir_tree_helpers:abstract_syntax(Name),
   TArgs             = elixir_tree_helpers:abstract_syntax(Args),
   TGuards           = elixir_tree_helpers:abstract_syntax(Guards),
@@ -340,8 +340,9 @@ spec_to_macro(callback) -> defcallback.
 unpack([{ '__block__', _, Exprs }]) -> Exprs;
 unpack(Exprs)                       -> Exprs.
 
-assert_no_aliases_name(Line, '__aliases__', S) ->
-  syntax_error(Line, S#elixir_scope.file, "function definitions should start with lowercase characters or underscore");
+assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_scope{file=File}) when is_atom(Atom) ->
+  Message = "function names should start with lowercase characters or underscore, invalid name ~s",
+  syntax_error(Line, File, Message, [atom_to_binary(Atom, utf8)]);
 
-assert_no_aliases_name(_Line, _Aliases, _S) ->
+assert_no_aliases_name(_Line, _Aliases, _Args, _S) ->
   ok.

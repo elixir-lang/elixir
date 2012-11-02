@@ -104,10 +104,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :function_definition_with_alias do
-    assert "nofile:1: function definitions should start with lowercase characters or underscore" ==
+    assert "nofile:1: function names should start with lowercase characters or underscore, invalid name Bar" ==
       format_rescue 'defmodule Foo do def Bar do :baz end\nend\n'
   end
-
 
   test :erlang_function_conflict do
     assert "nofile:1: function exit/1 already imported from Kernel" ==
