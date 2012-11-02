@@ -3,31 +3,6 @@ Code.require_file "../test_helper.exs", __FILE__
 defmodule EnumTest do
   use ExUnit.Case, async: true
 
-  test :times do
-    try do
-      Process.put(:times_with_arity, nil)
-      assert Enum.times(0, fn -> Process.put(:times_with_arity, :ok) end) == 0
-      assert Process.get(:times_with_arity) == nil
-      assert Enum.times(3, fn -> Process.put(:times_with_arity, :ok) end) == 3
-      assert Process.get(:times_with_arity) == :ok
-    after
-      Process.delete(:times_with_arity)
-    end
-  end
-
-  test :times_with_iterator do
-    try do
-      assert Enum.times(5, fn x -> Process.put(:times_with_arity, x) end) == 5
-      assert Process.get(:times_with_arity) == 4
-    after
-      Process.delete(:times_with_arity)
-    end
-  end
-
-  test :times_with_iterator_and_acumulator  do
-    assert Enum.times(5, 0, fn acc, x -> acc + x end) == 10
-  end
-
   test :reverse do
     assert Enum.reverse(URI.query_decoder("foo=bar&baz=bat")) ==
       [{ "baz", "bat" }, { "foo", "bar" }]

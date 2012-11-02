@@ -777,20 +777,9 @@ defmodule Enum do
     end
   end
 
-  @doc """
-  Iterates the given function n times, passing values
-  from 0 to n - 1.
-
-  ## Examples
-
-      Enum.times 3, fn(x) -> IO.inspect x end
-      0
-      1
-      2
-
-  """
-  @spec times(non_neg_integer, fun(non_neg_integer, do: any)), do: non_neg_integer
+  @doc false
   def times(times, function) when times >= 0 do
+    IO.write "[WARNING] Enum.times/2 is deprecated, please use ranges instead\n#{Exception.formatted_stacktrace}"
     case is_function(function, 0) do
       true ->
         do_times_0(times, 1, function)
@@ -800,19 +789,9 @@ defmodule Enum do
     times
   end
 
-  @doc """
-  Iterates the given function n times, passing values from 1
-  to n. Also has an accumulator similar to reduce to store the
-  value between computations.
-
-  ## Examples
-
-      Enum.times 5, 0, fn(x, acc) -> acc + x end
-      #=> 15
-
-  """
-  @spec times(non_neg_integer, any, fun(non_neg_integer, any, do: any)), do: any  
+  @doc false
   def times(times, acc, function) when times >= 0 do
+    IO.write "[WARNING] Enum.times/3 is deprecated, please use ranges instead\n#{Exception.formatted_stacktrace}"
     do_times_2(times, 1, function, acc)
   end
 
