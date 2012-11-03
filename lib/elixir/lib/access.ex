@@ -5,11 +5,10 @@ defprotocol Access do
   The Access protocol is the underlying protocol invoked
   when the brackets syntax is used. For instance, `foo[bar]`
   is translated to `access foo, bar` which, by default,
-  invokes `Access.access` protocol.
+  invokes the `Access.access` protocol.
 
   This protocol is limited and is implemented only for the
-  following built-in types: keywords, records, atoms and
-  functions.
+  following built-in types: keywords, records and functions.
   """
 
   @only [List, Function, Record, Atom]
@@ -17,7 +16,7 @@ defprotocol Access do
   @doc """
   Receives the element being accessed and the access item.
   """
-  def access(element, qualifier)
+  def access(container, key)
 end
 
 defimpl Access, for: List do

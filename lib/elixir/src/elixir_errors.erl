@@ -105,12 +105,15 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
   Message = io_lib:format("behaviour ~s undefined", [inspect(Module)]),
   io:format(file_format(Line, File, Message));
 
-%% Default behavior
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
-  List    = lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var)),
-  Message = format_error(erl_lint, { unused_var, list_to_atom(List) }),
+  Message = format_error(erl_lint, { unused_var, format_var(Var) }),
   io:format(file_format(Line, File, Message));
 
+handle_file_warning(_, File, {Line,erl_lint,{shadowed_var,Var,Where}}) ->
+  Message = format_error(erl_lint, { shadowed_var, format_var(Var), Where }),
+  io:format(file_format(Line, File, Message));
+
+%% Default behavior
 handle_file_warning(_, File, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
   io:format(file_format(Line, File, Message)).
@@ -158,6 +161,9 @@ raise(Line, File, Kind, Message) ->
 
 file_format(Line, File, Message) ->
   io_lib:format("~ts:~w: ~ts~n", [File, Line, Message]).
+
+format_var(Var) ->
+  list_to_atom(lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var))).
 
 format_error([], Desc) ->
   io_lib:format("~p", [Desc]);
