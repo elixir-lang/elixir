@@ -1,5 +1,5 @@
 -module(elixir_quote).
--export([quote/3, linify/2]).
+-export([quote/3, linify/2, join_quoted/5]).
 -include("elixir.hrl").
 
 %% Apply the line from site call on quoted contents.
@@ -15,6 +15,25 @@ linify(Line, List) when is_list(List) ->
 
 linify(_, Else) -> Else.
 
+%% Join quoted checks for quote arguments at runtime
+%% in order to properly insert them into the tree
+join_quoted(Line, Left, { '__aliases__', _, Args }, nil, _File) ->
+  { '__aliases__', Line, [Left|Args] };
+
+join_quoted(Line, Left, Right, nil, _File) when is_atom(Right) ->
+  case atom_to_list(Right) of
+    "Elixir-" ++ _ ->
+      { '__aliases__', Line, [Left, Right] };
+    _ ->
+      { { '.', Line, [Left, Right] }, Line, [] }
+  end;
+
+join_quoted(Line, Left, Right, Args, _File) when is_atom(Right) ->
+  { { '.', Line, [Left, Right] }, Line, Args };
+
+join_quoted(Line, _Left, _Right, _Args, File) ->
+  elixir_errors:syntax_error(Line, File, "expected unquote after dot to return an atom or an alias").
+
 %% Translation
 
 quote({ 'unquote_splicing', Line, _ } = Expr, #elixir_quote{unquote=true} = Q, S) ->
@@ -26,13 +45,15 @@ quote(Else, Q, S) ->
 do_quote({ unquote, _Line, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
 
-do_quote({ { { '.', Line, [Left, unquote] }, _Line, [Expr] }, CallLine, Args }, Q, S) ->
-  Rewritten = { { '.', Line, [Left, { unquote, Line, [Expr] }] }, CallLine, Args },
-  do_quote(Rewritten, Q, S);
+do_quote({ { { '.', Line, [Left, unquote] }, _, [Expr] }, _, Args }, #elixir_quote{unquote=true} = Q, S) ->
+  All = [Left, { unquote, Line, [Expr] }, Args, S#elixir_scope.file],
+  { TAll, TS } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Q, Acc) end, S, All),
+  { ?ELIXIR_WRAP_CALL(Line, elixir_quote, join_quoted, [line(Line, Q)|TAll]), TS };
 
-do_quote({ { '.', Line, [Left, unquote] }, _Line, [Expr] }, Q, S) ->
-  Rewritten = { { '.', Line, [Left, { unquote, Line, [Expr] }] }, Line, [] },
-  do_quote(Rewritten, Q, S);
+do_quote({ { '.', Line, [Left, unquote] }, _, [Expr] }, #elixir_quote{unquote=true} = Q, S) ->
+  All = [Left, { unquote, Line, [Expr] }, nil, S#elixir_scope.file],
+  { TAll, TS } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Q, Acc) end, S, All),
+  { ?ELIXIR_WRAP_CALL(Line, elixir_quote, join_quoted, [line(Line, Q)|TAll]), TS };
 
 do_quote({ Left, Line, nil }, Q, S) when is_atom(Left) ->
   Tuple = { tuple, Line, [

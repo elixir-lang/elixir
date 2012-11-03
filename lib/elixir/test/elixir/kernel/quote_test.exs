@@ -87,6 +87,13 @@ defmodule Kernel.QuoteTest do
     assert quote(do: foo.unquote(:bar)) == quote(do: foo.bar)
     assert quote(do: foo.unquote(:bar)(1)) == quote(do: foo.bar(1))
     assert quote(do: foo.unquote(:bar)(1) do 2 + 3 end) == quote(do: foo.bar(1) do 2 + 3 end)
+
+    assert Code.eval_quoted(quote(do: Foo.unquote(Bar)))  == { Foo.Bar, [] }
+    assert Code.eval_quoted(quote(do: Foo.unquote(quote do: Bar))) == { Foo.Bar, [] }
+
+    assert_raise SyntaxError, fn ->
+      quote(do: foo.unquote(1))
+    end
   end
 
   test :splice_on_root do

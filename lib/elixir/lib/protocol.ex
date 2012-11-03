@@ -98,7 +98,7 @@ defmodule Protocol do
   @doc false
   def impl_for(conversions, fallback, any, env) do
     contents = lc kind inlist conversions do
-      each_impl_for(kind, if fallback, do: conversions)
+      each_impl_for(kind, conversions, fallback)
     end
 
     # If we don't implement all protocols and any is not in the
@@ -134,7 +134,7 @@ defmodule Protocol do
               target
             catch
               :error, :undef, [[{ ^target, :__impl__, [], _ }|_]|_] ->
-                __fallback__
+                unquote(fallback)
             end
           other ->
             other
@@ -148,8 +148,6 @@ defmodule Protocol do
           raise Protocol.UndefinedError, protocol: __MODULE__, structure: arg
         end
       end
-
-      defp __fallback__, do: unquote(fallback)
     end
 
     Module.eval_quoted env, contents
@@ -222,30 +220,17 @@ defmodule Protocol do
     end
   end
 
-  # Handle records when we don't have fallbacks.
-  # It simply gets the first element of the tuple.
-  # This case assumes that, whenever a tuple is given
-  # it is meant to be a record, so we don't need extra
-  # checks.
-  defp each_impl_for({ _, :is_record, _ }, nil) do
-    quote do
-      defp __raw_impl__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
-        __MODULE__.Record
-      end
-    end
-  end
-
   # Specially handle records in the case we have fallbacks.
-  defp each_impl_for({ _, :is_record, _ }, conversions) do
+  defp each_impl_for({ _, :is_record, _ }, conversions, fallback) do
     quote do
       defp __raw_impl__(arg) when is_tuple(arg) and is_atom(:erlang.element(1, arg)) do
         first = :erlang.element(1, arg)
         case unquote(is_builtin?(conversions)) do
-          true  -> __fallback__
+          true  -> unquote(fallback)
           false ->
             case atom_to_list(first) do
               'Elixir-' ++ _ -> __MODULE__.Record
-              _              -> __fallback__
+              _              -> unquote(fallback)
             end
         end
       end
@@ -253,7 +238,7 @@ defmodule Protocol do
   end
 
   # Special case any as we don't need to generate a guard.
-  defp each_impl_for({ _, :is_any, _ }, _) do
+  defp each_impl_for({ _, :is_any, _ }, _, _) do
     quote do
       defp __raw_impl__(_) do
         __MODULE__.Any
@@ -262,10 +247,10 @@ defmodule Protocol do
   end
 
   # Generate all others protocols.
-  defp each_impl_for({ kind, fun, _ }, _) do
+  defp each_impl_for({ kind, fun, _ }, _, _) do
     quote do
       defp __raw_impl__(arg) when unquote(fun).(arg) do
-        Module.concat __MODULE__, unquote(kind)
+        __MODULE__.unquote(kind)
       end
     end
   end
