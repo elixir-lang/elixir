@@ -485,7 +485,7 @@ defmodule Record do
 
     quote do
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-        Kernel.Typespec.deftype t :: { __MODULE__, unquote_splicing(types) }
+        @type t :: { __MODULE__, unquote_splicing(types) }
       end
 
       @spec new, do: t

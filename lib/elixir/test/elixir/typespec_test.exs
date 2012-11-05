@@ -6,7 +6,7 @@ defmodule Typespec.Test.Type do
   # This macro allows us to focus on the result of the
   # definition and not on the hassles of handling test
   # module
-  defmacro test_module([{:do, block}]) do
+  defmacrop test_module([{:do, block}]) do
     quote do
       { :module, T, _binary, result } = defmodule T do
         unquote(block)
@@ -193,18 +193,18 @@ defmodule Typespec.Test.Type do
     assert {:type, {:mytype1,{:type,_,:fun,[{:type,_,:product,[{:ann_type,_,[{:var,_,:a},{:type,_,:integer,[]}]}]},{:type,_,:integer,[]}]},[]}} = spec2
   end
 
-  test "opaque @type" do
+  test "@opaque(type)" do
     spec = test_module do
       @opaque mytype(x) :: x
     end
     assert {:opaque,{:mytype,{:var,_,:x},[{:var,_,:x}]}} = spec
   end
 
-  test "get_types" do
+  test "@type + opaque" do
     types = test_module do
       @type mytype :: tuple
       @opaque mytype1 :: {}
-      Kernel.Typespec.get_types(__MODULE__)
+      @type ++ @opaque
     end
     assert [{:mytype,_,[]},{:mytype1,_,[]}] = types
   end
@@ -219,7 +219,7 @@ defmodule Typespec.Test.Type do
     end
   end
 
-  test "@spec" do
+  test "@spec(spec)" do
     {spec1, spec2, spec3} = test_module do
       def myfun(x), do: x
       def myfun(), do: :ok
@@ -229,59 +229,59 @@ defmodule Typespec.Test.Type do
       t3 = @spec myfun(integer, integer), do: {integer, integer}
       {t1,t2,t3}
     end
-    assert {{:spec, {:myfun,1}},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]} = spec1
-    assert {{:spec, {:myfun,0}},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}]} = spec2
-    assert {{:spec, {:myfun,2}},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]} = spec3
+    assert {{:myfun,1},{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}} = spec1
+    assert {{:myfun,0},{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}} = spec2
+    assert {{:myfun,2},{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}} = spec3
   end
 
-  test "@callback" do
+  test "@callback(callback)" do
     {spec1, spec2, spec3} = test_module do
       t1 = @callback myfun(integer), do: integer
       t2 = @callback myfun(), do: integer
       t3 = @callback myfun(integer, integer), do: {integer, integer}
       {t1,t2,t3}
     end
-    assert {{:callback, {:myfun,1}},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]} = spec1
-    assert {{:callback, {:myfun,0}},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}]} = spec2
-    assert {{:callback, {:myfun,2}},[{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}]} = spec3
+    assert {{:myfun,1},{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}} = spec1
+    assert {{:myfun,0},{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}} = spec2
+    assert {{:myfun,2},{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}} = spec3
   end
 
-  test "defines a callback from a spec" do
-    specs = test_module do
-      def myfun(x), do: x
-      @spec myfun(integer), do: integer
-      @spec myfun(char_list),  do: char_list
-      Kernel.Typespec.callback_from_spec(__MODULE__, :myfun, 1)
-      Kernel.Typespec.get_specs(__MODULE__)
-    end
-
-    assert [
-      {{:callback, {:myfun,1}},[
-        {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
-        {:type,_,:fun,[{:type,_,:product,[{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]}]},
-      {{:spec, {:myfun,1}},[
-        {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
-        {:type,_,:fun,[{:type,_,:product,[{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]}]}
-    ] = List.sort(specs)
-  end
-
-  test "getting all specs from Kernel.Typespec" do
-    specs = test_module do
+  test "@spec + @callback" do
+    { specs, callbacks } = test_module do
       def myfun(x), do: x
       @spec myfun(integer), do: integer
       @spec myfun(char_list),  do: char_list
       @callback cb(integer), do: integer
-      Kernel.Typespec.get_specs(__MODULE__)
+      { @spec, @callback }
     end
 
     assert [
-      {{:callback, {:cb, 1}},[
-        {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}
-      ]},
-      {{:spec, {:myfun,1}},[
-        {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]},
-        {:type,_,:fun,[{:type,_,:product,[{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},{:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]}]}
+      { {:cb, 1}, {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]} }
+    ] = List.sort(callbacks)
+
+    assert [
+      { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]} },
+      { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[
+                      {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},
+                      {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]} }
     ] = List.sort(specs)
+  end
+
+  test "defines a callback from a spec" do
+    callbacks = test_module do
+      def myfun(x), do: x
+      @spec myfun(integer), do: integer
+      @spec myfun(char_list),  do: char_list
+      Kernel.Typespec.callback_from_spec(__MODULE__, :myfun, 1)
+      @callback
+    end
+
+    assert [
+      { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]} },
+      { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[
+                      {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},
+                      {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]} }
+    ] = List.sort(callbacks)
   end
 
   # to_binary
@@ -304,12 +304,13 @@ defmodule Typespec.Test.Type do
 
     spec = test_module do
       Module.eval_quoted __MODULE__, quote do: unquote_splicing(types)
-      Kernel.Typespec.get_types(__MODULE__)
+      @type ++ @opaque
     end
 
     spec = Enum.reverse(spec)
-    lc {typespec, definition} inlist Enum.zip(spec, types) do
-      assert Kernel.Typespec.to_binary({:type, typespec}) == Macro.to_binary(definition)
+
+    lc { typespec, definition } inlist Enum.zip(spec, types) do
+      assert Kernel.Typespec.to_binary({ :type, typespec }) == Macro.to_binary(definition)
     end
   end
 
@@ -319,15 +320,15 @@ defmodule Typespec.Test.Type do
       (quote do: @spec a(atom()), do: integer()),
     ]
 
-    spec = test_module do
+    compiled = test_module do
       def a, do: 1
       def a(a), do: a
       Module.eval_quoted __MODULE__, quote do: unquote_splicing(specs)
-      Kernel.Typespec.get_specs(__MODULE__)
+      Enum.reverse @spec
     end
 
-    lc {spec, definition} inlist Enum.zip(spec, specs) do
-      assert Kernel.Typespec.to_binary(spec) == Macro.to_binary(definition)
+    lc { { tuple, spec }, definition } inlist Enum.zip(compiled, specs) do
+      assert Kernel.Typespec.to_binary({ { :spec, tuple }, [spec] }) == Macro.to_binary(definition)
     end
   end
 
@@ -355,9 +356,7 @@ defmodule Typespec.Test.Type do
       def t(b), do: b
       @opaque c :: any
     end
-    Code.compiler_options debug_info: false
-    :code.delete(T)
-    :code.purge(T)
+
     assert [
             {:opaque, {:c,{:type,_,:any,[]},[]}},
             {:type, {:a,{:type,_,:any,[]},[]}},
@@ -372,6 +371,9 @@ defmodule Typespec.Test.Type do
     assert [
             {:opaque, {:c,{:type,_,:any,[]},[]}},
            ] = Kernel.Typespec.types(binary, :c, 0)
+  after
+    Code.compiler_options debug_info: false
+    :code.delete(T)
+    :code.purge(T)
   end
-
 end

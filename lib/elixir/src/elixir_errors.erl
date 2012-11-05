@@ -102,8 +102,12 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity
   io:format(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
-  Message = io_lib:format("behaviour ~s undefined", [inspect(Module)]),
-  io:format(file_format(Line, File, Message));
+  case elixir_compiler:get_opt(internal) of
+    true  -> [];
+    false ->
+      Message = io_lib:format("behaviour ~s undefined", [inspect(Module)]),
+      io:format(file_format(Line, File, Message))
+  end;
 
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, { unused_var, format_var(Var) }),

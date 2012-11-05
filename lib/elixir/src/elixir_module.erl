@@ -71,8 +71,8 @@ compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
     { Export, Private, Def, Defmacro, Defmacrop, Functions } = elixir_def:unwrap_stored_definitions(Module),
 
     { All, Forms0 } = functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Functions, C),
-    Forms1          = attributes_form(Line, File, Module, Forms0),
-    Forms2          = specs_form(Line, Module, Defmacro, Defmacrop, Forms1),
+    Forms1          = specs_form(Line, Module, Defmacro, Defmacrop, Forms0, C),
+    Forms2          = attributes_form(Line, File, Module, Forms1),
 
     elixir_import:ensure_no_local_conflict(Line, File, Module, All),
     elixir_import:ensure_no_import_conflict(Line, File, Module, All),
@@ -188,36 +188,40 @@ attributes_form(Line, _File, Module, Current) ->
 
 %% Specs
 
-specs_form(Line, Module, Defmacro, Defmacrop, Forms) ->
-  { Specs, Callbacks } = ets:foldl(fun(X, Acc) ->
-    translate_spec(X, Defmacro, Defmacrop, Acc)
-  end, { [], [] }, spec_table(Module)),
+specs_form(Line, Module, Defmacro, Defmacrop, Forms, C) ->
+  case elixir_compiler:get_opt(internal, C) of
+    true -> Forms;
+    _    ->
+      Callbacks = 'Elixir.Module':get_attribute(Module, callback),
+      Specs     = [translate_spec(Spec, Defmacro, Defmacrop) ||
+                    Spec <- 'Elixir.Module':get_attribute(Module, spec)],
 
-  Temp = specs_attributes(Line, spec, Forms, Specs),
-  specs_attributes(Line, callback, Temp, Callbacks).
+      'Elixir.Module':delete_attribute(Module, spec),
+      'Elixir.Module':delete_attribute(Module, callback),
+
+      Temp = specs_attributes(Line, spec, Forms, Specs),
+      specs_attributes(Line, callback, Temp, Callbacks)
+  end.
 
 specs_attributes(Line, Type, Forms, Specs) ->
   Keys = lists:ukeysort(1, Specs),
   lists:foldl(fun({ Tuple, _ }, Acc) ->
-    [{ attribute, Line, Type, { Tuple, proplists:append_values(Tuple, Specs) } }|Acc]
+    Values = [V || { K, V } <- Specs, K == Tuple],
+    [{ attribute, Line, Type, { Tuple, Values } }|Acc]
   end, Forms, Keys).
 
-translate_spec({ { spec, Spec }, Rest }, Defmacro, Defmacrop, { Specs, Callbacks } = Acc) ->
+translate_spec({ Spec, Rest }, Defmacro, Defmacrop) ->
   case ordsets:is_element(Spec, Defmacrop) of
-    true  -> Acc;
+    true  -> { Spec, Rest };
     false ->
       case ordsets:is_element(Spec, Defmacro) of
         true ->
           { Name, Arity } = Spec,
-          New = { { ?ELIXIR_MACRO(Name), Arity + 1 }, [spec_for_macro(X) || X <- Rest] },
-          { [New|Specs], Callbacks };
+          { { ?ELIXIR_MACRO(Name), Arity + 1 }, spec_for_macro(Rest) };
         false ->
-          { [{ Spec, Rest }|Specs], Callbacks }
+          { Spec, Rest }
       end
-  end;
-
-translate_spec({ { callback, Spec }, Rest }, _, _, { Specs, Callbacks }) ->
-  { Specs, [{ Spec, Rest }|Callbacks] }.
+  end.
 
 spec_for_macro({ type, Line, 'fun', [{ type, _, product, Args }|T] }) ->
   NewArgs = [{type,Line,term,[]}|Args],

@@ -1,10 +1,5 @@
 defmodule Kernel.Typespec do
-  @moduledoc """
-  This is the module that converts Elixir typespecs
-  to Erlang typespecs syntax. Everytime `@spec`,
-  `@type`, `@typep`, `@callback` and `@opaque` are used
-  they proxy to the functions in this module.
-  """
+  @moduledoc false
 
   defmacro deftype(type) do
     quote do
@@ -24,6 +19,23 @@ defmodule Kernel.Typespec do
     end
   end
 
+  defmacro defspec(spec, block) do
+    quote do
+      Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote spec),
+        (quote line: :keep, do: unquote block), __ENV__)
+    end
+  end
+
+  defmacro defcallback(spec, block) do
+    quote do
+      Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote spec),
+        (quote line: :keep, do: unquote block), __ENV__)
+    end
+  end
+
+  ## Macro callbacks
+
+  @doc false
   def deftype(kind, { :::, _, [type, definition] }, caller) do
     do_deftype(kind, type, definition, caller)
   end
@@ -53,46 +65,25 @@ defmodule Kernel.Typespec do
     vars = lc { :var, _, _ } = var inlist args, do: var
     type = { name, spec, vars }
 
-    Module.compile_type caller.module, kind, type
+    Module.compile_typespec caller.module, kind, type
 
     if export do
-      Module.compile_type(caller.module, :export_type, [{ name, length(vars) }])
+      Module.compile_typespec(caller.module, :export_type, [{ name, length(vars) }])
     end
 
     { raw_kind, type }
   end
 
-  defmacro defspec(spec, block) do
-    quote do
-      Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote spec),
-        (quote line: :keep, do: unquote block), __ENV__)
-    end
-  end
-
-  defmacro defcallback(spec, block) do
-    quote do
-      Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote spec),
-        (quote line: :keep, do: unquote block), __ENV__)
-    end
-  end
-
+  @doc false
   def defspec(type, { name, line, args }, [do: return], caller) do
     if is_atom(args), do: args = []
     spec  = { :type, line, :fun, fn_args(line, args, return, [], caller) }
-    code  = { { type, { name, Kernel.length(args) } }, [spec] }
-    :ets.insert(spec_table_for(caller.module), code)
+    code  = { { name, Kernel.length(args) }, spec }
+    Module.compile_typespec(caller.module, type, code)
     code
   end
 
-  @doc """
-  Get the types defined for the given module. This function
-  is only available for modules being compiled. If the module
-  was already compiled, you need to loop its attributes
-  to get such information.
-  """
-  def get_types(module) do
-    Module.get_attribute(module, :type) ++ Module.get_attribute(module, :opaque)
-  end
+  ## Helpers
 
   @doc """
   Returns true if the current module defines a given type
@@ -106,32 +97,19 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
-  Get the specs defined for the given module. This function
-  is only available for modules being compiled. If the module
-  was already compiled, you need to loop its attributes
-  to get such information.
-  """
-  def get_specs(module) do
-    specs = :ets.tab2list(spec_table_for(module))
-    keys  = :lists.ukeysort(1, specs)
-    lc { k, _ } inlist keys, do: { k, :proplists.append_values(k, specs) }
-  end
-
-  @doc """
   Defines a callback from a spec if one is available.
   Returns true if successful, false otherwise.
   """
   def callback_from_spec(module, name, arity) do
-    table = spec_table_for(module)
-    pairs = :ets.lookup(table, { :spec, { name, arity } })
-    specs = :lists.foldl(fn { _key, specs }, acc -> acc ++ specs end, [], pairs)
+    tuple = { name, arity }
+    specs = Module.get_attribute(module, :spec)
 
-    if specs != [] do
-      :ets.insert(table, { { :callback, { name, arity } }, specs })
+    found = lc { k, v } inlist specs, k == tuple do
+      Module.compile_typespec(module, :callback, { tuple, v })
       true
-    else
-      false
     end
+
+    found != []
   end
 
   @doc """
@@ -483,13 +461,6 @@ defmodule Kernel.Typespec do
   defp fn_args(line, args, vars, caller) do
     args = lc arg inlist args, do: typespec(arg, vars, caller)
     { :type, line, :product, args }
-  end
-
-  defp spec_table_for(module) do
-    table = list_to_atom :lists.concat([:s, module])
-    unless table == :ets.info(table, :name), do:
-      raise(ArgumentError, message: "cannot manage specs for #{inspect module} because it was already compiled")
-    table
   end
 
   defp variable({name, line, _}) do
