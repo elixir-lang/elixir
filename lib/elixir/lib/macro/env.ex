@@ -1,9 +1,20 @@
 defmodule Macro.Env do
+  @type name_arity :: { atom, non_neg_integer }
+  @type file :: binary
+  @type line :: non_neg_integer
+  @type aliases :: [{ module, module }]
+  @type context :: :assign | :guard | nil
+  @type requires :: [module]
+  @type macros :: [{ module, [name_arity] }]
+
   fields = [:module, :file, :line, :function,
             :aliases, :context, :requires, :macros]
 
+  types  = quote do: [module: module, file: file, line: line,
+    function: name_arity, aliases: aliases, requires: requires, macros: macros]
+
   Record.deffunctions(fields, __MODULE__)
-  Record.deftypes(fields, __MODULE__)
+  Record.deftypes(fields, types, __MODULE__)
 
   @moduledoc """
   A record that contains compile time environment information,

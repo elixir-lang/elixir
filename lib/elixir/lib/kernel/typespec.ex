@@ -349,7 +349,11 @@ defmodule Kernel.Typespec do
     typespec({:range, line, args}, vars, caller)
   end
 
-  # Handle aliases
+  # Handle special forms
+  defp typespec({:__MODULE__, _, atom}, vars, caller) when is_atom(atom) do
+    typespec(caller.module, vars, caller)
+  end
+
   defp typespec({:__aliases__, _, _} = alias, vars, caller) do
     atom = Macro.expand alias, caller
     typespec(atom, vars, caller)
@@ -373,6 +377,7 @@ defmodule Kernel.Typespec do
               [target, args ++ [_: (quote hygiene: false, do: any)]]}
     typespec(Macro.expand(access, caller), vars, caller)
   end
+
   # Handle remote calls
   defp typespec({{:., line, [remote, name]}, _, args}, vars, caller) do
     remote = Macro.expand remote, caller
@@ -421,9 +426,11 @@ defmodule Kernel.Typespec do
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
     { :type, line, :string, arguments }
   end
+
   defp typespec({:char_list, _line, arguments}, vars, caller) do
     typespec((quote do: :elixir.char_list(unquote_splicing(arguments))), vars, caller)
   end
+
   defp typespec({name, line, arguments}, vars, caller) do
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
     { :type, line, name, arguments }

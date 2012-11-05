@@ -3,6 +3,9 @@ Code.require_file "../test_helper.exs", __FILE__
 defrecord RecordTest.FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
+defrecord RecordTest.SomeRecord, a: 0, b: 1
+defrecord RecordTest.WithNoField, []
+
 name = RecordTest.DynamicName
 defrecord name, a: 0, b: 1 do
   def get_a(RecordTest.DynamicName[a: a]) do
@@ -10,11 +13,15 @@ defrecord name, a: 0, b: 1 do
   end
 end
 
-defrecord RecordTest.SomeRecord, a: 0, b: 1 do
+## With types
+
+defrecord RecordTest.WithTypeOverriden, a: 0, b: 1 do
   @type t :: __MODULE__[a: integer, b: any]
 end
 
-defrecord RecordTest.WithNoField, []
+defrecord RecordTest.WithRecordType, a: 0, b: 1 do
+  record_type a: integer
+end
 
 defmodule RecordTest.Macros do
   Record.defmacros :_user, [:name, :age], __ENV__
