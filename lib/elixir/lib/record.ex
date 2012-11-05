@@ -98,7 +98,7 @@ defmodule Record do
     ]
 
     # Special case for bootstraping purposes
-    unless env == Macro.Env do
+    if :erlang.function_exported(Module, :eval_quoted, 2) do
       Module.eval_quoted(env, contents)
     end
   end
