@@ -39,9 +39,9 @@ defmodule Protocol do
         unquote(block)
 
         # Define callbacks and meta information
-        { conversions, fallback, any } = Protocol.conversions_for(__MODULE__, @only, @except)
-        Protocol.impl_for(conversions, fallback, any, __ENV__)
-        Protocol.meta(@functions, conversions, fallback, any, __ENV__)
+        { conversions, fallback, returns_nil } = Protocol.conversions_for(__MODULE__, @only, @except)
+        Protocol.impl_for(conversions, fallback, returns_nil, __ENV__)
+        Protocol.meta(@functions, conversions, fallback, returns_nil, __ENV__)
       end
     end
   end
@@ -96,14 +96,12 @@ defmodule Protocol do
   # the module to dispatch to. Returns module.Record for records
   # which should be properly handled by the dispatching function.
   @doc false
-  def impl_for(conversions, fallback, any, env) do
+  def impl_for(conversions, fallback, returns_nil, env) do
     contents = lc kind inlist conversions do
       each_impl_for(kind, conversions, fallback)
     end
 
-    # If we don't implement all protocols and any is not in the
-    # list, we need to add a final clause that returns nil.
-    if not any && length(conversions) < 10 do
+    if returns_nil do
       contents = contents ++ [quote do
         defp __raw_impl__(_) do
           nil
@@ -116,41 +114,55 @@ defmodule Protocol do
 
   # Defines meta information about the protocol and internal callbacks.
   @doc false
-  def meta(functions, conversions, fallback, any, env) do
-    contents = quote do
+  def meta(functions, conversions, fallback, returns_nil, env) do
+    any = L.keyfind(Any, 1, conversions) != false
+
+    meta = quote do
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
         @type t :: unquote(generate_type(conversions, any))
       end
 
       def __protocol__(:name),      do: __MODULE__
       def __protocol__(:functions), do: unquote(:lists.sort(functions))
+    end
 
-      def __impl_for__(arg) do
-        case __raw_impl__(arg) do
-          __MODULE__.Record ->
-            target = Module.concat(__MODULE__, :erlang.element(1, arg))
-            try do
-              target.__impl__
-              target
-            catch
-              :error, :undef, [[{ ^target, :__impl__, [], _ }|_]|_] ->
-                unquote(fallback)
-            end
-          other ->
-            other
+    impl_for = if L.keyfind(Record, 1, conversions) do
+      quote do
+        def __impl_for__(arg) do
+          case __raw_impl__(arg) do
+            __MODULE__.Record ->
+              target = Module.concat(__MODULE__, :erlang.element(1, arg))
+              try do
+                target.__impl__
+                target
+              catch
+                :error, :undef, [[{ ^target, :__impl__, [], _ }|_]|_] ->
+                  unquote(fallback)
+              end
+            other ->
+              other
+          end
         end
       end
-
-      def __impl_for__!(arg) do
-        if module = __impl_for__(arg) do
-          module
-        else
-          raise Protocol.UndefinedError, protocol: __MODULE__, structure: arg
-        end
+    else
+      quote do
+        def __impl_for__(arg), do: __raw_impl__(arg)
       end
     end
 
-    Module.eval_quoted env, contents
+    impl_bang = if returns_nil do
+      quote do
+        def __impl_for__!(arg) do
+          __impl_for__(arg) || raise(Protocol.UndefinedError, protocol: __MODULE__, structure: arg)
+        end
+      end
+    else
+      quote do
+        def __impl_for__!(arg), do: __impl_for__(arg)
+      end
+    end
+
+    Module.eval_quoted env, [meta, impl_for, impl_bang]
   end
 
   # Returns the default conversions according to the given
@@ -176,8 +188,10 @@ defmodule Protocol do
         nil
     end
 
-    contains_any = L.keyfind(Any, 1, conversions) != false
-    { conversions, fallback, contains_any }
+    # If any is not in the list and we don't implement all
+    # protocols, we need to handle nil cases.
+    returns_nil = L.keyfind(Any, 1, conversions) == false and length(conversions) < 10
+    { conversions, fallback, returns_nil }
   end
 
   ## Helpers
@@ -259,6 +273,9 @@ end
 defmodule Protocol.DSL do
   @moduledoc false
 
+  # We need to use :lists because Enum is not available yet
+  require :lists, as: L
+
   def args_and_body(module, name, arity) do
     # Generate arguments according the arity. The arguments
     # are named xa, xb and so forth. We cannot use string
@@ -268,36 +285,58 @@ defmodule Protocol.DSL do
       { binary_to_atom(<<?x, i + 64>>), 0, :quoted }
     end
 
-    catch_clause = catch_clause(module, args)
+    { conversions, fallback, returns_nil } = conversions_for(module)
+    clauses = [default_clause(name, args)]
+
+    if returns_nil do
+      clauses = [nil_clause()|clauses]
+    end
+
+    if L.keyfind(Record, 1, conversions) do
+      clauses = [record_clause(name, args, fallback)|clauses]
+    end
 
     body =
       quote do
-        case __raw_impl__(xA) do
-          __MODULE__.Record ->
-            target = Module.concat(__MODULE__, :erlang.element(1, xA))
-            try do
-              target.unquote(name)(unquote_splicing(args))
-            catch
-              :error, :undef, [[{ ^target, name, args, _ }|_]|_] when
-                  name == unquote(name) and length(args) == unquote(arity) ->
-                unquote(catch_clause)
-            end
-          nil ->
-            raise Protocol.UndefinedError, protocol: __MODULE__, structure: xA
-          other ->
-            apply other, unquote(name), [unquote_splicing(args)]
-        end
+        case __raw_impl__(xA), do: unquote({ :->, 0, clauses })
       end
 
     { args, body }
   end
 
-  defp catch_clause(module, args) do
+  defp conversions_for(module) do
     only   = Module.get_attribute(module, :only)
     except = Module.get_attribute(module, :except)
+    Protocol.conversions_for(module, only, except)
+  end
 
-    { _, fallback, _ } = Protocol.conversions_for(module, only, except)
+  defp default_clause(name, args) do
+    quote do: { [other], apply(other, unquote(name), [unquote_splicing(args)]) }
+  end
 
+  defp nil_clause() do
+    quote do
+      { [nil], raise(Protocol.UndefinedError, protocol: __MODULE__, structure: xA) }
+    end
+  end
+
+  defp record_clause(name, args, fallback) do
+    arity = length(args)
+
+    quote do
+      { [__MODULE__.Record],
+        (target = Module.concat(__MODULE__, :erlang.element(1, xA))
+        try do
+          target.unquote(name)(unquote_splicing(args))
+        catch
+          :error, :undef, [[{ ^target, name, args, _ }|_]|_] when
+              name == unquote(name) and length(args) == unquote(arity) ->
+            unquote(catch_clause(args, fallback))
+        end) }
+    end
+  end
+
+  defp catch_clause(args, fallback) do
     if fallback do
       quote do
         apply unquote(fallback), name, [unquote_splicing(args)]
