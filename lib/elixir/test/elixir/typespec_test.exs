@@ -21,42 +21,42 @@ defmodule Typespec.Test.Type do
     spec = test_module do
       @type mytype
     end
-    assert {:type,{:mytype,{:type,_,:term,[]},[]}} = spec
+    assert {:mytype,{:type,_,:term,[]},[]} = spec
   end
 
   test "@type with a single type" do
     spec = test_module do
       @type mytype :: term
     end
-    assert {:type,{:mytype,{:type,_,:term,[]},[]}} = spec
+    assert {:mytype,{:type,_,:term,[]},[]} = spec
   end
 
   test "@type with an atom" do
     spec = test_module do
       @type mytype :: :atom
     end
-    assert {:type,{:mytype,{:atom,_,:atom},[]}} = spec
+    assert {:mytype,{:atom,_,:atom},[]} = spec
   end
 
   test "@type with an atom alias" do
     spec = test_module do
       @type mytype :: Atom
     end
-    assert {:type,{:mytype,{:atom,_,Atom},[]}} = spec
+    assert {:mytype,{:atom,_,Atom},[]} = spec
   end
 
   test "@type with an integer" do
     spec = test_module do
       @type mytype :: 10
     end
-    assert {:type,{:mytype,{:integer,_,10},[]}} = spec
+    assert {:mytype,{:integer,_,10},[]} = spec
   end
 
   test "@type with a negative integer" do
     spec = test_module do
       @type mytype :: -10
     end
-    assert {:type,{:mytype,{:op, _, :-, {:integer,_,10}},[]}} = spec
+    assert {:mytype,{:op, _, :-, {:integer,_,10}},[]} = spec
   end
 
   test "@type with a remote type" do
@@ -65,50 +65,50 @@ defmodule Typespec.Test.Type do
       t2 = @type mytype_arg :: Remote.type(integer)
       {t1, t2}
     end
-    assert {:type,{:mytype,{:remote_type, _, [{:atom, _, Remote.Some},{:atom, _, :type}, []]},[]}} = spec1
-    assert {:type,{:mytype_arg,{:remote_type, _, [{:atom, _, Remote},{:atom, _, :type},[{:type,_, :integer,[]}]]},[]}} = spec2
+    assert {:mytype,{:remote_type, _, [{:atom, _, Remote.Some},{:atom, _, :type}, []]},[]} = spec1
+    assert {:mytype_arg,{:remote_type, _, [{:atom, _, Remote},{:atom, _, :type},[{:type,_, :integer,[]}]]},[]} = spec2
   end
 
   test "@type with a binary" do
     spec = test_module do
       @type mytype :: binary
     end
-    assert {:type,{:mytype,{:type,_,:binary, []},[]}} = spec
+    assert {:mytype,{:type,_,:binary, []},[]} = spec
   end
 
   test "@type with an empty binary" do
     spec = test_module do
       @type mytype :: <<>>
     end
-    assert {:type,{:mytype,{:type,_,:binary, [{:integer, _, 0},{:integer, _, 0}]},[]}} = spec
+    assert {:mytype,{:type,_,:binary, [{:integer, _, 0},{:integer, _, 0}]},[]} = spec
   end
 
   test "@type with a binary with a base size" do
     spec = test_module do
       @type mytype :: <<_ :: 3>>
     end
-    assert {:type,{:mytype,{:type,_,:binary, [{:integer, _, 3},{:integer, _, 0}]},[]}} = spec
+    assert {:mytype,{:type,_,:binary, [{:integer, _, 3},{:integer, _, 0}]},[]} = spec
   end
 
   test "@type with a binary with a unit size" do
     spec = test_module do
       @type mytype :: <<_ :: _ * 8>>
     end
-    assert {:type,{:mytype,{:type,_,:binary, [{:integer, _, 0},{:integer, _, 8}]},[]}} = spec
+    assert {:mytype,{:type,_,:binary, [{:integer, _, 0},{:integer, _, 8}]},[]} = spec
   end
 
   test "@type with a range" do
     spec = test_module do
       @type mytype :: range(1,10)
     end
-    assert {:type,{:mytype,{:type,_,:range, [{:integer, _, 1},{:integer, _, 10}]},[]}} = spec
+    assert {:mytype,{:type,_,:range, [{:integer, _, 1},{:integer, _, 10}]},[]} = spec
   end
 
   test "@type with a range op" do
     spec = test_module do
       @type mytype :: 1..10
     end
-    assert {:type,{:mytype,{:type,_,:range, [{:integer, _, 1},{:integer, _, 10}]},[]}} = spec
+    assert {:mytype,{:type,_,:range, [{:integer, _, 1},{:integer, _, 10}]},[]} = spec
   end
 
   test "@type with a tuple" do
@@ -117,40 +117,40 @@ defmodule Typespec.Test.Type do
       t2 = @type mytype1 :: {}
       {t1, t2}
     end
-    assert {:type,{:mytype,{:type,_,:tuple, :any},[]}} = spec1
-    assert {:type,{:mytype1,{:type,_,:tuple, :any},[]}} = spec2
+    assert {:mytype,{:type,_,:tuple, :any},[]} = spec1
+    assert {:mytype1,{:type,_,:tuple, :any},[]} = spec2
   end
 
   test "@type with a fun" do
     spec = test_module do
       @type mytype :: fun
     end
-    assert {:type,{:mytype,{:type,_,:fun, []},[]}} = spec
+    assert {:mytype,{:type,_,:fun, []},[]} = spec
   end
 
   test "@type with a fun with arguments and return type" do
     spec = test_module do
       @type mytype :: fun(integer, integer, do: integer)
     end
-    assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :product,
-                         [{:type, _, :integer, []}, {:type, _, :integer, []}]},
-                         {:type, _, :integer, []}]},[]}} = spec
+    assert {:mytype,{:type,_,:fun, [{:type, _, :product,
+             [{:type, _, :integer, []}, {:type, _, :integer, []}]},
+             {:type, _, :integer, []}]},[]} = spec
   end
 
   test "@type with a fun with no arguments and return type" do
     spec = test_module do
       @type mytype :: fun(do: integer)
     end
-    assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :product, []},
-                         {:type, _, :integer, []}]}, []}} = spec
+    assert {:mytype,{:type,_,:fun, [{:type, _, :product, []},
+             {:type, _, :integer, []}]}, []} = spec
   end
 
   test "@type with a fun with any arity and return type" do
     spec = test_module do
       @type mytype :: fun(..., do: integer)
     end
-    assert {:type,{:mytype,{:type,_,:fun, [{:type, _, :any},
-                         {:type, _, :integer, []}]}, []}} = spec
+    assert {:mytype,{:type,_,:fun, [{:type, _, :any},
+             {:type, _, :integer, []}]}, []} = spec
   end
 
   test "@type with a union" do
@@ -158,17 +158,17 @@ defmodule Typespec.Test.Type do
       @type mytype :: integer | char_list
                     | atom
     end
-    assert {:type,{:mytype,{:type,_,:union, [{:type, _, :integer, []},
-                         {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]},
-                         {:type, _, :atom, []}]}, []}} = spec
+    assert {:mytype,{:type,_,:union, [{:type, _, :integer, []},
+             {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]},
+             {:type, _, :atom, []}]}, []} = spec
   end
 
   test "@type with an access macro" do
     spec = test_module do
       @type mytype :: Range[first: integer]
     end
-    assert {:type,{:mytype,{:type, _, :tuple,
-              [{:atom, _, Range}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []}} = spec
+    assert {:mytype,{:type, _, :tuple,
+             [{:atom, _, Range}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []} = spec
   end
 
   test "@type with parameters" do
@@ -178,9 +178,9 @@ defmodule Typespec.Test.Type do
       t3 = @type mytype2(x,y) :: {x,y}
       {t1,t2,t3}
     end
-    assert {:type,{:mytype,{:var,_,:x},[{:var,_,:x}]}} = spec1
-    assert {:type,{:mytype1,{:type,_,:list,[{:var,_,:x}]},[{:var,_,:x}]}} = spec2
-    assert {:type,{:mytype2,{:type,_,:tuple,[{:var,_,:x},{:var,_,:y}]},[{:var,_,:x},{:var, _, :y}]}} = spec3
+    assert {:mytype,{:var,_,:x},[{:var,_,:x}]} = spec1
+    assert {:mytype1,{:type,_,:list,[{:var,_,:x}]},[{:var,_,:x}]} = spec2
+    assert {:mytype2,{:type,_,:tuple,[{:var,_,:x},{:var,_,:y}]},[{:var,_,:x},{:var, _, :y}]} = spec3
   end
 
   test "@type with annotations" do
@@ -189,15 +189,15 @@ defmodule Typespec.Test.Type do
       t2 = @type mytype1 :: fun(a :: integer, do: integer)
       {t1,t2}
     end
-    assert {:type, {:mytype, {:ann_type, _, [{:var, _, :named}, {:type, _, :integer, []}]}, []}} = spec1
-    assert {:type, {:mytype1,{:type,_,:fun,[{:type,_,:product,[{:ann_type,_,[{:var,_,:a},{:type,_,:integer,[]}]}]},{:type,_,:integer,[]}]},[]}} = spec2
+    assert {:mytype, {:ann_type, _, [{:var, _, :named}, {:type, _, :integer, []}]}, []} = spec1
+    assert {:mytype1,{:type,_,:fun,[{:type,_,:product,[{:ann_type,_,[{:var,_,:a},{:type,_,:integer,[]}]}]},{:type,_,:integer,[]}]},[]} = spec2
   end
 
   test "@opaque(type)" do
     spec = test_module do
       @opaque mytype(x) :: x
     end
-    assert {:opaque,{:mytype,{:var,_,:x},[{:var,_,:x}]}} = spec
+    assert {:mytype,{:var,_,:x},[{:var,_,:x}]} = spec
   end
 
   test "@type + opaque" do
@@ -267,27 +267,10 @@ defmodule Typespec.Test.Type do
     ] = List.sort(specs)
   end
 
-  test "defines a callback from a spec" do
-    callbacks = test_module do
-      def myfun(x), do: x
-      @spec myfun(integer), do: integer
-      @spec myfun(char_list),  do: char_list
-      Kernel.Typespec.callback_from_spec(__MODULE__, :myfun, 1)
-      @callback
-    end
+  # Conversion to AST
 
-    assert [
-      { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]} },
-      { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[
-                      {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},
-                      {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]} }
-    ] = List.sort(callbacks)
-  end
-
-  # to_binary
-
-  test "to_binary types" do
-    types = [
+  test "type_to_ast" do
+    quoted = [
       (quote do: @type with_ann() :: (t :: atom())),
       (quote do: @type empty_tuple_type() :: {}),    
       (quote do: @type imm_type_1() :: 1),
@@ -302,19 +285,20 @@ defmodule Typespec.Test.Type do
       (quote do: @type ftype() :: fun() | fun(do: integer()) | fun(integer(), do: integer())),
     ]
 
-    spec = test_module do
-      Module.eval_quoted __MODULE__, quote do: unquote_splicing(types)
+    types = test_module do
+      Module.eval_quoted __MODULE__, quote do: unquote_splicing(quoted)
       @type ++ @opaque
     end
 
-    spec = Enum.reverse(spec)
+    types = Enum.reverse(types)
 
-    lc { typespec, definition } inlist Enum.zip(spec, types) do
-      assert Kernel.Typespec.to_binary({ :type, typespec }) == Macro.to_binary(definition)
+    lc { type, definition } inlist Enum.zip(types, quoted) do
+      ast = Kernel.Typespec.type_to_ast(type)
+      assert Macro.to_binary(quote do: @type unquote(ast)) == Macro.to_binary(definition)
     end
   end
 
-  test "to_binary spec" do
+  test "spec_to_ast" do
     specs = [
       (quote do: @spec a(), do: integer()),
       (quote do: @spec a(atom()), do: integer()),
@@ -327,28 +311,34 @@ defmodule Typespec.Test.Type do
       Enum.reverse @spec
     end
 
-    lc { { tuple, spec }, definition } inlist Enum.zip(compiled, specs) do
-      assert Kernel.Typespec.to_binary({ { :spec, tuple }, [spec] }) == Macro.to_binary(definition)
+    lc { { { name, _ }, spec }, definition } inlist Enum.zip(compiled, specs) do
+      { args, result } = Kernel.Typespec.spec_to_ast(spec)
+      quoted = quote do: @spec unquote(name)(unquote_splicing(args)), do: unquote(result)
+      assert Macro.to_binary(quoted) == Macro.to_binary(definition)
     end
   end
 
-  # test/spec retrieval
+  # types/specs retrieval
 
   test "specs retrieval" do
     Code.compiler_options debug_info: true
+
     { :module, T, binary, _ } = defmodule T do
       @spec a, do: any
-      def a, do: nil
+      def a,   do: nil
     end
-    Code.compiler_options debug_info: false
+
     :code.delete(T)
     :code.purge(T)
-    assert [{{:spec,{:a,_}},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:any,[]}]}]}] = Kernel.Typespec.specs(binary)
-    assert [{{:spec,{:a,_}},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:any,[]}]}]}] = Kernel.Typespec.specs(binary, :a, 0)
+
+    assert [{{:a,_},[{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:any,[]}]}]}] = Kernel.Typespec.beam_specs(binary)
+  after
+    Code.compiler_options debug_info: false
   end
 
   test "types retrieval" do
     Code.compiler_options debug_info: true
+
     { :module, T, binary, _ } = defmodule T do
       @type a :: any
       @typep b :: any
@@ -357,23 +347,15 @@ defmodule Typespec.Test.Type do
       @opaque c :: any
     end
 
-    assert [
-            {:opaque, {:c,{:type,_,:any,[]},[]}},
-            {:type, {:a,{:type,_,:any,[]},[]}},
-            {:typep, {:b,{:type,_,:any,[]},[]}},
-           ] = Kernel.Typespec.types(binary)
-    assert [
-            {:type, {:a,{:type,_,:any,[]},[]}},
-           ] = Kernel.Typespec.types(binary, :a, 0)
-    assert [
-            {:typep, {:b,{:type,_,:any,[]},[]}},
-           ] = Kernel.Typespec.types(binary, :b, 0)
-    assert [
-            {:opaque, {:c,{:type,_,:any,[]},[]}},
-           ] = Kernel.Typespec.types(binary, :c, 0)
-  after
-    Code.compiler_options debug_info: false
     :code.delete(T)
     :code.purge(T)
+
+    assert [
+      {:opaque, {:c,{:type,_,:any,[]},[]}},
+      {:type, {:a,{:type,_,:any,[]},[]}},
+      {:typep, {:b,{:type,_,:any,[]},[]}},
+    ] = Kernel.Typespec.beam_types(binary)
+  after
+    Code.compiler_options debug_info: false
   end
 end

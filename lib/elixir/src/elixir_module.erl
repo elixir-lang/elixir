@@ -33,9 +33,6 @@ data_table(Module) ->
 docs_table(Module) ->
   ?ELIXIR_ATOM_CONCAT([o, Module]).
 
-spec_table(Module) ->
-  ?ELIXIR_ATOM_CONCAT([s, Module]).
-
 %% TRANSFORMATION FUNCTIONS
 
 %% Transformation of args and scope into a compiled erlang call.
@@ -87,7 +84,6 @@ compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
   after
     ets:delete(data_table(Module)),
     ets:delete(docs_table(Module)),
-    ets:delete(spec_table(Module)),
     elixir_def:delete_table(Module),
     elixir_import:delete_table(Module)
   end;
@@ -129,10 +125,6 @@ build(Line, File, Module) ->
   %% all the binaries every time a new documentation is stored.
   DocsTable = docs_table(Module),
   ets:new(DocsTable, [ordered_set, named_table, public]),
-
-  %% Holds specs in a format it is easier to query.
-  SpecTable = spec_table(Module),
-  ets:new(SpecTable, [duplicate_bag, named_table, public]),
 
   %% We keep a separated table for function definitions
   %% and another one for imports. We keep them in different

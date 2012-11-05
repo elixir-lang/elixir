@@ -276,6 +276,7 @@ defmodule Protocol.DSL do
   # We need to use :lists because Enum is not available yet
   require :lists, as: L
 
+  @doc false
   def args_and_body(module, name, arity) do
     # Generate arguments according the arity. The arguments
     # are named xa, xb and so forth. We cannot use string
@@ -302,6 +303,19 @@ defmodule Protocol.DSL do
       end
 
     { args, body }
+  end
+
+  @doc false
+  def callback_from_spec(module, name, arity) do
+    tuple = { name, arity }
+    specs = Module.get_attribute(module, :spec)
+
+    found = lc { k, v } inlist specs, k == tuple do
+      Kernel.Typespec.define_callback(module, tuple, v)
+      true
+    end
+
+    found != []
   end
 
   defp conversions_for(module) do
@@ -378,7 +392,7 @@ defmodule Protocol.DSL do
 
       # Convert the spec to callback if possible,
       # otherwise generate a dummy callback
-      Kernel.Typespec.callback_from_spec(__MODULE__, name, arity) ||
+      Protocol.DSL.callback_from_spec(__MODULE__, name, arity) ||
         @callback unquote(name)(unquote_splicing(type_args)), do: term
     end
   end

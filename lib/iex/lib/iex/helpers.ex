@@ -13,7 +13,8 @@ defmodule IEx.Helpers do
 
   * `c/2` - compiles a file in the given path
   * `h/0`,`h/1`, `h/2` - prints help/documentation
-  * `t/1`,`t/3` — prints type specification information
+  * `t/1` — prints types information
+  * `s/1`, `s/3` — prints specs information
   * `m/0` - prints loaded modules
   * `r/0` - recompiles and reloads the given module's source file
   * `v/0` - prints all commands and values
@@ -214,69 +215,91 @@ defmodule IEx.Helpers do
     atom_to_binary(var)
   end
 
-  # FIXME: this can't be shown as h(t/1)
   @doc """
-  Prints all types and function specifications from a given module
+  Prints all types for the given module
 
   ## Examples
 
-    t(Enum)
-
-  """  
-  def __t_module__(module) do
-    types =
-    lc type inlist Kernel.Typespec.types(module) do
-      IO.puts Kernel.Typespec.to_binary(type)
-      type
-    end
-    specs =
-    lc spec inlist Kernel.Typespec.specs(module) do
-      IO.puts Kernel.Typespec.to_binary(spec)
-      spec
-    end
-    if specs == [] and types == [] do
-      IO.puts "No type specifications for #{inspect module} has been found"
-    end        
-    :ok  
-  end
-
-  @doc """
-  Prints the type specification for a given function or a type
-
-  ## Examples
-
-      t(Enum.all?/2)
-      t(Enum.t/0)
+      t(Enum)
 
   """
-  def t(module, function, arity) do
-    types =
-    lc type inlist Kernel.Typespec.types(module, function, arity) do
-      IO.puts Kernel.Typespec.to_binary(type)
-      type
+  def t(module) do
+    types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
+
+    if types == [] do
+      IO.puts "No types for #{inspect module} has been found"
     end
-    specs =
-    lc spec inlist Kernel.Typespec.specs(module, function, arity) do
-      IO.puts Kernel.Typespec.to_binary(spec)
-      spec
-    end
-    if specs == [] and types == [] do
-      IO.puts "No type specification for #{inspect module}.#{function}/#{arity} has been found"
-    end        
+
     :ok
   end
 
-  defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
+  @doc """
+  Prints all specs from a given module.
+
+  ## Examples
+
+      s(Enum)
+
+  """
+  defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      t(unquote(mod), unquote(fun), unquote(arity))
-    end
-  end
-  defmacro t(module) do
-    quote do
-      __t_module__(unquote(module))
+      s(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
+  defmacro s(module) do
+    quote do
+      s(unquote(module), :all)
+    end
+  end
+
+  @doc false
+  def s(module, :all) do
+    specs = lc spec inlist Kernel.Typespec.beam_specs(module), do: print_spec(spec)
+
+    if specs == [] do
+      IO.puts "No specs for #{inspect module} has been found"
+    end
+
+    :ok
+  end
+
+  @doc """
+  Prints the specs for a given function.
+
+  ## Examples
+
+      s(Enum.all?/2)
+      s(Enum.t/0)
+
+  """
+  def s(module, function, arity) do
+    spec = List.keyfind(Kernel.Typespec.beam_specs(module), { function, arity }, 0)
+
+    if spec do
+      print_spec(spec)
+    else
+      IO.puts "No spec for #{inspect module}.#{function}/#{arity} has been found"
+    end
+
+    :ok
+  end
+
+  defp print_type({ kind, type }) do
+    ast = Kernel.Typespec.type_to_ast(type)
+    IO.puts "@#{kind} #{Macro.to_binary(ast)}"
+    true
+  end
+
+  defp print_spec({ { name, _arity }, specs }) do
+    Enum.each specs, fn(spec) ->
+      { args, result } = Kernel.Typespec.spec_to_ast(spec)
+      bin_args   = Macro.to_binary { name, 0, args }
+      bin_result = Macro.to_binary result
+      IO.puts "@spec #{bin_args}, do: #{bin_result}"
+    end
+    true
+  end
 
   @doc """
   Retrieves nth query's value from the history. Use negative
