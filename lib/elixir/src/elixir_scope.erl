@@ -27,8 +27,8 @@ translate_var(Line, Name, Kind, S) ->
               { {var, Line, orddict:fetch(Name, Vars) }, S };
             { Else, _ } ->
               { NewVar, NS } = if
-                Else -> build_erl_var(Line, Name, S);
                 Kind == quoted -> build_erl_var(Line, S);
+                Else -> build_erl_var(Line, Name, S);
                 S#elixir_scope.noname -> build_erl_var(Line, Name, S);
                 true -> { {var, Line, Name}, S }
               end,
@@ -70,7 +70,7 @@ build_erl_var(Line, Prefix, Key, S) ->
 
 build_ex_var(Line, Prefix, Key, S) ->
   { Counter, NS } = build_var_counter(Key, S),
-  Var = { ?ELIXIR_ATOM_CONCAT([Prefix, Key, "@", Counter]), Line, nil },
+  Var = { ?ELIXIR_ATOM_CONCAT([Prefix, Key, "@", Counter]), Line, quoted },
   { Var, NS }.
 
 % Handle Macro.Env conversion
@@ -155,7 +155,13 @@ clause_var_merger({ Var, _ }, K1, K2) ->
 var_merger(Var, Var, K2) -> K2;
 var_merger(Var, K1, Var) -> K1;
 var_merger(_Var, K1, K2) ->
-  case atom_to_list(K1) > atom_to_list(K2) of
+  V1 = var_number(atom_to_list(K1), []),
+  V2 = var_number(atom_to_list(K2), []),
+  case V1 > V2 of
     true  -> K1;
     false -> K2
   end.
+
+var_number([$@|T], _Acc) -> var_number(T, []);
+var_number([H|T], Acc)   -> var_number(T, [H|Acc]);
+var_number([], Acc)      -> list_to_integer(lists:reverse(Acc)).
