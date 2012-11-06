@@ -236,6 +236,20 @@ defmodule KernelTest do
       assert b == 2
       assert c == 3
     end
+
+    test :variables_counter_on_nested_if do
+      r = 3
+      r = r - 1
+      r = r - 1
+      r = r - 1
+
+      if true do
+        r = r - 1
+        if r < 0, do: r = 0
+      end
+
+      assert r == 0
+    end
   end
 
   defmodule Destructure do

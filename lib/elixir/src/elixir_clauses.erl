@@ -210,7 +210,11 @@ normalize_vars({ Var, Kind }, S) ->
 
 normalize_vars(Var, Kind, Index, #elixir_scope{clause_vars=ClauseVars} = S) ->
   Vars = element(Index, S),
-  { { _, _, NewValue }, S1 } = elixir_scope:build_erl_var(0, S),
+
+  { { _, _, NewValue }, S1 } = if
+    (Kind == quoted) or (S#elixir_scope.noname) -> elixir_scope:build_erl_var(0, S);
+    true -> elixir_scope:build_erl_var(0, Var, "_@" ++ atom_to_list(Var), S)
+  end,
 
   S2 = setelement(Index, S1, orddict:store(Var, NewValue, Vars)),
   S3 = S2#elixir_scope{clause_vars=orddict:store({ Var, Kind }, NewValue, ClauseVars)},

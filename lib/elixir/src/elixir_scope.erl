@@ -5,6 +5,7 @@
 -export([translate_var/4,
   build_erl_var/2, build_ex_var/2,
   build_erl_var/3, build_ex_var/3,
+  build_erl_var/4, build_ex_var/4,
   serialize/1, deserialize/1, deserialize/2,
   to_erl_env/1, to_ex_env/1, filename/1,
   umergev/2, umergec/2, merge_clause_vars/2
@@ -53,24 +54,24 @@ translate_var(Line, Name, Kind, S) ->
 
 % Handle variables translation
 
-build_ex_var(Line, S)  -> build_ex_var(Line, "_", '', S).
-build_erl_var(Line, S) -> build_erl_var(Line, "_", '', S).
+build_ex_var(Line, S)  -> build_ex_var(Line, '', "_", S).
+build_erl_var(Line, S) -> build_erl_var(Line, '', "_", S).
 
-build_ex_var(Line, Key, S)  -> build_ex_var(Line, "", Key, S).
-build_erl_var(Line, Key, S) -> build_erl_var(Line, "", Key, S).
+build_ex_var(Line, Key, S)  -> build_ex_var(Line, Key, Key, S).
+build_erl_var(Line, Key, S) -> build_erl_var(Line, Key, Key, S).
 
 build_var_counter(Key, #elixir_scope{counter=Counter} = S) ->
   New = orddict:update_counter(Key, 1, Counter),
   { orddict:fetch(Key, New), S#elixir_scope{counter=New} }.
 
-build_erl_var(Line, Prefix, Key, S) ->
+build_erl_var(Line, Key, Name, S) ->
   { Counter, NS } = build_var_counter(Key, S),
-  Var = { var, Line, ?ELIXIR_ATOM_CONCAT([Prefix, Key, "@", Counter]) },
+  Var = { var, Line, ?ELIXIR_ATOM_CONCAT([Name, "@", Counter]) },
   { Var, NS }.
 
-build_ex_var(Line, Prefix, Key, S) ->
+build_ex_var(Line, Key, Name, S) ->
   { Counter, NS } = build_var_counter(Key, S),
-  Var = { ?ELIXIR_ATOM_CONCAT([Prefix, Key, "@", Counter]), Line, quoted },
+  Var = { ?ELIXIR_ATOM_CONCAT([Name, "@", Counter]), Line, quoted },
   { Var, NS }.
 
 % Handle Macro.Env conversion
