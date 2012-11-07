@@ -168,6 +168,12 @@ defmodule Kernel.Typespec do
   @doc """
   Converts a type clause back to Elixir AST.
   """
+  def type_to_ast({ { :record, record }, fields, args }) when is_atom(record) do
+    fields = lc field inlist fields, do: typespec_to_ast(field)
+    args = lc arg inlist args, do: typespec_to_ast(arg)
+    type = { :{}, 0, [record|fields] }
+    quote do: unquote(record)(unquote_splicing(args)) :: unquote(type)
+  end
   def type_to_ast({ name, type, args }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     quote do: unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type))
@@ -348,6 +354,13 @@ defmodule Kernel.Typespec do
   defp typespec_to_ast({ :ann_type, line, [var, type] }) do
     { :::, line, [typespec_to_ast(var), typespec_to_ast(type)] }
   end
+
+  defp typespec_to_ast({ :typed_record_field, 
+                         { :record_field, line, { :atom, line1, name }},
+                         type }) do
+    typespec_to_ast({ :ann_type, line, [{ :var, line1, name }, type] })
+  end
+
 
   defp typespec_to_ast({ t, _line, atom }) when is_atom(t) do
     atom
