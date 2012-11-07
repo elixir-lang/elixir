@@ -69,7 +69,7 @@ defmodule Mix.UtilsTest do
   end
 
   test :extract_files do
-    files = Mix.Utils.extract_files [File.join(fixture_path, "extract")], ["ex"]
+    files = Mix.Utils.extract_files [File.join(fixture_path, "extract")], "*.ex"
     assert length(files) == 1
     assert File.basename(hd(files)) == "a.ex"
   end

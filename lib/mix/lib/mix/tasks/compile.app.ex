@@ -60,8 +60,7 @@ defmodule Mix.Tasks.Compile.App do
       end
 
       properties = ensure_correct_properties(app, properties)
-
-      contents = { :application, app, properties }
+      contents   = { :application, app, properties }
 
       File.mkdir_p!(File.dirname(target))
       file = File.open!(target, [:write])

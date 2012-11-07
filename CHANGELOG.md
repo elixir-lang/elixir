@@ -5,6 +5,7 @@
   * [Mix] Improve SCM behaviour to allow more robust integration
   * [Mix] Changing deps information on `mix.exs` forces users to fetch new dependencies
   * [Mix] Support (parallel) requires on mix run
+  * [Mix] Support `-q` when running tests to compile only changed files
   * [String] Support `String.downcase` and `String.upcase` according to Unicode 6.2.0
   * [String] Add support for graphemes in `String.length`, `String.at` and others
   * [Typespec] Support `@opaque` as attribute

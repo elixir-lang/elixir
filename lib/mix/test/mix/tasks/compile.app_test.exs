@@ -39,7 +39,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     Mix.Project.pop
   end
 
-  test "use custom applicaiton settings" do
+  test "use custom application settings" do
     Mix.Project.push CustomProject
 
     in_fixture "no_mixfile", fn ->

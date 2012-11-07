@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Run do
       end
     end
 
-    Mix.Task.run Mix.project[:prepare_task]
+    Mix.Task.run Mix.project[:prepare_task], args
     Code.eval Enum.join(head, " ")
   end
 

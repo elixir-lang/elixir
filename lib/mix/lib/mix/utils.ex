@@ -57,27 +57,22 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Returns true if any of `target` is stale compared to `source`.
-  If `target` or `source` is a binary, it is expanded using `File.wildcard`.
+  Returns true if any of the sources are stale compared to the given target.
   """
-  def stale?(source, target) do
-    source = expand_wildcard(source)
-    target = expand_wildcard(target)
-
-    source_stats  = Enum.map(source, fn(file) -> File.stat!(file).mtime end)
-    last_modified = Enum.map(target, last_modified(&1))
-
-    Enum.any?(source_stats, fn(source_stat) ->
-      Enum.any?(last_modified, source_stat > &1)
-    end)
+  def stale?(sources, targets) do
+    extract_stale(sources, targets) != []
   end
 
-  defp expand_wildcard(wildcard) when is_binary(wildcard) do
-    File.wildcard(wildcard)
-  end
+  @doc """
+  Extract all stale sources compared to the given targets.
+  """
+  def extract_stale(sources, targets) do
+    last_modifieds = Enum.map(targets, last_modified(&1))
 
-  defp expand_wildcard(list) when is_list(list) do
-    list
+    Enum.filter sources, fn(source) ->
+      source_stat = File.stat!(source).mtime
+      Enum.any?(last_modifieds, source_stat > &1)
+    end
   end
 
   defp last_modified(path) do
@@ -88,38 +83,29 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Extract the files from the given paths with
-  the given extension.
+  Extract files from a list of paths or from a wildcard.
+
+  If the list of paths contains a directory, the directory
+  is expanded according to the given pattern.
+
   It ignores files which start with "."
   """
-  def extract_files(paths, exts) do
-    exts = Enum.join(exts, ",")
+  def extract_files(paths, _pattern) when is_binary(paths) do
+    File.wildcard(paths) /> exclude_files
+  end
+
+  def extract_files(paths, exts) when is_list(exts) do
+    extract_files(paths, "*.{#{Enum.join(exts, ",")}}")
+  end
+
+  def extract_files(paths, pattern) do
     files = List.concat(lc path inlist paths do
-      File.wildcard("#{path}/**/*.{#{exts}}")
+      if File.regular?(path), do: [path], else: File.wildcard("#{path}/**/#{pattern}")
     end)
-    exclude_files(files)
+    files /> exclude_files /> List.uniq
   end
 
-  @doc """
-  Extract the files from the given paths with
-  the given extension in case `files` is an empty
-  array. If not, get the common subset between
-  `files` and the extracted files.
-  It ignores files which start with "."
-  """
-  def extract_files(paths, [], exts) do
-    extract_files(paths, exts)
-  end
-
-  def extract_files(paths, files, exts) do
-    paths = extract_files(paths, exts)
-    Enum.filter files, List.member?(paths, &1)
-  end
-
-  @doc """
-  Filtering out files which start with "."
-  """
-  def exclude_files(files) do
+  defp exclude_files(files) do
     filter = fn(x) -> not match?("." <> _, File.basename(x)) end
     Enum.filter files, filter
   end

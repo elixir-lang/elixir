@@ -32,11 +32,6 @@ defmodule Mix.Tasks.Compile do
 
         [compile_path: "ebin"]
 
-  * `:compile_first` - which files need to be compiled first.
-    They need to be a subset of the files found in `source_paths`.
-
-        [compile_first: ["lib/foo.ex", "lib/bar.ex"]]
-
   * `:watch_exts` - extensions to watch in order to trigger
      a compilation:
 

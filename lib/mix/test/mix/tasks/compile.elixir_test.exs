@@ -70,4 +70,20 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     purge [A, B, C]
     Mix.Project.pop
   end
+
+  test "compiles only changed files" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Compile.Elixir.run []
+      Mix.shell.flush
+      purge [A, B, C]
+
+      File.touch!("lib/a.ex", { { 2020, 1, 1 }, { 0, 0, 0 } })
+      Mix.Tasks.Compile.Elixir.run ["--quick"]
+
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      refute_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
+    end
+  after
+    purge [A, B, C]
+  end
 end

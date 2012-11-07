@@ -18,35 +18,35 @@ defmodule Mix.Tasks.Test do
 
   ## Configuration
 
+  * `:test_paths` - path containing tests.
+    Defaults to `["test"]`.
+
   * `:test_pattern` - a pattern to load test files.
-    Defaults to `test/**/*_test.exs`.
+    Defaults to `*_test.exs`.
 
   * `:test_helper` - a file that sets up whatever is necessary
-  for testing. Defaults to `test/test_helper.exs`.
+    for testing. Defaults to `test/test_helper.exs`.
 
   """
   def run(args) do
-    { _, files } = OptionParser.parse(args)
+    { _, files } = OptionParser.parse(args,
+                     flags: [:quick, :force], aliases: [q: :quick])
 
     unless System.get_env("MIX_ENV") do
       Mix.env(:test)
       Mix.Project.refresh
     end
 
-    Mix.Task.run Mix.project[:prepare_task]
+    Mix.Task.run Mix.project[:prepare_task], args
     project = Mix.project
 
-    test_helper = Keyword.get(project, :test_helper, "test/test_helper.exs")
+    test_helper = project[:test_helper] || "test/test_helper.exs"
     test_helper && Code.require_file(test_helper)
 
-    files =
-      if files == [] do
-        test_pattern = project[:test_pattern] || "test/**/*_test.exs"
-        Mix.Utils.exclude_files(File.wildcard test_pattern)
-      else
-        files
-      end
+    test_paths   = if files == [], do: project[:test_paths] || ["test"], else: files
+    test_pattern = project[:test_pattern] || "*_test.exs"
 
+    files = Mix.Utils.extract_files(test_paths, test_pattern)
     Kernel.ParallelRequire.files files
   end
 end
