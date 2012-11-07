@@ -241,7 +241,7 @@ defmodule IEx.Helpers do
     types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
 
     if types == [] do
-      IO.puts "No types for #{inspect module} has been found"
+      IO.puts "No types for #{inspect module} have been found"
     end
 
     :ok
@@ -254,7 +254,7 @@ defmodule IEx.Helpers do
 
     case types do
      [] ->
-       IO.puts "No types for #{inspect module} has been found"
+       IO.puts "No type for #{inspect module} has been found"
      [type] ->
        print_type(type)
     end
@@ -287,7 +287,7 @@ defmodule IEx.Helpers do
     specs = lc spec inlist Kernel.Typespec.beam_specs(module), do: print_spec(spec)
 
     if specs == [] do
-      IO.puts "No specs for #{inspect module} has been found"
+      IO.puts "No specs for #{inspect module} have been found"
     end
 
     :ok
