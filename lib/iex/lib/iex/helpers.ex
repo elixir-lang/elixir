@@ -216,11 +216,13 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints all types for the given module
+  Prints all types for the given module or prints out a specified type's 
+  specification
 
   ## Examples
 
       t(Enum)
+      t(Enum.t/0)
 
   """
   defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
