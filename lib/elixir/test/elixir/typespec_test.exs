@@ -220,18 +220,20 @@ defmodule Typespec.Test.Type do
   end
 
   test "@spec(spec)" do
-    {spec1, spec2, spec3} = test_module do
+    {spec1, spec2, spec3, spec4} = test_module do
       def myfun(x), do: x
       def myfun(), do: :ok
       def myfun(x,y), do: {x,y}
       t1 = @spec myfun(integer), do: integer
       t2 = @spec myfun(), do: integer
       t3 = @spec myfun(integer, integer), do: {integer, integer}
-      {t1,t2,t3}
+      t4 = @spec myfun(x) when is_subtype(x, integer), do: boolean
+      {t1,t2,t3,t4}
     end
     assert {{:myfun,1},{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}} = spec1
     assert {{:myfun,0},{:type,_,:fun,[{:type,_,:product,[]},{:type,_,:integer,[]}]}} = spec2
     assert {{:myfun,2},{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:tuple,[{:type,_,:integer,[]},{:type,_,:integer,[]}]}]}} = spec3
+    assert {{:myfun,1},{:type,_,:bounded_fun,[{:type,_,:fun,[{:type,_,:product,[{:var,_,:x}]},{:type,_,:boolean,[]}]},[{:type,_,:constraint,[{:atom,_,:is_subtype},[{:var,_,:x},{:type,_,:integer,[]}]]}]]}} = spec4
   end
 
   test "@callback(callback)" do

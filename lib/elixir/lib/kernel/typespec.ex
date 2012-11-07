@@ -165,6 +165,15 @@ defmodule Kernel.Typespec do
     { [], quote do: term }
   end
 
+  def spec_to_ast({ :type, _, :bounded_fun, [{ :type, _, :fun, [{ :type, _, :product, args }, result] }, constraints] }) do
+    _subtypes = lc {:type, _, :constraint, [{:atom, _, :is_subtype}, [{:var, _, name}, type]]} inlist constraints, do: {name, type}
+    _vars = lc {:var, _, name} inlist args, do: name
+    args = lc arg inlist args, do: typespec_to_ast(arg)
+  # TODO: add guards
+    { args, typespec_to_ast(result) }
+  end
+
+
   @doc """
   Converts a type clause back to Elixir AST.
   """
@@ -290,12 +299,35 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
+  def defspec(type, {:when, _, [{ name, line, args }, constraints_guard] }, [do: return], caller) do
+    if is_atom(args), do: args = []
+    constraints = guard_to_constraints(constraints_guard, caller)
+    spec_constraints = lc {k, c} inlist constraints do
+      { :type, 0, :constraint,
+        [ {:atom, 0, :is_subtype },
+          [{:var, 0, k}, c] ]
+      }
+    end
+    spec  = { :type, line, :bounded_fun, [{ :type, line, :fun, fn_args(line, args, return, Keyword.keys(constraints), caller) }, spec_constraints] }
+    code  = { { name, Kernel.length(args) }, spec }
+    Module.compile_typespec(caller.module, type, code)
+    code
+  end
+
   def defspec(type, { name, line, args }, [do: return], caller) do
     if is_atom(args), do: args = []
     spec  = { :type, line, :fun, fn_args(line, args, return, [], caller) }
     code  = { { name, Kernel.length(args) }, spec }
     Module.compile_typespec(caller.module, type, code)
     code
+  end
+
+  defp guard_to_constraints({ :is_subtype, _, [{ name, _, _ }, type] }, caller) do
+    [{name, typespec(type, [], caller)}]
+  end
+
+  defp guard_to_constraints({:and, _, [left, right]}, caller) do
+    guard_to_constraints(left, caller) ++ guard_to_constraints(right, caller)
   end
 
   ## To AST conversion
