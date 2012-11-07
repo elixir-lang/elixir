@@ -238,7 +238,7 @@ defmodule KernelTest do
     end
 
     test :variables_counter_on_nested_if do
-      r = 3
+      r = (fn() -> 3 end).() # supresses warning at (if r < 0...)
       r = r - 1
       r = r - 1
       r = r - 1
