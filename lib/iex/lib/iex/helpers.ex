@@ -223,11 +223,40 @@ defmodule IEx.Helpers do
       t(Enum)
 
   """
-  def t(module) do
+  defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
+    quote do
+      t(unquote(mod), unquote(fun), unquote(arity))
+    end
+  end
+
+  defmacro t(module) do
+    quote do
+      t(unquote(module), :all)
+    end
+  end
+
+
+  @doc false
+  def t(module, :all) do
     types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
 
     if types == [] do
       IO.puts "No types for #{inspect module} has been found"
+    end
+
+    :ok
+  end
+
+  @doc false
+  def t(module, type, arity) do
+    types = lc {_, {t, _, args}} = typespec inlist Kernel.Typespec.beam_types(module), 
+               length(args) == arity and t == type, do: typespec
+
+    case types do
+     [] ->
+       IO.puts "No types for #{inspect module} has been found"
+     [type] ->
+       print_type(type)
     end
 
     :ok
