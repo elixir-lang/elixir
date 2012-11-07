@@ -1460,7 +1460,8 @@ defmodule Kernel do
   Inside the record definition, a developer can define his own types too:
 
       defrecord Config, counter: 0, failures: [] do
-        @type t(kind) :: Config[counter: integer, failures: [kind]]
+        @type kind :: term
+        record_type counter: integer, failures: [kind]
       end
 
   When defining a type, all the fields not mentioned in the type are
