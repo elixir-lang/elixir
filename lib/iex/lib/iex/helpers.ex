@@ -13,8 +13,8 @@ defmodule IEx.Helpers do
 
   * `c/2` - compiles a file in the given path
   * `h/0`,`h/1`, `h/2` - prints help/documentation
-  * `t/1` — prints types information
-  * `s/1`, `s/3` — prints specs information
+  * `t/1`, `t/3` — prints type information
+  * `s/1`, `s/3` — prints spec information
   * `m/0` - prints loaded modules
   * `r/0` - recompiles and reloads the given module's source file
   * `v/0` - prints all commands and values
@@ -149,7 +149,7 @@ defmodule IEx.Helpers do
             IO.puts "# #{inspect module}\n"
             IO.write binary
           { _, _ } ->
-            IO.puts "No docs for #{inspect module}"
+            IO.puts "No docs for #{inspect module} have been found"
           _ ->
             IO.puts "#{inspect module} was not compiled with docs"
         end
@@ -173,7 +173,7 @@ defmodule IEx.Helpers do
       if doc do
         IO.write "\n" <> print_signature(doc)
       else
-        IO.puts "No docs for #{function}/#{arity}"
+        IO.puts "No docs for #{inspect module}#.{function}/#{arity} have been found"
       end
     else
       IO.puts "#{inspect module} was not compiled with docs"
@@ -241,7 +241,7 @@ defmodule IEx.Helpers do
     types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
 
     if types == [] do
-      IO.puts "No types for #{inspect module} has been found"
+      IO.puts "No types for #{inspect module} have been found"
     end
 
     :ok
@@ -254,7 +254,7 @@ defmodule IEx.Helpers do
 
     case types do
      [] ->
-       IO.puts "No types for #{inspect module} has been found"
+       IO.puts "No types for #{inspect module}.#{type}/#{arity} have been found"
      [type] ->
        print_type(type)
     end
@@ -287,7 +287,7 @@ defmodule IEx.Helpers do
     specs = lc spec inlist Kernel.Typespec.beam_specs(module), do: print_spec(spec)
 
     if specs == [] do
-      IO.puts "No specs for #{inspect module} has been found"
+      IO.puts "No specs for #{inspect module} have been found"
     end
 
     :ok
@@ -308,7 +308,7 @@ defmodule IEx.Helpers do
     if spec do
       print_spec(spec)
     else
-      IO.puts "No spec for #{inspect module}.#{function}/#{arity} has been found"
+      IO.puts "No specs for #{inspect module}.#{function}/#{arity} have been found"
     end
 
     :ok
