@@ -298,6 +298,20 @@ defmodule Typespec.Test.Type do
     end
   end
 
+  test "type_to_ast for records" do
+    record_type = { { :record, :my_record }, 
+                    [
+                      { :typed_record_field,
+                        { :record_field, 0, { :atom, 0, :field1 }},
+                        { :type, 0, :atom, [] } },
+                      { :typed_record_field,
+                        { :record_field, 0, { :atom, 0, :field2 }},
+                        { :type, 0, :integer, [] } },
+                    ],
+                    []}
+    assert Kernel.Typespec.type_to_ast(record_type) == quote hygiene: false, do: my_record() :: {:my_record, field1 :: atom(), field2 :: integer() }
+  end
+
   test "spec_to_ast" do
     specs = [
       (quote do: @spec a(), do: integer()),
