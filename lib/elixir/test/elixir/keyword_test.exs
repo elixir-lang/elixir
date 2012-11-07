@@ -28,6 +28,13 @@ defmodule KeywordTest do
     assert Keyword.from_enum(dict) == [a: 1, b: 2, c: 3]
   end
 
+  test :keyword? do
+    assert Keyword.keyword?([])
+    assert Keyword.keyword?([a: 1])
+    refute Keyword.keyword?([{}])
+    refute Keyword.keyword?(<<>>)
+  end
+
   test :new do
     assert Keyword.new == []
   end

@@ -32,6 +32,20 @@ defmodule Keyword do
   end
 
   @doc """
+  Checks if the given argument is a keywords list or not
+  """
+  @spec keyword?(term), do: boolean
+  def keyword?([{ key, _value } | rest]) when is_atom(key) do
+    case atom_to_list(key) do
+      'Elixir-' ++ _ -> false
+      _ -> keyword?(rest)
+    end
+  end
+
+  def keyword?([]),     do: true
+  def keyword?(_other), do: false
+
+  @doc """
   Returns an empty keyword list, i.e. an empty list.
   """
   @spec new, do: t
