@@ -12,7 +12,7 @@ defmodule Mix.CLITest do
 
   test "default task" do
     in_fixture "custom_mixfile", fn ->
-      output = mix ""
+      output = mix "", [{"EXUNIT_CONFIG","none"}]
       assert File.regular?("ebin/Elixir-A.beam")
       assert output =~ %r"1 tests, 0 failures"
     end
@@ -20,13 +20,13 @@ defmodule Mix.CLITest do
 
   test "invoke simple task from CLI" do
     in_fixture "only_mixfile", fn ->
-      assert mix("hello") == "Hello from MyProject!\n"
+      assert mix("hello", [{"EXUNIT_CONFIG","none"}]) == "Hello from MyProject!\n"
     end
   end
 
   test "compile smoke test" do
     in_fixture "no_mixfile", fn ->
-      output = mix "compile"
+      output = mix "compile", [{"EXUNIT_CONFIG","none"}]
 
       assert File.regular?("ebin/Elixir-A.beam")
       assert File.regular?("ebin/Elixir-B.beam")
@@ -38,18 +38,18 @@ defmodule Mix.CLITest do
 
   test "test smoke test" do
     in_fixture "custom_mixfile", fn ->
-      output = mix "test"
+      output = mix "test", [{"EXUNIT_CONFIG","none"}]
       assert File.regular?("ebin/Elixir-A.beam")
       assert output =~ %r"1 tests, 0 failures"
 
-      output = mix "test test/hidden.ex"
+      output = mix "test test/hidden.ex", [{"EXUNIT_CONFIG","none"}]
       assert output =~ %r"1 tests, 1 failures"
     end
   end
 
   test "help smoke test" do
     in_fixture "only_mixfile", fn ->
-      output = mix "help"
+      output = mix "help", [{"EXUNIT_CONFIG","none"}]
       assert output =~ %r"mix compile\s+# Compile source files"
       assert output =~ %r"mix hello\s+# Hello"
       refute output =~ %r"mix invalid"
@@ -58,7 +58,7 @@ defmodule Mix.CLITest do
 
   test "help TASK smoke test" do
     in_fixture "only_mixfile", fn ->
-      output = mix "help compile"
+      output = mix "help compile", [{"EXUNIT_CONFIG","none"}]
       assert output =~ %r"# mix help compile"
       assert output =~ %r"## Command line options"
       assert output =~ %r"^Location:"m
@@ -67,7 +67,7 @@ defmodule Mix.CLITest do
 
   test "do smoke test" do
     in_fixture "only_mixfile", fn ->
-      output = mix "do compile --list, help compile"
+      output = mix "do compile --list, help compile", [{"EXUNIT_CONFIG","none"}]
       assert output =~ %r"# mix help compile"
       assert output =~ %r"mix compile.elixir #"
     end
@@ -75,10 +75,10 @@ defmodule Mix.CLITest do
 
   test "new with tests smoke test" do
     in_tmp "new_with_tests", fn ->
-      output = mix "new ."
+      output = mix "new .", [{"EXUNIT_CONFIG","none"}]
       assert output =~ %r(\* creating lib/new_with_tests.ex)
 
-      output = mix "test"
+      output = mix "test", [{"EXUNIT_CONFIG","none"}]
       assert File.regular?("ebin/Elixir-NewWithTests.beam")
       assert output =~ %r"1 tests, 0 failures"
     end
