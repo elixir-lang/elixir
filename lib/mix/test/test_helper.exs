@@ -2,6 +2,7 @@ Mix.start()
 Mix.shell(Mix.Shell.Process)
 
 ExUnit.start []
+System.put_env("EXUNIT_CONFIG", "none")
 
 target = File.expand_path("../fixtures/git_repo", __FILE__)
 
