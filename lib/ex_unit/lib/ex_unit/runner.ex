@@ -1,7 +1,7 @@
 defmodule ExUnit.Runner do
   @moduledoc false
 
-  defrecord Config, formatter: ExUnit.Formatter, max_cases: 4, taken_cases: 0
+  defrecord Config, formatter: ExUnit.CLIFormatter, max_cases: 4, taken_cases: 0
 
   def run(config) do
     config.formatter.suite_started
