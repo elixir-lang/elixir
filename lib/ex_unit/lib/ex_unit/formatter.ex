@@ -1,6 +1,4 @@
 defmodule ExUnit.Formatter do
-  # TODO: Eventually we need to come up with a
-  # public API for the formatter to allow customization
   @moduledoc false
 
   use GenServer.Behaviour
@@ -8,6 +6,34 @@ defmodule ExUnit.Formatter do
   defrecord Config, counter: 0, failures: []
 
   import Exception, only: [format_stacktrace: 1]
+
+  ## New API
+
+  def suite_started do
+    :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, [], [])
+  end
+
+  def suite_finished do
+    :gen_server.call(__MODULE__, :finish)
+  end
+
+  def case_started(_) do
+    :ok
+  end
+
+  def case_finished(_) do
+    :ok
+  end
+
+  def test_started(_test_case, _test) do
+    :ok
+  end
+
+  def test_finished(test_case, test, result) do
+    :gen_server.call(__MODULE__, { :each, test_case, test, result })
+  end
+
+  ## Old API
 
   def start do
     { :ok, pid } = :gen_server.start_link(__MODULE__, [], [])
@@ -27,10 +53,6 @@ defmodule ExUnit.Formatter do
     IO.write "F"
     { :reply, :ok, config.increment_counter.
       prepend_failures([{test_case, test, failure}]) }
-  end
-
-  def handle_call({:each_case, _test_case}, _from, config) do
-    { :reply, :ok, config }
   end
 
   def handle_call(:finish, _from, config) do
