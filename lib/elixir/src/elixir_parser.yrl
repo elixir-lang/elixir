@@ -13,7 +13,7 @@ Nonterminals
   open_curly close_curly
   open_bit close_bit
   base_comma_expr comma_expr optional_comma_expr matched_comma_expr
-  call_args call_args_parens call_args_no_parens parens_call
+  call_args call_args_parens call_args_parens_many call_args_no_parens parens_call
   stab_expr stab_expr_list
   kw_eol kw_expr kw_comma kw_base
   matched_kw_expr matched_kw_comma matched_kw_base
@@ -146,7 +146,8 @@ block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
 block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
 
 fn_expr -> fn_paren call_args_parens fn_block : build_fn('$1', '$2', '$3').
-fn_expr -> fn call_args_no_parens fn_block : build_fn('$1', '$2', '$3').
+fn_expr -> fn call_args_no_parens fn_block : build_fn('$1', handle_empty_block('$2'), '$3').
+fn_expr -> fn call_args_parens_many fn_block : build_fn('$1', '$2', '$3').
 fn_expr -> fn fn_block : build_fn('$1', [], '$2').
 fn_expr -> call_expr : '$1'.
 
@@ -211,7 +212,8 @@ stab_expr_list -> stab_expr : ['$1'].
 stab_expr_list -> stab_expr_list eol stab_expr : ['$3'|'$1'].
 
 stab_expr -> expr : '$1'.
-stab_expr -> comma_expr stab_op expr : build_op('$2', lists:reverse('$1'), '$3').
+stab_expr -> call_args_no_parens stab_op expr : build_op('$2', handle_empty_block('$1'), '$3').
+stab_expr -> call_args_parens_many stab_op expr : build_op('$2', '$1', '$3').
 
 block_item -> block_eol stab_expr_list eol : { ?exprs('$1'), build_stab(lists:reverse('$2')) }.
 block_item -> block_eol : { ?exprs('$1'), nil }.
@@ -400,6 +402,9 @@ call_args -> comma_expr : lists:reverse('$1').
 call_args_parens -> open_paren ')' : [].
 call_args_parens -> open_paren call_args close_paren : '$2'.
 
+call_args_parens_many -> open_paren kw_base close_paren : ['$2'].
+call_args_parens_many -> open_paren expr ',' call_args close_paren : ['$2'|'$4'].
+
 % KV
 
 kw_eol  -> kw_identifier : '$1'.
@@ -477,7 +482,6 @@ build_tuple(Marker, Args) ->
 
 build_block(Exprs) -> build_block(Exprs, true).
 
-build_block([], _)                                         -> nil;
 build_block([nil], _)                                      -> { '__block__', 0, [nil] };
 build_block([{Op,_,[_]}]=Exprs, _) when ?rearrange_uop(Op) -> { '__block__', 0, Exprs };
 build_block([Expr], _) when not is_list(Expr)              -> Expr;
@@ -565,3 +569,6 @@ build_stab([H|T], Marker, Temp, Acc) ->
 build_stab([], Marker, Temp, Acc) ->
   H = { Marker, build_block(Temp) },
   lists:reverse([H|Acc]).
+
+handle_empty_block([{ '__block__', _, [] }]) -> [];
+handle_empty_block(Else) -> Else.

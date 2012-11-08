@@ -35,6 +35,22 @@ function_apply_with_args_test() ->
 function_apply_and_clojure_test() ->
   {3,_} = eval("b = 1; a = fn -> b + 2 end; apply a, []").
 
+function_parens_test() ->
+  {0,_} = eval("(fn() -> 0 end).()"),
+  {1,_} = eval("(fn(1) -> 1 end).(1)"),
+  {3,_} = eval("(fn(1, 2) -> 3 end).(1, 2)"),
+
+  {0,_} = eval("(fn () -> 0 end).()"),
+  {1,_} = eval("(fn (1) -> 1 end).(1)"),
+  {3,_} = eval("(fn (1, 2) -> 3 end).(1, 2)").
+
+function_macro_parens_test() ->
+  {0,_} = eval("(function do () -> 0 end).()"),
+  {1,_} = eval("(function do 1 -> 1 end).(1)"),
+  {3,_} = eval("(function do 1, 2 -> 3 end).(1, 2)"),
+  {1,_} = eval("(function do (1) -> 1 end).(1)"),
+  {3,_} = eval("(function do (1, 2) -> 3 end).(1, 2)").
+
 %% Function calls
 
 function_call_test() ->
