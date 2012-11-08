@@ -78,7 +78,7 @@ defmodule ExUnit do
 
     case File.read(user_config) do
       { :ok, contents } ->
-        { config, _ } = Code.eval(File.read!(user_config), [], file: user_config)
+        { config, _ } = Code.eval(contents, [], file: user_config)
         config
       _ ->
         []

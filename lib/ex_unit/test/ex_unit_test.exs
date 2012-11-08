@@ -11,6 +11,7 @@ defmodule ExUnitTest do
     File.write("ex_unit.test.config","[extra_option: true]")
     assert ExUnit.user_options("nosuchfile.config") == []
     assert ExUnit.user_options("ex_unit.test.config") == [extra_option: true]
+  after
     File.rm("ex_unit.test.config")
   end
 end
