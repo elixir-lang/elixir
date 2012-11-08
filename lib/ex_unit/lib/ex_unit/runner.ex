@@ -3,7 +3,12 @@ defmodule ExUnit.Runner do
 
   defrecord Config, formatter: ExUnit.Formatter, max_cases: 4, taken_cases: 0
 
-  def loop(config) do
+  def run(config) do
+    config.formatter.suite_started
+    loop config
+  end
+
+  defp loop(config) do
     available = config.max_cases - config.taken_cases
 
     cond do
@@ -13,7 +18,7 @@ defmodule ExUnit.Runner do
 
       # Slots are available, start with async cases
       cases = ExUnit.Server.take_async_cases(available) ->
-        spawn_cases(cases, config)
+        spawn_cases(config, cases)
 
       # No more async cases, wait for them to finish
       config.taken_cases > 0 ->
@@ -21,11 +26,11 @@ defmodule ExUnit.Runner do
 
       # So we can start all sync cases
       cases = ExUnit.Server.take_sync_cases ->
-        spawn_cases(cases, config)
+        spawn_cases(config, cases)
 
       # No more cases, we are done!
       true ->
-        call_formatter config, :finish
+        config.formatter.suite_finished
     end
   end
 
@@ -34,40 +39,44 @@ defmodule ExUnit.Runner do
   # cases counter and attempt to spawn new ones.
   defp wait_until_available(config) do
     receive do
-      { pid, :each, { test_case, test, final } } ->
-        call_formatter config, { :each, test_case, test, final }
+      { pid, :test_finished, { test_case, test, final } } ->
+        config.formatter.test_finished(test_case, test, final)
         wait_until_available config
-      { pid, :each_case, test_case } ->
-        call_formatter config, { :each_case, test_case }
+      { pid, :case_finished, test_case } ->
+        config.formatter.case_finished(test_case)
         loop config.increment_taken_cases(-1)
     end
   end
 
-  defp spawn_cases(cases, config) do
-    Enum.each cases, spawn_case(&1)
+  defp spawn_cases(config, cases) do
+    Enum.each cases, spawn_case(config, &1)
     loop config.increment_taken_cases(length(cases))
   end
 
-  defp spawn_case(test_case) do
+  defp spawn_case(config, test_case) do
     pid = self()
     spawn_link fn ->
       ExUnit.Server.run_after_spawn
-      run_tests(pid, test_case)
+      run_tests(config, pid, test_case)
     end
   end
 
-  defp run_tests(pid, test_case) do
+  defp run_tests(config, pid, test_case) do
+    config.formatter.case_started(test_case)
+
     try do
       tests = tests_for(test_case)
       context = run_setup_all(test_case)
-      Enum.each tests, run_test(pid, test_case, context, &1)
+      Enum.each tests, run_test(config, pid, test_case, context, &1)
       run_teardown_all(test_case, context)
     after
-      pid <- { self, :each_case, test_case }
+      pid <- { self, :case_finished, test_case }
     end
   end
 
-  defp run_test(pid, test_case, setup_context, test) do
+  defp run_test(config, pid, test_case, setup_context, test) do
+    config.formatter.test_started(test_case, test)
+
     final = try do
       context = run_setup(test_case, setup_context, test)
 
@@ -92,7 +101,7 @@ defmodule ExUnit.Runner do
         { kind2, error2, System.stacktrace }
     end
 
-    pid <- { self, :each, { test_case, test, final } }
+    pid <- { self, :test_finished, { test_case, test, final } }
   end
 
   defp run_setup_all(test_case) do
@@ -139,10 +148,6 @@ defmodule ExUnit.Runner do
       true ->
         context
     end
-  end
-
-  defp call_formatter(config, message) do
-    :gen_server.call(config.formatter, message)
   end
 
   defp tests_for(mod) do
