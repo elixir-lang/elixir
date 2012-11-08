@@ -2,6 +2,7 @@ Mix.start()
 Mix.shell(Mix.Shell.Process)
 
 ExUnit.start []
+System.put_env("EXUNIT_CONFIG", "none")
 
 target = File.expand_path("../fixtures/git_repo", __FILE__)
 
@@ -64,9 +65,8 @@ defmodule MixTest.Case do
     end
   end
 
-  def mix(args, env // []) do
-    env_formatted = Enum.join(Enum.map(env, fn({name, val}) -> "#{name}=#{val}" end), " ")
-    System.cmd "#{env_formatted} #{elixir_executable} #{mix_executable} #{args}"
+  def mix(args) do
+    System.cmd "#{elixir_executable} #{mix_executable} #{args}"
   end
 
   def mix_executable do
