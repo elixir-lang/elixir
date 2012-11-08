@@ -261,24 +261,12 @@ defimpl Binary.Inspect, for: List do
     cond do
       printable?(thing) ->
         escape(list_to_binary(thing), ?')
-      is_keyword?(thing) ->
+      Keyword.keyword?(thing) ->
         "[" <> join_keywords(thing, opts) <> "]"
       true ->
         container_join(thing, "[", "]", opts)
     end
   end
-
-  ## keywords?
-
-  defp is_keyword?([{ key, _value } | rest]) when is_atom(key) do
-    case atom_to_list(key) do
-      'Elixir-' ++ _ -> false
-      _ -> is_keyword?(rest)
-    end
-  end
-
-  defp is_keyword?([]),     do: true
-  defp is_keyword?(_other), do: false
 
   defp join_keywords(thing, opts) do
     Enum.join(lc {key, value} inlist thing do
