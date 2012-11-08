@@ -80,9 +80,8 @@ defmodule ExUnit do
   need to call it directly.
   """
   def run do
-    config = ExUnit.Runner.Config.new ExUnit.Server.options
-    config = config.formatter(config.formatter.start)
-    failures = ExUnit.Runner.loop config
+    config   = ExUnit.Runner.Config.new ExUnit.Server.options
+    failures = ExUnit.Runner.run config
     if failures > 0, do: halt(1), else: halt(0)
   end
 end
