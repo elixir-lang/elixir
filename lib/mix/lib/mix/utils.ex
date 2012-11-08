@@ -83,6 +83,20 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Executes a function but preserves the given path
+  mtime properties.
+  """
+  def preserving_mtime(path, fun) do
+    previous = last_modified(path)
+
+    try do
+      fun.()
+    after
+      File.touch!(path, previous)
+    end
+  end
+
+  @doc """
   Extract files from a list of paths or from a wildcard.
 
   If the list of paths contains a directory, the directory

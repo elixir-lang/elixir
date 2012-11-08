@@ -54,19 +54,22 @@ defmodule Mix.Tasks.Compile.Elixir do
     stale      = Mix.Utils.extract_stale(to_watch, [compile_path])
 
     if opts[:force] or stale != [] do
-      File.mkdir_p! compile_path
-      compile_files opts[:quick], project, compile_path, to_compile, stale
+      Mix.Utils.preserving_mtime(compile_path, fn ->
+        File.mkdir_p! compile_path
+        compile_files opts[:quick], project, compile_path, to_compile, stale
+      end)
       :ok
     else
       :noop
     end
   end
 
-  defp compile_files(true, project, compile_path, _to_compile, stale) do
+  defp compile_files(true, project, compile_path, to_compile, stale) do
     opts = project[:elixirc_options] || []
     opts = Keyword.put(opts, :ignore_module_conflict, true)
     Code.compiler_options(opts)
-    compile_files stale, compile_path
+    to_compile = lc f inlist to_compile, List.member?(stale, f), do: f
+    compile_files to_compile, compile_path
   end
 
   defp compile_files(false, project, compile_path, to_compile, _stale) do

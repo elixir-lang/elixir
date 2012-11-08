@@ -26,6 +26,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert File.regular?("ebin/Elixir-A.beam")
 
       # Now we have a noop
+      File.touch!("ebin")
       assert Mix.Tasks.Compile.Elixir.run([]) == :noop
 
       # --force
@@ -74,10 +75,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   test "compiles only changed files" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run []
+      File.touch!("ebin")
+
       Mix.shell.flush
       purge [A, B, C]
 
-      File.touch!("lib/a.ex", { { 2020, 1, 1 }, { 0, 0, 0 } })
+      future = { { 2020, 1, 1 }, { 0, 0, 0 } }
+      File.touch!("lib/a.ex", future)
+      File.touch!("lib/a.eex", future)
       Mix.Tasks.Compile.Elixir.run ["--quick"]
 
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
