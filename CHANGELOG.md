@@ -1,5 +1,7 @@
 * enhancements
   * [IEx] Only show documented functions and also show docs for default generated functions
+  * [ExUnit] Add support for user configuration at `HOME/.ex_unit.exs`
+  * [ExUnit] Add support to custom formatters via a well-defined behaviour
   * [Kernel] Improved dialyzer support
   * [Kernel] Improved error messages when creating functions with aliases names
   * [Mix] Improve SCM behaviour to allow more robust integration
