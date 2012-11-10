@@ -214,9 +214,10 @@ unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Fu
   );
 
 unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacrop ->
+  Tuple = element(1, Fun),
   unwrap_stored_definition(
-    T, Exports, [element(1, Fun)|Private], Def, Defmacro,
-    [{ element(1, Fun), element(3, Fun) }|Defmacrop], Functions
+    T, Exports, [Tuple|Private], Def, Defmacro,
+    [{ Tuple, element(3, Fun), element(5, Fun) }|Defmacrop], Functions
   );
 
 unwrap_stored_definition([], Exports, Private, Def, Defmacro, Defmacrop, {Functions,Tail}) ->

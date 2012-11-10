@@ -14,7 +14,7 @@ eval_quoted(Module, Quoted, RawBinding, Opts) ->
     false -> Line = 1
   end,
 
-  { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope),
+  { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope#elixir_scope{check_clauses=false}),
   { Value, FinalBinding }.
 
 scope_for_eval(Module, #elixir_scope{} = S) ->
@@ -180,7 +180,8 @@ attributes_form(Line, _File, Module, Current) ->
 
 %% Specs
 
-specs_form(Line, Module, Defmacro, Defmacrop, Forms, C) ->
+specs_form(Line, Module, Defmacro, DefmacropWithLine, Forms, C) ->
+  Defmacrop = [Tuple || { Tuple, _, _ } <- DefmacropWithLine],
   case elixir_compiler:get_opt(internal, C) of
     true -> Forms;
     _    ->
