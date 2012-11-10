@@ -1495,8 +1495,8 @@ defmodule Kernel do
         defrecordp :user, [name: "José", age: "25"]
       end
 
-  In the example above, a set of macros named `regex` but with different
-  arities will be defined to manipulate the underlying regex record:
+  In the example above, a set of macros named `user` but with different
+  arities will be defined to manipulate the underlying record:
 
       # To create records
       user()        #=> { User, "José", 25 }
