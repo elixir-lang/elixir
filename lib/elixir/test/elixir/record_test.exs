@@ -24,7 +24,11 @@ defrecord RecordTest.WithRecordType, a: 0, b: 1 do
 end
 
 defmodule RecordTest.Macros do
-  Record.defmacros :_user, [:name, :age], __ENV__
+  defrecordp :_user, name: "José", age: 25
+
+  def new() do
+    _user()
+  end
 
   def new(name, age) do
     _user(name: name, age: age)
@@ -124,6 +128,9 @@ defmodule RecordTest do
   end
 
   test :record_macros do
+    record = RecordTest.Macros.new
+    assert record.name == "José"
+
     record = RecordTest.Macros.new("Foo", 25)
     assert record.name == "Foo"
 

@@ -56,7 +56,7 @@ defmodule Exception do
     ErlangError.new original: other
   end
 
-  # Check the given module is a valid record.
+  # Check the given module is a valid exception record.
   @doc false
   def check!(module) do
     unless :erlang.function_exported(module, :message, 1) do

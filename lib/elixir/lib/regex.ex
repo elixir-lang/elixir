@@ -43,7 +43,7 @@ defmodule Regex do
   a binary, a char list will return a char list).
   """
 
-  @type t :: {Regex, term, term, term, term}
+  @type t :: { Regex, term, term, term, term }
 
   defexception CompileError, message: "regex could not be compiled"
 

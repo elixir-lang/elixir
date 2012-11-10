@@ -18,7 +18,7 @@ defmodule Record do
 
   @doc """
   Main entry point for records definition. It defines a module
-  with the given `name` and the fields specified in `modules`.
+  with the given `name` and the fields specified in `values`.
   This is invoked directly by `Kernel.defrecord`, so check it
   for more information and documentation.
   """
@@ -41,10 +41,21 @@ defmodule Record do
   end
 
   @doc """
+  Main entry point for private records definition. It defines
+  a set of macros with the given `name` and the fields specified
+  in `values`. This is invoked directly by `Kernel.defrecordp`,
+  so check it for more information and documentation.
+  """
+  def defrecordp(name, fields) do
+    quote do
+      Record.defmacros(unquote(name), unquote(fields), __ENV__)
+    end
+  end
+
+  @doc """
   Defines record functions skipping the module definition.
-  This is called directly by `defrecord`. It expects the
-  module environment, the module values and a keyword list
-  of options.
+  This is called directly by `defrecord`. It expects the record
+  values, a set of options and the module environment.
 
   ## Examples
 
@@ -104,62 +115,42 @@ defmodule Record do
   end
 
   @doc """
-  Defines three macros for reading and writing records values.
-  These macros are private to the current module and are
-  basically a simple mechanism for manipulating tuples when
-  there isn't an interest in exposing the record as a whole.
-  In some ways, it is similar to Erlang records, since it is
-  only available at compilation time.
+  Defines macros for manipulating records. This is called
+  directly by `defrecordp`. It expects the macro name, the
+  record values and the environment.
 
   ## Examples
 
-      defmodule CustomModule do
-        Record.defmacros :_user, [:name, :age], __ENV__
-
-        def new(name, age) do
-          _user(name: name, age: age)
-        end
-
-        def name(user, name) do
-          _user(user, name: name)
-        end
-
-        def age(user) do
-          _user(user, :age)
-        end
-
-        def to_keywords(user) do
-          _user(user)
-        end
-
-        def name_and_age(user) do
-         _user(user, [:name, :age])
-        end
-
-        def age_and_name(user) do
-         _user(user, [:age, :name])
-        end
+      defmodule CustomRecord do
+        Record.defmacros :user, [:name, :age], __ENV__
       end
 
   """
   def defmacros(name, values, env) do
-    escaped = lc value inlist values, do: Macro.escape(convert_value(value))
+    escaped = lc value inlist values do
+      { key, value } = convert_value(value)
+      { key, Macro.escape(value) }
+    end
 
     contents = quote do
+      defmacrop unquote(name).() do
+        Record.access(__MODULE__, unquote(escaped), [], __CALLER__)
+      end
+
       defmacrop unquote(name).(record) when is_tuple(record) do
-        Record.to_keywords(__CALLER__, __MODULE__, unquote(escaped), record)
+        Record.to_keywords(__MODULE__, unquote(escaped), record)
       end
 
       defmacrop unquote(name).(args) do
-        Record.access(__CALLER__, __MODULE__, unquote(escaped), args)
+        Record.access(__MODULE__, unquote(escaped), args, __CALLER__)
       end
 
       defmacrop unquote(name).(record, key) when is_atom(key) do
-        Record.get(__CALLER__, __MODULE__, unquote(escaped), record, key)
+        Record.get(__MODULE__, unquote(escaped), record, key)
       end
 
       defmacrop unquote(name).(record, args) do
-        Record.dispatch(__CALLER__, __MODULE__, unquote(escaped), record, args)
+        Record.dispatch(__MODULE__, unquote(escaped), record, args, __CALLER__)
       end
     end
 
@@ -171,7 +162,7 @@ defmodule Record do
   # a record or a match in case the record is
   # inside a match.
   @doc false
-  def access(caller, atom, fields, keyword) do
+  def access(atom, fields, keyword, caller) do
     unless is_keyword(keyword) do
       raise "expected contents inside brackets to be a Keyword"
     end
@@ -208,11 +199,11 @@ defmodule Record do
 
   # Dispatch the call to either update or to_list depending on the args given.
   @doc false
-  def dispatch(caller, atom, fields, record, args) do
+  def dispatch(atom, fields, record, args, caller) do
     if is_keyword(args) do
-      update(caller, atom, fields, record, args)
+      update(atom, fields, record, args, caller)
     else
-      to_list(caller, atom, fields, record, args)
+      to_list(atom, fields, record, args)
     end
   end
 
@@ -220,7 +211,7 @@ defmodule Record do
   # It returns a quoted expression that represents
   # the access given by the keywords.
   @doc false
-  defp update(caller, atom, fields, var, keyword) do
+  defp update(atom, fields, var, keyword, caller) do
     unless is_keyword(keyword) do
       raise "expected contents inside brackets to be a Keyword"
     end
@@ -245,7 +236,7 @@ defmodule Record do
   # It returns a quoted expression that represents
   # getting the value of a given field.
   @doc false
-  def get(_caller, atom, fields, var, key) do
+  def get(atom, fields, var, key) do
     index = find_index(fields, key, 0)
     if index do
       quote do
@@ -260,12 +251,12 @@ defmodule Record do
   # It returns a quoted expression that represents
   # converting record to keywords list.
   @doc false
-  def to_keywords(_caller, _atom, fields, record) do
-    Enum.map Keyword.from_enum(fields),
+  def to_keywords(_atom, fields, record) do
+    Enum.map fields,
       fn { key, _default } ->
         index = find_index(fields, key, 0)
         quote do
-          {unquote(key), :erlang.element(unquote(index + 2), unquote(record))}
+          { unquote(key), :erlang.element(unquote(index + 2), unquote(record)) }
         end
       end
   end
@@ -274,7 +265,7 @@ defmodule Record do
   # It returns a quoted expression that represents
   # extracting given fields from record.
   @doc false
-  defp to_list(_caller, atom, fields, record, keys) do
+  defp to_list(atom, fields, record, keys) do
     Enum.map keys,
       fn(key) ->
         index = find_index(fields, key, 0)

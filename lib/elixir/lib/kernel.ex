@@ -1393,7 +1393,12 @@ defmodule Kernel do
   defmacro defp(name, args, guards, do: contents)
 
   @doc %B"""
-  Define a record given by name and values.
+  Defines a record.
+
+  A record is a tagged tuple which contains one or more elements
+  and the first element is a module. This macro defines a module
+  that generates accessors to manipulate the record at both
+  compilation and runtime.
 
   ## Examples
 
@@ -1402,25 +1407,25 @@ defmodule Kernel do
   The line above will define a module named `FileInfo` which
   contains a function named `new` that returns a new record
   and other functions to read and set the values in the
-  record. Therefore, we can do:
+  record:
 
       file_info = FileInfo.new(atime: now())
       file_info.atime         #=> Returns the value of atime
       file_info.atime(now())  #=> Updates the value of atime
 
-  Internally, a record is simply a tuple where the first element is
-  the record module name. This can be noticed if we print the record:
+  A record is simply a tuple where the first element is the record
+  module name. We can get the record raw representation as follow:
 
-      IO.inspect FileInfo.new
-      { FileInfo, nil, nil }
+      inspect FileInfo.new, raw: true
+      #=> { FileInfo, nil, nil }
 
   ## Extensions
 
   Besides defining readers and writers for each attribute. Elixir will
   define extensions functions for each attribute. By default, it will
   define an `update_#{attribute}` function to update the value. Such
-  functions expect a function as argument that receives the current value
-  and must return the new one:
+  functions expect a function as argument that receives the current
+  value and must return the new one:
 
       file_info.update_atime(fn(_old) -> now() end) #=> Updates the value of atime
 
@@ -1443,16 +1448,16 @@ defmodule Kernel do
   Besides, if the default is a list, Elixir will define two helpers:
 
   * `merge_field` - Receives keywords and merge it into the current value;
-  * `prepend_field` - Receives another list and prepend its values
+  * `prepend_field` - Receives another list and prepend its values;
 
   ## Documentation
 
-  By default records are not documented and have @moduledoc set to false.
+  By default records are not documented and have `@moduledoc` set to false.
 
   ## Types
 
   Every record defines a type named `t` that can be accessed in typespecs.
-  For example, assuming the Config record defined above, it could be used
+  For example, assuming the `Config` record defined above, it could be used
   in typespecs as follow:
 
       @spec handle_config(Config.t), do: boolean()
@@ -1467,8 +1472,55 @@ defmodule Kernel do
   When defining a type, all the fields not mentioned in the type are
   assumed to have type `term`.
   """
-  defmacro defrecord(name, values, opts // [], do_block // []) do
-    Record.defrecord(name, values, Keyword.merge(opts, do_block))
+  defmacro defrecord(name, fields, opts // [], do_block // []) do
+    Record.defrecord(name, fields, Keyword.merge(opts, do_block))
+  end
+
+  @doc """
+  Defines a record with a set of private macros to manipulate it.
+
+  A record is a tagged tuple which contains one or more elements
+  and the first element is a module. This macro defines a set of
+  macros private to the current module to manipulate the record
+  exclusively at compilation time.
+
+  `defrecordp` must be used instead of `defrecord` when there is
+  no interest in exposing the record as a whole. In many ways,
+  it is similar to Erlang records, since it is only available at
+  compilation time.
+
+  ## Examples
+
+      defmodule User do
+        defrecordp :user, [name: "José", age: "25"]
+      end
+
+  In the example above, a set of macros named `regex` but with different
+  arities will be defined to manipulate the underlying regex record:
+
+      # To create records
+      user()        #=> { User, "José", 25 }
+      user(age: 26) #=> { User, "José", 26 }
+
+      # To get a field from the record
+      user(record, :name) #=> "José"
+
+      # To get many fields from the record
+      user(record, [:name, :age]) #=> ["José", 25]
+
+      # To update the record
+      user(record, age: 26) #=> { User, "José", 26 }
+
+      # To convert the record to keywords
+      user(record) #=> [name: "José", age: 25]
+
+      # To match against the record
+      user(name: name) = record
+      name #=> "José"
+
+  """
+  defmacro defrecordp(name, fields) when is_atom(name) do
+    Record.defrecordp(name, fields)
   end
 
   @doc """
@@ -1479,11 +1531,11 @@ defmodule Kernel do
   differences:
 
   1) Differently from records, exceptions are documented by default;
-  2) Exceptions **must** implement `message/1` as API and return a
+  2) Exceptions **must** implement `message/1` as API that return a
      binary as result;
 
   """
-  defmacro defexception(name, values, opts // [], do_block // []) do
+  defmacro defexception(name, fields, opts // [], do_block // []) do
     opts = Keyword.merge(opts, do_block)
     opts = Keyword.put(opts, :do, quote do
       @moduledoc nil
@@ -1492,8 +1544,8 @@ defmodule Kernel do
       def exception(args, self), do: self
     end)
 
-    values = [{ :__exception__, :__exception__ }|values]
-    record = Record.defrecord(name, values, opts)
+    fields = [{ :__exception__, :__exception__ }|fields]
+    record = Record.defrecord(name, fields, opts)
 
     check  = quote do
       Exception.check! Module.concat(__MODULE__, unquote(name))
@@ -2857,7 +2909,7 @@ defmodule Kernel do
               end
           end
 
-        Record.access(caller, atom, fields, args)
+        Record.access(atom, fields, args, caller)
       false ->
         case caller.in_match? do
           true  -> raise "invalid usage of access protocol in signature"
