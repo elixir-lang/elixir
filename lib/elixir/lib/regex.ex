@@ -43,6 +43,7 @@ defmodule Regex do
   a binary, a char list will return a char list).
   """
 
+  defrecordp :regex, [:re_pattern, :source, :options, :groups]
   @type t :: { Regex, term, term, term, term }
 
   defexception CompileError, message: "regex could not be compiled"
@@ -59,9 +60,10 @@ defmodule Regex do
     opts    = translate_options(options)
     re_opts = opts -- [:groups]
     groups  = if opts != re_opts, do: parse_groups(source)
+
     case :re.compile(source, re_opts) do
-      { :ok, compiled } ->
-        { :ok, { Regex, compiled, source, options, groups } }
+      { :ok, re_pattern } ->
+        { :ok, regex(re_pattern: re_pattern, source: source, options: options, groups: groups) }
       error ->
         error
     end
@@ -89,7 +91,7 @@ defmodule Regex do
       Regex.index %r/e/, "abcd"     #=> nil
 
   """
-  def index({ Regex, compiled, _, _, _ }, string) do
+  def index(regex(re_pattern: compiled), string) do
     case :re.run(string, compiled, [{ :capture, :first, :index }]) do
       :nomatch -> nil
       { :match, [{index,_}] } -> index
@@ -105,7 +107,7 @@ defmodule Regex do
       Regex.match? %r/foo/, "bar" #=> false
 
   """
-  def match?({ Regex, compiled, _, _, _ }, string) do
+  def match?(regex(re_pattern: compiled), string) do
     :re.run(string, compiled, [{ :capture, :none }]) == :match
   end
 
@@ -120,12 +122,13 @@ defmodule Regex do
 
   """
   def run(regex, string, options // [])
-  def run({ Regex, compiled, _, _, groups }, string, options) do
+
+  def run(regex(re_pattern: compiled, groups: groups), string, options) do
     return = Keyword.get(options, :return, return_for(string))
 
     captures =
       case Keyword.get(options, :capture, :all) do
-        :groups -> groups || raise "Regex was not compiled with g"
+        :groups -> groups || raise "regex was not compiled with g"
         others  -> others
       end
 
@@ -143,7 +146,7 @@ defmodule Regex do
       Regex.captures %r/c(?<foo>d)/g, "abcd"  #=> [{:foo, ["d"]}]
 
   """
-  def captures({ Regex, _, _, _, groups } = regex, string, options // []) do
+  def captures(regex(groups: groups) = regex, string, options // []) do
     unless captures = Keyword.get(options, :capture) do
       captures = if groups do
         List.sort(groups)
@@ -159,7 +162,7 @@ defmodule Regex do
   @doc """
   Returns the underlying re_pattern in the regular expression.
   """
-  def re_pattern({ Regex, compiled, _, _, _ }) do
+  def re_pattern(regex(re_pattern: compiled)) do
     compiled
   end
 
@@ -171,7 +174,7 @@ defmodule Regex do
       Regex.source %r(foo) #=> "foo"
 
   """
-  def source({ Regex, _, source, _, _ }) do
+  def source(regex(source: source)) do
     source
   end
 
@@ -183,8 +186,8 @@ defmodule Regex do
       Regex.opts %r(foo)m #=> 'm'
 
   """
-  def opts({ Regex, _, _, opts, _ }) do
-    opts
+  def opts(regex(options: options)) do
+    options
   end
 
   @doc """
@@ -195,7 +198,7 @@ defmodule Regex do
       Regex.groups %r/(?<foo>foo)/g #=> ["foo"]
 
   """
-  def groups({ Regex, _, _, _, groups }) do
+  def groups(regex(groups: groups)) do
     groups
   end
 
@@ -213,7 +216,8 @@ defmodule Regex do
 
   """
   def scan(regex, string, options // [])
-  def scan({ Regex, compiled, _, _, _ }, string, options) do
+
+  def scan(regex(re_pattern: compiled), string, options) do
     return = options[:return] || return_for(string)
     options = [{ :capture, :all, return }, :global]
     case :re.run(string, compiled, options) do
@@ -229,7 +233,7 @@ defmodule Regex do
 
   def split(regex, string, options // [])
 
-  def split({ Regex, compiled, _, _, _ }, string, options) do
+  def split(regex(re_pattern: compiled), string, options) do
     parts =
       cond do
         options[:global] == false -> 2
@@ -260,7 +264,7 @@ defmodule Regex do
       Regex.replace(%r/(b)/, "abc", "[\\1]") #=> "a[b]c"
 
   """
-  def replace({ Regex, compiled, _, _, _ }, string, replacement, options // []) do
+  def replace(regex(re_pattern: compiled), string, replacement, options // []) do
     opts   = if options[:global] != false, do: [:global], else: []
     return = options[:return] || return_for(string)
     opts   = [{ :return, return }|opts]
