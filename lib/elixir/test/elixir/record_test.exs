@@ -71,7 +71,7 @@ defmodule RecordTest do
   test :record_constructor_with_dict do
     record   = RecordTest.FileInfo.new(type: :regular)
     assert record.type == :regular
-    assert record.access == nil
+    assert record.access == :undefined
   end
 
   test :record_accessors do

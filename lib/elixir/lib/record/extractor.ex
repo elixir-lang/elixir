@@ -70,7 +70,7 @@ defmodule Record.Extractor do
   end
 
   defp parse_field({ :record_field, _, key }) do
-    { :tuple, 0, [key, {:atom, 0, :nil}] }
+    { :tuple, 0, [key, {:atom, 0, :undefined}] }
   end
 
   defp parse_field({ :record_field, _, key, value }) do
