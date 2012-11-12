@@ -455,6 +455,10 @@ defmodule Record do
     contents = { :{}, 0, [(quote do: __MODULE__)|fields] }
 
     quote do
+      def update([], record) do
+        record
+      end
+
       def update(keywords, record) do
         unquote(contents)
       end

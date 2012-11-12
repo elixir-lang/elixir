@@ -1541,7 +1541,7 @@ defmodule Kernel do
       @moduledoc nil
       unquote(Keyword.get opts, :do)
       def exception(args), do: new(args)
-      def exception(args, self), do: self
+      def exception(args, self), do: update(args, self)
     end)
 
     fields = [{ :__exception__, :__exception__ }|fields]
