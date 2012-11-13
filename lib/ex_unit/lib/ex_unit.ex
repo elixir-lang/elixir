@@ -115,6 +115,6 @@ defmodule ExUnit do
   def run do
     config   = ExUnit.Runner.Config.new ExUnit.Server.options
     failures = ExUnit.Runner.run config
-    if failures > 0, do: halt(1), else: halt(0)
+    if failures > 0, do: System.halt(1), else: System.halt(0)
   end
 end

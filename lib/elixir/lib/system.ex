@@ -138,6 +138,47 @@ defmodule System do
     filter_stacktrace :erlang.get_stacktrace
   end
 
+  @doc """
+  Halts the Erlang runtime system where the first argument status must be a
+  non-negative integer, the atom `:abort` or any type that can be converted
+  to a char list.
+
+  * If an integer, the runtime system exits with the integer value which
+    is returned to the Operating System;
+
+  * If `:abort`, the runtime system aborts producing a core dump, if that is
+    enabled in the operating system;
+
+  * If a char list, an erlang crash dump is produced with status as slogan,
+    and then the runtime system exits with status code 1;
+
+  Note that on many platforms, only the status codes 0-255 are supported
+  by the operating system.
+
+  For integer status, Erlang runtime system closes all ports and allows async
+  threads to finish their operations before exiting. To exit without such
+  flushing, pass options [flush: false] instead.
+
+  For more information, check: http://www.erlang.org/doc/man/erlang.html#halt-2
+
+  ## Examples
+
+      System.halt(0)
+      System.halt(1, flush: false)
+      System.halt(:abort)
+
+  """
+  @spec halt(non_neg_integer | List.Chars.t | :abort, [] | [flush: false]), do: no_return
+  def halt(status // 0, options // [])
+
+  def halt(status, options) when is_integer(status) or status == :abort do
+    :erlang.halt(status, options)
+  end
+
+  def halt(status, options) do
+    :erlang.halt(to_char_list(status), options)
+  end
+
   ## Helpers
 
   # Filter stacktrace by removing internal BOOTSTRAP calls.

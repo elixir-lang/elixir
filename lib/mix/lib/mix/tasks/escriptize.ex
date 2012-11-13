@@ -116,7 +116,7 @@ defmodule Mix.Tasks.Escriptize do
               Kernel.CLI.run fn -> @module.main(args) end, true
             _   ->
               IO.puts :stderr, "Elixir is not in the code path, aborting."
-              halt(1)
+              System.halt(1)
           end
         end
       end

@@ -549,54 +549,6 @@ defmodule Kernel do
   end
 
   @doc """
-  The same as halt(0, []).
-  """
-  @spec halt(), do: no_return
-  def halt() do
-    :erlang.halt()
-  end
-
-  @doc """
-  The same as halt(status, []).
-  """
-  @spec halt(non_neg_integer | char_list | :abort), do: no_return
-  def halt(status) do
-    :erlang.halt(status)
-  end
-
-  @doc """
-  Halts the Erlang runtime system where the first argument status must be a
-  non-negative integer, a char list, or the atom `:abort`.
-
-  * If an integer, the runtime system exits with the integer value which
-    is returned to the Operating System;
-
-  * If a char list, an erlang crash dump is produced with status as slogan,
-    and then the runtime system exits with status code 1;
-
-  * If `:abort`, the runtime system aborts producing a core dump, if that is
-    enabled in the operating system.
-
-  Note that on many platforms, only the status codes 0-255 are supported
-  by the operating system.
-
-  For integer status, Erlang runtime system closes all ports and allows async
-  threads to finish their operations before exiting. To exit without such
-  flushing, pass options [flush: false] instead.
-
-  ## Examples
-
-      halt(0)
-      halt(1, flush: false)
-      halt(:abort)
-
-  """
-  @spec halt(non_neg_integer | char_list | :abort, [] | [flush: false]), do: no_return
-  def halt(status, options) do
-    :erlang.halt(status, options)
-  end
-
-  @doc """
   Returns the head of a list, raises badarg if the list is empty.
   """
   @spec hd(list), do: term

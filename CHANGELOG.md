@@ -17,12 +17,13 @@
 
 * bug fix
   * [Kernel] Fix an issue where variables inside clauses remained unassigned
-  * [Kernel] Ensure defoverridable functions can be referred in many clauses
+  * [Kernel] Ensure `defoverridable` functions can be referred in many clauses
   * [Kernel] Allow keywords as function names when following a dot (useful when integrating with erlang libraries)
 
 * deprecations
   * [Behaviour] `defcallback/1` was deprecated in favor of `defcallback/2` which matches erlang `@callbacks`
   * [Enum] `Enum.times` was deprecated in favor of using ranges
+  * [System] `halt` was moved to System module
 
 # v0.7.0 (2012-10-20)
 
