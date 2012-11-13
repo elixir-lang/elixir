@@ -172,11 +172,19 @@ defmodule System do
   def halt(status // 0, options // [])
 
   def halt(status, options) when is_integer(status) or status == :abort do
-    :erlang.halt(status, options)
+    do_halt(status, options)
   end
 
   def halt(status, options) do
-    :erlang.halt(to_char_list(status), options)
+    do_halt(to_char_list(status), options)
+  end
+
+  # Support R15B
+  if List.member?(:erlang.module_info(:exports), { :halt, 2 }) do
+    defp do_halt(status, options),  do: :erlang.halt(status, options)
+  else
+    IO.puts "Using limited halt support. Upgrade to R15B01 or later is recommended."
+    defp do_halt(status, _options), do: :erlang.halt(status)
   end
 
   ## Helpers
