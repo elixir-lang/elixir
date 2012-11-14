@@ -187,6 +187,8 @@ defmodule String do
   @spec rstrip(t, char), do: t
   def rstrip(string, char // ?\s)
 
+  def rstrip("", _char), do: ""
+
   # Do a quick check before we traverse the whole
   # binary. :binary.last is a fast operation (it
   # does not traverse the whole binary).

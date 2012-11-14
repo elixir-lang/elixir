@@ -42,6 +42,7 @@ defmodule StringTest do
   end
 
   test :rstrip do
+    assert String.rstrip("") == ""
     assert String.rstrip("   abc  ") == "   abc"
     assert String.rstrip("   abc a") == "   abc a"
     assert String.rstrip("   abc aa", ?a) == "   abc "
@@ -49,12 +50,14 @@ defmodule StringTest do
   end
 
   test :lstrip do
+    assert String.lstrip("") == ""
     assert String.lstrip("   abc  ") == "abc  "
     assert String.lstrip("a  abc  a") == "a  abc  a"
     assert String.lstrip("__  abc  _", ?_) == "  abc  _"
   end
 
   test :strip do
+    assert String.strip("") == ""
     assert String.strip("   abc  ") == "abc"
     assert String.strip("___  abc  ___", ?_) == "  abc  "
   end
