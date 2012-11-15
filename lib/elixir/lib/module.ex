@@ -76,7 +76,7 @@ defmodule Module do
           def world, do: true
         end
 
-      Module.create(Hello, contents, __ENV__)
+      Module.create(Hello, contents, __ENV__.location)
 
       Hello.world #=> true
 
@@ -88,16 +88,15 @@ defmodule Module do
   function is preferred when the module body is given
   by a quoted expression.
 
-  Another important distinction is that `defmodule`
-  blends into the scope it is invoked, allowing you
-  to access all variables, imports and requires from
-  the module. `Module.create`, on the other hand, creates
-  a new scope so imports, requires, etc are not inherited.
+  Another important distinction is that `Module.create`
+  allows you to control the environment variables used
+  when defining the module, while `defmodule` automatically
+  shares the same environment.
   """
   def create(module, quoted, opts // [])
 
   def create(module, quoted, Macro.Env[] = env) do
-    create(module, quoted, env.location)
+    create(module, quoted, env.to_keywords)
   end
 
   def create(module, quoted, opts) when is_atom(module) do
