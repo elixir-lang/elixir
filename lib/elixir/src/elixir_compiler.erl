@@ -1,6 +1,6 @@
 -module(elixir_compiler).
 -export([get_opts/0, get_opt/1, get_opt/2, string/2, file/1, file_to_path/2]).
--export([core/0, module/3, eval_forms/5]).
+-export([core/0, module/3, eval_forms/4]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
@@ -49,16 +49,16 @@ file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
 
 %% Evaluates the contents/forms by compiling them to an Erlang module.
 
-eval_forms(Forms, Line, Module, Vars, #elixir_scope{module=nil} = S) ->
-  eval_forms(Forms, Line, Module, nil, Vars, S);
+eval_forms(Forms, Line, Vars, #elixir_scope{module=nil} = S) ->
+  eval_forms(Forms, Line, nil, Vars, S);
 
-eval_forms(Forms, Line, Module, Vars, #elixir_scope{module=Value} = S) ->
-  eval_forms(Forms, Line, Module, Value, Vars, S).
+eval_forms(Forms, Line, Vars, #elixir_scope{module=Value} = S) ->
+  eval_forms(Forms, Line, Value, Vars, S).
 
-eval_forms(Forms, Line, RawModule, Value, Vars, S) ->
+eval_forms(Forms, Line, Value, Vars, S) ->
   case (Value == nil) andalso allows_fast_compilation(Forms) of
     true  -> eval_compilation(Forms, Vars, S);
-    false -> code_loading_compilation(Forms, Line, RawModule, Value, Vars, S)
+    false -> code_loading_compilation(Forms, Line, Value, Vars, S)
   end.
 
 eval_compilation(Forms, Vars, S) ->
@@ -66,17 +66,20 @@ eval_compilation(Forms, Vars, S) ->
   { Result, _Binding, FS } = elixir:eval_forms(Forms, [{'_@MODULE',nil}|Binding], S),
   { Result, FS }.
 
-code_loading_compilation(Forms, Line, RawModule, Value, Vars, S) ->
-  Module        = escape_module(RawModule),
+code_loading_compilation(Forms, Line, Value, Vars, S) ->
+  { Module, I } = retrieve_module_name(),
   { Exprs, FS } = elixir_translator:translate(Forms, S),
   ModuleForm    = module_form(Exprs, Line, S#elixir_scope.file, Module, Vars),
 
   Args = [X || { _, _, X } <- Vars],
 
-  { module(ModuleForm, S#elixir_scope.file, [], true, fun(Mod, _) ->
-    Res = Mod:'BOOTSTRAP'(Value, Args),
-    code:purge(Module),
+  { module(ModuleForm, S#elixir_scope.file, [], true, fun(_, _) ->
+    Res = Module:'BOOTSTRAP'(Value, Args),
     code:delete(Module),
+    case code:soft_purge(Module) of
+      true  -> return_module_name(I);
+      false -> ok
+    end,
     Res
   end), FS }.
 
@@ -143,25 +146,13 @@ allows_fast_compilation([{defmodule,_,_}|T]) -> allows_fast_compilation(T);
 allows_fast_compilation([]) -> true;
 allows_fast_compilation(_) -> false.
 
-%% Escape the module name, removing slashes, dots,
-%% so it can be loaded by Erlang.
+%% Generate module names from code server.
 
-escape_module(Module) when is_atom(Module) ->
-  escape_module(atom_to_list(Module));
+retrieve_module_name() ->
+  gen_server:call(elixir_code_server, retrieve_module_name).
 
-escape_module(Module) when is_binary(Module) ->
-  escape_module(binary_to_list(Module));
-
-escape_module(Module) when is_list(Module) ->
-  list_to_atom(escape_each(Module)).
-
-escape_each([H|T]) when H >= $A, H =< $Z; H >= $a, H =< $z; H >= $0, H =< $9; H == $- ->
-  [H|escape_each(T)];
-
-escape_each([_|T]) ->
-  [$_|escape_each(T)];
-
-escape_each([]) -> [].
+return_module_name(I) ->
+  gen_server:cast(elixir_code_server, { return_module_name, I }).
 
 %% Receives a module Binary and outputs it in the given path.
 

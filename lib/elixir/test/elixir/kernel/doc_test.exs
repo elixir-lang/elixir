@@ -17,8 +17,8 @@ defmodule Kernel.DocTest do
       assert CompiledWithDocs.__info__(:docs) == expected
       assert CompiledWithDocs.__info__(:moduledoc) == { 1, "moduledoc" }
     after
-      :code.purge CompiledWithDocs
       :code.delete CompiledWithDocs
+      :code.purge CompiledWithDocs
     end
   end
 
@@ -33,8 +33,8 @@ defmodule Kernel.DocTest do
       assert CompiledWithDocs.__info__(:moduledoc) == nil
     after
       Code.compiler_options(docs: true)
-      :code.purge CompiledWithDocs
       :code.delete CompiledWithDocs
+      :code.purge CompiledWithDocs
     end
   end
 end

@@ -6,6 +6,8 @@
   argv=[],
   loaded=[],
   at_exit=[],
+  pool=[],
+  counter=0,
   compiler_options=[{docs,true}]
 }).
 
@@ -51,6 +53,15 @@ handle_call(argv, _From, Config) ->
 handle_call(compiler_options, _From, Config) ->
   { reply, Config#elixir_code_server.compiler_options, Config };
 
+handle_call(retrieve_module_name, _From, Config) ->
+  case Config#elixir_code_server.pool of
+    [H|T] ->
+      { reply, module_tuple(H), Config#elixir_code_server{pool=T} };
+    [] ->
+      Counter = Config#elixir_code_server.counter,
+      { reply, module_tuple(Counter), Config#elixir_code_server{counter=Counter+1} }
+  end;
+
 handle_call(_Request, _From, Config) ->
   { reply, undef, Config }.
 
@@ -73,6 +84,9 @@ handle_cast({ unload_files, Files }, Config) ->
   Unloaded = lists:foldl(fun(File, Acc) -> orddict:erase(File, Acc) end, Current, Files),
   { noreply, Config#elixir_code_server{loaded=Unloaded} };
 
+handle_cast({ return_module_name, I }, #elixir_code_server{pool=Pool} = Config) ->
+  { noreply, Config#elixir_code_server{pool=[I|Pool]} };
+
 handle_cast(_Request, Config) ->
   { noreply, Config }.
 
@@ -86,3 +100,5 @@ terminate(Reason, Config) ->
 
 code_change(_Old, Config, _Extra) ->
   { ok, Config }.
+
+module_tuple(I) -> { list_to_atom(lists:concat([elixir_compiler_, I])), I }.

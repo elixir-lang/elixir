@@ -136,9 +136,8 @@ build(Line, File, Module) ->
 %% Receives the module representation and evaluates it.
 
 eval_form(Line, Module, Block, Vars, RawS) ->
-  Temp = ?ELIXIR_ATOM_CONCAT(["COMPILE-",Module]),
   S = scope_for_eval(Module, RawS),
-  { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Temp, Vars, S),
+  { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Vars, S),
   elixir_def_overridable:store_pending(Module),
   eval_callbacks(Line, Module, before_compile, [Module], NewS),
   elixir_def_overridable:store_pending(Module),
