@@ -174,7 +174,7 @@ defmodule IEx do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
 
     scope  = :elixir.scope_for_eval(
-      file: 'iex',
+      file: "iex",
       delegate_locals_to: IEx.Helpers
     )
 

@@ -54,7 +54,7 @@ start_cli() ->
 
 scope_for_eval(Opts) ->
   case lists:keyfind(file, 1, Opts) of
-    { file, File } -> to_binary(File);
+    { file, RawFile } -> File = to_binary(RawFile);
     false -> File = <<"nofile">>
   end,
 
