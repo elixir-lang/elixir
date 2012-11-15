@@ -52,28 +52,41 @@ defmodule Code do
   end
 
   @doc """
-  Evalutes the contents given by string. The second argument is the binding
-  (which should be a Keyword) followed by a keyword list of options. The
-  options can be:
+  Evalutes the contents given by string. The second argument is the
+  binding (which should be a keyword) followed by a keyword list of
+  environment options. Those options can be:
 
   * `:file` - the file to be considered in the evaluation
   * `:line` - the line the script starts
+  * `:aliases` - a list of tuples with the alias and its target
+  * `:requires` - a list of modules required
+  * `:functions` - a list of tuples where the first element is a module
+    and the second a list of imported function names and arity
+  * `:macros` - a list of tuples where the first element is a module
+    and the second a list of imported macro names and arity
   * `:delegate_locals_to` - delegate local calls to the given module,
-    otherwise functions are evaluated inside Erlang's default scope.
+    the default is to not delegate
 
   ## Examples
 
       Code.eval "a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
-  When passing the __ENV__'s file and line, we could simply get
-  the location which already returns both fields as a keyword list:
+  For convenience, you can my pass `__ENV__` as argument and
+  all imports, requires and aliases will be automatically carried
+  over:
 
-      Code.eval "a + b", [a: 1, b: 2], __ENV__.location
+      Code.eval "a + b", [a: 1, b: 2], __ENV__
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
-  def eval(string, binding // [], opts // []) do
+  def eval(string, binding // [], opts // [])
+
+  def eval(string, binding, Macro.Env[] = env) do
+    eval(string, binding, env.to_keywords)
+  end
+
+  def eval(string, binding, opts) do
     { value, binding, _scope } =
       :elixir.eval :unicode.characters_to_list(string), binding, opts
     { value, binding }
@@ -82,15 +95,8 @@ defmodule Code do
   @doc """
   Evalutes the quoted contents.
 
-  ## Options
-
-  This function accepts a list of options. The supported
-  options are:
-
-  * `:file` - The filename to be used in stacktraces
-    and the file reported in the __ENV__ variable.
-
-  * `:line` - The line reported in the __ENV__ variable.
+  This function accepts a list of environment options.
+  Check `Code.eval` for more information.
 
   ## Examples
 
@@ -99,8 +105,8 @@ defmodule Code do
       Code.eval_quoted contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
 
-  For convenience, you can also pass the current __ENV__ and
-  the proper information will be extracted:
+  For convenience, you can my pass `__ENV__` as argument and
+  all options will be automatically extracted from the environment:
 
       Code.eval_quoted contents, [a: 1, b: 2], __ENV__
       #=> { 3, [ {:a, 1}, {:b, 2} ] }
@@ -109,7 +115,7 @@ defmodule Code do
   def eval_quoted(quoted, binding // [], opts // [])
 
   def eval_quoted(quoted, binding, Macro.Env[] = env) do
-    eval_quoted(quoted, binding, env.location)
+    eval_quoted(quoted, binding, env.to_keywords)
   end
 
   def eval_quoted(quoted, binding, opts) do

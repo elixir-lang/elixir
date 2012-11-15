@@ -5,16 +5,18 @@ defmodule Macro.Env do
   @type aliases :: [{ module, module }]
   @type context :: :assign | :guard | nil
   @type requires :: [module]
+  @type functions :: [{ module, [name_arity] }]
   @type macros :: [{ module, [name_arity] }]
 
   fields = [:module, :file, :line, :function,
-            :aliases, :context, :requires, :macros]
+            :aliases, :context, :requires, :functions, :macros]
 
   types  = quote do: [module: module, file: file, line: line,
-    function: name_arity, aliases: aliases, requires: requires, macros: macros]
+    function: name_arity, aliases: aliases, requires: requires,
+    functions: functions, macros: macros]
 
   Record.deffunctions(fields, __MODULE__)
-  Record.deftypes(fields, types, __MODULE__)
+  Record.deftypes(fields, types, __ENV__)
 
   @moduledoc """
   A record that contains compile time environment information,
@@ -59,6 +61,11 @@ defmodule Macro.Env do
   Returns the list of required modules.
   """
   def requires(record)
+
+  @doc """
+  Returns a list of functions imported from each module.
+  """
+  def functions(record)
 
   @doc """
   Returns a list of macros imported from each module.

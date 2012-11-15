@@ -30,7 +30,7 @@ defmodule Protocol do
         ]
 
         # Import the new dsl that holds the new def
-        import Protocol.DSL
+        import :macros, Protocol.DSL
 
         # Set up a clear slate to store defined functions
         @functions []
@@ -109,7 +109,7 @@ defmodule Protocol do
       end]
     end
 
-    Module.eval_quoted env, contents
+    Module.eval_quoted env.module, contents, [], env.location
   end
 
   # Defines meta information about the protocol and internal callbacks.
@@ -162,7 +162,7 @@ defmodule Protocol do
       end
     end
 
-    Module.eval_quoted env, [meta, impl_for, impl_bang]
+    Module.eval_quoted env.module, [meta, impl_for, impl_bang], [], env.location
   end
 
   # Returns the default conversions according to the given

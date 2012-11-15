@@ -8,7 +8,7 @@ eval(Forms) ->
   Result.
 
 eval(Forms, Binding) ->
-  { Transformed, _ } = elixir_translator:translate(Forms, #elixir_scope{}),
+  { Transformed, _ } = elixir_translator:translate(Forms, elixir:scope_for_eval([])),
   { value, Result, NewBinding } = erl_eval:exprs(Transformed, Binding),
   { Result, NewBinding }.
 

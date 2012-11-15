@@ -86,7 +86,7 @@ defmodule Record do
       :elixir_module.eval_quoted(env, contents, [], [])
     else
       contents = [quote(do: @__record__ unquote(escaped))|contents]
-      Module.eval_quoted(env, contents)
+      Module.eval_quoted(env.module, contents, [], env.location)
     end
   end
 
@@ -110,7 +110,7 @@ defmodule Record do
 
     # Special case for bootstraping purposes
     if :erlang.function_exported(Module, :eval_quoted, 2) do
-      Module.eval_quoted(env, contents)
+      Module.eval_quoted(env.module, contents, [], env.location)
     end
   end
 
@@ -154,7 +154,7 @@ defmodule Record do
       end
     end
 
-    Module.eval_quoted(env, contents)
+    Module.eval_quoted(env.module, contents, [], env.location)
   end
 
   # Implements the access macro used by records.

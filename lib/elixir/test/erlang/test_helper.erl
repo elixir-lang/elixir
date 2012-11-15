@@ -30,7 +30,7 @@ run_and_remove(Fun, Modules) ->
 % Throws an error with the Erlang Abstract Form from the Elixir string
 throw_elixir(String) ->
   Forms = elixir_translator:'forms!'(String, 1, "nofile", []),
-  Tree = elixir_translator:translate(Forms, #elixir_scope{}),
+  Tree = elixir_translator:translate(Forms, elixir:scope_for_eval([])),
   erlang:error(io:format("~p~n", [Tree])).
 
 % Throws an error with the Erlang Abstract Form from the Erlang string

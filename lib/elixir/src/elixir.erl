@@ -53,17 +53,40 @@ start_cli() ->
 %% EVAL HOOKS
 
 scope_for_eval(Opts) ->
-  File = case lists:keyfind(file, 1, Opts) of
-    { file, F } -> to_binary(F);
-    false -> <<"nofile">>
+  case lists:keyfind(file, 1, Opts) of
+    { file, File } -> to_binary(File);
+    false -> File = <<"nofile">>
   end,
 
-  Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
-    { delegate_locals_to, L } -> L;
-    false -> nil
+  case lists:keyfind(delegate_locals_to, 1, Opts) of
+    { delegate_locals_to, Local } -> Local;
+    false -> Local = nil
   end,
 
-  #elixir_scope{file=File,local=Local}.
+  case lists:keyfind(aliases, 1, Opts) of
+    { aliases, Aliases } -> Aliases;
+    false -> Aliases = []
+  end,
+
+  case lists:keyfind(requires, 1, Opts) of
+    { requires, Requires } -> Requires;
+    false -> Requires = elixir_dispatch:default_requires()
+  end,
+
+  case lists:keyfind(functions, 1, Opts) of
+    { functions, Functions } -> Functions;
+    false -> Functions = elixir_dispatch:default_functions()
+  end,
+
+  case lists:keyfind(macros, 1, Opts) of
+    { macros, Macros } -> Macros;
+    false -> Macros = elixir_dispatch:default_macros()
+  end,
+
+  #elixir_scope{
+    file=File, local=Local,
+    macros=Macros, functions=Functions,
+    requires=Requires, aliases=Aliases }.
 
 %% String evaluation
 

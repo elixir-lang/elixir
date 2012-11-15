@@ -23,43 +23,40 @@ defmodule Module do
 
   @doc """
   Evalutes the quotes contents in the given module context.
+
+  A list of environment options can also be given as argument.
+  Check `Code.eval` for more information.
+
   Raises an error if the module was already compiled.
-
-  ## Options
-
-  This function accepts a list of options. The supported
-  options are:
-
-  * `:file` - The filename to be used in stacktraces
-    and the file reported in the __ENV__ variable.
-
-  * `:line` - The line reported in the __ENV__ variable.
 
   ## Examples
 
       defmodule Foo do
         contents = quote do: (def sum(a, b), do: a + b)
-        Module.eval_quoted __MODULE__, contents, []
+        Module.eval_quoted __MODULE__, contents
       end
 
       Foo.sum(1, 2) #=> 3
 
-  This function also accepts a `Macro.Env` as first argument. This
-  is useful to evalute the quoted contents inside an existing
-  environment (considering the environemnt module, line and file):
+  For convenience, you can my pass `__ENV__` as argument and
+  all options will be automatically extracted from the environment:
 
       defmodule Foo do
         contents = quote do: (def sum(a, b), do: a + b)
-        Module.eval_quoted __ENV__, contents, []
+        Module.eval_quoted __MODULE__, contents, [], __ENV__
       end
 
       Foo.sum(1, 2) #=> 3
 
   """
-  def eval_quoted(env, quoted, binding // [], opts // [])
+  def eval_quoted(module, quoted, binding // [], opts // [])
 
   def eval_quoted(Macro.Env[module: module] = env, quoted, binding, opts) do
-    eval_quoted(module, quoted, binding, Keyword.merge(env.location, opts))
+    eval_quoted(module, quoted, binding, Keyword.merge(env.to_keywords, opts))
+  end
+
+  def eval_quoted(module, quoted, binding, Macro.Env[] = env) do
+    eval_quoted(module, quoted, binding, env.to_keywords)
   end
 
   def eval_quoted(module, quoted, binding, opts) do

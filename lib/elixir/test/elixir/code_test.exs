@@ -28,6 +28,11 @@ defmodule CodeTest do
     assert CodeTest.Sample.eval_quoted_info() == { CodeTest.Sample, "sample.ex", 13 }
   end
 
+  test :eval_quoted_with_env do
+    alias :lists, as: MyList
+    assert Code.eval_quoted(quote(do: MyList.flatten [[1,2,3]]), [], __ENV__) == { [1,2,3],[] }
+  end
+
   test :require do
     Code.require_file fixture_path("code_sample.exs")
     assert fixture_path("code_sample.exs") in Code.loaded_files
