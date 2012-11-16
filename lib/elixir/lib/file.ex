@@ -59,8 +59,16 @@ defmodule File do
   that interact with the filesystem have their naming
   based on its UNIX variants. For example, deleting a
   file is done with `File.rm`. Getting its stats with
-  `File.stat`. If you want to read or write to a file
-  in chunks, check the IO module.
+  `File.stat`.
+
+  In order to write and read files, one must use the
+  functions in the IO module. By default, a file is
+  opened on binary mode which requires the functions
+  `IO.binread`, `IO.binwrite` and `IO.binreadline` to
+  interact with the file. A developer may pass `:utf8`
+  as an option when opening the file and then all other
+  functions from IO are available, since they work directly
+  with Unicode data.
 
   Most of the functions in this module return `:ok`
   or `{ :ok, result }` in case of success, `{ :error, reason }`
@@ -974,6 +982,12 @@ defmodule File do
                      Note that the file size obtained with `stat/1` will most probably not
                      match the number of bytes that can be read from a compressed file.
 
+  * `:utf8` - This option denotes how data is actually stored in the disk file and
+              makes the file perform automatic translation of characters to and from utf-8.
+              If data is sent to a file in a format that cannot be converted to the utf-8
+              or if data is read by a function that returns data in a format that cannot cope
+              with the character range of the data, an error occurs and the file will be closed.
+
   If a function is given to modes (instead of a list), it dispatches to `open/3`.
 
   Check `http://www.erlang.org/doc/man/file.html#open-2` for more information about
@@ -1000,7 +1014,7 @@ defmodule File do
   def open(path, modes // [])
 
   def open(path, modes) when is_list(modes) do
-    F.open(path, open_defaults(modes, true, true))
+    F.open(path, open_defaults(modes, true))
   end
 
   def open(path, function) when is_function(function) do
@@ -1229,22 +1243,18 @@ defmodule File do
     join Enum.reverse(acc)
   end
 
-  defp open_defaults([:charlist|t], add_encoding, _add_binary) do
-    open_defaults(t, add_encoding, false)
+  defp open_defaults([:charlist|t], _add_binary) do
+    open_defaults(t, false)
   end
 
-  defp open_defaults([{:encoding, _} = h|t], _add_encoding, add_binary) do
-    [h|open_defaults(t, false, add_binary)]
+  defp open_defaults([:utf8|t], add_binary) do
+    open_defaults([{ :encoding, :utf8 }|t], add_binary)
   end
 
-  defp open_defaults([h|t], add_encoding, add_binary) do
-    [h|open_defaults(t, add_encoding, add_binary)]
+  defp open_defaults([h|t], add_binary) do
+    [h|open_defaults(t, add_binary)]
   end
 
-  defp open_defaults([], add_encoding, add_binary) do
-    options = []
-    if add_encoding, do: options = [{:encoding, :unicode}|options]
-    if add_binary,   do: options = [:binary|options]
-    options
-  end
+  defp open_defaults([], true),  do: [:binary]
+  defp open_defaults([], false), do: []
 end

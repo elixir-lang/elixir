@@ -1,5 +1,6 @@
 * enhancements
   * [IEx] Only show documented functions and also show docs for default generated functions
+  * [IO] Add `IO.binread`, `IO.binwrite` and `IO.binreadline` to handle raw binary file operations
   * [ExUnit] Add support for user configuration at `HOME/.ex_unit.exs`
   * [ExUnit] Add support for custom formatters via a well-defined behaviour
   * [Kernel] Add support for `defrecordp`
@@ -19,6 +20,7 @@
   * [Kernel] Fix an issue where variables inside clauses remained unassigned
   * [Kernel] Ensure `defoverridable` functions can be referred in many clauses
   * [Kernel] Allow keywords as function names when following a dot (useful when integrating with erlang libraries)
+  * [File] File is opened by default on binary mode instead of utf-8
 
 * deprecations
   * [Behaviour] `defcallback/1` was deprecated in favor of `defcallback/2` which matches erlang `@callbacks`

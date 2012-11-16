@@ -589,7 +589,7 @@ defmodule FileTest do
     end
 
     test :open_utf8_by_default do
-      { :ok, file } = File.open(fixture_path("utf8.txt"))
+      { :ok, file } = File.open(fixture_path("utf8.txt"), [:utf8])
       assert IO.gets(file, "") == "Русский\n"
       assert File.close(file) == :ok
     end
@@ -612,8 +612,20 @@ defmodule FileTest do
       end
     end
 
+    test :open_with_binwrite_permission do
+      fixture = tmp_path("tmp_text.txt")
+      try do
+        { :ok, file } = File.open(fixture, [:write])
+        assert IO.binwrite(file, "Русский") == :ok
+        assert File.close(file) == :ok
+        assert File.read(fixture) == { :ok, "Русский" }
+      after
+        File.rm(fixture)
+      end
+    end
+
     test :open_utf8_and_charlist do
-      { :ok, file } = File.open(fixture_path("utf8.txt"), [:charlist])
+      { :ok, file } = File.open(fixture_path("utf8.txt"), [:charlist, :utf8])
       assert IO.gets(file, "") == [1056,1091,1089,1089,1082,1080,1081,10]
       assert File.close(file) == :ok
     end

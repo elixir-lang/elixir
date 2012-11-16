@@ -3,7 +3,7 @@ defmodule IO do
   Module responsible for doing IO. Many functions in this
   module expects an IO device and an io data encoded in UTF-8.
 
-  An IO device must be a pid is an atom representing a process.
+  An IO device must be a pid or an atom representing a process.
   For convenience, Elixir provides `:stdio` and `:stderr` as
   shortcut to Erlang's `:standard_io` and `:standard_error`.
 
@@ -39,7 +39,20 @@ defmodule IO do
   end
 
   @doc """
-  Read a line from the IO device. It returns:
+  Reads `count` bytes from the IO device as binary,
+  no unicode conversion happens.
+
+  Check `read/2` for more information.
+  """
+  def binread(device // :stdio, count) do
+    case :file.read(map_dev(device), count) do
+      { :ok, data } -> data
+      other -> other
+    end
+  end
+
+  @doc """
+  Reads a line from the IO device. It returns:
 
   * `data` - The input characters.
 
@@ -54,6 +67,19 @@ defmodule IO do
   """
   def readline(device // :stdio) do
     :io.get_line(map_dev(device), "")
+  end
+
+  @doc """
+  Reads a line from the IO device as binary,
+  no unicode conversion happens.
+
+  Check `readline/1` for more information.
+  """
+  def binreadline(device // :stdio) do
+    case :file.read_line(map_dev(device)) do
+      { :ok, data } -> data
+      other -> other
+    end
   end
 
   @doc """
@@ -75,6 +101,16 @@ defmodule IO do
   """
   def write(device // :stdio, item) do
     :io.put_chars map_dev(device), to_iodata(item)
+  end
+
+  @doc """
+  Writes the given argument to the given device
+  as a binary, no unicode conversion happens.
+
+  Check `write/2` for more information.
+  """
+  def binwrite(device // :stdio, item) do
+    :file.write map_dev(device), to_iodata(item)
   end
 
   @doc """
