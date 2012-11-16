@@ -101,4 +101,4 @@ terminate(Reason, Config) ->
 code_change(_Old, Config, _Extra) ->
   { ok, Config }.
 
-module_tuple(I) -> { list_to_atom("elixir_compiler_" ++ [I]), I }.
+module_tuple(I) -> { list_to_atom("elixir_compiler_" ++ integer_to_list(I)), I }.
