@@ -73,7 +73,7 @@ defmodule Enum do
 
   @doc """
   Invokes the given `fun` for each item in the `collection` and returns true if
-  each invocation returns true as well, otherwise it shirt-circuits and returns
+  each invocation returns true as well, otherwise it short-circuits and returns
   false.
 
   ## Examples
