@@ -1,3 +1,5 @@
+# v0.7.1 (2012-11-18)
+
 * enhancements
   * [IEx] Only show documented functions and also show docs for default generated functions
   * [IO] Add `IO.binread`, `IO.binwrite` and `IO.binreadline` to handle raw binary file operations
