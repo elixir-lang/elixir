@@ -1,4 +1,4 @@
-# This file has its compilation step because
+# This file has its own compilation step because
 # it needs to parse String.Unicode data and
 # compile a digested module.
 defmodule String.Unicode do
@@ -28,12 +28,12 @@ defmodule String.Unicode do
 
   seqs_path = File.expand_path("../NamedSequences.txt", __FILE__)
 
-  seqs = Enum.map(File.iterator!(seqs_path), fn(line) ->
+  seqs = Enum.map File.iterator!(seqs_path), fn(line) ->
     [ _name, codepoints ] = :binary.split(line, ";", [:global])
-    codepoints = Enum.filter(:binary.split(codepoints, " ", [:global, :trim]),
-                             fn(x) -> size(x) > 0 end)
-    Enum.map(codepoints, fn(x) -> to_binary.(x) end)
-  end)
+    codepoints = :binary.split(codepoints, " ", [:global, :trim])
+    codepoints = Enum.filter(codepoints, fn(x) -> size(x) > 0 end)
+    Enum.map codepoints, to_binary.(&1)
+  end
 
   # Downcase
 
