@@ -1,9 +1,10 @@
-REBAR:=$(shell echo `pwd`/rebar)
-ELIXIRC:=bin/elixirc --debug-info --ignore-module-conflict $(ELIXIRC_OPTS)
-ERLC:=erlc -I lib/elixir/include
-ERL:=erl -I lib/elixir/include -noshell -env ERL_LIBS $ERL_LIBS:lib
-VERSION:=0.7.1
-RELEASE_FLAG:=.release
+REBAR := $(shell echo `pwd`/rebar)
+ELIXIRC := bin/elixirc --debug-info --ignore-module-conflict $(ELIXIRC_OPTS)
+ERLC := erlc -I lib/elixir/include
+ERL := erl -I lib/elixir/include -noshell -env ERL_LIBS $ERL_LIBS:lib
+VERSION := 0.7.1.dev
+RELEASE_FLAG := .release
+INSTALL_PATH := /usr/local
 
 .PHONY: 1
 .NOTPARALLEL: compile
@@ -67,6 +68,17 @@ $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,eex,EEx))
 $(eval $(call APP_TEMPLATE,mix,Mix))
 $(eval $(call APP_TEMPLATE,iex,IEx))
+
+install: compile
+	@ echo "==> elixir (install)"
+	for dir in lib/*; do \
+		install -m755 -d $(INSTALL_PATH)/lib/elixir/$$dir/ebin; \
+		install -m644 $$dir/ebin/* $(INSTALL_PATH)/lib/elixir/$$dir/ebin; \
+	done
+	install -m755 -d $(INSTALL_PATH)/lib/elixir/bin
+	install -m755 $(filter-out %.bat, $(wildcard bin/*)) $(INSTALL_PATH)/lib/elixir/bin
+	install -m755 -d $(INSTALL_PATH)/bin
+	ln -sf $(INSTALL_PATH)/lib/elixir/bin/* $(INSTALL_PATH)/bin
 
 clean:
 	@ cd lib/elixir && $(REBAR) clean
