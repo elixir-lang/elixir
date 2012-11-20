@@ -31,9 +31,9 @@ defmodule SystemTest do
 
   test :env_utf8 do
     assert System.get_env("SYSTEM_ELIXIR_UTF_TEST_VAR") == nil
-    System.put_env("SYSTEM_ELIXIR_UTF_TEST_VAR", "東京都")
+    System.put_env("SYSTEM_ELIXIR_UTF_TEST_VAR", "olé")
     assert length(:os.getenv("SYSTEM_ELIXIR_UTF_TEST_VAR")) == 3
-    assert System.get_env("SYSTEM_ELIXIR_UTF_TEST_VAR") == "東京都"
+    assert System.get_env("SYSTEM_ELIXIR_UTF_TEST_VAR") == "olé"
   end
 
   test :cmd do
