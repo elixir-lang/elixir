@@ -24,9 +24,16 @@ defmodule SystemTest do
   end
 
   test :env do
-    assert System.get_env("SYSTEM_ENV_TEST_VAR") == nil
-    System.put_env('SYSTEM_ENV_TEST_VAR', 'SAMPLE')
-    assert System.get_env("SYSTEM_ENV_TEST_VAR") == "SAMPLE"
+    assert System.get_env("SYSTEM_ELIXIR_ENV_TEST_VAR") == nil
+    System.put_env('SYSTEM_ELIXIR_ENV_TEST_VAR', 'SAMPLE')
+    assert System.get_env("SYSTEM_ELIXIR_ENV_TEST_VAR") == "SAMPLE"
+  end
+
+  test :env_utf8 do
+    assert System.get_env("SYSTEM_ELIXIR_UTF_TEST_VAR") == nil
+    System.put_env("SYSTEM_ELIXIR_UTF_TEST_VAR", "東京都")
+    assert length(:os.getenv("SYSTEM_ELIXIR_UTF_TEST_VAR")) == 3
+    assert System.get_env("SYSTEM_ELIXIR_UTF_TEST_VAR") == "東京都"
   end
 
   test :cmd do

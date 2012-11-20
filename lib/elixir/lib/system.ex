@@ -93,7 +93,7 @@ defmodule System do
   name of the variable and Value its value.
   """
   def get_env do
-    Enum.map :os.getenv, list_to_binary &1
+    Enum.map :os.getenv, :unicode.characters_to_binary &1
   end
 
   @doc """
@@ -104,7 +104,7 @@ defmodule System do
   def get_env(varname) do
     case :os.getenv(to_char_list(varname)) do
       false -> nil
-      other -> list_to_binary(other)
+      other -> :unicode.characters_to_binary(other)
     end
   end
 
@@ -119,8 +119,8 @@ defmodule System do
   @doc """
   Sets a new `value` for the environment variable `varname`.
   """
-  def put_env(varname, value) do
-   :os.putenv to_char_list(varname), to_char_list(value)
+  def put_env(varname, value) when is_binary(value) or is_list(value) do
+   :os.putenv to_char_list(varname), :unicode.characters_to_list(value)
   end
 
   @doc """
