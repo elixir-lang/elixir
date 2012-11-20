@@ -81,14 +81,9 @@ defmodule URI do
     <<c>>
   end
 
-  defp percent(c), do: escape_byte(c)
-
-  defp escape_byte(c), do: "%" <> hex(c)
+  defp percent(c), do: "%" <> hex(bsr(c, 4)) <> hex(band(c, 15))
 
   defp hex(n) when n <= 9, do: <<n + ?0>>
-  defp hex(n) when n > 15 do
-    hex(bsr(n, 4)) <> hex(band(n, 15))
-  end
   defp hex(n), do: <<n + ?A - 10>>
 
   @doc """
