@@ -8,7 +8,8 @@ defmodule System do
   # Tries to run `git describe --always --tags`. In case of success
   # returns the most recent tag, otherwise returns an empty string.
   defmacrop get_describe do
-    if :os.find_executable('git') do
+    dotgit = File.join(File.cwd!, ".git")
+    if :os.find_executable('git') && File.exists?(dotgit) do
       data = :os.cmd('git describe --always --tags')
       Regex.replace %r/\n/, to_binary(data), ""
     else
