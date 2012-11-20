@@ -32,7 +32,7 @@ defmodule Regex.BinaryTest do
   end
 
   test :opts do
-    assert Regex.opts(Regex.compile!("foo", "u")) == "u"
+    assert Regex.opts(Regex.compile!("foo", "x")) == "x"
   end
 
   test :groups do
@@ -133,7 +133,7 @@ defmodule Regex.ListTest do
   end
 
   test :opts do
-    assert Regex.opts(Regex.compile!('foo', 'u')) == "u"
+    assert Regex.opts(Regex.compile!('foo', 'x')) == "x"
   end
 
   test :match? do
