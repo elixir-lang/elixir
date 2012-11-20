@@ -1,3 +1,9 @@
+* bug fix
+  * Compilation stack no longer fails if environment variables contain utf-8 entries
+
+* deprecations
+  * [Regex] Unicode regex option `u` was deprecated since it has no effect
+
 # v0.7.1 (2012-11-18)
 
 * enhancements

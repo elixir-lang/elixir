@@ -2,7 +2,7 @@ REBAR := $(shell echo `pwd`/rebar)
 ELIXIRC := bin/elixirc --debug-info --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -env ERL_LIBS $ERL_LIBS:lib
-VERSION := 0.7.1.dev
+VERSION := 0.7.2.dev
 RELEASE_FLAG := .release
 INSTALL_PATH := /usr/local
 
