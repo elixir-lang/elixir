@@ -79,35 +79,8 @@ defmodule Behaviour do
   end
 
   @doc false
-  defmacro defcallback(fun) do
-    IO.write "[WARNING] Behaviour.defcallback/1 is deprecated, please use defcallback/2 instead\n#{Exception.formatted_stacktrace}"
-
-    { name, args } = :elixir_clauses.extract_args(fun)
-    length = length(args)
-
-    { args, defaults } = Enum.map_reduce(args, 0, function do
-      { ://, _, [expr, _] }, acc ->
-        { expr, acc + 1 }
-      expr, acc ->
-        { expr, acc }
-    end)
-
-    attributes = Enum.map (length - defaults)..length, fn(i) ->
-      quote do
-        @__behaviour_callbacks { unquote(name), unquote(i) }
-      end
-    end
-
-    quote do
-      __block__ unquote(attributes)
-      def unquote(name)(unquote_splicing(args))
-    end
-  end
-
-  @doc false
   defmacro __using__(_) do
     quote do
-      Module.register_attribute(__MODULE__, :__behaviour_callbacks, accumulate: true)
       Module.register_attribute(__MODULE__, :__behaviour_docs, accumulate: true)
       @before_compile unquote(__MODULE__)
       import unquote(__MODULE__)
@@ -117,13 +90,6 @@ defmodule Behaviour do
   @doc false
   defmacro __before_compile__(_) do
     quote do
-      if @__behaviour_callbacks != [] do
-        @doc false
-        def behaviour_info(:callbacks) do
-          @__behaviour_callbacks
-        end
-      end
-
       @doc false
       def __behaviour__(:callbacks) do
         __MODULE__.behaviour_info(:callbacks)

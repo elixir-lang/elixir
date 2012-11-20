@@ -33,7 +33,7 @@
 * deprecations
   * [Behaviour] `defcallback/1` was deprecated in favor of `defcallback/2` which matches erlang `@callbacks`
   * [Enum] `Enum.times` was deprecated in favor of using ranges
-  * [System] `halt` was moved to System module
+  * [System] `halt` was moved to `System` module
 
 # v0.7.0 (2012-10-20)
 

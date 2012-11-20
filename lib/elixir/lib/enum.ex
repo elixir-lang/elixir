@@ -777,24 +777,6 @@ defmodule Enum do
     end
   end
 
-  @doc false
-  def times(times, function) when times >= 0 do
-    IO.write "[WARNING] Enum.times/2 is deprecated, please use ranges instead\n#{Exception.formatted_stacktrace}"
-    case is_function(function, 0) do
-      true ->
-        do_times_0(times, 1, function)
-      _ ->
-        do_times_1(times, 1, function)
-    end
-    times
-  end
-
-  @doc false
-  def times(times, acc, function) when times >= 0 do
-    IO.write "[WARNING] Enum.times/3 is deprecated, please use ranges instead\n#{Exception.formatted_stacktrace}"
-    do_times_2(times, 1, function, acc)
-  end
-
   @doc """
   Zips corresponding elements from two collections into one list
   of tuples. The number of elements in the resulting list is
@@ -1302,33 +1284,6 @@ defmodule Enum do
 
   defp do_take_while(:stop, _, _) do
     []
-  end
-
-  ## times
-
-  defp do_times_0(limit, counter, _function) when counter >= limit do
-  end
-
-  defp do_times_0(limit, counter, function) do
-    function.()
-    do_times_0(limit, 1 + counter, function)
-  end
-
-  defp do_times_1(limit, counter, _function) when counter >= limit do
-  end
-
-  defp do_times_1(limit, counter, function) do
-    function.(counter)
-    do_times_1(limit, 1 + counter, function)
-  end
-
-  defp do_times_2(limit, counter, _function, acc) when counter >= limit do
-    acc
-  end
-
-  defp do_times_2(limit, counter, function, acc) do
-    new_acc = function.(counter, acc)
-    do_times_2(limit, 1 + counter, function, new_acc)
   end
 
   ## zip
