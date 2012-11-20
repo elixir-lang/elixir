@@ -29,13 +29,6 @@ defmodule SystemTest do
     assert System.get_env("SYSTEM_ELIXIR_ENV_TEST_VAR") == "SAMPLE"
   end
 
-  test :env_utf8 do
-    assert System.get_env("SYSTEM_ELIXIR_UTF_TEST_VAR") == nil
-    System.put_env("SYSTEM_ELIXIR_UTF_TEST_VAR", "olé")
-    assert length(:os.getenv("SYSTEM_ELIXIR_UTF_TEST_VAR")) == 3
-    assert System.get_env("SYSTEM_ELIXIR_UTF_TEST_VAR") == "olé"
-  end
-
   test :cmd do
     assert is_binary(System.cmd "binary")
     assert is_list(System.cmd 'binary')
