@@ -1,6 +1,21 @@
 defrecord IEx.Config, binding: nil, cache: '', counter: 1, scope: nil, result: nil
 
 defmodule IEx do
+  defmodule CLI do
+    @moduledoc false
+
+    @doc """
+    Defines the behavour to start IEx from the command line.
+    """
+    def start do
+      IEx.run([remsh: get_remsh(:init.get_plain_arguments)])
+    end
+
+    defp get_remsh(['--remsh',h|_]), do: list_to_binary(h)
+    defp get_remsh([_|t]), do: get_remsh(t)
+    defp get_remsh([]), do: nil
+  end
+
   @moduledoc """
   This module implements interactive Elixir. It provides a main
   function, `start` which will either delegate to `tty` or `simple`.
@@ -60,17 +75,6 @@ defmodule IEx do
   end
 
   @doc """
-  Interface to start IEx from CLI.
-  """
-  def cli do
-    run([remsh: get_remsh(:init.get_plain_arguments)])
-  end
-
-  defp get_remsh(['--remsh',h|_]), do: list_to_binary(h)
-  defp get_remsh([_|t]), do: get_remsh(t)
-  defp get_remsh([]),    do: nil
-
-  @doc """
   Runs IEx checking if tty is available or not.
   If so, invoke tty, otherwise go with the simple iex.
   """
@@ -78,6 +82,7 @@ defmodule IEx do
     if tty_works? do
       tty(opts)
     else
+      :user.start
       IO.puts "Warning: could not run smart terminal, falling back to dumb one"
       simple(opts)
     end
@@ -88,9 +93,6 @@ defmodule IEx do
   # driver twice, it would be nice and appropriate if we had
   # to do it just once.
   defp tty_works? do
-    # Dettack the error logger since we are spawning a new one
-    :error_logger.tty(false)
-
     try do
       port = Port.open { :spawn, :"tty_sl -c -e" }, [:eof]
       Port.close(port)
@@ -114,21 +116,8 @@ defmodule IEx do
       end
 
     function = fn ->
-      # We are inside the new tty and in a new process,
-      # reattach it the error logger.
-      :error_logger.tty(true)
       start config
     end
-
-    # Dettach the error logger because we are going to unregister
-    # the user process and start a new tty which will get control
-    # over the standardio. Dettaching it here allows us to get rid
-    # of warnings. We reattach it again when we get the new tty.
-    :error_logger.tty(false)
-
-    # Unregister the user process, user_drv command below
-    # will register the new one.
-    unregister_user_process
 
     args =
       if remote do
@@ -147,7 +136,8 @@ defmodule IEx do
     start boot_config(opts)
   end
 
-  # This is a callback invoked by Erlang shell utilities.
+  # This is a callback invoked by Erlang shell utilities
+  # when someone press Ctrl+G and adds 's Elixir-IEx'.
   @doc false
   def start(config // nil) do
     preload
@@ -170,9 +160,7 @@ defmodule IEx do
 
   ## Boot Helpers
 
-  defp boot_config(opts) do
-    IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
-
+  def boot_config(opts) do
     scope  = :elixir.scope_for_eval(
       file: "iex",
       delegate_locals_to: IEx.Helpers
@@ -186,10 +174,6 @@ defmodule IEx do
       binding: opts[:binding] || [],
       scope: scope
     ]
-  end
-
-  defp unregister_user_process do
-    if is_pid(Process.whereis(:user)), do: Process.unregister :user
   end
 
   defp set_expand_fun do

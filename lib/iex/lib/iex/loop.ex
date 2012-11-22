@@ -2,6 +2,7 @@ defmodule IEx.Loop do
   @moduledoc false
 
   def start(config) do
+    IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
     Process.put :iex_history, []
     { _, _, scope } = :elixir.eval('import IEx.Helpers', [], 0, config.scope)
     do_loop(config.scope(scope))
