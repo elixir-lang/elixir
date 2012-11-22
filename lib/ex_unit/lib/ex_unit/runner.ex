@@ -3,7 +3,8 @@ defmodule ExUnit.Runner do
 
   defrecord Config, formatter: ExUnit.CLIFormatter, max_cases: 4, taken_cases: 0
 
-  def run(config) do
+  def run(opts) do
+    config = ExUnit.Runner.Config.new opts
     config.formatter.suite_started
     loop config
   end

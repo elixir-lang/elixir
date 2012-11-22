@@ -66,11 +66,16 @@ defmodule ExUnit do
     ExUnit.Server.start_link
     configure(options)
     System.at_exit fn status ->
-      if status == 0, do: ExUnit.run
+      if status == 0 do
+        failures = ExUnit.run
+        if failures > 0, do: System.halt(1), else: System.halt(0)
+      end
     end
   end
 
-  @doc false
+  @doc """
+  Returns the configured user options.
+  """
   def user_options(user_config // nil) do
     user_config = user_config ||
       System.get_env("EXUNIT_CONFIG") ||
@@ -113,8 +118,6 @@ defmodule ExUnit do
   need to call it directly.
   """
   def run do
-    config   = ExUnit.Runner.Config.new ExUnit.Server.options
-    failures = ExUnit.Runner.run config
-    if failures > 0, do: System.halt(1), else: System.halt(0)
+    ExUnit.Runner.run ExUnit.Server.options
   end
 end
