@@ -60,6 +60,7 @@ defmodule EnumTest.List do
     assert Enum.drop([1,2,3], 2) == [3]
     assert Enum.drop([1,2,3], 3) == []
     assert Enum.drop([1,2,3], 4) == []
+    assert Enum.drop([1,2,3], -1) == [3]
     assert Enum.drop([], 3) == []
   end
 
@@ -205,6 +206,7 @@ defmodule EnumTest.List do
     assert Enum.take([1,2,3], 2) == [1,2]
     assert Enum.take([1,2,3], 3) == [1,2,3]
     assert Enum.take([1,2,3], 4) == [1,2,3]
+    assert Enum.take([1,2,3], -1) == [1,2]
     assert Enum.take([], 3) == []
   end
 

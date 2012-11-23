@@ -205,8 +205,8 @@ defmodule Enum do
   end
 
   @doc """
-  Drops the first `count` items from the collection. Expects an ordered
-  collection.
+  Drops the first `count` items from the collection.
+  Expects an ordered collection.
 
   ## Examples
 
@@ -215,9 +215,23 @@ defmodule Enum do
       Enum.drop [1,2,3], 0  #=> [1,2,3]
 
   """
-  @spec drop(t, non_neg_integer), do: t
-  def drop(collection, count) do
-    elem split(collection, count), 1
+  @spec drop(t, integer), do: t
+  def drop(collection, count) when is_list(collection) and count >= 0 do
+    do_drop(collection, count)
+  end
+
+  def drop(collection, count) when count >= 0 do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_drop(pointer, iterator, count)
+      list when is_list(list) ->
+        do_drop(list, count)
+    end
+  end
+
+  def drop(collection, count) when count < 0 do
+    { list, count } = iterate_and_count(collection, count)
+    drop(list, count)
   end
 
   @doc """
@@ -678,11 +692,14 @@ defmodule Enum do
   end
 
   @doc """
-  Splits the enumerable into two collections, leaving `count` elements in the
-  first one. If `count` is a negative number, it starts couting from the back
-  to the beginning of the collection. Be aware that a negative `count`
-  implies in an iteration through the whole collection.
-  Expects an ordered collection.
+  Splits the enumerable into two collections, leaving `count`
+  elements in the first one. If `count` is a negative number,
+  it starts couting from the back to the beginning of the
+  collection.
+
+  Be aware that a negative `count` implies the collection
+  will be iterate twice. One to calculate the position and
+  another one to do the actual splitting.
 
   ## Examples
 
@@ -708,10 +725,8 @@ defmodule Enum do
   end
 
   def split(collection, count) when count < 0 do
-    reducer = fn(x, acc) -> {x, acc + 1} end
-    { list , total_items } = Enum.map_reduce(collection, 0, reducer)
-    real_count = max(0, total_items - abs(count))
-    split(list, real_count)
+    { list, count } = iterate_and_count(collection, count)
+    split(list, count)
   end
 
   @doc """
@@ -748,9 +763,23 @@ defmodule Enum do
       Enum.take [1,2,3], 0  #=> []
 
   """
-  @spec take(t, non_neg_integer), do: t
-  def take(collection, count) do
-    elem split(collection, count), 0
+  @spec take(t, integer), do: t
+  def take(collection, count) when is_list(collection) and count >= 0 do
+    do_take(collection, count)
+  end
+
+  def take(collection, count) when count >= 0 do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_take(pointer, iterator, count)
+      list when is_list(list) ->
+        do_take(list, count)
+    end
+  end
+
+  def take(collection, count) when count < 0 do
+    { list, count } = iterate_and_count(collection, count)
+    take(list, count)
   end
 
   @doc """
@@ -808,6 +837,25 @@ defmodule Enum do
 
   defp to_list(:stop, _) do
     []
+  end
+
+  defp iterate_and_count(collection, count) do
+    { list, total_items } = do_iterate_and_count(collection)
+    { list, max(0, total_items - abs(count)) }
+  end
+
+  defp do_iterate_and_count(collection) when is_list(collection) do
+    { collection, length(collection) }
+  end
+
+  defp do_iterate_and_count(collection) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        reducer = fn(x, acc) -> { x, acc + 1 } end
+        do_map_reduce(pointer, iterator, [], 0, reducer)
+      list when is_list(list) ->
+        do_iterate_and_count(list)
+    end
   end
 
   ## Implementations
@@ -900,6 +948,32 @@ defmodule Enum do
     0
   end
 
+  ## drop
+
+  defp do_drop([_|t], counter) when counter > 0 do
+    do_drop(t, counter - 1)
+  end
+
+  defp do_drop(list, 0) do
+    list
+  end
+
+  defp do_drop([], _) do
+    []
+  end
+
+  defp do_drop({ _, next }, iterator, counter) when counter > 0 do
+    do_drop(iterator.(next), iterator, counter - 1)
+  end
+
+  defp do_drop(extra, iterator, 0) do
+    to_list(extra, iterator)
+  end
+
+  defp do_drop(:stop, _, _) do
+    []
+  end
+
   ## drop_while
 
   defp do_drop_while([h|t], fun) do
@@ -952,24 +1026,6 @@ defmodule Enum do
     ifnone
   end
 
-  ## find_value
-
-  defp do_find_value([h|t], ifnone, fun) do
-    fun.(h) || do_find_value(t, ifnone, fun)
-  end
-
-  defp do_find_value([], ifnone, _) do
-    ifnone
-  end
-
-  defp do_find_value({ h, next }, iterator, ifnone, fun) do
-    fun.(h) || do_find_value(iterator.(next), iterator, ifnone, fun)
-  end
-
-  defp do_find_value(:stop, _, ifnone, _) do
-    ifnone
-  end
-
   ## find_index
 
   defp do_find_index([h|t], counter, fun) do
@@ -994,6 +1050,24 @@ defmodule Enum do
 
   defp do_find_index(:stop, _, _, _) do
     nil
+  end
+
+  ## find_value
+
+  defp do_find_value([h|t], ifnone, fun) do
+    fun.(h) || do_find_value(t, ifnone, fun)
+  end
+
+  defp do_find_value([], ifnone, _) do
+    ifnone
+  end
+
+  defp do_find_value({ h, next }, iterator, ifnone, fun) do
+    fun.(h) || do_find_value(iterator.(next), iterator, ifnone, fun)
+  end
+
+  defp do_find_value(:stop, _, ifnone, _) do
+    ifnone
   end
 
   ## each
@@ -1035,42 +1109,6 @@ defmodule Enum do
     []
   end
 
-  ## reduce
-
-  defp do_reduce({ h, next }, iterator, acc, fun) do
-    do_reduce(iterator.(next), iterator, fun.(h, acc), fun)
-  end
-
-  defp do_reduce(:stop, _, acc, _) do
-    acc
-  end
-
-  ## split_while
-
-  defp do_split_while([h|t], fun, acc) do
-    if fun.(h) do
-      do_split_while(t, fun, [h|acc])
-    else
-      { :lists.reverse(acc), [h|t] }
-    end
-  end
-
-  defp do_split_while([], _, acc) do
-    { :lists.reverse(acc), [] }
-  end
-
-  defp do_split_while({ h, next } = extra, iterator, fun, acc) do
-    if fun.(h) do
-      do_split_while(iterator.(next), iterator, fun, [h|acc])
-    else
-      { :lists.reverse(acc), to_list(extra, iterator) }
-    end
-  end
-
-  defp do_split_while(:stop, _, _, acc) do
-    { :lists.reverse(acc), [] }
-  end
-
   ## join
 
   defp do_join([h|t], joiner, nil) do
@@ -1099,6 +1137,16 @@ defmodule Enum do
     acc || ""
   end
 
+  ## map
+
+  defp do_map({ h, next }, iterator, fun) do
+    [fun.(h)|do_map(iterator.(next), iterator, fun)]
+  end
+
+  defp do_map(:stop, _, _) do
+    []
+  end
+
   ## map join
 
   defp do_map_join([h|t], mapper, joiner, nil) do
@@ -1125,16 +1173,6 @@ defmodule Enum do
 
   defp do_map_join(:stop, _, _mapper, _joiner, acc) do
     acc || ""
-  end
-
-  ## map
-
-  defp do_map({ h, next }, iterator, fun) do
-    [fun.(h)|do_map(iterator.(next), iterator, fun)]
-  end
-
-  defp do_map(:stop, _, _) do
-    []
   end
 
   ## map_reduce
@@ -1174,6 +1212,16 @@ defmodule Enum do
     { :lists.reverse(acc1), :lists.reverse(acc2) }
   end
 
+  ## reduce
+
+  defp do_reduce({ h, next }, iterator, acc, fun) do
+    do_reduce(iterator.(next), iterator, fun.(h, acc), fun)
+  end
+
+  defp do_reduce(:stop, _, acc, _) do
+    acc
+  end
+
   ## reverse
 
   defp do_reverse({ h, next }, iterator, acc) do
@@ -1182,6 +1230,58 @@ defmodule Enum do
 
   defp do_reverse(:stop, _, acc) do
     acc
+  end
+
+  ## split
+
+  defp do_split([h|t], counter, acc) when counter > 0 do
+    do_split(t, counter - 1, [h|acc])
+  end
+
+  defp do_split(list, 0, acc) do
+    { :lists.reverse(acc), list }
+  end
+
+  defp do_split([], _, acc) do
+    { :lists.reverse(acc), [] }
+  end
+
+  defp do_split({ h, next }, iterator, counter, acc) when counter > 0 do
+    do_split(iterator.(next), iterator, counter - 1, [h|acc])
+  end
+
+  defp do_split(extra, iterator, 0, acc) do
+    { :lists.reverse(acc), to_list(extra, iterator) }
+  end
+
+  defp do_split(:stop, _, _, acc) do
+    { :lists.reverse(acc), [] }
+  end
+
+  ## split_while
+
+  defp do_split_while([h|t], fun, acc) do
+    if fun.(h) do
+      do_split_while(t, fun, [h|acc])
+    else
+      { :lists.reverse(acc), [h|t] }
+    end
+  end
+
+  defp do_split_while([], _, acc) do
+    { :lists.reverse(acc), [] }
+  end
+
+  defp do_split_while({ h, next } = extra, iterator, fun, acc) do
+    if fun.(h) do
+      do_split_while(iterator.(next), iterator, fun, [h|acc])
+    else
+      { :lists.reverse(acc), to_list(extra, iterator) }
+    end
+  end
+
+  defp do_split_while(:stop, _, _, acc) do
+    { :lists.reverse(acc), [] }
   end
 
   ## qsort (lists)
@@ -1234,30 +1334,30 @@ defmodule Enum do
     end
   end
 
-  ## split
+  ## take
 
-  defp do_split([h|t], counter, acc) when counter > 0 do
-    do_split(t, counter - 1, [h|acc])
+  defp do_take([h|t], counter) when counter > 0 do
+    [h|do_take(t, counter - 1)]
   end
 
-  defp do_split(list, 0, acc) do
-    { :lists.reverse(acc), list }
+  defp do_take(list, 0) do
+    []
   end
 
-  defp do_split([], _, acc) do
-    { :lists.reverse(acc), [] }
+  defp do_take([], _) do
+    []
   end
 
-  defp do_split({ h, next }, iterator, counter, acc) when counter > 0 do
-    do_split(iterator.(next), iterator, counter - 1, [h|acc])
+  defp do_take({ h, next }, iterator, counter) when counter > 0 do
+    [h|do_take(iterator.(next), iterator, counter - 1)]
   end
 
-  defp do_split(extra, iterator, 0, acc) do
-    { :lists.reverse(acc), to_list(extra, iterator) }
+  defp do_take(extra, iterator, 0) do
+    []
   end
 
-  defp do_split(:stop, _, _, acc) do
-    { :lists.reverse(acc), [] }
+  defp do_take(:stop, _, _) do
+    []
   end
 
   ## take_while
