@@ -178,6 +178,11 @@ defmodule EnumTest.List do
     assert Enum.qsort([5,3,2,4,1]) == [1,2,3,4,5]
   end
 
+  test :sort do
+    assert Enum.sort([5,3,2,4,1]) == [1,2,3,4,5]
+    assert Enum.sort([5,3,2,4,1], &1 > &2) == [5,4,3,2,1]
+  end
+
   test :split do
     assert Enum.split([1,2,3], 0) == { [], [1,2,3] }
     assert Enum.split([1,2,3], 1) == { [1], [2,3] }
@@ -365,6 +370,11 @@ defmodule EnumTest.Dict.Common do
         dict = unquote(module).new [{:b,2},{:c,3},{:a,1},{:d,4}]
         assert Enum.qsort(dict) == [a: 1, b: 2, c: 3, d: 4]
       end
+
+      test :sort do
+        dict = unquote(module).new [{:b,2},{:c,3},{:a,1},{:d,4}]
+        assert Enum.sort(dict) == [a: 1, b: 2, c: 3, d: 4]
+      end
     end
   end
 end
@@ -460,10 +470,10 @@ defmodule EnumTest.Range do
     assert_raise Enum.OutOfBoundsError, fn ->
       assert Enum.at!(2..6, 8)
     end
+
     assert_raise Enum.OutOfBoundsError, fn ->
       assert Enum.at!(-2..-6, 8)
     end
-
   end
 
   test :count do
@@ -642,6 +652,16 @@ defmodule EnumTest.Range do
   test :partition do
     range = Range.new(first: 1, last: 3)
     assert Enum.partition(range, fn(x) -> rem(x, 2) == 0 end) == { [2], [1,3] }
+  end
+
+  test :sort do
+    assert Enum.sort(Range.new(first: 3, last: 1)) == [1,2,3]
+    assert Enum.sort(Range.new(first: 2, last: 1)) == [1,2]
+    assert Enum.sort(Range.new(first: 1, last: 1)) == [1]
+
+    assert Enum.sort(Range.new(first: 3, last: 1), &1 > &2) == [3,2,1]
+    assert Enum.sort(Range.new(first: 2, last: 1), &1 > &2) == [2,1]
+    assert Enum.sort(Range.new(first: 1, last: 1), &1 > &2) == [1]
   end
 
   test :split do

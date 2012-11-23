@@ -692,6 +692,50 @@ defmodule Enum do
   end
 
   @doc """
+  Sorts the collection using the merge sort algorithm.
+
+  ## Examples
+
+      Enum.sort [3,2,1] #=> [1,2,3]
+
+  """
+  @spec sort(t), do: t
+  def sort(collection) when is_list(collection) do
+    :lists.sort(collection)
+  end
+
+  def sort(collection) do
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+        do_sort(pointer, iterator, &1 <= &2)
+      list when is_list(list) ->
+        sort(list)
+    end
+  end
+
+  @doc """
+  Sorts the collection using the merge sort algorithm.
+
+  ## Examples
+
+      Enum.sort [3,2,1], &1 > &2 #=> [1,2,3]
+
+  """
+  @spec sort(t, fun(element, element, do: boolean)), do: t
+  def sort(collection, fun) when is_list(collection) do
+    :lists.sort(fun, collection)
+  end
+
+  def sort(collection, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+        do_sort(pointer, iterator, fun)
+      list when is_list(list) ->
+        sort(list, fun)
+    end
+  end
+
+  @doc """
   Splits the enumerable into two collections, leaving `count`
   elements in the first one. If `count` is a negative number,
   it starts couting from the back to the beginning of the
@@ -1232,6 +1276,122 @@ defmodule Enum do
     acc
   end
 
+  ## sort
+
+  defp do_sort(extra, iterator, fun) do
+    case sort_take(extra, iterator, 2, []) do
+      { [y, x], next } -> sort_split(y, x, next, iterator, fun, [], [], fun.(x, y))
+      { other, _ } -> other
+    end
+  end
+
+
+  defp sort_take({ h, next }, iterator, counter, acc) when counter > 0 do
+    sort_take(iterator.(next), iterator, counter - 1, [h|acc])
+  end
+
+  defp sort_take(extra, _iterator, 0, acc) do
+    { acc, extra }
+  end
+
+  defp sort_take(:stop, _, _, acc) do
+    { acc, :stop }
+  end
+
+
+  defp sort_split(y, x, { z, next }, iterator, fun, r, rs, bool) do
+    cond do
+      fun.(y, z) == bool ->
+        sort_split(z, y, iterator.(next), iterator, fun, [x | r], rs, bool)
+      fun.(x, z) == bool ->
+        sort_split(y, z, iterator.(next), iterator, fun, [x | r], rs, bool)
+      r == [] ->
+        sort_split(y, x, iterator.(next), iterator, fun, [z], rs, bool)
+      true ->
+        sort_split_pivot(y, x, iterator.(next), iterator, fun, r, rs, z, bool)
+    end
+  end
+
+  defp sort_split(y, x, :stop, _iterator, fun, r, rs, bool) do
+    sort_merge([[y, x | r] | rs], fun, bool)
+  end
+
+  defp sort_split_pivot(y, x, { z, next }, iterator, fun, r, rs, s, bool) do
+    cond do
+      fun.(y, z) == bool ->
+        sort_split_pivot(z, y, iterator.(next), iterator, fun, [x | r], rs, s, bool)
+      fun.(x, z) == bool ->
+        sort_split_pivot(y, z, iterator.(next), iterator, fun, [x | r], rs, s, bool)
+      fun.(s, z) == bool ->
+        sort_split(z, s, iterator.(next), iterator, fun, [], [[y, x | r] | rs], bool)
+      true ->
+        sort_split(s, z, iterator.(next), iterator, fun, [], [[y, x | r] | rs], bool)
+    end
+  end
+
+  defp sort_split_pivot(y, x, :stop, _iterator, fun, r, rs, s, bool) do
+    sort_merge([[s], [[y, x | r] | rs]], fun, bool)
+  end
+
+
+  defp sort_merge(list, fun, true), do:
+    reverse_sort_merge(list, [], fun, true)
+
+  defp sort_merge(list, fun, false), do:
+    sort_merge(list, [], fun, false)
+
+
+  defp sort_merge([t1, [h2 | t2] | l], acc, fun, true), do:
+    sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, false) | acc], fun, true)
+
+  defp sort_merge([[h2 | t2], t1 | l], acc, fun, false), do:
+    sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, false) | acc], fun, false)
+
+  defp sort_merge([l], [], _fun, _bool), do: l
+
+  defp sort_merge([l], acc, fun, bool), do:
+    reverse_sort_merge([:lists.reverse(l, []) | acc], [], fun, bool)
+
+  defp sort_merge([], acc, fun, bool), do:
+    reverse_sort_merge(acc, [], fun, bool)
+
+
+  defp reverse_sort_merge([[h2 | t2], t1 | l], acc, fun, true), do:
+    reverse_sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, true) | acc], fun, true)
+
+  defp reverse_sort_merge([t1, [h2 | t2] | l], acc, fun, false), do:
+    reverse_sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, true) | acc], fun, false)
+
+  defp reverse_sort_merge([l], acc, fun, bool), do:
+    sort_merge([:lists.reverse(l, []) | acc], [], fun, bool)
+
+  defp reverse_sort_merge([], acc, fun, bool), do:
+    sort_merge(acc, [], fun, bool)
+
+
+  defp sort_merge_1([h1 | t1], h2, t2, m, fun, bool) do
+    if fun.(h1, h2) == bool do
+      sort_merge_2(h1, t1, t2, [h2 | m], fun, bool)
+    else
+      sort_merge_1(t1, h2, t2, [h1 | m], fun, bool)
+    end
+  end
+
+  defp sort_merge_1([], h2, t2, m, _fun, _bool), do:
+    :lists.reverse(t2, [h2 | m])
+
+
+  defp sort_merge_2(h1, t1, [h2 | t2], m, fun, bool) do
+    if fun.(h1, h2) == bool do
+      sort_merge_2(h1, t1, t2, [h2 | m], fun, bool)
+    else
+      sort_merge_1(t1, h2, t2, [h1 | m], fun, bool)
+    end
+  end
+
+  defp sort_merge_2(h1, t1, [], m, _fun, _bool), do:
+    :lists.reverse(t1, [h1 | m])
+
   ## split
 
   defp do_split([h|t], counter, acc) when counter > 0 do
@@ -1340,7 +1500,7 @@ defmodule Enum do
     [h|do_take(t, counter - 1)]
   end
 
-  defp do_take(list, 0) do
+  defp do_take(_list, 0) do
     []
   end
 
@@ -1352,7 +1512,7 @@ defmodule Enum do
     [h|do_take(iterator.(next), iterator, counter - 1)]
   end
 
-  defp do_take(extra, iterator, 0) do
+  defp do_take(_extra, _iterator, 0) do
     []
   end
 
