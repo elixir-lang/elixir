@@ -992,7 +992,7 @@ defmodule FileTest do
       iterator = File.iterator(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
-          IO.puts target, Regex.replace(%r/"/, line, "'")
+          IO.write target, Regex.replace(%r/"/, line, "'")
         end
       end
       assert File.read(dest) == { :ok, "FOO\n" }
@@ -1009,7 +1009,7 @@ defmodule FileTest do
       { :ok, iterator } = File.iterator(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
-          IO.puts target, Regex.replace(%r/"/, line, "'")
+          IO.write target, Regex.replace(%r/"/, line, "'")
         end
       end
       assert File.read(dest) == { :ok, "FOO\n" }
@@ -1026,7 +1026,58 @@ defmodule FileTest do
       iterator = File.iterator!(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
-          IO.puts target, Regex.replace(%r/"/, line, "'")
+          IO.write target, Regex.replace(%r/"/, line, "'")
+        end
+      end
+      assert File.read(dest) == { :ok, "FOO\n" }
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :biniterator do
+    src  = File.open! fixture_path("foo.txt")
+    dest = tmp_path("tmp_test.txt")
+
+    try do
+      iterator = File.biniterator(src)
+      File.open dest, [:write], fn(target) ->
+        Enum.each iterator, fn(line) ->
+          IO.write target, Regex.replace(%r/"/, line, "'")
+        end
+      end
+      assert File.read(dest) == { :ok, "FOO\n" }
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :biniterator_with_path do
+    src  = fixture_path("foo.txt")
+    dest = tmp_path("tmp_test.txt")
+
+    try do
+      { :ok, iterator } = File.biniterator(src)
+      File.open dest, [:write], fn(target) ->
+        Enum.each iterator, fn(line) ->
+          IO.write target, Regex.replace(%r/"/, line, "'")
+        end
+      end
+      assert File.read(dest) == { :ok, "FOO\n" }
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :biniterator! do
+    src  = fixture_path("foo.txt")
+    dest = tmp_path("tmp_test.txt")
+
+    try do
+      iterator = File.biniterator!(src)
+      File.open dest, [:write], fn(target) ->
+        Enum.each iterator, fn(line) ->
+          IO.write target, Regex.replace(%r/"/, line, "'")
         end
       end
       assert File.read(dest) == { :ok, "FOO\n" }

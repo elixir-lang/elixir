@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Compile do
       max(size(task), acc)
     end
 
-    sorted = Enum.qsort(docs)
+    sorted = Enum.sort(docs)
 
     Enum.each sorted, fn({ task, doc }) ->
       shell.info format('mix ~-#{max}s # ~s', [task, doc])

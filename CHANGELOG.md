@@ -3,6 +3,7 @@
 
 * deprecations
   * [Regex] Unicode regex option `u` was deprecated since it has no effect
+  * [Enun] Deprecated `Enum.qsort` and `List.sort` in favor of `Enum.sort`
 
 # v0.7.1 (2012-11-18)
 

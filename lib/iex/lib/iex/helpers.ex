@@ -54,7 +54,7 @@ defmodule IEx.Helpers do
   """
   def m do
     all    = Enum.map :code.all_loaded, fn { mod, file } -> { inspect(mod), file } end
-    sorted = List.sort(all)
+    sorted = Enum.sort all
     size   = Enum.reduce sorted, 0, fn({ mod, _ }, acc) -> max(byte_size(mod), acc) end
     format = "~-#{size}s ~s~n"
 

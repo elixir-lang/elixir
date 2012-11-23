@@ -30,8 +30,9 @@ defmodule String.Unicode do
 
   seqs = Enum.map File.iterator!(seqs_path), fn(line) ->
     [ _name, codepoints ] = :binary.split(line, ";", [:global])
-    codepoints = :binary.split(codepoints, " ", [:global, :trim])
-    codepoints = Enum.filter(codepoints, fn(x) -> size(x) > 0 end)
+    codepoints = :binary.split(codepoints, " ", [:global])
+    codepoints = Enum.map codepoints, Regex.replace(%r/\s+/, &1, "")
+    codepoints = Enum.filter codepoints, fn(x) -> size(x) > 0 end
     Enum.map codepoints, to_binary.(&1)
   end
 

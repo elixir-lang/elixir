@@ -72,17 +72,6 @@ defmodule ListTest do
     assert List.range(1,1,-1) == []
   end
 
-  test :sort do
-    assert List.sort([3, 5, 1, 2, 4]) == [1,2,3,4,5]
-    assert List.sort([3, 5, 1, 2, 4], &2 <= &1) == [5,4,3,2,1]
-    assert List.sort(['2', '3', '0', '11', '10']) == ['0', '10', '11', '2', '3']
-    assert ['0', '2', '3', '10', '11'] == List.sort ['2', '3', '0', '11', '10'], fn a, b ->
-      {na, _} = :string.to_integer a
-      {nb, _} = :string.to_integer b
-      na <= nb
-    end
-  end
-
   test :concat_1 do
     assert List.concat([[1,[2],3], [4], [5,6]]) == [1,[2],3,4,5,6]
   end

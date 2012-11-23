@@ -1152,10 +1152,12 @@ defmodule File do
   end
 
   @doc """
-  Convert the file device into an iterator that can be
+  Converts the file device into an iterator that can be
   passed into `Enum`. The device is iterated line
-  by line lazily, at the end of iteration the file is
-  closed.
+  by line, at the end of iteration the file is closed.
+
+  This reads the file as utf-8. CHeck out `File.biniterator`
+  to handle the file as a raw binary.
 
   ## Examples
 
@@ -1187,19 +1189,11 @@ defmodule File do
           { :error, reason } ->
             raise File.IteratorError, reason: reason
           data ->
-            { strip_ending(data), :ok }
+            { data, :ok }
         end
       end
       { function, function.(:start) }
     end
-  end
-
-  defp strip_ending("\r\n"), do: <<>>
-  defp strip_ending("\n"),   do: <<>>
-  defp strip_ending(""),     do: <<>>
-
-  defp strip_ending(<< h, t :: binary >>) do
-    << h, strip_ending(t) :: binary >>
   end
 
   @doc """
@@ -1220,6 +1214,54 @@ defmodule File do
   """
   def iterator!(file, mode // []) do
     open!(file, mode) /> iterator
+  end
+
+  @doc """
+  Converts the file device into an iterator that can
+  be passed into `Enum` to iterate line by line as a
+  binary. Check `iterator/1` for more information.
+  """
+  def biniterator(device)
+
+  def biniterator(file) when is_binary(file) or is_list(file) do
+    biniterator(file, [])
+  end
+
+  def biniterator(device) do
+    fn ->
+      function = fn(_) ->
+        case :file.read_line(device) do
+          :eof ->
+            close(device)
+            :stop
+          { :error, reason } ->
+            raise File.IteratorError, reason: reason
+          { :ok, data } ->
+            { data, :ok }
+        end
+      end
+      { function, function.(:start) }
+    end
+  end
+
+  @doc """
+  Opens the given `file` with the given `mode` and
+  returns its biniterator. Fails for the same reasons
+  as `File.open`.
+  """
+  def biniterator(file, mode) do
+    case open(file, mode) do
+      { :ok, device } -> { :ok, biniterator(device) }
+      error -> error
+    end
+  end
+
+  @doc """
+  Same as `biniterator/2` but raises if the file
+  cannot be opened.
+  """
+  def biniterator!(file, mode // []) do
+    open!(file, mode) /> biniterator
   end
 
   ## Helpers

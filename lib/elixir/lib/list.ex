@@ -292,31 +292,15 @@ defmodule List do
     end
   end
 
-  @doc """
-  Sorts the list by comparing each term. For an alternative
-  sorting algorithm, check `Enum.qsort`.
-
-  ## Examples
-
-      List.sort [3, 4, 2, 1, 7]
-      #=> [1, 2, 3, 4, 7]
-
-  """
+  @doc false
   def sort(list) do
+    IO.write "[WARNING] List.sort is deprecated, please use Enum.sort instead\n#{Exception.formatted_stacktrace}"
     :lists.sort list
   end
 
-  @doc """
-  Sorts the list according to an ordering function. fun(a, b) should
-  return true if `a` compares less than or equal to `b`, `false` otherwise.
-
-  ## Examples
-
-      List.sort [3, 4, 2, 1, 7], fn a, b -> b <= a end
-      #=> [7, 4, 3, 2, 1]
-
-  """
+  @doc false
   def sort(list, fun) do
+    IO.write "[WARNING] List.sort is deprecated, please use Enum.sort instead\n#{Exception.formatted_stacktrace}"
     :lists.sort fun, list
   end
 

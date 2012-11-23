@@ -148,7 +148,7 @@ defmodule Regex do
   def captures(regex(groups: groups) = regex, string, options // []) do
     unless captures = Keyword.get(options, :capture) do
       captures = if groups do
-        List.sort(groups)
+        Enum.sort(groups)
       else
         raise "Regex was not compiled with g"
       end

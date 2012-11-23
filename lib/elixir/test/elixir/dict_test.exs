@@ -15,16 +15,16 @@ defmodule DictTest.Common do
         dict = new_dict [{"first_key", 1}, {"second_key", 2}]
         assert 2 == Dict.size dict
 
-        assert ["first_key", "second_key"] == List.sort Dict.keys dict
-        assert [1, 2] == List.sort Dict.values dict
+        assert ["first_key", "second_key"] == Enum.sort Dict.keys dict
+        assert [1, 2] == Enum.sort Dict.values dict
       end
 
       test :new_pairs_with_transform do
         dict = new_dict [{1}, {2}, {3}], fn {x} -> { <<x + 64>>, x } end
         assert 3 == Dict.size dict
 
-        assert ["A", "B", "C"] == List.sort Dict.keys dict
-        assert [1, 2, 3] == List.sort Dict.values dict
+        assert ["A", "B", "C"] == Enum.sort Dict.keys dict
+        assert [1, 2, 3] == Enum.sort Dict.values dict
       end
 
       test :get do
@@ -49,12 +49,12 @@ defmodule DictTest.Common do
       end
 
       test :keys do
-        assert ["first_key", "second_key"] == List.sort Dict.keys new_dict
+        assert ["first_key", "second_key"] == Enum.sort Dict.keys new_dict
         assert [] == Dict.keys empty_dict
       end
 
       test :values do
-        assert [1, 2] ==List.sort Dict.values(new_dict)
+        assert [1, 2] ==Enum.sort Dict.values(new_dict)
         assert [] == Dict.values empty_dict
       end
 

@@ -257,14 +257,14 @@ defmodule Typespec.Test.Type do
 
     assert [
       { {:cb, 1}, {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]} }
-    ] = List.sort(callbacks)
+    ] = Enum.sort(callbacks)
 
     assert [
       { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]} },
       { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[
                       {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},
                       {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]} }
-    ] = List.sort(specs)
+    ] = Enum.sort(specs)
   end
 
   # Conversion to AST

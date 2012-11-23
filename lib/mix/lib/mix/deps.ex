@@ -92,7 +92,7 @@ defmodule Mix.Deps do
     do: "the dependency is not available, run `mix deps.get`"
 
   defp inspect_kw(list) do
-    middle = lc { key, value } inlist Enum.qsort(list), do: "#{key}: #{inspect value, raw: true}"
+    middle = lc { key, value } inlist Enum.sort(list), do: "#{key}: #{inspect value, raw: true}"
     "[ " <> Enum.join(middle, ",\n  ") <> " ]"
   end
 

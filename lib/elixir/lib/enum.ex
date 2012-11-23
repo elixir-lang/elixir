@@ -669,22 +669,17 @@ defmodule Enum do
     end
   end
 
-  @doc """
-  Sorts the collection according to the quick sort algorithm.
-
-  ## Examples
-
-      Enum.qsort [3,2,1] #=> [1,2,3]
-
-  """
+  @doc false
   @spec qsort(t), do: t
   def qsort(collection) when is_list(collection) do
+    IO.write "[WARNING] Enum.qsort is deprecated, please use Enum.sort instead\n#{Exception.formatted_stacktrace}"
     do_list_qsort(collection, [])
   end
 
   def qsort(collection) do
     case I.iterator(collection) do
       { iterator, pointer } ->
+        IO.write "[WARNING] Enum.qsort is deprecated, please use Enum.sort instead\n#{Exception.formatted_stacktrace}"
         do_qsort(pointer, iterator, [])
       list when is_list(list) ->
         qsort(list)

@@ -14,7 +14,7 @@ defmodule BehaviourTest do
   end
 
   test :docs do
-    docs = Enum.qsort(Sample.__behaviour__(:docs))
+    docs = Enum.sort(Sample.__behaviour__(:docs))
     assert docs == [
       {{:bar,2},13,"Bar"},
       {{:foo,2},10,"Foo"}
