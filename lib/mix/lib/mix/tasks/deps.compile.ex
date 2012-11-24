@@ -64,10 +64,10 @@ defmodule Mix.Tasks.Deps.Compile do
 
       File.cd! deps_path, fn ->
         cond do
-          opts[:compile] -> do_command(opts[:compile], app)
+          opts[:compile] -> do_compile(opts[:compile], app)
           mix?           -> do_mix(dep, config)
-          rebar?         -> shell.info System.cmd("rebar compile deps_dir=#{inspect root_path}")
-          make?          -> shell.info System.cmd("make")
+          rebar?         -> do_command app, "rebar", "compile deps_dir=#{inspect root_path}"
+          make?          -> do_command app, "make"
           true           -> shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>
                              "(pass :compile as an option to customize compilation, set it to :noop to do nothing)"
         end
@@ -78,7 +78,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp mix?,   do: File.regular?("mix.exs")
-  defp rebar?, do: File.regular?("rebar.config") or File.regular?("rebar.config.script")
+  defp rebar?, do: Enum.any? ["rebar.config", "rebar.config.script"], File.regular?(&1)
   defp make?,  do: File.regular?("Makefile")
 
   defp check_unavailable!(app, { :unavailable, _ }) do
@@ -107,15 +107,24 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_command(:noop, _) do
+  defp do_command(app, command, extra // "") do
+    if System.find_executable(command) do
+      Mix.shell.info System.cmd("#{command} #{extra}")
+    else
+      raise Mix.Error, message: "could not find executable #{command} to compile " <>
+        "dependency #{app}, please ensure #{command} is available"
+    end
+  end
+
+  defp do_compile(:noop, _) do
     :ok
   end
 
-  defp do_command(atom, app) when is_atom(atom) do
+  defp do_compile(atom, app) when is_atom(atom) do
     apply Mix.Project.get!, atom, [app]
   end
 
-  defp do_command(command, _) do
+  defp do_compile(command, _) do
     Mix.shell.info System.cmd command
   end
 end
