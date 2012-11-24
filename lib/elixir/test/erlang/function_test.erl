@@ -14,6 +14,16 @@ function_stab_end_test() ->
   {_, [{a, Fun}]} = eval("a = fn -> 1 + 2 end"),
   3 = Fun().
 
+function_stab_many_test() ->
+  {_, [{a, Fun}]} = eval("a = fn\n{ :foo, x } -> x\n{ :bar, x } -> x\nend"),
+  1 = Fun({ foo, 1 }),
+  2 = Fun({ bar, 2 }).
+
+function_stab_inline_test() ->
+  {_, [{a, Fun}]} = eval("a = fn { :foo, x } -> x; { :bar, x } -> x end"),
+  1 = Fun({ foo, 1 }),
+  2 = Fun({ bar, 2 }).
+
 function_with_args_test() ->
   {Fun, _} = eval("fn(a, b) -> a + b end"),
   3 = Fun(1,2).

@@ -20,13 +20,13 @@ Nonterminals
   dot_op dot_ref dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_punctuated_identifier dot_bracket_identifier
   var list bracket_access bit_string tuple
-  fn_block do_block do_eol end_eol block_eol block_item block_list
+  do_block fn_eol do_eol end_eol block_eol block_item block_list
   .
 
 Terminals
   identifier kw_identifier punctuated_identifier
   bracket_identifier paren_identifier do_identifier block_identifier
-  fn fn_paren 'end' '__aliases__'
+  fn 'end' '__aliases__'
   number signed_number atom bin_string list_string sigil
   dot_call_op comp_op op_identifier
   'not' 'and' 'or' 'xor' 'when' 'in' 'inlist' 'inbits' 'do'
@@ -146,10 +146,8 @@ block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_ide
 block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
 block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
 
-fn_expr -> fn_paren call_args_parens fn_block : build_fn('$1', '$2', '$3').
-fn_expr -> fn call_args_no_parens fn_block : build_fn('$1', '$2', '$3').
-fn_expr -> fn call_args_parens_not_one fn_block : build_fn('$1', '$2', '$3').
-fn_expr -> fn fn_block : build_fn('$1', [], '$2').
+fn_expr -> fn_eol stab_expr_list end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
+fn_expr -> fn_eol '->' grammar 'end' : build_fn('$1', { '->', ?line('$2'), [{ [], build_block('$3') }] }).
 fn_expr -> call_expr : '$1'.
 
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
@@ -165,7 +163,7 @@ max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : { build_identifier('$1', '$2'), ?line('$1'), '$3' }.
 max_expr -> dot_ref : '$1'.
 max_expr -> base_expr : '$1'.
-max_expr -> open_paren expr_list close_paren : build_block('$2').
+max_expr -> open_paren expr_list close_paren : build_block(lists:reverse('$2')).
 
 bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
@@ -192,12 +190,13 @@ base_expr -> sigil : build_sigil('$1').
 
 %% Blocks
 
-fn_block -> '->' grammar 'end' : build_block('$2', false).
-
 do_block -> do_eol 'end' : [[{do,nil}]].
 do_block -> do_eol stab_expr_list end_eol : [[{ do, build_stab(lists:reverse('$2')) }]].
 do_block -> do_eol block_list 'end' : [[{ do, nil }|'$2']].
 do_block -> do_eol stab_expr_list eol block_list 'end' : [[{ do, build_stab(lists:reverse('$2')) }|'$4']].
+
+fn_eol -> 'fn' : '$1'.
+fn_eol -> 'fn' eol : '$1'.
 
 do_eol -> 'do' : '$1'.
 do_eol -> 'do' eol : '$1'.
@@ -481,13 +480,10 @@ build_tuple(Marker, Args) ->
 
 %% Blocks
 
-build_block(Exprs) -> build_block(Exprs, true).
-
-build_block([nil], _)                                      -> { '__block__', 0, [nil] };
-build_block([{Op,_,[_]}]=Exprs, _) when ?rearrange_uop(Op) -> { '__block__', 0, Exprs };
-build_block([Expr], _) when not is_list(Expr)              -> Expr;
-build_block(Exprs, true)                                   -> { '__block__', 0, lists:reverse(Exprs) };
-build_block(Exprs, false)                                  -> { '__block__', 0, Exprs }.
+build_block([nil])                                      -> { '__block__', 0, [nil] };
+build_block([{Op,_,[_]}]=Exprs) when ?rearrange_uop(Op) -> { '__block__', 0, Exprs };
+build_block([Expr]) when not is_list(Expr)              -> Expr;
+build_block(Exprs)                                      -> { '__block__', 0, Exprs }.
 
 %% Dots
 
@@ -509,7 +505,7 @@ build_identifier({ '.', Line, _ } = Dot, Args) ->
   end,
   { Dot, Line, FArgs };
 
-build_identifier({ Keyword, Line }, Args) when Keyword == fn; Keyword == fn_paren ->
+build_identifier({ Keyword, Line }, Args) when Keyword == fn ->
   { fn, Line, Args };
 
 build_identifier({ op_identifier, Line, Identifier }, Args) ->
@@ -527,10 +523,8 @@ extract_identifier(Other) -> Other.
 
 %% Fn
 
-build_fn(Op, Args, Expr) ->
-  Line = ?line(Op),
-  Stab = [{do, { '->', Line, [{ Args, Expr }] }}],
-  { fn, Line, [Stab] }.
+build_fn(Op, Stab) ->
+  { fn, ?line(Op), [[{ do, Stab }]] }.
 
 %% Access
 
@@ -558,15 +552,15 @@ build_stab([{ '->', Line, [Left, Right] }|T]) ->
   { '->', Line, build_stab(T, Left, [Right], []) };
 
 build_stab(Else) ->
-  build_block(Else, false).
+  build_block(Else).
 
 build_stab([{ '->', _, [Left, Right] }|T], Marker, Temp, Acc) ->
-  H = { Marker, build_block(Temp) },
+  H = { Marker, build_block(lists:reverse(Temp)) },
   build_stab(T, Left, [Right], [H|Acc]);
 
 build_stab([H|T], Marker, Temp, Acc) ->
   build_stab(T, Marker, [H|Temp], Acc);
 
 build_stab([], Marker, Temp, Acc) ->
-  H = { Marker, build_block(Temp) },
+  H = { Marker, build_block(lists:reverse(Temp)) },
   lists:reverse([H|Acc]).

@@ -729,7 +729,7 @@ handle_terminator(Token, #scope{terminators=Terminators} = Scope) ->
     New -> Scope#scope{terminators=New}
   end.
 
-check_terminator({ S, Line }, Terminators) when S == 'fn'; S == 'fn_paren' ->
+check_terminator({ S, Line }, Terminators) when S == 'fn' ->
   [{ fn, Line }|Terminators];
 
 check_terminator({ S, _ } = New, Terminators) when
@@ -770,9 +770,6 @@ terminator('{')  -> '}';
 terminator('<<') -> '>>'.
 
 % Keywords check
-handle_keyword(Line, paren_identifier, fn, Tokens) ->
-  [{ 'fn_paren', Line }|Tokens];
-
 handle_keyword(Line, Identifier, Atom, [{ '.', _ }|_] = Tokens) ->
   [{ Identifier, Line, Atom }|Tokens];
 

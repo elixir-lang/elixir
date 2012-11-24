@@ -1965,26 +1965,26 @@ defmodule Kernel do
   `do/end` always matches the furthest call, if we used the `function`
   macro as below:
 
-      Enum.map [1,2,3], function(x) do
-        x * 2
+      Enum.map [1,2,3], function do
+        x -> x * 2
       end
 
   It would be parsed as:
 
-      Enum.map([1,2,3], function(x)) do
-        x * 2
+      Enum.map([1,2,3], function) do
+        x -> x * 2
       end
 
   The stab shortcut syntax has the proper precedence:
 
-      Enum.map [1,2,3], fn x ->
-        x * 2
+      Enum.map [1,2,3], fn
+        x -> x * 2
       end
 
   Which is handled as:
 
-      Enum.map([1,2,3], fn x ->
-        x * 2
+      Enum.map([1,2,3], fn
+        x -> x * 2
       end)
 
   ## Function retrieval

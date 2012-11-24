@@ -49,7 +49,7 @@ defmodule Behaviour do
     { name, args } = :elixir_clauses.extract_args(fun)
     arity = length(args)
 
-    Enum.each args, (function do
+    Enum.each args, fn
       { :::, _, [left, right] } ->
         ensure_not_default(left)
         ensure_not_default(right)
@@ -57,7 +57,7 @@ defmodule Behaviour do
       other ->
         ensure_not_default(other)
         other
-    end)
+    end
 
     quote do
       @callback unquote(name)(unquote_splicing(args)), do: unquote(return)
