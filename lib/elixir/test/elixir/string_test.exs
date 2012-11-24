@@ -63,6 +63,8 @@ defmodule StringTest do
   test :strip do
     assert String.strip("") == ""
     assert String.strip("   abc  ") == "abc"
+    assert String.strip("a  abc  a\n\n") == "a  abc  a"
+    assert String.strip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
     assert String.strip("___  abc  ___", ?_) == "  abc  "
   end
 

@@ -262,7 +262,11 @@ defmodule String do
   """
   @spec strip(t), do: t
   @spec strip(t, char), do: t  
-  def strip(string, char // ?\s) do
+  def strip(string) do
+    rstrip(lstrip(string))
+  end
+
+  def strip(string, char) do
     rstrip(lstrip(string, char), char)
   end
 
