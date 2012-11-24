@@ -45,6 +45,8 @@ defmodule StringTest do
     assert String.rstrip("") == ""
     assert String.rstrip("   abc  ") == "   abc"
     assert String.rstrip("   abc a") == "   abc a"
+    assert String.rstrip("a  abc  a\n\n") == "a  abc  a"
+    assert String.rstrip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
     assert String.rstrip("   abc aa", ?a) == "   abc "
     assert String.rstrip("   abc __", ?_) == "   abc "
   end
