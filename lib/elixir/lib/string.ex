@@ -175,7 +175,7 @@ defmodule String do
 
   @doc """
   Returns a string where trailing char have been
-  removed. If no `char` is passed `space`is used.
+  removed. If no `char` is passed `whitespace characters` are used.
 
   ## Examples
 
@@ -185,7 +185,16 @@ defmodule String do
   """
   @spec rstrip(t), do: t
   @spec rstrip(t, char), do: t
-  def rstrip(string, char // ?\s)
+  def rstrip(""), do: ""
+
+  def rstrip(string) do
+    if :binary.last(string) in [?\t, ?\n, ?\v, ?\f, ?\r, ?\s] do
+      rstrip(:binary.part(string, {0, byte_size(string) -1}))
+    else
+      string
+    end
+  end
+
 
   def rstrip("", _char), do: ""
 
@@ -214,7 +223,7 @@ defmodule String do
 
   @doc """
   Returns a string where leading char have been
-  removed. If no `char` is passed `space`is used.
+  removed. If no `char` is passed `whitespace characters` are used.
 
   ## Examples
 
@@ -224,7 +233,14 @@ defmodule String do
   """
   @spec lstrip(t), do: t
   @spec lstrip(t, char), do: t  
-  def lstrip(string, char // ?\s)
+  def lstrip(<<char, rest :: binary>>) 
+  when char in [?\t, ?\n, ?\v, ?\f, ?\r, ?\s] do
+    lstrip(rest)
+  end
+
+  def lstrip(other) do
+    other
+  end
 
   def lstrip(<<char, rest :: binary>>, char) do
     <<lstrip(rest, char) :: binary>>
@@ -246,7 +262,11 @@ defmodule String do
   """
   @spec strip(t), do: t
   @spec strip(t, char), do: t  
-  def strip(string, char // ?\s) do
+  def strip(string) do
+    rstrip(lstrip(string))
+  end
+
+  def strip(string, char) do
     rstrip(lstrip(string, char), char)
   end
 
