@@ -53,6 +53,8 @@ defmodule StringTest do
     assert String.lstrip("") == ""
     assert String.lstrip("   abc  ") == "abc  "
     assert String.lstrip("a  abc  a") == "a  abc  a"
+    assert String.lstrip("\n\na  abc  a") == "a  abc  a"
+    assert String.lstrip("\t\n\v\f\r\sa  abc  a") == "a  abc  a"
     assert String.lstrip("__  abc  _", ?_) == "  abc  _"
   end
 
