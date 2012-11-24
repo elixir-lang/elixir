@@ -311,7 +311,7 @@ defmodule ExUnit.Assertions do
         unquote(expr)
         flunk "Expected to catch #{unquote(kind)}, got nothing"
       rescue
-        ExUnit.AssertionError = e -> raise(e)
+        e in [ExUnit.AssertionError] -> raise(e)
       catch
         unquote(kind), what_we_got -> what_we_got
       end

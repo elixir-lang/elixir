@@ -2067,20 +2067,19 @@ defmodule Kernel do
         IO.puts "This is printed regardless if it failed or succeed"
       end
 
-  The rescue clause is used to handle errors, while the catch clause
-  can be used to catch throw values. Both catch and rescue clauses
-  accepts the same pattern matching rules as match.
+  The rescue clause is used to handle exceptions, while the catch
+  clause can be used to catch thrown values. Both catch and rescue
+  clauses work based on pattern matching.
 
   Note that calls inside `try` are not tail recursive since the VM
   needs to keep the stacktrace in case an exception happens.
 
   ## Rescue clauses
 
-  Besides accepting the same pattern matching rules as `match`
-  clauses, rescue provides some conveniences around exceptions
-  that allows one to rescue an exception by its name and not by
-  its internal contents. All the following formats are valid
-  rescue expressions:
+  Besides relying on pattern matching, rescue clauses provides some
+  conveniences around exceptions that allows one to rescue an
+  exception by its name. All the following formats are valid rescue
+  expressions:
 
       try do
         UndefinedModule.undefined_function
@@ -2108,29 +2107,9 @@ defmodule Kernel do
         x -> nil
       end
 
-  ## Variable visibility
-
-  Since an expression inside `try` may not have been evaluted
-  due to an exception, any variable created inside `try` cannot
-  be accessed externaly.
-  For instance:
-
-      try do
-        x = 1
-        do_something_that_may_fail(same_arg)
-        :ok
-      catch
-        _ | _ -> :failed
-      end
-
-      x #=> Cannot access `x`
-
-  In the example above, `x` cannot be accessed since it was defined
-  inside the `try` clause.
-
   ## Catching exits and Erlang errors
 
-  The catch clause works exactly the same as in : Therefore,
+  The catch clause works exactly the same as in erlang. Therefore,
   one can also handle exits/errors coming from Erlang as below:
 
       try do
@@ -2148,6 +2127,36 @@ defmodule Kernel do
 
   Although the second form should be avoided in favor of raise/rescue
   control mechanisms.
+
+  ## Variable visibility
+
+  Since an expression inside `try` may not have been evaluted
+  due to an exception, any variable created inside `try` cannot
+  be accessed externaly. For instance:
+
+      try do
+        x = 1
+        do_something_that_may_fail(same_arg)
+        :ok
+      catch
+        _, _ -> :failed
+      end
+
+      x #=> Cannot access `x`
+
+  In the example above, `x` cannot be accessed since it was defined
+  inside the `try` clause. A common practice to address this issue
+  is to return the variables defined inside `try`:
+
+      x =
+        try do
+          x = 1
+          do_something_that_may_fail(same_arg)
+          x
+        catch
+          _, _ -> :failed
+        end
+
   """
   defmacro try(args)
 

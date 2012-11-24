@@ -1,5 +1,5 @@
 -module(elixir_try).
--export([clauses/3]).
+-export([clauses/3, format_error/1]).
 -import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
@@ -86,6 +86,16 @@ normalize_rescue(_, { in, Line, [Left, Right] }, S) ->
       end
   end;
 
+normalize_rescue(_, { '=', Line, [{ '__aliases__', _, _ } = Alias, { Name, _, Atom } = Var] }, S)
+    when is_atom(Name) and is_atom(Atom) ->
+  elixir_errors:handle_file_warning(S#elixir_scope.file, { Line, ?MODULE, { rescue_no_match, Var, Alias } }),
+  false;
+
+normalize_rescue(_, { '=', Line, [{ Name, _, Atom } = Var, { '__aliases__', _, _ } = Alias] }, S)
+    when is_atom(Name) and is_atom(Atom) ->
+  elixir_errors:handle_file_warning(S#elixir_scope.file, { Line, ?MODULE, { rescue_no_match, Var, Alias } }),
+  false;
+
 normalize_rescue(Line, Condition, S) ->
   case elixir_translator:translate_each(Condition, S#elixir_scope{context=assign}) of
     { { atom, _, Atom }, _ } ->
@@ -93,7 +103,6 @@ normalize_rescue(Line, Condition, S) ->
     _ ->
       false
   end.
-
 
 %% Convert rescue clauses into guards.
 rescue_guards(_, Var, nil, _) -> { Var, false };
@@ -253,6 +262,12 @@ validate_rescue_access(Line, { { '.', _, ['Elixir.Kernel', 'access'] }, _, [Elem
 validate_rescue_access(_, _, _) -> [].
 
 %% Helpers
+
+format_error({ rescue_no_match, Var, Alias }) ->
+  VarBinary   = 'Elixir.Macro':to_binary(Var),
+  AliasBinary = 'Elixir.Macro':to_binary(Alias),
+  Message = "rescue clause (~s = ~s) can never match, maybe you meant to write: ~s in [~s] ?",
+  io_lib:format(Message, [AliasBinary, VarBinary, VarBinary, AliasBinary]).
 
 is_var({ Name, _, Atom }) when is_atom(Name), is_atom(Atom) -> true;
 is_var(_) -> false.
