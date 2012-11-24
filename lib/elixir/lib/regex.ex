@@ -217,7 +217,7 @@ defmodule Regex do
   def scan(regex, string, options // [])
 
   def scan(regex(re_pattern: compiled), string, options) do
-    return = options[:return] || return_for(string)
+    return  = Keyword.get(options, :return, return_for(string))
     options = [{ :capture, :all, return }, :global]
     case :re.run(string, compiled, options) do
       :nomatch -> []
@@ -235,13 +235,13 @@ defmodule Regex do
   def split(regex(re_pattern: compiled), string, options) do
     parts =
       cond do
-        options[:global] == false -> 2
-        p = options[:parts]       -> p
-        true                      -> :infinity
+        Keyword.get(options, :global) == false -> 2
+        p = Keyword.get(options, :parts)       -> p
+        true                                   -> :infinity
       end
 
-    return = options[:return] || return_for(string)
-    opts   = [{ :return, return }, { :parts, parts }]
+    return = Keyword.get(options, :return, return_for(string))
+    opts   = [return: return, parts: parts]
     :re.split(string, compiled, opts)
   end
 
@@ -264,8 +264,8 @@ defmodule Regex do
 
   """
   def replace(regex(re_pattern: compiled), string, replacement, options // []) do
-    opts   = if options[:global] != false, do: [:global], else: []
-    return = options[:return] || return_for(string)
+    opts   = if Keyword.get(options, :global) != false, do: [:global], else: []
+    return = Keyword.get(options, :return, return_for(string))
     opts   = [{ :return, return }|opts]
     :re.replace(string, compiled, replacement, opts)
   end

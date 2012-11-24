@@ -18,6 +18,9 @@ defmodule String do
   @type codepoint :: t
   @type grapheme :: t
 
+  # Entries considered as whitespace
+  @whitespace [?\t, ?\n, ?\v, ?\f, ?\r, ?\s]
+
   @doc """
   Checks if a string is printable considering it is encoded
   as UTF-8. Returns true if so, false otherwise.
@@ -27,7 +30,7 @@ defmodule String do
       String.printable?("abc") #=> true
 
   """
-  @spec printable?(t), do: boolean  
+  @spec printable?(t), do: boolean
   # Allow basic ascii chars
   def printable?(<<c, t :: binary>>) when c in ?\s..?~ do
     printable?(t)
@@ -174,27 +177,47 @@ defmodule String do
   defdelegate downcase(binary), to: String.Unicode
 
   @doc """
-  Returns a string where trailing char have been
-  removed. If no `char` is passed `whitespace characters` are used.
+  Returns a string where trailing whitespace characters
+  and new line have been removed.
 
   ## Examples
 
       String.rstrip("   abc  ")      #=> "   abc"
-      String.rstrip("   abc _", ?_)  #=> "   abc "
 
   """
   @spec rstrip(t), do: t
-  @spec rstrip(t, char), do: t
+
   def rstrip(""), do: ""
 
   def rstrip(string) do
-    if :binary.last(string) in [?\t, ?\n, ?\v, ?\f, ?\r, ?\s] do
-      rstrip(:binary.part(string, {0, byte_size(string) -1}))
+    if :binary.last(string) in @whitespace do
+      do_rstrip(string, "")
     else
       string
     end
   end
 
+  defp do_rstrip(<<char, string :: binary>>, buffer) when char in @whitespace do
+    do_rstrip(string, <<char, buffer :: binary>>)
+  end
+
+  defp do_rstrip(<<char, string :: binary>>, buffer) do
+    <<buffer :: binary, char, do_rstrip(string, "") :: binary>>
+  end
+
+  defp do_rstrip(<<>>, _) do
+    <<>>
+  end
+
+  @doc """
+  Returns a string where trailing `char` have been removed.
+
+  ## Examples
+
+      String.rstrip("   abc _", ?_)  #=> "   abc "
+
+  """
+  @spec rstrip(t, char), do: t
 
   def rstrip("", _char), do: ""
 
@@ -203,44 +226,53 @@ defmodule String do
   # does not traverse the whole binary).
   def rstrip(string, char) do
     if :binary.last(string) == char do
-      rstrip(string, "", char)
+      do_rstrip(string, "", char)
     else
       string
     end
   end
 
-  defp rstrip(<<char, string :: binary>>, buffer, char) do
-    rstrip(string, <<char, buffer :: binary>>, char)
+  defp do_rstrip(<<char, string :: binary>>, buffer, char) do
+    do_rstrip(string, <<char, buffer :: binary>>, char)
   end
 
-  defp rstrip(<<char, string :: binary>>, buffer, another_char) do
-    <<buffer :: binary, char, rstrip(string, "", another_char) :: binary>>
+  defp do_rstrip(<<char, string :: binary>>, buffer, another_char) do
+    <<buffer :: binary, char, do_rstrip(string, "", another_char) :: binary>>
   end
 
-  defp rstrip(<<>>, _, _) do
+  defp do_rstrip(<<>>, _, _) do
     <<>>
   end
 
   @doc """
-  Returns a string where leading char have been
-  removed. If no `char` is passed `whitespace characters` are used.
+  Returns a string where leading whitespace characters
+  have been removed.
 
   ## Examples
 
       String.lstrip("   abc  ")       #=> "abc  "
-      String.lstrip("_  abc  _", ?_)  #=> "  abc  _"
 
   """
   @spec lstrip(t), do: t
-  @spec lstrip(t, char), do: t  
-  def lstrip(<<char, rest :: binary>>) 
-  when char in [?\t, ?\n, ?\v, ?\f, ?\r, ?\s] do
+
+  def lstrip(<<char, rest :: binary>>) when char in @whitespace do
     lstrip(rest)
   end
 
   def lstrip(other) do
     other
   end
+
+  @doc """
+  Returns a string where leading `char` have been removed.
+
+  ## Examples
+
+      String.lstrip("_  abc  _", ?_)  #=> "  abc  _"
+
+  """
+
+  @spec lstrip(t, char), do: t
 
   def lstrip(<<char, rest :: binary>>, char) do
     <<lstrip(rest, char) :: binary>>
@@ -251,20 +283,30 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading/trailing char have been
-  removed. If no `char` is passed `space`is used.
+  Returns a string where leading/trailing whitespace
+  and new line characters have been removed.
 
   ## Examples
 
       String.strip("   abc  ")       #=> "abc"
-      String.strip("a  abc  a", ?a)  #=> "  abc  "
 
   """
   @spec strip(t), do: t
-  @spec strip(t, char), do: t  
+
   def strip(string) do
     rstrip(lstrip(string))
   end
+
+  @doc """
+  Returns a string where leading/trailing `char` have been
+  removed.
+
+  ## Examples
+
+      String.strip("a  abc  a", ?a)  #=> "  abc  "
+
+  """
+  @spec strip(t, char), do: t
 
   def strip(string, char) do
     rstrip(lstrip(string, char), char)
@@ -291,6 +333,7 @@ defmodule String do
   """
   @spec replace(t, t, t), do: t
   @spec replace(t, t, t, Keyword.t), do: t
+
   def replace(subject, pattern, replacement, options // []) do
     opts = translate_replace_options(options)
     :binary.replace(subject, pattern, replacement, opts)

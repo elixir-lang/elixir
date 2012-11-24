@@ -277,6 +277,10 @@ translate_in(Line, Left, Right, S) ->
       lists:foldr(fun(X, Acc) ->
         { op, Line, 'orelse', { op, Line, '==', Var, X }, Acc }
       end, { op, Line, '==', Var, H }, T);
+    { string, _, [H|T] } ->
+      lists:foldl(fun(X, Acc) ->
+        { op, Line, 'orelse', { op, Line, '==', Var, { integer, Line, X } }, Acc }
+      end, { op, Line, '==', Var, { integer, Line, H } }, T);
     { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
       case { Start, End } of
         { { K1, _, StartInt }, { K2, _, EndInt } } when ?IN_TYPES(K1), ?IN_TYPES(K2), StartInt =< EndInt ->
