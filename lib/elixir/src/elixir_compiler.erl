@@ -73,7 +73,9 @@ code_loading_compilation(Forms, Line, Value, Vars, S) ->
 
   Args = [X || { _, _, X } <- Vars],
 
-  { module(ModuleForm, S#elixir_scope.file, [], true, fun(_, _) ->
+  %% Pass { native, false } to speed up bootstrap
+  %% process when native is set to true
+  { module(ModuleForm, S#elixir_scope.file, [{native,false}], true, fun(_, _) ->
     Res = Module:'BOOTSTRAP'(Value, Args),
     code:delete(Module),
     case code:soft_purge(Module) of
