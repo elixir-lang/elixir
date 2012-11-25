@@ -56,7 +56,7 @@ defmodule Kernel.SpecialForms do
         alias MyKeyword, as: Keyword
       end
 
-  In the example above, we have set up `MyOrdict` to be alias
+  In the example above, we have set up `MyKeyword` to be alias
   as `Keyword`. So now, any reference to `Keyword` will be
   automatically replaced by `MyKeyword`.
 
@@ -276,7 +276,7 @@ defmodule Kernel.SpecialForms do
 
       a = 10
       NoHygiene.interference
-      a #=> 11
+      a #=> 1
 
   Notice that aliases are not hygienic in Elixir, ambiguity
   must be solved by prepending Elixir:
