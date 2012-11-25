@@ -45,18 +45,18 @@ kw_test() ->
 
 integer_test() ->
   [{number, 1, 123}] = tokenize("123"),
-  [{number, 1, 123},{eol, 1, $;}] = tokenize("123;"),
-  [{eol, 1, $\n}, {number, 3, 123}] = tokenize("\n\n123"),
+  [{number, 1, 123},{eol, 1, ';'}] = tokenize("123;"),
+  [{eol, 1, newline}, {number, 3, 123}] = tokenize("\n\n123"),
   [{number, 1, 123}, {number, 1, 234}] = tokenize("  123  234  ").
 
 float_test() ->
   [{number, 1, 12.3}] = tokenize("12.3"),
-  [{number, 1, 12.3},{eol, 1, $;}] = tokenize("12.3;"),
-  [{eol, 1, $\n}, {number, 3, 12.3}] = tokenize("\n\n12.3"),
+  [{number, 1, 12.3},{eol, 1, ';'}] = tokenize("12.3;"),
+  [{eol, 1, newline}, {number, 3, 12.3}] = tokenize("\n\n12.3"),
   [{number, 1, 12.3}, {number, 1, 23.4}] = tokenize("  12.3  23.4  ").
 
 comments_test() ->
-  [{number, 1, 1},{eol, 1, $\n},{number,2,2}] = tokenize("1 # Comment\n2").
+  [{number, 1, 1},{eol, 1, newline},{number,2,2}] = tokenize("1 # Comment\n2").
 
 identifier_test() ->
   [{identifier,1,abc}] = tokenize("abc "),
