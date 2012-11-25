@@ -154,25 +154,29 @@ defmodule Kernel.Typespec do
 
   @doc """
   Converts a spec clause back to Elixir AST.
-  Returns a 2-items tuple with the spec arguments and return result.
+  Returns a 2-items tuple with the spec definition
+  and the return result.
   """
-  def spec_to_ast({ :type, _line, :fun, [{:type, _, :product, args},result] }) do
+  def spec_to_ast(name, { :type, line, :fun, [{:type, _, :product, args},result] }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
-    { args, typespec_to_ast(result) }
+    { { name, line, args }, typespec_to_ast(result) }
   end
 
-  def spec_to_ast({ :type, _, :fun, [] }) do
-    { [], quote do: term }
+  def spec_to_ast(name, { :type, line, :fun, [] }) do
+    { { name, line, [] }, quote do: term }
   end
 
-  def spec_to_ast({ :type, _, :bounded_fun, [{ :type, _, :fun, [{ :type, _, :product, args }, result] }, constraints] }) do
-    _subtypes = lc {:type, _, :constraint, [{:atom, _, :is_subtype}, [{:var, _, name}, type]]} inlist constraints, do: {name, type}
-    _vars = lc {:var, _, name} inlist args, do: name
+  def spec_to_ast(name, { :type, line, :bounded_fun, [{ :type, _, :fun, [{ :type, _, :product, args }, result] }, constraints] }) do
+    [h|t] =
+      lc {:type, line, :constraint, [{:atom, _, :is_subtype}, [var, type]]} inlist constraints do
+        { :::, line, [typespec_to_ast(var), typespec_to_ast(type)] }
+      end
+
     args = lc arg inlist args, do: typespec_to_ast(arg)
-  # TODO: add guards
-    { args, typespec_to_ast(result) }
-  end
+    guards = Enum.reduce t, h, fn(x, acc) -> { :and, line, [acc, x] } end
 
+    { { :when, line, [{ name, line, args }, guards] }, typespec_to_ast(result) }
+  end
 
   @doc """
   Converts a type clause back to Elixir AST.
@@ -183,6 +187,7 @@ defmodule Kernel.Typespec do
     type = { :{}, 0, [record|fields] }
     quote do: unquote(record)(unquote_splicing(args)) :: unquote(type)
   end
+
   def type_to_ast({ name, type, args }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     quote do: unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type))
@@ -302,31 +307,27 @@ defmodule Kernel.Typespec do
   def defspec(type, {:when, _, [{ name, line, args }, constraints_guard] }, [do: return], caller) do
     if is_atom(args), do: args = []
     constraints = guard_to_constraints(constraints_guard, caller)
-    spec_constraints = lc {k, c} inlist constraints do
-      { :type, 0, :constraint,
-        [ {:atom, 0, :is_subtype },
-          [{:var, 0, k}, c] ]
-      }
-    end
-    spec  = { :type, line, :bounded_fun, [{ :type, line, :fun, fn_args(line, args, return, Keyword.keys(constraints), caller) }, spec_constraints] }
-    code  = { { name, Kernel.length(args) }, spec }
+    spec = { :type, line, :fun, fn_args(line, args, return, Keyword.keys(constraints), caller) }
+    spec = { :type, line, :bounded_fun, [spec, Keyword.values(constraints)] }
+    code = { { name, Kernel.length(args) }, spec }
     Module.compile_typespec(caller.module, type, code)
     code
   end
 
   def defspec(type, { name, line, args }, [do: return], caller) do
     if is_atom(args), do: args = []
-    spec  = { :type, line, :fun, fn_args(line, args, return, [], caller) }
-    code  = { { name, Kernel.length(args) }, spec }
+    spec = { :type, line, :fun, fn_args(line, args, return, [], caller) }
+    code = { { name, Kernel.length(args) }, spec }
     Module.compile_typespec(caller.module, type, code)
     code
   end
 
-  defp guard_to_constraints({ :is_subtype, _, [{ name, _, _ }, type] }, caller) do
-    [{name, typespec(type, [], caller)}]
+  defp guard_to_constraints({ subtype, line, [{ name, _, _ }, type] }, caller) when subtype in [:is_subtype, :::] do
+    contraints = [{ :atom, line, :is_subtype }, [{:var, line, name}, typespec(type, [], caller)]]
+    [{ name, { :type, line, :constraint, contraints } }]
   end
 
-  defp guard_to_constraints({:and, _, [left, right]}, caller) do
+  defp guard_to_constraints({ :and, _, [left, right] }, caller) do
     guard_to_constraints(left, caller) ++ guard_to_constraints(right, caller)
   end
 
