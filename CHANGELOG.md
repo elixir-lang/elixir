@@ -1,5 +1,9 @@
+* enhancements
+  * [Kernel] Functions defined with `fn` can now handle many clauses
+  * [Kernel] Raise an error if clauses with different arities are defined in the same function
+
 * bug fix
-  * Compilation stack no longer fails if environment variables contain utf-8 entries
+  * [Bootstrap] Compiling Elixir source no longer fails if environment variables contain utf-8 entries
 
 * deprecations
   * [Regex] Unicode regex option `u` was deprecated since it has no effect
@@ -96,7 +100,7 @@
 
 * deprecations
   * [Access] The semantics of the access protocol were reduced from a broad query API to simple data structure key-based access
-  * [ExUnit] Some assertions are deprecated in favor of simply using `assert()` 
+  * [ExUnit] Some assertions are deprecated in favor of simply using `assert()`
   * [File] `File.read_info` is deprecated in favor of `File.stat`
   * [IO] `IO.print` is deprecated in favor of `IO.write`
   * [Kernel] Deprecate `__LINE__` and `__FUNCTION__` in favor of `__ENV__.line` and `__ENV__.function`

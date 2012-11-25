@@ -234,6 +234,11 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'cond do _ -> true end'
   end
 
+  test :fun_different_arities do
+    assert "nofile:1: cannot mix clauses with different arities in function definition" ==
+      format_rescue 'fn x -> x; x, y -> x + y end'
+  end
+
   test :macros_error_stacktrace do
     assert [{:erlang,:+,[1,:foo],_},{Foo,:sample,1,_}|_] =
       rescue_stacktrace("defmodule Foo do\ndefmacro sample(num), do: num + :foo\ndef other, do: sample(1)\nend")

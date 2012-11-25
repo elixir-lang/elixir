@@ -462,7 +462,14 @@ translate_fn(Line, Clauses, S) ->
   end,
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
-  { { 'fun', Line, {clauses, TClauses} }, umergec(S, NS) }.
+  Arities = [length(Args) || { clause, _Line, Args, _Guards, _Exprs } <- TClauses],
+
+  case length(lists:usort(Arities)) of
+    1 ->
+      { { 'fun', Line, { clauses, TClauses } }, umergec(S, NS) };
+    _ ->
+      syntax_error(Line, S#elixir_scope.file, "cannot mix clauses with different arities in function definition")
+  end.
 
 translate_local(Line, Name, Args, #elixir_scope{local=nil} = S) ->
   { TArgs, NS } = translate_args(Args, S),
