@@ -96,11 +96,22 @@ defmodule KernelTest do
       assert function(:erlang, :atom_to_list, 1).(:a) == 'a'
     end
 
+    test :remote_syntax_function do
+      assert function(:erlang.atom_to_list/1) ==
+             function(:erlang, :atom_to_list, 1)
+      assert function(Enum.map/2) == function(Enum, :map, 2)
+    end
+
     test :retrieve_local_function do
       assert is_function(function(:atl, 1))
       assert :erlang.fun_info(function(:atl, 1), :arity) == {:arity, 1}
       assert function(:atl, 1).(:a) == 'a'
     end
+
+    test :local_syntax_function do
+      assert function(atl/1).(:a) == 'a'
+    end
+
 
     test :retrieve_imported_function do
       assert is_function(function(:atom_to_list, 1))
