@@ -8,8 +8,8 @@
   * [Bootstrap] Compiling Elixir source no longer fails if environment variables contain utf-8 entries
 
 * deprecations
-  * [Enun] Deprecated `Enum.qsort` and `List.sort` in favor of `Enum.sort`
-  * [ExUnit] Deprecated `assert left in right` in favor of `assert left inlist right`
+  * [Enun] `Enum.qsort` is deprecated and `List.sort` in favor of `Enum.sort`
+  * [ExUnit] `assert left in right` is deprecated in favor of `assert left inlist right`
 
 # v0.7.1 (2012-11-18)
 
@@ -38,9 +38,9 @@
   * [File] File is opened by default on binary mode instead of utf-8
 
 * deprecations
-  * [Behaviour] `defcallback/1` was deprecated in favor of `defcallback/2` which matches erlang `@callbacks`
-  * [Enum] `Enum.times` was deprecated in favor of using ranges
-  * [System] `halt` was moved to `System` module
+  * [Behaviour] `defcallback/1` is deprecated in favor of `defcallback/2` which matches erlang `@callbacks`
+  * [Enum] `Enum.times` is deprecated in favor of using ranges
+  * [System] `halt` moved to `System` module
 
 # v0.7.0 (2012-10-20)
 
