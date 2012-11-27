@@ -110,10 +110,19 @@ defmodule ExUnit.Assertions do
   end
 
   defp translate_assertion({ :in, _, [left, right] }, _else) do
+    IO.write "[WARNING] assert(left in right) is deprecated, please use assert(left inlist right)\n#{Exception.formatted_stacktrace}"
     quote do
       left  = unquote(left)
       right = unquote(right)
       assert(Enum.find(right, &1 == left), "Expected #{inspect left} to be in #{inspect right}")
+    end
+  end
+
+  defp translate_assertion({ :inlist, _, [left, right] }, _else) do
+    quote do
+      left  = unquote(left)
+      right = unquote(right)
+      assert(List.member?(right, left), "Expected #{inspect left} to be in #{inspect right}")
     end
   end
 
@@ -139,10 +148,20 @@ defmodule ExUnit.Assertions do
   end
 
   defp translate_assertion({ op, _, [{ :in, _, [left, right] }] }, _else) when negation?(op) do
+    IO.write "[WARNING] refute(left in right) is deprecated, please use refute(left inlist right)\n#{Exception.formatted_stacktrace}"
+
     quote do
       left  = unquote(left)
       right = unquote(right)
       assert(!Enum.find(right, &1 == left), "Expected #{inspect left} to not be in #{inspect right}")
+    end
+  end
+
+  defp translate_assertion({ op, _, [{ :inlist, _, [left, right] }] }, _else) when negation?(op) do
+    quote do
+      left  = unquote(left)
+      right = unquote(right)
+      assert(!List.member?(right, left), "Expected #{inspect left} to not be in #{inspect right}")
     end
   end
 

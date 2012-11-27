@@ -9,6 +9,7 @@
 
 * deprecations
   * [Enun] Deprecated `Enum.qsort` and `List.sort` in favor of `Enum.sort`
+  * [ExUnit] Deprecated `assert left in right` in favor of `assert left inlist right`
 
 # v0.7.1 (2012-11-18)
 

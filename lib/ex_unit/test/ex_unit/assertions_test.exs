@@ -103,26 +103,26 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test :assert_in_when_is_member do
-    true = assert 'foo' in ['foo', 'bar']
+  test :assert_inlist_when_is_member do
+    true = assert 'foo' inlist ['foo', 'bar']
   end
 
-  test :assert_in_when_is_not_member do
+  test :assert_inlist_when_is_not_member do
     try do
-      "This should never be tested" = assert 'foo' in 'bar'
+      "This should never be tested" = assert 'foo' inlist 'bar'
     rescue
       error in [ExUnit.AssertionError] ->
         "Expected 'foo' to be in 'bar'" = error.message
     end
   end
 
-  test :refute_in_when_is_not_member do
-    false = refute 'baz' in ['foo', 'bar']
+  test :refute_inlist_when_is_not_member do
+    false = refute 'baz' inlist ['foo', 'bar']
   end
 
-  test :refute_in_when_is_member do
+  test :refute_inlist_when_is_member do
     try do
-      "This should never be tested" = refute 'foo' in ['foo', 'bar']
+      "This should never be tested" = refute 'foo' inlist ['foo', 'bar']
     rescue
       error in [ExUnit.AssertionError] ->
         "Expected 'foo' to not be in ['foo','bar']" = error.message

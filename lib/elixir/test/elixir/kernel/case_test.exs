@@ -31,8 +31,8 @@ defmodule Kernel.CaseTest do
   test :in_operator_outside_case do
     x = 1
     y = 4
-    assert x in [1,2,3]
-    assert not y in [1, 2, 3]
+    assert x in [1,2,3], "in assertion"
+    assert not y in [1, 2, 3], "not in assertion"
   end
 
   test :in_operator_in_function_definition do

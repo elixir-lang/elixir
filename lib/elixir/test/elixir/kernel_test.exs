@@ -21,7 +21,7 @@ defmodule KernelTest do
   end
 
   test :__info__ do
-    assert { :in, 2 } in Kernel.__info__(:macros)
+    assert { :in, 2 } inlist Kernel.__info__(:macros)
   end
 
   defp x(value) when value in [1,2,3], do: true

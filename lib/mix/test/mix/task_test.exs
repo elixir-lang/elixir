@@ -42,8 +42,8 @@ defmodule Mix.TaskTest do
   test :all_modules do
     Mix.Task.load_all
     modules = Mix.Task.all_modules
-    assert Mix.Tasks.Hello   in modules
-    assert Mix.Tasks.Compile in modules
+    assert Mix.Tasks.Hello   inlist modules
+    assert Mix.Tasks.Compile inlist modules
   end
 
   test :moduledoc do

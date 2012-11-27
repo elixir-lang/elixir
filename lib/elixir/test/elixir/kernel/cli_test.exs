@@ -22,18 +22,18 @@ defmodule Kernel.CLI.OptionParsingTest do
     { path, _ } = Code.eval list, []
 
     # pa
-    assert File.expand_path('ebin', root) in path
-    assert File.expand_path('lib', root) in path
-    assert File.expand_path('src', root) in path
+    assert File.expand_path('ebin', root) inlist path
+    assert File.expand_path('lib', root) inlist path
+    assert File.expand_path('src', root) inlist path
 
     # pz
-    assert File.expand_path('lib/list', root) in path
+    assert File.expand_path('lib/list', root) inlist path
   end
 
   test :require do
     options = ['-r', fixture_path('../../../lib/list/*') /> to_char_list, '-r', '/never/gonna/*/up']
     { config, _argv } = Kernel.CLI.process_options(options, Kernel.CLI.Config.new)
-    assert {:require, fixture_path "../../../lib/list/chars.ex"} in config.commands
+    assert {:require, fixture_path "../../../lib/list/chars.ex"} inlist config.commands
   end
 end
 

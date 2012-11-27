@@ -35,21 +35,21 @@ defmodule CodeTest do
 
   test :require do
     Code.require_file fixture_path("code_sample.exs")
-    assert fixture_path("code_sample.exs") in Code.loaded_files
+    assert fixture_path("code_sample.exs") inlist Code.loaded_files
     assert Code.require_file(fixture_path("code_sample.exs")) == nil
 
     Code.unload_files [fixture_path("code_sample.exs")]
-    refute fixture_path("code_sample.exs") in Code.loaded_files
+    refute fixture_path("code_sample.exs") inlist Code.loaded_files
     assert Code.require_file(fixture_path("code_sample.exs")) != nil
   end
 
   test :path_manipulation do
     path = File.expand_path("../binary", __FILE__)
     Code.prepend_path path
-    assert binary_to_list(path) in :code.get_path
+    assert binary_to_list(path) inlist :code.get_path
 
     Code.delete_path path
-    refute binary_to_list(path) in :code.get_path
+    refute binary_to_list(path) inlist :code.get_path
   end
 
   test :file do

@@ -17,12 +17,12 @@ defmodule RangeTest do
   end
 
   test :in do
-    refute 0 in 1..3, "raw range assertion"
-    assert 1 in 1..3, "raw range assertion"
-    assert 2 in 1..3, "raw range assertion"
-    assert 3 in 1..3, "raw range assertion"
-    refute 4 in 1..3, "raw range assertion"
-    assert -3 in -1..-3, "raw range assertion"
+    refute 0 in 1..3, "in range assertion"
+    assert 1 in 1..3, "in range assertion"
+    assert 2 in 1..3, "in range assertion"
+    assert 3 in 1..3, "in range assertion"
+    refute 4 in 1..3, "in range assertion"
+    assert -3 in -1..-3, "in range assertion"
   end
 
   test :is_range do
