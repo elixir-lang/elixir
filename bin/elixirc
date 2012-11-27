@@ -2,9 +2,9 @@
 if [ $# -eq 0 ]; then
   echo "Usage: `basename $0` [elixir switches] [compiler switches] [.ex files]
 
-  -o              The directory to output compiled files
-  --no-docs       Do not attach documentation with compiled code
-  --debug-info    Attach debug info to compiled modules
+  -o               The directory to output compiled files
+  --no-docs        Do not attach documentation to compiled modules
+  --no-debug-info  Do not attach debug info to compiled modules
   --ignore-module-conflict
 
 ** Options given after -- are passed down to the executed code

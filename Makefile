@@ -1,5 +1,5 @@
 REBAR := $(shell echo `pwd`/rebar)
-ELIXIRC := bin/elixirc --debug-info --ignore-module-conflict $(ELIXIRC_OPTS)
+ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -env ERL_LIBS $ERL_LIBS:lib
 VERSION := 0.7.2.dev
@@ -89,7 +89,7 @@ clean:
 	rm -rf lib/mix/test/fixtures/git_repo
 	rm -rf lib/mix/tmp
 
-#==> Release tasks (modules compiled with --debug-info and --docs)
+#==> Release tasks
 
 $(RELEASE_FLAG): compile
 	touch $(RELEASE_FLAG)

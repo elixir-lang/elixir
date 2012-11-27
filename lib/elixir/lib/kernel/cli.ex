@@ -182,8 +182,8 @@ defmodule Kernel.CLI do
     process_compiler t, config.merge_compiler_options(docs: false)
   end
 
-  defp process_compiler(['--debug-info'|t], config) do
-    process_compiler t, config.merge_compiler_options(debug_info: true)
+  defp process_compiler(['--no-debug-info'|t], config) do
+    process_compiler t, config.merge_compiler_options(debug_info: false)
   end
 
   defp process_compiler(['--ignore-module-conflict'|t], config) do

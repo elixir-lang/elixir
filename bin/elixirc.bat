@@ -5,14 +5,11 @@ if "%*" == "" (
 	goto run 
 ) 
 :documentation
-echo Usage: %~nx0 [switches] [.ex files]
+echo Usage: %~nx0 [elixir switches] [compiler switches] [.ex files]
 echo.
-echo  -v              Prints version and exit
-echo  -o              The directory to output compiled files
-echo  -pa path      Prepend the given path to Erlang code path (*)
-echo  -pz path      Append the given path to Erlang code path (*)
-echo  --no-docs       Do not attach documentation with compiled code
-echo  --debug-info    Attach debug info to compiled modules
+echo  -o               The directory to output compiled files
+echo  --no-docs        Do not attach documentation to compiled modules
+echo  --no-debug-info  Do not attach debug info to compiled modules
 echo  --ignore-module-conflict
 echo.
 echo ** Options marked with (*) can be given more than once
