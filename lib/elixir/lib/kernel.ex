@@ -3026,7 +3026,6 @@ defmodule Kernel do
       Regex.match? %r(foo), "foo"  #=> true
 
   """
-
   defmacro __r__({ :<<>>, _line, [string] }, options) when is_binary(string) do
     binary = Macro.unescape_binary(string, Regex.unescape_map(&1))
     regex  = Regex.compile!(binary, options)

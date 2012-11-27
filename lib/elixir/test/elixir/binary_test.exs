@@ -52,6 +52,14 @@ bar
     assert "\18"  == <<1,?8>>
   end
 
+  test :hex do
+    assert "\xE9" == "é"
+    assert "\xFF" == "ÿ"
+    assert "\x{A}"== "\n"
+    assert "\x{E9}"== "é"
+    assert "\x{10FFFF}" == <<244,143,191,191>>
+  end
+
   test :match do
     assert is_match?("ab", ?a)
     assert not is_match?("cd", ?a)

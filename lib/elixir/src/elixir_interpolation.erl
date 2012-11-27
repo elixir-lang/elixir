@@ -2,7 +2,6 @@
 -module(elixir_interpolation).
 -export([extract/5, unescape_chars/1, unescape_chars/2,
 unescape_tokens/1, unescape_tokens/2, unescape_map/1]).
--define(is_octal(S), S >= $0 andalso S =< $7).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
@@ -75,42 +74,61 @@ unescape_token(Other, _Map) -> Other.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
--define(to_octal(List),
-
-).
+-define(is_octal(S), S >= $0 andalso S =< $7).
+-define(is_hex(S), (S >= $0 andalso S =< $9) orelse (S >= $A andalso S =< $F)).
 
 unescape_chars(String) ->
   unescape_chars(String, fun unescape_map/1).
 
 unescape_chars(String, Map) ->
-  Octals = case Map($0) of
-    false -> false;
-    _ -> true
-  end,
-  unescape_chars(String, Map, Octals, <<>>).
+  Octals = Map($0) /= false,
+  Hex    = Map($x) /= false,
+  unescape_chars(String, Map, Octals, Hex, <<>>).
 
-unescape_chars(<<$\\,A,B,C,Rest/binary>>, Map, true, Acc) when ?is_octal(A), ?is_octal(B), ?is_octal(C) ->
-  to_octal(Rest, Map, [A,B,C], Acc);
+unescape_chars(<<$\\,A,B,C,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A), ?is_octal(B), ?is_octal(C) ->
+  append_escaped(Rest, Map, [A,B,C], true, Hex, Acc, 8);
 
-unescape_chars(<<$\\,A,B,Rest/binary>>, Map, true, Acc) when ?is_octal(A), ?is_octal(B) ->
-  to_octal(Rest, Map, [A,B], Acc);
+unescape_chars(<<$\\,A,B,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A), ?is_octal(B) ->
+  append_escaped(Rest, Map, [A,B], true, Hex, Acc, 8);
 
-unescape_chars(<<$\\,A,Rest/binary>>, Map, true, Acc) when ?is_octal(A) ->
-  to_octal(Rest, Map, [A], Acc);
+unescape_chars(<<$\\,A,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A) ->
+  append_escaped(Rest, Map, [A], true, Hex, Acc, 8);
 
-unescape_chars(<<$\\,Escaped,Rest/binary>>, Map, Octals, Acc) ->
+unescape_chars(<<$\\,$x,A,B,Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+  append_escaped(Rest, Map, [A,B], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A) ->
+  append_escaped(Rest, Map, [A], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,B,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+  append_escaped(Rest, Map, [A,B], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,B,C,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+  append_escaped(Rest, Map, [A,B,C], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,B,C,D,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+  append_escaped(Rest, Map, [A,B,C,D], Octal, true, Acc, 16);
+
+  unescape_chars(<<$\\,$x,${,A,B,C,D,E,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+    append_escaped(Rest, Map, [A,B,C,D,E], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,B,C,D,E,F,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+  append_escaped(Rest, Map, [A,B,C,D,E,F], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,Escaped,Rest/binary>>, Map, Octals, Hex, Acc) ->
   case Map(Escaped) of
-    false -> unescape_chars(Rest, Map, Octals, <<Acc/binary, $\\, Escaped>>);
-    Other -> unescape_chars(Rest, Map, Octals, <<Acc/binary, Other>>)
+    false -> unescape_chars(Rest, Map, Octals, Hex, <<Acc/binary, $\\, Escaped>>);
+    Other -> unescape_chars(Rest, Map, Octals, Hex, <<Acc/binary, Other>>)
   end;
 
-unescape_chars(<<Char, Rest/binary>>, Map, Octals, Acc) ->
-  unescape_chars(Rest, Map, Octals, <<Acc/binary, Char>>);
+unescape_chars(<<Char, Rest/binary>>, Map, Octals, Hex, Acc) ->
+  unescape_chars(Rest, Map, Octals, Hex, <<Acc/binary, Char>>);
 
-unescape_chars(<<>>, _Map, _Octals, Acc) -> Acc.
+unescape_chars(<<>>, _Map, _Octals, _Hex, Acc) -> Acc.
 
-to_octal(Rest, Map, Octal, Acc) ->
-  unescape_chars(Rest, Map, true, <<Acc/binary, (list_to_integer(Octal, 8))/integer>>).
+append_escaped(Rest, Map, List, Octal, Hex, Acc, Base) ->
+  Binary = unicode:characters_to_binary([list_to_integer(List, Base)]),
+  unescape_chars(Rest, Map, Octal, Hex, <<Acc/binary, Binary/binary>>).
 
 % Unescape Helpers
 

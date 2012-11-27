@@ -111,6 +111,11 @@ defmodule Macro do
   Octals will by default be escaped unless the map function
   returns false for ?0.
 
+  ## Hex
+
+  Octals will by default be escaped unless the map function
+  returns false for ?x.
+
   ## Examples
 
   Using the unescape_map defined above is easy:
@@ -126,7 +131,7 @@ defmodule Macro do
   Unescape the given tokens according to the default map.
   Check `unescape/1` and `unescape/2` for more information
   about unescaping. Only tokens that are binaries are
-  unescaped, all others are ignored. This method is useful
+  unescaped, all others are ignored. This function is useful
   when implementing your own sigils. Check the implementation
   of `Kernel.__b__` for examples.
   """
