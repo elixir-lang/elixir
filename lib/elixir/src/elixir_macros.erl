@@ -56,6 +56,12 @@ translate({ function, Line, [[{do,{ '->',_,Pairs}}]] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'function', S),
   elixir_translator:translate_fn(Line, Pairs, S);
 
+translate({ function, Line, [{ '/', _, [{{ '.', _ ,[M, F] }, _ , [] }, A]}] }, S) ->
+  translate({ function, Line, [M, F, A] }, S);
+
+translate({ function, Line, [{ '/', _, [{F, _, Q}, A]}] }, S) when is_atom(Q) ->
+  translate({ function, Line, [F, A] }, S);
+
 translate({ function, Line, [_] }, S) ->
   assert_no_assign_or_guard_scope(Line, 'function', S),
   syntax_error(Line, S#elixir_scope.file, "invalid args for function");
