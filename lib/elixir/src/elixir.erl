@@ -16,9 +16,6 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  %% Set the shell to unicode so printing inside files work
-  io:setopts(standard_io, [{encoding,unicode}]),
-  io:setopts(standard_error, [{encoding,unicode}]),
   elixir_sup:start_link([]).
 
 stop(_S) ->
@@ -40,7 +37,11 @@ main(Args) ->
 
 start_app() ->
   case lists:keyfind(?MODULE, 1, application:loaded_applications()) of
-    false -> application:start(?MODULE);
+    false ->
+      application:start(?MODULE),
+      %% Set the shell to unicode so printing inside scripts work
+      io:setopts(standard_io, [{encoding,unicode}]),
+      io:setopts(standard_error, [{encoding,unicode}]);
     _ -> ok
   end.
 

@@ -6,6 +6,6 @@ defmodule IEx.Mixfile do
   end
 
   def application do
-    []
+    [env: [after_spawn: []]]
   end
 end

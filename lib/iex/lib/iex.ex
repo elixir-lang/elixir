@@ -34,6 +34,7 @@ defmodule IEx do
   IEx, you need to preload it.
   """
   def preload do
+    :elixir.start_app()
     :application.start(:iex)
     __MODULE__
   end
@@ -51,10 +52,8 @@ defmodule IEx do
   Returns registered after spawn callbacks.
   """
   def after_spawn do
-    case :application.get_env(:iex, :after_spawn) do
-      { :ok, list } -> list
-      :undefined -> []
-    end
+    { :ok, list } = :application.get_env(:iex, :after_spawn)
+    list
   end
 
   @doc """
@@ -140,8 +139,6 @@ defmodule IEx do
   # when someone press Ctrl+G and adds 's Elixir-IEx'.
   @doc false
   def start(config // nil) do
-    preload
-
     spawn fn ->
       config = config || boot_config([])
 
@@ -152,6 +149,7 @@ defmodule IEx do
 
       Process.flag(:trap_exit, true)
 
+      preload()
       set_expand_fun()
       run_after_spawn()
       IEx.Loop.start(config)
