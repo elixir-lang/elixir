@@ -8,7 +8,7 @@
   at_exit=[],
   pool=[],
   counter=0,
-  compiler_options=[{docs,true}]
+  compiler_options=[{docs,true},{debug_info,true}]
 }).
 
 start_link() ->

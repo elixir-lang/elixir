@@ -9,7 +9,7 @@
   * [Bootstrap] Compiling Elixir source no longer fails if environment variables contain utf-8 entries
 
 * deprecations
-  * [Enun] `Enum.qsort` is deprecated and `List.sort` in favor of `Enum.sort`
+  * [Enum] `Enum.qsort` is deprecated and `List.sort` in favor of `Enum.sort`
   * [ExUnit] `assert left in right` is deprecated in favor of `assert left inlist right`
 
 # v0.7.1 (2012-11-18)

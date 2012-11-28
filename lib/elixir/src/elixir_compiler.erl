@@ -115,7 +115,7 @@ module(Forms, File, Options, Bootstrap, Callback) when
 
 core() ->
   elixir:start_app(),
-  gen_server:call(elixir_code_server, { compiler_options, [{docs,false},{internal,true},{debug_info,true}] }),
+  gen_server:call(elixir_code_server, { compiler_options, [{docs,false},{internal,true}] }),
   [core_file(File) || File <- core_main()].
 
 %% HELPERS

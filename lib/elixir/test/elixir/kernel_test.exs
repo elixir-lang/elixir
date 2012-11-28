@@ -24,6 +24,10 @@ defmodule KernelTest do
     assert { :in, 2 } inlist Kernel.__info__(:macros)
   end
 
+  test :debug_info do
+    assert :debug_info inlist Kernel.__info__(:compile)[:options]
+  end
+
   defp x(value) when value in [1,2,3], do: true
   defp x(_),                           do: false
 
