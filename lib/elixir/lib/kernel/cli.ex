@@ -56,7 +56,8 @@ defmodule Kernel.CLI do
   ## Private
 
   defp at_exit(status) do
-    hooks = :gen_server.call(:elixir_code_server, :at_exit)
+    hooks = :gen_server.call(:elixir_code_server, :flush_at_exit)
+
     lc hook inlist hooks do
       try do
         hook.(status)
@@ -72,6 +73,10 @@ defmodule Kernel.CLI do
           IO.puts Exception.formatted_stacktrace(trace)
       end
     end
+
+    # If an at_exit callback adds a
+    # new hook we need to invoke it.
+    unless hooks == [], do: at_exit(status)
   end
 
   defp invalid_option(option) do

@@ -65,11 +65,14 @@ defmodule ExUnit do
     options = Keyword.merge(user_options, options)    
     ExUnit.Server.start_link
     configure(options)
-    System.at_exit fn status ->
-      if status == 0 do
+    System.at_exit fn
+      0 ->
         failures = ExUnit.run
-        if failures > 0, do: System.halt(1), else: System.halt(0)
-      end
+        System.at_exit fn _ ->
+          if failures > 0, do: System.halt(1), else: System.halt(0)
+        end
+      _ ->
+        :ok
     end
   end
 

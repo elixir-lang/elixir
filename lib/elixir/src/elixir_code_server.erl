@@ -47,6 +47,9 @@ handle_call(loaded, _From, Config) ->
 handle_call(at_exit, _From, Config) ->
   { reply, Config#elixir_code_server.at_exit, Config };
 
+handle_call(flush_at_exit, _From, Config) ->
+  { reply, Config#elixir_code_server.at_exit, Config#elixir_code_server{at_exit=[]} };
+
 handle_call(argv, _From, Config) ->
   { reply, Config#elixir_code_server.argv, Config };
 
