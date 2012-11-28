@@ -262,50 +262,50 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
     true  -> elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
     false ->
       Docs = elixir_compiler:get_opt(docs, C),
-      Contents = { function, Line, '__info__', 1, [
-        functions_clause(Line, Def),
-        macros_clause(Line, Module, Def, Defmacro),
-        docs_clause(Line, Module, Docs),
+      Contents = { function, 0, '__info__', 1, [
+        functions_clause(Def),
+        macros_clause(Module, Def, Defmacro),
+        docs_clause(Module, Docs),
         moduledoc_clause(Line, Module, Docs),
-        module_clause(Line, Module),
-        else_clause(Line)
+        module_clause(Module),
+        else_clause()
       ] },
       { [Pair|Export], [Contents|Functions] }
   end.
 
-functions_clause(Line, Def) ->
+functions_clause(Def) ->
   All = ordsets:add_element({'__info__',1}, Def),
-  { clause, Line, [{ atom, Line, functions }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
+  { clause, 0, [{ atom, 0, functions }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
 
-macros_clause(Line, Module, Def, Defmacro) ->
+macros_clause(Module, Def, Defmacro) ->
   All = handle_builtin_macros(Module, Def, Defmacro),
-  { clause, Line, [{ atom, Line, macros }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
+  { clause, 0, [{ atom, 0, macros }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
 
 handle_builtin_macros('Elixir.Kernel', Def, Defmacro) ->
   ordsets:subtract(ordsets:union(Defmacro,
     elixir_dispatch:in_erlang_macros()), Def);
 handle_builtin_macros(_, _Def, Defmacro) -> Defmacro.
 
-module_clause(Line, Module) ->
-  { clause, Line, [{ atom, Line, module }], [], [{ atom, Line, Module }] }.
+module_clause(Module) ->
+  { clause, 0, [{ atom, 0, module }], [], [{ atom, 0, Module }] }.
 
-docs_clause(Line, Module, true) ->
+docs_clause(Module, true) ->
   Docs = ordsets:from_list(ets:tab2list(docs_table(Module))),
-  { clause, Line, [{ atom, Line, docs }], [], [elixir_tree_helpers:abstract_syntax(Docs)] };
+  { clause, 0, [{ atom, 0, docs }], [], [elixir_tree_helpers:abstract_syntax(Docs)] };
 
-docs_clause(Line, _Module, _) ->
-  { clause, Line, [{ atom, Line, docs }], [], [{ atom, Line, nil }] }.
+docs_clause(_Module, _) ->
+  { clause, 0, [{ atom, 0, docs }], [], [{ atom, 0, nil }] }.
 
 moduledoc_clause(Line, Module, true) ->
   Docs = 'Elixir.Module':get_attribute(Module, moduledoc),
-  { clause, Line, [{ atom, Line, moduledoc }], [], [elixir_tree_helpers:abstract_syntax({ Line, Docs })] };
+  { clause, 0, [{ atom, 0, moduledoc }], [], [elixir_tree_helpers:abstract_syntax({ Line, Docs })] };
 
-moduledoc_clause(Line, _Module, _) ->
-  { clause, Line, [{ atom, Line, moduledoc }], [], [{ atom, Line, nil }] }.
+moduledoc_clause(_Line, _Module, _) ->
+  { clause, 0, [{ atom, 0, moduledoc }], [], [{ atom, 0, nil }] }.
 
-else_clause(Line) ->
-  Info = { call, Line, { atom, Line, module_info }, [{ var, Line, atom }] },
-  { clause, Line, [{ var, Line, atom }], [], [Info] }.
+else_clause() ->
+  Info = { call, 0, { atom, 0, module_info }, [{ var, 0, atom }] },
+  { clause, 0, [{ var, 0, atom }], [], [Info] }.
 
 % HELPERS
 
