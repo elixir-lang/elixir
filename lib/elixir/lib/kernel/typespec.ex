@@ -371,7 +371,7 @@ defmodule Kernel.Typespec do
 
   defp typespec_to_ast({ :type, line, :fun, [{:type, _, :product, args},result] }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
-    { :"::", line, [{ :fun, line, args }, typespec_to_ast(result)] }
+    { :"->", line, [{args, typespec_to_ast(result)}] }
   end
 
   defp typespec_to_ast({ :type, line, :fun, [] }) do
@@ -446,11 +446,11 @@ defmodule Kernel.Typespec do
   end
 
   # Handle funs
-  defp typespec({:fun, line, args} = f, vars, caller) when is_list(args) do
-    IO.write "[WARNING] 'any' fun() type is deprecated, use fun(...) :: any instead\n#{Exception.formatted_stacktrace}"
-    typespec({:"::", line, [f, quote do: any]}, vars, caller)
+  defp typespec({:fun, line, args}, vars, caller) when is_list(args) do
+    IO.write "[WARNING] fun() type is deprecated, use (... -> type) instead\n#{Exception.formatted_stacktrace}"
+    typespec({:"->", line, [{args, quote do: any}]}, vars, caller)
   end
-  defp typespec({:"::", line, [{:fun, _, arguments}, return]}, vars, caller) when is_list(arguments) do
+  defp typespec({:"->", line, [{arguments, return}]}, vars, caller) when is_list(arguments) do
     args = fn_args(line, arguments, return, vars, caller)
     { :type, line, :fun, args }
   end

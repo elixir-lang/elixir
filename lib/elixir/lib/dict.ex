@@ -37,11 +37,11 @@ defmodule Dict do
   defcallback get(t, key, value), do: value
   defcallback has_key?(t, key), do: boolean
   defcallback keys(t), do: list(key)
-  defcallback merge(t, t, fun(key, value, value) :: value), do: t
+  defcallback merge(t, t, (key, value, value -> value)), do: t
   defcallback put(t, key, value), do: t
   defcallback size(t), do: non_neg_integer()
   defcallback to_list(t), do: list()
-  defcallback update(t, key, fun(value) :: value), do: t
+  defcallback update(t, key, (value -> value)), do: t
   defcallback values(t), do: list(value)
 
   @doc """
@@ -204,7 +204,7 @@ defmodule Dict do
       #=> [a: 4, b: 2, d: 4]
 
   """
-  @spec merge(t, t, fun(key, value, value) :: value) :: t
+  @spec merge(t, t, (key, value, value -> value)) :: t
   def merge(dict1, dict2, fun) do
     elem(dict1, 0).merge(dict1, dict2, fun)
   end
@@ -220,7 +220,7 @@ defmodule Dict do
       #=> [a: -1, b: 2]
 
   """
-  @spec update(t, key, fun(value) :: value) :: t
+  @spec update(t, key, (value -> value)) :: t
   def update(dict, key, fun) do
     elem(dict, 0).update(dict, key, fun)
   end
@@ -237,7 +237,7 @@ defmodule Dict do
       #=> [a: 1, b: 2, c: 3]
 
   """
-  @spec update(t, key, value, fun(value) :: value) :: t
+  @spec update(t, key, value, (value -> value)) :: t
   def update(dict, key, initial, fun) do
     elem(dict, 0).update(dict, key, initial, fun)
   end
