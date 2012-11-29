@@ -43,8 +43,8 @@ Rootsymbol grammar.
 Left       5 do.
 Right     10 '->'.
 Left      20 ','.  % Solve nested call_args conflicts
-Right     30 when_op.
-Right     40 colon_colon_op.
+Right     30 colon_colon_op.
+Right     40 when_op.
 Right     50 default_op.
 Left      60 pipe_op.
 Left      70 inc_op.

@@ -57,12 +57,11 @@ defmodule Kernel.Typespec do
 
   @doc false
   defmacro defspec(spec, [do: block]) do
-    IO.write "[WARNING] @spec f(...), do: type is deprecated, use @spec f(...) :: type\n"
+    IO.write "[WARNING] @spec f(...), do: type is deprecated, use @spec f(...) :: type\n#{Exception.formatted_stacktrace}"
     quote do
       Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote(spec) :: unquote(block)), __ENV__)
     end
   end
-
 
   @doc """
   Defines a spec.
@@ -81,7 +80,7 @@ defmodule Kernel.Typespec do
 
   @doc false
   defmacro defcallback(spec, [do: block]) do
-    IO.write "[WARNING] @callback f(...), do: type is deprecated, use @callback f(...) :: type\n"
+    IO.write "[WARNING] @callback f(...), do: type is deprecated, use @callback f(...) :: type\n#{Exception.formatted_stacktrace}"
     quote do
       Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote(spec) :: unquote(block)), __ENV__)
     end
@@ -97,7 +96,6 @@ defmodule Kernel.Typespec do
 
   """
   defmacro defcallback(spec) do
-    IO.write "[WARNING] @callback f(...), do: type is deprecated, use @callback f(...) :: type\n"
     quote do
       Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote(spec)), __ENV__)
     end
@@ -117,11 +115,8 @@ defmodule Kernel.Typespec do
       end
 
     Module.compile_typespec module, kind, type
-
-    if export do
+    if export, do:
       Module.compile_typespec module, :export_type, [{ name, length(vars) }]
-    end
-
     type
   end
 
@@ -170,16 +165,14 @@ defmodule Kernel.Typespec do
 
   @doc """
   Converts a spec clause back to Elixir AST.
-  Returns a 2-items tuple with the spec definition
-  and the return result.
   """
   def spec_to_ast(name, { :type, line, :fun, [{:type, _, :product, args},result] }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
-    { { name, line, args }, typespec_to_ast(result) }
+    { :::, line, [{ name, line, args }, typespec_to_ast(result)] }
   end
 
   def spec_to_ast(name, { :type, line, :fun, [] }) do
-    { { name, line, [] }, quote do: term }
+    { :::, line, [{ name, line, [] }, quote(do: term)] }
   end
 
   def spec_to_ast(name, { :type, line, :bounded_fun, [{ :type, _, :fun, [{ :type, _, :product, args }, result] }, constraints] }) do
@@ -191,7 +184,7 @@ defmodule Kernel.Typespec do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     guards = Enum.reduce t, h, fn(x, acc) -> { :and, line, [acc, x] } end
 
-    { { :when, line, [{ name, line, args }, guards] }, typespec_to_ast(result) }
+    { :::, line, [{ :when, line, [{ name, line, args }, guards] }, typespec_to_ast(result)] }
   end
 
   @doc """
@@ -320,7 +313,7 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
-  def defspec(type, {:when, _, [{ name, line, args }, {:::, _, [constraints_guard, return]}] }, caller) do
+  def defspec(type, {:::, _, [{ :when, _, [{ name, line, args }, constraints_guard] }, return] }, caller) do
     if is_atom(args), do: args = []
     constraints = guard_to_constraints(constraints_guard, caller)
     spec = { :type, line, :fun, fn_args(line, args, return, Keyword.keys(constraints), caller) }
@@ -338,7 +331,7 @@ defmodule Kernel.Typespec do
     code
   end
 
-  defp guard_to_constraints({ subtype, line, [{ name, _, _ }, type] }, caller) when subtype in [:is_subtype, :::] do
+  defp guard_to_constraints({ :is_subtype, line, [{ name, _, _ }, type] }, caller) do
     contraints = [{ :atom, line, :is_subtype }, [{:var, line, name}, typespec(type, [], caller)]]
     [{ name, { :type, line, :constraint, contraints } }]
   end
@@ -454,7 +447,7 @@ defmodule Kernel.Typespec do
 
   # Handle funs
   defp typespec({:fun, line, args} = f, vars, caller) when is_list(args) do
-    IO.write "[WARNING] 'any' fun() type is deprecated, use fun(...) :: any instead\n"
+    IO.write "[WARNING] 'any' fun() type is deprecated, use fun(...) :: any instead\n#{Exception.formatted_stacktrace}"
     typespec({:"::", line, [f, quote do: any]}, vars, caller)
   end
   defp typespec({:"::", line, [{:fun, _, arguments}, return]}, vars, caller) when is_list(arguments) do
@@ -484,7 +477,7 @@ defmodule Kernel.Typespec do
   # Handle remote calls
   defp typespec({{:., line, [remote, name]}, _, args}, vars, caller) do
     remote = Macro.expand remote, caller
-    unless is_atom(remote), do: raise(ArgumentError, message: "Invalid remote in typespec")
+    unless is_atom(remote), do: raise ArgumentError, message: "invalid remote in typespec"
     remote_type({typespec(remote, vars, caller), line, typespec(name, vars, caller), args}, vars, caller)
   end
 

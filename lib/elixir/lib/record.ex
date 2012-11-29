@@ -637,7 +637,7 @@ defmodule Record.Extensions do
     update = prefix("update_", key)
 
     quote do
-      @spec unquote(update)(fun(unquote(spec) :: unquote(spec)), t) :: t
+      @spec unquote(update)(fun(unquote(spec)) :: unquote(spec), t) :: t
     end
   end
 

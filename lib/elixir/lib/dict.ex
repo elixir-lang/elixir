@@ -37,11 +37,11 @@ defmodule Dict do
   defcallback get(t, key, value), do: value
   defcallback has_key?(t, key), do: boolean
   defcallback keys(t), do: list(key)
-  defcallback merge(t, t, fun(key, value, value, do: value)), do: t
+  defcallback merge(t, t, fun(key, value, value) :: value), do: t
   defcallback put(t, key, value), do: t
   defcallback size(t), do: non_neg_integer()
   defcallback to_list(t), do: list()
-  defcallback update(t, key, fun(value, do: value)), do: t
+  defcallback update(t, key, fun(value) :: value), do: t
   defcallback values(t), do: list(value)
 
   @doc """

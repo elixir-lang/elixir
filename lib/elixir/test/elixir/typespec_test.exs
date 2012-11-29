@@ -257,9 +257,9 @@ defmodule Typespec.Test.Type do
   test "@spec + @callback" do
     { specs, callbacks } = test_module do
       def myfun(x), do: x
-      @spec myfun(integer) :: integer
-      @spec myfun(char_list),  do: char_list
-      @callback cb(integer) :: integer
+      @spec myfun(integer)   :: integer
+      @spec myfun(char_list) :: char_list
+      @callback cb(integer)  :: integer
       { @spec, @callback }
     end
 
@@ -290,7 +290,7 @@ defmodule Typespec.Test.Type do
       (quote do: @type binary_type2() :: <<_ :: 3 * 8>>),
       (quote do: @type binary_type3() :: <<_ :: 3>>),
       (quote do: @type tuple_type() :: {integer()}),
-      (quote do: @type ftype() :: fun() :: any() | fun() :: integer() | fun(integer()) :: integer()),
+      (quote do: @type ftype() :: (fun() :: any()) | (fun() :: integer()) | (fun(integer()) :: integer())),
     ]
 
     types = test_module do
@@ -317,7 +317,8 @@ defmodule Typespec.Test.Type do
                         { :type, 0, :integer, [] } },
                     ],
                     []}
-    assert Kernel.Typespec.type_to_ast(record_type) == quote hygiene: false, do: my_record() :: {:my_record, field1 :: atom(), field2 :: integer() }
+    assert Kernel.Typespec.type_to_ast(record_type) ==
+      quote(hygiene: false, do: my_record() :: {:my_record, field1 :: atom(), field2 :: integer() })
   end
 
   test "spec_to_ast" do
@@ -335,8 +336,7 @@ defmodule Typespec.Test.Type do
     end
 
     lc { { { _, _ }, spec }, definition } inlist Enum.zip(compiled, specs) do
-      { fun, result } = Kernel.Typespec.spec_to_ast(:a, spec)
-      quoted = quote do: @spec unquote(fun) :: unquote(result)
+      quoted = quote do: @spec unquote(Kernel.Typespec.spec_to_ast(:a, spec))
       assert Macro.to_binary(quoted) == Macro.to_binary(definition)
     end
   end
@@ -348,7 +348,7 @@ defmodule Typespec.Test.Type do
 
     { :module, T, binary, _ } = defmodule T do
       @spec a :: any
-      def a,   do: nil
+      def a, do: nil
     end
 
     :code.delete(T)
