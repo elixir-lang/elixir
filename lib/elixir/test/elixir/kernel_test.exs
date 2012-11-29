@@ -20,6 +20,13 @@ defmodule KernelTest do
     refute x([])
   end
 
+  test :paren do
+    assert nil?(())
+    assert [ 1, (), 3 ] == [1, nil, 3 ]
+    assert [do: ()] == [do: nil]
+    assert { 1, (), 3 } == { 1, nil, 3 }
+  end
+
   test :__info__ do
     assert { :in, 2 } inlist Kernel.__info__(:macros)
   end
