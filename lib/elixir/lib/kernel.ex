@@ -299,7 +299,7 @@ defmodule Kernel do
       abs(-3.33) #=> 3.33
       abs(-3)    #=> 3
   """
-  @spec abs(number), do: number
+  @spec abs(number) :: number
   def abs(number) do
     :erlang.abs(number)
   end
@@ -313,7 +313,7 @@ defmodule Kernel do
       #=> 4
 
   """
-  @spec apply(fun, list), do: term
+  @spec apply(fun(...) :: any, list) :: term
   def apply(fun, args) do
     :erlang.apply(fun, args)
   end
@@ -327,7 +327,7 @@ defmodule Kernel do
       #=> [3,2,1]
 
   """
-  @spec apply(atom, atom, list), do: term
+  @spec apply(atom, atom, list) :: term
   def apply(module, fun, args) do
     :erlang.apply(module, fun, args)
   end
@@ -344,7 +344,7 @@ defmodule Kernel do
       atom_to_binary(:elixir, :utf8) #=> "elixir"
 
   """
-  @spec atom_to_binary(atom, :utf8 | :unicode | :latin1), do: binary
+  @spec atom_to_binary(atom, :utf8 | :unicode | :latin1) :: binary
   def atom_to_binary(atom, encoding) do
     :erlang.atom_to_binary(atom, encoding)
   end
@@ -357,7 +357,7 @@ defmodule Kernel do
       atom_to_list(:elixir) #=> 'elixir'
 
   """
-  @spec atom_to_list(atom), do: list
+  @spec atom_to_list(atom) :: list
   def atom_to_list(atom) do
     :erlang.atom_to_list(atom)
   end
@@ -380,7 +380,7 @@ defmodule Kernel do
       binary_part "foo", 3, -1 #=> 1
 
   """
-  @spec binary_part(binary, pos_integer, integer), do: binary
+  @spec binary_part(binary, pos_integer, integer) :: binary
   def binary_part(binary, start, length) do
     :erlang.binary_part(binary, start, length)
   end
@@ -396,7 +396,7 @@ defmodule Kernel do
       binary_to_atom("elixir", :utf8) #=> :elixir
 
   """
-  @spec binary_to_atom(binary, :utf8 | :unicode | :latin1), do: atom
+  @spec binary_to_atom(binary, :utf8 | :unicode | :latin1) :: atom
   def binary_to_atom(binary, encoding) do
     :erlang.binary_to_atom(binary, encoding)
   end
@@ -404,7 +404,7 @@ defmodule Kernel do
   @doc """
   Works like `binary_to_atom/2`, but the atom must already exist.
   """
-  @spec binary_to_existing_atom(binary, :utf8 | :unicode | :latin1), do: atom
+  @spec binary_to_existing_atom(binary, :utf8 | :unicode | :latin1) :: atom
   def binary_to_existing_atom(binary, encoding) do
     :erlang.binary_to_existing_atom(binary, encoding)
   end
@@ -412,7 +412,7 @@ defmodule Kernel do
   @doc """
   Returns a list of integers which correspond to the bytes of `binary`.
   """
-  @spec binary_to_list(binary), do: list
+  @spec binary_to_list(binary) :: list
   def binary_to_list(binary) do
     :erlang.binary_to_list(binary)
   end
@@ -422,7 +422,7 @@ defmodule Kernel do
   from position `start` to position `stop` in `binary`. Positions in the binary
   are numbered starting from 1.
   """
-  @spec binary_to_list(binary, pos_integer, pos_integer), do: list
+  @spec binary_to_list(binary, pos_integer, pos_integer) :: list
   def binary_to_list(binary, start, stop) do
     :erlang.binary_to_list(binary, start, stop)
   end
@@ -437,7 +437,7 @@ defmodule Kernel do
       binary_to_term(term_to_binary("foo")) #=> "foo"
 
   """
-  @spec binary_to_term(binary), do: term
+  @spec binary_to_term(binary) :: term
   def binary_to_term(binary) do
     :erlang.binary_to_term(binary)
   end
@@ -461,7 +461,7 @@ defmodule Kernel do
       binary_to_term(term_to_binary("foo"), [:safe])
 
   """
-  @spec binary_to_term(binary, [] | [:safe]), do: term
+  @spec binary_to_term(binary, [] | [:safe]) :: term
   def binary_to_term(binary, options) do
     :erlang.binary_to_term(binary, options)
   end
@@ -477,7 +477,7 @@ defmodule Kernel do
       bit_size(<<1,2,3>>) #=> 24
 
   """
-  @spec bit_size(bitstring), do: non_neg_integer
+  @spec bit_size(bitstring) :: non_neg_integer
   def bit_size(bitstring) do
     :erlang.bit_size(bitstring)
   end
@@ -487,7 +487,7 @@ defmodule Kernel do
   number of bits in the binary is not divisible by 8, the last element of the list will
   be a bitstring containing the remaining bits (1 up to 7 bits).
   """
-  @spec bitstring_to_list(bitstring), do: list
+  @spec bitstring_to_list(bitstring) :: list
   def bitstring_to_list(bitstring) do
     :erlang.bitstring_to_list(bitstring)
   end
@@ -505,7 +505,7 @@ defmodule Kernel do
       byte_size(<<1,2,3>>) #=> 3
 
   """
-  @spec byte_size(bitstring), do: non_neg_integer
+  @spec byte_size(bitstring) :: non_neg_integer
   def byte_size(bitstring) do
     :erlang.byte_size(bitstring)
   end
@@ -521,7 +521,7 @@ defmodule Kernel do
       exit(:seems_bad)
 
   """
-  @spec exit(term), do: no_return
+  @spec exit(term) :: no_return
   def exit(reason) do
     :erlang.exit(reason)
   end
@@ -529,7 +529,7 @@ defmodule Kernel do
   @doc """
   Converts the given number to a float. Allowed in guard clauses.
   """
-  @spec float(number), do: float
+  @spec float(number) :: float
   def float(number) do
     :erlang.float(number)
   end
@@ -543,7 +543,7 @@ defmodule Kernel do
       #=> '7.00000000000000000000e+00'
 
   """
-  @spec float_to_list(number), do: char_list
+  @spec float_to_list(number) :: char_list
   def float_to_list(number) do
     :erlang.float_to_list(number)
   end
@@ -551,7 +551,7 @@ defmodule Kernel do
   @doc """
   Returns the head of a list, raises badarg if the list is empty.
   """
-  @spec hd(list), do: term
+  @spec hd(list) :: term
   def hd(list) do
     :erlang.hd(list)
   end
@@ -565,7 +565,7 @@ defmodule Kernel do
       #=> '7'
 
   """
-  @spec integer_to_list(integer), do: char_list
+  @spec integer_to_list(integer) :: char_list
   def integer_to_list(number) do
     :erlang.integer_to_list(number)
   end
@@ -580,7 +580,7 @@ defmodule Kernel do
       #=> "3FF"
 
   """
-  @spec integer_to_list(integer, pos_integer), do: char_list
+  @spec integer_to_list(integer, pos_integer) :: char_list
   def integer_to_list(number, base) do
     :erlang.integer_to_list(number, base)
   end
@@ -594,7 +594,7 @@ defmodule Kernel do
       #=> 4
 
   """
-  @spec iolist_size(iolist), do: non_neg_integer
+  @spec iolist_size(iolist) :: non_neg_integer
   def iolist_size(item) do
     :erlang.iolist_size(item)
   end
@@ -612,7 +612,7 @@ defmodule Kernel do
       #=> <<1,2,3,1,2,3,4,5,4,6>>
 
   """
-  @spec iolist_to_binary(iolist), do: binary
+  @spec iolist_to_binary(iolist) :: binary
   def iolist_to_binary(item) do
     :erlang.iolist_to_binary(item)
   end
@@ -621,7 +621,7 @@ defmodule Kernel do
   Returns true if the local node is alive; that is,
   if the node can be part of a distributed system.
   """
-  @spec is_alive, do: boolean
+  @spec is_alive :: boolean
   def is_alive do
     :erlang.is_alive
   end
@@ -631,7 +631,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_atom(term), do: boolean
+  @spec is_atom(term) :: boolean
   def is_atom(term) do
     :erlang.is_atom(term)
   end
@@ -643,7 +643,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_binary(term), do: boolean
+  @spec is_binary(term) :: boolean
   def is_binary(term) do
     :erlang.is_binary(term)
   end
@@ -653,7 +653,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_bitstring(term), do: boolean
+  @spec is_bitstring(term) :: boolean
   def is_bitstring(term) do
     :erlang.is_bitstring(term)
   end
@@ -664,7 +664,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_boolean(term), do: boolean
+  @spec is_boolean(term) :: boolean
   def is_boolean(term) do
     :erlang.is_boolean(term)
   end
@@ -674,7 +674,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_float(term), do: boolean
+  @spec is_float(term) :: boolean
   def is_float(term) do
     :erlang.is_float(term)
   end
@@ -684,7 +684,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_function(term), do: boolean
+  @spec is_function(term) :: boolean
   def is_function(term) do
     :erlang.is_function(term)
   end
@@ -695,7 +695,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_function(term, non_neg_integer), do: boolean
+  @spec is_function(term, non_neg_integer) :: boolean
   def is_function(term, arity) do
     :erlang.is_function(term, arity)
   end
@@ -705,7 +705,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_integer(term), do: boolean
+  @spec is_integer(term) :: boolean
   def is_integer(term) do
     :erlang.is_integer(term)
   end
@@ -715,7 +715,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_list(term), do: boolean
+  @spec is_list(term) :: boolean
   def is_list(term) do
     :erlang.is_list(term)
   end
@@ -726,7 +726,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_number(term), do: boolean
+  @spec is_number(term) :: boolean
   def is_number(term) do
     :erlang.is_number(term)
   end
@@ -736,7 +736,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_pid(term), do: boolean
+  @spec is_pid(term) :: boolean
   def is_pid(term) do
     :erlang.is_pid(term)
   end
@@ -746,7 +746,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_port(term), do: boolean
+  @spec is_port(term) :: boolean
   def is_port(term) do
     :erlang.is_port(term)
   end
@@ -756,7 +756,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_reference(term), do: boolean
+  @spec is_reference(term) :: boolean
   def is_reference(term) do
     :erlang.is_reference(term)
   end
@@ -766,7 +766,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec is_tuple(term), do: boolean
+  @spec is_tuple(term) :: boolean
   def is_tuple(term) do
     :erlang.is_tuple(term)
   end
@@ -780,7 +780,7 @@ defmodule Kernel do
 
       length([1,2,3,4,5,6,7,8,9]) #=> 9
   """
-  @spec length(list), do: non_neg_integer
+  @spec length(list) :: non_neg_integer
   def length(list) do
     :erlang.length(list)
   end
@@ -792,7 +792,7 @@ defmodule Kernel do
 
       list_to_atom('elixir') #=> :elixir
   """
-  @spec list_to_atom(char_list), do: atom
+  @spec list_to_atom(char_list) :: atom
   def list_to_atom(char_list) do
     :erlang.list_to_atom(char_list)
   end
@@ -804,7 +804,7 @@ defmodule Kernel do
 
       list_to_binary('Elixir') #=> "Elixir"
   """
-  @spec list_to_binary(iolist), do: binary
+  @spec list_to_binary(iolist) :: binary
   def list_to_binary(char_list) do
     :erlang.list_to_binary(char_list)
   end
@@ -823,7 +823,7 @@ defmodule Kernel do
       #=> <<1,2,3,1,2,3,4,5,4,6,7|4>>
 
   """
-  @spec list_to_bitstring(maybe_improper_list(char | binary | iolist | bitstring, binary | bitstring | [])), do: bitstring
+  @spec list_to_bitstring(maybe_improper_list(char | binary | iolist | bitstring, binary | bitstring | [])) :: bitstring
   def list_to_bitstring(bitstring_list) do
     :erlang.list_to_bitstring(bitstring_list)
   end
@@ -832,7 +832,7 @@ defmodule Kernel do
   Returns the atom whose text representation is `char_list`, but only if there already
   exists such atom.
   """
-  @spec list_to_existing_atom(char_list), do: atom
+  @spec list_to_existing_atom(char_list) :: atom
   def list_to_existing_atom(char_list) do
     :erlang.list_to_existing_atom(char_list)
   end
@@ -844,7 +844,7 @@ defmodule Kernel do
 
       list_to_float('2.2017764e+0') #=> 2.2017764
   """
-  @spec list_to_float(char_list), do: float
+  @spec list_to_float(char_list) :: float
   def list_to_float(char_list) do
     :erlang.list_to_float(char_list)
   end
@@ -856,7 +856,7 @@ defmodule Kernel do
 
       list_to_integer('123') #=> 123
   """
-  @spec list_to_integer(char_list), do: integer
+  @spec list_to_integer(char_list) :: integer
   def list_to_integer(char_list) do
     :erlang.list_to_integer(char_list)
   end
@@ -868,7 +868,7 @@ defmodule Kernel do
 
       list_to_integer('3FF', 16) #=> 1023
   """
-  @spec list_to_integer(char_list, non_neg_integer), do: integer
+  @spec list_to_integer(char_list, non_neg_integer) :: integer
   def list_to_integer(char_list, base) do
     :erlang.list_to_integer(char_list, base)
   end
@@ -886,7 +886,7 @@ defmodule Kernel do
   ## Examples
       list_to_pid('<0.41>') #=> <0.4.1>
   """
-  @spec list_to_pid(char_list), do: pid
+  @spec list_to_pid(char_list) :: pid
   def list_to_pid(char_list) do
     :erlang.list_to_pid(char_list)
   end
@@ -898,7 +898,7 @@ defmodule Kernel do
 
       list_to_tuple([:share, [:elixir, 163]]). #=> {:share, [:elixir, 163]}
   """
-  @spec list_to_tuple(list), do: tuple
+  @spec list_to_tuple(list) :: tuple
   def list_to_tuple(list) do
     :erlang.list_to_tuple(list)
   end
@@ -915,7 +915,7 @@ defmodule Kernel do
       #=> #Ref<0.0.0.135>
 
   """
-  @spec make_ref(), do: reference
+  @spec make_ref() :: reference
   def make_ref() do
     :erlang.make_ref()
   end
@@ -930,7 +930,7 @@ defmodule Kernel do
       max(1, 2) #=> 2
 
   """
-  @spec max(term, term), do: term
+  @spec max(term, term) :: term
   def max(first, second) do
     :erlang.max(first, second)
   end
@@ -945,7 +945,7 @@ defmodule Kernel do
       min(1, 2) #=> 1
 
   """
-  @spec min(term, term), do: term
+  @spec min(term, term) :: term
   def min(first, second) do
     :erlang.min(first, second)
   end
@@ -956,7 +956,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec node(), do: node
+  @spec node() :: node
   def node do
     :erlang.node
   end
@@ -968,7 +968,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @spec node(pid|reference|port), do: node
+  @spec node(pid|reference|port) :: node
   def node(arg) do
     :erlang.node(arg)
   end
@@ -985,7 +985,7 @@ defmodule Kernel do
 
   It should not be used in application programs.
   """
-  @spec pid_to_list(pid), do: list
+  @spec pid_to_list(pid) :: list
   def pid_to_list(pid) do
     :erlang.pid_to_list(pid)
   end
@@ -999,7 +999,7 @@ defmodule Kernel do
       round(5.5) #=> 6
 
   """
-  @spec round(number), do: integer
+  @spec round(number) :: integer
   def round(number) do
     :erlang.round(number)
   end
@@ -1008,7 +1008,7 @@ defmodule Kernel do
   Returns the pid (process identifier) of the calling process.
   Allowed in guard clauses.
   """
-  @spec self(), do: pid
+  @spec self() :: pid
   def self() do
     :erlang.self()
   end
@@ -1017,7 +1017,7 @@ defmodule Kernel do
   Returns the size of the given argument, which must be a tuple
   or a binary. If possible, please use tuple_size or binary_size.
   """
-  @spec size(tuple|binary), do: non_neg_integer
+  @spec size(tuple|binary) :: non_neg_integer
   def size(arg) do
     :erlang.size(arg)
   end
@@ -1038,7 +1038,7 @@ defmodule Kernel do
       end
 
   """
-  @spec spawn(fun), do: pid
+  @spec spawn(fun() :: any) :: pid
   def spawn(fun) do
     :erlang.spawn(fun)
   end
@@ -1055,7 +1055,7 @@ defmodule Kernel do
       spawn(SomeModule, :function, [1,2,3])
 
   """
-  @spec spawn(module, atom, list), do: pid
+  @spec spawn(module, atom, list) :: pid
   def spawn(module, fun, args) do
     :erlang.spawn(module, fun, args)
   end
@@ -1077,7 +1077,7 @@ defmodule Kernel do
       end
 
   """
-  @spec spawn_link(fun), do: pid
+  @spec spawn_link(fun() :: any) :: pid
   def spawn_link(fun) do
     :erlang.spawn_link(fun)
   end
@@ -1094,7 +1094,7 @@ defmodule Kernel do
       spawn_link(SomeModule, :function, [1,2,3])
 
   """
-  @spec spawn_link(module, atom, list), do: pid
+  @spec spawn_link(module, atom, list) :: pid
   def spawn_link(module, fun, args) do
     :erlang.spawn_link(module, fun, args)
   end
@@ -1107,7 +1107,7 @@ defmodule Kernel do
   to a file in an efficient way, or sending an Erlang term to some type
   of communications channel not supported by distributed :
   """
-  @spec term_to_binary(term), do: binary
+  @spec term_to_binary(term) :: binary
   def term_to_binary(term) do
     :erlang.term_to_binary(term)
   end
@@ -1121,7 +1121,7 @@ defmodule Kernel do
     for more details
 
   """
-  @spec term_to_binary(term, list({:compressed, 0..9}|{:minor_version, 0}|{:minor_version, 1})), do: binary
+  @spec term_to_binary(term, list({:compressed, 0..9}|{:minor_version, 0}|{:minor_version, 1})) :: binary
   def term_to_binary(term, opts) do
     :erlang.term_to_binary(term, opts)
   end
@@ -1129,7 +1129,7 @@ defmodule Kernel do
   @doc """
   A non-local return from a function. Check try/2 for more information.
   """
-  @spec throw(term), do: no_return
+  @spec throw(term) :: no_return
   def throw(term) do
     :erlang.throw(term)
   end
@@ -1137,7 +1137,7 @@ defmodule Kernel do
   @doc """
   Returns the tail of a list. Raises ArgumentError if the list is empty.
   """
-  @spec tl(maybe_improper_list), do: maybe_improper_list
+  @spec tl(maybe_improper_list) :: maybe_improper_list
   def tl(list) do
     :erlang.tl(list)
   end
@@ -1151,7 +1151,7 @@ defmodule Kernel do
       trunc(5.5) #=> 5
 
   """
-  @spec trunc(number), do: integer
+  @spec trunc(number) :: integer
   def trunc(number) do
     :erlang.trunc(number)
   end
@@ -1159,7 +1159,7 @@ defmodule Kernel do
   @doc """
   Returns the size of a tuple.
   """
-  @spec tuple_size(tuple), do: non_neg_integer
+  @spec tuple_size(tuple) :: non_neg_integer
   def tuple_size(tuple) do
     :erlang.tuple_size(tuple)
   end
@@ -1167,7 +1167,7 @@ defmodule Kernel do
   @doc """
   Converts a tuple to a list.
   """
-  @spec tuple_to_list(tuple), do: list
+  @spec tuple_to_list(tuple) :: list
   def tuple_to_list(tuple) do
     :erlang.tuple_to_list(tuple)
   end
@@ -1412,7 +1412,7 @@ defmodule Kernel do
   For example, assuming the `Config` record defined above, it could be used
   in typespecs as follow:
 
-      @spec handle_config(Config.t), do: boolean()
+      @spec handle_config(Config.t) :: boolean()
 
   Inside the record definition, a developer can define his own types too:
 
@@ -1681,7 +1681,7 @@ defmodule Kernel do
   As in records, defining a protocol automatically defines a type named `t`,
   which can be used as:
 
-      @spec present?(Blank.t), do: boolean
+      @spec present?(Blank.t) :: boolean
       def present?(blank) do
         not Blank.blank?(blank)
       end
@@ -2725,7 +2725,7 @@ defmodule Kernel do
       end
 
   """
-  @spec raise(binary | atom | tuple), do: no_return
+  @spec raise(binary | atom | tuple) :: no_return
   def raise(msg) when is_binary(msg) do
     :erlang.error RuntimeError.new(message: msg)
   end
@@ -2751,7 +2751,7 @@ defmodule Kernel do
       raise ArgumentError, message: "Sample"
 
   """
-  @spec raise(tuple | atom, list), do: no_return
+  @spec raise(tuple | atom, list) :: no_return
   def raise(exception, args) do
     :erlang.error exception.exception(args)
   end
@@ -2767,7 +2767,7 @@ defmodule Kernel do
   it is not loaded. Check `Code.ensure_loaded/1` for more
   information.
   """
-  @spec function_exported?(atom | tuple, atom, integer), do: boolean
+  @spec function_exported?(atom | tuple, atom, integer) :: boolean
   def function_exported?(module, function, arity) do
     case is_tuple(module) do
       true  ->

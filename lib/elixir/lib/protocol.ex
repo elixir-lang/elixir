@@ -393,7 +393,7 @@ defmodule Protocol.DSL do
       # Convert the spec to callback if possible,
       # otherwise generate a dummy callback
       Protocol.DSL.callback_from_spec(__MODULE__, name, arity) ||
-        @callback unquote(name)(unquote_splicing(type_args)), do: term
+        @callback unquote(name)(unquote_splicing(type_args)) :: term
     end
   end
 end

@@ -30,7 +30,7 @@ defmodule String do
       String.printable?("abc") #=> true
 
   """
-  @spec printable?(t), do: boolean
+  @spec printable?(t) :: boolean
   # Allow basic ascii chars
   def printable?(<<c, t :: binary>>) when c in ?\s..?~ do
     printable?(t)
@@ -128,9 +128,9 @@ defmodule String do
       String.split("a,b", %r{\.})   #=> ["a,b"]
 
   """
-  @spec split(t), do: [t]
-  @spec split(t, t | [t] | Regex.t), do: [t]
-  @spec split(t, t | [t] | Regex.t, Keyword.t), do: [t]
+  @spec split(t) :: [t]
+  @spec split(t, t | [t] | Regex.t) :: [t]
+  @spec split(t, t | [t] | Regex.t, Keyword.t) :: [t]
   def split(binary, pattern // " ", options // [])
 
   def split(binary, pattern, options) when is_regex(pattern) do
@@ -156,7 +156,7 @@ defmodule String do
       String.upcase("josé") #=> "JOSÉ"
 
   """
-  @spec upcase(t), do: t
+  @spec upcase(t) :: t
   defdelegate upcase(binary), to: String.Unicode
 
   @doc """
@@ -173,7 +173,7 @@ defmodule String do
       String.downcase("JOSÉ") #=> "josé"
 
   """
-  @spec downcase(t), do: t
+  @spec downcase(t) :: t
   defdelegate downcase(binary), to: String.Unicode
 
   @doc """
@@ -185,7 +185,7 @@ defmodule String do
       String.rstrip("   abc  ")      #=> "   abc"
 
   """
-  @spec rstrip(t), do: t
+  @spec rstrip(t) :: t
 
   def rstrip(""), do: ""
 
@@ -217,7 +217,7 @@ defmodule String do
       String.rstrip("   abc _", ?_)  #=> "   abc "
 
   """
-  @spec rstrip(t, char), do: t
+  @spec rstrip(t, char) :: t
 
   def rstrip("", _char), do: ""
 
@@ -253,7 +253,7 @@ defmodule String do
       String.lstrip("   abc  ")       #=> "abc  "
 
   """
-  @spec lstrip(t), do: t
+  @spec lstrip(t) :: t
 
   def lstrip(<<char, rest :: binary>>) when char in @whitespace do
     lstrip(rest)
@@ -272,7 +272,7 @@ defmodule String do
 
   """
 
-  @spec lstrip(t, char), do: t
+  @spec lstrip(t, char) :: t
 
   def lstrip(<<char, rest :: binary>>, char) do
     <<lstrip(rest, char) :: binary>>
@@ -291,7 +291,7 @@ defmodule String do
       String.strip("   abc  ")       #=> "abc"
 
   """
-  @spec strip(t), do: t
+  @spec strip(t) :: t
 
   def strip(string) do
     rstrip(lstrip(string))
@@ -306,7 +306,7 @@ defmodule String do
       String.strip("a  abc  a", ?a)  #=> "  abc  "
 
   """
-  @spec strip(t, char), do: t
+  @spec strip(t, char) :: t
 
   def strip(string, char) do
     rstrip(lstrip(string, char), char)
@@ -331,8 +331,8 @@ defmodule String do
       String.replace("a,b,c", ",", "[]", insert_replaced: [1,1]) #=> "a[,,]b[,,]c"
 
   """
-  @spec replace(t, t, t), do: t
-  @spec replace(t, t, t, Keyword.t), do: t
+  @spec replace(t, t, t) :: t
+  @spec replace(t, t, t, Keyword.t) :: t
 
   def replace(subject, pattern, replacement, options // []) do
     opts = translate_replace_options(options)
@@ -358,7 +358,7 @@ defmodule String do
       String.duplicate("abc", 2) #=> "abcabc"
 
   """
-  @spec duplicate(t, pos_integer), do: t
+  @spec duplicate(t, pos_integer) :: t
   def duplicate(subject, n) when is_integer(n) and n > 0 do
     :binary.copy(subject, n)
   end
@@ -373,7 +373,7 @@ defmodule String do
       String.codepoints("ἅἪῼ")          #=> ["ἅ","Ἢ","ῼ"]
 
   """
-  @spec codepoints(t), do: [codepoint]
+  @spec codepoints(t) :: [codepoint]
   defdelegate codepoints(string), to: String.Unicode
 
   @doc """
@@ -388,7 +388,7 @@ defmodule String do
       String.next_codepoint("josé") #=> { "j", "osé" }
 
   """
-  @spec next_codepoint(t), do: codepoint | :no_codepoint
+  @spec next_codepoint(t) :: codepoint | :no_codepoint
   defdelegate next_codepoint(string), to: String.Unicode
 
   @doc """
@@ -398,7 +398,7 @@ defmodule String do
      String.graphemes("Ā̀stute") # => ["Ā̀","s","t","u","t","e"]
 
   """
-  @spec graphemes(t), do: [grapheme]
+  @spec graphemes(t) :: [grapheme]
   defdelegate graphemes(string), to: String.Unicode
 
   @doc """
@@ -413,7 +413,7 @@ defmodule String do
       String.next_grapheme("josé") #=> { "j", "osé" }
 
   """
-  @spec next_grapheme(t), do: grapheme | :no_grapheme
+  @spec next_grapheme(t) :: grapheme | :no_grapheme
   defdelegate next_grapheme(string), to: String.Unicode
 
   @doc """
@@ -425,7 +425,7 @@ defmodule String do
       String.first("եոգլի") #=> "ե"
 
   """
-  @spec first(t), do: grapheme
+  @spec first(t) :: grapheme
   def first(string) do
     case next_grapheme(string) do
       { char, _ } -> char
@@ -442,7 +442,7 @@ defmodule String do
       String.last("եոգլի") #=> "ի"
 
   """
-  @spec last(t), do: grapheme
+  @spec last(t) :: grapheme
   def last(string) do
     do_last(next_grapheme(string), "")
   end
@@ -462,7 +462,7 @@ defmodule String do
       String.length("եոգլի") #=> 5
 
   """
-  @spec length(t), do: non_neg_integer
+  @spec length(t) :: non_neg_integer
   def length(string) do
     do_length(next_grapheme(string))
   end
@@ -486,7 +486,7 @@ defmodule String do
       String.at("elixir", -10) #=> nil
 
   """
-  @spec at(t, integer), do: grapheme | nil
+  @spec at(t, integer) :: grapheme | nil
   def at(string, position) when position >= 0 do
     do_at(next_grapheme(string), position, 0)
   end

@@ -169,7 +169,7 @@ defmodule System do
       System.halt(:abort)
 
   """
-  @spec halt(non_neg_integer | List.Chars.t | :abort, [] | [flush: false]), do: no_return
+  @spec halt(non_neg_integer | List.Chars.t | :abort, [] | [flush: false]) :: no_return
   def halt(status // 0, options // [])
 
   def halt(status, options) when is_integer(status) or status == :abort do

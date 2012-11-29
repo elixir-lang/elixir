@@ -327,7 +327,7 @@ defmodule IEx.Helpers do
       { fun, result } = Kernel.Typespec.spec_to_ast(name, spec)
       bin_args   = Macro.to_binary fun
       bin_result = Macro.to_binary result
-      IO.puts "@spec #{bin_args}, do: #{bin_result}"
+      IO.puts "@spec #{bin_args} :: #{bin_result}"
     end
     true
   end

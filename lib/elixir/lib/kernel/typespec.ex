@@ -55,19 +55,35 @@ defmodule Kernel.Typespec do
     end
   end
 
+  @doc false
+  defmacro defspec(spec, [do: block]) do
+    IO.write "[WARNING] @spec f(...), do: type is deprecated, use @spec f(...) :: type\n"
+    quote do
+      Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote(spec) :: unquote(block)), __ENV__)
+    end
+  end
+
+
   @doc """
   Defines a spec.
   This macro is the one responsible to handle the attribute @spec.
 
   ## Examples
 
-      @spec add(number, number), do: number
+      @spec add(number, number) :: number
 
   """
-  defmacro defspec(spec, block) do
+  defmacro defspec(spec) do
     quote do
-      Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote spec),
-        (quote line: :keep, do: unquote block), __ENV__)
+      Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote spec), __ENV__)
+    end
+  end
+
+  @doc false
+  defmacro defcallback(spec, [do: block]) do
+    IO.write "[WARNING] @callback f(...), do: type is deprecated, use @callback f(...) :: type\n"
+    quote do
+      Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote(spec) :: unquote(block)), __ENV__)
     end
   end
 
@@ -77,13 +93,13 @@ defmodule Kernel.Typespec do
 
   ## Examples
 
-      @callback add(number, number), do: number
+      @callback add(number, number) :: number
 
   """
-  defmacro defcallback(spec, block) do
+  defmacro defcallback(spec) do
+    IO.write "[WARNING] @callback f(...), do: type is deprecated, use @callback f(...) :: type\n"
     quote do
-      Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote spec),
-        (quote line: :keep, do: unquote block), __ENV__)
+      Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote(spec)), __ENV__)
     end
   end
 
@@ -169,7 +185,7 @@ defmodule Kernel.Typespec do
   def spec_to_ast(name, { :type, line, :bounded_fun, [{ :type, _, :fun, [{ :type, _, :product, args }, result] }, constraints] }) do
     [h|t] =
       lc {:type, line, :constraint, [{:atom, _, :is_subtype}, [var, type]]} inlist constraints do
-        { :::, line, [typespec_to_ast(var), typespec_to_ast(type)] }
+        { :is_subtype, line, [typespec_to_ast(var), typespec_to_ast(type)] }
       end
 
     args = lc arg inlist args, do: typespec_to_ast(arg)
@@ -304,7 +320,7 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
-  def defspec(type, {:when, _, [{ name, line, args }, constraints_guard] }, [do: return], caller) do
+  def defspec(type, {:when, _, [{ name, line, args }, {:::, _, [constraints_guard, return]}] }, caller) do
     if is_atom(args), do: args = []
     constraints = guard_to_constraints(constraints_guard, caller)
     spec = { :type, line, :fun, fn_args(line, args, return, Keyword.keys(constraints), caller) }
@@ -314,7 +330,7 @@ defmodule Kernel.Typespec do
     code
   end
 
-  def defspec(type, { name, line, args }, [do: return], caller) do
+  def defspec(type, {:::, _, [{ name, line, args }, return]}, caller) do
     if is_atom(args), do: args = []
     spec = { :type, line, :fun, fn_args(line, args, return, [], caller) }
     code = { { name, Kernel.length(args) }, spec }
@@ -362,11 +378,11 @@ defmodule Kernel.Typespec do
 
   defp typespec_to_ast({ :type, line, :fun, [{:type, _, :product, args},result] }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
-    { :fun, line, args ++ [[do: typespec_to_ast(result)]] }
+    { :"::", line, [{ :fun, line, args }, typespec_to_ast(result)] }
   end
 
   defp typespec_to_ast({ :type, line, :fun, [] }) do
-    { :fun, line, [] }
+    typespec_to_ast({ :type, line, :fun, [{:type, line, :product, [:'...']}, :any] })
   end
 
   defp typespec_to_ast({ :type, line, name, args }) do
@@ -436,6 +452,16 @@ defmodule Kernel.Typespec do
     typespec(atom, vars, caller)
   end
 
+  # Handle funs
+  defp typespec({:fun, line, args} = f, vars, caller) when is_list(args) do
+    IO.write "[WARNING] 'any' fun() type is deprecated, use fun(...) :: any instead\n"
+    typespec({:"::", line, [f, quote do: any]}, vars, caller)
+  end
+  defp typespec({:"::", line, [{:fun, _, arguments}, return]}, vars, caller) when is_list(arguments) do
+    args = fn_args(line, arguments, return, vars, caller)
+    { :type, line, :fun, args }
+  end
+
   # Handle type operator
   defp typespec({:"::", line, [var, expr] }, vars, caller) do
     left  = typespec(var, [elem(var, 0)|vars], caller)
@@ -474,18 +500,6 @@ defmodule Kernel.Typespec do
   defp typespec({:{}, line, t}, vars, caller) when is_list(t) do
     args = lc e inlist t, do: typespec(e, vars, caller)
     { :type, line, :tuple, args }
-  end
-
-  # Handle funs
-  defp typespec({:fun, line, arguments}, vars, caller) when is_list(arguments) do
-    args =
-      case :lists.reverse(arguments) do
-        [[{:do,h}]|t] -> fn_args(line, :lists.reverse(t), h, vars, caller)
-        [] -> []
-        _  -> [fn_args(line, arguments, vars, caller)]
-      end
-
-    { :type, line, :fun, args }
   end
 
   # Handle variables or local calls
@@ -550,7 +564,10 @@ defmodule Kernel.Typespec do
   defp collect_union(v), do: [v]
 
   defp fn_args(line, args, return, vars, caller) do
-    [fn_args(line, args, vars, caller), typespec(return, vars, caller)]
+    case [fn_args(line, args, vars, caller), typespec(return, vars, caller)] do
+      [{:type,_,:any},{:type,_,:any,[]}] -> []
+      x -> x
+    end
   end
 
   defp fn_args(line, [{:"...", _, _}], _vars, _caller) do
