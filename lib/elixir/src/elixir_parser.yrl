@@ -163,7 +163,7 @@ max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : { build_identifier('$1', '$2'), ?line('$1'), '$3' }.
 max_expr -> dot_ref : '$1'.
 max_expr -> base_expr : '$1'.
-max_expr -> open_paren expr_list close_paren : build_block(lists:reverse('$2')).
+max_expr -> open_paren stab_expr_list close_paren : build_stab(lists:reverse('$2')).
 
 bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
@@ -384,6 +384,10 @@ call_args_no_parens -> matched_comma_expr : lists:reverse('$1').
 call_args_no_parens -> matched_kw_base : ['$1'].
 call_args_no_parens -> matched_comma_expr ',' matched_kw_base : lists:reverse(['$3'|'$1']).
 
+call_args_parens_not_one -> open_paren ')' : [].
+call_args_parens_not_one -> open_paren matched_kw_base close_paren : ['$2'].
+call_args_parens_not_one -> open_paren matched_expr ',' call_args_no_parens close_paren : ['$2'|'$4'].
+
 base_comma_expr -> expr ',' : ['$1'].
 base_comma_expr -> base_comma_expr expr ',' : ['$2'|'$1'].
 
@@ -400,10 +404,6 @@ call_args -> comma_expr : lists:reverse('$1').
 
 call_args_parens -> open_paren ')' : [].
 call_args_parens -> open_paren call_args close_paren : '$2'.
-
-call_args_parens_not_one -> open_paren ')' : [].
-call_args_parens_not_one -> open_paren kw_base close_paren : ['$2'].
-call_args_parens_not_one -> open_paren expr ',' call_args close_paren : ['$2'|'$4'].
 
 % KV
 

@@ -116,7 +116,6 @@ defmodule KernelTest do
       assert function(atl/1).(:a) == 'a'
     end
 
-
     test :retrieve_imported_function do
       assert is_function(function(:atom_to_list, 1))
       assert :erlang.fun_info(function(:atom_to_list, 1), :arity) == {:arity, 1}
