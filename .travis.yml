@@ -4,6 +4,7 @@ notifications:
   irc: "irc.freenode.org#elixir-lang"
   recipients:
     - jose.valim@plataformatec.com.br
+    - yrashk@gmail.com
 otp_release:
   - R15B02
   - R15B01
