@@ -70,6 +70,17 @@ defmodule Kernel.Typespec do
       or
       (type, type -> type)
 
+  ## Notes
+
+  Elixir discourages the use of type `string()` as it might be confused
+  with binaries which are referred to as "strings" in Elixir (as opposed to 
+  character lists). In order to use the type that is called `string()` in Erlang,
+  one has to use the `char_list()` type which is a synonym to `string()`. If yu
+  use `string()`, you'll get a warning from the compiler.
+
+  If you want to refer to the "string" type (the one operated by functions in the
+  String module), use `String.t()` type instead.
+
   See http://www.erlang.org/doc/reference_manual/typespec.html
   for more information.
   """
