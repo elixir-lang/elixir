@@ -32,17 +32,17 @@ defmodule Dict do
   @type value :: any
   @type t :: tuple
 
-  defcallback delete(t, key), do: t
-  defcallback empty(t), do: t
-  defcallback get(t, key, value), do: value
-  defcallback has_key?(t, key), do: boolean
-  defcallback keys(t), do: list(key)
-  defcallback merge(t, t, (key, value, value -> value)), do: t
-  defcallback put(t, key, value), do: t
-  defcallback size(t), do: non_neg_integer()
-  defcallback to_list(t), do: list()
-  defcallback update(t, key, (value -> value)), do: t
-  defcallback values(t), do: list(value)
+  defcallback delete(t, key) :: t
+  defcallback empty(t) :: t
+  defcallback get(t, key, value) :: value
+  defcallback has_key?(t, key) :: boolean
+  defcallback keys(t) :: list(key)
+  defcallback merge(t, t, (key, value, value -> value)) :: t
+  defcallback put(t, key, value) :: t
+  defcallback size(t) :: non_neg_integer()
+  defcallback to_list(t) :: list()
+  defcallback update(t, key, (value -> value)) :: t
+  defcallback values(t) :: list(value)
 
   @doc """
   Returns a list containing all dict's keys.

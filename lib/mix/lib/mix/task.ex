@@ -10,7 +10,7 @@ defmodule Mix.Task do
   A task needs to implement run which receives
   a list of command line args.
   """
-  defcallback run([binary]), do: any
+  defcallback run([binary]) :: any
 
   @doc false
   defmacro __using__(_opts) do

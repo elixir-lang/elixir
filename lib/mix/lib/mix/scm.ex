@@ -13,13 +13,13 @@ defmodule Mix.SCM do
   Returns an Elixir term that contains relevant SCM
   information for printing.
   """
-  defcallback format(opts), do: term
+  defcallback format(opts) :: term
 
   @doc """
   Returns an Elixir term that contains relevant SCM
   lock information for printing.
   """
-  defcallback format_lock(lock), do: term
+  defcallback format_lock(lock) :: term
 
   @doc """
   This behavior function receives a keyword list of `opts`
@@ -34,13 +34,13 @@ defmodule Mix.SCM do
   sense for the Git SCM, it will return an update list of options
   while other SCMs would simply return nil.
   """
-  defcallback accepts_options(opts), do: opts | nil
+  defcallback accepts_options(opts) :: opts | nil
 
   @doc """
   This behavior function returns a boolean if the
   dependency is available.
   """
-  defcallback checked_out?(opts), do: boolean
+  defcallback checked_out?(opts) :: boolean
 
   @doc """
   This behavior function checks out dependencies.
@@ -50,7 +50,7 @@ defmodule Mix.SCM do
   no lock is given and the repository can be checked out
   to the latest version.
   """
-  defcallback checkout(opts), do: any
+  defcallback checkout(opts) :: any
 
   @doc """
   This behavior function updates dependencies. It may be
@@ -62,7 +62,7 @@ defmodule Mix.SCM do
 
   It must return the current lock.
   """
-  defcallback update(opts), do: any
+  defcallback update(opts) :: any
 
   @doc """
   This behavior function checks if the dependency is locked and
@@ -70,19 +70,19 @@ defmodule Mix.SCM do
   SCMs do not require a lock, for such, this function can simply
   return true.
   """
-  defcallback matches_lock?(opts), do: boolean
+  defcallback matches_lock?(opts) :: boolean
 
   @doc """
   Receives two options and must return true if the refer to the
   same repository. The options are guaranteed to belong to the
   same SCM.
   """
-  defcallback equals?(opts1 :: opts, opts2 :: opts), do: boolean
+  defcallback equals?(opts1 :: opts, opts2 :: opts) :: boolean
 
   @doc """
   This behavior function should clean the given dependency.
   """
-  defcallback clean(opts), do: any
+  defcallback clean(opts) :: any
 
   @doc """
   Returns all available SCM.

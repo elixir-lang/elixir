@@ -7,10 +7,10 @@ defmodule BehaviourTest do
     use Behaviour
 
     @doc "Foo"
-    defcallback foo(atom, binary), do: binary
+    defcallback foo(atom, binary) :: binary
 
     @doc "Bar"
-    defcallback bar(External.hello, my_var :: binary), do: binary
+    defcallback bar(External.hello, my_var :: binary) :: binary
   end
 
   test :docs do
@@ -33,14 +33,14 @@ defmodule BehaviourTest do
     assert_raise ArgumentError, fn ->
       defmodule WithDefault do
         use Behaviour
-        defcallback hello(num // 0 :: integer), do: integer
+        defcallback hello(num // 0 :: integer) :: integer
       end
     end
 
     assert_raise ArgumentError, fn ->
       defmodule WithDefault do
         use Behaviour
-        defcallback hello(num :: integer // 0), do: integer
+        defcallback hello(num :: integer // 0) :: integer
       end
     end
   end

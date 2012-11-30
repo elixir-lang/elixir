@@ -10,12 +10,12 @@ defmodule ExUnit.Formatter do
   @type test :: atom
   @type result :: { kind :: atom, reason :: term, stacktrace :: list } | nil
 
-  defcallback suite_started(),  do: any
-  defcallback suite_finished(), do: non_neg_integer
+  defcallback suite_started() :: any
+  defcallback suite_finished() :: non_neg_integer
 
-  defcallback case_started(test_case),  do: any
-  defcallback case_finished(test_case), do: any
+  defcallback case_started(test_case) :: any
+  defcallback case_finished(test_case) :: any
 
-  defcallback test_started(test_case, test), do: any
-  defcallback test_finished(test_case, test, result), do: any
+  defcallback test_started(test_case, test) :: any
+  defcallback test_finished(test_case, test, result) :: any
 end

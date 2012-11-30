@@ -12,10 +12,10 @@ defmodule Behaviour do
         use Behaviour
 
         @doc "Parses the given URL"
-        defcallback parse(uri_info :: URI.Info.t), do: URI.Info.t
+        defcallback parse(uri_info :: URI.Info.t) :: URI.Info.t
 
         @doc "Defines a default port"
-        defcallback default_port(), do: integer
+        defcallback default_port() :: integer
       end
 
   And then a specific module may use it as:
@@ -46,6 +46,19 @@ defmodule Behaviour do
   Defines a callback according to the given type specification.
   """
   defmacro defcallback(fun, do: return) do
+    IO.write "[WARNING] defcallback(fun, do: return) is deprecated, please use defcallback(fun :: return) instead\n#{Exception.env_stacktrace(__CALLER__)}"
+    do_defcallback(fun, return, __CALLER__)
+  end
+
+  defmacro defcallback({ :::, _, [fun, return] }) do
+    do_defcallback(fun, return, __CALLER__)
+  end
+
+  defmacro defcallback(fun) do
+    do_defcallback(fun, quote(do: term), __CALLER__)
+  end
+
+  defp do_defcallback(fun, return, caller) do
     { name, args } = :elixir_clauses.extract_args(fun)
     arity = length(args)
 
@@ -61,7 +74,7 @@ defmodule Behaviour do
 
     quote do
       @callback unquote(name)(unquote_splicing(args)) :: unquote(return)
-      Behaviour.store_docs __MODULE__, unquote(__CALLER__.line), unquote(name), unquote(arity)
+      Behaviour.store_docs __MODULE__, unquote(caller.line), unquote(name), unquote(arity)
     end
   end
 

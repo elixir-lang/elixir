@@ -9,10 +9,10 @@ defmodule URI.Parser do
   @doc """
   Responsible for parsing extra URL information.
   """
-  defcallback parse(uri_info :: URI.Info.t), do: URI.Info.t
+  defcallback parse(uri_info :: URI.Info.t) :: URI.Info.t
 
   @doc """
   Responsible for returning the default port.
   """
-  defcallback default_port(), do: integer
+  defcallback default_port() :: integer
 end
