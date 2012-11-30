@@ -196,7 +196,9 @@ specs_form(Line, Module, Defmacro, DefmacropWithLine, Forms, C) ->
   end.
 
 specs_attributes(Line, Type, Forms, Specs) ->
-  Keys = lists:ukeysort(1, Specs),
+  Keys = lists:foldl(fun({ Tuple, Value }, Acc) ->
+                       lists:keystore(Tuple, 1, Acc, { Tuple, Value } )
+                     end, [], Specs),
   lists:foldl(fun({ Tuple, _ }, Acc) ->
     Values = [V || { K, V } <- Specs, K == Tuple],
     [{ attribute, Line, Type, { Tuple, Values } }|Acc]
