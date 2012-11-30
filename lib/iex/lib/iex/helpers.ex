@@ -96,11 +96,18 @@ defmodule IEx.Helpers do
 
       h receive/1
       h Enum.all?/2
+      h Enum.all?
 
   """
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
       h(unquote(mod), unquote(fun), unquote(arity))
+    end
+  end
+
+  defmacro h({ { :., _, [mod, fun] }, _, [] }) do
+    quote do
+      h(unquote(mod), unquote(fun))
     end
   end
 
@@ -112,7 +119,7 @@ defmodule IEx.Helpers do
 
   defmacro h(other) do
     quote do
-      h(unquote(other), :moduledoc)
+      h(unquote(other), [])
     end
   end
 
@@ -142,7 +149,8 @@ defmodule IEx.Helpers do
     end
   end
 
-  def h(module, :moduledoc) when is_atom(module) do
+
+  def h(module, []) when is_atom(module) do
     case Code.ensure_loaded(module) do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
@@ -157,6 +165,14 @@ defmodule IEx.Helpers do
       { :error, reason } ->
         IO.puts "Could not load module #{inspect module}: #{reason}"
     end
+  end
+
+  def h(module, function) when is_atom(module) and is_atom(function) do
+     lc {{f, arity}, _line, _type, _args, doc } inlist module.__info__(:docs),
+        f == function and doc != false do
+       h(module, function, arity)
+     end
+     :ok
   end
 
   @doc """
