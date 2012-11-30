@@ -129,12 +129,17 @@ defmodule Typespec.Test.Type do
   end
 
   test "@type with a fun with arguments and return type" do
-    spec = test_module do
-      @type mytype :: (integer, integer -> integer)
+    {spec1, spec2} = test_module do
+      t1 = @type mytype :: (integer, integer -> integer)
+      t2 = @type mytype2 :: (fun(integer, integer) -> integer)
+      {t1, t2}
     end
     assert {:mytype,{:type,_,:fun, [{:type, _, :product,
              [{:type, _, :integer, []}, {:type, _, :integer, []}]},
-             {:type, _, :integer, []}]},[]} = spec
+             {:type, _, :integer, []}]},[]} = spec1
+    assert {:mytype2,{:type,_,:fun, [{:type, _, :product,
+             [{:type, _, :integer, []}, {:type, _, :integer, []}]},
+             {:type, _, :integer, []}]},[]} = spec2
   end
 
   test "@type with a fun with no arguments and return type" do

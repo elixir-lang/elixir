@@ -450,6 +450,9 @@ defmodule Kernel.Typespec do
     IO.write "[WARNING] fun() type is deprecated, use (... -> type) instead\n#{Exception.formatted_stacktrace}"
     typespec({:"->", line, [{args, quote do: any}]}, vars, caller)
   end
+  defp typespec({:"->", line, [{[{:fun, _, arguments}], return}]}, vars, caller) when is_list(arguments) do
+    typespec({:"->", line, [{arguments, return}]}, vars, caller)
+  end
   defp typespec({:"->", line, [{arguments, return}]}, vars, caller) when is_list(arguments) do
     args = fn_args(line, arguments, return, vars, caller)
     { :type, line, :fun, args }
