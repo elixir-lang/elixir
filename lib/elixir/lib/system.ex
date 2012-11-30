@@ -169,6 +169,8 @@ defmodule System do
       System.halt(:abort)
 
   """
+  @spec halt() :: no_return
+  @spec halt(non_neg_integer | List.Chars.t | :abort) :: no_return
   @spec halt(non_neg_integer | List.Chars.t | :abort, [] | [flush: false]) :: no_return
   def halt(status // 0, options // [])
 
