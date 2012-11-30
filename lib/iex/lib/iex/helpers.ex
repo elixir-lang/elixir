@@ -134,7 +134,8 @@ defmodule IEx.Helpers do
   end
 
   def h(function, arity) when is_atom(function) and is_integer(arity) do
-    if function_exported?(__MODULE__, function, arity) do
+    if function_exported?(__MODULE__, function, arity) or
+       macro_exported?(__MODULE__, function, arity) do
       h(__MODULE__, function, arity)
     else
       h(Kernel, function, arity)
