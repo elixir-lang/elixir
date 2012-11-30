@@ -17,7 +17,7 @@ defmodule IEx.Helpers do
   * `s/1` — prints spec information
   * `m/0` - prints loaded modules
   * `r/0`, `r/1` - recompiles and reloads the given module's source file
-  * `l/1` - reload given module
+  * `l/1` - loads given module beam code by purging the current version
   * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
   * `flush/0` — flush all messages sent to the shell
