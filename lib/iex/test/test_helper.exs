@@ -1,2 +1,2 @@
-IEx.preload
+:application.start(:iex)
 ExUnit.start []
