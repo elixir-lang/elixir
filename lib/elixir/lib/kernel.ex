@@ -313,7 +313,7 @@ defmodule Kernel do
       #=> 4
 
   """
-  @spec apply(fun(...) :: any, list) :: term
+  @spec apply((... -> any), list) :: term
   def apply(fun, args) do
     :erlang.apply(fun, args)
   end
@@ -1038,7 +1038,7 @@ defmodule Kernel do
       end
 
   """
-  @spec spawn(fun() :: any) :: pid
+  @spec spawn((() -> any)) :: pid
   def spawn(fun) do
     :erlang.spawn(fun)
   end
@@ -1077,7 +1077,7 @@ defmodule Kernel do
       end
 
   """
-  @spec spawn_link(fun() :: any) :: pid
+  @spec spawn_link((() -> any)) :: pid
   def spawn_link(fun) do
     :erlang.spawn_link(fun)
   end
