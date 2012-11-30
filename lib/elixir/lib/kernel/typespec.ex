@@ -57,7 +57,7 @@ defmodule Kernel.Typespec do
 
   @doc false
   defmacro defspec(spec, [do: block]) do
-    IO.write "[WARNING] @spec f(...), do: type is deprecated, use @spec f(...) :: type\n#{Exception.formatted_stacktrace}"
+    IO.write "[WARNING] @spec f(...), do: type is deprecated, use @spec f(...) :: type\n#{Exception.env_stacktrace(__CALLER__)}"
     quote do
       Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote(spec) :: unquote(block)), __ENV__)
     end
@@ -80,7 +80,7 @@ defmodule Kernel.Typespec do
 
   @doc false
   defmacro defcallback(spec, [do: block]) do
-    IO.write "[WARNING] @callback f(...), do: type is deprecated, use @callback f(...) :: type\n#{Exception.formatted_stacktrace}"
+    IO.write "[WARNING] @callback f(...), do: type is deprecated, use @callback f(...) :: type\n#{Exception.env_stacktrace(__CALLER__)}"
     quote do
       Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote(spec) :: unquote(block)), __ENV__)
     end

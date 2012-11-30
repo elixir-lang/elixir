@@ -8,6 +8,13 @@ defmodule Kernel.ExceptionTest do
     refute is_exception({ :foo, :bar })
   end
 
+  test :format_environment do
+    env = __ENV__.file("foo").line(12)
+    assert Exception.env_stacktrace(env) == "    foo:12: Kernel.ExceptionTest.test_format_environment/0\n"
+    env = env.function(nil)
+    assert Exception.env_stacktrace(env) == "    foo:12: Kernel.ExceptionTest (body)\n"
+  end
+
   test :format_stacktrace_with_no_file_or_line do
     assert Exception.format_stacktrace({Foo, :bar, [1, 2, 3], []}) == "Foo.bar(1, 2, 3)"
     assert Exception.format_stacktrace({Foo, :bar, [], []}) == "Foo.bar()"

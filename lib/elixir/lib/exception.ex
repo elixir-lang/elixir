@@ -86,11 +86,30 @@ defmodule Exception do
   @doc """
   Returns the stacktrace as a binary formatted as per `format_stacktrace/1`.
   """
-  def formatted_stacktrace(trace // System.stacktrace) do
+  def formatted_stacktrace(trace // nil) do
+    trace = trace || try do
+      throw(:stacktrace)
+    catch
+      :stacktrace -> Enum.drop(System.stacktrace, 1)
+    end
+
     case trace do
       [] -> ""
       s  -> "    " <> Enum.map_join(s, "\n    ", format_stacktrace(&1)) <> "\n"
     end
+  end
+
+  @doc """
+  Returns a formatted stacktrace from the environment.
+  """
+  def env_stacktrace(env) do
+    rest =
+      case env.function do
+        { name, arity } -> format_module_fun_arity(env.module, name, arity)
+        nil -> "#{inspect env.module} (body)"
+      end
+
+    "    #{format_file_line(env.location)}#{rest}\n"
   end
 
   @doc """
