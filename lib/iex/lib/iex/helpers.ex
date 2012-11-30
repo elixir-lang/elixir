@@ -111,13 +111,13 @@ defmodule IEx.Helpers do
     end
   end
 
-  defmacro h({ :/, _, [{ fun, _, args }, arity] }) when args in [nil,[]] do
+  defmacro h({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
     quote do
       h(unquote(fun), unquote(arity))
     end
   end
 
-  defmacro h({ name, _, args }) when args in [nil, []] do
+  defmacro h({ name, _, args }) when args == [] or is_atom(args) do
     quote do
       h(unquote(__MODULE__), unquote(name))
       h(Kernel, unquote(name))
