@@ -195,10 +195,10 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push GitErrorApp
 
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo [git: #{inspect fixture_path("not_git_repo")}]"
-      assert_received { :mix_shell, :info, [^message] }
-      assert_received { :mix_shell, :error, _ }
+      exception = assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Get.run []
+      end
+      assert exception.message =~ %r/command `git clone/
     end
   after
     Mix.Project.pop

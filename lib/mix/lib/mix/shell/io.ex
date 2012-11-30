@@ -4,6 +4,16 @@ defmodule Mix.Shell.IO do
   It simply prints messages to stdio and stderr.
   """
 
+  @behaviour Mix.Shell
+
+  @doc """
+  Executes the given command and prints its output
+  to stdout as it comes.
+  """
+  def cmd(command) do
+    Mix.Shell.cmd(command, IO.write(&1))
+  end
+
   @doc """
   Writes a message to the shell followed by new line.
   """

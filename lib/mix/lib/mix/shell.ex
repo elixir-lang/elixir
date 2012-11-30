@@ -19,4 +19,30 @@ defmodule Mix.Shell do
   Asks the user for confirmation.
   """
   defcallback yes?(message :: binary) :: any
+
+  @doc """
+  Executes the given command and returns
+  its exit status.
+  """
+  defcallback cmd(command :: binary) :: integer
+
+  @doc """
+  An implementation of the command callback that
+  is shared accross different shells.
+  """
+  def cmd(command, callback) do
+    port = Port.open({ :spawn, to_char_list(command) },
+      [:stream, :binary, :exit_status, :hide])
+    do_cmd(port, callback)
+  end
+
+  defp do_cmd(port, callback) do
+    receive do
+      { ^port, { :data, data } } ->
+        callback.(data)
+        do_cmd(port, callback)
+      { ^port, { :exit_status, status } } ->
+        status
+    end
+  end
 end

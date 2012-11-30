@@ -37,6 +37,16 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
+  Executes the given command and fowards its messages to
+  the current process.
+  """
+  def cmd(command) do
+    Mix.Shell.cmd(command, fn(data) ->
+      self <- { :mix_shell, :run, [data] }
+    end)
+  end
+
+  @doc """
   Simply forwards the message to the current process.
   """
   def info(message) do

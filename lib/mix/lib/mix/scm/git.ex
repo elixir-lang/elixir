@@ -38,20 +38,20 @@ defmodule Mix.SCM.Git do
   def checkout(opts) do
     path     = opts[:path]
     location = opts[:git]
-    maybe_error System.cmd(%b[git clone --quiet --no-checkout "#{location}" "#{path}"])
+    command  = %b[git clone --no-checkout "#{location}" "#{path}"]
 
-    if checked_out?(opts) do
-      File.cd! path, fn -> do_checkout(opts) end
-    end
+    run_cmd_or_raise(command)
+    File.cd! path, fn -> do_checkout(opts) end
   end
 
   def update(opts) do
     File.cd! opts[:path], fn ->
-      command = "git fetch --force --quiet"
+      command = "git fetch --force"
       if opts[:tag] do
         command = command <> " --tags"
       end
-      maybe_error System.cmd(command)
+
+      run_cmd_or_raise(command)
       do_checkout(opts)
     end
   end
@@ -64,10 +64,10 @@ defmodule Mix.SCM.Git do
 
   defp do_checkout(opts) do
     ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
-    maybe_error System.cmd("git checkout --quiet #{ref}")
+    run_cmd_or_raise "git checkout --quiet #{ref}"
 
     if opts[:submodules] do
-      maybe_error System.cmd("git submodule update --init --recursive")
+      run_cmd_or_raise "git submodule update --init --recursive"
     end
 
     get_lock(opts, true)
@@ -120,6 +120,10 @@ defmodule Mix.SCM.Git do
     nil
   end
 
-  defp maybe_error(""),    do: :ok
-  defp maybe_error(other), do: Mix.shell.error(other)
+  defp run_cmd_or_raise(command) do
+    if Mix.shell.cmd(command) != 0 do
+      raise Mix.Error, message: "command `#{command}` failed"
+    end
+    true
+  end
 end
