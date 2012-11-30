@@ -19,6 +19,7 @@ defmodule IEx.Helpers do
   * `r/0` - recompiles and reloads the given module's source file
   * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
+  * `flush/0` — flush all messages sent to the shell
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -458,6 +459,19 @@ defmodule IEx.Helpers do
     else
       :nosource
     end
+  end
+
+  @doc """
+  Flushes all messages sent to the shell and prints them out
+  """
+  def flush do
+    receive do
+      msg ->
+        IO.inspect(msg)
+        flush
+    after 0 ->
+      :ok
+    end  
   end
 
   defp iex_reloaded do
