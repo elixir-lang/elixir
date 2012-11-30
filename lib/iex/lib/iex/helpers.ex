@@ -12,7 +12,7 @@ defmodule IEx.Helpers do
   There are many other helpers available:
 
   * `c/2` - compiles a file in the given path
-  * `h/0`,`h/1`, `h/2` - prints help/documentation
+  * `h/0`, `h/1`, `h/2` - prints help/documentation
   * `t/1`, `t/2`, `t/3` — prints type information
   * `s/1`, `s/2`, `s/3` — prints spec information
   * `m/0` - prints loaded modules
