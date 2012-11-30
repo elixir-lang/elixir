@@ -12,9 +12,9 @@ defmodule IEx.Helpers do
   There are many other helpers available:
 
   * `c/2` - compiles a file in the given path
-  * `h/0`, `h/1`, `h/2` - prints help/documentation
-  * `t/1`, `t/2`, `t/3` — prints type information
-  * `s/1`, `s/2`, `s/3` — prints spec information
+  * `h/0`, `h/1` - prints help/documentation
+  * `t/1` — prints type information
+  * `s/1` — prints spec information
   * `m/0` - prints loaded modules
   * `r/0` - recompiles and reloads the given module's source file
   * `v/0` - prints all commands and values
@@ -131,19 +131,7 @@ defmodule IEx.Helpers do
     end
   end
 
-  @doc """
-  Prints the documentation for the given function and arity.
-
-  The function may either be a function defined inside `IEx.Helpers`
-  or in `Kernel`. To see functions from other module, use
-  `h/3` instead.
-
-  ## Examples
-
-      h(:h, 2)
-      #=> Prints documentation for this function
-
-  """
+  @doc false
   def h(:h, 1) do
     h(__MODULE__, :h, 1)
   end
@@ -156,7 +144,6 @@ defmodule IEx.Helpers do
       h(Kernel, function, arity)
     end
   end
-
 
   def h(module, []) when is_atom(module) do
     case Code.ensure_loaded(module) do
@@ -188,9 +175,7 @@ defmodule IEx.Helpers do
     h()
   end
 
-  @doc """
-  Shows the documentation for the `function/arity` in `module`.
-  """
+  @doc false
   def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
     if docs = module.__info__(:docs) do
       doc =
@@ -274,7 +259,6 @@ defmodule IEx.Helpers do
     end
   end
 
-
   @doc false
   def t(module, type) when is_atom(type) do
     types = lc {_, {t, _, _args}} = typespec inlist Kernel.Typespec.beam_types(module), 
@@ -357,34 +341,7 @@ defmodule IEx.Helpers do
     end
   end
 
-  @doc """
-  Prints the specs for a given MFA.
-
-  ## Examples
-
-      s(Enum.all?/2)
-
-  """
-  def s(module, function, arity) do
-    spec = List.keyfind(Kernel.Typespec.beam_specs(module), { function, arity }, 0)
-
-    if spec do
-      print_spec(spec)
-    else
-      IO.puts "No specs for #{inspect module}.#{function}/#{arity} have been found"
-    end
-
-    :ok
-  end
-
-  @doc """
-  Prints the specs for a given MF.
-
-  ## Examples
-
-      s(Enum.all?)
-
-  """
+  @doc false
   def s(module, function) when is_atom(function) do
     specs = lc {{f, _arity}, _spec} = spec inlist Kernel.Typespec.beam_specs(module),
                f == function do
@@ -404,6 +361,19 @@ defmodule IEx.Helpers do
 
     if specs == [] do
       IO.puts "No specs for #{inspect module} have been found"
+    end
+
+    :ok
+  end
+
+  @doc false
+  def s(module, function, arity) do
+    spec = List.keyfind(Kernel.Typespec.beam_specs(module), { function, arity }, 0)
+
+    if spec do
+      print_spec(spec)
+    else
+      IO.puts "No specs for #{inspect module}.#{function}/#{arity} have been found"
     end
 
     :ok
