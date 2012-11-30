@@ -98,15 +98,15 @@ defmodule IEx.Helpers do
       h Enum.all?/2
 
   """
-  defmacro h({ :/, _, [{ fun, _, nil }, arity] }) do
-    quote do
-      h(unquote(fun), unquote(arity))
-    end
-  end
-
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
       h(unquote(mod), unquote(fun), unquote(arity))
+    end
+  end
+
+  defmacro h({ :/, _, [{ fun, _, args }, arity] }) when args in [nil,[]] do
+    quote do
+      h(unquote(fun), unquote(arity))
     end
   end
 
