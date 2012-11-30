@@ -194,13 +194,28 @@ defmodule Macro do
   end
 
   # Fn keyword
-  def to_binary({ :fn, _, [[do: block]] }) do
+  def to_binary({ :fn, _, [[do: { :->, _, [{_,tuple}] } = arrow]] })
+      when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
+    "fn " <> arrow_to_binary(arrow) <> " end"
+  end
+
+  def to_binary({ :fn, _, [[do: { :->, _, [_] } = block]] }) do
     "fn " <> block_to_binary(block) <> "\nend"
+  end
+
+  def to_binary({ :fn, _, [[do: block]] }) do
+    block = adjust_new_lines block_to_binary(block), "\n  "
+    "fn\n  " <> block <> "\nend"
   end
 
   # Partial call
   def to_binary({ :&, _, [num] }) do
     "&#{num}"
+  end
+
+  # left -> right
+  def to_binary({ :->, _, _ } = arrow) do
+    "(" <> arrow_to_binary(arrow) <> ")"
   end
 
   # Binary ops
@@ -288,6 +303,13 @@ defmodule Macro do
   end
 
   defp op_to_binary(expr), do: to_binary(expr)
+
+  defp arrow_to_binary({ :->, _, pairs }) do
+    Enum.map_join(pairs, "; ", fn({ left, right }) ->
+      left = Enum.map_join(left, ", ", to_binary(&1))
+      left <> " -> " <> to_binary(right)
+    end)
+  end
 
   defp adjust_new_lines(block, replacement) do
     bc <<x>> inbits block do

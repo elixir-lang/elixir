@@ -146,6 +146,10 @@ defmodule MacroTest do
     assert Macro.to_binary(quote do: Foo.Bar.baz([1, 2, 3])) == "Foo.Bar.baz([1, 2, 3])"
   end
 
+  test :arrow_to_binary do
+    assert Macro.to_binary(quote do: foo(1, (2 -> 3))) == "foo(1, (2 -> 3))"
+  end
+
   test :blocks_to_binary do
     assert Macro.to_binary(quote do: (1; 2; (:foo; :bar); 3)) <> "\n" == """
     (
@@ -183,9 +187,22 @@ defmodule MacroTest do
   end
 
   test :fn_to_binary do
-    assert Macro.to_binary(quote do: (fn(x) -> x + 1 end)) <> "\n" == """
+    assert Macro.to_binary(quote do: (fn(x) -> x + 1 end)) == "fn x -> x + 1 end"
+
+    assert Macro.to_binary(quote do: (fn(x) -> y = x + 1; y end)) <> "\n" == """
     fn x ->
-      x + 1
+      y = (x + 1)
+      y
+    end
+    """
+
+    assert Macro.to_binary(quote do: (fn(x) -> y = x + 1; y; (z) -> z end)) <> "\n" == """
+    fn
+      x ->
+        y = (x + 1)
+        y
+      z ->
+        z
     end
     """
   end
