@@ -1,48 +1,23 @@
 defrecord IEx.Config, binding: nil, cache: '', counter: 1, scope: nil, result: nil
 
 defmodule IEx do
-  defmodule CLI do
-    @moduledoc false
-
-    @doc """
-    Defines the behavour to start IEx from the command line.
-    """
-    def start do
-      IEx.run([remsh: get_remsh(:init.get_plain_arguments)])
-    end
-
-    defp get_remsh(['--remsh',h|_]), do: list_to_binary(h)
-    defp get_remsh([_|t]), do: get_remsh(t)
-    defp get_remsh([]), do: nil
-  end
-
   @moduledoc """
-  This module implements interactive Elixir. It provides a main
-  function, `start` which will either delegate to `tty` or `simple`.
-  The former is meant for systems where tty is available and relies
-  on it in order to work properly. This makes all control commands
-  available in tty available to the developer.
+  This module implements Interactive Elixir.
 
-  In case `tty` is not available (for example, Windows), a
-  developer may invoke `simple` which starts a stripped
-  down version.
+  The interactive elixir needs to be set as the
+  proper `-user` when starting the Erlang VM and
+  so can be done with the help of IEx.CLI.
+
+  If possible, Elixir will start a tty (smart terminal)
+  which makes all control commands available in tty
+  available to the developer.
+
+  In case `tty` is not available (for example, Windows),
+  a dumb terminal version is started instead.
   """
 
   @doc """
-  Simply loads IEx application. Most of the times it is
-  preloaded on demand, but if you want to pre-configure
-  IEx, you need to preload it.
-  """
-  def preload do
-    :elixir.start_app()
-    :application.start(:iex)
-    __MODULE__
-  end
-
-  @doc """
-  Registers a function to be invoked after IEx
-  process is spawned. Requires IEx.preload to
-  be invoked.
+  Registers a function to be invoked after IEx process is spawned.
   """
   def after_spawn(fun) when is_function(fun) do
     :application.set_env(:iex, :after_spawn, [fun|after_spawn])
@@ -57,31 +32,10 @@ defmodule IEx do
   end
 
   @doc """
-  Releases waiting IEx.
-
-  When IEx is started with "-iex wait true",
-  the console does not start until `IEx.release`
-  is invoked.
-
-  It returns `:ok` if IEx is released, `:error`
-  if the wait flag was not set.
+  Returns true if IEx was properly started.
   """
-  def release do
-    case :application.get_env(:iex, :wait) do
-      { :ok, value } ->
-        cond do
-          is_pid(value) ->
-            value <- { :iex_latch, :release }
-            :ok
-          value == true ->
-            receive after: (200 -> release)
-          value == false ->
-            :error
-        end
-      :undefined ->
-        # IEx wasn't even started yet
-        :error
-    end
+  def started? do
+    match?({ :ok, true }, :application.get_env(:iex, :started))
   end
 
   @doc """
@@ -95,75 +49,20 @@ defmodule IEx do
   Returns currently registered inspect options.
   """
   def inspect_opts do
-    :application.get_env(:iex, :inspect_opts)
-  end
-
-  @doc """
-  Runs IEx checking if tty is available or not.
-  If so, invoke tty, otherwise go with the simple iex.
-  """
-  def run(opts // []) when is_list(opts) do
-    if tty_works? do
-      tty(opts)
-    else
-      :user.start
-      IO.puts "Warning: could not run smart terminal, falling back to dumb one"
-      simple(opts)
-    end
-  end
-
-  # Check if tty works. If it does not, we fall back to the
-  # simple/dumb terminal. This is starting the linked in
-  # driver twice, it would be nice and appropriate if we had
-  # to do it just once.
-  defp tty_works? do
-    try do
-      port = Port.open { :spawn, :"tty_sl -c -e" }, [:eof]
-      Port.close(port)
-    catch
-      _, _ -> false
-    end
-  end
-
-  @doc """
-  Starts IEx using a tty server.
-  """
-  def tty(opts // []) when is_list(opts) do
-    config = boot_config(opts)
-
-    remote =
-      if remsh = opts[:remsh] do
-        unless is_alive do
-          raise ArgumentError, message: "In order to use --remsh, you need to name the current node"
-        end
-        if is_atom(remsh), do: remsh, else: binary_to_atom(remsh)
-      end
-
-    function = fn -> start(config) end
-
-    args =
-      if remote do
-        { remote, :erlang, :apply, [function, []] }
-      else
-        { :erlang, :apply, [function, []] }
-      end
-
-    :user_drv.start([:"tty_sl -c -e", args])
-  end
-
-  @doc """
-  Starts IEx simply using the current stdio.
-  """
-  def simple(opts // []) when is_list(opts) do
-    start boot_config(opts)
+    { :ok, opts } = :application.get_env(:iex, :inspect_opts)
+    opts
   end
 
   # This is a callback invoked by Erlang shell utilities
   # when someone press Ctrl+G and adds 's Elixir-IEx'.
   @doc false
-  def start(config // nil) do
+  def start(config // [], callback // fn -> end) do
     spawn fn ->
-      config = config || boot_config([])
+      config =
+        case config do
+          IEx.Config[] -> config
+          opts -> boot_config(opts)
+        end
 
       case :init.notify_when_started(self()) do
         :started -> :ok
@@ -172,27 +71,20 @@ defmodule IEx do
 
       Process.flag(:trap_exit, true)
 
-      preload()
-      wait_until_release()
+      start_iex()
+      callback.()
 
       set_expand_fun()
       run_after_spawn()
-      IEx.Loop.start(config)
+      IEx.Server.start(config)
     end
   end
 
   ## Boot Helpers
 
-  defp wait_until_release do
-    { :ok, wait } = :application.get_env(:iex, :wait)
-
-    if wait do
-      :application.set_env(:iex, :wait, self())
-
-      receive do
-        { :iex_latch, :release } -> :ok
-      end
-    end
+  defp start_iex do
+    :application.start(:elixir)
+    :application.start(:iex)
   end
 
   defp boot_config(opts) do

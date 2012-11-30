@@ -9,7 +9,7 @@ defmodule IEx.Mixfile do
     [env: [
       after_spawn: [],
       inspect_opts: [limit: 50],
-      wait: false,
+      started: true
     ]]
   end
 end

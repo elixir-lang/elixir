@@ -3,7 +3,7 @@
 -export([test/0, run_and_remove/2, throw_elixir/1, throw_erlang/1]).
 
 test() ->
-  elixir:start_app(),
+  application:start(elixir),
   eunit:test([
     atom_test,
     conditionals_test,

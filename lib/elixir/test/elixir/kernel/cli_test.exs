@@ -29,12 +29,6 @@ defmodule Kernel.CLI.OptionParsingTest do
     # pz
     assert File.expand_path('lib/list', root) inlist path
   end
-
-  test :require do
-    options = ['-r', fixture_path('../../../lib/list/*') /> to_char_list, '-r', '/never/gonna/*/up']
-    { config, _argv } = Kernel.CLI.process_options(options, Kernel.CLI.Config.new)
-    assert {:require, fixture_path "../../../lib/list/chars.ex"} inlist config.commands
-  end
 end
 
 defmodule Kernel.CLI.AtExitTest do

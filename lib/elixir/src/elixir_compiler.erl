@@ -114,7 +114,7 @@ module(Forms, File, Options, Bootstrap, Callback) when
 %% Invoked from the Makefile.
 
 core() ->
-  elixir:start_app(),
+  application:start(elixir),
   gen_server:call(elixir_code_server, { compiler_options, [{docs,false},{internal,true}] }),
   [core_file(File) || File <- core_main()].
 

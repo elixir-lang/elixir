@@ -1,4 +1,4 @@
-defmodule IEx.Loop do
+defmodule IEx.Server do
   @moduledoc false
 
   def start(config) do

@@ -11,7 +11,7 @@ readlink_f () {
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-ERL_OPTS=""
+EXECUTABLE="elixir"
 
-if [ "$1" = "iex" ]; then ERL_OPTS="-user Elixir-IEx-CLI -iex wait true"; fi
-exec "$SCRIPT_PATH"/elixir --erl "$ERL_OPTS" -e "Mix.start; Mix.CLI.run" -- "$@"
+if [ "$1" = "iex" ]; then EXECUTABLE="iex"; fi
+exec "$SCRIPT_PATH"/$EXECUTABLE -e "Mix.start; Mix.CLI.run" -- "$@"

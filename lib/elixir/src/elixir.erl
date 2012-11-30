@@ -1,6 +1,6 @@
 -module(elixir).
 -behaviour(application).
--export([main/1, start_cli/0, start_app/0,
+-export([main/1, start_cli/0,
   scope_for_eval/1, eval/2, eval/3, eval/4,
   eval_quoted/2, eval_quoted/3, eval_quoted/4,
   eval_forms/3]).
@@ -16,6 +16,12 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
+  %% Set the shell to unicode so printing inside scripts work
+  %% Those can take a while, so let's do it in a new process
+  spawn(fun() ->
+    io:setopts(standard_io, [{encoding,unicode}]),
+    io:setopts(standard_error, [{encoding,unicode}])
+  end),
   elixir_sup:start_link([]).
 
 stop(_S) ->
@@ -27,29 +33,14 @@ config_change(_Changed, _New, _Remove) ->
 %% escript entry point
 
 main(Args) ->
-  start_app(),
-  'Elixir.Kernel.CLI':process_argv(Args).
-
-%% ELIXIR ENTRY POINTS
-
-% Start the Elixir app. This is the proper way to boot Elixir from
-% inside an Erlang process.
-
-start_app() ->
-  case lists:keyfind(?MODULE, 1, application:loaded_applications()) of
-    false ->
-      application:start(?MODULE),
-      %% Set the shell to unicode so printing inside scripts work
-      io:setopts(standard_io, [{encoding,unicode}]),
-      io:setopts(standard_error, [{encoding,unicode}]);
-    _ -> ok
-  end.
+  application:start(?MODULE),
+  'Elixir.Kernel.CLI':main(Args).
 
 % Boot and process given options. Invoked by Elixir's script.
 
 start_cli() ->
-  start_app(),
-  'Elixir.Kernel.CLI':process_argv(init:get_plain_arguments()).
+  application:start(?MODULE),
+  'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
 
 %% EVAL HOOKS
 

@@ -8,7 +8,8 @@
   at_exit=[],
   pool=[],
   counter=0,
-  compiler_options=[{docs,true},{debug_info,true}]
+  compiler_options=[{docs,true},{debug_info,true}],
+  waiting=[]
 }).
 
 start_link() ->
@@ -16,6 +17,13 @@ start_link() ->
 
 init(_args) ->
   { ok, #elixir_code_server{} }.
+
+handle_call({ wait_until_finished, Pid }, _, Config) ->
+  Waiting = Config#elixir_code_server.waiting,
+  case is_list(Waiting) of
+    true  -> { reply, wait, Config#elixir_code_server{waiting=[Pid|Waiting]} };
+    false -> { reply, ok, Config }
+  end;
 
 handle_call({ acquire, Path }, From, Config) ->
   Current = Config#elixir_code_server.loaded,
@@ -66,6 +74,11 @@ handle_call(retrieve_module_name, _From, Config) ->
 
 handle_call(_Request, _From, Config) ->
   { reply, undef, Config }.
+
+handle_cast(finished, Config) ->
+  Waiting = Config#elixir_code_server.waiting,
+  [Pid ! { elixir_code_server, finished } || Pid <- lists:reverse(Waiting)],
+  { noreply, Config#elixir_code_server{waiting=done} };
 
 handle_cast({ loaded, Path }, Config) ->
   Current = Config#elixir_code_server.loaded,
