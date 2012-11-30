@@ -472,10 +472,11 @@ defmodule Kernel.Typespec do
     typespec_to_ast({ :ann_type, line, [{ :var, line1, name }, type] })
   end
 
-
   defp typespec_to_ast({ t, _line, atom }) when is_atom(t) do
     atom
   end
+
+  defp typespec_to_ast(other), do: other
 
   ## From AST conversion
 
