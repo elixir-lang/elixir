@@ -31,6 +31,11 @@ defmodule KernelTest do
     assert { :in, 2 } inlist Kernel.__info__(:macros)
   end
 
+  test :macro_exported? do
+    assert macro_exported?(Kernel, :in, 2) == true
+    assert macro_exported?(Kernel, :no_such_macro, 2) == false
+  end
+
   test :debug_info do
     assert :debug_info inlist Kernel.__info__(:compile)[:options]
   end

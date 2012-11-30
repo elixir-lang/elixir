@@ -2778,6 +2778,19 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns true if the `module` is loaded and contains a
+  public `macro` with the given `arity`, otherwise false.
+
+  Notice that this function does not load the module in case
+  it is not loaded. Check `Code.ensure_loaded/1` for more
+  information.
+  """
+  @spec macro_exported?(atom, atom, integer) :: boolean
+  def macro_exported?(module, macro, arity) do
+    :lists.keyfind(macro, 1, module.__info__(:macros)) == {macro, arity}
+  end
+
+  @doc """
   Access the given element using the qualifier according
   to the `Access` protocol. All calls in the form `foo[bar]`
   are translated to `access(foo, bar)`.
