@@ -33,6 +33,10 @@ defmodule KernelTest do
 
   test :macro_exported? do
     assert macro_exported?(Kernel, :in, 2) == true
+    assert macro_exported?(Kernel, :def, 1) == true
+    assert macro_exported?(Kernel, :def, 2) == true
+    assert macro_exported?(Kernel, :def, 3) == false
+    assert macro_exported?(Kernel, :def, 4) == true
     assert macro_exported?(Kernel, :no_such_macro, 2) == false
   end
 

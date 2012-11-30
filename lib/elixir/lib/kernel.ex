@@ -2787,7 +2787,7 @@ defmodule Kernel do
   """
   @spec macro_exported?(atom, atom, integer) :: boolean
   def macro_exported?(module, macro, arity) do
-    :lists.keyfind(macro, 1, module.__info__(:macros)) == {macro, arity}
+    :lists.member({macro, arity}, module.__info__(:macros))
   end
 
   @doc """
