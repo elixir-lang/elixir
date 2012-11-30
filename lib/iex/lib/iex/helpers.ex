@@ -175,11 +175,11 @@ defmodule IEx.Helpers do
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
-     lc {{f, arity}, _line, _type, _args, doc } inlist module.__info__(:docs),
-        f == function and doc != false do
-       h(module, function, arity)
-     end
-     :ok
+    lc {{f, arity}, _line, _type, _args, doc } inlist module.__info__(:docs),
+       f == function and doc != false do
+      h(module, function, arity)
+    end
+    :ok
   end
 
   @doc """
