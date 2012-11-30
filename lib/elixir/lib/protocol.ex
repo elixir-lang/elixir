@@ -213,7 +213,7 @@ defmodule Protocol do
       { List,      :is_list,      quote do: list },
       { BitString, :is_bitstring, quote do: <<>> },
       { Number,    :is_number,    quote do: number },
-      { Function,  :is_function,  quote do: fun(...) :: any },
+      { Function,  :is_function,  quote do: (... -> any) },
       { PID,       :is_pid,       quote do: pid },
       { Port,      :is_port,      quote do: port },
       { Reference, :is_reference, quote do: reference },

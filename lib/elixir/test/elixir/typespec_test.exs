@@ -123,23 +123,28 @@ defmodule Typespec.Test.Type do
 
   test "@type with a fun" do
     spec = test_module do
-      @type mytype :: fun(...) :: any 
+      @type mytype :: (... -> any)
     end
     assert {:mytype,{:type,_,:fun, []},[]} = spec
   end
 
   test "@type with a fun with arguments and return type" do
-    spec = test_module do
-      @type mytype :: fun(integer, integer) :: integer
+    {spec1, spec2} = test_module do
+      t1 = @type mytype :: (integer, integer -> integer)
+      t2 = @type mytype2 :: (fun(integer, integer) -> integer)
+      {t1, t2}
     end
     assert {:mytype,{:type,_,:fun, [{:type, _, :product,
              [{:type, _, :integer, []}, {:type, _, :integer, []}]},
-             {:type, _, :integer, []}]},[]} = spec
+             {:type, _, :integer, []}]},[]} = spec1
+    assert {:mytype2,{:type,_,:fun, [{:type, _, :product,
+             [{:type, _, :integer, []}, {:type, _, :integer, []}]},
+             {:type, _, :integer, []}]},[]} = spec2
   end
 
   test "@type with a fun with no arguments and return type" do
     spec = test_module do
-      @type mytype :: fun() :: integer
+      @type mytype :: (() -> integer)
     end
     assert {:mytype,{:type,_,:fun, [{:type, _, :product, []},
              {:type, _, :integer, []}]}, []} = spec
@@ -147,7 +152,7 @@ defmodule Typespec.Test.Type do
 
   test "@type with a fun with any arity and return type" do
     spec = test_module do
-      @type mytype :: fun(...) :: integer
+      @type mytype :: (... -> integer)
     end
     assert {:mytype,{:type,_,:fun, [{:type, _, :any},
              {:type, _, :integer, []}]}, []} = spec
@@ -186,7 +191,7 @@ defmodule Typespec.Test.Type do
   test "@type with annotations" do
     {spec1, spec2} = test_module do
       t1 = @type mytype :: named :: integer
-      t2 = @type mytype1 :: fun(a :: integer) :: integer
+      t2 = @type mytype1 :: (a :: integer -> integer)
       {t1,t2}
     end
     assert {:mytype, {:ann_type, _, [{:var, _, :named}, {:type, _, :integer, []}]}, []} = spec1
@@ -290,7 +295,7 @@ defmodule Typespec.Test.Type do
       (quote do: @type binary_type2() :: <<_ :: 3 * 8>>),
       (quote do: @type binary_type3() :: <<_ :: 3>>),
       (quote do: @type tuple_type() :: {integer()}),
-      (quote do: @type ftype() :: (fun() :: any()) | (fun() :: integer()) | (fun(integer()) :: integer())),
+      (quote do: @type ftype() :: (() -> any()) | (() -> integer()) | ((integer() -> integer()))),
     ]
 
     types = test_module do

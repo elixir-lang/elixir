@@ -81,7 +81,7 @@ defmodule Keyword do
       #=> [a: :a, b: :b]
 
   """
-  @spec new(Enum.t, fun({key, value}) :: {key, value}) :: t
+  @spec new(Enum.t, ({key, value} -> {key, value})) :: t
   def new(pairs, transform) do
     Enum.reduce pairs, [], fn i, keywords ->
       { k, v } = transform.(i)
@@ -249,7 +249,7 @@ defmodule Keyword do
       #=> [a:4, b:2, d: 4]
 
   """
-  @spec merge(t, t, fun(key, value, value) :: value) :: t
+  @spec merge(t, t, (key, value, value -> value)) :: t
   def merge(d1, d2, fun) do
     do_merge(d2, d1, fun)
   end
@@ -290,7 +290,7 @@ defmodule Keyword do
       #=> KeyError
 
   """
-  @spec update(t, key, fun(value) :: value) :: t | no_return
+  @spec update(t, key, (value -> value)) :: t | no_return
   def update([{key, value}|keywords], key, fun) do
     [{key, fun.(value)}|delete(keywords, key)]
   end
@@ -315,7 +315,7 @@ defmodule Keyword do
       #=> [a: 1, b: 11]
 
   """
-  @spec update(t, key, value, fun(value) :: value) :: t  
+  @spec update(t, key, value, (value -> value)) :: t  
   def update([{key, value}|keywords], key, _initial, fun) do
     [{key, fun.(value)}|delete(keywords, key)]
   end
