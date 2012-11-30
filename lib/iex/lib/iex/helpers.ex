@@ -79,7 +79,7 @@ defmodule IEx.Helpers do
   Shows the documentation for IEx.Helpers.
   """
   def h() do
-    h(IEx.Helpers, :moduledoc)
+    h(IEx.Helpers, [])
   end
 
   @doc """
