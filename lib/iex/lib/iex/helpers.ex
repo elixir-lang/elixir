@@ -17,6 +17,7 @@ defmodule IEx.Helpers do
   * `s/1` — prints spec information
   * `m/0` - prints loaded modules
   * `r/0`, `r/1` - recompiles and reloads the given module's source file
+  * `l/1` - reload given module
   * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
   * `flush/0` — flush all messages sent to the shell
@@ -429,6 +430,14 @@ defmodule IEx.Helpers do
     else
       :nosource
     end
+  end
+
+  @doc """
+  Purges and reloads specified module
+  """
+  def l(module) do
+   :code.purge(module)
+   :code.load_file(module)
   end
 
   @doc """
