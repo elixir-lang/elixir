@@ -16,7 +16,7 @@ defmodule IEx.Helpers do
   * `t/1` — prints type information
   * `s/1` — prints spec information
   * `m/0` - prints loaded modules
-  * `r/0` - recompiles and reloads the given module's source file
+  * `r/0`, `r/1` - recompiles and reloads the given module's source file
   * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
   * `flush/0` — flush all messages sent to the shell
