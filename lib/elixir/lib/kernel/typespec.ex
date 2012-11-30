@@ -449,8 +449,12 @@ defmodule Kernel.Typespec do
     { :"->", line, [{args, typespec_to_ast(result)}] }
   end
 
+  defp typespec_to_ast({ :type, line, :fun, [args, result] }) do
+    { :"->", line, [{[typespec_to_ast(args)], typespec_to_ast(result)}] }
+  end
+
   defp typespec_to_ast({ :type, line, :fun, [] }) do
-    typespec_to_ast({ :type, line, :fun, [{:type, line, :product, [:'...']}, :any] })
+    typespec_to_ast({ :type, line, :fun, [{:type, line, :any}, {:type,line,:any, []} ] })
   end
 
   defp typespec_to_ast({ :type, line, name, args }) do
@@ -481,6 +485,10 @@ defmodule Kernel.Typespec do
                          { :record_field, line, { :atom, line1, name }},
                          type }) do
     typespec_to_ast({ :ann_type, line, [{ :var, line1, name }, type] })
+  end
+
+  defp typespec_to_ast({:type, _, :any}) do
+    quote do: ...
   end
 
   defp typespec_to_ast({ t, _line, atom }) when is_atom(t) do

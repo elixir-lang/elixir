@@ -297,6 +297,7 @@ defmodule Typespec.Test.Type do
       (quote do: @type tuple_type() :: {integer()}),
       (quote do: @type ftype() :: (() -> any()) | (() -> integer()) | ((integer() -> integer()))),
       (quote do: @type cl() :: char_list()),
+      (quote do: @type vaf() :: (... -> any())),
     ]
 
     types = test_module do
