@@ -117,6 +117,13 @@ defmodule IEx.Helpers do
     end
   end
 
+  defmacro h({ name, _, args }) when args in [nil, []] do
+    quote do
+      h(unquote(__MODULE__), unquote(name))
+      h(Kernel, unquote(name))
+    end
+  end
+
   defmacro h(other) do
     quote do
       h(unquote(other), [])
