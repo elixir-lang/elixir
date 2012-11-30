@@ -322,6 +322,8 @@ defmodule IEx.Helpers do
       s(Enum)
       s(Enum.all?)
       s(Enum.all?/2)
+      s(list_to_atom)
+      s(list_to_atom/1)
 
   """
   defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
@@ -333,6 +335,18 @@ defmodule IEx.Helpers do
   defmacro s({ { :., _, [mod, fun] }, _, [] }) do
     quote do
       s(unquote(mod), unquote(fun))
+    end
+  end
+
+  defmacro s({ fun, _, args }) when args == [] or is_atom(args) do
+    quote do
+      s(Kernel, unquote(fun))
+    end
+  end
+
+  defmacro s({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
+    quote do
+      s(Kernel, unquote(fun), unquote(arity))
     end    
   end
 
