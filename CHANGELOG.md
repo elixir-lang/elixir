@@ -1,5 +1,7 @@
 * enhancements
   * [CLI] `--debug-info` is now true by default
+  * [ExUnit] Make ExUnit exit happen in two steps allowing developers to add custom `at_exit` hooks
+  * [Macro] Improvements to `Macro.to_binary`
   * [Kernel] Functions defined with `fn` can now handle many clauses
   * [Kernel] Raise an error if clauses with different arities are defined in the same function
   * [Kernel] `function` macro now accepts arguments in `M.f/a` format
@@ -7,10 +9,12 @@
 
 * bug fix
   * [Bootstrap] Compiling Elixir source no longer fails if environment variables contain utf-8 entries
+  * [Kernel] Ensure proper stacktraces when showing deprecations
 
 * deprecations
   * [Enum] `Enum.qsort` is deprecated and `List.sort` in favor of `Enum.sort`
   * [ExUnit] `assert left in right` is deprecated in favor of `assert left inlist right`
+  * [Typespec] Enhacements and deprecations to the `@spec/@callback` syntax
 
 # v0.7.1 (2012-11-18)
 
