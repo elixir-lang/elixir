@@ -11,7 +11,13 @@ defmodule Mix.Tasks.Iex do
   """
   def run(_) do
     Mix.Task.run Mix.project[:prepare_task]
-    IEx.run
-    :timer.sleep(:infinity)
+    case IEx.release do
+      :ok ->
+        :timer.sleep(:infinity)
+      :error ->
+        raise Mix.Error, message: "could not start IEx. Due to booting constraints, " <>
+          "IEx needs to be started on its own, like `mix iex` and it cannot be mixed " <>
+          "with other tasks as in `mix do compile, iex`"
+    end
   end
 end

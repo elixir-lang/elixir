@@ -66,7 +66,7 @@ defmodule MixTest.Case do
   end
 
   def mix(args) do
-    System.cmd "#{elixir_executable} #{mix_executable} #{args}"
+    System.cmd "#{mix_executable} #{args}"
   end
 
   def mix_executable do

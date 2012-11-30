@@ -6,6 +6,10 @@ defmodule IEx.Mixfile do
   end
 
   def application do
-    [env: [after_spawn: []]]
+    [env: [
+      after_spawn: [],
+      inspect_opts: [limit: 50],
+      wait: false,
+    ]]
   end
 end

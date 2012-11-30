@@ -1483,6 +1483,7 @@ defmodule Kernel do
   differences:
 
   1) Differently from records, exceptions are documented by default;
+
   2) Exceptions **must** implement `message/1` as API that return a
      binary as result;
 
@@ -1519,12 +1520,14 @@ defmodule Kernel do
     case __CALLER__.in_guard? do
       true ->
         quote do
-          is_tuple(unquote(thing)) and :erlang.element(2, unquote(thing)) == :__exception__
+          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 1 and
+            :erlang.element(2, unquote(thing)) == :__exception__
         end
       false ->
         quote do
           result = unquote(thing)
-          is_tuple(result) and :erlang.element(2, result) == :__exception__
+          is_tuple(result)  and tuple_size(result) > 1 and
+            :erlang.element(2, result) == :__exception__
         end
     end
   end
@@ -2727,7 +2730,7 @@ defmodule Kernel do
   """
   @spec raise(binary | atom | tuple) :: no_return
   def raise(msg) when is_binary(msg) do
-    :erlang.error RuntimeError.new(message: msg)
+    :erlang.error RuntimeError[message: msg]
   end
 
   def raise(exception) do
@@ -2744,7 +2747,11 @@ defmodule Kernel do
   Any module defined via `defexception` automatically
   defines `exception(args)` that returns a new instance
   of the record and a `exception(args, current)` that
-  works as no-op.
+  updates the current exception.
+
+  Re-raising an exception will retrieve the previous
+  stacktrace so it keps the properties of the original
+  exception.
 
   ## Examples
 
@@ -2752,6 +2759,11 @@ defmodule Kernel do
 
   """
   @spec raise(tuple | atom, list) :: no_return
+  def raise(exception, args) when is_tuple(exception) and tuple_size(exception) > 1 and
+      :erlang.element(2, exception) == :__exception__ do
+    :erlang.raise(:error, exception.exception(args), :erlang.get_stacktrace)
+  end
+
   def raise(exception, args) do
     :erlang.error exception.exception(args)
   end

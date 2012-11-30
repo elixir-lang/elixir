@@ -57,6 +57,34 @@ defmodule IEx do
   end
 
   @doc """
+  Releases waiting IEx.
+
+  When IEx is started with "-iex wait true",
+  the console does not start until `IEx.release`
+  is invoked.
+
+  It returns `:ok` if IEx is released, `:error`
+  if the wait flag was not set.
+  """
+  def release do
+    case :application.get_env(:iex, :wait) do
+      { :ok, value } ->
+        cond do
+          is_pid(value) ->
+            value <- { :iex_latch, :release }
+            :ok
+          value == true ->
+            receive after: (200 -> release)
+          value == false ->
+            :error
+        end
+      :undefined ->
+        # IEx wasn't even started yet
+        :error
+    end
+  end
+
+  @doc """
   Registers options used on inspect.
   """
   def inspect_opts(opts) when is_list(opts) do
@@ -67,10 +95,7 @@ defmodule IEx do
   Returns currently registered inspect options.
   """
   def inspect_opts do
-    case :application.get_env(:iex, :inspect_opts) do
-      { :ok, list } -> list
-      :undefined -> [limit: 50]
-    end
+    :application.get_env(:iex, :inspect_opts)
   end
 
   @doc """
@@ -114,9 +139,7 @@ defmodule IEx do
         if is_atom(remsh), do: remsh, else: binary_to_atom(remsh)
       end
 
-    function = fn ->
-      start config
-    end
+    function = fn -> start(config) end
 
     args =
       if remote do
@@ -150,6 +173,8 @@ defmodule IEx do
       Process.flag(:trap_exit, true)
 
       preload()
+      wait_until_release()
+
       set_expand_fun()
       run_after_spawn()
       IEx.Loop.start(config)
@@ -158,8 +183,20 @@ defmodule IEx do
 
   ## Boot Helpers
 
-  def boot_config(opts) do
-    scope  = :elixir.scope_for_eval(
+  defp wait_until_release do
+    { :ok, wait } = :application.get_env(:iex, :wait)
+
+    if wait do
+      :application.set_env(:iex, :wait, self())
+
+      receive do
+        { :iex_latch, :release } -> :ok
+      end
+    end
+  end
+
+  defp boot_config(opts) do
+    scope = :elixir.scope_for_eval(
       file: "iex",
       delegate_locals_to: IEx.Helpers
     )
