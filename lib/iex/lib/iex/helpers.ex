@@ -182,6 +182,11 @@ defmodule IEx.Helpers do
     :ok
   end
 
+  def h(_, _) do
+    IO.puts "Invalid h helper argument"
+    h()
+  end
+
   @doc """
   Shows the documentation for the `function/arity` in `module`.
   """
