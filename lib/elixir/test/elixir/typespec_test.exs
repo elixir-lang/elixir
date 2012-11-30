@@ -296,6 +296,7 @@ defmodule Typespec.Test.Type do
       (quote do: @type binary_type3() :: <<_ :: 3>>),
       (quote do: @type tuple_type() :: {integer()}),
       (quote do: @type ftype() :: (() -> any()) | (() -> integer()) | ((integer() -> integer()))),
+      (quote do: @type cl() :: char_list()),
     ]
 
     types = test_module do

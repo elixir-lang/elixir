@@ -387,6 +387,11 @@ defmodule Kernel.Typespec do
     { var, line, nil }
   end
 
+  # special shortcut(s)
+  defp typespec_to_ast({ :remote_type, line, [{:atom, _, :elixir}, {:atom, _, :char_list}, []] }) do
+    typespec_to_ast({:type, line, :char_list, []})
+  end
+
   defp typespec_to_ast({ :remote_type, line, [mod, name, args] }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     dot  = { :., line, [typespec_to_ast(mod), typespec_to_ast(name)] }
