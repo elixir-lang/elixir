@@ -37,11 +37,11 @@ defmodule Dict do
   defcallback get(t, key, value), do: value
   defcallback has_key?(t, key), do: boolean
   defcallback keys(t), do: list(key)
-  defcallback merge(t, t, fun(key, value, value, do: value)), do: t
+  defcallback merge(t, t, (key, value, value -> value)), do: t
   defcallback put(t, key, value), do: t
   defcallback size(t), do: non_neg_integer()
   defcallback to_list(t), do: list()
-  defcallback update(t, key, fun(value, do: value)), do: t
+  defcallback update(t, key, (value -> value)), do: t
   defcallback values(t), do: list(value)
 
   @doc """
@@ -55,7 +55,7 @@ defmodule Dict do
       Dict.keys d  #=> [:a,:b]
 
   """
-  @spec keys(t), do: [key]
+  @spec keys(t) :: [key]
   def keys(dict) do
     elem(dict, 0).keys(dict)
   end
@@ -69,7 +69,7 @@ defmodule Dict do
       Dict.values d  #=> [1,2]
 
   """
-  @spec values(t), do: [value]
+  @spec values(t) :: [value]
   def values(dict) do
     elem(dict, 0).values(dict)
   end
@@ -83,7 +83,7 @@ defmodule Dict do
       Dict.size d  #=> 2
 
   """
-  @spec size(t), do: non_neg_integer
+  @spec size(t) :: non_neg_integer
   def size(dict) do
     elem(dict, 0).size(dict)
   end
@@ -98,7 +98,7 @@ defmodule Dict do
       Dict.has_key?(d, :b)  #=> false
 
   """
-  @spec has_key?(t, key), do: boolean
+  @spec has_key?(t, key) :: boolean
   def has_key?(dict, key) do
     elem(dict, 0).has_key?(dict, key)
   end
@@ -115,8 +115,8 @@ defmodule Dict do
       Dict.get d, :b, 3  #=> 3
 
   """
-  @spec get(t, key), do: value | nil
-  @spec get(t, key, value), do: value
+  @spec get(t, key) :: value | nil
+  @spec get(t, key, value) :: value
   def get(dict, key, default // nil) do
     elem(dict, 0).get(dict, key, default)
   end
@@ -132,7 +132,7 @@ defmodule Dict do
       Dict.get d, :b     #=> raises KeyError[key: :b]
 
   """
-  @spec get!(t, key), do: value | no_return
+  @spec get!(t, key) :: value | no_return
   def get!(dict, key) do
     elem(dict, 0).get!(dict, key)
   end
@@ -148,7 +148,7 @@ defmodule Dict do
       #=> [a: 3, b: 2]
 
   """
-  @spec put(t, key, value), do: t
+  @spec put(t, key, value) :: t
   def put(dict, key, val) do
     elem(dict, 0).put(dict, key, val)
   end
@@ -166,7 +166,7 @@ defmodule Dict do
       Dict.delete d, :a      #=> [b: 2]
 
   """
-  @spec delete(t, key), do: t
+  @spec delete(t, key) :: t
   def delete(dict, key) do
     elem(dict, 0).delete(dict, key)
   end
@@ -185,7 +185,7 @@ defmodule Dict do
       #=> [a: 3, b: 2, d: 4]
 
   """
-  @spec merge(t, t), do: t
+  @spec merge(t, t) :: t
   def merge(dict1, dict2) do
     merge(dict1, dict2, fn(_k, _v1, v2) -> v2 end)
   end
@@ -204,7 +204,7 @@ defmodule Dict do
       #=> [a: 4, b: 2, d: 4]
 
   """
-  @spec merge(t, t, fun(key, value, value, do: value)), do: t
+  @spec merge(t, t, (key, value, value -> value)) :: t
   def merge(dict1, dict2, fun) do
     elem(dict1, 0).merge(dict1, dict2, fun)
   end
@@ -220,7 +220,7 @@ defmodule Dict do
       #=> [a: -1, b: 2]
 
   """
-  @spec update(t, key, fun(value, do: value)), do: t
+  @spec update(t, key, (value -> value)) :: t
   def update(dict, key, fun) do
     elem(dict, 0).update(dict, key, fun)
   end
@@ -237,7 +237,7 @@ defmodule Dict do
       #=> [a: 1, b: 2, c: 3]
 
   """
-  @spec update(t, key, value, fun(value, do: value)), do: t
+  @spec update(t, key, value, (value -> value)) :: t
   def update(dict, key, initial, fun) do
     elem(dict, 0).update(dict, key, initial, fun)
   end
@@ -245,7 +245,7 @@ defmodule Dict do
   @doc """
   Returns an empty dict of the same type as `dict`.
   """
-  @spec empty(t), do: t
+  @spec empty(t) :: t
   def empty(dict) do
     elem(dict, 0).empty(dict)
   end
@@ -254,7 +254,7 @@ defmodule Dict do
   Returns a list of key-value pairs stored in `dict`.
   No particular order is enforced.
   """
-  @spec to_list(t), do: list
+  @spec to_list(t) :: list
   def to_list(dict) do
     elem(dict, 0).to_list(dict)
   end

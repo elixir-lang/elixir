@@ -213,7 +213,7 @@ defmodule Protocol do
       { List,      :is_list,      quote do: list },
       { BitString, :is_bitstring, quote do: <<>> },
       { Number,    :is_number,    quote do: number },
-      { Function,  :is_function,  quote do: fun },
+      { Function,  :is_function,  quote do: (... -> any) },
       { PID,       :is_pid,       quote do: pid },
       { Port,      :is_port,      quote do: port },
       { Reference, :is_reference, quote do: reference },
@@ -393,7 +393,7 @@ defmodule Protocol.DSL do
       # Convert the spec to callback if possible,
       # otherwise generate a dummy callback
       Protocol.DSL.callback_from_spec(__MODULE__, name, arity) ||
-        @callback unquote(name)(unquote_splicing(type_args)), do: term
+        @callback unquote(name)(unquote_splicing(type_args)) :: term
     end
   end
 end

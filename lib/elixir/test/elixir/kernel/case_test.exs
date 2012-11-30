@@ -3,6 +3,10 @@ Code.require_file "../../test_helper.exs", __FILE__
 defmodule Kernel.CaseTest do
   use ExUnit.Case, async: true
 
+  test :inline_case do
+    assert (case 1, do: (1 -> :ok; 2 -> :wrong)) == :ok
+  end
+
   test :nested_case do
     assert get_case == 2
   end

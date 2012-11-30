@@ -8,7 +8,7 @@ end
 
 defprotocol ProtocolTest.WithExcept do
   @except [Atom, Number, List]
-  @spec blank(t), do: boolean
+  @spec blank(t) :: boolean
   def blank(thing)
 end
 

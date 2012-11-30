@@ -399,8 +399,8 @@ defmodule ExUnit.Assertions do
       flunk "This should raise an error"
 
   """
-  @spec flunk, do: no_return
-  @spec flunk(String.t), do: no_return
+  @spec flunk :: no_return
+  @spec flunk(String.t) :: no_return
   def flunk(message // "Epic Fail!") do
     raise ExUnit.AssertionError, message: message
   end

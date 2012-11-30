@@ -483,18 +483,18 @@ defmodule Record do
         @type t :: { __MODULE__, unquote_splicing(types) }
       end
 
-      @spec new, do: t
-      @spec new(Keyword.t | tuple), do: t
-      @spec to_keywords(t), do: Keyword.t
-      @spec update(Keyword.t, t), do: t
-      @spec __index__(atom), do: non_neg_integer | nil
+      @spec new :: t
+      @spec new(Keyword.t | tuple) :: t
+      @spec to_keywords(t) :: Keyword.t
+      @spec update(Keyword.t, t) :: t
+      @spec __index__(atom) :: non_neg_integer | nil
     end
   end
 
   defp accessor_specs([{ key, _default, spec }|t], acc) do
     contents = quote do
-      @spec unquote(key)(t), do: unquote(spec)
-      @spec unquote(key)(unquote(spec), t), do: t
+      @spec unquote(key)(t) :: unquote(spec)
+      @spec unquote(key)(unquote(spec), t) :: t
     end
     accessor_specs(t, [contents | acc])
   end
@@ -637,7 +637,7 @@ defmodule Record.Extensions do
     update = prefix("update_", key)
 
     quote do
-      @spec unquote(update)(fun(unquote(spec), do: unquote(spec)), t), do: t
+      @spec unquote(update)((unquote(spec) -> unquote(spec)), t) :: t
     end
   end
 
@@ -646,8 +646,8 @@ defmodule Record.Extensions do
     merge   = prefix("merge_", key)
 
     quote do
-      @spec unquote(prepend)(list, t), do: t
-      @spec unquote(merge)(Keyword.t, t), do: t
+      @spec unquote(prepend)(list, t) :: t
+      @spec unquote(merge)(Keyword.t, t) :: t
     end
   end
 
@@ -655,7 +655,7 @@ defmodule Record.Extensions do
     increment = prefix("increment_", key)
 
     quote do
-      @spec unquote(increment)(number, t), do: t
+      @spec unquote(increment)(number, t) :: t
     end
   end
 
@@ -663,7 +663,7 @@ defmodule Record.Extensions do
     toggle = prefix("toggle_", key)
 
     quote do
-      @spec unquote(toggle)(t), do: t
+      @spec unquote(toggle)(t) :: t
     end
   end
 

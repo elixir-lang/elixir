@@ -20,6 +20,13 @@ defmodule KernelTest do
     refute x([])
   end
 
+  test :paren do
+    assert nil?(())
+    assert [ 1, (), 3 ] == [1, nil, 3 ]
+    assert [do: ()] == [do: nil]
+    assert { 1, (), 3 } == { 1, nil, 3 }
+  end
+
   test :__info__ do
     assert { :in, 2 } inlist Kernel.__info__(:macros)
   end
@@ -115,7 +122,6 @@ defmodule KernelTest do
     test :local_syntax_function do
       assert function(atl/1).(:a) == 'a'
     end
-
 
     test :retrieve_imported_function do
       assert is_function(function(:atom_to_list, 1))

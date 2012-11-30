@@ -3,12 +3,12 @@
 
 Nonterminals
   grammar expr_list
-  expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
+  expr paren_expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
   add_op mult_op unary_op two_op pipeline_op bin_concat_op
   match_op send_op default_op when_op pipe_op in_op inc_op stab_op range_op
   andand_op oror_op and_op or_op comp_expr_op colon_colon_op three_op at_op
-  open_paren close_paren
+  open_paren close_paren empty_paren
   open_bracket close_bracket
   open_curly close_curly
   open_bit close_bit
@@ -43,8 +43,8 @@ Rootsymbol grammar.
 Left       5 do.
 Right     10 '->'.
 Left      20 ','.  % Solve nested call_args conflicts
-Right     30 when_op.
-Right     40 colon_colon_op.
+Right     30 colon_colon_op.
+Right     40 when_op.
 Right     50 default_op.
 Left      60 pipe_op.
 Left      70 inc_op.
@@ -80,8 +80,11 @@ grammar -> '$empty' : [nil].
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
-expr_list -> open_paren ')' : [nil].
+expr_list -> empty_paren : [nil].
 expr_list -> expr_list eol expr : ['$3'|'$1'].
+
+paren_expr -> empty_paren : nil.
+paren_expr -> expr : '$1'.
 
 expr -> matched_expr : '$1'.
 expr -> unmatched_expr : '$1'.
@@ -163,7 +166,7 @@ max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : { build_identifier('$1', '$2'), ?line('$1'), '$3' }.
 max_expr -> dot_ref : '$1'.
 max_expr -> base_expr : '$1'.
-max_expr -> open_paren expr_list close_paren : build_block(lists:reverse('$2')).
+max_expr -> open_paren stab_expr_list close_paren : build_stab(lists:reverse('$2')).
 
 bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
@@ -228,6 +231,8 @@ open_paren -> '('      : '$1'.
 open_paren -> '(' eol  : '$1'.
 close_paren -> ')'     : '$1'.
 close_paren -> eol ')' : '$2'.
+
+empty_paren -> open_paren ')' : nil.
 
 open_bracket  -> '['     : '$1'.
 open_bracket  -> '[' eol : '$1'.
@@ -384,32 +389,32 @@ call_args_no_parens -> matched_comma_expr : lists:reverse('$1').
 call_args_no_parens -> matched_kw_base : ['$1'].
 call_args_no_parens -> matched_comma_expr ',' matched_kw_base : lists:reverse(['$3'|'$1']).
 
-base_comma_expr -> expr ',' : ['$1'].
-base_comma_expr -> base_comma_expr expr ',' : ['$2'|'$1'].
+call_args_parens_not_one -> open_paren ')' : [].
+call_args_parens_not_one -> open_paren matched_kw_base close_paren : ['$2'].
+call_args_parens_not_one -> open_paren matched_expr ',' call_args_no_parens close_paren : ['$2'|'$4'].
 
-comma_expr -> expr : ['$1'].
+base_comma_expr -> paren_expr ',' : ['$1'].
+base_comma_expr -> base_comma_expr paren_expr ',' : ['$2'|'$1'].
+
+comma_expr -> paren_expr : ['$1'].
 comma_expr -> kw_base : ['$1'].
 comma_expr -> base_comma_expr : '$1'.
-comma_expr -> base_comma_expr expr : ['$2'|'$1'].
+comma_expr -> base_comma_expr paren_expr : ['$2'|'$1'].
 comma_expr -> base_comma_expr kw_base : ['$2'|'$1'].
 
-optional_comma_expr -> expr : '$1'.
-optional_comma_expr -> expr ',' : '$1'.
+optional_comma_expr -> paren_expr : '$1'.
+optional_comma_expr -> paren_expr ',' : '$1'.
 
 call_args -> comma_expr : lists:reverse('$1').
 
 call_args_parens -> open_paren ')' : [].
 call_args_parens -> open_paren call_args close_paren : '$2'.
 
-call_args_parens_not_one -> open_paren ')' : [].
-call_args_parens_not_one -> open_paren kw_base close_paren : ['$2'].
-call_args_parens_not_one -> open_paren expr ',' call_args close_paren : ['$2'|'$4'].
-
 % KV
 
 kw_eol  -> kw_identifier : '$1'.
 kw_eol  -> kw_identifier eol : '$1'.
-kw_expr -> kw_eol expr : { ?exprs('$1'),'$2' }.
+kw_expr -> kw_eol paren_expr : { ?exprs('$1'),'$2' }.
 
 kw_comma -> kw_expr ',' : ['$1'].
 kw_comma -> kw_comma kw_expr ',' : ['$2'|'$1'].
@@ -419,6 +424,7 @@ kw_base  -> kw_comma : lists:reverse('$1').
 kw_base  -> kw_comma kw_expr : lists:reverse(['$2'|'$1']).
 
 matched_kw_expr  -> kw_eol matched_expr : {?exprs('$1'),'$2'}.
+matched_kw_expr  -> kw_eol empty_paren : {?exprs('$1'),nil}.
 matched_kw_comma -> matched_kw_expr : ['$1'].
 matched_kw_comma -> matched_kw_expr ',' matched_kw_comma : ['$1'|'$3'].
 matched_kw_base  -> matched_kw_comma : '$1'.
@@ -432,13 +438,13 @@ bracket_access -> open_bracket kw_base close_bracket : { '$2', ?line('$1') }.
 list -> open_bracket ']' : [].
 list -> open_bracket kw_base close_bracket : '$2'.
 list -> open_bracket optional_comma_expr close_bracket : ['$2'].
-list -> open_bracket expr ',' call_args close_bracket : ['$2'|'$4'].
+list -> open_bracket paren_expr ',' call_args close_bracket : ['$2'|'$4'].
 
 % Tuple
 
 tuple -> open_curly '}' : build_tuple('$1', []).
 tuple -> open_curly optional_comma_expr close_curly : build_tuple('$1', ['$2']).
-tuple -> open_curly expr ',' call_args close_curly :  build_tuple('$1', ['$2'|'$4']).
+tuple -> open_curly paren_expr ',' call_args close_curly :  build_tuple('$1', ['$2'|'$4']).
 
 % Bitstrings
 

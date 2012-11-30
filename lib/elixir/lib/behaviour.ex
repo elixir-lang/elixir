@@ -60,7 +60,7 @@ defmodule Behaviour do
     end
 
     quote do
-      @callback unquote(name)(unquote_splicing(args)), do: unquote(return)
+      @callback unquote(name)(unquote_splicing(args)) :: unquote(return)
       Behaviour.store_docs __MODULE__, unquote(__CALLER__.line), unquote(name), unquote(arity)
     end
   end
