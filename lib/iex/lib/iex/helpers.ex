@@ -13,8 +13,8 @@ defmodule IEx.Helpers do
 
   * `c/2` - compiles a file in the given path
   * `h/0`,`h/1`, `h/2` - prints help/documentation
-  * `t/1`, `t/3` — prints type information
-  * `s/1`, `s/3` — prints spec information
+  * `t/1`, `t/2`, `t/3` — prints type information
+  * `s/1`, `s/2`, `s/3` — prints spec information
   * `m/0` - prints loaded modules
   * `r/0` - recompiles and reloads the given module's source file
   * `v/0` - prints all commands and values
@@ -223,6 +223,7 @@ defmodule IEx.Helpers do
 
       t(Enum)
       t(Enum.t/0)
+      t(Enum.t)
 
   """
   defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
@@ -231,15 +232,35 @@ defmodule IEx.Helpers do
     end
   end
 
+  defmacro t({ { :., _, [mod, fun] }, _, [] }) do
+    quote do
+      t(unquote(mod), unquote(fun))
+    end
+  end
+
   defmacro t(module) do
     quote do
-      t(unquote(module), :all)
+      t(unquote(module), [])
     end
   end
 
 
   @doc false
-  def t(module, :all) do
+  def t(module, type) when is_atom(type) do
+    types = lc {_, {t, _, _args}} = typespec inlist Kernel.Typespec.beam_types(module), 
+               t == type do
+      print_type(typespec)
+      typespec
+    end
+
+    if types == [] do
+       IO.puts "No types for #{inspect module}.#{type} have been found"
+    end
+
+    :ok
+  end
+
+  def t(module, []) do
     types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
 
     if types == [] do
@@ -270,6 +291,8 @@ defmodule IEx.Helpers do
   ## Examples
 
       s(Enum)
+      s(Enum.all?)
+      s(Enum.all?/2)
 
   """
   defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
@@ -278,30 +301,24 @@ defmodule IEx.Helpers do
     end
   end
 
-  defmacro s(module) do
+  defmacro s({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      s(unquote(module), :all)
-    end
+      s(unquote(mod), unquote(fun))
+    end    
   end
 
-  @doc false
-  def s(module, :all) do
-    specs = lc spec inlist Kernel.Typespec.beam_specs(module), do: print_spec(spec)
-
-    if specs == [] do
-      IO.puts "No specs for #{inspect module} have been found"
+  defmacro s(module) do
+    quote do
+      s(unquote(module), [])
     end
-
-    :ok
   end
 
   @doc """
-  Prints the specs for a given function.
+  Prints the specs for a given MFA.
 
   ## Examples
 
       s(Enum.all?/2)
-      s(Enum.t/0)
 
   """
   def s(module, function, arity) do
@@ -311,6 +328,38 @@ defmodule IEx.Helpers do
       print_spec(spec)
     else
       IO.puts "No specs for #{inspect module}.#{function}/#{arity} have been found"
+    end
+
+    :ok
+  end
+
+  @doc """
+  Prints the specs for a given MF.
+
+  ## Examples
+
+      s(Enum.all?)
+
+  """
+  def s(module, function) when is_atom(function) do
+    specs = lc {{f, _arity}, _spec} = spec inlist Kernel.Typespec.beam_specs(module),
+               f == function do
+      print_spec(spec)
+      spec
+    end
+
+    if specs == [] do
+      IO.puts "No specs for #{inspect module}.#{function} have been found"
+    end
+
+    :ok
+  end
+
+  def s(module, []) do
+    specs = lc spec inlist Kernel.Typespec.beam_specs(module), do: print_spec(spec)
+
+    if specs == [] do
+      IO.puts "No specs for #{inspect module} have been found"
     end
 
     :ok
