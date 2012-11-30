@@ -6,6 +6,70 @@ defmodule Kernel.Typespec do
   `@callback` available in modules are handled by the equivalent
   macros defined by this module.
 
+  ## Defining a type
+
+  @type type_name :: type
+  @typep type_name :: type
+  @opaque type_name :: type
+
+  For more details, see documentation for deftype, deftypep and defopaque in
+  Kernel.Typespec
+
+  ## Defining a specification
+
+  @spec function_name(type, type) :: type
+  @callback function_name(type, type) :: type
+
+  For more details, see documentation for defspec and defcallback in
+  Kernel.Typespec
+
+  ## Types
+
+  The type syntax provided by Elixir is fairly similar to the one
+  in Erlang.
+
+  Most of the built-in types provided in Erlang (for example, `pid()`)
+  are expressed the same way: `pid()` or simply `pid`. Parametrized types
+  are also supported: `list(integer())` and so are remote types: `Enum.t`.
+
+  Certain data type shortcuts ([...], <<>> and {...}) are supported as well.
+
+  Main differences lie in how bit strings and functions are defined:
+
+  ### Bit Strings
+
+  Bit string with a base size of 3:
+
+      <<_ :: 3>>
+
+  Bit string with a unit size of 8:
+
+      <<_ :: _ * 8>>
+
+  ### Functions
+
+  Any function:
+
+      (fun(...) -> any)
+      or
+      ((...) -> any)
+      or
+      (... -> any)
+
+  Function with arity of zero:
+  
+      (fun() -> type)
+      or
+      (() -> type)
+
+  Function with some arity:
+  
+      (fun(type, type) -> type)
+      or
+      ((type, type) -> type)
+      or
+      (type, type -> type)
+
   See http://www.erlang.org/doc/reference_manual/typespec.html
   for more information.
   """
