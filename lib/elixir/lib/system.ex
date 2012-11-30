@@ -25,11 +25,13 @@ defmodule System do
   @doc """
   Returns Elixir's version as binary.
   """
+  @spec version() :: String.t
   def version, do: "0.7.2.dev"
 
   @doc """
   Returns a keywords list with version, git tag info and date.
   """
+  @spec build_info() :: Keyword.t
   def build_info do
     [version: version, tag: get_describe, date: get_date]
   end
@@ -37,6 +39,7 @@ defmodule System do
   @doc """
   Returns the list of command-line arguments passed to the program.
   """
+  @spec argv() :: [String.t]
   def argv do
     :gen_server.call(:elixir_code_server, :argv)
   end
@@ -61,6 +64,8 @@ defmodule System do
   If `command` is a char list, a char list is returned.
   Returns a binary otherwise.
   """
+  @spec cmd(char_list) :: char_list
+  @spec cmd(String.t) :: String.t
   def cmd(command) when is_list(command) do
     :os.cmd(command)
   end
@@ -77,6 +82,8 @@ defmodule System do
   If `command` is a char list, a char list is returned.
   Returns a binary otherwise.
   """
+  @spec find_executable(char_list) :: char_list | nil
+  @spec find_executable(String.t) :: String.t | nil
   def find_executable(command) when is_list(command) do
     :os.find_executable(command) || nil
   end
@@ -93,6 +100,7 @@ defmodule System do
   given as a single string of the format "VarName=Value", where VarName is the
   name of the variable and Value its value.
   """
+  @spec get_env() :: [{String.t, String.t}]
   def get_env do
     Enum.map :os.getenv, :unicode.characters_to_binary &1
   end
@@ -102,6 +110,7 @@ defmodule System do
   `varname` as a binary, or nil if the environment
   variable is undefined.
   """
+  @spec get_env(String.t) :: String.t | nil
   def get_env(varname) do
     case :os.getenv(to_char_list(varname)) do
       false -> nil
@@ -115,19 +124,23 @@ defmodule System do
 
   See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
   """
+  @spec get_pid() :: String.t
   def get_pid, do: list_to_binary(:os.getpid)
 
   @doc """
   Sets a new `value` for the environment variable `varname`.
   """
+  @spec put_env(String.t, String.t | char_list) :: :ok
   def put_env(varname, value) when is_binary(value) or is_list(value) do
    :os.putenv to_char_list(varname), :unicode.characters_to_list(value)
+   :ok
   end
 
   @doc """
   Sets a new value for each environment variable corresponding
   to each key in `dict`.
   """
+  @spec put_env(Dict.t) :: :ok
   def put_env(dict) do
     Enum.each dict, fn {key, val} -> put_env key, val end
   end
