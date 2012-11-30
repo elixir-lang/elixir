@@ -94,16 +94,16 @@ clean:
 $(RELEASE_FLAG): compile
 	touch $(RELEASE_FLAG)
 
-zip: $(RELEASE_FLAG)
-	rm -rf v$(VERSION).zip
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel
-
 docs: $(RELEASE_FLAG)
 	mkdir -p ebin
 	rm -rf docs
 	cp -R -f lib/*/ebin/*.beam ./ebin
 	bin/elixir ../exdoc/bin/exdoc
 	rm -rf ebin
+
+release_zip: $(RELEASE_FLAG)
+	rm -rf v$(VERSION).zip
+	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel
 
 release_docs: docs
 	cd ../elixir-lang.github.com && git checkout master
