@@ -215,7 +215,7 @@ defmodule Macro do
 
   # left -> right
   def to_binary({ :->, _, _ } = arrow) do
-    "(" <> arrow_to_binary(arrow) <> ")"
+    "(" <> arrow_to_binary(arrow, true) <> ")"
   end
 
   # Binary ops
@@ -287,8 +287,8 @@ defmodule Macro do
 
   defp block_to_binary({ :->, _, exprs }) do
     Enum.map_join(exprs, "\n", fn({ left, right }) ->
-      left = Enum.map_join(left, ", ", to_binary(&1))
-      left <> " ->\n  " <> adjust_new_lines block_to_binary(right), "\n  "
+      left = comma_join_or_empty_paren(left, false)
+      left <> "->\n  " <> adjust_new_lines block_to_binary(right), "\n  "
     end)
   end
 
@@ -304,11 +304,18 @@ defmodule Macro do
 
   defp op_to_binary(expr), do: to_binary(expr)
 
-  defp arrow_to_binary({ :->, _, pairs }) do
+  defp arrow_to_binary({ :->, _, pairs }, paren // false) do
     Enum.map_join(pairs, "; ", fn({ left, right }) ->
-      left = Enum.map_join(left, ", ", to_binary(&1))
-      left <> " -> " <> to_binary(right)
+      left = comma_join_or_empty_paren(left, paren)
+      left <> "-> " <> to_binary(right)
     end)
+  end
+
+  defp comma_join_or_empty_paren([], true),  do: "() "
+  defp comma_join_or_empty_paren([], false), do: ""
+
+  defp comma_join_or_empty_paren(left, _) do
+    Enum.map_join(left, ", ", to_binary(&1)) <> " "
   end
 
   defp adjust_new_lines(block, replacement) do

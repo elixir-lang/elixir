@@ -187,6 +187,8 @@ defmodule MacroTest do
   end
 
   test :fn_to_binary do
+    assert Macro.to_binary(quote do: (() -> x)) == "(() -> x)"
+    assert Macro.to_binary(quote do: (fn -> 1 + 2 end)) == "fn -> 1 + 2 end"
     assert Macro.to_binary(quote do: (fn(x) -> x + 1 end)) == "fn x -> x + 1 end"
 
     assert Macro.to_binary(quote do: (fn(x) -> y = x + 1; y end)) <> "\n" == """
