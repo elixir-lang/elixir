@@ -123,7 +123,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(['-e',h|t], config) do
-    process_shared t, config.prepend_commands [eval: h]
+    process_shared t, config.update_commands [{:eval,h}|&1]
   end
 
   defp process_shared(['-pa',h|t], config) do
@@ -139,14 +139,14 @@ defmodule Kernel.CLI do
   defp process_shared(['-r',h|t], config) do
     h = list_to_binary(h)
     config = Enum.reduce File.wildcard(h), config, fn path, config ->
-      config.prepend_commands [require: path]
+      config.update_commands [{:require,path}|&1]
     end
     process_shared t, config
   end
 
   defp process_shared(['-pr',h|t], config) do
     h = list_to_binary(h)
-    process_shared t, config.prepend_commands [parallel_require: h]
+    process_shared t, config.update_commands [{:parallel_require,h}|&1]
   end
 
   defp process_shared([erl,_|t], config) when erl in ['--erl', '--sname', '--remsh', '--name'] do
@@ -170,7 +170,8 @@ defmodule Kernel.CLI do
   defp process_argv(['-S',h|t], config) do
     exec = System.find_executable(h)
     if exec do
-      { config.prepend_commands([require: list_to_binary(exec)]), t }
+      bin = list_to_binary(exec)
+      { config.update_commands([{:require,bin}|&1]), t }
     else
       IO.puts(:stderr, "Could not find executable #{h}")
       System.halt(1)
@@ -182,8 +183,8 @@ defmodule Kernel.CLI do
       '-' ++ _ ->
         shared_option? list, config, process_argv(&1, &2)
       _ ->
-        h = list_to_binary(h)
-        { config.prepend_commands([require: h]), t }
+        bin = list_to_binary(h)
+        { config.update_commands([{:require,bin}|&1]), t }
     end
   end
 
@@ -202,15 +203,15 @@ defmodule Kernel.CLI do
   end
 
   defp process_compiler(['--no-docs'|t], config) do
-    process_compiler t, config.merge_compiler_options(docs: false)
+    process_compiler t, config.update_compiler_options([{:docs,false}|&1])
   end
 
   defp process_compiler(['--no-debug-info'|t], config) do
-    process_compiler t, config.merge_compiler_options(debug_info: false)
+    process_compiler t, config.update_compiler_options([{:debug_info,false}|&1])
   end
 
   defp process_compiler(['--ignore-module-conflict'|t], config) do
-    process_compiler t, config.merge_compiler_options(ignore_module_conflict: true)
+    process_compiler t, config.update_compiler_options([{:ignore_module_conflict,true}|&1])
   end
 
   defp process_compiler([h|t] = list, config) do
@@ -220,12 +221,12 @@ defmodule Kernel.CLI do
       _ ->
         h = list_to_binary(h)
         pattern = if File.dir?(h), do: "#{h}/**/*.ex", else: h
-        process_compiler t, config.prepend_compile [pattern]
+        process_compiler t, config.update_compile [pattern|&1]
     end
   end
 
   defp process_compiler([], config) do
-    { config.prepend_commands([compile: config.compile]), [] }
+    { config.update_commands([{:compile,config.compile}|&1]), [] }
   end
 
   # Process commands

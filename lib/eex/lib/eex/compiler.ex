@@ -68,7 +68,7 @@ defmodule EEx.Compiler do
     else
       key = length(state.dict)
       placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
-      { current ++ placeholder ++ new_lines ++ chars, state.prepend_dict([{key, buffer}]) }
+      { current ++ placeholder ++ new_lines ++ chars, state.update_dict([{key, buffer}|&1]) }
     end
   end
 

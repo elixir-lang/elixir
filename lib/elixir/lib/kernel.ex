@@ -1354,7 +1354,7 @@ defmodule Kernel do
 
   ## Examples
 
-      defrecord FileInfo, atime: nil, mtime: nil
+      defrecord FileInfo, atime: nil, accesses: 0
 
   The line above will define a module named `FileInfo` which
   contains a function named `new` that returns a new record
@@ -1371,36 +1371,17 @@ defmodule Kernel do
       inspect FileInfo.new, raw: true
       #=> { FileInfo, nil, nil }
 
-  ## Extensions
-
-  Besides defining readers and writers for each attribute. Elixir will
-  define extensions functions for each attribute. By default, it will
-  define an `update_#{attribute}` function to update the value. Such
+  Besides defining readers and writers for each attribute, Elixir also
+  defines an `update_#{attribute}` function to update the value. Such
   functions expect a function as argument that receives the current
-  value and must return the new one:
+  value and must return the new one. For example, every time the file
+  is accessed, the accesses counter can be incremented with:
 
-      file_info.update_atime(fn(_old) -> now() end) #=> Updates the value of atime
+      file_info.update_accesses(fn(old) -> old + 1 end)
 
-  Besides, Elixir may define new functions depending on the default value.
-  For example, ExUnit defines a record which keeps track of how many tests
-  were executed and the failures that happened. The record definition is
-  similar to:
+  Which can be also written as:
 
-      defrecord Config, counter: 0, failures: []
-
-  Since `counter` is an integer, Elixir automatically defines a helper
-  named `increment_counter` that will increase the counter value:
-
-      Config.new.increment_counter.counter #=> 1
-
-  `increment_counter` also accepts a number of increment as argument:
-
-      Config.new.increment_counter(10).counter #=> 10
-
-  Besides, if the default is a list, Elixir will define two helpers:
-
-  * `merge_field` - Receives keywords and merge it into the current value;
-  * `prepend_field` - Receives another list and prepend its values;
+      file_info.update_accesses(&1 + 1)
 
   ## Documentation
 
@@ -1526,7 +1507,7 @@ defmodule Kernel do
       false ->
         quote do
           result = unquote(thing)
-          is_tuple(result)  and tuple_size(result) > 1 and
+          is_tuple(result) and tuple_size(result) > 1 and
             :erlang.element(2, result) == :__exception__
         end
     end

@@ -45,13 +45,13 @@ defmodule ExUnit.Runner do
         wait_until_available config
       { pid, :case_finished, test_case } ->
         config.formatter.case_finished(test_case)
-        loop config.increment_taken_cases(-1)
+        loop config.update_taken_cases(&1-1)
     end
   end
 
   defp spawn_cases(config, cases) do
     Enum.each cases, spawn_case(config, &1)
-    loop config.increment_taken_cases(length(cases))
+    loop config.update_taken_cases(&1+length(cases))
   end
 
   defp spawn_case(config, test_case) do

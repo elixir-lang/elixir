@@ -15,6 +15,7 @@
 * deprecations
   * [Enum] `Enum.qsort` is deprecated and `List.sort` in favor of `Enum.sort`
   * [ExUnit] `assert left in right` is deprecated in favor of `assert left inlist right`
+  * [Record] Record default-based generated functions are deprecated
   * [Typespec] Enhacements and deprecations to the `@spec/@callback` syntax
 
 # v0.7.1 (2012-11-18)

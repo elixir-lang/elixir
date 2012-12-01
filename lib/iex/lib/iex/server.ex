@@ -22,7 +22,7 @@ defmodule IEx.Server do
 
         config = config.result(result)
         update_history(config.cache(code).scope(nil))
-        config.increment_counter.cache('').binding(new_binding).scope(scope)
+        config.update_counter(&1+1).cache('').binding(new_binding).scope(scope)
       rescue
         TokenMissingError ->
           config.cache(code)

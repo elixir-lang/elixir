@@ -92,11 +92,11 @@ defmodule Mix.Server do
 
   def handle_cast({ :push_project, name, project }, config) do
     project = Keyword.merge(project, config.post_config)
-    { :noreply, config.post_config([]).prepend_projects [ { name, project } ] }
+    { :noreply, config.post_config([]).update_projects [{ name, project }|&1] }
   end
 
   def handle_cast({ :post_config, value }, config) do
-    { :noreply, config.merge_post_config value }
+    { :noreply, config.update_post_config(&1 /> Keyword.merge(value)) }
   end
 
   def handle_cast({ :add_scm, mod }, config) do
@@ -104,7 +104,7 @@ defmodule Mix.Server do
   end
 
   def handle_cast({ :mixfile_cache, app, new }, config) do
-    { :noreply, config.merge_mixfile([{ app, new }]) }
+    { :noreply, config.update_mixfile(&1 /> Keyword.merge([{ app, new }])) }
   end
 
   def handle_cast(:clear_mixfile_cache, config) do

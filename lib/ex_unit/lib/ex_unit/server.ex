@@ -82,19 +82,19 @@ defmodule ExUnit.Server do
   end
 
   def handle_cast({:add_async_case, name}, config) do
-    { :noreply, config.prepend_async_cases [name] }
+    { :noreply, config.update_async_cases [name|&1] }
   end
 
   def handle_cast({:add_sync_case, name}, config) do
-    { :noreply, config.prepend_sync_cases [name] }
+    { :noreply, config.update_sync_cases [name|&1] }
   end
 
   def handle_cast({:add_after_spawn, fun}, config) do
-    { :noreply, config.prepend_after_spawn [fun] }
+    { :noreply, config.update_after_spawn [fun|&1] }
   end
 
   def handle_cast({:merge_options, options}, config) do
-    { :noreply, config.merge_options(options) }
+    { :noreply, config.update_options(&1 /> Keyword.merge(options)) }
   end
 
   def handle_cast(request, config) do

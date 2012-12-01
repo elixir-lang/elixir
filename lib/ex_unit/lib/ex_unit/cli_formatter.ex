@@ -56,13 +56,13 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({ :test_finished, _test_case, _test, nil }, config) do
     IO.write "."
-    { :noreply, config.increment_counter }
+    { :noreply, config.update_counter(&1 + 1) }
   end
 
   def handle_cast({ :test_finished, test_case, test, failure }, config) do
     IO.write "F"
-    { :noreply, config.increment_counter.
-      prepend_failures([{test_case, test, failure}]) }
+    { :noreply, config.update_counter(&1 + 1).
+        update_failures([{test_case, test, failure}|&1]) }
   end
 
   def handle_cast(_, _) do
