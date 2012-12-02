@@ -536,7 +536,7 @@ defmodule Kernel.Typespec do
 
   # Handle funs
   defp typespec({:fun, line, args}, vars, caller) when is_list(args) do
-    IO.write "[WARNING] fun() type is deprecated, use (... -> type) instead\n#{Exception.formatted_stacktrace}"
+    IO.write "[WARNING] fun() type is deprecated, use (... -> type) instead\n#{Exception.env_stacktrace(caller)}"
     typespec({:"->", line, [{args, quote do: any}]}, vars, caller)
   end
   defp typespec({:"->", line, [{[{:fun, _, arguments}], return}]}, vars, caller) when is_list(arguments) do
@@ -598,7 +598,8 @@ defmodule Kernel.Typespec do
 
   # Handle local calls
   defp typespec({:string, line, arguments}, vars, caller) do
-    IO.write "#{caller.file}:#{caller.line}: warning: string() type use is discouraged. For character lists,  use char_list() type, for strings, String.t()\n"
+    IO.write "warning: string() type use is discouraged. For character lists, use " <>
+      "char_list() type, for strings, String.t()\n#{Exception.env_stacktrace(caller)}"
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
     { :type, line, :string, arguments }
   end
