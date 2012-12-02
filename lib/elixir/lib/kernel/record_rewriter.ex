@@ -104,6 +104,7 @@ defmodule Kernel.RecordRewriter do
 
   defp optimize_expr({ :tuple, line, args }, dict) do
     { args, dict, args_res } = optimize_tuple_args(args, dict)
+    args_res = if Enum.any?(args_res), do: args_res, else: nil
 
     res =
       case args do
@@ -116,7 +117,7 @@ defmodule Kernel.RecordRewriter do
 
   defp optimize_expr({ :var, _, name } = var, dict) do
     case :orddict.find(name, dict) do
-      { :ok, res } -> { var, dict, { res, nil } }
+      { :ok, res } -> { var, dict, res }
       :error       -> { var, dict, nil }
     end
   end
@@ -128,6 +129,38 @@ defmodule Kernel.RecordRewriter do
     dict    = join_dict(tuples)
     res     = join_result(tuples)
     { { :case, line, expr, clauses }, dict, res }
+  end
+
+  defp optimize_expr({ :receive, line, clauses }, dict) do
+    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
+    clauses = lc { clause, _, _ } inlist tuples, do: clause
+    dict    = join_dict(tuples)
+    res     = join_result(tuples)
+    { { :receive, line, clauses }, dict, res }
+  end
+
+  defp optimize_expr({ :receive, line, clauses, after_key, after_value }, dict) do
+    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
+    clauses = lc { clause, _, _ } inlist tuples, do: clause
+
+    { after_key, dict, _ } = optimize_expr(after_key, dict)
+    { after_value, dict, res } = optimize_body(after_value, dict, [])
+
+    dict = join_dict(tuples, dict)
+    res  = join_result(tuples, res)
+
+    { { :receive, line, clauses, after_key, after_value }, dict, res }
+  end
+
+  defp optimize_expr({ :try, line, body, [], clauses, try_after }, dict) do
+    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
+    clauses = lc { clause, _, _ } inlist tuples, do: clause
+
+    { body, _, res } = optimize_body(body, dict, [])
+    res = join_result(tuples, res)
+
+    { try_after, _, _ } = optimize_body(try_after, dict, [])
+    { { :try, line, body, [], clauses, try_after }, dict, res }
   end
 
   defp optimize_expr({ :fun, line, { :function, module, name, arity } }, dict) do
@@ -179,14 +212,16 @@ defmodule Kernel.RecordRewriter do
     if is_record?(value) do
       dict =
         case :orddict.find(key, dict) do
-          { :ok, ^value } ->
+          { :ok, ^res } ->
             dict
+          { :ok, { ^value, _ } } ->
+            :orddict.store(key, { value, nil }, dict)
           { :ok, _ } ->
             # We are overriding a type of an existing variable,
             # which means the source code is invalid.
             :orddict.store(key, nil, dict)
           :error ->
-            :orddict.store(key, value, dict)
+            :orddict.store(key, res, dict)
         end
     end
 
@@ -232,9 +267,10 @@ defmodule Kernel.RecordRewriter do
 
   defp join_dict([{ _, dict, _ }|t], other) do
     other = Enum.reduce other, other, fn
-      { key, value }, acc ->
+      { key, { value, _ } = res }, acc ->
         case :orddict.find(key, dict) do
-          { :ok, ^value } -> acc
+          { :ok, ^res } -> acc
+          { :ok, { ^value, _ } } -> :orddict.store(key, { value, nil }, acc)
           { :ok, _ } -> :orddict.store(key, nil, acc)
           :error -> :orddict.erase(key, acc)
         end
@@ -253,6 +289,10 @@ defmodule Kernel.RecordRewriter do
 
   defp join_result([{ _, _, res }|t], res) do
     join_result(t, res)
+  end
+
+  defp join_result([{ _, _, { res, _ } }|t], { res, _ }) do
+    join_result(t, { res, nil })
   end
 
   defp join_result([{ _, _, _ }|_], _res) do
