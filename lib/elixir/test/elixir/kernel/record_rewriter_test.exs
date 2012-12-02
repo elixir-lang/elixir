@@ -25,33 +25,33 @@ defmodule Kernel.RecordRewriterTest do
   end
 
   test "with left-side arg match" do
-    clause = clause(fn(arg = Macro.Env[]) -> :foo end)
-    assert optimize_clause(clause) == { clause, [arg: Macro.Env], nil }
+    clause = clause(fn(x = Macro.Env[]) -> :foo end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }
   end
 
   test "with right-side arg match" do
-    clause = clause(fn(Macro.Env[] = arg) -> :foo end)
-    assert optimize_clause(clause) == { clause, [arg: Macro.Env], nil }
+    clause = clause(fn(Macro.Env[] = x) -> :foo end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }
   end
 
   test "with nested left-side arg match" do
-    clause = clause(fn(arg = other = Macro.Env[]) -> :foo end)
-    assert optimize_clause(clause) == { clause, [arg: Macro.Env, other: Macro.Env], nil }
+    clause = clause(fn(x = y = Macro.Env[]) -> :foo end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env, y: Macro.Env], nil }
   end
 
   test "with nested right-side arg match" do
-    clause = clause(fn(Macro.Env[] = arg = other) -> :foo end)
-    assert optimize_clause(clause) == { clause, [arg: Macro.Env, other: Macro.Env], nil }
+    clause = clause(fn(Macro.Env[] = x = y) -> :foo end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env, y: Macro.Env], nil }
   end
 
   test "with deep left-side arg match" do
-    clause = clause(fn({ x, arg = Macro.Env[] }) -> :foo end)
-    assert optimize_clause(clause) == { clause, [arg: Macro.Env], nil }
+    clause = clause(fn({ x, y = Macro.Env[] }) -> :foo end)
+    assert optimize_clause(clause) == { clause, [y: Macro.Env], nil }
   end
 
   test "with deep right-side arg match" do
-    clause = clause(fn({ x, Macro.Env[] = arg }) -> :foo end)
-    assert optimize_clause(clause) == { clause, [arg: Macro.Env], nil }
+    clause = clause(fn({ x, Macro.Env[] = y }) -> :foo end)
+    assert optimize_clause(clause) == { clause, [y: Macro.Env], nil }
   end
 
   test "with tuple match" do
@@ -120,5 +120,32 @@ defmodule Kernel.RecordRewriterTest do
   test "inside bit comprehension" do
     clause = clause(fn -> bc x = Macro.Env[] inbits sample, do: <<x>> end)
     assert optimize_clause(clause) == { clause, [], nil }
+  end
+
+  test "inside function retrieval" do
+    clause = clause(fn -> function(x = Macro.Env[], y, z) end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }
+  end
+
+  test "inside anonymous function" do
+    clause = clause(fn -> fn (x = Macro.Env[]) -> x end end)
+    assert optimize_clause(clause) == { clause, [], nil }
+  end
+
+  test "inside case" do
+    clause = clause(fn -> case x = Macro.Env[] do _ -> x end end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], { Macro.Env, nil } }
+
+    clause = clause(fn -> case something do x = Macro.Env[] -> x; Macro.Env[] = x -> x end end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], { Macro.Env, nil } }
+
+    clause = clause(fn -> case something do x = Macro.Env[] -> x; Macro.Env[] = y -> y end end)
+    assert optimize_clause(clause) == { clause, [], { Macro.Env, nil } }
+
+    clause = clause(fn -> case something do 1 -> x = Macro.Env[]; 2 -> x = Macro.Env[] end end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], { Macro.Env, nil } }
+
+    clause = clause(fn -> case something do 1 -> x = Macro.Env[]; 2 -> x = Range[] end end)
+    assert optimize_clause(clause) == { clause, [x: nil], nil }
   end
 end

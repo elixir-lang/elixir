@@ -121,6 +121,28 @@ defmodule Kernel.RecordRewriter do
     end
   end
 
+  defp optimize_expr({ :case, line, expr, clauses }, dict) do
+    { expr, dict, _ } = optimize_expr(expr, dict)
+    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
+    clauses = lc { clause, _, _ } inlist tuples, do: clause
+    dict    = join_dict(tuples)
+    res     = join_result(tuples)
+    { { :case, line, expr, clauses }, dict, res }
+  end
+
+  defp optimize_expr({ :fun, line, { :function, module, name, arity } }, dict) do
+    { module, dict, _ } = optimize_expr(module, dict)
+    { name, dict, _ }   = optimize_expr(name, dict)
+    { arity, dict, _ }  = optimize_expr(arity, dict)
+    { { :fun, line, { :function, module, name, arity } }, dict, nil }
+  end
+
+  defp optimize_expr({ :fun, line, { :clauses, clauses } }, dict) do
+    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
+    clauses = lc { clause, _, _ } inlist tuples, do: clause
+    { { :fun, line, { :clauses, clauses } }, dict, nil }
+  end
+
   defp optimize_expr({ comprehension, line, expr, args }, dict) when comprehension in [:lc, :bc] do
     { args, new_dict } = optimize_args(args, dict)
     { expr, _, _ } = optimize_expr(expr, new_dict)
@@ -133,11 +155,11 @@ defmodule Kernel.RecordRewriter do
     { { generate, line, left, right }, dict, nil }
   end
 
-  defp optimize_expr(other, dict) when elem(other, 0) in [:string, :atom, :integer, :float, :nil] do
+  defp optimize_expr(other, dict) when elem(other, 0) in [:string, :atom, :integer, :float, :nil, :fun] do
     { other, dict, nil }
   end
 
-  ## Match related
+  ## Helpers
 
   defp optimize_tuple_args(args, dict) do
     { final_args, { final_dict, final_acc } } =
@@ -202,6 +224,43 @@ defmodule Kernel.RecordRewriter do
 
   defp extract_vars(_, vars) do
     vars
+  end
+
+  defp join_dict([{ _, dict, _ }|t]) do
+    join_dict(t, dict)
+  end
+
+  defp join_dict([{ _, dict, _ }|t], other) do
+    other = Enum.reduce other, other, fn
+      { key, value }, acc ->
+        case :orddict.find(key, dict) do
+          { :ok, ^value } -> acc
+          { :ok, _ } -> :orddict.store(key, nil, acc)
+          :error -> :orddict.erase(key, acc)
+        end
+    end
+
+    join_dict(t, other)
+  end
+
+  defp join_dict([], other) do
+    other
+  end
+
+  defp join_result([{ _, _, res }|t]) do
+    join_result(t, res)
+  end
+
+  defp join_result([{ _, _, res }|t], res) do
+    join_result(t, res)
+  end
+
+  defp join_result([{ _, _, _ }|_], _res) do
+    nil
+  end
+
+  defp join_result([], res) do
+    res
   end
 
   ## Record helpers

@@ -110,9 +110,11 @@ do_match(Line, DecoupledClauses, S) ->
 
       % Now get all the variables defined inside each clause
       CV = lists:reverse(RawCV),
-      NewVars = lists:umerge([lists:sort(orddict:fetch_keys(X)) || X <- CV]),
 
-      case NewVars of
+      AllVars    = lists:umerge([orddict:fetch_keys(X) || X <- CV]),
+      SharedVars = ordsets:intersection(CV),
+
+      case AllVars of
         [] -> { TClauses, TS };
         _  ->
           % Create a new scope that contains a list of all variables
@@ -120,7 +122,7 @@ do_match(Line, DecoupledClauses, S) ->
           % a list of tuples where the first element is the variable name,
           % the second one is the new pointer to the variable and the third
           % is the old pointer.
-          { FinalVars, FS } = lists:mapfoldl(fun normalize_vars/2, TS, NewVars),
+          { FinalVars, FS } = lists:mapfoldl(fun(X, Acc) -> normalize_vars(X, SharedVars, Acc) end, TS, AllVars),
 
           % Defines a tuple that will be used as left side of the match operator
           LeftVars = [{var, Line, NewValue} || { _, _, NewValue, _ } <- FinalVars],
@@ -204,11 +206,18 @@ has_match_tuple(_) -> false.
 
 % Normalize the given var checking its existence in the scope var dictionary.
 
-normalize_vars({ Var, Kind } = Key, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
-  { { _, _, NewValue }, S1 } = if
-    (Kind == quoted) or (S#elixir_scope.noname) -> elixir_scope:build_erl_var(0, S);
-    true -> elixir_scope:build_erl_var(0, Var, "_@" ++ atom_to_list(Var), S)
-  end,
+normalize_vars({ Var, Kind } = Key, Shared, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
+  { NewValue, S1 } =
+    case orddict:find(Key, Shared) of
+      { ok, SharedValue } ->
+        { SharedValue, S };
+      error ->
+        { { _, _, ErlValue }, ErlS } = case (Kind == quoted) or (S#elixir_scope.noname) of
+          true  -> elixir_scope:build_erl_var(0, S);
+          false -> elixir_scope:build_erl_var(0, Var, "_@" ++ atom_to_list(Var), S)
+        end,
+        { ErlValue, ErlS }
+    end,
 
   S2 = S1#elixir_scope{
     vars=orddict:store(Key, NewValue, Vars),
