@@ -491,6 +491,10 @@ defmodule Kernel.Typespec do
     quote do: ...
   end
 
+  defp typespec_to_ast({:paren_type, _, [type]}) do
+    typespec_to_ast(type)
+  end
+
   defp typespec_to_ast({ t, _line, atom }) when is_atom(t) do
     atom
   end

@@ -328,6 +328,12 @@ defmodule Typespec.Test.Type do
       quote(hygiene: false, do: my_record() :: {:my_record, field1 :: atom(), field2 :: integer() })
   end
 
+  test "type_to_ast for paren_type" do 
+    type = {:my_type, {:paren_type, 0, [{:type, 0, :integer, []}]}, []}
+    assert Kernel.Typespec.type_to_ast(type) ==
+      quote(hygiene: false, do: my_type() :: integer())
+  end
+
   test "spec_to_ast" do
     specs = [
       (quote do: @spec a() :: integer()),
