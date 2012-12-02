@@ -117,7 +117,6 @@ eval_forms(Tree, Binding, RawScope) ->
   Scope = RawScope#elixir_scope{
     vars=binding_dict(Binding),
     temp_vars=[],
-    quote_vars=[],
     clause_vars=nil,
     counter=[]
   },
@@ -135,7 +134,8 @@ to_binary(Bin)  when is_binary(Bin) -> Bin;
 to_binary(List) when is_list(List) -> list_to_binary(List).
 
 binding_dict(List) -> binding_dict(List, orddict:new()).
-binding_dict([{H,_}|T], Dict) -> binding_dict(T, orddict:store(H, H, Dict));
+binding_dict([{{H,Kind},_}|T], Dict) -> binding_dict(T, orddict:store({ H, Kind }, H, Dict));
+binding_dict([{H,_}|T], Dict) -> binding_dict(T, orddict:store({ H, nil }, H, Dict));
 binding_dict([], Dict) -> Dict.
 
 final_binding(Binding, Vars) -> final_binding(Binding, [], Binding, Vars).
@@ -144,7 +144,7 @@ final_binding([{Var,_}|T], Acc, Binding, Vars) ->
     true  ->
       final_binding(T, Acc, Binding, Vars);
     false ->
-      RealName = orddict:fetch(Var, Vars),
+      RealName  = orddict:fetch({ Var, nil }, Vars),
       RealValue = proplists:get_value(RealName, Binding, nil),
       final_binding(T, [{Var, RealValue}|Acc], Binding, Vars)
   end;

@@ -1,4 +1,3 @@
-
 %% Convenience functions used to manipulate scope
 %% and its variables.
 -module(elixir_scope).
@@ -23,20 +22,20 @@ translate_var(Line, Name, Kind, S) ->
       case S#elixir_scope.context of
         assign ->
           TempVars = S#elixir_scope.temp_vars,
-          case { orddict:is_key(Name, Vars), orddict:find(Name, TempVars) } of
+          case { orddict:is_key({ Name, Kind }, Vars), orddict:find(Name, TempVars) } of
             { true, { ok, Kind } } ->
-              { {var, Line, orddict:fetch(Name, Vars) }, S };
+              { { var, Line, orddict:fetch({ Name, Kind }, Vars) }, S };
             { Else, _ } ->
               { NewVar, NS } = if
                 Kind == quoted -> build_erl_var(Line, S);
                 Else -> build_erl_var(Line, Name, S);
                 S#elixir_scope.noname -> build_erl_var(Line, Name, S);
-                true -> { {var, Line, Name}, S }
+                true -> { { var, Line, Name }, S }
               end,
               RealName = element(3, NewVar),
               ClauseVars = S#elixir_scope.clause_vars,
               { NewVar, NS#elixir_scope{
-                vars=orddict:store(Name, RealName, Vars),
+                vars=orddict:store({ Name, Kind }, RealName, Vars),
                 temp_vars=orddict:store(Name, Kind, TempVars),
                 clause_vars=if
                   ClauseVars == nil -> nil;
@@ -45,9 +44,9 @@ translate_var(Line, Name, Kind, S) ->
               } }
           end;
         _ ->
-          case orddict:is_key(Name, Vars) of
-            false -> elixir_translator:translate_each({Name, Line, []}, S);
-            true  -> { {var, Line, orddict:fetch(Name, Vars) }, S }
+          case orddict:find({ Name, Kind }, Vars) of
+            { ok, VarName } -> { { var, Line, VarName }, S };
+            error -> elixir_translator:translate_each({ Name, Line, [] }, S)
           end
       end
   end.
@@ -121,13 +120,10 @@ deserialize({ File, Functions, CheckClauses, Requires, Macros, Aliases, Schedule
 umergev(S1, S2) ->
   V1 = S1#elixir_scope.vars,
   V2 = S2#elixir_scope.vars,
-  Q1 = S1#elixir_scope.quote_vars,
-  Q2 = S2#elixir_scope.quote_vars,
   C1 = S1#elixir_scope.clause_vars,
   C2 = S2#elixir_scope.clause_vars,
   S2#elixir_scope{
     vars=orddict:merge(fun var_merger/3, V1, V2),
-    quote_vars=orddict:merge(fun var_merger/3, Q1, Q2),
     clause_vars=merge_clause_vars(C1, C2)
   }.
 
@@ -148,13 +144,10 @@ umergec(S1, S2) ->
 merge_clause_vars(nil, _C2) -> nil;
 merge_clause_vars(_C1, nil) -> nil;
 merge_clause_vars(C1, C2)   ->
-  orddict:merge(fun clause_var_merger/3, C1, C2).
+  orddict:merge(fun var_merger/3, C1, C2).
 
-clause_var_merger({ Var, _ }, K1, K2) ->
-  var_merger(Var, K1, K2).
-
-var_merger(Var, Var, K2) -> K2;
-var_merger(Var, K1, Var) -> K1;
+var_merger({ Var, _ }, Var, K2) -> K2;
+var_merger({ Var, _ }, K1, Var) -> K1;
 var_merger(_Var, K1, K2) ->
   V1 = var_number(atom_to_list(K1), []),
   V2 = var_number(atom_to_list(K2), []),

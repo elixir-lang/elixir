@@ -131,7 +131,8 @@ do_match(Line, DecoupledClauses, S) ->
   end.
 
 expand_clauses(Line, [Clause|T], [ClauseVars|V], LeftVars, FinalVars, Acc, S) ->
-  RightVars = [normalize_clause_var(Var, Kind, OldValue, ClauseVars) || { Var, Kind, _, OldValue } <- FinalVars],
+  RightVars = [normalize_clause_var(Var, Kind, OldValue, ClauseVars) ||
+                 { Var, Kind, _, OldValue } <- FinalVars],
 
   AssignExpr = generate_match(Line, LeftVars, RightVars),
   ClauseExprs = element(5, Clause),
@@ -202,29 +203,23 @@ has_match_tuple(_) -> false.
 
 % Normalize the given var checking its existence in the scope var dictionary.
 
-normalize_vars({ Var, quoted }, S) ->
-  normalize_vars(Var, quoted, #elixir_scope.quote_vars, S);
-
-normalize_vars({ Var, Kind }, S) ->
-  normalize_vars(Var, Kind, #elixir_scope.vars, S).
-
-normalize_vars(Var, Kind, Index, #elixir_scope{clause_vars=ClauseVars} = S) ->
-  Vars = element(Index, S),
-
+normalize_vars({ Var, Kind } = Key, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
   { { _, _, NewValue }, S1 } = if
     (Kind == quoted) or (S#elixir_scope.noname) -> elixir_scope:build_erl_var(0, S);
     true -> elixir_scope:build_erl_var(0, Var, "_@" ++ atom_to_list(Var), S)
   end,
 
-  S2 = setelement(Index, S1, orddict:store(Var, NewValue, Vars)),
-  S3 = S2#elixir_scope{clause_vars=orddict:store({ Var, Kind }, NewValue, ClauseVars)},
+  S2 = S1#elixir_scope{
+    vars=orddict:store(Key, NewValue, Vars),
+    clause_vars=orddict:store(Key, NewValue, ClauseVars)
+  },
 
-  Expr = case orddict:find(Var, Vars) of
+  Expr = case orddict:find(Key, Vars) of
     { ok, OldValue } -> { var, 0, OldValue };
     error -> { atom, 0, nil }
   end,
 
-  { { Var, Kind, NewValue, Expr }, S3 }.
+  { { Var, Kind, NewValue, Expr }, S2 }.
 
 % Normalize a var by checking if it was defined in the clause.
 % If so, use it, otherwise use from main scope.

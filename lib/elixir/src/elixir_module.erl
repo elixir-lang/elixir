@@ -43,15 +43,16 @@ translate(Line, Ref, Block, S) ->
   MetaBlock = elixir_tree_helpers:abstract_syntax(Block),
   MetaS     = elixir_scope:serialize(S),
 
-  Vars = orddict:fold(fun(Key, Value, { Acc, Counter }) ->
+  { Vars, _ } = orddict:fold(fun({ Key, Kind }, Value, { Acc, Counter }) ->
     { { cons, Line, { tuple, Line, [
       { atom, Line, Key },
+      { atom, Line, Kind },
       { atom, Line, ?ELIXIR_ATOM_CONCAT(["_@", Counter]) },
       { var,  Line, Value }
     ] }, Acc }, Counter + 1 }
   end, { { nil, Line }, 0 }, S#elixir_scope.vars),
 
-  Args = [{integer, Line, Line}, Ref, MetaBlock, element(1, Vars), MetaS],
+  Args = [{integer, Line, Line}, Ref, MetaBlock, Vars, MetaS],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
 
 %% The compilation hook.
@@ -92,7 +93,7 @@ compile(Line, Other, _Block, _Vars, #elixir_scope{file=File}) ->
   elixir_errors:form_error(Line, File, ?MODULE, { invalid_module, Other });
 
 compile(Line, Module, Block, Vars, RawS) ->
-  Dict = [{ X, Y } || { X, Y, _ } <- Vars],
+  Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
   S = elixir_scope:deserialize(RawS, Dict),
   compile(Line, Module, Block, Vars, S).
 

@@ -77,9 +77,9 @@ translate_each({ '__op__', Line, [Op, Left, Right] }, S) when is_atom(Op) ->
   { { op, Line, convert_op(Op), TLeft, TRight }, NS };
 
 translate_each({ '__ambiguousop__', Line, [Var, H|T] }, S) ->
-  { Name, _, _ } = Var,
+  { Name, _, Kind } = Var,
 
-  case orddict:find(Name, S#elixir_scope.vars) of
+  case orddict:find({ Name, Kind }, S#elixir_scope.vars) of
     error -> translate_each({ Name, Line, [H|T] }, S);
     _ ->
       case T of
@@ -103,7 +103,7 @@ translate_each({ alias, Line, [Ref, KV] }, S) ->
     { atom, _, Old } ->
       { New, SF } = case lists:keyfind(as, 1, KV) of
         Opt when Opt == { as, true }; Opt == false ->
-          { elixir_aliases:last(Old), SR };        
+          { elixir_aliases:last(Old), SR };
         { as, false } ->
           { Old, SR };
         { as, Other } ->
@@ -284,7 +284,7 @@ translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
 
 translate_each({ quote, GivenLine, [_] }, S) ->
   syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote");
-  
+
 %% Functions
 
 translate_each({ fn, Line, [[{do, { '->', _, Pairs }}]] }, S) ->
@@ -330,41 +330,23 @@ translate_each({ 'super?', Line, [] }, S) ->
 
 %% Variables
 
-translate_each({ '^', Line, [ { Name, _, Args } ] }, S) ->
-  Dict = case Args of
-    nil    -> S#elixir_scope.vars;
-    quoted -> S#elixir_scope.quote_vars;
-    _ ->
-      syntax_error(Line, S#elixir_scope.file, "cannot use ^ with expression at ^~s, ^ must be used only with variables", [Name])
-  end,
+translate_each({ '^', Line, [ { Name, _, Kind } ] }, S) when is_list(Kind) ->
+  syntax_error(Line, S#elixir_scope.file, "cannot use ^ with expression at ^~s, ^ must be used only with variables", [Name]);
 
-  Result = case S#elixir_scope.context of
-    assign ->
-      case orddict:find(Name, Dict) of
-        error -> "unbound variable ^~s";
-        { ok, Value } -> { {var, Line, Value}, S }
-      end;
-    _ -> "cannot access variable ^~s outside of assignment"
-  end,
-
-  case is_list(Result) of
-    true ->
-      syntax_error(Line, S#elixir_scope.file, Result, [Name]);
-    false ->
-      Result
+translate_each({ '^', Line, [ { Name, _, Kind } ] }, #elixir_scope{context=assign} = S) when is_atom(Kind) ->
+  case orddict:find({ Name, Kind }, S#elixir_scope.vars) of
+    { ok, Value } ->
+      { { var, Line, Value }, S };
+    error ->
+      syntax_error(Line, S#elixir_scope.file, "unbound variable ^~s", [Name])
   end;
 
-translate_each({ Name, Line, quoted }, S) when is_atom(Name) ->
-  NewS = S#elixir_scope{vars=S#elixir_scope.quote_vars,noname=true},
-  { TVar, VS } = elixir_scope:translate_var(Line, Name, quoted, NewS),
-  { TVar, VS#elixir_scope{
-    quote_vars=VS#elixir_scope.vars,
-    noname=S#elixir_scope.noname,
-    vars=S#elixir_scope.vars
-  } };
+translate_each({ '^', Line, [ { Name, _, Kind } ] }, S) when is_atom(Kind) ->
+  syntax_error(Line, S#elixir_scope.file,
+    "cannot access variable ^~s outside of assignment", [Name]);
 
-translate_each({ Name, Line, nil }, S) when is_atom(Name) ->
-  elixir_scope:translate_var(Line, Name, nil, S);
+translate_each({ Name, Line, Kind }, S) when is_atom(Name), (Kind == nil orelse Kind == quoted) ->
+  elixir_scope:translate_var(Line, Name, Kind, S);
 
 %% Local calls
 

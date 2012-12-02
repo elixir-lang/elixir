@@ -16,10 +16,8 @@
   name_args=false,                               %% when true, it means arguments should be named
   module=nil,                                    %% the current module
   function=nil,                                  %% the current function
-  recur=nil,                                     %% the current loop function to be recurred
   vars=[],                                       %% a dict of defined variables and their alias
   temp_vars=[],                                  %% a dict of all variables defined in a particular assign
-  quote_vars=[],                                 %% a dict of all quoted variables
   clause_vars=nil,                               %% a dict of all variables defined in a particular clause
   extra_guards=nil,                              %% extra guards from args expansion
   counter=[],                                    %% a counter for the variables defined

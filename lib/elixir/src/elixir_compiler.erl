@@ -62,7 +62,7 @@ eval_forms(Forms, Line, Value, Vars, S) ->
   end.
 
 eval_compilation(Forms, Vars, S) ->
-  Binding = [{ Var, Value } || { _, Var, Value } <- Vars],
+  Binding = [{ { Var, Kind }, Value } || { _, Kind, Var, Value } <- Vars],
   { Result, _Binding, FS } = elixir:eval_forms(Forms, [{'_@MODULE',nil}|Binding], S),
   { Result, FS }.
 
@@ -71,7 +71,7 @@ code_loading_compilation(Forms, Line, Value, Vars, S) ->
   { Exprs, FS } = elixir_translator:translate(Forms, S),
   ModuleForm    = module_form(Exprs, Line, S#elixir_scope.file, Module, Vars),
 
-  Args = [X || { _, _, X } <- Vars],
+  Args = [X || { _, _, _, X } <- Vars],
 
   %% Pass { native, false } to speed up bootstrap
   %% process when native is set to true
@@ -127,7 +127,7 @@ no_auto_import() ->
 module_form(Exprs, Line, File, Module, Vars) when
     is_binary(File), is_list(Exprs), is_integer(Line), is_atom(Module) ->
 
-  Cons = lists:foldr(fun({ _, Var, _ }, Acc) ->
+  Cons = lists:foldr(fun({ _, _, Var, _ }, Acc) ->
     { cons, Line, { var, Line, Var }, Acc }
   end, { nil, Line }, Vars),
 
