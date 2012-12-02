@@ -344,7 +344,7 @@ defmodule IEx.Helpers do
 
   @doc false
   def s(module, function) when is_atom(function) do
-    specs = lc {{f, _arity}, _spec} = spec inlist beam_specs(module),
+    specs = lc {_kind, {{f, _arity}, _spec}} = spec inlist beam_specs(module),
                f == function do
       print_spec(spec)
       spec
@@ -369,7 +369,13 @@ defmodule IEx.Helpers do
 
   @doc false
   def s(module, function, arity) do
-    spec = List.keyfind(beam_specs(module), { function, arity }, 0)
+    case Enum.filter(beam_specs(module), 
+           fn({_type, {{f,a}, _value}}) ->
+             f == function and a == arity
+           end) do
+      [spec] -> :ok
+      _ -> spec = nil
+    end
 
     if spec do
       print_spec(spec)
