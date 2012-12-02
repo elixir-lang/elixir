@@ -369,18 +369,14 @@ defmodule IEx.Helpers do
 
   @doc false
   def s(module, function, arity) do
-    case Enum.filter(beam_specs(module), 
-           fn({_type, {{f,a}, _value}}) ->
-             f == function and a == arity
-           end) do
-      [spec] -> :ok
-      _ -> spec = nil
+    specs = lc {_kind, {{f, a}, _spec}} = spec inlist beam_specs(module),
+               f == function and a == arity do
+      print_spec(spec)
+      spec
     end
 
-    if spec do
-      print_spec(spec)
-    else
-      IO.puts "No specs for #{inspect module}.#{function}/#{arity} have been found"
+    if specs == [] do
+      IO.puts "No specs for #{inspect module}.#{function} have been found"
     end
 
     :ok
