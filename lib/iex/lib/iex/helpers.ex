@@ -344,7 +344,7 @@ defmodule IEx.Helpers do
 
   @doc false
   def s(module, function) when is_atom(function) do
-    specs = lc {{f, _arity}, _spec} = spec inlist Kernel.Typespec.beam_specs(module),
+    specs = lc {{f, _arity}, _spec} = spec inlist beam_specs(module),
                f == function do
       print_spec(spec)
       spec
@@ -358,7 +358,7 @@ defmodule IEx.Helpers do
   end
 
   def s(module, []) do
-    specs = lc spec inlist Kernel.Typespec.beam_specs(module), do: print_spec(spec)
+    specs = lc spec inlist beam_specs(module), do: print_spec(spec)
 
     if specs == [] do
       IO.puts "No specs for #{inspect module} have been found"
@@ -369,7 +369,7 @@ defmodule IEx.Helpers do
 
   @doc false
   def s(module, function, arity) do
-    spec = List.keyfind(Kernel.Typespec.beam_specs(module), { function, arity }, 0)
+    spec = List.keyfind(beam_specs(module), { function, arity }, 0)
 
     if spec do
       print_spec(spec)
@@ -380,16 +380,22 @@ defmodule IEx.Helpers do
     :ok
   end
 
+  defp beam_specs(module) do
+    specs = Enum.map(Kernel.Typespec.beam_specs(module), {:spec, &1})
+    callbacks = Enum.map(Kernel.Typespec.beam_callbacks(module), {:callback, &1})
+    List.concat(specs, callbacks)
+  end
+
   defp print_type({ kind, type }) do
     ast = Kernel.Typespec.type_to_ast(type)
     IO.puts "@#{kind} #{Macro.to_binary(ast)}"
     true
   end
 
-  defp print_spec({ { name, _arity }, specs }) do
+  defp print_spec({kind, { { name, _arity }, specs }}) do
     Enum.each specs, fn(spec) ->
       binary = Macro.to_binary Kernel.Typespec.spec_to_ast(name, spec)
-      IO.puts "@spec #{binary}"
+      IO.puts "@#{kind} #{binary}"
     end
     true
   end
