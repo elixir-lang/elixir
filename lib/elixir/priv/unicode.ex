@@ -12,17 +12,20 @@ defmodule String.Unicode do
 
   data_path = File.expand_path("../UnicodeData.txt", __FILE__)
 
-  codes = Enum.reduce File.iterator!(data_path), [], fn(line, acc) ->
+  { codes, whitespace } = Enum.reduce File.iterator!(data_path), { [], [] }, fn(line, { cacc, wacc }) ->
     [ codepoint, _name, _category,
-      _class, _bidi, _decomposition,
+      _class, bidi, _decomposition,
       _numeric_1, _numeric_2, _numeric_3,
       _bidi_mirror, _unicode_1, _iso,
       upper, lower, _title ] = :binary.split(line, ";", [:global])
 
-    if upper != "" or lower != "" do
-      [{ to_binary.(codepoint), upper, lower }|acc]
-    else
-      acc
+    cond do
+      upper != "" or lower != "" ->
+        { [{ to_binary.(codepoint), upper, lower } | cacc], wacc }
+      bidi in ["B", "S", "WS"] ->
+        { cacc, [to_binary.(codepoint) | wacc] }
+      true ->
+        { cacc, wacc }
     end
   end
 
@@ -69,6 +72,36 @@ defmodule String.Unicode do
   def upcase(<< >>) do
     << >>
   end
+
+  # Strip
+
+  def lstrip(""), do: ""
+
+  lc char inlist whitespace do
+    args  = quote do: [unquote(char) <> rest]
+    exprs = quote do: lstrip(rest)
+    def :lstrip, args, [], do: exprs
+  end
+
+  def lstrip(other), do: other
+
+  def rstrip(""), do: ""
+
+  def rstrip(string) do
+    do_rstrip(string, "")
+  end
+
+  lc char inlist whitespace do
+    args  = quote do: [unquote(char) <> rest, buffer]
+    exprs = quote do: do_rstrip(rest, unquote(char) <> buffer)
+    defp :do_rstrip, args, [], do: exprs
+  end
+
+  defp do_rstrip(<< char, string :: binary >>, buffer) do
+    << buffer :: binary, char, do_rstrip(string, "") :: binary >>
+  end
+
+  defp do_rstrip(<<>>, _), do: <<>>
 
   # Graphemes
 

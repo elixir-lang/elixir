@@ -18,9 +18,6 @@ defmodule String do
   @type codepoint :: t
   @type grapheme :: t
 
-  # Entries considered as whitespace
-  @whitespace [?\t, ?\n, ?\v, ?\f, ?\r, ?\s]
-
   @doc """
   Checks if a string is printable considering it is encoded
   as UTF-8. Returns true if so, false otherwise.
@@ -186,28 +183,7 @@ defmodule String do
 
   """
   @spec rstrip(t) :: t
-
-  def rstrip(""), do: ""
-
-  def rstrip(string) do
-    if :binary.last(string) in @whitespace do
-      do_rstrip(string, "")
-    else
-      string
-    end
-  end
-
-  defp do_rstrip(<<char, string :: binary>>, buffer) when char in @whitespace do
-    do_rstrip(string, <<char, buffer :: binary>>)
-  end
-
-  defp do_rstrip(<<char, string :: binary>>, buffer) do
-    <<buffer :: binary, char, do_rstrip(string, "") :: binary>>
-  end
-
-  defp do_rstrip(<<>>, _) do
-    <<>>
-  end
+  defdelegate rstrip(binary), to: String.Unicode
 
   @doc """
   Returns a string where trailing `char` have been removed.
@@ -253,15 +229,7 @@ defmodule String do
       String.lstrip("   abc  ")       #=> "abc  "
 
   """
-  @spec lstrip(t) :: t
-
-  def lstrip(<<char, rest :: binary>>) when char in @whitespace do
-    lstrip(rest)
-  end
-
-  def lstrip(other) do
-    other
-  end
+  defdelegate lstrip(binary), to: String.Unicode
 
   @doc """
   Returns a string where leading `char` have been removed.
