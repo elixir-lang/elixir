@@ -88,6 +88,49 @@ defmodule Mix.Tasks.Compile.App do
     properties = Keyword.from_enum(properties)
     properties = Keyword.put properties, :description, 
                              to_char_list(properties[:description] || app)
-    Keyword.put properties, :registered, (properties[:registered] || [])
+    properties = Keyword.put properties, :registered, (properties[:registered] || [])
+    validate_properties(properties)
+    properties
+  end
+
+  defp validate_properties(properties) do
+    unless nil?(properties[:description]) or is_list(properties[:description]) do
+      raise(Mix.Error, message: "Application description (:description) is not a character list (got #{inspect properties[:description]})")
+    end
+    unless nil?(properties[:id]) or is_list(properties[:id]) do
+      raise(Mix.Error, message: "Application id (:id) is not a character list (got #{inspect properties[:id]} instead)")
+    end    
+    unless nil?(properties[:vsn]) or is_list(properties[:vsn]) do
+      raise(Mix.Error, message: "Application vsn (:vsn) is not a character list (got #{inspect properties[:vsn]} instead)")
+    end
+    unless nil?(properties[:modules]) or (is_list(properties[:modules]) and Enum.all?(properties[:modules], is_atom(&1))) do
+      raise(Mix.Error, message: "Application modules (:modules) should be a list of atoms (got #{inspect properties[:modules]} instead)")
+    end
+    unless nil?(properties[:maxT]) or properties[:maxT] == :infinity or is_integer(properties[:maxT]) do
+      raise(Mix.Error, message: "Application maximum time (:maxT) is not an integer or :infinity (got #{inspect properties[:maxT]} instead)")
+    end
+    unless nil?(properties[:registered]) or is_list(properties[:registered]) and (Enum.all?(properties[:registered], is_atom(&1))) do
+      raise(Mix.Error, message: "Application registered processes (:registered) should be a list of atoms (got #{inspect properties[:registered]} instead)")
+    end
+    unless nil?(properties[:included_applications]) or (is_list(properties[:included_applications]) and Enum.all?(properties[:included_applications], is_atom(&1))) do
+      raise(Mix.Error, message: "Application included applications (:included_applications) should be a list of atoms (got #{inspect properties[:included_applications]} instead)")
+    end
+    unless nil?(properties[:applications]) or (is_list(properties[:applications]) and Enum.all?(properties[:applications], is_atom(&1))) do
+      raise(Mix.Error, message: "Application dependencies (:applications) should be a list of atoms (got #{inspect properties[:applications]} instead)")
+    end
+    unless nil?(properties[:env]) or (Keyword.keyword?(properties[:env])) do
+      raise(Mix.Error, message: "Application dependencies (:env) should be a keyword list (got #{inspect properties[:env]} instead)")
+    end
+    unless nil?(properties[:mod]) do
+      case properties[:mod] do
+        [] -> :ok
+        {module, _start_args} when is_atom(module) -> :ok
+        other ->
+          raise(Mix.Error, message: "Application callback module (:mod) should be either [] or {module, start_args} (got #{inspect properties[:mod]} instead)")
+      end          
+    end
+    unless nil?(properties[:start_phases]) or (Keyword.keyword?(properties[:start_phases])) do
+      raise(Mix.Error, message: "Application start phases (:start_phases) should be a keyword list (got #{inspect properties[:start_phases]} instead)")
+    end
   end
 end
