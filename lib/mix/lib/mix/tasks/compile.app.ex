@@ -131,8 +131,8 @@ defmodule Mix.Tasks.Compile.App do
         :ok
       { :mod, value } ->
         invalid "Application callback module (:mod) should be either [] or {module, start_args} (got #{inspect value} instead)"
-      { key, value } ->
-        invalid "Unknown application key #{inspect key} with value #{inspect value}"
+      _ ->
+        :ok
     end
   end
 
