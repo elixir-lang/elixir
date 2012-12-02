@@ -167,6 +167,11 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'defmodule Foo, do: (defmodule Elixir.Foo, do: true)'
   end
 
+  test :invalid_definition do
+    assert "nofile:1: invalid syntax in def 1.(hello)" ==
+      format_rescue 'defmodule Foo, do: (def 1.(hello), do: true)'
+  end
+
   test :duplicated_bitstring_size do
     assert "nofile:1: duplicated size definition for bitstring" == format_rescue '<<1 :: [size(12), size(13)]>>'
   end

@@ -75,7 +75,8 @@ extract_or_clauses(Term, Acc) -> [Term|Acc].
 
 extract_args({ { '.', _, [Name] }, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
 extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] };
-extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args }.
+extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
+extract_args(_) -> error.
 
 % Extract guards when it is in the last element of the args
 

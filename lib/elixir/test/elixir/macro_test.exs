@@ -141,6 +141,10 @@ defmodule MacroTest do
     assert Macro.to_binary(quote do: foo.bar.([1, 2, 3])) == "foo.bar().([1, 2, 3])"
   end
 
+  test :atom_call_to_binary do
+    assert Macro.to_binary(quote do: :foo.(1, 2, 3)) == ":foo.(1, 2, 3)"
+  end
+
   test :aliases_call_to_binary do
     assert Macro.to_binary(quote do: Foo.Bar.baz(1, 2, 3)) == "Foo.Bar.baz(1, 2, 3)"
     assert Macro.to_binary(quote do: Foo.Bar.baz([1, 2, 3])) == "Foo.Bar.baz([1, 2, 3])"
@@ -266,5 +270,15 @@ defmodule MacroTest do
    assert Macro.safe_term(quote do: 1+1)   == { :unsafe, quote do: 1 + 1 }
    assert Macro.safe_term(quote do: [1+1]) == { :unsafe, quote do: 1 + 1 }
    assert Macro.safe_term(quote do: {1+1}) == { :unsafe, quote do: 1 + 1 }
+  end
+
+  ## extract_args
+
+  test :extract_args do
+    assert Macro.extract_args(quote do: foo)        == { :foo, [] }
+    assert Macro.extract_args(quote do: foo())      == { :foo, [] }
+    assert Macro.extract_args(quote do: :foo.())    == { :foo, [] }
+    assert Macro.extract_args(quote do: foo(1,2,3)) == { :foo, [1,2,3] }
+    assert Macro.extract_args(quote do: 1.(1,2,3))  == :error
   end
 end

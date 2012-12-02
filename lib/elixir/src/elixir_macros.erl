@@ -221,13 +221,21 @@ translate({Kind, Line, [Call]}, S) when ?FUNS(Kind) ->
 translate({Kind, Line, [Call, Expr]}, S) when ?FUNS(Kind) ->
   assert_module_scope(Line, Kind, S),
   assert_no_function_scope(Line, Kind, S),
+
   { TCall, Guards } = elixir_clauses:extract_guards(Call),
-  { Name, Args }    = elixir_clauses:extract_args(TCall),
+  { Name, Args }    = case elixir_clauses:extract_args(TCall) of
+    error -> syntax_error(Line, S#elixir_scope.file,
+               "invalid syntax in ~s ~s", [Kind, 'Elixir.Macro':to_binary(TCall)]);
+    Tuple -> Tuple
+  end,
+
   assert_no_aliases_name(Line, Name, Args, S),
+
   TName             = elixir_tree_helpers:abstract_syntax(Name),
   TArgs             = elixir_tree_helpers:abstract_syntax(Args),
   TGuards           = elixir_tree_helpers:abstract_syntax(Guards),
   TExpr             = elixir_tree_helpers:abstract_syntax(Expr),
+
   { elixir_def:wrap_definition(Kind, Line, TName, TArgs, TGuards, TExpr, S), S };
 
 translate({Kind, Line, [Name, Args, Guards, Expr]}, S) when ?FUNS(Kind) ->

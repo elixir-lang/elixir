@@ -2942,7 +2942,10 @@ defmodule Kernel do
     append_first = Keyword.get(opts, :append_first, false)
 
     lc fun inlist funs do
-      { name, args } = :elixir_clauses.extract_args(fun)
+      case Macro.extract_args(fun) do
+        { name, args } -> :ok
+        :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_binary(fun)}"
+      end
 
       actual_args =
         case append_first and args != [] do

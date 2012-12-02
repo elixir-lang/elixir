@@ -30,6 +30,28 @@ defmodule Macro do
   end
 
   @doc """
+  Receives an expresion representing a possible definition
+  and extracts its arguments. It returns a tuple with the
+  function name and the arguments list or `:error` if not
+  a valid call syntax.
+
+  This is useful for macros that want to provide the same
+  arguments syntax available in def/defp/defmacro and friends.
+
+  ## Examples
+
+      extract_args(quote do: foo)        == { :foo, [] }
+      extract_args(quote do: foo())      == { :foo, [] }
+      extract_args(quote do: :foo.())    == { :foo, [] }
+      extract_args(quote do: foo(1,2,3)) == { :foo, [1,2,3] }
+      extract_args(quote do: 1.(1,2,3))  == :error
+
+  """
+  def extract_args(expr) do
+    :elixir_clauses.extract_args(expr)
+  end
+
+  @doc """
   Recursively escapes the given value so it can be inserted
   into a syntax tree. Structures that are valid syntax nodes
   (like atoms, integers, binaries) are represented by themselves.
@@ -334,6 +356,7 @@ defmodule Macro do
   * Macros (local or remote);
   * Aliases are expanded (if possible) and return atoms;
   * All pseudo-variables (__FILE__, __MODULE__, etc);
+  * Module attributes reader (@foo);
 
   In case the expression cannot be expanded, it returns the expression itself.
 

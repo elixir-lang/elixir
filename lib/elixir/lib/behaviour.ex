@@ -59,7 +59,12 @@ defmodule Behaviour do
   end
 
   defp do_defcallback(fun, return, caller) do
-    { name, args } = :elixir_clauses.extract_args(fun)
+    case Macro.extract_args(fun) do
+      { name, args } -> :ok
+      :error ->
+        raise ArgumentError, message: "invalid syntax in defcallback #{Macro.to_binary(fun)}"
+    end
+
     arity = length(args)
 
     Enum.each args, fn
