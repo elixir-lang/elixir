@@ -178,7 +178,8 @@ core_main() ->
     "lib/elixir/lib/system.ex",
     "lib/elixir/lib/kernel/cli.ex",
     "lib/elixir/lib/kernel/error_handler.ex",
-    "lib/elixir/lib/kernel/parallel_compiler.ex"
+    "lib/elixir/lib/kernel/parallel_compiler.ex",
+    "lib/elixir/lib/kernel/record_rewriter.ex"
   ].
 
 %% ERROR HANDLING

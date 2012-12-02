@@ -171,8 +171,11 @@ defmodule Kernel.RecordRewriter do
   end
 
   defp optimize_expr({ :fun, line, { :clauses, clauses } }, dict) do
-    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
-    clauses = lc { clause, _, _ } inlist tuples, do: clause
+    clauses = lc clause inlist clauses do
+      { clause, _, _ } = optimize_clause(clause, dict)
+      clause
+    end
+
     { { :fun, line, { :clauses, clauses } }, dict, nil }
   end
 

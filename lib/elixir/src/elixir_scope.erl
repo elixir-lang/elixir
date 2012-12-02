@@ -5,7 +5,8 @@
   build_erl_var/2, build_ex_var/2,
   build_erl_var/3, build_ex_var/3,
   build_erl_var/4, build_ex_var/4,
-  serialize/1, deserialize/1, deserialize/2,
+  serialize/1, deserialize/1,
+  serialize_with_vars/2, deserialize_with_vars/2,
   to_erl_env/1, to_ex_env/1, filename/1,
   umergev/2, umergec/2, merge_clause_vars/2
   ]).
@@ -97,11 +98,22 @@ serialize(S) ->
       S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases, S#elixir_scope.scheduled }
   ).
 
+serialize_with_vars(Line, S) ->
+  { Vars, _ } = orddict:fold(fun({ Key, Kind }, Value, { Acc, Counter }) ->
+    { { cons, Line, { tuple, Line, [
+      { atom, Line, Key },
+      { atom, Line, Kind },
+      { atom, Line, ?ELIXIR_ATOM_CONCAT(["_@", Counter]) },
+      { var,  Line, Value }
+    ] }, Acc }, Counter + 1 }
+  end, { { nil, Line }, 0 }, S#elixir_scope.vars),
+  { serialize(S), Vars }.
+
 % Fill in the scope with the variables serialization set in serialize_scope.
 
-deserialize(Tuple) -> deserialize(Tuple, []).
+deserialize(Tuple) -> deserialize_with_vars(Tuple, []).
 
-deserialize({ File, Functions, CheckClauses, Requires, Macros, Aliases, Scheduled }, Vars) ->
+deserialize_with_vars({ File, Functions, CheckClauses, Requires, Macros, Aliases, Scheduled }, Vars) ->
   #elixir_scope{
     file=File,
     functions=Functions,

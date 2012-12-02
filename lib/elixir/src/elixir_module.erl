@@ -40,17 +40,8 @@ docs_table(Module) ->
 %% will be passed to the invoked function.
 
 translate(Line, Ref, Block, S) ->
-  MetaBlock = elixir_tree_helpers:abstract_syntax(Block),
-  MetaS     = elixir_scope:serialize(S),
-
-  { Vars, _ } = orddict:fold(fun({ Key, Kind }, Value, { Acc, Counter }) ->
-    { { cons, Line, { tuple, Line, [
-      { atom, Line, Key },
-      { atom, Line, Kind },
-      { atom, Line, ?ELIXIR_ATOM_CONCAT(["_@", Counter]) },
-      { var,  Line, Value }
-    ] }, Acc }, Counter + 1 }
-  end, { { nil, Line }, 0 }, S#elixir_scope.vars),
+  MetaBlock       = elixir_tree_helpers:abstract_syntax(Block),
+  { MetaS, Vars } = elixir_scope:serialize_with_vars(Line, S),
 
   Args = [{integer, Line, Line}, Ref, MetaBlock, Vars, MetaS],
   ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
@@ -94,7 +85,7 @@ compile(Line, Other, _Block, _Vars, #elixir_scope{file=File}) ->
 
 compile(Line, Module, Block, Vars, RawS) ->
   Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
-  S = elixir_scope:deserialize(RawS, Dict),
+  S = elixir_scope:deserialize_with_vars(RawS, Dict),
   compile(Line, Module, Block, Vars, S).
 
 %% Hook that builds both attribute and functions and set up common hooks.
@@ -145,7 +136,12 @@ eval_form(Line, Module, Block, Vars, RawS) ->
   Value.
 
 %% Return the form with exports and function declarations.
-functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Functions, C) ->
+functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, RawFunctions, C) ->
+  Functions = case elixir_compiler:get_opt(internal, C) of
+    true  -> RawFunctions;
+    false -> record_rewrite_functions(RawFunctions)
+  end,
+
   { FinalExport, FinalFunctions } =
     add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C),
 
@@ -155,6 +151,17 @@ functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Fu
   { FinalExport ++ Private, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
   ] }.
+
+record_rewrite_functions(Functions) ->
+  lists:map(fun
+    ({ function, Line, Name, Arity, Clauses }) ->
+      Rewriten = lists:map(fun(Clause) ->
+        { C, _, _ } = 'Elixir.Kernel.RecordRewriter':optimize_clause(Clause),
+        C
+      end, Clauses),
+      { function, Line, Name, Arity, Rewriten };
+    (Other) -> Other
+  end, Functions).
 
 %% Add attributes handling to the form
 

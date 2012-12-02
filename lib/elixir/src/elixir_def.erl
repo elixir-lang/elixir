@@ -93,7 +93,7 @@ store_definition(Kind, Line, Module, Name, Args, Guards, Body, RawS) ->
   end,
 
   [store_each(false, Kind, File, Location, Table, 0,
-    function_for_default(Kind, Name, Default)) || Default <- Defaults],
+    default_function_for(Kind, Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
 
@@ -241,11 +241,11 @@ function_for_stored_definition({{Name, Arity}, _, Line, _, _, Location, _, Claus
     ]
   }.
 
-function_for_default(Kind, Name, { clause, Line, Args, _Guards, _Exprs } = Clause)
+default_function_for(Kind, Name, { clause, Line, Args, _Guards, _Exprs } = Clause)
     when Kind == defmacro; Kind == defmacrop ->
   { function, Line, Name, length(Args) - 1, [Clause] };
 
-function_for_default(_, Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
+default_function_for(_, Name, { clause, Line, Args, _Guards, _Exprs } = Clause) ->
   { function, Line, Name, length(Args), [Clause] }.
 
 %% Store each definition in the table.
