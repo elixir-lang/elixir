@@ -71,4 +71,54 @@ defmodule Kernel.RecordRewriterTest do
     clause = clause(fn(x = Macro.Env[], y = Range[]) -> y = x end)
     assert optimize_clause(clause) == { clause, [x: Macro.Env, y: Range, "y@1": Macro.Env], { Macro.Env, nil } }
   end
+
+  test "conflicting definition" do
+    clause = clause(fn(x = Macro.Env[]) -> ^x = Range[]; :foo end)
+    assert optimize_clause(clause) == { clause, [x: nil], nil }
+  end
+
+  test "inside list" do
+    clause = clause(fn -> [x = Macro.Env[]]; :foo end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }
+  end
+
+  test "inside tuple" do
+    clause = clause(fn -> { x = Macro.Env[] }; :foo end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }
+  end
+
+  test "inside bin" do
+    clause = clause(fn -> << x = Macro.Env[] >>; :foo end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }
+  end
+
+  test "inside operator" do
+    clause = clause(fn -> 1 + (x = Macro.Env[]); :foo end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }
+  end
+
+  test "inside block" do
+    clause = clause(fn -> :foo; (x = Macro.Env[]; x) end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], { Macro.Env, nil } }
+  end
+
+  test "inside local call" do
+    clause = clause(fn -> (x = Macro.Env[]).(y = Range[]) end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env, y: Range], nil }
+  end
+
+  test "inside remote call" do
+    clause = clause(fn -> (x = Macro.Env[]).call(y = Range[]) end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env, y: Range], nil }
+  end
+
+  test "inside list comprehension" do
+    clause = clause(fn -> lc x = Macro.Env[] inlist sample, do: x end)
+    assert optimize_clause(clause) == { clause, [], nil }
+  end
+
+  test "inside bit comprehension" do
+    clause = clause(fn -> bc x = Macro.Env[] inbits sample, do: <<x>> end)
+    assert optimize_clause(clause) == { clause, [], nil }
+  end
 end

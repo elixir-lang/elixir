@@ -40,21 +40,66 @@ defmodule Kernel.RecordRewriter do
 
   ## Expr
 
+  defp optimize_expr({ :call, call_line, { :remote, line, left, right }, args }, dict) do
+    { left, dict, _ }  = optimize_expr(left, dict)
+    { right, dict, _ } = optimize_expr(right, dict)
+    { args, dict } = optimize_args(args, dict)
+    { { :call, call_line, { :remote, line, left, right }, args }, dict, nil }
+  end
+
+  defp optimize_expr({ :call, line, expr, args }, dict) do
+    { expr, dict, _ } = optimize_expr(expr, dict)
+    { args, dict } = optimize_args(args, dict)
+    { { :call, line, expr, args }, dict, nil }
+  end
+
   defp optimize_expr({ :match, line, left, right }, dict) do
     { left,  dict, left_res }  = optimize_expr(left, dict)
     { right, dict, right_res } = optimize_expr(right, dict)
 
     match = { :match, line, left, right }
 
-    if right_res do
-      dict = assign_vars(extract_vars(left, []), dict, right_res)
-    end
-
     if left_res do
       dict = assign_vars(extract_vars(right, []), dict, left_res)
     end
 
+    if right_res do
+      dict = assign_vars(extract_vars(left, []), dict, right_res)
+    end
+
     { match, dict, right_res || left_res }
+  end
+
+  defp optimize_expr({ :op, line, op, left, right }, dict) do
+    { left, dict, _ }  = optimize_expr(left, dict)
+    { right, dict, _ } = optimize_expr(right, dict)
+    { { :op, line, op, left, right }, dict, nil }
+  end
+
+  defp optimize_expr({ :op, line, op, expr }, dict) do
+    { expr, dict, _ } = optimize_expr(expr, dict)
+    { { :op, line, op, expr }, dict, nil }
+  end
+
+  defp optimize_expr({ :bin, line, elements }, dict) do
+    { elements, dict } = optimize_args(elements, dict)
+    { { :bin, line, elements }, dict, nil }
+  end
+
+  defp optimize_expr({ :bin_element, line, expr, type1, type2 }, dict) do
+    { expr, dict, _ } = optimize_expr(expr, dict)
+    { { :bin_element, line, expr, type1, type2 }, dict, nil }
+  end
+
+  defp optimize_expr({ :cons, line, left, right }, dict) do
+    { left, dict, _ }  = optimize_expr(left, dict)
+    { right, dict, _ } = optimize_expr(right, dict)
+    { { :cons, line, left, right }, dict, nil }
+  end
+
+  defp optimize_expr({ :block, line, args }, dict) do
+    { args, dict, res } = optimize_body(args, dict, [])
+    { { :block, line, args }, dict, res }
   end
 
   defp optimize_expr({ :tuple, line, args }, dict) do
@@ -62,7 +107,7 @@ defmodule Kernel.RecordRewriter do
 
     res =
       case args do
-        [{ :atom, _, atom }|t] -> if is_record?(atom), do: atom
+        [{ :atom, _, atom }|t] -> atom
         _ -> nil
       end
 
@@ -76,7 +121,19 @@ defmodule Kernel.RecordRewriter do
     end
   end
 
-  defp optimize_expr(other, dict) do
+  defp optimize_expr({ comprehension, line, expr, args }, dict) when comprehension in [:lc, :bc] do
+    { args, new_dict } = optimize_args(args, dict)
+    { expr, _, _ } = optimize_expr(expr, new_dict)
+    { { comprehension, line, expr, args }, dict, nil }
+  end
+
+  defp optimize_expr({ generate, line, left, right }, dict) when generate in [:generate, :b_generate] do
+    { left, dict, _ }  = optimize_expr(left, dict)
+    { right, dict, _ } = optimize_expr(right, dict)
+    { { generate, line, left, right }, dict, nil }
+  end
+
+  defp optimize_expr(other, dict) when elem(other, 0) in [:string, :atom, :integer, :float, :nil] do
     { other, dict, nil }
   end
 
@@ -97,7 +154,21 @@ defmodule Kernel.RecordRewriter do
   end
 
   defp assign_vars([key|t], dict, { value, _ } = res) when is_atom(key) and value != nil do
-    assign_vars t, :orddict.store(key, value, dict), res
+    if is_record?(value) do
+      dict =
+        case :orddict.find(key, dict) do
+          { :ok, ^value } ->
+            dict
+          { :ok, _ } ->
+            # We are overriding a type of an existing variable,
+            # which means the source code is invalid.
+            :orddict.store(key, nil, dict)
+          :error ->
+            :orddict.store(key, value, dict)
+        end
+    end
+
+    assign_vars t, dict, res
   end
 
   defp assign_vars([_|t], dict, res) do
