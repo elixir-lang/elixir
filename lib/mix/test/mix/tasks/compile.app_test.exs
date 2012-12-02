@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
 
     def application do
-      [hello: 'beautiful']
+      [maxT: :infinity]
     end
   end
 
@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       Mix.Tasks.Compile.App.run([])
       contents = File.read!("ebin/custom_project.app")
       assert contents =~ %r/0.2.0/
-      assert contents =~ %r/{hello,"beautiful"}/
+      assert contents =~ %r/{maxT,infinity}/
     end
   after
     purge [A, B, C]
