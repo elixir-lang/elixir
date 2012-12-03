@@ -230,6 +230,11 @@ defmodule Kernel.RecordRewriterTest do
     assert optimize_clause(clause) == { rewriten, [x: Range], { Range, nil } }
   end
 
+  test "updater call is no-op (for now)" do
+    clause = clause(fn(x = Range[]) -> x.update_first(&1 + 1) end)
+    assert optimize_clause(clause) == { clause, [x: Range], { Range, nil } }
+  end
+
   test "noop for unknown fields" do
     clause = clause(fn(x = Range[]) -> x.unknown end)
     assert optimize_clause(clause) == { clause, [x: Range], nil }
