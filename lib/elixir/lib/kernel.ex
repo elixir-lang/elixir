@@ -1383,6 +1383,39 @@ defmodule Kernel do
 
       file_info.update_accesses(&1 + 1)
 
+  ## Access syntax
+
+  Records in Elixir can be expanded at compilation time to provide
+  pattern matching and faster operations. For example, the clause
+  below will only match if a `FileInfo` is given and the number of
+  accesses is zero:
+
+      def enforce_no_access(FileInfo[accesses: 0]), do: :ok
+
+  The clause above will expand to:
+
+      def enforce_no_access({ FileInfo, _, 0 }), do: :ok
+
+  The downside of using such syntax is that, every time the record
+  changes, your code now needs to be recompiled (which is usually
+  not a concern since Elixir build tools by default recompiles the
+  whole project whenever there is a change).
+
+  Finally, keep in mind that Elixir triggers some optimizations whenever
+  the access syntax is used. For example:
+
+      def no_access?(FileInfo[] = file_info) do
+        file_info.accesses == 0
+      end
+
+  Is translated to:
+
+      def no_access?({ FileInfo, _, _ } = file_info) do
+        elem(file_info, 1) == 0
+      end
+
+  Which provides faster get and set times for record operations.
+
   ## Documentation
 
   By default records are not documented and have `@moduledoc` set to false.
@@ -2665,17 +2698,18 @@ defmodule Kernel do
 
       Enum.map(List.flatten([1,[2],3]), &1 * 2)
 
-  Please note that due to theoperator precendence you can't use
-  the following expression:
+  Please be aware of operator precendence, when using
+  this operator. For example, the following expression:
 
       String.graphemes "Hello" /> Enum.reverse
 
-  as it is impossible to figure out whether /> is being applied
-  to "Hello" or String.graphemes/1. In the above case,
-  /> will be applied to "Hello", which will result in an error
-  as Enum.Iterator protocol is not defined for binaries.
+  Is translated to:
 
-  Therefore, the syntax that should be used is:
+      String.graphemes("Hello" /> Enum.reverse)
+
+  Which will result in an error as Enum.Iterator protocol
+  is not defined for binaries. Adding explicit parenthesis
+  is recommended:
 
       String.graphemes("Hello") /> Enum.reverse
 

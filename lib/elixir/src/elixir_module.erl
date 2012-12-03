@@ -155,10 +155,10 @@ functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Ra
 record_rewrite_functions(Functions) ->
   lists:map(fun
     ({ function, Line, Name, Arity, Clauses }) ->
-      Rewriten = lists:map(fun(Clause) ->
+      Rewriten = [begin
         { C, _, _ } = 'Elixir.Kernel.RecordRewriter':optimize_clause(Clause),
         C
-      end, Clauses),
+      end || Clause <- Clauses],
       { function, Line, Name, Arity, Rewriten };
     (Other) -> Other
   end, Functions).
