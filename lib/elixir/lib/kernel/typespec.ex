@@ -463,6 +463,13 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast({ :var, line, var }) do
+    var =
+    case atom_to_binary(var) do
+      <<"_", c :: [binary, size(1)], rest :: binary>> -> 
+        binary_to_atom("_#{String.downcase(c)}#{rest}")
+      <<c :: [binary, size(1)], rest :: binary>> ->
+        binary_to_atom("#{String.downcase(c)}#{rest}")
+    end
     { var, line, nil }
   end
 
