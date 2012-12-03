@@ -244,4 +244,9 @@ defmodule Kernel.RecordRewriterTest do
     clause = clause(fn(x = BadRange[]) -> x.first end)
     assert optimize_clause(clause) == { clause, [x: BadRange], nil }
   end
+
+  test "noop for conflicting inference" do
+    clause = clause(fn(x = Macro.Env[]) -> ^x = Range[]; x.first end)
+    assert optimize_clause(clause) == { clause, [x: nil], nil }
+  end
 end
