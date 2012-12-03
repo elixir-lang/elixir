@@ -16,7 +16,7 @@ defmodule Macro.Env do
     functions: functions, macros: macros]
 
   Record.deffunctions(fields, __MODULE__)
-  Record.deftypes(fields, types, __ENV__)
+  Record.deftypes(fields, types, __MODULE__)
 
   @moduledoc """
   A record that contains compile time environment information,

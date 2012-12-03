@@ -159,11 +159,11 @@ core_main() ->
     "lib/elixir/lib/keyword.ex",
     "lib/elixir/lib/list.ex",
     "lib/elixir/lib/kernel/typespec.ex",    
+    "lib/elixir/lib/module.ex",
     "lib/elixir/lib/record.ex",
     "lib/elixir/lib/record/extractor.ex",
     "lib/elixir/lib/macro.ex",
     "lib/elixir/lib/macro/env.ex",
-    "lib/elixir/lib/module.ex",
     "lib/elixir/lib/code.ex",
     "lib/elixir/lib/protocol.ex",
     "lib/elixir/lib/enum.ex",
@@ -178,7 +178,8 @@ core_main() ->
     "lib/elixir/lib/system.ex",
     "lib/elixir/lib/kernel/cli.ex",
     "lib/elixir/lib/kernel/error_handler.ex",
-    "lib/elixir/lib/kernel/parallel_compiler.ex"
+    "lib/elixir/lib/kernel/parallel_compiler.ex",
+    "lib/elixir/lib/kernel/record_rewriter.ex"
   ].
 
 %% ERROR HANDLING
