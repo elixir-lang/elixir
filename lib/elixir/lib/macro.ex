@@ -246,6 +246,10 @@ defmodule Macro do
   end
 
   # Unary ops
+  def to_binary({ :not, _, [arg] })  do
+    "not " <> to_binary(arg)
+  end
+
   def to_binary({ op, _, [arg] }) when op in unary_ops do
     atom_to_binary(op, :utf8) <> to_binary(arg)
   end

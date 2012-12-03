@@ -245,6 +245,8 @@ defmodule MacroTest do
   end
 
   test :unary_ops_to_binary do
+    assert Macro.to_binary(quote do: not 1) == "not 1"
+    assert Macro.to_binary(quote do: not foo) == "not foo"
     assert Macro.to_binary(quote do: -1) == "-1"
     assert Macro.to_binary(quote do: @foo(bar)) == "@foo(bar)"
   end
