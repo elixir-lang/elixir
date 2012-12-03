@@ -2665,6 +2665,20 @@ defmodule Kernel do
 
       Enum.map(List.flatten([1,[2],3]), &1 * 2)
 
+  Please note that due to theoperator precendence you can't use
+  the following expression:
+
+      String.graphemes "Hello" /> Enum.reverse
+
+  as it is impossible to figure out whether /> is being applied
+  to "Hello" or String.graphemes/1. In the above case,
+  /> will be applied to "Hello", which will result in an error
+  as Enum.Iterator protocol is not defined for binaries.
+
+  Therefore, the syntax that should be used is:
+
+      String.graphemes("Hello") /> Enum.reverse
+
   """
   defmacro left /> right do
     pipeline_op(left, right)
