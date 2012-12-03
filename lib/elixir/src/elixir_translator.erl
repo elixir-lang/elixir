@@ -500,11 +500,9 @@ translate_apply(Line, TLeft, TRight, Args, S, SL, SR) ->
   Optimize = case (Args == []) orelse lists:last(Args) of
     { '|', _, _ } -> false;
     _ ->
-      case { TLeft, TRight } of
-        { { Kind, _, _ }, { atom, _, _ } } when Kind == var; Kind == tuple; Kind == atom ->
-          true;
-        _ ->
-          false
+      case TRight of
+        { atom, _, _ } -> true;
+        _ -> false
       end
   end,
 

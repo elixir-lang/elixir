@@ -73,17 +73,18 @@ defmodule Record do
       reflection(escaped),
       initializer(escaped),
       indexes(escaped),
-      accessors(values, 1, []),
       conversions(values),
       updater(values),
-      extensions(values, 1, [], Record.Extensions)
+      extensions(values, 1, [], Record.Extensions),
+      accessors(values),
     ]
+
+    contents = [quote(do: @__record__ unquote(escaped))|contents]
 
     # Special case for bootstraping purposes
     if env == Macro.Env do
-      :elixir_module.eval_quoted(env, contents, [], [])
+      Module.eval_quoted(env, contents, [], [])
     else
-      contents = [quote(do: @__record__ unquote(escaped))|contents]
       Module.eval_quoted(env.module, contents, [], env.location)
     end
   end
@@ -103,8 +104,9 @@ defmodule Record do
       accessor_specs(values, 1, [])
     ]
 
-    # Special case for bootstraping purposes
-    if :erlang.function_exported(Module, :eval_quoted, 2) do
+    if env == Macro.Env do
+      Module.eval_quoted(env, contents, [], [])
+    else
       Module.eval_quoted(env.module, contents, [], env.location)
     end
   end
@@ -150,6 +152,34 @@ defmodule Record do
     end
 
     Module.eval_quoted(env.module, contents, [], env.location)
+  end
+
+  ## Callbacks
+
+  # Store all optimizable fields in the record as well
+  @doc false
+  defmacro __before_compile__(_) do
+    quote do
+      def __record__(:optimizable), do: @record_optimizable
+    end
+  end
+
+  # Store fields that can be optimized and that cannot be
+  # optimized as they are overriden
+  @doc false
+  def __on_definition__(env, kind, name, args, _guards, _body) do
+    tuple     = { name, length(args) }
+    module    = env.module
+    functions = Module.get_attribute(module, :record_optimizable)
+
+    functions =
+      if kind in [:def] and Module.get_attribute(module, :record_optimized) do
+        [tuple|functions]
+      else
+        List.delete(functions, tuple)
+      end
+
+    Module.put_attribute(module, :record_optimizable, functions)
   end
 
   # Implements the access macro used by records.
@@ -414,11 +444,20 @@ defmodule Record do
   #       setelem(record, 2, callback.(elem(record, 2)))
   #     end
   #
-  defp accessors([{ :__exception__, _ }|t], 1, acc) do
-    accessors(t, 2, acc)
+  defp accessors(values) do
+    [ quote do
+        @record_optimized true
+        @record_optimizable []
+        @before_compile { unquote(__MODULE__), :__before_compile__ }
+        @on_definition { unquote(__MODULE__), :__on_definition__ }
+      end | accessors(values, 1) ]
   end
 
-  defp accessors([{ key, _default }|t], i, acc) do
+  defp accessors([{ :__exception__, _ }|t], 1) do
+    accessors(t, 2)
+  end
+
+  defp accessors([{ key, _default }|t], i) do
     update = binary_to_atom "update_" <> atom_to_binary(key)
 
     contents = quote do
@@ -436,10 +475,12 @@ defmodule Record do
       end
     end
 
-    accessors(t, i + 1, [contents | acc])
+    [contents|accessors(t, i + 1)]
   end
 
-  defp accessors([], _i, acc), do: acc
+  defp accessors([], _i) do
+    [quote do: @record_optimized false]
+  end
 
   # Define an updater method that receives a
   # keyword list and updates the record.

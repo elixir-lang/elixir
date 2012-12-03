@@ -38,13 +38,75 @@ defmodule Kernel.RecordRewriter do
     optimize_body(t, new_dict, [new_expr|acc])
   end
 
+  ## Record helpers
+
+  defp record_fields(record) do
+    if Code.ensure_loaded?(record) && function_exported?(record, :__record__, 1) do
+      try do
+        fields      = lc { k, _ } inlist record.__record__(:fields), do: k
+        optimizable = record.__record__(:optimizable)
+        { fields, optimizable }
+      rescue
+        [UndefinedFunctionError, FunctionClauseError] -> { [], [] }
+      end
+    end
+  end
+
+  defp record_field_info(function) do
+    case atom_to_list(function) do
+      'update_' ++ field -> { :update, list_to_atom(function) }
+      _ -> { :accessor, function }
+    end
+  end
+
+  defp optimize_call(line, { record, _ } = res, left, { :atom, _, function }, args) do
+    { fields, optimizable } = record_fields(record)
+
+    if List.member?(optimizable, { function, length(args) + 1 }) do
+      { kind, field } = record_field_info(function)
+      if index = Enum.find_index(fields, field == &1) do
+        optimize_call(line, res, kind, index, left, args)
+      end
+    end
+  end
+
+  defp optimize_call(_line, _res, _left, _right, _args) do
+    nil
+  end
+
+  defp optimize_call(line, _res, :accessor, index, left, []) do
+    call = { :call, line,
+      { :remote, line, { :atom, 0, :erlang }, { :atom, 0, :element } },
+      [{ :integer, 0, index + 2 }, left]
+    }
+    { call, nil }
+  end
+
+  defp optimize_call(line, res, :accessor, index, left, [arg]) do
+    call = { :call, line,
+      { :remote, line, { :atom, 0, :erlang }, { :atom, 0, :setelement } },
+      [{ :integer, 0, index + 2 }, left, arg]
+    }
+    { call, res }
+  end
+
+  defp optimize_call(_line, _res, :update, _index, _left, [_arg]) do
+    nil
+  end
+
   ## Expr
 
   defp optimize_expr({ :call, call_line, { :remote, line, left, right }, args }, dict) do
-    { left, dict, _ }  = optimize_expr(left, dict)
+    { left, dict, res } = optimize_expr(left, dict)
     { right, dict, _ } = optimize_expr(right, dict)
     { args, dict } = optimize_args(args, dict)
-    { { :call, call_line, { :remote, line, left, right }, args }, dict, nil }
+
+    case optimize_call(call_line, res, left, right, args) do
+      { call, call_res } ->
+        { call, dict, call_res }
+      nil ->
+        { { :call, call_line, { :remote, line, left, right }, args }, dict, nil }
+    end
   end
 
   defp optimize_expr({ :call, line, expr, args }, dict) do
@@ -212,21 +274,19 @@ defmodule Kernel.RecordRewriter do
   end
 
   defp assign_vars([key|t], dict, { value, _ } = res) when is_atom(key) and value != nil do
-    if is_record?(value) do
-      dict =
-        case :orddict.find(key, dict) do
-          { :ok, ^res } ->
-            dict
-          { :ok, { ^value, _ } } ->
-            :orddict.store(key, { value, nil }, dict)
-          { :ok, _ } ->
-            # We are overriding a type of an existing variable,
-            # which means the source code is invalid.
-            :orddict.store(key, nil, dict)
-          :error ->
-            :orddict.store(key, res, dict)
-        end
-    end
+    dict =
+      case :orddict.find(key, dict) do
+        { :ok, ^res } ->
+          dict
+        { :ok, { ^value, _ } } ->
+          :orddict.store(key, { value, nil }, dict)
+        { :ok, _ } ->
+          # We are overriding a type of an existing variable,
+          # which means the source code is invalid.
+          :orddict.store(key, nil, dict)
+        :error ->
+          :orddict.store(key, res, dict)
+      end
 
     assign_vars t, dict, res
   end
@@ -304,12 +364,5 @@ defmodule Kernel.RecordRewriter do
 
   defp join_result([], res) do
     res
-  end
-
-  ## Record helpers
-
-  # TODO: Implement proper record check
-  defp is_record?(_h) do
-    true
   end
 end

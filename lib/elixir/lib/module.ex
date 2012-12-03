@@ -1,6 +1,12 @@
 defmodule Module do
   require :ets, as: ETS
 
+  defmacrop is_env(env) do
+    quote do
+      is_tuple(unquote(env)) and size(unquote(env)) > 1 and elem(unquote(env), 0) == Macro.Env
+    end
+  end
+
   @moduledoc """
   This module provides many functions to deal with modules during
   compilation time. It allows a developer to dynamically attach
@@ -51,11 +57,11 @@ defmodule Module do
   """
   def eval_quoted(module, quoted, binding // [], opts // [])
 
-  def eval_quoted(Macro.Env[module: module] = env, quoted, binding, opts) do
-    eval_quoted(module, quoted, binding, Keyword.merge(env.to_keywords, opts))
+  def eval_quoted(env, quoted, binding, opts) when is_env(env) do
+    eval_quoted(env.module, quoted, binding, Keyword.merge(env.to_keywords, opts))
   end
 
-  def eval_quoted(module, quoted, binding, Macro.Env[] = env) do
+  def eval_quoted(module, quoted, binding, env) when is_env(env) do
     eval_quoted(module, quoted, binding, env.to_keywords)
   end
 
@@ -95,12 +101,12 @@ defmodule Module do
   """
   def create(module, quoted, opts // [])
 
-  def create(module, quoted, Macro.Env[] = env) do
+  def create(module, quoted, env) when is_env(env) do
     create(module, quoted, env.to_keywords)
   end
 
   def create(module, quoted, opts) when is_atom(module) do
-    line = opts[:line] || 1
+    line = Keyword.get(opts, :line, 1)
     :elixir_module.compile(line, module, quoted, [], :elixir.scope_for_eval(opts))
   end
 
@@ -578,7 +584,7 @@ defmodule Module do
     atom
   end
 
-  defp normalize_attribute(:file, Macro.Env[file: file, line: line]),       do: { binary_to_list(file), line}
+  defp normalize_attribute(:file, env) when is_env(env),      do: { binary_to_list(env.file), env.line}
   defp normalize_attribute(:file, { binary, line }) when is_binary(binary), do: { binary_to_list(binary), line }
   defp normalize_attribute(:file, other) when not is_tuple(other),          do: normalize_attribute(:file, { other, 1 })
 

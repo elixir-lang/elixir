@@ -1,5 +1,13 @@
 Code.require_file "../../test_helper.exs", __FILE__
 
+defrecord BadRange, first: 0, last: 0 do
+  defoverridable [first: 1]
+
+  def first(_) do
+    :not_optimizable
+  end
+end
+
 defmodule Kernel.RecordRewriterTest do
   use ExUnit.Case, async: true
 
@@ -21,7 +29,7 @@ defmodule Kernel.RecordRewriterTest do
     { clause, dict, res }
   end
 
-  ## Dictionary tests
+  ## Inference tests
 
   test "simple atom" do
     clause = clause(fn -> :foo end)
@@ -197,5 +205,38 @@ defmodule Kernel.RecordRewriterTest do
 
     clause = clause(fn -> try do x = Macro.Env[]; x; after x = Macro.Env[]; end end)
     assert optimize_clause(clause) == { clause, [], { Macro.Env, nil } }
+  end
+
+  ## Rewrite tests
+
+  test "getter call is rewriten" do
+    { clause, rewriten } =
+      { clause(fn(x = Range[]) -> x.first end), clause(fn(x = Range[]) -> :erlang.element(2, x) end) }
+
+    assert optimize_clause(clause) == { rewriten, [x: Range], nil }
+  end
+
+  test "setter call is rewriten" do
+    { clause, rewriten } =
+      { clause(fn(x = Range[]) -> x.first(:first) end), clause(fn(x = Range[]) -> :erlang.setelement(2, x, :first) end) }
+
+    assert optimize_clause(clause) == { rewriten, [x: Range], { Range, nil } }
+  end
+
+  test "nested setter call is rewriten" do
+    { clause, rewriten } =
+      { clause(fn(x = Range[]) -> x.first(:first).last(:last) end), clause(fn(x = Range[]) -> :erlang.setelement(3, :erlang.setelement(2, x, :first), :last) end) }
+
+    assert optimize_clause(clause) == { rewriten, [x: Range], { Range, nil } }
+  end
+
+  test "noop for unknown fields" do
+    clause = clause(fn(x = Range[]) -> x.unknown end)
+    assert optimize_clause(clause) == { clause, [x: Range], nil }
+  end
+
+  test "noop for rewriten fields" do
+    clause = clause(fn(x = BadRange[]) -> x.first end)
+    assert optimize_clause(clause) == { clause, [x: BadRange], nil }
   end
 end

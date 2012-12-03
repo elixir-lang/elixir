@@ -11,6 +11,12 @@ defrecord name, a: 0, b: 1 do
   def get_a(RecordTest.DynamicName[a: a]) do
     a
   end
+
+  defoverridable [update_b: 2]
+
+  def update_b(_, _) do
+    :not_optimizable
+  end
 end
 
 ## With types
@@ -150,6 +156,13 @@ defmodule RecordTest do
     assert RecordTest.SomeRecord.b(record.update(a: 2, b: 3)) == 3
     assert RecordTest.SomeRecord.a(record.update(a: 2)) == 2
     assert RecordTest.SomeRecord.b(record.update(b: 2)) == 2
+  end
+
+  test :optimizable do
+    assert { :b, 1 } inlist RecordTest.SomeRecord.__record__(:optimizable)
+    assert { :b, 2 } inlist RecordTest.SomeRecord.__record__(:optimizable)
+    assert { :update_b, 2 } inlist RecordTest.SomeRecord.__record__(:optimizable)
+    refute { :update_b, 2 } inlist RecordTest.DynamicName.__record__(:optimizable)
   end
 
   defp file_info do
