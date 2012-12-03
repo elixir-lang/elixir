@@ -116,7 +116,7 @@ defmodule Mix.Utils do
     files = List.concat(lc path inlist paths do
       if File.regular?(path), do: [path], else: File.wildcard("#{path}/**/#{pattern}")
     end)
-    files /> exclude_files /> List.uniq
+    files /> exclude_files /> Enum.uniq
   end
 
   defp exclude_files(files) do

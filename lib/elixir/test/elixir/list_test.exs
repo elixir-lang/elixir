@@ -53,23 +53,10 @@ defmodule ListTest do
     assert List.foldr([1,2,3,4], 0, fn x,y -> x - y end) == -2
   end
 
-  def test_member? do
+  test :member? do
     assert List.member? [1,2,3], 1
     refute List.member? [1,2,3], 0
     refute List.member? [], 0
-  end
-
-  test :range do
-    assert List.range(1,3) == [1,2,3]
-    assert List.range(1, 1) == [1]
-    assert List.range(5, 0) == [5,4,3,2,1,0]
-    assert List.range(1, 0, -1) == [1,0]
-    assert List.range(1,8,2) == [1,3,5,7]
-    assert List.range(7,-1,-3) == [7,4,1]
-    assert List.range(2,1,1) == []
-    assert List.range(8,1,1) == []
-    assert List.range(1,8,-1) == []
-    assert List.range(1,1,-1) == []
   end
 
   test :concat_1 do
@@ -82,10 +69,6 @@ defmodule ListTest do
 
   test :reverse do
     assert Enum.reverse([1,2,3]) == [3,2,1]
-  end
-
-  test :uniq do
-    assert List.uniq([1,2,3,2,1]) == [1,2,3]
   end
 
   test :duplicate do

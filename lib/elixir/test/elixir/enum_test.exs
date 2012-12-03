@@ -218,6 +218,10 @@ defmodule EnumTest.List do
     assert Enum.take_while([], fn(_) -> true end) == []
   end
 
+  test :uniq do
+    assert Enum.uniq([1,2,3,2,1]) == [1,2,3]
+  end
+
   test :zip do
     assert Enum.zip([:a, :b], [1, 2]) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([:a, :b], [1, 2, 3, 4]) == [{:a, 1}, {:b, 2}]
@@ -701,6 +705,10 @@ defmodule EnumTest.Range do
     assert Enum.take_while(range, fn(x) -> x <= 1 end) == [1]
     assert Enum.take_while(range, fn(x) -> x <= 3 end) == [1,2,3]
     assert Enum.take_while([], fn(_) -> true end) == []
+  end
+
+  test :uniq do
+    assert Enum.uniq(1..3) == [1,2,3]
   end
 
   test :zip do

@@ -241,7 +241,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:parallel_require, pattern}, _config) when is_binary(pattern) do
     files = File.wildcard(pattern)
-    files = List.uniq(files)
+    files = Enum.uniq(files)
     files = Enum.filter files, File.regular?(&1)
     Kernel.ParallelRequire.files(files)
   end
@@ -250,7 +250,7 @@ defmodule Kernel.CLI do
     File.mkdir_p(config.output)
 
     files = Enum.map patterns, File.wildcard(&1)
-    files = List.uniq(List.concat(files))
+    files = Enum.uniq(List.concat(files))
     files = Enum.filter files, File.regular?(&1)
 
     Code.compiler_options(config.compiler_options)

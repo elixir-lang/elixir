@@ -846,6 +846,29 @@ defmodule Enum do
   end
 
   @doc """
+  Iterates the enumerable removing all duplicated items.
+
+  ## Examples
+
+      Enum.uniq [1,2,3,2,1]
+      #=> [1, 2, 3]
+
+  """
+  @spec uniq(t) :: list
+  def uniq(collection) when is_list(collection) do
+    do_uniq(collection, [])
+  end
+
+  def uniq(collection) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_uniq(pointer, iterator, [])
+      list when is_list(list) ->
+        do_uniq(list, [])
+    end
+  end
+
+  @doc """
   Zips corresponding elements from two collections into one list
   of tuples. The number of elements in the resulting list is
   dictated by the first enum. In case the second list is shorter,
@@ -1538,6 +1561,30 @@ defmodule Enum do
   end
 
   defp do_take_while(:stop, _, _) do
+    []
+  end
+
+  ## uniq
+
+  defp do_uniq([h|t], acc) do
+    case :lists.member(h, acc) do
+      true  -> do_uniq(t, acc)
+      false -> [h|do_uniq(t, [h|acc])]
+    end
+  end
+
+  defp do_uniq([], _acc) do
+    []
+  end
+
+  defp do_uniq({ h, next }, iterator, acc) do
+    case :lists.member(h, acc) do
+      true  -> do_uniq(iterator.(next), iterator, acc)
+      false -> [h|do_uniq(iterator.(next), iterator, [h|acc])]
+    end
+  end
+
+  defp do_uniq(:stop, _, _acc) do
     []
   end
 

@@ -17,8 +17,9 @@
   * [Kernel] Ensure proper stacktraces when showing deprecations
 
 * deprecations
-  * [Enum] `Enum.qsort` is deprecated and `List.sort` in favor of `Enum.sort`
+  * [Enum] `Enum.qsort` is deprecated in favor of `Enum.sort`
   * [ExUnit] `assert left in right` is deprecated in favor of `assert left inlist right`
+  * [List] `List.sort` and `List.uniq` have been deprecated in favor of their `Enum` counterparts
   * [Record] Default-based generated functions are deprecated
   * [Typespec] Enhancements and deprecations to the `@spec/@callback` and the fun type syntax
 

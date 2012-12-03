@@ -252,25 +252,11 @@ defmodule List do
     :lists.keydelete(key, position + 1, list)
   end
 
-  @doc """
-  Returns a list of integers in the given range (both ends included when
-  possible). An optional step can be provided as well (defaults to 1).
-
-  If first > last and no step is provided, the numbers will be in descending
-  order.
-
-  ## Examples
-
-      List.range 1, 3     #=> [1,2,3]
-      List.range 1, 8, 2  #=> [1,3,5,7]
-      List.range 1, 0     #=> []
-      List.range 3, 1     #=> [3,2,1]
-      List.range 5, 1, -2 #=> [5, 3, 1]
-
-  """
+  @doc false
   def range(first, last, step // nil)
 
   def range(first, last, step) when is_integer(first) and is_integer(last) and first <= last do
+    IO.write "[WARNING] List.range is deprecated, please use ranges instead\n#{Exception.formatted_stacktrace}"
     case step do
       nil ->
         :lists.seq(first, last, 1)
@@ -282,6 +268,7 @@ defmodule List do
   end
 
   def range(first, last, step) when is_integer(first) and is_integer(last) and first > last do
+    IO.write "[WARNING] List.range is deprecated, please use ranges instead\n#{Exception.formatted_stacktrace}"
     case step do
       nil ->
         :lists.seq(first, last, -1)
@@ -304,16 +291,9 @@ defmodule List do
     :lists.sort fun, list
   end
 
-  @doc """
-  Returns a list without duplicated items.
-
-  ## Examples
-
-      List.uniq [1,2,3,2,1]
-      #=> [1,2,3]
-
-  """
+  @doc false
   def uniq(list) when is_list(list) do
+    IO.write "[WARNING] List.uniq is deprecated, please use Enum.uniq instead\n#{Exception.formatted_stacktrace}"
     do_uniq(list, [])
   end
 
@@ -379,10 +359,8 @@ defmodule List do
 
   defp do_uniq([h|t], acc) do
     case :lists.member(h, acc) do
-      true ->
-        do_uniq(t, acc)
-      false ->
-        [h|do_uniq(t, [h|acc])]
+      true  -> do_uniq(t, acc)
+      false -> [h|do_uniq(t, [h|acc])]
     end
   end
 
@@ -397,10 +375,8 @@ defmodule List do
     {mlist, heads} = :lists.mapfoldl converter, [], list
 
     case heads do
-      nil ->
-        :lists.reverse acc
-      _ ->
-      do_zip mlist, [list_to_tuple(:lists.reverse(heads))|acc]
+      nil -> :lists.reverse acc
+      _   -> do_zip mlist, [list_to_tuple(:lists.reverse(heads))|acc]
     end
   end
 
