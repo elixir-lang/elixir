@@ -47,6 +47,8 @@ defmodule StringTest do
     assert String.rstrip("   abc a") == "   abc a"
     assert String.rstrip("a  abc  a\n\n") == "a  abc  a"
     assert String.rstrip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
+    assert String.rstrip("a  abc  a " <> <<31>>) == "a  abc  a"
+    assert String.rstrip("a  abc  a" <> <<194,133>>) == "a  abc  a"
     assert String.rstrip("   abc aa", ?a) == "   abc "
     assert String.rstrip("   abc __", ?_) == "   abc "
   end
@@ -57,6 +59,8 @@ defmodule StringTest do
     assert String.lstrip("a  abc  a") == "a  abc  a"
     assert String.lstrip("\n\na  abc  a") == "a  abc  a"
     assert String.lstrip("\t\n\v\f\r\sa  abc  a") == "a  abc  a"
+    assert String.lstrip(<<31>> <> " a  abc  a") == "a  abc  a"
+    assert String.lstrip(<<194,133>> <> "a  abc  a") == "a  abc  a"
     assert String.lstrip("__  abc  _", ?_) == "  abc  _"
   end
 
