@@ -47,7 +47,7 @@ defmodule Kernel.RecordRewriter do
         optimizable = record.__record__(:optimizable)
         { fields, optimizable }
       rescue
-        [UndefinedFunctionError, FunctionClauseError] -> { [], [] }
+        [UndefinedFunctionError, FunctionClauseError] -> nil
       end
     end
   end
@@ -60,13 +60,15 @@ defmodule Kernel.RecordRewriter do
   end
 
   defp optimize_call(line, { record, _ } = res, left, { :atom, _, function }, args) do
-    { fields, optimizable } = record_fields(record)
-
-    if List.member?(optimizable, { function, length(args) + 1 }) do
-      { kind, field } = record_field_info(function)
-      if index = Enum.find_index(fields, field == &1) do
-        optimize_call(line, res, kind, index, left, args)
-      end
+    case record_fields(record) do
+      { fields, optimizable } ->
+        if List.member?(optimizable, { function, length(args) + 1 }) do
+          { kind, field } = record_field_info(function)
+          if index = Enum.find_index(fields, field == &1) do
+            optimize_call(line, res, kind, index, left, args)
+          end
+        end
+      nil -> nil
     end
   end
 

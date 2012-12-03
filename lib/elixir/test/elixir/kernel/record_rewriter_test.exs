@@ -235,6 +235,11 @@ defmodule Kernel.RecordRewriterTest do
     assert optimize_clause(clause) == { clause, [x: Range], nil }
   end
 
+  test "noop for not records fields" do
+    clause = clause(fn(x = { :not_a_record, _ }) -> x.unknown end)
+    assert optimize_clause(clause) == { clause, [x: :not_a_record], nil }
+  end
+
   test "noop for rewriten fields" do
     clause = clause(fn(x = BadRange[]) -> x.first end)
     assert optimize_clause(clause) == { clause, [x: BadRange], nil }
