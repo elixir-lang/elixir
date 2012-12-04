@@ -447,11 +447,11 @@ defmodule String do
 
   ## Examples
 
-      String.at("elixir", 0) #=> "1"
+      String.at("elixir", 0) #=> "e"
       String.at("elixir", 1) #=> "l"
       String.at("elixir", 10) #=> nil
       String.at("elixir", -1) #=> "r"
-      String.at("elixir", -10) #=> nil
+      String.at("elixir", -10) #=> ""
 
   """
   @spec at(t, integer) :: grapheme | nil
