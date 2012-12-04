@@ -162,7 +162,7 @@ defmodule StringTest do
     assert String.at("л", 10) == nil
     assert String.at("elixir", -1) == "r"
     assert String.at("がガちゃ", -2) == "ち"
-    assert String.at("л", -3) == ""
+    assert String.at("л", -3) == nil
     assert String.at("Ā̀stute", 1) == "s"
     assert String.at("elixir",6) == nil
   end

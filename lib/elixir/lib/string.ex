@@ -463,7 +463,7 @@ defmodule String do
     real_pos = do_length(next_grapheme(string)) - abs(position)
     case real_pos >= 0 do
       true  -> do_at(next_grapheme(string), real_pos, 0)
-      false -> ""
+      false -> nil
     end
   end
 
