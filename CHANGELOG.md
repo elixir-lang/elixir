@@ -1,3 +1,5 @@
+# v0.7.2 (2012-12-04)
+
 * enhancements
   * [CLI] `--debug-info` is now true by default
   * [ExUnit] Make ExUnit exit happen in two steps allowing developers to add custom `at_exit` hooks

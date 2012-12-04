@@ -23,6 +23,7 @@ This document simply outlines the release process:
 ## Places where version is mentioned
 
 * src/elixir.app.src
+* lib/elixir/src/elixir.app.src
 * lib/elixir/lib/system.ex
 * rel/reltool.config
 * Makefile
