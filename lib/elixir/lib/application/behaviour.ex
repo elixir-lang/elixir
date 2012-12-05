@@ -29,18 +29,6 @@ defmodule Application.Behaviour do
   `:application` and defines a default `stop/1` callback. The `start/2`
   still needs to be defined by the user.
 
-  ## Starting the application
-
-  Erlang provides a module named `:application` to start, stop
-  and managed a specified application. For example, starting an
-  application can be done as:
-
-      :application.start(:my_app)
-
-  Elixir also provides an `Application.Behaviour.start(my_app)` that
-  builds on top of Erlang to start the given application and all of its
-  dependencies.
-
   You can learn more about the `:application` module, the application
   specification and the application module callbacks below:
 
@@ -60,34 +48,34 @@ defmodule Application.Behaviour do
 
   """
 
-  @doc """
-  Starts the given application and all of its dependencies that
-  have not been started yet recursively.
 
-  ## Supported types
-
-  When starting an application, a type can be given:
-
-  * `:permanent` - If a permanent application terminates, all other
-     applications and the runtime system are also terminated;
-  * `:transient` - If a transient application terminates with reason
-     `:normal`, this is reported but no other applications are terminated.
-     If a transient application terminates abnormally, all other
-     applications and the runtime system are also terminated;
-  * `:temporary` -  If a temporary application terminates, this is reported
-     but no other applications are terminated.
-
-  The type only applies to the application being started. Its dependencies
-  are all started with default type (which is :temporary).
-
-  Note that transient mode is of little practical use, since when a
-  supervision tree terminates, the reason is set to shutdown, not normal.
-
-  ## Examples
-
-      Application.Behaviour.start(:my_app)
-
-  """
+  # Starts the given application and all of its dependencies that
+  # have not been started yet recursively.
+  # 
+  # ## Supported types
+  # 
+  # When starting an application, a type can be given:
+  # 
+  # * `:permanent` - If a permanent application terminates, all other
+  #    applications and the runtime system are also terminated;
+  # * `:transient` - If a transient application terminates with reason
+  #    `:normal`, this is reported but no other applications are terminated.
+  #    If a transient application terminates abnormally, all other
+  #    applications and the runtime system are also terminated;
+  # * `:temporary` -  If a temporary application terminates, this is reported
+  #    but no other applications are terminated.
+  # 
+  # The type only applies to the application being started. Its dependencies
+  # are all started with default type (which is :temporary).
+  # 
+  # Note that transient mode is of little practical use, since when a
+  # supervision tree terminates, the reason is set to shutdown, not normal.
+  # 
+  # ## Examples
+  # 
+  #     Application.Behaviour.start(:my_app)
+  #
+  @doc false
   def start(app, type // :temporary) do
     case :application.start(app, type) do
       { :error, { :not_started, dep } } ->
