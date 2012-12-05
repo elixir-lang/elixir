@@ -118,6 +118,10 @@ defmodule Kernel.CLI do
     process_shared t, config
   end
 
+  defp process_shared(['--app',h|t], config) do
+    process_shared t, config.update_commands [{:app,h}|&1]
+  end
+
   defp process_shared(['--no-halt'|t], config) do
     process_shared t, config.halt(false)
   end
@@ -137,15 +141,12 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(['-r',h|t], config) do
-    h = list_to_binary(h)
-    config = Enum.reduce File.wildcard(h), config, fn path, config ->
+    process_shared t, Enum.reduce(File.wildcard(h), config, fn path, config ->
       config.update_commands [{:require,path}|&1]
-    end
-    process_shared t, config
+    end)
   end
 
   defp process_shared(['-pr',h|t], config) do
-    h = list_to_binary(h)
     process_shared t, config.update_commands [{:parallel_require,h}|&1]
   end
 
@@ -170,8 +171,7 @@ defmodule Kernel.CLI do
   defp process_argv(['-S',h|t], config) do
     exec = System.find_executable(h)
     if exec do
-      bin = list_to_binary(exec)
-      { config.update_commands([{:require,bin}|&1]), t }
+      { config.update_commands([{:require,exec}|&1]), t }
     else
       IO.puts(:stderr, "Could not find executable #{h}")
       System.halt(1)
@@ -183,8 +183,7 @@ defmodule Kernel.CLI do
       '-' ++ _ ->
         shared_option? list, config, process_argv(&1, &2)
       _ ->
-        bin = list_to_binary(h)
-        { config.update_commands([{:require,bin}|&1]), t }
+        { config.update_commands([{:require,h}|&1]), t }
     end
   end
 
@@ -232,15 +231,19 @@ defmodule Kernel.CLI do
   # Process commands
 
   defp process_command({:eval, expr}, _config) when is_list(expr) do
-    :elixir.eval(expr, [])
+    Code.eval(expr, [])
   end
 
-  defp process_command({:require, file}, _config) when is_binary(file) do
-    Code.require_file(file)
+  defp process_command({:app, app}, _config) when is_list(app) do
+    start_app list_to_atom(app)
   end
 
-  defp process_command({:parallel_require, pattern}, _config) when is_binary(pattern) do
-    files = File.wildcard(pattern)
+  defp process_command({:require, file}, _config) when is_list(file) do
+    Code.require_file(list_to_binary(file))
+  end
+
+  defp process_command({:parallel_require, pattern}, _config) when is_list(pattern) do
+    files = File.wildcard(list_to_binary(pattern))
     files = Enum.uniq(files)
     files = Enum.filter files, File.regular?(&1)
     Kernel.ParallelRequire.files(files)
@@ -256,5 +259,22 @@ defmodule Kernel.CLI do
     Code.compiler_options(config.compiler_options)
     Kernel.ParallelCompiler.files_to_path(files, config.output,
       fn file -> IO.puts "Compiled #{file}" end)
+  end
+
+  defp start_app(app) do
+    case :application.start(app) do
+      :ok ->
+        :ok
+      { :error, { :not_started, dep } } ->
+        if start_app(dep) == :ok, do: start_app(app)
+      { :error, { :already_started, _ } } ->
+        :ok
+      { :error, { msg, _app } } ->
+        IO.puts(:stderr, "Could not load application #{app}: #{msg}")
+        System.halt(1)
+      other ->
+        IO.puts(:stderr, "Could not load application #{app}: #{inspect other}")
+        System.halt(1)
+    end
   end
 end

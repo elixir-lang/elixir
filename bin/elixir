@@ -9,7 +9,8 @@ if [ $# -eq 0 ]; then
   -pr \"file\"        Requires the given files/patterns in parallel (*)
   -pa \"path\"        Prepends the given path to Erlang code path (*)
   -pz \"path\"        Appends the given path to Erlang code path (*)
-  --erl \"switches\"  Switches to be passed down to erlang
+  --app \"app\"       Start the given app and its dependencies (*)
+  --erl \"switches\"  Switches to be passed down to erlang (*)
   --name \"name\"     Makes and assigns a name to the distributed node
   --sname \"name\"    Makes and assigns a short name to the distributed node
   --remsh \"name\"    Connects to a node using a remote shell (with iex)

@@ -1,3 +1,6 @@
+* enhancements
+  * [CLI] Support `--app` option to start an application and its dependencies
+
 # v0.7.2 (2012-12-04)
 
 * enhancements
