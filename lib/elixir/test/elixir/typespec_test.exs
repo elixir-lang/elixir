@@ -298,6 +298,7 @@ defmodule Typespec.Test.Type do
       (quote do: @type ftype() :: (() -> any()) | (() -> integer()) | ((integer() -> integer()))),
       (quote do: @type cl() :: char_list()),
       (quote do: @type vaf() :: (... -> any())),
+      (quote do: @type rng() :: 1 .. 10),
     ]
 
     types = test_module do

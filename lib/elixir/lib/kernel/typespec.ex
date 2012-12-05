@@ -441,6 +441,10 @@ defmodule Kernel.Typespec do
     typespec_to_ast({ :type, line, :fun, [{:type, line, :any}, {:type,line,:any, []} ] })
   end
 
+  defp typespec_to_ast({ :type, line, :range, [left, right] }) do
+    { :"..", line, [typespec_to_ast(left), typespec_to_ast(right)] }
+  end
+
   defp typespec_to_ast({ :type, line, name, args }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     { name, line, args }
