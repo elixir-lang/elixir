@@ -26,7 +26,7 @@ defmodule System do
   Returns Elixir's version as binary.
   """
   @spec version() :: String.t
-  def version, do: "0.7.2"
+  def version, do: "0.7.3.dev"
 
   @doc """
   Returns a keywords list with version, git tag info and date.

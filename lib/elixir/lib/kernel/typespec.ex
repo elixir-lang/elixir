@@ -130,14 +130,6 @@ defmodule Kernel.Typespec do
     end
   end
 
-  @doc false
-  defmacro defspec(spec, [do: block]) do
-    IO.write "[WARNING] @spec f(...), do: type is deprecated, use @spec f(...) :: type\n#{Exception.env_stacktrace(__CALLER__)}"
-    quote do
-      Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote(spec) :: unquote(block)), __ENV__)
-    end
-  end
-
   @doc """
   Defines a spec.
   This macro is the one responsible to handle the attribute @spec.
@@ -150,14 +142,6 @@ defmodule Kernel.Typespec do
   defmacro defspec(spec) do
     quote do
       Kernel.Typespec.defspec(:spec, (quote line: :keep, do: unquote spec), __ENV__)
-    end
-  end
-
-  @doc false
-  defmacro defcallback(spec, [do: block]) do
-    IO.write "[WARNING] @callback f(...), do: type is deprecated, use @callback f(...) :: type\n#{Exception.env_stacktrace(__CALLER__)}"
-    quote do
-      Kernel.Typespec.defspec(:callback, (quote line: :keep, do: unquote(spec) :: unquote(block)), __ENV__)
     end
   end
 
@@ -546,14 +530,11 @@ defmodule Kernel.Typespec do
   end
 
   # Handle funs
-  defp typespec({:fun, line, args}, vars, caller) when is_list(args) do
-    IO.write "[WARNING] fun() type is deprecated, use (... -> type) instead\n#{Exception.env_stacktrace(caller)}"
-    typespec({:"->", line, [{args, quote do: any}]}, vars, caller)
+  defp typespec({:->, line, [{[{:fun, _, arguments}], return}]}, vars, caller) when is_list(arguments) do
+    typespec({:->, line, [{arguments, return}]}, vars, caller)
   end
-  defp typespec({:"->", line, [{[{:fun, _, arguments}], return}]}, vars, caller) when is_list(arguments) do
-    typespec({:"->", line, [{arguments, return}]}, vars, caller)
-  end
-  defp typespec({:"->", line, [{arguments, return}]}, vars, caller) when is_list(arguments) do
+
+  defp typespec({:->, line, [{arguments, return}]}, vars, caller) when is_list(arguments) do
     args = fn_args(line, arguments, return, vars, caller)
     { :type, line, :fun, args }
   end

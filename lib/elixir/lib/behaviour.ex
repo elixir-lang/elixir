@@ -45,11 +45,6 @@ defmodule Behaviour do
   @doc """
   Defines a callback according to the given type specification.
   """
-  defmacro defcallback(fun, do: return) do
-    IO.write "[WARNING] defcallback(fun, do: return) is deprecated, please use defcallback(fun :: return) instead\n#{Exception.env_stacktrace(__CALLER__)}"
-    do_defcallback(fun, return, __CALLER__)
-  end
-
   defmacro defcallback({ :::, _, [fun, return] }) do
     do_defcallback(fun, return, __CALLER__)
   end

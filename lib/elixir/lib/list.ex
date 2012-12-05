@@ -252,51 +252,6 @@ defmodule List do
     :lists.keydelete(key, position + 1, list)
   end
 
-  @doc false
-  def range(first, last, step // nil)
-
-  def range(first, last, step) when is_integer(first) and is_integer(last) and first <= last do
-    IO.write "[WARNING] List.range is deprecated, please use ranges instead\n#{Exception.formatted_stacktrace}"
-    case step do
-      nil ->
-        :lists.seq(first, last, 1)
-      x when x < 0 ->
-        []
-      _ ->
-        :lists.seq(first, last, step)
-    end
-  end
-
-  def range(first, last, step) when is_integer(first) and is_integer(last) and first > last do
-    IO.write "[WARNING] List.range is deprecated, please use ranges instead\n#{Exception.formatted_stacktrace}"
-    case step do
-      nil ->
-        :lists.seq(first, last, -1)
-      x when x > 0 ->
-        []
-      _ ->
-        :lists.seq(first, last, step)
-    end
-  end
-
-  @doc false
-  def sort(list) do
-    IO.write "[WARNING] List.sort is deprecated, please use Enum.sort instead\n#{Exception.formatted_stacktrace}"
-    :lists.sort list
-  end
-
-  @doc false
-  def sort(list, fun) do
-    IO.write "[WARNING] List.sort is deprecated, please use Enum.sort instead\n#{Exception.formatted_stacktrace}"
-    :lists.sort fun, list
-  end
-
-  @doc false
-  def uniq(list) when is_list(list) do
-    IO.write "[WARNING] List.uniq is deprecated, please use Enum.uniq instead\n#{Exception.formatted_stacktrace}"
-    do_uniq(list, [])
-  end
-
   @doc """
   Wraps the argument in a list.
   If the argument is already a list, returns the list.
@@ -353,20 +308,7 @@ defmodule List do
     :lists.map tuple_to_list(&1), zip(list)
   end
 
-  ## Private
-
-  # uniq
-
-  defp do_uniq([h|t], acc) do
-    case :lists.member(h, acc) do
-      true  -> do_uniq(t, acc)
-      false -> [h|do_uniq(t, [h|acc])]
-    end
-  end
-
-  defp do_uniq([], _acc) do
-    []
-  end
+  ## Helpers
 
   # zip
 

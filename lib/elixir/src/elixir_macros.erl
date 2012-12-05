@@ -86,11 +86,11 @@ translate({ function, Line, [_,_,_] = Args }, S) when is_list(Args) ->
 
 %% @
 
-translate({'@', Line, [{ Name, _, Args }]}, S) when is_list(Args) andalso (Name == typep orelse Name == type orelse Name == spec orelse Name == callback orelse Name == opaque) ->
+translate({'@', Line, [{ Name, _, [Arg] }]}, S) when Name == typep; Name == type; Name == spec; Name == callback; Name == opaque ->
   case elixir_compiler:get_opt(internal) of
     true  -> { { nil, Line }, S };
     false ->
-      Call = { { '.', Line, ['Elixir.Kernel.Typespec', spec_to_macro(Name)] }, Line, Args },
+      Call = { { '.', Line, ['Elixir.Kernel.Typespec', spec_to_macro(Name)] }, Line, [Arg] },
       translate_each(Call, S)
   end;
 

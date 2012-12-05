@@ -669,23 +669,6 @@ defmodule Enum do
     end
   end
 
-  @doc false
-  @spec qsort(t) :: list
-  def qsort(collection) when is_list(collection) do
-    IO.write "[WARNING] Enum.qsort is deprecated, please use Enum.sort instead\n#{Exception.formatted_stacktrace}"
-    do_list_qsort(collection, [])
-  end
-
-  def qsort(collection) do
-    case I.iterator(collection) do
-      { iterator, pointer } ->
-        IO.write "[WARNING] Enum.qsort is deprecated, please use Enum.sort instead\n#{Exception.formatted_stacktrace}"
-        do_qsort(pointer, iterator, [])
-      list when is_list(list) ->
-        qsort(list)
-    end
-  end
-
   @doc """
   Sorts the collection using the merge sort algorithm.
 
@@ -1460,56 +1443,6 @@ defmodule Enum do
 
   defp do_split_while(:stop, _, _, acc) do
     { :lists.reverse(acc), [] }
-  end
-
-  ## qsort (lists)
-
-  defp do_list_qsort([], acc) do
-    acc
-  end
-
-  defp do_list_qsort([h|t], acc) do
-    do_list_qsort_part(h, t, {[], [h], []}, acc)
-  end
-
-  defp do_list_qsort_part(_, [], { l, e, g }, acc) do
-    do_list_qsort(l, e ++ do_list_qsort(g, acc))
-  end
-
-  defp do_list_qsort_part(x, [h|t], { l, e, g }, acc) do
-    cond do
-      h < x ->
-        do_list_qsort_part(x, t, { [h|l], e, g }, acc)
-      h > x ->
-        do_list_qsort_part(x, t, { l, e, [h|g] }, acc)
-      true ->
-        do_list_qsort_part(x, t, { l, [h|e], g }, acc)
-    end
-  end
-
-  ## qsort (iterator)
-
-  defp do_qsort({ h, next }, iterator, acc) do
-    do_qsort_part(h, iterator.(next), iterator, {[], [h], []}, acc)
-  end
-
-  defp do_qsort(:stop, _iterator, acc) do
-    acc
-  end
-
-  defp do_qsort_part(_, :stop, _iterator, { l, e, g }, acc) do
-    do_list_qsort(l, e ++ do_list_qsort(g, acc))
-  end
-
-  defp do_qsort_part(x, { h, next }, iterator, { l, e, g }, acc) do
-    cond do
-      h < x ->
-        do_qsort_part(x, iterator.(next), iterator, { [h|l], e, g }, acc)
-      h > x ->
-        do_qsort_part(x, iterator.(next), iterator, { l, e, [h|g] }, acc)
-      true ->
-        do_qsort_part(x, iterator.(next), iterator, { l, [h|e], g }, acc)
-    end
   end
 
   ## take

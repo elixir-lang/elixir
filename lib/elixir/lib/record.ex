@@ -75,7 +75,6 @@ defmodule Record do
       indexes(escaped),
       conversions(values),
       updater(values),
-      extensions(values, 1, [], Record.Extensions),
       accessors(values),
     ]
 
@@ -506,14 +505,6 @@ defmodule Record do
     end
   end
 
-  # Defines extra functions from the definition.
-  defp extensions([{ key, default }|t], i, acc, extensions) do
-    functions = extensions.functions_for(key, default, i)
-    extensions(t, i + 1, [functions | acc], extensions)
-  end
-
-  defp extensions([], _i, acc, _), do: acc
-
   ## Types/specs generation
 
   defp core_specs(values) do
@@ -595,66 +586,5 @@ defmodule Record.DSL do
     quote do
       @record_type quote do: unquote(opts)
     end
-  end
-end
-
-defmodule Record.Extensions do
-  @moduledoc false
-
-  # Function definition
-
-  def functions_for(key, default, i) do
-    extension_for(key, default, i)
-  end
-
-  defp extension_for(key, default, i) when is_list(default) do
-    prepend = prefix("prepend_", key)
-    merge   = prefix("merge_", key)
-
-    quote do
-      def unquote(prepend).(value, record) do
-        IO.write "[WARNING] record default-based generated function #{unquote(prepend)} is deprecated\n#{Exception.formatted_stacktrace}"
-        current = :erlang.element(unquote(i + 1), record)
-        :erlang.setelement(unquote(i + 1), record, value ++ current)
-      end
-
-      def unquote(merge).(value, record) do
-        IO.write "[WARNING] record default-based generated function #{unquote(merge)} is deprecated\n#{Exception.formatted_stacktrace}"
-        current = :erlang.element(unquote(i + 1), record)
-        :erlang.setelement(unquote(i + 1), record, Keyword.merge(current, value))
-      end
-    end
-  end
-
-  defp extension_for(key, default, i) when is_number(default) do
-    increment = prefix("increment_", key)
-
-    quote do
-      def unquote(increment).(value // 1, record) do
-        IO.write "[WARNING] record default-based generated function #{unquote(increment)} is deprecated\n#{Exception.formatted_stacktrace}"
-        current = :erlang.element(unquote(i + 1), record)
-        :erlang.setelement(unquote(i + 1), record, current + value)
-      end
-    end
-  end
-
-  defp extension_for(key, default, i) when is_boolean(default) do
-    toggle = prefix("toggle_", key)
-
-    quote do
-      def unquote(toggle).(record) do
-        IO.write "[WARNING] record default-based generated function #{unquote(toggle)} is deprecated\n#{Exception.formatted_stacktrace}"
-        current = :erlang.element(unquote(i + 1), record)
-        :erlang.setelement(unquote(i + 1), record, not current)
-       end
-    end
-  end
-
-  defp extension_for(_, _, _), do: nil
-
-  # Helpers
-
-  defp prefix(prefix, key) do
-    binary_to_atom prefix <> atom_to_binary(key)
   end
 end
