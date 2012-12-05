@@ -13,6 +13,7 @@ defmodule GenServer.Behaviour do
 
   http://www.erlang.org/doc/man/gen_server.html
   http://www.erlang.org/doc/design_principles/gen_server_concepts.html
+  http://learnyousomeerlang.com/clients-and-servers
 
   ## Example
 

@@ -235,7 +235,13 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:app, app}, _config) when is_list(app) do
-    start_app list_to_atom(app)
+    case Application.Behaviour.start(list_to_atom(app)) do
+      { :error, reason } ->
+        IO.puts(:stderr, "Could not load application #{app}: #{inspect reason}")
+        System.halt(1)
+      :ok ->
+        :ok
+    end
   end
 
   defp process_command({:require, file}, _config) when is_list(file) do
@@ -259,22 +265,5 @@ defmodule Kernel.CLI do
     Code.compiler_options(config.compiler_options)
     Kernel.ParallelCompiler.files_to_path(files, config.output,
       fn file -> IO.puts "Compiled #{file}" end)
-  end
-
-  defp start_app(app) do
-    case :application.start(app) do
-      :ok ->
-        :ok
-      { :error, { :not_started, dep } } ->
-        if start_app(dep) == :ok, do: start_app(app)
-      { :error, { :already_started, _ } } ->
-        :ok
-      { :error, { msg, _app } } ->
-        IO.puts(:stderr, "Could not load application #{app}: #{msg}")
-        System.halt(1)
-      other ->
-        IO.puts(:stderr, "Could not load application #{app}: #{inspect other}")
-        System.halt(1)
-    end
   end
 end
