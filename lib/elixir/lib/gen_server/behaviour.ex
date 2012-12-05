@@ -26,7 +26,7 @@ defmodule GenServer.Behaviour do
           { :reply, h, t }
         end
 
-        def handle_call(request, from, config) do
+        def handle_call(_request, _from, _config) do
           super
         end
 
@@ -34,8 +34,8 @@ defmodule GenServer.Behaviour do
           { :noreply, [item|config] }
         end
 
-        def handle_cast(request, config) do
-          super(request, config)
+        def handle_cast(_request, _config) do
+          super
         end
       end
 
