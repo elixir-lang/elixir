@@ -1,14 +1,15 @@
 defmodule GenServer.Behaviour do
   @moduledoc """
-  By using this module, you get default GenServer callbacks
-  for `init`, `handle_call`, `handle_info`, `handle_cast`,
-  `terminate` and `code_change`. Since these functions are
-  defined as overridable, they can be customized and fallback
-  to the default behaviour by calling `super`.
+  This module is a convenience to define GenServer callbacks
+  in Elixir. By using this module, you get default implementations
+  for the funtions `init/1`, `handle_call/3`, `handle_info/2`,
+  `handle_cast/2`, `terminate/2` and `code_change/3`. Since these
+  functions are defined as overridable, they can be customized
+  and fallback to the default behaviour by calling `super`.
 
-  This module also tags the behavior as :gen_server. For more
-  information on gen_server, please refer to the Erlang
-  documentation:
+  Starting and sending messages to the gen_server is done
+  via Erlang's `:gen_server` module. For more information,
+  please refer to the Erlang documentation:
 
   http://www.erlang.org/doc/man/gen_server.html
   http://www.erlang.org/doc/design_principles/gen_server_concepts.html
@@ -20,24 +21,33 @@ defmodule GenServer.Behaviour do
 
         # Callbacks
 
-        def handle_call(:peek, _from, [h|_] = state) do
-          { :reply, h, state }
+        def handle_call(:pop, _from, [h|t]) do
+          { :reply, h, t }
         end
 
-        # Default behaviour
         def handle_call(request, from, config) do
-          super(request, from, config)
+          super
         end
 
-        def handle_cast({ :push, item }, state) do
-          { :noreply, [item|state] }
+        def handle_cast({ :push, item }, config) do
+          { :noreply, [item|config] }
         end
 
-        # Default cast behaviour
         def handle_cast(request, config) do
           super(request, config)
         end
       end
+
+      { :ok, pid } = :gen_server.start_link(MyServer, [:hello], [])
+
+      :gen_server.call(pid, :pop)
+      #=> :hello
+
+      :gen_server.cast(pid, { :push, :world })
+      #=> :ok
+
+      :gen_server.call(pid, :pop)
+      #=> :world
 
   """
 
@@ -51,7 +61,7 @@ defmodule GenServer.Behaviour do
       end
 
       def handle_call(_request, _from, state) do
-        { :reply, :undef, state }
+        { :noreply, state }
       end
 
       def handle_info(_msg, state) do
