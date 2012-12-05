@@ -54,7 +54,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
     in_fixture "no_mixfile", fn ->
       # Nothing to compile with the custom source paths
-      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run([])
+      refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
   after
     Mix.Project.pop

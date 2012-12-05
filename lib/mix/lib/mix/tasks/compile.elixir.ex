@@ -43,14 +43,14 @@ defmodule Mix.Tasks.Compile.Elixir do
     { opts, _ } = OptionParser.parse(args,
                     flags: [:force, :quick], aliases: [q: :quick])
 
-    project       = Mix.project
-    compile_path  = project[:compile_path]
-    compile_exts  = project[:compile_exts]
-    watch_exts    = project[:watch_exts]
-    source_paths  = project[:source_paths]
+    project      = Mix.project
+    compile_path = project[:compile_path]
+    compile_exts = project[:compile_exts]
+    watch_exts   = project[:watch_exts]
+    source_paths = project[:source_paths]
 
     to_compile = Mix.Utils.extract_files(source_paths, compile_exts)
-    to_watch   = Mix.Utils.extract_files(source_paths, watch_exts)
+    to_watch   = Mix.Project.sources ++ Mix.Utils.extract_files(source_paths, watch_exts)
     stale      = Mix.Utils.extract_stale(to_watch, [compile_path])
 
     if opts[:force] or stale != [] do
@@ -74,9 +74,8 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   defp compile_files(false, project, compile_path, to_compile, _stale) do
     Code.delete_path compile_path
-    if elixir_opts = project[:elixirc_options] do
-      Code.compiler_options(elixir_opts)
-    end
+    opts = project[:elixirc_options] || []
+    Code.compiler_options(opts)
     compile_files to_compile, compile_path
     Code.prepend_path compile_path
   end

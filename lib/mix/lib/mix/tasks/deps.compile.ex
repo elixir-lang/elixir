@@ -75,6 +75,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
       Code.prepend_path ebin
     end
+
+    Mix.Deps.Lock.touch
   end
 
   defp mix?,   do: File.regular?("mix.exs")

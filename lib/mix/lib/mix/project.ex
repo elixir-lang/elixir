@@ -58,6 +58,12 @@ defmodule Mix.Project do
     Mix.Server.call(:pop_project)
   end
 
+  # Registers post config.
+  @doc false
+  def post_config(config) do
+    Mix.Server.cast({ :post_config, config })
+  end
+
   @doc """
   Refresh the project configuration. Usually required
   when the environment changes during a task.
@@ -75,7 +81,7 @@ defmodule Mix.Project do
   function raises `Mix.NoProjectError` in case no project
   is available.
 
-  Returns nil if no project./
+  Returns nil if no project.
   """
   def get do
     case Mix.Server.call(:projects) do
@@ -102,10 +108,23 @@ defmodule Mix.Project do
     end
   end
 
-  # Registers post config.
-  @doc false
-  def post_config(config) do
-    Mix.Server.cast({ :post_config, config })
+  @doc """
+  Returns a list of project source files (mix.exs and mix.lock)
+  """
+  def sources do
+    opts     = []
+    project  = get
+    lockfile = config[:lockfile]
+
+    if File.regular?(lockfile) do
+      opts = [lockfile|opts]
+    end
+
+    if project do
+      opts = [Mix.Utils.source(project)|opts]
+    end
+
+    opts
   end
 
   defp default_config do

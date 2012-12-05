@@ -1,13 +1,11 @@
 defmodule Mix.Deps.Lock do
-  @moduledoc """
-  This is the module responsible to manage mix.lock file.
-  """
+  @moduledoc false
 
   @doc """
-  Returns the lockfile path.
+  Touch the lockfile.
   """
-  def lockfile do
-    Mix.project[:lockfile]
+  def touch(file // lockfile) do
+    File.touch(file)
   end
 
   @doc """
@@ -18,7 +16,7 @@ defmodule Mix.Deps.Lock do
     case File.read(file) do
       { :ok, info } ->
         { value, _binding } = Code.eval(info)
-        value
+        value || []
       { :error, _ } ->
         []
     end
@@ -33,5 +31,9 @@ defmodule Mix.Deps.Lock do
     end
 
     File.write! file, "[ " <> Enum.join(lines, ",\n  ") <> " ]"
+  end
+
+  defp lockfile do
+    Mix.project[:lockfile]
   end
 end
