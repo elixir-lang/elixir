@@ -1,6 +1,7 @@
 * enhancements
   * [CLI] Support `--app` option to start an application and its dependencies
   * [Kernel] Introduce `Application.Behaviour` to define application module callbacks
+  * [Kernel] Introduce `Supervisor.Behaviour` to define supervisors callbacks
 
 # v0.7.2 (2012-12-04)
 

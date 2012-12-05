@@ -9,7 +9,7 @@ defmodule GenServer.Behaviour do
 
   Starting and sending messages to the gen_server is done
   via Erlang's `:gen_server` module. For more information,
-  please refer to the Erlang documentation:
+  please refer to the following:
 
   http://www.erlang.org/doc/man/gen_server.html
   http://www.erlang.org/doc/design_principles/gen_server_concepts.html
