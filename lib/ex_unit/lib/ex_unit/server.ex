@@ -5,8 +5,8 @@ defmodule ExUnit.Server do
 
   defrecord Config, options: [], async_cases: [], sync_cases: [], after_spawn: []
 
-  def start_link do
-    :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, [], [])
+  def start_link(options) do
+    :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, options, [])
   end
 
   ## Before run API
@@ -48,8 +48,8 @@ defmodule ExUnit.Server do
 
   ## Callbacks
 
-  def init(_args) do
-    { :ok, Config.new }
+  def init(options) do
+    { :ok, Config[options: options] }
   end
 
   def handle_call(:options, _from, config) do

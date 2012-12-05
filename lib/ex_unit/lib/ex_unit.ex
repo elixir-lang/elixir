@@ -37,34 +37,41 @@ defmodule ExUnit do
 
   Check ExUnit.Assertions for assertions documentation.
 
-  """
+  ## User config
 
-  @doc """
-  Start ExUnit. Required to be invoked before loading
-  any file that uses ExUnit.Case. Check `configure/1`
-  to see the supported options.
-
-  This function will also try to read a user config from the following
-  locations, in this order:
+  When started, ExUnit automatically reads a user configuration
+  from the following locations, in this order:
 
   * $EXUNIT_CONFIG environment variable
   * $HOME/.ex_unit.exs
 
-  If none found, no user config will be read. 
+  If none found, no user config will be read.
 
   User config is an elixir file which should return a keyword list
-  with ex_unit options. Please note that explicit options passed to start/1 
-  will take precedence over user options.
+  with ex_unit options. Please note that explicit options passed
+  to start/1 or configure/1 will take precedence over user options.
 
-  # User config example (~/.ex_unit.exs)
-
-    [formatter: ExUnit.Formatter.ANSI]
+      # User config example (~/.ex_unit.exs)
+      [formatter: ExUnit.Formatter.ANSI]
 
   """
+
+  use Application.Behaviour
+
+  @doc false
+  def start(_type, []) do
+    ExUnit.Sup.start_link(user_options)
+  end
+
+  @doc """
+  Starts up ExUnit and automatically set it up to run tests.
+  Check `configure/1` to see the supported options.
+  """
   def start(options // []) do
-    options = Keyword.merge(user_options, options)    
-    ExUnit.Server.start_link
+    Application.Behaviour.start(:ex_unit)
+
     configure(options)
+
     System.at_exit fn
       0 ->
         failures = ExUnit.run
@@ -94,7 +101,7 @@ defmodule ExUnit do
   end
 
   @doc """
-  Configure ExUnit.
+  Configures ExUnit.
 
   ## Options
 
@@ -109,7 +116,7 @@ defmodule ExUnit do
   end
 
   @doc """
-  Register a callback to be invoked every time a
+  Registers a callback to be invoked every time a
   new ExUnit process is spawned.
   """
   def after_spawn(callback) do
@@ -117,8 +124,8 @@ defmodule ExUnit do
   end
 
   @doc """
-  API used to run the tests. A developer does not
-  need to call it directly.
+  API used to run the tests. It is invoked automatically
+  after tests are loaded if ExUnit is started via `ExUnit.start`.
   """
   def run do
     ExUnit.Runner.run ExUnit.Server.options

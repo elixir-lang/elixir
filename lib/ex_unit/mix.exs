@@ -6,8 +6,7 @@ defmodule ExUnit.Mixfile do
   end
 
   def application do
-    [
-      registered: [ExUnit.Server]
-    ]
+    [ registered: [ExUnit.Server],
+      mod: { ExUnit, [] } ]
   end
 end
