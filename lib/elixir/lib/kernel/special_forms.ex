@@ -1,8 +1,12 @@
 defmodule Kernel.SpecialForms do
   @moduledoc """
-  In this module we define Elixir special forms. Those are called
-  special forms because they cannot be overridden by the developer
-  and sometimes have lexical scope (like `alias`, `import`, etc).
+  In this module we define Elixir special forms. Special forms
+  cannot be overriden by the developer and are the basic
+  building blocks of Elixir code.
+
+  Some of those forms are lexical (like `alias`, `import`, etc).
+  The macros `{}`, `[]` and `<<>>` are also special forms used
+  to define data structures, respectively tuples, lists and binaries.
 
   This module also documents Elixir's pseudo variables (`__MODULE__`,
   `__FILE__`, `__ENV__` and `__CALLER__`). Pseudo variables return
@@ -22,6 +26,7 @@ defmodule Kernel.SpecialForms do
 
       :{}.(1,2,3)
       { 1, 2, 3 }
+
   """
   defmacro :{}.(args)
 
@@ -32,6 +37,7 @@ defmodule Kernel.SpecialForms do
 
       :[].(1,2,3)
       [ 1, 2, 3 ]
+
   """
   defmacro :[].(args)
 
@@ -42,6 +48,64 @@ defmodule Kernel.SpecialForms do
 
       :<<>>.(1,2,3)
       << 1, 2, 3 >>
+
+  ## Bitstring types
+
+  A bitstring may contain many parts and those may have
+  specifi types. Most of the time, Elixir will figure out
+  the part's type and won't require any work from you:
+
+      <<102, "oo">>
+      #=> "foo"
+
+  Above we have two parts: the first is an integer and the
+  second is a binary. If we use any other Elixir expression,
+  Elixir can no longer guess the type:
+
+      rest = "oo"
+      <<102, rest>>
+      #=> ** (ArgumentError) argument error
+
+  When a variable or expression is given as a binary part,
+  Elixir defaults the type of that part to an integer. In
+  the example above, since we haven't specified a type, Elixir
+  expected an integer but we passed a binary, resulting in
+  `ArgumentError`. We can solve this by explicitly tagging
+  it as a binary:
+
+      <<102, rest :: binary>>
+
+  The type can be integer, float, binary, bytes, bitstring,
+  bits, utf8, utf16 or utf32:
+
+      <<102, rest :: utf8>>
+
+  The signedness can also be given as signed or unsigned. The
+  signedness only matters for matching. Finally, the endieness
+  can be big, little or native (meaning it will be solved at
+  load time). Passing many options can be done by giving a list:
+
+      <<102, rest :: [binary, native]>>
+
+  Finally, we can also specify size and unit for each part. The
+  unit is multiplied by the size to give the effective size of
+  the part:
+
+      <<102, rest :: [size(2), unit(8)]>> = "foo"
+      "foo"
+
+      <<102, rest :: size(16)>> = "foo"
+      "foo"
+
+      <<102, rest :: size(32)>> = "foo"
+      ** (MatchError) no match of right hand side value: "foo"
+
+  In the example above, the first two expressions matches
+  because the string "foo" takes 24 bits and we are matching
+  against a part of 24 bits as well, 8 of which are taken by
+  the integer 102 and the remaining 16 bits are specified on
+  the rest. On the last example, we expect a rest with size 32,
+  which won't match.
   """
   defmacro :<<>>.(args)
 

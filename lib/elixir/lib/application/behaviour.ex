@@ -51,11 +51,11 @@ defmodule Application.Behaviour do
 
   # Starts the given application and all of its dependencies that
   # have not been started yet recursively.
-  # 
+  #
   # ## Supported types
-  # 
+  #
   # When starting an application, a type can be given:
-  # 
+  #
   # * `:permanent` - If a permanent application terminates, all other
   #    applications and the runtime system are also terminated;
   # * `:transient` - If a transient application terminates with reason
@@ -64,15 +64,15 @@ defmodule Application.Behaviour do
   #    applications and the runtime system are also terminated;
   # * `:temporary` -  If a temporary application terminates, this is reported
   #    but no other applications are terminated.
-  # 
+  #
   # The type only applies to the application being started. Its dependencies
   # are all started with default type (which is :temporary).
-  # 
+  #
   # Note that transient mode is of little practical use, since when a
   # supervision tree terminates, the reason is set to shutdown, not normal.
-  # 
+  #
   # ## Examples
-  # 
+  #
   #     Application.Behaviour.start(:my_app)
   #
   @doc false
