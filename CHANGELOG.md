@@ -2,6 +2,8 @@
   * [CLI] Support `--app` option to start an application and its dependencies
   * [Kernel] Introduce `Application.Behaviour` to define application module callbacks
   * [Kernel] Introduce `Supervisor.Behaviour` to define supervisors callbacks
+  * [Mix] Mix now starts dependencies' applications for compilation
+  * [Mix] Mix now starts the current application before run, iex, test and friends
 
 # v0.7.2 (2012-12-04)
 
