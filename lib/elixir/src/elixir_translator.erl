@@ -246,27 +246,24 @@ translate_each({ quote, Line, [Left, Right] }, S) ->
 
 translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
   Exprs =
-  case lists:keyfind(do, 1, T) of
-    {do, E} -> E;
-    false ->
-      syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote")
-  end,
+    case lists:keyfind(do, 1, T) of
+      { do, E } -> E;
+      false ->
+        syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote")
+    end,
 
   Marker = case lists:keyfind(hygiene, 1, T) of
     { hygiene, false } -> nil;
     _ -> quoted
   end,
 
-  { DefaultLine, WrappedExprs } = case lists:keyfind(location, 1, T) of
-    { location, keep } ->
-      Scoped = { '__scope__', GivenLine, [[{file,S#elixir_scope.file}],[{do,Exprs}]] },
-      { keep, Scoped };
-    _ ->
-      { 0, Exprs}
+  { DefaultLine, DefaultFile } = case lists:keyfind(location, 1, T) of
+    { location, keep }  -> { keep, keep };
+    _ -> { 0, nil }
   end,
 
   Line = case lists:keyfind(line, 1, T) of
-    { line, Value } -> Value;
+    { line, LineValue } -> LineValue;
     _ -> DefaultLine
   end,
 
@@ -275,12 +272,31 @@ translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
     _    -> translate_each(Line, S)
   end,
 
+  File = case lists:keyfind(file, 1, T) of
+    { file, FileValue } -> FileValue;
+    _ -> DefaultFile
+  end,
+
+  TFile = case File of
+    keep -> S#elixir_scope.file;
+    _    -> File
+  end,
+
+  TExprs = if
+    is_binary(TFile) ->
+      { '__scope__', GivenLine, [[{file,TFile}],[{do,Exprs}]] };
+    File == nil ->
+      Exprs;
+    true ->
+      syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote, expected :file to be a binary")
+  end,
+
   Unquote = case lists:keyfind(unquote, 1, T) of
     { unquote, false } -> false;
     _ -> true
   end,
 
-  elixir_quote:quote(WrappedExprs, #elixir_quote{marker=Marker, line=TLine, unquote=Unquote}, SL);
+  elixir_quote:quote(TExprs, #elixir_quote{marker=Marker, line=TLine, unquote=Unquote}, SL);
 
 translate_each({ quote, GivenLine, [_] }, S) ->
   syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote");

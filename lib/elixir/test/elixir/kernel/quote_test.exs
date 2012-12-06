@@ -18,6 +18,10 @@ defmodule Kernel.QuoteTest.Hygiene do
   defmacro read_interference do
     quote do: 10 = var!(a)
   end
+
+  defmacro custom_file do
+    quote file: "HELLO", do: __FILE__
+  end
 end
 
 defmodule Kernel.QuoteTest do
@@ -45,6 +49,10 @@ defmodule Kernel.QuoteTest do
     read_interference
   end
 
+  test :file do
+    assert custom_file == "HELLO"
+  end
+
   test :list do
     assert quote(do: [1,2,3]) == [1,2,3]
   end
@@ -55,7 +63,7 @@ defmodule Kernel.QuoteTest do
 
   test :keep_line do
     ## DO NOT MOVE THIS LINE
-    assert quote(line: :keep, do: bar(1,2,3)) == { :bar, 58, [1,2,3] }
+    assert quote(line: :keep, do: bar(1,2,3)) == { :bar, 66, [1,2,3] }
   end
 
   test :fixed_line do
@@ -66,10 +74,10 @@ defmodule Kernel.QuoteTest do
     ## DO NOT MOVE THIS LINE
     assert quote(location: :keep, do: bar(1,2,3)) == {
       :__scope__,
-      67,
+      75,
       [
         [file: __FILE__],
-        [do: { :bar, 67, [1,2,3] }]
+        [do: { :bar, 75, [1,2,3] }]
       ]
     }
   end
@@ -77,7 +85,7 @@ defmodule Kernel.QuoteTest do
   test :quote_line_var do
     ## DO NOT MOVE THIS LINE
     line = __ENV__.line
-    assert quote(line: line, do: bar(1,2,3)) == { :bar, 79, [1,2,3] }
+    assert quote(line: line, do: bar(1,2,3)) == { :bar, 87, [1,2,3] }
   end
 
   test :unquote_call do
