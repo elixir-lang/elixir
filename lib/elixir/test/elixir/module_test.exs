@@ -5,7 +5,7 @@ defmodule ModuleTest.ToBeUsed do
 
   defmacro __using__(_) do
     target = __CALLER__.module
-    Module.put_attribute target, :has_callback, false
+    Module.put_attribute(target, :has_callback, false)
     Module.put_attribute(target, :before_compile, __MODULE__)
     Module.put_attribute(target, :after_compile, __MODULE__)
     Module.put_attribute(target, :before_compile, { __MODULE__, :callback })
@@ -46,18 +46,6 @@ defmodule ModuleTest.DuplicateAttribute do
   def third_foo, do: @foo
 end
 
-defmodule ModuleTest.DefinedFunctions do
-  def foo(1,2,3), do: 4
-
-  Module.register_attribute __MODULE__, :definitions_in
-  Module.register_attribute __MODULE__, :defined_def
-  Module.register_attribute __MODULE__, :defined_defp
-
-  @definitions_in Module.definitions_in __MODULE__
-  @defined_def  Module.definitions_in __MODULE__, :def
-  @defined_defp Module.definitions_in __MODULE__, :defp
-end
-
 defmodule ModuleTest do
   use ExUnit.Case, async: true
 
@@ -65,24 +53,18 @@ defmodule ModuleTest do
   @register_example :it_works
   @register_example :still_works
 
-  false = Module.defines? __MODULE__, { :eval_quoted_info, 0 }
-  false = Module.defines? __MODULE__, { :eval_quoted_info, 0 }, :def
-  false = Module.defines? __MODULE__, { :eval_quoted_info, 0 }, :defp
-  false = Module.defines? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
-
   contents = quote do: (def eval_quoted_info, do: { __MODULE__, __FILE__, __ENV__.line })
   Module.eval_quoted __MODULE__, contents, [], file: "sample.ex", line: 13
 
-  true  = Module.defines? __MODULE__, { :eval_quoted_info, 0 }
-  true  = Module.defines? __MODULE__, { :eval_quoted_info, 0 }, :def
-  false = Module.defines? __MODULE__, { :eval_quoted_info, 0 }, :defp
-  false = Module.defines? __MODULE__, { :eval_quoted_info, 0 }, :defmacro
+  defmacrop in_module(block) do
+    quote do
+      defmodule Temp, unquote(block)
+      :code.purge(Temp)
+      :code.delete(Temp)
+    end
+  end
 
-  Module.put_attribute __MODULE__, :value, 1
-  Module.put_attribute __MODULE__, :other_value, 1
-  Module.put_attribute __MODULE__, :other_value, 2
-
-  nil = __ENV__.function
+  ## Eval
 
   test :eval_quoted do
     assert eval_quoted_info() == { ModuleTest, "sample.ex", 13 }
@@ -92,9 +74,7 @@ defmodule ModuleTest do
     assert ModuleTest.ToUse.line == 37
   end
 
-  test :__MODULE__ do
-    assert __MODULE__ == :"Elixir-ModuleTest"
-  end
+  ## Callbacks
 
   test :compile_callback_hook do
     refute ModuleTest.ToUse.original_value(1)
@@ -104,6 +84,44 @@ defmodule ModuleTest do
   test :before_compile_callback_hook do
     assert ModuleTest.ToUse.before_compile
   end
+
+  test :on_definition do
+    defmodule OnDefinition do
+      @on_definition ModuleTest
+
+      def hello(foo, bar) do
+        foo + bar
+      end
+    end
+
+    assert Process.get(ModuleTest.OnDefinition) == :called
+  end
+
+  def __on_definition__(env, kind, name, args, guards, expr) do
+    Process.put(env.module, :called)
+    assert env.module == ModuleTest.OnDefinition
+    assert kind == :def
+    assert name == :hello
+    assert [{ :foo, _, _ }, { :bar, _ ,_ }] = args
+    assert [] = guards
+    assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
+  end
+
+  test :overridable_inside_before_compile do
+    defmodule OverridableWithBeforeCompile do
+      @before_compile ModuleTest
+    end
+    assert OverridableWithBeforeCompile.constant == 1
+  end
+
+  defmacro __before_compile__(_) do
+    quote do
+      def constant, do: 1
+      defoverridable constant: 0
+    end
+  end
+
+  ## Attributes
 
   test :reserved_attributes do
     assert List.keyfind(ExUnit.Server.__info__(:attributes), :behavior, 0) == {:behavior,[:gen_server]}
@@ -118,19 +136,15 @@ defmodule ModuleTest do
     assert [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest.DuplicateAttribute.__info__(:attributes)
   end
 
+  @some_attribute  [1]
+  @other_attribute [3,2,1]
+
   test :inside_function_attributes do
-    assert [1] = ModuleTest.DuplicateAttribute.first_foo
-    assert [3,2,1] = ModuleTest.DuplicateAttribute.third_foo
+    assert [1] = @some_attribute
+    assert [3,2,1] = @other_attribute
   end
 
-  test :function_from___ENV__ do
-    assert __ENV__.function == { :test_function_from___ENV__, 0 }
-  end
-
-  test :apply do
-    assert apply(Enum, :reverse, [[1|[2,3]]]) == [3,2,1]
-    assert apply(fn x -> x * 2 end, [2]) == 4
-  end
+  ## Naming
 
   test :concat do
     assert Module.concat(Foo, Bar)  == Foo.Bar
@@ -148,15 +162,6 @@ defmodule ModuleTest do
     end
   end
 
-  test :definitions_in do
-    attrs  = ModuleTest.DefinedFunctions.__info__(:attributes)
-    finder = List.keyfind(attrs, &1, 0)
-
-    assert finder.(:definitions_in) == {:definitions_in,[{:foo, 3}]}
-    assert finder.(:defined_def) == {:defined_def,[{:foo, 3}]}
-    assert finder.(:defined_defp) == {:defined_defp,[]}
-  end
-
   test :split do
     module = Very.Long.Module.Name.And.Even.Longer
     assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
@@ -164,32 +169,16 @@ defmodule ModuleTest do
     assert Module.concat(Module.split(module)) == module
   end
 
+  test :to_binary do
+    assert Module.to_binary(Hello.World) == "Hello.World"
+  end
+
+  ## Creation
+
   test :defmodule do
-    assert match?({ :module, LOL, binary, 3 } when is_binary(binary), defmodule LOL do
+    assert match?({ :module, Defmodule, binary, 3 } when is_binary(binary), defmodule Defmodule do
       1 + 2
     end)
-  end
-
-  def __on_definition__(env, kind, name, args, guards, expr) do
-    Process.put(env.module, :called)
-    assert env.module == ModuleTest.OnDefinition
-    assert kind == :def
-    assert name == :hello
-    assert [{ :foo, _, _ }, { :bar, _ ,_ }] = args
-    assert [] = guards
-    assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
-  end
-
-  test :on_definition do
-    defmodule OnDefinition do
-      @on_definition ModuleTest
-
-      def hello(foo, bar) do
-        foo + bar
-      end
-    end
-
-    assert Process.get(ModuleTest.OnDefinition) == :called
   end
 
   test :create do
@@ -202,21 +191,38 @@ defmodule ModuleTest do
     assert ModuleCreateSample.world
   end
 
-  defmacro __before_compile__(_) do
-    quote do
-      def constant, do: 1
-      defoverridable constant: 0
+  test :no_function_in_module_body do
+    in_module do
+      assert __ENV__.function == nil
     end
   end
 
-  test :overridable_inside_before_compile do
-    defmodule OverridableWithBeforeCompile do
-      @before_compile ModuleTest
+  ## Definitions
+
+  test :defines? do
+    in_module do
+      refute Module.defines? __MODULE__, { :foo, 0 }
+      def foo(), do: bar()
+      assert Module.defines? __MODULE__, { :foo, 0 }
+      assert Module.defines? __MODULE__, { :foo, 0 }, :def
+
+      refute Module.defines? __MODULE__, { :bar, 0 }, :defp
+      defp bar(), do: :ok
+      assert Module.defines? __MODULE__, { :bar, 0 }, :defp
+
+      refute Module.defines? __MODULE__, { :baz, 0 }, :defmacro
+      defmacro baz(), do: :ok
+      assert Module.defines? __MODULE__, { :baz, 0 }, :defmacro
     end
-    assert OverridableWithBeforeCompile.constant == 1
   end
 
-  test :to_binary do
-    assert Module.to_binary(Hello.World) == "Hello.World"
+  test :definitions_in do
+    in_module do
+      def foo(1,2,3), do: 4
+
+      assert Module.definitions_in(__MODULE__)        == [foo: 3]
+      assert Module.definitions_in(__MODULE__, :def)  == [foo: 3]
+      assert Module.definitions_in(__MODULE__, :defp) == []
+    end
   end
 end

@@ -44,6 +44,19 @@ defmodule KernelTest do
     assert :debug_info inlist Kernel.__info__(:compile)[:options]
   end
 
+  test :apply do
+    assert apply(Enum, :reverse, [[1|[2,3]]]) == [3,2,1]
+    assert apply(fn x -> x * 2 end, [2]) == 4
+  end
+
+  test :__MODULE__ do
+    assert __MODULE__ == :"Elixir-KernelTest"
+  end
+
+  test :function_from___ENV__ do
+    assert __ENV__.function == { :test_function_from___ENV__, 0 }
+  end
+
   defp x(value) when value in [1,2,3], do: true
   defp x(_),                           do: false
 
