@@ -218,7 +218,8 @@ defmodule ExUnit.Assertions do
   """
   def assert_raise(exception, message, function) when is_binary(message) and is_function(function) do
     error = assert_raise(exception, function)
-    assert error.message == message
+    assert error.message == message,
+      "Expected #{inspect exception} to be raised with message #{inspect message}, got: #{error.message}"
     error
   end
 
