@@ -52,7 +52,7 @@ defmodule Kernel.SpecialForms do
   ## Bitstring types
 
   A bitstring may contain many parts and those may have
-  specifi types. Most of the time, Elixir will figure out
+  specific types. Most of the time, Elixir will figure out
   the part's type and won't require any work from you:
 
       <<102, "oo">>
@@ -67,25 +67,64 @@ defmodule Kernel.SpecialForms do
       #=> ** (ArgumentError) argument error
 
   When a variable or expression is given as a binary part,
-  Elixir defaults the type of that part to an integer. In
-  the example above, since we haven't specified a type, Elixir
-  expected an integer but we passed a binary, resulting in
-  `ArgumentError`. We can solve this by explicitly tagging
-  it as a binary:
+  Elixir defaults the type of that part to an unsigned
+  little-endian integer. In the example above, since we haven't
+  specified a type, Elixir expected an integer but we passed a
+  binary, resulting in `ArgumentError`. We can solve this by
+  explicitly tagging it as a binary:
 
       <<102, rest :: binary>>
 
   The type can be integer, float, binary, bytes, bitstring,
-  bits, utf8, utf16 or utf32:
+  bits, utf8, utf16 or utf32, e.g.:
 
-      <<102, rest :: utf8>>
+      <<102 :: float, rest :: binary>>
+
+  Integer can be any arbitrary precision integer. A float is an
+  IEEE 754 binary32 or binary64 floating point number. A bitstring
+  is an arbitrary series of bits. A binary is a special case of
+  bitstring that has a total size divisible by 8.
+
+  The utf8, utf16, and utf32 types are for UTF code points.
+
+  The bits type is an alias for bitstring. The bytes type is an
+  alias for binary.
 
   The signedness can also be given as signed or unsigned. The
-  signedness only matters for matching. Finally, the endieness
-  can be big, little or native (meaning it will be solved at
-  load time). Passing many options can be done by giving a list:
+  signedness only matters for matching. If unspecified, it
+  defaults to unsigned. Example:
 
-      <<102, rest :: [binary, native]>>
+      <<-100 :: signed, rest :: binary>> = <<-100, "foo">>
+      #=> <<156,102,111,111>>
+
+  This match would have failed if we did not specify that the
+  value -100 is signed. If we're matching into a variable instead
+  of a value, the signedness won't be checked; rather, the number
+  will simply be interpreted as having the given (or implied)
+  signedness, e.g.:
+
+      <<val, rest :: binary>> = <<-100, "foo">>
+      val
+      #=> 156
+
+  Here, `val` is interpreted as unsigned.
+
+  Signedness is only relevant on integers.
+
+  The endianness of a part can be big, little or native (the
+  latter meaning it will be resolved at VM load time). Passing
+  many options can be done by giving a list:
+
+      <<102 :: [integer, native], rest :: binary>>
+
+  Or:
+
+      <<102 :: [unsigned, big, integer], rest :: binary>>
+
+  And so on.
+
+  Endianness only makes sense for integers and some UTF code
+  point types (utf16 and utf32).
 
   Finally, we can also specify size and unit for each part. The
   unit is multiplied by the size to give the effective size of
@@ -106,6 +145,20 @@ defmodule Kernel.SpecialForms do
   the integer 102 and the remaining 16 bits are specified on
   the rest. On the last example, we expect a rest with size 32,
   which won't match.
+
+  Size and unit are not applicable to utf8, utf16, and utf32.
+
+  The default size for integers is 8. For floats, it is 64. For
+  binaries, it is the size of the binary. Only the last binary
+  in a binary match can use the default size (all others must
+  have their size specified explicitly). Bitstrings do not have
+  a default size.
+
+  The default unit for integers, floats, and bitstrings is 1. For
+  binaries, it is 8.
+
+  For floats, unit * size must result in 32 or 64, corresponding
+  to binary32 and binary64, respectively.
   """
   defmacro :<<>>.(args)
 
