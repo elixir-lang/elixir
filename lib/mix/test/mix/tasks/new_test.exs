@@ -15,10 +15,7 @@ defmodule Mix.Tasks.NewTest do
       assert_file "hello_world/README.md", %r/# HelloWorld/
       assert_file "hello_world/.gitignore"
 
-      assert_file "hello_world/lib/hello_world.ex", fn(file) ->
-        assert file =~ %r/defmodule HelloWorld do/
-        assert file =~ %r/:ok = :application.start\(:hello_world\)/
-      end
+      assert_file "hello_world/lib/hello_world.ex",  %r/defmodule HelloWorld do/
 
       assert_file "hello_world/test/test_helper.exs", %r/HelloWorld.start/
       assert_file "hello_world/test/hello_world_test.exs", %r/defmodule HelloWorldTest do/
@@ -40,13 +37,42 @@ defmodule Mix.Tasks.NewTest do
       assert_file "HelloWorld/README.md", %r/# HelloWorld/
       assert_file "HelloWorld/.gitignore"
 
-      assert_file "HelloWorld/lib/hello_world.ex", fn(file) ->
-        assert file =~ %r/defmodule HelloWorld do/
-        assert file =~ %r/:ok = :application.start\(:hello_world\)/
-      end
+      assert_file "HelloWorld/lib/hello_world.ex", %r/defmodule HelloWorld do/
 
       assert_file "HelloWorld/test/test_helper.exs", %r/HelloWorld.start/
       assert_file "HelloWorld/test/hello_world_test.exs", %r/defmodule HelloWorldTest do/
+
+      assert_received { :mix_shell, :info, ["* creating mix.exs"] }
+      assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
+    end
+  end
+
+  test "new with --sup" do
+    in_tmp "new with underscore", fn ->
+      Mix.Tasks.New.run ["hello_world", "--sup"]
+
+      assert_file "hello_world/mix.exs", fn(file) ->
+        assert file =~ %r/app: :hello_world/
+        assert file =~ %r/version: "0.0.1"/
+        assert file =~ %r/[mod: { HelloWorld, \[\] }]/
+      end
+
+      assert_file "hello_world/README.md", %r/# HelloWorld/
+      assert_file "hello_world/.gitignore"
+
+      assert_file "hello_world/lib/hello_world.ex", fn(file) ->
+        assert file =~ %r/defmodule HelloWorld do/
+        assert file =~ %r/use Application.Behaviour/
+        assert file =~ %r/HelloWorld.Supervisor.start_link/
+      end
+
+      assert_file "hello_world/lib/hello_world/supervisor.ex", fn(file) ->
+        assert file =~ %r/defmodule HelloWorld.Supervisor do/
+        assert file =~ %r/supervise children, strategy: :one_for_one/
+      end
+
+      assert_file "hello_world/test/test_helper.exs", %r/HelloWorld.start/
+      assert_file "hello_world/test/hello_world_test.exs", %r/defmodule HelloWorldTest do/
 
       assert_received { :mix_shell, :info, ["* creating mix.exs"] }
       assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
@@ -65,10 +91,7 @@ defmodule Mix.Tasks.NewTest do
       assert_file "sample/README.md", %r/# HelloWorld/
       assert_file "sample/.gitignore"
 
-      assert_file "sample/lib/helloworld.ex", fn(file) ->
-        assert file =~ %r/defmodule HelloWorld do/
-        assert file =~ %r/:ok = :application.start\(:helloworld\)/
-      end
+      assert_file "sample/lib/helloworld.ex", %r/defmodule HelloWorld do/
 
       assert_file "sample/test/test_helper.exs", %r/HelloWorld.start/
       assert_file "sample/test/helloworld_test.exs", %r/defmodule HelloWorldTest do/

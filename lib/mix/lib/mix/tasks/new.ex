@@ -10,11 +10,16 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--app APP] [--module MODULE]
+      mix new PATH [--sup] [--app APP] [--module MODULE]
 
   A project at the given PATH  will be created. The
   application name and module name will be retrieved
-  from the path, unless `-app` or `--module` is given.
+  from the path, unless one of `-app` or `--module`
+  is given.
+
+  An `--sup` option can be given to generate an
+  app with a supervisor and an application module
+  that starts the supervisor.
 
   ## Examples
 
@@ -24,9 +29,14 @@ defmodule Mix.Tasks.New do
 
       mix new hello_world --app hello_world --module HelloWorld
 
+  To generate an app with supervisor and application behaviours:
+
+      mix new hello_world --sup
+
   """
   def run(argv) do
-    { opts, argv } = OptionParser.parse(argv)
+    { opts, argv } = OptionParser.parse(argv, flags: [:sup])
+
     case argv do
       [] ->
         raise Mix.Error, message: "expected PATH to be given, please use `mix new PATH`"
@@ -40,14 +50,22 @@ defmodule Mix.Tasks.New do
 
   defp do_generate(app, opts) do
     mod     = opts[:module] || camelize(app)
-    assigns = [app: app, mod: mod]
+    otp_app = if opts[:sup], do: "[mod: { #{mod}, [] }]", else: "[]"
+    assigns = [app: app, mod: mod, otp_app: otp_app]
 
     create_file "README.md",  readme_template(assigns)
     create_file ".gitignore", gitignore_text
     create_file "mix.exs",    mixfile_template(assigns)
 
     create_directory "lib"
-    create_file "lib/#{app}.ex", lib_template(assigns)
+
+    if opts[:sup] do
+      create_file "lib/#{app}.ex", lib_app_template(assigns)
+      create_directory "lib/#{app}"
+      create_file "lib/#{app}/supervisor.ex", lib_supervisor_template(assigns)
+    else
+      create_file "lib/#{app}.ex", lib_template(assigns)
+    end
 
     create_directory "test"
     create_file "test/test_helper.exs", test_helper_template(assigns)
@@ -84,7 +102,7 @@ defmodule Mix.Tasks.New do
 
     # Configuration for the OTP application
     def application do
-      []
+      <%= @otp_app %>
     end
 
     # Returns the list of dependencies in the format:
@@ -97,8 +115,38 @@ defmodule Mix.Tasks.New do
 
   embed_template :lib, """
   defmodule <%= @mod %> do
-    def start do
-      :ok = :application.start(:<%= @app %>)
+  end
+  """
+
+  embed_template :lib_app, """
+  defmodule <%= @mod %> do
+    use Application.Behaviour
+
+    # See http://elixir-lang.org/docs/stable/Application.Behaviour.html
+    # for more information on OTP Applications
+    def start(_type, _args) do
+      <%= @mod %>.Supervisor.start_link
+    end
+  end
+  """
+
+  embed_template :lib_supervisor, """
+  defmodule <%= @mod %>.Supervisor do
+    use Supervisor.Behaviour
+
+    def start_link do
+      :supervisor.start_link(__MODULE__, [])
+    end
+
+    def init([]) do
+      children = [
+        # Define workers and child supervisors to be supervised
+        # worker(<%= @mod %>.Worker, [])
+      ]
+
+      # See http://elixir-lang.org/docs/stable/Supervisor.Behaviour.html
+      # for other strategies and supported options
+      supervise children, strategy: :one_for_one
     end
   end
   """
@@ -116,7 +164,6 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :test_helper, """
-  <%= @mod %>.start
   ExUnit.start
   """
 end

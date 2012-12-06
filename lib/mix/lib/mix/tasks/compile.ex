@@ -18,6 +18,12 @@ defmodule Mix.Tasks.Compile do
 
       [compilers: [:elixir, :mycompiler, :app]]
 
+  ## Command line options
+
+  * `--list` - List all enabled compilers.
+
+  Remaining options are forwarded to underlying compilers.
+
   ## Common configuration
 
   The following options are usually shared by different compilers:
@@ -41,10 +47,6 @@ defmodule Mix.Tasks.Compile do
     is a change:
 
         [compile_exts: [:ex]]
-
-  ## Command line options
-
-  * `--list` - List all enabled compilers.
 
   """
   def run(["--list"]) do

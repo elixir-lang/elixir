@@ -95,7 +95,7 @@ defmodule Mix.Deps.Project do
     end
   end
 
-  defp vsn_match?(nil, actual), do: true
+  defp vsn_match?(nil, _actual), do: true
   defp vsn_match?(expected, actual) when is_binary(expected), do: actual == expected
   defp vsn_match?(expected, actual) when is_regex(expected),  do: actual =~ expected
 end

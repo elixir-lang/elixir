@@ -135,7 +135,7 @@ defmodule Mix.Project do
       default_task: "test",
       deps_path: "deps",
       lockfile: "mix.lock",
-      prepare_task: "compile",
+      prepare_task: "app.start",
       source_paths: ["lib"] ]
   end
 
@@ -143,6 +143,7 @@ defmodule Mix.Project do
 
   defp get_project_config(atom) do
     config = atom.project
+
     if env = config[:env][Mix.env] do
       config /> Keyword.delete(:env) /> Keyword.merge(env)
     else

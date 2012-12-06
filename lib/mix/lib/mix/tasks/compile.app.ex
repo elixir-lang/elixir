@@ -18,14 +18,14 @@ defmodule Mix.Tasks.Compile.App do
 
   http://www.erlang.org/doc/design_principles/applications.html
 
+  ## Command line options
+
+  * `--force` forces compilation regardless of mod times
+
   ## Configuration
 
   * `:app` - The application name as a binary (required)
   * `:version` - The application version as a binary (required)
-
-  ## Command line options
-
-  * `--force` forces compilation regardless of mod times
 
   """
   def run(args) do

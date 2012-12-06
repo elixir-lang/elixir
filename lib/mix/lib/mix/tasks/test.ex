@@ -16,6 +16,13 @@ defmodule Mix.Tasks.Test do
   A list of files can be given after the task name in
   order to select the files to compile.
 
+  ## Command line options
+
+  * `--force` - forces compilation regardless of module times;
+  * `--quick`, `-q` - only compile files that changed;
+  * `--no-compile` - do not compile even if files require compilation;
+  * `--no-start` - do not start applications after compilation;
+
   ## Configuration
 
   * `:test_paths` - path containing tests.

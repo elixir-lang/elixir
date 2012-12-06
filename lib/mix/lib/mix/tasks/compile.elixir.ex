@@ -26,17 +26,17 @@ defmodule Mix.Tasks.Compile.Elixir do
   development cycles, for such, a developer can pass
   the `--quick` otion.
 
+  ## Command line options
+
+  * `--force` - forces compilation regardless of module times;
+  * `--quick`, `-q` - only compile files that changed;
+
   ## Configuration
 
   * `:elixirc_options` - compilation options that applies
      to Elixir's compiler, they are: `:ignore_module_conflict`,
      `:docs` and `:debug_info`. By default, uses the same
      behaviour as Elixir
-
-  ## Command line options
-
-  * `--force` - forces compilation regardless of module times;
-  * `--quick`, `-q` - only compile files that changed;
 
   """
   def run(args) do
