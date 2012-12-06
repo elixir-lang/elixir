@@ -68,7 +68,8 @@ defmodule ExUnit do
   Check `configure/1` to see the supported options.
   """
   def start(options // []) do
-    Application.Behaviour.start(:ex_unit)
+    :application.start(:elixir)
+    :application.start(:ex_unit)
 
     configure(options)
 

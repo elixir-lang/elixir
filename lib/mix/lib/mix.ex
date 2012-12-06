@@ -11,13 +11,21 @@ defmodule Mix do
   [Elixir's website](http://elixir-lang.org).
   """
 
-  @doc """
-  Starts the mix application and its dependencies.
-  """
+  use Application.Behaviour
+
+  # Used internally to start the mix application and its dependencies.
+  @doc false
   def start do
-    Enum.each [:elixir, :mix], :application.start(&1)
-    Mix.Server.start_link get_env
+    :application.start(:elixir)
+    :application.start(:mix)
+  end
+
+  # Application behaviour callback
+  @doc false
+  def start(_, []) do
+    resp = Mix.Sup.start_link get_env
     Mix.SCM.register_builtin
+    resp
   end
 
   @doc """

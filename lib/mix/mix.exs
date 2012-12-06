@@ -6,8 +6,7 @@ defmodule Mix.Mixfile do
   end
 
   def application do
-    [
-      registered: [Mix.Server]
-    ]
+    [ registered: [Mix.Server],
+      mod: { Mix, [] } ]
   end
 end
