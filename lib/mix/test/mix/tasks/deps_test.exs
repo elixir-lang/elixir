@@ -44,7 +44,8 @@ defmodule Mix.Tasks.DepsTest do
         deps: [
           { :ok, %r"^0\.{1,2}",    raw: "deps/ok" },
           { :invalidvsn, %r"^2.0", raw: "deps/invalidvsn" },
-          { :noappfile,            raw: "deps/noappfile" }
+          { :noappfile,            raw: "deps/noappfile", app: false },
+          { :apppath,              raw: "deps/noappfile", app: "../deps/ok/ebin/ok.app" }
         ]
       ]
     end
@@ -83,6 +84,8 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* invalidvsn [raw: \"deps/invalidvsn\"]"] }
       assert_received { :mix_shell, :info, ["  the dependency does not match the specified version, got 0.1.0"] }
       assert_received { :mix_shell, :info, ["* noappfile [raw: \"deps/noappfile\"]"] }
+      assert_received { :mix_shell, :info, ["* apppath [raw: \"deps/noappfile\"]"] }
+      refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/apppath.app"] }
       refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/noappfile.app"] }
     end
   after

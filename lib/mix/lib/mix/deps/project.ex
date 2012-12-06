@@ -63,11 +63,14 @@ defmodule Mix.Deps.Project do
 
   defp status(scm, app, req, opts) do
     if scm.checked_out? opts do
-      if req do
-        app_path = File.join opts[:path], "ebin/#{app}.app"
-        validate_app_file(app_path, app, req)
-      else
+      opts_app = opts[:app]
+
+      if opts_app == false do
         { :ok, nil }
+      else
+        path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
+        path = File.join(opts[:path], path)
+        validate_app_file(path, app, req)
       end
     else
       { :unavailable, opts[:path] }
@@ -92,6 +95,7 @@ defmodule Mix.Deps.Project do
     end
   end
 
+  defp vsn_match?(nil, actual), do: true
   defp vsn_match?(expected, actual) when is_binary(expected), do: actual == expected
   defp vsn_match?(expected, actual) when is_regex(expected),  do: actual =~ expected
 end

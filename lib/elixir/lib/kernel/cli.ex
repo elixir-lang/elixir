@@ -237,7 +237,7 @@ defmodule Kernel.CLI do
   defp process_command({:app, app}, _config) when is_list(app) do
     case Application.Behaviour.start(list_to_atom(app)) do
       { :error, reason } ->
-        IO.puts(:stderr, "Could not load application #{app}: #{inspect reason}")
+        IO.puts(:stderr, "Could not start application #{app}: #{inspect reason}")
         System.halt(1)
       :ok ->
         :ok
