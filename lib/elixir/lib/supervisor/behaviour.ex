@@ -121,7 +121,7 @@ defmodule Supervisor.Behaviour do
     when the supervisor's strategy is `:rest_for_one` or `:one_for_all`);
 
   * `:transient` - the child process is restarted only if it
-    termiantes abnormally, i.e. with another exit reason than
+    terminates abnormally, i.e. with another exit reason than
     `:normal`, `:shutdown` or `{ :shutdown, term }`;
 
   ## Shutdown values
