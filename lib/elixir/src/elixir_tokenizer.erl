@@ -169,13 +169,11 @@ tokenize([$?,$\\,H|T], Line, Scope, Tokens) ->
 tokenize([$?,Char|T], Line, Scope, Tokens) ->
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
-% Dot identifier
+% Dot identifier/operators
 
 tokenize("..." ++ Rest, Line, Scope, Tokens) ->
   Token = tokenize_call_identifier(identifier, Line, '...', Rest),
   tokenize(Rest, Line, Scope, [Token|Tokens]);
-
-% Dot operators
 
 % ## Containers
 tokenize(".<<>>" ++ Rest, Line, Scope, Tokens) ->
@@ -245,7 +243,10 @@ tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
       interpolation_error(Error, " (for atom starting at line ~B)", [Line])
   end;
 
-% Atom operators
+% Atom identifiers/operators
+
+tokenize(":..." ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, '...' }|Tokens]);
 
 % ## Containers
 tokenize(":<<>>" ++ Rest, Line, Scope, Tokens) ->
