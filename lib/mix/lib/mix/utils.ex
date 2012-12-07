@@ -70,9 +70,17 @@ defmodule Mix.Utils do
     last_modifieds = Enum.map(targets, last_modified(&1))
 
     Enum.filter sources, fn(source) ->
-      source_stat = File.stat!(source).mtime
+      source_stat = source_mtime(source)
       Enum.any?(last_modifieds, source_stat > &1)
     end
+  end
+
+  defp source_mtime({ _, { { _, _, _ }, { _, _, _ } } = source }) do
+    source
+  end
+
+  defp source_mtime(source) do
+    File.stat!(source).mtime
   end
 
   defp last_modified(path) do
