@@ -71,10 +71,19 @@ defmodule ExUnit.CLIFormatter do
 
   defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
     IO.puts "#{acc}) #{test} (#{inspect test_case})"
-    IO.puts "  ** #{format_catch(kind, reason)}\n  stacktrace:"
-    Enum.each filter_stacktrace(stacktrace), fn(s) -> IO.puts "    #{format_stacktrace(s)}" end
+    IO.puts "  ** #{format_catch(kind, reason)}"
+    print_stacktrace(stacktrace)
     IO.write "\n"
     acc + 1
+  end
+
+  defp print_stacktrace([{ ExUnit.Assertions, _, _, _ }, { _, _, _, [ file: file, line: line ] }|_]) do
+    IO.puts "     at #{file}:#{line}"
+  end
+
+  defp print_stacktrace(stacktrace) do
+    IO.puts "  stacktrace:"
+    Enum.each stacktrace, fn(s) -> IO.puts "    #{format_stacktrace(s)}" end
   end
 
   defp format_catch(:error, exception) do
@@ -84,8 +93,4 @@ defmodule ExUnit.CLIFormatter do
   defp format_catch(kind, reason) do
     "(#{kind}) #{inspect(reason)}"
   end
-
-  defp filter_stacktrace([{ ExUnit.Assertions, _, _, _ }|t]), do: filter_stacktrace(t)
-  defp filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
-  defp filter_stacktrace([]), do: []
 end
