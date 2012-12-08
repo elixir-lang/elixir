@@ -36,7 +36,7 @@ defmodule Mix.Deps.Project do
       (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
 
     path = File.join(Mix.project[:deps_path], app)
-    opts = Keyword.put(opts, :path, path)
+    opts = Keyword.put(opts, :dest, path)
 
     { scm, opts } = Enum.find_value scms, fn(scm) ->
       (new = scm.accepts_options(opts)) && { scm, new }
@@ -69,11 +69,11 @@ defmodule Mix.Deps.Project do
         { :ok, nil }
       else
         path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
-        path = File.join(opts[:path], path)
+        path = File.join(opts[:dest], path)
         validate_app_file(path, app, req)
       end
     else
-      { :unavailable, opts[:path] }
+      { :unavailable, opts[:dest] }
     end
   end
 

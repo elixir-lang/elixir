@@ -103,6 +103,6 @@ defmodule Mix.SCM do
   """
   def register_builtin do
     register Mix.SCM.Git
-    register Mix.SCM.Raw
+    register Mix.SCM.Path
   end
 end

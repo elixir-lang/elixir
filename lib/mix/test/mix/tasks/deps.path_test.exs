@@ -1,6 +1,6 @@
 Code.require_file "../../../test_helper.exs", __FILE__
 
-defmodule Mix.Tasks.DepsRawTest do
+defmodule Mix.Tasks.DepsPathTest do
   use MixTest.Case
 
   defmodule DepsApp do
@@ -9,25 +9,25 @@ defmodule Mix.Tasks.DepsRawTest do
         app: :raw_sample,
         version: "0.1.0",
         deps: [
-          { :raw_repo, "0.1.0", raw: "custom/raw_repo" }
+          { :raw_repo, "0.1.0", path: "custom/raw_repo" }
         ]
       ]
     end
   end
 
-  test "updates and cleans raw repos with compilation" do
+  test "updates and cleans path repos with compilation" do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Update.run []
-      assert_received { :mix_shell, :info, ["* Updating raw_repo [raw: \"custom/raw_repo\"]"] }
+      assert_received { :mix_shell, :info, ["* Updating raw_repo [path: \"custom/raw_repo\"]"] }
       assert_received { :mix_shell, :info, ["Compiled lib/raw_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated raw_repo.app"] }
       assert File.exists?("custom/raw_repo/ebin/Elixir-RawRepo.beam")
 
       Mix.Tasks.Deps.Clean.run []
-      assert_received { :mix_shell, :info, ["* Cleaning raw_repo (0.1.0) [raw: \"custom/raw_repo\"]"] }
-      assert_received { :mix_shell, :info, ["  custom/raw_repo is a raw dependency, it was not cleaned"] }
+      assert_received { :mix_shell, :info, ["* Cleaning raw_repo (0.1.0) [path: \"custom/raw_repo\"]"] }
+      assert_received { :mix_shell, :info, ["  custom/raw_repo is a path dependency, it was not cleaned"] }
     end
   after
     purge [RawRepo, RawRepo.Mix]

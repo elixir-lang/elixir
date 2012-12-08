@@ -19,14 +19,8 @@ defmodule Mix.Tasks.Deps.Compile do
   The compilation can be customized by passing a `compile` option
   in the dependency:
 
-      { :some_dependency, "0.1.0", git: "...", compile: :compile_some_dependency }
+      { :some_dependency, "0.1.0", git: "...", compile: "command to compile" }
 
-  If the compile option is an atom, it will invoke the given atom
-  in the current project passing the app name as argument. Except
-  if the atom is `:noop`, where nothing is done.
-
-  If a binary, it is considered to be command line instructions
-  which mix will use to shell out.
   """
 
   import Mix.Deps, only: [all: 0, available?: 1, by_name!: 1, format_dep: 1]
@@ -49,7 +43,7 @@ defmodule Mix.Tasks.Deps.Compile do
       check_unavailable!(app, status)
       shell.info "* Compiling #{app}"
 
-      deps_path = opts[:path]
+      deps_path = opts[:dest]
       ebin = File.join(deps_path, "ebin") /> binary_to_list
 
       # Avoid compilation conflicts
@@ -120,15 +114,11 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_compile(_, :noop) do
+  defp do_compile(_, false) do
     :ok
   end
 
-  defp do_compile(app, atom) when is_atom(atom) do
-    apply Mix.Project.get!, atom, [app]
-  end
-
-  defp do_compile(app, command) do
+  defp do_compile(app, command) when is_binary(command) do
     if Mix.shell.cmd(command) != 0 do
       raise Mix.Error, message: "could not compile dependency #{app}, custom #{command} command failed"
     end
