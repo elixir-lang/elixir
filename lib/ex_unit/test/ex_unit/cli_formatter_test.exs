@@ -26,6 +26,7 @@ defmodule ExUnit.CLIFormatterTest do
 
     out_put = exec_test("raising_test.exs")
     assert out_put =~ %r/stacktrace:/
+    refute out_put =~ %r/ExUnit\.Runner/
   after
     File.rm("raising_test.exs")
   end
