@@ -138,6 +138,7 @@ defmodule ExUnit do
   Returns the number of failures.
   """
   def run do
-    ExUnit.Runner.run ExUnit.Server.options
+    { async, sync } = ExUnit.Server.cases
+    ExUnit.Runner.run async, sync, ExUnit.Server.options
   end
 end

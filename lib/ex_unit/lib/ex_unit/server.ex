@@ -33,12 +33,8 @@ defmodule ExUnit.Server do
     :gen_server.call(__MODULE__, :options)
   end
 
-  def take_sync_cases do
-    :gen_server.call(__MODULE__, :take_sync_cases)
-  end
-
-  def take_async_cases(count) when count > 0 do
-    :gen_server.call(__MODULE__, { :take_async_cases, count })
+  def cases do
+    :gen_server.call(__MODULE__, :cases)
   end
 
   def run_after_spawn do
@@ -60,21 +56,10 @@ defmodule ExUnit.Server do
     { :reply, Enum.reverse(config.after_spawn), config }
   end
 
-  def handle_call({:take_async_cases, count}, _from, config) do
-    case config.async_cases do
-      [] ->
-        { :reply, nil, config }
-      cases ->
-        { response, remaining } = Enum.split(cases, count)
-        { :reply, response, config.async_cases(remaining) }
-    end
-  end
-
-  def handle_call(:take_sync_cases, _from, config) do
-    case config.sync_cases do
-      [h|t] -> { :reply, [h], config.sync_cases(t) }
-      []    -> { :reply, nil, config }
-    end
+  def handle_call(:cases, _from, config) do
+    { :reply,
+      { config.async_cases, config.sync_cases },
+      config.async_cases([]).sync_cases([]) }
   end
 
   def handle_call(request, from, config) do

@@ -1,15 +1,16 @@
 defmodule ExUnit.Runner do
   @moduledoc false
 
-  defrecord Config, formatter: ExUnit.CLIFormatter, max_cases: 4, taken_cases: 0
+  defrecord Config, formatter: ExUnit.CLIFormatter, max_cases: 4,
+                    taken_cases: 0, async_cases: [], sync_cases: []
 
-  def run(opts) do
-    config = ExUnit.Runner.Config.new opts
+  def run(async, sync, opts) do
+    config = Config.new opts
     config.formatter.suite_started
-    loop config
+    loop config.async_cases(async).sync_cases(sync)
   end
 
-  defp loop(config) do
+  defp loop(Config[] = config) do
     available = config.max_cases - config.taken_cases
 
     cond do
@@ -18,7 +19,8 @@ defmodule ExUnit.Runner do
         wait_until_available config
 
       # Slots are available, start with async cases
-      cases = ExUnit.Server.take_async_cases(available) ->
+      tuple = take_async_cases(config, available) ->
+        { config, cases } = tuple
         spawn_cases(config, cases)
 
       # No more async cases, wait for them to finish
@@ -26,7 +28,8 @@ defmodule ExUnit.Runner do
         wait_until_available config
 
       # So we can start all sync cases
-      cases = ExUnit.Server.take_sync_cases ->
+      tuple = take_sync_cases(config) ->
+        { config, cases } = tuple
         spawn_cases(config, cases)
 
       # No more cases, we are done!
@@ -152,6 +155,22 @@ defmodule ExUnit.Runner do
   end
 
   ## Helpers
+
+  defp take_async_cases(Config[] = config, count) do
+    case config.async_cases do
+      [] -> nil
+      cases ->
+        { response, remaining } = Enum.split(cases, count)
+        { config.async_cases(remaining), response }
+    end
+  end
+
+  defp take_sync_cases(Config[] = config) do
+    case config.sync_cases do
+      [h|t] -> { config.sync_cases(t), [h] }
+      []    -> nil
+    end
+  end
 
   defp tests_for(mod) do
     exports = mod.__info__(:functions)
