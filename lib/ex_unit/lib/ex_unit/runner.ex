@@ -1,13 +1,13 @@
 defmodule ExUnit.Runner do
   @moduledoc false
 
-  defrecord Config, formatter: ExUnit.CLIFormatter, max_cases: 4,
-                    taken_cases: 0, async_cases: [], sync_cases: []
+  defrecord Config, formatter: ExUnit.CLIFormatter, formatter_id: nil,
+                    max_cases: 4, taken_cases: 0, async_cases: [], sync_cases: []
 
   def run(async, sync, opts) do
     config = Config.new opts
-    config.formatter.suite_started
-    loop config.async_cases(async).sync_cases(sync)
+    id     = config.formatter.suite_started(opts)
+    loop config.async_cases(async).sync_cases(sync).formatter_id(id)
   end
 
   defp loop(Config[] = config) do
@@ -34,7 +34,7 @@ defmodule ExUnit.Runner do
 
       # No more cases, we are done!
       true ->
-        config.formatter.suite_finished
+        config.formatter.suite_finished(config.formatter_id)
     end
   end
 
@@ -44,10 +44,10 @@ defmodule ExUnit.Runner do
   defp wait_until_available(config) do
     receive do
       { pid, :test_finished, { test_case, test, final } } ->
-        config.formatter.test_finished(test_case, test, final)
+        config.formatter.test_finished(config.formatter_id, test_case, test, final)
         wait_until_available config
       { pid, :case_finished, test_case } ->
-        config.formatter.case_finished(test_case)
+        config.formatter.case_finished(config.formatter_id, test_case)
         loop config.update_taken_cases(&1-1)
     end
   end
@@ -66,7 +66,7 @@ defmodule ExUnit.Runner do
   end
 
   defp run_tests(config, pid, test_case) do
-    config.formatter.case_started(test_case)
+    config.formatter.case_started(config.formatter_id, test_case)
 
     try do
       tests = tests_for(test_case)
@@ -79,7 +79,7 @@ defmodule ExUnit.Runner do
   end
 
   defp run_test(config, pid, test_case, setup_context, test) do
-    config.formatter.test_started(test_case, test)
+    config.formatter.test_started(config.formatter_id, test_case, test)
 
     final = try do
       context = run_setup(test_case, setup_context, test)

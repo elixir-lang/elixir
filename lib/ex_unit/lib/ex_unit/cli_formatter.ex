@@ -12,28 +12,29 @@ defmodule ExUnit.CLIFormatter do
 
   ## Behaviour
 
-  def suite_started do
-    :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, [], [])
+  def suite_started(_opts) do
+    { :ok, pid } = :gen_server.start_link(__MODULE__, [], [])
+    pid
   end
 
-  def suite_finished do
-    :gen_server.call(__MODULE__, :suite_finished)
+  def suite_finished(id) do
+    :gen_server.call(id, :suite_finished)
   end
 
-  def case_started(_) do
+  def case_started(_id, _test_case) do
     :ok
   end
 
-  def case_finished(_) do
+  def case_finished(_id, _test_case) do
     :ok
   end
 
-  def test_started(_test_case, _test) do
+  def test_started(_id, _test_case, _test) do
     :ok
   end
 
-  def test_finished(test_case, test, result) do
-    :gen_server.cast(__MODULE__, { :test_finished, test_case, test, result })
+  def test_finished(id, test_case, test, result) do
+    :gen_server.cast(id, { :test_finished, test_case, test, result })
   end
 
   ## Callbacks
