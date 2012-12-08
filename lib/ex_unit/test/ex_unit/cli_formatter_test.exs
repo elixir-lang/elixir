@@ -4,34 +4,18 @@ defmodule ExUnit.CLIFormatterTest do
   use ExUnit.Case, sync: false
 
   defp exec_test(file) do
-    cmd("#{elixir_path} #{file}")
+    System.cmd("#{elixir_path} #{file}")
   end
 
   defp elixir_path do
     File.expand_path("../../../../../bin/elixir", __FILE__)
   end
 
-  defp cmd(command) do
-    port = Port.open({ :spawn, to_char_list(command) },
-      [:stream, :binary, :exit_status, :hide])
-    do_cmd(port, "")
-  end
-
-  defp do_cmd(port, acc) do
-    receive do
-      { ^port, { :data, data } } ->
-        do_cmd(port, acc <> data)
-      { ^port, { :exit_status, status } } ->
-        acc
-    end
-  end
-
   test :print_stacktrace_when_raising_not_at_assertion do
     File.write "raising_test.exs", """
-    ExUnit.start
+    ExUnit.start formatter: ExUnit.CLIFormatter
     defmodule RaisingTest do
       use ExUnit.Case
-      ExUnit.configure formatter: ExUnit.CLIFormatter
 
       test :raise do
         Enum.each { :will_fail }
@@ -48,10 +32,9 @@ defmodule ExUnit.CLIFormatterTest do
 
   test :hide_stacktrace_when_raising_at_assertion do
     File.write "failure_test.exs", """
-    ExUnit.start
+    ExUnit.start formatter: ExUnit.CLIFormatter
     defmodule FailureTest do
       use ExUnit.Case
-      ExUnit.configure formatter: ExUnit.CLIFormatter
 
       test :fail do
         assert false
@@ -60,7 +43,7 @@ defmodule ExUnit.CLIFormatterTest do
     """
 
     out_put = exec_test("failure_test.exs")
-    assert out_put =~ %r/at\ #{File.expand_path("failure_test.exs")}:7/
+    assert out_put =~ %r/at\ #{File.expand_path("failure_test.exs")}:6/
   after
     File.rm("failure_test.exs")
   end
