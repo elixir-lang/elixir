@@ -116,7 +116,7 @@ defmodule ExUnit do
                    Defaults to `ExUnit.CLIFormatter`;
 
   * `:max_cases` - Maximum number of cases to run in parallel.
-                   Defaults to 4;
+                   Defaults to `:erlang.system_info(:schedulers_online)`;
 
   """
   def configure(options) do

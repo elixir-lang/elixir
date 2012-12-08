@@ -32,17 +32,18 @@ defmodule Kernel.ParallelCompiler do
 
   defp spawn_compilers(files, path, callback) do
     Code.ensure_loaded(Kernel.ErrorHandler)
-    spawn_compilers(files, path, callback, [], [], [])
+    schedulers = :erlang.system_info(:schedulers_online)
+    spawn_compilers(files, path, callback, [], [], schedulers, [])
   end
 
   # We already have 4 currently running, don't spawn new ones
-  defp spawn_compilers(files, output, callback, waiting, queued, result) when
-      length(queued) - length(waiting) >= 4 do
-    wait_for_messages(files, output, callback, waiting, queued, result)
+  defp spawn_compilers(files, output, callback, waiting, queued, schedulers, result) when
+      length(queued) - length(waiting) >= schedulers do
+    wait_for_messages(files, output, callback, waiting, queued, schedulers, result)
   end
 
   # Spawn a compiler for each file in the list until we reach the limit
-  defp spawn_compilers([h|t], output, callback, waiting, queued, result) do
+  defp spawn_compilers([h|t], output, callback, waiting, queued, schedulers, result) do
     parent = self()
 
     child  = spawn_link fn ->
@@ -63,25 +64,25 @@ defmodule Kernel.ParallelCompiler do
       end
     end
 
-    spawn_compilers(t, output, callback, waiting, [{child,h}|queued], result)
+    spawn_compilers(t, output, callback, waiting, [{child,h}|queued], schedulers, result)
   end
 
   # No more files, nothing waiting, queue is empty, we are done
-  defp spawn_compilers([], _output, _callback, [], [], result), do: result
+  defp spawn_compilers([], _output, _callback, [], [], _schedulers, result), do: result
 
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
-  defp spawn_compilers([], output, callback, waiting, queued, result) when length(waiting) == length(queued) do
+  defp spawn_compilers([], output, callback, waiting, queued, schedulers, result) when length(waiting) == length(queued) do
     Enum.each queued, fn { child, _ } -> child <- { :release, self() } end
-    wait_for_messages([], output, callback, waiting, queued, result)
+    wait_for_messages([], output, callback, waiting, queued, schedulers, result)
   end
 
   # No more files, but queue and waiting are not full or do not match
-  defp spawn_compilers([], output, callback, waiting, queued, result) do
-    wait_for_messages([], output, callback, waiting, queued, result)
+  defp spawn_compilers([], output, callback, waiting, queued, schedulers, result) do
+    wait_for_messages([], output, callback, waiting, queued, schedulers, result)
   end
 
   # Wait for messages from child processes
-  defp wait_for_messages(files, output, callback, waiting, queued, result) do
+  defp wait_for_messages(files, output, callback, waiting, queued, schedulers, result) do
     receive do
       { :compiled, child, file } ->
         callback.(file)
@@ -89,14 +90,14 @@ defmodule Kernel.ParallelCompiler do
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
         new_waiting = List.keydelete(waiting, child, 0)
-        spawn_compilers(files, output, callback, new_waiting, new_queued, result)
+        spawn_compilers(files, output, callback, new_waiting, new_queued, schedulers, result)
       { :module_available, child, module, binary } ->
         new_waiting = release_waiting_processes(module, waiting)
         new_result  = [{module, binary}|result]
-        wait_for_messages(files, output, callback, new_waiting, queued, new_result)
+        wait_for_messages(files, output, callback, new_waiting, queued, schedulers, new_result)
       { :waiting, child, on } ->
         new_waiting = OrdDict.store(child, on, waiting)
-        spawn_compilers(files, output, callback, new_waiting, queued, result)
+        spawn_compilers(files, output, callback, new_waiting, queued, schedulers, result)
       { :failure, child, kind, reason, stacktrace } ->
         extra = if match?({^child, module}, List.keyfind(waiting, child, 0)) do
           " (undefined module #{inspect module})"

@@ -5,9 +5,11 @@ defmodule ExUnit.Runner do
                     max_cases: 4, taken_cases: 0, async_cases: [], sync_cases: []
 
   def run(async, sync, opts) do
-    config = Config.new opts
-    id     = config.formatter.suite_started(opts)
-    loop config.async_cases(async).sync_cases(sync).formatter_id(id)
+    config = Config[max_cases: :erlang.system_info(:schedulers_online)]
+    config = config.update(opts)
+
+    loop config.async_cases(async).sync_cases(sync).
+           formatter_id(config.formatter.suite_started(opts))
   end
 
   defp loop(Config[] = config) do
