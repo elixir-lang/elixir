@@ -86,20 +86,20 @@ defmodule ExUnit.Runner do
         nil
       rescue
         error1 ->
-          { :error, error1, System.stacktrace }
+          { :error, error1, filtered_stacktrace }
       catch
         kind1, error1 ->
-          { kind1, error1, System.stacktrace }
+          { kind1, error1, filtered_stacktrace }
       end
 
       run_teardown(test_case, context, test)
       partial
     rescue
       error2 ->
-        { :error, error2, System.stacktrace }
+        { :error, error2, filtered_stacktrace }
     catch
       kind2, error2 ->
-        { kind2, error2, System.stacktrace }
+        { kind2, error2, filtered_stacktrace }
     end
 
     pid <- { self, :test_finished, { test_case, test, final } }
@@ -151,6 +151,8 @@ defmodule ExUnit.Runner do
     end
   end
 
+  ## Helpers
+
   defp tests_for(mod) do
     exports = mod.__info__(:functions)
     lc { function, 0 } inlist exports, is_test?(atom_to_list(function)), do: function
@@ -159,4 +161,16 @@ defmodule ExUnit.Runner do
   defp is_test?('test_' ++ _), do: true
   defp is_test?('test ' ++ _), do: true
   defp is_test?(_)           , do: false
+
+  defp filtered_stacktrace, do: filter_stacktrace(System.stacktrace)
+
+  # Assertions can pop-up in the middle of the stack
+  defp filter_stacktrace([{ ExUnit.Assertions, _, _, _ }|t]), do: filter_stacktrace(t)
+
+  # As soon as we see a Runner, it is time to ignore the stacktrace
+  defp filter_stacktrace([{ ExUnit.Runner, _, _, _ }|_]), do: []
+
+  # All other cases
+  defp filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
+  defp filter_stacktrace([]), do: []
 end

@@ -64,8 +64,12 @@ defmodule ExUnit do
   end
 
   @doc """
-  Starts up ExUnit and automatically set it up to run tests.
-  Check `configure/1` to see the supported options.
+  Starts up ExUnit and automatically set it up to run
+  tests at the VM exit. It accepts a set of options to
+  configure `ExUnit` (the same ones accepted by `configure/1`).
+
+  In case you want to run tests manually, skip calling this
+  function and rely on `configure/1` and `run/0` instead.
   """
   def start(options // []) do
     :application.start(:elixir)
@@ -108,8 +112,11 @@ defmodule ExUnit do
 
   ExUnit supports the following options given to start:
 
-  * `:formatter` - The formatter that will print results
-  * `:max_cases` - Maximum number of cases to run in parallel
+  * `:formatter` - The formatter that will print results.
+                   Defaults to `ExUnit.CLIFormatter`;
+
+  * `:max_cases` - Maximum number of cases to run in parallel.
+                   Defaults to 4;
 
   """
   def configure(options) do
@@ -126,7 +133,9 @@ defmodule ExUnit do
 
   @doc """
   API used to run the tests. It is invoked automatically
-  after tests are loaded if ExUnit is started via `ExUnit.start`.
+  if ExUnit is started via `ExUnit.start`.
+
+  Returns the number of failures.
   """
   def run do
     ExUnit.Runner.run ExUnit.Server.options
