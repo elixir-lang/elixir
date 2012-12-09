@@ -87,7 +87,7 @@ defmodule String.Unicode do
 
   def rstrip(""), do: ""
 
-  def rstrip(string) do
+  def rstrip(string) when is_binary(string) do
     do_rstrip(string, "")
   end
 
