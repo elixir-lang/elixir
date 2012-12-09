@@ -8,10 +8,10 @@ defprotocol Access do
   invokes the `Access.access` protocol.
 
   This protocol is limited and is implemented only for the
-  following built-in types: keywords, records and functions.
+  following built-in types: keywords, records, functions and bitstrings.
   """
 
-  @only [List, Function, Record, Atom]
+  @only [List, Function, Record, Atom, BitString]
 
   @doc """
   Receives the element being accessed and the access item.
@@ -60,5 +60,15 @@ defimpl Access, for: Function do
   """
   def access(function, item) do
     function.(item)
+  end
+end
+
+defimpl Access, for: BitString do
+  @doc """
+  The access protocol for bitstrings invokes
+  String.at/2.
+  """
+  def access(string, position) when is_integer(position) do
+    String.at(string, position)
   end
 end
