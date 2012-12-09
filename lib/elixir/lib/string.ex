@@ -28,6 +28,7 @@ defmodule String do
 
   """
   @spec printable?(t) :: boolean
+
   # Allow basic ascii chars
   def printable?(<<c, t :: binary>>) when c in ?\s..?~ do
     printable?(t)
@@ -128,6 +129,7 @@ defmodule String do
   @spec split(t) :: [t]
   @spec split(t, t | [t] | Regex.t) :: [t]
   @spec split(t, t | [t] | Regex.t, Keyword.t) :: [t]
+
   def split(binary, pattern // " ", options // [])
 
   def split(binary, pattern, options) when is_regex(pattern) do
@@ -393,11 +395,11 @@ defmodule String do
       String.first("եոգլի") #=> "ե"
 
   """
-  @spec first(t) :: grapheme
+  @spec first(t) :: grapheme | nil
   def first(string) do
     case next_grapheme(string) do
       { char, _ } -> char
-      :no_grapheme -> ""
+      :no_grapheme -> nil
     end
   end
 
@@ -410,9 +412,9 @@ defmodule String do
       String.last("եոգլի") #=> "ի"
 
   """
-  @spec last(t) :: grapheme
+  @spec last(t) :: grapheme | nil
   def last(string) do
-    do_last(next_grapheme(string), "")
+    do_last(next_grapheme(string), nil)
   end
 
   defp do_last({char, rest}, _) do
@@ -455,6 +457,7 @@ defmodule String do
 
   """
   @spec at(t, integer) :: grapheme | nil
+
   def at(string, position) when position >= 0 do
     do_at(next_grapheme(string), position, 0)
   end

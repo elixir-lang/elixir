@@ -5,6 +5,9 @@
   * [Mix] Mix now starts dependencies' applications for compilation
   * [Mix] Mix now starts the current application before run, iex, test and friends
 
+* bug fix
+  * [String] String.first and String.last return nil for empty binaries
+
 # v0.7.2 (2012-12-04)
 
 * enhancements
