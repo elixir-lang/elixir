@@ -83,7 +83,7 @@ defmodule String.Unicode do
     def :lstrip, args, [], do: exprs
   end
 
-  def lstrip(other), do: other
+  def lstrip(other) when is_binary(other), do: other
 
   def rstrip(""), do: ""
 
