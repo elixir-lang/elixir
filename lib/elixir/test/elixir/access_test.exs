@@ -19,6 +19,16 @@ defmodule AccessTest do
     assert function[:bar] == false
   end
 
+  test :bitstring do
+    assert "abc"[1] == "b"
+    assert "がガちゃ"[2] == "ち"
+    assert <<1, 2>>[1] == <<2>>
+    assert "abc"[3] == nil
+    assert "がガちゃ"[4] == nil
+    assert <<1, 2>>[2] == nil
+    assert <<1, 2, 3>>[-1] == <<3>>
+  end
+
   # Test nil at compilation time does not fail
   # and that @config[:foo] has proper precedence.
   nil = @config[:foo]
