@@ -125,8 +125,8 @@ defmodule Kernel.RecordRewriterTest do
   end
 
   test "inside remote call" do
-    clause = clause(fn -> (x = Macro.Env[]).call(y = Range[]) end)
-    assert optimize_clause(clause) == { clause, [x: Macro.Env, y: Range], nil }
+    clause = clause(fn -> x.call(y = Range[]) end)
+    assert optimize_clause(clause) == { clause, [y: Range], nil }
   end
 
   test "inside list comprehension" do
@@ -216,6 +216,13 @@ defmodule Kernel.RecordRewriterTest do
     assert optimize_clause(clause) == { rewriten, [x: Range], nil }
   end
 
+  test "direct getter call is rewriten" do
+    { clause, rewriten } =
+      { clause(fn() -> Range[].first end), clause(fn() -> :erlang.element(2, Range[]) end) }
+
+    assert optimize_clause(clause) == { rewriten, [], nil }
+  end
+
   test "setter call is rewriten" do
     { clause, rewriten } =
       { clause(fn(x = Range[]) -> x.first(:first) end), clause(fn(x = Range[]) -> :erlang.setelement(2, x, :first) end) }
@@ -230,24 +237,33 @@ defmodule Kernel.RecordRewriterTest do
     assert optimize_clause(clause) == { rewriten, [x: Range], { Range, nil } }
   end
 
-  test "updater call is no-op (for now)" do
-    clause = clause(fn(x = Range[]) -> x.update_first(&1 + 1) end)
-    assert optimize_clause(clause) == { clause, [x: Range], { Range, nil } }
+  test "updater call is rewriten" do
+    { clause, rewriten } =
+      { clause(fn(x = Range[]) -> x.update_first(&1 + 1) end), clause(fn(x = Range[]) -> Range.update_first(&1 + 1, x) end) }
+    assert optimize_clause(clause) == { rewriten, [x: Range], { Range, nil } }
   end
 
-  test "noop for unknown fields" do
-    clause = clause(fn(x = Range[]) -> x.unknown end)
-    assert optimize_clause(clause) == { clause, [x: Range], nil }
+  test "update call is rewriten" do
+    { clause, rewriten } =
+      { clause(fn(x = Range[]) -> x.update(first: 1) end), clause(fn(x = Range[]) -> Range.update([first: 1], x) end) }
+    assert optimize_clause(clause) == { rewriten, [x: Range], { Range, nil } }
+  end
+
+  test "fallback for unknown fields" do
+    { clause, rewriten } =
+      { clause(fn(x = Range[]) -> x.unknown(1, 2) end), clause(fn(x = Range[]) -> Range.unknown(1, 2, x) end) }
+    assert optimize_clause(clause) == { rewriten, [x: Range], nil }
+  end
+
+  test "fallback for rewriten fields" do
+    { clause, rewriten } =
+      { clause(fn(x = BadRange[]) -> x.first end), clause(fn(x = BadRange[]) -> BadRange.first(x) end) }
+    assert optimize_clause(clause) == { rewriten, [x: BadRange], nil }
   end
 
   test "noop for not records fields" do
     clause = clause(fn(x = { :not_a_record, _ }) -> x.unknown end)
     assert optimize_clause(clause) == { clause, [x: :not_a_record], nil }
-  end
-
-  test "noop for rewriten fields" do
-    clause = clause(fn(x = BadRange[]) -> x.first end)
-    assert optimize_clause(clause) == { clause, [x: BadRange], nil }
   end
 
   test "noop for conflicting inference" do

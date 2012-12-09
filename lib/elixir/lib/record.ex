@@ -74,8 +74,10 @@ defmodule Record do
       initializer(escaped),
       indexes(escaped),
       conversions(values),
+      record_optimizable(),
       updater(values),
-      accessors(values),
+      accessors(values, 1),
+      switch_recorder()
     ]
 
     contents = [quote(do: @__record__ unquote(escaped))|contents]
@@ -443,15 +445,6 @@ defmodule Record do
   #       setelem(record, 2, callback.(elem(record, 2)))
   #     end
   #
-  defp accessors(values) do
-    [ quote do
-        @record_optimized true
-        @record_optimizable []
-        @before_compile { unquote(__MODULE__), :__before_compile__ }
-        @on_definition { unquote(__MODULE__), :__on_definition__ }
-      end | accessors(values, 1) ]
-  end
-
   defp accessors([{ :__exception__, _ }|t], 1) do
     accessors(t, 2)
   end
@@ -478,7 +471,7 @@ defmodule Record do
   end
 
   defp accessors([], _i) do
-    [quote do: @record_optimized false]
+    []
   end
 
   # Define an updater method that receives a
@@ -503,6 +496,19 @@ defmodule Record do
         unquote(contents)
       end
     end
+  end
+
+  defp record_optimizable do
+    quote do
+      @record_optimized true
+      @record_optimizable []
+      @before_compile { unquote(__MODULE__), :__before_compile__ }
+      @on_definition { unquote(__MODULE__), :__on_definition__ }
+    end
+  end
+
+  defp switch_recorder do
+    quote do: @record_optimized false
   end
 
   ## Types/specs generation
