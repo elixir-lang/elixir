@@ -121,6 +121,18 @@ defmodule Typespec.Test.Type do
     assert {:mytype1,{:type,_,:tuple, :any},[]} = spec2
   end
 
+  test "@type with list shortcuts" do
+    {spec1, spec2, spec3} = test_module do
+      t1 = @type mytype :: []
+      t2 = @type mytype1 :: [integer]
+      t3 = @type mytype2 :: [integer, ...]
+      {t1, t2, t3}
+    end
+    assert {:mytype,{:type,_,:nil,[]},[]} = spec1
+    assert {:mytype1,{:type,_,:list, [{:type,_,:integer,[]}]},[]} = spec2
+    assert {:mytype2,{:type,_,:nonempty_list, [{:type,_,:integer,[]}]},[]} = spec3
+  end
+
   test "@type with a fun" do
     spec = test_module do
       @type mytype :: (... -> any)

@@ -626,6 +626,10 @@ defmodule Kernel.Typespec do
     typespec({ :list, 0, [spec] }, vars, caller)
   end
 
+  defp typespec([spec, {:"...", _, quoted}], vars, caller) when is_atom(quoted) do
+    typespec({ :nonempty_list, 0, [spec] }, vars, caller)
+  end
+
   defp typespec(l, _, _) when is_list(l) do
     raise ArgumentError, message: "Unexpected list #{inspect l}"
   end
