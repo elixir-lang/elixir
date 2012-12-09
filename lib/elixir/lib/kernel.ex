@@ -1506,9 +1506,10 @@ defmodule Kernel do
     opts = Keyword.merge(opts, do_block)
     opts = Keyword.put(opts, :do, quote do
       @moduledoc nil
-      unquote(Keyword.get opts, :do)
+      record_type message: binary
       def exception(args), do: new(args)
       def exception(args, self), do: update(args, self)
+      unquote(Keyword.get opts, :do)
     end)
 
     fields = [{ :__exception__, :__exception__ }|fields]

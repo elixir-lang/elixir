@@ -589,8 +589,10 @@ defmodule Record.DSL do
   Expects a keyword list.
   """
   defmacro record_type(opts) when is_list(opts) do
+    escaped = lc { k, v } inlist opts, do: { k, Macro.escape(v) }
+
     quote do
-      @record_type quote do: unquote(opts)
+      @record_type Keyword.merge(@record_type || [], unquote(escaped))
     end
   end
 end

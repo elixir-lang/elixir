@@ -26,6 +26,7 @@ defrecord RecordTest.WithTypeOverriden, a: 0, b: 1 do
 end
 
 defrecord RecordTest.WithRecordType, a: 0, b: 1 do
+  record_type a: non_pos_integer
   record_type a: integer
 end
 
