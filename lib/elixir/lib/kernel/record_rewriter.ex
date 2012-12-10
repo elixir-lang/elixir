@@ -52,11 +52,10 @@ defmodule Kernel.RecordRewriter do
     end
   end
 
-  defp record_field_info(:update), do: :update
-
   defp record_field_info(function) do
     case atom_to_list(function) do
-      'update_' ++ field -> { :update, list_to_atom(field) }
+      'update' -> nil
+      'update_' ++ field -> nil
       _ -> { :accessor, function }
     end
   end
@@ -71,12 +70,12 @@ defmodule Kernel.RecordRewriter do
                 if index = Enum.find_index(fields, field == &1) do
                   optimize_record_accessor_call(line, res, kind, field, index, left, args)
                 end
-              kind ->
-                optimize_record_optimizable_call(line, res, kind, left, args)
+              nil ->
+                optimize_record_other_call(line, record, res, function, left, args)
             end
           end
 
-        opt_call || optimize_record_other_call(line, res, function, left, args)
+        opt_call || optimize_record_other_call(line, record, nil, function, left, args)
       nil ->
         nil
     end
@@ -102,28 +101,12 @@ defmodule Kernel.RecordRewriter do
     { call, res }
   end
 
-  defp optimize_record_accessor_call(line, { record, _ } = res, :update, field, _index, left, args) do
-    call = { :call, line,
-      { :remote, line, { :atom, line, record }, { :atom, 0, :"update_#{field}" } },
-      args ++ [left]
-    }
-    { call, res }
-  end
-
-  defp optimize_record_optimizable_call(line, { record, _ } = res, :update, left, args) do
-    call = { :call, line,
-      { :remote, line, { :atom, line, record }, { :atom, 0, :update } },
-      args ++ [left]
-    }
-    { call, res }
-  end
-
-  defp optimize_record_other_call(line, { record, _ }, function, left, args) do
+  defp optimize_record_other_call(line, record, res, function, left, args) do
     call = { :call, line,
       { :remote, line, { :atom, line, record }, { :atom, 0, function } },
       args ++ [left]
     }
-    { call, nil }
+    { call, res }
   end
 
   ## Expr
