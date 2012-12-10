@@ -1,12 +1,20 @@
 * enhancements
   * [CLI] Support `--app` option to start an application and its dependencies
+  * [ExUnit] ExUnit now supports multiple runs in the same process
+  * [ExUnit] Failures in ExUnit now show a tailored stacktrace
   * [Kernel] Introduce `Application.Behaviour` to define application module callbacks
   * [Kernel] Introduce `Supervisor.Behaviour` to define supervisors callbacks
+  * [Kernel] More optimisations were added to Record handling
   * [Mix] Mix now starts dependencies' applications for compilation
   * [Mix] Mix now starts the current application before run, iex, test and friends
 
 * bug fix
-  * [String] String.first and String.last return nil for empty binaries
+  * [String] `String.first` and `String.last` return nil for empty binaries
+  * [String] `String.rstrip` and `String.lstrip` now verify if argument is a binary
+  * [Typespec] Support ... inside typespec's lists
+
+* deprecations
+  * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
 
 # v0.7.2 (2012-12-04)
 

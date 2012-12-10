@@ -40,8 +40,8 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args,
-                    flags: [:force, :quick], aliases: [q: :quick])
+    { opts, _ } = OptionParser.parse(args, aliases: [q: :quick],
+                    switches: [force: :boolean, quick: :boolean])
 
     project      = Mix.project
     compile_path = project[:compile_path]

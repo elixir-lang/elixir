@@ -36,8 +36,8 @@ defmodule Mix.Tasks.Test do
 
   """
   def run(args) do
-    { _, files } = OptionParser.parse(args,
-                     flags: [:quick, :force], aliases: [q: :quick])
+    { _, files } = OptionParser.parse(args, aliases: [q: :quick],
+                     switches: [quick: :boolean, force: :boolean])
 
     unless System.get_env("MIX_ENV") do
       Mix.env(:test)

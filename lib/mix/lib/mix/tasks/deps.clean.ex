@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Deps.Clean do
   import Mix.Deps, only: [all: 0, by_name!: 1, format_dep: 1]
 
   def run(args) do
-    case OptionParser.parse(args, flags: [:unlock]) do
+    case OptionParser.parse(args, switches: [unlock: :boolean]) do
       { opts, [] }   -> do_clean all, opts
       { opts, args } -> do_clean by_name!(args), opts
     end

@@ -53,17 +53,17 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--docs=true"]) == { [docs: true], [] }
   end
 
-  test "parses flags" do
-    assert OptionParser.parse(["--docs", "foo"], flags: [:docs]) == { [docs: true], ["foo"] }
+  test "parses booleans" do
+    assert OptionParser.parse(["--docs", "foo"], switches: [docs: :boolean]) == { [docs: true], ["foo"] }
   end
 
-  test "not parsed flags defaults to false" do
-    assert OptionParser.parse(["foo"], flags: [:docs]) == { [docs: false], ["foo"] }
+  test "not parsed booleans defaults to false" do
+    assert OptionParser.parse(["foo"], switches: [docs: :boolean]) == { [docs: false], ["foo"] }
   end
 
-  test "parses flags with boolean" do
-    assert OptionParser.parse(["--docs", "true", "foo"], flags: [:docs])  == { [docs: true], ["foo"] }
-    assert OptionParser.parse(["--docs", "false", "foo"], flags: [:docs]) == { [docs: false], ["foo"] }
+  test "parses booleans with explicit value" do
+    assert OptionParser.parse(["--docs", "true", "foo"], switches: [docs: :boolean])  == { [docs: true], ["foo"] }
+    assert OptionParser.parse(["--docs", "false", "foo"], switches: [docs: :boolean]) == { [docs: false], ["foo"] }
   end
 
   test "parses no switches as flags" do

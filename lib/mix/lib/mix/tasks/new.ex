@@ -35,7 +35,7 @@ defmodule Mix.Tasks.New do
 
   """
   def run(argv) do
-    { opts, argv } = OptionParser.parse(argv, flags: [:sup])
+    { opts, argv } = OptionParser.parse(argv, switches: [sup: :boolean])
 
     case argv do
       [] ->

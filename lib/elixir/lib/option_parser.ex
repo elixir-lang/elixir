@@ -21,30 +21,33 @@ defmodule OptionParser do
       OptionParser.parse(["-d"], aliases: [d: :debug])
       #=> { [debug: true], [] }
 
-  ## Flags
+  ## Switches
 
-  A set of flags can be given as argument too. Those are considered
-  boolean and never consume the next value unless it is a boolean:
+  Extra information about switches can be given as argument too. This is useful
+  in order to say a switch must behave as a boolean, list, etc. The following
+  types are supported:
 
-      OptionParser.parse(["--unlock path/to/file"], flags: [:unlock])
+  * `:boolean` - They never consume the next value unless it is true/false;
+
+  Examples:
+
+      OptionParser.parse(["--unlock path/to/file"], switches: [unlock: :boolean])
       #=> { [unlock: true], ["path/to/file"] }
 
-      OptionParser.parse(["--unlock false path/to/file"], flags: [:unlock])
+      OptionParser.parse(["--unlock false path/to/file"], switches: [unlock: :boolean])
       #=> { [unlock: false], ["path/to/file"] }
 
   ## Negation switches
 
   Any switches starting with `--no-` are always considered to be
-  booleans and never parse the next value.
+  booleans and never parse the next value:
 
       OptionParser.parse(["--no-op path/to/file"])
       #=> { [no_op: true], ["path/to/file"] }
 
   """
   def parse(argv, opts // []) when is_list(argv) and is_list(opts) do
-    aliases = opts[:aliases] || []
-    flags   = opts[:flags]   || []
-    parse(argv, aliases, flags, true)
+    parse(argv, opts, true)
   end
 
   @doc """
@@ -60,46 +63,55 @@ defmodule OptionParser do
 
   """
   def parse_head(argv, opts // []) when is_list(argv) and is_list(opts) do
-    aliases = opts[:aliases] || []
-    flags   = opts[:flags]   || []
-    parse(argv, aliases, flags, false)
+    parse(argv, opts, false)
   end
 
   ## Helpers
 
-  defp parse(argv, aliases, flags, all) do
-    parse(argv, aliases, flags, [], [], all)
+  defp parse(argv, opts, bool) do
+    if flags = opts[:flags] do
+      IO.write "OptionParser option :flags is deprecated, please use :switches instead\n#{Exception.formatted_stacktrace}"
+      opts = Keyword.put(opts, :switches, lc(k inlist flags, do: { k, :boolean }))
+    end
+
+    aliases  = opts[:aliases]  || []
+    switches = opts[:switches] || []
+    parse(argv, aliases, switches, bool)
   end
 
-  defp parse(["-" <> option|t], aliases, flags, dict, args, all) do
+  defp parse(argv, aliases, switches, all) do
+    parse(argv, aliases, switches, [], [], all)
+  end
+
+  defp parse(["-" <> option|t], aliases, switches, dict, args, all) do
     { option, value } = normalize_option(option, aliases)
 
     if value == nil do
-      { value, t } = if is_flag?(flags, option) do
-        flag_from_tail(t)
-      else
-        value_from_tail(t)
-      end
+      { value, t } =
+        case switch_type(switches, option) do
+          :boolean -> boolean_from_tail(t)
+          _        -> value_from_tail(t)
+        end
     end
 
     dict = store_option dict, option, value
-    parse(t, aliases, flags, dict, args, all)
+    parse(t, aliases, switches, dict, args, all)
   end
 
-  defp parse([], _, flags, dict, args, true) do
-    { reverse_dict(dict, flags), Enum.reverse(args) }
+  defp parse([h|t], aliases, switches, dict, args, true) do
+    parse(t, aliases, switches, dict, [h|args], true)
   end
 
-  defp parse([h|t], aliases, flags, dict, args, true) do
-    parse(t, aliases, flags, dict, [h|args], true)
+  defp parse([], _, switches, dict, args, true) do
+    { reverse_dict(dict, switches), Enum.reverse(args) }
   end
 
-  defp parse(value, _, flags, dict, _args, false) do
-    { reverse_dict(dict, flags), value }
+  defp parse(value, _, switches, dict, _args, false) do
+    { reverse_dict(dict, switches), value }
   end
 
-  defp flag_from_tail([h|t]) when h in ["false", "true"], do: { h, t }
-  defp flag_from_tail(t)                                , do: { true, t }
+  defp boolean_from_tail([h|t]) when h in ["false", "true"], do: { h, t }
+  defp boolean_from_tail(t)                                , do: { true, t }
 
   defp value_from_tail(["-" <> _|_] = t), do: { true, t }
   defp value_from_tail([h|t]),            do: { h, t }
@@ -113,9 +125,9 @@ defmodule OptionParser do
     [{ option, value }|dict]
   end
 
-  defp reverse_dict(dict, flags) do
-    flags = lc k inlist flags, not Keyword.has_key?(dict, k), do: { k, false }
-    Enum.reverse flags ++ dict
+  defp reverse_dict(dict, switches) do
+    switches = lc { k, :boolean } inlist switches, not Keyword.has_key?(dict, k), do: { k, false }
+    Enum.reverse switches ++ dict
   end
 
   defp normalize_option(<<?-, option :: binary>>, aliases) do
@@ -143,5 +155,7 @@ defmodule OptionParser do
   defp is_no?("no-" <> _), do: true
   defp is_no?(_),          do: false
 
-  defp is_flag?(flags, option), do: List.member?(flags, option)
+  defp switch_type(switches, option) do
+    switches[option] || :default
+  end
 end
