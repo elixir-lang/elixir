@@ -1,4 +1,5 @@
 * enhancements
+  * [Binary] Support `<< "string" :: utf8 >>` as in Erlang
   * [CLI] Support `--app` option to start an application and its dependencies
   * [ExUnit] ExUnit now supports multiple runs in the same process
   * [ExUnit] Failures in ExUnit now show a tailored stacktrace

@@ -76,6 +76,20 @@ bar
     assert (<< &2, &1 >>).(2, 1) == << 1, 2 >>
   end
 
+  test :bitsyntax_with_utf do
+    assert <<106,111,115,101>> == << "jose" :: utf8 >>
+    assert <<106,111,115,101>> == << 'jose' :: utf8 >>
+
+    assert <<0,106,0,111,0,115,0,101>> == << "jose" :: utf16 >>
+    assert <<0,106,0,111,0,115,0,101>> == << 'jose' :: utf16 >>
+
+    assert <<106,0,111,0,115,0,101,0>> == << "jose" :: [utf16, little] >>
+    assert <<106,0,111,0,115,0,101,0>> == << 'jose' :: [utf16, little] >>
+
+    assert <<0,0,0,106,0,0,0,111,0,0,0,115,0,0,0,101>> == << "jose" :: utf32 >>
+    assert <<0,0,0,106,0,0,0,111,0,0,0,115,0,0,0,101>> == << 'jose' :: utf32 >>
+  end
+
   test :bitsyntax_translation do
     refb = "sample"
     sec_data = "another"

@@ -76,13 +76,13 @@ translate(Atom, S) when is_atom(Atom) ->
 
 translate(Bitstring, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
-  
+
 %% Helpers
 
 % Build a bitstring taking into accounts the following types:
 %
 % * If a bitstring or a list is given, we just append its items
-% * If '|' is given, extract the bitstring information
+% * If '::' is given, extract the bitstring information
 % * All the other types are simply translated and handled with Erlang's default
 %
 build_bitstr(Fun, Exprs, Line, S) ->
@@ -92,31 +92,55 @@ build_bitstr(Fun, Exprs, Line, S) ->
 build_bitstr_each(_Fun, [], _Line, S, Acc) ->
   { Acc, S };
 
-build_bitstr_each(Fun, [H|T], Line, S, Acc) when is_list(H) ->
-  { NewAcc, NewS } = build_bitstr_each(Fun, H, Line, S, Acc),
-  build_bitstr_each(Fun, T, Line, NewS, NewAcc);
-
-build_bitstr_each(Fun, [H|T], Line, S, Acc) when is_bitstring(H) ->
-  { bin, _, Elements } = elixir_tree_helpers:abstract_syntax(H),
-  NewAcc = lists:foldl(fun(Element, FinalAcc) -> [Element|FinalAcc] end, Acc, Elements),
-  build_bitstr_each(Fun, T, Line, S, NewAcc);
-
 build_bitstr_each(Fun, [{'::',_,[H,V]}|T], Line, S, Acc) ->
-  { Expr, NS } = Fun(H, S),
-
   %% Variables defined outside the binary can be accounted
   %% on subparts, however we can't assign new variables.
-  case NS of
-    { ES, _ } -> [];                       %% translate_arg,  no assigns
-    _ -> ES = NS#elixir_scope{context=nil} %% translate_each, revert assigns
+  case S of
+    { ES, _ } -> [];                      %% translate_arg,  no assigns
+    _ -> ES = S#elixir_scope{context=nil} %% translate_each, revert assigns
   end,
 
   { Size, Types } = extract_bit_values(Line, V, ES),
-  build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, Size, Types }|Acc]);
+  build_bitstr_each(Fun, T, Line, S, Acc, H, Size, Types);
 
 build_bitstr_each(Fun, [H|T], Line, S, Acc) ->
+  build_bitstr_each(Fun, T, Line, S, Acc, H, default, default).
+
+build_bitstr_each(Fun, T, Line, S, Acc, H, Size, Types) when is_list(H) ->
+  case is_default_or_utf(Types) of
+    true ->
+      { NewAcc, NewS } = lists:foldl(fun(L, { LA, LS }) ->
+        { FL, FS } = Fun(L, LS),
+        { [{ bin_element, Line, FL, Size, Types }|LA], FS }
+      end, { Acc, S }, H),
+      build_bitstr_each(Fun, T, Line, NewS, NewAcc);
+    false ->
+      build_bitstr_default(Fun, T, Line, S, Acc, H, Size, Types)
+  end;
+
+build_bitstr_each(Fun, T, Line, S, Acc, H, Size, Types) when is_bitstring(H) ->
+  case is_default_or_utf(Types) of
+    true ->
+      { bin, _, Elements } = elixir_tree_helpers:abstract_syntax(H),
+      NewAcc = lists:foldl(fun({ bin_element, _, Expr, _, _ }, FinalAcc) ->
+        [{ bin_element, Line, Expr, Size, Types }|FinalAcc]
+      end, Acc, Elements),
+      build_bitstr_each(Fun, T, Line, S, NewAcc);
+    false ->
+      build_bitstr_default(Fun, T, Line, S, Acc, H, Size, Types)
+  end;
+
+build_bitstr_each(Fun, T, Line, S, Acc, H, Size, Types) ->
+  build_bitstr_default(Fun, T, Line, S, Acc, H, Size, Types).
+
+build_bitstr_default(Fun, T, Line, S, Acc, H, Size, Types) ->
   { Expr, NS } = Fun(H, S),
-  build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, default, default }|Acc]).
+  build_bitstr_each(Fun, T, Line, NS, [{ bin_element, Line, Expr, Size, Types }|Acc]).
+
+is_default_or_utf(default) -> true;
+is_default_or_utf([UTF|_]) when UTF == utf8; UTF == utf16; UTF == utf32 -> true;
+is_default_or_utf([_|T]) -> is_default_or_utf(T);
+is_default_or_utf([]) -> false.
 
 %% Extra bitstring specifiers
 
