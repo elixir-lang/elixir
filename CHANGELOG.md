@@ -6,7 +6,6 @@
   * [Kernel] Introduce `Application.Behaviour` to define application module callbacks
   * [Kernel] Introduce `Supervisor.Behaviour` to define supervisors callbacks
   * [Kernel] More optimisations were added to Record handling
-  * [Mix] Mix now starts dependencies' applications for compilation
   * [Mix] Mix now starts the current application before run, iex, test and friends
 
 * bug fix

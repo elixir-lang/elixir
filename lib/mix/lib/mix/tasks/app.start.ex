@@ -33,7 +33,8 @@ defmodule Mix.Tasks.App.Start do
   defp start_apps(project) do
     apps =
       cond do
-        apps = project[:apps] -> apps
+        # Eventually we can support custom start apps
+        # apps = project[:start_apps] -> apps
         app = project[:app]   -> [app]
         true                  -> []
       end
