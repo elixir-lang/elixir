@@ -152,18 +152,19 @@ translate({'try', Line, [Clauses]}, RawS) ->
   S = RawS#elixir_scope{noname=true},
   assert_no_assign_or_guard_scope(Line, 'try', S),
 
-  Do = proplists:get_value('do', Clauses, []),
-  { TDo, SB } = elixir_translator:translate([Do], S),
+  Do = proplists:get_value('do', Clauses, nil),
+  { TDo, SB } = elixir_translator:translate_each(Do, S),
 
   Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
   { TCatch, SC } = elixir_try:clauses(Line, Catch, umergec(S, SB)),
 
-  { TAfter, SA } = case lists:keyfind('after', 1, Clauses) of
-    { 'after', After } -> elixir_translator:translate([After], umergec(S, SC));
-    false -> { [], SC }
-  end,
+  After = proplists:get_value('after', Clauses, nil),
+  { TAfter, SA } = elixir_translator:translate_each(After, umergec(S, SC)),
 
-  { { 'try', Line, unpack(TDo), [], TCatch, unpack(TAfter) }, umergec(RawS, SA) };
+  Else = elixir_clauses:get_pairs(Line, else, Clauses, S),
+  { TElse, SE } = elixir_clauses:match(Line, Else, umergec(S, SA)),
+
+  { { 'try', Line, pack(TDo), TElse, TCatch, pack(TAfter) }, umergec(RawS, SE) };
 
 %% Receive
 
@@ -354,9 +355,9 @@ spec_to_macro(opaque)   -> defopaque;
 spec_to_macro(spec)     -> defspec;
 spec_to_macro(callback) -> defcallback.
 
-% Unpack a list of expressions from a block.
-unpack([{ '__block__', _, Exprs }]) -> Exprs;
-unpack(Exprs)                       -> Exprs.
+% Pack a list of expressions from a block.
+pack({ 'block', _, Exprs }) -> Exprs;
+pack(Expr)                  -> [Expr].
 
 assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_scope{file=File}) when is_atom(Atom) ->
   Message = "function names should start with lowercase characters or underscore, invalid name ~s",

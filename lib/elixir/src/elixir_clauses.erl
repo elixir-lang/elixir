@@ -93,44 +93,45 @@ match(Line, Clauses, #elixir_scope{clause_vars=C1} = S) ->
   C2 = TS#elixir_scope.clause_vars,
   { TC, TS#elixir_scope{clause_vars=elixir_scope:merge_clause_vars(C1, C2)} }.
 
+do_match(_Line, [], S) ->
+  { [], S };
+
+do_match(Line, [DecoupledClause], S) ->
+  { TDecoupledClause, TS } = each_clause(Line, DecoupledClause, S),
+  { [TDecoupledClause], TS };
+
 do_match(Line, DecoupledClauses, S) ->
-  case DecoupledClauses of
-    [DecoupledClause] ->
-      { TDecoupledClause, TS } = each_clause(Line, DecoupledClause, S),
-      { [TDecoupledClause], TS };
-    _ ->
-      % Transform tree just passing the variables counter forward
-      % and storing variables defined inside each clause.
-      Transformer = fun(X, {Acc, CV}) ->
-        { TX, TAcc } = each_clause(Line, X, Acc),
-        { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
-      end,
+  % Transform tree just passing the variables counter forward
+  % and storing variables defined inside each clause.
+  Transformer = fun(X, {Acc, CV}) ->
+    { TX, TAcc } = each_clause(Line, X, Acc),
+    { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
+  end,
 
-      { TClauses, { TS, RawCV } } = lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
+  { TClauses, { TS, RawCV } } = lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
 
-      % Now get all the variables defined inside each clause
-      CV = lists:reverse(RawCV),
+  % Now get all the variables defined inside each clause
+  CV = lists:reverse(RawCV),
 
-      AllVars    = lists:umerge([orddict:fetch_keys(X) || X <- CV]),
-      SharedVars = ordsets:intersection(CV),
+  AllVars    = lists:umerge([orddict:fetch_keys(X) || X <- CV]),
+  SharedVars = ordsets:intersection(CV),
 
-      case AllVars of
-        [] -> { TClauses, TS };
-        _  ->
-          % Create a new scope that contains a list of all variables
-          % defined inside all the clauses. It returns this new scope and
-          % a list of tuples where the first element is the variable name,
-          % the second one is the new pointer to the variable and the third
-          % is the old pointer.
-          { FinalVars, FS } = lists:mapfoldl(fun(X, Acc) -> normalize_vars(X, SharedVars, Acc) end, TS, AllVars),
+  case AllVars of
+    [] -> { TClauses, TS };
+    _  ->
+      % Create a new scope that contains a list of all variables
+      % defined inside all the clauses. It returns this new scope and
+      % a list of tuples where the first element is the variable name,
+      % the second one is the new pointer to the variable and the third
+      % is the old pointer.
+      { FinalVars, FS } = lists:mapfoldl(fun(X, Acc) -> normalize_vars(X, SharedVars, Acc) end, TS, AllVars),
 
-          % Defines a tuple that will be used as left side of the match operator
-          LeftVars = [{var, Line, NewValue} || { _, _, NewValue, _ } <- FinalVars],
+      % Defines a tuple that will be used as left side of the match operator
+      LeftVars = [{var, Line, NewValue} || { _, _, NewValue, _ } <- FinalVars],
 
-          % Expand all clauses by adding a match operation at the end
-          % that assigns variables missing in one clause to the others.
-          expand_clauses(Line, TClauses, CV, LeftVars, FinalVars, [], FS)
-      end
+      % Expand all clauses by adding a match operation at the end
+      % that assigns variables missing in one clause to the others.
+      expand_clauses(Line, TClauses, CV, LeftVars, FinalVars, [], FS)
   end.
 
 expand_clauses(Line, [Clause|T], [ClauseVars|V], LeftVars, FinalVars, Acc, S) ->
@@ -167,6 +168,9 @@ expand_clauses(_Line, [], [], _LeftVars, _FinalVars, Acc, S) ->
 % Handle each key/value clause pair and translate them accordingly.
 
 each_clause(Line, { do, [Condition], Expr }, S) ->
+  assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
+
+each_clause(Line, { else, [Condition], Expr }, S) ->
   assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
 each_clause(Line, { 'after', [Condition], Expr }, S) ->

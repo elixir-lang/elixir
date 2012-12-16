@@ -229,15 +229,18 @@ defmodule Kernel.RecordRewriter do
     { { :receive, line, clauses, after_key, after_value }, dict, res }
   end
 
-  defp optimize_expr({ :try, line, body, [], clauses, try_after }, dict) do
-    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
-    clauses = lc { clause, _, _ } inlist tuples, do: clause
+  defp optimize_expr({ :try, line, body, elses, catches, try_after }, dict) do
+    tuples  = lc clause inlist catches, do: optimize_clause(clause, dict)
+    catches = lc { clause, _, _ } inlist tuples, do: clause
+
+    tuples  = lc clause inlist elses, do: optimize_clause(clause, dict)
+    elses   = lc { clause, _, _ } inlist tuples, do: clause
 
     { body, _, res } = optimize_body(body, dict, [])
     res = join_result(tuples, res)
 
     { try_after, _, _ } = optimize_body(try_after, dict, [])
-    { { :try, line, body, [], clauses, try_after }, dict, res }
+    { { :try, line, body, elses, catches, try_after }, dict, res }
   end
 
   defp optimize_expr({ :fun, line, { :function, module, name, arity } }, dict) do

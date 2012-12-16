@@ -47,10 +47,10 @@ multi_assigned_if_test() ->
 try_test() ->
   {2, _} = eval("try do\n:foo.bar\ncatch\n:error, :undef -> 2\nend").
 
-% try_match_test() ->
-%   {true, _} = eval("try do:\n1\nmatch: 2 -> false\nmatch: 1; true\nrescue:\nErlangError -> nil\nend"),
-%   {true, _} = eval("try do:\n1\nmatch: {x,y} -> false\nmatch: x; true\nrescue:\nErlangError -> nil\nend"),
-%   {true, _} = eval("try do:\n{1,2}\nmatch: {3,4} -> false\nelse: true\nrescue:\nErlangError -> nil\nend").
+try_else_test() ->
+  {true, _} = eval("try do\n1\nelse 2 -> false\n1 -> true\nrescue\nErlangError -> nil\nend"),
+  {true, _} = eval("try do\n1\nelse {x,y} -> false\nx -> true\nrescue\nErlangError -> nil\nend"),
+  {true, _} = eval("try do\n{1,2}\nelse {3,4} -> false\n_ -> true\nrescue\nErlangError -> nil\nend").
 
 % Receive
 

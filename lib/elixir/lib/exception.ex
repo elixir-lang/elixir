@@ -4,10 +4,11 @@ defmodule Exception do
   exceptions and backtraces.
   """
 
-  # Normalize an exception converting Erlang exceptions
-  # to Elixir style exceptions. This is meant to be used
-  # internally.
-  @doc false
+  @doc """
+  Normalize an exception converting Erlang exceptions
+  to Elixir exceptions. Useful when interfacing Erlang
+  code with Elixir code.
+  """
   def normalize(exception) when is_exception(exception) do
     exception
   end
