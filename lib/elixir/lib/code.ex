@@ -1,4 +1,10 @@
 defmodule Code do
+  defexception LoadError, file: nil do
+    def message(exception) do
+      "could not load #{exception.file}"
+    end
+  end
+
   @moduledoc """
   The Code module is responsible to manage code compilation,
   code evaluation and code loading.
@@ -359,7 +365,7 @@ defmodule Code do
     if File.regular?(file) do
       file
     else
-      raise ArgumentError, message: "could not load #{file}"
+      raise LoadError, file: file
     end
   end
 
