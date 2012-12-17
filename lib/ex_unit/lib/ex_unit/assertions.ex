@@ -1,4 +1,12 @@
-defexception ExUnit.AssertionError, message: "assertion failed"
+defexception ExUnit.AssertionError,  message: "assertion failed"
+
+defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "", negation: false, prelude: "Expected" do
+  def message(exception) do
+    "#{exception.prelude} #{inspect exception.expected} to " <>
+      if(exception.negation, do: "not ", else: "") <>
+      "be #{exception.reason} #{inspect exception.actual}"
+  end
+end
 
 defmodule ExUnit.Assertions do
   @moduledoc """
@@ -113,7 +121,7 @@ defmodule ExUnit.Assertions do
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert(List.member?(right, left), "Expected #{inspect left} to be in #{inspect right}")
+      assert List.member?(right, left), left, right, reason: "in"
     end
   end
 
@@ -134,7 +142,7 @@ defmodule ExUnit.Assertions do
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert(!(left =~ right), "Expected #{inspect left} to not match #{inspect right}")
+      assert !(left =~ right), left, right, reason: "a match (=~) with", negation: true
     end
   end
 
@@ -142,7 +150,7 @@ defmodule ExUnit.Assertions do
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert(!List.member?(right, left), "Expected #{inspect left} to not be in #{inspect right}")
+      assert !List.member?(right, left), left, right, reason: "in", negation: true
     end
   end
 
@@ -156,8 +164,7 @@ defmodule ExUnit.Assertions do
     quote do
       left  = unquote(expected)
       right = unquote(actual)
-      assert unquote(operator).(left, right),
-        "Operator assertion failure:\nthe computed value: #{inspect left}\nwas not #{unquote text}\nthe provided value: #{inspect right}"
+      assert unquote(operator).(left, right), left, right, reason: unquote(text)
     end
   end
 
@@ -173,7 +180,22 @@ defmodule ExUnit.Assertions do
 
   """
   def assert(expected, message) when is_binary(message) do
-    unless expected, do: flunk message
+    unless expected, do: raise(ExUnit.AssertionError, message: message)
+    true
+  end
+
+  @doc """
+  Asserts the `expected` value is true.
+  If it fails, it raises an expectation error
+  using the given expected and actual values.
+
+  ## Examples
+
+      assert this > that, this, that, reason: "more than"
+
+  """
+  def assert(value, expected, actual, opts) do
+    unless value, do: raise(ExUnit.ExpectationError, Keyword.merge([expected: expected, actual: actual], opts))
     true
   end
 
@@ -218,8 +240,8 @@ defmodule ExUnit.Assertions do
   """
   def assert_raise(exception, message, function) when is_binary(message) and is_function(function) do
     error = assert_raise(exception, function)
-    assert error.message == message,
-      "The expected #{inspect exception} was raised\nwith unexpected message: #{error.message}\ninstead of the expected: #{message}"
+    assert message == error.message, message, error.message,
+      prelude: "Expected #{inspect error}'s message", reason: "a match"
     error
   end
 
@@ -243,7 +265,7 @@ defmodule ExUnit.Assertions do
       error ->
         name = error.__record__(:name)
 
-        if name == ExUnit.AssertionError do
+        if name in [ExUnit.AssertionError, ExUnit.ExpectationError] do
           raise(error)
         else
           flunk "Expected exception #{inspect exception}, got #{inspect name} (#{error.message})"
@@ -312,7 +334,7 @@ defmodule ExUnit.Assertions do
         unquote(expr)
         flunk "Expected to catch #{unquote(kind)}, got nothing"
       rescue
-        e in [ExUnit.AssertionError] -> raise(e)
+        e in [ExUnit.AssertionError, ExUnit.ExpectationError] -> raise(e)
       catch
         unquote(kind), what_we_got -> what_we_got
       end

@@ -35,11 +35,8 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert 1 + 1 == 1
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Operator assertion failure:\n" <>
-        "the computed value: 2\n" <>
-        "was not equal to (==)\n" <>
-        "the provided value: 1" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected 2 to be equal to (==) 1" = error.message
     end
   end
 
@@ -47,11 +44,8 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert 1 == 1 + 1
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Operator assertion failure:\n" <>
-        "the computed value: 1\n" <>
-        "was not equal to (==)\n" <>
-        "the provided value: 2" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected 1 to be equal to (==) 2" = error.message
     end
   end
 
@@ -117,7 +111,7 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert 'foo' inlist 'bar'
     rescue
-      error in [ExUnit.AssertionError] ->
+      error in [ExUnit.ExpectationError] ->
         "Expected 'foo' to be in 'bar'" = error.message
     end
   end
@@ -130,7 +124,7 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = refute 'foo' inlist ['foo', 'bar']
     rescue
-      error in [ExUnit.AssertionError] ->
+      error in [ExUnit.ExpectationError] ->
         "Expected 'foo' to not be in ['foo','bar']" = error.message
     end
   end
@@ -143,11 +137,8 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert "foo" =~ %r(a)
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Operator assertion failure:\n" <>
-        "the computed value: \"foo\"\n" <>
-        "was not a match (=~) with\n" <>
-        "the provided value: %r\"a\"" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected \"foo\" to be a match (=~) with %r\"a\"" = error.message
     end
   end
 
@@ -159,8 +150,8 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = refute "foo" =~ %r(o)
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected \"foo\" to not match %r\"o\"" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected \"foo\" to not be a match (=~) with %r\"o\"" = error.message
     end
   end
 
@@ -206,11 +197,8 @@ defmodule ExUnit.AssertionsTest do
   test :assert_operator_greater_fail do
     "This should never be tested" = assert 1 > 2
   rescue
-    error in [ExUnit.AssertionError] ->
-      "Operator assertion failure:\n" <>
-      "the computed value: 1\n" <>
-      "was not more than\n" <>
-      "the provided value: 2" = error.message
+    error in [ExUnit.ExpectationError] ->
+      "Expected 1 to be more than 2" = error.message
   end
 
   test :assert_operator_less_or_equal_than_pass do
@@ -220,11 +208,8 @@ defmodule ExUnit.AssertionsTest do
   test :assert_operator_less_or_equal_than_fail do
     "This should never be tested" = assert 2 <= 1
   rescue
-    error in [ExUnit.AssertionError] ->
-      "Operator assertion failure:\n" <>
-      "the computed value: 2\n" <>
-      "was not less than or equal to\n" <>
-      "the provided value: 1" = error.message
+    error in [ExUnit.ExpectationError] ->
+      "Expected 2 to be less than or equal to 1" = error.message
   end
 
   test :assert_operator_with_expressions do

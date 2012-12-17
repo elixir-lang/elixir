@@ -72,10 +72,28 @@ defmodule ExUnit.CLIFormatter do
 
   defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc) do
     IO.puts "#{acc}) #{test} (#{inspect test_case})"
-    IO.puts "  ** #{format_catch(kind, reason)}"
+    print_kind_reason(kind, reason)
     print_stacktrace(stacktrace, test_case, test)
     IO.write "\n"
     acc + 1
+  end
+
+  defp print_kind_reason(:error, record) when is_record(record, ExUnit.ExpectationError) do
+    left  = String.downcase record.prelude
+    right = "to " <> if(record.negation, do: "not ", else: "") <> "be #{record.reason}"
+    max   = max(size(left), size(right))
+
+    IO.puts "  ** (ExUnit.ExpectationError)"
+    IO.puts "     #{pad(left, max)}: #{inspect record.expected}"
+    IO.puts "     #{pad(right, max)}: #{inspect record.actual}"
+  end
+
+  defp print_kind_reason(:error, exception) do
+    IO.puts "  ** (#{inspect exception.__record__(:name)}) #{exception.message}"
+  end
+
+  defp print_kind_reason(kind, reason) do
+    IO.puts "  ** (#{kind}) #{inspect(reason)}"
   end
 
   defp print_stacktrace([{ test_case, test, _, [ file: file, line: line ] }|_], test_case, test) do
@@ -87,11 +105,12 @@ defmodule ExUnit.CLIFormatter do
     Enum.each stacktrace, fn(s) -> IO.puts "    #{format_stacktrace(s)}" end
   end
 
-  defp format_catch(:error, exception) do
-    "(#{inspect exception.__record__(:name)}) #{exception.message}"
-  end
-
-  defp format_catch(kind, reason) do
-    "(#{kind}) #{inspect(reason)}"
+  defp pad(binary, max) do
+    remaining = max - size(binary)
+    if remaining > 0 do
+      String.duplicate(" ", remaining) <>  binary
+    else
+      binary
+    end
   end
 end
