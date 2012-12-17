@@ -36,7 +36,10 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert 1 + 1 == 1
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected 2 to be equal to (==) 1" = error.message
+        "Operator assertion failure:\n" <>
+        "the computed value: 2\n" <>
+        "was not equal to (==)\n" <>
+        "the provided value: 1" = error.message
     end
   end
 
@@ -45,7 +48,10 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert 1 == 1 + 1
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected 1 to be equal to (==) 2" = error.message
+        "Operator assertion failure:\n" <>
+        "the computed value: 1\n" <>
+        "was not equal to (==)\n" <>
+        "the provided value: 2" = error.message
     end
   end
 
@@ -138,7 +144,10 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert "foo" =~ %r(a)
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected \"foo\" to match (=~) %r\"a\"" = error.message
+        "Operator assertion failure:\n" <>
+        "the computed value: \"foo\"\n" <>
+        "was not a match (=~) with\n" <>
+        "the provided value: %r\"a\"" = error.message
     end
   end
 
@@ -198,7 +207,10 @@ defmodule ExUnit.AssertionsTest do
     "This should never be tested" = assert 1 > 2
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected 1 to be more than 2" = error.message
+      "Operator assertion failure:\n" <>
+      "the computed value: 1\n" <>
+      "was not more than\n" <>
+      "the provided value: 2" = error.message
   end
 
   test :assert_operator_less_or_equal_than_pass do
@@ -209,7 +221,10 @@ defmodule ExUnit.AssertionsTest do
     "This should never be tested" = assert 2 <= 1
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected 2 to be less than or equal to 1" = error.message
+      "Operator assertion failure:\n" <>
+      "the computed value: 2\n" <>
+      "was not less than or equal to\n" <>
+      "the provided value: 1" = error.message
   end
 
   test :assert_operator_with_expressions do

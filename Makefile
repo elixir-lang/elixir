@@ -87,7 +87,11 @@ clean:
 	rm -rf lib/*/ebin
 	rm -rf lib/*/test/tmp
 	rm -rf lib/mix/test/fixtures/git_repo
-	rm -rf lib/mix/tmp
+	rm -rf lib/*/tmp
+	rm -rf lib/elixir/src/elixir.app.src
+	rm -rf lib/elixir/src/*_lexer.erl
+	rm -rf lib/elixir/src/*_parser.erl
+	rm -rf lib/elixir/test/ebin
 
 #==> Release tasks
 

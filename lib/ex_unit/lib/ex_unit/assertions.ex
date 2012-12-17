@@ -74,39 +74,39 @@ defmodule ExUnit.Assertions do
   end
 
   defp translate_assertion({ :==, _, [left, right] }, _else) do
-    assert_operator :==, left, right, "be equal to (==)"
+    assert_operator :==, left, right, "equal to (==)"
   end
 
   defp translate_assertion({ :<, _, [left, right] }, _else) do
-    assert_operator :<, left, right, "be less than"
+    assert_operator :<, left, right, "less than"
   end
 
   defp translate_assertion({ :>, _, [left, right] }, _else) do
-    assert_operator :>, left, right, "be more than"
+    assert_operator :>, left, right, "more than"
   end
 
   defp translate_assertion({ :<=, _, [left, right] }, _else) do
-    assert_operator :<=, left, right, "be less than or equal to"
+    assert_operator :<=, left, right, "less than or equal to"
   end
 
   defp translate_assertion({ :>=, _, [left, right] }, _else) do
-    assert_operator :>=, left, right, "be more than or equal to"
+    assert_operator :>=, left, right, "more than or equal to"
   end
 
   defp translate_assertion({ :===, _, [left, right] }, _else) do
-    assert_operator :===, left, right, "be equal to (===)"
+    assert_operator :===, left, right, "equal to (===)"
   end
 
   defp translate_assertion({ :!==, _, [left, right] }, _else) do
-    assert_operator :!==, left, right, "be not equal to (!==)"
+    assert_operator :!==, left, right, "not equal to (!==)"
   end
 
   defp translate_assertion({ :!=, _, [left, right] }, _else) do
-    assert_operator :!=, left, right, "be not equal to (!=)"
+    assert_operator :!=, left, right, "not equal to (!=)"
   end
 
   defp translate_assertion({ :=~, _, [left, right] }, _else) do
-    assert_operator :=~, left, right, "match (=~)"
+    assert_operator :=~, left, right, "a match (=~) with"
   end
 
   defp translate_assertion({ :inlist, _, [left, right] }, _else) do
@@ -157,7 +157,7 @@ defmodule ExUnit.Assertions do
       left  = unquote(expected)
       right = unquote(actual)
       assert unquote(operator).(left, right),
-        "Expected #{inspect left} to #{unquote(text)} #{inspect right}"
+        "Operator assertion failure:\nthe computed value: #{inspect left}\nwas not #{unquote text}\nthe provided value: #{inspect right}"
     end
   end
 
@@ -219,7 +219,7 @@ defmodule ExUnit.Assertions do
   def assert_raise(exception, message, function) when is_binary(message) and is_function(function) do
     error = assert_raise(exception, function)
     assert error.message == message,
-      "Expected #{inspect exception} to be raised with message #{inspect message}, got: #{error.message}"
+      "The expected #{inspect exception} was raised\nwith unexpected message: #{error.message}\ninstead of the expected: #{message}"
     error
   end
 
