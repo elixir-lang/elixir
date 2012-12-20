@@ -182,4 +182,23 @@ defmodule StringTest do
     assert String.at("elixir",6) == nil
   end
 
+  test :slice do
+    assert String.slice("elixir", 1, 3) == "lix"
+    assert String.slice("あいうえお", 2, 2) == "うえ"
+    assert String.slice("ειξήριολ", 2, 3) == "ξήρ"
+    assert String.slice("elixir", 3, 4) == "xir"
+    assert String.slice("あいうえお", 3, 5) == "えお"
+    assert String.slice("ειξήριολ", 5, 4) == "ιολ"
+    assert String.slice("elixir", -3, 2) == "xi"
+    assert String.slice("あいうえお", -4, 3) == "いうえ"
+    assert String.slice("ειξήριολ", -5, 3) == "ήρι"
+    assert String.slice("elixir", -10, 1) == nil
+    assert String.slice("あいうえお", -10, 2) == nil
+    assert String.slice("ειξήριολ", -10, 3) == nil
+    assert String.slice("elixir", 8, 2) == nil
+    assert String.slice("あいうえお", 6, 2) == nil
+    assert String.slice("ειξήριολ", 8, 1) == nil
+    assert String.slice("", 0, 1) == nil
+  end
+
 end

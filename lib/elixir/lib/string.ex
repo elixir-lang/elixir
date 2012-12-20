@@ -496,4 +496,55 @@ defmodule String do
   end
 
   defp do_at(:no_grapheme, _, _), do: nil
+
+  @doc """
+  Returns a substring starting at the offset given by the first, and
+  a length given by the second.
+  If the offset is greater than string length, than it returns nil.
+
+  ## Examples
+
+      String.slice("elixir", 1, 3) #=> "lix"
+      String.slice("elixir", 1, 10) #=> "lixir"
+      String.slice("elixir", 10, 3) #=> nil
+      String.slice("elixir", -4, 4) #=> "ixi"
+      String.slice("elixir", -10, 3) #=> nil
+
+  """
+  @spec slice(t, integer, integer) :: grapheme | nil
+
+  def slice(string, start, len) when start >= 0 do
+    do_slice(next_grapheme(string), start, start + len - 1, 0, "")
+  end
+
+  def slice(string, start, len) when start < 0 do
+    real_start_pos = do_length(next_grapheme(string)) - abs(start)
+    case real_start_pos >= 0 do
+      true -> do_slice(next_grapheme(string), real_start_pos, real_start_pos + len - 1, 0, "")
+      false -> nil
+    end
+  end
+
+  defp do_slice(_, start_pos, last_pos, _, _) when start_pos > last_pos do
+    nil
+  end
+
+  defp do_slice({_, rest}, start_pos, last_pos, current_pos, acc) when current_pos < start_pos do
+    do_slice(next_grapheme(rest), start_pos, last_pos, current_pos + 1, acc)
+  end
+
+  defp do_slice({char, rest}, start_pos, last_pos, current_pos, acc) when current_pos >= start_pos and current_pos < last_pos do
+    do_slice(next_grapheme(rest), start_pos, last_pos, current_pos + 1, acc <> char)
+  end
+
+  defp do_slice({char, _}, start_pos, last_pos, current_pos, acc) when current_pos >= start_pos and current_pos == last_pos do
+    acc <> char
+  end
+
+  defp do_slice(:no_grapheme, _, _, _, acc) do
+    case acc do
+      "" -> nil
+      _ -> acc
+    end
+  end
 end
