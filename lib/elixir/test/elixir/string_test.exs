@@ -42,18 +42,22 @@ defmodule StringTest do
   end
 
   test :capitalize do
+    assert String.capitalize("") == ""
     assert String.capitalize("abc") == "Abc"
+    assert String.capitalize("ABC") == "Abc"
     assert String.capitalize("c b a") == "C b a"
-    assert String.capitalize("1abc") == "1abc"
-    assert String.capitalize("_abc1") == "_abc1"
-    assert String.capitalize(" abc1") == " abc1"
+    assert String.capitalize("1ABC") == "1abc"
+    assert String.capitalize("_aBc1") == "_abc1"
+    assert String.capitalize(" aBc1") == " abc1"
   end
 
   test :capitalize_utf8 do
     assert String.capitalize("àáâ") == "Àáâ"
+    assert String.capitalize("ÀÁÂ") == "Àáâ"
     assert String.capitalize("âáà") == "Âáà"
+    assert String.capitalize("ÂÁÀ") == "Âáà"
     assert String.capitalize("òóôõö") == "Òóôõö"
-    assert String.capitalize("öõôóò") == "Öõôóò"
+    assert String.capitalize("ÒÓÔÕÖ") == "Òóôõö"
   end
 
   test :rstrip do

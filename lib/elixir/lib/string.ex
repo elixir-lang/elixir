@@ -176,11 +176,8 @@ defmodule String do
   defdelegate downcase(binary), to: String.Unicode
 
   @doc """
-  Convert first character on the given string to uppercase.
-
-  This function relies on the simple uppercase mapping
-  available in Unicode 6.2.0, check http://unicode.org/reports/tr44/
-  for more information.
+  Convert the first character on the given string to uppercase
+  and the remaining to downcase.
 
   ## Examples
 
@@ -190,7 +187,14 @@ defmodule String do
 
   """
   @spec capitalize(t) :: t
-  defdelegate capitalize(binary), to: String.Unicode
+
+  def capitalize(string) when is_binary(string) do
+    case next_grapheme(string) do
+      {char, rest} -> upcase(char) <> downcase(rest)
+      :no_grapheme -> ""
+    end
+  end
+
 
   @doc """
   Returns a string where trailing whitespace characters
