@@ -176,6 +176,23 @@ defmodule String do
   defdelegate downcase(binary), to: String.Unicode
 
   @doc """
+  Convert first character on the given string to uppercase.
+
+  This function relies on the simple uppercase mapping
+  available in Unicode 6.2.0, check http://unicode.org/reports/tr44/
+  for more information.
+
+  ## Examples
+
+      String.capitalize("abcd") #=> "Abcd"
+      String.capitalize("ab 123 xpto") #=> "Ab 123 xpto"
+      String.capitalize("josé") #=> "José"
+
+  """
+  @spec capitalize(t) :: t
+  defdelegate capitalize(binary), to: String.Unicode
+
+  @doc """
   Returns a string where trailing whitespace characters
   and new line have been removed.
 

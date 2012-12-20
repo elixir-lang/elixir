@@ -73,6 +73,19 @@ defmodule String.Unicode do
     << >>
   end
 
+  # Capitalize
+
+  lc { codepoint, upper, _lower } inlist codes, upper != "" do
+    upper = to_binary.(upper)
+    args  = quote do: [unquote(codepoint) <> t]
+    code  = quote do: unquote(upper) <> t
+    def :capitalize, args, [], do: code
+  end
+
+  def capitalize(binary) when is_binary(binary) do
+    binary
+  end
+
   # Strip
 
   def lstrip(""), do: ""

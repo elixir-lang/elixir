@@ -41,6 +41,21 @@ defmodule StringTest do
     assert String.downcase("ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ") == "àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþ"
   end
 
+  test :capitalize do
+    assert String.capitalize("abc") == "Abc"
+    assert String.capitalize("c b a") == "C b a"
+    assert String.capitalize("1abc") == "1abc"
+    assert String.capitalize("_abc1") == "_abc1"
+    assert String.capitalize(" abc1") == " abc1"
+  end
+
+  test :capitalize_utf8 do
+    assert String.capitalize("àáâ") == "Àáâ"
+    assert String.capitalize("âáà") == "Âáà"
+    assert String.capitalize("òóôõö") == "Òóôõö"
+    assert String.capitalize("öõôóò") == "Öõôóò"
+  end
+
   test :rstrip do
     assert String.rstrip("") == ""
     assert String.rstrip("   abc  ") == "   abc"
