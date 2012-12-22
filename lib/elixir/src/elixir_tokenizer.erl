@@ -235,7 +235,7 @@ tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, Parts, Rest } ->
       Token = case unescape_tokens(Parts) of
-        [Part]    -> { atom, Line, unsafe_to_atom(Part, Scope) };
+        [Part] when is_list(Part) or is_binary(Part) -> { atom, Line, unsafe_to_atom(Part, Scope) };
         Unescaped -> { atom, Line, Unescaped }
       end,
       tokenize(Rest, NewLine, Scope, [Token|Tokens]);
