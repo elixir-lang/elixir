@@ -75,7 +75,7 @@ unescape_token(Other, _Map) -> Other.
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
 -define(is_octal(S), S >= $0 andalso S =< $7).
--define(is_hex(S), (S >= $0 andalso S =< $9) orelse (S >= $A andalso S =< $F)).
+-define(is_hex(S), (S >= $0 andalso S =< $9) orelse (S >= $A andalso S =< $F) orelse (S >= $a andalso S =< $f)).
 
 unescape_chars(String) ->
   unescape_chars(String, fun unescape_map/1).
