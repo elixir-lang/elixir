@@ -162,6 +162,26 @@ tokenize([$%,S,H|T], Line, #scope{file=File} = Scope, Tokens) when not(?is_word(
 
 % Char tokens
 
+tokenize([$?,$\\,C,H1,H2|T], Line, Scope, Tokens) when (C == $x orelse C == $X), ?is_hex(H1), ?is_hex(H2) ->
+  Char = list_to_integer([H1, H2], 16),
+  tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
+
+tokenize([$?,$\\,C,H|T], Line, Scope, Tokens) when (C == $x orelse C == $X), ?is_hex(H) ->
+  Char = list_to_integer([H], 16),
+  tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
+
+tokenize([$?,$\\,C,O1,O2,O3|T], Line, Scope, Tokens) when (C == $o orelse C == $O), ?is_octal(O1), O1 =< $3, ?is_octal(O2), ?is_octal(O3) ->
+  Char = list_to_integer([O1, O2, O3], 8),
+  tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
+
+tokenize([$?,$\\,C,O1,O2|T], Line, Scope, Tokens) when (C == $o orelse C == $O), ?is_octal(O1), ?is_octal(O2) ->
+  Char = list_to_integer([O1, O2], 8),
+  tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
+
+tokenize([$?,$\\,C,O|T], Line, Scope, Tokens) when (C == $o orelse C == $O), ?is_octal(O) ->
+  Char = list_to_integer([O], 8),
+  tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
+
 tokenize([$?,$\\,H|T], Line, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);

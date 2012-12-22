@@ -115,7 +115,12 @@ addadd_test() ->
   [{identifier,1,x},{'++',1},{identifier,1,y}] = tokenize("x ++ y").
 
 chars_test() ->
-  [{number,1,97}] = tokenize("?a"),
-  [{number,1,99}] = tokenize("?c"),
-  [{number,1,10}] = tokenize("?\\n"),
-  [{number,1,92}] = tokenize("?\\\\").
+  [{number,1,97}]  = tokenize("?a"),
+  [{number,1,99}]  = tokenize("?c"),
+  [{number,1,10}]  = tokenize("?\\n"),
+  [{number,1,92}]  = tokenize("?\\\\"),
+  [{number,1,10}]  = tokenize("?\\xa"),
+  [{number,1,26}]  = tokenize("?\\X1a"),
+  [{number,1,6}]   = tokenize("?\\o6"),
+  [{number,1,49}]  = tokenize("?\\O61"),
+  [{number,1,255}] = tokenize("?\\o377").
