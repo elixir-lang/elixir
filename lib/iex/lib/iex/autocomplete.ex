@@ -253,11 +253,7 @@ defmodule IEx.Autocomplete do
 
   defp get_funs(mod) do
     if function_exported?(mod, :__info__, 1) do
-      if docs = mod.__info__(:docs) do
-        lc { tuple, _line, _kind, _sign, doc } inlist docs, doc != false, do: tuple
-      else
-        (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)
-      end
+      (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)
     else
       mod.module_info(:exports)
     end
