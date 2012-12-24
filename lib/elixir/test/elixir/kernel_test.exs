@@ -31,6 +31,10 @@ defmodule KernelTest do
     assert { :in, 2 } inlist Kernel.__info__(:macros)
   end
 
+  test :__info__not_included do
+    assert not ({ :__info__, 1 } inlist Kernel.__info__(:functions))
+  end
+
   test :macro_exported? do
     assert macro_exported?(Kernel, :in, 2) == true
     assert macro_exported?(Kernel, :def, 1) == true

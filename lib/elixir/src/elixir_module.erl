@@ -284,8 +284,7 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
   end.
 
 functions_clause(Def) ->
-  All = ordsets:add_element({'__info__',1}, Def),
-  { clause, 0, [{ atom, 0, functions }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
+  { clause, 0, [{ atom, 0, functions }], [], [elixir_tree_helpers:abstract_syntax(Def)] }.
 
 macros_clause(Module, Def, Defmacro) ->
   All = handle_builtin_macros(Module, Def, Defmacro),

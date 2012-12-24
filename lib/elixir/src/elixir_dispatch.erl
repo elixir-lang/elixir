@@ -236,7 +236,7 @@ get_optional_macros(Receiver) ->
 
 in_elixir_functions() ->
   try
-    ?BUILTIN:'__info__'(functions) -- [{'__info__',1}]
+    ?BUILTIN:'__info__'(functions)
   catch
     error:undef -> []
   end.
