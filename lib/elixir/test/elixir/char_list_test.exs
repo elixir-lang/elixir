@@ -22,8 +22,25 @@ bar '''
   end
 
   test :octals do
-    assert '\123' == 'S'
-    assert '\128' == '\n8'
-    assert '\18' == [1, ?8]
+    assert '\o1' == [1]
+    assert '\o12' == '\n'
+    assert '\o123' == 'S'
+    assert '\O123' == 'S'
+    assert '\o377' == 'ÿ'
+    assert '\o128' == '\n8'
+    assert '\o18' == [1, ?8]
   end
+
+  test :hex do
+    assert '\xa' == '\n'
+    assert '\xE9' == 'é'
+    assert '\xfF' == 'ÿ'
+    assert '\x{A}' == '\n'
+    assert '\x{e9}' == 'é'
+    assert '\x{10F}' == [196,143]
+    assert '\x{10FF}' == [225,131,191]
+    assert '\x{10FFF}' == [240,144,191,191]
+    assert '\x{10FFFF}' == [244,143,191,191]
+  end
+
 end
