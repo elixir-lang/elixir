@@ -3,10 +3,13 @@
   * [CLI] Support `--app` option to start an application and its dependencies
   * [ExUnit] ExUnit now supports multiple runs in the same process
   * [ExUnit] Failures in ExUnit now show a tailored stacktrace
+  * [ExUnit] Introduce `ExUnit.ExpectationError` to provide better error messages
   * [Kernel] Introduce `Application.Behaviour` to define application module callbacks
   * [Kernel] Introduce `Supervisor.Behaviour` to define supervisors callbacks
   * [Kernel] More optimisations were added to Record handling
   * [Mix] Mix now starts the current application before run, iex, test and friends
+  * [String] `?\x` and `?\o` are now supported ways to retrieve a codepoint
+  * [String] Add `String.capitalize` and `String.slice`
 
 * bug fix
   * [String] `String.first` and `String.last` return nil for empty binaries
@@ -15,6 +18,9 @@
 
 * deprecations
   * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
+
+* backwards incompatible changes
+  * [String] Octals `\xxx` are no longer supported, use `\oxxx` instead.
 
 # v0.7.2 (2012-12-04)
 
