@@ -200,7 +200,7 @@ defmodule Kernel.RescueTest do
       x in [BadFunctionError] -> x.message
     end
 
-    assert result == "bad function: :example"
+    assert result == "expected a function, got: :example"
   end
 
   test :badmatch_error do

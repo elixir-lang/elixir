@@ -178,7 +178,7 @@ end
 
 defexception BadFunctionError, [actual: nil] do
   def message(exception) do
-    "bad function: #{inspect(exception.actual)}"
+    "expected a function, got: #{inspect(exception.actual)}"
   end
 end
 
