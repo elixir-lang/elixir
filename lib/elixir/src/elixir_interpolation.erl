@@ -74,9 +74,6 @@ unescape_token(Other, _Map) -> Other.
 
 % Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
--define(is_octal(S), S >= $0 andalso S =< $7).
--define(is_hex(S), (S >= $0 andalso S =< $9) orelse (S >= $A andalso S =< $F) orelse (S >= $a andalso S =< $f)).
-
 unescape_chars(String) ->
   unescape_chars(String, fun unescape_map/1).
 
@@ -85,34 +82,37 @@ unescape_chars(String, Map) ->
   Hex    = Map($x) /= false,
   unescape_chars(String, Map, Octals, Hex, <<>>).
 
-unescape_chars(<<$\\,A,B,C,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A), ?is_octal(B), ?is_octal(C) ->
+unescape_chars(<<$\\,P,A,B,C,Rest/binary>>, Map, true, Hex, Acc) when (P == $o orelse P == $O), ?is_octal(A), A =< $3, ?is_octal(B), ?is_octal(C) ->
   append_escaped(Rest, Map, [A,B,C], true, Hex, Acc, 8);
 
-unescape_chars(<<$\\,A,B,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A), ?is_octal(B) ->
+unescape_chars(<<$\\,P,A,B,Rest/binary>>, Map, true, Hex, Acc) when (P == $o orelse P == $O), ?is_octal(A), ?is_octal(B) ->
   append_escaped(Rest, Map, [A,B], true, Hex, Acc, 8);
 
-unescape_chars(<<$\\,A,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A) ->
+unescape_chars(<<$\\,P,A,Rest/binary>>, Map, true, Hex, Acc) when (P == $o orelse P == $O), ?is_octal(A) ->
   append_escaped(Rest, Map, [A], true, Hex, Acc, 8);
 
-unescape_chars(<<$\\,$x,A,B,Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+unescape_chars(<<$\\,P,A,B,Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
   append_escaped(Rest, Map, [A,B], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A) ->
+unescape_chars(<<$\\,P,A,Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A) ->
   append_escaped(Rest, Map, [A], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,B,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+unescape_chars(<<$\\,P,${,A,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A) ->
+  append_escaped(Rest, Map, [A], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,P,${,A,B,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
   append_escaped(Rest, Map, [A,B], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,B,C,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+unescape_chars(<<$\\,P,${,A,B,C,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
   append_escaped(Rest, Map, [A,B,C], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,B,C,D,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+unescape_chars(<<$\\,P,${,A,B,C,D,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
   append_escaped(Rest, Map, [A,B,C,D], Octal, true, Acc, 16);
 
-  unescape_chars(<<$\\,$x,${,A,B,C,D,E,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+unescape_chars(<<$\\,P,${,A,B,C,D,E,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
     append_escaped(Rest, Map, [A,B,C,D,E], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,B,C,D,E,F,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+unescape_chars(<<$\\,P,${,A,B,C,D,E,F,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
   append_escaped(Rest, Map, [A,B,C,D,E,F], Octal, true, Acc, 16);
 
 unescape_chars(<<$\\,Escaped,Rest/binary>>, Map, Octals, Hex, Acc) ->
