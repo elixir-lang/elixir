@@ -72,10 +72,10 @@ bin_string_with_atom_with_separator_inside_interpolation_test() ->
   {<<"f}o">>, _} = eval("\"f#{\"}\"}o\"").
 
 bin_string_with_lower_case_hex_interpolation_test() ->
-    {<<"jklmno">>, _} = eval("\"\\x6a\\x6b\\x6c\\x6d\\x6e\\x6f\"").
+  {<<"jklmno">>, _} = eval("\"\\x6a\\x6b\\x6c\\x6d\\x6e\\x6f\"").
 
 bin_string_with_upper_case_hex_interpolation_test() ->
-    {<<"jklmno">>, _} = eval("\"\\x6A\\x6B\\x6C\\x6D\\x6E\\x6F\"").
+  {<<"jklmno">>, _} = eval("\"\\x6A\\x6B\\x6C\\x6D\\x6E\\x6F\"").
 
 bin_string_without_interpolation_and_escaped_test() ->
   {<<"f#o">>, _} = eval("\"f\\#o\"").
@@ -116,10 +116,10 @@ list_string_with_atom_with_separator_inside_interpolation_test() ->
   {"f}o", _} = eval("'f#{\"}\"}o'").
 
 list_string_with_lower_case_hex_interpolation_test() ->
-    {"JKLMNO", _} = eval("'\\x4a\\x4b\\x4c\\x4d\\x4e\\x4f'").
+  {"JKLMNO", _} = eval("'\\x4a\\x4b\\x4c\\x4d\\x4e\\x4f'").
 
 list_string_with_upper_case_hex_interpolation_test() ->
-    {"JKLMNO", _} = eval("'\\x4A\\x4B\\x4C\\x4D\\x4E\\x4F'").
+  {"JKLMNO", _} = eval("'\\x4A\\x4B\\x4C\\x4D\\x4E\\x4F'").
 
 list_string_without_interpolation_and_escaped_test() ->
   {"f#o", _} = eval("'f\\#o'").
