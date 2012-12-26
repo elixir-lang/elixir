@@ -201,7 +201,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Assets a message was or is going to be received. Differently from
-  `assert_received`, it has a default timeout time of half second.
+  `assert_received`, it has a default timeout time of 100 miliseconds.
 
   The given `expected` content must be a pattern.
 
@@ -218,7 +218,7 @@ defmodule ExUnit.Assertions do
       assert_received { :hello, _ }
 
   """
-  defmacro assert_receive(expected, timeout // 500, message // nil) do
+  defmacro assert_receive(expected, timeout // 100, message // nil) do
     do_assert_receive(expected, timeout, message)
   end
 
@@ -394,10 +394,10 @@ defmodule ExUnit.Assertions do
 
   Refute received with a explicit timeout:
 
-      refute_receive :bye, 500
+      refute_receive :bye, 1000
 
   """
-  defmacro refute_receive(not_expected, timeout // 500, message // nil) do
+  defmacro refute_receive(not_expected, timeout // 100, message // nil) do
     do_refute_receive(not_expected, timeout, message)
   end
 
