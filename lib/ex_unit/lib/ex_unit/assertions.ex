@@ -200,6 +200,29 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
+  Assets a message was or is going to be received. Differently from
+  `assert_received`, it has a default timeout time of half second.
+
+  The given `expected` content must be a pattern.
+
+  ## Examples
+
+      assert_receive :hello
+
+  Asserts against a larger timeout:
+
+      assert_receive :hello, 20_000
+
+  You can also match against specific patterns:
+
+      assert_received { :hello, _ }
+
+  """
+  defmacro assert_receive(expected, timeout // 500, message // nil) do
+    do_assert_receive(expected, timeout, message)
+  end
+
+  @doc """
   Asserts a message was received and is in the current process mailbox.
   The given `expected` content must to be a match pattern.
 
@@ -217,13 +240,18 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro assert_received(expected, message // nil) do
+    do_assert_receive(expected, 0, message)
+  end
+
+  defp do_assert_receive(expected, timeout, message) do
     binary = Macro.to_binary(expected)
 
     quote do
       receive do
         unquote(expected) = received -> received
       after
-        0 -> flunk unquote(message) || "Expected to have received message matching #{unquote binary}"
+        unquote(timeout) ->
+          flunk unquote(message) || "Expected to have received message matching #{unquote binary}"
       end
     end
   end
@@ -355,6 +383,25 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
+  Asserts a message was not received and won't be during
+  a timeout value.
+
+  The `not_expected` contents must be a match pattern.
+
+  ## Examples
+
+      refute_receive :bye
+
+  Refute received with a explicit timeout:
+
+      refute_receive :bye, 500
+
+  """
+  defmacro refute_receive(not_expected, timeout // 500, message // nil) do
+    do_refute_receive(not_expected, timeout, message)
+  end
+
+  @doc """
   Asserts a message was not received (i.e. it is not in the current process mailbox).
   The `not_expected` contents must be a match pattern.
 
@@ -367,6 +414,10 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro refute_received(not_expected, message // nil) do
+    do_refute_receive(not_expected, 0, message)
+  end
+
+  defp do_refute_receive(not_expected, timeout, message) do
     binary = Macro.to_binary(not_expected)
 
     quote do
@@ -374,7 +425,7 @@ defmodule ExUnit.Assertions do
         unquote(not_expected) = actual ->
           flunk unquote(message) || "Expected to not have received message matching #{unquote binary}, got #{inspect actual}"
       after
-        0 -> false
+        unquote(timeout) -> false
       end
     end
   end

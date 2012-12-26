@@ -75,6 +75,12 @@ defmodule ExUnit.AssertionsTest do
     { 2, 1 } = (assert { 2, 1 } = Value.tuple)
   end
 
+  test :assert_receive do
+    parent = self
+    spawn fn -> parent <- :hello end
+    :hello = assert_receive :hello
+  end
+
   test :assert_received do
     self <- :hello
     :hello = assert_received :hello
@@ -91,6 +97,10 @@ defmodule ExUnit.AssertionsTest do
 
   test :refute_received do
     false = refute_received :hello
+  end
+
+  test :refute_receive do
+    false = refute_receive :hello
   end
 
   test :refute_received_when_equal do

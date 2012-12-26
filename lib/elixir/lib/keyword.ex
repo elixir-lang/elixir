@@ -191,7 +191,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Sets the given `value` under `key`.
+  Puts the given `value` under `key`.
 
   If a previous value is already stored, all entries are
   removed and the value is overriden.
