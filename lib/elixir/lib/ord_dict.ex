@@ -58,6 +58,11 @@ defmodule OrdDict do
   end
 
   @doc false
+  def put_new(dict(data), key, value) do
+    dict(:orddict.update key, fn(x) -> x end, value, data)
+  end
+
+  @doc false
   def delete(dict(data), key) do
     dict(:orddict.erase key, data)
   end

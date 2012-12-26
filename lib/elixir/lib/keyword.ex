@@ -208,6 +208,24 @@ defmodule Keyword do
   end
 
   @doc """
+  Puts the given `value` under `key` unless the entry `key`
+  already exists.
+
+  ## Examples
+
+      Keyword.put_new [a: 1, b: 2], :a, 3
+      #=> [a: 1, b: 2]
+
+  """
+  @spec put_new(t, key, value) :: t
+  def put_new(keywords, key, value) when is_atom(key) do
+    case :lists.keyfind(key, 1, keywords) do
+      { ^key, _ } -> keywords
+      false -> [{key,value}|keywords]
+    end
+  end
+
+  @doc """
   Checks if two keywords are equal. I.e. they contain
   the same keys and those keys contain the same values.
 

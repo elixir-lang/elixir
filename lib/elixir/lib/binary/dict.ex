@@ -15,22 +15,27 @@ defmodule Binary.Dict do
     end
   end
 
+  @doc false
   def keys(dict(data)) do
     lc { k, _ } inlist data, do: k
   end
 
+  @doc false
   def values(dict(data)) do
     lc { _, v } inlist data, do: v
   end
 
+  @doc false
   def size(dict(data)) do
     length(data)
   end
 
+  @doc false
   def has_key?(dict(data), key) do
     :orddict.is_key to_binary(key), data
   end
 
+  @doc false
   def get(dict(data), key, default) do
     case :orddict.find(to_binary(key), data) do
       {:ok, value} -> value
@@ -38,6 +43,7 @@ defmodule Binary.Dict do
     end
   end
 
+  @doc false
   def get!(dict(data), key) do
     case :orddict.find(to_binary(key), data) do
       {:ok, value} -> value
@@ -45,34 +51,47 @@ defmodule Binary.Dict do
     end
   end
 
+  @doc false
   def put(dict(data), key, value) do
     dict(:orddict.store to_binary(key), value, data)
   end
 
+  @doc false
+  def put_new(dict(data), key, value) do
+    dict(:orddict.update to_binary(key), fn(x) -> x end, value, data)
+  end
+
+  @doc false
   def delete(dict(data), key) do
     dict(:orddict.erase to_binary(key), data)
   end
 
+  @doc false
   def merge(dict(d1), dict(d2), fun) do
     dict(:orddict.merge fun, d1, d2)
   end
 
+  @doc false
   def merge(dict(_) = d1, d2, fun) do
     merge(d1, new(d2), fun)
   end
 
+  @doc false
   def update(dict(data), key, fun) do
     dict(:orddict.update to_binary(key), fun, data)
   end
 
+  @doc false
   def update(dict(data), key, initial, fun) do
     dict(:orddict.update to_binary(key), fun, initial, data)
   end
 
+  @doc false
   def empty(_) do
     dict([])
   end
 
+  @doc false
   def to_list(dict(data)) do
     data
   end

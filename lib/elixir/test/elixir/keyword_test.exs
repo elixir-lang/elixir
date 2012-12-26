@@ -82,7 +82,12 @@ defmodule KeywordTest do
 
   test :put do
     assert Keyword.put(create_empty_keywords, :first_key, 1) == [first_key: 1]
-    assert Keyword.put(create_keywords, :first_key, 1) == [first_key: 1, second_key: 2]
+    assert Keyword.put(create_keywords, :first_key, 3) == [first_key: 3, second_key: 2]
+  end
+
+  test :put_new do
+    assert Keyword.put_new(create_empty_keywords, :first_key, 1) == [first_key: 1]
+    assert Keyword.put_new(create_keywords, :first_key, 3) == [first_key: 1, second_key: 2]
   end
 
   test :merge do

@@ -48,6 +48,11 @@ defmodule DictTest.Common do
         assert 2 == Dict.get dict, "second_key"
       end
 
+      test :put_new do
+        dict = Dict.put_new(new_dict, "first_key", {1})
+        assert 1 == Dict.get dict, "first_key"
+      end
+
       test :keys do
         assert ["first_key", "second_key"] == Enum.sort Dict.keys new_dict
         assert [] == Dict.keys empty_dict

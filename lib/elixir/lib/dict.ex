@@ -39,6 +39,7 @@ defmodule Dict do
   defcallback keys(t) :: list(key)
   defcallback merge(t, t, (key, value, value -> value)) :: t
   defcallback put(t, key, value) :: t
+  defcallback put_new(t, key, value) :: t
   defcallback size(t) :: non_neg_integer()
   defcallback to_list(t) :: list()
   defcallback update(t, key, (value -> value)) :: t
@@ -151,6 +152,21 @@ defmodule Dict do
   @spec put(t, key, value) :: t
   def put(dict, key, val) do
     elem(dict, 0).put(dict, key, val)
+  end
+
+  @doc """
+  Puts the given `value` under `key` in `dict` unless `key` already exists.
+
+  ## Examples
+
+      d = new [a: 1, b: 2]
+      Dict.put_new d, :a, 3
+      #=> [a: 1, b: 2]
+
+  """
+  @spec put_new(t, key, value) :: t
+  def put_new(dict, key, val) do
+    elem(dict, 0).put_new(dict, key, val)
   end
 
   @doc """
