@@ -61,7 +61,7 @@ defmodule Record do
 
       defmodule CustomRecord do
         Record.deffunctions [:name, :age], __ENV__
-        Record.deftypes [:name, :age], __ENV__
+        Record.deftypes [:name, :age], [name: :binary, age: :integer], __ENV__
       end
 
   """
