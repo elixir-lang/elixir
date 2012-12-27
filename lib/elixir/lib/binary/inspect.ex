@@ -67,11 +67,12 @@ defmodule Binary.Inspect.Utils do
   end
 
   defp do_escape(<<h, t :: binary>>, char) when
-    h == ?#  or h == ?\b or
-    h == ?\d or h == ?\e or
-    h == ?\f or h == ?\n or
-    h == ?\r or h == ?\\ or
-    h == ?\t or h == ?\v do
+    h == ?#  or h == ?\a or
+    h == ?\b or h == ?\d or
+    h == ?\e or h == ?\f or
+    h == ?\n or h == ?\r or
+    h == ?\\ or h == ?\t or
+    h == ?\v do
     [?\\, escape_map(h) | do_escape(t, char)]
   end
 
@@ -84,6 +85,7 @@ defmodule Binary.Inspect.Utils do
   end
 
   defp escape_map(?#),  do: ?#
+  defp escape_map(?\a), do: ?a
   defp escape_map(?\b), do: ?b
   defp escape_map(?\d), do: ?d
   defp escape_map(?\e), do: ?e
@@ -287,7 +289,7 @@ defimpl Binary.Inspect, for: List do
     printable?(cs)
   end
 
-  defp printable?([c|cs]) when c in [?\n, ?\r, ?\t, ?\v, ?\b, ?\f, ?\e] do
+  defp printable?([c|cs]) when c in [?\n, ?\r, ?\t, ?\v, ?\b, ?\f, ?\e, ?\a] do
     printable?(cs)
   end
 

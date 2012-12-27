@@ -117,6 +117,7 @@ addadd_test() ->
 chars_test() ->
   [{number,1,97}]      = tokenize("?a"),
   [{number,1,99}]      = tokenize("?c"),
+  [{number,1,7}]       = tokenize("?\\a"),
   [{number,1,10}]      = tokenize("?\\n"),
   [{number,1,92}]      = tokenize("?\\\\"),
   [{number,1,10}]      = tokenize("?\\xa"),

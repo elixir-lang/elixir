@@ -280,6 +280,7 @@ defmodule Regex do
   def unescape_map(?r), do: ?\r
   def unescape_map(?t), do: ?\t
   def unescape_map(?v), do: ?\v
+  def unescape_map(?a), do: ?\a
   def unescape_map(_),  do: false
 
   # Private Helpers
