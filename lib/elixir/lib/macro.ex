@@ -84,9 +84,9 @@ defmodule Macro do
   Check `unescape_binary/2` for information on how to customize
   the escaping map.
 
-  In this setup, Elixir will escape the following: `\b`, `\d`,
-  `\e`, `\f`, `\n`, `\r`, `\s`, `\t` and `\v`. Octals are also
-  escaped according to the latin1 set they represent.
+  In this setup, Elixir will escape the following: `\a`, `\b`,
+  `\d`, `\e`, `\f`, `\n`, `\r`, `\s`, `\t` and `\v`. Octals are
+  also escaped according to the latin1 set they represent.
 
   This function is commonly used on sigil implementations
   (like `%r`, `%b` and others).
@@ -114,6 +114,7 @@ defmodule Macro do
   representing the number of the characters it wants to unescape.
   Here is the default mapping function implemented by Elixir:
 
+      def unescape_map(?a), do: ?\a
       def unescape_map(?b), do: ?\b
       def unescape_map(?d), do: ?\d
       def unescape_map(?e), do: ?\e

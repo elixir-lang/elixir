@@ -59,6 +59,9 @@ bin_string_with_newline_test() ->
 bin_string_with_slash_test() ->
   {<<"f\\o">>, _} = eval("\"f\\\\o\"").
 
+bin_string_with_bell_character_test() ->
+  {<<"f\ao">>, _} = eval("\"f\ao\"").
+
 bin_string_with_interpolation_test() ->
   {<<"foo">>, _} = eval("\"f#{\"o\"}o\"").
 
@@ -105,6 +108,9 @@ list_string_with_newline_test() ->
 
 list_string_with_slash_test() ->
   {"f\\o", _} = eval("'f\\\\o'").
+
+list_string_with_bell_character_test() ->
+  {"f\ao", _} = eval("'f\ao'").
 
 list_string_with_interpolation_test() ->
   {"foo", _} = eval("'f#{\"o\"}o'").
