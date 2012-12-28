@@ -1788,7 +1788,7 @@ defmodule Kernel do
     always shown as tuples, defaults to false;
 
   * :limit - the limit of items that are shown in tuples, bitstrings and
-    lists. Do not apply to strings;
+    lists. Does not apply to strings;
 
   ## Examples
 
