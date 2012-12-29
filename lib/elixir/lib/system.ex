@@ -47,7 +47,7 @@ defmodule System do
   @doc """
   Registers a function that will be invoked
   at the end of program execution. Useful for
-  invoking a hook on scripted mode.
+  invoking a hook in a "script" mode.
 
   The function must expect the exit status code
   as argument.
