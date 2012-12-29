@@ -118,11 +118,11 @@ defmodule Process do
     :erlang.spawn(fun)
   end
 
-  @typep spawn_opt  :: :link | :monitor | {:priority, :low | :normal | :high} |
-                       {:fullsweep_after, non_neg_integer} |
-                       {:min_heap_size, non_neg_integer} |
-                       {:min_bin_vheap_size, non_neg_integer}
-  @typep spawn_opts :: [spawn_opt]
+  @type spawn_opt  :: :link | :monitor | {:priority, :low | :normal | :high} |
+                      {:fullsweep_after, non_neg_integer} |
+                      {:min_heap_size, non_neg_integer} |
+                      {:min_bin_vheap_size, non_neg_integer}
+  @type spawn_opts :: [spawn_opt]
 
   @doc """
   Returns the pid of a new process started by the application of `fun`.

@@ -3,9 +3,12 @@ defmodule Node do
   Functions related to Erlang nodes.
   """
 
+  @type t :: atom
+
   @doc """
   Returns the current node. It returns the same as the built-in node().
   """
+  @spec self :: t
   def self do
     :erlang.node()
   end
@@ -14,6 +17,7 @@ defmodule Node do
   Returns true if the local node is alive; that is, if the node can be
   part of a distributed system. Otherwise, it returns false.
   """
+  @spec alive? :: boolean
   def alive? do
     :erlang.is_alive()
   end
@@ -22,6 +26,7 @@ defmodule Node do
   Returns a list of all visible nodes in the system, excluding
   the local node. Same as list(visible).
   """
+  @spec list :: [t]
   def list do
     :erlang.nodes()
   end
@@ -30,9 +35,11 @@ defmodule Node do
   Returns a list of nodes according to argument given. The result
   returned when the argument is a list, is the list of nodes
   satisfying the disjunction(s) of the list elements.
-  
+
   See http://www.erlang.org/doc/man/erlang.html#nodes-1 for more info.
   """
+  @typep list_arg :: :visible | :hidden | :connected | :this | :known
+  @spec list(list_arg | [list_arg]) :: [t]
   def list(args) do
     :erlang.nodes(args)
   end
@@ -43,6 +50,7 @@ defmodule Node do
 
   See http://www.erlang.org/doc/man/erlang.html#monitor_node-2 for more info.
   """
+  @spec monitor(t, boolean) :: true
   def monitor(node, flag) do
     :erlang.monitor_node(node, flag)
   end
@@ -53,6 +61,7 @@ defmodule Node do
 
   See http://www.erlang.org/doc/man/erlang.html#monitor_node-3 for more info.
   """
+  @spec monitor(t, boolean, [:allow_passive_connect]) :: true
   def monitor(node, flag, options) do
     :erlang.monitor_node(node, flag, options)
   end
@@ -62,9 +71,10 @@ defmodule Node do
   the local node has crashed. This BIF is mainly used in the Erlang network
   authentication protocols. Returns true if disconnection succeeds, otherwise
   false. If the local node is not alive, the function returns ignored.
-  
+
   See http://www.erlang.org/doc/man/erlang.html#disconnect_node-1 for more info.
   """
+  @spec disconnect(t) :: boolean | :ginored
   def disconnect(node) do
     :erlang.disconnect_node(node)
   end
@@ -76,6 +86,7 @@ defmodule Node do
   Check http://www.erlang.org/doc/man/erlang.html#spawn-2 for
   the list of available options.
   """
+  @spec spawn(t, (() -> any)) :: pid
   def spawn(node, fun) do
     :erlang.spawn(node, fun)
   end
@@ -87,6 +98,7 @@ defmodule Node do
   Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-3 for
   the list of available options.
   """
+  @spec spawn(t, (() -> any), Process.spawn_opts) :: pid | {pid, reference}
   def spawn(node, fun, opts) do
     :erlang.spawn_opt(node, fun, opts)
   end
@@ -99,6 +111,7 @@ defmodule Node do
   Check http://www.erlang.org/doc/man/erlang.html#spawn-4 for
   the list of available options.
   """
+  @spec spawn(t, module, atom, [any]) :: pid
   def spawn(node, module, fun, args) do
     :erlang.spawn(node, module, fun, args)
   end
@@ -111,6 +124,7 @@ defmodule Node do
   Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-5 for
   the list of available options.
   """
+  @spec spawn(t, module, atom, [any], Process.spawn_opts) :: pid | {pid, reference}
   def spawn(node, module, fun, args, opts) do
     :erlang.spawn_opt(node, module, fun, args, opts)
   end
@@ -122,6 +136,7 @@ defmodule Node do
   (and due to the link, an exit signal with exit reason :noconnection will be
   received).
   """
+  @spec spawn_link(t, (() -> any)) :: pid
   def spawn_link(node, fun) do
     :erlang.spawn_link(node, fun)
   end
@@ -133,6 +148,7 @@ defmodule Node do
   pid is returned (and due to the link, an exit signal with exit reason
   :noconnection will be received).
   """
+  @spec spawn_link(t, module, atom, [any]) :: pid
   def spawn_link(node, module, fun, args) do
     :erlang.spawn_link(node, module, fun, args)
   end
