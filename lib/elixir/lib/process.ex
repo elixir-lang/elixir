@@ -14,6 +14,7 @@ defmodule Process do
 
   `pid` must refer to a process at the local node.
   """
+  @spec alive?(pid) :: boolean
   def alive?(pid) do
     :erlang.is_process_alive(pid)
   end
@@ -21,6 +22,7 @@ defmodule Process do
   @doc """
   Returns the current process.
   """
+  @spec self :: pid
   def self do
     :erlang.self()
   end
@@ -28,6 +30,7 @@ defmodule Process do
   @doc """
   Returns all key-values in the dictionary.
   """
+  @spec get :: [{term, term}]
   def get do
     :erlang.get()
   end
@@ -35,6 +38,8 @@ defmodule Process do
   @doc """
   Returns the value for the given key.
   """
+  @spec get(term) :: term
+  @spec get(term, default :: term) :: term
   def get(key, default // nil) do
     case :erlang.get(key) do
       :undefined ->
@@ -47,6 +52,7 @@ defmodule Process do
   @doc """
   Returns all keys that have the given `value`.
   """
+  @spec get_keys(term) :: [term]
   def get_keys(value) do
     :erlang.get_keys(value)
   end
@@ -54,6 +60,7 @@ defmodule Process do
   @doc """
   Stores the given key-value in the process dictionary.
   """
+  @spec put(term, term) :: term | nil
   def put(key, value) do
     nillify :erlang.put(key, value)
   end
@@ -61,6 +68,7 @@ defmodule Process do
   @doc """
   Deletes all items in the dictionary.
   """
+  @spec delete :: [{term, term}]
   def delete() do
     :erlang.erase()
   end
@@ -68,6 +76,7 @@ defmodule Process do
   @doc """
   Deletes the given key from the dictionary.
   """
+  @spec delete(term) :: term | nil
   def delete(key) do
     nillify :erlang.erase(key)
   end
@@ -95,17 +104,25 @@ defmodule Process do
       Process.exit(pid, :kill)
 
   """
-  def exit(pid, status) do
-    :erlang.exit(pid, status)
+  @spec exit(pid, term) :: true
+  def exit(pid, reason) do
+    :erlang.exit(pid, reason)
   end
 
   @doc """
   Returns the pid of a new process started by the application of `fun`.
   It behaves exactly the same as `Kernel.spawn/1`.
   """
+  @spec spawn((() -> any)) :: pid
   def spawn(fun) do
     :erlang.spawn(fun)
   end
+
+  @typep spawn_opt  :: :link | :monitor | {:priority, :low | :normal | :high} |
+                       {:fullsweep_after, non_neg_integer} |
+                       {:min_heap_size, non_neg_integer} |
+                       {:min_bin_vheap_size, non_neg_integer}
+  @typep spawn_opts :: [spawn_opt]
 
   @doc """
   Returns the pid of a new process started by the application of `fun`.
@@ -113,6 +130,7 @@ defmodule Process do
   It also accepts extra options, for the list of available options
   check http://www.erlang.org/doc/man/erlang.html#spawn_opt-2
   """
+  @spec spawn((() -> any), spawn_opts) :: pid | {pid, reference}
   def spawn(fun, opts) do
     :erlang.spawn_opt(fun, opts)
   end
@@ -124,6 +142,7 @@ defmodule Process do
 
   It behaves exactly the same as the `Kernel.spawn/3` function.
   """
+  @spec spawn(module, atom, [any]) :: pid
   def spawn(mod, fun, args) do
     :erlang.spawn(mod, fun, args)
   end
@@ -137,6 +156,7 @@ defmodule Process do
   check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4
 
   """
+  @spec spawn(module, atom, [any], spawn_opts) :: pid | {pid, reference}
   def spawn(mod, fun, args, opts) do
     :erlang.spawn_opt(mod, fun, args, opts)
   end
@@ -146,6 +166,7 @@ defmodule Process do
   A link is created between the calling process and the new
   process, atomically.
   """
+  @spec spawn_link((() -> any)) :: pid
   def spawn_link(fun) do
     :erlang.spawn_link(fun)
   end
@@ -155,6 +176,7 @@ defmodule Process do
   `module.function(args)`. A link is created between the calling process
   and the new process, atomically. Otherwise works like spawn/3.
   """
+  @spec spawn_link(module, atom, [any]) :: pid
   def spawn_link(mod, fun, args) do
     :erlang.spawn_link(mod, fun, args)
   end
@@ -163,6 +185,7 @@ defmodule Process do
   Returns the pid of a new process started by the application of `fun`
   and reference for a monitor created to the new process.
   """
+  @spec spawn_monitor((() -> any)) :: {pid, reference}
   def spawn_monitor(fun) do
     :erlang.spawn_monitor(fun)
   end
@@ -172,6 +195,7 @@ defmodule Process do
   and the process is monitored at the same time. Returns the pid and a
   reference for the monitor. Otherwise works like spawn/3.
   """
+  @spec spawn_monitor(module, atom, [any]) :: {pid, reference}
   def spawn_monitor(mod, fun, args) do
     :erlang.spawn_monitor(mod, fun, args)
   end
@@ -182,6 +206,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#monitor-2 for more info.
   """
+  @spec monitor(pid | {reg_name :: atom, node :: atom} | reg_name :: atom) :: reference
   def monitor(item) do
     :erlang.monitor(:process, item)
   end
@@ -193,6 +218,8 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#demonitor-2 for more info.
   """
+  @spec demonitor(reference) :: true
+  @spec demonitor(reference, options :: [:flush | :info]) :: boolean
   def demonitor(monitor_ref, options // []) do
     :erlang.demonitor(monitor_ref, options)
   end
@@ -207,6 +234,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#processes-0 for more info.
   """
+  @spec list :: [pid]
   def list do
     :erlang.processes()
   end
@@ -217,6 +245,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#link-1 for more info.
   """
+  @spec link(pid | port) :: true
   def link(pid) do
     :erlang.link(pid)
   end
@@ -228,6 +257,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#unlink-1 for more info.
   """
+  @spec unlink(pid | port) :: true
   def unlink(pid) do
     :erlang.unlink(pid)
   end
@@ -239,6 +269,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#register-2 for more info.
   """
+  @spec register(pid | port, atom) :: true
   def register(pid, name) do
     :erlang.register(name, pid)
   end
@@ -248,6 +279,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#unregister-1 for more info.
   """
+  @spec unregister(atom) :: true
   def unregister(name) do
     :erlang.unregister(name)
   end
@@ -258,6 +290,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#whereis-1 for more info.
   """
+  @spec whereis(atom) :: pid | port | nil
   def whereis(name) do
     nillify :erlang.whereis(name)
   end
@@ -265,6 +298,7 @@ defmodule Process do
   @doc """
   Returns the pid of the group leader for the process which evaluates the function.
   """
+  @spec group_leader :: pid
   def group_leader do
     :erlang.group_leader
   end
@@ -273,6 +307,7 @@ defmodule Process do
   Sets the group leader of Pid to GroupLeader. Typically, this is used when a processes
   started from a certain shell should have another group leader than `:init`.
   """
+  @spec group_leader(leader :: pid, pid) :: true
   def group_leader(leader, pid) do
     :erlang.group_leader(leader, pid)
   end
@@ -280,16 +315,21 @@ defmodule Process do
   @doc """
   Returns a list of names which have been registered using register/2.
   """
+  @spec registered :: [atom]
   def registered do
     :erlang.registered()
   end
 
+  @typep process_flag :: :trap_exit | :error_handler | :min_heap_size |
+                         :min_bin_vheap_size | :priority | :save_calls |
+                         :sensitive
   @doc """
   Sets certain flags for the process which calls this function.
   Returns the old value of the flag.
 
   See http://www.erlang.org/doc/man/erlang.html#process_flag-2 for more info.
   """
+  @spec flag(process_flag, term) :: term
   def flag(flag, value) do
     :erlang.process_flag(flag, value)
   end
@@ -301,6 +341,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#process_flag-3 for more info.
   """
+  @spec flag(pid, process_flag, term) :: term
   def flag(pid, flag, value) do
     :erlang.process_flag(pid, flag, value)
   end
@@ -311,6 +352,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#process_info-1 for more info.
   """
+  @spec info(pid) :: Keyword.t
   def info(pid) do
     :erlang.process_info(pid)
   end
@@ -321,6 +363,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#process_info-2 for more info.
   """
+  @spec info(pid, atom) :: {atom, term}
   def info(pid, spec) do
     :erlang.process_info(pid, spec)
   end
