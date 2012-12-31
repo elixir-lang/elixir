@@ -2803,15 +2803,19 @@ defmodule Kernel do
       try do
         raise "Oops"
       rescue
-        exception, stacktrace ->
+        exception ->
+          stacktrace = System.stacktrace
           if exception.message == "Oops" do
             raise exception, [], stacktrace
           end
       end
 
-  Notice that Elixir does not associate stacktraces
-  with exceptions by default. They need to be explicitly
-  captured and added to the exception.
+  Notice that `System.stacktrace` returns the stacktrace
+  of the last exception. That said, it is common to assign
+  the stacktrace as the first expression inside a `rescue`
+  clause as any other exception potentially raised (and
+  rescued) in between the rescue clause and the raise call
+  may change the `System.stacktrace` value.
   """
   @spec raise(tuple | atom, list, list) :: no_return
   def raise(exception, args, stacktrace) do

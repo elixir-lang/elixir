@@ -43,7 +43,9 @@ defmodule Mix.CLI do
     rescue
       # We only rescue exceptions in the mix namespace, all
       # others pass through and will explode on the users face
-      exception, stacktrace ->
+      exception ->
+        stacktrace = System.stacktrace
+
         if function_exported?(exception, :mix_error, 0) do
           if msg = exception.message, do: Mix.shell.error "** (Mix) #{msg}"
           exit(1)
