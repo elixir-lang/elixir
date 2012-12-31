@@ -137,7 +137,7 @@ defmodule Protocol do
                 target.__impl__
                 target
               catch
-                :error, :undef, [[{ ^target, :__impl__, [], _ }|_]|_] ->
+                :error, :undef, [{ ^target, :__impl__, [], _ }|_] ->
                   unquote(fallback)
               end
             other ->
@@ -344,7 +344,7 @@ defmodule Protocol.DSL do
         try do
           target.unquote(name)(unquote_splicing(args))
         catch
-          :error, :undef, [[{ ^target, name, args, _ }|_]|_] when
+          :error, :undef, [{ ^target, name, args, _ }|_] when
               name == unquote(name) and length(args) == unquote(arity) ->
             unquote(catch_clause(args, fallback))
         end) }

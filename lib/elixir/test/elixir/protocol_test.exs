@@ -169,7 +169,7 @@ defmodule ProtocolTest do
       target.blank(thing)
       raise "Expected invocation to fail"
     catch
-      :error, :undef, [stack|_] ->
+      :error, :undef, stack ->
         ref = Module.concat target, impl
         case hd(stack) do
           { ^ref, :blank, [^thing], _} -> :ok

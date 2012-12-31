@@ -16,7 +16,7 @@ each_clause(Line, { 'catch', Raw, Expr }, S) ->
   Final = case Args of
     [X]     -> [throw, X, { '_', Line, nil }];
     [X,Y]   -> [X, Y, { '_', Line, nil }];
-    [_,_,_] -> Args;
+    [X,Y,Z] -> [X, Y, [{ '|', Line, [Z, { '_', Line, nil }]}]];
     _       ->
       elixir_errors:syntax_error(Line, S#elixir_scope.file, "too many arguments given for catch")
   end,
