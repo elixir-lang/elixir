@@ -290,6 +290,6 @@ defmodule MacroTest do
     env = __ENV__.file("foo").line(12)
     assert env.stacktrace == [{ __MODULE__, :test_env_stacktrace, 0, [file: "foo", line: 12] }]
     env = env.function(nil)
-    assert env.stacktrace == [{ __MODULE__, [file: "foo", line: 12] }]
+    assert env.stacktrace == [{ __MODULE__, :__MODULE__, 0, [file: "foo", line: 12] }]
   end
 end
