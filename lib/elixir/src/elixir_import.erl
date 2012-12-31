@@ -40,7 +40,7 @@ import(Line, Ref, Opts, Selector, S) ->
   SF = case IncludeAll or (Selector == functions) of
     false -> S;
     true  ->
-      FunctionsFun = fun() -> remove_underscored(Selector, get_functions(Ref)) end,
+      FunctionsFun = fun(K) -> remove_underscored(K andalso Selector, get_functions(Ref)) end,
       Functions = calculate(Line, Ref, Opts,
         S#elixir_scope.functions, FunctionsFun, S),
       S#elixir_scope{functions=Functions}
@@ -49,9 +49,9 @@ import(Line, Ref, Opts, Selector, S) ->
   SM = case IncludeAll or (Selector == macros) of
     false -> SF;
     true  ->
-      MacrosFun = fun() ->
+      MacrosFun = fun(K) ->
         case IncludeAll of
-          true  -> remove_underscored(Selector, get_optional_macros(Ref));
+          true  -> remove_underscored(K andalso Selector, get_optional_macros(Ref));
           false -> get_macros(Line, Ref, SF)
         end
       end,
@@ -77,16 +77,17 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
         [{Name,Arity}|_] ->
           Tuple = { invalid_import, { Key, Name, Arity } },
           elixir_errors:form_error(Line, File, ?MODULE, Tuple);
-        _ -> intersection(Only, AvailableFun())
+        _ ->
+          intersection(Only, AvailableFun(false))
       end;
     false ->
       case keyfind(except, Opts) of
-        false -> AvailableFun()   ;     
-        { except, [] } -> AvailableFun();
+        false -> AvailableFun(true);
+        { except, [] } -> AvailableFun(true);
         { except, RawExcept } ->
           Except = expand_fun_arity(Line, except, RawExcept, S),
           case keyfind(Key, Old) of
-            false -> AvailableFun() -- Except;
+            false -> AvailableFun(true) -- Except;
             {Key,ToRemove} -> ToRemove -- Except
           end
       end

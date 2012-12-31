@@ -577,8 +577,8 @@ defmodule Kernel.SpecialForms do
       {{:.,0,[{:__aliases__,0,[:Foo]},:bar]},0,[]}
 
   Whenever an expression iterator sees a `:.` as the tuple key,
-  it can be sure that it represents a call and the second element
-  of the arguments list is an atom.
+  it can be sure that it represents a call and the second argument
+  is the list is an atom.
 
   On the other hand, aliases holds some properties:
 
