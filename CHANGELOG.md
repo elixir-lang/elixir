@@ -1,6 +1,8 @@
 * enhancements
   * [Binary] Support `<< "string" :: utf8 >>` as in Erlang
+  * [Binary] Support `\a` escape character in binaries
   * [CLI] Support `--app` option to start an application and its dependencies
+  * [Dict] Support `put_new` in `Dict` and `Keyword`
   * [ExUnit] ExUnit now supports multiple runs in the same process
   * [ExUnit] Failures in ExUnit now show a tailored stacktrace
   * [ExUnit] Introduce `ExUnit.ExpectationError` to provide better error messages
@@ -12,9 +14,10 @@
   * [String] Add `String.capitalize` and `String.slice`
 
 * bug fix
+  * [Kernel] `import` with `only` accepts functions starting with underscore
   * [String] `String.first` and `String.last` return nil for empty binaries
   * [String] `String.rstrip` and `String.lstrip` now verify if argument is a binary
-  * [Typespec] Support ... inside typespec's lists
+  * [Typespec] Support `...` inside typespec's lists
 
 * deprecations
   * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
