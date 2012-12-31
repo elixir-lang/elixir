@@ -59,7 +59,7 @@ eval_forms(Forms, Line, Vars, S) ->
   %% Pass { native, false } to speed up bootstrap
   %% process when native is set to true
   { module(ModuleForm, S#elixir_scope.file, [{native,false}], true, fun(_, _) ->
-    Res = Module:'BOOTSTRAP'(S#elixir_scope.module, Args),
+    Res = Module:'__BOOT__'(S#elixir_scope.module, Args),
     code:delete(Module),
     case code:soft_purge(Module) of
       true  -> return_module_name(I);
@@ -119,8 +119,8 @@ module_form(Exprs, Line, File, Module, Vars) when
   [
     { attribute, Line, file, { binary_to_list(File), 1 } },
     { attribute, Line, module, Module },
-    { attribute, Line, export, [{ 'BOOTSTRAP', 2 }] },
-    { function, Line, 'BOOTSTRAP', length(Args), [
+    { attribute, Line, export, [{ '__BOOT__', 2 }] },
+    { function, Line, '__BOOT__', length(Args), [
       { clause, Line, Args, [], Exprs }
     ] }
   ].

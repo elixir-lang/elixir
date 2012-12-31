@@ -60,12 +60,12 @@ defmodule Exception do
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
   """
-  def format_entry({module, fun, arity, file_line}) do
-    "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
+  def format_entry({ module, :__MODULE__, 0, file_line }) do
+    "#{format_file_line(file_line)}: #{inspect module} (body)"
   end
 
-  def format_entry({ module, file_line }) do
-    "#{format_file_line(file_line)}: #{inspect module} (body)"
+  def format_entry({module, fun, arity, file_line}) do
+    "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
   end
 
   @doc """
@@ -75,7 +75,9 @@ defmodule Exception do
   and it needs to be formatted by an Elixir application.
   """
   def filter_stacktrace([{ Kernel, :raise, _, _ }|t]), do: filter_stacktrace(t)
-  def filter_stacktrace([{ _mod, :BOOTSTRAP, _, info }|t]),
+  def filter_stacktrace([{ _mod, :__BOOT__, [mod, _], info }|t]) when mod != nil,
+    do: filter_stacktrace([{ mod, :__MODULE__, 0, info }|t])
+  def filter_stacktrace([{ _mod, :__BOOT__, _, info }|t]),
     do: filter_stacktrace([{ Kernel, :defmodule, 2, info }|t])
   def filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
   def filter_stacktrace([]), do: []

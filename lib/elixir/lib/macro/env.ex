@@ -66,7 +66,7 @@ defmodule Macro.Env do
   def stacktrace(record) do
     case record.function do
       { name, arity } -> [{ module(record), name, arity, location(record) }]
-      nil -> [{ module(record), location(record) }]
+      nil -> [{ module(record), :__MODULE__, 0, location(record) }]
     end
   end
 end
