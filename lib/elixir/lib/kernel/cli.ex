@@ -53,7 +53,7 @@ defmodule Kernel.CLI do
         at_exit(1)
         trace = System.stacktrace
         IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        IO.puts Exception.formatted_stacktrace(trace)
+        IO.puts Exception.format_stacktrace(trace)
         System.halt(1)
     catch
       :exit, reason when is_integer(reason) ->
@@ -66,7 +66,7 @@ defmodule Kernel.CLI do
         at_exit(1)
         trace = System.stacktrace
         IO.puts :stderr, "** (#{kind}) #{inspect(reason)}"
-        IO.puts Exception.formatted_stacktrace(trace)
+        IO.puts Exception.format_stacktrace(trace)
         System.halt(1)
     end
   end
@@ -83,12 +83,12 @@ defmodule Kernel.CLI do
         exception ->
           trace = System.stacktrace
           IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          IO.puts Exception.formatted_stacktrace(trace)
+          IO.puts Exception.format_stacktrace(trace)
       catch
         kind, reason ->
           trace = System.stacktrace
           IO.puts :stderr, "** #{kind} #{inspect(reason)}"
-          IO.puts Exception.formatted_stacktrace(trace)
+          IO.puts Exception.format_stacktrace(trace)
       end
     end
 

@@ -321,7 +321,10 @@ defmodule Record do
   #
   defp reflection(values) do
     quote do
+      @doc false
       def __record__(kind, _),      do: __record__(kind)
+
+      @doc false
       def __record__(:name),        do: __MODULE__
       def __record__(:fields),      do: unquote(values)
     end
@@ -357,7 +360,10 @@ defmodule Record do
     end
 
     quote do
+      @doc false
       def new(), do: new([])
+
+      @doc false
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
       def new(tuple) when is_tuple(tuple), do: :erlang.setelement(1, tuple, __MODULE__)
@@ -389,7 +395,11 @@ defmodule Record do
     end
     quote do
       unquote(quoted)
+
+      @doc false
       def __index__(_), do: nil
+
+      @doc false
       def __index__(key, _), do: __index__(key)
     end
   end
@@ -409,6 +419,7 @@ defmodule Record do
     end
 
     quote do
+      @doc false
       def to_keywords(record) do
         unquote(:orddict.from_list(sorted))
       end
@@ -453,14 +464,17 @@ defmodule Record do
     update = binary_to_atom "update_" <> atom_to_binary(key)
 
     contents = quote do
+      @doc false
       def unquote(key).(record) do
         :erlang.element(unquote(i + 1), record)
       end
 
+      @doc false
       def unquote(key).(value, record) do
         :erlang.setelement(unquote(i + 1), record, value)
       end
 
+      @doc false
       def unquote(update).(function, record) do
         :erlang.setelement(unquote(i + 1), record,
           function.(:erlang.element(unquote(i + 1), record)))
@@ -488,6 +502,7 @@ defmodule Record do
     contents = { :{}, 0, [(quote do: __MODULE__)|fields] }
 
     quote do
+      @doc false
       def update([], record) do
         record
       end

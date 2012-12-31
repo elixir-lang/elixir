@@ -70,7 +70,7 @@ defmodule OptionParser do
 
   defp parse(argv, opts, bool) do
     if flags = opts[:flags] do
-      IO.write "OptionParser option :flags is deprecated, please use :switches instead\n#{Exception.formatted_stacktrace}"
+      IO.write "OptionParser option :flags is deprecated, please use :switches instead\n#{Exception.format_stacktrace}"
       opts = Keyword.put(opts, :switches, lc(k inlist flags, do: { k, :boolean }))
     end
 

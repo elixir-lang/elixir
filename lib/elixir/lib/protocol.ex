@@ -122,6 +122,7 @@ defmodule Protocol do
         @type t :: unquote(generate_type(conversions, any))
       end
 
+      @doc false
       def __protocol__(:name),      do: __MODULE__
       def __protocol__(:functions), do: unquote(:lists.sort(functions))
     end

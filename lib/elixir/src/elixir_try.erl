@@ -24,19 +24,19 @@ each_clause(Line, { 'catch', Raw, Expr }, S) ->
   Condition = { '{}', Line, Final },
   elixir_clauses:assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], Guards, S);
 
-each_clause(Line, { rescue, [Condition], Expr }, S) ->
+each_clause(Line, { rescue, [Condition|T], Expr }, S) ->
   case normalize_rescue(Line, Condition, S) of
     { Left, Right } ->
       case Left of
         { '_', _, _ } ->
           { ClauseVar, CS } = elixir_scope:build_ex_var(Line, S),
           { Clause, _ } = rescue_guards(Line, ClauseVar, Right, S),
-          each_clause(Line, { 'catch', [error, Clause], Expr }, CS);
+          each_clause(Line, { 'catch', [error, Clause|T], Expr }, CS);
         _ ->
           { Clause, Safe } = rescue_guards(Line, Left, Right, S),
           case Safe of
             true ->
-              each_clause(Line, { 'catch', [error, Clause], Expr }, S);
+              each_clause(Line, { 'catch', [error, Clause|T], Expr }, S);
             false ->
               { ClauseVar, CS }  = elixir_scope:build_ex_var(Line, S),
               { FinalClause, _ } = rescue_guards(Line, ClauseVar, Right, S),
@@ -45,13 +45,12 @@ each_clause(Line, { rescue, [Condition], Expr }, S) ->
                 { { '.', Line, ['Elixir.Exception', normalize] }, Line, [ClauseVar] }
               ] },
               FinalExpr = prepend_to_block(Line, Match, Expr),
-              each_clause(Line, { 'catch', [error, FinalClause], FinalExpr }, CS)
+              each_clause(Line, { 'catch', [error, FinalClause|T], FinalExpr }, CS)
           end
       end;
     _ ->
-      Result = each_clause(Line, { 'catch', [error, Condition], Expr }, S),
       validate_rescue_access(Line, Condition, S),
-      Result
+      each_clause(Line, { 'catch', [error, Condition|T], Expr }, S)
   end;
 
 each_clause(Line, {rescue,_,_}, S) ->

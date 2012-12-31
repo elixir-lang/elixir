@@ -595,7 +595,7 @@ defmodule Kernel.Typespec do
   # Handle local calls
   defp typespec({:string, line, arguments}, vars, caller) do
     IO.write "warning: string() type use is discouraged. For character lists, use " <>
-      "char_list() type, for strings, String.t()\n#{Exception.env_stacktrace(caller)}"
+      "char_list() type, for strings, String.t()\n#{Exception.format_stacktrace(caller.stacktrace)}"
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
     { :type, line, :string, arguments }
   end

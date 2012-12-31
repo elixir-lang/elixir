@@ -29,13 +29,13 @@ defmodule IEx.Server do
         exception ->
           trace = System.stacktrace
           io_error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          io_error Exception.formatted_stacktrace(trace)
+          io_error Exception.format_stacktrace(trace)
           config.cache('')
       catch
         kind, error ->
           trace = System.stacktrace
           io_error "** (#{kind}) #{inspect(error)}"
-          io_error Exception.formatted_stacktrace(trace)
+          io_error Exception.format_stacktrace(trace)
           config.cache('')
       end
 

@@ -1507,8 +1507,13 @@ defmodule Kernel do
     opts = Keyword.put(opts, :do, quote do
       @moduledoc nil
       record_type message: binary
+
+      @doc false
       def exception(args), do: new(args)
+
+      @doc false
       def exception(args, self), do: update(args, self)
+
       unquote(Keyword.get opts, :do)
     end)
 
@@ -2742,8 +2747,10 @@ defmodule Kernel do
   @doc """
   Raises an error.
 
-  If the argument is a binary, it raises RuntimeError with the message.
-  If anything else, becomes a call to raise(argument, []).
+  If the argument is a binary, it raises `RuntimeError`
+  using the given argument as message.
+
+  If anything else, becomes a call to `raise(argument, [])`.
 
   ## Examples
 
@@ -2775,13 +2782,8 @@ defmodule Kernel do
   structure.
 
   Any module defined via `defexception` automatically
-  defines `exception(args)` that returns a new instance
-  of the record and a `exception(args, current)` that
-  updates the current exception.
-
-  Re-raising an exception will retrieve the previous
-  stacktrace so it keps the properties of the original
-  exception.
+  defines both `exception(args)` and `exception(args, current)`
+  that creates a new and updates the given exception.
 
   ## Examples
 
@@ -2789,13 +2791,31 @@ defmodule Kernel do
 
   """
   @spec raise(tuple | atom, list) :: no_return
-  def raise(exception, args) when is_tuple(exception) and tuple_size(exception) > 1 and
-      :erlang.element(2, exception) == :__exception__ do
-    :erlang.raise(:error, exception.exception(args), :erlang.get_stacktrace)
-  end
-
   def raise(exception, args) do
     :erlang.error exception.exception(args)
+  end
+
+  @doc """
+  Re-raises an exception with the given stacktrace.
+
+  ## Examples
+
+      try do
+        raise "Oops"
+      rescue
+        exception, stacktrace ->
+          if exception.message == "Oops" do
+            raise exception, [], stacktrace
+          end
+      end
+
+  Notice that Elixir does not associate stacktraces
+  with exceptions by default. They need to be explicitly
+  captured and added to the exception.
+  """
+  @spec raise(tuple | atom, list, list) :: no_return
+  def raise(exception, args, stacktrace) do
+    :erlang.raise :error, exception.exception(args), stacktrace
   end
 
   @doc """

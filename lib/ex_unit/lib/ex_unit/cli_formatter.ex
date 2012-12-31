@@ -7,7 +7,7 @@ defmodule ExUnit.CLIFormatter do
   @behaviour ExUnit.Formatter
   use GenServer.Behaviour
 
-  import Exception, only: [format_stacktrace: 1]
+  import Exception, only: [format_entry: 1]
   defrecord Config, counter: 0, failures: []
 
   ## Behaviour
@@ -102,7 +102,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp print_stacktrace(stacktrace, _case, _test) do
     IO.puts "  stacktrace:"
-    Enum.each stacktrace, fn(s) -> IO.puts "    #{format_stacktrace(s)}" end
+    Enum.each stacktrace, fn(s) -> IO.puts "    #{format_entry(s)}" end
   end
 
   defp pad(binary, max) do

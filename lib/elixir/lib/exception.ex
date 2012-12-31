@@ -1,11 +1,11 @@
 defmodule Exception do
   @moduledoc """
   Several convenience functions to work and pretty print
-  exceptions and backtraces.
+  exceptions and stacktraces.
   """
 
   @doc """
-  Normalize an exception converting Erlang exceptions
+  Normalizes an exception converting Erlang exceptions
   to Elixir exceptions. Useful when interfacing Erlang
   code with Elixir code.
   """
@@ -42,11 +42,11 @@ defmodule Exception do
   end
 
   def normalize(:undef) do
-    UndefinedFunctionError.new from_stacktrace(System.stacktrace)
+    UndefinedFunctionError.new from_stacktrace(:erlang.get_stacktrace)
   end
 
   def normalize(:function_clause) do
-    FunctionClauseError.new from_stacktrace(System.stacktrace)
+    FunctionClauseError.new from_stacktrace(:erlang.get_stacktrace)
   end
 
   def normalize({ :badarg, payload }) do
@@ -57,6 +57,65 @@ defmodule Exception do
     ErlangError.new original: other
   end
 
+  @doc """
+  Receives a tuple representing a stacktrace entry and formats it.
+  """
+  def format_entry({module, fun, arity, file_line}) do
+    "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
+  end
+
+  def format_entry({ module, file_line }) do
+    "#{format_file_line(file_line)}: #{inspect module} (body)"
+  end
+
+  @doc """
+  Filters the stacktrace removing internal Elixir entries.
+
+  This is useful when a stacktrace is received from Erlang code
+  and it needs to be formatted by an Elixir application.
+  """
+  def filter_stacktrace([{ Kernel, :raise, _, _ }|t]), do: filter_stacktrace(t)
+  def filter_stacktrace([{ _mod, :BOOTSTRAP, _, info }|t]),
+    do: filter_stacktrace([{ Kernel, :defmodule, 2, info }|t])
+  def filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
+  def filter_stacktrace([]), do: []
+
+  @doc """
+  Formats the stacktrace.
+
+  A stacktrace must be given as argument. If not, this function
+  calculates the current stacktrace and formats it. As consequence,
+  the value of `System.stacktrace` is changed.
+  """
+  def format_stacktrace(trace // nil)
+
+  def format_stacktrace(trace) when is_tuple(trace) do
+    IO.puts "Exception.format_stacktrace is deprecated, please use format_entry instead"
+    print_stacktrace
+  end
+
+  def format_stacktrace(trace) do
+    trace = trace || try do
+      throw(:stacktrace)
+    catch
+      :stacktrace -> Enum.drop(filter_stacktrace(:erlang.get_stacktrace), 1)
+    end
+
+    case trace do
+      [] -> "\n"
+      s  -> "    " <> Enum.map_join(s, "\n    ", format_entry(&1)) <> "\n"
+    end
+  end
+
+  @doc """
+  Prints the current stacktrace to standard output.
+  """
+  def print_stacktrace(trace // nil) do
+    IO.write format_stacktrace(trace)
+  end
+
+  ## Helpers
+
   # Check the given module is a valid exception record.
   @doc false
   def check!(module) do
@@ -65,11 +124,10 @@ defmodule Exception do
     end
   end
 
-  @doc """
-  Receives a module, fun and arity and returns a string
-  representing such invocation. Arity may also be a list
-  of arguments. It follows the same syntax as in stacktraces.
-  """
+  # Receives a module, fun and arity and returns a string
+  # representing such invocation. Arity may also be a list
+  # of arguments. It follows the same syntax as in stacktraces.
+  @doc false
   def format_module_fun_arity(module, fun, arity) do
     case inspect(fun) do
       << ?:, fun :: binary >> -> :ok
@@ -84,53 +142,11 @@ defmodule Exception do
     end
   end
 
-  @doc """
-  Returns the stacktrace as a binary formatted as per `format_stacktrace/1`.
-  """
-  def formatted_stacktrace(trace // nil) do
-    trace = trace || try do
-      throw(:stacktrace)
-    catch
-      :stacktrace -> Enum.drop(System.stacktrace, 1)
-    end
 
-    case trace do
-      [] -> ""
-      s  -> "    " <> Enum.map_join(s, "\n    ", format_stacktrace(&1)) <> "\n"
-    end
-  end
-
-  @doc """
-  Returns a formatted stacktrace from the environment.
-  """
-  def env_stacktrace(env) do
-    rest =
-      case env.function do
-        { name, arity } -> format_module_fun_arity(env.module, name, arity)
-        nil -> "#{inspect env.module} (body)"
-      end
-
-    "    #{format_file_line(env.location)}#{rest}\n"
-  end
-
-  @doc """
-  Formats each line in the stacktrace.
-  """
-  def format_stacktrace({module, fun, arity, file_line}) do
-    "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
-  end
-
-  @doc """
-  Formats file and line information present in stacktraces.
-  Expect them to be given in a keyword list.
-  """
   def format_file_line(file_line) do
     format_file_line(Keyword.get(file_line, :file), Keyword.get(file_line, :line))
   end
 
-  @doc """
-  Formats the given file and line.
-  """
   def format_file_line(file, line) do
     if file do
       file = to_binary(file)
@@ -143,8 +159,6 @@ defmodule Exception do
       ""
     end
   end
-
-  ## Helpers
 
   defp from_stacktrace([{ module, function, arity, _ }|_]) do
     [module: module, function: function, arity: arity]

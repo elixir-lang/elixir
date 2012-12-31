@@ -120,8 +120,7 @@ defmodule IO do
   """
   def puts(device // :stdio, item) do
     erl_dev = map_dev(device)
-    :io.put_chars erl_dev, to_iodata(item)
-    :io.nl(erl_dev)
+    :io.put_chars erl_dev, [to_iodata(item), ?\n]
   end
 
   @doc """

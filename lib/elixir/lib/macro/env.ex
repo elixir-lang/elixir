@@ -1,4 +1,26 @@
 defmodule Macro.Env do
+  @moduledoc """
+  A record that holds compile time environment information.
+
+  The current environment can be accessed at any time as
+  `__ENV__`. Inside macros, the caller environment can be
+  accessed as `__CALLER__`. It contains the following fields:
+
+  * `module` - the current module name.
+  * `file` - the current file name as a binary
+  * `line` - the current line as an integer
+  * `function` - a tuple as `{ atom, integer` }, where the first
+    element is the function name and the seconds its arity. Returns
+    `nil` if not inside a function
+  * `aliases` -  a list of two item tuples, where the first
+    item is the aliased name and the second the actual name
+  * `context` - the context of the environment. It can be nil
+    (default context), inside a guard or inside an assign
+  * `requires` - the list of required modules
+  * `functions` - a list of functions imported from each module
+  * `macros` - a list of macros imported from each module
+  """
+
   @type name_arity :: { atom, non_neg_integer }
   @type file :: binary
   @type line :: non_neg_integer
@@ -17,60 +39,6 @@ defmodule Macro.Env do
 
   Record.deffunctions(fields, __MODULE__)
   Record.deftypes(fields, types, __MODULE__)
-
-  @moduledoc """
-  A record that contains compile time environment information,
-  It can be accessed at any time by calling __ENV__.
-  """
-
-  @doc """
-  Returns the current module name.
-  """
-  def module(record)
-
-  @doc """
-  Returns the current file name as a binary.
-  """
-  def file(record)
-
-  @doc """
-  Returns the current line as an integer.
-  """
-  def line(record)
-
-  @doc """
-  Returns a tuple as { Atom, Integer }, where the first element
-  is the function name and the seconds its arity. Returns `nil`
-  if not inside a function.
-  """
-  def function(record)
-
-  @doc """
-  Returns a list of two item tuples, where the first
-  item is the aliased name and the second the actual name.
-  """
-  def aliases(record)
-
-  @doc """
-  Returns the context of the environment. It can be nil
-  (default context), inside a guard or inside an assign.
-  """
-  def context(record)
-
-  @doc """
-  Returns the list of required modules.
-  """
-  def requires(record)
-
-  @doc """
-  Returns a list of functions imported from each module.
-  """
-  def functions(record)
-
-  @doc """
-  Returns a list of macros imported from each module.
-  """
-  def macros(record)
 
   @doc """
   Returns a keyword list containing the file and line
@@ -91,4 +59,14 @@ defmodule Macro.Env do
   inside a match clause.
   """
   def in_match?(record), do: context(record) == :assign
+
+  @doc """
+  Returns the environment stacktrace.
+  """
+  def stacktrace(record) do
+    case record.function do
+      { name, arity } -> [{ module(record), name, arity, location(record) }]
+      nil -> [{ module(record), location(record) }]
+    end
+  end
 end

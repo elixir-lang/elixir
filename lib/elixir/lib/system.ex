@@ -146,10 +146,14 @@ defmodule System do
   end
 
   @doc """
-  Get the stacktrace.
+  Gets Elixir's stacktrace.
+
+  Notice the Erlang VM (and therefore this function) does not
+  return the current stacktrace but rather the stacktrace of the
+  latest exception.
   """
   def stacktrace do
-    filter_stacktrace :erlang.get_stacktrace
+    Exception.filter_stacktrace :erlang.get_stacktrace
   end
 
   @doc """
@@ -204,13 +208,6 @@ defmodule System do
   end
 
   ## Helpers
-
-  # Filter stacktrace by removing internal BOOTSTRAP calls.
-  defp filter_stacktrace([{ Kernel, :raise, _, _ }|t]), do: filter_stacktrace(t)
-  defp filter_stacktrace([{ _mod, :BOOTSTRAP, _, info }|t]),
-    do: filter_stacktrace([{ Kernel, :defmodule, 2, info }|t])
-  defp filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
-  defp filter_stacktrace([]), do: []
 
   defp server_call(args) do
     :gen_server.call(:elixir_code_server, args)
