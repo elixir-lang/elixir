@@ -115,12 +115,12 @@ tokenize([$0,X,H|T], Line, Scope, Tokens) when (X == $x orelse X == $X), ?is_hex
   { Rest, Number } = tokenize_hex([H|T], []),
   tokenize(Rest, Line, Scope, [{ number, Line, Number }|Tokens]);
 
-tokenize([$0,O,H|T], Line, Scope, Tokens) when (O == $o orelse O == $O), ?is_octal(H) ->
-  { Rest, Number } = tokenize_octal([H|T], []),
-  tokenize(Rest, Line, Scope, [{ number, Line, Number }|Tokens]);
-
 tokenize([$0,B,H|T], Line, Scope, Tokens) when (B == $b orelse B == $B), ?is_bin(H) ->
   { Rest, Number } = tokenize_bin([H|T], []),
+  tokenize(Rest, Line, Scope, [{ number, Line, Number }|Tokens]);
+
+tokenize([$0,H|T], Line, Scope, Tokens) when ?is_octal(H) ->
+  { Rest, Number } = tokenize_octal([H|T], []),
   tokenize(Rest, Line, Scope, [{ number, Line, Number }|Tokens]);
 
 % Comments
@@ -184,16 +184,16 @@ tokenize([$?,$\\,P,A|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is
   [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,A|T]))),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
-tokenize([$?,$\\,P,A,B,C|T], Line, Scope, Tokens) when (P == $o orelse P == $O), ?is_octal(A), A =< $3,?is_octal(B), ?is_octal(C) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,A,B,C|T]))),
+tokenize([$?,$\\,A,B,C|T], Line, Scope, Tokens) when ?is_octal(A), A =< $3,?is_octal(B), ?is_octal(C) ->
+  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,A,B,C|T]))),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
-tokenize([$?,$\\,P,A,B|T], Line, Scope, Tokens) when (P == $o orelse P == $O), ?is_octal(A), ?is_octal(B) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,A,B|T]))),
+tokenize([$?,$\\,A,B|T], Line, Scope, Tokens) when ?is_octal(A), ?is_octal(B) ->
+  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,A,B|T]))),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
-tokenize([$?,$\\,P,A|T], Line, Scope, Tokens) when (P == $o orelse P == $O), ?is_octal(A) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,A|T]))),
+tokenize([$?,$\\,A|T], Line, Scope, Tokens) when ?is_octal(A) ->
+  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,A|T]))),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,H|T], Line, Scope, Tokens) ->

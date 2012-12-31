@@ -24,8 +24,8 @@ scientific_test() ->
 hex_bin_octal_test() ->
   [{number,1,255}] = tokenize("0xFF"),
   [{number,1,255}] = tokenize("0Xff"),
-  [{number,1,63}] = tokenize("0o77"),
-  [{number,1,63}] = tokenize("0O77"),
+  [{number,1,63}] = tokenize("077"),
+  [{number,1,63}] = tokenize("077"),
   [{number,1,3}] = tokenize("0b11"),
   [{number,1,3}] = tokenize("0B11").
 
@@ -122,9 +122,9 @@ chars_test() ->
   [{number,1,92}]      = tokenize("?\\\\"),
   [{number,1,10}]      = tokenize("?\\xa"),
   [{number,1,26}]      = tokenize("?\\X1a"),
-  [{number,1,6}]       = tokenize("?\\o6"),
-  [{number,1,49}]      = tokenize("?\\O61"),
-  [{number,1,255}]     = tokenize("?\\o377"),
+  [{number,1,6}]       = tokenize("?\\6"),
+  [{number,1,49}]      = tokenize("?\\61"),
+  [{number,1,255}]     = tokenize("?\\377"),
   [{number,1,10}]      = tokenize("?\\x{a}"),
   [{number,1,171}]     = tokenize("?\\x{ab}"),
   [{number,1,2748}]    = tokenize("?\\x{abc}"),

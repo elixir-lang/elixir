@@ -9,8 +9,9 @@
   * [Kernel] Introduce `Application.Behaviour` to define application module callbacks
   * [Kernel] Introduce `Supervisor.Behaviour` to define supervisors callbacks
   * [Kernel] More optimisations were added to Record handling
+  * [Kernel] `?\x` and `?\` are now supported ways to retrieve a codepoint
+  * [Kernel] Octal numbers can now be defined as `0777`
   * [Mix] Mix now starts the current application before run, iex, test and friends
-  * [String] `?\x` and `?\o` are now supported ways to retrieve a codepoint
   * [String] Add `String.capitalize` and `String.slice`
 
 * bug fix
@@ -21,9 +22,6 @@
 
 * deprecations
   * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
-
-* backwards incompatible changes
-  * [String] Octals `\xxx` are no longer supported, use `\oxxx` instead.
 
 # v0.7.2 (2012-12-04)
 

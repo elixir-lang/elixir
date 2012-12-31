@@ -22,13 +22,13 @@ bar '''
   end
 
   test :octals do
-    assert '\o1' == [1]
-    assert '\o12' == '\n'
-    assert '\o123' == 'S'
-    assert '\O123' == 'S'
-    assert '\o377' == 'ÿ'
-    assert '\o128' == '\n8'
-    assert '\o18' == [1, ?8]
+    assert '\1' == [1]
+    assert '\12' == '\n'
+    assert '\123' == 'S'
+    assert '\123' == 'S'
+    assert '\377' == 'ÿ'
+    assert '\128' == '\n8'
+    assert '\18' == [1, ?8]
   end
 
   test :hex do

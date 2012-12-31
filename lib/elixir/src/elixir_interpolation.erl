@@ -82,13 +82,13 @@ unescape_chars(String, Map) ->
   Hex    = Map($x) /= false,
   unescape_chars(String, Map, Octals, Hex, <<>>).
 
-unescape_chars(<<$\\,P,A,B,C,Rest/binary>>, Map, true, Hex, Acc) when (P == $o orelse P == $O), ?is_octal(A), A =< $3, ?is_octal(B), ?is_octal(C) ->
+unescape_chars(<<$\\,A,B,C,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A), A =< $3, ?is_octal(B), ?is_octal(C) ->
   append_escaped(Rest, Map, [A,B,C], true, Hex, Acc, 8);
 
-unescape_chars(<<$\\,P,A,B,Rest/binary>>, Map, true, Hex, Acc) when (P == $o orelse P == $O), ?is_octal(A), ?is_octal(B) ->
+unescape_chars(<<$\\,A,B,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A), ?is_octal(B) ->
   append_escaped(Rest, Map, [A,B], true, Hex, Acc, 8);
 
-unescape_chars(<<$\\,P,A,Rest/binary>>, Map, true, Hex, Acc) when (P == $o orelse P == $O), ?is_octal(A) ->
+unescape_chars(<<$\\,A,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A) ->
   append_escaped(Rest, Map, [A], true, Hex, Acc, 8);
 
 unescape_chars(<<$\\,P,A,B,Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
