@@ -67,7 +67,7 @@ defmodule Exception do
   end
 
   # From :elixir_compiler
-  def format_entry({ module, :__MODULE__, 2, file_line }) do
+  def format_entry({ _module, :__MODULE__, 2, file_line }) do
     "#{format_file_line(file_line)}(module)"
   end
 
