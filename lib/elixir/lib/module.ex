@@ -584,7 +584,7 @@ defmodule Module do
     atom
   end
 
-  defp normalize_attribute(:file, env) when is_env(env),      do: { binary_to_list(env.file), env.line}
+  defp normalize_attribute(:file, env) when is_env(env),                    do: { binary_to_list(env.file), env.line }
   defp normalize_attribute(:file, { binary, line }) when is_binary(binary), do: { binary_to_list(binary), line }
   defp normalize_attribute(:file, other) when not is_tuple(other),          do: normalize_attribute(:file, { other, 1 })
 

@@ -430,8 +430,8 @@ defmodule Kernel.SpecialForms do
   However, if there is an exception in any of these functions, we want
   the stacktrace to point to the `GenServer.Behaviour` and not the line
   that calls `use GenServer.Behaviour`. For this reason, there is an
-  option called `:location` that when set to `:keep` keeps these proper
-  semantics:
+  option called `:location` that when set to `:keep` keeps the original
+  line and file lines instead of setting them to 0:
 
       quote location: :keep do
         def handle_call(request, _from, state) do
@@ -441,8 +441,8 @@ defmodule Kernel.SpecialForms do
 
   It is important to warn though that `location: :keep` evaluates the
   code as if it was defined inside `GenServer.Behaviour` file, in
-  particular, the macro `__FILE__` will always point to
-  `GenServer.Behaviour` file.
+  particular, the macro `__FILE__` and exceptions happening inside
+  the quote will always point to `GenServer.Behaviour` file.
   """
   defmacro quote(opts, do: contents)
 

@@ -51,13 +51,14 @@ translate(Line, Ref, Block, S) ->
 compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
   C = elixir_compiler:get_opts(),
   File = S#elixir_scope.file,
+  FileList = binary_to_list(File),
 
   check_module_availability(Line, File, Module, C),
   build(Line, File, Module),
 
   try
     Result = eval_form(Line, Module, Block, Vars, S),
-    { Export, Private, Def, Defmacro, Defmacrop, Functions } = elixir_def:unwrap_stored_definitions(Module),
+    { Export, Private, Def, Defmacro, Defmacrop, Functions } = elixir_def:unwrap_stored_definitions(FileList, Module),
 
     { All, Forms0 } = functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Functions, C),
     Forms1          = specs_form(Line, Module, Defmacro, Defmacrop, Forms0, C),
@@ -67,7 +68,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
     elixir_import:ensure_no_import_conflict(Line, File, Module, All),
 
     Final = [
-      { attribute, Line, file, { binary_to_list(File), Line } },
+      { attribute, Line, file, { FileList, Line } },
       { attribute, Line, module, Module } | Forms2
     ],
 

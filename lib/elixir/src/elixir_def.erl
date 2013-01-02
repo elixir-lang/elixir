@@ -7,7 +7,7 @@
   wrap_definition/7,
   store_definition/8,
   store_each/7,
-  unwrap_stored_definitions/1,
+  unwrap_stored_definitions/2,
   format_error/1]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
@@ -74,7 +74,7 @@ store_definition(Kind, Line, Module, Name, Args, Guards, Body, RawS) ->
   Expr  = def_body(Line, Body),
 
   CO = elixir_compiler:get_opts(),
-  Location = retrieve_file(Module, CO),
+  Location = retrieve_file(Line, Module, S, CO),
   run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, S, CO),
 
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Expr, S),
@@ -113,14 +113,14 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO)
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
 
-%% Retrieve @file
+%% Retrieve @file or fallback to default
 
-retrieve_file(Module, CO) ->
+retrieve_file(Line, Module, S, CO) ->
   case elixir_compiler:get_opt(internal, CO) of
-    true -> [];
+    true -> { binary_to_list(S#elixir_scope.file), Line };
     _ ->
       case 'Elixir.Module':get_attribute(Module, file) of
-        nil  -> [];
+        nil  -> { binary_to_list(S#elixir_scope.file), Line };
         Else ->
           'Elixir.Module':delete_attribute(Module, file),
           Else
@@ -186,53 +186,53 @@ is_macro(_)         -> false.
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,
 % and the body of all functions.
-unwrap_stored_definitions(Module) ->
+unwrap_stored_definitions(File, Module) ->
   Table = table(Module),
   ets:delete(Table, last),
-  unwrap_stored_definition(ets:tab2list(Table), [], [], [], [], [], {[],[]}).
+  unwrap_stored_definition(ets:tab2list(Table), File, [], [], [], [], [], {[],[]}).
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == def ->
+unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == def ->
   Tuple = element(1, Fun),
   unwrap_stored_definition(
-    T, [Tuple|Exports], Private, [Tuple|Def], Defmacro, Defmacrop,
-    function_for_stored_definition(Fun, Functions)
+    T, File, [Tuple|Exports], Private, [Tuple|Def], Defmacro, Defmacrop,
+    function_for_stored_definition(Fun, File, Functions)
   );
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacro ->
+unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacro ->
   { Name, Arity } = Tuple = element(1, Fun),
   Macro = { ?ELIXIR_MACRO(Name), Arity + 1 },
 
   unwrap_stored_definition(
-    T, [Macro|Exports], Private, Def, [Tuple|Defmacro], Defmacrop,
-    function_for_stored_definition(setelement(1, Fun, Macro), Functions)
+    T, File, [Macro|Exports], Private, Def, [Tuple|Defmacro], Defmacrop,
+    function_for_stored_definition(setelement(1, Fun, Macro), File, Functions)
   );
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defp ->
+unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defp ->
   unwrap_stored_definition(
-    T, Exports, [element(1, Fun)|Private], Def, Defmacro, Defmacrop,
-    function_for_stored_definition(Fun, Functions)
+    T, File, Exports, [element(1, Fun)|Private], Def, Defmacro, Defmacrop,
+    function_for_stored_definition(Fun, File, Functions)
   );
 
-unwrap_stored_definition([Fun|T], Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacrop ->
+unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacrop ->
   Tuple = element(1, Fun),
   unwrap_stored_definition(
-    T, Exports, [Tuple|Private], Def, Defmacro,
+    T, File, Exports, [Tuple|Private], Def, Defmacro,
     [{ Tuple, element(3, Fun), element(5, Fun) }|Defmacrop], Functions
   );
 
-unwrap_stored_definition([], Exports, Private, Def, Defmacro, Defmacrop, {Functions,Tail}) ->
+unwrap_stored_definition([], _File, Exports, Private, Def, Defmacro, Defmacrop, {Functions,Tail}) ->
   { Exports, Private, ordsets:from_list(Def), ordsets:from_list(Defmacro),
     ordsets:from_list(Defmacrop), lists:reverse(Tail ++ Functions) }.
 
 %% Helpers
 
-function_for_stored_definition({{Name, Arity}, _, Line, _, _, [], _, Clauses}, {Functions,Tail}) ->
+function_for_stored_definition({{Name, Arity}, _, Line, _, _, { File, _ }, _, Clauses}, File, {Functions,Tail}) ->
   {
     [{ function, Line, Name, Arity, lists:reverse(Clauses) }|Functions],
     Tail
   };
 
-function_for_stored_definition({{Name, Arity}, _, Line, _, _, Location, _, Clauses}, {Functions,Tail}) ->
+function_for_stored_definition({{Name, Arity}, _, Line, _, _, Location, _, Clauses}, _File, {Functions,Tail}) ->
   {
     Functions,
     [
