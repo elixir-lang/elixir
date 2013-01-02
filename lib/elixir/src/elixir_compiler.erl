@@ -52,14 +52,15 @@ file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
 eval_forms(Forms, Line, Vars, S) ->
   { Module, I } = retrieve_module_name(),
   { Exprs, FS } = elixir_translator:translate(Forms, S),
-  ModuleForm    = module_form(Exprs, Line, S#elixir_scope.file, Module, Vars),
 
+  Fun  = module_form_fun(S#elixir_scope.module),
+  Form = module_form(Fun, Exprs, Line, S#elixir_scope.file, Module, Vars),
   Args = [X || { _, _, _, X } <- Vars],
 
   %% Pass { native, false } to speed up bootstrap
   %% process when native is set to true
-  { module(ModuleForm, S#elixir_scope.file, [{native,false}], true, fun(_, _) ->
-    Res = Module:'__BOOT__'(S#elixir_scope.module, Args),
+  { module(Form, S#elixir_scope.file, [{native,false}], true, fun(_, _) ->
+    Res = Module:Fun(S#elixir_scope.module, Args),
     code:delete(Module),
     case code:soft_purge(Module) of
       true  -> return_module_name(I);
@@ -107,7 +108,10 @@ no_auto_import() ->
   Bifs = [{ Name, Arity } || { Name, Arity } <- erlang:module_info(exports), erl_internal:bif(Name, Arity)],
   { attribute, 0, compile, { no_auto_import, Bifs } }.
 
-module_form(Exprs, Line, File, Module, Vars) when
+module_form_fun(nil) -> '__FILE__';
+module_form_fun(_)   -> '__MODULE__'.
+
+module_form(Fun, Exprs, Line, File, Module, Vars) when
     is_binary(File), is_list(Exprs), is_integer(Line), is_atom(Module) ->
 
   Cons = lists:foldr(fun({ _, _, Var, _ }, Acc) ->
@@ -119,8 +123,8 @@ module_form(Exprs, Line, File, Module, Vars) when
   [
     { attribute, Line, file, { binary_to_list(File), 1 } },
     { attribute, Line, module, Module },
-    { attribute, Line, export, [{ '__BOOT__', 2 }] },
-    { function, Line, '__BOOT__', length(Args), [
+    { attribute, Line, export, [{ Fun, 2 }] },
+    { function, Line, Fun, length(Args), [
       { clause, Line, Args, [], Exprs }
     ] }
   ].

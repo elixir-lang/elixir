@@ -153,7 +153,7 @@ defmodule System do
   latest exception.
   """
   def stacktrace do
-    Exception.filter_stacktrace :erlang.get_stacktrace
+    filter_stacktrace :erlang.get_stacktrace
   end
 
   @doc """
@@ -212,4 +212,7 @@ defmodule System do
   defp server_call(args) do
     :gen_server.call(:elixir_code_server, args)
   end
+
+  defp filter_stacktrace([{ Kernel, :raise, _, _ }|t]), do: t
+  defp filter_stacktrace(t), do: t
 end

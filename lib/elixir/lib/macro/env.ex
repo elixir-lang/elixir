@@ -64,9 +64,14 @@ defmodule Macro.Env do
   Returns the environment stacktrace.
   """
   def stacktrace(record) do
-    case record.function do
-      { name, arity } -> [{ module(record), name, arity, location(record) }]
-      nil -> [{ module(record), :__MODULE__, 0, location(record) }]
+    cond do
+      nil?(record.module) ->
+        [{ :elixir_compiler, :__FILE__, 2, location(record) }]
+      nil?(record.function) ->
+        [{ module(record), :__MODULE__, 0, location(record) }]
+      true ->
+        { name, arity } = record.function
+        [{ module(record), name, arity, location(record) }]
     end
   end
 end

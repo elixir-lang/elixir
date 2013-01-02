@@ -60,27 +60,25 @@ defmodule Exception do
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
   """
+
+  # From Macro.Env.stacktrace
   def format_entry({ module, :__MODULE__, 0, file_line }) do
-    "#{format_file_line(file_line)}: #{inspect module} (body)"
+    "#{format_file_line(file_line)}#{inspect module} (module)"
+  end
+
+  # From :elixir_compiler
+  def format_entry({ module, :__MODULE__, 2, file_line }) do
+    "#{format_file_line(file_line)}(module)"
+  end
+
+  # From :elixir_compiler
+  def format_entry({ _module, :__FILE__, 2, file_line }) do
+    "#{format_file_line(file_line)}(file)"
   end
 
   def format_entry({module, fun, arity, file_line}) do
     "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
   end
-
-  @doc """
-  Filters the stacktrace removing internal Elixir entries.
-
-  This is useful when a stacktrace is received from Erlang code
-  and it needs to be formatted by an Elixir application.
-  """
-  def filter_stacktrace([{ Kernel, :raise, _, _ }|t]), do: filter_stacktrace(t)
-  def filter_stacktrace([{ _mod, :__BOOT__, [mod, _], info }|t]) when mod != nil,
-    do: filter_stacktrace([{ mod, :__MODULE__, 0, info }|t])
-  def filter_stacktrace([{ _mod, :__BOOT__, _, info }|t]),
-    do: filter_stacktrace([{ Kernel, :defmodule, 2, info }|t])
-  def filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
-  def filter_stacktrace([]), do: []
 
   @doc """
   Formats the stacktrace.
@@ -100,7 +98,7 @@ defmodule Exception do
     trace = trace || try do
       throw(:stacktrace)
     catch
-      :stacktrace -> Enum.drop(filter_stacktrace(:erlang.get_stacktrace), 1)
+      :stacktrace -> Enum.drop(:erlang.get_stacktrace, 1)
     end
 
     case trace do
