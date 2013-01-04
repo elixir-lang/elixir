@@ -1,7 +1,7 @@
 Code.require_file "../test_helper.exs", __FILE__
 
 defmodule DictTest.Common do
-  defmacro __using__(module) do
+  defmacro __using__(_) do
     quote location: :keep do
       use ExUnit.Case, async: true
 
@@ -135,48 +135,40 @@ defmodule DictTest.Common do
       test :empty do
         assert empty_dict == Dict.empty new_dict
       end
-
-      case unquote(module) do
-        List ->
-          defp empty_dict, do: []
-
-          defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
-          defp new_dict(list), do: list
-          defp new_dict(list, transform) do
-            Enum.reduce list, [], fn i, acc ->
-              { k, v } = transform.(i)
-              [{ k, v }] ++ acc
-            end
-          end
-        _ ->
-          defp empty_dict, do: unquote(module).new
-
-          defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
-          defp new_dict(list), do: unquote(module).new list
-          defp new_dict(list, transform), do: unquote(module).new list, transform
-      end
     end
   end
 end
 
 defmodule DictTest do
-  use DictTest.Common, HashDict
+  use DictTest.Common
 
   test :new do
     assert :dict.new == elem(new_dict([]), 1)
   end
+
+  defp empty_dict, do: HashDict.new
+
+  defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
+  defp new_dict(list), do: HashDict.new list
+  defp new_dict(list, transform), do: HashDict.new list, transform
 end
 
 defmodule OrdDictTest do
-  use DictTest.Common, OrdDict
+  use DictTest.Common
 
   test :new do
     assert [] == elem(new_dict([]), 1)
   end
+
+  defp empty_dict, do: OrdDict.new
+
+  defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
+  defp new_dict(list), do: OrdDict.new list
+  defp new_dict(list, transform), do: OrdDict.new list, transform
 end
 
 defmodule Binary.DictTest do
-  use DictTest.Common, Binary.Dict
+  use DictTest.Common
 
   test :new do
     assert [] == elem(new_dict([]), 1)
@@ -187,8 +179,22 @@ defmodule Binary.DictTest do
     assert merged[:first_key]  == 13
     assert merged["first_key"] == 13
   end
+
+  defp empty_dict, do: Binary.Dict.new
+
+  defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
+  defp new_dict(list), do: Binary.Dict.new list
+  defp new_dict(list, transform), do: Binary.Dict.new list, transform
 end
 
 defmodule ListDictTest do
-  use DictTest.Common, List
+  use DictTest.Common
+
+  defp empty_dict, do: []
+
+  defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
+  defp new_dict(list), do: list
+  defp new_dict(list, transform) do
+    Enum.map list, transform
+  end
 end

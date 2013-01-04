@@ -32,13 +32,14 @@ defimpl Access, for: List do
       star_ratings[1.5] #=> "★☆"
 
   """
-
   def access([], _key), do: nil
 
   def access(list, key) do
-    Dict.get(list, key)
+    case :lists.keyfind(key, 1, list) do
+      { ^key, value } -> value
+      false -> nil
+    end
   end
-
 end
 
 defimpl Access, for: Atom do

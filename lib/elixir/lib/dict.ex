@@ -132,12 +132,9 @@ defmodule Dict do
       Dict.get d, :b, 3  #=> 3
 
   """
-  @spec get(t, key) :: value | nil
-  def get(dict, key) do
-    get(dict, key, nil)
-  end
-
   @spec get(t, key, value) :: value
+  def get(dict, key, default // nil)
+
   def get(dict, key, default) when is_tuple(dict) do
     elem(dict, 0).get(dict, key, default)
   end
