@@ -57,8 +57,12 @@ defmodule Dict do
 
   """
   @spec keys(t) :: [key]
-  def keys(dict) do
+  def keys(dict) when is_tuple(dict) do
     elem(dict, 0).keys(dict)
+  end
+
+  def keys(dict) when is_list(dict) do
+    lc { key, _ } inlist dict, do: key
   end
 
   @doc """
@@ -71,8 +75,12 @@ defmodule Dict do
 
   """
   @spec values(t) :: [value]
-  def values(dict) do
+  def values(dict) when is_tuple(dict) do
     elem(dict, 0).values(dict)
+  end
+
+  def values(dict) when is_list(dict) do
+    lc { _, value } inlist dict, do: value
   end
 
   @doc """
@@ -85,8 +93,12 @@ defmodule Dict do
 
   """
   @spec size(t) :: non_neg_integer
-  def size(dict) do
+  def size(dict) when is_tuple(dict) do
     elem(dict, 0).size(dict)
+  end
+
+  def size(dict) when is_list(dict) do
+    length(dict)
   end
 
   @doc """
@@ -100,8 +112,12 @@ defmodule Dict do
 
   """
   @spec has_key?(t, key) :: boolean
-  def has_key?(dict, key) do
+  def has_key?(dict, key) when is_tuple(dict) do
     elem(dict, 0).has_key?(dict, key)
+  end
+
+  def has_key?(dict, key) when is_list(dict) do
+    :lists.keymember(key, 1, dict)
   end
 
   @doc """
@@ -117,9 +133,20 @@ defmodule Dict do
 
   """
   @spec get(t, key) :: value | nil
+  def get(dict, key) do
+    get(dict, key, nil)
+  end
+
   @spec get(t, key, value) :: value
-  def get(dict, key, default // nil) do
+  def get(dict, key, default) when is_tuple(dict) do
     elem(dict, 0).get(dict, key, default)
+  end
+
+  def get(dict, key, default) when is_list(dict) do
+    case :lists.keyfind(key, 1, dict) do
+      { ^key, value } -> value
+      false -> default
+    end
   end
 
   @doc """
@@ -134,8 +161,15 @@ defmodule Dict do
 
   """
   @spec get!(t, key) :: value | no_return
-  def get!(dict, key) do
+  def get!(dict, key) when is_tuple(dict) do
     elem(dict, 0).get!(dict, key)
+  end
+
+  def get!(dict, key) when is_list(dict) do
+    case :lists.keyfind(key, 1, dict) do
+      { ^key, value } -> value
+      false -> raise(KeyError, key: key)
+    end
   end
 
   @doc """
@@ -150,8 +184,12 @@ defmodule Dict do
 
   """
   @spec put(t, key, value) :: t
-  def put(dict, key, val) do
+  def put(dict, key, val) when is_tuple(dict) do
     elem(dict, 0).put(dict, key, val)
+  end
+
+  def put(dict, key, val) when is_list(dict) do
+    [{key, val}|delete(dict, key)]
   end
 
   @doc """
@@ -165,8 +203,15 @@ defmodule Dict do
 
   """
   @spec put_new(t, key, value) :: t
-  def put_new(dict, key, val) do
+  def put_new(dict, key, val) when is_tuple(dict) do
     elem(dict, 0).put_new(dict, key, val)
+  end
+
+  def put_new(dict, key, val) when is_list(dict) do
+    case :lists.keyfind(key, 1, dict) do
+      { ^key, _ } -> dict
+      false -> [{key,val}|dict]
+    end
   end
 
   @doc """
@@ -183,8 +228,12 @@ defmodule Dict do
 
   """
   @spec delete(t, key) :: t
-  def delete(dict, key) do
+  def delete(dict, key) when is_tuple(dict) do
     elem(dict, 0).delete(dict, key)
+  end
+
+  def delete(dict, key) when is_list(dict) do
+    lc { k, _ } = tuple inlist dict, key != k, do: tuple
   end
 
   @doc """
@@ -202,6 +251,10 @@ defmodule Dict do
 
   """
   @spec merge(t, t) :: t
+  def merge(dict1, dict2) when is_list(dict1) and is_list(dict2) do
+    dict2 ++ lc({ k, _ } = tuple inlist dict1, not has_key?(dict2, k), do: tuple)
+  end
+
   def merge(dict1, dict2) do
     merge(dict1, dict2, fn(_k, _v1, v2) -> v2 end)
   end
@@ -221,8 +274,20 @@ defmodule Dict do
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(dict1, dict2, fun) do
+  def merge(dict1, dict2, fun) when is_tuple(dict1) do
     elem(dict1, 0).merge(dict1, dict2, fun)
+  end
+
+  def merge(dict1, dict2, fun) when is_list(dict1) and is_list(dict2) do
+    do_merge(dict2, dict1, fun)
+  end
+
+  defp do_merge([{ k, v2 }|t], acc, fun) do
+    do_merge t, update(acc, k, v2, fn(v1) -> fun.(k, v1, v2) end), fun
+  end
+
+  defp do_merge([], acc, _fun) do
+    acc
   end
 
   @doc """
@@ -237,8 +302,20 @@ defmodule Dict do
 
   """
   @spec update(t, key, (value -> value)) :: t
-  def update(dict, key, fun) do
+  def update(dict, key, fun) when is_tuple(dict) do
     elem(dict, 0).update(dict, key, fun)
+  end
+
+  def update([{key, value}|dict], key, fun) do
+    [{key, fun.(value)}|delete(dict, key)]
+  end
+
+  def update([{_, _} = e|dict], key, fun) do
+    [e|update(dict, key, fun)]
+  end
+
+  def update([], key, _fun) do
+    raise(KeyError, key: key)
   end
 
   @doc """
@@ -254,16 +331,32 @@ defmodule Dict do
 
   """
   @spec update(t, key, value, (value -> value)) :: t
-  def update(dict, key, initial, fun) do
+  def update(dict, key, initial, fun) when is_tuple(dict) do
     elem(dict, 0).update(dict, key, initial, fun)
+  end
+
+  def update([{key, value}|dict], key, _initial, fun) do
+    [{key, fun.(value)}|delete(dict, key)]
+  end
+
+  def update([{_, _} = e|dict], key, initial, fun) do
+    [e|update(dict, key, initial, fun)]
+  end
+
+  def update([], key, initial, _fun) do
+    [{key, initial}]
   end
 
   @doc """
   Returns an empty dict of the same type as `dict`.
   """
   @spec empty(t) :: t
-  def empty(dict) do
+  def empty(dict) when is_tuple(dict) do
     elem(dict, 0).empty(dict)
+  end
+
+  def empty(dict) when is_list(dict) do
+    []
   end
 
   @doc """
@@ -271,7 +364,11 @@ defmodule Dict do
   No particular order is enforced.
   """
   @spec to_list(t) :: list
-  def to_list(dict) do
+  def to_list(dict) when is_tuple(dict) do
     elem(dict, 0).to_list(dict)
+  end
+
+  def to_list(dict) when is_list(dict) do
+    dict
   end
 end

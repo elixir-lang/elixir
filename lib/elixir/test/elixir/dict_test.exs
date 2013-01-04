@@ -83,15 +83,25 @@ defmodule DictTest.Common do
 
         dict1 = new_dict Enum.zip ["a", "b", "c"], [1, 2, 3]
         dict2 = new_dict Enum.zip ["a", "c", "d"], [3, :a, 0]
+        merged = Dict.merge(dict1, dict2)
         final = new_dict Enum.zip ["a", "b", "c", "d"], [3, 2, :a, 0]
-        assert Dict.merge(dict1, dict2) == final
+
+        cmp = fn {k1, _}, {k2, _} -> k1 < k2 end
+        actual = Enum.sort(Dict.to_list(merged), cmp)
+        expected = Enum.sort(final, cmp)
+        assert expected == actual
       end
 
       test :merge_with_enum do
         dict1 = new_dict Enum.zip ["a", "b", "c"], [1, 2, 3]
         dict2 = Enum.zip ["a", "c", "d"], [3, :a, 0]
+        merged = Dict.merge(dict1, dict2)
         final = new_dict(Enum.zip ["a", "b", "c", "d"], [3, 2, :a, 0])
-        assert Dict.merge(dict1, dict2) == final
+
+        cmp = fn {k1, _}, {k2, _} -> k1 < k2 end
+        actual = Enum.sort(Dict.to_list(merged), cmp)
+        expected = Enum.sort(final, cmp)
+        assert expected == actual
       end
 
       test :merge_with_function do
@@ -126,11 +136,25 @@ defmodule DictTest.Common do
         assert empty_dict == Dict.empty new_dict
       end
 
-      defp empty_dict, do: unquote(module).new
+      case unquote(module) do
+        List ->
+          defp empty_dict, do: []
 
-      defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
-      defp new_dict(list), do: unquote(module).new list
-      defp new_dict(list, transform), do: unquote(module).new list, transform
+          defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
+          defp new_dict(list), do: list
+          defp new_dict(list, transform) do
+            Enum.reduce list, [], fn i, acc ->
+              { k, v } = transform.(i)
+              [{ k, v }] ++ acc
+            end
+          end
+        _ ->
+          defp empty_dict, do: unquote(module).new
+
+          defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
+          defp new_dict(list), do: unquote(module).new list
+          defp new_dict(list, transform), do: unquote(module).new list, transform
+      end
     end
   end
 end
@@ -163,4 +187,8 @@ defmodule Binary.DictTest do
     assert merged[:first_key]  == 13
     assert merged["first_key"] == 13
   end
+end
+
+defmodule ListDictTest do
+  use DictTest.Common, List
 end
