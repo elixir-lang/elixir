@@ -25,5 +25,7 @@ defmodule Mix.DepsTest do
       assert Enum.find deps, match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
       assert Enum.find deps, match?(Mix.Dep[app: :invalidapp, status: { :invalidapp, _ }], &1)
     end
+  after
+    Mix.Project.pop
   end
 end
