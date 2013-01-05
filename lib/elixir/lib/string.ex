@@ -384,6 +384,23 @@ defmodule String do
   defdelegate next_codepoint(string), to: String.Unicode
 
   @doc """
+  Checks whether `str` is a valid codepoint.
+
+  Note that the empty string is considered invalid, as are
+  strings containing multiple codepoints.
+
+  ## Examples
+
+     String.valid_codepoint?("a") #=> true
+     String.valid_codepoint?("ø") #=> true
+     String.valid_codepoint?("\xffff") #=> false
+     String.valid_codepoint?("asdf") #=> false
+
+  """
+  @spec valid_codepoint?(codepoint) :: boolean
+  def valid_codepoint?(cp), do: match?(<<_ :: utf8>>, cp)
+
+  @doc """
   Returns unicode graphemes in the string
 
   ## Examples
