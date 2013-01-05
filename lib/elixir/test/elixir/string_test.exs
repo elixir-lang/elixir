@@ -205,4 +205,13 @@ defmodule StringTest do
     assert String.slice("", 0, 1) == nil
   end
 
+  test :valid_codepoint? do
+    assert String.valid_codepoint?("a")
+    assert String.valid_codepoint?("ø")
+    assert String.valid_codepoint?("あ")
+
+    refute String.valid_codepoint?("\xffff")
+    refute String.valid_codepoint?("ab")
+  end
+
 end
