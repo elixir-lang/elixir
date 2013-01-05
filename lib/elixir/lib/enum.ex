@@ -786,11 +786,16 @@ defmodule Enum do
 
   """
   @spec take(t, integer) :: list
-  def take(collection, count) when is_list(collection) and count >= 0 do
+
+  def take(collection, 0) do
+    []
+  end
+
+  def take(collection, count) when is_list(collection) and count > 0 do
     do_take(collection, count)
   end
 
-  def take(collection, count) when count >= 0 do
+  def take(collection, count) when count > 0 do
     case I.iterator(collection) do
       { iterator, pointer } ->
         do_take(pointer, iterator, count)
