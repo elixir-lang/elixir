@@ -306,13 +306,12 @@ defmodule String do
 
   @doc """
   Returns a new binary based on `subject` by replacing the parts
-  matching `pattern` for `replacement`. If `options` is specified
-  with `[global: true]`, then it will replace all matches, otherwise
-  it will replace just the first one.
+  matching `pattern` for `replacement`. By default, it replaces
+  all entries, except if `global: false` is given as option.
 
-  For the replaced part must be used in `replacement`, then the
-  position or the positions where it is to be inserted must be specified by using
-  the option `insert_replaced`.
+  If the replaced part must be used in `replacement`, then the
+  position or the positions where it is to be inserted must be
+  specified by using the option `insert_replaced`.
 
   ## Examples
 
@@ -356,7 +355,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a list with codepoints from an utf8 string.
+  Returns all codepoints in the string.
 
   ## Examples
 
@@ -398,7 +397,8 @@ defmodule String do
 
   """
   @spec valid_codepoint?(codepoint) :: boolean
-  def valid_codepoint?(cp), do: match?(<<_ :: utf8>>, cp)
+  def valid_codepoint?(<<_ :: utf8>>), do: true
+  def valid_codepoint?(_), do: false
 
   @doc """
   Returns unicode graphemes in the string
