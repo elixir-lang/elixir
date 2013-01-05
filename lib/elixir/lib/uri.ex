@@ -37,7 +37,7 @@ defmodule URI do
   the query string in steps.
   """
   def query_decoder(q) do
-    fn -> { do_decoder(&1), do_decoder(to_binary(q)) } end
+    fn -> { do_decoder(&1), to_binary(q) } end
   end
 
   defp do_decoder("") do

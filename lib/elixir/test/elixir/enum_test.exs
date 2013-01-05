@@ -211,6 +211,18 @@ defmodule EnumTest.List do
     assert Enum.take([], 3) == []
   end
 
+  test :take_does_not_consume_next_without_a_need do
+    import PathHelpers
+    iterator = File.iterator!(fixture_path("one-liner.txt"))
+
+    try do
+      assert Enum.take(iterator, 1) == ["ONE"]
+      assert Enum.take(iterator, 5) == []
+    after
+      File.close(iterator)
+    end
+  end
+
   test :take_while do
     assert Enum.take_while([1,2,3], fn(x) -> x > 3 end) == []
     assert Enum.take_while([1,2,3], fn(x) -> x <= 1 end) == [1]

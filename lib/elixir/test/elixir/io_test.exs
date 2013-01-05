@@ -4,7 +4,7 @@ defmodule IOTest do
   use ExUnit.Case, async: true
 
   test :read_with_count do
-    { :ok, file } = File.open(File.expand_path('../fixtures/foo.txt', __FILE__), [:charlist])
+    { :ok, file } = File.open(File.expand_path('../fixtures/file.txt', __FILE__), [:charlist])
     assert 'FOO' == IO.read(file, 3)
     assert File.close(file) == :ok
   end
@@ -22,7 +22,7 @@ defmodule IOTest do
   end
 
   test :getb do
-    { :ok, file } = File.open(File.expand_path('../fixtures/foo.txt', __FILE__))
+    { :ok, file } = File.open(File.expand_path('../fixtures/file.txt', __FILE__))
     assert "F" == IO.getb(file, "")
     assert "O" == IO.getb(file, "")
     assert "O" == IO.getb(file, "")
@@ -32,7 +32,7 @@ defmodule IOTest do
   end
 
   test :getb_with_count do
-    { :ok, file } = File.open(File.expand_path('../fixtures/foo.txt', __FILE__), [:charlist])
+    { :ok, file } = File.open(File.expand_path('../fixtures/file.txt', __FILE__), [:charlist])
     assert 'FOO' == IO.getb(file, "", 3)
     assert File.close(file) == :ok
   end
@@ -44,7 +44,7 @@ defmodule IOTest do
   end
 
   test :gets do
-    { :ok, file } = File.open(File.expand_path('../fixtures/foo.txt', __FILE__), [:charlist])
+    { :ok, file } = File.open(File.expand_path('../fixtures/file.txt', __FILE__), [:charlist])
     assert 'FOO\n' == IO.gets(file, "")
     assert :eof == IO.gets(file, "")
     assert File.close(file) == :ok
@@ -58,7 +58,7 @@ defmodule IOTest do
   end
 
   test :readline do
-    { :ok, file } = File.open(File.expand_path('../fixtures/foo.txt', __FILE__))
+    { :ok, file } = File.open(File.expand_path('../fixtures/file.txt', __FILE__))
     assert "FOO\n" == IO.readline(file)
     assert :eof == IO.readline(file)
     assert File.close(file) == :ok

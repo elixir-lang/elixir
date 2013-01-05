@@ -834,7 +834,7 @@ defmodule File do
 
   ## Examples
 
-      File.rm('foo.txt')
+      File.rm('file.txt')
       #=> :ok
 
       File.rm('tmp_dir/')
@@ -865,7 +865,7 @@ defmodule File do
       File.rddir('tmp_dir')
       #=> :ok
 
-      File.rmdir('foo.txt')
+      File.rmdir('file.txt')
       #=> {:error, :enotdir}
 
   """
@@ -1037,7 +1037,7 @@ defmodule File do
 
   ## Examples
 
-      File.open!("foo.txt", [:read, :write], fn(file) ->
+      File.open!("file.txt", [:read, :write], fn(file) ->
         IO.readline(file)
       end)
 
@@ -1147,6 +1147,11 @@ defmodule File do
   `close/1` might return an old write error and not even try to close the file.
   See `open/2`.
   """
+  def close(io_device) when is_function(io_device) do
+    { iterator, _ } = io_device.()
+    iterator.(:close)
+  end
+
   def close(io_device) do
     F.close(io_device)
   end
@@ -1181,18 +1186,21 @@ defmodule File do
 
   def iterator(device) do
     fn ->
-      function = fn(_) ->
-        case :io.get_line(device, '') do
-          :eof ->
-            close(device)
-            :stop
-          { :error, reason } ->
-            raise File.IteratorError, reason: reason
-          data ->
-            { data, :ok }
-        end
+      function = fn
+        :ok ->
+          case :io.get_line(device, '') do
+            :eof ->
+              close(device)
+              :stop
+            { :error, reason } ->
+              raise File.IteratorError, reason: reason
+            data ->
+              { data, :ok }
+          end
+        :close ->
+          close(device)
       end
-      { function, function.(:start) }
+      { function, :ok }
     end
   end
 
@@ -1229,18 +1237,21 @@ defmodule File do
 
   def biniterator(device) do
     fn ->
-      function = fn(_) ->
-        case :file.read_line(device) do
-          :eof ->
-            close(device)
-            :stop
-          { :error, reason } ->
-            raise File.IteratorError, reason: reason
-          { :ok, data } ->
-            { data, :ok }
-        end
+      function = fn
+        :ok ->
+          case :file.read_line(device) do
+            :eof ->
+              close(device)
+              :stop
+            { :error, reason } ->
+              raise File.IteratorError, reason: reason
+            { :ok, data } ->
+              { data, :ok }
+          end
+        :close ->
+          close(device)
       end
-      { function, function.(:start) }
+      { function, :ok }
     end
   end
 

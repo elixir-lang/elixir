@@ -1459,8 +1459,12 @@ defmodule Enum do
     []
   end
 
-  defp do_take({ h, next }, iterator, counter) when counter > 0 do
+  defp do_take({ h, next }, iterator, counter) when counter > 1 do
     [h|do_take(iterator.(next), iterator, counter - 1)]
+  end
+
+  defp do_take({ h, _next }, _iterator, 1) do
+    [h]
   end
 
   defp do_take(_extra, _iterator, 0) do
@@ -1560,12 +1564,13 @@ end
 
 defimpl Enum.Iterator, for: Function do
   def iterator(function) do
-    function.()
+    { iterator, first } = function.()
+    { iterator, iterator.(first) }
   end
 
   def count(function) do
     { function, first } = function.()
-    do_count(first, function, 0)
+    do_count(function.(first), function, 0)
   end
 
   defp do_count({ _, next }, function, acc) do
