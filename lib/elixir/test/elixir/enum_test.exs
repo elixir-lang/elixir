@@ -260,7 +260,7 @@ end
 
 defmodule EnumTest.Dict.Common do
   defmacro __using__(module) do
-    quote do
+    quote location: :keep do
       use ExUnit.Case, async: true
 
       test :all? do
@@ -355,10 +355,7 @@ defmodule EnumTest.Dict.Common do
       test :join do
         dict = unquote(module).new [a: 1, b: 2, c: 3]
 
-        assert_raise Protocol.UndefinedError, fn ->
-          Enum.join dict, ","
-        end
-        assert_raise Protocol.UndefinedError, fn ->
+        assert_raise UndefinedFunctionError, fn ->
           Enum.join dict, ','
         end
       end

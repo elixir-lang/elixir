@@ -787,7 +787,7 @@ defmodule Enum do
   """
   @spec take(t, integer) :: list
 
-  def take(collection, 0) do
+  def take(_collection, 0) do
     []
   end
 

@@ -1580,6 +1580,23 @@ defmodule Kernel do
   end
 
   @doc """
+  Check if the given argument is a record.
+  """
+  defmacro is_record(thing) do
+    case __CALLER__.in_guard? do
+      true ->
+        quote do
+          is_tuple(unquote(thing)) and is_atom(:erlang.element(1, unquote(thing)))
+        end
+      false ->
+        quote do
+          result = unquote(thing)
+          is_tuple(result) and is_atom(:erlang.element(1, result))
+        end
+    end
+  end
+
+  @doc """
   Check if the given argument is a regex.
   """
   defmacro is_regex(thing) do
@@ -1680,29 +1697,32 @@ defmodule Kernel do
 
   ## Protocols + Records
 
-  The real benefit of protocols comes when mixed with records. For instance,
-  imagine we have a module called `RedBlack` that provides an API to create
-  and manipulate Red-Black trees. This module represents such trees via a
-  record named `RedBlack.Tree` and we want this tree to be considered blank
-  in case it has no items. To achieve this, the developer just needs to
-  implement the protocol for `RedBlack.Tree`:
+  The real benefit of protocols comes when mixed with records.
+  For instance, imagine we have a module called `RedBlack` that
+  provides an API to create and manipulate Red-Black trees. This
+  module represents such trees via a record named `RedBlack.Tree`
+  and we want this tree to be considered blank in case it has no
+  items. To achieve this, the developer just needs to implement
+  the protocol for `RedBlack.Tree`:
 
       defimpl Blank, for: RedBlack.Tree do
         def blank?(tree), do: RedBlack.empty?(tree)
       end
 
-  In the example above, we have implemented `blank?` for `RedBlack.Tree`
-  that simply delegates to `RedBlack.empty?` passing the tree as argument.
-  This implementation doesn't need to be defined inside the `RedBlack`
-  tree or inside the record, but anywhere in the code.
+  In the example above, we have implemented `blank?` for
+  `RedBlack.Tree` that simply delegates to `RedBlack.empty?` passing
+  the tree as argument. This implementation doesn't need to be defined
+  inside the `RedBlack` tree or inside the record, but anywhere in
+  the code.
 
-  Finally, since records are simply tuples, one can add a default protocol
-  implementation to any record by defining a default implementation for tuples.
+  Finally, since records are simply tuples, one can add a default
+  protocol implementation to any record by defining a default
+  implementation for tuples.
 
   ## Types
 
-  As in records, defining a protocol automatically defines a type named `t`,
-  which can be used as:
+  As in records, defining a protocol automatically defines a type
+  named `t`, which can be used as:
 
       @spec present?(Blank.t) :: boolean
       def present?(blank) do
