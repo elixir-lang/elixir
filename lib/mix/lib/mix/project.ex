@@ -130,13 +130,14 @@ defmodule Mix.Project do
   defp default_config do
     [ compile_path: "ebin",
       compile_exts: [:ex],
-      watch_exts: [:ex, :eex, :exs],
       default_env: [test: :test],
       default_task: "test",
       deps_path: "deps",
+      erlc_paths: ["src"],
       lockfile: "mix.lock",
       prepare_task: "app.start",
-      source_paths: ["lib"] ]
+      source_paths: ["lib"],
+      watch_exts: [:ex, :eex, :exs] ]
   end
 
   defp get_project_config(nil), do: []

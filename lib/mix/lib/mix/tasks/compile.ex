@@ -93,9 +93,9 @@ defmodule Mix.Tasks.Compile do
 
   defp get_compilers do
     Mix.project[:compilers] || if Mix.Project.get do
-      [:elixir, :app]
+      [:erlang, :elixir, :app]
     else
-      [:elixir]
+      [:erlang, :elixir]
     end
   end
 

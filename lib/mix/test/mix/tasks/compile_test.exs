@@ -6,7 +6,7 @@ defmodule Mix.Tasks.CompileTest do
   test "mix compile --list without mixfile" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run ["--list"]
-      assert_received { :mix_shell, :info, ["\nEnabled compilers: elixir"] }
+      assert_received { :mix_shell, :info, ["\nEnabled compilers: erlang, elixir"] }
     end
   end
 
@@ -25,7 +25,7 @@ defmodule Mix.Tasks.CompileTest do
   test "mix compile --list with mixfile" do
     Mix.Project.push CustomApp
     Mix.Tasks.Compile.run ["--list"]
-    assert_received { :mix_shell, :info, ["\nEnabled compilers: elixir, app"] }
+    assert_received { :mix_shell, :info, ["\nEnabled compilers: erlang, elixir, app"] }
     assert_received { :mix_shell, :info, ["mix compile.elixir # " <> _] }
   after
     Mix.Project.pop
