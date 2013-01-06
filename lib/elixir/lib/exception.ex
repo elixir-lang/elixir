@@ -59,25 +59,28 @@ defmodule Exception do
 
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
+  The current working directory may be given as argument, which
+  is used to prettify the stacktrace.
   """
+  def format_entry(entry, cwd // nil)
 
   # From Macro.Env.stacktrace
-  def format_entry({ module, :__MODULE__, 0, file_line }) do
-    "#{format_file_line(file_line)}#{inspect module} (module)"
+  def format_entry({ module, :__MODULE__, 0, file_line }, cwd) do
+    "#{format_file_line(file_line, cwd)}#{inspect module} (module)"
   end
 
   # From :elixir_compiler
-  def format_entry({ _module, :__MODULE__, 2, file_line }) do
-    "#{format_file_line(file_line)}(module)"
+  def format_entry({ _module, :__MODULE__, 2, file_line }, cwd) do
+    "#{format_file_line(file_line, cwd)}(module)"
   end
 
   # From :elixir_compiler
-  def format_entry({ _module, :__FILE__, 2, file_line }) do
-    "#{format_file_line(file_line)}(file)"
+  def format_entry({ _module, :__FILE__, 2, file_line }, cwd) do
+    "#{format_file_line(file_line, cwd)}(file)"
   end
 
-  def format_entry({module, fun, arity, file_line}) do
-    "#{format_file_line(file_line)}#{format_module_fun_arity(module, fun, arity)}"
+  def format_entry({module, fun, arity, file_line}, cwd) do
+    "#{format_file_line(file_line, cwd)}#{format_module_fun_arity(module, fun, arity)}"
   end
 
   @doc """
@@ -142,14 +145,20 @@ defmodule Exception do
     end
   end
 
-
-  def format_file_line(file_line) do
-    format_file_line(Keyword.get(file_line, :file), Keyword.get(file_line, :line))
+  # Format file and line for exception printing.
+  @doc false
+  def format_file_line(opts, cwd) do
+    format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line), cwd
   end
 
-  def format_file_line(file, line) do
+  def format_file_line(file, line, cwd) do
     if file do
       file = to_binary(file)
+
+      if cwd do
+        file = :binary.replace(file, cwd <> "/", "")
+      end
+
       if line && line != 0 do
         "#{file}:#{line}: "
       else
@@ -174,19 +183,19 @@ defexception SystemLimitError,  message: "a system limit has been reached"
 
 defexception SyntaxError, [file: nil, line: nil, description: "syntax error"] do
   def message(exception) do
-    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
+    "#{Exception.format_file_line(exception.file, exception.line, nil)}#{exception.description}"
   end
 end
 
 defexception TokenMissingError, [file: nil, line: nil, description: "expression is incomplete"] do
   def message(exception) do
-    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
+    "#{Exception.format_file_line(exception.file, exception.line, nil)}#{exception.description}"
   end
 end
 
 defexception CompileError, [file: nil, line: nil, description: "compile error"] do
   def message(exception) do
-    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
+    "#{Exception.format_file_line(exception.file, exception.line, nil)}#{exception.description}"
   end
 end
 

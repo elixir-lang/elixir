@@ -20,6 +20,10 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_entry({Foo, :bar, 1, [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar/1"
   end
 
+  test :format_entry_with_file_and_line_and_cwd do
+    assert Exception.format_entry({Foo, :bar, [], [file: '/foo/file.ex', line: 10]}, "/foo") == "file.ex:10: Foo.bar()"
+  end
+
   test :format_entry_with_file_no_line do
     assert Exception.format_entry({Foo, :bar, [], [file: 'file.ex']}) == "file.ex: Foo.bar()"
     assert Exception.format_entry({Foo, :bar, [], [file: 'file.ex', line: 0]}) == "file.ex: Foo.bar()"
