@@ -12,6 +12,7 @@
   * [Kernel] `?\x` and `?\` are now supported ways to retrieve a codepoint
   * [Kernel] Octal numbers can now be defined as `0777`
   * [Mix] Mix now starts the current application before run, iex, test and friends
+  * [Mix] Mix now provides basic support for compiling `.erl` files
   * [String] Add `String.capitalize` and `String.slice`
 
 * bug fix

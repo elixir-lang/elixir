@@ -28,25 +28,10 @@ defmodule Mix.Tasks.Compile do
 
   The following options are usually shared by different compilers:
 
-  * `:source_paths` - directories to find source files.
-    Defaults to `["lib"]`, can be configured as:
-
-        [source_paths: ["lib", "other"]]
-
   * `:compile_path` - directory to output compiled files.
     Defaults to `"ebin"`, can be configured as:
 
         [compile_path: "ebin"]
-
-  * `:watch_exts` - extensions to watch in order to trigger
-     a compilation:
-
-        [watch_exts: [:ex, :eex]]
-
-  * `:compile_exts` - extensions to compile whenever there
-    is a change:
-
-        [compile_exts: [:ex]]
 
   """
   def run(["--list"]) do

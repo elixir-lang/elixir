@@ -33,24 +33,40 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   ## Configuration
 
+  * `:elixirc_paths` - directories to find source files.
+    Defaults to `["lib"]`, can be configured as:
+
+        [elixirc_paths: ["lib", "other"]]
+
   * `:elixirc_options` - compilation options that applies
      to Elixir's compiler, they are: `:ignore_module_conflict`,
      `:docs` and `:debug_info`. By default, uses the same
      behaviour as Elixir
+
+   * `:compile_exts` - extensions to compile whenever there
+     is a change:
+
+         [compile_exts: [:ex]]
+
+   * `:watch_exts` - extensions to watch in order to trigger
+      a compilation:
+
+         [watch_exts: [:ex, :eex]]
+
 
   """
   def run(args) do
     { opts, _ } = OptionParser.parse(args, aliases: [q: :quick],
                     switches: [force: :boolean, quick: :boolean])
 
-    project      = Mix.project
-    compile_path = project[:compile_path]
-    compile_exts = project[:compile_exts]
-    watch_exts   = project[:watch_exts]
-    source_paths = project[:source_paths]
+    project       = Mix.project
+    compile_path  = project[:compile_path]
+    compile_exts  = project[:elixirc_exts]
+    watch_exts    = project[:elixirc_watch_exts]
+    elixirc_paths = project[:elixirc_paths]
 
-    to_compile = Mix.Utils.extract_files(source_paths, compile_exts)
-    to_watch   = Mix.Project.sources ++ Mix.Utils.extract_files(source_paths, watch_exts)
+    to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
+    to_watch   = Mix.Project.sources ++ Mix.Utils.extract_files(elixirc_paths, watch_exts)
     stale      = Mix.Utils.extract_stale(to_watch, [compile_path])
 
     if opts[:force] or stale != [] do
