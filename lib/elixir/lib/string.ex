@@ -390,10 +390,10 @@ defmodule String do
 
   ## Examples
 
-     String.valid_codepoint?("a") #=> true
-     String.valid_codepoint?("ø") #=> true
-     String.valid_codepoint?("\xffff") #=> false
-     String.valid_codepoint?("asdf") #=> false
+      String.valid_codepoint?("a") #=> true
+      String.valid_codepoint?("ø") #=> true
+      String.valid_codepoint?("\xffff") #=> false
+      String.valid_codepoint?("asdf") #=> false
 
   """
   @spec valid_codepoint?(codepoint) :: boolean
@@ -404,7 +404,8 @@ defmodule String do
   Returns unicode graphemes in the string
 
   ## Examples
-     String.graphemes("Ā̀stute") # => ["Ā̀","s","t","u","t","e"]
+
+      String.graphemes("Ā̀stute") # => ["Ā̀","s","t","u","t","e"]
 
   """
   @spec graphemes(t) :: [grapheme]
