@@ -157,6 +157,9 @@ defmodule EnumTest.List do
   test :map do
     assert Enum.map([], fn x -> x * 2 end) == []
     assert Enum.map([1,2,3], fn x -> x * 2 end) == [2,4,6]
+
+    assert Enum.map([], fn x, idx -> x * idx end) == []
+    assert Enum.map([1, 2, 3], fn _, idx -> idx end) == [0, 1, 2]
   end
 
   test :map_reduce do
