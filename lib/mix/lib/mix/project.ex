@@ -146,7 +146,7 @@ defmodule Mix.Project do
     config = atom.project
 
     if env = config[:env][Mix.env] do
-      config /> Keyword.delete(:env) /> Keyword.merge(env)
+      config |> Keyword.delete(:env) |> Keyword.merge(env)
     else
       config
     end

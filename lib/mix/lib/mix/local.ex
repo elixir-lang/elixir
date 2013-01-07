@@ -23,7 +23,7 @@ defmodule Mix.Local do
   def all_tasks do
     query   = File.join(tasks_path, "Elixir-Mix-Tasks-*.beam")
     files   = File.wildcard(query)
-    modules = Enum.map files, &1 /> File.basename /> File.rootname(".beam") /> binary_to_atom
+    modules = Enum.map files, &1 |> File.basename |> File.rootname(".beam") |> binary_to_atom
     Enum.filter(modules, fn(mod) ->
       match? { :module, _ }, Code.ensure_loaded(mod)
     end)

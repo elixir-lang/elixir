@@ -199,23 +199,23 @@ defmodule KernelTest do
     use ExUnit.Case, async: true
 
     test :simple do
-      assert [1,[2],3] /> List.flatten == [1,2,3]
+      assert [1,[2],3] |> List.flatten == [1,2,3]
     end
 
     test :nested do
-      assert [1,[2],3] /> List.flatten /> Enum.map(&1 * 2) == [2,4,6]
+      assert [1,[2],3] |> List.flatten |> Enum.map(&1 * 2) == [2,4,6]
     end
 
     test :local do
-      assert [1,[2],3] /> List.flatten /> local == [2,4,6]
+      assert [1,[2],3] |> List.flatten |> local == [2,4,6]
     end
 
     test :map do
-      assert Enum.map([1,2,3], &1 /> twice /> twice) == [4,8,12]
+      assert Enum.map([1,2,3], &1 |> twice |> twice) == [4,8,12]
     end
 
     test :atom do
-      assert __MODULE__ /> :constant == 13
+      assert __MODULE__ |> :constant == 13
     end
 
     def constant, do: 13

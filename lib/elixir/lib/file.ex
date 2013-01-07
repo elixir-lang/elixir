@@ -1221,7 +1221,7 @@ defmodule File do
   cannot be opened.
   """
   def iterator!(file, mode // []) do
-    open!(file, mode) /> iterator
+    open!(file, mode) |> iterator
   end
 
   @doc """
@@ -1272,7 +1272,7 @@ defmodule File do
   cannot be opened.
   """
   def biniterator!(file, mode // []) do
-    open!(file, mode) /> biniterator
+    open!(file, mode) |> biniterator
   end
 
   ## Helpers

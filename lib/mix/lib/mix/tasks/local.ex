@@ -27,6 +27,6 @@ defmodule Mix.Tasks.Local do
   end
 
   defp format(expression, args) do
-    :io_lib.format(expression, args) /> iolist_to_binary
+    :io_lib.format(expression, args) |> iolist_to_binary
   end
 end

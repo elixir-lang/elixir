@@ -277,8 +277,8 @@ defmodule FileTest do
     end
 
     test :cp_r_with_src_dir_and_dest_dir_using_lists do
-      src  = fixture_path("cp_r/.") /> to_char_list
-      dest = tmp_path("tmp") /> to_char_list
+      src  = fixture_path("cp_r/.") |> to_char_list
+      dest = tmp_path("tmp") |> to_char_list
 
       File.mkdir(dest)
 
@@ -673,7 +673,7 @@ defmodule FileTest do
     end
 
     test :mkdir_with_list do
-      fixture = tmp_path("tmp_test") /> to_char_list
+      fixture = tmp_path("tmp_test") |> to_char_list
       try do
         refute File.exists?(fixture)
         assert File.mkdir(fixture) == :ok
@@ -737,7 +737,7 @@ defmodule FileTest do
     end
 
     test :mkdir_p_with_nested_directory_and_list do
-      base    = tmp_path("tmp_test") /> to_char_list
+      base    = tmp_path("tmp_test") |> to_char_list
       fixture = File.join(base, "test")
       refute File.exists?(base)
 
@@ -902,7 +902,7 @@ defmodule FileTest do
     end
 
     test :rm_rf_with_char_list do
-      fixture = tmp_path("tmp") /> to_char_list
+      fixture = tmp_path("tmp") |> to_char_list
       File.mkdir(fixture)
       File.cp_r!(fixture_path("cp_r/."), fixture)
 
@@ -913,7 +913,7 @@ defmodule FileTest do
       { :ok, files } = File.rm_rf(fixture)
       assert length(files) == 8
       assert fixture inlist files
-      assert (tmp_path("tmp/a/1.txt") /> to_char_list) inlist files
+      assert (tmp_path("tmp/a/1.txt") |> to_char_list) inlist files
 
       refute File.exists?(tmp_path("tmp/a/1.txt"))
       refute File.exists?(tmp_path("tmp/a/a/2.txt"))

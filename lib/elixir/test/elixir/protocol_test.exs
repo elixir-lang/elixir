@@ -152,7 +152,7 @@ defmodule ProtocolTest do
 
   defp get_callbacks(module, name, arity) do
     callbacks = lc { :callback, info } inlist module.__info__(:attributes), do: hd(info)
-    List.keyfind(callbacks, { name, arity }, 0) /> elem(1)
+    List.keyfind(callbacks, { name, arity }, 0) |> elem(1)
   end
 
   # Assert that the given protocol is going to be dispatched.
