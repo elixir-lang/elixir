@@ -260,23 +260,32 @@ defmodule Enum do
 
   @doc """
   Invokes the given `fun` for each item in the `collection`.
-  Returns the `collection` itself.
+  Returns the `collection` itself. `fun` can take two parameters,
+  in which case the second parameter will be the iteration index.
 
   ## Examples
 
       Enum.each ['some', 'example'], fn(x) -> IO.puts x end
 
   """
-  @spec each(t, (element -> any)) :: :ok
+  @spec each(t, (element -> any) | (element, index -> any)) :: :ok
   def each(collection, fun) when is_list(collection) do
-    :lists.foreach(fun, collection)
+    cond do
+      is_function(fun, 1) -> :lists.foreach(fun, collection)
+      is_function(fun, 2) -> :lists.foldl(fn(h, idx) -> fun.(h, idx); idx + 1 end, 0, collection)
+    end
+
     :ok
   end
 
   def each(collection, fun) do
     case I.iterator(collection) do
       { iterator, pointer } ->
-        do_each(pointer, iterator, fun)
+        cond do
+          is_function(fun, 1) -> do_each(pointer, iterator, fun)
+          is_function(fun, 2) -> do_indexed_each(pointer, iterator, fun, 0)
+        end
+
         :ok
       list when is_list(list) ->
         each(list, fun)
@@ -1138,6 +1147,15 @@ defmodule Enum do
   end
 
   defp do_each(:stop, _, _) do
+    []
+  end
+
+  defp do_indexed_each({ h, next }, iterator, fun, idx) do
+    fun.(h, idx)
+    do_each(iterator.(next), iterator, fun, idx + 1)
+  end
+
+  defp do_each(:stop, _, _, _) do
     []
   end
 

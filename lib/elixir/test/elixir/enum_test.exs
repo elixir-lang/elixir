@@ -99,8 +99,14 @@ defmodule EnumTest.List do
 
       assert Enum.each([1,2,3], fn(x) -> Process.put(:enum_test_each, x * 2) end) == :ok
       assert Process.get(:enum_test_each) == 6
+
+      assert Enum.each([], fn(x, idx) -> {x, idx} end) == :ok
+
+      assert Enum.each([1, 2, 3], fn(_, idx) -> Process.put(:enum_test_indexed_each, idx) end) == :ok
+      assert Process.get(:enum_test_indexed_each) == 2
     after
       Process.delete(:enum_test_each)
+      Process.delete(:enum_test_indexed_each)
     end
   end
 
