@@ -12,6 +12,9 @@ defmodule Mix.Tasks.Escriptize do
   * `escript_name` - the name of the generated escript
      Defaults to project name
 
+  * `escript_path` - the path to write the escript to
+     Defaults to project name
+
   * `escript_main_module` - the module containing the main/1 function.
      Defaults to `Project`
 
@@ -42,7 +45,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp escriptize(project) do
     script_name  = project[:escript_name] || project[:app]
-    filename     = atom_to_binary(script_name)
+    filename     = project[:escript_path] || atom_to_binary(script_name)
     compile_path = project[:compile_path] || "ebin"
 
     files = gen_main(script_name, project[:escript_main_module])
@@ -64,7 +67,10 @@ defmodule Mix.Tasks.Escriptize do
         shebang  = project[:escript_shebang]  || "#! /usr/bin/env escript\n"
         comment  = project[:escript_comment]  || "%%\n"
         emu_args = project[:escript_emu_args] || "%%!\n"
+
         script = iolist_to_binary([shebang, comment, emu_args, zip])
+
+        File.mkdir_p!(File.dirname(filename))
         File.write!(filename, script)
       {:error, error} ->
         Mix.shell.error "Error creating escript: #{error}"
