@@ -33,9 +33,9 @@ defmodule Record do
 
         values = unquote(values)
         opts   = unquote(opts)
-        Record.deffunctions(values, opts, __ENV__)
+        Record.deffunctions(values, __ENV__)
         unquote(block)
-        Record.deftypes(values, @record_type, opts, __ENV__)
+        Record.deftypes(values, @record_type, __ENV__)
       end
     end
   end
@@ -65,7 +65,7 @@ defmodule Record do
       end
 
   """
-  def deffunctions(values, _opts // [], env) do
+  def deffunctions(values, env) do
     values  = lc value inlist values, do: convert_value(value)
     escaped = Macro.escape(values)
 
@@ -93,7 +93,7 @@ defmodule Record do
   @doc """
   Defines types and specs for the record.
   """
-  def deftypes(values, types, _opts // [], env) do
+  def deftypes(values, types, env) do
     types  = types || []
     values = lc value inlist values do
       { name, default } = convert_value(value)
