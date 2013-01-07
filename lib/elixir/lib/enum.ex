@@ -161,7 +161,7 @@ defmodule Enum do
         Enum.at! [2,4,6], 4 #=> raises Enum.OutOfBoundsError
 
   """
-  @spec at!(t, non_neg_integer) :: element | no_return
+  @spec at!(t, index) :: element | no_return
   def at!(collection, n) when is_list(collection) and n >= 0 do
     do_at!(collection, n)
   end
@@ -440,7 +440,7 @@ defmodule Enum do
       #=> 2
 
   """
-  @spec find_index(t, (element -> any)) :: non_neg_integer | :nil
+  @spec find_index(t, (element -> any)) :: index | :nil
   def find_index(collection, fun) when is_list(collection) do
     do_find_index(collection, 0, fun)
   end
