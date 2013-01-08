@@ -263,5 +263,5 @@ defmodule IEx.Autocomplete do
   defp is_prefix?(hint, name), do: :lists.prefix(hint, name)
 
   defp ensure_loaded(Elixir), do: { :error, :nofile }
-  defp ensure_loaded(mod),    do: Code.ensure_loaded(mod)
+  defp ensure_loaded(mod),    do: Code.ensure_compiled(mod)
 end

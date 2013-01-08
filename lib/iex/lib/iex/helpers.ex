@@ -221,7 +221,7 @@ defmodule IEx.Helpers do
   defp print_signature({ { name, _arity }, _line, kind, args, docs }) do
     args = Enum.map_join(args, ", ", signature_arg(&1))
     IO.puts "* #{kind} #{name}(#{args})"
-    docs
+    docs || ""
   end
 
   defp signature_arg({ ://, _, [left, right] }) do
