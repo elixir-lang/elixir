@@ -101,7 +101,7 @@ defmodule MixTest.Case do
   end
 
   def del_tmp_paths do
-    tmp = tmp_path /> binary_to_list
+    tmp = tmp_path |> binary_to_list
     to_remove = Enum.filter :code.get_path, fn(path) -> :string.str(path, tmp) != 0 end
     Enum.map to_remove, :code.del_path(&1)
   end

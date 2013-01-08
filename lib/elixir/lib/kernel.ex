@@ -2710,14 +2710,14 @@ defmodule Kernel do
   end
 
   @doc """
-  `/>` is called the pipeline operator as it is useful
+  `|>` is called the pipeline operator as it is useful
   to write pipeline style expressions. This operator
   tntroduces the expression on the left as the first
   argument to the expression on the right.
 
   ## Examples
 
-      [1,[2],3] /> List.flatten /> Enum.map(&1 * 2)
+      [1,[2],3] |> List.flatten |> Enum.map(&1 * 2)
       #=> [2,4,6]
 
   The expression above is simply translated to:
@@ -2727,24 +2727,24 @@ defmodule Kernel do
   Please be aware of operator precendence, when using
   this operator. For example, the following expression:
 
-      String.graphemes "Hello" /> Enum.reverse
+      String.graphemes "Hello" |> Enum.reverse
 
   Is translated to:
 
-      String.graphemes("Hello" /> Enum.reverse)
+      String.graphemes("Hello" |> Enum.reverse)
 
   Which will result in an error as Enum.Iterator protocol
   is not defined for binaries. Adding explicit parenthesis
   is recommended:
 
-      String.graphemes("Hello") /> Enum.reverse
+      String.graphemes("Hello") |> Enum.reverse
 
   """
-  defmacro left /> right do
+  defmacro left |> right do
     pipeline_op(left, right)
   end
 
-  defp pipeline_op(left, { :/>, _, [middle, right] }) do
+  defp pipeline_op(left, { :|>, _, [middle, right] }) do
     pipeline_op(pipeline_op(left, middle), right)
   end
 
@@ -2761,7 +2761,12 @@ defmodule Kernel do
   end
 
   defp pipeline_op(_, other) do
-    raise ArgumentError, message: "Unsupported expression in pipeline (:/>) operator: #{inspect other}"
+    raise ArgumentError, message: "Unsupported expression in pipeline (:|>) operator: #{inspect other}"
+  end
+
+  defmacro left /> right do
+    IO.puts("The /> pipeline operator is deprecated. Please use the |> operator instead.")
+    pipeline_op(left, right)
   end
 
   @doc """

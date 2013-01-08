@@ -30,9 +30,9 @@ defmodule Mix.Tasks.Run do
     Enum.each opts, fn({ key, value }) ->
       case key do
         :parallel_require ->
-          value /> filter_patterns /> Kernel.ParallelRequire.files
+          value |> filter_patterns |> Kernel.ParallelRequire.files
         :require ->
-          value /> filter_patterns /> Enum.each Code.require_file(&1)
+          value |> filter_patterns |> Enum.each Code.require_file(&1)
         _ ->
           :ok
       end

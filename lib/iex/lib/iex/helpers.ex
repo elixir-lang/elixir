@@ -414,7 +414,7 @@ defmodule IEx.Helpers do
   end
 
   def v(n) when n > 0 do
-    history = Process.get(:iex_history) /> Enum.reverse
+    history = Process.get(:iex_history) |> Enum.reverse
     Enum.at!(history, n - 1).result
   end
 

@@ -113,7 +113,7 @@ defmodule Mix.Utils do
   It ignores files which start with "."
   """
   def extract_files(paths, _pattern) when is_binary(paths) do
-    File.wildcard(paths) /> exclude_files
+    File.wildcard(paths) |> exclude_files
   end
 
   def extract_files(paths, exts) when is_list(exts) do
@@ -124,7 +124,7 @@ defmodule Mix.Utils do
     files = List.concat(lc path inlist paths do
       if File.regular?(path), do: [path], else: File.wildcard("#{path}/**/#{pattern}")
     end)
-    files /> exclude_files /> Enum.uniq
+    files |> exclude_files |> Enum.uniq
   end
 
   defp exclude_files(files) do
@@ -280,7 +280,7 @@ defmodule Mix.Utils do
 
   def module_name_to_command(module, nesting) do
     t = Regex.split(%r/\./, to_binary(module))
-    t /> Enum.drop(nesting) /> Enum.map(first_to_lower(&1)) /> Enum.join(".")
+    t |> Enum.drop(nesting) |> Enum.map(first_to_lower(&1)) |> Enum.join(".")
   end
 
   @doc """
@@ -293,8 +293,8 @@ defmodule Mix.Utils do
 
   """
   def command_to_module_name(s) do
-    Regex.split(%r/\./, to_binary(s)) />
-      Enum.map(first_to_upper(&1)) />
+    Regex.split(%r/\./, to_binary(s)) |>
+      Enum.map(first_to_upper(&1)) |>
       Enum.join(".")
   end
 
