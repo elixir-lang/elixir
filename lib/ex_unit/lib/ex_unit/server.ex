@@ -79,7 +79,7 @@ defmodule ExUnit.Server do
   end
 
   def handle_cast({:merge_options, options}, config) do
-    { :noreply, config.update_options(&1 /> Keyword.merge(options)) }
+    { :noreply, config.update_options(&1 |> Keyword.merge(options)) }
   end
 
   def handle_cast(request, config) do

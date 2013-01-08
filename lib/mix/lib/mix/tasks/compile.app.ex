@@ -81,7 +81,7 @@ defmodule Mix.Tasks.Compile.App do
   defp validate_version(_), do: raise(Mix.Error, message: "Expected :version to be a binary")
 
   defp modules_from(beams) do
-    Enum.map beams, &1 /> File.basename /> File.rootname('.beam') /> list_to_atom
+    Enum.map beams, &1 |> File.basename |> File.rootname('.beam') |> list_to_atom
   end
 
   defp ensure_correct_properties(app, properties) do

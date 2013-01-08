@@ -137,7 +137,7 @@ defmodule OptionParser do
   defp normalize_option(option, aliases) do
     { option, value } = split_option(option)
     if is_no?(option), do: value = true
-    atom = option /> to_underscore /> binary_to_atom
+    atom = option |> to_underscore |> binary_to_atom
     { aliases[atom] || atom, value }
   end
 

@@ -13,7 +13,7 @@ defmodule Mix.SCM.Git do
   def accepts_options(opts) do
     cond do
       gh = opts[:github] ->
-        opts /> Keyword.delete(:github) /> Keyword.put(:git, "https://github.com/#{gh}.git")
+        opts |> Keyword.delete(:github) |> Keyword.put(:git, "https://github.com/#{gh}.git")
       opts[:git] ->
         opts
       true ->
@@ -113,7 +113,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp check_rev(fin, acc) when fin == [?\n] or fin == [] do
-    Enum.reverse(acc) /> list_to_binary
+    Enum.reverse(acc) |> list_to_binary
   end
 
   defp check_rev(_, _) do

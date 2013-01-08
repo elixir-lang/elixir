@@ -23,6 +23,7 @@
 
 * deprecations
   * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
+  * [Kernel] The `/>` operator has been deprecated in favor of `|>`
 
 # v0.7.2 (2012-12-04)
 

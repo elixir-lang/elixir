@@ -52,7 +52,7 @@ defmodule Mix.Tasks.RunTest do
     Mix.Project.push CustomPrepareApp
 
     in_fixture "only_mixfile", fn ->
-      Mix.Tasks.Run.run ["Mix.shell.info", "Mix.Task.run(:hello) /> to_binary"]
+      Mix.Tasks.Run.run ["Mix.shell.info", "Mix.Task.run(:hello) |> to_binary"]
       assert_received { :mix_shell, :info, ["noop"] }
     end
   after
