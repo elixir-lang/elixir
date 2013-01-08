@@ -1732,8 +1732,8 @@ defmodule Kernel do
   The `@spec` above expresses that all types allowed to implement the
   given protocol are valid argument types for the given function.
   """
-  defmacro defprotocol(name, [do: block]) do
-    Protocol.defprotocol(name, [do: block])
+  defmacro defprotocol(name, do: block) do
+    Protocol.defprotocol(name, do: block)
   end
 
   @doc """
@@ -1741,7 +1741,9 @@ defmodule Kernel do
   `defprotocol/2` for examples.
   """
   defmacro defimpl(name, opts, do_block // []) do
-    Protocol.defimpl(name, Keyword.merge(opts, do_block))
+    merged = Keyword.merge(opts, do_block)
+    merged = Keyword.put_new(merged, :for, __CALLER__.module)
+    Protocol.defimpl(name, merged)
   end
 
   @doc """

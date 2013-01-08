@@ -24,17 +24,18 @@ defprotocol ProtocolTest.Plus do
 end
 
 defrecord ProtocolTest.Foo, a: 0, b: 0
-defrecord ProtocolTest.Bar, a: 0
+
+defrecord ProtocolTest.Bar, a: 0 do
+  defimpl ProtocolTest.WithAll do
+    def blank(record) do
+      Unknown.undefined(record)
+    end
+  end
+end
 
 defimpl ProtocolTest.WithAll, for: ProtocolTest.Foo do
   def blank(record) do
     record.a + record.b == 0
-  end
-end
-
-defimpl ProtocolTest.WithAll, for: ProtocolTest.Bar do
-  def blank(record) do
-    Unknown.undefined(record)
   end
 end
 
