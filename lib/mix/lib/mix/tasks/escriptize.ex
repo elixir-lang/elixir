@@ -47,11 +47,12 @@ defmodule Mix.Tasks.Escriptize do
     script_name  = project[:escript_name] || project[:app]
     filename     = project[:escript_path] || atom_to_binary(script_name)
     compile_path = project[:compile_path] || "ebin"
+    embed        = Keyword.get(project, :escript_embed_elixir, true)
 
     files = gen_main(script_name, project[:escript_main_module])
     files = files ++ get_files(compile_path)
 
-    if project[:escript_embed_elixir] do
+    if embed do
       extra_apps = project[:escript_embed_extra_apps] || []
       files = Enum.reduce [:elixir|extra_apps], files, fn(app, acc) ->
         app_files(app) ++ acc
