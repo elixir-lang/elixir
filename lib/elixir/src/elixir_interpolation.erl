@@ -39,13 +39,16 @@ extract(Line, File, true, [$}|Rest], Buffer, [$}], Output, Last) ->
   NewOutput = build_interpol(i, Line, File, Buffer, Output),
   extract(Line, File, true, Rest, [], [], NewOutput, Last);
 
-%% Check for available separators "", {}, [] and () inside interpolation
+%% Check for available separators inside interpolation
 
-extract(Line, File, Interpol, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $"; C == $' ->
+extract(Line, File, Interpol, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $>; C == $"; C == $' ->
   extract(Line, File, Interpol, Rest, [C|Buffer], Search, Output, Last);
 
 extract(Line, File, Interpol, [C|Rest], Buffer, [_|_] = Search, Output, Last) when C == $"; C == $' ->
   extract(Line, File, Interpol, Rest, [C|Buffer], [C|Search], Output, Last);
+
+extract(Line, File, Interpol, [$<|Rest], Buffer, [_|_] = Search, Output, Last) ->
+  extract(Line, File, Interpol, Rest, [$<|Buffer], [$>|Search], Output, Last);
 
 extract(Line, File, Interpol, [${|Rest], Buffer, [_|_] = Search, Output, Last) ->
   extract(Line, File, Interpol, Rest, [${|Buffer], [$}|Search], Output, Last);
