@@ -252,9 +252,19 @@ translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
         syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote")
     end,
 
-  Marker = case lists:keyfind(hygiene, 1, T) of
-    { hygiene, false } -> nil;
-    _ -> quoted
+  Marker = case lists:keyfind(var_context, 1, T) of
+    { var_context, VarContext } ->
+      elixir_scope:expand_var_context(GivenLine, VarContext,
+        "invalid argument given for var_context in quote", S);
+    _ ->
+      case lists:keyfind(hygiene, 1, T) of
+        { hygiene, false } -> nil;
+        _ ->
+          case S#elixir_scope.module of
+            nil -> 'Elixir';
+            Mod -> Mod
+          end
+      end
   end,
 
   { DefaultLine, DefaultFile } = case lists:keyfind(location, 1, T) of
@@ -361,7 +371,7 @@ translate_each({ '^', Line, [ { Name, _, Kind } ] }, S) when is_atom(Kind) ->
   syntax_error(Line, S#elixir_scope.file,
     "cannot access variable ^~s outside of assignment", [Name]);
 
-translate_each({ Name, Line, Kind }, S) when is_atom(Name), (Kind == nil orelse Kind == quoted) ->
+translate_each({ Name, Line, Kind }, S) when is_atom(Name), is_atom(Kind) ->
   elixir_scope:translate_var(Line, Name, Kind, S);
 
 %% Local calls

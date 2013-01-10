@@ -31,7 +31,7 @@
 
 -record(elixir_quote, {
   line=0,
-  marker=quoted,
+  marker=nil,
   unquote=true
 }).
 

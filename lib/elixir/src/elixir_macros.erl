@@ -261,11 +261,19 @@ translate({ apply, Line, Args }, S) ->
 
 %% Handle forced variables
 
-translate({ 'var!', _, [{Name, Line, Atom}] }, S) when is_atom(Name), is_atom(Atom) ->
-  elixir_scope:translate_var(Line, Name, nil, S);
+translate({ 'var!', Line, [Arg] }, S) ->
+  translate({ 'var!', Line, [Arg, nil] }, S);
 
-translate({ 'var!', Line, [_] }, S) ->
-  syntax_error(Line, S#elixir_scope.file, "invalid args for var!").
+translate({ 'var!', Line, [{Name, _, Atom}, Kind] }, S) when is_atom(Name), is_atom(Atom) ->
+  Expanded = elixir_scope:expand_var_context(Line, Kind, "invalid second argument for var!", S),
+  elixir_scope:translate_var(Line, Name, Expanded, S);
+
+translate({ 'var!', Line, [Name, Kind] }, S) when is_atom(Name) ->
+  Expanded = elixir_scope:expand_var_context(Line, Kind, "invalid second argument for var!", S),
+  elixir_scope:translate_var(Line, Name, Expanded, S);
+
+translate({ 'var!', Line, [_, _] }, S) ->
+  syntax_error(Line, S#elixir_scope.file, "invalid first argument for var!, expected a var or an atom").
 
 %% Helpers
 

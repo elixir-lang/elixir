@@ -373,5 +373,6 @@ in_erlang_macros() ->
     {'receive',1},
     {'try',1},
     {'var!',1},
+    {'var!',2},
     {'xor',2}
   ].

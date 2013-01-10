@@ -8,7 +8,8 @@
   serialize/1, deserialize/1,
   serialize_with_vars/2, deserialize_with_vars/2,
   to_erl_env/1, to_ex_env/1, filename/1,
-  umergev/2, umergec/2, merge_clause_vars/2
+  umergev/2, umergec/2, merge_clause_vars/2,
+  expand_var_context/4
   ]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
@@ -28,7 +29,7 @@ translate_var(Line, Name, Kind, S) ->
               { { var, Line, orddict:fetch({ Name, Kind }, Vars) }, S };
             { Else, _ } ->
               { NewVar, NS } = if
-                Kind == quoted -> build_erl_var(Line, S);
+                Kind /= nil -> build_erl_var(Line, S);
                 Else -> build_erl_var(Line, Name, S);
                 S#elixir_scope.noname -> build_erl_var(Line, Name, S);
                 true -> { { var, Line, Name }, S }
@@ -70,9 +71,26 @@ build_erl_var(Line, Key, Name, S) ->
   { Var, NS }.
 
 build_ex_var(Line, Key, Name, S) ->
+  Context = case S#elixir_scope.module of
+    nil -> 'Elixir';
+    Mod -> Mod
+  end,
+
   { Counter, NS } = build_var_counter(Key, S),
-  Var = { ?ELIXIR_ATOM_CONCAT([Name, "@", Counter]), Line, quoted },
+  Var = { ?ELIXIR_ATOM_CONCAT([Name, "@", Counter]), Line, Context },
   { Var, NS }.
+
+% Handle var contexts
+
+expand_var_context(_Line, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
+
+expand_var_context(Line, Else, Msg, S) ->
+  Kind = 'Elixir.Macro':expand(Else, to_ex_env({ Line, S })),
+  case is_atom(Kind) of
+    true  -> Kind;
+    false -> elixir_errors:syntax_error(Line, S#elixir_scope.file,
+      "~ts, expected an atom or an alias", [Msg])
+  end.
 
 % Handle Macro.Env conversion
 

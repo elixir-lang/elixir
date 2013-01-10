@@ -1,52 +1,10 @@
 Code.require_file "../../test_helper.exs", __FILE__
 
-defmodule Kernel.QuoteTest.Hygiene do
-  defmacro no_interference do
-    quote do: a = 1
-  end
-
-  defmacro no_hygiene do
-    quote [hygiene: false] do
-      a = 1
-    end
-  end
-
-  defmacro write_interference do
-    quote do: var!(a) = 1
-  end
-
-  defmacro read_interference do
-    quote do: 10 = var!(a)
-  end
-
-  defmacro custom_file do
-    quote file: "HELLO", do: __FILE__
-  end
-end
-
 defmodule Kernel.QuoteTest do
   use ExUnit.Case, async: true
-  import __MODULE__.Hygiene
 
-  test :no_interference do
-    a = 10
-    no_interference
-    assert a == 10
-  end
-
-  test :no_hygiene do
-    no_hygiene
-    assert a == 1
-  end
-
-  test :write_interference do
-    write_interference
-    assert a == 1
-  end
-
-  test :read_interference do
-    a = 10
-    read_interference
+  defmacrop custom_file do
+    quote file: "HELLO", do: __FILE__
   end
 
   test :file do
@@ -63,7 +21,7 @@ defmodule Kernel.QuoteTest do
 
   test :keep_line do
     ## DO NOT MOVE THIS LINE
-    assert quote(line: :keep, do: bar(1,2,3)) == { :bar, 66, [1,2,3] }
+    assert quote(line: :keep, do: bar(1,2,3)) == { :bar, 24, [1,2,3] }
   end
 
   test :fixed_line do
@@ -74,10 +32,10 @@ defmodule Kernel.QuoteTest do
     ## DO NOT MOVE THIS LINE
     assert quote(location: :keep, do: bar(1,2,3)) == {
       :__scope__,
-      75,
+      33,
       [
         [file: __FILE__],
-        [do: { :bar, 75, [1,2,3] }]
+        [do: { :bar, 33, [1,2,3] }]
       ]
     }
   end
@@ -85,7 +43,7 @@ defmodule Kernel.QuoteTest do
   test :quote_line_var do
     ## DO NOT MOVE THIS LINE
     line = __ENV__.line
-    assert quote(line: line, do: bar(1,2,3)) == { :bar, 87, [1,2,3] }
+    assert quote(line: line, do: bar(1,2,3)) == { :bar, 45, [1,2,3] }
   end
 
   test :unquote_call do
@@ -112,5 +70,75 @@ defmodule Kernel.QuoteTest do
   test :splice_on_pipe do
     contents = [1, 2, 3]
     assert quote(do: [unquote_splicing(contents)|[1,2,3]]) == [1,2,3,1,2,3]
+  end
+end
+
+defmodule Kernel.QuoteTest.VarHygiene do
+  defmacro no_interference do
+    quote do: a = 1
+  end
+
+  defmacro no_hygiene do
+    quote [hygiene: false] do
+      a = 1
+    end
+  end
+
+  defmacro write_interference do
+    quote do: var!(a) = 1
+  end
+
+  defmacro read_interference do
+    quote do: 10 = var!(a)
+  end
+
+  defmacro cross_module_interference do
+    quote do: var!(:a, Kernel.QuoteTest.VarHygieneTest) = 1
+  end
+end
+
+defmodule Kernel.QuoteTest.VarHygieneTest do
+  use ExUnit.Case, async: true
+  import Kernel.QuoteTest.VarHygiene
+
+  defmacrop cross_module_no_interference do
+    quote do: a = 10
+  end
+
+  defmacrop read_cross_module do
+    quote do: a
+  end
+
+  test :no_interference do
+    a = 10
+    no_interference
+    assert a == 10
+  end
+
+  test :no_hygiene do
+    no_hygiene
+    assert a == 1
+  end
+
+  test :cross_module_no_interference do
+    cross_module_no_interference
+    no_interference
+    assert read_cross_module == 10
+  end
+
+  test :cross_module_interference do
+    cross_module_no_interference
+    cross_module_interference
+    assert read_cross_module == 1
+  end
+
+  test :write_interference do
+    write_interference
+    assert a == 1
+  end
+
+  test :read_interference do
+    a = 10
+    read_interference
   end
 end

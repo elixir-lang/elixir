@@ -216,7 +216,7 @@ normalize_vars({ Var, Kind } = Key, Shared, #elixir_scope{vars=Vars,clause_vars=
       { ok, SharedValue } ->
         { SharedValue, S };
       error ->
-        { { _, _, ErlValue }, ErlS } = case (Kind == quoted) or (S#elixir_scope.noname) of
+        { { _, _, ErlValue }, ErlS } = case (Kind /= nil) or (S#elixir_scope.noname) of
           true  -> elixir_scope:build_erl_var(0, S);
           false -> elixir_scope:build_erl_var(0, Var, "_@" ++ atom_to_list(Var), S)
         end,

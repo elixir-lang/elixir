@@ -307,7 +307,7 @@ defmodule Protocol.DSL do
     # interpolation to generate the arguments because of compile
     # dependencies, so we use the <<>> instead.
     args = lc i inlist :lists.seq(1, arity) do
-      { binary_to_atom(<<?x, i + 64>>), 0, :quoted }
+      { binary_to_atom(<<?x, i + 64>>), 0, __MODULE__ }
     end
 
     { conversions, fallback, returns_nil } = conversions_for(module)

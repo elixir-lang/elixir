@@ -12,7 +12,7 @@ defmodule KeywordTest do
   test :ambiguity do
     # This raises a warning, so let's leave it commented
     # assert quote(do: [a:b])  == [a: { :b, 0, :quoted }]
-    assert quote(do: [a::b]) == [{ :::, 0, [{ :a, 0, :quoted },{ :b, 0, :quoted }] }]
+    assert [{ :::, 0, [{ :a, 0, _ },{ :b, 0, _ }] }] = quote(do: [a::b])
   end
 
   test :optional_comma do
