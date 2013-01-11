@@ -442,28 +442,16 @@ defmodule Macro do
   """
   def expand(aliases, env)
 
-  # The first case we handle is __aliases__. In case
-  # aliases just contain one item, we are sure it is
-  # an atom, so we just expand it based on the aliases
-  # dict.
-  def expand({ :__aliases__, _, [h] }, env) when h != Elixir do
-    expand_alias(h, env)
-  end
+  def expand({ :__aliases__, _, _ } = original, env) do
+    case :elixir_aliases.expand(original, env.aliases) do
+      atom when is_atom(atom) -> atom
+      aliases ->
+        aliases = lc alias inlist aliases, do: expand(alias, env)
 
-  # In case aliases contains more than one item, we need
-  # to loop them checking if they are all atoms or not.
-  # Macros and pseudo-variables are then expanded.
-  def expand({ :__aliases__, _, [h|t] } = original, env) do
-    aliases = case h do
-      x when is_atom(x) and x != Elixir -> [expand_alias(x, env)|t]
-      _                                 -> [h|t]
-    end
-
-    aliases = lc alias inlist aliases, do: expand(alias, env)
-
-    case :lists.all(is_atom(&1), aliases) do
-      true  -> :elixir_aliases.concat(aliases)
-      false -> original
+        case :lists.all(is_atom(&1), aliases) do
+          true  -> :elixir_aliases.concat(aliases)
+          false -> original
+        end
     end
   end
 
@@ -522,11 +510,6 @@ defmodule Macro do
 
   defp is_partial?(args) do
     :lists.any(match?({ :&, _, [_] }, &1), args)
-  end
-
-  defp expand_alias(h, env) do
-    atom = list_to_atom('Elixir-' ++ atom_to_list(h))
-    :elixir_aliases.lookup(atom, env.aliases)
   end
 
   @doc """

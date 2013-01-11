@@ -1,13 +1,13 @@
 Code.require_file "../test_helper.exs", __FILE__
 
-defmodule Typespec.Test.Type do
+defmodule Typespec.TypeTest do
   use ExUnit.Case, async: true
 
   # This macro allows us to focus on the result of the
   # definition and not on the hassles of handling test
   # module
   defmacrop test_module([{:do, block}]) do
-    quote do
+    quote expand_aliases: false do
       { :module, T, _binary, result } = defmodule T do
         unquote(block)
       end

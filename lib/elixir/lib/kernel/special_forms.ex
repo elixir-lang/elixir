@@ -328,11 +328,11 @@ defmodule Kernel.SpecialForms do
       quote do: sum(1, 2, 3)
       #=> { :sum, 0, [1, 2, 3] }
 
-  ## Homoiconicity
+  ## Explanation
 
-  Elixir is an homoiconic language. Any Elixir program can be
-  represented using its own data structures. The building block
-  of Elixir homoiconicity is a tuple with three elements, for example:
+  Any Elixir code can be represented using Elixir data structures.
+  The building block of Elixir homoiconicity is a tuple with three
+  elements, for example:
 
       { :sum, 1, [1, 2, 3] }
 
@@ -344,8 +344,18 @@ defmodule Kernel.SpecialForms do
   * The second element of the tuple is always an integer
     representing the line number;
   * The third element of the tuple are the arguments for the
-    function call. The third argument may be an atom, meaning
-    that it may be a variable.
+    function call. The third argument may be an atom, which is
+    usually a variable (or a local call);
+
+  ## Options
+
+  * `:hygiene` - When false, disables hygiene for variables, aliases and imports;
+  * `:unquote` - When false, disables unquoting. Useful when you have a quote
+                 inside another quote and want to control which quote is
+                 able to unquote;
+  * `:location` - When set to `:keep`, keeps the current line and file on quotes.
+                  Read the Stacktrace information section below for more information;
+  * `:expand_aliases` - When false, do not expand aliases;
 
   ## Macro literals
 
@@ -361,9 +371,17 @@ defmodule Kernel.SpecialForms do
 
   ## Hygiene
 
-  Elixir macros are hygienic regarding to variables. This means
-  a variable defined in a macro cannot affect the scope where
-  the macro is included. Consider the following example:
+  Elixir macros are hygienic. This means aliases and imports
+  defined inside the quoted often refer to the context that
+  defined the macro.
+
+  Furthermore, variables inside quote are also hygienic. That
+  said, a variable defined in a macro cannot affect the scope
+  where the macro is included.
+
+  ### Hygiene in variables
+
+  Consider the following example:
 
       defmodule Hygiene do
         defmacro no_interference do
@@ -395,22 +413,38 @@ defmodule Kernel.SpecialForms do
       NoHygiene.interference
       a #=> 1
 
-  Notice that aliases are not hygienic in Elixir, ambiguity
-  must be solved by prepending Elixir:
+  ### Hygiene in aliases
 
-      quote do
-        Elixir.Foo #=> Access the root Foo
-        Foo        #=> Access the Foo alias in the current module
-                       (if any is set), then fallback to Elixir.Foo
+  Aliases inside quote are expanded by default.
+  Consider the following example:
+
+      defmodule Hygiene do
+        alias OrdDict, as: D
+
+        defmacro no_interference do
+          quote do: D.new
+        end
       end
 
-  ## Options
+      require Hygiene
+      Hygiene.no_interference #=> { OrdDict, [] }
 
-  * `:hygiene` - When false, disables hygiene;
-  * `:unquote` - When false, disables unquoting. Useful when you have a quote
-    inside another quote and want to control which quote is able to unquote;
-  * `:location` - When set to `:keep`, keeps the current line and file on quotes.
-                  Read the Stacktrace information section below for more information;
+  Notice that, even though the alias `D` is not available
+  in the context the macro is expanded, the code above works
+  because `D` was expanded when the quote was generated.
+
+  There are two ways to disable this behaviour. By giving
+  the `expand_aliases` equals to false to quote or by using
+  the `alias!` macro inside the quote:
+
+      defmodule NoHygiene do
+        defmacro interference do
+          quote do: alias!(D).new
+        end
+      end
+
+      require NoHygiene
+      NoHygiene.interference #=> UndefinedFunctionError
 
   ## Stacktrace information
 
@@ -445,6 +479,25 @@ defmodule Kernel.SpecialForms do
   the quote will always point to `GenServer.Behaviour` file.
   """
   defmacro quote(opts, do: contents)
+
+  @doc """
+  When used inside quoting, marks that the variable should not
+  be hygienezed. Check `quote/2` for more information.
+  """
+  defmacro var!(var)
+
+  @doc """
+  Defines a variable in the given context.
+  Check `quote/2` for more information.
+  """
+  defmacro var!(var, context)
+
+  @doc """
+  When used inside quoting, marks that the alias should not
+  be hygienezed. This means the alias will be expanded when
+  the macro is expanded.
+  """
+  defmacro alias!(alias)
 
   @doc """
   Unquotes the given expression from inside a macro.

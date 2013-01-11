@@ -212,28 +212,20 @@ translate_each({ '__CALLER__', Line, Atom }, S) when is_atom(Atom) ->
 
 %% Aliases
 
-translate_each({ '__aliases__', Line, [H] }, S) when H /= 'Elixir'  ->
-  Atom = list_to_atom("Elixir-" ++ atom_to_list(H)),
-  { { atom, Line, elixir_aliases:lookup(Atom, S#elixir_scope.aliases) }, S };
+translate_each({ '__aliases__', Line, _ } = Alias, S) ->
+  case elixir_aliases:expand(Alias, S#elixir_scope.aliases) of
+    Atom when is_atom(Atom) -> { { atom, Line, Atom}, S };
+    Aliases ->
+      { TAliases, SA } = translate_args(Aliases, S),
 
-translate_each({ '__aliases__', Line, [H|T] }, S) ->
-  Aliases = if
-    is_atom(H) andalso (H /= 'Elixir') ->
-      Atom = list_to_atom("Elixir-" ++ atom_to_list(H)),
-      [elixir_aliases:lookup(Atom, S#elixir_scope.aliases)|T];
-    true ->
-      [H|T]
-  end,
-
-  { TAliases, SA } = translate_args(Aliases, S),
-
-  case lists:all(fun is_atom_tuple/1, TAliases) of
-    true ->
-      Atoms = [Atom || { atom, _, Atom } <- TAliases],
-      { { atom, Line, elixir_aliases:concat(Atoms) }, SA };
-    false ->
-      Args = [elixir_tree_helpers:build_simple_list(Line, TAliases)],
-      { ?ELIXIR_WRAP_CALL(Line, elixir_aliases, concat, Args), SA }
+      case lists:all(fun is_atom_tuple/1, TAliases) of
+        true ->
+          Atoms = [Atom || { atom, _, Atom } <- TAliases],
+          { { atom, Line, elixir_aliases:concat(Atoms) }, SA };
+        false ->
+          Args = [elixir_tree_helpers:build_simple_list(Line, TAliases)],
+          { ?ELIXIR_WRAP_CALL(Line, elixir_aliases, concat, Args), SA }
+      end
   end;
 
 %% Quoting
@@ -252,11 +244,11 @@ translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
         syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote")
     end,
 
-  Marker = case lists:keyfind(var_context, 1, T) of
+  Context = case lists:keyfind(var_context, 1, T) of
     { var_context, VarContext } ->
-      elixir_scope:expand_var_context(GivenLine, VarContext,
+      expand_var_context(GivenLine, VarContext,
         "invalid argument given for var_context in quote", S);
-    _ ->
+    false ->
       case lists:keyfind(hygiene, 1, T) of
         { hygiene, false } -> nil;
         _ ->
@@ -267,14 +259,24 @@ translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
       end
   end,
 
+  Aliases = case lists:keyfind(expand_aliases, 1, T) of
+    { expand_aliases, Bool } when is_boolean(Bool) ->
+      Bool;
+    false ->
+      case lists:keyfind(hygiene, 1, T) of
+        { hygiene, Bool } when is_boolean(Bool) -> Bool;
+        false -> true
+      end
+  end,
+
   { DefaultLine, DefaultFile } = case lists:keyfind(location, 1, T) of
     { location, keep }  -> { keep, keep };
-    _ -> { 0, nil }
+    false -> { 0, nil }
   end,
 
   Line = case lists:keyfind(line, 1, T) of
     { line, LineValue } -> LineValue;
-    _ -> DefaultLine
+    false -> DefaultLine
   end,
 
   { TLine, SL } = case Line of
@@ -284,7 +286,7 @@ translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
 
   File = case lists:keyfind(file, 1, T) of
     { file, FileValue } -> FileValue;
-    _ -> DefaultFile
+    false -> DefaultFile
   end,
 
   TFile = case File of
@@ -306,10 +308,30 @@ translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
     _ -> true
   end,
 
-  elixir_quote:quote(TExprs, #elixir_quote{marker=Marker, line=TLine, unquote=Unquote}, SL);
+  Q = #elixir_quote{var_context=Context, line=TLine, unquote=Unquote,
+        expand_aliases=Aliases, expand_imports=true},
+
+  elixir_quote:quote(TExprs, Q, SL);
 
 translate_each({ quote, GivenLine, [_] }, S) ->
   syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote");
+
+translate_each({ 'alias!', Line, [Arg] }, S) ->
+  translate_each(Arg, S);
+
+translate_each({ 'var!', Line, [Arg] }, S) ->
+  translate_each({ 'var!', Line, [Arg, nil] }, S);
+
+translate_each({ 'var!', Line, [{Name, _, Atom}, Kind] }, S) when is_atom(Name), is_atom(Atom) ->
+  Expanded = expand_var_context(Line, Kind, "invalid second argument for var!", S),
+  elixir_scope:translate_var(Line, Name, Expanded, S);
+
+translate_each({ 'var!', Line, [Name, Kind] }, S) when is_atom(Name) ->
+  Expanded = expand_var_context(Line, Kind, "invalid second argument for var!", S),
+  elixir_scope:translate_var(Line, Name, Expanded, S);
+
+translate_each({ 'var!', Line, [_, _] }, S) ->
+  syntax_error(Line, S#elixir_scope.file, "invalid first argument for var!, expected a var or an atom");
 
 %% Functions
 
@@ -490,6 +512,19 @@ translate_local(Line, Name, Args, S) ->
     { atom, Line, Name }
   },
   { { call, Line, Remote, TArgs }, NS }.
+
+expand_var_context(_Line, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
+
+expand_var_context(Line, { '__aliases__', _, _ } = Alias, Msg, S) ->
+  case translate_each(Alias, S) of
+    { { atom, _, Atom }, _ } ->
+      Atom;
+    _ ->
+      syntax_error(Line, S#elixir_scope.file, "~ts, expected a compile time available alias", [Msg])
+  end;
+
+expand_var_context(Line, _, Msg, S) ->
+  syntax_error(Line, S#elixir_scope.file, "~ts, expected an atom or an alias", [Msg]).
 
 %% Translate args
 

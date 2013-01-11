@@ -318,5 +318,8 @@ non_overridable_macros() ->
     {'super','*'},
     {'super?',0},
     {'bc','*'},
-    {'lc','*'}
+    {'lc','*'},
+    {'var!',1},
+    {'var!',2},
+    {'alias!',1}
   ].

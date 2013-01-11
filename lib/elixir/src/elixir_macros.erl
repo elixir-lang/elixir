@@ -232,10 +232,10 @@ translate({Kind, Line, [Call, Expr]}, S) when ?FUNS(Kind) ->
 
   assert_no_aliases_name(Line, Name, Args, S),
 
-  TName             = elixir_tree_helpers:abstract_syntax(Name),
-  TArgs             = elixir_tree_helpers:abstract_syntax(Args),
-  TGuards           = elixir_tree_helpers:abstract_syntax(Guards),
-  TExpr             = elixir_tree_helpers:abstract_syntax(Expr),
+  TName   = elixir_tree_helpers:abstract_syntax(Name),
+  TArgs   = elixir_tree_helpers:abstract_syntax(Args),
+  TGuards = elixir_tree_helpers:abstract_syntax(Guards),
+  TExpr   = elixir_tree_helpers:abstract_syntax(Expr),
 
   { elixir_def:wrap_definition(Kind, Line, TName, TArgs, TGuards, TExpr, S), S };
 
@@ -257,23 +257,7 @@ translate({ apply, Line, [Left, Right, Args] }, S) when is_list(Args) ->
 
 translate({ apply, Line, Args }, S) ->
   { TArgs, NS } = translate_args(Args, S),
-  { ?ELIXIR_WRAP_CALL(Line, erlang, apply, TArgs), NS };
-
-%% Handle forced variables
-
-translate({ 'var!', Line, [Arg] }, S) ->
-  translate({ 'var!', Line, [Arg, nil] }, S);
-
-translate({ 'var!', Line, [{Name, _, Atom}, Kind] }, S) when is_atom(Name), is_atom(Atom) ->
-  Expanded = elixir_scope:expand_var_context(Line, Kind, "invalid second argument for var!", S),
-  elixir_scope:translate_var(Line, Name, Expanded, S);
-
-translate({ 'var!', Line, [Name, Kind] }, S) when is_atom(Name) ->
-  Expanded = elixir_scope:expand_var_context(Line, Kind, "invalid second argument for var!", S),
-  elixir_scope:translate_var(Line, Name, Expanded, S);
-
-translate({ 'var!', Line, [_, _] }, S) ->
-  syntax_error(Line, S#elixir_scope.file, "invalid first argument for var!, expected a var or an atom").
+  { ?ELIXIR_WRAP_CALL(Line, erlang, apply, TArgs), NS }.
 
 %% Helpers
 
@@ -344,13 +328,13 @@ rewrite_case_clauses([{do,[{in,_,[{'_',_,_},[false,nil]]}],False},{do,[{'_',_,_}
 rewrite_case_clauses(Clauses) ->
   Clauses.
 
-module_ref(_Raw, Module, nil) ->
+module_ref(Raw, Module, Nesting) when is_atom(Raw); Nesting == nil ->
   Module;
 
-module_ref({ '__aliases__', _, ['Elixir'|_]}, Module, _Nesting) ->
+module_ref({ '__aliases__', _, ['Elixir'|_] }, Module, _Nesting) ->
   Module;
 
-module_ref(_F, Module, Nesting) ->
+module_ref(_Raw, Module, Nesting) ->
   elixir_aliases:concat([Nesting, Module]).
 
 is_reserved_data(moduledoc) -> true;

@@ -57,7 +57,7 @@ defmodule ModuleTest do
   Module.eval_quoted __MODULE__, contents, [], file: "sample.ex", line: 13
 
   defmacrop in_module(block) do
-    quote do
+    quote expand_aliases: false do
       defmodule Temp, unquote(block)
       :code.purge(Temp)
       :code.delete(Temp)

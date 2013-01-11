@@ -283,13 +283,6 @@ defmodule Kernel do
   defmacro left !== right
 
   @doc """
-  When used inside quoting, marks that the variable should not
-  be hygienezed. Check `Kernel.SpecialForms.quote/1` for more
-  information.
-  """
-  defmacro var!(var)
-
-  @doc """
   Returns an integer or float which is the arithmetical absolute value of `number`.
 
   Allowed in guard tests.

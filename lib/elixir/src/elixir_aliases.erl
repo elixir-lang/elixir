@@ -1,10 +1,29 @@
 -module(elixir_aliases).
 -export([first/1, last/1, concat/1, safe_concat/1, lookup/2,
-  format_error/1, ensure_loaded/3]).
+  format_error/1, ensure_loaded/3, expand/2]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
+%% Expand an alias returning an atom if possible.
+%% Otherwise returns the list of aliases args.
+
+expand({ '__aliases__', _Line, [H] }, Aliases) when H /= 'Elixir' ->
+  expand_alias(H, Aliases);
+
+expand({ '__aliases__', _Line, [H|T] }, Aliases) when is_atom(H) ->
+  concat(case H of
+    'Elixir' -> [H|T];
+    _        -> [expand_alias(H, Aliases)|T]
+  end);
+
+expand({ '__aliases__', _Line, List }, _Aliases) ->
+  List.
+
+expand_alias(H, Aliases) ->
+  lookup(list_to_atom("Elixir-" ++ atom_to_list(H)), Aliases).
+
 %% Ensure a module is loaded before its usage.
+
 ensure_loaded(_Line, 'Elixir.Kernel', _S) ->
   ok;
 

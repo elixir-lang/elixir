@@ -54,8 +54,8 @@ defmodule Kernel.QuoteTest do
     assert quote(do: foo.unquote(:bar)(1)) == quote(do: foo.bar(1))
     assert quote(do: foo.unquote(:bar)(1) do 2 + 3 end) == quote(do: foo.bar(1) do 2 + 3 end)
 
-    assert Code.eval_quoted(quote(do: Foo.unquote(Bar)))  == { Foo.Bar, [] }
-    assert Code.eval_quoted(quote(do: Foo.unquote(quote do: Bar))) == { Foo.Bar, [] }
+    assert Code.eval_quoted(quote(do: Foo.unquote(Bar)))  == { Elixir.Foo.Bar, [] }
+    assert Code.eval_quoted(quote(do: Foo.unquote(quote do: Bar))) == { Elixir.Foo.Bar, [] }
 
     assert_raise SyntaxError, fn ->
       quote(do: foo.unquote(1))
@@ -140,5 +140,15 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   test :read_interference do
     a = 10
     read_interference
+  end
+end
+
+defmodule Kernel.QuoteTest.AliasHygieneTest do
+  use ExUnit.Case, async: true
+
+  test :expand_aliases do
+    assert Code.eval_quoted(quote do: Foo.Bar)  == { Elixir.Foo.Bar, [] }
+    assert Code.eval_quoted(quote do: alias!(Foo.Bar))  == { Foo.Bar, [] }
+    assert Code.eval_quoted(quote expand_aliases: false, do: Foo.Bar)  == { Foo.Bar, [] }
   end
 end

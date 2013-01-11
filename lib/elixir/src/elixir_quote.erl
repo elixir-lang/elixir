@@ -45,6 +45,18 @@ quote(Else, Q, S) ->
 do_quote({ unquote, _Line, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
 
+do_quote({ 'alias!', _Line, [Expr] }, Q, S) ->
+  do_quote(Expr, Q#elixir_quote{expand_aliases=false}, S);
+
+do_quote({ '__aliases__', Line, [H|_] = Aliases }, #elixir_quote{expand_aliases=true} = Q, S) when is_atom(H) and H /= 'Elixir' ->
+  { TAliases, SA } = do_quote(['Elixir'|Aliases], Q, S),
+
+  { { tuple, Line, [
+    { atom, Line, '__aliases__' },
+    line(Line, Q),
+    TAliases
+  ] }, SA };
+
 do_quote({ { { '.', Line, [Left, unquote] }, _, [Expr] }, _, Args }, #elixir_quote{unquote=true} = Q, S) ->
   All = [Left, { unquote, Line, [Expr] }, Args, S#elixir_scope.file],
   { TAll, TS } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Q, Acc) end, S, All),
@@ -59,7 +71,7 @@ do_quote({ Left, Line, nil }, Q, S) when is_atom(Left) ->
   Tuple = { tuple, Line, [
     { atom, Line, Left },
     line(Line, Q),
-    { atom, Line, Q#elixir_quote.marker }
+    { atom, Line, Q#elixir_quote.var_context }
   ] },
   { Tuple, S };
 
