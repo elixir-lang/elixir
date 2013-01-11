@@ -23,6 +23,10 @@ defmodule CodeTest do
     assert Code.eval("one", [], delegate_locals_to: __MODULE__) == { 1, [] }
   end
 
+  test :eval_with_requires do
+    assert Code.eval("Kernel.if true, do: :ok", [], requires: [Z, Kernel]) == { :ok, [] }
+  end
+
   test :eval_quoted do
     assert Code.eval_quoted(quote(do: 1 + 2)) == { 3, [] }
     assert CodeTest.Sample.eval_quoted_info() == { CodeTest.Sample, "sample.ex", 13 }

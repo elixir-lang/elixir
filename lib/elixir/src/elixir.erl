@@ -61,7 +61,7 @@ scope_for_eval(Opts) ->
   end,
 
   case lists:keyfind(requires, 1, Opts) of
-    { requires, Requires } -> Requires;
+    { requires, List } -> Requires = ordsets:from_list(List);
     false -> Requires = elixir_dispatch:default_requires()
   end,
 
