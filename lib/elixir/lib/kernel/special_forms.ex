@@ -356,6 +356,7 @@ defmodule Kernel.SpecialForms do
   * `:location` - When set to `:keep`, keeps the current line and file on quotes.
                   Read the Stacktrace information section below for more information;
   * `:expand_aliases` - When false, do not expand aliases;
+  * `:var_context` - The context for quoted variables. Defaults to the current module;
 
   ## Macro literals
 
@@ -379,6 +380,10 @@ defmodule Kernel.SpecialForms do
   said, a variable defined in a macro cannot affect the scope
   where the macro is included.
 
+  The option `hygiene` can turn off all the hygiene mechanisms
+  defined below. However, they can also be changed in a one by
+  one basis.
+
   ### Hygiene in variables
 
   Consider the following example:
@@ -396,10 +401,10 @@ defmodule Kernel.SpecialForms do
       a #=> 10
 
   In the example above, `a` returns 10 even if the macro
-  is apparently setting it to 1 because the variables defined
-  in the macro does not affect the context the macro is
-  executed. If you want to set or get a variable, you can do
-  it with the help of the `var!` macro:
+  is apparently setting it to 1 because variables defined
+  in the macro does not affect the context the macro is executed.
+  If you want to set or get a variable in the user context, you
+  can do it with the help of the `var!` macro:
 
       defmodule NoHygiene do
         defmacro interference do
@@ -412,6 +417,37 @@ defmodule Kernel.SpecialForms do
       a = 10
       NoHygiene.interference
       a #=> 1
+
+  It is important to understand that quoted variables are scoped
+  to the module they are defined. That said, even if two modules
+  define the same quoted variable `a`, their values are going
+  to be independent:
+
+      defmodule Hygiene1 do
+        defmacro var1 do
+          quote do: a = 1
+        end
+      end
+
+      defmodule Hygiene2 do
+        defmacro var2 do
+          quote do: a = 2
+        end
+      end
+
+  Calling macros `var1` and `var2` are not going to change their
+  each other values for `a`. This is useful because quoted
+  variables from different modules cannot conflict. If you desire
+  to explicitly access a variable from another module, we can once
+  again use `var!` macro, but explicitly passing a second argument:
+
+      # Access the variable a from Hygiene1
+      quote do: var!(a, Hygiene1) = 2
+
+  Another option is to set the `var_context` option, affecting
+  all variables in the block:
+
+      quote var_context: Hygiene1, do: a = 2
 
   ### Hygiene in aliases
 
