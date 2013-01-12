@@ -293,7 +293,7 @@ defmodule File do
 
   """
   def rootname(path, extension) do
-   FN.rootname(path, extension)
+    FN.rootname(path, extension)
   end
 
   @doc """

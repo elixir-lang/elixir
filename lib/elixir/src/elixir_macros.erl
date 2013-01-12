@@ -304,7 +304,7 @@ translate_in(Line, Left, Right, S) ->
               decreasing_compare(Line, Var, Start, End) } }
       end;
     _ ->
-      syntax_error(Line, S#elixir_scope.file, "invalid args for operator in")
+      syntax_error(Line, S#elixir_scope.file, "invalid args for operator in, it expects an explicit array or an explicit range on the right side")
   end,
 
   case Cache of
