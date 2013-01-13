@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     elixirc_paths = project[:elixirc_paths]
 
     to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
-    to_watch   = Mix.Project.sources ++ Mix.Utils.extract_files(elixirc_paths, watch_exts)
+    to_watch   = Mix.Project.config_files ++ Mix.Utils.extract_files(elixirc_paths, watch_exts)
     stale      = Mix.Utils.extract_stale(to_watch, [compile_path])
 
     if opts[:force] or stale != [] do

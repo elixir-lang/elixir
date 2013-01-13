@@ -108,10 +108,17 @@ defmodule Mix.Project do
     end
   end
 
-  @doc """
-  Returns a list of project source files (mix.exs and mix.lock)
-  """
+  @doc false
   def sources do
+    IO.puts "Mix.Project.sources is deprecated, please use Mix.Project.config_files instead"
+    Exception.print_stacktrace
+    config_files
+  end
+
+  @doc """
+  Returns a list of project config files (mix.exs and mix.lock).
+  """
+  def config_files do
     opts     = []
     project  = get
     lockfile = config[:lockfile]

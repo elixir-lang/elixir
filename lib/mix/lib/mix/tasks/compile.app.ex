@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Compile.App do
     beams   = File.wildcard('#{path}/*.beam')
 
     target  = File.join(path, "#{app}.app")
-    sources = Mix.Project.sources ++ beams
+    sources = Mix.Project.config_files ++ beams
 
     if opts[:force] or Mix.Utils.stale?(sources, [target]) do
       best_guess = [

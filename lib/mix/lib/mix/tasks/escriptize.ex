@@ -58,10 +58,12 @@ defmodule Mix.Tasks.Escriptize do
     filename     = project[:escript_path] || atom_to_binary(script_name)
     compile_path = project[:compile_path] || "ebin"
     embed        = Keyword.get(project, :escript_embed_elixir, true)
-    beams        = File.wildcard('#{compile_path}/*.beam')
+    beams        = Mix.Project.config_files ++ File.wildcard('#{compile_path}/*.beam')
 
     cond do
-      beams == [] -> :noop
+      beams == [] ->
+        Mix.shell.error "Could not generate escript #{filename}, no beam files available"
+        :noop
       force or Mix.Utils.stale?(beams, [filename]) ->
         files = gen_main(script_name, project[:escript_main_module])
         files = files ++ get_files(compile_path)
@@ -93,7 +95,9 @@ defmodule Mix.Tasks.Escriptize do
 
         set_perms(filename)
         Mix.shell.info "Generated escript #{filename}"
-      true -> :noop
+      true ->
+        Mix.shell.info "escript #{filename} is up to date"
+        :noop
     end
   end
 

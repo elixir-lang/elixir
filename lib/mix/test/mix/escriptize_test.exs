@@ -8,6 +8,9 @@ defmodule Mix.EscriptizeTest do
       output = mix "escriptize"
       assert output =~ %r/Generated escript escripttest/
       assert System.cmd("escript escripttest") == "TEST\n"
+
+      output = mix "escriptize"
+      assert output =~ %r/escript escripttest is up to date/
     end
   end
 
