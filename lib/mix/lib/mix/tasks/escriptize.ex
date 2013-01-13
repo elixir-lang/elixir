@@ -96,7 +96,6 @@ defmodule Mix.Tasks.Escriptize do
         set_perms(filename)
         Mix.shell.info "Generated escript #{filename}"
       true ->
-        Mix.shell.info "escript #{filename} is up to date"
         :noop
     end
   end

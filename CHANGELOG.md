@@ -13,6 +13,7 @@
   * [Kernel] Octal numbers can now be defined as `0777`
   * [Mix] Mix now starts the current application before run, iex, test and friends
   * [Mix] Mix now provides basic support for compiling `.erl` files
+  * [Mix] `mix escriptize` only generates escript if necessary and accept `--force` and `--no-compile` as options 
   * [String] Add `String.capitalize` and `String.slice`
 
 * bug fix
@@ -24,6 +25,7 @@
 * deprecations
   * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
   * [Kernel] The `/>` operator has been deprecated in favor of `|>`
+  * [Mix] `Mix.Project.sources` is deprecated in favor of `Mix.Project.config_files`
 
 # v0.7.2 (2012-12-04)
 

@@ -10,7 +10,7 @@ defmodule Mix.EscriptizeTest do
       assert System.cmd("escript escripttest") == "TEST\n"
 
       output = mix "escriptize"
-      assert output =~ %r/escript escripttest is up to date/
+      assert output == ""
     end
   end
 
