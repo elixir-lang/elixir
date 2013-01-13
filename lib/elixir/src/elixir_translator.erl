@@ -316,7 +316,7 @@ translate_each({ quote, GivenLine, [T] }, S) when is_list(T) ->
 translate_each({ quote, GivenLine, [_] }, S) ->
   syntax_error(GivenLine, S#elixir_scope.file, "invalid args for quote");
 
-translate_each({ 'alias!', Line, [Arg] }, S) ->
+translate_each({ 'alias!', _Line, [Arg] }, S) ->
   translate_each(Arg, S);
 
 translate_each({ 'var!', Line, [Arg] }, S) ->
