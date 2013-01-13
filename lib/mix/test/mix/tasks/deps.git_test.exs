@@ -121,6 +121,29 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.pop
   end
 
+  test "does not recompiles dependencies if nothing changed" do
+    Mix.Project.push GitApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+
+      # Sleep so touch picks up a time difference
+      :timer.sleep(1_000)
+
+      # Recompile the dependency
+      Mix.Tasks.Deps.Compile.run ["git_repo"]
+      refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+
+      Mix.Tasks.Deps.Compile.run ["git_repo"]
+      refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, A, B, C]
+    Mix.Project.pop
+  end
+
   test "all up to date dependencies" do
     Mix.Project.push GitApp
 

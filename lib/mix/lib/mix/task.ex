@@ -127,7 +127,6 @@ defmodule Mix.Task do
       module = get(task)
       Mix.Server.cast({ :add_task, task })
       module.run(args)
-      :ok
     end
   end
 

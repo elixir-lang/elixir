@@ -22,7 +22,7 @@ defmodule Mix.Deps.Converger do
   def all(rest, callback) do
     main   = Enum.reverse Mix.Deps.Project.all
     config = [ deps_path: File.expand_path(Mix.project[:deps_path]),
-               lockfile: File.expand_path(Mix.project[:lockfile]) ]
+               root_lockfile: File.expand_path(Mix.project[:lockfile]) ]
     all(main, [], [], main, config, callback, rest)
   end
 

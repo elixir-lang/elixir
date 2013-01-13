@@ -4,7 +4,7 @@ defmodule Mix.TaskTest do
   use MixTest.Case
 
   test :run do
-    assert Mix.Task.run("hello") == :ok
+    assert Mix.Task.run("hello") == "Hello, World!"
     assert Mix.Task.run("hello") == :noop
 
     assert_raise Mix.NoTaskError, "The task unknown could not be found", fn ->
@@ -22,9 +22,9 @@ defmodule Mix.TaskTest do
   end
 
   test :reenable do
-    assert Mix.Task.run("hello") == :ok
+    assert Mix.Task.run("hello") == "Hello, World!"
     Mix.Task.reenable("hello")
-    assert Mix.Task.run("hello") == :ok
+    assert Mix.Task.run("hello") == "Hello, World!"
   end
 
   test :get do
