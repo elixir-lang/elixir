@@ -130,8 +130,8 @@ unescape_chars(<<Char, Rest/binary>>, Map, Octals, Hex, Acc) ->
 unescape_chars(<<>>, _Map, _Octals, _Hex, Acc) -> Acc.
 
 append_escaped(Rest, Map, List, Octal, Hex, Acc, Base) ->
-  Binary = unicode:characters_to_binary([list_to_integer(List, Base)]),
-  unescape_chars(Rest, Map, Octal, Hex, <<Acc/binary, Binary/binary>>).
+  Codepoint = list_to_integer(List, Base),
+  unescape_chars(Rest, Map, Octal, Hex, <<Acc/binary, Codepoint/utf8>>).
 
 % Unescape Helpers
 

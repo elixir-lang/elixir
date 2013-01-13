@@ -6,8 +6,11 @@ defmodule String.Unicode do
 
   def version, do: {6,2,0}
 
-  to_binary = fn(codepoint) ->
-    :unicode.characters_to_binary([binary_to_integer(codepoint, 16)])
+  to_binary = fn
+    "" ->
+      nil
+    codepoint ->
+      << binary_to_integer(codepoint, 16) :: utf8 >>
   end
 
   data_path = File.expand_path("../UnicodeData.txt", __FILE__)
@@ -21,7 +24,7 @@ defmodule String.Unicode do
 
     cond do
       upper != "" or lower != "" ->
-        { [{ to_binary.(codepoint), upper, lower } | cacc], wacc }
+        { [{ to_binary.(codepoint), to_binary.(upper), to_binary.(lower) } | cacc], wacc }
       bidi in ["B", "S", "WS"] ->
         { cacc, [to_binary.(codepoint) | wacc] }
       true ->
@@ -41,10 +44,9 @@ defmodule String.Unicode do
 
   # Downcase
 
-  lc { codepoint, _upper, lower } inlist codes, lower != "" do
-    lower = to_binary.(lower)
-    args  = quote do: [unquote(codepoint) <> t]
-    code  = quote do: unquote(lower) <> downcase(t)
+  lc { codepoint, _upper, lower } inlist codes, lower && lower != codepoint do
+    args      = quote do: [unquote(codepoint) <> t]
+    code      = quote do: unquote(lower) <> downcase(t)
     def :downcase, args, [], do: code
   end
 
@@ -58,10 +60,9 @@ defmodule String.Unicode do
 
   # Upcase
 
-  lc { codepoint, upper, _lower } inlist codes, upper != "" do
-    upper = to_binary.(upper)
-    args  = quote do: [unquote(codepoint) <> t]
-    code  = quote do: unquote(upper) <> upcase(t)
+  lc { codepoint, upper, _lower } inlist codes, upper && upper != codepoint do
+    args      = quote do: [unquote(codepoint) <> t]
+    code      = quote do: unquote(upper) <> upcase(t)
     def :upcase, args, [], do: code
   end
 
