@@ -9,27 +9,34 @@ defmodule Mix.Tasks.Deps.Update do
   By default, updates all dependencies. A list of deps can
   be given to update specific ones. Recompiles the given
   projects after updating.
+
+  ## Command line options
+
+  * `--no-compile` skip compilation of dependencies
   """
 
   import Mix.Deps, only: [all: 2, available?: 1, by_name!: 1, format_dep: 1]
 
-  def run([]) do
-    finalize_update all(init, deps_updater(&1, &2))
-  end
-
   def run(args) do
-    deps = Enum.map by_name!(args), check_unavailable!(&1)
-    { _, acc } = Enum.map_reduce deps, init, deps_updater(&1, &2)
-    finalize_update acc
+    { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean])
+
+    if rest != [] do
+      deps = Enum.map by_name!(rest), check_unavailable!(&1)
+      { _, acc } = Enum.map_reduce deps, init, deps_updater(&1, &2)
+    else
+      acc = all(init, deps_updater(&1, &2))
+    end
+
+    finalize_update acc, opts[:no_compile]
   end
 
   defp init do
     { [], Mix.Deps.Lock.read }
   end
 
-  defp finalize_update({ apps, lock }) do
+  defp finalize_update({ apps, lock }, no_compile) do
     Mix.Deps.Lock.write(lock)
-    Mix.Task.run "deps.compile", apps
+    unless no_compile, do: Mix.Task.run "deps.compile", apps
   end
 
   defp deps_updater(dep, { acc, lock }) do
