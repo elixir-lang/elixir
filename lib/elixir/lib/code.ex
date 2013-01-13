@@ -64,14 +64,23 @@ defmodule Code do
 
   * `:file` - the file to be considered in the evaluation
   * `:line` - the line the script starts
+  * `:delegate_locals_to` - delegate local calls to the given module,
+    the default is to not delegate
+
+  Besides, the following scope values can be configured:
+
   * `:aliases` - a list of tuples with the alias and its target
   * `:requires` - a list of modules required
   * `:functions` - a list of tuples where the first element is a module
     and the second a list of imported function names and arity
   * `:macros` - a list of tuples where the first element is a module
     and the second a list of imported macro names and arity
-  * `:delegate_locals_to` - delegate local calls to the given module,
-    the default is to not delegate
+
+  Notice that setting any ov the values above overrides Elixir default
+  values. For example, setting `:requires` to `[]`, will no longer
+  automatically required the `Kernel` module, in the same way setting
+  `:macros` will no longer auto-import `Kernel` macros as `if`, `case`,
+  etc.
 
   ## Examples
 
