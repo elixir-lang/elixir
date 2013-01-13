@@ -9,8 +9,11 @@ defmodule String.Unicode do
   to_binary = fn
     "" ->
       nil
-    codepoint ->
-      << binary_to_integer(codepoint, 16) :: utf8 >>
+    codepoints ->
+      codepoints = :binary.split(codepoints, " ", [:global])
+      Enum.reduce codepoints, "", fn(codepoint, acc) ->
+        acc <> << binary_to_integer(codepoint, 16) :: utf8 >>
+      end
   end
 
   data_path = File.expand_path("../UnicodeData.txt", __FILE__)
@@ -32,6 +35,14 @@ defmodule String.Unicode do
     end
   end
 
+  special_path = File.expand_path("../SpecialCasing.txt", __FILE__)
+
+  codes = Enum.reduce File.iterator!(special_path), codes, fn(line, acc) ->
+    [ codepoint, lower, _title, upper, _comment ] = :binary.split(line, "; ", [:global])
+    key = to_binary.(codepoint)
+    :lists.keystore(key, 1, acc, { key, to_binary.(upper), to_binary.(lower) })
+  end
+
   seqs_path = File.expand_path("../NamedSequences.txt", __FILE__)
 
   seqs = Enum.map File.iterator!(seqs_path), fn(line) ->
@@ -45,8 +56,8 @@ defmodule String.Unicode do
   # Downcase
 
   lc { codepoint, _upper, lower } inlist codes, lower && lower != codepoint do
-    args      = quote do: [unquote(codepoint) <> t]
-    code      = quote do: unquote(lower) <> downcase(t)
+    args = quote do: [unquote(codepoint) <> t]
+    code = quote do: unquote(lower) <> downcase(t)
     def :downcase, args, [], do: code
   end
 
@@ -61,8 +72,8 @@ defmodule String.Unicode do
   # Upcase
 
   lc { codepoint, upper, _lower } inlist codes, upper && upper != codepoint do
-    args      = quote do: [unquote(codepoint) <> t]
-    code      = quote do: unquote(upper) <> upcase(t)
+    args = quote do: [unquote(codepoint) <> t]
+    code = quote do: unquote(upper) <> upcase(t)
     def :upcase, args, [], do: code
   end
 
