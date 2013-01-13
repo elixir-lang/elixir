@@ -7,6 +7,14 @@ defmodule Mix.Tasks.Escriptize do
   @moduledoc %B"""
   Generates an escript for the project.
 
+  ## Command line options
+
+  * `--force` forces compilation regardless of mod times
+
+  * `--no-compile` skips compilation to .beam
+
+  ## Configuration
+
   The following options can be specified in your mix.exs file:
 
   * `escript_name` - the name of the generated escript
@@ -36,49 +44,57 @@ defmodule Mix.Tasks.Escriptize do
 
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args)
+    { opts, _ } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
+
     unless opts[:no_compile] do
       Mix.Task.run :compile, args
     end
-    escriptize(Mix.project)
+
+    escriptize(Mix.project, !!opts[:force])
   end
 
-  defp escriptize(project) do
+  defp escriptize(project, force) do
     script_name  = project[:escript_name] || project[:app]
     filename     = project[:escript_path] || atom_to_binary(script_name)
     compile_path = project[:compile_path] || "ebin"
     embed        = Keyword.get(project, :escript_embed_elixir, true)
+    beams        = File.wildcard('#{compile_path}/*.beam')
 
-    files = gen_main(script_name, project[:escript_main_module])
-    files = files ++ get_files(compile_path)
+    cond do
+      beams == [] -> :noop
+      force or Mix.Utils.stale?(beams, [filename]) ->
+        files = gen_main(script_name, project[:escript_main_module])
+        files = files ++ get_files(compile_path)
 
-    if embed do
-      extra_apps = project[:escript_embed_extra_apps] || []
-      files = Enum.reduce [:elixir|extra_apps], files, fn(app, acc) ->
-        app_files(app) ++ acc
-      end
+        if embed do
+          extra_apps = project[:escript_embed_extra_apps] || []
+          files = Enum.reduce [:elixir|extra_apps], files, fn(app, acc) ->
+            app_files(app) ++ acc
+          end
+        end
+
+        files = Enum.reduce Mix.Deps.all || [], files, fn(dep, acc) ->
+          dep_files(dep.app) ++ acc
+        end
+
+        case :zip.create 'mem', files, [:memory] do
+          { :ok, { 'mem', zip } } ->
+            shebang  = project[:escript_shebang]  || "#! /usr/bin/env escript\n"
+            comment  = project[:escript_comment]  || "%%\n"
+            emu_args = project[:escript_emu_args] || "%%!\n"
+
+            script = iolist_to_binary([shebang, comment, emu_args, zip])
+
+            File.mkdir_p!(File.dirname(filename))
+            File.write!(filename, script)
+          {:error, error} ->
+            Mix.shell.error "Error creating escript: #{error}"
+        end
+
+        set_perms(filename)
+        Mix.shell.info "Generated escript #{filename}"
+      true -> :noop
     end
-
-    files = Enum.reduce Mix.Deps.all || [], files, fn(dep, acc) ->
-      dep_files(dep.app) ++ acc
-    end
-
-    case :zip.create 'mem', files, [:memory] do
-      { :ok, { 'mem', zip } } ->
-        shebang  = project[:escript_shebang]  || "#! /usr/bin/env escript\n"
-        comment  = project[:escript_comment]  || "%%\n"
-        emu_args = project[:escript_emu_args] || "%%!\n"
-
-        script = iolist_to_binary([shebang, comment, emu_args, zip])
-
-        File.mkdir_p!(File.dirname(filename))
-        File.write!(filename, script)
-      {:error, error} ->
-        Mix.shell.error "Error creating escript: #{error}"
-    end
-
-    set_perms(filename)
-    Mix.shell.info "Generated escript #{filename}"
   end
 
   defp set_perms(filename) do
