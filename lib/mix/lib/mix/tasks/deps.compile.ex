@@ -86,7 +86,7 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp do_mix(Mix.Dep[opts: opts, project: project], config) do
+  defp do_mix(Mix.Dep[app: app, opts: opts, project: project], config) do
     env       = opts[:env] || :prod
     old_env   = Mix.env
     old_tasks = Mix.Task.clear
@@ -96,6 +96,11 @@ defmodule Mix.Tasks.Deps.Compile do
       Mix.Project.post_config(config)
       Mix.Project.push project
       Mix.Task.run "compile", ["--no-deps"]
+    catch
+      kind, reason ->
+        Mix.shell.error "could not compile dependency #{app}, mix compile failed. " <>
+          "In case you want to recompile this dependency, please run: mix deps.compile #{app}"
+        :erlang.raise(kind, reason, System.stacktrace)
     after
       Mix.env(old_env)
       Mix.Project.pop
@@ -106,7 +111,8 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_command(app, command, extra // "") do
     if System.find_executable(command) do
       if Mix.shell.cmd("#{command} #{extra}") != 0 do
-        raise Mix.Error, message: "could not compile dependency #{app}, #{command} command failed"
+        raise Mix.Error, message: "could not compile dependency #{app}, #{command} command failed. " <>
+          "In case you want to recompile this dependency, please run: mix deps.compile #{app}"
       end
     else
       raise Mix.Error, message: "could not find executable #{command} to compile " <>
@@ -120,7 +126,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_compile(app, command) when is_binary(command) do
     if Mix.shell.cmd(command) != 0 do
-      raise Mix.Error, message: "could not compile dependency #{app}, custom #{command} command failed"
+      raise Mix.Error, message: "could not compile dependency #{app}, custom #{command} command failed." <>
+        "In case you want to recompile this dependency, please run: mix deps.compile #{app}"
     end
   end
 end
