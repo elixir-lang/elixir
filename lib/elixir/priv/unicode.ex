@@ -136,25 +136,13 @@ defmodule String.Unicode do
 
   # Codepoints
 
-  def next_codepoint(<<194, char, rest :: binary>>)
-    when char in 161..191,
-    do: { <<194, char>>, rest }
-
-  def next_codepoint(<<first, char, rest :: binary>>)
-    when first in 195..223 and char in 128..191,
-    do: { <<first, char>>, rest }
-
-  def next_codepoint(<<first, second, char, rest :: binary>>)
-    when first == 224 and second in 160..191 and char in 128..191,
-    do: { <<first, second, char>>, rest }
-
-  def next_codepoint(<<first, second, char, rest :: binary>>)
-    when first in 225..239 and second in 128..191 and char in 128..191,
-    do: { <<first, second, char>>, rest }
-
-  def next_codepoint(<<other, rest :: binary>>), do: { <<other>>, rest }
-
-  def next_codepoint(<<>>), do: :no_codepoint
+  def next_codepoint(string) do
+    case string do
+      <<>> -> :no_codepoint
+      <<cp :: utf8, rest :: binary>> -> {<<cp :: utf8>>, rest}
+      _ -> :invalid_codepoint
+    end
+  end
 
   def codepoints(binary) when is_binary(binary) do
     do_codepoints(next_codepoint(binary))

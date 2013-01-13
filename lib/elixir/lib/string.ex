@@ -379,7 +379,7 @@ defmodule String do
       String.next_codepoint("josé") #=> { "j", "osé" }
 
   """
-  @spec next_codepoint(t) :: codepoint | :no_codepoint
+  @spec next_codepoint(t) :: {codepoint, t} | :no_codepoint | :invalid_codepoint
   defdelegate next_codepoint(string), to: String.Unicode
 
   @doc """
