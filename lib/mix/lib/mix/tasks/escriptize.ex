@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Escriptize do
       Mix.Task.run :compile, args
     end
 
-    escriptize(Mix.project, !!opts[:force])
+    escriptize(Mix.project, opts[:force])
   end
 
   defp escriptize(project, force) do
