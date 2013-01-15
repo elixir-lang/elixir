@@ -32,6 +32,6 @@ defmodule HashDictTest do
   end
 
   test :smoke_large_range_test do
-    smoke_test(200)
+    smoke_test(1200)
   end
 end
