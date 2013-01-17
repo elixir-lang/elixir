@@ -1,4 +1,6 @@
 defmodule HashDict do
+  @behaviour Dict
+
   # A dictionary (key-value) implementation based on dynamic hashing.
   #
   # This implementation is based on Erlang's dict implementation which
@@ -105,21 +107,18 @@ defmodule HashDict do
   @doc """
   Gets a value from the dict.
   """
-  def get(dict, key, default // nil)
-
-  def get(ordered(bucket: bucket), key, default) when is_list(bucket) do
-    bucket_get(bucket, key, default)
+  def get(dict, key, default // nil) do
+    case dict_get(dict, key) do
+      { ^key, value } -> value
+      false -> default
+    end
   end
 
-  def get(bucketed(buckets: buckets), key, default) do
-    pos = bucket_hash(key)
-    bucket_get(elem(buckets, pos), key, default)
-  end
-
-  def get(segmented(segments: segments) = dict, key, default) do
-    slot   = bucket_slot(dict, key)
-    bucket = segments_get(segments, slot)
-    bucket_get(bucket, key, default)
+  @doc """
+  Checks if the dict has the given key.
+  """
+  def has_key?(dict, key) do
+    match? { ^key, _ }, dict_get(dict, key)
   end
 
   @doc """
@@ -157,15 +156,68 @@ defmodule HashDict do
     elem(dict, 1)
   end
 
-  ## Bucket helpers
-
-  # Gets a value from the bucket
-  defp bucket_get(bucket, key, default) do
-    case :lists.keyfind(key, 1, bucket) do
-      { ^key, value } -> value
-      false -> default
-    end
+  @doc """
+  Returns an empty dict.
+  """
+  def empty(_) do
+    ordered()
   end
+
+  @doc """
+  Converts the dict to a list.
+  """
+  def to_list(ordered(bucket: bucket)) when is_list(bucket) do
+    bucket
+  end
+
+  def to_list(dict) do
+    dict_fold(dict, [], [&1|&2])
+  end
+
+  @doc """
+  Get all keys in the dict.
+  """
+  def keys(dict) do
+    dict_fold(dict, [], fn { k, _ }, acc -> [k|acc] end)
+  end
+
+  @doc """
+  Get all values in the dict.
+  """
+  def values(dict) do
+    dict_fold(dict, [], fn { _, v }, acc -> [v|acc] end)
+  end
+
+  ## Dict-wide functions
+
+  defp dict_get(ordered(bucket: bucket), key) when is_list(bucket) do
+    :lists.keyfind(key, 1, bucket)
+  end
+
+  defp dict_get(bucketed(buckets: buckets), key) do
+    pos = bucket_hash(key)
+    :lists.keyfind(key, 1, elem(buckets, pos))
+  end
+
+  defp dict_get(segmented(segments: segments) = dict, key) do
+    slot   = bucket_slot(dict, key)
+    bucket = segments_get(segments, slot)
+    :lists.keyfind(key, 1, bucket)
+  end
+
+  defp dict_fold(ordered(bucket: bucket), acc, fun) when is_list(bucket) do
+    bucket_fold(bucket, acc, fun)
+  end
+
+  defp dict_fold(bucketed(buckets: segment), acc, fun) do
+    segment_fold(segment, acc, fun, @segment_size)
+  end
+
+  defp dict_fold(segmented(segments: segments), acc, fun) do
+    segments_fold(segments, acc, fun, tuple_size(segments))
+  end
+
+  ## Bucket helpers
 
   # Puts a value in the bucket
   defp bucket_put([{k,_}=e|bucket], key, value) when key < k do
@@ -208,6 +260,11 @@ defmodule HashDict do
 
   defp bucket_delete([], _key) do
     { [], 0 }
+  end
+
+  # Folds the bucket
+  defp bucket_fold(bucket, acc, fun) do
+    :lists.foldl(fun, acc, bucket)
   end
 
   # Merges two buckets
@@ -263,6 +320,25 @@ defmodule HashDict do
 
     segment = setelem(segment, bucket_pos, bucket)
     { setelem(segments, segment_pos, segment), res }
+  end
+
+  # Folds a segment and a segments tuple
+  defp segment_fold(segment, acc, fun, count) when count >= 1 do
+    acc = bucket_fold(:erlang.element(count, segment), acc, fun)
+    segment_fold(segment, acc, fun, count - 1)
+  end
+
+  defp segment_fold(_segment, acc, _fun, 0) do
+    acc
+  end
+
+  defp segments_fold(segments, acc, fun, count) when count >= 1 do
+    acc = segment_fold(:erlang.element(count, segments), acc, fun, @segment_size)
+    segments_fold(segments, acc, fun, count - 1)
+  end
+
+  defp segments_fold(_segment, acc, _fun, 0) do
+    acc
   end
 
   defp bucket_slot(segmented(maxn: maxn, n: n, bso: bso), key) do
@@ -385,4 +461,13 @@ defmodule HashDict do
     {b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12,b13,b14,b15,b16}
   defp contract_segments(segs), do:
     list_to_tuple(:lists.sublist(tuple_to_list(segs), 1, div tuple_size(segs), 2))
+end
+
+defimpl Enum.Iterator, for: HashDict do
+  def iterator(dict), do: HashDict.to_list(dict)
+  def count(dict),    do: HashDict.size(dict)
+end
+
+defimpl Access, for: HashDict do
+  def access(dict, key), do: HashDict.get(dict, key, nil)
 end
