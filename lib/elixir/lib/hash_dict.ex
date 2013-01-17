@@ -1,4 +1,13 @@
 defmodule HashDict do
+  @moduledoc """
+  A key-value store.
+
+  The `HashDict` is meant to work well with both small and
+  large set of keys and it is an implementation of the `Dict`
+  behaviour. For more information about the functions and
+  their APIs, please consult the `Dict` module.
+  """
+
   @behaviour Dict
 
   # A dictionary (key-value) implementation based on dynamic hashing.
@@ -9,9 +18,9 @@ defmodule HashDict do
   #
   # However, compared to dict, it provides many enhancements:
   #
-  # 1. Buckets are ordered sets, this gives us faster access and
-  #    modification times
-  # 2. It uses erlang:phash2 to calculate the hash
+  # 1. HashDict buckets are ordered sets, this gives us faster access
+  #    and modification times
+  # 2. It uses phash2 to calculate the hash (instead of phash)
   # 3. The dictionary first starts with a single bucket, instead of
   #    a segment with 16 buckets. This allow us to skip hashing
   #    altogher for small dictionaries, providing faster operations
@@ -19,15 +28,15 @@ defmodule HashDict do
   # 4. Once we reach 12 elements, the bucket is promoted to a segment
   #    (i.e. a set of buckets). At this point, it works as a simple
   #    hash table with fixed size of 32
-  # 5. Once the segment starts having high density (i.e. 32 * 5 items),
+  # 5. Once the segment starts having high density (~32 * 5 items),
   #    we promote it to a full Dict, similar to one that we would find
   #    in Erlang. However, since this promotion happens just late, we
   #    can afford larger segments which results in faster times
   #
   # Notice that promotions are not expensive because a dict is actually
   # made of segments, and each segment is made of buckets. Starting with
-  # a bucket simply allows us to remove considerably overhead if we had
-  # to manage all those structures from scratch.
+  # a bucket simply allows us to remove considerably overhead compared to
+  # managing all those structures from scratch.
 
   # Constants values used to rehash the dictionary
   @expand_load 5
@@ -60,57 +69,102 @@ defmodule HashDict do
     segments: nil
 
   @doc """
-  Creates an instance of HashDict.
+  Creates a new empty dict.
   """
   def new do
     ordered()
   end
 
   @doc """
-  Puts the given key and value in the dict.
+  Creates a new dict from the given enumerable.
+
+  ## Examples
+
+      HashDict.new [{:b,1},{:a,2}]
+      #=> HashDict[a: 1, b: 2]
+
   """
-  def put(dict, key, value)
-
-  def put(ordered(size: size, bucket: bucket) = dict, key, value) when is_list(bucket) do
-    case bucket_put(bucket, key, value) do
-      { new_bucket, 0 } -> ordered(dict, bucket: new_bucket)
-      { new_bucket, 1 } ->
-        if size == @ordered_threshold do
-          buckets = rehash_bucket(new_bucket, @segment_template)
-          bucketed(size: size + 1, buckets: buckets)
-        else
-          ordered(dict, size: size + 1, bucket: new_bucket)
-        end
+  def new(pairs) do
+    Enum.reduce pairs, ordered(), fn { k, v }, dict ->
+      put(dict, k, v)
     end
-  end
-
-  def put(bucketed(buckets: buckets, size: size) = dict, key, value) do
-    pos = bucket_hash(key)
-    case bucket_put(elem(buckets, pos), key, value) do
-      { new_bucket, 0 } ->
-        bucketed(dict, buckets: setelem(buckets, pos, new_bucket))
-      { new_bucket, 1 } ->
-        if size == @bucketed_threshold do
-          maybe_expand segmented(size: size), { setelem(buckets, pos, new_bucket) }, 1
-        else
-          bucketed(dict, size: size + 1, buckets: setelem(buckets, pos, new_bucket))
-        end
-    end
-  end
-
-  def put(segmented(segments: segments) = dict, key, value) do
-    slot = bucket_slot(dict, key)
-    { segments, count } = segments_update segments, slot, bucket_put(&1, key, value)
-    maybe_expand dict, segments, count
   end
 
   @doc """
-  Gets a value from the dict.
+  Creates a new dict from the enumerable with the
+  help of the transformation function.
+
+  ## Examples
+
+      HashDict.new ["a", "b"], fn x -> {x, x} end
+      #=> HashDict[{ "a", "a" }, { "b", "b" }]
+
+  """
+  def new(list, transform) when is_function(transform) do
+    Enum.reduce list, new(), fn i, dict ->
+      { k, v } = transform.(i)
+      put(dict, k, v)
+    end
+  end
+
+  @doc """
+  Puts the given key and value in the dict.
+  """
+  def put(dict, key, value) do
+    { dict, _ } = dict_put(dict, key, { :put, value })
+    dict
+  end
+
+  @doc """
+  Puts the given value under key in the dictionary
+  only if one does not exist yet.
+  """
+  def put_new(dict, key, value) do
+    update(dict, key, value, fn(v) -> v end)
+  end
+
+  @doc """
+  Updates the key in the dictionary according
+  to the given function. Raises if the key does
+  not exist in the dictionary.
+  """
+  def update(dict, key, fun) when is_function(fun, 1) do
+    case dict_put(dict, key, { :update, nil, fun }) do
+      { dict, 0 } ->
+        dict
+      { dict, 1 } ->
+        :erlang.error(:badarg, [dict, key, fun])
+    end
+  end
+
+  @doc """
+  Updates the key in the dictionary according
+  to the given function. Adds initial value if
+  the key does not exist in the dicionary.
+  """
+  def update(dict, key, initial, fun) when is_function(fun, 1) do
+    { dict, _ } = dict_put(dict, key, { :update, initial, fun })
+    dict
+  end
+
+  @doc """
+  Gets the value under key from the dict.
   """
   def get(dict, key, default // nil) do
     case dict_get(dict, key) do
       { ^key, value } -> value
       false -> default
+    end
+  end
+
+  @doc """
+  Gets the value under key from the dict,
+  raises KeyError if such key does not exist.
+  """
+  def get!(dict, key) when is_tuple(dict) do
+    case dict_get(dict, key) do
+      { ^key, value } -> value
+      false -> raise(KeyError, key: key)
     end
   end
 
@@ -127,7 +181,7 @@ defmodule HashDict do
   def delete(ordered(bucket: bucket, size: size) = dict, key) when is_list(bucket) do
     case bucket_delete(bucket, key) do
       { _, 0 } ->
-        ordered
+        dict
       { new_bucket, -1 } ->
         ordered(dict, size: size - 1, bucket: new_bucket)
     end
@@ -137,7 +191,7 @@ defmodule HashDict do
     pos = bucket_hash(key)
     case bucket_delete(elem(buckets, pos), key) do
       { _, 0 } ->
-        bucketed
+        dict
       { new_bucket, -1 } ->
         bucketed(dict, size: size - 1, buckets: setelem(buckets, pos, new_bucket))
     end
@@ -188,6 +242,29 @@ defmodule HashDict do
     dict_fold(dict, [], fn { _, v }, acc -> [v|acc] end)
   end
 
+  @doc """
+  Merges two dictionaries.
+  """
+  def merge(dict1, dict2, callback // fn(_k, _v1, v2) -> v2 end)
+
+  def merge(dict1, dict2, callback) when is_record(dict1, HashDict) and is_record(dict2, HashDict) and elem(dict1, 1) < elem(dict2, 1) do
+    dict_fold dict1, dict2, fn { k, v1 }, acc ->
+      update(acc, k, v1, callback.(k, v1, &1))
+    end
+  end
+
+  def merge(dict1, dict2, callback) when is_record(dict1, HashDict) and is_record(dict2, HashDict) do
+    dict_fold dict2, dict1, fn { k, v2 }, acc ->
+      update(acc, k, v2, callback.(k, &1, v2))
+    end
+  end
+
+  def merge(dict1, dict2, callback) when is_record(dict1, HashDict) do
+    Enum.reduce dict2, dict1, fn { k, v2 }, acc ->
+      update(acc, k, v2, callback.(k, &1, v2))
+    end
+  end
+
   ## Dict-wide functions
 
   defp dict_get(ordered(bucket: bucket), key) when is_list(bucket) do
@@ -217,11 +294,49 @@ defmodule HashDict do
     segments_fold(segments, acc, fun, tuple_size(segments))
   end
 
+  defp dict_put(ordered(size: size, bucket: bucket) = dict, key, value) when is_list(bucket) do
+    case bucket_put(bucket, key, value) do
+      { new_bucket, 0 } ->
+        { ordered(dict, bucket: new_bucket), 0 }
+      { new_bucket, 1 } ->
+        if size == @ordered_threshold do
+          buckets = rehash_bucket(new_bucket, @segment_template)
+          { bucketed(size: size + 1, buckets: buckets), 1 }
+        else
+          { ordered(dict, size: size + 1, bucket: new_bucket), 1 }
+        end
+    end
+  end
+
+  defp dict_put(bucketed(buckets: buckets, size: size) = dict, key, value) do
+    pos = bucket_hash(key)
+    case bucket_put(elem(buckets, pos), key, value) do
+      { new_bucket, 0 } ->
+        { bucketed(dict, buckets: setelem(buckets, pos, new_bucket)), 0 }
+      { new_bucket, 1 } ->
+        if size == @bucketed_threshold do
+          { maybe_expand(segmented(size: size), { setelem(buckets, pos, new_bucket) }, 1), 1 }
+        else
+          { bucketed(dict, size: size + 1, buckets: setelem(buckets, pos, new_bucket)), 1 }
+        end
+    end
+  end
+
+  defp dict_put(segmented(segments: segments) = dict, key, value) do
+    slot = bucket_slot(dict, key)
+    { segments, count } = segments_update segments, slot, bucket_put(&1, key, value)
+    { maybe_expand(dict, segments, count), count }
+  end
+
   ## Bucket helpers
 
   # Puts a value in the bucket
-  defp bucket_put([{k,_}=e|bucket], key, value) when key < k do
+  defp bucket_put([{k,_}=e|bucket], key, { :put, value }) when key < k do
     { [{key,value},e|bucket], 1 }
+  end
+
+  defp bucket_put([{k,_}=e|bucket], key, { :update, initial, _fun }) when key < k do
+    { [{key,initial},e|bucket], 1 }
   end
 
   defp bucket_put([{k,_}=e|bucket], key, value) when key > k do
@@ -229,12 +344,20 @@ defmodule HashDict do
     { [e|rest], count }
   end
 
-  defp bucket_put([{_,_}|bucket], key, value) do
+  defp bucket_put([{_,_}|bucket], key, { :put, value }) do
     { [{key,value}|bucket], 0 }
   end
 
-  defp bucket_put([], key, value) do
+  defp bucket_put([{_,value}|bucket], key, { :update, _initial, fun }) do
+    { [{key,fun.(value)}|bucket], 0 }
+  end
+
+  defp bucket_put([], key, { :put, value }) do
     { [{key,value}], 1 }
+  end
+
+  defp bucket_put([], key, { :update, initial, _fun }) do
+    { [{key,initial}], 1 }
   end
 
   # Puts a value in the bucket without returning
@@ -470,4 +593,12 @@ end
 
 defimpl Access, for: HashDict do
   def access(dict, key), do: HashDict.get(dict, key, nil)
+end
+
+defimpl Binary.Inspect, for: HashDict do
+  import Kernel, except: [inspect: 2]
+
+  def inspect(dict, opts) do
+    "HashDict" <> Binary.Inspect.inspect(Dict.to_list(dict), opts)
+  end
 end

@@ -36,6 +36,7 @@ defmodule Dict do
   defcallback empty(t) :: t
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
+  defcallback get!(t, key) :: value | no_return
   defcallback has_key?(t, key) :: boolean
   defcallback keys(t) :: list(key)
   defcallback merge(t, t) :: t
@@ -44,7 +45,7 @@ defmodule Dict do
   defcallback put_new(t, key, value) :: t
   defcallback size(t) :: non_neg_integer()
   defcallback to_list(t) :: list()
-  defcallback update(t, key, (value -> value)) :: t
+  defcallback update(t, key, (value -> value)) :: t | no_return
   defcallback update(t, key, value, (value -> value)) :: t
   defcallback values(t) :: list(value)
 

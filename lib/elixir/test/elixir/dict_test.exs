@@ -139,20 +139,6 @@ defmodule DictTest.Common do
   end
 end
 
-defmodule DictTest do
-  use DictTest.Common
-
-  test :new do
-    assert :dict.new == elem(new_dict([]), 1)
-  end
-
-  defp empty_dict, do: HashDict.new
-
-  defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
-  defp new_dict(list), do: HashDict.new list
-  defp new_dict(list, transform), do: HashDict.new list, transform
-end
-
 defmodule OrdDictTest do
   use DictTest.Common
 

@@ -36,7 +36,7 @@ defmodule Binary.Dict do
   end
 
   @doc false
-  def get(dict(data), key, default) do
+  def get(dict(data), key, default // nil) do
     case :orddict.find(to_binary(key), data) do
       {:ok, value} -> value
       :error       -> default
@@ -67,11 +67,12 @@ defmodule Binary.Dict do
   end
 
   @doc false
+  def merge(d1, d2, fun // fn(_k, _v1, v2) -> v2 end)
+
   def merge(dict(d1), dict(d2), fun) do
     dict(:orddict.merge fun, d1, d2)
   end
 
-  @doc false
   def merge(dict(_) = d1, d2, fun) do
     merge(d1, new(d2), fun)
   end

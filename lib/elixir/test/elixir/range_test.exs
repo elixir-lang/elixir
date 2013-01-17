@@ -30,6 +30,19 @@ defmodule RangeTest do
     refute is_range(not_range)
   end
 
+  test :enum do
+    assert Enum.map(1..3, &1 * 2) == [2,4,6]
+    assert Enum.map(3..1, &1 * 2) == [6,4,2]
+
+    assert Enum.count(1..3) == 3
+    assert Enum.count(3..1) == 3
+  end
+
+  test :inspect do
+    assert inspect(1..3) == "1..3"
+    assert inspect(3..1) == "3..1"
+  end
+
   defp not_range do
     1
   end
