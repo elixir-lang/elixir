@@ -33,7 +33,7 @@ defmodule String do
   depends on the locale, it is not taken into account by this
   module.
 
-  In general, the functions in this module relies on the Unicode
+  In general, the functions in this module rely on the Unicode
   Standard, but does not contain any of the locale specific
   behaviour.
 
@@ -44,7 +44,7 @@ defmodule String do
 
       String.codepoints "josé" #=> ["j", "o", "s", "é"]
 
-  There are a couple ways to retrieve a character integer
+  There are a couple of ways to retrieve a character integer
   codepoint. One may use the `?` special macro:
 
       ?j #=> 106
@@ -70,7 +70,7 @@ defmodule String do
 
   This module relies on this behaviour to ignore such invalid
   characters. For example, `String.length` is going to return
-  a correct result even if an invalid codepoint is fed into.
+  a correct result even if an invalid codepoint is fed into it.
 
   In the future, bang version of such functions may be
   provided which will rather raise on such invalid data.
