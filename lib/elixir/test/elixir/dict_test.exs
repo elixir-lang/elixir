@@ -145,13 +145,6 @@ defmodule DictTest.Common do
   end
 end
 
-defmodule HashDictTest do
-  use DictTest.Common, HashDict
-
-  test :new do
-    assert :dict.new == elem(new_dict([]), 1)
-  end
-end
 
 defmodule OrdDictTest do
   use DictTest.Common, OrdDict
