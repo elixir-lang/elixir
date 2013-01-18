@@ -83,6 +83,10 @@ defmodule Exception do
     "#{format_file_line(file_line, cwd)}#{format_module_fun_arity(module, fun, arity)}"
   end
 
+  def format_entry({fun, arity, file_line}, cwd) do
+    "#{format_file_line(file_line, cwd)}#{format_fun_arity(fun, arity)}"
+  end
+
   @doc """
   Formats the stacktrace.
 
@@ -112,6 +116,10 @@ defmodule Exception do
 
   @doc """
   Prints the current stacktrace to standard output.
+
+  A stacktrace must be given as argument. If not, this function
+  calculates the current stacktrace and formats it. As consequence,
+  the value of `System.stacktrace` is changed.
   """
   def print_stacktrace(trace // nil) do
     IO.write format_stacktrace(trace)
@@ -127,15 +135,27 @@ defmodule Exception do
     end
   end
 
+  # Format fun and arity
+  @doc false
+  def format_fun_arity(fun, arity) do
+    if is_list(arity) do
+      inspected = lc x inlist arity, do: inspect(x)
+      "#{inspect fun}(#{Enum.join(inspected, ", ")})"
+    else
+      "#{inspect fun}/#{arity}"
+    end
+  end
+
   # Receives a module, fun and arity and returns a string
   # representing such invocation. Arity may also be a list
   # of arguments. It follows the same syntax as in stacktraces.
   @doc false
   def format_module_fun_arity(module, fun, arity) do
-    case inspect(fun) do
-      << ?:, fun :: binary >> -> :ok
-      fun -> :ok
-    end
+    fun =
+      case inspect(fun) do
+        << ?:, erl :: binary >> -> erl
+        elixir -> elixir
+      end
 
     if is_list(arity) do
       inspected = lc x inlist arity, do: inspect(x)

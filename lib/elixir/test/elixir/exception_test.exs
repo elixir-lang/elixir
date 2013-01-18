@@ -31,6 +31,11 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_entry({Foo, :bar, 1, [file: 'file.ex']}) == "file.ex: Foo.bar/1"
   end
 
+  test :format_entry_with_fun do
+    assert Exception.format_entry({fn(x) -> x end, [1], []}) =~ %r"\(1\)"
+    assert Exception.format_entry({fn(x, y) -> { x, y } end, 2, []}) =~ %r"/2"
+  end
+
   test :format_module_function_arity do
     assert Exception.format_module_fun_arity Foo, nil, 1 == "Foo.nil/1"
     assert Exception.format_module_fun_arity Foo, :bar, 1 == "Foo.bar/1"
