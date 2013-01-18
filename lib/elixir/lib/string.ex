@@ -2,7 +2,7 @@ defmodule String do
   @moduledoc %B"""
   A string in Elixir is a UTF-8 encoded binary.
 
-  The functions in this module act accordingly to the
+  The functions in this module act according to the
   Unicode Standard, version 6.2.0. A codepoint is a
   Unicode Character, which may be represented by one
   or more bytes. For example, the character "é" is
@@ -17,7 +17,7 @@ defmodule String do
   graphemes, which are multiple characters that may be
   "perceived as a single character" by readers. For example,
   the same "é" character written above could be represented
-  by the letter "e" followed by the accent "́":
+  by the letter "e" followed by the accent ́:
 
       string = "\x{0065}\x{0301}"
       #=> "é"
@@ -30,11 +30,12 @@ defmodule String do
   Graphemes can also be two characters that are interpreted
   as one by some languages. For example, some languages may
   consider "ch" as a grapheme. However, since this information
-  depends on the locale, it is not taken account by this module.
+  depends on the locale, it is not taken into account by this
+  module.
 
-  In general, while all functions in this module takes into
-  consideration the Unicode Standard, it does not contain any
-  of the locale specific behaviour.
+  In general, the functions in this module relies on the Unicode
+  Standard, but does not contain any of the locale specific
+  behaviour.
 
   ## Integer codepoints
 

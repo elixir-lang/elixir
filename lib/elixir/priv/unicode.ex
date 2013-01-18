@@ -153,7 +153,7 @@ defmodule String.Unicode do
   end
 
   def next_codepoint(<< cp, rest :: binary >>) do
-    { cp, rest }
+    { <<cp>>, rest }
   end
 
   def next_codepoint(<<>>) do

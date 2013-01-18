@@ -9,6 +9,12 @@ defmodule StringTest do
     assert ?\351 == 233
   end
 
+  test :next_codepoint do
+    assert String.next_codepoint("ésoj") == { "é", "soj" }
+    assert String.next_codepoint(<<255>>) == { <<255>>, "" }
+    assert String.next_codepoint("") == :no_codepoint
+  end
+
   test :split do
     assert String.split("foo bar") == ["foo", "bar"]
     assert String.split("a,b,c", ",") == ["a", "b", "c"]
