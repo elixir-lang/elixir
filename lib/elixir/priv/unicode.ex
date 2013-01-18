@@ -148,12 +148,16 @@ defmodule String.Unicode do
 
   # Codepoints
 
-  def next_codepoint(string) do
-    case string do
-      <<>> -> :no_codepoint
-      <<cp :: utf8, rest :: binary>> -> {<<cp :: utf8>>, rest}
-      _ -> :invalid_codepoint
-    end
+  def next_codepoint(<< cp :: utf8, rest :: binary >>) do
+    { <<cp :: utf8>>, rest }
+  end
+
+  def next_codepoint(<< cp, rest :: binary >>) do
+    { cp, rest }
+  end
+
+  def next_codepoint(<<>>) do
+    :no_codepoint
   end
 
   def codepoints(binary) when is_binary(binary) do

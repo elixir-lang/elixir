@@ -1,17 +1,78 @@
 defmodule String do
-  @moduledoc """
-  A string in Elixir is a utf-8 binary. This module
-  contains function to work with utf-8 data, its
-  codepoints and graphemes.
+  @moduledoc %B"""
+  A string in Elixir is a UTF-8 encoded binary.
 
-  Notice that graphemes is a superset of UTF-8 codepoints
-  which also contains named sequences as defined per
-  http://www.unicode.org/reports/tr34/. In short, graphemes
-  also contain multiple characters that are "perceived as
-  a single character" by readers.
+  The functions in this module act accordingly to the
+  Unicode Standard, version 6.2.0. A codepoint is a
+  Unicode Character, which may be represented by one
+  or more bytes. For example, the character "é" is
+  represented with two bytes:
 
-  For working with raw binaries, use Erlang's :binary
-  module.
+      string = "é"
+      #=> "é"
+      size(string)
+      #=> 2
+
+  Furthermore, this module also presents the concept of
+  graphemes, which are multiple characters that may be
+  "perceived as a single character" by readers. For example,
+  the same "é" character written above could be represented
+  by the letter "e" followed by the accent "́":
+
+      string = "\x{0065}\x{0301}"
+      #=> "é"
+      size(string)
+      #=> 3
+
+  Although the example above is made of two characters, it is
+  perceived by users as one.
+
+  Graphemes can also be two characters that are interpreted
+  as one by some languages. For example, some languages may
+  consider "ch" as a grapheme. However, since this information
+  depends on the locale, it is not taken account by this module.
+
+  In general, while all functions in this module takes into
+  consideration the Unicode Standard, it does not contain any
+  of the locale specific behaviour.
+
+  ## Integer codepoints
+
+  Although codepoints could be represented as integers, this
+  module represents all codepoints as binaries. For example:
+
+      String.codepoints "josé" #=> ["j", "o", "s", "é"]
+
+  There are a couple ways to retrieve a character integer
+  codepoint. One may use the `?` special macro:
+
+      ?j #=> 106
+      ?é #=> 233
+
+  Or also via pattern matching:
+
+      << eacute :: utf8 >> = "é"
+      eacute #=> 233
+
+  As we have seen above, codepoints can be inserted into
+  a string by their hexadecimal code:
+
+      string = "jos\x{0065}\x{0301}"
+      #=> "josé"
+
+  ## Self-synchronization
+
+  The UTF-8 encoding is self-synchronizing. This means that
+  if malformed data (i.e., data that is not possible according
+  to the definition of the encoding) is encountered, only one
+  codepoint needs to be rejected.
+
+  This module relies on this behaviour to ignore such invalid
+  characters. For example, `String.length` is going to return
+  a correct result even if an invalid codepoint is fed into.
+
+  In the future, bang version of such functions may be
+  provided which will rather raise on such invalid data.
   """
 
   @type t :: binary
@@ -29,64 +90,11 @@ defmodule String do
   """
   @spec printable?(t) :: boolean
 
-  # Allow basic ascii chars
-  def printable?(<<c, t :: binary>>) when c in ?\s..?~ do
-    printable?(t)
-  end
-
-  # From 16#A0 to 16#BF
-  def printable?(<<194, c, t :: binary>>) when c in 160..191 do
-    printable?(t)
-  end
-
-  # From 16#C0 to 16#7FF
-  def printable?(<<m, o1, t :: binary>>) when m in 195..223 and o1 in 128..191 do
-    printable?(t)
-  end
-
-  # From 16#800 to 16#CFFF
-  def printable?(<<m, o1, o2, t :: binary>>) when m in 224..236 and
-      o1 >= 128 and o1 < 192 and o2 >= 128 and o2 < 192 do
-    printable?(t)
-  end
-
-  # From 16#D000 to 16#D7FF
-  def printable?(<<237, o1, o2, t :: binary>>) when
-      o1 >= 128 and o1 < 160 and o2 >= 128 and o2 < 192 do
-    printable?(t)
-  end
-
-  # Reject 16#FFFF and 16#FFFE
-  def printable?(<<239, 191, o>>) when o == 190 or o == 191 do
-    false
-  end
-
-  # From 16#E000 to 16#EFFF
-  def printable?(<<m, o1, o2, t :: binary>>) when (m == 238 or m == 239) and
-      o1 in 128..191 and o2 in 128..191 do
-    printable?(t)
-  end
-
-  # From 16#F000 to 16#FFFD
-  def printable?(<<239, o1, o2, t :: binary>>) when
-      o1 in 128..191 and o2 in 128..191 do
-    printable?(t)
-  end
-
-  # From 16#10000 to 16#3FFFF
-  def printable?(<<240, o1, o2, o3, t :: binary>>) when
-      o1 in 144..191 and o2 in 128..191 and o3 in 128..191 do
-    printable?(t)
-  end
-
-  # Reject 16#110000 onwards
-  def printable?(<<244, o1, _, _, _ :: binary>>) when o1 >= 144 do
-    false
-  end
-
-  # From 16#4000 to 16#10FFFF
-  def printable?(<<m, o1, o2, o3, t :: binary>>) when m in 241..244 and
-      o1 in 128..191 and o2 in 128..191 and o3 in 128..191 do
+  def printable?(<< h :: utf8, t :: binary >>)
+      when h in ?\040..?\176
+      when h in 0xA0..0xD7FF
+      when h in 0xE000..0xFFFD
+      when h in 0x10000..0x10FFFF do
     printable?(t)
   end
 
@@ -107,9 +115,10 @@ defmodule String do
   returning a list of these sub string. The pattern can
   be a string, a list of strings or a regular expression.
 
-  The string is split into two parts by default, unless
-  `global` option is true. If a pattern is not specified,
-  the string is split on whitespace occurrences.
+  The string is split into as many parts as possible by
+  default, unless the `global` option is set to false.
+  If a pattern is not specified, the string is split on
+  whitespace occurrences.
 
   It returns a list with the original string if the pattern
   can't be matched.
@@ -145,10 +154,6 @@ defmodule String do
   @doc """
   Convert all characters on the given string to upcase.
 
-  This function relies on the simple uppercase mapping
-  available in Unicode 6.2.0, check http://unicode.org/reports/tr44/
-  for more information.
-
   ## Examples
 
       String.upcase("abcd") #=> "ABCD"
@@ -161,10 +166,6 @@ defmodule String do
 
   @doc """
   Convert all characters on the given string to downcase.
-
-  This function relies on the simple lowercase mapping
-  available in Unicode 6.2.0, check http://unicode.org/reports/tr44/
-  for more information.
 
   ## Examples
 
@@ -191,11 +192,10 @@ defmodule String do
 
   def capitalize(string) when is_binary(string) do
     case next_grapheme(string) do
-      {char, rest} -> upcase(char) <> downcase(rest)
+      { char, rest } -> upcase(char) <> downcase(rest)
       :no_grapheme -> ""
     end
   end
-
 
   @doc """
   Returns a string where trailing whitespace characters
@@ -307,7 +307,7 @@ defmodule String do
   @doc """
   Returns a new binary based on `subject` by replacing the parts
   matching `pattern` for `replacement`. By default, it replaces
-  all entries, except if `global: false` is given as option.
+  all entries, except if the `global` option is set to false.
 
   If the replaced part must be used in `replacement`, then the
   position or the positions where it is to be inserted must be
@@ -372,17 +372,22 @@ defmodule String do
 
   The result is a tuple with the codepoint and the
   remaining of the string or `:no_codepoint` in case
-  the String reached its end.
+  the string reached its end.
+
+  As the other functions in the String module, this
+  function does not check for the validity of the codepoint.
+  That said, if an invalid codepoint is found, it will
+  be returned by this function.
 
   ## Examples
 
       String.next_codepoint("josé") #=> { "j", "osé" }
 
   """
-  @spec next_codepoint(t) :: {codepoint, t} | :no_codepoint | :invalid_codepoint
+  @spec next_codepoint(t) :: {codepoint, t} | :no_codepoint
   defdelegate next_codepoint(string), to: String.Unicode
 
-  @doc """
+  @doc %B"""
   Checks whether `str` is a valid codepoint.
 
   Note that the empty string is considered invalid, as are
@@ -401,7 +406,7 @@ defmodule String do
   def valid_codepoint?(_), do: false
 
   @doc """
-  Returns unicode graphemes in the string
+  Returns unicode graphemes in the string.
 
   ## Examples
 

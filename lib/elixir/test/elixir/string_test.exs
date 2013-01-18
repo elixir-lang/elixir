@@ -3,6 +3,12 @@ Code.require_file "../test_helper.exs", __FILE__
 defmodule StringTest do
   use ExUnit.Case, async: true
 
+  test :integer_codepoints do
+    assert ?é == 233
+    assert ?\xE9 == 233
+    assert ?\351 == 233
+  end
+
   test :split do
     assert String.split("foo bar") == ["foo", "bar"]
     assert String.split("a,b,c", ",") == ["a", "b", "c"]
