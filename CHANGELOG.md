@@ -3,17 +3,18 @@
   * [Binary] Support `\a` escape character in binaries
   * [CLI] Support `--app` option to start an application and its dependencies
   * [Dict] Support `put_new` in `Dict` and `Keyword`
+  * [Dict] Add `List.Dict` and a faster `HashDict` implementation
   * [ExUnit] ExUnit now supports multiple runs in the same process
-  * [ExUnit] Failures in ExUnit now show a tailored stacktrace
+  * [ExUnit] Failures in ExUnit now shows a tailored stacktrace
   * [ExUnit] Introduce `ExUnit.ExpectationError` to provide better error messages
   * [Kernel] Introduce `Application.Behaviour` to define application module callbacks
   * [Kernel] Introduce `Supervisor.Behaviour` to define supervisors callbacks
-  * [Kernel] More optimisations were added to Record handling
+  * [Kernel] More optimizations were added to Record handling
   * [Kernel] `?\x` and `?\` are now supported ways to retrieve a codepoint
   * [Kernel] Octal numbers can now be defined as `0777`
   * [Mix] Mix now starts the current application before run, iex, test and friends
   * [Mix] Mix now provides basic support for compiling `.erl` files
-  * [Mix] `mix escriptize` only generates escript if necessary and accept `--force` and `--no-compile` as options 
+  * [Mix] `mix escriptize` only generates escript if necessary and accept `--force` and `--no-compile` as options
   * [String] Add `String.capitalize` and `String.slice`
 
 * bug fix
@@ -23,9 +24,10 @@
   * [Typespec] Support `...` inside typespec's lists
 
 * deprecations
-  * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
+  * [Dict] Deprecate `Binary.Dict` and `OrdDict` in favor of `HashDict` and `List.Dict`
   * [Kernel] The `/>` operator has been deprecated in favor of `|>`
   * [Mix] `Mix.Project.sources` is deprecated in favor of `Mix.Project.config_files`
+  * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
 
 # v0.7.2 (2012-12-04)
 

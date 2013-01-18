@@ -138,41 +138,21 @@ defmodule DictTest.Common do
 
       defp empty_dict, do: unquote(module).new
 
-      defp new_dict(list // [{"first_key", 1}, {"second_key", 2}])
-      defp new_dict(list), do: unquote(module).new list
-      defp new_dict(list, transform), do: unquote(module).new list, transform
+      defp new_dict(list // [{"first_key", 1}, {"second_key", 2}]) do
+        unquote(module).new list
+      end
+
+      defp new_dict(list, transform) do
+        unquote(module).new list, transform
+      end
     end
   end
 end
 
-
-defmodule OrdDictTest do
-  use DictTest.Common, OrdDict
-
-  test :new do
-    assert [] == elem(new_dict([]), 1)
-  end
+defmodule Dict.HashDictTest do
+  use DictTest.Common, HashDict
 end
 
-defmodule Binary.DictTest do
-  use DictTest.Common, Binary.Dict
-
-  test :new do
-    assert [] == elem(new_dict([]), 1)
-  end
-
-  test :merge_mixed do
-    merged = Dict.merge(new_dict, new_dict([first_key: 13]))
-    assert merged[:first_key]  == 13
-    assert merged["first_key"] == 13
-  end
-end
-
-defmodule List.DictTest do
+defmodule Dict.ListTest do
   use DictTest.Common, List.Dict
-
-  test :merge_mixed do
-    merged = Dict.merge(new_dict, HashDict.new [first_key: 13])
-    assert merged[:first_key] == 13
-  end
 end

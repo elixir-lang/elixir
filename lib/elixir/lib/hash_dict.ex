@@ -124,7 +124,7 @@ defmodule HashDict do
       { dict, 0 } ->
         dict
       { dict, 1 } ->
-        :erlang.error(:badarg, [dict, key, fun])
+        raise KeyError, key: key
     end
   end
 
@@ -240,7 +240,7 @@ defmodule HashDict do
   @doc """
   Merges two dictionaries.
   """
-  def merge(dict1, dict2, callback // fn(_k, _v1, v2) -> v2 end)
+  def merge(dict, enum, callback // fn(_k, _v1, v2) -> v2 end)
 
   def merge(dict1, dict2, callback) when is_record(dict1, HashDict) and is_record(dict2, HashDict) and elem(dict1, 1) < elem(dict2, 1) do
     dict_fold dict1, dict2, fn { k, v1 }, acc ->
@@ -489,6 +489,6 @@ defimpl Binary.Inspect, for: HashDict do
   import Kernel, except: [inspect: 2]
 
   def inspect(dict, opts) do
-    "HashDict" <> Binary.Inspect.inspect(Dict.to_list(dict), opts)
+    "HashDict" <> Binary.Inspect.inspect(HashDict.to_list(dict), opts)
   end
 end

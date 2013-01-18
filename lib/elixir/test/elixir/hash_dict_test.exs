@@ -65,7 +65,7 @@ defmodule HashDictTest do
     assert HashDict.get(dict, 1) == 2
     assert HashDict.size(dict) == 8
 
-    assert_raise ArgumentError, fn ->
+    assert_raise KeyError, fn ->
       HashDict.update(dict, 11, &1 * 2)
     end
 

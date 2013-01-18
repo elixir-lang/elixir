@@ -2,13 +2,13 @@ defmodule Dict do
   @moduledoc """
   This module specifies the Dict API expected to be
   implemented by different dictionaries. It also provides
-  functions that redirect to the underlying Dict based on
-  the tuple signature.
+  functions that redirect to the underlying Dict, allowing
+  a developer to work with different Dict implementations
+  using one API.
 
   To create a new dict, use the `new` functions defined
   by each dict type:
 
-      OrdDict.new [{:a, 1}, {:b, 2}]
       HashDict.new  #=> creates an empty HashDict
 
   For simplicity's sake, in the examples below everytime
@@ -18,6 +18,8 @@ defmodule Dict do
   it implies that the returned value is actually of the
   same dict type as the input one.
 
+  Keep in mind that all dicts are also required to
+  implement both `Access` and `Enum.Iterator` protocols.
   """
 
   use Behaviour
@@ -196,10 +198,8 @@ defmodule Dict do
   end
 
   @doc """
-  Merges two dicts into one. If the dicts have duplicated entries,
-  the one given as second argument wins. In case the second argument
-  is not of the same kind as the first one, it is converted to the
-  same kind before merging as long as it implements the `Enum` protocol.
+  Merges the given enum into the dict. In case one of the enum entries
+  alread exist in the dict, it is given higher preference.
 
   ## Examples
 
@@ -210,13 +210,14 @@ defmodule Dict do
 
   """
   @spec merge(t, t) :: t
-  def merge(dict1, dict2) do
-    merge(dict1, dict2, fn(_k, _v1, v2) -> v2 end)
+  def merge(dict, enum) do
+    merge(dict, enum, fn(_k, _v1, v2) -> v2 end)
   end
 
   @doc """
-  Merges two dicts into one. If the dicts have duplicated entries, the given
-  function is invoked to solve conflicts.
+  Merges the given enum into the dict. In case one of the enum entries
+  alread exist in the dict, the given function is invoked to solve
+  conflicts.
 
   ## Examples
 
@@ -229,8 +230,8 @@ defmodule Dict do
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(dict1, dict2, fun) do
-    target(dict1).merge(dict1, dict2, fun)
+  def merge(dict, enum, fun) do
+    target(dict).merge(dict, enum, fun)
   end
 
   @doc """

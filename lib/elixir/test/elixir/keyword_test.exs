@@ -23,7 +23,7 @@ defmodule KeywordTest do
 
   test :from_enum do
     list = [{:b,2},{:a,1},{:c,3}]
-    dict = OrdDict.new list
+    dict = HashDict.new list
     assert Keyword.from_enum(list) == [b: 2, a: 1, c: 3]
     assert Keyword.from_enum(dict) == [a: 1, b: 2, c: 3]
   end

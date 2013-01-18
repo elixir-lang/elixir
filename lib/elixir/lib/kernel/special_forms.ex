@@ -455,7 +455,7 @@ defmodule Kernel.SpecialForms do
   Consider the following example:
 
       defmodule Hygiene do
-        alias OrdDict, as: D
+        alias HashDict, as: D
 
         defmacro no_interference do
           quote do: D.new
@@ -463,7 +463,7 @@ defmodule Kernel.SpecialForms do
       end
 
       require Hygiene
-      Hygiene.no_interference #=> { OrdDict, [] }
+      Hygiene.no_interference #=> HashDict[]
 
   Notice that, even though the alias `D` is not available
   in the context the macro is expanded, the code above works
