@@ -1,5 +1,34 @@
+Code.require_file "../test_helper.exs", __FILE__
+
 defmodule PathTest do
   use ExUnit.Case, async: true
+
+  test :absname_with_binary do
+    assert Path.absname("/foo/bar") == "/foo/bar"
+    assert Path.absname("/foo/bar/") == "/foo/bar"
+    assert Path.absname("/foo/bar/../bar") == "/foo/bar/../bar"
+
+    assert Path.absname("bar", "/foo") == "/foo/bar"
+    assert Path.absname("bar/", "/foo") == "/foo/bar"
+    assert Path.absname("bar/.", "/foo") == "/foo/bar/."
+    assert Path.absname("bar/../bar", "/foo") == "/foo/bar/../bar"
+    assert Path.absname("bar/../bar", "foo") == "foo/bar/../bar"
+  end
+
+  test :absname_with_list do
+    assert Path.absname('/foo/bar') == '/foo/bar'
+    assert Path.absname('/foo/bar/') == '/foo/bar'
+    assert Path.absname('/foo/bar/.') == '/foo/bar/.'
+    assert Path.absname('/foo/bar/../bar') == '/foo/bar/../bar'
+  end
+
+  test :expand_path_with_user_home do
+    assert is_binary Path.expand("~")
+    assert is_binary Path.expand("~/foo")
+
+    assert is_list Path.expand('~')
+    assert is_list Path.expand('~/foo')
+  end
 
   test :expand_path_with_binary do
     assert Path.expand("/foo/bar") == "/foo/bar"
@@ -22,6 +51,24 @@ defmodule PathTest do
     assert Path.expand('/foo/bar/') == '/foo/bar'
     assert Path.expand('/foo/bar/.') == '/foo/bar'
     assert Path.expand('/foo/bar/../bar') == '/foo/bar'
+  end
+
+  test :relative_to_with_binary do
+    assert Path.relative_to("/usr/local/foo", "/usr/local") == "foo"
+    assert Path.relative_to("/usr/local/foo", "/") == "usr/local/foo"
+    assert Path.relative_to("/usr/local/foo", "/etc") == "/usr/local/foo"
+
+    assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
+    assert Path.relative_to("usr/local/foo", "etc") == "usr/local/foo"
+  end
+
+  test :relative_to_with_list do
+    assert Path.relative_to('/usr/local/foo', '/usr/local') == 'foo'
+    assert Path.relative_to('/usr/local/foo', '/') == 'usr/local/foo'
+    assert Path.relative_to('/usr/local/foo', '/etc') == '/usr/local/foo'
+
+    assert Path.relative_to("usr/local/foo", 'usr/local') == "foo"
+    assert Path.relative_to('usr/local/foo', "etc") == "usr/local/foo"
   end
 
   test :rootname_with_binary do

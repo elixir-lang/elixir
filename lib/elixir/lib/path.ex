@@ -1,4 +1,7 @@
 defmodule Path do
+  defexception NoHomeError,
+    message: "could not find the user home, please set the HOME environment variable"
+
   @doc """
   This module provides conveniences for manipulating or
   retrieving filesystem paths.
@@ -9,10 +12,56 @@ defmodule Path do
   The majority of the functions in this module do not
   interact with the file system, unless some few functions
   that needs to query the filesystem to retrieve paths
-  (like `Path.wildcard` and `Path.tmpdir`).
+  (like `Path.wildcard` and `Path.expand`).
   """
 
   alias :filename, as: FN
+
+  @doc """
+  Converts the given filename and returns an absolute name.
+  Differently from `Path.expand/1`, no attempt is made to
+  resolve `..`, `.` or `~`.
+
+  ## Unix examples
+
+      Path.absname("foo")
+      #=> "/usr/local/foo"
+
+      Path.absname("../x")
+      #=> "/usr/local/../x"
+
+  ## Windows
+
+      Path.absname("foo").
+      "D:/usr/local/foo"
+      Path.absname("../x").
+      "D:/usr/local/../x"
+
+  """
+  def absname(path) do
+    FN.absname(path, get_cwd(path))
+  end
+
+  @doc """
+  Converts the given filename and returns an absolute name
+  relative to the given location. If the path is already
+  an absolute path, the relative path is ignored.
+
+  Differently from `Path.expand/2`, no attempt is made to
+  resolve `..`, `.` or `~`.
+
+  ## Examples
+
+      Path.absname("foo", "bar")
+      #=> "bar/foo"
+
+      Path.absname("../x", "bar")
+      #=> "bar/../x"
+
+  """
+  def absname(path, relative_to) do
+    FN.absname(path, relative_to)
+  end
 
   @doc """
   Expands the path by returning its absolute name and expanding
@@ -40,6 +89,46 @@ defmodule Path do
   """
   def expand(path, relative_to) do
     normalize FN.absname(FN.absname(path, relative_to), get_cwd(path))
+  end
+
+  @doc """
+  Returns the given `path` relative to the given `from` path.
+
+  This function does not query the filesystem, so it assumes
+  no symlinks in between the paths.
+
+  In case a direct relative path cannot be found, it returns
+  the original path.
+
+  ## Examples
+
+      Path.relative_to("/usr/local/foo", "/usr/local") #=> "foo"
+      Path.relative_to("/usr/local/foo", "/") #=> "foo"
+      Path.relative_to("/usr/local/foo", "/etc") #=> "/usr/local/foo"
+
+  """
+  def relative_to(path, from) when is_list(path) and is_binary(from) do
+    relative_to(FN.split(list_to_binary(path)), FN.split(from), list_to_binary(path))
+  end
+
+  def relative_to(path, from) when is_binary(path) and is_list(from) do
+    relative_to(FN.split(path), FN.split(list_to_binary(from)), path)
+  end
+
+  def relative_to(path, from) do
+    relative_to(FN.split(path), FN.split(from), path)
+  end
+
+  defp relative_to([h|t1], [h|t2], original) do
+    relative_to(t1, t2, original)
+  end
+
+  defp relative_to(t1, [], _original) do
+    FN.join(t1)
+  end
+
+  defp relative_to(_, _, original) do
+    original
   end
 
   @doc """
@@ -233,25 +322,54 @@ defmodule Path do
 
   ## Helpers
 
+  defp get_home do
+    get_unix_home || get_windows_home || raise NoHomeError
+  end
+
+  defp get_unix_home do
+    System.get_env("HOME")
+  end
+
+  defp get_windows_home do
+    System.get_env("USERPROFILE") || (
+      hd = System.get_env("HOMEDRIVE")
+      hp = System.get_env("HOMEPATH")
+      hd && hp && hd <> hp
+    )
+  end
+
   defp get_cwd(path) when is_list(path), do: File.cwd! |> binary_to_list
   defp get_cwd(_), do: File.cwd!
 
-  # Normalize the given path by removing "..".
-  defp normalize(path), do: normalize(FN.split(path), [])
+  # Normalize the given path by expanding "..", "." and "~".
 
-  defp normalize([top|t], [_|acc]) when top in ["..", '..'] do
-    normalize t, acc
+  defp normalize(path), do: do_normalize(FN.split(path))
+
+  defp do_normalize(["~"|t]) do
+    do_normalize t, [get_home]
   end
 
-  defp normalize([top|t], acc) when top in [".", '.'] do
-    normalize t, acc
+  defp do_normalize(['~'|t]) do
+    do_normalize t, [get_home |> binary_to_list]
   end
 
-  defp normalize([h|t], acc) do
-    normalize t, [h|acc]
+  defp do_normalize(t) do
+    do_normalize t, []
   end
 
-  defp normalize([], acc) do
+  defp do_normalize([top|t], [_|acc]) when top in ["..", '..'] do
+    do_normalize t, acc
+  end
+
+  defp do_normalize([top|t], acc) when top in [".", '.'] do
+    do_normalize t, acc
+  end
+
+  defp do_normalize([h|t], acc) do
+    do_normalize t, [h|acc]
+  end
+
+  defp do_normalize([], acc) do
     join Enum.reverse(acc)
   end
 end
