@@ -4,13 +4,13 @@ Mix.shell(Mix.Shell.Process)
 ExUnit.start []
 System.put_env("EXUNIT_CONFIG", "none")
 
-target = File.expand_path("../fixtures/git_repo", __FILE__)
+target = Path.expand("../fixtures/git_repo", __FILE__)
 
 unless File.dir?(target) do
   IO.puts "Creating git repo for tests"
-  File.mkdir_p!(File.join(target, "lib"))
+  File.mkdir_p!(Path.join(target, "lib"))
 
-  File.write!(File.join(target, "mix.exs"), """)
+  File.write!(Path.join(target, "mix.exs"), """)
   defmodule GitRepo.Mix do
     use Mix.Project
 
@@ -28,7 +28,7 @@ unless File.dir?(target) do
     System.cmd("git commit -m \"ok\"")
   end
 
-  File.write!(File.join(target, "lib/git_repo.ex"), """)
+  File.write!(Path.join(target, "lib/git_repo.ex"), """)
   defmodule GitRepo do
     def hello do
       "World"
@@ -43,7 +43,7 @@ unless File.dir?(target) do
 end
 
 Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
-  File.mkdir_p! File.expand_path("../fixtures/deps_status/deps/#{dep}/.git", __FILE__)
+  File.mkdir_p! Path.expand("../fixtures/deps_status/deps/#{dep}/.git", __FILE__)
 end
 
 defmodule MixTest.Case do
@@ -70,27 +70,27 @@ defmodule MixTest.Case do
   end
 
   def mix_executable do
-    File.expand_path("../../../../bin/mix", __FILE__)
+    Path.expand("../../../../bin/mix", __FILE__)
   end
 
   def elixir_executable do
-    File.expand_path("../../../../bin/elixir", __FILE__)
+    Path.expand("../../../../bin/elixir", __FILE__)
   end
 
   def fixture_path do
-    File.expand_path("../fixtures", __FILE__)
+    Path.expand("../fixtures", __FILE__)
   end
 
   def fixture_path(extension) do
-    File.join fixture_path, extension
+    Path.join fixture_path, extension
   end
 
   def tmp_path do
-    File.expand_path("../../tmp", __FILE__)
+    Path.expand("../../tmp", __FILE__)
   end
 
   def tmp_path(extension) do
-    File.join tmp_path, extension
+    Path.join tmp_path, extension
   end
 
   def purge(modules) do
@@ -116,10 +116,10 @@ defmodule MixTest.Case do
   defmacro in_fixture(which, block) do
     module   = inspect __CALLER__.module
     function = atom_to_binary elem(__CALLER__.function, 0)
-    tmp      = File.join(module, function)
+    tmp      = Path.join(module, function)
 
     quote do
-      src  = File.join fixture_path(unquote(which)), "."
+      src  = Path.join fixture_path(unquote(which)), "."
       dest = tmp_path(unquote(tmp))
 
       File.rm_rf!(dest)

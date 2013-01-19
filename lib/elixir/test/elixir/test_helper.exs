@@ -3,19 +3,19 @@ ExUnit.start []
 
 defmodule PathHelpers do
   def fixture_path() do
-    File.expand_path("../fixtures", __FILE__)
+    Path.expand("../fixtures", __FILE__)
   end
 
   def tmp_path() do
-    File.expand_path("../../tmp", __FILE__)
+    Path.expand("../../tmp", __FILE__)
   end
 
   def fixture_path(extra) do
-    File.join(fixture_path, extra)
+    Path.join(fixture_path, extra)
   end
 
   def tmp_path(extra) do
-    File.join(tmp_path, extra)
+    Path.join(tmp_path, extra)
   end
 
   def elixir(args) do
@@ -27,7 +27,7 @@ defmodule PathHelpers do
   end
 
   def elixir_executable do
-    File.expand_path("../../../../../bin/elixir", __FILE__)
+    Path.expand("../../../../../bin/elixir", __FILE__)
   end
 
   def elixirc_executable do

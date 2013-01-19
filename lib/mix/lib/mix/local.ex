@@ -7,7 +7,7 @@ defmodule Mix.Local do
   The path for local tasks.
   """
   def tasks_path do
-    File.join Mix.Utils.user_home, ".mix/tasks"
+    Path.join Mix.Utils.user_home, ".mix/tasks"
   end
 
   @doc """
@@ -21,9 +21,9 @@ defmodule Mix.Local do
   Returns all tasks modules in .mix/tasks.
   """
   def all_tasks do
-    query   = File.join(tasks_path, "Elixir-Mix-Tasks-*.beam")
-    files   = File.wildcard(query)
-    modules = Enum.map files, &1 |> File.basename |> File.rootname(".beam") |> binary_to_atom
+    query   = Path.join(tasks_path, "Elixir-Mix-Tasks-*.beam")
+    files   = Path.wildcard(query)
+    modules = Enum.map files, &1 |> Path.basename |> Path.rootname(".beam") |> binary_to_atom
     Enum.filter(modules, fn(mod) ->
       match? { :module, _ }, Code.ensure_loaded(mod)
     end)

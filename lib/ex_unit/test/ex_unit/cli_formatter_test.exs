@@ -8,7 +8,7 @@ defmodule ExUnit.CLIFormatterTest do
   end
 
   defp elixir_path do
-    File.expand_path("../../../../../bin/elixir", __FILE__)
+    Path.expand("../../../../../bin/elixir", __FILE__)
   end
 
   test :print_stacktrace_when_raising_not_at_assertion do
@@ -44,7 +44,7 @@ defmodule ExUnit.CLIFormatterTest do
     """
 
     out_put = exec_test("failure_test.exs")
-    assert out_put =~ %r/at\ #{File.expand_path("failure_test.exs")}:6/
+    assert out_put =~ %r/at\ #{Path.expand("failure_test.exs")}:6/
   after
     File.rm("failure_test.exs")
   end

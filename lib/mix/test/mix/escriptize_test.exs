@@ -18,7 +18,7 @@ defmodule Mix.EscriptizeTest do
     in_fixture "escripttestwithpath", fn ->
       output = mix "escriptize"
       assert output =~ %r/Generated escript ebin(\/|\\)escripttestwithpath/
-      assert System.cmd("escript " <> File.join("ebin", "escripttestwithpath")) == "TEST_WITH_PATH\n"
+      assert System.cmd("escript " <> Path.join("ebin", "escripttestwithpath")) == "TEST_WITH_PATH\n"
     end
   end
 end

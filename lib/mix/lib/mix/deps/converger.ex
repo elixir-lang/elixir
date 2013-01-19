@@ -21,8 +21,8 @@ defmodule Mix.Deps.Converger do
   """
   def all(rest, callback) do
     main   = Enum.reverse Mix.Deps.Project.all
-    config = [ deps_path: File.expand_path(Mix.project[:deps_path]),
-               root_lockfile: File.expand_path(Mix.project[:lockfile]) ]
+    config = [ deps_path: Path.expand(Mix.project[:deps_path]),
+               root_lockfile: Path.expand(Mix.project[:lockfile]) ]
     all(main, [], [], main, config, callback, rest)
   end
 
@@ -112,7 +112,7 @@ defmodule Mix.Deps.Converger do
   end
 
   defp mixfile?(dep) do
-    File.regular?(File.join dep.opts[:dest], "mix.exs")
+    File.regular?(Path.join dep.opts[:dest], "mix.exs")
   end
 
   # The dependency contains a Mixfile, so let's

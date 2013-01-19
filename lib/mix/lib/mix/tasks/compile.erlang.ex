@@ -42,17 +42,17 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     erlc_options = Enum.map erlc_options, fn(opt) ->
       case opt do
-        { :i, dir } -> { :i, File.expand_path(dir) |> binary_to_list }
+        { :i, dir } -> { :i, Path.expand(dir) |> binary_to_list }
         _           -> opt
       end
     end
 
-    compile_path = compile_path |> File.expand_path |> binary_to_list
+    compile_path = compile_path |> Path.expand |> binary_to_list
     erlc_options = [{:outdir, compile_path}] ++ erlc_options
     File.mkdir_p!(compile_path)
 
     Enum.each files, fn(file) ->
-      file = File.rootname(file, ".erl") |> File.expand_path |> binary_to_list
+      file = Path.rootname(file, ".erl") |> Path.expand |> binary_to_list
 
       case :compile.file(file, erlc_options) do
         { :ok, _ } -> Mix.shell.info  "Compiled #{file}.erl"

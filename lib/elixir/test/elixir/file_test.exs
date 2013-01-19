@@ -8,18 +8,16 @@ defmodule FileTest do
   defmodule Cp do
     use ExUnit.Case
 
-    ##
-    ## cp_r/c is managed in setup/teardown because if it is stored in 
-    ## the repository, reltool can't build a release
-    ##
+    # cp_r/c is managed in setup/teardown because if it is stored in 
+    # the repository, reltool can't build a release
     def setup do
       src = fixture_path("cp_r")
-      :file.make_symlink 'certainly/invalid', File.join([src, "c"])
+      :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
     end
 
     def teardown do
       src = fixture_path("cp_r")
-      File.rm File.join([src, "c"])
+      File.rm Path.join([src, "c"])
     end
 
     test :cp_with_src_file_and_dest_file do
@@ -40,7 +38,7 @@ defmodule FileTest do
     test :cp_with_src_file_and_dest_dir do
       src   = fixture_path("file.txt")
       dest  = tmp_path("tmp")
-      final = File.join(dest, "file.txt")
+      final = Path.join(dest, "file.txt")
 
       File.mkdir(dest)
 
@@ -130,8 +128,6 @@ defmodule FileTest do
       end
     end
 
-    #####
-
     test :cp_r_with_src_file_and_dest_file do
       src  = fixture_path("file.txt")
       dest = tmp_path("sample.txt")
@@ -150,7 +146,7 @@ defmodule FileTest do
     test :cp_r_with_src_file_and_dest_dir do
       src   = fixture_path("file.txt")
       dest  = tmp_path("tmp")
-      final = File.join(dest, "file.txt")
+      final = Path.join(dest, "file.txt")
 
       File.mkdir(dest)
 
@@ -269,7 +265,7 @@ defmodule FileTest do
 
       try do
         File.mkdir(dest)
-        File.write!(File.join(dest, "a"), "hello")
+        File.write!(Path.join(dest, "a"), "hello")
         assert File.cp_r(src, dest) == { :error, :enotdir }
       after
         File.rm_rf dest
@@ -380,123 +376,6 @@ defmodule FileTest do
 
   end
 
-  defmodule Paths do
-    use ExUnit.Case, async: true
-
-    test :expand_path_with_binary do
-      assert File.expand_path("/foo/bar") == "/foo/bar"
-      assert File.expand_path("/foo/bar/") == "/foo/bar"
-      assert File.expand_path("/foo/bar/.") == "/foo/bar"
-      assert File.expand_path("/foo/bar/../bar") == "/foo/bar"
-
-      assert File.expand_path("bar", "/foo") == "/foo/bar"
-      assert File.expand_path("bar/", "/foo") == "/foo/bar"
-      assert File.expand_path("bar/.", "/foo") == "/foo/bar"
-      assert File.expand_path("bar/../bar", "/foo") == "/foo/bar"
-      assert File.expand_path("../bar/../bar", "/foo/../foo/../foo") == "/bar"
-
-      full = File.expand_path("foo/bar")
-      assert File.expand_path("bar/../bar", "foo") == full
-    end
-
-    test :expand_path_with_list do
-      assert File.expand_path('/foo/bar') == '/foo/bar'
-      assert File.expand_path('/foo/bar/') == '/foo/bar'
-      assert File.expand_path('/foo/bar/.') == '/foo/bar'
-      assert File.expand_path('/foo/bar/../bar') == '/foo/bar'
-    end
-
-    test :rootname_with_binary do
-      assert File.rootname("~/foo/bar.ex", ".ex") == "~/foo/bar"
-      assert File.rootname("~/foo/bar.exs", ".ex") == "~/foo/bar.exs"
-      assert File.rootname("~/foo/bar.old.ex", ".ex") == "~/foo/bar.old"
-    end
-
-    test :rootname_with_list do
-      assert File.rootname('~/foo/bar.ex', '.ex') == '~/foo/bar'
-      assert File.rootname('~/foo/bar.exs', '.ex') == '~/foo/bar.exs'
-      assert File.rootname('~/foo/bar.old.ex', '.ex') == '~/foo/bar.old'
-    end
-
-    test :extname_with_binary do
-      assert File.extname("foo.erl") == ".erl"
-      assert File.extname("~/foo/bar") == ""
-    end
-
-    test :extname_with_list do
-      assert File.extname('foo.erl') == '.erl'
-      assert File.extname('~/foo/bar') == ''
-    end
-
-    test :dirname_with_binary do
-      assert File.dirname("/foo/bar.ex") == "/foo"
-      assert File.dirname("~/foo/bar.ex") == "~/foo"
-      assert File.dirname("/foo/bar/baz/") == "/foo/bar/baz"
-    end
-
-    test :dirname_with_list do
-      assert File.dirname('/foo/bar.ex') == '/foo'
-      assert File.dirname('~/foo/bar.ex') == '~/foo'
-      assert File.dirname('/foo/bar/baz/') == '/foo/bar/baz'
-    end
-
-    test :basename_with_binary do
-      assert File.basename("foo") == "foo"
-      assert File.basename("/foo/bar") == "bar"
-      assert File.basename("/") == ""
-
-      assert File.basename("~/foo/bar.ex", ".ex") == "bar"
-      assert File.basename("~/foo/bar.exs", ".ex") == "bar.exs"
-      assert File.basename("~/for/bar.old.ex", ".ex") == "bar.old"
-    end
-
-    test :basename_with_list do
-      assert File.basename('foo') == 'foo'
-      assert File.basename('/foo/bar') == 'bar'
-      assert File.basename('/') == ''
-
-      assert File.basename('~/foo/bar.ex', '.ex') == 'bar'
-      assert File.basename('~/foo/bar.exs', '.ex') == 'bar.exs'
-      assert File.basename('~/for/bar.old.ex', '.ex') == 'bar.old'
-    end
-
-    test :join_with_binary do
-      assert File.join([""]) == ""
-      assert File.join(["foo"]) == "foo"
-      assert File.join(["/", "foo", "bar"]) == "/foo/bar"
-      assert File.join(["~", "foo", "bar"]) == "~/foo/bar"
-    end
-
-    test :join_with_list do
-      assert File.join(['']) == ''
-      assert File.join(['foo']) == 'foo'
-      assert File.join(['/', 'foo', 'bar']) == '/foo/bar'
-      assert File.join(['~', 'foo', 'bar']) == '~/foo/bar'
-    end
-
-    test :join_two_with_binary do
-      assert File.join("/foo", "bar") == "/foo/bar"
-      assert File.join("~", "foo") == "~/foo"
-    end
-
-    test :join_two_with_list do
-      assert File.join('/foo', 'bar') == '/foo/bar'
-      assert File.join('~', 'foo') == '~/foo'
-    end
-
-    test :split_with_binary do
-      assert File.split("") == ["/"]
-      assert File.split("foo") == ["foo"]
-      assert File.split("/foo/bar") == ["/", "foo", "bar"]
-    end
-
-    test :split_with_list do
-      assert File.split('') == ''
-      assert File.split('foo') == ['foo']
-      assert File.split('/foo/bar') == ['/', 'foo', 'bar']
-    end
-  end
-
   defmodule Queries do
     use ExUnit.Case
 
@@ -525,12 +404,12 @@ defmodule FileTest do
     end
 
     test :read_with_list do
-      assert { :ok, "FOO\n" } = File.read(File.expand_path('../fixtures/file.txt', __FILE__))
-      assert { :error, :enoent } = File.read(File.expand_path('../fixtures/missing.txt', __FILE__))
+      assert { :ok, "FOO\n" } = File.read(Path.expand('../fixtures/file.txt', __FILE__))
+      assert { :error, :enoent } = File.read(Path.expand('../fixtures/missing.txt', __FILE__))
     end
 
     test :read_with_utf8 do
-      assert { :ok, "Русский\n日\n" } = File.read(File.expand_path('../fixtures/utf8.txt', __FILE__))
+      assert { :ok, "Русский\n日\n" } = File.read(Path.expand('../fixtures/utf8.txt', __FILE__))
     end
 
     test :read! do
@@ -685,7 +564,7 @@ defmodule FileTest do
 
     test :mkdir_with_invalid_path do
       fixture = fixture_path("file.txt")
-      invalid = File.join fixture, "test"
+      invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
       assert File.mkdir(invalid) == { :error, :enotdir }
       refute File.exists?(invalid)
@@ -704,7 +583,7 @@ defmodule FileTest do
 
     test :mkdir_with_invalid_path! do
       fixture = fixture_path("file.txt")
-      invalid = File.join fixture, "test"
+      invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
       assert_raise File.Error, "could not make directory #{invalid}: not a directory", fn ->
         File.mkdir!(invalid)
@@ -724,7 +603,7 @@ defmodule FileTest do
 
     test :mkdir_p_with_nested_directory_and_binary do
       base    = tmp_path("tmp_test")
-      fixture = File.join(base, "test")
+      fixture = Path.join(base, "test")
       refute File.exists?(base)
 
       try do
@@ -738,7 +617,7 @@ defmodule FileTest do
 
     test :mkdir_p_with_nested_directory_and_list do
       base    = tmp_path("tmp_test") |> to_char_list
-      fixture = File.join(base, "test")
+      fixture = Path.join(base, "test")
       refute File.exists?(base)
 
       try do
@@ -752,7 +631,7 @@ defmodule FileTest do
 
     test :mkdir_p_with_nested_directory_and_existing_parent do
       base    = tmp_path("tmp_test")
-      fixture = File.join(base, "test")
+      fixture = Path.join(base, "test")
 
       File.mkdir(base)
 
@@ -767,7 +646,7 @@ defmodule FileTest do
 
     test :mkdir_p_with_invalid_path do
       assert File.exists?(fixture_path("file.txt"))
-      invalid = File.join fixture_path("file.txt"), "test/foo"
+      invalid = Path.join fixture_path("file.txt"), "test/foo"
       assert File.mkdir(invalid) == { :error, :enotdir }
       refute File.exists?(invalid)
     end
@@ -785,7 +664,7 @@ defmodule FileTest do
 
     test :mkdir_p_with_invalid_path! do
       fixture = fixture_path("file.txt")
-      invalid = File.join fixture, "test"
+      invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
       assert_raise File.Error, "could not make directory (with -p) #{invalid}: not a directory", fn ->
         File.mkdir_p!(invalid)
@@ -796,18 +675,16 @@ defmodule FileTest do
   defmodule Rm do
     use ExUnit.Case
 
-    ##
-    ## cp_r/c is managed in setup/teardown because if it is stored in 
-    ## the repository, reltool can't build a release
-    ##
+    # cp_r/c is managed in setup/teardown because if it is stored in 
+    # the repository, reltool can't build a release
     def setup do
       src = fixture_path("cp_r")
-      :file.make_symlink 'certainly/invalid', File.join([src, "c"])
+      :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
     end
 
     def teardown do
       src = fixture_path("cp_r")
-      File.rm File.join([src, "c"])
+      File.rm Path.join([src, "c"])
     end
 
     test :rm_file do

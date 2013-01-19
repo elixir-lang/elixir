@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Escriptize do
     filename     = project[:escript_path] || atom_to_binary(script_name)
     compile_path = project[:compile_path] || "ebin"
     embed        = Keyword.get(project, :escript_embed_elixir, true)
-    beams        = Mix.Project.config_files ++ File.wildcard('#{compile_path}/*.beam')
+    beams        = Mix.Project.config_files ++ Path.wildcard('#{compile_path}/*.beam')
 
     cond do
       beams == [] ->
@@ -87,7 +87,7 @@ defmodule Mix.Tasks.Escriptize do
 
             script = iolist_to_binary([shebang, comment, emu_args, zip])
 
-            File.mkdir_p!(File.dirname(filename))
+            File.mkdir_p!(Path.dirname(filename))
             File.write!(filename, script)
           {:error, error} ->
             Mix.shell.error "Error creating escript: #{error}"
@@ -106,19 +106,19 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp dep_files(dep) do
-    get_files(File.join(["deps", atom_to_binary(dep), "ebin"]))
+    get_files(Path.join(["deps", atom_to_binary(dep), "ebin"]))
   end
 
   defp app_files(app) do
     case :code.where_is_file('#{app}.app') do
       :non_existing -> raise Mix.Error, "Could not find application #{app}"
-      file -> get_files(File.dirname(file))
+      file -> get_files(Path.dirname(file))
     end
   end
 
   defp get_files(dir) do
-    lc f inlist File.wildcard("#{dir}/**/*") do
-      { binary_to_list(File.basename(f)), File.read!(f) }
+    lc f inlist Path.wildcard("#{dir}/**/*") do
+      { binary_to_list(Path.basename(f)), File.read!(f) }
     end
   end
 

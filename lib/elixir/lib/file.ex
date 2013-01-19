@@ -54,12 +54,11 @@ end
 
 defmodule File do
   @moduledoc """
-  This module contains function to manipulate files,
-  filenames and the filesystem. Many of the functions
-  that interact with the filesystem have their naming
-  based on its UNIX variants. For example, deleting a
-  file is done with `File.rm`. Getting its stats with
-  `File.stat`.
+  This module contains function to manipulate files.
+  Many of the functions that interact with the filesystem
+  have their naming based on its UNIX variants. For
+  example, deleting a file is done with `File.rm`.
+  Getting its stats with `File.stat`.
 
   In order to write and read files, one must use the
   functions in the IO module. By default, a file is
@@ -106,38 +105,88 @@ defmodule File do
   alias :filename, as: FN
   alias :filelib,  as: FL
 
-  @doc """
-  Expands the path by returning its absolute name and expanding
-  any `.` and `..` characters.
-
-  If the given `path` is a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.expand_path("/foo/bar/../bar") == "/foo/bar"
-
-  """
+  @doc false
   def expand_path(path) do
-    normalize FN.absname(path)
+    IO.puts "File.expand_path is deprecated, please use Path.expand instead"
+    Exception.print_stacktrace
+    Path.expand(path)
   end
 
-  @doc """
-  Expands the path to the relative location and expanding
-  any `.` and `..` characters. If the path is already an
-  absolute path, the relative location is ignored.
-
-  If the given `path` is a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.expand_path("foo/bar/../bar", "/baz") == "/baz/foo/bar"
-      File.expand_path("/foo/bar/../bar", "/baz") == "/foo/bar"
-
-  """
+  @doc false
   def expand_path(path, relative_to) do
-    normalize FN.absname(FN.absname(path, relative_to))
+    IO.puts "File.expand_path is deprecated, please use Path.expand instead"
+    Exception.print_stacktrace
+    Path.expand(path, relative_to)
+  end
+
+  @doc false
+  def basename(path) do
+    IO.puts "File.basename is deprecated, please use Path.basename instead"
+    Exception.print_stacktrace
+    FN.basename(path)
+  end
+
+  @doc false
+  def basename(path, extension) do
+    IO.puts "File.basename is deprecated, please use Path.basename instead"
+    Exception.print_stacktrace
+    FN.basename(path, extension)
+  end
+
+  @doc false
+  def dirname(path) do
+    IO.puts "Path.dirname is deprecated, please use Path.dirname instead"
+    Exception.print_stacktrace
+    FN.dirname(path)
+  end
+
+  @doc false
+  def extname(path) do
+    IO.puts "File.extname is deprecated, please use Path.extname instead"
+    Exception.print_stacktrace
+    FN.extension(path)
+  end
+
+  @doc false
+  def rootname(path) do
+    IO.puts "File.rootname is deprecated, please use Path.rootname instead"
+    Exception.print_stacktrace
+    FN.rootname(path)
+  end
+
+  @doc false
+  def rootname(path, extension) do
+    IO.puts "File.rootname is deprecated, please use Path.rootname instead"
+    Exception.print_stacktrace
+    FN.rootname(path, extension)
+  end
+
+  @doc false
+  def join(paths) do
+    IO.puts "File.join is deprecated, please use Path.join instead"
+    Exception.print_stacktrace
+    FN.join(paths)
+  end
+
+  @doc false
+  def join(left, right) do
+    IO.puts "File.join is deprecated, please use Path.join instead"
+    Exception.print_stacktrace
+    FN.join(left, right)
+  end
+
+  @doc false
+  def split(path) do
+    IO.puts "File.split is deprecated, please use Path.split instead"
+    Exception.print_stacktrace
+    FN.split(path)
+  end
+
+  @doc false
+  def wildcard(glob) do
+    IO.puts "Fild.wildcard is deprecated, please use Path.wildcard instead"
+    Exception.print_stacktrace
+    Path.wildcard(glob)
   end
 
   @doc """
@@ -181,159 +230,6 @@ defmodule File do
   end
 
   @doc """
-  Returns the last component of the path or the path
-  itself if it does not contain any directory separators.
-
-  If the given `path` is a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.basename("foo")
-      #=> "foo"
-
-      File.basename("foo/bar")
-      #=> "bar"
-
-      File.basename("/")
-      #=> ""
-
-  """
-  def basename(path) do
-    FN.basename(path)
-  end
-
-  @doc """
-  Returns the last component of `path` with the `extension`
-  stripped. This function should be used to remove a specific
-  extension which might, or might not, be there.
-
-  If the given `path` is a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.basename("~/foo/bar.ex", ".ex")
-      #=> "bar"
-      File.basename("~/foo/bar.exs", ".ex")
-      #=> "bar.exs"
-      File.basename("~/foo/bar.old.ex", ".ex")
-      #=> "bar.old"
-
-  """
-  def basename(path, extension) do
-    FN.basename(path, extension)
-  end
-
-  @doc """
-  Return the `directory` component of `path`.
-
-  If the given `path` is a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.dirname("/foo/bar.ex")
-      #=> "foo"
-
-  """
-  def dirname(path) do
-    FN.dirname(path)
-  end
-
-  @doc """
-  Return the `extension` of the last component of `path`.
-
-  If the given `path` is a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.extname("foo.erl")
-      #=> ".erl"
-      File.extname("~/foo/bar")
-      #=> ""
-
-  """
-  def extname(path) do
-    FN.extension(path)
-  end
-
-  @doc """
-  Returns the `path` with the `extension` stripped.
-
-  If the given `path` is a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.rootname("/foo/bar")
-      #=> "/foo/bar"
-      File.rootname("/foo/bar.ex")
-      #=> "/foo/bar"
-
-  """
-  def rootname(path) do
-    FN.rootname(path)
-  end
-
-  @doc """
-  Returns the `path` with the `extension` stripped. This function should be used to
-  remove a specific extension which might, or might not, be there.
-
-  If the given `path` is a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.rootname("/foo/bar.erl", ".erl")
-      #=> "/foo/bar"
-      File.rootname("/foo/bar.erl", ".ex")
-      #=> "/foo/bar.erl"
-
-  """
-  def rootname(path, extension) do
-    FN.rootname(path, extension)
-  end
-
-  @doc """
-  Returns a string with one or more paths components joint by the path separator.
-  This function should be used to convert a list of strings in a path.
-
-  If the given `paths` are a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.join(["~", "foo"])
-      #=> "~/foo"
-      File.join(["foo"])
-      #=> "foo"
-      File.join(["/", "foo", "bar"])
-      #=> "/foo/bar"
-
-  """
-  def join(paths) do
-    FN.join(paths)
-  end
-
-  @doc """
-  Join two paths.
-
-  If the given paths are a char list, returns a char list.
-  Otherwise returns a binary.
-
-  ## Examples
-
-      File.join("foo", "bar")
-      #=> "foo/bar"
-
-  """
-  def join(left, right) do
-    FN.join(left, right)
-  end
-
-  @doc """
   Tries to create the directory `path`. Missing parent directories are not created.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
@@ -372,7 +268,7 @@ defmodule File do
   * :enotdir - A component of `path` is not a directory.
   """
   def mkdir_p(path) do
-    FL.ensure_dir(join(path, "."))
+    FL.ensure_dir(FN.join(path, "."))
   end
 
   @doc """
@@ -417,66 +313,6 @@ defmodule File do
       { :error, reason } ->
         raise File.Error, reason: reason, action: "read file", path: to_binary(path)
     end
-  end
-
-  @doc """
-  Returns a list with the path splitted by the path separator.
-  If an empty string is given, then it returns the root path.
-
-  ## Examples
-
-       File.split("")
-       #=> ["/"]
-       File.split("foo")
-       #=> ["foo"]
-       File.split("/foo/bar")
-       #=> ["/", "foo", "bar"]
-
-  """
-  def split(path) do
-    FN.split(path)
-  end
-
-  @doc """
-  Traverses files and directories according to the given `glob` expression.
-
-  The wildcard string looks like an ordinary filename, except that certain
-  "wildcard characters" are interpreted in a special way. The following
-  characters are special:
-
-  * `?` - Matches one character.
-  * `*` - Matches any number of characters up to the end of
-          the filename, the next dot, or the next slash.
-  * `**` - Two adjacent <c>*</c>'s used as a single pattern will
-           match all files and zero or more directories and subdirectories.
-  * `[char1,char2,...]` - Matches any of the characters listed. Two characters
-                          separated by a hyphen will match a range of characters.
-  * `{item1,item2,...}` - Matches one of the alternatives.
-
-  Other characters represent themselves. Only filenames that have exactly
-  the same character in the same position will match. Note that matching
-  is case-sensitive; i.e. "a" will not match "A".
-
-  ## Examples
-
-  Imagine you have a directory called `projects` with three Elixir projects
-  inside of it: `elixir`, `exdoc` and `dynamo`. You can find all `.beam` files
-  inside their ebin directories all projects as follows:
-
-      File.wildcard("projects/*/ebin/**/*.beam")
-
-  If you want to search for both `.beam` and `.app` files, you could do:
-
-      File.wildcard("projects/*/ebin/**/*.{beam,app}")
-
-  """
-  def wildcard(glob) when is_binary(glob) do
-    paths = :elixir_glob.wildcard binary_to_list(glob)
-    Enum.map paths, list_to_binary(&1)
-  end
-
-  def wildcard(glob) when is_list(glob) do
-    :elixir_glob.wildcard(glob)
   end
 
   @doc """
@@ -615,7 +451,7 @@ defmodule File do
       output =
         if dir?(destination) do
           mkdir(destination)
-          join(destination, basename(source))
+          FN.join(destination, FN.basename(source))
         else
           destination
         end
@@ -690,7 +526,7 @@ defmodule File do
     output =
       if dir?(destination) || dir?(source) do
         mkdir(destination)
-        join(destination, basename(source))
+        FN.join(destination, FN.basename(source))
       else
         destination
       end
@@ -726,7 +562,7 @@ defmodule File do
             case mkdir(dest) do
               success in [:ok, { :error, :eexist }] ->
                 Enum.reduce(files, [dest|acc], fn(x, acc) ->
-                  do_cp_r(join(src, x), join(dest, x), callback, acc)
+                  do_cp_r(FN.join(src, x), FN.join(dest, x), callback, acc)
                 end)
               reason -> reason
             end
@@ -911,7 +747,7 @@ defmodule File do
       { :ok, files } ->
         res =
           Enum.reduce files, entry, fn(file, tuple) ->
-            do_rm_rf(join(path, file), tuple)
+            do_rm_rf(FN.join(path, file), tuple)
           end
 
         case res do
@@ -1276,25 +1112,6 @@ defmodule File do
   end
 
   ## Helpers
-
-  # Normalize the given path by removing "..".
-  defp normalize(path), do: normalize(split(path), [])
-
-  defp normalize([top|t], [_|acc]) when top in ["..", '..'] do
-    normalize t, acc
-  end
-
-  defp normalize([top|t], acc) when top in [".", '.'] do
-    normalize t, acc
-  end
-
-  defp normalize([h|t], acc) do
-    normalize t, [h|acc]
-  end
-
-  defp normalize([], acc) do
-    join Enum.reverse(acc)
-  end
 
   defp open_defaults([:charlist|t], _add_binary) do
     open_defaults(t, false)

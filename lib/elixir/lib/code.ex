@@ -35,26 +35,26 @@ defmodule Code do
 
   @doc """
   Appends a path to Erlang VM code path.
-  The path is expanded with `File.expand_path` before added.
+  The path is expanded with `Path.expand` before added.
   """
   def append_path(path) do
-    :code.add_pathz(File.expand_path to_char_list(path))
+    :code.add_pathz(Path.expand to_char_list(path))
   end
 
   @doc """
   Prepends a path to Erlang VM code path.
-  The path is expanded with `File.expand_path` before added.
+  The path is expanded with `Path.expand` before added.
   """
   def prepend_path(path) do
-    :code.add_patha(File.expand_path to_char_list(path))
+    :code.add_patha(Path.expand to_char_list(path))
   end
 
   @doc """
   Deletes a path from Erlang VM code path.
-  The path is expanded with `File.expand_path` before deleted.
+  The path is expanded with `Path.expand` before deleted.
   """
   def delete_path(path) do
-    :code.del_path(File.expand_path to_char_list(path))
+    :code.del_path(Path.expand to_char_list(path))
   end
 
   @doc """
@@ -366,9 +366,9 @@ defmodule Code do
     file = to_binary(file)
 
     file = if relative_to do
-      File.expand_path(file, relative_to)
+      Path.expand(file, relative_to)
     else
-      File.expand_path(file)
+      Path.expand(file)
     end
 
     if File.regular?(file) do

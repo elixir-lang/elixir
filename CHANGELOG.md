@@ -15,6 +15,7 @@
   * [Mix] Mix now starts the current application before run, iex, test and friends
   * [Mix] Mix now provides basic support for compiling `.erl` files
   * [Mix] `mix escriptize` only generates escript if necessary and accept `--force` and `--no-compile` as options
+  * [Path] Introduce `Path` module to hold filesystem paths related functions
   * [String] Add `String.capitalize` and `String.slice`
 
 * bug fix
@@ -25,6 +26,7 @@
 
 * deprecations
   * [Dict] Deprecate `Binary.Dict` and `OrdDict` in favor of `HashDict` and `List.Dict`
+  * [File] Deprecate path related functions in favor of the module `Path`
   * [Kernel] The `/>` operator has been deprecated in favor of `|>`
   * [Mix] `Mix.Project.sources` is deprecated in favor of `Mix.Project.config_files`
   * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types

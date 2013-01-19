@@ -48,7 +48,7 @@ defmodule CodeTest do
   end
 
   test :path_manipulation do
-    path = File.expand_path("../binary", __FILE__)
+    path = Path.expand("../binary", __FILE__)
     Code.prepend_path path
     assert binary_to_list(path) inlist :code.get_path
 

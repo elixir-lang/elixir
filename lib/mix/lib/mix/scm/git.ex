@@ -22,7 +22,7 @@ defmodule Mix.SCM.Git do
   end
 
   def checked_out?(opts) do
-    File.dir?(File.join(opts[:dest], ".git"))
+    File.dir?(Path.join(opts[:dest], ".git"))
   end
 
   def matches_lock?(opts) do

@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     end
 
     lc dep inlist all, ok?(dep) do
-      Code.prepend_path File.join(dep.opts[:dest], "ebin")
+      Code.prepend_path Path.join(dep.opts[:dest], "ebin")
     end
   end
 end

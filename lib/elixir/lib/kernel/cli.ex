@@ -131,17 +131,17 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(['-pa',h|t], config) do
-    Enum.each File.wildcard(File.expand_path(h)), Code.prepend_path(&1)
+    Enum.each Path.wildcard(Path.expand(h)), Code.prepend_path(&1)
     process_shared t, config
   end
 
   defp process_shared(['-pz',h|t], config) do
-    Enum.each File.wildcard(File.expand_path(h)), Code.append_path(&1)
+    Enum.each Path.wildcard(Path.expand(h)), Code.append_path(&1)
     process_shared t, config
   end
 
   defp process_shared(['-r',h|t], config) do
-    process_shared t, Enum.reduce(File.wildcard(h), config, fn path, config ->
+    process_shared t, Enum.reduce(Path.wildcard(h), config, fn path, config ->
       config.update_commands [{:require,path}|&1]
     end)
   end
@@ -249,7 +249,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:parallel_require, pattern}, _config) when is_list(pattern) do
-    files = File.wildcard(list_to_binary(pattern))
+    files = Path.wildcard(list_to_binary(pattern))
     files = Enum.uniq(files)
     files = Enum.filter files, File.regular?(&1)
     Kernel.ParallelRequire.files(files)
@@ -258,7 +258,7 @@ defmodule Kernel.CLI do
   defp process_command({:compile, patterns}, config) do
     File.mkdir_p(config.output)
 
-    files = Enum.map patterns, File.wildcard(&1)
+    files = Enum.map patterns, Path.wildcard(&1)
     files = Enum.uniq(List.concat(files))
     files = Enum.filter files, File.regular?(&1)
 

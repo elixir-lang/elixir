@@ -45,6 +45,6 @@ defmodule Mix.Tasks.Run do
   end
 
   defp filter_patterns(pattern) do
-    Enum.filter(Enum.uniq(File.wildcard(pattern)), File.regular?(&1))
+    Enum.filter(Enum.uniq(Path.wildcard(pattern)), File.regular?(&1))
   end
 end

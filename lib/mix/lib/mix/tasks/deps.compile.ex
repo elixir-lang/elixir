@@ -44,16 +44,16 @@ defmodule Mix.Tasks.Deps.Compile do
       shell.info "* Compiling #{app}"
 
       deps_path = opts[:dest]
-      ebin = File.join(deps_path, "ebin") |> binary_to_list
+      ebin = Path.join(deps_path, "ebin") |> binary_to_list
 
       # Avoid compilation conflicts
-      :code.del_path(ebin |> File.expand_path)
+      :code.del_path(ebin |> Path.expand)
 
-      root_path = File.expand_path(Mix.project[:deps_path])
+      root_path = Path.expand(Mix.project[:deps_path])
 
       config = [
         deps_path: root_path,
-        root_lockfile:  File.expand_path(Mix.project[:lockfile])
+        root_lockfile:  Path.expand(Mix.project[:lockfile])
       ]
 
       File.cd! deps_path, fn ->

@@ -13,10 +13,10 @@ defmodule Mix.SCM.Path do
   def accepts_options(opts) do
     cond do
       raw = opts[:path] ->
-        Keyword.put opts, :dest, File.expand_path(raw)
+        Keyword.put opts, :dest, Path.expand(raw)
       raw = opts[:raw] ->
         IO.puts "The option :raw is deprecated in favor of :path in mix deps"
-        Keyword.put opts, :dest, File.expand_path(raw)
+        Keyword.put opts, :dest, Path.expand(raw)
       true ->
         nil
     end

@@ -41,9 +41,9 @@ defmodule Mix.Tasks.Compile.App do
     validate_version(version)
 
     path    = config[:compile_path] || "ebin"
-    beams   = File.wildcard('#{path}/*.beam')
+    beams   = Path.wildcard('#{path}/*.beam')
 
-    target  = File.join(path, "#{app}.app")
+    target  = Path.join(path, "#{app}.app")
     sources = Mix.Project.config_files ++ beams
 
     if opts[:force] or Mix.Utils.stale?(sources, [target]) do
@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Compile.App do
       properties = ensure_correct_properties(app, properties)
       contents   = { :application, app, properties }
 
-      File.mkdir_p!(File.dirname(target))
+      File.mkdir_p!(Path.dirname(target))
       file = File.open!(target, [:write])
       :io.fwrite(file, "~p.", [contents])
       File.close(file)
@@ -81,7 +81,7 @@ defmodule Mix.Tasks.Compile.App do
   defp validate_version(_), do: raise(Mix.Error, message: "Expected :version to be a binary")
 
   defp modules_from(beams) do
-    Enum.map beams, &1 |> File.basename |> File.rootname('.beam') |> list_to_atom
+    Enum.map beams, &1 |> Path.basename |> Path.rootname('.beam') |> list_to_atom
   end
 
   defp ensure_correct_properties(app, properties) do

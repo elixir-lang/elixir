@@ -10,7 +10,7 @@ defmodule EExText.Compiled do
   { :erlang, 1, 2 }.tuple_to_list
   EEx.function_from_string :def, :string_sample, "<%= a + b %>", [:a, :b]
 
-  filename = File.expand_path("../fixtures/eex_template_with_bindings.eex", __FILE__)
+  filename = Path.expand("../fixtures/eex_template_with_bindings.eex", __FILE__)
   EEx.function_from_file :defp, :private_file_sample, filename, [:bar]
   def file_sample(arg), do: private_file_sample(arg)
 
@@ -271,13 +271,13 @@ foo
   end
 
   test "evaluates the source from a given file" do
-    filename = File.expand_path("../fixtures/eex_template.eex", __FILE__)
+    filename = Path.expand("../fixtures/eex_template.eex", __FILE__)
     result = EEx.eval_file(filename)
     assert result == "foo bar.\n"
   end
 
   test "evaluates the source from a given file with bindings" do
-    filename = File.expand_path("../fixtures/eex_template_with_bindings.eex", __FILE__)
+    filename = Path.expand("../fixtures/eex_template_with_bindings.eex", __FILE__)
     result = EEx.eval_file(filename, [bar: 1])
     assert result == "foo 1\n"
   end

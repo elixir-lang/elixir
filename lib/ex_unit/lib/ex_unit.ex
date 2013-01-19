@@ -94,7 +94,7 @@ defmodule ExUnit do
   def user_options(user_config // nil) do
     user_config = user_config ||
       System.get_env("EXUNIT_CONFIG") ||
-      File.join(System.get_env("HOME"), ".ex_unit.exs")
+      Path.join(System.get_env("HOME"), ".ex_unit.exs")
 
     case File.read(user_config) do
       { :ok, contents } ->

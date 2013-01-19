@@ -25,7 +25,7 @@ defmodule Mix.Generator do
 
   defp overwriting?(path) do
     if File.exists?(path) do
-      full = File.expand_path(path)
+      full = Path.expand(path)
       Mix.shell.yes?(full <> " already exists, overwrite?")
     else
       true
@@ -42,7 +42,7 @@ defmodule Mix.Generator do
   """
   defmacro from_file(path) do
     quote do
-      File.read! File.expand_path(unquote(path), __FILE__)
+      File.read! Path.expand(unquote(path), __FILE__)
     end
   end
 
