@@ -44,7 +44,10 @@ defmodule IO.ANSI do
   This module provides functionality to render ANSI escape sequences
   (http://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
   in the text used to control formatting, color, and other output options
-  on video text terminals
+  on video text terminals.
+
+  Please be aware that in Erlang/OTP versions prior to R16, you will not
+  be able to render ANSI escape sequences in iex or erlang shell correctly.
   """
   import IO.ANSI.Sequence
 
