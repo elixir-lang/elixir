@@ -2,7 +2,7 @@ defmodule Path do
   defexception NoHomeError,
     message: "could not find the user home, please set the HOME environment variable"
 
-  @doc """
+  @moduledoc """
   This module provides conveniences for manipulating or
   retrieving filesystem paths.
 
