@@ -11,7 +11,7 @@ defprotocol Binary.Inspect do
   printing.
   """
 
-  @only [BitString, List, Tuple, Atom, Number, Any]
+  @only [BitString, List, Tuple, Atom, Number, Function, Any]
 
   def inspect(thing, opts)
 end
@@ -414,6 +414,22 @@ defimpl Binary.Inspect, for: Regex do
 
   def inspect(other, opts) do
     Binary.Inspect.inspect other, Keyword.put(opts, :raw, true)
+  end
+end
+
+defimpl Binary.Inspect, for: Function do
+  @moduledoc """
+  Represents functions, in a literal form, when possible
+  """
+
+  def inspect(thing, _opts) do
+    fun_info = :erlang.fun_info(thing)
+    if fun_info[:type] == :external and
+       fun_info[:env] == [] do
+      "function(#{Kernel.inspect(fun_info[:module])}.#{fun_info[:name]}/#{fun_info[:arity]})"
+    else
+      iolist_to_binary :io_lib.format('~p', [thing])
+    end
   end
 end
 

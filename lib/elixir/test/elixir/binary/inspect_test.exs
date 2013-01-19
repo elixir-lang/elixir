@@ -185,6 +185,26 @@ defmodule Binary.Inspect.ListTest do
   end
 end
 
+defmodule Binary.Inspect.FunctionTest do
+  use ExUnit.Case, async: true
+
+  test :funs do
+    bin = inspect(fn(x) -> x + 1 end)
+    assert '#Fun<' ++ _ = binary_to_list(bin)
+  end
+
+  test :external_elixir do
+    bin = inspect(function(Enum.map/2))
+    assert bin == "function(Enum.map/2)"
+  end
+
+  test :external_erlang do
+    bin = inspect(function(:lists.map/2))
+    assert bin == "function(:lists.map/2)"
+  end
+
+end
+
 defmodule Binary.Inspect.AnyTest do
   use ExUnit.Case, async: true
 
