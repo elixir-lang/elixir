@@ -177,6 +177,7 @@ core_main() ->
     "lib/elixir/lib/list/chars.ex",
     "lib/elixir/lib/io.ex",
     "lib/elixir/lib/file.ex",
+    "lib/elixir/lib/path.ex",
     "lib/elixir/lib/access.ex",
     "lib/elixir/lib/regex.ex",
     "lib/elixir/lib/system.ex",
