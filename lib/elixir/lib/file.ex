@@ -184,7 +184,7 @@ defmodule File do
 
   @doc false
   def wildcard(glob) do
-    IO.puts "Fild.wildcard is deprecated, please use Path.wildcard instead"
+    IO.puts "File.wildcard is deprecated, please use Path.wildcard instead"
     Exception.print_stacktrace
     Path.wildcard(glob)
   end
