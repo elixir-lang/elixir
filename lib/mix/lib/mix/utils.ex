@@ -15,11 +15,11 @@ defmodule Mix.Utils do
   """
 
   @doc """
-  Gets the user home attempting to consider OS system diferences.
+  Gets the mix home. It defaults to `~/.mix` unless the
+  MIX_HOME environment variable is set.
   """
-  def user_home do
-    System.get_env("MIX_HOME") || System.get_env("HOME") || System.get_env("USERPROFILE") ||
-      raise Mix.Error, message: "Nor MIX_HOME, HOME or USERPROFILE env variables were set"
+  def mix_home do
+    System.get_env("MIX_HOME") || Path.expand("~/.mix")
   end
 
   @doc """
@@ -285,7 +285,7 @@ defmodule Mix.Utils do
 
   @doc """
   Takes a command and converts it to a module name format.
-  
+
   ## Examples
 
       command_to_module_name("compile.elixir")

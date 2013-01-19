@@ -57,7 +57,7 @@ defmodule MixTest.Case do
         Mix.Task.clear
         Mix.Shell.Process.flush
         Mix.Deps.Converger.clear_cache
-        System.put_env("MIX_HOME", tmp_path)
+        System.put_env("MIX_HOME", tmp_path(".mix"))
         del_tmp_paths
       end
 

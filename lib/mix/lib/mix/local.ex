@@ -7,7 +7,7 @@ defmodule Mix.Local do
   The path for local tasks.
   """
   def tasks_path do
-    Path.join Mix.Utils.user_home, ".mix/tasks"
+    Path.join Mix.Utils.mix_home, "tasks"
   end
 
   @doc """
