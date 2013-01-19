@@ -132,7 +132,7 @@ defmodule HashDictTest do
   end
 
   test :inspect do
-    assert inspect(filled_dict(8)) =~ %r"HashDict\["
+    assert inspect(filled_dict(8)) =~ %r"#HashDict<"
   end
 
   test :small_range_merge do

@@ -185,46 +185,35 @@ defmodule Binary.Inspect.ListTest do
   end
 end
 
-defmodule Binary.Inspect.FunctionTest do
+defmodule Binary.Inspect.OthersTest do
   use ExUnit.Case, async: true
 
   def f do
     fn() -> :ok end
   end
 
-  test :funs do
-    bin = inspect(fn(x) -> x + 1 end)
-    assert '#Fun<' ++ _ = binary_to_list(bin)
-  end
-
-  test :external_elixir do
+  test :external_elixir_funs do
     bin = inspect(function(Enum.map/2))
     assert bin == "function(Enum.map/2)"
   end
 
-  test :external_elixir_fun do
-    bin = inspect(f)
-    assert '#Fun<' ++ _ = binary_to_list(bin)
-  end
-
-  test :external_erlang do
+  test :external_erlang_funs do
     bin = inspect(function(:lists.map/2))
     assert bin == "function(:lists.map/2)"
   end
 
-end
-
-defmodule Binary.Inspect.AnyTest do
-  use ExUnit.Case, async: true
-
-  test :funs do
-    bin = inspect(fn(x) -> x + 1 end)
-    assert '#Fun<' ++ _ = binary_to_list(bin)
+  test :other_funs do
+    assert "#Function<" <> _ = inspect(fn(x) -> x + 1 end)
+    assert "#Function<" <> _ = inspect(f)
   end
-end
 
-defmodule Binary.Inspect.RegexTest do
-  use ExUnit.Case, async: true
+  test :pids do
+    assert "#PID<" <> _ = inspect(self)
+  end
+
+  test :references do
+    assert "#Reference<" <> _ = inspect(make_ref)
+  end
 
   test :regex do
     "%r\"foo\"m" = inspect(%r(foo)m)

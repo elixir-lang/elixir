@@ -11,7 +11,7 @@ defprotocol Binary.Inspect do
   printing.
   """
 
-  @only [BitString, List, Tuple, Atom, Number, Function, Any]
+  @only [BitString, List, Tuple, Atom, Number, Function, PID, Port, Reference]
 
   def inspect(thing, opts)
 end
@@ -419,32 +419,41 @@ end
 
 defimpl Binary.Inspect, for: Function do
   @moduledoc """
-  Represents functions, in a literal form, when possible
+  Inspect functions, when possible, in a literal form.
   """
 
-  def inspect(thing, _opts) do
-    fun_info = :erlang.fun_info(thing)
-    if fun_info[:type] == :external and
-       fun_info[:env] == [] do
+  def inspect(function, _opts) do
+    fun_info = :erlang.fun_info(function)
+    if fun_info[:type] == :external and fun_info[:env] == [] do
       "function(#{Kernel.inspect(fun_info[:module])}.#{fun_info[:name]}/#{fun_info[:arity]})"
     else
-      iolist_to_binary :io_lib.format('~p', [thing])
+      '#Fun' ++ rest = :erlang.fun_to_list(function)
+      "#Function" <> list_to_binary(rest)
     end
   end
 end
 
-defimpl Binary.Inspect, for: Any do
-  @moduledoc """
-  For all other terms not implemented, we use the default
-  Erlang representation.
+defimpl Binary.Inspect, for: PID do
+  @moduledoc "Inspect PIDs"
 
-  ## Examples
+  def inspect(pid, _) do
+    "#PID" <> list_to_binary pid_to_list(pid)
+  end
+end
 
-      inspect Process.self #=> "<0.35.0>"
+defimpl Binary.Inspect, for: Port do
+  @moduledoc "Inspect ports"
 
-  """
+  def inspect(port, _) do
+    list_to_binary :erlang.port_to_list(port)
+  end
+end
 
-  def inspect(thing, _) do
-    iolist_to_binary :io_lib.format('~p', [thing])
+defimpl Binary.Inspect, for: Reference do
+  @moduledoc "Inspect references"
+
+  def inspect(ref, _) do
+    '#Ref' ++ rest = :erlang.ref_to_list(ref)
+    "#Reference" <> list_to_binary(rest)
   end
 end

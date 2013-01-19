@@ -1798,7 +1798,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Inspect the given arguments according to the Binary.Inspect protocol.
+  Inspect the given arguments according to the `Binary.Inspect` protocol.
 
   ## Options
 
@@ -1814,6 +1814,13 @@ defmodule Kernel do
 
       inspect(:foo)
       #=> ":foo"
+
+  Notice the inspect protocol does not necessarily return a valid Elixir
+  terms representation. In such cases, the inspected result must start
+  with `#`. For example, inspecting a function will return:
+
+      inspect &1 + &2
+      #=> #Function<...>
 
   """
   defmacro inspect(arg, opts // []) do
