@@ -12,6 +12,21 @@ defmodule SystemTest do
     assert not nil?(System.build_info[:date])
   end
 
+  test :cwd do
+    assert is_binary System.cwd
+    assert is_binary System.cwd!
+  end
+
+  test :user_home do
+    assert is_binary System.user_home
+    assert is_binary System.user_home!
+  end
+
+  test :tmp_dir do
+    assert is_binary System.tmp_dir
+    assert is_binary System.tmp_dir!
+  end
+
   test :argv do
     list = elixir('-e "IO.inspect System.argv" -- -o opt arg1 arg2 --long-opt 10')
     { args, _ } = Code.eval list, []

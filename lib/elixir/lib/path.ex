@@ -1,7 +1,4 @@
 defmodule Path do
-  defexception NoHomeError,
-    message: "could not find the user home, please set the HOME environment variable"
-
   @moduledoc """
   This module provides conveniences for manipulating or
   retrieving filesystem paths.
@@ -322,35 +319,19 @@ defmodule Path do
 
   ## Helpers
 
-  defp get_home do
-    get_unix_home || get_windows_home || raise NoHomeError
-  end
-
-  defp get_unix_home do
-    System.get_env("HOME")
-  end
-
-  defp get_windows_home do
-    System.get_env("USERPROFILE") || (
-      hd = System.get_env("HOMEDRIVE")
-      hp = System.get_env("HOMEPATH")
-      hd && hp && hd <> hp
-    )
-  end
-
-  defp get_cwd(path) when is_list(path), do: File.cwd! |> binary_to_list
-  defp get_cwd(_), do: File.cwd!
+  defp get_cwd(path) when is_list(path), do: System.cwd! |> binary_to_list
+  defp get_cwd(_), do: System.cwd!
 
   # Normalize the given path by expanding "..", "." and "~".
 
   defp normalize(path), do: do_normalize(FN.split(path))
 
   defp do_normalize(["~"|t]) do
-    do_normalize t, [get_home]
+    do_normalize t, [System.user_home!]
   end
 
   defp do_normalize(['~'|t]) do
-    do_normalize t, [get_home |> binary_to_list]
+    do_normalize t, [System.user_home! |> binary_to_list]
   end
 
   defp do_normalize(t) do

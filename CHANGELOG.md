@@ -17,6 +17,7 @@
   * [Mix] `mix escriptize` only generates escript if necessary and accept `--force` and `--no-compile` as options
   * [Path] Introduce `Path` module to hold filesystem paths related functions
   * [String] Add `String.capitalize` and `String.slice`
+  * [System] Add `System.tmp_dir`, `System.cwd` and `System.user_home`
 
 * bug fix
   * [Kernel] `import` with `only` accepts functions starting with underscore
