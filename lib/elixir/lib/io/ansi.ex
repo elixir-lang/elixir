@@ -145,6 +145,9 @@ defmodule IO.ANSI do
   The format for referring sequences is `#[red]` and `#[red,bright]` (for
   multiple sequences)
 
+  It will also force a #[reset] to get appended to every string. If you don't
+  want this behaviour, use `escape_fragment/1` and `escape_fragment/2`.
+
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When false, no ANSI codes will emitted.
   By default, standard output will be checked if it is a terminal capable
@@ -152,7 +155,7 @@ defmodule IO.ANSI do
 
   ## Example
 
-    IO.puts IO.ANSI.escape "Hello #[red,bright,green]yes#[reset]" #=>
+    IO.puts IO.ANSI.escape "Hello #[red,bright,green]yes" #=>
     "Hello \e[31m\e[1m\e[32myes\e[0m"
   """
   @doc escape_doc
@@ -164,8 +167,38 @@ defmodule IO.ANSI do
   @doc escape_doc
   @spec escape(String.t, emit :: boolean) :: String.t
   def escape(string, emit) do
+    do_escape(string <> "#[reset]", false, emit,[])
+  end
+
+  escape_fragment_doc =  """
+  Escapes a string coverting named ANSI sequences into actual ANSI codes.
+
+  The format for referring sequences is `#[red]` and `#[red,bright]` (for
+  multiple sequences)
+
+  An optional boolean parameter can be passed to enable or disable
+  emitting actual ANSI codes. When false, no ANSI codes will emitted.
+  By default, standard output will be checked if it is a terminal capable
+  of handling these sequences (using `terminal?/0` function)
+
+  ## Example
+
+    IO.puts IO.ANSI.escape "Hello #[red,bright,green]yes#[reset]" #=>
+    "Hello \e[31m\e[1m\e[32myes\e[0m"
+  """
+
+  @doc escape_fragment_doc
+  @spec escape_fragment(String.t) :: String.t
+  def escape_fragment(string) do
+    escape_fragment(string, terminal?)
+  end
+
+  @doc escape_fragment_doc
+  @spec escape_fragment(String.t, emit :: boolean) :: String.t
+  def escape_fragment(string, emit) do
     do_escape(string, false, emit,[])
   end
+
 
   defp do_escape(<< ?#, ?[, rest :: binary >>, false, emit, acc) do
     do_escape_sequence(rest, emit, acc)
