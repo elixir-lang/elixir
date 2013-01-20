@@ -1,42 +1,26 @@
 defmodule IO.ANSI.Sequence do
   @moduledoc false
+  defmacro __using__(_) do
+    quote do
+      import IO.ANSI.Sequence
+    end
+  end
   defmacro defsequence({name, _, [code]}) do
     defsequence(name, code)
   end
   def defsequence(name, code) do
+    binary_name = atom_to_binary(name)
     quote do
-      doc = @doc <> "\n"
-      @doc doc
-      @spec unquote(name)() :: String.t
-      @spec unquote(name)(:io.device | boolean) :: String.t
+      #@sequences {unquote(name), unquote(code), @doc}
       def unquote(name)() do
-        if IO.ANSI.terminal? do
-          "\e[#{unquote(code)}m"
-        else
-          ""
-        end
-      end
-      @doc doc <> """
-
-      Instead of a device, a boolean can be passed to enable/disable
-      ANSI rendering explicitly
-      """
-      def unquote(name)(true) do
         "\e[#{unquote(code)}m"
       end
-      def unquote(name)(false) do
-        "\e[#{unquote(code)}m"
+      defp escape_sequence(<< unquote(binary_name), rest :: binary >>) do
+        {"\e[#{unquote(code)}m", rest}
       end
-      def unquote(name)(device) do
-        if IO.ANSI.terminal?(device) do
-          "\e[#{unquote(code)}m"
-        else
-          ""
-        end
-      end
-
     end
   end
+
 end
 
 defmodule IO.ANSI do
@@ -47,9 +31,9 @@ defmodule IO.ANSI do
   on video text terminals.
 
   Please be aware that in Erlang/OTP versions prior to R16, you will not
-  be able to render ANSI escape sequences in iex or erlang shell correctly.
+  be able to render ANSI escape sequences in iex or erlang shell
   """
-  import IO.ANSI.Sequence
+  use IO.ANSI.Sequence
 
   terminal_doc = """
   Checks whether the default I/O device is a terminal or a file.
@@ -149,5 +133,65 @@ defmodule IO.ANSI do
 
   @doc "Not overlined"
   defsequence not_overlined(55)
+
+  # Catch spaces between codes
+  defp escape_sequence(<< ?\s, rest :: binary >>) do
+    escape_sequence(rest)
+  end
+
+  escape_doc = """
+  Escapes a string coverting named ANSI sequences into actual ANSI codes.
+
+  The format for referring sequences is `#[red]` and `#[red,bright]` (for
+  multiple sequences)
+
+  An optional boolean parameter can be passed to enable or disable
+  emitting actual ANSI codes. When false, no ANSI codes will emitted.
+  By default, standard output will be checked if it is a terminal capable
+  of handling these sequences (using `terminal?/0` function)
+
+  ## Example
+
+    IO.puts IO.ANSI.escape "Hello #[red,bright,green]yes#[reset]" #=>
+    "Hello \e[31m\e[1m\e[32myes\e[0m"
+  """
+  @doc escape_doc
+  @spec escape(String.t) :: String.t
+  def escape(string) do
+    escape(string, terminal?)
+  end
+
+  @doc escape_doc
+  @spec escape(String.t, emit :: boolean) :: String.t
+  def escape(string, emit) do
+    do_escape(string, false, emit,[])
+  end
+
+  defp do_escape(<< ?#, ?[, rest :: binary >>, false, emit, acc) do
+    do_escape_sequence(rest, emit, acc)
+  end
+  defp do_escape(<< ?,, rest :: binary >>, true, emit, acc) do
+    do_escape_sequence(rest, emit, acc)
+  end
+  defp do_escape(<< ?\s, rest :: binary >>, true, emit, acc) do
+    do_escape(rest, true, emit, acc)
+  end
+  defp do_escape(<< ?], rest :: binary >>, true, emit, acc) do
+    do_escape(rest, false, emit, acc)
+  end
+  defp do_escape(<< x :: [binary, size(1)], rest :: binary>>, false, emit, acc) do
+    do_escape(rest, false, emit, [x|acc])
+  end
+  defp do_escape("", false, _emit, acc) do
+    list_to_binary(Enum.reverse(acc))
+  end
+
+  defp do_escape_sequence(rest, emit, acc) do
+    {code, rest} = escape_sequence(rest)
+    if emit do
+      acc = [code|acc]
+    end
+    do_escape(rest, true, emit, acc)
+  end
 
 end
