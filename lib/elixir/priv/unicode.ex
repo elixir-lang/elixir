@@ -23,11 +23,13 @@ defmodule String.Unicode do
       _class, bidi, _decomposition,
       _numeric_1, _numeric_2, _numeric_3,
       _bidi_mirror, _unicode_1, _iso,
-      upper, lower, _title ] = :binary.split(line, ";", [:global])
+      upper, lower, title ] = :binary.split(line, ";", [:global])
+
+    title = :binary.part(title, 0, size(title) - 1)
 
     cond do
-      upper != "" or lower != "" ->
-        { [{ to_binary.(codepoint), to_binary.(upper), to_binary.(lower) } | cacc], wacc }
+      upper != "" or lower != "" or title != "" ->
+        { [{ to_binary.(codepoint), to_binary.(upper), to_binary.(lower), to_binary.(title) } | cacc], wacc }
       bidi in ["B", "S", "WS"] ->
         { cacc, [to_binary.(codepoint) | wacc] }
       true ->
@@ -38,9 +40,9 @@ defmodule String.Unicode do
   special_path = Path.expand("../SpecialCasing.txt", __FILE__)
 
   codes = Enum.reduce File.iterator!(special_path), codes, fn(line, acc) ->
-    [ codepoint, lower, _title, upper, _comment ] = :binary.split(line, "; ", [:global])
+    [ codepoint, lower, title, upper, _comment ] = :binary.split(line, "; ", [:global])
     key = to_binary.(codepoint)
-    :lists.keystore(key, 1, acc, { key, to_binary.(upper), to_binary.(lower) })
+    :lists.keystore(key, 1, acc, { key, to_binary.(upper), to_binary.(lower), to_binary.(title) })
   end
 
   seqs_path = Path.expand("../NamedSequences.txt", __FILE__)
@@ -55,7 +57,7 @@ defmodule String.Unicode do
 
   # Downcase
 
-  lc { codepoint, _upper, lower } inlist codes, lower && lower != codepoint do
+  lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
     args = quote do: [unquote(codepoint) <> t]
     code = quote do: unquote(lower) <> downcase(t)
     def :downcase, args, [], do: code
@@ -71,7 +73,7 @@ defmodule String.Unicode do
 
   # Upcase
 
-  lc { codepoint, upper, _lower } inlist codes, upper && upper != codepoint do
+  lc { codepoint, upper, _lower, _title } inlist codes, upper && upper != codepoint do
     args = quote do: [unquote(codepoint) <> t]
     code = quote do: unquote(upper) <> upcase(t)
     def :upcase, args, [], do: code
@@ -83,6 +85,22 @@ defmodule String.Unicode do
 
   def upcase(<< >>) do
     << >>
+  end
+
+  # Titlecase once
+
+  lc { codepoint, _upper, _lower, title } inlist codes, title && title != codepoint do
+    args = quote do: [unquote(codepoint) <> t]
+    code = quote do: { unquote(title), t }
+    def :titlecase_once, args, [], do: code
+  end
+
+  def titlecase_once(<< h, t :: binary >>) do
+    { <<h>>, t }
+  end
+
+  def titlecase_once(<< >>) do
+    { <<>>, <<>> }
   end
 
   # Strip

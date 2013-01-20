@@ -179,23 +179,25 @@ defmodule String do
   defdelegate downcase(binary), to: String.Unicode
 
   @doc """
-  Convert the first character on the given string to uppercase
-  and the remaining to downcase.
+  Converts the first character in the given string to
+  titlecase and the remaining to downcase.
+
+  This relies on the titlecase information provided
+  by the Unicode Standard. Note this function makes
+  no attempt in capitalizing all words in the string
+  (usually known as titlecase).
 
   ## Examples
 
       String.capitalize("abcd") #=> "Abcd"
-      String.capitalize("ab 123 xpto") #=> "Ab 123 xpto"
+      String.capitalize("ﬁn")   #=> "Fin"
       String.capitalize("josé") #=> "José"
 
   """
   @spec capitalize(t) :: t
-
   def capitalize(string) when is_binary(string) do
-    case next_grapheme(string) do
-      { char, rest } -> upcase(char) <> downcase(rest)
-      :no_grapheme -> ""
-    end
+    { char, rest } = String.Unicode.titlecase_once(string)
+    char <> downcase(rest)
   end
 
   @doc """

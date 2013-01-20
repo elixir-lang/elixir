@@ -74,6 +74,7 @@ defmodule StringTest do
     assert String.capitalize("ÂÁÀ") == "Âáà"
     assert String.capitalize("òóôõö") == "Òóôõö"
     assert String.capitalize("ÒÓÔÕÖ") == "Òóôõö"
+    assert String.capitalize("ﬁn") == "Fin"
   end
 
   test :rstrip do
