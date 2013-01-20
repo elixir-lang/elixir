@@ -922,7 +922,7 @@ defmodule File do
   """
   def cwd() do
     case F.get_cwd do
-      { :ok, cwd } -> { :ok, list_to_binary(cwd) }
+      { :ok, cwd } -> { :ok, :unicode.characters_to_binary(cwd) }
       { :error, _ } = error -> error
     end
   end
@@ -932,7 +932,7 @@ defmodule File do
   """
   def cwd!() do
     case F.get_cwd do
-      { :ok, cwd } -> list_to_binary(cwd)
+      { :ok, cwd } -> :unicode.characters_to_binary(cwd)
       { :error, reason } ->
           raise File.Error, reason: reason, action: "get current working directory"
     end

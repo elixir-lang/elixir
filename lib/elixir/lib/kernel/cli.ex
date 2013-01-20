@@ -8,10 +8,10 @@ defmodule Kernel.CLI do
 
   # This is the API invoked by Elixir boot process.
   @doc false
-  def main(options) do
-    { config, argv } = process_argv(options, Kernel.CLI.Config.new)
-
+  def main(argv) do
     argv = lc arg inlist argv, do: list_to_binary(arg)
+
+    { config, argv } = process_argv(argv, Kernel.CLI.Config.new)
     :gen_server.call(:elixir_code_server, { :argv, argv })
 
     run fn ->
@@ -98,7 +98,7 @@ defmodule Kernel.CLI do
   end
 
   defp invalid_option(option) do
-    IO.puts(:stderr, "Unknown option #{list_to_binary(option)}")
+    IO.puts(:stderr, "Unknown option #{option}")
     System.halt(1)
   end
 
@@ -113,44 +113,44 @@ defmodule Kernel.CLI do
 
   # Process shared options
 
-  defp process_shared(['-v'|t], config) do
+  defp process_shared(["-v"|t], config) do
     IO.puts "Elixir #{System.version}"
     process_shared t, config
   end
 
-  defp process_shared(['--app',h|t], config) do
+  defp process_shared(["--app",h|t], config) do
     process_shared t, config.update_commands [{:app,h}|&1]
   end
 
-  defp process_shared(['--no-halt'|t], config) do
+  defp process_shared(["--no-halt"|t], config) do
     process_shared t, config.halt(false)
   end
 
-  defp process_shared(['-e',h|t], config) do
+  defp process_shared(["-e",h|t], config) do
     process_shared t, config.update_commands [{:eval,h}|&1]
   end
 
-  defp process_shared(['-pa',h|t], config) do
+  defp process_shared(["-pa",h|t], config) do
     Enum.each Path.wildcard(Path.expand(h)), Code.prepend_path(&1)
     process_shared t, config
   end
 
-  defp process_shared(['-pz',h|t], config) do
+  defp process_shared(["-pz",h|t], config) do
     Enum.each Path.wildcard(Path.expand(h)), Code.append_path(&1)
     process_shared t, config
   end
 
-  defp process_shared(['-r',h|t], config) do
+  defp process_shared(["-r",h|t], config) do
     process_shared t, Enum.reduce(Path.wildcard(h), config, fn path, config ->
       config.update_commands [{:require,path}|&1]
     end)
   end
 
-  defp process_shared(['-pr',h|t], config) do
+  defp process_shared(["-pr",h|t], config) do
     process_shared t, config.update_commands [{:parallel_require,h}|&1]
   end
 
-  defp process_shared([erl,_|t], config) when erl in ['--erl', '--sname', '--remsh', '--name'] do
+  defp process_shared([erl,_|t], config) when erl in ["--erl", "--sname", "--remsh", "--name"] do
     process_shared t, config
   end
 
@@ -160,15 +160,15 @@ defmodule Kernel.CLI do
 
   # Process init options
 
-  defp process_argv(['--'|t], config) do
+  defp process_argv(["--"|t], config) do
     { config, t }
   end
 
-  defp process_argv(['--compile'|t], config) do
+  defp process_argv(["--compile"|t], config) do
     process_compiler t, config
   end
 
-  defp process_argv(['-S',h|t], config) do
+  defp process_argv(["-S",h|t], config) do
     exec = System.find_executable(h)
     if exec do
       { config.update_commands([{:require,exec}|&1]), t }
@@ -180,7 +180,7 @@ defmodule Kernel.CLI do
 
   defp process_argv([h|t] = list, config) do
     case h do
-      '-' ++ _ ->
+      "-" <> _ ->
         shared_option? list, config, process_argv(&1, &2)
       _ ->
         { config.update_commands([{:require,h}|&1]), t }
@@ -193,32 +193,31 @@ defmodule Kernel.CLI do
 
   # Process compiler options
 
-  defp process_compiler(['--'|t], config) do
+  defp process_compiler(["--"|t], config) do
     { config, t }
   end
 
-  defp process_compiler(['-o',h|t], config) do
-    process_compiler t, config.output(list_to_binary(h))
+  defp process_compiler(["-o",h|t], config) do
+    process_compiler t, config.output(h)
   end
 
-  defp process_compiler(['--no-docs'|t], config) do
+  defp process_compiler(["--no-docs"|t], config) do
     process_compiler t, config.update_compiler_options([{:docs,false}|&1])
   end
 
-  defp process_compiler(['--no-debug-info'|t], config) do
+  defp process_compiler(["--no-debug-info"|t], config) do
     process_compiler t, config.update_compiler_options([{:debug_info,false}|&1])
   end
 
-  defp process_compiler(['--ignore-module-conflict'|t], config) do
+  defp process_compiler(["--ignore-module-conflict"|t], config) do
     process_compiler t, config.update_compiler_options([{:ignore_module_conflict,true}|&1])
   end
 
   defp process_compiler([h|t] = list, config) do
     case h do
-      '-' ++ _ ->
+      "-" <> _ ->
         shared_option? list, config, process_compiler(&1, &2)
       _ ->
-        h = list_to_binary(h)
         pattern = if File.dir?(h), do: "#{h}/**/*.ex", else: h
         process_compiler t, config.update_compile [pattern|&1]
     end
@@ -230,12 +229,12 @@ defmodule Kernel.CLI do
 
   # Process commands
 
-  defp process_command({:eval, expr}, _config) when is_list(expr) do
+  defp process_command({:eval, expr}, _config) when is_binary(expr) do
     Code.eval(expr, [])
   end
 
-  defp process_command({:app, app}, _config) when is_list(app) do
-    case Application.Behaviour.start(list_to_atom(app)) do
+  defp process_command({:app, app}, _config) when is_binary(app) do
+    case Application.Behaviour.start(binary_to_atom(app)) do
       { :error, reason } ->
         IO.puts(:stderr, "Could not start application #{app}: #{inspect reason}")
         System.halt(1)
@@ -244,12 +243,12 @@ defmodule Kernel.CLI do
     end
   end
 
-  defp process_command({:require, file}, _config) when is_list(file) do
-    Code.require_file(list_to_binary(file))
+  defp process_command({:require, file}, _config) when is_binary(file) do
+    Code.require_file(file)
   end
 
-  defp process_command({:parallel_require, pattern}, _config) when is_list(pattern) do
-    files = Path.wildcard(list_to_binary(pattern))
+  defp process_command({:parallel_require, pattern}, _config) when is_binary(pattern) do
+    files = Path.wildcard(pattern)
     files = Enum.uniq(files)
     files = Enum.filter files, File.regular?(&1)
     Kernel.ParallelRequire.files(files)

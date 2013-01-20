@@ -17,6 +17,14 @@ defmodule SystemTest do
     assert is_binary System.cwd!
   end
 
+  test :cwd_with_utf8 do
+    import PathHelpers
+
+    File.cd!(fixture_path("héllò"), fn ->
+      assert Path.basename(System.cwd!) == "héllò"
+    end)
+  end
+
   test :user_home do
     assert is_binary System.user_home
     assert is_binary System.user_home!

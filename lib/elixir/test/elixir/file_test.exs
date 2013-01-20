@@ -1047,6 +1047,12 @@ defmodule FileTest do
     end
   end
 
+  test :cwd_and_cd_with_utf8 do
+    File.cd!(fixture_path("héllò"), fn ->
+      assert Path.basename(File.cwd!) == "héllò"
+    end)
+  end
+
   test :invalid_cd do
     assert File.cd(fixture_path("file.txt")) == { :error, :enotdir }
   end

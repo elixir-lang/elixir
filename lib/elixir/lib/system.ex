@@ -59,7 +59,7 @@ defmodule System do
   """
   def cwd do
     case :file.get_cwd do
-      { :ok, list } -> list_to_binary(list)
+      { :ok, list } -> :unicode.characters_to_binary(list)
       _ -> nil
     end
   end

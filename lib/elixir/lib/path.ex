@@ -309,12 +309,12 @@ defmodule Path do
 
   """
   def wildcard(glob) when is_binary(glob) do
-    paths = :elixir_glob.wildcard binary_to_list(glob)
-    Enum.map paths, list_to_binary(&1)
+    paths = :elixir_glob.wildcard :unicode.characters_to_list(glob)
+    Enum.map paths, :unicode.characters_to_binary(&1)
   end
 
   def wildcard(glob) when is_list(glob) do
-    :elixir_glob.wildcard(glob)
+    Enum.map wildcard(list_to_binary(glob)), binary_to_list(&1)
   end
 
   ## Helpers

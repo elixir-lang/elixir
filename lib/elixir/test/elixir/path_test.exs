@@ -3,6 +3,11 @@ Code.require_file "../test_helper.exs", __FILE__
 defmodule PathTest do
   use ExUnit.Case, async: true
 
+  test :wildcard do
+    import PathHelpers
+    assert Path.wildcard(fixture_path("héllò")) == [fixture_path("héllò")]
+  end
+
   test :absname_with_binary do
     assert Path.absname("/foo/bar") == "/foo/bar"
     assert Path.absname("/foo/bar/") == "/foo/bar"
