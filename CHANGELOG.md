@@ -30,6 +30,7 @@
   * [File] Deprecate path related functions in favor of the module `Path`
   * [Kernel] The `/>` operator has been deprecated in favor of `|>`
   * [Mix] `Mix.Project.sources` is deprecated in favor of `Mix.Project.config_files`
+  * [Mix] `mix iex` is no longer functional, please use `iex -S mix`
   * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
 
 # v0.7.2 (2012-12-04)

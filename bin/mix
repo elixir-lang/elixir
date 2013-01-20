@@ -1,17 +1,3 @@
-#!/bin/sh
-readlink_f () {
-  cd "$(dirname "$1")" > /dev/null
-  local filename="$(basename "$1")"
-  if [ -h "$filename" ]; then
-    readlink_f "$(readlink "$filename")"
-  else
-    echo "`pwd -P`/$filename"
-  fi
-}
-
-SELF=$(readlink_f "$0")
-SCRIPT_PATH=$(dirname "$SELF")
-EXECUTABLE="elixir"
-
-if [ "$1" = "iex" ]; then EXECUTABLE="iex"; fi
-exec "$SCRIPT_PATH"/$EXECUTABLE -e "Mix.start; Mix.CLI.run" -- "$@"
+#!/usr/bin/env elixir
+Mix.start
+Mix.CLI.run

@@ -14,7 +14,7 @@ defmodule Mix.CLITest do
     in_fixture "custom_mixfile", fn ->
       output = mix ""
       assert File.regular?("ebin/Elixir-A.beam")
-      assert output =~ %r"1 tests, 0 failures"
+      assert output =~ %r"Compiled lib/a.ex"
     end
   end
 
