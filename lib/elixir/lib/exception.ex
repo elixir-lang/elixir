@@ -176,7 +176,7 @@ defmodule Exception do
       file = to_binary(file)
 
       if cwd do
-        file = :binary.replace(file, cwd <> "/", "")
+        file = Path.relative_to(file, cwd)
       end
 
       if line && line != 0 do

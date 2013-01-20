@@ -120,8 +120,8 @@ defmodule Path do
     relative_to(t1, t2, original)
   end
 
-  defp relative_to(t1, [], _original) do
-    FN.join(t1)
+  defp relative_to([_|_] = l1, [], _original) do
+    FN.join(l1)
   end
 
   defp relative_to(_, _, original) do
