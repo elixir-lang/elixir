@@ -117,7 +117,7 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp get_files(dir) do
-    lc f inlist Path.wildcard("#{dir}/**/*") do
+    lc f inlist Path.wildcard("#{dir}/**/*.{app,beam}") do
       { binary_to_list(Path.basename(f)), File.read!(f) }
     end
   end
