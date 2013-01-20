@@ -59,13 +59,21 @@ eval_forms(Forms, Line, Vars, S) ->
 
   %% Pass { native, false } to speed up bootstrap
   %% process when native is set to true
-  { module(Form, S#elixir_scope.file, [{native,false}], true, fun(_, _) ->
+  { module(Form, S#elixir_scope.file, [{native,false}], true, fun(_, Binary) ->
     Res = Module:Fun(S#elixir_scope.module, Args),
     code:delete(Module),
-    case code:soft_purge(Module) of
-      true  -> return_module_name(I);
-      false -> ok
+
+    %% If we have labeled locals, anonymous functions
+    %% were created and therefore we cannot ditch the
+    %% module
+    case beam_lib:chunks(Binary, [labeled_locals]) of
+      { ok, { _, [{ labeled_locals, []}] } } ->
+        code:purge(Module),
+        return_module_name(I);
+      _ ->
+        ok
     end,
+
     Res
   end), FS }.
 
@@ -162,7 +170,7 @@ core_main() ->
     "lib/elixir/lib/kernel.ex",
     "lib/elixir/lib/keyword.ex",
     "lib/elixir/lib/list.ex",
-    "lib/elixir/lib/kernel/typespec.ex",    
+    "lib/elixir/lib/kernel/typespec.ex",
     "lib/elixir/lib/module.ex",
     "lib/elixir/lib/record.ex",
     "lib/elixir/lib/record/extractor.ex",
