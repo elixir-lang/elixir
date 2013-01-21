@@ -5,7 +5,10 @@ defmodule PathTest do
 
   test :wildcard do
     import PathHelpers
-    assert Path.wildcard(fixture_path("héllò")) == [fixture_path("héllò")]
+
+    if :file.native_name_encoding == :utf8 do
+      assert Path.wildcard(fixture_path("héllò")) == [fixture_path("héllò")]
+    end
   end
 
   test :absname_with_binary do

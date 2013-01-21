@@ -20,9 +20,11 @@ defmodule SystemTest do
   test :cwd_with_utf8 do
     import PathHelpers
 
-    File.cd!(fixture_path("héllò"), fn ->
-      assert Path.basename(System.cwd!) == "héllò"
-    end)
+    if :file.native_name_encoding == :utf8 do
+      File.cd!(fixture_path("héllò"), fn ->
+        assert Path.basename(System.cwd!) == "héllò"
+      end)
+    end
   end
 
   test :user_home do

@@ -8,7 +8,7 @@ defmodule FileTest do
   defmodule Cp do
     use ExUnit.Case
 
-    # cp_r/c is managed in setup/teardown because if it is stored in 
+    # cp_r/c is managed in setup/teardown because if it is stored in
     # the repository, reltool can't build a release
     def setup do
       src = fixture_path("cp_r")
@@ -371,7 +371,7 @@ defmodule FileTest do
      File.cp! src, dest, fn(_,_) -> true end
      File.Stat[mode: src_mode] = File.stat! src
      File.Stat[mode: dest_mode] = File.stat! dest
-     assert src_mode == dest_mode     
+     assert src_mode == dest_mode
     end
 
   end
@@ -675,7 +675,7 @@ defmodule FileTest do
   defmodule Rm do
     use ExUnit.Case
 
-    # cp_r/c is managed in setup/teardown because if it is stored in 
+    # cp_r/c is managed in setup/teardown because if it is stored in
     # the repository, reltool can't build a release
     def setup do
       src = fixture_path("cp_r")
@@ -1048,9 +1048,11 @@ defmodule FileTest do
   end
 
   test :cwd_and_cd_with_utf8 do
-    File.cd!(fixture_path("héllò"), fn ->
-      assert Path.basename(File.cwd!) == "héllò"
-    end)
+    if :file.native_name_encoding == :utf8 do
+      File.cd!(fixture_path("héllò"), fn ->
+        assert Path.basename(File.cwd!) == "héllò"
+      end)
+    end
   end
 
   test :invalid_cd do
