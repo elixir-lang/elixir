@@ -5,7 +5,7 @@ defmodule Mix.CLITest do
 
   test "env" do
     in_fixture "custom_mixfile", fn ->
-      env = System.cmd %b(MIX_ENV=prod #{mix_executable} run "IO.puts Mix.env")
+      env = System.cmd %b(MIX_ENV=prod #{elixir_executable} #{mix_executable} run "IO.puts Mix.env")
       assert env =~ %r"prod"
     end
   end
