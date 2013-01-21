@@ -1,6 +1,3 @@
-% Grammar for the Elixir language done with yecc
-% Copyright (C) 2011 Jose Valim
-
 Nonterminals
   grammar expr_list
   expr paren_expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
